@@ -20,6 +20,7 @@ typedef struct Vcval Vcval;
 typedef struct Box Box;
 typedef struct Pair Pair;
 typedef struct Str Str;
+typedef struct Vec Vec;
 
 struct Val {
 	Qkind qkind;
@@ -31,6 +32,7 @@ struct Val {
 		Box *box;
 		Pair *pair;
 		Str *str;
+		Vec *vec;
 	} u;
 };
 
@@ -71,8 +73,14 @@ struct Pair {
 
 struct Str {
 	Head hd;
-	char *s;
 	unsigned long len;
+	char *s;
+};
+
+struct Vec {
+	Head hd;
+	unsigned long len;
+	Val *vec;
 };
 
 struct VM {
