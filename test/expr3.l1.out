@@ -1,0 +1,11 @@
+entry: 0 params, 0 locals, 0 temps
+L3: 2 params, 0 locals, 3 temps
+L61: 0 params, 0 locals, 0 temps
+<cval 36>
+<cval 36>
+<cval 36>
+<cval 72>
+<cval 0>
+<cval 6>
+<cval 9>
+halted (ac = <nil>)

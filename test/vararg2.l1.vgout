@@ -1,0 +1,28 @@
+entry: 0 params, 0 locals, 0 temps
+L3: 1 params, 1 locals, 0 temps
+L21: 1 params, 0 locals, 0 temps
+L44: var params, 2 locals, 0 temps
+L60: var params, 1 locals, 0 temps
+L76: var params, 2 locals, 0 temps
+<cval 5>
+<cval 1>
+<cval 2>
+<cval 3>
+<cval 4>
+<cval 5>
+<cval 5>
+<cval 1>
+<cval 2>
+<cval 3>
+<cval 4>
+<cval 5>
+<cval 5>
+<cval 1>
+<cval 2>
+<cval 3>
+<cval 4>
+<cval 5>
+<cval 0>
+<cval 0>
+<cval 0>
+halted (ac = <nil>)

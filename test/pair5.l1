@@ -1,0 +1,25 @@
+length = lambda(l){
+     @local len;
+     for(len = 0; !isnull(l); l = cdr(l))
+	  len++;
+     return len;
+};
+
+iota = lambda(n){
+     l = null();
+     while(n-- > 0)
+	  l = cons(n, l);
+     return l;
+};
+
+printlist = lambda(l){
+     while(!isnull(l)){
+	  print(car(l));
+	  l = cdr(l);
+     }
+};
+
+x = iota(10);
+printlist(x);
+print(length(x));
+

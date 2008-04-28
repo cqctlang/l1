@@ -1,0 +1,7 @@
+x = null();
+for(i = 0; i < 10; i++)
+     x = cons(i, x);
+while(!isnull(x)){
+     print(car(x));
+     x = cdr(x);
+}

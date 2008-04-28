@@ -1,0 +1,3 @@
+x = null();
+if(isnull(x))
+	print(1);

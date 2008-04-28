@@ -1,0 +1,7 @@
+mkadd = lambda(n){
+      return lambda(m){ return m+n; };
+};
+
+add10 = mkadd(10);
+print(add10(4));
+print(add10(8));

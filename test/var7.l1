@@ -1,0 +1,7 @@
+g = lambda(f){
+	gc(); gc();
+	return lambda() { return f(); };
+};
+h = g(lambda(){return 1;});
+gc();
+print(h());

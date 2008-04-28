@@ -1,0 +1,22 @@
+x = lambda(a, b){
+	@local c;
+	c = 3;
+	b = b+1;		/* 3 */
+	print(a);
+	print(b);
+	print(c);
+	y = lambda(a){
+		a = 4;
+		b = b+1;	/* 4 */
+		c = 6;
+		z = lambda(){
+			b = b+1; /* 5 */
+		};
+		z();
+	};
+	y(a);
+	print(a);
+	print(b);
+	print(c);
+};
+x(1,2);

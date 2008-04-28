@@ -1,0 +1,608 @@
+%{
+#include "sys.h"
+#include "util.h"
+#include "l1.h"
+
+extern int yylex();
+extern char *yytext;
+
+static void
+yyerror(char *s)
+{
+	parseerror(s);
+}
+%}
+
+%union{
+	Expr *expr;
+	char *id;
+	int kind;
+}
+
+%token <id> IDENTIFIER TYPE_NAME CONSTANT STRING_LITERAL 
+%token SIZEOF TYPEDEF
+%token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
+%token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
+%token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
+%token LOCAL LAMBDA
+%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
+%token STRUCT UNION ENUM ELLIPSIS
+%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN
+
+%type <expr> declaration typedef specifier_list constant_expression
+%type <expr> declarator_list primary_expression postfix_expression
+%type <expr> argument_expression_list unary_expression cast_expression
+%type <expr> multiplicative_expression additive_expression shift_expression
+%type <expr> relational_expression equality_expression and_expression
+%type <expr> exclusive_or_expression inclusive_or_expression maybe_expression
+%type <expr> logical_and_expression logical_or_expression conditional_expression
+%type <expr> assignment_expression lambda_expression expression root_expression
+%type <expr> identifier_list local_list local
+%type <expr> type_specifier id tid tag struct_or_union_specifier
+%type <expr> struct_declaration_list struct_declaration
+%type <expr> struct_declarator_list struct_declarator enum_specifier
+%type <expr> enumerator_list enumerator declarator direct_declarator pointer
+%type <expr> parameter_type_list parameter_list parameter_declaration type_name
+%type <expr> abstract_declarator direct_abstract_declarator statement
+%type <expr> compound_statement statement_list
+%type <expr> expression_statement 
+%type <expr> selection_statement iteration_statement jump_statement
+%type <kind> unary_operator assignment_operator struct_or_union
+
+%start translation_unit_seq
+%%
+
+primary_expression
+	: id
+	| CONSTANT
+	{ $$ = doconst($1); }
+	| STRING_LITERAL
+	{ $$ = doconsts($1); }
+	| '(' expression ')'
+	{ $$ = $2; }
+	;
+
+postfix_expression
+	: primary_expression
+	| postfix_expression '[' expression ']'
+	{ $$ = newexpr(Earef, $1, $3, 0, 0); }
+	| postfix_expression '(' ')'
+	{ $$ = newexpr(Ecall, $1, nullelist(), 0, 0); }
+	| postfix_expression '(' argument_expression_list ')'
+	  /* don't invert -- compiler evaluates arguments in reverse order */
+	{ $$ = newexpr(Ecall, $1, $3, 0, 0); }
+	| postfix_expression '.' id
+	{ $$ = newexpr(Edot, $1, $3, 0, 0); }
+	| postfix_expression PTR_OP id
+	{ $$ = newexpr(Earrow, $1, $3, 0, 0); }
+	| postfix_expression INC_OP
+	{ $$ = newexpr(Epostinc, $1, 0, 0, 0); }
+	| postfix_expression DEC_OP
+	{ $$ = newexpr(Epostdec, $1, 0, 0, 0); }
+	;
+
+argument_expression_list
+	: root_expression
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| argument_expression_list ',' root_expression
+	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	;
+
+unary_expression
+	: postfix_expression
+	| INC_OP unary_expression
+	{ $$ = newexpr(Epreinc, $2, 0, 0, 0); }
+	| DEC_OP unary_expression
+	{ $$ = newexpr(Epredec, $2, 0, 0, 0); }
+	| unary_operator cast_expression
+	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	| SIZEOF unary_expression
+	{ $$ = newexpr(Esizeofe, $2, 0, 0, 0); }
+	| SIZEOF '(' type_name ')'
+	{ $$ = newexpr(Esizeoft, $3, 0, 0, 0); }
+	;
+
+unary_operator
+	: '&'
+	{ $$ = Euand; }
+	| '*'
+	{ $$ = Eumul; }
+	| '+'
+	{ $$ = Euplus; }
+	| '-'
+	{ $$ = Euminus; }
+	| '~'
+	{ $$ = Eutwiddle; }
+	| '!'
+	{ $$ = Eunot; }
+	;
+
+cast_expression
+	: unary_expression
+	| '(' type_name ')' cast_expression
+	{ $$ = newexpr(Ecast, $2, $4, 0, 0); }
+	;
+
+multiplicative_expression
+	: cast_expression
+	| multiplicative_expression '*' cast_expression
+	{ $$ = newbinop(Emul, $1, $3); }
+	| multiplicative_expression '/' cast_expression
+	{ $$ = newbinop(Ediv, $1, $3); }
+	| multiplicative_expression '%' cast_expression
+	{ $$ = newbinop(Emod, $1, $3); }
+	;
+
+additive_expression
+	: multiplicative_expression
+	| additive_expression '+' multiplicative_expression
+	{ $$ = newbinop(Eadd, $1, $3); }
+	| additive_expression '-' multiplicative_expression
+	{ $$ = newbinop(Esub, $1, $3); }
+	;
+
+shift_expression
+	: additive_expression
+	| shift_expression LEFT_OP additive_expression
+	{ $$ = newbinop(Eshl, $1, $3); }
+	| shift_expression RIGHT_OP additive_expression
+	{ $$ = newbinop(Eshr, $1, $3); }
+	;
+
+relational_expression
+	: shift_expression
+	| relational_expression '<' shift_expression
+	{ $$ = newbinop(Elt, $1, $3); }
+	| relational_expression '>' shift_expression
+	{ $$ = newbinop(Egt, $1, $3); }
+	| relational_expression LE_OP shift_expression
+	{ $$ = newbinop(Ele, $1, $3); }
+	| relational_expression GE_OP shift_expression
+	{ $$ = newbinop(Ege, $1, $3); }
+	;
+
+equality_expression
+	: relational_expression
+	| equality_expression EQ_OP relational_expression
+	{ $$ = newbinop(Eeq, $1, $3); }
+	| equality_expression NE_OP relational_expression
+	{ $$ = newbinop(Eneq, $1, $3); }
+	;
+
+and_expression
+	: equality_expression
+	| and_expression '&' equality_expression
+	{ $$ = newbinop(Eband, $1, $3); }
+	;
+
+exclusive_or_expression
+	: and_expression
+	| exclusive_or_expression '^' and_expression
+	{ $$ = newbinop(Ebxor, $1, $3); }
+	;
+
+inclusive_or_expression
+	: exclusive_or_expression
+	| inclusive_or_expression '|' exclusive_or_expression
+	{ $$ = newbinop(Ebor, $1, $3); }
+	;
+
+logical_and_expression
+	: inclusive_or_expression
+	| logical_and_expression AND_OP inclusive_or_expression
+	{ $$ = newexpr(Eland, $1, $3, 0, 0); }
+	;
+
+logical_or_expression
+	: logical_and_expression
+	| logical_or_expression OR_OP logical_and_expression
+	{ $$ = newexpr(Elor, $1, $3, 0, 0); }
+	;
+
+conditional_expression
+	: logical_or_expression
+	| logical_or_expression '?' expression ':' conditional_expression
+	{ $$ = newexpr(Econd, $1, $3, $5, 0); }
+	;
+
+assignment_expression
+	: conditional_expression
+	| unary_expression assignment_operator root_expression
+	{ if($2 == Eg)
+	  	$$ = newexpr($2, $1, $3, 0, 0);
+	  else
+	  	$$ = newgop($2, $1, $3);
+	}
+	;
+
+assignment_operator
+	: '='
+	{ $$ = Eg; }
+	| MUL_ASSIGN
+	{ $$ = Emul; }
+	| DIV_ASSIGN
+	{ $$ = Ediv; }
+	| MOD_ASSIGN
+	{ $$ = Emod; }
+	| ADD_ASSIGN
+	{ $$ = Eadd; }
+	| SUB_ASSIGN
+	{ $$ = Esub; }
+	| LEFT_ASSIGN
+	{ $$ = Eshl; }
+	| RIGHT_ASSIGN
+	{ $$ = Eshr; }
+	| AND_ASSIGN
+	{ $$ = Eband; }
+	| XOR_ASSIGN
+	{ $$ = Ebxor; }
+	| OR_ASSIGN
+	{ $$ = Ebor; }
+	;
+
+identifier_list
+	: id
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| identifier_list ',' id
+	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	;
+
+lambda_expression
+	: assignment_expression
+	| LAMBDA '(' identifier_list ')' compound_statement
+	{ $$ = newexpr(Elambda, invert($3), $5, 0, 0); }
+	| LAMBDA '(' ')' compound_statement
+	{ $$ = newexpr(Elambda, nullelist(), $4, 0, 0); }
+	| LAMBDA id compound_statement
+	{ $$ = newexpr(Elambda, $2, $3, 0, 0); }
+	;
+
+root_expression
+	: lambda_expression
+
+expression
+	: root_expression
+	| expression ',' root_expression
+	{ $$ = newexpr(Ecomma, $1, $3, 0, 0); }
+	;
+
+constant_expression
+	: conditional_expression
+	;
+
+typedef
+	: TYPEDEF specifier_list declarator ';'
+	{ $$ = newexpr(Etypedef, $2, $3, 0, 0); }
+	;
+
+declaration
+	: specifier_list ';'
+	{ $$ = newexpr(Edecls, $1, nullelist(), 0, 0); }
+	| '@' constant_expression specifier_list declarator_list ';'
+	{ $$ = newexpr(Edecls, $3, invert($4), $2, 0); }
+	| specifier_list declarator_list ';'
+	{ $$ = newexpr(Edecls, $1, invert($2), 0, 0); }
+	;
+
+declarator_list
+	: declarator
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| declarator_list ',' declarator
+	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	;
+
+type_specifier
+	: VOID
+	{ $$ = newexpr(Evoid, 0, 0, 0, 0); }
+	| CHAR
+	{ $$ = newexpr(Echar, 0, 0, 0, 0); }
+	| SHORT
+	{ $$ = newexpr(Eshort, 0, 0, 0, 0); }
+	| INT
+	{ $$ = newexpr(Eint, 0, 0, 0, 0); }
+	| LONG
+	{ $$ = newexpr(Elong, 0, 0, 0, 0); }
+	| FLOAT
+	{ $$ = newexpr(Efloat, 0, 0, 0, 0); }
+	| DOUBLE
+	{ $$ = newexpr(Edouble, 0, 0, 0, 0); }
+	| SIGNED
+	{ $$ = newexpr(Esigned, 0, 0, 0, 0); }
+	| UNSIGNED
+	{ $$ = newexpr(Eunsigned, 0, 0, 0, 0); }
+	| struct_or_union_specifier
+	| enum_specifier
+	| tid
+	;
+
+id
+	: IDENTIFIER
+	{ $$ = doid($1); }
+
+tid
+	: TYPE_NAME
+	{ $$ = doid($1); }
+	;
+
+tag
+	: id
+	| tid
+	;
+
+struct_or_union_specifier
+	: struct_or_union tag '{' struct_declaration_list '}'
+	{ $$ = newexpr($1, $2, invert($4), 0, 0); }
+	| struct_or_union tag '{'  '}'
+	{ $$ = newexpr($1, $2, nullelist(), 0, 0); }
+	| struct_or_union '{' struct_declaration_list '}'
+	{ $$ = newexpr($1, 0, invert($3), 0, 0); }
+	| struct_or_union '{' '}'
+	{ $$ = newexpr($1, 0, nullelist(), 0, 0); }
+	| struct_or_union tag
+	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	;
+
+struct_or_union
+	: STRUCT
+	{ $$ = Estruct; }
+	| UNION
+	{ $$ = Eunion; }
+	;
+
+struct_declaration_list
+	: struct_declaration
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| struct_declaration_list struct_declaration
+	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	;
+
+struct_declaration
+	: '@' constant_expression specifier_list struct_declarator_list ';'
+	{ $$ = newexpr(Efields, $3, invert($4), $2, 0); }
+	| specifier_list struct_declarator_list ';'
+	{ $$ = newexpr(Efields, $1, invert($2), 0, 0); }
+        | '@' constant_expression ';'
+	{ $$ = newexpr(Efieldoff, $2, 0, 0, 0); }
+	;
+
+/* specifier_list order does not affect meaning of specifier */
+specifier_list
+	: type_specifier
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| specifier_list type_specifier
+	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	;
+
+struct_declarator_list
+	: struct_declarator
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| struct_declarator_list ',' struct_declarator
+	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	;
+
+struct_declarator
+	: declarator
+	| ':' constant_expression
+	{ $$ = newexpr(Ebits, 0, $2, 0, 0); }
+	| declarator ':' constant_expression
+	{ $$ = newexpr(Ebits, $1, $3, 0, 0); }
+	;
+
+enum_specifier
+	: ENUM '{' enumerator_list '}'
+	{ $$ = newexpr(Eenum, 0, invert($3), 0, 0); }
+	| ENUM tag '{' enumerator_list '}'
+	{ $$ = newexpr(Eenum, $2, invert($4), 0, 0); }
+	| ENUM '{' enumerator_list ',' '}'
+	{ $$ = newexpr(Eenum, 0, invert($3), 0, 0); }
+	| ENUM tag '{' enumerator_list ',' '}'
+	{ $$ = newexpr(Eenum, $2, invert($4), 0, 0); }
+	| ENUM tag
+	{ $$ = newexpr(Eenum, $2, 0, 0, 0); }
+	;
+
+enumerator_list
+	: enumerator
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| enumerator_list ',' enumerator
+	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	;
+
+/* typedef names and enumator components are in the same
+   overload class, so use id not tag. */
+enumerator
+	: id
+	{ $$ = newexpr(Eenumel, $1, 0, 0, 0); }
+	| id '=' constant_expression
+	{ $$ = newexpr(Eenumel, $1, $3, 0, 0); }
+	;
+
+declarator
+	: pointer direct_declarator
+	{ $$ = ptrto($1, $2); }
+	| direct_declarator
+	;
+
+direct_declarator
+	: id
+	{ $$ = $1; }
+	| '(' declarator ')'
+	{ $$ = $2; }
+	| direct_declarator '[' constant_expression ']'
+	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	| direct_declarator '[' ']'
+	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	| direct_declarator '(' parameter_type_list ')'
+	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	| direct_declarator '(' ')'
+	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	;
+
+pointer
+	: '*'
+	{ $$ = newexpr(Eptr, 0, 0, 0, 0); }
+	| '*' pointer
+	{ $$ = newexpr(Eptr, $2, 0, 0, 0); }
+	;
+
+parameter_type_list
+	: parameter_list
+	{ $$ = invert($1); }
+	| parameter_list ',' ELLIPSIS
+/*
+	{ $$ = invert(newexpr(Eelist,
+	                      newexpr(Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
+			      
+*/
+	{ $$ = invert($1); }
+	;
+
+parameter_list
+	: parameter_declaration
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| parameter_list ',' parameter_declaration
+	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	;
+
+parameter_declaration
+	: specifier_list declarator
+	{ $$ = newexpr(Edecl, $1,
+		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
+	| specifier_list abstract_declarator
+	{ $$ = newexpr(Edecl, $1,
+		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
+	| specifier_list
+	{ $$ = newexpr(Edecl, $1, nullelist(), 0, 0); }
+	;
+
+type_name
+	: specifier_list
+	{ $$ = newexpr(Edecl, $1, nullelist(), 0, 0); }
+	| specifier_list abstract_declarator
+	{ $$ = newexpr(Edecl, $1,
+		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
+	;
+
+abstract_declarator
+	: pointer
+	| direct_abstract_declarator
+	| pointer direct_abstract_declarator
+	{ $$ = ptrto($1, $2); }
+	;
+
+direct_abstract_declarator
+	: '(' abstract_declarator ')'
+	{ $$ = $2; }
+	| '[' ']'
+	{ $$ = newexpr(Earr, 0, 0, 0, 0); }
+	| '[' constant_expression ']'
+	{ $$ = newexpr(Earr, 0, $2, 0, 0); }
+	| direct_abstract_declarator '[' ']'
+	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	| direct_abstract_declarator '[' constant_expression ']'
+	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	| '(' ')'
+	{ $$ = newexpr(Efun, 0, nullelist(), 0, 0); }
+	| '(' parameter_type_list ')'
+	{ $$ = newexpr(Efun, 0, $2, 0, 0); }
+	| direct_abstract_declarator '(' ')'
+	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	| direct_abstract_declarator '(' parameter_type_list ')'
+	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	;
+
+statement
+	: compound_statement
+	| expression_statement
+	| selection_statement
+	| iteration_statement
+	| jump_statement
+	;
+
+local
+	: LOCAL identifier_list ';'
+	{ $$ = invert($2); }
+	;
+
+local_list
+	: local
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| local_list local
+	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	;
+
+compound_statement
+	: '{' '}'
+	{ $$ = newexpr(Eblock, nullelist(), nullelist(), 0, 0); }
+	| '{' statement_list '}'
+	{ $$ = newexpr(Eblock, nullelist(), invert($2), 0, 0); }
+	| '{' local_list '}'
+	{ $$ = newexpr(Eblock, invert($2), nullelist(), 0, 0); }
+	| '{' local_list statement_list '}'
+	{ $$ = newexpr(Eblock, invert($2), invert($3), 0, 0); }
+	;
+
+statement_list
+	: statement
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| statement_list statement
+	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	;
+
+expression_statement
+	: ';'
+	{ $$ = newexpr(Enop, 0, 0, 0, 0); }
+	| expression ';'
+	{ $$ = $1; }
+	;
+
+selection_statement
+	: IF '(' expression ')' statement
+	{ $$ = newexpr(Eif, $3, $5, 0, 0); }
+	| IF '(' expression ')' statement ELSE statement
+	{ $$ = newexpr(Eif, $3, $5, $7, 0); }
+	;
+
+maybe_expression
+	: expression
+	|
+	{ $$ = 0; }
+	;
+
+iteration_statement
+	: WHILE '(' expression ')' statement
+	{ $$ = newexpr(Ewhile, $3, $5, 0, 0); }
+	| DO statement WHILE '(' expression ')' ';'
+	{ $$ = newexpr(Edo, $2, $5, 0, 0); }
+	| FOR '(' maybe_expression ';' maybe_expression ';' maybe_expression ')' statement
+	{ $$ = newexpr(Efor, $3, $5, $7, $9); }
+	;
+
+jump_statement
+	: CONTINUE ';'
+	{ $$ = newexpr(Econtinue, 0, 0, 0, 0); }
+	| BREAK ';'
+	{ $$ = newexpr(Ebreak, 0, 0, 0, 0); }
+	| RETURN ';'
+	{ $$ = newexpr(Eret, 0, 0, 0, 0); }
+	| RETURN expression ';'
+	{ $$ = newexpr(Eret, $2, 0, 0, 0); }
+	;
+
+translation_unit_seq
+	: translation_unit
+	|
+	;
+
+translation_unit
+	: external_declaration
+	| translation_unit external_declaration
+	;
+
+external_declaration
+	: declaration		{ dotop($1); }
+	| typedef		{ dotop($1); }
+	| statement		{ dotop($1); }
+	;
+
+%%

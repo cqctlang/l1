@@ -1,0 +1,27 @@
+entry: 0 params, 0 locals, 0 temps
+<cval 25>
+<cval 20>
+<cval 15>
+<cval 10>
+<cval 5>
+<cval 20>
+<cval 16>
+<cval 12>
+<cval 8>
+<cval 4>
+<cval 15>
+<cval 12>
+<cval 9>
+<cval 6>
+<cval 3>
+<cval 10>
+<cval 8>
+<cval 6>
+<cval 4>
+<cval 2>
+<cval 5>
+<cval 4>
+<cval 3>
+<cval 2>
+<cval 1>
+halted (ac = <nil>)

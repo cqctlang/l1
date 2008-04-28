@@ -1,0 +1,12 @@
+mkadd = lambda(n){
+      return lambda(m){ return m+n; };
+};
+
+callit = lambda(fn,m){
+       return fn(m);
+};
+
+add10 = mkadd(10);
+print(callit(add10,4));
+print(callit(add10,8));
+

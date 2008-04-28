@@ -1,0 +1,12 @@
+foo = lambda(){
+    @local x;
+    x = callcc(lambda(k){
+      z = k;
+      k(1);
+    });
+    print(x); 
+    if(x < 5)
+    	 z(x+1);
+};
+foo();
+

@@ -1,0 +1,23 @@
+length = lambda(l){
+     @local len;
+     for(len = 0; !isnull(l); l = cdr(l))
+	  len++;
+     return len;
+};
+
+printlist = lambda(l){
+     while(!isnull(l)){
+	  print(car(l));
+	  l = cdr(l);
+     }
+};
+
+
+fn = lambda arg {
+	@local x;
+	x = arg;
+	print(length(x));
+	printlist(x);
+};
+
+fn(1,2,3,4,5);

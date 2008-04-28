@@ -1,0 +1,8 @@
+x = lambda(a, b){
+	@local c;
+	c = a;
+	y = lambda(c){
+		z = c;
+	};
+};
+

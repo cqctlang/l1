@@ -1,0 +1,4 @@
+i = 0;
+x = ++i;
+print(x);
+print(i);

@@ -1,0 +1,8 @@
+i = 5;
+while(--i > 0){
+	j = 5;
+	while(--j > 0){
+		x = i*j;
+		print(x);
+	}
+}

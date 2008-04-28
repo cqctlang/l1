@@ -1,0 +1,15 @@
+i = 0;
+i++;
+print(i);
+
+i = 0;
+++i;
+print(i);
+
+i = 1;
+--i;
+print(i);
+
+i = 1;
+i--;
+print(i);

@@ -1,0 +1,9 @@
+fac = lambda(n,rv){
+	if(n <= 1)
+		return rv;
+	else{
+		// print(n);
+		return fac(n-1,n*rv);
+	}
+};
+print(fac(50,1));

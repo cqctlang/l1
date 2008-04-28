@@ -1,0 +1,9 @@
+foo = lambda(x,rv){
+	if(x == 0)
+		return rv;
+	else{
+		print(x);	
+		return foo(x-1,x+rv);
+	}
+};
+print(foo(100,0));

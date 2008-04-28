@@ -1,0 +1,391 @@
+calling convention
+------------------
+
+	fpx
+	clx
+	pcx
+	argn
+	...
+	arg2
+	arg1
+fp0->	narg
+	local1
+	local2
+	...
+	localn
+	temp1
+	temp2
+	...
+sp0->	tempn
+
+
+frame L:
+	sp -= 3
+	stack[sp] = L
+	stack[sp+1] = cl
+	stack[sp+2] = fp
+
+ret:
+	let* narg = stack[fp+1]
+             spp = fp-(narg+1) in
+	    pc = stack[sp]
+	    cl = stack[sp+1]
+	    fp = stack[sp+2]
+	    sp += 3
+
+apply C:
+	cl = C
+	pc = C.entry
+	fp = sp;
+		
+call sequence looks like:
+            frame <ret addr>
+            code for args
+            call
+<ret addr>: ; return value in %ac
+
+why there is both a frame and call insn
+     - simplifies stack fixup on tail calls
+	- we just slide the arguments up
+     - otherwise i don't think it matters
+
+
+garbage collection
+------------------
+
+the gc is based on the concurrent gc described in
+
+	l. huelsbergen and p. winterbottom.  very concurrent
+	mark-&-sweep garbage collection without fine-grained
+	synchronization.  ismm'98.
+
+our goal is to have an efficent, simple incremental gc
+that can optionally run concurrently with low
+synchronization overhead.
+
+our implementation differs from the paper in several
+ways.
+
+the rootset structure records objects to be marked.
+the rootset implementation is based on the non-blocking
+set data structure given in the appendix.
+
+there are two rootsets:
+
+   roots - root set calculated at beginning of gc epoch by gc;
+   stores - objects dynamically replaced during gc by mutator.
+
+the paper defines only the stores root set.  the
+function of our roots root set is mantaining the state
+of the marker are it traverses reachable heap objects.
+in the paper, the inferno implementation instead uses
+an additional propagator color to avoid recursion,
+implementing marking by repeatedly scanning the heap
+until no new propagators are added.  this approach of
+requiring many heap scans per gc epoch seems wrong --
+it seems we should enable gc epochs to complete as soon
+as possible -- but we have not measured.  the sml/nj
+implementation uses a fixed size stack; we wish to
+avoid arbitrary limits.
+
+the reason the two rootsets cannot be collapsed into a
+single one is the semantics of the non-blocking
+operators insert and remove.  insert and remove can be
+called by different threads without synchronization,
+but insert and remove are not reentrant, so two threads
+cannot both call insert or remove.  gc calls remove for
+both roots and stores; mutator calls insert for stores,
+while gc calls insert for roots.
+
+in addition, it is necessary to maintain two link
+fields in the heap objects (Heads) because insertion is
+not atomic.  insert first checks whether the heap
+object is already on the rootset before adding it.
+insert checks and updates a link field corresponding to
+the root set into which the object is being inserted.
+we could use locked cmpxchg, but that would add global
+synchronization on each write barrier.  the insert
+implementation in the paper avoids checking if the
+object on the list by encapsulating objects in fresh
+rootset node -- but it does not explain the memory
+management of these node objects; in our
+implementation, the rootset linkage is a permanent,
+inseparable part of each heap object.
+
+it is possible for a heap object to be on both root
+sets simulataneously.  this is inefficient but not
+incorrect (the marker will update its color the first
+time it encounters the object, then harmlessly do so
+again -- to the same color value -- the second time).
+similarly, the same heap object may be inserted in a
+root set multiple times within an epoch.  the argument
+in the paper (section 2.3) for epoch termination still
+holds in our implementation.
+
+explict synchronization between gc and mutator occurs
+at (1) the start of epoch, (2) checking for termination
+of epoch, and (3) mutator-directed termination of gc.
+synchronization is implemented by atomic r/w memory
+operations on two shared boolean variables and r/w i/o
+operation on a bi-directional pipe.
+
+	  gcpause - set by mutator, read by gc
+	  gcrun - set by gc, read by mutator
+
+when not collecting, gc thread blocks on read of its
+end of pipe.  mutator is responsible for deciding when
+gc should occur.  it signals gc by writing byte GCrun
+to its end of pipe, then does blocking read on its end.
+gc sets variable gcrun to non-zero, then writes
+GCrunning to its end of pipe.
+
+after sweeping gc pauses mutator to allow gc consistent
+view of stores root set by setting gcpause non-zero and
+then blocking on pipe read.  mutator polls gcpause on
+each tick; when it sees it non-zero, mutator writes
+GCpaused to pipe, then blocks on pipe read.  after gc
+read unblocks, gc checks root set then resumes mutator
+by clearing gcpause and writing GCresume to pipe.
+
+after epoch gc clears gcrun and blocks on pipe read.
+
+to signal termination, mutator writes GCdie to pipe
+then blocks on read.  gc receives GCdie either at start
+of epoch or when pausing to check store set.  at start
+of epoch, gc terminates.  at store check pause, gc
+schedules termination at end of epoch but finishes
+epoch without blocking for subsequent pauses (which is
+correct, since mutator is paused waiting for GCdie).
+
+if gc terminates prematurely (before end of epoch),
+there can be heap objects with stale root set links.
+these will confuse gc reset -- an invariant of gc at
+the start of epoch is that all heap objects are either
+linked on a free list or not linked.  to reset
+prematurely terminated gcs, we could scan heaps and
+clear links for all objects whose color is not GCfree.
+
+the predicate for whether a heap object is in a root
+set is non-null link field.  thus root set has special
+non-null EOL Head object to denote end of the list, so
+that the predicate is satisfied for last element in a
+root set.
+
+
+
+
+Representation of C types and declarations
+------------------------------------------
+
+Decl represents a C declaration.
+
+Type *type
+
+	The type of the declared object.
+
+	Type storage is managed by type tables; ignored by freedecl.
+
+char *id
+
+	The identifier of the declared object.  It is NULL for abstract
+	declarators (function parameters).  Tagged types without
+	declarators, such as
+
+		struct foo { int x };
+
+	that are generated by declaration productions are represented
+	as Decls with NULL ids.
+
+	Freed by freedecl.
+
+Expr *offs
+
+	Optional offset specifiers occur in toplevel declarations or
+	in struct/union declarations.  Offs is the uninterpreted parse
+	tree of the expression.
+
+		@<expr> int x;
+		struct foo {
+			@<expr> int z;
+		};
+
+	Freed by freedecl.
+
+Expr *bits
+
+	Optional bitfield size occurs in struct/union declarations.
+	Bits is the uninterpreted parse tree.
+
+	Freed by freedecl.
+
+Decl *link
+
+	Pointer to next element in declaration list.  NULL means end
+	of list.  Three productions create declaration lists:
+
+	- toplevel declarations, e.g.,
+
+	  int x;
+	  int y, z;
+	  int a, b, c;
+
+	  yield a list of declarations in left-to-right, top-to-bottom order;
+
+	- a struct and union declaration, e.g.,
+
+	  struct {
+	  	int x;
+		int y, z;
+		int a, b, c;
+	  };
+
+	  yields a Type whose field element contains a similarly
+	  ordered declaration list;
+
+	- a function declaration, e.g.,
+
+	  int fn(int x, int y, int z, int, int);
+
+	  yields a Type whose param element contains a similarly
+	  ordered declaration list.  (Its elements may include
+	  abstract declarators.)
+
+	Recursively freed by freedecl.
+
+
+Type represents a C type.
+
+unsigned kind
+
+	Kind is Tbase, Tstruct, Tunion, Tenum, Tptr, Tarr, or Tfun.
+
+	The system defines a Tbase Type for each primitive base type
+	Base type references resolve to them.
+
+char *tag
+
+	Tag identifier for struct, union, and enum type.
+	Untagged struct, union, and enum type declarations have NULL tag.
+	
+	Freed by freetype.
+
+Decl *field
+
+	Declaration list for struct and union types.
+
+	Offsets are associated with the first declarator in a struct/union
+	declaration:
+
+	struct foo {
+		int x, y;
+		@0x8 int z, a, b;
+		int c;
+	};
+
+	yields a five-element declaration list, the third of which has
+	an offset for the expression 0x8 and identifier z.
+
+	struct/union declarations that contain only an offset yield a
+	separate element (in order) in the field declaration list:
+
+	struct foo {
+		int x, y;
+		@0x8;
+		int z, a, b;
+		int c;
+	};
+
+	Field elements (and only field elements) may have bits defined. 
+
+	The element has a defined offs and link field, but is
+	otherwise NULL.
+
+	Freed by freetype.
+
+Enum *en;
+
+	List of defined enum constants in lexical definiion order:
+
+	typedef
+	struct Enum {
+		char *id;
+		Expr *val;
+		Type *type;
+		Enum *link;
+	} Enum;
+
+	ID is the identifier for the constant.
+	VAL is a symbolic expression for the value of the constant;
+	it is present regardless of whether the input enum definition
+	supplied a value.
+	TYPE is the type defining the enum (i.e., en->type->en == en).
+	LINK points to the next constant.
+
+Expr *sz;
+
+	A final offset declaration in a struct/union:
+
+	struct foo {
+		int x;
+		int y;
+		@<expr>;
+	};
+
+	is represented like an ordinary offset as an uninterpreted
+	expression parse tree in the sz field of the Type, and is not
+	included as the final or any other element of the field
+	declaration list.
+
+	Freed by freetype.
+
+Decl *param
+
+	Represents the parameters of a function (Tfun) Type.
+
+	NULL if the function has an empty parameter list.
+
+	The parser accepts var arg declarations (containing "...")
+	but discards the elipses, e.g.,
+
+		int foo(int x);
+		int bar(int x, ...);
+	
+	have structurally equivalent param lists.
+
+	Decls in param lists may be abstract declarators (NULL id).
+	They always have NULL offs and bits.
+
+	Freed by freetype.
+
+Expr *cnt
+
+	Represents that size expression of an array (Tarr) type.
+
+	NULL if the declaration omits a size.
+
+	Freed by freetype.
+
+Type *link
+
+	The Type modified by a pointer (Tptr) or array (Tarr) Type,
+	or returned by a function (Tfun) Type.
+
+	Ignored by freetype; type storage is managed by type tables.
+
+unsigned char flags
+
+	Ffwd: set for a Type yielded by parsing a forward declaration
+	of struct/union/enum type.  A forward declaration looks like
+
+		struct foo; /* omitting { } */
+	
+	Struct/unions with no fields are declared as
+
+		struct foo {}; /* omitting { } */
+
+	and do not have Ffwd set.
+
+	Both forms yield NULL fields.
+
+
+	There are no other flags.

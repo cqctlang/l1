@@ -1,0 +1,13 @@
+x = lambda(a, b){
+	@local c;
+	c = a;
+	y = lambda(d){
+		z = a;
+		z = c;
+	};
+	print(a);
+	print(b);
+	print(c);
+	print(y);
+};
+x(1,2);

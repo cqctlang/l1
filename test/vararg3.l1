@@ -1,0 +1,31 @@
+length = lambda(l){
+     @local len;
+     for(len = 0; !isnull(l); l = cdr(l))
+	  len++;
+     return len;
+};
+
+printlist = lambda(l){
+     while(!isnull(l)){
+	  print(car(l));
+	  l = cdr(l);
+     }
+};
+
+f = lambda (){
+	@local x;
+	x = lambda arg {
+	     @local f;
+	     if(length(arg) == 1){
+		  f = car(arg);
+		  f(1,2,3,4,5,6);
+	     }else{
+		  printlist(arg);
+	     }
+	};
+	return x;
+};
+
+fn = f();
+fn(fn);
+f()(f());

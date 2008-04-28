@@ -1,0 +1,32 @@
+x = 1;
+y = 4;
+
+print(x&y);
+print(x&x);
+print(x|y);
+print(x|x);
+print(x^x);
+print(x^y);
+print(y<<x);
+print(y>>x);
+
+x &= y;
+print(x);
+
+x = 1;
+x |= y;
+print(x);
+
+x = 1;
+x ^= y;
+print(x);
+
+x = 1;
+y = 4;
+y <<= x;
+print(y);
+
+x = 1;
+y = 4;
+y >>= x;
+print(y);

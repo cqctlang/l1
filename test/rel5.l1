@@ -1,0 +1,13 @@
+doit = lambda(a,b){
+	return a < b;
+};
+
+if(doit(1,2))
+	print(1*doit(1,2));
+else
+	print(2*doit(1,2));
+
+if(doit(2,1))
+	print(1*doit(2,1));
+else
+	print(2*doit(2,1));

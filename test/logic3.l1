@@ -1,0 +1,14 @@
+if(!(1 && 0))
+	print(1);
+else
+	print(0);
+
+
+false = lambda(){
+	return 0;
+};
+
+if(!(0 || false()))
+	print(1);
+else
+	print(0);

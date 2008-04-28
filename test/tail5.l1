@@ -1,0 +1,17 @@
+foo = lambda(x,y,z){
+	return print(z);
+};
+foo(1,2,3);
+foo = lambda(x,y,z){
+	return print(y);
+};
+foo(1,2,3);
+foo = lambda(x,y,z){
+	return print(x);
+};
+foo(1,2,3);
+bar = lambda(x){
+	return foo(x,x,x);
+};
+return bar(4);
+

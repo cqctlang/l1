@@ -1,0 +1,6 @@
+if(x = y = 3+3)
+	print(x);
+
+if(x = y = 0)
+	print(x);
+

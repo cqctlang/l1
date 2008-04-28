@@ -1,0 +1,22 @@
+on this for1M
+
+x = 5000000000;
+for(i = 5000000000; i < 5010000000; i++)
+      x++;
+
+% ./l1 -t -e for1M.l1 
+entry: 0 params, 0 locals, 0 temps
+halted (ac = <nil>)
+5076808 usec
+% ./l1 -t -e for1M.l1 
+entry: 0 params, 0 locals, 0 temps
+halted (ac = <nil>)
+5060836 usec
+% ./l1 -t -e for1M.l1 
+entry: 0 params, 0 locals, 0 temps
+halted (ac = <nil>)
+5060061 usec
+% ./l1 -t -e for1M.l1 
+entry: 0 params, 0 locals, 0 temps
+halted (ac = <nil>)
+5057702 usec

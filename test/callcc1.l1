@@ -1,0 +1,10 @@
+foo = lambda(){
+    @local x;
+    x = callcc(lambda(k){
+      z = k;
+      k(2);
+      return 1;
+    });
+    print(x); 
+};
+foo();

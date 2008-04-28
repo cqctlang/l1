@@ -1,0 +1,6 @@
+i = 10;
+do{
+	if(i == 5)
+		break;
+}while(--i);
+print(i);
