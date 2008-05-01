@@ -231,6 +231,7 @@ freeexpr(Expr *e, void(*xfn)(Expr*))
 	case Eid:
 		free(e->id);
 		break;
+	case Etick:
 	case Econsts:
 		freelits(e->lits);
 		break;
@@ -260,6 +261,7 @@ copyexpr(Expr *e)
 	case Eid:
 		ne->id = xstrdup(e->id);
 		break;
+	case Etick:
 	case Econsts:
 		ne->lits = copylits(e->lits);
 		break;
@@ -698,6 +700,15 @@ doconsts(char *s)
 	return e;
 }
 
+Expr*
+dotick(char *s)
+{
+	Expr *e;
+	e = newexpr(Etick, 0, 0, 0, 0);
+	e->lits = mklits(s, strlen(s));
+	return e;
+}
+
 static Expr*
 recexprinc(Expr *e)
 {
@@ -1043,7 +1054,8 @@ fmtdecllist(Decl *p)
 	return buf;
 }
 
-static char*
+/* o may be freed. */
+char*
 fmttype(Type *t, char *o)
 {
 	char *buf, *w, *pl;

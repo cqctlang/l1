@@ -341,8 +341,46 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Icval:
+		printf("cval ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iiscl:
+		printf("iscl ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iiscval:
+		printf("iscval ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	case Iisnull:
 		printf("isnull ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iispair:
+		printf("ispair ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iisstr:
+		printf("isstr ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iistype:
+		printf("istype ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -959,6 +997,11 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 		if(e->x == NULL)
 			e->x = konstadd(e->lits, kon);
 		break;
+	case Etick:
+		e->x = konstlookup(e->lits, kon);
+		if(e->x == NULL)
+			e->x = konstadd(e->lits, kon);
+		break;
 	case Eid:
 		id = e->id;
 		vd = varlookup(id, ve);
@@ -1123,6 +1166,9 @@ printframe(Expr *e)
 		break;
 	case Eblock:
 		printframe(e->e2);
+		break;
+	case Etick:
+		printf("(Etick %.*s)", e->lits->len, e->lits->s);
 		break;
 	case Eid:
 		printf("(Eid ");
@@ -1710,6 +1756,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		else
 			cgctl(code, p, p->Return0, nxt);
 		break;
+	case Etick:
+		i = nextinsn(code);
+		break;
 	/* can Eid and Econst be rationalized with cgrand? */
 	case Eid:
 		i = nextinsn(code);
@@ -2204,6 +2253,52 @@ nullthunk()
 }
 
 Closure*
+iscvaluethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "iscvalue");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iiscval;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+isprocedurethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "isprocedure");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iiscl;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
 isnullthunk()
 {
 	Ctl *L;
@@ -2218,6 +2313,75 @@ isnullthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Iisnull;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+ispairthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "ispair");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iispair;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+isstringthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "isstring");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iisstr;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+istypethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "istype");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iistype;
 	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);

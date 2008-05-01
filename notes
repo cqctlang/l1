@@ -1,3 +1,10 @@
+generating lvalue refs
+
+looksym(sym) -> type,addr
+mkrange(addr,type.sz) -> range
+get(range) -> bytes
+mkcval(type,bytes) ->
+
 calling convention
 ------------------
 

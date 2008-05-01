@@ -13,6 +13,7 @@ enum {
 	Qbox,
 	Qpair,
 	Qstr,
+	Qtype,
 } Qkind;
 
 typedef struct Vimm Vimm;
@@ -33,6 +34,7 @@ struct Val {
 		Pair *pair;
 		Str *str;
 		Vec *vec;
+		Type *type;
 	} u;
 };
 
@@ -795,6 +797,13 @@ mkvalpair(Val *car, Val *cdr, Val *vp)
 	vp->u.pair = pair;
 }
 
+static void
+mkvaltype(Type *type, Val *vp)
+{
+	vp->qkind = Qtype;
+	vp->u.type = type;
+}
+
 static Imm
 valimm(Val *v)
 {
@@ -847,6 +856,14 @@ static Cval*
 valboxedcval(Val *v)
 {
 	return &v->u.box->v.u.cval;
+}
+
+static Type*
+valtype(Val *v)
+{
+	if(v->q.kind != Qtype)
+		fatal("valtype on non-type");
+	return v->u.type;
 }
 
 static int
@@ -1141,6 +1158,52 @@ putvalrand(VM *vm, Val *v, Operand *r)
 	putval(vm, v, &r->u.loc);
 }
 
+static Imm
+str2imm(Type *t, Str *s)
+{
+	Imm imm;
+
+	if(t->kind != Tbase && t->kind != Tptr)
+		fatal("str2imm on non-scalar type");
+	if(t->kind == Tptr){
+		imm = *(u32*)s;
+		return;
+	}
+
+	switch(t->base){
+	case Vchar:
+		imm = *(s8*)s;
+		break;
+	case Vshort:
+		imm = *(s16*)s;
+		break;
+	case Vint:
+		imm = *(s32*)s;
+		break;
+	case Vlong:
+		imm = *(s32*)s;
+		break;
+	case Vvlong:
+		imm = *(s64*)s;
+		break;
+	case Vuchar:
+		imm = *(u8*)s;
+		break;
+	case Vushort:
+		imm = *(u16*)s;
+		break;
+	case Vuint:
+		imm = *(u32*)s;
+		break;
+	case Vulong:
+		imm = *(u32*)s;
+		break;
+	case Vuvlong:
+		imm = *(u64*)s;
+		break;
+	}
+}
+
 static void
 printval(Val *v)
 {
@@ -1148,6 +1211,7 @@ printval(Val *v)
 	Closure *cl;
 	Pair *pair;
 	Str *str;
+	char *o;
 	Val bv;
 
 	if(v == 0){
@@ -1189,6 +1253,11 @@ printval(Val *v)
 	case Qstr:
 		str = valstr(v);
 		printf("%.*s", (int)str->len, str->s);
+		break;
+	case Qtype:
+		o = fmttype(xstrdup());
+		printf("<type %s>", o);
+		free(o);
 		break;
 	default:
 		printf("<unprintable type %d>", v->qkind);
@@ -1531,16 +1600,17 @@ xcons(VM *vm, Operand *car, Operand *cdr, Operand *dst)
 }
 
 static void
-xisnull(VM *vm, Operand *op, Operand *dst)
+xcval(VM *vm, Operand *type, Operand *str, Operand *dst)
 {
-	Val v, rv;
-	getvalrand(vm, op, &v);
-	if(v.qkind == Qnulllist)
-		mkvalimm(1, &rv);
-	else if(v.qkind == Qpair)
-		mkvalimm(0, &rv);
-	else
-		vmerr(vm, "isnull on non-list");
+	Val typev, strv, rv;
+	Imm imm;
+	Type *t;
+
+	getvalrand(vm, type, &typev);
+	getvalrand(vm, str, &strv);
+	t = valtype(&typev);
+	imm = str2imm(t, valstr(&strv));
+	mkvalcval(t, imm, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -1548,6 +1618,54 @@ static void
 xnull(VM *vm, Operand *dst)
 {
 	putvalrand(vm, &Xnulllist, dst);
+}
+
+static void
+xiscl(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qcl)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xiscval(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qcval)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xisnull(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qnulllist)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xispair(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qpair)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
 }
 
 static void
@@ -1564,6 +1682,30 @@ xvlist(VM *vm, Operand *op, Operand *dst)
 	rv = Xnulllist;
 	for(i = n; i > 0; i--)
 		mkvalpair(&vm->stack[sp+i], &rv, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xisstr(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qstr)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xistype(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qtype)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -1609,13 +1751,19 @@ dovm(VM *vm, Closure *cl)
 	gotab[Icmple] 	= &&Icmple;
 	gotab[Icmpneq] 	= &&Icmpneq;
 	gotab[Icons] 	= &&Icons;
+	gotab[Icval] 	= &&Icval;
 	gotab[Iding] 	= &&Iding;
 	gotab[Idiv] 	= &&Idiv;
 	gotab[Iframe] 	= &&Iframe;
 	gotab[Igc] 	= &&Igc;
 	gotab[Ihalt] 	= &&Ihalt;
 	gotab[Iinv] 	= &&Iinv;
+	gotab[Iiscl] 	= &&Iiscl;
+	gotab[Iiscval] 	= &&Iiscval;
 	gotab[Iisnull] 	= &&Iisnull;
+	gotab[Iispair] 	= &&Iispair;
+	gotab[Iisstr] 	= &&Iisstr;
+	gotab[Iistype] 	= &&Iistype;
 	gotab[Ijmp] 	= &&Ijmp;
 	gotab[Ijnz] 	= &&Ijnz;
 	gotab[Ijz] 	= &&Ijz;
@@ -1779,11 +1927,29 @@ dovm(VM *vm, Closure *cl)
 	Icons:
 		xcons(vm, &i->op1, &i->op2, &i->dst);
 		continue;
+	Icval:
+		xcval(vm, &i->op1, &i->op2, &i->dst);
+		continue;
 	Inull:
 		xnull(vm, &i->dst);
 		continue;
+	Iiscval:
+		xiscval(vm, &i->op1, &i->dst);
+		continue;
+	Iiscl:
+		xiscl(vm, &i->op1, &i->dst);
+		continue;
 	Iisnull:
 		xisnull(vm, &i->op1, &i->dst);
+		continue;
+	Iispair:
+		xispair(vm, &i->op1, &i->dst);
+		continue;
+	Iisstr:
+		xisstr(vm, &i->op1, &i->dst);
+		continue;
+	Iistype:
+		xistype(vm, &i->op1, &i->dst);
 		continue;
 	Ivlist:
 		xvlist(vm, &i->op1, &i->dst);
@@ -1820,8 +1986,18 @@ mkvm(Env *env)
 	envbind(vm->topenv, "cons", &val);
 	mkvalcl(nullthunk(), &val);
 	envbind(vm->topenv, "null", &val);
+	mkvalcl(iscvaluethunk(), &val);
+	envbind(vm->topenv, "iscvalue", &val);
+	mkvalcl(isprocedurethunk(), &val);
+	envbind(vm->topenv, "isprocedure", &val);
 	mkvalcl(isnullthunk(), &val);
 	envbind(vm->topenv, "isnull", &val);
+	mkvalcl(ispairthunk(), &val);
+	envbind(vm->topenv, "ispair", &val);
+	mkvalcl(isstringthunk(), &val);
+	envbind(vm->topenv, "isstring", &val);
+	mkvalcl(istypethunk(), &val);
+	envbind(vm->topenv, "istype", &val);
 
 	concurrentgc(vm);
 

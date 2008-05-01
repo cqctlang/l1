@@ -72,6 +72,7 @@ char* S[] = {
 	[Esizeoft] =	"Esizeoft",
 	[Estruct] =	"Estruct",
 	[Esub] =	"Esub",
+	[Etick] = 	"Etick",
 	[Etypedef] =	"Etypedef",
 	[Euand] =	"Euand",
 	[Euminus] =	"Euminus",
@@ -95,6 +96,9 @@ printexpr(Expr *e)
 		break;
 	case Eid:
 		printf("(Eid %s)", e->id);
+		break;
+	case Etick:
+		printf("(Etick %.*s)", e->lits->len, e->lits->s);
 		break;
 	case Ebinop:
 		printf("(%s ", S[e->op]);

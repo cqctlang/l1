@@ -60,6 +60,8 @@ primary_expression
 	{ $$ = doconsts($1); }
 	| '(' expression ')'
 	{ $$ = $2; }
+	| '`' IDENTIFIER
+	{ $$ = dotick($2); }
 	;
 
 postfix_expression

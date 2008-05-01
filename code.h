@@ -16,13 +16,19 @@ enum {
 	Icmple,
 	Icmpneq,
 	Icons,
+	Icval,
 	Iding,
 	Idiv,
 	Iframe,
 	Igc,
 	Ihalt,
 	Iinv,
+	Iiscl,
+	Iiscval,
 	Iisnull,
+	Iispair,
+	Iisstr,
+	Iistype,
 	Ijmp,
 	Ijnz,
 	Ijz,
@@ -184,7 +190,12 @@ Closure* carthunk();
 Closure* cdrthunk();
 Closure* consthunk();
 Closure* nullthunk();
+Closure* iscvaluethunk();
+Closure* isprocedurethunk();
 Closure* isnullthunk();
+Closure* ispairthunk();
+Closure* isstringthunk();
+Closure* istypethunk();
 
 Code* contcode();
 void getcode(Code *code);

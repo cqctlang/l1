@@ -117,6 +117,7 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+   { count(); yylval.id = xstrdup(yytext); return(ST
 "|"			{ count(); return('|'); }
 "?"			{ count(); return('?'); }
 "@"			{ count(); return('@'); }
+"`"			{ count(); return('`'); }
 
 [ \t\v\n\f]		{ count(); }
 .			{ /* ignore bad characters */ }

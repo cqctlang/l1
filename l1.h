@@ -90,6 +90,7 @@ enum{
 	Esizeoft,
 	Estruct,
 	Esub,
+	Etick,
 	Etypedef,
 	Euand,
 	Euminus,
@@ -159,7 +160,7 @@ struct Expr {
 	Kind kind;
 
 	char *id;		/* Eid */
-	Lits *lits;		/* Econsts */
+	Lits *lits;		/* Econsts, Etick */
 	Cval cval;		/* Econst */
 	Kind op;		/* Ebinop, Egop */
 
@@ -255,8 +256,10 @@ Expr* ptrto(Expr*, Expr*);
 Expr* doid(char*);
 Expr* doconst(char*);
 Expr* doconsts(char*);
+Expr* dotick(char*);
 Lits* copylits(Lits *lits);
 void freelits(Lits *lits);
+char* fmttype(Type *t, char *o);
 
 void initcval(Cval *cval, Type *type, Imm val);
 
