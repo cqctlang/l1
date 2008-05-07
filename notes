@@ -5,6 +5,12 @@ mkrange(addr,type.sz) -> range
 get(range) -> bytes
 mkcval(type,bytes) ->
 
+types in vm represent both names and structure of type.
+allows the vm to traverse the entire type without calling
+the looksym on each call.  problem is that looksym needs
+to build the entire type structure.
+
+
 calling convention
 ------------------
 

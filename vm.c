@@ -76,6 +76,12 @@ struct Pair {
 	Val cdr;
 };
 
+struct Range {
+	Head hd;
+	Cval beg;
+	Cval len;
+};
+
 struct Str {
 	Head hd;
 	unsigned long len;
@@ -104,6 +110,7 @@ struct VM {
 static void freeval(Val *val);
 static void vmsetcl(VM *vm, Closure *cl);
 static void strinit(Str *str, Lits *lits);
+static void vmerr(VM *vm, char *fmt, ...) __attribute__((noreturn));
 
 static Val Xundef;
 static Val Xnil;
@@ -153,7 +160,8 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-Heap heapcode, heapcl, heapimm, heapbox, heapcval, heappair, heapstr;
+Heap heapcode, heapcl, heapimm, heapbox, heapcval, heappair,
+	heaprange, heapstr;
 static Code *kcode;
 
 static void*
@@ -278,6 +286,7 @@ valhead(Val *v)
 	case Qnil:
 	case Qnulllist:
 	case Qcval:
+	case Qtype:
 		return 0;
 		break;
 	default:
@@ -613,6 +622,34 @@ concurrentgc(VM *vm)
 		fatal("pthread create failed");
 }
 
+static Imm
+typesize(VM *vm, Type *t)
+{
+	switch(t->kind){
+	case Tbase:
+		return basesize[t->base];
+	case Ttypedef:
+		return typesize(vm, t->link);
+	case Tstruct:
+	case Tunion:
+		vmerr(vm, "need to evaluate struct/union size");
+		break;
+	case Tenum:
+		vmerr(vm, "need to get enums right");
+		break;
+	case Tptr:
+		return ptrsize;
+	case Tarr:
+		vmerr(vm, "need to evaluate array size");
+		break;
+	case Tfun:
+		vmerr(vm, "attempt to compute size of function type");
+		break;
+	default:
+		fatal("typesize bug");
+	}
+}
+
 static Head*
 iterbox(Head *hd, Ictx *ictx)
 {
@@ -674,6 +711,17 @@ freecl(Head *hd)
 	cl = (Closure*)hd;
 	free(cl->display);
 	free(cl->id);
+}
+
+static Str*
+mkstr0(char *s)
+{
+	Str *str;
+	str = (Str*)galloc(&heapstr);
+	str->len = strlen(s);
+	str->s = xmalloc(str->len);
+	memcpy(str->s, s, str->len);
+	return str;
 }
 
 static void
@@ -801,6 +849,13 @@ mkvalpair(Val *car, Val *cdr, Val *vp)
 }
 
 static void
+mkvalstr(Str *str, Val *vp)
+{
+	vp->qkind = Qstr;
+	vp->u.str = str;
+}
+
+static void
 mkvaltype(Type *type, Val *vp)
 {
 	vp->qkind = Qtype;
@@ -810,9 +865,13 @@ mkvaltype(Type *type, Val *vp)
 static void
 mkvalrange(Cval *beg, Cval *len, Val *vp)
 {
+	Range *r;
+
+	r = (Range*)galloc(&heaprange);
+	r->beg = *beg;
+	r->len = *len;
 	vp->qkind = Qrange;
-	vp->u.range.beg = beg;
-	vp->u.range.len = len;
+	vp->u.range = r;
 }
 
 static Imm
@@ -845,6 +904,14 @@ valpair(Val *v)
 	if(v->qkind != Qpair)
 		fatal("valpair on non-pair");
 	return v->u.pair;
+}
+
+static Range*
+valrange(Val *v)
+{
+	if(v->qkind != Qrange)
+		fatal("valrange on non-range");
+	return v->u.range;
 }
 
 static Str*
@@ -1169,6 +1236,17 @@ putvalrand(VM *vm, Val *v, Operand *r)
 	putval(vm, v, &r->u.loc);
 }
 
+static void
+putcvalrand(VM *vm, Cval *cv, Operand *r)
+{
+	Val v;
+
+	if(r->okind != Oloc)
+		fatal("bad destination");
+	mkvalcval2(cv, &v);
+	putval(vm, &v, &r->u.loc);
+}
+
 static Imm
 str2imm(Type *t, Str *s)
 {
@@ -1210,6 +1288,7 @@ printval(Val *v)
 	Cval *cv;
 	Closure *cl;
 	Pair *pair;
+	Range *r;
 	Str *str;
 	char *o;
 	Val bv;
@@ -1250,6 +1329,10 @@ printval(Val *v)
 	case Qpair:
 		pair = valpair(v);
 		printf("<pair %p>", pair);
+		break;
+	case Qrange:
+		r = valrange(v);
+		printf("<range %llu %llu>", r->beg.val, r->len.val);
 		break;
 	case Qstr:
 		str = valstr(v);
@@ -1602,6 +1685,43 @@ xcons(VM *vm, Operand *car, Operand *cdr, Operand *dst)
 }
 
 static void
+xrbeg(VM *vm, Operand *op, Operand *dst)
+{
+	Val v;
+	Range *r;
+	getvalrand(vm, op, &v);
+	if(v.qkind != Qrange)
+		vmerr(vm, "rbeg on non-range");
+	r = valrange(&v);
+	putcvalrand(vm, &r->beg, dst);
+}
+
+static void
+xrlen(VM *vm, Operand *op, Operand *dst)
+{
+	Val v;
+	Range *r;
+	getvalrand(vm, op, &v);
+	if(v.qkind != Qrange)
+		vmerr(vm, "rlen on non-range");
+	r = valrange(&v);
+	putcvalrand(vm, &r->len, dst);
+}
+
+static void
+xrange(VM *vm, Operand *beg, Operand *len, Operand *dst)
+{
+	Val begv, lenv, rv;
+
+	getvalrand(vm, beg, &begv);
+	getvalrand(vm, len, &lenv);
+	if(begv.qkind != Qcval || lenv.qkind != Qcval)
+		vmerr(vm, "range on non-cval");
+	mkvalrange(&begv.u.cval, &lenv.u.cval, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xcval(VM *vm, Operand *type, Operand *str, Operand *dst)
 {
 	Val typev, strv, rv;
@@ -1671,23 +1791,6 @@ xispair(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
-xvlist(VM *vm, Operand *op, Operand *dst)
-{
-	Val v, *vp;
-	Imm sp, n, i;
-	Val rv;
-
-	getvalrand(vm, op, &v);
-	sp = valimm(&v);
-	vp = &vm->stack[sp];
-	n = valimm(vp);
-	rv = Xnulllist;
-	for(i = n; i > 0; i--)
-		mkvalpair(&vm->stack[sp+i], &rv, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
 xisstr(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
@@ -1708,6 +1811,41 @@ xistype(VM *vm, Operand *op, Operand *dst)
 		mkvalimm(1, &rv);
 	else
 		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xvlist(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, *vp;
+	Imm sp, n, i;
+	Val rv;
+
+	getvalrand(vm, op, &v);
+	sp = valimm(&v);
+	vp = &vm->stack[sp];
+	n = valimm(vp);
+	rv = Xnulllist;
+	for(i = n; i > 0; i--)
+		mkvalpair(&vm->stack[sp+i], &rv, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xsizeof(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	Type *t;
+	Imm imm;
+
+	getvalrand(vm, op, &v);
+	if(v.qkind != Qtype && v.qkind != Qcval)
+		vmerr(vm, "bad operand to sizeof");
+	if(v.qkind == Qcval)
+		vmerr(vm, "sizeof cvalues not implemented");
+	t = valtype(&v);
+	imm = typesize(vm, t);
+	mkvalcval(0, imm, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -1781,9 +1919,13 @@ dovm(VM *vm, Closure *cl)
 	gotab[Inop] 	= &&Inop;
 	gotab[Iprint] 	= &&Iprint;
 	gotab[Ipush] 	= &&Ipush;
+	gotab[Irange] 	= &&Irange;
+	gotab[Irbeg]	= &&Irbeg;
 	gotab[Iret] 	= &&Iret;
+	gotab[Irlen]	= &&Irlen;
 	gotab[Ishl] 	= &&Ishl;
 	gotab[Ishr] 	= &&Ishr;
+	gotab[Isizeof]	= &&Isizeof;
 	gotab[Isub] 	= &&Isub;
 	gotab[Ivlist] 	= &&Ivlist;
 	gotab[Ixor] 	= &&Ixor;
@@ -1929,6 +2071,15 @@ dovm(VM *vm, Closure *cl)
 	Icons:
 		xcons(vm, &i->op1, &i->op2, &i->dst);
 		continue;
+	Irbeg:
+		xrbeg(vm, &i->op1, &i->dst);
+		continue;
+	Irlen:
+		xrlen(vm, &i->op1, &i->dst);
+		continue;
+	Irange:
+		xrange(vm, &i->op1, &i->op2, &i->dst);
+		continue;
 	Icval:
 		xcval(vm, &i->op1, &i->op2, &i->dst);
 		continue;
@@ -1955,6 +2106,9 @@ dovm(VM *vm, Closure *cl)
 		continue;
 	Ivlist:
 		xvlist(vm, &i->op1, &i->dst);
+		continue;
+	Isizeof:
+		xsizeof(vm, &i->op1, &i->dst);
 		continue;
 	}
 }
@@ -1984,8 +2138,14 @@ mkvm(Env *env)
 	envbind(vm->topenv, "car", &val);
 	mkvalcl(cdrthunk(), &val);
 	envbind(vm->topenv, "cdr", &val);
+	mkvalcl(rangebegthunk(), &val);
 	mkvalcl(consthunk(), &val);
 	envbind(vm->topenv, "cons", &val);
+	envbind(vm->topenv, "rangebeg", &val);
+	mkvalcl(rangelenthunk(), &val);
+	envbind(vm->topenv, "rangelen", &val);
+	mkvalcl(rangethunk(), &val);
+	envbind(vm->topenv, "range", &val);
 	mkvalcl(nullthunk(), &val);
 	envbind(vm->topenv, "null", &val);
 	mkvalcl(iscvaluethunk(), &val);
@@ -2000,6 +2160,15 @@ mkvm(Env *env)
 	envbind(vm->topenv, "isstring", &val);
 	mkvalcl(istypethunk(), &val);
 	envbind(vm->topenv, "istype", &val);
+
+	mkvalstr(mkstr0("get"), &val);
+	envbind(vm->topenv, "!get", &val);
+	mkvalstr(mkstr0("put"), &val);
+	envbind(vm->topenv, "!put", &val);
+	mkvalstr(mkstr0("looksym"), &val);
+	envbind(vm->topenv, "!looksym", &val);
+	mkvalstr(mkstr0("looktype"), &val);
+	envbind(vm->topenv, "!looktype", &val);
 
 	concurrentgc(vm);
 
@@ -2026,6 +2195,7 @@ initvm()
 	heapcval.id = "cval";
 	heapimm.id = "immediate";
 	heappair.id = "pair";
+	heaprange.id = "range";
 	heapstr.id = "string";
 
 	heapbox.sz = sizeof(Box);
@@ -2034,6 +2204,7 @@ initvm()
 	heapcval.sz = sizeof(Vcval);
 	heapimm.sz = sizeof(Vimm);
 	heappair.sz = sizeof(Pair);
+	heaprange.sz = sizeof(Range);
 	heapstr.sz = sizeof(Str);
 
 	heapcode.free1 = freecode;
@@ -2072,5 +2243,6 @@ finivm()
 	freeheap(&heapbox);
 	freeheap(&heapcval);
 	freeheap(&heappair);
+	freeheap(&heaprange);
 	freeheap(&heapstr);
 }

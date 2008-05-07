@@ -5,6 +5,8 @@
 static unsigned basemod[Vnil+1][Enbase];
 static char* basename[Vnil+1];
 static Type* basetype[Vnil+1];
+Imm   basesize[Vnil+1];
+Imm   ptrsize;
 
 static Decl* dodecls(Expr *e);
 static char* fmtdecl(Decl *d);
@@ -139,6 +141,25 @@ initbase()
 	basename[Vlongdouble]	      = "longdouble";
 	basename[Vvoid]		      = "void";
 	basename[Vnil]		      = "error!";
+
+	basesize[Verr]                = -1;
+	basesize[Vchar]               = 1;
+	basesize[Vshort]	      = 2;
+	basesize[Vint]		      = 4;
+	basesize[Vlong]		      = 4;
+	basesize[Vvlong]	      = 8;
+	basesize[Vuchar]	      = 1;
+	basesize[Vushort]	      = 2;
+	basesize[Vuint]		      = 4;
+	basesize[Vulong]	      = 4;
+	basesize[Vuvlong]	      = 8;
+	basesize[Vfloat]	      = 4;
+	basesize[Vdouble]	      = 8;
+	basesize[Vlongdouble]	      = 12;
+	basesize[Vvoid]		      = 1;
+	basesize[Vnil]		      = -1;
+
+	ptrsize = 4;
 
 	basemod[Vchar][Eunsigned]     = Vuchar;
 	basemod[Vchar][Esigned]       = Vchar;

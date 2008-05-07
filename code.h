@@ -44,9 +44,13 @@ enum {
 	Inop,
 	Iprint,
 	Ipush,
+	Irange,
+	Irbeg,
 	Iret,
+	Irlen,
 	Ishl,
 	Ishr,
+	Isizeof,
 	Isub,
 	Ivlist,
 	Ixor,
@@ -190,6 +194,9 @@ Closure* carthunk();
 Closure* cdrthunk();
 Closure* consthunk();
 Closure* nullthunk();
+Closure* rangebegthunk();
+Closure* rangelenthunk();
+Closure* rangethunk();
 Closure* iscvaluethunk();
 Closure* isprocedurethunk();
 Closure* isnullthunk();

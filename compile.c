@@ -341,11 +341,37 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Irbeg:
+		printf("rbeg ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Irlen:
+		printf("rlen ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Irange:
+		printf("range ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	case Icval:
 		printf("cval ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Isizeof:
+		printf("sizeof ");
+		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
@@ -2451,6 +2477,76 @@ consthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Icons;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+rangebegthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "rangebeg");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Irbeg;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+rangelenthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "rangelen");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Irlen;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+rangethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "range");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Irange;
 	randloc(&i->op1, ARG0);
 	randloc(&i->op2, ARG1);
 	randloc(&i->dst, AC);
