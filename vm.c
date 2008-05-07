@@ -12,6 +12,7 @@ enum {
 	Qcl,
 	Qbox,
 	Qpair,
+	Qrange,
 	Qstr,
 	Qtype,
 } Qkind;
@@ -20,6 +21,7 @@ typedef struct Vimm Vimm;
 typedef struct Vcval Vcval;
 typedef struct Box Box;
 typedef struct Pair Pair;
+typedef struct Range Range;
 typedef struct Str Str;
 typedef struct Vec Vec;
 
@@ -32,6 +34,7 @@ struct Val {
 		Closure *cl;
 		Box *box;
 		Pair *pair;
+		Range *range;
 		Str *str;
 		Vec *vec;
 		Type *type;
@@ -804,6 +807,14 @@ mkvaltype(Type *type, Val *vp)
 	vp->u.type = type;
 }
 
+static void
+mkvalrange(Cval *beg, Cval *len, Val *vp)
+{
+	vp->qkind = Qrange;
+	vp->u.range.beg = beg;
+	vp->u.range.len = len;
+}
+
 static Imm
 valimm(Val *v)
 {
@@ -861,7 +872,7 @@ valboxedcval(Val *v)
 static Type*
 valtype(Val *v)
 {
-	if(v->q.kind != Qtype)
+	if(v->qkind != Qtype)
 		fatal("valtype on non-type");
 	return v->u.type;
 }
@@ -1161,47 +1172,36 @@ putvalrand(VM *vm, Val *v, Operand *r)
 static Imm
 str2imm(Type *t, Str *s)
 {
-	Imm imm;
-
 	if(t->kind != Tbase && t->kind != Tptr)
 		fatal("str2imm on non-scalar type");
 	if(t->kind == Tptr){
-		imm = *(u32*)s;
-		return;
+		return *(u32*)s;
 	}
 
 	switch(t->base){
 	case Vchar:
-		imm = *(s8*)s;
-		break;
+		return *(s8*)s;
 	case Vshort:
-		imm = *(s16*)s;
-		break;
+		return *(s16*)s;
 	case Vint:
-		imm = *(s32*)s;
-		break;
+		return *(s32*)s;
 	case Vlong:
-		imm = *(s32*)s;
-		break;
+		return *(s32*)s;
 	case Vvlong:
-		imm = *(s64*)s;
-		break;
+		return *(s64*)s;
 	case Vuchar:
-		imm = *(u8*)s;
-		break;
+		return *(u8*)s;
 	case Vushort:
-		imm = *(u16*)s;
-		break;
+		return *(u16*)s;
 	case Vuint:
-		imm = *(u32*)s;
-		break;
+		return *(u32*)s;
 	case Vulong:
-		imm = *(u32*)s;
-		break;
+		return *(u32*)s;
 	case Vuvlong:
-		imm = *(u64*)s;
-		break;
-	}
+		return *(u64*)s;
+	default:
+		fatal("missing case in str2imm");
+	}	
 }
 
 static void
@@ -1213,6 +1213,7 @@ printval(Val *v)
 	Str *str;
 	char *o;
 	Val bv;
+	Type *t;
 
 	if(v == 0){
 		printf("(no value)");
@@ -1255,7 +1256,8 @@ printval(Val *v)
 		printf("%.*s", (int)str->len, str->s);
 		break;
 	case Qtype:
-		o = fmttype(xstrdup());
+		t = valtype(v);
+		o = fmttype(t, xstrdup(""));
 		printf("<type %s>", o);
 		free(o);
 		break;
