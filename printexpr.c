@@ -82,6 +82,12 @@ char* S[] = {
 	[Euplus] =	"Euplus",
 	[Eutwiddle] =	"Eutwiddle",
 	[Ewhile] =	"Ewhile",      
+
+	[E_car] =	"E_car",
+	[E_cdr] =	"E_cdr",
+	[E_cval] =	"E_cval",
+	[E_range] =	"E_range",
+	[E_sizeof] =	"E_sizeof",
 };
 
 void

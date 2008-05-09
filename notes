@@ -1,9 +1,50 @@
-generating lvalue refs
+ast attributes for l/r-values
+-----------------------------
 
-looksym(sym) -> type,addr
-mkrange(addr,type.sz) -> range
-get(range) -> bytes
-mkcval(type,bytes) ->
+reftype(e,ctx)
+case e:
+	e1 = e2:
+		# assume this expression is never an l-value
+		reftype(e1,L);
+		reftype(e2,R);
+		e.ref = R;
+
+	`sym:
+		e.ref = ctx;
+	
+	e1[e2]:
+		reftype(e1,L);
+		reftype(e1,R);
+		e.ref = ctx;
+
+	e1.f:
+		reftype(e1,L);
+		e1.ref = ctx;
+
+	*e1:
+		reftype(e1,L);
+		e.ref = ctx;
+
+	(e1)++:
+		reftype(e1,L);
+		e.ref = ctx;
+
+
+generating lvalue refs
+----------------------
+
+x = `sym; /* get */
+	looksym(sym) -> type,addr
+	mkrange(addr,type.sz) -> range
+	get(range) -> bytes
+	mkcval(type,bytes) ->
+
+`sym = x; /* put */
+	looksym(sym) -> type,addr
+	cast x type -> cval
+	encode cval -> str
+	range(addr,type.sz) -> range
+	put(range,str)
 
 types in vm represent both names and structure of type.
 allows the vm to traverse the entire type without calling

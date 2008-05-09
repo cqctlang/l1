@@ -219,6 +219,7 @@ static void
 printrand(Code *code, Operand *r)
 {
 	Location *loc;
+	Lits *lits;
 
 	switch(r->okind){
 	case Oloc:
@@ -260,7 +261,11 @@ printrand(Code *code, Operand *r)
 		printf("nil");
 		break;
 	case Olits:
-		printf("*lits*");
+		lits = r->u.lits;
+		if(lits->len > 10)
+			printf("*lits*");
+		else
+			printf("\"%.*s\"", lits->len, lits->s);
 		break;
 	default:
 		fatal("unknown operand kind %d", r->okind);
@@ -1525,6 +1530,12 @@ static ikind EtoVM[] = {
 	[Eunot] = Inot,
 	[Euplus] = Inop,
 	[Eutwiddle] = Iinv,
+
+	[E_car] = Icar,
+	[E_cdr] = Icdr,
+	[E_cval] = Icval,
+	[E_range] = Irange,
+	[E_sizeof] = Isizeof,
 };
 
 static void
@@ -1678,6 +1689,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Euminus:
 	case Eutwiddle:
 	case Eunot:
+	case E_car:
+	case E_cdr:
+	case E_sizeof:
 		if(issimple(e->e1))
 			cgrand(&r1, e->e1, p);
 		else{
@@ -2133,6 +2147,7 @@ compileentry(NS *ns, Expr *el, Env *env, int flags)
 	emitlabel(L, el);
 
 	le = newexpr(Elambda, nullelist(), el, 0, 0);
+
 	newmapframe(le, 0, 0, code->topvec, env, code->konst);
 	cap = mkvdset();
 	mapcapture(le, cap);

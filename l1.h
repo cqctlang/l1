@@ -100,6 +100,13 @@ enum{
 	Euplus,
 	Eutwiddle,
 	Ewhile,
+
+	/* compile0 output for open-coded primitives */
+	E_car,
+	E_cdr,
+	E_cval,
+	E_range,
+	E_sizeof,
 } Kind;
 
 enum{

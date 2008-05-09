@@ -5,7 +5,7 @@ TARG = l1
 all: $(TARG)
 
 HDR = sys.h util.h l1.h code.h
-C = l1.c compile.c vm.c hash.c util.c main.c printexpr.c
+C = l1.c compile0.c compile.c vm.c hash.c util.c main.c printexpr.c
 O = $(C:.c=.o)
 
 c.tab.c: c.y $(HDR)

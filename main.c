@@ -72,6 +72,15 @@ main(int argc, char *argv[])
 		exit(0);
 
 	if(flags&Fprintir){
+		printf("source:\n");
+		printexpr(ctx.el);
+		printf("\n");
+	}
+
+	compile0(ctx.el);
+
+	if(flags&Fprintir){
+		printf("compile0:\n");
 		printexpr(ctx.el);
 		printf("\n");
 	}
