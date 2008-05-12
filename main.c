@@ -77,7 +77,7 @@ main(int argc, char *argv[])
 		printf("\n");
 	}
 
-	compile0(ctx.el);
+	docompile0(ctx.el);
 
 	if(flags&Fprintir){
 		printf("compile0:\n");

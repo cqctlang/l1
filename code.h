@@ -181,7 +181,7 @@ typedef struct Env Env;
 void initcompile();
 void finicompile();
 Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
-void compile0(Expr *e);
+void docompile0(Expr *e);
 Closure* compileentry(NS *ns, Expr *el, Env *env, int flags);
 void printcode(Code *code);
 char* topvecid(unsigned idx, Topvec *tv);

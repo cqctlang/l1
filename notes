@@ -1,3 +1,112 @@
+E[`sym,{},VAL]
+=> { @local type, range, addr, p;
+     p = looksym(sym);
+     type = car(p);
+     addr = cdr(p);
+     range = range(addr,sizeof(type));
+     cval(get(range),type);
+   }
+
+E[`sym,{},NOVAL]     # makes no sense
+=> { @local type, range, addr, p;
+     p = looksym(sym);
+     type = car(p);
+     addr = cdr(p);
+     range = range(addr,sizeof(type));
+     cval(get(range),type);
+   }
+
+E[`sym,{type,range}, NOVAL]
+=> { @local addr, p;
+     p = looksym(sym);
+     type = car(p);
+     addr = cdr(p);
+     range = range(addr,sizeof(type));
+   }
+
+E[l = r,{},VAL]
+=> { @local type, range, addr, val;
+     E[r,{val}]
+     E[l,{type,range}]
+     val = cast(val,type);
+     put(range,val);
+     val;
+   }
+
+E[l = r,{},NOVAL]
+=> { @local type, range, addr, val;
+     E[r,{val}]
+     E[l,{type,range}]
+     val = cast(val,type);
+     put(range,val);
+   }
+
+E[*e,{},VAL]
+=> { @local type, range, addr;
+     val = E[e,{type},VAL]
+     type = sub(type);
+     addr = val;
+     range = range(addr,sizeof(type));
+     val = cval(get(range),type);
+   }
+
+E[*e,{type range}]
+=> { @local addr, val;
+     val = E[e,{}]
+     type = sub(type);
+     addr = val;
+     range = range(addr,sizeof(type));
+   }
+
+E[e.f,{val}]
+=> { @local type, range, addr;
+     E[e,{type,addr}]
+     p = lookfield(type, f);
+     type = ref(p,0);
+     off = ref(p,1);
+     addr = addr+off;
+     range = addr,sizeof(type);
+     val = cval(get(range),type);
+   }
+
+E[e.f,{type range}]
+=> { @local addr;
+     E[e,{type,addr}]
+     p = lookfield(type, f);
+     type = ref(p,0);
+     off = ref(p,1);
+     addr = addr+off;
+     range = addr,sizeof(type);
+   }
+
+E[e[i],{val}]
+=> E[*(e+i),{val}]
+
+E[e[i],{type range}]
+=> E[*(e+i),{type range}]
+
+E[e++,{val}]
+=> { @local type, range, addr, valx;
+     E[e,{range,val}]
+     valx = val+1;
+     put(range,decode(valx));
+   }
+
+
+predicate on expressions to determine
+whether a type for the expression will
+be available during its evaluation.
+
+T[`sym]     => #t
+T[id]       => #f
+T[const]    => #f
+T[*e]       => #t   (?)
+T[e.f]      => #t
+T[e[i]]     => #t
+T[e1 x e2]  => #f   (? maybe for ptr arith, one operand has it)
+
+
+
 ast attributes for l/r-values
 -----------------------------
 

@@ -3,8 +3,122 @@
 #include "l1.h"
 #include "code.h"
 
-void
-compile0(Expr *e)
+typedef struct Var Var;
+struct Var
+{
+	char *s;
+	Var *link;
+};
+
+typedef
+struct Vars
+{
+	unsigned long level;
+	Var* var;
+} Vars;
+
+typedef
+struct Varset
+{
+	char *val;
+	char *type;
+	char *range;
+	char *addr;
+} Varset;
+
+static Vars*
+mkvars()
+{
+	Vars *vars;
+	vars = xmalloc(sizeof(Vars));
+	return vars;
+}
+
+static char*
+freshvar(Vars *vars, char *pref)
+{
+	char *s;
+	Var *v;
+	unsigned len;
+
+	if(vars->level > 999)
+		fatal("too many fresh variables");
+	len = strlen(s)+3+1;	/* 3 digits of level */
+	s = xmalloc(len);
+	snprintf(s, len, "%s%lu", pref, vars->level);
+	v = xmalloc(sizeof(Var));
+	v->s = s;
+	v->link = vars->var;
+	vars->var = v;
+	return s;
+}
+
+static void
+freevars(Vars *vars)
+{
+	Var *v, *nv;
+	nv = vars->var;
+	while(v){
+		nv = v->link;
+		free(v->s);
+		free(v);
+		v = nv;
+	};
+}
+
+static Varset*
+mkvarset(char *val, char *type, char *range, char *addr)
+{
+	Varset *vs;
+	vs = xmalloc(sizeof(Varset));
+	vs->val = val;
+	vs->type = type;
+	vs->range = range;
+	vs->addr = addr;
+	return vs;
+}
+
+static void
+freevarset(Varset *vs)
+{
+	free(vs);
+}
+
+static Varset*
+vsshadow(Varset *outer, Varset *inner)
+{
+	Varset *vs;
+
+	vs = mkvarset(inner->val, inner->type, inner->range, inner->addr);
+	if(vs->val == 0)
+		vs->val = outer->val;
+	if(vs->type == 0)
+		vs->type = outer->type;
+	if(vs->range == 0)
+		vs->range = outer->range;
+	if(vs->addr == 0)
+		vs->addr = outer->addr;
+	return vs;
+}
+
+static Expr*
+vs2locals(Varset *vs)
+{
+	Expr *e;
+	e = nullelist();
+	if(vs->val)
+		e = newexpr(Eelist, doid(vs->val), e, 0, 0);
+	if(vs->type)
+		e = newexpr(Eelist, doid(vs->type), e, 0, 0);
+	if(vs->range)
+		e = newexpr(Eelist, doid(vs->range), e, 0, 0);
+	if(vs->addr)
+		e = newexpr(Eelist, doid(vs->addr), e, 0, 0);
+	return e;
+}
+
+static void
+xcompile0(Expr *e, Varset *pvs, Vars *vars)
 {
 	Expr *se, *te;
 
@@ -14,7 +128,7 @@ compile0(Expr *e)
 	switch(e->kind){
 	case Elambda:
 	case Eblock:
-		compile0(e->e2);
+		xcompile0(e->e2, pvs, vars);
 		break;
 	case Etick:
 		e->kind = Eblock;
@@ -60,11 +174,53 @@ compile0(Expr *e)
 		e->e2 = invert(te);
 		break;
 	default:
-		compile0(e->e1);
-		compile0(e->e2);
-		compile0(e->e3);
-		compile0(e->e4);
+		xcompile0(e->e1, pvs, vars);
+		xcompile0(e->e2, pvs, vars);
+		xcompile0(e->e3, pvs, vars);
+		xcompile0(e->e4, pvs, vars);
 		break;
 	}
 }
 
+static void
+compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
+{
+	Expr *se, *te;
+	Varset *lvs, *vs;
+
+	if(e == NULL)
+		return;
+
+	switch(e->kind){
+	case Elambda:
+	case Eblock:
+		compile0(e->e2, pvs, vars, needval);
+		break;
+	case Etick:
+		// !p = dispatch(!looksym, sym)
+		// !type = car(p);
+		// !str = dispatch(!get, range(cdr(p), sizeof(t)));
+		// cval(!str, !type);
+		break;
+	default:
+		compile0(e->e1, pvs, vars, needval);
+		compile0(e->e2, pvs, vars, needval);
+		compile0(e->e3, pvs, vars, needval);
+		compile0(e->e4, pvs, vars, needval);
+		break;
+	}
+}
+
+
+void
+docompile0(Expr *e)
+{
+	Vars *vars;
+	Varset *vs;
+
+	vars = mkvars();
+	vs = mkvarset(0, 0, 0, 0);
+	compile0(e, vs, vars, 1);
+	freevarset(vs);
+	freevars(vars);
+}
