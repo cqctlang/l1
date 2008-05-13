@@ -1737,6 +1737,16 @@ xcval(VM *vm, Operand *type, Operand *str, Operand *dst)
 }
 
 static void
+xxcast(VM *vm, Operand *type, Operand *cval, Operand *dst)
+{
+	Val typev, strv, rv;
+	Imm imm;
+	Type *t;
+
+	vmerr(vm, "xcast not implemented");
+}
+
+static void
 xnull(VM *vm, Operand *dst)
 {
 	putvalrand(vm, &Xnulllist, dst);
@@ -1832,6 +1842,19 @@ xvlist(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
+xencode(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	Type *t;
+	Imm imm;
+
+	getvalrand(vm, op, &v);
+	if(v.qkind != Qcval)
+		vmerr(vm, "bad operand to encode");
+	vmerr(vm, "encode not implemented");
+}
+
+static void
 xsizeof(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
@@ -1894,6 +1917,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Icval] 	= &&Icval;
 	gotab[Iding] 	= &&Iding;
 	gotab[Idiv] 	= &&Idiv;
+	gotab[Iencode]	= &&Iencode;
 	gotab[Iframe] 	= &&Iframe;
 	gotab[Igc] 	= &&Igc;
 	gotab[Ihalt] 	= &&Ihalt;
@@ -1928,6 +1952,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Isizeof]	= &&Isizeof;
 	gotab[Isub] 	= &&Isub;
 	gotab[Ivlist] 	= &&Ivlist;
+	gotab[Ixcast] 	= &&Ixcast;
 	gotab[Ixor] 	= &&Ixor;
 
 	if(!envlookup(vm->topenv, "halt", &haltv))
@@ -2083,6 +2108,9 @@ dovm(VM *vm, Closure *cl)
 	Icval:
 		xcval(vm, &i->op1, &i->op2, &i->dst);
 		continue;
+	Ixcast:
+		xxcast(vm, &i->op1, &i->op2, &i->dst);
+		continue;
 	Inull:
 		xnull(vm, &i->dst);
 		continue;
@@ -2106,6 +2134,9 @@ dovm(VM *vm, Closure *cl)
 		continue;
 	Ivlist:
 		xvlist(vm, &i->op1, &i->dst);
+		continue;
+	Iencode:
+		xencode(vm, &i->op1, &i->dst);
 		continue;
 	Isizeof:
 		xsizeof(vm, &i->op1, &i->dst);

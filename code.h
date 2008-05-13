@@ -19,6 +19,7 @@ enum {
 	Icval,
 	Iding,
 	Idiv,
+	Iencode,
 	Iframe,
 	Igc,
 	Ihalt,
@@ -53,6 +54,7 @@ enum {
 	Isizeof,
 	Isub,
 	Ivlist,
+	Ixcast,
 	Ixor,
 	Iopmax         
 } ikind;

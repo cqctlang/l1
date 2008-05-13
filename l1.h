@@ -105,8 +105,10 @@ enum{
 	E_car,
 	E_cdr,
 	E_cval,
+	E_encode,
 	E_range,
 	E_sizeof,
+	E_xcast,
 } Kind;
 
 enum{

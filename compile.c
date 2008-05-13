@@ -333,7 +333,7 @@ printinsn(Code *code, Insn *i)
 		printrand(code, &i->dst);
 		break;
 	case Icdr:
-		printf("car ");
+		printf("cdr ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -371,6 +371,20 @@ printinsn(Code *code, Insn *i)
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ixcast:
+		printf("xcast ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iencode:
+		printf("encode ");
+		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
@@ -1534,8 +1548,10 @@ static ikind EtoVM[] = {
 	[E_car] = Icar,
 	[E_cdr] = Icdr,
 	[E_cval] = Icval,
+	[E_encode] = Iencode,
 	[E_range] = Irange,
 	[E_sizeof] = Isizeof,
+	[E_xcast] = Ixcast,
 };
 
 static void
@@ -1691,6 +1707,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Eunot:
 	case E_car:
 	case E_cdr:
+	case E_encode:
 	case E_sizeof:
 		if(issimple(e->e1))
 			cgrand(&r1, e->e1, p);
@@ -1749,6 +1766,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		L0 = prv;
 		while(q->kind != Enull){
 			L = genlabel(code, 0);
+			// FIXME: can we check for simple? here and push
+			// the operand directly? (and likewise for the call?)
 			cg(q->e1, code, p, AC, L, L0, L, tmp);
 			emitlabel(L, q->e2);
 			i = nextinsn(code);
