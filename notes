@@ -1,3 +1,24 @@
+reducing boxes on lvalue refs
+-----------------------------
+
+see imp3, section 4.5, page 101.
+we can detect that our tmp vars (!*)
+are not captured by any closures
+below.
+
+we cannot determine that the functions
+will not capture continuations.
+what are the consequences?
+seems like worse case is that
+resumed continuation would get
+old value of vars...which might
+be the right thing, since these
+are implicit variables.
+
+probably should aggresively
+shadow on the way down, to reduce
+unwanted boxing.
+
 E[`sym,{},VAL]
 => { @local type, range, addr, p;
      p = looksym(sym);

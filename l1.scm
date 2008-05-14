@@ -81,4 +81,71 @@
 	   (t (length p)))
       (cg e p 'acc (length p)))))
 
+(define make-ctx
+  (lambda (val range type addr)
+    `((val . ,val)
+      (range . ,range)
+      (type . ,type)
+      (addr . ,addr))))
+
+(define lookvar
+  (lambda (var ctx)
+    (cdr (assq var ctx))))
+
+(define compile0
+  (lambda (e)
+    (compile0* e (make-ctx #f #f #f #f))))
+
+(define newvar
+  (let ((n 0))
+    (lambda (sym)
+      (set! n (+ n 1))
+      (string->symbol (string-append (symbol->string sym)
+				     (number->string n))))))
+
+;; *(p+1) = x;
+
+;; cases:
+;;  need cvalue 
+;;  need location
+;;  
+
+(define compile0*
+  (let ((n 0))
+    (lambda (e ctx)
+      (let* ((thisblock '())
+	     (newvar (lambda (sym)
+		       (set! n (+ n 1))
+		       (let ((var (string->symbol
+				   (string-append (symbol->string sym)
+						  (number->string n)))))
+			 (set! thisblock (cons var thisblock))
+			 var))))
+	(case (car e)
+	  ((Etick)
+	   (let ((val (lookvar 'val ctx))
+		 (range (cond ((lookvar 'range ctx)) (else (newvar 'range))))
+		 (type (cond ((lookvar 'type ctx)) (else (newvar 'type))))
+		 (addr (cond ((lookvar 'addr ctx)) (else (newvar 'addr)))))
+	     (let ((body
+		    (list `(Eg p (Ecall "looksym" ,(list-ref e 1)))
+			  `(Eg ,type (Ecar p))
+			  `(Eg ,addr (Ecdr p))
+			  `(Eg ,range (Erange ,addr (Esizeof ,type))))))
+	       `(Eblock ,thisblock
+		 ,(if val
+		      (append body (list `(Eg ,val (Ecall "get" ,range))))
+		      body)))))
+	  ((Eg)
+	   (let* ((val (cond ((lookvar 'val ctx)) (else (newvar 'val))))
+		  (range (newvar 'range))
+		  (type (newvar 'type))
+		  (addr (newvar 'addr)))
+	     `(Eblock ,thisblock
+	       ,(compile0* (list-ref e 2) (make-ctx val #f #f #f))
+	       ,(compile0* (list-ref e 1) (make-ctx #f range addr type))
+	       (Ecall "put" ,range ,val))))
+	  (else
+	   (error 'long-way-to-go)))))))
+
 
