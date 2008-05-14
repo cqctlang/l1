@@ -87,8 +87,11 @@ char* S[] = {
 	[E_cdr] =	"E_cdr",
 	[E_cval] =	"E_cval",
 	[E_encode] =	"E_encode",
+	[E_lens] =	"E_lens",
 	[E_range] =	"E_range",
 	[E_sizeof] =	"E_sizeof",
+	[E_slices] =	"E_slices",
+	[E_str] =	"E_str",
 	[E_xcast] =	"E_xcast",
 };
 

@@ -84,7 +84,7 @@ struct Range {
 
 struct Str {
 	Head hd;
-	unsigned long len;
+	Imm len;
 	char *s;
 };
 
@@ -724,12 +724,39 @@ mkstr0(char *s)
 	return str;
 }
 
+static Str*
+mkstr(char *s, unsigned long len)
+{
+	Str *str;
+	str = (Str*)galloc(&heapstr);
+	str->len = len;
+	str->s = xmalloc(str->len);
+	memcpy(str->s, s, str->len);
+	return str;
+}
+
+static Str*
+mkstrn(unsigned long len)
+{
+	Str *str;
+	str = (Str*)galloc(&heapstr);
+	str->len = len;
+	str->s = xmalloc(str->len);
+	return str;
+}
+
 static void
 strinit(Str *str, Lits *lits)
 {
 	str->len = lits->len;
 	str->s = xmalloc(str->len);
 	memcpy(str->s, lits->s, str->len);
+}
+
+static Str*
+strslice(Str *str, Imm beg, Imm end)
+{
+	return mkstr(str->s+beg, end-beg);
 }
 
 static void
@@ -1282,6 +1309,79 @@ str2imm(Type *t, Str *s)
 	}	
 }
 
+static Str*
+imm2str(Type *t, Imm imm)
+{
+	Str *str;
+	char *s;
+
+	if(t->kind != Tbase && t->kind != Tptr)
+		fatal("str2imm on non-scalar type");
+
+	if(t->kind == Tptr){
+		str = mkstrn(sizeof(u32));
+		s = str->s;
+		*(u32*)s = (u32)imm;
+		return str;
+	}
+
+
+	switch(t->base){
+	case Vchar:
+		str = mkstrn(sizeof(s8));
+		s = str->s;
+		*(s8*)s = (s8)imm;
+		return str;
+	case Vshort:
+		str = mkstrn(sizeof(s16));
+		s = str->s;
+		*(s16*)s = (s16)imm;
+		return str;
+	case Vint:
+		str = mkstrn(sizeof(s32));
+		s = str->s;
+		*(s32*)s = (s32)imm;
+		return str;
+	case Vlong:
+		str = mkstrn(sizeof(s32));
+		s = str->s;
+		*(s32*)s = (s32)imm;
+		return str;
+	case Vvlong:
+		str = mkstrn(sizeof(s64));
+		s = str->s;
+		*(s64*)s = (s64)imm;
+		return str;
+	case Vuchar:
+		str = mkstrn(sizeof(u8));
+		s = str->s;
+		*(u8*)s = (u8)imm;
+		return str;
+	case Vushort:
+		str = mkstrn(sizeof(u16));
+		s = str->s;
+		*(u16*)s = (u16)imm;
+		return str;
+	case Vuint:
+		str = mkstrn(sizeof(u32));
+		s = str->s;
+		*(u32*)s = (u32)imm;
+		return str;
+	case Vulong:
+		str = mkstrn(sizeof(u32));
+		s = str->s;
+		*(u32*)s = (u32)imm;
+		return str;
+	case Vuvlong:
+		str = mkstrn(sizeof(u64));
+		s = str->s;
+		*(u64*)s = (u64)imm;
+		return str;
+	default:
+		fatal("missing case in imm2str");
+	}	
+}
+
 static void
 printval(Val *v)
 {
@@ -1737,13 +1837,67 @@ xcval(VM *vm, Operand *type, Operand *str, Operand *dst)
 }
 
 static void
+xslices(VM *vm, Operand *str, Operand *beg, Operand *end, Operand *dst)
+{
+	Val strv, begv, endv, rv;
+	Cval *b, *e;
+	Str *r, *s;
+
+	getvalrand(vm, str, &strv);
+	getvalrand(vm, beg, &begv);
+	getvalrand(vm, end, &endv);
+	s = valstr(&strv);
+	b = valcval(&begv);
+	e = valcval(&endv);
+	if(b->val > s->len)
+		vmerr(vm, "string slice out of bounds");
+	if(e->val > s->len)
+		vmerr(vm, "string slice out of bounds");
+	if(b->val > e->val)
+		vmerr(vm, "string slice out of bounds");
+	r = strslice(s, b->val, e->val);
+	mkvalstr(r, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xlens(VM *vm, Operand *str, Operand *dst)
+{
+	Val strv, rv;
+	Str *s;
+	getvalrand(vm, str, &strv);
+	s = valstr(&strv);
+	mkvalcval(0, s->len, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xstr(VM *vm, Operand *cval, Operand *dst)
+{
+	Val cvalv, rv;
+	Str *str;
+	Cval *cv;
+	
+	getvalrand(vm, cval, &cvalv);
+	cv = valcval(&cvalv);
+	str = mkstrn(cv->val);
+	mkvalstr(str, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xxcast(VM *vm, Operand *type, Operand *cval, Operand *dst)
 {
-	Val typev, strv, rv;
-	Imm imm;
+	Val typev, cvalv, rv;
+	Cval *cv;
 	Type *t;
 
-	vmerr(vm, "xcast not implemented");
+	getvalrand(vm, type, &typev);
+	getvalrand(vm, cval, &cvalv);
+	t = valtype(&typev);
+	cv = valcval(&cvalv);
+	mkvalcval(t, cv->val, &rv); /* FIXME: sanity, representation change */
+	putvalrand(vm, &rv, dst);
 }
 
 static void
@@ -1801,6 +1955,19 @@ xispair(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
+xisrange(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qrange)
+		mkvalimm(1, &rv);
+	else
+
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xisstr(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
@@ -1845,13 +2012,16 @@ static void
 xencode(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
-	Type *t;
-	Imm imm;
+	Str *str;
+	Cval *cv;
 
 	getvalrand(vm, op, &v);
 	if(v.qkind != Qcval)
 		vmerr(vm, "bad operand to encode");
-	vmerr(vm, "encode not implemented");
+	cv = valcval(&v);
+	str = imm2str(cv->type, cv->val);
+	mkvalstr(str, &rv);
+	putvalrand(vm, &rv, dst);
 }
 
 static void
@@ -1926,6 +2096,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Iiscval] 	= &&Iiscval;
 	gotab[Iisnull] 	= &&Iisnull;
 	gotab[Iispair] 	= &&Iispair;
+	gotab[Iisrange]	= &&Iisrange;
 	gotab[Iisstr] 	= &&Iisstr;
 	gotab[Iistype] 	= &&Iistype;
 	gotab[Ijmp] 	= &&Ijmp;
@@ -1933,6 +2104,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Ijz] 	= &&Ijz;
 	gotab[Ikg] 	= &&Ikg;
 	gotab[Ikp] 	= &&Ikp;
+	gotab[Ilens]	= &&Ilens;
 	gotab[Imod] 	= &&Imod;
 	gotab[Imov] 	= &&Imov;
 	gotab[Imul] 	= &&Imul;
@@ -1950,6 +2122,8 @@ dovm(VM *vm, Closure *cl)
 	gotab[Ishl] 	= &&Ishl;
 	gotab[Ishr] 	= &&Ishr;
 	gotab[Isizeof]	= &&Isizeof;
+	gotab[Islices]	= &&Islices;
+	gotab[Istr]	= &&Istr;
 	gotab[Isub] 	= &&Isub;
 	gotab[Ivlist] 	= &&Ivlist;
 	gotab[Ixcast] 	= &&Ixcast;
@@ -2108,6 +2282,15 @@ dovm(VM *vm, Closure *cl)
 	Icval:
 		xcval(vm, &i->op1, &i->op2, &i->dst);
 		continue;
+	Istr:
+		xstr(vm, &i->op1, &i->dst);
+		continue;
+	Islices:
+		xslices(vm, &i->op1, &i->op2, &i->op3, &i->dst);
+		continue;
+	Ilens:
+		xlens(vm, &i->op1, &i->dst);
+		continue;
 	Ixcast:
 		xxcast(vm, &i->op1, &i->op2, &i->dst);
 		continue;
@@ -2125,6 +2308,9 @@ dovm(VM *vm, Closure *cl)
 		continue;
 	Iispair:
 		xispair(vm, &i->op1, &i->dst);
+		continue;
+	Iisrange:
+		xisrange(vm, &i->op1, &i->dst);
 		continue;
 	Iisstr:
 		xisstr(vm, &i->op1, &i->dst);
@@ -2144,62 +2330,59 @@ dovm(VM *vm, Closure *cl)
 	}
 }
 
+static void
+builtinfn(Env *env, char *name, Closure *cl)
+{
+	Val val;
+	mkvalcl(cl, &val);
+	envbind(env, name, &val);
+}
+
+static void
+builtinstr(Env *env, char *name, char *s)
+{
+	Val val;
+	mkvalstr(mkstr0(s), &val);
+	envbind(env, name, &val);
+}
+
 VM*
 mkvm(Env *env)
 {
 	VM *vm;
-	Val val;
 	
 	vm = xmalloc(sizeof(VM));
 	vm->sp = Maxstk;
 	vm->ac = Xundef;
 	vm->topenv = env;
 	
-	mkvalcl(gcthunk(), &val);
-	envbind(vm->topenv, "gc", &val);
-	mkvalcl(dingthunk(), &val);
-	envbind(vm->topenv, "ding", &val);
-	mkvalcl(printthunk(), &val);
-	envbind(vm->topenv, "print", &val);
-	mkvalcl(haltthunk(), &val);
-	envbind(vm->topenv, "halt", &val);
-	mkvalcl(callcc(), &val);
-	envbind(vm->topenv, "callcc", &val);
-	mkvalcl(carthunk(), &val);
-	envbind(vm->topenv, "car", &val);
-	mkvalcl(cdrthunk(), &val);
-	envbind(vm->topenv, "cdr", &val);
-	mkvalcl(rangebegthunk(), &val);
-	mkvalcl(consthunk(), &val);
-	envbind(vm->topenv, "cons", &val);
-	envbind(vm->topenv, "rangebeg", &val);
-	mkvalcl(rangelenthunk(), &val);
-	envbind(vm->topenv, "rangelen", &val);
-	mkvalcl(rangethunk(), &val);
-	envbind(vm->topenv, "range", &val);
-	mkvalcl(nullthunk(), &val);
-	envbind(vm->topenv, "null", &val);
-	mkvalcl(iscvaluethunk(), &val);
-	envbind(vm->topenv, "iscvalue", &val);
-	mkvalcl(isprocedurethunk(), &val);
-	envbind(vm->topenv, "isprocedure", &val);
-	mkvalcl(isnullthunk(), &val);
-	envbind(vm->topenv, "isnull", &val);
-	mkvalcl(ispairthunk(), &val);
-	envbind(vm->topenv, "ispair", &val);
-	mkvalcl(isstringthunk(), &val);
-	envbind(vm->topenv, "isstring", &val);
-	mkvalcl(istypethunk(), &val);
-	envbind(vm->topenv, "istype", &val);
+	builtinfn(env, "gc", gcthunk());
+	builtinfn(env, "ding", dingthunk());
+	builtinfn(env, "print", printthunk());
+	builtinfn(env, "halt", haltthunk());
+	builtinfn(env, "callcc", callcc());
+	builtinfn(env, "car", carthunk());
+	builtinfn(env, "cdr", cdrthunk());
+	builtinfn(env, "cons", consthunk());
+	builtinfn(env, "rangebeg", rangebegthunk());
+	builtinfn(env, "rangelen", rangelenthunk());
+	builtinfn(env, "range", rangethunk());
+	builtinfn(env, "null", nullthunk());
+	builtinfn(env, "iscvalue", iscvaluethunk());
+	builtinfn(env, "isprocedure", isprocedurethunk());
+	builtinfn(env, "isnull", isnullthunk());
+	builtinfn(env, "ispair", ispairthunk());
+	builtinfn(env, "isrange", israngethunk());
+	builtinfn(env, "isstring", isstringthunk());
+	builtinfn(env, "istype", istypethunk());
+	builtinfn(env, "string", stringthunk());
+	builtinfn(env, "strlen", strlenthunk());
+	builtinfn(env, "substr", substrthunk());
 
-	mkvalstr(mkstr0("get"), &val);
-	envbind(vm->topenv, "!get", &val);
-	mkvalstr(mkstr0("put"), &val);
-	envbind(vm->topenv, "!put", &val);
-	mkvalstr(mkstr0("looksym"), &val);
-	envbind(vm->topenv, "!looksym", &val);
-	mkvalstr(mkstr0("looktype"), &val);
-	envbind(vm->topenv, "!looktype", &val);
+	builtinstr(env, "$get", "get");
+	builtinstr(env, "$put", "put");
+	builtinstr(env, "$looksym", "looksym");
+	builtinstr(env, "$looktype", "looktype");
 
 	concurrentgc(vm);
 

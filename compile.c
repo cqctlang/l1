@@ -25,9 +25,9 @@ struct Konst {
 	unsigned nlits, maxlits;
 };
 
-static Location toploc[7];
+static Location toploc[8];
 static Location *Effect;
-static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1;
+static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
 static void compilelambda(Ctl *name, Code *code, Expr *el);
 static void freeexprx(Expr *e);
 static Topvec *mktopvec();
@@ -374,6 +374,27 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Ilens:
+		printf("lens ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Islices:
+		printf("slices ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->op3);
+		printf(" ");
+		printrand(code, &i->dst);
+	case Istr:
+		printf("str ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	case Ixcast:
 		printf("xcast ");
 		printrand(code, &i->op1);
@@ -414,6 +435,12 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Iispair:
 		printf("ispair ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iisrange:
+		printf("isrange ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -1549,8 +1576,11 @@ static ikind EtoVM[] = {
 	[E_cdr] = Icdr,
 	[E_cval] = Icval,
 	[E_encode] = Iencode,
+	[E_lens] = Ilens,
 	[E_range] = Irange,
 	[E_sizeof] = Isizeof,
+	[E_slices] = Islices,
+	[E_str] = Istr,
 	[E_xcast] = Ixcast,
 };
 
@@ -1709,6 +1739,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case E_cdr:
 	case E_encode:
 	case E_sizeof:
+	case E_str:
 		if(issimple(e->e1))
 			cgrand(&r1, e->e1, p);
 		else{
@@ -2405,6 +2436,29 @@ ispairthunk()
 }
 
 Closure*
+israngethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "isrange");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iisrange;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
 isstringthunk()
 {
 	Ctl *L;
@@ -2591,6 +2645,77 @@ rangethunk()
 }
 
 Closure*
+stringthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "string");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Istr;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+strlenthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "strlen");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ilens;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+substrthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "substr");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Islices;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	randloc(&i->op3, ARG2);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
 printthunk()
 {
 	Ctl *L;
@@ -2633,6 +2758,8 @@ initcompile()
 	newloc(ARG0, Lparam, 0, 0);
 	ARG1 = &toploc[6];
 	newloc(ARG1, Lparam, 1, 0);
+	ARG2 = &toploc[7];
+	newloc(ARG2, Lparam, 2, 0);
 }
 
 void

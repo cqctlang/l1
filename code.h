@@ -28,6 +28,7 @@ enum {
 	Iiscval,
 	Iisnull,
 	Iispair,
+	Iisrange,
 	Iisstr,
 	Iistype,
 	Ijmp,
@@ -35,6 +36,7 @@ enum {
 	Ijz,
 	Ikg,
 	Ikp,
+	Ilens,
 	Imod,
 	Imov,
 	Imul,
@@ -52,6 +54,8 @@ enum {
 	Ishl,
 	Ishr,
 	Isizeof,
+	Islices,
+	Istr,
 	Isub,
 	Ivlist,
 	Ixcast,
@@ -158,7 +162,7 @@ typedef
 struct Insn {
 	ikind kind;
 	void *go;
-	Operand op1, op2, dst;
+	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;
 } Insn;
 
@@ -204,8 +208,12 @@ Closure* iscvaluethunk();
 Closure* isprocedurethunk();
 Closure* isnullthunk();
 Closure* ispairthunk();
+Closure* israngethunk();
 Closure* isstringthunk();
 Closure* istypethunk();
+Closure* stringthunk();
+Closure* strlenthunk();
+Closure* substrthunk();
 
 Code* contcode();
 void getcode(Code *code);

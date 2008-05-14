@@ -1,0 +1,48 @@
+listref = lambda(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+};
+
+dispatch = lambda a {
+	arg = listref(a, 0);
+
+	if(arg == "get"){
+		range = listref(a, 1);
+		print("get ");
+		print(rangebeg(range));
+		print(" ");
+		print(rangelen(range));
+		print("\n");
+		return;
+	}
+
+	if(arg == "looksym"){
+		sym = listref(a, 1);
+		print("looksym ");
+		print(sym);
+		print("\n");
+		return;
+	}
+
+	if(arg == "put"){
+		range = listref(a, 1);
+		str = listref(a, 2);
+		print("put ");
+		print(rangebeg(range));
+		print(" ");
+		print(rangelen(range));
+		print(" ");
+		print(str);
+		print("\n");
+	}
+
+	printf("bad argument to dispatch\n");
+};
+
+test1 = lambda() {
+	x = `sym;
+};
+
+test1();

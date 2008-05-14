@@ -101,13 +101,16 @@ enum{
 	Eutwiddle,
 	Ewhile,
 
-	/* compile0 output for open-coded primitives */
+	/* open-coded primitives */
 	E_car,
 	E_cdr,
 	E_cval,
 	E_encode,
+	E_lens,
 	E_range,
 	E_sizeof,
+	E_slices,
+	E_str,
 	E_xcast,
 } Kind;
 

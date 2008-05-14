@@ -1,3 +1,12 @@
+todo
+----
+- introduce address types
+- check for negative cvals on Irange, Istr, Islice*
+
+inferno
+-------
+inferno/libinterp/xec.c - vm interpreter
+
 reducing boxes on lvalue refs
 -----------------------------
 

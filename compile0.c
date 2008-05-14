@@ -190,23 +190,23 @@ bindings(Vars *vars, Varset *outer, int req)
 	vs = mkvarset();
 	if(outer == 0){
 		if(req&Vtmp)
-			vs->tmp = freshvar(vars, "!tmp");
+			vs->tmp = freshvar(vars, "$tmp");
 		if(req&Vtype)
-			vs->type = freshvar(vars, "!type");
+			vs->type = freshvar(vars, "$type");
 		if(req&Vrange)
-			vs->range = freshvar(vars, "!range");
+			vs->range = freshvar(vars, "$range");
 		if(req&Vaddr)
-			vs->addr = freshvar(vars, "!addr");
+			vs->addr = freshvar(vars, "$addr");
 		if(req&Vstr)
-			vs->str = freshvar(vars, "!str");
+			vs->str = freshvar(vars, "$str");
 		return vs;
 	}
 
-	vs->tmp = outer->tmp ? outer->tmp : freshvar(vars, "!tmp");
-	vs->type = outer->type ? outer->type : freshvar(vars, "!type");
-	vs->range = outer->range ? outer->range : freshvar(vars, "!range");
-	vs->addr = outer->addr ? outer->addr : freshvar(vars, "!addr");
-	vs->str = outer->str ? outer->str : freshvar(vars, "!str");
+	vs->tmp = outer->tmp ? outer->tmp : freshvar(vars, "$tmp");
+	vs->type = outer->type ? outer->type : freshvar(vars, "$type");
+	vs->range = outer->range ? outer->range : freshvar(vars, "$range");
+	vs->addr = outer->addr ? outer->addr : freshvar(vars, "$addr");
+	vs->str = outer->str ? outer->str : freshvar(vars, "$str");
 	return vs;
 }
 
@@ -285,12 +285,12 @@ xcompile0(Expr *e, Varset *pvs, Vars *vars)
 
 		te = nullelist();
 
-		// p = dispatch(!looksym, <sym>);
+		// p = dispatch($looksym, <sym>);
 		se = newexpr(Econsts, 0, 0, 0, 0);
 		se->lits = e->lits;
 		e->lits = 0;
 		se = newexpr(Eelist, se, nullelist(), 0, 0);
-		se = newexpr(Eelist, doid("!looksym"), se, 0, 0);
+		se = newexpr(Eelist, doid("$looksym"), se, 0, 0);
 		se = newexpr(Ecall, doid("dispatch"), invert(se), 0, 0);
 		se = newexpr(Eg, doid("p"), se, 0, 0);
 		te = newexpr(Eelist, se, te, 0, 0);
@@ -300,12 +300,12 @@ xcompile0(Expr *e, Varset *pvs, Vars *vars)
 		se = newexpr(Eg, doid("t"), se, 0, 0);
 		te = newexpr(Eelist, se, te, 0, 0);
 
-		// b = dispatch(!get, range(cdr(p), sizeof(t)));
+		// b = dispatch($get, range(cdr(p), sizeof(t)));
 		se = newbinop(E_range,
 			      newexpr(E_cdr, doid("p"), 0, 0, 0),
 			      newexpr(E_sizeof, doid("t"), 0, 0, 0));
 		se = newexpr(Eelist, se, nullelist(), 0, 0);
-		se = newexpr(Eelist, doid("!get"), se, 0, 0);
+		se = newexpr(Eelist, doid("$get"), se, 0, 0);
 		se = newexpr(Ecall, doid("dispatch"), invert(se), 0, 0);
 		se = newexpr(Eg, doid("b"), se, 0, 0);
 		te = newexpr(Eelist, se, te, 0, 0);
@@ -341,10 +341,10 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		compile0(e->e2, pvs, vars, needval);
 		break;
 	case Etick:
-		// !p = dispatch(!looksym, sym)
-		// !type = car(p);
-		// !str = dispatch(!get, range(cdr(p), sizeof(t)));
-		// cval(!str, !type);
+		// $p = dispatch($looksym, sym)
+		// $type = car(p);
+		// $str = dispatch($get, range(cdr(p), sizeof(t)));
+		// cval($str, $type);
 		binds = Vtmp|Vtype|Vrange|Vaddr;
 		if(needval)
 			binds |= Vstr;
@@ -356,7 +356,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		se = newexpr(Econsts, 0, 0, 0, 0);
 		se->lits = e->lits;
 		e->lits = 0;
-		se = Qcall(doid("dispatch"), 2, doid("!looksym"), se);
+		se = Qcall(doid("dispatch"), 2, doid("$looksym"), se);
 		se = Qset(doid(lvs->tmp), se);
 		te = Qcons(se, te);
 
@@ -373,7 +373,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		if(needval){
 			se = Qset(doid(lvs->str),
 				  Qcall(doid("dispatch"), 2,
-					doid("!get"),
+					doid("$get"),
 					doid(lvs->range)));
 			te = Qcons(se, te);
 			se = Qcval(doid(lvs->str), doid(lvs->type));
@@ -412,7 +412,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		te = Qcons(se, te);
 
 		se = Qcall(doid("dispatch"), 3,
-			   doid("!put"),
+			   doid("$put"),
 			   doid(lvs->range),
 			   doid(lvs->str));
 		te = Qcons(se, te);
