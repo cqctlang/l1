@@ -17,6 +17,11 @@ enum {
 	Qtype,
 } Qkind;
 
+enum {
+	/* Xtype flags */ 
+	Xname = 1,
+};
+
 typedef struct Vimm Vimm;
 typedef struct Vcval Vcval;
 typedef struct Box Box;
@@ -24,6 +29,7 @@ typedef struct Pair Pair;
 typedef struct Range Range;
 typedef struct Str Str;
 typedef struct Vec Vec;
+typedef struct Xtype Xtype;
 
 struct Val {
 	Qkind qkind;
@@ -88,9 +94,24 @@ struct Str {
 	char *s;
 };
 
+struct Xtype {
+	Head hd;
+	unsigned xtkind;	/* = Tbase, Tstruct, ... */
+	unsigned flags;		/* = Xname */
+	unsigned basename;	/* base */
+	unsigned rep;		/* base, ptr, enum */
+	Str *tid;		/* typedef */
+	Str *tag;		/* struct, union, enum */
+	Cval *sz;		/* struct, union */
+	Cval *cnt;		/* arr */
+	Xtype *link;		/* typedef, ptr, arr, func (return type) */
+	Vec *field;		/* struct, union */
+	Vec *param;		/* func */
+};
+
 struct Vec {
 	Head hd;
-	unsigned long len;
+	Imm len;
 	Val *vec;
 };
 
@@ -2428,6 +2449,7 @@ initvm()
 	heapbox.iter = iterbox;
 	heapcl.iter = itercl;
 	heappair.iter = iterpair;
+	/* FIXME: itercval? to walk Xtype */
 
 	kcode = contcode();
 

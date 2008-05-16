@@ -5,6 +5,66 @@ todo
 
 types
 -----
+
+TN: type name
+TD: type def
+
+
+namespace:
+	looktype(TN) -> TD
+	looksym(str) -> <
+
+
+ctype: <dom/ns,TD>
+cval: <dom/as,ctype,imm>
+
+isbase(TN)
+istypedef(TN)
+isstruct(TN)
+isunion(TN)
+issu(TN)
+isenum(TN)
+isptr(TN)
+isfn(TN)
+
+TN	:= void, char, uchar, int, ...
+	| void*
+	| typedef(str)
+	| struct(tag)
+	| union(tag)
+	| enum(tag)
+	| ptr(TN)
+	| arr(TN,nelem)
+
+TD
+	:= @int8le @int8be ...
+	| base(int...,TD)
+	| typedef(TN,TD)
+	| struct(tag,<FIELD ...>,size)
+	| union(tag,<FIELD ...>,size)
+	| enum(tag,TD)
+	| fn(TD, <PARAM ...>
+
+FIELD   := [ off, str, TD ]
+PARAM   := [ str, TD ]
+
+typename(TD) -> TN
+
+need to have way to generate code for @names:
+- seems that user should be able to programmatically make any @names
+- some @names expressions must be evaluated at run time, when @names is eval'd
+- problem is that forward references make it hard to ensure TDs are available
+  on the fly.
+
+maybe soln is ctors that allow TNs references...producing a set of
+incomplete TDs.  then operator on table of tag/tids plus existing
+name space computes a new looktype function.  what are the keys
+to the tables...strings?
+
+(dom`typename)val:
+	td = dom.ns.looktype(typename)
+	val = xcast(td,val)
+
 - type name arguments
 
 - sizeof,typeof,cast operands are syntactic type names
