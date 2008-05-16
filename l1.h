@@ -30,7 +30,7 @@ enum{
 	Evoid,
 	Enbase,
 
-	Eadd=0,
+	Eadd,
 	Earef,
 	Earr,
 	Earrow,
@@ -75,6 +75,7 @@ enum{
 	Elt,
 	Emod,
 	Emul,
+	Enames,
 	Eneq,
 	Enop,
 	Enull,

@@ -24,7 +24,7 @@ yyerror(char *s)
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
-%token LOCAL LAMBDA
+%token LOCAL LAMBDA NAMES
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN
@@ -37,6 +37,7 @@ yyerror(char *s)
 %type <expr> exclusive_or_expression inclusive_or_expression maybe_expression
 %type <expr> logical_and_expression logical_or_expression conditional_expression
 %type <expr> assignment_expression lambda_expression expression root_expression
+%type <expr> names_expression names_declaration_list names_declaration
 %type <expr> identifier_list local_list local
 %type <expr> type_specifier id tid tag struct_or_union_specifier
 %type <expr> struct_declaration_list struct_declaration
@@ -259,8 +260,28 @@ lambda_expression
 	{ $$ = newexpr(Elambda, $2, $3, 0, 0); }
 	;
 
-root_expression
+names_declaration_list
+	: names_declaration
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| names_declaration_list names_declaration
+	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	;
+
+names_declaration
+	: declaration
+	| typedef
+	;
+
+names_expression
 	: lambda_expression
+	| NAMES expression '{' names_declaration_list '}'
+	{ $$ = newexpr(Enames, $2, invert($4), 0, 0); }
+	| NAMES expression '{' '}'
+	{ $$ = newexpr(Enames, $2, nullelist(), 0, 0); }
+	;
+
+root_expression
+	: names_expression
 
 expression
 	: root_expression

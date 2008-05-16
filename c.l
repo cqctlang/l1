@@ -32,6 +32,7 @@ static int check_type();
 \/\/.*			{ /* comment */ ctx.inp->col = 0; }
 "/*"			{ comment(); }
 "@local"		{ count(); return(LOCAL); }
+"@names"		{ count(); return(NAMES); }
 "break"			{ count(); return(BREAK); }
 "char"			{ count(); return(CHAR); }
 "continue"		{ count(); return(CONTINUE); }

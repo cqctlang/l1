@@ -12,7 +12,7 @@ char* S[] = {
 	[Esigned] =	"Esigned",
 	[Eunsigned] =	"Eunsigned",
 	[Evoid] =	"Evoid",
-	[Enbase] =	"Enbase",
+	[Enbase] =	"huh?",
 
 	[Eadd] =	"Eadd",
 	[Earef] =	"Earef",
@@ -57,6 +57,7 @@ char* S[] = {
 	[Elt] =		"Elt",
 	[Emod] =	"Emod",
 	[Emul] =	"Emul",
+	[Enames] =	"Enames",
 	[Eneq] =	"Eneq",
 	[Enop] =	"Enop",
 	[Enull] =	"Enull",
