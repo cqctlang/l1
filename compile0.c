@@ -9,6 +9,11 @@ enum {
 	Vrange	= 1<<3,
 	Vaddr	= 1<<4,
 	Vstr	= 1<<5,
+	Vnames	= 1<<6,
+	Vtid	= 1<<7,
+	Vtag	= 1<<8,
+	Vsym	= 1<<9,
+	Vtn	= 1<<10,
 };
 
 typedef struct Var Var;
@@ -33,6 +38,11 @@ struct Varset
 	char *range;
 	char *addr;
 	char *str;
+	char *names;
+	char *tid;
+	char *tag;
+	char *sym;
+	char *tn;
 } Varset;
 
 static Expr*
@@ -113,6 +123,23 @@ Qcall(Expr *fn, unsigned narg, ...)
 		e = Qcons(va_arg(args, Expr*), e);
 	va_end(args);
 	return Q2(Ecall, fn, e);
+}
+
+static Expr*
+Qconsts(char *s)
+{
+	Expr *e;
+	e = newexpr(Econsts, 0, 0, 0, 0);
+	e->lits = mklits(s, strlen(s));
+	return e;
+}
+
+static Expr*
+Qnil()
+{
+	Expr *e;
+	e = newexpr(Enil, 0, 0, 0, 0);
+	return e;
 }
 
 static Vars*
@@ -199,6 +226,18 @@ bindings(Vars *vars, Varset *outer, int req)
 			vs->addr = freshvar(vars, "$addr");
 		if(req&Vstr)
 			vs->str = freshvar(vars, "$str");
+		if(req&Vstr)
+			vs->str = freshvar(vars, "$str");
+		if(req&Vnames)
+			vs->names = freshvar(vars, "$names");
+		if(req&Vtid)
+			vs->tid = freshvar(vars, "$tid");
+		if(req&Vtag)
+			vs->tag = freshvar(vars, "$tag");
+		if(req&Vsym)
+			vs->sym = freshvar(vars, "$sym");
+		if(req&Vtn)
+			vs->tn = freshvar(vars, "$tn");
 		return vs;
 	}
 
@@ -207,6 +246,11 @@ bindings(Vars *vars, Varset *outer, int req)
 	vs->range = outer->range ? outer->range : freshvar(vars, "$range");
 	vs->addr = outer->addr ? outer->addr : freshvar(vars, "$addr");
 	vs->str = outer->str ? outer->str : freshvar(vars, "$str");
+	vs->names = outer->names ? outer->names : freshvar(vars, "$names");
+	vs->tid = outer->tid ? outer->tid : freshvar(vars, "$tid");
+	vs->tag = outer->tag ? outer->tag : freshvar(vars, "$tag");
+	vs->sym = outer->sym ? outer->sym : freshvar(vars, "$sym");
+	vs->tn = outer->tn ? outer->tn : freshvar(vars, "$tn");
 	return vs;
 }
 
@@ -228,6 +272,16 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->addr), e);
 		if(lvs->str)
 			e = Qcons(doid(lvs->str), e);
+		if(lvs->names)
+			e = Qcons(doid(lvs->names), e);
+		if(lvs->tid)
+			e = Qcons(doid(lvs->tid), e);
+		if(lvs->tag)
+			e = Qcons(doid(lvs->tag), e);
+		if(lvs->sym)
+			e = Qcons(doid(lvs->sym), e);
+		if(lvs->tn)
+			e = Qcons(doid(lvs->tn), e);
 	}else{
 		if(lvs->tmp != pvs->tmp)
 			e = Qcons(doid(lvs->tmp), e);
@@ -239,6 +293,16 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->addr), e);
 		if(lvs->str != pvs->str)
 			e = Qcons(doid(lvs->str), e);
+		if(lvs->names != pvs->names)
+			e = Qcons(doid(lvs->names), e);
+		if(lvs->tid != pvs->tid)
+			e = Qcons(doid(lvs->tid), e);
+		if(lvs->tag != pvs->tag)
+			e = Qcons(doid(lvs->tag), e);
+		if(lvs->sym != pvs->sym)
+			e = Qcons(doid(lvs->sym), e);
+		if(lvs->tn != pvs->tn)
+			e = Qcons(doid(lvs->tn), e);
 	}
 
 	/* local bindings are list of identifier lists */
@@ -260,75 +324,55 @@ isloc(Expr *e)
 	}
 }
 
-static void
-xcompile0(Expr *e, Varset *pvs, Vars *vars)
+#if 0
+static Expr*
+gentypename(Type *t, Varset *lvs)
 {
-	Expr *se, *te;
-
-	if(e == NULL)
-		return;
-
-	switch(e->kind){
-	case Elambda:
-	case Eblock:
-		xcompile0(e->e2, pvs, vars);
-		break;
-	case Etick:
-		e->kind = Eblock;
-
-		/* local bindings are list of identifier lists */
-		te = nullelist();
-		te = newexpr(Eelist, doid("p"), te, 0, 0);
-		te = newexpr(Eelist, doid("t"), te, 0, 0);
-		te = newexpr(Eelist, doid("b"), te, 0, 0);
-		e->e1 = newexpr(Eelist, te, nullelist(), 0, 0);
-
-		te = nullelist();
-
-		// p = dispatch($looksym, <sym>);
-		se = newexpr(Econsts, 0, 0, 0, 0);
-		se->lits = e->lits;
-		e->lits = 0;
-		se = newexpr(Eelist, se, nullelist(), 0, 0);
-		se = newexpr(Eelist, doid("$looksym"), se, 0, 0);
-		se = newexpr(Ecall, doid("dispatch"), invert(se), 0, 0);
-		se = newexpr(Eg, doid("p"), se, 0, 0);
-		te = newexpr(Eelist, se, te, 0, 0);
-
-		// t = car(p);
-		se = newexpr(E_car, doid("p"), 0, 0, 0);
-		se = newexpr(Eg, doid("t"), se, 0, 0);
-		te = newexpr(Eelist, se, te, 0, 0);
-
-		// b = dispatch($get, range(cdr(p), sizeof(t)));
-		se = newbinop(E_range,
-			      newexpr(E_cdr, doid("p"), 0, 0, 0),
-			      newexpr(E_sizeof, doid("t"), 0, 0, 0));
-		se = newexpr(Eelist, se, nullelist(), 0, 0);
-		se = newexpr(Eelist, doid("$get"), se, 0, 0);
-		se = newexpr(Ecall, doid("dispatch"), invert(se), 0, 0);
-		se = newexpr(Eg, doid("b"), se, 0, 0);
-		te = newexpr(Eelist, se, te, 0, 0);
-		
-		// cval(b, t);
-		se = newbinop(E_cval, doid("b"), doid("t"));
-		te = newexpr(Eelist, se, te, 0, 0);
-
-		e->e2 = invert(te);
-		break;
-	default:
-		xcompile0(e->e1, pvs, vars);
-		xcompile0(e->e2, pvs, vars);
-		xcompile0(e->e3, pvs, vars);
-		xcompile0(e->e4, pvs, vars);
-		break;
-	}
+	
 }
+
+static void
+compiledecl(Decl *dl, Varset *pvs, Vars *vars)
+{
+	Type *t;
+	int binds;
+	Varset *lvs;
+	Expr *e, *se, *te;
+
+	t = dl->type;
+	if(dl->id){
+		binds = Vtmp|Vtn;
+		lvs = bindings(vars, pvs, binds);
+		pushlevel(vars);
+
+		te = nullelist();
+		se = Qset(doid(lvs->tn), gettypename(t));
+		te = Qcons(se, te);
+
+		se = Qset(doid(lvs->tmp),
+			  Qcall(doid("vector"), 2,
+				dl->offs ? dl->offs : Qnil(),
+				doid(lvs->tn)));
+		te = Qcons(se, te);
+
+		se = Qdictset(doid(lvs->sym), Qstr(dl->id), doid(lvs->tmp));
+		te = Qcons(se, te);
+
+		e = newexpr(Eblock, locals(lvs, pvs), invert(te));
+		poplevel(vars);
+		freevarset(lvs);
+		return e;
+	}
+	fatal("compiledecl incomplete");
+}
+#endif
 
 static void
 compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 {
 	Expr *se, *te;
+	Expr *ex;
+	Decl *dl;
 	Varset *lvs;
 	int binds;
 
@@ -353,9 +397,8 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 
 		te = nullelist();
 
-		se = newexpr(Econsts, 0, 0, 0, 0);
-		se->lits = e->lits;
-		e->lits = 0;
+		se = Qconsts(e->id);
+		free(e->id);
 		se = Qcall(doid("dispatch"), 2, doid("$looksym"), se);
 		se = Qset(doid(lvs->tmp), se);
 		te = Qcons(se, te);
@@ -425,6 +468,41 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		e->kind = Eblock;
 		e->e1 = locals(lvs, pvs);
 		e->e2 = invert(te);
+		freevarset(lvs);
+		poplevel(vars);
+		break;
+	case Enames:
+		binds = Vnames|Vtid|Vtag|Vsym;
+		lvs = bindings(vars, pvs, binds);
+		pushlevel(vars);
+
+		te = nullelist();
+
+#if 0
+		compile0(e->e2, lvs, vars, 0);
+		se = e->e2;
+		te = Qcons(se, te);
+
+		ex = e->e2;
+		if(ex->kind != Eelist && ex->kind != Enull)
+			fatal("broken");
+		while(ex->kind == Eelist){
+			dl = ex->e1->x;
+			while(dl){
+				printf("e %p dl %p\n", ex, dl);
+				compiledecl(dl, pvs, vars);
+				dl = dl->link;
+			}
+			ex = ex->e2;
+		}
+
+		// names = mknames(names,Vtid,Vtag,Vsym);
+
+#endif
+		e->kind = Eblock;
+		e->e1 = locals(lvs, pvs);
+		e->e2 = te;
+
 		freevarset(lvs);
 		poplevel(vars);
 		break;

@@ -78,6 +78,7 @@ enum{
 	Enames,
 	Eneq,
 	Enop,
+	Enil,
 	Enull,
 	Epostdec,
 	Epostinc,
@@ -107,11 +108,17 @@ enum{
 	E_cdr,
 	E_cval,
 	E_encode,
+	E_lenl,
 	E_lens,
+	E_lenv,
 	E_range,
 	E_sizeof,
 	E_slices,
 	E_str,
+	E_vec,
+	E_vecl,
+	E_vecref,
+	E_vecset,
 	E_xcast,
 } Kind;
 
@@ -272,12 +279,14 @@ Expr* doid(char*);
 Expr* doconst(char*);
 Expr* doconsts(char*);
 Expr* dotick(char*);
+Lits* mklits(char*, unsigned len);
 Lits* copylits(Lits *lits);
 void freelits(Lits *lits);
 char* fmttype(Type *t, char *o);
 
 void initcval(Cval *cval, Type *type, Imm val);
 
+Expr* dotypes(Expr*);
 void dotop(Expr*);
 void initparse();
 void finiparse();

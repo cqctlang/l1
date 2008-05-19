@@ -35,19 +35,7 @@ parseerror(char *fmt, ...)
 	longjmp(ctx.jmp, 1);
 }
 
-static void
-bad(char *fmt, ...)
-{
-	va_list args;
-
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
-	va_end(args);
-	exit(1);
-}
-
-static Lits*
+Lits*
 mklits(char *s, unsigned len)
 {
 	Lits *lits;
@@ -430,7 +418,7 @@ doconst(char *s)
 	char c, *p;
 
 	if(s[0] == 'L')
-		bad("wide characters unsupported");
+		parseerror("wide characters unsupported");
 
 	/* char constant */
 	if(s[0] == '\''){
@@ -501,7 +489,7 @@ doconst(char *s)
 	}
 
 	if(strchr(s, '.'))
-		bad("float pointer constants unsupported");
+		parseerror("float pointer constants unsupported");
 
 	/* integer constant */
 	if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
@@ -514,7 +502,7 @@ doconst(char *s)
 
 	suf = Snone;
 	if(p == s)
-		bad("bad integer constant");
+		parseerror("bad integer constant");
 	while(*p != '\0'){
 		if(*p == 'U' || *p == 'u')
 			switch(suf){
@@ -528,7 +516,7 @@ doconst(char *s)
 				suf = Sull;
 				break;
 			default:
-				bad("bad use of integer constant U suffix");
+				parseerror("bad use of constant suffix U");
 			}
 		else if(*p == 'L' || *p == 'l')
 			switch(suf){
@@ -545,10 +533,10 @@ doconst(char *s)
 				suf = Sull;
 				break;
 			default:
-				bad("bad use of integer constant L suffix");
+				parseerror("bad use of constant suffix L");
 			}
 		else
-			bad("bad integer constant suffix %c", *p);
+			parseerror("bad integer constant suffix %c", *p);
 		p++;
 	}
 		
@@ -605,7 +593,7 @@ doconst(char *s)
 		else
 			base = Vuvlong;
 	}else
-		fatal("i fucked up");
+		fatal("bug");
 
 	return mkconst(base, n);
 }
@@ -726,7 +714,7 @@ dotick(char *s)
 {
 	Expr *e;
 	e = newexpr(Etick, 0, 0, 0, 0);
-	e->lits = mklits(s, strlen(s));
+	e->id = xstrdup(s);
 	return e;
 }
 
@@ -739,7 +727,7 @@ recexprinc(Expr *e)
 		return e;
 	case Ebinop:
 		if(e->op != Eadd)
-			fatal("unexpected exprinc operand");
+			fatal("bug"); /* incomplete implementation? */
 		if(recexprinc(e->e1))
 			return e;
 		else if(recexprinc(e->e2))
@@ -884,16 +872,16 @@ speclist(Expr *e)
 		case Eunsigned:
 		case Evoid:
 			if(t)
-				bad("bad type specifier");
+				parseerror("bad type specifier");
 			base = basemod[base][s->kind];
 			if(base == Verr)
-				bad("bad type specifier");
+				parseerror("bad type specifier");
 			break;
 		case Eenum:
 		case Estruct:
 		case Eunion:
 			if(t || base != Vnil)
-				bad("bad type specifier");
+				parseerror("bad type specifier");
 			switch(s->kind){
 			case Estruct:
 				kind = Tstruct;
@@ -912,42 +900,27 @@ speclist(Expr *e)
 			tag = s->e1;
 			dl = s->e2;
 
+			t = newtype();
+			t->kind = kind;
 			if(tag){
-				t = taglookup(ctx.ns, tag->id);
-				if(t && (!(t->flags&Ffwd) || t->kind != kind))
-					bad("redefinition of tag %s\n",
-					    tag->id);
-				if(t == NULL){
-					t = newtype();
-					t->kind = kind;
-					t->tag = tag->id; /* steal */
-					tag->id = NULL;
-					tagstore(ctx.ns, t);
-				}
-			}else{
-				t = newtype();
-				t->kind = kind;
+				t->tag = tag->id; /* steal */
+				tag->id = NULL;
 			}
-
-			if(dl == NULL){
-				t->flags = Ffwd;
-				break;
+			if(dl){
+				if(kind == Tenum)
+					t->en = enums(t, dl);
+				else
+					t->field = sufields(dl);
 			}
-
-			if(kind == Tenum)
-				t->en = enums(t, dl);
-			else
-				t->field = sufields(dl);
-
 			break;
 		case Eid:
 			t = newtype();
 			t->kind = Ttypedef;
 			t->tid = s->id; /* steal */
-			t->link = tidlookup(ctx.ns, s->id);
+			s->id = NULL;
 			break;
 		default:
-			fatal("xbug");
+			fatal("bug");
 			break;
 		}
 	}
@@ -1145,7 +1118,7 @@ fmttype(Type *t, char *o)
 		free(pl);
 		return fmttype(t->link, buf);
 	default:
-		fatal("bad declaration type");
+		fatal("bug");
 	}
 	return NULL;
 }
@@ -1215,7 +1188,7 @@ dodecls(Expr *e)
 
 	if(e->e3){
 		if(rv == NULL)
-			fatal("parser bug");
+			fatal("bug");
 		rv->offs = e->e3; /* steal */
 		e->e3 = NULL;
 	}
@@ -1232,7 +1205,7 @@ dotypedef(Expr *e)
 	t = speclist(e->e1);
 	rv = declarator(t, e->e2);
 
-	tidstore(ctx.ns, rv->id, rv->type);
+	/*	tidstore(ctx.ns, rv->id, rv->type); */
 
 	return rv;
 }
@@ -1240,30 +1213,29 @@ dotypedef(Expr *e)
 void
 dotop(Expr *e)
 {
-	Decl *dl, *p;
+	ctx.el = newexpr(Eelist, e, ctx.el, 0, 0);
+}
 
-	switch(e->kind){
-	case Etypedef:
-		dl = dotypedef(e);
-		printf("typedef ");
-		printdecl(dl);
-		printf(";\n");
-		break;
-	case Edecls:
-		dl = dodecls(e);
-		p = dl;
-		while(p){
-			printdecl(p);
-			printf(";\n");
-			if(p->id)
-				symstore(ctx.ns, p->id, p);
-			p = p->link;
+Expr*
+dotypes(Expr *e)
+{
+	if(e){
+		switch(e->kind){
+		case Etypedef:
+			e->x = dotypedef(e);
+			break;
+		case Edecls:
+			e->x = dodecls(e);
+			break;
+		default:
+			dotypes(e->e1);
+			dotypes(e->e2);
+			dotypes(e->e3);
+			dotypes(e->e4);
+			break;
 		}
-		break;
-	default:
-		ctx.el = newexpr(Eelist, e, ctx.el, 0, 0);
-		break;
 	}
+	return e;
 }
 
 void

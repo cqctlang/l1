@@ -45,4 +45,52 @@ test1 = lambda() {
 	x = `sym;
 };
 
-test1();
+test2 = lambda(){
+	v = mkvec(5);
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		vecset(v, i, i*i);
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		print(vecref(v, i));
+};
+
+//test2();
+
+test3 = lambda(){
+	v = vector(10,11,12,13,14);
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		print(vecref(v, i));
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		vecset(v, i, i*i);
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		print(vecref(v, i));
+};
+
+//test3();
+
+test4 = lambda(){
+	v = vector();
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		print(vecref(v, i));
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		vecset(v, i, i*i);
+	print(v);
+	for(i = 0; i < veclen(v); i++)
+		print(vecref(v, i));
+};
+
+//test4();
+
+test5 = lambda(){
+	v = vector();
+	print(v);
+	vecset(v, 10, 11);
+};
+
+test5();

@@ -374,8 +374,20 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Ilenl:
+		printf("lenl ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	case Ilens:
 		printf("lens ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ilenv:
+		printf("lenv ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -394,6 +406,34 @@ printinsn(Code *code, Insn *i)
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
+		break;
+	case Ivec:
+		printf("vec ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ivecl:
+		printf("vecl ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ivecref:
+		printf("vecref ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ivecset:
+		printf("vecset ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->op3);
 		break;
 	case Ixcast:
 		printf("xcast ");
@@ -457,12 +497,24 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Iisvec:
+		printf("isvec ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	case Inull:
 		printf("null ");
 		printrand(code, &i->dst);
 		break;
 	case Ivlist:
 		printf("vlist ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ivvec:
+		printf("vvec ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -549,7 +601,7 @@ max(unsigned x, unsigned y)
 static int
 issimple(Expr *e)
 {
-	return (e->kind == Eid || e->kind == Econst);
+	return (e->kind == Eid || e->kind == Econst || e->kind == Enil);
 }
 
 static unsigned
@@ -1069,11 +1121,6 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 		if(e->x == NULL)
 			e->x = konstadd(e->lits, kon);
 		break;
-	case Etick:
-		e->x = konstlookup(e->lits, kon);
-		if(e->x == NULL)
-			e->x = konstadd(e->lits, kon);
-		break;
 	case Eid:
 		id = e->id;
 		vd = varlookup(id, ve);
@@ -1238,9 +1285,6 @@ printframe(Expr *e)
 		break;
 	case Eblock:
 		printframe(e->e2);
-		break;
-	case Etick:
-		printf("(Etick %.*s)", e->lits->len, e->lits->s);
 		break;
 	case Eid:
 		printf("(Eid ");
@@ -1444,6 +1488,9 @@ cgrand(Operand *rand, Expr *e, CGEnv *p)
 	case Econsts:
 		randlits(rand, e->x);
 		break;
+	case Enil:
+		randnil(rand);
+		break;
 	default:
 		fatal("bug: cgrand on node %d", e->kind);
 	}
@@ -1576,11 +1623,17 @@ static ikind EtoVM[] = {
 	[E_cdr] = Icdr,
 	[E_cval] = Icval,
 	[E_encode] = Iencode,
+	[E_lenl] = Ilenl,
 	[E_lens] = Ilens,
+	[E_lenv] = Ilenv,
 	[E_range] = Irange,
 	[E_sizeof] = Isizeof,
 	[E_slices] = Islices,
 	[E_str] = Istr,
+	[E_vec] = Ivec,
+	[E_vecl] = Ivecl,
+	[E_vecref] = Ivecref,
+	[E_vecset] = Ivecset,
 	[E_xcast] = Ixcast,
 };
 
@@ -1846,9 +1899,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		else
 			cgctl(code, p, p->Return0, nxt);
 		break;
-	case Etick:
-		i = nextinsn(code);
-		break;
 	/* can Eid and Econst be rationalized with cgrand? */
 	case Eid:
 		i = nextinsn(code);
@@ -1868,6 +1918,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i = nextinsn(code);
 		i->kind = Imov;
 		randlits(&i->op1, e->x);
+		randloc(&i->dst, loc);
+		cgctl(code, p, ctl, nxt);
+		break;
+	case Enil:
+		i = nextinsn(code);
+		i->kind = Imov;
+		randnil(&i->op1);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt);
 		break;
@@ -2505,6 +2562,29 @@ istypethunk()
 }
 
 Closure*
+isvectorthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "isvector");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iisvec;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
 carthunk()
 {
 	Ctl *L;
@@ -2735,6 +2815,123 @@ printthunk()
 	i->kind = Imov;
 	randnil(&i->op1);
 	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+mkvecthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "mkvec");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ivec;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+vectorthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "vector");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ivvec;
+	randloc(&i->op1, FP);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+veclenthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "veclen");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ilenv;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+vecrefthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "vecref");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ivecref;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+vecsetthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "vecset");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ivecset;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	randloc(&i->op3, ARG2);
 	i = nextinsn(code);
 	i->kind = Iret;
 

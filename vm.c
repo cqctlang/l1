@@ -11,10 +11,12 @@ enum {
 	Qcval,
 	Qcl,
 	Qbox,
+	Qdict,
 	Qpair,
 	Qrange,
 	Qstr,
 	Qtype,
+	Qvec,
 } Qkind;
 
 enum {
@@ -32,6 +34,7 @@ enum {
 typedef struct Vimm Vimm;
 typedef struct Vcval Vcval;
 typedef struct Box Box;
+typedef struct Dict Dict;
 typedef struct Pair Pair;
 typedef struct Range Range;
 typedef struct Str Str;
@@ -47,6 +50,7 @@ struct Val {
 		Cval cval;
 		Closure *cl;
 		Box *box;
+		Dict *dict;
 		Pair *pair;
 		Range *range;
 		Str *str;
@@ -74,6 +78,20 @@ struct Closure {
 struct Box {
 	Head hd;
 	Val v;
+};
+
+typedef struct Dictelem Dictelem;
+struct Dictelem {
+	u32 idx;
+	Dictelem *link;
+};
+
+struct Dict {
+	Head hd;
+	u32 nelm, maxelm;
+	u32 sz;
+	Val *elm;
+	Dictelem **dict;
 };
 
 struct Vimm {
@@ -104,6 +122,12 @@ struct Str {
 	char *s;
 };
 
+struct Vec {
+	Head hd;
+	Imm len;
+	Val *vec;
+};
+
 struct Xtypedef {
 	Head hd;
 	unsigned xtkind;	/* = Tbase, Tstruct, ... */
@@ -129,12 +153,6 @@ struct Xtypename {
 	Vec *param;		/* abstract declarators for func */
 };
 
-struct Vec {
-	Head hd;
-	Imm len;
-	Val *vec;
-};
-
 struct VM {
 	Val stack[Maxstk];
 	Env *topenv;
@@ -152,6 +170,7 @@ static void freeval(Val *val);
 static void vmsetcl(VM *vm, Closure *cl);
 static void strinit(Str *str, Lits *lits);
 static void vmerr(VM *vm, char *fmt, ...) __attribute__((noreturn));
+static Pair* valpair(Val *v);
 
 static Val Xundef;
 static Val Xnil;
@@ -202,7 +221,7 @@ enum {
 static unsigned long long nextgctick = GCrate;
 
 Heap heapcode, heapcl, heapimm, heapbox, heapcval, heappair,
-	heaprange, heapstr;
+	heaprange, heapstr, heapvec;
 static Code *kcode;
 
 static void*
@@ -305,6 +324,7 @@ sweep(unsigned color)
 	sweepheap(&heapbox, color);
 	sweepheap(&heapcval, color);
 	sweepheap(&heapstr, color);
+	sweepheap(&heapvec, color);
 }
 
 static void
@@ -808,6 +828,77 @@ freestr(Head *hd)
 	free(str->s);
 }
 
+static int
+listlen(Val *v, Imm *rv)
+{
+	Imm m;
+	Pair *p;
+
+	m = 0;
+	while(v->qkind == Qpair){
+		m++;
+		p = valpair(v);
+		v = &p->cdr;
+	}
+	if(v->qkind != Qnulllist)
+		return 0;
+	*rv = m;
+	return 1;
+}
+
+static Vec*
+mkvec(Imm len)
+{
+	Vec *vec;
+
+	vec = (Vec*)galloc(&heapvec);
+	vec->len = len;
+	vec->vec = xmalloc(len*sizeof(*vec->vec));
+	return vec;
+}
+
+static Vec*
+mkvecnil(Imm len)
+{
+	Vec *vec;
+	Imm i;
+
+	vec = mkvec(len);
+	for(i = 0; i < len; i++)
+		vec->vec[i] = Xnil;
+	return vec;
+}
+
+static Val*
+vecref(Vec *vec, Imm idx)
+{
+	return &vec->vec[idx];
+}
+
+static void
+vecset(Vec *vec, Imm idx, Val *v)
+{
+	vec->vec[idx] = *v;
+}
+
+static Head*
+itervec(Head *hd, Ictx *ictx)
+{
+	Vec *vec;
+	vec = (Vec*)hd;
+	if(ictx->n > vec->len)
+		return 0;
+	return valhead(&vec->vec[ictx->n++]);
+}
+
+static void
+freevec(Head *hd)
+{
+	Vec *vec;
+	vec = (Vec*)hd;
+	free(vec->vec);
+}
+
 Env*
 mkenv()
 {
@@ -924,6 +1015,13 @@ mkvalstr(Str *str, Val *vp)
 }
 
 static void
+mkvalvec(Vec *vec, Val *vp)
+{
+	vp->qkind = Qvec;
+	vp->u.vec = vec;
+}
+
+static void
 mkvaltype(Type *type, Val *vp)
 {
 	vp->qkind = Qtype;
@@ -988,6 +1086,14 @@ valstr(Val *v)
 	if(v->qkind != Qstr)
 		fatal("valstr on non-string");
 	return v->u.str;
+}
+
+static Vec*
+valvec(Val *v)
+{
+	if(v->qkind != Qvec)
+		fatal("valvec on non-vector");
+	return v->u.vec;
 }
 
 static void
@@ -1109,13 +1215,15 @@ printsrc(Closure *cl, Imm pc)
 	Code *code;
 	
 	code = cl->code;
-	while(pc >= 0){
+	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
 			printf("%s:%u\n",
 			       code->labels[pc]->src->filename,
 			       code->labels[pc]->src->line);
 			return;
 		}
+		if(pc == 0)
+			break;
 		pc--;
 	}
 	printf("(no source information)\n");
@@ -1136,6 +1244,8 @@ vmerr(VM *vm, char *fmt, ...)
 	
 	/* dump stack trace */
 	pc = vm->pc-1;		/* vm loop increments pc after fetch */
+	if(vm->pc == 0)
+		printf("vmerr: pc is 0!\n");
 	fp = vm->fp;
 	cl = vm->clx;
 	while(fp != 0){
@@ -1424,7 +1534,7 @@ imm2str(Type *t, Imm imm)
 }
 
 static void
-printval(Val *v)
+printval(Val *val)
 {
 	Cval *cv;
 	Closure *cl;
@@ -1434,19 +1544,20 @@ printval(Val *v)
 	char *o;
 	Val bv;
 	Type *t;
+	Vec *vec;
 
-	if(v == 0){
+	if(val == 0){
 		printf("(no value)");
 		return;
 	}
 
-	switch(v->qkind){
+	switch(val->qkind){
 	case Qcval:
-		cv = valcval(v);
+		cv = valcval(val);
 		printf("<cval %llu>", cv->val);
 		break;
 	case Qcl:
-		cl = valcl(v);
+		cl = valcl(val);
 		if(cl->id)
 			printf("<closure %s>", cl->id);
 		else
@@ -1463,30 +1574,34 @@ printval(Val *v)
 		break;
 	case Qbox:
 		printf("<box ");
-		valboxed(v, &bv);
+		valboxed(val, &bv);
 		printval(&bv);
 		printf(">");
 		break;
 	case Qpair:
-		pair = valpair(v);
+		pair = valpair(val);
 		printf("<pair %p>", pair);
 		break;
 	case Qrange:
-		r = valrange(v);
+		r = valrange(val);
 		printf("<range %llu %llu>", r->beg.val, r->len.val);
 		break;
 	case Qstr:
-		str = valstr(v);
+		str = valstr(val);
 		printf("%.*s", (int)str->len, str->s);
 		break;
 	case Qtype:
-		t = valtype(v);
+		t = valtype(val);
 		o = fmttype(t, xstrdup(""));
 		printf("<type %s>", o);
 		free(o);
 		break;
+	case Qvec:
+		vec = valvec(val);
+		printf("<vec %p>", vec);
+		break;
 	default:
-		printf("<unprintable type %d>", v->qkind);
+		printf("<unprintable type %d>", val->qkind);
 		break;
 	}
 }
@@ -1927,6 +2042,79 @@ xstr(VM *vm, Operand *cval, Operand *dst)
 }
 
 static void
+xlenl(VM *vm, Operand *l, Operand *dst)
+{
+	Val lv, rv;
+	Imm len;
+	getvalrand(vm, l, &lv);
+	if(listlen(&lv, &len) == 0)
+		vmerr(vm, "length on non-list");
+	mkvalcval(0, len, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xvecnil(VM *vm, Operand *cval, Operand *dst)
+{
+	Val cvalv, rv;
+	Vec *vec;
+	Cval *cv;
+
+	getvalrand(vm, cval, &cvalv);
+	cv = valcval(&cvalv);
+	vec = mkvecnil(cv->val);
+	mkvalvec(vec, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xlenv(VM *vm, Operand *vec, Operand *dst)
+{
+	Val vecv, rv;
+	Vec *v;
+	getvalrand(vm, vec, &vecv);
+	v = valvec(&vecv);
+	mkvalcval(0, v->len, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xvecref(VM *vm, Operand *vec, Operand *idx, Operand *dst)
+{
+	Val vecv, idxv;
+	Vec *v;
+	Cval *cv;
+
+	getvalrand(vm, vec, &vecv);
+	getvalrand(vm, idx, &idxv);
+	v = valvec(&vecv);
+	cv = valcval(&idxv);
+	/* FIXME: check sign of cv */
+	if(cv->val >= v->len)
+		vmerr(vm, "vector reference out of bounds");
+	putvalrand(vm, vecref(v, cv->val), dst);
+}
+
+static void
+xvecset(VM *vm, Operand *vec, Operand *idx, Operand *val)
+{
+	Val vecv, idxv, valv;
+	Vec *v;
+	Cval *cv;
+
+	getvalrand(vm, vec, &vecv);
+	getvalrand(vm, idx, &idxv);
+	getvalrand(vm, val, &valv);
+	v = valvec(&vecv);
+	cv = valcval(&idxv);
+	/* FIXME: check sign of cv */
+	if(cv->val >= v->len)
+		vmerr(vm, "vector set out of bounds");
+	/* FIXME: addroot whatever gets clobbered? */
+	vecset(v, cv->val, &valv);
+}
+
+static void
 xxcast(VM *vm, Operand *type, Operand *cval, Operand *dst)
 {
 	Val typev, cvalv, rv;
@@ -2033,6 +2221,18 @@ xistype(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
+xisvec(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qvec)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xvlist(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, *vp;
@@ -2046,6 +2246,25 @@ xvlist(VM *vm, Operand *op, Operand *dst)
 	rv = Xnulllist;
 	for(i = n; i > 0; i--)
 		mkvalpair(&vm->stack[sp+i], &rv, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xvvec(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, *vp;
+	Imm sp, n, i;
+	Val rv;
+	Vec *vec;
+
+	getvalrand(vm, op, &v);
+	sp = valimm(&v);
+	vp = &vm->stack[sp];
+	n = valimm(vp);
+	vec = mkvec(n);
+	for(i = 0; i < n; i++)
+		vecset(vec, i, &vm->stack[sp+i+1]);
+	mkvalvec(vec, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -2140,12 +2359,15 @@ dovm(VM *vm, Closure *cl)
 	gotab[Iisrange]	= &&Iisrange;
 	gotab[Iisstr] 	= &&Iisstr;
 	gotab[Iistype] 	= &&Iistype;
+	gotab[Iisvec] 	= &&Iisvec;
 	gotab[Ijmp] 	= &&Ijmp;
 	gotab[Ijnz] 	= &&Ijnz;
 	gotab[Ijz] 	= &&Ijz;
 	gotab[Ikg] 	= &&Ikg;
 	gotab[Ikp] 	= &&Ikp;
+	gotab[Ilenl]	= &&Ilenl;
 	gotab[Ilens]	= &&Ilens;
+	gotab[Ilenv]	= &&Ilenv;
 	gotab[Imod] 	= &&Imod;
 	gotab[Imov] 	= &&Imov;
 	gotab[Imul] 	= &&Imul;
@@ -2166,7 +2388,11 @@ dovm(VM *vm, Closure *cl)
 	gotab[Islices]	= &&Islices;
 	gotab[Istr]	= &&Istr;
 	gotab[Isub] 	= &&Isub;
+	gotab[Ivec] 	= &&Ivec;
+	gotab[Ivecref] 	= &&Ivecref;
+	gotab[Ivecset] 	= &&Ivecset;
 	gotab[Ivlist] 	= &&Ivlist;
+	gotab[Ivvec] 	= &&Ivvec;
 	gotab[Ixcast] 	= &&Ixcast;
 	gotab[Ixor] 	= &&Ixor;
 
@@ -2332,6 +2558,21 @@ dovm(VM *vm, Closure *cl)
 	Ilens:
 		xlens(vm, &i->op1, &i->dst);
 		continue;
+	Ilenl:
+		xlenl(vm, &i->op1, &i->dst);
+		continue;
+	Ivec:
+		xvecnil(vm, &i->op1, &i->dst);
+		continue;
+	Ivecref:
+		xvecref(vm, &i->op1, &i->op2, &i->dst);
+		continue;
+	Ivecset:
+		xvecset(vm, &i->op1, &i->op2, &i->op3);
+		continue;
+	Ilenv:
+		xlenv(vm, &i->op1, &i->dst);
+		continue;
 	Ixcast:
 		xxcast(vm, &i->op1, &i->op2, &i->dst);
 		continue;
@@ -2359,8 +2600,14 @@ dovm(VM *vm, Closure *cl)
 	Iistype:
 		xistype(vm, &i->op1, &i->dst);
 		continue;
+	Iisvec:
+		xisvec(vm, &i->op1, &i->dst);
+		continue;
 	Ivlist:
 		xvlist(vm, &i->op1, &i->dst);
+		continue;
+	Ivvec:
+		xvvec(vm, &i->op1, &i->dst);
 		continue;
 	Iencode:
 		xencode(vm, &i->op1, &i->dst);
@@ -2416,9 +2663,15 @@ mkvm(Env *env)
 	builtinfn(env, "isrange", israngethunk());
 	builtinfn(env, "isstring", isstringthunk());
 	builtinfn(env, "istype", istypethunk());
+	builtinfn(env, "isvector", isvectorthunk());
 	builtinfn(env, "string", stringthunk());
 	builtinfn(env, "strlen", strlenthunk());
 	builtinfn(env, "substr", substrthunk());
+	builtinfn(env, "mkvec", mkvecthunk());
+	builtinfn(env, "vector", vectorthunk());
+	builtinfn(env, "veclen", veclenthunk());
+	builtinfn(env, "vecref", vecrefthunk());
+	builtinfn(env, "vecset", vecsetthunk());
 
 	builtinstr(env, "$get", "get");
 	builtinstr(env, "$put", "put");
@@ -2452,6 +2705,7 @@ initvm()
 	heappair.id = "pair";
 	heaprange.id = "range";
 	heapstr.id = "string";
+	heapvec.id = "vector";
 
 	heapbox.sz = sizeof(Box);
 	heapcl.sz = sizeof(Closure);
@@ -2461,14 +2715,17 @@ initvm()
 	heappair.sz = sizeof(Pair);
 	heaprange.sz = sizeof(Range);
 	heapstr.sz = sizeof(Str);
+	heapvec.sz = sizeof(Vec);
 
 	heapcode.free1 = freecode;
 	heapcl.free1 = freecl;
 	heapstr.free1 = freestr;
+	heapvec.free1 = freevec;
 
 	heapbox.iter = iterbox;
 	heapcl.iter = itercl;
 	heappair.iter = iterpair;
+	heapvec.iter = itervec;
 	/* FIXME: itercval? to walk Xtype */
 
 	kcode = contcode();
@@ -2501,4 +2758,5 @@ finivm()
 	freeheap(&heappair);
 	freeheap(&heaprange);
 	freeheap(&heapstr);
+	freeheap(&heapvec);
 }

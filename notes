@@ -1,7 +1,9 @@
 todo
 ----
 - introduce address types
-- check for negative cvals on Irange, Istr, Islice*
+- check for negative cvals on Irange, Istr, Islice*, Ivec*
+- can we remove a level of box indirection on compile0 output?
+  is it gc-safe?  (i.e., old values will be clobbered w/o being made a root).
 
 types
 -----
@@ -111,6 +113,17 @@ struct tag {
    cons(mkfield(eval(expr), mktypedesc(typedesc), "name"), tmp);
 
 
+variable binding
+----------------
+
+old cqct: var refs create binding in nearest
+lexical scope, unless there is already a binding
+in outer scope, or a top-level binding.
+
+new cqct: harder to determine at compile time
+whether there is a toplevel binding (really?);
+also, i don't think there is a mechanism to
+add new local bindings to a lambda.
 
 inferno
 -------
@@ -355,6 +368,11 @@ why there is both a frame and call insn
 garbage collection
 ------------------
 
+fixme:
+	- how do we protect newly alloc'd objects in vm.c opcodes?
+	- likewise, objects alloc'd in c functions?
+
+
 the gc is based on the concurrent gc described in
 
 	l. huelsbergen and p. winterbottom.  very concurrent
@@ -364,6 +382,22 @@ the gc is based on the concurrent gc described in
 our goal is to have an efficent, simple incremental gc
 that can optionally run concurrently with low
 synchronization overhead.
+
+a key property (being recounted many months since i
+last understood the thing) is how references to objects
+stored in mutable data structures (boxes, vecs, dicts)
+are safely tracked:
+
+	- new objects (galloc'd) are marked upon creation;
+	  they will not be swept until two rounds pass without finding
+	  a reference;
+	- clobbered objects are marked upon clobber;
+	  they will not be swept;
+	- new inserted objects either recently galloc'd
+	  or are referenced elsewhere -- even in missed, they will
+	  survive to next round.
+
+FIXME: rationalize w/ gcrun test
 
 our implementation differs from the paper in several
 ways.
@@ -379,7 +413,7 @@ there are two rootsets:
 
 the paper defines only the stores root set.  the
 function of our roots root set is mantaining the state
-of the marker are it traverses reachable heap objects.
+of the marker as it traverses reachable heap objects.
 in the paper, the inferno implementation instead uses
 an additional propagator color to avoid recursion,
 implementing marking by repeatedly scanning the heap

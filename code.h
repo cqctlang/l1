@@ -31,12 +31,15 @@ enum {
 	Iisrange,
 	Iisstr,
 	Iistype,
+	Iisvec,
 	Ijmp,
 	Ijnz,
 	Ijz,
 	Ikg,
 	Ikp,
+	Ilenl,
 	Ilens,
+	Ilenv,
 	Imod,
 	Imov,
 	Imul,
@@ -57,7 +60,12 @@ enum {
 	Islices,
 	Istr,
 	Isub,
+	Ivec,
+	Ivecl,
+	Ivecref,
+	Ivecset,
 	Ivlist,
+	Ivvec,
 	Ixcast,
 	Ixor,
 	Iopmax         
@@ -115,6 +123,8 @@ struct Heap {
 	unsigned sz;
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	void (*free1)(Head *hd);
+	u32 (*hash)(Head *hd);
+	int (*eq)(Head *a, Head *b);
 };
 
 typedef struct Val Val;
@@ -211,9 +221,15 @@ Closure* ispairthunk();
 Closure* israngethunk();
 Closure* isstringthunk();
 Closure* istypethunk();
+Closure* isvectorthunk();
 Closure* stringthunk();
 Closure* strlenthunk();
 Closure* substrthunk();
+Closure* mkvecthunk();
+Closure* vectorthunk();
+Closure* veclenthunk();
+Closure* vecrefthunk();
+Closure* vecsetthunk();
 
 Code* contcode();
 void getcode(Code *code);

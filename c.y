@@ -275,7 +275,7 @@ names_declaration
 names_expression
 	: lambda_expression
 	| NAMES expression '{' names_declaration_list '}'
-	{ $$ = newexpr(Enames, $2, invert($4), 0, 0); }
+	{ $$ = newexpr(Enames, $2, dotypes(invert($4)), 0, 0); }
 	| NAMES expression '{' '}'
 	{ $$ = newexpr(Enames, $2, nullelist(), 0, 0); }
 	;
@@ -623,9 +623,7 @@ translation_unit
 	;
 
 external_declaration
-	: declaration		{ dotop($1); }
-	| typedef		{ dotop($1); }
-	| statement		{ dotop($1); }
+	: statement		{ dotop($1); }
 	;
 
 %%
