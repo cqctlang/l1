@@ -18,8 +18,15 @@ enum {
 } Qkind;
 
 enum {
-	/* Xtype flags */ 
-	Xname = 1,
+	/* Xtypedef flags */ 
+	Ru8le,
+	Ru16le,
+	Ru32le,
+	Ru64le,
+	Rs8le,
+	Rs16le,
+	Rs32le,
+	Rs64le,
 };
 
 typedef struct Vimm Vimm;
@@ -29,7 +36,8 @@ typedef struct Pair Pair;
 typedef struct Range Range;
 typedef struct Str Str;
 typedef struct Vec Vec;
-typedef struct Xtype Xtype;
+typedef struct Xtypedef Xtypedef;
+typedef struct Xtypename Xtypename;
 
 struct Val {
 	Qkind qkind;
@@ -44,6 +52,8 @@ struct Val {
 		Str *str;
 		Vec *vec;
 		Type *type;
+		Xtypedef *xtypedef;
+		Xtypename *xtypename;
 	} u;
 };
 
@@ -94,19 +104,29 @@ struct Str {
 	char *s;
 };
 
-struct Xtype {
+struct Xtypedef {
 	Head hd;
 	unsigned xtkind;	/* = Tbase, Tstruct, ... */
-	unsigned flags;		/* = Xname */
 	unsigned basename;	/* base */
-	unsigned rep;		/* base, ptr, enum */
+	unsigned rep;		/* base, ptr, enum; = Ru8le ... */
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
 	Cval *sz;		/* struct, union */
 	Cval *cnt;		/* arr */
-	Xtype *link;		/* typedef, ptr, arr, func (return type) */
+	Xtypedef *link;		/* typedef, ptr, arr, func (return type) */
 	Vec *field;		/* struct, union */
 	Vec *param;		/* func */
+};
+
+struct Xtypename {
+	Head hd;
+	unsigned xtkind;	/* = Tbase, Tstruct, ... */
+	unsigned basename;	/* base */
+	Str *tid;		/* typedef */
+	Str *tag;		/* struct, union, enum */
+	Cval *cnt;		/* arr */
+	Xtypename *link;	/* ptr, arr, func (return type) */
+	Vec *param;		/* abstract declarators for func */
 };
 
 struct Vec {

@@ -9,7 +9,6 @@ types
 TN: type name
 TD: type def
 
-
 namespace:
 	looktype(TN) -> TD
 	looksym(str) -> <
@@ -19,13 +18,30 @@ ctype: <dom/ns,TD>
 cval: <dom/as,ctype,imm>
 
 isbase(TN)
+isvoid*(TN)
 istypedef(TN)
 isstruct(TN)
 isunion(TN)
 issu(TN)
 isenum(TN)
+isarr(TN)
 isptr(TN)
 isfn(TN)
+
+mktnbase({Vchar,Vshort,...})
+mktnvoid*()
+mktntypedef(Str);
+mktnstruct(Str);
+mktnunion(Str);
+mktnenum(Str);
+mktnptr(Typename);
+mktnarr(Typename,Cval);
+mktnfn(Typename, [Typename]);
+
+mktdbase(TN,{@int8le, ...});
+mktdvoid*({@int8le, ...});
+mktdtypedef(TN,TD);
+...
 
 TN	:= void, char, uchar, int, ...
 	| void*
@@ -35,6 +51,7 @@ TN	:= void, char, uchar, int, ...
 	| enum(tag)
 	| ptr(TN)
 	| arr(TN,nelem)
+	| fn(TN, <TN ...>)
 
 TD
 	:= @int8le @int8be ...
