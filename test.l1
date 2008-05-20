@@ -93,4 +93,16 @@ test5 = lambda(){
 	vecset(v, 10, 11);
 };
 
-test5();
+//test5();
+
+test6 = lambda(){
+	t = table();
+	tabinsert(t, 3, "abc");
+	x = tablook(t, 3);
+	print(x);
+	tabinsert(t, 4, "abc");
+	x = tablook(t, 4);
+	print(x);
+};
+
+test6();

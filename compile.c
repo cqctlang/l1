@@ -407,6 +407,41 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Itab:
+		printf("tab ");
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Itabdel:
+		printf("tabdel ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Itabenum:
+		printf("tabenum ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Itabget:
+		printf("tabget ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Itabput:
+		printf("tabput ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->op3);
+		break;
 	case Ivec:
 		printf("vec ");
 		printrand(code, &i->op1);
@@ -487,6 +522,12 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Iisstr:
 		printf("isstr ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iistab:
+		printf("istab ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -1630,6 +1671,11 @@ static ikind EtoVM[] = {
 	[E_sizeof] = Isizeof,
 	[E_slices] = Islices,
 	[E_str] = Istr,
+	[E_tab] = Itab,
+	[E_tabdel] = Itabdel,
+	[E_tabenum] = Itabenum,
+	[E_tabget] = Itabget,
+	[E_tabput] = Itabput,
 	[E_vec] = Ivec,
 	[E_vecl] = Ivecl,
 	[E_vecref] = Ivecref,
@@ -2539,6 +2585,29 @@ isstringthunk()
 }
 
 Closure*
+istablethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "istable");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iistab;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
 istypethunk()
 {
 	Ctl *L;
@@ -2932,6 +3001,122 @@ vecsetthunk()
 	randloc(&i->op1, ARG0);
 	randloc(&i->op2, ARG1);
 	randloc(&i->op3, ARG2);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+tablethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "table");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Itab;
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+tabinsertthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "tabinsert");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Itabput;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	randloc(&i->op3, ARG2);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+tabdeletethunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "tabdelete");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Itabdel;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+tablookthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "tablook");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Itabget;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+tabenumthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "tabenum");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Itabenum;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
 	i = nextinsn(code);
 	i->kind = Iret;
 

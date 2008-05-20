@@ -30,6 +30,7 @@ enum {
 	Iispair,
 	Iisrange,
 	Iisstr,
+	Iistab,
 	Iistype,
 	Iisvec,
 	Ijmp,
@@ -60,6 +61,11 @@ enum {
 	Islices,
 	Istr,
 	Isub,
+	Itab,
+	Itabdel,
+	Itabenum,
+	Itabget,
+	Itabput,
 	Ivec,
 	Ivecl,
 	Ivecref,
@@ -103,7 +109,8 @@ enum {
 
 typedef
 struct Ictx {
-	unsigned n;
+	u64 n;
+	void *x;
 } Ictx;
 
 typedef struct Head Head;
@@ -123,8 +130,6 @@ struct Heap {
 	unsigned sz;
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	void (*free1)(Head *hd);
-	u32 (*hash)(Head *hd);
-	int (*eq)(Head *a, Head *b);
 };
 
 typedef struct Val Val;
@@ -220,11 +225,17 @@ Closure* isnullthunk();
 Closure* ispairthunk();
 Closure* israngethunk();
 Closure* isstringthunk();
+Closure* istablethunk();
 Closure* istypethunk();
 Closure* isvectorthunk();
 Closure* stringthunk();
 Closure* strlenthunk();
 Closure* substrthunk();
+Closure* tablethunk();
+Closure* tabinsertthunk();
+Closure* tabdeletethunk();
+Closure* tablookthunk();
+Closure* tabenumthunk();
 Closure* mkvecthunk();
 Closure* vectorthunk();
 Closure* veclenthunk();

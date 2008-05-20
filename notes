@@ -4,6 +4,7 @@ todo
 - check for negative cvals on Irange, Istr, Islice*, Ivec*
 - can we remove a level of box indirection on compile0 output?
   is it gc-safe?  (i.e., old values will be clobbered w/o being made a root).
+- change all thunks that do not return values to return nil
 
 types
 -----

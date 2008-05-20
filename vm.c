@@ -11,12 +11,13 @@ enum {
 	Qcval,
 	Qcl,
 	Qbox,
-	Qdict,
 	Qpair,
 	Qrange,
 	Qstr,
+	Qtab,
 	Qtype,
 	Qvec,
+	Qnkind
 } Qkind;
 
 enum {
@@ -31,13 +32,17 @@ enum {
 	Rs64le,
 };
 
+enum {
+	Tabinitsize=1024,	/* power of 2 */
+};
+
 typedef struct Vimm Vimm;
 typedef struct Vcval Vcval;
 typedef struct Box Box;
-typedef struct Dict Dict;
 typedef struct Pair Pair;
 typedef struct Range Range;
 typedef struct Str Str;
+typedef struct Tab Tab;
 typedef struct Vec Vec;
 typedef struct Xtypedef Xtypedef;
 typedef struct Xtypename Xtypename;
@@ -50,12 +55,12 @@ struct Val {
 		Cval cval;
 		Closure *cl;
 		Box *box;
-		Dict *dict;
 		Pair *pair;
 		Range *range;
 		Str *str;
-		Vec *vec;
+		Tab *tab;
 		Type *type;
+		Vec *vec;
 		Xtypedef *xtypedef;
 		Xtypename *xtypename;
 	} u;
@@ -80,18 +85,25 @@ struct Box {
 	Val v;
 };
 
-typedef struct Dictelem Dictelem;
-struct Dictelem {
+typedef struct Tabidx Tabidx;
+struct Tabidx {
 	u32 idx;
-	Dictelem *link;
+	Tabidx *link;
 };
 
-struct Dict {
-	Head hd;
-	u32 nelm, maxelm;
+typedef
+struct Tabx {
+	u32 nxt, lim;
 	u32 sz;
-	Val *elm;
-	Dictelem **dict;
+	Val *key;
+	Val *val;
+	Tabidx **idx;
+} Tabx;
+
+struct Tab {
+	Head hd;
+	u32 cnt;		/* key/val pairs stored */
+	Tabx *x;		/* current storage, atomically swappable */
 };
 
 struct Vimm {
@@ -170,13 +182,20 @@ static void freeval(Val *val);
 static void vmsetcl(VM *vm, Closure *cl);
 static void strinit(Str *str, Lits *lits);
 static void vmerr(VM *vm, char *fmt, ...) __attribute__((noreturn));
+static Cval* valcval(Val *v);
 static Pair* valpair(Val *v);
+static Range* valrange(Val *v);
+static Str* valstr(Val *v);
 
 static Val Xundef;
 static Val Xnil;
 static Val Xnulllist;
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
+typedef u32 (*Tabhashfn)(Val *v);
+typedef int (*Tabeqfn)(Val *a, Val *b);
+static Tabhashfn Qhash[Qnkind];
+static Tabeqfn Qeq[Qnkind];
 
 static Head eol;		/* end-of-list sentinel */
 
@@ -220,8 +239,8 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-Heap heapcode, heapcl, heapimm, heapbox, heapcval, heappair,
-	heaprange, heapstr, heapvec;
+Heap heapcode, heapcl, heapbox, heapcval, heappair,
+	heaprange, heapstr, heaptab, heapvec;
 static Code *kcode;
 
 static void*
@@ -239,7 +258,7 @@ writebarrier()
 {
 	/* force previous writes to be visible to other processors
 	   before subsequent ones. */
-	/* on contemporary x86 (including core 2 duo),
+	/* on x86 (through core 2 duo),
 	   processor-ordering memory model precludes
 	   need for explict barrier such as sfence.  if
 	   the underlying memory were in WC mode (see
@@ -320,7 +339,6 @@ sweep(unsigned color)
 {
 	sweepheap(&heapcode, color);
 	sweepheap(&heapcl, color);
-	sweepheap(&heapimm, color);
 	sweepheap(&heapbox, color);
 	sweepheap(&heapcval, color);
 	sweepheap(&heapstr, color);
@@ -774,6 +792,139 @@ freecl(Head *hd)
 	free(cl->id);
 }
 
+
+/* http://www.cris.com/~Ttwang/tech/inthash.htm */
+static u32
+hash6432shift(u64 key)
+{
+	key = (~key) + (key << 18);
+	key = key ^ (key >> 31);
+	key = key * 21;
+	key = key ^ (key >> 11);
+	key = key + (key << 6);
+	key = key ^ (key >> 22);
+	return (u32)key;
+}
+
+static u32
+hashptr32shift(void *p)
+{
+	uintptr_t key;
+	key = (uintptr_t)p;
+	key = (~key) + (key << 18);
+	key = key ^ (key >> 31);
+	key = key * 21;
+	key = key ^ (key >> 11);
+	key = key + (key << 6);
+	key = key ^ (key >> 22);
+	return (u32)key;
+}
+
+
+/* one-at-a-time by jenkins */
+static u32
+shash(char *s, Imm len)
+{
+	unsigned char *p = (unsigned char*)s;
+	u32 h;
+
+	h = 0;
+	while(len > 0){
+		h += *p;
+		h += h<<10;
+		h ^= h>>6;
+		p++;
+		len--;
+	}
+	h += h<<3;
+	h ^= h>>11;
+	h += h<<15;
+	return h;
+}
+
+static u32
+nohash(Val *val)
+{
+	fatal("bad type of key (%d) to table operation", val->qkind);
+}
+
+static u32
+hashptr(Val *val)
+{
+	return hashptr32shift(valhead(val));
+}
+
+static int
+eqptr(Val *a, Val *b)
+{
+	return valhead(a)==valhead(b);
+}
+
+static u32
+hashptrv(Val *val)
+{
+	return hashptr32shift(val);
+}
+
+static int
+eqptrv(Val *a, Val *b)
+{
+	return a==b;
+}
+
+static u32
+hashcval(Val *val)
+{
+	Cval *cv;
+	cv = valcval(val);
+	return hash6432shift(cv->val);
+}
+
+static int
+eqcval(Val *a, Val *b)
+{
+	Cval *cva, *cvb;
+	cva = valcval(a);
+	cvb = valcval(b);
+	return cva->val==cvb->val;
+}
+
+static u32
+hashrange(Val *val)
+{
+	Range *r;
+	r = valrange(val);
+	return hash6432shift(r->beg.val)^hash6432shift(r->len.val);
+}
+
+static int
+eqrange(Val *a, Val *b)
+{
+	Range *ra, *rb;
+	ra = valrange(a);
+	rb = valrange(b);
+	return ra->beg.val==rb->beg.val && ra->len.val==rb->len.val;
+}
+
+static u32
+hashstr(Val *val)
+{
+	Str *s;
+	s = valstr(val);
+	return shash(s->s, s->len);
+}
+
+static int
+eqstr(Val *a, Val *b)
+{
+	Str *sa, *sb;
+	sa = valstr(a);
+	sb = valstr(b);
+	if(sa->len != sb->len)
+		return 0;
+	return memcmp(sa->s, sb->s, sa->len) ? 0 : 1;
+}
+
 static Str*
 mkstr0(char *s)
 {
@@ -876,9 +1027,17 @@ vecref(Vec *vec, Imm idx)
 }
 
 static void
-vecset(Vec *vec, Imm idx, Val *v)
+_vecset(Vec *vec, Imm idx, Val *v)
 {
 	vec->vec[idx] = *v;
+}
+
+static void
+vecset(VM *vm, Vec *vec, Imm idx, Val *v)
+{
+	if(vm->gcrun)
+		addroot(&stores, valhead(&vec->vec[idx]));
+	_vecset(vec, idx, v);
 }
 
 static Head*
@@ -886,7 +1045,7 @@ itervec(Head *hd, Ictx *ictx)
 {
 	Vec *vec;
 	vec = (Vec*)hd;
-	if(ictx->n > vec->len)
+	if(ictx->n >= vec->len)
 		return 0;
 	return valhead(&vec->vec[ictx->n++]);
 }
@@ -897,6 +1056,250 @@ freevec(Head *hd)
 	Vec *vec;
 	vec = (Vec*)hd;
 	free(vec->vec);
+}
+
+static Tabx*
+mktabx(u32 sz)
+{
+	Tabx *x;
+	x = xmalloc(sizeof(Tabx));
+	x->sz = sz;
+	x->lim = 2*sz/3;
+	x->val = xmalloc(x->lim*sizeof(Val)); /* matches Xundef */
+	x->key = xmalloc(x->lim*sizeof(Val)); /* matches Xundef */
+	x->idx = xmalloc(x->sz*sizeof(Tabidx));
+	return x;
+}
+
+static void
+freetabx(Tabx *x)
+{
+	free(x->val);
+	free(x->key);
+	free(x->idx);
+	free(x);
+}
+
+static Tab*
+_mktab(Tabx *x)
+{
+	Tab *tab;
+	tab = (Tab*)galloc(&heaptab);
+	tab->x = x;
+	return tab;
+}
+
+static Tab*
+mktab()
+{
+	return _mktab(mktabx(Tabinitsize));
+}
+
+static Head*
+itertab(Head *hd, Ictx *ictx)
+{
+	Tab *tab;
+	u32 idx;
+	Tabx *x;
+
+	tab = (Tab*)hd;
+
+	if(ictx->n == 0){
+		ictx->x = x = tab->x;
+	}else
+		x = ictx->x;
+		
+	if(ictx->n >= 2*x->nxt)
+		return 0;
+	if(ictx->n >= x->nxt){
+		idx = ictx->n-x->nxt;
+		ictx->n++;
+		return valhead(&x->val[idx]);
+	}
+	idx = ictx->n++;
+	return valhead(&x->key[idx]);
+}
+
+static void
+freetab(Head *hd)
+{
+	u32 i;
+	Tab *tab;
+	Tabx *x;
+	Tabidx *tk, *pk;
+
+	tab = (Tab*)hd;
+	x = tab->x;
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		while(tk){
+			pk = tk;
+			tk = tk->link;
+			free(pk);
+		}
+	}
+	freetabx(x);
+}
+
+static Tabidx*
+_tabget(Tab *tab, Val *keyv, Tabidx ***prev)
+{
+	Tabidx **p, *tk;
+	Val *kv;
+	u32 idx;
+	Tabx *x;
+	unsigned kind;
+
+	x = tab->x;
+	kind = keyv->qkind;
+	idx = Qhash[kind](keyv)&(x->sz-1);
+	p = &x->idx[idx];
+	tk = x->idx[idx];
+	while(tk){
+		kv = &x->key[tk->idx];
+		if(kv->qkind == kind && Qeq[kind](keyv, kv)){
+			if(prev)
+				*prev = p;
+			return tk;
+		}
+		p = &tk->link;
+		tk = tk->link;
+	}
+	return 0;
+}
+
+static Val*
+tabget(Tab *tab, Val *keyv)
+{
+	Tabidx *tk;
+	tk = _tabget(tab, keyv, 0);
+	if(tk)
+		return &tab->x->val[tk->idx];
+	return 0;
+}
+
+/* double hash table size and re-hash entries */
+static void
+tabexpand(VM *vm, Tab *tab)
+{
+	Tabidx *tk, *nxt;
+	u32 i, m, idx;
+	Tabx *x, *nx;
+	Val *kv;
+
+	x = tab->x;
+	nx = mktabx(x->sz*2);
+	m = 0;
+	for(i = 0; i < x->sz && m < tab->cnt; i++){
+		tk = x->idx[i];
+		while(tk){
+			nxt = tk->link;
+			kv = &x->key[tk->idx];
+			idx = Qhash[kv->qkind](kv)&(nx->sz-1);
+			tk->link = nx->idx[idx];
+			nx->idx[idx] = tk;
+			nx->key[m] = x->key[tk->idx];
+			nx->val[m] = x->val[tk->idx];
+			tk->idx = m;
+			m++;
+			tk = nxt;
+		}
+	}
+	_mktab(x);	/* fresh garbage reference to pre-expanded
+			   state of table.  this preserves a reference
+			   to the pre-expand storage (tab->x) in case
+			   gc (via itertab) is concurrently (i.e., in
+			   this epoch) marking it.  we exploit the
+			   property that objects always survive the
+			   epoch of their creation. */
+
+	/* FIXME: it seems snapshot-at-beginning property, plus above
+	   referenced property of objects, together ensure that any
+	   object added to expanded table is safe from collection. */
+	tab->x = nx;
+}
+
+static void
+tabput(VM *vm, Tab *tab, Val *keyv, Val *val)
+{
+	Tabidx *tk;
+	u32 idx;
+	Tabx *x;
+
+	x = tab->x;
+	tk = _tabget(tab, keyv, 0);
+	if(tk){
+		if(vm->gcrun)
+			addroot(&stores, valhead(&x->val[tk->idx]));
+		x->val[tk->idx] = *val;
+		return;
+	}
+
+	if(x->nxt >= x->lim){
+		tabexpand(vm, tab);
+		x = tab->x;
+	}
+
+	tk = xmalloc(sizeof(Tabidx));
+
+	/* FIXME: snapshot-at-beginning seems to imply that it does
+	   not matter whether gc can see these new values in this
+	   epoch. right? */
+	tk->idx = x->nxt;
+	x->key[tk->idx] = *keyv;
+	x->val[tk->idx] = *val;
+	idx = Qhash[keyv->qkind](keyv)&(x->sz-1);
+	tk->link = x->idx[idx];
+	x->idx[idx] = tk;
+	x->nxt++;
+	tab->cnt++;
+}
+
+static void
+tabdel(VM *vm, Tab *tab, Val *keyv)
+{
+	Tabidx *tk, **ptk;
+	Tabx *x;
+	
+	x = tab->x;
+	tk = _tabget(tab, keyv, &ptk);
+	if(tk == 0)
+		return;
+	if(vm->gcrun){
+		addroot(&stores, valhead(&x->key[tk->idx]));
+		addroot(&stores, valhead(&x->val[tk->idx]));
+	}
+	x->key[tk->idx] = Xundef;
+	x->val[tk->idx] = Xundef;
+	*ptk = tk->link;
+	free(tk);
+	tab->cnt--;
+}
+
+/* create a new vector of len 2N, where N is number of elements in TAB.
+   elements 0..N-1 are the keys of TAB; N..2N-1 are the associated vals. */
+static Vec*
+tabenum(Tab *tab)
+{
+	Vec *vec;
+	Tabidx *tk;
+	u32 i;;
+	Imm m;
+	Tabx *x;
+
+	x = tab->x;
+	vec = mkvec(2*tab->cnt);
+	m = 0;
+	for(i = 0; i < x->sz && m < tab->cnt; i++){
+		tk = x->idx[i];
+		while(tk){
+			_vecset(vec, m, &x->key[tk->idx]);
+			_vecset(vec, m+tab->cnt, &x->key[tk->idx]);
+			m++;
+			tk = tk->link;
+		}
+	}
+	return vec;
 }
 
 Env*
@@ -1015,6 +1418,13 @@ mkvalstr(Str *str, Val *vp)
 }
 
 static void
+mkvaltab(Tab *tab, Val *vp)
+{
+	vp->qkind = Qtab;
+	vp->u.tab = tab;
+}
+
+static void
 mkvalvec(Vec *vec, Val *vp)
 {
 	vp->qkind = Qvec;
@@ -1086,6 +1496,14 @@ valstr(Val *v)
 	if(v->qkind != Qstr)
 		fatal("valstr on non-string");
 	return v->u.str;
+}
+
+static Tab*
+valtab(Val *v)
+{
+	if(v->qkind != Qtab)
+		fatal("valtab on non-table");
+	return v->u.tab;
 }
 
 static Vec*
@@ -1543,6 +1961,7 @@ printval(Val *val)
 	Str *str;
 	char *o;
 	Val bv;
+	Tab *tab;
 	Type *t;
 	Vec *vec;
 
@@ -1590,6 +2009,10 @@ printval(Val *val)
 		str = valstr(val);
 		printf("%.*s", (int)str->len, str->s);
 		break;
+	case Qtab:
+		tab = valtab(val);
+		printf("<table %p>", vec);
+		break;
 	case Qtype:
 		t = valtype(val);
 		o = fmttype(t, xstrdup(""));
@@ -1598,7 +2021,7 @@ printval(Val *val)
 		break;
 	case Qvec:
 		vec = valvec(val);
-		printf("<vec %p>", vec);
+		printf("<vector %p>", vec);
 		break;
 	default:
 		printf("<unprintable type %d>", val->qkind);
@@ -2110,8 +2533,73 @@ xvecset(VM *vm, Operand *vec, Operand *idx, Operand *val)
 	/* FIXME: check sign of cv */
 	if(cv->val >= v->len)
 		vmerr(vm, "vector set out of bounds");
-	/* FIXME: addroot whatever gets clobbered? */
-	vecset(v, cv->val, &valv);
+	vecset(vm, v, cv->val, &valv);
+}
+
+static void
+xtab(VM *vm, Operand *dst)
+{
+	Val rv;
+	Tab *tab;
+
+	tab = mktab();
+	mkvaltab(tab, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xtabdel(VM *vm, Operand *tab, Operand *key)
+{
+	Val tabv, keyv;
+	Tab *t;
+
+	getvalrand(vm, tab, &tabv);
+	getvalrand(vm, key, &keyv);
+	t = valtab(&tabv);
+	tabdel(vm, t, &keyv);
+}
+
+static void
+xtabenum(VM *vm, Operand *tab, Operand *dst)
+{
+	Val tabv, rv;
+	Tab *t;
+	Vec *v;
+
+	getvalrand(vm, tab, &tabv);
+	t = valtab(&tabv);
+	v = tabenum(t);
+	mkvalvec(v, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xtabget(VM *vm, Operand *tab, Operand *key, Operand *dst)
+{
+	Val tabv, keyv, *rv;
+	Tab *t;
+
+	getvalrand(vm, tab, &tabv);
+	getvalrand(vm, key, &keyv);
+	t = valtab(&tabv);
+	rv = tabget(t, &keyv);
+	if(rv)
+		putvalrand(vm, rv, dst);
+	else
+		putvalrand(vm, &Xnil, dst);
+}
+
+static void
+xtabput(VM *vm, Operand *tab, Operand *key, Operand *val)
+{
+	Val tabv, keyv, valv;
+	Tab *t;
+
+	getvalrand(vm, tab, &tabv);
+	getvalrand(vm, key, &keyv);
+	getvalrand(vm, val, &valv);
+	t = valtab(&tabv);
+	tabput(vm, t, &keyv, &valv);
 }
 
 static void
@@ -2209,6 +2697,18 @@ xisstr(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
+xistab(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qtab)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xistype(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
@@ -2263,7 +2763,7 @@ xvvec(VM *vm, Operand *op, Operand *dst)
 	n = valimm(vp);
 	vec = mkvec(n);
 	for(i = 0; i < n; i++)
-		vecset(vec, i, &vm->stack[sp+i+1]);
+		_vecset(vec, i, &vm->stack[sp+i+1]);
 	mkvalvec(vec, &rv);
 	putvalrand(vm, &rv, dst);
 }
@@ -2358,6 +2858,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Iispair] 	= &&Iispair;
 	gotab[Iisrange]	= &&Iisrange;
 	gotab[Iisstr] 	= &&Iisstr;
+	gotab[Iistab] 	= &&Iistab;
 	gotab[Iistype] 	= &&Iistype;
 	gotab[Iisvec] 	= &&Iisvec;
 	gotab[Ijmp] 	= &&Ijmp;
@@ -2388,6 +2889,11 @@ dovm(VM *vm, Closure *cl)
 	gotab[Islices]	= &&Islices;
 	gotab[Istr]	= &&Istr;
 	gotab[Isub] 	= &&Isub;
+	gotab[Itab]	= &&Itab;
+	gotab[Itabdel]	= &&Itabdel;
+	gotab[Itabenum]	= &&Itabenum;
+	gotab[Itabget]	= &&Itabget;
+	gotab[Itabput]	= &&Itabput;
 	gotab[Ivec] 	= &&Ivec;
 	gotab[Ivecref] 	= &&Ivecref;
 	gotab[Ivecset] 	= &&Ivecset;
@@ -2570,6 +3076,21 @@ dovm(VM *vm, Closure *cl)
 	Ivecset:
 		xvecset(vm, &i->op1, &i->op2, &i->op3);
 		continue;
+	Itab:
+		xtab(vm, &i->dst);
+		continue;
+	Itabdel:
+		xtabdel(vm, &i->op1, &i->op2);
+		continue;
+	Itabenum:
+		xtabenum(vm, &i->op1, &i->dst);
+		continue;
+	Itabget:
+		xtabget(vm, &i->op1, &i->op2, &i->dst);
+		continue;
+	Itabput:
+		xtabput(vm, &i->op1, &i->op2, &i->op3);
+		continue;
 	Ilenv:
 		xlenv(vm, &i->op1, &i->dst);
 		continue;
@@ -2596,6 +3117,9 @@ dovm(VM *vm, Closure *cl)
 		continue;
 	Iisstr:
 		xisstr(vm, &i->op1, &i->dst);
+		continue;
+	Iistab:
+		xistab(vm, &i->op1, &i->dst);
 		continue;
 	Iistype:
 		xistype(vm, &i->op1, &i->dst);
@@ -2662,11 +3186,17 @@ mkvm(Env *env)
 	builtinfn(env, "ispair", ispairthunk());
 	builtinfn(env, "isrange", israngethunk());
 	builtinfn(env, "isstring", isstringthunk());
+	builtinfn(env, "istable", istablethunk());
 	builtinfn(env, "istype", istypethunk());
 	builtinfn(env, "isvector", isvectorthunk());
 	builtinfn(env, "string", stringthunk());
 	builtinfn(env, "strlen", strlenthunk());
 	builtinfn(env, "substr", substrthunk());
+	builtinfn(env, "table", tablethunk());
+	builtinfn(env, "tabinsert", tabinsertthunk());
+	builtinfn(env, "tabdelete", tabdeletethunk());
+	builtinfn(env, "tabenum", tabenumthunk());
+	builtinfn(env, "tablook", tablookthunk());
 	builtinfn(env, "mkvec", mkvecthunk());
 	builtinfn(env, "vector", vectorthunk());
 	builtinfn(env, "veclen", veclenthunk());
@@ -2701,30 +3231,32 @@ initvm()
 	heapcl.id = "closure";
 	heapcode.id = "code";
 	heapcval.id = "cval";
-	heapimm.id = "immediate";
 	heappair.id = "pair";
 	heaprange.id = "range";
 	heapstr.id = "string";
+	heaptab.id = "table";
 	heapvec.id = "vector";
 
 	heapbox.sz = sizeof(Box);
 	heapcl.sz = sizeof(Closure);
 	heapcode.sz = sizeof(Code);
 	heapcval.sz = sizeof(Vcval);
-	heapimm.sz = sizeof(Vimm);
 	heappair.sz = sizeof(Pair);
 	heaprange.sz = sizeof(Range);
 	heapstr.sz = sizeof(Str);
+	heaptab.sz = sizeof(Tab);
 	heapvec.sz = sizeof(Vec);
 
 	heapcode.free1 = freecode;
 	heapcl.free1 = freecl;
 	heapstr.free1 = freestr;
+	heaptab.free1 = freetab;
 	heapvec.free1 = freevec;
 
 	heapbox.iter = iterbox;
 	heapcl.iter = itercl;
 	heappair.iter = iterpair;
+	heaptab.iter = itertab;
 	heapvec.iter = itervec;
 	/* FIXME: itercval? to walk Xtype */
 
@@ -2737,6 +3269,32 @@ initvm()
 	stores.getlink = getstoreslink;
 	stores.setlink = setstoreslink;
 	stores.getolink = getrootslink;
+
+	Qhash[Qundef] = nohash;
+	Qhash[Qnil] = hashptrv;
+	Qhash[Qnulllist] = hashptrv;
+	Qhash[Qcval] = hashcval;
+	Qhash[Qcl] = hashptr;
+	Qhash[Qbox] = nohash;
+	Qhash[Qpair] = hashptr;
+	Qhash[Qrange] = hashrange;
+	Qhash[Qstr] = hashstr;
+	Qhash[Qtab] = hashptr;
+	Qhash[Qtype] = hashptr;
+	Qhash[Qvec] = hashptr;
+
+	Qeq[Qundef] = 0;
+	Qeq[Qnil] = eqptrv;
+	Qeq[Qnulllist] = eqptrv;
+	Qeq[Qcval] = eqcval;
+	Qeq[Qcl] = eqptr;
+	Qeq[Qbox] = 0;
+	Qeq[Qpair] = eqptr;
+	Qeq[Qrange] = eqrange;
+	Qeq[Qstr] = eqstr;
+	Qeq[Qtab] = eqptr;
+	Qeq[Qtype] = eqptr;
+	Qeq[Qvec] = eqptr;
 
 	gcreset();
 }
@@ -2752,11 +3310,11 @@ finivm()
 
 	freeheap(&heapcode);
 	freeheap(&heapcl); 
-	freeheap(&heapimm);
 	freeheap(&heapbox);
 	freeheap(&heapcval);
 	freeheap(&heappair);
 	freeheap(&heaprange);
 	freeheap(&heapstr);
+	freeheap(&heaptab);
 	freeheap(&heapvec);
 }
