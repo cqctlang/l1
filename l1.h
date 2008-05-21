@@ -30,7 +30,7 @@ enum{
 	Evoid,
 	Enbase,
 
-	Eadd,
+	Eadd,			/* 10 */
 	Earef,
 	Earr,
 	Earrow,

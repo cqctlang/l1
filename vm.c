@@ -1294,7 +1294,7 @@ tabenum(Tab *tab)
 		tk = x->idx[i];
 		while(tk){
 			_vecset(vec, m, &x->key[tk->idx]);
-			_vecset(vec, m+tab->cnt, &x->key[tk->idx]);
+			_vecset(vec, m+tab->cnt, &x->val[tk->idx]);
 			m++;
 			tk = tk->link;
 		}
