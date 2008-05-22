@@ -3,8 +3,11 @@ todo
 - introduce address types
 - check for negative cvals on Irange, Istr, Islice*, Ivec*
 - can we remove a level of box indirection on compile0 output?
-  is it gc-safe?  (i.e., old values will be clobbered w/o being made a root).
+  how to make it gc-safe? (i.e., without boxes, old values will be
+  clobbered w/o being made a root, violating snapshot-at-beginning).
 - change all thunks that do not return values to return nil
+- write Icallx to trap to builtin C functions.
+- figure out how to re-enter VM.
 
 types
 -----

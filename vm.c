@@ -17,6 +17,7 @@ enum {
 	Qtab,
 	Qtype,
 	Qvec,
+	Qxtn,
 	Qnkind
 } Qkind;
 
@@ -61,8 +62,8 @@ struct Val {
 		Tab *tab;
 		Type *type;
 		Vec *vec;
-		Xtypedef *xtypedef;
-		Xtypename *xtypename;
+		Xtypedef *xtd;
+		Xtypename *xtn;
 	} u;
 };
 
@@ -240,7 +241,7 @@ enum {
 static unsigned long long nextgctick = GCrate;
 
 Heap heapcode, heapcl, heapbox, heapcval, heappair,
-	heaprange, heapstr, heaptab, heapvec;
+	heaprange, heapstr, heaptab, heapvec, heapxtn;
 static Code *kcode;
 
 static void*
@@ -346,6 +347,7 @@ sweep(unsigned color)
 	sweepheap(&heapstr, color);
 	sweepheap(&heaptab, color);
 	sweepheap(&heapvec, color);
+	sweepheap(&heapxtn, color);
 }
 
 static void
@@ -1307,6 +1309,20 @@ tabenum(Tab *tab)
 	return vec;
 }
 
+static Xtypename*
+mkxtn()
+{
+	Xtypename *xtn;
+	xtn = galloc(&heapxtn);
+	return xtn;
+}
+
+static Head*
+iterxtn(Head *hd, Ictx *ictx)
+{
+	return 0;
+}
+
 Env*
 mkenv()
 {
@@ -1455,6 +1471,13 @@ mkvalrange(Cval *beg, Cval *len, Val *vp)
 	vp->u.range = r;
 }
 
+static void
+mkvalxtn(Xtypename *xtn, Val *vp)
+{
+	vp->qkind = Qxtn;
+	vp->u.xtn = xtn;
+}
+
 static Imm
 valimm(Val *v)
 {
@@ -1517,6 +1540,14 @@ valvec(Val *v)
 	if(v->qkind != Qvec)
 		fatal("valvec on non-vector");
 	return v->u.vec;
+}
+
+static Xtypename*
+valxtn(Val *v)
+{
+	if(v->qkind != Qxtn)
+		fatal("valxtn on non-typename");
+	return v->u.xtn;
 }
 
 static void
@@ -2807,6 +2838,34 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
+static void
+xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
+{
+	Xtypename *xtn;
+	Val rv;
+
+	xtn = mkxtn();
+	xtn->xtkind = TBITSTYPE(bits);
+	switch(xtn->xtkind){
+	case Tbase:
+		xtn->basename = TBITSBASE(bits);
+		break;
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+	case Tptr:
+	case Tarr:
+	case Tfun:
+	case Ttypedef:
+		fatal("xtn incomplete");
+	default:
+		fatal("bug");
+	}
+
+	mkvalxtn(xtn, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
 static void* gotab[Iopmax];
 
 static void
@@ -2899,6 +2958,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Itabenum]	= &&Itabenum;
 	gotab[Itabget]	= &&Itabget;
 	gotab[Itabput]	= &&Itabput;
+	gotab[Itn]	= &&Itn;
 	gotab[Ivec] 	= &&Ivec;
 	gotab[Ivecref] 	= &&Ivecref;
 	gotab[Ivecset] 	= &&Ivecset;
@@ -3144,6 +3204,9 @@ dovm(VM *vm, Closure *cl)
 	Isizeof:
 		xsizeof(vm, &i->op1, &i->dst);
 		continue;
+	Itn:
+		xtn(vm, i->bits, &i->op1, &i->op2, &i->dst);
+		continue;
 	}
 }
 
@@ -3241,6 +3304,7 @@ initvm()
 	heapstr.id = "string";
 	heaptab.id = "table";
 	heapvec.id = "vector";
+	heapxtn.id = "typename";
 
 	heapbox.sz = sizeof(Box);
 	heapcl.sz = sizeof(Closure);
@@ -3251,6 +3315,7 @@ initvm()
 	heapstr.sz = sizeof(Str);
 	heaptab.sz = sizeof(Tab);
 	heapvec.sz = sizeof(Vec);
+	heapxtn.sz = sizeof(Xtypename);
 
 	heapcode.free1 = freecode;
 	heapcl.free1 = freecl;
@@ -3263,6 +3328,7 @@ initvm()
 	heappair.iter = iterpair;
 	heaptab.iter = itertab;
 	heapvec.iter = itervec;
+	heapxtn.iter = iterxtn;
 	/* FIXME: itercval? to walk Xtype */
 
 	kcode = contcode();

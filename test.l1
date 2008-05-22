@@ -95,31 +95,14 @@ test5 = lambda(){
 
 //test5();
 
+mknames = lambda(names, tid, tag, sym){
+	print("mknames!");
+};
+
 test6 = lambda(){
-	t = table();
-	tabinsert(t, "abc", 3);
-	x = tablook(t, 3);
-	print(x);
-	x = tablook(t, "abc");
-	print(x);
-	tabinsert(t, "abc", 4);
-	x = tablook(t, "abc");
-	print(x);
-
-	vec = tabenum(t);
-	print(vec);
-
-	l = veclen(vec)/2;
-	print(l);
-	for(i = 0; i < l; i++){
-	      print(vecref(vec,i)); 
-	      print(vecref(vec,i+l));
-	}
-
-	tabdelete(t, "abc");
-	x = tablook(t, "abc");
-	print(x);
-		
+	ns = @names 1 {
+		int x;
+	};
 };
 
 test6();

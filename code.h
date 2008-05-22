@@ -66,6 +66,7 @@ enum {
 	Itabenum,
 	Itabget,
 	Itabput,
+	Itn,
 	Ivec,
 	Ivecl,
 	Ivecref,
@@ -76,6 +77,10 @@ enum {
 	Ixor,
 	Iopmax         
 } ikind;
+
+#define TBITS(t,v) ((((t)&7)<<4)|((v)&15))
+#define TBITSTYPE(tb) (((tb)>>4)&7)
+#define TBITSBASE(tb) ((tb)&15)
 
 typedef
 enum {
@@ -176,6 +181,7 @@ struct Ctl {
 typedef
 struct Insn {
 	ikind kind;
+	u8 bits;			/* typename/typedesc */
 	void *go;
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;

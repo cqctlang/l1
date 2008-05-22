@@ -45,6 +45,8 @@ struct Varset
 	char *tn;
 } Varset;
 
+static void compile0(Expr *e, Varset *pvs, Vars *vars, int needval);
+
 static Expr*
 Q1(unsigned kind, Expr *e1)
 {
@@ -139,6 +141,15 @@ Qnil()
 {
 	Expr *e;
 	e = newexpr(Enil, 0, 0, 0, 0);
+	return e;
+}
+
+static Expr*
+Qstr(char *s)
+{
+	Expr *e;
+	e = newexpr(Econsts, 0, 0, 0, 0);
+	e->lits = mklits(s, strlen(s));
 	return e;
 }
 
@@ -324,20 +335,37 @@ isloc(Expr *e)
 	}
 }
 
-#if 0
 static Expr*
-gentypename(Type *t, Varset *lvs)
+gentypename(Type *t, Varset *lvs, Vars *vars)
 {
-	
+	Expr *e;
+
+	e = newexpr(E_tn, 0, 0, 0, 0);
+	switch(t->kind){
+	case Tbase:
+		e->x = (void*)TBITS(Tbase,t->base);
+		break;
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+	case Tptr:
+	case Tarr:
+	case Tfun:
+	case Ttypedef:
+		fatal("gentypename incomplete");
+	default:
+		fatal("bug");
+	}
+	return e;
 }
 
-static void
+static Expr*
 compiledecl(Decl *dl, Varset *pvs, Vars *vars)
 {
 	Type *t;
 	int binds;
 	Varset *lvs;
-	Expr *e, *se, *te;
+	Expr *e, *offs, *se, *te;
 
 	t = dl->type;
 	if(dl->id){
@@ -346,26 +374,31 @@ compiledecl(Decl *dl, Varset *pvs, Vars *vars)
 		pushlevel(vars);
 
 		te = nullelist();
-		se = Qset(doid(lvs->tn), gettypename(t));
+		se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
 		te = Qcons(se, te);
+
+		if(dl->offs){
+			compile0(dl->offs, lvs, vars, 1);
+			offs = dl->offs;
+		}else
+			offs = Qnil();
 
 		se = Qset(doid(lvs->tmp),
-			  Qcall(doid("vector"), 2,
-				dl->offs ? dl->offs : Qnil(),
-				doid(lvs->tn)));
+			  Qcall(doid("vector"), 2, offs, doid(lvs->tn)));
 		te = Qcons(se, te);
 
-		se = Qdictset(doid(lvs->sym), Qstr(dl->id), doid(lvs->tmp));
+		printf("dl->id = %s\n", dl->id);
+		se = Qcall(doid("tabinsert"), 3,
+			   doid(lvs->sym), Qstr(dl->id), doid(lvs->tmp));
 		te = Qcons(se, te);
 
-		e = newexpr(Eblock, locals(lvs, pvs), invert(te));
+		e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
 		poplevel(vars);
 		freevarset(lvs);
 		return e;
 	}
 	fatal("compiledecl incomplete");
 }
-#endif
 
 static void
 compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
@@ -478,11 +511,19 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 
 		te = nullelist();
 
-#if 0
-		compile0(e->e2, lvs, vars, 0);
-		se = e->e2;
+		se = Qset(doid(lvs->tid), Qcall(doid("table"), 0));
+		te = Qcons(se, te);
+		se = Qset(doid(lvs->tag), Qcall(doid("table"), 0));
+		te = Qcons(se, te);
+		se = Qset(doid(lvs->sym), Qcall(doid("table"), 0));
 		te = Qcons(se, te);
 
+		/* inherited names expression */
+		compile0(e->e1, lvs, vars, 0);
+		se = Qset(doid(lvs->names), e->e1);
+		te = Qcons(se, te);
+
+		/* declarations */
 		ex = e->e2;
 		if(ex->kind != Eelist && ex->kind != Enull)
 			fatal("broken");
@@ -490,18 +531,24 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 			dl = ex->e1->x;
 			while(dl){
 				printf("e %p dl %p\n", ex, dl);
-				compiledecl(dl, pvs, vars);
+				se = compiledecl(dl, lvs, vars);
+				te = Qcons(se, te);
 				dl = dl->link;
 			}
 			ex = ex->e2;
 		}
 
-		// names = mknames(names,Vtid,Vtag,Vsym);
+		/* new name space */
+		se = Qcall(doid("mknames"), 4,
+			   doid(lvs->names),
+			   doid(lvs->tid),
+			   doid(lvs->tag),
+			   doid(lvs->sym));
+		te = Qcons(se, te);
 
-#endif
 		e->kind = Eblock;
 		e->e1 = locals(lvs, pvs);
-		e->e2 = te;
+		e->e2 = invert(te);
 
 		freevarset(lvs);
 		poplevel(vars);

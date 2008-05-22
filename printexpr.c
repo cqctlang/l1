@@ -95,6 +95,7 @@ char* S[] = {
 	[E_sizeof] =	"E_sizeof",
 	[E_slices] =	"E_slices",
 	[E_str] =	"E_str",
+	[E_tn] =	"E_tn",
 	[E_vec] =	"E_vec",
 	[E_vecl] =	"E_vecl",
 	[E_vecref] =	"E_vecref",
@@ -116,7 +117,7 @@ printexpr(Expr *e)
 		printf("(Eid %s)", e->id);
 		break;
 	case Etick:
-		printf("(Etick %.*s)", e->lits->len, e->lits->s);
+		printf("(Etick %s)", e->id);
 		break;
 	case Ebinop:
 		printf("(%s ", S[e->op]);

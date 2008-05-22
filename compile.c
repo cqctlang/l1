@@ -616,6 +616,10 @@ printinsn(Code *code, Insn *i)
 	case Inop:
 		printf("nop");
 		break;
+	case Itn:
+		printf("tn.%d.%d ", TBITSTYPE(i->bits), TBITSBASE(i->bits));
+		printrand(code, &i->dst);
+		break;
 	default:
 		fatal("printinsn: unrecognized insn %d", i->kind);
 	}
@@ -1676,6 +1680,7 @@ static ikind EtoVM[] = {
 	[E_tabenum] = Itabenum,
 	[E_tabget] = Itabget,
 	[E_tabput] = Itabput,
+	[E_tn] = Itn,
 	[E_vec] = Ivec,
 	[E_vecl] = Ivecl,
 	[E_vecref] = Ivecref,
@@ -1848,6 +1853,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randloc(&r1, AC);
 		}
 		cgunop(code, p, e->kind, &r1, loc, ctl, nxt);
+		break;
+	case E_tn:
+		i = nextinsn(code);
+		i->kind = Itn;
+		i->bits = (u8)e->x;
+		randloc(&i->dst, loc);
+		/* FIXME: some bits use operands */
 		break;
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2)){
