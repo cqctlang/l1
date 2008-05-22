@@ -1,0 +1,17 @@
+mkstr = lambda(){
+	return substr("foobar", 0, 3);
+};
+
+test = lambda(){
+	t = table();
+	for(i = 0; i < 1024*2*2*2+5; i++)
+		tabinsert(t, mkstr(), i);
+
+	v = tabenum(t);
+	if(veclen(v) != 2){
+		print("failed");
+		print(veclen(v));
+	}
+};
+
+test();

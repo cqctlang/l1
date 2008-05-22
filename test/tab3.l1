@@ -1,0 +1,40 @@
+checkenum = lambda(vec, len){
+	for(i = 0; i < len/2; i++){
+		k = vecref(vec, i);
+		v = vecref(vec, i+len/2);
+		if(k != v){
+			print("failed checkenum");
+			return;
+		}
+	}
+};
+
+test = lambda(){
+	t = table();
+	n = 10000;
+	for(i = 0; i < n; i++)
+		tabinsert(t, i, i);
+
+	v = tabenum(t);
+	if(veclen(v) != n*2){
+		print(veclen(v));
+		print("failed 1");
+		return;
+	}
+
+	checkenum(v, veclen(v));
+
+	for(i = 0; i < n/2; i++)
+		tabdelete(t, i*2);
+
+	v = tabenum(t);
+	if(veclen(v) != n){
+		print("failed 2");
+		return;
+	}
+
+	checkenum(v, veclen(v));
+};
+
+test();
+

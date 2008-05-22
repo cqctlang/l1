@@ -1,0 +1,10 @@
+test = lambda(){
+	t = table();
+	tabinsert(t, 3, "abc");
+	x = tablook(t, 3);
+	print(x);
+	tabinsert(t, 4, "abc");
+	x = tablook(t, 4);
+	print(x);
+};
+test();
