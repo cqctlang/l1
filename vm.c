@@ -341,7 +341,10 @@ sweep(unsigned color)
 	sweepheap(&heapcl, color);
 	sweepheap(&heapbox, color);
 	sweepheap(&heapcval, color);
+	sweepheap(&heappair, color);
+	sweepheap(&heaprange, color);
 	sweepheap(&heapstr, color);
+	sweepheap(&heaptab, color);
 	sweepheap(&heapvec, color);
 }
 
@@ -1067,7 +1070,7 @@ mktabx(u32 sz)
 	x->lim = 2*sz/3;
 	x->val = xmalloc(x->lim*sizeof(Val)); /* matches Xundef */
 	x->key = xmalloc(x->lim*sizeof(Val)); /* matches Xundef */
-	x->idx = xmalloc(x->sz*sizeof(Tabidx));
+	x->idx = xmalloc(x->sz*sizeof(Tabidx*));
 	return x;
 }
 
@@ -1154,7 +1157,7 @@ _tabget(Tab *tab, Val *keyv, Tabidx ***prev)
 	kind = keyv->qkind;
 	idx = Qhash[kind](keyv)&(x->sz-1);
 	p = &x->idx[idx];
-	tk = x->idx[idx];
+	tk = *p;
 	while(tk){
 		kv = &x->key[tk->idx];
 		if(kv->qkind == kind && Qeq[kind](keyv, kv)){
@@ -1163,7 +1166,7 @@ _tabget(Tab *tab, Val *keyv, Tabidx ***prev)
 			return tk;
 		}
 		p = &tk->link;
-		tk = tk->link;
+		tk = *p;
 	}
 	return 0;
 }
@@ -1205,13 +1208,15 @@ tabexpand(VM *vm, Tab *tab)
 			tk = nxt;
 		}
 	}
-	_mktab(x);	/* fresh garbage reference to pre-expanded
-			   state of table.  this preserves a reference
-			   to the pre-expand storage (tab->x) in case
-			   gc (via itertab) is concurrently (i.e., in
-			   this epoch) marking it.  we exploit the
-			   property that objects always survive the
-			   epoch of their creation. */
+	nx->nxt = tab->cnt;
+
+	/* fresh garbage reference to pre-expanded state of table.
+	   this preserves a reference to the pre-expand storage
+	   (tab->x) in case gc (via itertab) is concurrently (i.e., in
+	   this epoch) marking it.  we exploit the property that
+	   objects always survive the epoch of their creation. */
+	x->sz = 0;		/* so freetab does not free nx's Tabkeys */
+	_mktab(x);
 
 	/* FIXME: it seems snapshot-at-beginning property, plus above
 	   referenced property of objects, together ensure that any
