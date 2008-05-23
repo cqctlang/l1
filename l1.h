@@ -264,6 +264,7 @@ struct U {
 
 extern U ctx;
 extern char* S[];
+extern char* basename[];
 extern char *stdinname;
 extern Imm basesize[];
 extern Imm ptrsize;

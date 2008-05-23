@@ -3,7 +3,7 @@
 #include "l1.h"
 
 static unsigned basemod[Vnil+1][Enbase];
-static char* basename[Vnil+1];
+char* basename[Vnil+1];
 static Type* basetype[Vnil+1];
 Imm   basesize[Vnil+1];
 Imm   ptrsize;

@@ -95,13 +95,51 @@ test5 = lambda(){
 
 //test5();
 
+printvec = lambda(v){
+	@local i, n, x;
+	n = veclen(v);
+	for(i = 0; i < n; i++){
+		x = vecref(v, i);
+		if(isvector(x))
+			printvec(x);
+		else if(istypename(x)){
+			print(x);
+			printvec(typenamex(x));
+		}else
+			print(x);
+	}
+};
+
+foreachtab = lambda(tab, fn){
+	@local i, v, n;
+	v = tabenum(tab);
+	n = veclen(v)/2;
+	for(i = 0; i < n; i++){
+		key = vecref(v, i);
+		val = vecref(v, i+n);
+		fn(key, val);
+	}
+};
+
+
 mknames = lambda(names, tid, tag, sym){
-	print("make names");
+	print("mknames");
+	foreachtab(sym, lambda(id,def){
+			   print(id);
+			   print(vecref(def,0));
+			   printvec(typenamex(vecref(def,1)));
+		   });
 };
 
 test6 = lambda(){
 	ns = @names 1 {
-		int x;
+		@0x0  int x;
+		@0x4  int *y;
+		@0x8  long (*func)(int arg1, char *arg2);
+		@0xc  struct foo s;
+		@0x10 struct foo *sp;
+		@0x14 int a1[];
+		@0x18 int a2[11];
 	};
 };
 

@@ -620,6 +620,16 @@ printinsn(Code *code, Insn *i)
 		printf("tn.%d.%d ", TBITSTYPE(i->bits), TBITSBASE(i->bits));
 		printrand(code, &i->dst);
 		break;
+	case Itnx:
+		printf("tnx ");
+		printrand(code, &i->dst);
+		break;
+	case Iistn:
+		printf("istn ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	default:
 		fatal("printinsn: unrecognized insn %d", i->kind);
 	}
@@ -646,7 +656,10 @@ max(unsigned x, unsigned y)
 static int
 issimple(Expr *e)
 {
-	return (e->kind == Eid || e->kind == Econst || e->kind == Enil);
+	return (e == 0 /* maybe for E_tn nodes */
+		|| e->kind == Eid
+		|| e->kind == Econst
+		|| e->kind == Enil);
 }
 
 static unsigned
@@ -691,6 +704,7 @@ tmplocpass(Expr *e, unsigned *nloc)
 	case Eblock:
 		*nloc += flattenlocal(e);
 		return tmplocpass(e->e2, nloc);
+	case E_tn:
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2))
 			return 0;
@@ -1855,11 +1869,53 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgunop(code, p, e->kind, &r1, loc, ctl, nxt);
 		break;
 	case E_tn:
+		if(e->e1 && e->e2){
+			/* copied from Ebinop */
+			if(issimple(e->e1) && issimple(e->e2)){
+				cgrand(&r1, e->e1, p);
+				cgrand(&r2, e->e2, p);
+			}else if(issimple(e->e1)){
+				cgrand(&r1, e->e1, p);
+				L = genlabel(code, 0);
+				cg(e->e2, code, p, AC, L, prv, L, tmp);
+				emitlabel(L, e);
+				randloc(&r2, AC);
+			}else if(issimple(e->e2)){
+				L = genlabel(code, 0);
+				cg(e->e1, code, p, AC, L, prv, L, tmp);
+				emitlabel(L, e);
+				randloc(&r1, AC);
+				cgrand(&r2, e->e2, p);
+			}else{
+				L0 = genlabel(code, 0);
+				randstkloc(&r1, Llocal, tmp, 0);
+				cg(e->e1, code, p, &r1.u.loc, L0,
+				   prv, L0, tmp);
+				emitlabel(L0, e->e2);
+				L = genlabel(code, 0);
+				cg(e->e2, code, p, AC, L, L0, L, tmp+1);
+				emitlabel(L, e);
+				randloc(&r2, AC);
+			}
+		}else if(e->e1){
+			/* copied from unary ops */
+			if(issimple(e->e1))
+				cgrand(&r1, e->e1, p);
+			else{
+				L = genlabel(code, 0);
+				cg(e->e1, code, p, AC, L, prv, L, tmp);
+				emitlabel(L, e);
+				randloc(&r1, AC);
+			}
+		}
 		i = nextinsn(code);
 		i->kind = Itn;
-		i->bits = (u8)e->x;
+		i->bits = (u8)(uintptr_t)e->x; /* FIXME: casting around warning  */
+		if(e->e1)
+			i->op1 = r1;
+		if(e->e2)
+			i->op2 = r2;
 		randloc(&i->dst, loc);
-		/* FIXME: some bits use operands */
 		break;
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2)){
@@ -2611,6 +2667,52 @@ istablethunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Iistab;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+istnthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "istypename");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iistn;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+typenamexthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "typenamex");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Itnx;
 	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);

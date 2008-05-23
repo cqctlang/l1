@@ -161,7 +161,7 @@ struct Xtypename {
 	unsigned basename;	/* base */
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
-	Cval *cnt;		/* arr */
+	Val cnt;		/* arr */
 	Xtypename *link;	/* ptr, arr, func (return type) */
 	Vec *param;		/* abstract declarators for func */
 };
@@ -1313,13 +1313,59 @@ static Xtypename*
 mkxtn()
 {
 	Xtypename *xtn;
-	xtn = galloc(&heapxtn);
+	xtn = (Xtypename*)galloc(&heapxtn);
 	return xtn;
 }
 
 static Head*
 iterxtn(Head *hd, Ictx *ictx)
 {
+	Xtypename *xtn;
+
+	xtn = (Xtypename*)hd;
+	switch(xtn->xtkind){
+	case Tbase:
+		return 0;
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		if(ictx->n++ > 0)
+			return 0;
+		else
+			return (Head*)xtn->tag;
+	case Tptr:
+		if(ictx->n++ > 0)
+			return 0;
+		else
+			return (Head*)xtn->link;
+	case Tarr:
+		switch(ictx->n++){
+		case 0:
+			return valhead(&xtn->cnt);
+		case 1:
+			return (Head*)xtn->link;
+		default:
+			return 0;
+		}
+	case Tfun:
+		switch(ictx->n++){
+		case 0:
+			return (Head*)xtn->link;
+		case 1:
+			return (Head*)xtn->param;
+		default:
+			return 0;
+		}
+		break;
+	case Ttypedef:
+		if(ictx->n++ > 0)
+			return 0;
+		else
+			return (Head*)xtn->tid;
+		break;
+	default:
+		fatal("bug");
+	}
 	return 0;
 }
 
@@ -2000,6 +2046,7 @@ printval(Val *val)
 	Tab *tab;
 	Type *t;
 	Vec *vec;
+	Xtypename *xtn;
 
 	if(val == 0){
 		printf("(no value)");
@@ -2058,6 +2105,10 @@ printval(Val *val)
 	case Qvec:
 		vec = valvec(val);
 		printf("<vector %p>", vec);
+		break;
+	case Qxtn:
+		xtn = valxtn(val);
+		printf("<typename %p>", xtn);
 		break;
 	default:
 		printf("<unprintable type %d>", val->qkind);
@@ -2745,6 +2796,18 @@ xistab(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
+xistn(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qxtn)
+		mkvalimm(1, &rv);
+	else
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xistype(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
@@ -2842,7 +2905,7 @@ static void
 xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 {
 	Xtypename *xtn;
-	Val rv;
+	Val v, rv;
 
 	xtn = mkxtn();
 	xtn->xtkind = TBITSTYPE(bits);
@@ -2853,16 +2916,109 @@ xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 	case Tstruct:
 	case Tunion:
 	case Tenum:
+		getvalrand(vm, op1, &v);
+		xtn->tag = valstr(&v);
+		break;
 	case Tptr:
+		getvalrand(vm, op1, &v);
+		xtn->link = valxtn(&v);
+		break;
 	case Tarr:
+		getvalrand(vm, op1, &v);
+		xtn->link = valxtn(&v);
+		getvalrand(vm, op2, &v);
+		xtn->cnt = v;
+		break;
 	case Tfun:
+		getvalrand(vm, op1, &v);
+		xtn->link = valxtn(&v);
+		getvalrand(vm, op2, &v);
+		xtn->param = valvec(&v);
+		break;
 	case Ttypedef:
-		fatal("xtn incomplete");
+		getvalrand(vm, op1, &v);
+		xtn->tid = valstr(&v);
+		break;
 	default:
 		fatal("bug");
 	}
 
 	mkvalxtn(xtn, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xtnx(VM *vm, Operand *op1, Operand *dst)
+{
+	Val v, rv, xv;
+	Xtypename *xtn;
+	Vec *vec;
+
+	getvalrand(vm, op1, &v);
+	xtn = valxtn(&v);
+	switch(xtn->xtkind){
+	case Tbase:
+		vec = mkvec(2);
+		mkvalstr(mkstr0("base"), &xv);
+		_vecset(vec, 0, &xv);
+		mkvalstr(mkstr0(basename[xtn->basename]), &xv);
+		_vecset(vec, 1, &xv);
+		break;
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		vec = mkvec(2);
+		switch(xtn->xtkind){
+		case Tstruct:
+			mkvalstr(mkstr0("struct"), &xv);
+			break;
+		case Tunion:
+			mkvalstr(mkstr0("union"), &xv);
+			break;
+		case Tenum:
+			mkvalstr(mkstr0("enum"), &xv);
+			break;
+		}
+		_vecset(vec, 0, &xv);
+		mkvalstr(xtn->tag, &xv);
+		_vecset(vec, 1, &xv);
+		break;
+	case Tptr:
+		vec = mkvec(2);
+		mkvalstr(mkstr0("ptr"), &xv);
+		_vecset(vec, 0, &xv);
+		mkvalxtn(xtn->link, &xv);
+		_vecset(vec, 1, &xv);
+		break;
+	case Tarr:
+		vec = mkvec(3);
+		mkvalstr(mkstr0("arr"), &xv);
+		_vecset(vec, 0, &xv);
+		mkvalxtn(xtn->link, &xv);
+		_vecset(vec, 1, &xv);
+		_vecset(vec, 2, &xtn->cnt); /* nil or cval */
+		break;
+	case Tfun:
+		vec = mkvec(3);
+		mkvalstr(mkstr0("fn"), &xv);
+		_vecset(vec, 0, &xv);
+		mkvalxtn(xtn->link, &xv);
+		_vecset(vec, 1, &xv);
+		mkvalvec(xtn->param, &xv);
+		_vecset(vec, 2, &xv);
+		break;
+	case Ttypedef:
+		vec = mkvec(2);
+		mkvalstr(mkstr0("typedef"), &xv);
+		_vecset(vec, 0, &xv);
+		mkvalstr(xtn->tid, &xv);
+		_vecset(vec, 1, &xv);
+		break;
+	default:
+		fatal("bug");
+		
+	}
+	mkvalvec(vec, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -2923,6 +3079,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Iisrange]	= &&Iisrange;
 	gotab[Iisstr] 	= &&Iisstr;
 	gotab[Iistab] 	= &&Iistab;
+	gotab[Iistn] 	= &&Iistn;
 	gotab[Iistype] 	= &&Iistype;
 	gotab[Iisvec] 	= &&Iisvec;
 	gotab[Ijmp] 	= &&Ijmp;
@@ -2959,6 +3116,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Itabget]	= &&Itabget;
 	gotab[Itabput]	= &&Itabput;
 	gotab[Itn]	= &&Itn;
+	gotab[Itnx]	= &&Itnx;
 	gotab[Ivec] 	= &&Ivec;
 	gotab[Ivecref] 	= &&Ivecref;
 	gotab[Ivecset] 	= &&Ivecset;
@@ -3186,6 +3344,9 @@ dovm(VM *vm, Closure *cl)
 	Iistab:
 		xistab(vm, &i->op1, &i->dst);
 		continue;
+	Iistn:
+		xistn(vm, &i->op1, &i->dst);
+		continue;
 	Iistype:
 		xistype(vm, &i->op1, &i->dst);
 		continue;
@@ -3206,6 +3367,9 @@ dovm(VM *vm, Closure *cl)
 		continue;
 	Itn:
 		xtn(vm, i->bits, &i->op1, &i->op2, &i->dst);
+		continue;
+	Itnx:
+		xtnx(vm, &i->op1, &i->dst);
 		continue;
 	}
 }
@@ -3255,6 +3419,7 @@ mkvm(Env *env)
 	builtinfn(env, "isrange", israngethunk());
 	builtinfn(env, "isstring", isstringthunk());
 	builtinfn(env, "istable", istablethunk());
+	builtinfn(env, "istypename", istnthunk());
 	builtinfn(env, "istype", istypethunk());
 	builtinfn(env, "isvector", isvectorthunk());
 	builtinfn(env, "string", stringthunk());
@@ -3265,6 +3430,7 @@ mkvm(Env *env)
 	builtinfn(env, "tabdelete", tabdeletethunk());
 	builtinfn(env, "tabenum", tabenumthunk());
 	builtinfn(env, "tablook", tablookthunk());
+	builtinfn(env, "typenamex", typenamexthunk());
 	builtinfn(env, "mkvec", mkvecthunk());
 	builtinfn(env, "vector", vectorthunk());
 	builtinfn(env, "veclen", veclenthunk());
@@ -3388,4 +3554,5 @@ finivm()
 	freeheap(&heapstr);
 	freeheap(&heaptab);
 	freeheap(&heapvec);
+	freeheap(&heapxtn);
 }

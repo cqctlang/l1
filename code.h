@@ -31,6 +31,7 @@ enum {
 	Iisrange,
 	Iisstr,
 	Iistab,
+	Iistn,
 	Iistype,
 	Iisvec,
 	Ijmp,
@@ -67,6 +68,7 @@ enum {
 	Itabget,
 	Itabput,
 	Itn,
+	Itnx,
 	Ivec,
 	Ivecl,
 	Ivecref,
@@ -232,6 +234,7 @@ Closure* ispairthunk();
 Closure* israngethunk();
 Closure* isstringthunk();
 Closure* istablethunk();
+Closure* istnthunk();
 Closure* istypethunk();
 Closure* isvectorthunk();
 Closure* stringthunk();
@@ -242,6 +245,7 @@ Closure* tabinsertthunk();
 Closure* tabdeletethunk();
 Closure* tablookthunk();
 Closure* tabenumthunk();
+Closure* typenamexthunk();
 Closure* mkvecthunk();
 Closure* vectorthunk();
 Closure* veclenthunk();

@@ -128,6 +128,12 @@ Qcall(Expr *fn, unsigned narg, ...)
 }
 
 static Expr*
+Qapply(Expr *fn, Expr *args)
+{
+	return Q2(Ecall, fn, args);
+}
+
+static Expr*
 Qconsts(char *s)
 {
 	Expr *e;
@@ -338,26 +344,54 @@ isloc(Expr *e)
 static Expr*
 gentypename(Type *t, Varset *lvs, Vars *vars)
 {
-	Expr *e, *sub;
+	Expr *e, *se, *id, *tn;
+	Decl *dl;
 
 	e = newexpr(E_tn, 0, 0, 0, 0);
 	switch(t->kind){
 	case Tbase:
-		e->x = (void*)TBITS(t->kind,t->base);
+		e->x = (void*)TBITS(t->kind, t->base);
 		break;
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		e->x = (void*)TBITS(t->kind,Vnil);
+		e->x = (void*)TBITS(t->kind, Vnil);
 		e->e1 = Qstr(t->tag);
 		break;
 	case Tptr:
 	case Tarr:
 	case Tfun:
-		
+		e->x = (void*)TBITS(t->kind, Vnil);
+		e->e1 = gentypename(t->link, lvs, vars);
+		if(t->kind == Tarr){
+			if(t->cnt){
+				printf("compiling t->cnt\n");
+				compile0(t->cnt, lvs, vars, 1);
+				e->e2 = t->cnt;
+			}else{
+				e->e2 = Qnil();
+			}
+		}
+		if(t->kind == Tfun){
+			se = nullelist();
+			dl = t->param;
+			while(dl){
+				if(dl->id)
+					id = Qstr(dl->id);
+				else
+					id = Qnil();
+				tn = gentypename(dl->type, lvs, vars);
+				se = Qcons(Qcall(doid("vector"), 2, id, tn),
+					   se);
+				dl = dl->link;
+			}
+			e->e2 = Qapply(doid("vector"), se);
+		}
 		break;
 	case Ttypedef:
-		fatal("gentypename incomplete");
+		e->x = (void*)TBITS(t->kind, Vnil);
+		e->e1 = Qstr(t->tid);
+		break;
 	default:
 		fatal("bug");
 	}
@@ -392,7 +426,6 @@ compiledecl(Decl *dl, Varset *pvs, Vars *vars)
 			  Qcall(doid("vector"), 2, offs, doid(lvs->tn)));
 		te = Qcons(se, te);
 
-		printf("dl->id = %s\n", dl->id);
 		se = Qcall(doid("tabinsert"), 3,
 			   doid(lvs->sym), Qstr(dl->id), doid(lvs->tmp));
 		te = Qcons(se, te);
@@ -535,13 +568,13 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		while(ex->kind == Eelist){
 			dl = ex->e1->x;
 			while(dl){
-				printf("e %p dl %p\n", ex, dl);
 				se = compiledecl(dl, lvs, vars);
 				te = Qcons(se, te);
 				dl = dl->link;
 			}
 			ex = ex->e2;
 		}
+		freeexpr(e->e2, 0);
 
 		/* new name space */
 		se = Qcall(doid("mknames"), 4,
