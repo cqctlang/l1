@@ -338,19 +338,24 @@ isloc(Expr *e)
 static Expr*
 gentypename(Type *t, Varset *lvs, Vars *vars)
 {
-	Expr *e;
+	Expr *e, *sub;
 
 	e = newexpr(E_tn, 0, 0, 0, 0);
 	switch(t->kind){
 	case Tbase:
-		e->x = (void*)TBITS(Tbase,t->base);
+		e->x = (void*)TBITS(t->kind,t->base);
 		break;
 	case Tstruct:
 	case Tunion:
 	case Tenum:
+		e->x = (void*)TBITS(t->kind,Vnil);
+		e->e1 = Qstr(t->tag);
+		break;
 	case Tptr:
 	case Tarr:
 	case Tfun:
+		
+		break;
 	case Ttypedef:
 		fatal("gentypename incomplete");
 	default:

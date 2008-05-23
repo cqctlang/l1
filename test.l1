@@ -96,7 +96,7 @@ test5 = lambda(){
 //test5();
 
 mknames = lambda(names, tid, tag, sym){
-	print("mknames!");
+	print("make names");
 };
 
 test6 = lambda(){
