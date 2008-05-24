@@ -117,6 +117,18 @@ struct tag {
    cons(mkfield(eval(expr), mktypedesc(typedesc), "name"), tmp);
 
 
+namespace(names,tid,tag,sym)
+-> foreach(<tn,id> in tid){
+     td = lookdef(tn,tid,tag,names);
+     tid[id] = td;   		   
+   }
+   foreach(<td,tag> in tag){
+     /* assume su */
+     foreach(<tn,id,off> in fields(td))
+       td = lookdef(tn,tid,tag,names);
+       replace tn with td
+   foreach(<tn,id,off> in sym)
+
 decl:
 	off tn id;
 	struct tag { off tn id; ... }

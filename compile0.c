@@ -572,9 +572,9 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 				se = compiledecl(dl, lvs, vars);
 				te = Qcons(se, te);
 				nxt = dl->link;
-				freedecl(dl, freeexprx);
 				dl = nxt;
 			}
+			freedecl(ex->e1->xp, freeexprx);
 			ex = ex->e2;
 		}
 

@@ -147,20 +147,6 @@ freecode(Head *hd)
 	free(code->labels);
 }
 
-void
-getcode(Code *code)
-{
-//	code->refcnt++;
-}
-
-void
-putcode(Code *code)
-{
-//	code->refcnt--;
-//	if(code->refcnt == 0)
-//		freecode(code);
-}
-
 static Insn*
 nextinsn(Code *code)
 {
