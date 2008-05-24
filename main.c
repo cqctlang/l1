@@ -20,7 +20,6 @@ usage(char *argv0)
 int
 main(int argc, char *argv[])
 {
-	NS *ns;
 	Closure *entry;
 	VM *vm;
 	Env *env;
@@ -61,14 +60,13 @@ main(int argc, char *argv[])
 	initcompile();
 	initvm();
 
-	ns = mkns();
 	env = mkenv();
 	vm = mkvm(env);
 
 	if(filename == 0)
 		filename = stdinname;
 
-	if(0 > doparse(ns, filename))
+	if(0 > doparse(filename))
 		exit(0);
 
 	if(flags&Fprintir){
@@ -86,7 +84,7 @@ main(int argc, char *argv[])
 	}
 
 	if(flags&Fcompile){
-		entry = compileentry(ctx.ns, ctx.el, env, flags);
+		entry = compileentry(ctx.el, env, flags);
 		if(flags&Fexec){
 			if(flags&Ftime)
 				gettimeofday(&beg, 0);
@@ -100,7 +98,6 @@ main(int argc, char *argv[])
 		}
 	}
 
-	freens(ns);
 	freevm(vm);
 	freeenv(env);
 	finivm();

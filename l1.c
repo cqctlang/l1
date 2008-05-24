@@ -4,18 +4,18 @@
 
 static unsigned basemod[Vnil+1][Enbase];
 char* basename[Vnil+1];
-static Type* basetype[Vnil+1];
 Imm   basesize[Vnil+1];
 Imm   ptrsize;
 
 static Decl* dodecls(Expr *e);
 static char* fmtdecl(Decl *d);
+static Type* copytype(Type *t);
 
-static void freetype(Type *t);
 static HT *filenames;
 
 U ctx;
 char *stdinname = "<stdin>";
+int yylex_destroy(void);
 
 void
 parseerror(char *fmt, ...)
@@ -31,7 +31,7 @@ parseerror(char *fmt, ...)
 
 	while(popyy())
 		;
-
+	yylex_destroy();
 	longjmp(ctx.jmp, 1);
 }
 
@@ -100,19 +100,19 @@ newdecl()
 	return d;
 }
 
+Type*
+basetype(unsigned base)
+{
+	Type *t;
+	t = newtype();
+	t->kind = Tbase;
+	t->base = base;
+	return t;
+}
+
 static void
 initbase()
 {
-	unsigned b;
-	Type *t;
-	
-	for(b = Vchar; b < Vnil; b++){
-		t = newtype();
-		t->kind = Tbase;
-		t->base = b;
-		basetype[b] = t;
-	}
-
 	basename[Verr]                = "error!";
 	basename[Vchar]               = "char";
 	basename[Vshort]	      = "short";	     
@@ -185,14 +185,6 @@ initbase()
 	/* the rest are Verr, which we assume to be 0 */
 }
 
-static void
-finibase()
-{
-	unsigned b;
-	for(b = Vchar; b < Vnil; b++)
-		freetype(basetype[b]);
-}
-
 Expr*
 newexpr(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 {
@@ -238,11 +230,14 @@ freeexpr(Expr *e, void(*xfn)(Expr*))
 		return;
 	switch(e->kind){
 	case Eid:
+	case Etick:
 		free(e->id);
 		break;
-	case Etick:
 	case Econsts:
 		freelits(e->lits);
+		break;
+	case Econst:
+		freetype(e->cval.type, xfn);
 		break;
 	default:
 		break;
@@ -268,9 +263,9 @@ copyexpr(Expr *e)
 	ne->kind = e->kind;
 	switch(e->kind){
 	case Eid:
+	case Etick:
 		ne->id = xstrdup(e->id);
 		break;
-	case Etick:
 	case Econsts:
 		ne->lits = copylits(e->lits);
 		break;
@@ -398,7 +393,7 @@ mkconst(unsigned type, Imm val)
 {
 	Expr *e;
 	e = newexpr(Econst, 0, 0, 0, 0);
-	initcval(&e->cval, basetype[type], val);
+	initcval(&e->cval, basetype(type), val);
 	return e;
 }
 
@@ -926,7 +921,7 @@ speclist(Expr *e)
 	}
 
 	if(base != Vnil)
-		return basetype[base];
+		return basetype(base);
 
 	if(t == NULL)
 		fatal("unexpected specifier list");
@@ -982,6 +977,7 @@ static Decl*
 declarator(Type *bt, Expr *e)
 {
 	Decl *d;
+
 	if(e->kind == Ebits){
 		if(e->e1)
 			d = declarator0(bt, e->e1);
@@ -1140,18 +1136,6 @@ fmtdecl(Decl *d)
 }
 
 static void
-freetype(Type *t)
-{
-	free(t);
-}
-
-static void
-freedecl(Decl *d)
-{
-	free(d);
-}
-
-static void
 printdecl(Decl *d)
 {
 	char *o;
@@ -1159,6 +1143,61 @@ printdecl(Decl *d)
 	o = fmtdecl(d);
 	printf("%s", o);
 	free(o);
+}
+
+static Decl*
+copydecls(Decl *dl)
+{
+	Decl *nd;
+
+	if(dl == 0)
+		return 0;
+	nd = newdecl();
+	nd->id = xstrdup(dl->id);
+	nd->offs = copyexpr(dl->offs);
+	nd->bits = copyexpr(dl->bits);
+	nd->link = copydecls(dl->link);
+	return nd;
+}
+
+static Type*
+copytype(Type *t)
+{
+	Type *nt;
+
+	if(t == 0)
+		return 0;
+
+	nt = newtype();
+	nt->kind = t->kind;
+	switch(nt->kind){
+	case Tbase:
+		nt->base = t->base;
+		break;
+	case Ttypedef:
+		nt->tid = xstrdup(t->tid);
+		break;
+	case Tstruct:
+	case Tunion:
+		nt->tag = xstrdup(t->tag);
+		nt->field = copydecls(t->field);
+		nt->sz = copyexpr(t->sz);
+		break;
+	case Tenum:
+		fatal("define copytype on enum");
+	case Tptr:
+		nt->link = copytype(t->link);
+		break;
+	case Tfun:
+		nt->link = copytype(t->link);
+		nt->param = copydecls(t->param);
+		break;
+	case Tarr:
+		nt->link = copytype(t->link);
+		nt->cnt = copyexpr(t->cnt);
+		break;
+	}
+	return t;
 }
 
 static Decl*
@@ -1175,6 +1214,9 @@ dodecls(Expr *e)
 	if(dl->kind != Enull){
 		lp = &rv;
 		while(dl->kind != Enull){
+			if(lp != &rv)
+				/* one copy of type per each declarator */
+				t = copytype(t);
 			p = declarator(t, dl->e1);
 			*lp = p;
 			lp = &p->link;
@@ -1219,21 +1261,22 @@ dotop(Expr *e)
 Expr*
 dotypes(Expr *e)
 {
-	if(e){
-		switch(e->kind){
-		case Etypedef:
-			e->x = dotypedef(e);
-			break;
-		case Edecls:
-			e->x = dodecls(e);
-			break;
-		default:
-			dotypes(e->e1);
-			dotypes(e->e2);
-			dotypes(e->e3);
-			dotypes(e->e4);
-			break;
-		}
+	if(e == 0)
+		return 0;
+
+	switch(e->kind){
+	case Etypedef:
+		e->xp = dotypedef(e);
+		break;
+	case Edecls:
+		e->xp = dodecls(e);
+		break;
+	default:
+		dotypes(e->e1);
+		dotypes(e->e2);
+		dotypes(e->e3);
+		dotypes(e->e4);
+		break;
 	}
 	return e;
 }
@@ -1256,8 +1299,6 @@ finiparse()
 {
 	hforeach(filenames, freefilename, 0);
 	freeht(filenames);
-	finibase();
-	
 }
 
 void
@@ -1348,9 +1389,8 @@ tryinclude(NS *ns, char *raw)
 }
 
 int
-doparse(NS *ns, char *filename)
+doparse(char *filename)
 {
-	ctx.ns = ns;
 	ctx.el = nullelist();
 	if(setjmp(ctx.jmp) == 0){
 		pushyy(filename);
@@ -1359,5 +1399,7 @@ doparse(NS *ns, char *filename)
 		return -1;
 
 	ctx.el = invert(ctx.el);
+	popyy();
+	yylex_destroy();
 	return 0;
 }

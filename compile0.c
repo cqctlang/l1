@@ -350,24 +350,24 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 	e = newexpr(E_tn, 0, 0, 0, 0);
 	switch(t->kind){
 	case Tbase:
-		e->x = (void*)TBITS(t->kind, t->base);
+		e->xn = TBITS(t->kind, t->base);
 		break;
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		e->x = (void*)TBITS(t->kind, Vnil);
+		e->xn = TBITS(t->kind, Vnil);
 		e->e1 = Qstr(t->tag);
 		break;
 	case Tptr:
 	case Tarr:
 	case Tfun:
-		e->x = (void*)TBITS(t->kind, Vnil);
+		e->xn = TBITS(t->kind, Vnil);
 		e->e1 = gentypename(t->link, lvs, vars);
 		if(t->kind == Tarr){
 			if(t->cnt){
-				printf("compiling t->cnt\n");
 				compile0(t->cnt, lvs, vars, 1);
-				e->e2 = t->cnt;
+				e->e2 = t->cnt; /* steal */
+				t->cnt = 0;
 			}else{
 				e->e2 = Qnil();
 			}
@@ -389,7 +389,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		}
 		break;
 	case Ttypedef:
-		e->x = (void*)TBITS(t->kind, Vnil);
+		e->xn = TBITS(t->kind, Vnil);
 		e->e1 = Qstr(t->tid);
 		break;
 	default:
@@ -418,7 +418,8 @@ compiledecl(Decl *dl, Varset *pvs, Vars *vars)
 
 		if(dl->offs){
 			compile0(dl->offs, lvs, vars, 1);
-			offs = dl->offs;
+			offs = dl->offs; /* steal */
+			dl->offs = 0;
 		}else
 			offs = Qnil();
 
@@ -443,7 +444,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 {
 	Expr *se, *te;
 	Expr *ex;
-	Decl *dl;
+	Decl *dl, *nxt;
 	Varset *lvs;
 	int binds;
 
@@ -566,14 +567,17 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		if(ex->kind != Eelist && ex->kind != Enull)
 			fatal("broken");
 		while(ex->kind == Eelist){
-			dl = ex->e1->x;
+			dl = ex->e1->xp;
 			while(dl){
 				se = compiledecl(dl, lvs, vars);
 				te = Qcons(se, te);
-				dl = dl->link;
+				nxt = dl->link;
+				freedecl(dl, freeexprx);
+				dl = nxt;
 			}
 			ex = ex->e2;
 		}
+
 		freeexpr(e->e2, 0);
 
 		/* new name space */

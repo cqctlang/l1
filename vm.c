@@ -2056,7 +2056,7 @@ printval(Val *val)
 	switch(val->qkind){
 	case Qcval:
 		cv = valcval(val);
-		printf("<cval %llu>", cv->val);
+ 		printf("<cval %" PRIu64 ">", cv->val);
 		break;
 	case Qcl:
 		cl = valcl(val);
@@ -2086,7 +2086,8 @@ printval(Val *val)
 		break;
 	case Qrange:
 		r = valrange(val);
-		printf("<range %llu %llu>", r->beg.val, r->len.val);
+ 		printf("<range %" PRIu64 " %" PRIu64 ">",
+ 		       r->beg.val, r->len.val);
 		break;
 	case Qstr:
 		str = valstr(val);

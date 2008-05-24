@@ -169,10 +169,7 @@ static int
 check_type()
 {
 	yylval.id = yytext;
-	if(tidlookup(ctx.ns, yylval.id))
-		return TYPE_NAME;
-	else
-		return IDENTIFIER;
+	return IDENTIFIER;
 }
 
 YYstate*

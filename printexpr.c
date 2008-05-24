@@ -108,7 +108,7 @@ printexpr(Expr *e)
 {
 	switch(e->kind){
 	case Econst:
-		printf("%llu", e->cval.val);
+		printf("%" PRIu64, e->cval.val);
 		break;
 	case Econsts:
 		printf("(Econsts %.*s)", e->lits->len, e->lits->s);

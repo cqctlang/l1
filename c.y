@@ -19,7 +19,7 @@ yyerror(char *s)
 	int kind;
 }
 
-%token <id> IDENTIFIER TYPE_NAME CONSTANT STRING_LITERAL 
+%token <id> IDENTIFIER CONSTANT STRING_LITERAL 
 %token SIZEOF TYPEDEF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -39,7 +39,7 @@ yyerror(char *s)
 %type <expr> assignment_expression lambda_expression expression root_expression
 %type <expr> names_expression names_declaration_list names_declaration
 %type <expr> identifier_list local_list local
-%type <expr> type_specifier id tid tag struct_or_union_specifier
+%type <expr> type_specifier id tag struct_or_union_specifier
 %type <expr> struct_declaration_list struct_declaration
 %type <expr> struct_declarator_list struct_declarator enum_specifier
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
@@ -335,21 +335,14 @@ type_specifier
 	{ $$ = newexpr(Eunsigned, 0, 0, 0, 0); }
 	| struct_or_union_specifier
 	| enum_specifier
-	| tid
 	;
 
 id
 	: IDENTIFIER
 	{ $$ = doid($1); }
 
-tid
-	: TYPE_NAME
-	{ $$ = doid($1); }
-	;
-
 tag
 	: id
-	| tid
 	;
 
 struct_or_union_specifier

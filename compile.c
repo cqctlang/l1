@@ -29,7 +29,6 @@ static Location toploc[8];
 static Location *Effect;
 static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
 static void compilelambda(Ctl *name, Code *code, Expr *el);
-static void freeexprx(Expr *e);
 static Topvec *mktopvec();
 static void freetopvec(Topvec *tv);
 static Konst* mkkonst();
@@ -255,7 +254,7 @@ printrand(Code *code, Operand *r)
 		}
 		break;
 	case Ocval:
-		printf("%llu", r->u.cval.val);
+		printf("%" PRIu64, r->u.cval.val);
 		break;
 	case Onil:
 		printf("nil");
@@ -1114,18 +1113,52 @@ freevarref(Varref *vr)
 	free(vr);
 }
 
-static void
+void
+freetype(Type *t, void(*xfn)(Expr*))
+{
+	if(t == 0)
+		return;
+
+	freetype(t->link, xfn);
+	free(t->tid);
+	free(t->tag);
+	freedecl(t->field, xfn);
+	/* freeenum(t->en); */
+	freedecl(t->param, xfn);
+	freeexpr(t->sz, xfn);
+	freeexpr(t->cnt, xfn);
+	free(t);
+}
+
+void
+freedecl(Decl *d, void(*xfn)(Expr*))
+{
+	Decl *nxt;
+
+	nxt = d;
+	while(nxt){
+		d = nxt;
+		nxt = d->link;
+		freetype(d->type, xfn);
+		freeexpr(d->offs, xfn);
+		freeexpr(d->bits, xfn);
+		free(d->id);
+		free(d);
+	}
+}
+
+void
 freeexprx(Expr *e)
 {
 	switch(e->kind){
 	case Eid:
-		freevarref((Varref*)e->x);
+		freevarref((Varref*)e->xp);
 		break;
 	case Elambda:
-		freelambda((Lambda*)e->x);
+		freelambda((Lambda*)e->xp);
 		break;
 	case Eblock:
-		freevenv((VEnv *)e->x);
+		freevenv((VEnv*)e->xp);
 		break;
 	default:
 		break;
@@ -1176,9 +1209,9 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 
 	switch(e->kind){
 	case Econsts:
-		e->x = konstlookup(e->lits, kon);
-		if(e->x == NULL)
-			e->x = konstadd(e->lits, kon);
+		e->xp = konstlookup(e->lits, kon);
+		if(e->xp == NULL)
+			e->xp = konstadd(e->lits, kon);
 		break;
 	case Eid:
 		id = e->id;
@@ -1187,7 +1220,7 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 			vr = mktoplevelref(id, tv, env);
 		else
 			vr = mkvarref(vd);
-		e->x = vr;
+		e->xp = vr;
 		break;
 	case Eg:
 		if(e->e1->kind != Eid)
@@ -1200,7 +1233,7 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 			vd->indirect = 1;
 			vr = mkvarref(vd);
 		}
-		e->e1->x = vr;
+		e->e1->xp = vr;
 		newmapframe(e->e2, curb, ve, tv, env, kon);
 		break;
 	case Eblock:
@@ -1211,14 +1244,14 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 			nve->link = ve;
 			nve->nv = curb->nloc-sloc;
 			nve->hd = &curb->local[sloc];
-			e->x = nve;
+			e->xp = nve;
 			ve = nve;
 		}
 		newmapframe(e->e2, curb, ve, tv, env, kon);
 		break;
 	case Elambda:
 		b = mklambda(e);
-		e->x = b;
+		e->xp = b;
 		b->ve->link = ve;
 		ve = b->ve;
 		newmapframe(e->e2, b, b->ve, tv, env, kon);
@@ -1244,18 +1277,18 @@ freevars(Expr *e, VEnv *ve, VDset *fr)
 
 	switch(e->kind){
 	case Eid:
-		vr = (Varref*)e->x;
+		vr = (Varref*)e->xp;
 		if(vr->vd->kind != VDtoplevel && !vardeflookup(vr->vd, ve))
 			addvdset(vr->vd, fr);
 		break;
 	case Elambda:
-		b = (Lambda*)e->x;
+		b = (Lambda*)e->xp;
 		nve = b->ve;
 		nve->link = ve;
 		freevars(e->e2, nve, fr);
 		break;
 	case Eblock:
-		nve = (VEnv*)e->x;
+		nve = (VEnv*)e->xp;
 		if(nve){
 			nve->link = ve;
 			ve = nve;
@@ -1286,7 +1319,7 @@ mapcapture(Expr *e, VDset *cap)
 
 	switch(e->kind){
 	case Eid:
-		vr = (Varref*)e->x;
+		vr = (Varref*)e->xp;
 		idx = lookupvdset(vr->vd, cap);
 		if(idx >= 0){
 			vr->closed = 1;
@@ -1295,7 +1328,7 @@ mapcapture(Expr *e, VDset *cap)
 		break;
 	case Elambda:
 		fr = mkvdset();
-		b = (Lambda*)e->x;
+		b = (Lambda*)e->xp;
 		b->ve->link = 0;
 		freevars(e->e2, b->ve, fr);
 
@@ -1337,7 +1370,7 @@ printframe(Expr *e)
 
 	switch(e->kind){
 	case Econst:
-		printf("%llu", e->cval.val);
+		printf("%" PRIu64, e->cval.val);
 		break;
 	case Econsts:
 		printf("(Econsts %.*s)", e->lits->len, e->lits->s);
@@ -1347,7 +1380,7 @@ printframe(Expr *e)
 		break;
 	case Eid:
 		printf("(Eid ");
-		vr = (Varref*)e->x;
+		vr = (Varref*)e->xp;
 		if(vr == NULL)
 			fatal("no varref for Eid");
 		if(vr->vd->kind == VDtoplevel)
@@ -1362,7 +1395,7 @@ printframe(Expr *e)
 		printf(")");
 		break;
 	case Elambda:
-		b = (Lambda*)e->x;
+		b = (Lambda*)e->xp;
 		if(b == NULL)
 			fatal("no lambda for Elambda");
 		printf("(Elambda %p", b);
@@ -1454,7 +1487,7 @@ varloc(Location *loc, Expr *eid)
 {
 	Varref *vr;
 
-	vr = (Varref*)eid->x;
+	vr = (Varref*)eid->xp;
 	if(vr->closed)
 		newloc(loc, Ldisp, vr->cidx, vr->vd->indirect);
 	else
@@ -1545,7 +1578,7 @@ cgrand(Operand *rand, Expr *e, CGEnv *p)
 		randcval(rand, &e->cval);
 		break;
 	case Econsts:
-		randlits(rand, e->x);
+		randlits(rand, e->xp);
 		break;
 	case Enil:
 		randnil(rand);
@@ -1910,7 +1943,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}
 		i = nextinsn(code);
 		i->kind = Itn;
-		i->bits = (u8)(uintptr_t)e->x; /* FIXME: casting around warning  */
+		i->bits = e->xn; /* FIXME: casting around warning  */
 		if(e->e1)
 			i->op1 = r1;
 		if(e->e2)
@@ -2031,7 +2064,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Econsts:
 		i = nextinsn(code);
 		i->kind = Imov;
-		randlits(&i->op1, e->x);
+		randlits(&i->op1, e->xp);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt);
 		break;
@@ -2043,7 +2076,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt);
 		break;
 	case Elambda:
-		b = (Lambda*)e->x;
+		b = (Lambda*)e->xp;
 		L = genlabel(code, 0);
 
 		for(m = b->capture->nvr-1; m >= 0; m--){
@@ -2289,7 +2322,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	if(e->kind != Elambda)
 		fatal("compilelambda on non-lambda");
 
-	b = (Lambda*)e->x;
+	b = (Lambda*)e->xp;
 	if(b->vararg)
 		printf("%s: var params, %u locals, %u temps\n",
 		       name->label, b->nloc, b->ntmp);
@@ -2352,7 +2385,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 }
 
 Closure*
-compileentry(NS *ns, Expr *el, Env *env, int flags)
+compileentry(Expr *el, Env *env, int flags)
 {
 	Ctl *L;
 	Expr *le;
@@ -2376,7 +2409,7 @@ compileentry(NS *ns, Expr *el, Env *env, int flags)
 	code->src = le;
 
 	compilelambda(L, code, le);
-	b = (Lambda*)le->x;
+	b = (Lambda*)le->xp;
 	cl = mkcl(code, 0, b->capture->nvr, L->label);
 
 	if(flags&Fprintobj)

@@ -211,7 +211,7 @@ void initcompile();
 void finicompile();
 Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 void docompile0(Expr *e);
-Closure* compileentry(NS *ns, Expr *el, Env *env, int flags);
+Closure* compileentry(Expr *el, Env *env, int flags);
 void printcode(Code *code);
 char* topvecid(unsigned idx, Topvec *tv);
 Val* topvecval(unsigned idx, Topvec *tv);

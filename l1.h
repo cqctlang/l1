@@ -185,8 +185,8 @@ struct Lits {
 struct Expr {
 	Kind kind;
 
-	char *id;		/* Eid */
-	Lits *lits;		/* Econsts, Etick */
+	char *id;		/* Eid, Etick */
+	Lits *lits;		/* Econsts */
 	Cval cval;		/* Econst */
 	Kind op;		/* Ebinop, Egop */
 
@@ -199,7 +199,8 @@ struct Expr {
 	Src src;
 
 	/* compiler-managed fields */
-	void *x;
+	void *xp;
+	unsigned xn;
 };
 
 struct Enum {
@@ -278,7 +279,10 @@ Expr* newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr* newbinop(unsigned, Expr*, Expr*);
 Expr* newgop(unsigned, Expr*, Expr*);
 Expr* mkconst(unsigned type, Imm val); /* rename newconst? */
+void freedecl(Decl *d, void(*xfn)(Expr*));
 void freeexpr(Expr*, void(*xfn)(Expr*));
+void freetype(Type *t, void(*xfn)(Expr*));
+void freeexprx(Expr *e);
 Expr* invert(Expr*);
 Expr* nullelist();
 Expr* ptrto(Expr*, Expr*);
@@ -290,6 +294,7 @@ Lits* mklits(char*, unsigned len);
 Lits* copylits(Lits *lits);
 void freelits(Lits *lits);
 char* fmttype(Type *t, char *o);
+Type* basetype(unsigned base);
 
 void initcval(Cval *cval, Type *type, Imm val);
 
@@ -308,4 +313,4 @@ void pushyy(char *filename);
 int popyy();
 void tryinclude(NS *ns, char *raw);
 void parseerror(char *fmt, ...);
-int doparse(NS *ns, char *filename);
+int doparse(char *filename);
