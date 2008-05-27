@@ -117,6 +117,10 @@ struct tag {
    cons(mkfield(eval(expr), mktypedesc(typedesc), "name"), tmp);
 
 
+tid table populated by compiler-generated code for @names typedef expressions:
+
+tid[tid] = TN
+
 namespace(names,tid,tag,sym)
 -> foreach(<tn,id> in tid){
      td = lookdef(tn,tid,tag,names);

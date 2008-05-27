@@ -354,9 +354,17 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		break;
 	case Tstruct:
 	case Tunion:
+		if(t->field == 0){
+			e->xn = TBITS(t->kind, Vnil);
+			e->e1 = Qstr(t->tag);
+			break;
+		}
+		/* generate tagged type definition, then reference. */
+		break;
 	case Tenum:
 		e->xn = TBITS(t->kind, Vnil);
 		e->e1 = Qstr(t->tag);
+		fatal("incomplete support for enums");
 		break;
 	case Tptr:
 	case Tarr:
@@ -368,9 +376,8 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 				compile0(t->cnt, lvs, vars, 1);
 				e->e2 = t->cnt; /* steal */
 				t->cnt = 0;
-			}else{
+			}else
 				e->e2 = Qnil();
-			}
 		}
 		if(t->kind == Tfun){
 			se = nullelist();
@@ -406,16 +413,18 @@ compiledecl(Decl *dl, Varset *pvs, Vars *vars)
 	Varset *lvs;
 	Expr *e, *offs, *se, *te;
 
+	binds = Vtmp|Vtn;
+	lvs = bindings(vars, pvs, binds);
+	pushlevel(vars);
+
+	te = nullelist();
+
 	t = dl->type;
+
+	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Qcons(se, te);
+
 	if(dl->id){
-		binds = Vtmp|Vtn;
-		lvs = bindings(vars, pvs, binds);
-		pushlevel(vars);
-
-		te = nullelist();
-		se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
-		te = Qcons(se, te);
-
 		if(dl->offs){
 			compile0(dl->offs, lvs, vars, 1);
 			offs = dl->offs; /* steal */

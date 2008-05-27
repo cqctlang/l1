@@ -9,8 +9,9 @@ enum {
 	Qnil,
 	Qnulllist,
 	Qcval,
-	Qcl,
 	Qbox,
+	Qcl,
+	Qnames,
 	Qpair,
 	Qrange,
 	Qstr,
@@ -22,7 +23,8 @@ enum {
 } Qkind;
 
 enum {
-	/* Xtypedef flags */ 
+	/* Xtypename flags */ 
+	Rundef,
 	Ru8le,
 	Ru16le,
 	Ru32le,
@@ -31,38 +33,46 @@ enum {
 	Rs16le,
 	Rs32le,
 	Rs64le,
+	Ru8be,
+	Ru16be,
+	Ru32be,
+	Ru64be,
+	Rs8be,
+	Rs16be,
+	Rs32be,
+	Rs64be,
 };
 
 enum {
 	Tabinitsize=1024,	/* power of 2 */
+	Typepos=0,
 };
 
 typedef struct Vimm Vimm;
 typedef struct Vcval Vcval;
 typedef struct Box Box;
 typedef struct Pair Pair;
+typedef struct Names Names;
 typedef struct Range Range;
 typedef struct Str Str;
 typedef struct Tab Tab;
 typedef struct Vec Vec;
-typedef struct Xtypedef Xtypedef;
 typedef struct Xtypename Xtypename;
 
 struct Val {
 	Qkind qkind;
 	union {
 		Head *hd;
-		Imm imm;
 		Cval cval;
 		Closure *cl;
 		Box *box;
+		Names *names;
 		Pair *pair;
 		Range *range;
 		Str *str;
 		Tab *tab;
 		Type *type;
 		Vec *vec;
-		Xtypedef *xtd;
 		Xtypename *xtn;
 	} u;
 };
@@ -117,6 +127,13 @@ struct Vcval {
 	Cval cval;
 };
 
+struct Names {
+	Head hd;
+	Tab *tid;
+	Tab *tag;
+	Tab *sym;
+};
+
 struct Pair {
 	Head hd;
 	Val car;
@@ -141,28 +158,17 @@ struct Vec {
 	Val *vec;
 };
 
-struct Xtypedef {
+struct Xtypename {
 	Head hd;
 	unsigned xtkind;	/* = Tbase, Tstruct, ... */
 	unsigned basename;	/* base */
 	unsigned rep;		/* base, ptr, enum; = Ru8le ... */
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
-	Cval *sz;		/* struct, union */
-	Cval *cnt;		/* arr */
-	Xtypedef *link;		/* typedef, ptr, arr, func (return type) */
-	Vec *field;		/* struct, union */
-	Vec *param;		/* func */
-};
-
-struct Xtypename {
-	Head hd;
-	unsigned xtkind;	/* = Tbase, Tstruct, ... */
-	unsigned basename;	/* base */
-	Str *tid;		/* typedef */
-	Str *tag;		/* struct, union, enum */
 	Val cnt;		/* arr */
+	Val sz;			/* struct */
 	Xtypename *link;	/* ptr, arr, func (return type) */
+	Vec *field;		/* struct, union */
 	Vec *param;		/* abstract declarators for func */
 };
 
@@ -1467,6 +1473,13 @@ mkvalbox(Val *boxed, Val *vp)
 }
 
 static void
+mkvalnames(Names *ns, Val *vp)
+{
+	vp->qkind = Qnames;
+	vp->u.names = ns;
+}
+
+static void
 mkvalpair(Val *car, Val *cdr, Val *vp)
 {
 	Pair *pair;
@@ -1546,6 +1559,14 @@ valcl(Val *v)
 	if(v->qkind != Qcl)
 		fatal("valcl on non-closure");
 	return v->u.cl;
+}
+
+static Names*
+valnames(Val *v)
+{
+	if(v->qkind != Qnames)
+		fatal("valnames on non-names");
+	return v->u.names;
 }
 
 static Pair*
@@ -2902,6 +2923,192 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
+typedef
+struct NSctx {
+	Names *names;
+	Tab *itid, *itag, *isym;
+	Tab *otid, *otag, *osym;
+} NSctx;
+
+static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
+
+static Xtypename*
+resolvetid(VM *vm, Str *tid, NSctx *ctx)
+{
+	Val *rv, idv, v;
+	Xtypename *xtn, *new;
+
+	mkvalstr(tid, &idv);
+	rv = tabget(ctx->otid, &idv);
+	if(rv)
+		return valxtn(rv);
+
+	rv = tabget(ctx->itid, &idv);
+	if(rv == 0)
+		/* FIXME: warn if only need ptr to type */
+		vmerr(vm, "undefined type %.*s", tid->s, tid->len);
+
+	xtn = valxtn(rv);
+	new = mkxtn();
+	new->xtkind = Ttypedef;
+	new->tid = tid;
+	mkvalxtn(new, &v);
+	tabput(vm, ctx->otid, &idv, &v);
+	new->link = resolvetypename(vm, xtn, ctx);
+	return new;
+}
+
+static Xtypename*
+resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
+{
+	Val *rv, idv, v, *vp;
+	Xtypename *xtn, *tmp;
+	Vec *vec;
+	Imm i;
+
+	mkvalstr(tag, &idv);
+	rv = tabget(ctx->otag, &idv);
+	if(rv){
+		xtn = valxtn(rv);
+		if(xtn->xtkind != kind)
+			vmerr(vm, "tag %.*s reused", tag->s, tag->len);
+		return xtn;
+	}
+
+	rv = tabget(ctx->itag, &idv);
+	if(rv == 0)
+		/* FIXME: warn if only need ptr to type */
+		vmerr(vm, "undefined type %s %.*s",
+		      (kind == Tstruct ? "struct"
+		       : (kind == Tunion ? "union" : "enum")),
+		      tag->s, tag->len);
+
+	xtn = valxtn(rv);
+	if(xtn->xtkind != kind)
+		vmerr(vm, "tag %.*s reused", tag->s, tag->len);
+
+	tabput(vm, ctx->otag, &idv, rv);
+	for(i = 0; i < xtn->field->len; i++){
+		vec = valvec(vecref(xtn->field, i));
+		vp = vecref(vec, Typepos);
+		tmp = valxtn(vp);
+		tmp = resolvetypename(vm, tmp, ctx);
+		mkvalxtn(tmp, &v);
+		vecset(vm, vec, Typepos, &v);
+	}
+	return xtn;
+}
+
+static unsigned
+resolvebase(VM *vm, unsigned basename, NSctx *ctx)
+{
+	/* ctx->names should define basename */
+	return Ru32le;
+}
+
+static Xtypename*
+resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
+{
+	Vec *vec;
+	Val v;
+	Xtypename *tmp;
+	Imm i;
+
+	switch(xtn->xtkind){
+	case Tbase:
+		if(xtn->rep == Rundef)
+			xtn->rep = resolvebase(vm, xtn->basename, ctx);
+		return xtn;
+	case Ttypedef:
+		xtn->link = resolvetid(vm, xtn->tid, ctx);
+		return xtn;
+	case Tstruct:
+	case Tunion:
+		return resolvetag(vm, xtn->xtkind, xtn->tag, ctx);
+	case Tarr:
+	case Tptr:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		return xtn;
+	case Tfun:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		for(i = 0; i < xtn->param->len; i++){
+			vec = valvec(vecref(xtn->param, i));
+			tmp = valxtn(vecref(vec, Typepos));
+			tmp = resolvetypename(vm, tmp, ctx);
+			mkvalxtn(tmp, &v);
+			vecset(vm, vec, Typepos, &v); 
+		}
+		return xtn;
+	default:
+		fatal("bug");
+	}
+}
+
+static void
+xns(VM *vm, Operand *invec, Operand *dst)
+{
+	Val v, *vp;
+	Vec *vec;
+	Tabx *x;
+	Tabidx *tk;
+	Xtypename *xtn;
+	Str *id;
+	NSctx ctx;
+	u32 i;
+
+	getvalrand(vm, invec, &v);
+	vec = valvec(&v);
+	if(vec->len != 4)
+		vmerr(vm, "bad vector to ns");
+	vp = vecref(vec, 0);
+	ctx.names = valnames(vp);
+	vp = vecref(vec, 1);
+	ctx.itid = valtab(vp);
+	vp = vecref(vec, 2);
+	ctx.itag = valtab(vp);
+	vp = vecref(vec, 3);
+	ctx.isym = valtab(vp);
+
+	ctx.otid = mktab();
+	ctx.otag = mktab();
+	ctx.osym = mktab();
+
+	x = ctx.itid->x;
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		while(tk){
+			id = valstr(&x->key[tk->idx]);
+			resolvetid(vm, id, &ctx);
+			tk = tk->link;
+		}
+	}
+
+	x = ctx.itag->x;
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		while(tk){
+			id = valstr(&x->key[tk->idx]);
+			xtn = valxtn(&x->val[tk->idx]);
+			resolvetag(vm, xtn->xtkind, id, &ctx);
+			tk = tk->link;
+		}
+	}
+
+	x = ctx.isym->x;
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		while(tk){
+			vec = valvec(&x->val[tk->idx]);
+			xtn = valxtn(vecref(vec, Typepos));
+			xtn = resolvetypename(vm, xtn, &ctx);
+			mkvalxtn(xtn, &v);
+			vecset(vm, vec, Typepos, &v);
+			tk = tk->link;
+		}
+	}
+	putvalrand(vm, &Xnil, dst); /* FIXME */
+}
+
 static void
 xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 {
@@ -2920,6 +3127,10 @@ xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 		getvalrand(vm, op1, &v);
 		xtn->tag = valstr(&v);
 		break;
+	case Ttypedef:
+		getvalrand(vm, op1, &v);
+		xtn->tid = valstr(&v);
+		break;
 	case Tptr:
 		getvalrand(vm, op1, &v);
 		xtn->link = valxtn(&v);
@@ -2935,10 +3146,6 @@ xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 		xtn->link = valxtn(&v);
 		getvalrand(vm, op2, &v);
 		xtn->param = valvec(&v);
-		break;
-	case Ttypedef:
-		getvalrand(vm, op1, &v);
-		xtn->tid = valstr(&v);
 		break;
 	default:
 		fatal("bug");
