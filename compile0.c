@@ -9,7 +9,7 @@ enum {
 	Vrange	= 1<<3,
 	Vaddr	= 1<<4,
 	Vstr	= 1<<5,
-	Vnames	= 1<<6,
+	Vns	= 1<<6,
 	Vtid	= 1<<7,
 	Vtag	= 1<<8,
 	Vsym	= 1<<9,
@@ -38,7 +38,7 @@ struct Varset
 	char *range;
 	char *addr;
 	char *str;
-	char *names;
+	char *ns;
 	char *tid;
 	char *tag;
 	char *sym;
@@ -113,6 +113,7 @@ Qencode(Expr *e)
 	return Q1(E_encode, e);
 }
 
+/* arguments in usual order */
 static Expr*
 Qcall(Expr *fn, unsigned narg, ...)
 {
@@ -127,10 +128,11 @@ Qcall(Expr *fn, unsigned narg, ...)
 	return Q2(Ecall, fn, e);
 }
 
+/* arguments in usual order */
 static Expr*
 Qapply(Expr *fn, Expr *args)
 {
-	return Q2(Ecall, fn, args);
+	return Q2(Ecall, fn, invert(args));
 }
 
 static Expr*
@@ -245,8 +247,8 @@ bindings(Vars *vars, Varset *outer, int req)
 			vs->str = freshvar(vars, "$str");
 		if(req&Vstr)
 			vs->str = freshvar(vars, "$str");
-		if(req&Vnames)
-			vs->names = freshvar(vars, "$names");
+		if(req&Vns)
+			vs->ns = freshvar(vars, "$ns");
 		if(req&Vtid)
 			vs->tid = freshvar(vars, "$tid");
 		if(req&Vtag)
@@ -263,7 +265,7 @@ bindings(Vars *vars, Varset *outer, int req)
 	vs->range = outer->range ? outer->range : freshvar(vars, "$range");
 	vs->addr = outer->addr ? outer->addr : freshvar(vars, "$addr");
 	vs->str = outer->str ? outer->str : freshvar(vars, "$str");
-	vs->names = outer->names ? outer->names : freshvar(vars, "$names");
+	vs->ns = outer->ns ? outer->ns : freshvar(vars, "$ns");
 	vs->tid = outer->tid ? outer->tid : freshvar(vars, "$tid");
 	vs->tag = outer->tag ? outer->tag : freshvar(vars, "$tag");
 	vs->sym = outer->sym ? outer->sym : freshvar(vars, "$sym");
@@ -289,8 +291,8 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->addr), e);
 		if(lvs->str)
 			e = Qcons(doid(lvs->str), e);
-		if(lvs->names)
-			e = Qcons(doid(lvs->names), e);
+		if(lvs->ns)
+			e = Qcons(doid(lvs->ns), e);
 		if(lvs->tid)
 			e = Qcons(doid(lvs->tid), e);
 		if(lvs->tag)
@@ -310,8 +312,8 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->addr), e);
 		if(lvs->str != pvs->str)
 			e = Qcons(doid(lvs->str), e);
-		if(lvs->names != pvs->names)
-			e = Qcons(doid(lvs->names), e);
+		if(lvs->ns != pvs->ns)
+			e = Qcons(doid(lvs->ns), e);
 		if(lvs->tid != pvs->tid)
 			e = Qcons(doid(lvs->tid), e);
 		if(lvs->tag != pvs->tag)
@@ -367,14 +369,14 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		dl = t->field;
 		while(dl){
 			id = Qstr(dl->id);
-			if(dl->off){
-				compile0(dl->off, lvs, vars, 1);
-				off = dl->off; /* steal */
-				dl->off = 0;
+			if(dl->offs){
+				compile0(dl->offs, lvs, vars, 1);
+				off = dl->offs; /* steal */
+				dl->offs = 0;
 			}else
 				off = Qnil();
 			tn = gentypename(dl->type, lvs, vars);
-			se = Qcons(Qcall(doid("vector"), 3, id, tn, off), se);
+			se = Qcons(Qcall(doid("vector"), 3, tn, id, off), se);
 			dl = dl->link;
 		}
 		se = Qapply(doid("vector"), se);
@@ -385,6 +387,21 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		}else
 			sz = Qnil();
 
+		tn = newexpr(E_tn, 0, 0, 0, 0);
+		tn->xn = TBITS(t->kind, Vnil);
+		tn->e1 = Qstr(t->tag);
+		se = Qcall(doid("vector"), 3, tn, se, sz);
+
+		te = nullelist();
+		se = Qcall(doid("tabinsert"), 3,
+			  doid(lvs->tag), Qstr(t->tag), se);
+		te = Qcons(se, te);
+		
+		e->xn = TBITS(t->kind, Vnil);
+		e->e1 = Qstr(t->tag);
+		te = Qcons(e, te);
+		
+		e = newexpr(Eblock, nullelist(), invert(te), 0, 0);
 		break;
 	case Tenum:
 		e->xn = TBITS(t->kind, Vnil);
@@ -577,8 +594,8 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		freevarset(lvs);
 		poplevel(vars);
 		break;
-	case Enames:
-		binds = Vnames|Vtid|Vtag|Vsym;
+	case Ens:
+		binds = Vns|Vtid|Vtag|Vsym;
 		lvs = bindings(vars, pvs, binds);
 		pushlevel(vars);
 
@@ -593,7 +610,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 
 		/* inherited names expression */
 		compile0(e->e1, lvs, vars, 0);
-		se = Qset(doid(lvs->names), e->e1);
+		se = Qset(doid(lvs->ns), e->e1);
 		te = Qcons(se, te);
 
 		/* declarations */
@@ -615,11 +632,12 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		freeexpr(e->e2, 0);
 
 		/* new name space */
-		se = Qcall(doid("mknames"), 4,
-			   doid(lvs->names),
-			   doid(lvs->tid),
-			   doid(lvs->tag),
-			   doid(lvs->sym));
+		se = Qcall(doid("mkns"), 1,
+			   Qcall(doid("vector"), 4,
+				 doid(lvs->ns),
+				 doid(lvs->tid),
+				 doid(lvs->tag),
+				 doid(lvs->sym)));
 		te = Qcons(se, te);
 
 		e->kind = Eblock;

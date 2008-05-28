@@ -413,12 +413,12 @@ last understood the thing) is how references to objects
 stored in mutable data structures (boxes, vecs, dicts)
 are safely tracked:
 
-	- new objects (galloc'd) are marked upon creation;
+	- new objects (halloc'd) are marked upon creation;
 	  they will not be swept until two rounds pass without finding
 	  a reference;
 	- clobbered objects are marked upon clobber;
 	  they will not be swept;
-	- new inserted objects either recently galloc'd
+	- new inserted objects either recently halloc'd
 	  or are referenced elsewhere -- even in missed, they will
 	  survive to next round.
 

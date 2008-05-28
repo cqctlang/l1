@@ -8,10 +8,12 @@ enum {
 	Qundef = 0,
 	Qnil,
 	Qnulllist,
+	Qas,
 	Qcval,
 	Qbox,
 	Qcl,
-	Qnames,
+	Qdom,
+	Qns,
 	Qpair,
 	Qrange,
 	Qstr,
@@ -50,9 +52,11 @@ enum {
 
 typedef struct Vimm Vimm;
 typedef struct Vcval Vcval;
+typedef struct As As;
 typedef struct Box Box;
 typedef struct Pair Pair;
-typedef struct Names Names;
+typedef struct Dom Dom;
+typedef struct Ns Ns;
 typedef struct Range Range;
 typedef struct Str Str;
 typedef struct Tab Tab;
@@ -65,8 +69,10 @@ struct Val {
 		Head *hd;
 		Cval cval;
 		Closure *cl;
+		As *as;
 		Box *box;
-		Names *names;
+		Dom *dom;
+		Ns *ns;
 		Pair *pair;
 		Range *range;
 		Str *str;
@@ -127,11 +133,22 @@ struct Vcval {
 	Cval cval;
 };
 
-struct Names {
+struct As {
+	Head hd;
+	Closure *dispatch;
+};
+
+struct Ns {
 	Head hd;
 	Tab *tid;
 	Tab *tag;
 	Tab *sym;
+};
+
+struct Dom {
+	Head hd;
+	As *as;
+	Ns *ns;
 };
 
 struct Pair {
@@ -148,7 +165,9 @@ struct Range {
 
 struct Str {
 	Head hd;
-	Imm len;
+/*	Imm len; */ /* FIXME: want Imm, but format %.*s does not work
+		       with 64-bit len */ 
+	unsigned len;
 	char *s;
 };
 
@@ -246,7 +265,7 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-Heap heapcode, heapcl, heapbox, heapcval, heappair,
+Heap heapcode, heapcl, heapbox, heapcval, heapas, heapdom, heapns, heappair,
 	heaprange, heapstr, heaptab, heapvec, heapxtn;
 static Code *kcode;
 
@@ -273,7 +292,7 @@ writebarrier()
 }
 
 Head*
-galloc(Heap *heap)
+halloc(Heap *heap)
 {
 	Head *o, *ap, *fp;
 	unsigned m;
@@ -286,7 +305,7 @@ retry:
 			fatal("o->link == &eol (1)");
 		o->link = 0;
 		if(o->state != -1)
-			fatal("galloc bad state %d", o->state);
+			fatal("halloc bad state %d", o->state);
 		o->state = 0;
 	}else if(heap->swept){
 		heap->free = (Head*)read_and_clear(&heap->swept);
@@ -344,10 +363,13 @@ sweepheap(Heap *heap, unsigned color)
 static void
 sweep(unsigned color)
 {
-	sweepheap(&heapcode, color);
-	sweepheap(&heapcl, color);
+	sweepheap(&heapas, color);
 	sweepheap(&heapbox, color);
+	sweepheap(&heapcl, color);
+	sweepheap(&heapcode, color);
 	sweepheap(&heapcval, color);
+	sweepheap(&heapdom, color);
+	sweepheap(&heapns, color);
 	sweepheap(&heappair, color);
 	sweepheap(&heaprange, color);
 	sweepheap(&heapstr, color);
@@ -785,7 +807,7 @@ Closure*
 mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 {
 	Closure *cl;
-	cl = (Closure*)galloc(&heapcl);
+	cl = (Closure*)halloc(&heapcl);
 	cl->code = code;
 	cl->entry = entry;
 	cl->dlen = len;
@@ -940,7 +962,7 @@ static Str*
 mkstr0(char *s)
 {
 	Str *str;
-	str = (Str*)galloc(&heapstr);
+	str = (Str*)halloc(&heapstr);
 	str->len = strlen(s);
 	str->s = xmalloc(str->len);
 	memcpy(str->s, s, str->len);
@@ -951,7 +973,7 @@ static Str*
 mkstr(char *s, unsigned long len)
 {
 	Str *str;
-	str = (Str*)galloc(&heapstr);
+	str = (Str*)halloc(&heapstr);
 	str->len = len;
 	str->s = xmalloc(str->len);
 	memcpy(str->s, s, str->len);
@@ -962,7 +984,7 @@ static Str*
 mkstrn(unsigned long len)
 {
 	Str *str;
-	str = (Str*)galloc(&heapstr);
+	str = (Str*)halloc(&heapstr);
 	str->len = len;
 	str->s = xmalloc(str->len);
 	return str;
@@ -1013,7 +1035,7 @@ mkvec(Imm len)
 {
 	Vec *vec;
 
-	vec = (Vec*)galloc(&heapvec);
+	vec = (Vec*)halloc(&heapvec);
 	vec->len = len;
 	vec->vec = xmalloc(len*sizeof(*vec->vec));
 	return vec;
@@ -1095,7 +1117,7 @@ static Tab*
 _mktab(Tabx *x)
 {
 	Tab *tab;
-	tab = (Tab*)galloc(&heaptab);
+	tab = (Tab*)halloc(&heaptab);
 	tab->x = x;
 	return tab;
 }
@@ -1319,7 +1341,7 @@ static Xtypename*
 mkxtn()
 {
 	Xtypename *xtn;
-	xtn = (Xtypename*)galloc(&heapxtn);
+	xtn = (Xtypename*)halloc(&heapxtn);
 	return xtn;
 }
 
@@ -1373,6 +1395,75 @@ iterxtn(Head *hd, Ictx *ictx)
 		fatal("bug");
 	}
 	return 0;
+}
+
+static As*
+mkas()
+{
+	As *as;
+	as = (As*)halloc(&heapas);
+	return as;
+}
+
+static Head*
+iteras(Head *hd, Ictx *ictx)
+{
+	As *as;
+	as = (As*)hd;
+	switch(ictx->n++){
+	case 0:
+		return (Head*)as->dispatch;
+	default:
+		return 0;
+	}
+}
+
+static Dom*
+mkdom()
+{
+	Dom *dom;
+	dom = (Dom*)halloc(&heapdom);
+	return dom;
+}
+
+static Head*
+iterdom(Head *hd, Ictx *ictx)
+{
+	Dom *dom;
+	dom = (Dom*)hd;
+	switch(ictx->n++){
+	case 0:
+		return (Head*)dom->as;
+	case 1:
+		return (Head*)dom->ns;
+	default:
+		return 0;
+	}
+}
+
+static Ns*
+mkns()
+{
+	Ns *ns;
+	ns = (Ns*)halloc(&heapns);
+	return ns;
+}
+
+static Head*
+iterns(Head *hd, Ictx *ictx)
+{
+	Ns *ns;
+	ns = (Ns*)hd;
+	switch(ictx->n++){
+	case 0:
+		return (Head*)ns->tid;
+	case 1:
+		return (Head*)ns->tag;
+	case 2:
+		return (Head*)ns->sym;
+	default:
+		return 0;
+	}
 }
 
 Env*
@@ -1466,24 +1557,38 @@ static void
 mkvalbox(Val *boxed, Val *vp)
 {
 	Box *box;
-	box = (Box*)galloc(&heapbox);
+	box = (Box*)halloc(&heapbox);
 	box->v = *boxed;
 	vp->qkind = Qbox;
 	vp->u.box = box;
 }
 
 static void
-mkvalnames(Names *ns, Val *vp)
+mkvalas(As *as, Val *vp)
 {
-	vp->qkind = Qnames;
-	vp->u.names = ns;
+	vp->qkind = Qas;
+	vp->u.as = as;
+}
+
+static void
+mkvaldom(Dom *dom, Val *vp)
+{
+	vp->qkind = Qdom;
+	vp->u.dom = dom;
+}
+
+static void
+mkvalns(Ns *ns, Val *vp)
+{
+	vp->qkind = Qns;
+	vp->u.ns = ns;
 }
 
 static void
 mkvalpair(Val *car, Val *cdr, Val *vp)
 {
 	Pair *pair;
-	pair = (Pair*)galloc(&heappair);
+	pair = (Pair*)halloc(&heappair);
 	pair->car = *car;
 	pair->cdr = *cdr;
 	vp->qkind = Qpair;
@@ -1523,7 +1628,7 @@ mkvalrange(Cval *beg, Cval *len, Val *vp)
 {
 	Range *r;
 
-	r = (Range*)galloc(&heaprange);
+	r = (Range*)halloc(&heaprange);
 	r->beg = *beg;
 	r->len = *len;
 	vp->qkind = Qrange;
@@ -1561,12 +1666,28 @@ valcl(Val *v)
 	return v->u.cl;
 }
 
-static Names*
-valnames(Val *v)
+static As*
+valas(Val *v)
 {
-	if(v->qkind != Qnames)
-		fatal("valnames on non-names");
-	return v->u.names;
+	if(v->qkind != Qas)
+		fatal("valas on non-addrspace");
+	return v->u.as;
+}
+
+static Dom*
+valdom(Val *v)
+{
+	if(v->qkind != Qdom)
+		fatal("valdom on non-domain");
+	return v->u.dom;
+}
+
+static Ns*
+valns(Val *v)
+{
+	if(v->qkind != Qns)
+		fatal("valns on non-namespace");
+	return v->u.ns;
 }
 
 static Pair*
@@ -1903,7 +2024,7 @@ getvalrand(VM *vm, Operand *r, Val *vp)
 		break;
 	case Olits:
 		vp->qkind = Qstr;
-		vp->u.str = (Str*)galloc(&heapstr);
+		vp->u.str = (Str*)halloc(&heapstr);
 		strinit(vp->u.str, r->u.lits);
 		break;
 	case Onil:
@@ -2100,6 +2221,15 @@ printval(Val *val)
 		valboxed(val, &bv);
 		printval(&bv);
 		printf(">");
+		break;
+	case Qas:
+		printf("<as %p>", valas(val));
+		break;
+	case Qdom:
+		printf("<dom %p>", valdom(val));
+		break;
+	case Qns:
+		printf("<ns %p>", valns(val));
 		break;
 	case Qpair:
 		pair = valpair(val);
@@ -2303,8 +2433,6 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 
 	fatal("binop on unsupported operands");
 }
-
-
 
 static void
 xclo(VM *vm, Operand *dl, Ctl *label, Operand *dst)
@@ -2781,6 +2909,45 @@ xispair(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
+xisas(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qas)
+		mkvalimm(1, &rv);
+	else
+
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xisdom(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qdom)
+		mkvalimm(1, &rv);
+	else
+
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xisns(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, rv;
+	getvalrand(vm, op, &v);
+	if(v.qkind == Qns)
+		mkvalimm(1, &rv);
+	else
+
+		mkvalimm(0, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xisrange(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
@@ -2925,7 +3092,7 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 
 typedef
 struct NSctx {
-	Names *names;
+	Ns *ns;
 	Tab *itid, *itag, *isym;
 	Tab *otid, *otag, *osym;
 } NSctx;
@@ -2946,7 +3113,7 @@ resolvetid(VM *vm, Str *tid, NSctx *ctx)
 	rv = tabget(ctx->itid, &idv);
 	if(rv == 0)
 		/* FIXME: warn if only need ptr to type */
-		vmerr(vm, "undefined type %.*s", tid->s, tid->len);
+		vmerr(vm, "undefined type %.*s", tid->len, tid->s);
 
 	xtn = valxtn(rv);
 	new = mkxtn();
@@ -2961,9 +3128,9 @@ resolvetid(VM *vm, Str *tid, NSctx *ctx)
 static Xtypename*
 resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
 {
-	Val *rv, idv, v, *vp;
+	Val *rv, idv, v, *vp, *sz;
 	Xtypename *xtn, *tmp;
-	Vec *vec;
+	Vec *vec, *fld, *fv;
 	Imm i;
 
 	mkvalstr(tag, &idv);
@@ -2971,7 +3138,7 @@ resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
 	if(rv){
 		xtn = valxtn(rv);
 		if(xtn->xtkind != kind)
-			vmerr(vm, "tag %.*s reused", tag->s, tag->len);
+			vmerr(vm, "tag %.*s reused", tag->len, tag->s);
 		return xtn;
 	}
 
@@ -2981,20 +3148,36 @@ resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
 		vmerr(vm, "undefined type %s %.*s",
 		      (kind == Tstruct ? "struct"
 		       : (kind == Tunion ? "union" : "enum")),
-		      tag->s, tag->len);
+		      tag->len, tag->s);
 
-	xtn = valxtn(rv);
+	vec = valvec(rv);
+	xtn = valxtn(vecref(vec, 0));
 	if(xtn->xtkind != kind)
-		vmerr(vm, "tag %.*s reused", tag->s, tag->len);
+		vmerr(vm, "tag %.*s reused", tag->len, tag->s);
 
-	tabput(vm, ctx->otag, &idv, rv);
-	for(i = 0; i < xtn->field->len; i++){
-		vec = valvec(vecref(xtn->field, i));
+	fld = valvec(vecref(vec, 1));
+	sz = vecref(vec, 2);
+
+	xtn = mkxtn();
+	xtn->xtkind = kind;
+	xtn->field = mkvec(fld->len);
+	xtn->sz = *sz;
+	mkvalxtn(xtn, &v);
+	tabput(vm, ctx->otag, &idv, &v);
+	for(i = 0; i < fld->len; i++){
+		vec = valvec(vecref(fld, i));
 		vp = vecref(vec, Typepos);
 		tmp = valxtn(vp);
 		tmp = resolvetypename(vm, tmp, ctx);
+		fv = mkvec(3);
+
 		mkvalxtn(tmp, &v);
-		vecset(vm, vec, Typepos, &v);
+		_vecset(fv, Typepos, &v);	/* type */
+		_vecset(fv, 1, vecref(fld, 1));	/* id */
+		_vecset(fv, 2, vecref(fld, 2));	/* offset */
+
+		mkvalvec(fv, &v);
+		_vecset(xtn->field, i, &v);
 	}
 	return xtn;
 }
@@ -3002,7 +3185,7 @@ resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
 static unsigned
 resolvebase(VM *vm, unsigned basename, NSctx *ctx)
 {
-	/* ctx->names should define basename */
+	/* ctx->ns should define basename */
 	return Ru32le;
 }
 
@@ -3045,6 +3228,78 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 }
 
 static void
+xas(VM *vm, Operand *dispatch, Operand *dst)
+{
+	Val dv, rv;
+	Closure *cl;
+	As *as;
+
+	getvalrand(vm, dispatch, &dv);
+	if(dv.qkind != Qcl)
+		vmerr(vm, "mkas on non-procedure");
+	cl = valcl(&dv);
+	as = mkas();
+	as->dispatch = cl;
+	mkvalas(as, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xdom(VM *vm, Operand *nso, Operand *aso, Operand *dst)
+{
+	Val av, nv, rv;
+	As *as;
+	Ns *ns;
+	Dom *dom;
+
+	getvalrand(vm, nso, &nv);
+	if(nv.qkind != Qns)
+		vmerr(vm, "mkdom on non-namespace");
+	ns = valns(&nv);
+	getvalrand(vm, aso, &av);
+	if(av.qkind != Qns)
+		vmerr(vm, "mkdom on non-addrspace");
+	as = valas(&av);
+	dom = mkdom();
+	dom->ns = ns;
+	dom->as = as;
+	mkvalas(as, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xdomas(VM *vm, Operand *domo, Operand *dst)
+{
+	Val dv, rv;
+	Dom *dom;
+	As *as;
+
+	getvalrand(vm, domo, &dv);
+	if(dv.qkind != Qdom)
+		vmerr(vm, "domas on non-domain");
+	dom = valdom(&dv);
+	as = dom->as;
+	mkvalas(as, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xdomns(VM *vm, Operand *domo, Operand *dst)
+{
+	Val dv, rv;
+	Dom *dom;
+	Ns *ns;
+
+	getvalrand(vm, domo, &dv);
+	if(dv.qkind != Qdom)
+		vmerr(vm, "domns on non-domain");
+	dom = valdom(&dv);
+	ns = dom->ns;
+	mkvalns(ns, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
 xns(VM *vm, Operand *invec, Operand *dst)
 {
 	Val v, *vp;
@@ -3055,13 +3310,14 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	Str *id;
 	NSctx ctx;
 	u32 i;
+	Ns *ns;
 
 	getvalrand(vm, invec, &v);
 	vec = valvec(&v);
 	if(vec->len != 4)
 		vmerr(vm, "bad vector to ns");
 	vp = vecref(vec, 0);
-	ctx.names = valnames(vp);
+	ctx.ns = valns(vp);
 	vp = vecref(vec, 1);
 	ctx.itid = valtab(vp);
 	vp = vecref(vec, 2);
@@ -3077,6 +3333,7 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
+			/* tid -> xtn */
 			id = valstr(&x->key[tk->idx]);
 			resolvetid(vm, id, &ctx);
 			tk = tk->link;
@@ -3087,8 +3344,10 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
+			/* tag -> [ xtn, fields, sz ] */
 			id = valstr(&x->key[tk->idx]);
-			xtn = valxtn(&x->val[tk->idx]);
+			vec = valvec(&x->val[tk->idx]);
+			xtn = valxtn(vecref(vec, 0));
 			resolvetag(vm, xtn->xtkind, id, &ctx);
 			tk = tk->link;
 		}
@@ -3098,6 +3357,7 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
+			/* id -> [ xtn, id, off ] */
 			vec = valvec(&x->val[tk->idx]);
 			xtn = valxtn(vecref(vec, Typepos));
 			xtn = resolvetypename(vm, xtn, &ctx);
@@ -3106,7 +3366,13 @@ xns(VM *vm, Operand *invec, Operand *dst)
 			tk = tk->link;
 		}
 	}
-	putvalrand(vm, &Xnil, dst); /* FIXME */
+
+	ns = mkns();
+	ns->tid = ctx.otid;
+	ns->tag = ctx.otag;
+	ns->sym = ctx.osym;
+	mkvalns(ns, &v);
+	putvalrand(vm, &v, dst);
 }
 
 static void
@@ -3258,6 +3524,7 @@ dovm(VM *vm, Closure *cl)
 
 	gotab[Iadd]	= &&Iadd;
 	gotab[Iand]	= &&Iand;
+	gotab[Ias]	= &&Ias;
 	gotab[Ibox]	= &&Ibox;
 	gotab[Ibox0]	= &&Ibox0;
 	gotab[Icall]	= &&Icall;
@@ -3275,6 +3542,9 @@ dovm(VM *vm, Closure *cl)
 	gotab[Icval] 	= &&Icval;
 	gotab[Iding] 	= &&Iding;
 	gotab[Idiv] 	= &&Idiv;
+	gotab[Idom]	= &&Idom;
+	gotab[Idomas]	= &&Idomas;
+	gotab[Idomns]	= &&Idomns;
 	gotab[Iencode]	= &&Iencode;
 	gotab[Iframe] 	= &&Iframe;
 	gotab[Igc] 	= &&Igc;
@@ -3282,6 +3552,9 @@ dovm(VM *vm, Closure *cl)
 	gotab[Iinv] 	= &&Iinv;
 	gotab[Iiscl] 	= &&Iiscl;
 	gotab[Iiscval] 	= &&Iiscval;
+	gotab[Iisas]	= &&Iisas;
+	gotab[Iisdom]	= &&Iisdom;
+	gotab[Iisns]	= &&Iisns;
 	gotab[Iisnull] 	= &&Iisnull;
 	gotab[Iispair] 	= &&Iispair;
 	gotab[Iisrange]	= &&Iisrange;
@@ -3303,6 +3576,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Imul] 	= &&Imul;
 	gotab[Ineg] 	= &&Ineg;
 	gotab[Inot] 	= &&Inot;
+	gotab[Ins]	= &&Ins;
 	gotab[Inull] 	= &&Inull;
 	gotab[Ior] 	= &&Ior;
 	gotab[Inop] 	= &&Inop;
@@ -3537,6 +3811,15 @@ dovm(VM *vm, Closure *cl)
 	Iiscl:
 		xiscl(vm, &i->op1, &i->dst);
 		continue;
+	Iisas:
+		xisas(vm, &i->op1, &i->dst);
+		continue;
+	Iisdom:
+		xisdom(vm, &i->op1, &i->dst);
+		continue;
+	Iisns:
+		xisns(vm, &i->op1, &i->dst);
+		continue;
 	Iisnull:
 		xisnull(vm, &i->op1, &i->dst);
 		continue;
@@ -3579,6 +3862,21 @@ dovm(VM *vm, Closure *cl)
 	Itnx:
 		xtnx(vm, &i->op1, &i->dst);
 		continue;
+	Ias:
+		xas(vm, &i->op1, &i->dst);
+		continue;
+	Idom:
+		xdom(vm, &i->op1, &i->op2, &i->dst);
+		continue;
+	Idomas:
+		xdomas(vm, &i->op1, &i->dst);
+		continue;
+	Idomns:
+		xdomns(vm, &i->op1, &i->dst);
+		continue;
+	Ins:
+		xns(vm, &i->op1, &i->dst);
+		continue;
 	}
 }
 
@@ -3595,6 +3893,14 @@ builtinstr(Env *env, char *name, char *s)
 {
 	Val val;
 	mkvalstr(mkstr0(s), &val);
+	envbind(env, name, &val);
+}
+
+static void
+builtinns(Env *env, char *name, Ns *ns)
+{
+	Val val;
+	mkvalns(ns, &val);
 	envbind(env, name, &val);
 }
 
@@ -3616,14 +3922,22 @@ mkvm(Env *env)
 	builtinfn(env, "car", carthunk());
 	builtinfn(env, "cdr", cdrthunk());
 	builtinfn(env, "cons", consthunk());
+	builtinfn(env, "mkas", mkasthunk());
+	builtinfn(env, "mkdom", mkdomthunk());
+	builtinfn(env, "domas", domasthunk());
+	builtinfn(env, "domns", domnsthunk());
+	builtinfn(env, "mkns", mknsthunk());
 	builtinfn(env, "rangebeg", rangebegthunk());
 	builtinfn(env, "rangelen", rangelenthunk());
 	builtinfn(env, "range", rangethunk());
 	builtinfn(env, "null", nullthunk());
 	builtinfn(env, "iscvalue", iscvaluethunk());
-	builtinfn(env, "isprocedure", isprocedurethunk());
+	builtinfn(env, "isas", isasthunk());
+	builtinfn(env, "isdom", isdomthunk());
+	builtinfn(env, "isns", isnsthunk());
 	builtinfn(env, "isnull", isnullthunk());
 	builtinfn(env, "ispair", ispairthunk());
+	builtinfn(env, "isprocedure", isprocedurethunk());
 	builtinfn(env, "isrange", israngethunk());
 	builtinfn(env, "isstring", isstringthunk());
 	builtinfn(env, "istable", istablethunk());
@@ -3650,6 +3964,8 @@ mkvm(Env *env)
 	builtinstr(env, "$looksym", "looksym");
 	builtinstr(env, "$looktype", "looktype");
 
+	builtinns(env, "c32le", mkns());
+
 	concurrentgc(vm);
 
 	return vm;
@@ -3669,10 +3985,13 @@ initvm()
 	Xnil.qkind = Qnil;
 	Xnulllist.qkind = Qnulllist;
 
+	heapas.id = "as";
 	heapbox.id = "box";
 	heapcl.id = "closure";
 	heapcode.id = "code";
 	heapcval.id = "cval";
+	heapdom.id = "dom";
+	heapns.id = "ns";
 	heappair.id = "pair";
 	heaprange.id = "range";
 	heapstr.id = "string";
@@ -3680,10 +3999,13 @@ initvm()
 	heapvec.id = "vector";
 	heapxtn.id = "typename";
 
+	heapas.sz = sizeof(As);
 	heapbox.sz = sizeof(Box);
 	heapcl.sz = sizeof(Closure);
 	heapcode.sz = sizeof(Code);
 	heapcval.sz = sizeof(Vcval);
+	heapdom.sz = sizeof(Dom);
+	heapns.sz = sizeof(Ns);
 	heappair.sz = sizeof(Pair);
 	heaprange.sz = sizeof(Range);
 	heapstr.sz = sizeof(Str);
@@ -3697,9 +4019,12 @@ initvm()
 	heaptab.free1 = freetab;
 	heapvec.free1 = freevec;
 
+	heapas.iter = iteras;
 	heapbox.iter = iterbox;
 	heapcl.iter = itercl;
+	heapdom.iter = iterdom;
 	heappair.iter = iterpair;
+	heapns.iter = iterns;
 	heaptab.iter = itertab;
 	heapvec.iter = itervec;
 	heapxtn.iter = iterxtn;
@@ -3718,9 +4043,12 @@ initvm()
 	Qhash[Qundef] = nohash;
 	Qhash[Qnil] = hashptrv;
 	Qhash[Qnulllist] = hashptrv;
+	Qhash[Qas] = hashptr;
 	Qhash[Qcval] = hashcval;
 	Qhash[Qcl] = hashptr;
 	Qhash[Qbox] = nohash;
+	Qhash[Qdom] = hashptr;
+	Qhash[Qns] = hashptr;
 	Qhash[Qpair] = hashptr;
 	Qhash[Qrange] = hashrange;
 	Qhash[Qstr] = hashstr;
@@ -3731,9 +4059,12 @@ initvm()
 	Qeq[Qundef] = 0;
 	Qeq[Qnil] = eqptrv;
 	Qeq[Qnulllist] = eqptrv;
+	Qeq[Qas] = eqptr;
 	Qeq[Qcval] = eqcval;
 	Qeq[Qcl] = eqptr;
 	Qeq[Qbox] = 0;
+	Qeq[Qdom] = eqptr;
+	Qeq[Qns] = eqptr;
 	Qeq[Qpair] = eqptr;
 	Qeq[Qrange] = eqrange;
 	Qeq[Qstr] = eqstr;
@@ -3753,10 +4084,13 @@ finivm()
 
 	freecode((Head*)kcode);
 
-	freeheap(&heapcode);
-	freeheap(&heapcl); 
+	freeheap(&heapas);
 	freeheap(&heapbox);
+	freeheap(&heapcl); 
+	freeheap(&heapcode);
 	freeheap(&heapcval);
+	freeheap(&heapdom);
+	freeheap(&heapns);
 	freeheap(&heappair);
 	freeheap(&heaprange);
 	freeheap(&heapstr);

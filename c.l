@@ -25,8 +25,8 @@ static int check_type();
 %}
 
 %%
-@include[ \t]+\"[^\"]+\"[ \t]*\n   { count(); tryinclude(ctx.ns, yytext); }
-@include[ \t]+\<[^\<\>]+\>[ \t]*\n { count(); tryinclude(ctx.ns, yytext); }
+@include[ \t]+\"[^\"]+\"[ \t]*\n   { count(); tryinclude(yytext); }
+@include[ \t]+\<[^\<\>]+\>[ \t]*\n { count(); tryinclude(yytext); }
 <<EOF>>                 { if(popyy() == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx.inp->col = 0; }

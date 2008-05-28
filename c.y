@@ -61,8 +61,8 @@ primary_expression
 	{ $$ = doconsts($1); }
 	| '(' expression ')'
 	{ $$ = $2; }
-	| '`' IDENTIFIER
-	{ $$ = dotick($2); }
+	| id '`' id
+	{ $$ = dotick($1, $3); }
 	;
 
 postfix_expression
@@ -275,9 +275,9 @@ names_declaration
 names_expression
 	: lambda_expression
 	| NAMES expression '{' names_declaration_list '}'
-	{ $$ = newexpr(Enames, $2, dotypes(invert($4)), 0, 0); }
+	{ $$ = newexpr(Ens, $2, dotypes(invert($4)), 0, 0); }
 	| NAMES expression '{' '}'
-	{ $$ = newexpr(Enames, $2, nullelist(), 0, 0); }
+	{ $$ = newexpr(Ens, $2, nullelist(), 0, 0); }
 	;
 
 root_expression

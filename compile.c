@@ -115,7 +115,7 @@ mkcode()
 {
 	Code *code;
 	
-	code = (Code*)galloc(&heapcode);
+	code = (Code*)halloc(&heapcode);
 	code->maxinsn = InsnAlloc;
 	code->insn = xmalloc(code->maxinsn*sizeof(Insn));
 	code->labels = xmalloc(code->maxinsn*sizeof(Ctl*));
@@ -151,9 +151,13 @@ static Insn*
 nextinsn(Code *code)
 {
 	if(code->ninsn >= code->maxinsn){
+		code->insn = xrealloc(code->insn,
+				      code->maxinsn*sizeof(Insn),
+				      2*code->maxinsn*sizeof(Insn));
+		code->labels = xrealloc(code->labels,
+					code->maxinsn*sizeof(Ctl*),
+					2*code->maxinsn*sizeof(Ctl*));
 		code->maxinsn *= 2;
-		xrealloc(code->insn, code->maxinsn*sizeof(Insn));
-		xrealloc(code->labels, code->maxinsn*sizeof(Ctl*));
 	}
 	return &code->insn[code->ninsn++];
 }
@@ -487,6 +491,24 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Iisas:
+		printf("isas ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iisdom:
+		printf("isdom ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Iisns:
+		printf("isns ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	case Iisnull:
 		printf("isnull ");
 		printrand(code, &i->op1);
@@ -611,6 +633,38 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Iistn:
 		printf("istn ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ias:
+		printf("as ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Idom:
+		printf("dom ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->op2);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Idomas:
+		printf("domas ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Idomns:
+		printf("domns ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Ins:
+		printf("ns ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -834,9 +888,13 @@ static int
 topvecadd(char *id, Topvec *tv, Env *env)
 {
 	if(tv->nid >= tv->maxid){
+		tv->id = xrealloc(tv->id,
+				  tv->maxid*sizeof(char*),
+				  2*tv->maxid*sizeof(char*));
+		tv->val = xrealloc(tv->val,
+				   tv->maxid*sizeof(Val*),
+				   2*tv->maxid*sizeof(Val*));
 		tv->maxid *= 2;
-		tv->id = xrealloc(tv->id, tv->maxid*sizeof(char*));
-		tv->val = xrealloc(tv->val, tv->maxid*sizeof(Val*));
 	}
 	tv->id[tv->nid] = xstrdup(id);
 	tv->val[tv->nid] = envgetbind(env, id);
@@ -873,8 +931,10 @@ static Lits*
 konstadd(Lits *lits, Konst *kon)
 {
 	if(kon->nlits >= kon->maxlits){
+		kon->lits = xrealloc(kon->lits,
+				     kon->maxlits*sizeof(Lits*),
+				     2*kon->maxlits*sizeof(Lits*));
 		kon->maxlits *= 2;
-		kon->lits = xrealloc(kon->lits, kon->maxlits*sizeof(Lits*));
 	}
 	lits = copylits(lits);
 	kon->lits[kon->nlits++] = lits;
@@ -932,8 +992,10 @@ addvdset(Vardef *vd, VDset *vs)
 		if(*p == vd)
 			return;
 	if(vs->nvd >= vs->maxvd){
+		vs->vd = xrealloc(vs->vd,
+				  vs->maxvd*sizeof(*vs->vd),
+				  2*vs->maxvd*sizeof(*vs->vd));
 		vs->maxvd *= 2;
-		vs->vd = xrealloc(vs->vd, vs->maxvd*sizeof(*vs->vd));
 	}
 	vs->vd[vs->nvd++] = vd;
 }
@@ -2557,6 +2619,75 @@ iscvaluethunk()
 }
 
 Closure*
+isasthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "isas");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iisas;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+isdomthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "isdom");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iisdom;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+isnsthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "isns");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Iisns;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
 isprocedurethunk()
 {
 	Ctl *L;
@@ -3248,6 +3379,122 @@ tabenumthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Itabenum;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+mkasthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "mkas");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ias;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+mkdomthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "mkdom");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Idom;
+	randloc(&i->op1, ARG0);
+	randloc(&i->op2, ARG1);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+domasthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "domas");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Idomas;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+domnsthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "domns");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Idomns;
+	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+mknsthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "mkns");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ins;
 	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);

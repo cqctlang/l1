@@ -75,7 +75,7 @@ enum{
 	Elt,
 	Emod,
 	Emul,
-	Enames,
+	Ens,
 	Eneq,
 	Enop,
 	Enil,
@@ -185,6 +185,7 @@ struct Lits {
 struct Expr {
 	Kind kind;
 
+	char *dom;		/* Etick */
 	char *id;		/* Eid, Etick */
 	Lits *lits;		/* Econsts */
 	Cval cval;		/* Econst */
@@ -236,14 +237,6 @@ enum {
 	MaxIn	= 128,
 };
 
-typedef
-struct NS {
-	HT* tagtab;
-	HT* tidtab;
-	HT* symtab;
-	HT* enctab;
-} NS;
-
 typedef struct YYstate YYstate;
 
 typedef
@@ -259,7 +252,6 @@ struct U {
 	jmp_buf jmp;
 	In in[MaxIn];
 	In *inp;
-	NS* ns;
 	Expr *el;
 } U;
 
@@ -289,7 +281,7 @@ Expr* ptrto(Expr*, Expr*);
 Expr* doid(char*);
 Expr* doconst(char*);
 Expr* doconsts(char*);
-Expr* dotick(char*);
+Expr* dotick(Expr*, Expr*);
 Lits* mklits(char*, unsigned len);
 Lits* copylits(Lits *lits);
 void freelits(Lits *lits);
@@ -305,12 +297,8 @@ void finiparse();
 
 void printexpr(Expr*);
 
-Type* taglookup(NS *ns, char *tag);
-Type* tidlookup(NS *ns, char *tid);
-NS* mkns();
-void freens();
 void pushyy(char *filename);
 int popyy();
-void tryinclude(NS *ns, char *raw);
+void tryinclude(char *raw);
 void parseerror(char *fmt, ...);
 int doparse(char *filename);

@@ -10,5 +10,5 @@ void fatal(char *fmt, ...) __attribute__((noreturn));
 void fatalno(char *fmt, ...) __attribute__((noreturn));
 char* xstrdup(char *s);
 void* xmalloc(size_t size);
-void* xrealloc(void *p, size_t size);
+void* xrealloc(void *p, size_t old, size_t new);
 void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);

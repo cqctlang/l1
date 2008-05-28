@@ -81,29 +81,6 @@ freelits(Lits *lits)
 	free(lits);
 }
 
-NS*
-mkns()
-{
-	NS *ns;
-	ns = xmalloc(sizeof(NS));
-	ns->tagtab = mkht();
-	ns->tidtab = mkht();
-	ns->symtab = mkht();
-	ns->enctab = mkht();
-	return ns;
-}
-
-void
-freens(NS *ns)
-{
-	freeht(ns->tagtab);
-	freeht(ns->tidtab);
-	freeht(ns->symtab);
-	freeht(ns->enctab);
-	free(ns);
-}
-
-
 static Type*
 newtype()
 {
@@ -249,8 +226,13 @@ freeexpr(Expr *e, void(*xfn)(Expr*))
 	if(e == 0)
 		return;
 	switch(e->kind){
-	case Eid:
+#if 0
 	case Etick:
+		free(e->id);
+		free(e->dom);
+		break;
+#endif
+	case Eid:
 		free(e->id);
 		break;
 	case Econsts:
@@ -282,8 +264,13 @@ copyexpr(Expr *e)
 	ne = xmalloc(sizeof(Expr));
 	ne->kind = e->kind;
 	switch(e->kind){
-	case Eid:
+#if 0
 	case Etick:
+		ne->id = xstrdup(e->id);
+		ne->dom = xstrdup(e->dom);
+		break;
+#endif
+	case Eid:
 		ne->id = xstrdup(e->id);
 		break;
 	case Econsts:
@@ -301,54 +288,6 @@ copyexpr(Expr *e)
 	ne->e3 = copyexpr(e->e3);
 	ne->e4 = copyexpr(e->e4);
 	return ne;
-}
-
-Type*
-taglookup(NS *ns, char *tag)
-{
-	return hget(ns->tagtab, tag);
-}
-
-static void
-tagstore(NS *ns, Type *t)
-{
-	hput(ns->tagtab, t->tag, t);
-}
-
-Type*
-tidlookup(NS *ns, char *tid)
-{
-	return hget(ns->tidtab, tid);
-}
-
-static void
-tidstore(NS *ns, char *tid, Type *t)
-{
-	hput(ns->tidtab, tid, t);
-}
-
-Decl*
-symlookup(NS *ns, char *id)
-{
-	return hget(ns->symtab, id);
-}
-
-static void
-symstore(NS *ns, char *id, Decl *d)
-{
-	hput(ns->symtab, id, d);
-}
-
-Enum*
-enclookup(NS *ns, char *id)
-{
-	return hget(ns->enctab, id);
-}
-
-static void
-encstore(NS *ns, char *id, Enum *en)
-{
-	hput(ns->enctab, id, en);
 }
 
 /* Reverse the order of elements in Eelist E. */
@@ -725,11 +664,10 @@ doconsts(char *s)
 }
 
 Expr*
-dotick(char *s)
+dotick(Expr *dom, Expr *id)
 {
 	Expr *e;
-	e = newexpr(Etick, 0, 0, 0, 0);
-	e->id = xstrdup(s);
+	e = newexpr(Etick, dom, id, 0, 0);
 	return e;
 }
 
@@ -793,7 +731,7 @@ recenums(Type *t, Expr *e, Expr *val)
 	}else
 		en->val = val;
 	en->type = t;
-	encstore(ctx.ns, en->id, en);
+/*	encstore(ctx.ns, en->id, en); */
 
 	printf("enum %s ", en->id);
 	printexpr(en->val);
@@ -1377,7 +1315,7 @@ popyy()
 }
 
 void
-tryinclude(NS *ns, char *raw)
+tryinclude(char *raw)
 {
 	char *p, *q;
 	unsigned len;

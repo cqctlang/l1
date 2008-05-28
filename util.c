@@ -63,11 +63,12 @@ xmalloc(size_t size)
 }
 
 void*
-xrealloc(void *p, size_t size)
+xrealloc(void *p, size_t old, size_t new)
 {
-	p = realloc(p, size);
+	p = realloc(p, new);
 	if(p == NULL)
 		fatal("out of memory");
+	memset(p+old, 0, new-old);
 	return p;
 }
 

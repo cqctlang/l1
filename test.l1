@@ -95,6 +95,7 @@ test5 = lambda(){
 
 //test5();
 
+
 printvec = lambda(v){
 	@local i, n, x;
 	n = veclen(v);
@@ -121,8 +122,7 @@ foreachtab = lambda(tab, fn){
 	}
 };
 
-
-mknames = lambda(names, tid, tag, sym){
+xmknames = lambda(names, tid, tag, sym){
 	print("mknames");
 	foreachtab(sym, lambda(id,def){
 			   print(id);
@@ -132,7 +132,11 @@ mknames = lambda(names, tid, tag, sym){
 };
 
 test6 = lambda(){
-	ns = @names 1 {
+	ns = @names c32le {
+		struct foo {
+			@0x0 int a;
+			@0x4;
+		};
 		@0x0  int x;
 		@0x4  int *y;
 		@0x8  long (*func)(int arg1, char *arg2);
@@ -141,6 +145,7 @@ test6 = lambda(){
 		@0x14 int a1[];
 		@0x18 int a2[11];
 	};
+	return ns;
 };
 
 test6();

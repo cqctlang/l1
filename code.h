@@ -2,6 +2,7 @@ typedef
 enum {
 	Iadd = 0,
 	Iand,
+	Ias,
 	Ibox,
 	Ibox0,
 	Icall,
@@ -19,13 +20,19 @@ enum {
 	Icval,
 	Iding,
 	Idiv,
+	Idom,
+	Idomas,
+	Idomns,
 	Iencode,
 	Iframe,
 	Igc,
 	Ihalt,
 	Iinv,
+	Iisas,
 	Iiscl,
 	Iiscval,
+	Iisdom,
+	Iisns,
 	Iisnull,
 	Iispair,
 	Iisrange,
@@ -47,6 +54,7 @@ enum {
 	Imul,
 	Ineg,
 	Inot,
+	Ins,
 	Inull,
 	Ior,
 	Inop,
@@ -223,14 +231,22 @@ Closure* callcc();
 Closure* carthunk();
 Closure* cdrthunk();
 Closure* consthunk();
+Closure* mkasthunk();
+Closure* mkdomthunk();
+Closure* domasthunk();
+Closure* domnsthunk();
+Closure* mknsthunk();
 Closure* nullthunk();
 Closure* rangebegthunk();
 Closure* rangelenthunk();
 Closure* rangethunk();
 Closure* iscvaluethunk();
-Closure* isprocedurethunk();
+Closure* isasthunk();
+Closure* isdomthunk();
+Closure* isnsthunk();
 Closure* isnullthunk();
 Closure* ispairthunk();
+Closure* isprocedurethunk();
 Closure* israngethunk();
 Closure* isstringthunk();
 Closure* istablethunk();
@@ -266,6 +282,6 @@ VM* mkvm(Env*);
 void freevm(VM*);
 void dovm(VM* vm, Closure *cl);
 
-Head* galloc(Heap *heap);
+Head* halloc(Heap *heap);
 void freecode(Head *hd);
 extern Heap heapcode;
