@@ -1,5 +1,6 @@
 todo
 ----
+- make cval dynamic?
 - introduce address types
 - check for negative cvals on Irange, Istr, Islice*, Ivec*
 - can we remove a level of box indirection on compile0 output?
@@ -8,6 +9,25 @@ todo
 - change all thunks that do not return values to return nil
 - write Icallx to trap to builtin C functions.
 - figure out how to re-enter VM.
+
+ns/as interface
+---------------
+ns:
+	looksym(str) -> [ type, id, off ]
+	looktype(tn) -> type
+
+as:
+	dispatch(fn . args)
+	get \
+             |- accelerated calls to dispatch?
+	put /
+
+
+need way to build looksym/type calls that capture
+reference to ns tables.
+
+likewise, get/put for string-based as will capture 
+input string
 
 types
 -----
@@ -73,16 +93,12 @@ PARAM   := [ str, TD ]
 
 typename(TD) -> TN
 
-need to have way to generate code for @names:
-- seems that user should be able to programmatically make any @names
-- some @names expressions must be evaluated at run time, when @names is eval'd
-- problem is that forward references make it hard to ensure TDs are available
-  on the fly.
-
-maybe soln is ctors that allow TNs references...producing a set of
-incomplete TDs.  then operator on table of tag/tids plus existing
-name space computes a new looktype function.  what are the keys
-to the tables...strings?
+why we generate code for @names:
+- user should be able to programmatically make any @names.
+  by generating code, we ensure completeness and correctness of that support;
+- some @names expressions must be evaluated at run time, when @names is eval'd;
+  generating code provides natural form to eval and combine those results
+- generating code for enum definitions still broken.
 
 (dom`typename)val:
 	td = dom.ns.looktype(typename)
@@ -97,46 +113,6 @@ to the tables...strings?
 - when do we ask a name space about a type by name?
   - cast
   - when the cval does not have the definition
-
-how does @names cg work:
-list of decls
-
-define $sym, $tid, $tag dicts
-decl defines a sym, tid, or tag name.
-
-maybe it would be helpful to assume no nested type
-definitions.  preprocess to pull them out.
-
-struct tag {
-       @<expr> typedesc name;
-       @<expr> ...;
-       @<expr>;
-};
-
--> tmp = null();
-   cons(mkfield(eval(expr), mktypedesc(typedesc), "name"), tmp);
-
-
-tid table populated by compiler-generated code for @names typedef expressions:
-
-tid[tid] = TN
-
-namespace(names,tid,tag,sym)
--> foreach(<tn,id> in tid){
-     td = lookdef(tn,tid,tag,names);
-     tid[id] = td;   		   
-   }
-   foreach(<td,tag> in tag){
-     /* assume su */
-     foreach(<tn,id,off> in fields(td))
-       td = lookdef(tn,tid,tag,names);
-       replace tn with td
-   foreach(<tn,id,off> in sym)
-
-decl:
-	off tn id;
-	struct tag { off tn id; ... }
-	typedef tn id;
 
 variable binding
 ----------------

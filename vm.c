@@ -8,8 +8,8 @@ enum {
 	Qundef = 0,
 	Qnil,
 	Qnulllist,
-	Qas,
 	Qcval,
+	Qas,
 	Qbox,
 	Qcl,
 	Qdom,
@@ -50,7 +50,6 @@ enum {
 	Typepos=0,
 };
 
-typedef struct Vimm Vimm;
 typedef struct Vcval Vcval;
 typedef struct As As;
 typedef struct Box Box;
@@ -121,16 +120,6 @@ struct Tab {
 	Head hd;
 	u32 cnt;		/* key/val pairs stored */
 	Tabx *x;		/* current storage, atomically swappable */
-};
-
-struct Vimm {
-	Head hd;
-	Imm imm;
-};
-
-struct Vcval {
-	Head hd;
-	Cval cval;
 };
 
 struct As {
@@ -265,7 +254,7 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-Heap heapcode, heapcl, heapbox, heapcval, heapas, heapdom, heapns, heappair,
+Heap heapcode, heapcl, heapbox, heapas, heapdom, heapns, heappair,
 	heaprange, heapstr, heaptab, heapvec, heapxtn;
 static Code *kcode;
 
@@ -367,7 +356,6 @@ sweep(unsigned color)
 	sweepheap(&heapbox, color);
 	sweepheap(&heapcl, color);
 	sweepheap(&heapcode, color);
-	sweepheap(&heapcval, color);
 	sweepheap(&heapdom, color);
 	sweepheap(&heapns, color);
 	sweepheap(&heappair, color);
@@ -3989,7 +3977,6 @@ initvm()
 	heapbox.id = "box";
 	heapcl.id = "closure";
 	heapcode.id = "code";
-	heapcval.id = "cval";
 	heapdom.id = "dom";
 	heapns.id = "ns";
 	heappair.id = "pair";
@@ -4003,7 +3990,6 @@ initvm()
 	heapbox.sz = sizeof(Box);
 	heapcl.sz = sizeof(Closure);
 	heapcode.sz = sizeof(Code);
-	heapcval.sz = sizeof(Vcval);
 	heapdom.sz = sizeof(Dom);
 	heapns.sz = sizeof(Ns);
 	heappair.sz = sizeof(Pair);
@@ -4088,7 +4074,6 @@ finivm()
 	freeheap(&heapbox);
 	freeheap(&heapcl); 
 	freeheap(&heapcode);
-	freeheap(&heapcval);
 	freeheap(&heapdom);
 	freeheap(&heapns);
 	freeheap(&heappair);
