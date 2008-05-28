@@ -344,7 +344,7 @@ isloc(Expr *e)
 static Expr*
 gentypename(Type *t, Varset *lvs, Vars *vars)
 {
-	Expr *e, *se, *id, *tn;
+	Expr *e, *se, *te, *id, *off, *tn, *sz;
 	Decl *dl;
 
 	e = newexpr(E_tn, 0, 0, 0, 0);
@@ -359,7 +359,32 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 			e->e1 = Qstr(t->tag);
 			break;
 		}
-		/* generate tagged type definition, then reference. */
+
+		if(t->tag == 0)
+			fatal("incomplete support for anonymous aggregates");
+
+		se = nullelist();
+		dl = t->field;
+		while(dl){
+			id = Qstr(dl->id);
+			if(dl->off){
+				compile0(dl->off, lvs, vars, 1);
+				off = dl->off; /* steal */
+				dl->off = 0;
+			}else
+				off = Qnil();
+			tn = gentypename(dl->type, lvs, vars);
+			se = Qcons(Qcall(doid("vector"), 3, id, tn, off), se);
+			dl = dl->link;
+		}
+		se = Qapply(doid("vector"), se);
+		if(t->sz){
+			compile0(t->sz, lvs, vars, 1);
+			sz = t->sz; /* steal */
+			t->sz = 0;
+		}else
+			sz = Qnil();
+
 		break;
 	case Tenum:
 		e->xn = TBITS(t->kind, Vnil);
@@ -388,7 +413,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 				else
 					id = Qnil();
 				tn = gentypename(dl->type, lvs, vars);
-				se = Qcons(Qcall(doid("vector"), 2, id, tn),
+				se = Qcons(Qcall(doid("vector"), 2, tn, id),
 					   se);
 				dl = dl->link;
 			}
@@ -433,19 +458,19 @@ compiledecl(Decl *dl, Varset *pvs, Vars *vars)
 			offs = Qnil();
 
 		se = Qset(doid(lvs->tmp),
-			  Qcall(doid("vector"), 2, offs, doid(lvs->tn)));
+			  Qcall(doid("vector"), 3,
+				doid(lvs->tn), Qstr(dl->id), offs));
 		te = Qcons(se, te);
 
 		se = Qcall(doid("tabinsert"), 3,
 			   doid(lvs->sym), Qstr(dl->id), doid(lvs->tmp));
 		te = Qcons(se, te);
-
-		e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
-		poplevel(vars);
-		freevarset(lvs);
-		return e;
 	}
-	fatal("compiledecl incomplete");
+
+	e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
+	poplevel(vars);
+	freevarset(lvs);
+	return e;
 }
 
 static void

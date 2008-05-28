@@ -812,7 +812,7 @@ enums(Type *t, Expr *e)
 }
 
 static Decl*
-sufields(Expr *e)
+sufields(Type *su, Expr *e)
 {
 	Decl *hd, *p;
 
@@ -827,16 +827,19 @@ sufields(Expr *e)
 	switch(e->e1->kind){
 	case Efields:
 		hd = dodecls(e->e1);
+		if(e->e1->e3){
+			hd->offs = e->e1->e3; /* steal */
+			e->e1->e3 = NULL;
+		}
 		p = hd;
 		while(p->link != NULL)
 			p = p->link;
-		p->link = sufields(e->e2);
+		p->link = sufields(su, e->e2);
 		break;
 	case Efieldoff:
-		hd = newdecl();
-		hd->offs = e->e1->e1; /* steal */
+		su->sz = e->e1->e1; /* steal */
 		e->e1->e1 = NULL;
-		hd->link = sufields(e->e2);
+		return sufields(su, e->e2);
 		break;
 	default:
 		fatal("unrecognized su declaration %d", e->e1->kind);
@@ -925,7 +928,7 @@ speclist(Expr *e)
 				if(kind == Tenum)
 					t->en = enums(t, dl);
 				else
-					t->field = sufields(dl);
+					t->field = sufields(t, dl);
 			}
 			break;
 		case Eid:
