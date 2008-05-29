@@ -7,6 +7,7 @@ enum {
 	Ibox,
 	Ibox0,
 	Icall,
+	Icallc,
 	Icallt,
 	Icar,
 	Icdr,
@@ -56,6 +57,8 @@ enum {
 	Ineg,
 	Inot,
 	Ins,
+	Inssym,
+	Instype,
 	Inull,
 	Ior,
 	Inop,
@@ -215,13 +218,10 @@ struct Code {
 typedef struct Closure Closure;
 typedef struct VM VM;
 typedef struct Env Env;
-typedef void (Builtin)(VM *vm);
 
 void initcompile();
 void finicompile();
 Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
-Closure* mkbincl(Code *code, unsigned long entry, unsigned len, char *id,
-		 Builtin *bin);
 void docompile0(Expr *e);
 Closure* compileentry(Expr *el, Env *env, int flags);
 void printcode(Code *code);
@@ -272,7 +272,7 @@ Closure* veclenthunk();
 Closure* vecrefthunk();
 Closure* vecsetthunk();
 
-Closure* mkbin(char *id, Builtin *bin);
+Code* callccode();
 Code* contcode();
 
 Env* mkenv();

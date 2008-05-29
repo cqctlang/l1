@@ -1,5 +1,5 @@
-# it was not obvious (to me) how to distill these suppressions
-# from thoses emitted by valgrind's --gen-suppressions=all option.
+# it was not obvious to me how to distill these suppressions
+# from those emitted by valgrind's --gen-suppressions=all option.
 # everything i tried failed to match.
 # these suppresssions came from googling.
 

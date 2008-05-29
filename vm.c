@@ -67,9 +67,9 @@ struct Val {
 	union {
 		Head *hd;
 		Cval cval;
-		Closure *cl;
 		As *as;
 		Box *box;
+		Closure *cl;
 		Dom *dom;
 		Ns *ns;
 		Pair *pair;
@@ -86,6 +86,9 @@ struct Env {
 	HT *ht;
 };
 
+typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
+typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
+
 struct Closure {
 	Head hd;
 	Code *code;
@@ -93,8 +96,9 @@ struct Closure {
 	unsigned dlen;
 	Val *display;
 	char *id;
-	Imm fp;			/* of continuation */
-	Builtin *bin;
+	Imm fp;			/* of continuation, always >0 */
+	Cfn *cfn;
+	Ccl *ccl;
 };
 
 struct Box {
@@ -133,6 +137,8 @@ struct Ns {
 	Tab *tid;
 	Tab *tag;
 	Tab *sym;
+	Closure *looksym;
+	Closure *looktype;
 };
 
 struct Dom {
@@ -257,7 +263,7 @@ static unsigned long long nextgctick = GCrate;
 
 Heap heapcode, heapcl, heapbox, heapas, heapdom, heapns, heappair,
 	heaprange, heapstr, heaptab, heapvec, heapxtn;
-static Code *kcode, *bincode;
+static Code *kcode, *cccode;
 
 static void*
 read_and_clear(void *pp)
@@ -525,7 +531,7 @@ rootset(VM *vm)
 
 	/* never collect these things */
 	addroot(&roots, (Head*)kcode); 
-	addroot(&roots, (Head*)bincode); 
+	addroot(&roots, (Head*)cccode); 
 
 	if(vm == 0)
 		return;
@@ -794,7 +800,7 @@ iterpair(Head *hd, Ictx *ictx)
 }
 
 Closure*
-mkbincl(Code *code, unsigned long entry, unsigned len, char *id, Builtin *bin)
+mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 {
 	Closure *cl;
 	cl = (Closure*)halloc(&heapcl);
@@ -803,14 +809,35 @@ mkbincl(Code *code, unsigned long entry, unsigned len, char *id, Builtin *bin)
 	cl->dlen = len;
 	cl->display = xmalloc(cl->dlen*sizeof(Val));
 	cl->id = xstrdup(id);
-	cl->bin = bin;
 	return cl;
 }
 
 Closure*
-mkcl(Code *code, unsigned long entry, unsigned len, char *id)
+mkcfn(char *id, Cfn *cfn)
 {
-	return mkbincl(code, entry, len, id, 0);
+	Closure *cl;
+	cl = mkcl(cccode, 0, 0, id);
+	cl->cfn = cfn;
+	return cl;
+}
+
+Closure*
+mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
+{
+	Closure *cl;
+	va_list args;
+	Val *vp;
+	unsigned m;
+
+	va_start(args, dlen);
+	cl = mkcl(cccode, 0, dlen, id);
+	cl->ccl = ccl;
+	for(m = 0; m < dlen; m++){
+		vp = va_arg(args, Val*);
+		cl->display[m] = *vp;
+	}
+	va_end(args);
+	return cl;
 }
 
 static void
@@ -1458,6 +1485,10 @@ iterns(Head *hd, Ictx *ictx)
 		return (Head*)ns->tag;
 	case 2:
 		return (Head*)ns->sym;
+	case 3:
+		return (Head*)ns->looksym;
+	case 4:
+		return (Head*)ns->looktype;
 	default:
 		return 0;
 	}
@@ -2199,10 +2230,10 @@ printval(Val *val)
 		break;
 	case Qcl:
 		cl = valcl(val);
-		if(cl->id)
-			printf("<closure %s>", cl->id);
-		else
+		if(cl->fp)
 			printf("<continuation %p>", cl);
+		else
+			printf("<closure %s>", cl->id);
 		break;
 	case Qundef:
 		printf("<undefined>");
@@ -2266,11 +2297,21 @@ printval(Val *val)
 }
 
 static void
-xbin(VM *vm)
+xcallc(VM *vm)
 {
-	if(vm->clx->bin == 0)
+	Imm argc;
+	Val *argv;
+
+	if(vm->clx->cfn == 0 && vm->clx->ccl)
 		vmerr(vm, "bad closure for builtin call");
-	vm->clx->bin(vm);
+
+	vm->ac = Xnil;
+	argc = valimm(&vm->stack[vm->fp]);
+	argv = &vm->stack[vm->fp+1];
+	if(vm->clx->cfn)
+		vm->clx->cfn(vm, argc, argv, &vm->ac);
+	else
+		vm->clx->ccl(vm, argc, argv, vm->clx->display, &vm->ac);
 }
 
 static Imm
@@ -3304,6 +3345,40 @@ xdomns(VM *vm, Operand *domo, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
+/* looksym for namespaces constructed by @names */
+static void
+looksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Ns *ns;
+	Val *vp;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to looksym");
+	if(argv->qkind != Qstr)
+		vmerr(vm, "argument 1 to looksym must be a string");
+
+	ns = valns(&disp[0]);
+	vp = tabget(ns->sym, argv);
+	if(vp)
+		*rv = *vp;
+}
+
+/* looktype for namespaces constructed by @names */
+static void
+looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Ns *ns;
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to looktype");
+	if(argv->qkind != Qxtn)
+		vmerr(vm, "argument 1 to looktype must be a typename");
+
+	ns = valns(&disp[0]);
+	xtn = valxtn(&argv[0]);
+}
+
 static void
 xns(VM *vm, Operand *invec, Operand *dst)
 {
@@ -3377,7 +3452,37 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	ns->tag = ctx.otag;
 	ns->sym = ctx.osym;
 	mkvalns(ns, &v);
+	ns->looksym = mkccl("looksym", looksym, 1, &v);
+	ns->looktype = mkccl("looktype", looktype, 1, &v);
 	putvalrand(vm, &v, dst);
+}
+
+static void
+xnssym(VM *vm, Operand *nso, Operand *dst)
+{
+	Val nv, rv;
+	Ns *ns;
+
+	getvalrand(vm, nso, &nv);
+	if(nv.qkind != Qns)
+		vmerr(vm, "nssym on non-namespace");
+	ns = valns(&nv);
+	mkvalcl(ns->looksym, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xnstype(VM *vm, Operand *nso, Operand *dst)
+{
+	Val nv, rv;
+	Ns *ns;
+
+	getvalrand(vm, nso, &nv);
+	if(nv.qkind != Qns)
+		vmerror(vm, "nssym on non-namespace");
+	ns = valns(&nv);
+	mkvalcl(ns->looktype, &rv);
+	putvalrand(vm, &rv, dst);
 }
 
 static void
@@ -3530,10 +3635,10 @@ dovm(VM *vm, Closure *cl)
 	gotab[Iadd]	= &&Iadd;
 	gotab[Iand]	= &&Iand;
 	gotab[Ias]	= &&Ias;
-	gotab[Ibin]	= &&Ibin;
 	gotab[Ibox]	= &&Ibox;
 	gotab[Ibox0]	= &&Ibox0;
 	gotab[Icall]	= &&Icall;
+	gotab[Icallc]	= &&Icallc;
 	gotab[Icallt]	= &&Icallt;
 	gotab[Icar]	= &&Icar;
 	gotab[Icdr]	= &&Icdr;
@@ -3583,6 +3688,8 @@ dovm(VM *vm, Closure *cl)
 	gotab[Ineg] 	= &&Ineg;
 	gotab[Inot] 	= &&Inot;
 	gotab[Ins]	= &&Ins;
+	gotab[Inssym]	= &&Inssym;
+	gotab[Instype]	= &&Instype;
 	gotab[Inull] 	= &&Inull;
 	gotab[Ior] 	= &&Ior;
 	gotab[Inop] 	= &&Inop;
@@ -3644,8 +3751,8 @@ dovm(VM *vm, Closure *cl)
 	Iding:
 		printf("ding\n");
 		continue;
-	Ibin:
-		xbin(vm);
+	Icallc:
+		xcallc(vm);
 		continue;
 	Iinv:
 	Ineg:
@@ -3886,6 +3993,12 @@ dovm(VM *vm, Closure *cl)
 	Ins:
 		xns(vm, &i->op1, &i->dst);
 		continue;
+	Inssym:
+		xnssym(vm, &i->op1, &i->dst);
+		continue;
+	Instype:
+		xnstype(vm, &i->op1, &i->dst);
+		continue;
 	}
 }
 
@@ -3914,9 +4027,16 @@ builtinns(Env *env, char *name, Ns *ns)
 }
 
 static void
-testbin(VM *vm)
+testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	printf("you called it!\n");
+	unsigned i;
+
+	printf("you called it with %lld args!\n", argc);
+	for(i = 0; i < argc; i++){
+		printf("argv[%d] = ", i);
+		printval(&argv[i]);
+		printf("\n");
+	}
 }
 
 VM*
@@ -3929,7 +4049,7 @@ mkvm(Env *env)
 	vm->ac = Xundef;
 	vm->topenv = env;
 	
-	builtinfn(env, "testbin", mkbin("testbin", testbin));
+	builtinfn(env, "testbin", mkcfn("testbin", testbin));
 	builtinfn(env, "gc", gcthunk());
 	builtinfn(env, "ding", dingthunk());
 	builtinfn(env, "print", printthunk());
@@ -4045,6 +4165,7 @@ initvm()
 	/* FIXME: itercval? to walk Xtype */
 
 	kcode = contcode();
+	cccode = callccode();
 
 	roots.getlink = getrootslink;
 	roots.setlink = setrootslink;
@@ -4097,6 +4218,7 @@ finivm()
 	gc(0);	/* must run two epochs without mutator to collect everything */
 
 	freecode((Head*)kcode);
+	freecode((Head*)cccode);
 
 	freeheap(&heapas);
 	freeheap(&heapbox);

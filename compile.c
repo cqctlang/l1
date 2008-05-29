@@ -266,8 +266,8 @@ printinsn(Code *code, Insn *i)
 {
 	printf("\t");
 	switch(i->kind){
-	case Ibin:
-		printf("bin");
+	case Icallc:
+		printf("callc");
 		break;
 	case Iinv:
 	case Ineg:
@@ -668,6 +668,18 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Ins:
 		printf("ns ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Inssym:
+		printf("nssym ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Instype:
+		printf("nstype ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -2535,24 +2547,19 @@ callcc()
 	return cl;
 }
 
-Closure*
-mkbin(char *id, Builtin *bin)
+Code*
+callccode()
 {
-	Ctl *L;
 	Insn *i;
 	Code *code;
-	Closure *cl;
 
 	code = mkcode();
-	L = genlabel(code, id);
-	cl = mkbincl(code, code->ninsn, 0, L->label, bin);
-	L->used = 1;
-	emitlabel(L, 0);
 	i = nextinsn(code);
-	i->kind = Ibin;
+	i->kind = Icallc;
 	i = nextinsn(code);
 	i->kind = Iret;
-	return cl;
+
+	return code;
 }
 
 Code*
