@@ -266,6 +266,9 @@ printinsn(Code *code, Insn *i)
 {
 	printf("\t");
 	switch(i->kind){
+	case Ibin:
+		printf("bin");
+		break;
 	case Iinv:
 	case Ineg:
 	case Inot:
@@ -2530,7 +2533,26 @@ callcc()
 	randloc(&i->op1, AC);
 
 	return cl;
+}
 
+Closure*
+mkbin(char *id, Builtin *bin)
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, id);
+	cl = mkbincl(code, code->ninsn, 0, L->label, bin);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ibin;
+	i = nextinsn(code);
+	i->kind = Iret;
+	return cl;
 }
 
 Code*

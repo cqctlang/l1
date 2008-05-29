@@ -94,6 +94,7 @@ struct Closure {
 	Val *display;
 	char *id;
 	Imm fp;			/* of continuation */
+	Builtin *bin;
 };
 
 struct Box {
@@ -256,7 +257,7 @@ static unsigned long long nextgctick = GCrate;
 
 Heap heapcode, heapcl, heapbox, heapas, heapdom, heapns, heappair,
 	heaprange, heapstr, heaptab, heapvec, heapxtn;
-static Code *kcode;
+static Code *kcode, *bincode;
 
 static void*
 read_and_clear(void *pp)
@@ -524,6 +525,7 @@ rootset(VM *vm)
 
 	/* never collect these things */
 	addroot(&roots, (Head*)kcode); 
+	addroot(&roots, (Head*)bincode); 
 
 	if(vm == 0)
 		return;
@@ -792,7 +794,7 @@ iterpair(Head *hd, Ictx *ictx)
 }
 
 Closure*
-mkcl(Code *code, unsigned long entry, unsigned len, char *id)
+mkbincl(Code *code, unsigned long entry, unsigned len, char *id, Builtin *bin)
 {
 	Closure *cl;
 	cl = (Closure*)halloc(&heapcl);
@@ -801,7 +803,14 @@ mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 	cl->dlen = len;
 	cl->display = xmalloc(cl->dlen*sizeof(Val));
 	cl->id = xstrdup(id);
+	cl->bin = bin;
 	return cl;
+}
+
+Closure*
+mkcl(Code *code, unsigned long entry, unsigned len, char *id)
+{
+	return mkbincl(code, entry, len, id, 0);
 }
 
 static void
@@ -2256,6 +2265,14 @@ printval(Val *val)
 	}
 }
 
+static void
+xbin(VM *vm)
+{
+	if(vm->clx->bin == 0)
+		vmerr(vm, "bad closure for builtin call");
+	vm->clx->bin(vm);
+}
+
 static Imm
 binopimm(ikind op, Imm i1, Imm i2)
 {
@@ -3513,6 +3530,7 @@ dovm(VM *vm, Closure *cl)
 	gotab[Iadd]	= &&Iadd;
 	gotab[Iand]	= &&Iand;
 	gotab[Ias]	= &&Ias;
+	gotab[Ibin]	= &&Ibin;
 	gotab[Ibox]	= &&Ibox;
 	gotab[Ibox0]	= &&Ibox0;
 	gotab[Icall]	= &&Icall;
@@ -3625,6 +3643,9 @@ dovm(VM *vm, Closure *cl)
 		continue;
 	Iding:
 		printf("ding\n");
+		continue;
+	Ibin:
+		xbin(vm);
 		continue;
 	Iinv:
 	Ineg:
@@ -3892,6 +3913,12 @@ builtinns(Env *env, char *name, Ns *ns)
 	envbind(env, name, &val);
 }
 
+static void
+testbin(VM *vm)
+{
+	printf("you called it!\n");
+}
+
 VM*
 mkvm(Env *env)
 {
@@ -3902,6 +3929,7 @@ mkvm(Env *env)
 	vm->ac = Xundef;
 	vm->topenv = env;
 	
+	builtinfn(env, "testbin", mkbin("testbin", testbin));
 	builtinfn(env, "gc", gcthunk());
 	builtinfn(env, "ding", dingthunk());
 	builtinfn(env, "print", printthunk());
