@@ -582,6 +582,9 @@ printinsn(Code *code, Insn *i)
 	case Ihalt:
 		printf("halt");
 		break;
+	case Ipanic:
+		printf("panic");
+		break;
 	case Iding:
 		printf("ding");
 		break;
@@ -2579,6 +2582,25 @@ contcode()
 	i->kind = Iret;
 
 	return code;
+}
+
+Closure*
+panicthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "panic");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ipanic;
+
+	return cl;
 }
 
 Closure*

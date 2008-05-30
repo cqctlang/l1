@@ -134,11 +134,18 @@ struct As {
 
 struct Ns {
 	Head hd;
+
+	/* interface for all instances */
+	Closure *enumsym;
+	Closure *enumtype;
+	Closure *looksym;
+	Closure *looktype;
+
+	/* data for instances created by @names */
+	/* but these could be pushed into closure defining interface */
 	Tab *tid;
 	Tab *tag;
 	Tab *sym;
-	Closure *looksym;
-	Closure *looktype;
 };
 
 struct Dom {
@@ -3136,143 +3143,6 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
-typedef
-struct NSctx {
-	Ns *ns;
-	Tab *itid, *itag, *isym;
-	Tab *otid, *otag, *osym;
-} NSctx;
-
-static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
-
-static Xtypename*
-resolvetid(VM *vm, Str *tid, NSctx *ctx)
-{
-	Val *rv, idv, v;
-	Xtypename *xtn, *new;
-
-	mkvalstr(tid, &idv);
-	rv = tabget(ctx->otid, &idv);
-	if(rv)
-		return valxtn(rv);
-
-	rv = tabget(ctx->itid, &idv);
-	if(rv == 0)
-		/* FIXME: warn if only need ptr to type */
-		vmerr(vm, "undefined type %.*s", tid->len, tid->s);
-
-	xtn = valxtn(rv);
-	new = mkxtn();
-	new->xtkind = Ttypedef;
-	new->tid = tid;
-	mkvalxtn(new, &v);
-	tabput(vm, ctx->otid, &idv, &v);
-	new->link = resolvetypename(vm, xtn, ctx);
-	return new;
-}
-
-static Xtypename*
-resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
-{
-	Val *rv, idv, v, *vp, *sz;
-	Xtypename *xtn, *tmp;
-	Vec *vec, *fld, *fv;
-	Imm i;
-
-	mkvalstr(tag, &idv);
-	rv = tabget(ctx->otag, &idv);
-	if(rv){
-		xtn = valxtn(rv);
-		if(xtn->xtkind != kind)
-			vmerr(vm, "tag %.*s reused", tag->len, tag->s);
-		return xtn;
-	}
-
-	rv = tabget(ctx->itag, &idv);
-	if(rv == 0)
-		/* FIXME: warn if only need ptr to type */
-		vmerr(vm, "undefined type %s %.*s",
-		      (kind == Tstruct ? "struct"
-		       : (kind == Tunion ? "union" : "enum")),
-		      tag->len, tag->s);
-
-	vec = valvec(rv);
-	xtn = valxtn(vecref(vec, 0));
-	if(xtn->xtkind != kind)
-		vmerr(vm, "tag %.*s reused", tag->len, tag->s);
-
-	fld = valvec(vecref(vec, 1));
-	sz = vecref(vec, 2);
-
-	xtn = mkxtn();
-	xtn->xtkind = kind;
-	xtn->field = mkvec(fld->len);
-	xtn->sz = *sz;
-	mkvalxtn(xtn, &v);
-	tabput(vm, ctx->otag, &idv, &v);
-	for(i = 0; i < fld->len; i++){
-		vec = valvec(vecref(fld, i));
-		vp = vecref(vec, Typepos);
-		tmp = valxtn(vp);
-		tmp = resolvetypename(vm, tmp, ctx);
-		fv = mkvec(3);
-
-		mkvalxtn(tmp, &v);
-		_vecset(fv, Typepos, &v);	/* type */
-		_vecset(fv, 1, vecref(fld, 1));	/* id */
-		_vecset(fv, 2, vecref(fld, 2));	/* offset */
-
-		mkvalvec(fv, &v);
-		_vecset(xtn->field, i, &v);
-	}
-	return xtn;
-}
-
-static unsigned
-resolvebase(VM *vm, unsigned basename, NSctx *ctx)
-{
-	/* ctx->ns should define basename */
-	return Ru32le;
-}
-
-static Xtypename*
-resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
-{
-	Vec *vec;
-	Val v;
-	Xtypename *tmp;
-	Imm i;
-
-	switch(xtn->xtkind){
-	case Tbase:
-		if(xtn->rep == Rundef)
-			xtn->rep = resolvebase(vm, xtn->basename, ctx);
-		return xtn;
-	case Ttypedef:
-		xtn->link = resolvetid(vm, xtn->tid, ctx);
-		return xtn;
-	case Tstruct:
-	case Tunion:
-		return resolvetag(vm, xtn->xtkind, xtn->tag, ctx);
-	case Tarr:
-	case Tptr:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		return xtn;
-	case Tfun:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		for(i = 0; i < xtn->param->len; i++){
-			vec = valvec(vecref(xtn->param, i));
-			tmp = valxtn(vecref(vec, Typepos));
-			tmp = resolvetypename(vm, tmp, ctx);
-			mkvalxtn(tmp, &v);
-			vecset(vm, vec, Typepos, &v); 
-		}
-		return xtn;
-	default:
-		fatal("bug");
-	}
-}
-
 static void
 xas(VM *vm, Operand *dispatch, Operand *dst)
 {
@@ -3345,6 +3215,176 @@ xdomns(VM *vm, Operand *domo, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
+typedef
+struct NSctx {
+	Tab *otid, *otag, *osym;	/* bindings passed to @names */
+	Tab *rawtid, *rawtag, *rawsym;	/* @names declarations */
+	Tab *tid, *tag, *sym;		/* resulting bindings */
+} NSctx;
+
+static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
+
+static Xtypename*
+resolvetid(VM *vm, Str *tid, NSctx *ctx)
+{
+	Val *rv, idv, v;
+	Xtypename *xtn, *new;
+
+	mkvalstr(tid, &idv);
+	rv = tabget(ctx->tid, &idv);
+	if(rv)
+		return valxtn(rv);
+
+	rv = tabget(ctx->rawtid, &idv);
+	if(rv == 0)
+		/* FIXME: warn if only need ptr to type */
+		vmerr(vm, "undefined type %.*s", tid->len, tid->s);
+
+	xtn = valxtn(rv);
+	new = mkxtn();
+	new->xtkind = Ttypedef;
+	new->tid = tid;
+	mkvalxtn(new, &v);
+	tabput(vm, ctx->tid, &idv, &v);
+	new->link = resolvetypename(vm, xtn, ctx);
+	return new;
+}
+
+static Xtypename*
+resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
+{
+	Val *rv, idv, v, *vp, *sz;
+	Xtypename *xtn, *tmp;
+	Vec *vec, *fld, *fv;
+	Imm i;
+
+	mkvalstr(tag, &idv);
+	rv = tabget(ctx->tag, &idv);
+	if(rv){
+		xtn = valxtn(rv);
+		if(xtn->xtkind != kind)
+			vmerr(vm, "tag %.*s reused", tag->len, tag->s);
+		return xtn;
+	}
+
+	rv = tabget(ctx->rawtag, &idv);
+	if(rv == 0)
+		/* FIXME: warn if only need ptr to type */
+		vmerr(vm, "undefined type %s %.*s",
+		      (kind == Tstruct ? "struct"
+		       : (kind == Tunion ? "union" : "enum")),
+		      tag->len, tag->s);
+
+	vec = valvec(rv);
+	xtn = valxtn(vecref(vec, 0));
+	if(xtn->xtkind != kind)
+		vmerr(vm, "tag %.*s reused", tag->len, tag->s);
+
+	fld = valvec(vecref(vec, 1));
+	sz = vecref(vec, 2);
+
+	xtn = mkxtn();
+	xtn->xtkind = kind;
+	xtn->field = mkvec(fld->len);
+	xtn->sz = *sz;
+	mkvalxtn(xtn, &v);
+	tabput(vm, ctx->tag, &idv, &v);
+	for(i = 0; i < fld->len; i++){
+		vec = valvec(vecref(fld, i));
+		vp = vecref(vec, Typepos);
+		tmp = valxtn(vp);
+		tmp = resolvetypename(vm, tmp, ctx);
+		fv = mkvec(3);
+
+		mkvalxtn(tmp, &v);
+		_vecset(fv, Typepos, &v);	/* type */
+		_vecset(fv, 1, vecref(fld, 1));	/* id */
+		_vecset(fv, 2, vecref(fld, 2));	/* offset */
+
+		mkvalvec(fv, &v);
+		_vecset(xtn->field, i, &v);
+	}
+	return xtn;
+}
+
+static unsigned
+resolvebase(VM *vm, unsigned basename, NSctx *ctx)
+{
+	/* ctx->ns should define basename */
+	return Ru32le;
+}
+
+static Xtypename*
+resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
+{
+	Vec *vec;
+	Val v;
+	Xtypename *tmp;
+	Imm i;
+
+	switch(xtn->xtkind){
+	case Tbase:
+		if(xtn->rep == Rundef)
+			xtn->rep = resolvebase(vm, xtn->basename, ctx);
+		return xtn;
+	case Ttypedef:
+		xtn->link = resolvetid(vm, xtn->tid, ctx);
+		return xtn;
+	case Tstruct:
+	case Tunion:
+		return resolvetag(vm, xtn->xtkind, xtn->tag, ctx);
+	case Tarr:
+	case Tptr:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		return xtn;
+	case Tfun:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		for(i = 0; i < xtn->param->len; i++){
+			vec = valvec(vecref(xtn->param, i));
+			tmp = valxtn(vecref(vec, Typepos));
+			tmp = resolvetypename(vm, tmp, ctx);
+			mkvalxtn(tmp, &v);
+			vecset(vm, vec, Typepos, &v); 
+		}
+		return xtn;
+	default:
+		fatal("bug");
+	}
+}
+
+/* enumsym for namespaces constructed by @names */
+static void
+enumsym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Ns *ns;
+
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to enumsym");
+
+	ns = valns(&disp[0]);
+	mkvaltab(ns->sym, rv);
+}
+
+/* enumtype for namespaces constructed by @names */
+static void
+enumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Ns *ns;
+	Vec *vec;
+	Val v;
+
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to enumtype");
+
+	ns = valns(&disp[0]);
+	vec = mkvec(2);
+	mkvaltab(ns->tid, &v);
+	_vecset(vec, 0, &v);
+	mkvaltab(ns->tag, &v);
+	_vecset(vec, 1, &v);
+	mkvalvec(vec, rv);
+}
+
 /* looksym for namespaces constructed by @names */
 static void
 looksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
@@ -3377,6 +3417,7 @@ looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	ns = valns(&disp[0]);
 	xtn = valxtn(&argv[0]);
+	fatal("i'm not done");	/* recursive type resolve */
 }
 
 static void
@@ -3390,26 +3431,26 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	Str *id;
 	NSctx ctx;
 	u32 i;
-	Ns *ns;
+	Ns *ons, *ns;
 
 	getvalrand(vm, invec, &v);
 	vec = valvec(&v);
 	if(vec->len != 4)
 		vmerr(vm, "bad vector to ns");
 	vp = vecref(vec, 0);
-	ctx.ns = valns(vp);
+	ons = valns(vp);
 	vp = vecref(vec, 1);
-	ctx.itid = valtab(vp);
+	ctx.rawtid = valtab(vp);
 	vp = vecref(vec, 2);
-	ctx.itag = valtab(vp);
+	ctx.rawtag = valtab(vp);
 	vp = vecref(vec, 3);
-	ctx.isym = valtab(vp);
+	ctx.rawsym = valtab(vp);
 
-	ctx.otid = mktab();
-	ctx.otag = mktab();
-	ctx.osym = mktab();
+	ctx.tid = mktab();
+	ctx.tag = mktab();
+	ctx.sym = mktab();
 
-	x = ctx.itid->x;
+	x = ctx.rawtid->x;
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
@@ -3420,7 +3461,7 @@ xns(VM *vm, Operand *invec, Operand *dst)
 		}
 	}
 
-	x = ctx.itag->x;
+	x = ctx.rawtag->x;
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
@@ -3433,7 +3474,7 @@ xns(VM *vm, Operand *invec, Operand *dst)
 		}
 	}
 
-	x = ctx.isym->x;
+	x = ctx.rawsym->x;
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
@@ -3448,10 +3489,12 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	}
 
 	ns = mkns();
-	ns->tid = ctx.otid;
-	ns->tag = ctx.otag;
-	ns->sym = ctx.osym;
+	ns->tid = ctx.tid;
+	ns->tag = ctx.tag;
+	ns->sym = ctx.sym;
 	mkvalns(ns, &v);
+	ns->enumsym = mkccl("enumsym", enumsym, 1, &v);
+	ns->enumtype = mkccl("enumtype", enumtype, 1, &v);
 	ns->looksym = mkccl("looksym", looksym, 1, &v);
 	ns->looktype = mkccl("looktype", looktype, 1, &v);
 	putvalrand(vm, &v, dst);
@@ -3479,7 +3522,7 @@ xnstype(VM *vm, Operand *nso, Operand *dst)
 
 	getvalrand(vm, nso, &nv);
 	if(nv.qkind != Qns)
-		vmerror(vm, "nssym on non-namespace");
+		vmerr(vm, "nssym on non-namespace");
 	ns = valns(&nv);
 	mkvalcl(ns->looktype, &rv);
 	putvalrand(vm, &rv, dst);
@@ -3627,112 +3670,129 @@ vmsetcl(VM *vm, Closure *cl)
 void
 dovm(VM *vm, Closure *cl)
 {
+	static int once;
 	Insn *i;
-	Val val, haltv, zero;
+	Val val, haltv;
 	Closure *halt;
 	Imm narg, onarg;
 
-	gotab[Iadd]	= &&Iadd;
-	gotab[Iand]	= &&Iand;
-	gotab[Ias]	= &&Ias;
-	gotab[Ibox]	= &&Ibox;
-	gotab[Ibox0]	= &&Ibox0;
-	gotab[Icall]	= &&Icall;
-	gotab[Icallc]	= &&Icallc;
-	gotab[Icallt]	= &&Icallt;
-	gotab[Icar]	= &&Icar;
-	gotab[Icdr]	= &&Icdr;
-	gotab[Iclo]	= &&Iclo;
-	gotab[Icmpeq] 	= &&Icmpeq;
-	gotab[Icmpgt] 	= &&Icmpgt;
-	gotab[Icmpge] 	= &&Icmpge;
-	gotab[Icmplt] 	= &&Icmplt;
-	gotab[Icmple] 	= &&Icmple;
-	gotab[Icmpneq] 	= &&Icmpneq;
-	gotab[Icons] 	= &&Icons;
-	gotab[Icval] 	= &&Icval;
-	gotab[Iding] 	= &&Iding;
-	gotab[Idiv] 	= &&Idiv;
-	gotab[Idom]	= &&Idom;
-	gotab[Idomas]	= &&Idomas;
-	gotab[Idomns]	= &&Idomns;
-	gotab[Iencode]	= &&Iencode;
-	gotab[Iframe] 	= &&Iframe;
-	gotab[Igc] 	= &&Igc;
-	gotab[Ihalt] 	= &&Ihalt;
-	gotab[Iinv] 	= &&Iinv;
-	gotab[Iiscl] 	= &&Iiscl;
-	gotab[Iiscval] 	= &&Iiscval;
-	gotab[Iisas]	= &&Iisas;
-	gotab[Iisdom]	= &&Iisdom;
-	gotab[Iisns]	= &&Iisns;
-	gotab[Iisnull] 	= &&Iisnull;
-	gotab[Iispair] 	= &&Iispair;
-	gotab[Iisrange]	= &&Iisrange;
-	gotab[Iisstr] 	= &&Iisstr;
-	gotab[Iistab] 	= &&Iistab;
-	gotab[Iistn] 	= &&Iistn;
-	gotab[Iistype] 	= &&Iistype;
-	gotab[Iisvec] 	= &&Iisvec;
-	gotab[Ijmp] 	= &&Ijmp;
-	gotab[Ijnz] 	= &&Ijnz;
-	gotab[Ijz] 	= &&Ijz;
-	gotab[Ikg] 	= &&Ikg;
-	gotab[Ikp] 	= &&Ikp;
-	gotab[Ilenl]	= &&Ilenl;
-	gotab[Ilens]	= &&Ilens;
-	gotab[Ilenv]	= &&Ilenv;
-	gotab[Imod] 	= &&Imod;
-	gotab[Imov] 	= &&Imov;
-	gotab[Imul] 	= &&Imul;
-	gotab[Ineg] 	= &&Ineg;
-	gotab[Inot] 	= &&Inot;
-	gotab[Ins]	= &&Ins;
-	gotab[Inssym]	= &&Inssym;
-	gotab[Instype]	= &&Instype;
-	gotab[Inull] 	= &&Inull;
-	gotab[Ior] 	= &&Ior;
-	gotab[Inop] 	= &&Inop;
-	gotab[Iprint] 	= &&Iprint;
-	gotab[Ipush] 	= &&Ipush;
-	gotab[Irange] 	= &&Irange;
-	gotab[Irbeg]	= &&Irbeg;
-	gotab[Iret] 	= &&Iret;
-	gotab[Irlen]	= &&Irlen;
-	gotab[Ishl] 	= &&Ishl;
-	gotab[Ishr] 	= &&Ishr;
-	gotab[Isizeof]	= &&Isizeof;
-	gotab[Islices]	= &&Islices;
-	gotab[Istr]	= &&Istr;
-	gotab[Isub] 	= &&Isub;
-	gotab[Itab]	= &&Itab;
-	gotab[Itabdel]	= &&Itabdel;
-	gotab[Itabenum]	= &&Itabenum;
-	gotab[Itabget]	= &&Itabget;
-	gotab[Itabput]	= &&Itabput;
-	gotab[Itn]	= &&Itn;
-	gotab[Itnx]	= &&Itnx;
-	gotab[Ivec] 	= &&Ivec;
-	gotab[Ivecref] 	= &&Ivecref;
-	gotab[Ivecset] 	= &&Ivecset;
-	gotab[Ivlist] 	= &&Ivlist;
-	gotab[Ivvec] 	= &&Ivvec;
-	gotab[Ixcast] 	= &&Ixcast;
-	gotab[Ixor] 	= &&Ixor;
+	if(!once){
+		once = 1;
+		gotab[Iadd]	= &&Iadd;
+		gotab[Iand]	= &&Iand;
+		gotab[Ias]	= &&Ias;
+		gotab[Ibox]	= &&Ibox;
+		gotab[Ibox0]	= &&Ibox0;
+		gotab[Icall]	= &&Icall;
+		gotab[Icallc]	= &&Icallc;
+		gotab[Icallt]	= &&Icallt;
+		gotab[Icar]	= &&Icar;
+		gotab[Icdr]	= &&Icdr;
+		gotab[Iclo]	= &&Iclo;
+		gotab[Icmpeq] 	= &&Icmpeq;
+		gotab[Icmpgt] 	= &&Icmpgt;
+		gotab[Icmpge] 	= &&Icmpge;
+		gotab[Icmplt] 	= &&Icmplt;
+		gotab[Icmple] 	= &&Icmple;
+		gotab[Icmpneq] 	= &&Icmpneq;
+		gotab[Icons] 	= &&Icons;
+		gotab[Icval] 	= &&Icval;
+		gotab[Iding] 	= &&Iding;
+		gotab[Idiv] 	= &&Idiv;
+		gotab[Idom]	= &&Idom;
+		gotab[Idomas]	= &&Idomas;
+		gotab[Idomns]	= &&Idomns;
+		gotab[Iencode]	= &&Iencode;
+		gotab[Iframe] 	= &&Iframe;
+		gotab[Igc] 	= &&Igc;
+		gotab[Ihalt] 	= &&Ihalt;
+		gotab[Iinv] 	= &&Iinv;
+		gotab[Iiscl] 	= &&Iiscl;
+		gotab[Iiscval] 	= &&Iiscval;
+		gotab[Iisas]	= &&Iisas;
+		gotab[Iisdom]	= &&Iisdom;
+		gotab[Iisns]	= &&Iisns;
+		gotab[Iisnull] 	= &&Iisnull;
+		gotab[Iispair] 	= &&Iispair;
+		gotab[Iisrange]	= &&Iisrange;
+		gotab[Iisstr] 	= &&Iisstr;
+		gotab[Iistab] 	= &&Iistab;
+		gotab[Iistn] 	= &&Iistn;
+		gotab[Iistype] 	= &&Iistype;
+		gotab[Iisvec] 	= &&Iisvec;
+		gotab[Ijmp] 	= &&Ijmp;
+		gotab[Ijnz] 	= &&Ijnz;
+		gotab[Ijz] 	= &&Ijz;
+		gotab[Ikg] 	= &&Ikg;
+		gotab[Ikp] 	= &&Ikp;
+		gotab[Ilenl]	= &&Ilenl;
+		gotab[Ilens]	= &&Ilens;
+		gotab[Ilenv]	= &&Ilenv;
+		gotab[Imod] 	= &&Imod;
+		gotab[Imov] 	= &&Imov;
+		gotab[Imul] 	= &&Imul;
+		gotab[Ineg] 	= &&Ineg;
+		gotab[Inot] 	= &&Inot;
+		gotab[Ins]	= &&Ins;
+		gotab[Inssym]	= &&Inssym;
+		gotab[Instype]	= &&Instype;
+		gotab[Inull] 	= &&Inull;
+		gotab[Ior] 	= &&Ior;
+		gotab[Inop] 	= &&Inop;
+		gotab[Ipanic] 	= &&Ipanic;
+		gotab[Iprint] 	= &&Iprint;
+		gotab[Ipush] 	= &&Ipush;
+		gotab[Irange] 	= &&Irange;
+		gotab[Irbeg]	= &&Irbeg;
+		gotab[Iret] 	= &&Iret;
+		gotab[Irlen]	= &&Irlen;
+		gotab[Ishl] 	= &&Ishl;
+		gotab[Ishr] 	= &&Ishr;
+		gotab[Isizeof]	= &&Isizeof;
+		gotab[Islices]	= &&Islices;
+		gotab[Istr]	= &&Istr;
+		gotab[Isub] 	= &&Isub;
+		gotab[Itab]	= &&Itab;
+		gotab[Itabdel]	= &&Itabdel;
+		gotab[Itabenum]	= &&Itabenum;
+		gotab[Itabget]	= &&Itabget;
+		gotab[Itabput]	= &&Itabput;
+		gotab[Itn]	= &&Itn;
+		gotab[Itnx]	= &&Itnx;
+		gotab[Ivec] 	= &&Ivec;
+		gotab[Ivecref] 	= &&Ivecref;
+		gotab[Ivecset] 	= &&Ivecset;
+		gotab[Ivlist] 	= &&Ivlist;
+		gotab[Ivvec] 	= &&Ivvec;
+		gotab[Ixcast] 	= &&Ixcast;
+		gotab[Ixor] 	= &&Ixor;
 
-	if(!envlookup(vm->topenv, "halt", &haltv))
-		fatal("broken vm");
-	halt = valcl(&haltv);
+		if(!envlookup(vm->topenv, "halt", &haltv))
+			fatal("broken vm");
+		halt = valcl(&haltv);
+	}
 
-	checkoverflow(vm, 4);
-	mkvalimm(0, &zero);
-	vmpush(vm, &zero);	/* arbitrary fp */
-	vmpush(vm, &haltv);
-	mkvalimm(halt->entry, &val);
-	vmpush(vm, &val);
-	vmpush(vm, &zero);	/* narg */
+	/* for recursive entry, store current context */
+	mkvalimm(vm->fp, &val);
+	vmpush(vm, &val);	/* fp */
+	vmpush(vm, &vm->cl);	/* cl */
+	mkvalimm(vm->pc, &val);
+	vmpush(vm, &val);	/* pc */
+	mkvalimm(0, &val);
+	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
+	/* push call to halt thunk */
+	mkvalimm(vm->fp, &val);
+	vmpush(vm, &val);	/* fp */
+	vmpush(vm, &haltv);	/* cl */
+	mkvalimm(halt->entry, &val);
+	vmpush(vm, &val);	/* pc */
+	mkvalimm(0, &val);
+	vmpush(vm, &val);	/* narg */
+	vm->fp = vm->sp;
+
+	/* switch to cl */
 	mkvalcl(cl, &vm->cl);
 	vmsetcl(vm, cl);
 	vm->pc = vm->clx->entry;
@@ -3813,6 +3873,22 @@ dovm(VM *vm, Closure *cl)
 	Igc:
 		// gc(vm);
 		continue;
+	Ipanic:
+		fatal("vm panic");
+	Ihalt:
+		/* Ihalt is exactly like Iret... */
+		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1;/*narg+1*/
+		vm->fp = valimm(&vm->stack[vm->sp+2]);
+		vm->cl = vm->stack[vm->sp+1];
+		vmsetcl(vm, valcl(&vm->cl));
+		vm->pc = valimm(&vm->stack[vm->sp]);
+		vmpop(vm, 3);
+
+		/* ...except that it returns from dovm */
+		printf("halted (ac = ");
+		printval(&vm->ac);
+		printf(")\n");
+		return;
 	Iret:
 		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1;/*narg+1*/
 		vm->fp = valimm(&vm->stack[vm->sp+2]);
@@ -3850,11 +3926,6 @@ dovm(VM *vm, Closure *cl)
 	Iprint:
 		xprint(vm, &i->op1);
 		continue;
-	Ihalt:
-		printf("halted (ac = ");
-		printval(&vm->ac);
-		printf(")\n");
-		return;
 	Icar:
 		xcar(vm, &i->op1, &i->dst);
 		continue;
@@ -4037,17 +4108,22 @@ testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 		printval(&argv[i]);
 		printf("\n");
 	}
+
+	dovm(vm, dingthunk());
+	printf("returned from dovm\n");
 }
 
 VM*
 mkvm(Env *env)
 {
 	VM *vm;
-	
+
 	vm = xmalloc(sizeof(VM));
+	vm->fp = 0;
 	vm->sp = Maxstk;
 	vm->ac = Xundef;
 	vm->topenv = env;
+	mkvalcl(panicthunk(), &vm->cl);
 	
 	builtinfn(env, "testbin", mkcfn("testbin", testbin));
 	builtinfn(env, "gc", gcthunk());

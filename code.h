@@ -62,6 +62,7 @@ enum {
 	Inull,
 	Ior,
 	Inop,
+	Ipanic,
 	Iprint,
 	Ipush,
 	Irange,
@@ -229,6 +230,7 @@ char* topvecid(unsigned idx, Topvec *tv);
 Val* topvecval(unsigned idx, Topvec *tv);
 Closure* haltthunk();
 Closure* gcthunk();
+Closure* panicthunk();
 Closure* dingthunk();
 Closure* printthunk();
 Closure* callcc();

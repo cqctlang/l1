@@ -343,7 +343,7 @@ frame L:
 
 ret:
 	let* narg = stack[fp+1]
-             spp = fp-(narg+1) in
+             sp = fp-(narg+1) in
 	    pc = stack[sp]
 	    cl = stack[sp+1]
 	    fp = stack[sp+2]
