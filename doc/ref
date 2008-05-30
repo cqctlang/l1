@@ -1,0 +1,12 @@
+Name spaces
+-----------
+
+Name spaces implement the following interface:
+
+	looksym(str) -> xtn
+	looktype(xtn) -> xtn
+	enumsym() -> tab of { str:[xtn,id,cval] }
+	enumtype() -> vec of [ tidtab, tagtab ]
+		where tidtab is tab of { str:xtn }
+		  and tagtab is tab of { str:xtn }
+
