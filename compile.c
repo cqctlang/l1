@@ -115,7 +115,7 @@ mkcode()
 {
 	Code *code;
 	
-	code = (Code*)halloc(&heapcode);
+	code = newcode();
 	code->maxinsn = InsnAlloc;
 	code->insn = xmalloc(code->maxinsn*sizeof(Insn));
 	code->labels = xmalloc(code->maxinsn*sizeof(Ctl*));
