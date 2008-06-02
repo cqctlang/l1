@@ -3574,28 +3574,56 @@ xns(VM *vm, Operand *invec, Operand *dst)
 }
 
 static void
-xnssym(VM *vm, Operand *nso, Operand *dst)
+xnsesym(VM *vm, Operand *nso, Operand *dst)
 {
 	Val nv, rv;
 	Ns *ns;
 
 	getvalrand(vm, nso, &nv);
 	if(nv.qkind != Qns)
-		vmerr(vm, "nssym on non-namespace");
+		vmerr(vm, "nsesym on non-namespace");
+	ns = valns(&nv);
+	mkvalcl(ns->enumsym, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xnsetype(VM *vm, Operand *nso, Operand *dst)
+{
+	Val nv, rv;
+	Ns *ns;
+
+	getvalrand(vm, nso, &nv);
+	if(nv.qkind != Qns)
+		vmerr(vm, "nsesym on non-namespace");
+	ns = valns(&nv);
+	mkvalcl(ns->enumtype, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xnslsym(VM *vm, Operand *nso, Operand *dst)
+{
+	Val nv, rv;
+	Ns *ns;
+
+	getvalrand(vm, nso, &nv);
+	if(nv.qkind != Qns)
+		vmerr(vm, "nslsym on non-namespace");
 	ns = valns(&nv);
 	mkvalcl(ns->looksym, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
 static void
-xnstype(VM *vm, Operand *nso, Operand *dst)
+xnsltype(VM *vm, Operand *nso, Operand *dst)
 {
 	Val nv, rv;
 	Ns *ns;
 
 	getvalrand(vm, nso, &nv);
 	if(nv.qkind != Qns)
-		vmerr(vm, "nssym on non-namespace");
+		vmerr(vm, "nslsym on non-namespace");
 	ns = valns(&nv);
 	mkvalcl(ns->looktype, &rv);
 	putvalrand(vm, &rv, dst);
@@ -3808,8 +3836,10 @@ dovm(VM *vm, Closure *cl)
 		gotab[Ineg] 	= &&Ineg;
 		gotab[Inot] 	= &&Inot;
 		gotab[Ins]	= &&Ins;
-		gotab[Inssym]	= &&Inssym;
-		gotab[Instype]	= &&Instype;
+		gotab[Insesym]	= &&Insesym;
+		gotab[Insetype]	= &&Insetype;
+		gotab[Inslsym]	= &&Inslsym;
+		gotab[Insltype]	= &&Insltype;
 		gotab[Inull] 	= &&Inull;
 		gotab[Ior] 	= &&Ior;
 		gotab[Inop] 	= &&Inop;
@@ -4138,11 +4168,17 @@ dovm(VM *vm, Closure *cl)
 	Ins:
 		xns(vm, &i->op1, &i->dst);
 		continue;
-	Inssym:
-		xnssym(vm, &i->op1, &i->dst);
+	Inslsym:
+		xnslsym(vm, &i->op1, &i->dst);
 		continue;
-	Instype:
-		xnstype(vm, &i->op1, &i->dst);
+	Insltype:
+		xnsltype(vm, &i->op1, &i->dst);
+		continue;
+	Insesym:
+		xnsesym(vm, &i->op1, &i->dst);
+		continue;
+	Insetype:
+		xnsetype(vm, &i->op1, &i->dst);
 		continue;
 	}
 }
