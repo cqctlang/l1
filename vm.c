@@ -12,6 +12,7 @@ enum {
 	Qas,
 	Qbox,
 	Qcl,
+	Qcode,
 	Qdom,
 	Qns,
 	Qpair,
@@ -48,6 +49,14 @@ enum {
 enum {
 	Tabinitsize=1024,	/* power of 2 */
 	Typepos=0,
+};
+
+struct Heap {
+	char *id;
+	unsigned sz;
+	void (*free1)(Head *hd);
+	Head* (*iter)(Head *hd, Ictx *ictx);
+	Head *alloc, *swept, *sweep, *free;
 };
 
 typedef struct Vcval Vcval;
@@ -143,8 +152,7 @@ struct Ns {
 
 	/* data for instances created by @names */
 	/* but these could be pushed into closure defining interface */
-	Tab *tid;
-	Tab *tag;
+	Tab *type;
 	Tab *sym;
 };
 
@@ -215,17 +223,20 @@ static Cval* valcval(Val *v);
 static Pair* valpair(Val *v);
 static Range* valrange(Val *v);
 static Str* valstr(Val *v);
+static Vec* valvec(Val *v);
+static Xtypename* valxtn(Val *v);
+static void mkvalstr(Str *str, Val *vp);
+static void mkvalxtn(Xtypename *xtn, Val *vp);
+
+static Val* vecref(Vec *vec, Imm idx);
+static void _vecset(Vec *vec, Imm idx, Val *v);
+static void vecset(VM *vm, Vec *vec, Imm idx, Val *v);
 
 static Val Xundef;
 static Val Xnil;
 static Val Xnulllist;
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
-typedef u32 (*Tabhashfn)(Val *v);
-typedef int (*Tabeqfn)(Val *a, Val *b);
-static Tabhashfn Qhash[Qnkind];
-static Tabeqfn Qeq[Qnkind];
-
 static Head eol;		/* end-of-list sentinel */
 
 static char *opstr[Iopmax] = {
@@ -268,8 +279,76 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-Heap heapcode, heapcl, heapbox, heapas, heapdom, heapns, heappair,
-	heaprange, heapstr, heaptab, heapvec, heapxtn;
+static void freecl(Head*);
+static void freestr(Head*);
+static void freetab(Head*);
+static void freevec(Head*);
+
+static Head *iteras(Head*, Ictx*);
+static Head *iterbox(Head*, Ictx*);
+static Head *itercl(Head*, Ictx*);
+static Head *iterdom(Head*, Ictx*);
+static Head *iterns(Head*, Ictx*);
+static Head *iterpair(Head*, Ictx*);
+static Head *itertab(Head*, Ictx*);
+static Head *itervec(Head*, Ictx*);
+static Head *iterxtn(Head*, Ictx*);
+
+static Heap heap[Qnkind] = {
+	[Qas]	= { "as", sizeof(As), 0, iteras },
+	[Qbox]	= { "box", sizeof(Box),	0, iterbox },
+	[Qcl]	= { "closure", sizeof(Closure), freecl, itercl },
+	[Qcode]	= { "code", sizeof(Code), freecode, 0 },
+	[Qdom]	= { "domain", sizeof(Dom), 0, iterdom },
+	[Qns]	= { "ns", sizeof(Ns), 0, iterns },
+	[Qpair]	= { "pair", sizeof(Pair), 0, iterpair },
+	[Qrange] = { "range", sizeof(Range), 0, 0 },
+	[Qstr]	= { "string", sizeof(Str), freestr, 0 },
+	[Qtab]	= { "table", sizeof(Tab), freetab, itertab },
+	[Qvec]	= { "vector", sizeof(Vec), freevec, itervec },
+	[Qxtn]	= { "typename", sizeof(Xtypename), 0, iterxtn },
+};
+
+static u32 nohash(Val*);
+static u32 hashcval(Val*);
+static u32 hashptr(Val*);
+static u32 hashptrv(Val*);
+static u32 hashrange(Val*);
+static u32 hashstr(Val*);
+static u32 hashxtn(Val*);
+
+static int eqcval(Val*, Val*);
+static int eqptr(Val*, Val*);
+static int eqptrv(Val*, Val*);
+static int eqrange(Val*, Val*);
+static int eqstr(Val*, Val*);
+static int eqxtn(Val*, Val*);
+
+typedef struct Hashop {
+	u32 (*hash)(Val*);
+	int (*eq)(Val*, Val*);
+} Hashop;
+
+static Hashop hashop[Qnkind] = {
+	[Qundef] = { nohash, 0 },
+	[Qnil]	= { hashptrv, eqptrv },
+	[Qnulllist] = { hashptrv, eqptrv },
+	[Qas]	= { hashptr, eqptr },
+	[Qbox]	= { nohash, 0 },
+	[Qcl]	= { hashptr, eqptr },
+	[Qcode]	= { nohash, 0 },
+	[Qcval]	= { hashcval, eqcval },
+	[Qdom]	= { hashptr, eqptr },
+	[Qns]	= { hashptr, eqptr },
+	[Qpair]	= { hashptr, eqptr },
+	[Qrange] =  { hashrange, eqrange },
+	[Qstr]	= { hashstr, eqstr },
+	[Qtab]	= { hashptr, eqptr },
+	[Qtype]	= { hashptr, eqptr },
+	[Qvec]	= { hashptr, eqptr },
+	[Qxtn]	= { hashxtn, eqxtn },
+};
+
 static Code *kcode, *cccode;
 
 static void*
@@ -294,7 +373,7 @@ writebarrier()
 	   intel vol 3, chapter 10), things would be different. */
 }
 
-Head*
+static Head*
 halloc(Heap *heap)
 {
 	Head *o, *ap, *fp;
@@ -366,18 +445,14 @@ sweepheap(Heap *heap, unsigned color)
 static void
 sweep(unsigned color)
 {
-	sweepheap(&heapas, color);
-	sweepheap(&heapbox, color);
-	sweepheap(&heapcl, color);
-	sweepheap(&heapcode, color);
-	sweepheap(&heapdom, color);
-	sweepheap(&heapns, color);
-	sweepheap(&heappair, color);
-	sweepheap(&heaprange, color);
-	sweepheap(&heapstr, color);
-	sweepheap(&heaptab, color);
-	sweepheap(&heapvec, color);
-	sweepheap(&heapxtn, color);
+	unsigned i;
+	Heap *hp;
+
+	for(i = 0; i < Qnkind; i++){
+		hp = &heap[i];
+		if(hp->id)
+			sweepheap(hp, color);
+	}
 }
 
 static void
@@ -806,11 +881,17 @@ iterpair(Head *hd, Ictx *ictx)
 	}
 }
 
+Code*
+newcode()
+{
+	return (Code*)halloc(&heap[Qcode]);
+}
+
 Closure*
 mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 {
 	Closure *cl;
-	cl = (Closure*)halloc(&heapcl);
+	cl = (Closure*)halloc(&heap[Qcl]);
 	cl->code = code;
 	cl->entry = entry;
 	cl->dlen = len;
@@ -883,7 +964,6 @@ hashptr32shift(void *p)
 	key = key ^ (key >> 22);
 	return (u32)key;
 }
-
 
 /* one-at-a-time by jenkins */
 static u32
@@ -989,11 +1069,112 @@ eqstr(Val *a, Val *b)
 	return memcmp(sa->s, sb->s, sa->len) ? 0 : 1;
 }
 
+static u32
+hashxtn(Val *val)
+{
+	Val v;
+	u32 x;
+	Xtypename *xtn;
+	Vec *vec;
+	Imm m;
+	
+	xtn = valxtn(val);
+	switch(xtn->xtkind){
+	case Tbase:
+		return hash6432shift(xtn->basename);
+	case Ttypedef:
+		mkvalstr(xtn->tid, &v);
+		return hashstr(&v)<<xtn->xtkind;
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		mkvalstr(xtn->tag, &v);
+		return hashstr(&v)<<xtn->xtkind;
+	case Tptr:
+		mkvalxtn(xtn->link, &v);
+		return hashxtn(&v)<<xtn->xtkind;;
+	case Tarr:
+		mkvalxtn(xtn->link, &v);
+		x = hashxtn(&v)<<xtn->xtkind;
+		if(xtn->cnt.qkind == Qcval)
+			x ^= hashcval(&xtn->cnt);
+		return x;
+	case Tfun:
+		mkvalxtn(xtn->link, &v);
+		x = hashxtn(&v)<<xtn->xtkind;
+		for(m = 0; m < xtn->param->len; m++){
+			x <<= 1;
+			vec = valvec(vecref(xtn->param, m));
+			x ^= hashxtn(vecref(vec, Typepos));
+		}
+		return x;
+	default:
+		fatal("bug");
+	}
+}
+
+static int
+eqxtn(Val *a, Val *b)
+{
+	Val va, vb;
+	Xtypename *xa, *xb;
+	Imm m;
+
+	xa = valxtn(a);
+	xb = valxtn(b);
+
+	if(xa->xtkind != xb->xtkind)
+		return 0;
+
+	switch(xa->xtkind){
+	case Tbase:
+		return xa->basename == xb->basename;
+	case Ttypedef:
+		mkvalstr(xa->tid, &va);
+		mkvalstr(xb->tid, &vb);
+		return eqstr(&va, &vb);
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		mkvalstr(xa->tag, &va);
+		mkvalstr(xb->tag, &vb);
+		return eqstr(&va, &vb);
+	case Tptr:
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		return eqxtn(&va, &vb);
+	case Tarr:
+		if(xa->cnt.qkind != xb->cnt.qkind)
+			return 0;
+		if(xa->cnt.qkind == Qcval){
+			if(!eqcval(&xa->cnt, &xb->cnt))
+				return 0;
+		}
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		return eqxtn(&va, &vb);
+	case Tfun:
+		if(xa->param->len != xb->param->len)
+			return 0;
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		if(!eqxtn(&va, &vb))
+			return 0;
+		for(m = 0; m < xa->param->len; m++)
+			if(!eqxtn(vecref(valvec(vecref(xa->param, m)),Typepos),
+				  vecref(valvec(vecref(xb->param, m)),Typepos)))
+				return 0;
+		return 1;
+	default:
+		fatal("bug");
+	}
+}
+
 static Str*
 mkstr0(char *s)
 {
 	Str *str;
-	str = (Str*)halloc(&heapstr);
+	str = (Str*)halloc(&heap[Qstr]);
 	str->len = strlen(s);
 	str->s = xmalloc(str->len);
 	memcpy(str->s, s, str->len);
@@ -1004,7 +1185,7 @@ static Str*
 mkstr(char *s, unsigned long len)
 {
 	Str *str;
-	str = (Str*)halloc(&heapstr);
+	str = (Str*)halloc(&heap[Qstr]);
 	str->len = len;
 	str->s = xmalloc(str->len);
 	memcpy(str->s, s, str->len);
@@ -1015,7 +1196,7 @@ static Str*
 mkstrn(unsigned long len)
 {
 	Str *str;
-	str = (Str*)halloc(&heapstr);
+	str = (Str*)halloc(&heap[Qstr]);
 	str->len = len;
 	str->s = xmalloc(str->len);
 	return str;
@@ -1066,7 +1247,7 @@ mkvec(Imm len)
 {
 	Vec *vec;
 
-	vec = (Vec*)halloc(&heapvec);
+	vec = (Vec*)halloc(&heap[Qvec]);
 	vec->len = len;
 	vec->vec = xmalloc(len*sizeof(*vec->vec));
 	return vec;
@@ -1148,7 +1329,7 @@ static Tab*
 _mktab(Tabx *x)
 {
 	Tab *tab;
-	tab = (Tab*)halloc(&heaptab);
+	tab = (Tab*)halloc(&heap[Qtab]);
 	tab->x = x;
 	return tab;
 }
@@ -1213,15 +1394,17 @@ _tabget(Tab *tab, Val *keyv, Tabidx ***prev)
 	u32 idx;
 	Tabx *x;
 	unsigned kind;
+	Hashop *op;
 
 	x = tab->x;
 	kind = keyv->qkind;
-	idx = Qhash[kind](keyv)&(x->sz-1);
+	op = &hashop[kind];
+	idx = op->hash(keyv)&(x->sz-1);
 	p = &x->idx[idx];
 	tk = *p;
 	while(tk){
 		kv = &x->key[tk->idx];
-		if(kv->qkind == kind && Qeq[kind](keyv, kv)){
+		if(kv->qkind == kind && op->eq(keyv, kv)){
 			if(prev)
 				*prev = p;
 			return tk;
@@ -1259,7 +1442,7 @@ tabexpand(VM *vm, Tab *tab)
 		while(tk){
 			nxt = tk->link;
 			kv = &x->key[tk->idx];
-			idx = Qhash[kv->qkind](kv)&(nx->sz-1);
+			idx = hashop[kv->qkind].hash(kv)&(nx->sz-1);
 			tk->link = nx->idx[idx];
 			nx->idx[idx] = tk;
 			nx->key[m] = x->key[tk->idx];
@@ -1314,7 +1497,7 @@ tabput(VM *vm, Tab *tab, Val *keyv, Val *val)
 	tk->idx = x->nxt;
 	x->key[tk->idx] = *keyv;
 	x->val[tk->idx] = *val;
-	idx = Qhash[keyv->qkind](keyv)&(x->sz-1);
+	idx = hashop[keyv->qkind].hash(keyv)&(x->sz-1);
 	tk->link = x->idx[idx];
 	x->idx[idx] = tk;
 	x->nxt++;
@@ -1372,7 +1555,7 @@ static Xtypename*
 mkxtn()
 {
 	Xtypename *xtn;
-	xtn = (Xtypename*)halloc(&heapxtn);
+	xtn = (Xtypename*)halloc(&heap[Qxtn]);
 	return xtn;
 }
 
@@ -1432,7 +1615,7 @@ static As*
 mkas()
 {
 	As *as;
-	as = (As*)halloc(&heapas);
+	as = (As*)halloc(&heap[Qas]);
 	return as;
 }
 
@@ -1453,7 +1636,7 @@ static Dom*
 mkdom()
 {
 	Dom *dom;
-	dom = (Dom*)halloc(&heapdom);
+	dom = (Dom*)halloc(&heap[Qdom]);
 	return dom;
 }
 
@@ -1476,7 +1659,7 @@ static Ns*
 mkns()
 {
 	Ns *ns;
-	ns = (Ns*)halloc(&heapns);
+	ns = (Ns*)halloc(&heap[Qns]);
 	return ns;
 }
 
@@ -1487,14 +1670,12 @@ iterns(Head *hd, Ictx *ictx)
 	ns = (Ns*)hd;
 	switch(ictx->n++){
 	case 0:
-		return (Head*)ns->tid;
-	case 1:
-		return (Head*)ns->tag;
-	case 2:
 		return (Head*)ns->sym;
-	case 3:
+	case 1:
+		return (Head*)ns->type;
+	case 2:
 		return (Head*)ns->looksym;
-	case 4:
+	case 3:
 		return (Head*)ns->looktype;
 	default:
 		return 0;
@@ -1592,7 +1773,7 @@ static void
 mkvalbox(Val *boxed, Val *vp)
 {
 	Box *box;
-	box = (Box*)halloc(&heapbox);
+	box = (Box*)halloc(&heap[Qbox]);
 	box->v = *boxed;
 	vp->qkind = Qbox;
 	vp->u.box = box;
@@ -1623,7 +1804,7 @@ static void
 mkvalpair(Val *car, Val *cdr, Val *vp)
 {
 	Pair *pair;
-	pair = (Pair*)halloc(&heappair);
+	pair = (Pair*)halloc(&heap[Qpair]);
 	pair->car = *car;
 	pair->cdr = *cdr;
 	vp->qkind = Qpair;
@@ -1663,7 +1844,7 @@ mkvalrange(Cval *beg, Cval *len, Val *vp)
 {
 	Range *r;
 
-	r = (Range*)halloc(&heaprange);
+	r = (Range*)halloc(&heap[Qrange]);
 	r->beg = *beg;
 	r->len = *len;
 	vp->qkind = Qrange;
@@ -2059,7 +2240,7 @@ getvalrand(VM *vm, Operand *r, Val *vp)
 		break;
 	case Olits:
 		vp->qkind = Qstr;
-		vp->u.str = (Str*)halloc(&heapstr);
+		vp->u.str = (Str*)halloc(&heap[Qstr]);
 		strinit(vp->u.str, r->u.lits);
 		break;
 	case Onil:
@@ -3215,160 +3396,6 @@ xdomns(VM *vm, Operand *domo, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
-typedef
-struct NSctx {
-	Tab *otid, *otag, *osym;	/* bindings passed to @names */
-	Tab *rawtid, *rawtag, *rawsym;	/* @names declarations */
-	Tab *tid, *tag, *sym;		/* resulting bindings */
-} NSctx;
-
-static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
-
-static Xtypename*
-resolvetid(VM *vm, Str *tid, NSctx *ctx)
-{
-	Val *rv, idv, v;
-	Xtypename *xtn, *new;
-
-	mkvalstr(tid, &idv);
-
-	/* have we already defined this type in the new namespace? */
-	rv = tabget(ctx->tid, &idv);
-	if(rv)
-		return valxtn(rv);
-
-	/* do we have an unprocessed definition for the type? */
-	rv = tabget(ctx->rawtid, &idv);
-	if(rv){
-		xtn = valxtn(rv);
-		new = mkxtn();
-		new->xtkind = Ttypedef;
-		new->tid = tid;
-		mkvalxtn(new, &v);
-		tabput(vm, ctx->tid, &idv, &v);
-		new->link = resolvetypename(vm, xtn, ctx);
-		return new;
-	}
-
-	/* does the ns from which we inherit have a definition? */
-	rv = tabget(ctx->otid, &idv);
-	if(rv){
-		xtn = valxtn(rv);
-		new = mkxtn();
-		new->xtkind = Ttypedef;
-		new->tid = tid;
-		mkvalxtn(new, &v);
-		tabput(vm, ctx->tid, &idv, &v);
-		new->link = xtn; /* already resolved */
-		return new;
-	}
-
-	/* FIXME: should warn if only need ptr to type */
-	vmerr(vm, "undefined type %.*s", tid->len, tid->s);
-}
-
-static Xtypename*
-resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
-{
-	Val *rv, idv, v, *vp, *sz;
-	Xtypename *xtn, *tmp;
-	Vec *vec, *fld, *fv;
-	Imm i;
-
-	mkvalstr(tag, &idv);
-	rv = tabget(ctx->tag, &idv);
-	if(rv){
-		xtn = valxtn(rv);
-		if(xtn->xtkind != kind)
-			vmerr(vm, "tag %.*s reused", tag->len, tag->s);
-		return xtn;
-	}
-
-	rv = tabget(ctx->rawtag, &idv);
-	if(rv == 0)
-		/* FIXME: warn if only need ptr to type */
-		vmerr(vm, "undefined type %s %.*s",
-		      (kind == Tstruct ? "struct"
-		       : (kind == Tunion ? "union" : "enum")),
-		      tag->len, tag->s);
-
-	vec = valvec(rv);
-	xtn = valxtn(vecref(vec, 0));
-	if(xtn->xtkind != kind)
-		vmerr(vm, "tag %.*s reused", tag->len, tag->s);
-
-	fld = valvec(vecref(vec, 1));
-	sz = vecref(vec, 2);
-
-	xtn = mkxtn();
-	xtn->xtkind = kind;
-	xtn->field = mkvec(fld->len);
-	xtn->sz = *sz;
-	mkvalxtn(xtn, &v);
-	tabput(vm, ctx->tag, &idv, &v);
-	for(i = 0; i < fld->len; i++){
-		vec = valvec(vecref(fld, i));
-		vp = vecref(vec, Typepos);
-		tmp = valxtn(vp);
-		tmp = resolvetypename(vm, tmp, ctx);
-		fv = mkvec(3);
-
-		mkvalxtn(tmp, &v);
-		_vecset(fv, Typepos, &v);	/* type */
-		_vecset(fv, 1, vecref(fld, 1));	/* id */
-		_vecset(fv, 2, vecref(fld, 2));	/* offset */
-
-		mkvalvec(fv, &v);
-		_vecset(xtn->field, i, &v);
-	}
-	return xtn;
-}
-
-static unsigned
-resolvebase(VM *vm, unsigned basename, NSctx *ctx)
-{
-	/* ctx->ns should define basename */
-	return Ru32le;
-}
-
-static Xtypename*
-resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
-{
-	Vec *vec;
-	Val v;
-	Xtypename *tmp;
-	Imm i;
-
-	switch(xtn->xtkind){
-	case Tbase:
-		if(xtn->rep == Rundef)
-			xtn->rep = resolvebase(vm, xtn->basename, ctx);
-		return xtn;
-	case Ttypedef:
-		xtn->link = resolvetid(vm, xtn->tid, ctx);
-		return xtn;
-	case Tstruct:
-	case Tunion:
-		return resolvetag(vm, xtn->xtkind, xtn->tag, ctx);
-	case Tarr:
-	case Tptr:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		return xtn;
-	case Tfun:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		for(i = 0; i < xtn->param->len; i++){
-			vec = valvec(vecref(xtn->param, i));
-			tmp = valxtn(vecref(vec, Typepos));
-			tmp = resolvetypename(vm, tmp, ctx);
-			mkvalxtn(tmp, &v);
-			vecset(vm, vec, Typepos, &v); 
-		}
-		return xtn;
-	default:
-		fatal("bug");
-	}
-}
-
 /* enumsym for namespaces constructed by @names */
 static void
 enumsym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
@@ -3387,19 +3414,12 @@ static void
 enumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Ns *ns;
-	Vec *vec;
-	Val v;
 
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to enumtype");
 
 	ns = valns(&disp[0]);
-	vec = mkvec(2);
-	mkvaltab(ns->tid, &v);
-	_vecset(vec, 0, &v);
-	mkvaltab(ns->tag, &v);
-	_vecset(vec, 1, &v);
-	mkvalvec(vec, rv);
+	mkvaltab(ns->type, rv);
 }
 
 /* looksym for namespaces constructed by @names */
@@ -3437,15 +3457,187 @@ looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	fatal("i'm not done");	/* recursive type resolve */
 }
 
+typedef
+struct NSctx {
+	Tab *otype, *osym;	/* bindings passed to @names */
+	Tab *rawtype, *rawsym;	/* @names declarations */
+	Tab *type, *sym;	/* resulting bindings */
+} NSctx;
+
+static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
+
+static Xtypename*
+resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
+{
+	Val *rv, v;
+	Xtypename *xtn, *new;
+
+	/* have we already defined this type in the new namespace? */
+	rv = tabget(ctx->type, xtnv);
+	if(rv)
+		return valxtn(rv);
+
+	/* do we have an unprocessed definition for the type? */
+	rv = tabget(ctx->rawtype, xtnv);
+	if(rv){
+		xtn = valxtn(rv);
+		new = mkxtn();
+		new->xtkind = Ttypedef;
+		new->tid = xtn->tid;
+
+		/* bind before recursive resolve call to stop cycles */
+		mkvalxtn(new, &v);
+		tabput(vm, ctx->type, xtnv, &v);
+
+		new->link = resolvetypename(vm, xtn, ctx);
+		return new;
+	}
+
+	/* does the ns from which we inherit have a definition? */
+	rv = tabget(ctx->otype, xtnv);
+	if(rv){
+		tabput(vm, ctx->type, xtnv, rv);
+		return valxtn(rv);
+	}
+
+	/* FIXME: should warn if only need ptr to type */
+	xtn = valxtn(xtnv);
+	vmerr(vm, "undefined type %.*s", xtn->tid->len, xtn->tid->s);
+}
+
+static Xtypename*
+resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
+{
+	Val *rv, v, *vp, *sz;
+	Xtypename *xtn, *new, *tmp;
+	Vec *vec, *fld, *fv;
+	Imm i;
+
+	/* have we already defined this type in the new namespace? */
+	rv = tabget(ctx->type, xtnv);
+	if(rv)
+		return valxtn(rv);
+
+	/* do we have an unprocessed definition for the type? */
+	rv = tabget(ctx->rawtype, xtnv);
+	if(rv){
+		vec = valvec(rv);
+		xtn = valxtn(vecref(vec, Typepos));
+		fld = valvec(vecref(vec, 1));
+		sz = vecref(vec, 2);
+
+		new = mkxtn();
+		new->xtkind = xtn->xtkind;
+		new->tag = xtn->tag;
+		new->field = mkvec(fld->len);
+		new->sz = *sz;
+
+		/* bind before recursive resolve call to stop cycles */
+		mkvalxtn(new, &v);
+		tabput(vm, ctx->type, xtnv, &v);
+
+		for(i = 0; i < fld->len; i++){
+			vec = valvec(vecref(fld, i));
+			vp = vecref(vec, Typepos);
+			tmp = valxtn(vp);
+			tmp = resolvetypename(vm, tmp, ctx);
+			fv = mkvec(3);
+			
+			mkvalxtn(tmp, &v);
+			_vecset(fv, Typepos, &v);	/* type */
+			_vecset(fv, 1, vecref(fld, 1));	/* id */
+			_vecset(fv, 2, vecref(fld, 2));	/* offset */
+			
+			mkvalvec(fv, &v);
+			_vecset(xtn->field, i, &v);
+		}
+		return new;
+	}
+
+	/* does the ns from which we inherit have a definition? */
+	rv = tabget(ctx->otype, xtnv);
+	if(rv){
+		tabput(vm, ctx->type, xtnv, rv);
+		return valxtn(rv);
+	}
+
+	/* FIXME: warn if only need ptr to type */
+	xtn = valxtn(xtnv);
+	vmerr(vm, "undefined type %s %.*s",
+	      (xtn->xtkind == Tstruct ? "struct"
+	       : (xtn->xtkind == Tunion ? "union" : "enum")),
+	      xtn->tag->len, xtn->tag->s);
+}
+
+static Xtypename*
+resolvebase(VM *vm, Val *xtnv, NSctx *ctx)
+{
+	Val *rv;
+	Xtypename *xtn;
+
+	/* have we already defined this type in the new namespace? */
+	rv = tabget(ctx->type, xtnv);
+	if(rv)
+		return valxtn(rv);
+
+	/* does the ns from which we inherit have a definition? */
+	rv = tabget(ctx->otype, xtnv);
+	if(rv){
+		tabput(vm, ctx->type, xtnv, rv);
+		return valxtn(rv);
+	}
+	
+	xtn = valxtn(xtnv);
+	vmerr(vm, "undefined base type %s", basename[xtn->basename]);
+}
+
+static Xtypename*
+resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
+{
+	Vec *vec;
+	Val v;
+	Xtypename *tmp;
+	Imm i;
+
+	switch(xtn->xtkind){
+	case Tbase:
+		mkvalxtn(xtn, &v);
+		return resolvebase(vm, &v, ctx);
+	case Ttypedef:
+		mkvalxtn(xtn, &v);
+		xtn->link = resolvetid(vm, &v, ctx);
+		return xtn;
+	case Tstruct:
+	case Tunion:
+		mkvalxtn(xtn, &v);
+		return resolvetag(vm, &v, ctx);
+	case Tarr:
+	case Tptr:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		return xtn;
+	case Tfun:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		for(i = 0; i < xtn->param->len; i++){
+			vec = valvec(vecref(xtn->param, i));
+			tmp = valxtn(vecref(vec, Typepos));
+			tmp = resolvetypename(vm, tmp, ctx);
+			mkvalxtn(tmp, &v);
+			vecset(vm, vec, Typepos, &v); 
+		}
+		return xtn;
+	default:
+		fatal("bug");
+	}
+}
+
 static void
 xns(VM *vm, Operand *invec, Operand *dst)
 {
-	Val v, *vp;
+	Val v, *idv, *vecv, *vp;
 	Vec *vec;
 	Tabx *x;
 	Tabidx *tk;
 	Xtypename *xtn;
-	Str *id;
 	NSctx ctx;
 	u32 i;
 	Ns *ons, *ns;
@@ -3457,41 +3649,22 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	vp = vecref(vec, 0);
 	ons = valns(vp);
 	vp = vecref(vec, 1);
-	ctx.rawtid = valtab(vp);
+	ctx.rawtype = valtab(vp);
 	vp = vecref(vec, 2);
-	ctx.rawtag = valtab(vp);
-	vp = vecref(vec, 3);
 	ctx.rawsym = valtab(vp);
 
-	ctx.tid = mktab();
-	ctx.tag = mktab();
+	ctx.type = mktab();
 	ctx.sym = mktab();
 
-	vec = valvec(dovm(vm, ons->enumtype, 0, 0));
-	ctx.otid = valtab(vecref(vec, 0));
-	ctx.otag = valtab(vecref(vec, 1));
+	ctx.otype = valtab(dovm(vm, ons->enumtype, 0, 0));
 	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
 
-	x = ctx.rawtid->x;
+	x = ctx.rawtype->x;
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
-			/* tid -> xtn */
-			id = valstr(&x->key[tk->idx]);
-			resolvetid(vm, id, &ctx);
-			tk = tk->link;
-		}
-	}
-
-	x = ctx.rawtag->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
-			/* tag -> [ xtn, fields, sz ] */
-			id = valstr(&x->key[tk->idx]);
-			vec = valvec(&x->val[tk->idx]);
-			xtn = valxtn(vecref(vec, 0));
-			resolvetag(vm, xtn->xtkind, id, &ctx);
+			xtn = valxtn(&x->key[tk->idx]);
+			resolvetypename(vm, xtn, &ctx);
 			tk = tk->link;
 		}
 	}
@@ -3501,18 +3674,20 @@ xns(VM *vm, Operand *invec, Operand *dst)
 		tk = x->idx[i];
 		while(tk){
 			/* id -> [ xtn, id, off ] */
-			vec = valvec(&x->val[tk->idx]);
+			idv = &x->key[tk->idx];
+			vecv = &x->val[tk->idx];
+			vec = valvec(vecv);
 			xtn = valxtn(vecref(vec, Typepos));
 			xtn = resolvetypename(vm, xtn, &ctx);
 			mkvalxtn(xtn, &v);
-			vecset(vm, vec, Typepos, &v);
+			vecset(vm, vec, Typepos, &v); /* reuse source vec */
+			tabput(vm, ctx.sym, idv, vecv);
 			tk = tk->link;
 		}
 	}
 
 	ns = mkns();
-	ns->tid = ctx.tid;
-	ns->tag = ctx.tag;
+	ns->type = ctx.type;
 	ns->sym = ctx.sym;
 	mkvalns(ns, &v);
 	ns->enumsym = mkccl("enumsym", enumsym, 1, &v);
@@ -3523,28 +3698,56 @@ xns(VM *vm, Operand *invec, Operand *dst)
 }
 
 static void
-xnssym(VM *vm, Operand *nso, Operand *dst)
+xnsesym(VM *vm, Operand *nso, Operand *dst)
 {
 	Val nv, rv;
 	Ns *ns;
 
 	getvalrand(vm, nso, &nv);
 	if(nv.qkind != Qns)
-		vmerr(vm, "nssym on non-namespace");
+		vmerr(vm, "nsesym on non-namespace");
+	ns = valns(&nv);
+	mkvalcl(ns->enumsym, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xnsetype(VM *vm, Operand *nso, Operand *dst)
+{
+	Val nv, rv;
+	Ns *ns;
+
+	getvalrand(vm, nso, &nv);
+	if(nv.qkind != Qns)
+		vmerr(vm, "nsesym on non-namespace");
+	ns = valns(&nv);
+	mkvalcl(ns->enumtype, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xnslsym(VM *vm, Operand *nso, Operand *dst)
+{
+	Val nv, rv;
+	Ns *ns;
+
+	getvalrand(vm, nso, &nv);
+	if(nv.qkind != Qns)
+		vmerr(vm, "nslsym on non-namespace");
 	ns = valns(&nv);
 	mkvalcl(ns->looksym, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
 static void
-xnstype(VM *vm, Operand *nso, Operand *dst)
+xnsltype(VM *vm, Operand *nso, Operand *dst)
 {
 	Val nv, rv;
 	Ns *ns;
 
 	getvalrand(vm, nso, &nv);
 	if(nv.qkind != Qns)
-		vmerr(vm, "nssym on non-namespace");
+		vmerr(vm, "nslsym on non-namespace");
 	ns = valns(&nv);
 	mkvalcl(ns->looktype, &rv);
 	putvalrand(vm, &rv, dst);
@@ -3757,8 +3960,10 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ineg] 	= &&Ineg;
 		gotab[Inot] 	= &&Inot;
 		gotab[Ins]	= &&Ins;
-		gotab[Inssym]	= &&Inssym;
-		gotab[Instype]	= &&Instype;
+		gotab[Insesym]	= &&Insesym;
+		gotab[Insetype]	= &&Insetype;
+		gotab[Inslsym]	= &&Inslsym;
+		gotab[Insltype]	= &&Insltype;
 		gotab[Inull] 	= &&Inull;
 		gotab[Ior] 	= &&Ior;
 		gotab[Inop] 	= &&Inop;
@@ -4089,11 +4294,17 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Ins:
 		xns(vm, &i->op1, &i->dst);
 		continue;
-	Inssym:
-		xnssym(vm, &i->op1, &i->dst);
+	Inslsym:
+		xnslsym(vm, &i->op1, &i->dst);
 		continue;
-	Instype:
-		xnstype(vm, &i->op1, &i->dst);
+	Insltype:
+		xnsltype(vm, &i->op1, &i->dst);
+		continue;
+	Insesym:
+		xnsesym(vm, &i->op1, &i->dst);
+		continue;
+	Insetype:
+		xnsetype(vm, &i->op1, &i->dst);
 		continue;
 	}
 	return 0;
@@ -4134,7 +4345,6 @@ testfoo(VM *vm, Imm argc, Val *argv, Val *rv)
 		printval(&argv[i]);
 		printf("\n");
 	}
-	
 	mkvalstr(mkstr0("returned!"), rv);
 }
 
@@ -4241,49 +4451,6 @@ initvm()
 	Xnil.qkind = Qnil;
 	Xnulllist.qkind = Qnulllist;
 
-	heapas.id = "as";
-	heapbox.id = "box";
-	heapcl.id = "closure";
-	heapcode.id = "code";
-	heapdom.id = "dom";
-	heapns.id = "ns";
-	heappair.id = "pair";
-	heaprange.id = "range";
-	heapstr.id = "string";
-	heaptab.id = "table";
-	heapvec.id = "vector";
-	heapxtn.id = "typename";
-
-	heapas.sz = sizeof(As);
-	heapbox.sz = sizeof(Box);
-	heapcl.sz = sizeof(Closure);
-	heapcode.sz = sizeof(Code);
-	heapdom.sz = sizeof(Dom);
-	heapns.sz = sizeof(Ns);
-	heappair.sz = sizeof(Pair);
-	heaprange.sz = sizeof(Range);
-	heapstr.sz = sizeof(Str);
-	heaptab.sz = sizeof(Tab);
-	heapvec.sz = sizeof(Vec);
-	heapxtn.sz = sizeof(Xtypename);
-
-	heapcode.free1 = freecode;
-	heapcl.free1 = freecl;
-	heapstr.free1 = freestr;
-	heaptab.free1 = freetab;
-	heapvec.free1 = freevec;
-
-	heapas.iter = iteras;
-	heapbox.iter = iterbox;
-	heapcl.iter = itercl;
-	heapdom.iter = iterdom;
-	heappair.iter = iterpair;
-	heapns.iter = iterns;
-	heaptab.iter = itertab;
-	heapvec.iter = itervec;
-	heapxtn.iter = iterxtn;
-	/* FIXME: itercval? to walk Xtype */
-
 	kcode = contcode();
 	cccode = callccode();
 
@@ -4295,44 +4462,15 @@ initvm()
 	stores.setlink = setstoreslink;
 	stores.getolink = getrootslink;
 
-	Qhash[Qundef] = nohash;
-	Qhash[Qnil] = hashptrv;
-	Qhash[Qnulllist] = hashptrv;
-	Qhash[Qas] = hashptr;
-	Qhash[Qcval] = hashcval;
-	Qhash[Qcl] = hashptr;
-	Qhash[Qbox] = nohash;
-	Qhash[Qdom] = hashptr;
-	Qhash[Qns] = hashptr;
-	Qhash[Qpair] = hashptr;
-	Qhash[Qrange] = hashrange;
-	Qhash[Qstr] = hashstr;
-	Qhash[Qtab] = hashptr;
-	Qhash[Qtype] = hashptr;
-	Qhash[Qvec] = hashptr;
-
-	Qeq[Qundef] = 0;
-	Qeq[Qnil] = eqptrv;
-	Qeq[Qnulllist] = eqptrv;
-	Qeq[Qas] = eqptr;
-	Qeq[Qcval] = eqcval;
-	Qeq[Qcl] = eqptr;
-	Qeq[Qbox] = 0;
-	Qeq[Qdom] = eqptr;
-	Qeq[Qns] = eqptr;
-	Qeq[Qpair] = eqptr;
-	Qeq[Qrange] = eqrange;
-	Qeq[Qstr] = eqstr;
-	Qeq[Qtab] = eqptr;
-	Qeq[Qtype] = eqptr;
-	Qeq[Qvec] = eqptr;
-
 	gcreset();
 }
 
 void
 finivm()
 {
+	unsigned i;
+	Heap *hp;
+
 	gcreset();		/* clear store set (FIXME: still needed?) */
 	gc(0);
 	gc(0);	/* must run two epochs without mutator to collect everything */
@@ -4340,16 +4478,9 @@ finivm()
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);
 
-	freeheap(&heapas);
-	freeheap(&heapbox);
-	freeheap(&heapcl); 
-	freeheap(&heapcode);
-	freeheap(&heapdom);
-	freeheap(&heapns);
-	freeheap(&heappair);
-	freeheap(&heaprange);
-	freeheap(&heapstr);
-	freeheap(&heaptab);
-	freeheap(&heapvec);
-	freeheap(&heapxtn);
+	for(i = 0; i < Qnkind; i++){
+		hp = &heap[i];
+		if(hp->id)
+			freeheap(hp);
+	}
 }

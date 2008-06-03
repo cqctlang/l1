@@ -57,8 +57,10 @@ enum {
 	Ineg,
 	Inot,
 	Ins,
-	Inssym,
-	Instype,
+	Insesym,
+	Insetype,
+	Inslsym,
+	Insltype,
 	Inull,
 	Ior,
 	Inop,
@@ -133,25 +135,6 @@ struct Ictx {
 	void *x;
 } Ictx;
 
-typedef struct Head Head;
-typedef struct Heap Heap;
-struct Head {
-	unsigned color;
-	Heap *heap;
-	Head *link;
-	Head *slink;
-	Head *alink;
-	int state;
-};
-
-struct Heap {
-	char *id;
-	Head *alloc, *swept, *sweep, *free;
-	unsigned sz;
-	Head* (*iter)(Head *hd, Ictx *ictx);
-	void (*free1)(Head *hd);
-};
-
 typedef struct Val Val;
 
 typedef
@@ -202,6 +185,17 @@ struct Insn {
 	Ctl *dstlabel;
 } Insn;
 
+typedef struct Head Head;
+typedef struct Heap Heap;
+struct Head {
+	unsigned color;
+	Heap *heap;
+	Head *link;
+	Head *slink;
+	Head *alink;
+	int state;
+};
+
 struct Code {
 	Head hd;
 	unsigned long refcnt;
@@ -222,6 +216,7 @@ typedef struct Env Env;
 
 void initcompile();
 void finicompile();
+Code* newcode();
 Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 void docompile0(Expr *e);
 Closure* compileentry(Expr *el, Env *env, int flags);
@@ -287,6 +282,4 @@ VM* mkvm(Env*);
 void freevm(VM*);
 Val* dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 
-Head* halloc(Heap *heap);
 void freecode(Head *hd);
-extern Heap heapcode;

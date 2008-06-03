@@ -115,7 +115,7 @@ mkcode()
 {
 	Code *code;
 	
-	code = (Code*)halloc(&heapcode);
+	code = newcode();
 	code->maxinsn = InsnAlloc;
 	code->insn = xmalloc(code->maxinsn*sizeof(Insn));
 	code->labels = xmalloc(code->maxinsn*sizeof(Ctl*));
@@ -675,14 +675,26 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
-	case Inssym:
-		printf("nssym ");
+	case Insesym:
+		printf("nsesym ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
-	case Instype:
-		printf("nstype ");
+	case Insetype:
+		printf("nsetype ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Inslsym:
+		printf("nslsym ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
+	case Insltype:
+		printf("nsltype ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
