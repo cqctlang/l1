@@ -152,8 +152,7 @@ struct Ns {
 
 	/* data for instances created by @names */
 	/* but these could be pushed into closure defining interface */
-	Tab *tid;
-	Tab *tag;
+	Tab *type;
 	Tab *sym;
 };
 
@@ -224,6 +223,14 @@ static Cval* valcval(Val *v);
 static Pair* valpair(Val *v);
 static Range* valrange(Val *v);
 static Str* valstr(Val *v);
+static Vec* valvec(Val *v);
+static Xtypename* valxtn(Val *v);
+static void mkvalstr(Str *str, Val *vp);
+static void mkvalxtn(Xtypename *xtn, Val *vp);
+
+static Val* vecref(Vec *vec, Imm idx);
+static void _vecset(Vec *vec, Imm idx, Val *v);
+static void vecset(VM *vm, Vec *vec, Imm idx, Val *v);
 
 static Val Xundef;
 static Val Xnil;
@@ -308,12 +315,14 @@ static u32 hashptr(Val*);
 static u32 hashptrv(Val*);
 static u32 hashrange(Val*);
 static u32 hashstr(Val*);
+static u32 hashxtn(Val*);
 
 static int eqcval(Val*, Val*);
 static int eqptr(Val*, Val*);
 static int eqptrv(Val*, Val*);
 static int eqrange(Val*, Val*);
 static int eqstr(Val*, Val*);
+static int eqxtn(Val*, Val*);
 
 typedef struct Hashop {
 	u32 (*hash)(Val*);
@@ -337,7 +346,7 @@ static Hashop hashop[Qnkind] = {
 	[Qtab]	= { hashptr, eqptr },
 	[Qtype]	= { hashptr, eqptr },
 	[Qvec]	= { hashptr, eqptr },
-	[Qxtn]	= { nohash, 0 }, /* FIXME: use structural equivalence */
+	[Qxtn]	= { hashxtn, eqxtn },
 };
 
 static Code *kcode, *cccode;
@@ -1060,6 +1069,107 @@ eqstr(Val *a, Val *b)
 	return memcmp(sa->s, sb->s, sa->len) ? 0 : 1;
 }
 
+static u32
+hashxtn(Val *val)
+{
+	Val v;
+	u32 x;
+	Xtypename *xtn;
+	Vec *vec;
+	Imm m;
+	
+	xtn = valxtn(val);
+	switch(xtn->xtkind){
+	case Tbase:
+		return hash6432shift(xtn->basename);
+	case Ttypedef:
+		mkvalstr(xtn->tid, &v);
+		return hashstr(&v)<<xtn->xtkind;
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		mkvalstr(xtn->tag, &v);
+		return hashstr(&v)<<xtn->xtkind;
+	case Tptr:
+		mkvalxtn(xtn->link, &v);
+		return hashxtn(&v)<<xtn->xtkind;;
+	case Tarr:
+		mkvalxtn(xtn->link, &v);
+		x = hashxtn(&v)<<xtn->xtkind;
+		if(xtn->cnt.qkind == Qcval)
+			x ^= hashcval(&xtn->cnt);
+		return x;
+	case Tfun:
+		mkvalxtn(xtn->link, &v);
+		x = hashxtn(&v)<<xtn->xtkind;
+		for(m = 0; m < xtn->param->len; m++){
+			x <<= 1;
+			vec = valvec(vecref(xtn->param, m));
+			x ^= hashxtn(vecref(vec, Typepos));
+		}
+		return x;
+	default:
+		fatal("bug");
+	}
+}
+
+static int
+eqxtn(Val *a, Val *b)
+{
+	Val va, vb;
+	Xtypename *xa, *xb;
+	Imm m;
+
+	xa = valxtn(a);
+	xb = valxtn(b);
+
+	if(xa->xtkind != xb->xtkind)
+		return 0;
+
+	switch(xa->xtkind){
+	case Tbase:
+		return xa->basename == xb->basename;
+	case Ttypedef:
+		mkvalstr(xa->tid, &va);
+		mkvalstr(xb->tid, &vb);
+		return eqstr(&va, &vb);
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		mkvalstr(xa->tag, &va);
+		mkvalstr(xb->tag, &vb);
+		return eqstr(&va, &vb);
+	case Tptr:
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		return eqxtn(&va, &vb);
+	case Tarr:
+		if(xa->cnt.qkind != xb->cnt.qkind)
+			return 0;
+		if(xa->cnt.qkind == Qcval){
+			if(!eqcval(&xa->cnt, &xb->cnt))
+				return 0;
+		}
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		return eqxtn(&va, &vb);
+	case Tfun:
+		if(xa->param->len != xb->param->len)
+			return 0;
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		if(!eqxtn(&va, &vb))
+			return 0;
+		for(m = 0; m < xa->param->len; m++)
+			if(!eqxtn(vecref(valvec(vecref(xa->param, m)),Typepos),
+				  vecref(valvec(vecref(xb->param, m)),Typepos)))
+				return 0;
+		return 1;
+	default:
+		fatal("bug");
+	}
+}
+
 static Str*
 mkstr0(char *s)
 {
@@ -1560,14 +1670,12 @@ iterns(Head *hd, Ictx *ictx)
 	ns = (Ns*)hd;
 	switch(ictx->n++){
 	case 0:
-		return (Head*)ns->tid;
-	case 1:
-		return (Head*)ns->tag;
-	case 2:
 		return (Head*)ns->sym;
-	case 3:
+	case 1:
+		return (Head*)ns->type;
+	case 2:
 		return (Head*)ns->looksym;
-	case 4:
+	case 3:
 		return (Head*)ns->looktype;
 	default:
 		return 0;
@@ -3288,143 +3396,6 @@ xdomns(VM *vm, Operand *domo, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
-typedef
-struct NSctx {
-	Tab *otid, *otag, *osym;	/* bindings passed to @names */
-	Tab *rawtid, *rawtag, *rawsym;	/* @names declarations */
-	Tab *tid, *tag, *sym;		/* resulting bindings */
-} NSctx;
-
-static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
-
-static Xtypename*
-resolvetid(VM *vm, Str *tid, NSctx *ctx)
-{
-	Val *rv, idv, v;
-	Xtypename *xtn, *new;
-
-	mkvalstr(tid, &idv);
-	rv = tabget(ctx->tid, &idv);
-	if(rv)
-		return valxtn(rv);
-
-	rv = tabget(ctx->rawtid, &idv);
-	if(rv == 0)
-		/* FIXME: warn if only need ptr to type */
-		vmerr(vm, "undefined type %.*s", tid->len, tid->s);
-
-	xtn = valxtn(rv);
-	new = mkxtn();
-	new->xtkind = Ttypedef;
-	new->tid = tid;
-	mkvalxtn(new, &v);
-	tabput(vm, ctx->tid, &idv, &v);
-	new->link = resolvetypename(vm, xtn, ctx);
-	return new;
-}
-
-static Xtypename*
-resolvetag(VM *vm, unsigned kind, Str *tag, NSctx *ctx)
-{
-	Val *rv, idv, v, *vp, *sz;
-	Xtypename *xtn, *tmp;
-	Vec *vec, *fld, *fv;
-	Imm i;
-
-	mkvalstr(tag, &idv);
-	rv = tabget(ctx->tag, &idv);
-	if(rv){
-		xtn = valxtn(rv);
-		if(xtn->xtkind != kind)
-			vmerr(vm, "tag %.*s reused", tag->len, tag->s);
-		return xtn;
-	}
-
-	rv = tabget(ctx->rawtag, &idv);
-	if(rv == 0)
-		/* FIXME: warn if only need ptr to type */
-		vmerr(vm, "undefined type %s %.*s",
-		      (kind == Tstruct ? "struct"
-		       : (kind == Tunion ? "union" : "enum")),
-		      tag->len, tag->s);
-
-	vec = valvec(rv);
-	xtn = valxtn(vecref(vec, 0));
-	if(xtn->xtkind != kind)
-		vmerr(vm, "tag %.*s reused", tag->len, tag->s);
-
-	fld = valvec(vecref(vec, 1));
-	sz = vecref(vec, 2);
-
-	xtn = mkxtn();
-	xtn->xtkind = kind;
-	xtn->field = mkvec(fld->len);
-	xtn->sz = *sz;
-	mkvalxtn(xtn, &v);
-	tabput(vm, ctx->tag, &idv, &v);
-	for(i = 0; i < fld->len; i++){
-		vec = valvec(vecref(fld, i));
-		vp = vecref(vec, Typepos);
-		tmp = valxtn(vp);
-		tmp = resolvetypename(vm, tmp, ctx);
-		fv = mkvec(3);
-
-		mkvalxtn(tmp, &v);
-		_vecset(fv, Typepos, &v);	/* type */
-		_vecset(fv, 1, vecref(fld, 1));	/* id */
-		_vecset(fv, 2, vecref(fld, 2));	/* offset */
-
-		mkvalvec(fv, &v);
-		_vecset(xtn->field, i, &v);
-	}
-	return xtn;
-}
-
-static unsigned
-resolvebase(VM *vm, unsigned basename, NSctx *ctx)
-{
-	/* ctx->ns should define basename */
-	return Ru32le;
-}
-
-static Xtypename*
-resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
-{
-	Vec *vec;
-	Val v;
-	Xtypename *tmp;
-	Imm i;
-
-	switch(xtn->xtkind){
-	case Tbase:
-		if(xtn->rep == Rundef)
-			xtn->rep = resolvebase(vm, xtn->basename, ctx);
-		return xtn;
-	case Ttypedef:
-		xtn->link = resolvetid(vm, xtn->tid, ctx);
-		return xtn;
-	case Tstruct:
-	case Tunion:
-		return resolvetag(vm, xtn->xtkind, xtn->tag, ctx);
-	case Tarr:
-	case Tptr:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		return xtn;
-	case Tfun:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		for(i = 0; i < xtn->param->len; i++){
-			vec = valvec(vecref(xtn->param, i));
-			tmp = valxtn(vecref(vec, Typepos));
-			tmp = resolvetypename(vm, tmp, ctx);
-			mkvalxtn(tmp, &v);
-			vecset(vm, vec, Typepos, &v); 
-		}
-		return xtn;
-	default:
-		fatal("bug");
-	}
-}
-
 /* enumsym for namespaces constructed by @names */
 static void
 enumsym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
@@ -3443,19 +3414,12 @@ static void
 enumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Ns *ns;
-	Vec *vec;
-	Val v;
 
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to enumtype");
 
 	ns = valns(&disp[0]);
-	vec = mkvec(2);
-	mkvaltab(ns->tid, &v);
-	_vecset(vec, 0, &v);
-	mkvaltab(ns->tag, &v);
-	_vecset(vec, 1, &v);
-	mkvalvec(vec, rv);
+	mkvaltab(ns->type, rv);
 }
 
 /* looksym for namespaces constructed by @names */
@@ -3493,15 +3457,187 @@ looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	fatal("i'm not done");	/* recursive type resolve */
 }
 
+typedef
+struct NSctx {
+	Tab *otype, *osym;	/* bindings passed to @names */
+	Tab *rawtype, *rawsym;	/* @names declarations */
+	Tab *type, *sym;	/* resulting bindings */
+} NSctx;
+
+static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
+
+static Xtypename*
+resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
+{
+	Val *rv, v;
+	Xtypename *xtn, *new;
+
+	/* have we already defined this type in the new namespace? */
+	rv = tabget(ctx->type, xtnv);
+	if(rv)
+		return valxtn(rv);
+
+	/* do we have an unprocessed definition for the type? */
+	rv = tabget(ctx->rawtype, xtnv);
+	if(rv){
+		xtn = valxtn(rv);
+		new = mkxtn();
+		new->xtkind = Ttypedef;
+		new->tid = xtn->tid;
+
+		/* bind before recursive resolve call to stop cycles */
+		mkvalxtn(new, &v);
+		tabput(vm, ctx->type, xtnv, &v);
+
+		new->link = resolvetypename(vm, xtn, ctx);
+		return new;
+	}
+
+	/* does the ns from which we inherit have a definition? */
+	rv = tabget(ctx->otype, xtnv);
+	if(rv){
+		tabput(vm, ctx->type, xtnv, rv);
+		return valxtn(rv);
+	}
+
+	/* FIXME: should warn if only need ptr to type */
+	xtn = valxtn(xtnv);
+	vmerr(vm, "undefined type %.*s", xtn->tid->len, xtn->tid->s);
+}
+
+static Xtypename*
+resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
+{
+	Val *rv, v, *vp, *sz;
+	Xtypename *xtn, *new, *tmp;
+	Vec *vec, *fld, *fv;
+	Imm i;
+
+	/* have we already defined this type in the new namespace? */
+	rv = tabget(ctx->type, xtnv);
+	if(rv)
+		return valxtn(rv);
+
+	/* do we have an unprocessed definition for the type? */
+	rv = tabget(ctx->rawtype, xtnv);
+	if(rv){
+		vec = valvec(rv);
+		xtn = valxtn(vecref(vec, Typepos));
+		fld = valvec(vecref(vec, 1));
+		sz = vecref(vec, 2);
+
+		new = mkxtn();
+		new->xtkind = xtn->xtkind;
+		new->tag = xtn->tag;
+		new->field = mkvec(fld->len);
+		new->sz = *sz;
+
+		/* bind before recursive resolve call to stop cycles */
+		mkvalxtn(new, &v);
+		tabput(vm, ctx->type, xtnv, &v);
+
+		for(i = 0; i < fld->len; i++){
+			vec = valvec(vecref(fld, i));
+			vp = vecref(vec, Typepos);
+			tmp = valxtn(vp);
+			tmp = resolvetypename(vm, tmp, ctx);
+			fv = mkvec(3);
+			
+			mkvalxtn(tmp, &v);
+			_vecset(fv, Typepos, &v);	/* type */
+			_vecset(fv, 1, vecref(fld, 1));	/* id */
+			_vecset(fv, 2, vecref(fld, 2));	/* offset */
+			
+			mkvalvec(fv, &v);
+			_vecset(xtn->field, i, &v);
+		}
+		return new;
+	}
+
+	/* does the ns from which we inherit have a definition? */
+	rv = tabget(ctx->otype, xtnv);
+	if(rv){
+		tabput(vm, ctx->type, xtnv, rv);
+		return valxtn(rv);
+	}
+
+	/* FIXME: warn if only need ptr to type */
+	xtn = valxtn(xtnv);
+	vmerr(vm, "undefined type %s %.*s",
+	      (xtn->xtkind == Tstruct ? "struct"
+	       : (xtn->xtkind == Tunion ? "union" : "enum")),
+	      xtn->tag->len, xtn->tag->s);
+}
+
+static Xtypename*
+resolvebase(VM *vm, Val *xtnv, NSctx *ctx)
+{
+	Val *rv;
+	Xtypename *xtn;
+
+	/* have we already defined this type in the new namespace? */
+	rv = tabget(ctx->type, xtnv);
+	if(rv)
+		return valxtn(rv);
+
+	/* does the ns from which we inherit have a definition? */
+	rv = tabget(ctx->otype, xtnv);
+	if(rv){
+		tabput(vm, ctx->type, xtnv, rv);
+		return valxtn(rv);
+	}
+	
+	xtn = valxtn(xtnv);
+	vmerr(vm, "undefined base type %s", basename[xtn->basename]);
+}
+
+static Xtypename*
+resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
+{
+	Vec *vec;
+	Val v;
+	Xtypename *tmp;
+	Imm i;
+
+	switch(xtn->xtkind){
+	case Tbase:
+		mkvalxtn(xtn, &v);
+		return resolvebase(vm, &v, ctx);
+	case Ttypedef:
+		mkvalxtn(xtn, &v);
+		xtn->link = resolvetid(vm, &v, ctx);
+		return xtn;
+	case Tstruct:
+	case Tunion:
+		mkvalxtn(xtn, &v);
+		return resolvetag(vm, &v, ctx);
+	case Tarr:
+	case Tptr:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		return xtn;
+	case Tfun:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		for(i = 0; i < xtn->param->len; i++){
+			vec = valvec(vecref(xtn->param, i));
+			tmp = valxtn(vecref(vec, Typepos));
+			tmp = resolvetypename(vm, tmp, ctx);
+			mkvalxtn(tmp, &v);
+			vecset(vm, vec, Typepos, &v); 
+		}
+		return xtn;
+	default:
+		fatal("bug");
+	}
+}
+
 static void
 xns(VM *vm, Operand *invec, Operand *dst)
 {
-	Val v, *vp;
+	Val v, *idv, *vecv, *vp;
 	Vec *vec;
 	Tabx *x;
 	Tabidx *tk;
 	Xtypename *xtn;
-	Str *id;
 	NSctx ctx;
 	u32 i;
 	Ns *ons, *ns;
@@ -3513,36 +3649,22 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	vp = vecref(vec, 0);
 	ons = valns(vp);
 	vp = vecref(vec, 1);
-	ctx.rawtid = valtab(vp);
+	ctx.rawtype = valtab(vp);
 	vp = vecref(vec, 2);
-	ctx.rawtag = valtab(vp);
-	vp = vecref(vec, 3);
 	ctx.rawsym = valtab(vp);
 
-	ctx.tid = mktab();
-	ctx.tag = mktab();
+	ctx.type = mktab();
 	ctx.sym = mktab();
 
-	x = ctx.rawtid->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
-			/* tid -> xtn */
-			id = valstr(&x->key[tk->idx]);
-			resolvetid(vm, id, &ctx);
-			tk = tk->link;
-		}
-	}
+	ctx.otype = valtab(dovm(vm, ons->enumtype, 0, 0));
+	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
 
-	x = ctx.rawtag->x;
+	x = ctx.rawtype->x;
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
-			/* tag -> [ xtn, fields, sz ] */
-			id = valstr(&x->key[tk->idx]);
-			vec = valvec(&x->val[tk->idx]);
-			xtn = valxtn(vecref(vec, 0));
-			resolvetag(vm, xtn->xtkind, id, &ctx);
+			xtn = valxtn(&x->key[tk->idx]);
+			resolvetypename(vm, xtn, &ctx);
 			tk = tk->link;
 		}
 	}
@@ -3552,18 +3674,20 @@ xns(VM *vm, Operand *invec, Operand *dst)
 		tk = x->idx[i];
 		while(tk){
 			/* id -> [ xtn, id, off ] */
-			vec = valvec(&x->val[tk->idx]);
+			idv = &x->key[tk->idx];
+			vecv = &x->val[tk->idx];
+			vec = valvec(vecv);
 			xtn = valxtn(vecref(vec, Typepos));
 			xtn = resolvetypename(vm, xtn, &ctx);
 			mkvalxtn(xtn, &v);
-			vecset(vm, vec, Typepos, &v);
+			vecset(vm, vec, Typepos, &v); /* reuse source vec */
+			tabput(vm, ctx.sym, idv, vecv);
 			tk = tk->link;
 		}
 	}
 
 	ns = mkns();
-	ns->tid = ctx.tid;
-	ns->tag = ctx.tag;
+	ns->type = ctx.type;
 	ns->sym = ctx.sym;
 	mkvalns(ns, &v);
 	ns->enumsym = mkccl("enumsym", enumsym, 1, &v);
@@ -3768,15 +3892,15 @@ vmsetcl(VM *vm, Closure *cl)
 	}
 }
 
-void
-dovm(VM *vm, Closure *cl)
+Val*
+dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	static int once;
-	static Closure *halt;
 	static Val haltv;
+	static Closure *halt;
 	Insn *i;
 	Val val;
-	Imm narg, onarg;
+	Imm m, narg, onarg;
 
 	if(!once){
 		once = 1;
@@ -3886,13 +4010,15 @@ dovm(VM *vm, Closure *cl)
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
-	/* push call to halt thunk */
+	/* push frame for halt thunk */
 	mkvalimm(vm->fp, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &haltv);	/* cl */
 	mkvalimm(halt->entry, &val);
 	vmpush(vm, &val);	/* pc */
-	mkvalimm(0, &val);
+	for(m = argc; m > 0; m--)
+		vmpush(vm, &argv[m-1]);
+	mkvalimm(argc, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
@@ -3902,7 +4028,7 @@ dovm(VM *vm, Closure *cl)
 	vm->pc = vm->clx->entry;
 
 	if(setjmp(vm->esc) != 0)
-		return;		/* error throw */
+		return 0;		/* error throw */
 
 	while(1){
 		i = &vm->ibuf[vm->pc++];
@@ -3992,7 +4118,7 @@ dovm(VM *vm, Closure *cl)
 		printf("halted (ac = ");
 		printval(&vm->ac);
 		printf(")\n");
-		return;
+		return &vm->ac;
 	Iret:
 		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1;/*narg+1*/
 		vm->fp = valimm(&vm->stack[vm->sp+2]);
@@ -4181,6 +4307,7 @@ dovm(VM *vm, Closure *cl)
 		xnsetype(vm, &i->op1, &i->dst);
 		continue;
 	}
+	return 0;
 }
 
 static void
@@ -4208,9 +4335,25 @@ builtinns(Env *env, char *name, Ns *ns)
 }
 
 static void
+testfoo(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	unsigned i;
+
+	printf("you called foo with %lld args!\n", argc);
+	for(i = 0; i < argc; i++){
+		printf("argv[%d] = ", i);
+		printval(&argv[i]);
+		printf("\n");
+	}
+
+	mkvalstr(mkstr0("returned!"), rv);
+}
+
+static void
 testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	unsigned i;
+	Closure *cl;
 
 	printf("you called it with %lld args!\n", argc);
 	for(i = 0; i < argc; i++){
@@ -4219,7 +4362,9 @@ testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 		printf("\n");
 	}
 
-	dovm(vm, dingthunk());
+	cl = mkcfn("testfoo", testfoo);
+	rv = dovm(vm, cl, argc, argv);
+	printval(rv);
 	printf("returned from dovm\n");
 }
 

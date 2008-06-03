@@ -10,10 +10,9 @@ enum {
 	Vaddr	= 1<<4,
 	Vstr	= 1<<5,
 	Vns	= 1<<6,
-	Vtid	= 1<<7,
-	Vtag	= 1<<8,
-	Vsym	= 1<<9,
-	Vtn	= 1<<10,
+	Vtypetab= 1<<7,
+	Vsym	= 1<<8,
+	Vtn	= 1<<9,
 };
 
 typedef struct Var Var;
@@ -39,8 +38,7 @@ struct Varset
 	char *addr;
 	char *str;
 	char *ns;
-	char *tid;
-	char *tag;
+	char *typetab;
 	char *sym;
 	char *tn;
 } Varset;
@@ -249,10 +247,8 @@ bindings(Vars *vars, Varset *outer, int req)
 			vs->str = freshvar(vars, "$str");
 		if(req&Vns)
 			vs->ns = freshvar(vars, "$ns");
-		if(req&Vtid)
-			vs->tid = freshvar(vars, "$tid");
-		if(req&Vtag)
-			vs->tag = freshvar(vars, "$tag");
+		if(req&Vtypetab)
+			vs->typetab = freshvar(vars, "$typetab");
 		if(req&Vsym)
 			vs->sym = freshvar(vars, "$sym");
 		if(req&Vtn)
@@ -266,8 +262,8 @@ bindings(Vars *vars, Varset *outer, int req)
 	vs->addr = outer->addr ? outer->addr : freshvar(vars, "$addr");
 	vs->str = outer->str ? outer->str : freshvar(vars, "$str");
 	vs->ns = outer->ns ? outer->ns : freshvar(vars, "$ns");
-	vs->tid = outer->tid ? outer->tid : freshvar(vars, "$tid");
-	vs->tag = outer->tag ? outer->tag : freshvar(vars, "$tag");
+	vs->typetab = (outer->typetab ? outer->typetab
+		       : freshvar(vars, "$typetab"));
 	vs->sym = outer->sym ? outer->sym : freshvar(vars, "$sym");
 	vs->tn = outer->tn ? outer->tn : freshvar(vars, "$tn");
 	return vs;
@@ -293,10 +289,8 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->str), e);
 		if(lvs->ns)
 			e = Qcons(doid(lvs->ns), e);
-		if(lvs->tid)
-			e = Qcons(doid(lvs->tid), e);
-		if(lvs->tag)
-			e = Qcons(doid(lvs->tag), e);
+		if(lvs->typetab)
+			e = Qcons(doid(lvs->typetab), e);
 		if(lvs->sym)
 			e = Qcons(doid(lvs->sym), e);
 		if(lvs->tn)
@@ -314,10 +308,8 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->str), e);
 		if(lvs->ns != pvs->ns)
 			e = Qcons(doid(lvs->ns), e);
-		if(lvs->tid != pvs->tid)
-			e = Qcons(doid(lvs->tid), e);
-		if(lvs->tag != pvs->tag)
-			e = Qcons(doid(lvs->tag), e);
+		if(lvs->typetab != pvs->typetab)
+			e = Qcons(doid(lvs->typetab), e);
 		if(lvs->sym != pvs->sym)
 			e = Qcons(doid(lvs->sym), e);
 		if(lvs->tn != pvs->tn)
@@ -392,9 +384,12 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		tn->e1 = Qstr(t->tag);
 		se = Qcall(doid("vector"), 3, tn, se, sz);
 
+		tn = newexpr(E_tn, 0, 0, 0, 0);
+		tn->xn = TBITS(t->kind, Vnil);
+		tn->e1 = Qstr(t->tag);
+
 		te = nullelist();
-		se = Qcall(doid("tabinsert"), 3,
-			  doid(lvs->tag), Qstr(t->tag), se);
+		se = Qcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, se);
 		te = Qcons(se, te);
 		
 		e->xn = TBITS(t->kind, Vnil);
@@ -595,15 +590,13 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		poplevel(vars);
 		break;
 	case Ens:
-		binds = Vns|Vtid|Vtag|Vsym;
+		binds = Vns|Vtypetab|Vsym;
 		lvs = bindings(vars, pvs, binds);
 		pushlevel(vars);
 
 		te = nullelist();
 
-		se = Qset(doid(lvs->tid), Qcall(doid("table"), 0));
-		te = Qcons(se, te);
-		se = Qset(doid(lvs->tag), Qcall(doid("table"), 0));
+		se = Qset(doid(lvs->typetab), Qcall(doid("table"), 0));
 		te = Qcons(se, te);
 		se = Qset(doid(lvs->sym), Qcall(doid("table"), 0));
 		te = Qcons(se, te);
@@ -633,10 +626,9 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 
 		/* new name space */
 		se = Qcall(doid("mkns"), 1,
-			   Qcall(doid("vector"), 4,
+			   Qcall(doid("vector"), 3,
 				 doid(lvs->ns),
-				 doid(lvs->tid),
-				 doid(lvs->tag),
+				 doid(lvs->typetab),
 				 doid(lvs->sym)));
 		te = Qcons(se, te);
 

@@ -88,7 +88,7 @@ main(int argc, char *argv[])
 		if(flags&Fexec){
 			if(flags&Ftime)
 				gettimeofday(&beg, 0);
-			dovm(vm, entry);
+			dovm(vm, entry, 0, 0);
 			if(flags&Ftime){
 				gettimeofday(&end, 0);
 				tvdiff(&end, &beg, &end);
