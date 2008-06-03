@@ -285,7 +285,7 @@ void initvm();
 void finivm();
 VM* mkvm(Env*);
 void freevm(VM*);
-void dovm(VM* vm, Closure *cl);
+Val* dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 
 Head* halloc(Heap *heap);
 void freecode(Head *hd);

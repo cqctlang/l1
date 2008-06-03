@@ -3231,23 +3231,40 @@ resolvetid(VM *vm, Str *tid, NSctx *ctx)
 	Xtypename *xtn, *new;
 
 	mkvalstr(tid, &idv);
+
+	/* have we already defined this type in the new namespace? */
 	rv = tabget(ctx->tid, &idv);
 	if(rv)
 		return valxtn(rv);
 
+	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtid, &idv);
-	if(rv == 0)
-		/* FIXME: warn if only need ptr to type */
-		vmerr(vm, "undefined type %.*s", tid->len, tid->s);
+	if(rv){
+		xtn = valxtn(rv);
+		new = mkxtn();
+		new->xtkind = Ttypedef;
+		new->tid = tid;
+		mkvalxtn(new, &v);
+		tabput(vm, ctx->tid, &idv, &v);
+		new->link = resolvetypename(vm, xtn, ctx);
+		return new;
+	}
 
-	xtn = valxtn(rv);
-	new = mkxtn();
-	new->xtkind = Ttypedef;
-	new->tid = tid;
-	mkvalxtn(new, &v);
-	tabput(vm, ctx->tid, &idv, &v);
-	new->link = resolvetypename(vm, xtn, ctx);
-	return new;
+	/* does the ns from which we inherit have a definition? */
+	rv = tabget(ctx->otid, &idv);
+	if(rv){
+		xtn = valxtn(rv);
+		new = mkxtn();
+		new->xtkind = Ttypedef;
+		new->tid = tid;
+		mkvalxtn(new, &v);
+		tabput(vm, ctx->tid, &idv, &v);
+		new->link = xtn; /* already resolved */
+		return new;
+	}
+
+	/* FIXME: should warn if only need ptr to type */
+	vmerr(vm, "undefined type %.*s", tid->len, tid->s);
 }
 
 static Xtypename*
@@ -3449,6 +3466,11 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	ctx.tid = mktab();
 	ctx.tag = mktab();
 	ctx.sym = mktab();
+
+	vec = valvec(dovm(vm, ons->enumtype, 0, 0));
+	ctx.otid = valtab(vecref(vec, 0));
+	ctx.otag = valtab(vecref(vec, 1));
+	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
 
 	x = ctx.rawtid->x;
 	for(i = 0; i < x->sz; i++){
@@ -3667,14 +3689,15 @@ vmsetcl(VM *vm, Closure *cl)
 	}
 }
 
-void
-dovm(VM *vm, Closure *cl)
+Val*
+dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	static int once;
+	static Val haltv;
+	static Closure *halt;
 	Insn *i;
-	Val val, haltv;
-	Closure *halt;
-	Imm narg, onarg;
+	Val val;
+	Imm m, narg, onarg;
 
 	if(!once){
 		once = 1;
@@ -3782,13 +3805,15 @@ dovm(VM *vm, Closure *cl)
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
-	/* push call to halt thunk */
+	/* push frame for halt thunk */
 	mkvalimm(vm->fp, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &haltv);	/* cl */
 	mkvalimm(halt->entry, &val);
 	vmpush(vm, &val);	/* pc */
-	mkvalimm(0, &val);
+	for(m = argc; m > 0; m--)
+		vmpush(vm, &argv[m-1]);
+	mkvalimm(argc, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
@@ -3798,7 +3823,7 @@ dovm(VM *vm, Closure *cl)
 	vm->pc = vm->clx->entry;
 
 	if(setjmp(vm->esc) != 0)
-		return;		/* error throw */
+		return 0;		/* error throw */
 
 	while(1){
 		i = &vm->ibuf[vm->pc++];
@@ -3888,7 +3913,7 @@ dovm(VM *vm, Closure *cl)
 		printf("halted (ac = ");
 		printval(&vm->ac);
 		printf(")\n");
-		return;
+		return &vm->ac;
 	Iret:
 		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1;/*narg+1*/
 		vm->fp = valimm(&vm->stack[vm->sp+2]);
@@ -4071,6 +4096,7 @@ dovm(VM *vm, Closure *cl)
 		xnstype(vm, &i->op1, &i->dst);
 		continue;
 	}
+	return 0;
 }
 
 static void
@@ -4098,9 +4124,25 @@ builtinns(Env *env, char *name, Ns *ns)
 }
 
 static void
+testfoo(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	unsigned i;
+
+	printf("you called foo with %lld args!\n", argc);
+	for(i = 0; i < argc; i++){
+		printf("argv[%d] = ", i);
+		printval(&argv[i]);
+		printf("\n");
+	}
+	
+	mkvalstr(mkstr0("returned!"), rv);
+}
+
+static void
 testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	unsigned i;
+	Closure *cl;
 
 	printf("you called it with %lld args!\n", argc);
 	for(i = 0; i < argc; i++){
@@ -4109,7 +4151,9 @@ testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 		printf("\n");
 	}
 
-	dovm(vm, dingthunk());
+	cl = mkcfn("testfoo", testfoo);
+	rv = dovm(vm, cl, argc, argv);
+	printval(rv);
 	printf("returned from dovm\n");
 }
 
