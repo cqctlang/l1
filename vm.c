@@ -361,6 +361,18 @@ read_and_clear(void *pp)
 	return q;
 }
 
+static inline
+void atomic_inc(int *p)
+{
+	asm("lock incl %0" : "+m" (*p));
+}
+
+static inline
+void atomic_dec(int *p)
+{
+	asm("lock decl %0" : "+m" (*p));
+}
+
 static void
 writebarrier()
 {
@@ -427,7 +439,8 @@ sweepheap(Heap *heap, unsigned color)
 			if(heap->free1)
 				heap->free1(p);
 			if(p->state != 0)
-				fatal("sweep heap bad state %d", p->state);
+				fatal("sweep heap (%s) bad state %d",
+				      heap->id, p->state);
 			p->link = heap->sweep;
 			p->slink = 0;
 			p->state = -1;
@@ -489,15 +502,27 @@ static void
 addroot(Rootset *rs, Head *h)
 {
 	int x;
+	static int once = 0;
 
 	if(h == 0)
 		return;
+
 	if(rs->getlink(h))
 		return;		/* already on rootlist */
+
+	if(rs == &stores && !once){
+		once++;
+		printf("addroot stores %p\n", h);
+	}
+
 	x = h->state;
 	if(x > 2 || x < 0)
 		fatal("addroot bad state %d", x);
-	h->state++;
+	atomic_inc(&h->state);
+//	h->state++;
+	if(rs == &stores && rs->roots != &eol)
+		printf("it happened to %p (%p, %p)!\n",
+		       h, h->slink, rs->roots);
 	rs->setlink(h, rs->roots);
 	writebarrier();
 	rs->roots = h;
@@ -520,7 +545,8 @@ removeroot(Rootset *rs)
 	x = h->state;
 	if(x > 2 || x <= 0)
 		fatal("remove root bad state %d", x);
-	h->state--;
+//	h->state--;
+	atomic_dec(&h->state);
 	rs->setlink(h, 0);
 	return h;
 }
@@ -537,16 +563,16 @@ getrootslink(Head *h)
 	return h->link;
 }
 
-static Head*
-getstoreslink(Head *h)
-{
-	return h->slink;
-}
-
 static void
 setrootslink(Head *h, Head *v)
 {
 	h->link = v;
+}
+
+static Head*
+getstoreslink(Head *h)
+{
+	return h->slink;
 }
 
 static void
@@ -644,13 +670,13 @@ gcreset()
 static void
 gc(VM *vm)
 {
+	gcreset();
 	rootset(vm);
 	gcepoch++;
 	mark(GCCOLOR(gcepoch));
 	sweep(GCCOLOR(gcepoch-2));
 	while(!rootsetempty(&stores))
 		mark(GCCOLOR(gcepoch));
-	gcreset();
 }
 
 enum {
@@ -775,6 +801,8 @@ gcchild(void *p)
 		while(!rootsetempty(&stores)){
 			if(!die)
 				resumemutator(vm);
+			if(die)
+				printf("clearing stores\n");
 			mark(GCCOLOR(gcepoch));
 			if(!die)
 				die = waitmutator(vm);
@@ -1249,7 +1277,7 @@ mkvec(Imm len)
 
 	vec = (Vec*)halloc(&heap[Qvec]);
 	vec->len = len;
-	vec->vec = xmalloc(len*sizeof(*vec->vec));
+	vec->vec = xmalloc(len*sizeof(Val));
 	return vec;
 }
 
@@ -4307,7 +4335,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		xnsetype(vm, &i->op1, &i->dst);
 		continue;
 	}
-	return 0;
 }
 
 static void
@@ -4365,6 +4392,59 @@ testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 	rv = dovm(vm, cl, argc, argv);
 	printval(rv);
 	printf("returned from dovm\n");
+}
+
+static void
+l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Imm tod;
+	struct timeval tv;
+
+	gettimeofday(&tv, 0);
+	tod = tv.tv_sec;
+	tod *= 1000000;
+	tod += tv.tv_usec;
+	mkvalcval(0, tod, rv);
+}
+
+static void
+l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	Val *arg0;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to randseed");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qcval)
+		vmerr(vm, "operand 1 to randseed must be an integer");
+
+	cv = valcval(arg0);
+	srand((unsigned int)cv->val);
+}
+
+static void
+l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	Val *arg0;
+	Imm r;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to randseed");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qcval)
+		vmerr(vm, "operand 1 to randseed must be an integer");
+
+	cv = valcval(arg0);
+	if(cv->val > RAND_MAX)
+		vmerr(vm, "operand to rand exceeds RAND_MAX (%d)", RAND_MAX);
+	if(cv->val == 0)
+		vmerr(vm, "operand to rand must be positive");
+	
+	r = rand();
+	r %= cv->val;
+	mkvalcval(0, r, rv);
 }
 
 VM*
@@ -4425,6 +4505,10 @@ mkvm(Env *env)
 	builtinfn(env, "vecref", vecrefthunk());
 	builtinfn(env, "vecset", vecsetthunk());
 
+	builtinfn(env, "gettimeofday", mkcfn("gettimeofday", l1_gettimeofday));
+	builtinfn(env, "randseed", mkcfn("randseed", l1_randseed));
+	builtinfn(env, "rand", mkcfn("rand", l1_rand));
+
 	builtinstr(env, "$get", "get");
 	builtinstr(env, "$put", "put");
 	builtinstr(env, "$looksym", "looksym");
@@ -4461,8 +4545,6 @@ initvm()
 	stores.getlink = getstoreslink;
 	stores.setlink = setstoreslink;
 	stores.getolink = getrootslink;
-
-	gcreset();
 }
 
 void
@@ -4471,9 +4553,12 @@ finivm()
 	unsigned i;
 	Heap *hp;
 
-	gcreset();		/* clear store set (FIXME: still needed?) */
+//	gcreset();		/* clear store set (FIXME: still needed?) */
+	printf("fini 1\n");
 	gc(0);
+	printf("fini 2\n");
 	gc(0);	/* must run two epochs without mutator to collect everything */
+	printf("fini 3\n");
 
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);
