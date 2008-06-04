@@ -257,15 +257,18 @@ static char *opstr[Iopmax] = {
 	[Icmple] = "<=",
 };
 
+typedef struct Root Root;
+struct Root {
+	Head *hd;
+	Root *link;
+};
+
 typedef
 struct Rootset {
-	Head *roots;
-	Head *last;
-	Head *before_last;
-	Head *this;
-	Head *(*getlink)(Head *);
-	Head *(*getolink)(Head *);
-	void (*setlink)(Head *, Head *);
+	Root *roots;
+	Root *last;
+	Root *before_last;
+	Root *this;
 } Rootset;
 
 static Rootset roots;
@@ -497,41 +500,47 @@ valhead(Val *v)
 	}
 }
 
+static Root*
+newroot()
+{
+	return xmalloc(sizeof(Root));
+}
+
+static void
+freeroot(Root *r)
+{
+	free(r);
+}
+
 /* called on roots by marker.  called on stores by mutator. */
 static void
 addroot(Rootset *rs, Head *h)
 {
 	int x;
-	static int once = 0;
+	Root *r;
 
 	if(h == 0)
 		return;
 
-	if(rs->getlink(h))
-		return;		/* already on rootlist */
-
-	if(rs == &stores && !once){
-		once++;
-		printf("addroot stores %p\n", h);
-	}
-
-	x = h->state;
-	if(x > 2 || x < 0)
-		fatal("addroot bad state %d", x);
-	atomic_inc(&h->state);
+	/* test if already on a rootlist */
+//	x = h->state;
+//	if(x > 2 || x < 0)
+//		fatal("addroot bad state %d", x);
+//	atomic_inc(&h->state);
 //	h->state++;
-	if(rs == &stores && rs->roots != &eol)
-		printf("it happened to %p (%p, %p)!\n",
-		       h, h->slink, rs->roots);
-	rs->setlink(h, rs->roots);
+
+	r = newroot();
+	r->hd = h;
+	r->link = rs->roots;
 	writebarrier();
-	rs->roots = h;
+	rs->roots = r;
 }
 
 static Head*
 removeroot(Rootset *rs)
 {
 	Head *h;
+	Root *r;
 	int x;
 
 	if(rs->this == rs->before_last){
@@ -540,14 +549,15 @@ removeroot(Rootset *rs)
 	}
 	if(rs->this == rs->before_last)
 		return 0;
-	h = rs->this;
-	rs->this = rs->getlink(h);
-	x = h->state;
-	if(x > 2 || x <= 0)
-		fatal("remove root bad state %d", x);
+	r = rs->this;
+	rs->this = r->link;
+	h = r->hd;
+//	x = h->state;
+//	if(x > 2 || x <= 0)
+//		fatal("remove root bad state %d", x);
 //	h->state--;
-	atomic_dec(&h->state);
-	rs->setlink(h, 0);
+//	atomic_dec(&h->state);
+//	rs->setlink(h, 0);
 	return h;
 }
 
@@ -557,29 +567,29 @@ rootsetempty(Rootset *rs)
 	return rs->before_last == rs->roots;
 }
 
-static Head*
-getrootslink(Head *h)
-{
-	return h->link;
-}
-
-static void
-setrootslink(Head *h, Head *v)
-{
-	h->link = v;
-}
-
-static Head*
-getstoreslink(Head *h)
-{
-	return h->slink;
-}
-
-static void
-setstoreslink(Head *h, Head *v)
-{
-	h->slink = v;
-}
+//static Head*
+//getrootslink(Head *h)
+//{
+//	return h->link;
+//}
+//
+//static void
+//setrootslink(Head *h, Head *v)
+//{
+//	h->link = v;
+//}
+//
+//static Head*
+//getstoreslink(Head *h)
+//{
+//	return h->slink;
+//}
+//
+//static void
+//setstoreslink(Head *h, Head *v)
+//{
+//	h->slink = v;
+//}
 
 static void
 markhead(Head *hd, unsigned color)
@@ -654,10 +664,22 @@ rootset(VM *vm)
 static void
 rootsetreset(Rootset *rs)
 {
-	rs->roots = &eol;
-	rs->last = &eol;
-	rs->before_last = &eol;
-	rs->this = &eol;
+	Root *r, *nxt;
+//	rs->roots = &eol;
+//	rs->last = &eol;
+//	rs->before_last = &eol;
+//	rs->this = &eol;
+
+	r = rs->roots;
+	while(r){
+		nxt = r->link;
+		freeroot(r);
+		r = nxt;
+	}
+	rs->roots = 0;
+	rs->last = 0;
+	rs->before_last = 0;
+	rs->this = 0;
 }
 
 static void
@@ -801,8 +823,6 @@ gcchild(void *p)
 		while(!rootsetempty(&stores)){
 			if(!die)
 				resumemutator(vm);
-			if(die)
-				printf("clearing stores\n");
 			mark(GCCOLOR(gcepoch));
 			if(!die)
 				die = waitmutator(vm);
@@ -4538,13 +4558,10 @@ initvm()
 	kcode = contcode();
 	cccode = callccode();
 
-	roots.getlink = getrootslink;
-	roots.setlink = setrootslink;
-	roots.getolink = getstoreslink;
-
-	stores.getlink = getstoreslink;
-	stores.setlink = setstoreslink;
-	stores.getolink = getrootslink;
+//	roots.getlink = getrootslink;
+//	roots.setlink = setrootslink;
+//	stores.getlink = getstoreslink;
+//	stores.setlink = setstoreslink;
 }
 
 void
@@ -4554,11 +4571,8 @@ finivm()
 	Heap *hp;
 
 //	gcreset();		/* clear store set (FIXME: still needed?) */
-	printf("fini 1\n");
 	gc(0);
-	printf("fini 2\n");
 	gc(0);	/* must run two epochs without mutator to collect everything */
-	printf("fini 3\n");
 
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);
