@@ -1,0 +1,79 @@
+randvec = lambda(len){
+	@local v, i, t;
+
+	v = mkvec(len);
+	for(i = 0; i < len; i++)
+		vecset(v, i, cons(i, null()));
+	for(i = 0; i < len; i++){
+		x = rand(len);
+		y = rand(len);
+		t = vecref(v, x);
+		vecset(v, x, vecref(v, y));
+		vecset(v, y, t);
+	}
+	return v;
+};
+
+vecpartition = lambda(v, lo, hi, cmp){
+	@local nl, i, el, p, temp, x;
+
+	if(hi > veclen(v) || hi < lo)
+		return hi+1;	/* stop */
+
+	el = vecref(v, lo);
+	i = lo-1;
+	p = hi+1;
+	while(1){
+		do
+			p--;
+		while(cmp(vecref(v, p), el) == 2);
+
+		do
+			i++;
+		while(cmp(vecref(v, i), el) == 1);
+		
+		if(i < p){
+			temp = vecref(v, i);
+			vecset(v, i, vecref(v, p));
+			vecset(v, p, temp);
+		}else
+			return p;
+	}
+};
+
+vqs = lambda(v, lo, hi, cmp){
+	@local i;
+	if(lo < hi){
+		i = vecpartition(v, lo, hi, cmp);
+		if(i < hi){	/* workaround for lack of negative numbers */
+			vqs(v, lo, i, cmp);
+			vqs(v, i+1, hi, cmp);
+		}
+	}
+};
+
+mycmp = lambda(a, b){
+	@local xa, xb;
+	xa = car(a);
+	xb = car(b);
+	if(xa < xb)
+		return 1;
+	if(xa > xb)
+		return 2;
+	return 0;
+};
+
+testsort = lambda(len){
+	@local tod, v, i;
+	tod = gettimeofday();
+	randseed(tod);
+	v = randvec(len);
+	vqs(v, 0, len-1, mycmp);
+	for(i = 0; i < len; i++)
+		if(car(vecref(v, i)) != i){
+			print("failed");
+			print(i);
+		}
+};
+
+testsort(5000);
