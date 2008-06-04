@@ -11,7 +11,7 @@ enum {
 	Vstr	= 1<<5,
 	Vns	= 1<<6,
 	Vtypetab= 1<<7,
-	Vsym	= 1<<8,
+	Vsymtab	= 1<<8,
 	Vtn	= 1<<9,
 };
 
@@ -39,7 +39,7 @@ struct Varset
 	char *str;
 	char *ns;
 	char *typetab;
-	char *sym;
+	char *symtab;
 	char *tn;
 } Varset;
 
@@ -249,8 +249,8 @@ bindings(Vars *vars, Varset *outer, int req)
 			vs->ns = freshvar(vars, "$ns");
 		if(req&Vtypetab)
 			vs->typetab = freshvar(vars, "$typetab");
-		if(req&Vsym)
-			vs->sym = freshvar(vars, "$sym");
+		if(req&Vsymtab)
+			vs->symtab = freshvar(vars, "$symtab");
 		if(req&Vtn)
 			vs->tn = freshvar(vars, "$tn");
 		return vs;
@@ -264,7 +264,7 @@ bindings(Vars *vars, Varset *outer, int req)
 	vs->ns = outer->ns ? outer->ns : freshvar(vars, "$ns");
 	vs->typetab = (outer->typetab ? outer->typetab
 		       : freshvar(vars, "$typetab"));
-	vs->sym = outer->sym ? outer->sym : freshvar(vars, "$sym");
+	vs->symtab = outer->symtab ? outer->symtab : freshvar(vars, "$symtab");
 	vs->tn = outer->tn ? outer->tn : freshvar(vars, "$tn");
 	return vs;
 }
@@ -291,8 +291,8 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->ns), e);
 		if(lvs->typetab)
 			e = Qcons(doid(lvs->typetab), e);
-		if(lvs->sym)
-			e = Qcons(doid(lvs->sym), e);
+		if(lvs->symtab)
+			e = Qcons(doid(lvs->symtab), e);
 		if(lvs->tn)
 			e = Qcons(doid(lvs->tn), e);
 	}else{
@@ -310,8 +310,8 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->ns), e);
 		if(lvs->typetab != pvs->typetab)
 			e = Qcons(doid(lvs->typetab), e);
-		if(lvs->sym != pvs->sym)
-			e = Qcons(doid(lvs->sym), e);
+		if(lvs->symtab != pvs->symtab)
+			e = Qcons(doid(lvs->symtab), e);
 		if(lvs->tn != pvs->tn)
 			e = Qcons(doid(lvs->tn), e);
 	}
@@ -443,40 +443,52 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 }
 
 static Expr*
-compiledecl(Decl *dl, Varset *pvs, Vars *vars)
+compiledecl(unsigned kind, Decl *dl, Varset *pvs, Vars *vars)
 {
 	Type *t;
 	int binds;
 	Varset *lvs;
-	Expr *e, *offs, *se, *te;
+	Expr *e, *offs, *se, *te, *tn;
 
 	binds = Vtmp|Vtn;
 	lvs = bindings(vars, pvs, binds);
 	pushlevel(vars);
 
 	te = nullelist();
-
 	t = dl->type;
-
 	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
 	te = Qcons(se, te);
 
-	if(dl->id){
-		if(dl->offs){
-			compile0(dl->offs, lvs, vars, 1);
-			offs = dl->offs; /* steal */
-			dl->offs = 0;
-		}else
-			offs = Qnil();
+	switch(kind){
+	case Edecls:
+		if(dl->id){
+			if(dl->offs){
+				compile0(dl->offs, lvs, vars, 1);
+				offs = dl->offs; /* steal */
+				dl->offs = 0;
+			}else
+				offs = Qnil();
 
-		se = Qset(doid(lvs->tmp),
-			  Qcall(doid("vector"), 3,
-				doid(lvs->tn), Qstr(dl->id), offs));
-		te = Qcons(se, te);
+			se = Qset(doid(lvs->tmp),
+				  Qcall(doid("vector"), 3, doid(lvs->tn),
+					Qstr(dl->id), offs));
+			te = Qcons(se, te);
 
-		se = Qcall(doid("tabinsert"), 3,
-			   doid(lvs->sym), Qstr(dl->id), doid(lvs->tmp));
+			se = Qcall(doid("tabinsert"), 3, doid(lvs->symtab),
+				   Qstr(dl->id), doid(lvs->tmp));
+			te = Qcons(se, te);
+		}
+		break;
+	case Etypedef:
+		tn = newexpr(E_tn, 0, 0, 0, 0);
+		tn->xn = TBITS(Ttypedef, Vnil);
+		tn->e1 = Qstr(dl->id);
+		se = Qcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, 
+			   doid(lvs->tn));
 		te = Qcons(se, te);
+		break;
+	default:
+		fatal("bug");
 	}
 
 	e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
@@ -590,15 +602,17 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		poplevel(vars);
 		break;
 	case Ens:
-		binds = Vns|Vtypetab|Vsym;
+		binds = Vns|Vtypetab|Vsymtab;
 		lvs = bindings(vars, pvs, binds);
 		pushlevel(vars);
 
 		te = nullelist();
 
-		se = Qset(doid(lvs->typetab), Qcall(doid("table"), 0));
+		se = Qcall(doid("table"), 0);
+		se->src = e->src;
+		se = Qset(doid(lvs->typetab), se);
 		te = Qcons(se, te);
-		se = Qset(doid(lvs->sym), Qcall(doid("table"), 0));
+		se = Qset(doid(lvs->symtab), Qcall(doid("table"), 0));
 		te = Qcons(se, te);
 
 		/* inherited names expression */
@@ -613,7 +627,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		while(ex->kind == Eelist){
 			dl = ex->e1->xp;
 			while(dl){
-				se = compiledecl(dl, lvs, vars);
+				se = compiledecl(ex->e1->kind, dl, lvs, vars);
 				te = Qcons(se, te);
 				nxt = dl->link;
 				dl = nxt;
@@ -629,7 +643,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 			   Qcall(doid("vector"), 3,
 				 doid(lvs->ns),
 				 doid(lvs->typetab),
-				 doid(lvs->sym)));
+				 doid(lvs->symtab)));
 		te = Qcons(se, te);
 
 		e->kind = Eblock;

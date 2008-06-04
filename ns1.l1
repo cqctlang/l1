@@ -1,0 +1,22 @@
+foo = lambda(){
+	@local ns, fn, tab, vec, i;
+
+	ns = @names c32le {
+		typedef struct foo foo;
+		struct foo {
+			@0x0 int x;
+			@0x4 int y;
+			@0x8;
+		};
+		struct foo a;
+	};
+
+	fn = nsenumtype(ns);
+	tab = fn();
+	print(tab);
+	vec = tabenum(tab);
+	for(i = 0; i < veclen(vec); i++)
+		print(vecref(vec, i));	
+};
+
+foo();

@@ -2105,21 +2105,11 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 }
 
 static void
-vmerr(VM *vm, char *fmt, ...)
+fvmbacktrace(FILE *out, VM *vm)
 {
-	va_list args;
 	Imm pc, fp, narg;
 	Closure *cl;
-	FILE *out = stdout;
 
-	va_start(args, fmt);
-	fprintf(out, "error: ");
-	vfprintf(out, fmt, args);
-	fprintf(out, "\n");
-	va_end(args);
-	fflush(out);
-	
-	/* dump stack trace */
 	pc = vm->pc-1;		/* vm loop increments pc after fetch */
 	if(vm->pc == 0)
 		fprintf(out, "vmerr: pc is 0!\n");
@@ -2136,6 +2126,28 @@ vmerr(VM *vm, char *fmt, ...)
 		cl = valcl(&vm->stack[fp+narg+2]);
 		fp = valimm(&vm->stack[fp+narg+3]);
 	}
+}
+
+static void
+vmbacktrace(VM *vm)
+{
+	fvmbacktrace(stderr, vm);
+}
+
+static void
+vmerr(VM *vm, char *fmt, ...)
+{
+	va_list args;
+	FILE *out = stdout;
+
+	va_start(args, fmt);
+	fprintf(out, "error: ");
+	vfprintf(out, fmt, args);
+	fprintf(out, "\n");
+	va_end(args);
+	fflush(out);
+
+	fvmbacktrace(out, vm);
 
 	longjmp(vm->esc, 1);
 }
@@ -2484,7 +2496,7 @@ printval(Val *val)
 		break;
 	case Qtab:
 		tab = valtab(val);
-		printf("<table %p>", vec);
+		printf("<table %p>", tab);
 		break;
 	case Qtype:
 		t = valtype(val);
@@ -3567,11 +3579,11 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 			
 			mkvalxtn(tmp, &v);
 			_vecset(fv, Typepos, &v);	/* type */
-			_vecset(fv, 1, vecref(fld, 1));	/* id */
-			_vecset(fv, 2, vecref(fld, 2));	/* offset */
+			_vecset(fv, 1, vecref(vec, 1));	/* id */
+			_vecset(fv, 2, vecref(vec, 2));	/* offset */
 			
 			mkvalvec(fv, &v);
-			_vecset(xtn->field, i, &v);
+			_vecset(new->field, i, &v);
 		}
 		return new;
 	}
@@ -4474,6 +4486,94 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	mkvalcval(0, r, rv);
 }
 
+static void
+l1_nslooksym(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nslooksym");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslooksym must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->looksym, rv);
+}
+
+static void
+l1_nslooktype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nslooktype");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslooktype must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->looktype, rv);
+}
+
+static void
+l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nsenumsym");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nsenumsym must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->enumsym, rv);
+}
+
+static void
+l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nsenumtype");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nsenumtype must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->enumtype, rv);
+}
+
 /* FIXME: this shouldn't need a VM */
 static void
 addbasedef(VM *vm, Tab *type, unsigned name, unsigned rep)
@@ -4575,6 +4675,10 @@ mkvm(Env *env)
 	builtinfn(env, "vecref", vecrefthunk());
 	builtinfn(env, "vecset", vecsetthunk());
 
+	builtinfn(env, "nslooksym", mkcfn("nslooksym", l1_nslooksym));
+	builtinfn(env, "nslooktype", mkcfn("nslooktype", l1_nslooktype));
+	builtinfn(env, "nsenumsym", mkcfn("nsenumsym", l1_nsenumsym));
+	builtinfn(env, "nsenumtype", mkcfn("nsenumtype", l1_nsenumtype));
 	builtinfn(env, "gettimeofday", mkcfn("gettimeofday", l1_gettimeofday));
 	builtinfn(env, "randseed", mkcfn("randseed", l1_randseed));
 	builtinfn(env, "rand", mkcfn("rand", l1_rand));
