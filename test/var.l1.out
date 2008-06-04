@@ -2,4 +2,3 @@ entry: 0 params, 0 locals, 0 temps
 L2: 4 params, 0 locals, 0 temps
 L6: 2 params, 0 locals, 0 temps
 L11: 1 params, 0 locals, 0 temps
-halted (ac = <nil>)

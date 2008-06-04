@@ -5,4 +5,3 @@ L9: 1 params, 0 locals, 0 temps
 <cval 2>
 <cval 1>
 <closure L9>
-halted (ac = <nil>)

@@ -4,4 +4,3 @@ entry: 0 params, 0 locals, 3 temps
 <cval 36>
 <cval 72>
 <cval 0>
-halted (ac = <nil>)

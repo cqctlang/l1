@@ -88,12 +88,14 @@ main(int argc, char *argv[])
 		if(flags&Fexec){
 			if(flags&Ftime)
 				gettimeofday(&beg, 0);
-			dovm(vm, entry, 0, 0);
-			if(flags&Ftime){
-				gettimeofday(&end, 0);
-				tvdiff(&end, &beg, &end);
-				printf("%lu usec\n",
-				       1000000*end.tv_sec+end.tv_usec);
+			if(!waserror(vm)){
+				dovm(vm, entry, 0, 0);
+				if(flags&Ftime){
+					gettimeofday(&end, 0);
+					tvdiff(&end, &beg, &end);
+					printf("%lu usec\n",
+					       1000000*end.tv_sec+end.tv_usec);
+				}
 			}
 		}
 	}

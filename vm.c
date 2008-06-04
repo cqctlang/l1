@@ -656,18 +656,6 @@ gcreset()
 	rootsetreset(&stores);
 }
 
-static void
-gc(VM *vm)
-{
-	gcreset();
-	rootset(vm);
-	gcepoch++;
-	mark(GCCOLOR(gcepoch));
-	sweep(GCCOLOR(gcepoch-2));
-	while(!rootsetempty(&stores))
-		mark(GCCOLOR(gcepoch));
-}
-
 enum {
 	GCdie = 0x1,
 	GCdied = 0x2,
@@ -771,11 +759,19 @@ gckill(VM *vm)
 	pthread_join(vm->t, 0);
 }
 
-#if 0
-static int
-#else
+static void
+gc(VM *vm)
+{
+	gcreset();
+	rootset(vm);
+	gcepoch++;
+	mark(GCCOLOR(gcepoch));
+	sweep(GCCOLOR(gcepoch-2));
+	while(!rootsetempty(&stores))
+		mark(GCCOLOR(gcepoch));
+}
+
 static void*
-#endif
 gcchild(void *p)
 {
 	VM *vm = (VM*)p;
@@ -2083,14 +2079,20 @@ putval(VM *vm, Val *v, Location *loc)
 }
 
 static void
-printsrc(Closure *cl, Imm pc)
+printsrc(FILE *out, Closure *cl, Imm pc)
 {
 	Code *code;
 	
 	code = cl->code;
+	if(cl->cfn || cl->ccl){
+		fprintf(out, "%s\t\t(builtin %s)\n", cl->id,
+		       cl->cfn ? "function" : "closure");
+		return;
+	}
+
 	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
-			printf("%s:%u\n",
+			fprintf(out, "%s\t\t%s:%u\n", cl->id,
 			       code->labels[pc]->src->filename,
 			       code->labels[pc]->src->line);
 			return;
@@ -2099,7 +2101,7 @@ printsrc(Closure *cl, Imm pc)
 			break;
 		pc--;
 	}
-	printf("(no source information)\n");
+	fprintf(out, "%s\t\t(no source information)\n", cl->id);
 }
 
 static void
@@ -2108,24 +2110,29 @@ vmerr(VM *vm, char *fmt, ...)
 	va_list args;
 	Imm pc, fp, narg;
 	Closure *cl;
+	FILE *out = stdout;
 
 	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	fprintf(out, "error: ");
+	vfprintf(out, fmt, args);
+	fprintf(out, "\n");
 	va_end(args);
-	fflush(stderr);
+	fflush(out);
 	
 	/* dump stack trace */
 	pc = vm->pc-1;		/* vm loop increments pc after fetch */
 	if(vm->pc == 0)
-		printf("vmerr: pc is 0!\n");
+		fprintf(out, "vmerr: pc is 0!\n");
 	fp = vm->fp;
 	cl = vm->clx;
 	while(fp != 0){
-		printsrc(cl, pc);
+		if(!strcmp(cl->id, "$halt"))
+			fprintf(out, "\t-- vmcall --\n");
+		else
+			printsrc(out, cl, pc);
 		narg = valimm(&vm->stack[fp]);
 		pc = valimm(&vm->stack[fp+narg+1]);
-		pc--;		/* return address is insn following call */
+		pc--; /* pc was insn following call */
 		cl = valcl(&vm->stack[fp+narg+2]);
 		fp = valimm(&vm->stack[fp+narg+3]);
 	}
@@ -2505,7 +2512,7 @@ xcallc(VM *vm)
 	Imm argc;
 	Val *argv;
 
-	if(vm->clx->cfn == 0 && vm->clx->ccl)
+	if(vm->clx->cfn == 0 && vm->clx->ccl == 0)
 		vmerr(vm, "bad closure for builtin call");
 
 	vm->ac = Xnil;
@@ -3645,6 +3652,23 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	}
 }
 
+static Ns*
+mknstab(Tab *type, Tab *sym)
+{
+	Val v;
+	Ns *ns;
+	
+	ns = mkns();
+	ns->type = type;
+	ns->sym = sym;
+	mkvalns(ns, &v);
+	ns->enumsym = mkccl("enumsym", enumsym, 1, &v);
+	ns->enumtype = mkccl("enumtype", enumtype, 1, &v);
+	ns->looksym = mkccl("looksym", looksym, 1, &v);
+	ns->looktype = mkccl("looktype", looktype, 1, &v);
+	return ns;
+}
+
 static void
 xns(VM *vm, Operand *invec, Operand *dst)
 {
@@ -3659,7 +3683,7 @@ xns(VM *vm, Operand *invec, Operand *dst)
 
 	getvalrand(vm, invec, &v);
 	vec = valvec(&v);
-	if(vec->len != 4)
+	if(vec->len != 3)
 		vmerr(vm, "bad vector to ns");
 	vp = vecref(vec, 0);
 	ons = valns(vp);
@@ -3701,14 +3725,30 @@ xns(VM *vm, Operand *invec, Operand *dst)
 		}
 	}
 
-	ns = mkns();
-	ns->type = ctx.type;
-	ns->sym = ctx.sym;
+	/* inherit sym and type definitions not shadowed by @names */
+	x = ctx.otype->x;
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		while(tk){
+			vp = &x->key[tk->idx];
+			if(!tabget(ctx.type, vp))
+				tabput(vm, ctx.type, vp, &x->val[tk->idx]);
+			tk = tk->link;
+		}
+	}
+	x = ctx.osym->x;
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		while(tk){
+			vp = &x->key[tk->idx];
+			if(!tabget(ctx.sym, vp))
+				tabput(vm, ctx.sym, vp, &x->val[tk->idx]);
+			tk = tk->link;
+		}
+	}
+
+	ns = mknstab(ctx.type, ctx.sym);
 	mkvalns(ns, &v);
-	ns->enumsym = mkccl("enumsym", enumsym, 1, &v);
-	ns->enumtype = mkccl("enumtype", enumtype, 1, &v);
-	ns->looksym = mkccl("looksym", looksym, 1, &v);
-	ns->looktype = mkccl("looktype", looktype, 1, &v);
 	putvalrand(vm, &v, dst);
 }
 
@@ -3907,6 +3947,12 @@ vmsetcl(VM *vm, Closure *cl)
 	}
 }
 
+int
+waserror(VM *vm)
+{
+	return setjmp(vm->esc);
+}
+
 Val*
 dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
@@ -4042,9 +4088,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	vmsetcl(vm, cl);
 	vm->pc = vm->clx->entry;
 
-	if(setjmp(vm->esc) != 0)
-		return 0;		/* error throw */
-
 	while(1){
 		i = &vm->ibuf[vm->pc++];
 		tick++;
@@ -4122,7 +4165,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		fatal("vm panic");
 	Ihalt:
 		/* Ihalt is exactly like Iret... */
-		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1;/*narg+1*/
+		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1; /* narg+1 */
 		vm->fp = valimm(&vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
 		vmsetcl(vm, valcl(&vm->cl));
@@ -4130,12 +4173,9 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vmpop(vm, 3);
 
 		/* ...except that it returns from dovm */
-		printf("halted (ac = ");
-		printval(&vm->ac);
-		printf(")\n");
 		return &vm->ac;
 	Iret:
-		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1;/*narg+1*/
+		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1; /* narg+1 */
 		vm->fp = valimm(&vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
 		vmsetcl(vm, valcl(&vm->cl));
@@ -4434,6 +4474,49 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	mkvalcval(0, r, rv);
 }
 
+/* FIXME: this shouldn't need a VM */
+static void
+addbasedef(VM *vm, Tab *type, unsigned name, unsigned rep)
+{
+	Xtypename *k, *v;
+	Val kv, vv;
+	k = mkxtn();
+	k->xtkind = Tbase;
+	k->basename = name;
+	v = mkxtn();
+	v->xtkind = Tbase;
+	v->basename = name;
+	v->rep = rep;
+	mkvalxtn(k, &kv);
+	mkvalxtn(v, &vv);
+	tabput(vm, type, &kv, &vv);
+}
+
+static Ns*
+mkc32lens(VM *vm)
+{
+	Tab *type;
+
+	type = mktab();
+	addbasedef(vm, type, Vchar,	Rs8le);
+	addbasedef(vm, type, Vshort,	Rs16le);
+	addbasedef(vm, type, Vint,	Rs32le);
+	addbasedef(vm, type, Vlong,	Rs32le);
+	addbasedef(vm, type, Vvlong,	Rs64le);
+	addbasedef(vm, type, Vuchar,	Ru8le);
+	addbasedef(vm, type, Vushort,	Ru16le);
+	addbasedef(vm, type, Vuint,	Ru32le);
+	addbasedef(vm, type, Vulong,	Ru32le);
+	addbasedef(vm, type, Vuvlong,	Ru64le);
+	addbasedef(vm, type, Vfloat,	Rundef);
+	addbasedef(vm, type, Vdouble,	Rundef);
+	addbasedef(vm, type, Vlongdouble, 	Rundef);
+	addbasedef(vm, type, Vvoid,	Rundef);
+	addbasedef(vm, type, Vptr,	Ru32le);
+
+	return mknstab(type, mktab());
+}
+
 VM*
 mkvm(Env *env)
 {
@@ -4501,7 +4584,7 @@ mkvm(Env *env)
 	builtinstr(env, "$looksym", "looksym");
 	builtinstr(env, "$looktype", "looktype");
 
-	builtinns(env, "c32le", mkns());
+	builtinns(env, "c32le", mkc32lens(vm));
 
 	concurrentgc(vm);
 

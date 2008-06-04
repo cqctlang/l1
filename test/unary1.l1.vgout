@@ -3,4 +3,3 @@ entry: 0 params, 0 locals, 0 temps
 <cval 1>
 <cval 18446744073709551611>
 <cval 18446744073709551610>
-halted (ac = <nil>)

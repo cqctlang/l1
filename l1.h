@@ -156,6 +156,7 @@ enum{
 	Vdouble,
 	Vlongdouble,
 	Vvoid,
+	Vptr,
 	Vnil,        
 };
 

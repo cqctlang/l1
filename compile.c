@@ -2504,7 +2504,7 @@ haltthunk()
 	Closure *cl;
 
 	code = mkcode();
-	L = genlabel(code, "thunk");
+	L = genlabel(code, "$halt");
 	cl = mkcl(code, code->ninsn, 0, L->label);
 	L->used = 1;
 	emitlabel(L, 0);
