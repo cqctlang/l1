@@ -636,10 +636,6 @@ static void
 rootsetreset(Rootset *rs)
 {
 	Root *r, *nxt;
-//	rs->roots = &eol;
-//	rs->last = &eol;
-//	rs->before_last = &eol;
-//	rs->this = &eol;
 
 	r = rs->roots;
 	while(r){

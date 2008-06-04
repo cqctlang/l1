@@ -9,6 +9,7 @@ todo
 - change all thunks that do not return values to return nil
 - write Icallx to trap to builtin C functions.
 - figure out how to re-enter VM.
+- check out inferno discussion jun 3 2008 on refs
 
 ns/as interface
 ---------------
