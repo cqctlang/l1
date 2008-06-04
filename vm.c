@@ -237,7 +237,6 @@ static Val Xnil;
 static Val Xnulllist;
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
-static Head eol;		/* end-of-list sentinel */
 
 static char *opstr[Iopmax] = {
 	[Iadd] = "+",
@@ -398,8 +397,6 @@ retry:
 	if(heap->free){
 		o = heap->free;
 		heap->free = o->link;
-		if(o->link == &eol)
-			fatal("o->link == &eol (1)");
 		o->link = 0;
 		if(o->state != -1)
 			fatal("halloc bad state %d", o->state);
@@ -415,8 +412,6 @@ retry:
 			o->heap = heap;
 			o->alink = ap;
 			o->link = fp;
-			if(o->link == &eol)
-				fatal("o->link == &eol (2)");
 			o->color = GCfree;
 			o->state = -1;
 			ap = o;
@@ -441,13 +436,12 @@ sweepheap(Heap *heap, unsigned color)
 		if(p->color == color){
 			if(heap->free1)
 				heap->free1(p);
-			if(p->state != 0)
+			if(p->state != 0 || p->inrootset)
 				fatal("sweep heap (%s) bad state %d",
 				      heap->id, p->state);
 			p->link = heap->sweep;
-			p->slink = 0;
-			p->state = -1;
 			heap->sweep = p;
+			p->state = -1;
 			p->color = GCfree;
 		}
 		p = p->alink;
@@ -516,20 +510,22 @@ freeroot(Root *r)
 static void
 addroot(Rootset *rs, Head *h)
 {
-	int x;
 	Root *r;
+	int x;
 
 	if(h == 0)
 		return;
+	if(h->inrootset)
+		return;
 
 	/* test if already on a rootlist */
-//	x = h->state;
-//	if(x > 2 || x < 0)
-//		fatal("addroot bad state %d", x);
-//	atomic_inc(&h->state);
-//	h->state++;
+	x = h->state;
+	if(x > 2 || x < 0)
+		fatal("addroot bad state %d", x);
+	atomic_inc(&h->state);
 
 	r = newroot();
+	h->inrootset = 1;
 	r->hd = h;
 	r->link = rs->roots;
 	writebarrier();
@@ -552,12 +548,11 @@ removeroot(Rootset *rs)
 	r = rs->this;
 	rs->this = r->link;
 	h = r->hd;
-//	x = h->state;
-//	if(x > 2 || x <= 0)
-//		fatal("remove root bad state %d", x);
-//	h->state--;
-//	atomic_dec(&h->state);
-//	rs->setlink(h, 0);
+	h->inrootset = 0;
+	x = h->state;
+	if(x > 2 || x <= 0)
+		fatal("remove root bad state %d", x);
+	atomic_dec(&h->state);
 	return h;
 }
 
@@ -566,30 +561,6 @@ rootsetempty(Rootset *rs)
 {
 	return rs->before_last == rs->roots;
 }
-
-//static Head*
-//getrootslink(Head *h)
-//{
-//	return h->link;
-//}
-//
-//static void
-//setrootslink(Head *h, Head *v)
-//{
-//	h->link = v;
-//}
-//
-//static Head*
-//getstoreslink(Head *h)
-//{
-//	return h->slink;
-//}
-//
-//static void
-//setstoreslink(Head *h, Head *v)
-//{
-//	h->slink = v;
-//}
 
 static void
 markhead(Head *hd, unsigned color)
@@ -4554,14 +4525,8 @@ initvm()
 	Xundef.qkind = Qundef;
 	Xnil.qkind = Qnil;
 	Xnulllist.qkind = Qnulllist;
-
 	kcode = contcode();
 	cccode = callccode();
-
-//	roots.getlink = getrootslink;
-//	roots.setlink = setrootslink;
-//	stores.getlink = getstoreslink;
-//	stores.setlink = setstoreslink;
 }
 
 void
@@ -4570,10 +4535,11 @@ finivm()
 	unsigned i;
 	Heap *hp;
 
-//	gcreset();		/* clear store set (FIXME: still needed?) */
+	/* run two epochs without mutator to collect all objects;
+	   then gcreset to free rootsets */
 	gc(0);
-	gc(0);	/* must run two epochs without mutator to collect everything */
-	gcreset();		/* free rootsets */
+	gc(0);
+	gcreset();
 
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);

@@ -189,11 +189,11 @@ typedef struct Head Head;
 typedef struct Heap Heap;
 struct Head {
 	unsigned color;
+	unsigned inrootset;	/* racily limit duplicates on rootsets */
 	Heap *heap;
-	Head *link;
-	Head *slink;
 	Head *alink;
-	int state;
+	Head *link;
+	int state;		/* debugging */
 };
 
 struct Code {

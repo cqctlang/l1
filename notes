@@ -373,21 +373,19 @@ fixme:
 	- how do we protect newly alloc'd objects in vm.c opcodes?
 	- likewise, objects alloc'd in c functions?
 
-
 the gc is based on the concurrent gc described in
 
 	l. huelsbergen and p. winterbottom.  very concurrent
 	mark-&-sweep garbage collection without fine-grained
 	synchronization.  ismm'98.
 
-our goal is to have an efficent, simple incremental gc
-that can optionally run concurrently with low
-synchronization overhead.
+we want an efficent, simple incremental gc that can
+(optionally) run concurrently with low synchronization
+overhead.
 
-a key property (being recounted many months since i
-last understood the thing) is how references to objects
-stored in mutable data structures (boxes, vecs, dicts)
-are safely tracked:
+a key property is how references to objects stored in
+mutable data structures (boxes, vecs, dicts) are safely
+tracked:
 
 	- new objects (halloc'd) are marked upon creation;
 	  they will not be swept until two rounds pass without finding
@@ -437,17 +435,12 @@ while gc calls insert for roots.
 in addition, it is necessary to maintain two link
 fields in the heap objects (Heads) because insertion is
 not atomic.  insert first checks whether the heap
-object is already on the rootset before adding it.
-insert checks and updates a link field corresponding to
-the root set into which the object is being inserted.
+object is already on a rootset before adding it.
+this is a racey check, but it seems the worst case an object
+shows up more than once in the same rootset
+(however, we have not yet reasoned carefully about the race.)
 we could use locked cmpxchg, but that would add global
-synchronization on each write barrier.  the insert
-implementation in the paper avoids checking if the
-object on the list by encapsulating objects in fresh
-rootset node -- but it does not explain the memory
-management of these node objects; in our
-implementation, the rootset linkage is a permanent,
-inseparable part of each heap object.
+synchronization on each write barrier.
 
 it is possible for a heap object to be on both root
 sets simulataneously.  this is inefficient but not
@@ -494,21 +487,10 @@ schedules termination at end of epoch but finishes
 epoch without blocking for subsequent pauses (which is
 correct, since mutator is paused waiting for GCdie).
 
-if gc terminates prematurely (before end of epoch),
-there can be heap objects with stale root set links.
-these will confuse gc reset -- an invariant of gc at
-the start of epoch is that all heap objects are either
-linked on a free list or not linked.  to reset
-prematurely terminated gcs, we could scan heaps and
-clear links for all objects whose color is not GCfree.
-
-the predicate for whether a heap object is in a root
-set is non-null link field.  thus root set has special
-non-null EOL Head object to denote end of the list, so
-that the predicate is satisfied for last element in a
-root set.
-
-
+it seems possible to abort gc before end of epoch.
+before resuming, rootsets should be flushed.
+seems like gcepoch should be kept at value of aborted
+gc epoch; what would happen if it were incremented?
 
 
 Representation of C types and declarations
