@@ -4573,6 +4573,7 @@ finivm()
 //	gcreset();		/* clear store set (FIXME: still needed?) */
 	gc(0);
 	gc(0);	/* must run two epochs without mutator to collect everything */
+	gcreset();		/* free rootsets */
 
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);
