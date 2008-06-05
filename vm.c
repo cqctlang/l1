@@ -1745,19 +1745,20 @@ _fmtxtn(Xtypename *xtn, char *o)
 	char *buf, *w, *pl;
 	unsigned m;
 	Str *s;
+	Cval *cv;
 
 	switch(xtn->xtkind){
 	case Tbase:
-		m = strlen(basename[xtn->basename])+strlen(o)+1;
+		m = strlen(basename[xtn->basename])+1+strlen(o)+1;
 		buf = xmalloc(m);
-		snprintf(buf, m, "%s%s", basename[xtn->basename], o);
+		snprintf(buf, m, "%s %s", basename[xtn->basename], o);
 		free(o);
 		return buf;
 	case Ttypedef:
 		s = xtn->tid;
-		m = s->len+strlen(o)+1;
+		m = s->len+1+strlen(o)+1;
 		buf = xmalloc(m);
-		snprintf(buf, m, "%.*s%s", s->len, s->s, o);
+		snprintf(buf, m, "%.*s %s", s->len, s->s, o);
 		free(o);
 		return buf;
 	case Tstruct:
@@ -1765,26 +1766,26 @@ _fmtxtn(Xtypename *xtn, char *o)
 		w = xtn->xtkind == Tstruct ? "struct" : "union";
 		if(xtn->tag){
 			s = xtn->tag;
-			m = strlen(w)+1+s->len+strlen(o)+1;
+			m = strlen(w)+1+s->len+1+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "%s %.*s%s", w, s->len, s->s, o);
+			snprintf(buf, m, "%s %.*s %s", w, s->len, s->s, o);
 		}else{
-			m = strlen(w)+strlen(o)+1;
+			m = strlen(w)+1+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "%s%s", w, o);
+			snprintf(buf, m, "%s %s", w, o);
 		}
 		free(o);
 		return buf;
 	case Tenum:
 		if(xtn->tag){
 			s = xtn->tag;
-			m = 4+1+s->len+strlen(o)+1;
+			m = 4+1+s->len+1+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "enum %.*s%s", s->len, s->s, o);
+			snprintf(buf, m, "enum %.*s %s", s->len, s->s, o);
 		}else{
-			m = 4+strlen(o)+1;
+			m = 4+1+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "enum%s", o);
+			snprintf(buf, m, "enum %s", o);
 		}
 		free(o);
 		return buf;
@@ -1798,9 +1799,14 @@ _fmtxtn(Xtypename *xtn, char *o)
 		free(o);
 		return _fmtxtn(xtn->link, buf);
 	case Tarr:
-		m = strlen(o)+2+1;
+		m = strlen(o)+1+10+1+1;	/* assume max 10 digit size */
 		buf = xmalloc(m);
-		snprintf(buf, m, "%s[]", o);
+		if(xtn->cnt.qkind == Qnil)
+			snprintf(buf, m, "%s[]", o);
+		else{
+			cv = valcval(&xtn->cnt);
+			snprintf(buf, m, "%s[%" PRIu64 "]", o, cv->val);
+		}
 		free(o);
 		return _fmtxtn(xtn->link, buf);
 	case Tfun:
@@ -1822,9 +1828,8 @@ static char*
 _fmtdecl(Xtypename *xtn, Str *id)
 {
 	char *o;
-	o = xmalloc(1+id->len+1);
-	o[0] = ' ';
-	memcpy(o+1, id->s, id->len);
+	o = xmalloc(id->len+1);
+	memcpy(o, id->s, id->len);
 	return _fmtxtn(xtn, o);
 }
 

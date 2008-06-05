@@ -1142,7 +1142,7 @@ copytype(Type *t)
 		nt->cnt = copyexpr(t->cnt);
 		break;
 	}
-	return t;
+	return nt;
 }
 
 static Decl*

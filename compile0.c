@@ -429,7 +429,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 					   se);
 				dl = dl->link;
 			}
-			e->e2 = Qapply(doid("vector"), se);
+			e->e2 = Qapply(doid("vector"), invert(se));
 		}
 		break;
 	case Ttypedef:

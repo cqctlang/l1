@@ -1,15 +1,17 @@
 define printtype(t){
-	@local ct, i, fld, flds, sz;
+	@local ct, i, fld, flds, sz, off;
 
 	ct = cracktype(t);
-	if(isbase(t))
-		printf("%s\n", vecref(ct, 0));
-	else if(isstruct(t) || isunion(t)){
+	if(isstruct(t) || isunion(t)){
 		printf("%s %s {\n", vecref(ct, 0), vecref(ct, 1));
 		flds = vecref(ct, 2);
 		for(i = 0; i < veclen(flds); i++){
 			fld = vecref(flds, i);
-			printf("\t@0x%x", vecref(fld, 2));
+			off = vecref(fld, 2);
+			if(!isnil(off))
+				printf("\t@0x%x", off);
+			else
+				printf("\t");
 			printf("\t%t;\n", fld);
 		}
 		sz = vecref(ct, 3);
@@ -27,10 +29,19 @@ define foo(){
 	ns = @names c32le {
 		typedef struct foo foo;
 		struct foo {
-			@0x0 int x;
-			@0x4 int y;
-			@0x8 int z;
-			@0xc;
+			@0x00 int x;
+			@0x04 int y;
+			@0x08 int z;
+			@0x0c int *xp;
+			@0x10 int (*foo)();
+			@0x14 int (*bar)(void);
+			@0x18 int (*baz)(int p1);
+			@0x20 int (*baz)(int p1, struct foo *p2);
+			@0x24 char *a[10];
+			@0x28;
+		};
+		struct bar {
+			@0x0 int x, y;
 		};
 		struct foo a;
 	};
