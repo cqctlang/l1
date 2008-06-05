@@ -480,6 +480,7 @@ compiledecl(unsigned kind, Decl *dl, Varset *pvs, Vars *vars)
 		}
 		break;
 	case Etypedef:
+		/* typedef T TID => typetab[typedef(TID)] = typename(T) */
 		tn = newexpr(E_tn, 0, 0, 0, 0);
 		tn->xn = TBITS(Ttypedef, Vnil);
 		tn->e1 = Qstr(dl->id);

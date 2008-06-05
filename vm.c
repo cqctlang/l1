@@ -49,6 +49,7 @@ enum {
 enum {
 	Tabinitsize=1024,	/* power of 2 */
 	Typepos=0,
+	Maxvms=1024,
 };
 
 struct Heap {
@@ -1562,6 +1563,52 @@ tabenum(Tab *tab)
 	return vec;
 }
 
+static Vec*
+tabenumkeys(Tab *tab)
+{
+	Vec *vec;
+	Tabidx *tk;
+	u32 i;;
+	Imm m;
+	Tabx *x;
+
+	x = tab->x;
+	vec = mkvec(tab->cnt);
+	m = 0;
+	for(i = 0; i < x->sz && m < tab->cnt; i++){
+		tk = x->idx[i];
+		while(tk){
+			_vecset(vec, m, &x->key[tk->idx]);
+			m++;
+			tk = tk->link;
+		}
+	}
+	return vec;
+}
+
+static Vec*
+tabenumvals(Tab *tab)
+{
+	Vec *vec;
+	Tabidx *tk;
+	u32 i;;
+	Imm m;
+	Tabx *x;
+
+	x = tab->x;
+	vec = mkvec(tab->cnt);
+	m = 0;
+	for(i = 0; i < x->sz && m < tab->cnt; i++){
+		tk = x->idx[i];
+		while(tk){
+			_vecset(vec, m, &x->val[tk->idx]);
+			m++;
+			tk = tk->link;
+		}
+	}
+	return vec;
+}
+
 static Xtypename*
 mkxtn()
 {
@@ -1620,6 +1667,135 @@ iterxtn(Head *hd, Ictx *ictx)
 		fatal("bug");
 	}
 	return 0;
+}
+
+static char* _fmtxtn(Xtypename *xtn, char *o);
+
+static char*
+fmtplist(Vec *param)
+{
+	char **ds, *buf, *bp;
+	Imm i, n;
+	unsigned long m;
+	Xtypename *xtn;
+
+	n = param->len;
+	if(n == 0)
+		return xstrdup("");
+
+	ds = xmalloc(n*sizeof(char**));
+	m = 1;			/* null */
+	for(i = 0; i < n; i++){
+		xtn = valxtn(vecref(valvec(vecref(param, i)), Typepos));
+		ds[i] = _fmtxtn(xtn, xstrdup(""));
+		m += strlen(ds[i]);
+		if(i < n-1)
+			m += 2;	/* comma, space */
+	}
+	buf = xmalloc(m);
+	bp = buf;
+	for(i = 0; i < n; i++){
+		strcpy(bp, ds[i]);
+		bp += strlen(ds[i]);
+		free(ds[i]);
+		if(i < n-1){
+			strcpy(bp, ", ");
+			bp += 2;
+		}
+	}
+	*bp = 0;
+	free(ds);
+	return buf;
+}
+
+static char*
+_fmtxtn(Xtypename *xtn, char *o)
+{
+	char *buf, *w, *pl;
+	unsigned m;
+	Str *s;
+
+	switch(xtn->xtkind){
+	case Tbase:
+		m = strlen(basename[xtn->basename])+1+strlen(o)+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s %s", basename[xtn->basename], o);
+		free(o);
+		return buf;
+	case Ttypedef:
+		s = xtn->tid;
+		m = s->len+1+strlen(o)+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%.*s %s", s->len, s->s, o);
+		free(o);
+		return buf;
+	case Tstruct:
+	case Tunion:
+		w = xtn->xtkind == Tstruct ? "struct" : "union";
+		if(xtn->tag){
+			s = xtn->tag;
+			m = strlen(w)+1+s->len+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "%s %.*s %s", w, s->len, s->s, o);
+		}else{
+			m = strlen(w)+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "%s %s", w, o);
+		}
+		free(o);
+		return buf;
+	case Tenum:
+		if(xtn->tag){
+			s = xtn->tag;
+			m = 4+1+s->len+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "enum %.*s %s", s->len, s->s, o);
+		}else{
+			m = 4+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "enum %s", o);
+		}
+		free(o);
+		return buf;
+	case Tptr:
+		m = 2+strlen(o)+1+1;
+		buf = xmalloc(m);
+		if(xtn->link->xtkind == Tfun || xtn->link->xtkind == Tarr)
+			snprintf(buf, m, "(*%s)", o);
+		else
+			snprintf(buf, m, "*%s", o);
+		free(o);
+		return _fmtxtn(xtn->link, buf);
+	case Tarr:
+		m = strlen(o)+2+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s[]", o);
+		free(o);
+		return _fmtxtn(xtn->link, buf);
+	case Tfun:
+		pl = fmtplist(xtn->param);
+		m = strlen(o)+1+strlen(pl)+1+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s(%s)", o, pl);
+		free(o);
+		free(pl);
+		return _fmtxtn(xtn->link, buf);
+	default:
+		fatal("bug");
+	}
+	return NULL;
+
+}
+
+static Str*
+fmtxtn(Xtypename *xtn)
+{
+	char *s;
+	Str *str;
+	s = _fmtxtn(xtn, xstrdup(""));
+	str = mkstr0(s);
+	free(s);
+	return str;
 }
 
 static As*
@@ -3514,7 +3690,7 @@ resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, xtnv);
 	if(rv){
-		xtn = valxtn(rv);
+		xtn = valxtn(xtnv);
 		new = mkxtn();
 		new->xtkind = Ttypedef;
 		new->tid = xtn->tid;
@@ -3523,7 +3699,7 @@ resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
 		mkvalxtn(new, &v);
 		tabput(vm, ctx->type, xtnv, &v);
 
-		new->link = resolvetypename(vm, xtn, ctx);
+		new->link = resolvetypename(vm, valxtn(rv), ctx);
 		return new;
 	}
 
@@ -4574,6 +4750,105 @@ l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	mkvalcl(ns->enumtype, rv);
 }
 
+static void
+l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *vp;
+	Cval *cv;
+	Str *fmts, *as;
+	char *fmt, *efmt;
+	char ch;
+	FILE *fp = stdout;
+
+	if(argc < 1)
+		vmerr(vm, "wrong number of arguments to printf");
+	vp = &argv[0];
+	if(vp->qkind != Qstr)
+		vmerr(vm, "operand 1 to printf must be a string");
+	fmts = valstr(vp);
+	fmt = fmts->s;
+	efmt = fmt+fmts->len;
+	argc--;
+	vp = &argv[1];
+	while(1){
+		while(fmt < efmt && (ch = *fmt++) != '%')
+			fputc(ch, fp);
+		if(fmt >= efmt)
+			return;
+		ch = *fmt++;
+		if(ch == '%'){
+			fputc('%', fp);
+			continue;
+		}
+		if(argc == 0)
+			vmerr(vm, "format string needs more arguments");
+		switch(ch){
+		case 'a':
+			printval(vp);
+			break;
+		case 'd':
+			if(vp->qkind != Qcval)
+				goto badarg;
+			cv = valcval(vp);
+			fprintf(fp, "%" PRIu64, cv->val);
+			break;
+		case 's':
+			if(vp->qkind != Qstr)
+				goto badarg;
+			as = valstr(vp);
+			fprintf(fp, "%.*s", as->len, as->s);
+			break;
+		case 't':
+			if(vp->qkind != Qxtn)
+				goto badarg;
+			as = fmtxtn(valxtn(vp));
+			fprintf(fp, "%.*s", as->len, as->s);
+			break;
+		default:
+			vmerr(vm, "unrecognized format conversion: %%%c", ch);
+		}
+		argc--;
+		vp++;
+	}
+	/* not reached */
+badarg:
+	vmerr(vm, "wrong type to %%%c conversion", ch);
+}
+
+static void
+l1_vmbacktrace(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to backtrace");
+	vmbacktrace(vm);
+}
+
+static void
+l1_tabkeys(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to tabkeys");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qtab)
+		vmerr(vm, "operand 1 to tabkeys must be a table");
+	mkvalvec(tabenumkeys(valtab(arg0)), rv);
+}
+
+static void
+l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to tabvals");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qtab)
+		vmerr(vm, "operand 1 to tabvals must be a table");
+	mkvalvec(tabenumvals(valtab(arg0)), rv);
+}
+
 /* FIXME: this shouldn't need a VM */
 static void
 addbasedef(VM *vm, Tab *type, unsigned name, unsigned rep)
@@ -4617,10 +4892,12 @@ mkc32lens(VM *vm)
 	return mknstab(type, mktab());
 }
 
+static VM *vms[Maxvms];
+
 VM*
 mkvm(Env *env)
 {
-	VM *vm;
+	VM *vm, **vmp;
 
 	vm = xmalloc(sizeof(VM));
 	vm->fp = 0;
@@ -4682,6 +4959,10 @@ mkvm(Env *env)
 	builtinfn(env, "gettimeofday", mkcfn("gettimeofday", l1_gettimeofday));
 	builtinfn(env, "randseed", mkcfn("randseed", l1_randseed));
 	builtinfn(env, "rand", mkcfn("rand", l1_rand));
+	builtinfn(env, "printf", mkcfn("printf", l1_printf));
+	builtinfn(env, "tabkeys", mkcfn("tabkeys", l1_tabkeys));
+	builtinfn(env, "tabvals", mkcfn("tabvals", l1_tabvals));
+	builtinfn(env, "vmbacktrace", mkcfn("vmbacktrace", l1_vmbacktrace));
 
 	builtinstr(env, "$get", "get");
 	builtinstr(env, "$put", "put");
@@ -4689,6 +4970,14 @@ mkvm(Env *env)
 	builtinstr(env, "$looktype", "looktype");
 
 	builtinns(env, "c32le", mkc32lens(vm));
+
+	vmp = vms;
+	while(*vmp){
+		vmp++;
+		if(vmp > vms+Maxvms)
+			fatal("too many vms");
+	}
+	*vmp = vm;
 
 	concurrentgc(vm);
 
@@ -4698,8 +4987,32 @@ mkvm(Env *env)
 void
 freevm(VM *vm)
 {
+	VM **vmp;
+	vmp = vms;
+	while(vmp < vms+Maxvms){
+		if(*vmp == vm){
+			*vmp = 0;
+			break;
+		}
+		vmp++;
+	}
 	gckill(vm);
 	free(vm);
+}
+
+static void
+vmfaulthook()
+{
+	VM **vmp;
+	vmp = vms;
+	while(vmp < vms+Maxvms){
+		if(*vmp){
+			fprintf(stderr, "fault context of vm %p:\n", *vmp);
+			fvmbacktrace(stderr, *vmp);
+			fprintf(stderr, "\n");
+		}
+		vmp++;
+	}
 }
 
 void
@@ -4710,6 +5023,7 @@ initvm()
 	Xnulllist.qkind = Qnulllist;
 	kcode = contcode();
 	cccode = callccode();
+	setfaulthook(vmfaulthook);
 }
 
 void
@@ -4732,4 +5046,5 @@ finivm()
 		if(hp->id)
 			freeheap(hp);
 	}
+	setfaulthook(0);
 }

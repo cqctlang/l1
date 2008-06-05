@@ -106,6 +106,7 @@ initbase()
 	basename[Vdouble]	      = "double";
 	basename[Vlongdouble]	      = "longdouble";
 	basename[Vvoid]		      = "void";
+	basename[Vptr]		      = "void*";
 	basename[Vnil]		      = "error!";
 
 	basesize[Verr]                = -1;
@@ -986,7 +987,9 @@ fmtdecllist(Decl *p)
 	return buf;
 }
 
-/* o may be freed. */
+/* o must be dynamically allocated; caller turns over its management
+   to fmttype.  returned string is also dynamically allocated; caller
+   must free it */
 char*
 fmttype(Type *t, char *o)
 {

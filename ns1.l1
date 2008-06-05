@@ -12,11 +12,9 @@ foo = lambda(){
 	};
 
 	fn = nsenumtype(ns);
-	tab = fn();
-	print(tab);
-	vec = tabenum(tab);
+	vec = tabvals(fn());
 	for(i = 0; i < veclen(vec); i++)
-		print(vecref(vec, i));	
+		printf("%t\n", vecref(vec, i));
 };
 
 foo();

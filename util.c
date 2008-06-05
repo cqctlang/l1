@@ -1,6 +1,14 @@
 #include "sys.h"
 #include "util.h"
 
+static Faulthook *faulthook;
+
+void
+setfaulthook(Faulthook *h)
+{
+	faulthook = h;
+}
+
 void
 warn(char *fmt, ...)
 {
@@ -18,10 +26,13 @@ fatal(char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
+	fprintf(stderr, "internal error: ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 	va_end(args);
 	fflush(stderr);
+	if(faulthook)
+		faulthook();
 	abort();
 }
 
@@ -33,10 +44,13 @@ fatalno(char *fmt, ...)
 
 	err = errno;
 	va_start(args, fmt);
+	fprintf(stderr, "internal error: ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, ": %s\n", strerror(err));
 	va_end(args);
 	fflush(stderr);
+	if(faulthook)
+		faulthook();
 	abort();
 }
 
