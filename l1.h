@@ -50,6 +50,7 @@ enum{
 	Econtinue,
 	Edecl,
 	Edecls,
+	Edefine,
 	Ediv,
 	Edo,
 	Edot,
@@ -269,6 +270,7 @@ void setyystate(YYstate *yy);
 
 int yyparse();
 Expr* newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
+Expr* copyexpr(Expr *e);
 Expr* newbinop(unsigned, Expr*, Expr*);
 Expr* newgop(unsigned, Expr*, Expr*);
 Expr* mkconst(unsigned type, Imm val); /* rename newconst? */

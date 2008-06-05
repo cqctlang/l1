@@ -26,8 +26,9 @@ enum {
 } Qkind;
 
 enum {
-	/* Xtypename flags */ 
+	/* type representations */ 
 	Rundef,
+	Rvoid,
 	Ru8le,
 	Ru16le,
 	Ru32le,
@@ -44,11 +45,35 @@ enum {
 	Rs16be,
 	Rs32be,
 	Rs64be,
+	Rnrep, 
+};
+
+static char* repname[Rnrep+1] = {
+	[Rundef]=	"<undefined>",
+	[Rvoid]=	"@void",
+	[Ru8le]=	"@u8le",
+	[Ru16le]=	"@u16le",
+	[Ru32le]=	"@u32le",
+	[Ru64le]=	"@u64le",
+	[Rs8le]=	"@s8le", 
+	[Rs16le]=	"@s16le",
+	[Rs32le]=	"@s32le",
+	[Rs64le]=	"@s64le",
+	[Ru8be]=	"@u8be", 
+	[Ru16be]=	"@u16be",
+	[Ru32be]=	"@u32be",
+	[Ru64be]=	"@u64be",
+	[Rs8be]=	"@u8be", 
+	[Rs16be]=	"@u16be",
+	[Rs32be]=	"@us32be",
+	[Rs64be]=	"@us64be",
+	[Rnrep]=	"<help me, i'm broken>",
 };
 
 enum {
 	Tabinitsize=1024,	/* power of 2 */
 	Typepos=0,
+	Idpos=1,
 	Maxvms=1024,
 };
 
@@ -177,9 +202,7 @@ struct Range {
 
 struct Str {
 	Head hd;
-/*	Imm len; */ /* FIXME: want Imm, but format %.*s does not work
-		       with 64-bit len */ 
-	unsigned len;
+	u32 len; /* FIXME: the reason it's not u64 is there's no 64-bit %.*s */
 	char *s;
 };
 
@@ -1670,6 +1693,7 @@ iterxtn(Head *hd, Ictx *ictx)
 }
 
 static char* _fmtxtn(Xtypename *xtn, char *o);
+static char* _fmtdecl(Xtypename *xtn, Str *is);
 
 static char*
 fmtplist(Vec *param)
@@ -1678,7 +1702,9 @@ fmtplist(Vec *param)
 	Imm i, n;
 	unsigned long m;
 	Xtypename *xtn;
-
+	Vec *pvec;
+	Val *id;
+	
 	n = param->len;
 	if(n == 0)
 		return xstrdup("");
@@ -1686,8 +1712,13 @@ fmtplist(Vec *param)
 	ds = xmalloc(n*sizeof(char**));
 	m = 1;			/* null */
 	for(i = 0; i < n; i++){
-		xtn = valxtn(vecref(valvec(vecref(param, i)), Typepos));
-		ds[i] = _fmtxtn(xtn, xstrdup(""));
+		pvec = valvec(vecref(param, i));
+		xtn = valxtn(vecref(pvec, Typepos));
+		id = vecref(pvec, 1);
+		if(id->qkind == Qstr)
+			ds[i] = _fmtdecl(xtn, valstr(id));
+		else
+			ds[i] = _fmtxtn(xtn, xstrdup(""));
 		m += strlen(ds[i]);
 		if(i < n-1)
 			m += 2;	/* comma, space */
@@ -1717,16 +1748,16 @@ _fmtxtn(Xtypename *xtn, char *o)
 
 	switch(xtn->xtkind){
 	case Tbase:
-		m = strlen(basename[xtn->basename])+1+strlen(o)+1;
+		m = strlen(basename[xtn->basename])+strlen(o)+1;
 		buf = xmalloc(m);
-		snprintf(buf, m, "%s %s", basename[xtn->basename], o);
+		snprintf(buf, m, "%s%s", basename[xtn->basename], o);
 		free(o);
 		return buf;
 	case Ttypedef:
 		s = xtn->tid;
-		m = s->len+1+strlen(o)+1;
+		m = s->len+strlen(o)+1;
 		buf = xmalloc(m);
-		snprintf(buf, m, "%.*s %s", s->len, s->s, o);
+		snprintf(buf, m, "%.*s%s", s->len, s->s, o);
 		free(o);
 		return buf;
 	case Tstruct:
@@ -1734,26 +1765,26 @@ _fmtxtn(Xtypename *xtn, char *o)
 		w = xtn->xtkind == Tstruct ? "struct" : "union";
 		if(xtn->tag){
 			s = xtn->tag;
-			m = strlen(w)+1+s->len+1+strlen(o)+1;
+			m = strlen(w)+1+s->len+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "%s %.*s %s", w, s->len, s->s, o);
+			snprintf(buf, m, "%s %.*s%s", w, s->len, s->s, o);
 		}else{
-			m = strlen(w)+1+strlen(o)+1;
+			m = strlen(w)+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "%s %s", w, o);
+			snprintf(buf, m, "%s%s", w, o);
 		}
 		free(o);
 		return buf;
 	case Tenum:
 		if(xtn->tag){
 			s = xtn->tag;
-			m = 4+1+s->len+1+strlen(o)+1;
+			m = 4+1+s->len+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "enum %.*s %s", s->len, s->s, o);
+			snprintf(buf, m, "enum %.*s%s", s->len, s->s, o);
 		}else{
-			m = 4+1+strlen(o)+1;
+			m = 4+strlen(o)+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "enum %s", o);
+			snprintf(buf, m, "enum%s", o);
 		}
 		free(o);
 		return buf;
@@ -1785,6 +1816,27 @@ _fmtxtn(Xtypename *xtn, char *o)
 	}
 	return NULL;
 
+}
+
+static char*
+_fmtdecl(Xtypename *xtn, Str *id)
+{
+	char *o;
+	o = xmalloc(1+id->len+1);
+	o[0] = ' ';
+	memcpy(o+1, id->s, id->len);
+	return _fmtxtn(xtn, o);
+}
+
+static Str*
+fmtdecl(Xtypename *xtn, Str *id)
+{
+	char *s;
+	Str *str;
+	s = _fmtdecl(xtn, id);
+	str = mkstr0(s);
+	free(s);
+	return str;
 }
 
 static Str*
@@ -3733,7 +3785,7 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 	if(rv){
 		vec = valvec(rv);
 		xtn = valxtn(vecref(vec, Typepos));
-		fld = valvec(vecref(vec, 1));
+		fld = valvec(vecref(vec, Idpos));
 		sz = vecref(vec, 2);
 
 		new = mkxtn();
@@ -3754,9 +3806,9 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 			fv = mkvec(3);
 			
 			mkvalxtn(tmp, &v);
-			_vecset(fv, Typepos, &v);	/* type */
-			_vecset(fv, 1, vecref(vec, 1));	/* id */
-			_vecset(fv, 2, vecref(vec, 2));	/* offset */
+			_vecset(fv, Typepos, &v);		/* type */
+			_vecset(fv, Idpos, vecref(vec, 1));	/* id */
+			_vecset(fv, 2, vecref(vec, 2));		/* offset */
 			
 			mkvalvec(fv, &v);
 			_vecset(new->field, i, &v);
@@ -4042,81 +4094,6 @@ xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
-static void
-xtnx(VM *vm, Operand *op1, Operand *dst)
-{
-	Val v, rv, xv;
-	Xtypename *xtn;
-	Vec *vec;
-
-	getvalrand(vm, op1, &v);
-	xtn = valxtn(&v);
-	switch(xtn->xtkind){
-	case Tbase:
-		vec = mkvec(2);
-		mkvalstr(mkstr0("base"), &xv);
-		_vecset(vec, 0, &xv);
-		mkvalstr(mkstr0(basename[xtn->basename]), &xv);
-		_vecset(vec, 1, &xv);
-		break;
-	case Tstruct:
-	case Tunion:
-	case Tenum:
-		vec = mkvec(2);
-		switch(xtn->xtkind){
-		case Tstruct:
-			mkvalstr(mkstr0("struct"), &xv);
-			break;
-		case Tunion:
-			mkvalstr(mkstr0("union"), &xv);
-			break;
-		case Tenum:
-			mkvalstr(mkstr0("enum"), &xv);
-			break;
-		}
-		_vecset(vec, 0, &xv);
-		mkvalstr(xtn->tag, &xv);
-		_vecset(vec, 1, &xv);
-		break;
-	case Tptr:
-		vec = mkvec(2);
-		mkvalstr(mkstr0("ptr"), &xv);
-		_vecset(vec, 0, &xv);
-		mkvalxtn(xtn->link, &xv);
-		_vecset(vec, 1, &xv);
-		break;
-	case Tarr:
-		vec = mkvec(3);
-		mkvalstr(mkstr0("arr"), &xv);
-		_vecset(vec, 0, &xv);
-		mkvalxtn(xtn->link, &xv);
-		_vecset(vec, 1, &xv);
-		_vecset(vec, 2, &xtn->cnt); /* nil or cval */
-		break;
-	case Tfun:
-		vec = mkvec(3);
-		mkvalstr(mkstr0("fn"), &xv);
-		_vecset(vec, 0, &xv);
-		mkvalxtn(xtn->link, &xv);
-		_vecset(vec, 1, &xv);
-		mkvalvec(xtn->param, &xv);
-		_vecset(vec, 2, &xv);
-		break;
-	case Ttypedef:
-		vec = mkvec(2);
-		mkvalstr(mkstr0("typedef"), &xv);
-		_vecset(vec, 0, &xv);
-		mkvalstr(xtn->tid, &xv);
-		_vecset(vec, 1, &xv);
-		break;
-	default:
-		fatal("bug");
-		
-	}
-	mkvalvec(vec, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
 static void* gotab[Iopmax];
 
 static void
@@ -4235,7 +4212,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Itabget]	= &&Itabget;
 		gotab[Itabput]	= &&Itabput;
 		gotab[Itn]	= &&Itn;
-		gotab[Itnx]	= &&Itnx;
 		gotab[Ivec] 	= &&Ivec;
 		gotab[Ivecref] 	= &&Ivecref;
 		gotab[Ivecset] 	= &&Ivecset;
@@ -4519,9 +4495,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Itn:
 		xtn(vm, i->bits, &i->op1, &i->op2, &i->dst);
 		continue;
-	Itnx:
-		xtnx(vm, &i->op1, &i->dst);
-		continue;
 	Ias:
 		xas(vm, &i->op1, &i->dst);
 		continue;
@@ -4759,6 +4732,8 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *fmt, *efmt;
 	char ch;
 	FILE *fp = stdout;
+	Xtypename *xtn;
+	Vec *dvec;
 
 	if(argc < 1)
 		vmerr(vm, "wrong number of arguments to printf");
@@ -4792,6 +4767,18 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			cv = valcval(vp);
 			fprintf(fp, "%" PRIu64, cv->val);
 			break;
+		case 'x':
+			if(vp->qkind != Qcval)
+				goto badarg;
+			cv = valcval(vp);
+			fprintf(fp, "%" PRIx64, cv->val);
+			break;
+		case 'o':
+			if(vp->qkind != Qcval)
+				goto badarg;
+			cv = valcval(vp);
+			fprintf(fp, "%" PRIo64, cv->val);
+			break;
 		case 's':
 			if(vp->qkind != Qstr)
 				goto badarg;
@@ -4799,9 +4786,24 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			fprintf(fp, "%.*s", as->len, as->s);
 			break;
 		case 't':
-			if(vp->qkind != Qxtn)
-				goto badarg;
-			as = fmtxtn(valxtn(vp));
+			if(vp->qkind == Qxtn)
+				as = fmtxtn(valxtn(vp));
+			else if(vp->qkind == Qvec){
+				dvec = valvec(vp);
+				if(dvec->len < 2)
+					goto badarg;
+				vp = vecref(dvec, Typepos);
+				if(vp->qkind != Qxtn)
+					goto badarg;
+				xtn = valxtn(vp);
+				vp = vecref(dvec, Idpos);
+				if(vp->qkind == Qnil)
+					as = fmtxtn(xtn);
+				else if(vp->qkind == Qstr)
+					as = fmtdecl(xtn, valstr(vp));
+				else
+					goto badarg;
+			}
 			fprintf(fp, "%.*s", as->len, as->s);
 			break;
 		default:
@@ -4847,6 +4849,149 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(arg0->qkind != Qtab)
 		vmerr(vm, "operand 1 to tabvals must be a table");
 	mkvalvec(tabenumvals(valtab(arg0)), rv);
+}
+
+static void
+l1_cracktype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val xv;
+	Xtypename *xtn;
+	Vec *vec;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cracktype");
+	xtn = valxtn(&argv[0]);
+	switch(xtn->xtkind){
+	case Tbase:
+		vec = mkvec(2);
+		mkvalstr(mkstr0(basename[xtn->basename]), &xv);
+		_vecset(vec, 0, &xv);
+		mkvalstr(mkstr0(repname[xtn->rep]), &xv);
+		_vecset(vec, 1, &xv);
+		break;
+	case Tstruct:
+	case Tunion:
+		vec = mkvec(4);
+		switch(xtn->xtkind){
+		case Tstruct:
+			mkvalstr(mkstr0("struct"), &xv);
+			break;
+		case Tunion:
+			mkvalstr(mkstr0("union"), &xv);
+			break;
+		}
+		_vecset(vec, 0, &xv);
+		mkvalstr(xtn->tag, &xv);
+		_vecset(vec, 1, &xv);
+		mkvalvec(xtn->field, &xv);
+		_vecset(vec, 2, &xv);
+		_vecset(vec, 3, &xtn->sz);
+		break;
+	case Tenum:
+		fatal("incomplete support for enums");
+		break;
+	case Tptr:
+		vec = mkvec(1);
+		mkvalxtn(xtn->link, &xv);
+		_vecset(vec, 0, &xv);
+		break;
+	case Tarr:
+		vec = mkvec(2);
+		mkvalxtn(xtn->link, &xv);
+		_vecset(vec, 0, &xv);
+		_vecset(vec, 1, &xtn->cnt); /* nil or cval */
+		break;
+	case Tfun:
+		vec = mkvec(2);
+		mkvalxtn(xtn->link, &xv);
+		_vecset(vec, 0, &xv);
+		mkvalvec(xtn->param, &xv);
+		_vecset(vec, 1, &xv);
+		break;
+	case Ttypedef:
+		vec = mkvec(2);
+		mkvalxtn(xtn->link, &xv);
+		_vecset(vec, 0, &xv);
+		mkvalstr(xtn->tid, &xv);
+		_vecset(vec, 1, &xv);
+		break;
+	default:
+		fatal("bug");
+	}
+	mkvalvec(vec, rv);
+}
+
+static void
+dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %s", id);
+	xtn = valxtn(&argv[0]);
+	if(xtn->xtkind == kind)
+		mkvalcval(0, 1, rv);
+	else
+		mkvalcval(0, 0, rv);
+}
+
+static void
+l1_isbase(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isbase", Tbase);
+}
+
+static void
+l1_isstruct(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isstruct", Tstruct);
+}
+
+static void
+l1_isunion(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isunion", Tunion);
+}
+
+static void
+l1_isenum(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isenum", Tenum);
+}
+
+static void
+l1_isptr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isptr", Tptr);
+}
+
+static void
+l1_isarray(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isarray", Tarr);
+}
+
+static void
+l1_isfunc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isfunc", Tfun);
+}
+
+static void
+l1_istypedef(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "istypedef", Ttypedef);
+}
+
+static void
+l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to isnil");
+	if(argv->qkind == Qnil)
+		mkvalcval(0, 1, rv);
+	else
+		mkvalcval(0, 0, rv);
 }
 
 /* FIXME: this shouldn't need a VM */
@@ -4945,7 +5090,6 @@ mkvm(Env *env)
 	builtinfn(env, "tabdelete", tabdeletethunk());
 	builtinfn(env, "tabenum", tabenumthunk());
 	builtinfn(env, "tablook", tablookthunk());
-	builtinfn(env, "typenamex", typenamexthunk());
 	builtinfn(env, "mkvec", mkvecthunk());
 	builtinfn(env, "vector", vectorthunk());
 	builtinfn(env, "veclen", veclenthunk());
@@ -4963,6 +5107,18 @@ mkvm(Env *env)
 	builtinfn(env, "tabkeys", mkcfn("tabkeys", l1_tabkeys));
 	builtinfn(env, "tabvals", mkcfn("tabvals", l1_tabvals));
 	builtinfn(env, "vmbacktrace", mkcfn("vmbacktrace", l1_vmbacktrace));
+
+	builtinfn(env, "cracktype", mkcfn("cracktype", l1_cracktype));
+	builtinfn(env, "isbase", mkcfn("isbase", l1_isbase));
+	builtinfn(env, "isstruct", mkcfn("isstruct", l1_isstruct));
+	builtinfn(env, "isunion", mkcfn("isunion", l1_isunion));
+	builtinfn(env, "isenum", mkcfn("isenum", l1_isenum));
+	builtinfn(env, "isptr", mkcfn("isptr", l1_isptr));
+	builtinfn(env, "isarray", mkcfn("isarray", l1_isarray));
+	builtinfn(env, "isfunc", mkcfn("isfunc", l1_isfunc));
+	builtinfn(env, "istypedef", mkcfn("istypedef", l1_istypedef));
+
+	builtinfn(env, "isnil", mkcfn("isnil", l1_isnil));
 
 	builtinstr(env, "$get", "get");
 	builtinstr(env, "$put", "put");

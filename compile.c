@@ -71,10 +71,11 @@ genlabel(Code *code, char *s)
 	ctl = mklabel(code);
 	ctl->ckind = Clabel;
 	if(s)
-		snprintf(buf, sizeof(buf), "%s", s);
-	else
+		ctl->label = xstrdup(s);
+	else{
 		snprintf(buf, sizeof(buf), "L%d", labelseed++);
-	ctl->label = xstrdup(buf);
+		ctl->label = xstrdup(buf);
+	}
 	ctl->used = 0;
 	return ctl;
 }
@@ -633,10 +634,6 @@ printinsn(Code *code, Insn *i)
 		printf("tn.%d.%d ", TBITSTYPE(i->bits), TBITSBASE(i->bits));
 		printrand(code, &i->dst);
 		break;
-	case Itnx:
-		printf("tnx ");
-		printrand(code, &i->dst);
-		break;
 	case Iistn:
 		printf("istn ");
 		printrand(code, &i->op1);
@@ -864,6 +861,7 @@ struct Lambda {
 	unsigned ntmp, npar, nloc, maxloc, vararg;
 	VEnv *ve;
 	VRset *capture;
+	char *id;
 };
 
 static Topvec*
@@ -1123,6 +1121,7 @@ freelambda(Lambda *b)
 	freevenv(b->ve);
 	free(b->local);
 	free(b->param);
+	free(b->id);
 	free(b);
 }
 
@@ -1332,6 +1331,8 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 		e->xp = b;
 		b->ve->link = ve;
 		ve = b->ve;
+		if(e->e3)
+			b->id = xstrdup(e->e3->id); /* via Edefine */
 		newmapframe(e->e2, b, b->ve, tv, env, kon);
 		break;
 	default:
@@ -2155,7 +2156,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Elambda:
 		b = (Lambda*)e->xp;
-		L = genlabel(code, 0);
+		L = genlabel(code, b->id);
 
 		for(m = b->capture->nvr-1; m >= 0; m--){
 			vr = &b->capture->vr[m];
@@ -2903,29 +2904,6 @@ istnthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Iistn;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-typenamexthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "typenamex");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Itnx;
 	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);

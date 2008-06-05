@@ -20,7 +20,7 @@ yyerror(char *s)
 }
 
 %token <id> IDENTIFIER CONSTANT STRING_LITERAL 
-%token SIZEOF TYPEDEF
+%token SIZEOF TYPEDEF NIL DEFINE
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -46,7 +46,7 @@ yyerror(char *s)
 %type <expr> parameter_type_list parameter_list parameter_declaration type_name
 %type <expr> abstract_declarator direct_abstract_declarator statement
 %type <expr> compound_statement statement_list
-%type <expr> expression_statement 
+%type <expr> expression_statement define_statement
 %type <expr> selection_statement iteration_statement jump_statement
 %type <kind> unary_operator assignment_operator struct_or_union
 
@@ -55,6 +55,8 @@ yyerror(char *s)
 
 primary_expression
 	: id
+	| NIL
+	{ $$ = newexpr(Enil, 0, 0, 0, 0); }
 	| CONSTANT
 	{ $$ = doconst($1); }
 	| STRING_LITERAL
@@ -533,6 +535,7 @@ statement
 	| selection_statement
 	| iteration_statement
 	| jump_statement
+	| define_statement
 	;
 
 local
@@ -603,6 +606,15 @@ jump_statement
 	{ $$ = newexpr(Eret, 0, 0, 0, 0); }
 	| RETURN expression ';'
 	{ $$ = newexpr(Eret, $2, 0, 0, 0); }
+	;
+
+define_statement
+	: DEFINE id '(' identifier_list ')' compound_statement
+	{ $$ = newexpr(Edefine, $2, invert($4), $6, 0); }
+	| DEFINE id '('  ')' compound_statement
+	{ $$ = newexpr(Edefine, $2, nullelist(), $5, 0); }
+	| DEFINE id id compound_statement
+	{ $$ = newexpr(Edefine, $2, $3, $4, 0); }
 	;
 
 translation_unit_seq

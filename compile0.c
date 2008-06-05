@@ -371,7 +371,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 			se = Qcons(Qcall(doid("vector"), 3, tn, id, off), se);
 			dl = dl->link;
 		}
-		se = Qapply(doid("vector"), se);
+		se = Qapply(doid("vector"), invert(se));
 		if(t->sz){
 			compile0(t->sz, lvs, vars, 1);
 			sz = t->sz; /* steal */
@@ -514,6 +514,13 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 	case Elambda:
 	case Eblock:
 		compile0(e->e2, pvs, vars, needval);
+		break;
+	case Edefine:
+		se = newexpr(Elambda, e->e2, e->e3, copyexpr(e->e1), 0);
+		compile0(se, pvs, vars, needval);
+		e->kind = Eg;
+		e->e2 = se;
+		e->e3 = 0;
 		break;
 	case Etick:
 		// $p = dispatch($looksym, sym)

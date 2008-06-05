@@ -36,6 +36,7 @@ static int check_type();
 "break"			{ count(); return(BREAK); }
 "char"			{ count(); return(CHAR); }
 "continue"		{ count(); return(CONTINUE); }
+"define"		{ count(); return(DEFINE); }
 "do"			{ count(); return(DO); }
 "double"		{ count(); return(DOUBLE); }
 "else"			{ count(); return(ELSE); }
@@ -46,6 +47,7 @@ static int check_type();
 "int"			{ count(); return(INT); }
 "lambda"		{ count(); return(LAMBDA); }
 "long"			{ count(); return(LONG); }
+"nil"			{ count(); return(NIL); }
 "return"		{ count(); return(RETURN); }
 "short"			{ count(); return(SHORT); }
 "signed"		{ count(); return(SIGNED); }

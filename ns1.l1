@@ -1,4 +1,27 @@
-foo = lambda(){
+define printtype(t){
+	@local ct, i, fld, flds, sz;
+
+	ct = cracktype(t);
+	if(isbase(t))
+		printf("%s\n", vecref(ct, 0));
+	else if(isstruct(t) || isunion(t)){
+		printf("%s %s {\n", vecref(ct, 0), vecref(ct, 1));
+		flds = vecref(ct, 2);
+		for(i = 0; i < veclen(flds); i++){
+			fld = vecref(flds, i);
+			printf("\t@0x%x", vecref(fld, 2));
+			printf("\t%t;\n", fld);
+		}
+		sz = vecref(ct, 3);
+		if(!isnil(sz))
+			printf("\t@0x%x;\n", vecref(ct, 3));
+		printf("};\n");
+	}else if(istypedef(t))
+		printf("typedef %t;\n", ct);
+};
+
+
+define foo(){
 	@local ns, fn, tab, vec, i;
 
 	ns = @names c32le {
@@ -6,7 +29,8 @@ foo = lambda(){
 		struct foo {
 			@0x0 int x;
 			@0x4 int y;
-			@0x8;
+			@0x8 int z;
+			@0xc;
 		};
 		struct foo a;
 	};
@@ -14,7 +38,7 @@ foo = lambda(){
 	fn = nsenumtype(ns);
 	vec = tabvals(fn());
 	for(i = 0; i < veclen(vec); i++)
-		printf("%t\n", vecref(vec, i));
+		printtype(vecref(vec, i));
 };
 
 foo();

@@ -33,6 +33,7 @@ char* S[] = {
 	[Econtinue] =	"Econtinue",
 	[Edecl] =	"Edecl",
 	[Edecls] =	"Edecls",
+	[Edefine] =	"Edefine",
 	[Ediv] =	"Ediv",
 	[Edo] =		"Edo",
 	[Edot] =	"Edot",

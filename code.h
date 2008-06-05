@@ -83,7 +83,6 @@ enum {
 	Itabget,
 	Itabput,
 	Itn,
-	Itnx,
 	Ivec,
 	Ivecl,
 	Ivecref,
@@ -164,7 +163,7 @@ struct Ctl {
 	unsigned ckind;
 
 	/* ckind == Clabel */
-	char *label;
+	char *label;		/* for humans, only; (duplicates in code ok) */
 	int used;
 	unsigned long insn;
 
