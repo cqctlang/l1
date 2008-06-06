@@ -755,8 +755,9 @@ flattenlocal(Expr *b)
 	return nloc;
 }
 
+/* flatten local declarations within and determine # of locals for lambda E */
 static unsigned
-tmplocpass(Expr *e, unsigned *nloc)
+locpass(Expr *e)
 {
 	unsigned m;
 
@@ -765,27 +766,49 @@ tmplocpass(Expr *e, unsigned *nloc)
 
 	switch(e->kind){
 	case Elambda:
-		/* skip e1 (identifier list) */
 		return 0;
 	case Eblock:
-		*nloc += flattenlocal(e);
-		return tmplocpass(e->e2, nloc);
+		m = flattenlocal(e);
+		return m+locpass(e->e2);
+	default:
+		m = locpass(e->e1);
+		m = max(m, locpass(e->e2));
+		m = max(m, locpass(e->e3));
+		m = max(m, locpass(e->e4));
+		return m;
+	}
+}
+
+/* determine # of tmps for lambda E */
+static unsigned
+tmppass(Expr *e)
+{
+	unsigned m;
+
+	if(e == NULL)
+		return 0;
+
+	switch(e->kind){
+	case Elambda:
+		return 0;
+	case Eblock:
+		return tmppass(e->e2);
 	case E_tn:
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2))
 			return 0;
 		else if(issimple(e->e1))
-			return tmplocpass(e->e2, nloc);
+			return tmppass(e->e2);
 		else if(issimple(e->e2))
-			return tmplocpass(e->e1, nloc);
+			return tmppass(e->e1);
 		else
-			return 1+max(tmplocpass(e->e1, nloc),
-				     tmplocpass(e->e2, nloc));
+			return 1+max(tmppass(e->e1),
+				     tmppass(e->e2));
 	default:
-		m = tmplocpass(e->e1, nloc);
-		m = max(m, tmplocpass(e->e2, nloc));
-		m = max(m, tmplocpass(e->e3, nloc));
-		m = max(m, tmplocpass(e->e4, nloc));
+		m = tmppass(e->e1);
+		m = max(m, tmppass(e->e2));
+		m = max(m, tmppass(e->e3));
+		m = max(m, tmppass(e->e4));
 		return m;
 	}
 }
@@ -858,7 +881,7 @@ struct Topvec {
 struct Lambda {
 	Vardef *param;
 	Vardef *local;
-	unsigned ntmp, npar, nloc, maxloc, vararg;
+	unsigned ntmp, npar, maxloc, vararg;
 	VEnv *ve;
 	VRset *capture;
 	char *id;
@@ -1088,7 +1111,8 @@ mklambda(Expr *p)
 		}
 
 	b->param = xmalloc(b->npar*sizeof(Vardef));
-	b->ntmp = tmplocpass(p->e2, &b->maxloc);
+	b->ntmp = tmppass(p->e2);
+	b->maxloc = locpass(p->e2);
 	b->local = xmalloc(b->maxloc*sizeof(Vardef));
 	b->nloc = 0;
 
@@ -1125,8 +1149,8 @@ freelambda(Lambda *b)
 	free(b);
 }
 
-static void
-bindlocal(Lambda *b, Expr *p)
+static unsigned
+bindlocal(Lambda *b, Expr *p, unsigned nloc)
 {
 	Expr *q;
 	Vardef *vd;
@@ -1138,20 +1162,25 @@ bindlocal(Lambda *b, Expr *p)
 		m++;
 		q = q->e2;
 	}
-	if(m+b->nloc > b->maxloc)
+	if(m+nloc > b->maxloc)
 		fatal("bug");
 
-	vd = b->local+b->nloc;
+	vd = b->local+nloc;
 	q = p;
 	while(q->kind != Enull){
 		vd->lambda = b;
 		vd->id = q->e1->id;
 		vd->kind = VDlocal;
-		vd->idx = b->nloc;
+		/* all locals are indirect, since they must be written
+		   to be useful */
+		vd->indirect = 1;
+		vd->idx = nloc;
 		q = q->e2;
 		vd++;
-		b->nloc++;
+		nloc++;
 	}
+
+	return nloc;
 }
 
 static Varref*
@@ -1272,14 +1301,15 @@ vardeflookup(Vardef *vd, VEnv *ve)
 }
 
 static void
-newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
+mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
+	 Konst *kon, unsigned ploc)
 {
 	char *id;
 	Lambda *b;
 	VEnv *nve;
-	unsigned sloc;
 	Vardef *vd;
 	Varref *vr;
+	unsigned nloc;
 
 	if(e == NULL)
 		return;
@@ -1311,35 +1341,34 @@ newmapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env, Konst *kon)
 			vr = mkvarref(vd);
 		}
 		e->e1->xp = vr;
-		newmapframe(e->e2, curb, ve, tv, env, kon);
+		mapframe(e->e2, curb, ve, tv, env, kon, ploc);
 		break;
 	case Eblock:
-		sloc = curb->nloc;
-		bindlocal(curb, e->e1);
-		if(curb->nloc > sloc){
+		nloc = bindlocal(curb, e->e1, ploc);
+		if(nloc > ploc){
 			nve = mkvenv();
 			nve->link = ve;
-			nve->nv = curb->nloc-sloc;
-			nve->hd = &curb->local[sloc];
+			nve->nv = nloc-ploc;
+			nve->hd = &curb->local[ploc];
 			e->xp = nve;
 			ve = nve;
 		}
-		newmapframe(e->e2, curb, ve, tv, env, kon);
+		mapframe(e->e2, curb, ve, tv, env, kon, nloc);
 		break;
 	case Elambda:
 		b = mklambda(e);
 		e->xp = b;
 		b->ve->link = ve;
 		ve = b->ve;
-		if(e->e3)
-			b->id = xstrdup(e->e3->id); /* via Edefine */
-		newmapframe(e->e2, b, b->ve, tv, env, kon);
+		if(e->e3) /* Edefine */
+			b->id = xstrdup(e->e3->id);
+		mapframe(e->e2, b, b->ve, tv, env, kon, 0);
 		break;
 	default:
-		newmapframe(e->e1, curb, ve, tv, env, kon);
-		newmapframe(e->e2, curb, ve, tv, env, kon);
-		newmapframe(e->e3, curb, ve, tv, env, kon);
-		newmapframe(e->e4, curb, ve, tv, env, kon);
+		mapframe(e->e1, curb, ve, tv, env, kon, ploc);
+		mapframe(e->e2, curb, ve, tv, env, kon, ploc);
+		mapframe(e->e3, curb, ve, tv, env, kon, ploc);
+		mapframe(e->e4, curb, ve, tv, env, kon, ploc);
 		break;
 	}	
 }
@@ -1483,7 +1512,7 @@ printframe(Expr *e)
 			printf(" <p,%d,%s,%d>",
 			       vd[m].idx, vd[m].id, vd[m].indirect);
 		vd = b->local;
-		for(m = 0; m < b->nloc; m++)
+		for(m = 0; m < b->maxloc; m++)
 			printf(" <l,%d,%s,%d>",
 			       vd[m].idx, vd[m].id, vd[m].indirect);
 		printf(" ");
@@ -2404,18 +2433,18 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	b = (Lambda*)e->xp;
 	if(b->vararg)
 		printf("%s: var params, %u locals, %u temps\n",
-		       name->label, b->nloc, b->ntmp);
+		       name->label, b->maxloc, b->ntmp);
 	else
 		printf("%s: %u params, %u locals, %u temps\n",
-		       name->label, b->npar, b->nloc, b->ntmp);
+		       name->label, b->npar, b->maxloc, b->ntmp);
 	p.b = b;
 
 	entry = code->ninsn;
-	if(b->nloc+b->ntmp > 0){
+	if(b->maxloc+b->ntmp > 0){
 		i = nextinsn(code);
 		i->kind = Isub;
 		randloc(&i->op1, SP);
-		randimm(&i->op2, b->nloc+b->ntmp);
+		randimm(&i->op2, b->maxloc+b->ntmp);
 		randloc(&i->dst, SP);
 		needtop = 1;
 	}
@@ -2426,7 +2455,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 			randvdloc(&i->op1, &b->param[m]);
 			needtop = 1;
 		}
-	for(m = 0; m < b->nloc; m++)
+	for(m = 0; m < b->maxloc; m++)
 		if(b->local[m].indirect){
 			i = nextinsn(code);
 			i->kind = Ibox0;
@@ -2450,7 +2479,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	p.Return = genlabel(code, 0);
 	p.Break = 0;
 	p.Continue = 0;
-	cg(e->e2, code, &p, Effect, p.Return0, top, p.Return0, b->nloc);
+	cg(e->e2, code, &p, Effect, p.Return0, top, p.Return0, b->maxloc);
 
 	if(p.Return0->used) /* hack for lambdas with empty bodies */
 		emitlabel(p.Return0, e->e2);
@@ -2481,7 +2510,7 @@ compileentry(Expr *el, Env *env, int flags)
 
 	le = newexpr(Elambda, nullelist(), el, 0, 0);
 
-	newmapframe(le, 0, 0, code->topvec, env, code->konst);
+	mapframe(le, 0, 0, code->topvec, env, code->konst, 0);
 	cap = mkvdset();
 	mapcapture(le, cap);
 	freevdset(cap);

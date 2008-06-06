@@ -2344,8 +2344,6 @@ fvmbacktrace(FILE *out, VM *vm)
 	Closure *cl;
 
 	pc = vm->pc-1;		/* vm loop increments pc after fetch */
-	if(vm->pc == 0)
-		fprintf(out, "vmerr: pc is 0!\n");
 	fp = vm->fp;
 	cl = vm->clx;
 	while(fp != 0){
@@ -5168,7 +5166,7 @@ vmfaulthook()
 	vmp = vms;
 	while(vmp < vms+Maxvms){
 		if(*vmp){
-			fprintf(stderr, "fault context of vm %p:\n", *vmp);
+			fprintf(stderr, "backtrace of vm %p:\n", *vmp);
 			fvmbacktrace(stderr, *vmp);
 			fprintf(stderr, "\n");
 		}

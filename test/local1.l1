@@ -1,0 +1,37 @@
+// this does not test language semantics;
+// rather, it tests the property of the implementation
+// that storage for locals is reused across disjoint blocks
+
+define foo(){
+	@local x;
+	{
+		@local x;
+		x = 5;
+	}
+	{
+		@local x;
+		printf("%d\n", x);
+	}	
+	{
+		@local x;
+		printf("%d\n", x);
+	}	
+	{
+		@local x;
+		printf("%d\n", x);
+	}	
+	{
+		@local x;
+		printf("%d\n", x);
+	}	
+	{
+		@local x;
+		printf("%d\n", x);
+	}	
+	{
+		@local x;
+		printf("%d\n", x);
+	}	
+}
+
+foo();
