@@ -1,8 +1,4 @@
-Name spaces
------------
-
-Name spaces implement the following interface:
-
+Name spaces interface
 	looksym(str) -> xtn
 	looktype(xtn) -> xtn
 	enumsym() -> tab of { str:[xtn,id,cval] }
@@ -10,3 +6,17 @@ Name spaces implement the following interface:
 		where tidtab is tab of { str:xtn }
 		  and tagtab is tab of { str:xtn }
 
+
+cracktype
+
+locals share storage in stack frame for containing lambda;
+initial value is undefined.
+model is that you bind them before referencing them.
+
+expressions in a @names form are evaluated in unspecified order;
+cannot depend on side effects occurring in some order.
+
+this seems potentially useful, but is not possible:
+	x = 0;
+	@(x+=4) int x;
+	@(x+=4) int y;

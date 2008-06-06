@@ -28,6 +28,9 @@ define foo(){
 
 	ns = @names c32le {
 		typedef struct foo foo;
+		struct abc {
+			int a;
+		};
 		struct foo {
 			@0x00 int x;
 			@0x04 int y;
@@ -37,7 +40,8 @@ define foo(){
 			@0x14 int (*bar)(void);
 			@0x18 int (*baz)(int p1);
 			@0x20 int (*baz)(int p1, struct foo *p2);
-			@0x24 char *a[10];
+			@0x28 struct abc bar;
+			@0x24+10*4 char *a[10];
 			@0x28;
 		};
 		struct bar {
