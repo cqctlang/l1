@@ -1114,7 +1114,6 @@ mklambda(Expr *p)
 	b->ntmp = tmppass(p->e2);
 	b->maxloc = locpass(p->e2);
 	b->local = xmalloc(b->maxloc*sizeof(Vardef));
-	b->nloc = 0;
 
 	if(!b->vararg){
 		vd = b->param;
