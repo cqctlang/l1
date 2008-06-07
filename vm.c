@@ -460,6 +460,7 @@ sweepheap(Heap *heap, unsigned color)
 		if(p->color == color){
 			if(heap->free1)
 				heap->free1(p);
+//			printf("collect %s %p\n", heap->id, p); 
 			if(p->state != 0 || p->inrootset)
 				fatal("sweep heap (%s) bad state %d",
 				      heap->id, p->state);
@@ -495,6 +496,8 @@ freeheap(Heap *heap)
 	Head *p, *q;
 	p = heap->alloc;
 	while(p){
+//		if(p->color != GCfree)
+//			printf("heap %s freed with live data\n", heap->id);
 		q = p->alink;
 		free(p);
 		p = q;
@@ -1651,11 +1654,19 @@ iterxtn(Head *hd, Ictx *ictx)
 		return 0;
 	case Tstruct:
 	case Tunion:
-	case Tenum:
-		if(ictx->n++ > 0)
-			return 0;
-		else
+		switch(ictx->n++){
+		case 0:
 			return (Head*)xtn->tag;
+		case 1:
+			return (Head*)xtn->field;
+// FIXME: follow when sz is a Head
+//		case 2:
+//			return (Head*)xtn->sz;
+		default:
+			return 0;
+		}
+	case Tenum:
+		fatal("enum support incomplete");
 	case Tptr:
 		if(ictx->n++ > 0)
 			return 0;

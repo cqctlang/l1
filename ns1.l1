@@ -26,25 +26,26 @@ define printtype(t){
 define foo(){
 	@local ns, fn, tab, vec, i;
 
-	ns = @names c32le {
-		typedef struct foo foo;
-		struct foo {
-			@0x00 int x;
-			@0x04 int y;
-			@0x08 int z;
-			@0x0c int *xp;
-			@0x10 int (*foo)();
-			@0x14 int (*bar)(void);
-			@0x18 int (*baz)(int p1);
-			@0x20 int (*baz)(int p1, struct foo *p2);
-			@0x24 char *a[10];
-			@0x28;
-		};
-		struct bar {
-			@0x0 int x, y;
-		};
-		struct foo a;
-	};
+ 	ns = @names c32le {
+ 		typedef struct foo foo;
+ 		struct abc { int x; };
+ 		struct foo {
+ 			@0x00 int x;
+ 			@0x04 int y;
+ 			@0x08 int z;
+ 			@0x0c int *xp;
+ 			@0x10 int (*foo)();
+ 			@0x14 int (*bar)(void);
+ 			@0x18 int (*baz)(int p1);
+ 			@0x20 int (*baz)(int p1, struct foo *p2);
+ 			@0x24 char *a[10];
+ 			@0x28;
+ 		};
+ 		struct bar {
+ 			@0x0 int x, y;
+ 		};
+ 		struct foo a;
+ 	};
 
 	fn = nsenumtype(ns);
 	vec = tabvals(fn());

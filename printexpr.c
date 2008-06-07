@@ -60,6 +60,7 @@ char* S[] = {
 	[Emul] =	"Emul",
 	[Ens] =		"Ens",
 	[Eneq] =	"Eneq",
+	[Enil] =	"Enil",
 	[Enop] =	"Enop",
 	[Enull] =	"Enull",
 	[Epostdec] =	"Epostdec",
