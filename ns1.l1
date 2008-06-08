@@ -39,6 +39,11 @@ define foo(){
  			@0x18 int (*baz)(int p1);
  			@0x20 int (*baz)(int p1, struct foo *p2);
  			@0x24 char *a[10];
+			@0x30 struct blah {
+				@0x0	int x;
+				@0x4	int y;
+				@0x8;
+			} blahvar;
  			@0x28;
  		};
  		struct bar {
