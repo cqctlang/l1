@@ -10,6 +10,8 @@ todo
 - write Icallx to trap to builtin C functions.
 - figure out how to re-enter VM.
 - check out inferno discussion jun 3 2008 on refs
+- vector() seems to take arguments in reverse order, which is
+  confusing to see in compile0 output...why is this?
 
 ns/as interface
 ---------------

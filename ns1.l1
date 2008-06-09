@@ -26,29 +26,34 @@ define printtype(t){
 define foo(){
 	@local ns, fn, tab, vec, i;
 
-	ns = @names c32le {
-		typedef struct foo foo;
-		struct abc {
-			int a;
-		};
-		struct foo {
-			@0x00 int x;
-			@0x04 int y;
-			@0x08 int z;
-			@0x0c int *xp;
-			@0x10 int (*foo)();
-			@0x14 int (*bar)(void);
-			@0x18 int (*baz)(int p1);
-			@0x20 int (*baz)(int p1, struct foo *p2);
-			@0x28 struct abc bar;
-			@0x24+10*4 char *a[10];
-			@0x28;
-		};
-		struct bar {
-			@0x0 int x, y;
-		};
-		struct foo a;
-	};
+ 	ns = @names c32le {
+ 		typedef struct foo foo;
+ 		struct abc { int x; };
+ 		struct foo {
+ 			@0x00 int x;
+ 			@0x04 int y;
+ 			@0x08 int z;
+ 			@0x0c int *xp;
+ 			@0x10 int (*foo)();
+ 			@0x14 int (*bar)(void);
+ 			@0x18 int (*baz)(int p1);
+ 			@0x20 int (*baz)(int p1, struct foo *p2);
+ 			@0x24 char *a[10];
+			@0x30 struct blah {
+				@0x0	int x;
+				@0x4	int y;
+				@0x8;
+			} blahvar;
+ 			@0x28;
+ 		};
+ 		struct bar {
+ 			@0x0 int x, y;
+ 		};
+ 		struct foo a;
+		@0x100 struct t2 { int x; } x;
+		@0x100 struct t2 { int x, y; } x;
+		@0x100 struct t2 { int z; } x;
+ 	};
 
 	fn = nsenumtype(ns);
 	vec = tabvals(fn());

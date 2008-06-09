@@ -29,6 +29,7 @@ yyerror(char *s)
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN
 
+%type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
 %type <expr> declarator_list primary_expression postfix_expression
 %type <expr> argument_expression_list unary_expression cast_expression
@@ -316,7 +317,7 @@ declarator_list
 	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
 	;
 
-type_specifier
+base
 	: VOID
 	{ $$ = newexpr(Evoid, 0, 0, 0, 0); }
 	| CHAR
@@ -335,8 +336,22 @@ type_specifier
 	{ $$ = newexpr(Esigned, 0, 0, 0, 0); }
 	| UNSIGNED
 	{ $$ = newexpr(Eunsigned, 0, 0, 0, 0); }
+
+base_list
+	: base
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| base_list base
+	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	;
+
+type_specifier
+	: base_list
 	| struct_or_union_specifier
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
 	| enum_specifier
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| id
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
 	;
 
 id
@@ -386,9 +401,6 @@ struct_declaration
 /* specifier_list order does not affect meaning of specifier */
 specifier_list
 	: type_specifier
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
-	| specifier_list type_specifier
-	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
 	;
 
 struct_declarator_list
@@ -493,14 +505,6 @@ parameter_declaration
 	{ $$ = newexpr(Edecl, $1, nullelist(), 0, 0); }
 	;
 
-type_name
-	: specifier_list
-	{ $$ = newexpr(Edecl, $1, nullelist(), 0, 0); }
-	| specifier_list abstract_declarator
-	{ $$ = newexpr(Edecl, $1,
-		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
-	;
-
 abstract_declarator
 	: pointer
 	| direct_abstract_declarator
@@ -521,6 +525,7 @@ direct_abstract_declarator
 	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
 	| '(' ')'
 	{ $$ = newexpr(Efun, 0, nullelist(), 0, 0); }
+
 	| '(' parameter_type_list ')'
 	{ $$ = newexpr(Efun, 0, $2, 0, 0); }
 	| direct_abstract_declarator '(' ')'
@@ -528,6 +533,28 @@ direct_abstract_declarator
 	| direct_abstract_declarator '(' parameter_type_list ')'
 	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
 	;
+
+type_name
+	: { $$ = newexpr(0, 0, 0, 0, 0); }
+	;
+
+/*
+type_name
+	: tn_specifier_list
+	{ $$ = newexpr(Edecl, $1, nullelist(), 0, 0); }
+	| tn_specifier_list tn_abstract_declarator
+	{ $$ = newexpr(Edecl, $1,
+		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
+	;
+
+tn_specifier_list
+	: tn_type_specifier
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| tn_specifier_list tn_type_specifier
+	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	;
+
+*/
 
 statement
 	: compound_statement

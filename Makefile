@@ -9,7 +9,7 @@ C = l1.c compile0.c compile.c vm.c hash.c util.c main.c printexpr.c
 O = $(C:.c=.o)
 
 c.tab.c: c.y $(HDR)
-	bison -d c.y
+	bison -v -d c.y
 
 c.tab.h: c.tab.c
 
