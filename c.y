@@ -525,9 +525,25 @@ direct_abstract_declarator
 	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
 	| '(' ')'
 	{ $$ = newexpr(Efun, 0, nullelist(), 0, 0); }
-
+/*
+ * without this rule, you cannot write abstract function types like
+ * `int(int)' (perhaps the equivalent type can be formed with enough
+ * parens).  with this rule, bison reports 3 reduce/reduce conflicts
+ * on '(', '[', and ')'; these seem to be related to distinguishing
+ * a symbol identifier in a non-abstract declarator from a type
+ * identifier in this abstract declarator.
+ * in practice, there does not seem to be an actual ambiguity;
+ * perhaps is an artifact of lalr(1) simplification.
+ * unfortunately, i do not know how to analyze the conflict to
+ * be sure.
+ * it seems it would be safe to arrange for a default reduction to
+ * type identifier in all cases (i.e., the only way to reach the
+ * conflicted state is via a context in which type_specifier is
+ * always the right reduction).  since this rule seems obscure,
+ * we leave it out.
 	| '(' parameter_type_list ')'
 	{ $$ = newexpr(Efun, 0, $2, 0, 0); }
+*/
 	| direct_abstract_declarator '(' ')'
 	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
 	| direct_abstract_declarator '(' parameter_type_list ')'
