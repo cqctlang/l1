@@ -7,9 +7,9 @@ extern int yylex();
 extern char *yytext;
 
 static void
-yyerror(char *s)
+yyerror(const char *s)
 {
-	parseerror(s);
+	parseerror((char*)s);
 }
 %}
 
@@ -20,7 +20,7 @@ yyerror(char *s)
 }
 
 %token <id> IDENTIFIER CONSTANT STRING_LITERAL 
-%token SIZEOF TYPEDEF NIL DEFINE
+%token SIZEOF TYPEOF TYPEDEF NIL DEFINE
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -39,20 +39,44 @@ yyerror(char *s)
 %type <expr> logical_and_expression logical_or_expression conditional_expression
 %type <expr> assignment_expression lambda_expression expression root_expression
 %type <expr> names_expression names_declaration_list names_declaration
-%type <expr> identifier_list local_list local
-%type <expr> type_specifier id tag struct_or_union_specifier
+%type <expr> identifier_list local_list local type_specifier
+%type <expr> id tag tickid struct_or_union_specifier 
 %type <expr> struct_declaration_list struct_declaration
 %type <expr> struct_declarator_list struct_declarator enum_specifier
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
-%type <expr> parameter_type_list parameter_list parameter_declaration type_name
+%type <expr> parameter_type_list parameter_list parameter_declaration
 %type <expr> abstract_declarator direct_abstract_declarator statement
 %type <expr> compound_statement statement_list
 %type <expr> expression_statement define_statement
 %type <expr> selection_statement iteration_statement jump_statement
+%type <expr> type_name tn_type_specifier tn_struct_or_union_specifier
+%type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
+%type <expr> tn_parameter_declaration tn_abstract_declarator
+%type <expr> tn_direct_abstract_declarator tn_declarator tn_direct_declarator
+%type <expr> tn_param_type_specifier tn_param_struct_or_union_specifier
+%type <expr> tn_param_enum_specifier
+
 %type <kind> unary_operator assignment_operator struct_or_union
 
 %start translation_unit_seq
+%glr-parser
+%{
+	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
+	static Expr* mulmerge(YYSTYPE e1, YYSTYPE e2);
+	static Expr* ofmerge(YYSTYPE e1, YYSTYPE e2);
+%}
 %%
+
+id
+	: IDENTIFIER
+	{ $$ = doid($1); }
+
+tickid
+	: id '`' id
+	{ $$ = dotick($1, $3); }
+	;
+
+tag:	id;
 
 primary_expression
 	: id
@@ -64,8 +88,7 @@ primary_expression
 	{ $$ = doconsts($1); }
 	| '(' expression ')'
 	{ $$ = $2; }
-	| id '`' id
-	{ $$ = dotick($1, $3); }
+	| tickid
 	;
 
 postfix_expression
@@ -102,10 +125,14 @@ unary_expression
 	{ $$ = newexpr(Epredec, $2, 0, 0, 0); }
 	| unary_operator cast_expression
 	{ $$ = newexpr($1, $2, 0, 0, 0); }
-	| SIZEOF unary_expression
+	| SIZEOF unary_expression			%merge <ofmerge>
 	{ $$ = newexpr(Esizeofe, $2, 0, 0, 0); }
-	| SIZEOF '(' type_name ')'
+	| SIZEOF '(' type_name ')'			%merge <ofmerge>
 	{ $$ = newexpr(Esizeoft, $3, 0, 0, 0); }
+	| TYPEOF unary_expression			%merge <ofmerge>
+	{ $$ = newexpr(Etypeofe, $2, 0, 0, 0); }
+	| TYPEOF '(' type_name ')'			%merge <ofmerge>
+	{ $$ = newexpr(Etypeoft, $3, 0, 0, 0); }
 	;
 
 unary_operator
@@ -124,14 +151,14 @@ unary_operator
 	;
 
 cast_expression
-	: unary_expression
-	| '(' type_name ')' cast_expression
+	: unary_expression				%merge <castmerge>
+	| '(' type_name ')' cast_expression		%merge <castmerge>
 	{ $$ = newexpr(Ecast, $2, $4, 0, 0); }
 	;
 
 multiplicative_expression
-	: cast_expression
-	| multiplicative_expression '*' cast_expression
+	: cast_expression				%merge <mulmerge>
+	| multiplicative_expression '*' cast_expression	%merge <mulmerge>
 	{ $$ = newbinop(Emul, $1, $3); }
 	| multiplicative_expression '/' cast_expression
 	{ $$ = newbinop(Ediv, $1, $3); }
@@ -346,20 +373,11 @@ base_list
 
 type_specifier
 	: base_list
-	| struct_or_union_specifier
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
-	| enum_specifier
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexpr(Ebase, $1, 0, 0, 0); }
 	| id
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
-	;
-
-id
-	: IDENTIFIER
-	{ $$ = doid($1); }
-
-tag
-	: id
+	{ $$ = newexpr(Etid, $1, 0, 0, 0); }
+	| struct_or_union_specifier
+	| enum_specifier
 	;
 
 struct_or_union_specifier
@@ -496,13 +514,11 @@ parameter_list
 
 parameter_declaration
 	: specifier_list declarator
-	{ $$ = newexpr(Edecl, $1,
-		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
+	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
 	| specifier_list abstract_declarator
-	{ $$ = newexpr(Edecl, $1,
-		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
+	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
 	| specifier_list
-	{ $$ = newexpr(Edecl, $1, nullelist(), 0, 0); }
+	{ $$ = newexpr(Edecl, $1, 0, 0, 0); }
 	;
 
 abstract_declarator
@@ -533,7 +549,7 @@ direct_abstract_declarator
  * a symbol identifier in a non-abstract declarator from a type
  * identifier in this abstract declarator.
  * in practice, there does not seem to be an actual ambiguity;
- * perhaps is an artifact of lalr(1) simplification.
+ * perhaps it is an artifact of lalr(1) simplification.
  * unfortunately, i do not know how to analyze the conflict to
  * be sure.
  * it seems it would be safe to arrange for a default reduction to
@@ -543,6 +559,7 @@ direct_abstract_declarator
  * we leave it out.
 	| '(' parameter_type_list ')'
 	{ $$ = newexpr(Efun, 0, $2, 0, 0); }
+ * (if you restore this, be sure to revisit tn_direct_abstract_declarator)
 */
 	| direct_abstract_declarator '(' ')'
 	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
@@ -551,26 +568,132 @@ direct_abstract_declarator
 	;
 
 type_name
-	: { $$ = newexpr(0, 0, 0, 0, 0); }
-	;
-
-/*
-type_name
-	: tn_specifier_list
-	{ $$ = newexpr(Edecl, $1, nullelist(), 0, 0); }
-	| tn_specifier_list tn_abstract_declarator
-	{ $$ = newexpr(Edecl, $1,
-		       newexpr(Eelist, $2, nullelist(), 0, 0), 0, 0); }
-	;
-
-tn_specifier_list
 	: tn_type_specifier
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
-	| tn_specifier_list tn_type_specifier
-	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	{ $$ = dotypes(newexpr(Edecl, $1, 0, 0, 0)); }
+        | tn_type_specifier tn_abstract_declarator
+	{ $$ = dotypes(newexpr(Edecl, $1, $2, 0, 0)); }
 	;
 
+tn_type_specifier
+	: base_list
+	{ $$ = newexpr(Ebase, $1, 0, 0, 0); }
+	| id '`' base_list
+	{ $$ = newexpr(Ebase, $3, $1, 0, 0); }
+	| '`' id
+	{ $$ = newexpr(Etid, $2, 0, 0, 0); }
+	| id '`' id
+	{ $$ = newexpr(Etid, $3, $1, 0, 0); }
+	| tn_struct_or_union_specifier
+	| tn_enum_specifier
+	;
+
+tn_struct_or_union_specifier
+	: struct_or_union tag
+	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	| struct_or_union id '`' tag
+	{ $$ = newexpr($1, $4, 0, $2, 0); }
+	;
+
+tn_enum_specifier
+	: ENUM tag
+	{ $$ = newexpr(Eenum, $2, 0, 0, 0); }
+	| ENUM id '`' tag
+	{ $$ = newexpr(Eenum, $4, 0, $2, 0); }
+	;
+
+tn_parameter_type_list
+	: tn_parameter_list
+	{ $$ = invert($1); }
+	| tn_parameter_list ',' ELLIPSIS
+/*
+	{ $$ = invert(newexpr(Eelist,
+	                      newexpr(Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
+			      
 */
+	{ $$ = invert($1); }
+	;
+
+tn_parameter_list
+	: tn_parameter_declaration
+	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	| tn_parameter_list ',' tn_parameter_declaration
+	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	;
+
+tn_parameter_declaration
+	: tn_param_type_specifier tn_declarator
+	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
+	| tn_param_type_specifier tn_abstract_declarator
+	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
+	| tn_param_type_specifier
+	{ $$ = newexpr(Edecl, $1, 0, 0, 0); }
+	;
+
+tn_param_type_specifier
+	: base_list
+	{ $$ = newexpr(Ebase, $1, 0, 0, 0); }
+	| id
+	{ $$ = newexpr(Etid, $1, 0, 0, 0); }
+	| tn_param_struct_or_union_specifier
+	| tn_param_enum_specifier
+	;
+
+tn_param_struct_or_union_specifier
+	: struct_or_union tag
+	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	;
+
+tn_param_enum_specifier
+	: ENUM tag
+	{ $$ = newexpr(Eenum, $2, 0, 0, 0); }
+	;
+
+tn_abstract_declarator
+	: pointer
+	| tn_direct_abstract_declarator
+	| pointer tn_direct_abstract_declarator
+	{ $$ = ptrto($1, $2); }
+	;
+
+tn_direct_abstract_declarator
+	: '(' tn_abstract_declarator ')'
+	{ $$ = $2; }
+	| '[' ']'
+	{ $$ = newexpr(Earr, 0, 0, 0, 0); }
+	| '[' constant_expression ']'
+	{ $$ = newexpr(Earr, 0, $2, 0, 0); }
+	| tn_direct_abstract_declarator '[' ']'
+	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	| tn_direct_abstract_declarator '[' constant_expression ']'
+	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	| '(' ')'
+	{ $$ = newexpr(Efun, 0, nullelist(), 0, 0); }
+	| tn_direct_abstract_declarator '(' ')'
+	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	| tn_direct_abstract_declarator '(' tn_parameter_type_list ')'
+	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	;
+
+tn_declarator
+	: pointer tn_direct_declarator
+	{ $$ = ptrto($1, $2); }
+	| tn_direct_declarator
+	;
+
+tn_direct_declarator
+	: id
+	{ $$ = $1; }
+	| '(' tn_declarator ')'
+	{ $$ = $2; }
+	| tn_direct_declarator '[' constant_expression ']'
+	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	| tn_direct_declarator '[' ']'
+	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	| tn_direct_declarator '(' tn_parameter_type_list ')'
+	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	| tn_direct_declarator '(' ')'
+	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	;
 
 statement
 	: compound_statement
@@ -675,3 +798,71 @@ external_declaration
 	;
 
 %%
+
+static Expr*
+castmerge(YYSTYPE ye1, YYSTYPE ye2)
+{
+	Expr *cast, *other, *e;
+
+	// (T)(<expr>)  cast expression or function call
+
+	if(ye1.expr->kind == Ecast){
+		cast = ye1.expr;
+		other = ye2.expr;
+	}else if(ye2.expr->kind == Ecast){
+		cast = ye2.expr;
+		other = ye1.expr;
+	}else
+		yyerror("unresolved ambiguity");
+
+	if(other->kind == Ecall){
+		e = (Expr*)other->e1;
+		if(e->kind == Etick)
+			// not possible to call through a domain reference
+			return cast;
+		return other;
+	}
+
+	return cast;
+}
+
+static Expr*
+mulmerge(YYSTYPE ye1, YYSTYPE ye2)
+{
+	Expr *cast, *other;
+
+	// (dom`T)*p  cast expression or multiply
+
+	if(ye1.expr->kind == Ecast){
+		cast = ye1.expr;
+		other = ye2.expr;
+	}else if(ye2.expr->kind == Ecast){
+		cast = ye2.expr;
+		other = ye1.expr;
+	}else
+		yyerror("unresolved ambiguity");
+
+	return newexpr(Eambig, cast, other, NULL, NULL);
+}
+
+static int
+ofkind(int kind)
+{
+	return (kind == Esizeoft) || (kind == Esizeofe)
+		|| (kind == Etypeoft) || (kind == Etypeoft);
+}
+
+static Expr*
+ofmerge(YYSTYPE ye1, YYSTYPE ye2)
+{
+	Expr *e1, *e2;
+
+	// Xof(dom`T)   X is "size" or "type"
+
+	e1 = ye1.expr;
+	e2 = ye2.expr;
+	if(!ofkind(e1->kind) || !ofkind(e2->kind))
+		yyerror("unresolved ambiguity");
+
+	return newexpr(Eambig, e1, e2, NULL, NULL);
+}

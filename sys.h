@@ -1,3 +1,5 @@
+#ifndef _BISONFLAW_SYS_H_
+#define _BISONFLAW_SYS_H_
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -23,3 +25,4 @@ typedef uint8_t		u8;
 typedef uint16_t	u16;
 typedef uint32_t	u32;
 typedef uint64_t	u64;
+#endif /* _BISONFLAW_SYS_H_ */

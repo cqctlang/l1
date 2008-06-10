@@ -27,7 +27,7 @@ define foo(){
 	@local ns, fn, tab, vec, i;
 
  	ns = @names c32le {
- 		typedef struct foo foo;
+ 		typedef struct foo foo_t;
  		struct abc { int x; };
  		struct foo {
  			@0x00 int x;
@@ -44,6 +44,7 @@ define foo(){
 				@0x4	int y;
 				@0x8;
 			} blahvar;
+			@0x34 foo_t *ptrtofoo;
  			@0x28;
  		};
  		struct bar {

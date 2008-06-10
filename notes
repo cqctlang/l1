@@ -12,6 +12,18 @@ todo
 - check out inferno discussion jun 3 2008 on refs
 - vector() seems to take arguments in reverse order, which is
   confusing to see in compile0 output...why is this?
+- BISONFLAW:
+      whether bison, when building a glr parser, includes the c.y
+      prologue is version sensitive (it does in bison 2.3 but not others)
+      so we do the #ifdef dance around the headers shared by c.y and c.l.
+
+grammar
+-------
+
+sort out problems with odd rule about int(int) in abstract declarators;
+reasons for a separate tn_type_specifier:
+	- to force domain-relative ` names when using a typedef name
+	  (base names should, i guess 
 
 ns/as interface
 ---------------

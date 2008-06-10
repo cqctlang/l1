@@ -1,3 +1,5 @@
+#ifndef _BISONFLAW_UTIL_H_
+#define _BISONFLAW_UTIL_H_
 typedef struct HT HT;
 HT *mkht();
 void freeht(HT *ht);
@@ -15,3 +17,4 @@ void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);
 
 typedef void(Faulthook)();
 void setfaulthook(Faulthook *h);
+#endif /* _BISONFLAW_UTIL_H_ */

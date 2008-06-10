@@ -55,6 +55,7 @@ static int check_type();
 "struct"		{ count(); return(STRUCT); }
 "switch"		{ count(); return(SWITCH); }
 "typedef"		{ count(); return(TYPEDEF); }
+"typeof"		{ count(); return(TYPEOF); }
 "union"			{ count(); return(UNION); }
 "unsigned"		{ count(); return(UNSIGNED); }
 "void"			{ count(); return(VOID); }

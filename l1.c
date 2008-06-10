@@ -8,6 +8,7 @@ Imm   basesize[Vnil+1];
 Imm   ptrsize;
 
 static Decl* dodecls(Expr *e);
+static Decl* dodecl(Expr *e);
 static char* fmtdecl(Decl *d);
 static Type* copytype(Type *t);
 
@@ -770,7 +771,7 @@ sufields(Type *su, Expr *e)
 static Decl*
 params(Expr *e)
 {
-	Decl *hd, *p;
+	Decl *hd;
 
 	if(e->kind == Enull)
 		return NULL;
@@ -778,23 +779,18 @@ params(Expr *e)
 	if(e->kind != Eelist)
 		fatal("params expects an expression list");
 
-	hd = dodecls(e->e1);
-	p = hd;
-	while(p->link != NULL)
-		p = p->link;
-	p->link = params(e->e2);
+	hd = dodecl(e->e1);
+	hd->link = params(e->e2);
 
 	return hd;
 }
 
-static Type*
-speclist(Expr *e)
+static unsigned
+baselist(Expr *e)
 {
-	Type *t;
-	Expr *s, *tag, *dl;
-	unsigned kind, base;
-
-	t = NULL;
+	Expr *s;
+	unsigned base;
+	
 	base = Vnil;
 	while(e->kind != Enull){
 		s = e->e1;
@@ -809,65 +805,75 @@ speclist(Expr *e)
 		case Esigned:
 		case Eunsigned:
 		case Evoid:
-			if(t)
-				parseerror("bad type specifier");
 			base = basemod[base][s->kind];
 			if(base == Verr)
 				parseerror("bad type specifier");
 			break;
+		default:
+			parseerror("bad type specifier");
+		}
+	}
+	return base;
+}
+
+static Type*
+specifier(Expr *e)
+{
+	Type *t;
+	Expr *dom, *id;
+
+	t = newtype();
+	switch(e->kind){
+	case Ebase:
+		/* < Ebase, baselist, dom, 0, 0 > */
+		t->kind = Tbase;
+		t->base = baselist(e->e1);
+		dom = e->e2;
+		break;
+	case Etid:
+		/* < Etid, tid, dom, 0, 0 > */
+		t->kind = Ttypedef;
+		id = e->e1;
+		t->tid = id->id; /* steal */
+		id->id = 0;
+		dom = e->e2;
+		break;
+	case Eenum:
+	case Estruct:
+	case Eunion:
+		/* < kind, tag, decls, dom, 0 > */
+		switch(e->kind){
 		case Eenum:
-		case Estruct:
-		case Eunion:
-			if(t || base != Vnil)
-				parseerror("bad type specifier");
-			switch(s->kind){
-			case Estruct:
-				kind = Tstruct;
-				break;
-			case Eunion:
-				kind = Tunion;
-				break;
-			case Eenum:
-				kind = Tenum;
-				break;
-			default:
-				fatal("bug");
-				break;
-			}
-
-			tag = s->e1;
-			dl = s->e2;
-
-			t = newtype();
-			t->kind = kind;
-			if(tag){
-				t->tag = tag->id; /* steal */
-				tag->id = NULL;
-			}
-			if(dl){
-				if(kind == Tenum)
-					t->en = enums(t, dl);
-				else
-					t->field = sufields(t, dl);
-			}
+			t->kind = Tenum;
 			break;
-		case Eid:
-			t = newtype();
-			t->kind = Ttypedef;
-			t->tid = s->id; /* steal */
-			s->id = NULL;
+		case Estruct:
+			t->kind = Tstruct;
+			break;
+		case Eunion:
+			t->kind = Tunion;
 			break;
 		default:
 			fatal("bug");
-			break;
 		}
+		id = e->e1;
+		t->tag = id->id; /* steal */
+		id->id = 0;
+		dom = e->e3;
+		if(e->e2){
+			if(t->kind == Tenum)
+				t->en = enums(t, e->e2);
+			else
+				t->field = sufields(t, e->e2);
+		}
+		break;
+	default:
+		fatal("bug");
 	}
-
-	if(base != Vnil)
-		return basetype(base);
-
-	if(t == NULL)
-		fatal("unexpected specifier list");
+	
+	if(dom){
+		t->dom = dom->id; /* steal */
+		dom->id = 0;
+	}
 
 	return t;
 }
@@ -921,7 +927,7 @@ declarator(Type *bt, Expr *e)
 {
 	Decl *d;
 
-	if(e->kind == Ebits){
+	if(e && e->kind == Ebits){
 		if(e->e1)
 			d = declarator0(bt, e->e1);
 		else
@@ -1153,7 +1159,7 @@ dodecls(Expr *e)
 	Decl *rv, *p;
 	Decl **lp;
 
-	t = speclist(e->e1);
+	t = specifier(e->e1);
 
 	dl = e->e2;
 	if(dl->kind != Enull){
@@ -1184,23 +1190,15 @@ dodecls(Expr *e)
 }
 
 static Decl*
-dotypedef(Expr *e)
+dodecl(Expr *e)
 {
 	Type *t;
 	Decl *rv;
 
-	t = speclist(e->e1);
+	t = specifier(e->e1);
 	rv = declarator(t, e->e2);
 
-	/*	tidstore(ctx.ns, rv->id, rv->type); */
-
 	return rv;
-}
-
-void
-dotop(Expr *e)
-{
-	ctx.el = newexpr(Eelist, e, ctx.el, 0, 0);
 }
 
 Expr*
@@ -1211,7 +1209,8 @@ dotypes(Expr *e)
 
 	switch(e->kind){
 	case Etypedef:
-		e->xp = dotypedef(e);
+	case Edecl:
+		e->xp = dodecl(e);
 		break;
 	case Edecls:
 		e->xp = dodecls(e);
@@ -1224,6 +1223,12 @@ dotypes(Expr *e)
 		break;
 	}
 	return e;
+}
+
+void
+dotop(Expr *e)
+{
+	ctx.el = newexpr(Eelist, e, ctx.el, 0, 0);
 }
 
 void

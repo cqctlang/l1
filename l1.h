@@ -1,3 +1,6 @@
+#ifndef _BISONFLAW_L1_H_
+#define _BISONFLAW_L1_H_
+
 enum {
 	Fcompile	= 0x01,
 	Fexec		= 0x02,
@@ -31,10 +34,12 @@ enum{
 	Enbase,
 
 	Eadd,			/* 10 */
+	Eambig,
 	Earef,
 	Earr,
 	Earrow,
 	Eband,
+	Ebase,
 	Ebinop,
 	Ebits,
 	Eblock,
@@ -48,8 +53,8 @@ enum{
 	Econst,
 	Econsts,
 	Econtinue,
-	Edecl,
-	Edecls,
+	Edecl,			/* type specifier + 1 declarator */
+	Edecls,			/* type specifier + list of declarators */
 	Edefine,
 	Ediv,
 	Edo,
@@ -94,7 +99,10 @@ enum{
 	Estruct,
 	Esub,
 	Etick,
+	Etid,
 	Etypedef,
+	Etypeofe,
+	Etypeoft,
 	Euand,
 	Euminus,
 	Eumul,
@@ -226,6 +234,7 @@ struct Type {
 	unsigned base;		/* base, enum? */
 	char *tid;		/* typedef */
 	char *tag;		/* struct, union, enum */
+	char *dom;		/* optional domain qualifier for any Type */
 	Decl *field;		/* struct, union */
 	Enum *en;		/* enum */
 	Expr *sz;		/* struct, union */
@@ -305,3 +314,6 @@ int popyy();
 void tryinclude(char *raw);
 void parseerror(char *fmt, ...);
 int doparse(char *filename);
+
+#endif /* _BISONFLAW_L1_H_ */
+

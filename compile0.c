@@ -360,7 +360,6 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		se = nullelist();
 		dl = t->field;
 		while(dl){
-printf("%s %s\n", t->tag, dl->id);
 			id = Qstr(dl->id);
 			if(dl->offs){
 				compile0(dl->offs, lvs, vars, 1);
