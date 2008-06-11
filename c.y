@@ -6,11 +6,7 @@
 extern int yylex();
 extern char *yytext;
 
-static void
-yyerror(const char *s)
-{
-	parseerror((char*)s);
-}
+
 %}
 
 %union{
@@ -61,6 +57,7 @@ yyerror(const char *s)
 %start translation_unit_seq
 %glr-parser
 %{
+	static void yyerror(const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* mulmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* ofmerge(YYSTYPE e1, YYSTYPE e2);
@@ -798,6 +795,11 @@ external_declaration
 	;
 
 %%
+static void
+yyerror(const char *s)
+{
+	parseerror((char*)s);
+}
 
 static Expr*
 castmerge(YYSTYPE ye1, YYSTYPE ye2)

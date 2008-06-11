@@ -318,6 +318,7 @@ Expr*
 doid(char *s)
 {
 	Expr *e;
+	printf("doid %s\n", s);
 	e = newexpr(Eid, 0, 0, 0, 0);
 	e->id = xstrdup(s);
 	return e;
