@@ -65,6 +65,17 @@ xstrdup(char *s)
 	return s;
 }
 
+char*
+xstrndup(char *s, unsigned long len)
+{
+	char *t;
+	if(s == 0)
+		return NULL;
+	t = xmalloc(len+1);
+	memcpy(t, s, len);
+	return t;
+}
+
 void*
 xmalloc(size_t size)
 {

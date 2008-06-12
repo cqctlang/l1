@@ -24,4 +24,4 @@ depend: Makefile
 	gcc $(INC) -MM $(C) > depend
 
 clean:
-	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed lex.yy.* *.tab.* $(O) $(TARG) depend 
+	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed lex.yy.* *.tab.* c.output $(O) $(TARG) depend 

@@ -204,17 +204,11 @@ newgop(unsigned kind, Expr *e1, Expr *e2)
 }
 
 void
-freeexpr(Expr *e, void(*xfn)(Expr*))
+freeexpr(Expr *e)
 {
 	if(e == 0)
 		return;
 	switch(e->kind){
-#if 0
-	case Etick:
-		free(e->id);
-		free(e->dom);
-		break;
-#endif
 	case Eid:
 		free(e->id);
 		break;
@@ -222,17 +216,17 @@ freeexpr(Expr *e, void(*xfn)(Expr*))
 		freelits(e->lits);
 		break;
 	case Econst:
-		freetype(e->cval.type, xfn);
+/*		freetype(e->cval.type); */
 		break;
 	default:
 		break;
 	}
-	freeexpr(e->e1, xfn);
-	freeexpr(e->e2, xfn);
-	freeexpr(e->e3, xfn);
-	freeexpr(e->e4, xfn);
-	if(xfn)
-		xfn(e);
+	freeexpr(e->e1);
+	freeexpr(e->e2);
+	freeexpr(e->e3);
+	freeexpr(e->e4);
+	if(e->xp)
+		freeexprx(e);
 	free(e);
 }
 
@@ -247,12 +241,6 @@ copyexpr(Expr *e)
 	ne = xmalloc(sizeof(Expr));
 	ne->kind = e->kind;
 	switch(e->kind){
-#if 0
-	case Etick:
-		ne->id = xstrdup(e->id);
-		ne->dom = xstrdup(e->dom);
-		break;
-#endif
 	case Eid:
 		ne->id = xstrdup(e->id);
 		break;
@@ -265,6 +253,9 @@ copyexpr(Expr *e)
 	default:
 		break;
 	}
+
+	if(e->xp)
+		fatal("bug");
 
 	ne->e1 = copyexpr(e->e1);
 	ne->e2 = copyexpr(e->e2);
@@ -318,9 +309,17 @@ Expr*
 doid(char *s)
 {
 	Expr *e;
-	printf("doid %s\n", s);
 	e = newexpr(Eid, 0, 0, 0, 0);
 	e->id = xstrdup(s);
+	return e;
+}
+
+Expr*
+doidn(char *s, unsigned long len)
+{
+	Expr *e;
+	e = newexpr(Eid, 0, 0, 0, 0);
+	e->id = xstrndup(s, len);
 	return e;
 }
 
@@ -336,7 +335,7 @@ mkconst(unsigned type, Imm val)
 {
 	Expr *e;
 	e = newexpr(Econst, 0, 0, 0, 0);
-	initcval(&e->cval, basetype(type), val);
+	initcval(&e->cval, 0, val);
 	return e;
 }
 
@@ -347,13 +346,15 @@ isoctdigit(int c)
 }
 
 Expr*
-doconst(char *s)
+doconst(char *s, unsigned long len)
 {
 	Imm n;
 	enum { Rdec, Rhex, Roct } radix;
 	enum { Snone=0, Su, Sl, Sul, Sll, Sull } suf;
 	unsigned base, noct;
-	char c, *p;
+	char c, *p, *z;
+
+	z = s+len;
 
 	if(s[0] == 'L')
 		parseerror("wide characters unsupported");
@@ -441,7 +442,7 @@ doconst(char *s)
 	suf = Snone;
 	if(p == s)
 		parseerror("bad integer constant");
-	while(*p != '\0'){
+	while(p < z){
 		if(*p == 'U' || *p == 'u')
 			switch(suf){
 			case Snone:
@@ -537,7 +538,7 @@ doconst(char *s)
 }
 
 Expr*
-doconsts(char *s)
+doconsts(char *s, unsigned long len)
 {
 	Expr *e;
 	int c;
@@ -546,7 +547,7 @@ doconsts(char *s)
 
 	r = s;
 	w = s;
-	z = s+strlen(s);
+	z = s+len;
 	r++;			/* skip opening quote */
 	while(1){
 		if(r[0] == '\"'){
@@ -643,7 +644,6 @@ doconsts(char *s)
 
 	e = newexpr(Econsts, 0, 0, 0, 0);
 	e->lits = mklits(s, w-s);
-	free(s);
 	return e;
 }
 
@@ -695,7 +695,7 @@ recenums(Type *t, Expr *e, Expr *val)
 	Enum *en;
 
 	if(e->kind == Enull){
-		freeexpr(val, 0);
+		freeexpr(val);
 		return NULL;
 	}
 	if(e->kind != Eelist)
@@ -709,7 +709,7 @@ recenums(Type *t, Expr *e, Expr *val)
 	en->id = el->e1->id; /* steal */
 	el->e1->id = NULL;
 	if(el->e2){
-		freeexpr(val, 0);
+		freeexpr(val);
 		en->val = el->e2; /* steal */
 		el->e2 = NULL;
 	}else

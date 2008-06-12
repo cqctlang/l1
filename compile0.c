@@ -535,8 +535,9 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 
 		te = nullelist();
 
-		se = Qconsts(e->id);
-		free(e->id);
+		se = Qconsts(e->e2->id);
+		freeexpr(e->e2);
+		freeexpr(e->e1); /* temporary, until we use domains */
 		se = Qcall(doid("dispatch"), 2, doid("$looksym"), se);
 		se = Qset(doid(lvs->tmp), se);
 		te = Qcons(se, te);
@@ -640,11 +641,10 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 				nxt = dl->link;
 				dl = nxt;
 			}
-			freedecl(ex->e1->xp, freeexprx);
 			ex = ex->e2;
 		}
 
-		freeexpr(e->e2, 0);
+		freeexpr(e->e2);
 
 		/* new name space */
 		se = Qcall(doid("mkns"), 1,

@@ -11,11 +11,18 @@ extern char *yytext;
 
 %union{
 	Expr *expr;
-	char *id;
+	struct {
+		/* GLR may pick tokens from input stream more than
+		   once; remembering length in char-based tokens
+		   ensures that we get the same token each time,
+		   regardless of state of yytext. */
+		char *p;
+		unsigned long len;
+	} chars;
 	int kind;
 }
 
-%token <id> IDENTIFIER CONSTANT STRING_LITERAL 
+%token <chars> IDENTIFIER CONSTANT STRING_LITERAL 
 %token SIZEOF TYPEOF TYPEDEF NIL DEFINE
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -66,7 +73,7 @@ extern char *yytext;
 
 id
 	: IDENTIFIER
-	{ $$ = doid($1); }
+	{ $$ = doidn($1.p, $1.len); }
 
 tickid
 	: id '`' id
@@ -80,9 +87,9 @@ primary_expression
 	| NIL
 	{ $$ = newexpr(Enil, 0, 0, 0, 0); }
 	| CONSTANT
-	{ $$ = doconst($1); }
+	{ $$ = doconst($1.p, $1.len); }
 	| STRING_LITERAL
-	{ $$ = doconsts($1); }
+	{ $$ = doconsts($1.p, $1.len); }
 	| '(' expression ')'
 	{ $$ = $2; }
 	| tickid
@@ -302,7 +309,7 @@ names_declaration
 names_expression
 	: lambda_expression
 	| NAMES expression '{' names_declaration_list '}'
-	{ $$ = newexpr(Ens, $2, dotypes(invert($4)), 0, 0); }
+	{ $$ = newexpr(Ens, $2, invert($4), 0, 0); }
 	| NAMES expression '{' '}'
 	{ $$ = newexpr(Ens, $2, nullelist(), 0, 0); }
 	;
@@ -566,9 +573,9 @@ direct_abstract_declarator
 
 type_name
 	: tn_type_specifier
-	{ $$ = dotypes(newexpr(Edecl, $1, 0, 0, 0)); }
+	{ $$ = newexpr(Edecl, $1, 0, 0, 0); }
         | tn_type_specifier tn_abstract_declarator
-	{ $$ = dotypes(newexpr(Edecl, $1, $2, 0, 0)); }
+	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
 	;
 
 tn_type_specifier
@@ -801,6 +808,17 @@ yyerror(const char *s)
 	parseerror((char*)s);
 }
 
+/* expression trees for ambiguous forms share identifier nodes;
+   separate them so that we can handling them independently. */
+static void
+duptickid(Expr *e)
+{
+	if(e->kind != Etick)
+		fatal("bug");
+	e->e1 = copyexpr(e->e1);
+	e->e2 = copyexpr(e->e2);
+}
+
 static Expr*
 castmerge(YYSTYPE ye1, YYSTYPE ye2)
 {
@@ -819,12 +837,16 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 
 	if(other->kind == Ecall){
 		e = (Expr*)other->e1;
-		if(e->kind == Etick)
+		if(e->kind == Etick){
 			// not possible to call through a domain reference
+			freeexpr(other);
 			return cast;
+		}
+		freeexpr(cast);
 		return other;
 	}
 
+	freeexpr(other);
 	return cast;
 }
 
@@ -843,6 +865,8 @@ mulmerge(YYSTYPE ye1, YYSTYPE ye2)
 		other = ye1.expr;
 	}else
 		yyerror("unresolved ambiguity");
+
+	duptickid(other->e1);
 
 	return newexpr(Eambig, cast, other, NULL, NULL);
 }
@@ -865,6 +889,11 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 	e2 = ye2.expr;
 	if(!ofkind(e1->kind) || !ofkind(e2->kind))
 		yyerror("unresolved ambiguity");
+
+	if(e1->kind == Esizeofe || e1->kind == Etypeofe)
+		duptickid(e1->e1);
+	else
+		duptickid(e2->e1);
 
 	return newexpr(Eambig, e1, e2, NULL, NULL);
 }

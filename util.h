@@ -11,6 +11,7 @@ void warn(char *fmt, ...);
 void fatal(char *fmt, ...) __attribute__((noreturn));
 void fatalno(char *fmt, ...) __attribute__((noreturn));
 char* xstrdup(char *s);
+char* xstrndup(char *s, unsigned long len);
 void* xmalloc(size_t size);
 void* xrealloc(void *p, size_t old, size_t new);
 void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);

@@ -33,6 +33,7 @@ static Topvec *mktopvec();
 static void freetopvec(Topvec *tv);
 static Konst* mkkonst();
 static void freekonst(Konst *kon);
+static void freedecl(Decl *d);
 
 static void
 newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
@@ -143,7 +144,7 @@ freecode(Head *hd)
 		p = q;
 	}
 	
-	freeexpr(code->src, freeexprx);
+	freeexpr(code->src);
 	free(code->insn);
 	free(code->labels);
 }
@@ -749,7 +750,7 @@ flattenlocal(Expr *b)
 		}
 		p = p->e2;
 	}
-	freeexpr(b->e1, 0);
+	freeexpr(b->e1);
 	b->e1 = invert(nl);
 
 	return nloc;
@@ -1218,25 +1219,26 @@ freevarref(Varref *vr)
 	free(vr);
 }
 
-void
-freetype(Type *t, void(*xfn)(Expr*))
+static void
+freetype(Type *t)
 {
 	if(t == 0)
 		return;
 
-	freetype(t->link, xfn);
+	freetype(t->link);
+	free(t->dom);
 	free(t->tid);
 	free(t->tag);
-	freedecl(t->field, xfn);
+	freedecl(t->field);
 	/* freeenum(t->en); */
-	freedecl(t->param, xfn);
-	freeexpr(t->sz, xfn);
-	freeexpr(t->cnt, xfn);
+	freedecl(t->param);
+	freeexpr(t->sz);
+	freeexpr(t->cnt);
 	free(t);
 }
 
-void
-freedecl(Decl *d, void(*xfn)(Expr*))
+static void
+freedecl(Decl *d)
 {
 	Decl *nxt;
 
@@ -1244,9 +1246,9 @@ freedecl(Decl *d, void(*xfn)(Expr*))
 	while(nxt){
 		d = nxt;
 		nxt = d->link;
-		freetype(d->type, xfn);
-		freeexpr(d->offs, xfn);
-		freeexpr(d->bits, xfn);
+		freetype(d->type);
+		freeexpr(d->offs);
+		freeexpr(d->bits);
 		free(d->id);
 		free(d);
 	}
@@ -1264,6 +1266,11 @@ freeexprx(Expr *e)
 		break;
 	case Eblock:
 		freevenv((VEnv*)e->xp);
+		break;
+	case Etypedef:
+	case Edecl:
+	case Edecls:
+		freedecl((Decl*)e->xp);
 		break;
 	default:
 		break;

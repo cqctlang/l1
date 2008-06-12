@@ -20,7 +20,7 @@ struct YYstate {
 
 static void count();
 static void comment();
-static int check_type();
+static int chars(int);
 
 %}
 
@@ -61,18 +61,18 @@ static int check_type();
 "void"			{ count(); return(VOID); }
 "while"			{ count(); return(WHILE); }
 
-{L}({L}|{D})*		{ count(); return(check_type()); }
+{L}({L}|{D})*		{ count(); return(chars(IDENTIFIER)); }
 
-0[xX]{H}+{IS}?		{ count(); yylval.id = yytext; return(CONSTANT); }
-0{D}+{IS}?		{ count(); yylval.id = yytext; return(CONSTANT); }
-{D}+{IS}?		{ count(); yylval.id = yytext; return(CONSTANT); }
-L?'{CHARC}'  		{ count(); yylval.id = yytext; return(CONSTANT); }
+0[xX]{H}+{IS}?		{ count(); return(chars(CONSTANT)); }
+0{D}+{IS}?		{ count(); return(chars(CONSTANT)); }
+{D}+{IS}?		{ count(); return(chars(CONSTANT)); }
+L?'{CHARC}'  		{ count(); return(chars(CONSTANT)); }
 
-{D}+{E}{FS}?		{ count(); yylval.id = yytext; return(CONSTANT); }
-{D}*"."{D}+({E})?{FS}?	{ count(); yylval.id = yytext; return(CONSTANT); }
-{D}+"."{D}*({E})?{FS}?	{ count(); yylval.id = yytext; return(CONSTANT); }
+{D}+{E}{FS}?		{ count(); return(chars(CONSTANT)); }
+{D}*"."{D}+({E})?{FS}?	{ count(); return(chars(CONSTANT)); }
+{D}+"."{D}*({E})?{FS}?	{ count(); return(chars(CONSTANT)); }
 
-L?(\"{STRC}*\"[ \t\v\n\f]*)+   { count(); yylval.id = xstrdup(yytext); return(STRING_LITERAL); }
+L?(\"{STRC}*\"[ \t\v\n\f]*)+   { count(); return(chars(STRING_LITERAL)); }
 
 "..."			{ count(); return(ELLIPSIS); }
 ">>="			{ count(); return(RIGHT_ASSIGN); }
@@ -187,10 +187,11 @@ count()
 }
 
 static int
-check_type()
+chars(int token)
 {
-	yylval.id = yytext;
-	return IDENTIFIER;
+	yylval.chars.p = yytext;
+	yylval.chars.len = strlen(yytext);
+	return token;
 }
 
 YYstate*

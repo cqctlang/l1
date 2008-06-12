@@ -195,7 +195,6 @@ struct Lits {
 struct Expr {
 	Kind kind;
 
-	char *dom;		/* Etick */
 	char *id;		/* Eid, Etick */
 	Lits *lits;		/* Econsts */
 	Cval cval;		/* Econst */
@@ -283,16 +282,15 @@ Expr* copyexpr(Expr *e);
 Expr* newbinop(unsigned, Expr*, Expr*);
 Expr* newgop(unsigned, Expr*, Expr*);
 Expr* mkconst(unsigned type, Imm val); /* rename newconst? */
-void freedecl(Decl *d, void(*xfn)(Expr*));
-void freeexpr(Expr*, void(*xfn)(Expr*));
-void freetype(Type *t, void(*xfn)(Expr*));
+void freeexpr(Expr*);
 void freeexprx(Expr *e);
 Expr* invert(Expr*);
 Expr* nullelist();
 Expr* ptrto(Expr*, Expr*);
 Expr* doid(char*);
-Expr* doconst(char*);
-Expr* doconsts(char*);
+Expr* doidn(char *s, unsigned long len);
+Expr* doconst(char*, unsigned long len);
+Expr* doconsts(char*, unsigned long len);
 Expr* dotick(Expr*, Expr*);
 Lits* mklits(char*, unsigned len);
 Lits* copylits(Lits *lits);

@@ -75,8 +75,9 @@ main(int argc, char *argv[])
 		printf("\n");
 	}
 
-	docompile0(ctx.el);
 
+	dotypes(ctx.el);
+	docompile0(ctx.el);
 	if(flags&Fprintir){
 		printf("compile0:\n");
 		printexpr(ctx.el);
@@ -98,7 +99,8 @@ main(int argc, char *argv[])
 				}
 			}
 		}
-	}
+	}else
+		freeexpr(ctx.el);
 
 	freevm(vm);
 	freeenv(env);
