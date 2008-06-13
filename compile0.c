@@ -9,10 +9,12 @@ enum {
 	Vrange	= 1<<3,
 	Vaddr	= 1<<4,
 	Vstr	= 1<<5,
-	Vns	= 1<<6,
-	Vtypetab= 1<<7,
-	Vsymtab	= 1<<8,
-	Vtn	= 1<<9,
+	Vas	= 1<<6,
+	Vns	= 1<<7,
+	Vdom	= 1<<8,	
+	Vtypetab= 1<<9,	
+	Vsymtab	= 1<<10,
+	Vtn	= 1<<11,
 };
 
 typedef struct Var Var;
@@ -37,6 +39,8 @@ struct Varset
 	char *range;
 	char *addr;
 	char *str;
+	char *dom;
+	char *as;
 	char *ns;
 	char *typetab;
 	char *symtab;
@@ -245,8 +249,12 @@ bindings(Vars *vars, Varset *outer, int req)
 			vs->str = freshvar(vars, "$str");
 		if(req&Vstr)
 			vs->str = freshvar(vars, "$str");
+		if(req&Vas)
+			vs->as = freshvar(vars, "$as");
 		if(req&Vns)
 			vs->ns = freshvar(vars, "$ns");
+		if(req&Vdom)
+			vs->dom = freshvar(vars, "$dom");
 		if(req&Vtypetab)
 			vs->typetab = freshvar(vars, "$typetab");
 		if(req&Vsymtab)
@@ -261,7 +269,9 @@ bindings(Vars *vars, Varset *outer, int req)
 	vs->range = outer->range ? outer->range : freshvar(vars, "$range");
 	vs->addr = outer->addr ? outer->addr : freshvar(vars, "$addr");
 	vs->str = outer->str ? outer->str : freshvar(vars, "$str");
+	vs->as = outer->as ? outer->as : freshvar(vars, "$as");
 	vs->ns = outer->ns ? outer->ns : freshvar(vars, "$ns");
+	vs->dom = outer->dom ? outer->dom : freshvar(vars, "$dom");
 	vs->typetab = (outer->typetab ? outer->typetab
 		       : freshvar(vars, "$typetab"));
 	vs->symtab = outer->symtab ? outer->symtab : freshvar(vars, "$symtab");
@@ -287,8 +297,12 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->addr), e);
 		if(lvs->str)
 			e = Qcons(doid(lvs->str), e);
+		if(lvs->as)
+			e = Qcons(doid(lvs->as), e);
 		if(lvs->ns)
 			e = Qcons(doid(lvs->ns), e);
+		if(lvs->dom)
+			e = Qcons(doid(lvs->dom), e);
 		if(lvs->typetab)
 			e = Qcons(doid(lvs->typetab), e);
 		if(lvs->symtab)
@@ -306,8 +320,12 @@ locals(Varset *lvs, Varset *pvs)
 			e = Qcons(doid(lvs->addr), e);
 		if(lvs->str != pvs->str)
 			e = Qcons(doid(lvs->str), e);
+		if(lvs->as != pvs->as)
+			e = Qcons(doid(lvs->as), e);
 		if(lvs->ns != pvs->ns)
 			e = Qcons(doid(lvs->ns), e);
+		if(lvs->dom != pvs->dom)
+			e = Qcons(doid(lvs->dom), e);
 		if(lvs->typetab != pvs->typetab)
 			e = Qcons(doid(lvs->typetab), e);
 		if(lvs->symtab != pvs->symtab)
@@ -523,6 +541,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		e->e3 = 0;
 		break;
 	case Etick:
+		// <Etick,domid,sym>
 		// $p = dispatch($looksym, sym)
 		// $type = car(p);
 		// $str = dispatch($get, range(cdr(p), sizeof(t)));
@@ -534,6 +553,29 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		lvs = bindings(vars, pvs, binds);
 
 		te = nullelist();
+
+		// $dom = dom;
+		se = Qset(doid(lvs->dom), e->e1);
+		te = Qcons(se, te);
+
+		// $tmp = nslooksym(domns($dom))(sym)
+		se = Qcall(doid("domns"), 1, doid(lvs->dom));
+		se = Qcall(doid("nslooksym"), 1, se);
+		se = Qcall(se, 1, Qconsts(e->e2->id));
+		se = Qset(doid(lvs->tmp), se);
+		te = Qcons(se, te);
+		freeexpr(e->e1);
+		freeexpr(e->e2);
+
+		// r = range(vecref($tmp, 2), sizeof(vecref($tmp, 0)))
+		// bytes = dom.as.get(r);
+		// cval = cval(bytes, vecref($tmp, 0));
+
+		se = Qcall(Qcall(doid("nslooksym"), 1,
+				 Qcall(doid("domns"
+
+		se = Qcall(doid("domns"), 1, e->e1);
+		
 
 		se = Qconsts(e->e2->id);
 		freeexpr(e->e2);
