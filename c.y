@@ -822,7 +822,7 @@ duptickid(Expr *e)
 static Expr*
 castmerge(YYSTYPE ye1, YYSTYPE ye2)
 {
-	Expr *cast, *other, *e;
+	Expr *cast, *other;
 
 	// (T)(<expr>)  cast expression or function call
 
@@ -835,17 +835,15 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 	}else
 		yyerror("unresolved ambiguity");
 
-	if(other->kind == Ecall){
-		e = (Expr*)other->e1;
-		if(e->kind == Etick){
-			// not possible to call through a domain reference
-			freeexpr(other);
-			return cast;
-		}
-		freeexpr(cast);
-		return other;
-	}
+	/* what else could it be? */ 
+	if(other->kind != Ecall)
+		yyerror("unresolved ambiguity");
+	if(other->e1->kind != Etick)
+		yyerror("unresolved ambiguity");
 
+	/* it's not possible to call through a domain reference,
+	   so call it a cast. */
+	duptickid(other->e1);
 	freeexpr(other);
 	return cast;
 }
