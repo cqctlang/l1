@@ -19,7 +19,6 @@ enum {
 	Qrange,
 	Qstr,
 	Qtab,
-	Qtype,
 	Qvec,
 	Qxtn,
 	Qnkind
@@ -70,10 +69,30 @@ static char* repname[Rnrep+1] = {
 	[Rnrep]=	"<help me, i'm broken>",
 };
 
+static Imm repsize[Rnrep+1] = {
+	[Ru8le]=	1,
+	[Ru16le]=	2,
+	[Ru32le]=	4,
+	[Ru64le]=	8,
+	[Rs8le]=	1,
+	[Rs16le]=	2,
+	[Rs32le]=	4,
+	[Rs64le]=	8,
+	[Ru8be]=	1,
+	[Ru16be]=	2,
+	[Ru32be]=	4,
+	[Ru64be]=	8,
+	[Rs8be]=	1,
+	[Rs16be]=	2,
+	[Rs32be]=	4,
+	[Rs64be]=	8,
+};
+
 enum {
 	Tabinitsize=1024,	/* power of 2 */
 	Typepos=0,
 	Idpos=1,
+	Offpos=2,
 	Maxvms=1024,
 };
 
@@ -85,9 +104,9 @@ struct Heap {
 	Head *alloc, *swept, *sweep, *free;
 };
 
-typedef struct Vcval Vcval;
 typedef struct As As;
 typedef struct Box Box;
+typedef struct Cval Cval;
 typedef struct Pair Pair;
 typedef struct Dom Dom;
 typedef struct Ns Ns;
@@ -96,6 +115,11 @@ typedef struct Str Str;
 typedef struct Tab Tab;
 typedef struct Vec Vec;
 typedef struct Xtypename Xtypename;
+
+struct Cval {
+	Xtypename *type;
+	Imm val;
+};
 
 struct Val {
 	Qkind qkind;
@@ -111,7 +135,6 @@ struct Val {
 		Range *range;
 		Str *str;
 		Tab *tab;
-		Type *type;
 		Vec *vec;
 		Xtypename *xtn;
 	} u;
@@ -215,7 +238,7 @@ struct Vec {
 struct Xtypename {
 	Head hd;
 	unsigned xtkind;	/* = Tbase, Tstruct, ... */
-	unsigned basename;	/* base */
+	Cbase basename;		/* base */
 	unsigned rep;		/* base, ptr, enum; = Ru8le ... */
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
@@ -228,7 +251,9 @@ struct Xtypename {
 
 struct VM {
 	Val stack[Maxstk];
-	Env *topenv;
+	Ns *litns;
+	Xtypename *litint, *lituint;
+	Env *top;
 	Imm sp, fp, pc;
 	Closure *clx;
 	Insn *ibuf;
@@ -251,6 +276,7 @@ static Vec* valvec(Val *v);
 static Xtypename* valxtn(Val *v);
 static void mkvalstr(Str *str, Val *vp);
 static void mkvalxtn(Xtypename *xtn, Val *vp);
+static Xtypename* looknsbase(Ns *ns, Cbase name);
 
 static Val* vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val *v);
@@ -370,7 +396,6 @@ static Hashop hashop[Qnkind] = {
 	[Qrange] =  { hashrange, eqrange },
 	[Qstr]	= { hashstr, eqstr },
 	[Qtab]	= { hashptr, eqptr },
-	[Qtype]	= { hashptr, eqptr },
 	[Qvec]	= { hashptr, eqptr },
 	[Qxtn]	= { hashxtn, eqxtn },
 };
@@ -497,7 +522,7 @@ freeheap(Heap *heap)
 	p = heap->alloc;
 	while(p){
 //		if(p->color != GCfree)
-//			printf("heap %s freed with live data\n", heap->id);
+//			printf("freeing heap (%s) with live data\n", heap->id);
 		q = p->alink;
 		free(p);
 		p = q;
@@ -512,7 +537,6 @@ valhead(Val *v)
 	case Qnil:
 	case Qnulllist:
 	case Qcval:
-	case Qtype:
 		return 0;
 		break;
 	default:
@@ -654,9 +678,13 @@ rootset(VM *vm)
 
 	for(m = vm->sp; m < Maxstk; m++)
 		addroot(&roots, valhead(&vm->stack[m]));
-	hforeach(vm->topenv->ht, bindingroot, 0);
+	hforeach(vm->top->ht, bindingroot, 0);
 	addroot(&roots, valhead(&vm->ac));
 	addroot(&roots, valhead(&vm->cl));
+
+	/* assume litns has a reference to cached lit type references
+	   (vm->litint, ...) */
+	addroot(&roots, (Head*)vm->litns);
 }
 
 static void
@@ -851,25 +879,28 @@ concurrentgc(VM *vm)
 }
 
 static Imm
-typesize(VM *vm, Type *t)
+typesize(VM *vm, Xtypename *xtn)
 {
-	switch(t->kind){
+	Cval *cv;
+	switch(xtn->xtkind){
 	case Tbase:
-		return basesize[t->base];
+		return repsize[xtn->rep];
 	case Ttypedef:
-		return typesize(vm, t->link);
+		return typesize(vm, xtn->link);
 	case Tstruct:
 	case Tunion:
-		vmerr(vm, "need to evaluate struct/union size");
-		break;
+		cv = valcval(&xtn->sz);
+		return cv->val;
 	case Tenum:
-		vmerr(vm, "need to get enums right");
-		break;
+		fatal("enums unimplemented");
 	case Tptr:
-		return ptrsize;
+		return repsize[xtn->rep];
 	case Tarr:
-		vmerr(vm, "need to evaluate array size");
-		break;
+		if(xtn->cnt.qkind != Qcval)
+			vmerr(vm,
+			      "attempt to compute size of unspecified array");
+		cv = valcval(&xtn->cnt);
+		return cv->val;
 	case Tfun:
 		vmerr(vm, "attempt to compute size of function type");
 		break;
@@ -1997,14 +2028,21 @@ freeenv(Env *env)
 }
 
 static void
-mkvalimm(Imm imm, Val *vp)
+initcval(Cval *cval, Xtypename *type, Imm val)
 {
-	vp->qkind = Qcval;
-	initcval(&vp->u.cval, 0, imm);
+	cval->type = type;
+	cval->val = val;
 }
 
 static void
-mkvalcval(Type *t, Imm imm, Val *vp)
+mkvalimm(Imm imm, Xtypename *type, Val *vp)
+{
+	vp->qkind = Qcval;
+	initcval(&vp->u.cval, type, imm);
+}
+
+static void
+mkvalcval(Xtypename *t, Imm imm, Val *vp)
 {
 	vp->qkind = Qcval;
 	initcval(&vp->u.cval, t, imm);
@@ -2085,13 +2123,6 @@ mkvalvec(Vec *vec, Val *vp)
 {
 	vp->qkind = Qvec;
 	vp->u.vec = vec;
-}
-
-static void
-mkvaltype(Type *type, Val *vp)
-{
-	vp->qkind = Qtype;
-	vp->u.type = type;
 }
 
 static void
@@ -2221,14 +2252,6 @@ static Cval*
 valboxedcval(Val *v)
 {
 	return &v->u.box->v.u.cval;
-}
-
-static Type*
-valtype(Val *v)
-{
-	if(v->qkind != Qtype)
-		fatal("valtype on non-type");
-	return v->u.type;
 }
 
 static int
@@ -2406,13 +2429,13 @@ getval(VM *vm, Location *loc, Val *vp)
 			*vp = vm->ac;
 			return;
 		case Rsp:
-			mkvalimm(vm->sp, vp);
+			mkvalimm(vm->sp, vm->lituint, vp);
 			return;
 		case Rfp:
-			mkvalimm(vm->fp, vp);
+			mkvalimm(vm->fp, vm->lituint, vp);
 			return;
 		case Rpc:
-			mkvalimm(vm->pc, vp);
+			mkvalimm(vm->pc, vm->lituint, vp);
 			return;
 		case Rcl:
 			*vp = vm->cl;
@@ -2465,13 +2488,13 @@ getcval(VM *vm, Location *loc, Cval *tmp)
 		case Rac:
 			return valcval(&vm->ac);
 		case Rsp:
-			initcval(tmp, 0, vm->sp);
+			initcval(tmp, vm->litint, vm->sp);
 			return tmp;
 		case Rfp:
-			initcval(tmp, 0, vm->fp);
+			initcval(tmp, vm->litint, vm->fp);
 			return tmp;
 		case Rpc:
-			initcval(tmp, 0, vm->pc);
+			initcval(tmp, vm->litint, vm->pc);
 			return tmp;
 		case Rcl:
 		default:
@@ -2511,8 +2534,9 @@ getvalrand(VM *vm, Operand *r, Val *vp)
 	case Oloc:
 		getval(vm, &r->u.loc, vp);
 		break;
-	case Ocval:
-		mkvalcval2(&r->u.cval, vp);
+	case Oliti:
+		mkvalcval(looknsbase(vm->litns, r->u.liti.base),
+			  r->u.liti.val, vp);
 		break;
 	case Olits:
 		vp->qkind = Qstr;
@@ -2533,8 +2557,11 @@ getcvalrand(VM *vm, Operand *r, Cval *tmp)
 	switch(r->okind){
 	case Oloc:
 		return getcval(vm, &r->u.loc, tmp);
-	case Ocval:
-		return &r->u.cval;
+	case Oliti:
+		initcval(tmp,
+			 looknsbase(vm->litns, r->u.liti.base),
+			 r->u.liti.val);
+		return tmp;
 	default:
 		fatal("bug");
 	}
@@ -2560,110 +2587,103 @@ putcvalrand(VM *vm, Cval *cv, Operand *r)
 }
 
 static Imm
-str2imm(Type *t, Str *s)
+str2imm(Xtypename *xtn, Str *s)
 {
-	if(t->kind != Tbase && t->kind != Tptr)
+	if(xtn->xtkind != Tbase && xtn->xtkind != Tptr)
 		fatal("str2imm on non-scalar type");
-	if(t->kind == Tptr){
-		return *(u32*)s;
-	}
 
-	switch(t->base){
-	case Vchar:
+	switch(xtn->rep){
+	case Ru8le:
 		return *(s8*)s;
-	case Vshort:
+	case Ru16le:
 		return *(s16*)s;
-	case Vint:
+	case Ru32le:
 		return *(s32*)s;
-	case Vlong:
-		return *(s32*)s;
-	case Vvlong:
+	case Ru64le:
 		return *(s64*)s;
-	case Vuchar:
+	case Rs8le:
 		return *(u8*)s;
-	case Vushort:
+	case Rs16le:
 		return *(u16*)s;
-	case Vuint:
+	case Rs32le:
 		return *(u32*)s;
-	case Vulong:
-		return *(u32*)s;
-	case Vuvlong:
+	case Rs64le:
 		return *(u64*)s;
+	case Ru8be:
+	case Ru16be:
+	case Ru32be:
+	case Ru64be:
+	case Rs8be:
+	case Rs16be:
+	case Rs32be:
+	case Rs64be:
+		fatal("unsupported data representation");
 	default:
-		fatal("missing case in str2imm");
+		fatal("bug");
 	}	
 }
 
 static Str*
-imm2str(Type *t, Imm imm)
+imm2str(Xtypename *xtn, Imm imm)
 {
 	Str *str;
 	char *s;
 
-	if(t->kind != Tbase && t->kind != Tptr)
-		fatal("str2imm on non-scalar type");
+	if(xtn->xtkind != Tbase && xtn->xtkind != Tptr)
+		fatal("imm2str on non-scalar type");
 
-	if(t->kind == Tptr){
-		str = mkstrn(sizeof(u32));
-		s = str->s;
-		*(u32*)s = (u32)imm;
-		return str;
-	}
-
-
-	switch(t->base){
-	case Vchar:
+	switch(xtn->rep){
+	case Rs8le:
 		str = mkstrn(sizeof(s8));
 		s = str->s;
 		*(s8*)s = (s8)imm;
 		return str;
-	case Vshort:
+	case Rs16le:
 		str = mkstrn(sizeof(s16));
 		s = str->s;
 		*(s16*)s = (s16)imm;
 		return str;
-	case Vint:
+	case Rs32le:
 		str = mkstrn(sizeof(s32));
 		s = str->s;
 		*(s32*)s = (s32)imm;
 		return str;
-	case Vlong:
-		str = mkstrn(sizeof(s32));
-		s = str->s;
-		*(s32*)s = (s32)imm;
-		return str;
-	case Vvlong:
+	case Rs64le:
 		str = mkstrn(sizeof(s64));
 		s = str->s;
 		*(s64*)s = (s64)imm;
 		return str;
-	case Vuchar:
+	case Ru8le:
 		str = mkstrn(sizeof(u8));
 		s = str->s;
 		*(u8*)s = (u8)imm;
 		return str;
-	case Vushort:
+	case Ru16le:
 		str = mkstrn(sizeof(u16));
 		s = str->s;
 		*(u16*)s = (u16)imm;
 		return str;
-	case Vuint:
+	case Ru32le:
 		str = mkstrn(sizeof(u32));
 		s = str->s;
 		*(u32*)s = (u32)imm;
 		return str;
-	case Vulong:
-		str = mkstrn(sizeof(u32));
-		s = str->s;
-		*(u32*)s = (u32)imm;
-		return str;
-	case Vuvlong:
+	case Ru64le:
 		str = mkstrn(sizeof(u64));
 		s = str->s;
 		*(u64*)s = (u64)imm;
 		return str;
+	case Ru8be:
+	case Ru16be:
+	case Ru32be:
+	case Ru64be:
+	case Rs8be:
+	case Rs16be:
+	case Rs32be:
+	case Rs64be:
+		fatal("unsupported data representation");
 	default:
-		fatal("missing case in imm2str");
+		fatal("bug");
 	}	
 }
 
@@ -2675,10 +2695,8 @@ printval(Val *val)
 	Pair *pair;
 	Range *r;
 	Str *str;
-	char *o;
 	Val bv;
 	Tab *tab;
-	Type *t;
 	Vec *vec;
 	Xtypename *xtn;
 
@@ -2739,12 +2757,6 @@ printval(Val *val)
 	case Qtab:
 		tab = valtab(val);
 		printf("<table %p>", tab);
-		break;
-	case Qtype:
-		t = valtype(val);
-		o = fmttype(t, xstrdup(""));
-		printf("<type %s>", o);
-		free(o);
 		break;
 	case Qvec:
 		vec = valvec(val);
@@ -3152,11 +3164,11 @@ xcval(VM *vm, Operand *type, Operand *str, Operand *dst)
 {
 	Val typev, strv, rv;
 	Imm imm;
-	Type *t;
+	Xtypename *t;
 
 	getvalrand(vm, type, &typev);
 	getvalrand(vm, str, &strv);
-	t = valtype(&typev);
+	t = valxtn(&typev);
 	imm = str2imm(t, valstr(&strv));
 	mkvalcval(t, imm, &rv);
 	putvalrand(vm, &rv, dst);
@@ -3354,11 +3366,11 @@ xxcast(VM *vm, Operand *type, Operand *cval, Operand *dst)
 {
 	Val typev, cvalv, rv;
 	Cval *cv;
-	Type *t;
+	Xtypename *t;
 
 	getvalrand(vm, type, &typev);
 	getvalrand(vm, cval, &cvalv);
-	t = valtype(&typev);
+	t = valxtn(&typev);
 	cv = valcval(&cvalv);
 	mkvalcval(t, cv->val, &rv); /* FIXME: sanity, representation change */
 	putvalrand(vm, &rv, dst);
@@ -3376,9 +3388,9 @@ xiscl(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qcl)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3388,9 +3400,9 @@ xiscval(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qcval)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3400,9 +3412,9 @@ xisnull(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qnulllist)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3412,9 +3424,9 @@ xispair(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qpair)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3424,10 +3436,10 @@ xisas(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qas)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
 
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3437,10 +3449,10 @@ xisdom(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qdom)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
 
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3450,10 +3462,10 @@ xisns(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qns)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
 
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3463,10 +3475,10 @@ xisrange(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qrange)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
 
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3476,9 +3488,9 @@ xisstr(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qstr)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3488,9 +3500,9 @@ xistab(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qtab)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3500,21 +3512,9 @@ xistn(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qxtn)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xistype(VM *vm, Operand *op, Operand *dst)
-{
-	Val v, rv;
-	getvalrand(vm, op, &v);
-	if(v.qkind == Qtype)
-		mkvalimm(1, &rv);
-	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3524,9 +3524,9 @@ xisvec(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == Qvec)
-		mkvalimm(1, &rv);
+		mkvalimm(1, vm->lituint, &rv);
 	else
-		mkvalimm(0, &rv);
+		mkvalimm(0, vm->lituint, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3586,17 +3586,17 @@ static void
 xsizeof(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
-	Type *t;
 	Imm imm;
+	Xtypename *xtn;
 
 	getvalrand(vm, op, &v);
-	if(v.qkind != Qtype && v.qkind != Qcval)
+	if(v.qkind != Qxtn && v.qkind != Qcval)
 		vmerr(vm, "bad operand to sizeof");
-	if(v.qkind == Qcval)
+	if(v.qkind == Qxtn)
 		vmerr(vm, "sizeof cvalues not implemented");
-	t = valtype(&v);
-	imm = typesize(vm, t);
-	mkvalcval(0, imm, &rv);
+	xtn = valxtn(&v);
+	imm = typesize(vm, xtn);
+	mkvalcval(vm->litint, imm, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3698,6 +3698,13 @@ enumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	mkvaltab(ns->type, rv);
 }
 
+/* dispatch for abstract address spaces */
+static void
+nodispatch(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	vmerr(vm, "attempt to access abstract address space");
+}
+
 /* looksym for namespaces constructed by @names */
 static void
 looksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
@@ -3738,6 +3745,7 @@ struct NSctx {
 	Tab *otype, *osym;	/* bindings passed to @names */
 	Tab *rawtype, *rawsym;	/* @names declarations */
 	Tab *type, *sym;	/* resulting bindings */
+	unsigned ptrrep;	/* pointer representation */
 } NSctx;
 
 static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
@@ -3888,8 +3896,11 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		mkvalxtn(xtn, &v);
 		return resolvetag(vm, &v, ctx);
 	case Tarr:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		return xtn;
 	case Tptr:
 		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		xtn->rep = ctx->ptrrep;
 		return xtn;
 	case Tfun:
 		xtn->link = resolvetypename(vm, xtn->link, ctx);
@@ -3951,6 +3962,19 @@ xns(VM *vm, Operand *invec, Operand *dst)
 
 	ctx.otype = valtab(dovm(vm, ons->enumtype, 0, 0));
 	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
+
+	/* get pointer representation from parent name space */
+	xtn = mkxtn();		/* will be garbage */
+	xtn->xtkind = Tbase;
+	xtn->basename = Vptr;
+	mkvalxtn(xtn, &v);
+	vp = tabget(ctx.otype, &v);
+	if(vp == 0)
+		vmerr(vm,
+		      "derived name space must define pointer representation");
+	xtn = valxtn(vp);
+	ctx.ptrrep = xtn->rep;
+	xtn = 0;
 
 	x = ctx.rawtype->x;
 	for(i = 0; i < x->sz; i++){
@@ -4184,7 +4208,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Iisstr] 	= &&Iisstr;
 		gotab[Iistab] 	= &&Iistab;
 		gotab[Iistn] 	= &&Iistn;
-		gotab[Iistype] 	= &&Iistype;
 		gotab[Iisvec] 	= &&Iisvec;
 		gotab[Ijmp] 	= &&Ijmp;
 		gotab[Ijnz] 	= &&Ijnz;
@@ -4234,30 +4257,30 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
 
-		if(!envlookup(vm->topenv, "halt", &haltv))
+		if(!envlookup(vm->top, "halt", &haltv))
 			fatal("broken vm");
 		halt = valcl(&haltv);
 	}
 
 	/* for recursive entry, store current context */
-	mkvalimm(vm->fp, &val);
+	mkvalimm(vm->fp, vm->lituint, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &vm->cl);	/* cl */
-	mkvalimm(vm->pc, &val);
+	mkvalimm(vm->pc, vm->lituint, &val);
 	vmpush(vm, &val);	/* pc */
-	mkvalimm(0, &val);
+	mkvalimm(0, vm->lituint, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
 	/* push frame for halt thunk */
-	mkvalimm(vm->fp, &val);
+	mkvalimm(vm->fp, vm->lituint, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &haltv);	/* cl */
-	mkvalimm(halt->entry, &val);
+	mkvalimm(halt->entry, vm->lituint, &val);
 	vmpush(vm, &val);	/* pc */
 	for(m = argc; m > 0; m--)
 		vmpush(vm, &argv[m-1]);
-	mkvalimm(argc, &val);
+	mkvalimm(argc, vm->lituint, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
@@ -4330,10 +4353,10 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->pc = vm->clx->entry;
 		continue;
 	Iframe:
-		mkvalimm(vm->fp, &val);
+		mkvalimm(vm->fp, vm->lituint, &val);
 		vmpush(vm, &val);
 		vmpush(vm, &vm->cl);
-		mkvalimm(i->dstlabel->insn, &val);
+		mkvalimm(i->dstlabel->insn, vm->lituint, &val);
 		vmpush(vm, &val);
 		continue;
 	Igc:
@@ -4488,9 +4511,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Iistn:
 		xistn(vm, &i->op1, &i->dst);
 		continue;
-	Iistype:
-		xistype(vm, &i->op1, &i->dst);
-		continue;
 	Iisvec:
 		xisvec(vm, &i->op1, &i->dst);
 		continue;
@@ -4560,6 +4580,14 @@ builtinns(Env *env, char *name, Ns *ns)
 {
 	Val val;
 	mkvalns(ns, &val);
+	envbind(env, name, &val);
+}
+
+static void
+builtindom(Env *env, char *name, Dom *dom)
+{
+	Val val;
+	mkvaldom(dom, &val);
 	envbind(env, name, &val);
 }
 
@@ -4647,6 +4675,28 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = rand();
 	r %= cv->val;
 	mkvalcval(0, r, rv);
+}
+
+static void
+l1_asdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	As *as;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to asdispatch");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qas && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslooksym must be an addrspace or domain");
+	if(arg0->qkind == Qas)
+		as = valas(arg0);
+	else{
+		dom = valdom(arg0);
+		as = dom->as;
+	}
+	mkvalcl(as->dispatch, rv);
 }
 
 static void
@@ -5010,7 +5060,7 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 
 /* FIXME: this shouldn't need a VM */
 static void
-addbasedef(VM *vm, Tab *type, unsigned name, unsigned rep)
+addbasedef(VM *vm, Tab *type, Cbase name, unsigned rep)
 {
 	Xtypename *k, *v;
 	Val kv, vv;
@@ -5024,6 +5074,25 @@ addbasedef(VM *vm, Tab *type, unsigned name, unsigned rep)
 	mkvalxtn(k, &kv);
 	mkvalxtn(v, &vv);
 	tabput(vm, type, &kv, &vv);
+}
+
+static Xtypename*
+looknsbase(Ns *ns, Cbase name)
+{
+	Xtypename *k, *v;
+	Val kv, *rv;
+
+	if(ns->type == 0)
+		fatal("bug");
+	k = mkxtn();
+	k->xtkind = Tbase;
+	k->basename = name;
+	mkvalxtn(k, &kv);
+	rv = tabget(ns->type, &kv);
+	if(rv == 0)
+		fatal("bug");
+	v = valxtn(rv);
+	return v;
 }
 
 static Ns*
@@ -5051,18 +5120,58 @@ mkc32lens(VM *vm)
 	return mknstab(type, mktab());
 }
 
+static Ns*
+mkc64lens(VM *vm)
+{
+	Tab *type;
+
+	type = mktab();
+	addbasedef(vm, type, Vchar,	Rs8le);
+	addbasedef(vm, type, Vshort,	Rs16le);
+	addbasedef(vm, type, Vint,	Rs32le);
+	addbasedef(vm, type, Vlong,	Rs64le);
+	addbasedef(vm, type, Vvlong,	Rs64le);
+	addbasedef(vm, type, Vuchar,	Ru8le);
+	addbasedef(vm, type, Vushort,	Ru16le);
+	addbasedef(vm, type, Vuint,	Ru32le);
+	addbasedef(vm, type, Vulong,	Ru64le);
+	addbasedef(vm, type, Vuvlong,	Ru64le);
+	addbasedef(vm, type, Vfloat,	Rundef);
+	addbasedef(vm, type, Vdouble,	Rundef);
+	addbasedef(vm, type, Vlongdouble, 	Rundef);
+	addbasedef(vm, type, Vvoid,	Rundef);
+	addbasedef(vm, type, Vptr,	Ru32le);
+
+	return mknstab(type, mktab());
+}
+
+static Dom*
+mklitdom(Ns *ns)
+{
+	As *as;
+	Dom *dom;
+
+	as = mkas();
+	as->dispatch = mkcfn("nodispatch", nodispatch);
+	dom = mkdom();
+	dom->as = as;
+	dom->ns = ns;
+	return dom;
+}
+
 static VM *vms[Maxvms];
 
 VM*
 mkvm(Env *env)
 {
 	VM *vm, **vmp;
+	Ns *ns;
 
 	vm = xmalloc(sizeof(VM));
 	vm->fp = 0;
 	vm->sp = Maxstk;
 	vm->ac = Xundef;
-	vm->topenv = env;
+	vm->top = env;
 	mkvalcl(panicthunk(), &vm->cl);
 	
 	builtinfn(env, "testbin", mkcfn("testbin", testbin));
@@ -5094,7 +5203,6 @@ mkvm(Env *env)
 	builtinfn(env, "isstring", isstringthunk());
 	builtinfn(env, "istable", istablethunk());
 	builtinfn(env, "istypename", istnthunk());
-	builtinfn(env, "istype", istypethunk());
 	builtinfn(env, "isvector", isvectorthunk());
 	builtinfn(env, "string", stringthunk());
 	builtinfn(env, "strlen", strlenthunk());
@@ -5110,6 +5218,7 @@ mkvm(Env *env)
 	builtinfn(env, "vecref", vecrefthunk());
 	builtinfn(env, "vecset", vecsetthunk());
 
+	builtinfn(env, "asdispatch", mkcfn("asdispatch", l1_asdispatch));
 	builtinfn(env, "nslooksym", mkcfn("nslooksym", l1_nslooksym));
 	builtinfn(env, "nslooktype", mkcfn("nslooktype", l1_nslooktype));
 	builtinfn(env, "nsenumsym", mkcfn("nsenumsym", l1_nsenumsym));
@@ -5139,7 +5248,14 @@ mkvm(Env *env)
 	builtinstr(env, "$looksym", "looksym");
 	builtinstr(env, "$looktype", "looktype");
 
+	/* FIXME: make litdom immutable (@litdom)? */
 	builtinns(env, "c32le", mkc32lens(vm));
+	ns = mkc64lens(vm);
+	builtinns(env, "c64le", ns);
+	builtindom(env, "litdom", mklitdom(ns));
+	vm->litns = ns;
+	vm->litint = looknsbase(ns, Vint);
+	vm->lituint = looknsbase(ns, Vuint);
 
 	vmp = vms;
 	while(*vmp){

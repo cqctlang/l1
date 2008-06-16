@@ -245,8 +245,8 @@ printrand(Code *code, Operand *r)
 			break;
 		}
 		break;
-	case Ocval:
-		printf("%" PRIu64, r->u.cval.val);
+	case Oliti:
+		printf("%" PRIu64, r->u.liti.val);
 		break;
 	case Onil:
 		printf("nil");
@@ -540,12 +540,6 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Iistab:
 		printf("istab ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Iistype:
-		printf("istype ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -1484,7 +1478,7 @@ printframe(Expr *e)
 
 	switch(e->kind){
 	case Econst:
-		printf("%" PRIu64, e->cval.val);
+		printf("%" PRIu64, e->liti.val);
 		break;
 	case Econsts:
 		printf("(Econsts %.*s)", e->lits->len, e->lits->s);
@@ -1565,13 +1559,6 @@ randloc(Operand *rand, Location* loc)
 }
 
 static void
-randcval(Operand *rand, Cval *val)
-{
-	rand->okind = Ocval;
-	rand->u.cval = *val;
-}
-
-static void
 randlits(Operand *rand, Lits *lits)
 {
 	rand->okind = Olits;
@@ -1579,21 +1566,17 @@ randlits(Operand *rand, Lits *lits)
 }
 
 static void
-randimm(Operand *rand, Imm imm)
+randliti(Operand *rand, Imm val, unsigned base)
 {
-	rand->okind = Ocval;
-	initcval(&rand->u.cval, 0, imm);
+	rand->okind = Oliti;
+	rand->u.liti.val = val;
+	rand->u.liti.base = base;
 }
 
 static void
 randnil(Operand *rand)
 {
 	rand->okind = Onil;
-}
-
-static void
-freerand(Operand *rand)
-{
 }
 
 static void
@@ -1689,7 +1672,7 @@ cgrand(Operand *rand, Expr *e, CGEnv *p)
 		randvarloc(rand, e);
 		break;
 	case Econst:
-		randcval(rand, &e->cval);
+		randliti(rand, e->liti.val, e->liti.base);
 		break;
 	case Econsts:
 		randlits(rand, e->xp);
@@ -1968,7 +1951,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("assignment to non-variable");
 		varloc(&dst, e->e1);
 		randloc(&r1, &dst);
-		randimm(&r2, 1);
+		randliti(&r2, 1, Vint);
 		if(loc != Effect){
 			L = genlabel(code, 0);
 			cgbinop(code, p, e->kind, &r1, &r2, &dst, L, L);
@@ -1987,7 +1970,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("assignment to non-variable");
 		varloc(&dst, e->e1);
 		randloc(&r1, &dst);
-		randimm(&r2, 1);
+		randliti(&r2, 1, Vint);
 		if(loc != Effect){
 			i = nextinsn(code);
 			i->kind = Imov;
@@ -2125,7 +2108,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		
 		i = nextinsn(code);
 		i->kind = Ipush;
-		randimm(&i->op1, narg);
+		randliti(&i->op1, narg, Vint);
 
 		L0 = genlabel(code, 0);
 		emitlabel(L0, e->e1);
@@ -2171,7 +2154,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Econst:
 		i = nextinsn(code);
 		i->kind = Imov;
-		randcval(&i->op1, &e->cval);
+		randliti(&i->op1, e->liti.val, e->liti.base);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt);
 		break;
@@ -2206,7 +2189,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 		i = nextinsn(code);
 		i->kind = Iclo;
-		randimm(&i->op1, b->capture->nvr);
+		randliti(&i->op1, b->capture->nvr, Vint);
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
@@ -2246,13 +2229,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(Lthen, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randimm(&i->op1, 1);
+			randliti(&i->op1, 1, Vint);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, Lelse);
 			emitlabel(Lelse, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randimm(&i->op1, 0);
+			randliti(&i->op1, 0, Vint);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt);
 		}
@@ -2284,13 +2267,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(Lthen, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randimm(&i->op1, 1);
+			randliti(&i->op1, 1, Vint);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, Lelse);
 			emitlabel(Lelse, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randimm(&i->op1, 0);
+			randliti(&i->op1, 0, Vint);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt);
 		}
@@ -2450,7 +2433,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 		i = nextinsn(code);
 		i->kind = Isub;
 		randloc(&i->op1, SP);
-		randimm(&i->op2, b->maxloc+b->ntmp);
+		randliti(&i->op2, b->maxloc+b->ntmp, Vint);
 		randloc(&i->dst, SP);
 		needtop = 1;
 	}
@@ -2939,29 +2922,6 @@ istnthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Iistn;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-istypethunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "istype");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Iistype;
 	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);

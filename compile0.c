@@ -147,6 +147,12 @@ Qconsts(char *s)
 }
 
 static Expr*
+Quint(Imm val)
+{
+	return mkconst(Vuint, val);
+}
+
+static Expr*
 Qnil()
 {
 	Expr *e;
@@ -541,11 +547,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		e->e3 = 0;
 		break;
 	case Etick:
-		// <Etick,domid,sym>
-		// $p = dispatch($looksym, sym)
-		// $type = car(p);
-		// $str = dispatch($get, range(cdr(p), sizeof(t)));
-		// cval($str, $type);
+		// reference to symbol in domain
 		binds = Vtmp|Vtype|Vrange|Vaddr;
 		if(needval)
 			binds |= Vstr;
@@ -566,44 +568,35 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		te = Qcons(se, te);
 		freeexpr(e->e1);
 		freeexpr(e->e2);
+		e->e1 = 0;
+		e->e2 = 0;
 
-		// r = range(vecref($tmp, 2), sizeof(vecref($tmp, 0)))
-		// bytes = dom.as.get(r);
-		// cval = cval(bytes, vecref($tmp, 0));
+		// FIXME:  check sym: that it is a var with an offset,
+		// not an enum.
 
-		se = Qcall(Qcall(doid("nslooksym"), 1,
-				 Qcall(doid("domns"
+		// $type = vecref($tmp, 0);
+		se = Qset(doid(lvs->type),
+			  Qcall(doid("vecref"), 2, doid(lvs->tmp), Quint(0)));
+		te = Qcons(se, te);
 
-		se = Qcall(doid("domns"), 1, e->e1);
+		// $range = range(vecref($tmp, 2), sizeof($type));
+		se = Qcall(doid("vecref"), 2, doid(lvs->tmp), Quint(2));
+		se = Qset(doid(lvs->range), Qrange(se,
+						   Qsizeof(doid(lvs->type))));
+		te = Qcons(se, te);
 		
-
-		se = Qconsts(e->e2->id);
-		freeexpr(e->e2);
-		freeexpr(e->e1); /* temporary, until we use domains */
-		se = Qcall(doid("dispatch"), 2, doid("$looksym"), se);
-		se = Qset(doid(lvs->tmp), se);
-		te = Qcons(se, te);
-
-		se = Qset(doid(lvs->type), Qcar(doid(lvs->tmp)));
-		te = Qcons(se, te);
-
-		se = Qset(doid(lvs->addr), Qcdr(doid(lvs->tmp)));
-		te = Qcons(se, te);
-
-		se = Qset(doid(lvs->range),
-			  Qrange(doid(lvs->addr), Qsizeof(doid(lvs->type))));
-		te = Qcons(se, te);
-
 		if(needval){
-			se = Qset(doid(lvs->str),
-				  Qcall(doid("dispatch"), 2,
-					doid("$get"),
-					doid(lvs->range)));
+			// $str = asdispatch(domas($dom))("get", $range);
+			se = Qcall(doid("domas"), 1, doid(lvs->dom));
+			se = Qcall(doid("asdispatch"), 1, se);
+			se = Qcall(se, 2, doid("$get"), doid(lvs->range));
+			se = Qset(doid(lvs->str), se);
 			te = Qcons(se, te);
+			
+			// cval($str, $type);
 			se = Qcval(doid(lvs->str), doid(lvs->type));
 			te = Qcons(se, te);
 		}
-		
 		e->kind = Eblock;
 		e->e1 = locals(lvs, pvs);
 		e->e2 = invert(te);

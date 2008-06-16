@@ -137,19 +137,8 @@ enum{
 	E_xcast,
 } Kind;
 
-enum{
-	Tbase=0,
-	Tstruct,
-	Tunion,
-	Tenum,
-	Tptr,
-	Tarr,
-	Tfun,
-	Ttypedef,
-
-	/* Type flags */
-	Ffwd=(1<<0),
-
+typedef
+enum Cbase {
 	Verr=0,
 	Vchar,
 	Vshort,
@@ -167,18 +156,26 @@ enum{
 	Vvoid,
 	Vptr,
 	Vnil,        
+} Cbase;
+
+enum{
+	Tbase=0,
+	Tstruct,
+	Tunion,
+	Tenum,
+	Tptr,
+	Tarr,
+	Tfun,
+	Ttypedef,
+
+	/* Type flags */
+	Ffwd=(1<<0),
 };
 
 typedef struct Expr Expr;
 typedef struct Decl Decl;
 typedef struct Enum Enum;
 typedef struct Type Type;
-typedef struct Cval Cval;
-
-struct Cval {
-	Type *type;
-	Imm val;
-};
 
 typedef
 struct Src {
@@ -192,12 +189,18 @@ struct Lits {
 	unsigned len;
 } Lits;
 
+typedef
+struct Liti {
+	Imm val;
+	Cbase base;
+} Liti;
+
 struct Expr {
 	Kind kind;
 
 	char *id;		/* Eid, Etick */
 	Lits *lits;		/* Econsts */
-	Cval cval;		/* Econst */
+	Liti liti;		/* Econst */
 	Kind op;		/* Ebinop, Egop */
 
 	Expr *e1;
@@ -281,7 +284,7 @@ Expr* newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr* copyexpr(Expr *e);
 Expr* newbinop(unsigned, Expr*, Expr*);
 Expr* newgop(unsigned, Expr*, Expr*);
-Expr* mkconst(unsigned type, Imm val); /* rename newconst? */
+Expr* mkconst(Cbase base, Imm val); /* rename newconst? */
 void freeexpr(Expr*);
 void freeexprx(Expr *e);
 Expr* invert(Expr*);
@@ -297,8 +300,6 @@ Lits* copylits(Lits *lits);
 void freelits(Lits *lits);
 char* fmttype(Type *t, char *o);
 Type* basetype(unsigned base);
-
-void initcval(Cval *cval, Type *type, Imm val);
 
 Expr* dotypes(Expr*);
 void dotop(Expr*);

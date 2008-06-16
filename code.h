@@ -41,7 +41,6 @@ enum {
 	Iisstr,
 	Iistab,
 	Iistn,
-	Iistype,
 	Iisvec,
 	Ijmp,
 	Ijnz,
@@ -109,7 +108,7 @@ enum {
 
 enum {
 	Oloc = 0,
-	Ocval,
+	Oliti,
 	Olits,
 	Onil,
 
@@ -149,7 +148,7 @@ struct Operand {
 	unsigned okind;
 	union{
 		Location loc;
-		Cval cval;
+		Liti liti;
 		Lits *lits;
 	} u;
 } Operand;
@@ -251,7 +250,6 @@ Closure* israngethunk();
 Closure* isstringthunk();
 Closure* istablethunk();
 Closure* istnthunk();
-Closure* istypethunk();
 Closure* isvectorthunk();
 Closure* stringthunk();
 Closure* strlenthunk();

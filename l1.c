@@ -4,8 +4,6 @@
 
 static unsigned basemod[Vnil+1][Enbase];
 char* basename[Vnil+1];
-Imm   basesize[Vnil+1];
-Imm   ptrsize;
 
 static Decl* dodecls(Expr *e);
 static Decl* dodecl(Expr *e);
@@ -110,25 +108,6 @@ initbase()
 	basename[Vptr]		      = "void*";
 	basename[Vnil]		      = "error!";
 
-	basesize[Verr]                = -1;
-	basesize[Vchar]               = 1;
-	basesize[Vshort]	      = 2;
-	basesize[Vint]		      = 4;
-	basesize[Vlong]		      = 4;
-	basesize[Vvlong]	      = 8;
-	basesize[Vuchar]	      = 1;
-	basesize[Vushort]	      = 2;
-	basesize[Vuint]		      = 4;
-	basesize[Vulong]	      = 4;
-	basesize[Vuvlong]	      = 8;
-	basesize[Vfloat]	      = 4;
-	basesize[Vdouble]	      = 8;
-	basesize[Vlongdouble]	      = 12;
-	basesize[Vvoid]		      = 1;
-	basesize[Vnil]		      = -1;
-
-	ptrsize = 4;
-
 	basemod[Vchar][Eunsigned]     = Vuchar;
 	basemod[Vchar][Esigned]       = Vchar;
 
@@ -215,9 +194,6 @@ freeexpr(Expr *e)
 	case Econsts:
 		freelits(e->lits);
 		break;
-	case Econst:
-/*		freetype(e->cval.type); */
-		break;
 	default:
 		break;
 	}
@@ -248,7 +224,7 @@ copyexpr(Expr *e)
 		ne->lits = copylits(e->lits);
 		break;
 	case Econst:
-		ne->cval = e->cval;
+		ne->liti = e->liti;
 		break;
 	default:
 		break;
@@ -323,19 +299,13 @@ doidn(char *s, unsigned long len)
 	return e;
 }
 
-void
-initcval(Cval *cval, Type *type, Imm val)
-{
-	cval->type = type;
-	cval->val = val;
-}
-
 Expr*
-mkconst(unsigned type, Imm val)
+mkconst(Cbase type, Imm val)
 {
 	Expr *e;
 	e = newexpr(Econst, 0, 0, 0, 0);
-	initcval(&e->cval, 0, val);
+	e->liti.val = val;
+	e->liti.base = type;
 	return e;
 }
 
@@ -655,6 +625,7 @@ dotick(Expr *dom, Expr *id)
 	return e;
 }
 
+#if 0
 static Expr*
 recexprinc(Expr *e)
 {
@@ -724,13 +695,17 @@ recenums(Type *t, Expr *e, Expr *val)
 
 	return 0;
 }
+#endif
 
 static Enum*
 enums(Type *t, Expr *e)
 {
 	if(e == NULL)
 		return NULL;
+#if 0
 	return recenums(t, e, mkconst(Vuint, 0));
+#endif
+	return 0;
 }
 
 static Decl*
