@@ -1,0 +1,9 @@
+test = lambda(){
+	t = table();
+	n = 10000;
+	for(i = 0; i < n; i++)
+		tabinsert(t, i, i);
+	for(i = 0; i < n/2; i++)
+		tabdelete(t, i*2);
+};
+test();
