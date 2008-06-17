@@ -323,6 +323,7 @@ struct Rootset {
 
 static Rootset roots;
 static Rootset stores;
+static Head *GCiterdone;
 
 #define GCCOLOR(i) ((i)%3)
 enum {
@@ -491,8 +492,8 @@ sweepheap(Heap *heap, unsigned color)
 				heap->free1(p);
 //			printf("collect %s %p\n", heap->id, p); 
 			if(p->state != 0 || p->inrootset)
-				fatal("sweep heap (%s) bad state %d",
-				      heap->id, p->state);
+				fatal("sweep heap (%s) %p bad state %d",
+				      heap->id, p, p->state);
 			p->link = heap->sweep;
 			heap->sweep = p;
 			p->state = -1;
@@ -567,6 +568,10 @@ addroot(Rootset *rs, Head *h)
 	Root *r;
 	int x;
 
+//printf("addroot %s %p %d %d\n",
+//       rs == &roots ? "roots" : "stores",
+//       h, h->inrootset, h->state);
+
 	if(h == 0)
 		return;
 	if(h->inrootset)
@@ -602,6 +607,7 @@ removeroot(Rootset *rs)
 	r = rs->this;
 	rs->this = r->link;
 	h = r->hd;
+// printf("rmroot %p %d %d\n", h, h->inrootset, h->state);
 	h->inrootset = 0;
 	x = h->state;
 	if(x > 2 || x <= 0)
@@ -634,9 +640,9 @@ markhead(Head *hd, unsigned color)
 	memset(&ictx, 0, sizeof(ictx));
 	while(1){
 		c = hd->heap->iter(hd, &ictx);
-		if(c == 0)
+		if(c == GCiterdone)
 			break;
-		if(c->color != color)
+		if(c && c->color != color)
 			addroot(&roots, c);
 	}
 }
@@ -918,7 +924,7 @@ iterbox(Head *hd, Ictx *ictx)
 	Box *box;
 	box = (Box*)hd;
 	if(ictx->n > 0)
-		return 0;
+		return GCiterdone;
 	ictx->n = 1;
 	return valhead(&box->v);
 }
@@ -929,7 +935,7 @@ itercl(Head *hd, Ictx *ictx)
 	Closure *cl;
 	cl = (Closure*)hd;
 	if(ictx->n > cl->dlen)
-		return 0;
+		return GCiterdone;
 	if(ictx->n == cl->dlen){
 		ictx->n++;
 		return (Head*)cl->code;
@@ -944,7 +950,7 @@ itercval(Head *hd, Ictx *ictx)
 	cval = (Cval*)hd;
 
 	if(ictx->n > 0)
-		return 0;
+		return GCiterdone;
 	ictx->n = 1;
 	return (Head*)cval->type;
 }
@@ -961,7 +967,7 @@ iterpair(Head *hd, Ictx *ictx)
 	case 1:
 		return valhead(&pair->cdr);
 	default:
-		return 0;
+		return GCiterdone;
 	}
 }
 
@@ -977,7 +983,7 @@ iterrange(Head *hd, Ictx *ictx)
 	case 1:
 		return (Head*)range->len;
 	default:
-		return 0;
+		return GCiterdone;
 	}
 }
 
@@ -1391,7 +1397,7 @@ itervec(Head *hd, Ictx *ictx)
 	Vec *vec;
 	vec = (Vec*)hd;
 	if(ictx->n >= vec->len)
-		return 0;
+		return GCiterdone;
 	return valhead(&vec->vec[ictx->n++]);
 }
 
@@ -1449,13 +1455,13 @@ itertab(Head *hd, Ictx *ictx)
 
 	tab = (Tab*)hd;
 
-	if(ictx->n == 0){
+	if(ictx->n == 0)
 		ictx->x = x = tab->x;
-	}else
+	else
 		x = ictx->x;
 		
 	if(ictx->n >= 2*x->nxt)
-		return 0;
+		return GCiterdone;
 	if(ictx->n >= x->nxt){
 		idx = ictx->n-x->nxt;
 		ictx->n++;
@@ -1713,7 +1719,7 @@ iterxtn(Head *hd, Ictx *ictx)
 	xtn = (Xtypename*)hd;
 	switch(xtn->xtkind){
 	case Tbase:
-		return 0;
+		return GCiterdone;
 	case Tstruct:
 	case Tunion:
 		switch(ictx->n++){
@@ -1724,13 +1730,13 @@ iterxtn(Head *hd, Ictx *ictx)
 		case 2:
 			return valhead(&xtn->sz);
 		default:
-			return 0;
+			return GCiterdone;
 		}
 	case Tenum:
 		fatal("enum support incomplete");
 	case Tptr:
 		if(ictx->n++ > 0)
-			return 0;
+			return GCiterdone;
 		else
 			return (Head*)xtn->link;
 	case Tarr:
@@ -1740,7 +1746,7 @@ iterxtn(Head *hd, Ictx *ictx)
 		case 1:
 			return (Head*)xtn->link;
 		default:
-			return 0;
+			return GCiterdone;
 		}
 	case Tfun:
 		switch(ictx->n++){
@@ -1749,12 +1755,12 @@ iterxtn(Head *hd, Ictx *ictx)
 		case 1:
 			return (Head*)xtn->param;
 		default:
-			return 0;
+			return GCiterdone;
 		}
 		break;
 	case Ttypedef:
 		if(ictx->n++ > 0)
-			return 0;
+			return GCiterdone;
 		else
 			return (Head*)xtn->tid;
 		break;
@@ -1944,7 +1950,7 @@ iteras(Head *hd, Ictx *ictx)
 	case 0:
 		return (Head*)as->dispatch;
 	default:
-		return 0;
+		return GCiterdone;
 	}
 }
 
@@ -1967,7 +1973,7 @@ iterdom(Head *hd, Ictx *ictx)
 	case 1:
 		return (Head*)dom->ns;
 	default:
-		return 0;
+		return GCiterdone;
 	}
 }
 
@@ -1994,7 +2000,7 @@ iterns(Head *hd, Ictx *ictx)
 	case 3:
 		return (Head*)ns->looktype;
 	default:
-		return 0;
+		return GCiterdone;
 	}
 }
 
@@ -5274,6 +5280,7 @@ initvm()
 	Xnulllist.qkind = Qnulllist;
 	kcode = contcode();
 	cccode = callccode();
+	GCiterdone = xmalloc(1); /* unique pointer */
 	setfaulthook(vmfaulthook);
 }
 
@@ -5291,6 +5298,7 @@ finivm()
 
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);
+	free(GCiterdone);
 
 	for(i = 0; i < Qnkind; i++){
 		hp = &heap[i];
