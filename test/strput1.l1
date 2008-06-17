@@ -1,0 +1,13 @@
+s = "abc";
+print(s);
+strput(s, 1, "de");
+print(s);
+s = "abc";
+strput(s, 2, "e");
+print(s);
+s = "abc";
+strput(s, 0, "");
+print(s);
+s = "abc";
+strput(s, 0, "def");
+print(s);

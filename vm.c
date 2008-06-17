@@ -2622,11 +2622,14 @@ putcvalrand(VM *vm, Cval *cv, Operand *r)
 }
 
 static Imm
-str2imm(Xtypename *xtn, Str *s)
+str2imm(Xtypename *xtn, Str *str)
 {
+	char *s;
+
 	if(xtn->xtkind != Tbase && xtn->xtkind != Tptr)
 		fatal("str2imm on non-scalar type");
 
+	s = str->s;
 	switch(xtn->rep){
 	case Ru8le:
 		return *(s8*)s;
@@ -3562,7 +3565,7 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	getvalrand(vm, op, &v);
 	if(v.qkind != Qxtn && v.qkind != Qcval)
 		vmerr(vm, "bad operand to sizeof");
-	if(v.qkind == Qxtn)
+	if(v.qkind != Qxtn)
 		vmerr(vm, "sizeof cvalues not implemented");
 	xtn = valxtn(&v);
 	imm = typesize(vm, xtn);
@@ -3600,13 +3603,13 @@ xdom(VM *vm, Operand *nso, Operand *aso, Operand *dst)
 		vmerr(vm, "mkdom on non-namespace");
 	ns = valns(&nv);
 	getvalrand(vm, aso, &av);
-	if(av.qkind != Qns)
+	if(av.qkind != Qas)
 		vmerr(vm, "mkdom on non-addrspace");
 	as = valas(&av);
 	dom = mkdom();
 	dom->ns = ns;
 	dom->as = as;
-	mkvalas(as, &rv);
+	mkvaldom(dom, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3635,7 +3638,7 @@ xdomns(VM *vm, Operand *domo, Operand *dst)
 
 	getvalrand(vm, domo, &dv);
 	if(dv.qkind != Qdom)
-		vmerr(vm, "domns on non-domain");
+		vmerr(vm, "domns on non-domain (is %d)", dv.qkind);
 	dom = valdom(&dv);
 	ns = dom->ns;
 	mkvalns(ns, &rv);
@@ -5028,6 +5031,30 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 		mkvalcval(vm->litint, 0, rv);
 }
 
+static void
+l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *s, *t;
+	Cval *off;
+	Imm o;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to strput");
+	if(argv[0].qkind != Qstr)
+		vmerr(vm, "operand 1 to strput must be a string");
+	if(argv[1].qkind != Qcval)
+		vmerr(vm, "operand 2 to strput must be an offset");
+	if(argv[2].qkind != Qstr)
+		vmerr(vm, "operand 3 to strput must be a string");
+	s = valstr(&argv[0]);
+	off = valcval(&argv[1]);
+	t = valstr(&argv[2]);
+	o = off->val;		/* FIXME: use type */
+	if(o >= s->len || o+t->len > s->len)
+		vmerr(vm, "strput out of bounds");
+	memcpy(s->s+o, t->s, t->len);
+}
+
 /* FIXME: this shouldn't need a VM */
 static void
 addbasedef(VM *vm, Tab *type, Cbase name, unsigned rep)
@@ -5210,6 +5237,8 @@ mkvm(Env *env)
 	builtinfn(env, "isarray", mkcfn("isarray", l1_isarray));
 	builtinfn(env, "isfunc", mkcfn("isfunc", l1_isfunc));
 	builtinfn(env, "istypedef", mkcfn("istypedef", l1_istypedef));
+
+	builtinfn(env, "strput", mkcfn("strput", l1_strput));
 
 	builtinfn(env, "isnil", mkcfn("isnil", l1_isnil));
 

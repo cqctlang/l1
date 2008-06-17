@@ -253,8 +253,6 @@ bindings(Vars *vars, Varset *outer, int req)
 			vs->addr = freshvar(vars, "$addr");
 		if(req&Vstr)
 			vs->str = freshvar(vars, "$str");
-		if(req&Vstr)
-			vs->str = freshvar(vars, "$str");
 		if(req&Vas)
 			vs->as = freshvar(vars, "$as");
 		if(req&Vns)
@@ -548,7 +546,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		break;
 	case Etick:
 		// reference to symbol in domain
-		binds = Vtmp|Vtype|Vrange|Vaddr;
+		binds = Vdom|Vtmp|Vtype|Vrange;
 		if(needval)
 			binds |= Vstr;
 
@@ -566,12 +564,11 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		se = Qcall(se, 1, Qconsts(e->e2->id));
 		se = Qset(doid(lvs->tmp), se);
 		te = Qcons(se, te);
-		freeexpr(e->e1);
 		freeexpr(e->e2);
 		e->e1 = 0;
 		e->e2 = 0;
 
-		// FIXME:  check sym: that it is a var with an offset,
+		// FIXME:  check that sym is a var with an offset,
 		// not an enum.
 
 		// $type = vecref($tmp, 0);
@@ -593,8 +590,8 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 			se = Qset(doid(lvs->str), se);
 			te = Qcons(se, te);
 			
-			// cval($str, $type);
-			se = Qcval(doid(lvs->str), doid(lvs->type));
+			// cval($type, $str); (final expression of block)
+			se = Qcval(doid(lvs->type), doid(lvs->str));
 			te = Qcons(se, te);
 		}
 		e->kind = Eblock;
@@ -607,7 +604,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 			compile0(e->e2, 0, vars, 1);
 			break;
 		}
-		binds = Vtmp|Vtype|Vrange|Vaddr|Vstr;
+		binds = Vdom|Vtmp|Vtype|Vrange|Vstr;
 		lvs = bindings(vars, pvs, binds);
 		pushlevel(vars);
 
@@ -628,10 +625,11 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		se = Qset(doid(lvs->str), Qencode(doid(lvs->tmp)));
 		te = Qcons(se, te);
 
-		se = Qcall(doid("dispatch"), 3,
-			   doid("$put"),
-			   doid(lvs->range),
-			   doid(lvs->str));
+		// asdispatch(domas($dom))("put", $range, $str);
+		se = Qcall(doid("domas"), 1, doid(lvs->dom));
+		se = Qcall(doid("asdispatch"), 1, se);
+		se = Qcall(se, 3,
+			   doid("$put"), doid(lvs->range), doid(lvs->str));
 		te = Qcons(se, te);
 
 		if(needval){
