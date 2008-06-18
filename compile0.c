@@ -371,7 +371,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 	case Tstruct:
 	case Tunion:
 		if(t->field == 0){
-			e->xn = TBITS(t->kind, Vnil);
+			e->xn = TBITS(t->kind, Vundef);
 			e->e1 = Qstr(t->tag);
 			break;
 		}
@@ -402,33 +402,33 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 			sz = Qnil();
 
 		tn = newexpr(E_tn, 0, 0, 0, 0);
-		tn->xn = TBITS(t->kind, Vnil);
+		tn->xn = TBITS(t->kind, Vundef);
 		tn->e1 = Qstr(t->tag);
 		se = Qcall(doid("vector"), 3, tn, se, sz);
 
 		tn = newexpr(E_tn, 0, 0, 0, 0);
-		tn->xn = TBITS(t->kind, Vnil);
+		tn->xn = TBITS(t->kind, Vundef);
 		tn->e1 = Qstr(t->tag);
 
 		te = nullelist();
 		se = Qcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, se);
 		te = Qcons(se, te);
 		
-		e->xn = TBITS(t->kind, Vnil);
+		e->xn = TBITS(t->kind, Vundef);
 		e->e1 = Qstr(t->tag);
 		te = Qcons(e, te);
 		
 		e = newexpr(Eblock, nullelist(), invert(te), 0, 0);
 		break;
 	case Tenum:
-		e->xn = TBITS(t->kind, Vnil);
+		e->xn = TBITS(t->kind, Vundef);
 		e->e1 = Qstr(t->tag);
 		fatal("incomplete support for enums");
 		break;
 	case Tptr:
 	case Tarr:
 	case Tfun:
-		e->xn = TBITS(t->kind, Vnil);
+		e->xn = TBITS(t->kind, Vundef);
 		e->e1 = gentypename(t->link, lvs, vars);
 		if(t->kind == Tarr){
 			if(t->cnt){
@@ -455,7 +455,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		}
 		break;
 	case Ttypedef:
-		e->xn = TBITS(t->kind, Vnil);
+		e->xn = TBITS(t->kind, Vundef);
 		e->e1 = Qstr(t->tid);
 		break;
 	default:
@@ -504,7 +504,7 @@ compiledecl(unsigned kind, Decl *dl, Varset *pvs, Vars *vars)
 	case Etypedef:
 		/* typedef T TID => typetab[typedef(TID)] = typename(T) */
 		tn = newexpr(E_tn, 0, 0, 0, 0);
-		tn->xn = TBITS(Ttypedef, Vnil);
+		tn->xn = TBITS(Ttypedef, Vundef);
 		tn->e1 = Qstr(dl->id);
 		se = Qcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, 
 			   doid(lvs->tn));

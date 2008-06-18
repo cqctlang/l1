@@ -139,7 +139,7 @@ enum{
 
 typedef
 enum Cbase {
-	Verr=0,
+	Vundef=0,
 	Vchar,
 	Vshort,
 	Vint,
@@ -155,7 +155,7 @@ enum Cbase {
 	Vlongdouble,
 	Vvoid,
 	Vptr,
-	Vnil,        
+	Vnbase,
 } Cbase;
 
 enum{

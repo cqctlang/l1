@@ -2,8 +2,8 @@
 #include "util.h"
 #include "l1.h"
 
-static unsigned basemod[Vnil+1][Enbase];
-char* basename[Vnil+1];
+static unsigned basemod[Vnbase][Enbase];
+char* basename[Vnbase];
 
 static Decl* dodecls(Expr *e);
 static Decl* dodecl(Expr *e);
@@ -90,7 +90,7 @@ basetype(unsigned base)
 static void
 initbase()
 {
-	basename[Verr]                = "error!";
+	basename[Vundef]              = "error!";
 	basename[Vchar]               = "char";
 	basename[Vshort]	      = "short";	     
 	basename[Vint]		      = "int";
@@ -106,7 +106,6 @@ initbase()
 	basename[Vlongdouble]	      = "long double";
 	basename[Vvoid]		      = "void";
 	basename[Vptr]		      = "void*";
-	basename[Vnil]		      = "error!";
 
 	basemod[Vchar][Eunsigned]     = Vuchar;
 	basemod[Vchar][Esigned]       = Vchar;
@@ -131,17 +130,17 @@ initbase()
 
 	basemod[Vdouble][Elong]       = Vlongdouble;
 
-	basemod[Vnil][Echar]          = Vchar;
-	basemod[Vnil][Edouble]        = Vdouble;	
-	basemod[Vnil][Efloat]         = Vfloat;	
-	basemod[Vnil][Eint]           = Vint;
-	basemod[Vnil][Elong]          = Vlong;
-	basemod[Vnil][Eshort]         = Vshort;
-	basemod[Vnil][Esigned]        = Vint;
-	basemod[Vnil][Eunsigned]      = Vuint;
-	basemod[Vnil][Evoid]          = Vvoid;
+	basemod[Vundef][Echar]        = Vchar;
+	basemod[Vundef][Edouble]      = Vdouble;	
+	basemod[Vundef][Efloat]       = Vfloat;	
+	basemod[Vundef][Eint]         = Vint;
+	basemod[Vundef][Elong]        = Vlong;
+	basemod[Vundef][Eshort]       = Vshort;
+	basemod[Vundef][Esigned]      = Vint;
+	basemod[Vundef][Eunsigned]    = Vuint;
+	basemod[Vundef][Evoid]        = Vvoid;
 
-	/* the rest are Verr, which we assume to be 0 */
+	/* the rest are Vundef, which we assume to be 0 */
 }
 
 Expr*
@@ -767,7 +766,7 @@ baselist(Expr *e)
 	Expr *s;
 	unsigned base;
 	
-	base = Vnil;
+	base = Vundef;
 	while(e->kind != Enull){
 		s = e->e1;
 		e = e->e2;
@@ -782,7 +781,7 @@ baselist(Expr *e)
 		case Eunsigned:
 		case Evoid:
 			base = basemod[base][s->kind];
-			if(base == Verr)
+			if(base == Vundef)
 				parseerror("bad type specifier");
 			break;
 		default:

@@ -61,7 +61,6 @@ main(int argc, char *argv[])
 	initvm();
 
 	env = mkenv();
-	vm = mkvm(env);
 
 	if(filename == 0)
 		filename = stdinname;
@@ -75,7 +74,6 @@ main(int argc, char *argv[])
 		printf("\n");
 	}
 
-
 	dotypes(ctx.el);
 	docompile0(ctx.el);
 	if(flags&Fprintir){
@@ -87,6 +85,9 @@ main(int argc, char *argv[])
 	if(flags&Fcompile){
 		entry = compileentry(ctx.el, env, flags);
 		if(flags&Fexec){
+			vm = mkvm(env);
+			if(vm == 0)
+				goto out;
 			if(flags&Ftime)
 				gettimeofday(&beg, 0);
 			if(!waserror(vm)){
@@ -97,12 +98,14 @@ main(int argc, char *argv[])
 					printf("%lu usec\n",
 					       1000000*end.tv_sec+end.tv_usec);
 				}
+				poperror(vm);
 			}
+			freevm(vm);
 		}
 	}else
 		freeexpr(ctx.el);
 
-	freevm(vm);
+out:
 	freeenv(env);
 	finivm();
 	finicompile();

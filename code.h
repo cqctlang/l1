@@ -278,6 +278,8 @@ void finivm();
 VM* mkvm(Env*);
 void freevm(VM*);
 int waserror(VM *vm);
+void nexterror(VM *vm) __attribute__((noreturn));
+void poperror(VM *vm);
 Val* dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 
 void freecode(Head *hd);

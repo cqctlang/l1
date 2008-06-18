@@ -94,6 +94,7 @@ enum {
 	Idpos=1,
 	Offpos=2,
 	Maxvms=1024,
+	Errinitdepth=128,	/* initial max error stack */
 };
 
 struct Heap {
@@ -103,6 +104,33 @@ struct Heap {
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	Head *alloc, *swept, *sweep, *free;
 };
+
+typedef struct Root Root;
+struct Root {
+	Head *hd;
+	Root *link;
+};
+
+typedef
+struct Rootset {
+	Root *roots;
+	Root *last;
+	Root *before_last;
+	Root *this;
+} Rootset;
+
+static Rootset roots;
+static Rootset stores;
+static Head *GCiterdone;
+
+#define GCCOLOR(i) ((i)%3)
+enum {
+	GCfree = 3,
+	GCrate = 1000,
+	GCinitprot = 128,	/* initial # of GC-protected lists in VM */
+};
+
+static unsigned long long nextgctick = GCrate;
 
 typedef struct As As;
 typedef struct Box Box;
@@ -250,10 +278,18 @@ struct Xtypename {
 	Vec *param;		/* abstract declarators for func */
 };
 
+typedef
+struct Err {
+	jmp_buf esc;
+	unsigned pdepth;	/* vm->pdepth when error label set */
+} Err;
+
 struct VM {
 	Val stack[Maxstk];
 	Ns *litns;
-	Xtypename *litint, *lituint, *litulong;
+	Xtypename *littype[Vnbase]; /* cached base types from from litns */
+	Root **prot;		/* stack of lists of GC-protected objects */
+	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
 	Imm sp, fp, pc;
 	Closure *clx;
@@ -262,11 +298,15 @@ struct VM {
 	unsigned char gcpause, gcrun;
 	int cm, cgc;
 	pthread_t t;
-	jmp_buf esc;
+	Err *err;		/* stack of error labels */
+	unsigned edepth, emax;	/* # live and max error labels */
 };
 
 static void freeval(Val *val);
 static void vmsetcl(VM *vm, Closure *cl);
+static void gcprotpush(VM *vm);
+static void gcprotpop(VM *vm);
+static void* gcprotect(VM *vm, void *hd);
 static void strinit(Str *str, Lits *lits);
 static void vmerr(VM *vm, char *fmt, ...) __attribute__((noreturn));
 static Cval* valcval(Val *v);
@@ -277,7 +317,8 @@ static Vec* valvec(Val *v);
 static Xtypename* valxtn(Val *v);
 static void mkvalstr(Str *str, Val *vp);
 static void mkvalxtn(Xtypename *xtn, Val *vp);
-static Xtypename* looknsbase(Ns *ns, Cbase name);
+static Xtypename* lookbase(VM *vm, Cbase name, Ns *ns);
+static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 
 static Val* vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val *v);
@@ -306,32 +347,6 @@ static char *opstr[Iopmax] = {
 	[Icmplt] = "<",
 	[Icmple] = "<=",
 };
-
-typedef struct Root Root;
-struct Root {
-	Head *hd;
-	Root *link;
-};
-
-typedef
-struct Rootset {
-	Root *roots;
-	Root *last;
-	Root *before_last;
-	Root *this;
-} Rootset;
-
-static Rootset roots;
-static Rootset stores;
-static Head *GCiterdone;
-
-#define GCCOLOR(i) ((i)%3)
-enum {
-	GCfree = 3,
-	GCrate = 1000,
-};
-
-static unsigned long long nextgctick = GCrate;
 
 static void freecl(Head*);
 static void freestr(Head*);
@@ -561,6 +576,17 @@ freeroot(Root *r)
 	free(r);
 }
 
+static void
+freerootlist(Root *r)
+{
+	Root *nxt;
+	while(r){
+		nxt = r->link;
+		freeroot(r);
+		r = nxt;
+	}
+}
+
 /* called on roots by marker.  called on stores by mutator. */
 static void
 addroot(Rootset *rs, Head *h)
@@ -677,6 +703,7 @@ static void
 rootset(VM *vm)
 {
 	unsigned m;
+	Root *r;
 
 	/* never collect these things */
 	addroot(&roots, (Head*)kcode); 
@@ -691,22 +718,23 @@ rootset(VM *vm)
 	addroot(&roots, valhead(&vm->ac));
 	addroot(&roots, valhead(&vm->cl));
 
-	/* assume litns has a reference to cached lit type references
-	   (vm->litint, ...) */
+	/* assume all elements of vm->littype are from litns */
 	addroot(&roots, (Head*)vm->litns);
+
+	/* current GC-protected objects */
+	for(m = 0; m < vm->pdepth; m++){
+		r = vm->prot[m];
+		while(r){
+			addroot(&roots, r->hd);
+			r = r->link;
+		}
+	}
 }
 
 static void
 rootsetreset(Rootset *rs)
 {
-	Root *r, *nxt;
-
-	r = rs->roots;
-	while(r){
-		nxt = r->link;
-		freeroot(r);
-		r = nxt;
-	}
+	freerootlist(rs->roots);
 	rs->roots = 0;
 	rs->last = 0;
 	rs->before_last = 0;
@@ -1391,6 +1419,15 @@ vecset(VM *vm, Vec *vec, Imm idx, Val *v)
 	_vecset(vec, idx, v);
 }
 
+static Vec*
+veccopy(Vec *old)
+{
+	Vec *new;
+	new = mkvec(old->len);
+	memcpy(new->vec, old->vec, old->len*sizeof(Val));
+	return new;
+}
+
 static Head*
 itervec(Head *hd, Ictx *ictx)
 {
@@ -1638,7 +1675,7 @@ tabenum(Tab *tab)
 {
 	Vec *vec;
 	Tabidx *tk;
-	u32 i;;
+	u32 i;
 	Imm m;
 	Tabx *x;
 
@@ -2453,8 +2490,7 @@ vmerr(VM *vm, char *fmt, ...)
 	fflush(out);
 
 	fvmbacktrace(out, vm);
-
-	longjmp(vm->esc, 1);
+	nexterror(vm);
 }
 
 static void
@@ -2469,13 +2505,13 @@ getval(VM *vm, Location *loc, Val *vp)
 			*vp = vm->ac;
 			return;
 		case Rsp:
-			mkvalimm(vm->lituint, vm->sp, vp);
+			mkvalimm(vm->littype[Vuint], vm->sp, vp);
 			return;
 		case Rfp:
-			mkvalimm(vm->lituint, vm->fp, vp);
+			mkvalimm(vm->littype[Vuint], vm->fp, vp);
 			return;
 		case Rpc:
-			mkvalimm(vm->lituint, vm->pc, vp);
+			mkvalimm(vm->littype[Vuint], vm->pc, vp);
 			return;
 		case Rcl:
 			*vp = vm->cl;
@@ -2528,11 +2564,11 @@ getcval(VM *vm, Location *loc)
 		case Rac:
 			return valcval(&vm->ac);
 		case Rsp:
-			return mkcval(vm->litint, vm->sp);
+			return mkcval(vm->littype[Vint], vm->sp);
 		case Rfp:
-			return mkcval(vm->litint, vm->fp);
+			return mkcval(vm->littype[Vint], vm->fp);
 		case Rpc:
-			return mkcval(vm->litint, vm->pc);
+			return mkcval(vm->littype[Vint], vm->pc);
 		case Rcl:
 		default:
 			fatal("bug");
@@ -2572,8 +2608,7 @@ getvalrand(VM *vm, Operand *r, Val *vp)
 		getval(vm, &r->u.loc, vp);
 		break;
 	case Oliti:
-		mkvalcval(looknsbase(vm->litns, r->u.liti.base),
-			  r->u.liti.val, vp);
+		mkvalcval(vm->littype[r->u.liti.base], r->u.liti.val, vp);
 		break;
 	case Olits:
 		vp->qkind = Qstr;
@@ -2595,8 +2630,7 @@ getcvalrand(VM *vm, Operand *r)
 	case Oloc:
 		return getcval(vm, &r->u.loc);
 	case Oliti:
-		return mkcval(looknsbase(vm->litns, r->u.liti.base),
-			      r->u.liti.val);
+		return mkcval(vm->littype[r->u.liti.base], r->u.liti.val);
 	default:
 		fatal("bug");
 	}
@@ -2985,7 +3019,7 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		s1 = valstr(&v1);
 		s2 = valstr(&v2);
 		nv = binopstr(op, s1, s2); /* assume comparison */
-		mkvalcval(vm->litint, nv, &rv);
+		mkvalcval(vm->littype[Vint], nv, &rv);
 		putvalrand(vm, &rv, dst);
 		return;
 	}
@@ -3242,7 +3276,7 @@ xlens(VM *vm, Operand *str, Operand *dst)
 	Str *s;
 	getvalrand(vm, str, &strv);
 	s = valstr(&strv);
-	mkvalcval(vm->lituint, s->len, &rv);
+	mkvalcval(vm->littype[Vuint], s->len, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3268,7 +3302,7 @@ xlenl(VM *vm, Operand *l, Operand *dst)
 	getvalrand(vm, l, &lv);
 	if(listlen(&lv, &len) == 0)
 		vmerr(vm, "length on non-list");
-	mkvalcval(vm->lituint, len, &rv);
+	mkvalcval(vm->littype[Vuint], len, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3293,7 +3327,7 @@ xlenv(VM *vm, Operand *vec, Operand *dst)
 	Vec *v;
 	getvalrand(vm, vec, &vecv);
 	v = valvec(&vecv);
-	mkvalcval(vm->lituint, v->len, &rv);
+	mkvalcval(vm->littype[Vuint], v->len, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3425,9 +3459,9 @@ xis(VM *vm, Operand *op, unsigned kind, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == kind)
-		mkvalimm(vm->lituint, 1, &rv);
+		mkvalimm(vm->littype[Vuint], 1, &rv);
 	else
-		mkvalimm(vm->lituint, 0, &rv);
+		mkvalimm(vm->littype[Vuint], 0, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3569,7 +3603,7 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 		vmerr(vm, "sizeof cvalues not implemented");
 	xtn = valxtn(&v);
 	imm = typesize(vm, xtn);
-	mkvalcval(vm->lituint, imm, &rv);
+	mkvalcval(vm->littype[Vuint], imm, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3678,6 +3712,84 @@ nodispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 	vmerr(vm, "attempt to access abstract address space");
 }
 
+static Xtypename*
+lookbase(VM *vm, Cbase base, Ns *ns)
+{
+	Xtypename *xtn;
+	Val v;
+	xtn = mkxtn();		/* will be garbage; safe across dolooktype
+				   because as an argument to looktype it
+				   will be in vm roots */
+	xtn->xtkind = Tbase;
+	xtn->basename = base;
+	mkvalxtn(xtn, &v);
+	xtn = dolooktype(vm, xtn, ns);
+	if(xtn == 0)
+		vmerr(vm, "name space does not define pointer representation");
+	return xtn;
+}
+
+/* call looktype operator of NS on typename XTN */
+static Xtypename*
+dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
+{
+	Val v, *rv;
+	Xtypename *tmp, *xtmp, *new;
+	Vec *vec;
+	Imm i;
+	Str *es;
+
+	switch(xtn->xtkind){
+	case Tbase:
+	case Ttypedef:
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		mkvalxtn(xtn, &v);
+		rv = dovm(vm, ns->looktype, 1, &v);
+		if(rv->qkind == Qnil)
+			return 0;
+		return valxtn(rv);
+	case Tptr:
+		new = gcprotect(vm, mkxtn());
+		new->link = dolooktype(vm, xtn->link, ns);
+		tmp = lookbase(vm, Vptr, ns);
+		new->rep = tmp->rep;
+		return new;
+	case Tarr:
+		new = gcprotect(vm, mkxtn());
+		new->link = dolooktype(vm, xtn->link, ns);
+		if(new->link == 0){
+			es = fmtxtn(xtn->link);
+			vmerr(vm, "name space does not define %.*s",
+			      es->len, es->s);
+		}
+		new->cnt = xtn->cnt;
+		return new;
+	case Tfun:
+		new = gcprotect(vm, mkxtn());
+		new->link = dolooktype(vm, xtn->link, ns);
+		new->param = mkvec(xtn->param->len);
+		for(i = 0; i < xtn->param->len; i++){
+			vec = veccopy(valvec(vecref(xtn->param, i)));
+			xtmp = valxtn(vecref(vec, Typepos));
+			tmp = dolooktype(vm, xtmp, ns);
+			if(tmp == 0){
+				es = fmtxtn(xtmp);
+				vmerr(vm, "name space does not define %.*s",
+				      es->len, es->s);
+			}
+			mkvalxtn(tmp, &v);
+			vecset(vm, vec, Typepos, &v); 
+			mkvalvec(vec, &v);
+			vecset(vm, new->param, i, &v);
+		}
+		return new;
+	default:
+		fatal("bug");
+	}
+}
+
 /* looksym for namespaces constructed by @names */
 static void
 looksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
@@ -3701,7 +3813,7 @@ static void
 looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Ns *ns;
-	Xtypename *xtn;
+	Val *vp;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to looktype");
@@ -3709,8 +3821,9 @@ looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		vmerr(vm, "argument 1 to looktype must be a typename");
 
 	ns = valns(&disp[0]);
-	xtn = valxtn(&argv[0]);
-	fatal("i'm not done");	/* recursive type resolve */
+	vp = tabget(ns->type, argv);
+	if(vp)
+		*rv = *vp;
 }
 
 typedef
@@ -3722,6 +3835,9 @@ struct NSctx {
 } NSctx;
 
 static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
+
+/* FIXME: in all this type resolution, updates to xtn->link are not GC safe;
+   consider allocating fresh type names as with dolooktype */
 
 static Xtypename*
 resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
@@ -4126,7 +4242,68 @@ vmsetcl(VM *vm, Closure *cl)
 int
 waserror(VM *vm)
 {
-	return setjmp(vm->esc);
+	Err *ep;
+	if(vm->edepth >= vm->emax){
+		vm->err = xrealloc(vm->err, vm->emax*sizeof(Err),
+				   2*vm->emax*sizeof(Err));
+		vm->emax *= 2;
+	}
+	ep = &vm->err[vm->edepth++];
+	ep->pdepth = vm->pdepth;
+	return setjmp(ep->esc);
+}
+
+void
+nexterror(VM *vm)
+{
+	Err *ep;
+	if(vm->edepth == 0)
+		fatal("bad error stack discipline");
+	vm->edepth--;
+	ep = &vm->err[vm->edepth];
+	while(vm->pdepth > ep->pdepth)
+		gcprotpop(vm);
+	longjmp(ep->esc, 1);
+}
+
+void
+poperror(VM *vm)
+{
+	if(vm->edepth == 0)
+		fatal("bad error stack discipline");
+	vm->edepth--;
+}
+
+static void
+gcprotpush(VM *vm)
+{
+	if(vm->pdepth >= vm->pmax){
+		vm->prot = xrealloc(vm->prot,
+				    vm->pmax*sizeof(Root*),
+				    2*vm->pmax*sizeof(Root*));
+		vm->pmax *= 2;
+	}
+	vm->pdepth++;
+}
+
+static void
+gcprotpop(VM *vm)
+{
+	freerootlist(vm->prot[vm->pdepth-1]);
+	vm->prot[vm->pdepth-1] = 0;
+	vm->pdepth--;
+}
+
+static void*
+gcprotect(VM *vm, void *obj)
+{
+	Root *r;
+
+	r = newroot();
+	r->hd = obj;
+	r->link = vm->prot[vm->pdepth-1];
+	vm->prot[vm->pdepth-1] = r;	
+	return obj;
 }
 
 Val*
@@ -4235,25 +4412,27 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		halt = valcl(&haltv);
 	}
 
+	gcprotpush(vm);
+
 	/* for recursive entry, store current context */
-	mkvalimm(vm->lituint, vm->fp, &val);
+	mkvalimm(vm->littype[Vuint], vm->fp, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &vm->cl);	/* cl */
-	mkvalimm(vm->lituint, vm->pc, &val);
+	mkvalimm(vm->littype[Vuint], vm->pc, &val);
 	vmpush(vm, &val);	/* pc */
-	mkvalimm(vm->lituint, 0, &val);
+	mkvalimm(vm->littype[Vuint], 0, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
 	/* push frame for halt thunk */
-	mkvalimm(vm->lituint, vm->fp, &val);
+	mkvalimm(vm->littype[Vuint], vm->fp, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &haltv);	/* cl */
-	mkvalimm(vm->lituint, halt->entry, &val);
+	mkvalimm(vm->littype[Vuint], halt->entry, &val);
 	vmpush(vm, &val);	/* pc */
 	for(m = argc; m > 0; m--)
 		vmpush(vm, &argv[m-1]);
-	mkvalimm(vm->lituint, argc, &val);
+	mkvalimm(vm->littype[Vuint], argc, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
@@ -4326,10 +4505,10 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->pc = vm->clx->entry;
 		continue;
 	Iframe:
-		mkvalimm(vm->lituint, vm->fp, &val);
+		mkvalimm(vm->littype[Vuint], vm->fp, &val);
 		vmpush(vm, &val);
 		vmpush(vm, &vm->cl);
-		mkvalimm(vm->lituint, i->dstlabel->insn, &val);
+		mkvalimm(vm->littype[Vuint], i->dstlabel->insn, &val);
 		vmpush(vm, &val);
 		continue;
 	Igc:
@@ -4347,6 +4526,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vmpop(vm, 3);
 
 		/* ...except that it returns from dovm */
+		gcprotpop(vm);
 		return &vm->ac;
 	Iret:
 		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1; /* narg+1 */
@@ -4607,7 +4787,7 @@ l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
 	tod = tv.tv_sec;
 	tod *= 1000000;
 	tod += tv.tv_usec;
-	mkvalcval(vm->litulong, tod, rv);
+	mkvalcval(vm->littype[Vulong], tod, rv);
 }
 
 static void
@@ -4647,7 +4827,7 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	
 	r = rand();
 	r %= cv->val;
-	mkvalcval(vm->litulong, r, rv);
+	mkvalcval(vm->littype[Vulong], r, rv);
 }
 
 static void
@@ -4967,9 +5147,9 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 		vmerr(vm, "wrong number of arguments to %s", id);
 	xtn = valxtn(&argv[0]);
 	if(xtn->xtkind == kind)
-		mkvalcval(vm->litint, 1, rv);
+		mkvalcval(vm->littype[Vint], 1, rv);
 	else
-		mkvalcval(vm->litint, 0, rv);
+		mkvalcval(vm->littype[Vint], 0, rv);
 }
 
 static void
@@ -5026,9 +5206,9 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isnil");
 	if(argv->qkind == Qnil)
-		mkvalcval(vm->litint, 1, rv);
+		mkvalcval(vm->littype[Vint], 1, rv);
 	else
-		mkvalcval(vm->litint, 0, rv);
+		mkvalcval(vm->littype[Vint], 0, rv);
 }
 
 static void
@@ -5071,25 +5251,6 @@ addbasedef(VM *vm, Tab *type, Cbase name, unsigned rep)
 	mkvalxtn(k, &kv);
 	mkvalxtn(v, &vv);
 	tabput(vm, type, &kv, &vv);
-}
-
-static Xtypename*
-looknsbase(Ns *ns, Cbase name)
-{
-	Xtypename *k, *v;
-	Val kv, *rv;
-
-	if(ns->type == 0)
-		fatal("bug");
-	k = mkxtn();
-	k->xtkind = Tbase;
-	k->basename = name;
-	mkvalxtn(k, &kv);
-	rv = tabget(ns->type, &kv);
-	if(rv == 0)
-		fatal("bug");
-	v = valxtn(rv);
-	return v;
 }
 
 static Ns*
@@ -5170,6 +5331,10 @@ mkvm(Env *env)
 	vm->ac = Xundef;
 	vm->top = env;
 	mkvalcl(panicthunk(), &vm->cl);
+	vm->pmax = GCinitprot;
+	vm->prot = xmalloc(vm->pmax*sizeof(Root*));
+	vm->emax = Errinitdepth;
+	vm->err = xmalloc(vm->emax*sizeof(Err));
 	
 	builtinfn(env, "testbin", mkcfn("testbin", testbin));
 	builtinfn(env, "gc", gcthunk());
@@ -5253,9 +5418,6 @@ mkvm(Env *env)
 	builtinns(env, "c64le", ns);
 	builtindom(env, "litdom", mklitdom(ns));
 	vm->litns = ns;
-	vm->litint = looknsbase(ns, Vint);
-	vm->lituint = looknsbase(ns, Vuint);
-	vm->litulong = looknsbase(ns, Vulong);
 
 	vmp = vms;
 	while(*vmp){
@@ -5264,10 +5426,28 @@ mkvm(Env *env)
 			fatal("too many vms");
 	}
 	*vmp = vm;
-
 	concurrentgc(vm);
 
-	return vm;
+	/* vm is now callable */
+
+	if(!waserror(vm)){
+		vm->littype[Vchar] = lookbase(vm, Vchar, ns);
+		vm->littype[Vshort] = lookbase(vm, Vshort, ns);
+		vm->littype[Vint] = lookbase(vm, Vint, ns);
+		vm->littype[Vlong] = lookbase(vm, Vlong, ns);
+		vm->littype[Vvlong] = lookbase(vm, Vvlong, ns);
+		vm->littype[Vuchar] = lookbase(vm, Vuchar, ns);
+		vm->littype[Vushort] = lookbase(vm, Vushort, ns);
+		vm->littype[Vuint] = lookbase(vm, Vuint, ns);
+		vm->littype[Vulong] = lookbase(vm, Vulong, ns);
+		vm->littype[Vuvlong] = lookbase(vm, Vuvlong, ns);
+		poperror(vm);
+		return vm;
+	}
+
+	/* error during initialization; vm is not viable */
+	freevm(vm);
+	return 0;
 }
 
 void
@@ -5283,6 +5463,8 @@ freevm(VM *vm)
 		vmp++;
 	}
 	gckill(vm);
+	free(vm->prot);
+	free(vm->err);
 	free(vm);
 }
 

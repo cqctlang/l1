@@ -1,0 +1,43 @@
+C Types in Cinquecento
+----------------------
+
+Type name: syntactic construction that defines a C type.
+	int, int*, int(*)(int x), struct foo, ...
+
+Type representation: how a C type is encoded in memory.
+
+Different domains may have different representations for the same type
+name.
+
+Depending on context, a type in Cinquecento is treated as a type name
+or as a name+representation.
+
+
+To understand how types work in Cinquecento, we first need some
+terminology for C types.
+
+A type specifier is any one of the following:
+
+Base type
+
+	(un)signed char
+	(un)signed short
+	(un)signed int
+	(un)signed long
+	(un)signed long long
+	float
+	double
+	long double
+
+	Other names are aliases for these types (e.g., "unsigned" is
+	"unsigned int").
+
+Tagged type
+
+	Any struct, union, or enum.
+
+Typedef type
+
+	Any type created by typedef.
+
+
