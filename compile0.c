@@ -74,9 +74,9 @@ Qset(Expr *l, Expr *r)
 }
 
 static Expr*
-Qcval(Expr *str, Expr *type)
+Qcval(Expr *dom, Expr *type, Expr *str)
 {
-	return newbinop(E_cval, str, type);
+	return newexpr(E_cval, dom, type, str, 0);
 }
 
 static Expr*
@@ -591,7 +591,8 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 			te = Qcons(se, te);
 			
 			// cval($type, $str); (final expression of block)
-			se = Qcval(doid(lvs->type), doid(lvs->str));
+			se = Qcval(doid(lvs->dom), doid(lvs->type),
+				   doid(lvs->str));
 			te = Qcons(se, te);
 		}
 		e->kind = Eblock;

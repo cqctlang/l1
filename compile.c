@@ -2047,6 +2047,20 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->op2 = r2;
 		randloc(&i->dst, loc);
 		break;
+	case E_cval:
+		/* rather than compute temp requirements for arbitrary
+		   3-operand applications, assume that all 3 operands
+		   are simple. */
+		if(!issimple(e->e1) || !issimple(e->e2) || !issimple(e->e3))
+			fatal("E_cval with non-simple operands");
+		i = nextinsn(code);
+		i->kind = Icval;
+		cgrand(&i->op1, e->e1, p);
+		cgrand(&i->op2, e->e2, p);
+		cgrand(&i->op3, e->e3, p);
+		randloc(&i->dst, loc);
+		cgctl(code, p, ctl, nxt);
+		break;
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2)){
 			cgrand(&r1, e->e1, p);

@@ -1,0 +1,33 @@
+entry: 0 params, 0 locals, 0 temps
+printtype: 1 params, 6 locals, 0 temps
+foo: 0 params, 16 locals, 1 temps
+struct foo {
+	@0x0	int x;
+	@0x4	int y;
+	@0x8	int z;
+	@0xc	int *xp;
+	@0x10	int (*foo)();
+	@0x14	int (*bar)(void );
+	@0x18	int (*baz)(int p1);
+	@0x20	int (*baz)(int p1, struct foo *p2);
+	@0x24	char *a[10];
+	@0x30	struct blah blahvar;
+	@0x34	foo_t *ptrtofoo;
+	@0x28;
+};
+struct bar {
+	@0x0	int x;
+		int y;
+};
+typedef struct foo foo_t;
+struct abc {
+		int x;
+};
+struct blah {
+	@0x0	int x;
+	@0x4	int y;
+	@0x8;
+};
+struct t2 {
+		int z;
+};
