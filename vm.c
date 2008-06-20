@@ -88,6 +88,14 @@ static Imm repsize[Rnrep+1] = {
 	[Rs64be]=	8,
 };
 
+static unsigned isunsigned[Vnbase] = {
+	[Vuchar] = 1,
+	[Vushort] = 1,
+	[Vuint] = 1,
+	[Vulong] = 1,
+	[Vuvlong] = 1,
+};
+
 enum {
 	Tabinitsize=1024,	/* power of 2 */
 	Typepos=0,
@@ -1495,7 +1503,7 @@ static Head*
 itertab(Head *hd, Ictx *ictx)
 {
 	Tab *tab;
-	u32 idx;
+	u32 idx, nxt;
 	Tabx *x;
 
 	tab = (Tab*)hd;
@@ -1505,10 +1513,11 @@ itertab(Head *hd, Ictx *ictx)
 	else
 		x = ictx->x;
 		
-	if(ictx->n >= 2*x->nxt)
+	nxt = x->nxt;		/* mutator may update nxt */
+	if(ictx->n >= 2*nxt)
 		return GCiterdone;
-	if(ictx->n >= x->nxt){
-		idx = ictx->n-x->nxt;
+	if(ictx->n >= nxt){
+		idx = ictx->n-nxt;
 		ictx->n++;
 		return valhead(&x->val[idx]);
 	}
@@ -2797,7 +2806,7 @@ intpro(VM *vm, Cval *cv, int protect)
 }
 
 static void
-usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
+usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2, int protect)
 {
 	/* FIXME: why assign ranks to types below int promotion? */
 	static unsigned rank[Vnbase] = {
@@ -2811,13 +2820,6 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vulong] = 3,
 		[Vvlong] = 4,
 		[Vuvlong] = 4,
-	};
-	static unsigned unsgned[Vnbase] = {
-		[Vuchar] = 1,
-		[Vushort] = 1,
-		[Vuint] = 1,
-		[Vulong] = 1,
-		[Vuvlong] = 1,
 	};
 	static unsigned uvariant[Vnbase] = {
 		[Vchar] = Vuchar,
@@ -2845,30 +2847,37 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		return;
 	}
 
-	if((unsgned[c1] && unsgned[c2]) || (!unsgned[c1] && !unsgned[c2])){
+	if((isunsigned[c1] && isunsigned[c2])
+	   || (!isunsigned[c1] && !isunsigned[c2])){
 		if(rank[c1] < rank[c2])
 			nc = c2;
 		else
 			nc = 11;
-	}else if(unsgned[c1] && rank[c1] >= rank[c2])
+	}else if(isunsigned[c1] && rank[c1] >= rank[c2])
 		nc = c1;
-	else if(unsgned[c2] && rank[c2] >= rank[c1])
+	else if(isunsigned[c2] && rank[c2] >= rank[c1])
 		nc = c2;
-	else if(!unsgned[c1] && repsize[r1] > repsize[r2])
+	else if(!isunsigned[c1] && repsize[r1] > repsize[r2])
 		nc = c1;
-	else if(!unsgned[c2] && repsize[r2] > repsize[r1])
+	else if(!isunsigned[c2] && repsize[r2] > repsize[r1])
 		nc = c2;
-	else if(!unsgned[c1])
+	else if(!isunsigned[c1])
 		nc = uvariant[c1];
 	else
 		nc = uvariant[c2];
 
 	dom = op1->dom;		/* op2 has the same domain */
 	nxtn = lookbase(vm, nc, dom->ns);
-	if(c1 != nc)
+	if(c1 != nc){
 		op1 = mkcval(dom, nxtn, op1->val);
-	if(c2 != nc)
+		if(protect)
+			gcprotect(vm, op1);
+	}
+	if(c2 != nc){
 		op2 = mkcval(dom, nxtn, op2->val);
+		if(protect)
+			gcprotect(vm, op2);
+	}
 	*rv1 = op1;
 	*rv2 = op2;
 }
@@ -2977,48 +2986,6 @@ xcallc(VM *vm)
 }
 
 static Imm
-binopimm(ikind op, Imm i1, Imm i2)
-{
-	switch(op){
-	case Iadd:
-		return i1+i2;
-	case Iand:
-		return i1&i2;
-	case Idiv:
-		return i1/i2;	/* FIXME: trap div by zero */
-	case Imod:
-		return i1%i2;	/* FIXME: trap div by zero */
-	case Imul:
-		return i1*i2;
-	case Ior:
-		return i1|i2;
-	case Ishl:
-		return i1<<i2;
-	case Ishr:
-		return i1>>i2;
-	case Isub:
-		return i1-i2;
-	case Ixor:
-		return i1^i2;
-	case Icmpeq:
-		return i1==i2 ? 1 : 0;
-	case Icmpneq:
-		return i1!=i2 ? 1 : 0;
-	case Icmpgt:
-		return i1>i2 ? 1 : 0;
-	case Icmpge:
-		return i1>=i2 ? 1 : 0;
-	case Icmplt:
-		return i1<i2 ? 1 : 0;
-	case Icmple:
-		return i1<=i2 ? 1 : 0;
-	default:
-		fatal("unsupport binary operator %d on immediates", op);
-		return 0;
-	}
-}
-
-static Imm
 binopstr(ikind op, Str *s1, Str *s2)
 {
 	unsigned long len;
@@ -3061,57 +3028,178 @@ static void
 xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 {
 	Val rv;
-	Cval *cv;
+	Cval *cv, *cvr;
 	Imm imm, nv;
 	
 	cv = getcvalrand(vm, op1);
+	cv = intpro(vm, cv, 0);
 	imm = cv->val;
 
 	switch(op){
 	case Ineg:
 		nv = -imm;
+		cvr = mkcval(cv->dom, cv->type, nv);
 		break;
 	case Iinv:
 		nv = ~imm;
+		cvr = mkcval(cv->dom, cv->type, nv);
 		break;
 	case Inot:
 		if(imm)
 			nv = 0;
 		else
 			nv = 1;
+		cvr = mkcval(vm->litdom, vm->littype[Vint], nv);
 		break;
 	default:
 		fatal("unknown unary operator %d", op);
 	}
-
-	mkvalcval(cv->dom, cv->type, nv, &rv);
+	mkvalcval2(cvr, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
-static void
-xbinopcval(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
+static Cval*
+xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
-	Val rv;
-	Cval *cv;
-	Imm i1, i2, nv;
+	Imm i1, i2, rv;
 
-	cv = getcvalrand(vm, op1);
-	i1 = cv->val;
-	cv = getcvalrand(vm, op2);
-	i2 = cv->val;
+	/* FIXME: first rationalize doms */
+	usualconvs(vm, op1, op2, &op1, &op2, 0);
+	i1 = op1->val;
+	i2 = op2->val;
+	
+	switch(op){
+	case Iadd:
+		rv = i1+i2;
+		break;
+	case Idiv:
+		if(i2 == 0)
+			vmerr(vm, "divide by zero");
+		rv = i1/i2;
+		break;
+	case Imod:
+		if(i2 == 0)
+			vmerr(vm, "divide by zero");
+		rv = i1%i2;
+		break;
+	case Imul:
+		rv = i1*i2;
+		break;
+	case Isub:
+		rv = i1-i2;
+		break;
+	case Iand:
+		rv = i1&i2;
+		break;
+	case Ixor:
+		rv = i1^i2;
+		break;
+	case Ior:
+		rv = i1|i2;
+		break;
+	default:
+		fatal("bug");
+	}		
+	return mkcval(op1->dom, op1->type, rv);
+}
 
-	nv = binopimm(op, i1, i2);
-	mkvalcval(cv->dom, cv->type, nv, &rv);
-	putvalrand(vm, &rv, dst);
+static Cval*
+xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
+{
+	Imm i1, i2, rv;
+
+	/* FIXME: first rationalize doms */
+	op1 = intpro(vm, op1, 0);
+	op2 = intpro(vm, op2, 0);
+	i1 = op1->val;
+	i2 = op2->val;
+
+	/* following C99:
+	   - (both) if op2 is negative or >= width of op1,
+	            the result is undefined;
+	   - (<<)   if op1 is signed and op1*2^op2 is not representable in
+	            typeof(op1), the result is undefined;
+	   - (>>)   if op1 is signed and negative, the result is
+                    implementation-defined; gcc's >> performs sign extension
+	*/
+	switch(op){
+	case Ishl:
+		rv = i1<<i2;
+		break;
+	case Ishr:
+		rv = i1>>i2;
+		break;
+	default:
+		fatal("bug");
+	}
+	return mkcval(op1->dom, op1->type, rv);
+}
+
+static Cval*
+xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
+{
+	Imm i1, i2, rv;
+
+	/* FIXME: first rationalize doms */
+	usualconvs(vm, op1, op2, &op1, &op2, 0);
+	i1 = op1->val;
+	i2 = op2->val;
+	if(isunsigned[op1->type->basename])
+		switch(op){
+		case Icmpeq:
+			rv = i1==i2;
+			break;
+		case Icmpneq:
+			rv = i1!=i2;
+			break;
+		case Icmpgt:
+			rv = i1>i2;
+			break;
+		case Icmpge:
+			rv = i1>=i2;
+			break;
+		case Icmplt:
+			rv = i1<i2;
+			break;
+		case Icmple:
+			rv = i1<=i2;
+			break;
+		default:
+			fatal("bug");
+		}
+	else
+		switch(op){
+		case Icmpeq:
+			rv = (s64)i1==(s64)i2;
+			break;
+		case Icmpneq:
+			rv = (s64)i1!=(s64)i2;
+			break;
+		case Icmpgt:
+			rv = (s64)i1>(s64)i2;
+			break;
+		case Icmpge:
+			rv = (s64)i1>=(s64)i2;
+			break;
+		case Icmplt:
+			rv = (s64)i1<(s64)i2;
+			break;
+		case Icmple:
+			rv = (s64)i1<=(s64)i2;
+			break;
+		default:
+			fatal("bug");
+		}
+	return mkcval(vm->litdom, vm->littype[Vint], rv);
 }
 
 static void
 xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 {
 	Val v1, v2, rv;
-	Cval *cv;
+	Cval *cv1, *cv2, *cvr;
 	Str *s1, *s2;
-	Imm i1, i2, nv;
+	Imm nv;
 
 	getvalrand(vm, op1, &v1);
 	getvalrand(vm, op2, &v2);
@@ -3119,12 +3207,35 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		vmerr(vm, "incompatible operands to binary %s", opstr[op]);
 
 	if(v1.qkind == Qcval){
-		cv = valcval(&v1);
-		i1 = cv->val;
-		cv = valcval(&v2);
-		i2 = cv->val;
-		nv = binopimm(op, i1, i2);
-		mkvalcval(cv->dom, cv->type, nv, &rv);
+		cv1 = valcval(&v1);
+		cv2 = valcval(&v2);
+		switch(op){
+		case Iadd:
+		case Iand:
+		case Idiv:
+		case Imod:
+		case Imul:
+		case Ior:
+		case Isub:
+		case Ixor:
+			cvr = xcvalalu(vm, op, cv1, cv2);
+			break;
+		case Ishl:
+		case Ishr:
+			cvr = xcvalshift(vm, op, cv1, cv2);
+			break;
+		case Icmplt:
+		case Icmple:
+		case Icmpgt:
+		case Icmpge:
+		case Icmpeq:
+		case Icmpneq:
+			cvr = xcvalcmp(vm, op, cv1, cv2);
+			break;
+		default:
+			fatal("bug");
+		}
+		mkvalcval2(cvr, &rv);
 		putvalrand(vm, &rv, dst);
 		return;
 	}
@@ -4588,8 +4699,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Ishr:
 	Isub:
 	Ixor:
-		xbinopcval(vm, i->kind, &i->op1, &i->op2, &i->dst);
-		continue;
 	Icmplt:
 	Icmple:
 	Icmpgt:
@@ -5060,6 +5169,103 @@ l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+fprinticval(FILE *fp, unsigned char conv, Cval *cv)
+{
+	static char* fmttab[Rnrep][256] = {
+	 [Ru8le]['d'] = "%"PRId8,	 [Ru8le]['i'] = "%"PRIi8,   
+	 [Ru8be]['d'] = "%"PRId8,	 [Ru8be]['i'] = "%"PRIi8,   
+	 [Rs8le]['d'] = "%"PRId8,	 [Rs8le]['i'] = "%"PRIi8,   
+	 [Rs8be]['d'] = "%"PRId8,	 [Rs8be]['i'] = "%"PRIi8,   
+	[Ru16le]['d'] = "%"PRId16,	[Ru16le]['i'] = "%"PRIi16,  
+	[Ru16be]['d'] = "%"PRId16,	[Ru16be]['i'] = "%"PRIi16,  
+	[Rs16le]['d'] = "%"PRId16,	[Rs16le]['i'] = "%"PRIi16,  
+	[Rs16be]['d'] = "%"PRId16,	[Rs16be]['i'] = "%"PRIi16,  
+	[Ru32le]['d'] = "%"PRId32,	[Ru32le]['i'] = "%"PRIi32,  
+	[Ru32be]['d'] = "%"PRId32,	[Ru32be]['i'] = "%"PRIi32,  
+	[Rs32le]['d'] = "%"PRId32,	[Rs32le]['i'] = "%"PRIi32,  
+	[Rs32be]['d'] = "%"PRId32,	[Rs32be]['i'] = "%"PRIi32,  
+	[Ru64le]['d'] = "%"PRId64,	[Ru64le]['i'] = "%"PRIi64,  
+	[Ru64be]['d'] = "%"PRId64,	[Ru64be]['i'] = "%"PRIi64,  
+	[Rs64le]['d'] = "%"PRId64,	[Rs64le]['i'] = "%"PRIi64,  
+	[Rs64be]['d'] = "%"PRId64,	[Rs64be]['i'] = "%"PRIi64,  
+
+	 [Ru8le]['o'] = "%"PRIo8,	 [Ru8le]['u'] = "%"PRIu8, 
+	 [Ru8be]['o'] = "%"PRIo8,	 [Ru8be]['u'] = "%"PRIu8, 
+	 [Rs8le]['o'] = "%"PRIo8,	 [Rs8le]['u'] = "%"PRIu8, 
+	 [Rs8be]['o'] = "%"PRIo8,	 [Rs8be]['u'] = "%"PRIu8, 
+	[Ru16le]['o'] = "%"PRIo16,	[Ru16le]['u'] = "%"PRIu16,
+	[Ru16be]['o'] = "%"PRIo16,	[Ru16be]['u'] = "%"PRIu16,
+	[Rs16le]['o'] = "%"PRIo16,	[Rs16le]['u'] = "%"PRIu16,
+	[Rs16be]['o'] = "%"PRIo16,	[Rs16be]['u'] = "%"PRIu16,
+	[Ru32le]['o'] = "%"PRIo32,	[Ru32le]['u'] = "%"PRIu32,
+	[Ru32be]['o'] = "%"PRIo32,	[Ru32be]['u'] = "%"PRIu32,
+	[Rs32le]['o'] = "%"PRIo32,	[Rs32le]['u'] = "%"PRIu32,
+	[Rs32be]['o'] = "%"PRIo32,	[Rs32be]['u'] = "%"PRIu32,
+	[Ru64le]['o'] = "%"PRIo64,	[Ru64le]['u'] = "%"PRIu64,
+	[Ru64be]['o'] = "%"PRIo64,	[Ru64be]['u'] = "%"PRIu64,
+	[Rs64le]['o'] = "%"PRIo64,	[Rs64le]['u'] = "%"PRIu64,
+	[Rs64be]['o'] = "%"PRIo64,	[Rs64be]['u'] = "%"PRIu64,
+
+	 [Ru8le]['x'] = "%"PRIx8,	 [Ru8le]['X'] = "%"PRIX8, 
+	 [Ru8be]['x'] = "%"PRIx8,	 [Ru8be]['X'] = "%"PRIX8, 
+	 [Rs8le]['x'] = "%"PRIx8,	 [Rs8le]['X'] = "%"PRIX8, 
+	 [Rs8be]['x'] = "%"PRIx8,	 [Rs8be]['X'] = "%"PRIX8, 
+	[Ru16le]['x'] = "%"PRIx16,	[Ru16le]['X'] = "%"PRIX16,
+	[Ru16be]['x'] = "%"PRIx16,	[Ru16be]['X'] = "%"PRIX16,
+	[Rs16le]['x'] = "%"PRIx16,	[Rs16le]['X'] = "%"PRIX16,
+	[Rs16be]['x'] = "%"PRIx16,	[Rs16be]['X'] = "%"PRIX16,
+	[Ru32le]['x'] = "%"PRIx32,	[Ru32le]['X'] = "%"PRIX32,
+	[Ru32be]['x'] = "%"PRIx32,	[Ru32be]['X'] = "%"PRIX32,
+	[Rs32le]['x'] = "%"PRIx32,	[Rs32le]['X'] = "%"PRIX32,
+	[Rs32be]['x'] = "%"PRIx32,	[Rs32be]['X'] = "%"PRIX32,
+	[Ru64le]['x'] = "%"PRIx64,	[Ru64le]['X'] = "%"PRIX64,
+	[Ru64be]['x'] = "%"PRIx64,	[Ru64be]['X'] = "%"PRIX64,
+	[Rs64le]['x'] = "%"PRIx64,	[Rs64le]['X'] = "%"PRIX64,
+	[Rs64be]['x'] = "%"PRIx64,	[Rs64be]['X'] = "%"PRIX64,	};
+
+	char *fmt;
+	fmt = fmttab[cv->type->rep][conv];
+
+	/* FIXME: don't assume Tbase */
+	switch(cv->type->rep){
+	case Ru8le:
+	case Ru8be:
+		fprintf(fp, fmt, (u8)cv->val);
+		break;
+	case Rs8le:
+	case Rs8be:
+		fprintf(fp, fmt, (s8)cv->val);
+		break;
+	case Ru16le:
+	case Ru16be:
+		fprintf(fp, fmt, (u16)cv->val);
+		break;
+	case Rs16le:
+	case Rs16be:
+		fprintf(fp, fmt, (s16)cv->val);
+		break;
+	case Ru32le:
+	case Ru32be:
+		fprintf(fp, fmt, (u32)cv->val);
+		break;
+	case Rs32le:
+	case Rs32be:
+		fprintf(fp, fmt, (s32)cv->val);
+		break;
+	case Ru64le:
+	case Ru64be:
+		fprintf(fp, fmt, (u64)cv->val);
+		break;
+	case Rs64le:
+	case Rs64be:
+		fprintf(fp, fmt, (s64)cv->val);
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
+static void
 l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val *vp;
@@ -5098,22 +5304,15 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			printval(vp);
 			break;
 		case 'd':
-			if(vp->qkind != Qcval)
-				goto badarg;
-			cv = valcval(vp);
-			fprintf(fp, "%" PRIu64, cv->val);
-			break;
-		case 'x':
-			if(vp->qkind != Qcval)
-				goto badarg;
-			cv = valcval(vp);
-			fprintf(fp, "%" PRIx64, cv->val);
-			break;
+		case 'i':
 		case 'o':
+		case 'u':
+		case 'x':
+		case 'X':
 			if(vp->qkind != Qcval)
 				goto badarg;
 			cv = valcval(vp);
-			fprintf(fp, "%" PRIo64, cv->val);
+			fprinticval(fp, ch, cv);
 			break;
 		case 's':
 			if(vp->qkind != Qstr)

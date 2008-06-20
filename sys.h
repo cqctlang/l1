@@ -16,7 +16,6 @@
 #include <sched.h>
 #include <pthread.h>
 
-#include <stdint.h>
 typedef int8_t		s8;
 typedef int16_t		s16;
 typedef int32_t		s32;
