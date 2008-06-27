@@ -1,0 +1,63 @@
+/* layout */
+
+#content {
+	margin-left: 20px;
+	margin-top: 20px;
+	left:	20px;
+	top:	20px;
+	width: 580px;
+}
+
+#content h3 {
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+#content p {
+	text-indent: 30px;
+	margin-bottom: 5px;
+}
+
+#code pre {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      margin-left: 40px;
+}
+
+/* typography */
+
+#content {
+	font-family: Georgia, Garamond, "Times New Roman", serif;
+	font-size: 14px;
+	line-height: 18px;
+	color: black;
+	text-align: justify;
+}
+
+#content h3 {
+	font-family: Georgia, Garamond, "Times New Roman", serif;
+	font-size: 16px;
+	text-align: left;
+}
+
+#code pre {
+      font-family: "Droid Sans Mono", "Andale Mono";
+      font-size: 12px;
+      line-height: 15px;
+      color: black;
+}
+
+/* links */
+
+a:link, a:visited, a:hover, a:active {
+	text-decoration: none;
+}
+
+a:link, a:visited, #header p.ads a:link, #header p.ads a:visited {
+	color: #c4112f;
+}
+
+a:hover, a:active, #header p.ads a:hover, #header p.ads a:active {
+	color: black;
+	border-bottom: 1px solid black;
+}

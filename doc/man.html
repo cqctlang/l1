@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>Cinquecento Manual</title>
+<link rel="stylesheet" type="text/css" media="screen" href="reset.css"/>
+<link rel="stylesheet" type="text/css" media="screen" href="styles.css"/>
+</head>
+
+<body>
+
+<div id="content">
+
+<h3>Types</h3>
+
+<p>
+Cinquecento carefully draws a distinction between the
+name of a C type and its definition.  Type names are
+syntactic constructions used in C declarations, such
+as <tt>int*</tt>.  They determine the C operations,
+such as pointer dereference, that may be applied to a
+cvalue of the named type.  The precise byte-level
+meaning of these operations, however, is determined by
+type definitions in the name space of the cvalue's
+domain.
+</p>
+
+<p>
+For example, the type name <tt>int*</tt> identifies the
+type pointer-to-<tt>int</tt>.  A value of this type may
+be dereferenced, but evaluation of the dereference
+operation depends on additional information: the size
+of the pointer and the size and encoding
+of <tt>int</tt>.  This information comes from the
+definition of <tt>int*</tt> provided by a name space.
+In one name space, <tt>int*</tt> may mean a 64-bit
+address of a 64-bit integer encoded in big-endian
+order, while in another name space it may mean a 32-bit
+address of a 32-bit integer encoded in little-endian
+order.
+</p>
+
+<p>
+Type definitions are encapsulated in first-class
+Cinquecento values called <em>ctypes</em>.  A ctype is
+a complete description of the layout and encoding of a
+value in memory.  
+
+
+A ctype for a structure, for example,
+includes specification of the 
+
+</p>
+
+
+<div id="code">
+<pre>
+Here is some code.
+dom`x = @names blah {
+	int x;
+};
+x = "this is a string";
+if(x < y){
+	printf("all is well\n");
+}
+</pre>
+</div>
+
+<p>
+And here is another.
+</p>
+
+</div>
+
+
+</body>
+</html>

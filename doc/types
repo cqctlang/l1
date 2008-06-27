@@ -1,3 +1,57 @@
+Name spaces can be constructed programatically.
+
+Cinquecento carefully draws a distinction between the
+name of a C type and its definition.  Type names are
+syntactic constructions that follow the rules of type
+specifiers in C declarations, such as int*.  They
+determine the set of C operations that may be applied
+to a cvalue of the named type (such as pointer
+dereference).  The precise byte-level meaning of these
+operations, however, is determined by type definitions
+in the name space of the cvalue's domain.
+
+For example, the type name {\tt int*} always refers to
+the construction of a pointer to a base {\tt int} type,
+but navigation of this construction depends on a domain
+name space to provide the size of the pointer and the
+size and encoding of the {\tt int}.  A cvalue of type
+{\tt int*} in one domain may mean a 64-bit address of a
+64-bit integer encoded in big-endian order, while in
+another domain it may mean a 32-bit address of a 32-bit
+integer encoded in little-endian order.
+
+
+
+
+typename_char()
+typename_schar()
+typename_uchar()
+typename_short()
+typename_ushort()
+typename_int()
+typename_uint()
+typename_long()
+typename_ulong()
+typename_llong()
+typename_ullong()
+typename_float()
+typename_double()
+typename_ldouble()
+
+typename_struct(tag)
+typename_union(tag)
+typename_enum(tag)
+typename_ptr(typename)
+typename_arr(typename,count)
+typename_fun(typename,params)
+
+
+
+
+
+
+
+
 Cinquecento allows you to interpret the contents of an
 array of raw, untyped bytes using symbolic expressions
 based on the C programming language.
