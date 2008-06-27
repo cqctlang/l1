@@ -15,43 +15,87 @@
 <h3>Types</h3>
 
 <p>
-Cinquecento carefully draws a distinction between the
-name of a C type and its definition.  Type names are
-syntactic constructions used in C declarations, such
-as <tt>int*</tt>.  They determine the C operations,
-such as pointer dereference, that may be applied to a
-cvalue of the named type.  The precise byte-level
-meaning of these operations, however, is determined by
-type definitions in the name space of the cvalue's
-domain.
+Cinquecento distinguishes the name of a C type from its
+definition.  Type names are syntactic constructions
+that appear in C declarations, such as <tt>int*</tt>.
+They determine the C operations, such as pointer
+dereference, that may be applied to a value of the
+named type.  Evaluation of these operations, however,
+requires knowledge of the layout and encoding of the
+value in memory.  Type definitions provide this
+information.
 </p>
 
 <p>
 For example, the type name <tt>int*</tt> identifies the
 type pointer-to-<tt>int</tt>.  A value of this type may
-be dereferenced, but evaluation of the dereference
-operation depends on additional information: the size
-of the pointer and the size and encoding
-of <tt>int</tt>.  This information comes from the
-definition of <tt>int*</tt> provided by a name space.
-In one name space, <tt>int*</tt> may mean a 64-bit
-address of a 64-bit integer encoded in big-endian
-order, while in another name space it may mean a 32-bit
-address of a 32-bit integer encoded in little-endian
-order.
+be dereferenced to yield a value of type <tt>int</tt>,
+but evaluation of the dereference operation depends on
+knowing the size of the pointer and the size and
+encoding of <tt>int</tt>.  This information comes from
+the definition of <tt>int*</tt>.  There are many
+possible definitions.  One definition for <tt>int*</tt>
+may be a 64-bit address of a 64-bit integer encoded in
+big-endian order, while another may be a 32-bit address
+of a 32-bit integer encoded in little-endian order.
+One component of a Cinquecento name space is a function
+that maps type names to type definitions.
 </p>
 
 <p>
 Type definitions are encapsulated in first-class
-Cinquecento values called <em>ctypes</em>.  A ctype is
-a complete description of the layout and encoding of a
-value in memory.  
-
-
-A ctype for a structure, for example,
-includes specification of the 
+Cinquecento values called <em>ctypes</em>.  Ctypes for
+for arithmetic types define the size (number of bytes)
+and encoding (byte order) of the values represented by
+the type.  Ctypes for aggregate types (structures and
+unions) include the overall size of the aggregate and a
+specification of each field that includes the name of
+the field, its offset from the beginning of the
+aggregate, and its type definition.  
 
 </p>
+
+Arithmetic      Name (int,unsigned int, etc.)
+                -----------------------------
+                Name (int,unsigned int, etc.)
+                Size (number of bytes)
+                Encoding (little|big-endian)
+
+Aggregate       Tag
+                --------------------------------------
+                Tag (optional)
+                Size
+                List of fields (Name, Offset, Type definition)
+
+Array           Name of element type
+                Count (optional)
+                ----------------
+                Definition of element type
+                Count (optional)
+
+Function        Return type name
+                List of parameter type names
+                -----------------------------------
+                Return type definition
+                List of parameter type definitions
+
+Enumeration     Tag
+                -----------------------------------
+                Tag (optional)
+                Size and encoding
+
+Typedef         Alias (identifier)
+                Name of aliased type
+                -----------------------------------
+                Alias (identifier)
+                Definition of aliased type
+
+Pointer         Name of pointed-to type
+                -------------------------------------
+                Name or definition of pointed-to type
+ 
+
+
 
 
 <div id="code">
