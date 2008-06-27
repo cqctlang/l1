@@ -13,9 +13,22 @@
 	padding-bottom: 5px;
 }
 
+#content #noindent p {
+	text-indent: 0px;
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
 #content p {
 	text-indent: 30px;
+	margin-top: 5px;
 	margin-bottom: 5px;
+}
+
+#inset p {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      margin-left: 40px;
 }
 
 #code pre {
@@ -23,6 +36,20 @@
       margin-bottom: 10px;
       margin-left: 40px;
 }
+
+#table {
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+#table td {
+	padding: 5px;
+}
+
+#table th {
+	padding: 5px;
+}
+
 
 /* typography */
 
@@ -34,6 +61,14 @@
 	text-align: justify;
 }
 
+#table {
+	font-family: Georgia, Garamond, "Times New Roman", serif;
+	font-size: 12px;
+	line-height: 14px;
+	color: black;
+	text-align: left;
+}
+
 #content h3 {
 	font-family: Georgia, Garamond, "Times New Roman", serif;
 	font-size: 16px;
@@ -41,10 +76,18 @@
 }
 
 #code pre {
-      font-family: "Droid Sans Mono", "Andale Mono";
+      font-family: "Droid Sans Mono", "Andale Mono", monospace;
       font-size: 12px;
       line-height: 15px;
       color: black;
+}
+
+tt {
+	font-family: monospace;
+}
+
+#symbols {
+	font-family: monospace;
 }
 
 /* links */

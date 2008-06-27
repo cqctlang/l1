@@ -33,70 +33,371 @@ be dereferenced to yield a value of type <tt>int</tt>,
 but evaluation of the dereference operation depends on
 knowing the size of the pointer and the size and
 encoding of <tt>int</tt>.  This information comes from
-the definition of <tt>int*</tt>.  There are many
-possible definitions.  One definition for <tt>int*</tt>
-may be a 64-bit address of a 64-bit integer encoded in
-big-endian order, while another may be a 32-bit address
-of a 32-bit integer encoded in little-endian order.
-One component of a Cinquecento name space is a function
-that maps type names to type definitions.
+the definition of <tt>int*</tt>.  One definition for
+<tt>int*</tt> may be a 64-bit address of a 64-bit
+integer encoded in big-endian order, while another may
+be a 32-bit address of a 32-bit integer encoded in
+little-endian order.
 </p>
 
 <p>
-Type definitions are encapsulated in first-class
-Cinquecento values called <em>ctypes</em>.  Ctypes for
-for arithmetic types define the size (number of bytes)
-and encoding (byte order) of the values represented by
-the type.  Ctypes for aggregate types (structures and
-unions) include the overall size of the aggregate and a
-specification of each field that includes the name of
-the field, its offset from the beginning of the
-aggregate, and its type definition.  
-
+For each category of C types, several properties
+characterize the name and definition of any type of the
+category.  In general, the properties that characterize
+the type name are a subset of the corresponding type
+definition properties:
 </p>
 
-Arithmetic      Name (int,unsigned int, etc.)
-                -----------------------------
-                Name (int,unsigned int, etc.)
-                Size (number of bytes)
-                Encoding (little|big-endian)
+<div id="table">
+<table>
+<tr>
+<th>Type category</th>
+<th>Name properties</th>
+<th>Definition properties</th>
+</tr>
 
-Aggregate       Tag
-                --------------------------------------
-                Tag (optional)
-                Size
-                List of fields (Name, Offset, Type definition)
+<tr>
+<td>
+Arithmetic
+</td>
+<td>
+Name (<tt>int</tt>, ...)
+</td>
+<td>
+Name (<tt>int</tt>, ...)<br />
+Size and encoding
+</td>
+</tr>
 
-Array           Name of element type
-                Count (optional)
-                ----------------
-                Definition of element type
-                Count (optional)
+<tr>
+<td>
+Aggregate
+</td>
+<td>
+Tag
+</td>
+<td>
+Tag (optional)<br />
+Size<br />
+Fields
+</td>
+</tr>
 
-Function        Return type name
-                List of parameter type names
-                -----------------------------------
-                Return type definition
-                List of parameter type definitions
+<tr>
+<td>
+Array
+</td>
+<td>
+Element type<br />
+Count (optional)
+</td>
+<td>
+Element type<br />
+Count (optional)
+</td>
+</tr>
 
-Enumeration     Tag
-                -----------------------------------
-                Tag (optional)
-                Size and encoding
+<tr>
+<td>
+Function
+</td>
+<td>
+Return type<br />
+Parameters
+</td>
+<td>
+Return type<br />
+Parameters
+</td>
+</tr>
 
-Typedef         Alias (identifier)
-                Name of aliased type
-                -----------------------------------
-                Alias (identifier)
-                Definition of aliased type
+<tr>
+<td>
+Enumeration
+</td>
+<td>
+Tag
+</td>
+<td>
+Tag (optional)<br />
+Size and encoding (optional)<br />
+Constants (optional)
+</td>
+</tr>
 
-Pointer         Name of pointed-to type
-                -------------------------------------
-                Name or definition of pointed-to type
- 
+<tr>
+<td>
+Typedef
+</td>
+<td>
+Identifier<br />
+</td>
+<td>
+Identifier<br />
+Aliased type
+</td>
+</tr>
 
+<tr>
+<td>
+Pointer
+</td>
+<td>
+Pointed-to type
+</td>
+<td>
+Pointed-to type<br />
+Size and encoding
+</td>
+</tr>
 
+<tr>
+<td>
+Void
+</td>
+<td>
+None
+</td>
+<td>
+None
+</td>
+</tr>
 
+</table>
+</div>
+
+<p>
+Type names and type definitions are first-class
+Cinquecento values represented by the type
+<em>ctype</em>.  Whether a ctype value represents a
+type name or a type definition depends on its
+properties.  Usually it is clear from the context in
+which the ctype was produced.
+</p>
+
+<p>
+There is a ctype constructor for each type category.
+For a given category, the same constructor can generate
+either a type name or a type definition, depending on
+the arguments.  The constructors are:
+</p>
+
+<div id="table">
+<table>
+<tr>
+<th>Type category</th>
+<th>Name constructor</th>
+<th>Definition constructor</th>
+</tr>
+<tr>
+<td>
+Arithmetic
+</td>
+<td>
+<div id=symbols>
+mkctype_base(<em>base</em>);
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_base(<em>base</em>, <em>rep</em>);
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Aggregate
+</td>
+<td>
+<div id=symbols>
+mkctype_struct(<em>tag</em>);<br />
+mkctype_union(<em>tag</em>);
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_struct(<em>tag</em>, <em>off</em>, <em>fields</em>);<br />
+mkctype_union(<em>tag</em>, <em>off</em>, <em>fields</em>);<br />
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Array
+</td>
+<td>
+<div id=symbols>
+mkctype_arr(<em>ctype</em>, <em>count</em>);<br />
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_arr(<em>ctype</em>, <em>count</em>);<br />
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Function
+</td>
+<td>
+<div id=symbols>
+mkctype_fun(<em>ctype</em>, <em>params</em>);
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_fun(<em>ctype</em>, <em>params</em>);
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Enumeration
+</td>
+<td>
+<div id=symbols>
+mkctype_enum(<em>tag</em>);
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_enum(<em>tag</em>, <em>ctype</em>, <em>consts</em>);
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Typedef
+</td>
+<td>
+<div id=symbols>
+mkctype_typedef(<em>id</em>);
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_typedef(<em>id</em>, <em>ctype</em>);
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Pointer
+</td>
+<td>
+<div id=symbols>
+mkctype_ptr(<em>ctype</em>);
+</div id=symbols>
+</td>
+<td>
+<div id=symbols>
+mkctype_ptr(<em>ctype</em>, <em>rep</em>);
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Void
+</td>
+<td>
+<div id=symbols>
+mkctype_void();
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_void();
+</div>
+</td>
+</tr>
+
+</table>
+</div>
+
+<p>
+Arguments corresponding to optional properties may be
+<tt>nil</tt>.
+
+<p>
+The <em><tt>fields</tt></em> parameter is a vector of
+field definitions.  Each field definition is a vector
+of four elements:
+</p>
+
+<div id="inset">
+<p>
+<tt>vector(<em>ctype</em>, <em>id</em>, <em>offset</em>, <em>width</em>);</tt>
+</p>
+</div>
+
+<div id="noindent">
+<p>
+where <em><tt>ctype</tt></em> is the type of the field,
+and <em><tt>id</tt></em> is the name of the field.  If
+the field is a bitfield, then <em><tt>width</tt></em>
+is the width in bits of the field and
+<em><tt>offset</tt></em> is the bit offset from the
+beginning of the aggregate to the start of the
+bitfield.  Otherwise, <em><tt>width</tt></em> is
+<tt>nil</tt>, and <em><tt>offset</tt></em> is the
+<em>byte</em> offset from the beginning of the
+aggregate to the start of the field.
+
+</p>
+</div>
+
+<p>
+The <em><tt>params</tt></em> parameter is a vector of
+function parameter definitions, ordered by parameter
+position.  Each parameter definition is a vector of two
+elements:
+</p>
+
+<div id="inset">
+<p>
+<tt>vector(<em>ctype</em>, <em>id</em>);</tt>
+</p>
+</div>
+
+<div id="noindent">
+<p>
+where <em><tt>ctype</tt></em> is the type of the
+parameter, and <em><tt>id</tt></em> is the name of the
+parameter or <tt>nil</tt>.
+</p>
+</div>
+
+<p>
+The <em><tt>consts</tt></em> parameter is a vector of
+enumeration constant definitions.  Each constant
+definition is a vector of two elements:
+</p>
+
+<div id="inset">
+<p>
+<tt>vector(<em>id</em>, <em>value</em>);</tt>
+</p>
+</div>
+
+<div id="noindent">
+<p>
+The exact behavior of <tt>mkctype_enum</tt> remains a mystery.
+</p>
+</div>
+
+<p>
+One component of a Cinquecento
+name space is a function that maps type names to type
+definitions.
+</p>
 
 <div id="code">
 <pre>
@@ -120,3 +421,5 @@ And here is another.
 
 </body>
 </html>
+
+- prebaked uint32_t, etc.
