@@ -1,0 +1,10 @@
+// same as tail3, but use 64-bit result.
+fac = lambda(n,rv){
+	if(n <= 1)
+		return rv;
+	else{
+		printf("%u\n", rv);
+		return fac(n-1,n*rv);
+	}
+};
+print(fac(50,1ULL));

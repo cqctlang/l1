@@ -62,10 +62,10 @@ static char* repname[Rnrep+1] = {
 	[Ru16be]=	"@u16be",
 	[Ru32be]=	"@u32be",
 	[Ru64be]=	"@u64be",
-	[Rs8be]=	"@u8be", 
-	[Rs16be]=	"@u16be",
-	[Rs32be]=	"@us32be",
-	[Rs64be]=	"@us64be",
+	[Rs8be]=	"@s8be", 
+	[Rs16be]=	"@s16be",
+	[Rs32be]=	"@s32be",
+	[Rs64be]=	"@s64be",
 	[Rnrep]=	"<help me, i'm broken>",
 };
 
@@ -328,6 +328,7 @@ static Vec* valvec(Val *v);
 static Xtypename* valxtn(Val *v);
 static void mkvalstr(Str *str, Val *vp);
 static void mkvalxtn(Xtypename *xtn, Val *vp);
+static Xtypename* chasetypedef(Xtypename *xtn);
 static Xtypename* lookbase(VM *vm, Cbase name, Ns *ns);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 
@@ -2680,6 +2681,7 @@ str2imm(Xtypename *xtn, Str *str)
 {
 	char *s;
 
+	xtn = chasetypedef(xtn);
 	if(xtn->xtkind != Tbase && xtn->xtkind != Tptr)
 		fatal("str2imm on non-scalar type");
 
@@ -2721,6 +2723,7 @@ imm2str(Xtypename *xtn, Imm imm)
 	Str *str;
 	char *s;
 
+	xtn = chasetypedef(xtn);
 	if(xtn->xtkind != Tbase && xtn->xtkind != Tptr)
 		fatal("imm2str on non-scalar type");
 
@@ -2779,16 +2782,17 @@ imm2str(Xtypename *xtn, Imm imm)
 	}	
 }
 
+
 static Cval*
 intpro(VM *vm, Cval *cv, int protect)
 {
-	Xtypename *new;
+	Xtypename *new, *base;
 	Cval *rv;
 
-	/* FIXME: strip typedefs */
-	if(cv->type->xtkind != Tbase)
+	base = chasetypedef(cv->type);
+	if(base->xtkind != Tbase)
 		return cv;
-	switch(cv->type->basename){
+	switch(base->basename){
 	case Vuchar:
 	case Vushort:
 	case Vchar:
@@ -2831,15 +2835,17 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2, int protect)
 	Dom *dom;
 	Cbase c1, c2, nc;
 	unsigned r1, r2;
-	Xtypename *nxtn;
+	Xtypename *b1, *b2, *nxtn;
 
 	op1 = intpro(vm, op1, GCprotect);
 	op2 = intpro(vm, op2, GCprotect);
 
-	c1 = op1->type->basename;
-	c2 = op2->type->basename;
-	r1 = op1->type->rep;
-	r2 = op2->type->rep;
+	b1 = chasetypedef(op1->type);
+	b2 = chasetypedef(op2->type);
+	c1 = b1->basename;
+	c2 = b2->basename;
+	r1 = b1->rep;
+	r2 = b2->rep;
 
 	if(c1 == c2){
 		*rv1 = op1;
@@ -3062,8 +3068,30 @@ static Cval*
 xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
+	Xtypename *b1, *b2;
 
 	/* FIXME: first rationalize doms */
+
+	if(op1->dom != op2->dom){
+		if(op1->dom == vm->litdom)
+			op1 = domcast(op2->dom, op1);
+		else if(op2->dom == vm->litdom)
+			op2 = domcast(op1->dom, op2);
+		else{
+			b1 = chasetypedef(op1->type);
+			b2 = chasetypedef(op2->type);
+			if(b1->xtkind != Tptr && b2->xtkind != Tptr){
+				op1 = domcast(op1->dom, vm->litdom);
+				op2 = domcast(op2->dom, vm->litdom);
+			}else if(b1->xtkind == Tptr){
+				if(b
+			}
+
+
+		}
+	}
+
+
 	usualconvs(vm, op1, op2, &op1, &op2, 0);
 	i1 = op1->val;
 	i2 = op2->val;
@@ -3100,6 +3128,44 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 	default:
 		fatal("bug");
 	}		
+
+	switch(op1->type->rep){
+	case Rs8be:
+	case Rs8le:
+		rv = (s8)rv;
+		break;
+	case Rs16be:
+	case Rs16le:
+		rv = (s16)rv;
+		break;
+	case Rs32be:
+	case Rs32le:
+		rv = (s32)rv;
+		break;
+	case Rs64be:
+	case Rs64le:
+		rv = (s64)rv;
+		break;
+	case Ru8be:
+	case Ru8le:
+		rv = (u8)rv;
+		break;
+	case Ru16be:
+	case Ru16le:
+		rv = (u16)rv;
+		break;
+	case Ru32be:
+	case Ru32le:
+		rv = (u32)rv;
+		break;
+	case Ru64be:
+	case Ru64le:
+		rv = (u64)rv;
+		break;
+	default:
+		fatal("bug");
+	}
+
 	return mkcval(op1->dom, op1->type, rv);
 }
 
@@ -3108,7 +3174,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
 
-	/* FIXME: first rationalize doms */
+	/* no need to rationalize domains */
 	op1 = intpro(vm, op1, 0);
 	op2 = intpro(vm, op2, 0);
 	i1 = op1->val;
@@ -3939,6 +4005,14 @@ static void
 nodispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	vmerr(vm, "attempt to access abstract address space");
+}
+
+static Xtypename*
+chasetypedef(Xtypename *xtn)
+{
+	if(xtn->xtkind == Ttypedef)
+		return chasetypedef(xtn->link);
+	return xtn;
 }
 
 static Xtypename*

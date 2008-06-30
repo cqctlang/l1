@@ -1,8 +1,8 @@
+// final answer is 0 because typeof(rv) is not 64-bit
 fac = lambda(n,rv){
 	if(n <= 1)
 		return rv;
 	else{
-		// print(n);
 		return fac(n-1,n*rv);
 	}
 };
