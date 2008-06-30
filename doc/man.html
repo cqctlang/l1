@@ -14,16 +14,22 @@
 
 <h3>Types</h3>
 
+<p>C defines several categories of types, including the
+base arithmetic types, pointers, arrays, aggregates,
+functions, and enumerations, instances of which are
+combined to form the types defined by a C program.
+</p>
+
 <p>
 Cinquecento distinguishes the name of a C type from its
 definition.  Type names are syntactic constructions
 that appear in C declarations, such as <tt>int*</tt>.
 They determine the C operations, such as pointer
 dereference, that may be applied to a value of the
-named type.  Evaluation of these operations, however,
-requires knowledge of the layout and encoding of the
-value in memory.  Type definitions provide this
-information.
+named type.  To evaluate many of these operations,
+however, the system must know the layout and encoding
+of the value in memory.  Type definitions provide this
+additional information.
 </p>
 
 <p>
@@ -394,10 +400,37 @@ The exact behavior of <tt>mkctype_enum</tt> remains a mystery.
 </div>
 
 <p>
-One component of a Cinquecento
-name space is a function that maps type names to type
-definitions.
+Part of the role of a Cinquecento name space is to
+define a set of C types.  This is implemented by
+defining a function, conventionally
+called <tt>looktype</tt>, that maps type names to type
+definitions.  The argument to this function is a ctype
+that <tt>looktype</tt> treats as a type name.  It
+returns the corresponding definition for that name,
+or <tt>nil</tt> if there is no definition.
 </p>
+
+<p>
+Most name spaces are defined by the <tt>@names</tt>
+operator, which translates C declarations into a
+definition of a name space.  The name space
+constructor <tt>mkns</tt> provides an alternate way to
+define a name space.  The argument to mkns is a table,
+conventionally named <tt>typetab</tt>, that maps type
+names to type definitions.
+</p>
+
+<p>
+Unlike <tt>looktype</tt>, the type names to
+which <tt>typetab</tt> maps names do not need to be
+fully defined type names.
+</p>
+
+<p>
+In fact, the current implementation of <tt>@names</tt>
+simply translates the C declarations in the body of
+the <tt>@names</tt> form into 
+
 
 <div id="code">
 <pre>
