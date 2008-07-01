@@ -456,3 +456,8 @@ And here is another.
 </html>
 
 - prebaked uint32_t, etc.
+- for dynamic name spaces, the definitions of base types must be constant;
+  idea is that definition of user-defined types is context sensitive,
+  but base types is fixed (since the machine model should not be changing).
+  this allows the implementation to pre-fetch definitions for all base
+  types.

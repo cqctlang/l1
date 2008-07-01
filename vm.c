@@ -28,19 +28,19 @@ enum {
 	/* type representations */ 
 	Rundef,
 	Rvoid,
-	Ru8le,
+	Ru08le,
 	Ru16le,
 	Ru32le,
 	Ru64le,
-	Rs8le,
+	Rs08le,
 	Rs16le,
 	Rs32le,
 	Rs64le,
-	Ru8be,
+	Ru08be,
 	Ru16be,
 	Ru32be,
 	Ru64be,
-	Rs8be,
+	Rs08be,
 	Rs16be,
 	Rs32be,
 	Rs64be,
@@ -50,19 +50,19 @@ enum {
 static char* repname[Rnrep+1] = {
 	[Rundef]=	"<undefined>",
 	[Rvoid]=	"@void",
-	[Ru8le]=	"@u8le",
+	[Ru08le]=	"@u8le",
 	[Ru16le]=	"@u16le",
 	[Ru32le]=	"@u32le",
 	[Ru64le]=	"@u64le",
-	[Rs8le]=	"@s8le", 
+	[Rs08le]=	"@s8le", 
 	[Rs16le]=	"@s16le",
 	[Rs32le]=	"@s32le",
 	[Rs64le]=	"@s64le",
-	[Ru8be]=	"@u8be", 
+	[Ru08be]=	"@u8be", 
 	[Ru16be]=	"@u16be",
 	[Ru32be]=	"@u32be",
 	[Ru64be]=	"@u64be",
-	[Rs8be]=	"@s8be", 
+	[Rs08be]=	"@s8be", 
 	[Rs16be]=	"@s16be",
 	[Rs32be]=	"@s32be",
 	[Rs64be]=	"@s64be",
@@ -70,19 +70,19 @@ static char* repname[Rnrep+1] = {
 };
 
 static Imm repsize[Rnrep+1] = {
-	[Ru8le]=	1,
+	[Ru08le]=	1,
 	[Ru16le]=	2,
 	[Ru32le]=	4,
 	[Ru64le]=	8,
-	[Rs8le]=	1,
+	[Rs08le]=	1,
 	[Rs16le]=	2,
 	[Rs32le]=	4,
 	[Rs64le]=	8,
-	[Ru8be]=	1,
+	[Ru08be]=	1,
 	[Ru16be]=	2,
 	[Ru32be]=	4,
 	[Ru64be]=	8,
-	[Rs8be]=	1,
+	[Rs08be]=	1,
 	[Rs16be]=	2,
 	[Rs32be]=	4,
 	[Rs64be]=	8,
@@ -136,7 +136,6 @@ enum {
 	GCfree = 3,
 	GCrate = 1000,
 	GCinitprot = 128,	/* initial # of GC-protected lists in VM */
-	GCprotect = 1,		/* option to some routines */
 };
 
 static unsigned long long nextgctick = GCrate;
@@ -238,6 +237,9 @@ struct Ns {
 	Closure *looksym;
 	Closure *looktype;
 
+	/* cached base type definition */
+	Xtypename *basetype[Vnbase];
+
 	/* data for instances created by @names */
 	/* but these could be pushed into closure defining interface */
 	Tab *type;
@@ -278,7 +280,7 @@ struct Xtypename {
 	Head hd;
 	unsigned xtkind;	/* = Tbase, Tstruct, ... */
 	Cbase basename;		/* base (FIXME: rename cbase) */
-	unsigned rep;		/* base, ptr, enum; = Ru8le ... */
+	unsigned rep;		/* base, ptr, enum; = Ru08le ... */
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
 	Val cnt;		/* arr */
@@ -298,7 +300,7 @@ struct VM {
 	Val stack[Maxstk];
 	Dom *litdom;
 	Ns *litns;
-	Xtypename *littype[Vnbase]; /* cached base types from from litns */
+	Xtypename **litbase;	/* always points to litns->basetype */
 	Root **prot;		/* stack of lists of GC-protected objects */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
@@ -329,7 +331,6 @@ static Xtypename* valxtn(Val *v);
 static void mkvalstr(Str *str, Val *vp);
 static void mkvalxtn(Xtypename *xtn, Val *vp);
 static Xtypename* chasetypedef(Xtypename *xtn);
-static Xtypename* lookbase(VM *vm, Cbase name, Ns *ns);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 
 static Val* vecref(Vec *vec, Imm idx);
@@ -730,8 +731,7 @@ rootset(VM *vm)
 	addroot(&roots, valhead(&vm->ac));
 	addroot(&roots, valhead(&vm->cl));
 
-	/* assume vm->litns and all elements of vm->littype are
-	   from litdom's ns */
+	/* assume vm->litns is from litdom */
 	addroot(&roots, (Head*)vm->litdom);
 
 	/* current GC-protected objects */
@@ -2044,8 +2044,11 @@ static Head*
 iterns(Head *hd, Ictx *ictx)
 {
 	Ns *ns;
+	unsigned n;
 	ns = (Ns*)hd;
-	switch(ictx->n++){
+
+	n = ictx->n++;
+	switch(n){
 	case 0:
 		return (Head*)ns->sym;
 	case 1:
@@ -2054,9 +2057,10 @@ iterns(Head *hd, Ictx *ictx)
 		return (Head*)ns->looksym;
 	case 3:
 		return (Head*)ns->looktype;
-	default:
-		return GCiterdone;
 	}
+	if(n >= 3+Vnbase)
+		return GCiterdone;
+	return (Head*)ns->basetype[n-3];
 }
 
 Env*
@@ -2524,13 +2528,13 @@ getval(VM *vm, Location *loc, Val *vp)
 			*vp = vm->ac;
 			return;
 		case Rsp:
-			mkvalimm(vm->litdom, vm->littype[Vuint], vm->sp, vp);
+			mkvalimm(vm->litdom, vm->litbase[Vuint], vm->sp, vp);
 			return;
 		case Rfp:
-			mkvalimm(vm->litdom, vm->littype[Vuint], vm->fp, vp);
+			mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp, vp);
 			return;
 		case Rpc:
-			mkvalimm(vm->litdom, vm->littype[Vuint], vm->pc, vp);
+			mkvalimm(vm->litdom, vm->litbase[Vuint], vm->pc, vp);
 			return;
 		case Rcl:
 			*vp = vm->cl;
@@ -2583,11 +2587,11 @@ getcval(VM *vm, Location *loc)
 		case Rac:
 			return valcval(&vm->ac);
 		case Rsp:
-			return mkcval(vm->litdom, vm->littype[Vint], vm->sp);
+			return mkcval(vm->litdom, vm->litbase[Vint], vm->sp);
 		case Rfp:
-			return mkcval(vm->litdom, vm->littype[Vint], vm->fp);
+			return mkcval(vm->litdom, vm->litbase[Vint], vm->fp);
 		case Rpc:
-			return mkcval(vm->litdom, vm->littype[Vint], vm->pc);
+			return mkcval(vm->litdom, vm->litbase[Vint], vm->pc);
 		case Rcl:
 		default:
 			fatal("bug");
@@ -2627,7 +2631,7 @@ getvalrand(VM *vm, Operand *r, Val *vp)
 		getval(vm, &r->u.loc, vp);
 		break;
 	case Oliti:
-		mkvalcval(vm->litdom, vm->littype[r->u.liti.base],
+		mkvalcval(vm->litdom, vm->litbase[r->u.liti.base],
 			  r->u.liti.val, vp);
 		break;
 	case Olits:
@@ -2650,7 +2654,7 @@ getcvalrand(VM *vm, Operand *r)
 	case Oloc:
 		return getcval(vm, &r->u.loc);
 	case Oliti:
-		return mkcval(vm->litdom, vm->littype[r->u.liti.base],
+		return mkcval(vm->litdom, vm->litbase[r->u.liti.base],
 			      r->u.liti.val);
 	default:
 		fatal("bug");
@@ -2687,7 +2691,7 @@ str2imm(Xtypename *xtn, Str *str)
 
 	s = str->s;
 	switch(xtn->rep){
-	case Rs8le:
+	case Rs08le:
 		return *(s8*)s;
 	case Rs16le:
 		return *(s16*)s;
@@ -2695,7 +2699,7 @@ str2imm(Xtypename *xtn, Str *str)
 		return *(s32*)s;
 	case Rs64le:
 		return *(s64*)s;
-	case Ru8le:
+	case Ru08le:
 		return *(u8*)s;
 	case Ru16le:
 		return *(u16*)s;
@@ -2703,11 +2707,11 @@ str2imm(Xtypename *xtn, Str *str)
 		return *(u32*)s;
 	case Ru64le:
 		return *(u64*)s;
-	case Ru8be:
+	case Ru08be:
 	case Ru16be:
 	case Ru32be:
 	case Ru64be:
-	case Rs8be:
+	case Rs08be:
 	case Rs16be:
 	case Rs32be:
 	case Rs64be:
@@ -2728,7 +2732,7 @@ imm2str(Xtypename *xtn, Imm imm)
 		fatal("imm2str on non-scalar type");
 
 	switch(xtn->rep){
-	case Rs8le:
+	case Rs08le:
 		str = mkstrn(sizeof(s8));
 		s = str->s;
 		*(s8*)s = (s8)imm;
@@ -2748,7 +2752,7 @@ imm2str(Xtypename *xtn, Imm imm)
 		s = str->s;
 		*(s64*)s = (s64)imm;
 		return str;
-	case Ru8le:
+	case Ru08le:
 		str = mkstrn(sizeof(u8));
 		s = str->s;
 		*(u8*)s = (u8)imm;
@@ -2768,11 +2772,11 @@ imm2str(Xtypename *xtn, Imm imm)
 		s = str->s;
 		*(u64*)s = (u64)imm;
 		return str;
-	case Ru8be:
+	case Ru08be:
 	case Ru16be:
 	case Ru32be:
 	case Ru64be:
-	case Rs8be:
+	case Rs08be:
 	case Rs16be:
 	case Rs32be:
 	case Rs64be:
@@ -2782,9 +2786,79 @@ imm2str(Xtypename *xtn, Imm imm)
 	}	
 }
 
+/* transformat representation of VAL used for type OLD to type NEW */
+static Imm
+rerep(Imm val, Xtypename *old, Xtypename *new)
+{
+	/* FIXME: non-trivial cases are : real <-> int,
+	                                  real <-> alternate real
+                                          integer truncation
+                                            (so div and rsh work)
+	*/
+ 	return val;
+}
 
 static Cval*
-intpro(VM *vm, Cval *cv, int protect)
+domcast(VM *vm, Dom *dom, Cval *cv)
+{
+	Xtypename *xtn;
+	Str *es;
+	Imm val;
+
+	if(dom == vm->litdom)
+		xtn = dolooktype(vm, chasetypedef(cv->type), dom->ns);
+	else
+		xtn = dolooktype(vm, cv->type, dom->ns);
+	if(xtn == 0){
+		es = fmtxtn(cv->type);
+		vmerr(vm, "cast to domain that does not define %.*s",
+		      es->len, es->s);
+	}
+	val = rerep(cv->val, cv->type, xtn);
+	return mkcval(dom, xtn, val);
+}
+
+static void
+dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
+{
+	Xtypename *b1, *b2;
+	static char *domerr
+		= "attempt to combine cvalues of incompatable domains"; 
+
+	if(op1->dom == op2->dom)
+		goto out;
+
+	if(op1->dom == vm->litdom)
+		op1 = domcast(vm, op2->dom, op1);
+	else if(op2->dom == vm->litdom)
+		op2 = domcast(vm, op1->dom, op2);
+	else{
+		b1 = chasetypedef(op1->type);
+		b2 = chasetypedef(op2->type);
+		if(b1->xtkind != Tptr && b2->xtkind != Tptr){
+			op1 = domcast(vm, vm->litdom, op1);
+			op2 = domcast(vm, vm->litdom, op2);
+		}else if(b1->xtkind == Tptr && b2->xtkind == Tptr)
+			vmerr(vm, domerr);
+		else if(b1->xtkind == Tptr){
+			if(op == Iadd || op == Isub)
+				op2 = domcast(vm, op1->dom, op2);
+			else
+				vmerr(vm, domerr);
+		}else /* b2->xtkind == Tptr */ {
+			if(op == Iadd || op == Isub)
+				op1 = domcast(vm, op2->dom, op1);
+			else
+				vmerr(vm, domerr);
+		}
+	}
+out:
+	*rv1 = op1;
+	*rv2 = op2;
+}
+
+static Cval*
+intpromote(VM *vm, Cval *cv)
 {
 	Xtypename *new, *base;
 	Cval *rv;
@@ -2797,11 +2871,9 @@ intpro(VM *vm, Cval *cv, int protect)
 	case Vushort:
 	case Vchar:
 	case Vshort:
-		new = lookbase(vm, Vint, cv->dom->ns);
+		new = cv->dom->ns->basetype[Vint];
 		/* FIXME: fix same bugs that xcast has */
 		rv = mkcval(cv->dom, new, cv->val);
-		if(protect)
-			gcprotect(vm, rv);
 		return rv;
 	default:
 		break;
@@ -2810,7 +2882,7 @@ intpro(VM *vm, Cval *cv, int protect)
 }
 
 static void
-usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2, int protect)
+usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 {
 	/* FIXME: why assign ranks to types below int promotion? */
 	static unsigned rank[Vnbase] = {
@@ -2837,8 +2909,8 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2, int protect)
 	unsigned r1, r2;
 	Xtypename *b1, *b2, *nxtn;
 
-	op1 = intpro(vm, op1, GCprotect);
-	op2 = intpro(vm, op2, GCprotect);
+	op1 = intpromote(vm, op1);
+	op2 = intpromote(vm, op2);
 
 	b1 = chasetypedef(op1->type);
 	b2 = chasetypedef(op2->type);
@@ -2873,17 +2945,11 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2, int protect)
 		nc = uvariant[c2];
 
 	dom = op1->dom;		/* op2 has the same domain */
-	nxtn = lookbase(vm, nc, dom->ns);
-	if(c1 != nc){
+	nxtn = dom->ns->basetype[nc];
+	if(c1 != nc)
 		op1 = mkcval(dom, nxtn, op1->val);
-		if(protect)
-			gcprotect(vm, op1);
-	}
-	if(c2 != nc){
+	if(c2 != nc)
 		op2 = mkcval(dom, nxtn, op2->val);
-		if(protect)
-			gcprotect(vm, op2);
-	}
 	*rv1 = op1;
 	*rv2 = op2;
 }
@@ -3038,7 +3104,7 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 	Imm imm, nv;
 	
 	cv = getcvalrand(vm, op1);
-	cv = intpro(vm, cv, 0);
+	cv = intpromote(vm, cv);
 	imm = cv->val;
 
 	switch(op){
@@ -3055,7 +3121,7 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 			nv = 0;
 		else
 			nv = 1;
-		cvr = mkcval(vm->litdom, vm->littype[Vint], nv);
+		cvr = mkcval(vm->litdom, vm->litbase[Vint], nv);
 		break;
 	default:
 		fatal("unknown unary operator %d", op);
@@ -3068,31 +3134,9 @@ static Cval*
 xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
-	Xtypename *b1, *b2;
 
-	/* FIXME: first rationalize doms */
-
-	if(op1->dom != op2->dom){
-		if(op1->dom == vm->litdom)
-			op1 = domcast(op2->dom, op1);
-		else if(op2->dom == vm->litdom)
-			op2 = domcast(op1->dom, op2);
-		else{
-			b1 = chasetypedef(op1->type);
-			b2 = chasetypedef(op2->type);
-			if(b1->xtkind != Tptr && b2->xtkind != Tptr){
-				op1 = domcast(op1->dom, vm->litdom);
-				op2 = domcast(op2->dom, vm->litdom);
-			}else if(b1->xtkind == Tptr){
-				if(b
-			}
-
-
-		}
-	}
-
-
-	usualconvs(vm, op1, op2, &op1, &op2, 0);
+	dompromote(vm, op, op1, op2, &op1, &op2);
+	usualconvs(vm, op1, op2, &op1, &op2);
 	i1 = op1->val;
 	i2 = op2->val;
 	
@@ -3130,8 +3174,8 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 	}		
 
 	switch(op1->type->rep){
-	case Rs8be:
-	case Rs8le:
+	case Rs08be:
+	case Rs08le:
 		rv = (s8)rv;
 		break;
 	case Rs16be:
@@ -3146,8 +3190,8 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 	case Rs64le:
 		rv = (s64)rv;
 		break;
-	case Ru8be:
-	case Ru8le:
+	case Ru08be:
+	case Ru08le:
 		rv = (u8)rv;
 		break;
 	case Ru16be:
@@ -3175,8 +3219,8 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 	Imm i1, i2, rv;
 
 	/* no need to rationalize domains */
-	op1 = intpro(vm, op1, 0);
-	op2 = intpro(vm, op2, 0);
+	op1 = intpromote(vm, op1);
+	op2 = intpromote(vm, op2);
 	i1 = op1->val;
 	i2 = op2->val;
 
@@ -3206,8 +3250,8 @@ xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
 
-	/* FIXME: first rationalize doms */
-	usualconvs(vm, op1, op2, &op1, &op2, 0);
+	dompromote(vm, op, op1, op2, &op1, &op2);
+	usualconvs(vm, op1, op2, &op1, &op2);
 	i1 = op1->val;
 	i2 = op2->val;
 	if(isunsigned[op1->type->basename])
@@ -3256,7 +3300,7 @@ xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 		default:
 			fatal("bug");
 		}
-	return mkcval(vm->litdom, vm->littype[Vint], rv);
+	return mkcval(vm->litdom, vm->litbase[Vint], rv);
 }
 
 static void
@@ -3310,7 +3354,7 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		s1 = valstr(&v1);
 		s2 = valstr(&v2);
 		nv = binopstr(op, s1, s2); /* assume comparison */
-		mkvalcval(vm->litdom, vm->littype[Vint], nv, &rv);
+		mkvalcval(vm->litdom, vm->litbase[Vint], nv, &rv);
 		putvalrand(vm, &rv, dst);
 		return;
 	}
@@ -3570,7 +3614,7 @@ xlens(VM *vm, Operand *str, Operand *dst)
 	Str *s;
 	getvalrand(vm, str, &strv);
 	s = valstr(&strv);
-	mkvalcval(vm->litdom, vm->littype[Vuint], s->len, &rv);
+	mkvalcval(vm->litdom, vm->litbase[Vuint], s->len, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3596,7 +3640,7 @@ xlenl(VM *vm, Operand *l, Operand *dst)
 	getvalrand(vm, l, &lv);
 	if(listlen(&lv, &len) == 0)
 		vmerr(vm, "length on non-list");
-	mkvalcval(vm->litdom, vm->littype[Vuint], len, &rv);
+	mkvalcval(vm->litdom, vm->litbase[Vuint], len, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3621,7 +3665,7 @@ xlenv(VM *vm, Operand *vec, Operand *dst)
 	Vec *v;
 	getvalrand(vm, vec, &vecv);
 	v = valvec(&vecv);
-	mkvalcval(vm->litdom, vm->littype[Vuint], v->len, &rv);
+	mkvalcval(vm->litdom, vm->litbase[Vuint], v->len, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3732,13 +3776,14 @@ xxcast(VM *vm, Operand *type, Operand *cval, Operand *dst)
 	Val typev, cvalv, rv;
 	Cval *cv;
 	Xtypename *t;
+	Imm val;
 
 	getvalrand(vm, type, &typev);
 	getvalrand(vm, cval, &cvalv);
 	t = valxtn(&typev);
 	cv = valcval(&cvalv);
-	/* FIXME: sanity, representation change */
-	mkvalcval(cv->dom, t, cv->val, &rv);
+	val = rerep(cv->val, cv->type, t);
+	mkvalcval(cv->dom, t, val, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3754,9 +3799,9 @@ xis(VM *vm, Operand *op, unsigned kind, Operand *dst)
 	Val v, rv;
 	getvalrand(vm, op, &v);
 	if(v.qkind == kind)
-		mkvalimm(vm->litdom, vm->littype[Vuint], 1, &rv);
+		mkvalimm(vm->litdom, vm->litbase[Vuint], 1, &rv);
 	else
-		mkvalimm(vm->litdom, vm->littype[Vuint], 0, &rv);
+		mkvalimm(vm->litdom, vm->litbase[Vuint], 0, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -3898,7 +3943,7 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 		vmerr(vm, "sizeof cvalues not implemented");
 	xtn = valxtn(&v);
 	imm = typesize(vm, xtn);
-	mkvalcval(vm->litdom, vm->littype[Vuint], imm, &rv);
+	mkvalcval(vm->litdom, vm->litbase[Vuint], imm, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -4015,23 +4060,6 @@ chasetypedef(Xtypename *xtn)
 	return xtn;
 }
 
-static Xtypename*
-lookbase(VM *vm, Cbase base, Ns *ns)
-{
-	Xtypename *xtn;
-	Val v;
-	xtn = mkxtn();		/* will be garbage; safe across dolooktype
-				   because as an argument to looktype it
-				   will be in vm roots */
-	xtn->xtkind = Tbase;
-	xtn->basename = base;
-	mkvalxtn(xtn, &v);
-	xtn = dolooktype(vm, xtn, ns);
-	if(xtn == 0)
-		vmerr(vm, "name space does not define pointer representation");
-	return xtn;
-}
-
 /* call looktype operator of NS on typename XTN */
 static Xtypename*
 dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
@@ -4044,6 +4072,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 
 	switch(xtn->xtkind){
 	case Tbase:
+		return ns->basetype[xtn->basename];
 	case Ttypedef:
 	case Tstruct:
 	case Tunion:
@@ -4056,7 +4085,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tptr:
 		new = gcprotect(vm, mkxtn());
 		new->link = dolooktype(vm, xtn->link, ns);
-		tmp = lookbase(vm, Vptr, ns);
+		tmp = ns->basetype[Vptr];
 		new->rep = tmp->rep;
 		return new;
 	case Tarr:
@@ -4090,6 +4119,28 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		return new;
 	default:
 		fatal("bug");
+	}
+}
+
+static void
+nscachebase(VM *vm, Ns *ns)
+{
+	Xtypename *xtn;
+	Cbase cbase;
+	Val v;
+
+	for(cbase = Vchar; cbase < Vnbase; cbase++){
+		xtn = mkxtn();	/* will be garbage; safe across dolooktype
+				   because as an argument to looktype it
+				   will be in vm roots */
+		xtn->xtkind = Tbase;
+		xtn->basename = cbase;
+		mkvalxtn(xtn, &v);
+		xtn = dolooktype(vm, xtn, ns);
+		if(xtn == 0)
+			vmerr(vm, "name space does not define %s",
+			      basename[cbase]);
+		ns->basetype[cbase] = xtn;
 	}
 }
 
@@ -4323,6 +4374,7 @@ mknstab(Tab *type, Tab *sym)
 	ns->enumtype = mkccl("enumtype", enumtype, 1, &v);
 	ns->looksym = mkccl("looksym", looksym, 1, &v);
 	ns->looktype = mkccl("looktype", looktype, 1, &v);
+
 	return ns;
 }
 
@@ -4418,6 +4470,7 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	}
 
 	ns = mknstab(ctx.type, ctx.sym);
+	nscachebase(vm, ns);
 	mkvalns(ns, &v);
 	putvalrand(vm, &v, dst);
 }
@@ -4542,8 +4595,8 @@ vmsetcl(VM *vm, Closure *cl)
 	}
 }
 
-int
-waserror(VM *vm)
+void
+_waserror(VM *vm, jmp_buf env)
 {
 	Err *ep;
 	if(vm->edepth >= vm->emax){
@@ -4553,7 +4606,17 @@ waserror(VM *vm)
 	}
 	ep = &vm->err[vm->edepth++];
 	ep->pdepth = vm->pdepth;
-	return setjmp(ep->esc);
+	memcpy(ep->esc, env, sizeof(ep->esc));
+}
+
+#define waserror(vm)
+{
+	jmp_buf env;
+	int val;
+	val = setjmp(env);
+	if(val == 0)
+		_waserror((vm), env);
+	val;
 }
 
 void
@@ -4718,24 +4781,24 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	gcprotpush(vm);
 
 	/* for recursive entry, store current context */
-	mkvalimm(vm->litdom, vm->littype[Vuint], vm->fp, &val);
+	mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &vm->cl);	/* cl */
-	mkvalimm(vm->litdom, vm->littype[Vuint], vm->pc, &val);
+	mkvalimm(vm->litdom, vm->litbase[Vuint], vm->pc, &val);
 	vmpush(vm, &val);	/* pc */
-	mkvalimm(vm->litdom, vm->littype[Vuint], 0, &val);
+	mkvalimm(vm->litdom, vm->litbase[Vuint], 0, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
 	/* push frame for halt thunk */
-	mkvalimm(vm->litdom, vm->littype[Vuint], vm->fp, &val);
+	mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
 	vmpush(vm, &val);	/* fp */
 	vmpush(vm, &haltv);	/* cl */
-	mkvalimm(vm->litdom, vm->littype[Vuint], halt->entry, &val);
+	mkvalimm(vm->litdom, vm->litbase[Vuint], halt->entry, &val);
 	vmpush(vm, &val);	/* pc */
 	for(m = argc; m > 0; m--)
 		vmpush(vm, &argv[m-1]);
-	mkvalimm(vm->litdom, vm->littype[Vuint], argc, &val);
+	mkvalimm(vm->litdom, vm->litbase[Vuint], argc, &val);
 	vmpush(vm, &val);	/* narg */
 	vm->fp = vm->sp;
 
@@ -4806,10 +4869,10 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->pc = vm->clx->entry;
 		continue;
 	Iframe:
-		mkvalimm(vm->litdom, vm->littype[Vuint], vm->fp, &val);
+		mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
 		vmpush(vm, &val);
 		vmpush(vm, &vm->cl);
-		mkvalimm(vm->litdom, vm->littype[Vuint],
+		mkvalimm(vm->litdom, vm->litbase[Vuint],
 			 i->dstlabel->insn, &val);
 		vmpush(vm, &val);
 		continue;
@@ -5089,7 +5152,7 @@ l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
 	tod = tv.tv_sec;
 	tod *= 1000000;
 	tod += tv.tv_usec;
-	mkvalcval(vm->litdom, vm->littype[Vulong], tod, rv);
+	mkvalcval(vm->litdom, vm->litbase[Vulong], tod, rv);
 }
 
 static void
@@ -5129,7 +5192,7 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	
 	r = rand();
 	r %= cv->val;
-	mkvalcval(vm->litdom, vm->littype[Vulong], r, rv);
+	mkvalcval(vm->litdom, vm->litbase[Vulong], r, rv);
 }
 
 static void
@@ -5246,10 +5309,10 @@ static void
 fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 {
 	static char* fmttab[Rnrep][256] = {
-	 [Ru8le]['d'] = "%"PRId8,	 [Ru8le]['i'] = "%"PRIi8,   
-	 [Ru8be]['d'] = "%"PRId8,	 [Ru8be]['i'] = "%"PRIi8,   
-	 [Rs8le]['d'] = "%"PRId8,	 [Rs8le]['i'] = "%"PRIi8,   
-	 [Rs8be]['d'] = "%"PRId8,	 [Rs8be]['i'] = "%"PRIi8,   
+	 [Ru08le]['d'] = "%"PRId8,	 [Ru08le]['i'] = "%"PRIi8,   
+	 [Ru08be]['d'] = "%"PRId8,	 [Ru08be]['i'] = "%"PRIi8,   
+	 [Rs08le]['d'] = "%"PRId8,	 [Rs08le]['i'] = "%"PRIi8,   
+	 [Rs08be]['d'] = "%"PRId8,	 [Rs08be]['i'] = "%"PRIi8,   
 	[Ru16le]['d'] = "%"PRId16,	[Ru16le]['i'] = "%"PRIi16,  
 	[Ru16be]['d'] = "%"PRId16,	[Ru16be]['i'] = "%"PRIi16,  
 	[Rs16le]['d'] = "%"PRId16,	[Rs16le]['i'] = "%"PRIi16,  
@@ -5263,10 +5326,10 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	[Rs64le]['d'] = "%"PRId64,	[Rs64le]['i'] = "%"PRIi64,  
 	[Rs64be]['d'] = "%"PRId64,	[Rs64be]['i'] = "%"PRIi64,  
 
-	 [Ru8le]['o'] = "%"PRIo8,	 [Ru8le]['u'] = "%"PRIu8, 
-	 [Ru8be]['o'] = "%"PRIo8,	 [Ru8be]['u'] = "%"PRIu8, 
-	 [Rs8le]['o'] = "%"PRIo8,	 [Rs8le]['u'] = "%"PRIu8, 
-	 [Rs8be]['o'] = "%"PRIo8,	 [Rs8be]['u'] = "%"PRIu8, 
+	 [Ru08le]['o'] = "%"PRIo8,	 [Ru08le]['u'] = "%"PRIu8, 
+	 [Ru08be]['o'] = "%"PRIo8,	 [Ru08be]['u'] = "%"PRIu8, 
+	 [Rs08le]['o'] = "%"PRIo8,	 [Rs08le]['u'] = "%"PRIu8, 
+	 [Rs08be]['o'] = "%"PRIo8,	 [Rs08be]['u'] = "%"PRIu8, 
 	[Ru16le]['o'] = "%"PRIo16,	[Ru16le]['u'] = "%"PRIu16,
 	[Ru16be]['o'] = "%"PRIo16,	[Ru16be]['u'] = "%"PRIu16,
 	[Rs16le]['o'] = "%"PRIo16,	[Rs16le]['u'] = "%"PRIu16,
@@ -5280,10 +5343,10 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	[Rs64le]['o'] = "%"PRIo64,	[Rs64le]['u'] = "%"PRIu64,
 	[Rs64be]['o'] = "%"PRIo64,	[Rs64be]['u'] = "%"PRIu64,
 
-	 [Ru8le]['x'] = "%"PRIx8,	 [Ru8le]['X'] = "%"PRIX8, 
-	 [Ru8be]['x'] = "%"PRIx8,	 [Ru8be]['X'] = "%"PRIX8, 
-	 [Rs8le]['x'] = "%"PRIx8,	 [Rs8le]['X'] = "%"PRIX8, 
-	 [Rs8be]['x'] = "%"PRIx8,	 [Rs8be]['X'] = "%"PRIX8, 
+	 [Ru08le]['x'] = "%"PRIx8,	 [Ru08le]['X'] = "%"PRIX8, 
+	 [Ru08be]['x'] = "%"PRIx8,	 [Ru08be]['X'] = "%"PRIX8, 
+	 [Rs08le]['x'] = "%"PRIx8,	 [Rs08le]['X'] = "%"PRIX8, 
+	 [Rs08be]['x'] = "%"PRIx8,	 [Rs08be]['X'] = "%"PRIX8, 
 	[Ru16le]['x'] = "%"PRIx16,	[Ru16le]['X'] = "%"PRIX16,
 	[Ru16be]['x'] = "%"PRIx16,	[Ru16be]['X'] = "%"PRIX16,
 	[Rs16le]['x'] = "%"PRIx16,	[Rs16le]['X'] = "%"PRIX16,
@@ -5302,12 +5365,12 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 
 	/* FIXME: don't assume Tbase */
 	switch(cv->type->rep){
-	case Ru8le:
-	case Ru8be:
+	case Ru08le:
+	case Ru08be:
 		fprintf(fp, fmt, (u8)cv->val);
 		break;
-	case Rs8le:
-	case Rs8be:
+	case Rs08le:
+	case Rs08be:
 		fprintf(fp, fmt, (s8)cv->val);
 		break;
 	case Ru16le:
@@ -5539,9 +5602,9 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 		vmerr(vm, "wrong number of arguments to %s", id);
 	xtn = valxtn(&argv[0]);
 	if(xtn->xtkind == kind)
-		mkvalcval(vm->litdom, vm->littype[Vint], 1, rv);
+		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
 	else
-		mkvalcval(vm->litdom, vm->littype[Vint], 0, rv);
+		mkvalcval(vm->litdom, vm->litbase[Vint], 0, rv);
 }
 
 static void
@@ -5598,9 +5661,9 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isnil");
 	if(argv->qkind == Qnil)
-		mkvalcval(vm->litdom, vm->littype[Vint], 1, rv);
+		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
 	else
-		mkvalcval(vm->litdom, vm->littype[Vint], 0, rv);
+		mkvalcval(vm->litdom, vm->litbase[Vint], 0, rv);
 }
 
 static void
@@ -5627,84 +5690,183 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 	memcpy(s->s+o, t->s, t->len);
 }
 
+static unsigned c32le[Vnbase] = {
+	[Vchar]=	Rs08le,
+	[Vshort]=	Rs16le,
+	[Vint]=		Rs32le,
+	[Vlong]=	Rs32le,
+	[Vvlong]=	Rs64le,
+	[Vuchar]=	Ru08le,
+	[Vushort]=	Ru16le,
+	[Vuint]=	Ru32le,
+	[Vulong]=	Ru32le,
+	[Vuvlong]=	Ru64le,
+	[Vfloat]=	Rundef,
+	[Vdouble]=	Rundef,
+	[Vlongdouble]=	Rundef,
+	[Vvoid]=	Rundef,
+	[Vptr]=		Ru32le,
+};
+
+static unsigned c32be[Vnbase] = {
+	[Vchar]=	Rs08be,
+	[Vshort]=	Rs16be,
+	[Vint]=		Rs32be,
+	[Vlong]=	Rs32be,
+	[Vvlong]=	Rs64be,
+	[Vuchar]=	Ru08be,
+	[Vushort]=	Ru16be,
+	[Vuint]=	Ru32be,
+	[Vulong]=	Ru32be,
+	[Vuvlong]=	Ru64be,
+	[Vfloat]=	Rundef,
+	[Vdouble]=	Rundef,
+	[Vlongdouble]=	Rundef,
+	[Vvoid]=	Rundef,
+	[Vptr]=		Ru32be,
+};
+
+static unsigned c64le[Vnbase] = {
+	[Vchar]=	Rs08le,
+	[Vshort]=	Rs16le,
+	[Vint]=		Rs32le,
+	[Vlong]=	Rs64le,
+	[Vvlong]=	Rs64le,
+	[Vuchar]=	Ru08le,
+	[Vushort]=	Ru16le,
+	[Vuint]=	Ru32le,
+	[Vulong]=	Ru64le,
+	[Vuvlong]=	Ru64le,
+	[Vfloat]=	Rundef,
+	[Vdouble]=	Rundef,
+	[Vlongdouble]=	Rundef,
+	[Vvoid]=	Rundef,
+	[Vptr]=		Ru32le,
+};
+
+static unsigned c64be[Vnbase] = {
+	[Vchar]=	Rs08be,
+	[Vshort]=	Rs16be,
+	[Vint]=		Rs32be,
+	[Vlong]=	Rs64be,
+	[Vvlong]=	Rs64be,
+	[Vuchar]=	Ru08be,
+	[Vushort]=	Ru16be,
+	[Vuint]=	Ru32be,
+	[Vulong]=	Ru64be,
+	[Vuvlong]=	Ru64be,
+	[Vfloat]=	Rundef,
+	[Vdouble]=	Rundef,
+	[Vlongdouble]=	Rundef,
+	[Vvoid]=	Rundef,
+	[Vptr]=		Ru32be,
+};
+
+static unsigned clp64le[Vnbase] = {
+	[Vchar]=	Rs08le,
+	[Vshort]=	Rs16le,
+	[Vint]=		Rs32le,
+	[Vlong]=	Rs64le,
+	[Vvlong]=	Rs64le,
+	[Vuchar]=	Ru08le,
+	[Vushort]=	Ru16le,
+	[Vuint]=	Ru32le,
+	[Vulong]=	Ru64le,
+	[Vuvlong]=	Ru64le,
+	[Vfloat]=	Rundef,
+	[Vdouble]=	Rundef,
+	[Vlongdouble]=	Rundef,
+	[Vvoid]=	Rundef,
+	[Vptr]=		Ru64le,
+};
+
+static unsigned clp64be[Vnbase] = {
+	[Vchar]=	Rs08be,
+	[Vshort]=	Rs16be,
+	[Vint]=		Rs32be,
+	[Vlong]=	Rs64be,
+	[Vvlong]=	Rs64be,
+	[Vuchar]=	Ru08be,
+	[Vushort]=	Ru16be,
+	[Vuint]=	Ru32be,
+	[Vulong]=	Ru64be,
+	[Vuvlong]=	Ru64be,
+	[Vfloat]=	Rundef,
+	[Vdouble]=	Rundef,
+	[Vlongdouble]=	Rundef,
+	[Vvoid]=	Rundef,
+	[Vptr]=		Ru64be,
+};
+
+static Xtypename*
+mkbasextn(Cbase name, unsigned rep)
+{
+	Xtypename *xtn;
+	xtn = mkxtn();
+	xtn->xtkind = Tbase;
+	xtn->basename = name;
+	xtn->rep = rep;
+	return xtn;
+}
+
 /* FIXME: this shouldn't need a VM */
-static void
-addbasedef(VM *vm, Tab *type, Cbase name, unsigned rep)
+static Tab*
+basetab(VM *vm, Xtypename **basetype)
 {
-	Xtypename *k, *v;
+	Cbase cb;
 	Val kv, vv;
-	k = mkxtn();
-	k->xtkind = Tbase;
-	k->basename = name;
-	v = mkxtn();
-	v->xtkind = Tbase;
-	v->basename = name;
-	v->rep = rep;
-	mkvalxtn(k, &kv);
-	mkvalxtn(v, &vv);
-	tabput(vm, type, &kv, &vv);
-}
-
-static Ns*
-mkc32lens(VM *vm)
-{
 	Tab *type;
 
 	type = mktab();
-	addbasedef(vm, type, Vchar,	Rs8le);
-	addbasedef(vm, type, Vshort,	Rs16le);
-	addbasedef(vm, type, Vint,	Rs32le);
-	addbasedef(vm, type, Vlong,	Rs32le);
-	addbasedef(vm, type, Vvlong,	Rs64le);
-	addbasedef(vm, type, Vuchar,	Ru8le);
-	addbasedef(vm, type, Vushort,	Ru16le);
-	addbasedef(vm, type, Vuint,	Ru32le);
-	addbasedef(vm, type, Vulong,	Ru32le);
-	addbasedef(vm, type, Vuvlong,	Ru64le);
-	addbasedef(vm, type, Vfloat,	Rundef);
-	addbasedef(vm, type, Vdouble,	Rundef);
-	addbasedef(vm, type, Vlongdouble, 	Rundef);
-	addbasedef(vm, type, Vvoid,	Rundef);
-	addbasedef(vm, type, Vptr,	Ru32le);
-
-	return mknstab(type, mktab());
+	for(cb = Vchar; cb < Vnbase; cb++){
+		mkvalxtn(basetype[cb], &kv);
+		mkvalxtn(basetype[cb], &vv);
+		tabput(vm, type, &kv, &vv);
+	}
+	return type;
 }
 
 static Ns*
-mkc64lens(VM *vm)
+mkrootns(VM *vm, unsigned *def)
 {
 	Tab *type;
+	Cbase cb;
+	Ns *ns;
+	Xtypename *basetype[Vnbase];
 
-	type = mktab();
-	addbasedef(vm, type, Vchar,	Rs8le);
-	addbasedef(vm, type, Vshort,	Rs16le);
-	addbasedef(vm, type, Vint,	Rs32le);
-	addbasedef(vm, type, Vlong,	Rs64le);
-	addbasedef(vm, type, Vvlong,	Rs64le);
-	addbasedef(vm, type, Vuchar,	Ru8le);
-	addbasedef(vm, type, Vushort,	Ru16le);
-	addbasedef(vm, type, Vuint,	Ru32le);
-	addbasedef(vm, type, Vulong,	Ru64le);
-	addbasedef(vm, type, Vuvlong,	Ru64le);
-	addbasedef(vm, type, Vfloat,	Rundef);
-	addbasedef(vm, type, Vdouble,	Rundef);
-	addbasedef(vm, type, Vlongdouble, 	Rundef);
-	addbasedef(vm, type, Vvoid,	Rundef);
-	addbasedef(vm, type, Vptr,	Ru32le);
-
-	return mknstab(type, mktab());
+	for(cb = Vchar; cb < Vnbase; cb++)
+		basetype[cb] = mkbasextn(cb, def[cb]);
+	type = basetab(vm, basetype);
+	ns = mknstab(type, mktab());
+	nscachebase(vm, ns);
+	return ns;
 }
 
 static Dom*
-mklitdom(Ns *ns)
+mklitdom(VM *vm)
 {
 	As *as;
+	Ns *ns;
 	Dom *dom;
+	Tab *type;
+	Cbase cb;
+	Xtypename *basetype[Vnbase];
+
+	dom = mkdom();
 
 	as = mkas();
 	as->dispatch = mkcfn("nodispatch", nodispatch);
-	dom = mkdom();
 	dom->as = as;
+
+	memset(basetype, 0, sizeof(basetype)); /* values will be seen by GC */
+	for(cb = Vchar; cb <= Vnbase; cb++)
+		basetype[cb] = mkbasextn(cb, clp64le[cb]);
+	type = basetab(vm, basetype);
+	ns = mknstab(type, mktab());
+	/* hand populate ns->basetype, because nscachebase calls the
+	   VM, which requires a literal domain. */
+	memcpy(ns->basetype, basetype, sizeof(basetype));
+
 	dom->ns = ns;
 	return dom;
 }
@@ -5804,10 +5966,9 @@ mkvm(Env *env)
 	builtinstr(env, "$looktype", "looktype");
 
 	/* FIXME: make litdom binding immutable (@litdom)? */
-	builtinns(env, "c32le", mkc32lens(vm));
-	vm->litns = mkc64lens(vm);
-	builtinns(env, "c64le", vm->litns);
-	vm->litdom = mklitdom(vm->litns);
+	vm->litdom = mklitdom(vm);
+	vm->litns = vm->litdom->ns;
+	vm->litbase = vm->litns->basetype;
 	builtindom(env, "litdom", vm->litdom);
 
 	vmp = vms;
@@ -5817,28 +5978,27 @@ mkvm(Env *env)
 			fatal("too many vms");
 	}
 	*vmp = vm;
-	concurrentgc(vm);
 
+//	concurrentgc(vm);
 	/* vm is now callable */
 
-	if(!waserror(vm)){
-		vm->littype[Vchar] = lookbase(vm, Vchar, vm->litns);
-		vm->littype[Vshort] = lookbase(vm, Vshort, vm->litns);
-		vm->littype[Vint] = lookbase(vm, Vint, vm->litns);
-		vm->littype[Vlong] = lookbase(vm, Vlong, vm->litns);
-		vm->littype[Vvlong] = lookbase(vm, Vvlong, vm->litns);
-		vm->littype[Vuchar] = lookbase(vm, Vuchar, vm->litns);
-		vm->littype[Vushort] = lookbase(vm, Vushort, vm->litns);
-		vm->littype[Vuint] = lookbase(vm, Vuint, vm->litns);
-		vm->littype[Vulong] = lookbase(vm, Vulong, vm->litns);
-		vm->littype[Vuvlong] = lookbase(vm, Vuvlong, vm->litns);
-		poperror(vm);
-		return vm;
+	if(waserror(vm)){
+		fprintf(stderr, "returned from waserror()\n");
+		/* FIXME: kill GC */
+		free(vm);
+		return 0;
 	}
-
-	/* error during initialization; vm is not viable */
-	freevm(vm);
-	return 0;
+	vmerr(vm, "testerr1");
+	vmerr(vm, "testerr2");
+	vmerr(vm, "testerr3");
+	builtinns(env, "c32le", mkrootns(vm, c32le));
+	builtinns(env, "c32be", mkrootns(vm, c32be));
+	builtinns(env, "c64le", mkrootns(vm, c64le));
+	builtinns(env, "c64be", mkrootns(vm, c64be));
+	builtinns(env, "clp64le", mkrootns(vm, clp64le));
+	builtinns(env, "clp64be", mkrootns(vm, clp64be));
+	poperror(vm);
+	return vm;
 }
 
 void
