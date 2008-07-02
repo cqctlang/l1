@@ -277,7 +277,8 @@ void initvm();
 void finivm();
 VM* mkvm(Env*);
 void freevm(VM*);
-int waserror(VM *vm);
+jmp_buf* _pusherror(VM *vm);
+#define waserror(vm) (setjmp(*(_pusherror(vm))))
 void nexterror(VM *vm) __attribute__((noreturn));
 void poperror(VM *vm);
 Val* dovm(VM* vm, Closure *cl, Imm argc, Val *argv);

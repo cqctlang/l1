@@ -4072,7 +4072,6 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 
 	switch(xtn->xtkind){
 	case Tbase:
-		return ns->basetype[xtn->basename];
 	case Ttypedef:
 	case Tstruct:
 	case Tunion:
@@ -4126,21 +4125,21 @@ static void
 nscachebase(VM *vm, Ns *ns)
 {
 	Xtypename *xtn;
-	Cbase cbase;
+	Cbase cb;
 	Val v;
 
-	for(cbase = Vchar; cbase < Vnbase; cbase++){
+	for(cb = Vchar; cb < Vnbase; cb++){
 		xtn = mkxtn();	/* will be garbage; safe across dolooktype
 				   because as an argument to looktype it
 				   will be in vm roots */
 		xtn->xtkind = Tbase;
-		xtn->basename = cbase;
+		xtn->basename = cb;
 		mkvalxtn(xtn, &v);
 		xtn = dolooktype(vm, xtn, ns);
 		if(xtn == 0)
 			vmerr(vm, "name space does not define %s",
-			      basename[cbase]);
-		ns->basetype[cbase] = xtn;
+			      basename[cb]);
+		ns->basetype[cb] = xtn;
 	}
 }
 
@@ -4595,8 +4594,8 @@ vmsetcl(VM *vm, Closure *cl)
 	}
 }
 
-void
-_waserror(VM *vm, jmp_buf env)
+jmp_buf*
+_pusherror(VM *vm)
 {
 	Err *ep;
 	if(vm->edepth >= vm->emax){
@@ -4606,17 +4605,7 @@ _waserror(VM *vm, jmp_buf env)
 	}
 	ep = &vm->err[vm->edepth++];
 	ep->pdepth = vm->pdepth;
-	memcpy(ep->esc, env, sizeof(ep->esc));
-}
-
-#define waserror(vm)
-{
-	jmp_buf env;
-	int val;
-	val = setjmp(env);
-	if(val == 0)
-		_waserror((vm), env);
-	val;
+	return &ep->esc;
 }
 
 void
@@ -5979,18 +5968,14 @@ mkvm(Env *env)
 	}
 	*vmp = vm;
 
-//	concurrentgc(vm);
+	concurrentgc(vm);
 	/* vm is now callable */
 
 	if(waserror(vm)){
-		fprintf(stderr, "returned from waserror()\n");
 		/* FIXME: kill GC */
 		free(vm);
 		return 0;
 	}
-	vmerr(vm, "testerr1");
-	vmerr(vm, "testerr2");
-	vmerr(vm, "testerr3");
 	builtinns(env, "c32le", mkrootns(vm, c32le));
 	builtinns(env, "c32be", mkrootns(vm, c32be));
 	builtinns(env, "c64le", mkrootns(vm, c64le));
