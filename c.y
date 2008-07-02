@@ -141,7 +141,7 @@ unary_expression
 
 unary_operator
 	: '&'
-	{ $$ = Euand; }
+	{ $$ = Eref; }
 	| '*'
 	{ $$ = Eumul; }
 	| '+'

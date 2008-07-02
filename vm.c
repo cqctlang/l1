@@ -397,14 +397,14 @@ static Heap heap[Qnkind] = {
 static u32 nohash(Val*);
 static u32 hashcval(Val*);
 static u32 hashptr(Val*);
-static u32 hashptrv(Val*);
+static u32 hashconst(Val*);
 static u32 hashrange(Val*);
 static u32 hashstr(Val*);
 static u32 hashxtn(Val*);
 
 static int eqcval(Val*, Val*);
 static int eqptr(Val*, Val*);
-static int eqptrv(Val*, Val*);
+static int eqtrue(Val*, Val*);
 static int eqrange(Val*, Val*);
 static int eqstr(Val*, Val*);
 static int eqxtn(Val*, Val*);
@@ -416,8 +416,8 @@ typedef struct Hashop {
 
 static Hashop hashop[Qnkind] = {
 	[Qundef] = { nohash, 0 },
-	[Qnil]	= { hashptrv, eqptrv },
-	[Qnulllist] = { hashptrv, eqptrv },
+	[Qnil]	= { hashconst, eqtrue },
+	[Qnulllist] = { hashconst, eqtrue },
 	[Qas]	= { hashptr, eqptr },
 	[Qbox]	= { nohash, 0 },
 	[Qcl]	= { hashptr, eqptr },
@@ -1156,15 +1156,22 @@ eqptr(Val *a, Val *b)
 }
 
 static u32
-hashptrv(Val *val)
+hashconst(Val *val)
 {
-	return hashptr32shift(val);
+	switch(val->qkind){
+	case Qnil:
+		return hashptr32shift(&Xnil);
+	case Qnulllist:
+		return hashptr32shift(&Xnulllist);
+	default:
+		fatal("bug");
+	}
 }
 
 static int
-eqptrv(Val *a, Val *b)
+eqtrue(Val *a, Val *b)
 {
-	return a==b;
+	return 1;
 }
 
 static u32
@@ -3058,7 +3065,7 @@ xcallc(VM *vm)
 }
 
 static Imm
-binopstr(ikind op, Str *s1, Str *s2)
+binopstr(VM *vm, ikind op, Str *s1, Str *s2)
 {
 	unsigned long len;
 	int x;
@@ -3091,8 +3098,7 @@ binopstr(ikind op, Str *s1, Str *s2)
 		x = memcmp(s1, s2, len);
 		return x <= 0 ? 1 : 0;
 	default:
-		fatal("unsupported binary operator %d on strings", op);
-		return 0;
+		vmerr(vm, "attempt to apply %s to string operands", opstr[op]);
 	}
 }
 
@@ -3130,13 +3136,114 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
+static Imm
+truncimm(Imm v, unsigned rep)
+{
+	switch(rep){
+	case Rs08be:
+	case Rs08le:
+		return (s8)v;
+	case Rs16be:
+	case Rs16le:
+		return (s16)v;
+	case Rs32be:
+	case Rs32le:
+		return (s32)v;
+	case Rs64be:
+	case Rs64le:
+		return (s64)v;
+	case Ru08be:
+	case Ru08le:
+		return (u8)v;
+	case Ru16be:
+	case Ru16le:
+		return (u16)v;
+	case Ru32be:
+	case Ru32le:
+		return (u32)v;
+	case Ru64be:
+	case Ru64le:
+		return (u64)v;
+	default:
+		fatal("bug");
+	}
+}
+
+static Cval*
+xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
+	    Xtypename *t1, Xtypename *t2)
+{
+	Xtypename *sub;
+	Cval *ptr;
+	Imm sz, osz, n;
+	
+
+	if(op != Iadd && op != Isub)
+		vmerr(vm, "attempt to apply %s to pointer operand", opstr[op]);
+
+	if(t1->xtkind == Tptr && t2->xtkind == Tptr){
+		if(op != Isub)
+			vmerr(vm, "attempt to apply %s to pointer operands",
+			      opstr[op]);
+		sub = chasetypedef(t1->link);
+		/* special case: sizeof(void)==1 for pointer arith */
+		if(sub->xtkind == Tbase && sub->basename == Vvoid)
+			sz = 1;
+		else
+			sz = typesize(vm, sub);
+		sub = chasetypedef(t2->link);
+		if(sub->xtkind == Tbase && sub->basename == Vvoid)
+			osz = 1;
+		else
+			osz = typesize(vm, sub);
+		if(sz != osz)
+			vmerr(vm, "attempt to subtract pointers to objects of different sizes");
+		if(sz == 0)
+			vmerr(vm, "attempt to subtract pointers to zero-sized objects");
+		n = (op1->val-op2->val)/sz;
+		n = truncimm(n, t1->rep);
+		return mkcval(vm->litdom, vm->litbase[Vlong], n);
+	}
+
+	/* exactly one operand is a pointer */
+
+	if(t1->xtkind == Tptr){
+		sub = chasetypedef(t1->link);
+		ptr = op1;
+		n = op2->val;
+	}else{
+		sub = chasetypedef(t2->link);
+		ptr = op2;
+		n = op1->val;
+	}
+
+	/* special case: sizeof(void)==1 for pointer arith */
+	if(sub->xtkind == Tbase && sub->basename == Vvoid)
+		sz = 1;
+	else
+		sz = typesize(vm, sub);
+	/* FIXME: what about undefined sub types? */
+	if(op == Iadd)
+		n = ptr->val+n*sz;
+	else
+		n = ptr->val-n*sz;
+	n = truncimm(n, sub->rep);
+	return mkcval(ptr->dom, ptr->type, n);
+}
+
 static Cval*
 xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
+	Xtypename *t1, *t2;
 
 	dompromote(vm, op, op1, op2, &op1, &op2);
 	usualconvs(vm, op1, op2, &op1, &op2);
+	t1 = chasetypedef(op1->type);
+	t2 = chasetypedef(op2->type);
+	if(t1->xtkind == Tptr || t2->xtkind == Tptr)
+		return xcvalptralu(vm, op, op1, op2, t1, t2);
+
 	i1 = op1->val;
 	i2 = op2->val;
 	
@@ -3173,43 +3280,7 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 		fatal("bug");
 	}		
 
-	switch(op1->type->rep){
-	case Rs08be:
-	case Rs08le:
-		rv = (s8)rv;
-		break;
-	case Rs16be:
-	case Rs16le:
-		rv = (s16)rv;
-		break;
-	case Rs32be:
-	case Rs32le:
-		rv = (s32)rv;
-		break;
-	case Rs64be:
-	case Rs64le:
-		rv = (s64)rv;
-		break;
-	case Ru08be:
-	case Ru08le:
-		rv = (u8)rv;
-		break;
-	case Ru16be:
-	case Ru16le:
-		rv = (u16)rv;
-		break;
-	case Ru32be:
-	case Ru32le:
-		rv = (u32)rv;
-		break;
-	case Ru64be:
-	case Ru64le:
-		rv = (u64)rv;
-		break;
-	default:
-		fatal("bug");
-	}
-
+	rv = truncimm(rv, t1->rep);
 	return mkcval(op1->dom, op1->type, rv);
 }
 
@@ -3254,6 +3325,11 @@ xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 	usualconvs(vm, op1, op2, &op1, &op2);
 	i1 = op1->val;
 	i2 = op2->val;
+
+	/* We're intentionally relaxed about whether one operand is
+	   pointer so that expressions like (p == 0x<addr>) can be
+	   written without cast clutter. */
+
 	if(isunsigned[op1->type->basename])
 		switch(op){
 		case Icmpeq:
@@ -3308,15 +3384,12 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 {
 	Val v1, v2, rv;
 	Cval *cv1, *cv2, *cvr;
-	Str *s1, *s2;
 	Imm nv;
 
 	getvalrand(vm, op1, &v1);
 	getvalrand(vm, op2, &v2);
-	if(v1.qkind != v2.qkind)
-		vmerr(vm, "incompatible operands to binary %s", opstr[op]);
 
-	if(v1.qkind == Qcval){
+	if(v1.qkind == Qcval && v2.qkind == Qcval){
 		cv1 = valcval(&v1);
 		cv2 = valcval(&v2);
 		switch(op){
@@ -3350,16 +3423,28 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		return;
 	}
 
-	if(v1.qkind == Qstr){
+	if(v1.qkind == Qstr && v2.qkind == Qstr){
+		Str *s1, *s2;
 		s1 = valstr(&v1);
 		s2 = valstr(&v2);
-		nv = binopstr(op, s1, s2); /* assume comparison */
+		nv = binopstr(vm, op, s1, s2);
 		mkvalcval(vm->litdom, vm->litbase[Vint], nv, &rv);
 		putvalrand(vm, &rv, dst);
 		return;
 	}
 
-	fatal("binop on unsupported operands");
+	/* all other types support only == and != */
+	if(op != Icmpeq && op != Icmpneq)
+		vmerr(vm, "incompatible operands for binary %s", opstr[op]);
+
+	if(v1.qkind != v2.qkind)
+		nv = 0;
+	else
+		nv = hashop[v1.qkind].eq(&v1, &v2);
+	if(op == Icmpneq)
+		nv = !nv;
+	mkvalcval(vm->litdom, vm->litbase[Vint], nv, &rv);
+	putvalrand(vm, &rv, dst);
 }
 
 static void
@@ -3565,21 +3650,44 @@ xrange(VM *vm, Operand *beg, Operand *len, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
+/* catch-all operator for generating new cvalues.
+
+   if STRORVAL is a string, construct a cvalue of <DOM,TYPE,VAL>,
+   where VAL is the result of decoding STRORVAL according to
+   underlying representation of TYPE.
+
+   if STRORVAL is a cval, construct a cvalue of <DOM,TYPE*,VAL>,
+   treating VAL as the address of an object of type TYPE.
+*/
 static void
-xcval(VM *vm, Operand *dom, Operand *type, Operand *str, Operand *dst)
+xcval(VM *vm, Operand *dom, Operand *type, Operand *strorval, Operand *dst)
 {
-	Val typev, strv, domv, rv;
+	Val typev, strorvalv, domv, rv;
 	Imm imm;
 	Dom *d;
-	Xtypename *t;
+	Xtypename *t, *pt;
+	Cval *cv;
 
 	getvalrand(vm, type, &typev);
-	getvalrand(vm, str, &strv);
+	getvalrand(vm, strorval, &strorvalv);
 	getvalrand(vm, dom, &domv);
 	d = valdom(&domv);
 	t = valxtn(&typev);
-	imm = str2imm(t, valstr(&strv));
-	mkvalcval(d, t, imm, &rv);
+
+	if(strorvalv.qkind == Qstr){
+		imm = str2imm(t, valstr(&strorvalv));
+		mkvalcval(d, t, imm, &rv);
+	}
+	else if(strorvalv.qkind == Qcval){
+		cv = valcval(&strorvalv);
+		pt = mkxtn();
+		pt->xtkind = Tptr;
+		pt->rep = d->ns->basetype[Tptr]->rep;
+		pt->link = t;
+		imm = cv->val;
+		imm = truncimm(imm, pt->rep);
+		mkvalcval(d, pt, imm, &rv);
+	}
 	putvalrand(vm, &rv, dst);
 }
 
@@ -5464,7 +5572,11 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 					as = fmtdecl(xtn, valstr(vp));
 				else
 					goto badarg;
-			}
+			}else if(vp->qkind == Qcval){
+				cv = valcval(vp);
+				as = fmtxtn(cv->type);
+			}else
+				vmerr(vm, "bad operand to %t");
 			fprintf(fp, "%.*s", as->len, as->s);
 			break;
 		default:

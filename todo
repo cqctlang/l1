@@ -1,0 +1,12 @@
+diagnostics raised by compile0, compile
+&E
+*E
+E.field
+E->field
+enums
+bitfields
+sizeof
+typeof
+cast
+xcast
+ambig

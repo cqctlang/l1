@@ -74,9 +74,9 @@ Qset(Expr *l, Expr *r)
 }
 
 static Expr*
-Qcval(Expr *dom, Expr *type, Expr *str)
+Qcval(Expr *dom, Expr *type, Expr *strorval)
 {
-	return newexpr(E_cval, dom, type, str, 0);
+	return newexpr(E_cval, dom, type, strorval, 0);
 }
 
 static Expr*
@@ -546,7 +546,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		break;
 	case Etick:
 		// reference to symbol in domain
-		binds = Vdom|Vtmp|Vtype|Vrange;
+		binds = Vdom|Vtmp|Vtype|Vrange|Vaddr;
 		if(needval)
 			binds |= Vstr;
 
@@ -576,9 +576,13 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 			  Qcall(doid("vecref"), 2, doid(lvs->tmp), Quint(0)));
 		te = Qcons(se, te);
 
-		// $range = range(vecref($tmp, 2), sizeof($type));
+		// $addr = vecref($tmp, 2);
 		se = Qcall(doid("vecref"), 2, doid(lvs->tmp), Quint(2));
-		se = Qset(doid(lvs->range), Qrange(se,
+		se = Qset(doid(lvs->addr), se);
+		te = Qcons(se, te);
+
+		// $range = range($addr, sizeof($type));
+		se = Qset(doid(lvs->range), Qrange(doid(lvs->addr),
 						   Qsizeof(doid(lvs->type))));
 		te = Qcons(se, te);
 		
@@ -599,6 +603,30 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		e->e1 = locals(lvs, pvs);
 		e->e2 = invert(te);
 		freevarset(lvs);
+		break;
+	case Eref:
+		if(!isloc(e->e1)){
+			fatal("implement compile0 diagnostics");
+			break;
+		}
+		binds = Vdom|Vtype|Vaddr;
+		lvs = bindings(vars, pvs, binds);
+		pushlevel(vars);
+
+		te = nullelist();
+
+		compile0(e->e1, lvs, vars, 0);
+		se = e->e1;
+		te = Qcons(se, te);
+
+		se = Qcval(doid(lvs->dom), doid(lvs->type), doid(lvs->addr));
+		te = Qcons(se, te);
+		
+		e->kind = Eblock;
+		e->e1 = locals(lvs, pvs);
+		e->e2 = invert(te);
+		freevarset(lvs);
+		poplevel(vars);
 		break;
 	case Eg:
 		if(!isloc(e->e1)){

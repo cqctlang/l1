@@ -2,7 +2,7 @@ entry: 0 params, 0 locals, 0 temps
 listref: 2 params, 0 locals, 0 temps
 mkzas: 1 params, 2 locals, 0 temps
 dispatch: var params, 7 locals, 0 temps
-main: 0 params, 14 locals, 2 temps
+main: 0 params, 14 locals, 1 temps
 get 0 4
 init: dom`x -> 0
 put 0 4
