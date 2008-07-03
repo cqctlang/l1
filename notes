@@ -27,6 +27,7 @@ todo
 - xcast
 - ambig
 - check argument count on calls to lambdas
+- immutable vectors for type datastructures (fields and params)
 
 grammar
 -------
@@ -177,168 +178,162 @@ probably should aggressively
 shadow on the way down, to reduce
 unwanted boxing.
 
-E[`sym,{},VAL]
-=> { @local type, range, addr, p;
-     p = looksym(sym);
-     type = car(p);
-     addr = cdr(p);
-     range = range(addr,sizeof(type));
-     cval(get(range),type);
-   }
 
-E[`sym,{},NOVAL]     # makes no sense
-=> { @local type, range, addr, p;
-     p = looksym(sym);
-     type = car(p);
-     addr = cdr(p);
-     range = range(addr,sizeof(type));
-     cval(get(range),type);
-   }
+compile0
+--------
 
-E[`sym,{type,range}, NOVAL]
-=> { @local addr, p;
-     p = looksym(sym);
-     type = car(p);
-     addr = cdr(p);
-     range = range(addr,sizeof(type));
-   }
+early compiler pass to convert C lvalue operations into calls to
+cinquecento operations.
 
-E[l = r,{},VAL]
-=> { @local type, range, addr, val;
-     E[r,{val}]
-     E[l,{type,range}]
-     val = cast(val,type);
-     put(range,val);
-     val;
-   }
+compile_rvalue(E) :
+	match(E):
+	- dom`sym
+	{
+		@local dom, type, addr, val, econst;
+		[ compile_lvalue(E, < dom, type, addr >); ]
+		/*
+		 * rvalue magic:
+		 *     type is scalar type   call dom.as.get
+                 *     type is array         generate equivalent pointer cval
+                 *     type is enum const    generate equivalent enum cval
+		 *     type is bitfield	     access as bitfield
+		 *     type is aggregate     error
+		 */
+		val = rvalue(dom, type, addr);
+		val;
+	}		
 
-E[l = r,{},NOVAL]
-=> { @local type, range, addr, val;
-     E[r,{val}]
-     E[l,{type,range}]
-     val = cast(val,type);
-     put(range,val);
-   }
+	- *E
+	{
+		@local dom, type, addr, val, str;
+		[ compile_lvalue(*E, < dom, type, addr >); ]
+		str = dom.as.get(addr, sizeof(type));
+		val = decode(type, str);
+		val = rvalue(dom, type, val);
+	}
 
-E[*e,{},VAL]
-=> { @local type, range, addr;
-     val = E[e,{type},VAL]
-     type = sub(type);
-     addr = val;
-     range = range(addr,sizeof(type));
-     val = cval(get(range),type);
-   }
+	- E.field
+	{
+		@local dom, type, addr, val, str;
+		[ compile_lvalue(E.field, < dom, type, addr >); ]
+		val = rvalue(dom, type, addr);
+	}
 
-E[*e,{type range}]
-=> { @local addr, val;
-     val = E[e,{}]
-     type = sub(type);
-     addr = val;
-     range = range(addr,sizeof(type));
-   }
+	- E1[E2]
+	{
+		[ compile_rvalue(*(E1+E2)); ]
+	}
 
-E[e.f,{val}]
-=> { @local type, range, addr;
-     E[e,{type,addr}]
-     p = lookfield(type, f);
-     type = ref(p,0);
-     off = ref(p,1);
-     addr = addr+off;
-     range = addr,sizeof(type);
-     val = cval(get(range),type);
-   }
+	- E1->field
+	{
+		[ compile_rvalue((*E1).field); ]
+	}
 
-E[e.f,{type range}]
-=> { @local addr;
-     E[e,{type,addr}]
-     p = lookfield(type, f);
-     type = ref(p,0);
-     off = ref(p,1);
-     addr = addr+off;
-     range = addr,sizeof(type);
-   }
+	- E1 = E2
+	{
+		@local val;
+		val = [ compile_rvalue(E2); ];
+		[ compile_lvalue(E1); ]
+		val = {type}val;
+		dom.as.put(addr, sizeof(type), encode(val, type));
+		val;
+	}
 
-E[e[i],{val}]
-=> E[*(e+i),{val}]
+	- E++
+	{
+		@local dom, type, addr, val;
+		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
+		dom.as.put(addr, sizeof(type), encode(val+1, type));
+		val;
+	}
 
-E[e[i],{type range}]
-=> E[*(e+i),{type range}]
+	- E--
+	{
+		@local dom, type, addr, val;
+		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
+		dom.as.put(addr, sizeof(type), encode(val-1, type));
+		val;
+	}
 
-E[e++,{val}]
-=> { @local type, range, addr, valx;
-     E[e,{range,val}]
-     valx = val+1;
-     put(range,decode(valx));
-   }
+	- ++E
+	{
+		@local dom, type, addr, val;
+		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
+		val = val+1;
+		dom.as.put(addr, sizeof(type), encode(val, type));
+		val;
+	}
+
+	- --E
+	{
+		@local dom, type, addr, val;
+		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
+		val = val-1;
+		dom.as.put(addr, sizeof(type), encode(val, type));
+		val;
+	}
+
+	- E1 += E2;
+	{
+		@local dom, type, addr, u, v;
+		u = [ compile_rvalue(E2); ]  /* reuse dom, type, addr */
+		v = [ compile_rvalue(E1); ]  /* reuse dom, type, addr */
+		v = {type}(v+u);
+		dom.as.put(addr, sizeof(type), encode(val, type));
+	}	
+
+	- etc for other x= operators
+
+	- else
+	{
+		[ E ]
+	}
 
 
-predicate on expressions to determine
-whether a type for the expression will
-be available during its evaluation.
+/* always assume this expression is substituted in block with
+   < dom, type, addr > bindings. */
+compile_lvalue(E, < dom, type, addr > ) :
+	match(E)
+	- dom`sym
+	{
+		@local tmp;
+		dom = [ dom ];
+		tmp = dom.ns.looksym("[ sym ]");
+		if(tmp == nil)
+			error("no such symbol %s", "[ sym ]");
+		type = vecref(tmp, 0);
+		addr = vecref(tmp, 2);
+	}
 
-T[`sym]     => #t
-T[id]       => #f
-T[const]    => #f
-T[*e]       => #t   (?)
-T[e.f]      => #t
-T[e[i]]     => #t
-T[e1 x e2]  => #f   (? maybe for ptr arith, one operand has it)
+	- *E
+	{
+		@local tmp;
+		tmp = [ compile_rvalue(E) ];
+		dom = domainof(tmp);
+		type = ptrsub(typeof(tmp));
+		addr = {litdom}(ptrrep(dom.ns))tmp;
+	}
 
+	- E.field
+	{
+		[ compile_lvalue(E) ];   /* reuse dom, type, addr bindings */
+		tmp = lookfield(type, "[ field ]");
+		type = tmp[0];
+		addr = addr + tmp[2];
+	}
 
-
-ast attributes for l/r-values
------------------------------
-
-reftype(e,ctx)
-case e:
-	e1 = e2:
-		# assume this expression is never an l-value
-		reftype(e1,L);
-		reftype(e2,R);
-		e.ref = R;
-
-	`sym:
-		e.ref = ctx;
+	- E1[E2]
+	{
+		[ compile_lvalue(*(E1+E2)); ]
+	}
 	
-	e1[e2]:
-		reftype(e1,L);
-		reftype(e1,R);
-		e.ref = ctx;
+	- E1->field
+	{
+		[ compile_lvalue((*E1).field); ]
+	}
 
-	e1.f:
-		reftype(e1,L);
-		e1.ref = ctx;
-
-	*e1:
-		reftype(e1,L);
-		e.ref = ctx;
-
-	(e1)++:
-		reftype(e1,L);
-		e.ref = ctx;
-
-
-generating lvalue refs
-----------------------
-
-x = `sym; /* get */
-	looksym(sym) -> type,addr
-	mkrange(addr,type.sz) -> range
-	get(range) -> bytes
-	mkcval(type,bytes) ->
-
-`sym = x; /* put */
-	looksym(sym) -> type,addr
-	cast x type -> cval
-	encode cval -> str
-	range(addr,type.sz) -> range
-	put(range,str)
-
-types in vm represent both names and structure of type.
-allows the vm to traverse the entire type without calling
-the looksym on each call.  problem is that looksym needs
-to build the entire type structure.
-
+	- else
+	compile_error("bad lvalue");
 
 calling convention
 ------------------
