@@ -7,8 +7,6 @@ todo
   how to make it gc-safe? (i.e., without boxes, old values will be
   clobbered w/o being made a root, violating snapshot-at-beginning).
 - change all thunks that do not return values to return nil
-- write Icallx to trap to builtin C functions.
-- figure out how to re-enter VM.
 - check out inferno discussion jun 3 2008 on refs
 - vector() seems to take arguments in reverse order, which is
   confusing to see in compile0 output...why is this?
@@ -16,6 +14,18 @@ todo
       whether bison, when building a glr parser, includes the c.y
       prologue is version sensitive (it does in bison 2.3 but not others)
       so we do the #ifdef dance around the headers shared by c.y and c.l.
+- diagnostics raised by compile0, compile
+- &E
+- *E
+- E.field
+- E->field
+- enums
+- bitfields
+- sizeof
+- typeof
+- cast
+- xcast
+- ambig
 
 grammar
 -------
