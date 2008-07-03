@@ -26,6 +26,7 @@ todo
 - cast
 - xcast
 - ambig
+- check argument count on calls to lambdas
 
 grammar
 -------
