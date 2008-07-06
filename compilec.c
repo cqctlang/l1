@@ -176,7 +176,7 @@ lvalblock(Expr *body)
 	/* local bindings are list of identifier lists */
 	e = Qcons(e, nullelist());
 
-	return newexpr(Eblock, nullelist(), body, 0, 0);
+	return newexpr(Eblock, e, body, 0, 0);
 }
 
 static Expr*
@@ -257,6 +257,8 @@ compile_rval(Expr *e)
 		te = Qcons(se, te);
 		se = Qref(doid("$dom"), doid("$type"), doid("$addr"));
 		te = Qcons(se, te);
+		e->e1 = 0;
+		freeexpr(e);
 		return rvalblock(invert(te));
 	case Edot:
 		fatal("unimplemented");
