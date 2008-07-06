@@ -203,7 +203,7 @@ compile_rvalue(E) :
 	- dom`sym
 	{
 		@local dom, type, addr;
-		[ compile_lvalue(E, < dom, type, addr >); ]
+		[ compile_lvalue(dom`sym, < dom, type, addr >); ]
 		/*
 		 * rvalue magic:
 		 *     type is base type     call dom.as.get
@@ -216,26 +216,26 @@ compile_rvalue(E) :
 		rvalue(dom, type, addr);
 	}		
 
+	- *E
+	{
+		@local dom, type, addr;
+		[ compile_lvalue(*E, < dom, type, addr >); ]
+		rvalue(dom, type, val);
+	}
+
+	- E.field
+	{
+		@local dom, type, addr;
+		[ compile_lvalue(E.field, < dom, type, addr >); ]
+		rvalue(dom, type, addr);
+	}
+
 	- &E
 	{
 		@local dom, type, addr;
 		[ compile_lvalue(E, < dom, type, addr >); ]
 		ref(dom, type, addr);
 		/* equivalent to rvalue(dom, mkarr(type,0), addr) ? */
-	}
-
-	- *E
-	{
-		@local dom, type, addr, val, str;
-		[ compile_lvalue(*E, < dom, type, addr >); ]
-		val = rvalue(dom, type, val);
-	}
-
-	- E.field
-	{
-		@local dom, type, addr, val, str;
-		[ compile_lvalue(E.field, < dom, type, addr >); ]
-		val = rvalue(dom, type, addr);
 	}
 
 	- E1[E2]
@@ -250,7 +250,7 @@ compile_rvalue(E) :
 
 	- E1 = E2
 	{
-		@local val;
+		@local dom, type, addr, val;
 		val = [ compile_rvalue(E2); ];
 		[ compile_lvalue(E1); ]
 		val = {type}val;

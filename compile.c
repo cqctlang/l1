@@ -1825,6 +1825,7 @@ static ikind EtoVM[] = {
 	[E_tabenum] = Itabenum,
 	[E_tabget] = Itabget,
 	[E_tabput] = Itabput,
+/*	[E_typeof] = Itypeof, */
 	[E_tn] = Itn,
 	[E_vec] = Ivec,
 	[E_vecl] = Ivecl,

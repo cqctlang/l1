@@ -227,6 +227,13 @@ compile_lval(Expr *e)
 		freeexpr(e);
 		return lvalblock(invert(te));
 	case Ederef:
+#if 0
+		te = nullelist();
+		se = Qset(doid("$tmp"), compile_rval(e->e1));
+		e->e1 = 0;
+		freeexpr(e);
+		return lvalblock(invert(te));
+#endif
 		fatal("unimplemented");
 	case Edot:
 		fatal("unimplemented");
@@ -245,6 +252,8 @@ compile_rval(Expr *e)
 
 	switch(e->kind){
 	case Etick:
+	case Edot:
+	case Ederef:
 		te = nullelist();
 		se = compile_lval(e);
 		te = Qcons(se, te);
@@ -260,8 +269,6 @@ compile_rval(Expr *e)
 		e->e1 = 0;
 		freeexpr(e);
 		return rvalblock(invert(te));
-	case Edot:
-		fatal("unimplemented");
 	case Eg:
 		if(!islval(e->e1)){
 			e->e1 = compile_rval(e->e1);
