@@ -56,6 +56,7 @@ enum{
 	Edecl,			/* type specifier + 1 declarator */
 	Edecls,			/* type specifier + list of declarators */
 	Edefine,
+	Ederef,
 	Ediv,
 	Edo,
 	Edot,
@@ -105,7 +106,6 @@ enum{
 	Etypeofe,
 	Etypeoft,
 	Euminus,
-	Eumul,
 	Eunion,
 	Eunot,
 	Euplus,
@@ -121,6 +121,7 @@ enum{
 	E_lens,
 	E_lenv,
 	E_range,
+	E_ref,
 	E_sizeof,
 	E_slices,
 	E_str,
@@ -154,11 +155,13 @@ enum Cbase {
 	Vdouble,
 	Vlongdouble,
 	Vvoid,
-	Vptr,
 	Vnbase,
+	Vptr = Vnbase,		/* alias for some other base type */
+	Vnallbase,
 } Cbase;
 
-enum{
+typedef
+enum Tkind {
 	Tbase=0,
 	Tstruct,
 	Tunion,
@@ -167,10 +170,8 @@ enum{
 	Tarr,
 	Tfun,
 	Ttypedef,
-
-	/* Type flags */
-	Ffwd=(1<<0),
-};
+	Tntkind,
+} Tkind;
 
 typedef struct Expr Expr;
 typedef struct Decl Decl;
@@ -271,9 +272,8 @@ struct U {
 extern U ctx;
 extern char* S[];
 extern char* basename[];
+extern char* tkindstr[];
 extern char *stdinname;
-extern Imm basesize[];
-extern Imm ptrsize;
 
 YYstate* mkyystate(FILE *fp);
 void freeyystate(YYstate *yy);

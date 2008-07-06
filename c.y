@@ -143,7 +143,7 @@ unary_operator
 	: '&'
 	{ $$ = Eref; }
 	| '*'
-	{ $$ = Eumul; }
+	{ $$ = Ederef; }
 	| '+'
 	{ $$ = Euplus; }
 	| '-'

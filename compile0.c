@@ -74,9 +74,15 @@ Qset(Expr *l, Expr *r)
 }
 
 static Expr*
-Qcval(Expr *dom, Expr *type, Expr *strorval)
+Qcval(Expr *dom, Expr *type, Expr *val)
 {
-	return newexpr(E_cval, dom, type, strorval, 0);
+	return newexpr(E_cval, dom, type, val, 0);
+}
+
+static Expr*
+Qref(Expr *dom, Expr *type, Expr *val)
+{
+	return newexpr(E_ref, dom, type, val, 0);
 }
 
 static Expr*
@@ -545,6 +551,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		e->e3 = 0;
 		break;
 	case Etick:
+		fatal("should not be here");
 		// reference to symbol in domain
 		binds = Vdom|Vtmp|Vtype|Vrange|Vaddr;
 		if(needval)
@@ -605,6 +612,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		freevarset(lvs);
 		break;
 	case Eref:
+		fatal("should not be here");
 		if(!isloc(e->e1)){
 			fatal("implement compile0 diagnostics");
 			break;
@@ -633,6 +641,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 			compile0(e->e2, 0, vars, 1);
 			break;
 		}
+		fatal("should not be here");
 		binds = Vdom|Vtmp|Vtype|Vrange|Vstr;
 		lvs = bindings(vars, pvs, binds);
 		pushlevel(vars);

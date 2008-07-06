@@ -27,7 +27,8 @@ todo
 - xcast
 - ambig
 - check argument count on calls to lambdas
-- immutable vectors for type datastructures (fields and params)
+- immutable vectors for type datastructures (fields and params)?
+- immutable strings for pre-computed "$get", etc?
 
 grammar
 -------
@@ -185,30 +186,48 @@ compile0
 early compiler pass to convert C lvalue operations into calls to
 cinquecento operations.
 
+cases:
+	&a                       where a is array type
+	          (seems equivalent to &(a[0]))
+
+	(any operator)(dom`x)    where x is an enum constant
+
+	(any operator)E          where E is ptr to incomplete type
+
+	bitfield lvalue escapes before being referenced
+		 e.g., how do we trap &s.bitfield ?
+
+
 compile_rvalue(E) :
 	match(E):
 	- dom`sym
 	{
-		@local dom, type, addr, val, econst;
+		@local dom, type, addr;
 		[ compile_lvalue(E, < dom, type, addr >); ]
 		/*
 		 * rvalue magic:
-		 *     type is scalar type   call dom.as.get
+		 *     type is base type     call dom.as.get
+		 *     type is ptr           call dom.as.get
                  *     type is array         generate equivalent pointer cval
                  *     type is enum const    generate equivalent enum cval
 		 *     type is bitfield	     access as bitfield
 		 *     type is aggregate     error
 		 */
-		val = rvalue(dom, type, addr);
-		val;
+		rvalue(dom, type, addr);
 	}		
+
+	- &E
+	{
+		@local dom, type, addr;
+		[ compile_lvalue(E, < dom, type, addr >); ]
+		ref(dom, type, addr);
+		/* equivalent to rvalue(dom, mkarr(type,0), addr) ? */
+	}
 
 	- *E
 	{
 		@local dom, type, addr, val, str;
 		[ compile_lvalue(*E, < dom, type, addr >); ]
-		str = dom.as.get(addr, sizeof(type));
-		val = decode(type, str);
 		val = rvalue(dom, type, val);
 	}
 
@@ -235,7 +254,7 @@ compile_rvalue(E) :
 		val = [ compile_rvalue(E2); ];
 		[ compile_lvalue(E1); ]
 		val = {type}val;
-		dom.as.put(addr, sizeof(type), encode(val, type));
+		dom.as.put(addr, sizeof(type), encode(val));
 		val;
 	}
 
@@ -243,7 +262,7 @@ compile_rvalue(E) :
 	{
 		@local dom, type, addr, val;
 		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
-		dom.as.put(addr, sizeof(type), encode(val+1, type));
+		dom.as.put(addr, sizeof(type), encode(val+1));
 		val;
 	}
 
@@ -251,7 +270,7 @@ compile_rvalue(E) :
 	{
 		@local dom, type, addr, val;
 		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
-		dom.as.put(addr, sizeof(type), encode(val-1, type));
+		dom.as.put(addr, sizeof(type), encode(val-1));
 		val;
 	}
 
@@ -260,7 +279,7 @@ compile_rvalue(E) :
 		@local dom, type, addr, val;
 		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
 		val = val+1;
-		dom.as.put(addr, sizeof(type), encode(val, type));
+		dom.as.put(addr, sizeof(type), encode(val));
 		val;
 	}
 
@@ -269,7 +288,7 @@ compile_rvalue(E) :
 		@local dom, type, addr, val;
 		val = [ compile_rvalue(E); ]  /* reuse dom, type, addr */
 		val = val-1;
-		dom.as.put(addr, sizeof(type), encode(val, type));
+		dom.as.put(addr, sizeof(type), encode(val));
 		val;
 	}
 
@@ -279,7 +298,7 @@ compile_rvalue(E) :
 		u = [ compile_rvalue(E2); ]  /* reuse dom, type, addr */
 		v = [ compile_rvalue(E1); ]  /* reuse dom, type, addr */
 		v = {type}(v+u);
-		dom.as.put(addr, sizeof(type), encode(val, type));
+		dom.as.put(addr, sizeof(type), encode(val));
 	}	
 
 	- etc for other x= operators
@@ -292,6 +311,8 @@ compile_rvalue(E) :
 
 /* always assume this expression is substituted in block with
    < dom, type, addr > bindings. */
+/* binds to dom the domain of E, to type its type, and to addr its
+   address as a literal cval */
 compile_lvalue(E, < dom, type, addr > ) :
 	match(E)
 	- dom`sym

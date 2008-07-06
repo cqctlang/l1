@@ -24,7 +24,8 @@ enum {
 	Qnkind
 } Qkind;
 
-enum {
+typedef
+enum Rkind {
 	/* type representations */ 
 	Rundef,
 	Rvoid,
@@ -45,7 +46,7 @@ enum {
 	Rs32be,
 	Rs64be,
 	Rnrep, 
-};
+} Rkind;
 
 static char* repname[Rnrep+1] = {
 	[Rundef]=	"<undefined>",
@@ -238,7 +239,7 @@ struct Ns {
 	Closure *looktype;
 
 	/* cached base type definition */
-	Xtypename *basetype[Vnbase];
+	Xtypename *base[Vnallbase];
 
 	/* data for instances created by @names */
 	/* but these could be pushed into closure defining interface */
@@ -278,9 +279,9 @@ struct Vec {
 
 struct Xtypename {
 	Head hd;
-	unsigned xtkind;	/* = Tbase, Tstruct, ... */
+	Tkind tkind;		/* = Tbase, Tstruct, ... */
 	Cbase basename;		/* base (FIXME: rename cbase) */
-	unsigned rep;		/* base, ptr, enum; = Ru08le ... */
+	Rkind rep;		/* base, ptr, enum; = Ru08le ... */
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
 	Val cnt;		/* arr */
@@ -300,7 +301,8 @@ struct VM {
 	Val stack[Maxstk];
 	Dom *litdom;
 	Ns *litns;
-	Xtypename **litbase;	/* always points to litns->basetype */
+	Xtypename **litbase;	/* always points to litns->base */
+	Str *sget;		/* cached "get" string */
 	Root **prot;		/* stack of lists of GC-protected objects */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
@@ -332,6 +334,8 @@ static void mkvalstr(Str *str, Val *vp);
 static void mkvalxtn(Xtypename *xtn, Val *vp);
 static Xtypename* chasetypedef(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
+static Xtypename* mkbasextn(Cbase name, Rkind rep);
+static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
 
 static Val* vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val *v);
@@ -731,8 +735,9 @@ rootset(VM *vm)
 	addroot(&roots, valhead(&vm->ac));
 	addroot(&roots, valhead(&vm->cl));
 
-	/* assume vm->litns is from litdom */
-	addroot(&roots, (Head*)vm->litdom);
+	
+	addroot(&roots, (Head*)vm->litdom); /* assume vm->litns in litdom */
+	addroot(&roots, (Head*)vm->sget);
 
 	/* current GC-protected objects */
 	for(m = 0; m < vm->pdepth; m++){
@@ -932,7 +937,7 @@ static Imm
 typesize(VM *vm, Xtypename *xtn)
 {
 	Cval *cv;
-	switch(xtn->xtkind){
+	switch(xtn->tkind){
 	case Tbase:
 		return repsize[xtn->rep];
 	case Ttypedef:
@@ -1237,29 +1242,29 @@ hashxtn(Val *val)
 	Imm m;
 	
 	xtn = valxtn(val);
-	switch(xtn->xtkind){
+	switch(xtn->tkind){
 	case Tbase:
 		return hash6432shift(xtn->basename);
 	case Ttypedef:
 		mkvalstr(xtn->tid, &v);
-		return hashstr(&v)<<xtn->xtkind;
+		return hashstr(&v)<<xtn->tkind;
 	case Tstruct:
 	case Tunion:
 	case Tenum:
 		mkvalstr(xtn->tag, &v);
-		return hashstr(&v)<<xtn->xtkind;
+		return hashstr(&v)<<xtn->tkind;
 	case Tptr:
 		mkvalxtn(xtn->link, &v);
-		return hashxtn(&v)<<xtn->xtkind;;
+		return hashxtn(&v)<<xtn->tkind;;
 	case Tarr:
 		mkvalxtn(xtn->link, &v);
-		x = hashxtn(&v)<<xtn->xtkind;
+		x = hashxtn(&v)<<xtn->tkind;
 		if(xtn->cnt.qkind == Qcval)
 			x ^= hashcval(&xtn->cnt);
 		return x;
 	case Tfun:
 		mkvalxtn(xtn->link, &v);
-		x = hashxtn(&v)<<xtn->xtkind;
+		x = hashxtn(&v)<<xtn->tkind;
 		for(m = 0; m < xtn->param->len; m++){
 			x <<= 1;
 			vec = valvec(vecref(xtn->param, m));
@@ -1281,10 +1286,10 @@ eqxtn(Val *a, Val *b)
 	xa = valxtn(a);
 	xb = valxtn(b);
 
-	if(xa->xtkind != xb->xtkind)
+	if(xa->tkind != xb->tkind)
 		return 0;
 
-	switch(xa->xtkind){
+	switch(xa->tkind){
 	case Tbase:
 		return xa->basename == xb->basename;
 	case Ttypedef:
@@ -1779,7 +1784,7 @@ iterxtn(Head *hd, Ictx *ictx)
 	Xtypename *xtn;
 
 	xtn = (Xtypename*)hd;
-	switch(xtn->xtkind){
+	switch(xtn->tkind){
 	case Tbase:
 		return GCiterdone;
 	case Tstruct:
@@ -1887,7 +1892,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 	Str *s;
 	Cval *cv;
 
-	switch(xtn->xtkind){
+	switch(xtn->tkind){
 	case Tbase:
 		m = strlen(basename[xtn->basename])+1+strlen(o)+1;
 		buf = xmalloc(m);
@@ -1903,7 +1908,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		return buf;
 	case Tstruct:
 	case Tunion:
-		w = xtn->xtkind == Tstruct ? "struct" : "union";
+		w = tkindstr[xtn->tkind];
 		if(xtn->tag){
 			s = xtn->tag;
 			m = strlen(w)+1+s->len+1+strlen(o)+1;
@@ -1932,7 +1937,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 	case Tptr:
 		m = 2+strlen(o)+1+1;
 		buf = xmalloc(m);
-		if(xtn->link->xtkind == Tfun || xtn->link->xtkind == Tarr)
+		if(xtn->link->tkind == Tfun || xtn->link->tkind == Tarr)
 			snprintf(buf, m, "(*%s)", o);
 		else
 			snprintf(buf, m, "*%s", o);
@@ -2065,9 +2070,9 @@ iterns(Head *hd, Ictx *ictx)
 	case 3:
 		return (Head*)ns->looktype;
 	}
-	if(n >= 3+Vnbase)
+	if(n >= 3+Vnbase)	/* assume elements at+above nbase are aliases */
 		return GCiterdone;
-	return (Head*)ns->basetype[n-3];
+	return (Head*)ns->base[n-3];
 }
 
 Env*
@@ -2693,7 +2698,7 @@ str2imm(Xtypename *xtn, Str *str)
 	char *s;
 
 	xtn = chasetypedef(xtn);
-	if(xtn->xtkind != Tbase && xtn->xtkind != Tptr)
+	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
 		fatal("str2imm on non-scalar type");
 
 	s = str->s;
@@ -2735,7 +2740,7 @@ imm2str(Xtypename *xtn, Imm imm)
 	char *s;
 
 	xtn = chasetypedef(xtn);
-	if(xtn->xtkind != Tbase && xtn->xtkind != Tptr)
+	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
 		fatal("imm2str on non-scalar type");
 
 	switch(xtn->rep){
@@ -2800,7 +2805,7 @@ rerep(Imm val, Xtypename *old, Xtypename *new)
 	/* FIXME: non-trivial cases are : real <-> int,
 	                                  real <-> alternate real
                                           integer truncation
-                                            (so div and rsh work)
+                                            (so div and shr work)
 	*/
  	return val;
 }
@@ -2830,7 +2835,7 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 {
 	Xtypename *b1, *b2;
 	static char *domerr
-		= "attempt to combine cvalues of incompatable domains"; 
+		= "attempt to combine cvalues of incompatible domains"; 
 
 	if(op1->dom == op2->dom)
 		goto out;
@@ -2842,17 +2847,17 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	else{
 		b1 = chasetypedef(op1->type);
 		b2 = chasetypedef(op2->type);
-		if(b1->xtkind != Tptr && b2->xtkind != Tptr){
+		if(b1->tkind != Tptr && b2->tkind != Tptr){
 			op1 = domcast(vm, vm->litdom, op1);
 			op2 = domcast(vm, vm->litdom, op2);
-		}else if(b1->xtkind == Tptr && b2->xtkind == Tptr)
+		}else if(b1->tkind == Tptr && b2->tkind == Tptr)
 			vmerr(vm, domerr);
-		else if(b1->xtkind == Tptr){
+		else if(b1->tkind == Tptr){
 			if(op == Iadd || op == Isub)
 				op2 = domcast(vm, op1->dom, op2);
 			else
 				vmerr(vm, domerr);
-		}else /* b2->xtkind == Tptr */ {
+		}else /* b2->tkind == Tptr */ {
 			if(op == Iadd || op == Isub)
 				op1 = domcast(vm, op2->dom, op1);
 			else
@@ -2871,14 +2876,14 @@ intpromote(VM *vm, Cval *cv)
 	Cval *rv;
 
 	base = chasetypedef(cv->type);
-	if(base->xtkind != Tbase)
+	if(base->tkind != Tbase)
 		return cv;
 	switch(base->basename){
 	case Vuchar:
 	case Vushort:
 	case Vchar:
 	case Vshort:
-		new = cv->dom->ns->basetype[Vint];
+		new = cv->dom->ns->base[Vint];
 		/* FIXME: fix same bugs that xcast has */
 		rv = mkcval(cv->dom, new, cv->val);
 		return rv;
@@ -2913,7 +2918,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	};
 	Dom *dom;
 	Cbase c1, c2, nc;
-	unsigned r1, r2;
+	Rkind r1, r2;
 	Xtypename *b1, *b2, *nxtn;
 
 	op1 = intpromote(vm, op1);
@@ -2952,7 +2957,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		nc = uvariant[c2];
 
 	dom = op1->dom;		/* op2 has the same domain */
-	nxtn = dom->ns->basetype[nc];
+	nxtn = dom->ns->base[nc];
 	if(c1 != nc)
 		op1 = mkcval(dom, nxtn, op1->val);
 	if(c2 != nc)
@@ -3137,7 +3142,7 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 }
 
 static Imm
-truncimm(Imm v, unsigned rep)
+truncimm(Imm v, Rkind rep)
 {
 	switch(rep){
 	case Rs08be:
@@ -3181,18 +3186,18 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	if(op != Iadd && op != Isub)
 		vmerr(vm, "attempt to apply %s to pointer operand", opstr[op]);
 
-	if(t1->xtkind == Tptr && t2->xtkind == Tptr){
+	if(t1->tkind == Tptr && t2->tkind == Tptr){
 		if(op != Isub)
 			vmerr(vm, "attempt to apply %s to pointer operands",
 			      opstr[op]);
 		sub = chasetypedef(t1->link);
 		/* special case: sizeof(void)==1 for pointer arith */
-		if(sub->xtkind == Tbase && sub->basename == Vvoid)
+		if(sub->tkind == Tbase && sub->basename == Vvoid)
 			sz = 1;
 		else
 			sz = typesize(vm, sub);
 		sub = chasetypedef(t2->link);
-		if(sub->xtkind == Tbase && sub->basename == Vvoid)
+		if(sub->tkind == Tbase && sub->basename == Vvoid)
 			osz = 1;
 		else
 			osz = typesize(vm, sub);
@@ -3207,7 +3212,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 
 	/* exactly one operand is a pointer */
 
-	if(t1->xtkind == Tptr){
+	if(t1->tkind == Tptr){
 		sub = chasetypedef(t1->link);
 		ptr = op1;
 		n = op2->val;
@@ -3218,7 +3223,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	}
 
 	/* special case: sizeof(void)==1 for pointer arith */
-	if(sub->xtkind == Tbase && sub->basename == Vvoid)
+	if(sub->tkind == Tbase && sub->basename == Vvoid)
 		sz = 1;
 	else
 		sz = typesize(vm, sub);
@@ -3236,12 +3241,12 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
 	Xtypename *t1, *t2;
-
+	
 	dompromote(vm, op, op1, op2, &op1, &op2);
 	usualconvs(vm, op1, op2, &op1, &op2);
 	t1 = chasetypedef(op1->type);
 	t2 = chasetypedef(op2->type);
-	if(t1->xtkind == Tptr || t2->xtkind == Tptr)
+	if(t1->tkind == Tptr || t2->tkind == Tptr)
 		return xcvalptralu(vm, op, op1, op2, t1, t2);
 
 	i1 = op1->val;
@@ -3650,43 +3655,94 @@ xrange(VM *vm, Operand *beg, Operand *len, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
-/* catch-all operator for generating new cvalues.
-
-   if STRORVAL is a string, construct a cvalue of <DOM,TYPE,VAL>,
-   where VAL is the result of decoding STRORVAL according to
-   underlying representation of TYPE.
-
-   if STRORVAL is a cval, construct a cvalue of <DOM,TYPE*,VAL>,
-   treating VAL as the address of an object of type TYPE.
-*/
 static void
-xcval(VM *vm, Operand *dom, Operand *type, Operand *strorval, Operand *dst)
+xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 {
-	Val typev, strorvalv, domv, rv;
-	Imm imm;
+	Val domv, typev, cvalv, rv;
+	Xtypename *t, *b, *pt;
 	Dom *d;
-	Xtypename *t, *pt;
 	Cval *cv;
+	Imm imm;
 
 	getvalrand(vm, type, &typev);
-	getvalrand(vm, strorval, &strorvalv);
+	getvalrand(vm, cval, &cvalv);
 	getvalrand(vm, dom, &domv);
 	d = valdom(&domv);
 	t = valxtn(&typev);
+	cv = valcval(&cvalv);
 
-	if(strorvalv.qkind == Qstr){
-		imm = str2imm(t, valstr(&strorvalv));
-		mkvalcval(d, t, imm, &rv);
-	}
-	else if(strorvalv.qkind == Qcval){
-		cv = valcval(&strorvalv);
-		pt = mkxtn();
-		pt->xtkind = Tptr;
-		pt->rep = d->ns->basetype[Tptr]->rep;
-		pt->link = t;
+	b = chasetypedef(t);
+	switch(b->tkind){
+	case Tbase:
+	case Tptr:
+	case Tstruct:
+	case Tunion:
+	case Tfun:
+		/* construct pointer */
+		pt = mkptrxtn(t, d->ns->base[Vptr]->rep);
+		imm = truncimm(cv->val, pt->rep);
+		mkvalcval(d, pt, imm, &rv);
+		break;
+	case Tarr:
+		/* construct pointer to first element */
+		pt = mkptrxtn(t->link, d->ns->base[Vptr]->rep);
 		imm = cv->val;
 		imm = truncimm(imm, pt->rep);
 		mkvalcval(d, pt, imm, &rv);
+		break;
+	case Tenum:
+		vmerr(vm, "unimplemented feature");
+	default:
+		fatal("bug");
+	}
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
+{
+	Val domv, typev, cvalv, rv, *p, argv[2];
+	Imm imm;
+	Dom *d;
+	Xtypename *t, *b, *pt;
+	Cval *cv, *len;
+
+	getvalrand(vm, type, &typev);
+	getvalrand(vm, cval, &cvalv);
+	getvalrand(vm, dom, &domv);
+	d = valdom(&domv);
+	t = valxtn(&typev);
+	cv = valcval(&cvalv);
+
+	b = chasetypedef(t);
+	switch(b->tkind){
+	case Tbase:
+		/* FIXME: implement bitfield special case */
+	case Tptr:
+		mkvalstr(vm->sget, &argv[0]);
+		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
+		mkvalrange(cv, len, &argv[1]);
+		p = dovm(vm, d->as->dispatch, 2, argv);
+		imm = str2imm(t, valstr(p));
+		mkvalcval(d, t, imm, &rv);
+		break;
+	case Tenum:
+		vmerr(vm, "unimplemented feature");
+		break;
+	case Tarr:
+		/* construct pointer to first element */
+		pt = mkptrxtn(t->link, d->ns->base[Vptr]->rep);
+		imm = truncimm(cv->val, pt->rep);
+		mkvalcval(d, pt, imm, &rv);
+		break;
+	case Tfun:
+	case Tstruct:
+	case Tunion:
+		vmerr(vm,
+		      "attempt to access %s-valued object in address space",
+		      tkindstr[b->tkind]);
+	default:
+		fatal("bug");
 	}
 	putvalrand(vm, &rv, dst);
 }
@@ -4163,7 +4219,7 @@ nodispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 static Xtypename*
 chasetypedef(Xtypename *xtn)
 {
-	if(xtn->xtkind == Ttypedef)
+	if(xtn->tkind == Ttypedef)
 		return chasetypedef(xtn->link);
 	return xtn;
 }
@@ -4178,7 +4234,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	Imm i;
 	Str *es;
 
-	switch(xtn->xtkind){
+	switch(xtn->tkind){
 	case Tbase:
 	case Ttypedef:
 	case Tstruct:
@@ -4192,7 +4248,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tptr:
 		new = gcprotect(vm, mkxtn());
 		new->link = dolooktype(vm, xtn->link, ns);
-		tmp = ns->basetype[Vptr];
+		tmp = ns->base[Vptr];
 		new->rep = tmp->rep;
 		return new;
 	case Tarr:
@@ -4230,25 +4286,31 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 }
 
 static void
+nscache1base(VM *vm, Ns *ns, Cbase cb)
+{
+	Val v;
+	Xtypename *xtn;
+
+	xtn = mkxtn();	/* will be garbage; safe across dolooktype
+			   because as an argument to looktype it
+			   will be in vm roots */
+	xtn->tkind = Tbase;
+	xtn->basename = cb;
+	mkvalxtn(xtn, &v);
+	xtn = dolooktype(vm, xtn, ns);
+	if(xtn == 0)
+		vmerr(vm, "name space does not define %s",
+		      basename[cb]);
+	ns->base[cb] = xtn;
+}
+
+static void
 nscachebase(VM *vm, Ns *ns)
 {
-	Xtypename *xtn;
 	Cbase cb;
-	Val v;
-
-	for(cb = Vchar; cb < Vnbase; cb++){
-		xtn = mkxtn();	/* will be garbage; safe across dolooktype
-				   because as an argument to looktype it
-				   will be in vm roots */
-		xtn->xtkind = Tbase;
-		xtn->basename = cb;
-		mkvalxtn(xtn, &v);
-		xtn = dolooktype(vm, xtn, ns);
-		if(xtn == 0)
-			vmerr(vm, "name space does not define %s",
-			      basename[cb]);
-		ns->basetype[cb] = xtn;
-	}
+	for(cb = Vchar; cb < Vnbase; cb++)
+		nscache1base(vm, ns, cb);
+	nscache1base(vm, ns, Vptr);
 }
 
 /* looksym for namespaces constructed by @names */
@@ -4292,7 +4354,7 @@ struct NSctx {
 	Tab *otype, *osym;	/* bindings passed to @names */
 	Tab *rawtype, *rawsym;	/* @names declarations */
 	Tab *type, *sym;	/* resulting bindings */
-	unsigned ptrrep;	/* pointer representation */
+	Rkind ptrrep;		/* pointer representation */
 } NSctx;
 
 static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
@@ -4316,7 +4378,7 @@ resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
 	if(rv){
 		xtn = valxtn(xtnv);
 		new = mkxtn();
-		new->xtkind = Ttypedef;
+		new->tkind = Ttypedef;
 		new->tid = xtn->tid;
 
 		/* bind before recursive resolve call to stop cycles */
@@ -4361,7 +4423,7 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 		sz = vecref(vec, 2);
 
 		new = mkxtn();
-		new->xtkind = xtn->xtkind;
+		new->tkind = xtn->tkind;
 		new->tag = xtn->tag;
 		new->field = mkvec(fld->len);
 		new->sz = *sz;
@@ -4397,9 +4459,7 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 
 	/* FIXME: warn if only need ptr to type */
 	xtn = valxtn(xtnv);
-	vmerr(vm, "undefined type %s %.*s",
-	      (xtn->xtkind == Tstruct ? "struct"
-	       : (xtn->xtkind == Tunion ? "union" : "enum")),
+	vmerr(vm, "undefined type %s %.*s", tkindstr[xtn->tkind], 
 	      xtn->tag->len, xtn->tag->s);
 }
 
@@ -4433,7 +4493,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	Xtypename *tmp;
 	Imm i;
 
-	switch(xtn->xtkind){
+	switch(xtn->tkind){
 	case Tbase:
 		mkvalxtn(xtn, &v);
 		return resolvebase(vm, &v, ctx);
@@ -4516,7 +4576,7 @@ xns(VM *vm, Operand *invec, Operand *dst)
 
 	/* get pointer representation from parent name space */
 	xtn = mkxtn();		/* will be garbage */
-	xtn->xtkind = Tbase;
+	xtn->tkind = Tbase;
 	xtn->basename = Vptr;
 	mkvalxtn(xtn, &v);
 	vp = tabget(ctx.otype, &v);
@@ -4645,8 +4705,8 @@ xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 	Val v, rv;
 
 	xtn = mkxtn();
-	xtn->xtkind = TBITSTYPE(bits);
-	switch(xtn->xtkind){
+	xtn->tkind = TBITSTYPE(bits);
+	switch(xtn->tkind){
 	case Tbase:
 		xtn->basename = TBITSBASE(bits);
 		break;
@@ -4848,6 +4908,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ipush] 	= &&Ipush;
 		gotab[Irange] 	= &&Irange;
 		gotab[Irbeg]	= &&Irbeg;
+		gotab[Iref] 	= &&Iref;
 		gotab[Iret] 	= &&Iret;
 		gotab[Irlen]	= &&Irlen;
 		gotab[Ishl] 	= &&Ishl;
@@ -5047,6 +5108,9 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Icval:
 		xcval(vm, &i->op1, &i->op2, &i->op3, &i->dst);
+		continue;
+	Iref:
+		xref(vm, &i->op1, &i->op2, &i->op3, &i->dst);
 		continue;
 	Istr:
 		xstr(vm, &i->op1, &i->dst);
@@ -5634,7 +5698,7 @@ l1_cracktype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to cracktype");
 	xtn = valxtn(&argv[0]);
-	switch(xtn->xtkind){
+	switch(xtn->tkind){
 	case Tbase:
 		vec = mkvec(2);
 		mkvalstr(mkstr0(basename[xtn->basename]), &xv);
@@ -5645,14 +5709,7 @@ l1_cracktype(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Tstruct:
 	case Tunion:
 		vec = mkvec(4);
-		switch(xtn->xtkind){
-		case Tstruct:
-			mkvalstr(mkstr0("struct"), &xv);
-			break;
-		case Tunion:
-			mkvalstr(mkstr0("union"), &xv);
-			break;
-		}
+		mkvalstr(mkstr0(tkindstr[xtn->tkind]), &xv);
 		_vecset(vec, 0, &xv);
 		mkvalstr(xtn->tag, &xv);
 		_vecset(vec, 1, &xv);
@@ -5702,7 +5759,7 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", id);
 	xtn = valxtn(&argv[0]);
-	if(xtn->xtkind == kind)
+	if(xtn->tkind == kind)
 		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
 	else
 		mkvalcval(vm->litdom, vm->litbase[Vint], 0, rv);
@@ -5768,6 +5825,14 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_error(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	/* FIXME: unified formatting */
+	l1_printf(vm, argc, argv, rv);
+	vmerr(vm, "error (see last message)");
+}
+
+static void
 l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s, *t;
@@ -5791,7 +5856,14 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 	memcpy(s->s+o, t->s, t->len);
 }
 
-static unsigned c32le[Vnbase] = {
+typedef
+struct NSroot {
+	Rkind base[Vnbase];
+	Cbase ptr;
+} NSroot;
+
+static NSroot c32le = {
+.base = {
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -5805,11 +5877,12 @@ static unsigned c32le[Vnbase] = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef,
-	[Vptr]=		Ru32le,
+	[Vvoid]=	Rundef,	},
+.ptr = Vulong,
 };
 
-static unsigned c32be[Vnbase] = {
+static NSroot c32be = {
+.base = {
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -5823,11 +5896,12 @@ static unsigned c32be[Vnbase] = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef,
-	[Vptr]=		Ru32be,
+	[Vvoid]=	Rundef, },
+.ptr = Vulong,
 };
 
-static unsigned c64le[Vnbase] = {
+static NSroot c64le = {
+.base = {
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -5841,11 +5915,12 @@ static unsigned c64le[Vnbase] = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef,
-	[Vptr]=		Ru32le,
+	[Vvoid]=	Rundef, },
+.ptr = Vuint,
 };
 
-static unsigned c64be[Vnbase] = {
+static NSroot c64be = {
+.base = {
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -5859,11 +5934,12 @@ static unsigned c64be[Vnbase] = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef,
-	[Vptr]=		Ru32be,
+	[Vvoid]=	Rundef, },
+.ptr = Vuint,
 };
 
-static unsigned clp64le[Vnbase] = {
+static NSroot clp64le = {
+.base = {
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -5877,11 +5953,12 @@ static unsigned clp64le[Vnbase] = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef,
-	[Vptr]=		Ru64le,
+	[Vvoid]=	Rundef, },
+.ptr = Vulong,
 };
 
-static unsigned clp64be[Vnbase] = {
+static NSroot clp64be = {
+.base = {
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -5895,49 +5972,69 @@ static unsigned clp64be[Vnbase] = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef,
-	[Vptr]=		Ru64be,
+	[Vvoid]=	Rundef, },
+.ptr = Vulong,
 };
 
 static Xtypename*
-mkbasextn(Cbase name, unsigned rep)
+mkbasextn(Cbase name, Rkind rep)
 {
 	Xtypename *xtn;
 	xtn = mkxtn();
-	xtn->xtkind = Tbase;
+	xtn->tkind = Tbase;
 	xtn->basename = name;
+	xtn->rep = rep;
+	return xtn;
+}
+
+static Xtypename*
+mkptrxtn(Xtypename *t, Rkind rep)
+{
+	Xtypename *xtn;
+	xtn = mkxtn();
+	xtn->tkind = Tptr;
+	xtn->link = t;
 	xtn->rep = rep;
 	return xtn;
 }
 
 /* FIXME: this shouldn't need a VM */
 static Tab*
-basetab(VM *vm, Xtypename **basetype)
+basetab(VM *vm, Xtypename **base)
 {
 	Cbase cb;
 	Val kv, vv;
 	Tab *type;
+	Xtypename *pt;
 
 	type = mktab();
 	for(cb = Vchar; cb < Vnbase; cb++){
-		mkvalxtn(basetype[cb], &kv);
-		mkvalxtn(basetype[cb], &vv);
+		mkvalxtn(base[cb], &kv);
+		mkvalxtn(base[cb], &vv);
 		tabput(vm, type, &kv, &vv);
 	}
+
+	/* map pointer to integer representation */
+	pt = mkbasextn(Vptr, Rundef);
+	mkvalxtn(pt, &kv);
+	mkvalxtn(base[Vptr], &vv);
+	tabput(vm, type, &kv, &vv);
+
 	return type;
 }
 
 static Ns*
-mkrootns(VM *vm, unsigned *def)
+mkrootns(VM *vm, NSroot *def)
 {
 	Tab *type;
 	Cbase cb;
 	Ns *ns;
-	Xtypename *basetype[Vnbase];
+	Xtypename *base[Vnallbase];
 
 	for(cb = Vchar; cb < Vnbase; cb++)
-		basetype[cb] = mkbasextn(cb, def[cb]);
-	type = basetab(vm, basetype);
+		base[cb] = mkbasextn(cb, def->base[cb]);
+	base[Vptr] = base[def->ptr];
+	type = basetab(vm, base);
 	ns = mknstab(type, mktab());
 	nscachebase(vm, ns);
 	return ns;
@@ -5951,7 +6048,8 @@ mklitdom(VM *vm)
 	Dom *dom;
 	Tab *type;
 	Cbase cb;
-	Xtypename *basetype[Vnbase];
+	Xtypename *base[Vnallbase];
+	static NSroot *litdef = &clp64le;
 
 	dom = mkdom();
 
@@ -5959,14 +6057,15 @@ mklitdom(VM *vm)
 	as->dispatch = mkcfn("nodispatch", nodispatch);
 	dom->as = as;
 
-	memset(basetype, 0, sizeof(basetype)); /* values will be seen by GC */
+	memset(base, 0, sizeof(base)); /* values will be seen by GC */
 	for(cb = Vchar; cb <= Vnbase; cb++)
-		basetype[cb] = mkbasextn(cb, clp64le[cb]);
-	type = basetab(vm, basetype);
+		base[cb] = mkbasextn(cb, litdef->base[cb]);
+	base[Vptr] = base[litdef->ptr];
+	type = basetab(vm, base);
 	ns = mknstab(type, mktab());
-	/* hand populate ns->basetype, because nscachebase calls the
+	/* hand populate ns->base, because nscachebase calls the
 	   VM, which requires a literal domain. */
-	memcpy(ns->basetype, basetype, sizeof(basetype));
+	memcpy(ns->base, base, sizeof(base));
 
 	dom->ns = ns;
 	return dom;
@@ -6060,6 +6159,7 @@ mkvm(Env *env)
 	builtinfn(env, "strput", mkcfn("strput", l1_strput));
 
 	builtinfn(env, "isnil", mkcfn("isnil", l1_isnil));
+	builtinfn(env, "error", mkcfn("error", l1_error));
 
 	builtinstr(env, "$get", "get");
 	builtinstr(env, "$put", "put");
@@ -6069,8 +6169,9 @@ mkvm(Env *env)
 	/* FIXME: make litdom binding immutable (@litdom)? */
 	vm->litdom = mklitdom(vm);
 	vm->litns = vm->litdom->ns;
-	vm->litbase = vm->litns->basetype;
+	vm->litbase = vm->litns->base;
 	builtindom(env, "litdom", vm->litdom);
+	vm->sget = mkstr0("get");
 
 	vmp = vms;
 	while(*vmp){
@@ -6088,12 +6189,12 @@ mkvm(Env *env)
 		free(vm);
 		return 0;
 	}
-	builtinns(env, "c32le", mkrootns(vm, c32le));
-	builtinns(env, "c32be", mkrootns(vm, c32be));
-	builtinns(env, "c64le", mkrootns(vm, c64le));
-	builtinns(env, "c64be", mkrootns(vm, c64be));
-	builtinns(env, "clp64le", mkrootns(vm, clp64le));
-	builtinns(env, "clp64be", mkrootns(vm, clp64be));
+	builtinns(env, "c32le", mkrootns(vm, &c32le));
+	builtinns(env, "c32be", mkrootns(vm, &c32be));
+	builtinns(env, "c64le", mkrootns(vm, &c64le));
+	builtinns(env, "c64be", mkrootns(vm, &c64be));
+	builtinns(env, "clp64le", mkrootns(vm, &clp64le));
+	builtinns(env, "clp64be", mkrootns(vm, &clp64be));
 	poperror(vm);
 	return vm;
 }

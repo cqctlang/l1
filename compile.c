@@ -1816,6 +1816,7 @@ static ikind EtoVM[] = {
 	[E_lens] = Ilens,
 	[E_lenv] = Ilenv,
 	[E_range] = Irange,
+	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
 	[E_slices] = Islices,
 	[E_str] = Istr,
@@ -2048,13 +2049,14 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		randloc(&i->dst, loc);
 		break;
 	case E_cval:
+	case E_ref:
 		/* rather than compute temp requirements for arbitrary
 		   3-operand applications, assume that all 3 operands
 		   are simple. */
 		if(!issimple(e->e1) || !issimple(e->e2) || !issimple(e->e3))
-			fatal("E_cval with non-simple operands");
+			fatal("%s with non-simple operands", EtoVM[e->kind]);
 		i = nextinsn(code);
-		i->kind = Icval;
+		i->kind = EtoVM[e->kind];
 		cgrand(&i->op1, e->e1, p);
 		cgrand(&i->op2, e->e2, p);
 		cgrand(&i->op3, e->e3, p);

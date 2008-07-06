@@ -2,8 +2,74 @@
 #include "util.h"
 #include "l1.h"
 
-static unsigned basemod[Vnbase][Enbase];
-char* basename[Vnbase];
+
+char* basename[Vnbase] = {
+	[Vundef]              = "error!",
+	[Vchar]               = "char",
+	[Vshort]	      = "short",
+	[Vint]		      = "int",
+	[Vlong]		      = "long",
+	[Vvlong]	      = "long long",
+	[Vuchar]	      = "unsigned char",
+	[Vushort]	      = "unsigned short",
+	[Vuint]		      = "unsigned int",
+	[Vulong]	      = "unsigned long",
+	[Vuvlong]	      = "unsigned long long",
+	[Vfloat]	      = "float",
+	[Vdouble]	      = "double",
+	[Vlongdouble]	      = "long double",
+	[Vvoid]		      = "void",
+/*
+	[Vptr]		      = "void*",
+*/
+};
+
+char* tkindstr[Tntkind] = {
+	[Tarr]			= "array",
+	[Tbase]			= "base",
+	[Tenum]			= "enum",
+	[Tfun]			= "function",
+	[Tptr]			= "pointer",
+	[Tstruct]		= "struct",
+	[Ttypedef]		= "typedef",
+	[Tunion]		= "union",
+};
+
+static unsigned basemod[Vnbase][Enbase] = {
+	[Vchar][Eunsigned]     = Vuchar,
+	[Vchar][Esigned]       = Vchar,
+
+	[Vshort][Eunsigned]    = Vushort,
+	[Vshort][Esigned]      = Vshort,
+	[Vshort][Eint]         = Vshort,
+	[Vushort][Eint]        = Vushort,
+
+	[Vint][Eunsigned]      = Vuint,
+	[Vint][Esigned]        = Vint,
+	[Vint][Elong]          = Vlong,
+	[Vuint][Elong]         = Vulong,
+	
+	[Vlong][Eunsigned]     = Vulong,
+	[Vlong][Esigned]       = Vlong,
+	[Vlong][Elong]         = Vvlong,
+	[Vulong][Elong]        = Vuvlong,
+
+	[Vvlong][Eunsigned]    = Vuvlong,
+	[Vvlong][Esigned]      = Vvlong,
+
+	[Vdouble][Elong]       = Vlongdouble,
+
+	[Vundef][Echar]        = Vchar,
+	[Vundef][Edouble]      = Vdouble,
+	[Vundef][Efloat]       = Vfloat,
+	[Vundef][Eint]         = Vint,
+	[Vundef][Elong]        = Vlong,
+	[Vundef][Eshort]       = Vshort,
+	[Vundef][Esigned]      = Vint,
+	[Vundef][Eunsigned]    = Vuint,
+	[Vundef][Evoid]        = Vvoid,
+	/* the rest are Vundef, which we assume to be 0 */
+};
 
 static Decl* dodecls(Expr *e);
 static Decl* dodecl(Expr *e);
@@ -90,57 +156,8 @@ basetype(unsigned base)
 static void
 initbase()
 {
-	basename[Vundef]              = "error!";
-	basename[Vchar]               = "char";
-	basename[Vshort]	      = "short";	     
-	basename[Vint]		      = "int";
-	basename[Vlong]		      = "long";
-	basename[Vvlong]	      = "long long";
-	basename[Vuchar]	      = "unsigned char";
-	basename[Vushort]	      = "unsigned short";
-	basename[Vuint]		      = "unsigned int";
-	basename[Vulong]	      = "unsigned long";
-	basename[Vuvlong]	      = "unsigned long long";
-	basename[Vfloat]	      = "float";
-	basename[Vdouble]	      = "double";
-	basename[Vlongdouble]	      = "long double";
-	basename[Vvoid]		      = "void";
-	basename[Vptr]		      = "void*";
 
-	basemod[Vchar][Eunsigned]     = Vuchar;
-	basemod[Vchar][Esigned]       = Vchar;
 
-	basemod[Vshort][Eunsigned]    = Vushort;
-	basemod[Vshort][Esigned]      = Vshort;
-	basemod[Vshort][Eint]         = Vshort;
-	basemod[Vushort][Eint]        = Vushort;
-
-	basemod[Vint][Eunsigned]      = Vuint;
-	basemod[Vint][Esigned]        = Vint;
-	basemod[Vint][Elong]          = Vlong;
-	basemod[Vuint][Elong]         = Vulong;
-	
-	basemod[Vlong][Eunsigned]     = Vulong;
-	basemod[Vlong][Esigned]       = Vlong;
-	basemod[Vlong][Elong]         = Vvlong;
-	basemod[Vulong][Elong]        = Vuvlong;
-
-	basemod[Vvlong][Eunsigned]    = Vuvlong;
-	basemod[Vvlong][Esigned]      = Vvlong;
-
-	basemod[Vdouble][Elong]       = Vlongdouble;
-
-	basemod[Vundef][Echar]        = Vchar;
-	basemod[Vundef][Edouble]      = Vdouble;	
-	basemod[Vundef][Efloat]       = Vfloat;	
-	basemod[Vundef][Eint]         = Vint;
-	basemod[Vundef][Elong]        = Vlong;
-	basemod[Vundef][Eshort]       = Vshort;
-	basemod[Vundef][Esigned]      = Vint;
-	basemod[Vundef][Eunsigned]    = Vuint;
-	basemod[Vundef][Evoid]        = Vvoid;
-
-	/* the rest are Vundef, which we assume to be 0 */
 }
 
 Expr*
@@ -781,6 +798,8 @@ baselist(Expr *e)
 		case Eunsigned:
 		case Evoid:
 			base = basemod[base][s->kind];
+			/* FIXME: can we rely on parser to structure these
+			   constructions, and eliminate Vundef? */
 			if(base == Vundef)
 				parseerror("bad type specifier");
 			break;
@@ -992,7 +1011,7 @@ fmttype(Type *t, char *o)
 		return buf;
 	case Tstruct:
 	case Tunion:
-		w = t->kind == Tstruct ? "struct" : "union";
+		w = tkindstr[t->kind];
 		if(t->tag){
 			m = strlen(w)+1+strlen(t->tag)+1+strlen(o)+1;
 			buf = xmalloc(m);

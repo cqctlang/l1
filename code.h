@@ -68,6 +68,7 @@ enum {
 	Ipush,
 	Irange,
 	Irbeg,
+	Iref,
 	Iret,
 	Irlen,
 	Ishl,
@@ -216,6 +217,7 @@ void initcompile();
 void finicompile();
 Code* newcode();
 Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
+Expr* docompilec(Expr *e);
 void docompile0(Expr *e);
 Closure* compileentry(Expr *el, Env *env, int flags);
 void printcode(Code *code);

@@ -21,6 +21,7 @@ int
 main(int argc, char *argv[])
 {
 	Closure *entry;
+	Expr *rv;
 	VM *vm;
 	Env *env;
 	char *filename = 0;
@@ -75,6 +76,12 @@ main(int argc, char *argv[])
 	}
 
 	dotypes(ctx.el);
+	rv = docompilec(ctx.el);
+	if(rv == 0){
+		freeexpr(ctx.el);
+		goto out;
+	}
+	ctx.el = rv;
 	docompile0(ctx.el);
 	if(flags&Fprintir){
 		printf("compile0:\n");
