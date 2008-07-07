@@ -49,7 +49,6 @@ enum Rkind {
 } Rkind;
 
 static char* repname[Rnrep+1] = {
-	[Rundef]=	"<undefined>",
 	[Rvoid]=	"@void",
 	[Ru08le]=	"@u8le",
 	[Ru16le]=	"@u16le",
@@ -67,7 +66,6 @@ static char* repname[Rnrep+1] = {
 	[Rs16be]=	"@s16be",
 	[Rs32be]=	"@s32be",
 	[Rs64be]=	"@s64be",
-	[Rnrep]=	"<help me, i'm broken>",
 };
 
 static Imm repsize[Rnrep+1] = {
@@ -5727,69 +5725,6 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_cracktype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val xv;
-	Xtypename *xtn;
-	Vec *vec;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to cracktype");
-	xtn = valxtn(&argv[0]);
-	switch(xtn->tkind){
-	case Tbase:
-		vec = mkvec(2);
-		mkvalstr(mkstr0(basename[xtn->basename]), &xv);
-		_vecset(vec, 0, &xv);
-		mkvalstr(mkstr0(repname[xtn->rep]), &xv);
-		_vecset(vec, 1, &xv);
-		break;
-	case Tstruct:
-	case Tunion:
-		vec = mkvec(4);
-		mkvalstr(mkstr0(tkindstr[xtn->tkind]), &xv);
-		_vecset(vec, 0, &xv);
-		mkvalstr(xtn->tag, &xv);
-		_vecset(vec, 1, &xv);
-		mkvalvec(xtn->field, &xv);
-		_vecset(vec, 2, &xv);
-		_vecset(vec, 3, &xtn->sz);
-		break;
-	case Tenum:
-		fatal("incomplete support for enums");
-		break;
-	case Tptr:
-		vec = mkvec(1);
-		mkvalxtn(xtn->link, &xv);
-		_vecset(vec, 0, &xv);
-		break;
-	case Tarr:
-		vec = mkvec(2);
-		mkvalxtn(xtn->link, &xv);
-		_vecset(vec, 0, &xv);
-		_vecset(vec, 1, &xtn->cnt); /* nil or cval */
-		break;
-	case Tfun:
-		vec = mkvec(2);
-		mkvalxtn(xtn->link, &xv);
-		_vecset(vec, 0, &xv);
-		mkvalvec(xtn->param, &xv);
-		_vecset(vec, 1, &xv);
-		break;
-	case Ttypedef:
-		vec = mkvec(2);
-		mkvalxtn(xtn->link, &xv);
-		_vecset(vec, 0, &xv);
-		mkvalstr(xtn->tid, &xv);
-		_vecset(vec, 1, &xv);
-		break;
-	default:
-		fatal("bug");
-	}
-	mkvalvec(vec, rv);
-}
-
-static void
 dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 {
 	Xtypename *xtn;
@@ -5911,6 +5846,23 @@ l1_rettype(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm,
 		      "operand 1 to rettype must be a function ctype");
 	mkvalxtn(xtn->link, rv);
+}
+
+static void
+l1_suekind(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to suekind");
+	if(argv->qkind != Qxtn)
+		vmerr(vm,
+		      "operand 1 to suekind must be a tagged ctype");
+	xtn = valxtn(argv);
+	if(xtn->tkind != Tstruct && xtn->tkind != Tunion && xtn->tkind != Tenum)
+		vmerr(vm,
+		      "operand 1 to suekind must be a tagged ctype");
+	mkvalstr(mkstr0(tkindstr[xtn->tkind]), rv);
 }
 
 static void
@@ -6064,11 +6016,11 @@ l1_fields(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to fields");
 	if(argv->qkind != Qxtn)
 		vmerr(vm,
-		      "operand 1 to fields must be a function ctype");
+		      "operand 1 to fields must be a struct or union ctype");
 	xtn = valxtn(argv);
-	if(xtn->tkind != Tfun)
+	if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
 		vmerr(vm,
-		      "operand 1 to fields must be a function ctype");
+		      "operand 1 to fields must be a struct or union ctype");
 	mkvalvec(xtn->field, rv);
 }
 
@@ -6130,7 +6082,7 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = &v->vec[Offpos];
-	if(vp->qkind != Qcval)
+	if(vp->qkind != Qcval && vp->qkind != Qnil)
 		vmerr(vm, err);
 	*rv = *vp;
 }
@@ -6468,7 +6420,6 @@ mkvm(Env *env)
 	builtinfn(env, "tabvals", mkcfn("tabvals", l1_tabvals));
 	builtinfn(env, "vmbacktrace", mkcfn("vmbacktrace", l1_vmbacktrace));
 
-	builtinfn(env, "cracktype", mkcfn("cracktype", l1_cracktype));
 	builtinfn(env, "isbase", mkcfn("isbase", l1_isbase));
 	builtinfn(env, "issu", mkcfn("issu", l1_issu));
 	builtinfn(env, "isstruct", mkcfn("isstruct", l1_isstruct));
@@ -6481,6 +6432,7 @@ mkvm(Env *env)
 
 	builtinfn(env, "baseid", mkcfn("baseid", l1_baseid));
 	builtinfn(env, "subtype", mkcfn("subtype", l1_subtype));
+	builtinfn(env, "suekind", mkcfn("suekind", l1_suekind));
 	builtinfn(env, "suetag", mkcfn("suetag", l1_suetag));
 	builtinfn(env, "susize", mkcfn("susize", l1_susize));
 	builtinfn(env, "arraynelm", mkcfn("arraynelm", l1_arraynelm));	

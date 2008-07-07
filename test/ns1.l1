@@ -2,26 +2,25 @@ define printtype(t){
 	@local ct, i, fld, flds, sz, off;
 
 	ct = cracktype(t);
-	if(isstruct(t) || isunion(t)){
-		printf("%s %s {\n", vecref(ct, 0), vecref(ct, 1));
-		flds = vecref(ct, 2);
+	if(issu(t)){
+		printf("%s %s {\n", suekind(t), suetag(t));
+		flds = fields(t);
 		for(i = 0; i < veclen(flds); i++){
 			fld = vecref(flds, i);
-			off = vecref(fld, 2);
+			off = fieldoff(fld);
 			if(!isnil(off))
 				printf("\t@0x%x", off);
 			else
 				printf("\t");
 			printf("\t%t;\n", fld);
 		}
-		sz = vecref(ct, 3);
+		sz = susize(t);
 		if(!isnil(sz))
 			printf("\t@0x%x;\n", vecref(ct, 3));
 		printf("};\n");
 	}else if(istypedef(t))
 		printf("typedef %t;\n", ct);
 };
-
 
 define foo(){
 	@local ns, fn, tab, vec, i;
