@@ -138,7 +138,6 @@ hexpand(HT *ht)
 	free(ht->ht);
 	ht->ht = nht;
 	ht->sz = nsz;
-	printf("expanded\n");
 }
 
 void
