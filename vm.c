@@ -1886,54 +1886,56 @@ static char*
 _fmtxtn(Xtypename *xtn, char *o)
 {
 	char *buf, *w, *pl;
-	unsigned m;
+	unsigned m, leno;
 	Str *s;
 	Cval *cv;
 
+	leno = strlen(o);
 	switch(xtn->tkind){
 	case Tbase:
-		m = strlen(basename[xtn->basename])+1+strlen(o)+1;
+		m = strlen(basename[xtn->basename])+1+leno+1;
 		buf = xmalloc(m);
-		snprintf(buf, m, "%s %s", basename[xtn->basename], o);
+		if(leno)
+			snprintf(buf, m, "%s %s", basename[xtn->basename], o);
+		else
+			snprintf(buf, m, "%s", basename[xtn->basename]);
 		free(o);
 		return buf;
 	case Ttypedef:
 		s = xtn->tid;
-		m = s->len+1+strlen(o)+1;
+		m = s->len+1+leno+1;
 		buf = xmalloc(m);
-		snprintf(buf, m, "%.*s %s", s->len, s->s, o);
+		if(leno)
+			snprintf(buf, m, "%.*s %s", s->len, s->s, o);
+		else
+			snprintf(buf, m, "%.*s", s->len, s->s);
 		free(o);
 		return buf;
 	case Tstruct:
 	case Tunion:
+	case Tenum:
 		w = tkindstr[xtn->tkind];
 		if(xtn->tag){
 			s = xtn->tag;
-			m = strlen(w)+1+s->len+1+strlen(o)+1;
+			m = strlen(w)+1+s->len+1+leno+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "%s %.*s %s", w, s->len, s->s, o);
+			if(leno)
+				snprintf(buf, m, "%s %.*s %s",
+					 w, s->len, s->s, o);
+			else
+				snprintf(buf, m, "%s %.*s", w, s->len, s->s);
 		}else{
-			m = strlen(w)+1+strlen(o)+1;
+			m = strlen(w)+1+leno+1;
 			buf = xmalloc(m);
-			snprintf(buf, m, "%s %s", w, o);
-		}
-		free(o);
-		return buf;
-	case Tenum:
-		if(xtn->tag){
-			s = xtn->tag;
-			m = 4+1+s->len+1+strlen(o)+1;
-			buf = xmalloc(m);
-			snprintf(buf, m, "enum %.*s %s", s->len, s->s, o);
-		}else{
-			m = 4+1+strlen(o)+1;
-			buf = xmalloc(m);
-			snprintf(buf, m, "enum %s", o);
+			if(leno)
+				snprintf(buf, m, "%s %s", w, o);
+			else
+				snprintf(buf, m, "%s", w);
 		}
 		free(o);
 		return buf;
 	case Tptr:
-		m = 2+strlen(o)+1+1;
+		m = 2+leno+1+1;
 		buf = xmalloc(m);
 		if(xtn->link->tkind == Tfun || xtn->link->tkind == Tarr)
 			snprintf(buf, m, "(*%s)", o);
@@ -1942,7 +1944,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		free(o);
 		return _fmtxtn(xtn->link, buf);
 	case Tarr:
-		m = strlen(o)+1+10+1+1;	/* assume max 10 digit size */
+		m = leno+1+10+1+1;	/* assume max 10 digit size */
 		buf = xmalloc(m);
 		if(xtn->cnt.qkind == Qnil)
 			snprintf(buf, m, "%s[]", o);
@@ -1954,7 +1956,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		return _fmtxtn(xtn->link, buf);
 	case Tfun:
 		pl = fmtplist(xtn->param);
-		m = strlen(o)+1+strlen(pl)+1+1;
+		m = leno+1+strlen(pl)+1+1;
 		buf = xmalloc(m);
 		snprintf(buf, m, "%s(%s)", o, pl);
 		free(o);
@@ -5676,7 +5678,7 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 				cv = valcval(vp);
 				as = fmtxtn(cv->type);
 			}else
-				vmerr(vm, "bad operand to %t");
+				vmerr(vm, "bad operand to %%t");
 			fprintf(fp, "%.*s", as->len, as->s);
 			break;
 		default:

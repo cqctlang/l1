@@ -1,7 +1,6 @@
 define printtype(t){
 	@local ct, i, fld, flds, sz, off;
 
-	ct = cracktype(t);
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
 		flds = fields(t);
@@ -16,10 +15,10 @@ define printtype(t){
 		}
 		sz = susize(t);
 		if(!isnil(sz))
-			printf("\t@0x%x;\n", vecref(ct, 3));
+			printf("\t@0x%x;\n", sz);
 		printf("};\n");
 	}else if(istypedef(t))
-		printf("typedef %t;\n", ct);
+		printf("typedef %t %s;\n", typedeftype(t), typedefid(t));
 };
 
 define foo(){
