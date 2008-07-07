@@ -1,3 +1,73 @@
+
+The Literal Domain
+
+Cinquecento represents arithmetic literals as cvalues
+from a special built-in literal domain, named @litdom.
+This domain is based on a commonly used model of C
+types on 64-bit machines.  Only the size of arithmetic
+types matters in this domain; details of representation
+such as pointer size and endianness are irrelevant,
+because expressions in this domain never reference
+memory.
+
+
+Mixed-domain Expressions
+
+A binary C operator may be applied to cvalue operands
+from two different domains.  Several rules determine
+the outcome of such mixed-domain expressions.
+The motivation behind these rules is to give sensible
+meaning to mixed-domain expressions that yield or
+compare arithmetic quantities, but to disallow rarely
+sensible mixed-domain combinations of pointer values.
+
+The first rule concerns expressions with literal terms,
+such as (dom`x+5).  When evaluating a mixed-domain
+expression, the Cinquecento evaluator first checks
+whether one of the operands is from the literal domain.
+If so, it implicitly converts the domain of the literal
+operand to the domain of the other operand.  In
+essence, the non-literal operand absorbs the literal
+operand into its domain.  Undesired truncation of high
+bits can be avoided by explicitly casting the literal
+operand to a large type or by employing suffix syntax
+when expressing the literal (e.g., 0x100000000ULL).
+
+The second rule concerns mixed-domain arithmetic,
+bitwise, and relational operations on non-literal
+operands that are not pointers.  Such operands are both
+converted to the literal domain.  This rule allows
+comparison or aggregation of arithmetic values from
+different domains to be expressed naturally without the
+clutter of explicit domain conversions.
+
+The third rule concerns mixed expressions in which one
+operand is a pointer.  Pointer addition operations
+(including array subscripting) comprise one pointer
+operand and one arithmetic operand.  In mixed-domain
+pointer addition, the domain of the arithmetic operand
+is implicitly cast to that of the pointer operand.
+Since the type of the result is pointer, the domain of
+the result should remain in the domain of the pointer
+operand.  (This rule also maintains consistency with
+the rule for literals.)  Pointer subtraction operations
+involve either one pointer operand and one arithmetic
+operand or two pointer operands.  In the former case,
+the rule is the same as that for pointer addition.  The
+latter case is disallowed: it makes no sense to relate
+locations in two different address spaces.  A program
+that wishes to do so must explicitly domain cast one of
+the operands.
+
+The final rule is that all other mixed-domain
+expressions are disallowed.  Generally this rule covers
+the other mixed-domain pointer expressions.  For
+example, comparison of pointers from different domains
+is prohibited for the same reason that pointer
+subtraction is prohibited.  An explicit domain cast can
+be used to circumvent this rule.
+
+
 Name spaces interface
 	looksym(str) -> xtn
 	looktype(xtn) -> xtn

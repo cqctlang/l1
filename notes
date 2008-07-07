@@ -332,7 +332,7 @@ compile_lvalue(E, < dom, type, addr > ) :
 		tmp = [ compile_rvalue(E) ];
 		dom = domainof(tmp);
 		type = ptrsub(typeof(tmp));
-		addr = {litdom}(ptrrep(dom.ns))tmp;
+		addr = {litdom}{nsptr(dom.ns)}tmp;
 	}
 
 	- E.field

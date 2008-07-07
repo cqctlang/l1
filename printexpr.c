@@ -111,15 +111,41 @@ char* S[] = {
 	[E_xcast] =	"E_xcast",
 };
 
+static void
+abbrevlits(char *buf, unsigned len, Lits *lits)
+{
+	char *p, *e, ch;
+	unsigned m;
+	p = buf;
+	e = buf+len-1;
+	m = 0;
+	while(p < e){
+		if(m >= lits->len)
+			break;
+		ch = lits->s[m];
+		if(ch == '\n')
+			break;
+		if(ch == '"')
+			break;
+		*p++ = ch;
+		m++;
+	}
+	*p = 0;
+}
+
 void
 printexpr(Expr *e)
 {
+	static char consts[10];
+
 	switch(e->kind){
 	case Econst:
 		printf("%" PRIu64, e->liti.val);
 		break;
 	case Econsts:
-		printf("(Econsts %.*s)", e->lits->len, e->lits->s);
+//		printf("(Econsts %.*s)", e->lits->len, e->lits->s);
+		abbrevlits(consts, sizeof(consts), e->lits);
+		printf("(Econsts \"%s\")", consts);
 		break;
 	case Eid:
 		printf("(Eid %s)", e->id);

@@ -691,6 +691,10 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Iref:
+		printf("ref ");
+		printrand(code, &i->op1);
+		break;
 	default:
 		fatal("printinsn: unrecognized insn %d", i->kind);
 	}

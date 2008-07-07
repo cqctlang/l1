@@ -6,6 +6,7 @@
 static jmp_buf esc;
 
 static void cerror(Expr *e, char *fmt, ...) __attribute__((noreturn));
+static Expr* compile_rval(Expr *e);
 
 static void
 cerror(Expr *e, char *fmt, ...)
@@ -29,6 +30,12 @@ static Expr*
 Q2(unsigned kind, Expr *e1, Expr *e2)
 {
 	return newexpr(kind, e1, e2, 0, 0);
+}
+
+static Expr*
+Qadd(Expr *x, Expr *y)
+{
+	return newbinop(Eadd, x, y);
 }
 
 static Expr*
@@ -94,13 +101,6 @@ Qcall(Expr *fn, unsigned narg, ...)
 	return Q2(Ecall, fn, e);
 }
 
-/* arguments in usual order */
-static Expr*
-Qapply(Expr *fn, Expr *args)
-{
-	return Q2(Ecall, fn, invert(args));
-}
-
 static Expr*
 Qconsts(char *s)
 {
@@ -114,23 +114,6 @@ static Expr*
 Quint(Imm val)
 {
 	return mkconst(Vuint, val);
-}
-
-static Expr*
-Qnil()
-{
-	Expr *e;
-	e = newexpr(Enil, 0, 0, 0, 0);
-	return e;
-}
-
-static Expr*
-Qstr(char *s)
-{
-	Expr *e;
-	e = newexpr(Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, strlen(s));
-	return e;
 }
 
 static int
@@ -202,11 +185,11 @@ compile_lval(Expr *e)
 		se = Qset(doid("$tmp"), se);
 		te = Qcons(se, te);
 		
-		// if(isnil($tmp)) error("undefined symbol %s", sym);
+		// if(isnil($tmp)) error("undefined symbol: %s", sym);
 		se = newexpr(Eif,
 			     Qcall(doid("isnil"), 1, doid("$tmp")),
 			     Qcall(doid("error"), 2,
-				   Qconsts("undefined symbol %s"),
+				   Qconsts("undefined symbol: %s"),
 				   Qconsts(e->e2->id)),
 			     0, 0);
 		te = Qcons(se, te);
@@ -227,16 +210,70 @@ compile_lval(Expr *e)
 		freeexpr(e);
 		return lvalblock(invert(te));
 	case Ederef:
-#if 0
 		te = nullelist();
+
+		// $tmp = compile_rval(e->e1)
 		se = Qset(doid("$tmp"), compile_rval(e->e1));
+		te = Qcons(se, te);
+
+		// $type = subtype($typeof($tmp));
+		se = Qset(doid("$type"),
+			  Qcall(doid("subtype"), 1,
+				Qcall(doid("$typeof"), 1, doid("$tmp"))));
+		te = Qcons(se, te);
+
+		// $dom = domof($tmp);
+		se = Qset(doid("$dom"), Qcall(doid("domof"), 1, doid("$tmp")));
+		te = Qcons(se, te);
+
+		// $addr = {litdom}{nsptr(dom)}$tmp
+		se = Qset(doid("$addr"),
+			  Qxcast(doid("litdom"),
+				 Qxcast(Qcall(doid("nsptr"), 1, doid("dom")),
+					doid("$tmp"))));
+		te = Qcons(se, te);
+
 		e->e1 = 0;
 		freeexpr(e);
 		return lvalblock(invert(te));
-#endif
-		fatal("unimplemented");
 	case Edot:
-		fatal("unimplemented");
+		te = nullelist();
+		
+		// compile lvalue reference to containing struct,
+		// using dom, type, addr bindings.
+		se = compile_lval(e->e1);
+		te = Qcons(se, te);
+		
+		// $tmp = lookfield(type, field);
+		se = Qset(doid("$tmp"),
+			  Qcall(doid("lookfield"), 2,
+				doid("$type"), Qconsts(e->e2->id)));
+		te = Qcons(se, te);
+
+		// if(isnil($tmp)) error("undefined field: %s", sym);
+		se = newexpr(Eif,
+			     Qcall(doid("isnil"), 1, doid("$tmp")),
+			     Qcall(doid("error"), 2,
+				   Qconsts("undefined field: %s"),
+				   Qconsts(e->e2->id)),
+			     0, 0);
+		te = Qcons(se, te);
+
+		// $type = fieldtype($tmp);
+		se = Qset(doid("$type"),
+			  Qcall(doid("fieldtype"), 1, doid("$tmp")));
+		te = Qcons(se, te);
+				     
+		// $addr = $addr + fieldoff($tmp)
+		se = Qset(doid("$addr"),
+			  Qadd(doid("$addr"),
+			       Qcall(doid("fieldoff"), 1, doid("$tmp"))));
+		te = Qcons(se, te);
+		
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return lvalblock(invert(te));
 	default:
 		cerror(e, "expression is not an lvalue");
 	}
@@ -320,7 +357,7 @@ rewriteptr(Expr *e)
 		rewriteptr(e->e1);
 		rewriteptr(e->e2);
 		e->kind = Ederef;
-		e->e1 = newexpr(Eadd, e->e1, e->e2, 0, 0);
+		e->e1 = Qadd(e->e1, e->e2);
 		e->e2 = 0;
 		break;
 	case Earrow:

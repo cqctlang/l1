@@ -408,7 +408,7 @@ static int eqcval(Val*, Val*);
 static int eqptr(Val*, Val*);
 static int eqtrue(Val*, Val*);
 static int eqrange(Val*, Val*);
-static int eqstr(Val*, Val*);
+static int eqstrv(Val*, Val*);
 static int eqxtn(Val*, Val*);
 
 typedef struct Hashop {
@@ -429,7 +429,7 @@ static Hashop hashop[Qnkind] = {
 	[Qns]	= { hashptr, eqptr },
 	[Qpair]	= { hashptr, eqptr },
 	[Qrange] =  { hashrange, eqrange },
-	[Qstr]	= { hashstr, eqstr },
+	[Qstr]	= { hashstr, eqstrv },
 	[Qtab]	= { hashptr, eqptr },
 	[Qvec]	= { hashptr, eqptr },
 	[Qxtn]	= { hashxtn, eqxtn },
@@ -1220,14 +1220,20 @@ hashstr(Val *val)
 }
 
 static int
-eqstr(Val *a, Val *b)
+eqstr(Str *a, Str *b)
+{
+	if(a->len != b->len)
+		return 0;
+	return memcmp(a->s, b->s, a->len) ? 0 : 1;
+}
+
+static int
+eqstrv(Val *a, Val *b)
 {
 	Str *sa, *sb;
 	sa = valstr(a);
 	sb = valstr(b);
-	if(sa->len != sb->len)
-		return 0;
-	return memcmp(sa->s, sb->s, sa->len) ? 0 : 1;
+	return eqstr(sa, sb);
 }
 
 static u32
@@ -1291,15 +1297,11 @@ eqxtn(Val *a, Val *b)
 	case Tbase:
 		return xa->basename == xb->basename;
 	case Ttypedef:
-		mkvalstr(xa->tid, &va);
-		mkvalstr(xb->tid, &vb);
-		return eqstr(&va, &vb);
+		return eqstr(xa->tid, xb->tid);
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		mkvalstr(xa->tag, &va);
-		mkvalstr(xb->tag, &vb);
-		return eqstr(&va, &vb);
+		return eqstr(xa->tag, xb->tag);
 	case Tptr:
 		mkvalxtn(xa->link, &va);
 		mkvalxtn(xb->link, &vb);
@@ -2798,7 +2800,7 @@ imm2str(Xtypename *xtn, Imm imm)
 	}	
 }
 
-/* transformat representation of VAL used for type OLD to type NEW */
+/* transform representation of VAL used for type OLD to type NEW */
 static Imm
 rerep(Imm val, Xtypename *old, Xtypename *new)
 {
@@ -2811,11 +2813,18 @@ rerep(Imm val, Xtypename *old, Xtypename *new)
 }
 
 static Cval*
+typecast(VM *vm, Xtypename *xtn, Cval *cv)
+{
+	Imm val;
+	val = rerep(cv->val, cv->type, xtn);
+	return mkcval(cv->dom, xtn, val);
+}
+
+static Cval*
 domcast(VM *vm, Dom *dom, Cval *cv)
 {
 	Xtypename *xtn;
 	Str *es;
-	Imm val;
 
 	if(dom == vm->litdom)
 		xtn = dolooktype(vm, chasetypedef(cv->type), dom->ns);
@@ -2826,8 +2835,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 		vmerr(vm, "cast to domain that does not define %.*s",
 		      es->len, es->s);
 	}
-	val = rerep(cv->val, cv->type, xtn);
-	return mkcval(dom, xtn, val);
+	return typecast(vm, xtn, cv);
 }
 
 static void
@@ -2872,8 +2880,7 @@ out:
 static Cval*
 intpromote(VM *vm, Cval *cv)
 {
-	Xtypename *new, *base;
-	Cval *rv;
+	Xtypename *base;
 
 	base = chasetypedef(cv->type);
 	if(base->tkind != Tbase)
@@ -2883,10 +2890,7 @@ intpromote(VM *vm, Cval *cv)
 	case Vushort:
 	case Vchar:
 	case Vshort:
-		new = cv->dom->ns->base[Vint];
-		/* FIXME: fix same bugs that xcast has */
-		rv = mkcval(cv->dom, new, cv->val);
-		return rv;
+		return typecast(vm, cv->dom->ns->base[Vint], cv);
 	default:
 		break;
 	}
@@ -2916,7 +2920,6 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vlong] = Vulong,
 		[Vvlong] = Vuvlong,
 	};
-	Dom *dom;
 	Cbase c1, c2, nc;
 	Rkind r1, r2;
 	Xtypename *b1, *b2, *nxtn;
@@ -2956,12 +2959,11 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	else
 		nc = uvariant[c2];
 
-	dom = op1->dom;		/* op2 has the same domain */
-	nxtn = dom->ns->base[nc];
+	nxtn = op1->dom->ns->base[nc];          /* op2 has the same domain */
 	if(c1 != nc)
-		op1 = mkcval(dom, nxtn, op1->val);
+		op1 = typecast(vm, nxtn, op1);
 	if(c2 != nc)
-		op2 = mkcval(dom, nxtn, op2->val);
+		op2 = typecast(vm, nxtn, op2);
 	*rv1 = op1;
 	*rv2 = op2;
 }
@@ -3077,15 +3079,9 @@ binopstr(VM *vm, ikind op, Str *s1, Str *s2)
 
 	switch(op){
 	case Icmpeq:
-		if(s1->len != s2->len)
-			return 0;
-		else
-			return memcmp(s1->s, s2->s, s1->len) ? 0 : 1;
+		return eqstr(s1, s2);
 	case Icmpneq:
-		if(s1->len != s2->len)
-			return 1;
-		else
-			return memcmp(s1->s, s2->s, s1->len) ? 1 : 0;
+		return !eqstr(s1, s2);
 	case Icmpgt:
 		len = s1->len > s2->len ? s2->len : s1->len;
 		x = memcmp(s1, s2, len);
@@ -3935,19 +3931,30 @@ xtabput(VM *vm, Operand *tab, Operand *key, Operand *val)
 }
 
 static void
-xxcast(VM *vm, Operand *type, Operand *cval, Operand *dst)
+xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 {
-	Val typev, cvalv, rv;
+	Val typeordomv, cvalv, rv;
 	Cval *cv;
+	Dom *d;
 	Xtypename *t;
-	Imm val;
 
-	getvalrand(vm, type, &typev);
 	getvalrand(vm, cval, &cvalv);
-	t = valxtn(&typev);
+	if(cvalv.qkind != Qcval)
+		vmerr(vm,
+		      "operand 2 to extended cast operator must be a cvalue");
 	cv = valcval(&cvalv);
-	val = rerep(cv->val, cv->type, t);
-	mkvalcval(cv->dom, t, val, &rv);
+
+	getvalrand(vm, typeordom, &typeordomv);
+	if(typeordomv.qkind == Qxtn){
+		t = valxtn(&typeordomv);
+		mkvalcval2(typecast(vm, t, cv), &rv);
+	}else if(typeordomv.qkind == Qdom){
+		d = valdom(&typeordomv);
+		mkvalcval2(domcast(vm, d, cv), &rv);
+	}else
+		vmerr(vm,
+		      "operand 2 to extended cast operator must be "
+		      "a domain or ctype");
 	putvalrand(vm, &rv, dst);
 }
 
@@ -6027,6 +6034,37 @@ l1_fields(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+	Val *vp;
+	Imm i;
+
+	static char *err1
+		= "operand 1 to lookfield must be a struct or union ctype";
+	static char *err2
+		= "operand 2 to lookfield must be a string";
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to lookfield");
+	if(argv[0].qkind != Qxtn)
+		vmerr(vm, err1);
+	xtn = valxtn(&argv[0]);
+	if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
+		vmerr(vm,
+		      "operand 1 to fields must be a struct or union ctype");
+	if(argv[1].qkind != Qstr)
+		vmerr(vm, err2);
+	for(i = 0; i < xtn->field->len; i++){
+		vp = vecref(xtn->field, i);
+		if(eqstrv(&argv[1], vecref(valvec(vp), Idpos))){
+			*rv = *vp;
+			return;
+		}
+	}
+}
+
+static void
 l1_fieldtype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
@@ -6087,6 +6125,18 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(vp->qkind != Qcval && vp->qkind != Qnil)
 		vmerr(vm, err);
 	*rv = *vp;
+}
+
+static void
+l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to $typeof");
+	if(argv->qkind != Qcval)
+		vmerr(vm, "operand 1 to $typeof must be a cvalue");
+	cv = valcval(argv);
+	mkvalxtn(cv->type, rv);
 }
 
 static void
@@ -6445,15 +6495,18 @@ mkvm(Env *env)
 	builtinfn(env, "paramid", mkcfn("paramid", l1_paramid));
 
 	builtinfn(env, "fields", mkcfn("fields", l1_fields));
+	builtinfn(env, "lookfield", mkcfn("lookfield", l1_lookfield));
 	builtinfn(env, "fieldtype", mkcfn("fieldtype", l1_fieldtype));
 	builtinfn(env, "fieldid", mkcfn("fieldid", l1_fieldid));
 	builtinfn(env, "fieldoff", mkcfn("fieldid", l1_fieldoff));
-/*	builtinfn(env, "fieldbits", mkcfn("fieldbits", l1_fieldbits)); */
 
 	builtinfn(env, "typedefid", mkcfn("typedefid", l1_typedefid));
 	builtinfn(env, "typedeftype", mkcfn("typedeftype", l1_typedeftype));
 
-/*	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype)); */
+	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
+
+//	builtinfn(env, "fieldbits", mkcfn("fieldbits", l1_fieldbits));
+//	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));
 
 	builtinfn(env, "domof", mkcfn("domof", l1_domof));
 	builtinfn(env, "nsptr", mkcfn("nsptr", l1_nsptr));
