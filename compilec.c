@@ -271,7 +271,6 @@ compile_lval(Expr *e)
 		te = Qcons(se, te);
 		
 		e->e1 = 0;
-		e->e2 = 0;
 		freeexpr(e);
 		return lvalblock(invert(te));
 	default:

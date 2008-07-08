@@ -14,11 +14,6 @@ todo
       whether bison, when building a glr parser, includes the c.y
       prologue is version sensitive (it does in bison 2.3 but not others)
       so we do the #ifdef dance around the headers shared by c.y and c.l.
-- diagnostics raised by compile0, compile
-- &E
-- *E
-- E.field
-- E->field
 - enums
 - bitfields
 - sizeof

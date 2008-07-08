@@ -152,7 +152,8 @@ freecode(Head *hd)
 static Insn*
 nextinsn(Code *code)
 {
-	if(code->ninsn >= code->maxinsn){
+	/* plan for one extra instruction for emitlabel */
+	if(code->ninsn+1 >= code->maxinsn){
 		code->insn = xrealloc(code->insn,
 				      code->maxinsn*sizeof(Insn),
 				      2*code->maxinsn*sizeof(Insn));
