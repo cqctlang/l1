@@ -65,6 +65,15 @@ define main(){
 	printf("p->p -> %t %x\n", p->p, p->p);
 	printf("*p->p -> %t %x\n", *p->p, *p->p);
 
+	printf("p+1 -> %t %x\n", p+1, p+1);
+
+	printf("&(p+1)->i -> %t %x\n", &(p+1)->i, &(p+1)->i);
+	printf("(p+1)->i -> %t %x\n", (p+1)->i, (p+1)->i);
+
+	printf("&(p+1)->p -> %t %x\n", &(p+1)->p, &(p+1)->p);
+	printf("(p+1)->p -> %t %x\n", (p+1)->p, (p+1)->p);
+	printf("*(p+1)->p -> %t %x\n", *(p+1)->p, *(p+1)->p);
+
 	printf("*** dom`a ***\n");
 	p = dom`a;
 	printf("p -> %t %x\n", p, p);
@@ -77,6 +86,7 @@ define main(){
 	printf("*p->p -> %t %x\n", *p->p, *p->p);
 
 	printf("*** &dom`a[1] ***\n");
+
 	p = &dom`a[1];
 	printf("p -> %t %x\n", p, p);
 

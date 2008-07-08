@@ -2921,7 +2921,6 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vvlong] = Vuvlong,
 	};
 	Cbase c1, c2, nc;
-	Rkind r1, r2;
 	Xtypename *b1, *b2, *nxtn;
 
 	op1 = intpromote(vm, op1);
@@ -2929,11 +2928,15 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 
 	b1 = chasetypedef(op1->type);
 	b2 = chasetypedef(op2->type);
+	if(b1->tkind != Tbase || b2->tkind != Tbase){
+		/* presumably one of them is a Tptr; nothing else is sane. */
+		*rv1 = op1;
+		*rv2 = op2;
+		return;
+	}
+
 	c1 = b1->basename;
 	c2 = b2->basename;
-	r1 = b1->rep;
-	r2 = b2->rep;
-
 	if(c1 == c2){
 		*rv1 = op1;
 		*rv2 = op2;
@@ -2950,9 +2953,9 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		nc = c1;
 	else if(isunsigned[c2] && rank[c2] >= rank[c1])
 		nc = c2;
-	else if(!isunsigned[c1] && repsize[r1] > repsize[r2])
+	else if(!isunsigned[c1] && repsize[b1->rep] > repsize[b2->rep])
 		nc = c1;
-	else if(!isunsigned[c2] && repsize[r2] > repsize[r1])
+	else if(!isunsigned[c2] && repsize[b2->rep] > repsize[b1->rep])
 		nc = c2;
 	else if(!isunsigned[c1])
 		nc = uvariant[c1];
@@ -3177,7 +3180,6 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	Xtypename *sub;
 	Cval *ptr;
 	Imm sz, osz, n;
-	
 
 	if(op != Iadd && op != Isub)
 		vmerr(vm, "attempt to apply %s to pointer operand", opstr[op]);
@@ -3198,9 +3200,11 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		else
 			osz = typesize(vm, sub);
 		if(sz != osz)
-			vmerr(vm, "attempt to subtract pointers to objects of different sizes");
+			vmerr(vm, "attempt to subtract pointers to "
+			      "objects of different sizes");
 		if(sz == 0)
-			vmerr(vm, "attempt to subtract pointers to zero-sized objects");
+			vmerr(vm, "attempt to subtract pointers to "
+			      "zero-sized objects");
 		n = (op1->val-op2->val)/sz;
 		n = truncimm(n, t1->rep);
 		return mkcval(vm->litdom, vm->litbase[Vlong], n);
@@ -3228,7 +3232,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		n = ptr->val+n*sz;
 	else
 		n = ptr->val-n*sz;
-	n = truncimm(n, sub->rep);
+	n = truncimm(n, ptr->type->rep);
 	return mkcval(ptr->dom, ptr->type, n);
 }
 
@@ -3237,7 +3241,7 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
 	Xtypename *t1, *t2;
-	
+
 	dompromote(vm, op, op1, op2, &op1, &op2);
 	usualconvs(vm, op1, op2, &op1, &op2);
 	t1 = chasetypedef(op1->type);

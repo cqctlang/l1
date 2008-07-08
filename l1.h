@@ -136,6 +136,7 @@ enum{
 	E_vecref,
 	E_vecset,
 	E_xcast,
+	Emax,
 } Kind;
 
 typedef
@@ -307,6 +308,7 @@ void initparse();
 void finiparse();
 
 void printexpr(Expr*);
+void printcqct(Expr*);
 
 void pushyy(char *filename);
 int popyy();

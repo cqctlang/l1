@@ -1,0 +1,239 @@
+==15560== Invalid read of size 4
+==15560==    at 0x80575D5: emitlabel (compile.c:107)
+==15560==    by 0x805B307: cg (compile.c:1907)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805C3DA: cg (compile.c:2120)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==  Address 0x42BDAE0 is 0 bytes after a block of size 4,096 alloc'd
+==15560==    at 0x401F522: malloc (vg_replace_malloc.c:149)
+==15560==    by 0x806FE4F: xmalloc (util.c:83)
+==15560==    by 0x8057687: mkcode (compile.c:123)
+==15560==    by 0x805DFB2: compileentry (compile.c:2515)
+==15560==    by 0x807023F: main (main.c:94)
+==15560== 
+==15560== Invalid write of size 4
+==15560==    at 0x8057620: emitlabel (compile.c:110)
+==15560==    by 0x805B307: cg (compile.c:1907)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805C3DA: cg (compile.c:2120)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==  Address 0x42BDAE0 is 0 bytes after a block of size 4,096 alloc'd
+==15560==    at 0x401F522: malloc (vg_replace_malloc.c:149)
+==15560==    by 0x806FE4F: xmalloc (util.c:83)
+==15560==    by 0x8057687: mkcode (compile.c:123)
+==15560==    by 0x805DFB2: compileentry (compile.c:2515)
+==15560==    by 0x807023F: main (main.c:94)
+==15560== 
+==15560== Invalid read of size 4
+==15560==    at 0x80575D5: emitlabel (compile.c:107)
+==15560==    by 0x805B307: cg (compile.c:1907)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805C3DA: cg (compile.c:2120)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==  Address 0x4342B70 is 0 bytes after a block of size 8,192 alloc'd
+==15560==    at 0x4020A1C: realloc (vg_replace_malloc.c:306)
+==15560==    by 0x806FE98: xrealloc (util.c:93)
+==15560==    by 0x80577C1: nextinsn (compile.c:159)
+==15560==    by 0x805C348: cg (compile.c:2107)
+==15560==    by 0x805B4FC: cg (compile.c:1931)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560== 
+==15560== Invalid write of size 4
+==15560==    at 0x8057620: emitlabel (compile.c:110)
+==15560==    by 0x805B307: cg (compile.c:1907)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805C3DA: cg (compile.c:2120)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==  Address 0x4342B70 is 0 bytes after a block of size 8,192 alloc'd
+==15560==    at 0x4020A1C: realloc (vg_replace_malloc.c:306)
+==15560==    by 0x806FE98: xrealloc (util.c:93)
+==15560==    by 0x80577C1: nextinsn (compile.c:159)
+==15560==    by 0x805C348: cg (compile.c:2107)
+==15560==    by 0x805B4FC: cg (compile.c:1931)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560== 
+==15560== Invalid read of size 4
+==15560==    at 0x80575D5: emitlabel (compile.c:107)
+==15560==    by 0x805C510: cg (compile.c:2138)
+==15560==    by 0x805B4FC: cg (compile.c:1931)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805C3DA: cg (compile.c:2120)
+==15560==    by 0x805B228: cg (compile.c:1900)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==  Address 0x435FF78 is 0 bytes after a block of size 16,384 alloc'd
+==15560==    at 0x4020A1C: realloc (vg_replace_malloc.c:306)
+==15560==    by 0x806FE98: xrealloc (util.c:93)
+==15560==    by 0x80577C1: nextinsn (compile.c:159)
+==15560==    by 0x805C348: cg (compile.c:2107)
+==15560==    by 0x805B4FC: cg (compile.c:1931)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560== 
+==15560== Invalid write of size 4
+==15560==    at 0x8057620: emitlabel (compile.c:110)
+==15560==    by 0x805C510: cg (compile.c:2138)
+==15560==    by 0x805B4FC: cg (compile.c:1931)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805C3DA: cg (compile.c:2120)
+==15560==    by 0x805B228: cg (compile.c:1900)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==  Address 0x435FF78 is 0 bytes after a block of size 16,384 alloc'd
+==15560==    at 0x4020A1C: realloc (vg_replace_malloc.c:306)
+==15560==    by 0x806FE98: xrealloc (util.c:93)
+==15560==    by 0x80577C1: nextinsn (compile.c:159)
+==15560==    by 0x805C348: cg (compile.c:2107)
+==15560==    by 0x805B4FC: cg (compile.c:1931)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B346: cg (compile.c:1908)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+==15560==    by 0x805B2F2: cg (compile.c:1906)
+==15560==    by 0x805B3AF: cg (compile.c:1915)
+entry: 0 params, 0 locals, 0 temps
+listref: 2 params, 0 locals, 0 temps
+mkzas: 1 params, 2 locals, 0 temps
+dispatch: var params, 7 locals, 0 temps
+main: 0 params, 14 locals, 0 temps
+&dom`x -> int * 0
+&dom`y -> int * 4
+&dom`foo -> struct foo * 8
+p -> struct foo * 8
+&p->i -> int * 8
+get 8 c
+get 8 c
+p->i -> int 0
+&p->p -> int ** c
+get c 10
+get c 10
+p->p -> int * 0
+get c 10
+get 0 4
+get c 10
+get 0 4
+*p->p -> int 0
+p+1 -> struct foo * 10
+&(p+1)->i -> int * 10
+get 10 14
+get 10 14
+(p+1)->i -> int 0
+&(p+1)->p -> int ** 14
+get 14 18
+get 14 18
+(p+1)->p -> int * 0
+get 14 18
+get 0 4
+get 14 18
+get 0 4
+*(p+1)->p -> int 0
+*** dom`a ***
+p -> struct foo * 10
+&p->i -> int * 10
+get 10 14
+get 10 14
+p->i -> int 0
+&p->p -> int ** 14
+get 14 18
+get 14 18
+p->p -> int * 0
+get 14 18
+get 0 4
+get 14 18
+get 0 4
+*p->p -> int 0
+*** &dom`a[1] ***
+p -> struct foo * 18
+&p->i -> int * 18
+get 18 1c
+get 18 1c
+p->i -> int 0
+&p->p -> int ** 1c
+get 1c 20
+get 1c 20
+p->p -> int * 0
+get 1c 20
+get 0 4
+get 1c 20
+get 0 4
+*p->p -> int 0
+==15560== 
+==15560== 
+==15560== 80 bytes in 40 blocks are indirectly lost in loss record 4 of 7
+==15560==    at 0x401F522: malloc (vg_replace_malloc.c:149)
+==15560==    by 0x806FE4F: xmalloc (util.c:83)
+==15560==    by 0x806FE1A: xstrndup (util.c:74)
+==15560==    by 0x80528FF: doidn (l1.c:314)
+==15560==    by 0x8048EF3: yyuserAction (c.y:76)
+==15560==    by 0x804F74A: yydoAction (c.tab.c:3116)
+==15560==    by 0x804F444: yyglrReduce (c.tab.c:3205)
+==15560==    by 0x804FF71: yyparse (c.tab.c:4061)
+==15560==    by 0x805474A: doparse (l1.c:1341)
+==15560==    by 0x807015D: main (main.c:69)
+==15560== 
+==15560== 
+==15560== 2,480 (2,400 direct, 80 indirect) bytes in 40 blocks are definitely lost in loss record 7 of 7
+==15560==    at 0x401F522: malloc (vg_replace_malloc.c:149)
+==15560==    by 0x806FE4F: xmalloc (util.c:83)
+==15560==    by 0x8052517: newexpr (l1.c:168)
+==15560==    by 0x80528EA: doidn (l1.c:313)
+==15560==    by 0x8048EF3: yyuserAction (c.y:76)
+==15560==    by 0x804F74A: yydoAction (c.tab.c:3116)
+==15560==    by 0x804F444: yyglrReduce (c.tab.c:3205)
+==15560==    by 0x804FF71: yyparse (c.tab.c:4061)
+==15560==    by 0x805474A: doparse (l1.c:1341)
+==15560==    by 0x807015D: main (main.c:69)
