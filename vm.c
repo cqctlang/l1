@@ -2825,9 +2825,7 @@ xfmttype(Xtypename *t)
 static Cval*
 typecast(VM *vm, Xtypename *xtn, Cval *cv)
 {
-	Imm val;
-	val = rerep(cv->val, cv->type, xtn);
-	return mkcval(cv->dom, xtn, val);
+	return mkcval(cv->dom, xtn, rerep(cv->val, cv->type, xtn));
 }
 
 static Cval*
@@ -2845,7 +2843,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 		vmerr(vm, "cast to domain that does not define %.*s",
 		      es->len, es->s);
 	}
-	return typecast(vm, xtn, cv);
+	return mkcval(dom, xtn, rerep(cv->val, cv->type, xtn));
 }
 
 static void

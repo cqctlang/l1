@@ -1,0 +1,53 @@
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define mkzas(len){
+	@local dispatch, str;
+	str = string(len);
+	define dispatch args {
+		@local arg, range, s, new, beg, end;
+		arg = listref(args, 0);
+
+		if(arg == "get"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			printf("get %x %x\n", beg, end);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 2);
+			strput(str, beg, new);
+			printf("put %x %x\n", beg, end);
+			return;
+		}
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas(dispatch);
+}
+
+dom1 = mkdom(c32le, mkzas(0));
+dom2 = mkdom(c32le, mkzas(0));
+
+x = {dom1}0;
+y = {dom2}0;
+
+if(dom1 == dom2)
+	error("should not be equal");
+
+if(domof(x) == domof(y))
+	error("should not be equal");
+
+y = {dom1}y;
+
+if(domof(x) != domof(y))
+	error("should be equal");
