@@ -4118,13 +4118,16 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	Val v, rv;
 	Imm imm;
 	Xtypename *xtn;
+	Cval *cv;
 
 	getvalrand(vm, op, &v);
-	if(v.qkind != Qxtn && v.qkind != Qcval)
-		vmerr(vm, "bad operand to sizeof");
-	if(v.qkind != Qxtn)
-		vmerr(vm, "sizeof cvalues not implemented");
-	xtn = valxtn(&v);
+	if(v.qkind == Qcval){
+		cv = valcval(&v);
+		xtn = cv->type;
+	}else if(v.qkind == Qxtn)
+		xtn = valxtn(&v);
+	else
+		vmerr(vm, "operand 1 to sizeof must be a type or cvalue");
 	imm = typesize(vm, xtn);
 	mkvalcval(vm->litdom, vm->litbase[Vuint], imm, &rv);
 	putvalrand(vm, &rv, dst);

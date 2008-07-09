@@ -453,6 +453,25 @@ compile_rval(Expr *e, unsigned lfree)
 		e->e1 = 0;
 		freeexpr(e);
 		return rvalblock(invert(te), lfree);
+	case Esizeofe:
+		if(!islval(e->e1)){
+			se = Qsizeof(compile_rval(e->e1, 0));
+			e->e1 = 0;
+			freeexpr(e);
+			return se;
+		}
+
+		te = nullelist();
+
+		se = compile_lval(e->e1);
+		te = Qcons(se, te);
+
+		se = Qsizeof(doid("$type"));
+		te = Qcons(se, te);
+		
+		e->e1 = 0;
+		freeexpr(e);
+		return rvalblock(invert(te), lfree);
 	default:
 		e->e1 = compile_rval(e->e1, 0);
 		e->e2 = compile_rval(e->e2, 0);

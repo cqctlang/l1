@@ -17,7 +17,7 @@ todo
 - incomplete types
 - enums
 - bitfields
-- syntax for sizeof, typeof, cast, xcast
+- syntax for sizeof, typeof, cast
 - resolve ambig
 - check argument count on calls to lambdas
 - immutable vectors for type datastructures (fields and params)?

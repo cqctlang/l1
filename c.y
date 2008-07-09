@@ -811,7 +811,7 @@ yyerror(const char *s)
 }
 
 /* expression trees for ambiguous forms share identifier nodes;
-   separate them so that we can handling them independently. */
+   separate them so that we can handle them independently. */
 static void
 duptickid(Expr *e)
 {
