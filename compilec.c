@@ -6,7 +6,7 @@
 static jmp_buf esc;
 
 static void cerror(Expr *e, char *fmt, ...) __attribute__((noreturn));
-static Expr* compile_rval(Expr *e);
+static Expr* compile_rval(Expr *e, unsigned lfree);
 
 static void
 cerror(Expr *e, char *fmt, ...)
@@ -36,6 +36,18 @@ static Expr*
 Qadd(Expr *x, Expr *y)
 {
 	return newbinop(Eadd, x, y);
+}
+
+static Expr*
+Qsub(Expr *x, Expr *y)
+{
+	return newbinop(Esub, x, y);
+}
+
+static Expr*
+Qbinop(unsigned op, Expr *x, Expr *y)
+{
+	return newbinop(op, x, y);
 }
 
 static Expr*
@@ -71,7 +83,7 @@ Qrange(Expr *addr, Expr *sz)
 static Expr*
 Qxcast(Expr *type, Expr *cval)
 {
-	return newbinop(E_xcast, type, cval);
+	return newbinop(Excast, type, cval);
 }
 
 static Expr*
@@ -132,15 +144,17 @@ islval(Expr *e)
 }
 
 static Expr*
-rvalblock(Expr *body)
+rvalblock(Expr *body, unsigned lfree)
 {
 	Expr *e;
 
         e = nullelist();
-	e = Qcons(doid("$dom"), e);
-	e = Qcons(doid("$type"), e);
-	e = Qcons(doid("$addr"), e);
 	e = Qcons(doid("$val"), e);
+	if(!lfree){
+		e = Qcons(doid("$dom"), e);
+		e = Qcons(doid("$type"), e);
+		e = Qcons(doid("$addr"), e);
+	}
 
 	/* local bindings are list of identifier lists */
 	e = Qcons(e, nullelist());
@@ -213,7 +227,7 @@ compile_lval(Expr *e)
 		te = nullelist();
 
 		// $tmp = compile_rval(e->e1)
-		se = Qset(doid("$tmp"), compile_rval(e->e1));
+		se = Qset(doid("$tmp"), compile_rval(e->e1, 0));
 		te = Qcons(se, te);
 
 		// $type = subtype($typeof($tmp));
@@ -279,7 +293,7 @@ compile_lval(Expr *e)
 }
 
 static Expr*
-compile_rval(Expr *e)
+compile_rval(Expr *e, unsigned lfree)
 {
 	Expr *se, *te;
 
@@ -295,7 +309,7 @@ compile_rval(Expr *e)
 		te = Qcons(se, te);
 		se = Qcval(doid("$dom"), doid("$type"), doid("$addr"));
 		te = Qcons(se, te);
-		return rvalblock(invert(te));
+		return rvalblock(invert(te), lfree);
 	case Eref:
 		te = nullelist();
 		se = compile_lval(e->e1);
@@ -304,11 +318,11 @@ compile_rval(Expr *e)
 		te = Qcons(se, te);
 		e->e1 = 0;
 		freeexpr(e);
-		return rvalblock(invert(te));
+		return rvalblock(invert(te), lfree);
 	case Eg:
 		if(!islval(e->e1)){
-			e->e1 = compile_rval(e->e1);
-			e->e2 = compile_rval(e->e2);
+			e->e1 = compile_rval(e->e1, 0);
+			e->e2 = compile_rval(e->e2, 0);
 			return e;
 		}
 
@@ -317,7 +331,7 @@ compile_rval(Expr *e)
 		se = compile_lval(e->e1);
 		te = Qcons(se, te);
 
-		se = Qset(doid("$val"), compile_rval(e->e2));
+		se = Qset(doid("$val"), compile_rval(e->e2, 0));
 		te = Qcons(se, te);
 
 		se = Qcall(doid("domas"), 1, doid("$dom"));
@@ -334,13 +348,116 @@ compile_rval(Expr *e)
 		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
-		return rvalblock(invert(te));
-	/* handle other cases: x++, x += y, etc for lvalues x */
+		return rvalblock(invert(te), lfree);
+	case Egop:
+		if(!islval(e->e1)){
+			/* FIXME: if we translate ordinary cval Egop here
+			   into equivalent source, do we generate same
+			   or similar code as compile.c on Egop? */
+			e->e1 = compile_rval(e->e1, 0);
+			e->e2 = compile_rval(e->e2, 0);
+			return e;
+		}
+
+		te = nullelist();
+
+		/* reuse lval bindings */
+		se = Qset(doid("$val"), compile_rval(e->e1, 1));
+		te = Qcons(se, te);
+
+		se = Qset(doid("$val"),
+			  Qbinop(e->op, doid("$val"), compile_rval(e->e2, 0)));
+		te = Qcons(se, te);
+
+		se = Qcall(doid("domas"), 1, doid("$dom"));
+		se = Qcall(doid("asdispatch"), 1, se);
+		se = Qcall(se, 3,
+			   doid("$put"),
+			   Qrange(doid("$addr"), Qsizeof(doid("$type"))),
+			   Qencode(Qxcast(doid("$type"), doid("$val"))));
+		te = Qcons(se, te);
+
+		se = doid("$val");
+		te = Qcons(se, te);
+
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return rvalblock(invert(te), lfree);
+	case Epostinc:
+	case Epostdec:
+		if(!islval(e->e1)){
+			/* FIXME: if we translate ordinary cval ++ here
+			   into equivalent source, do we generate same
+			   or similar code as compile.c on ++? */
+			e->e1 = compile_rval(e->e1, 0);
+			return e;
+		}
+
+		te = nullelist();
+
+		/* reuse lval bindings */
+		se = Qset(doid("$val"), compile_rval(e->e1, 1));
+		te = Qcons(se, te);
+
+		se = Qcall(doid("domas"), 1, doid("$dom"));
+		se = Qcall(doid("asdispatch"), 1, se);
+		se = Qcall(se, 3,
+			   doid("$put"),
+			   Qrange(doid("$addr"), Qsizeof(doid("$type"))),
+			   Qencode(e->kind == Epostinc
+				   ? Qadd(doid("$val"), Quint(1))
+				   : Qsub(doid("$val"), Quint(1))));
+		te = Qcons(se, te);
+
+		se = doid("$val");
+		te = Qcons(se, te);
+
+		e->e1 = 0;
+		freeexpr(e);
+		return rvalblock(invert(te), lfree);
+	case Epreinc:
+	case Epredec:
+		if(!islval(e->e1)){
+			/* FIXME: if we translate ordinary cval ++ here
+			   into equivalent source, do we generate same
+			   or similar code as compile.c on ++? */
+			e->e1 = compile_rval(e->e1, 0);
+			return e;
+		}
+
+		te = nullelist();
+
+		/* reuse lval bindings */
+		se = Qset(doid("$val"), compile_rval(e->e1, 1));
+		te = Qcons(se, te);
+
+		if(e->kind == Epreinc)
+			se = Qadd(doid("$val"), Quint(1));
+		else
+			se = Qsub(doid("$val"), Quint(1));
+		se = Qset(doid("$val"), se);
+		te = Qcons(se, te);
+
+		se = Qcall(doid("domas"), 1, doid("$dom"));
+		se = Qcall(doid("asdispatch"), 1, se);
+		se = Qcall(se, 3,
+			   doid("$put"),
+			   Qrange(doid("$addr"), Qsizeof(doid("$type"))),
+			   Qencode(doid("$val")));
+		te = Qcons(se, te);
+
+		se = doid("$val");
+		te = Qcons(se, te);
+
+		e->e1 = 0;
+		freeexpr(e);
+		return rvalblock(invert(te), lfree);
 	default:
-		e->e1 = compile_rval(e->e1);
-		e->e2 = compile_rval(e->e2);
-		e->e3 = compile_rval(e->e3);
-		e->e4 = compile_rval(e->e4);
+		e->e1 = compile_rval(e->e1, 0);
+		e->e2 = compile_rval(e->e2, 0);
+		e->e3 = compile_rval(e->e3, 0);
+		e->e4 = compile_rval(e->e4, 0);
 		return e;
 	}
 }
@@ -380,6 +497,6 @@ docompilec(Expr *e)
 	if(setjmp(esc) != 0)
 		return 0;	/* error */
 	rewriteptr(e);
-	rv = compile_rval(e);
+	rv = compile_rval(e, 0);
 	return rv;
 }

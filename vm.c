@@ -2812,6 +2812,16 @@ rerep(Imm val, Xtypename *old, Xtypename *new)
  	return val;
 }
 
+/* debugging */
+static char*
+xfmttype(Xtypename *t)
+{
+	if(t->tkind == Tbase)
+		return basename[t->basename];
+	else
+		return tkindstr[t->tkind];
+}
+
 static Cval*
 typecast(VM *vm, Xtypename *xtn, Cval *cv)
 {
@@ -2948,7 +2958,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		if(rank[c1] < rank[c2])
 			nc = c2;
 		else
-			nc = 11;
+			nc = c1;
 	}else if(isunsigned[c1] && rank[c1] >= rank[c2])
 		nc = c1;
 	else if(isunsigned[c2] && rank[c2] >= rank[c1])

@@ -331,6 +331,17 @@ isoctdigit(int c)
 	return ('0' <= c) && (c <= '7');
 }
 
+static int
+strnchr(char *s, int c, unsigned long len)
+{
+	char *e;
+	e = s+len;
+	while(s < e)
+		if(*s++ == c)
+			return 1;
+	return 0;
+}
+
 Expr*
 doconst(char *s, unsigned long len)
 {
@@ -413,8 +424,8 @@ doconst(char *s, unsigned long len)
 		return mkconst(Vchar, c);
 	}
 
-	if(strchr(s, '.'))
-		parseerror("float pointer constants unsupported");
+	if(strnchr(s, '.', len))
+		parseerror("floating point constants unsupported");
 
 	/* integer constant */
 	if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))

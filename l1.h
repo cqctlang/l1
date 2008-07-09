@@ -111,6 +111,7 @@ enum{
 	Euplus,
 	Eutwiddle,
 	Ewhile,
+	Excast,
 
 	/* open-coded primitives */
 	E_car,
@@ -135,7 +136,6 @@ enum{
 	E_vecl,
 	E_vecref,
 	E_vecset,
-	E_xcast,
 	Emax,
 } Kind;
 

@@ -1,0 +1,21 @@
+entry: 0 params, 0 locals, 0 temps
+listref: 2 params, 0 locals, 0 temps
+mkzas: 1 params, 2 locals, 0 temps
+dispatch: var params, 7 locals, 0 temps
+main: 0 params, 17 locals, 0 temps
+get 20 24
+put 20 24
+get 20 24
+after x = dom`a[2].i++: x = 0, dom`a[2].i = 1
+get 0 4
+put 0 4
+get 0 4
+after dom`x += 1: dom`x = 1
+get 20 24
+put 20 24
+get 20 24
+after dom`a[2].i <<= 5: dom`a[2].i = 32
+get 20 24
+put 20 24
+get 20 24
+after dom`a[2].i <<= 32-5: dom`a[2].i = 0

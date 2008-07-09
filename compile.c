@@ -1812,6 +1812,7 @@ static ikind EtoVM[] = {
 	[Eunot] = Inot,
 	[Euplus] = Inop,
 	[Eutwiddle] = Iinv,
+	[Excast] = Ixcast,
 
 	[E_car] = Icar,
 	[E_cdr] = Icdr,
@@ -1836,7 +1837,6 @@ static ikind EtoVM[] = {
 	[E_vecl] = Ivecl,
 	[E_vecref] = Ivecref,
 	[E_vecset] = Ivecset,
-	[E_xcast] = Ixcast,
 };
 
 static void

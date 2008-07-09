@@ -14,16 +14,15 @@ todo
       whether bison, when building a glr parser, includes the c.y
       prologue is version sensitive (it does in bison 2.3 but not others)
       so we do the #ifdef dance around the headers shared by c.y and c.l.
+- incomplete types
 - enums
 - bitfields
-- sizeof
-- typeof
-- cast
-- xcast
-- ambig
+- syntax for sizeof, typeof, cast, xcast
+- resolve ambig
 - check argument count on calls to lambdas
 - immutable vectors for type datastructures (fields and params)?
 - immutable strings for pre-computed "$get", etc?
+- map()
 
 grammar
 -------

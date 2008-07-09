@@ -94,7 +94,7 @@ Qrange(Expr *addr, Expr *sz)
 static Expr*
 Qxcast(Expr *type, Expr *cval)
 {
-	return newbinop(E_xcast, type, cval);
+	return newbinop(Excast, type, cval);
 }
 
 static Expr*

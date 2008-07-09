@@ -158,6 +158,8 @@ cast_expression
 	: unary_expression				%merge <castmerge>
 	| '(' type_name ')' cast_expression		%merge <castmerge>
 	{ $$ = newexpr(Ecast, $2, $4, 0, 0); }
+	| '{' expression '}' cast_expression
+	{ $$ = newexpr(Excast, $2, $4, 0, 0); }
 	;
 
 multiplicative_expression

@@ -95,6 +95,7 @@ char* S[] = {
 	[Euplus] =	"Euplus",
 	[Eutwiddle] =	"Eutwiddle",
 	[Ewhile] =	"Ewhile",      
+	[Excast] =	"Excast",
 
 	[E_car] =	"E_car",
 	[E_cdr] =	"E_cdr",
@@ -113,7 +114,6 @@ char* S[] = {
 	[E_vecl] =	"E_vecl",
 	[E_vecref] =	"E_vecref",
 	[E_vecset] =	"E_vecset",
-	[E_xcast] =	"E_xcast",
 };
 
 static void
@@ -344,7 +344,7 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Ebinop:
 		switch(e->op){
-		case E_xcast:
+		case Excast:
 			printf("{");
 			printcqct0(e->e1, ni);
 			printf("}(");
