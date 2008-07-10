@@ -54,10 +54,10 @@ define main(){
 
 //	x = (dom`a[2].i)++;
 
-//	printf("sizeof(3) == %d\n", sizeof(3));
+	printf("sizeof(3) == %d\n", sizeof(3));
 	printf("sizeof(dom`a) == %d\n", sizeof(dom`a));	
-//	printf("sizeof(dom`a[2]) == %d\n", sizeof(dom`a[2]));
-//	printf("sizeof(dom`a[2].i) == %d\n", sizeof(dom`a[2].i));
+	printf("sizeof(dom`a[2]) == %d\n", sizeof(dom`a[2]));
+	printf("sizeof(dom`a[2].i) == %d\n", sizeof(dom`a[2].i));
 }
 
 main();

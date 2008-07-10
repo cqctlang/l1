@@ -815,10 +815,17 @@ yyerror(const char *s)
 static void
 duptickid(Expr *e)
 {
-	if(e->kind != Etick)
-		fatal("bug");
-	e->e1 = copyexpr(e->e1);
-	e->e2 = copyexpr(e->e2);
+	if(e == 0)
+		return;
+	if(e->kind == Etick){
+		e->e1 = copyexpr(e->e1);
+		e->e2 = copyexpr(e->e2);
+		return;
+	}
+	duptickid(e->e1);
+	duptickid(e->e2);
+	duptickid(e->e3);
+	duptickid(e->e4);
 }
 
 static Expr*

@@ -47,7 +47,7 @@ struct Varset
 	char *tn;
 } Varset;
 
-static void compile0(Expr *e, Varset *pvs, Vars *vars, int needval);
+static void compile0(Expr *e, Varset *pvs, Vars *vars);
 
 static Expr*
 Q1(unsigned kind, Expr *e1)
@@ -74,51 +74,9 @@ Qset(Expr *l, Expr *r)
 }
 
 static Expr*
-Qcval(Expr *dom, Expr *type, Expr *val)
-{
-	return newexpr(E_cval, dom, type, val, 0);
-}
-
-static Expr*
-Qref(Expr *dom, Expr *type, Expr *val)
-{
-	return newexpr(E_ref, dom, type, val, 0);
-}
-
-static Expr*
-Qrange(Expr *addr, Expr *sz)
-{
-	return newbinop(E_range, addr, sz);
-}
-
-static Expr*
-Qxcast(Expr *type, Expr *cval)
-{
-	return newbinop(Excast, type, cval);
-}
-
-static Expr*
 Qsizeof(Expr *e)
 {
 	return Q1(E_sizeof, e);
-}
-
-static Expr*
-Qcar(Expr *e)
-{
-	return Q1(E_car, e);
-}
-
-static Expr*
-Qcdr(Expr *e)
-{
-	return Q1(E_cdr, e);
-}
-
-static Expr*
-Qencode(Expr *e)
-{
-	return Q1(E_encode, e);
 }
 
 /* arguments in usual order */
@@ -150,12 +108,6 @@ Qconsts(char *s)
 	e = newexpr(Econsts, 0, 0, 0, 0);
 	e->lits = mklits(s, strlen(s));
 	return e;
-}
-
-static Expr*
-Quint(Imm val)
-{
-	return mkconst(Vuint, val);
 }
 
 static Expr*
@@ -348,21 +300,6 @@ locals(Varset *lvs, Varset *pvs)
 	return Qcons(e, nullelist());
 }
 
-static int
-isloc(Expr *e)
-{
-	switch(e->kind){
-	case Etick:
-		return 1;
-	case Eptr:
-		return 1;
-	case Edot:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
 static Expr*
 gentypename(Type *t, Varset *lvs, Vars *vars)
 {
@@ -390,7 +327,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		while(dl){
 			id = Qstr(dl->id);
 			if(dl->offs){
-				compile0(dl->offs, lvs, vars, 1);
+				compile0(dl->offs, lvs, vars);
 				off = dl->offs; /* steal */
 				dl->offs = 0;
 			}else
@@ -401,7 +338,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		}
 		se = Qapply(doid("vector"), invert(se));
 		if(t->sz){
-			compile0(t->sz, lvs, vars, 1);
+			compile0(t->sz, lvs, vars);
 			sz = t->sz; /* steal */
 			t->sz = 0;
 		}else
@@ -438,7 +375,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		e->e1 = gentypename(t->link, lvs, vars);
 		if(t->kind == Tarr){
 			if(t->cnt){
-				compile0(t->cnt, lvs, vars, 1);
+				compile0(t->cnt, lvs, vars);
 				e->e2 = t->cnt; /* steal */
 				t->cnt = 0;
 			}else
@@ -491,7 +428,7 @@ compiledecl(unsigned kind, Decl *dl, Varset *pvs, Vars *vars)
 	case Edecls:
 		if(dl->id){
 			if(dl->offs){
-				compile0(dl->offs, lvs, vars, 1);
+				compile0(dl->offs, lvs, vars);
 				offs = dl->offs; /* steal */
 				dl->offs = 0;
 			}else
@@ -526,8 +463,137 @@ compiledecl(unsigned kind, Decl *dl, Varset *pvs, Vars *vars)
 	return e;
 }
 
+static Expr*
+compilesizeof(Decl *d, Varset *pvs, Vars *vars)
+{
+	Type *t;
+	int binds;
+	Varset *lvs;
+	Expr *e, *se, *te;
+	char *dom;
+
+	t = d->type;
+	if(t->dom)
+		dom = t->dom;
+	else
+		dom = "litdom";
+
+	binds = Vtmp|Vtn;
+	lvs = bindings(vars, pvs, binds);
+	pushlevel(vars);
+
+	te = nullelist();
+
+	// $tn = gentypename(t);
+	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Qcons(se, te);
+
+	// $tmp = nslooktype(domns(dom))(type)
+	se = Qcall(doid("domns"), 1, doid(dom));
+	se = Qcall(doid("nslooktype"), 1, se);
+	se = Qset(doid(lvs->tmp), Qcall(se, 1, doid(lvs->tn)));
+	te = Qcons(se, te);
+	
+	// if(isnil($tmp)) error("undefined type: %t", $tmp);
+	se = newexpr(Eif,
+		     Qcall(doid("isnil"), 1, doid(lvs->tmp)),
+		     Qcall(doid("error"), 2,
+			   Qconsts("undefined type: %t"),
+			   doid(lvs->tn)),
+		     0, 0);
+	te = Qcons(se, te);
+
+	// sizeof($tmp);
+	se = Qsizeof(doid(lvs->tmp));
+	te = Qcons(se, te);
+
+	e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
+	poplevel(vars);
+	freevarset(lvs);
+	return e;
+}
+
+static int
+istypeform(Expr *e)
+{
+	switch(e->kind){
+	case Ecast:
+	case Esizeoft:
+	case Etypeoft:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static Expr*
+compileambig(Expr *e, Varset *pvs, Vars *vars)
+{
+	Expr *tf, *of;
+	Expr *se, *te;
+	char *dom;
+	Decl *d;
+	Type *t;
+	int binds;
+	Varset *lvs;
+		
+	/* exactly one of the two parses is a form that operates on a
+	   type name */
+	tf = of = 0;
+	if(istypeform(e->e1)){
+		tf = e->e1;
+		of = e->e2;
+	}
+	if(istypeform(e->e2)){
+		if(tf)
+			fatal("bug");
+		tf = e->e2;
+		of = e->e1;
+	}
+	if(tf == 0)
+		fatal("bug");
+
+	d = tf->e1->xp;
+	t = d->type;
+
+	if(t->dom)
+		dom = t->dom;
+	else
+		dom = "litdom";
+	
+	binds = Vtmp|Vtn;
+	lvs = bindings(vars, pvs, binds);
+	pushlevel(vars);
+
+	te = nullelist();
+
+	// $tn = gentypename(t);
+	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Qcons(se, te);
+
+	// $tmp = nslooktype(domns(dom))($tn)
+	se = Qcall(doid("domns"), 1, doid(dom));
+	se = Qcall(doid("nslooktype"), 1, se);
+	se = Qset(doid(lvs->tmp), Qcall(se, 1, doid(lvs->tn)));
+	te = Qcons(se, te);
+	
+	/* must we compile TF only after using all references to TF->...->type?
+	   (including gentypename and dom?) */
+	compile0(tf, lvs, vars);
+	compile0(of, lvs, vars);
+
+	// if(isnil($tmp)) <other form> else <type form>
+	se = newexpr(Eif, Qcall(doid("isnil"), 1, doid(lvs->tmp)), of, tf, 0);
+	te = Qcons(se, te);
+
+	te = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
+	poplevel(vars);
+	freevarset(lvs);
+	return te;
+}
+
 static void
-compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
+compile0(Expr *e, Varset *pvs, Vars *vars)
 {
 	Expr *se, *te;
 	Expr *ex;
@@ -541,145 +607,27 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 	switch(e->kind){
 	case Elambda:
 	case Eblock:
-		compile0(e->e2, pvs, vars, needval);
+		compile0(e->e2, pvs, vars);
 		break;
 	case Edefine:
 		se = newexpr(Elambda, e->e2, e->e3, copyexpr(e->e1), 0);
-		compile0(se, pvs, vars, needval);
+		compile0(se, pvs, vars);
 		e->kind = Eg;
 		e->e2 = se;
 		e->e3 = 0;
 		break;
-	case Etick:
-		fatal("should not be here");
-		// reference to symbol in domain
-		binds = Vdom|Vtmp|Vtype|Vrange|Vaddr;
-		if(needval)
-			binds |= Vstr;
-
-		lvs = bindings(vars, pvs, binds);
-
-		te = nullelist();
-
-		// $dom = dom;
-		se = Qset(doid(lvs->dom), e->e1);
-		te = Qcons(se, te);
-
-		// $tmp = nslooksym(domns($dom))(sym)
-		se = Qcall(doid("domns"), 1, doid(lvs->dom));
-		se = Qcall(doid("nslooksym"), 1, se);
-		se = Qcall(se, 1, Qconsts(e->e2->id));
-		se = Qset(doid(lvs->tmp), se);
-		te = Qcons(se, te);
-		freeexpr(e->e2);
-		e->e1 = 0;
-		e->e2 = 0;
-
-		// FIXME:  check that sym is a var with an offset,
-		// not an enum.
-
-		// $type = vecref($tmp, 0);
-		se = Qset(doid(lvs->type),
-			  Qcall(doid("vecref"), 2, doid(lvs->tmp), Quint(0)));
-		te = Qcons(se, te);
-
-		// $addr = vecref($tmp, 2);
-		se = Qcall(doid("vecref"), 2, doid(lvs->tmp), Quint(2));
-		se = Qset(doid(lvs->addr), se);
-		te = Qcons(se, te);
-
-		// $range = range($addr, sizeof($type));
-		se = Qset(doid(lvs->range), Qrange(doid(lvs->addr),
-						   Qsizeof(doid(lvs->type))));
-		te = Qcons(se, te);
-		
-		if(needval){
-			// $str = asdispatch(domas($dom))("get", $range);
-			se = Qcall(doid("domas"), 1, doid(lvs->dom));
-			se = Qcall(doid("asdispatch"), 1, se);
-			se = Qcall(se, 2, doid("$get"), doid(lvs->range));
-			se = Qset(doid(lvs->str), se);
-			te = Qcons(se, te);
-			
-			// cval($type, $str); (final expression of block)
-			se = Qcval(doid(lvs->dom), doid(lvs->type),
-				   doid(lvs->str));
-			te = Qcons(se, te);
-		}
+	case Eambig:
+		se = compileambig(e, pvs, vars);
 		e->kind = Eblock;
-		e->e1 = locals(lvs, pvs);
-		e->e2 = invert(te);
-		freevarset(lvs);
+		e->e1 = nullelist();
+		e->e2 = se;
 		break;
-	case Eref:
-		fatal("should not be here");
-		if(!isloc(e->e1)){
-			fatal("implement compile0 diagnostics");
-			break;
-		}
-		binds = Vdom|Vtype|Vaddr;
-		lvs = bindings(vars, pvs, binds);
-		pushlevel(vars);
-
-		te = nullelist();
-
-		compile0(e->e1, lvs, vars, 0);
-		se = e->e1;
-		te = Qcons(se, te);
-
-		se = Qcval(doid(lvs->dom), doid(lvs->type), doid(lvs->addr));
-		te = Qcons(se, te);
-		
+	case Esizeoft:
+		se = compilesizeof(e->e1->xp, pvs, vars);
+		freeexpr(e->e1);
 		e->kind = Eblock;
-		e->e1 = locals(lvs, pvs);
-		e->e2 = invert(te);
-		freevarset(lvs);
-		poplevel(vars);
-		break;
-	case Eg:
-		if(!isloc(e->e1)){
-			compile0(e->e2, 0, vars, 1);
-			break;
-		}
-		fatal("should not be here");
-		binds = Vdom|Vtmp|Vtype|Vrange|Vstr;
-		lvs = bindings(vars, pvs, binds);
-		pushlevel(vars);
-
-		te = nullelist();
-
-		compile0(e->e1, lvs, vars, 0);
-		se = e->e1;
-		te = Qcons(se, te);
-
-		compile0(e->e2, 0, vars, 1);
-		se = Qset(doid(lvs->tmp), e->e2);
-		te = Qcons(se, te);
-
-		se = Qset(doid(lvs->tmp),
-			  Qxcast(doid(lvs->type), doid(lvs->tmp)));
-		te = Qcons(se, te);
-
-		se = Qset(doid(lvs->str), Qencode(doid(lvs->tmp)));
-		te = Qcons(se, te);
-
-		// asdispatch(domas($dom))("put", $range, $str);
-		se = Qcall(doid("domas"), 1, doid(lvs->dom));
-		se = Qcall(doid("asdispatch"), 1, se);
-		se = Qcall(se, 3,
-			   doid("$put"), doid(lvs->range), doid(lvs->str));
-		te = Qcons(se, te);
-
-		if(needval){
-			se = doid(lvs->tmp);
-			te = Qcons(se, te);
-		}
-
-		e->kind = Eblock;
-		e->e1 = locals(lvs, pvs);
-		e->e2 = invert(te);
-		freevarset(lvs);
-		poplevel(vars);
+		e->e1 = nullelist();
+		e->e2 = se;
 		break;
 	case Ens:
 		binds = Vns|Vtypetab|Vsymtab;
@@ -696,7 +644,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		te = Qcons(se, te);
 
 		/* inherited names expression */
-		compile0(e->e1, lvs, vars, 0);
+		compile0(e->e1, lvs, vars);
 		se = Qset(doid(lvs->ns), e->e1);
 		te = Qcons(se, te);
 
@@ -733,10 +681,10 @@ compile0(Expr *e, Varset *pvs, Vars *vars, int needval)
 		poplevel(vars);
 		break;
 	default:
-		compile0(e->e1, pvs, vars, needval);
-		compile0(e->e2, pvs, vars, needval);
-		compile0(e->e3, pvs, vars, needval);
-		compile0(e->e4, pvs, vars, needval);
+		compile0(e->e1, pvs, vars);
+		compile0(e->e2, pvs, vars);
+		compile0(e->e3, pvs, vars);
+		compile0(e->e4, pvs, vars);
 		break;
 	}
 }
@@ -746,6 +694,6 @@ docompile0(Expr *e)
 {
 	Vars *vars;
 	vars = mkvars();
-	compile0(e, 0, vars, 1);
+	compile0(e, 0, vars);
 	freevars(vars);
 }

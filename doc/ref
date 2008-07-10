@@ -71,6 +71,13 @@ be used to circumvent this rule.
 Name spaces interface
 	looksym(str) -> xtn
 	looktype(xtn) -> xtn
+
+		these functions must return nil if there is
+		no definition for the requested object.
+		the system must be able to query types
+		not explicitly requested by a program.
+		(e.g., Eambig disambguity.)
+
 	enumsym() -> tab of { str:[xtn,id,cval] }
 	enumtype() -> vec of [ tidtab, tagtab ]
 		where tidtab is tab of { str:xtn }
@@ -90,3 +97,4 @@ this seems potentially useful, but is not possible:
 	x = 0;
 	@(x+=4) int x;
 	@(x+=4) int y;
+

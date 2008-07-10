@@ -82,7 +82,6 @@ main(int argc, char *argv[])
 		goto out;
 	}
 	ctx.el = rv;
-//	printcqct(ctx.el);
 	docompile0(ctx.el);
 	if(flags&Fprintir){
 		printf("compile0:\n");

@@ -313,15 +313,15 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Elambda:
 		printf("lambda");
-		if(e->e2->kind == Eid){
+		if(e->e1->kind == Eid){
 			printf(" ");
-			printcqct0(e->e2, ni);
+			printcqct0(e->e1, ni);
 		}else{
 			printf("(");
-			printargs(e->e2, ni, 0);
+			printargs(e->e1, ni, 0);
 			printf(")");
 		}
-		printcqct0(e->e3, ni);
+		printcqct0(e->e2, ni);
 		break;
 	case Ecall:
 		printcqct0(e->e1, ni);

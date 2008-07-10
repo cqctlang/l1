@@ -953,7 +953,7 @@ typesize(VM *vm, Xtypename *xtn)
 			vmerr(vm,
 			      "attempt to compute size of unspecified array");
 		cv = valcval(&xtn->cnt);
-		return cv->val;
+		return cv->val*typesize(vm, xtn->link);
 	case Tfun:
 		vmerr(vm, "attempt to compute size of function type");
 		break;

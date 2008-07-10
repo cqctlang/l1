@@ -1,0 +1,9 @@
+entry: 0 params, 0 locals, 0 temps
+listref: 2 params, 0 locals, 0 temps
+mkzas: 1 params, 2 locals, 0 temps
+dispatch: var params, 7 locals, 0 temps
+main: 0 params, 17 locals, 0 temps
+sizeof(3) == 4
+sizeof(dom`a) == 24
+sizeof(dom`a[2]) == 8
+sizeof(dom`a[2].i) == 4
