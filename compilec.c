@@ -226,7 +226,7 @@ compile_lval(Expr *e)
 	case Ederef:
 		te = nullelist();
 
-		// $tmp = compile_rval(e->e1)
+		// $tmp = compile_rval(e->e1);
 		se = Qset(doid("$tmp"), compile_rval(e->e1, 0));
 		te = Qcons(se, te);
 

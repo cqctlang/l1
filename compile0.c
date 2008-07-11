@@ -494,12 +494,11 @@ compilesizeof(Decl *d, Varset *pvs, Vars *vars)
 	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
 	te = Qcons(se, te);
 
-	// $tmp = nslooktype(domns(dom))(type)
-	se = Qcall(doid("domns"), 1, doid(dom));
-	se = Qcall(doid("nslooktype"), 1, se);
-	se = Qset(doid(lvs->tmp), Qcall(se, 1, doid(lvs->tn)));
+	// $tmp = looktype(dom, $tn);
+	se = Qset(doid(lvs->tmp),
+		  Qcall(doid("looktype"), 2, doid(dom), doid(lvs->tn)));
 	te = Qcons(se, te);
-	
+
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
@@ -545,10 +544,9 @@ compiletypeof(Decl *d, Varset *pvs, Vars *vars)
 	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
 	te = Qcons(se, te);
 
-	// $tmp = nslooktype(domns(dom))(type)
-	se = Qcall(doid("domns"), 1, doid(dom));
-	se = Qcall(doid("nslooktype"), 1, se);
-	se = Qset(doid(lvs->tmp), Qcall(se, 1, doid(lvs->tn)));
+	// $tmp = looktype(dom, $tn);
+	se = Qset(doid(lvs->tmp),
+		  Qcall(doid("looktype"), 2, doid(dom), doid(lvs->tn)));
 	te = Qcons(se, te);
 	
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
@@ -602,10 +600,9 @@ compilecast(Expr *e, Varset *pvs, Vars *vars)
 	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
 	te = Qcons(se, te);
 
-	// $type = nslooktype(domns(dom))($tn)
-	se = Qcall(doid("domns"), 1, dom);
-	se = Qcall(doid("nslooktype"), 1, se);
-	se = Qset(doid(lvs->type), Qcall(se, 1, doid(lvs->tn)));
+	// $type = looktype(dom, $tn);
+	se = Qset(doid(lvs->type),
+		  Qcall(doid("looktype"), 2, dom, doid(lvs->tn)));
 	te = Qcons(se, te);
 	
 	// if(isnil($type)) error("undefined type: %t", $tn);

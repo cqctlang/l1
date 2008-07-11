@@ -4269,12 +4269,14 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		return valxtn(rv);
 	case Tptr:
 		new = gcprotect(vm, mkxtn());
+		new->tkind = Tptr;
 		new->link = dolooktype(vm, xtn->link, ns);
 		tmp = ns->base[Vptr];
 		new->rep = tmp->rep;
 		return new;
 	case Tarr:
 		new = gcprotect(vm, mkxtn());
+		new->tkind = Tarr;
 		new->link = dolooktype(vm, xtn->link, ns);
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
@@ -4285,6 +4287,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		return new;
 	case Tfun:
 		new = gcprotect(vm, mkxtn());
+		new->tkind = Tfun;
 		new->link = dolooktype(vm, xtn->link, ns);
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
@@ -5511,6 +5514,34 @@ l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+	Ns *ns;
+	Xtypename *xtn;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to looktype");
+
+	if(argv[0].qkind == Qns)
+		ns = valns(&argv[0]);
+	else if(argv[0].qkind == Qdom){
+		dom = valdom(&argv[0]);
+		ns = dom->ns;
+	}else
+		vmerr(vm,
+		      "operand 1 to looktype must be a namespace or domain");
+		      
+	if(argv[1].qkind != Qxtn)
+		vmerr(vm, "operand 1 to looktype must be a typename");
+	xtn = valxtn(&argv[1]);
+
+	xtn = dolooktype(vm, xtn, ns);
+	if(xtn)
+		mkvalxtn(xtn, rv);
+}
+
+static void
 l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val *arg0;
@@ -6479,6 +6510,7 @@ mkvm(Env *env)
 	builtinfn(env, "nslooktype", mkcfn("nslooktype", l1_nslooktype));
 	builtinfn(env, "nsenumsym", mkcfn("nsenumsym", l1_nsenumsym));
 	builtinfn(env, "nsenumtype", mkcfn("nsenumtype", l1_nsenumtype));
+	builtinfn(env, "looktype", mkcfn("looktype", l1_looktype));
 	builtinfn(env, "gettimeofday", mkcfn("gettimeofday", l1_gettimeofday));
 	builtinfn(env, "randseed", mkcfn("randseed", l1_randseed));
 	builtinfn(env, "rand", mkcfn("rand", l1_rand));

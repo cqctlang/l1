@@ -52,8 +52,14 @@ define main(){
 	};
 	dom = mkdom(ns, as);
 
-	p = (struct dom`foo*){dom}0x8;
-	printf("typeof(*p->p) == %t\n", typeof(*p->p));
+	printf("sizeof(dom`int) == %d\n", sizeof(dom`int));
+	printf("sizeof(struct dom`foo) == %d\n", sizeof(struct dom`foo));
+	printf("sizeof(struct dom`foo*) == %d\n", sizeof(struct dom`foo*));
+
+	printf("sizeof(3) == %d\n", sizeof(3));
+	printf("sizeof(dom`a) == %d\n", sizeof(dom`a));	
+	printf("sizeof(dom`a[2]) == %d\n", sizeof(dom`a[2]));
+	printf("sizeof(dom`a[2].i) == %d\n", sizeof(dom`a[2].i));
 }
 
 main();

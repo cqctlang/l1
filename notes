@@ -23,6 +23,7 @@ todo
 - immutable vectors for type datastructures (fields and params)?
 - immutable strings for pre-computed "$get", etc?
 - map()
+- do address range calculations wrap correctly in 32-bit contexts?
 
 given
 	int a[3];

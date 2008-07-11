@@ -1,3 +1,32 @@
+intro
+-----
+
+Reader should be familiar with C.  Standard reference K&R.
+In particular, C types and pointers.  This manual describes
+Cinquecento in terms of the concepts in C, without
+dwelling on details of C.
+
+
+Name spaces
+-----------
+
+Each name space implements a function, conventionally
+called looktype, that searches for definitions of
+tagged types, base types, and typedef types.  Its
+argument is a ctype representing the name of such a
+type.  It returns a ctype defining the type, or nil if
+there is no definition.
+
+The function nslooktype takes a domain or name space
+and returns the looktype function the name space.
+
+Note that the function does not look up pointer, array,
+or function types.  The built-in function looktype
+takes a name space or domain and a type name, including
+type names formed as pointers, arrays, or function,
+and invokes the looktype function of the underlying
+name space.
+
 
 The Literal Domain
 
@@ -97,4 +126,5 @@ this seems potentially useful, but is not possible:
 	x = 0;
 	@(x+=4) int x;
 	@(x+=4) int y;
+
 
