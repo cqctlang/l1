@@ -882,7 +882,7 @@ static int
 ofkind(int kind)
 {
 	return (kind == Esizeoft) || (kind == Esizeofe)
-		|| (kind == Etypeoft) || (kind == Etypeoft);
+		|| (kind == Etypeoft) || (kind == Etypeofe);
 }
 
 static Expr*

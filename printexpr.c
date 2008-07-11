@@ -275,7 +275,6 @@ opstr(unsigned op)
 static void
 printcqct0(Expr *e, unsigned ni)
 {
-	Expr *p;
 	static char consts[Abbrevlen];
 	int wasstmt = 0;
 

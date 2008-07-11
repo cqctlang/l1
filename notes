@@ -24,6 +24,12 @@ todo
 - immutable strings for pre-computed "$get", etc?
 - map()
 
+given
+	int a[3];
+note that
+	typeof(a) is int[3] /* not int* */
+
+
 grammar
 -------
 

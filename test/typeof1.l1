@@ -1,0 +1,64 @@
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define mkzas(len){
+	@local dispatch, str;
+	str = string(len);
+	define dispatch args {
+		@local arg, range, s, new, beg, end;
+		arg = listref(args, 0);
+
+		if(arg == "get"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			printf("get %x %x\n", beg, end);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 2);
+			strput(str, beg, new);
+			printf("put %x %x\n", beg, end);
+			return;
+		}
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas(dispatch);
+}
+
+define main(){
+	@local dom, ns, as, v, y;
+
+	as = mkzas(1024);
+	ns = @names c32le {
+		struct foo {
+			@0x0 int i;
+			@0x4 int *p;
+			@0x8;
+		};
+		@0x0	int x;
+		@0x4	int y;
+		@0x8	struct foo foo;
+		@0x10	struct foo a[3];
+	};
+	dom = mkdom(ns, as);
+
+	printf("typeof(int) == %t\n", typeof(int));
+	printf("typeof(3) == %t\n", typeof(3));
+	printf("typeof(dom`a) == %t\n", typeof(dom`a));	
+	printf("typeof(v = &dom`a[0]) == %t\n", typeof(v = &dom`a[0]));
+	printf("typeof(v = dom`a) == %t\n", typeof(v = dom`a));
+	printf("typeof(dom`a[2]) == %t\n", typeof(dom`a[2]));
+	printf("typeof(dom`a[2].i) == %t\n", typeof(dom`a[2].i));
+}
+
+main();
