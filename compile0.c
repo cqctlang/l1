@@ -79,6 +79,12 @@ Qsizeof(Expr *e)
 	return Q1(E_sizeof, e);
 }
 
+static Expr*
+Qxcast(Expr *type, Expr *cval)
+{
+	return newbinop(Excast, type, cval);
+}
+
 /* arguments in usual order */
 static Expr*
 Qcall(Expr *fn, unsigned narg, ...)
@@ -565,6 +571,64 @@ compiletypeof(Decl *d, Varset *pvs, Vars *vars)
 	return e;
 }
 
+static Expr*
+compilecast(Expr *e, Varset *pvs, Vars *vars)
+{
+	Type *t;
+	int binds;
+	Varset *lvs;
+	Expr *e, *se, *te, *dom;
+	Decl *d;
+	char *dom;
+
+	binds = Vtmp|Vtn;
+	lvs = bindings(vars, pvs, binds);
+	pushlevel(vars);
+
+	te = nullelist();
+	
+	// $tmp = e->e2
+	compile0(e->e2, lvs, vars);
+	se = Qset(doid(lvs->tmp), e->e2);
+	te = Qcons(se, te);
+
+	// $tn = gentypename(t);
+	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Qcons(se, te);
+
+	d = e->e1->xp;
+	t = d->type;
+	if(t->dom)
+		dom = doid(t->dom);
+	else
+		dom = Qcall(doid("domof"), 1, doit("$tmp"));
+
+	// $tmp = nslooktype(domns(dom))(type)
+	se = Qcall(doid("domns"), 1, dom);
+	se = Qcall(doid("nslooktype"), 1, se);
+	se = Qset(doid(lvs->tmp), Qcall(se, 1, doid(lvs->tn)));
+	te = Qcons(se, te);
+	
+	// if(isnil($tmp)) error("undefined type: %t", $tmp);
+	// FIXME: this is a redundant test under Eambig
+	se = newexpr(Eif,
+		     Qcall(doid("isnil"), 1, doid(lvs->tmp)),
+		     Qcall(doid("error"), 2,
+			   Qconsts("undefined type: %t"),
+			   doid(lvs->tn)),
+		     0, 0);
+	te = Qcons(se, te);
+
+	// cast($tmp, 
+	se = 
+	te = Qcons(se, te);
+
+	e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
+	poplevel(vars);
+	freevarset(lvs);
+	return e;
+}
+
 static int
 istypeform(Expr *e)
 {
@@ -684,6 +748,14 @@ compile0(Expr *e, Varset *pvs, Vars *vars)
 	case Etypeoft:
 		se = compiletypeof(e->e1->xp, pvs, vars);
 		freeexpr(e->e1);
+		e->kind = Eblock;
+		e->e1 = nullelist();
+		e->e2 = se;
+		break;
+	case Ecast:
+		se = compilecast(e, pvs, vars);
+		freeexpr(e->e1);
+		freeexpr(e->e2);
 		e->kind = Eblock;
 		e->e1 = nullelist();
 		e->e2 = se;
