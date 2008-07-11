@@ -5873,16 +5873,18 @@ static void
 l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Xtypename *xtn;
+	static char *err = 
+		"operand 1 to subtype must be an array or pointer ctype";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to subtype");
 	if(argv->qkind != Qxtn)
-		vmerr(vm,
-		      "operand 1 to subtype must be an array or pointer ctype");
+		vmerr(vm, err);
+		      
 	xtn = valxtn(argv);
 	if(xtn->tkind != Tptr && xtn->tkind != Tarr)
-		vmerr(vm,
-		      "operand 1 to subtype must be an array or pointer ctype");
+		vmerr(vm, err);
+
 	mkvalxtn(xtn->link, rv);
 }
 
@@ -5894,12 +5896,10 @@ l1_rettype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to retttype");
 	if(argv->qkind != Qxtn)
-		vmerr(vm,
-		      "operand 1 to rettype must be a function ctype");
+		vmerr(vm, "operand 1 to rettype must be a function ctype");
 	xtn = valxtn(argv);
 	if(xtn->tkind != Tfun)
-		vmerr(vm,
-		      "operand 1 to rettype must be a function ctype");
+		vmerr(vm, "operand 1 to rettype must be a function ctype");
 	mkvalxtn(xtn->link, rv);
 }
 
@@ -5911,12 +5911,11 @@ l1_suekind(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to suekind");
 	if(argv->qkind != Qxtn)
-		vmerr(vm,
-		      "operand 1 to suekind must be a tagged ctype");
+		vmerr(vm, "operand 1 to suekind must be a tagged ctype");
 	xtn = valxtn(argv);
-	if(xtn->tkind != Tstruct && xtn->tkind != Tunion && xtn->tkind != Tenum)
-		vmerr(vm,
-		      "operand 1 to suekind must be a tagged ctype");
+	if(xtn->tkind != Tstruct && xtn->tkind != Tunion
+	   && xtn->tkind != Tenum)
+		vmerr(vm, "operand 1 to suekind must be a tagged ctype");
 	mkvalstr(mkstr0(tkindstr[xtn->tkind]), rv);
 }
 
@@ -5928,12 +5927,11 @@ l1_suetag(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to suetag");
 	if(argv->qkind != Qxtn)
-		vmerr(vm,
-		      "operand 1 to suetag must be a tagged ctype");
+		vmerr(vm, "operand 1 to suetag must be a tagged ctype");
 	xtn = valxtn(argv);
-	if(xtn->tkind != Tstruct && xtn->tkind != Tunion && xtn->tkind != Tenum)
-		vmerr(vm,
-		      "operand 1 to sutag must be a tagged ctype");
+	if(xtn->tkind != Tstruct && xtn->tkind != Tunion
+	   && xtn->tkind != Tenum)
+		vmerr(vm, "operand 1 to sutag must be a tagged ctype");
 	mkvalstr(xtn->tag, rv);
 }
 
@@ -5962,12 +5960,11 @@ l1_arraynelm(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to arraynelm");
 	if(argv->qkind != Qxtn)
-		vmerr(vm,
-		      "operand 1 to arraynelm must be an array ctype");
+		vmerr(vm, "operand 1 to arraynelm must be an array ctype");
+		      
 	xtn = valxtn(argv);
 	if(xtn->tkind != Tarr)
-		vmerr(vm,
-		      "operand 1 to arraynelm must be an array ctype");
+		vmerr(vm, "operand 1 to arraynelm must be an array ctype");
 	*rv = xtn->cnt;
 }
 
@@ -6011,12 +6008,10 @@ l1_params(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to params");
 	if(argv->qkind != Qxtn)
-		vmerr(vm,
-		      "operand 1 to params must be a function ctype");
+		vmerr(vm, "operand 1 to params must be a function ctype");
 	xtn = valxtn(argv);
 	if(xtn->tkind != Tfun)
-		vmerr(vm,
-		      "operand 1 to params must be a function ctype");
+		vmerr(vm, "operand 1 to params must be a function ctype");
 	mkvalvec(xtn->param, rv);
 }
 
@@ -6162,6 +6157,69 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldoff");
+	if(argv->qkind != Qvec)
+		vmerr(vm, err);
+	v = valvec(argv);
+	if(v->len < 3)
+		vmerr(vm, err);
+	vp = &v->vec[Offpos];
+	if(vp->qkind != Qcval && vp->qkind != Qnil)
+		vmerr(vm, err);
+	*rv = *vp;
+}
+
+static void
+l1_symtype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	Val *vp;
+	static char *err
+		= "operand 1 to symtype must be a vector returned by looksym";
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to symtype");
+	if(argv->qkind != Qvec)
+		vmerr(vm, err);
+	v = valvec(argv);
+	if(v->len < 3)
+		vmerr(vm, err);
+	vp = &v->vec[Typepos];
+	if(vp->qkind != Qxtn)
+		vmerr(vm, err);
+	*rv = *vp;
+}
+
+static void
+l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	Val *vp;
+	static char *err
+		= "operand 1 to symid must be a vector returned by looksym";
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to symid");
+	if(argv->qkind != Qvec)
+		vmerr(vm, err);
+	v = valvec(argv);
+	if(v->len < 3)
+		vmerr(vm, err);
+	vp = &v->vec[Idpos];
+	if(vp->qkind != Qcval && vp->qkind != Qnil)
+		vmerr(vm, err);
+	*rv = *vp;
+}
+
+static void
+l1_symval(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	Val *vp;
+	static char *err
+		= "operand 1 to symval must be a vector returned by looksym";
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to symval");
 	if(argv->qkind != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv);
@@ -6551,6 +6609,10 @@ mkvm(Env *env)
 	builtinfn(env, "typedeftype", mkcfn("typedeftype", l1_typedeftype));
 
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
+
+	builtinfn(env, "symid", mkcfn("symid", l1_symid));
+	builtinfn(env, "symtype", mkcfn("symtype", l1_symtype));
+	builtinfn(env, "symval", mkcfn("symval", l1_symval));
 
 //	builtinfn(env, "fieldbits", mkcfn("fieldbits", l1_fieldbits));
 //	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));

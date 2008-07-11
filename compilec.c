@@ -208,14 +208,14 @@ compile_lval(Expr *e)
 			     0, 0);
 		te = Qcons(se, te);
 
-		// $type = vecref($tmp, 0);
+		// $type = symtype($tmp);
 		se = Qset(doid("$type"),
-			  Qcall(doid("vecref"), 2, doid("$tmp"), Quint(0)));
+			  Qcall(doid("symtype"), 1, doid("$tmp")));
 		te = Qcons(se, te);
 
-		// $addr = vecref($tmp, 2);
+		// $addr = symval($tmp, 2);
 		se = Qset(doid("$addr"),
-			  Qcall(doid("vecref"), 2, doid("$tmp"), Quint(2)));
+			  Qcall(doid("symval"), 1, doid("$tmp")));
 		te = Qcons(se, te);
 		
 		freeexpr(e->e2);
