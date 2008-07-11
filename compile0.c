@@ -577,23 +577,18 @@ compilecast(Expr *e, Varset *pvs, Vars *vars)
 	Type *t;
 	int binds;
 	Varset *lvs;
-	Expr *e, *se, *te, *dom;
+	Expr *se, *te, *dom;
 	Decl *d;
-	char *dom;
 
-	binds = Vtmp|Vtn;
+	binds = Vtmp|Vtn|Vtype;
 	lvs = bindings(vars, pvs, binds);
 	pushlevel(vars);
 
 	te = nullelist();
 	
-	// $tmp = e->e2
+	// $tmp = e->e2;
 	compile0(e->e2, lvs, vars);
 	se = Qset(doid(lvs->tmp), e->e2);
-	te = Qcons(se, te);
-
-	// $tn = gentypename(t);
-	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
 	te = Qcons(se, te);
 
 	d = e->e1->xp;
@@ -601,32 +596,36 @@ compilecast(Expr *e, Varset *pvs, Vars *vars)
 	if(t->dom)
 		dom = doid(t->dom);
 	else
-		dom = Qcall(doid("domof"), 1, doit("$tmp"));
+		dom = Qcall(doid("domof"), 1, doid(lvs->tmp));
 
-	// $tmp = nslooktype(domns(dom))(type)
+	// $tn = gentypename(t);
+	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Qcons(se, te);
+
+	// $type = nslooktype(domns(dom))($tn)
 	se = Qcall(doid("domns"), 1, dom);
 	se = Qcall(doid("nslooktype"), 1, se);
-	se = Qset(doid(lvs->tmp), Qcall(se, 1, doid(lvs->tn)));
+	se = Qset(doid(lvs->type), Qcall(se, 1, doid(lvs->tn)));
 	te = Qcons(se, te);
 	
-	// if(isnil($tmp)) error("undefined type: %t", $tmp);
+	// if(isnil($type)) error("undefined type: %t", $tn);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
-		     Qcall(doid("isnil"), 1, doid(lvs->tmp)),
+		     Qcall(doid("isnil"), 1, doid(lvs->type)),
 		     Qcall(doid("error"), 2,
 			   Qconsts("undefined type: %t"),
 			   doid(lvs->tn)),
 		     0, 0);
 	te = Qcons(se, te);
 
-	// cast($tmp, 
-	se = 
+	// cast($type, $tmp);
+	se = Qxcast(doid(lvs->type), doid(lvs->tmp));
 	te = Qcons(se, te);
 
-	e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
+	te = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
 	poplevel(vars);
 	freevarset(lvs);
-	return e;
+	return te;
 }
 
 static int
@@ -676,7 +675,7 @@ compileambig(Expr *e, Varset *pvs, Vars *vars)
 		dom = t->dom;
 	else
 		dom = "litdom";
-	
+
 	binds = Vtmp|Vtn;
 	lvs = bindings(vars, pvs, binds);
 	pushlevel(vars);
@@ -755,7 +754,6 @@ compile0(Expr *e, Varset *pvs, Vars *vars)
 	case Ecast:
 		se = compilecast(e, pvs, vars);
 		freeexpr(e->e1);
-		freeexpr(e->e2);
 		e->kind = Eblock;
 		e->e1 = nullelist();
 		e->e2 = se;

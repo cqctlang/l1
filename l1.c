@@ -153,13 +153,6 @@ basetype(unsigned base)
 	return t;
 }
 
-static void
-initbase()
-{
-
-
-}
-
 Expr*
 newexpr(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 {
@@ -906,12 +899,14 @@ declarator0(Type *bt, Expr *e)
 		t = newtype();
 		t->kind = Tptr;
 		t->link = bt;
+		t->dom = xstrdup(bt->dom);
 		return declarator0(t, e->e1);
 	case Earr:
 		t = newtype();
 		t->kind = Tarr;
 		t->link = bt;
 		t->cnt = e->e2;	/* steal */
+		t->dom = xstrdup(bt->dom);
 		e->e2 = NULL;
 		return declarator0(t, e->e1);
 	case Efun:
@@ -919,6 +914,7 @@ declarator0(Type *bt, Expr *e)
 		t->kind = Tfun;
 		t->link = bt;
 		t->param = params(e->e2);
+		t->dom = xstrdup(bt->dom);
 		return declarator0(t, e->e1);
 	default:
 		fatal("bug");
@@ -1126,6 +1122,7 @@ copytype(Type *t)
 
 	nt = newtype();
 	nt->kind = t->kind;
+	nt->dom = xstrdup(t->dom);
 	switch(nt->kind){
 	case Tbase:
 		nt->base = t->base;
@@ -1240,7 +1237,6 @@ void
 initparse()
 {
 	filenames = mkht();
-	initbase();
 }
 
 static void

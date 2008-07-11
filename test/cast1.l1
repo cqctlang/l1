@@ -56,6 +56,10 @@ define main(){
 	printf("(unsigned int)3 == %d, typeof((unsigned int)3) == %t\n",
 	       x, typeof(x));
 
+	p = (struct dom`foo*){dom}0x8;
+
+	printf("typeof(p) == %t\n", typeof(p));
+
 //	printf("sizeof(3) == %d\n", sizeof(3));
 //	printf("sizeof(dom`a) == %d\n", sizeof(dom`a));	
 //	printf("sizeof(dom`a[2]) == %d\n", sizeof(dom`a[2]));
