@@ -177,7 +177,7 @@ lvalblock(Expr *body)
 }
 
 static Expr*
-compile_lval(Expr *e)
+compile_lval(Expr *e, int needaddr)
 {
 	Expr *se, *te;
 
@@ -214,9 +214,11 @@ compile_lval(Expr *e)
 		te = Qcons(se, te);
 
 		// $addr = symval($tmp, 2);
-		se = Qset(doid("$addr"),
-			  Qcall(doid("symval"), 1, doid("$tmp")));
-		te = Qcons(se, te);
+		if(needaddr){
+			se = Qset(doid("$addr"),
+				  Qcall(doid("symval"), 1, doid("$tmp")));
+			te = Qcons(se, te);
+		}
 		
 		freeexpr(e->e2);
 		e->e1 = 0;
@@ -227,26 +229,42 @@ compile_lval(Expr *e)
 		te = nullelist();
 
 		// $tmp = compile_rval(e->e1);
-		se = Qset(doid("$tmp"), compile_rval(e->e1, 0));
-		te = Qcons(se, te);
+		if(needaddr || !islval(e->e1)){
+			se = Qset(doid("$tmp"), compile_rval(e->e1, 0));
+			te = Qcons(se, te);
 
-		// $type = subtype($typeof($tmp));
-		se = Qset(doid("$type"),
-			  Qcall(doid("subtype"), 1,
-				Qcall(doid("$typeof"), 1, doid("$tmp"))));
-		te = Qcons(se, te);
+			// $type = subtype($typeof($tmp));
+			se = Qset(doid("$type"),
+				  Qcall(doid("subtype"), 1,
+					Qcall(doid("$typeof"), 1,
+					      doid("$tmp"))));
+			te = Qcons(se, te);
 
-		// $dom = domof($tmp);
-		se = Qset(doid("$dom"), Qcall(doid("domof"), 1, doid("$tmp")));
-		te = Qcons(se, te);
+			// $dom = domof($tmp);
+			se = Qset(doid("$dom"),
+				  Qcall(doid("domof"), 1, doid("$tmp")));
+			te = Qcons(se, te);
 
-		// $addr = {litdom}{nsptr(dom)}$tmp
-		se = Qset(doid("$addr"),
-			  Qxcast(doid("litdom"),
-				 Qxcast(Qcall(doid("nsptr"), 1, doid("dom")),
-					doid("$tmp"))));
-		te = Qcons(se, te);
+			// $addr = {litdom}{nsptr(dom)}$tmp
+			if(needaddr){
+				se = Qset(doid("$addr"),
+					  Qxcast(doid("litdom"),
+						 Qxcast(Qcall(doid("nsptr"), 1,
+							      doid("dom")),
+							doid("$tmp"))));
+				te = Qcons(se, te);
+			}
+		}else{
+			// compile lvalue reference to pointer,
+			// using dom, type bindings
+			se = compile_lval(e->e1, 0);
+			te = Qcons(se, te);
 
+			// $type = subtype($type);
+			se = Qset(doid("$type"),
+				  Qcall(doid("subtype"), 1, doid("$type")));
+			te = Qcons(se, te);
+		}
 		e->e1 = 0;
 		freeexpr(e);
 		return lvalblock(invert(te));
@@ -255,7 +273,7 @@ compile_lval(Expr *e)
 		
 		// compile lvalue reference to containing struct,
 		// using dom, type, addr bindings.
-		se = compile_lval(e->e1);
+		se = compile_lval(e->e1, needaddr);
 		te = Qcons(se, te);
 		
 		// $tmp = lookfield(type, field);
@@ -279,10 +297,13 @@ compile_lval(Expr *e)
 		te = Qcons(se, te);
 				     
 		// $addr = $addr + fieldoff($tmp)
-		se = Qset(doid("$addr"),
-			  Qadd(doid("$addr"),
-			       Qcall(doid("fieldoff"), 1, doid("$tmp"))));
-		te = Qcons(se, te);
+		if(needaddr){
+			se = Qset(doid("$addr"),
+				  Qadd(doid("$addr"),
+				       Qcall(doid("fieldoff"), 1,
+					     doid("$tmp"))));
+			te = Qcons(se, te);
+		}
 		
 		e->e1 = 0;
 		freeexpr(e);
@@ -305,14 +326,14 @@ compile_rval(Expr *e, unsigned lfree)
 	case Edot:
 	case Ederef:
 		te = nullelist();
-		se = compile_lval(e);
+		se = compile_lval(e, 1);
 		te = Qcons(se, te);
 		se = Qcval(doid("$dom"), doid("$type"), doid("$addr"));
 		te = Qcons(se, te);
 		return rvalblock(invert(te), lfree);
 	case Eref:
 		te = nullelist();
-		se = compile_lval(e->e1);
+		se = compile_lval(e->e1, 1);
 		te = Qcons(se, te);
 		se = Qref(doid("$dom"), doid("$type"), doid("$addr"));
 		te = Qcons(se, te);
@@ -328,7 +349,7 @@ compile_rval(Expr *e, unsigned lfree)
 
 		te = nullelist();
 
-		se = compile_lval(e->e1);
+		se = compile_lval(e->e1, 1);
 		te = Qcons(se, te);
 
 		se = Qset(doid("$val"), compile_rval(e->e2, 0));
@@ -463,7 +484,7 @@ compile_rval(Expr *e, unsigned lfree)
 
 		te = nullelist();
 
-		se = compile_lval(e->e1);
+		se = compile_lval(e->e1, 0);
 		te = Qcons(se, te);
 
 		se = Qsizeof(doid("$type"));
@@ -482,7 +503,7 @@ compile_rval(Expr *e, unsigned lfree)
 
 		te = nullelist();
 
-		se = compile_lval(e->e1);
+		se = compile_lval(e->e1, 0);
 		te = Qcons(se, te);
 
 		se = doid("$type");
