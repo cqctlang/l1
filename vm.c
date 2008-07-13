@@ -2834,6 +2834,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	Xtypename *xtn;
 	Str *es;
 
+	/* FIXME: do we really want to lookup the type in the new domain? */
 	if(dom == vm->litdom)
 		xtn = dolooktype(vm, chasetypedef(cv->type), dom->ns);
 	else

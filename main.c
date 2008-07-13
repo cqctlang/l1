@@ -3,13 +3,16 @@
 #include "l1.h"
 #include "code.h"
 
+char flags[256];
+
 static void
 usage(char *argv0)
 {
 	fprintf(stderr, "usage: %s <option>\n", argv0);
 	fprintf(stderr, "present input code on stdin.\n");
 	fprintf(stderr, "\t-h print this usage\n");
-	fprintf(stderr, "\t-p dump IR and object code\n");
+	fprintf(stderr, "\t-p print IR and object code\n");
+	fprintf(stderr, "\t-q print expanded cinquecento source\n");
 	fprintf(stderr, "\t-c do not compile IR code\n");
 	fprintf(stderr, "\t-v do not execute object code\n");
 	fprintf(stderr, "\t-e <file> read input from <file> instead of stdin\n");
@@ -25,35 +28,32 @@ main(int argc, char *argv[])
 	VM *vm;
 	Env *env;
 	char *filename = 0;
-	int defaultflags = (Fcompile|Fexec);
-	int flags = defaultflags;
 	int c;
 	struct timeval beg, end;
 
-	while(EOF != (c = getopt(argc, argv, "phcvte:"))){
+	flags['c'] = 1;		/* compile */
+	flags['x'] = 1;		/* execute */
+
+	while(EOF != (c = getopt(argc, argv, "hpqcxte:"))){
 		switch(c){
 		case 'p':
-			flags |= (Fprintir|Fprintobj);
+		case 'q':
+		case 't':
+			flags[c] = 1;
 			break;
 		case 'c':
-			flags &= ~(Fcompile);
+		case 'x':
+			flags[c] = 0;
 			break;
 		case 'e':
 			filename = optarg;
 			break;
-		case 'v':
-			flags &= ~(Fexec);
-			break;
-		case 't':
-			flags |= Ftime;
 			break;
 		case 'h':
 			usage(argv[0]);
-			break;
 		case '?':
 			fprintf(stderr, "Unknown option `-%c'.\n", optopt);
 			usage(argv[0]);
-			break;
 		}
 	}
 
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
 	if(0 > doparse(filename))
 		exit(0);
 
-	if(flags&Fprintir){
+	if(flags['p']){
 		printf("source:\n");
 		printexpr(ctx.el);
 		printf("\n");
@@ -83,23 +83,28 @@ main(int argc, char *argv[])
 	}
 	ctx.el = rv;
 	docompile0(ctx.el);
-	if(flags&Fprintir){
+	if(flags['p']){
 		printf("compile0:\n");
 		printexpr(ctx.el);
 		printf("\n");
 	}
+	if(flags['q']){
+		printf("transformed source:\n");
+		printcqct(ctx.el);
+		printf("\n");
+	}
 
-	if(flags&Fcompile){
-		entry = compileentry(ctx.el, env, flags);
-		if(flags&Fexec){
+	if(flags['c']){
+		entry = compileentry(ctx.el, env);
+		if(flags['x']){
 			vm = mkvm(env);
 			if(vm == 0)
 				goto out;
-			if(flags&Ftime)
+			if(flags['t'])
 				gettimeofday(&beg, 0);
 			if(!waserror(vm)){
 				dovm(vm, entry, 0, 0);
-				if(flags&Ftime){
+				if(flags['t']){
 					gettimeofday(&end, 0);
 					tvdiff(&end, &beg, &end);
 					printf("%lu usec\n",

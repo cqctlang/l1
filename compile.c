@@ -2504,7 +2504,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 }
 
 Closure*
-compileentry(Expr *el, Env *env, int flags)
+compileentry(Expr *el, Env *env)
 {
 	Ctl *L;
 	Expr *le;
@@ -2531,7 +2531,7 @@ compileentry(Expr *el, Env *env, int flags)
 	b = (Lambda*)le->xp;
 	cl = mkcl(code, 0, b->capture->nvr, L->label);
 
-	if(flags&Fprintobj)
+	if(flags['p'])
 		printcode(code);
 	return cl;
 }

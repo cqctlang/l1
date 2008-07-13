@@ -1,14 +1,6 @@
 #ifndef _BISONFLAW_L1_H_
 #define _BISONFLAW_L1_H_
 
-enum {
-	Fcompile	= 0x01,
-	Fexec		= 0x02,
-	Fprintir	= 0x04,
-	Fprintobj	= 0x08,
-	Ftime		= 0x10,
-};
-
 enum{
 	Vintmax		= 2147483647ULL,
 	Vuintmax	= 4294967295ULL,
@@ -271,6 +263,7 @@ struct U {
 } U;
 
 extern U ctx;
+extern char flags[];
 extern char* S[];
 extern char* basename[];
 extern char* tkindstr[];
