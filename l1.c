@@ -33,6 +33,8 @@ char* tkindstr[Tntkind] = {
 	[Tstruct]		= "struct",
 	[Ttypedef]		= "typedef",
 	[Tunion]		= "union",
+	[Tbitfield]		= "bitfield",
+	[Tconst]		= "constant",
 };
 
 static unsigned basemod[Vnbase][Enbase] = {
@@ -742,6 +744,14 @@ sufields(Type *su, Expr *e)
 		fatal("sufields expects an expression list");
 
 	switch(e->e1->kind){
+	case Ebitfield:
+		hd = dodecl(e->e1);
+		hd->offs = e->e1->e3; /* steal */
+		e->e1->e3 = NULL;
+		hd->type->bitw = e->e1->e4; /* steal */
+		e->e1->e4 = NULL;
+		hd->link = sufields(su, e->e2);
+		break;
 	case Efields:
 		hd = dodecls(e->e1);
 		if(e->e1->e3){
@@ -877,7 +887,7 @@ specifier(Expr *e)
 }
 
 static Decl*
-declarator0(Type *bt, Expr *e)
+declarator(Type *bt, Expr *e)
 {
 	Type *t;
 	Decl *d;
@@ -900,7 +910,7 @@ declarator0(Type *bt, Expr *e)
 		t->kind = Tptr;
 		t->link = bt;
 		t->dom = xstrdup(bt->dom);
-		return declarator0(t, e->e1);
+		return declarator(t, e->e1);
 	case Earr:
 		t = newtype();
 		t->kind = Tarr;
@@ -908,36 +918,19 @@ declarator0(Type *bt, Expr *e)
 		t->cnt = e->e2;	/* steal */
 		t->dom = xstrdup(bt->dom);
 		e->e2 = NULL;
-		return declarator0(t, e->e1);
+		return declarator(t, e->e1);
 	case Efun:
 		t = newtype();
 		t->kind = Tfun;
 		t->link = bt;
 		t->param = params(e->e2);
 		t->dom = xstrdup(bt->dom);
-		return declarator0(t, e->e1);
+		return declarator(t, e->e1);
 	default:
 		fatal("bug");
 		break;
 	}
 	return NULL;
-}
-
-static Decl*
-declarator(Type *bt, Expr *e)
-{
-	Decl *d;
-
-	if(e && e->kind == Ebits){
-		if(e->e1)
-			d = declarator0(bt, e->e1);
-		else
-			d = newdecl();
-		d->bits = e->e2; /* steal */
-		e->e2 = NULL;
-	}else
-		d = declarator0(bt, e);
-	return d;
 }
 
 static int
@@ -1107,7 +1100,6 @@ copydecls(Decl *dl)
 	nd = newdecl();
 	nd->id = xstrdup(dl->id);
 	nd->offs = copyexpr(dl->offs);
-	nd->bits = copyexpr(dl->bits);
 	nd->link = copydecls(dl->link);
 	return nd;
 }
@@ -1123,6 +1115,8 @@ copytype(Type *t)
 	nt = newtype();
 	nt->kind = t->kind;
 	nt->dom = xstrdup(t->dom);
+	nt->bitw = copyexpr(t->bitw);
+	nt->bit0 = copyexpr(t->bit0);
 	switch(nt->kind){
 	case Tbase:
 		nt->base = t->base;

@@ -283,10 +283,12 @@ struct Xtypename {
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
 	Val cnt;		/* arr */
-	Val sz;			/* struct */
+	Val sz;			/* struct, union, bitfield */
+	Val bit0;		/* bitfield */
 	Xtypename *link;	/* ptr, arr, func (return type) */
 	Vec *field;		/* struct, union */
 	Vec *param;		/* abstract declarators for func */
+
 };
 
 typedef
@@ -956,7 +958,8 @@ typesize(VM *vm, Xtypename *xtn)
 		return cv->val*typesize(vm, xtn->link);
 	case Tfun:
 		vmerr(vm, "attempt to compute size of function type");
-		break;
+	case Tbitfield:
+		vmerr(vm, "attempt to compute size of bitfield"); 
 	default:
 		fatal("typesize bug");
 	}
@@ -1275,6 +1278,7 @@ hashxtn(Val *val)
 			x ^= hashxtn(vecref(vec, Typepos));
 		}
 		return x;
+	case Tbitfield:
 	default:
 		fatal("bug");
 	}
@@ -1328,6 +1332,7 @@ eqxtn(Val *a, Val *b)
 				  vecref(valvec(vecref(xb->param, m)),Typepos)))
 				return 0;
 		return 1;
+	case Tbitfield:
 	default:
 		fatal("bug");
 	}
@@ -1826,11 +1831,25 @@ iterxtn(Head *hd, Ictx *ictx)
 		}
 		break;
 	case Ttypedef:
-		if(ictx->n++ > 0)
-			return GCiterdone;
-		else
+		switch(ictx->n++){
+		case 0:
+			return (Head*)xtn->link;
+		case 1:
 			return (Head*)xtn->tid;
-		break;
+		default:
+			return GCiterdone;
+		}
+	case Tbitfield:
+		switch(ictx->n++){
+		case 0:
+			return valhead(&xtn->sz);
+		case 1:
+			return valhead(&xtn->bit0);
+		case 2:
+			return (Head*)xtn->link;
+		default:
+			return GCiterdone;
+		}
 	default:
 		fatal("bug");
 	}
@@ -1964,6 +1983,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		free(o);
 		free(pl);
 		return _fmtxtn(xtn->link, buf);
+	case Tbitfield:
 	default:
 		fatal("bug");
 	}
@@ -3705,6 +3725,9 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		imm = truncimm(imm, pt->rep);
 		mkvalcval(d, pt, imm, &rv);
 		break;
+	case Tbitfield:
+		vmerr(vm, "attempt to construct pointer to a bitfield");
+		break;
 	case Tenum:
 		vmerr(vm, "unimplemented feature");
 	default:
@@ -3731,8 +3754,10 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 
 	b = chasetypedef(t);
 	switch(b->tkind){
+	case Tbitfield:
+		vmerr(vm, "showtime!");
+		break;
 	case Tbase:
-		/* FIXME: implement bitfield special case */
 	case Tptr:
 		mkvalstr(vm->sget, &argv[0]);
 		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
@@ -4533,6 +4558,10 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		mkvalxtn(xtn, &v);
 		xtn->link = resolvetid(vm, &v, ctx);
 		return xtn;
+	case Tbitfield:
+		mkvalxtn(xtn, &v);
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		return xtn;
 	case Tstruct:
 	case Tunion:
 		mkvalxtn(xtn, &v);
@@ -4731,7 +4760,7 @@ xnsltype(VM *vm, Operand *nso, Operand *dst)
 }
 
 static void
-xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
+xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *op3, Operand *dst)
 {
 	Xtypename *xtn;
 	Val v, rv;
@@ -4767,6 +4796,14 @@ xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *dst)
 		xtn->link = valxtn(&v);
 		getvalrand(vm, op2, &v);
 		xtn->param = valvec(&v);
+		break;
+	case Tbitfield:
+		getvalrand(vm, op1, &v);
+		xtn->link = valxtn(&v);
+		getvalrand(vm, op2, &v);
+		xtn->sz = v;
+		getvalrand(vm, op3, &v);
+		xtn->bit0 = v;
 		break;
 	default:
 		fatal("bug");
@@ -5250,7 +5287,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		xsizeof(vm, &i->op1, &i->dst);
 		continue;
 	Itn:
-		xtn(vm, i->bits, &i->op1, &i->op2, &i->dst);
+		xtn(vm, i->bits, &i->op1, &i->op2, &i->op3, &i->dst);
 		continue;
 	Ias:
 		xas(vm, &i->op1, &i->dst);
@@ -5805,6 +5842,8 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", id);
+	if(argv[0].qkind != Qxtn)
+		vmerr(vm, "operand 1 to %s must be a ctype", id);
 	xtn = valxtn(&argv[0]);
 	if(xtn->tkind == kind)
 		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
@@ -5836,6 +5875,8 @@ l1_issu(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xtypename *xtn;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to issu");
+	if(argv[0].qkind != Qxtn)
+		vmerr(vm, "operand 1 to issu must be a ctype");
 	xtn = valxtn(&argv[0]);
 	if(xtn->tkind == Tstruct || xtn->tkind == Tunion)
 		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
@@ -5847,6 +5888,12 @@ static void
 l1_isenum(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	dotypepredicate(vm, argc, argv, rv, "isenum", Tenum);
+}
+
+static void
+l1_isbitfield(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isbitfield", Tbitfield);
 }
 
 static void
@@ -5969,6 +6016,59 @@ l1_susize(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm,
 		      "operand 1 to susize must be a struct or union ctype");
 	*rv = xtn->sz;
+}
+
+static void
+l1_bitfieldwidth(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to bitfieldwidth");
+	if(argv->qkind != Qxtn)
+		vmerr(vm, "operand 1 to bitfieldwidth "
+		      "must be a bitfield ctype");
+		      
+	xtn = valxtn(argv);
+	if(xtn->tkind != Tbitfield)
+		vmerr(vm, "operand 1 to bitfieldwidth "
+		      "must be a bitfield ctype");
+	*rv = xtn->sz;
+}
+
+static void
+l1_bitfieldcontainer(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to bitfieldcontainer");
+	if(argv->qkind != Qxtn)
+		vmerr(vm, "operand 1 to bitfieldcontainer "
+		      "must be a bitfield ctype");
+		      
+	xtn = valxtn(argv);
+	if(xtn->tkind != Tbitfield)
+		vmerr(vm, "operand 1 to bitfieldcontainer "
+		      "must be a bitfield ctype");
+	mkvalxtn(xtn->link, rv);
+}
+
+
+static void
+l1_bitfieldpos(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to bitfieldpos");
+	if(argv->qkind != Qxtn)
+		vmerr(vm, "operand 1 to bitfieldpos must be a bitfield ctype");
+		      
+	xtn = valxtn(argv);
+	if(xtn->tkind != Tbitfield)
+		vmerr(vm, "operand 1 to bitfieldpos must be a bitfield ctype");
+	*rv = xtn->bit0;
 }
 
 static void
@@ -6260,6 +6360,103 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to $typeof must be a cvalue");
 	cv = valcval(argv);
 	mkvalxtn(cv->type, rv);
+}
+
+static void
+domkctype_base(VM *vm, Cbase name, Val *rv)
+{
+	Xtypename *xtn;
+	xtn = mkbasextn(name, Rundef);
+	mkvalxtn(xtn, &rv);
+	putvalrand(vm, &rv, dst);
+}
+
+static void
+l1_mkctype_void(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_void");
+	domkctype_base(Vvoid);
+}
+
+static void
+l1_mkctype_char(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_char");
+	domkctype_base(Vchar);
+}
+
+static void
+l1_mkctype_short(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_short");
+	domkctype_base(Vshort);
+}
+
+static void
+l1_mkctype_int(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_int");
+	domkctype_base(Vint);
+}
+
+static void
+l1_mkctype_long(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_long");
+	domkctype_base(Vlong);
+}
+
+static void
+l1_mkctype_vlong(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_vlong");
+	domkctype_base(Vvlong);
+}
+
+static void
+l1_mkctype_uchar(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_uchar");
+	domkctype_base(Vuchar);
+}
+
+static void
+l1_mkctype_ushort(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_ushort");
+	domkctype_base(Vushort);
+}
+
+static void
+l1_mkctype_uint(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_uint");
+	domkctype_base(Vuint);
+}
+
+static void
+l1_mkctype_ulong(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_ulong");
+	domkctype_base(Vulong);
+}
+
+static void
+l1_mkctype_uvlong(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_uvlong");
+	domkctype_base(Vuvlong);
 }
 
 static void
@@ -6597,6 +6794,7 @@ mkvm(Env *env)
 	builtinfn(env, "isstruct", mkcfn("isstruct", l1_isstruct));
 	builtinfn(env, "isunion", mkcfn("isunion", l1_isunion));
 	builtinfn(env, "isenum", mkcfn("isenum", l1_isenum));
+	builtinfn(env, "isbitfield", mkcfn("isbitfield", l1_isbitfield));
 	builtinfn(env, "isptr", mkcfn("isptr", l1_isptr));
 	builtinfn(env, "isarray", mkcfn("isarray", l1_isarray));
 	builtinfn(env, "isfunc", mkcfn("isfunc", l1_isfunc));
@@ -6608,6 +6806,12 @@ mkvm(Env *env)
 	builtinfn(env, "suetag", mkcfn("suetag", l1_suetag));
 	builtinfn(env, "susize", mkcfn("susize", l1_susize));
 	builtinfn(env, "arraynelm", mkcfn("arraynelm", l1_arraynelm));	
+
+	builtinfn(env, "bitfieldpos", mkcfn("bitfieldpos", l1_bitfieldpos));
+	builtinfn(env, "bitfieldwidth",
+		  mkcfn("bitfieldwidth", l1_bitfieldwidth));	
+	builtinfn(env, "bitfieldcontainer",
+		  mkcfn("bitfieldcontainer", l1_bitfieldcontainer));	
 
 	builtinfn(env, "rettype", mkcfn("rettype", l1_rettype));
 	builtinfn(env, "params", mkcfn("params", l1_params));
@@ -6629,7 +6833,6 @@ mkvm(Env *env)
 	builtinfn(env, "symtype", mkcfn("symtype", l1_symtype));
 	builtinfn(env, "symval", mkcfn("symval", l1_symval));
 
-//	builtinfn(env, "fieldbits", mkcfn("fieldbits", l1_fieldbits));
 //	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));
 
 	builtinfn(env, "domof", mkcfn("domof", l1_domof));

@@ -47,90 +47,21 @@ struct Varset
 	char *tn;
 } Varset;
 
+static jmp_buf esc;
+
+static void cerror(Expr *e, char *fmt, ...) __attribute__((noreturn));
 static void compile0(Expr *e, Varset *pvs, Vars *vars);
 
-static Expr*
-Q1(unsigned kind, Expr *e1)
+static void
+cerror(Expr *e, char *fmt, ...)
 {
-	return newexpr(kind, e1, 0, 0, 0);
-}
-
-static Expr*
-Q2(unsigned kind, Expr *e1, Expr *e2)
-{
-	return newexpr(kind, e1, e2, 0, 0);
-}
-
-static Expr*
-Qcons(Expr *hd, Expr *tl)
-{
-	return Q2(Eelist, hd, tl);
-}
-
-static Expr*
-Qset(Expr *l, Expr *r)
-{
-	return Q2(Eg, l, r);
-}
-
-static Expr*
-Qsizeof(Expr *e)
-{
-	return Q1(E_sizeof, e);
-}
-
-static Expr*
-Qxcast(Expr *type, Expr *cval)
-{
-	return newbinop(Excast, type, cval);
-}
-
-/* arguments in usual order */
-static Expr*
-Qcall(Expr *fn, unsigned narg, ...)
-{
-	Expr *e;
 	va_list args;
-
-	va_start(args, narg);
-	e = nullelist();
-	while(narg-- > 0)
-		e = Qcons(va_arg(args, Expr*), e);
+	fprintf(stderr, "%s:%u: ", e->src.filename, e->src.line);
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
 	va_end(args);
-	return Q2(Ecall, fn, e);
-}
-
-/* arguments in usual order */
-static Expr*
-Qapply(Expr *fn, Expr *args)
-{
-	return Q2(Ecall, fn, invert(args));
-}
-
-static Expr*
-Qconsts(char *s)
-{
-	Expr *e;
-	e = newexpr(Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, strlen(s));
-	return e;
-}
-
-static Expr*
-Qnil()
-{
-	Expr *e;
-	e = newexpr(Enil, 0, 0, 0, 0);
-	return e;
-}
-
-static Expr*
-Qstr(char *s)
-{
-	Expr *e;
-	e = newexpr(Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, strlen(s));
-	return e;
+	longjmp(esc, 1);
 }
 
 static Vars*
@@ -256,54 +187,54 @@ locals(Varset *lvs, Varset *pvs)
 
 	if(pvs == 0){
 		if(lvs->tmp)
-			e = Qcons(doid(lvs->tmp), e);
+			e = Zcons(doid(lvs->tmp), e);
 		if(lvs->type)
-			e = Qcons(doid(lvs->type), e);
+			e = Zcons(doid(lvs->type), e);
 		if(lvs->range)
-			e = Qcons(doid(lvs->range), e);
+			e = Zcons(doid(lvs->range), e);
 		if(lvs->addr)
-			e = Qcons(doid(lvs->addr), e);
+			e = Zcons(doid(lvs->addr), e);
 		if(lvs->str)
-			e = Qcons(doid(lvs->str), e);
+			e = Zcons(doid(lvs->str), e);
 		if(lvs->as)
-			e = Qcons(doid(lvs->as), e);
+			e = Zcons(doid(lvs->as), e);
 		if(lvs->ns)
-			e = Qcons(doid(lvs->ns), e);
+			e = Zcons(doid(lvs->ns), e);
 		if(lvs->dom)
-			e = Qcons(doid(lvs->dom), e);
+			e = Zcons(doid(lvs->dom), e);
 		if(lvs->typetab)
-			e = Qcons(doid(lvs->typetab), e);
+			e = Zcons(doid(lvs->typetab), e);
 		if(lvs->symtab)
-			e = Qcons(doid(lvs->symtab), e);
+			e = Zcons(doid(lvs->symtab), e);
 		if(lvs->tn)
-			e = Qcons(doid(lvs->tn), e);
+			e = Zcons(doid(lvs->tn), e);
 	}else{
 		if(lvs->tmp != pvs->tmp)
-			e = Qcons(doid(lvs->tmp), e);
+			e = Zcons(doid(lvs->tmp), e);
 		if(lvs->type != pvs->type)
-			e = Qcons(doid(lvs->type), e);
+			e = Zcons(doid(lvs->type), e);
 		if(lvs->range != pvs->range)
-			e = Qcons(doid(lvs->range), e);
+			e = Zcons(doid(lvs->range), e);
 		if(lvs->addr != pvs->addr)
-			e = Qcons(doid(lvs->addr), e);
+			e = Zcons(doid(lvs->addr), e);
 		if(lvs->str != pvs->str)
-			e = Qcons(doid(lvs->str), e);
+			e = Zcons(doid(lvs->str), e);
 		if(lvs->as != pvs->as)
-			e = Qcons(doid(lvs->as), e);
+			e = Zcons(doid(lvs->as), e);
 		if(lvs->ns != pvs->ns)
-			e = Qcons(doid(lvs->ns), e);
+			e = Zcons(doid(lvs->ns), e);
 		if(lvs->dom != pvs->dom)
-			e = Qcons(doid(lvs->dom), e);
+			e = Zcons(doid(lvs->dom), e);
 		if(lvs->typetab != pvs->typetab)
-			e = Qcons(doid(lvs->typetab), e);
+			e = Zcons(doid(lvs->typetab), e);
 		if(lvs->symtab != pvs->symtab)
-			e = Qcons(doid(lvs->symtab), e);
+			e = Zcons(doid(lvs->symtab), e);
 		if(lvs->tn != pvs->tn)
-			e = Qcons(doid(lvs->tn), e);
+			e = Zcons(doid(lvs->tn), e);
 	}
 
 	/* local bindings are list of identifier lists */
-	return Qcons(e, nullelist());
+	return Zcons(e, nullelist());
 }
 
 static Expr*
@@ -317,11 +248,15 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 	case Tbase:
 		e->xn = TBITS(t->kind, t->base);
 		break;
+	case Ttypedef:
+		e->xn = TBITS(t->kind, Vundef);
+		e->e1 = Zstr(t->tid);
+		break;
 	case Tstruct:
 	case Tunion:
 		if(t->field == 0){
 			e->xn = TBITS(t->kind, Vundef);
-			e->e1 = Qstr(t->tag);
+			e->e1 = Zstr(t->tag);
 			break;
 		}
 
@@ -331,47 +266,56 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		se = nullelist();
 		dl = t->field;
 		while(dl){
-			id = Qstr(dl->id);
-			if(dl->offs){
+			id = Zstr(dl->id);
+			if(dl->offs && dl->type->bitw){
+				/* bitfield */
+				compile0(dl->offs, lvs, vars);
+				dl->type->bit0 =          /* steal */
+					newbinop(Emod, dl->offs, Zuint(8));
+				off = newbinop(Ediv,
+					       copyexpr(dl->offs),
+					       Zuint(8));
+				dl->offs = 0;
+			}else if(dl->offs){
 				compile0(dl->offs, lvs, vars);
 				off = dl->offs; /* steal */
 				dl->offs = 0;
 			}else
-				off = Qnil();
+				off = Znil();
 			tn = gentypename(dl->type, lvs, vars);
-			se = Qcons(Qcall(doid("vector"), 3, tn, id, off), se);
+			se = Zcons(Zcall(doid("vector"), 3, tn, id, off), se);
 			dl = dl->link;
 		}
-		se = Qapply(doid("vector"), invert(se));
+		se = Zapply(doid("vector"), invert(se));
 		if(t->sz){
 			compile0(t->sz, lvs, vars);
 			sz = t->sz; /* steal */
 			t->sz = 0;
 		}else
-			sz = Qnil();
+			sz = Znil();
 
 		tn = newexpr(E_tn, 0, 0, 0, 0);
 		tn->xn = TBITS(t->kind, Vundef);
-		tn->e1 = Qstr(t->tag);
-		se = Qcall(doid("vector"), 3, tn, se, sz);
+		tn->e1 = Zstr(t->tag);
+		se = Zcall(doid("vector"), 3, tn, se, sz);
 
 		tn = newexpr(E_tn, 0, 0, 0, 0);
 		tn->xn = TBITS(t->kind, Vundef);
-		tn->e1 = Qstr(t->tag);
+		tn->e1 = Zstr(t->tag);
 
 		te = nullelist();
-		se = Qcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, se);
-		te = Qcons(se, te);
+		se = Zcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, se);
+		te = Zcons(se, te);
 		
 		e->xn = TBITS(t->kind, Vundef);
-		e->e1 = Qstr(t->tag);
-		te = Qcons(e, te);
+		e->e1 = Zstr(t->tag);
+		te = Zcons(e, te);
 		
 		e = newexpr(Eblock, nullelist(), invert(te), 0, 0);
 		break;
 	case Tenum:
 		e->xn = TBITS(t->kind, Vundef);
-		e->e1 = Qstr(t->tag);
+		e->e1 = Zstr(t->tag);
 		fatal("incomplete support for enums");
 		break;
 	case Tptr:
@@ -385,31 +329,44 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 				e->e2 = t->cnt; /* steal */
 				t->cnt = 0;
 			}else
-				e->e2 = Qnil();
+				e->e2 = Znil();
 		}
 		if(t->kind == Tfun){
 			se = nullelist();
 			dl = t->param;
 			while(dl){
 				if(dl->id)
-					id = Qstr(dl->id);
+					id = Zstr(dl->id);
 				else
-					id = Qnil();
+					id = Znil();
 				tn = gentypename(dl->type, lvs, vars);
-				se = Qcons(Qcall(doid("vector"), 2, tn, id),
+				se = Zcons(Zcall(doid("vector"), 2, tn, id),
 					   se);
 				dl = dl->link;
 			}
-			e->e2 = Qapply(doid("vector"), invert(se));
+			e->e2 = Zapply(doid("vector"), invert(se));
 		}
-		break;
-	case Ttypedef:
-		e->xn = TBITS(t->kind, Vundef);
-		e->e1 = Qstr(t->tid);
 		break;
 	default:
 		fatal("bug");
 	}
+
+	if(t->bitw){
+		se = e;
+		if(TBITSTYPE(se->xn) != Tbase && TBITSTYPE(se->xn) != Ttypedef)
+			cerror(se, "invalid bitfield");
+		e = newexpr(E_tn, 0, 0, 0, 0);
+		e->xn = TBITS(Tbitfield, Vundef);
+		e->e1 = se;
+		e->e2 = t->bitw; /* steal */
+		t->bitw = 0;
+		e->e3 = t->bit0; /* steal */
+		printf("bit0: ");
+		printexpr(e->e3);
+		printf("\n);
+		t->bit0 = 0;
+	}
+
 	return e;
 }
 
@@ -427,8 +384,8 @@ compiledecl(unsigned kind, Decl *dl, Varset *pvs, Vars *vars)
 
 	te = nullelist();
 	t = dl->type;
-	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Zcons(se, te);
 
 	switch(kind){
 	case Edecls:
@@ -438,26 +395,26 @@ compiledecl(unsigned kind, Decl *dl, Varset *pvs, Vars *vars)
 				offs = dl->offs; /* steal */
 				dl->offs = 0;
 			}else
-				offs = Qnil();
+				offs = Znil();
 
-			se = Qset(doid(lvs->tmp),
-				  Qcall(doid("vector"), 3, doid(lvs->tn),
-					Qstr(dl->id), offs));
-			te = Qcons(se, te);
+			se = Zset(doid(lvs->tmp),
+				  Zcall(doid("vector"), 3, doid(lvs->tn),
+					Zstr(dl->id), offs));
+			te = Zcons(se, te);
 
-			se = Qcall(doid("tabinsert"), 3, doid(lvs->symtab),
-				   Qstr(dl->id), doid(lvs->tmp));
-			te = Qcons(se, te);
+			se = Zcall(doid("tabinsert"), 3, doid(lvs->symtab),
+				   Zstr(dl->id), doid(lvs->tmp));
+			te = Zcons(se, te);
 		}
 		break;
 	case Etypedef:
 		/* typedef T TID => typetab[typedef(TID)] = typename(T) */
 		tn = newexpr(E_tn, 0, 0, 0, 0);
 		tn->xn = TBITS(Ttypedef, Vundef);
-		tn->e1 = Qstr(dl->id);
-		se = Qcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, 
+		tn->e1 = Zstr(dl->id);
+		se = Zcall(doid("tabinsert"), 3, doid(lvs->typetab), tn, 
 			   doid(lvs->tn));
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 		break;
 	default:
 		fatal("bug");
@@ -491,27 +448,27 @@ compilesizeof(Decl *d, Varset *pvs, Vars *vars)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
-	se = Qset(doid(lvs->tmp),
-		  Qcall(doid("looktype"), 2, doid(dom), doid(lvs->tn)));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tmp),
+		  Zcall(doid("looktype"), 2, doid(dom), doid(lvs->tn)));
+	te = Zcons(se, te);
 
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
-		     Qcall(doid("isnil"), 1, doid(lvs->tmp)),
-		     Qcall(doid("error"), 2,
-			   Qconsts("undefined type: %t"),
+		     Zcall(doid("isnil"), 1, doid(lvs->tmp)),
+		     Zcall(doid("error"), 2,
+			   Zconsts("undefined type: %t"),
 			   doid(lvs->tn)),
 		     0, 0);
-	te = Qcons(se, te);
+	te = Zcons(se, te);
 
 	// sizeof($tmp);
-	se = Qsizeof(doid(lvs->tmp));
-	te = Qcons(se, te);
+	se = Zsizeof(doid(lvs->tmp));
+	te = Zcons(se, te);
 
 	e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
 	poplevel(vars);
@@ -541,27 +498,27 @@ compiletypeof(Decl *d, Varset *pvs, Vars *vars)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
-	se = Qset(doid(lvs->tmp),
-		  Qcall(doid("looktype"), 2, doid(dom), doid(lvs->tn)));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tmp),
+		  Zcall(doid("looktype"), 2, doid(dom), doid(lvs->tn)));
+	te = Zcons(se, te);
 	
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
-		     Qcall(doid("isnil"), 1, doid(lvs->tmp)),
-		     Qcall(doid("error"), 2,
-			   Qconsts("undefined type: %t"),
+		     Zcall(doid("isnil"), 1, doid(lvs->tmp)),
+		     Zcall(doid("error"), 2,
+			   Zconsts("undefined type: %t"),
 			   doid(lvs->tn)),
 		     0, 0);
-	te = Qcons(se, te);
+	te = Zcons(se, te);
 
 	// $tmp;
 	se = doid(lvs->tmp);
-	te = Qcons(se, te);
+	te = Zcons(se, te);
 
 	e = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
 	poplevel(vars);
@@ -586,38 +543,38 @@ compilecast(Expr *e, Varset *pvs, Vars *vars)
 	
 	// $tmp = e->e2;
 	compile0(e->e2, lvs, vars);
-	se = Qset(doid(lvs->tmp), e->e2);
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tmp), e->e2);
+	te = Zcons(se, te);
 
 	d = e->e1->xp;
 	t = d->type;
 	if(t->dom)
 		dom = doid(t->dom);
 	else
-		dom = Qcall(doid("domof"), 1, doid(lvs->tmp));
+		dom = Zcall(doid("domof"), 1, doid(lvs->tmp));
 
 	// $tn = gentypename(t);
-	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Zcons(se, te);
 
 	// $type = looktype(dom, $tn);
-	se = Qset(doid(lvs->type),
-		  Qcall(doid("looktype"), 2, dom, doid(lvs->tn)));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->type),
+		  Zcall(doid("looktype"), 2, dom, doid(lvs->tn)));
+	te = Zcons(se, te);
 	
 	// if(isnil($type)) error("undefined type: %t", $tn);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
-		     Qcall(doid("isnil"), 1, doid(lvs->type)),
-		     Qcall(doid("error"), 2,
-			   Qconsts("undefined type: %t"),
+		     Zcall(doid("isnil"), 1, doid(lvs->type)),
+		     Zcall(doid("error"), 2,
+			   Zconsts("undefined type: %t"),
 			   doid(lvs->tn)),
 		     0, 0);
-	te = Qcons(se, te);
+	te = Zcons(se, te);
 
 	// cast($type, $tmp);
-	se = Qxcast(doid(lvs->type), doid(lvs->tmp));
-	te = Qcons(se, te);
+	se = Zxcast(doid(lvs->type), doid(lvs->tmp));
+	te = Zcons(se, te);
 
 	te = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
 	poplevel(vars);
@@ -680,14 +637,14 @@ compileambig(Expr *e, Varset *pvs, Vars *vars)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Qset(doid(lvs->tn), gentypename(t, lvs, vars));
-	te = Qcons(se, te);
+	se = Zset(doid(lvs->tn), gentypename(t, lvs, vars));
+	te = Zcons(se, te);
 
 	// $tmp = nslooktype(domns(dom))($tn)
-	se = Qcall(doid("domns"), 1, doid(dom));
-	se = Qcall(doid("nslooktype"), 1, se);
-	se = Qset(doid(lvs->tmp), Qcall(se, 1, doid(lvs->tn)));
-	te = Qcons(se, te);
+	se = Zcall(doid("domns"), 1, doid(dom));
+	se = Zcall(doid("nslooktype"), 1, se);
+	se = Zset(doid(lvs->tmp), Zcall(se, 1, doid(lvs->tn)));
+	te = Zcons(se, te);
 	
 	/* must we compile TF only after using all references to TF->...->type?
 	   (including gentypename and dom?) */
@@ -695,8 +652,8 @@ compileambig(Expr *e, Varset *pvs, Vars *vars)
 	compile0(of, lvs, vars);
 
 	// if(isnil($tmp)) <other form> else <type form>
-	se = newexpr(Eif, Qcall(doid("isnil"), 1, doid(lvs->tmp)), of, tf, 0);
-	te = Qcons(se, te);
+	se = newexpr(Eif, Zcall(doid("isnil"), 1, doid(lvs->tmp)), of, tf, 0);
+	te = Zcons(se, te);
 
 	te = newexpr(Eblock, locals(lvs, pvs), invert(te), 0, 0);
 	poplevel(vars);
@@ -762,17 +719,17 @@ compile0(Expr *e, Varset *pvs, Vars *vars)
 
 		te = nullelist();
 
-		se = Qcall(doid("table"), 0);
+		se = Zcall(doid("table"), 0);
 		se->src = e->src;
-		se = Qset(doid(lvs->typetab), se);
-		te = Qcons(se, te);
-		se = Qset(doid(lvs->symtab), Qcall(doid("table"), 0));
-		te = Qcons(se, te);
+		se = Zset(doid(lvs->typetab), se);
+		te = Zcons(se, te);
+		se = Zset(doid(lvs->symtab), Zcall(doid("table"), 0));
+		te = Zcons(se, te);
 
 		/* inherited names expression */
 		compile0(e->e1, lvs, vars);
-		se = Qset(doid(lvs->ns), e->e1);
-		te = Qcons(se, te);
+		se = Zset(doid(lvs->ns), e->e1);
+		te = Zcons(se, te);
 
 		/* declarations */
 		ex = e->e2;
@@ -782,7 +739,7 @@ compile0(Expr *e, Varset *pvs, Vars *vars)
 			dl = ex->e1->xp;
 			while(dl){
 				se = compiledecl(ex->e1->kind, dl, lvs, vars);
-				te = Qcons(se, te);
+				te = Zcons(se, te);
 				nxt = dl->link;
 				dl = nxt;
 			}
@@ -792,12 +749,12 @@ compile0(Expr *e, Varset *pvs, Vars *vars)
 		freeexpr(e->e2);
 
 		/* new name space */
-		se = Qcall(doid("mkns"), 1,
-			   Qcall(doid("vector"), 3,
+		se = Zcall(doid("mkns"), 1,
+			   Zcall(doid("vector"), 3,
 				 doid(lvs->ns),
 				 doid(lvs->typetab),
 				 doid(lvs->symtab)));
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		e->kind = Eblock;
 		e->e1 = locals(lvs, pvs);
@@ -815,11 +772,16 @@ compile0(Expr *e, Varset *pvs, Vars *vars)
 	}
 }
 
-void
+int
 docompile0(Expr *e)
 {
 	Vars *vars;
 	vars = mkvars();
+	if(setjmp(esc) != 0){
+		freevars(vars);
+		return -1;	/* error */
+	}
 	compile0(e, 0, vars);
 	freevars(vars);
+	return 0;		/* success */
 }

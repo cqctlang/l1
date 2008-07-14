@@ -5,7 +5,17 @@ TARG = l1
 all: $(TARG)
 
 HDR = sys.h util.h l1.h code.h
-C = l1.c compilec.c compile0.c compile.c vm.c hash.c util.c main.c printexpr.c
+C =\
+	hash.c\
+	util.c\
+	printexpr.c\
+	l1.c\
+	compilec.c\
+	compile0.c\
+	cutil.c\
+	compile.c\
+	vm.c\
+	main.c
 O = $(C:.c=.o)
 
 c.tab.c: c.y $(HDR)

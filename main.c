@@ -24,7 +24,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-q dump expanded cinquecento source\n");
 	fprintf(stderr, "\t-b dump frame storage\n");
 	fprintf(stderr, "\t-c do not compile expanded source\n");
-	fprintf(stderr, "\t-v do not execute object code\n");
+	fprintf(stderr, "\t-x do not execute object code\n");
 
 	exit(0);
 }
@@ -39,16 +39,18 @@ main(int argc, char *argv[])
 	char *filename = 0;
 	int c;
 	struct timeval beg, end;
+	int dorepl;
 
 	flags['c'] = 1;		/* compile */
 	flags['x'] = 1;		/* execute */
-
-	while(EOF != (c = getopt(argc, argv, "hoqbcxte:"))){
+	dorepl = 1;
+	while(EOF != (c = getopt(argc, argv, "bce:hopqtx"))){
 		switch(c){
 		case 'o':
+		case 'p':
 		case 'q':
-		case 't':
 		case 'b':
+		case 't':
 			flags[c] = 1;
 			break;
 		case 'c':
@@ -56,9 +58,8 @@ main(int argc, char *argv[])
 			flags[c] = 0;
 			break;
 		case 'e':
-			flags['e'] = 1;
+			dorepl = 0;
 			filename = optarg;
-			break;
 			break;
 		case 'h':
 			usage(argv[0]);
@@ -70,19 +71,20 @@ main(int argc, char *argv[])
 
 	initparse();
 	initcompile();
-	initvm();
 
 	env = mkenv();
-	if(flags['x'])
+	if(flags['x']){
+		initvm();
 		vm = mkvm(env);
-	if(vm == 0)
-		goto out;
+		if(vm == 0)
+			goto out;
+	}
 
 	if(filename == 0)
 		filename = stdinname;
 
 repl:
-	if(flags['e'] == 0)
+	if(dorepl)
 		printf(">>> ");
 
 	if(0 > doparse(filename))
@@ -101,7 +103,10 @@ repl:
 		goto out;
 	}
 	ctx.el = rv;
-	docompile0(ctx.el);
+	if(0 > docompile0(ctx.el)){
+		freeexpr(ctx.el);
+		goto out;
+	}
 	if(flags['p']){
 		printf("compile0:\n");
 		printexpr(ctx.el);
@@ -134,7 +139,7 @@ repl:
 	}else
 		freeexpr(ctx.el);
 
-	if(flags['e'] == 0){
+	if(dorepl && flags['x']){
 		printvmac(vm);
 		printf("\n");
 		goto repl;
@@ -142,8 +147,10 @@ repl:
 
 out:
 	freeenv(env);
-	freevm(vm);
-	finivm();
+	if(flags['x']){
+		freevm(vm);
+		finivm();
+	}
 	finicompile();
 	finiparse();
 

@@ -33,7 +33,7 @@ enum{
 	Eband,
 	Ebase,
 	Ebinop,
-	Ebits,
+	Ebitfield,
 	Eblock,
 	Ebor,
 	Ebreak,
@@ -163,6 +163,8 @@ enum Tkind {
 	Tarr,
 	Tfun,
 	Ttypedef,
+	Tbitfield,		/* xtn only */
+	Tconst,			/* xtn only */
 	Tntkind,
 } Tkind;
 
@@ -221,7 +223,6 @@ struct Decl {
 	Type *type;
 	char *id;
 	Expr *offs;		/* offset */
-	Expr *bits;		/* bit field size */
 	Decl *link;
 };
 
@@ -234,6 +235,7 @@ struct Type {
 	Decl *field;		/* struct, union */
 	Enum *en;		/* enum */
 	Expr *sz;		/* struct, union */
+	Expr *bitw, *bit0;	/* bitfield geometry */
 	Decl *param;		/* func */
 	Expr *cnt;		/* arr */
 	Type *link;		/* typedef, ptr, arr, func(return type) */

@@ -94,8 +94,9 @@ enum {
 	Iopmax         
 } ikind;
 
-#define TBITS(t,v) ((((t)&7)<<4)|((v)&15))
-#define TBITSTYPE(tb) (((tb)>>4)&7)
+// FIXME: define in terms of #base and #kind defs
+#define TBITS(t,v) ((((t)&15)<<4)|((v)&15))
+#define TBITSTYPE(tb) (((tb)>>4)&15)
 #define TBITSBASE(tb) ((tb)&15)
 
 typedef
@@ -218,7 +219,7 @@ void finicompile();
 Code* newcode();
 Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Expr* docompilec(Expr *e);
-void docompile0(Expr *e);
+int docompile0(Expr *e);
 Closure* compileentry(Expr *el, Env *env);
 void printvmac(VM *vm);
 char* topvecid(unsigned idx, Topvec *tv);
@@ -287,3 +288,23 @@ void poperror(VM *vm);
 Val* dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 
 void freecode(Head *hd);
+
+/* cutil.c */
+Expr* Zcons(Expr *hd, Expr *tl);
+Expr* Zset(Expr *l, Expr *r);
+Expr* Zsizeof(Expr *e);
+Expr* Zxcast(Expr *type, Expr *cval);
+Expr* Zbinop(unsigned op, Expr *x, Expr *y);
+Expr* Zadd(Expr *x, Expr *y);
+Expr* Zsub(Expr *x, Expr *y);
+Expr* Zcall(Expr *fn, unsigned narg, ...);
+Expr* Zapply(Expr *fn, Expr *args);
+Expr* Zconsts(char *s);
+Expr* Zuint(Imm val);
+Expr* Znil();
+Expr* Zstr(char *s);
+Expr* Zcval(Expr *dom, Expr *type, Expr *val);
+Expr* Zref(Expr *dom, Expr *type, Expr *val);
+Expr* Zrange(Expr *addr, Expr *sz);
+Expr* Zencode(Expr *e);
+

@@ -416,6 +416,8 @@ struct_declaration_list
 struct_declaration
 	: '@' constant_expression specifier_list struct_declarator_list ';'
 	{ $$ = newexpr(Efields, $3, invert($4), $2, 0); }
+	| '@' '@' constant_expression specifier_list struct_declarator ':' constant_expression ';'
+	{ $$ = newexpr(Ebitfield, $4, $5, $3, $7); }
 	| specifier_list struct_declarator_list ';'
 	{ $$ = newexpr(Efields, $1, invert($2), 0, 0); }
         | '@' constant_expression ';'
@@ -436,10 +438,6 @@ struct_declarator_list
 
 struct_declarator
 	: declarator
-	| ':' constant_expression
-	{ $$ = newexpr(Ebits, 0, $2, 0, 0); }
-	| declarator ':' constant_expression
-	{ $$ = newexpr(Ebits, $1, $3, 0, 0); }
 	;
 
 enum_specifier

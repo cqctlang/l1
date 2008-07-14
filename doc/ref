@@ -1,3 +1,9 @@
+given
+	int a[3];
+note that
+	typeof(a) is int[3] /* not int* */
+
+
 intro
 -----
 

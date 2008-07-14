@@ -20,114 +20,6 @@ cerror(Expr *e, char *fmt, ...)
 	longjmp(esc, 1);
 }
 
-static Expr*
-Q1(unsigned kind, Expr *e1)
-{
-	return newexpr(kind, e1, 0, 0, 0);
-}
-
-static Expr*
-Q2(unsigned kind, Expr *e1, Expr *e2)
-{
-	return newexpr(kind, e1, e2, 0, 0);
-}
-
-static Expr*
-Qadd(Expr *x, Expr *y)
-{
-	return newbinop(Eadd, x, y);
-}
-
-static Expr*
-Qsub(Expr *x, Expr *y)
-{
-	return newbinop(Esub, x, y);
-}
-
-static Expr*
-Qbinop(unsigned op, Expr *x, Expr *y)
-{
-	return newbinop(op, x, y);
-}
-
-static Expr*
-Qcons(Expr *hd, Expr *tl)
-{
-	return Q2(Eelist, hd, tl);
-}
-
-static Expr*
-Qset(Expr *l, Expr *r)
-{
-	return Q2(Eg, l, r);
-}
-
-static Expr*
-Qcval(Expr *dom, Expr *type, Expr *val)
-{
-	return newexpr(E_cval, dom, type, val, 0);
-}
-
-static Expr*
-Qref(Expr *dom, Expr *type, Expr *val)
-{
-	return newexpr(E_ref, dom, type, val, 0);
-}
-
-static Expr*
-Qrange(Expr *addr, Expr *sz)
-{
-	return newbinop(E_range, addr, sz);
-}
-
-static Expr*
-Qxcast(Expr *type, Expr *cval)
-{
-	return newbinop(Excast, type, cval);
-}
-
-static Expr*
-Qsizeof(Expr *e)
-{
-	return Q1(E_sizeof, e);
-}
-
-static Expr*
-Qencode(Expr *e)
-{
-	return Q1(E_encode, e);
-}
-
-/* arguments in usual order */
-static Expr*
-Qcall(Expr *fn, unsigned narg, ...)
-{
-	Expr *e;
-	va_list args;
-
-	va_start(args, narg);
-	e = nullelist();
-	while(narg-- > 0)
-		e = Qcons(va_arg(args, Expr*), e);
-	va_end(args);
-	return Q2(Ecall, fn, e);
-}
-
-static Expr*
-Qconsts(char *s)
-{
-	Expr *e;
-	e = newexpr(Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, strlen(s));
-	return e;
-}
-
-static Expr*
-Quint(Imm val)
-{
-	return mkconst(Vuint, val);
-}
-
 static int
 islval(Expr *e)
 {
@@ -149,15 +41,15 @@ rvalblock(Expr *body, unsigned lfree)
 	Expr *e;
 
         e = nullelist();
-	e = Qcons(doid("$val"), e);
+	e = Zcons(doid("$val"), e);
 	if(!lfree){
-		e = Qcons(doid("$dom"), e);
-		e = Qcons(doid("$type"), e);
-		e = Qcons(doid("$addr"), e);
+		e = Zcons(doid("$dom"), e);
+		e = Zcons(doid("$type"), e);
+		e = Zcons(doid("$addr"), e);
 	}
 
 	/* local bindings are list of identifier lists */
-	e = Qcons(e, nullelist());
+	e = Zcons(e, nullelist());
 
 	return newexpr(Eblock, e, body, 0, 0);
 }
@@ -168,10 +60,10 @@ lvalblock(Expr *body)
 	Expr *e;
 
         e = nullelist();
-	e = Qcons(doid("$tmp"), e);
+	e = Zcons(doid("$tmp"), e);
 
 	/* local bindings are list of identifier lists */
-	e = Qcons(e, nullelist());
+	e = Zcons(e, nullelist());
 
 	return newexpr(Eblock, e, body, 0, 0);
 }
@@ -189,35 +81,35 @@ compile_lval(Expr *e, int needaddr)
 		te = nullelist();
 
 		// $dom = dom;
-		se = Qset(doid("$dom"), e->e1);
-		te = Qcons(se, te);
+		se = Zset(doid("$dom"), e->e1);
+		te = Zcons(se, te);
 
 		// $tmp = nslooksym(domns($dom))(sym)
-		se = Qcall(doid("domns"), 1, doid("$dom"));
-		se = Qcall(doid("nslooksym"), 1, se);
-		se = Qcall(se, 1, Qconsts(e->e2->id));
-		se = Qset(doid("$tmp"), se);
-		te = Qcons(se, te);
+		se = Zcall(doid("domns"), 1, doid("$dom"));
+		se = Zcall(doid("nslooksym"), 1, se);
+		se = Zcall(se, 1, Zconsts(e->e2->id));
+		se = Zset(doid("$tmp"), se);
+		te = Zcons(se, te);
 		
 		// if(isnil($tmp)) error("undefined symbol: %s", sym);
 		se = newexpr(Eif,
-			     Qcall(doid("isnil"), 1, doid("$tmp")),
-			     Qcall(doid("error"), 2,
-				   Qconsts("undefined symbol: %s"),
-				   Qconsts(e->e2->id)),
+			     Zcall(doid("isnil"), 1, doid("$tmp")),
+			     Zcall(doid("error"), 2,
+				   Zconsts("undefined symbol: %s"),
+				   Zconsts(e->e2->id)),
 			     0, 0);
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		// $type = symtype($tmp);
-		se = Qset(doid("$type"),
-			  Qcall(doid("symtype"), 1, doid("$tmp")));
-		te = Qcons(se, te);
+		se = Zset(doid("$type"),
+			  Zcall(doid("symtype"), 1, doid("$tmp")));
+		te = Zcons(se, te);
 
 		// $addr = symval($tmp, 2);
 		if(needaddr){
-			se = Qset(doid("$addr"),
-				  Qcall(doid("symval"), 1, doid("$tmp")));
-			te = Qcons(se, te);
+			se = Zset(doid("$addr"),
+				  Zcall(doid("symval"), 1, doid("$tmp")));
+			te = Zcons(se, te);
 		}
 		
 		freeexpr(e->e2);
@@ -230,39 +122,39 @@ compile_lval(Expr *e, int needaddr)
 
 		// $tmp = compile_rval(e->e1);
 		if(needaddr || !islval(e->e1)){
-			se = Qset(doid("$tmp"), compile_rval(e->e1, 0));
-			te = Qcons(se, te);
+			se = Zset(doid("$tmp"), compile_rval(e->e1, 0));
+			te = Zcons(se, te);
 
 			// $type = subtype($typeof($tmp));
-			se = Qset(doid("$type"),
-				  Qcall(doid("subtype"), 1,
-					Qcall(doid("$typeof"), 1,
+			se = Zset(doid("$type"),
+				  Zcall(doid("subtype"), 1,
+					Zcall(doid("$typeof"), 1,
 					      doid("$tmp"))));
-			te = Qcons(se, te);
+			te = Zcons(se, te);
 
 			// $dom = domof($tmp);
-			se = Qset(doid("$dom"),
-				  Qcall(doid("domof"), 1, doid("$tmp")));
-			te = Qcons(se, te);
+			se = Zset(doid("$dom"),
+				  Zcall(doid("domof"), 1, doid("$tmp")));
+			te = Zcons(se, te);
 
 			// $addr = {litdom}{nsptr(dom)}$tmp
 			if(needaddr){
-				se = Qset(doid("$addr"),
-					  Qxcast(Qcall(doid("nsptr"), 1,
+				se = Zset(doid("$addr"),
+					  Zxcast(Zcall(doid("nsptr"), 1,
 						       doid("dom")),
 							doid("$tmp")));
-				te = Qcons(se, te);
+				te = Zcons(se, te);
 			}
 		}else{
 			// compile lvalue reference to pointer,
 			// using dom, type bindings
 			se = compile_lval(e->e1, 0);
-			te = Qcons(se, te);
+			te = Zcons(se, te);
 
 			// $type = subtype($type);
-			se = Qset(doid("$type"),
-				  Qcall(doid("subtype"), 1, doid("$type")));
-			te = Qcons(se, te);
+			se = Zset(doid("$type"),
+				  Zcall(doid("subtype"), 1, doid("$type")));
+			te = Zcons(se, te);
 		}
 		e->e1 = 0;
 		freeexpr(e);
@@ -273,35 +165,35 @@ compile_lval(Expr *e, int needaddr)
 		// compile lvalue reference to containing struct,
 		// using dom, type, addr bindings.
 		se = compile_lval(e->e1, needaddr);
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 		
 		// $tmp = lookfield(type, field);
-		se = Qset(doid("$tmp"),
-			  Qcall(doid("lookfield"), 2,
-				doid("$type"), Qconsts(e->e2->id)));
-		te = Qcons(se, te);
+		se = Zset(doid("$tmp"),
+			  Zcall(doid("lookfield"), 2,
+				doid("$type"), Zconsts(e->e2->id)));
+		te = Zcons(se, te);
 
 		// if(isnil($tmp)) error("undefined field: %s", sym);
 		se = newexpr(Eif,
-			     Qcall(doid("isnil"), 1, doid("$tmp")),
-			     Qcall(doid("error"), 2,
-				   Qconsts("undefined field: %s"),
-				   Qconsts(e->e2->id)),
+			     Zcall(doid("isnil"), 1, doid("$tmp")),
+			     Zcall(doid("error"), 2,
+				   Zconsts("undefined field: %s"),
+				   Zconsts(e->e2->id)),
 			     0, 0);
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		// $type = fieldtype($tmp);
-		se = Qset(doid("$type"),
-			  Qcall(doid("fieldtype"), 1, doid("$tmp")));
-		te = Qcons(se, te);
+		se = Zset(doid("$type"),
+			  Zcall(doid("fieldtype"), 1, doid("$tmp")));
+		te = Zcons(se, te);
 				     
 		// $addr = $addr + fieldoff($tmp)
 		if(needaddr){
-			se = Qset(doid("$addr"),
-				  Qadd(doid("$addr"),
-				       Qcall(doid("fieldoff"), 1,
+			se = Zset(doid("$addr"),
+				  Zadd(doid("$addr"),
+				       Zcall(doid("fieldoff"), 1,
 					     doid("$tmp"))));
-			te = Qcons(se, te);
+			te = Zcons(se, te);
 		}
 		
 		e->e1 = 0;
@@ -326,16 +218,16 @@ compile_rval(Expr *e, unsigned lfree)
 	case Ederef:
 		te = nullelist();
 		se = compile_lval(e, 1);
-		te = Qcons(se, te);
-		se = Qcval(doid("$dom"), doid("$type"), doid("$addr"));
-		te = Qcons(se, te);
+		te = Zcons(se, te);
+		se = Zcval(doid("$dom"), doid("$type"), doid("$addr"));
+		te = Zcons(se, te);
 		return rvalblock(invert(te), lfree);
 	case Eref:
 		te = nullelist();
 		se = compile_lval(e->e1, 1);
-		te = Qcons(se, te);
-		se = Qref(doid("$dom"), doid("$type"), doid("$addr"));
-		te = Qcons(se, te);
+		te = Zcons(se, te);
+		se = Zref(doid("$dom"), doid("$type"), doid("$addr"));
+		te = Zcons(se, te);
 		e->e1 = 0;
 		freeexpr(e);
 		return rvalblock(invert(te), lfree);
@@ -349,21 +241,21 @@ compile_rval(Expr *e, unsigned lfree)
 		te = nullelist();
 
 		se = compile_lval(e->e1, 1);
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
-		se = Qset(doid("$val"), compile_rval(e->e2, 0));
-		te = Qcons(se, te);
+		se = Zset(doid("$val"), compile_rval(e->e2, 0));
+		te = Zcons(se, te);
 
-		se = Qcall(doid("domas"), 1, doid("$dom"));
-		se = Qcall(doid("asdispatch"), 1, se);
-		se = Qcall(se, 3,
+		se = Zcall(doid("domas"), 1, doid("$dom"));
+		se = Zcall(doid("asdispatch"), 1, se);
+		se = Zcall(se, 3,
 			   doid("$put"),
-			   Qrange(doid("$addr"), Qsizeof(doid("$type"))),
-			   Qencode(Qxcast(doid("$type"), doid("$val"))));
-		te = Qcons(se, te);
+			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
+			   Zencode(Zxcast(doid("$type"), doid("$val"))));
+		te = Zcons(se, te);
 
 		se = doid("$val");
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		e->e1 = 0;
 		e->e2 = 0;
@@ -382,23 +274,23 @@ compile_rval(Expr *e, unsigned lfree)
 		te = nullelist();
 
 		/* reuse lval bindings */
-		se = Qset(doid("$val"), compile_rval(e->e1, 1));
-		te = Qcons(se, te);
+		se = Zset(doid("$val"), compile_rval(e->e1, 1));
+		te = Zcons(se, te);
 
-		se = Qset(doid("$val"),
-			  Qbinop(e->op, doid("$val"), compile_rval(e->e2, 0)));
-		te = Qcons(se, te);
+		se = Zset(doid("$val"),
+			  Zbinop(e->op, doid("$val"), compile_rval(e->e2, 0)));
+		te = Zcons(se, te);
 
-		se = Qcall(doid("domas"), 1, doid("$dom"));
-		se = Qcall(doid("asdispatch"), 1, se);
-		se = Qcall(se, 3,
+		se = Zcall(doid("domas"), 1, doid("$dom"));
+		se = Zcall(doid("asdispatch"), 1, se);
+		se = Zcall(se, 3,
 			   doid("$put"),
-			   Qrange(doid("$addr"), Qsizeof(doid("$type"))),
-			   Qencode(Qxcast(doid("$type"), doid("$val"))));
-		te = Qcons(se, te);
+			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
+			   Zencode(Zxcast(doid("$type"), doid("$val"))));
+		te = Zcons(se, te);
 
 		se = doid("$val");
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		e->e1 = 0;
 		e->e2 = 0;
@@ -417,21 +309,21 @@ compile_rval(Expr *e, unsigned lfree)
 		te = nullelist();
 
 		/* reuse lval bindings */
-		se = Qset(doid("$val"), compile_rval(e->e1, 1));
-		te = Qcons(se, te);
+		se = Zset(doid("$val"), compile_rval(e->e1, 1));
+		te = Zcons(se, te);
 
-		se = Qcall(doid("domas"), 1, doid("$dom"));
-		se = Qcall(doid("asdispatch"), 1, se);
-		se = Qcall(se, 3,
+		se = Zcall(doid("domas"), 1, doid("$dom"));
+		se = Zcall(doid("asdispatch"), 1, se);
+		se = Zcall(se, 3,
 			   doid("$put"),
-			   Qrange(doid("$addr"), Qsizeof(doid("$type"))),
-			   Qencode(e->kind == Epostinc
-				   ? Qadd(doid("$val"), Quint(1))
-				   : Qsub(doid("$val"), Quint(1))));
-		te = Qcons(se, te);
+			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
+			   Zencode(e->kind == Epostinc
+				   ? Zadd(doid("$val"), Zuint(1))
+				   : Zsub(doid("$val"), Zuint(1))));
+		te = Zcons(se, te);
 
 		se = doid("$val");
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		e->e1 = 0;
 		freeexpr(e);
@@ -449,33 +341,33 @@ compile_rval(Expr *e, unsigned lfree)
 		te = nullelist();
 
 		/* reuse lval bindings */
-		se = Qset(doid("$val"), compile_rval(e->e1, 1));
-		te = Qcons(se, te);
+		se = Zset(doid("$val"), compile_rval(e->e1, 1));
+		te = Zcons(se, te);
 
 		if(e->kind == Epreinc)
-			se = Qadd(doid("$val"), Quint(1));
+			se = Zadd(doid("$val"), Zuint(1));
 		else
-			se = Qsub(doid("$val"), Quint(1));
-		se = Qset(doid("$val"), se);
-		te = Qcons(se, te);
+			se = Zsub(doid("$val"), Zuint(1));
+		se = Zset(doid("$val"), se);
+		te = Zcons(se, te);
 
-		se = Qcall(doid("domas"), 1, doid("$dom"));
-		se = Qcall(doid("asdispatch"), 1, se);
-		se = Qcall(se, 3,
+		se = Zcall(doid("domas"), 1, doid("$dom"));
+		se = Zcall(doid("asdispatch"), 1, se);
+		se = Zcall(se, 3,
 			   doid("$put"),
-			   Qrange(doid("$addr"), Qsizeof(doid("$type"))),
-			   Qencode(doid("$val")));
-		te = Qcons(se, te);
+			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
+			   Zencode(doid("$val")));
+		te = Zcons(se, te);
 
 		se = doid("$val");
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		e->e1 = 0;
 		freeexpr(e);
 		return rvalblock(invert(te), lfree);
 	case Esizeofe:
 		if(!islval(e->e1)){
-			se = Qsizeof(compile_rval(e->e1, 0));
+			se = Zsizeof(compile_rval(e->e1, 0));
 			e->e1 = 0;
 			freeexpr(e);
 			return se;
@@ -484,17 +376,17 @@ compile_rval(Expr *e, unsigned lfree)
 		te = nullelist();
 
 		se = compile_lval(e->e1, 0);
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
-		se = Qsizeof(doid("$type"));
-		te = Qcons(se, te);
+		se = Zsizeof(doid("$type"));
+		te = Zcons(se, te);
 		
 		e->e1 = 0;
 		freeexpr(e);
 		return rvalblock(invert(te), lfree);
 	case Etypeofe:
 		if(!islval(e->e1)){
-			se = Qcall(doid("$typeof"), 1, compile_rval(e->e1, 0));
+			se = Zcall(doid("$typeof"), 1, compile_rval(e->e1, 0));
 			e->e1 = 0;
 			freeexpr(e);
 			return se;
@@ -503,10 +395,10 @@ compile_rval(Expr *e, unsigned lfree)
 		te = nullelist();
 
 		se = compile_lval(e->e1, 0);
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 
 		se = doid("$type");
-		te = Qcons(se, te);
+		te = Zcons(se, te);
 		
 		e->e1 = 0;
 		freeexpr(e);
@@ -531,7 +423,7 @@ expandptr(Expr *e)
 		expandptr(e->e1);
 		expandptr(e->e2);
 		e->kind = Ederef;
-		e->e1 = Qadd(e->e1, e->e2);
+		e->e1 = Zadd(e->e1, e->e2);
 		e->e2 = 0;
 		break;
 	case Earrow:

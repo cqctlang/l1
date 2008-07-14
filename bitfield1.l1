@@ -1,0 +1,56 @@
+ns = @names c32le {
+	struct X {
+		@@0x0	int x00:1;
+		@@0x0	int x01:1;
+		@@0x0	int x02:1;
+		@@0x0	int x03:1;
+		@@0x0	int x04:1;
+		@@0x0	int x05:1;
+		@@0x0	int x06:1;
+		@@0x0	int x07:1;
+		@@0x0	int x08:1;
+		@@0x0	int x09:1;
+		@@0x0	int x10:1;
+		@@0x0	int x11:1;
+		@@0x0	int x12:1;
+		@@0x0	int x13:1;
+		@@0x0	int x14:1;
+		@@0x0	int x15:1;
+		@@0x0	int x16:1;
+		@@0x0	int x17:1;
+		@@0x0	int x18:1;
+		@@0x0	int x19:1;
+		@@0x0	int x20:1;
+		@@0x0	int x21:1;
+		@@0x0	int x22:1;
+		@@0x0	int x23:1;
+		@@0x0	int x24:1;
+		@@0x0	int x25:1;
+		@@0x0	int x26:1;
+		@@0x0	int x27:1;
+		@@0x0	int x28:1;
+		@@0x0	int x29:1;
+		@@0x0	int x30:1;
+		@@0x0	int x31:1;
+		@0x4;	
+	};
+};
+
+fn = nsenumtype(ns);
+vec = tabvals(fn());
+for(i = 0; i < veclen(vec); i++){
+	s = vecref(vec, i);
+	if(isstruct(s))
+		break;
+}
+
+fs = fields(s);
+f0 = vecref(fs, 0);
+t = fieldtype(f0);
+if(isbitfield(t)){
+	printf("bitfield %s (width = %d, pos = %d, container = %t)\n",
+	       fieldid(f0),
+	       bitfieldwidth(t),
+	       bitfieldpos(t),
+	       bitfieldcontainer(t));
+}

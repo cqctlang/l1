@@ -1231,6 +1231,8 @@ freetype(Type *t)
 	freedecl(t->field);
 	/* freeenum(t->en); */
 	freedecl(t->param);
+	freeexpr(t->bitw);
+	freeexpr(t->bit0);
 	freeexpr(t->sz);
 	freeexpr(t->cnt);
 	free(t);
@@ -1247,7 +1249,6 @@ freedecl(Decl *d)
 		nxt = d->link;
 		freetype(d->type);
 		freeexpr(d->offs);
-		freeexpr(d->bits);
 		free(d->id);
 		free(d);
 	}
