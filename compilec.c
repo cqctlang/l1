@@ -522,7 +522,7 @@ compile_rval(Expr *e, unsigned lfree)
 }
 
 static void
-rewriteptr(Expr *e)
+expandptr(Expr *e)
 {
 	if(e == 0)
 		return;
@@ -555,7 +555,7 @@ docompilec(Expr *e)
 	Expr *rv;
 	if(setjmp(esc) != 0)
 		return 0;	/* error */
-	rewriteptr(e);
+	expandptr(e);
 	rv = compile_rval(e, 0);
 	return rv;
 }
