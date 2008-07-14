@@ -8,15 +8,24 @@ char flags[256];
 static void
 usage(char *argv0)
 {
-	fprintf(stderr, "usage: %s <option>\n", argv0);
-	fprintf(stderr, "present input code on stdin.\n");
+	fprintf(stderr, "usage: %s [flags] [-e <file>] \n", argv0);
+	fprintf(stderr, "without -e, runs in interactive evaluation mode:\n");
+	fprintf(stderr, "\tenter cinquecento expressions on stdin, "
+			"followed by EOF (^d).\n");
+	fprintf(stderr, "\tto exit send SIGTERM (^c).\n");
+	fprintf(stderr, "\nuser flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
-	fprintf(stderr, "\t-p print IR and object code\n");
-	fprintf(stderr, "\t-q print expanded cinquecento source\n");
-	fprintf(stderr, "\t-c do not compile IR code\n");
-	fprintf(stderr, "\t-v do not execute object code\n");
-	fprintf(stderr, "\t-e <file> read input from <file> instead of stdin\n");
 	fprintf(stderr, "\t-t report timing statistics\n");
+	fprintf(stderr, "\t-e <file> read input from <file> "
+			"instead of stdin\n");
+	fprintf(stderr, "\ndeveloper flags:\n");
+	fprintf(stderr, "\t-o dump disassembled object code\n");
+	fprintf(stderr, "\t-p dump IR at various stages\n");
+	fprintf(stderr, "\t-q dump expanded cinquecento source\n");
+	fprintf(stderr, "\t-b dump frame storage\n");
+	fprintf(stderr, "\t-c do not compile expanded source\n");
+	fprintf(stderr, "\t-v do not execute object code\n");
+
 	exit(0);
 }
 
@@ -34,11 +43,12 @@ main(int argc, char *argv[])
 	flags['c'] = 1;		/* compile */
 	flags['x'] = 1;		/* execute */
 
-	while(EOF != (c = getopt(argc, argv, "hpqcxte:"))){
+	while(EOF != (c = getopt(argc, argv, "hoqbcxte:"))){
 		switch(c){
-		case 'p':
+		case 'o':
 		case 'q':
 		case 't':
+		case 'b':
 			flags[c] = 1;
 			break;
 		case 'c':
@@ -46,6 +56,7 @@ main(int argc, char *argv[])
 			flags[c] = 0;
 			break;
 		case 'e':
+			flags['e'] = 1;
 			filename = optarg;
 			break;
 			break;
@@ -62,9 +73,17 @@ main(int argc, char *argv[])
 	initvm();
 
 	env = mkenv();
+	if(flags['x'])
+		vm = mkvm(env);
+	if(vm == 0)
+		goto out;
 
 	if(filename == 0)
 		filename = stdinname;
+
+repl:
+	if(flags['e'] == 0)
+		printf(">>> ");
 
 	if(0 > doparse(filename))
 		exit(0);
@@ -88,6 +107,7 @@ main(int argc, char *argv[])
 		printexpr(ctx.el);
 		printf("\n");
 	}
+
 	if(flags['q']){
 		printf("transformed source:\n");
 		printcqct(ctx.el);
@@ -97,9 +117,6 @@ main(int argc, char *argv[])
 	if(flags['c']){
 		entry = compileentry(ctx.el, env);
 		if(flags['x']){
-			vm = mkvm(env);
-			if(vm == 0)
-				goto out;
 			if(flags['t'])
 				gettimeofday(&beg, 0);
 			if(!waserror(vm)){
@@ -111,14 +128,21 @@ main(int argc, char *argv[])
 					       1000000*end.tv_sec+end.tv_usec);
 				}
 				poperror(vm);
-			}
-			freevm(vm);
+			}else
+				vmreset(vm);
 		}
 	}else
 		freeexpr(ctx.el);
 
+	if(flags['e'] == 0){
+		printvmac(vm);
+		printf("\n");
+		goto repl;
+	}
+
 out:
 	freeenv(env);
+	freevm(vm);
 	finivm();
 	finicompile();
 	finiparse();

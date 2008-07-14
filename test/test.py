@@ -19,7 +19,7 @@ for m in glob.glob('*.l1'):
 #    p = popen2.Popen4('../l1')
 #    p.tochild.write(s)
 #    p.tochild.close()
-    cmd = '../l1 -e '+m
+    cmd = '../l1 -b -e '+m
     p = popen2.Popen4(cmd);
     rv = p.wait()
     if rv != 0:

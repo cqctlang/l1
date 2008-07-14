@@ -1329,10 +1329,10 @@ tryinclude(char *raw)
 
 	switch(c){
 	case '"':
-		printf("include relative %s\n", p);
+//		printf("include relative %s\n", p);
 		break;
 	case '<':
-		printf("include system %s\n", p);
+//		printf("include system %s\n", p);
 		break;
 	}
 

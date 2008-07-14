@@ -18,23 +18,21 @@ if not os.path.exists(valgrind):
     sys.exit();
 
 suppress=' --suppressions=./pthread-suppression'
-cmd = valgrind+' -q --show-reachable=yes --leak-check=full'+suppress+' ../l1'
+cmd = valgrind+' -q --show-reachable=yes --leak-check=full'+suppress+' ../l1 -b -e '
 
 for m in glob.glob('*.l1'):
     print m,
     sys.stdout.flush()
-    f = open(m);
-    s = f.read();
-    f.close()
-    p = popen2.Popen4(cmd)
-    p.tochild.write(s)
-    p.tochild.close()
-    out = p.fromchild.read()
+#    f = open(m);
+#    s = f.read();
+#    f.close()
+    p = popen2.Popen4(cmd+m)
     rv = p.wait()
     if rv != 0:
         print 'fault'
         nfault = nfault+1
         continue
+    out = p.fromchild.read()
     del p
     fn = m+'.vgout'
     if os.path.exists(fn):

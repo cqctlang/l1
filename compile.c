@@ -702,7 +702,7 @@ printinsn(Code *code, Insn *i)
 	printf("\n");
 }
 
-void
+static void
 printcode(Code *code)
 {
 	unsigned i;
@@ -2442,12 +2442,14 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 		fatal("compilelambda on non-lambda");
 
 	b = (Lambda*)e->xp;
-	if(b->vararg)
-		printf("%s: var params, %u locals, %u temps\n",
-		       name->label, b->maxloc, b->ntmp);
-	else
-		printf("%s: %u params, %u locals, %u temps\n",
-		       name->label, b->npar, b->maxloc, b->ntmp);
+	if(flags['b']){
+		if(b->vararg)
+			printf("%s: var params, %u locals, %u temps\n",
+			       name->label, b->maxloc, b->ntmp);
+		else
+			printf("%s: %u params, %u locals, %u temps\n",
+			       name->label, b->npar, b->maxloc, b->ntmp);
+	}
 	p.b = b;
 
 	entry = code->ninsn;
@@ -2496,7 +2498,13 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 		emitlabel(p.Return0, e->e2);
 	i = nextinsn(code);
 	i->kind = Imov;
-	randnil(&i->op1);
+
+
+// what does a function without an explicit return <expr> return?
+// either nil or the value of last expression evaluated.
+//	randnil(&i->op1);
+	randloc(&i->op1, AC);
+
 	randloc(&i->dst, AC);
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code);
@@ -2531,8 +2539,9 @@ compileentry(Expr *el, Env *env)
 	b = (Lambda*)le->xp;
 	cl = mkcl(code, 0, b->capture->nvr, L->label);
 
-	if(flags['p'])
+	if(flags['o'])
 		printcode(code);
+
 	return cl;
 }
 

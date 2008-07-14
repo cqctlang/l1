@@ -220,7 +220,7 @@ Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Expr* docompilec(Expr *e);
 void docompile0(Expr *e);
 Closure* compileentry(Expr *el, Env *env);
-void printcode(Code *code);
+void printvmac(VM *vm);
 char* topvecid(unsigned idx, Topvec *tv);
 Val* topvecval(unsigned idx, Topvec *tv);
 Closure* haltthunk();
@@ -278,6 +278,7 @@ Val* envgetbind(Env *env, char *id);
 void initvm();
 void finivm();
 VM* mkvm(Env*);
+void vmreset(VM *vm);
 void freevm(VM*);
 jmp_buf* _pusherror(VM *vm);
 #define waserror(vm) (setjmp(*(_pusherror(vm))))

@@ -17,13 +17,19 @@ todo
 - incomplete types
 - enums
 - bitfields
-- syntax for sizeof, typeof, cast
-- resolve ambig
 - check argument count on calls to lambdas
 - immutable vectors for type datastructures (fields and params)?
 - immutable strings for pre-computed "$get", etc?
-- map()
-- do address range calculations wrap correctly in 32-bit contexts?
+- as map()
+- that that address range calculations wrap correctly in 32-bit contexts
+- implement T1+T2 -> int conversions
+- mapfile, memory management on mmap'd objects
+- figure out interactive control story:
+	- exit
+	- interruption
+  interactions of signals with threads?
+  gc state vs exit and interruption
+  useful for blocking/polling on remote events
 
 given
 	int a[3];

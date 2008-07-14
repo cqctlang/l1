@@ -3011,7 +3011,7 @@ printval(Val *val)
 			printf("<closure %s>", cl->id);
 		break;
 	case Qundef:
-		printf("<undefined>");
+//		printf("<undefined>");
 		break;
 	case Qnil:
 		printf("<nil>");
@@ -3063,6 +3063,12 @@ printval(Val *val)
 		printf("<unprintable type %d>", val->qkind);
 		break;
 	}
+}
+
+void
+printvmac(VM *vm)
+{
+	printval(&vm->ac);
 }
 
 static void
@@ -4855,6 +4861,18 @@ gcprotect(VM *vm, void *obj)
 	return obj;
 }
 
+void
+vmreset(VM *vm)
+{
+	while(vm->pdepth > 0)
+		gcprotpop(vm);
+	vm->edepth = 0;
+	vm->fp = 0;
+	vm->sp = Maxstk;
+	vm->ac = Xundef;
+	mkvalcl(panicthunk(), &vm->cl);
+}
+
 Val*
 dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
@@ -6510,11 +6528,7 @@ mkvm(Env *env)
 	VM *vm, **vmp;
 
 	vm = xmalloc(sizeof(VM));
-	vm->fp = 0;
-	vm->sp = Maxstk;
-	vm->ac = Xundef;
 	vm->top = env;
-	mkvalcl(panicthunk(), &vm->cl);
 	vm->pmax = GCinitprot;
 	vm->prot = xmalloc(vm->pmax*sizeof(Root*));
 	vm->emax = Errinitdepth;
@@ -6646,6 +6660,7 @@ mkvm(Env *env)
 	}
 	*vmp = vm;
 
+	vmreset(vm);
 	concurrentgc(vm);
 	/* vm is now callable */
 

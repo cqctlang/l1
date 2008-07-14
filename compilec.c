@@ -248,10 +248,9 @@ compile_lval(Expr *e, int needaddr)
 			// $addr = {litdom}{nsptr(dom)}$tmp
 			if(needaddr){
 				se = Qset(doid("$addr"),
-					  Qxcast(doid("litdom"),
-						 Qxcast(Qcall(doid("nsptr"), 1,
-							      doid("dom")),
-							doid("$tmp"))));
+					  Qxcast(Qcall(doid("nsptr"), 1,
+						       doid("dom")),
+							doid("$tmp")));
 				te = Qcons(se, te);
 			}
 		}else{
@@ -529,23 +528,23 @@ expandptr(Expr *e)
 	switch(e->kind){
 	case Earef:
 		/* rewrite: E1[E2] => *(E1+E2) */
-		rewriteptr(e->e1);
-		rewriteptr(e->e2);
+		expandptr(e->e1);
+		expandptr(e->e2);
 		e->kind = Ederef;
 		e->e1 = Qadd(e->e1, e->e2);
 		e->e2 = 0;
 		break;
 	case Earrow:
 		/* rewrite: E->field => (*E).field */
-		rewriteptr(e->e1);
+		expandptr(e->e1);
 		e->kind = Edot;
 		e->e1 = newexpr(Ederef, e->e1, 0, 0, 0);
 		break;
 	default:
-		rewriteptr(e->e1);
-		rewriteptr(e->e2);
-		rewriteptr(e->e3);
-		rewriteptr(e->e4);
+		expandptr(e->e1);
+		expandptr(e->e2);
+		expandptr(e->e3);
+		expandptr(e->e4);
 	}
 }
 
