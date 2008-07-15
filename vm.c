@@ -307,7 +307,6 @@ struct Xtypename {
 	Xtypename *link;	/* ptr, arr, func (return type), bitfield */
 	Vec *field;		/* struct, union */
 	Vec *param;		/* abstract declarators for func */
-
 };
 
 typedef
@@ -3046,8 +3045,10 @@ printval(Val *val)
 		cl = valcl(val);
 		if(cl->fp)
 			printf("<continuation %p>", cl);
-		else
+		else if(cl->dlen > 0)
 			printf("<closure %s>", cl->id);
+		else
+			printf("<procedure %s>", cl->id);
 		break;
 	case Qundef:
 //		printf("<undefined>");

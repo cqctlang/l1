@@ -467,7 +467,7 @@ doconst(char *s, unsigned long len)
 				parseerror("bad use of constant suffix L");
 			}
 		else
-			parseerror("bad integer constant suffix %c", *p);
+			parseerror("bad integer constant: \"%.*s\"", len, s);
 		p++;
 	}
 		

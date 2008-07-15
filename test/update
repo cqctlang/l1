@@ -1,0 +1,5 @@
+#!/bin/sh
+
+cp $1.l1.failed $1.l1.out
+cp $1.l1.failed $1.l1.vgout
+rm $1.l1.failed
