@@ -24,6 +24,25 @@ enum {
 	Qnkind
 } Qkind;
 
+static char *qname[Qnkind] = {
+	[Qundef]=	"undefined",
+	[Qnil]=		"nil",
+	[Qnulllist]=	"null",
+	[Qas]=		"address space",
+	[Qbox]=		"box",
+	[Qcl]=		"closure",
+	[Qcode]=	"code",
+	[Qcval]=	"cvalue",
+	[Qdom]=		"domain",
+	[Qns]=		"name space",
+	[Qpair]=	"pair",
+	[Qrange]=	"range",
+	[Qstr]=		"string",
+	[Qtab]=		"table",
+	[Qvec]=		"vector",
+	[Qxtn]=		"ctype",
+};
+
 typedef
 enum Rkind {
 	/* type representations */ 
@@ -285,7 +304,7 @@ struct Xtypename {
 	Val cnt;		/* arr */
 	Val sz;			/* struct, union, bitfield */
 	Val bit0;		/* bitfield */
-	Xtypename *link;	/* ptr, arr, func (return type) */
+	Xtypename *link;	/* ptr, arr, func (return type), bitfield */
 	Vec *field;		/* struct, union */
 	Vec *param;		/* abstract declarators for func */
 
@@ -5384,6 +5403,14 @@ testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 	printf("returned from dovm\n");
 }
 
+void
+checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
+{
+	if(argv[arg].qkind != qkind)
+		vmerr(vm, "operand %d to %s must be a %s",
+		      arg+1, fn, qname[qkind]);
+}
+
 static void
 l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -6363,12 +6390,11 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-domkctype_base(VM *vm, Cbase name, Val *rv)
+domkctype_base(Cbase name, Val *rv)
 {
 	Xtypename *xtn;
 	xtn = mkbasextn(name, Rundef);
-	mkvalxtn(xtn, &rv);
-	putvalrand(vm, &rv, dst);
+	mkvalxtn(xtn, rv);
 }
 
 static void
@@ -6376,7 +6402,7 @@ l1_mkctype_void(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_void");
-	domkctype_base(Vvoid);
+	domkctype_base(Vvoid, rv);
 }
 
 static void
@@ -6384,7 +6410,7 @@ l1_mkctype_char(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_char");
-	domkctype_base(Vchar);
+	domkctype_base(Vchar, rv);
 }
 
 static void
@@ -6392,7 +6418,7 @@ l1_mkctype_short(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_short");
-	domkctype_base(Vshort);
+	domkctype_base(Vshort, rv);
 }
 
 static void
@@ -6400,7 +6426,7 @@ l1_mkctype_int(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_int");
-	domkctype_base(Vint);
+	domkctype_base(Vint, rv);
 }
 
 static void
@@ -6408,7 +6434,7 @@ l1_mkctype_long(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_long");
-	domkctype_base(Vlong);
+	domkctype_base(Vlong, rv);
 }
 
 static void
@@ -6416,7 +6442,7 @@ l1_mkctype_vlong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_vlong");
-	domkctype_base(Vvlong);
+	domkctype_base(Vvlong, rv);
 }
 
 static void
@@ -6424,7 +6450,7 @@ l1_mkctype_uchar(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uchar");
-	domkctype_base(Vuchar);
+	domkctype_base(Vuchar, rv);
 }
 
 static void
@@ -6432,7 +6458,7 @@ l1_mkctype_ushort(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ushort");
-	domkctype_base(Vushort);
+	domkctype_base(Vushort, rv);
 }
 
 static void
@@ -6440,7 +6466,7 @@ l1_mkctype_uint(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uint");
-	domkctype_base(Vuint);
+	domkctype_base(Vuint, rv);
 }
 
 static void
@@ -6448,7 +6474,7 @@ l1_mkctype_ulong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ulong");
-	domkctype_base(Vulong);
+	domkctype_base(Vulong, rv);
 }
 
 static void
@@ -6456,8 +6482,173 @@ l1_mkctype_uvlong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uvlong");
-	domkctype_base(Vuvlong);
+	domkctype_base(Vuvlong, rv);
 }
+
+static void
+l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkctype_ptr");
+	if(argv->qkind != Qxtn)
+		vmerr(vm, "operand 1 to mkctype_ptr must be a pointer ctype");
+	xtn = valxtn(argv);
+	xtn = mkptrxtn(xtn, Rundef);
+	mkvalxtn(xtn, rv);	
+}
+
+static void
+l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn, *sub;
+	Str *s;
+
+	switch(argc){
+	case 1:
+		checkarg(vm, "mkctype_typedef", argv, 0, Qstr);
+		s = valstr(&argv[0]);
+		xtn = mkxtn();
+		xtn->tkind = Ttypedef;
+		xtn->tid = s;
+		break;
+	case 2:
+		checkarg(vm, "mkctype_typedef", argv, 0, Qstr);
+		checkarg(vm, "mkctype_typedef", argv, 1, Qxtn);
+		s = valstr(&argv[0]);
+		sub = valxtn(&argv[1]);
+		xtn = mkxtn();
+		xtn->tkind = Ttypedef;
+		xtn->tid = s;
+		xtn->link = sub;
+		break;
+	default:
+		vmerr(vm, "wrong number of arguments to mkctype_typedef");
+	}
+	mkvalxtn(xtn, rv);	
+}
+
+static void
+domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+	Str *s;
+	Vec *f;
+
+	switch(argc){
+	case 1:
+		/* TAG */
+		checkarg(vm, fn, argv, 0, Qstr);
+		s = valstr(argv);
+		xtn = mkxtn();
+		xtn->tkind = tkind;
+		xtn->tag = s;
+		break;
+	case 3:
+		/* TAG FIELDS SIZE */
+		checkarg(vm, fn, argv, 0, Qstr);
+		checkarg(vm, fn, argv, 1, Qvec);
+		checkarg(vm, fn, argv, 2, Qcval);
+		s = valstr(&argv[0]);
+		f = valvec(&argv[1]);
+		xtn = mkxtn();
+		xtn->tkind = tkind;
+		xtn->tag = s;
+		xtn->field = f;
+		xtn->sz = argv[2];
+		break;
+	default:
+		vmerr(vm, "wrong number of arguments to %s", fn);
+	}
+	mkvalxtn(xtn, rv);
+}
+
+static void
+l1_mkctype_struct(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkctype_su(vm, "mkctype_struct", Tstruct, argc, argv, rv);
+}
+
+static void
+l1_mkctype_union(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkctype_su(vm, "mkctype_union", Tunion, argc, argv, rv);
+}
+
+static void
+l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn, *sub;
+
+	switch(argc){
+	case 1:
+		/* TYPE */
+		checkarg(vm, "mkctype_array", argv, 0, Qxtn);
+		sub = valxtn(&argv[0]);
+		xtn = mkxtn();
+		xtn->tkind = Tarr;
+		xtn->link = sub;
+		break;
+	case 2:
+		/* TYPE CNT */
+		checkarg(vm, "mkctype_array", argv, 0, Qxtn);
+		checkarg(vm, "mkctype_array", argv, 1, Qcval);
+		sub = valxtn(&argv[0]);
+		xtn = mkxtn();
+		xtn->tkind = Tarr;
+		xtn->link = sub;
+		xtn->cnt = argv[1];
+		break;
+	default:
+		vmerr(vm, "wrong number of arguments to mkctype_array");
+	}
+	mkvalxtn(xtn, rv);
+}
+
+static void
+l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn, *sub;
+	Vec *p;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mkctype_fn");
+	checkarg(vm, "mkctype_fn", argv, 0, Qxtn);
+	checkarg(vm, "mkctype_fn", argv, 1, Qvec);
+	sub = valxtn(&argv[0]);
+	p = valvec(&argv[1]);
+	xtn = mkxtn();
+	xtn->tkind = Tfun;
+	xtn->link = sub;
+	xtn->param = p;
+	mkvalxtn(xtn, rv);
+}
+
+static void
+l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn, *sub;
+	/* TYPE WIDTH POS */
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to mkctype_bitfield");
+	checkarg(vm, "mkctype_bitfield", argv, 0, Qxtn);
+	checkarg(vm, "mkctype_bitfield", argv, 1, Qcval);
+	checkarg(vm, "mkctype_bitfield", argv, 2, Qcval);
+	sub = valxtn(&argv[0]);
+	xtn = mkxtn();
+	xtn->tkind = Tbitfield;
+	xtn->link = sub;
+	xtn->sz = argv[1];
+	xtn->bit0 = argv[2];
+	mkvalxtn(xtn, rv);
+}
+
+static void
+l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	fatal("mkctype_enum is not implemented");
+}
+
 
 static void
 l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -6719,6 +6910,8 @@ mklitdom(VM *vm)
 
 static VM *vms[Maxvms];
 
+#define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
+
 VM*
 mkvm(Env *env)
 {
@@ -6775,73 +6968,82 @@ mkvm(Env *env)
 	builtinfn(env, "vecref", vecrefthunk());
 	builtinfn(env, "vecset", vecsetthunk());
 
-	builtinfn(env, "asdispatch", mkcfn("asdispatch", l1_asdispatch));
-	builtinfn(env, "nslooksym", mkcfn("nslooksym", l1_nslooksym));
-	builtinfn(env, "nslooktype", mkcfn("nslooktype", l1_nslooktype));
-	builtinfn(env, "nsenumsym", mkcfn("nsenumsym", l1_nsenumsym));
-	builtinfn(env, "nsenumtype", mkcfn("nsenumtype", l1_nsenumtype));
-	builtinfn(env, "looktype", mkcfn("looktype", l1_looktype));
-	builtinfn(env, "gettimeofday", mkcfn("gettimeofday", l1_gettimeofday));
-	builtinfn(env, "randseed", mkcfn("randseed", l1_randseed));
-	builtinfn(env, "rand", mkcfn("rand", l1_rand));
-	builtinfn(env, "printf", mkcfn("printf", l1_printf));
-	builtinfn(env, "tabkeys", mkcfn("tabkeys", l1_tabkeys));
-	builtinfn(env, "tabvals", mkcfn("tabvals", l1_tabvals));
-	builtinfn(env, "vmbacktrace", mkcfn("vmbacktrace", l1_vmbacktrace));
+	FN(asdispatch);
+	FN(nslooksym);
+	FN(nslooktype);
+	FN(nsenumsym);
+	FN(nsenumtype);
+	FN(looktype);
+	FN(gettimeofday);
+	FN(randseed);
+	FN(rand);
+	FN(printf);
+	FN(tabkeys);
+	FN(tabvals);
+	FN(vmbacktrace);
 
-	builtinfn(env, "isbase", mkcfn("isbase", l1_isbase));
-	builtinfn(env, "issu", mkcfn("issu", l1_issu));
-	builtinfn(env, "isstruct", mkcfn("isstruct", l1_isstruct));
-	builtinfn(env, "isunion", mkcfn("isunion", l1_isunion));
-	builtinfn(env, "isenum", mkcfn("isenum", l1_isenum));
-	builtinfn(env, "isbitfield", mkcfn("isbitfield", l1_isbitfield));
-	builtinfn(env, "isptr", mkcfn("isptr", l1_isptr));
-	builtinfn(env, "isarray", mkcfn("isarray", l1_isarray));
-	builtinfn(env, "isfunc", mkcfn("isfunc", l1_isfunc));
-	builtinfn(env, "istypedef", mkcfn("istypedef", l1_istypedef));
+	FN(isbase);
+	FN(issu);
+	FN(isstruct);
+	FN(isunion);
+	FN(isenum);
+	FN(isbitfield);
+	FN(isptr);
+	FN(isarray);
+	FN(isfunc);
+	FN(istypedef);
 
-	builtinfn(env, "baseid", mkcfn("baseid", l1_baseid));
-	builtinfn(env, "subtype", mkcfn("subtype", l1_subtype));
-	builtinfn(env, "suekind", mkcfn("suekind", l1_suekind));
-	builtinfn(env, "suetag", mkcfn("suetag", l1_suetag));
-	builtinfn(env, "susize", mkcfn("susize", l1_susize));
-	builtinfn(env, "arraynelm", mkcfn("arraynelm", l1_arraynelm));	
-
-	builtinfn(env, "bitfieldpos", mkcfn("bitfieldpos", l1_bitfieldpos));
-	builtinfn(env, "bitfieldwidth",
-		  mkcfn("bitfieldwidth", l1_bitfieldwidth));	
-	builtinfn(env, "bitfieldcontainer",
-		  mkcfn("bitfieldcontainer", l1_bitfieldcontainer));	
-
-	builtinfn(env, "rettype", mkcfn("rettype", l1_rettype));
-	builtinfn(env, "params", mkcfn("params", l1_params));
-	builtinfn(env, "paramtype", mkcfn("paramtype", l1_paramtype));
-	builtinfn(env, "paramid", mkcfn("paramid", l1_paramid));
-
-	builtinfn(env, "fields", mkcfn("fields", l1_fields));
-	builtinfn(env, "lookfield", mkcfn("lookfield", l1_lookfield));
-	builtinfn(env, "fieldtype", mkcfn("fieldtype", l1_fieldtype));
-	builtinfn(env, "fieldid", mkcfn("fieldid", l1_fieldid));
-	builtinfn(env, "fieldoff", mkcfn("fieldid", l1_fieldoff));
-
-	builtinfn(env, "typedefid", mkcfn("typedefid", l1_typedefid));
-	builtinfn(env, "typedeftype", mkcfn("typedeftype", l1_typedeftype));
+	FN(baseid);
+	FN(subtype);
+	FN(suekind);
+	FN(suetag);
+	FN(susize);
+	FN(arraynelm);
+	FN(bitfieldpos);
+	FN(bitfieldwidth);
+	FN(bitfieldcontainer);
+	FN(rettype);
+	FN(params);
+	FN(paramtype);
+	FN(paramid);
+	FN(fields);
+	FN(lookfield);
+	FN(fieldtype);
+	FN(fieldid);
+	FN(fieldoff);
+	FN(typedefid);
+	FN(typedeftype);
+	FN(symid);
+	FN(symtype);
+	FN(symval);
+	FN(domof);
+	FN(nsptr);
+	FN(strput);
+	FN(isnil);
+	FN(error);
 
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
-
-	builtinfn(env, "symid", mkcfn("symid", l1_symid));
-	builtinfn(env, "symtype", mkcfn("symtype", l1_symtype));
-	builtinfn(env, "symval", mkcfn("symval", l1_symval));
-
 //	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));
 
-	builtinfn(env, "domof", mkcfn("domof", l1_domof));
-	builtinfn(env, "nsptr", mkcfn("nsptr", l1_nsptr));
-
-	builtinfn(env, "strput", mkcfn("strput", l1_strput));
-
-	builtinfn(env, "isnil", mkcfn("isnil", l1_isnil));
-	builtinfn(env, "error", mkcfn("error", l1_error));
+	FN(mkctype_void);
+	FN(mkctype_char);
+	FN(mkctype_short);
+	FN(mkctype_int);
+	FN(mkctype_long);
+	FN(mkctype_vlong);
+	FN(mkctype_uchar);
+	FN(mkctype_ushort);
+	FN(mkctype_uint);
+	FN(mkctype_ulong);
+	FN(mkctype_uvlong);
+	FN(mkctype_ptr);
+	FN(mkctype_typedef);
+	FN(mkctype_struct);
+	FN(mkctype_union);
+	FN(mkctype_array);
+	FN(mkctype_fn);
+	FN(mkctype_bitfield);
+	FN(mkctype_enum);
 
 	builtinstr(env, "$get", "get");
 	builtinstr(env, "$put", "put");

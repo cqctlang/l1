@@ -363,7 +363,7 @@ gentypename(Type *t, Varset *lvs, Vars *vars)
 		e->e3 = t->bit0; /* steal */
 		printf("bit0: ");
 		printexpr(e->e3);
-		printf("\n);
+		printf("\n");
 		t->bit0 = 0;
 	}
 
