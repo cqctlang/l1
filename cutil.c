@@ -134,3 +134,20 @@ Zencode(Expr *e)
 {
 	return Z1(E_encode, e);
 }
+
+Expr*
+Zlocals(unsigned n, ...)
+{
+	unsigned m;
+	va_list args;
+	Expr *l;
+
+	l = nullelist();
+	va_start(args, n);
+	for(m = 0; m < n; m++)
+		l = Zcons(doid(va_arg(args, char*)), l);
+	va_end(args);
+
+	/* local bindings are list of identifier lists */
+	return Zcons(l, nullelist());
+}

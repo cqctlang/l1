@@ -20,23 +20,6 @@ cerror(Expr *e, char *fmt, ...)
 	longjmp(esc, 1);
 }
 
-static Expr*
-locals(unsigned n, ...)
-{
-	unsigned m;
-	va_list args;
-	Expr *l;
-
-	l = nullelist();
-	va_start(args, n);
-	for(m = 0; m < n; m++)
-		l = Zcons(doid(va_arg(args, char*)), l);
-	va_end(args);
-
-	/* local bindings are list of identifier lists */
-	return Zcons(l, nullelist());
-}
-
 static char* cbasector[Vnbase] = {
 	[Vchar]               = "mkctype_char",
 	[Vshort]	      = "mkctype_short",
@@ -110,7 +93,7 @@ gentypename(Type *t)
 		}else
 			sz = Znil();
 
-		loc = locals(1, "$tmp");
+		loc = Zlocals(1, "$tmp");
 
 		te = nullelist();
 		te = Zcons(Zset(doid("$tmp"),
@@ -181,7 +164,7 @@ compiledecl(unsigned kind, Decl *dl)
 	Type *t;
 	Expr *e, *offs, *se, *te, *tn, *loc;
 
-	loc = locals(2, "$tmp", "$tn");
+	loc = Zlocals(2, "$tmp", "$tn");
 
 	te = nullelist();
 	t = dl->type;
@@ -236,7 +219,7 @@ compilesizeof(Decl *d)
 	else
 		dom = "litdom";
 
-	loc = locals(2, "$tn", "$tmp");
+	loc = Zlocals(2, "$tn", "$tmp");
 
 	te = nullelist();
 
@@ -280,7 +263,7 @@ compiletypeof(Decl *d)
 	else
 		dom = "litdom";
 
-	loc = locals(2, "$tn", "$tmp");
+	loc = Zlocals(2, "$tn", "$tmp");
 
 	te = nullelist();
 
@@ -318,7 +301,7 @@ compilecast(Expr *e)
 	Expr *se, *te, *dom, *loc;
 	Decl *d;
 
-	loc = locals(3, "$tmp", "$tn", "$type");
+	loc = Zlocals(3, "$tmp", "$tn", "$type");
 
 	te = nullelist();
 	
@@ -407,7 +390,7 @@ compileambig(Expr *e)
 	else
 		dom = "litdom";
 
-	loc = locals(2, "$tmp", "$tn");
+	loc = Zlocals(2, "$tmp", "$tn");
 
 	te = nullelist();
 
@@ -485,7 +468,7 @@ compile0(Expr *e)
 		e->e2 = se;
 		break;
 	case Ens:
-		loc = locals(3, "$ns", "$typetab", "$symtab");
+		loc = Zlocals(3, "$ns", "$typetab", "$symtab");
 
 		te = nullelist();
 

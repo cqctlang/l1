@@ -301,4 +301,4 @@ Expr* Zcval(Expr *dom, Expr *type, Expr *val);
 Expr* Zref(Expr *dom, Expr *type, Expr *val);
 Expr* Zrange(Expr *addr, Expr *sz);
 Expr* Zencode(Expr *e);
-
+Expr* Zlocals(unsigned n, ...);

@@ -39,18 +39,10 @@ static Expr*
 rvalblock(Expr *body, unsigned lfree)
 {
 	Expr *e;
-
-        e = nullelist();
-	e = Zcons(doid("$val"), e);
-	if(!lfree){
-		e = Zcons(doid("$dom"), e);
-		e = Zcons(doid("$type"), e);
-		e = Zcons(doid("$addr"), e);
-	}
-
-	/* local bindings are list of identifier lists */
-	e = Zcons(e, nullelist());
-
+	if(lfree)
+		e = Zlocals(1, "$val");
+	else
+		e = Zlocals(4, "$val", "$dom", "$type", "$addr");
 	return newexpr(Eblock, e, body, 0, 0);
 }
 
@@ -58,13 +50,7 @@ static Expr*
 lvalblock(Expr *body)
 {
 	Expr *e;
-
-        e = nullelist();
-	e = Zcons(doid("$tmp"), e);
-
-	/* local bindings are list of identifier lists */
-	e = Zcons(e, nullelist());
-
+	e = Zlocals(1, "$tmp");
 	return newexpr(Eblock, e, body, 0, 0);
 }
 
