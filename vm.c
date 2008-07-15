@@ -4493,10 +4493,12 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, xtnv);
 	if(rv){
-		vec = valvec(rv);
-		xtn = valxtn(vecref(vec, Typepos));
-		fld = valvec(vecref(vec, Idpos));
-		sz = vecref(vec, 2);
+		xtn = valxtn(rv);
+		if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
+			/* FIXME: print name of type */
+			vmerr(vm, "bad definition for tagged type");
+		fld = xtn->field;
+		sz = &xtn->sz;
 
 		new = mkxtn();
 		new->tkind = xtn->tkind;
@@ -4778,60 +4780,6 @@ xnsltype(VM *vm, Operand *nso, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
-static void
-xtn(VM *vm, u8 bits, Operand *op1, Operand *op2, Operand *op3, Operand *dst)
-{
-	Xtypename *xtn;
-	Val v, rv;
-
-	xtn = mkxtn();
-	xtn->tkind = TBITSTYPE(bits);
-	switch(xtn->tkind){
-	case Tbase:
-		xtn->basename = TBITSBASE(bits);
-		break;
-	case Tstruct:
-	case Tunion:
-	case Tenum:
-		getvalrand(vm, op1, &v);
-		xtn->tag = valstr(&v);
-		break;
-	case Ttypedef:
-		getvalrand(vm, op1, &v);
-		xtn->tid = valstr(&v);
-		break;
-	case Tptr:
-		getvalrand(vm, op1, &v);
-		xtn->link = valxtn(&v);
-		break;
-	case Tarr:
-		getvalrand(vm, op1, &v);
-		xtn->link = valxtn(&v);
-		getvalrand(vm, op2, &v);
-		xtn->cnt = v;
-		break;
-	case Tfun:
-		getvalrand(vm, op1, &v);
-		xtn->link = valxtn(&v);
-		getvalrand(vm, op2, &v);
-		xtn->param = valvec(&v);
-		break;
-	case Tbitfield:
-		getvalrand(vm, op1, &v);
-		xtn->link = valxtn(&v);
-		getvalrand(vm, op2, &v);
-		xtn->sz = v;
-		getvalrand(vm, op3, &v);
-		xtn->bit0 = v;
-		break;
-	default:
-		fatal("bug");
-	}
-
-	mkvalxtn(xtn, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
 static void* gotab[Iopmax];
 
 static void
@@ -5022,7 +4970,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Itabenum]	= &&Itabenum;
 		gotab[Itabget]	= &&Itabget;
 		gotab[Itabput]	= &&Itabput;
-		gotab[Itn]	= &&Itn;
 		gotab[Ivec] 	= &&Ivec;
 		gotab[Ivecref] 	= &&Ivecref;
 		gotab[Ivecset] 	= &&Ivecset;
@@ -5304,9 +5251,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Isizeof:
 		xsizeof(vm, &i->op1, &i->dst);
-		continue;
-	Itn:
-		xtn(vm, i->bits, &i->op1, &i->op2, &i->op3, &i->dst);
 		continue;
 	Ias:
 		xas(vm, &i->op1, &i->dst);
@@ -6486,6 +6430,30 @@ l1_mkctype_uvlong(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkctype_float(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_float");
+	domkctype_base(Vfloat, rv);
+}
+
+static void
+l1_mkctype_double(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_double");
+	domkctype_base(Vdouble, rv);
+}
+
+static void
+l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_ldouble");
+	domkctype_base(Vlongdouble, rv);
+}
+
+static void
 l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Xtypename *xtn;
@@ -7022,9 +6990,6 @@ mkvm(Env *env)
 	FN(isnil);
 	FN(error);
 
-	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
-//	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));
-
 	FN(mkctype_void);
 	FN(mkctype_char);
 	FN(mkctype_short);
@@ -7036,6 +7001,9 @@ mkvm(Env *env)
 	FN(mkctype_uint);
 	FN(mkctype_ulong);
 	FN(mkctype_uvlong);
+	FN(mkctype_float);
+	FN(mkctype_double);
+	FN(mkctype_ldouble);
 	FN(mkctype_ptr);
 	FN(mkctype_typedef);
 	FN(mkctype_struct);
@@ -7044,6 +7012,9 @@ mkvm(Env *env)
 	FN(mkctype_fn);
 	FN(mkctype_bitfield);
 	FN(mkctype_enum);
+
+	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
+//	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));
 
 	builtinstr(env, "$get", "get");
 	builtinstr(env, "$put", "put");

@@ -44,7 +44,7 @@ extern char *yytext;
 %type <expr> names_expression names_declaration_list names_declaration
 %type <expr> identifier_list local_list local type_specifier
 %type <expr> id tag tickid struct_or_union_specifier 
-%type <expr> struct_declaration_list struct_declaration
+%type <expr> struct_declaration_list struct_declaration struct_size
 %type <expr> struct_declarator_list struct_declarator enum_specifier
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
 %type <expr> parameter_type_list parameter_list parameter_declaration
@@ -387,12 +387,16 @@ type_specifier
 	;
 
 struct_or_union_specifier
-	: struct_or_union tag '{' struct_declaration_list '}'
-	{ $$ = newexpr($1, $2, invert($4), 0, 0); }
+	: struct_or_union tag '{' struct_declaration_list struct_size '}'
+	{ $$ = newexpr($1, $2, invert(newexpr(Eelist, $5, $4, 0, 0)), 0, 0); } 
+	| struct_or_union '{' struct_declaration_list struct_size '}'
+	{ $$ = newexpr($1, 0, invert(newexpr(Eelist, $4, $3, 0, 0)), 0, 0); } 
+	| struct_or_union tag '{' struct_size '}'
+	{ $$ = newexpr($1, $2, newexpr(Eelist, $4, nullelist(), 0, 0), 0, 0); }
+	| struct_or_union '{' struct_size '}'
+	{ $$ = newexpr($1, 0, newexpr(Eelist, $3, nullelist(), 0, 0), 0, 0); }
 	| struct_or_union tag '{'  '}'
 	{ $$ = newexpr($1, $2, nullelist(), 0, 0); }
-	| struct_or_union '{' struct_declaration_list '}'
-	{ $$ = newexpr($1, 0, invert($3), 0, 0); }
 	| struct_or_union '{' '}'
 	{ $$ = newexpr($1, 0, nullelist(), 0, 0); }
 	| struct_or_union tag
@@ -420,7 +424,10 @@ struct_declaration
 	{ $$ = newexpr(Ebitfield, $4, $5, $3, $7); }
 	| specifier_list struct_declarator_list ';'
 	{ $$ = newexpr(Efields, $1, invert($2), 0, 0); }
-        | '@' constant_expression ';'
+	;
+
+struct_size
+	: '@' constant_expression ';'
 	{ $$ = newexpr(Efieldoff, $2, 0, 0, 0); }
 	;
 

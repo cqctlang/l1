@@ -731,18 +731,21 @@ enums(Type *t, Expr *e)
 }
 
 static Decl*
-sufields(Type *su, Expr *e)
+sufields(Type *su, Expr *e, Expr **sz)
 {
 	Decl *hd, *p;
 
 	if(e == NULL)
 		return NULL;
-	if(e->kind == Enull)
+	if(e->kind == Enull){
+		/* ascribe size 0 to `struct tag {}' */
+		/* if we make aggregate size optional,
+		   then (FIXME) do this only if sufields
+		   was passed an empty list */
+		if(*sz == 0)
+			*sz = mkconst(Vint, 0);
 		return NULL;
-
-	if(e->kind != Eelist)
-		fatal("sufields expects an expression list");
-
+	}
 	switch(e->e1->kind){
 	case Ebitfield:
 		hd = dodecl(e->e1);
@@ -750,7 +753,7 @@ sufields(Type *su, Expr *e)
 		e->e1->e3 = NULL;
 		hd->type->bitw = e->e1->e4; /* steal */
 		e->e1->e4 = NULL;
-		hd->link = sufields(su, e->e2);
+		hd->link = sufields(su, e->e2, sz);
 		break;
 	case Efields:
 		hd = dodecls(e->e1);
@@ -761,12 +764,12 @@ sufields(Type *su, Expr *e)
 		p = hd;
 		while(p->link != NULL)
 			p = p->link;
-		p->link = sufields(su, e->e2);
+		p->link = sufields(su, e->e2, sz);
 		break;
 	case Efieldoff:
-		su->sz = e->e1->e1; /* steal */
+		*sz = e->e1->e1; /* steal */
 		e->e1->e1 = NULL;
-		return sufields(su, e->e2);
+		return sufields(su, e->e2, sz);
 		break;
 	default:
 		fatal("unrecognized su declaration %d", e->e1->kind);
@@ -871,7 +874,7 @@ specifier(Expr *e)
 			if(t->kind == Tenum)
 				t->en = enums(t, e->e2);
 			else
-				t->field = sufields(t, e->e2);
+				t->field = sufields(t, e->e2, &t->sz);
 		}
 		break;
 	default:

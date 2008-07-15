@@ -123,7 +123,6 @@ enum{
 	E_tabenum,
 	E_tabget,
 	E_tabput,
-	E_tn,
 	E_vec,
 	E_vecl,
 	E_vecref,

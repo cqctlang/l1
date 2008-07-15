@@ -84,6 +84,8 @@ todo
       whether bison, when building a glr parser, includes the c.y
       prologue is version sensitive (it does in bison 2.3 but not others)
       so we do the #ifdef dance around the headers shared by c.y and c.l.
+  - be more flexible about requiring aggregate size and field offsets
+    tolerate their absence; raise errors when they are needed.
 
 - grammar
   - sort out problems with odd rule about int(int) in abstract declarators;

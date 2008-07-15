@@ -1,6 +1,6 @@
 entry: 0 params, 0 locals, 0 temps
 printtype: 1 params, 6 locals, 0 temps
-foo: 0 params, 16 locals, 1 temps
+foo: 0 params, 12 locals, 0 temps
 struct foo {
 	@0x0	int x;
 	@0x4	int y;
@@ -18,10 +18,12 @@ struct foo {
 struct bar {
 	@0x0	int x;
 		int y;
+	@0x8;
 };
 typedef struct foo foo_t;
 struct abc {
 		int x;
+	@0x4;
 };
 struct blah {
 	@0x0	int x;
@@ -30,4 +32,5 @@ struct blah {
 };
 struct t2 {
 		int z;
+	@0x4;
 };

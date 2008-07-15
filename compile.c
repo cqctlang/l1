@@ -626,10 +626,6 @@ printinsn(Code *code, Insn *i)
 	case Inop:
 		printf("nop");
 		break;
-	case Itn:
-		printf("tn.%d.%d ", TBITSTYPE(i->bits), TBITSBASE(i->bits));
-		printrand(code, &i->dst);
-		break;
 	case Iistn:
 		printf("istn ");
 		printrand(code, &i->op1);
@@ -722,8 +718,7 @@ max(unsigned x, unsigned y)
 static int
 issimple(Expr *e)
 {
-	return (e == 0 /* maybe for E_tn nodes */
-		|| e->kind == Eid
+	return (e->kind == Eid
 		|| e->kind == Econst
 		|| e->kind == Enil);
 }
@@ -793,7 +788,6 @@ tmppass(Expr *e)
 		return 0;
 	case Eblock:
 		return tmppass(e->e2);
-	case E_tn:
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2))
 			return 0;
@@ -1832,8 +1826,6 @@ static ikind EtoVM[] = {
 	[E_tabenum] = Itabenum,
 	[E_tabget] = Itabget,
 	[E_tabput] = Itabput,
-/*	[E_typeof] = Itypeof, */
-	[E_tn] = Itn,
 	[E_vec] = Ivec,
 	[E_vecl] = Ivecl,
 	[E_vecref] = Ivecref,
@@ -2005,55 +1997,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randloc(&r1, AC);
 		}
 		cgunop(code, p, e->kind, &r1, loc, ctl, nxt);
-		break;
-	case E_tn:
-		if(e->e1 && e->e2){
-			/* copied from Ebinop */
-			if(issimple(e->e1) && issimple(e->e2)){
-				cgrand(&r1, e->e1, p);
-				cgrand(&r2, e->e2, p);
-			}else if(issimple(e->e1)){
-				cgrand(&r1, e->e1, p);
-				L = genlabel(code, 0);
-				cg(e->e2, code, p, AC, L, prv, L, tmp);
-				emitlabel(L, e);
-				randloc(&r2, AC);
-			}else if(issimple(e->e2)){
-				L = genlabel(code, 0);
-				cg(e->e1, code, p, AC, L, prv, L, tmp);
-				emitlabel(L, e);
-				randloc(&r1, AC);
-				cgrand(&r2, e->e2, p);
-			}else{
-				L0 = genlabel(code, 0);
-				randstkloc(&r1, Llocal, tmp, 0);
-				cg(e->e1, code, p, &r1.u.loc, L0,
-				   prv, L0, tmp);
-				emitlabel(L0, e->e2);
-				L = genlabel(code, 0);
-				cg(e->e2, code, p, AC, L, L0, L, tmp+1);
-				emitlabel(L, e);
-				randloc(&r2, AC);
-			}
-		}else if(e->e1){
-			/* copied from unary ops */
-			if(issimple(e->e1))
-				cgrand(&r1, e->e1, p);
-			else{
-				L = genlabel(code, 0);
-				cg(e->e1, code, p, AC, L, prv, L, tmp);
-				emitlabel(L, e);
-				randloc(&r1, AC);
-			}
-		}
-		i = nextinsn(code);
-		i->kind = Itn;
-		i->bits = e->xn; /* FIXME: casting around warning  */
-		if(e->e1)
-			i->op1 = r1;
-		if(e->e2)
-			i->op2 = r2;
-		randloc(&i->dst, loc);
 		break;
 	case E_cval:
 	case E_ref:

@@ -82,7 +82,6 @@ enum {
 	Itabenum,
 	Itabget,
 	Itabput,
-	Itn,
 	Ivec,
 	Ivecl,
 	Ivecref,
@@ -93,11 +92,6 @@ enum {
 	Ixor,
 	Iopmax         
 } ikind;
-
-// FIXME: define in terms of #base and #kind defs
-#define TBITS(t,v) ((((t)&15)<<4)|((v)&15))
-#define TBITSTYPE(tb) (((tb)>>4)&15)
-#define TBITSBASE(tb) ((tb)&15)
 
 typedef
 enum {

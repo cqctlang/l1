@@ -109,7 +109,6 @@ char* S[] = {
 	[E_sizeof] =	"E_sizeof",
 	[E_slices] =	"E_slices",
 	[E_str] =	"E_str",
-	[E_tn] =	"E_tn",
 	[E_vec] =	"E_vec",
 	[E_vecl] =	"E_vecl",
 	[E_vecref] =	"E_vecref",
@@ -300,6 +299,9 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		printcqct0(e->e3, ni);
 		break;
+	case Enil:
+		printf("nil");
+		break;
 	case Econst:
 		printf("%" PRIu64, e->liti.val);
 		break;
@@ -340,6 +342,13 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e1, ni);
 		printf(" = ");
 		printcqct0(e->e2, ni);
+		break;
+	case Euminus:
+	case Eunot:
+	case Euplus:
+	case Eutwiddle:
+		printf("%s", opstr(e->kind));
+		printcqct0(e->e1, ni);
 		break;
 	case Ebinop:
 		switch(e->op){
@@ -418,6 +427,24 @@ printcqct0(Expr *e, unsigned ni)
 		printf(";\n");
 		printcqct0(e->e2, ni);
 		break;
+	case Efor:
+		printf("for(");
+		if(e->e1)
+			printcqct0(e->e1, ni);
+		printf("; ");
+		if(e->e2)
+			printcqct0(e->e2, ni);
+		printf("; ");
+		if(e->e3)
+			printcqct0(e->e3, ni);
+		printf(")");
+		if(e->e4->kind != Eblock){
+			printf("\n");
+			indent(ni+1);
+			printcqct0(e->e4, ni+1);
+		}else
+			printcqct0(e->e4, ni);
+		break;
 	case Eif:
 		printf("if(");
 		printcqct0(e->e1, ni);
@@ -447,9 +474,6 @@ printcqct0(Expr *e, unsigned ni)
 			printf(" ");
 			printcqct0(e->e1, ni);
 		}
-		break;
-	case E_tn:
-		printf("E_tn(...)");
 		break;
 	case E_car:
 	case E_cdr:
