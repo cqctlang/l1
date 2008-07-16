@@ -125,7 +125,6 @@ mkcode()
 	code->topvec = mktopvec();
 	code->konst = mkkonst();
 
-printf("alloc code %p\n", code);
 	return code;
 }
 
@@ -135,7 +134,6 @@ freecode(Head *hd)
 	Code *code;
 	Ctl *p, *q;
 
-printf("freecode %p\n", hd);
 	code = (Code*)hd;
 	freekonst(code->konst);
 	freetopvec(code->topvec);

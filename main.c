@@ -84,14 +84,11 @@ main(int argc, char *argv[])
 		filename = stdinname;
 
 repl:
-//	if(dorepl)
-//		printf(">>> ");
+	if(dorepl)
+		printf(">>> ");
 
-while(1){
 	if(0 > doparse(filename))
 		exit(0);
-	printf("parsed\n");
-}
 
 	if(flags['p']){
 		printf("source:\n");
@@ -143,8 +140,12 @@ while(1){
 		freeexpr(ctx.el);
 
 	if(dorepl && flags['x']){
-//		printvmac(vm);
-//		printf("\n");
+		printvmac(vm);
+		printf("\n");
+// FIXME: this eventually leads to segfault.  malloc heap seems corrupt.
+// (a bug is that entry can be collected across dovm calls,
+// but this is not proved to be the cause).  seen when repl does not
+// get fresh input on each iteration (osx).
 //		while(1)
 //			dovm(vm, entry, 0, 0);
 		goto repl;

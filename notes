@@ -39,6 +39,9 @@ todo
   - enforce Efields at end of struct, only
   - cleanup and recover from parse/compiler errors
 	-> compile-local context for program, memory, recovery
+  - while(1); should run in constant memory but it does not.
+    problem seems to be that mutator can alloc new cvalues
+    faster than gc can put them back onto the freelist.
 
 - check semantics of scope
 

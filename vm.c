@@ -3,6 +3,8 @@
 #include "l1.h"
 #include "code.h"
 
+#define HEAPPROF 0
+
 typedef
 enum {
 	Qundef = 0,
@@ -129,6 +131,7 @@ struct Heap {
 	void (*free1)(Head *hd);
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	Head *alloc, *swept, *sweep, *free;
+	unsigned long nalloc, nfree, nsweep, nswept, nha;    /* statistics */
 };
 
 typedef struct Root Root;
@@ -490,6 +493,29 @@ writebarrier()
 	   intel vol 3, chapter 10), things would be different. */
 }
 
+static void
+heapstat(char *s)
+{
+	unsigned i;
+	Heap *hp;
+
+	printf("\n                              %s (epoch %lu)\n", s, gcepoch);
+	printf("%-10s %10s %10s %10s %10s %10s\n",
+	       "heap", "nalloc", "nfree", "nsweep", "nswept", "nha");
+	printf("--------------------------------"
+	       "---------------------------------\n");
+	for(i = 0; i < Qnkind; i++){
+		hp = &heap[i];
+		if(hp->id)
+			printf("%-10s %10lu %10lu %10lu %10lu %10lu\n",
+			       hp->id,
+			       hp->nalloc, hp->nfree, hp->nsweep, hp->nswept,
+			       hp->nha);
+	}
+}
+
+
+// FIXME: remove sanity checks
 static Head*
 halloc(Heap *heap)
 {
@@ -504,10 +530,19 @@ retry:
 		if(o->state != -1)
 			fatal("halloc bad state %d", o->state);
 		o->state = 0;
+		heap->nfree--;
 	}else if(heap->swept){
+		if(heap->nfree != 0) /* sanity */
+			printf("%s reclaimed swept when nfree>0\n", heap->id);
 		heap->free = (Head*)read_and_clear(&heap->swept);
+		if(heap->free == 0) /* sanity */
+			printf("read_and_clear error\n");
+		heap->nfree += heap->nswept;
+		heap->nswept = 0;
 		goto retry;
 	}else{
+		if(heap->nfree != 0) /* sanity */
+			printf("%s alloced when nfree>0\n", heap->id);
 		ap = heap->alloc;
 		fp = 0;
 		for(m = 0; m < AllocBatch; m++){
@@ -522,11 +557,13 @@ retry:
 		}
 		heap->alloc = o;
 		heap->free = o;
+		heap->nalloc += AllocBatch;
+		heap->nfree += AllocBatch;
 		goto retry;
 	}
 	
 	o->color = GCCOLOR(gcepoch);
-
+	heap->nha++;
 	return o;
 }
 
@@ -547,12 +584,21 @@ sweepheap(Heap *heap, unsigned color)
 			heap->sweep = p;
 			p->state = -1;
 			p->color = GCfree;
+			heap->nsweep++;
+			if(heap->swept == 0){
+				heap->swept = heap->sweep;
+				heap->sweep = 0;
+				heap->nswept = heap->nsweep;
+				heap->nsweep = 0;
+			}
 		}
 		p = p->alink;
 	}
 	if(heap->swept == 0){
 		heap->swept = heap->sweep;
 		heap->sweep = 0;
+		heap->nswept = heap->nsweep;
+		heap->nsweep = 0;
 	}
 }
 
@@ -839,6 +885,7 @@ waitgcrun(VM *vm)
 	gcepoch++;
 	vm->gcrun = 1;
 	b = GCrunning;
+	if(HEAPPROF) heapstat("start");
 	if(0 > write(vm->cgc, &b, 1))
 		fatal("gc synchronization failure");
 
@@ -918,6 +965,7 @@ gcchild(void *p)
 				die = waitmutator(vm);
 		}
 		vm->gcrun = 0;
+		if(HEAPPROF) heapstat("end");
 		if(!die)
 			resumemutator(vm);
 	}
@@ -2109,7 +2157,7 @@ iterns(Head *hd, Ictx *ictx)
 	case 3:
 		return (Head*)ns->looktype;
 	}
-	if(n >= 3+Vnbase)	/* assume elements at+above nbase are aliases */
+	if(n >= 3+Vnbase) /* assume elements at+above nbase are aliases */
 		return GCiterdone;
 	return (Head*)ns->base[n-3];
 }
