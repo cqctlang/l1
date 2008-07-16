@@ -9,6 +9,7 @@ C =\
 	hash.c\
 	util.c\
 	printexpr.c\
+	bitfield.c\
 	l1.c\
 	compilec.c\
 	compile0.c\

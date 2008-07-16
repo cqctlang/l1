@@ -116,6 +116,17 @@ static unsigned isunsigned[Vnbase] = {
 	[Vuvlong] = 1,
 };
 
+static unsigned isbigendian[Rnrep] = {
+	[Ru08be]=	1,
+	[Ru16be]=	1,
+	[Ru32be]=	1,
+	[Ru64be]=	1,
+	[Rs08be]=	1,
+	[Rs16be]=	1,
+	[Rs32be]=	1,
+	[Rs64be]=	1,
+};
+
 enum {
 	Tabinitsize=1024,	/* power of 2 */
 	Typepos=0,
@@ -3809,8 +3820,10 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	Val domv, typev, cvalv, rv, *p, argv[2];
 	Imm imm;
 	Dom *d;
-	Xtypename *t, *b, *pt;
-	Cval *cv, *len;
+	Xtypename *t, *b, *bb, *pt;
+	Cval *cv, *len, *bit0, *bs;
+	Str *s;
+	struct bfgeom bfg;
 
 	getvalrand(vm, type, &typev);
 	getvalrand(vm, cval, &cvalv);
@@ -3822,12 +3835,27 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	b = chasetypedef(t);
 	switch(b->tkind){
 	case Tbitfield:
-		vmerr(vm, "showtime!");
+		bit0 = valcval(&b->bit0);
+		bs = valcval(&b->sz);
+		bfg.bp = 8*cv->val+bit0->val;
+		bfg.bs = bs->val;
+		bb = chasetypedef(b->link);
+		bfg.isbe = isbigendian[bb->rep];
+		if(0 > bitfieldgeom(&bfg))
+			vmerr(vm, "invalid bitfield access");
+		mkvalstr(vm->sget, &argv[0]);
+		mkvalrange(mkcval(vm->litdom, vm->litbase[Vptr], bfg.addr),
+			   mkcval(vm->litdom, vm->litbase[Vptr], bfg.cnt),
+			   &argv[1]);
+		p = dovm(vm, d->as->dispatch, 2, argv);
+		s = valstr(p);
+		imm = bitfieldmask(s->s, &bfg);
+		mkvalcval(d, b->link, imm, &rv);
 		break;
 	case Tbase:
 	case Tptr:
-		mkvalstr(vm->sget, &argv[0]);
 		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
+		mkvalstr(vm->sget, &argv[0]);
 		mkvalrange(cv, len, &argv[1]);
 		p = dovm(vm, d->as->dispatch, 2, argv);
 		imm = str2imm(t, valstr(p));

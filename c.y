@@ -96,9 +96,9 @@ primary_expression
 	| '(' expression ')'
 	{ $$ = $2; }
 	| '[' ']'
-	{ $$ = newexpr(0, 0, 0, 0, 0); }
+	{ $$ = newexpr(Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'
-	{ $$ = newexpr(0, 0, 0, 0, 0); }
+	{ $$ = newexpr(Elist, invert($2), 0, 0, 0); }
 	;
 
 postfix_expression
