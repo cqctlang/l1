@@ -467,6 +467,12 @@ compile0(Expr *e)
 		e->e1 = nullelist();
 		e->e2 = se;
 		break;
+	case Elist:
+		compile0(e->e2);
+		se = Zapply(doid("list"), e->e1);
+		e->kind = Eblock;
+		e->e1 = se;
+		break;
 	case Ens:
 		loc = Zlocals(3, "$ns", "$typetab", "$symtab");
 

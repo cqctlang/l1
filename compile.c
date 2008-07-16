@@ -125,6 +125,7 @@ mkcode()
 	code->topvec = mktopvec();
 	code->konst = mkkonst();
 
+printf("alloc code %p\n", code);
 	return code;
 }
 
@@ -134,6 +135,7 @@ freecode(Head *hd)
 	Code *code;
 	Ctl *p, *q;
 
+printf("freecode %p\n", hd);
 	code = (Code*)hd;
 	freekonst(code->konst);
 	freetopvec(code->topvec);
@@ -3181,6 +3183,29 @@ mkvecthunk()
 	i = nextinsn(code);
 	i->kind = Ivec;
 	randloc(&i->op1, ARG0);
+	randloc(&i->dst, AC);
+	i = nextinsn(code);
+	i->kind = Iret;
+
+	return cl;
+}
+
+Closure*
+listthunk()
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "list");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code);
+	i->kind = Ivlist;
+	randloc(&i->op1, FP);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);
 	i->kind = Iret;

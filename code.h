@@ -258,6 +258,7 @@ Closure* tablookthunk();
 Closure* tabenumthunk();
 Closure* typenamexthunk();
 Closure* mkvecthunk();
+Closure* listthunk();
 Closure* vectorthunk();
 Closure* veclenthunk();
 Closure* vecrefthunk();
@@ -280,6 +281,7 @@ jmp_buf* _pusherror(VM *vm);
 void nexterror(VM *vm) __attribute__((noreturn));
 void poperror(VM *vm);
 Val* dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+void* gcprotect(VM *vm, void *hd);
 
 void freecode(Head *hd);
 

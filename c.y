@@ -63,6 +63,8 @@ extern char *yytext;
 
 %start translation_unit_seq
 %glr-parser
+%expect 1
+%expect-rr 4
 %{
 	static void yyerror(const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
@@ -84,6 +86,7 @@ tag:	id;
 
 primary_expression
 	: id
+	| tickid
 	| NIL
 	{ $$ = newexpr(Enil, 0, 0, 0, 0); }
 	| CONSTANT
@@ -92,7 +95,10 @@ primary_expression
 	{ $$ = doconsts($1.p, $1.len); }
 	| '(' expression ')'
 	{ $$ = $2; }
-	| tickid
+	| '[' ']'
+	{ $$ = newexpr(0, 0, 0, 0, 0); }
+	| '[' argument_expression_list ']'
+	{ $$ = newexpr(0, 0, 0, 0, 0); }
 	;
 
 postfix_expression

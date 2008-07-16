@@ -339,7 +339,6 @@ static void freeval(Val *val);
 static void vmsetcl(VM *vm, Closure *cl);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
-static void* gcprotect(VM *vm, void *hd);
 static void strinit(Str *str, Lits *lits);
 static void vmerr(VM *vm, char *fmt, ...) __attribute__((noreturn));
 static Cval* valcval(Val *v);
@@ -4854,7 +4853,7 @@ gcprotpop(VM *vm)
 	vm->pdepth--;
 }
 
-static void*
+void*
 gcprotect(VM *vm, void *obj)
 {
 	Root *r;
@@ -6931,6 +6930,7 @@ mkvm(Env *env)
 	builtinfn(env, "tabdelete", tabdeletethunk());
 	builtinfn(env, "tabenum", tabenumthunk());
 	builtinfn(env, "tablook", tablookthunk());
+	builtinfn(env, "list", listthunk());
 	builtinfn(env, "mkvec", mkvecthunk());
 	builtinfn(env, "vector", vectorthunk());
 	builtinfn(env, "veclen", veclenthunk());

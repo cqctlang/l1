@@ -70,6 +70,7 @@ enum{
 	Elambda,
 	Eland,
 	Ele,
+	Elist,
 	Elor,
 	Elt,
 	Emod,

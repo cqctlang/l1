@@ -84,11 +84,14 @@ main(int argc, char *argv[])
 		filename = stdinname;
 
 repl:
-	if(dorepl)
-		printf(">>> ");
+//	if(dorepl)
+//		printf(">>> ");
 
+while(1){
 	if(0 > doparse(filename))
 		exit(0);
+	printf("parsed\n");
+}
 
 	if(flags['p']){
 		printf("source:\n");
@@ -140,8 +143,10 @@ repl:
 		freeexpr(ctx.el);
 
 	if(dorepl && flags['x']){
-		printvmac(vm);
-		printf("\n");
+//		printvmac(vm);
+//		printf("\n");
+//		while(1)
+//			dovm(vm, entry, 0, 0);
 		goto repl;
 	}
 

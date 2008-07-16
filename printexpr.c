@@ -62,6 +62,7 @@ char* S[] = {
 	[Elambda] =	"Elambda",
 	[Eland] =	"Eland",
 	[Ele] =		"Ele",
+	[Elist] =	"Elist",
 	[Elor] =	"Elor",
 	[Elt] =		"Elt",
 	[Emod] =	"Emod",
