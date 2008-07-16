@@ -334,7 +334,7 @@ struct VM {
 	Dom *litdom;
 	Ns *litns;
 	Xtypename **litbase;	/* always points to litns->base */
-	Str *sget;		/* cached "get" string */
+	Str *sget, *sput;	/* cached dispatch operands */
 	Root **prot;		/* stack of lists of GC-protected objects */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
@@ -812,6 +812,7 @@ rootset(VM *vm)
 	
 	addroot(&roots, (Head*)vm->litdom); /* assume vm->litns in litdom */
 	addroot(&roots, (Head*)vm->sget);
+	addroot(&roots, (Head*)vm->sput);
 
 	/* current GC-protected objects */
 	for(m = 0; m < vm->pdepth; m++){
@@ -2335,14 +2336,28 @@ mkvalvec(Vec *vec, Val *vp)
 	vp->u.vec = vec;
 }
 
+static Range *
+mkrange(Cval *beg, Cval *len)
+{
+	Range *r;
+	r = (Range*)halloc(&heap[Qrange]);
+	r->beg = beg;
+	r->len = len;
+	return r;
+}
+
 static void
 mkvalrange(Cval *beg, Cval *len, Val *vp)
 {
 	Range *r;
+	r = mkrange(beg, len);
+	vp->qkind = Qrange;
+	vp->u.range = r;
+}
 
-	r = (Range*)halloc(&heap[Qrange]);
-	r->beg = beg;
-	r->len = len;
+static void
+mkvalrange2(Range *r, Val *vp)
+{
 	vp->qkind = Qrange;
 	vp->u.range = r;
 }
@@ -3814,16 +3829,31 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
+static int
+dobitfieldgeom(Cval *addr, Xtypename *b, BFgeom *bfg)
+{
+	Cval *bit0, *bs;
+	Xtypename *bb;
+		
+	bit0 = valcval(&b->bit0);
+	bs = valcval(&b->sz);
+	bfg->bp = 8*addr->val+bit0->val; /* FIXME: overflow bug */
+	bfg->bs = bs->val;
+	bb = chasetypedef(b->link);
+	bfg->isbe = isbigendian[bb->rep];
+	return bitfieldgeom(bfg);
+}
+
 static void
 xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 {
 	Val domv, typev, cvalv, rv, *p, argv[2];
 	Imm imm;
 	Dom *d;
-	Xtypename *t, *b, *bb, *pt;
-	Cval *cv, *len, *bit0, *bs;
+	Xtypename *t, *b, *pt;
+	Cval *cv, *len;
 	Str *s;
-	struct bfgeom bfg;
+	BFgeom bfg;
 
 	getvalrand(vm, type, &typev);
 	getvalrand(vm, cval, &cvalv);
@@ -3835,13 +3865,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	b = chasetypedef(t);
 	switch(b->tkind){
 	case Tbitfield:
-		bit0 = valcval(&b->bit0);
-		bs = valcval(&b->sz);
-		bfg.bp = 8*cv->val+bit0->val;
-		bfg.bs = bs->val;
-		bb = chasetypedef(b->link);
-		bfg.isbe = isbigendian[bb->rep];
-		if(0 > bitfieldgeom(&bfg))
+		if(0 > dobitfieldgeom(cv, b, &bfg))
 			vmerr(vm, "invalid bitfield access");
 		mkvalstr(vm->sget, &argv[0]);
 		mkvalrange(mkcval(vm->litdom, vm->litbase[Vptr], bfg.addr),
@@ -3849,7 +3873,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 			   &argv[1]);
 		p = dovm(vm, d->as->dispatch, 2, argv);
 		s = valstr(p);
-		imm = bitfieldmask(s->s, &bfg);
+		imm = bitfieldget(s->s, &bfg);
 		mkvalcval(d, b->link, imm, &rv);
 		break;
 	case Tbase:
@@ -3874,7 +3898,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	case Tstruct:
 	case Tunion:
 		vmerr(vm,
-		      "attempt to access %s-valued object in address space",
+		      "attempt to read %s-valued object from address space",
 		      tkindstr[b->tkind]);
 	default:
 		fatal("bug");
@@ -6737,6 +6761,78 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 	memcpy(s->s+o, t->s, t->len);
 }
 
+static void
+l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
+{
+	Dom *d;
+	Xtypename *t, *b;
+	Cval *addr, *cv, *len;
+	Val argv[3], *p;
+	Str *bytes;
+	BFgeom bfg;
+	Imm imm;
+	Range *r;
+
+	if(argc != 4)
+		vmerr(vm, "wrong number of arguments to put");
+	checkarg(vm, "put", iargv, 0, Qdom);
+	checkarg(vm, "put", iargv, 1, Qcval);
+	checkarg(vm, "put", iargv, 2, Qxtn);
+	checkarg(vm, "put", iargv, 3, Qcval);
+	d = valdom(&iargv[0]);
+	addr = valcval(&iargv[1]);
+	t = valxtn(&iargv[2]);
+	cv = valcval(&iargv[3]);
+
+	b = chasetypedef(t);
+	switch(b->tkind){
+	case Tbase:
+	case Tptr:
+		cv = typecast(vm, t, cv);
+		gcprotect(vm, cv);
+		bytes = imm2str(t, cv->val);
+		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
+		mkvalstr(vm->sput, &argv[0]);
+		mkvalrange(addr, len, &argv[1]);
+		mkvalstr(bytes, &argv[2]);
+		dovm(vm, d->as->dispatch, 3, argv);
+		mkvalcval2(cv, rv);
+		break;
+	case Tbitfield:
+		if(0 > dobitfieldgeom(addr, b, &bfg))
+			vmerr(vm, "invalid bitfield access");
+
+		/* get contents of bitfield container */
+		mkvalstr(vm->sget, &argv[0]);
+		r = mkrange(mkcval(vm->litdom, vm->litbase[Vptr], bfg.addr),
+			    mkcval(vm->litdom, vm->litbase[Vptr], bfg.cnt));
+		gcprotect(vm, r);
+		mkvalrange2(r, &argv[1]);
+		p = dovm(vm, d->as->dispatch, 2, argv);
+		bytes = valstr(p);
+
+		/* update bitfield container */
+		imm = bitfieldput(bytes->s, &bfg, cv->val);
+
+		/* put updated bitfield container */
+		mkvalstr(vm->sput, &argv[0]);		
+			/* re-use range */
+		mkvalstr(bytes, &argv[2]);
+		dovm(vm, d->as->dispatch, 3, argv);
+
+		/* return value of bitfield (not container) */
+		mkvalcval(d, b->link, imm, rv);
+		break;
+	case Tenum:
+		vmerr(vm, "unimplemented feature");
+		break;
+	default:
+		vmerr(vm,
+		      "attempt to write %s-valued object to address space",
+		      tkindstr[b->tkind]);
+	}
+}
+
 typedef
 struct NSroot {
 	Rkind base[Vnbase];
@@ -7090,11 +7186,13 @@ mkvm(Env *env)
 	FN(mkctype_bitfield);
 	FN(mkctype_enum);
 
+	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
+
 //	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));
 
-	builtinstr(env, "$get", "get");
-	builtinstr(env, "$put", "put");
+//	builtinstr(env, "$get", "get");
+//	builtinstr(env, "$put", "put");
 	builtinstr(env, "$looksym", "looksym");
 	builtinstr(env, "$looktype", "looktype");
 
@@ -7104,6 +7202,7 @@ mkvm(Env *env)
 	vm->litbase = vm->litns->base;
 	builtindom(env, "litdom", vm->litdom);
 	vm->sget = mkstr0("get");
+	vm->sput = mkstr0("put");
 
 	vmp = vms;
 	while(*vmp){

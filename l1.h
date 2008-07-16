@@ -311,14 +311,16 @@ void tryinclude(char *raw);
 void parseerror(char *fmt, ...);
 int doparse(char *filename);
 
-struct bfgeom {
+typedef
+struct BFgeom {
 	Imm bp, bs;
 	Imm addr, cnt;
 	unsigned isbe;
 	int les, bes;
-};
-int bitfieldgeom(struct bfgeom *bfg);
-Imm bitfieldmask(char *s, struct bfgeom *bfg);
+} BFgeom;
+int bitfieldgeom(BFgeom *bfg);
+Imm bitfieldget(char *s, BFgeom *bfg);
+Imm bitfieldput(char *s, BFgeom *bfg, Imm val);
 
 #endif /* _BISONFLAW_L1_H_ */
 

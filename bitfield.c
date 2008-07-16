@@ -45,7 +45,7 @@ enum {
  * als = mls * (1 + ( (lob % mls) + bc > mls ? 1: 0))
  */
 int
-bitfieldgeom(struct bfgeom *bfg)
+bitfieldgeom(BFgeom *bfg)
 {
 	Imm lob, hob;
 	int bo, bc, sb, mls, als, bes, les;
@@ -83,8 +83,10 @@ bitfieldgeom(struct bfgeom *bfg)
 	return 0;
 }
 
+/* S points to bytes, as specified by BFG, containing bitfield.
+   Return the value of the bitfield. */
 Imm
-bitfieldmask(char *s, struct bfgeom *bfg)
+bitfieldget(char *s, BFgeom *bfg)
 {
 	Imm v;
 	unsigned i, x;
@@ -92,7 +94,6 @@ bitfieldmask(char *s, struct bfgeom *bfg)
 
 	p = (unsigned char*)s;
 	v = 0;
-	x = 1;
 	if(bfg->isbe){
 		for(i = 0; i < bfg->cnt; i++){
 			v <<= 8;
@@ -100,6 +101,7 @@ bitfieldmask(char *s, struct bfgeom *bfg)
 		}
 		v >>= bfg->bes;
 	}else{
+		x = 1;
 		for(i = 0; i < bfg->cnt; i++){
 			v |= p[i]*x;
 			x *= 256;
@@ -110,3 +112,41 @@ bitfieldmask(char *s, struct bfgeom *bfg)
 	return v;
 }
 
+Imm
+bitfieldput(char *s, BFgeom *bfg, Imm val)
+{
+	Imm w, m;
+	int i;
+	unsigned x;
+	unsigned char *p;
+
+	p = (unsigned char*)s;
+	m = (1<<bfg->bs)-1;
+	val &= m;
+	w = 0;
+	if(bfg->isbe){
+		for(i = 0; i < bfg->cnt; i++){
+			w <<= 8;
+			w |= p[i];
+		}
+		w &= ~(m<<bfg->bes);
+		w |= val<<bfg->bes;
+		for(i = bfg->cnt-1; i >= 0; i--){
+			p[i] = w&0xff;
+			w >>= 8;
+		}
+	}else{
+		x = 1;
+		for(i = 0; i < bfg->cnt; i++){
+			w |= p[i]*x;
+			x *= 256;
+		}
+		w &= ~(m<<bfg->les);
+		w |= val<<bfg->les;
+		for(i = 0; i < bfg->cnt; i++){
+			p[i] = w&0xff;
+			w >>= 8;
+		}
+	}
+	return val;
+}

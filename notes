@@ -32,6 +32,7 @@ todo
 
 - robustness
   - test on real name spaces
+  - test form such as *p++ = x;
   - check for negative cvals on Irange, Istr, Islice*, Ivec*
   - check argument count on calls to lambdas
   - change all thunks that do not return values to return nil
