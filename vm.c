@@ -142,7 +142,7 @@ struct Heap {
 	void (*free1)(Head *hd);
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	Head *alloc, *swept, *sweep, *free;
-	unsigned long nalloc, nfree, nsweep, nswept, nha;    /* statistics */
+	unsigned long nalloc, nfree, nha;    /* statistics */
 };
 
 typedef struct Root Root;
@@ -511,20 +511,29 @@ heapstat(char *s)
 	Heap *hp;
 
 	printf("\n                              %s (epoch %lu)\n", s, gcepoch);
-	printf("%-10s %10s %10s %10s %10s %10s\n",
-	       "heap", "nalloc", "nfree", "nsweep", "nswept", "nha");
+	printf("%-10s %10s %10s %10s\n",
+	       "heap", "nalloc", "nfree", "nha");
 	printf("--------------------------------"
 	       "---------------------------------\n");
 	for(i = 0; i < Qnkind; i++){
 		hp = &heap[i];
 		if(hp->id)
-			printf("%-10s %10lu %10lu %10lu %10lu %10lu\n",
+			printf("%-10s %10lu %10lu %10lu\n",
 			       hp->id,
-			       hp->nalloc, hp->nfree, hp->nsweep, hp->nswept,
-			       hp->nha);
+			       hp->nalloc, hp->nfree, hp->nha);
 	}
 }
 
+static unsigned long
+hlen(Head *h)
+{
+	unsigned n;
+	while(h){
+		n++;
+		h = h->link;
+	}
+	return n;
+}
 
 // FIXME: remove sanity checks
 static Head*
@@ -543,17 +552,10 @@ retry:
 		o->state = 0;
 		heap->nfree--;
 	}else if(heap->swept){
-		if(heap->nfree != 0) /* sanity */
-			printf("%s reclaimed swept when nfree>0\n", heap->id);
 		heap->free = (Head*)read_and_clear(&heap->swept);
-		if(heap->free == 0) /* sanity */
-			printf("read_and_clear error\n");
-		heap->nfree += heap->nswept;
-		heap->nswept = 0;
+		heap->nfree += hlen(heap->free);
 		goto retry;
 	}else{
-		if(heap->nfree != 0) /* sanity */
-			printf("%s alloced when nfree>0\n", heap->id);
 		ap = heap->alloc;
 		fp = 0;
 		for(m = 0; m < AllocBatch; m++){
@@ -595,12 +597,9 @@ sweepheap(Heap *heap, unsigned color)
 			heap->sweep = p;
 			p->state = -1;
 			p->color = GCfree;
-			heap->nsweep++;
 			if(heap->swept == 0){
 				heap->swept = heap->sweep;
 				heap->sweep = 0;
-				heap->nswept = heap->nsweep;
-				heap->nsweep = 0;
 			}
 		}
 		p = p->alink;
@@ -608,8 +607,6 @@ sweepheap(Heap *heap, unsigned color)
 	if(heap->swept == 0){
 		heap->swept = heap->sweep;
 		heap->sweep = 0;
-		heap->nswept = heap->nsweep;
-		heap->nsweep = 0;
 	}
 }
 

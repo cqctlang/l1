@@ -252,6 +252,7 @@ typedef
 struct In {
 	char *filename;
 	FILE *fp;
+	char *inbuf;
 	unsigned col, line;
 	YYstate *yy;
 } In;
@@ -272,6 +273,7 @@ extern char* tkindstr[];
 extern char *stdinname;
 
 YYstate* mkyystate(FILE *fp);
+YYstate* mkyystatestr(char *buf);
 void freeyystate(YYstate *yy);
 void setyystate(YYstate *yy);
 
@@ -305,11 +307,11 @@ void finiparse();
 void printexpr(Expr*);
 void printcqct(Expr*);
 
-void pushyy(char *filename);
+void pushyy(char *filename, char *inbuf);
 int popyy();
 void tryinclude(char *raw);
 void parseerror(char *fmt, ...);
-int doparse(char *filename);
+int doparse(char *filename, char *inbuf);
 
 typedef
 struct BFgeom {

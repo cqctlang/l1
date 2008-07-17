@@ -203,6 +203,15 @@ mkyystate(FILE *fp)
 	return yy;
 }
 
+YYstate*
+mkyystatestr(char *buf)
+{
+	YYstate *yy;
+	yy = xmalloc(sizeof(YYstate));
+	yy->yy = yy_scan_string(buf);
+	return yy;
+}
+
 void
 freeyystate(YYstate *yy)
 {

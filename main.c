@@ -29,6 +29,35 @@ usage(char *argv0)
 	exit(0);
 }
 
+static char*
+readexpr(unsigned *cp)
+{
+	char *buf;
+	unsigned len, m, rv, cnt;
+
+	len = 1024;
+	buf = xmalloc(len);
+	m = len-1;
+	cnt = 0;
+	while(1){
+		if(m == 0){
+			buf = xrealloc(buf, len, 2*len);
+			len *= 2;
+			m = len-1;
+		}
+		rv = fread(buf+cnt, 1, m, stdin);
+		if(ferror(stdin))
+			fatal("cannot read from stdin");
+		if(rv == 0){
+			*cp = cnt;
+			clearerr(stdin); /* clear EOF */
+			return buf;
+		}
+		m -= rv;
+		cnt += rv;
+	}
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -40,6 +69,8 @@ main(int argc, char *argv[])
 	int c;
 	struct timeval beg, end;
 	int dorepl;
+	unsigned len;
+	char *inbuf;
 
 	flags['c'] = 1;		/* compile */
 	flags['x'] = 1;		/* execute */
@@ -83,11 +114,24 @@ main(int argc, char *argv[])
 	if(filename == 0)
 		filename = stdinname;
 
-repl:
 	if(dorepl)
-		printf(">>> ");
+		if(setvbuf(stdin, 0, _IONBF, 0))
+			fatal("cannot clear stdin buffering");
 
-	if(0 > doparse(filename))
+repl:
+	inbuf = 0;
+	if(dorepl){
+		printf(">>> ");
+		fflush(stdout);
+		inbuf = readexpr(&len);
+	}
+
+	if(len == 0){
+		printf("\n");
+		goto repl;
+	}
+
+	if(0 > doparse(filename, inbuf))
 		exit(0);
 
 	if(flags['p']){

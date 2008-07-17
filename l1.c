@@ -2,7 +2,6 @@
 #include "util.h"
 #include "l1.h"
 
-
 char* basename[Vnbase] = {
 	[Vundef]              = "error!",
 	[Vchar]               = "char",
@@ -1250,7 +1249,7 @@ finiparse()
 }
 
 void
-pushyy(char *filename)
+pushyy(char *filename, char *buf)
 {
 	FILE *fp;
 	char *keyed;
@@ -1277,7 +1276,11 @@ pushyy(char *filename)
 		hput(filenames, keyed, 0);
 	}
 	ctx.inp->filename = keyed;
-	ctx.inp->yy = mkyystate(fp);
+	if(buf){
+		ctx.inp->yy = mkyystatestr(buf);
+		free(buf);
+	}else
+		ctx.inp->yy = mkyystate(fp);
 	ctx.inp->line = 1;
 	ctx.inp->col = 0;
 	setyystate(ctx.inp->yy);
@@ -1291,6 +1294,8 @@ popyy()
 	if(ctx.inp->fp != stdin)
 		fclose(ctx.inp->fp);
 	ctx.inp->filename = 0;
+	free(ctx.inp->inbuf);
+	ctx.inp->inbuf = 0;
 	freeyystate(ctx.inp->yy);
 	if(ctx.inp == ctx.in){
 		ctx.inp = 0;
@@ -1333,16 +1338,17 @@ tryinclude(char *raw)
 		break;
 	}
 
-	pushyy(p);
+	pushyy(p, 0);
 }
 
 int
-doparse(char *filename)
+doparse(char *filename, char *inbuf)
 {
 	ctx.el = nullelist();
 	if(setjmp(ctx.jmp) == 0){
-		pushyy(filename);
-		yyparse();
+		pushyy(filename, inbuf);
+		if(yyparse() != 0)
+			fatal("parse error");
 	}else
 		return -1;
 
