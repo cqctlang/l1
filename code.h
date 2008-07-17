@@ -304,3 +304,6 @@ Expr* Zref(Expr *dom, Expr *type, Expr *val);
 Expr* Zrange(Expr *addr, Expr *sz);
 Expr* Zencode(Expr *e);
 Expr* Zlocals(unsigned n, ...);
+Expr* Zargs(unsigned n, ...);
+Expr* Zblock(Expr *locs, ...);
+Expr* Zlambda(Expr *args, Expr *body);

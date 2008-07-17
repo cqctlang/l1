@@ -50,6 +50,11 @@ todo
          need to be careful about not restarting gc, because
          existing invariant holds that dovm is a gc epoch barrier.
 
+  - all type deconstructors (e.g., fields) need to check for
+    type attributes that are not required for constructors
+  - typeof(enum constant) and typeof(bitfield) should be
+    the underlying type.
+
 - check semantics of scope
 
   old cqct: var refs create binding in nearest

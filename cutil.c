@@ -149,5 +149,44 @@ Zlocals(unsigned n, ...)
 	va_end(args);
 
 	/* local bindings are list of identifier lists */
-	return Zcons(l, nullelist());
+	return Zcons(invert(l), nullelist());
+}
+
+Expr*
+Zargs(unsigned n, ...)
+{
+	unsigned m;
+	va_list args;
+	Expr *l;
+
+	l = nullelist();
+	va_start(args, n);
+	for(m = 0; m < n; m++)
+		l = Zcons(doid(va_arg(args, char*)), l);
+	va_end(args);
+
+	return invert(l);
+}
+
+Expr*
+Zlambda(Expr *args, Expr *body)
+{
+	return newexpr(Elambda, args, body, 0, 0);
+}
+
+Expr*
+Zblock(Expr *locs, ...)
+{
+	Expr *se, *te;
+	va_list args;
+
+	te = nullelist();
+	va_start(args, locs);
+	while(1){
+		se = va_arg(args, Expr*);
+		if(se == NULL)
+			break;
+		te = Zcons(se, te);
+	}
+	return newexpr(Eblock, locs, invert(te), 0, 0);
 }

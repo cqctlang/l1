@@ -318,9 +318,10 @@ struct Xtypename {
 	Val cnt;		/* arr */
 	Val sz;			/* struct, union, bitfield */
 	Val bit0;		/* bitfield */
-	Xtypename *link;	/* ptr, arr, func (return type), bitfield */
+	Xtypename *link;	/* ptr, arr, func, bitfield, enum, const */
 	Vec *field;		/* struct, union */
 	Vec *param;		/* abstract declarators for func */
+	Vec *konst;		/* constants for enum */
 };
 
 typedef
@@ -363,7 +364,7 @@ static Vec* valvec(Val *v);
 static Xtypename* valxtn(Val *v);
 static void mkvalstr(Str *str, Val *vp);
 static void mkvalxtn(Xtypename *xtn, Val *vp);
-static Xtypename* chasetypedef(Xtypename *xtn);
+static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
 static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
@@ -1021,7 +1022,7 @@ typesize(VM *vm, Xtypename *xtn)
 		cv = valcval(&xtn->sz);
 		return cv->val;
 	case Tenum:
-		fatal("enums unimplemented");
+		return typesize(vm, xtn->link);
 	case Tptr:
 		return repsize[xtn->rep];
 	case Tarr:
@@ -1034,6 +1035,8 @@ typesize(VM *vm, Xtypename *xtn)
 		vmerr(vm, "attempt to compute size of function type");
 	case Tbitfield:
 		vmerr(vm, "attempt to compute size of bitfield"); 
+	case Tconst:
+		vmerr(vm, "shouldn't this be impossible?");
 	default:
 		fatal("typesize bug");
 	}
@@ -1353,6 +1356,7 @@ hashxtn(Val *val)
 		}
 		return x;
 	case Tbitfield:
+	case Tconst:
 	default:
 		fatal("bug");
 	}
@@ -1407,6 +1411,7 @@ eqxtn(Val *a, Val *b)
 				return 0;
 		return 1;
 	case Tbitfield:
+	case Tconst:
 	default:
 		fatal("bug");
 	}
@@ -1879,7 +1884,16 @@ iterxtn(Head *hd, Ictx *ictx)
 			return GCiterdone;
 		}
 	case Tenum:
-		fatal("enum support incomplete");
+		switch(ictx->n++){
+		case 0:
+			return (Head*)xtn->tag;
+		case 1:
+			return (Head*)xtn->link;
+		case 2:
+			return (Head*)xtn->konst;
+		default:
+			return GCiterdone;
+		}
 	case Tptr:
 		if(ictx->n++ > 0)
 			return GCiterdone;
@@ -1920,6 +1934,13 @@ iterxtn(Head *hd, Ictx *ictx)
 		case 1:
 			return valhead(&xtn->bit0);
 		case 2:
+			return (Head*)xtn->link;
+		default:
+			return GCiterdone;
+		}
+	case Tconst:
+		switch(ictx->n++){
+		case 0:
 			return (Head*)xtn->link;
 		default:
 			return GCiterdone;
@@ -2057,6 +2078,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		free(o);
 		free(pl);
 		return _fmtxtn(xtn->link, buf);
+	case Tconst:
 	case Tbitfield:
 	default:
 		fatal("bug");
@@ -2809,7 +2831,7 @@ str2imm(Xtypename *xtn, Str *str)
 {
 	char *s;
 
-	xtn = chasetypedef(xtn);
+	xtn = chasetype(xtn);
 	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
 		fatal("str2imm on non-scalar type");
 
@@ -2851,7 +2873,7 @@ imm2str(Xtypename *xtn, Imm imm)
 	Str *str;
 	char *s;
 
-	xtn = chasetypedef(xtn);
+	xtn = chasetype(xtn);
 	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
 		fatal("imm2str on non-scalar type");
 
@@ -2946,7 +2968,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 
 	/* FIXME: do we really want to lookup the type in the new domain? */
 	if(dom == vm->litdom)
-		xtn = dolooktype(vm, chasetypedef(cv->type), dom->ns);
+		xtn = dolooktype(vm, chasetype(cv->type), dom->ns);
 	else
 		xtn = dolooktype(vm, cv->type, dom->ns);
 	if(xtn == 0){
@@ -2972,8 +2994,8 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	else if(op2->dom == vm->litdom)
 		op2 = domcast(vm, op1->dom, op2);
 	else{
-		b1 = chasetypedef(op1->type);
-		b2 = chasetypedef(op2->type);
+		b1 = chasetype(op1->type);
+		b2 = chasetype(op2->type);
 		if(b1->tkind != Tptr && b2->tkind != Tptr){
 			op1 = domcast(vm, vm->litdom, op1);
 			op2 = domcast(vm, vm->litdom, op2);
@@ -3001,7 +3023,7 @@ intpromote(VM *vm, Cval *cv)
 {
 	Xtypename *base;
 
-	base = chasetypedef(cv->type);
+	base = chasetype(cv->type);
 	if(base->tkind != Tbase)
 		return cv;
 	switch(base->basename){
@@ -3045,8 +3067,8 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	op1 = intpromote(vm, op1);
 	op2 = intpromote(vm, op2);
 
-	b1 = chasetypedef(op1->type);
-	b2 = chasetypedef(op2->type);
+	b1 = chasetype(op1->type);
+	b2 = chasetype(op2->type);
 	if(b1->tkind != Tbase || b2->tkind != Tbase){
 		/* presumably one of them is a Tptr; nothing else is sane. */
 		*rv1 = op1;
@@ -3315,13 +3337,13 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		if(op != Isub)
 			vmerr(vm, "attempt to apply %s to pointer operands",
 			      opstr[op]);
-		sub = chasetypedef(t1->link);
+		sub = chasetype(t1->link);
 		/* special case: sizeof(void)==1 for pointer arith */
 		if(sub->tkind == Tbase && sub->basename == Vvoid)
 			sz = 1;
 		else
 			sz = typesize(vm, sub);
-		sub = chasetypedef(t2->link);
+		sub = chasetype(t2->link);
 		if(sub->tkind == Tbase && sub->basename == Vvoid)
 			osz = 1;
 		else
@@ -3340,11 +3362,11 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	/* exactly one operand is a pointer */
 
 	if(t1->tkind == Tptr){
-		sub = chasetypedef(t1->link);
+		sub = chasetype(t1->link);
 		ptr = op1;
 		n = op2->val;
 	}else{
-		sub = chasetypedef(t2->link);
+		sub = chasetype(t2->link);
 		ptr = op2;
 		n = op1->val;
 	}
@@ -3371,8 +3393,8 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 
 	dompromote(vm, op, op1, op2, &op1, &op2);
 	usualconvs(vm, op1, op2, &op1, &op2);
-	t1 = chasetypedef(op1->type);
-	t2 = chasetypedef(op2->type);
+	t1 = chasetype(op1->type);
+	t2 = chasetype(op2->type);
 	if(t1->tkind == Tptr || t2->tkind == Tptr)
 		return xcvalptralu(vm, op, op1, op2, t1, t2);
 
@@ -3798,13 +3820,14 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	t = valxtn(&typev);
 	cv = valcval(&cvalv);
 
-	b = chasetypedef(t);
+	b = chasetype(t);
 	switch(b->tkind){
 	case Tbase:
 	case Tptr:
 	case Tstruct:
 	case Tunion:
 	case Tfun:
+	case Tenum:
 		/* construct pointer */
 		pt = mkptrxtn(t, d->ns->base[Vptr]->rep);
 		imm = truncimm(cv->val, pt->rep);
@@ -3820,8 +3843,8 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	case Tbitfield:
 		vmerr(vm, "attempt to construct pointer to a bitfield");
 		break;
-	case Tenum:
-		vmerr(vm, "unimplemented feature");
+	case Tconst:
+		vmerr(vm, "attempt to use enumeration constant as location");
 	default:
 		fatal("bug");
 	}
@@ -3838,7 +3861,7 @@ dobitfieldgeom(Cval *addr, Xtypename *b, BFgeom *bfg)
 	bs = valcval(&b->sz);
 	bfg->bp = 8*addr->val+bit0->val; /* FIXME: overflow bug */
 	bfg->bs = bs->val;
-	bb = chasetypedef(b->link);
+	bb = chasetype(b->link);
 	bfg->isbe = isbigendian[bb->rep];
 	return bitfieldgeom(bfg);
 }
@@ -3861,7 +3884,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	t = valxtn(&typev);
 	cv = valcval(&cvalv);
 
-	b = chasetypedef(t);
+	b = chasetype(t);
 	switch(b->tkind){
 	case Tbitfield:
 		if(0 > dobitfieldgeom(cv, b, &bfg))
@@ -3875,17 +3898,18 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		imm = bitfieldget(s->s, &bfg);
 		mkvalcval(d, b->link, imm, &rv);
 		break;
+	case Tconst:
+		mkvalcval(d, b->link, cv->val, &rv);
+		break;
 	case Tbase:
 	case Tptr:
+	case Tenum:
 		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
 		mkvalstr(vm->sget, &argv[0]);
 		mkvalrange(cv, len, &argv[1]);
 		p = dovm(vm, d->as->dispatch, 2, argv);
 		imm = str2imm(t, valstr(p));
 		mkvalcval(d, t, imm, &rv);
-		break;
-	case Tenum:
-		vmerr(vm, "unimplemented feature");
 		break;
 	case Tarr:
 		/* construct pointer to first element */
@@ -4388,11 +4412,20 @@ nodispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 	vmerr(vm, "attempt to access abstract address space");
 }
 
-static Xtypename*
-chasetypedef(Xtypename *xtn)
+static As*
+mkabas()
 {
-	if(xtn->tkind == Ttypedef)
-		return chasetypedef(xtn->link);
+	As *as;
+	as = mkas();
+	as->dispatch = mkcfn("nodispatch", nodispatch);
+	return as;
+}
+
+static Xtypename*
+chasetype(Xtypename *xtn)
+{
+	if(xtn->tkind == Ttypedef || xtn->tkind == Tenum)
+		return chasetype(xtn->link);
 	return xtn;
 }
 
@@ -4455,6 +4488,8 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			vecset(vm, new->param, i, &v);
 		}
 		return new;
+	case Tconst:
+	case Tbitfield:
 	default:
 		fatal("bug");
 	}
@@ -4593,38 +4628,53 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 	rv = tabget(ctx->rawtype, xtnv);
 	if(rv){
 		xtn = valxtn(rv);
-		if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
+		switch(xtn->tkind){
+		case Tstruct:
+		case Tunion:
+			fld = xtn->field;
+			sz = &xtn->sz;
+
+			new = mkxtn();
+			new->tkind = xtn->tkind;
+			new->tag = xtn->tag;
+			new->field = mkvec(fld->len);
+			new->sz = *sz;
+
+			/* bind before recursive resolve call to stop cycles */
+			mkvalxtn(new, &v);
+			tabput(vm, ctx->type, xtnv, &v);
+
+			for(i = 0; i < fld->len; i++){
+				vec = valvec(vecref(fld, i));
+				vp = vecref(vec, Typepos);
+				tmp = valxtn(vp);
+				tmp = resolvetypename(vm, tmp, ctx);
+				fv = mkvec(3);
+			
+				mkvalxtn(tmp, &v);
+				_vecset(fv, Typepos, &v);
+				_vecset(fv, Idpos, vecref(vec, 1));
+				_vecset(fv, Offpos, vecref(vec, 2));
+			
+				mkvalvec(fv, &v);
+				_vecset(new->field, i, &v);
+			}
+			return new;
+		case Tenum:
+			new = mkxtn();
+			new->tkind = Tenum;
+			new->tag = xtn->tag;
+			new->konst = xtn->konst;
+
+			mkvalxtn(new, &v);
+			tabput(vm, ctx->type, xtnv, &v);
+			new->link = resolvetypename(vm, xtn->link, ctx);
+			return new;
+		default:
 			/* FIXME: print name of type */
 			vmerr(vm, "bad definition for tagged type");
-		fld = xtn->field;
-		sz = &xtn->sz;
-
-		new = mkxtn();
-		new->tkind = xtn->tkind;
-		new->tag = xtn->tag;
-		new->field = mkvec(fld->len);
-		new->sz = *sz;
-
-		/* bind before recursive resolve call to stop cycles */
-		mkvalxtn(new, &v);
-		tabput(vm, ctx->type, xtnv, &v);
-
-		for(i = 0; i < fld->len; i++){
-			vec = valvec(vecref(fld, i));
-			vp = vecref(vec, Typepos);
-			tmp = valxtn(vp);
-			tmp = resolvetypename(vm, tmp, ctx);
-			fv = mkvec(3);
-			
-			mkvalxtn(tmp, &v);
-			_vecset(fv, Typepos, &v);		/* type */
-			_vecset(fv, Idpos, vecref(vec, 1));	/* id */
-			_vecset(fv, 2, vecref(vec, 2));		/* offset */
-			
-			mkvalvec(fv, &v);
-			_vecset(new->field, i, &v);
 		}
-		return new;
+
 	}
 
 	/* does the ns from which we inherit have a definition? */
@@ -4679,9 +4729,12 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		xtn->link = resolvetid(vm, &v, ctx);
 		return xtn;
 	case Tbitfield:
-		mkvalxtn(xtn, &v);
 		xtn->link = resolvetypename(vm, xtn->link, ctx);
 		return xtn;
+	case Tconst:
+		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		return xtn;
+	case Tenum:
 	case Tstruct:
 	case Tunion:
 		mkvalxtn(xtn, &v);
@@ -5739,10 +5792,14 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	[Rs64be]['x'] = "%"PRIx64,	[Rs64be]['X'] = "%"PRIX64,	};
 
 	char *fmt;
-	fmt = fmttab[cv->type->rep][conv];
+	Xtypename *t;
+
+	t = chasetype(cv->type);
+
+	fmt = fmttab[t->rep][conv];
 
 	/* FIXME: don't assume Tbase */
-	switch(cv->type->rep){
+	switch(t->rep){
 	case Ru08le:
 	case Ru08be:
 		fprintf(fp, fmt, (u8)cv->val);
@@ -5961,6 +6018,12 @@ l1_isenum(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_isenumconst(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isenumconst", Tconst);
+}
+
+static void
 l1_isbitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	dotypepredicate(vm, argc, argv, rv, "isbitfield", Tbitfield);
@@ -6010,7 +6073,8 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Xtypename *xtn;
 	static char *err = 
-		"operand 1 to subtype must be an array or pointer ctype";
+		"operand 1 to subtype must be an "
+		"array, pointer, enum, or enum constant";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to subtype");
@@ -6018,7 +6082,8 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, err);
 		      
 	xtn = valxtn(argv);
-	if(xtn->tkind != Tptr && xtn->tkind != Tarr)
+	if(xtn->tkind != Tptr && xtn->tkind != Tarr
+	   && xtn->tkind != Tenum && xtn->tkind != Tconst)
 		vmerr(vm, err);
 
 	mkvalxtn(xtn->link, rv);
@@ -6355,6 +6420,24 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(vp->qkind != Qcval && vp->qkind != Qnil)
 		vmerr(vm, err);
 	*rv = *vp;
+}
+
+static void
+l1_enumconsts(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+	static char *err
+		= "operand 1 to enumconsts must be a defined enum ctype";
+	if(argc != 1)
+		vmerr(vm, err);
+	if(argv[0].qkind != Qxtn)
+		vmerr(vm, err);
+	xtn = valxtn(&argv[0]);
+	if(xtn->tkind != Tenum)
+		vmerr(vm, err);
+	if(xtn->konst)
+		vmerr(vm, err);
+	mkvalvec(xtn->konst, rv);
 }
 
 static void
@@ -6713,9 +6796,53 @@ l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	fatal("mkctype_enum is not implemented");
+	Xtypename *xtn, *t;
+	Str *s;
+	Vec *c;
+
+	switch(argc){
+	case 1:
+		/* TAG */
+		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
+		s = valstr(&argv[0]);
+		xtn = mkxtn();
+		xtn->tkind = Tenum;
+		xtn->tag = s;
+		break;
+	case 3:
+		/* TAG TYPE CONSTS */
+		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
+		checkarg(vm, "mkctype_enum", argv, 1, Qxtn);
+		checkarg(vm, "mkctype_enum", argv, 2, Qvec);
+		s = valstr(&argv[0]);
+		t = valxtn(&argv[1]);
+		c = valvec(&argv[2]);
+		xtn = mkxtn();
+		xtn->tkind = Tenum;
+		xtn->tag = s;
+		xtn->link = t;
+		xtn->konst = c;
+		break;
+	default:
+		vmerr(vm, "wrong number of arguments to mkctype_enum");
+	}
+	mkvalxtn(xtn, rv);
 }
 
+static void
+l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn, *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkctype_const");
+	checkarg(vm, "mkctype_const", argv, 0, Qxtn);
+	t = valxtn(&argv[0]);
+	xtn = mkxtn();
+	xtn->tkind = Tconst;
+	xtn->link = t;
+	mkvalxtn(xtn, rv);
+}
 
 static void
 l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -6783,10 +6910,11 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	t = valxtn(&iargv[2]);
 	cv = valcval(&iargv[3]);
 
-	b = chasetypedef(t);
+	b = chasetype(t);
 	switch(b->tkind){
 	case Tbase:
 	case Tptr:
+	case Tenum:
 		cv = typecast(vm, t, cv);
 		gcprotect(vm, cv);
 		bytes = imm2str(t, cv->val);
@@ -6822,14 +6950,98 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		/* return value of bitfield (not container) */
 		mkvalcval(d, b->link, imm, rv);
 		break;
-	case Tenum:
-		vmerr(vm, "unimplemented feature");
+	case Tconst:
+		vmerr(vm, "attempt to use enumeration constant as location");
 		break;
 	default:
 		vmerr(vm,
 		      "attempt to write %s-valued object to address space",
 		      tkindstr[b->tkind]);
 	}
+}
+
+static void
+l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
+{
+	Vec *k, *v;
+	Tab *t;
+	Closure *cl;
+	Imm m;
+	Val argv[2];
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to foreach");
+	checkarg(vm, "foreach", iargv, 0, Qcl);
+	if(iargv[1].qkind != Qvec && iargv[1].qkind != Qtab)
+		vmerr(vm, "operand 1 to foreach must be a vector or table");
+	cl = valcl(&iargv[0]);
+	switch(iargv[1].qkind){
+	case Qvec:
+		v = valvec(&iargv[1]);
+		for(m = 0; m < v->len; m++){
+			argv[0] = *vecref(v, m);
+			dovm(vm, cl, 1, argv);
+		}
+		break;
+	case Qtab:
+		t = valtab(&iargv[1]);
+		k = tabenumkeys(t);
+		v = tabenumvals(t);
+		gcprotect(vm, k);
+		gcprotect(vm, v);
+		for(m = 0; m < v->len; m++){
+			argv[0] = *vecref(k, m);
+			argv[1] = *vecref(v, m);
+			dovm(vm, cl, 2, argv);
+		}
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
+static void
+l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Ns *ns;
+	Vec *v, *e;
+	Dom *d;
+	Imm m;
+	Cval *a, *cv;
+	Xtypename *t;
+	Val val;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to enconsts");
+	checkarg(vm, "enconsts", argv, 0, Qns);
+	checkarg(vm, "enconsts", argv, 1, Qvec);
+	ns = valns(&argv[0]);
+	v = valvec(&argv[1]);
+
+	/* abstract domain for name space being extended */
+	d = mkdom();
+	d->ns = ns;
+	d->as = mkabas();
+
+	/* determine type that contains all constant values */
+	a = mkcval(d, d->ns->base[Vint], 0);
+	for(m = 0; m < v->len; m++){
+		e = valvec(vecref(v, m)); /* FIXME check sanity */
+		a = xcvalalu(vm, Iadd, a,
+			     domcast(vm, d, valcval(vecref(e, 1))));
+	}
+	t = a->type;
+
+	/* cast all values to new type */
+	for(m = 0; m < v->len; m++){
+		e = valvec(vecref(v, m)); /* FIXME check sanity */
+		cv = typecast(vm, t, domcast(vm, d, valcval(vecref(e, 1))));
+		mkvalcval2(cv, &val);
+		vecset(vm, e, 1, &val);
+	}
+
+	/* return type */
+	mkvalxtn(t, rv);
 }
 
 typedef
@@ -7019,7 +7231,6 @@ mkrootns(VM *vm, NSroot *def)
 static Dom*
 mklitdom(VM *vm)
 {
-	As *as;
 	Ns *ns;
 	Dom *dom;
 	Tab *type;
@@ -7028,10 +7239,7 @@ mklitdom(VM *vm)
 	static NSroot *litdef = &clp64le;
 
 	dom = mkdom();
-
-	as = mkas();
-	as->dispatch = mkcfn("nodispatch", nodispatch);
-	dom->as = as;
+	dom->as = mkabas();
 
 	memset(base, 0, sizeof(base)); /* values will be seen by GC */
 	for(cb = Vchar; cb <= Vnbase; cb++)
@@ -7127,6 +7335,7 @@ mkvm(Env *env)
 	FN(isstruct);
 	FN(isunion);
 	FN(isenum);
+	FN(isenumconst);
 	FN(isbitfield);
 	FN(isptr);
 	FN(isarray);
@@ -7151,6 +7360,7 @@ mkvm(Env *env)
 	FN(fieldtype);
 	FN(fieldid);
 	FN(fieldoff);
+	FN(enumconsts);
 	FN(typedefid);
 	FN(typedeftype);
 	FN(symid);
@@ -7184,6 +7394,9 @@ mkvm(Env *env)
 	FN(mkctype_fn);
 	FN(mkctype_bitfield);
 	FN(mkctype_enum);
+	FN(mkctype_const);
+	FN(foreach);
+	FN(enconsts);
 
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));

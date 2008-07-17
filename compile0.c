@@ -110,11 +110,14 @@ gentypename(Type *t)
 		break;
 	case Tenum:
 		if(t->en == 0){
-			e = Zcall("myctype_enum", 1, Zstr(t->tag));
+			e = Zcall(doid("myctype_enum"), 1, Zstr(t->tag));
 			break;
 		}
 		if(t->tag == 0)
 			fatal("anonymous enums not implemented");
+
+		loc = Zlocals(3, "$tmp", "$tn", "$type");
+		te = nullelist();
 
 		se = nullelist();
 		en = t->en;
@@ -126,19 +129,49 @@ gentypename(Type *t)
 			en->val = 0; 
 			en = en->link;
 		}
-		se = Zapply(doid("vector"), invert(se));
-
-		loc = Zlocals(1, "$tmp");
-
-		te = nullelist();
-		te = Zcons(Zset(doid("$tmp"),
-				Zcall(doid("mkctype_enum", 1, Zstr(t->tag)))),
-			   te);
-		se = Zcall(doid("tabinsert"), 3,
-			   doid("$typetab"), doid("$tmp"),
-			   Zcall(doid("mkctype_enum", 2, Zstr(t->tag), se)));
+		se = Zset(doid("$tmp"), Zapply(doid("vector"), invert(se)));
 		te = Zcons(se, te);
-		se = doid("$tmp");
+
+		se = Zset(doid("$type"),
+			  Zcall(doid("enconsts"), 2,
+				doid("$ns"), doid("$tmp")));
+		te = Zcons(se, te);
+
+		se = Zset(doid("$tn"),
+			  Zcall(doid("mkctype_enum"), 1, Zstr(t->tag)));
+		te = Zcons(se, te);
+
+		se = Zcall(doid("tabinsert"), 3,
+			   doid("$typetab"),
+			   doid("$tn"),
+			   Zcall(doid("mkctype_enum"), 3,
+				 Zstr(t->tag), doid("$type"), doid("$tmp")));
+		te = Zcons(se, te);
+
+		se = Zcall(doid("foreach"), 2,
+			   Zlambda(Zargs(1, "$e"),
+				   Zblock(Zlocals(3, "$ctn", "$id", "$val"),
+					  Zset(doid("$ctn"),
+					       Zcall(doid("mkctype_const"), 1,
+						     doid("$tn"))),
+					  Zset(doid("$id"),
+					       Zcall(doid("vecref"), 2,
+						     doid("$e"),Zuint(0))),
+					  Zset(doid("$val"),
+					       Zcall(doid("vecref"), 2,
+						     doid("$e"),Zuint(1))),
+					  Zcall(doid("tabinsert"), 3,
+						doid("$symtab"),
+						doid("$id"),
+						Zcall(doid("vector"), 3,
+						      doid("$ctn"),
+						      doid("$id"),
+						      doid("$val"))),
+					  NULL)),
+			   doid("$tmp"));
+		te = Zcons(se, te);
+
+		se = doid("$tn");
 		te = Zcons(se, te);
 		e = newexpr(Eblock, loc, invert(te), 0, 0);
 		break;

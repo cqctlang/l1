@@ -1,0 +1,230 @@
+entry: 0 params, 6 locals, 0 temps
+listref: 2 params, 0 locals, 0 temps
+mkzas: 1 params, 2 locals, 0 temps
+dispatch: var params, 7 locals, 0 temps
+bitfield x00 (off = 0, width = 1, pos = 0, container = int)
+bitfield x01 (off = 0, width = 1, pos = 1, container = int)
+bitfield x02 (off = 0, width = 1, pos = 2, container = int)
+bitfield x03 (off = 0, width = 1, pos = 3, container = int)
+bitfield x04 (off = 0, width = 1, pos = 4, container = int)
+bitfield x05 (off = 0, width = 1, pos = 5, container = int)
+bitfield x06 (off = 0, width = 1, pos = 6, container = int)
+bitfield x07 (off = 0, width = 1, pos = 7, container = int)
+bitfield x08 (off = 1, width = 1, pos = 0, container = int)
+bitfield x09 (off = 1, width = 1, pos = 1, container = int)
+bitfield x10 (off = 1, width = 1, pos = 2, container = int)
+bitfield x11 (off = 1, width = 1, pos = 3, container = int)
+bitfield x12 (off = 1, width = 1, pos = 4, container = int)
+bitfield x13 (off = 1, width = 1, pos = 5, container = int)
+bitfield x14 (off = 1, width = 1, pos = 6, container = int)
+bitfield x15 (off = 1, width = 1, pos = 7, container = int)
+bitfield x16 (off = 2, width = 1, pos = 0, container = int)
+bitfield x17 (off = 2, width = 1, pos = 1, container = int)
+bitfield x18 (off = 2, width = 1, pos = 2, container = int)
+bitfield x19 (off = 2, width = 1, pos = 3, container = int)
+bitfield x20 (off = 2, width = 1, pos = 4, container = int)
+bitfield x21 (off = 2, width = 1, pos = 5, container = int)
+bitfield x22 (off = 2, width = 1, pos = 6, container = int)
+bitfield x23 (off = 2, width = 1, pos = 7, container = int)
+bitfield x24 (off = 3, width = 1, pos = 0, container = int)
+bitfield x25 (off = 3, width = 1, pos = 1, container = int)
+bitfield x26 (off = 3, width = 1, pos = 2, container = int)
+bitfield x27 (off = 3, width = 1, pos = 3, container = int)
+bitfield x28 (off = 3, width = 1, pos = 4, container = int)
+bitfield x29 (off = 3, width = 1, pos = 5, container = int)
+bitfield x30 (off = 3, width = 1, pos = 6, container = int)
+bitfield x31 (off = 3, width = 1, pos = 7, container = int)
+put 0 4
+get 0 1
+put 0 1
+get 0 1
+put 0 1
+get 0 1
+put 0 1
+get 0 1
+put 0 1
+get 0 1
+put 0 1
+get 0 1
+put 0 1
+get 0 1
+put 0 1
+get 0 1
+put 0 1
+get 1 2
+put 1 2
+get 1 2
+put 1 2
+get 1 2
+put 1 2
+get 1 2
+put 1 2
+get 1 2
+put 1 2
+get 1 2
+put 1 2
+get 1 2
+put 1 2
+get 1 2
+put 1 2
+get 2 3
+put 2 3
+get 2 3
+put 2 3
+get 2 3
+put 2 3
+get 2 3
+put 2 3
+get 2 3
+put 2 3
+get 2 3
+put 2 3
+get 2 3
+put 2 3
+get 2 3
+put 2 3
+get 3 4
+put 3 4
+get 3 4
+put 3 4
+get 3 4
+put 3 4
+get 3 4
+put 3 4
+get 3 4
+put 3 4
+get 3 4
+put 3 4
+get 3 4
+put 3 4
+get 3 4
+put 3 4
+get 0 1
+1
+get 0 1
+1
+get 0 1
+1
+get 0 1
+1
+get 0 1
+1
+get 0 1
+1
+get 0 1
+1
+get 0 1
+1
+get 1 2
+1
+get 1 2
+1
+get 1 2
+1
+get 1 2
+1
+get 1 2
+1
+get 1 2
+1
+get 1 2
+1
+get 1 2
+1
+get 2 3
+1
+get 2 3
+1
+get 2 3
+1
+get 2 3
+1
+get 2 3
+1
+get 2 3
+1
+get 2 3
+1
+get 2 3
+1
+get 3 4
+1
+get 3 4
+1
+get 3 4
+1
+get 3 4
+1
+get 3 4
+1
+get 3 4
+1
+get 3 4
+1
+get 3 4
+1
+put 0 4
+get 0 1
+1
+get 0 1
+0
+get 0 1
+1
+get 0 1
+0
+get 0 1
+1
+get 0 1
+0
+get 0 1
+1
+get 0 1
+0
+get 1 2
+1
+get 1 2
+0
+get 1 2
+1
+get 1 2
+0
+get 1 2
+1
+get 1 2
+0
+get 1 2
+1
+get 1 2
+0
+get 2 3
+1
+get 2 3
+0
+get 2 3
+1
+get 2 3
+0
+get 2 3
+1
+get 2 3
+0
+get 2 3
+1
+get 2 3
+0
+get 3 4
+1
+get 3 4
+0
+get 3 4
+1
+get 3 4
+0
+get 3 4
+1
+get 3 4
+0
+get 3 4
+1
+get 3 4
+0
