@@ -215,7 +215,6 @@ struct Expr {
 struct Enum {
 	char *id;
 	Expr *val;
-	Type *type;
 	Enum *link;
 };
 

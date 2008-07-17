@@ -44,6 +44,12 @@ todo
     problem seems to be that mutator can alloc new cvalues
     faster than gc can put them back onto the freelist.
 
+    potential solution: block halloc from allocating new memory
+         until one of more gc epoch has finished;
+         then retry.
+         need to be careful about not restarting gc, because
+         existing invariant holds that dovm is a gc epoch barrier.
+
 - check semantics of scope
 
   old cqct: var refs create binding in nearest

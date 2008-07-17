@@ -41,6 +41,7 @@ static Expr*
 gentypename(Type *t)
 {
 	Expr *e, *se, *te, *id, *off, *tn, *sz, *loc;
+	Enum *en;
 	Decl *dl;
 	char *mk;
 
@@ -60,7 +61,7 @@ gentypename(Type *t)
 		}
 
 		if(t->tag == 0)
-			fatal("incomplete support for anonymous aggregates");
+			fatal("anonymous aggregates not implemented");
 
 		se = nullelist();
 		dl = t->field;
@@ -97,7 +98,8 @@ gentypename(Type *t)
 
 		te = nullelist();
 		te = Zcons(Zset(doid("$tmp"),
-				Zcall(doid(mk), 1, Zstr(t->tag))), te);
+				Zcall(doid(mk), 1, Zstr(t->tag))),
+			   te);
 		se = Zcall(doid("tabinsert"), 3,
 			   doid("$typetab"), doid("$tmp"),
 			   Zcall(doid(mk), 3, Zstr(t->tag), se, sz));
@@ -107,7 +109,38 @@ gentypename(Type *t)
 		e = newexpr(Eblock, loc, invert(te), 0, 0);
 		break;
 	case Tenum:
-		fatal("incomplete support for enums");
+		if(t->en == 0){
+			e = Zcall("myctype_enum", 1, Zstr(t->tag));
+			break;
+		}
+		if(t->tag == 0)
+			fatal("anonymous enums not implemented");
+
+		se = nullelist();
+		en = t->en;
+		while(en){
+			se = Zcons(Zcall(doid("vector"), 2,
+					 Zstr(en->id),
+					 en->val),      /* steal */
+				   se);
+			en->val = 0; 
+			en = en->link;
+		}
+		se = Zapply(doid("vector"), invert(se));
+
+		loc = Zlocals(1, "$tmp");
+
+		te = nullelist();
+		te = Zcons(Zset(doid("$tmp"),
+				Zcall(doid("mkctype_enum", 1, Zstr(t->tag)))),
+			   te);
+		se = Zcall(doid("tabinsert"), 3,
+			   doid("$typetab"), doid("$tmp"),
+			   Zcall(doid("mkctype_enum", 2, Zstr(t->tag), se)));
+		te = Zcons(se, te);
+		se = doid("$tmp");
+		te = Zcons(se, te);
+		e = newexpr(Eblock, loc, invert(te), 0, 0);
 		break;
 	case Tptr:
 		e = Zcall(doid("mkctype_ptr"), 1, gentypename(t->link));
