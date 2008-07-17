@@ -2426,6 +2426,13 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 		/* by convention local 0 is var arg list */
 		randstkloc(&i->dst, Llocal, 0, b->local[0].indirect); 
 	}
+
+	/* hack to return nil in degenerate cases */
+	i = nextinsn(code);
+	i->kind = Imov;
+	randnil(&i->op1);
+	randloc(&i->dst, AC);
+
 	if(needtop){
 		top = genlabel(code, 0);
 		emitlabel(top, e->e2);
@@ -2446,8 +2453,8 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 
 // what does a function without an explicit return <expr> return?
 // either nil or the value of last expression evaluated.
-//	randnil(&i->op1);
-	randloc(&i->op1, AC);
+	randnil(&i->op1);
+//	randloc(&i->op1, AC);
 
 	randloc(&i->dst, AC);
 	emitlabel(p.Return, e->e2);
@@ -2471,7 +2478,12 @@ compileentry(Expr *el, Env *env)
 	L->used = 1;
 	emitlabel(L, el);
 
-	le = newexpr(Elambda, nullelist(), el, 0, 0);
+//	le = newexpr(Elambda, nullelist(), el, 0, 0);
+	le = newexpr(Elambda, nullelist(), 
+                    newexpr(Eret,
+                            newexpr(Eblock, nullelist(), el, 0, 0),
+                            0, 0, 0),
+                    0, 0);
 
 	mapframe(le, 0, 0, code->topvec, env, code->konst, 0);
 	cap = mkvdset();

@@ -45,14 +45,13 @@ readexpr(unsigned *cp)
 			len *= 2;
 			m = len-1;
 		}
-		rv = fread(buf+cnt, 1, m, stdin);
-		if(ferror(stdin))
-			fatal("cannot read from stdin");
-		if(rv == 0){
-			*cp = cnt;
-			clearerr(stdin); /* clear EOF */
-			return buf;
+		if(0 == fgets(buf+cnt, len, stdin)){
+			free(buf);
+			return 0;
 		}
+		rv = strlen(buf);
+		if(buf[rv-1] == '\n')
+			return buf;
 		m -= rv;
 		cnt += rv;
 	}
@@ -93,9 +92,7 @@ main(int argc, char *argv[])
 			filename = optarg;
 			break;
 		case 'h':
-			usage(argv[0]);
 		case '?':
-			fprintf(stderr, "Unknown option `-%c'.\n", optopt);
 			usage(argv[0]);
 		}
 	}
@@ -121,18 +118,19 @@ main(int argc, char *argv[])
 repl:
 	inbuf = 0;
 	if(dorepl){
-		printf(">>> ");
+		printf("> ");
 		fflush(stdout);
 		inbuf = readexpr(&len);
+		if(inbuf == 0)
+			goto out;
 	}
 
-	if(len == 0){
-		printf("\n");
-		goto repl;
+	if(0 > doparse(filename, inbuf)){
+		if(dorepl)
+			goto repl;
+		else
+			goto out;
 	}
-
-	if(0 > doparse(filename, inbuf))
-		exit(0);
 
 	if(flags['p']){
 		printf("source:\n");
@@ -186,12 +184,6 @@ repl:
 	if(dorepl && flags['x']){
 		printvmac(vm);
 		printf("\n");
-// FIXME: this eventually leads to segfault.  malloc heap seems corrupt.
-// (a bug is that entry can be collected across dovm calls,
-// but this is not proved to be the cause).  seen when repl does not
-// get fresh input on each iteration (osx).
-//		while(1)
-//			dovm(vm, entry, 0, 0);
 		goto repl;
 	}
 

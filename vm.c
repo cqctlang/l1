@@ -2574,14 +2574,14 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 	
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
-		fprintf(out, "%s\t\t(builtin %s)\n", cl->id,
+		fprintf(out, "%20s\t\t(builtin %s)\n", cl->id,
 		       cl->cfn ? "function" : "closure");
 		return;
 	}
 
 	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
-			fprintf(out, "%s\t\t%s:%u\n", cl->id,
+			fprintf(out, "%20s\t\t(%s:%u)\n", cl->id,
 			       code->labels[pc]->src->filename,
 			       code->labels[pc]->src->line);
 			return;
@@ -2590,7 +2590,7 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 			break;
 		pc--;
 	}
-	fprintf(out, "%s\t\t(no source information)\n", cl->id);
+	fprintf(out, "%20s\t\t(no source information)\n", cl->id);
 }
 
 static void
@@ -2603,9 +2603,11 @@ fvmbacktrace(FILE *out, VM *vm)
 	fp = vm->fp;
 	cl = vm->clx;
 	while(fp != 0){
-		if(!strcmp(cl->id, "$halt"))
-			fprintf(out, "\t-- vmcall --\n");
-		else
+//		if(!strcmp(cl->id, "$halt"))
+//			fprintf(out, "\t-- vmcall --\n");
+//		else
+//			printsrc(out, cl, pc);
+		if(strcmp(cl->id, "$halt"))
 			printsrc(out, cl, pc);
 		narg = valimm(&vm->stack[fp]);
 		pc = valimm(&vm->stack[fp+narg+1]);
