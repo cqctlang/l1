@@ -49,6 +49,8 @@ static unsigned basemod[Vnbase][Enbase] = {
 	[Vint][Esigned]        = Vint,
 	[Vint][Elong]          = Vlong,
 	[Vuint][Elong]         = Vulong,
+	[Vint][Eshort]         = Vshort,
+	[Vuint][Eshort]        = Vushort,
 	
 	[Vlong][Eunsigned]     = Vulong,
 	[Vlong][Esigned]       = Vlong,

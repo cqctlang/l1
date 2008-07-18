@@ -110,7 +110,7 @@ gentypename(Type *t)
 		break;
 	case Tenum:
 		if(t->en == 0){
-			e = Zcall(doid("myctype_enum"), 1, Zstr(t->tag));
+			e = Zcall(doid("mkctype_enum"), 1, Zstr(t->tag));
 			break;
 		}
 		if(t->tag == 0)
