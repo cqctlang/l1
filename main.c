@@ -10,8 +10,8 @@ usage(char *argv0)
 {
 	fprintf(stderr, "usage: %s [flags] [-e <file>] \n", argv0);
 	fprintf(stderr, "without -e, runs in interactive evaluation mode:\n");
-	fprintf(stderr, "\tenter cinquecento expressions on stdin, "
-			"followed by EOF (^d).\n");
+	fprintf(stderr, "\type cinquecento expressions on stdin, "
+		" followed by newline\n");
 	fprintf(stderr, "\tto exit send SIGTERM (^c).\n");
 	fprintf(stderr, "\nuser flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
@@ -118,7 +118,7 @@ main(int argc, char *argv[])
 repl:
 	inbuf = 0;
 	if(dorepl){
-		printf("> ");
+		printf("; ");
 		fflush(stdout);
 		inbuf = readexpr(&len);
 		if(inbuf == 0)

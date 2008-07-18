@@ -46,5 +46,10 @@ ns = @names c32le {
 
 dom = mkdom(ns, mkzas(1024));
 printf("%d\n", dom`i);
-printf("x is %t %d\n", typeof(dom`x), dom`x);
-printf("y is %t %d\n", typeof(dom`y), dom`y);
+//x = dom`x;
+//x = typeof(x);
+//printf("typeof(x) = %t\n", x);
+//printf("x is %t %d\n", typeof(dom`x), dom`x);
+printf("x is %t\n", typeof(dom`x));
+
+//printf("y is %t %d\n", typeof(dom`y), dom`y);

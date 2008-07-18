@@ -298,6 +298,7 @@ struct Range {
 
 struct Str {
 	Head hd;
+	size_t mmlen;		/* FIXME: find a better type */
 	u32 len; /* FIXME: the reason it's not u64 is there's no 64-bit %.*s */
 	char *s;
 };
@@ -1440,6 +1441,15 @@ mkstr(char *s, unsigned long len)
 }
 
 static Str*
+mkstrmm(char *s, size_t len)
+{
+	Str *str;
+	str = mkstr(s, len);
+	str->mmlen = len;
+	return str;
+}
+
+static Str*
 mkstrn(unsigned long len)
 {
 	Str *str;
@@ -1447,6 +1457,15 @@ mkstrn(unsigned long len)
 	str->len = len;
 	str->s = xmalloc(str->len);
 	return str;
+}
+
+static char*
+str2cstr(Str *str)
+{
+	char *s;
+	s = xmalloc(str->len+1);
+	memcpy(s, str->s, str->len);
+	return s;
 }
 
 static void
@@ -1468,7 +1487,10 @@ freestr(Head *hd)
 {
 	Str *str;
 	str = (Str*)hd;
-	free(str->s);
+	if(str->mmlen)
+		munmap(str->s, str->len);
+	else
+		free(str->s);
 }
 
 static int
@@ -2596,14 +2618,14 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 	
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
-		fprintf(out, "%20s\t\t(builtin %s)\n", cl->id,
+		fprintf(out, "%20s\t(builtin %s)\n", cl->id,
 		       cl->cfn ? "function" : "closure");
 		return;
 	}
 
 	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
-			fprintf(out, "%20s\t\t(%s:%u)\n", cl->id,
+			fprintf(out, "%20s\t(%s:%u)\n", cl->id,
 			       code->labels[pc]->src->filename,
 			       code->labels[pc]->src->line);
 			return;
@@ -2612,7 +2634,7 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 			break;
 		pc--;
 	}
-	fprintf(out, "%20s\t\t(no source information)\n", cl->id);
+	fprintf(out, "%20s\t(no source information)\n", cl->id);
 }
 
 static void
@@ -7001,6 +7023,35 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
+l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int fd;
+	Str *names, *map;
+	char *p, *name;
+	struct stat st;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mapfile");
+	checkarg(vm, "mapfile", argv, 0, Qstr);
+	names = valstr(&argv[0]);
+	name = str2cstr(names);
+	fd = open(name, O_RDONLY);
+	free(name);
+	if(0 > fd)
+		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+	if(0 > fstat(fd, &st)){
+		close(fd);
+		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+	}
+	p = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	close(fd);
+	if(p == MAP_FAILED)
+		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+	map = mkstrmm(p, st.st_size);
+	mkvalstr(map, rv);
+}
+
+static void
 l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ns *ns;
@@ -7397,6 +7448,7 @@ mkvm(Env *env)
 	FN(mkctype_const);
 	FN(foreach);
 	FN(enconsts);
+	FN(mapfile);
 
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));

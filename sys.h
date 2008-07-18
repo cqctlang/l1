@@ -10,9 +10,13 @@
 #include <ctype.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <sched.h>
 #include <pthread.h>
 

@@ -16,7 +16,6 @@ todo
   - binop(T1,T2) -> canonical type
   - mkzas
   - mkmas
-  - mapfile
   - introduce address types
     - shouldn't bpset take an address argument?
   - dot operator on dom/as
@@ -29,6 +28,9 @@ todo
     useful for blocking/polling on remote events
   - old-style lists 
   - i/o (file, net)
+
+- usability
+  - check "entry" to "toplevel"
 
 - robustness
   - test on real name spaces
@@ -54,6 +56,8 @@ todo
     type attributes that are not required for constructors
   - typeof(enum constant) and typeof(bitfield) should be
     the underlying type.
+  - why do vmerr backtraces include entry, but not fatal ones?
+  - why doesn't inline fn call work:  lambda(x){ printf("%d\n"); }()
 
 - check semantics of scope
 
