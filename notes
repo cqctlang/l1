@@ -1,3 +1,8 @@
+is typeof ptr-ptr sane?
+is ptr-ulong sane?
+if(nil) internal error
+string printing
+
 todo
 ----
 
