@@ -1,0 +1,5 @@
+ns = @names c32le {
+	@include "./x.names"
+};
+
+

@@ -4,6 +4,7 @@
 #include "code.h"
 
 #define HEAPPROF 0
+#define HEAPDEBUG 0
 
 typedef
 enum {
@@ -591,7 +592,8 @@ sweepheap(Heap *heap, unsigned color)
 		if(p->color == color){
 			if(heap->free1)
 				heap->free1(p);
-//printf("collect %s %p\n", heap->id, p); 
+			if(1 || HEAPDEBUG)
+				printf("collect %s %p\n", heap->id, p); 
 			if(p->state != 0 || p->inrootset)
 				fatal("sweep heap (%s) %p bad state %d",
 				      heap->id, p, p->state);
@@ -686,9 +688,11 @@ addroot(Rootset *rs, Head *h)
 
 	if(h == 0)
 		return;
-//printf("addroot %s %p %d %d\n",
-//       rs == &roots ? "roots" : "stores",
-//       h, h->inrootset, h->state);
+
+	if(HEAPDEBUG)
+		printf("addroot %s %p %d %d\n",
+		       rs == &roots ? "roots" : "stores",
+		       h, h->inrootset, h->state);
 
 	if(h->inrootset)
 		return;
@@ -723,7 +727,8 @@ removeroot(Rootset *rs)
 	r = rs->this;
 	rs->this = r->link;
 	h = r->hd;
-// printf("rmroot %p %d %d\n", h, h->inrootset, h->state);
+	if(HEAPDEBUG)
+		printf("rmroot %p %d %d\n", h, h->inrootset, h->state);
 	h->inrootset = 0;
 	x = h->state;
 	if(x > 2 || x <= 0)
