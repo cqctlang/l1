@@ -666,6 +666,20 @@ exprinc(Expr *e)
 		return newbinop(Eadd, ne, mkconst(Vuint, 1));
 }
 
+void
+freeenum(Enum *en)
+{
+	Enum *q;
+
+	while(en){
+		q = en->link;
+		free(en->id);
+		freeexpr(en->val);
+		free(en);
+		en = q;
+	}
+}
+
 static Enum*
 recenums(Type *t, Expr *e, Expr *val)
 {

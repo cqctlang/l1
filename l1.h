@@ -283,6 +283,7 @@ Expr* newbinop(unsigned, Expr*, Expr*);
 Expr* newgop(unsigned, Expr*, Expr*);
 Expr* mkconst(Cbase base, Imm val); /* rename newconst? */
 void freeexpr(Expr*);
+void freeenum(Enum *en);
 void freeexprx(Expr *e);
 Expr* invert(Expr*);
 Expr* nullelist();

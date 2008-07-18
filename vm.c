@@ -591,7 +591,7 @@ sweepheap(Heap *heap, unsigned color)
 		if(p->color == color){
 			if(heap->free1)
 				heap->free1(p);
-//			printf("collect %s %p\n", heap->id, p); 
+//printf("collect %s %p\n", heap->id, p); 
 			if(p->state != 0 || p->inrootset)
 				fatal("sweep heap (%s) %p bad state %d",
 				      heap->id, p, p->state);
@@ -599,10 +599,10 @@ sweepheap(Heap *heap, unsigned color)
 			heap->sweep = p;
 			p->state = -1;
 			p->color = GCfree;
-			if(heap->swept == 0){
-				heap->swept = heap->sweep;
-				heap->sweep = 0;
-			}
+//			if(heap->swept == 0){
+//				heap->swept = heap->sweep;
+//				heap->sweep = 0;
+//			}
 		}
 		p = p->alink;
 	}
@@ -684,12 +684,12 @@ addroot(Rootset *rs, Head *h)
 	Root *r;
 	int x;
 
+	if(h == 0)
+		return;
 //printf("addroot %s %p %d %d\n",
 //       rs == &roots ? "roots" : "stores",
 //       h, h->inrootset, h->state);
 
-	if(h == 0)
-		return;
 	if(h->inrootset)
 		return;
 
@@ -2197,8 +2197,8 @@ iterns(Head *hd, Ictx *ictx)
 {
 	Ns *ns;
 	unsigned n;
-	ns = (Ns*)hd;
 
+	ns = (Ns*)hd;
 	n = ictx->n++;
 	switch(n){
 	case 0:
@@ -2209,10 +2209,14 @@ iterns(Head *hd, Ictx *ictx)
 		return (Head*)ns->looksym;
 	case 3:
 		return (Head*)ns->looktype;
+	case 4:
+		return (Head*)ns->enumtype;
+	case 5:
+		return (Head*)ns->enumsym;
 	}
-	if(n >= 3+Vnbase) /* assume elements at+above nbase are aliases */
+	if(n >= 5+Vnbase) /* assume elements at+above nbase are aliases */
 		return GCiterdone;
-	return (Head*)ns->base[n-3];
+	return (Head*)ns->base[n-5];
 }
 
 Env*

@@ -1223,7 +1223,7 @@ freetype(Type *t)
 	free(t->tid);
 	free(t->tag);
 	freedecl(t->field);
-	/* freeenum(t->en); */
+	freeenum(t->en);
 	freedecl(t->param);
 	freeexpr(t->bitw);
 	freeexpr(t->bit0);
