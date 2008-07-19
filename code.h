@@ -188,6 +188,7 @@ struct Head {
 	Head *alink;
 	Head *link;
 	int state;		/* debugging */
+	char data[0];
 };
 
 struct Code {

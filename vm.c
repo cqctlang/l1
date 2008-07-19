@@ -580,6 +580,13 @@ retry:
 	
 	o->color = GCCOLOR(gcepoch);
 	heap->nha++;
+	if(HEAPDEBUG)
+		printf("alloc %p (%s)\n", o, heap->id);
+
+	// FIXME: only object types that do not initialize all fields
+	// (e.g., Xtypename) need to be cleared.  Perhaps add a bit
+	// to heap to select clearing.
+	memset(o->data, 0, heap->sz-sizeof(Head));
 	return o;
 }
 
@@ -592,7 +599,7 @@ sweepheap(Heap *heap, unsigned color)
 		if(p->color == color){
 			if(heap->free1)
 				heap->free1(p);
-			if(1 || HEAPDEBUG)
+			if(HEAPDEBUG)
 				printf("collect %s %p\n", heap->id, p); 
 			if(p->state != 0 || p->inrootset)
 				fatal("sweep heap (%s) %p bad state %d",
@@ -4600,9 +4607,6 @@ struct NSctx {
 
 static Xtypename* resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx);
 
-/* FIXME: in all this type resolution, updates to xtn->link are not GC safe;
-   consider allocating fresh type names as with dolooktype */
-
 static Xtypename*
 resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
 {
@@ -4746,10 +4750,11 @@ resolvebase(VM *vm, Val *xtnv, NSctx *ctx)
 static Xtypename*
 resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 {
-	Vec *vec;
+	Vec *vec, *pv;
 	Val v;
 	Xtypename *tmp;
 	Imm i;
+	Xtypename *new;
 
 	switch(xtn->tkind){
 	case Tbase:
@@ -4757,36 +4762,42 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		return resolvebase(vm, &v, ctx);
 	case Ttypedef:
 		mkvalxtn(xtn, &v);
-		xtn->link = resolvetid(vm, &v, ctx);
-		return xtn;
-	case Tbitfield:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		return xtn;
-	case Tconst:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		return xtn;
+		new = mkxtn();
+		*new = *xtn;
+		new->link = resolvetid(vm, &v, ctx);
+		return new;
 	case Tenum:
 	case Tstruct:
 	case Tunion:
 		mkvalxtn(xtn, &v);
 		return resolvetag(vm, &v, ctx);
+	case Tbitfield:
+	case Tconst:
 	case Tarr:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		return xtn;
 	case Tptr:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
-		xtn->rep = ctx->ptrrep;
-		return xtn;
+		new = mkxtn();
+		*new = *xtn;
+		new->link = resolvetypename(vm, xtn->link, ctx);
+		return new;
 	case Tfun:
-		xtn->link = resolvetypename(vm, xtn->link, ctx);
+		new = mkxtn();
+		*new = *xtn;
+		new->link = resolvetypename(vm, xtn->link, ctx);
+		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = valvec(vecref(xtn->param, i));
 			tmp = valxtn(vecref(vec, Typepos));
 			tmp = resolvetypename(vm, tmp, ctx);
+			pv = mkvec(2);
+
 			mkvalxtn(tmp, &v);
-			vecset(vm, vec, Typepos, &v); 
+			_vecset(pv, Typepos, &v);
+			_vecset(pv, Idpos, vecref(vec, Idpos));
+
+			mkvalvec(pv, &v);
+			_vecset(new->param, i, &v);
 		}
-		return xtn;
+		return new;
 	default:
 		fatal("bug");
 	}
