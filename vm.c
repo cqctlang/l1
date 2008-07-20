@@ -4763,7 +4763,8 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	case Ttypedef:
 		mkvalxtn(xtn, &v);
 		new = mkxtn();
-		*new = *xtn;
+		new->tkind = Ttypedef;
+		new->tid = xtn->tid;
 		new->link = resolvetid(vm, &v, ctx);
 		return new;
 	case Tenum:
@@ -4772,16 +4773,32 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		mkvalxtn(xtn, &v);
 		return resolvetag(vm, &v, ctx);
 	case Tbitfield:
+		new = mkxtn();
+		new->tkind = xtn->tkind;
+		new->bit0 = xtn->bit0;
+		new->sz = xtn->sz;
+		new->link = resolvetypename(vm, xtn->link, ctx);
+		return new;
 	case Tconst:
-	case Tarr:
+		new = mkxtn();
+		new->tkind = xtn->tkind;
+		new->link = resolvetypename(vm, xtn->link, ctx);
+		return new;
 	case Tptr:
 		new = mkxtn();
-		*new = *xtn;
+		new->tkind = xtn->tkind;
+		new->rep = ctx->ptrrep;
+		new->link = resolvetypename(vm, xtn->link, ctx);
+		return new;
+	case Tarr:
+		new = mkxtn();
+		new->tkind = xtn->tkind;
+		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		return new;
 	case Tfun:
 		new = mkxtn();
-		*new = *xtn;
+		new->tkind = Tfun;
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
