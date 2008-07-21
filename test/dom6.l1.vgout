@@ -1,0 +1,7 @@
+entry: 0 params, 6 locals, 0 temps
+p = 0
+q=p+3 = 18
+q-p = 3
+typeof(q-p) = long
+p = (ulong)p; q-p = 18
+typeof(q-p) = struct foo *

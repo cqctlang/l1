@@ -1,0 +1,20 @@
+ns = @names c32le {
+	struct foo {
+		@0x0 int x;
+		@0x8;
+	};
+	@0x0 struct foo foo;
+};
+
+as = mkabas();
+dom = mkdom(ns, as);
+
+p = &dom`foo;
+printf("p = %x\n", p);
+q = p+3;
+printf("q=p+3 = %x\n", q);
+printf("q-p = %x\n", q-p);
+printf("typeof(q-p) = %t\n", typeof(q-p));
+p = (unsigned long)p;
+printf("p = (ulong)p; q-p = %x\n", q-p);
+printf("typeof(q-p) = %t\n", typeof(q-p));
