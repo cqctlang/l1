@@ -6,12 +6,21 @@
 typedef struct Lambda Lambda;
 
 typedef
+struct Cases {
+	unsigned n, max;
+	Expr **cmp;
+	Ctl **ctl;
+	Ctl *dflt;
+} Cases;
+
+typedef
 struct CGEnv {
 	Lambda *b;
 	Ctl *Return;
 	Ctl *Return0;
 	Ctl *Break;
 	Ctl *Continue;
+	Cases *cases;
 } CGEnv;
 
 typedef
@@ -105,7 +114,7 @@ emitlabel(Ctl *ctl, Expr *e)
 
 	ctl->insn = code->ninsn;
 	if(code->labels[code->ninsn])
-		fatal("multiple labels %s,%s", ctl->label,
+		warn("multiple labels %s,%s", ctl->label,
 		      code->labels[code->ninsn]->label);
 	code->labels[code->ninsn] = ctl;
 	if(e && e->src.filename)
@@ -1552,6 +1561,63 @@ printframe(Expr *e)
 }
 
 static void
+recswitchctl(Expr *e, Code *code, Cases *cs)
+{
+	if(e == 0)
+		return;
+	switch(e->kind){
+	case Elambda:
+	case Eswitch:
+		return;
+	case Ecase:
+		if(cs->n >= cs->max){
+			cs->cmp = xrealloc(cs->cmp,
+					   cs->max*sizeof(Expr),
+					   2*cs->max*sizeof(Expr));
+			cs->ctl = xrealloc(cs->ctl,
+					   cs->max*sizeof(Expr),
+					   2*cs->max*sizeof(Expr));
+			cs->max *= 2;
+		}
+		cs->cmp[cs->n] = e->e1;
+		cs->ctl[cs->n] = genlabel(code, 0);
+		cs->n++;
+		break;
+	case Edefault:
+		if(cs->dflt)
+			fatal("too many default cases in switch");
+		cs->dflt = genlabel(code, 0);
+		break;
+	default:
+		recswitchctl(e->e1, code, cs);
+		recswitchctl(e->e2, code, cs);
+		recswitchctl(e->e3, code, cs);
+		recswitchctl(e->e4, code, cs);
+		break;
+	}
+}
+
+static Cases*
+switchctl(Expr *e, Code *code)
+{
+	Cases *cs;
+	cs = xmalloc(sizeof(Cases));
+	cs->max = 128;
+	cs->cmp = xmalloc(cs->max*sizeof(Expr*));
+	cs->ctl = xmalloc(cs->max*sizeof(Expr*));
+	recswitchctl(e, code, cs);
+	return cs;
+}
+
+static void
+freeswitchctl(Cases *cs)
+{
+	free(cs->cmp);
+	free(cs->ctl);
+	free(cs);
+}
+
+static void
 randloc(Operand *rand, Location* loc)
 {
 	rand->okind = Oloc;
@@ -2365,6 +2431,63 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cg(e->e2, code, p, AC, lpair, Ltest, nxt, tmp);
 		}else
 			cg(e->e2, code, p, AC, lpair, Lbody, nxt, tmp);
+		break;
+	case Eswitch:
+		np = *p;
+		np.Break = ctl;
+		np.cases = switchctl(e->e2, code);
+
+		/* operand expression (expect form $tmp = e) */
+		L0 = genlabel(code, 0);
+		cg(e->e1, code, &np, Effect, L0, prv, L0, tmp);
+		emitlabel(L0, e->e2);
+		
+		/* case comparisons (expect form $tmp == v) */
+		for(m = 0; m < np.cases->n; m++){
+			Lthen = np.cases->ctl[m];
+			Lelse = genlabel(code, 0);
+			lpair = genlabelpair(code, Lthen, Lelse);
+			cg(np.cases->cmp[m], code, &np, AC,
+			   lpair, L0, Lelse, tmp);
+			emitlabel(Lelse, e->e2);
+			L0 = Lelse;
+		}
+		if(np.cases->dflt)
+			cgjmp(code, &np, np.cases->dflt, np.cases->ctl[0]);
+		else
+			cgjmp(code, &np, ctl, np.cases->ctl[0]);
+		cg(e->e2, code, &np, Effect, ctl, np.cases->ctl[0], nxt, tmp);
+
+		freeswitchctl(np.cases);
+		np.cases = 0;
+		break;
+	case Ecase:
+		if(p->cases == 0)
+			fatal("case label with no switch");
+		for(m = 0; m < p->cases->n; m++)
+			if(p->cases->cmp[m] == e->e1){
+				emitlabel(p->cases->ctl[m], e);
+				i = nextinsn(code);
+				i->kind = Inop;
+				cg(e->e2, code, p, Effect, ctl,
+				   p->cases->ctl[m],
+				   nxt, tmp);
+				break;
+			}
+		cgctl(code, p, ctl, nxt);
+		break;
+	case Edefault:
+		if(p->cases == 0)
+			fatal("default label with no switch");
+		if(p->cases->dflt){
+			emitlabel(p->cases->dflt, e);
+			i = nextinsn(code);
+			i->kind = Inop;
+			cg(e->e1, code, p, Effect, ctl,
+			   p->cases->dflt,
+			   nxt, tmp);
+		}
+		cgctl(code, p, ctl, nxt);
 		break;
 	default:
 		fatal("cg undefined for expression %d", e->kind);

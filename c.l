@@ -34,8 +34,10 @@ static int chars(int);
 "@local"		{ count(); return(LOCAL); }
 "@names"		{ count(); return(NAMES); }
 "break"			{ count(); return(BREAK); }
+"case"			{ count(); return(CASE); }
 "char"			{ count(); return(CHAR); }
 "continue"		{ count(); return(CONTINUE); }
+"default"		{ count(); return(DEFAULT); }
 "define"		{ count(); return(DEFINE); }
 "do"			{ count(); return(DO); }
 "double"		{ count(); return(DOUBLE); }

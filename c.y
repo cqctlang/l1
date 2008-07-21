@@ -30,7 +30,7 @@ extern char *yytext;
 %token LOCAL LAMBDA NAMES
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
-%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN
+%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -50,7 +50,7 @@ extern char *yytext;
 %type <expr> parameter_type_list parameter_list parameter_declaration
 %type <expr> abstract_declarator direct_abstract_declarator statement
 %type <expr> compound_statement statement_list
-%type <expr> expression_statement define_statement
+%type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
 %type <expr> type_name tn_type_specifier tn_struct_or_union_specifier
 %type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
@@ -719,6 +719,7 @@ statement
 	| iteration_statement
 	| jump_statement
 	| define_statement
+	| labeled_statement
 	;
 
 local
@@ -763,6 +764,16 @@ selection_statement
 	{ $$ = newexpr(Eif, $3, $5, 0, 0); }
 	| IF '(' expression ')' statement ELSE statement
 	{ $$ = newexpr(Eif, $3, $5, $7, 0); }
+	| SWITCH '(' expression ')' compound_statement
+	/* note: C permits body of switch to be a statement */
+	{ $$ = newexpr(Eswitch, $3, $5, 0, 0); }
+	;
+
+labeled_statement
+	: CASE expression ':' statement
+	  { $$ = newexpr(Ecase, $2, $4, NULL, NULL); }
+	| DEFAULT ':' statement
+	  { $$ = newexpr(Edefault, $3, NULL, NULL, NULL); }
 	;
 
 maybe_expression

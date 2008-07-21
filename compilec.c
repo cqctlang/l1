@@ -432,33 +432,116 @@ compile_rval(Expr *e, unsigned lfree)
 	}
 }
 
+/* expand syntax of various C forms for subsequent stages */
+static Expr*
+expandc(Expr *e)
+{
+	Expr *se;
+
+	if(e == 0)
+		return e;
+	switch(e->kind){
+	case Earef: /* for compile_rval */
+		/* rewrite: E1[E2] => *(E1+E2) */
+		se = newexpr(Ederef, 
+			     Zadd(expandc(e->e1), expandc(e->e2)),
+			     0, 0, 0);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Earrow: /* for compile_rval */
+		/* rewrite: E->field => (*E).field */
+		se = newexpr(Edot,
+			     newexpr(Ederef, expandc(e->e1), 0, 0, 0),
+			     e->e2, 0, 0);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Eswitch: /* for cg */
+		/*
+		   switch(E){       { @local $tmp;
+		   case V1:     =>    switch($tmp == E){
+		      ...             case $tmp==V1:
+		   }                      ...
+                                      }
+                                    }
+		*/ 
+		se = Zblock(Zlocals(1, "$tmp"),
+			   newexpr(Eswitch,
+				   Zset(doid("$tmp"), expandc(e->e1)),
+				   expandc(e->e2), 0, 0),
+			   NULL);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Ecase:
+		se = newexpr(Ecase,
+			     Zbinop(Eeq, doid("$tmp"), expandc(e->e1)),
+			     expandc(e->e2), 0, 0);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	default:
+		e->e1 = expandc(e->e1);
+		e->e2 = expandc(e->e2);
+		e->e3 = expandc(e->e3);
+		e->e4 = expandc(e->e4);
+		return e;
+	}
+}
+
+#if 0
 static void
-expandptr(Expr *e)
+expandc(Expr *e)
 {
 	if(e == 0)
 		return;
 	switch(e->kind){
-	case Earef:
+	case Earef: /* for compile_rval */
 		/* rewrite: E1[E2] => *(E1+E2) */
-		expandptr(e->e1);
-		expandptr(e->e2);
+		expandc(e->e1);
+		expandc(e->e2);
 		e->kind = Ederef;
 		e->e1 = Zadd(e->e1, e->e2);
 		e->e2 = 0;
 		break;
-	case Earrow:
+	case Earrow: /* for compile_rval */
 		/* rewrite: E->field => (*E).field */
-		expandptr(e->e1);
+		expandc(e->e1);
 		e->kind = Edot;
 		e->e1 = newexpr(Ederef, e->e1, 0, 0, 0);
 		break;
+	case Eswitch: /* for cg */
+		/*
+		   switch(E){       { @local $tmp;
+		   case V1:     =>    switch($tmp == E){
+		      ...             case $tmp==V1:
+		   }                      ...
+                                      }
+                                    }
+		*/ 
+		expandc(e->e1);
+		expandc(e->e2);
+		e->kind = Eblock;
+		e->
+		e = Zblock(Zlocals(1, "$tmp"),
+			   newexpr(Eswitch,
+				   Zbinop(Eeq, doid("$tmp"), e->e1),
+				   e->e2, 0, 0),
+			   NULL);
+		break;
 	default:
-		expandptr(e->e1);
-		expandptr(e->e2);
-		expandptr(e->e3);
-		expandptr(e->e4);
+		expandc(e->e1);
+		expandc(e->e2);
+		expandc(e->e3);
+		expandc(e->e4);
 	}
 }
+#endif
 
 Expr*
 docompilec(Expr *e)
@@ -466,7 +549,7 @@ docompilec(Expr *e)
 	Expr *rv;
 	if(setjmp(esc) != 0)
 		return 0;	/* error */
-	expandptr(e);
+	e = expandc(e);
 	rv = compile_rval(e, 0);
 	return rv;
 }

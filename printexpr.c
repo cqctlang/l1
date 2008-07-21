@@ -32,6 +32,7 @@ char* S[] = {
 	[Ebreak] =	"Ebreak",
 	[Ebxor] =	"Ebxor",
 	[Ecall] =	"Ecall",
+	[Ecase] =	"Ecase",
 	[Ecast] =	"Ecast",
 	[Ecomma] =	"Ecomma",
 	[Econd] =	"Econd",
@@ -40,6 +41,7 @@ char* S[] = {
 	[Econtinue] =	"Econtinue",
 	[Edecl] =	"Edecl",
 	[Edecls] =	"Edecls",
+	[Edefault] =	"Edefault",
 	[Edefine] =	"Edefine",
 	[Ederef] =	"Ederef",
 	[Ediv] =	"Ediv",
@@ -85,6 +87,7 @@ char* S[] = {
 	[Esizeoft] =	"Esizeoft",
 	[Estruct] =	"Estruct",
 	[Esub] =	"Esub",
+	[Eswitch] =	"Eswitch",
 	[Etick] = 	"Etick",
 	[Etid] = 	"Etid",
 	[Etypedef] =	"Etypedef",
@@ -424,9 +427,37 @@ printcqct0(Expr *e, unsigned ni)
 		printf("@names ...");
 		break;
 	case Eelist:
-		indent(ni); printcqct0(e->e1, ni);
-		printf(";\n");
+		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
+			indent(ni-1);
+		else
+			indent(ni);
+		printcqct0(e->e1, ni);
+		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
+			printf("\n");
+		else
+			printf(";\n");
 		printcqct0(e->e2, ni);
+		break;
+	case Eswitch:
+		printf("switch(");
+		printcqct0(e->e1, ni);
+		printf(")");
+		printcqct0(e->e2, ni);
+		break;
+	case Edefault:
+		printf("default:\n");
+		indent(ni); printcqct0(e->e1, ni);
+		printf(";");
+		break;
+	case Ecase:
+		printf("case ");
+		printcqct0(e->e1, ni);
+		printf(":\n");
+		indent(ni); printcqct0(e->e2, ni);
+		printf(";");
+		break;
+	case Ebreak:
+		printf("break");
 		break;
 	case Efor:
 		printf("for(");

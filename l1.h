@@ -39,6 +39,7 @@ enum{
 	Ebreak,
 	Ebxor,
 	Ecall,
+	Ecase,
 	Ecast,
 	Ecomma,
 	Econd,
@@ -47,6 +48,7 @@ enum{
 	Econtinue,
 	Edecl,			/* type specifier + 1 declarator */
 	Edecls,			/* type specifier + list of declarators */
+	Edefault,
 	Edefine,
 	Ederef,
 	Ediv,
@@ -93,6 +95,7 @@ enum{
 	Esizeoft,
 	Estruct,
 	Esub,
+	Eswitch,
 	Etick,
 	Etid,
 	Etypedef,
