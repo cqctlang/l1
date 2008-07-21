@@ -1926,7 +1926,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Egop:
 		if(e->e1->kind != Eid)
-			fatal("assignment to non-variable");
+			fatal("bug");
 		varloc(&dst, e->e1);
 		randloc(&r1, &dst);
 		L0 = genlabel(code, 0);
@@ -1948,7 +1948,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Epreinc:
 	case Epredec:
 		if(e->e1->kind != Eid)
-			fatal("assignment to non-variable");
+			fatal("bug");
 		varloc(&dst, e->e1);
 		randloc(&r1, &dst);
 		randliti(&r2, 1, Vint);
@@ -1967,7 +1967,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Epostinc:
 	case Epostdec:
 		if(e->e1->kind != Eid)
-			fatal("assignment to non-variable");
+			fatal("bug");
 		varloc(&dst, e->e1);
 		randloc(&r1, &dst);
 		randliti(&r2, 1, Vint);

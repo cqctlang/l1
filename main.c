@@ -115,78 +115,74 @@ main(int argc, char *argv[])
 		if(setvbuf(stdin, 0, _IONBF, 0))
 			fatal("cannot clear stdin buffering");
 
-repl:
-	inbuf = 0;
-	if(dorepl){
-		printf("; ");
-		fflush(stdout);
-		inbuf = readexpr(&len);
-		if(inbuf == 0)
-			goto out;
-	}
-
-	if(0 > doparse(filename, inbuf)){
-		if(dorepl)
-			goto repl;
-		else
-			goto out;
-	}
-
-	if(flags['p']){
-		printf("source:\n");
-		printexpr(ctx.el);
-		printf("\n");
-	}
-
-	dotypes(ctx.el);
-	rv = docompilec(ctx.el);
-	if(rv == 0){
-		freeexpr(ctx.el);
-		goto out;
-	}
-	ctx.el = rv;
-	if(0 > docompile0(ctx.el)){
-		freeexpr(ctx.el);
-		goto out;
-	}
-	if(flags['p']){
-		printf("compile0:\n");
-		printexpr(ctx.el);
-		printf("\n");
-	}
-
-	if(flags['q']){
-		printf("transformed source:\n");
-		printcqct(ctx.el);
-		printf("\n");
-	}
-
-	if(flags['c']){
-		entry = compileentry(ctx.el, env);
-		if(flags['x']){
-			if(flags['t'])
-				gettimeofday(&beg, 0);
-			if(!waserror(vm)){
-				dovm(vm, entry, 0, 0);
-				if(flags['t']){
-					gettimeofday(&end, 0);
-					tvdiff(&end, &beg, &end);
-					printf("%lu usec\n",
-					       1000000*end.tv_sec+end.tv_usec);
-				}
-				poperror(vm);
-			}else
-				vmreset(vm);
+	do{
+		inbuf = 0;
+		if(dorepl){
+			printf("; ");
+			fflush(stdout);
+			inbuf = readexpr(&len);
+			if(inbuf == 0)
+				break;
 		}
-	}else
-		freeexpr(ctx.el);
 
-	if(dorepl && flags['x']){
-		printvmac(vm);
-		printf("\n");
-		goto repl;
-	}
+		if(0 > doparse(filename, inbuf))
+			continue;
 
+		if(flags['p']){
+			printf("source:\n");
+			printexpr(ctx.el);
+			printf("\n");
+		}
+
+		dotypes(ctx.el);
+		rv = docompilec(ctx.el);
+		if(rv == 0){
+			freeexpr(ctx.el);
+			continue;
+		}
+		ctx.el = rv;
+		if(0 > docompile0(ctx.el)){
+			freeexpr(ctx.el);
+			continue;
+		}
+		if(flags['p']){
+			printf("compile0:\n");
+			printexpr(ctx.el);
+			printf("\n");
+		}
+
+		if(flags['q']){
+			printf("transformed source:\n");
+			printcqct(ctx.el);
+			printf("\n");
+		}
+
+		if(flags['c']){
+			entry = compileentry(ctx.el, env);
+			if(flags['x']){
+				if(flags['t'])
+					gettimeofday(&beg, 0);
+				if(!waserror(vm)){
+					dovm(vm, entry, 0, 0);
+					if(flags['t']){
+						gettimeofday(&end, 0);
+						tvdiff(&end, &beg, &end);
+						printf("%lu usec\n",
+						       1000000*end.tv_sec
+						       +end.tv_usec);
+					}
+					poperror(vm);
+				}else
+					vmreset(vm);
+			}
+		}else
+			freeexpr(ctx.el);
+
+		if(dorepl && flags['x']){
+			printvmac(vm);
+			printf("\n");
+		}
+	}while(dorepl);
 out:
 	freeenv(env);
 	if(flags['x']){
