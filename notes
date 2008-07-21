@@ -7,8 +7,8 @@ todo
 ----
 
 - core functionality
-  - bitfields
-  - enums
+  - typeof(dom`enumconst)
+  - typeof(struct dom`x.bitfield)?
   - incomplete types
   - void types
 

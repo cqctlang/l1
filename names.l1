@@ -1,5 +1,6 @@
 ns = @names c32le {
 	@include "./x.names"
 };
+dom = mkdom(ns, mkabas());
 
-
+printf("%d\n", sizeof(struct dom`Elf));

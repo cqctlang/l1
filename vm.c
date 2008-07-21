@@ -4602,6 +4602,7 @@ struct NSctx {
 	Tab *otype, *osym;	/* bindings passed to @names */
 	Tab *rawtype, *rawsym;	/* @names declarations */
 	Tab *type, *sym;	/* resulting bindings */
+	Tab *undef, *undefptr;	/* undefined names */
 	Rkind ptrrep;		/* pointer representation */
 } NSctx;
 
@@ -4641,9 +4642,7 @@ resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
 		return valxtn(rv);
 	}
 
-	/* FIXME: should warn if only need ptr to type */
-	xtn = valxtn(xtnv);
-	vmerr(vm, "undefined type %.*s", xtn->tid->len, xtn->tid->s);
+	return 0;
 }
 
 static Xtypename*
@@ -4684,15 +4683,18 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 				vp = vecref(vec, Typepos);
 				tmp = valxtn(vp);
 				tmp = resolvetypename(vm, tmp, ctx);
-				fv = mkvec(3);
-			
-				mkvalxtn(tmp, &v);
-				_vecset(fv, Typepos, &v);
-				_vecset(fv, Idpos, vecref(vec, 1));
-				_vecset(fv, Offpos, vecref(vec, 2));
-			
-				mkvalvec(fv, &v);
-				_vecset(new->field, i, &v);
+				if(tmp == 0){
+					tabput(vm, ctx->undef, vp, vp);
+					return 0;
+				}else{
+					fv = mkvec(3);
+					mkvalxtn(tmp, &v);
+					_vecset(fv, Typepos, &v);
+					_vecset(fv, Idpos, vecref(vec, 1));
+					_vecset(fv, Offpos, vecref(vec, 2));
+					mkvalvec(fv, &v);
+					_vecset(new->field, i, &v);
+				}
 			}
 			return new;
 		case Tenum:
@@ -4704,6 +4706,10 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 			mkvalxtn(new, &v);
 			tabput(vm, ctx->type, xtnv, &v);
 			new->link = resolvetypename(vm, xtn->link, ctx);
+			if(new->link == 0){
+				mkvalxtn(new, &v);
+				tabput(vm, ctx->undef, &v, &v);
+			}
 			return new;
 		default:
 			/* FIXME: print name of type */
@@ -4719,10 +4725,7 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 		return valxtn(rv);
 	}
 
-	/* FIXME: warn if only need ptr to type */
-	xtn = valxtn(xtnv);
-	vmerr(vm, "undefined type %s %.*s", tkindstr[xtn->tkind], 
-	      xtn->tag->len, xtn->tag->s);
+	return 0;
 }
 
 static Xtypename*
@@ -4766,53 +4769,87 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->tkind = Ttypedef;
 		new->tid = xtn->tid;
 		new->link = resolvetid(vm, &v, ctx);
+		if(new->link == 0)
+			return 0;
 		return new;
 	case Tenum:
 	case Tstruct:
 	case Tunion:
 		mkvalxtn(xtn, &v);
-		return resolvetag(vm, &v, ctx);
+		new = resolvetag(vm, &v, ctx);
+		if(new == 0)
+			return 0;
+		return new;
 	case Tbitfield:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->bit0 = xtn->bit0;
 		new->sz = xtn->sz;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->link == 0){
+			mkvalxtn(xtn->link, &v);
+			tabput(vm, ctx->undef, &v, &v);
+			return 0;
+		}
 		return new;
 	case Tconst:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->link == 0){
+			mkvalxtn(xtn->link, &v);
+			tabput(vm, ctx->undef, &v, &v);
+			return 0;
+		}
 		return new;
 	case Tptr:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->rep = ctx->ptrrep;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->link == 0){
+			mkvalxtn(xtn->link, &v);
+			tabput(vm, ctx->undefptr, &v, &v);
+		}
 		return new;
 	case Tarr:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->link == 0){
+			mkvalxtn(xtn->link, &v);
+			tabput(vm, ctx->undef, &v, &v);
+			return 0;
+		}
 		return new;
 	case Tfun:
 		new = mkxtn();
 		new->tkind = Tfun;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->link == 0){
+			mkvalxtn(xtn->link, &v);
+			tabput(vm, ctx->undef, &v, &v);
+			return 0;
+		}
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = valvec(vecref(xtn->param, i));
 			tmp = valxtn(vecref(vec, Typepos));
 			tmp = resolvetypename(vm, tmp, ctx);
-			pv = mkvec(2);
-
-			mkvalxtn(tmp, &v);
-			_vecset(pv, Typepos, &v);
-			_vecset(pv, Idpos, vecref(vec, Idpos));
-
-			mkvalvec(pv, &v);
-			_vecset(new->param, i, &v);
+			if(tmp == 0){
+				tabput(vm, ctx->undef,
+				       vecref(vec, Typepos),
+				       vecref(vec, Typepos));
+				return 0;
+			}else{
+				pv = mkvec(2);
+				mkvalxtn(tmp, &v);
+				_vecset(pv, Typepos, &v);
+				_vecset(pv, Idpos, vecref(vec, Idpos));
+				mkvalvec(pv, &v);
+				_vecset(new->param, i, &v);
+			}
 		}
 		return new;
 	default:
@@ -4849,6 +4886,8 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	NSctx ctx;
 	u32 i;
 	Ns *ons, *ns;
+	Imm m;
+	Str *as;
 
 	getvalrand(vm, invec, &v);
 	vec = valvec(&v);
@@ -4863,6 +4902,8 @@ xns(VM *vm, Operand *invec, Operand *dst)
 
 	ctx.type = mktab();
 	ctx.sym = mktab();
+	ctx.undef = mktab();
+	ctx.undefptr = mktab();
 
 	ctx.otype = valtab(dovm(vm, ons->enumtype, 0, 0));
 	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
@@ -4900,9 +4941,11 @@ xns(VM *vm, Operand *invec, Operand *dst)
 			vec = valvec(vecv);
 			xtn = valxtn(vecref(vec, Typepos));
 			xtn = resolvetypename(vm, xtn, &ctx);
-			mkvalxtn(xtn, &v);
-			vecset(vm, vec, Typepos, &v); /* reuse source vec */
-			tabput(vm, ctx.sym, idv, vecv);
+			if(xtn != 0){
+				mkvalxtn(xtn, &v);
+				vecset(vm, vec, Typepos, &v); /* reuse vec */
+				tabput(vm, ctx.sym, idv, vecv);
+			}
 			tk = tk->link;
 		}
 	}
@@ -4927,6 +4970,35 @@ xns(VM *vm, Operand *invec, Operand *dst)
 				tabput(vm, ctx.sym, vp, &x->val[tk->idx]);
 			tk = tk->link;
 		}
+	}
+
+	vec = tabenum(ctx.undefptr);
+	m = vec->len/2;
+	if(m > 0){
+		printf("warning: name space contains pointers to undefined "
+		       "type%s:\n", m > 1 ? "s" : "");
+		while(m != 0){
+			m--;
+			vp = vecref(vec, m);
+			xtn = valxtn(vp);
+			as = fmtxtn(xtn);
+			printf("\t%.*s\n", as->len, as->s);
+		}
+	}
+
+	vec = tabenum(ctx.undef);
+	m = vec->len/2;
+	if(m > 0){
+		printf("warning: name space contains undefined "
+		       "type%s:\n", m > 1 ? "s" : "");
+		while(m != 0){
+			m--;
+			vp = vecref(vec, m);
+			xtn = valxtn(vp);
+			as = fmtxtn(xtn);
+			printf("\t%.*s\n", as->len, as->s);
+		}
+		vmerr(vm, "cannot resolve name space");
 	}
 
 	ns = mknstab(ctx.type, ctx.sym);
@@ -7132,6 +7204,16 @@ l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 	mkvalxtn(t, rv);
 }
 
+static void
+l1_mkabas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	As *as;
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkabas");
+	as = mkabas();
+	mkvalas(as, rv);
+}
+
 typedef
 struct NSroot {
 	Rkind base[Vnbase];
@@ -7417,6 +7499,7 @@ mkvm(Env *env)
 	FN(tabkeys);
 	FN(tabvals);
 	FN(vmbacktrace);
+	FN(mkabas);
 
 	FN(isbase);
 	FN(issu);
