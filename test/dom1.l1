@@ -30,7 +30,7 @@ define mkzas(len){
 			return;
 		}
 
-		printf("bad argument to dispatch!\n");
+		printf("bad argument to dispatch: %s!\n", arg);
 	}
 	return mkas(dispatch);
 }

@@ -5970,24 +5970,33 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	}
 }
 
-/* CV is a char* or uchar* pointer */
+static int
+isstrcval(Cval *cv)
+{
+	Xtypename *t;
+	t = chasetype(cv->type);
+	if(t->tkind != Tptr)
+		return 0;
+	t = chasetype(t->link);
+	if(t->tkind != Tbase)
+		return 0;
+	if(t->basename != Vchar && t->basename != Vuchar)
+		return 0;
+	return 1;
+}
+
+/* assume CV has been vetted by isstrcval */
 static Str*
 stringof(VM *vm, Cval *cv)
 {
 	Str *s;
 	char *buf, *q;
-	Xtypename *t;
 	Val *p, *rp, argv[2];
 	Vec *v;
 	Range *r;
 	Imm l, m, n, o;
 	static unsigned unit = 128;
 	
-	t = chasetype(cv->type);
-	if(t->tkind != Tbase ||
-	   (t->basename != Vchar && t->basename != Vuchar))
-		vmerr(vm, "operand 1 to stringof must be a char* cvalue");
-
 	mkvalstr(vm->smap, &argv[0]);
 	p = dovm(vm, cv->dom->as->dispatch, 1, argv);
 	if(p->qkind != Qvec)
@@ -6014,7 +6023,7 @@ stringof(VM *vm, Cval *cv)
 	m = r->beg->val+r->len->val-cv->val;
 	o = cv->val;
 	buf = 0;
-	while(o > 0){
+	while(m > 0){
 		n = MIN(m, unit);
 		if(buf == 0)
 			buf = xmalloc(unit);
@@ -6107,10 +6116,7 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 				as = valstr(vp);
 			else if(vp->qkind == Qcval){
 				cv = valcval(vp);
-				xtn = chasetype(cv->type);
-				if(xtn->tkind != Tbase ||
-				   (xtn->basename != Vchar
-				    && xtn->basename != Vuchar))
+				if(!isstrcval(cv))
 					goto badarg;
 				as = stringof(vm, cv);
 			}else
@@ -7703,7 +7709,7 @@ mkvm(Env *env)
 	builtindom(env, "litdom", vm->litdom);
 	vm->sget = mkstr0("get");
 	vm->sput = mkstr0("put");
-	vm->sput = mkstr0("map");
+	vm->smap = mkstr0("map");
 
 	vmp = vms;
 	while(*vmp){
