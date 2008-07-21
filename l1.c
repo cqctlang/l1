@@ -327,17 +327,6 @@ isoctdigit(int c)
 	return ('0' <= c) && (c <= '7');
 }
 
-static int
-strnchr(char *s, int c, unsigned long len)
-{
-	char *e;
-	e = s+len;
-	while(s < e)
-		if(*s++ == c)
-			return 1;
-	return 0;
-}
-
 Expr*
 doconst(char *s, unsigned long len)
 {

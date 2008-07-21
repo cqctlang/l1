@@ -15,6 +15,7 @@ char* xstrndup(char *s, unsigned long len);
 void* xmalloc(size_t size);
 void* xrealloc(void *p, size_t old, size_t new);
 void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);
+char* strnchr(char *s, int c, unsigned long len);
 
 typedef void(Faulthook)();
 void setfaulthook(Faulthook *h);

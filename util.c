@@ -108,3 +108,17 @@ tvdiff(struct timeval *a, struct timeval *b, struct timeval *c)
                 c->tv_usec += 1000000;
         }
 }
+
+char*
+strnchr(char *s, int c, unsigned long len)
+{
+	char *e;
+	e = s+len;
+	while(s < e){
+		if(*s == c)
+			return s;
+		s++;
+	}
+	return 0;
+}
+

@@ -324,5 +324,8 @@ int bitfieldgeom(BFgeom *bfg);
 Imm bitfieldget(char *s, BFgeom *bfg);
 Imm bitfieldput(char *s, BFgeom *bfg, Imm val);
 
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define MIN(a,b) ((a)<(b)?(a):(b))
+
 #endif /* _BISONFLAW_L1_H_ */
 

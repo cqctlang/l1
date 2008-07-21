@@ -337,7 +337,7 @@ struct VM {
 	Dom *litdom;
 	Ns *litns;
 	Xtypename **litbase;	/* always points to litns->base */
-	Str *sget, *sput;	/* cached dispatch operands */
+	Str *sget, *sput, *smap;/* cached dispatch operands */
 	Root **prot;		/* stack of lists of GC-protected objects */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
@@ -824,6 +824,7 @@ rootset(VM *vm)
 	addroot(&roots, (Head*)vm->litdom); /* assume vm->litns in litdom */
 	addroot(&roots, (Head*)vm->sget);
 	addroot(&roots, (Head*)vm->sput);
+	addroot(&roots, (Head*)vm->smap);
 
 	/* current GC-protected objects */
 	for(m = 0; m < vm->pdepth; m++){
@@ -3394,6 +3395,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 			      "zero-sized objects");
 		n = (op1->val-op2->val)/sz;
 		n = truncimm(n, t1->rep);
+		/* FIXME: define ptrdiff_t? */
 		return mkcval(vm->litdom, vm->litbase[Vlong], n);
 	}
 
@@ -5968,6 +5970,78 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	}
 }
 
+/* CV is a char* or uchar* pointer */
+static Str*
+stringof(VM *vm, Cval *cv)
+{
+	Str *s;
+	char *buf, *q;
+	Xtypename *t;
+	Val *p, *rp, argv[2];
+	Vec *v;
+	Range *r;
+	Imm l, m, n, o;
+	static unsigned unit = 128;
+	
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase ||
+	   (t->basename != Vchar && t->basename != Vuchar))
+		vmerr(vm, "operand 1 to stringof must be a char* cvalue");
+
+	mkvalstr(vm->smap, &argv[0]);
+	p = dovm(vm, cv->dom->as->dispatch, 1, argv);
+	if(p->qkind != Qvec)
+		vmerr(vm, "address space map returned invalid value");
+
+	/* FIXME: turn this into function mapstab or somesuch */
+	v = valvec(p);
+	for(m = 0; m < v->len; m++){
+		rp = vecref(v, m);
+		if(rp->qkind != Qrange)
+			vmerr(vm, "address space map returned invalid value");
+		r = valrange(rp);
+		/* FIXME: we assume compare w/o cast/rerep is okay */
+		if(r->beg->val > cv->val)
+			continue;
+		if(r->beg->val+r->len->val <= cv->val)
+			r = 0;
+		break;
+	}
+	if(r == 0)
+		vmerr(vm, "out-of-bounds address space access");
+
+	l = 0;
+	m = r->beg->val+r->len->val-cv->val;
+	o = cv->val;
+	buf = 0;
+	while(o > 0){
+		n = MIN(m, unit);
+		if(buf == 0)
+			buf = xmalloc(unit);
+		else
+			buf = xrealloc(buf, l, l+n);
+		mkvalstr(vm->sget, &argv[0]);
+		r = mkrange(mkcval(cv->dom, cv->dom->ns->base[Vptr], o),
+			    mkcval(cv->dom, cv->dom->ns->base[Vptr], n));
+		gcprotect(vm, r);
+		mkvalrange2(r, &argv[1]);
+		p = dovm(vm, cv->dom->as->dispatch, 2, argv);
+		s = valstr(p);
+		memcpy(buf+l, s->s, s->len);
+		q = strnchr(buf+l, '\0', s->len);
+		if(q){
+			l += q-buf+l;
+			break;
+		}
+		l += s->len;
+		o += s->len;
+		m -= s->len;
+	}
+	s = mkstr(buf, l);	/* FIXME: mkstr copies buf; should steal */
+	free(buf);
+	return s;
+}
+
 static void
 l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -5979,6 +6053,7 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 	FILE *fp = stdout;
 	Xtypename *xtn;
 	Vec *dvec;
+	char c;
 
 	if(argc < 1)
 		vmerr(vm, "wrong number of arguments to printf");
@@ -6006,6 +6081,16 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 		case 'a':
 			printval(vp);
 			break;
+		case 'c':
+			if(vp->qkind != Qcval)
+				goto badarg;
+			cv = valcval(vp);
+			c = cv->val;
+			if(isgraph(c) || isspace(c))
+				fprintf(fp, "%c", c);
+			else
+				fprintf(fp, "\\%.3o", c);
+			break;
 		case 'd':
 		case 'i':
 		case 'o':
@@ -6018,9 +6103,18 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			fprinticval(fp, ch, cv);
 			break;
 		case 's':
-			if(vp->qkind != Qstr)
+			if(vp->qkind == Qstr)
+				as = valstr(vp);
+			else if(vp->qkind == Qcval){
+				cv = valcval(vp);
+				xtn = chasetype(cv->type);
+				if(xtn->tkind != Tbase ||
+				   (xtn->basename != Vchar
+				    && xtn->basename != Vuchar))
+					goto badarg;
+				as = stringof(vm, cv);
+			}else
 				goto badarg;
-			as = valstr(vp);
 			fprintf(fp, "%.*s", as->len, as->s);
 			break;
 		case 't':
@@ -7062,6 +7156,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 
 		/* get contents of bitfield container */
 		mkvalstr(vm->sget, &argv[0]);
+		/* FIXME: why litbase[Vptr]; why not d->ns->base[Vptr] ? */
 		r = mkrange(mkcval(vm->litdom, vm->litbase[Vptr], bfg.addr),
 			    mkcval(vm->litdom, vm->litbase[Vptr], bfg.cnt));
 		gcprotect(vm, r);
@@ -7212,6 +7307,26 @@ l1_mkabas(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkabas");
 	as = mkabas();
 	mkvalas(as, rv);
+}
+
+static void
+l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *s;
+	Cval *cv;
+	Xtypename *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stringof");
+	checkarg(vm, "stringof", argv, 0, Qcval);
+	cv = valcval(&argv[0]);
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase ||
+	   (t->basename != Vchar && t->basename != Vuchar))
+		vmerr(vm, "operand 1 to stringof must be a char* cvalue");
+
+	s = stringof(vm, cv);
+	mkvalstr(s, rv);
 }
 
 typedef
@@ -7500,6 +7615,7 @@ mkvm(Env *env)
 	FN(tabvals);
 	FN(vmbacktrace);
 	FN(mkabas);
+	FN(stringof);
 
 	FN(isbase);
 	FN(issu);
@@ -7587,6 +7703,7 @@ mkvm(Env *env)
 	builtindom(env, "litdom", vm->litdom);
 	vm->sget = mkstr0("get");
 	vm->sput = mkstr0("put");
+	vm->sput = mkstr0("map");
 
 	vmp = vms;
 	while(*vmp){
