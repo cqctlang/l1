@@ -10,7 +10,8 @@ todo
   - void types
 
   - be access routines
-  - stringof
+  - string-promote as in cqct?
+  - rawstring of?
   - address space map()
 
   - switch (plus tia's enum operand idea)
