@@ -83,6 +83,8 @@ todo
   - this draws confusing diagnostic:
     	tab = mktab(); print("%d\n", tab->len);
   - change Eelist recursion to iteration
+	- locpass, tmppass, mapframe, freevars, mapcapture, cg,
+	  compile_rval, expandptr, freeexpr, dotypes
   - rationalize MAX and max()
   - %c should get unsigned argument
   - make konst hashtable
