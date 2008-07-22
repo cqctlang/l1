@@ -361,8 +361,7 @@ compilens(Expr *e)
 	te = Zcons(se, te);
 
 	/* inherited names expression */
-	e->e1 = compile0(e->e1);
-	se = Zset(doid("$ns"), e->e1);
+	se = Zset(doid("$ns"), compile0(e->e1));
 	te = Zcons(se, te);
 
 	/* declarations */
@@ -386,7 +385,6 @@ compilens(Expr *e)
 	freeht(sym);
 	freeht(tag);
 	freeht(tid);
-	freeexpr(e->e2);
 
 	/* new name space */
 	se = Zcall(doid("mkns"), 1,
@@ -743,6 +741,8 @@ compile0(Expr *e)
 		return se;
 	case Ens:
 		se = compilens(e);
+		e->e1 = 0;
+		freeexpr(e);
 		return se;
 	default:
 		e->e1 = compile0(e->e1);

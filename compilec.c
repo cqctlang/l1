@@ -96,7 +96,6 @@ compile_lval(Expr *e, int needaddr)
 			    NULL);
 		te = Zcons(se, te);
 
-		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
 		return lvalblock(invert(te));
