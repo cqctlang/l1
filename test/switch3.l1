@@ -1,0 +1,65 @@
+
+x = 1;
+switch(x){
+case 1:
+case 4:
+	printf("case 1 or 4\n");
+	break;
+case 2:
+	printf("case 2\n");
+	break;
+default:
+	printf("default\n");
+	break;
+}
+
+x = 2;
+switch(x){
+case 1:
+case 4:
+	printf("case 1 or 4\n");
+	break;
+case 2:
+	printf("case 2\n");
+	break;
+default:
+	printf("default\n");
+	break;
+}
+
+x = 1;
+switch(x){
+case 1:
+case 4:
+{
+	printf("case 1 or 4\n");
+	break;
+}
+case 2:
+{
+	printf("case 2\n");
+	break;
+}
+default:
+{
+	printf("default\n");
+	break;
+}
+}
+
+x = 2;
+switch(x){
+{
+case 1:
+case 4:
+	printf("case 1 or 4\n");
+	break;
+case 2:
+	printf("case 2\n");
+	break;
+}
+default:
+	printf("default\n");
+	break;
+
+}

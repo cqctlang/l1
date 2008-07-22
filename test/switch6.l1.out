@@ -1,0 +1,15 @@
+entry: 0 params, 0 locals, 0 temps
+test: 2 params, 2 locals, 0 temps
+	1,1
+case 1 -> case 1
+	1,2
+case 1 -> case 2
+	2,1
+case 2 -> case 1
+	2,2
+case 2 -> case 2
+	0,0
+	0,1
+	0,2
+	1,0
+	2,0

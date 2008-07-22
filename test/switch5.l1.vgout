@@ -1,0 +1,13 @@
+entry: 0 params, 0 locals, 0 temps
+test0: 1 params, 1 locals, 0 temps
+0 -> default
+1 -> 1
+2 -> 2
+3 -> 3
+4 -> 4
+5 -> 5
+6 -> 6
+6 or 7
+7 -> 6 or 7
+8 -> 8
+9 -> default

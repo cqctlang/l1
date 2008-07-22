@@ -1,0 +1,17 @@
+x = 1;
+switch(x){
+}
+printf("%d\n", x);
+
+x = 1;
+switch(x){
+	x = 5;
+}
+printf("%d\n", x);
+
+x = 1;
+switch(x){
+default:
+	x = 5;
+}
+printf("%d\n", x);

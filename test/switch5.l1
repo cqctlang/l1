@@ -1,0 +1,33 @@
+define test0(x){
+	switch(x){
+	case 1:
+		printf("1\n");
+		break;
+	case 2:
+		printf("2\n");
+		break;
+	default:
+		printf("default\n");
+		break;
+	case 3:
+		printf("3\n");
+		break;
+	case 4:
+	case 5:
+		printf("%d\n", x);
+		break;
+	case 6:
+		printf("6\n");
+	case 7:
+		printf("6 or 7\n");
+		break;
+	case 8:
+		printf("8\n");
+	}
+}
+
+
+for(i = 0; i < 10; i++){
+	printf("%d -> ", i);
+	test0(i);
+}

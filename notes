@@ -77,7 +77,17 @@ todo
 	throws "undefined symbol: foo"
 
   - enum decls with no constants are probably broken
-
+  - bitfield of undefined type fails...
+    also, generally undefed tab gets entire type not
+    the undefined part
+  - this draws confusing diagnostic:
+    	tab = mktab(); print("%d\n", tab->len);
+  - change Eelist recursion to iteration
+  - rationalize MAX and max()
+  - %c should get unsigned argument
+  - make konst hashtable
+  - 3.4M
+  - simplify labels in cg
 
 - check semantics of scope
 

@@ -11,6 +11,7 @@ struct Cases {
 	Expr **cmp;
 	Ctl **ctl;
 	Ctl *dflt;
+	Expr *dflte;
 } Cases;
 
 typedef
@@ -114,7 +115,7 @@ emitlabel(Ctl *ctl, Expr *e)
 
 	ctl->insn = code->ninsn;
 	if(code->labels[code->ninsn])
-		warn("multiple labels %s,%s", ctl->label,
+		fatal("multiple labels %s,%s", ctl->label,
 		      code->labels[code->ninsn]->label);
 	code->labels[code->ninsn] = ctl;
 	if(e && e->src.filename)
@@ -1579,14 +1580,19 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 					   2*cs->max*sizeof(Expr));
 			cs->max *= 2;
 		}
-		cs->cmp[cs->n] = e->e1;
+		cs->cmp[cs->n] = e;
 		cs->ctl[cs->n] = genlabel(code, 0);
+// printf("case label %s\n", cs->ctl[cs->n]->label);
 		cs->n++;
+		recswitchctl(e->e2, code, cs);
 		break;
 	case Edefault:
 		if(cs->dflt)
 			fatal("too many default cases in switch");
 		cs->dflt = genlabel(code, 0);
+// printf("default label %s\n", cs->dflt->label);
+		cs->dflte = e;
+		recswitchctl(e->e1, code, cs);
 		break;
 	default:
 		recswitchctl(e->e1, code, cs);
@@ -1788,6 +1794,23 @@ escaping(Expr *e)
 	}
 }
 
+static Expr*
+nextstmt(Expr *e)
+{
+	if(e == 0){
+		warn("nextstmt is null"); 
+		return 0;
+	}
+	switch(e->kind){
+	case Eblock:
+		return nextstmt(e->e2);
+	case Eelist:
+		return nextstmt(e->e1);
+	default:
+		return e;
+	}
+}
+
 static Ctl*
 escapectl(Expr *e, CGEnv *p)
 {
@@ -1948,6 +1971,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	int m;
 	Varref *vr;
 	CGEnv np;
+	unsigned genl;
 
 	switch(e->kind){
 	case Enop:
@@ -1958,13 +1982,37 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Eelist:
 		if(e->e2->kind == Enull)
 			cg(e->e1, code, p, loc, ctl, prv, nxt, tmp);
-		else if(escaping(e->e2))
-			cg(e->e1, code, p, Effect, escapectl(e->e2, p),
-			   prv, nxt, tmp);
+//	           this case is not valid in the presence of switch,
+//                 whose cases are reachable statements that follow escaping
+//                 statements.
+//		else if(escaping(e->e2))
+//			cg(e->e1, code, p, Effect, escapectl(e->e2, p),
+//			   prv, nxt, tmp);
 		else{
-			L = genlabel(code, 0);
+			L = 0;
+			genl = 0;
+			if(p->cases){
+				q = nextstmt(e->e2);
+				if(p->cases->dflte == q)
+					L = p->cases->dflt;
+				else
+					for(m = 0; m < p->cases->n; m++)
+						if(p->cases->cmp[m] == q){
+							L = p->cases->ctl[m];
+							break;
+						}
+			}
+			if(L == 0){
+				L = genlabel(code, 0);
+				genl = 1;
+//				printf("elist label %s %s %s\n",
+//				       L->label,
+//				       S[e->e1->kind],
+//				       S[e->e2->e1->kind]);
+			}
 			cg(e->e1, code, p, Effect, L, prv, L, tmp);
-			emitlabel(L, e->e2);
+			if(genl)
+				emitlabel(L, e->e2);
 			cg(e->e2, code, p, loc, ctl, L, nxt, tmp);
 		}
 		break;
@@ -2447,7 +2495,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			Lthen = np.cases->ctl[m];
 			Lelse = genlabel(code, 0);
 			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(np.cases->cmp[m], code, &np, AC,
+			cg(np.cases->cmp[m]->e1, code, &np, AC,
 			   lpair, L0, Lelse, tmp);
 			emitlabel(Lelse, e->e2);
 			L0 = Lelse;
@@ -2458,6 +2506,12 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgjmp(code, &np, ctl, np.cases->ctl[0]);
 		cg(e->e2, code, &np, Effect, ctl, np.cases->ctl[0], nxt, tmp);
 
+		/* hack for unique labels in code like:
+			   switch(e){ ... default: printf; break; } e = 5;
+		*/
+		i = nextinsn(code);
+		i->kind = Inop;
+
 		freeswitchctl(np.cases);
 		np.cases = 0;
 		break;
@@ -2465,13 +2519,15 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		if(p->cases == 0)
 			fatal("case label with no switch");
 		for(m = 0; m < p->cases->n; m++)
-			if(p->cases->cmp[m] == e->e1){
+			if(p->cases->cmp[m] == e){
 				emitlabel(p->cases->ctl[m], e);
 				i = nextinsn(code);
 				i->kind = Inop;
 				cg(e->e2, code, p, Effect, ctl,
 				   p->cases->ctl[m],
 				   nxt, tmp);
+				i = nextinsn(code);
+				i->kind = Inop;
 				break;
 			}
 		cgctl(code, p, ctl, nxt);
@@ -2508,6 +2564,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	if(e->kind != Elambda)
 		fatal("compilelambda on non-lambda");
 
+	memset(&p, 0, sizeof(p));
 	b = (Lambda*)e->xp;
 	if(flags['b']){
 		if(b->vararg)
