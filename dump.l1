@@ -1,0 +1,88 @@
+define printtype(t){
+	@local ct, i, fld, flds, sz, off;
+
+	if(issu(t)){
+		printf("%s %s {\n", suekind(t), suetag(t));
+		flds = fields(t);
+		for(i = 0; i < veclen(flds); i++){
+			fld = vecref(flds, i);
+			off = fieldoff(fld);
+			ft = fieldtype(fld);
+			id = fieldid(fld);
+			if(isnil(off)){
+				printf("\t");
+				printf("\t%t;\n", fld);
+			}else if(isbitfield(ft)){
+				printf("\t@@(8*0x%x+%x)",
+				       off, bitfieldpos(ft));
+				printf("\t%t %s : %d\n",
+				       bitfieldcontainer(ft), id,
+				       bitfieldwidth(ft));
+			}else{
+				printf("\t@0x%x", off);
+				printf("\t%t;\n", fld);
+			}
+		}
+		sz = susize(t);
+		if(!isnil(sz))
+			printf("\t@0x%x;\n", sz);
+		printf("};\n");
+	}else if(istypedef(t))
+		printf("typedef %t %s;\n", typedeftype(t), typedefid(t));
+	else if(isenum(t)){
+		printf("%s %s {\n", suekind(t), suetag(t));
+		ens = enumconsts(t);
+		for(i = 0; i < veclen(ens); i++){
+			en = vecref(ens, i);
+			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
+		}
+		printf("};\n");
+	}
+};
+
+define foo(){
+	@local ns, fn, tab, vec, i;
+
+ 	ns = @names c32le {
+ 		typedef struct foo foo_t;
+		enum et {
+			a = 1,
+			b = 2,
+			c = 3,
+		};
+ 		struct abc { int x; @0x4; };
+ 		struct foo {
+ 			@0x00 int x;
+ 			@0x04 int y;
+ 			@0x08 int z;
+ 			@0x0c int *xp;
+ 			@0x10 int (*foo)();
+ 			@0x14 int (*bar)(void);
+ 			@0x18 int (*baz)(int p1);
+ 			@0x20 int (*baz)(int p1, struct foo *p2);
+ 			@0x24 char *a[10];
+			@0x30 struct blah {
+				@0x0	int x;
+				@@35	int y : 4;
+				@0x8;
+			} blahvar;
+			@0x34 foo_t *ptrtofoo;
+ 			@0x28;
+ 		};
+ 		struct bar {
+ 			@0x0 int x, y;
+			@0x8;
+ 		};
+ 		struct foo a;
+		@0x100 struct t2 { int x; @0x4; } x;
+		@0x100 struct t2 { int x, y; @0x8; } x;
+		@0x100 struct t2 { int z; @0x4; } x;
+ 	};
+
+	fn = nsenumtype(ns);
+	vec = tabvals(fn());
+	for(i = 0; i < veclen(vec); i++)
+		printtype(vecref(vec, i));
+};
+
+foo();

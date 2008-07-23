@@ -6666,7 +6666,7 @@ l1_enumconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = valxtn(&argv[0]);
 	if(xtn->tkind != Tenum)
 		vmerr(vm, err);
-	if(xtn->konst)
+	if(xtn->konst == 0)
 		vmerr(vm, err);
 	mkvalvec(xtn->konst, rv);
 }
