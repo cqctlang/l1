@@ -234,18 +234,6 @@ compile_rval(Expr *e, unsigned lfree)
 		se = Zset(doid("$val"), compile_rval(e->e2, 0));
 		te = Zcons(se, te);
 
-#if 0
-		se = Zcall(doid("domas"), 1, doid("$dom"));
-		se = Zcall(doid("asdispatch"), 1, se);
-		se = Zcall(se, 3,
-			   doid("$put"),
-			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
-			   Zencode(Zxcast(doid("$type"), doid("$val"))));
-		te = Zcons(se, te);
-
-		se = doid("$val");
-		te = Zcons(se, te);
-#endif
 		se = Zcall(doid("$put"), 4,
 			   doid("$dom"), doid("$addr"), doid("$type"),
 			   doid("$val"));
@@ -277,18 +265,6 @@ compile_rval(Expr *e, unsigned lfree)
 			  Zbinop(e->op, doid("$val"), compile_rval(e->e2, 0)));
 		te = Zcons(se, te);
 
-#if 0
-		se = Zcall(doid("domas"), 1, doid("$dom"));
-		se = Zcall(doid("asdispatch"), 1, se);
-		se = Zcall(se, 3,
-			   doid("$put"),
-			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
-			   Zencode(Zxcast(doid("$type"), doid("$val"))));
-		te = Zcons(se, te);
-
-		se = doid("$val");
-		te = Zcons(se, te);
-#endif
 		se = Zcall(doid("$put"), 4,
 			   doid("$dom"), doid("$addr"), doid("$type"), 
 			   doid("$val"));
@@ -316,17 +292,6 @@ compile_rval(Expr *e, unsigned lfree)
 		se = Zset(doid("$val"), compile_rval(e->e1, 1));
 		te = Zcons(se, te);
 
-#if 0
-		se = Zcall(doid("domas"), 1, doid("$dom"));
-		se = Zcall(doid("asdispatch"), 1, se);
-		se = Zcall(se, 3,
-			   doid("$put"),
-			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
-			   Zencode(e->kind == Epostinc
-				   ? Zadd(doid("$val"), Zuint(1))
-				   : Zsub(doid("$val"), Zuint(1))));
-		te = Zcons(se, te);
-#endif
 		se = Zcall(doid("$put"), 4,
 			   doid("$dom"), doid("$addr"), doid("$type"),
 			   (e->kind == Epostinc
@@ -365,18 +330,6 @@ compile_rval(Expr *e, unsigned lfree)
 		se = Zset(doid("$val"), se);
 		te = Zcons(se, te);
 
-#if 0
-		se = Zcall(doid("domas"), 1, doid("$dom"));
-		se = Zcall(doid("asdispatch"), 1, se);
-		se = Zcall(se, 3,
-			   doid("$put"),
-			   Zrange(doid("$addr"), Zsizeof(doid("$type"))),
-			   Zencode(doid("$val")));
-		te = Zcons(se, te);
-
-		se = doid("$val");
-		te = Zcons(se, te);
-#endif
 		se = Zcall(doid("$put"), 4,
 			   doid("$dom"), doid("$addr"), doid("$type"),
 			   doid("$val"));

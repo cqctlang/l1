@@ -31,8 +31,7 @@ struct Frstat {
 } Frstat;
 
 struct Konst {
-	Lits **lits;
-	unsigned nlits, maxlits;
+	HT *ht;
 };
 
 static Location toploc[8];
@@ -979,48 +978,35 @@ mkkonst()
 {
 	Konst *kon;
 	kon = xmalloc(sizeof(Konst));
-	kon->lits = xmalloc(128*sizeof(Lits*));
-	kon->maxlits = 128;
-	kon->nlits = 0;
+	kon->ht = mkht();
 	return kon;
 }
 
 static Lits*
 konstlookup(Lits *lits, Konst *kon)
 {
-	unsigned i;
-	Lits *x;
-	for(i = 0; i < kon->nlits; i++){
-		x = kon->lits[i];
-		if(x->len != lits->len)
-			continue;
-		if(memcmp(x->s, lits->s, x->len) == 0)
-			return x;
-	}
-	return 0;
+	return hget(kon->ht, lits->s, lits->len);
 }
 
 static Lits*
 konstadd(Lits *lits, Konst *kon)
 {
-	if(kon->nlits >= kon->maxlits){
-		kon->lits = xrealloc(kon->lits,
-				     kon->maxlits*sizeof(Lits*),
-				     2*kon->maxlits*sizeof(Lits*));
-		kon->maxlits *= 2;
-	}
 	lits = copylits(lits);
-	kon->lits[kon->nlits++] = lits;
+	hput(kon->ht, lits->s, lits->len, lits);
 	return lits;
+}
+
+static void
+free1konst(void *u, char *k, void *v)
+{
+	freelits((Lits*)v);
 }
 
 static void
 freekonst(Konst *kon)
 {
-	unsigned m;
-	for(m = 0; m < kon->nlits; m++)
-		freelits(kon->lits[m]);
-	free(kon->lits);
+	hforeach(kon->ht, free1konst, 0);
+	freeht(kon->ht);
 	free(kon);
 }
 

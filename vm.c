@@ -2246,10 +2246,10 @@ envgetbind(Env *env, char *id)
 {
 	Val *v;
 
-	v = hget(env->ht, id);
+	v = hget(env->ht, id, strlen(id));
 	if(!v){
 		v = xmalloc(sizeof(Val));
-		hput(env->ht, id, v);
+		hput(env->ht, id, strlen(id), v);
 	}
 	return v;
 }
@@ -2636,15 +2636,15 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
 		fprintf(out, "%20s\t(builtin %s)\n", cl->id,
-		       cl->cfn ? "function" : "closure");
+			cl->cfn ? "function" : "closure");
 		return;
 	}
 
 	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
 			fprintf(out, "%20s\t(%s:%u)\n", cl->id,
-			       code->labels[pc]->src->filename,
-			       code->labels[pc]->src->line);
+				code->labels[pc]->src->filename,
+				code->labels[pc]->src->line);
 			return;
 		}
 		if(pc == 0)
@@ -2976,9 +2976,9 @@ static Imm
 rerep(Imm val, Xtypename *old, Xtypename *new)
 {
 	/* FIXME: non-trivial cases are : real <-> int,
-	                                  real <-> alternate real
-                                          integer truncation
-                                            (so div and shr work)
+	   real <-> alternate real
+	   integer truncation
+	   (so div and shr work)
 	*/
  	return val;
 }
@@ -4685,18 +4685,18 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 				vp = vecref(vec, Typepos);
 				tmp = valxtn(vp);
 				tmp = resolvetypename(vm, tmp, ctx);
-				if(tmp == 0){
-					tabput(vm, ctx->undef, vp, vp);
-					return 0;
-				}else{
-					fv = mkvec(3);
+				if(tmp)
 					mkvalxtn(tmp, &v);
-					_vecset(fv, Typepos, &v);
-					_vecset(fv, Idpos, vecref(vec, 1));
-					_vecset(fv, Offpos, vecref(vec, 2));
-					mkvalvec(fv, &v);
-					_vecset(new->field, i, &v);
+				else{
+					tabput(vm, ctx->undef, vp, vp);
+					mkvalxtn(mkbasextn(Vvoid, Rundef), &v);
 				}
+				fv = mkvec(3);
+				_vecset(fv, Typepos, &v);
+				_vecset(fv, Idpos, vecref(vec, 1));
+				_vecset(fv, Offpos, vecref(vec, 2));
+				mkvalvec(fv, &v);
+				_vecset(new->field, i, &v);
 			}
 			return new;
 		case Tenum:
@@ -4812,6 +4812,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		if(new->link == 0){
 			mkvalxtn(xtn->link, &v);
 			tabput(vm, ctx->undefptr, &v, &v);
+			new->link = mkbasextn(Vvoid, Rundef);
 		}
 		return new;
 	case Tarr:

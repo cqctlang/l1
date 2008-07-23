@@ -253,6 +253,9 @@ copyexpr(Expr *e)
 	case Econst:
 		ne->liti = e->liti;
 		break;
+	case Ebinop:
+		ne->op = e->op;
+		break;
 	default:
 		break;
 	}
@@ -1270,10 +1273,10 @@ pushyy(char *filename, char *buf)
 		fatal("maximum include depth exceeded");
 
 	ctx.inp->fp = fp;
-	keyed = hget(filenames, filename);
+	keyed = hget(filenames, filename, strlen(filename));
 	if(!keyed){
 		keyed = xstrdup(filename);
-		hput(filenames, keyed, 0);
+		hput(filenames, keyed, strlen(keyed), 0);
 	}
 	ctx.inp->filename = keyed;
 	if(buf){

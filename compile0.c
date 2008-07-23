@@ -224,54 +224,6 @@ gentypename(Type *t)
 	return e;
 }
 
-static Expr*
-compiledecl(unsigned kind, Decl *dl)
-{
-	Type *t;
-	Expr *e, *offs, *se, *te, *tn, *loc;
-
-	loc = Zlocals(2, "$tmp", "$tn");
-
-	te = nullelist();
-	t = dl->type;
-	se = Zset(doid("$tn"), gentypename(t));
-	te = Zcons(se, te);
-
-	switch(kind){
-	case Edecls:
-		if(dl->id){
-			if(dl->offs){
-				compile0(dl->offs);
-				offs = dl->offs; /* steal */
-				dl->offs = 0;
-			}else
-				offs = Znil();
-
-			se = Zset(doid("$tmp"),
-				  Zcall(doid("vector"), 3, doid("$tn"),
-					Zstr(dl->id), offs));
-			te = Zcons(se, te);
-
-			se = Zcall(doid("tabinsert"), 3, doid("$symtab"),
-				   Zstr(dl->id), doid("$tmp"));
-			te = Zcons(se, te);
-		}
-		break;
-	case Etypedef:
-		/* typedef T TID => typetab[typedef(TID)] = typename(T) */
-		tn = Zcall(doid("mkctype_typedef"), 1, Zstr(dl->id));
-		se = Zcall(doid("tabinsert"), 3, doid("$typetab"), tn, 
-			   doid("$tn"));
-		te = Zcons(se, te);
-		break;
-	default:
-		fatal("bug");
-	}
-
-	e = newexpr(Eblock, loc, invert(te), 0, 0);
-	return e;
-}
-
 static void
 do1tag(void *u, char *k, void *v)
 {
@@ -361,28 +313,89 @@ hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 	switch(kind){
 	case Edecls:
 		if(d->id)
-			hput(sym, d->id, d);
+			hput(sym, d->id, strlen(d->id), d);
 		else{
 			t = d->type;
 			if((t->kind == Tstruct || t->kind == Tunion)
 			   && t->field != 0){
 				if(t->tag == 0)
 					fatal(err);
-				hput(tag, t->tag, d);
+				hput(tag, t->tag, strlen(t->tag), d);
 			}
 			if(t->kind == Tenum && t->en != 0){
 				if(t->tag == 0)
 					fatal(err);
-				hput(tag, t->tag, d);
+				hput(tag, t->tag, strlen(t->tag), d);
 			}
 		}
 		break;
 	case Etypedef:
-		hput(tid, d->id, d);
+		hput(tid, d->id, strlen(d->id), d);
 		break;	
 	default:
 		fatal("bug");
 	}
+}
+
+static void
+compilens(Expr *e)
+{
+	Expr *se, *te;
+	Expr *ex;
+	Expr *loc;
+	Decl *dl;
+	HT *sym, *tag, *tid;
+
+	loc = Zlocals(3, "$ns", "$typetab", "$symtab");
+
+	te = nullelist();
+
+	se = Zcall(doid("table"), 0);
+	se->src = e->src;
+	se = Zset(doid("$typetab"), se);
+	te = Zcons(se, te);
+	se = Zset(doid("$symtab"), Zcall(doid("table"), 0));
+	te = Zcons(se, te);
+
+	/* inherited names expression */
+	compile0(e->e1);
+	se = Zset(doid("$ns"), e->e1);
+	te = Zcons(se, te);
+
+	/* declarations */
+	ex = e->e2;
+	if(ex->kind != Eelist && ex->kind != Enull)
+		fatal("broken");
+	sym = mkht();
+	tag = mkht();
+	tid = mkht();
+	while(ex->kind == Eelist){
+		dl = ex->e1->xp;
+		while(dl){
+			hashdecl(ex->e1->kind, dl, sym, tag, tid);
+			dl = dl->link;
+		}
+		ex = ex->e2;
+	}
+	hforeach(sym, do1sym, &te);
+	hforeach(tag, do1tag, &te);
+	hforeach(tid, do1tid, &te);
+	freeht(sym);
+	freeht(tag);
+	freeht(tid);
+	freeexpr(e->e2);
+
+	/* new name space */
+	se = Zcall(doid("mkns"), 1,
+		   Zcall(doid("vector"), 3,
+			 doid("$ns"),
+			 doid("$typetab"),
+			 doid("$symtab")));
+	te = Zcons(se, te);
+
+	e->kind = Eblock;
+	e->e1 = loc;
+	e->e2 = invert(te);
 }
 
 static Expr*
@@ -599,11 +612,7 @@ compileambig(Expr *e)
 static void
 compile0(Expr *e)
 {
-	Expr *se, *te;
-	Expr *ex;
-	Expr *loc;
-	Decl *dl, *nxt;
-	HT *sym, *tag, *tid;
+	Expr *se;
 
 	if(e == NULL)
 		return;
@@ -655,71 +664,7 @@ compile0(Expr *e)
 		e->e2 = se;
 		break;
 	case Ens:
-		loc = Zlocals(3, "$ns", "$typetab", "$symtab");
-
-		te = nullelist();
-
-		se = Zcall(doid("table"), 0);
-		se->src = e->src;
-		se = Zset(doid("$typetab"), se);
-		te = Zcons(se, te);
-		se = Zset(doid("$symtab"), Zcall(doid("table"), 0));
-		te = Zcons(se, te);
-
-		/* inherited names expression */
-		compile0(e->e1);
-		se = Zset(doid("$ns"), e->e1);
-		te = Zcons(se, te);
-
-		/* declarations */
-		ex = e->e2;
-		if(ex->kind != Eelist && ex->kind != Enull)
-			fatal("broken");
-#if 0
-		while(ex->kind == Eelist){
-			dl = ex->e1->xp;
-			while(dl){
-				se = compiledecl(ex->e1->kind, dl);
-				te = Zcons(se, te);
-				nxt = dl->link;
-				dl = nxt;
-			}
-			ex = ex->e2;
-		}
-#else
-		sym = mkht();
-		tag = mkht();
-		tid = mkht();
-		while(ex->kind == Eelist){
-			dl = ex->e1->xp;
-			while(dl){
-				hashdecl(ex->e1->kind, dl, sym, tag, tid);
-				dl = dl->link;
-			}
-			ex = ex->e2;
-		}
-		hforeach(sym, do1sym, &te);
-		hforeach(tag, do1tag, &te);
-		hforeach(tid, do1tid, &te);
-		freeht(sym);
-		freeht(tag);
-		freeht(tid);
-#endif
-		freeexpr(e->e2);
-
-
-		/* new name space */
-		se = Zcall(doid("mkns"), 1,
-			   Zcall(doid("vector"), 3,
-				 doid("$ns"),
-				 doid("$typetab"),
-				 doid("$symtab")));
-		te = Zcons(se, te);
-
-		e->kind = Eblock;
-		e->e1 = loc;
-		e->e2 = invert(te);
-
+		compilens(e);
 		break;
 	default:
 		compile0(e->e1);

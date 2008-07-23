@@ -4,6 +4,7 @@
 typedef struct Hent Hent;
 struct Hent {
 	char *key;
+	unsigned keylen;
 	void *val;
 	Hent *next;
 };
@@ -54,17 +55,18 @@ freeht(HT* ht)
 
 /* one-at-a-time by jenkins */
 static unsigned long
-shash(char *s)
+shash(char *s, unsigned len)
 {
 	unsigned char *p = (unsigned char*)s;
 	uint32_t h;
 
 	h = 0;
-	while(*p){
+	while(len != 0){
 		h += *p;
 		h += h<<10;
 		h ^= h>>6;
 		p++;
+		len--;
 	}
 	h += h<<3;
 	h ^= h>>11;
@@ -90,13 +92,13 @@ shash(char* s)
 #endif
 
 static Hent*
-_hget(HT *ht, char *k)
+_hget(HT *ht, char *k, unsigned len)
 {
 	Hent *hp;
 
-	hp = ht->ht[shash(k)%ht->sz];
+	hp = ht->ht[shash(k, len)%ht->sz];
 	while(hp){
-		if(strcmp(k, hp->key) == 0)
+		if(hp->keylen == len && memcmp(k, hp->key, len) == 0)
 			return hp;
 		hp = hp->next;
 	}
@@ -104,11 +106,11 @@ _hget(HT *ht, char *k)
 }
 
 void*
-hget(HT *ht, char *k)
+hget(HT *ht, char *k, unsigned len)
 {
 	Hent *hp;
 
-	hp = _hget(ht, k);
+	hp = _hget(ht, k, len);
 	if(hp)
 		return hp->val;
 	return NULL;
@@ -129,7 +131,7 @@ hexpand(HT *ht)
 		hp = ht->ht[i];
 		while(hp){
 			nxt = hp->next;			
-			idx = shash(hp->key)%nsz;
+			idx = shash(hp->key, hp->keylen)%nsz;
 			hp->next = nht[idx];
 			nht[idx] = hp;
 			hp = nxt;
@@ -141,12 +143,12 @@ hexpand(HT *ht)
 }
 
 void
-hput(HT *ht, char *k, void *v)
+hput(HT *ht, char *k, unsigned len, void *v)
 {
 	Hent *hp;
 	unsigned long idx;
 
-	hp = _hget(ht, k);
+	hp = _hget(ht, k, len);
 	if(hp){
 		hp->val = v;
 		return;
@@ -157,8 +159,9 @@ hput(HT *ht, char *k, void *v)
 
 	hp = xmalloc(sizeof(Hent));
 	hp->key = k;
+	hp->keylen = len;
 	hp->val = v;
-	idx = shash(k)%ht->sz;
+	idx = shash(k, len)%ht->sz;
 	hp->next = ht->ht[idx];
 	ht->ht[idx] = hp;
 	ht->nent++;

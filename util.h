@@ -3,8 +3,8 @@
 typedef struct HT HT;
 HT *mkht();
 void freeht(HT *ht);
-void hput(HT *ht, char *k, void *v);
-void *hget(HT *ht, char *k);
+void hput(HT *ht, char *k, unsigned len, void *v);
+void *hget(HT *ht, char *k, unsigned len);
 void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
 
 void warn(char *fmt, ...);

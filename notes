@@ -31,9 +31,15 @@ todo
     useful for blocking/polling on remote events
   - old-style lists 
   - i/o (file, net)
+  - string processing (including ascii<->binary help)
 
 - usability
   - check "entry" to "toplevel"
+  - in struct definition, it's okay if field types
+    are undefined, as long as the overall size is available.
+    goal of undefined types processing should be to report
+    set of base types that are undefined, not necessarily
+    types that reference them.
 
 - robustness
   - test on real name spaces
@@ -42,7 +48,6 @@ todo
   - check argument count on calls to lambdas
   - change all thunks that do not return values to return nil
   - verify that address range calculations wrap correctly in 32-bit contexts
-  - enforce Efields at end of struct, only
   - cleanup and recover from parse/compiler errors
 	-> compile-local context for program, memory, recovery
   - while(1); should run in constant memory but it does not.
@@ -82,14 +87,7 @@ todo
     the undefined part
   - this draws confusing diagnostic:
     	tab = mktab(); print("%d\n", tab->len);
-  - change Eelist recursion to iteration
-	- locpass, tmppass, mapframe, freevars, mapcapture, cg,
-	  compile_rval, expandptr, freeexpr, dotypes
   - rationalize MAX and max()
-  - %c should get unsigned argument
-  - make konst hashtable
-  - 3.4M
-  - simplify labels in cg
 
 - check semantics of scope
 
@@ -125,6 +123,7 @@ todo
     probably should aggressively
     shadow on the way down, to reduce
     unwanted boxing.
+  - simplify labels in cg
 
 - ideas
   - immutable vectors for type datastructures (fields and params)?
