@@ -193,7 +193,7 @@ compile_lval(Expr *e, int needaddr)
 static Expr*
 compile_rval(Expr *e, unsigned lfree)
 {
-	Expr *se, *te;
+	Expr *se, *te, *p;
 
 	if(e == 0)
 		return 0;
@@ -423,6 +423,13 @@ compile_rval(Expr *e, unsigned lfree)
 		e->e1 = 0;
 		freeexpr(e);
 		return rvalblock(invert(te), lfree);
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = compile_rval(p->e1, 0);
+			p = p->e2;
+		}
+		return e;
 	default:
 		e->e1 = compile_rval(e->e1, 0);
 		e->e2 = compile_rval(e->e2, 0);
@@ -436,7 +443,7 @@ compile_rval(Expr *e, unsigned lfree)
 static Expr*
 expandc(Expr *e)
 {
-	Expr *se;
+	Expr *se, *p;
 
 	if(e == 0)
 		return e;
@@ -485,6 +492,13 @@ expandc(Expr *e)
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = expandc(p->e1);
+			p = p->e2;
+		}
+		return e;
 	default:
 		e->e1 = expandc(e->e1);
 		e->e2 = expandc(e->e2);
@@ -493,55 +507,6 @@ expandc(Expr *e)
 		return e;
 	}
 }
-
-#if 0
-static void
-expandc(Expr *e)
-{
-	if(e == 0)
-		return;
-	switch(e->kind){
-	case Earef: /* for compile_rval */
-		/* rewrite: E1[E2] => *(E1+E2) */
-		expandc(e->e1);
-		expandc(e->e2);
-		e->kind = Ederef;
-		e->e1 = Zadd(e->e1, e->e2);
-		e->e2 = 0;
-		break;
-	case Earrow: /* for compile_rval */
-		/* rewrite: E->field => (*E).field */
-		expandc(e->e1);
-		e->kind = Edot;
-		e->e1 = newexpr(Ederef, e->e1, 0, 0, 0);
-		break;
-	case Eswitch: /* for cg */
-		/*
-		   switch(E){       { @local $tmp;
-		   case V1:     =>    switch($tmp == E){
-		      ...             case $tmp==V1:
-		   }                      ...
-                                      }
-                                    }
-		*/ 
-		expandc(e->e1);
-		expandc(e->e2);
-		e->kind = Eblock;
-		e->
-		e = Zblock(Zlocals(1, "$tmp"),
-			   newexpr(Eswitch,
-				   Zbinop(Eeq, doid("$tmp"), e->e1),
-				   e->e2, 0, 0),
-			   NULL);
-		break;
-	default:
-		expandc(e->e1);
-		expandc(e->e2);
-		expandc(e->e3);
-		expandc(e->e4);
-	}
-}
-#endif
 
 Expr*
 docompilec(Expr *e)

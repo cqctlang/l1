@@ -14,7 +14,7 @@ todo
   - rawstring of?
   - address space map()
 
-  - switch (plus tia's enum operand idea)
+  - switch enum operands shortform
 
   - binop(T1,T2) -> canonical type
   - mkzas

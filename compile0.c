@@ -272,6 +272,119 @@ compiledecl(unsigned kind, Decl *dl)
 	return e;
 }
 
+static void
+do1tag(void *u, char *k, void *v)
+{
+	Expr *se, *te;
+	Expr **e;
+	Decl *d;
+
+	e = u;
+	d = v;
+
+	te = nullelist();
+	se = gentypename(d->type);
+	te = Zcons(se, te);
+
+	te = newexpr(Eblock, nullelist(), invert(te), 0, 0);
+	*e = Zcons(te, *e);
+}
+
+static void
+do1sym(void *u, char *k, void *v)
+{
+	Expr *se, *te, *loc, *offs;
+	Expr **e;
+	Decl *d;
+
+	e = u;
+	d = v;
+
+	loc = Zlocals(2, "$tmp", "$tn");
+
+	te = nullelist();
+	se = Zset(doid("$tn"), gentypename(d->type));
+	te = Zcons(se, te);
+
+	if(d->offs){
+		compile0(d->offs);
+		offs = d->offs; /* steal */
+		d->offs = 0;
+	}else
+		offs = Znil();
+
+	se = Zset(doid("$tmp"),
+		  Zcall(doid("vector"), 3, doid("$tn"),
+			Zstr(d->id), offs));
+	te = Zcons(se, te);
+
+	se = Zcall(doid("tabinsert"), 3, doid("$symtab"),
+		   Zstr(d->id), doid("$tmp"));
+	te = Zcons(se, te);
+
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	*e = Zcons(te, *e);
+}
+
+static void
+do1tid(void *u, char *k, void *v)
+{
+	Expr *se, *te, *tn, *loc;
+	Expr **e;
+	Decl *d;
+
+	e = u;
+	d = v;
+
+	loc = Zlocals(1, "$tn");
+
+	te = nullelist();
+	se = Zset(doid("$tn"), gentypename(d->type));
+	te = Zcons(se, te);
+
+	/* typedef T TID => typetab[typedef(TID)] = typename(T) */
+	tn = Zcall(doid("mkctype_typedef"), 1, Zstr(d->id));
+	se = Zcall(doid("tabinsert"), 3, doid("$typetab"), tn, 
+		   doid("$tn"));
+	te = Zcons(se, te);
+
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	*e = Zcons(te, *e);
+}
+
+static void
+hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
+{
+	Type *t;
+	static char *err = "anonymous tagged types not implemented";
+
+	switch(kind){
+	case Edecls:
+		if(d->id)
+			hput(sym, d->id, d);
+		else{
+			t = d->type;
+			if((t->kind == Tstruct || t->kind == Tunion)
+			   && t->field != 0){
+				if(t->tag == 0)
+					fatal(err);
+				hput(tag, t->tag, d);
+			}
+			if(t->kind == Tenum && t->en != 0){
+				if(t->tag == 0)
+					fatal(err);
+				hput(tag, t->tag, d);
+			}
+		}
+		break;
+	case Etypedef:
+		hput(tid, d->id, d);
+		break;	
+	default:
+		fatal("bug");
+	}
+}
+
 static Expr*
 compilesizeof(Decl *d)
 {
@@ -490,6 +603,7 @@ compile0(Expr *e)
 	Expr *ex;
 	Expr *loc;
 	Decl *dl, *nxt;
+	HT *sym, *tag, *tid;
 
 	if(e == NULL)
 		return;
@@ -561,6 +675,7 @@ compile0(Expr *e)
 		ex = e->e2;
 		if(ex->kind != Eelist && ex->kind != Enull)
 			fatal("broken");
+#if 0
 		while(ex->kind == Eelist){
 			dl = ex->e1->xp;
 			while(dl){
@@ -571,8 +686,27 @@ compile0(Expr *e)
 			}
 			ex = ex->e2;
 		}
-
+#else
+		sym = mkht();
+		tag = mkht();
+		tid = mkht();
+		while(ex->kind == Eelist){
+			dl = ex->e1->xp;
+			while(dl){
+				hashdecl(ex->e1->kind, dl, sym, tag, tid);
+				dl = dl->link;
+			}
+			ex = ex->e2;
+		}
+		hforeach(sym, do1sym, &te);
+		hforeach(tag, do1tag, &te);
+		hforeach(tid, do1tid, &te);
+		freeht(sym);
+		freeht(tag);
+		freeht(tid);
+#endif
 		freeexpr(e->e2);
+
 
 		/* new name space */
 		se = Zcall(doid("mkns"), 1,

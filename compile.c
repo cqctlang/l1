@@ -765,6 +765,7 @@ static unsigned
 locpass(Expr *e)
 {
 	unsigned m;
+	Expr *p;
 
 	if(e == NULL)
 		return 0;
@@ -775,6 +776,14 @@ locpass(Expr *e)
 	case Eblock:
 		m = flattenlocal(e);
 		return m+locpass(e->e2);
+	case Eelist:
+		p = e;
+		m = 0;
+		while(p->kind == Eelist){
+			m = max(m, locpass(p->e1));
+			p = p->e2;
+		}
+		return m;
 	default:
 		m = locpass(e->e1);
 		m = max(m, locpass(e->e2));
@@ -788,6 +797,7 @@ locpass(Expr *e)
 static unsigned
 tmppass(Expr *e)
 {
+	Expr *p;
 	unsigned m;
 
 	if(e == NULL)
@@ -808,6 +818,14 @@ tmppass(Expr *e)
 		else
 			return 1+max(tmppass(e->e1),
 				     tmppass(e->e2));
+	case Eelist:
+		p = e;
+		m = 0;
+		while(p->kind == Eelist){
+			m = max(m, tmppass(p->e1));
+			p = p->e2;
+		}
+		return m;
 	default:
 		m = tmppass(e->e1);
 		m = max(m, tmppass(e->e2));
@@ -1320,6 +1338,7 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 	Vardef *vd;
 	Varref *vr;
 	unsigned nloc;
+	Expr *p;
 
 	if(e == NULL)
 		return;
@@ -1374,6 +1393,13 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 			b->id = xstrdup(e->e3->id);
 		mapframe(e->e2, b, b->ve, tv, env, kon, 0);
 		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			mapframe(p->e1, curb, ve, tv, env, kon, ploc);
+			p = p->e2;
+		}
+		break;
 	default:
 		mapframe(e->e1, curb, ve, tv, env, kon, ploc);
 		mapframe(e->e2, curb, ve, tv, env, kon, ploc);
@@ -1389,6 +1415,7 @@ freevars(Expr *e, VEnv *ve, VDset *fr)
 	Lambda *b;
 	Varref *vr;
 	VEnv *nve;
+	Expr *p;
 
 	if(e == NULL)
 		return;
@@ -1413,6 +1440,13 @@ freevars(Expr *e, VEnv *ve, VDset *fr)
 		}
 		freevars(e->e2, ve, fr);
 		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			freevars(p->e1, ve, fr);
+			p = p->e2;
+		}
+		break;
 	default:
 		freevars(e->e1, ve, fr);
 		freevars(e->e2, ve, fr);
@@ -1431,6 +1465,7 @@ mapcapture(Expr *e, VDset *cap)
 	Lambda *b;
 	unsigned m;
 	int idx;
+	Expr *p;
 
 	if(e == NULL)
 		return;
@@ -1468,6 +1503,13 @@ mapcapture(Expr *e, VDset *cap)
 		break;
 	case Eblock:
 		mapcapture(e->e2, cap);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			mapcapture(p->e1, cap);
+			p = p->e2;
+		}
 		break;
 	default:
 		mapcapture(e->e1, cap);
@@ -1963,7 +2005,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	Ctl *L0, *L, *R, *Lthen, *Lelse, *lpair;
 	Ctl *Ltest, *Lbody, *Linc;
 	Operand r1, r2;
-	Expr *q;
+	Expr *q, *ep;
 	Insn *i;
 	unsigned narg, istail;
 	Lambda *b;
@@ -1980,19 +2022,16 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt);
 		break;
 	case Eelist:
-		if(e->e2->kind == Enull)
-			cg(e->e1, code, p, loc, ctl, prv, nxt, tmp);
-//	           this case is not valid in the presence of switch,
-//                 whose cases are reachable statements that follow escaping
-//                 statements.
-//		else if(escaping(e->e2))
-//			cg(e->e1, code, p, Effect, escapectl(e->e2, p),
-//			   prv, nxt, tmp);
-		else{
+		ep = e;
+		while(ep->kind == Eelist){
+			if(ep->e2->kind == Enull){
+				cg(ep->e1, code, p, loc, ctl, prv, nxt, tmp);
+				break;
+			}
 			L = 0;
 			genl = 0;
 			if(p->cases){
-				q = nextstmt(e->e2);
+				q = nextstmt(ep->e2);
 				if(p->cases->dflte == q)
 					L = p->cases->dflt;
 				else
@@ -2007,13 +2046,14 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				genl = 1;
 //				printf("elist label %s %s %s\n",
 //				       L->label,
-//				       S[e->e1->kind],
-//				       S[e->e2->e1->kind]);
+//				       S[ep->e1->kind],
+//				       S[ep->e2->e1->kind]);
 			}
-			cg(e->e1, code, p, Effect, L, prv, L, tmp);
+			cg(ep->e1, code, p, Effect, L, prv, L, tmp);
 			if(genl)
-				emitlabel(L, e->e2);
-			cg(e->e2, code, p, loc, ctl, L, nxt, tmp);
+				emitlabel(L, ep->e2);
+			prv = L;
+			ep = ep->e2;
 		}
 		break;
 	case Enull:

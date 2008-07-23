@@ -197,8 +197,23 @@ newgop(unsigned kind, Expr *e1, Expr *e2)
 void
 freeexpr(Expr *e)
 {
+	Expr *p;
+
 	if(e == 0)
 		return;
+
+	if(e->kind == Eelist){
+		p = e;
+		while(p->kind == Eelist){
+			freeexpr(p->e1);
+			e = p->e2;
+			free(p);
+			p = e;
+		}
+		freeexpr(p);
+		return;
+	}
+
 	switch(e->kind){
 	case Eid:
 		free(e->id);
@@ -1178,6 +1193,8 @@ dodecl(Expr *e)
 Expr*
 dotypes(Expr *e)
 {
+	Expr *p;
+
 	if(e == 0)
 		return 0;
 
@@ -1188,6 +1205,13 @@ dotypes(Expr *e)
 		break;
 	case Edecls:
 		e->xp = dodecls(e);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			dotypes(p->e1);
+			p = p->e2;
+		}
 		break;
 	default:
 		dotypes(e->e1);

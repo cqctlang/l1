@@ -6062,7 +6062,7 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 	FILE *fp = stdout;
 	Xtypename *xtn;
 	Vec *dvec;
-	char c;
+	unsigned char c;
 
 	if(argc < 1)
 		vmerr(vm, "wrong number of arguments to printf");

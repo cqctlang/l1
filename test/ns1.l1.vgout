@@ -1,6 +1,6 @@
 entry: 0 params, 0 locals, 0 temps
 printtype: 1 params, 6 locals, 0 temps
-foo: 0 params, 12 locals, 0 temps
+foo: 0 params, 11 locals, 0 temps
 struct foo {
 	@0x0	int x;
 	@0x4	int y;
