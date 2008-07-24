@@ -1,0 +1,86 @@
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define mkzas(len){
+	@local dispatch, str;
+	str = string(len);
+	define dispatch args {
+		@local arg, range, s, new, beg, end;
+		arg = listref(args, 0);
+
+		if(arg == "get"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			printf("get %x %x\n", beg, end);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 2);
+			strput(str, beg, new);
+			printf("put %x %x\n", beg, end);
+			return;
+		}
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas(dispatch);
+}
+
+ns = @names c32le {
+	struct X {
+		@@ 0	foo x00:1;
+		@@ 1	int x01:1;
+		@@ 2	int x02:1;
+		@@ 3	int x03:1;
+		@@ 4	int x04:1;
+		@@ 5	int x05:1;
+		@@ 6	int x06:1;
+		@@ 7	int x07:1;
+		@@ 8	int x08:1;
+		@@ 9	int x09:1;
+		@@10	int x10:1;
+		@@11	int x11:1;
+		@@12	int x12:1;
+		@@13	int x13:1;
+		@@14	int x14:1;
+		@@15	int x15:1;
+		@@16	int x16:1;
+		@@17	int x17:1;
+		@@18	int x18:1;
+		@@19	int x19:1;
+		@@20	int x20:1;
+		@@21	int x21:1;
+		@@22	int x22:1;
+		@@23	int x23:1;
+		@@24	int x24:1;
+		@@25	int x25:1;
+		@@26	int x26:1;
+		@@27	int x27:1;
+		@@28	int x28:1;
+		@@29	int x29:1;
+		@@30	int x30:1;
+		@@31	int x31:1;
+		@0x4;	
+	};
+	@0x0	struct X x;
+	@0x0	unsigned i;
+};
+
+as = mkzas(1024);
+dom = mkdom(ns, as);
+
+p = &dom`x;
+
+// FIXME:
+//x = p->x00;
+//printf("%d\n", x);
+//printf("%d\n", p->x00);

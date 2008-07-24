@@ -60,12 +60,9 @@ todo
 
   - all type deconstructors (e.g., fields) need to check for
     type attributes that are not required for constructors
-  - typeof(enum constant) and typeof(bitfield) should be
-    the underlying type.
   - why do vmerr backtraces include entry, but not fatal ones?
   - why doesn't inline fn call work:  lambda(x){ printf("%d\n"); }()
 
-  - enum decls with no constants are probably broken
   - bitfield of undefined type fails...
     also, generally undefed tab gets entire type not
     the undefined part
