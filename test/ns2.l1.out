@@ -1,0 +1,6 @@
+entry: 0 params, 5 locals, 0 temps
+warning: name space references undefined type:
+	struct baz
+10 8 struct foo
+20 0 struct bar
+30 0 void

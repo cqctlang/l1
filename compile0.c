@@ -55,7 +55,7 @@ gentypename(Type *t)
 	case Tstruct:
 	case Tunion:
 		mk = t->kind == Tstruct ? "mkctype_struct" : "mkctype_union";
-		if(t->field == 0){
+		if(t->field == 0 && t->sz == 0){
 			e = Zcall(doid(mk), 1, Zstr(t->tag));
 			break;
 		}
@@ -317,7 +317,7 @@ hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 		else{
 			t = d->type;
 			if((t->kind == Tstruct || t->kind == Tunion)
-			   && t->field != 0){
+			   && (t->field != 0 || t->sz != 0)){
 				if(t->tag == 0)
 					fatal(err);
 				hput(tag, t->tag, strlen(t->tag), d);

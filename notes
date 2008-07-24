@@ -7,7 +7,7 @@ todo
 
   - be access routines
   - string-promote as in cqct?
-  - rawstring of?
+  - getbytes/putbytes
   - address space map()
   - allow enum constant expressions to reference other enum constants
 
@@ -29,6 +29,10 @@ todo
   - old-style lists 
   - i/o (file, net)
   - string processing (including ascii<->binary help)
+  - formatted printing:
+	- to strings and files
+	- for error messages
+	- with widths (and precisions)
 
 - usability
   - check "entry" to "toplevel"
@@ -60,20 +64,6 @@ todo
     the underlying type.
   - why do vmerr backtraces include entry, but not fatal ones?
   - why doesn't inline fn call work:  lambda(x){ printf("%d\n"); }()
-  - structs with no fields buggy:
-
-		ns = @names c32le {
-			struct foo {
-				@0x8;
-			};
-			@0x0 struct foo foo;
-		};
-		
-		as = mkabas();
-		dom = mkdom(ns, as);
-		p = &dom`foo;
-
-	throws "undefined symbol: foo"
 
   - enum decls with no constants are probably broken
   - bitfield of undefined type fails...

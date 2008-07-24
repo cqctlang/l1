@@ -1,0 +1,27 @@
+ns = @names c32le {
+	struct foo {
+		@0x8;
+	};
+	struct bar {
+	};
+
+	struct baz;
+
+	@0x10 struct foo foo;
+	@0x20 struct bar bar;
+	@0x30 struct baz baz;
+};
+
+as = mkabas();
+dom = mkdom(ns, as);
+
+p = &dom`foo;
+printf("%x %x %t\n", p, sizeof(*p), typeof(*p));
+
+p = &dom`bar;
+printf("%x %x %t\n", p, sizeof(*p), typeof(*p));
+
+// FIXME: type of baz reverts to void to tolerate
+// undefinedness of baz
+p = &dom`baz;
+printf("%x %x %t\n", p, sizeof(*p), typeof(*p));
