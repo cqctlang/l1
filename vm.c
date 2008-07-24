@@ -3277,7 +3277,10 @@ printval(Val *val)
 void
 printvmac(VM *vm)
 {
-	printval(&vm->ac);
+	if(vm->ac.qkind != Qnil){
+		printval(&vm->ac);
+		printf("\n");
+	}
 }
 
 static void

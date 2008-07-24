@@ -179,10 +179,8 @@ main(int argc, char *argv[])
 		}else
 			freeexpr(ctx.el);
 
-		if(dorepl && flags['x']){
+		if(dorepl && flags['x'])
 			printvmac(vm);
-			printf("\n");
-		}
 	}while(dorepl);
 out:
 	freeenv(env);
