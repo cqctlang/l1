@@ -37,19 +37,43 @@ define mkzas(len){
 
 ns = @names c32le {
 	enum e {
-		x,
+		x = 4,
 		y,
+		z,
+		a = 0,
+		b,
+		c,
 	};
-	typedef int int_t;
-	@0x0 int_t i;
+	enum f {
+		xx=1ULL,
+	};
 };
 
 dom = mkdom(ns, mkzas(1024));
-printf("%d\n", dom`i);
-//x = dom`x;
-//x = typeof(x);
-//printf("typeof(x) = %t\n", x);
-//printf("x is %t %d\n", typeof(dom`x), dom`x);
-printf("x is %t\n", typeof(dom`x));
+for(x = -1; x < 7; x++){
+	switch(x){
+	case dom`x:
+		printf("dom`x = %d\n", x);
+		break;
+	case dom`y:
+		printf("dom`y = %d\n", x);
+		break;
+	case dom`z:
+		printf("dom`z = %d\n", x);
+		break;
+	case dom`a:
+		printf("dom`a = %d\n", x);
+		break;
+	case dom`b:
+		printf("dom`b = %d\n", x);
+		break;
+	case dom`c:
+		printf("dom`c = %d\n", x);
+		break;
+	default:
+		printf("unmatched %d\n", x);
+		break;
+	}
+}
 
-//printf("y is %t %d\n", typeof(dom`y), dom`y);
+printf("%d\n", sizeof(enum dom`f));

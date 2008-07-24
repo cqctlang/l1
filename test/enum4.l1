@@ -1,0 +1,59 @@
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define mkzas(len){
+	@local dispatch, str;
+	str = string(len);
+	define dispatch args {
+		@local arg, range, s, new, beg, end;
+		arg = listref(args, 0);
+
+		if(arg == "get"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			printf("get %x %x\n", beg, end);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 2);
+			strput(str, beg, new);
+			printf("put %x %x\n", beg, end);
+			return;
+		}
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas(dispatch);
+}
+
+ns = @names c32le {
+	enum foo {
+		Vneg		= -1,
+		Vintmax		= 2147483647,
+		Vuintmax	= 4294967295ULL,
+		Vlongmax	= 2147483647ULL,
+		Vulongmax	= 4294967295ULL,
+		Vvlongmax	= 9223372036854775807ULL,
+		Vuvlongmax	= 18446744073709551615ULL,
+	};
+};
+
+dom = mkdom(ns, mkzas(1024));
+printf("sizeof(dom`Vintmax) = %d\n", sizeof(dom`Vintmax));
+printf("sizeof(dom`Vlongmax) = %d\n", sizeof(dom`Vlongmax));
+printf("dom`Vuvlongmax = %u\n", dom`Vuvlongmax);
+printf("dom`Vneg = %u\n", dom`Vneg);
+printf("sizeof(enum dom`foo) = %d\n", sizeof(enum dom`foo));
+printf("typeof(enum dom`foo) = %t\n", subtype(typeof(enum dom`foo)));
+
+
+
