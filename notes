@@ -93,6 +93,9 @@ todo
     for actual symbols (not consts), should they be Vptr in containing ns?
     can dorawns perform this cast?
   - repeated loads of dump.l1 seems to cause dumpns binding to vanish.
+  - do we need to writebarrier other assignments?
+	- change to vm->cl?
+	- set!s to toplevel vars?
 
 - check semantics of scope
 

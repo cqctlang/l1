@@ -2278,7 +2278,7 @@ envgetbind(Env *env, char *id)
 	v = hget(env->ht, id, strlen(id));
 	if(!v){
 		v = xmalloc(sizeof(Val));
-		hput(env->ht, id, strlen(id), v);
+		hput(env->ht, xstrdup(id), strlen(id), v);
 	}
 	return v;
 }
@@ -2308,6 +2308,7 @@ static void
 freebinding(void *u, char *id, void *v)
 {
 	Val *val;
+	free(id);
 	val = (Val*)v;
 	freeval(val);
 }
@@ -2781,7 +2782,7 @@ getval(VM *vm, Location *loc, Val *vp)
 	case Ltopl:
 		p = loc->val;
 		if(p->qkind == Qundef)
-			vmerr(vm, "reference to undefined variable %s",
+			vmerr(vm, "reference to undefined variable: %s",
 			      topvecid(loc->idx, vm->clx->code->topvec));
 		*vp = *p;
 		return;
@@ -2829,7 +2830,7 @@ getcval(VM *vm, Location *loc)
 	case Ltopl:
 		p = loc->val;
 		if(p->qkind == Qundef)
-			vmerr(vm, "reference to undefined variable %s",
+			vmerr(vm, "reference to undefined variable: %s",
 			      topvecid(loc->idx, vm->clx->code->topvec));
 		return valcval(p);
 	default:
