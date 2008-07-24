@@ -127,7 +127,7 @@ compile_lval(Expr *e, int needaddr)
 			if(needaddr){
 				se = Zset(doid("$addr"),
 					  Zxcast(Zcall(doid("nsptr"), 1,
-						       doid("dom")),
+						       doid("$dom")),
 							doid("$tmp")));
 				te = Zcons(se, te);
 			}

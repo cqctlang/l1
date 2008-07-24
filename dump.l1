@@ -40,6 +40,24 @@ define printtype(t){
 	}
 };
 
+define dumpns(dn){
+	@local ns, fn;
+	if(isdom(dn))
+		ns = domns(dn);
+	else
+		ns = dn;
+	
+	fn = nsenumtype(ns);
+	vec = tabvals(fn());
+	for(i = 0; i < veclen(vec); i++)
+		printtype(vecref(vec, i));
+
+	fn = nsenumsym(ns);
+	vec = tabvals(fn());
+	for(i = 0; i < veclen(vec); i++)
+		printf("%t;\n", vecref(vec, i));
+}
+
 define foo(){
 	@local ns, fn, tab, vec, i;
 
@@ -85,4 +103,4 @@ define foo(){
 		printtype(vecref(vec, i));
 };
 
-foo();
+//foo();

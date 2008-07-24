@@ -297,9 +297,16 @@ struct Range {
 	Cval *len;
 };
 
+typedef
+enum Skind {
+	Sperm,			/* don't free */
+	Smalloc,		/* free with free() */
+	Smmap,			/* free with munmap() */
+} Skind;
+
 struct Str {
 	Head hd;
-	size_t mmlen;		/* FIXME: find a better type */
+	Skind skind;
 	u32 len; /* FIXME: the reason it's not u64 is there's no 64-bit %.*s */
 	char *s;
 };
@@ -370,6 +377,8 @@ static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
 static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
+
+static void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
 
 static Val* vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val *v);
@@ -1314,6 +1323,14 @@ hashstr(Val *val)
 }
 
 static int
+eqstrc(Str *a, char *b)
+{
+	if(a->len != strlen(b))
+		return 0;
+	return memcmp(a->s, b, a->len) ? 0 : 1;
+}
+
+static int
 eqstr(Str *a, Str *b)
 {
 	if(a->len != b->len)
@@ -1439,6 +1456,7 @@ mkstr0(char *s)
 	str->len = strlen(s);
 	str->s = xmalloc(str->len);
 	memcpy(str->s, s, str->len);
+	str->skind = Smalloc;
 	return str;
 }
 
@@ -1450,15 +1468,18 @@ mkstr(char *s, unsigned long len)
 	str->len = len;
 	str->s = xmalloc(str->len);
 	memcpy(str->s, s, str->len);
+	str->skind = Smalloc;
 	return str;
 }
 
 static Str*
-mkstrmm(char *s, size_t len)
+mkstrk(char *s, unsigned long len, Skind skind)
 {
 	Str *str;
-	str = mkstr(s, len);
-	str->mmlen = len;
+	str = (Str*)halloc(&heap[Qstr]);
+	str->s = s;
+	str->len = len;
+	str->skind = skind;
 	return str;
 }
 
@@ -1469,6 +1490,7 @@ mkstrn(unsigned long len)
 	str = (Str*)halloc(&heap[Qstr]);
 	str->len = len;
 	str->s = xmalloc(str->len);
+	str->skind = Smalloc;
 	return str;
 }
 
@@ -1486,6 +1508,7 @@ strinit(Str *str, Lits *lits)
 {
 	str->len = lits->len;
 	str->s = xmalloc(str->len);
+	str->skind = Smalloc;
 	memcpy(str->s, lits->s, str->len);
 }
 
@@ -1500,10 +1523,16 @@ freestr(Head *hd)
 {
 	Str *str;
 	str = (Str*)hd;
-	if(str->mmlen)
+	switch(str->skind){
+	case Smmap:
 		munmap(str->s, str->len);
-	else
+		break;
+	case Smalloc:
 		free(str->s);
+		break;
+	case Sperm:
+		break;
+	}
 }
 
 static int
@@ -4461,6 +4490,80 @@ mkabas()
 	return as;
 }
 
+static void
+masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Str *s, *cmd, *dat;
+	Range *r;
+	Vec *v;
+	Cval *beg, *end;
+	Val val;
+
+	s = valstr(&disp[0]);
+	if(argc < 1)
+		vmerr(vm,
+		      "wrong number of arguments to address space dispatch");
+	checkarg(vm, "masdispatch", argv, 0, Qstr);
+	cmd = valstr(&argv[0]);
+	if(eqstrc(cmd, "get")){
+		if(argc != 2)
+			vmerr(vm, "wrong number of arguments to get operation");
+		checkarg(vm, "masdispatch", argv, 1, Qrange);
+		r = valrange(&argv[1]);
+		beg = r->beg;
+		end = xcvalalu(vm, Iadd, beg, r->len);
+		if(beg->val > s->len)
+			vmerr(vm, "out of bounds string access");
+		if(end->val > s->len)
+			vmerr(vm, "out of bounds string access");
+		if(beg->val > end->val)
+			vmerr(vm, "out of bounds string access");
+		dat = strslice(s, beg->val, end->val);
+		mkvalstr(dat, rv);
+	}else if(eqstrc(cmd, "put")){
+		if(argc != 3)
+			vmerr(vm, "wrong number of arguments to put operation");
+		checkarg(vm, "masdispatch", argv, 1, Qrange);
+		checkarg(vm, "masdispatch", argv, 2, Qstr);
+		r = valrange(&argv[1]);
+		dat = valstr(&argv[2]);
+		beg = r->beg;
+		end = xcvalalu(vm, Iadd, beg, r->len);
+		if(beg->val > s->len)
+			vmerr(vm, "out of bounds string access");
+		if(end->val > s->len)
+			vmerr(vm, "out of bounds string access");
+		if(beg->val > end->val)
+			vmerr(vm, "out of bounds string access");
+		if(dat->len < r->len->val)
+			vmerr(vm, "short put");
+		/* FIXME: rationalize with l1_strput */
+		memcpy(s->s+beg->val, dat->s, dat->len);
+	}else if(eqstrc(cmd, "map")){
+		if(argc != 1)
+			vmerr(vm, "wrong number of arguments to map operation");
+		v = mkvec(1);
+		mkvalrange(mkcval(vm->litdom, vm->litbase[Vptr], 0),
+			   mkcval(vm->litdom, vm->litbase[Vptr], s->len),
+			   &val);
+		_vecset(v, 0, &val);
+		mkvalvec(v, rv);
+	}else
+		vmerr(vm, "undefined operation on address space: %.*s",
+		      cmd->len, cmd->len);
+}
+
+static As*
+mkmas(Str *s)
+{
+	Val v;
+	As *as;
+	mkvalstr(s, &v);
+	as = mkas();
+	as->dispatch = mkccl("masdispatch", masdispatch, 1, &v);
+	return as;
+}
+
 static Xtypename*
 chasetype(Xtypename *xtn)
 {
@@ -4878,8 +4981,8 @@ mknstab(Tab *type, Tab *sym)
 	return ns;
 }
 
-static void
-xns(VM *vm, Operand *invec, Operand *dst)
+static Ns*
+dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 {
 	Val v, *idv, *vecv, *vp;
 	Vec *vec;
@@ -4888,20 +4991,12 @@ xns(VM *vm, Operand *invec, Operand *dst)
 	Xtypename *xtn;
 	NSctx ctx;
 	u32 i;
-	Ns *ons, *ns;
+	Ns *ns;
 	Imm m;
 	Str *as;
 
-	getvalrand(vm, invec, &v);
-	vec = valvec(&v);
-	if(vec->len != 3)
-		vmerr(vm, "bad vector to ns");
-	vp = vecref(vec, 0);
-	ons = valns(vp);
-	vp = vecref(vec, 1);
-	ctx.rawtype = valtab(vp);
-	vp = vecref(vec, 2);
-	ctx.rawsym = valtab(vp);
+	ctx.rawtype = rawtype;
+	ctx.rawsym = rawsym;
 
 	ctx.type = mktab();
 	ctx.sym = mktab();
@@ -5006,6 +5101,29 @@ xns(VM *vm, Operand *invec, Operand *dst)
 
 	ns = mknstab(ctx.type, ctx.sym);
 	nscachebase(vm, ns);
+	return ns;
+}
+
+static void
+xns(VM *vm, Operand *invec, Operand *dst)
+{
+	Val v, *vp;
+	Vec *vec;
+	Ns *ons, *ns;
+	Tab *rawtype, *rawsym;
+
+	getvalrand(vm, invec, &v);
+	vec = valvec(&v);
+	if(vec->len != 3)
+		vmerr(vm, "bad vector to ns");
+	vp = vecref(vec, 0);
+	ons = valns(vp);
+	vp = vecref(vec, 1);
+	rawtype = valtab(vp);
+	vp = vecref(vec, 2);
+	rawsym = valtab(vp);
+
+	ns = dorawns(vm, ons, rawtype, rawsym);
 	mkvalns(ns, &v);
 	putvalrand(vm, &v, dst);
 }
@@ -5633,7 +5751,7 @@ testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 	printf("returned from dovm\n");
 }
 
-void
+static void
 checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 {
 	if(argv[arg].qkind != qkind)
@@ -7258,7 +7376,7 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	close(fd);
 	if(p == MAP_FAILED)
 		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
-	map = mkstrmm(p, st.st_size);
+	map = mkstrk(p, st.st_size, Smmap);
 	mkvalstr(map, rv);
 }
 
@@ -7520,6 +7638,96 @@ mkrootns(VM *vm, NSroot *def)
 	return ns;
 }
 
+static char*
+myroot()
+{
+	u32 x;
+	char *p;
+	int longsz;
+	int ptrsz;
+	int flags;
+	enum {
+		lw = 1<<0,
+		lp = 1<<1,
+		be = 1<<2,
+	};
+	static char *root[] = {
+		[0] 		= "c32le",
+		[lw]		= "c64le",
+		[lp|lw]		= "clp64le",
+		[be] 		= "c32be",
+		[be|lw]		= "c64be",
+		[be|lp|lw]	= "clp64be",
+	};
+	char *r;
+
+	flags = 0;
+	longsz = 8*sizeof(long);
+	if(longsz == 64)
+		flags |= lw;
+	ptrsz = 8*sizeof(void*);
+	if(ptrsz == 64)
+		flags |= lp;
+	x = 0x01020304;
+	p = (char*)&x;
+	if(*p == 0x01)
+		flags |= be;
+
+	r = root[flags];
+	if(r == 0)
+		return "unsupported";
+	return r;
+}
+
+static Dom*
+mksysdom(VM *vm)
+{
+	Ns *ns, *root;
+	Dom *dom;
+	Tab *rawtype, *rawsym;
+	Vec *v;
+	Str *id;
+	Xtypename *t;
+	Cval *o;
+	Val keyv, valv;
+	char *rootname;
+
+	rootname = myroot();
+//	printf("host name space: %s\n", rootname);
+	if(!envlookup(vm->top, rootname, &valv))
+		vmerr(vm, "undefined name space: %s", rootname);
+	root = valns(&valv);
+
+	rawtype = mktab();
+	rawsym = mktab();
+
+	t = mkxtn();
+	t->tkind = Tarr;
+	mkvalcval(vm->litdom, vm->litbase[Vint], 256, &t->cnt);
+	t->link = mkbasextn(Vchar, Rundef);
+	id = mkstr0("flags");
+	o = mkcval(vm->litdom, vm->litbase[Vptr], (Imm)&flags);
+	
+	v = mkvec(3);
+	mkvalxtn(t, &valv);
+	_vecset(v, Typepos, &valv);
+	mkvalstr(id, &valv);
+	_vecset(v, Idpos, &valv);
+	mkvalcval2(o, &valv);
+	_vecset(v, Offpos, &valv);
+
+	mkvalstr(id, &keyv);
+	mkvalvec(v, &valv);
+	tabput(vm, rawsym, &keyv, &valv);
+
+	ns = dorawns(vm, root, rawtype, rawsym);
+	dom = mkdom();
+	dom->ns = ns;
+	dom->as = mkmas(mkstrk(0, ~(0ULL), Sperm));
+
+	return dom;
+}
+
 static Dom*
 mklitdom(VM *vm)
 {
@@ -7735,6 +7943,7 @@ mkvm(Env *env)
 	builtinns(env, "c64be", mkrootns(vm, &c64be));
 	builtinns(env, "clp64le", mkrootns(vm, &clp64le));
 	builtinns(env, "clp64be", mkrootns(vm, &clp64be));
+	builtindom(env, "sys", mksysdom(vm));
 	poperror(vm);
 	return vm;
 }

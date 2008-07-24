@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 	VM *vm;
 	Env *env;
 	char *filename = 0;
-	int c;
+	int c, wast;
 	struct timeval beg, end;
 	int dorepl;
 	unsigned len;
@@ -160,11 +160,12 @@ main(int argc, char *argv[])
 		if(flags['c']){
 			entry = compileentry(ctx.el, env);
 			if(flags['x']){
-				if(flags['t'])
+				wast = flags['t'];
+				if(wast)
 					gettimeofday(&beg, 0);
 				if(!waserror(vm)){
 					dovm(vm, entry, 0, 0);
-					if(flags['t']){
+					if(wast && flags['t']){
 						gettimeofday(&end, 0);
 						tvdiff(&end, &beg, &end);
 						printf("%lu usec\n",
