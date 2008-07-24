@@ -451,7 +451,8 @@ typedef struct YYstate YYstate;
 typedef
 struct In {
 	struct Src src;
-	FILE *fp;
+	char *buf;
+	int dofree;
 	YYstate *yy;
 } In;
 
@@ -664,7 +665,6 @@ Expr*		nullelist();
 int		parseliti(char *s, unsigned long len, Liti *liti, char **err);
 Expr*		ptrto(Expr*, Expr*);
 void		parseerror(U *ctx, char *fmt, ...);
-void		pushyy(U *ctx, char *filename, char *inbuf);
 int		popyy(U *ctx);
 void		tryinclude(U *ctx, char *raw);
 int		yyparse(U *ctx);

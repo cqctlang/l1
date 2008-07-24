@@ -25,4 +25,9 @@ void setfaulthook(Faulthook *h);
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
+/* misplaced */
+char* readfile(char *filename);
+Imm xread(int fd, char *p, Imm len);
+Imm xwrite(int fd, char *p, Imm len);
+
 #endif /* _BISONFLAW_UTIL_H_ */

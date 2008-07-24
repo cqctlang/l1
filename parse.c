@@ -1346,40 +1346,28 @@ finiparse()
 	freeht(filenames);
 }
 
-void
-pushyy(U *ctx, char *filename, char *buf)
+static void
+pushyy(U *ctx, char *filename, char *buf, int dofree)
 {
-	FILE *fp;
 	char *keyed;
-
-	if(filename == stdinname)
-		fp = stdin;
-//	else
-//		fp = fopen(filename, "r");
-	if(fp == 0)
-		parseerror(ctx, "cannot @include %s", filename);
 
 	if(ctx->inp == 0)
 		ctx->inp = ctx->in;
 	else
 		ctx->inp++;
-
 	if(ctx->inp >= ctx->in+MaxIn)
 		fatal("maximum include depth exceeded");
-
-	ctx->inp->fp = fp;
 	keyed = hget(filenames, filename, strlen(filename));
 	if(!keyed){
 		keyed = xstrdup(filename);
 		hput(filenames, keyed, strlen(keyed), keyed);
 	}
 	ctx->inp->src.filename = keyed;
-	if(buf)
-		ctx->inp->yy = mkyystatestr(buf);
-	else
-		ctx->inp->yy = mkyystate(fp);
+	ctx->inp->yy = mkyystatestr(buf);
 	ctx->inp->src.line = 1;
 	ctx->inp->src.col = 0;
+	ctx->inp->dofree = dofree;
+	ctx->inp->buf = buf;
 	setyystate(ctx->inp->yy);
 }
 
@@ -1388,10 +1376,10 @@ popyy(U *ctx)
 {
 	if(ctx->inp == 0)
 		return 0;
-//	if(ctx->inp->fp != stdin)
-//		fclose(ctx->inp->fp);
 	ctx->inp->src.filename = 0;
 	freeyystate(ctx->inp->yy);
+	if(ctx->inp->dofree)
+		free(ctx->inp->buf);
 	if(ctx->inp == ctx->in){
 		ctx->inp = 0;
 		return 0;
@@ -1404,7 +1392,7 @@ popyy(U *ctx)
 void
 tryinclude(U *ctx, char *raw)
 {
-	char *p, *q;
+	char *p, *q, *buf;
 	unsigned len;
 	int c, f;
 
@@ -1433,18 +1421,21 @@ tryinclude(U *ctx, char *raw)
 		break;
 	}
 
-	pushyy(ctx, p, 0);
+	buf = readfile(p);
+	if(buf == 0)
+		parseerror(ctx, "cannot @include %s", p);
+	pushyy(ctx, p, buf, 1);
 }
 
 static Expr*
-doparse(char *filename, char *inbuf)
+doparse(char *filename, char *buf)
 {
 	U ctx;
 
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.el = nullelist();
 	if(setjmp(ctx.jmp) == 0){
-		pushyy(&ctx, filename, inbuf);
+		pushyy(&ctx, filename, buf, 0);
 		if(yyparse(&ctx) != 0)
 			fatal("parse error");
 	}else
@@ -1462,7 +1453,14 @@ doparse(char *filename, char *inbuf)
 Expr*
 cqctparsefile(char *filename)
 {
-	return doparse(filename, 0);
+	Expr *e;
+	char *str;
+	str = readfile(filename);
+	if(str == 0)
+		return 0;
+	e = doparse(filename, str);
+	free(str);
+	return e;
 }
 
 Expr*

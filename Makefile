@@ -17,7 +17,8 @@ L1C =\
 	compile0.c\
 	cutil.c\
 	compile.c\
-	vm.c
+	vm.c\
+	unixio.c\
 
 #L1C +=\
 #	fnfs.c\
