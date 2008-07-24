@@ -1276,7 +1276,7 @@ pushyy(char *filename, char *buf)
 	keyed = hget(filenames, filename, strlen(filename));
 	if(!keyed){
 		keyed = xstrdup(filename);
-		hput(filenames, keyed, strlen(keyed), 0);
+		hput(filenames, keyed, strlen(keyed), keyed);
 	}
 	ctx.inp->filename = keyed;
 	if(buf){
