@@ -351,7 +351,7 @@ compile_rval(Expr *e, unsigned lfree)
 		se = compile_lval(e->e1, 0);
 		te = Zcons(se, te);
 
-		se = Zsizeof(doid("$type"));
+		se = Zsizeof(Zcall(doid("$typeof"), 1, doid("$type")));
 		te = Zcons(se, te);
 		
 		e->e1 = 0;
@@ -370,7 +370,7 @@ compile_rval(Expr *e, unsigned lfree)
 		se = compile_lval(e->e1, 0);
 		te = Zcons(se, te);
 
-		se = doid("$type");
+		se = Zcall(doid("$typeof"), 1, doid("$type"));
 		te = Zcons(se, te);
 		
 		e->e1 = 0;

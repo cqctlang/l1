@@ -1,0 +1,9 @@
+ns = @names c32le {
+	typedef struct foo foo_t;
+	struct bar {
+		@0x0	struct blah *x;
+		@0x4	notdef (*bolt)(notdef *x, struct alsonotdef *q);
+		@0xc	struct bar *defined;
+		@0xc;
+	};
+};

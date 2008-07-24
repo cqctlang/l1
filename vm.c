@@ -1376,7 +1376,7 @@ hashxtn(Val *val)
 		return hashstr(&v)<<xtn->tkind;
 	case Tptr:
 		mkvalxtn(xtn->link, &v);
-		return hashxtn(&v)<<xtn->tkind;;
+		return hashxtn(&v)<<xtn->tkind;
 	case Tarr:
 		mkvalxtn(xtn->link, &v);
 		x = hashxtn(&v)<<xtn->tkind;
@@ -1393,7 +1393,13 @@ hashxtn(Val *val)
 		}
 		return x;
 	case Tbitfield:
+		mkvalxtn(xtn->link, &v);
+		x = hashxtn(&v)<<xtn->tkind;
+		x ^= hashcval(&xtn->sz);
+		return x;
 	case Tconst:
+		mkvalxtn(xtn->link, &v);
+		return hashxtn(&v)<<xtn->tkind;
 	default:
 		fatal("bug");
 	}
@@ -1448,7 +1454,15 @@ eqxtn(Val *a, Val *b)
 				return 0;
 		return 1;
 	case Tbitfield:
+		if(!eqcval(&xa->sz, &xb->sz))
+			return 0;
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		return eqxtn(&va, &vb);
 	case Tconst:
+		mkvalxtn(xa->link, &va);
+		mkvalxtn(xb->link, &vb);
+		return eqxtn(&va, &vb);
 	default:
 		fatal("bug");
 	}
@@ -2150,6 +2164,9 @@ _fmtxtn(Xtypename *xtn, char *o)
 		return _fmtxtn(xtn->link, buf);
 	case Tconst:
 	case Tbitfield:
+		/* this is questionable...maybe we want more accurate printed
+		   representation of these objects, especially bitfields */
+		return _fmtxtn(xtn->link, o);
 	default:
 		fatal("bug");
 	}
@@ -6804,16 +6821,31 @@ l1_symval(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = *vp;
 }
 
+/* the purpose of typeof on types is to strip the
+   enum Tconst and bitfield Tbitfield status from
+   lvalue expressions passed to typeof.
+   for example: if A is a const of enum X in DOM,
+   then we ensure that
+   	typeof(dom`A) == typeof(x = dom`A) == enum X
+   otherwise, typeof(dom`A) would be Tconst(enum X)
+*/
 static void
 l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *cv;
+	Xtypename *t;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to $typeof");
-	if(argv->qkind != Qcval)
-		vmerr(vm, "operand 1 to $typeof must be a cvalue");
-	cv = valcval(argv);
-	mkvalxtn(cv->type, rv);
+	if(argv->qkind == Qcval){
+		cv = valcval(argv);
+		t = cv->type;
+	}else if(argv->qkind == Qxtn){
+		t = valxtn(argv);
+		if(t->tkind == Tbitfield || t->tkind == Tconst)
+			t = t->link;
+	}else
+		vmerr(vm, "operand 1 to $typeof must be a cvalue or type");
+	mkvalxtn(t, rv);
 }
 
 static void

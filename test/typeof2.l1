@@ -1,0 +1,76 @@
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define mkzas(len){
+	@local dispatch, str;
+	str = string(len);
+	define dispatch args {
+		@local arg, range, s, new, beg, end;
+		arg = listref(args, 0);
+
+		if(arg == "get"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			printf("get %x %x\n", beg, end);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 2);
+			strput(str, beg, new);
+			printf("put %x %x\n", beg, end);
+			return;
+		}
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas(dispatch);
+}
+
+ns = @names c32le {
+	enum x {
+		a = 1,
+	};
+
+	struct s {
+		@@0 int foo:2;
+		@0x4;
+	};
+};
+
+dom = mkdom(ns,mkzas(1024));
+
+x = nil;
+printf("typeof(x = dom`a) = %t\n",
+       typeof(x = dom`a));
+
+x = (struct s*){dom}0;
+printf("typeof(x = x->foo) = %t\n",
+       typeof(x = x->foo));
+
+printf("typeof(dom`a) = %t\n",
+       typeof(dom`a));
+
+printf("sizeof(dom`a) = %d\n",
+       sizeof(dom`a));
+
+printf("sizeof(typeof(dom`a)) = %d\n",
+       sizeof(typeof(dom`a)));
+
+x = (struct s*){dom}0;
+printf("typeof(x->foo) = %t\n",
+       typeof(x->foo));
+x = (struct s*){dom}0;
+printf("sizeof(x->foo) = %d\n",
+       sizeof(x->foo));
+x = (struct s*){dom}0;
+printf("sizeof(typeof(x->foo)) = %d\n",
+       sizeof(typeof(x->foo)));

@@ -1,0 +1,14 @@
+entry: 0 params, 7 locals, 0 temps
+listref: 2 params, 0 locals, 0 temps
+mkzas: 1 params, 2 locals, 0 temps
+dispatch: var params, 7 locals, 0 temps
+L197: 1 params, 3 locals, 0 temps
+typeof(x = dom`a) = enum x
+get 0 1
+typeof(x = x->foo) = int
+typeof(dom`a) = enum x
+sizeof(dom`a) = 4
+sizeof(typeof(dom`a)) = 4
+typeof(x->foo) = int
+sizeof(x->foo) = 4
+sizeof(typeof(x->foo)) = 4

@@ -4,15 +4,12 @@ todo
 ----
 
 - core functionality
-  - typeof(dom`enumconst)
-  - typeof(struct dom`x.bitfield)?
-  - incomplete types
-  - void types
 
   - be access routines
   - string-promote as in cqct?
   - rawstring of?
   - address space map()
+  - allow enum constant expressions to reference other enum constants
 
   - switch enum operands shortform
 
@@ -35,13 +32,9 @@ todo
 
 - usability
   - check "entry" to "toplevel"
-  - in struct definition, it's okay if field types
-    are undefined, as long as the overall size is available.
-    goal of undefined types processing should be to report
-    set of base types that are undefined, not necessarily
-    types that reference them.
 
 - robustness
+  - are void types handled reasonably?
   - how to define strings of length 2^64?
   - test on real name spaces
   - test form such as *p++ = x;

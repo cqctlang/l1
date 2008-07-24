@@ -1,0 +1,1 @@
+printf("%x\n", ((0xffffffff + 1) >> 1));
