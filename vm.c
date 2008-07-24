@@ -377,6 +377,7 @@ static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
 static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
+static Xtypename* mkundefxtn();
 
 static void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
 
@@ -572,6 +573,8 @@ retry:
 		fp = 0;
 		for(m = 0; m < AllocBatch; m++){
 			o = xmalloc(heap->sz);
+			VALGRIND_MAKE_MEM_NOACCESS(o->data,
+						   heap->sz-sizeof(Head));
 			o->heap = heap;
 			o->alink = ap;
 			o->link = fp;
@@ -595,6 +598,7 @@ retry:
 	// FIXME: only object types that do not initialize all fields
 	// (e.g., Xtypename) need to be cleared.  Perhaps add a bit
 	// to heap to select clearing.
+	VALGRIND_MAKE_MEM_UNDEFINED(o->data, heap->sz-sizeof(Head));
 	memset(o->data, 0, heap->sz-sizeof(Head));
 	return o;
 }
@@ -617,6 +621,8 @@ sweepheap(Heap *heap, unsigned color)
 			heap->sweep = p;
 			p->state = -1;
 			p->color = GCfree;
+			VALGRIND_MAKE_MEM_NOACCESS(p->data,
+						   heap->sz-sizeof(Head));
 //			if(heap->swept == 0){
 //				heap->swept = heap->sweep;
 //				heap->sweep = 0;
@@ -4508,7 +4514,7 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	cmd = valstr(&argv[0]);
 	if(eqstrc(cmd, "get")){
 		if(argc != 2)
-			vmerr(vm, "wrong number of arguments to get operation");
+			vmerr(vm, "wrong number of arguments to get");
 		checkarg(vm, "masdispatch", argv, 1, Qrange);
 		r = valrange(&argv[1]);
 		beg = r->beg;
@@ -4523,7 +4529,7 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		mkvalstr(dat, rv);
 	}else if(eqstrc(cmd, "put")){
 		if(argc != 3)
-			vmerr(vm, "wrong number of arguments to put operation");
+			vmerr(vm, "wrong number of arguments to put");
 		checkarg(vm, "masdispatch", argv, 1, Qrange);
 		checkarg(vm, "masdispatch", argv, 2, Qstr);
 		r = valrange(&argv[1]);
@@ -4542,7 +4548,7 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		memcpy(s->s+beg->val, dat->s, dat->len);
 	}else if(eqstrc(cmd, "map")){
 		if(argc != 1)
-			vmerr(vm, "wrong number of arguments to map operation");
+			vmerr(vm, "wrong number of arguments to map");
 		v = mkvec(1);
 		mkvalrange(mkcval(vm->litdom, vm->litbase[Vptr], 0),
 			   mkcval(vm->litdom, vm->litbase[Vptr], s->len),
@@ -4708,7 +4714,7 @@ struct NSctx {
 	Tab *otype, *osym;	/* bindings passed to @names */
 	Tab *rawtype, *rawsym;	/* @names declarations */
 	Tab *type, *sym;	/* resulting bindings */
-	Tab *undef, *undefptr;	/* undefined names */
+	Tab *undef;		/* undefined type names */
 	Rkind ptrrep;		/* pointer representation */
 } NSctx;
 
@@ -4748,7 +4754,8 @@ resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
 		return valxtn(rv);
 	}
 
-	return 0;
+	tabput(vm, ctx->undef, xtnv, xtnv);
+	return mkundefxtn();
 }
 
 static Xtypename*
@@ -4789,12 +4796,7 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 				vp = vecref(vec, Typepos);
 				tmp = valxtn(vp);
 				tmp = resolvetypename(vm, tmp, ctx);
-				if(tmp)
-					mkvalxtn(tmp, &v);
-				else{
-					tabput(vm, ctx->undef, vp, vp);
-					mkvalxtn(mkbasextn(Vvoid, Rundef), &v);
-				}
+				mkvalxtn(tmp, &v);
 				fv = mkvec(3);
 				_vecset(fv, Typepos, &v);
 				_vecset(fv, Idpos, vecref(vec, 1));
@@ -4812,10 +4814,6 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 			mkvalxtn(new, &v);
 			tabput(vm, ctx->type, xtnv, &v);
 			new->link = resolvetypename(vm, xtn->link, ctx);
-			if(new->link == 0){
-				mkvalxtn(new, &v);
-				tabput(vm, ctx->undef, &v, &v);
-			}
 			return new;
 		default:
 			/* FIXME: print name of type */
@@ -4831,7 +4829,8 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 		return valxtn(rv);
 	}
 
-	return 0;
+	tabput(vm, ctx->undef, xtnv, xtnv);
+	return mkundefxtn();
 }
 
 static Xtypename*
@@ -4875,16 +4874,12 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->tkind = Ttypedef;
 		new->tid = xtn->tid;
 		new->link = resolvetid(vm, &v, ctx);
-		if(new->link == 0)
-			return 0;
 		return new;
 	case Tenum:
 	case Tstruct:
 	case Tunion:
 		mkvalxtn(xtn, &v);
 		new = resolvetag(vm, &v, ctx);
-		if(new == 0)
-			return 0;
 		return new;
 	case Tbitfield:
 		new = mkxtn();
@@ -4892,71 +4887,39 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->bit0 = xtn->bit0;
 		new->sz = xtn->sz;
 		new->link = resolvetypename(vm, xtn->link, ctx);
-		if(new->link == 0){
-			mkvalxtn(xtn->link, &v);
-			tabput(vm, ctx->undef, &v, &v);
-			return 0;
-		}
 		return new;
 	case Tconst:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->link = resolvetypename(vm, xtn->link, ctx);
-		if(new->link == 0){
-			mkvalxtn(xtn->link, &v);
-			tabput(vm, ctx->undef, &v, &v);
-			return 0;
-		}
 		return new;
 	case Tptr:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->rep = ctx->ptrrep;
 		new->link = resolvetypename(vm, xtn->link, ctx);
-		if(new->link == 0){
-			mkvalxtn(xtn->link, &v);
-			tabput(vm, ctx->undefptr, &v, &v);
-			new->link = mkbasextn(Vvoid, Rundef);
-		}
 		return new;
 	case Tarr:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
-		if(new->link == 0){
-			mkvalxtn(xtn->link, &v);
-			tabput(vm, ctx->undef, &v, &v);
-			return 0;
-		}
 		return new;
 	case Tfun:
 		new = mkxtn();
 		new->tkind = Tfun;
 		new->link = resolvetypename(vm, xtn->link, ctx);
-		if(new->link == 0){
-			mkvalxtn(xtn->link, &v);
-			tabput(vm, ctx->undef, &v, &v);
-			return 0;
-		}
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = valvec(vecref(xtn->param, i));
 			tmp = valxtn(vecref(vec, Typepos));
 			tmp = resolvetypename(vm, tmp, ctx);
-			if(tmp == 0){
-				tabput(vm, ctx->undef,
-				       vecref(vec, Typepos),
-				       vecref(vec, Typepos));
-				return 0;
-			}else{
-				pv = mkvec(2);
-				mkvalxtn(tmp, &v);
-				_vecset(pv, Typepos, &v);
-				_vecset(pv, Idpos, vecref(vec, Idpos));
-				mkvalvec(pv, &v);
-				_vecset(new->param, i, &v);
-			}
+			pv = mkvec(2);
+			mkvalxtn(tmp, &v);
+			_vecset(pv, Typepos, &v);
+			_vecset(pv, Idpos, vecref(vec, Idpos));
+			mkvalvec(pv, &v);
+			_vecset(new->param, i, &v);
 		}
 		return new;
 	default:
@@ -5002,7 +4965,6 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 	ctx.type = mktab();
 	ctx.sym = mktab();
 	ctx.undef = mktab();
-	ctx.undefptr = mktab();
 
 	ctx.otype = valtab(dovm(vm, ons->enumtype, 0, 0));
 	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
@@ -5071,24 +5033,10 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 		}
 	}
 
-	vec = tabenum(ctx.undefptr);
-	m = vec->len/2;
-	if(m > 0){
-		printf("warning: name space contains pointers to undefined "
-		       "type%s:\n", m > 1 ? "s" : "");
-		while(m != 0){
-			m--;
-			vp = vecref(vec, m);
-			xtn = valxtn(vp);
-			as = fmtxtn(xtn);
-			printf("\t%.*s\n", as->len, as->s);
-		}
-	}
-
 	vec = tabenum(ctx.undef);
 	m = vec->len/2;
 	if(m > 0){
-		printf("warning: name space contains undefined "
+		printf("warning: name space references undefined "
 		       "type%s:\n", m > 1 ? "s" : "");
 		while(m != 0){
 			m--;
@@ -5097,7 +5045,6 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 			as = fmtxtn(xtn);
 			printf("\t%.*s\n", as->len, as->s);
 		}
-		vmerr(vm, "cannot resolve name space");
 	}
 
 	ns = mknstab(ctx.type, ctx.sym);
@@ -7574,6 +7521,19 @@ static NSroot clp64be = {
 	[Vvoid]=	Rundef, },
 .ptr = Vulong,
 };
+
+static Xtypename*
+mkundefxtn()
+{
+	/* somewhat arbitrarily represent undefined types as void;
+	   it is undistinguished, but natural and inert */
+	Xtypename *xtn;
+	xtn = mkxtn();
+	xtn->tkind = Tbase;
+	xtn->basename = Vvoid;
+	xtn->rep = Rundef;
+	return xtn;
+}
 
 static Xtypename*
 mkbasextn(Cbase name, Rkind rep)
