@@ -32,8 +32,10 @@ char* tkindstr[Tntkind] = {
 	[Tstruct]		= "struct",
 	[Ttypedef]		= "typedef",
 	[Tunion]		= "union",
+	[Tvoid]			= "void",
 	[Tbitfield]		= "bitfield",
 	[Tconst]		= "constant",
+	[Tundef]		= "undef",
 };
 
 static unsigned basemod[Vnbase][Enbase] = {

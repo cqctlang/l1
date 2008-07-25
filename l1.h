@@ -158,7 +158,8 @@ enum Cbase {
 
 typedef
 enum Tkind {
-	Tbase=0,
+	Tvoid=0,
+	Tbase,
 	Tstruct,
 	Tunion,
 	Tenum,
@@ -168,6 +169,7 @@ enum Tkind {
 	Ttypedef,
 	Tbitfield,		/* xtn only */
 	Tconst,			/* xtn only */
+	Tundef,			/* xtn only */
 	Tntkind,
 } Tkind;
 
@@ -241,7 +243,6 @@ struct Type {
 	Decl *param;		/* func */
 	Expr *cnt;		/* arr */
 	Type *link;		/* typedef, ptr, arr, func(return type) */
-	unsigned char flags;	/* Ffwd, ... */
 };
 
 enum {

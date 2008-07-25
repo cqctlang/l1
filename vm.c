@@ -6828,6 +6828,15 @@ l1_symval(VM *vm, Imm argc, Val *argv, Val *rv)
    then we ensure that
    	typeof(dom`A) == typeof(x = dom`A) == enum X
    otherwise, typeof(dom`A) would be Tconst(enum X)
+
+   FIXME:  perhaps this should be generalized
+           so that typeof(dom`A) == typeof(x = dom`A).
+
+   e.g.,
+	currently, given
+		int a[3];
+	that
+		typeof(a) is int[3] /* not int* */
 */
 static void
 l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)

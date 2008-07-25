@@ -1,0 +1,96 @@
+
+Introduction
+
+What is cqct?
+
+Getting Started
+
+	compiling, running.
+
+	paths searched when loading new code
+	how to change search path
+
+	C library that can be embedded into other programs
+	.h file defines data structures and api
+
+	running against C program using prctl
+
+Domain
+
+	Data type that distinguishes CQCT from other languages.
+
+	Context in which C expressions can be evaluated.
+	Defines a set of types, names and types of locations,
+        and a set of storage locations and and associated values.
+	Concretely, the image of a running process or the contents of
+	a core dump file.
+
+	Syntax of CQCT allows actual C expressions, with a few
+	extensions, to be directly used to examine and modify domains.
+
+	Most programs are clients of domains that are implemented by
+        the system.  For example, prctl provides a domain interface to
+	processes on Linux.
+
+	However, new domains also may be implemented by programs.
+        This manual documents both the use of domains and the
+	implementation of domains.
+
+	Two objects underlie every domain:
+
+	Address space: provides raw, untyped storage.  An array of
+	bytes.  
+
+	Name space: definitions of C types and declarations of C
+	symbols.
+
+	These are defined separately, then combined to form a domain.
+
+Expressions
+
+	Generally, syntax of C recognized by CQCT:
+
+		for(i = 0; i < 10; i++){
+			printf("hello, world\n");
+		}
+
+Variables
+
+	Cinquecento variables act like variables in other lexically
+	scoped, dynamically typed languages such as Scheme or Python.
+
+	Dynamically typed: types are associated with values, not
+	variables.  You can assign values of different types to the
+	same variable.  No variable declaration.
+
+	Lexically scoped.  Bindings introduced by @local form, which
+	may appear at the beginning of a statement block.  Assignments
+	to variables not bound by @local implicitly create a new
+	toplevel binding for the variable.
+
+	[Maybe @global for explicit toplevel bindings; warnings for
+	all others?]
+
+	Assignment binds a new value to a variable.  C assignment
+	operators (+=, ++, etc.) work on arithmetic and pointer
+	values.
+
+
+Backtick
+
+	The expression
+
+		dom`x
+
+	resolves the name X in the context of the domain DOM.
+
+	X identifies one of three types of objects:
+
+	- a typed, named location
+
+	- a C enumeration constant
+
+	- a C type
+
+	The type of object expected depends on the context in
+	which the backtick expression occurs.
