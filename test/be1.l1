@@ -1,0 +1,62 @@
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define mkzas(len){
+	@local dispatch, str;
+	str = string(len);
+	define dispatch args {
+		@local arg, range, s, new, beg, end;
+		arg = listref(args, 0);
+
+		if(arg == "get"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			printf("get %x %x\n", beg, end);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 2);
+			strput(str, beg, new);
+			printf("put %x %x\n", beg, end);
+			return;
+		}
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas(dispatch);
+}
+
+ns = @names c32be {
+	@0 long long x;
+};
+
+dom = mkdom(ns, mkzas(1024));
+
+p = &dom`x;
+printf("%d\n", *p);
+*p = (unsigned short)-1;
+printf("%d\n", *p);
+*p = (unsigned short)-2;
+printf("%d\n", *p);
+*p = (unsigned short)1;
+printf("%d\n", *p);
+*p = (unsigned short)2;
+printf("%d\n", *p);
+*p = (short)-1;
+printf("%d\n", *p);
+*p = (short)-2;
+printf("%d\n", *p);
+
+q = (char*)p;
+for(i = 0; i < 8; i++)
+	printf("%x ", q[i]);
+printf("\n");
