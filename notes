@@ -1,10 +1,6 @@
 todo
 ----
-
 - core functionality
-
-  - be access routines
-  - string-promote as in cqct?
   - getbytes/putbytes
   - address space map()
   - allow enum constant expressions to reference other enum constants
@@ -34,14 +30,12 @@ todo
   - check "entry" to "toplevel"
 
 - robustness
-  - are void types handled reasonably?
   - how to define strings of length 2^64?
   - test on real name spaces
   - test form such as *p++ = x;
   - check for negative cvals on Irange, Istr, Islice*, Ivec*
   - check argument count on calls to lambdas
   - change all thunks that do not return values to return nil
-  - verify that address range calculations wrap correctly in 32-bit contexts
   - cleanup and recover from parse/compiler errors
 	-> compile-local context for program, memory, recovery
   - while(1); should run in constant memory but it does not.
@@ -64,6 +58,8 @@ todo
   - what domain are cvals in symbol offsets in name spaces?
     for actual symbols (not consts), should they be Vptr in containing ns?
     can dorawns perform this cast?
+  - also: verify that address range calculations wrap correctly in
+    32-bit contexts
   - do we need to writebarrier other assignments?
 	- change to vm->cl?
 	- set!s to toplevel vars?

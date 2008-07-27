@@ -1,0 +1,53 @@
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define mkzas(len){
+	@local dispatch, str, map;
+	str = string(len);
+	map = vector(range(0,len));
+	define dispatch args {
+		@local arg, range, s, new, beg, end;
+		arg = listref(args, 0);
+
+		if(arg == "get"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			printf("get %x %x\n", beg, end);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 1);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 2);
+			strput(str, beg, new);
+			printf("put %x %x\n", beg, end);
+			return;
+		}
+
+		if(arg == "map")
+			return map;
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas(dispatch);
+}
+
+dom = mkdom(c32le, mkzas(1024));
+
+p = (char*){dom}0;
+p[0] = 'h';
+p[1] = 'e';
+p[2] = 'l';
+p[3] = 'l';
+
+printf("%s\n", p);
+printf("%d\n", p == "hell");
+printf("%d\n", "hell" == p);
+printf("%d\n", "hello" > p);

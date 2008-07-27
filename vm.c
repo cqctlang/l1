@@ -379,7 +379,8 @@ static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
 static Xtypename* mkundefxtn(Xtypename *t);
 static Str* fmtxtn(Xtypename *xtn);
 static void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
-
+static int isstrcval(Cval *cv);
+static Str* stringof(VM *vm, Cval *cv);
 static Val* vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val *v);
 static void vecset(VM *vm, Vec *vec, Imm idx, Val *v);
@@ -2947,6 +2948,19 @@ putcvalrand(VM *vm, Cval *cv, Operand *r)
 }
 
 static Imm
+getbeint(char *s, unsigned nb)
+{
+	unsigned i;
+	Imm w;
+	w = 0;
+	for(i = 0; i < nb; i++){
+		w <<= 8;
+		w |= (s[i]&0xff);
+	}
+	return w;
+}
+
+static Imm
 str2imm(Xtypename *xtn, Str *str)
 {
 	char *s;
@@ -2974,17 +2988,34 @@ str2imm(Xtypename *xtn, Str *str)
 	case Ru64le:
 		return *(u64*)s;
 	case Ru08be:
+		return (u8)getbeint(s, 1);
 	case Ru16be:
+		return (u16)getbeint(s, 2);
 	case Ru32be:
+		return (u32)getbeint(s, 4);
 	case Ru64be:
+		return (u64)getbeint(s, 8);
 	case Rs08be:
+		return (s8)getbeint(s, 1);
 	case Rs16be:
+		return (s16)getbeint(s, 2);
 	case Rs32be:
+		return (s32)getbeint(s, 4);
 	case Rs64be:
-		fatal("unsupported data representation");
+		return (s64)getbeint(s, 8);
 	default:
 		fatal("bug");
 	}	
+}
+
+static void
+putbeint(char *p, Imm w, unsigned nb)
+{
+	int i;
+	for(i = nb-1; i >= 0; i--){
+		p[i] = w&0xff;
+		w >>= 8;
+	}
 }
 
 static Str*
@@ -3038,15 +3069,46 @@ imm2str(Xtypename *xtn, Imm imm)
 		s = str->s;
 		*(u64*)s = (u64)imm;
 		return str;
-	case Ru08be:
-	case Ru16be:
-	case Ru32be:
-	case Ru64be:
 	case Rs08be:
+		str = mkstrn(sizeof(s8));
+		s = str->s;
+		putbeint(s, imm, 1);
+		return str;
 	case Rs16be:
+		str = mkstrn(sizeof(s16));
+		s = str->s;
+		putbeint(s, imm, 2);
+		return str;
 	case Rs32be:
+		str = mkstrn(sizeof(s32));
+		s = str->s;
+		putbeint(s, imm, 4);
+		return str;
 	case Rs64be:
-		fatal("unsupported data representation");
+		str = mkstrn(sizeof(s64));
+		s = str->s;
+		putbeint(s, imm, 8);
+		return str;
+	case Ru08be:
+		str = mkstrn(sizeof(u8));
+		s = str->s;
+		putbeint(s, imm, 1);
+		return str;
+	case Ru16be:
+		str = mkstrn(sizeof(u16));
+		s = str->s;
+		putbeint(s, imm, 2);
+		return str;
+	case Ru32be:
+		str = mkstrn(sizeof(u32));
+		s = str->s;
+		putbeint(s, imm, 4);
+		return str;
+	case Ru64be:
+		str = mkstrn(sizeof(u64));
+		s = str->s;
+		putbeint(s, imm, 8);
+		return str;
 	default:
 		fatal("bug");
 	}	
@@ -3336,10 +3398,37 @@ xcallc(VM *vm)
 		vm->clx->ccl(vm, argc, argv, vm->clx->display, &vm->ac);
 }
 
+static int
+Strcmp(Str *s1, Str *s2)
+{
+	unsigned char *p1, *p2;
+	u32 l1, l2;
+
+	p1 = (unsigned char*)s1->s;
+	p2 = (unsigned char*)s2->s;
+	l1 = s1->len;
+	l2 = s2->len;
+	while(l1 && l2){
+		if(*p1 < *p2)
+			return -1;
+		else if(*p1 > *p2)
+			return 1;
+		p1++;
+		p2++;
+		l1--;
+		l2--;
+	}
+	if(l1)
+		return 1;
+	else if(l2)
+		return -1;
+	else
+		return 0;
+}
+
 static Imm
 binopstr(VM *vm, ikind op, Str *s1, Str *s2)
 {
-	unsigned long len;
 	int x;
 
 	switch(op){
@@ -3348,20 +3437,16 @@ binopstr(VM *vm, ikind op, Str *s1, Str *s2)
 	case Icmpneq:
 		return !eqstr(s1, s2);
 	case Icmpgt:
-		len = s1->len > s2->len ? s2->len : s1->len;
-		x = memcmp(s1, s2, len);
+		x = Strcmp(s1, s2);
 		return x > 0 ? 1 : 0;
 	case Icmpge:
-		len = s1->len > s2->len ? s2->len : s1->len;
-		x = memcmp(s1, s2, len);
+		x = Strcmp(s1, s2);
 		return x >= 0 ? 1 : 0;
 	case Icmplt:
-		len = s1->len > s2->len ? s2->len : s1->len;
-		x = memcmp(s1, s2, len);
+		x = Strcmp(s1, s2);
 		return x < 0 ? 1 : 0;
 	case Icmple:
-		len = s1->len > s2->len ? s2->len : s1->len;
-		x = memcmp(s1, s2, len);
+		x = Strcmp(s1, s2);
 		return x <= 0 ? 1 : 0;
 	default:
 		vmerr(vm, "attempt to apply %s to string operands", opstr[op]);
@@ -3652,6 +3737,7 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 {
 	Val v1, v2, rv;
 	Cval *cv1, *cv2, *cvr;
+	Str *s1, *s2;
 	Imm nv;
 
 	getvalrand(vm, op1, &v1);
@@ -3692,13 +3778,33 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 	}
 
 	if(v1.qkind == Qstr && v2.qkind == Qstr){
-		Str *s1, *s2;
 		s1 = valstr(&v1);
 		s2 = valstr(&v2);
+dostr:
 		nv = binopstr(vm, op, s1, s2);
 		mkvalcval(vm->litdom, vm->litbase[Vint], nv, &rv);
 		putvalrand(vm, &rv, dst);
 		return;
+	}
+
+	if(v1.qkind == Qstr && v2.qkind == Qcval){
+		cv2 = valcval(&v2);
+		if(isstrcval(cv2)){
+			s1 = valstr(&v1);
+			s2 = stringof(vm, cv2);
+			goto dostr;
+		}
+		/* fall through */
+	}
+
+	if(v2.qkind == Qstr && v1.qkind == Qcval){
+		cv1 = valcval(&v1);
+		if(isstrcval(cv1)){
+			s1 = stringof(vm, cv1);
+			s2 = valstr(&v2);
+			goto dostr;
+		}
+		/* fall through */
 	}
 
 	/* all other types support only == and != */

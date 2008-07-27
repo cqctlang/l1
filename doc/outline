@@ -54,6 +54,47 @@ Expressions
 			printf("hello, world\n");
 		}
 
+Strings
+
+	The string type represents strings of bytes.  The predicate
+	isstring(O) returns 1 iff O is a string.
+
+	String literals are represented as strings.
+
+		; isstring("abc");
+		<cval 1>
+
+	The function strlen(S) returns the length of string S.
+	The length of a string is determined by the number of bytes
+	used to construct the string, not their values.  In
+	particular, strings are not null-terminated.  For example:
+
+		; s = "abc\0def";
+	  	abc
+		; strlen(s);
+		7
+
+	The relational operators (==, !=, <, >, <=, and >=) compare
+	strings byte-by-byte over their entire length.  Each byte is
+	compared as an unsigned 8-bit integer.
+
+	The function stringof(p) converts the cvalue operand P to a
+	string.  P must be of type char* or uchar*.  Stringof reads
+	consecutive bytes from the address space of P until (1) a zero
+	byte is read, (2) the end of the address space is reached, or
+	(3) the end of a contiguous region of the address space (as
+	indicated by map) is reached.  In all cases, the bytes read
+	comprise the resulting string.  The reads may be batched but
+	they will never extend outside a contiguous region.
+
+	Some functions and operators implicitly call stringof on
+	cvalue operands of type char*:
+
+	* the printf format verb %s, and
+	* <, >, <=, >=, == and !=, but only when the other operand is
+          already a string.
+
+
 Variables
 
 	Cinquecento variables act like variables in other lexically
