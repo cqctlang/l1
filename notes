@@ -1,5 +1,3 @@
-string printing
-
 todo
 ----
 
@@ -10,9 +8,7 @@ todo
   - getbytes/putbytes
   - address space map()
   - allow enum constant expressions to reference other enum constants
-
   - switch enum operands shortform
-
   - binop(T1,T2) -> canonical type
   - mkzas
   - mkmas
@@ -62,10 +58,6 @@ todo
     type attributes that are not required for constructors
   - why do vmerr backtraces include entry, but not fatal ones?
   - why doesn't inline fn call work:  lambda(x){ printf("%d\n"); }()
-
-  - bitfield of undefined type fails...
-    also, generally undefed tab gets entire type not
-    the undefined part
   - this draws confusing diagnostic:
     	tab = mktab(); print("%d\n", tab->len);
   - rationalize MAX and max()

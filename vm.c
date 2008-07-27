@@ -7318,6 +7318,11 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		mkvalcval2(cv, rv);
 		break;
 	case Tbitfield:
+		if(b->link->tkind == Tundef){
+			es = fmtxtn(b->link->link);
+			vmerr(vm, "attempt to write object of undefined type: "
+			      "%.*s", es->len, es->s);
+		}
 		if(0 > dobitfieldgeom(addr, b, &bfg))
 			vmerr(vm, "invalid bitfield access");
 
