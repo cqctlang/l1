@@ -3,4 +3,5 @@ warning: name space references undefined type:
 	struct baz
 10 8 struct foo
 20 0 struct bar
-30 0 void
+error: attempt to compute size of undefined type: struct baz
+               entry	(ns2.l1:27)

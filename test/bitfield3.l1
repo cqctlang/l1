@@ -37,6 +37,8 @@ define mkzas(len){
 
 ns = @names c32le {
 	struct X {
+		@0	foo foox;
+		@0	foo *foop;
 		@@ 0	foo x00:1;
 		@@ 1	int x01:1;
 		@@ 2	int x02:1;
@@ -80,7 +82,5 @@ dom = mkdom(ns, as);
 
 p = &dom`x;
 
-// FIXME:
 x = p->x00;
 printf("%d\n", x);
-//printf("%d\n", p->x00);

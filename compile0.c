@@ -34,7 +34,6 @@ static char* cbasector[Vnbase] = {
 	[Vfloat]	      = "mkctype_float",
 	[Vdouble]	      = "mkctype_double",
 	[Vlongdouble]	      = "mkctype_ldouble",
-	[Vvoid]		      = "mkctype_void",
 };
 
 static Expr*
@@ -46,6 +45,9 @@ gentypename(Type *t)
 	char *mk;
 
 	switch(t->kind){
+	case Tvoid:
+		e = Zcall(doid("mkctype_void"), 0);
+		break;	
 	case Tbase:
 		e = Zcall(doid(cbasector[t->base]), 0);
 		break;

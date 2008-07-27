@@ -20,7 +20,7 @@
 #include <sched.h>
 #include <pthread.h>
 
-#include <valgrind/memcheck.h>
+//#include <valgrind/memcheck.h>
 
 typedef int8_t		s8;
 typedef int16_t		s16;

@@ -50,7 +50,6 @@ typedef
 enum Rkind {
 	/* type representations */ 
 	Rundef,
-	Rvoid,
 	Ru08le,
 	Ru16le,
 	Ru32le,
@@ -71,7 +70,6 @@ enum Rkind {
 } Rkind;
 
 static char* repname[Rnrep+1] = {
-	[Rvoid]=	"@void",
 	[Ru08le]=	"@u8le",
 	[Ru16le]=	"@u16le",
 	[Ru32le]=	"@u32le",
@@ -375,10 +373,11 @@ static void mkvalstr(Str *str, Val *vp);
 static void mkvalxtn(Xtypename *xtn, Val *vp);
 static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
+static Xtypename* mkvoidxtn();
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
 static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
-static Xtypename* mkundefxtn();
-
+static Xtypename* mkundefxtn(Xtypename *t);
+static Str* fmtxtn(Xtypename *xtn);
 static void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
 
 static Val* vecref(Vec *vec, Imm idx);
@@ -573,8 +572,8 @@ retry:
 		fp = 0;
 		for(m = 0; m < AllocBatch; m++){
 			o = xmalloc(heap->sz);
-			VALGRIND_MAKE_MEM_NOACCESS(o->data,
-						   heap->sz-sizeof(Head));
+//			VALGRIND_MAKE_MEM_NOACCESS(o->data,
+//						   heap->sz-sizeof(Head));
 			o->heap = heap;
 			o->alink = ap;
 			o->link = fp;
@@ -598,7 +597,7 @@ retry:
 	// FIXME: only object types that do not initialize all fields
 	// (e.g., Xtypename) need to be cleared.  Perhaps add a bit
 	// to heap to select clearing.
-	VALGRIND_MAKE_MEM_UNDEFINED(o->data, heap->sz-sizeof(Head));
+//	VALGRIND_MAKE_MEM_UNDEFINED(o->data, heap->sz-sizeof(Head));
 	memset(o->data, 0, heap->sz-sizeof(Head));
 	return o;
 }
@@ -621,8 +620,8 @@ sweepheap(Heap *heap, unsigned color)
 			heap->sweep = p;
 			p->state = -1;
 			p->color = GCfree;
-			VALGRIND_MAKE_MEM_NOACCESS(p->data,
-						   heap->sz-sizeof(Head));
+//			VALGRIND_MAKE_MEM_NOACCESS(p->data,
+//						   heap->sz-sizeof(Head));
 //			if(heap->swept == 0){
 //				heap->swept = heap->sweep;
 //				heap->sweep = 0;
@@ -1041,7 +1040,10 @@ static Imm
 typesize(VM *vm, Xtypename *xtn)
 {
 	Cval *cv;
+	Str *es;
 	switch(xtn->tkind){
+	case Tvoid:
+		vmerr(vm, "attempt to compute size of void type");
 	case Tbase:
 		return repsize[xtn->rep];
 	case Ttypedef:
@@ -1064,6 +1066,10 @@ typesize(VM *vm, Xtypename *xtn)
 		vmerr(vm, "attempt to compute size of function type");
 	case Tbitfield:
 		vmerr(vm, "attempt to compute size of bitfield"); 
+	case Tundef:
+		es = fmtxtn(xtn->link);
+		vmerr(vm, "attempt to compute size of undefined type: %.*s",
+		      es->len, es->s);
 	case Tconst:
 		vmerr(vm, "shouldn't this be impossible?");
 	default:
@@ -1364,6 +1370,8 @@ hashxtn(Val *val)
 	
 	xtn = valxtn(val);
 	switch(xtn->tkind){
+	case Tvoid:
+		return hash6432shift(xtn->tkind);
 	case Tbase:
 		return hash6432shift(xtn->basename);
 	case Ttypedef:
@@ -1374,6 +1382,7 @@ hashxtn(Val *val)
 	case Tenum:
 		mkvalstr(xtn->tag, &v);
 		return hashstr(&v)<<xtn->tkind;
+	case Tundef:
 	case Tptr:
 		mkvalxtn(xtn->link, &v);
 		return hashxtn(&v)<<xtn->tkind;
@@ -1419,6 +1428,8 @@ eqxtn(Val *a, Val *b)
 		return 0;
 
 	switch(xa->tkind){
+	case Tvoid:
+		return 1;
 	case Tbase:
 		return xa->basename == xb->basename;
 	case Ttypedef:
@@ -1427,6 +1438,7 @@ eqxtn(Val *a, Val *b)
 	case Tunion:
 	case Tenum:
 		return eqstr(xa->tag, xb->tag);
+	case Tundef:
 	case Tptr:
 		mkvalxtn(xa->link, &va);
 		mkvalxtn(xb->link, &vb);
@@ -1953,6 +1965,7 @@ iterxtn(Head *hd, Ictx *ictx)
 
 	xtn = (Xtypename*)hd;
 	switch(xtn->tkind){
+	case Tvoid:
 	case Tbase:
 		return GCiterdone;
 	case Tstruct:
@@ -1978,6 +1991,7 @@ iterxtn(Head *hd, Ictx *ictx)
 		default:
 			return GCiterdone;
 		}
+	case Tundef:
 	case Tptr:
 		if(ictx->n++ > 0)
 			return GCiterdone;
@@ -2092,6 +2106,15 @@ _fmtxtn(Xtypename *xtn, char *o)
 
 	leno = strlen(o);
 	switch(xtn->tkind){
+	case Tvoid:
+		m = 4+1+leno+1;
+		buf = xmalloc(m);
+		if(leno)
+			snprintf(buf, m, "void %s", o);
+		else
+			snprintf(buf, m, "void");
+		free(o);
+		return buf;
 	case Tbase:
 		m = strlen(basename[xtn->basename])+1+leno+1;
 		buf = xmalloc(m);
@@ -2134,6 +2157,11 @@ _fmtxtn(Xtypename *xtn, char *o)
 		}
 		free(o);
 		return buf;
+	case Tundef:
+		m = leno+1+strlen("/*UNDEFINED*/")+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s /*UNDEFINED*/", o);
+		return _fmtxtn(xtn->link, buf);
 	case Tptr:
 		m = 2+leno+1+1;
 		buf = xmalloc(m);
@@ -3036,16 +3064,6 @@ rerep(Imm val, Xtypename *old, Xtypename *new)
  	return val;
 }
 
-/* debugging */
-static char*
-xfmttype(Xtypename *t)
-{
-	if(t->tkind == Tbase)
-		return basename[t->basename];
-	else
-		return tkindstr[t->tkind];
-}
-
 static Cval*
 typecast(VM *vm, Xtypename *xtn, Cval *cv)
 {
@@ -3434,12 +3452,12 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 			      opstr[op]);
 		sub = chasetype(t1->link);
 		/* special case: sizeof(void)==1 for pointer arith */
-		if(sub->tkind == Tbase && sub->basename == Vvoid)
+		if(sub->tkind == Tvoid)
 			sz = 1;
 		else
 			sz = typesize(vm, sub);
 		sub = chasetype(t2->link);
-		if(sub->tkind == Tbase && sub->basename == Vvoid)
+		if(sub->tkind == Tvoid)
 			osz = 1;
 		else
 			osz = typesize(vm, sub);
@@ -3468,7 +3486,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	}
 
 	/* special case: sizeof(void)==1 for pointer arith */
-	if(sub->tkind == Tbase && sub->basename == Vvoid)
+	if(sub->tkind == Tvoid)
 		sz = 1;
 	else
 		sz = typesize(vm, sub);
@@ -3918,7 +3936,9 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 
 	b = chasetype(t);
 	switch(b->tkind){
+	case Tvoid:
 	case Tbase:
+	case Tundef:
 	case Tptr:
 	case Tstruct:
 	case Tunion:
@@ -3970,7 +3990,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	Dom *d;
 	Xtypename *t, *b, *pt;
 	Cval *cv, *len;
-	Str *s;
+	Str *s, *es;
 	BFgeom bfg;
 
 	getvalrand(vm, type, &typev);
@@ -3983,6 +4003,11 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	b = chasetype(t);
 	switch(b->tkind){
 	case Tbitfield:
+		if(b->link->tkind == Tundef){
+			es = fmtxtn(b->link->link);
+			vmerr(vm, "attempt to read object of undefined type: "
+			      "%.*s", es->len, es->s);
+		}
 		if(0 > dobitfieldgeom(cv, b, &bfg))
 			vmerr(vm, "invalid bitfield access");
 		mkvalstr(vm->sget, &argv[0]);
@@ -4013,12 +4038,17 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		imm = truncimm(cv->val, pt->rep);
 		mkvalcval(d, pt, imm, &rv);
 		break;
+	case Tvoid:
 	case Tfun:
 	case Tstruct:
 	case Tunion:
 		vmerr(vm,
 		      "attempt to read %s-valued object from address space",
 		      tkindstr[b->tkind]);
+	case Tundef:
+		es = fmtxtn(b->link);
+		vmerr(vm, "attempt to read object of undefined type: %.*s",
+		      es->len, es->s);
 	default:
 		fatal("bug");
 	}
@@ -4658,6 +4688,9 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			vecset(vm, new->param, i, &v);
 		}
 		return new;
+	case Tundef:
+		/* FIXME: do we want this? */
+		return dolooktype(vm, xtn->link, ns);
 	case Tconst:
 	case Tbitfield:
 	default:
@@ -4671,11 +4704,10 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	Val v;
 	Xtypename *xtn;
 
-	xtn = mkxtn();	/* will be garbage; safe across dolooktype
-			   because as an argument to looktype it
-			   will be in vm roots */
-	xtn->tkind = Tbase;
-	xtn->basename = cb;
+	/* will be garbage; safe across dolooktype
+	   because as an argument to looktype it will
+	   be in vm roots */
+	xtn = mkbasextn(cb, Rundef);
 	mkvalxtn(xtn, &v);
 	xtn = dolooktype(vm, xtn, ns);
 	if(xtn == 0)
@@ -4775,7 +4807,8 @@ resolvetid(VM *vm, Val *xtnv, NSctx *ctx)
 	}
 
 	tabput(vm, ctx->undef, xtnv, xtnv);
-	return mkundefxtn();
+	xtn = valxtn(xtnv);
+	return mkundefxtn(xtn);
 }
 
 static Xtypename*
@@ -4785,6 +4818,7 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 	Xtypename *xtn, *new, *tmp;
 	Vec *vec, *fld, *fv;
 	Imm i;
+	Str *es;
 
 	/* have we already defined this type in the new namespace? */
 	rv = tabget(ctx->type, xtnv);
@@ -4836,8 +4870,9 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 			new->link = resolvetypename(vm, xtn->link, ctx);
 			return new;
 		default:
-			/* FIXME: print name of type */
-			vmerr(vm, "bad definition for tagged type");
+			es = fmtxtn(xtn);
+			vmerr(vm, "bad definition for tagged type: %.*s",
+			      es->len, es->s);
 		}
 
 	}
@@ -4850,7 +4885,8 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 	}
 
 	tabput(vm, ctx->undef, xtnv, xtnv);
-	return mkundefxtn();
+	xtn = valxtn(xtnv);
+	return mkundefxtn(xtn);
 }
 
 static Xtypename*
@@ -4885,15 +4921,18 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	Xtypename *new;
 
 	switch(xtn->tkind){
+	case Tvoid:
+		return mkvoidxtn();
 	case Tbase:
 		mkvalxtn(xtn, &v);
 		return resolvebase(vm, &v, ctx);
 	case Ttypedef:
 		mkvalxtn(xtn, &v);
-		new = mkxtn();
-		new->tkind = Ttypedef;
-		new->tid = xtn->tid;
-		new->link = resolvetid(vm, &v, ctx);
+//		new = mkxtn();
+//		new->tkind = Ttypedef;
+//		new->tid = xtn->tid;
+//		new->link = resolvetid(vm, &v, ctx);
+		new = resolvetid(vm, &v, ctx);
 		return new;
 	case Tenum:
 	case Tstruct:
@@ -4942,6 +4981,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 			_vecset(new->param, i, &v);
 		}
 		return new;
+	case Tundef:
 	default:
 		fatal("bug");
 	}
@@ -6015,10 +6055,7 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	Xtypename *t;
 
 	t = chasetype(cv->type);
-
 	fmt = fmttab[t->rep][conv];
-
-	/* FIXME: don't assume Tbase */
 	switch(t->rep){
 	case Ru08le:
 	case Ru08be:
@@ -6297,6 +6334,18 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 }
 
 static void
+l1_isvoid(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isvoid", Tvoid);
+}
+
+static void
+l1_isundeftype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isundeftype", Tundef);
+}
+
+static void
 l1_isbase(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	dotypepredicate(vm, argc, argv, rv, "isbase", Tbase);
@@ -6401,7 +6450,8 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 		      
 	xtn = valxtn(argv);
 	if(xtn->tkind != Tptr && xtn->tkind != Tarr
-	   && xtn->tkind != Tenum && xtn->tkind != Tconst)
+	   && xtn->tkind != Tenum && xtn->tkind != Tconst
+	   && xtn->tkind != Tundef)
 		vmerr(vm, err);
 
 	mkvalxtn(xtn->link, rv);
@@ -6836,7 +6886,7 @@ l1_symval(VM *vm, Imm argc, Val *argv, Val *rv)
 	currently, given
 		int a[3];
 	that
-		typeof(a) is int[3] /* not int* */
+		typeof(a) is int[3]
 */
 static void
 l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -6858,19 +6908,19 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkctype_void(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_void");
+	mkvalxtn(mkvoidxtn(), rv);
+}
+
+static void
 domkctype_base(Cbase name, Val *rv)
 {
 	Xtypename *xtn;
 	xtn = mkbasextn(name, Rundef);
 	mkvalxtn(xtn, rv);
-}
-
-static void
-l1_mkctype_void(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to mkctype_void");
-	domkctype_base(Vvoid, rv);
 }
 
 static void
@@ -7236,7 +7286,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	Xtypename *t, *b;
 	Cval *addr, *cv, *len;
 	Val argv[3], *p;
-	Str *bytes;
+	Str *bytes, *es;
 	BFgeom bfg;
 	Imm imm;
 	Range *r;
@@ -7296,6 +7346,11 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	case Tconst:
 		vmerr(vm, "attempt to use enumeration constant as location");
 		break;
+	case Tundef:
+		es = fmtxtn(b->link);
+		vmerr(vm,
+		      "attempt to write object of undefined type: %.*s",
+		      es->len, es->s);
 	default:
 		vmerr(vm,
 		      "attempt to write %s-valued object to address space",
@@ -7467,7 +7522,7 @@ static NSroot c32le = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef,	},
+	},
 .ptr = Vulong,
 };
 
@@ -7486,7 +7541,7 @@ static NSroot c32be = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef, },
+	},
 .ptr = Vulong,
 };
 
@@ -7505,7 +7560,7 @@ static NSroot c64le = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef, },
+	},
 .ptr = Vuint,
 };
 
@@ -7524,7 +7579,7 @@ static NSroot c64be = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef, },
+	},
 .ptr = Vuint,
 };
 
@@ -7543,7 +7598,7 @@ static NSroot clp64le = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef, },
+	},
 .ptr = Vulong,
 };
 
@@ -7562,20 +7617,26 @@ static NSroot clp64be = {
 	[Vfloat]=	Rundef,
 	[Vdouble]=	Rundef,
 	[Vlongdouble]=	Rundef,
-	[Vvoid]=	Rundef, },
+	},
 .ptr = Vulong,
 };
 
 static Xtypename*
-mkundefxtn()
+mkvoidxtn()
 {
-	/* somewhat arbitrarily represent undefined types as void;
-	   it is undistinguished, but natural and inert */
 	Xtypename *xtn;
 	xtn = mkxtn();
-	xtn->tkind = Tbase;
-	xtn->basename = Vvoid;
-	xtn->rep = Rundef;
+	xtn->tkind = Tvoid;
+	return xtn;
+}
+
+static Xtypename*
+mkundefxtn(Xtypename *t)
+{
+	Xtypename *xtn;
+	xtn = mkxtn();
+	xtn->tkind = Tundef;
+	xtn->link = t;
 	return xtn;
 }
 
@@ -7837,6 +7898,8 @@ mkvm(Env *env)
 	FN(mkabas);
 	FN(stringof);
 
+	FN(isvoid);
+	FN(isundeftype);
 	FN(isbase);
 	FN(issu);
 	FN(isstruct);

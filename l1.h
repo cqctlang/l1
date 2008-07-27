@@ -150,9 +150,9 @@ enum Cbase {
 	Vfloat,
 	Vdouble,
 	Vlongdouble,
-	Vvoid,
 	Vnbase,
 	Vptr = Vnbase,		/* alias for some other base type */
+	Vvoid,
 	Vnallbase,
 } Cbase;
 
@@ -301,7 +301,6 @@ Lits* mklits(char*, unsigned len);
 Lits* copylits(Lits *lits);
 void freelits(Lits *lits);
 char* fmttype(Type *t, char *o);
-Type* basetype(unsigned base);
 
 Expr* dotypes(Expr*);
 void dotop(Expr*);

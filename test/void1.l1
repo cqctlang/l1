@@ -1,0 +1,87 @@
+define printtype(t){
+	@local ct, i, fld, flds, sz, off;
+
+	if(issu(t)){
+		printf("%s %s {\n", suekind(t), suetag(t));
+		flds = fields(t);
+		for(i = 0; i < veclen(flds); i++){
+			fld = vecref(flds, i);
+			off = fieldoff(fld);
+			ft = fieldtype(fld);
+			id = fieldid(fld);
+			if(isnil(off)){
+				printf("\t");
+				printf("\t%t;\n", fld);
+			}else if(isbitfield(ft)){
+				printf("\t@@(8*0x%x+%x)",
+				       off, bitfieldpos(ft));
+				printf("\t%t %s : %d\n",
+				       bitfieldcontainer(ft), id,
+				       bitfieldwidth(ft));
+			}else{
+				printf("\t@0x%x", off);
+				printf("\t%t;\n", fld);
+			}
+		}
+		sz = susize(t);
+		if(!isnil(sz))
+			printf("\t@0x%x;\n", sz);
+		printf("};\n");
+	}else if(istypedef(t))
+		printf("typedef %t %s;\n", typedeftype(t), typedefid(t));
+	else if(isenum(t)){
+		printf("%s %s {\n", suekind(t), suetag(t));
+		ens = enumconsts(t);
+		for(i = 0; i < veclen(ens); i++){
+			en = vecref(ens, i);
+			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
+		}
+		printf("};\n");
+	}
+};
+
+define dumpns(dn){
+	@local ns, fn;
+	if(isdom(dn))
+		ns = domns(dn);
+	else
+		ns = dn;
+	
+	fn = nsenumtype(ns);
+	vec = tabvals(fn());
+	for(i = 0; i < veclen(vec); i++)
+		printtype(vecref(vec, i));
+
+	fn = nsenumsym(ns);
+	vec = tabvals(fn());
+	for(i = 0; i < veclen(vec); i++)
+		printf("%t;\n", vecref(vec, i));
+}
+
+define foo(){
+	@local ns, fn, tab, vec, i;
+
+ 	ns = @names c32le {
+ 		struct foo {
+ 			@0x00 void *x;
+ 			@0x28;
+ 		};
+		@0x100 struct foo x;
+		@0x200 void p;
+ 	};
+
+	fn = nsenumtype(ns);
+	vec = tabvals(fn());
+	for(i = 0; i < veclen(vec); i++)
+		printtype(vecref(vec, i));
+
+	dom = mkdom(ns, mkabas());
+	p = &dom`x;
+	printf("sizeof(p->x) = %d\n", sizeof(p->x));
+	printf("typeof(p->x) = %t\n", typeof(p->x));
+	p = &dom`p;
+	printf("sizeof(p) = %d\n", sizeof(p));
+	printf("typeof(p) = %t\n", typeof(p));
+	printf("typeof(*p) = %t\n", typeof(*p));
+};
+foo();

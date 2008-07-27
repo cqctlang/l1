@@ -1,0 +1,13 @@
+entry: 0 params, 0 locals, 0 temps
+printtype: 1 params, 6 locals, 0 temps
+dumpns: 1 params, 2 locals, 0 temps
+foo: 0 params, 11 locals, 0 temps
+struct foo {
+	@0x0	void *x;
+	@0x28;
+};
+sizeof(p->x) = 4
+typeof(p->x) = void *
+sizeof(p) = 4
+typeof(p) = void *
+typeof(*p) = void

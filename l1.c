@@ -17,8 +17,8 @@ char* basename[Vnbase] = {
 	[Vfloat]	      = "float",
 	[Vdouble]	      = "double",
 	[Vlongdouble]	      = "long double",
-	[Vvoid]		      = "void",
 /*
+	[Vvoid]		      = "void",
 	[Vptr]		      = "void*",
 */
 };
@@ -146,16 +146,6 @@ newdecl()
 	Decl *d;
 	d = xmalloc(sizeof(Decl));
 	return d;
-}
-
-Type*
-basetype(unsigned base)
-{
-	Type *t;
-	t = newtype();
-	t->kind = Tbase;
-	t->base = base;
-	return t;
 }
 
 Expr*
@@ -789,11 +779,11 @@ params(Expr *e)
 	return hd;
 }
 
-static unsigned
+static Cbase
 baselist(Expr *e)
 {
 	Expr *s;
-	unsigned base;
+	Cbase base;
 	
 	base = Vundef;
 	while(e->kind != Enull){
@@ -827,13 +817,19 @@ specifier(Expr *e)
 {
 	Type *t;
 	Expr *dom, *id;
+	Cbase cb;
 
 	t = newtype();
 	switch(e->kind){
 	case Ebase:
 		/* < Ebase, baselist, dom, 0, 0 > */
-		t->kind = Tbase;
-		t->base = baselist(e->e1);
+		cb = baselist(e->e1);
+		if(cb == Vvoid)
+			t->kind = Tvoid;
+		else{
+			t->kind = Tbase;
+			t->base = cb;
+		}
 		dom = e->e2;
 		break;
 	case Etid:
@@ -995,6 +991,12 @@ fmttype(Type *t, char *o)
 	unsigned m;
 
 	switch(t->kind){
+	case Tvoid:
+		m = 4+1+strlen(o)+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "void %s", o);
+		free(o);
+		return buf;
 	case Tbase:
 		m = strlen(basename[t->base])+1+strlen(o)+1;
 		buf = xmalloc(m);
@@ -1116,6 +1118,8 @@ copytype(Type *t)
 	nt->bitw = copyexpr(t->bitw);
 	nt->bit0 = copyexpr(t->bit0);
 	switch(nt->kind){
+	case Tvoid:
+		break;
 	case Tbase:
 		nt->base = t->base;
 		break;
