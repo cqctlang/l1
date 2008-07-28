@@ -1,0 +1,26 @@
+ns = @names c32le {
+	@0x0 int a[20];
+};
+
+as = mkzas(1024);
+
+dom = mkdom(ns, as);
+
+p = dom`a;
+for(i = 0; i < 20; i++)
+	*p++ = i;
+p = dom`a;
+for(i = 0; i < 20; i++)
+	printf("%d ", p[i]);
+printf("\n");
+
+
+p = dom`a;
+for(i = 0; i < 20-1; i++)
+	*++p = i;
+p = dom`a;
+for(i = 0; i < 20; i++)
+	printf("%d ", p[i]);
+printf("\n");
+
+
