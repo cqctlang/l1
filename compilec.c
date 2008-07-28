@@ -132,7 +132,7 @@ compile_lval(Expr *e, int needaddr)
 				  Zcall(doid("domof"), 1, doid("$tmp")));
 			te = Zcons(se, te);
 
-			// $addr = {litdom}{nsptr(dom)}$tmp
+			// $addr = {nsptr($dom)}$tmp
 			if(needaddr){
 				se = Zset(doid("$addr"),
 					  Zxcast(Zcall(doid("nsptr"), 1,
@@ -156,7 +156,7 @@ compile_lval(Expr *e, int needaddr)
 		return lvalblock(invert(te));
 	case Edot:
 		te = nullelist();
-		
+
 		// compile lvalue reference to containing struct,
 		// using dom, type, addr bindings.
 		se = compile_lval(e->e1, needaddr);

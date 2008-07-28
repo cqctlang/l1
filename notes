@@ -36,7 +36,6 @@ todo
     final statement to have its value returned.
     ideally, want return E for all E that can be final expression.
   - how to define strings of length 2^64?
-  - test form such as *p++ = x;
   - check for negative cvals on Irange, Istr, Islice*, Ivec*
   - check argument count on calls to lambdas
   - change all thunks that do not return values to return nil
