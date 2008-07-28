@@ -96,6 +96,15 @@ compile_lval(Expr *e, int needaddr)
 			se = Zset(doid("$addr"),
 				  Zcall(doid("symval"), 1, doid("$tmp")));
 			te = Zcons(se, te);
+
+			// if(isnil($addr)) error("symbol lacks address: %s");
+			se = newexpr(Eif,
+				     Zcall(doid("isnil"), 1, doid("$addr")),
+				     Zcall(doid("error"), 2,
+					   Zconsts("symbol lacks address: %s"),
+					   Zconsts(e->e2->id)),
+				     0, 0);
+			te = Zcons(se, te);
 		}
 		
 		freeexpr(e->e2);
