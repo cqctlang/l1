@@ -5,9 +5,6 @@ todo
   - address space map()
   - allow enum constant expressions to reference other enum constants
   - switch enum operands shortform
-  - binop(T1,T2) -> canonical type
-  - mkzas
-  - mkmas
   - introduce address types
     - shouldn't bpset take an address argument?
   - dot operator on dom/as
@@ -30,8 +27,15 @@ todo
   - check "entry" to "toplevel"
 
 - robustness
+  - @include at interactive prompt confusingly does not necessarily
+    print the value of the last expression:
+	x = 2;
+	y = 5;
+	z = x;
+    ... probably because their is no mechanism to force the
+    final statement to have its value returned.
+    ideally, want return E for all E that can be final expression.
   - how to define strings of length 2^64?
-  - test on real name spaces
   - test form such as *p++ = x;
   - check for negative cvals on Irange, Istr, Islice*, Ivec*
   - check argument count on calls to lambdas

@@ -135,3 +135,12 @@ Backtick
 
 	The type of object expected depends on the context in
 	which the backtick expression occurs.
+
+Extension
+
+	C functions may be added to system.  Convention is
+	
+	void l1_myfun(VM *vm, Imm argc, Val *argv, Val *rv)
+
+	return value goes into RV, initialized to Xnil
+	upon entry.

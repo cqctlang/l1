@@ -1,0 +1,54 @@
+define typemix(ns, exp){
+	dom = mkdom(ns, mkabas());
+	t1 = (`t1){dom}1;
+	t2 = (`t2){dom}2;
+	printf("%t + %t ->\t%t\n", typeof(t1), typeof(t2), typeof(t1+t2));
+	printf("expect:\t\t%s\n\n", exp);
+}
+
+typemix(@names c32le {
+	typedef int t1;
+	typedef long t2;
+	}, "long");
+
+typemix(@names c32le {
+	typedef int t1;
+	typedef int t2;
+	}, "int");
+
+typemix(@names c32le {
+	typedef int t0;
+	typedef t0 t1;
+	typedef int t2;
+	}, "int");
+
+typemix(@names c32le {
+	typedef int t0;
+	typedef int t1;
+	typedef t0 t2;
+	}, "int");
+
+typemix(@names c32le {
+	typedef int t0;
+	typedef t0 t1;
+	typedef t0 t2;
+	}, "t0");
+
+typemix(@names c32le {
+	typedef int t0;
+	typedef t0 t00;
+	typedef t00 t1;
+	typedef t0 t2;
+	}, "t0");
+
+typemix(@names c32le {
+	typedef short t1;
+	typedef short t2;
+	}, "int");  // int promotion
+
+typemix(@names c32le {
+	typedef int t0;
+	typedef t0 t00;
+	typedef t00 t1;
+	typedef t00 t2;
+	}, "t00");

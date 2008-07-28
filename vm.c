@@ -455,7 +455,7 @@ static int eqptr(Val*, Val*);
 static int eqtrue(Val*, Val*);
 static int eqrange(Val*, Val*);
 static int eqstrv(Val*, Val*);
-static int eqxtn(Val*, Val*);
+static int eqxtnv(Val*, Val*);
 
 typedef struct Hashop {
 	u32 (*hash)(Val*);
@@ -478,7 +478,7 @@ static Hashop hashop[Qnkind] = {
 	[Qstr]	= { hashstr, eqstrv },
 	[Qtab]	= { hashptr, eqptr },
 	[Qvec]	= { hashptr, eqptr },
-	[Qxtn]	= { hashxtn, eqxtn },
+	[Qxtn]	= { hashxtn, eqxtnv },
 };
 
 static Code *kcode, *cccode;
@@ -1354,10 +1354,7 @@ eqstr(Str *a, Str *b)
 static int
 eqstrv(Val *a, Val *b)
 {
-	Str *sa, *sb;
-	sa = valstr(a);
-	sb = valstr(b);
-	return eqstr(sa, sb);
+	return eqstr(valstr(a), valstr(b));
 }
 
 static u32
@@ -1416,69 +1413,62 @@ hashxtn(Val *val)
 }
 
 static int
-eqxtn(Val *a, Val *b)
+eqxtn(Xtypename *a, Xtypename *b)
 {
-	Val va, vb;
-	Xtypename *xa, *xb;
 	Imm m;
 
-	xa = valxtn(a);
-	xb = valxtn(b);
-
-	if(xa->tkind != xb->tkind)
+	if(a->tkind != b->tkind)
 		return 0;
 
-	switch(xa->tkind){
+	switch(a->tkind){
 	case Tvoid:
 		return 1;
 	case Tbase:
-		return xa->basename == xb->basename;
+		return a->basename == b->basename;
 	case Ttypedef:
-		return eqstr(xa->tid, xb->tid);
+		return eqstr(a->tid, b->tid);
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		return eqstr(xa->tag, xb->tag);
+		return eqstr(a->tag, b->tag);
 	case Tundef:
 	case Tptr:
-		mkvalxtn(xa->link, &va);
-		mkvalxtn(xb->link, &vb);
-		return eqxtn(&va, &vb);
+		return eqxtn(a, b);
 	case Tarr:
-		if(xa->cnt.qkind != xb->cnt.qkind)
+		if(a->cnt.qkind != b->cnt.qkind)
 			return 0;
-		if(xa->cnt.qkind == Qcval){
-			if(!eqcval(&xa->cnt, &xb->cnt))
+		if(a->cnt.qkind == Qcval){
+			if(!eqcval(&a->cnt, &b->cnt))
 				return 0;
 		}
-		mkvalxtn(xa->link, &va);
-		mkvalxtn(xb->link, &vb);
-		return eqxtn(&va, &vb);
+		return eqxtn(a, b);
 	case Tfun:
-		if(xa->param->len != xb->param->len)
+		if(a->param->len != b->param->len)
 			return 0;
-		mkvalxtn(xa->link, &va);
-		mkvalxtn(xb->link, &vb);
-		if(!eqxtn(&va, &vb))
+		if(!eqxtn(a, b))
 			return 0;
-		for(m = 0; m < xa->param->len; m++)
-			if(!eqxtn(vecref(valvec(vecref(xa->param, m)),Typepos),
-				  vecref(valvec(vecref(xb->param, m)),Typepos)))
+		for(m = 0; m < a->param->len; m++)
+			if(!eqxtn(valxtn(vecref(valvec(vecref(a->param, m)),
+						Typepos)),
+				  valxtn(vecref(valvec(vecref(b->param, m)),
+						Typepos))))
 				return 0;
 		return 1;
 	case Tbitfield:
-		if(!eqcval(&xa->sz, &xb->sz))
+		if(!eqcval(&a->sz, &b->sz))
 			return 0;
-		mkvalxtn(xa->link, &va);
-		mkvalxtn(xb->link, &vb);
-		return eqxtn(&va, &vb);
+		return eqxtn(a, b);
 	case Tconst:
-		mkvalxtn(xa->link, &va);
-		mkvalxtn(xb->link, &vb);
-		return eqxtn(&va, &vb);
+		return eqxtn(a, b);
 	default:
 		fatal("bug");
 	}
+}
+
+static int
+eqxtnv(Val *a, Val *b)
+{
+	return eqxtn(valxtn(a), valxtn(b));
 }
 
 static Str*
@@ -3210,6 +3200,27 @@ intpromote(VM *vm, Cval *cv)
 	return cv;
 }
 
+static Xtypename*
+commontype(Xtypename *t1, Xtypename *t2)
+{
+	Xtypename *p1, *p2;
+	p1 = t1;
+	while(1){
+		p2 = t2;
+		while(1){
+			if(eqxtn(p1, p2))
+				return p1;
+			if(p2->tkind != Ttypedef && p2->tkind != Tenum)
+				break;
+			p2 = p2->link;
+		}
+		if(p1->tkind != Ttypedef && p1->tkind != Tenum)
+			break;
+		p1 = p1->link;
+	}
+	fatal("cannot determine common type");
+}
+
 static void
 usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 {
@@ -3234,13 +3245,15 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vvlong] = Vuvlong,
 	};
 	Cbase c1, c2, nc;
-	Xtypename *b1, *b2, *nxtn;
+	Xtypename *t1, *t2, *b1, *b2, *nxtn;
 
 	op1 = intpromote(vm, op1);
 	op2 = intpromote(vm, op2);
 
-	b1 = chasetype(op1->type);
-	b2 = chasetype(op2->type);
+	t1 = op1->type;
+	t2 = op2->type;
+	b1 = chasetype(t1);
+	b2 = chasetype(t2);
 	if(b1->tkind != Tbase || b2->tkind != Tbase){
 		/* presumably one of them is a Tptr; nothing else is sane. */
 		*rv1 = op1;
@@ -3251,6 +3264,17 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	c1 = b1->basename;
 	c2 = b2->basename;
 	if(c1 == c2){
+		/* combinations of distinct typedefs
+		   and/or enums yield the first type
+		   they have in common (not necessarily
+		   the base type). */
+		if(t1->tkind == Ttypedef || t2->tkind == Ttypedef){
+			nxtn = commontype(t1, t2);
+			if(t1 != nxtn)
+				op1 = typecast(vm, nxtn, op1);
+			if(t2 != nxtn)
+				op2 = typecast(vm, nxtn, op2);
+		}
 		*rv1 = op1;
 		*rv2 = op2;
 		return;
@@ -3385,17 +3409,19 @@ xcallc(VM *vm)
 {
 	Imm argc;
 	Val *argv;
+	Val rv;
 
 	if(vm->clx->cfn == 0 && vm->clx->ccl == 0)
 		vmerr(vm, "bad closure for builtin call");
 
-	vm->ac = Xnil;
+	rv = Xnil;
 	argc = valimm(&vm->stack[vm->fp]);
 	argv = &vm->stack[vm->fp+1];
 	if(vm->clx->cfn)
-		vm->clx->cfn(vm, argc, argv, &vm->ac);
+		vm->clx->cfn(vm, argc, argv, &rv);
 	else
-		vm->clx->ccl(vm, argc, argv, vm->clx->display, &vm->ac);
+		vm->clx->ccl(vm, argc, argv, vm->clx->display, &rv);
+	vm->ac = rv;
 }
 
 static int
@@ -4727,6 +4753,12 @@ mkmas(Str *s)
 	return as;
 }
 
+static As*
+mkzas(u32 len)
+{
+	return mkmas(mkstrn(len));
+}
+
 static Xtypename*
 chasetype(Xtypename *xtn)
 {
@@ -4760,6 +4792,11 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tptr;
 		new->link = dolooktype(vm, xtn->link, ns);
+		if(new->link == 0){
+			es = fmtxtn(xtn->link);
+			vmerr(vm, "name space does not define %.*s",
+			      es->len, es->s);
+		}
 		tmp = ns->base[Vptr];
 		new->rep = tmp->rep;
 		return new;
@@ -4778,6 +4815,11 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tfun;
 		new->link = dolooktype(vm, xtn->link, ns);
+		if(new->link == 0){
+			es = fmtxtn(xtn->link);
+			vmerr(vm, "name space does not define %.*s",
+			      es->len, es->s);
+		}
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = veccopy(valvec(vecref(xtn->param, i)));
@@ -6078,12 +6120,14 @@ l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
 		      "operand 1 to looktype must be a namespace or domain");
 		      
 	if(argv[1].qkind != Qxtn)
-		vmerr(vm, "operand 1 to looktype must be a typename");
+		vmerr(vm, "operand 2 to looktype must be a typename");
 	xtn = valxtn(&argv[1]);
 
 	xtn = dolooktype(vm, xtn, ns);
 	if(xtn)
 		mkvalxtn(xtn, rv);
+	else
+		printf("nil!?! %d\n", rv->qkind == Qnil);
 }
 
 static void
@@ -7593,6 +7637,37 @@ l1_mkabas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	As *as;
+	Str *s;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkmas");
+	checkarg(vm, "mkmas", argv, 0, Qstr);
+	s = valstr(&argv[0]);
+	as = mkmas(s);
+	mkvalas(as, rv);
+}
+
+static void
+l1_mkzas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	As *as;
+	Cval *cv;
+	Xtypename *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkzas");
+	checkarg(vm, "mkzas", argv, 0, Qcval);
+	cv = valcval(&argv[0]);
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase)
+		vmerr(vm, "operand 1 to mkzas must be an integer cvalue");
+	as = mkzas(cv->val);
+	mkvalas(as, rv);
+}
+
+static void
 l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -8007,6 +8082,8 @@ mkvm(Env *env)
 	FN(tabvals);
 	FN(vmbacktrace);
 	FN(mkabas);
+	FN(mkmas);
+	FN(mkzas);
 	FN(stringof);
 
 	FN(isvoid);

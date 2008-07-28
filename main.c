@@ -121,8 +121,10 @@ main(int argc, char *argv[])
 			printf("; ");
 			fflush(stdout);
 			inbuf = readexpr(&len);
-			if(inbuf == 0)
+			if(inbuf == 0){
+				printf("\n");
 				break;
+			}
 		}
 
 		if(0 > doparse(filename, inbuf))

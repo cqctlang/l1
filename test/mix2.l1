@@ -1,0 +1,22 @@
+ns1 = @names c32le {
+    struct foo{
+    	   @0x0 int x;
+	   @0x4;
+    };
+};
+
+ns2 = c32le;
+
+as = mkzas(1024);
+
+dom1 = mkdom(ns1, as);
+dom2 = mkdom(ns2, as);
+
+p = (struct foo*){dom1}0;
+p->x = 5;
+t = typeof(p);
+q = {t}{dom2}0;
+printf("%d\n", q->x);
+
+q = (struct foo*){dom2}0;
+printf("%d\n", q->x);
