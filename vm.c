@@ -259,6 +259,12 @@ struct As {
 	Closure *dispatch;
 };
 
+typedef
+struct Nssym {
+	Imm addr;
+	Val *sym;
+} Nssym;
+
 struct Ns {
 	Head hd;
 
@@ -267,6 +273,7 @@ struct Ns {
 	Closure *enumtype;
 	Closure *looksym;
 	Closure *looktype;
+	Closure *lookaddr;
 
 	/* cached base type definition */
 	Xtypename *base[Vnallbase];
@@ -275,6 +282,8 @@ struct Ns {
 	/* FIXME: push into closure defining interface */
 	Tab *type;
 	Tab *sym;
+	Nssym *symvec;
+	Imm nsym;
 };
 
 struct Dom {
@@ -410,6 +419,7 @@ static char *opstr[Iopmax] = {
 };
 
 static void freecl(Head*);
+static void freens(Head*);
 static void freestr(Head*);
 static void freetab(Head*);
 static void freevec(Head*);
@@ -433,7 +443,7 @@ static Heap heap[Qnkind] = {
 	[Qcl]	= { "closure", sizeof(Closure), freecl, itercl },
 	[Qcode]	= { "code", sizeof(Code), freecode, 0 },
 	[Qdom]	= { "domain", sizeof(Dom), 0, iterdom },
-	[Qns]	= { "ns", sizeof(Ns), 0, iterns },
+	[Qns]	= { "ns", sizeof(Ns), freens, iterns },
 	[Qpair]	= { "pair", sizeof(Pair), 0, iterpair },
 	[Qrange] = { "range", sizeof(Range), 0, iterrange },
 	[Qstr]	= { "string", sizeof(Str), freestr, 0 },
@@ -1207,6 +1217,13 @@ freecl(Head *hd)
 	free(cl->id);
 }
 
+static void
+freens(Head *hd)
+{
+	Ns *ns;
+	ns = (Ns*)hd;
+	free(ns->symvec);
+}
 
 /* http://www.cris.com/~Ttwang/tech/inthash.htm */
 static u32
@@ -4909,6 +4926,50 @@ looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		*rv = *vp;
 }
 
+/* lookaddr for namespaces constructed by @names */
+static void
+lookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Ns *ns;
+	Cval *cv;
+	Imm addr, m, i, b, n;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to lookaddr");
+	if(argv->qkind != Qcval)
+		vmerr(vm, "argument 1 to lookaddr must be an address");
+
+	ns = valns(&disp[0]);
+	cv = valcval(&argv[0]);
+	addr = cv->val;
+
+	if(ns->nsym == 0){
+		*rv = Xnil;
+		return;
+	}
+
+	if(ns->symvec[0].addr > addr){
+		*rv = Xnil;
+		return;
+	}
+
+	b = 0;
+	n = ns->nsym;
+	while(1){
+		i = n/2;
+		m = b+i;
+		if(i == 0)
+			break;
+		if(addr < ns->symvec[m].addr)
+			n = i;
+		else{
+			b = m;
+			n = n-i;
+		}
+	}
+	*rv = *ns->symvec[m].sym;
+}
+
 typedef
 struct NSctx {
 	Tab *otype, *osym;	/* bindings passed to @names */
@@ -5135,12 +5196,29 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	}
 }
 
+static int
+nssymcmp(const void *va, const void *vb)
+{
+	Nssym *a, *b;
+	a = (Nssym*)va;
+	b = (Nssym*)vb;
+	if(a->addr < b->addr)
+		return -1;
+	else if(a->addr > b->addr)
+		return 1;
+	else
+		return 0;
+}
+
 static Ns*
 mknstab(Tab *type, Tab *sym)
 {
-	Val v;
+	Val v, *vp, *op;
 	Ns *ns;
-	
+	Vec *vec, *s;
+	Imm m, cnt, len;
+	Cval *off;
+
 	ns = mkns();
 	ns->type = type;
 	ns->sym = sym;
@@ -5149,7 +5227,25 @@ mknstab(Tab *type, Tab *sym)
 	ns->enumtype = mkccl("enumtype", enumtype, 1, &v);
 	ns->looksym = mkccl("looksym", looksym, 1, &v);
 	ns->looktype = mkccl("looktype", looktype, 1, &v);
+	ns->lookaddr = mkccl("lookaddr", lookaddr, 1, &v);
 
+	vec = tabenum(ns->sym);
+	len = vec->len/2;
+	ns->symvec = xmalloc(len*sizeof(Nssym));
+	cnt = 0;
+	for(m = 0; m < len; m++){
+		vp = vecref(vec, len+m); /* value containing symbol m */
+		s = valvec(vp);
+		op = vecref(s, Offpos);
+		if(op->qkind != Qcval)
+			continue;
+		off = valcval(op);
+		ns->symvec[cnt].addr = off->val;
+		ns->symvec[cnt].sym = vp;
+		cnt++;
+	}
+	qsort(ns->symvec, cnt, sizeof(Nssym), nssymcmp);
+	ns->nsym = cnt;
 	return ns;
 }
 
@@ -5991,6 +6087,28 @@ l1_asdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nslookaddr");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslookaddr must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->lookaddr, rv);
+}
+
+static void
 l1_nslooksym(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val *arg0;
@@ -6329,7 +6447,7 @@ stringof(VM *vm, Cval *cv)
 static void
 l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Val *vp;
+	Val *vp, *vq;
 	Cval *cv;
 	Str *fmts, *as;
 	char *fmt, *efmt;
@@ -6405,15 +6523,15 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 				dvec = valvec(vp);
 				if(dvec->len < 2)
 					goto badarg;
-				vp = vecref(dvec, Typepos);
-				if(vp->qkind != Qxtn)
+				vq = vecref(dvec, Typepos);
+				if(vq->qkind != Qxtn)
 					goto badarg;
-				xtn = valxtn(vp);
-				vp = vecref(dvec, Idpos);
-				if(vp->qkind == Qnil)
+				xtn = valxtn(vq);
+				vq = vecref(dvec, Idpos);
+				if(vq->qkind == Qnil)
 					as = fmtxtn(xtn);
-				else if(vp->qkind == Qstr)
-					as = fmtdecl(xtn, valstr(vp));
+				else if(vq->qkind == Qstr)
+					as = fmtdecl(xtn, valstr(vq));
 				else
 					goto badarg;
 			}else if(vp->qkind == Qcval){
@@ -6422,6 +6540,34 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			}else
 				vmerr(vm, "bad operand to %%t");
 			fprintf(fp, "%.*s", as->len, as->s);
+			break;
+		case 'y':
+			if(vp->qkind != Qcval)
+				vmerr(vm, "bad operand to %%y");
+			cv = valcval(vp);
+			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
+			vq = dovm(vm, cv->dom->ns->lookaddr, 1, vp);
+			if(vq->qkind == Qnil){
+				fprintf(fp, "0x%" PRIx64, cv->val);
+				break;
+			}else if(vq->qkind != Qvec)
+				vmerr(vm, "invalid response from lookaddr");
+			dvec = valvec(vq);
+			if(dvec->len < 3)
+				goto badarg;
+			vq = vecref(dvec, Idpos);
+			if(vq->qkind != Qstr)
+				vmerr(vm, "invalid response from lookaddr");
+			as = valstr(vq);
+			vq = vecref(dvec, Offpos);
+			if(vq->qkind != Qcval)
+				vmerr(vm, "invalid response from lookaddr");
+			cv = xcvalalu(vm, Isub, cv, valcval(vq));
+			if(cv->val)
+				fprintf(fp, "%.*s+0x%" PRIx64,
+					as->len, as->s, cv->val);
+			else
+				fprintf(fp, "%.*s", as->len, as->s);
 			break;
 		default:
 			vmerr(vm, "unrecognized format conversion: %%%c", ch);
@@ -8070,6 +8216,7 @@ mkvm(Env *env)
 	builtinfn(env, "vecset", vecsetthunk());
 
 	FN(asdispatch);
+	FN(nslookaddr);
 	FN(nslooksym);
 	FN(nslooktype);
 	FN(nsenumsym);

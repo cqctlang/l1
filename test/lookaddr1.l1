@@ -1,0 +1,20 @@
+ns = @names c32le {
+//	@0x0	int a_0x0;
+	@0x4	int a_0x4;
+	@0x8	int a_0x8;
+		int a_none;
+	@0xc	int a_0xc;
+	@0x10	int a_0x10;
+};
+
+for(i = 0; i < 0x20; i++){
+	v = nslookaddr(ns)(i);
+	if(v == nil)
+		printf("0x%x: ???\n", i);
+	else
+		printf("0x%x: %t\n", i, v);
+}
+
+dom = mkdom(ns, mkabas());
+for(i = {dom}0; i < 0x20; i++)
+	printf("0x%x:\t%y\n", i, i);
