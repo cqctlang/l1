@@ -6206,6 +6206,7 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 
 	t = chasetype(cv->type);
 	fmt = fmttab[t->rep][conv];
+//	printf("rep is %d, fmt is %s\n", t->rep, fmt);
 	switch(t->rep){
 	case Ru08le:
 	case Ru08be:
