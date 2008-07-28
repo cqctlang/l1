@@ -29,7 +29,7 @@ islval(Expr *e)
 	case Ederef:
 		return 1;
 	case Edot:
-		return 1;
+		return islval(e->e1);
 	default:
 		return 0;
 	}
@@ -470,6 +470,58 @@ expandc(Expr *e)
 	}
 }
 
+static Expr*
+expanddot(Expr *e)
+{
+	Expr *te, *p;
+	char *id;
+
+	if(e == 0)
+		return e;
+	switch(e->kind){
+	case Edot:
+		if(islval(e->e1))
+			return e;
+		id = e->e2->id;
+		if(!strcmp(id, "dispatch"))
+			te = Zcall(doid("asdispatch"), 1, expanddot(e->e1));
+		else if(!strcmp(id, "names"))
+			te = Zcall(doid("domns"), 1, expanddot(e->e1));
+		else if(!strcmp(id, "as"))
+			te = Zcall(doid("domas"), 1, expanddot(e->e1));
+		else
+			te = Zblock(Zlocals(1, "$disp"),
+				    Zset(doid("$disp"),
+					 Zcall(doid("asdispatch"), 1,
+					       expanddot(e->e1))),
+				    Zlambdn(doid("$args"),
+					    Zblock(nullelist(),
+						   Zret(Zcall(doid("apply"), 3,
+							      doid("$disp"),
+							      Zconsts(id),
+							      doid("$args"))),
+						   NULL),
+					    copyexpr(e->e2)),
+				    NULL);
+		e->e1 = 0;
+		freeexpr(e);
+		return te;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = expanddot(p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = expanddot(e->e1);
+		e->e2 = expanddot(e->e2);
+		e->e3 = expanddot(e->e3);
+		e->e4 = expanddot(e->e4);
+		return e;
+	}
+}
+
 Expr*
 docompilec(Expr *e)
 {
@@ -477,6 +529,7 @@ docompilec(Expr *e)
 	if(setjmp(esc) != 0)
 		return 0;	/* error */
 	e = expandc(e);
+	e = expanddot(e);
 	rv = compile_rval(e, 0);
 	return rv;
 }

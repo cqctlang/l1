@@ -1,0 +1,42 @@
+define length(l){
+     @local len;
+     for(len = 0; !isnull(l); l = cdr(l))
+	  len++;
+     return len;
+}
+
+define listref(l, i){
+	if(i == 0)
+		return car(l);
+	else
+		return listref(cdr(l), i-1);
+}
+
+define dispatch args {
+	@local arg;
+	arg = listref(args, 0);
+	printf("dispatch arg is %s, %d arguments\n", car(args),
+	       length(args)-1);
+	l = cdr(args);
+	while(!isnull(l)){
+		printf("%a\n", car(l));
+		l = cdr(l);
+	}
+}
+
+ns = c32le;
+as = mkas(dispatch);
+dom = mkdom(ns, as);
+printf("isns(dom.names) = %d\n", isns(dom.names));
+printf("isas(dom.as) = %d\n", isas(dom.as));
+
+define test(o){
+	o.foo(1, 2, 3);
+	o.bar();
+	fn = o.baz;
+	fn(fn, fn);
+	fn = o.dispatch;
+	fn("yo!", fn, fn);
+}
+test(dom);
+test(as);

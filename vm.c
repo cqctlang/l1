@@ -262,7 +262,7 @@ struct As {
 typedef
 struct Nssym {
 	Imm addr;
-	Val *sym;
+	Vec *sym;
 } Nssym;
 
 struct Ns {
@@ -282,7 +282,7 @@ struct Ns {
 	/* FIXME: push into closure defining interface */
 	Tab *type;
 	Tab *sym;
-	Nssym *symvec;
+	Nssym *symvec;		/* points to elements of sym; no mark needed */
 	Imm nsym;
 };
 
@@ -2307,17 +2307,19 @@ iterns(Head *hd, Ictx *ictx)
 	case 1:
 		return (Head*)ns->type;
 	case 2:
-		return (Head*)ns->looksym;
+		return (Head*)ns->lookaddr;
 	case 3:
-		return (Head*)ns->looktype;
+		return (Head*)ns->looksym;
 	case 4:
-		return (Head*)ns->enumtype;
+		return (Head*)ns->looktype;
 	case 5:
+		return (Head*)ns->enumtype;
+	case 6:
 		return (Head*)ns->enumsym;
 	}
-	if(n >= 5+Vnbase) /* assume elements at+above nbase are aliases */
+	if(n >= 6+Vnbase) /* assume elements at+above nbase are aliases */
 		return GCiterdone;
-	return (Head*)ns->base[n-5];
+	return (Head*)ns->base[n-6];
 }
 
 Env*
@@ -4967,7 +4969,7 @@ lookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 			n = n-i;
 		}
 	}
-	*rv = *ns->symvec[m].sym;
+	mkvalvec(ns->symvec[m].sym, rv);
 }
 
 typedef
@@ -5241,7 +5243,7 @@ mknstab(Tab *type, Tab *sym)
 			continue;
 		off = valcval(op);
 		ns->symvec[cnt].addr = off->val;
-		ns->symvec[cnt].sym = vp;
+		ns->symvec[cnt].sym = s;
 		cnt++;
 	}
 	qsort(ns->symvec, cnt, sizeof(Nssym), nssymcmp);
@@ -7834,6 +7836,36 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 	mkvalstr(s, rv);
 }
 
+static void
+l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
+{
+	Imm ll, argc, m;
+	Val *argv, *ap, *ip, *vp;
+	Pair *p;
+	Closure *cl;
+
+	if(iargc < 2)
+		vmerr(vm, "wrong number of arguments to apply");
+	checkarg(vm, "apply", iargv, 0, Qcl);
+	cl = valcl(&iargv[0]);
+	if(listlen(&iargv[iargc-1], &ll) == 0)
+		vmerr(vm, "final operand to apply must be a proper list");
+	argc = iargc-2+ll;
+	argv = xmalloc(argc*sizeof(Val));
+	ap = argv;
+	ip = &iargv[1];
+	for(m = 0; m < iargc-2; m++)
+		*ap++ = *ip++;
+	while(ip->qkind == Qpair){
+		p = valpair(ip);
+		*ap++ = p->car;
+		ip = &p->cdr;
+	}
+	vp = dovm(vm, cl, argc, argv);
+	*rv = *vp;
+	free(argv);
+}
+
 typedef
 struct NSroot {
 	Rkind base[Vnbase];
@@ -8248,6 +8280,7 @@ mkvm(Env *env)
 	FN(isfunc);
 	FN(istypedef);
 
+	FN(apply);
 	FN(baseid);
 	FN(subtype);
 	FN(suekind);

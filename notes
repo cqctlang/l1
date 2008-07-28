@@ -7,8 +7,6 @@ todo
   - switch enum operands shortform
   - introduce address types
     - shouldn't bpset take an address argument?
-  - dot operator on dom/as
-  - extended domain/address space operations
   - figure out interactive control story:
   	- exit
   	- interruption
@@ -80,6 +78,7 @@ todo
   add new local bindings to a lambda.
 
 - performance/simplicity
+  - apply is expensive
   - can we remove a level of box indirection on compile0 output?
 
     how to make it gc-safe? (i.e., without boxes, old values will be

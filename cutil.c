@@ -28,6 +28,12 @@ Zset(Expr *l, Expr *r)
 }
 
 Expr*
+Zret(Expr *e)
+{
+	return Z1(Eret, e);
+}
+
+Expr*
 Zsizeof(Expr *e)
 {
 	return Z1(E_sizeof, e);
@@ -172,6 +178,12 @@ Expr*
 Zlambda(Expr *args, Expr *body)
 {
 	return newexpr(Elambda, args, body, 0, 0);
+}
+
+Expr*
+Zlambdn(Expr *args, Expr *body, Expr *name)
+{
+	return newexpr(Elambda, args, body, name, 0);
 }
 
 Expr*

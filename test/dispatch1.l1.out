@@ -1,0 +1,32 @@
+entry: 0 params, 0 locals, 0 temps
+length: 1 params, 1 locals, 0 temps
+listref: 2 params, 0 locals, 0 temps
+dispatch: var params, 2 locals, 0 temps
+test: 1 params, 1 locals, 0 temps
+foo: var params, 1 locals, 0 temps
+bar: var params, 1 locals, 0 temps
+baz: var params, 1 locals, 0 temps
+isns(dom.names) = 1
+isas(dom.as) = 1
+dispatch arg is foo, 3 arguments
+<cval 1>
+<cval 2>
+<cval 3>
+dispatch arg is bar, 0 arguments
+dispatch arg is baz, 2 arguments
+<closure baz>
+<closure baz>
+dispatch arg is yo!, 2 arguments
+<procedure dispatch>
+<procedure dispatch>
+dispatch arg is foo, 3 arguments
+<cval 1>
+<cval 2>
+<cval 3>
+dispatch arg is bar, 0 arguments
+dispatch arg is baz, 2 arguments
+<closure baz>
+<closure baz>
+dispatch arg is yo!, 2 arguments
+<procedure dispatch>
+<procedure dispatch>
