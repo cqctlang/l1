@@ -56,7 +56,7 @@ printf("%d\n", *p);
 *p = (short)-2;
 printf("%d\n", *p);
 
-q = (char*)p;
+q = (unsigned char*)p;
 for(i = 0; i < 8; i++)
 	printf("%x ", q[i]);
 printf("\n");

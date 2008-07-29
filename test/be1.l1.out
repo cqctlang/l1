@@ -23,11 +23,11 @@ put 0 8
 get 0 8
 -2
 get 0 1
-ffffffff get 1 2
-ffffffff get 2 3
-ffffffff get 3 4
-ffffffff get 4 5
-ffffffff get 5 6
-ffffffff get 6 7
-ffffffff get 7 8
-fffffffe 
+ff get 1 2
+ff get 2 3
+ff get 3 4
+ff get 4 5
+ff get 5 6
+ff get 6 7
+ff get 7 8
+fe 
