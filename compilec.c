@@ -454,6 +454,15 @@ expandc(Expr *e)
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
+	case Ecomma:
+		se = Zblock(nullelist(),
+			    expandc(e->e1),
+			    expandc(e->e2),
+			    NULL);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

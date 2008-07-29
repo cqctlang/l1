@@ -45,6 +45,7 @@ enum{
 	Econd,
 	Econst,
 	Econsts,
+	Econtainer,
 	Econtinue,
 	Edecl,			/* type specifier + 1 declarator */
 	Edecls,			/* type specifier + list of declarators */
@@ -170,8 +171,11 @@ enum Tkind {
 	Tbitfield,		/* xtn only */
 	Tconst,			/* xtn only */
 	Tundef,			/* xtn only */
-	Tntkind,
 } Tkind;
+
+enum {
+	Tntkind = Tundef+1
+};
 
 typedef struct Expr Expr;
 typedef struct Decl Decl;

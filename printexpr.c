@@ -38,6 +38,7 @@ char* S[] = {
 	[Econd] =	"Econd",
 	[Econst] =	"Econst",
 	[Econsts] =	"Econsts",
+	[Econtainer] =	"Econtainer",
 	[Econtinue] =	"Econtinue",
 	[Edecl] =	"Edecl",
 	[Edecls] =	"Edecls",
@@ -267,6 +268,8 @@ static char* Opstr[Emax] = {
 	[Eunot] = "!",
 	[Euplus] = "+",
 	[Eutwiddle] = "~",
+	[Elor] = "||",
+	[Eland] = "&&",
 };
 
 static char*
@@ -378,6 +381,14 @@ printcqct0(Expr *e, unsigned ni)
 			printf(")");
 			break;
 		}
+		break;
+	case Eland:
+	case Elor:
+		printf("(");
+		printcqct0(e->e1, ni);
+		printf(" %s ", opstr(e->kind));
+		printcqct0(e->e2, ni);
+		printf(")");
 		break;
 	case Enull:
 	case Enop:

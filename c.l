@@ -36,6 +36,7 @@ static int chars(int);
 "break"			{ count(); return(BREAK); }
 "case"			{ count(); return(CASE); }
 "char"			{ count(); return(CHAR); }
+"containerof"		{ count(); return(CONTAINEROF); }
 "continue"		{ count(); return(CONTINUE); }
 "default"		{ count(); return(DEFAULT); }
 "define"		{ count(); return(DEFINE); }

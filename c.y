@@ -23,7 +23,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER CONSTANT STRING_LITERAL 
-%token SIZEOF TYPEOF TYPEDEF NIL DEFINE
+%token SIZEOF TYPEOF TYPEDEF NIL DEFINE CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -64,7 +64,7 @@ extern char *yytext;
 %start translation_unit_seq
 %glr-parser
 %expect 1
-%expect-rr 4
+%expect-rr 5
 %{
 	static void yyerror(const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
@@ -118,6 +118,8 @@ postfix_expression
 	{ $$ = newexpr(Epostinc, $1, 0, 0, 0); }
 	| postfix_expression DEC_OP
 	{ $$ = newexpr(Epostdec, $1, 0, 0, 0); }
+	| CONTAINEROF '(' expression ',' type_name ',' id ')'
+        { $$ = newexpr(Econtainer, $3, $5, $7, 0); }
 	;
 
 argument_expression_list

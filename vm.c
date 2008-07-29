@@ -17,6 +17,7 @@ enum {
 	Qcode,
 	Qcval,
 	Qdom,
+	Qlist,
 	Qns,
 	Qpair,
 	Qrange,
@@ -1083,9 +1084,8 @@ typesize(VM *vm, Xtypename *xtn)
 		      es->len, es->s);
 	case Tconst:
 		vmerr(vm, "shouldn't this be impossible?");
-	default:
-		fatal("typesize bug");
 	}
+	fatal("bug");
 }
 
 static Head*
@@ -1424,9 +1424,8 @@ hashxtn(Val *val)
 	case Tconst:
 		mkvalxtn(xtn->link, &v);
 		return hashxtn(&v)<<xtn->tkind;
-	default:
-		fatal("bug");
 	}
+	fatal("bug");
 }
 
 static int
@@ -1477,9 +1476,8 @@ eqxtn(Xtypename *a, Xtypename *b)
 		return eqxtn(a, b);
 	case Tconst:
 		return eqxtn(a, b);
-	default:
-		fatal("bug");
 	}
+	fatal("bug");
 }
 
 static int
@@ -2051,8 +2049,6 @@ iterxtn(Head *hd, Ictx *ictx)
 		default:
 			return GCiterdone;
 		}
-	default:
-		fatal("bug");
 	}
 	return 0;
 }
@@ -2203,8 +2199,6 @@ _fmtxtn(Xtypename *xtn, char *o)
 		/* this is questionable...maybe we want more accurate printed
 		   representation of these objects, especially bitfields */
 		return _fmtxtn(xtn->link, o);
-	default:
-		fatal("bug");
 	}
 	return NULL;
 
@@ -4112,7 +4106,7 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		break;
 	case Tconst:
 		vmerr(vm, "attempt to use enumeration constant as location");
-	default:
+	case Ttypedef:
 		fatal("bug");
 	}
 	putvalrand(vm, &rv, dst);
@@ -4175,7 +4169,6 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		break;
 	case Tbase:
 	case Tptr:
-	case Tenum:
 		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
 		mkvalstr(vm->sget, &argv[0]);
 		mkvalrange(cv, len, &argv[1]);
@@ -4200,7 +4193,8 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		es = fmtxtn(b->link);
 		vmerr(vm, "attempt to read object of undefined type: %.*s",
 		      es->len, es->s);
-	default:
+	case Tenum:
+	case Ttypedef:
 		fatal("bug");
 	}
 	putvalrand(vm, &rv, dst);
@@ -4797,6 +4791,8 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	Str *es;
 
 	switch(xtn->tkind){
+	case Tvoid:
+		return mkvoidxtn();
 	case Tbase:
 	case Ttypedef:
 	case Tstruct:
@@ -4860,9 +4856,9 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		return dolooktype(vm, xtn->link, ns);
 	case Tconst:
 	case Tbitfield:
-	default:
 		fatal("bug");
 	}
+	fatal("bug");
 }
 
 static void
@@ -5193,9 +5189,9 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		}
 		return new;
 	case Tundef:
-	default:
 		fatal("bug");
 	}
+	fatal("bug");
 }
 
 static int
@@ -5969,6 +5965,14 @@ builtindom(Env *env, char *name, Dom *dom)
 {
 	Val val;
 	mkvaldom(dom, &val);
+	envbind(env, name, &val);
+}
+
+static void
+builtincval(Env *env, char *name, Cval *cv)
+{
+	Val val;
+	mkvalcval2(cv, &val);
 	envbind(env, name, &val);
 }
 
@@ -7604,7 +7608,6 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	switch(b->tkind){
 	case Tbase:
 	case Tptr:
-	case Tenum:
 		cv = typecast(vm, t, cv);
 		gcprotect(vm, cv);
 		bytes = imm2str(t, cv->val);
@@ -7654,7 +7657,13 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		vmerr(vm,
 		      "attempt to write object of undefined type: %.*s",
 		      es->len, es->s);
-	default:
+	case Tenum:
+	case Ttypedef:
+	case Tvoid:
+	case Tstruct:
+	case Tunion:
+	case Tfun:
+	case Tarr:
 		vmerr(vm,
 		      "attempt to write %s-valued object to address space",
 		      tkindstr[b->tkind]);
@@ -8355,6 +8364,9 @@ mkvm(Env *env)
 	vm->sget = mkstr0("get");
 	vm->sput = mkstr0("put");
 	vm->smap = mkstr0("map");
+
+	builtincval(env, "NULL",
+		    mkcval(vm->litdom, vm->litdom->ns->base[Vptr], 0));
 
 	vmp = vms;
 	while(*vmp){
