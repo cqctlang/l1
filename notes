@@ -1,6 +1,13 @@
 todo
 ----
 - core functionality
+  - old-style lists 
+  - i/o (file, net)
+  - string processing (including ascii<->binary help)
+  - formatted printing:
+	- to strings and files
+	- for error messages
+	- with widths (and precisions)
   - getbytes/putbytes
   - address space map()
   - allow enum constant expressions to reference other enum constants
@@ -13,13 +20,6 @@ todo
     interactions of signals with threads?
     gc state vs exit and interruption
     useful for blocking/polling on remote events
-  - old-style lists 
-  - i/o (file, net)
-  - string processing (including ascii<->binary help)
-  - formatted printing:
-	- to strings and files
-	- for error messages
-	- with widths (and precisions)
 
 - usability
   - check "entry" to "toplevel"
