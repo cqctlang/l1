@@ -36,7 +36,7 @@ static char* cbasector[Vnbase] = {
 	[Vlongdouble]	      = "mkctype_ldouble",
 };
 
-static Expr*
+Expr*
 gentypename(Type *t)
 {
 	Expr *e, *se, *te, *id, *off, *tn, *sz, *loc;

@@ -16,6 +16,18 @@ Z2(unsigned kind, Expr *e1, Expr *e2)
 }
 
 Expr*
+Zif(Expr *cond, Expr *true)
+{
+	return newexpr(Eif, cond, true, 0, 0);
+}
+
+Expr*
+Zifelse(Expr *cond, Expr *true, Expr *false)
+{
+	return newexpr(Eif, cond, true, false, 0);
+}
+
+Expr*
 Zcons(Expr *hd, Expr *tl)
 {
 	return Z2(Eelist, hd, tl);

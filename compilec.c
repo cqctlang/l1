@@ -28,6 +28,8 @@ islval(Expr *e)
 		return 1;
 	case Ederef:
 		return 1;
+	case Ecast:
+		return islval(e->e2);
 	case Edot:
 		return islval(e->e1);
 	default:
@@ -57,12 +59,46 @@ lvalblock(Expr *body)
 static Expr*
 compile_lval(Expr *e, int needaddr)
 {
-	Expr *se, *te;
+	Expr *se, *te, *dom;
+	Type *t;
+	Decl *d;
 
 	if(e == 0)
 		return 0;
 
 	switch(e->kind){
+	case Ecast:
+		te = nullelist();
+
+		// compile lvalue reference to expression,
+		// using dom, type bindings
+		se = compile_lval(e->e2, needaddr);
+		te = Zcons(se, te);
+
+		// clobber type with cast operand 
+		d = e->e1->xp;
+		t = d->type;
+		if(t->dom)
+			dom = doid(t->dom);
+		else
+			dom = doid("$dom");
+
+		se = Zblock(Zlocals(1, "$tn"),
+			    Zset(doid("$tn"), gentypename(t)),
+			    Zset(doid("$type"),
+				 Zcall(doid("looktype"), 2,
+				       dom, doid("$tn"))),
+			    Zif(Zcall(doid("isnil"), 1, doid("$type")),
+				Zcall(doid("error"), 2,
+				      Zconsts("undefined type: %t"),
+				      doid("$tn"))),
+			    NULL);
+		te = Zcons(se, te);
+
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return lvalblock(invert(te));
 	case Etick:
 		te = nullelist();
 
