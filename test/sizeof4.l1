@@ -1,0 +1,6 @@
+ns = @names c32le {
+	@0x0 unsigned long long x;
+};
+dom = mkdom(ns,mkabas());
+printf("%d\n", sizeof(dom`x));
+printf("%d\n", sizeof((int*)dom`x));

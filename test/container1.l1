@@ -1,0 +1,31 @@
+ns = @names c64le {
+	struct X {
+		@0x0 int x;
+		@0x4 int y;
+		@0x8 int z;
+		@0xc;
+	};
+};
+
+dom = mkdom(ns, mkabas());
+
+p = (struct X*){dom}0;
+printf("p is %t 0x%x\n", typeof(p), p);
+q = &p->y;
+printf("q is %t 0x%x\n", typeof(q), q);
+r = containerof(q, struct X, y);
+printf("r is %t 0x%x\n", typeof(r), r);
+
+p = (struct X*){dom}0;
+printf("p is %t 0x%x\n", typeof(p), p);
+q = &p->y;
+printf("q is %t 0x%x\n", typeof(q), q);
+r = containerof(q, struct dom`X, y);
+printf("r is %t 0x%x\n", typeof(r), r);
+
+p = (struct X*){dom}0;
+printf("p is %t 0x%x\n", typeof(p), p);
+q = &p->z;
+printf("q is %t 0x%x\n", typeof(q), q);
+r = containerof(q, struct dom`X, y);
+printf("r is %t 0x%x\n", typeof(r), r);
