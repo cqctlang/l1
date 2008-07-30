@@ -7332,13 +7332,27 @@ l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn;
-	if(argc != 1)
+	Xtypename *xtn, *pxtn;
+	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_ptr");
 	if(argv->qkind != Qxtn)
 		vmerr(vm, "operand 1 to mkctype_ptr must be a pointer ctype");
-	xtn = valxtn(argv);
-	xtn = mkptrxtn(xtn, Rundef);
+	xtn = valxtn(&argv[0]);
+	if(argc == 1)
+		xtn = mkptrxtn(xtn, Rundef);
+	else{
+		if(argv[1].qkind != Qxtn)
+			vmerr(vm, "operand 2 to mkctype_ptr "
+			      "must define a pointer type");
+		checkarg(vm, "mkctype_ptr", argv, 1, Qxtn);
+		pxtn = valxtn(&argv[1]);
+		pxtn = chasetype(pxtn);
+		if((pxtn->tkind != Tptr && pxtn->tkind != Tbase)
+		   || pxtn->rep == Rundef)
+			vmerr(vm, "operand 2 to mkctype_ptr "
+			      "must define a pointer type");
+		xtn = mkptrxtn(xtn, pxtn->rep);
+	}
 	mkvalxtn(xtn, rv);	
 }
 

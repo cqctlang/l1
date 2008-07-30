@@ -20,11 +20,26 @@ todo
     interactions of signals with threads?
     gc state vs exit and interruption
     useful for blocking/polling on remote events
+  - optional names for as, ns, and dom
+    - display names in errors such as "undefined type"
+  - does pointer conversion make sense when type comes from a domain
+    with different pointer size?
+
+    e.g.:
+	t = dom32.ns.looktype(T*)
+	v = {t}<dom64,.,val>
+        now v is a 32-bit pointer in a 64-bit domain
+        certainly it does not make sense when structs containing
+        pointers are carried over.
+        seems too unusual to handle in a special way; instead,
+	should just note the problem.
 
 - usability
   - check "entry" to "toplevel"
 
 - robustness
+  - do lvals with cast expressions work?
+    (does the question even make sense?)
   - @include at interactive prompt confusingly does not necessarily
     print the value of the last expression:
 	x = 2;
@@ -78,6 +93,8 @@ todo
   add new local bindings to a lambda.
 
 - performance/simplicity
+  - consider making routines like nsptr take a cvalue argument
+    to avoid intermediate domof calls (they already accept domains)
   - apply is expensive
   - can we remove a level of box indirection on compile0 output?
 

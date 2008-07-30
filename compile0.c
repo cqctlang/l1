@@ -538,6 +538,86 @@ compilecast(Expr *e)
 	return te;
 }
 
+static Expr*
+compilecontainer(Expr *e)
+{
+	Type *t;
+	Expr *se, *te, *dom, *loc;
+	Decl *d;
+
+	te = nullelist();
+
+	loc = Zlocals(4, "$tn", "$fld", "$ptype", "$type", "$tmp");
+
+	// $tmp = e->e1;
+	compile0(e->e1);
+	se = Zset(doid("$tmp"), e->e1);
+	te = Zcons(se, te);
+
+	// pick domain in which to lookup type
+	d = e->e2->xp;
+	t = d->type;
+	if(t->dom)
+		dom = doid(t->dom);
+	else
+		dom = Zcall(doid("domof"), 1, doid("$tmp"));
+
+	// $tn = gentypename(t);
+	se = Zset(doid("$tn"), gentypename(t));
+	te = Zcons(se, te);
+
+	// $type = looktype(dom, $tn);
+	se = Zset(doid("$type"),
+		  Zcall(doid("looktype"), 2, dom, doid("$tn")));
+	te = Zcons(se, te);
+	
+	// if(isnil($type)) error("undefined type: %t", $tn);
+	se = newexpr(Eif,
+		     Zcall(doid("isnil"), 1, doid("$type")),
+		     Zcall(doid("error"), 2,
+			   Zconsts("undefined type: %t"),
+			   doid("$tn")),
+		     0, 0);
+	te = Zcons(se, te);
+
+	// $fld = lookfield($type, field);
+	se = Zset(doid("$fld"),
+		  Zcall(doid("lookfield"), 2,
+			doid("$type"), Zconsts(e->e3->id)));
+	te = Zcons(se, te);
+
+	// if(isnil($fld)) error("undefined field: %s", sym);
+	se = newexpr(Eif,
+		     Zcall(doid("isnil"), 1, doid("$fld")),
+		     Zcall(doid("error"), 2,
+			   Zconsts("undefined field: %s"),
+			   Zconsts(e->e3->id)),
+		     0, 0);
+	te = Zcons(se, te);
+
+	// $ptype = nsptr(domof($tmp));
+	se = Zset(doid("$ptype"),
+		  Zcall(doid("nsptr"), 1,
+			Zcall(doid("domof"), 1, doid("$tmp"))));
+	te = Zcons(se, te);
+
+	// FIXME: maybe it be simpler to rewrite at higher level
+	//        where type names can be reused:
+	//        (typename*)((void*)p - fieldoff(looktype(typename)))
+	//        but note that above draws final pointer type definition
+	//        from typename domain, whereas here we always draw from
+	//        P's domain.
+	// {mkctype_ptr($type,$ptype)} ({$ptype}$tmp - fieldoff($fld))
+	se = Zxcast(Zcall(doid("mkctype_ptr"), 2,
+			  doid("$type"), doid("$ptype")),
+		    Zsub(Zxcast(doid("$ptype"), doid("$tmp")),
+			 Zcall(doid("fieldoff"), 1, doid("$fld"))));
+	te = Zcons(se, te);
+
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	return te;
+}
+
 static int
 istypeform(Expr *e)
 {
@@ -657,6 +737,15 @@ compile0(Expr *e)
 		e->kind = Eblock;
 		e->e1 = nullelist();
 		e->e2 = se;
+		break;
+	case Econtainer:
+		se = compilecontainer(e);
+		freeexpr(e->e2);
+		freeexpr(e->e3);
+		e->kind = Eblock;
+		e->e1 = nullelist();
+		e->e2 = se;
+		e->e3 = 0;
 		break;
 	case Elist:
 		compile0(e->e2);

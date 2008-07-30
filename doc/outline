@@ -144,3 +144,27 @@ Extension
 
 	return value goes into RV, initialized to Xnil
 	upon entry.
+
+Conversion
+
+	It is helpful to remember several reductions:
+
+	A cvalue is a triple:
+
+		<dom,type,val>
+
+	The ordinary C cast operator:
+
+		(typename) <dom,type,val>
+
+		  --> let type' = dom.ns.looktype(typename)
+		  	   val' = chrep(val,type,type')
+		      in <dom,type',val'>
+
+
+		(dom`typename) <dom,type,val>
+
+		  --> let type' = dom'.ns.looktype(typename)
+		  	   val' = chrep(val,type,type')
+		      in <dom,type',val'>
+
