@@ -7,6 +7,7 @@ static jmp_buf esc;
 
 static void cerror(Expr *e, char *fmt, ...) __attribute__((noreturn));
 static Expr* compile_rval(Expr *e, unsigned lfree);
+static Expr* compilec(Expr* e);
 
 static void
 cerror(Expr *e, char *fmt, ...)
@@ -84,7 +85,7 @@ compile_lval(Expr *e, int needaddr)
 			dom = doid("$dom");
 
 		se = Zblock(Zlocals(1, "$tn"),
-			    Zset(doid("$tn"), gentypename(t)),
+			    Zset(doid("$tn"), gentypename(t, compilec)),
 			    Zset(doid("$type"),
 				 Zcall(doid("looktype"), 2,
 				       dom, doid("$tn"))),
@@ -567,14 +568,20 @@ expanddot(Expr *e)
 	}
 }
 
+static Expr*
+compilec(Expr* e)
+{
+	e = expandc(e);
+	e = expanddot(e);
+	return compile_rval(e, 0);
+}
+
 Expr*
 docompilec(Expr *e)
 {
 	Expr *rv;
 	if(setjmp(esc) != 0)
 		return 0;	/* error */
-	e = expandc(e);
-	e = expanddot(e);
-	rv = compile_rval(e, 0);
+	rv = compilec(e);
 	return rv;
 }
