@@ -1,17 +1,8 @@
-length = lambda(l){
-     @local len;
-     for(len = 0; !isnull(l); l = cdr(l))
-	  len++;
-     return len;
+printlist = lambda(l) {
+	@local i;
+	for(i = 0; i < length(l); i++)
+		print(listref(l, i));
 };
-
-printlist = lambda(l){
-     while(!isnull(l)){
-	  print(car(l));
-	  l = cdr(l);
-     }
-};
-
 
 fn = lambda arg {
 	@local x;

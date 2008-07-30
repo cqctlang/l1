@@ -38,6 +38,7 @@ static char *qname[Qnkind] = {
 	[Qcode]=	"code",
 	[Qcval]=	"cvalue",
 	[Qdom]=		"domain",
+	[Qlist]=	"list",
 	[Qns]=		"name space",
 	[Qpair]=	"pair",
 	[Qrange]=	"range",
@@ -129,6 +130,7 @@ static unsigned isbigendian[Rnrep] = {
 
 enum {
 	Tabinitsize=1024,	/* power of 2 */
+	Listinitsize=16,
 	Typepos=0,
 	Idpos=1,
 	Offpos=2,
@@ -176,6 +178,7 @@ typedef struct As As;
 typedef struct Box Box;
 typedef struct Cval Cval;
 typedef struct Dom Dom;
+typedef struct List List;
 typedef struct Ns Ns;
 typedef struct Pair Pair;
 typedef struct Range Range;
@@ -193,6 +196,7 @@ struct Val {
 		Closure *cl;
 		Cval *cval;
 		Dom *dom;
+		List *list;
 		Ns *ns;
 		Pair *pair;
 		Range *range;
@@ -253,6 +257,25 @@ struct Tab {
 	Head hd;
 	u32 cnt;		/* key/val pairs stored */
 	Tabx *x;		/* current storage, atomically swappable */
+};
+
+typedef
+struct Listx {
+	/* invariants:
+	 *  if(hd == tl)
+	 *  	list is empty.
+	 *  else
+	 *  	tl>hd and list has tl-hd elements,
+	 *      hd points to first element in list, and
+	 *	tl-1 points to last.
+	 */
+	u32 hd, tl, sz;
+	Val *val;
+} Listx;
+
+struct List {
+	Head hd;
+	Listx *x;
 };
 
 struct As {
@@ -374,6 +397,7 @@ static void gcprotpop(VM *vm);
 static void strinit(Str *str, Lits *lits);
 static void vmerr(VM *vm, char *fmt, ...) __attribute__((noreturn));
 static Cval* valcval(Val *v);
+static List* vallist(Val *v);
 static Pair* valpair(Val *v);
 static Range* valrange(Val *v);
 static Str* valstr(Val *v);
@@ -394,6 +418,7 @@ static Str* stringof(VM *vm, Cval *cv);
 static Val* vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val *v);
 static void vecset(VM *vm, Vec *vec, Imm idx, Val *v);
+static u32 listxlen(Listx *x);
 
 static Val Xundef;
 static Val Xnil;
@@ -420,6 +445,7 @@ static char *opstr[Iopmax] = {
 };
 
 static void freecl(Head*);
+static void freelist(Head*);
 static void freens(Head*);
 static void freestr(Head*);
 static void freetab(Head*);
@@ -431,6 +457,7 @@ static Head *itercl(Head*, Ictx*);
 static Head *itercval(Head*, Ictx*);
 static Head *iterdom(Head*, Ictx*);
 static Head *iterns(Head*, Ictx*);
+static Head *iterlist(Head*, Ictx*);
 static Head *iterpair(Head*, Ictx*);
 static Head *iterrange(Head*, Ictx*);
 static Head *itertab(Head*, Ictx*);
@@ -444,6 +471,7 @@ static Heap heap[Qnkind] = {
 	[Qcl]	= { "closure", sizeof(Closure), freecl, itercl },
 	[Qcode]	= { "code", sizeof(Code), freecode, 0 },
 	[Qdom]	= { "domain", sizeof(Dom), 0, iterdom },
+	[Qlist]	= { "list", sizeof(List), freelist, iterlist },
 	[Qns]	= { "ns", sizeof(Ns), freens, iterns },
 	[Qpair]	= { "pair", sizeof(Pair), 0, iterpair },
 	[Qrange] = { "range", sizeof(Range), 0, iterrange },
@@ -483,6 +511,7 @@ static Hashop hashop[Qnkind] = {
 	[Qcode]	= { nohash, 0 },
 	[Qcval]	= { hashcval, eqcval },
 	[Qdom]	= { hashptr, eqptr },
+	[Qlist]	= { hashptr, eqptr },
 	[Qns]	= { hashptr, eqptr },
 	[Qpair]	= { hashptr, eqptr },
 	[Qrange] =  { hashrange, eqrange },
@@ -1225,6 +1254,14 @@ freens(Head *hd)
 	free(ns->symvec);
 }
 
+static int
+eqval(Val *v1, Val *v2)
+{
+	if(v1->qkind != v2->qkind)
+		return 0;
+	return hashop[v1->qkind].eq(v1, v2);
+}
+
 /* http://www.cris.com/~Ttwang/tech/inthash.htm */
 static u32
 hash6432shift(u64 key)
@@ -1574,7 +1611,7 @@ freestr(Head *hd)
 }
 
 static int
-listlen(Val *v, Imm *rv)
+listlenpair(Val *v, Imm *rv)
 {
 	Imm m;
 	Pair *p;
@@ -1589,6 +1626,20 @@ listlen(Val *v, Imm *rv)
 		return 0;
 	*rv = m;
 	return 1;
+}
+
+static int
+listlen(Val *v, Imm *rv)
+{
+	List *lst;
+	if(v->qkind == Qpair || v->qkind == Qnulllist)
+		return listlenpair(v, rv);
+	if(v->qkind == Qlist){
+		lst = vallist(v);
+		*rv = listxlen(lst->x);
+		return 1;
+	}
+	return 0;
 }
 
 static Vec*
@@ -1954,6 +2005,266 @@ tabenumvals(Tab *tab)
 		}
 	}
 	return vec;
+}
+
+static u32
+listxlen(Listx *x)
+{
+	return x->tl-x->hd;
+}
+
+static Listx*
+mklistx(u32 sz)
+{
+	Listx *x;
+	x = xmalloc(sizeof(Listx));
+	x->hd = x->tl = sz/2;
+	x->sz = sz;
+	x->val = xmalloc(x->sz*sizeof(Val)); /* matches Xundef */
+	return x;
+}
+
+static List*
+_mklist(Listx *x)
+{
+	List *lst;
+	lst = (List*)halloc(&heap[Qlist]);
+	lst->x = x;
+	return lst;
+}
+
+static List*
+mklist()
+{
+	return _mklist(mklistx(Listinitsize));
+}
+
+static void
+freelistx(Listx *x)
+{
+	free(x->val);
+	free(x);
+}
+
+static void
+freelist(Head *hd)
+{
+	List *lst;
+	lst = (List*)hd;
+	freelistx(lst->x);
+}
+
+static void
+listxaddroots(VM *vm, Listx *x, u32 idx, u32 n)
+{
+	if(!vm->gcrun)
+		return;
+	while(n-- > 0)
+		addroot(&stores, valhead(&x->val[x->hd+idx+n]));
+}
+
+static Val*
+listref(VM *vm, List *lst, Imm idx)
+{
+	Listx *x;
+	x = lst->x;
+	if(idx >= listxlen(x))
+		vmerr(vm, "listref out of bounds");
+	return &x->val[x->hd+idx];
+}
+
+static void
+listset(VM *vm, List *lst, Imm idx, Val *v)
+{
+	Listx *x;
+	x = lst->x;
+	if(idx >= listxlen(x))
+		vmerr(vm, "listset out of bounds");
+	listxaddroots(vm, x, idx, 1);
+	x->val[x->hd+idx] = *v;
+}
+
+static List*
+listcopy(List *lst)
+{
+	List *new;
+	u32 hd, tl, len;
+	new = _mklist(mklistx(lst->x->sz));
+	new->x->hd = hd = lst->x->hd;
+	new->x->tl = tl = lst->x->tl;
+	len = tl-hd;
+	memcpy(&new->x->val[hd], &lst->x->val[hd], len*sizeof(Val));
+	return new;
+}
+
+static List*
+listreverse(List *lst)
+{
+	List *new;
+	u32 hd, tl, len, m;
+	new = _mklist(mklistx(lst->x->sz));
+	new->x->hd = hd = lst->x->hd;
+	new->x->tl = tl = lst->x->tl;
+	len = tl-hd;
+	for(m = 0; m < len; m++)
+		new->x->val[hd++] = lst->x->val[--tl];
+	return new;
+}
+
+static Val*
+listhead(VM *vm, List *lst)
+{
+	Listx *x;
+	x = lst->x;
+	if(listxlen(x) == 0)
+		vmerr(vm, "head on empty list");
+	return &x->val[x->hd];
+}
+
+static Val*
+listpop(VM *vm, List *lst)
+{
+	Listx *x;
+	x = lst->x;
+	if(listxlen(x) == 0)
+		vmerr(vm, "pop on empty list");
+	listxaddroots(vm, x, 0, 1);
+	return &x->val[x->hd++];	
+}
+
+static List*
+listtail(VM *vm, List *lst)
+{
+	List *new;
+	if(listxlen(lst->x) == 0)
+		vmerr(vm, "tail on empty list");
+	new = listcopy(lst);
+	new->x->hd++;
+	return new;
+}
+
+static int
+eqlist(List *a, List *b)
+{
+	Listx *xa, *xb;
+	u32 len, m;
+	len = listxlen(xa);
+	if(len != listxlen(xb))
+		return 0;
+	for(m = 0; m < len; m++)
+		if(!eqval(&xa->val[xa->hd+m], &xb->val[xa->hd+m]))
+			return 0;
+	return 1;
+}
+
+static int
+eqlistv(Val *a, Val *b)
+{
+	return eqlist(vallist(a), vallist(b));
+}
+
+static void
+listexpand(List *lst)
+{
+	Listx *x, *nx;
+	u32 len;
+
+	x = lst->x;
+	nx = mklistx(x->sz*2);
+	len = listxlen(x);
+	if(x->hd == 0){
+		/* expanding to the left */
+		nx->hd = x->sz;
+		nx->tl = x->tl+x->sz;
+	}else{
+		/* expanding to the right */
+		nx->hd = x->hd;
+		nx->tl = x->tl;
+	}
+	memcpy(&nx->val[nx->hd], &x->val[x->hd], len*sizeof(Val));
+	_mklist(x);		/* preserve potential concurrent iterlist's
+				   view; same strategy as tabexpand. */
+	lst->x = nx;
+}
+
+static void
+maybelistexpand(List *lst)
+{
+	Listx *x;
+	x = lst->x;
+again:
+	if(x->hd == 0 || x->tl == x->sz){
+		listexpand(lst);
+		goto again;	/* at most twice iff full on both ends */
+	}
+}
+
+/* maybe listdel and listins should shift whichever half is shorter */
+
+static void
+listdel(VM *vm, List *lst, Imm idx)
+{
+	Listx *x;
+	u32 m, len;
+	x = lst->x;
+	len = listxlen(x);
+	if(idx >= len)
+		vmerr(vm, "listdel out of bounds");
+	m = len-idx;
+	if(m > 0){
+		listxaddroots(vm, x, idx, m);
+		memcpy(&x->val[x->hd+idx], &x->val[x->hd+idx+1], m-1);
+	}
+	x->tl--;
+}
+
+static void
+listins(VM *vm, List *lst, Imm idx, Val *v)
+{
+	Listx *x;
+	u32 m, len;
+	x = lst->x;
+	len = listxlen(x);
+	if(idx > len)
+		vmerr(vm, "listins out of bounds");
+	maybelistexpand(lst);
+	if(idx == 0)
+		x->val[--x->hd] = *v;
+	else if(idx == len)
+		x->val[x->tl++] = *v;
+	else{
+		m = len-idx;
+		listxaddroots(vm, x, idx, m);
+		memcpy(&x->val[x->hd+idx+1], &x->val[x->hd+idx], m);
+		x->tl++;
+		x->val[idx] = *v;
+	}
+}
+
+static void
+listpush(VM *vm, List *lst, Val *v)
+{
+	listins(vm, lst, 0, v);
+}
+
+static void
+listappend(VM *vm, List *lst, Val *v)
+{
+	listins(vm, lst, listxlen(lst->x), v);
+}
+
+static Head*
+iterlist(Head *hd, Ictx *ictx)
+{
+	List *lst;
+	Listx *x;
+	lst = (List*)hd;
+	if(ictx->n == 0)
+		ictx->x = lst->x;
+	x = ictx->x;
+	if(ictx->n >= x->sz)
+		return GCiterdone;
+	return valhead(&x->val[ictx->n++]);
 }
 
 static Xtypename*
@@ -2441,6 +2752,13 @@ mkvaldom(Dom *dom, Val *vp)
 }
 
 static void
+mkvallist(List *lst, Val *vp)
+{
+	vp->qkind = Qlist;
+	vp->u.list = lst;
+}
+
+static void
 mkvalns(Ns *ns, Val *vp)
 {
 	vp->qkind = Qns;
@@ -2550,6 +2868,14 @@ valdom(Val *v)
 	if(v->qkind != Qdom)
 		fatal("valdom on non-domain");
 	return v->u.dom;
+}
+
+static List*
+vallist(Val *v)
+{
+	if(v->qkind != Qlist)
+		fatal("vallist on non-list");
+	return v->u.list;
 }
 
 static Ns*
@@ -3326,13 +3652,9 @@ printval(Val *val)
 {
 	Cval *cv;
 	Closure *cl;
-	Pair *pair;
 	Range *r;
 	Str *str;
 	Val bv;
-	Tab *tab;
-	Vec *vec;
-	Xtypename *xtn;
 
 	if(val == 0){
 		printf("(no value)");
@@ -3374,12 +3696,14 @@ printval(Val *val)
 	case Qdom:
 		printf("<dom %p>", valdom(val));
 		break;
+	case Qlist:
+		printf("<list %p>", vallist(val));
+		break;
 	case Qns:
 		printf("<ns %p>", valns(val));
 		break;
 	case Qpair:
-		pair = valpair(val);
-		printf("<pair %p>", pair);
+		printf("<pair %p>", valpair(val));
 		break;
 	case Qrange:
 		r = valrange(val);
@@ -3391,16 +3715,13 @@ printval(Val *val)
 		printf("%.*s", (int)str->len, str->s);
 		break;
 	case Qtab:
-		tab = valtab(val);
-		printf("<table %p>", tab);
+		printf("<table %p>", valtab(val));
 		break;
 	case Qvec:
-		vec = valvec(val);
-		printf("<vector %p>", vec);
+		printf("<vector %p>", valvec(val));
 		break;
 	case Qxtn:
-		xtn = valxtn(val);
-		printf("<typename %p>", xtn);
+		printf("<typename %p>", valxtn(val));
 		break;
 	default:
 		printf("<unprintable type %d>", val->qkind);
@@ -3850,10 +4171,7 @@ dostr:
 	if(op != Icmpeq && op != Icmpneq)
 		vmerr(vm, "incompatible operands for binary %s", opstr[op]);
 
-	if(v1.qkind != v2.qkind)
-		nv = 0;
-	else
-		nv = hashop[v1.qkind].eq(&v1, &v2);
+	nv = eqval(&v1, &v2);
 	if(op == Icmpneq)
 		nv = !nv;
 	mkvalcval(vm->litdom, vm->litbase[Vint], nv, &rv);
@@ -4505,6 +4823,7 @@ xisvec(VM *vm, Operand *op, Operand *dst)
 	xis(vm, op, Qvec, dst);
 }
 
+#if 0
 static void
 xvlist(VM *vm, Operand *op, Operand *dst)
 {
@@ -4519,6 +4838,26 @@ xvlist(VM *vm, Operand *op, Operand *dst)
 	rv = Xnulllist;
 	for(i = n; i > 0; i--)
 		mkvalpair(&vm->stack[sp+i], &rv, &rv);
+	putvalrand(vm, &rv, dst);
+}
+#endif
+
+static void
+xvlist(VM *vm, Operand *op, Operand *dst)
+{
+	Val v, *vp;
+	Imm sp, n, i;
+	List *lst;
+	Val rv;
+
+	getvalrand(vm, op, &v);
+	sp = valimm(&v);
+	vp = &vm->stack[sp];
+	n = valimm(vp);
+	lst = mklist();
+	for(i = 0; i < n; i++)
+		listappend(vm, lst, &vm->stack[sp+1+i]);
+	mkvallist(lst, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -7687,23 +8026,28 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 static void
 l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 {
+	List *l;
 	Vec *k, *v;
 	Tab *t;
 	Closure *cl;
-	Imm m;
+	Imm m, len;
 	Val argv[2];
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to foreach");
 	checkarg(vm, "foreach", iargv, 0, Qcl);
-	if(iargv[1].qkind != Qvec && iargv[1].qkind != Qtab)
-		vmerr(vm, "operand 1 to foreach must be a vector or table");
+	if(iargv[1].qkind != Qlist
+	   && iargv[1].qkind != Qvec
+	   && iargv[1].qkind != Qtab)
+		vmerr(vm,
+		      "operand 1 to foreach must be a list, table, or vector");
 	cl = valcl(&iargv[0]);
 	switch(iargv[1].qkind){
-	case Qvec:
-		v = valvec(&iargv[1]);
-		for(m = 0; m < v->len; m++){
-			argv[0] = *vecref(v, m);
+	case Qlist:
+		l = vallist(&iargv[1]);
+		len = listxlen(l->x);
+		for(m = 0; m < len; m++){
+			argv[0] = *listref(vm, l, m);
 			dovm(vm, cl, 1, argv);
 		}
 		break;
@@ -7717,6 +8061,13 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 			argv[0] = *vecref(k, m);
 			argv[1] = *vecref(v, m);
 			dovm(vm, cl, 2, argv);
+		}
+		break;
+	case Qvec:
+		v = valvec(&iargv[1]);
+		for(m = 0; m < v->len; m++){
+			argv[0] = *vecref(v, m);
+			dovm(vm, cl, 1, argv);
 		}
 		break;
 	default:
@@ -7863,8 +8214,8 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 {
 	Imm ll, argc, m;
 	Val *argv, *ap, *ip, *vp;
-	Pair *p;
 	Closure *cl;
+	List *lst;
 
 	if(iargc < 2)
 		vmerr(vm, "wrong number of arguments to apply");
@@ -7878,14 +8229,55 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	ip = &iargv[1];
 	for(m = 0; m < iargc-2; m++)
 		*ap++ = *ip++;
+#if 0
+	Pair *p;
 	while(ip->qkind == Qpair){
 		p = valpair(ip);
 		*ap++ = p->car;
 		ip = &p->cdr;
 	}
+#endif
+	lst = vallist(ip);
+	for(m = 0; m < ll; m++){
+		vp = listref(vm, lst, m);
+		*ap++ = *vp;
+	}
 	vp = dovm(vm, cl, argc, argv);
 	*rv = *vp;
 	free(argv);
+}
+
+static void
+l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *lst;
+	Vec *vec;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to length");
+	if(argv[0].qkind == Qlist){
+		lst = vallist(&argv[0]);
+		mkvalcval(vm->litdom, vm->litbase[Vuint], listxlen(lst->x),
+			  rv);
+	}else if(argv[0].qkind == Qvec){
+		vec = valvec(&argv[0]);
+		mkvalcval(vm->litdom, vm->litbase[Vuint], vec->len, rv);
+	}else
+		vmerr(vm, "operand 1 to length must be something lengthy");
+}
+
+static void
+l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *vp;
+	Cval *cv;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to listref");
+	checkarg(vm, "listref", argv, 0, Qlist);
+	checkarg(vm, "listref", argv, 1, Qcval);
+	cv = valcval(&argv[1]);	/* FIXME check sign */
+	vp = listref(vm, vallist(&argv[0]), cv->val);
+	*rv = *vp;
 }
 
 typedef
@@ -8359,6 +8751,9 @@ mkvm(Env *env)
 	FN(foreach);
 	FN(enconsts);
 	FN(mapfile);
+
+	FN(listref);
+	FN(length);
 
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));

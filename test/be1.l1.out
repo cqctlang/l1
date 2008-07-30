@@ -1,5 +1,4 @@
 entry: 0 params, 7 locals, 0 temps
-listref: 2 params, 0 locals, 0 temps
 mkzas: 1 params, 2 locals, 0 temps
 dispatch: var params, 7 locals, 0 temps
 get 0 8
