@@ -2073,7 +2073,7 @@ listref(VM *vm, List *lst, Imm idx)
 	return &x->val[x->hd+idx];
 }
 
-static void
+static List*
 listset(VM *vm, List *lst, Imm idx, Val *v)
 {
 	Listx *x;
@@ -2082,6 +2082,7 @@ listset(VM *vm, List *lst, Imm idx, Val *v)
 		vmerr(vm, "listset out of bounds");
 	listxaddroots(vm, x, idx, 1);
 	x->val[x->hd+idx] = *v;
+	return lst;
 }
 
 static List*
@@ -2148,6 +2149,8 @@ equallist(List *a, List *b)
 {
 	Listx *xa, *xb;
 	u32 len, m;
+	xa = a->x;
+	xb = b->x;
 	len = listxlen(xa);
 	if(len != listxlen(xb))
 		return 0;
@@ -2201,7 +2204,7 @@ again:
 
 /* maybe listdel and listins should shift whichever half is shorter */
 
-static void
+static List*
 listdel(VM *vm, List *lst, Imm idx)
 {
 	Listx *x;
@@ -2216,9 +2219,10 @@ listdel(VM *vm, List *lst, Imm idx)
 		memcpy(&x->val[x->hd+idx], &x->val[x->hd+idx+1], m-1);
 	}
 	x->tl--;
+	return lst;
 }
 
-static void
+static List*
 listins(VM *vm, List *lst, Imm idx, Val *v)
 {
 	Listx *x;
@@ -2239,18 +2243,19 @@ listins(VM *vm, List *lst, Imm idx, Val *v)
 		x->tl++;
 		x->val[idx] = *v;
 	}
+	return lst;
 }
 
-static void
+static List*
 listpush(VM *vm, List *lst, Val *v)
 {
-	listins(vm, lst, 0, v);
+	return listins(vm, lst, 0, v);
 }
 
-static void
+static List*
 listappend(VM *vm, List *lst, Val *v)
 {
-	listins(vm, lst, listxlen(lst->x), v);
+	return listins(vm, lst, listxlen(lst->x), v);
 }
 
 static Head*
@@ -3648,13 +3653,15 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 }
 
 static void
-printval(Val *val)
+printval(VM *vm, Val *val)
 {
 	Cval *cv;
 	Closure *cl;
+	List *l;
 	Range *r;
 	Str *str;
 	Val bv;
+	u32 m;
 
 	if(val == 0){
 		printf("(no value)");
@@ -3687,7 +3694,7 @@ printval(Val *val)
 	case Qbox:
 		printf("<box ");
 		valboxed(val, &bv);
-		printval(&bv);
+		printval(vm, &bv);
 		printf(">");
 		break;
 	case Qas:
@@ -3697,7 +3704,16 @@ printval(Val *val)
 		printf("<dom %p>", valdom(val));
 		break;
 	case Qlist:
-		printf("<list %p>", vallist(val));
+		//		printf("<list %p>", vallist(val));
+		l = vallist(val);
+		printf("[");
+		for(m = 0; m < listxlen(l->x); m++){
+			if(m > 0)
+				printf(",");
+			printf(" ");
+			printval(vm, listref(vm, l, m));
+		}
+		printf(" ]");
 		break;
 	case Qns:
 		printf("<ns %p>", valns(val));
@@ -3733,7 +3749,7 @@ void
 printvmac(VM *vm)
 {
 	if(vm->ac.qkind != Qnil){
-		printval(&vm->ac);
+		printval(vm, &vm->ac);
 		printf("\n");
 	}
 }
@@ -4305,7 +4321,7 @@ xprint(VM *vm, Operand *op)
 {
 	Val v;
 	getvalrand(vm, op, &v);
-	printval(&v);
+	printval(vm, &v);
 	printf("\n");
 }
 
@@ -6323,7 +6339,7 @@ testfoo(VM *vm, Imm argc, Val *argv, Val *rv)
 	printf("you called foo with %lld args!\n", argc);
 	for(i = 0; i < argc; i++){
 		printf("argv[%d] = ", i);
-		printval(&argv[i]);
+		printval(vm, &argv[i]);
 		printf("\n");
 	}
 	mkvalstr(mkstr0("returned!"), rv);
@@ -6338,13 +6354,13 @@ testbin(VM *vm, Imm argc, Val *argv, Val *rv)
 	printf("you called it with %lld args!\n", argc);
 	for(i = 0; i < argc; i++){
 		printf("argv[%d] = ", i);
-		printval(&argv[i]);
+		printval(vm, &argv[i]);
 		printf("\n");
 	}
 
 	cl = mkcfn("testfoo", testfoo);
 	rv = dovm(vm, cl, argc, argv);
-	printval(rv);
+	printval(vm, rv);
 	printf("returned from dovm\n");
 }
 
@@ -6825,7 +6841,7 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "format string needs more arguments");
 		switch(ch){
 		case 'a':
-			printval(vp);
+			printval(vm, vp);
 			break;
 		case 'c':
 			if(vp->qkind != Qcval)
@@ -8307,6 +8323,7 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_listdel(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	List *lst;
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to listdel");
@@ -8314,30 +8331,35 @@ l1_listdel(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "listdel", argv, 1, Qcval);
 	cv = valcval(&argv[1]);	/* FIXME check sign */
 	listdel(vm, vallist(&argv[0]), cv->val);
+	mkvallist(lst, rv);
 }
 
 static void
 l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	List *lst;
 	Cval *cv;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to listset");
 	checkarg(vm, "listset", argv, 0, Qlist);
 	checkarg(vm, "listset", argv, 1, Qcval);
 	cv = valcval(&argv[1]);	/* FIXME check sign */
-	listset(vm, vallist(&argv[0]), cv->val, &argv[2]);
+	lst = listset(vm, vallist(&argv[0]), cv->val, &argv[2]);
+	mkvallist(lst, rv);
 }
 
 static void
 l1_listins(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	List *lst;
 	Cval *cv;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to listins");
 	checkarg(vm, "listins", argv, 0, Qlist);
 	checkarg(vm, "listins", argv, 1, Qcval);
 	cv = valcval(&argv[1]);	/* FIXME check sign */
-	listins(vm, vallist(&argv[0]), cv->val, &argv[2]);
+	lst = listins(vm, vallist(&argv[0]), cv->val, &argv[2]);
+	mkvallist(lst, rv);
 }
 
 static void
@@ -8376,19 +8398,23 @@ l1_tail(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_push(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	List *lst;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to push");
 	checkarg(vm, "push", argv, 0, Qlist);
-	listpush(vm, vallist(&argv[0]), &argv[1]);
+	lst = listpush(vm, vallist(&argv[0]), &argv[1]);
+	mkvallist(lst, rv);
 }
 
 static void
 l1_append(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	List *lst;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to append");
 	checkarg(vm, "append", argv, 0, Qlist);
-	listappend(vm, vallist(&argv[0]), &argv[1]);
+	lst = listappend(vm, vallist(&argv[0]), &argv[1]);
+	mkvallist(lst, rv);
 }
 
 static void
