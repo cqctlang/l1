@@ -2144,7 +2144,7 @@ listtail(VM *vm, List *lst)
 }
 
 static int
-eqlist(List *a, List *b)
+equallist(List *a, List *b)
 {
 	Listx *xa, *xb;
 	u32 len, m;
@@ -2158,9 +2158,9 @@ eqlist(List *a, List *b)
 }
 
 static int
-eqlistv(Val *a, Val *b)
+equallistv(Val *a, Val *b)
 {
-	return eqlist(vallist(a), vallist(b));
+	return equallist(vallist(a), vallist(b));
 }
 
 static void
@@ -8248,6 +8248,20 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 }
 
 static void
+l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *lst;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to isempty");
+	if(argv[0].qkind == Qlist){
+		lst = vallist(&argv[0]);
+		mkvalcval(vm->litdom, vm->litbase[Vuint],
+			  listxlen(lst->x) == 0, rv);
+	}else
+		vmerr(vm, "isempty defined only for lists");
+}
+
+static void
 l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	List *lst;
@@ -8266,11 +8280,21 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_islist(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to islist");
+	if(argv[0].qkind == Qlist)
+		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
+	else
+		mkvalcval(vm->litdom, vm->litbase[Vint], 0, rv);
+}
+
+static void
 l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val *vp;
 	Cval *cv;
-
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to listref");
 	checkarg(vm, "listref", argv, 0, Qlist);
@@ -8278,6 +8302,133 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 	cv = valcval(&argv[1]);	/* FIXME check sign */
 	vp = listref(vm, vallist(&argv[0]), cv->val);
 	*rv = *vp;
+}
+
+static void
+l1_listdel(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to listdel");
+	checkarg(vm, "listdel", argv, 0, Qlist);
+	checkarg(vm, "listdel", argv, 1, Qcval);
+	cv = valcval(&argv[1]);	/* FIXME check sign */
+	listdel(vm, vallist(&argv[0]), cv->val);
+}
+
+static void
+l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to listset");
+	checkarg(vm, "listset", argv, 0, Qlist);
+	checkarg(vm, "listset", argv, 1, Qcval);
+	cv = valcval(&argv[1]);	/* FIXME check sign */
+	listset(vm, vallist(&argv[0]), cv->val, &argv[2]);
+}
+
+static void
+l1_listins(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to listins");
+	checkarg(vm, "listins", argv, 0, Qlist);
+	checkarg(vm, "listins", argv, 1, Qcval);
+	cv = valcval(&argv[1]);	/* FIXME check sign */
+	listins(vm, vallist(&argv[0]), cv->val, &argv[2]);
+}
+
+static void
+l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *vp;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to listpop");
+	checkarg(vm, "listpop", argv, 0, Qlist);
+	vp = listpop(vm, vallist(&argv[0]));
+	*rv = *vp;
+}
+
+static void
+l1_head(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *vp;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to head");
+	checkarg(vm, "head", argv, 0, Qlist);
+	vp = listhead(vm, vallist(&argv[0]));
+	*rv = *vp;
+}
+
+static void
+l1_tail(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *lst;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to tail");
+	checkarg(vm, "tail", argv, 0, Qlist);
+	lst = listtail(vm, vallist(&argv[0]));
+	mkvallist(lst, rv);
+}
+
+static void
+l1_push(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to push");
+	checkarg(vm, "push", argv, 0, Qlist);
+	listpush(vm, vallist(&argv[0]), &argv[1]);
+}
+
+static void
+l1_append(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to append");
+	checkarg(vm, "append", argv, 0, Qlist);
+	listappend(vm, vallist(&argv[0]), &argv[1]);
+}
+
+static void
+l1_reverse(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to reverse");
+	if(argv[0].qkind == Qlist)
+		mkvallist(listreverse(vallist(&argv[0])), rv);
+	else
+		vmerr(vm, "operand 1 to reverse must be a list");
+}
+
+static void
+l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to append");
+	if(argv[0].qkind == Qlist)
+		mkvallist(listcopy(vallist(&argv[0])), rv);
+	else if(argv[1].qkind == Qvec)
+		mkvalvec(veccopy(valvec(&argv[0])), rv);
+	else
+		vmerr(vm, "operand 1 to copy must be a list or vector");
+}
+
+static void
+l1_equal(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Qkind kind;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to equal");
+	kind = argv[0].qkind;
+	if(kind != argv[1].qkind)
+		mkvalcval(vm->litdom, vm->litns->base[Vint], 0, rv);
+	else if(kind == Qlist)
+		mkvalcval(vm->litdom, vm->litns->base[Vint],
+			  equallistv(&argv[0], &argv[1]), rv);
+	else
+		vmerr(vm, "equal defined only for lists");
 }
 
 typedef
@@ -8752,8 +8903,21 @@ mkvm(Env *env)
 	FN(enconsts);
 	FN(mapfile);
 
+	FN(islist);
+	FN(isempty);
 	FN(listref);
+	FN(listset);
+	FN(listdel);
+	FN(listins);
+	FN(head);
+	FN(tail);
+	FN(pop);
+	FN(push);
+	FN(append);
+	FN(reverse);
 	FN(length);
+	FN(copy);
+	FN(equal);
 
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
