@@ -1,0 +1,9 @@
+sz = 20000;
+x = [];
+for(i = 0; i < sz; i++)
+	append(x, i);
+z = copy(x);
+y = [];
+for(i = 0; i < sz; i++)
+	push(y, pop(x));
+printf("%d\n", equal(z, reverse(y)));

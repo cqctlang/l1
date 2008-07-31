@@ -6,6 +6,8 @@
 #define HEAPPROF 0
 #define HEAPDEBUG 0
 
+static void printval(VM *vm, Val *val);
+
 typedef
 enum {
 	Qundef = 0,
@@ -270,12 +272,13 @@ struct Listx {
 	 *	tl-1 points to last.
 	 */
 	u32 hd, tl, sz;
-	Val *val;
+	Val *val;		/* atomically swappable */
+	Val *oval;		/* buffer for gc-safe sliding */
 } Listx;
 
 struct List {
 	Head hd;
-	Listx *x;
+	Listx *x;		/* current storage, atomically swappable */
 };
 
 struct As {
@@ -2043,6 +2046,7 @@ static void
 freelistx(Listx *x)
 {
 	free(x->val);
+	free(x->oval);
 	free(x);
 }
 
@@ -2122,15 +2126,17 @@ listhead(VM *vm, List *lst)
 	return &x->val[x->hd];
 }
 
-static Val*
-listpop(VM *vm, List *lst)
+static void
+listpop(VM *vm, List *lst, Val *vp)
 {
 	Listx *x;
 	x = lst->x;
 	if(listxlen(x) == 0)
 		vmerr(vm, "pop on empty list");
+	*vp = x->val[x->hd];
 	listxaddroots(vm, x, 0, 1);
-	return &x->val[x->hd++];	
+	x->val[x->hd] = Xundef;
+	x->hd++;
 }
 
 static List*
@@ -2155,7 +2161,7 @@ equallist(List *a, List *b)
 	if(len != listxlen(xb))
 		return 0;
 	for(m = 0; m < len; m++)
-		if(!eqval(&xa->val[xa->hd+m], &xb->val[xa->hd+m]))
+		if(!eqval(&xa->val[xa->hd+m], &xb->val[xb->hd+m]))
 			return 0;
 	return 1;
 }
@@ -2190,19 +2196,54 @@ listexpand(List *lst)
 	lst->x = nx;
 }
 
-static void
+static Listx*
 maybelistexpand(List *lst)
 {
 	Listx *x;
-	x = lst->x;
 again:
+	x = lst->x;
 	if(x->hd == 0 || x->tl == x->sz){
 		listexpand(lst);
 		goto again;	/* at most twice iff full on both ends */
 	}
+	return lst->x;
 }
 
-/* maybe listdel and listins should shift whichever half is shorter */
+/* maybe listdel and listins should slide whichever half is shorter */
+
+enum {
+	SlideIns,
+	SlideDel,
+};
+
+/* if op==SlideIns, expect room to slide by 1 in either direction;
+   however, currently we always slide to right */
+static void
+slide(Listx *x, u32 idx, int op)
+{
+	Val *t;
+	u32 m;
+	m = listxlen(x)-idx;
+	if(m <= 1 && op == SlideDel)
+		/* deleting last element; nothing to do */
+		return;		
+	if(x->oval == 0)
+		x->oval = xmalloc(x->sz*sizeof(Val));
+	memcpy(&x->oval[x->hd], &x->val[x->hd], idx*sizeof(Val));
+	switch(op){
+	case SlideIns:
+		memcpy(&x->oval[x->hd+idx+1], &x->val[x->hd+idx],
+		       m*sizeof(Val));
+		break;
+	case SlideDel:
+		memcpy(&x->oval[x->hd+idx], &x->val[x->hd+idx+1],
+		       (m-1)*sizeof(Val));
+		break;
+	}
+	t = x->val;
+	x->val = x->oval;
+	x->oval = t;
+}
 
 static List*
 listdel(VM *vm, List *lst, Imm idx)
@@ -2214,10 +2255,9 @@ listdel(VM *vm, List *lst, Imm idx)
 	if(idx >= len)
 		vmerr(vm, "listdel out of bounds");
 	m = len-idx;
-	if(m > 0){
-		listxaddroots(vm, x, idx, m);
-		memcpy(&x->val[x->hd+idx], &x->val[x->hd+idx+1], m-1);
-	}
+	listxaddroots(vm, x, idx, m);
+	slide(x, idx, SlideDel);
+	x->val[x->tl-1] = Xundef;
 	x->tl--;
 	return lst;
 }
@@ -2231,7 +2271,7 @@ listins(VM *vm, List *lst, Imm idx, Val *v)
 	len = listxlen(x);
 	if(idx > len)
 		vmerr(vm, "listins out of bounds");
-	maybelistexpand(lst);
+	x = maybelistexpand(lst);
 	if(idx == 0)
 		x->val[--x->hd] = *v;
 	else if(idx == len)
@@ -2239,9 +2279,9 @@ listins(VM *vm, List *lst, Imm idx, Val *v)
 	else{
 		m = len-idx;
 		listxaddroots(vm, x, idx, m);
-		memcpy(&x->val[x->hd+idx+1], &x->val[x->hd+idx], m);
+		slide(x, idx, SlideIns);
 		x->tl++;
-		x->val[idx] = *v;
+		x->val[x->hd+idx] = *v;
 	}
 	return lst;
 }
@@ -2269,6 +2309,8 @@ iterlist(Head *hd, Ictx *ictx)
 	x = ictx->x;
 	if(ictx->n >= x->sz)
 		return GCiterdone;
+	// x->val may change from call to call because of slide,
+	// but will always point to buffer of markable Vals
 	return valhead(&x->val[ictx->n++]);
 }
 
@@ -4838,25 +4880,6 @@ xisvec(VM *vm, Operand *op, Operand *dst)
 {
 	xis(vm, op, Qvec, dst);
 }
-
-#if 0
-static void
-xvlist(VM *vm, Operand *op, Operand *dst)
-{
-	Val v, *vp;
-	Imm sp, n, i;
-	Val rv;
-
-	getvalrand(vm, op, &v);
-	sp = valimm(&v);
-	vp = &vm->stack[sp];
-	n = valimm(vp);
-	rv = Xnulllist;
-	for(i = n; i > 0; i--)
-		mkvalpair(&vm->stack[sp+i], &rv, &rv);
-	putvalrand(vm, &rv, dst);
-}
-#endif
 
 static void
 xvlist(VM *vm, Operand *op, Operand *dst)
@@ -8245,14 +8268,6 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	ip = &iargv[1];
 	for(m = 0; m < iargc-2; m++)
 		*ap++ = *ip++;
-#if 0
-	Pair *p;
-	while(ip->qkind == Qpair){
-		p = valpair(ip);
-		*ap++ = p->car;
-		ip = &p->cdr;
-	}
-#endif
 	lst = vallist(ip);
 	for(m = 0; m < ll; m++){
 		vp = listref(vm, lst, m);
@@ -8330,7 +8345,7 @@ l1_listdel(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "listdel", argv, 0, Qlist);
 	checkarg(vm, "listdel", argv, 1, Qcval);
 	cv = valcval(&argv[1]);	/* FIXME check sign */
-	listdel(vm, vallist(&argv[0]), cv->val);
+	lst = listdel(vm, vallist(&argv[0]), cv->val);
 	mkvallist(lst, rv);
 }
 
@@ -8365,12 +8380,10 @@ l1_listins(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Val *vp;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to listpop");
 	checkarg(vm, "listpop", argv, 0, Qlist);
-	vp = listpop(vm, vallist(&argv[0]));
-	*rv = *vp;
+	listpop(vm, vallist(&argv[0]), rv);
 }
 
 static void

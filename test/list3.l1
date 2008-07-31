@@ -1,0 +1,15 @@
+sz = 2000;
+x = [];
+for(i = 0; i < sz; i++)
+	append(x, i);
+y = copy(x);
+for(i = sz/2; i > 0; i--){
+	listdel(x, i*2-1);
+}
+printf("length: %d\n", length(x));
+//foreach(lambda(v){printf("%d\n", v);}, x);
+for(i = 0; i < sz/2; i++)
+	listins(x, i*2+1, i*2+1);
+//foreach(lambda(v){printf("%d\n", v);}, x);
+printf("length: %d\n", length(x));
+printf("x == y -> %d\n", equal(x, y));

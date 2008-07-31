@@ -1,7 +1,6 @@
 todo
 ----
 - core functionality
-  - old-style lists 
   - i/o (file, net)
   - string processing (including ascii<->binary help)
   - formatted printing:
@@ -144,6 +143,8 @@ other systems
 
 inferno
 - inferno/libinterp/xec.c - vm interpreter
+  does gc ever actually run in parallel?  does vm ever use more
+  than one host thread concurrently?
 - check out inferno discussion jun 3 2008 on refs
 
 dtrace

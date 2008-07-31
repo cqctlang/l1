@@ -1,0 +1,19 @@
+x = [];
+for(i = 0; i < 10000; i++)
+	push(x, i);
+printf("%d\n", length(x));
+for(i = 10000; i > 0; i--)
+	if(pop(x) != i-1)
+		error("bug");
+if(length(x) != 0)
+	error("bug");
+
+x = [];
+for(i = 0; i < 10000; i++)
+	append(x, i);
+printf("%d\n", length(x));
+for(i = 0; i < 10000; i++)
+	if(pop(x) != i)
+		error("bug");
+if(length(x) != 0)
+	error("bug");
