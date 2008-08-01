@@ -6648,6 +6648,87 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	mkvaldom(cv->dom, rv);
 }
 
+static int
+isstrcval(Cval *cv)
+{
+	Xtypename *t;
+	t = chasetype(cv->type);
+	if(t->tkind != Tptr)
+		return 0;
+	t = chasetype(t->link);
+	if(t->tkind != Tbase)
+		return 0;
+	if(t->basename != Vchar && t->basename != Vuchar)
+		return 0;
+	return 1;
+}
+
+/* assume CV has been vetted by isstrcval */
+static Str*
+stringof(VM *vm, Cval *cv)
+{
+	Str *s;
+	char *buf, *q;
+	Val *p, *rp, argv[2];
+	Vec *v;
+	Range *r;
+	Imm l, m, n, o;
+	static unsigned unit = 128;
+	
+	mkvalstr(vm->smap, &argv[0]);
+	p = dovm(vm, cv->dom->as->dispatch, 1, argv);
+	if(p->qkind != Qvec)
+		vmerr(vm, "address space map returned invalid value");
+
+	/* FIXME: turn this into function mapstab or somesuch */
+	v = valvec(p);
+	for(m = 0; m < v->len; m++){
+		rp = vecref(v, m);
+		if(rp->qkind != Qrange)
+			vmerr(vm, "address space map returned invalid value");
+		r = valrange(rp);
+		/* FIXME: we assume compare w/o cast/rerep is okay */
+		if(r->beg->val > cv->val)
+			continue;
+		if(r->beg->val+r->len->val <= cv->val)
+			r = 0;
+		break;
+	}
+	if(r == 0)
+		vmerr(vm, "out-of-bounds address space access");
+
+	l = 0;
+	m = r->beg->val+r->len->val-cv->val;
+	o = cv->val;
+	buf = 0;
+	while(m > 0){
+		n = MIN(m, unit);
+		if(buf == 0)
+			buf = xmalloc(unit);
+		else
+			buf = xrealloc(buf, l, l+n);
+		mkvalstr(vm->sget, &argv[0]);
+		r = mkrange(mkcval(cv->dom, cv->dom->ns->base[Vptr], o),
+			    mkcval(cv->dom, cv->dom->ns->base[Vptr], n));
+		gcprotect(vm, r);
+		mkvalrange2(r, &argv[1]);
+		p = dovm(vm, cv->dom->as->dispatch, 2, argv);
+		s = valstr(p);
+		memcpy(buf+l, s->s, s->len);
+		q = strnchr(buf+l, '\0', s->len);
+		if(q){
+			l += q-buf+l;
+			break;
+		}
+		l += s->len;
+		o += s->len;
+		m -= s->len;
+	}
+	s = mkstr(buf, l);	/* FIXME: mkstr copies buf; should steal */
+	free(buf);
+	return s;
+}
+
 static void
 fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 {
@@ -6746,86 +6827,49 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	}
 }
 
-static int
-isstrcval(Cval *cv)
-{
-	Xtypename *t;
-	t = chasetype(cv->type);
-	if(t->tkind != Tptr)
-		return 0;
-	t = chasetype(t->link);
-	if(t->tkind != Tbase)
-		return 0;
-	if(t->basename != Vchar && t->basename != Vuchar)
-		return 0;
-	return 1;
-}
-
-/* assume CV has been vetted by isstrcval */
-static Str*
-stringof(VM *vm, Cval *cv)
-{
-	Str *s;
-	char *buf, *q;
-	Val *p, *rp, argv[2];
-	Vec *v;
-	Range *r;
-	Imm l, m, n, o;
-	static unsigned unit = 128;
+typedef
+struct Fd {
 	
-	mkvalstr(vm->smap, &argv[0]);
-	p = dovm(vm, cv->dom->as->dispatch, 1, argv);
-	if(p->qkind != Qvec)
-		vmerr(vm, "address space map returned invalid value");
+	int fd;
+} Fd;
 
-	/* FIXME: turn this into function mapstab or somesuch */
-	v = valvec(p);
-	for(m = 0; m < v->len; m++){
-		rp = vecref(v, m);
-		if(rp->qkind != Qrange)
-			vmerr(vm, "address space map returned invalid value");
-		r = valrange(rp);
-		/* FIXME: we assume compare w/o cast/rerep is okay */
-		if(r->beg->val > cv->val)
+typedef struct Fmt Fmt;
+struct Fmt {
+	char *start, *to, *stop;
+	int (*flush)(Fmt*);
+	void *farg;
+};
+
+
+static void
+dofmt(VM *vm, Fmt *f, char *fmt, u32 fmtlen, Imm argc, Val *argv)
+{
+	Val *vp;
+	char *efmt;
+	char ch;
+
+	vp = &argv[0];
+	efmt = fmt+fmtlen;
+	while(1){
+		while(fmt < efmt && (ch = *fmt++) != '%')
+			fmtputc(ch, f);
+		if(fmt >= efmt)
+			return;
+		ch = *fmt++;
+		if(ch == '%'){
+			fmtputc(ch, f);
 			continue;
-		if(r->beg->val+r->len->val <= cv->val)
-			r = 0;
-		break;
-	}
-	if(r == 0)
-		vmerr(vm, "out-of-bounds address space access");
-
-	l = 0;
-	m = r->beg->val+r->len->val-cv->val;
-	o = cv->val;
-	buf = 0;
-	while(m > 0){
-		n = MIN(m, unit);
-		if(buf == 0)
-			buf = xmalloc(unit);
-		else
-			buf = xrealloc(buf, l, l+n);
-		mkvalstr(vm->sget, &argv[0]);
-		r = mkrange(mkcval(cv->dom, cv->dom->ns->base[Vptr], o),
-			    mkcval(cv->dom, cv->dom->ns->base[Vptr], n));
-		gcprotect(vm, r);
-		mkvalrange2(r, &argv[1]);
-		p = dovm(vm, cv->dom->as->dispatch, 2, argv);
-		s = valstr(p);
-		memcpy(buf+l, s->s, s->len);
-		q = strnchr(buf+l, '\0', s->len);
-		if(q){
-			l += q-buf+l;
-			break;
 		}
-		l += s->len;
-		o += s->len;
-		m -= s->len;
+		if(argc == 0)
+			vmerr(vm, "format string needs more arguments");
+		switch(ch){
+			
+		}
 	}
-	s = mkstr(buf, l);	/* FIXME: mkstr copies buf; should steal */
-	free(buf);
-	return s;
 }
+
+
+
 
 static void
 l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
