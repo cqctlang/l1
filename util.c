@@ -122,3 +122,42 @@ strnchr(char *s, int c, unsigned long len)
 	return 0;
 }
 
+Imm
+xread(int fd, char *p, Imm len)
+{
+	Imm nr;
+	ssize_t rv;
+	
+	nr = 0;
+	while(nr < len){
+		rv = read(fd, p, len-nr);
+		if(0 > rv && errno == EINTR)
+			continue;
+		if(0 > rv)
+			return -1;
+		if(0 == rv)
+			return 0;
+		nr += rv;
+		p += rv;
+	}
+	return nr;
+}
+
+Imm
+xwrite(int fd, char *p, Imm len)
+{
+	Imm ns;
+	ssize_t rv;
+
+	ns = 0;
+	while(ns < len){
+		rv = write(fd, p, len-ns);
+		if(0 > rv && (errno == EINTR || errno == EAGAIN))
+			continue;
+		if(0 > rv)
+			return -1;
+		ns += rv;
+		p += rv;
+	}
+	return ns;
+}

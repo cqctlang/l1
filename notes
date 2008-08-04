@@ -79,6 +79,9 @@ todo
 	- change to vm->cl?
 	- set!s to toplevel vars?
 	- non-boxed writes to stack?
+    => NO! these are all captured as part of root set at start of gc
+  - sizeof x works?
+  - does lookaddr constructor sort only symbols (not enums?)
 
 - check semantics of scope
 

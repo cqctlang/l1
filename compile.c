@@ -2599,6 +2599,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 		else
 			printf("%s: %u params, %u locals, %u temps\n",
 			       name->label, b->npar, b->maxloc, b->ntmp);
+		fflush(stdout);
 	}
 	p.b = b;
 

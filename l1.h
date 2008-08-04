@@ -10,8 +10,6 @@ enum{
 	Vuvlongmax	= 18446744073709551615ULL,
 };
 
-typedef u64 Imm;
-
 typedef
 enum{
 	Echar=0,

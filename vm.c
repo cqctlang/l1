@@ -19,6 +19,7 @@ enum {
 	Qcode,
 	Qcval,
 	Qdom,
+	Qfd,
 	Qlist,
 	Qns,
 	Qpair,
@@ -40,6 +41,7 @@ static char *qname[Qnkind] = {
 	[Qcode]=	"code",
 	[Qcval]=	"cvalue",
 	[Qdom]=		"domain",
+	[Qfd]=		"file descriptor",
 	[Qlist]=	"list",
 	[Qns]=		"name space",
 	[Qpair]=	"pair",
@@ -133,6 +135,7 @@ static unsigned isbigendian[Rnrep] = {
 enum {
 	Tabinitsize=1024,	/* power of 2 */
 	Listinitsize=16,
+	Maxprintint=32,
 	Typepos=0,
 	Idpos=1,
 	Offpos=2,
@@ -180,6 +183,7 @@ typedef struct As As;
 typedef struct Box Box;
 typedef struct Cval Cval;
 typedef struct Dom Dom;
+typedef struct Fd Fd;
 typedef struct List List;
 typedef struct Ns Ns;
 typedef struct Pair Pair;
@@ -198,6 +202,7 @@ struct Val {
 		Closure *cl;
 		Cval *cval;
 		Dom *dom;
+		Fd *fd;
 		List *list;
 		Ns *ns;
 		Pair *pair;
@@ -319,6 +324,12 @@ struct Dom {
 	Ns *ns;
 };
 
+struct Fd {
+	Head hd;
+	void (*free)(int fd);
+	int fd;
+};
+
 struct Pair {
 	Head hd;
 	Val car;
@@ -379,6 +390,7 @@ struct VM {
 	Ns *litns;
 	Xtypename **litbase;	/* always points to litns->base */
 	Str *sget, *sput, *smap;/* cached dispatch operands */
+	Fd *stdout, *stdin;
 	Root **prot;		/* stack of lists of GC-protected objects */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
@@ -448,6 +460,7 @@ static char *opstr[Iopmax] = {
 };
 
 static void freecl(Head*);
+static void freefd(Head*);
 static void freelist(Head*);
 static void freens(Head*);
 static void freestr(Head*);
@@ -474,6 +487,7 @@ static Heap heap[Qnkind] = {
 	[Qcl]	= { "closure", sizeof(Closure), freecl, itercl },
 	[Qcode]	= { "code", sizeof(Code), freecode, 0 },
 	[Qdom]	= { "domain", sizeof(Dom), 0, iterdom },
+	[Qfd]	= { "fd", sizeof(Fd), freefd, 0 },
 	[Qlist]	= { "list", sizeof(List), freelist, iterlist },
 	[Qns]	= { "ns", sizeof(Ns), freens, iterns },
 	[Qpair]	= { "pair", sizeof(Pair), 0, iterpair },
@@ -514,6 +528,7 @@ static Hashop hashop[Qnkind] = {
 	[Qcode]	= { nohash, 0 },
 	[Qcval]	= { hashcval, eqcval },
 	[Qdom]	= { hashptr, eqptr },
+	[Qfd]	= { hashptr, eqptr },
 	[Qlist]	= { hashptr, eqptr },
 	[Qns]	= { hashptr, eqptr },
 	[Qpair]	= { hashptr, eqptr },
@@ -1247,6 +1262,32 @@ freecl(Head *hd)
 	cl = (Closure*)hd;
 	free(cl->display);
 	free(cl->id);
+}
+
+static void
+freefdclose(int fd)
+{
+	close(fd);
+}
+
+static void
+freefd(Head *hd)
+{
+	Fd *fd;
+	fd = (Fd*)hd;
+	if(fd->free)
+		fd->free(fd->fd);
+}
+
+static
+Fd* mkfd(int xfd, int doclose)
+{
+	Fd *fd;
+	fd = (Fd*)halloc(&heap[Qfd]);
+	fd->fd = xfd;
+	if(doclose)
+		fd->free = freefdclose;
+	return fd;
 }
 
 static void
@@ -2799,6 +2840,13 @@ mkvaldom(Dom *dom, Val *vp)
 }
 
 static void
+mkvalfd(Fd *fd, Val *vp)
+{
+	vp->qkind = Qfd;
+	vp->u.fd = fd;
+}
+
+static void
 mkvallist(List *lst, Val *vp)
 {
 	vp->qkind = Qlist;
@@ -2915,6 +2963,14 @@ valdom(Val *v)
 	if(v->qkind != Qdom)
 		fatal("valdom on non-domain");
 	return v->u.dom;
+}
+
+static Fd*
+valfd(Val *v)
+{
+	if(v->qkind != Qfd)
+		fatal("valfd on non-filedescriptor");
+	return v->u.fd;
 }
 
 static List*
@@ -3746,7 +3802,6 @@ printval(VM *vm, Val *val)
 		printf("<dom %p>", valdom(val));
 		break;
 	case Qlist:
-		//		printf("<list %p>", vallist(val));
 		l = vallist(val);
 		printf("[");
 		for(m = 0; m < listxlen(l->x); m++){
@@ -5725,6 +5780,7 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 			as = fmtxtn(xtn);
 			printf("\t%.*s\n", as->len, as->s);
 		}
+		fflush(stdout);
 	}
 
 	ns = mknstab(ctx.type, ctx.sym);
@@ -6827,12 +6883,6 @@ fprinticval(FILE *fp, unsigned char conv, Cval *cv)
 	}
 }
 
-typedef
-struct Fd {
-	
-	int fd;
-} Fd;
-
 typedef struct Fmt Fmt;
 struct Fmt {
 	char *start, *to, *stop;
@@ -6840,75 +6890,258 @@ struct Fmt {
 	void *farg;
 };
 
+static int
+fmtputc(Fmt *f, char ch)
+{
+	if(f->to >= f->stop)
+		if(f->flush(f) == -1)
+			return -1;
+	*f->to++ = ch;
+	return 0;
+}
+
+static int
+fmtputs(Fmt *f, char *p, Imm m)
+{
+	while(m > 0){
+		if(f->to >= f->stop)
+			if(f->flush(f) == -1)
+				return -1;
+		*f->to++ = *p++;
+		m--;
+	}
+	return 0;
+}
+
+static int
+fmtputs0(Fmt *f, char *p)
+{
+	return fmtputs(f, p, strlen(p));
+}
+
+static int
+fmtval(Fmt *f, Val *val)
+{
+	char buf[256];
+	Cval *cv;
+	Closure *cl;
+	List *l;
+	Listx *lx;
+	Range *r;
+	Str *str;
+	Val bv;
+	u32 m;
+	Head *hd;
+
+	switch(val->qkind){
+	case Qcval:
+		cv = valcval(val);
+		snprintf(buf, sizeof(buf), "<cval %" PRIu64 ">", cv->val);
+		return fmtputs0(f, buf);
+	case Qcl:
+		cl = valcl(val);
+		if(cl->fp){
+			snprintf(buf, sizeof(buf), "<continuation %p>", cl);
+			return fmtputs0(f, buf);
+		}else if(cl->dlen > 0){
+			if(fmtputs0(f, "<closure "))
+				return -1;
+		}else{
+			if(fmtputs0(f, "<procedure "))
+				return -1;
+		}
+		if(fmtputs0(f, cl->id))
+			return -1;
+		return fmtputs0(f, ">");
+	case Qundef:
+		return 0;
+	case Qnil:
+		return fmtputs0(f, "<nil>");
+	case Qnulllist:
+		return fmtputs0(f, "<null>");
+	case Qbox:
+		if(fmtputs0(f, "<box >"))
+			return -1;
+		valboxed(val, &bv);
+		if(fmtval(f, &bv))
+			return -1;
+		return fmtputs0(f, ">");
+	case Qas:
+	case Qdom:
+	case Qfd:
+	case Qns:
+	case Qpair:
+	case Qtab:
+	case Qvec:
+	case Qxtn:
+		hd = valhead(val);
+		snprintf(buf, sizeof(buf), "<%s %p>", hd->heap->id, hd);
+		return fmtputs0(f, buf);
+	case Qlist:
+		l = vallist(val);
+		lx = l->x;
+		if(fmtputs0(f, "["))
+			return -1;
+		for(m = 0; m < listxlen(lx); m++){
+			if(m > 0){
+				if(fmtputs0(f, ", "))
+					return -1;
+			}else{
+				if(fmtputs0(f, " "))
+					return -1;
+			}
+			if(fmtval(f, &lx->val[lx->hd+m]))
+				return -1;
+		}
+		return fmtputs0(f, " ]");
+	case Qrange:
+		r = valrange(val);
+ 		snprintf(buf, sizeof(buf), "<range %" PRIu64 " %" PRIu64 ">",
+			 r->beg->val, r->len->val);
+		return fmtputs0(f, buf);
+	case Qstr:
+		str = valstr(val);
+		return fmtputs(f, str->s, str->len);
+	default:
+		printf("<unprintable type %d>", val->qkind);
+		return -1;
+	}
+}
+
+
+static int
+fmticval(Fmt *f, unsigned char conv, Cval *cv)
+{
+	static char buf[Maxprintint];
+	static char* fmttab[Rnrep][256] = {
+	[Ru08le]['d'] = "%"PRId8,	[Ru08le]['i'] = "%"PRIi8,   
+	[Ru08be]['d'] = "%"PRId8,	[Ru08be]['i'] = "%"PRIi8,   
+	[Rs08le]['d'] = "%"PRId8,	[Rs08le]['i'] = "%"PRIi8,   
+	[Rs08be]['d'] = "%"PRId8,	[Rs08be]['i'] = "%"PRIi8,   
+	[Ru16le]['d'] = "%"PRId16,	[Ru16le]['i'] = "%"PRIi16,  
+	[Ru16be]['d'] = "%"PRId16,	[Ru16be]['i'] = "%"PRIi16,  
+	[Rs16le]['d'] = "%"PRId16,	[Rs16le]['i'] = "%"PRIi16,  
+	[Rs16be]['d'] = "%"PRId16,	[Rs16be]['i'] = "%"PRIi16,  
+	[Ru32le]['d'] = "%"PRId32,	[Ru32le]['i'] = "%"PRIi32,  
+	[Ru32be]['d'] = "%"PRId32,	[Ru32be]['i'] = "%"PRIi32,  
+	[Rs32le]['d'] = "%"PRId32,	[Rs32le]['i'] = "%"PRIi32,  
+	[Rs32be]['d'] = "%"PRId32,	[Rs32be]['i'] = "%"PRIi32,  
+	[Ru64le]['d'] = "%"PRId64,	[Ru64le]['i'] = "%"PRIi64,  
+	[Ru64be]['d'] = "%"PRId64,	[Ru64be]['i'] = "%"PRIi64,  
+	[Rs64le]['d'] = "%"PRId64,	[Rs64le]['i'] = "%"PRIi64,  
+	[Rs64be]['d'] = "%"PRId64,	[Rs64be]['i'] = "%"PRIi64,  
+
+	[Ru08le]['o'] = "%"PRIo8,	[Ru08le]['u'] = "%"PRIu8, 
+	[Ru08be]['o'] = "%"PRIo8,	[Ru08be]['u'] = "%"PRIu8, 
+	[Rs08le]['o'] = "%"PRIo8,	[Rs08le]['u'] = "%"PRIu8, 
+	[Rs08be]['o'] = "%"PRIo8,	[Rs08be]['u'] = "%"PRIu8, 
+	[Ru16le]['o'] = "%"PRIo16,	[Ru16le]['u'] = "%"PRIu16,
+	[Ru16be]['o'] = "%"PRIo16,	[Ru16be]['u'] = "%"PRIu16,
+	[Rs16le]['o'] = "%"PRIo16,	[Rs16le]['u'] = "%"PRIu16,
+	[Rs16be]['o'] = "%"PRIo16,	[Rs16be]['u'] = "%"PRIu16,
+	[Ru32le]['o'] = "%"PRIo32,	[Ru32le]['u'] = "%"PRIu32,
+	[Ru32be]['o'] = "%"PRIo32,	[Ru32be]['u'] = "%"PRIu32,
+	[Rs32le]['o'] = "%"PRIo32,	[Rs32le]['u'] = "%"PRIu32,
+	[Rs32be]['o'] = "%"PRIo32,	[Rs32be]['u'] = "%"PRIu32,
+	[Ru64le]['o'] = "%"PRIo64,	[Ru64le]['u'] = "%"PRIu64,
+	[Ru64be]['o'] = "%"PRIo64,	[Ru64be]['u'] = "%"PRIu64,
+	[Rs64le]['o'] = "%"PRIo64,	[Rs64le]['u'] = "%"PRIu64,
+	[Rs64be]['o'] = "%"PRIo64,	[Rs64be]['u'] = "%"PRIu64,
+
+	[Ru08le]['x'] = "%"PRIx8,	[Ru08le]['X'] = "%"PRIX8, 
+	[Ru08be]['x'] = "%"PRIx8,	[Ru08be]['X'] = "%"PRIX8, 
+	[Rs08le]['x'] = "%"PRIx8,	[Rs08le]['X'] = "%"PRIX8, 
+	[Rs08be]['x'] = "%"PRIx8,	[Rs08be]['X'] = "%"PRIX8, 
+	[Ru16le]['x'] = "%"PRIx16,	[Ru16le]['X'] = "%"PRIX16,
+	[Ru16be]['x'] = "%"PRIx16,	[Ru16be]['X'] = "%"PRIX16,
+	[Rs16le]['x'] = "%"PRIx16,	[Rs16le]['X'] = "%"PRIX16,
+	[Rs16be]['x'] = "%"PRIx16,	[Rs16be]['X'] = "%"PRIX16,
+	[Ru32le]['x'] = "%"PRIx32,	[Ru32le]['X'] = "%"PRIX32,
+	[Ru32be]['x'] = "%"PRIx32,	[Ru32be]['X'] = "%"PRIX32,
+	[Rs32le]['x'] = "%"PRIx32,	[Rs32le]['X'] = "%"PRIX32,
+	[Rs32be]['x'] = "%"PRIx32,	[Rs32be]['X'] = "%"PRIX32,
+	[Ru64le]['x'] = "%"PRIx64,	[Ru64le]['X'] = "%"PRIX64,
+	[Ru64be]['x'] = "%"PRIx64,	[Ru64be]['X'] = "%"PRIX64,
+	[Rs64le]['x'] = "%"PRIx64,	[Rs64le]['X'] = "%"PRIX64,
+	[Rs64be]['x'] = "%"PRIx64,	[Rs64be]['X'] = "%"PRIX64,	};
+
+	char *fmt;
+	Xtypename *t;
+
+	t = chasetype(cv->type);
+	fmt = fmttab[t->rep][conv];
+	switch(t->rep){
+	case Ru08le:
+	case Ru08be:
+		snprintf(buf, sizeof(buf), fmt, (u8)cv->val);
+		break;
+	case Rs08le:
+	case Rs08be:
+		snprintf(buf, sizeof(buf), fmt, (s8)cv->val);
+		break;
+	case Ru16le:
+	case Ru16be:
+		snprintf(buf, sizeof(buf), fmt, (u16)cv->val);
+		break;
+	case Rs16le:
+	case Rs16be:
+		snprintf(buf, sizeof(buf), fmt, (s16)cv->val);
+		break;
+	case Ru32le:
+	case Ru32be:
+		snprintf(buf, sizeof(buf), fmt, (u32)cv->val);
+		break;
+	case Rs32le:
+	case Rs32be:
+		snprintf(buf, sizeof(buf), fmt, (s32)cv->val);
+		break;
+	case Ru64le:
+	case Ru64be:
+		snprintf(buf, sizeof(buf), fmt, (u64)cv->val);
+		break;
+	case Rs64le:
+	case Rs64be:
+		snprintf(buf, sizeof(buf), fmt, (s64)cv->val);
+		break;
+	default:
+		fatal("bug");
+	}
+	return fmtputs(f, buf, strlen(buf));
+}
 
 static void
 dofmt(VM *vm, Fmt *f, char *fmt, u32 fmtlen, Imm argc, Val *argv)
 {
-	Val *vp;
+	static char buf[3+Maxprintint];
+	Val *vp, *vq;
+	Cval *cv;
+	Str *as;
 	char *efmt;
 	char ch;
+	unsigned char c;
+	Xtypename *xtn;
+	Vec *vec;
 
 	vp = &argv[0];
 	efmt = fmt+fmtlen;
 	while(1){
 		while(fmt < efmt && (ch = *fmt++) != '%')
-			fmtputc(ch, f);
+			if(fmtputc(f, ch))
+				return;
 		if(fmt >= efmt)
 			return;
 		ch = *fmt++;
 		if(ch == '%'){
-			fmtputc(ch, f);
-			continue;
-		}
-		if(argc == 0)
-			vmerr(vm, "format string needs more arguments");
-		switch(ch){
-			
-		}
-	}
-}
-
-
-
-
-static void
-l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *vp, *vq;
-	Cval *cv;
-	Str *fmts, *as;
-	char *fmt, *efmt;
-	char ch;
-	FILE *fp = stdout;
-	Xtypename *xtn;
-	Vec *dvec;
-	unsigned char c;
-
-	if(argc < 1)
-		vmerr(vm, "wrong number of arguments to printf");
-	vp = &argv[0];
-	if(vp->qkind != Qstr)
-		vmerr(vm, "operand 1 to printf must be a string");
-	fmts = valstr(vp);
-	fmt = fmts->s;
-	efmt = fmt+fmts->len;
-	argc--;
-	vp = &argv[1];
-	while(1){
-		while(fmt < efmt && (ch = *fmt++) != '%')
-			fputc(ch, fp);
-		if(fmt >= efmt)
-			return;
-		ch = *fmt++;
-		if(ch == '%'){
-			fputc('%', fp);
+			if(fmtputc(f, ch))
+				return;
 			continue;
 		}
 		if(argc == 0)
 			vmerr(vm, "format string needs more arguments");
 		switch(ch){
 		case 'a':
-			printval(vm, vp);
+			if(fmtval(f, vp))
+				return;
 			break;
 		case 'c':
 			if(vp->qkind != Qcval)
@@ -6916,9 +7149,11 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			cv = valcval(vp);
 			c = cv->val;
 			if(isgraph(c) || isspace(c))
-				fprintf(fp, "%c", c);
+				snprintf(buf, sizeof(buf), "%c", c);
 			else
-				fprintf(fp, "\\%.3o", c);
+				snprintf(buf, sizeof(buf), "\\%.3o", c);
+			if(fmtputs(f, buf, strlen(buf)))
+				return;
 			break;
 		case 'd':
 		case 'i':
@@ -6929,7 +7164,8 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 			if(vp->qkind != Qcval)
 				goto badarg;
 			cv = valcval(vp);
-			fprinticval(fp, ch, cv);
+			if(fmticval(f, ch, cv))
+				return;
 			break;
 		case 's':
 			if(vp->qkind == Qstr)
@@ -6941,20 +7177,21 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 				as = stringof(vm, cv);
 			}else
 				goto badarg;
-			fprintf(fp, "%.*s", as->len, as->s);
+			if(fmtputs(f, as->s, as->len))
+				return;
 			break;
 		case 't':
 			if(vp->qkind == Qxtn)
 				as = fmtxtn(valxtn(vp));
 			else if(vp->qkind == Qvec){
-				dvec = valvec(vp);
-				if(dvec->len < 2)
+				vec = valvec(vp);
+				if(vec->len < 2)
 					goto badarg;
-				vq = vecref(dvec, Typepos);
+				vq = vecref(vec, Typepos);
 				if(vq->qkind != Qxtn)
 					goto badarg;
 				xtn = valxtn(vq);
-				vq = vecref(dvec, Idpos);
+				vq = vecref(vec, Idpos);
 				if(vq->qkind == Qnil)
 					as = fmtxtn(xtn);
 				else if(vq->qkind == Qstr)
@@ -6966,35 +7203,43 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 				as = fmtxtn(cv->type);
 			}else
 				vmerr(vm, "bad operand to %%t");
-			fprintf(fp, "%.*s", as->len, as->s);
+			if(fmtputs(f, as->s, as->len))
+				return;
 			break;
 		case 'y':
 			if(vp->qkind != Qcval)
 				vmerr(vm, "bad operand to %%y");
 			cv = valcval(vp);
-			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			vq = dovm(vm, cv->dom->ns->lookaddr, 1, vp);
+			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			if(vq->qkind == Qnil){
-				fprintf(fp, "0x%" PRIx64, cv->val);
+				snprintf(buf, sizeof(buf),
+					 "0x%" PRIx64, cv->val);
+				if(fmtputs(f, buf, strlen(buf)))
+					return;
 				break;
 			}else if(vq->qkind != Qvec)
+			bady:
 				vmerr(vm, "invalid response from lookaddr");
-			dvec = valvec(vq);
-			if(dvec->len < 3)
-				goto badarg;
-			vq = vecref(dvec, Idpos);
+			vec = valvec(vq);
+			if(vec->len < 3)
+				goto bady;
+			vq = vecref(vec, Idpos);
 			if(vq->qkind != Qstr)
-				vmerr(vm, "invalid response from lookaddr");
+				goto bady;
 			as = valstr(vq);
-			vq = vecref(dvec, Offpos);
+			vq = vecref(vec, Offpos);
 			if(vq->qkind != Qcval)
-				vmerr(vm, "invalid response from lookaddr");
+				goto bady;
+			if(fmtputs(f, as->s, as->len))
+				return;
 			cv = xcvalalu(vm, Isub, cv, valcval(vq));
-			if(cv->val)
-				fprintf(fp, "%.*s+0x%" PRIx64,
-					as->len, as->s, cv->val);
-			else
-				fprintf(fp, "%.*s", as->len, as->s);
+			if(cv->val != 0){
+				snprintf(buf, sizeof(buf),
+					 "+0x%" PRIx64, cv->val);
+				if(fmtputs(f, buf, strlen(buf)))
+					return;
+			}
 			break;
 		default:
 			vmerr(vm, "unrecognized format conversion: %%%c", ch);
@@ -7005,6 +7250,86 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 	/* not reached */
 badarg:
 	vmerr(vm, "wrong type to %%%c conversion", ch);
+}
+
+static int
+fmtfdflush(Fmt *f)
+{
+	Fd *fd;
+	fd = (Fd*)f->farg;
+	if(0 > xwrite(fd->fd, f->start, f->to-f->start))
+		return -1;
+	f->to = f->start;
+	return 0;
+}
+
+static void
+dofdprint(VM *vm, Fd *fd, char *fmt, u32 fmtlen, Imm argc, Val *argv)
+{
+	Fmt f;
+	char buf[256];
+
+	f.farg = fd;
+	f.start = buf;
+	f.to = buf;
+	f.stop = buf+sizeof(buf);
+	f.flush = fmtfdflush;
+	dofmt(vm, &f, fmt, fmtlen, argc, argv);
+	fmtfdflush(&f);
+}
+
+static void
+l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *fmts;
+	if(argc < 1)
+		vmerr(vm, "wrong number of arguments to printf");
+	if(argv->qkind != Qstr)
+		vmerr(vm, "operand 1 to printf must be a string");
+	fmts = valstr(argv);
+	dofdprint(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
+}
+
+static int
+fmtstrflush(Fmt *f)
+{
+	u32 len;
+	char *s;
+	len = (u32)f->farg;
+	s = f->start;
+	f->start = xrealloc(f->start, len, len*2);
+	len *= 2;
+	f->to = f->start+(f->to-s);
+	f->stop = f->start+len;
+	return 0;
+}
+
+static Str*
+dovsprinta(VM *vm, Fd *fd, char *fmt, u32 fmtlen, Imm argc, Val *argv)
+{
+	Fmt f;
+	u32 initlen = 128;
+	f.start = xmalloc(initlen);
+	f.farg = (void*)initlen;
+	f.to = f.start;
+	f.stop = f.start+initlen;
+	f.flush = fmtstrflush;
+	dofmt(vm, &f, fmt, fmtlen, argc, argv);
+	fmtstrflush(&f);
+	return mkstrk(f.start, f.to-f.start, Smalloc);
+}
+
+static void
+l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *fmts, *rs;
+	if(argc < 1)
+		vmerr(vm, "wrong number of arguments to printf");
+	if(argv->qkind != Qstr)
+		vmerr(vm, "operand 1 to printf must be a string");
+	fmts = valstr(argv);
+	rs = dovsprinta(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
+	mkvalstr(rs, rv);
 }
 
 static void
@@ -8369,13 +8694,15 @@ static void
 l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val *vp;
+	List *lst;
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to listref");
 	checkarg(vm, "listref", argv, 0, Qlist);
 	checkarg(vm, "listref", argv, 1, Qcval);
 	cv = valcval(&argv[1]);	/* FIXME check sign */
-	vp = listref(vm, vallist(&argv[0]), cv->val);
+	lst = vallist(&argv[0]);
+	vp = listref(vm, lst, cv->val);
 	*rv = *vp;
 }
 
@@ -8403,7 +8730,8 @@ l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "listset", argv, 0, Qlist);
 	checkarg(vm, "listset", argv, 1, Qcval);
 	cv = valcval(&argv[1]);	/* FIXME check sign */
-	lst = listset(vm, vallist(&argv[0]), cv->val, &argv[2]);
+	lst = vallist(&argv[0]);
+	lst = listset(vm, lst, cv->val, &argv[2]);
 	mkvallist(lst, rv);
 }
 
@@ -8906,6 +9234,7 @@ mkvm(Env *env)
 	FN(randseed);
 	FN(rand);
 	FN(printf);
+	FN(sprintfa);
 	FN(tabkeys);
 	FN(tabvals);
 	FN(vmbacktrace);
@@ -9020,6 +9349,8 @@ mkvm(Env *env)
 	vm->sget = mkstr0("get");
 	vm->sput = mkstr0("put");
 	vm->smap = mkstr0("map");
+	vm->stdin = mkfd(0, 0);
+	vm->stdout = mkfd(1, 0);
 
 	builtincval(env, "NULL",
 		    mkcval(vm->litdom, vm->litdom->ns->base[Vptr], 0));

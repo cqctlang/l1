@@ -19,4 +19,6 @@ char* strnchr(char *s, int c, unsigned long len);
 
 typedef void(Faulthook)();
 void setfaulthook(Faulthook *h);
+Imm xread(int fd, char *p, Imm len);
+Imm xwrite(int fd, char *p, Imm len);
 #endif /* _BISONFLAW_UTIL_H_ */
