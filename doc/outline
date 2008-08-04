@@ -168,3 +168,11 @@ Conversion
 		  	   val' = chrep(val,type,type')
 		      in <dom,type',val'>
 
+I/O
+	fd = open(filename);
+	fprintf(fd, <fmt>, args);
+	read(fd, len) -> str
+	write(fd, str)
+	close(fd)
+	select?
+
