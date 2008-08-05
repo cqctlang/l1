@@ -84,6 +84,9 @@ todo
     => NO! these are all captured as part of root set at start of gc
   - sizeof x works?
   - does lookaddr constructor sort only symbols (not enums?)
+  - ; ns = @names c32le { @include <2.names> };
+    -> floating point constants unsupported
+  - detect re-use of tags like k.scm does
 
 - check semantics of scope
 
