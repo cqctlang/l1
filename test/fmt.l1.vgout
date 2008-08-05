@@ -1,0 +1,14 @@
+entry: 0 params, 5 locals, 0 temps
+<range 10 20>
+[ <cval 1>, <cval 0> ]
+abcdef
+int *
+y
+y+0x3
+3
+int
+a
+\377
+\001
+abcdef
+ABCDEF

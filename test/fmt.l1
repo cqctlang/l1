@@ -1,0 +1,19 @@
+ns = @names c32le {
+   @0x0 int y;
+};
+as = mkabas();
+dom = mkdom(ns, as);
+
+printf("%s\n", sprintfa("%a", range(10, 20)));
+printf("%s\n", sprintfa("%a", [1, 0]));
+printf("%s\n", sprintfa("%s", "abcdef"));
+printf("%s\n", sprintfa("%t", &dom`y));
+printf("%s\n", sprintfa("%y", {dom}0));
+printf("%s\n", sprintfa("%y", {dom}3));
+printf("%s\n", sprintfa("%d", 3));
+printf("%s\n", sprintfa("%t", 3));
+printf("%s\n", sprintfa("%c", 'a'));
+printf("%s\n", sprintfa("%c", 255));
+printf("%s\n", sprintfa("%c", -255));
+printf("%s\n", sprintfa("%x", 0xabcdef));
+printf("%s\n", sprintfa("%X", 0xabcdef));
