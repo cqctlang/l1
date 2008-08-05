@@ -324,10 +324,16 @@ struct Dom {
 	Ns *ns;
 };
 
+
 struct Fd {
 	Head hd;
 	void (*free)(int fd);
 	int fd;
+	enum Fflag {
+		Fclosed =	1,
+		Fread =		Fclosed<<1,
+		Fwrite =	Fread<<1,
+	} flags;
 };
 
 struct Pair {
@@ -1279,14 +1285,15 @@ freefd(Head *hd)
 		fd->free(fd->fd);
 }
 
-static
-Fd* mkfd(int xfd, int doclose)
+static Fd*
+mkfd(int xfd, int flags, int doclose)
 {
 	Fd *fd;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->fd = xfd;
 	if(doclose)
 		fd->free = freefdclose;
+	fd->flags = flags;
 	return fd;
 }
 
@@ -7257,6 +7264,10 @@ fmtfdflush(Fmt *f)
 {
 	Fd *fd;
 	fd = (Fd*)f->farg;
+	if(fd->flags&Fclosed)
+		return -1;
+	if((fd->flags&Fwrite) == 0)
+		return -1;
 	if(0 > xwrite(fd->fd, f->start, f->to-f->start))
 		return -1;
 	f->to = f->start;
@@ -7285,7 +7296,7 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc < 1)
 		vmerr(vm, "wrong number of arguments to printf");
 	if(argv->qkind != Qstr)
-		vmerr(vm, "operand 1 to printf must be a string");
+		vmerr(vm, "operand 1 to printf must be a format string");
 	fmts = valstr(argv);
 	dofdprint(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
 }
@@ -7305,7 +7316,7 @@ fmtstrflush(Fmt *f)
 }
 
 static Str*
-dovsprinta(VM *vm, Fd *fd, char *fmt, u32 fmtlen, Imm argc, Val *argv)
+dovsprinta(VM *vm, char *fmt, u32 fmtlen, Imm argc, Val *argv)
 {
 	Fmt f;
 	u32 initlen = 128;
@@ -7324,11 +7335,11 @@ l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *fmts, *rs;
 	if(argc < 1)
-		vmerr(vm, "wrong number of arguments to printf");
+		vmerr(vm, "wrong number of arguments to sprintfa");
 	if(argv->qkind != Qstr)
-		vmerr(vm, "operand 1 to printf must be a string");
+		vmerr(vm, "operand 1 to sprintfa must be a format string");
 	fmts = valstr(argv);
-	rs = dovsprinta(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
+	rs = dovsprinta(vm, fmts->s, fmts->len, argc-1, argv+1);
 	mkvalstr(rs, rv);
 }
 
@@ -8513,6 +8524,30 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fdp;
+	int fd;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to open");
+	checkarg(vm, "open", argv, 0, Qstr);
+	names = valstr(&argv[0]);
+	checkarg(vm, "open", argv, 1, Qstr);
+
+	name = str2cstr(names);
+	fd = open(name, O_RDONLY);
+	free(name);
+	if(0 > fd)
+		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+	if(0 > fstat(fd, &st)){
+		close(fd);
+		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+	}
+
+}
+
+static void
 l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ns *ns;
@@ -9349,8 +9384,8 @@ mkvm(Env *env)
 	vm->sget = mkstr0("get");
 	vm->sput = mkstr0("put");
 	vm->smap = mkstr0("map");
-	vm->stdin = mkfd(0, 0);
-	vm->stdout = mkfd(1, 0);
+	vm->stdin = mkfd(0, Fread, 0);
+	vm->stdout = mkfd(1, Fwrite, 0);
 
 	builtincval(env, "NULL",
 		    mkcval(vm->litdom, vm->litdom->ns->base[Vptr], 0));
