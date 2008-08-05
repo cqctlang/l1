@@ -1,11 +1,8 @@
 todo
 ----
 - core functionality
-  - i/o (file, net)
   - string processing (including ascii<->binary help)
   - formatted printing:
-	- to strings and files
-	- for error messages
 	- with widths (and precisions)
   - getbytes/putbytes
   - address space map()
@@ -32,6 +29,11 @@ todo
         pointers are carried over.
         seems too unusual to handle in a special way; instead,
 	should just note the problem.
+
+  - i/o on pointer arguments:
+	if buffer for sprintf, read, or write, is a pointer, then
+        do the i/o directly on the domain.
+
 
 - usability
   - check "entry" to "toplevel"

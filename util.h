@@ -21,4 +21,6 @@ typedef void(Faulthook)();
 void setfaulthook(Faulthook *h);
 Imm xread(int fd, char *p, Imm len);
 Imm xwrite(int fd, char *p, Imm len);
+int parseip(char *s, struct sockaddr_in *addr);
+void nodelay(int fd);
 #endif /* _BISONFLAW_UTIL_H_ */

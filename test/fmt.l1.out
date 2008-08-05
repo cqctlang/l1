@@ -1,5 +1,5 @@
 entry: 0 params, 5 locals, 0 temps
-<range 10 20>
+<range 0xa 0x14>
 [ <cval 1>, <cval 0> ]
 abcdef
 int *

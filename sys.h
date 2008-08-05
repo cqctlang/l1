@@ -11,11 +11,17 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/ip.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <unistd.h>
 #include <sched.h>
 #include <pthread.h>

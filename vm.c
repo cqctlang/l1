@@ -3758,107 +3758,6 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 }
 
 static void
-printval(VM *vm, Val *val)
-{
-	Cval *cv;
-	Closure *cl;
-	List *l;
-	Range *r;
-	Str *str;
-	Val bv;
-	u32 m;
-
-	if(val == 0){
-		printf("(no value)");
-		return;
-	}
-
-	switch(val->qkind){
-	case Qcval:
-		cv = valcval(val);
- 		printf("<cval %" PRIu64 ">", cv->val);
-		break;
-	case Qcl:
-		cl = valcl(val);
-		if(cl->fp)
-			printf("<continuation %p>", cl);
-		else if(cl->dlen > 0)
-			printf("<closure %s>", cl->id);
-		else
-			printf("<procedure %s>", cl->id);
-		break;
-	case Qundef:
-//		printf("<undefined>");
-		break;
-	case Qnil:
-		printf("<nil>");
-		break;
-	case Qnulllist:
-		printf("<null>");
-		break;
-	case Qbox:
-		printf("<box ");
-		valboxed(val, &bv);
-		printval(vm, &bv);
-		printf(">");
-		break;
-	case Qas:
-		printf("<as %p>", valas(val));
-		break;
-	case Qdom:
-		printf("<dom %p>", valdom(val));
-		break;
-	case Qlist:
-		l = vallist(val);
-		printf("[");
-		for(m = 0; m < listxlen(l->x); m++){
-			if(m > 0)
-				printf(",");
-			printf(" ");
-			printval(vm, listref(vm, l, m));
-		}
-		printf(" ]");
-		break;
-	case Qns:
-		printf("<ns %p>", valns(val));
-		break;
-	case Qpair:
-		printf("<pair %p>", valpair(val));
-		break;
-	case Qrange:
-		r = valrange(val);
- 		printf("<range %" PRIu64 " %" PRIu64 ">",
- 		       r->beg->val, r->len->val);
-		break;
-	case Qstr:
-		str = valstr(val);
-		printf("%.*s", (int)str->len, str->s);
-		break;
-	case Qtab:
-		printf("<table %p>", valtab(val));
-		break;
-	case Qvec:
-		printf("<vector %p>", valvec(val));
-		break;
-	case Qxtn:
-		printf("<typename %p>", valxtn(val));
-		break;
-	default:
-		printf("<unprintable type %d>", val->qkind);
-		break;
-	}
-}
-
-void
-printvmac(VM *vm)
-{
-	if(vm->ac.qkind != Qnil){
-		printval(vm, &vm->ac);
-		printf("\n");
-	}
-}
-
-static void
 xcallc(VM *vm)
 {
 	Imm argc;
@@ -4426,7 +4325,7 @@ xprint(VM *vm, Operand *op)
 	Val v;
 	getvalrand(vm, op, &v);
 	printval(vm, &v);
-	printf("\n");
+	printf("\n"); fflush(stdout);
 }
 
 static void
@@ -6418,36 +6317,11 @@ builtincval(Env *env, char *name, Cval *cv)
 }
 
 static void
-testfoo(VM *vm, Imm argc, Val *argv, Val *rv)
+builtinfd(Env *env, char *name, Fd *fd)
 {
-	unsigned i;
-
-	printf("you called foo with %lld args!\n", argc);
-	for(i = 0; i < argc; i++){
-		printf("argv[%d] = ", i);
-		printval(vm, &argv[i]);
-		printf("\n");
-	}
-	mkvalstr(mkstr0("returned!"), rv);
-}
-
-static void
-testbin(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	unsigned i;
-	Closure *cl;
-
-	printf("you called it with %lld args!\n", argc);
-	for(i = 0; i < argc; i++){
-		printf("argv[%d] = ", i);
-		printval(vm, &argv[i]);
-		printf("\n");
-	}
-
-	cl = mkcfn("testfoo", testfoo);
-	rv = dovm(vm, cl, argc, argv);
-	printval(vm, rv);
-	printf("returned from dovm\n");
+	Val val;
+	mkvalfd(fd, &val);
+	envbind(env, name, &val);
 }
 
 static void
@@ -6456,6 +6330,12 @@ checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 	if(argv[arg].qkind != qkind)
 		vmerr(vm, "operand %d to %s must be a %s",
 		      arg+1, fn, qname[qkind]);
+}
+
+static void
+l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	mkvalcval(vm->litdom, vm->litbase[Vulong], getpid(), rv);
 }
 
 static void
@@ -6792,104 +6672,6 @@ stringof(VM *vm, Cval *cv)
 	return s;
 }
 
-static void
-fprinticval(FILE *fp, unsigned char conv, Cval *cv)
-{
-	static char* fmttab[Rnrep][256] = {
-	[Ru08le]['d'] = "%"PRId8,	[Ru08le]['i'] = "%"PRIi8,   
-	[Ru08be]['d'] = "%"PRId8,	[Ru08be]['i'] = "%"PRIi8,   
-	[Rs08le]['d'] = "%"PRId8,	[Rs08le]['i'] = "%"PRIi8,   
-	[Rs08be]['d'] = "%"PRId8,	[Rs08be]['i'] = "%"PRIi8,   
-	[Ru16le]['d'] = "%"PRId16,	[Ru16le]['i'] = "%"PRIi16,  
-	[Ru16be]['d'] = "%"PRId16,	[Ru16be]['i'] = "%"PRIi16,  
-	[Rs16le]['d'] = "%"PRId16,	[Rs16le]['i'] = "%"PRIi16,  
-	[Rs16be]['d'] = "%"PRId16,	[Rs16be]['i'] = "%"PRIi16,  
-	[Ru32le]['d'] = "%"PRId32,	[Ru32le]['i'] = "%"PRIi32,  
-	[Ru32be]['d'] = "%"PRId32,	[Ru32be]['i'] = "%"PRIi32,  
-	[Rs32le]['d'] = "%"PRId32,	[Rs32le]['i'] = "%"PRIi32,  
-	[Rs32be]['d'] = "%"PRId32,	[Rs32be]['i'] = "%"PRIi32,  
-	[Ru64le]['d'] = "%"PRId64,	[Ru64le]['i'] = "%"PRIi64,  
-	[Ru64be]['d'] = "%"PRId64,	[Ru64be]['i'] = "%"PRIi64,  
-	[Rs64le]['d'] = "%"PRId64,	[Rs64le]['i'] = "%"PRIi64,  
-	[Rs64be]['d'] = "%"PRId64,	[Rs64be]['i'] = "%"PRIi64,  
-
-	[Ru08le]['o'] = "%"PRIo8,	[Ru08le]['u'] = "%"PRIu8, 
-	[Ru08be]['o'] = "%"PRIo8,	[Ru08be]['u'] = "%"PRIu8, 
-	[Rs08le]['o'] = "%"PRIo8,	[Rs08le]['u'] = "%"PRIu8, 
-	[Rs08be]['o'] = "%"PRIo8,	[Rs08be]['u'] = "%"PRIu8, 
-	[Ru16le]['o'] = "%"PRIo16,	[Ru16le]['u'] = "%"PRIu16,
-	[Ru16be]['o'] = "%"PRIo16,	[Ru16be]['u'] = "%"PRIu16,
-	[Rs16le]['o'] = "%"PRIo16,	[Rs16le]['u'] = "%"PRIu16,
-	[Rs16be]['o'] = "%"PRIo16,	[Rs16be]['u'] = "%"PRIu16,
-	[Ru32le]['o'] = "%"PRIo32,	[Ru32le]['u'] = "%"PRIu32,
-	[Ru32be]['o'] = "%"PRIo32,	[Ru32be]['u'] = "%"PRIu32,
-	[Rs32le]['o'] = "%"PRIo32,	[Rs32le]['u'] = "%"PRIu32,
-	[Rs32be]['o'] = "%"PRIo32,	[Rs32be]['u'] = "%"PRIu32,
-	[Ru64le]['o'] = "%"PRIo64,	[Ru64le]['u'] = "%"PRIu64,
-	[Ru64be]['o'] = "%"PRIo64,	[Ru64be]['u'] = "%"PRIu64,
-	[Rs64le]['o'] = "%"PRIo64,	[Rs64le]['u'] = "%"PRIu64,
-	[Rs64be]['o'] = "%"PRIo64,	[Rs64be]['u'] = "%"PRIu64,
-
-	[Ru08le]['x'] = "%"PRIx8,	[Ru08le]['X'] = "%"PRIX8, 
-	[Ru08be]['x'] = "%"PRIx8,	[Ru08be]['X'] = "%"PRIX8, 
-	[Rs08le]['x'] = "%"PRIx8,	[Rs08le]['X'] = "%"PRIX8, 
-	[Rs08be]['x'] = "%"PRIx8,	[Rs08be]['X'] = "%"PRIX8, 
-	[Ru16le]['x'] = "%"PRIx16,	[Ru16le]['X'] = "%"PRIX16,
-	[Ru16be]['x'] = "%"PRIx16,	[Ru16be]['X'] = "%"PRIX16,
-	[Rs16le]['x'] = "%"PRIx16,	[Rs16le]['X'] = "%"PRIX16,
-	[Rs16be]['x'] = "%"PRIx16,	[Rs16be]['X'] = "%"PRIX16,
-	[Ru32le]['x'] = "%"PRIx32,	[Ru32le]['X'] = "%"PRIX32,
-	[Ru32be]['x'] = "%"PRIx32,	[Ru32be]['X'] = "%"PRIX32,
-	[Rs32le]['x'] = "%"PRIx32,	[Rs32le]['X'] = "%"PRIX32,
-	[Rs32be]['x'] = "%"PRIx32,	[Rs32be]['X'] = "%"PRIX32,
-	[Ru64le]['x'] = "%"PRIx64,	[Ru64le]['X'] = "%"PRIX64,
-	[Ru64be]['x'] = "%"PRIx64,	[Ru64be]['X'] = "%"PRIX64,
-	[Rs64le]['x'] = "%"PRIx64,	[Rs64le]['X'] = "%"PRIX64,
-	[Rs64be]['x'] = "%"PRIx64,	[Rs64be]['X'] = "%"PRIX64,	};
-
-	char *fmt;
-	Xtypename *t;
-
-	t = chasetype(cv->type);
-	fmt = fmttab[t->rep][conv];
-	switch(t->rep){
-	case Ru08le:
-	case Ru08be:
-		fprintf(fp, fmt, (u8)cv->val);
-		break;
-	case Rs08le:
-	case Rs08be:
-		fprintf(fp, fmt, (s8)cv->val);
-		break;
-	case Ru16le:
-	case Ru16be:
-		fprintf(fp, fmt, (u16)cv->val);
-		break;
-	case Rs16le:
-	case Rs16be:
-		fprintf(fp, fmt, (s16)cv->val);
-		break;
-	case Ru32le:
-	case Ru32be:
-		fprintf(fp, fmt, (u32)cv->val);
-		break;
-	case Rs32le:
-	case Rs32be:
-		fprintf(fp, fmt, (s32)cv->val);
-		break;
-	case Ru64le:
-	case Ru64be:
-		fprintf(fp, fmt, (u64)cv->val);
-		break;
-	case Rs64le:
-	case Rs64be:
-		fprintf(fp, fmt, (s64)cv->val);
-		break;
-	default:
-		fatal("bug");
-	}
-}
-
 typedef struct Fmt Fmt;
 struct Fmt {
 	char *start, *to, *stop;
@@ -6934,6 +6716,7 @@ fmtval(Fmt *f, Val *val)
 	Closure *cl;
 	List *l;
 	Listx *lx;
+	Vec *v;
 	Range *r;
 	Str *str;
 	Val bv;
@@ -6979,11 +6762,26 @@ fmtval(Fmt *f, Val *val)
 	case Qns:
 	case Qpair:
 	case Qtab:
-	case Qvec:
 	case Qxtn:
 		hd = valhead(val);
 		snprintf(buf, sizeof(buf), "<%s %p>", hd->heap->id, hd);
 		return fmtputs0(f, buf);
+	case Qvec:
+		v = valvec(val);
+		if(fmtputs0(f, "vector("))
+			return -1;
+		for(m = 0; m < v->len; m++){
+			if(m > 0){
+				if(fmtputs0(f, ", "))
+					return -1;
+			}else{
+				if(fmtputs0(f, " "))
+					return -1;
+			}
+			if(fmtval(f, &v->vec[m]))
+				return -1;
+		}
+		return fmtputs0(f, " )");
 	case Qlist:
 		l = vallist(val);
 		lx = l->x;
@@ -7003,7 +6801,8 @@ fmtval(Fmt *f, Val *val)
 		return fmtputs0(f, " ]");
 	case Qrange:
 		r = valrange(val);
- 		snprintf(buf, sizeof(buf), "<range %" PRIu64 " %" PRIu64 ">",
+ 		snprintf(buf, sizeof(buf),
+			 "<range 0x%" PRIx64 " 0x%" PRIx64 ">",
 			 r->beg->val, r->len->val);
 		return fmtputs0(f, buf);
 	case Qstr:
@@ -7299,6 +7098,22 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to printf must be a format string");
 	fmts = valstr(argv);
 	dofdprint(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
+}
+
+static void
+l1_fprintf(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Str *fmts;
+	if(argc < 2)
+		vmerr(vm, "wrong number of arguments to fprintf");
+	if(argv[0].qkind != Qfd)
+		vmerr(vm, "operand 1 to fprintf must be a file descriptor");
+	if(argv[1].qkind != Qstr)
+		vmerr(vm, "operand 2 to fprintf must be a format string");
+	fd = valfd(&argv[0]);
+	fmts = valstr(&argv[1]);
+	dofdprint(vm, fd, fmts->s, fmts->len, argc-2, argv+2);
 }
 
 static int
@@ -8324,9 +8139,10 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_error(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	/* FIXME: unified formatting */
-	l1_printf(vm, argc, argv, rv);
-	vmerr(vm, "error (see last message)");
+	Str *s;
+	l1_sprintfa(vm, argc, argv, rv);
+	s = valstr(rv);
+	vmerr(vm, "%.*s", s->len, s->s);
 }
 
 static void
@@ -8526,25 +8342,231 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fdp;
-	int fd;
+	Fd *fd;
+	int xfd;
+	Str *names;
+	char *name, *mode;
+	int oflags, flags;
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to open");
 	checkarg(vm, "open", argv, 0, Qstr);
-	names = valstr(&argv[0]);
 	checkarg(vm, "open", argv, 1, Qstr);
-
+	names = valstr(&argv[0]);
 	name = str2cstr(names);
-	fd = open(name, O_RDONLY);
-	free(name);
-	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
-	if(0 > fstat(fd, &st)){
-		close(fd);
-		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
-	}
+	mode = str2cstr(valstr(&argv[1]));
 
+	flags = 0;
+	oflags = 0;
+	if(strchr(mode, 'r'))
+		flags |= Fread;
+	if(strchr(mode, 'w')){
+		flags |= Fwrite;
+		oflags |= O_CREAT;
+	}
+	if((flags&Fwrite) && !strchr(mode, 'a'))
+		oflags |= O_TRUNC;
+
+	if((flags&Fread) && (flags&Fwrite))
+		oflags |= O_RDWR;
+	else if(flags&Fread)
+		oflags |= O_RDONLY;
+	else if(flags&Fwrite)
+		oflags |= O_WRONLY;
+
+	xfd = open(name, oflags, 0777); /* ~umask */
+	free(name);
+	free(mode);
+	if(0 > xfd)
+		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+	fd = mkfd(xfd, flags, 1);
+	mkvalfd(fd, rv);
+}
+
+static void
+l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to close");
+	checkarg(vm, "close", argv, 0, Qfd);
+	fd = valfd(&argv[0]);
+	if(fd->flags&Fclosed)
+		return;
+	fd->flags |= Fclosed;
+	close(fd->fd);
+}
+
+static void
+l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Str *s;
+	char *buf;
+	Cval *n;
+	Imm r;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to read");
+	checkarg(vm, "read", argv, 0, Qfd);
+	checkarg(vm, "read", argv, 1, Qcval);
+	fd = valfd(&argv[0]);
+	if(fd->flags&Fclosed)
+		vmerr(vm, "attempt to read from closed file descriptor");
+	n = valcval(&argv[1]);
+	buf = xmalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
+	r = xread(fd->fd, buf, n->val);
+	if(r == (Imm)-1)
+		vmerr(vm, "read error: %m");
+	if(n->val > 0 && r == 0)
+		return;		/* nil */
+	s = mkstrk(buf, r, Smalloc);
+	mkvalstr(s, rv);
+}
+
+static void
+l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Str *s;
+	int r;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to write");
+	checkarg(vm, "write", argv, 0, Qfd);
+	checkarg(vm, "write", argv, 1, Qstr);
+	fd = valfd(&argv[0]);
+	if(fd->flags&Fclosed)
+		vmerr(vm, "attempt to write to closed file descriptor");
+	s = valstr(&argv[1]);
+	r = xwrite(fd->fd, s->s, s->len);
+	if(r == -1)
+		vmerr(vm, "write error: %m");
+	/* return nil */
+}
+
+static void
+l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *names;
+	char *name;
+	int r;
+	
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkdir");
+	checkarg(vm, "mkdir", argv, 0, Qstr);
+	names = valstr(&argv[0]);
+	name = str2cstr(names);
+	r = mkdir(name, 0777);	/* ~umask */
+	free(name);
+	if(0 > r)
+		vmerr(vm, "mkdir: %m");
+	/* return nil */
+}
+       
+static void
+l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *names;
+	char *name;
+	int r;
+	
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to unlink");
+	checkarg(vm, "unlink", argv, 0, Qstr);
+	names = valstr(&argv[0]);
+	name = str2cstr(names);
+	r = unlink(name);
+	free(name);
+	if(0 > r)
+		vmerr(vm, "unlink: %m");
+	/* return nil */
+}
+
+static void
+l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *names;
+	char *name;
+	int r;
+	
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to rmdir");
+	checkarg(vm, "rmdir", argv, 0, Qstr);
+	names = valstr(&argv[0]);
+	name = str2cstr(names);
+	r = rmdir(name);
+	free(name);
+	if(0 > r)
+		vmerr(vm, "rmdir: %m");
+	/* return nil */
+}
+
+static void
+l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	DIR *dir;
+	Str *names;
+	char *name;
+	u32 ndir, lim;
+	char *buf;
+	struct dirent *p, *d;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to readdir");
+	checkarg(vm, "readdir", argv, 0, Qstr);
+	names = valstr(&argv[0]);
+	name = str2cstr(names);
+	dir = opendir(name);
+	free(name);
+	if(dir == NULL)
+		vmerr(vm, "opendir: %m");
+
+	lim = 128;
+	buf = xmalloc(lim*sizeof(struct dirent));
+	ndir = 0;
+	p = (struct dirent*)buf;
+	while((d = readdir(dir))){
+		if(ndir >= lim){
+			buf = xrealloc(buf, lim*sizeof(struct dirent),
+				       2*lim*sizeof(struct dirent));
+			lim *= 2;
+			p = (struct dirent*)buf+ndir;
+		}
+		memcpy(p, d, d->d_reclen);
+		p++;
+		ndir++;
+	}
+	closedir(dir);
+	mkvalas(mkmas(mkstrk(buf, ndir*sizeof(struct dirent), Smalloc)), rv);
+}
+
+static void
+l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Str *str;
+	char *s;
+	int xfd;
+	struct sockaddr_in saddr;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to opentcp");
+	checkarg(vm, "opentcp", argv, 0, Qstr);
+	str = valstr(&argv[0]);
+	s = str2cstr(str);
+	if(0 > parseip(s, &saddr))
+		vmerr(vm, "unrecognized address: %.*s", str->len, str->s);
+	free(s);
+	xfd = socket(AF_INET, SOCK_STREAM, 0);
+	if(0 > xfd)
+		vmerr(vm, "opentcp: %m");
+	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
+		vmerr(vm, "opentcp: %m");
+	nodelay(xfd);
+	fd = mkfd(xfd, Fread|Fwrite, 1);
+	mkvalfd(fd, rv);
 }
 
 static void
@@ -8715,17 +8737,6 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_islist(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to islist");
-	if(argv[0].qkind == Qlist)
-		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
-	else
-		mkvalcval(vm->litdom, vm->litbase[Vint], 0, rv);
-}
-
-static void
 l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val *vp;
@@ -8875,6 +8886,49 @@ l1_equal(VM *vm, Imm argc, Val *argv, Val *rv)
 			  equallistv(&argv[0], &argv[1]), rv);
 	else
 		vmerr(vm, "equal defined only for lists");
+}
+
+static void
+l1_isx(VM *vm, Imm argc, Val *argv, Val *rv, char *name, Qkind kind)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %s", name);
+	if(argv[0].qkind == kind)
+		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
+	else
+		mkvalcval(vm->litdom, vm->litbase[Vint], 0, rv);
+}
+
+static void
+l1_islist(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "islist", Qlist);
+}
+
+static void
+l1_isfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isfd", Qfd);
+}
+
+static void
+printval(VM *vm, Val *val)
+{
+	Val argv[2], rv;
+	Str *s;
+	s = mkstrk("%a", 2, Sperm);
+	mkvalstr(s, &argv[0]);
+	argv[1] = *val;
+	l1_printf(vm, 2, argv, &rv);
+}
+
+void
+printvmac(VM *vm)
+{
+	if(vm->ac.qkind != Qnil){
+		printval(vm, &vm->ac);
+		printf("\n");
+	}
 }
 
 typedef
@@ -9213,7 +9267,6 @@ mkvm(Env *env)
 	vm->emax = Errinitdepth;
 	vm->err = xmalloc(vm->emax*sizeof(Err));
 	
-	builtinfn(env, "testbin", mkcfn("testbin", testbin));
 	builtinfn(env, "gc", gcthunk());
 	builtinfn(env, "ding", dingthunk());
 	builtinfn(env, "print", printthunk());
@@ -9266,10 +9319,21 @@ mkvm(Env *env)
 	FN(nsenumtype);
 	FN(looktype);
 	FN(gettimeofday);
+	FN(getpid);
 	FN(randseed);
 	FN(rand);
 	FN(printf);
 	FN(sprintfa);
+	FN(fprintf);
+	FN(open);
+	FN(close);
+	FN(read);
+	FN(write);
+	FN(mkdir);
+	FN(rmdir);
+	FN(_readdir);
+	FN(unlink);
+	FN(opentcp);
 	FN(tabkeys);
 	FN(tabvals);
 	FN(vmbacktrace);
@@ -9351,6 +9415,8 @@ mkvm(Env *env)
 	FN(mapfile);
 
 	FN(islist);
+	FN(isfd);
+
 	FN(isempty);
 	FN(listref);
 	FN(listset);
@@ -9386,7 +9452,8 @@ mkvm(Env *env)
 	vm->smap = mkstr0("map");
 	vm->stdin = mkfd(0, Fread, 0);
 	vm->stdout = mkfd(1, Fwrite, 0);
-
+	builtinfd(env, "stdin", vm->stdin);
+	builtinfd(env, "stdout", vm->stdout);
 	builtincval(env, "NULL",
 		    mkcval(vm->litdom, vm->litdom->ns->base[Vptr], 0));
 

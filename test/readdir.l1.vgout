@@ -1,0 +1,30 @@
+entry: 0 params, 6 locals, 0 temps
+L48388: 1 params, 3 locals, 0 temps
+L48839: 1 params, 3 locals, 0 temps
+L49600: 1 params, 3 locals, 0 temps
+L50777: 1 params, 3 locals, 0 temps
+L52487: 1 params, 3 locals, 0 temps
+L53337: 1 params, 3 locals, 0 temps
+L54098: 1 params, 3 locals, 0 temps
+L54349: 1 params, 3 locals, 0 temps
+L55184: 1 params, 3 locals, 0 temps
+L55586: 1 params, 3 locals, 0 temps
+L56575: 1 params, 3 locals, 0 temps
+L57336: 1 params, 3 locals, 0 temps
+L59438: 1 params, 3 locals, 0 temps
+L59788: 1 params, 3 locals, 0 temps
+L59940: 1 params, 3 locals, 0 temps
+L60211: 1 params, 3 locals, 0 temps
+L60348: 1 params, 3 locals, 0 temps
+L60866: 1 params, 3 locals, 0 temps
+L61315: 1 params, 3 locals, 0 temps
+L62312: 1 params, 3 locals, 0 temps
+L63698: 1 params, 3 locals, 0 temps
+L65287: 1 params, 3 locals, 0 temps
+L65528: 1 params, 3 locals, 0 temps
+readdir: 1 params, 5 locals, 0 temps
+assize: 1 params, 2 locals, 0 temps
+map: var params, 1 locals, 0 temps
+ls: 2 params, 8 locals, 1 temps
+warning: name space references undefined type:
+	struct __dirstream
