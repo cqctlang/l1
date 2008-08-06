@@ -637,8 +637,7 @@ retry:
 		fp = 0;
 		for(m = 0; m < AllocBatch; m++){
 			o = xmalloc(heap->sz);
-//			VALGRIND_MAKE_MEM_NOACCESS(o->data,
-//						   heap->sz-sizeof(Head));
+//			VALGRIND_MAKE_MEM_NOACCESS(o+1, heap->sz-sizeof(Head));
 			o->heap = heap;
 			o->alink = ap;
 			o->link = fp;
@@ -662,8 +661,8 @@ retry:
 	// FIXME: only object types that do not initialize all fields
 	// (e.g., Xtypename) need to be cleared.  Perhaps add a bit
 	// to heap to select clearing.
-//	VALGRIND_MAKE_MEM_UNDEFINED(o->data, heap->sz-sizeof(Head));
-	memset(o->data, 0, heap->sz-sizeof(Head));
+//	VALGRIND_MAKE_MEM_UNDEFINED(o+1, heap->sz-sizeof(Head));
+	memset(o+1, 0, heap->sz-sizeof(Head));
 	return o;
 }
 
@@ -685,8 +684,7 @@ sweepheap(Heap *heap, unsigned color)
 			heap->sweep = p;
 			p->state = -1;
 			p->color = GCfree;
-//			VALGRIND_MAKE_MEM_NOACCESS(p->data,
-//						   heap->sz-sizeof(Head));
+//			VALGRIND_MAKE_MEM_NOACCESS(p+1, heap->sz-sizeof(Head));
 //			if(heap->swept == 0){
 //				heap->swept = heap->sweep;
 //				heap->sweep = 0;

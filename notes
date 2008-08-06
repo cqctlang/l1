@@ -87,6 +87,8 @@ todo
   - ; ns = @names c32le { @include <2.names> };
     -> floating point constants unsupported
   - detect re-use of tags like k.scm does
+  - sizeof(t) errors if t references an undefined subtype;
+    we need a simple test for whether a type has such a reference.
 
 - check semantics of scope
 
