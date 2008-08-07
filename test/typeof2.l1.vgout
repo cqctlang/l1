@@ -1,7 +1,7 @@
 entry: 0 params, 7 locals, 0 temps
 mkzas: 1 params, 2 locals, 0 temps
 dispatch: var params, 7 locals, 0 temps
-L181: 1 params, 3 locals, 0 temps
+L187: 1 params, 3 locals, 0 temps
 typeof(x = dom`a) = enum x
 get 0 1
 typeof(x = x->foo) = int

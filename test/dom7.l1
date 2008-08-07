@@ -1,0 +1,13 @@
+ns = @names c32le {
+	struct foo {
+		@0x0 int x;
+		@0x4;
+	};
+	typedef struct foo foo_t;
+};
+
+as = mkzas(1024);
+dom = mkdom(ns, as);
+
+p = (dom`foo_t*){dom}0;
+printf("%d\n", p->x);

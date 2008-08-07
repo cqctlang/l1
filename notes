@@ -6,12 +6,11 @@ todo
 	- with widths (and precisions)
   - getbytes/putbytes
   - address space map()
-  - allow enum constant expressions to reference other enum constants
   - switch enum operands shortform
   - introduce address types
     - shouldn't bpset take an address argument?
   - figure out interactive control story:
-  	- exit
+  	- fast exit
   	- interruption
     interactions of signals with threads?
     gc state vs exit and interruption

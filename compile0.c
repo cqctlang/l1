@@ -43,6 +43,7 @@ gentypename(Type *t, Pass *recpass)
 	Enum *en;
 	Decl *dl;
 	char *mk;
+	Imm nen;
 
 	switch(t->kind){
 	case Tvoid:
@@ -121,28 +122,42 @@ gentypename(Type *t, Pass *recpass)
 		loc = Zlocals(3, "$tmp", "$tn", "$type");
 		te = nullelist();
 
-		se = nullelist();
+		/* count enum constants and allocate vector
+		   (FIXME: use list?) */
+		nen = 0;
 		en = t->en;
 		while(en){
-			se = Zcons(Zcall(doid("vector"), 2,
-					 Zstr(en->id),
-					 en->val),      /* steal */
-				   se);
-			en->val = 0; 
+			nen++;
 			en = en->link;
 		}
-		se = Zset(doid("$tmp"), Zapply(doid("vector"), invert(se)));
+		se = Zset(doid("$tmp"), Zcall(doid("mkvec"), 1, Zuint(nen)));
 		te = Zcons(se, te);
 
+		/* insert enum constants into vector */
+		nen = 0;
+		en = t->en;
+		while(en){
+			se = Zcall(doid("vecset"), 3,
+				   doid("$tmp"), Zuint(nen),
+				   Zcall(doid("vector"), 2,
+					 Zstr(en->id), en->val)); /* steal */
+			te = Zcons(se, te);
+			en->val = 0;
+			en = en->link;
+			nen++;
+		}
+
+		/* compute type sufficent to represent all constants;
+		   by side-effect, cast all constants to that type */
 		se = Zset(doid("$type"),
 			  Zcall(doid("enconsts"), 2,
 				doid("$ns"), doid("$tmp")));
 		te = Zcons(se, te);
 
+		/* define enum type */
 		se = Zset(doid("$tn"),
 			  Zcall(doid("mkctype_enum"), 1, Zstr(t->tag)));
 		te = Zcons(se, te);
-
 		se = Zcall(doid("tabinsert"), 3,
 			   doid("$typetab"),
 			   doid("$tn"),
@@ -150,6 +165,7 @@ gentypename(Type *t, Pass *recpass)
 				 Zstr(t->tag), doid("$type"), doid("$tmp")));
 		te = Zcons(se, te);
 
+		/* add enum constants to symtab */
 		se = Zcall(doid("foreach"), 2,
 			   Zlambda(Zargs(1, "$e"),
 				   Zblock(Zlocals(3, "$ctn", "$id", "$val"),

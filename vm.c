@@ -896,7 +896,6 @@ rootset(VM *vm)
 	hforeach(vm->top->ht, bindingroot, 0);
 	addroot(&roots, valhead(&vm->ac));
 	addroot(&roots, valhead(&vm->cl));
-
 	
 	addroot(&roots, (Head*)vm->litdom); /* assume vm->litns in litdom */
 	addroot(&roots, (Head*)vm->sget);
@@ -5119,7 +5118,7 @@ chasetype(Xtypename *xtn)
 
 /* call looktype operator of NS on typename XTN */
 static Xtypename*
-dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
+_dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 {
 	Val v, *rv;
 	Xtypename *tmp, *xtmp, *new;
@@ -5143,7 +5142,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tptr:
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tptr;
-		new->link = dolooktype(vm, xtn->link, ns);
+		new->link = _dolooktype(vm, xtn->link, ns);
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
@@ -5155,7 +5154,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tarr:
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tarr;
-		new->link = dolooktype(vm, xtn->link, ns);
+		new->link = _dolooktype(vm, xtn->link, ns);
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
@@ -5166,7 +5165,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tfun:
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tfun;
-		new->link = dolooktype(vm, xtn->link, ns);
+		new->link = _dolooktype(vm, xtn->link, ns);
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
@@ -5176,7 +5175,7 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		for(i = 0; i < xtn->param->len; i++){
 			vec = veccopy(valvec(vecref(xtn->param, i)));
 			xtmp = valxtn(vecref(vec, Typepos));
-			tmp = dolooktype(vm, xtmp, ns);
+			tmp = _dolooktype(vm, xtmp, ns);
 			if(tmp == 0){
 				es = fmtxtn(xtmp);
 				vmerr(vm, "name space does not define %.*s",
@@ -5190,12 +5189,26 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		return new;
 	case Tundef:
 		/* FIXME: do we want this? */
-		return dolooktype(vm, xtn->link, ns);
+		return _dolooktype(vm, xtn->link, ns);
 	case Tconst:
 	case Tbitfield:
 		fatal("bug");
 	}
 	fatal("bug");
+}
+
+/* NS must have initialized base cache */
+static Xtypename*
+dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
+{
+	switch(xtn->tkind){
+	case Tvoid:
+		return mkvoidxtn();
+	case Tbase:
+		return ns->base[xtn->basename];
+	default:
+		return _dolooktype(vm, xtn, ns);
+	}
 }
 
 static void
@@ -5209,7 +5222,7 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	   be in vm roots */
 	xtn = mkbasextn(cb, Rundef);
 	mkvalxtn(xtn, &v);
-	xtn = dolooktype(vm, xtn, ns);
+	xtn = _dolooktype(vm, xtn, ns);
 	if(xtn == 0)
 		vmerr(vm, "name space does not define %s",
 		      basename[cb]);
@@ -7586,9 +7599,9 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argv[0].qkind != Qxtn)
 		vmerr(vm, err1);
 	xtn = valxtn(&argv[0]);
+	xtn = chasetype(xtn);
 	if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
-		vmerr(vm,
-		      "operand 1 to fields must be a struct or union ctype");
+		vmerr(vm, err1);
 	if(argv[1].qkind != Qstr)
 		vmerr(vm, err2);
 	for(i = 0; i < xtn->field->len; i++){
@@ -8589,6 +8602,8 @@ l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 	d = mkdom();
 	d->ns = ns;
 	d->as = mkabas();
+
+	/* this code assumes that domcast does not dolooktype */
 
 	/* determine type that contains all constant values */
 	a = mkcval(d, d->ns->base[Vint], 0);
