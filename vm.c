@@ -5889,6 +5889,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	static Val haltv;
 	static Closure *halt;
 	Insn *i;
+	Cval *cv;
 	Val val;
 	Imm m, narg, onarg;
 
@@ -5896,6 +5897,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		once = 1;
 		gotab[Iadd]	= &&Iadd;
 		gotab[Iand]	= &&Iand;
+		gotab[Iargc]	= &&Iargc;
 		gotab[Ias]	= &&Ias;
 		gotab[Ibox]	= &&Ibox;
 		gotab[Ibox0]	= &&Ibox0;
@@ -6059,6 +6061,13 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Ipush:
 		xpush(vm, &i->op1);
+		continue;
+	Iargc:
+		getvalrand(vm, &i->op1, &val);
+		cv = valcval(&val);
+		if(valimm(&vm->stack[vm->fp]) != cv->val)
+			vmerr(vm, "wrong number of arguments to %s",
+			      vm->clx->id);
 		continue;
 	Icall:
 		getvalrand(vm, &i->op1, &vm->cl);
@@ -8721,6 +8730,32 @@ l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 }
 
 static void
+l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
+{
+	Cval *addr;
+	Str *str;
+	Xtypename *t;
+	Range *r;
+	Val argv[3];
+
+	if(iargc != 2)
+		vmerr(vm, "wrong number of arguments to putbytes");
+	checkarg(vm, "putbytes", iargv, 0, Qcval);
+	checkarg(vm, "putbytes", iargv, 1, Qstr);
+	addr = valcval(&iargv[0]);
+	str = valstr(&iargv[1]);
+	t = chasetype(addr->type);
+	if(t->tkind != Tptr)
+		vmerr(vm, "operand 1 to putbytes must be a pointer");
+	mkvalstr(vm->sput, &argv[0]);
+	r = mkrange(mkcval(addr->dom, addr->dom->ns->base[Vptr], addr->val),
+		    mkcval(addr->dom, addr->dom->ns->base[Vptr], str->len));
+	mkvalrange2(r, &argv[1]);
+	mkvalstr(str, &argv[2]);
+	dovm(vm, addr->dom->as->dispatch, 3, argv);
+}
+
+static void
 l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 {
 	Imm ll, argc, m;
@@ -9388,6 +9423,7 @@ mkvm(Env *env)
 	FN(mkzas);
 	FN(stringof);
 	FN(getbytes);
+	FN(putbytes);
 
 	FN(isvoid);
 	FN(isundeftype);

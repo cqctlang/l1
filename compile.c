@@ -278,6 +278,10 @@ printinsn(Code *code, Insn *i)
 {
 	printf("\t");
 	switch(i->kind){
+	case Iargc:
+		printf("argc ");
+		printrand(code, &i->op1);
+		break;
 	case Icallc:
 		printf("callc");
 		break;
@@ -2604,6 +2608,12 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	p.b = b;
 
 	entry = code->ninsn;
+	if(!b->vararg){
+		i = nextinsn(code);
+		i->kind = Iargc;
+		randliti(&i->op1, b->npar, Vuint);
+		needtop = 1;
+	}
 	if(b->maxloc+b->ntmp > 0){
 		i = nextinsn(code);
 		i->kind = Isub;

@@ -2,6 +2,7 @@ typedef
 enum {
 	Iadd = 0,
 	Iand,
+	Iargc,
 	Ias,
 	Ibin,
 	Ibox,
