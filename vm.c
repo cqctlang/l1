@@ -8673,15 +8673,21 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	Cval *cv;
 	Xtypename *t;
+	static char *err =
+		"operand 1 to stringof must be a "
+		"char* or unsigned char* cvalue";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stringof");
 	checkarg(vm, "stringof", argv, 0, Qcval);
 	cv = valcval(&argv[0]);
 	t = chasetype(cv->type);
+	if(t->tkind != Tptr)
+		vmerr(vm, err);
+	t = chasetype(t->link);
 	if(t->tkind != Tbase ||
 	   (t->basename != Vchar && t->basename != Vuchar))
-		vmerr(vm, "operand 1 to stringof must be a char* cvalue");
+		vmerr(vm, err);
 
 	s = stringof(vm, cv);
 	mkvalstr(s, rv);
