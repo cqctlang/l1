@@ -1,0 +1,29 @@
+ns = @names c32le {
+	enum x {
+		a = 0,
+		b = a+1,
+		c,
+	};
+	enum y {
+		d = c+b,
+	};
+	struct foo {
+		@0x0 enum z {
+			v0 = b,	
+			v1 = v0<<1,
+			v2 = v1<<1,
+			v3 = v2<<1,
+		} x;
+		@0x4;
+	};
+};
+
+fn = nsenumtype(ns);
+vec = tabvals(fn());
+foreach(lambda(t){
+		if(isenum(t))
+			foreach(lambda(en){
+					printf("%s = %x\n",
+					       vecref(en, 0), vecref(en, 1));
+				}, enumconsts(t));
+	}, vec);

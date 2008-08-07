@@ -75,7 +75,7 @@ enum Rkind {
 	Rnrep, 
 } Rkind;
 
-static char* repname[Rnrep+1] = {
+static char* repname[Rnrep] = {
 	[Ru08le]=	"@u8le",
 	[Ru16le]=	"@u16le",
 	[Ru32le]=	"@u32le",
@@ -94,7 +94,7 @@ static char* repname[Rnrep+1] = {
 	[Rs64be]=	"@s64be",
 };
 
-static Imm repsize[Rnrep+1] = {
+static Imm repsize[Rnrep] = {
 	[Ru08le]=	1,
 	[Ru16le]=	2,
 	[Ru32le]=	4,

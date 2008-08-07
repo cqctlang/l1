@@ -1,0 +1,14 @@
+entry: 0 params, 7 locals, 1 temps
+L52: 1 params, 3 locals, 0 temps
+L163: 1 params, 3 locals, 0 temps
+L257: 1 params, 3 locals, 0 temps
+L316: 1 params, 0 locals, 0 temps
+L330: 1 params, 0 locals, 0 temps
+d = 3
+v0 = 1
+v1 = 2
+v2 = 4
+v3 = 8
+a = 0
+b = 1
+c = 2

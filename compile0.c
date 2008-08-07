@@ -341,13 +341,70 @@ hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 }
 
 static Expr*
+rmenid(Expr *e, HT *enid)
+{
+	Expr *v;
+
+	if(e == 0)
+		return 0;
+
+	switch(e->kind){
+	case Eid:
+		v = hget(enid, e->id, strlen(e->id));
+		if(v == 0)
+			/* FIXME: undefined identifier in enum const;
+			   tell user about it now (instead of when ns
+			   is evaluated). */
+			return e;
+		freeexpr(e);
+		return copyexpr(v);
+	default:
+		e->e1 = rmenid(e->e1, enid);
+		e->e2 = rmenid(e->e2, enid);
+		e->e3 = rmenid(e->e3, enid);
+		e->e4 = rmenid(e->e4, enid);
+		return e;
+	}
+}
+
+static void
+rmenids(Type *t, HT *enid)
+{
+	Decl *d;
+	Enum *en;
+
+	switch(t->kind){
+	case Tenum:
+		en = t->en;
+		while(en){
+			en->val = rmenid(en->val, enid);
+			hput(enid, en->id, strlen(en->id), en->val);
+			en = en->link;
+		}
+		break;
+	case Tstruct:
+	case Tunion:
+		if(t->field == 0)
+			return;
+		d = t->field;
+		while(d){
+			rmenids(d->type, enid);
+			d = d->link;
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+static Expr*
 compilens(Expr *e)
 {
 	Expr *se, *te;
 	Expr *ex;
 	Expr *loc;
 	Decl *dl;
-	HT *sym, *tag, *tid;
+	HT *sym, *tag, *tid, *enid;
 
 	loc = Zlocals(3, "$ns", "$typetab", "$symtab");
 
@@ -371,9 +428,11 @@ compilens(Expr *e)
 	sym = mkht();
 	tag = mkht();
 	tid = mkht();
+	enid = mkht();
 	while(ex->kind == Eelist){
 		dl = ex->e1->xp;
 		while(dl){
+			rmenids(dl->type, enid);
 			hashdecl(ex->e1->kind, dl, sym, tag, tid);
 			dl = dl->link;
 		}
@@ -385,6 +444,7 @@ compilens(Expr *e)
 	freeht(sym);
 	freeht(tag);
 	freeht(tid);
+	freeht(enid);
 
 	/* new name space */
 	se = Zcall(doid("mkns"), 1,
