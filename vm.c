@@ -6664,7 +6664,7 @@ stringof(VM *vm, Cval *cv)
 		mkvalstr(vm->sget, &argv[0]);
 		r = mkrange(mkcval(cv->dom, cv->dom->ns->base[Vptr], o),
 			    mkcval(cv->dom, cv->dom->ns->base[Vptr], n));
-		gcprotect(vm, r);
+		gcprotect(vm, r); /* FIXME: why? */
 		mkvalrange2(r, &argv[1]);
 		p = dovm(vm, cv->dom->as->dispatch, 2, argv);
 		s = valstr(p);
@@ -8694,6 +8694,33 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
+{
+	Cval *addr, *len;
+	Xtypename *t;
+	Val argv[2], *p;
+	Range *r;
+
+	if(iargc != 2)
+		vmerr(vm, "wrong number of arguments to getbytes");
+	checkarg(vm, "getbytes", iargv, 0, Qcval);
+	checkarg(vm, "getbytes", iargv, 1, Qcval);
+	addr = valcval(&iargv[0]);
+	len = valcval(&iargv[1]);
+	t = chasetype(addr->type);
+	if(t->tkind != Tptr)
+		vmerr(vm, "operand 1 to getbytes must be a pointer");
+	mkvalstr(vm->sget, &argv[0]);
+	r = mkrange(mkcval(addr->dom, addr->dom->ns->base[Vptr], addr->val),
+		    mkcval(addr->dom, addr->dom->ns->base[Vptr], len->val));
+	mkvalrange2(r, &argv[1]);
+	p = dovm(vm, addr->dom->as->dispatch, 2, argv);
+	if(p->qkind != Qstr)
+		vmerr(vm, "address space get operation did not return string");
+	*rv = *p;
+}
+
+static void
 l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 {
 	Imm ll, argc, m;
@@ -9360,6 +9387,7 @@ mkvm(Env *env)
 	FN(mkmas);
 	FN(mkzas);
 	FN(stringof);
+	FN(getbytes);
 
 	FN(isvoid);
 	FN(isundeftype);
