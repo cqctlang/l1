@@ -25,8 +25,8 @@ static int chars(int);
 %}
 
 %%
-@include[ \t]+\"[^\"]+\"[ \t]*   { count(); tryinclude(yytext); }
-@include[ \t]+\<[^\<\>]+\>[ \t]* { count(); tryinclude(yytext); }
+@include[ \t]*\"[^\"]+\"[ \t]*   { count(); tryinclude(yytext); }
+@include[ \t]*\<[^\<\>]+\>[ \t]* { count(); tryinclude(yytext); }
 <<EOF>>                 { if(popyy() == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx.inp->col = 0; }

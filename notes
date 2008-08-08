@@ -2,6 +2,8 @@ todo
 ----
 - core functionality
   - string processing (including ascii<->binary help)
+  - other string functions
+    strcata
   - formatted printing:
 	- with widths (and precisions)
   - switch enum operands shortform
@@ -17,7 +19,6 @@ todo
     - display names in errors such as "undefined type"
   - does pointer conversion make sense when type comes from a domain
     with different pointer size?
-
     e.g.:
 	t = dom32.ns.looktype(T*)
 	v = {t}<dom64,.,val>
@@ -26,16 +27,18 @@ todo
         pointers are carried over.
         seems too unusual to handle in a special way; instead,
 	should just note the problem.
-
   - i/o on pointer arguments:
 	if buffer for sprintf, read, or write, is a pointer, then
         do the i/o directly on the domain.
-
+  - make cval and put instructions callable
 
 - usability
   - check "entry" to "toplevel"
 
 - robustness
+  - can we programmatically dump all fields in a struct, even
+    if there are bitfields?  would be a nice example.
+  - handle stack overflow
   - @include at interactive prompt confusingly does not necessarily
     print the value of the last expression:
 	x = 2;

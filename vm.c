@@ -763,23 +763,11 @@ freerootlist(Root *r)
 	}
 }
 
-/* called on roots by marker.  called on stores by mutator. */
 static void
-addroot(Rootset *rs, Head *h)
+doaddroot(Rootset *rs, Head *h)
 {
 	Root *r;
 	int x;
-
-	if(h == 0)
-		return;
-
-	if(HEAPDEBUG)
-		printf("addroot %s %p %d %d\n",
-		       rs == &roots ? "roots" : "stores",
-		       h, h->inrootset, h->state);
-
-	if(h->inrootset)
-		return;
 
 	/* test if already on a rootlist */
 	x = h->state;
@@ -793,6 +781,43 @@ addroot(Rootset *rs, Head *h)
 	r->link = rs->roots;
 	writebarrier();
 	rs->roots = r;
+}
+
+/* called on roots by marker.  called on stores by mutator. */
+static void
+addroot(Rootset *rs, Head *h)
+{
+	if(h == 0)
+		return;
+
+	if(HEAPDEBUG)
+		printf("addroot %s %p %d %d\n",
+		       rs == &roots ? "roots" : "stores",
+		       h, h->inrootset, h->state);
+
+	if(h->inrootset)
+		return;
+	doaddroot(rs, h);
+}
+
+static void
+addrootstk(Rootset *rs, Head *h)
+{
+	if(h == 0)
+		return;
+
+	if(HEAPDEBUG)
+		printf("addroot %s %p %d %d\n",
+		       rs == &roots ? "roots" : "stores",
+		       h, h->inrootset, h->state);
+
+	if(h->color == GCfree)
+		/* stale value on stack already collected */
+		return;
+	if(h->inrootset)
+		return;
+
+	doaddroot(rs, h);
 }
 
 static Head*
@@ -892,7 +917,7 @@ rootset(VM *vm)
 		return;
 
 	for(m = vm->sp; m < Maxstk; m++)
-		addroot(&roots, valhead(&vm->stack[m]));
+		addrootstk(&roots, valhead(&vm->stack[m]));
 	hforeach(vm->top->ht, bindingroot, 0);
 	addroot(&roots, valhead(&vm->ac));
 	addroot(&roots, valhead(&vm->cl));
@@ -3186,8 +3211,10 @@ fvmbacktrace(FILE *out, VM *vm)
 //			fprintf(out, "\t-- vmcall --\n");
 //		else
 //			printsrc(out, cl, pc);
-		if(strcmp(cl->id, "$halt"))
+		if(strcmp(cl->id, "$halt")){
+//			fprintf(out, "fp=%05lld pc=%08lld ", fp, pc);
 			printsrc(out, cl, pc);
+		}
 		narg = valimm(&vm->stack[fp]);
 		pc = valimm(&vm->stack[fp+narg+1]);
 		pc--; /* pc was insn following call */
@@ -7184,6 +7211,7 @@ fmtstrflush(Fmt *f)
 	s = f->start;
 	f->start = xrealloc(f->start, len, len*2);
 	len *= 2;
+	f->farg = (void*)len;
 	f->to = f->start+(f->to-s);
 	f->stop = f->start+len;
 	return 0;
