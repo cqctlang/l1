@@ -412,7 +412,7 @@ struct VM {
 };
 
 static void freeval(Val *val);
-static void vmsetcl(VM *vm, Closure *cl);
+static void vmsetcl(VM *vm, Val *val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
 static void strinit(Str *str, Lits *lits);
@@ -3110,7 +3110,7 @@ putval(VM *vm, Val *v, Location *loc)
 			break;
 		case Rcl:
 			vm->cl = *v;
-			vmsetcl(vm, valcl(&vm->cl));
+			vmsetcl(vm, &vm->cl);
 			break;
 		default:
 			fatal("bug");
@@ -5788,10 +5788,15 @@ xnsltype(VM *vm, Operand *nso, Operand *dst)
 static void* gotab[Iopmax];
 
 static void
-vmsetcl(VM *vm, Closure *cl)
+vmsetcl(VM *vm, Val *val)
 {
 	unsigned k;
+	Closure *cl;
 	Insn *i;
+
+	if(val->qkind != Qcl)
+		vmerr(vm, "attempt to apply non-procedure");
+	cl = valcl(val);
 	vm->clx = cl;
 	vm->ibuf = vm->clx->code->insn;
 	if(vm->ibuf->go == 0){
@@ -6016,7 +6021,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 
 	/* switch to cl */
 	mkvalcl(cl, &vm->cl);
-	vmsetcl(vm, cl);
+	vmsetcl(vm, &vm->cl);
 	vm->pc = vm->clx->entry;
 
 	while(1){
@@ -6071,13 +6076,13 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Icall:
 		getvalrand(vm, &i->op1, &vm->cl);
-		vmsetcl(vm, valcl(&vm->cl));
+		vmsetcl(vm, &vm->cl);
 		vm->pc = vm->clx->entry;
 		vm->fp = vm->sp;
 		continue;
 	Icallt:
 		getvalrand(vm, &i->op1, &vm->cl);
-		vmsetcl(vm, valcl(&vm->cl));
+		vmsetcl(vm, &vm->cl);
 		/* shift current arguments over previous arguments */
 		narg = valimm(&vm->stack[vm->sp]);
 		onarg = valimm(&vm->stack[vm->fp]);
@@ -6105,7 +6110,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1; /* narg+1 */
 		vm->fp = valimm(&vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
-		vmsetcl(vm, valcl(&vm->cl));
+		vmsetcl(vm, &vm->cl);
 		vm->pc = valimm(&vm->stack[vm->sp]);
 		vmpop(vm, 3);
 
@@ -6116,7 +6121,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1; /* narg+1 */
 		vm->fp = valimm(&vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
-		vmsetcl(vm, valcl(&vm->cl));
+		vmsetcl(vm, &vm->cl);
 		vm->pc = valimm(&vm->stack[vm->sp]);
 		vmpop(vm, 3);
 		continue;

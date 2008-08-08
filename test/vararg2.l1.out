@@ -1,8 +1,8 @@
 entry: 0 params, 0 locals, 0 temps
-L3: 1 params, 1 locals, 0 temps
-L24: var params, 2 locals, 0 temps
-L40: var params, 1 locals, 0 temps
-L56: var params, 2 locals, 0 temps
+L4: 1 params, 1 locals, 0 temps
+L25: var params, 2 locals, 0 temps
+L41: var params, 1 locals, 0 temps
+L57: var params, 2 locals, 0 temps
 <cval 5>
 <cval 1>
 <cval 2>

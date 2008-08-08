@@ -1,7 +1,7 @@
 entry: 0 params, 0 locals, 0 temps
-L3: 2 params, 1 locals, 0 temps
-L9: 1 params, 0 locals, 0 temps
+L4: 2 params, 1 locals, 0 temps
+L10: 1 params, 0 locals, 0 temps
 <cval 1>
 <cval 2>
 <cval 1>
-<closure L9>
+<closure L10>
