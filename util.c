@@ -248,6 +248,6 @@ void
 nodelay(int fd)
 {
 	int optval = 1;
-	setsockopt(fd, SOL_TCP, TCP_NODELAY, &optval, sizeof(optval));
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval));
 }
 
