@@ -86,7 +86,7 @@ gentypename(Type *t, Pass *recpass)
 			}else
 				off = Znil();
 			tn = gentypename(dl->type, recpass);
-			se = Zcons(Zcall(doid("vector"), 3, tn, id, off), se);
+			se = Zcons(Zcall(doid("mkfield"), 3, tn, id, off), se);
 			dl = dl->link;
 		}
 		se = Zapply(doid("vector"), invert(se));
@@ -181,7 +181,7 @@ gentypename(Type *t, Pass *recpass)
 					  Zcall(doid("tabinsert"), 3,
 						doid("$symtab"),
 						doid("$id"),
-						Zcall(doid("vector"), 3,
+						Zcall(doid("mksym"), 3,
 						      doid("$ctn"),
 						      doid("$id"),
 						      doid("$val"))),
@@ -285,8 +285,7 @@ do1sym(void *u, char *k, void *v)
 		offs = Znil();
 
 	se = Zset(doid("$tmp"),
-		  Zcall(doid("vector"), 3, doid("$tn"),
-			Zstr(d->id), offs));
+		  Zcall(doid("mksym"), 3, doid("$tn"), Zstr(d->id), offs));
 	te = Zcons(se, te);
 
 	se = Zcall(doid("tabinsert"), 3, doid("$symtab"),

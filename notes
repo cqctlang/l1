@@ -36,8 +36,6 @@ todo
   - check "entry" to "toplevel"
 
 - robustness
-  - do lvals with cast expressions work?
-    (does the question even make sense?)
   - @include at interactive prompt confusingly does not necessarily
     print the value of the last expression:
 	x = 2;
@@ -47,8 +45,7 @@ todo
     final statement to have its value returned.
     ideally, want return E for all E that can be final expression.
   - how to define strings of length 2^64?
-  - check for negative cvals on Irange, Istr, Islice*, Ivec*
-  - check argument count on calls to lambdas
+  - check for negative cvals on Irange, Istr, Islice*, Ivec*, etc.
   - change all thunks that do not return values to return nil
   - cleanup and recover from parse/compiler errors
 	-> compile-local context for program, memory, recovery

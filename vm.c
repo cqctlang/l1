@@ -8185,6 +8185,41 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+mksymorfield(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *vec;
+
+	if(argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to %s", what);
+	checkarg(vm, what, argv, 0, Qxtn);
+	checkarg(vm, what, argv, 1, Qstr);
+	if(argc == 3)
+		if(argv[2].qkind != Qcval && argv[2].qkind != Qnil)
+			vmerr(vm, "operand 3 to %s must be a cvalue or nil",
+			      what);
+	vec = mkvec(3);
+	_vecset(vec, 0, &argv[0]);
+	_vecset(vec, 1, &argv[1]);
+	if(argc == 3)
+		_vecset(vec, 2, &argv[2]);
+	else
+		_vecset(vec, 2, &Xnil);
+	mkvalvec(vec, rv);
+}
+
+static void
+l1_mksym(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	mksymorfield("mksym", vm, argc, argv, rv);
+}
+
+static void
+l1_mkfield(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	mksymorfield("mkfield", vm, argc, argv, rv);	
+}
+
+static void
 l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
@@ -9545,6 +9580,8 @@ mkvm(Env *env)
 	FN(mkctype_bitfield);
 	FN(mkctype_enum);
 	FN(mkctype_const);
+	FN(mksym);
+	FN(mkfield);
 	FN(foreach);
 	FN(enconsts);
 	FN(mapfile);
