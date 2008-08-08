@@ -6631,37 +6631,52 @@ isstrcval(Cval *cv)
 	return 1;
 }
 
+static Vec*
+callmap(VM *vm, As *as)
+{
+	Val argv[1], *rv;
+	mkvalstr(vm->smap, &argv[0]);
+	rv = dovm(vm, as->dispatch, 1, argv);
+	if(rv->qkind != Qvec)
+		vmerr(vm, "address space map returned invalid value");
+	return valvec(rv);
+}
+
+static Range*
+mapstab(VM *vm, Vec *map, Imm addr, Imm len)
+{
+	Imm m;
+	Val *rp;
+	Range *r;
+
+	for(m = 0; m < map->len; m++){
+		rp = vecref(map, m);
+		if(rp->qkind != Qrange)
+			vmerr(vm, "address space map returned invalid value");
+		r = valrange(rp);
+		if(r->beg->val > addr)
+			return 0;
+		if(r->beg->val+r->len->val >= addr+len)
+			return r;
+	}
+	return 0;
+}
+
+
 /* assume CV has been vetted by isstrcval */
 static Str*
 stringof(VM *vm, Cval *cv)
 {
 	Str *s;
 	char *buf, *q;
-	Val *p, *rp, argv[2];
+	Val *p, argv[2];
 	Vec *v;
 	Range *r;
 	Imm l, m, n, o;
 	static unsigned unit = 128;
 	
-	mkvalstr(vm->smap, &argv[0]);
-	p = dovm(vm, cv->dom->as->dispatch, 1, argv);
-	if(p->qkind != Qvec)
-		vmerr(vm, "address space map returned invalid value");
-
-	/* FIXME: turn this into function mapstab or somesuch */
-	v = valvec(p);
-	for(m = 0; m < v->len; m++){
-		rp = vecref(v, m);
-		if(rp->qkind != Qrange)
-			vmerr(vm, "address space map returned invalid value");
-		r = valrange(rp);
-		/* FIXME: we assume compare w/o cast/rerep is okay */
-		if(r->beg->val > cv->val)
-			continue;
-		if(r->beg->val+r->len->val <= cv->val)
-			r = 0;
-		break;
-	}
+	v = callmap(vm, cv->dom->as);
+	r = mapstab(vm, v, cv->val, 0);	/* FIXME: type sanity */
 	if(r == 0)
 		vmerr(vm, "out-of-bounds address space access");
 
@@ -6695,6 +6710,25 @@ stringof(VM *vm, Cval *cv)
 	s = mkstr(buf, l);	/* FIXME: mkstr copies buf; should steal */
 	free(buf);
 	return s;
+}
+
+static int
+ismapped(VM *vm, Cval *addr, Cval *len)
+{
+	Imm sz;
+	Vec *v;
+	Range *r;
+
+	if(len == 0)
+		sz = typesize(vm, addr->type);
+	else
+		sz = len->val;	/* FIXME: check sign */
+	if(addr->val+sz < addr->val)
+		/* bogus size */
+		return 0;	
+	v = callmap(vm, addr->dom->as);
+	r = mapstab(vm, v, addr->val, sz);	/* FIXME: type sanity */
+	return r != 0;
 }
 
 typedef struct Fmt Fmt;
@@ -8686,7 +8720,6 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
 	Cval *cv;
-	Xtypename *t;
 	static char *err =
 		"operand 1 to stringof must be a "
 		"char* or unsigned char* cvalue";
@@ -8695,16 +8728,29 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to stringof");
 	checkarg(vm, "stringof", argv, 0, Qcval);
 	cv = valcval(&argv[0]);
-	t = chasetype(cv->type);
-	if(t->tkind != Tptr)
+	if(!isstrcval(cv))
 		vmerr(vm, err);
-	t = chasetype(t->link);
-	if(t->tkind != Tbase ||
-	   (t->basename != Vchar && t->basename != Vuchar))
-		vmerr(vm, err);
-
 	s = stringof(vm, cv);
 	mkvalstr(s, rv);
+}
+
+static void
+l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *addr, *len;
+	if(argc != 1 && argc != 2)
+		vmerr(vm, "wrong number of arguments to ismapped");
+	checkarg(vm, "ismapped", argv, 0, Qcval);
+	addr = valcval(&argv[0]);
+	len = 0;
+	if(argc == 2){
+		checkarg(vm, "ismapped", argv, 1, Qcval);
+		len = valcval(&argv[1]);
+	}
+	if(ismapped(vm, addr, len))
+		mkvalcval(vm->litdom, vm->litbase[Vint], 1, rv);
+	else
+		mkvalcval(vm->litdom, vm->litbase[Vint], 0, rv);
 }
 
 static void
@@ -9429,6 +9475,7 @@ mkvm(Env *env)
 	FN(stringof);
 	FN(getbytes);
 	FN(putbytes);
+	FN(ismapped);
 
 	FN(isvoid);
 	FN(isundeftype);
