@@ -1,0 +1,18 @@
+dom = mkdom(c32le, mkzas(8));
+
+p = (unsigned long*){dom}0;
+printf("%x %d\n", p, ismapped(p));
+p += 1;
+printf("%x %d\n", p, ismapped(p));
+p += 2;
+printf("%x %d\n", p, ismapped(p));
+
+for(i = 0; i <= 8; i++){
+      p = (unsigned long*){dom}i;
+      printf("%x %d\n", p, ismapped(p));
+}
+
+for(i = 0; i <= 8; i++){
+      p = (unsigned long*){dom}i;
+      printf("%x %d\n", p, ismapped(p, 1));
+}
