@@ -12,6 +12,103 @@
 
 <div id="content">
 
+<h3>Introduction</h3>
+
+<p>
+The Cinquecento programming language is designed to
+help programmers diagnose hard bugs in complex software
+by providing flexible, symbolic access to the binary
+data in which the state of a program in execution is
+encoded.
+</p>
+
+<p>
+The main features are:
+
+<ul>
+<li>
+<em>C-like syntax for examining and manipulating
+program state.</em>  Nearly every syntactic form in C
+works verbatim in Cinquecento, with identical semantics
+to C.  This includes all C types, pointers, C
+operators, and C control syntax.
+</li>
+
+<li>
+<em>Multiple simultaneously active target program
+contexts.</em>  The state of any number of distinct
+program executions can be examined from within a single
+Cinquecento program.
+</li>
+
+<li>
+<em> Multiple, dynamically-specified,
+machine-independent symbolic definitions.</em>  The
+types and symbols associated with a target program are
+specified in an extension of C type and variable
+declaration syntax.  These specifications are collected
+in first class name spaces, allowing any number of
+distinct, potentially conflicting specifications to
+exist at any time.  Different name spaces may be based
+upon different underlying machine and compiler
+characteristics, such as the size and encoding of
+integers, none of which need be in common with those of
+the machine on which Cinquecento programs execute.
+</li>
+
+<li>
+<em> Multiple, programatically-defined sources of
+program state.</em>  Conventional debuggers can
+interface with only a single source of program state,
+usually the process control interface of the host
+operating system.  In Cinquecento, each source of
+program state is encapsulated in a first class address
+space that represents a mapping of addresses to bytes.
+The standard address space is a wrapper to the local
+operating system process control interface, serving
+direct access to the state of local processes.  Another
+possibility is a interface to a remote server for
+process state on a different, possibly running a
+different operating system.  Yet another possiblity is
+the contents of a file in a local or remote file
+system, such as a core dump file representing the image
+of a broken process.
+</li>
+
+<li>
+<em> Scripting
+
+</ul>
+
+<p>
+To debug nearly any software bug, programmers need a
+way to examine the state of the data structures of a
+running program. 
+Access to this state usually arises
+from some primitive operating system service that can
+read and write the bytes stored in another program's
+address space.  On top of this service, conventional
+debuggers layer a more abstract symbolic interface to
+program state, translating references to program
+variables contained in user commands into calls that
+access the corresponding bytes in the program's address
+space.  Over sequences of interactive commands to their
+debugger, programmers examine program data structures
+in terms of the names and types assigned to data in the
+program source code, rarely needing to think about the
+underlying byte-level representation of the data.
+</p>
+
+<p>
+
+The Cinquecento programming language brings the key
+features of the C programming language --- its types,
+pointers, operators, and control syntax --- to
+situations 
+</p>
+
+
+
 <h3>Types</h3>
 
 <p>C defines several categories of types, including the
