@@ -5115,7 +5115,7 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		mkvalvec(v, rv);
 	}else
 		vmerr(vm, "undefined operation on address space: %.*s",
-		      cmd->len, cmd->len);
+		      cmd->len, cmd->s);
 }
 
 static As*
