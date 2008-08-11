@@ -23,4 +23,7 @@ Imm xread(int fd, char *p, Imm len);
 Imm xwrite(int fd, char *p, Imm len);
 int parseip(char *s, struct sockaddr_in *addr);
 void nodelay(int fd);
+
+#define PAGESZ 4096
+#define PAGEUP(sz)   (((sz)+PAGESZ-1)&~(PAGESZ-1))
 #endif /* _BISONFLAW_UTIL_H_ */

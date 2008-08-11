@@ -358,7 +358,8 @@ enum Skind {
 struct Str {
 	Head hd;
 	Skind skind;
-	u32 len; /* FIXME: the reason it's not u64 is there's no 64-bit %.*s */
+	u64 len;
+	size_t mlen;		/* Smmap size */
 	char *s;
 };
 
@@ -1156,7 +1157,7 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tundef:
 		es = fmtxtn(xtn->link);
 		vmerr(vm, "attempt to compute size of undefined type: %.*s",
-		      es->len, es->s);
+		      (int)es->len, es->s);
 	case Tconst:
 		vmerr(vm, "shouldn't this be impossible?");
 	}
@@ -1628,6 +1629,8 @@ mkstrk(char *s, unsigned long len, Skind skind)
 	str->s = s;
 	str->len = len;
 	str->skind = skind;
+	if(skind == Smmap)
+		str->mlen = len;
 	return str;
 }
 
@@ -1636,9 +1639,19 @@ mkstrn(unsigned long len)
 {
 	Str *str;
 	str = (Str*)halloc(&heap[Qstr]);
-	str->len = len;
-	str->s = xmalloc(str->len);
-	str->skind = Smalloc;
+	if(len > PAGESZ){
+		str->len = len;
+		str->s = mmap(0, PAGEUP(len), PROT_READ|PROT_WRITE,
+			      MAP_PRIVATE|MAP_ANON, 0, 0);
+		if(str->s == (void*)(-1))
+			fatal("out of memory");
+		str->mlen = PAGEUP(len);
+		str->skind = Smmap;
+	}else{
+		str->len = len;
+		str->s = xmalloc(str->len);
+		str->skind = Smalloc;
+	}
 	return str;
 }
 
@@ -1673,7 +1686,7 @@ freestr(Head *hd)
 	str = (Str*)hd;
 	switch(str->skind){
 	case Smmap:
-		munmap(str->s, str->len);
+		munmap(str->s, str->mlen);
 		break;
 	case Smalloc:
 		free(str->s);
@@ -2561,9 +2574,9 @@ _fmtxtn(Xtypename *xtn, char *o)
 		m = s->len+1+leno+1;
 		buf = xmalloc(m);
 		if(leno)
-			snprintf(buf, m, "%.*s %s", s->len, s->s, o);
+			snprintf(buf, m, "%.*s %s", (int)s->len, s->s, o);
 		else
-			snprintf(buf, m, "%.*s", s->len, s->s);
+			snprintf(buf, m, "%.*s", (int)s->len, s->s);
 		free(o);
 		return buf;
 	case Tstruct:
@@ -2576,9 +2589,10 @@ _fmtxtn(Xtypename *xtn, char *o)
 			buf = xmalloc(m);
 			if(leno)
 				snprintf(buf, m, "%s %.*s %s",
-					 w, s->len, s->s, o);
+					 w, (int)s->len, s->s, o);
 			else
-				snprintf(buf, m, "%s %.*s", w, s->len, s->s);
+				snprintf(buf, m, "%s %.*s", w,
+					 (int)s->len, s->s);
 		}else{
 			m = strlen(w)+1+leno+1;
 			buf = xmalloc(m);
@@ -3609,7 +3623,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	if(xtn == 0){
 		es = fmtxtn(cv->type);
 		vmerr(vm, "cast to domain that does not define %.*s",
-		      es->len, es->s);
+		      (int)es->len, es->s);
 	}
 	return mkcval(dom, xtn, rerep(cv->val, cv->type, xtn));
 }
@@ -4512,7 +4526,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		if(b->link->tkind == Tundef){
 			es = fmtxtn(b->link->link);
 			vmerr(vm, "attempt to read object of undefined type: "
-			      "%.*s", es->len, es->s);
+			      "%.*s", (int)es->len, es->s);
 		}
 		if(0 > dobitfieldgeom(cv, b, &bfg))
 			vmerr(vm, "invalid bitfield access");
@@ -4553,7 +4567,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	case Tundef:
 		es = fmtxtn(b->link);
 		vmerr(vm, "attempt to read object of undefined type: %.*s",
-		      es->len, es->s);
+		      (int)es->len, es->s);
 	case Tenum:
 	case Ttypedef:
 		fatal("bug");
@@ -5115,7 +5129,7 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		mkvalvec(v, rv);
 	}else
 		vmerr(vm, "undefined operation on address space: %.*s",
-		      cmd->len, cmd->s);
+		      (int)cmd->len, cmd->s);
 }
 
 static As*
@@ -5173,7 +5187,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
-			      es->len, es->s);
+			      (int)es->len, es->s);
 		}
 		tmp = ns->base[Vptr];
 		new->rep = tmp->rep;
@@ -5185,7 +5199,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
-			      es->len, es->s);
+			      (int)es->len, es->s);
 		}
 		new->cnt = xtn->cnt;
 		return new;
@@ -5196,7 +5210,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
-			      es->len, es->s);
+			      (int)es->len, es->s);
 		}
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
@@ -5206,7 +5220,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			if(tmp == 0){
 				es = fmtxtn(xtmp);
 				vmerr(vm, "name space does not define %.*s",
-				      es->len, es->s);
+				      (int)es->len, es->s);
 			}
 			mkvalxtn(tmp, &v);
 			vecset(vm, vec, Typepos, &v); 
@@ -5456,7 +5470,7 @@ resolvetag(VM *vm, Val *xtnv, NSctx *ctx)
 		default:
 			es = fmtxtn(xtn);
 			vmerr(vm, "bad definition for tagged type: %.*s",
-			      es->len, es->s);
+			      (int)es->len, es->s);
 		}
 
 	}
@@ -5722,7 +5736,7 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 			vp = vecref(vec, m);
 			xtn = valxtn(vp);
 			as = fmtxtn(xtn);
-			printf("\t%.*s\n", as->len, as->s);
+			printf("\t%.*s\n", (int)as->len, as->s);
 		}
 		fflush(stdout);
 	}
@@ -8264,7 +8278,7 @@ l1_error(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	l1_sprintfa(vm, argc, argv, rv);
 	s = valstr(rv);
-	vmerr(vm, "%.*s", s->len, s->s);
+	vmerr(vm, "%.*s", (int)s->len, s->s);
 }
 
 static void
@@ -8332,7 +8346,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		if(b->link->tkind == Tundef){
 			es = fmtxtn(b->link->link);
 			vmerr(vm, "attempt to write object of undefined type: "
-			      "%.*s", es->len, es->s);
+			      "%.*s", (int)es->len, es->s);
 		}
 		if(0 > dobitfieldgeom(addr, b, &bfg))
 			vmerr(vm, "invalid bitfield access");
@@ -8366,7 +8380,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		es = fmtxtn(b->link);
 		vmerr(vm,
 		      "attempt to write object of undefined type: %.*s",
-		      es->len, es->s);
+		      (int)es->len, es->s);
 	case Tenum:
 	case Ttypedef:
 	case Tvoid:
@@ -8448,15 +8462,15 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = open(name, O_RDONLY);
 	free(name);
 	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
 	if(0 > fstat(fd, &st)){
 		close(fd);
-		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
 	}
 	p = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	close(fd);
 	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
 	map = mkstrk(p, st.st_size, Smmap);
 	mkvalstr(map, rv);
 }
@@ -8500,7 +8514,7 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	free(name);
 	free(mode);
 	if(0 > xfd)
-		vmerr(vm, "cannot open %.*s: %m", names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
 	fd = mkfd(xfd, flags, 1);
 	mkvalfd(fd, rv);
 }
@@ -8679,7 +8693,7 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	str = valstr(&argv[0]);
 	s = str2cstr(str);
 	if(0 > parseip(s, &saddr))
-		vmerr(vm, "unrecognized address: %.*s", str->len, str->s);
+		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
 	free(s);
 	xfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd)
