@@ -1635,16 +1635,16 @@ mkstrk(char *s, unsigned long len, Skind skind)
 }
 
 static Str*
-mkstrn(unsigned long len)
+mkstrn(VM *vm, Imm len)
 {
 	Str *str;
 	str = (Str*)halloc(&heap[Qstr]);
-	if(len > PAGESZ){
+	if(len >= PAGESZ){
 		str->len = len;
 		str->s = mmap(0, PAGEUP(len), PROT_READ|PROT_WRITE,
 			      MAP_PRIVATE|MAP_ANON, 0, 0);
 		if(str->s == (void*)(-1))
-			fatal("out of memory");
+			vmerr(vm, "out of memory");
 		str->mlen = PAGEUP(len);
 		str->skind = Smmap;
 	}else{
@@ -3496,7 +3496,7 @@ putbeint(char *p, Imm w, unsigned nb)
 }
 
 static Str*
-imm2str(Xtypename *xtn, Imm imm)
+imm2str(VM *vm, Xtypename *xtn, Imm imm)
 {
 	Str *str;
 	char *s;
@@ -3507,82 +3507,82 @@ imm2str(Xtypename *xtn, Imm imm)
 
 	switch(xtn->rep){
 	case Rs08le:
-		str = mkstrn(sizeof(s8));
+		str = mkstrn(vm, sizeof(s8));
 		s = str->s;
 		*(s8*)s = (s8)imm;
 		return str;
 	case Rs16le:
-		str = mkstrn(sizeof(s16));
+		str = mkstrn(vm, sizeof(s16));
 		s = str->s;
 		*(s16*)s = (s16)imm;
 		return str;
 	case Rs32le:
-		str = mkstrn(sizeof(s32));
+		str = mkstrn(vm, sizeof(s32));
 		s = str->s;
 		*(s32*)s = (s32)imm;
 		return str;
 	case Rs64le:
-		str = mkstrn(sizeof(s64));
+		str = mkstrn(vm, sizeof(s64));
 		s = str->s;
 		*(s64*)s = (s64)imm;
 		return str;
 	case Ru08le:
-		str = mkstrn(sizeof(u8));
+		str = mkstrn(vm, sizeof(u8));
 		s = str->s;
 		*(u8*)s = (u8)imm;
 		return str;
 	case Ru16le:
-		str = mkstrn(sizeof(u16));
+		str = mkstrn(vm, sizeof(u16));
 		s = str->s;
 		*(u16*)s = (u16)imm;
 		return str;
 	case Ru32le:
-		str = mkstrn(sizeof(u32));
+		str = mkstrn(vm, sizeof(u32));
 		s = str->s;
 		*(u32*)s = (u32)imm;
 		return str;
 	case Ru64le:
-		str = mkstrn(sizeof(u64));
+		str = mkstrn(vm, sizeof(u64));
 		s = str->s;
 		*(u64*)s = (u64)imm;
 		return str;
 	case Rs08be:
-		str = mkstrn(sizeof(s8));
+		str = mkstrn(vm, sizeof(s8));
 		s = str->s;
 		putbeint(s, imm, 1);
 		return str;
 	case Rs16be:
-		str = mkstrn(sizeof(s16));
+		str = mkstrn(vm, sizeof(s16));
 		s = str->s;
 		putbeint(s, imm, 2);
 		return str;
 	case Rs32be:
-		str = mkstrn(sizeof(s32));
+		str = mkstrn(vm, sizeof(s32));
 		s = str->s;
 		putbeint(s, imm, 4);
 		return str;
 	case Rs64be:
-		str = mkstrn(sizeof(s64));
+		str = mkstrn(vm, sizeof(s64));
 		s = str->s;
 		putbeint(s, imm, 8);
 		return str;
 	case Ru08be:
-		str = mkstrn(sizeof(u8));
+		str = mkstrn(vm, sizeof(u8));
 		s = str->s;
 		putbeint(s, imm, 1);
 		return str;
 	case Ru16be:
-		str = mkstrn(sizeof(u16));
+		str = mkstrn(vm, sizeof(u16));
 		s = str->s;
 		putbeint(s, imm, 2);
 		return str;
 	case Ru32be:
-		str = mkstrn(sizeof(u32));
+		str = mkstrn(vm, sizeof(u32));
 		s = str->s;
 		putbeint(s, imm, 4);
 		return str;
 	case Ru64be:
-		str = mkstrn(sizeof(u64));
+		str = mkstrn(vm, sizeof(u64));
 		s = str->s;
 		putbeint(s, imm, 8);
 		return str;
@@ -3819,7 +3819,7 @@ static int
 Strcmp(Str *s1, Str *s2)
 {
 	unsigned char *p1, *p2;
-	u32 l1, l2;
+	Imm l1, l2;
 
 	p1 = (unsigned char*)s1->s;
 	p2 = (unsigned char*)s2->s;
@@ -4619,7 +4619,7 @@ xstr(VM *vm, Operand *cval, Operand *dst)
 	
 	getvalrand(vm, cval, &cvalv);
 	cv = valcval(&cvalv);
-	str = mkstrn(cv->val);
+	str = mkstrn(vm, cv->val);
 	mkvalstr(str, &rv);
 	putvalrand(vm, &rv, dst);
 }
@@ -4929,7 +4929,7 @@ xencode(VM *vm, Operand *op, Operand *dst)
 	if(v.qkind != Qcval)
 		vmerr(vm, "bad operand to encode");
 	cv = valcval(&v);
-	str = imm2str(cv->type, cv->val);
+	str = imm2str(vm, cv->type, cv->val);
 	mkvalstr(str, &rv);
 	putvalrand(vm, &rv, dst);
 }
@@ -5144,9 +5144,9 @@ mkmas(Str *s)
 }
 
 static As*
-mkzas(u32 len)
+mkzas(VM *vm, Imm len)
 {
-	return mkmas(mkstrn(len));
+	return mkmas(mkstrn(vm, len));
 }
 
 static Xtypename*
@@ -7016,7 +7016,7 @@ fmticval(Fmt *f, unsigned char conv, Cval *cv)
 }
 
 static void
-dofmt(VM *vm, Fmt *f, char *fmt, u32 fmtlen, Imm argc, Val *argv)
+dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	static char buf[3+Maxprintint];
 	Val *vp, *vq;
@@ -7174,7 +7174,7 @@ fmtfdflush(Fmt *f)
 }
 
 static void
-dofdprint(VM *vm, Fd *fd, char *fmt, u32 fmtlen, Imm argc, Val *argv)
+dofdprint(VM *vm, Fd *fd, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	Fmt f;
 	char buf[256];
@@ -7232,7 +7232,7 @@ fmtstrflush(Fmt *f)
 }
 
 static Str*
-dovsprinta(VM *vm, char *fmt, u32 fmtlen, Imm argc, Val *argv)
+dovsprinta(VM *vm, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	Fmt f;
 	u32 initlen = 128;
@@ -8334,7 +8334,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	case Tptr:
 		cv = typecast(vm, t, cv);
 		gcprotect(vm, cv);
-		bytes = imm2str(t, cv->val);
+		bytes = imm2str(vm, t, cv->val);
 		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
 		mkvalstr(vm->sput, &argv[0]);
 		mkvalrange(addr, len, &argv[1]);
@@ -8788,7 +8788,7 @@ l1_mkzas(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = chasetype(cv->type);
 	if(t->tkind != Tbase)
 		vmerr(vm, "operand 1 to mkzas must be an integer cvalue");
-	as = mkzas(cv->val);
+	as = mkzas(vm, cv->val);
 	mkvalas(as, rv);
 }
 
