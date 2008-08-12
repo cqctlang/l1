@@ -1,0 +1,77 @@
+protns = @names c32le {
+	enum Mkind {
+		Rerror = 0,
+		Tlaunch,
+		Rlaunch,
+		Tcont,
+		Rcont,
+
+		Tstop,
+		Rstop,
+		Tkill,
+		Rkill,
+		Tsetbrk,
+
+		Rsetbrk,
+		Tclrbrk,
+		Rclrbrk,
+		Tread,
+		Rread,
+
+		Abrk,
+		Aobit,
+		Aack,
+		Tcleave,
+		Rcleave,
+
+		Twrite,
+		Rwrite,
+		Tsetregs,
+		Rsetregs,
+		Tsetsnap,
+
+		Rsetsnap,
+		Asnap,
+		Tattach,
+		Rattach,
+
+		Ttest,
+		Rtest
+	};
+
+	typedef unsigned long long uint64_t;
+	struct Reg {
+		@0	uint64_t ebx;
+		@8	uint64_t ecx;
+		@16	uint64_t edx;
+		@24	uint64_t esi;
+		@32	uint64_t edi;
+		@40	uint64_t ebp;
+		@48	uint64_t eax;
+		@56	uint64_t eip;
+		@64	uint64_t esp;
+		@72	uint64_t eflags;
+		@80;
+	};
+
+	struct Msg {
+		@0	unsigned char op;
+		@4	uint64_t id;	/* all except Tlaunch */
+		@12	uint64_t addr;	/* Tread, Twrite, Tsetbrk, Tsetsnap */
+		@20	uint64_t bp;	/* Rsetbrk, Rsetsnap, Tclrbrk,
+					   Abrk, Asnap */
+		@28	uint64_t cnt;	/* Tread, Twrite */
+		@36	uint64_t cid;	/* Rcleave, Asnap */
+		@44	Reg reg;	/* Abrk, Rstop, Rlaunch */
+		@124	char *bytes;	/* Rread, Twrite */
+		@128	char **argv;	/* Tlaunch */
+		@132	char *err;	/* Rerror */
+		@136;
+	};
+};
+
+define mkpras arg {
+	@local addr, fd;
+	addr = listref(arg, 0);
+	fd = 
+}

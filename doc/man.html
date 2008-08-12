@@ -15,92 +15,238 @@
 <h3>Introduction</h3>
 
 <p>
-This manual is an informal reference to the Cinquecento
-programming language.  Cinquecento is designed to help
-programmers examine the state of programs in execution,
-particularly C programs.  This support stems from two
-unique features: a generic abstraction for representing
-a program in execution, and an interface to this
-abstraction based on the syntax and semantics of C.
-These features are embedded in a dynamically typed
-scripting language that supports higher-order
-functions, a library of standard data structures, and
-other conventional features.
+This is an informal manual for Cinquecento, a
+programming language designed to help programmers
+examine the state of programs in execution,
+particularly C programs.
 </p>
 
 <p>
-Cinquecento is rooted in two languages: C and Scheme.
-We hope programmers familiar with either language will
-find many of their intutitions apply to the writing of
-Cinquecento programs.  In particular, the syntax and
-semantics of Cinquecento types, values, and expressions
-used to examine program state adhere tightly to C; the
-differences involve generalizations that allow multiple
-type and symbol name spaces and different processor and
-compiler models to coexist in a single Cinquecento
-program.  While syntax generally resembles C, the
-overall language design is based on the
-dynamically-typed, lexically-scoped semantics of
-Scheme.
+A single feature distinguishes Cinquecento from other
+languages: a first-class abstraction, called a
+<em>domain</em>, that represents a program in
+execution.  The interface to this abstraction, for both
+construction and access, is based on the syntax and
+semantics of C.
 </p>
 
 <p>
-For practical use, Cinquecento must be be coupled with
-some mechanism for accessing the state of running
-programs, which varies across operating systems.  We
-bundle such a mechanism for Linux processes with our
-distribution.  However, the language is based around a
-set of abstractions that are independent of any
-particular target environment.  This manual focuses on
+Cinquecento is designed to be intuitive to programmers
+who are already familiar with C and Scheme.  The syntax
+and semantics of the Cinquecento types, values, and
+expressions used to examine program state are nearly
+identical to C; the main differences are
+generalizations that allow multiple type and symbol
+name spaces and different processor and compiler models
+to coexist in a single Cinquecento program.  While the
+syntax of Cinquecento in no way resembles Scheme, many
+of the central features of Scheme --- dynamic typing,
+lexical scope, proper tail recursion, first-class
+functions, even continuations --- appear in Cinquecento
+with similar generality.  C provides the data model;
+Scheme provides the naming and control model.
+</p>
+
+<p>
+In practice, Cinquecento must be coupled with a
+facility for accessing the state of running programs.
+A facility for accessing remotely executing Linux
+processes accompanies our distribution.  However, the
+role of Cinquecento is to provide a uniform,
+programmable interface to the program state exposed by
+the variety of such facilities.  This manual focuses on
 these generic features of the language, which are
 necessary for all users, at the expense of concrete
 examples on real programs for a specific environment.
 A separate document fills in the details for Linux.
 </p>
 
-<h3>
+<h3>Preliminaries</h3>
 
+<p>
+Here is how to print something:
+</p>
 
-<h3>Types</h3>
+<div id="code">
+<pre>
+; printf("hello, world!");
+hello, world
+</pre>
+</div>
 
-<p>C defines several categories of types, including the
-base arithmetic types, pointers, arrays, aggregates,
-functions, and enumerations, instances of which are
-combined to form the types defined by a C program.
+<p>
+Our Cinquecento implementation can be used
+interactively, like most scripting languages.  In this
+manual, <tt>;</tt> is the input prompt at which a
+Cinquecento form to be evaluated is entered.  The
+result of the evaluation is printed on the following
+line.  We will occasionally omit some or all output
+when it detracts from the main point.
 </p>
 
 <p>
-Cinquecento distinguishes the name of a C type from its
-definition.  Type names are syntactic constructions
-that appear in C declarations, such as <tt>int*</tt>.
-They determine the C operations, such as pointer
-dereference, that may be applied to a value of the
-named type.  To evaluate many of these operations,
-however, the system must know the layout and encoding
-of the value in memory.  Type definitions provide this
-additional information.
+Input can also be read from a file.  Suppose
+<tt>filename</tt> contains the line <tt>printf("hello,
+world!");</tt>.  Then:
+</p>
+
+<div id="code">
+<pre>
+; @include "filename"
+hello, world
+</pre>
+</div>
+
+<p>
+When reading input source, Cinquecento replaces any
+occurrence of the <tt>@include</tt> form with the
+contents of the named file.  They may appear anywhere
+in input.
 </p>
 
 <p>
-For example, the type name <tt>int*</tt> identifies the
-type pointer-to-<tt>int</tt>.  A value of this type may
-be dereferenced to yield a value of type <tt>int</tt>,
-but evaluation of the dereference operation depends on
-knowing the size of the pointer and the size and
-encoding of <tt>int</tt>.  This information comes from
-the definition of <tt>int*</tt>.  One definition for
-<tt>int*</tt> may be a 64-bit address of a 64-bit
-integer encoded in big-endian order, while another may
-be a 32-bit address of a 32-bit integer encoded in
-little-endian order.
+Comment syntax follows C.  Input enclosed in
+<tt>/*</tt> <tt>*/</tt> is a comment.  Input between
+<tt>//</tt> and the next newline character is also a
+comment.
+</p>
+
+<h3>Cinquecento Types</h3>
+
+<p>
+Cinquecento defines several types of values.  Each type
+is mutually exclusive to the other types.
 </p>
 
 <p>
-For each category of C types, several properties
-characterize the name and definition of any type of the
-category.  In general, the properties that characterize
-the type name are a subset of the corresponding type
-definition properties:
+The types special to Cinquecento are <em>cvalue</em>,
+<em>ctype</em>, <em>domain</em>, <em>address
+space</em>, and <em>name space</em>.  In certain
+(usually invisible) contexts, address spaces are
+indexed by values of type <em>address</em> and
+<em>range</em>.
+</p>
+
+<p>
+Other basic types include <em>string</em>,
+<em>procedure</em>, and <em>file descriptor</em>.
+
+<p>
+There are also several container types for storing
+values of any type: <em>list</em>, <em>vector</em>, and
+<em>table</em>.
+</p>
+
+<p>
+The special value, <tt>nil</tt>, is not a member of any
+other type or equal to any other value.
+</p>
+
+<p>
+The <em>undefined</em> value uninitialized variables
+and containers bindings and containers.  There is no
+corresponding literal.
+</p>
+
+<p>
+For each type there is a predicate to test whether a
+value belongs to the type.  The predicates are
+<tt>isctype</tt>, <tt>isdom</tt>, <tt>isas</tt>,
+<tt>isns</tt>, <tt>isrange</tt>, <tt>isaddr</tt>,
+<tt>isstr</tt>, <tt>isprocedure</tt>, <tt>isfd</tt>
+(file descriptor), <tt>isnil</tt>, <tt>islist</tt>,
+<tt>isvec</tt>, <tt>istable</tt>, <tt>isnil</tt>, and
+<tt>isundefined</tt>.
+</p>
+
+<h3>Domains</h3>
+
+<p>
+The most important type in Cinquecento is the
+<em>domain</em>.  A domain is a representation of a
+context in which C expressions can be evaluated, a
+model of a C program in execution.  Every C expression
+in Cinquecento is evaluated as if it were a fragment of
+code in a C program modeled by a particular domain.
+</p>
+
+<p>
+The domain representation of a C program has two parts.
+First, the <em>name space</em> is symbolic information
+about the program, the names and definitions of types
+and variables as defined in the source code of the
+program.  Second, the <em>address space</em> is the
+uninterpreted memory image of a running instance of the
+program, a mapping from program addresses to the
+corresponding contents of memory.  A Cinquecento domain
+is a projection of the symbolic view of memory defined
+by the name space over memory image defined by the
+address space.
+</p>
+
+<p>
+Domains, name spaces, and address spaces are
+first-class values in Cinquecento.  Syntax forms allow
+new name spaces to be defined from extended form of C
+declaration syntax.  Both name spaces and address
+spaces can also be constructed from user-defined
+functions.
+</p>
+
+<h3>C Types</h3>
+
+<p>The Cinquecento type <em>ctype</em> represents types
+defined in C programs.  Cinquecento subdivides the set
+of types that can be defined in C into several
+categories.  The main categories are: the <tt>void</tt>
+type, the base arithmetic types (<tt>char</tt>,
+<tt>int</tt>, <tt>unsigned long</tt>, <em>etc</em>),
+pointers, arrays, aggregates (<tt>struct</tt> and
+<tt>union</tt>), functions, enumerations, and
+<tt>typedef</tt>s.  In addition, Cinquecento also has
+separate categories for bitfields, enumeration
+constants, and undefined types.
+</p>
+
+<p>
+Each type used by a C program is represented in
+Cinquecento as a combination of instances of these
+categories.  Cinquecento has a distinct ctype
+constructor for each category, a predicate to test a
+ctype instance for membership in the category, and
+accessors for category-dependent attributes such as the
+fields of an aggregate and the pointed-to type of a
+pointer.
+</p>
+
+<p>
+Cinquecento ctypes represent both C type names and C
+type definitions.  Type names are the syntactic
+constructions, such as <tt>int*</tt>, that can appear
+in C declarations, or as operands to type operations
+such as <tt>sizeof</tt> and explicit casts.
+Type definitions specify the encoding in memory of the
+value of a C type.  For base types, this specification
+includes the number of bytes that represent the value
+and how the bytes are to be interpreted (e.g., big- or
+little-endian order).  For pointer types, it includes
+the size and representation of the pointer value
+memory.  For aggregates, it includes the offset from
+the beginning of the aggregate to each field and
+the overall size of the aggregate.
+</p>
+
+<p>
+The distinction between type name and definition
+matters when the same type name different domains have
+types with the same name.  For example, the type name
+<tt>int*</tt> always corresponds to the type
+pointer-to-<tt>int</tt>, but there are many possible
+definitions.  One domain can define it to be a 64-bit
+address of a 64-bit integer encoded in big-endian
+order, while another may be define it be a 32-bit
+address of a 32-bit integer encoded in little-endian
+order.
 </p>
 
 <div id="table">
@@ -475,38 +621,65 @@ which <tt>typetab</tt> maps names do not need to be
 fully defined type names.
 </p>
 
-<p>
-In fact, the current implementation of <tt>@names</tt>
-simply translates the C declarations in the body of
-the <tt>@names</tt> form into 
-
-
-<div id="code">
-<pre>
-Here is some code.
-dom`x = @names blah {
-	int x;
-};
-x = "this is a string";
-if(x < y){
-	printf("all is well\n");
-}
-</pre>
-</div>
+<h3>I/O</h3>
 
 <p>
-And here is another.
+Cinquecento supports I/O over regular files and network
+connections.
 </p>
 
-</div>
+<p>
+An open file or network connection is represented by an
+instance of the file descriptor type.
+</p>
 
+<p>
+The function <tt>open(<em>filename</em>,
+<em>mode</em>)</tt> opens the file named
+<tt><em>filename</em></tt> and returns the associated
+file descriptor.  Both <tt><em>filename</em></tt> and
+<tt><em>mode</em></tt> are
+strings. <tt><em>Mode</em></tt> specifies whether the
+file is to be opened for reading, writing, or both, and
+whether the file is to be created or truncated.  The
+syntax of <tt><em>mode</em></tt> follows that of the C
+library stdio <tt>fopen</tt> function.  Common modes
+are <tt>"r"</tt> (read an existing file) <tt>"w"</tt>
+(truncate an existing file for writing), and "rw"
+(truncate an existing file for reading and writing).
+</p>
 
-</body>
-</html>
+<p>
+The function <tt>read(<em>fd</em>,<em>len</em>)</tt>
+reads at most <tt><em>len</em></tt> bytes from the I/O
+resource associated with <tt><em>fd</em></tt>.  The
+result is returned as a string.  <tt>Nil</tt> is
+returned if end of the file is encountered and no other
+bytes are read.  An error is raised for all I/O
+exceptions.
+</p>
 
-- prebaked uint32_t, etc.
-- for dynamic name spaces, the definitions of base types must be constant;
-  idea is that definition of user-defined types is context sensitive,
-  but base types is fixed (since the machine model should not be changing).
-  this allows the implementation to pre-fetch definitions for all base
-  types.
+<p>
+The function <tt>write(<em>fd</em>,<em>str</em>)</tt>
+writes the bytes contained in the string
+<tt><em>str</em></tt> to the I/O resource associated
+with <tt><em>fd</em></tt>.  <tt>Nil</tt> is returned
+unless an error occurs, in which case an error is
+raised.
+</p>
+
+<p>
+The function <tt>close(<em>fd</em>)</tt> closes the I/O
+resource associated with <tt><em>fd</em></tt>.  Any
+pending buffered output is written.  A call to close on
+already closed descriptor has no effect.  Any other A
+call to <tt>read</tt> or <tt>write</tt> on a closed
+descriptor draws an error.
+</p>
+
+<p>
+UNIMPLEMENTED.  The function <tt>fdname</tt> returns
+the name of the resource associated with <tt>fd</tt>.
+</p>
+
+</p> </div> </body> </html>

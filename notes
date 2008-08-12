@@ -31,9 +31,16 @@ todo
 	if buffer for sprintf, read, or write, is a pointer, then
         do the i/o directly on the domain.
   - make cval and put instructions callable
+  - isundefined
+  - rename istypename to isctype
+  - move most thunks to builtins, clean up instruction set
+  - ; 'a';
+    <cval 97> // do 'a' instead
 
 - usability
   - check "entry" to "toplevel"
+  - print the original source for a lambda
+  - use-before-define analysis
 
 - robustness
   - can we programmatically dump all fields in a struct, even
