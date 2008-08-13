@@ -719,8 +719,9 @@ space.
 The function <tt>mksas(<em>str</em>)</tt> creates an
 address base backed by the string <em>str</em>.  The
 memory associated with the string is shared with the
-address space.  Any update to either the string or the
-address space is reflected in the other.
+address space, so that an update made to either the
+string or the address space will be reflected in the
+other.
 </p>
 
 <p>
@@ -901,6 +902,16 @@ address space <em>as</em>; <tt><em>len</em></tt> is a
 non-negative byte count.  Returns a string containing
 the <tt><em>len</em></tt> bytes in <em>as</em>
 beginning at <tt><em>p</em></tt>.
+</p>
+
+<p>
+The function <tt>putbytes(<em>p</em>,
+<em>str</em>)</tt> copies bytes into an address space.
+<tt><em>P</em></tt> is a pointer in some address space
+<em>as</em>.  The bytes of the string
+<tt><em>str</em></tt> are copies into <em>as</em>
+beginning at <tt><em>p</em></tt>.  Returns
+<tt>nil</tt>.
 </p>
 
 <h3>I/O</h3>

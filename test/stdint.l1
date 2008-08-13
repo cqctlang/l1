@@ -1,0 +1,25 @@
+define do1type(t){
+	printf("%s:\t\t%t\t\t%d\n", typedefid(t), typedeftype(t), sizeof(t));
+}
+
+define do1dom(s, dom){
+	printf("%s\n", s);
+	do1type(typeof(dom`uintptr));
+	do1type(typeof(dom`int8));
+	do1type(typeof(dom`int16));
+	do1type(typeof(dom`int32));
+	do1type(typeof(dom`int64));
+	do1type(typeof(dom`uint8));
+	do1type(typeof(dom`uint16));
+	do1type(typeof(dom`uint32));
+	do1type(typeof(dom`uint64));
+	printf("\n");
+}
+
+do1dom("litdom", litdom);
+do1dom("c32le", mkdom(c32le, mknas()));
+do1dom("c32be", mkdom(c32be, mknas()));
+do1dom("c64le", mkdom(c64le, mknas()));
+do1dom("c64be", mkdom(c64be, mknas()));
+do1dom("clp64le", mkdom(clp64le, mknas()));
+do1dom("clp64be", mkdom(clp64be, mknas()));

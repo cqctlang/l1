@@ -1,0 +1,80 @@
+entry: 0 params, 0 locals, 0 temps
+do1type: 1 params, 0 locals, 0 temps
+do1dom: 2 params, 7 locals, 0 temps
+litdom
+uintptr:		unsigned long		8
+int8:		char		1
+int16:		short		2
+int32:		int		4
+int64:		long		8
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned int		4
+uint64:		unsigned long		8
+
+c32le
+uintptr:		unsigned long		4
+int8:		char		1
+int16:		short		2
+int32:		long		4
+int64:		long long		8
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned long		4
+uint64:		unsigned long long		8
+
+c32be
+uintptr:		unsigned long		4
+int8:		char		1
+int16:		short		2
+int32:		long		4
+int64:		long long		8
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned long		4
+uint64:		unsigned long long		8
+
+c64le
+uintptr:		unsigned int		4
+int8:		char		1
+int16:		short		2
+int32:		int		4
+int64:		long		8
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned int		4
+uint64:		unsigned long		8
+
+c64be
+uintptr:		unsigned int		4
+int8:		char		1
+int16:		short		2
+int32:		int		4
+int64:		long		8
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned int		4
+uint64:		unsigned long		8
+
+clp64le
+uintptr:		unsigned long		8
+int8:		char		1
+int16:		short		2
+int32:		int		4
+int64:		long		8
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned int		4
+uint64:		unsigned long		8
+
+clp64be
+uintptr:		unsigned long		8
+int8:		char		1
+int16:		short		2
+int32:		int		4
+int64:		long		8
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned int		4
+uint64:		unsigned long		8
+

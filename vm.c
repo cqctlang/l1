@@ -5099,7 +5099,7 @@ mknas()
 }
 
 static void
-masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Str *s, *cmd, *dat;
 	Range *r;
@@ -5111,12 +5111,12 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc < 1)
 		vmerr(vm,
 		      "wrong number of arguments to address space dispatch");
-	checkarg(vm, "masdispatch", argv, 0, Qstr);
+	checkarg(vm, "sasdispatch", argv, 0, Qstr);
 	cmd = valstr(&argv[0]);
 	if(eqstrc(cmd, "get")){
 		if(argc != 2)
 			vmerr(vm, "wrong number of arguments to get");
-		checkarg(vm, "masdispatch", argv, 1, Qrange);
+		checkarg(vm, "sasdispatch", argv, 1, Qrange);
 		r = valrange(&argv[1]);
 		beg = r->beg;
 		end = xcvalalu(vm, Iadd, beg, r->len);
@@ -5131,8 +5131,8 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	}else if(eqstrc(cmd, "put")){
 		if(argc != 3)
 			vmerr(vm, "wrong number of arguments to put");
-		checkarg(vm, "masdispatch", argv, 1, Qrange);
-		checkarg(vm, "masdispatch", argv, 2, Qstr);
+		checkarg(vm, "sasdispatch", argv, 1, Qrange);
+		checkarg(vm, "sasdispatch", argv, 2, Qstr);
 		r = valrange(&argv[1]);
 		dat = valstr(&argv[2]);
 		beg = r->beg;
@@ -5162,20 +5162,20 @@ masdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 }
 
 static As*
-mkmas(Str *s)
+mksas(Str *s)
 {
 	Val v;
 	As *as;
 	mkvalstr(s, &v);
 	as = mkas();
-	as->dispatch = mkccl("masdispatch", masdispatch, 1, &v);
+	as->dispatch = mkccl("sasdispatch", sasdispatch, 1, &v);
 	return as;
 }
 
 static As*
 mkzas(VM *vm, Imm len)
 {
-	return mkmas(mkstrn(vm, len));
+	return mksas(mkstrn(vm, len));
 }
 
 static Xtypename*
@@ -8715,7 +8715,7 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 		ndir++;
 	}
 	closedir(dir);
-	mkvalas(mkmas(mkstrk(buf, ndir*sizeof(struct dirent), Smalloc)), rv);
+	mkvalas(mksas(mkstrk(buf, ndir*sizeof(struct dirent), Smalloc)), rv);
 }
 
 static void
@@ -8802,15 +8802,15 @@ l1_mknas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_mksas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	As *as;
 	Str *s;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to mkmas");
-	checkarg(vm, "mkmas", argv, 0, Qstr);
+		vmerr(vm, "wrong number of arguments to mksas");
+	checkarg(vm, "mksas", argv, 0, Qstr);
 	s = valstr(&argv[0]);
-	as = mkmas(s);
+	as = mksas(s);
 	mkvalas(as, rv);
 }
 
@@ -9184,6 +9184,8 @@ typedef
 struct NSroot {
 	Rkind base[Vnbase];
 	Cbase ptr;
+	Cbase xint8, xint16, xint32, xint64;
+	Cbase xuint8, xuint16, xuint32, xuint64;
 } NSroot;
 
 static NSroot c32le = {
@@ -9203,6 +9205,14 @@ static NSroot c32le = {
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vlong,
+.xint64 = Vvlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vulong,
+.xuint64 = Vuvlong,
 };
 
 static NSroot c32be = {
@@ -9222,6 +9232,14 @@ static NSroot c32be = {
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vlong,
+.xint64 = Vvlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vulong,
+.xuint64 = Vuvlong,
 };
 
 static NSroot c64le = {
@@ -9241,6 +9259,14 @@ static NSroot c64le = {
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vuint,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vint,
+.xint64 = Vlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vuint,
+.xuint64 = Vulong,
 };
 
 static NSroot c64be = {
@@ -9260,6 +9286,14 @@ static NSroot c64be = {
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vuint,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vint,
+.xint64 = Vlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vuint,
+.xuint64 = Vulong,
 };
 
 static NSroot clp64le = {
@@ -9279,6 +9313,14 @@ static NSroot clp64le = {
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vint,
+.xint64 = Vlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vuint,
+.xuint64 = Vulong,
 };
 
 static NSroot clp64be = {
@@ -9298,6 +9340,14 @@ static NSroot clp64be = {
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vint,
+.xint64 = Vlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vuint,
+.xuint64 = Vulong,
 };
 
 static Xtypename*
@@ -9341,14 +9391,29 @@ mkptrxtn(Xtypename *t, Rkind rep)
 	return xtn;
 }
 
+static Xtypename*
+mktypedefxtn(Str *tid, Xtypename *t)
+{
+	Xtypename *xtn;
+	xtn = mkxtn();
+	xtn->tkind = Ttypedef;
+	xtn->tid = tid;
+	xtn->link = t;
+	return xtn;
+}
+
 /* FIXME: this shouldn't need a VM */
 static Tab*
-basetab(VM *vm, Xtypename **base)
+basetab(VM *vm, NSroot *def, Xtypename **base)
 {
 	Cbase cb;
 	Val kv, vv;
 	Tab *type;
-	Xtypename *pt;
+	Str *tn;
+
+	for(cb = Vchar; cb < Vnbase; cb++)
+		base[cb] = mkbasextn(cb, def->base[cb]);
+	base[Vptr] = base[def->ptr];
 
 	type = mktab();
 	for(cb = Vchar; cb < Vnbase; cb++){
@@ -9358,9 +9423,49 @@ basetab(VM *vm, Xtypename **base)
 	}
 
 	/* map pointer to integer representation */
-	pt = mkbasextn(Vptr, Rundef);
-	mkvalxtn(pt, &kv);
+	mkvalxtn(mkbasextn(Vptr, Rundef), &kv);
 	mkvalxtn(base[Vptr], &vv);
+	tabput(vm, type, &kv, &vv);
+
+	/* define stdint-like integer typedefs */
+
+	tn = mkstr0("uintptr");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->ptr]), &vv);
+	tabput(vm, type, &kv, &vv);
+
+	tn = mkstr0("int8");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xint8]), &vv);
+	tabput(vm, type, &kv, &vv);
+	tn = mkstr0("int16");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xint16]), &vv);
+	tabput(vm, type, &kv, &vv);
+	tn = mkstr0("int32");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xint32]), &vv);
+	tabput(vm, type, &kv, &vv);
+	tn = mkstr0("int64");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xint64]), &vv);
+	tabput(vm, type, &kv, &vv);
+
+	tn = mkstr0("uint8");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xuint8]), &vv);
+	tabput(vm, type, &kv, &vv);
+	tn = mkstr0("uint16");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xuint16]), &vv);
+	tabput(vm, type, &kv, &vv);
+	tn = mkstr0("uint32");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xuint32]), &vv);
+	tabput(vm, type, &kv, &vv);
+	tn = mkstr0("uint64");
+	mkvalxtn(mktypedefxtn(tn, 0), &kv);
+	mkvalxtn(mktypedefxtn(tn, base[def->xuint64]), &vv);
 	tabput(vm, type, &kv, &vv);
 
 	return type;
@@ -9370,14 +9475,10 @@ static Ns*
 mkrootns(VM *vm, NSroot *def)
 {
 	Tab *type;
-	Cbase cb;
 	Ns *ns;
 	Xtypename *base[Vnallbase];
 
-	for(cb = Vchar; cb < Vnbase; cb++)
-		base[cb] = mkbasextn(cb, def->base[cb]);
-	base[Vptr] = base[def->ptr];
-	type = basetab(vm, base);
+	type = basetab(vm, def, base);
 	ns = mknstab(type, mktab());
 	nscachebase(vm, ns);
 	return ns;
@@ -9468,7 +9569,7 @@ mksysdom(VM *vm)
 	ns = dorawns(vm, root, rawtype, rawsym);
 	dom = mkdom();
 	dom->ns = ns;
-	dom->as = mkmas(mkstrk(0, ~(0ULL), Sperm));
+	dom->as = mksas(mkstrk(0, ~(0ULL), Sperm));
 
 	return dom;
 }
@@ -9479,7 +9580,6 @@ mklitdom(VM *vm)
 	Ns *ns;
 	Dom *dom;
 	Tab *type;
-	Cbase cb;
 	Xtypename *base[Vnallbase];
 	static NSroot *litdef = &clp64le;
 
@@ -9487,10 +9587,7 @@ mklitdom(VM *vm)
 	dom->as = mknas();
 
 	memset(base, 0, sizeof(base)); /* values will be seen by GC */
-	for(cb = Vchar; cb <= Vnbase; cb++)
-		base[cb] = mkbasextn(cb, litdef->base[cb]);
-	base[Vptr] = base[litdef->ptr];
-	type = basetab(vm, base);
+	type = basetab(vm, litdef, base);
 	ns = mknstab(type, mktab());
 	/* hand populate ns->base, because nscachebase calls the
 	   VM, which requires a literal domain. */
@@ -9588,7 +9685,7 @@ mkvm(Env *env)
 	FN(tabvals);
 	FN(vmbacktrace);
 	FN(mknas);
-	FN(mkmas);
+	FN(mksas);
 	FN(mkzas);
 	FN(stringof);
 	FN(getbytes);
