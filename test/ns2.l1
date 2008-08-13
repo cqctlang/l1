@@ -12,7 +12,7 @@ ns = @names c32le {
 	@0x30 struct baz baz;
 };
 
-as = mkabas();
+as = mknas();
 dom = mkdom(ns, as);
 
 p = &dom`foo;

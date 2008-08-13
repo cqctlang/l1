@@ -7,7 +7,7 @@ ns = @names c64le {
 	};
 };
 
-dom = mkdom(ns, mkabas());
+dom = mkdom(ns, mknas());
 
 p = (struct X*){dom}0;
 printf("p is %t 0x%x\n", typeof(p), p);

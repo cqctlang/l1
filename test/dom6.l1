@@ -6,7 +6,7 @@ ns = @names c32le {
 	@0x0 struct foo foo;
 };
 
-as = mkabas();
+as = mknas();
 dom = mkdom(ns, as);
 
 p = &dom`foo;

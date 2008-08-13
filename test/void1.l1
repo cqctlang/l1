@@ -75,7 +75,7 @@ define foo(){
 	for(i = 0; i < veclen(vec); i++)
 		printtype(vecref(vec, i));
 
-	dom = mkdom(ns, mkabas());
+	dom = mkdom(ns, mknas());
 	p = &dom`x;
 	printf("sizeof(p->x) = %d\n", sizeof(p->x));
 	printf("typeof(p->x) = %t\n", typeof(p->x));

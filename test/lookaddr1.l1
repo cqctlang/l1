@@ -15,6 +15,6 @@ for(i = 0; i < 0x20; i++){
 		printf("0x%x: %t\n", i, v);
 }
 
-dom = mkdom(ns, mkabas());
+dom = mkdom(ns, mknas());
 for(i = {dom}0; i < 0x20; i++)
 	printf("0x%x:\t%y\n", i, i);

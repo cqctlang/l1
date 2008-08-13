@@ -1,5 +1,5 @@
 define typemix(ns, exp){
-	dom = mkdom(ns, mkabas());
+	dom = mkdom(ns, mknas());
 	t1 = (`t1){dom}1;
 	t2 = (`t2){dom}2;
 	printf("%t + %t ->\t%t\n", typeof(t1), typeof(t2), typeof(t1+t2));

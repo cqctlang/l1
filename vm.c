@@ -5071,17 +5071,30 @@ enumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 /* dispatch for abstract address spaces */
 static void
-nodispatch(VM *vm, Imm argc, Val *argv, Val *rv)
+nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	Str *cmd;
+
+	if(argc < 1)
+		vmerr(vm,
+		      "wrong number of arguments to address space dispatch");
+	checkarg(vm, "nasdispatch", argv, 0, Qstr);
+	cmd = valstr(&argv[0]);
+	if(eqstrc(cmd, "map")){
+		if(argc != 1)
+			vmerr(vm, "wrong number of arguments to map");
+		mkvalvec(mkvec(0), rv);
+		return;
+	}
 	vmerr(vm, "attempt to access abstract address space");
 }
 
 static As*
-mkabas()
+mknas()
 {
 	As *as;
 	as = mkas();
-	as->dispatch = mkcfn("nodispatch", nodispatch);
+	as->dispatch = mkcfn("nasdispatch", nasdispatch);
 	return as;
 }
 
@@ -8753,7 +8766,7 @@ l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 	/* abstract domain for name space being extended */
 	d = mkdom();
 	d->ns = ns;
-	d->as = mkabas();
+	d->as = mknas();
 
 	/* this code assumes that domcast does not dolooktype */
 
@@ -8779,12 +8792,12 @@ l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkabas(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_mknas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	As *as;
 	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to mkabas");
-	as = mkabas();
+		vmerr(vm, "wrong number of arguments to mknas");
+	as = mknas();
 	mkvalas(as, rv);
 }
 
@@ -9471,7 +9484,7 @@ mklitdom(VM *vm)
 	static NSroot *litdef = &clp64le;
 
 	dom = mkdom();
-	dom->as = mkabas();
+	dom->as = mknas();
 
 	memset(base, 0, sizeof(base)); /* values will be seen by GC */
 	for(cb = Vchar; cb <= Vnbase; cb++)
@@ -9574,7 +9587,7 @@ mkvm(Env *env)
 	FN(tabkeys);
 	FN(tabvals);
 	FN(vmbacktrace);
-	FN(mkabas);
+	FN(mknas);
 	FN(mkmas);
 	FN(mkzas);
 	FN(stringof);

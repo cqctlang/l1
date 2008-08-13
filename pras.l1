@@ -71,7 +71,11 @@ protns = @names c32le {
 };
 
 define mkpras arg {
-	@local addr, fd;
+	@local addr, fd, as, protdom;
+	as = mkzas(4096);
+	protdom = mkdom(ns, protas);
 	addr = listref(arg, 0);
-	fd = 
+	fd = opentcp("localhost:30000");
+	p = (char*){protdom}0;
+	putbytes(p, read(fd, sizeof(uint64)));
 }

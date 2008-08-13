@@ -109,8 +109,8 @@ comment.
 <h3>Cinquecento Types</h3>
 
 <p>
-Cinquecento defines several types of values.  Each type
-is mutually exclusive to the other types.
+Cinquecento defines several types of values.  Every
+value in Cinquecento has exactly one type.
 </p>
 
 <p>
@@ -154,29 +154,42 @@ value belongs to the type.  The predicates are
 <tt>isundefined</tt>.
 </p>
 
+<p>
+There are no explict numeric types.  In Cinquecento,
+all arithmetic is performed using C operators over
+values of type cvalue.
+</p>
+
 <h3>Domains</h3>
 
 <p>
 The most important type in Cinquecento is the
-<em>domain</em>.  A domain is a representation of a
-context in which C expressions can be evaluated, a
-model of a C program in execution.  Every C expression
-in Cinquecento is evaluated as if it were a fragment of
-code in a C program modeled by a particular domain.
+<em>domain</em>.  A domain is a representation of the
+state of a C program in execution suitable for
+examining and modifying program variables and data
+structures.  In Cinquecento these interactions are
+expressed using ordinary C expressions; a more precise
+definition of a domain is that it represents a context
+in which C expressions can be evaluated.  This context
+includes definitions of the types, variables, and
+constants referenced, perhaps implicitly, by a C
+expression.  It also includes the storage to which
+operations that reference memory are directed.
 </p>
 
 <p>
-The domain representation of a C program has two parts.
-First, the <em>name space</em> is symbolic information
-about the program, the names and definitions of types
-and variables as defined in the source code of the
-program.  Second, the <em>address space</em> is the
-uninterpreted memory image of a running instance of the
-program, a mapping from program addresses to the
-corresponding contents of memory.  A Cinquecento domain
-is a projection of the symbolic view of memory defined
-by the name space over memory image defined by the
-address space.
+The structure of a Cinquecento domain has two parts,
+represented by two Cinquecento values.  First, the
+<em>name space</em> is symbolic information about the
+program, the names and definitions of types and
+variables as defined in the source code of the program.
+Second, the <em>address space</em> is the uninterpreted
+memory image of a running instance of the program, a
+mapping from program addresses to the corresponding
+contents of memory.  A Cinquecento domain is a
+projection of the symbolic view of memory defined by
+the name space over memory image defined by the address
+space.
 </p>
 
 <p>
@@ -677,6 +690,219 @@ which <tt>typetab</tt> maps names do not need to be
 fully defined type names.
 </p>
 
+<h3>Standard address spaces</h3>
+
+<p>
+An address space represents random access,
+byte-addressed storage.  Cinquecento provides functions
+to construct address spaces whose underlying backing
+storage comes from files, strings, or system-provided
+memory.
+</p>
+
+<p>
+Several built-in functions create new address spaces
+with specific forms of backing storage.
+</p>
+
+<p>
+The function <tt>mknas()</tt> returns a null address
+space that has no backing storage.  An attempt to read
+or write any location in this address space draws an
+error.  This address space is used to construct domains
+that act solely as sources for types and symbols; for
+example, the literal domain is backed by a null address
+space.
+</p>
+
+<p>
+The function <tt>mksas(<em>str</em>)</tt> creates an
+address base backed by the string <em>str</em>.  The
+memory associated with the string is shared with the
+address space.  Any update to either the string or the
+address space is reflected in the other.
+</p>
+
+<p>
+The function <tt>mapfile(<em>filename</em>)</tt>
+returns a string containing the contents of the file
+named <tt><em>filename</em></tt>.  The idiom for
+constructing a file-backed address space is to compose
+this function with <tt>mksas</tt>:
+<div id="code">
+<pre>
+; fileas = mksas(mapfile("/var/log/wtmp"));
+</pre>
+</div>
+</p>
+
+<p>
+The function <tt>mkzas(<em>len</em>)</tt> creates a
+zero-filled address space backed by
+<tt><em>len</em></tt> bytes of unshared, cleared
+memory supplied by the system.
+</p>
+
+<h3>Custom address spaces</h3>
+
+<p>
+Cinquecento allows programs to construct an address space
+with a custom implementation of the underlying backing
+storage.
+</p>
+
+<p>A custom implementation requires the program to
+define three functions: <tt><em>map</em></tt>,
+<tt><em>get</em></tt>, and <tt><em>put</em></tt>.
+</p>
+
+<p>
+These functions receive and return values of the
+Cinquecento type <em>range</em>.  The range type
+represents a contiguous span of locations in an address
+space.  A range value is constructed by the function
+<tt>mkrange(<em>beg</em>,<em>len</em>)</tt>, where
+<tt><em>beg</em></tt> is the non-negative start address
+of the range and <tt><em>len</em></tt> is the positive
+number of bytes in the range; both are cvalues.  Empty
+ranges are invalid.  The functions
+<tt>rangebeg(<em>range</em>)</tt> and
+<tt>rangelen(<em>range</em>)</tt> return the start
+address and byte count from a range as cvalues.
+</p>
+
+<p>
+<tt><em>Map</em></tt> takes no arguments and returns a
+description of the <em>mapped ranges</em> of the
+address space as a vector of range values.  Each
+element of the vector must be a range describing a
+maximal contiguous span of locations backed by the
+address space.  The vector must be sorted in ascending
+order by start address.  The ranges must not overlap.
+</p>
+
+<p>
+<tt><em>Get</em></tt> takes a range argument and
+returns a string.  The string should contain the
+contents of storage corresponding to the range.
+</p>
+
+<p>
+<tt><em>Put</em></tt> takes two arguments, a range and
+a string, and returns <tt>nil</tt>.
+<tt><em>Put</em></tt> should replace the contents of
+storage corresponding to the range with the contents of
+the string, ignoring the trailing portion of the string
+if it is longer than the range.
+</p>
+
+<p>
+A call to <tt>fault()</tt> in the dynamic extent of a
+call to <tt><em>get</em></tt> or <tt><em>put</em></tt>
+will cause a toplevel memory access fault error to be
+raised in the context of the call.  Implementations of
+<tt><em>get</em></tt> and <tt><em>put</em></tt> are
+expected to call <tt>fault</tt> to signal invalid
+arguments and related exceptions.
+</p>
+
+<p>
+The function <tt>mkas(<em>dispatch</em>)</tt>
+constructs a custom address space.  Dispatch is a
+program-defined variable arity function that
+encapsulates the <tt><em>map</em></tt>,
+<tt><em>get</em></tt>, and <tt><em>put</em></tt>
+functions.  The first argument to dispatch is a string
+whose value is the name of the function to be called;
+dispatch must apply the corresponding function to the
+remaining arguments.
+</p>
+
+<p>
+Ordinarily the functions represented by
+<em>dispatch</em> are implicitly invoked by the
+Cinquecento implementation during evaluation of C
+expressions that involve storage access operations
+(such as dereferencing a pointer).  However, programs
+may directly invoked these functions by name using an
+overloaded form of the C binary dot operator:
+<div id="code">
+<pre>
+; as.get(mkrange(0,1024));
+</pre>
+</div>
+</p>
+
+<p>
+When the left operand of a dot expression is an address
+space, the result of the expression is a variable arity
+function that, when called, calls the dispatch function
+of the address space.  The arguments it passes to
+dispatch are, first, the identifier appearing as the
+right operand to the dot expression as a string,
+followed by the arguments to the call.
+</p>
+
+<p>
+In addition, if the right operand is the identifier
+<tt>dispatch</tt>, then the result of the expression is
+simply the dispatch function of the address space,
+instead of the curried version described above.
+For example, the above call to <tt>get</tt> is equivalent to:
+<div id="code">
+<pre>
+; as.dispatch("get",mkrange(0,1024));
+</pre>
+</div>
+</p>
+
+<p>
+As a syntactic convenience, the left operand to the dot
+operator can also be a domain, in which case the same
+operation is performed on the underlying address space.
+</p>
+
+<p>
+The address spaces returned by the standard address
+space constructors all implement a dispatch function
+that can be accessed with the dot operator in the same
+way as a custom address space.
+</p>
+
+<p>
+The dot operator on address spaces will accept any
+valid identifier (not just <tt>map</tt>, <tt>get</tt>,
+<tt>put</tt>, and <tt>dispatch</tt>), providing a way
+for programs to extend the standard address space
+interface with additional custom functions.  This
+feature can be used, for example, to associate a
+function for setting breakpoints with an address space.
+</p>
+
+<p>
+The Cinquecento address type exists to support the
+implementation of operations like setting a breakpoint
+on a solitary address.  The function
+<tt>mkaddr(<em>val</em>)</tt> constructs an address
+value from the cvalue <tt><em>val</em></tt>.  The
+function <tt>addrval(<em>addr</em>)</tt> returns the
+cvalue used to construct the address
+<tt><em>addr</em></tt>.
+</p>
+
+
+<h3>Address space utilities</h3>
+
+<p>
+The function <tt>getbytes(<em>p</em>,<em>len</em>)</tt>
+returns selected contents of an address space as a
+string.  <tt><em>P</em></tt> is a pointer in some
+address space <em>as</em>; <tt><em>len</em></tt> is a
+non-negative byte count.  Returns a string containing
+the <tt><em>len</em></tt> bytes in <em>as</em>
+beginning at <tt><em>p</em></tt>.
+</p>
+
 <h3>I/O</h3>
 
 <p>
@@ -707,11 +933,11 @@ are <tt>"r"</tt> (read an existing file) <tt>"w"</tt>
 
 <p>
 The function <tt>opentcp(<em>address</em>)</tt> opens a
-TCP connection and returns the associated file
-descriptor.  <tt><em>Address</em></tt> is a string of
-the form <tt>"<em>addr</em>:<em>port</em>"</tt>,
-where <tt><em>addr</em></tt> is an IP address or
-hostname and
+TCP connection to <tt><em>address</em></tt> and returns
+the associated file descriptor.
+<tt><em>Address</em></tt> is a string of the form
+<tt>"<em>addr</em>:<em>port</em>"</tt>, where
+<tt><em>addr</em></tt> is an IP address or hostname and
 <tt><em>port</em></tt> is a port number or service
 name.
 </p>
@@ -746,7 +972,7 @@ descriptor draws an error.
 
 <p>
 The function <tt>fdname</tt> returns the name of the
-resource associated with <tt>fd</tt>.
+I/O resource associated with <tt>fd</tt>.
 </p>
 
 

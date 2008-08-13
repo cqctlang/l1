@@ -1,7 +1,7 @@
 ns = @names c32le {
    @0x0 int y;
 };
-as = mkabas();
+as = mknas();
 dom = mkdom(ns, as);
 
 printf("%s\n", sprintfa("%a", range(10, 20)));
