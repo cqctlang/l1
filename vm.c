@@ -329,6 +329,7 @@ struct Fd {
 	Head hd;
 	void (*free)(int fd);
 	int fd;
+	Str *name;
 	enum Fflag {
 		Fclosed =	1,
 		Fread =		Fclosed<<1,
@@ -479,6 +480,7 @@ static Head *iterbox(Head*, Ictx*);
 static Head *itercl(Head*, Ictx*);
 static Head *itercval(Head*, Ictx*);
 static Head *iterdom(Head*, Ictx*);
+static Head *iterfd(Head*, Ictx*);
 static Head *iterns(Head*, Ictx*);
 static Head *iterlist(Head*, Ictx*);
 static Head *iterpair(Head*, Ictx*);
@@ -494,7 +496,7 @@ static Heap heap[Qnkind] = {
 	[Qcl]	= { "closure", sizeof(Closure), freecl, itercl },
 	[Qcode]	= { "code", sizeof(Code), freecode, 0 },
 	[Qdom]	= { "domain", sizeof(Dom), 0, iterdom },
-	[Qfd]	= { "fd", sizeof(Fd), freefd, 0 },
+	[Qfd]	= { "fd", sizeof(Fd), freefd, iterfd },
 	[Qlist]	= { "list", sizeof(List), freelist, iterlist },
 	[Qns]	= { "ns", sizeof(Ns), freens, iterns },
 	[Qpair]	= { "pair", sizeof(Pair), 0, iterpair },
@@ -1309,15 +1311,29 @@ freefd(Head *hd)
 }
 
 static Fd*
-mkfd(int xfd, int flags, int doclose)
+mkfd(Str *name, int xfd, int flags, int doclose)
 {
 	Fd *fd;
 	fd = (Fd*)halloc(&heap[Qfd]);
+	fd->name = name;
 	fd->fd = xfd;
 	if(doclose)
 		fd->free = freefdclose;
 	fd->flags = flags;
 	return fd;
+}
+
+static Head*
+iterfd(Head *hd, Ictx *ictx)
+{
+	Fd *fd;
+	fd = (Fd*)hd;
+	switch(ictx->n++){
+	case 0:
+		return (Head*)fd->name;
+	default:
+		return GCiterdone;
+	}
 }
 
 static void
@@ -8515,7 +8531,7 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	free(mode);
 	if(0 > xfd)
 		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
-	fd = mkfd(xfd, flags, 1);
+	fd = mkfd(names, xfd, flags, 1);
 	mkvalfd(fd, rv);
 }
 
@@ -8532,6 +8548,17 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 		return;
 	fd->flags |= Fclosed;
 	close(fd->fd);
+}
+
+static void
+l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to close");
+	checkarg(vm, "close", argv, 0, Qfd);
+	fd = valfd(&argv[0]);
+	mkvalstr(fd->name, rv);
 }
 
 static void
@@ -8701,7 +8728,7 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "opentcp: %m");
 	nodelay(xfd);
-	fd = mkfd(xfd, Fread|Fwrite, 1);
+	fd = mkfd(str, xfd, Fread|Fwrite, 1);
 	mkvalfd(fd, rv);
 }
 
@@ -9543,6 +9570,7 @@ mkvm(Env *env)
 	FN(_readdir);
 	FN(unlink);
 	FN(opentcp);
+	FN(fdname);
 	FN(tabkeys);
 	FN(tabvals);
 	FN(vmbacktrace);
@@ -9664,8 +9692,8 @@ mkvm(Env *env)
 	vm->sget = mkstr0("get");
 	vm->sput = mkstr0("put");
 	vm->smap = mkstr0("map");
-	vm->stdin = mkfd(0, Fread, 0);
-	vm->stdout = mkfd(1, Fwrite, 0);
+	vm->stdin = mkfd(mkstr0("<stdin>"), 0, Fread, 0);
+	vm->stdout = mkfd(mkstr0("<stdout>"), 1, Fwrite, 0);
 	builtinfd(env, "stdin", vm->stdin);
 	builtinfd(env, "stdout", vm->stdout);
 	builtincval(env, "NULL",

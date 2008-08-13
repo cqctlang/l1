@@ -15,19 +15,14 @@
 <h3>Introduction</h3>
 
 <p>
-This is an informal manual for Cinquecento, a
-programming language designed to help programmers
-examine the state of programs in execution,
-particularly C programs.
-</p>
-
-<p>
-A single feature distinguishes Cinquecento from other
-languages: a first-class abstraction, called a
-<em>domain</em>, that represents a program in
-execution.  The interface to this abstraction, for both
-construction and access, is based on the syntax and
-semantics of C.
+Cinquecento is a programming language designed to help
+programmers examine the state of programs in execution,
+particularly C programs.  The central feature of
+Cinquecento is a first-class abstraction, called
+a <em>domain</em>, that represents a program in
+execution.  Cinquecento programs access the program
+state represented by domains using types, operators,
+and expressions of the C programming language.
 </p>
 
 <p>
@@ -396,12 +391,24 @@ Arithmetic
 </td>
 <td>
 <div id=symbols>
-mkctype_base(<em>base</em>);
+mkctype_char()<br />
+mkctype_short()<br />
+mkctype_int()<br />
+mkctype_long()<br />
+mkctype_vlong()<br />
+mkctype_uchar()<br />
+mkctype_ushort()<br />
+mkctype_uint()<br />
+mkctype_ulong()<br />
+mkctype_uvlong()<br />
+mkctype_float()<br />
+mkctype_double()<br />
+mkctype_ldouble()
 </div>
 </td>
 <td>
 <div id=symbols>
-mkctype_base(<em>base</em>, <em>rep</em>);
+<em>n/a</em>
 </div>
 </td>
 </tr>
@@ -412,14 +419,14 @@ Aggregate
 </td>
 <td>
 <div id=symbols>
-mkctype_struct(<em>tag</em>);<br />
-mkctype_union(<em>tag</em>);
+mkctype_struct(<em>tag</em>)<br />
+mkctype_union(<em>tag</em>)
 </div>
 </td>
 <td>
 <div id=symbols>
-mkctype_struct(<em>tag</em>, <em>fields</em>, <em>sz</em>);<br />
-mkctype_union(<em>tag</em>, <em>fields</em>, <em>sz</em>);<br />
+mkctype_struct(<em>tag</em>, <em>fields</em>, <em>sz</em>)<br />
+mkctype_union(<em>tag</em>, <em>fields</em>, <em>sz</em>)<br />
 </div>
 </td>
 </tr>
@@ -430,12 +437,12 @@ Array
 </td>
 <td>
 <div id=symbols>
-mkctype_array(<em>ctype</em>, <em>count</em>);<br />
+mkctype_array(<em>ctype</em>, <em>count</em>)<br />
 </div>
 </td>
 <td>
 <div id=symbols>
-mkctype_array(<em>ctype</em>, <em>count</em>);<br />
+mkctype_array(<em>ctype</em>, <em>count</em>)<br />
 </div>
 </td>
 </tr>
@@ -446,12 +453,12 @@ Function
 </td>
 <td>
 <div id=symbols>
-mkctype_fn(<em>ctype</em>, <em>params</em>);
+mkctype_fn(<em>ctype</em>, <em>params</em>)
 </div>
 </td>
 <td>
 <div id=symbols>
-mkctype_fn(<em>ctype</em>, <em>params</em>);
+mkctype_fn(<em>ctype</em>, <em>params</em>)
 </div>
 </td>
 </tr>
@@ -462,12 +469,12 @@ Enumeration
 </td>
 <td>
 <div id=symbols>
-mkctype_enum(<em>tag</em>);
+mkctype_enum(<em>tag</em>)
 </div>
 </td>
 <td>
 <div id=symbols>
-mkctype_enum(<em>tag</em>, <em>ctype</em>, <em>consts</em>);
+mkctype_enum(<em>tag</em>, <em>ctype</em>, <em>consts</em>)
 </div>
 </td>
 </tr>
@@ -478,12 +485,12 @@ Typedef
 </td>
 <td>
 <div id=symbols>
-mkctype_typedef(<em>id</em>);
+mkctype_typedef(<em>id</em>)
 </div>
 </td>
 <td>
 <div id=symbols>
-mkctype_typedef(<em>id</em>, <em>ctype</em>);
+mkctype_typedef(<em>id</em>, <em>ctype</em>)
 </div>
 </td>
 </tr>
@@ -494,12 +501,12 @@ Pointer
 </td>
 <td>
 <div id=symbols>
-mkctype_ptr(<em>ctype</em>);
+mkctype_ptr(<em>ctype</em>)
 </div id=symbols>
 </td>
 <td>
 <div id=symbols>
-mkctype_ptr(<em>ctype</em>, <em>rep</em>);
+mkctype_ptr(<em>ctype</em>, <em>repctype</em>)
 </div>
 </td>
 </tr>
@@ -510,15 +517,64 @@ Void
 </td>
 <td>
 <div id=symbols>
-mkctype_void();
+mkctype_void()
 </div>
 </td>
 <td>
 <div id=symbols>
-mkctype_void();
+mkctype_void()
 </div>
 </td>
 </tr>
+
+<tr>
+<td>
+Typedef
+</td>
+<td>
+<div id=symbols>
+mkctype_typedef(<em>id</em>)
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_typedef(<em>id</em>,<em>ctype</em>)
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Bitfield
+</td>
+<td>
+<div id=symbols>
+mkctype_bitfield(<em>ctype</em>,<em>width</em>,<em>off</em>)
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_bitfield(<em>ctype</em>,<em>width</em>,<em>off</em>)
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Enum constant
+</td>
+<td>
+<div id=symbols>
+mkctype_const(<em>ctype</em>)
+</div>
+</td>
+<td>
+<div id=symbols>
+mkctype_const(<em>ctype</em>)
+</div>
+</td>
+</tr>
+
 
 </table>
 </div>
@@ -650,6 +706,17 @@ are <tt>"r"</tt> (read an existing file) <tt>"w"</tt>
 </p>
 
 <p>
+The function <tt>opentcp(<em>address</em>)</tt> opens a
+TCP connection and returns the associated file
+descriptor.  <tt><em>Address</em></tt> is a string of
+the form <tt>"<em>addr</em>:<em>port</em>"</tt>,
+where <tt><em>addr</em></tt> is an IP address or
+hostname and
+<tt><em>port</em></tt> is a port number or service
+name.
+</p>
+
+<p>
 The function <tt>read(<em>fd</em>,<em>len</em>)</tt>
 reads at most <tt><em>len</em></tt> bytes from the I/O
 resource associated with <tt><em>fd</em></tt>.  The
@@ -678,8 +745,12 @@ descriptor draws an error.
 </p>
 
 <p>
-UNIMPLEMENTED.  The function <tt>fdname</tt> returns
-the name of the resource associated with <tt>fd</tt>.
+The function <tt>fdname</tt> returns the name of the
+resource associated with <tt>fd</tt>.
 </p>
 
-</p> </div> </body> </html>
+
+</p>
+</div>
+</body>
+</html>
