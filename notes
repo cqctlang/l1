@@ -36,6 +36,9 @@ todo
   - move most thunks to builtins, clean up instruction set
   - ; 'a';
     <cval 97> // do 'a' instead
+  - foreach as @foreach syntax with break and continue
+  - callcc broken: cannot invoke continuation in different dovm frame
+    from one in which it was taken.
 
 - usability
   - check "entry" to "toplevel"

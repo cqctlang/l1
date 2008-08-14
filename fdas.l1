@@ -1,0 +1,123 @@
+define mkindispatch(fd, eofk){
+	@local buf, lo, hi, off, max, dispatch;
+	lo = 0;
+	hi = 0;
+	off = 0;
+	max = 1024*1024;
+	buf = string(max);
+	define dispatch args {
+		@local arg, r, s, beg, len, need;
+		arg = listref(args, 0);
+		if(arg == "get"){
+			r = listref(args, 1);
+			beg = rangebeg(r);
+			len = rangelen(r);
+			if(beg < off)
+				fault();
+			beg -= off;
+			if(beg+len > hi){
+				if(beg+len > max){
+					@local nbuf;
+					max = 2*(beg+len);
+					nbuf = string(max);
+					strput(nbuf, 0, buf);
+					buf = nbuf;
+				}
+				need = beg+len-hi;
+				s = read(fd, need);
+				if(s == nil || strlen(s) < need){
+					if(eofk != nil)
+						eofk(nil);
+					error("end of file on fdas");
+				}
+				strput(buf, hi, s);
+				hi += need;
+			}
+			printf("about to substr %d %d %d\n", beg, beg+len, hi);
+			s = substr(buf, beg, beg+len);
+			if(s == nil)
+				printf("get -> nil!\n");
+			return s;
+		}else if(arg == "map"){
+			return range(off, off+hi);
+		}else if(arg == "put"){
+			error("attempt to write to input stream");
+		}else if(arg == "flush"){
+			buf = string(max);
+			off += hi;
+			hi = 0;
+			return nil;
+		}else if(arg == "seteofk"){
+			eofk = listref(args, 1);
+			return nil;
+		}else
+			error("bad command to fdas: %a", arg);
+	}
+	return dispatch;
+}
+
+define mkoutdispatch(fd, eofk){
+	@local buf, lo, hi, off, max, dispatch;
+	lo = 0;
+	hi = 0;
+	off = 0;
+	max = 1024*1024;
+	buf = string(max);
+	define dispatch args {
+		@local arg, r, s, beg, len, need;
+		arg = listref(args, 0);
+		if(arg == "get"){
+			r = listref(args, 1);
+			beg = rangebeg(r);
+			len = rangelen(r);
+			if(beg < off)
+				fault();
+			beg -= off;
+			if(beg+len > hi)
+				fault();
+			s = substr(buf, beg, beg+len);
+			if(s == nil)
+				printf("get -> nil!\n");
+			return s;
+		}else if(arg == "map"){
+			return range(off, off+hi);
+		}else if(arg == "put"){
+			r = listref(args, 1);
+			s = listref(args, 2);
+			beg = rangebeg(r);
+			len = rangelen(r);
+			if(beg < off){
+				printf("beg=%d, off=%d\n", beg, off);
+				fault();
+			}
+			beg -= off;
+			if(beg+len > max){
+				@local nbuf;
+				max = 2*(beg+len);
+				nbuf = string(max);
+				strput(nbuf, 0, buf);
+				buf = nbuf;
+			}
+			strput(buf, beg, s);
+			if(beg+len > hi)
+				hi = beg+len;
+		}else if(arg == "flush"){
+			printf("flushing %d bytes\n", hi);
+			write(fd, substr(buf, 0, hi));
+			printf("did flush\n", hi);
+			buf = string(max);
+			off += hi;
+			hi = 0;
+			return nil;
+		}else if(arg == "seteofk"){
+			eofk = listref(args, 1);
+			return nil;
+		}else
+			error("bad command to fdas: %a", arg);
+	}
+	return dispatch;
+}
+
+define mkfdas(fd, eofk){
+	return [ mkas(mkindispatch(fd, eofk)), mkas(mkoutdispatch(fd, eofk)) ];
+}

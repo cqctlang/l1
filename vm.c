@@ -8311,6 +8311,12 @@ l1_error(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_fault(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	vmerr(vm, "memory access fault");
+}
+
+static void
 l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s, *t;
@@ -9736,6 +9742,7 @@ mkvm(Env *env)
 	FN(strput);
 	FN(isnil);
 	FN(error);
+	FN(fault);
 
 	FN(mkctype_void);
 	FN(mkctype_char);

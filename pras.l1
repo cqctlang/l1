@@ -1,3 +1,5 @@
+@include <fdas.l1>
+
 protns = @names c32le {
 	enum Mkind {
 		Rerror = 0,
@@ -39,20 +41,6 @@ protns = @names c32le {
 		Rtest
 	};
 
-	typedef unsigned long long uint64_t;
-	struct Reg {
-		@0	uint64_t ebx;
-		@8	uint64_t ecx;
-		@16	uint64_t edx;
-		@24	uint64_t esi;
-		@32	uint64_t edi;
-		@40	uint64_t ebp;
-		@48	uint64_t eax;
-		@56	uint64_t eip;
-		@64	uint64_t esp;
-		@72	uint64_t eflags;
-		@80;
-	};
 
 	struct Msg {
 		@0	unsigned char op;
@@ -68,14 +56,83 @@ protns = @names c32le {
 		@132	char *err;	/* Rerror */
 		@136;
 	};
+
+
+
+	typedef unsigned long long uint64_t;
+	struct Reg {
+		@0	uint64_t ebx;
+		@8	uint64_t ecx;
+		@16	uint64_t edx;
+		@24	uint64_t esi;
+		@32	uint64_t edi;
+		@40	uint64_t ebp;
+		@48	uint64_t eax;
+		@56	uint64_t eip;
+		@64	uint64_t esp;
+		@72	uint64_t eflags;
+		@80;
+	};
+	typedef struct Reg Reg;
+
+	struct Hdr {
+		@0	uint64	len;
+		@8	unsigned char op;
+		@12;
+	};
+
+	struct Ttest {
+		@0	uint64	len;
+		@8	unsigned char op;
+		@9	uint64 cnt;
+		@17	char bytes[0];
+		@17;
+	};
+
+	struct Rtest {
+		@0	uint64	len;
+		@8	unsigned char op;
+		@9	uint64 cnt;
+		@17	char bytes[0];
+		@17;
+	};
 };
 
 define mkpras arg {
-	@local addr, fd, as, protdom;
-	as = mkzas(4096);
-	protdom = mkdom(ns, protas);
-	addr = listref(arg, 0);
+	@local addr, fd, as, protdom, l;
+
 	fd = opentcp("localhost:30000");
-	p = (char*){protdom}0;
-	putbytes(p, read(fd, sizeof(uint64)));
+
+	l = mkfdas(fd, nil);
+	indom = mkdom(protns, listref(l, 0));
+	outdom = mkdom(protns, listref(l, 1));
+
+	callcc(lambda(eofk){
+		       @local k, ip, op;
+		       k = lambda(arg){
+			       printf("got eof\n");
+			       eofk(nil);
+		       };
+		       indom.seteofk(k);
+		       outdom.seteofk(k);
+		       
+		       ip = (struct indom`Rtest*){indom}0;
+		       op = (struct outdom`Ttest*){outdom}0;
+
+		       for(i = 0; i < 10; i++){
+			       op->len = sizeof(*op)-8+i;
+			       op->op = outdom`Ttest;
+			       op->cnt = i;
+			       putbytes(&op->bytes, string(i));
+			       op++;
+			       op = {typeof(op)}((void*)op+i);
+			       printf("about to flush\n");
+			       outdom.flush();
+			       printf("reply has %d bytes\n", ip->len);
+			       printf("reply op = %d, cnt = %d\n",
+				      ip->op, ip->cnt);
+			       ip++;
+		       }
+	       });
+
 }
