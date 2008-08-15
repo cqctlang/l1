@@ -75,25 +75,6 @@ enum Rkind {
 	Rnrep, 
 } Rkind;
 
-static char* repname[Rnrep] = {
-	[Ru08le]=	"@u8le",
-	[Ru16le]=	"@u16le",
-	[Ru32le]=	"@u32le",
-	[Ru64le]=	"@u64le",
-	[Rs08le]=	"@s8le", 
-	[Rs16le]=	"@s16le",
-	[Rs32le]=	"@s32le",
-	[Rs64le]=	"@s64le",
-	[Ru08be]=	"@u8be", 
-	[Ru16be]=	"@u16be",
-	[Ru32be]=	"@u32be",
-	[Ru64be]=	"@u64be",
-	[Rs08be]=	"@s8be", 
-	[Rs16be]=	"@s16be",
-	[Rs32be]=	"@s32be",
-	[Rs64be]=	"@s64be",
-};
-
 static Imm repsize[Rnrep] = {
 	[Ru08le]=	1,
 	[Ru16le]=	2,

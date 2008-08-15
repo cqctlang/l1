@@ -107,32 +107,20 @@ define mkpras arg {
 	indom = mkdom(protns, listref(l, 0));
 	outdom = mkdom(protns, listref(l, 1));
 
-	callcc(lambda(eofk){
-		       @local k, ip, op;
-		       k = lambda(arg){
-			       printf("got eof\n");
-			       eofk(nil);
-		       };
-		       indom.seteofk(k);
-		       outdom.seteofk(k);
-		       
-		       ip = (struct indom`Rtest*){indom}0;
-		       op = (struct outdom`Ttest*){outdom}0;
-
-		       for(i = 0; i < 10; i++){
-			       op->len = sizeof(*op)-8+i;
-			       op->op = outdom`Ttest;
-			       op->cnt = i;
-			       putbytes(&op->bytes, string(i));
-			       op++;
-			       op = {typeof(op)}((void*)op+i);
-			       printf("about to flush\n");
-			       outdom.flush();
-			       printf("reply has %d bytes\n", ip->len);
-			       printf("reply op = %d, cnt = %d\n",
-				      ip->op, ip->cnt);
-			       ip++;
-		       }
-	       });
-
+	ip = (struct indom`Rtest*){indom}0;
+	op = (struct outdom`Ttest*){outdom}0;
+	while(1){
+		op->len = sizeof(*op)-8+i;
+		op->op = outdom`Ttest;
+		op->cnt = i;
+		putbytes(&op->bytes, string(i));
+		op++;
+		op = {typeof(op)}((void*)op+i);
+		printf("about to flush\n");
+		outdom.flush();
+		printf("reply has %d bytes\n", ip->len);
+		printf("reply op = %d, cnt = %d\n",
+		       ip->op, ip->cnt);
+		ip++;
+	}
 }

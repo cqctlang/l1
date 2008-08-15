@@ -39,6 +39,16 @@ todo
   - foreach as @foreach syntax with break and continue
   - callcc broken: cannot invoke continuation in different dovm frame
     from one in which it was taken.
+    need to capture C stack as well as VM stack.
+    soln: 1. vm maintains pointer to base of C stack, init 0;
+             first call to dovm initializes, clears on exit
+          2. callcc copies C stack from current frame to base;
+             it also copies gcprot list.
+          3. cont invocation restores C stack (from temp stack?)
+             and gc prot list.
+  
+          4. gc walks gc prot list on all continuations
+
 
 - usability
   - check "entry" to "toplevel"
