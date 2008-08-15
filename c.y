@@ -6,7 +6,6 @@
 extern int yylex();
 extern char *yytext;
 
-
 %}
 
 %union{
@@ -63,10 +62,13 @@ extern char *yytext;
 
 %start translation_unit_seq
 %glr-parser
+%pure-parser
+%parse-param {U *ctx}
+%lex-param   {U *ctx}
 %expect 1
 %expect-rr 5
 %{
-	static void yyerror(const char *s);
+	static void yyerror(U *ctx, const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* mulmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* ofmerge(YYSTYPE e1, YYSTYPE e2);
@@ -90,7 +92,7 @@ primary_expression
 	| NIL
 	{ $$ = newexpr(Enil, 0, 0, 0, 0); }
 	| CONSTANT
-	{ $$ = doconst($1.p, $1.len); }
+	{ $$ = doconst(ctx, $1.p, $1.len); }
 	| STRING_LITERAL
 	{ $$ = doconsts($1.p, $1.len); }
 	| '(' expression ')'
@@ -824,14 +826,14 @@ translation_unit
 	;
 
 external_declaration
-	: statement		{ dotop($1); }
+	: statement		{ dotop(ctx, $1); }
 	;
 
 %%
 static void
-yyerror(const char *s)
+yyerror(U *ctx, const char *s)
 {
-	parseerror((char*)s);
+	parseerror(ctx, (char*)s);
 }
 
 /* expression trees for ambiguous forms share identifier nodes;
@@ -866,13 +868,13 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 		cast = ye2.expr;
 		other = ye1.expr;
 	}else
-		yyerror("unresolved ambiguity");
+		yyerror(0, "unresolved ambiguity");
 
 	/* what else could it be? */ 
 	if(other->kind != Ecall)
-		yyerror("unresolved ambiguity");
+		yyerror(0, "unresolved ambiguity");
 	if(other->e1->kind != Etick)
-		yyerror("unresolved ambiguity");
+		yyerror(0, "unresolved ambiguity");
 
 	/* it's not possible to call through a domain reference,
 	   so call it a cast. */
@@ -895,7 +897,7 @@ mulmerge(YYSTYPE ye1, YYSTYPE ye2)
 		cast = ye2.expr;
 		other = ye1.expr;
 	}else
-		yyerror("unresolved ambiguity");
+		yyerror(0, "unresolved ambiguity");
 
 	duptickid(other->e1);
 
@@ -919,7 +921,7 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 	e1 = ye1.expr;
 	e2 = ye2.expr;
 	if(!ofkind(e1->kind) || !ofkind(e2->kind))
-		yyerror("unresolved ambiguity");
+		yyerror(0, "unresolved ambiguity");
 
 	if(e1->kind == Esizeofe || e1->kind == Etypeofe)
 		duptickid(e1->e1);

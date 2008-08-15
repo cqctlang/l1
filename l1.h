@@ -282,7 +282,7 @@ YYstate* mkyystatestr(char *buf);
 void freeyystate(YYstate *yy);
 void setyystate(YYstate *yy);
 
-int yyparse();
+int yyparse(U *ctx);
 Expr* newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr* copyexpr(Expr *e);
 Expr* newbinop(unsigned, Expr*, Expr*);
@@ -296,7 +296,7 @@ Expr* nullelist();
 Expr* ptrto(Expr*, Expr*);
 Expr* doid(char*);
 Expr* doidn(char *s, unsigned long len);
-Expr* doconst(char*, unsigned long len);
+Expr* doconst(U *ctx, char*, unsigned long len);
 Expr* doconsts(char*, unsigned long len);
 Expr* dotick(Expr*, Expr*);
 Lits* mklits(char*, unsigned len);
@@ -304,19 +304,19 @@ Lits* copylits(Lits *lits);
 void freelits(Lits *lits);
 char* fmttype(Type *t, char *o);
 
-Expr* dotypes(Expr*);
-void dotop(Expr*);
+Expr* dotypes(U*, Expr*);
+void dotop(U*, Expr*);
 void initparse();
 void finiparse();
 
 void printexpr(Expr*);
 void printcqct(Expr*);
 
-void pushyy(char *filename, char *inbuf);
-int popyy();
-void tryinclude(char *raw);
-void parseerror(char *fmt, ...);
-int doparse(char *filename, char *inbuf);
+void pushyy(U *ctx, char *filename, char *inbuf);
+int popyy(U *ctx);
+void tryinclude(U *ctx, char *raw);
+void parseerror(U *ctx, char *fmt, ...);
+Expr* doparse(U *ctx, char *filename, char *inbuf);
 
 typedef
 struct BFgeom {

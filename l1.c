@@ -76,34 +76,45 @@ static unsigned basemod[Vnbase][Enbase] = {
 	/* the rest are Vundef, which we assume to be 0 */
 };
 
-static Decl* dodecls(Expr *e);
-static Decl* dodecl(Expr *e);
+static Decl* dodecls(U *ctx, Expr *e);
+static Decl* dodecl(U *ctx, Expr *e);
 static char* fmtdecl(Decl *d);
 static Type* copytype(Type *t);
 
 static HT *filenames;
 
-U ctx;
 char *stdinname = "<stdin>";
 
 extern int yylex_destroy(void);
 
 void
-parseerror(char *fmt, ...)
+parseerror(U *ctx, char *fmt, ...)
 {
 	va_list args;
 
-	if(ctx.inp)
-		fprintf(stderr, "%s:%u: ", ctx.inp->filename, ctx.inp->line);
+	if(ctx == 0){
+		/* we're here because of a bison limitation.
+		 * the caller is yyerror from one of our GLR merge
+		 * resolvers, which do not convey %parse-param's
+		 */
+		va_start(args, fmt);
+		vfprintf(stderr, fmt, args);
+		fprintf(stderr, "\n");
+		va_end(args);
+		return;
+	}
+
+	if(ctx->inp)
+		fprintf(stderr, "%s:%u: ", ctx->inp->filename, ctx->inp->line);
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 	va_end(args);
 
-	while(popyy())
+	while(popyy(ctx))
 		;
 	yylex_destroy();
-	longjmp(ctx.jmp, 1);
+	longjmp(ctx->jmp, 1);
 }
 
 Lits*
@@ -160,10 +171,10 @@ newexpr(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 	e->e3 = e3;
 	e->e4 = e4;
 
-	if(ctx.inp){
-		e->src.filename = ctx.inp->filename;
-		e->src.line = ctx.inp->line;
-	}
+//	if(ctx.inp){
+//		e->src.filename = ctx.inp->filename;
+//		e->src.line = ctx.inp->line;
+//	}
 
 	return e;
 }
@@ -338,7 +349,7 @@ isoctdigit(int c)
 }
 
 Expr*
-doconst(char *s, unsigned long len)
+doconst(U *ctx, char *s, unsigned long len)
 {
 	Imm n;
 	enum { Rdec, Rhex, Roct } radix;
@@ -349,7 +360,7 @@ doconst(char *s, unsigned long len)
 	z = s+len;
 
 	if(s[0] == 'L')
-		parseerror("wide characters unsupported");
+		parseerror(ctx, "wide characters unsupported");
 
 	/* char constant */
 	if(s[0] == '\''){
@@ -420,7 +431,7 @@ doconst(char *s, unsigned long len)
 	}
 
 	if(strnchr(s, '.', len))
-		parseerror("floating point constants unsupported");
+		parseerror(ctx, "floating point constants unsupported");
 
 	/* integer constant */
 	if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
@@ -433,7 +444,7 @@ doconst(char *s, unsigned long len)
 
 	suf = Snone;
 	if(p == s)
-		parseerror("bad integer constant");
+		parseerror(ctx, "bad integer constant");
 	while(p < z){
 		if(*p == 'U' || *p == 'u')
 			switch(suf){
@@ -447,7 +458,8 @@ doconst(char *s, unsigned long len)
 				suf = Sull;
 				break;
 			default:
-				parseerror("bad use of constant suffix U");
+				parseerror(ctx,
+					   "bad use of constant suffix U");
 			}
 		else if(*p == 'L' || *p == 'l')
 			switch(suf){
@@ -464,10 +476,12 @@ doconst(char *s, unsigned long len)
 				suf = Sull;
 				break;
 			default:
-				parseerror("bad use of constant suffix L");
+				parseerror(ctx,
+					   "bad use of constant suffix L");
 			}
 		else
-			parseerror("bad integer constant: \"%.*s\"", len, s);
+			parseerror(ctx,
+				   "bad integer constant: \"%.*s\"", len, s);
 		p++;
 	}
 		
@@ -716,7 +730,7 @@ enums(Type *t, Expr *e)
 }
 
 static Decl*
-sufields(Type *su, Expr *e, Expr **sz)
+sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 {
 	Decl *hd, *p;
 
@@ -733,15 +747,15 @@ sufields(Type *su, Expr *e, Expr **sz)
 	}
 	switch(e->e1->kind){
 	case Ebitfield:
-		hd = dodecl(e->e1);
+		hd = dodecl(ctx, e->e1);
 		hd->offs = e->e1->e3; /* steal */
 		e->e1->e3 = NULL;
 		hd->type->bitw = e->e1->e4; /* steal */
 		e->e1->e4 = NULL;
-		hd->link = sufields(su, e->e2, sz);
+		hd->link = sufields(ctx, su, e->e2, sz);
 		break;
 	case Efields:
-		hd = dodecls(e->e1);
+		hd = dodecls(ctx, e->e1);
 		if(e->e1->e3){
 			hd->offs = e->e1->e3; /* steal */
 			e->e1->e3 = NULL;
@@ -749,12 +763,12 @@ sufields(Type *su, Expr *e, Expr **sz)
 		p = hd;
 		while(p->link != NULL)
 			p = p->link;
-		p->link = sufields(su, e->e2, sz);
+		p->link = sufields(ctx, su, e->e2, sz);
 		break;
 	case Efieldoff:
 		*sz = e->e1->e1; /* steal */
 		e->e1->e1 = NULL;
-		return sufields(su, e->e2, sz);
+		return sufields(ctx, su, e->e2, sz);
 		break;
 	default:
 		fatal("unrecognized su declaration %d", e->e1->kind);
@@ -763,7 +777,7 @@ sufields(Type *su, Expr *e, Expr **sz)
 }
 
 static Decl*
-params(Expr *e)
+params(U *ctx, Expr *e)
 {
 	Decl *hd;
 
@@ -773,14 +787,14 @@ params(Expr *e)
 	if(e->kind != Eelist)
 		fatal("params expects an expression list");
 
-	hd = dodecl(e->e1);
-	hd->link = params(e->e2);
+	hd = dodecl(ctx, e->e1);
+	hd->link = params(ctx, e->e2);
 
 	return hd;
 }
 
 static Cbase
-baselist(Expr *e)
+baselist(U *ctx, Expr *e)
 {
 	Expr *s;
 	Cbase base;
@@ -803,17 +817,17 @@ baselist(Expr *e)
 			/* FIXME: can we rely on parser to structure these
 			   constructions, and eliminate Vundef? */
 			if(base == Vundef)
-				parseerror("bad type specifier");
+				parseerror(ctx, "bad type specifier");
 			break;
 		default:
-			parseerror("bad type specifier");
+			parseerror(ctx, "bad type specifier");
 		}
 	}
 	return base;
 }
 
 static Type*
-specifier(Expr *e)
+specifier(U *ctx, Expr *e)
 {
 	Type *t;
 	Expr *dom, *id;
@@ -823,7 +837,7 @@ specifier(Expr *e)
 	switch(e->kind){
 	case Ebase:
 		/* < Ebase, baselist, dom, 0, 0 > */
-		cb = baselist(e->e1);
+		cb = baselist(ctx, e->e1);
 		if(cb == Vvoid)
 			t->kind = Tvoid;
 		else{
@@ -865,7 +879,7 @@ specifier(Expr *e)
 			if(t->kind == Tenum)
 				t->en = enums(t, e->e2);
 			else
-				t->field = sufields(t, e->e2, &t->sz);
+				t->field = sufields(ctx, t, e->e2, &t->sz);
 		}
 		break;
 	default:
@@ -881,7 +895,7 @@ specifier(Expr *e)
 }
 
 static Decl*
-declarator(Type *bt, Expr *e)
+declarator(U *ctx, Type *bt, Expr *e)
 {
 	Type *t;
 	Decl *d;
@@ -904,7 +918,7 @@ declarator(Type *bt, Expr *e)
 		t->kind = Tptr;
 		t->link = bt;
 		t->dom = xstrdup(bt->dom);
-		return declarator(t, e->e1);
+		return declarator(ctx, t, e->e1);
 	case Earr:
 		t = newtype();
 		t->kind = Tarr;
@@ -912,14 +926,14 @@ declarator(Type *bt, Expr *e)
 		t->cnt = e->e2;	/* steal */
 		t->dom = xstrdup(bt->dom);
 		e->e2 = NULL;
-		return declarator(t, e->e1);
+		return declarator(ctx, t, e->e1);
 	case Efun:
 		t = newtype();
 		t->kind = Tfun;
 		t->link = bt;
-		t->param = params(e->e2);
+		t->param = params(ctx, e->e2);
 		t->dom = xstrdup(bt->dom);
-		return declarator(t, e->e1);
+		return declarator(ctx, t, e->e1);
 	default:
 		fatal("bug");
 		break;
@@ -1150,14 +1164,14 @@ copytype(Type *t)
 }
 
 static Decl*
-dodecls(Expr *e)
+dodecls(U *ctx, Expr *e)
 {
 	Type *t;
 	Expr *dl;
 	Decl *rv, *p;
 	Decl **lp;
 
-	t = specifier(e->e1);
+	t = specifier(ctx, e->e1);
 
 	dl = e->e2;
 	if(dl->kind != Enull){
@@ -1166,7 +1180,7 @@ dodecls(Expr *e)
 			if(lp != &rv)
 				/* one copy of type per each declarator */
 				t = copytype(t);
-			p = declarator(t, dl->e1);
+			p = declarator(ctx, t, dl->e1);
 			*lp = p;
 			lp = &p->link;
 			dl = dl->e2;
@@ -1188,19 +1202,19 @@ dodecls(Expr *e)
 }
 
 static Decl*
-dodecl(Expr *e)
+dodecl(U *ctx, Expr *e)
 {
 	Type *t;
 	Decl *rv;
 
-	t = specifier(e->e1);
-	rv = declarator(t, e->e2);
+	t = specifier(ctx, e->e1);
+	rv = declarator(ctx, t, e->e2);
 
 	return rv;
 }
 
 Expr*
-dotypes(Expr *e)
+dotypes(U *ctx, Expr *e)
 {
 	Expr *p;
 
@@ -1210,32 +1224,32 @@ dotypes(Expr *e)
 	switch(e->kind){
 	case Etypedef:
 	case Edecl:
-		e->xp = dodecl(e);
+		e->xp = dodecl(ctx, e);
 		break;
 	case Edecls:
-		e->xp = dodecls(e);
+		e->xp = dodecls(ctx, e);
 		break;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			dotypes(p->e1);
+			dotypes(ctx, p->e1);
 			p = p->e2;
 		}
 		break;
 	default:
-		dotypes(e->e1);
-		dotypes(e->e2);
-		dotypes(e->e3);
-		dotypes(e->e4);
+		dotypes(ctx, e->e1);
+		dotypes(ctx, e->e2);
+		dotypes(ctx, e->e3);
+		dotypes(ctx, e->e4);
 		break;
 	}
 	return e;
 }
 
 void
-dotop(Expr *e)
+dotop(U *ctx, Expr *e)
 {
-	ctx.el = newexpr(Eelist, e, ctx.el, 0, 0);
+	ctx->el = newexpr(Eelist, e, ctx->el, 0, 0);
 }
 
 void
@@ -1258,7 +1272,7 @@ finiparse()
 }
 
 void
-pushyy(char *filename, char *buf)
+pushyy(U *ctx, char *filename, char *buf)
 {
 	FILE *fp;
 	char *keyed;
@@ -1268,55 +1282,55 @@ pushyy(char *filename, char *buf)
 	else
 		fp = fopen(filename, "r");
 	if(fp == 0)
-		parseerror("cannot @include %s", filename);
+		parseerror(ctx, "cannot @include %s", filename);
 
-	if(ctx.inp == 0)
-		ctx.inp = ctx.in;
+	if(ctx->inp == 0)
+		ctx->inp = ctx->in;
 	else
-		ctx.inp++;
+		ctx->inp++;
 
-	if(ctx.inp >= ctx.in+MaxIn)
+	if(ctx->inp >= ctx->in+MaxIn)
 		fatal("maximum include depth exceeded");
 
-	ctx.inp->fp = fp;
+	ctx->inp->fp = fp;
 	keyed = hget(filenames, filename, strlen(filename));
 	if(!keyed){
 		keyed = xstrdup(filename);
 		hput(filenames, keyed, strlen(keyed), keyed);
 	}
-	ctx.inp->filename = keyed;
+	ctx->inp->filename = keyed;
 	if(buf){
-		ctx.inp->yy = mkyystatestr(buf);
+		ctx->inp->yy = mkyystatestr(buf);
 		free(buf);
 	}else
-		ctx.inp->yy = mkyystate(fp);
-	ctx.inp->line = 1;
-	ctx.inp->col = 0;
-	setyystate(ctx.inp->yy);
+		ctx->inp->yy = mkyystate(fp);
+	ctx->inp->line = 1;
+	ctx->inp->col = 0;
+	setyystate(ctx->inp->yy);
 }
 
 int
-popyy()
+popyy(U *ctx)
 {
-	if(ctx.inp == 0)
+	if(ctx->inp == 0)
 		return 0;
-	if(ctx.inp->fp != stdin)
-		fclose(ctx.inp->fp);
-	ctx.inp->filename = 0;
-	free(ctx.inp->inbuf);
-	ctx.inp->inbuf = 0;
-	freeyystate(ctx.inp->yy);
-	if(ctx.inp == ctx.in){
-		ctx.inp = 0;
+	if(ctx->inp->fp != stdin)
+		fclose(ctx->inp->fp);
+	ctx->inp->filename = 0;
+	free(ctx->inp->inbuf);
+	ctx->inp->inbuf = 0;
+	freeyystate(ctx->inp->yy);
+	if(ctx->inp == ctx->in){
+		ctx->inp = 0;
 		return 0;
 	}
-	ctx.inp--;
-	setyystate(ctx.inp->yy);
+	ctx->inp--;
+	setyystate(ctx->inp->yy);
 	return 1;
 }
 
 void
-tryinclude(char *raw)
+tryinclude(U *ctx, char *raw)
 {
 	char *p, *q;
 	unsigned len;
@@ -1347,25 +1361,25 @@ tryinclude(char *raw)
 		break;
 	}
 
-	pushyy(p, 0);
+	pushyy(ctx, p, 0);
 }
 
-int
-doparse(char *filename, char *inbuf)
+Expr*
+doparse(U *ctx, char *filename, char *inbuf)
 {
-	ctx.el = nullelist();
-	if(setjmp(ctx.jmp) == 0){
-		pushyy(filename, inbuf);
-		if(yyparse() != 0)
+	ctx->el = nullelist();
+	if(setjmp(ctx->jmp) == 0){
+		pushyy(ctx, filename, inbuf);
+		if(yyparse(ctx) != 0)
 			fatal("parse error");
 	}else
-		return -1;
+		return 0;
 
-	ctx.el = invert(ctx.el);
-	popyy();
+	ctx->el = invert(ctx->el);
+	popyy(ctx);
 	/* FIXME: does bison normally call yylex_destroy implicitly?
 	   http://www.mail-archive.com/bison-patches@gnu.org/msg01521.html
 	*/
 	yylex_destroy();
-	return 0;
+	return ctx->el;
 }

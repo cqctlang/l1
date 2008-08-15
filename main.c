@@ -61,7 +61,7 @@ int
 main(int argc, char *argv[])
 {
 	Closure *entry;
-	Expr *rv;
+	Expr *e, *rv;
 	VM *vm;
 	Env *env;
 	char *filename = 0;
@@ -70,6 +70,7 @@ main(int argc, char *argv[])
 	int dorepl;
 	unsigned len;
 	char *inbuf;
+	U ctx;
 
 	flags['c'] = 1;		/* compile */
 	flags['x'] = 1;		/* execute */
@@ -127,40 +128,41 @@ main(int argc, char *argv[])
 			}
 		}
 
-		if(0 > doparse(filename, inbuf))
+		e = doparse(&ctx, filename, inbuf);
+		if(e == 0)
 			continue;
 
 		if(flags['p']){
 			printf("source:\n");
-			printexpr(ctx.el);
+			printexpr(e);
 			printf("\n");
 		}
 
-		dotypes(ctx.el);
-		rv = docompilec(ctx.el);
+		dotypes(&ctx, e);
+		rv = docompilec(e);
 		if(rv == 0){
-			freeexpr(ctx.el);
+			freeexpr(e);
 			continue;
 		}
-		ctx.el = rv;
-		if(0 > docompile0(ctx.el)){
-			freeexpr(ctx.el);
+		e = rv;
+		if(0 > docompile0(e)){
+			freeexpr(e);
 			continue;
 		}
 		if(flags['p']){
 			printf("compile0:\n");
-			printexpr(ctx.el);
+			printexpr(e);
 			printf("\n");
 		}
 
 		if(flags['q']){
 			printf("transformed source:\n");
-			printcqct(ctx.el);
+			printcqct(e);
 			printf("\n");
 		}
 
 		if(flags['c']){
-			entry = compileentry(ctx.el, env);
+			entry = compileentry(e, env);
 			if(flags['x']){
 				wast = flags['t'];
 				if(wast)
@@ -179,7 +181,7 @@ main(int argc, char *argv[])
 					vmreset(vm);
 			}
 		}else
-			freeexpr(ctx.el);
+			freeexpr(e);
 
 		if(dorepl && flags['x'])
 			printvmac(vm);
