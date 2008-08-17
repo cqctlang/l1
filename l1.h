@@ -183,7 +183,7 @@ typedef struct Type Type;
 typedef
 struct Src {
 	char *filename;
-	unsigned line;
+	unsigned col, line;
 } Src;
 
 typedef
@@ -255,10 +255,9 @@ typedef struct YYstate YYstate;
 
 typedef
 struct In {
-	char *filename;
+	struct Src src;
 	FILE *fp;
 	char *inbuf;
-	unsigned col, line;
 	YYstate *yy;
 } In;
 
@@ -284,9 +283,12 @@ void setyystate(YYstate *yy);
 
 int yyparse(U *ctx);
 Expr* newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
+Expr* newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr* copyexpr(Expr *e);
 Expr* newbinop(unsigned, Expr*, Expr*);
+Expr* newbinopsrc(Src*, unsigned, Expr*, Expr*);
 Expr* newgop(unsigned, Expr*, Expr*);
+Expr* newgopsrc(Src*, unsigned, Expr*, Expr*);
 Expr* mkconst(Cbase base, Imm val); /* rename newconst? */
 void freeexpr(Expr*);
 void freeenum(Enum *en);
@@ -296,9 +298,12 @@ Expr* nullelist();
 Expr* ptrto(Expr*, Expr*);
 Expr* doid(char*);
 Expr* doidn(char *s, unsigned long len);
+Expr* doidnsrc(Src *src, char *s, unsigned long len);
 Expr* doconst(U *ctx, char*, unsigned long len);
 Expr* doconsts(char*, unsigned long len);
+Expr* doconstssrc(Src*, char*, unsigned long len);
 Expr* dotick(Expr*, Expr*);
+Expr* doticksrc(Src *src, Expr*, Expr*);
 Lits* mklits(char*, unsigned len);
 Lits* copylits(Lits *lits);
 void freelits(Lits *lits);

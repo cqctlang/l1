@@ -77,11 +77,11 @@ extern char *yytext;
 
 id
 	: IDENTIFIER
-	{ $$ = doidn($1.p, $1.len); }
+	{ $$ = doidnsrc(&ctx->inp->src, $1.p, $1.len); }
 
 tickid
 	: id '`' id
-	{ $$ = dotick($1, $3); }
+	{ $$ = doticksrc(&ctx->inp->src, $1, $3); }
 	;
 
 tag:	id;
@@ -90,63 +90,63 @@ primary_expression
 	: id
 	| tickid
 	| NIL
-	{ $$ = newexpr(Enil, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); }
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
 	| STRING_LITERAL
-	{ $$ = doconsts($1.p, $1.len); }
+	{ $$ = doconstssrc(&ctx->inp->src, $1.p, $1.len); }
 	| '(' expression ')'
 	{ $$ = $2; }
 	| '[' ']'
-	{ $$ = newexpr(Elist, nullelist(), 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'
-	{ $$ = newexpr(Elist, invert($2), 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
 	;
 
 postfix_expression
 	: primary_expression
 	| postfix_expression '[' expression ']'
-	{ $$ = newexpr(Earef, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earef, $1, $3, 0, 0); }
 	| postfix_expression '(' ')'
-	{ $$ = newexpr(Ecall, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, nullelist(), 0, 0); }
 	| postfix_expression '(' argument_expression_list ')'
 	  /* don't invert -- compiler evaluates arguments in reverse order */
-	{ $$ = newexpr(Ecall, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, $3, 0, 0); }
 	| postfix_expression '.' id
-	{ $$ = newexpr(Edot, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edot, $1, $3, 0, 0); }
 	| postfix_expression PTR_OP id
-	{ $$ = newexpr(Earrow, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earrow, $1, $3, 0, 0); }
 	| postfix_expression INC_OP
-	{ $$ = newexpr(Epostinc, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Epostinc, $1, 0, 0, 0); }
 	| postfix_expression DEC_OP
-	{ $$ = newexpr(Epostdec, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Epostdec, $1, 0, 0, 0); }
 	| CONTAINEROF '(' expression ',' type_name ',' id ')'
-        { $$ = newexpr(Econtainer, $3, $5, $7, 0); }
+        { $$ = newexprsrc(&ctx->inp->src, Econtainer, $3, $5, $7, 0); }
 	;
 
 argument_expression_list
 	: root_expression
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| argument_expression_list ',' root_expression
-	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 unary_expression
 	: postfix_expression
 	| INC_OP unary_expression
-	{ $$ = newexpr(Epreinc, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Epreinc, $2, 0, 0, 0); }
 	| DEC_OP unary_expression
-	{ $$ = newexpr(Epredec, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Epredec, $2, 0, 0, 0); }
 	| unary_operator cast_expression
-	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	| SIZEOF unary_expression			%merge <ofmerge>
-	{ $$ = newexpr(Esizeofe, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Esizeofe, $2, 0, 0, 0); }
 	| SIZEOF '(' type_name ')'			%merge <ofmerge>
-	{ $$ = newexpr(Esizeoft, $3, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Esizeoft, $3, 0, 0, 0); }
 	| TYPEOF unary_expression			%merge <ofmerge>
-	{ $$ = newexpr(Etypeofe, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etypeofe, $2, 0, 0, 0); }
 	| TYPEOF '(' type_name ')'			%merge <ofmerge>
-	{ $$ = newexpr(Etypeoft, $3, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $3, 0, 0, 0); }
 	;
 
 unary_operator
@@ -167,100 +167,100 @@ unary_operator
 cast_expression
 	: unary_expression				%merge <castmerge>
 	| '(' type_name ')' cast_expression		%merge <castmerge>
-	{ $$ = newexpr(Ecast, $2, $4, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ecast, $2, $4, 0, 0); }
 	| '{' expression '}' cast_expression
-	{ $$ = newbinop(Excast, $2, $4); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Excast, $2, $4); }
 	;
 
 multiplicative_expression
 	: cast_expression				%merge <mulmerge>
 	| multiplicative_expression '*' cast_expression	%merge <mulmerge>
-	{ $$ = newbinop(Emul, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Emul, $1, $3); }
 	| multiplicative_expression '/' cast_expression
-	{ $$ = newbinop(Ediv, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Ediv, $1, $3); }
 	| multiplicative_expression '%' cast_expression
-	{ $$ = newbinop(Emod, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Emod, $1, $3); }
 	;
 
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression
-	{ $$ = newbinop(Eadd, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Eadd, $1, $3); }
 	| additive_expression '-' multiplicative_expression
-	{ $$ = newbinop(Esub, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Esub, $1, $3); }
 	;
 
 shift_expression
 	: additive_expression
 	| shift_expression LEFT_OP additive_expression
-	{ $$ = newbinop(Eshl, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Eshl, $1, $3); }
 	| shift_expression RIGHT_OP additive_expression
-	{ $$ = newbinop(Eshr, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Eshr, $1, $3); }
 	;
 
 relational_expression
 	: shift_expression
 	| relational_expression '<' shift_expression
-	{ $$ = newbinop(Elt, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Elt, $1, $3); }
 	| relational_expression '>' shift_expression
-	{ $$ = newbinop(Egt, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Egt, $1, $3); }
 	| relational_expression LE_OP shift_expression
-	{ $$ = newbinop(Ele, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Ele, $1, $3); }
 	| relational_expression GE_OP shift_expression
-	{ $$ = newbinop(Ege, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Ege, $1, $3); }
 	;
 
 equality_expression
 	: relational_expression
 	| equality_expression EQ_OP relational_expression
-	{ $$ = newbinop(Eeq, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Eeq, $1, $3); }
 	| equality_expression NE_OP relational_expression
-	{ $$ = newbinop(Eneq, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Eneq, $1, $3); }
 	;
 
 and_expression
 	: equality_expression
 	| and_expression '&' equality_expression
-	{ $$ = newbinop(Eband, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Eband, $1, $3); }
 	;
 
 exclusive_or_expression
 	: and_expression
 	| exclusive_or_expression '^' and_expression
-	{ $$ = newbinop(Ebxor, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Ebxor, $1, $3); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression
 	| inclusive_or_expression '|' exclusive_or_expression
-	{ $$ = newbinop(Ebor, $1, $3); }
+	{ $$ = newbinopsrc(&ctx->inp->src, Ebor, $1, $3); }
 	;
 
 logical_and_expression
 	: inclusive_or_expression
 	| logical_and_expression AND_OP inclusive_or_expression
-	{ $$ = newexpr(Eland, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eland, $1, $3, 0, 0); }
 	;
 
 logical_or_expression
 	: logical_and_expression
 	| logical_or_expression OR_OP logical_and_expression
-	{ $$ = newexpr(Elor, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Elor, $1, $3, 0, 0); }
 	;
 
 conditional_expression
 	: logical_or_expression
 	| logical_or_expression '?' expression ':' conditional_expression
-	{ $$ = newexpr(Econd, $1, $3, $5, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Econd, $1, $3, $5, 0); }
 	;
 
 assignment_expression
 	: conditional_expression
 	| unary_expression assignment_operator root_expression
 	{ if($2 == Eg)
-	  	$$ = newexpr($2, $1, $3, 0, 0);
+	  	$$ = newexprsrc(&ctx->inp->src, $2, $1, $3, 0, 0);
 	  else
-	  	$$ = newgop($2, $1, $3);
+	  	$$ = newgopsrc(&ctx->inp->src, $2, $1, $3);
 	}
 	;
 
@@ -291,26 +291,26 @@ assignment_operator
 
 identifier_list
 	: id
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| identifier_list ',' id
-	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 lambda_expression
 	: assignment_expression
 	| LAMBDA '(' identifier_list ')' compound_statement
-	{ $$ = newexpr(Elambda, invert($3), $5, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
 	| LAMBDA '(' ')' compound_statement
-	{ $$ = newexpr(Elambda, nullelist(), $4, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
 	| LAMBDA id compound_statement
-	{ $$ = newexpr(Elambda, $2, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Elambda, $2, $3, 0, 0); }
 	;
 
 names_declaration_list
 	: names_declaration
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| names_declaration_list names_declaration
-	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0); }
 	;
 
 names_declaration
@@ -321,9 +321,9 @@ names_declaration
 names_expression
 	: lambda_expression
 	| NAMES expression '{' names_declaration_list '}'
-	{ $$ = newexpr(Ens, $2, invert($4), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, invert($4), 0, 0); }
 	| NAMES expression '{' '}'
-	{ $$ = newexpr(Ens, $2, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, nullelist(), 0, 0); }
 	;
 
 root_expression
@@ -332,7 +332,7 @@ root_expression
 expression
 	: root_expression
 	| expression ',' root_expression
-	{ $$ = newexpr(Ecomma, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ecomma, $1, $3, 0, 0); }
 	;
 
 constant_expression
@@ -341,76 +341,76 @@ constant_expression
 
 typedef
 	: TYPEDEF specifier_list declarator ';'
-	{ $$ = newexpr(Etypedef, $2, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etypedef, $2, $3, 0, 0); }
 	;
 
 declaration
 	: specifier_list ';'
-	{ $$ = newexpr(Edecls, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecls, $1, nullelist(), 0, 0); }
 	| '@' constant_expression specifier_list declarator_list ';'
-	{ $$ = newexpr(Edecls, $3, invert($4), $2, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecls, $3, invert($4), $2, 0); }
 	| specifier_list declarator_list ';'
-	{ $$ = newexpr(Edecls, $1, invert($2), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecls, $1, invert($2), 0, 0); }
 	;
 
 declarator_list
 	: declarator
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| declarator_list ',' declarator
-	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 base
 	: VOID
-	{ $$ = newexpr(Evoid, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Evoid, 0, 0, 0, 0); }
 	| CHAR
-	{ $$ = newexpr(Echar, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Echar, 0, 0, 0, 0); }
 	| SHORT
-	{ $$ = newexpr(Eshort, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eshort, 0, 0, 0, 0); }
 	| INT
-	{ $$ = newexpr(Eint, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eint, 0, 0, 0, 0); }
 	| LONG
-	{ $$ = newexpr(Elong, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Elong, 0, 0, 0, 0); }
 	| FLOAT
-	{ $$ = newexpr(Efloat, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efloat, 0, 0, 0, 0); }
 	| DOUBLE
-	{ $$ = newexpr(Edouble, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edouble, 0, 0, 0, 0); }
 	| SIGNED
-	{ $$ = newexpr(Esigned, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Esigned, 0, 0, 0, 0); }
 	| UNSIGNED
-	{ $$ = newexpr(Eunsigned, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eunsigned, 0, 0, 0, 0); }
 
 base_list
 	: base
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| base_list base
-	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0); }
 	;
 
 type_specifier
 	: base_list
-	{ $$ = newexpr(Ebase, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id
-	{ $$ = newexpr(Etid, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etid, $1, 0, 0, 0); }
 	| struct_or_union_specifier
 	| enum_specifier
 	;
 
 struct_or_union_specifier
 	: struct_or_union tag '{' struct_declaration_list struct_size '}'
-	{ $$ = newexpr($1, $2, invert(newexpr(Eelist, $5, $4, 0, 0)), 0, 0); } 
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, invert(newexprsrc(&ctx->inp->src, Eelist, $5, $4, 0, 0)), 0, 0); } 
 	| struct_or_union '{' struct_declaration_list struct_size '}'
-	{ $$ = newexpr($1, 0, invert(newexpr(Eelist, $4, $3, 0, 0)), 0, 0); } 
+	{ $$ = newexprsrc(&ctx->inp->src, $1, 0, invert(newexprsrc(&ctx->inp->src, Eelist, $4, $3, 0, 0)), 0, 0); } 
 	| struct_or_union tag '{' struct_size '}'
-	{ $$ = newexpr($1, $2, newexpr(Eelist, $4, nullelist(), 0, 0), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, newexprsrc(&ctx->inp->src, Eelist, $4, nullelist(), 0, 0), 0, 0); }
 	| struct_or_union '{' struct_size '}'
-	{ $$ = newexpr($1, 0, newexpr(Eelist, $3, nullelist(), 0, 0), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, 0, newexprsrc(&ctx->inp->src, Eelist, $3, nullelist(), 0, 0), 0, 0); }
 	| struct_or_union tag '{'  '}'
-	{ $$ = newexpr($1, $2, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, nullelist(), 0, 0); }
 	| struct_or_union '{' '}'
-	{ $$ = newexpr($1, 0, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, 0, nullelist(), 0, 0); }
 	| struct_or_union tag
-	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	;
 
 struct_or_union
@@ -422,23 +422,23 @@ struct_or_union
 
 struct_declaration_list
 	: struct_declaration
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| struct_declaration_list struct_declaration
-	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0); }
 	;
 
 struct_declaration
 	: '@' constant_expression specifier_list struct_declarator_list ';'
-	{ $$ = newexpr(Efields, $3, invert($4), $2, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efields, $3, invert($4), $2, 0); }
 	| '@' '@' constant_expression specifier_list struct_declarator ':' constant_expression ';'
-	{ $$ = newexpr(Ebitfield, $4, $5, $3, $7); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $4, $5, $3, $7); }
 	| specifier_list struct_declarator_list ';'
-	{ $$ = newexpr(Efields, $1, invert($2), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efields, $1, invert($2), 0, 0); }
 	;
 
 struct_size
 	: '@' constant_expression ';'
-	{ $$ = newexpr(Efieldoff, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efieldoff, $2, 0, 0, 0); }
 	;
 
 /* specifier_list order does not affect meaning of specifier */
@@ -448,9 +448,9 @@ specifier_list
 
 struct_declarator_list
 	: struct_declarator
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| struct_declarator_list ',' struct_declarator
-	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 struct_declarator
@@ -459,31 +459,31 @@ struct_declarator
 
 enum_specifier
 	: ENUM '{' enumerator_list '}'
-	{ $$ = newexpr(Eenum, 0, invert($3), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, 0, invert($3), 0, 0); }
 	| ENUM tag '{' enumerator_list '}'
-	{ $$ = newexpr(Eenum, $2, invert($4), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, invert($4), 0, 0); }
 	| ENUM '{' enumerator_list ',' '}'
-	{ $$ = newexpr(Eenum, 0, invert($3), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, 0, invert($3), 0, 0); }
 	| ENUM tag '{' enumerator_list ',' '}'
-	{ $$ = newexpr(Eenum, $2, invert($4), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, invert($4), 0, 0); }
 	| ENUM tag
-	{ $$ = newexpr(Eenum, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, 0, 0, 0); }
 	;
 
 enumerator_list
 	: enumerator
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| enumerator_list ',' enumerator
-	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 /* typedef names and enumator components are in the same
    overload class, so use id not tag. */
 enumerator
 	: id
-	{ $$ = newexpr(Eenumel, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenumel, $1, 0, 0, 0); }
 	| id '=' constant_expression
-	{ $$ = newexpr(Eenumel, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenumel, $1, $3, 0, 0); }
 	;
 
 declarator
@@ -498,20 +498,20 @@ direct_declarator
 	| '(' declarator ')'
 	{ $$ = $2; }
 	| direct_declarator '[' constant_expression ']'
-	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
 	| direct_declarator '[' ']'
-	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, 0, 0, 0); }
 	| direct_declarator '(' parameter_type_list ')'
-	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, $3, 0, 0); }
 	| direct_declarator '(' ')'
-	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, nullelist(), 0, 0); }
 	;
 
 pointer
 	: '*'
-	{ $$ = newexpr(Eptr, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eptr, 0, 0, 0, 0); }
 	| '*' pointer
-	{ $$ = newexpr(Eptr, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eptr, $2, 0, 0, 0); }
 	;
 
 parameter_type_list
@@ -519,8 +519,8 @@ parameter_type_list
 	{ $$ = invert($1); }
 	| parameter_list ',' ELLIPSIS
 /*
-	{ $$ = invert(newexpr(Eelist,
-	                      newexpr(Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
+	{ $$ = invert(newexprsrc(&ctx->inp->src, Eelist,
+	                      newexprsrc(&ctx->inp->src, Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
 			      
 */
 	{ $$ = invert($1); }
@@ -528,18 +528,18 @@ parameter_type_list
 
 parameter_list
 	: parameter_declaration
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| parameter_list ',' parameter_declaration
-	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 parameter_declaration
 	: specifier_list declarator
-	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
 	| specifier_list abstract_declarator
-	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
 	| specifier_list
-	{ $$ = newexpr(Edecl, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, 0, 0, 0); }
 	;
 
 abstract_declarator
@@ -553,15 +553,15 @@ direct_abstract_declarator
 	: '(' abstract_declarator ')'
 	{ $$ = $2; }
 	| '[' ']'
-	{ $$ = newexpr(Earr, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, 0, 0, 0, 0); }
 	| '[' constant_expression ']'
-	{ $$ = newexpr(Earr, 0, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, 0, $2, 0, 0); }
 	| direct_abstract_declarator '[' ']'
-	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, 0, 0, 0); }
 	| direct_abstract_declarator '[' constant_expression ']'
-	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
 	| '(' ')'
-	{ $$ = newexpr(Efun, 0, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, nullelist(), 0, 0); }
 /*
  * without this rule, you cannot write abstract function types like
  * `int(int)' (perhaps the equivalent type can be formed with enough
@@ -579,47 +579,47 @@ direct_abstract_declarator
  * always the right reduction).  since this rule seems obscure,
  * we leave it out.
 	| '(' parameter_type_list ')'
-	{ $$ = newexpr(Efun, 0, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, $2, 0, 0); }
  * (if you restore this, be sure to revisit tn_direct_abstract_declarator)
 */
 	| direct_abstract_declarator '(' ')'
-	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, nullelist(), 0, 0); }
 	| direct_abstract_declarator '(' parameter_type_list ')'
-	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, $3, 0, 0); }
 	;
 
 type_name
 	: tn_type_specifier
-	{ $$ = newexpr(Edecl, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, 0, 0, 0); }
         | tn_type_specifier tn_abstract_declarator
-	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
 	;
 
 tn_type_specifier
 	: base_list
-	{ $$ = newexpr(Ebase, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id '`' base_list
-	{ $$ = newexpr(Ebase, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $3, $1, 0, 0); }
 	| '`' id
-	{ $$ = newexpr(Etid, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etid, $2, 0, 0, 0); }
 	| id '`' id
-	{ $$ = newexpr(Etid, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etid, $3, $1, 0, 0); }
 	| tn_struct_or_union_specifier
 	| tn_enum_specifier
 	;
 
 tn_struct_or_union_specifier
 	: struct_or_union tag
-	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	| struct_or_union id '`' tag
-	{ $$ = newexpr($1, $4, 0, $2, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $4, 0, $2, 0); }
 	;
 
 tn_enum_specifier
 	: ENUM tag
-	{ $$ = newexpr(Eenum, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, 0, 0, 0); }
 	| ENUM id '`' tag
-	{ $$ = newexpr(Eenum, $4, 0, $2, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $4, 0, $2, 0); }
 	;
 
 tn_parameter_type_list
@@ -627,8 +627,8 @@ tn_parameter_type_list
 	{ $$ = invert($1); }
 	| tn_parameter_list ',' ELLIPSIS
 /*
-	{ $$ = invert(newexpr(Eelist,
-	                      newexpr(Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
+	{ $$ = invert(newexprsrc(&ctx->inp->src, Eelist,
+	                      newexprsrc(&ctx->inp->src, Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
 			      
 */
 	{ $$ = invert($1); }
@@ -636,37 +636,37 @@ tn_parameter_type_list
 
 tn_parameter_list
 	: tn_parameter_declaration
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| tn_parameter_list ',' tn_parameter_declaration
-	{ $$ = newexpr(Eelist, $3, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 tn_parameter_declaration
 	: tn_param_type_specifier tn_declarator
-	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
 	| tn_param_type_specifier tn_abstract_declarator
-	{ $$ = newexpr(Edecl, $1, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
 	| tn_param_type_specifier
-	{ $$ = newexpr(Edecl, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, 0, 0, 0); }
 	;
 
 tn_param_type_specifier
 	: base_list
-	{ $$ = newexpr(Ebase, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id
-	{ $$ = newexpr(Etid, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etid, $1, 0, 0, 0); }
 	| tn_param_struct_or_union_specifier
 	| tn_param_enum_specifier
 	;
 
 tn_param_struct_or_union_specifier
 	: struct_or_union tag
-	{ $$ = newexpr($1, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	;
 
 tn_param_enum_specifier
 	: ENUM tag
-	{ $$ = newexpr(Eenum, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, 0, 0, 0); }
 	;
 
 tn_abstract_declarator
@@ -680,19 +680,19 @@ tn_direct_abstract_declarator
 	: '(' tn_abstract_declarator ')'
 	{ $$ = $2; }
 	| '[' ']'
-	{ $$ = newexpr(Earr, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, 0, 0, 0, 0); }
 	| '[' constant_expression ']'
-	{ $$ = newexpr(Earr, 0, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, 0, $2, 0, 0); }
 	| tn_direct_abstract_declarator '[' ']'
-	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, 0, 0, 0); }
 	| tn_direct_abstract_declarator '[' constant_expression ']'
-	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
 	| '(' ')'
-	{ $$ = newexpr(Efun, 0, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, nullelist(), 0, 0); }
 	| tn_direct_abstract_declarator '(' ')'
-	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, nullelist(), 0, 0); }
 	| tn_direct_abstract_declarator '(' tn_parameter_type_list ')'
-	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, $3, 0, 0); }
 	;
 
 tn_declarator
@@ -707,13 +707,13 @@ tn_direct_declarator
 	| '(' tn_declarator ')'
 	{ $$ = $2; }
 	| tn_direct_declarator '[' constant_expression ']'
-	{ $$ = newexpr(Earr, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
 	| tn_direct_declarator '[' ']'
-	{ $$ = newexpr(Earr, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, 0, 0, 0); }
 	| tn_direct_declarator '(' tn_parameter_type_list ')'
-	{ $$ = newexpr(Efun, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, $3, 0, 0); }
 	| tn_direct_declarator '(' ')'
-	{ $$ = newexpr(Efun, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, nullelist(), 0, 0); }
 	;
 
 statement
@@ -733,51 +733,51 @@ local
 
 local_list
 	: local
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| local_list local
-	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0); }
 	;
 
 compound_statement
 	: '{' '}'
-	{ $$ = newexpr(Eblock, nullelist(), nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eblock, nullelist(), nullelist(), 0, 0); }
 	| '{' statement_list '}'
-	{ $$ = newexpr(Eblock, nullelist(), invert($2), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eblock, nullelist(), invert($2), 0, 0); }
 	| '{' local_list '}'
-	{ $$ = newexpr(Eblock, invert($2), nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eblock, invert($2), nullelist(), 0, 0); }
 	| '{' local_list statement_list '}'
-	{ $$ = newexpr(Eblock, invert($2), invert($3), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eblock, invert($2), invert($3), 0, 0); }
 	;
 
 statement_list
 	: statement
-	{ $$ = newexpr(Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| statement_list statement
-	{ $$ = newexpr(Eelist, $2, $1, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0); }
 	;
 
 expression_statement
 	: ';'
-	{ $$ = newexpr(Enop, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
 	| expression ';'
 	{ $$ = $1; }
 	;
 
 selection_statement
 	: IF '(' expression ')' statement
-	{ $$ = newexpr(Eif, $3, $5, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eif, $3, $5, 0, 0); }
 	| IF '(' expression ')' statement ELSE statement
-	{ $$ = newexpr(Eif, $3, $5, $7, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eif, $3, $5, $7, 0); }
 	| SWITCH '(' expression ')' compound_statement
 	/* note: C permits body of switch to be a statement */
-	{ $$ = newexpr(Eswitch, $3, $5, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eswitch, $3, $5, 0, 0); }
 	;
 
 labeled_statement
 	: CASE expression ':' statement
-	  { $$ = newexpr(Ecase, $2, $4, NULL, NULL); }
+	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
 	| DEFAULT ':' statement
-	  { $$ = newexpr(Edefault, $3, NULL, NULL, NULL); }
+	  { $$ = newexprsrc(&ctx->inp->src, Edefault, $3, NULL, NULL, NULL); }
 	;
 
 maybe_expression
@@ -788,31 +788,31 @@ maybe_expression
 
 iteration_statement
 	: WHILE '(' expression ')' statement
-	{ $$ = newexpr(Ewhile, $3, $5, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ewhile, $3, $5, 0, 0); }
 	| DO statement WHILE '(' expression ')' ';'
-	{ $$ = newexpr(Edo, $2, $5, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edo, $2, $5, 0, 0); }
 	| FOR '(' maybe_expression ';' maybe_expression ';' maybe_expression ')' statement
-	{ $$ = newexpr(Efor, $3, $5, $7, $9); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efor, $3, $5, $7, $9); }
 	;
 
 jump_statement
 	: CONTINUE ';'
-	{ $$ = newexpr(Econtinue, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Econtinue, 0, 0, 0, 0); }
 	| BREAK ';'
-	{ $$ = newexpr(Ebreak, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ebreak, 0, 0, 0, 0); }
 	| RETURN ';'
-	{ $$ = newexpr(Eret, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eret, 0, 0, 0, 0); }
 	| RETURN expression ';'
-	{ $$ = newexpr(Eret, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eret, $2, 0, 0, 0); }
 	;
 
 define_statement
 	: DEFINE id '(' identifier_list ')' compound_statement
-	{ $$ = newexpr(Edefine, $2, invert($4), $6, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, invert($4), $6, 0); }
 	| DEFINE id '('  ')' compound_statement
-	{ $$ = newexpr(Edefine, $2, nullelist(), $5, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $5, 0); }
 	| DEFINE id id compound_statement
-	{ $$ = newexpr(Edefine, $2, $3, $4, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $4, 0); }
 	;
 
 translation_unit_seq

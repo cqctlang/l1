@@ -31,7 +31,7 @@ static int chars(YYSTYPE *lvalp, int);
 @include[ \t]*\<[^\<\>]+\>[ \t]* { count(ctx); tryinclude(ctx, yytext); }
 <<EOF>>                 { if(popyy(ctx) == 0) yyterminate(); }
 
-\/\/.*			{ /* comment */ ctx->inp->col = 0; }
+\/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
 "/*"			{ comment(ctx); }
 "@local"		{ count(ctx); return(LOCAL); }
 "@names"		{ count(ctx); return(NAMES); }
@@ -163,14 +163,14 @@ comment(U *ctx)
 loop:
 	while((c = input()) != '*' && c != 0){
 		if(c == '\n'){
-			ctx->inp->col = 0;
-			ctx->inp->line++;
+			ctx->inp->src.col = 0;
+			ctx->inp->src.line++;
 		}else
-			ctx->inp->col++;
+			ctx->inp->src.col++;
 	}
 
 	if((c1 = input()) != '/' && c != 0){
-		ctx->inp->col++;	/* '*' */
+		ctx->inp->src.col++;	/* '*' */
 		unput(c1);
 		goto loop;
 	}
@@ -183,10 +183,10 @@ count(U *ctx)
 
 	for(i = 0; yytext[i] != '\0'; i++)
 		if(yytext[i] == '\n'){
-			ctx->inp->col = 0;
-			ctx->inp->line++;
+			ctx->inp->src.col = 0;
+			ctx->inp->src.line++;
 		}else
-			ctx->inp->col++;
+			ctx->inp->src.col++;
 }
 
 static int

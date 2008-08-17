@@ -105,7 +105,8 @@ parseerror(U *ctx, char *fmt, ...)
 	}
 
 	if(ctx->inp)
-		fprintf(stderr, "%s:%u: ", ctx->inp->filename, ctx->inp->line);
+		fprintf(stderr, "%s:%u: ",
+			ctx->inp->src.filename, ctx->inp->src.line);
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
@@ -160,7 +161,7 @@ newdecl()
 }
 
 Expr*
-newexpr(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
+newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 {
 	Expr *e;
 
@@ -171,19 +172,38 @@ newexpr(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 	e->e3 = e3;
 	e->e4 = e4;
 
-//	if(ctx.inp){
-//		e->src.filename = ctx.inp->filename;
-//		e->src.line = ctx.inp->line;
-//	}
+	if(src)
+		e->src = *src;
 
+	return e;
+}
+
+Expr*
+newexpr(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
+{
+	return newexprsrc(0, kind, e1, e2, e3, e4);
+}
+
+Expr*
+newbinopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
+{
+	Expr *e;
+	e = newexprsrc(src, Ebinop, e1, e2, 0, 0);
+	e->op = kind;
 	return e;
 }
 
 Expr*
 newbinop(unsigned kind, Expr *e1, Expr *e2)
 {
+	return newbinopsrc(0, kind, e1, e2);
+}
+
+Expr*
+newgopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
+{
 	Expr *e;
-	e = newexpr(Ebinop, e1, e2, 0, 0);
+	e = newexprsrc(src, Egop, e1, e2, 0, 0);
 	e->op = kind;
 	return e;
 }
@@ -191,10 +211,7 @@ newbinop(unsigned kind, Expr *e1, Expr *e2)
 Expr*
 newgop(unsigned kind, Expr *e1, Expr *e2)
 {
-	Expr *e;
-	e = newexpr(Egop, e1, e2, 0, 0);
-	e->op = kind;
-	return e;
+	return newgopsrc(0, kind, e1, e2);
 }
 
 void
@@ -324,12 +341,18 @@ doid(char *s)
 }
 
 Expr*
-doidn(char *s, unsigned long len)
+doidnsrc(Src *src, char *s, unsigned long len)
 {
 	Expr *e;
-	e = newexpr(Eid, 0, 0, 0, 0);
+	e = newexprsrc(src, Eid, 0, 0, 0, 0);
 	e->id = xstrndup(s, len);
 	return e;
+}
+
+Expr*
+doidn(char *s, unsigned long len)
+{
+	return doidnsrc(0, s, len);
 }
 
 Expr*
@@ -544,7 +567,7 @@ doconst(U *ctx, char *s, unsigned long len)
 }
 
 Expr*
-doconsts(char *s, unsigned long len)
+doconstssrc(Src *src, char *s, unsigned long len)
 {
 	Expr *e;
 	int c;
@@ -648,17 +671,29 @@ doconsts(char *s, unsigned long len)
 		*w++ = c;
 	}
 
-	e = newexpr(Econsts, 0, 0, 0, 0);
+	e = newexprsrc(src, Econsts, 0, 0, 0, 0);
 	e->lits = mklits(s, w-s);
+	return e;
+}
+
+Expr*
+doconsts(char *s, unsigned long len)
+{
+	return doconstssrc(0, s, len);
+}
+
+Expr*
+doticksrc(Src *src, Expr *dom, Expr *id)
+{
+	Expr *e;
+	e = newexprsrc(src, Etick, dom, id, 0, 0);
 	return e;
 }
 
 Expr*
 dotick(Expr *dom, Expr *id)
 {
-	Expr *e;
-	e = newexpr(Etick, dom, id, 0, 0);
-	return e;
+	return doticksrc(0, dom, id);
 }
 
 static Expr*
@@ -1249,7 +1284,7 @@ dotypes(U *ctx, Expr *e)
 void
 dotop(U *ctx, Expr *e)
 {
-	ctx->el = newexpr(Eelist, e, ctx->el, 0, 0);
+	ctx->el = newexprsrc(&ctx->inp->src, Eelist, e, ctx->el, 0, 0);
 }
 
 void
@@ -1298,14 +1333,14 @@ pushyy(U *ctx, char *filename, char *buf)
 		keyed = xstrdup(filename);
 		hput(filenames, keyed, strlen(keyed), keyed);
 	}
-	ctx->inp->filename = keyed;
+	ctx->inp->src.filename = keyed;
 	if(buf){
 		ctx->inp->yy = mkyystatestr(buf);
 		free(buf);
 	}else
 		ctx->inp->yy = mkyystate(fp);
-	ctx->inp->line = 1;
-	ctx->inp->col = 0;
+	ctx->inp->src.line = 1;
+	ctx->inp->src.col = 0;
 	setyystate(ctx->inp->yy);
 }
 
@@ -1316,7 +1351,7 @@ popyy(U *ctx)
 		return 0;
 	if(ctx->inp->fp != stdin)
 		fclose(ctx->inp->fp);
-	ctx->inp->filename = 0;
+	ctx->inp->src.filename = 0;
 	free(ctx->inp->inbuf);
 	ctx->inp->inbuf = 0;
 	freeyystate(ctx->inp->yy);
