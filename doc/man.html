@@ -914,6 +914,27 @@ beginning at <tt><em>p</em></tt>.  Returns
 <tt>nil</tt>.
 </p>
 
+<h3>Strings</h3>
+
+<p>
+The Cinquecento string type represents an array of
+bytes.  String instances have a fixed length.  They are
+not null terminated.
+</p>
+
+<p>
+The function <tt>length(<tt><em>val</em></tt>)</tt>,
+when <tt><em>val</em></tt> is a string, returns the
+number of bytes in the string.
+</p>
+
+<p>
+The C relational operators are defined over strings.
+They compare the bytes of the strings.  (There is no
+way to check whether two string instances are the same
+object.)
+</p>
+
 <h3>I/O</h3>
 
 <p>

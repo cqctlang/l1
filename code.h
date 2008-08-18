@@ -206,18 +206,16 @@ struct Code {
 	Konst *konst;
 };
 
-typedef struct Closure Closure;
 typedef struct VM VM;
-typedef struct Env Env;
 
 void initcompile();
 void finicompile();
 Code* newcode();
 Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
-Expr* docompilec(Expr *e);
-int docompile0(Expr *e);
-typedef Expr*(Pass)(Expr*);
-Expr* gentypename(Type *t, Pass*);
+int docompilec(U *ctx, Expr *e);
+int docompile0(U *ctx, Expr *e);
+typedef Expr*(Pass)(U*, Expr*);
+Expr* gentypename(Type *t, Pass*, U*);
 Closure* compileentry(Expr *el, Env *env);
 void printvmac(VM *vm);
 char* topvecid(unsigned idx, Topvec *tv);
@@ -290,6 +288,7 @@ void* gcprotect(VM *vm, void *hd);
 void freecode(Head *hd);
 
 /* cutil.c */
+void cerror(U *ctx, Expr *e, char *fmt, ...) __attribute__((noreturn));
 Expr* Zadd(Expr *x, Expr *y);
 Expr* Zapply(Expr *fn, Expr *args);
 Expr* Zargs(unsigned n, ...);

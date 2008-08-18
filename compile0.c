@@ -3,22 +3,7 @@
 #include "l1.h"
 #include "code.h"
 
-static jmp_buf esc;
-
-static void cerror(Expr *e, char *fmt, ...) __attribute__((noreturn));
-static Expr* compile0(Expr *e);
-
-static void
-cerror(Expr *e, char *fmt, ...)
-{
-	va_list args;
-	fprintf(stderr, "%s:%u: ", e->src.filename, e->src.line);
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
-	va_end(args);
-	longjmp(esc, 1);
-}
+static Expr* compile0(U *ctx, Expr *e);
 
 static char* cbasector[Vnbase] = {
 	[Vchar]               = "mkctype_char",
@@ -37,7 +22,7 @@ static char* cbasector[Vnbase] = {
 };
 
 Expr*
-gentypename(Type *t, Pass *recpass)
+gentypename(Type *t, Pass *recpass, U *ctx)
 {
 	Expr *e, *se, *te, *id, *off, *tn, *sz, *loc;
 	Enum *en;
@@ -72,7 +57,7 @@ gentypename(Type *t, Pass *recpass)
 			id = Zstr(dl->id);
 			if(dl->offs && dl->type->bitw){
 				/* bitfield */
-				dl->offs = recpass(dl->offs);
+				dl->offs = recpass(ctx, dl->offs);
 				dl->type->bit0 =          /* steal */
 					newbinop(Emod, dl->offs, Zuint(8));
 				off = newbinop(Ediv,
@@ -80,18 +65,18 @@ gentypename(Type *t, Pass *recpass)
 					       Zuint(8));
 				dl->offs = 0;
 			}else if(dl->offs){
-				dl->offs = recpass(dl->offs);
+				dl->offs = recpass(ctx, dl->offs);
 				off = dl->offs; /* steal */
 				dl->offs = 0;
 			}else
 				off = Znil();
-			tn = gentypename(dl->type, recpass);
+			tn = gentypename(dl->type, recpass, ctx);
 			se = Zcons(Zcall(doid("mkfield"), 3, tn, id, off), se);
 			dl = dl->link;
 		}
 		se = Zapply(doid("vector"), invert(se));
 		if(t->sz){
-			t->sz = recpass(t->sz);
+			t->sz = recpass(ctx, t->sz);
 			sz = t->sz; /* steal */
 			t->sz = 0;
 		}else
@@ -195,18 +180,18 @@ gentypename(Type *t, Pass *recpass)
 		break;
 	case Tptr:
 		e = Zcall(doid("mkctype_ptr"), 1,
-			  gentypename(t->link, recpass));
+			  gentypename(t->link, recpass, ctx));
 		break;
 	case Tarr:
 		if(t->cnt){
-			t->cnt = recpass(t->cnt);
+			t->cnt = recpass(ctx, t->cnt);
 			se = t->cnt; /* steal */
 			t->cnt = 0;
 			e = Zcall(doid("mkctype_array"), 2,
-				  gentypename(t->link, recpass), se);
+				  gentypename(t->link, recpass, ctx), se);
 		}else
 			e = Zcall(doid("mkctype_array"), 1,
-				  gentypename(t->link, recpass)); 
+				  gentypename(t->link, recpass, ctx)); 
 		break;
 	case Tfun:
 		te = nullelist();
@@ -216,13 +201,13 @@ gentypename(Type *t, Pass *recpass)
 				id = Zstr(dl->id);
 			else
 				id = Znil();
-			tn = gentypename(dl->type, recpass);
+			tn = gentypename(dl->type, recpass, ctx);
 			te = Zcons(Zcall(doid("vector"), 2, tn, id),
 				   te);
 			dl = dl->link;
 		}
 		e = Zcall(doid("mkctype_fn"), 2,
-			  gentypename(t->link, recpass),
+			  gentypename(t->link, recpass, ctx),
 			  Zapply(doid("vector"), invert(te)));
 		break;
 	default:
@@ -231,9 +216,9 @@ gentypename(Type *t, Pass *recpass)
 
 	if(t->bitw){
 		if(t->kind != Tbase && t->kind != Ttypedef)
-			cerror(se, "invalid bitfield");
-		t->bitw = recpass(t->bitw);
-		t->bit0 = recpass(t->bit0);
+			cerror(ctx, se, "invalid bitfield");
+		t->bitw = recpass(ctx, t->bitw);
+		t->bit0 = recpass(ctx, t->bit0);
 		e = Zcall(doid("mkctype_bitfield"), 3,
 			  e, t->bitw, t->bit0);
 		t->bitw = 0;	/* steal */
@@ -243,18 +228,25 @@ gentypename(Type *t, Pass *recpass)
 	return e;
 }
 
+struct Arg {
+	Expr **e;
+	U *ctx;
+};
+
 static void
 do1tag(void *u, char *k, void *v)
 {
 	Expr *se, *te;
 	Expr **e;
 	Decl *d;
+	struct Arg *up;
 
-	e = u;
+	up = u;
+	e = up->e;
 	d = v;
 
 	te = nullelist();
-	se = gentypename(d->type, compile0);
+	se = gentypename(d->type, compile0, up->ctx);
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, nullelist(), invert(te), 0, 0);
@@ -267,18 +259,20 @@ do1sym(void *u, char *k, void *v)
 	Expr *se, *te, *loc, *offs;
 	Expr **e;
 	Decl *d;
+	struct Arg *up;
 
-	e = u;
+	up = u;
+	e = up->e;
 	d = v;
 
 	loc = Zlocals(2, "$tmp", "$tn");
 
 	te = nullelist();
-	se = Zset(doid("$tn"), gentypename(d->type, compile0));
+	se = Zset(doid("$tn"), gentypename(d->type, compile0, up->ctx));
 	te = Zcons(se, te);
 
 	if(d->offs){
-		d->offs = compile0(d->offs);
+		d->offs = compile0(up->ctx, d->offs);
 		offs = d->offs; /* steal */
 		d->offs = 0;
 	}else
@@ -302,14 +296,16 @@ do1tid(void *u, char *k, void *v)
 	Expr *se, *te, *tn, *loc;
 	Expr **e;
 	Decl *d;
+	struct Arg *up;
 
-	e = u;
+	up = u;
+	e = up->e;
 	d = v;
 
 	loc = Zlocals(1, "$tn");
 
 	te = nullelist();
-	se = Zset(doid("$tn"), gentypename(d->type, compile0));
+	se = Zset(doid("$tn"), gentypename(d->type, compile0, up->ctx));
 	te = Zcons(se, te);
 
 	/* typedef T TID => typetab[typedef(TID)] = typename(T) */
@@ -413,13 +409,14 @@ rmenids(Type *t, HT *enid)
 }
 
 static Expr*
-compilens(Expr *e)
+compilens(U *ctx, Expr *e)
 {
 	Expr *se, *te;
 	Expr *ex;
 	Expr *loc;
 	Decl *dl;
 	HT *sym, *tag, *tid, *enid;
+	struct Arg a;
 
 	loc = Zlocals(3, "$ns", "$typetab", "$symtab");
 
@@ -433,7 +430,7 @@ compilens(Expr *e)
 	te = Zcons(se, te);
 
 	/* inherited names expression */
-	se = Zset(doid("$ns"), compile0(e->e1));
+	se = Zset(doid("$ns"), compile0(ctx, e->e1));
 	te = Zcons(se, te);
 
 	/* declarations */
@@ -453,9 +450,11 @@ compilens(Expr *e)
 		}
 		ex = ex->e2;
 	}
-	hforeach(sym, do1sym, &te);
-	hforeach(tag, do1tag, &te);
-	hforeach(tid, do1tid, &te);
+	a.e = &te;
+	a.ctx = ctx;
+	hforeach(sym, do1sym, &a);
+	hforeach(tag, do1tag, &a);
+	hforeach(tid, do1tid, &a);
 	freeht(sym);
 	freeht(tag);
 	freeht(tid);
@@ -473,7 +472,7 @@ compilens(Expr *e)
 }
 
 static Expr*
-compilesizeof(Decl *d)
+compilesizeof(U *ctx, Decl *d)
 {
 	Type *t;
 	Expr *e, *se, *te, *loc;
@@ -490,7 +489,7 @@ compilesizeof(Decl *d)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile0));
+	se = Zset(doid("$tn"), gentypename(t, compile0, ctx));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
@@ -517,7 +516,7 @@ compilesizeof(Decl *d)
 }
 
 static Expr*
-compiletypeof(Decl *d)
+compiletypeof(U *ctx, Decl *d)
 {
 	Type *t;
 	Expr *e, *se, *te, *loc;
@@ -534,7 +533,7 @@ compiletypeof(Decl *d)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile0));
+	se = Zset(doid("$tn"), gentypename(t, compile0, ctx));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
@@ -561,7 +560,7 @@ compiletypeof(Decl *d)
 }
 
 static Expr*
-compilecast(Expr *e)
+compilecast(U *ctx, Expr *e)
 {
 	Type *t;
 	Expr *se, *te, *dom, *loc;
@@ -572,7 +571,7 @@ compilecast(Expr *e)
 	te = nullelist();
 	
 	// $tmp = e->e2;
-	e->e2 = compile0(e->e2);
+	e->e2 = compile0(ctx, e->e2);
 	se = Zset(doid("$tmp"), e->e2);
 	te = Zcons(se, te);
 
@@ -584,7 +583,7 @@ compilecast(Expr *e)
 		dom = Zcall(doid("domof"), 1, doid("$tmp"));
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile0));
+	se = Zset(doid("$tn"), gentypename(t, compile0, ctx));
 	te = Zcons(se, te);
 
 	// $type = looktype(dom, $tn);
@@ -611,7 +610,7 @@ compilecast(Expr *e)
 }
 
 static Expr*
-compilecontainer(Expr *e)
+compilecontainer(U *ctx, Expr *e)
 {
 	Type *t;
 	Expr *se, *te, *dom, *loc;
@@ -622,7 +621,7 @@ compilecontainer(Expr *e)
 	loc = Zlocals(4, "$tn", "$fld", "$ptype", "$type", "$tmp");
 
 	// $tmp = e->e1;
-	e->e1 = compile0(e->e1);
+	e->e1 = compile0(ctx, e->e1);
 	se = Zset(doid("$tmp"), e->e1);
 	te = Zcons(se, te);
 
@@ -635,7 +634,7 @@ compilecontainer(Expr *e)
 		dom = Zcall(doid("domof"), 1, doid("$tmp"));
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile0));
+	se = Zset(doid("$tn"), gentypename(t, compile0, ctx));
 	te = Zcons(se, te);
 
 	// $type = looktype(dom, $tn);
@@ -704,7 +703,7 @@ istypeform(Expr *e)
 }
 
 static Expr*
-compileambig(Expr *e)
+compileambig(U *ctx, Expr *e)
 {
 	Expr *tf, *of;
 	Expr *se, *te, *loc;
@@ -741,7 +740,7 @@ compileambig(Expr *e)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile0));
+	se = Zset(doid("$tn"), gentypename(t, compile0, ctx));
 	te = Zcons(se, te);
 
 	// $tmp = nslooktype(domns(dom))($tn)
@@ -752,8 +751,8 @@ compileambig(Expr *e)
 	
 	/* must we compile TF only after using all references to TF->...->type?
 	   (including gentypename and dom?) */
-	tf = compile0(tf);
-	of = compile0(of);
+	tf = compile0(ctx, tf);
+	of = compile0(ctx, of);
 
 	// if(isnil($tmp)) <other form> else <type form>
 	se = newexpr(Eif, Zcall(doid("isnil"), 1, doid("$tmp")), of, tf, 0);
@@ -764,7 +763,7 @@ compileambig(Expr *e)
 }
 
 static Expr*
-compile0(Expr *e)
+compile0(U *ctx, Expr *e)
 {
 	Expr *se;
 
@@ -774,65 +773,69 @@ compile0(Expr *e)
 	switch(e->kind){
 	case Elambda:
 	case Eblock:
-		e->e2 = compile0(e->e2);
+		e->e2 = compile0(ctx, e->e2);
 		return e;
 	case Edefine:
 		se = Zset(e->e1,
-			  Zlambdn(e->e2, compile0(e->e3), copyexpr(e->e1)));
+			  Zlambdn(e->e2, compile0(ctx, e->e3),
+				  copyexpr(e->e1)));
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
 		freeexpr(e);
 		return se;
 	case Eambig:
-		se = compileambig(e);
+		se = compileambig(ctx, e);
 		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
 	case Esizeoft:
-		se = compilesizeof(e->e1->xp);
+		se = compilesizeof(ctx, e->e1->xp);
 		freeexpr(e);
 		return se;
 	case Etypeoft:
-		se = compiletypeof(e->e1->xp);
+		se = compiletypeof(ctx, e->e1->xp);
 		freeexpr(e);
 		return se;
 	case Ecast:
-		se = compilecast(e);
+		se = compilecast(ctx, e);
 		// e1 is a decl that needs to be freed
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
 	case Econtainer:
-		se = compilecontainer(e);
+		se = compilecontainer(ctx, e);
 		e->e1 = 0;
 		freeexpr(e);
 		return se;
 	case Elist:
-		se = Zapply(doid("list"), compile0(e->e1));
+		se = Zapply(doid("list"), compile0(ctx, e->e1));
 		e->e1 = 0;
 		freeexpr(e);
 		return se;
 	case Ens:
-		se = compilens(e);
+		se = compilens(ctx, e);
 		e->e1 = 0;
 		freeexpr(e);
 		return se;
 	default:
-		e->e1 = compile0(e->e1);
-		e->e2 = compile0(e->e2);
-		e->e3 = compile0(e->e3);
-		e->e4 = compile0(e->e4);
+		e->e1 = compile0(ctx, e->e1);
+		e->e2 = compile0(ctx, e->e2);
+		e->e3 = compile0(ctx, e->e3);
+		e->e4 = compile0(ctx, e->e4);
 		return e;
 	}
 }
 
 int
-docompile0(Expr *e)
+docompile0(U *ctx, Expr *e)
 {
-	if(setjmp(esc) != 0)
+ 	/* expr lists ensure we do not have to return a new root Expr */
+	if(e->kind != Eelist && e->kind != Enull)
+		fatal("bug");
+	if(setjmp(ctx->jmp) != 0)
 		return -1;	/* error */
-	compile0(e);
-	return 0;		/* success */
+	compile0(ctx, e);
+	return 0;
 }

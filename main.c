@@ -3,7 +3,7 @@
 #include "l1.h"
 #include "code.h"
 
-char flags[256];
+char cqctflags[256];
 
 static void
 usage(char *argv0)
@@ -61,7 +61,7 @@ int
 main(int argc, char *argv[])
 {
 	Closure *entry;
-	Expr *e, *rv;
+	Expr *e;
 	VM *vm;
 	Env *env;
 	char *filename = 0;
@@ -70,10 +70,9 @@ main(int argc, char *argv[])
 	int dorepl;
 	unsigned len;
 	char *inbuf;
-	U ctx;
 
-	flags['c'] = 1;		/* compile */
-	flags['x'] = 1;		/* execute */
+	cqctflags['c'] = 1;		/* compile */
+	cqctflags['x'] = 1;		/* execute */
 	dorepl = 1;
 	while(EOF != (c = getopt(argc, argv, "bce:hopqtx"))){
 		switch(c){
@@ -82,11 +81,11 @@ main(int argc, char *argv[])
 		case 'q':
 		case 'b':
 		case 't':
-			flags[c] = 1;
+			cqctflags[c] = 1;
 			break;
 		case 'c':
 		case 'x':
-			flags[c] = 0;
+			cqctflags[c] = 0;
 			break;
 		case 'e':
 			dorepl = 0;
@@ -102,15 +101,12 @@ main(int argc, char *argv[])
 	initcompile();
 
 	env = mkenv();
-	if(flags['x']){
+	if(cqctflags['x']){
 		initvm();
 		vm = mkvm(env);
 		if(vm == 0)
 			goto out;
 	}
-
-	if(filename == 0)
-		filename = stdinname;
 
 	if(dorepl)
 		if(setvbuf(stdin, 0, _IONBF, 0))
@@ -128,68 +124,45 @@ main(int argc, char *argv[])
 			}
 		}
 
-		memset(&ctx, 0, sizeof(ctx));
-		e = doparse(&ctx, filename, inbuf);
+		if(filename)
+			e = cqctparsefile(filename);
+		else if(inbuf)
+			e = cqctparsestr(inbuf);
+		else
+			fatal("bug");
 		if(e == 0)
 			continue;
 
-		if(flags['p']){
-			printf("source:\n");
-			printexpr(e);
-			printf("\n");
-		}
-
-		dotypes(&ctx, e);
-		rv = docompilec(e);
-		if(rv == 0){
+		entry = cqctcompile(e, env);
+		if(entry == 0){
 			freeexpr(e);
 			continue;
 		}
-		e = rv;
-		if(0 > docompile0(e)){
-			freeexpr(e);
-			continue;
-		}
-		if(flags['p']){
-			printf("compile0:\n");
-			printexpr(e);
-			printf("\n");
-		}
+		/* now storage for E is managed by cqct storage manager */
 
-		if(flags['q']){
-			printf("transformed source:\n");
-			printcqct(e);
-			printf("\n");
+		if(cqctflags['x']){
+			wast = cqctflags['t'];
+			if(wast)
+				gettimeofday(&beg, 0);
+			if(!waserror(vm)){
+				dovm(vm, entry, 0, 0);
+				if(wast && cqctflags['t']){
+					gettimeofday(&end, 0);
+					tvdiff(&end, &beg, &end);
+					printf("%lu usec\n",
+					       1000000*end.tv_sec
+					       +end.tv_usec);
+				}
+				poperror(vm);
+			}else
+				vmreset(vm);
+			if(dorepl)
+				printvmac(vm);
 		}
-
-		if(flags['c']){
-			entry = compileentry(e, env);
-			if(flags['x']){
-				wast = flags['t'];
-				if(wast)
-					gettimeofday(&beg, 0);
-				if(!waserror(vm)){
-					dovm(vm, entry, 0, 0);
-					if(wast && flags['t']){
-						gettimeofday(&end, 0);
-						tvdiff(&end, &beg, &end);
-						printf("%lu usec\n",
-						       1000000*end.tv_sec
-						       +end.tv_usec);
-					}
-					poperror(vm);
-				}else
-					vmreset(vm);
-			}
-		}else
-			freeexpr(e);
-
-		if(dorepl && flags['x'])
-			printvmac(vm);
 	}while(dorepl);
 out:
 	freeenv(env);
-	if(flags['x']){
+	if(cqctflags['x']){
 		freevm(vm);
 		finivm();
 	}

@@ -3,6 +3,21 @@
 #include "l1.h"
 #include "code.h"
 
+void
+cerror(U *ctx, Expr *e, char *fmt, ...)
+{
+	va_list args;
+	if(e->src.filename)
+		fprintf(stderr, "%s:%u: ", e->src.filename, e->src.line);
+	else
+		fprintf(stderr, "<lost-location!>: ");
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+	va_end(args);
+	longjmp(ctx->jmp, 1);
+}
+
 static Expr*
 Z1(unsigned kind, Expr *e1)
 {

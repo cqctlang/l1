@@ -3,23 +3,8 @@
 #include "l1.h"
 #include "code.h"
 
-static jmp_buf esc;
-
-static void cerror(Expr *e, char *fmt, ...) __attribute__((noreturn));
-static Expr* compile_rval(Expr *e, unsigned lfree);
-static Expr* compilec(Expr* e);
-
-static void
-cerror(Expr *e, char *fmt, ...)
-{
-	va_list args;
-	fprintf(stderr, "%s:%u: ", e->src.filename, e->src.line);
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
-	va_end(args);
-	longjmp(esc, 1);
-}
+static Expr* compile_rval(U *ctx, Expr *e, unsigned lfree);
+static Expr* compilec(U *ctx, Expr* e);
 
 static int
 islval(Expr *e)
@@ -58,7 +43,7 @@ lvalblock(Expr *body)
 }
 
 static Expr*
-compile_lval(Expr *e, int needaddr)
+compile_lval(U *ctx, Expr *e, int needaddr)
 {
 	Expr *se, *te, *dom;
 	Type *t;
@@ -73,7 +58,7 @@ compile_lval(Expr *e, int needaddr)
 
 		// compile lvalue reference to expression,
 		// using dom, type bindings
-		se = compile_lval(e->e2, needaddr);
+		se = compile_lval(ctx, e->e2, needaddr);
 		te = Zcons(se, te);
 
 		// clobber type with cast operand 
@@ -85,7 +70,7 @@ compile_lval(Expr *e, int needaddr)
 			dom = doid("$dom");
 
 		se = Zblock(Zlocals(1, "$tn"),
-			    Zset(doid("$tn"), gentypename(t, compilec)),
+			    Zset(doid("$tn"), gentypename(t, compilec, ctx)),
 			    Zset(doid("$type"),
 				 Zcall(doid("looktype"), 2,
 				       dom, doid("$tn"))),
@@ -151,9 +136,9 @@ compile_lval(Expr *e, int needaddr)
 	case Ederef:
 		te = nullelist();
 
-		// $tmp = compile_rval(e->e1);
+		// $tmp = compile_rval(ctx, e->e1);
 		if(needaddr || !islval(e->e1)){
-			se = Zset(doid("$tmp"), compile_rval(e->e1, 0));
+			se = Zset(doid("$tmp"), compile_rval(ctx, e->e1, 0));
 			te = Zcons(se, te);
 
 			// $type = subtype($typeof($tmp));
@@ -179,7 +164,7 @@ compile_lval(Expr *e, int needaddr)
 		}else{
 			// compile lvalue reference to pointer,
 			// using dom, type bindings
-			se = compile_lval(e->e1, 0);
+			se = compile_lval(ctx, e->e1, 0);
 			te = Zcons(se, te);
 
 			// $type = subtype($type);
@@ -195,7 +180,7 @@ compile_lval(Expr *e, int needaddr)
 
 		// compile lvalue reference to containing struct,
 		// using dom, type, addr bindings.
-		se = compile_lval(e->e1, needaddr);
+		se = compile_lval(ctx, e->e1, needaddr);
 		te = Zcons(se, te);
 		
 		// $tmp = lookfield(type, field);
@@ -231,12 +216,12 @@ compile_lval(Expr *e, int needaddr)
 		freeexpr(e);
 		return lvalblock(invert(te));
 	default:
-		cerror(e, "expression is not an lvalue");
+		cerror(ctx, e, "expression is not an lvalue");
 	}
 }
 
 static Expr*
-compile_rval(Expr *e, unsigned lfree)
+compile_rval(U *ctx, Expr *e, unsigned lfree)
 {
 	Expr *se, *te, *p;
 
@@ -248,14 +233,14 @@ compile_rval(Expr *e, unsigned lfree)
 	case Edot:
 	case Ederef:
 		te = nullelist();
-		se = compile_lval(e, 1);
+		se = compile_lval(ctx, e, 1);
 		te = Zcons(se, te);
 		se = Zcval(doid("$dom"), doid("$type"), doid("$addr"));
 		te = Zcons(se, te);
 		return rvalblock(invert(te), lfree);
 	case Eref:
 		te = nullelist();
-		se = compile_lval(e->e1, 1);
+		se = compile_lval(ctx, e->e1, 1);
 		te = Zcons(se, te);
 		se = Zref(doid("$dom"), doid("$type"), doid("$addr"));
 		te = Zcons(se, te);
@@ -265,18 +250,18 @@ compile_rval(Expr *e, unsigned lfree)
 	case Eg:
 		if(!islval(e->e1)){
 			if(e->e1->kind != Eid)
-				cerror(e, "invalid assignment");
-			e->e1 = compile_rval(e->e1, 0);
-			e->e2 = compile_rval(e->e2, 0);
+				cerror(ctx, e, "invalid assignment");
+			e->e1 = compile_rval(ctx, e->e1, 0);
+			e->e2 = compile_rval(ctx, e->e2, 0);
 			return e;
 		}
 
 		te = nullelist();
 
-		se = compile_lval(e->e1, 1);
+		se = compile_lval(ctx, e->e1, 1);
 		te = Zcons(se, te);
 
-		se = Zset(doid("$val"), compile_rval(e->e2, 0));
+		se = Zset(doid("$val"), compile_rval(ctx, e->e2, 0));
 		te = Zcons(se, te);
 
 		se = Zcall(doid("$put"), 4,
@@ -294,20 +279,21 @@ compile_rval(Expr *e, unsigned lfree)
 			   into equivalent source, do we generate same
 			   or similar code as compile.c on Egop? */
 			if(e->e1->kind != Eid)
-				cerror(e, "invalid assignment");
-			e->e1 = compile_rval(e->e1, 0);
-			e->e2 = compile_rval(e->e2, 0);
+				cerror(ctx, e, "invalid assignment");
+			e->e1 = compile_rval(ctx, e->e1, 0);
+			e->e2 = compile_rval(ctx, e->e2, 0);
 			return e;
 		}
 
 		te = nullelist();
 
 		/* reuse lval bindings */
-		se = Zset(doid("$val"), compile_rval(e->e1, 1));
+		se = Zset(doid("$val"), compile_rval(ctx, e->e1, 1));
 		te = Zcons(se, te);
 
 		se = Zset(doid("$val"),
-			  Zbinop(e->op, doid("$val"), compile_rval(e->e2, 0)));
+			  Zbinop(e->op, doid("$val"),
+				 compile_rval(ctx, e->e2, 0)));
 		te = Zcons(se, te);
 
 		se = Zcall(doid("$put"), 4,
@@ -326,15 +312,15 @@ compile_rval(Expr *e, unsigned lfree)
 			   into equivalent source, do we generate same
 			   or similar code as compile.c on ++? */
 			if(e->e1->kind != Eid)
-				cerror(e, "invalid assignment");
-			e->e1 = compile_rval(e->e1, 0);
+				cerror(ctx, e, "invalid assignment");
+			e->e1 = compile_rval(ctx, e->e1, 0);
 			return e;
 		}
 
 		te = nullelist();
 
 		/* reuse lval bindings */
-		se = Zset(doid("$val"), compile_rval(e->e1, 1));
+		se = Zset(doid("$val"), compile_rval(ctx, e->e1, 1));
 		te = Zcons(se, te);
 
 		se = Zcall(doid("$put"), 4,
@@ -357,15 +343,15 @@ compile_rval(Expr *e, unsigned lfree)
 			   into equivalent source, do we generate same
 			   or similar code as compile.c on ++? */
 			if(e->e1->kind != Eid)
-				cerror(e, "invalid assignment");
-			e->e1 = compile_rval(e->e1, 0);
+				cerror(ctx, e, "invalid assignment");
+			e->e1 = compile_rval(ctx, e->e1, 0);
 			return e;
 		}
 
 		te = nullelist();
 
 		/* reuse lval bindings */
-		se = Zset(doid("$val"), compile_rval(e->e1, 1));
+		se = Zset(doid("$val"), compile_rval(ctx, e->e1, 1));
 		te = Zcons(se, te);
 
 		if(e->kind == Epreinc)
@@ -385,7 +371,7 @@ compile_rval(Expr *e, unsigned lfree)
 		return rvalblock(invert(te), lfree);
 	case Esizeofe:
 		if(!islval(e->e1)){
-			se = Zsizeof(compile_rval(e->e1, 0));
+			se = Zsizeof(compile_rval(ctx, e->e1, 0));
 			e->e1 = 0;
 			freeexpr(e);
 			return se;
@@ -393,7 +379,7 @@ compile_rval(Expr *e, unsigned lfree)
 
 		te = nullelist();
 
-		se = compile_lval(e->e1, 0);
+		se = compile_lval(ctx, e->e1, 0);
 		te = Zcons(se, te);
 
 		se = Zsizeof(Zcall(doid("$typeof"), 1, doid("$type")));
@@ -404,7 +390,8 @@ compile_rval(Expr *e, unsigned lfree)
 		return rvalblock(invert(te), lfree);
 	case Etypeofe:
 		if(!islval(e->e1)){
-			se = Zcall(doid("$typeof"), 1, compile_rval(e->e1, 0));
+			se = Zcall(doid("$typeof"), 1,
+				   compile_rval(ctx, e->e1, 0));
 			e->e1 = 0;
 			freeexpr(e);
 			return se;
@@ -412,7 +399,7 @@ compile_rval(Expr *e, unsigned lfree)
 
 		te = nullelist();
 
-		se = compile_lval(e->e1, 0);
+		se = compile_lval(ctx, e->e1, 0);
 		te = Zcons(se, te);
 
 		se = Zcall(doid("$typeof"), 1, doid("$type"));
@@ -424,22 +411,22 @@ compile_rval(Expr *e, unsigned lfree)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = compile_rval(p->e1, 0);
+			p->e1 = compile_rval(ctx, p->e1, 0);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = compile_rval(e->e1, 0);
-		e->e2 = compile_rval(e->e2, 0);
-		e->e3 = compile_rval(e->e3, 0);
-		e->e4 = compile_rval(e->e4, 0);
+		e->e1 = compile_rval(ctx, e->e1, 0);
+		e->e2 = compile_rval(ctx, e->e2, 0);
+		e->e3 = compile_rval(ctx, e->e3, 0);
+		e->e4 = compile_rval(ctx, e->e4, 0);
 		return e;
 	}
 }
 
 /* expand syntax of various C forms for subsequent stages */
 static Expr*
-expandc(Expr *e)
+expandc(U *ctx, Expr *e)
 {
 	Expr *se, *p;
 
@@ -449,7 +436,7 @@ expandc(Expr *e)
 	case Earef: /* for compile_rval */
 		/* rewrite: E1[E2] => *(E1+E2) */
 		se = newexpr(Ederef, 
-			     Zadd(expandc(e->e1), expandc(e->e2)),
+			     Zadd(expandc(ctx, e->e1), expandc(ctx, e->e2)),
 			     0, 0, 0);
 		e->e1 = 0;
 		e->e2 = 0;
@@ -458,7 +445,7 @@ expandc(Expr *e)
 	case Earrow: /* for compile_rval */
 		/* rewrite: E->field => (*E).field */
 		se = newexpr(Edot,
-			     newexpr(Ederef, expandc(e->e1), 0, 0, 0),
+			     newexpr(Ederef, expandc(ctx, e->e1), 0, 0, 0),
 			     e->e2, 0, 0);
 		e->e1 = 0;
 		e->e2 = 0;
@@ -475,8 +462,8 @@ expandc(Expr *e)
 		*/ 
 		se = Zblock(Zlocals(1, "$tmp"),
 			   newexpr(Eswitch,
-				   Zset(doid("$tmp"), expandc(e->e1)),
-				   expandc(e->e2), 0, 0),
+				   Zset(doid("$tmp"), expandc(ctx, e->e1)),
+				   expandc(ctx, e->e2), 0, 0),
 			   NULL);
 		e->e1 = 0;
 		e->e2 = 0;
@@ -484,16 +471,16 @@ expandc(Expr *e)
 		return se;
 	case Ecase:
 		se = newexpr(Ecase,
-			     Zbinop(Eeq, doid("$tmp"), expandc(e->e1)),
-			     expandc(e->e2), 0, 0);
+			     Zbinop(Eeq, doid("$tmp"), expandc(ctx, e->e1)),
+			     expandc(ctx, e->e2), 0, 0);
 		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
 	case Ecomma:
 		se = Zblock(nullelist(),
-			    expandc(e->e1),
-			    expandc(e->e2),
+			    expandc(ctx, e->e1),
+			    expandc(ctx, e->e2),
 			    NULL);
 		e->e1 = 0;
 		e->e2 = 0;
@@ -502,21 +489,21 @@ expandc(Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expandc(p->e1);
+			p->e1 = expandc(ctx, p->e1);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expandc(e->e1);
-		e->e2 = expandc(e->e2);
-		e->e3 = expandc(e->e3);
-		e->e4 = expandc(e->e4);
+		e->e1 = expandc(ctx, e->e1);
+		e->e2 = expandc(ctx, e->e2);
+		e->e3 = expandc(ctx, e->e3);
+		e->e4 = expandc(ctx, e->e4);
 		return e;
 	}
 }
 
 static Expr*
-expanddot(Expr *e)
+expanddot(U *ctx, Expr *e)
 {
 	Expr *te, *p;
 	char *id;
@@ -529,16 +516,17 @@ expanddot(Expr *e)
 			return e;
 		id = e->e2->id;
 		if(!strcmp(id, "dispatch"))
-			te = Zcall(doid("asdispatch"), 1, expanddot(e->e1));
+			te = Zcall(doid("asdispatch"), 1,
+				   expanddot(ctx, e->e1));
 		else if(!strcmp(id, "names"))
-			te = Zcall(doid("domns"), 1, expanddot(e->e1));
+			te = Zcall(doid("domns"), 1, expanddot(ctx, e->e1));
 		else if(!strcmp(id, "as"))
-			te = Zcall(doid("domas"), 1, expanddot(e->e1));
+			te = Zcall(doid("domas"), 1, expanddot(ctx, e->e1));
 		else
 			te = Zblock(Zlocals(1, "$disp"),
 				    Zset(doid("$disp"),
 					 Zcall(doid("asdispatch"), 1,
-					       expanddot(e->e1))),
+					       expanddot(ctx, e->e1))),
 				    Zlambdn(doid("$args"),
 					    Zblock(nullelist(),
 						   Zret(Zcall(doid("apply"), 3,
@@ -554,33 +542,36 @@ expanddot(Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expanddot(p->e1);
+			p->e1 = expanddot(ctx, p->e1);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expanddot(e->e1);
-		e->e2 = expanddot(e->e2);
-		e->e3 = expanddot(e->e3);
-		e->e4 = expanddot(e->e4);
+		e->e1 = expanddot(ctx, e->e1);
+		e->e2 = expanddot(ctx, e->e2);
+		e->e3 = expanddot(ctx, e->e3);
+		e->e4 = expanddot(ctx, e->e4);
 		return e;
 	}
 }
 
 static Expr*
-compilec(Expr* e)
+compilec(U *ctx, Expr* e)
 {
-	e = expandc(e);
-	e = expanddot(e);
-	return compile_rval(e, 0);
+	expandc(ctx, e);
+	expanddot(ctx, e);
+	compile_rval(ctx, e, 0);
+	return e;
 }
 
-Expr*
-docompilec(Expr *e)
+int
+docompilec(U *ctx, Expr *e)
 {
-	Expr *rv;
-	if(setjmp(esc) != 0)
-		return 0;	/* error */
-	rv = compilec(e);
-	return rv;
+ 	/* expr lists ensure we do not have to return a new root Expr */
+	if(e->kind != Eelist && e->kind != Enull)
+		fatal("bug");
+	if(setjmp(ctx->jmp) != 0)
+		return -1;	/* error */
+	compilec(ctx, e);
+	return 0;
 }

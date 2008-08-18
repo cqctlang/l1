@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "util.h"
 #include "l1.h"
+#include "code.h"
 
 char* basename[Vnbase] = {
 	[Vundef]              = "error!",
@@ -82,8 +83,7 @@ static char* fmtdecl(Decl *d);
 static Type* copytype(Type *t);
 
 static HT *filenames;
-
-char *stdinname = "<stdin>";
+static char *stdinname = "<stdin>";
 
 extern int yylex_destroy(void);
 
@@ -1399,22 +1399,66 @@ tryinclude(U *ctx, char *raw)
 	pushyy(ctx, p, 0);
 }
 
-Expr*
-doparse(U *ctx, char *filename, char *inbuf)
+static Expr*
+doparse(char *filename, char *inbuf)
 {
-	ctx->el = nullelist();
-	if(setjmp(ctx->jmp) == 0){
-		pushyy(ctx, filename, inbuf);
-		if(yyparse(ctx) != 0)
+	U ctx;
+
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.el = nullelist();
+	if(setjmp(ctx.jmp) == 0){
+		pushyy(&ctx, filename, inbuf);
+		if(yyparse(&ctx) != 0)
 			fatal("parse error");
 	}else
 		return 0;
 
-	ctx->el = invert(ctx->el);
-	popyy(ctx);
+	ctx.el = invert(ctx.el);
+	popyy(&ctx);
 	/* FIXME: does bison normally call yylex_destroy implicitly?
 	   http://www.mail-archive.com/bison-patches@gnu.org/msg01521.html
 	*/
 	yylex_destroy();
-	return ctx->el;
+	return ctx.el;
+}
+
+Expr*
+cqctparsefile(char *filename)
+{
+	return doparse(filename, 0);
+}
+
+Expr*
+cqctparsestr(char *str)
+{
+	return doparse(stdinname, str);
+}
+
+Closure*
+cqctcompile(Expr *e, Env *env)
+{
+	U ctx;
+
+	memset(&ctx, 0, sizeof(ctx));
+	dotypes(&ctx, e);
+	if(docompilec(&ctx, e) != 0)
+		return 0;
+	if(docompile0(&ctx, e) != 0)
+		return 0;
+
+	if(cqctflags['p']){
+		printf("compile0:\n");
+		printexpr(e);
+		printf("\n");
+	}
+	if(cqctflags['q']){
+		printf("transformed source:\n");
+		printcqct(e);
+		printf("\n");
+	}
+
+	if(cqctflags['c'])
+		return compileentry(e, env);
+	else
+		return 0;
 }

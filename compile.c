@@ -2596,7 +2596,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 
 	memset(&p, 0, sizeof(p));
 	b = (Lambda*)e->xp;
-	if(flags['b']){
+	if(cqctflags['b']){
 		if(b->vararg)
 			printf("%s: var params, %u locals, %u temps\n",
 			       name->label, b->maxloc, b->ntmp);
@@ -2712,7 +2712,7 @@ compileentry(Expr *el, Env *env)
 	b = (Lambda*)le->xp;
 	cl = mkcl(code, 0, b->capture->nvr, L->label);
 
-	if(flags['o'])
+	if(cqctflags['o'])
 		printcode(code);
 
 	return cl;

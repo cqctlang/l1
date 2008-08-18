@@ -179,6 +179,8 @@ typedef struct Expr Expr;
 typedef struct Decl Decl;
 typedef struct Enum Enum;
 typedef struct Type Type;
+typedef struct Closure Closure;
+typedef struct Env Env;
 
 typedef
 struct Src {
@@ -270,11 +272,9 @@ struct U {
 } U;
 
 extern U ctx;
-extern char flags[];
 extern char* S[];
 extern char* basename[];
 extern char* tkindstr[];
-extern char *stdinname;
 
 YYstate* mkyystate(FILE *fp);
 YYstate* mkyystatestr(char *buf);
@@ -321,7 +321,10 @@ void pushyy(U *ctx, char *filename, char *inbuf);
 int popyy(U *ctx);
 void tryinclude(U *ctx, char *raw);
 void parseerror(U *ctx, char *fmt, ...);
-Expr* doparse(U *ctx, char *filename, char *inbuf);
+extern char cqctflags[];
+Expr* cqctparsestr(char *str);
+Expr* cqctparsefile(char *filename);
+Closure* cqctcompile(Expr *e, Env *env);
 
 typedef
 struct BFgeom {
