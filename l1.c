@@ -1,7 +1,10 @@
 #include "sys.h"
 #include "util.h"
+#include "cqct.h"
 #include "l1.h"
 #include "code.h"
+
+char cqctflags[256];
 
 char* basename[Vnbase] = {
 	[Vundef]              = "error!",
@@ -1287,7 +1290,7 @@ dotop(U *ctx, Expr *e)
 	ctx->el = newexprsrc(&ctx->inp->src, Eelist, e, ctx->el, 0, 0);
 }
 
-void
+static void
 initparse()
 {
 	filenames = mkht();
@@ -1299,7 +1302,7 @@ freefilename(void *u, char *k, void *v)
 	free(k);
 }
 
-void
+static void
 finiparse()
 {
 	hforeach(filenames, freefilename, 0);
@@ -1461,4 +1464,28 @@ cqctcompile(Expr *e, Env *env)
 		return compileentry(e, env);
 	else
 		return 0;
+}
+
+Env*
+cqctinit()
+{
+	initparse();
+	initcompile();
+	initvm();
+	return mktopenv();
+}
+
+void
+cqctfini(Env *env)
+{
+	freeenv(env);
+	finivm();
+	finicompile();
+	finiparse();
+}
+
+void
+cqctfreeexpr(Expr *e)
+{
+	freeexpr(e);
 }

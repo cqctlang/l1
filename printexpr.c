@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "util.h"
+#include "cqct.h"
 #include "l1.h"
 
 static void printcqct0(Expr *e, unsigned ni);

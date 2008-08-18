@@ -7,6 +7,7 @@
 
 #include "sys.h"
 #include "util.h"
+#include "cqct.h"
 #include "l1.h"
 #include "code.h"
 

@@ -175,12 +175,9 @@ enum {
 	Tntkind = Tundef+1
 };
 
-typedef struct Expr Expr;
 typedef struct Decl Decl;
 typedef struct Enum Enum;
 typedef struct Type Type;
-typedef struct Closure Closure;
-typedef struct Env Env;
 
 typedef
 struct Src {
@@ -311,8 +308,6 @@ char* fmttype(Type *t, char *o);
 
 Expr* dotypes(U*, Expr*);
 void dotop(U*, Expr*);
-void initparse();
-void finiparse();
 
 void printexpr(Expr*);
 void printcqct(Expr*);
@@ -321,10 +316,6 @@ void pushyy(U *ctx, char *filename, char *inbuf);
 int popyy(U *ctx);
 void tryinclude(U *ctx, char *raw);
 void parseerror(U *ctx, char *fmt, ...);
-extern char cqctflags[];
-Expr* cqctparsestr(char *str);
-Expr* cqctparsefile(char *filename);
-Closure* cqctcompile(Expr *e, Env *env);
 
 typedef
 struct BFgeom {

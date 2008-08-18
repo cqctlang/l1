@@ -206,8 +206,6 @@ struct Code {
 	Konst *konst;
 };
 
-typedef struct VM VM;
-
 void initcompile();
 void finicompile();
 Code* newcode();
@@ -269,15 +267,13 @@ Closure* vecsetthunk();
 Code* callccode();
 Code* contcode();
 
-Env* mkenv();
+Env* mktopenv();
 void freeenv(Env *env);
 Val* envgetbind(Env *env, char *id);
 
 void initvm();
 void finivm();
-VM* mkvm(Env*);
 void vmreset(VM *vm);
-void freevm(VM*);
 jmp_buf* _pusherror(VM *vm);
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 void nexterror(VM *vm) __attribute__((noreturn));

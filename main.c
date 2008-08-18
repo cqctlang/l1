@@ -1,9 +1,6 @@
 #include "sys.h"
 #include "util.h"
-#include "l1.h"
-#include "code.h"
-
-char cqctflags[256];
+#include "cqct.h"
 
 static void
 usage(char *argv0)
@@ -97,15 +94,13 @@ main(int argc, char *argv[])
 		}
 	}
 
-	initparse();
-	initcompile();
-
-	env = mkenv();
+	env = cqctinit();
 	if(cqctflags['x']){
-		initvm();
-		vm = mkvm(env);
-		if(vm == 0)
-			goto out;
+		vm = cqctmkvm(env);
+		if(vm == 0){
+			cqctfini(env);
+			return -1;
+		}
 	}
 
 	if(dorepl)
@@ -135,39 +130,31 @@ main(int argc, char *argv[])
 
 		entry = cqctcompile(e, env);
 		if(entry == 0){
-			freeexpr(e);
+			cqctfreeexpr(e);
 			continue;
 		}
 		/* now storage for E is managed by cqct storage manager */
 
-		if(cqctflags['x']){
-			wast = cqctflags['t'];
-			if(wast)
-				gettimeofday(&beg, 0);
-			if(!waserror(vm)){
-				dovm(vm, entry, 0, 0);
-				if(wast && cqctflags['t']){
-					gettimeofday(&end, 0);
-					tvdiff(&end, &beg, &end);
-					printf("%lu usec\n",
-					       1000000*end.tv_sec
-					       +end.tv_usec);
-				}
-				poperror(vm);
-			}else
-				vmreset(vm);
-			if(dorepl)
-				printvmac(vm);
+		if(cqctflags['x'] == 0)
+			continue; /* just compiling */
+		
+		wast = cqctflags['t'];
+		if(wast)
+			gettimeofday(&beg, 0);
+		if(cqctcallthunk(vm, entry))
+			continue; /* error */
+		if(wast && cqctflags['t']){
+			gettimeofday(&end, 0);
+			tvdiff(&end, &beg, &end);
+			printf("%lu usec\n",
+			       1000000*end.tv_sec+end.tv_usec);
 		}
+		if(dorepl)
+			cqctprintvmac(vm);
 	}while(dorepl);
-out:
-	freeenv(env);
-	if(cqctflags['x']){
-		freevm(vm);
-		finivm();
-	}
-	finicompile();
-	finiparse();
 
+	if(cqctflags['x'])
+		cqctfreevm(vm);
+	cqctfini(env);
 	return 0;
 }

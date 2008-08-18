@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "util.h"
+#include "cqct.h"
 #include "l1.h"
 #include "code.h"
 
@@ -1920,7 +1921,7 @@ tabget(Tab *tab, Val *keyv)
 
 /* double hash table size and re-hash entries */
 static void
-tabexpand(VM *vm, Tab *tab)
+tabexpand(Tab *tab)
 {
 	Tabidx *tk, *nxt;
 	u32 i, m, idx;
@@ -1962,7 +1963,7 @@ tabexpand(VM *vm, Tab *tab)
 }
 
 static void
-tabput(VM *vm, Tab *tab, Val *keyv, Val *val)
+dotabput(VM *vm, Tab *tab, Val *keyv, Val *val)
 {
 	Tabidx *tk;
 	u32 idx;
@@ -1971,14 +1972,14 @@ tabput(VM *vm, Tab *tab, Val *keyv, Val *val)
 	x = tab->x;
 	tk = _tabget(tab, keyv, 0);
 	if(tk){
-		if(vm->gcrun)
+		if(vm && vm->gcrun)
 			addroot(&stores, valhead(&x->val[tk->idx]));
 		x->val[tk->idx] = *val;
 		return;
 	}
 
 	if(x->nxt >= x->lim){
-		tabexpand(vm, tab);
+		tabexpand(tab);
 		x = tab->x;
 	}
 
@@ -1995,6 +1996,18 @@ tabput(VM *vm, Tab *tab, Val *keyv, Val *val)
 	x->idx[idx] = tk;
 	x->nxt++;
 	tab->cnt++;
+}
+
+static void
+_tabput(Tab *tab, Val *keyv, Val *val)
+{
+	dotabput(0, tab, keyv, val);
+}
+
+static void
+tabput(VM *vm, Tab *tab, Val *keyv, Val *val)
+{
+	dotabput(vm, tab, keyv, val);
 }
 
 static void
@@ -6361,14 +6374,6 @@ builtinfn(Env *env, char *name, Closure *cl)
 }
 
 static void
-builtinstr(Env *env, char *name, char *s)
-{
-	Val val;
-	mkvalstr(mkstr0(s), &val);
-	envbind(env, name, &val);
-}
-
-static void
 builtinns(Env *env, char *name, Ns *ns)
 {
 	Val val;
@@ -9159,7 +9164,7 @@ printval(VM *vm, Val *val)
 }
 
 void
-printvmac(VM *vm)
+cqctprintvmac(VM *vm)
 {
 	if(vm->ac.qkind != Qnil){
 		printval(vm, &vm->ac);
@@ -9389,9 +9394,8 @@ mktypedefxtn(Str *tid, Xtypename *t)
 	return xtn;
 }
 
-/* FIXME: this shouldn't need a VM */
 static Tab*
-basetab(VM *vm, NSroot *def, Xtypename **base)
+basetab(NSroot *def, Xtypename **base)
 {
 	Cbase cb;
 	Val kv, vv;
@@ -9406,68 +9410,70 @@ basetab(VM *vm, NSroot *def, Xtypename **base)
 	for(cb = Vchar; cb < Vnbase; cb++){
 		mkvalxtn(base[cb], &kv);
 		mkvalxtn(base[cb], &vv);
-		tabput(vm, type, &kv, &vv);
+		_tabput(type, &kv, &vv);
 	}
 
 	/* map pointer to integer representation */
 	mkvalxtn(mkbasextn(Vptr, Rundef), &kv);
 	mkvalxtn(base[Vptr], &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 
 	/* define stdint-like integer typedefs */
 
 	tn = mkstr0("uintptr");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->ptr]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 
 	tn = mkstr0("int8");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xint8]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 	tn = mkstr0("int16");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xint16]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 	tn = mkstr0("int32");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xint32]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 	tn = mkstr0("int64");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xint64]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 
 	tn = mkstr0("uint8");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xuint8]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 	tn = mkstr0("uint16");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xuint16]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 	tn = mkstr0("uint32");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xuint32]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 	tn = mkstr0("uint64");
 	mkvalxtn(mktypedefxtn(tn, 0), &kv);
 	mkvalxtn(mktypedefxtn(tn, base[def->xuint64]), &vv);
-	tabput(vm, type, &kv, &vv);
+	_tabput(type, &kv, &vv);
 
 	return type;
 }
 
 static Ns*
-mkrootns(VM *vm, NSroot *def)
+mkrootns(NSroot *def)
 {
 	Tab *type;
 	Ns *ns;
 	Xtypename *base[Vnallbase];
 
-	type = basetab(vm, def, base);
+	memset(base, 0, sizeof(base)); /* values will be seen by GC */
+	type = basetab(def, base);
 	ns = mknstab(type, mktab());
-	nscachebase(vm, ns);
+	memcpy(ns->base, base, sizeof(base));
+//	nscachebase(vm, ns);
 	return ns;
 }
 
@@ -9562,25 +9568,12 @@ mksysdom(VM *vm)
 }
 
 static Dom*
-mklitdom(VM *vm)
+mklitdom()
 {
-	Ns *ns;
 	Dom *dom;
-	Tab *type;
-	Xtypename *base[Vnallbase];
-	static NSroot *litdef = &clp64le;
-
 	dom = mkdom();
 	dom->as = mknas();
-
-	memset(base, 0, sizeof(base)); /* values will be seen by GC */
-	type = basetab(vm, litdef, base);
-	ns = mknstab(type, mktab());
-	/* hand populate ns->base, because nscachebase calls the
-	   VM, which requires a literal domain. */
-	memcpy(ns->base, base, sizeof(base));
-
-	dom->ns = ns;
+	dom->ns = mkrootns(&clp64le);
 	return dom;
 }
 
@@ -9588,17 +9581,13 @@ static VM *vms[Maxvms];
 
 #define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
 
-VM*
-mkvm(Env *env)
+Env*
+mktopenv()
 {
-	VM *vm, **vmp;
+	Env *env;
+	Dom *litdom;
 
-	vm = xmalloc(sizeof(VM));
-	vm->top = env;
-	vm->pmax = GCinitprot;
-	vm->prot = xmalloc(vm->pmax*sizeof(Root*));
-	vm->emax = Errinitdepth;
-	vm->err = xmalloc(vm->emax*sizeof(Err));
+	env = mkenv();
 	
 	builtinfn(env, "gc", gcthunk());
 	builtinfn(env, "ding", dingthunk());
@@ -9772,30 +9761,50 @@ mkvm(Env *env)
 	FN(copy);
 	FN(equal);
 
+	/* FIXME: these bindings should be immutable */
+	litdom = mklitdom();
+	builtindom(env, "litdom", litdom);
+	builtinfd(env, "stdin", mkfd(mkstr0("<stdin>"), 0, Fread, 0));
+	builtinfd(env, "stdout", mkfd(mkstr0("<stdout>"), 1, Fwrite, 0));
+	builtinns(env, "c32le", mkrootns(&c32le));
+	builtinns(env, "c32be", mkrootns(&c32be));
+	builtinns(env, "c64le", mkrootns(&c64le));
+	builtinns(env, "c64be", mkrootns(&c64be));
+	builtinns(env, "clp64le", mkrootns(&clp64le));
+	builtinns(env, "clp64be", mkrootns(&clp64be));
+	builtincval(env, "NULL", mkcval(litdom, litdom->ns->base[Vptr], 0));
+
+	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
 
-//	builtinfn(env, "isundeftype", mkcfn("isundeftype", l1_isundeftype));
+	return env;
+}
 
-//	builtinstr(env, "$get", "get");
-//	builtinstr(env, "$put", "put");
-	builtinstr(env, "$looksym", "looksym");
-	builtinstr(env, "$looktype", "looktype");
+VM*
+cqctmkvm(Env *env)
+{
+	VM *vm, **vmp;
+	Val val;
 
-	/* FIXME: make litdom binding immutable (@litdom)? */
-	vm->litdom = mklitdom(vm);
+	vm = xmalloc(sizeof(VM));
+	vm->top = env;
+	vm->pmax = GCinitprot;
+	vm->prot = xmalloc(vm->pmax*sizeof(Root*));
+	vm->emax = Errinitdepth;
+	vm->err = xmalloc(vm->emax*sizeof(Err));
+	
+	envlookup(env, "litdom", &val);
+	vm->litdom = valdom(&val);
 	vm->litns = vm->litdom->ns;
 	vm->litbase = vm->litns->base;
-	builtindom(env, "litdom", vm->litdom);
 	vm->sget = mkstr0("get");
 	vm->sput = mkstr0("put");
 	vm->smap = mkstr0("map");
-	vm->stdin = mkfd(mkstr0("<stdin>"), 0, Fread, 0);
-	vm->stdout = mkfd(mkstr0("<stdout>"), 1, Fwrite, 0);
-	builtinfd(env, "stdin", vm->stdin);
-	builtinfd(env, "stdout", vm->stdout);
-	builtincval(env, "NULL",
-		    mkcval(vm->litdom, vm->litdom->ns->base[Vptr], 0));
+	envlookup(env, "stdin", &val);
+	vm->stdin = valfd(&val);
+	envlookup(env, "stdout", &val);
+	vm->stdout = valfd(&val);
 
 	vmp = vms;
 	while(*vmp){
@@ -9807,26 +9816,18 @@ mkvm(Env *env)
 
 	vmreset(vm);
 	concurrentgc(vm);
+	
 	/* vm is now callable */
 
-	if(waserror(vm)){
-		/* FIXME: kill GC */
-		free(vm);
-		return 0;
-	}
-	builtinns(env, "c32le", mkrootns(vm, &c32le));
-	builtinns(env, "c32be", mkrootns(vm, &c32be));
-	builtinns(env, "c64le", mkrootns(vm, &c64le));
-	builtinns(env, "c64be", mkrootns(vm, &c64be));
-	builtinns(env, "clp64le", mkrootns(vm, &clp64le));
-	builtinns(env, "clp64be", mkrootns(vm, &clp64be));
-	builtindom(env, "sys", mksysdom(vm));
-	poperror(vm);
+	/* add toplevel bindings that require VM to construct */
+	if(!envlookup(env, "sys", &val))
+		builtindom(env, "sys", mksysdom(vm));
+
 	return vm;
 }
 
 void
-freevm(VM *vm)
+cqctfreevm(VM *vm)
 {
 	VM **vmp;
 	vmp = vms;
@@ -9892,4 +9893,15 @@ finivm()
 			freeheap(hp);
 	}
 	setfaulthook(0);
+}
+
+int
+cqctcallthunk(VM *vm, Closure *cl)
+{
+	if(waserror(vm)){
+		vmreset(vm);
+		return -1;
+	}
+	dovm(vm, cl, 0, 0);
+	return 0;
 }
