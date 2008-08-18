@@ -1,7 +1,7 @@
 define mkzas(len){
 	@local dispatch, str, map;
 	str = string(len);
-	map = vector(range(0,len));
+	map = vector(mkrange(0,len));
 	define dispatch args {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 0);

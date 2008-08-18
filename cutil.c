@@ -158,7 +158,7 @@ Zref(Expr *dom, Expr *type, Expr *val)
 Expr*
 Zrange(Expr *addr, Expr *sz)
 {
-	return newbinop(E_range, addr, sz);
+	return Zcall(doid("mkrange"), 2, addr, sz);
 }
 
 Expr*

@@ -302,8 +302,8 @@ struct Dom {
 	Head hd;
 	As *as;
 	Ns *ns;
+	Str *name;
 };
-
 
 struct Fd {
 	Head hd;
@@ -2686,10 +2686,11 @@ fmtxtn(Xtypename *xtn)
 }
 
 static As*
-mkas()
+mkas(Closure *dispatch)
 {
 	As *as;
 	as = (As*)halloc(&heap[Qas]);
+	as->dispatch = dispatch;
 	return as;
 }
 
@@ -2707,10 +2708,13 @@ iteras(Head *hd, Ictx *ictx)
 }
 
 static Dom*
-mkdom()
+mkdom(Ns *ns, As *as, Str *name)
 {
 	Dom *dom;
 	dom = (Dom*)halloc(&heap[Qdom]);
+	dom->ns = ns;
+	dom->as = as;
+	dom->name = name;
 	return dom;
 }
 
@@ -2724,6 +2728,8 @@ iterdom(Head *hd, Ictx *ictx)
 		return (Head*)dom->as;
 	case 1:
 		return (Head*)dom->ns;
+	case 2:
+		return (Head*)dom->name;
 	default:
 		return GCiterdone;
 	}
@@ -4366,15 +4372,6 @@ xbox0(VM *vm, Operand *op)
 }
 
 static void
-xprint(VM *vm, Operand *op)
-{
-	Val v;
-	getvalrand(vm, op, &v);
-	printval(vm, &v);
-	printf("\n"); fflush(stdout);
-}
-
-static void
 xcar(VM *vm, Operand *op, Operand *dst)
 {
 	Val v;
@@ -4406,43 +4403,6 @@ xcons(VM *vm, Operand *car, Operand *cdr, Operand *dst)
 	getvalrand(vm, car, &carv);
 	getvalrand(vm, cdr, &cdrv);
 	mkvalpair(&carv, &cdrv, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xrbeg(VM *vm, Operand *op, Operand *dst)
-{
-	Val v;
-	Range *r;
-	getvalrand(vm, op, &v);
-	if(v.qkind != Qrange)
-		vmerr(vm, "rbeg on non-range");
-	r = valrange(&v);
-	putcvalrand(vm, r->beg, dst);
-}
-
-static void
-xrlen(VM *vm, Operand *op, Operand *dst)
-{
-	Val v;
-	Range *r;
-	getvalrand(vm, op, &v);
-	if(v.qkind != Qrange)
-		vmerr(vm, "rlen on non-range");
-	r = valrange(&v);
-	putcvalrand(vm, r->len, dst);
-}
-
-static void
-xrange(VM *vm, Operand *beg, Operand *len, Operand *dst)
-{
-	Val begv, lenv, rv;
-
-	getvalrand(vm, beg, &begv);
-	getvalrand(vm, len, &lenv);
-	if(begv.qkind != Qcval || lenv.qkind != Qcval)
-		vmerr(vm, "range on non-cval");
-	mkvalrange(begv.u.cval, lenv.u.cval, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -4963,78 +4923,6 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	putvalrand(vm, &rv, dst);
 }
 
-static void
-xas(VM *vm, Operand *dispatch, Operand *dst)
-{
-	Val dv, rv;
-	Closure *cl;
-	As *as;
-
-	getvalrand(vm, dispatch, &dv);
-	if(dv.qkind != Qcl)
-		vmerr(vm, "mkas on non-procedure");
-	cl = valcl(&dv);
-	as = mkas();
-	as->dispatch = cl;
-	mkvalas(as, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xdom(VM *vm, Operand *nso, Operand *aso, Operand *dst)
-{
-	Val av, nv, rv;
-	As *as;
-	Ns *ns;
-	Dom *dom;
-
-	getvalrand(vm, nso, &nv);
-	if(nv.qkind != Qns)
-		vmerr(vm, "mkdom on non-namespace");
-	ns = valns(&nv);
-	getvalrand(vm, aso, &av);
-	if(av.qkind != Qas)
-		vmerr(vm, "mkdom on non-addrspace");
-	as = valas(&av);
-	dom = mkdom();
-	dom->ns = ns;
-	dom->as = as;
-	mkvaldom(dom, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xdomas(VM *vm, Operand *domo, Operand *dst)
-{
-	Val dv, rv;
-	Dom *dom;
-	As *as;
-
-	getvalrand(vm, domo, &dv);
-	if(dv.qkind != Qdom)
-		vmerr(vm, "domas on non-domain");
-	dom = valdom(&dv);
-	as = dom->as;
-	mkvalas(as, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xdomns(VM *vm, Operand *domo, Operand *dst)
-{
-	Val dv, rv;
-	Dom *dom;
-	Ns *ns;
-
-	getvalrand(vm, domo, &dv);
-	if(dv.qkind != Qdom)
-		vmerr(vm, "domns on non-domain (is %d)", dv.qkind);
-	dom = valdom(&dv);
-	ns = dom->ns;
-	mkvalns(ns, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
 /* enumsym for namespaces constructed by @names */
 static void
 enumsym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
@@ -5085,8 +4973,7 @@ static As*
 mknas()
 {
 	As *as;
-	as = mkas();
-	as->dispatch = mkcfn("nasdispatch", nasdispatch);
+	as = mkas(mkcfn("nasdispatch", nasdispatch));
 	return as;
 }
 
@@ -5159,8 +5046,7 @@ mksas(Str *s)
 	Val v;
 	As *as;
 	mkvalstr(s, &v);
-	as = mkas();
-	as->dispatch = mkccl("sasdispatch", sasdispatch, 1, &v);
+	as = mkas(mkccl("sasdispatch", sasdispatch, 1, &v));
 	return as;
 }
 
@@ -5767,86 +5653,6 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 	return ns;
 }
 
-static void
-xns(VM *vm, Operand *invec, Operand *dst)
-{
-	Val v, *vp;
-	Vec *vec;
-	Ns *ons, *ns;
-	Tab *rawtype, *rawsym;
-
-	getvalrand(vm, invec, &v);
-	vec = valvec(&v);
-	if(vec->len != 3)
-		vmerr(vm, "bad vector to ns");
-	vp = vecref(vec, 0);
-	ons = valns(vp);
-	vp = vecref(vec, 1);
-	rawtype = valtab(vp);
-	vp = vecref(vec, 2);
-	rawsym = valtab(vp);
-
-	ns = dorawns(vm, ons, rawtype, rawsym);
-	mkvalns(ns, &v);
-	putvalrand(vm, &v, dst);
-}
-
-static void
-xnsesym(VM *vm, Operand *nso, Operand *dst)
-{
-	Val nv, rv;
-	Ns *ns;
-
-	getvalrand(vm, nso, &nv);
-	if(nv.qkind != Qns)
-		vmerr(vm, "nsesym on non-namespace");
-	ns = valns(&nv);
-	mkvalcl(ns->enumsym, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xnsetype(VM *vm, Operand *nso, Operand *dst)
-{
-	Val nv, rv;
-	Ns *ns;
-
-	getvalrand(vm, nso, &nv);
-	if(nv.qkind != Qns)
-		vmerr(vm, "nsesym on non-namespace");
-	ns = valns(&nv);
-	mkvalcl(ns->enumtype, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xnslsym(VM *vm, Operand *nso, Operand *dst)
-{
-	Val nv, rv;
-	Ns *ns;
-
-	getvalrand(vm, nso, &nv);
-	if(nv.qkind != Qns)
-		vmerr(vm, "nslsym on non-namespace");
-	ns = valns(&nv);
-	mkvalcl(ns->looksym, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xnsltype(VM *vm, Operand *nso, Operand *dst)
-{
-	Val nv, rv;
-	Ns *ns;
-
-	getvalrand(vm, nso, &nv);
-	if(nv.qkind != Qns)
-		vmerr(vm, "nslsym on non-namespace");
-	ns = valns(&nv);
-	mkvalcl(ns->looktype, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
 static void* gotab[Iopmax];
 
 static void
@@ -5965,7 +5771,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Iadd]	= &&Iadd;
 		gotab[Iand]	= &&Iand;
 		gotab[Iargc]	= &&Iargc;
-		gotab[Ias]	= &&Ias;
 		gotab[Ibox]	= &&Ibox;
 		gotab[Ibox0]	= &&Ibox0;
 		gotab[Icall]	= &&Icall;
@@ -5982,14 +5787,9 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icmpneq] 	= &&Icmpneq;
 		gotab[Icons] 	= &&Icons;
 		gotab[Icval] 	= &&Icval;
-		gotab[Iding] 	= &&Iding;
 		gotab[Idiv] 	= &&Idiv;
-		gotab[Idom]	= &&Idom;
-		gotab[Idomas]	= &&Idomas;
-		gotab[Idomns]	= &&Idomns;
 		gotab[Iencode]	= &&Iencode;
 		gotab[Iframe] 	= &&Iframe;
-		gotab[Igc] 	= &&Igc;
 		gotab[Ihalt] 	= &&Ihalt;
 		gotab[Iinv] 	= &&Iinv;
 		gotab[Iiscl] 	= &&Iiscl;
@@ -6017,22 +5817,13 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Imul] 	= &&Imul;
 		gotab[Ineg] 	= &&Ineg;
 		gotab[Inot] 	= &&Inot;
-		gotab[Ins]	= &&Ins;
-		gotab[Insesym]	= &&Insesym;
-		gotab[Insetype]	= &&Insetype;
-		gotab[Inslsym]	= &&Inslsym;
-		gotab[Insltype]	= &&Insltype;
 		gotab[Inull] 	= &&Inull;
 		gotab[Ior] 	= &&Ior;
 		gotab[Inop] 	= &&Inop;
 		gotab[Ipanic] 	= &&Ipanic;
-		gotab[Iprint] 	= &&Iprint;
 		gotab[Ipush] 	= &&Ipush;
-		gotab[Irange] 	= &&Irange;
-		gotab[Irbeg]	= &&Irbeg;
 		gotab[Iref] 	= &&Iref;
 		gotab[Iret] 	= &&Iret;
-		gotab[Irlen]	= &&Irlen;
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isizeof]	= &&Isizeof;
@@ -6093,9 +5884,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		goto *(i->go);
 		fatal("bug");
 	Inop:
-		continue;
-	Iding:
-		printf("ding\n");
 		continue;
 	Icallc:
 		xcallc(vm);
@@ -6162,9 +5950,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			 i->dstlabel->insn, &val);
 		vmpush(vm, &val);
 		continue;
-	Igc:
-		// gc(vm);
-		continue;
 	Ipanic:
 		fatal("vm panic");
 	Ihalt:
@@ -6213,9 +5998,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Ibox0:
 		xbox0(vm, &i->op1);
 		continue;
-	Iprint:
-		xprint(vm, &i->op1);
-		continue;
 	Icar:
 		xcar(vm, &i->op1, &i->dst);
 		continue;
@@ -6224,15 +6006,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Icons:
 		xcons(vm, &i->op1, &i->op2, &i->dst);
-		continue;
-	Irbeg:
-		xrbeg(vm, &i->op1, &i->dst);
-		continue;
-	Irlen:
-		xrlen(vm, &i->op1, &i->dst);
-		continue;
-	Irange:
-		xrange(vm, &i->op1, &i->op2, &i->dst);
 		continue;
 	Icval:
 		xcval(vm, &i->op1, &i->op2, &i->op3, &i->dst);
@@ -6332,33 +6105,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Isizeof:
 		xsizeof(vm, &i->op1, &i->dst);
-		continue;
-	Ias:
-		xas(vm, &i->op1, &i->dst);
-		continue;
-	Idom:
-		xdom(vm, &i->op1, &i->op2, &i->dst);
-		continue;
-	Idomas:
-		xdomas(vm, &i->op1, &i->dst);
-		continue;
-	Idomns:
-		xdomns(vm, &i->op1, &i->dst);
-		continue;
-	Ins:
-		xns(vm, &i->op1, &i->dst);
-		continue;
-	Inslsym:
-		xnslsym(vm, &i->op1, &i->dst);
-		continue;
-	Insltype:
-		xnsltype(vm, &i->op1, &i->dst);
-		continue;
-	Insesym:
-		xnsesym(vm, &i->op1, &i->dst);
-		continue;
-	Insetype:
-		xnsetype(vm, &i->op1, &i->dst);
 		continue;
 	}
 }
@@ -6468,160 +6214,6 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = rand();
 	r %= cv->val;
 	mkvalcval(vm->litdom, vm->litbase[Vulong], r, rv);
-}
-
-static void
-l1_asdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *arg0;
-	Dom *dom;
-	As *as;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to asdispatch");
-	arg0 = &argv[0];
-	if(arg0->qkind != Qas && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslooksym must be an addrspace or domain");
-	if(arg0->qkind == Qas)
-		as = valas(arg0);
-	else{
-		dom = valdom(arg0);
-		as = dom->as;
-	}
-	mkvalcl(as->dispatch, rv);
-}
-
-static void
-l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nslookaddr");
-	arg0 = &argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslookaddr must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	mkvalcl(ns->lookaddr, rv);
-}
-
-static void
-l1_nslooksym(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nslooksym");
-	arg0 = &argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslooksym must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	mkvalcl(ns->looksym, rv);
-}
-
-static void
-l1_nslooktype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nslooktype");
-	arg0 = &argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslooktype must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	mkvalcl(ns->looktype, rv);
-}
-
-static void
-l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nsenumsym");
-	arg0 = &argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nsenumsym must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	mkvalcl(ns->enumsym, rv);
-}
-
-static void
-l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nsenumtype");
-	arg0 = &argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nsenumtype must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	mkvalcl(ns->enumtype, rv);
-}
-
-static void
-l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nsptr");
-	arg0 = &argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nsptr must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	mkvalxtn(ns->base[Vptr], rv);
 }
 
 static void
@@ -7211,6 +6803,13 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to printf must be a format string");
 	fmts = valstr(argv);
 	dofdprint(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
+}
+
+static void
+l1_print(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	static char *fmt = "%a\n";
+	dofdprint(vm, vm->stdout, fmt, strlen(fmt), argc, argv);
 }
 
 static void
@@ -8754,9 +8353,7 @@ l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(&argv[1]);
 
 	/* abstract domain for name space being extended */
-	d = mkdom();
-	d->ns = ns;
-	d->as = mknas();
+	d = mkdom(ns, mknas(), 0);
 
 	/* this code assumes that domcast does not dolooktype */
 
@@ -8820,6 +8417,272 @@ l1_mkzas(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to mkzas must be an integer cvalue");
 	as = mkzas(vm, cv->val);
 	mkvalas(as, rv);
+}
+
+static void
+l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	As *as;
+	Closure *cl;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkas");
+	checkarg(vm, "mkas", argv, 0, Qcl);
+	cl = valcl(&argv[0]);
+	as = mkas(cl);
+	mkvalas(as, rv);
+}
+
+static void
+l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Ns *ons, *ns;
+	Tab *rawtype, *rawsym;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to mkns");
+	checkarg(vm, "mkns", argv, 0, Qns);
+	checkarg(vm, "mkns", argv, 1, Qtab);
+	checkarg(vm, "mkns", argv, 2, Qtab);
+	ons = valns(&argv[0]);
+	rawtype = valtab(&argv[1]);
+	rawsym = valtab(&argv[2]);
+	ns = dorawns(vm, ons, rawtype, rawsym);
+	mkvalns(ns, rv);
+}
+
+static void
+l1_mkdom(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	As *as;
+	Ns *ns;
+	Dom *dom;
+	Str *name;
+
+	if(argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to mkdom");
+	checkarg(vm, "mkdom", argv, 0, Qns);
+	checkarg(vm, "mkdom", argv, 1, Qas);
+	name = 0;
+	if(argc == 3){
+		checkarg(vm, "mkdom", argv, 2, Qstr);
+		name = valstr(&argv[2]);
+	}
+	ns = valns(&argv[0]);
+	as = valas(&argv[1]);
+	dom = mkdom(ns, as, name);
+	mkvaldom(dom, rv);
+}
+
+static void
+l1_asof(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to asof");
+	checkarg(vm, "asof", argv, 0, Qdom);
+	dom = valdom(&argv[0]);
+	mkvalas(dom->as, rv);
+}
+
+static void
+l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nsof");
+	checkarg(vm, "nsof", argv, 0, Qdom);
+	dom = valdom(&argv[0]);
+	mkvalns(dom->ns, rv);
+}
+
+static void
+l1_asdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	As *as;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to asdispatch");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qas && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslooksym must be an addrspace or domain");
+	if(arg0->qkind == Qas)
+		as = valas(arg0);
+	else{
+		dom = valdom(arg0);
+		as = dom->as;
+	}
+	mkvalcl(as->dispatch, rv);
+}
+
+static void
+l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nslookaddr");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslookaddr must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->lookaddr, rv);
+}
+
+static void
+l1_nslooksym(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nslooksym");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslooksym must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->looksym, rv);
+}
+
+static void
+l1_nslooktype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nslooktype");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nslooktype must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->looktype, rv);
+}
+
+static void
+l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nsenumsym");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nsenumsym must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->enumsym, rv);
+}
+
+static void
+l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nsenumtype");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nsenumtype must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalcl(ns->enumtype, rv);
+}
+
+static void
+l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *arg0;
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nsptr");
+	arg0 = &argv[0];
+	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+		vmerr(vm,
+		      "operand 1 to nsptr must be a namespace or domain");
+	if(arg0->qkind == Qns)
+		ns = valns(arg0);
+	else{
+		dom = valdom(arg0);
+		ns = dom->ns;
+	}
+	mkvalxtn(ns->base[Vptr], rv);
+}
+
+static void
+l1_mkrange(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mkrange");
+	checkarg(vm, "mkrange", argv, 0, Qcval);
+	checkarg(vm, "mkrange", argv, 1, Qcval);
+	/* FIXME: check sanity */
+	mkvalrange(valcval(&argv[0]), valcval(&argv[1]), rv);
+}
+
+static void
+l1_rangebeg(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Range *r;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to rangebeg");
+	checkarg(vm, "rangebeg", argv, 0, Qrange);
+	r = valrange(&argv[0]);
+	mkvalcval2(r->beg, rv);
+}
+
+static void
+l1_rangelen(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Range *r;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to rangelen");
+	checkarg(vm, "rangelen", argv, 0, Qrange);
+	r = valrange(&argv[0]);
+	mkvalcval2(r->len, rv);
 }
 
 static void
@@ -9148,6 +9011,11 @@ static void
 l1_isfd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isfd", Qfd);
+}
+
+static void
+l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
 }
 
 static void
@@ -9558,9 +9426,7 @@ mksysdom(VM *vm)
 	tabput(vm, rawsym, &keyv, &valv);
 
 	ns = dorawns(vm, root, rawtype, rawsym);
-	dom = mkdom();
-	dom->ns = ns;
-	dom->as = mksas(mkstrk(0, ~(0ULL), Sperm));
+	dom = mkdom(ns, mksas(mkstrk(0, ~(0ULL), Sperm)), mkstr0("sys"));
 
 	return dom;
 }
@@ -9569,9 +9435,7 @@ static Dom*
 mklitdom()
 {
 	Dom *dom;
-	dom = mkdom();
-	dom->as = mknas();
-	dom->ns = mkrootns(&clp64le);
+	dom = mkdom(mkrootns(&clp64le), mknas(), mkstr0("litdom"));
 	return dom;
 }
 
@@ -9587,22 +9451,11 @@ mktopenv()
 
 	env = mkenv();
 	
-	builtinfn(env, "gc", gcthunk());
-	builtinfn(env, "ding", dingthunk());
-	builtinfn(env, "print", printthunk());
 	builtinfn(env, "halt", haltthunk());
 	builtinfn(env, "callcc", callcc());
 	builtinfn(env, "car", carthunk());
 	builtinfn(env, "cdr", cdrthunk());
 	builtinfn(env, "cons", consthunk());
-	builtinfn(env, "mkas", mkasthunk());
-	builtinfn(env, "mkdom", mkdomthunk());
-	builtinfn(env, "domas", domasthunk());
-	builtinfn(env, "domns", domnsthunk());
-	builtinfn(env, "mkns", mknsthunk());
-	builtinfn(env, "rangebeg", rangebegthunk());
-	builtinfn(env, "rangelen", rangelenthunk());
-	builtinfn(env, "range", rangethunk());
 	builtinfn(env, "null", nullthunk());
 	builtinfn(env, "iscvalue", iscvaluethunk());
 	builtinfn(env, "isas", isasthunk());
@@ -9631,133 +9484,139 @@ mktopenv()
 	builtinfn(env, "vecref", vecrefthunk());
 	builtinfn(env, "vecset", vecsetthunk());
 
+	FN(_readdir);
+	FN(append);
+	FN(apply);
+	FN(arraynelm);
 	FN(asdispatch);
+	FN(asof);
+	FN(baseid);
+	FN(bitfieldcontainer);
+	FN(bitfieldpos);
+	FN(bitfieldwidth);
+	FN(close);
+	FN(copy);
+	FN(domof);
+	FN(enconsts);
+	FN(enumconsts);
+	FN(equal);
+	FN(error);
+	FN(fault);
+	FN(fdname);
+	FN(fieldid);
+	FN(fieldoff);
+	FN(fields);
+	FN(fieldtype);
+	FN(foreach);
+	FN(fprintf);
+	FN(gc);
+	FN(getbytes);
+	FN(getpid);
+	FN(gettimeofday);
+	FN(head);
+	FN(isarray);
+	FN(isbase);
+	FN(isbitfield);
+	FN(isempty);
+	FN(isenum);
+	FN(isenumconst);
+	FN(isfd);
+	FN(isfunc);
+	FN(islist);
+	FN(ismapped);
+	FN(isnil);
+	FN(isptr);
+	FN(isstruct);
+	FN(issu);
+	FN(istypedef);
+	FN(isundeftype);
+	FN(isunion);
+	FN(isvoid);
+	FN(length);
+	FN(listdel);
+	FN(listins);
+	FN(listref);
+	FN(listset);
+	FN(lookfield);
+	FN(looktype);
+	FN(mapfile);
+	FN(mkas);
+	FN(mkctype_array);
+	FN(mkctype_bitfield);
+	FN(mkctype_char);
+	FN(mkctype_const);
+	FN(mkctype_double);
+	FN(mkctype_enum);
+	FN(mkctype_float);
+	FN(mkctype_fn);
+	FN(mkctype_int);
+	FN(mkctype_ldouble);
+	FN(mkctype_long);
+	FN(mkctype_ptr);
+	FN(mkctype_short);
+	FN(mkctype_struct);
+	FN(mkctype_typedef);
+	FN(mkctype_uchar);
+	FN(mkctype_uint);
+	FN(mkctype_ulong);
+	FN(mkctype_union);
+	FN(mkctype_ushort);
+	FN(mkctype_uvlong);
+	FN(mkctype_vlong);
+	FN(mkctype_void);
+	FN(mkdir);
+	FN(mkdom);
+	FN(mkfield);
+	FN(mknas);
+	FN(mkns);
+	FN(mkrange);
+	FN(mksas);
+	FN(mksym);
+	FN(mkzas);
+	FN(nsof);
+	FN(nsenumsym);
+	FN(nsenumtype);
 	FN(nslookaddr);
 	FN(nslooksym);
 	FN(nslooktype);
-	FN(nsenumsym);
-	FN(nsenumtype);
-	FN(looktype);
-	FN(gettimeofday);
-	FN(getpid);
-	FN(randseed);
-	FN(rand);
-	FN(printf);
-	FN(sprintfa);
-	FN(fprintf);
+	FN(nsptr);
 	FN(open);
-	FN(close);
-	FN(read);
-	FN(write);
-	FN(mkdir);
-	FN(rmdir);
-	FN(_readdir);
-	FN(unlink);
 	FN(opentcp);
-	FN(fdname);
-	FN(tabkeys);
-	FN(tabvals);
-	FN(vmbacktrace);
-	FN(mknas);
-	FN(mksas);
-	FN(mkzas);
-	FN(stringof);
-	FN(getbytes);
+	FN(paramid);
+	FN(params);
+	FN(paramtype);
+	FN(pop);
+	FN(print);		/* FIXME: remove: held for test suite */
+	FN(printf);
+	FN(push);
 	FN(putbytes);
-	FN(ismapped);
-
-	FN(isvoid);
-	FN(isundeftype);
-	FN(isbase);
-	FN(issu);
-	FN(isstruct);
-	FN(isunion);
-	FN(isenum);
-	FN(isenumconst);
-	FN(isbitfield);
-	FN(isptr);
-	FN(isarray);
-	FN(isfunc);
-	FN(istypedef);
-
-	FN(apply);
-	FN(baseid);
+	FN(rangebeg);
+	FN(rangelen);
+	FN(rand);
+	FN(randseed);
+	FN(read);
+	FN(rettype);
+	FN(reverse);
+	FN(rmdir);
+	FN(sprintfa);
+	FN(stringof);
+	FN(strput);
 	FN(subtype);
 	FN(suekind);
 	FN(suetag);
 	FN(susize);
-	FN(arraynelm);
-	FN(bitfieldpos);
-	FN(bitfieldwidth);
-	FN(bitfieldcontainer);
-	FN(rettype);
-	FN(params);
-	FN(paramtype);
-	FN(paramid);
-	FN(fields);
-	FN(lookfield);
-	FN(fieldtype);
-	FN(fieldid);
-	FN(fieldoff);
-	FN(enumconsts);
-	FN(typedefid);
-	FN(typedeftype);
 	FN(symid);
 	FN(symtype);
 	FN(symval);
-	FN(domof);
-	FN(nsptr);
-	FN(strput);
-	FN(isnil);
-	FN(error);
-	FN(fault);
-
-	FN(mkctype_void);
-	FN(mkctype_char);
-	FN(mkctype_short);
-	FN(mkctype_int);
-	FN(mkctype_long);
-	FN(mkctype_vlong);
-	FN(mkctype_uchar);
-	FN(mkctype_ushort);
-	FN(mkctype_uint);
-	FN(mkctype_ulong);
-	FN(mkctype_uvlong);
-	FN(mkctype_float);
-	FN(mkctype_double);
-	FN(mkctype_ldouble);
-	FN(mkctype_ptr);
-	FN(mkctype_typedef);
-	FN(mkctype_struct);
-	FN(mkctype_union);
-	FN(mkctype_array);
-	FN(mkctype_fn);
-	FN(mkctype_bitfield);
-	FN(mkctype_enum);
-	FN(mkctype_const);
-	FN(mksym);
-	FN(mkfield);
-	FN(foreach);
-	FN(enconsts);
-	FN(mapfile);
-
-	FN(islist);
-	FN(isfd);
-
-	FN(isempty);
-	FN(listref);
-	FN(listset);
-	FN(listdel);
-	FN(listins);
-	FN(head);
+	FN(tabkeys);
+	FN(tabvals);
 	FN(tail);
-	FN(pop);
-	FN(push);
-	FN(append);
-	FN(reverse);
-	FN(length);
-	FN(copy);
-	FN(equal);
+	FN(typedefid);
+	FN(typedeftype);
+	FN(unlink);
+	FN(vmbacktrace);
+	FN(write);
+
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();

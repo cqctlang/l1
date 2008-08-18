@@ -118,7 +118,6 @@ enum{
 	E_lenl,
 	E_lens,
 	E_lenv,
-	E_range,
 	E_ref,
 	E_sizeof,
 	E_slices,
@@ -339,7 +338,6 @@ enum {
 	Iadd = 0,
 	Iand,
 	Iargc,
-	Ias,
 	Ibin,
 	Ibox,
 	Ibox0,
@@ -357,14 +355,9 @@ enum {
 	Icmpneq,
 	Icons,
 	Icval,
-	Iding,
 	Idiv,
-	Idom,
-	Idomas,
-	Idomns,
 	Iencode,
 	Iframe,
-	Igc,
 	Ihalt,
 	Iinv,
 	Iisas,
@@ -392,22 +385,13 @@ enum {
 	Imul,
 	Ineg,
 	Inot,
-	Ins,
-	Insesym,
-	Insetype,
-	Inslsym,
-	Insltype,
 	Inull,
 	Ior,
 	Inop,
 	Ipanic,
-	Iprint,
 	Ipush,
-	Irange,
-	Irbeg,
 	Iref,
 	Iret,
-	Irlen,
 	Ishl,
 	Ishr,
 	Isizeof,
@@ -555,23 +539,13 @@ void printvmac(VM *vm);
 char* topvecid(unsigned idx, Topvec *tv);
 Val* topvecval(unsigned idx, Topvec *tv);
 Closure* haltthunk();
-Closure* gcthunk();
 Closure* panicthunk();
-Closure* dingthunk();
 Closure* printthunk();
 Closure* callcc();
 Closure* carthunk();
 Closure* cdrthunk();
 Closure* consthunk();
-Closure* mkasthunk();
-Closure* mkdomthunk();
-Closure* domasthunk();
-Closure* domnsthunk();
-Closure* mknsthunk();
 Closure* nullthunk();
-Closure* rangebegthunk();
-Closure* rangelenthunk();
-Closure* rangethunk();
 Closure* iscvaluethunk();
 Closure* isasthunk();
 Closure* isdomthunk();

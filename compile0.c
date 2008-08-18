@@ -460,11 +460,8 @@ compilens(U *ctx, Expr *e)
 	freeht(enid);
 
 	/* new name space */
-	se = Zcall(doid("mkns"), 1,
-		   Zcall(doid("vector"), 3,
-			 doid("$ns"),
-			 doid("$typetab"),
-			 doid("$symtab")));
+	se = Zcall(doid("mkns"), 3,
+		   doid("$ns"), doid("$typetab"), doid("$symtab"));
 	te = Zcons(se, te);
 
 	return newexpr(Eblock, loc, invert(te), 0, 0);
@@ -743,7 +740,7 @@ compileambig(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	// $tmp = nslooktype(domns(dom))($tn)
-	se = Zcall(doid("domns"), 1, doid(dom));
+	se = Zcall(doid("nsof"), 1, doid(dom));
 	se = Zcall(doid("nslooktype"), 1, se);
 	se = Zset(doid("$tmp"), Zcall(se, 1, doid("$tn")));
 	te = Zcons(se, te);

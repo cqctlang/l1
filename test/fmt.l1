@@ -4,7 +4,7 @@ ns = @names c32le {
 as = mknas();
 dom = mkdom(ns, as);
 
-printf("%s\n", sprintfa("%a", range(10, 20)));
+printf("%s\n", sprintfa("%a", mkrange(10, 20)));
 printf("%s\n", sprintfa("%a", [1, 0]));
 printf("%s\n", sprintfa("%s", "abcdef"));
 printf("%s\n", sprintfa("%t", &dom`y));

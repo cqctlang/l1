@@ -353,26 +353,6 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
-	case Irbeg:
-		printf("rbeg ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Irlen:
-		printf("rlen ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Irange:
-		printf("range ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
 	case Icval:
 		printf("cval ");
 		printrand(code, &i->op1);
@@ -582,9 +562,6 @@ printinsn(Code *code, Insn *i)
 	case Iframe:
 		printf("frame %s", i->dstlabel->label);
 		break;
-	case Igc:
-		printf("gc");
-		break;
 	case Iret:
 		printf("ret");
 		break;
@@ -593,9 +570,6 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Ipanic:
 		printf("panic");
-		break;
-	case Iding:
-		printf("ding");
 		break;
 	case Iclo:
 		printf("clo %s ", i->dstlabel->label);
@@ -631,71 +605,11 @@ printinsn(Code *code, Insn *i)
 		printf("box0 ");
 		printrand(code, &i->op1);
 		break;
-	case Iprint:
-		printf("print ");
-		printrand(code, &i->op1);
-		break;
 	case Inop:
 		printf("nop");
 		break;
 	case Iistn:
 		printf("istn ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ias:
-		printf("as ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Idom:
-		printf("dom ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Idomas:
-		printf("domas ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Idomns:
-		printf("domns ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ins:
-		printf("ns ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Insesym:
-		printf("nsesym ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Insetype:
-		printf("nsetype ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Inslsym:
-		printf("nslsym ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Insltype:
-		printf("nsltype ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -1936,7 +1850,6 @@ static ikind EtoVM[] = {
 	[E_lenl] = Ilenl,
 	[E_lens] = Ilens,
 	[E_lenv] = Ilenv,
-	[E_range] = Irange,
 	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
 	[E_slices] = Islices,
@@ -2737,27 +2650,6 @@ haltthunk()
 }
 
 Closure*
-gcthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "gc");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Igc;
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
 callcc()
 {
 	Ctl *L;
@@ -2833,27 +2725,6 @@ panicthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Ipanic;
-
-	return cl;
-}
-
-Closure*
-dingthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "ding");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Iding;
-	i = nextinsn(code);
-	i->kind = Iret;
 
 	return cl;
 }
@@ -3227,76 +3098,6 @@ consthunk()
 }
 
 Closure*
-rangebegthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "rangebeg");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Irbeg;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-rangelenthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "rangelen");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Irlen;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-rangethunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "range");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Irange;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
 stringthunk()
 {
 	Ctl *L;
@@ -3360,32 +3161,6 @@ substrthunk()
 	randloc(&i->op1, ARG0);
 	randloc(&i->op2, ARG1);
 	randloc(&i->op3, ARG2);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-printthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "print");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Iprint;
-	randloc(&i->op1, ARG0);
-	i = nextinsn(code);
-	i->kind = Imov;
-	randnil(&i->op1);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);
 	i->kind = Iret;
@@ -3641,122 +3416,6 @@ tabenumthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Itabenum;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-mkasthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "mkas");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ias;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-mkdomthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "mkdom");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Idom;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-domasthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "domas");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Idomas;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-domnsthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "domns");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Idomns;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-mknsthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "mkns");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ins;
 	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);

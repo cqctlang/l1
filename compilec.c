@@ -91,7 +91,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		te = Zcons(se, te);
 
 		// $tmp = nslooksym(domns($dom))(sym)
-		se = Zcall(doid("domns"), 1, doid("$dom"));
+		se = Zcall(doid("nsof"), 1, doid("$dom"));
 		se = Zcall(doid("nslooksym"), 1, se);
 		se = Zcall(se, 1, Zconsts(e->e2->id));
 		se = Zset(doid("$tmp"), se);
@@ -518,9 +518,9 @@ expanddot(U *ctx, Expr *e)
 			te = Zcall(doid("asdispatch"), 1,
 				   expanddot(ctx, e->e1));
 		else if(!strcmp(id, "names"))
-			te = Zcall(doid("domns"), 1, expanddot(ctx, e->e1));
+			te = Zcall(doid("nsof"), 1, expanddot(ctx, e->e1));
 		else if(!strcmp(id, "as"))
-			te = Zcall(doid("domas"), 1, expanddot(ctx, e->e1));
+			te = Zcall(doid("asof"), 1, expanddot(ctx, e->e1));
 		else
 			te = Zblock(Zlocals(1, "$disp"),
 				    Zset(doid("$disp"),
