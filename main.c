@@ -128,6 +128,7 @@ main(int argc, char *argv[])
 			}
 		}
 
+		memset(&ctx, 0, sizeof(ctx));
 		e = doparse(&ctx, filename, inbuf);
 		if(e == 0)
 			continue;
