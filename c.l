@@ -11,8 +11,7 @@ STRC			(\\([ntbvrfa\\\?'"]|x{H}+|{O}|{O}{O}|{O}{O}{O})|[^\\"])
 %{
 #include "sys.h"
 #include "util.h"
-#include "cqct.h"
-#include "l1.h"
+#include "syscqct.h"
 #include "c.tab.h"
 
 #define YY_DECL int yylex(YYSTYPE *lvalp, U *ctx)

@@ -4,13 +4,13 @@ CFLAGS = -Wall -g
 TARG = l1
 all: $(TARG)
 
-HDR = sys.h util.h l1.h code.h
+HDR = sys.h util.h cqct.h syscqct.h 
 C =\
 	hash.c\
 	util.c\
 	printexpr.c\
 	bitfield.c\
-	l1.c\
+	parse.c\
 	compilec.c\
 	compile0.c\
 	cutil.c\

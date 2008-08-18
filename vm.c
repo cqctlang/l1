@@ -1,8 +1,6 @@
 #include "sys.h"
 #include "util.h"
-#include "cqct.h"
-#include "l1.h"
-#include "code.h"
+#include "syscqct.h"
 
 #define HEAPPROF 0
 #define HEAPDEBUG 0
@@ -400,7 +398,7 @@ static void vmsetcl(VM *vm, Val *val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
 static void strinit(Str *str, Lits *lits);
-static void vmerr(VM *vm, char *fmt, ...) __attribute__((noreturn));
+static void vmerr(VM *vm, char *fmt, ...) NORETURN;
 static Cval* valcval(Val *v);
 static List* vallist(Val *v);
 static Pair* valpair(Val *v);

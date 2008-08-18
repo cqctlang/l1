@@ -1,6 +1,3 @@
-#ifndef _BISONFLAW_CQCT_H_
-#define _BISONFLAW_CQCT_H_
-
 extern char cqctflags[];
 
 typedef struct Closure Closure;
@@ -18,5 +15,3 @@ VM*		cqctmkvm(Env *env);
 Expr*		cqctparsefile(char *filename);
 Expr*		cqctparsestr(char *str);
 void		cqctprintvmac(VM *vm);
-
-#endif /* _BISONFLAW_CQCT_H_ */

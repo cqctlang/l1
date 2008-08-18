@@ -8,8 +8,8 @@ void *hget(HT *ht, char *k, unsigned len);
 void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
 
 void warn(char *fmt, ...);
-void fatal(char *fmt, ...) __attribute__((noreturn));
-void fatalno(char *fmt, ...) __attribute__((noreturn));
+void fatal(char *fmt, ...) NORETURN;
+void fatalno(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);
 void* xmalloc(size_t size);

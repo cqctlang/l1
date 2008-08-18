@@ -1,8 +1,6 @@
 #include "sys.h"
 #include "util.h"
-#include "cqct.h"
-#include "l1.h"
-#include "code.h"
+#include "syscqct.h"
 
 static Expr* compile_rval(U *ctx, Expr *e, unsigned lfree);
 static Expr* compilec(U *ctx, Expr* e);

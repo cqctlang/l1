@@ -1,8 +1,6 @@
 #include "sys.h"
 #include "util.h"
-#include "cqct.h"
-#include "l1.h"
-#include "code.h"
+#include "syscqct.h"
 
 static Expr* compile0(U *ctx, Expr *e);
 

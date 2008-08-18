@@ -1,8 +1,7 @@
 %{
 #include "sys.h"
 #include "util.h"
-#include "cqct.h"
-#include "l1.h"
+#include "syscqct.h"
 
 extern int yylex();
 extern char *yytext;

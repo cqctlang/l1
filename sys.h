@@ -39,4 +39,6 @@ typedef uint64_t	u64;
 
 typedef u64 Imm;
 
+#define NORETURN	__attribute__((noreturn))
+
 #endif /* _BISONFLAW_SYS_H_ */
