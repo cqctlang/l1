@@ -4765,90 +4765,6 @@ xnull(VM *vm, Operand *dst)
 }
 
 static void
-xis(VM *vm, Operand *op, unsigned kind, Operand *dst)
-{
-	Val v, rv;
-	getvalrand(vm, op, &v);
-	if(v.qkind == kind)
-		mkvalimm(vm->litdom, vm->litbase[Vuint], 1, &rv);
-	else
-		mkvalimm(vm->litdom, vm->litbase[Vuint], 0, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xiscl(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qcl, dst);
-}
-
-static void
-xiscval(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qcval, dst);
-}
-
-static void
-xisnull(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qnulllist, dst);
-}
-
-static void
-xispair(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qpair, dst);
-}
-
-static void
-xisas(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qas, dst);
-}
-
-static void
-xisdom(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qdom, dst);
-}
-
-static void
-xisns(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qns, dst);
-}
-
-static void
-xisrange(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qrange, dst);
-}
-
-static void
-xisstr(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qstr, dst);
-}
-
-static void
-xistab(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qtab, dst);
-}
-
-static void
-xistn(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qxtn, dst);
-}
-
-static void
-xisvec(VM *vm, Operand *op, Operand *dst)
-{
-	xis(vm, op, Qvec, dst);
-}
-
-static void
 xvlist(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, *vp;
@@ -5792,18 +5708,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Iframe] 	= &&Iframe;
 		gotab[Ihalt] 	= &&Ihalt;
 		gotab[Iinv] 	= &&Iinv;
-		gotab[Iiscl] 	= &&Iiscl;
-		gotab[Iiscval] 	= &&Iiscval;
-		gotab[Iisas]	= &&Iisas;
-		gotab[Iisdom]	= &&Iisdom;
-		gotab[Iisns]	= &&Iisns;
-		gotab[Iisnull] 	= &&Iisnull;
-		gotab[Iispair] 	= &&Iispair;
-		gotab[Iisrange]	= &&Iisrange;
-		gotab[Iisstr] 	= &&Iisstr;
-		gotab[Iistab] 	= &&Iistab;
-		gotab[Iistn] 	= &&Iistn;
-		gotab[Iisvec] 	= &&Iisvec;
 		gotab[Ijmp] 	= &&Ijmp;
 		gotab[Ijnz] 	= &&Ijnz;
 		gotab[Ijz] 	= &&Ijz;
@@ -6057,42 +5961,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Inull:
 		xnull(vm, &i->dst);
-		continue;
-	Iiscval:
-		xiscval(vm, &i->op1, &i->dst);
-		continue;
-	Iiscl:
-		xiscl(vm, &i->op1, &i->dst);
-		continue;
-	Iisas:
-		xisas(vm, &i->op1, &i->dst);
-		continue;
-	Iisdom:
-		xisdom(vm, &i->op1, &i->dst);
-		continue;
-	Iisns:
-		xisns(vm, &i->op1, &i->dst);
-		continue;
-	Iisnull:
-		xisnull(vm, &i->op1, &i->dst);
-		continue;
-	Iispair:
-		xispair(vm, &i->op1, &i->dst);
-		continue;
-	Iisrange:
-		xisrange(vm, &i->op1, &i->dst);
-		continue;
-	Iisstr:
-		xisstr(vm, &i->op1, &i->dst);
-		continue;
-	Iistab:
-		xistab(vm, &i->op1, &i->dst);
-		continue;
-	Iistn:
-		xistn(vm, &i->op1, &i->dst);
-		continue;
-	Iisvec:
-		xisvec(vm, &i->op1, &i->dst);
 		continue;
 	Ivlist:
 		xvlist(vm, &i->op1, &i->dst);
@@ -9019,15 +8887,87 @@ l1_isx(VM *vm, Imm argc, Val *argv, Val *rv, char *name, Qkind kind)
 }
 
 static void
-l1_islist(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_isas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isx(vm, argc, argv, rv, "islist", Qlist);
+	l1_isx(vm, argc, argv, rv, "isas", Qas);
+}
+
+static void
+l1_isctype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isctype", Qxtn);
+}
+
+static void
+l1_iscvalue(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "iscval", Qcval);
+}
+
+static void
+l1_isdomain(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isdomain", Qdom);
 }
 
 static void
 l1_isfd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isfd", Qfd);
+}
+
+static void
+l1_islist(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "islist", Qlist);
+}
+
+static void
+l1_isns(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isns", Qns);
+}
+
+static void
+l1_isnull(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isnull", Qnulllist);
+}
+
+static void
+l1_ispair(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "ispair", Qpair);
+}
+
+static void
+l1_isprocedure(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isprocedure", Qcl);
+}
+
+static void
+l1_isrange(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isrange", Qrange);
+}
+
+static void
+l1_isstring(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isstring", Qstr);
+}
+
+static void
+l1_istable(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "istable", Qtab);
+}
+
+static void
+l1_isvector(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isvector", Qvec);
 }
 
 static void
@@ -9474,18 +9414,6 @@ mktopenv()
 	builtinfn(env, "cdr", cdrthunk());
 	builtinfn(env, "cons", consthunk());
 	builtinfn(env, "null", nullthunk());
-	builtinfn(env, "iscvalue", iscvaluethunk());
-	builtinfn(env, "isas", isasthunk());
-	builtinfn(env, "isdom", isdomthunk());
-	builtinfn(env, "isns", isnsthunk());
-	builtinfn(env, "isnull", isnullthunk());
-	builtinfn(env, "ispair", ispairthunk());
-	builtinfn(env, "isprocedure", isprocedurethunk());
-	builtinfn(env, "isrange", israngethunk());
-	builtinfn(env, "isstring", isstringthunk());
-	builtinfn(env, "istable", istablethunk());
-	builtinfn(env, "istypename", istnthunk());
-	builtinfn(env, "isvector", isvectorthunk());
 	builtinfn(env, "string", stringthunk());
 	builtinfn(env, "strlen", strlenthunk());
 	builtinfn(env, "substr", substrthunk());
@@ -9532,8 +9460,12 @@ mktopenv()
 	FN(gettimeofday);
 	FN(head);
 	FN(isarray);
+	FN(isas);
 	FN(isbase);
 	FN(isbitfield);
+	FN(isctype);
+	FN(iscvalue);
+	FN(isdomain);
 	FN(isempty);
 	FN(isenum);
 	FN(isenumconst);
@@ -9542,12 +9474,20 @@ mktopenv()
 	FN(islist);
 	FN(ismapped);
 	FN(isnil);
+	FN(isns);
+	FN(isnull);
+	FN(ispair);
+	FN(isprocedure);
 	FN(isptr);
+	FN(isrange);
+	FN(isstring);
 	FN(isstruct);
 	FN(issu);
+	FN(istable);
 	FN(istypedef);
 	FN(isundeftype);
 	FN(isunion);
+	FN(isvector);
 	FN(isvoid);
 	FN(length);
 	FN(listdel);

@@ -1,7 +1,6 @@
 todo
 ----
 - core functionality
-  - string processing (including ascii<->binary help)
   - other string functions
     strcata
   - formatted printing:
@@ -51,7 +50,7 @@ todo
 
 
 - usability
-  - check "entry" to "toplevel"
+  - change "entry" to "toplevel"
   - print the original source for a lambda
   - use-before-define analysis
 
@@ -70,8 +69,7 @@ todo
   - how to define strings of length 2^64?
   - check for negative cvals on Irange, Istr, Islice*, Ivec*, etc.
   - change all thunks that do not return values to return nil
-  - cleanup and recover from parse/compiler errors
-	-> compile-local context for program, memory, recovery
+  - check various parse/compile error recovery paths for leaks
   - while(1); should run in constant memory but it does not.
     problem seems to be that mutator can alloc new cvalues
     faster than gc can put them back onto the freelist.
@@ -94,12 +92,6 @@ todo
     can dorawns perform this cast?
   - also: verify that address range calculations wrap correctly in
     32-bit contexts
-  - do we need to writebarrier other assignments?
-	- change to vm->cl?
-	- set!s to toplevel vars?
-	- non-boxed writes to stack?
-    => NO! these are all captured as part of root set at start of gc
-  - sizeof x works?
   - does lookaddr constructor sort only symbols (not enums?)
   - detect re-use of tags like k.scm does
   - sizeof(t) errors if t references an undefined subtype;
