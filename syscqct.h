@@ -297,6 +297,7 @@ Expr* ptrto(Expr*, Expr*);
 Expr* doid(char*);
 Expr* doidn(char *s, unsigned long len);
 Expr* doidnsrc(Src *src, char *s, unsigned long len);
+int parseliti(char *s, unsigned long len, Liti *liti, char **err);
 Expr* doconst(U *ctx, char*, unsigned long len);
 Expr* doconsts(char*, unsigned long len);
 Expr* doconstssrc(Src*, char*, unsigned long len);

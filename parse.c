@@ -366,14 +366,23 @@ mkconst(Cbase type, Imm val)
 	return e;
 }
 
+Expr*
+mkconstliti(Liti *liti)
+{
+	Expr *e;
+	e = newexpr(Econst, 0, 0, 0, 0);
+	e->liti = *liti;
+	return e;
+}
+
 static int
 isoctdigit(int c)
 {
 	return ('0' <= c) && (c <= '7');
 }
 
-Expr*
-doconst(U *ctx, char *s, unsigned long len)
+int
+parseliti(char *s, unsigned long len, Liti *liti, char **err)
 {
 	Imm n;
 	enum { Rdec, Rhex, Roct } radix;
@@ -383,13 +392,17 @@ doconst(U *ctx, char *s, unsigned long len)
 
 	z = s+len;
 
-	if(s[0] == 'L')
-		parseerror(ctx, "wide characters unsupported");
+	if(s[0] == 'L'){
+		*err = "wide characters unsupported";
+		return -1;
+	}
 
 	/* char constant */
 	if(s[0] == '\''){
-		if(s[1] != '\\')
-			return mkconst(Vchar, s[1]);
+		if(s[1] != '\\'){
+			c = s[1];
+			goto achar;
+		}
 
 		switch(s[2]){
 		case 'n':
@@ -451,11 +464,16 @@ doconst(U *ctx, char *s, unsigned long len)
 			}
 			break;
 		}
-		return mkconst(Vchar, c);
+	achar:
+		liti->base = Vchar;
+		liti->val = c;
+		return 0;
 	}
 
-	if(strnchr(s, '.', len))
-		parseerror(ctx, "floating point constants unsupported");
+	if(strnchr(s, '.', len)){
+		*err = "floating point constants unsupported";
+		return -1;
+	}
 
 	/* integer constant */
 	if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
@@ -467,8 +485,10 @@ doconst(U *ctx, char *s, unsigned long len)
 	n = strtoull(s, &p, 0);
 
 	suf = Snone;
-	if(p == s)
-		parseerror(ctx, "bad integer constant");
+	if(p == s){
+		*err = "invalid integer constant";
+		return -1;
+	}
 	while(p < z){
 		if(*p == 'U' || *p == 'u')
 			switch(suf){
@@ -482,8 +502,8 @@ doconst(U *ctx, char *s, unsigned long len)
 				suf = Sull;
 				break;
 			default:
-				parseerror(ctx,
-					   "bad use of constant suffix U");
+				*err = "invalid use of constant suffix U";
+				return -1;
 			}
 		else if(*p == 'L' || *p == 'l')
 			switch(suf){
@@ -500,12 +520,13 @@ doconst(U *ctx, char *s, unsigned long len)
 				suf = Sull;
 				break;
 			default:
-				parseerror(ctx,
-					   "bad use of constant suffix L");
+				*err = "invalid use of constant suffix L";
+				return -1;
 			}
-		else
-			parseerror(ctx,
-				   "bad integer constant: \"%.*s\"", len, s);
+		else{
+			*err = "invalid integer constant";
+			return -1;
+		}
 		p++;
 	}
 		
@@ -564,7 +585,19 @@ doconst(U *ctx, char *s, unsigned long len)
 	}else
 		fatal("bug");
 
-	return mkconst(base, n);
+	liti->base = base;
+	liti->val = n;
+	return 0;
+}
+
+Expr*
+doconst(U *ctx, char *s, unsigned long len)
+{
+	Liti liti;
+	char *err;
+	if(0 != parseliti(s, len, &liti, &err))
+		parseerror(ctx, err);
+	return mkconstliti(&liti);
 }
 
 Expr*

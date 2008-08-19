@@ -1638,7 +1638,7 @@ mkstrn(VM *vm, Imm len)
 	if(len >= PAGESZ){
 		str->len = len;
 		str->s = mmap(0, PAGEUP(len), PROT_READ|PROT_WRITE,
-			      MAP_PRIVATE|MAP_ANON, 0, 0);
+			      MAP_NORESERVE|MAP_PRIVATE|MAP_ANON, 0, 0);
 		if(str->s == (void*)(-1))
 			vmerr(vm, "out of memory");
 		str->mlen = PAGEUP(len);
@@ -8085,7 +8085,8 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 		close(fd);
 		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
 	}
-	p = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	p = mmap(0, st.st_size, PROT_READ|PROT_WRITE,
+		 MAP_NORESERVE|MAP_PRIVATE, fd, 0);
 	close(fd);
 	if(p == MAP_FAILED)
 		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
@@ -8702,6 +8703,22 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, err);
 	s = stringof(vm, cv);
 	mkvalstr(s, rv);
+}
+
+static void
+l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *s;
+	Liti liti;
+	char *err;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to strton");
+	checkarg(vm, "strton", argv, 0, Qstr);
+	s = valstr(&argv[0]);
+	if(0 != parseliti(s->s, s->len, &liti, &err))
+		vmerr(vm, err);
+	mkvalcval(vm->litdom, vm->litbase[liti.base], liti.val, rv);
 }
 
 static void
@@ -9601,6 +9618,7 @@ mktopenv()
 	FN(sprintfa);
 	FN(stringof);
 	FN(strput);
+	FN(strton);
 	FN(subtype);
 	FN(suekind);
 	FN(suetag);
