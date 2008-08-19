@@ -1,0 +1,5 @@
+printf("%a\n", strton("123"));
+printf("%a\n", strton("12UL"));
+printf("%a\n", strton("0x123"));
+printf("%a\n", strton("007"));
+printf("%a\n", strton("010"));
