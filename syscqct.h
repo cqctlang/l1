@@ -10,6 +10,7 @@ enum{
 	Vulongmax	= 4294967295ULL,
 	Vvlongmax	= 9223372036854775807ULL,
 	Vuvlongmax	= 18446744073709551615ULL,
+	Maxliti		= 24,	/* longest integer literal plus null */
 };
 
 typedef

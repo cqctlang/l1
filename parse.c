@@ -389,7 +389,16 @@ parseliti(char *s, unsigned long len, Liti *liti, char **err)
 	enum { Snone=0, Su, Sl, Sul, Sll, Sull } suf;
 	unsigned base, noct;
 	char c, *p, *z;
+	char buf[Maxliti];	/* stage for null-terminated strtoull input */
 
+	if(len >= Maxliti){
+		*err = "excessively long integer literal";
+		return -1;
+	}
+		
+	memcpy(buf, s, len);
+	buf[len] = 0;
+	s = buf;
 	z = s+len;
 
 	if(s[0] == 'L'){
