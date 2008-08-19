@@ -1606,7 +1606,7 @@ mkstr0(char *s)
 }
 
 static Str*
-mkstr(char *s, unsigned long len)
+mkstr(char *s, Imm len)
 {
 	Str *str;
 	str = (Str*)halloc(&heap[Qstr]);
@@ -1618,7 +1618,7 @@ mkstr(char *s, unsigned long len)
 }
 
 static Str*
-mkstrk(char *s, unsigned long len, Skind skind)
+mkstrk(char *s, Imm len, Skind skind)
 {
 	Str *str;
 	str = (Str*)halloc(&heap[Qstr]);
