@@ -421,11 +421,11 @@ compilens(U *ctx, Expr *e)
 
 	te = nullelist();
 
-	se = Zcall(doid("table"), 0);
+	se = Zcall(doid("mktab"), 0);
 	se->src = e->src;
 	se = Zset(doid("$typetab"), se);
 	te = Zcons(se, te);
-	se = Zset(doid("$symtab"), Zcall(doid("table"), 0));
+	se = Zset(doid("$symtab"), Zcall(doid("mktab"), 0));
 	te = Zcons(se, te);
 
 	/* inherited names expression */

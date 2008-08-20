@@ -1,5 +1,5 @@
 test = lambda(){
-	t = table();
+	t = mktab();
 	tabinsert(t, 3, "abc");
 	x = tablook(t, 3);
 	print(x);

@@ -117,14 +117,8 @@ enum{
 	E_cval,
 	E_encode,
 	E_lenl,
-	E_lenv,
 	E_ref,
 	E_sizeof,
-	E_tab,
-	E_tabdel,
-	E_tabenum,
-	E_tabget,
-	E_tabput,
 	Emax,
 } Kind;
 
@@ -378,11 +372,6 @@ enum {
 	Ishr,
 	Isizeof,
 	Isub,
-	Itab,
-	Itabdel,
-	Itabenum,
-	Itabget,
-	Itabput,
 	Ivlist,
 	Ixcast,
 	Ixor,
@@ -521,12 +510,6 @@ Closure* carthunk();
 Closure* cdrthunk();
 Closure* consthunk();
 Closure* nullthunk();
-Closure* tablethunk();
-Closure* tabinsertthunk();
-Closure* tabdeletethunk();
-Closure* tablookthunk();
-Closure* tabenumthunk();
-Closure* typenamexthunk();
 Closure* listthunk();
 
 Code* callccode();

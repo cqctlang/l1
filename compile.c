@@ -373,41 +373,6 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
-	case Itab:
-		printf("tab ");
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Itabdel:
-		printf("tabdel ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Itabenum:
-		printf("tabenum ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Itabget:
-		printf("tabget ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Itabput:
-		printf("tabput ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->op3);
-		break;
 	case Ixcast:
 		printf("xcast ");
 		printrand(code, &i->op1);
@@ -1721,14 +1686,8 @@ static ikind EtoVM[] = {
 	[E_cval] = Icval,
 	[E_encode] = Iencode,
 	[E_lenl] = Ilenl,
-	[E_lenv] = Ilenv,
 	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
-	[E_tab] = Itab,
-	[E_tabdel] = Itabdel,
-	[E_tabenum] = Itabenum,
-	[E_tabget] = Itabget,
-	[E_tabput] = Itabput,
 };
 
 static void
@@ -2702,122 +2661,6 @@ listthunk()
 	i = nextinsn(code);
 	i->kind = Ivlist;
 	randloc(&i->op1, FP);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-tablethunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "table");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Itab;
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-tabinsertthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "tabinsert");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Itabput;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->op3, ARG2);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-tabdeletethunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "tabdelete");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Itabdel;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-tablookthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "tablook");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Itabget;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-tabenumthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "tabenum");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Itabenum;
-	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);
 	i->kind = Iret;

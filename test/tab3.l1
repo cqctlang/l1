@@ -10,7 +10,7 @@ checkenum = lambda(vec, len){
 };
 
 test = lambda(){
-	t = table();
+	t = mktab();
 	n = 10000;
 	for(i = 0; i < n; i++)
 		tabinsert(t, i, i);

@@ -4556,72 +4556,6 @@ xlenl(VM *vm, Operand *l, Operand *dst)
 }
 
 static void
-xtab(VM *vm, Operand *dst)
-{
-	Val rv;
-	Tab *tab;
-
-	tab = mktab();
-	mkvaltab(tab, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xtabdel(VM *vm, Operand *tab, Operand *key)
-{
-	Val tabv, keyv;
-	Tab *t;
-
-	getvalrand(vm, tab, &tabv);
-	getvalrand(vm, key, &keyv);
-	t = valtab(&tabv);
-	tabdel(vm, t, &keyv);
-}
-
-static void
-xtabenum(VM *vm, Operand *tab, Operand *dst)
-{
-	Val tabv, rv;
-	Tab *t;
-	Vec *v;
-
-	getvalrand(vm, tab, &tabv);
-	t = valtab(&tabv);
-	v = tabenum(t);
-	mkvalvec(v, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xtabget(VM *vm, Operand *tab, Operand *key, Operand *dst)
-{
-	Val tabv, keyv, *rv;
-	Tab *t;
-
-	getvalrand(vm, tab, &tabv);
-	getvalrand(vm, key, &keyv);
-	t = valtab(&tabv);
-	rv = tabget(t, &keyv);
-	if(rv)
-		putvalrand(vm, rv, dst);
-	else
-		putvalrand(vm, &Xnil, dst);
-}
-
-static void
-xtabput(VM *vm, Operand *tab, Operand *key, Operand *val)
-{
-	Val tabv, keyv, valv;
-	Tab *t;
-
-	getvalrand(vm, tab, &tabv);
-	getvalrand(vm, key, &keyv);
-	getvalrand(vm, val, &valv);
-	t = valtab(&tabv);
-	tabput(vm, t, &keyv, &valv);
-}
-
-static void
 xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 {
 	Val typeordomv, cvalv, rv;
@@ -5602,11 +5536,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isizeof]	= &&Isizeof;
 		gotab[Isub] 	= &&Isub;
-		gotab[Itab]	= &&Itab;
-		gotab[Itabdel]	= &&Itabdel;
-		gotab[Itabenum]	= &&Itabenum;
-		gotab[Itabget]	= &&Itabget;
-		gotab[Itabput]	= &&Itabput;
 		gotab[Ivlist] 	= &&Ivlist;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
@@ -5783,21 +5712,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Ilenl:
 		xlenl(vm, &i->op1, &i->dst);
-		continue;
-	Itab:
-		xtab(vm, &i->dst);
-		continue;
-	Itabdel:
-		xtabdel(vm, &i->op1, &i->op2);
-		continue;
-	Itabenum:
-		xtabenum(vm, &i->op1, &i->dst);
-		continue;
-	Itabget:
-		xtabget(vm, &i->op1, &i->op2, &i->dst);
-		continue;
-	Itabput:
-		xtabput(vm, &i->op1, &i->op2, &i->op3);
 		continue;
 	Ixcast:
 		xxcast(vm, &i->op1, &i->op2, &i->dst);
@@ -8550,6 +8464,62 @@ l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mktab(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mktab");
+	mkvaltab(mktab(), rv);
+}
+
+static void
+l1_tabdelete(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to tabdel");
+	checkarg(vm, "tabdel", argv, 0, Qtab);
+	t = valtab(&argv[0]);
+	tabdel(vm, t, &argv[1]);
+}
+
+static void
+l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	Val *vp;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to tabget");
+	checkarg(vm, "tabget", argv, 0, Qtab);
+	t = valtab(&argv[0]);
+	vp = tabget(t, &argv[1]);
+	if(vp)
+		*rv = *vp;
+	/* otherwise return nil */
+}
+
+static void
+l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to tabput");
+	checkarg(vm, "tabput", argv, 0, Qtab);
+	t = valtab(&argv[0]);
+	tabput(vm, t, &argv[1], &argv[2]);
+}
+
+static void
+l1_tabenum(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to tabenum");
+	checkarg(vm, "tabenum", argv, 0, Qtab);
+	t = valtab(&argv[0]);
+	mkvalvec(tabenum(t), rv);
+}
+
+static void
 l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *addr, *len;
@@ -9374,11 +9344,6 @@ mktopenv()
 	builtinfn(env, "cdr", cdrthunk());
 	builtinfn(env, "cons", consthunk());
 	builtinfn(env, "null", nullthunk());
-	builtinfn(env, "table", tablethunk());
-	builtinfn(env, "tabinsert", tabinsertthunk());
-	builtinfn(env, "tabdelete", tabdeletethunk());
-	builtinfn(env, "tabenum", tabenumthunk());
-	builtinfn(env, "tablook", tablookthunk());
 	builtinfn(env, "list", listthunk());
 
 	FN(_readdir);
@@ -9482,6 +9447,7 @@ mktopenv()
 	FN(mksas);
 	FN(mkstr);
 	FN(mksym);
+	FN(mktab);
 	FN(mkvec);
 	FN(mkzas);
 	FN(nsof);
@@ -9522,7 +9488,11 @@ mktopenv()
 	FN(symid);
 	FN(symtype);
 	FN(symval);
+	FN(tabdelete);
+	FN(tabenum);
+	FN(tabinsert);
 	FN(tabkeys);
+	FN(tablook);
 	FN(tabvals);
 	FN(tail);
 	FN(typedefid);
