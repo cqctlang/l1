@@ -4544,55 +4544,6 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 }
 
 static void
-xslices(VM *vm, Operand *str, Operand *beg, Operand *end, Operand *dst)
-{
-	Val strv, begv, endv, rv;
-	Cval *b, *e;
-	Str *r, *s;
-
-	getvalrand(vm, str, &strv);
-	getvalrand(vm, beg, &begv);
-	getvalrand(vm, end, &endv);
-	s = valstr(&strv);
-	b = valcval(&begv);
-	e = valcval(&endv);
-	if(b->val > s->len)
-		vmerr(vm, "string slice out of bounds");
-	if(e->val > s->len)
-		vmerr(vm, "string slice out of bounds");
-	if(b->val > e->val)
-		vmerr(vm, "string slice out of bounds");
-	r = strslice(s, b->val, e->val);
-	mkvalstr(r, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xlens(VM *vm, Operand *str, Operand *dst)
-{
-	Val strv, rv;
-	Str *s;
-	getvalrand(vm, str, &strv);
-	s = valstr(&strv);
-	mkvalcval(vm->litdom, vm->litbase[Vuint], s->len, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xstr(VM *vm, Operand *cval, Operand *dst)
-{
-	Val cvalv, rv;
-	Str *str;
-	Cval *cv;
-	
-	getvalrand(vm, cval, &cvalv);
-	cv = valcval(&cvalv);
-	str = mkstrn(vm, cv->val);
-	mkvalstr(str, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
 xlenl(VM *vm, Operand *l, Operand *dst)
 {
 	Val lv, rv;
@@ -5714,7 +5665,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ikg] 	= &&Ikg;
 		gotab[Ikp] 	= &&Ikp;
 		gotab[Ilenl]	= &&Ilenl;
-		gotab[Ilens]	= &&Ilens;
 		gotab[Ilenv]	= &&Ilenv;
 		gotab[Imod] 	= &&Imod;
 		gotab[Imov] 	= &&Imov;
@@ -5731,8 +5681,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isizeof]	= &&Isizeof;
-		gotab[Islices]	= &&Islices;
-		gotab[Istr]	= &&Istr;
 		gotab[Isub] 	= &&Isub;
 		gotab[Itab]	= &&Itab;
 		gotab[Itabdel]	= &&Itabdel;
@@ -5916,15 +5864,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Iref:
 		xref(vm, &i->op1, &i->op2, &i->op3, &i->dst);
-		continue;
-	Istr:
-		xstr(vm, &i->op1, &i->dst);
-		continue;
-	Islices:
-		xslices(vm, &i->op1, &i->op2, &i->op3, &i->dst);
-		continue;
-	Ilens:
-		xlens(vm, &i->op1, &i->dst);
 		continue;
 	Ilenl:
 		xlenl(vm, &i->op1, &i->dst);
@@ -8555,6 +8494,52 @@ l1_rangelen(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkstr");
+	checkarg(vm, "mkstr", argv, 0, Qcval);
+	/* FIXME: sanity */
+	cv = valcval(&argv[0]);
+	mkvalstr(mkstrn(vm, cv->val), rv);
+}
+
+static void
+l1_strlen(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *s;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to strlen");
+	checkarg(vm, "strlen", argv, 0, Qstr);
+	s = valstr(&argv[0]);
+	mkvalcval(vm->litdom, vm->litbase[Vuvlong], s->len, rv);
+}
+
+static void
+l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *b, *e;
+	Str *s;
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to substr");
+	checkarg(vm, "substr", argv, 0, Qstr);
+	checkarg(vm, "substr", argv, 1, Qcval);
+	checkarg(vm, "substr", argv, 2, Qcval);
+	s = valstr(&argv[0]);
+	b = valcval(&argv[1]);
+	e = valcval(&argv[2]);
+	if(b->val > s->len)
+		vmerr(vm, "substring out of bounds");
+	if(e->val > s->len)
+		vmerr(vm, "substring out of bounds");
+	if(b->val > e->val)
+		vmerr(vm, "substring out of bounds");
+	mkvalstr(strslice(s, b->val, e->val), rv);
+}
+
+static void
 l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -9414,9 +9399,6 @@ mktopenv()
 	builtinfn(env, "cdr", cdrthunk());
 	builtinfn(env, "cons", consthunk());
 	builtinfn(env, "null", nullthunk());
-	builtinfn(env, "string", stringthunk());
-	builtinfn(env, "strlen", strlenthunk());
-	builtinfn(env, "substr", substrthunk());
 	builtinfn(env, "table", tablethunk());
 	builtinfn(env, "tabinsert", tabinsertthunk());
 	builtinfn(env, "tabdelete", tabdeletethunk());
@@ -9528,6 +9510,7 @@ mktopenv()
 	FN(mkns);
 	FN(mkrange);
 	FN(mksas);
+	FN(mkstr);
 	FN(mksym);
 	FN(mkzas);
 	FN(nsof);
@@ -9557,8 +9540,10 @@ mktopenv()
 	FN(rmdir);
 	FN(sprintfa);
 	FN(stringof);
+	FN(strlen);
 	FN(strput);
 	FN(strton);
+	FN(substr);
 	FN(subtype);
 	FN(suekind);
 	FN(suetag);

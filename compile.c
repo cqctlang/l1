@@ -367,29 +367,8 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
-	case Ilens:
-		printf("lens ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
 	case Ilenv:
 		printf("lenv ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Islices:
-		printf("slices ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->op3);
-		printf(" ");
-		printrand(code, &i->dst);
-	case Istr:
-		printf("str ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -1776,12 +1755,9 @@ static ikind EtoVM[] = {
 	[E_cval] = Icval,
 	[E_encode] = Iencode,
 	[E_lenl] = Ilenl,
-	[E_lens] = Ilens,
 	[E_lenv] = Ilenv,
 	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
-	[E_slices] = Islices,
-	[E_str] = Istr,
 	[E_tab] = Itab,
 	[E_tabdel] = Itabdel,
 	[E_tabenum] = Itabenum,
@@ -1971,7 +1947,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case E_cdr:
 	case E_encode:
 	case E_sizeof:
-	case E_str:
 		if(issimple(e->e1))
 			cgrand(&r1, e->e1, p);
 		else{
@@ -2742,77 +2717,6 @@ consthunk()
 	i->kind = Icons;
 	randloc(&i->op1, ARG0);
 	randloc(&i->op2, ARG1);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-stringthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "string");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Istr;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-strlenthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "strlen");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ilens;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-substrthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "substr");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Islices;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->op3, ARG2);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);
 	i->kind = Iret;

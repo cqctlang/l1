@@ -107,12 +107,9 @@ char* S[] = {
 	[E_cval] =	"E_cval",
 	[E_encode] =	"E_encode",
 	[E_lenl] =	"E_lenl",
-	[E_lens] =	"E_lens",
 	[E_lenv] =	"E_lenv",
 	[E_ref] =	"E_ref",
 	[E_sizeof] =	"E_sizeof",
-	[E_slices] =	"E_slices",
-	[E_str] =	"E_str",
 	[E_vec] =	"E_vec",
 	[E_vecl] =	"E_vecl",
 	[E_vecref] =	"E_vecref",
@@ -513,7 +510,6 @@ printcqct0(Expr *e, unsigned ni)
 	case E_car:
 	case E_cdr:
 	case E_lenl:
-	case E_lens:
 	case E_lenv:
 	case E_sizeof:
 	case E_encode:
@@ -530,7 +526,6 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		printf(")");
 		break;
-	case E_slices:
 	case E_vecset:
 	case E_ref:
 	case E_cval:

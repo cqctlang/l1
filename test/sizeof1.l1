@@ -7,7 +7,7 @@ define listref(l, i){
 
 define mkzas(len){
 	@local dispatch, str;
-	str = string(len);
+	str = mkstr(len);
 	define dispatch args {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 0);
