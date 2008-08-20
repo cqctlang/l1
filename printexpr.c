@@ -103,7 +103,6 @@ char* S[] = {
 	[Excast] =	"Excast",
 
 	[E_cval] =	"E_cval",
-	[E_encode] =	"E_encode",
 	[E_ref] =	"E_ref",
 	[E_sizeof] =	"E_sizeof",
 };
@@ -500,7 +499,6 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		break;
 	case E_sizeof:
-	case E_encode:
 		printf("%s(", S[e->kind]);
 		printcqct0(e->e1, ni);
 		printf(")");

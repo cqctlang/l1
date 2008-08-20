@@ -355,12 +355,6 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
-	case Iencode:
-		printf("encode ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
 	case Isizeof:
 		printf("sizeof ");
 		printrand(code, &i->op1);
@@ -1646,7 +1640,6 @@ static ikind EtoVM[] = {
 	[Excast] = Ixcast,
 
 	[E_cval] = Icval,
-	[E_encode] = Iencode,
 	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
 };
@@ -1825,7 +1818,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Euminus:
 	case Eutwiddle:
 	case Eunot:
-	case E_encode:
 	case E_sizeof:
 		if(issimple(e->e1))
 			cgrand(&r1, e->e1, p);

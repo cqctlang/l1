@@ -113,7 +113,6 @@ enum{
 
 	/* open-coded primitives */
 	E_cval,
-	E_encode,
 	E_ref,
 	E_sizeof,
 	Emax,
@@ -339,7 +338,6 @@ enum {
 	Icmpneq,
 	Icval,
 	Idiv,
-	Iencode,
 	Iframe,
 	Ihalt,
 	Iinv,
@@ -529,7 +527,6 @@ Expr* Zconsts(char *s);
 Expr* Zcval(Expr *dom, Expr *type, Expr *val);
 Expr* Zif(Expr *cond, Expr *true);
 Expr* Zifelse(Expr *cond, Expr *true, Expr *false);
-Expr* Zencode(Expr *e);
 Expr* Zlambda(Expr *args, Expr *body);
 Expr* Zlambdn(Expr *args, Expr *body, Expr *name);
 Expr* Zlocals(unsigned n, ...);

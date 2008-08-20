@@ -162,12 +162,6 @@ Zrange(Expr *addr, Expr *sz)
 }
 
 Expr*
-Zencode(Expr *e)
-{
-	return Z1(E_encode, e);
-}
-
-Expr*
 Zlocals(unsigned n, ...)
 {
 	unsigned m;

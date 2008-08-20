@@ -4556,22 +4556,6 @@ xlist(VM *vm, Operand *op, Operand *dst)
 }
 
 static void
-xencode(VM *vm, Operand *op, Operand *dst)
-{
-	Val v, rv;
-	Str *str;
-	Cval *cv;
-
-	getvalrand(vm, op, &v);
-	if(v.qkind != Qcval)
-		vmerr(vm, "bad operand to encode");
-	cv = valcval(&v);
-	str = imm2str(vm, cv->type, cv->val);
-	mkvalstr(str, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
 xsizeof(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, rv;
@@ -5454,7 +5438,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icmpneq] 	= &&Icmpneq;
 		gotab[Icval] 	= &&Icval;
 		gotab[Idiv] 	= &&Idiv;
-		gotab[Iencode]	= &&Iencode;
 		gotab[Iframe] 	= &&Iframe;
 		gotab[Ihalt] 	= &&Ihalt;
 		gotab[Iinv] 	= &&Iinv;
@@ -5648,9 +5631,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Ilist:
 		xlist(vm, &i->op1, &i->dst);
-		continue;
-	Iencode:
-		xencode(vm, &i->op1, &i->dst);
 		continue;
 	Isizeof:
 		xsizeof(vm, &i->op1, &i->dst);
