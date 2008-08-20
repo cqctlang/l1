@@ -408,34 +408,6 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->op3);
 		break;
-	case Ivec:
-		printf("vec ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ivecl:
-		printf("vecl ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ivecref:
-		printf("vecref ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ivecset:
-		printf("vecset ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->op3);
-		break;
 	case Ixcast:
 		printf("xcast ");
 		printrand(code, &i->op1);
@@ -462,12 +434,6 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Ivlist:
 		printf("vlist ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ivvec:
-		printf("vvec ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -1763,10 +1729,6 @@ static ikind EtoVM[] = {
 	[E_tabenum] = Itabenum,
 	[E_tabget] = Itabget,
 	[E_tabput] = Itabput,
-	[E_vec] = Ivec,
-	[E_vecl] = Ivecl,
-	[E_vecref] = Ivecref,
-	[E_vecset] = Ivecset,
 };
 
 static void
@@ -2725,29 +2687,6 @@ consthunk()
 }
 
 Closure*
-mkvecthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "mkvec");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ivec;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
 listthunk()
 {
 	Ctl *L;
@@ -2764,100 +2703,6 @@ listthunk()
 	i->kind = Ivlist;
 	randloc(&i->op1, FP);
 	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-vectorthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "vector");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ivvec;
-	randloc(&i->op1, FP);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-veclenthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "veclen");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ilenv;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-vecrefthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "vecref");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ivecref;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-vecsetthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "vecset");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ivecset;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->op3, ARG2);
 	i = nextinsn(code);
 	i->kind = Iret;
 

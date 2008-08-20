@@ -107,13 +107,8 @@ char* S[] = {
 	[E_cval] =	"E_cval",
 	[E_encode] =	"E_encode",
 	[E_lenl] =	"E_lenl",
-	[E_lenv] =	"E_lenv",
 	[E_ref] =	"E_ref",
 	[E_sizeof] =	"E_sizeof",
-	[E_vec] =	"E_vec",
-	[E_vecl] =	"E_vecl",
-	[E_vecref] =	"E_vecref",
-	[E_vecset] =	"E_vecset",
 };
 
 static void
@@ -510,23 +505,12 @@ printcqct0(Expr *e, unsigned ni)
 	case E_car:
 	case E_cdr:
 	case E_lenl:
-	case E_lenv:
 	case E_sizeof:
 	case E_encode:
 		printf("%s(", S[e->kind]);
 		printcqct0(e->e1, ni);
 		printf(")");
 		break;
-	case E_vecref:
-	case E_vec:
-	case E_vecl:
-		printf("%s(", S[e->kind]);
-		printcqct0(e->e1, ni);
-		printf(", ");
-		printcqct0(e->e2, ni);
-		printf(")");
-		break;
-	case E_vecset:
 	case E_ref:
 	case E_cval:
 		printf("%s(", S[e->kind]);

@@ -125,10 +125,6 @@ enum{
 	E_tabenum,
 	E_tabget,
 	E_tabput,
-	E_vec,
-	E_vecl,
-	E_vecref,
-	E_vecset,
 	Emax,
 } Kind;
 
@@ -387,12 +383,7 @@ enum {
 	Itabenum,
 	Itabget,
 	Itabput,
-	Ivec,
-	Ivecl,
-	Ivecref,
-	Ivecset,
 	Ivlist,
-	Ivvec,
 	Ixcast,
 	Ixor,
 	Iopmax         
@@ -530,33 +521,13 @@ Closure* carthunk();
 Closure* cdrthunk();
 Closure* consthunk();
 Closure* nullthunk();
-Closure* iscvaluethunk();
-Closure* isasthunk();
-Closure* isdomthunk();
-Closure* isnsthunk();
-Closure* isnullthunk();
-Closure* ispairthunk();
-Closure* isprocedurethunk();
-Closure* israngethunk();
-Closure* isstringthunk();
-Closure* istablethunk();
-Closure* istnthunk();
-Closure* isvectorthunk();
-Closure* stringthunk();
-Closure* strlenthunk();
-Closure* substrthunk();
 Closure* tablethunk();
 Closure* tabinsertthunk();
 Closure* tabdeletethunk();
 Closure* tablookthunk();
 Closure* tabenumthunk();
 Closure* typenamexthunk();
-Closure* mkvecthunk();
 Closure* listthunk();
-Closure* vectorthunk();
-Closure* veclenthunk();
-Closure* vecrefthunk();
-Closure* vecsetthunk();
 
 Code* callccode();
 Code* contcode();

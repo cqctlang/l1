@@ -4556,66 +4556,6 @@ xlenl(VM *vm, Operand *l, Operand *dst)
 }
 
 static void
-xvecnil(VM *vm, Operand *cval, Operand *dst)
-{
-	Val cvalv, rv;
-	Vec *vec;
-	Cval *cv;
-
-	getvalrand(vm, cval, &cvalv);
-	cv = valcval(&cvalv);
-	vec = mkvecnil(cv->val);
-	mkvalvec(vec, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xlenv(VM *vm, Operand *vec, Operand *dst)
-{
-	Val vecv, rv;
-	Vec *v;
-	getvalrand(vm, vec, &vecv);
-	v = valvec(&vecv);
-	mkvalcval(vm->litdom, vm->litbase[Vuint], v->len, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xvecref(VM *vm, Operand *vec, Operand *idx, Operand *dst)
-{
-	Val vecv, idxv;
-	Vec *v;
-	Cval *cv;
-
-	getvalrand(vm, vec, &vecv);
-	getvalrand(vm, idx, &idxv);
-	v = valvec(&vecv);
-	cv = valcval(&idxv);
-	/* FIXME: check sign of cv */
-	if(cv->val >= v->len)
-		vmerr(vm, "vector reference out of bounds");
-	putvalrand(vm, vecref(v, cv->val), dst);
-}
-
-static void
-xvecset(VM *vm, Operand *vec, Operand *idx, Operand *val)
-{
-	Val vecv, idxv, valv;
-	Vec *v;
-	Cval *cv;
-
-	getvalrand(vm, vec, &vecv);
-	getvalrand(vm, idx, &idxv);
-	getvalrand(vm, val, &valv);
-	v = valvec(&vecv);
-	cv = valcval(&idxv);
-	/* FIXME: check sign of cv */
-	if(cv->val >= v->len)
-		vmerr(vm, "vector set out of bounds");
-	vecset(vm, v, cv->val, &valv);
-}
-
-static void
 xtab(VM *vm, Operand *dst)
 {
 	Val rv;
@@ -4731,25 +4671,6 @@ xvlist(VM *vm, Operand *op, Operand *dst)
 	for(i = 0; i < n; i++)
 		listappend(vm, lst, &vm->stack[sp+1+i]);
 	mkvallist(lst, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
-xvvec(VM *vm, Operand *op, Operand *dst)
-{
-	Val v, *vp;
-	Imm sp, n, i;
-	Val rv;
-	Vec *vec;
-
-	getvalrand(vm, op, &v);
-	sp = valimm(&v);
-	vp = &vm->stack[sp];
-	n = valimm(vp);
-	vec = mkvec(n);
-	for(i = 0; i < n; i++)
-		_vecset(vec, i, &vm->stack[sp+i+1]);
-	mkvalvec(vec, &rv);
 	putvalrand(vm, &rv, dst);
 }
 
@@ -5665,7 +5586,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ikg] 	= &&Ikg;
 		gotab[Ikp] 	= &&Ikp;
 		gotab[Ilenl]	= &&Ilenl;
-		gotab[Ilenv]	= &&Ilenv;
 		gotab[Imod] 	= &&Imod;
 		gotab[Imov] 	= &&Imov;
 		gotab[Imul] 	= &&Imul;
@@ -5687,11 +5607,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Itabenum]	= &&Itabenum;
 		gotab[Itabget]	= &&Itabget;
 		gotab[Itabput]	= &&Itabput;
-		gotab[Ivec] 	= &&Ivec;
-		gotab[Ivecref] 	= &&Ivecref;
-		gotab[Ivecset] 	= &&Ivecset;
 		gotab[Ivlist] 	= &&Ivlist;
-		gotab[Ivvec] 	= &&Ivvec;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
 
@@ -5868,15 +5784,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Ilenl:
 		xlenl(vm, &i->op1, &i->dst);
 		continue;
-	Ivec:
-		xvecnil(vm, &i->op1, &i->dst);
-		continue;
-	Ivecref:
-		xvecref(vm, &i->op1, &i->op2, &i->dst);
-		continue;
-	Ivecset:
-		xvecset(vm, &i->op1, &i->op2, &i->op3);
-		continue;
 	Itab:
 		xtab(vm, &i->dst);
 		continue;
@@ -5892,9 +5799,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Itabput:
 		xtabput(vm, &i->op1, &i->op2, &i->op3);
 		continue;
-	Ilenv:
-		xlenv(vm, &i->op1, &i->dst);
-		continue;
 	Ixcast:
 		xxcast(vm, &i->op1, &i->op2, &i->dst);
 		continue;
@@ -5903,9 +5807,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		continue;
 	Ivlist:
 		xvlist(vm, &i->op1, &i->dst);
-		continue;
-	Ivvec:
-		xvvec(vm, &i->op1, &i->dst);
 		continue;
 	Iencode:
 		xencode(vm, &i->op1, &i->dst);
@@ -8501,8 +8402,8 @@ l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkstr");
 	checkarg(vm, "mkstr", argv, 0, Qcval);
-	/* FIXME: sanity */
 	cv = valcval(&argv[0]);
+	/* FIXME: sanity */
 	mkvalstr(mkstrn(vm, cv->val), rv);
 }
 
@@ -8572,6 +8473,80 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 != parseliti(s->s, s->len, &liti, &err))
 		vmerr(vm, err);
 	mkvalcval(vm->litdom, vm->litbase[liti.base], liti.val, rv);
+}
+
+static void
+l1_mkvec(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkvec");
+	checkarg(vm, "mkvec", argv, 0, Qcval);
+	cv = valcval(&argv[0]);
+	/* FIXME: sanity */
+	mkvalvec(mkvecnil(cv->val), rv);
+}
+
+static void
+l1_vector(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	Imm i;
+
+	v = mkvec(argc);
+	for(i = 0; i < argc; i++)
+		_vecset(v, i, &argv[i]);
+	mkvalvec(v, rv);
+}
+
+static void
+l1_veclen(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to veclen");
+	checkarg(vm, "veclen", argv, 0, Qvec);
+	v = valvec(&argv[0]);
+	mkvalcval(vm->litdom, vm->litbase[Vuvlong], v->len, rv);
+}
+
+static void
+l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	Cval *cv;
+	Val *vp;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to vecref");
+	checkarg(vm, "vecref", argv, 0, Qvec);
+	checkarg(vm, "vecref", argv, 1, Qcval);
+	v = valvec(&argv[0]);
+	cv = valcval(&argv[1]);
+	/* FIXME: check sign of cv */
+	if(cv->val >= v->len)
+		vmerr(vm, "vecref out of bounds");
+	vp = vecref(v, cv->val);
+	*rv = *vp;
+}
+
+static void
+l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	Cval *cv;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to vecset");
+	checkarg(vm, "vecset", argv, 0, Qvec);
+	checkarg(vm, "vecset", argv, 1, Qcval);
+	v = valvec(&argv[0]);
+	cv = valcval(&argv[1]);
+	/* FIXME: check sign of cv */
+	if(cv->val >= v->len)
+		vmerr(vm, "vecset out of bounds");
+	vecset(vm, v, cv->val, &argv[2]);
 }
 
 static void
@@ -9405,11 +9380,6 @@ mktopenv()
 	builtinfn(env, "tabenum", tabenumthunk());
 	builtinfn(env, "tablook", tablookthunk());
 	builtinfn(env, "list", listthunk());
-	builtinfn(env, "mkvec", mkvecthunk());
-	builtinfn(env, "vector", vectorthunk());
-	builtinfn(env, "veclen", veclenthunk());
-	builtinfn(env, "vecref", vecrefthunk());
-	builtinfn(env, "vecset", vecsetthunk());
 
 	FN(_readdir);
 	FN(append);
@@ -9512,6 +9482,7 @@ mktopenv()
 	FN(mksas);
 	FN(mkstr);
 	FN(mksym);
+	FN(mkvec);
 	FN(mkzas);
 	FN(nsof);
 	FN(nsenumsym);
@@ -9557,6 +9528,10 @@ mktopenv()
 	FN(typedefid);
 	FN(typedeftype);
 	FN(unlink);
+	FN(veclen);
+	FN(vecref);
+	FN(vecset);
+	FN(vector);
 	FN(vmbacktrace);
 	FN(write);
 
