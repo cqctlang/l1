@@ -1,3 +1,22 @@
+/* t.c */
+#include <stdio.h>
+
+typedef char int8;
+typedef unsigned char uint8;
+typedef int int32;
+
+int
+main(int argc, char *argv[])
+{
+	printf("%x\n", (int32)(int8)0xff);	
+	return 0;
+}
+
+% /tmp/t
+ffffffff
+
+; printf("%x\n", (`int32)(`int8)0xff);
+ff
 
 ub233% pwd
 /.ccs/u02/vczandy/perf/scripts

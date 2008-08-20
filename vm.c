@@ -3614,6 +3614,13 @@ rerep(Imm val, Xtypename *old, Xtypename *new)
 	   integer truncation
 	   (so div and shr work)
 	*/
+	old = chasetype(old);
+	new = chasetype(new);
+	if(old->rep == Rundef || new->rep == Rundef)
+		fatal("undef!");
+	switch((new->rep<<5)|old->rep){
+		#include "rerep.switch"
+	}
  	return val;
 }
 

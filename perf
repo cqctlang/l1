@@ -42,3 +42,26 @@ ub233% ~/src/l1/l1 -e test.cqct
 51184735
 51062071
 51222994
+
+---
+commit 95f66e00049e8a9d1828dc5eda5e0652ea1e3abe
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Wed Aug 20 17:24:46 2008 -0400
+
+    don't keep heap statistics unless you're looking at them
+    documentation
+
+ub233% ~/src/l1/l1 -t -e ~/src/l1/test/qsort.l1   X 5
+2880607 usec
+2805530 usec
+2874102 usec
+2950662 usec
+3089799 usec
+
+ub233% ~/src/l1/l1 -e test.cqct
+46419410
+46177216
+45855638
+45703691
+45751179
+
