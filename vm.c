@@ -4372,41 +4372,6 @@ xbox0(VM *vm, Operand *op)
 }
 
 static void
-xcar(VM *vm, Operand *op, Operand *dst)
-{
-	Val v;
-	Pair *p;
-	getvalrand(vm, op, &v);
-	if(v.qkind != Qpair)
-		vmerr(vm, "car on non-pair");
-	p = valpair(&v);
-	putvalrand(vm, &p->car, dst);
-}
-
-static void
-xcdr(VM *vm, Operand *op, Operand *dst)
-{
-	Val v;
-	Pair *p;
-	getvalrand(vm, op, &v);
-	if(v.qkind != Qpair)
-		vmerr(vm, "cdr on non-pair");
-	p = valpair(&v);
-	putvalrand(vm, &p->cdr, dst);
-}
-
-static void
-xcons(VM *vm, Operand *car, Operand *cdr, Operand *dst)
-{
-	Val carv, cdrv, rv;
-
-	getvalrand(vm, car, &carv);
-	getvalrand(vm, cdr, &cdrv);
-	mkvalpair(&carv, &cdrv, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
 xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 {
 	Val domv, typev, cvalv, rv;
@@ -4544,18 +4509,6 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 }
 
 static void
-xlenl(VM *vm, Operand *l, Operand *dst)
-{
-	Val lv, rv;
-	Imm len;
-	getvalrand(vm, l, &lv);
-	if(listlen(&lv, &len) == 0)
-		vmerr(vm, "length on non-list");
-	mkvalcval(vm->litdom, vm->litbase[Vuint], len, &rv);
-	putvalrand(vm, &rv, dst);
-}
-
-static void
 xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 {
 	Val typeordomv, cvalv, rv;
@@ -4584,19 +4537,13 @@ xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 }
 
 static void
-xnull(VM *vm, Operand *dst)
-{
-	putvalrand(vm, &Xnulllist, dst);
-}
-
-static void
-xvlist(VM *vm, Operand *op, Operand *dst)
+xlist(VM *vm, Operand *op, Operand *dst)
 {
 	Val v, *vp;
 	Imm sp, n, i;
 	List *lst;
 	Val rv;
-
+	
 	getvalrand(vm, op, &v);
 	sp = valimm(&v);
 	vp = &vm->stack[sp];
@@ -5498,8 +5445,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icall]	= &&Icall;
 		gotab[Icallc]	= &&Icallc;
 		gotab[Icallt]	= &&Icallt;
-		gotab[Icar]	= &&Icar;
-		gotab[Icdr]	= &&Icdr;
 		gotab[Iclo]	= &&Iclo;
 		gotab[Icmpeq] 	= &&Icmpeq;
 		gotab[Icmpgt] 	= &&Icmpgt;
@@ -5507,7 +5452,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icmplt] 	= &&Icmplt;
 		gotab[Icmple] 	= &&Icmple;
 		gotab[Icmpneq] 	= &&Icmpneq;
-		gotab[Icons] 	= &&Icons;
 		gotab[Icval] 	= &&Icval;
 		gotab[Idiv] 	= &&Idiv;
 		gotab[Iencode]	= &&Iencode;
@@ -5519,13 +5463,12 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ijz] 	= &&Ijz;
 		gotab[Ikg] 	= &&Ikg;
 		gotab[Ikp] 	= &&Ikp;
-		gotab[Ilenl]	= &&Ilenl;
+		gotab[Ilist]	= &&Ilist;
 		gotab[Imod] 	= &&Imod;
 		gotab[Imov] 	= &&Imov;
 		gotab[Imul] 	= &&Imul;
 		gotab[Ineg] 	= &&Ineg;
 		gotab[Inot] 	= &&Inot;
-		gotab[Inull] 	= &&Inull;
 		gotab[Ior] 	= &&Ior;
 		gotab[Inop] 	= &&Inop;
 		gotab[Ipanic] 	= &&Ipanic;
@@ -5536,7 +5479,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isizeof]	= &&Isizeof;
 		gotab[Isub] 	= &&Isub;
-		gotab[Ivlist] 	= &&Ivlist;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
 
@@ -5695,32 +5637,17 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Ibox0:
 		xbox0(vm, &i->op1);
 		continue;
-	Icar:
-		xcar(vm, &i->op1, &i->dst);
-		continue;
-	Icdr:
-		xcdr(vm, &i->op1, &i->dst);
-		continue;
-	Icons:
-		xcons(vm, &i->op1, &i->op2, &i->dst);
-		continue;
 	Icval:
 		xcval(vm, &i->op1, &i->op2, &i->op3, &i->dst);
 		continue;
 	Iref:
 		xref(vm, &i->op1, &i->op2, &i->op3, &i->dst);
 		continue;
-	Ilenl:
-		xlenl(vm, &i->op1, &i->dst);
-		continue;
 	Ixcast:
 		xxcast(vm, &i->op1, &i->op2, &i->dst);
 		continue;
-	Inull:
-		xnull(vm, &i->dst);
-		continue;
-	Ivlist:
-		xvlist(vm, &i->op1, &i->dst);
+	Ilist:
+		xlist(vm, &i->op1, &i->dst);
 		continue;
 	Iencode:
 		xencode(vm, &i->op1, &i->dst);
@@ -8640,17 +8567,80 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	List *lst;
 	Vec *vec;
+	Str *str;
+	Imm len;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to length");
-	if(argv[0].qkind == Qlist){
-		lst = vallist(&argv[0]);
-		mkvalcval(vm->litdom, vm->litbase[Vuint], listxlen(lst->x),
-			  rv);
-	}else if(argv[0].qkind == Qvec){
-		vec = valvec(&argv[0]);
-		mkvalcval(vm->litdom, vm->litbase[Vuint], vec->len, rv);
-	}else
+	switch(argv[0].qkind){
+	default:
 		vmerr(vm, "operand 1 to length must be something lengthy");
+	case Qlist:
+		lst = vallist(&argv[0]);
+		len = listxlen(lst->x);
+		break;
+	case Qstr:
+		str = valstr(&argv[0]);
+		len = str->len;
+		break;
+	case Qvec:
+		vec = valvec(&argv[0]);
+		len = vec->len;
+		break;
+	}
+	mkvalcval(vm->litdom, vm->litbase[Vuvlong], len, rv);
+}
+
+static void
+l1_null(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to null");
+	*rv = Xnulllist;
+}
+
+static void
+l1_car(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Pair *p;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to car");
+	checkarg(vm, "car", argv, 0, Qpair);
+	p = valpair(&argv[0]);
+	*rv = p->car;
+}
+
+static void
+l1_cdr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Pair *p;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cdr");
+	checkarg(vm, "cdr", argv, 0, Qpair);
+	p = valpair(&argv[0]);
+	*rv = p->cdr;
+}
+
+static void
+l1_cons(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cons");
+	mkvalpair(&argv[0], &argv[1], rv);
+}
+
+static void
+l1_list(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	Imm i;
+
+	l = mklist();
+	for(i = 0; i < argc; i++)
+		listappend(vm, l, &argv[i]);
+	mkvallist(l, rv);
 }
 
 static void
@@ -9340,11 +9330,6 @@ mktopenv()
 	
 	builtinfn(env, "halt", haltthunk());
 	builtinfn(env, "callcc", callcc());
-	builtinfn(env, "car", carthunk());
-	builtinfn(env, "cdr", cdrthunk());
-	builtinfn(env, "cons", consthunk());
-	builtinfn(env, "null", nullthunk());
-	builtinfn(env, "list", listthunk());
 
 	FN(_readdir);
 	FN(append);
@@ -9356,7 +9341,10 @@ mktopenv()
 	FN(bitfieldcontainer);
 	FN(bitfieldpos);
 	FN(bitfieldwidth);
+	FN(car);
+	FN(cdr);
 	FN(close);
+	FN(cons);
 	FN(copy);
 	FN(domof);
 	FN(enconsts);
@@ -9407,6 +9395,7 @@ mktopenv()
 	FN(isvector);
 	FN(isvoid);
 	FN(length);
+	FN(list);
 	FN(listdel);
 	FN(listins);
 	FN(listref);
@@ -9457,6 +9446,7 @@ mktopenv()
 	FN(nslooksym);
 	FN(nslooktype);
 	FN(nsptr);
+	FN(null);
 	FN(open);
 	FN(opentcp);
 	FN(paramid);

@@ -333,43 +333,11 @@ printinsn(Code *code, Insn *i)
 		printf("callt ");
 		printrand(code, &i->op1);
 		break;
-	case Icar:
-		printf("car ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Icdr:
-		printf("cdr ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Icons:
-		printf("cons ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
 	case Icval:
 		printf("cval ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->op2);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ilenl:
-		printf("lenl ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Ilenv:
-		printf("lenv ");
-		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
@@ -381,6 +349,12 @@ printinsn(Code *code, Insn *i)
 		printf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Ilist:
+		printf("list ");
+		printrand(code, &i->op1);
+		printf(" ");
+		printrand(code, &i->dst);
+		break;
 	case Iencode:
 		printf("encode ");
 		printrand(code, &i->op1);
@@ -389,16 +363,6 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Isizeof:
 		printf("sizeof ");
-		printrand(code, &i->op1);
-		printf(" ");
-		printrand(code, &i->dst);
-		break;
-	case Inull:
-		printf("null ");
-		printrand(code, &i->dst);
-		break;
-	case Ivlist:
-		printf("vlist ");
 		printrand(code, &i->op1);
 		printf(" ");
 		printrand(code, &i->dst);
@@ -1681,11 +1645,8 @@ static ikind EtoVM[] = {
 	[Eutwiddle] = Iinv,
 	[Excast] = Ixcast,
 
-	[E_car] = Icar,
-	[E_cdr] = Icdr,
 	[E_cval] = Icval,
 	[E_encode] = Iencode,
-	[E_lenl] = Ilenl,
 	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
 };
@@ -1864,8 +1825,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Euminus:
 	case Eutwiddle:
 	case Eunot:
-	case E_car:
-	case E_cdr:
 	case E_encode:
 	case E_sizeof:
 		if(issimple(e->e1))
@@ -2374,7 +2333,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 		}
 	if(b->vararg){
 		i = nextinsn(code);
-		i->kind = Ivlist;
+		i->kind = Ilist;
 		randloc(&i->op1, FP);
 		/* by convention local 0 is var arg list */
 		randstkloc(&i->dst, Llocal, 0, b->local[0].indirect); 
@@ -2549,121 +2508,6 @@ panicthunk()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Ipanic;
-
-	return cl;
-}
-
-Closure*
-nullthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "null");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Inull;
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-carthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "car");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Icar;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-cdrthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "cdr");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Icdr;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-consthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "cons");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Icons;
-	randloc(&i->op1, ARG0);
-	randloc(&i->op2, ARG1);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
-
-	return cl;
-}
-
-Closure*
-listthunk()
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "list");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code);
-	i->kind = Ivlist;
-	randloc(&i->op1, FP);
-	randloc(&i->dst, AC);
-	i = nextinsn(code);
-	i->kind = Iret;
 
 	return cl;
 }

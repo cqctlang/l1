@@ -112,11 +112,8 @@ enum{
 	Excast,
 
 	/* open-coded primitives */
-	E_car,
-	E_cdr,
 	E_cval,
 	E_encode,
-	E_lenl,
 	E_ref,
 	E_sizeof,
 	Emax,
@@ -333,8 +330,6 @@ enum {
 	Icall,
 	Icallc,
 	Icallt,
-	Icar,
-	Icdr,
 	Iclo,
 	Icmpeq,
 	Icmpgt,
@@ -342,7 +337,6 @@ enum {
 	Icmplt,
 	Icmple,
 	Icmpneq,
-	Icons,
 	Icval,
 	Idiv,
 	Iencode,
@@ -354,14 +348,11 @@ enum {
 	Ijz,
 	Ikg,
 	Ikp,
-	Ilenl,
-	Ilenv,
 	Imod,
 	Imov,
 	Imul,
 	Ineg,
 	Inot,
-	Inull,
 	Ior,
 	Inop,
 	Ipanic,
@@ -372,7 +363,7 @@ enum {
 	Ishr,
 	Isizeof,
 	Isub,
-	Ivlist,
+	Ilist,
 	Ixcast,
 	Ixor,
 	Iopmax         
@@ -503,14 +494,8 @@ void printvmac(VM *vm);
 char* topvecid(unsigned idx, Topvec *tv);
 Val* topvecval(unsigned idx, Topvec *tv);
 Closure* haltthunk();
-Closure* panicthunk();
-Closure* printthunk();
 Closure* callcc();
-Closure* carthunk();
-Closure* cdrthunk();
-Closure* consthunk();
-Closure* nullthunk();
-Closure* listthunk();
+Closure* panicthunk();
 
 Code* callccode();
 Code* contcode();

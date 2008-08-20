@@ -102,11 +102,8 @@ char* S[] = {
 	[Ewhile] =	"Ewhile",      
 	[Excast] =	"Excast",
 
-	[E_car] =	"E_car",
-	[E_cdr] =	"E_cdr",
 	[E_cval] =	"E_cval",
 	[E_encode] =	"E_encode",
-	[E_lenl] =	"E_lenl",
 	[E_ref] =	"E_ref",
 	[E_sizeof] =	"E_sizeof",
 };
@@ -502,9 +499,6 @@ printcqct0(Expr *e, unsigned ni)
 			printcqct0(e->e1, ni);
 		}
 		break;
-	case E_car:
-	case E_cdr:
-	case E_lenl:
 	case E_sizeof:
 	case E_encode:
 		printf("%s(", S[e->kind]);
