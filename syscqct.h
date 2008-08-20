@@ -348,6 +348,7 @@ enum {
 	Ijz,
 	Ikg,
 	Ikp,
+	Ilist,
 	Imod,
 	Imov,
 	Imul,
@@ -363,7 +364,6 @@ enum {
 	Ishr,
 	Isizeof,
 	Isub,
-	Ilist,
 	Ixcast,
 	Ixor,
 	Iopmax         
