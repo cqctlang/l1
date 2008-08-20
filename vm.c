@@ -3887,7 +3887,6 @@ binopstr(VM *vm, ikind op, Str *s1, Str *s2)
 static void
 xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 {
-	Val rv;
 	Cval *cv, *cvr;
 	Imm imm, nv;
 	
@@ -3914,8 +3913,7 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 	default:
 		fatal("unknown unary operator %d", op);
 	}
-	mkvalcval2(cvr, &rv);
-	putvalrand(vm, &rv, dst);
+	putcvalrand(vm, cvr, dst);
 }
 
 static Imm
@@ -4203,8 +4201,7 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		default:
 			fatal("bug");
 		}
-		mkvalcval2(cvr, &rv);
-		putvalrand(vm, &rv, dst);
+		putcvalrand(vm, cvr, dst);
 		return;
 	}
 
@@ -6362,11 +6359,11 @@ fmtstrflush(Fmt *f)
 {
 	u32 len;
 	char *s;
-	len = (u32)f->farg;
+	len = (u32)(uintptr_t)f->farg;
 	s = f->start;
 	f->start = xrealloc(f->start, len, len*2);
 	len *= 2;
-	f->farg = (void*)len;
+	f->farg = (void*)(uintptr_t)len;
 	f->to = f->start+(f->to-s);
 	f->stop = f->start+len;
 	return 0;
@@ -6378,7 +6375,7 @@ dovsprinta(VM *vm, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Fmt f;
 	u32 initlen = 128;
 	f.start = xmalloc(initlen);
-	f.farg = (void*)initlen;
+	f.farg = (void*)(uintptr_t)initlen;
 	f.to = f.start;
 	f.stop = f.start+initlen;
 	f.flush = fmtstrflush;

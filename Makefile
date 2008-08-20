@@ -28,7 +28,7 @@ lex.yy.c: c.l $(HDR)
 	flex c.l
 
 l1: c.tab.o lex.yy.o $(O)
-	$(CC) -o $@ $^  -lfl -lpthread
+	$(CC) -o $@ $^ -lfl -lpthread
 
 -include depend
 depend: Makefile
