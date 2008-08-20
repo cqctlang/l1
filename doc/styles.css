@@ -80,6 +80,47 @@ ol, ul {
 	text-align: left;
 }
 
+.proto {
+	color: navy;
+}
+
+.function:after {
+	font-style: italic;
+}
+
+.function {
+}
+
+.returns {
+	text-indent: 50px;
+}
+.returns:before {
+	content: "returns: ";
+}
+
+
+.param {
+	text-indent: 50px;
+}
+
+.id {
+	font-family: monospace;
+	font-weight: bold;
+}
+
+.lit {
+	font-family: monospace;
+}
+
+.type {
+	font-style: italic;
+}
+
+.arg {
+	font-family: monospace;
+	font-style: italic;
+}
+
 #code pre {
       font-family: "Droid Sans Mono", "Andale Mono", monospace;
       font-size: 12px;

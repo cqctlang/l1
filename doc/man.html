@@ -939,72 +939,145 @@ object.)
 
 <p>
 Cinquecento supports I/O over regular files and network
-connections.
+connections.  An open file or network connection is
+represented by an instance of the file descriptor type.
 </p>
 
-<p>
-An open file or network connection is represented by an
-instance of the file descriptor type.
-</p>
+<div class=proto>
+<div class=function>
+<span class=id>open(<span class=arg>filename</span>,<span class=arg>mode</span>)</span>
+</div>
+<div class=param>
+<span class=arg>filename</span>: <span class=type>string</span>
+</div>
+<div class=param>
+<span class=arg>mode</span>: <span class=type>string</span>
+</div>
+<div class=returns>
+<span class=type>file descriptor</span>
+</div>
+</div>
 
 <p>
-The function <tt>open(<em>filename</em>,
-<em>mode</em>)</tt> opens the file named
-<tt><em>filename</em></tt> and returns the associated
-file descriptor.  Both <tt><em>filename</em></tt> and
-<tt><em>mode</em></tt> are
-strings. <tt><em>Mode</em></tt> specifies whether the
-file is to be opened for reading, writing, or both, and
-whether the file is to be created or truncated.  The
-syntax of <tt><em>mode</em></tt> follows that of the C
+Opens the file named <span class=arg>filename</span> and
+returns the associated file descriptor.  <span
+class=arg>Mode</span> specifies whether the file is to
+be opened for reading, writing, or both, and whether
+the file is to be created or truncated.  The syntax of
+<span class=arg>mode</span> follows that of the C
 library stdio <tt>fopen</tt> function.  Common modes
-are <tt>"r"</tt> (read an existing file) <tt>"w"</tt>
-(truncate an existing file for writing), and "rw"
-(truncate an existing file for reading and writing).
+are <span class=lit>"r"</span> (read an existing file)
+<span class=lit>"w"</span> (truncate an existing file
+for writing), and <span class=lit>"rw"</span> (truncate
+an existing file for reading and writing).
 </p>
 
+<div class=proto>
+<div class=function>
+<span class=id>opentcp(<span class=arg>address</span>)</span>
+</div>
+<div class=param>
+<span class=arg>address</span>: <span class=type>string</span>
+</div>
+<div class=returns>
+<span class=type>file descriptor</span>
+</div>
+</div>
+
 <p>
-The function <tt>opentcp(<em>address</em>)</tt> opens a
-TCP connection to <tt><em>address</em></tt> and returns
-the associated file descriptor.
-<tt><em>Address</em></tt> is a string of the form
+Opens a TCP connection to <span class=arg>address</span> and
+returns the associated file descriptor.
+<span class=arg>Address</span> is a string of the form
 <tt>"<em>addr</em>:<em>port</em>"</tt>, where
-<tt><em>addr</em></tt> is an IP address or hostname and
-<tt><em>port</em></tt> is a port number or service
+<span class=arg>addr</span> is an IP address or hostname and
+<span class=arg>port</span> is a port number or service
 name.
 </p>
 
-<p>
-The function <tt>read(<em>fd</em>,<em>len</em>)</tt>
-reads at most <tt><em>len</em></tt> bytes from the I/O
-resource associated with <tt><em>fd</em></tt>.  The
-result is returned as a string.  <tt>Nil</tt> is
-returned if end of the file is encountered and no other
-bytes are read.  An error is raised for all I/O
-exceptions.
-</p>
+<div class=proto>
+<div class=function>
+<span class=id>read(<span class=arg>fd</span>,<span class=arg>len</span>)</span>
+</div>
+<div class=param>
+<span class=arg>fd</span>: <span class=type>file descriptor</span>
+</div>
+<div class=param>
+<span class=arg>len</span>: <span class=type>cvalue</span>
+</div>
+<div class=returns>
+<span class=type>string</span> or <span class=type>nil</span>
+</div>
+</div>
 
 <p>
-The function <tt>write(<em>fd</em>,<em>str</em>)</tt>
-writes the bytes contained in the string
-<tt><em>str</em></tt> to the I/O resource associated
-with <tt><em>fd</em></tt>.  <tt>Nil</tt> is returned
-unless an error occurs, in which case an error is
-raised.
+Reads at most <span class=arg>len</span> bytes from the I/O
+resource associated with <span class=arg>fd</span>.  The
+call blocks until <span class=arg>len</span> bytes are
+read or end of file is encountered.  Returns a string
+containing the bytes read, or <tt>nil</tt> if end of
+file was encountered and no bytes were read.
 </p>
 
+<div class=proto>
+<div class=function>
+<span class=id>write(<span class=arg>fd</span>,<span class=arg>str</span>)</span>
+</div>
+<div class=param>
+<span class=arg>fd</span>: <span class=type>file descriptor</span>
+</div>
+<div class=param>
+<span class=arg>str</span>: <span class=type>string</span>
+</div>
+<div class=returns>
+<span class=type>nil</span>
+</div>
+</div>
 <p>
-The function <tt>close(<em>fd</em>)</tt> closes the I/O
-resource associated with <tt><em>fd</em></tt>.  Any
-pending buffered output is written.  A call to close on
-already closed descriptor has no effect.  Any other A
-call to <tt>read</tt> or <tt>write</tt> on a closed
-descriptor draws an error.
+Writes the bytes contained in the string
+<span class=arg>str</span> to the I/O resource associated
+with <span class=arg>fd</span>.
 </p>
 
+<div class=proto>
+<div class=function>
+<span class=id>close(<span class=arg>fd</span>)</span>
+</div>
+<div class=param>
+<span class=arg>fd</span>: <span class=type>file descriptor</span>
+</div>
+<div class=returns>
+<span class=type>nil</span>
+</div>
+</div>
 <p>
-The function <tt>fdname</tt> returns the name of the
-I/O resource associated with <tt>fd</tt>.
+Closes the I/O resource associated with <span
+class=arg>fd</span>.  Any pending buffered output is
+written.  A call to <span class=id>close</span> on an
+already closed descriptor has no effect.  A call to
+<span class=id>read</span> or <span
+class=id>write</span> on a closed descriptor draws an
+error.
+</p>
+
+<div class=proto>
+
+<div class=function>
+<span class=id>fdname(<span class=arg>fd</span>)</span>
+</div>
+
+<div class=param>
+<span class=arg>fd</span>: <span class=type>file descriptor</span>
+</div>
+
+<div class=returns>
+<span class=type>string</span>
+</div>
+
+</div>
+
+<p>
+Returns the name of the I/O resource associated with <span
+class=arg>fd</span>.
 </p>
 
 

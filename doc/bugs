@@ -1,0 +1,17 @@
+
+ub233% pwd
+/.ccs/u02/vczandy/perf/scripts
+ub233% ~/src/l1/l1 -e test.cqct;
+45552859
+internal error: valns on non-namespace
+backtrace of vm 0x88c60b8:
+                 Iu@    (builtin closure)
+            looktype    (builtin function)
+dw_process_location_list        (dweval.cqct:583)
+      dw_process_die    (dw.cqct:3456)
+         get_cu_info    (dw.cqct:3991)
+     get_all_cu_info    (dw.cqct:4014)
+               entry    (test.cqct:27)
+
+Abort
+

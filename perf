@@ -20,3 +20,25 @@ halted (ac = <nil>)
 entry: 0 params, 0 locals, 0 temps
 halted (ac = <nil>)
 5057702 usec
+
+
+---
+commit 3eee31b8b28024d2af845ffd7f58438750da0068
+Author: vic zandy <vic@or>
+Date:   Wed Aug 20 00:14:52 2008 -0400
+
+ub233% ~/src/l1/l1 -t -e ~/src/l1/test/qsort.l1   X 5
+3295322 usec
+3250857 usec
+3237015 usec
+3314703 usec
+3333091 usec
+
+ub233% pwd
+/.ccs/u02/vczandy/perf/scripts
+ub233% ~/src/l1/l1 -e test.cqct
+51255961
+51023338
+51184735
+51062071
+51222994

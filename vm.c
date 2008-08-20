@@ -610,10 +610,10 @@ retry:
 		if(o->state != -1)
 			fatal("halloc bad state %d", o->state);
 		o->state = 0;
-		heap->nfree--;
+		if(HEAPPROF) heap->nfree--;
 	}else if(heap->swept){
 		heap->free = (Head*)read_and_clear(&heap->swept);
-		heap->nfree += hlen(heap->free);
+		if(HEAPPROF) heap->nfree += hlen(heap->free);
 		goto retry;
 	}else{
 		ap = heap->alloc;
@@ -631,13 +631,13 @@ retry:
 		}
 		heap->alloc = o;
 		heap->free = o;
-		heap->nalloc += AllocBatch;
-		heap->nfree += AllocBatch;
+		if(HEAPPROF) heap->nalloc += AllocBatch;
+		if(HEAPPROF) heap->nfree += AllocBatch;
 		goto retry;
 	}
 	
 	o->color = GCCOLOR(gcepoch);
-	heap->nha++;
+	if(HEAPPROF) heap->nha++;
 	if(HEAPDEBUG)
 		printf("alloc %p (%s)\n", o, heap->id);
 
