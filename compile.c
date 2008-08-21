@@ -325,6 +325,10 @@ printinsn(Code *code, Insn *i)
 		printf("push ");
 		printrand(code, &i->op1);
 		break;
+	case Ipushi:
+		printf("pushi ");
+		printrand(code, &i->op1);
+		break;
 	case Icall:
 		printf("call ");
 		printrand(code, &i->op1);
@@ -1904,7 +1908,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}
 		
 		i = nextinsn(code);
-		i->kind = Ipush;
+		i->kind = Ipushi;
 		randliti(&i->op1, narg, Vint);
 
 		L0 = genlabel(code, 0);

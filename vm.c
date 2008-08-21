@@ -27,6 +27,7 @@ enum {
 	Qtab,
 	Qvec,
 	Qxtn,
+	Qimm,
 	Qnkind
 } Qkind;
 
@@ -177,6 +178,7 @@ typedef struct Xtypename Xtypename;
 struct Val {
 	Qkind qkind;
 	union {
+		Imm imm;
 		Head *hd;
 		As *as;
 		Box *box;
@@ -717,6 +719,7 @@ valhead(Val *v)
 	case Qundef:
 	case Qnil:
 	case Qnulllist:
+	case Qimm:
 		return 0;
 		break;
 	default:
@@ -2860,6 +2863,13 @@ mkvalimm(Dom *dom, Xtypename *t, Imm imm, Val *vp)
 }
 
 static void
+mkstkimm(Dom *dom, Xtypename *t, Imm imm, Val *vp)
+{
+	vp->qkind = Qimm;
+	vp->u.imm = imm;
+}
+
+static void
 mkvalcval2(Cval *cv, Val *vp)
 {
 	vp->qkind = Qcval;
@@ -2989,6 +2999,19 @@ valimm(Val *v)
 	if(v->qkind != Qcval)
 		fatal("valimm on non-cval");
 	return v->u.cval->val;
+}
+
+static Imm
+stkimm(Val *v)
+{
+	Imm imm;
+	if(v->qkind != Qimm)
+		fatal("stkimm on non-imm");
+	imm = v->u.imm;
+	if((imm&1) != 1)
+		fatal("stkimm on non-imm");
+	imm >>= 1;
+	return imm;
 }
 
 static Cval*
@@ -3244,11 +3267,11 @@ fvmbacktrace(FILE *out, VM *vm)
 //			fprintf(out, "fp=%05lld pc=%08lld ", fp, pc);
 			printsrc(out, cl, pc);
 		}
-		narg = valimm(&vm->stack[fp]);
-		pc = valimm(&vm->stack[fp+narg+1]);
+		narg = stkimm(&vm->stack[fp]);
+		pc = stkimm(&vm->stack[fp+narg+1]);
 		pc--; /* pc was insn following call */
 		cl = valcl(&vm->stack[fp+narg+2]);
-		fp = valimm(&vm->stack[fp+narg+3]);
+		fp = stkimm(&vm->stack[fp+narg+3]);
 	}
 }
 
@@ -3828,7 +3851,7 @@ xcallc(VM *vm)
 		vmerr(vm, "bad closure for builtin call");
 
 	rv = Xnil;
-	argc = valimm(&vm->stack[vm->fp]);
+	argc = stkimm(&vm->stack[vm->fp]);
 	argv = &vm->stack[vm->fp+1];
 	if(vm->clx->cfn)
 		vm->clx->cfn(vm, argc, argv, &rv);
@@ -4346,6 +4369,14 @@ vmpush(VM *vm, Val *v)
 }
 
 static void
+vmpushi(VM *vm, Imm imm)
+{
+	checkoverflow(vm, 1);
+	imm = (imm<<1)|1;
+	mkstkimm(vm->litdom, vm->litbase[Vuint], imm, &vm->stack[--vm->sp]);
+}
+
+static void
 vmpop(VM *vm, unsigned n)
 {
 	vm->sp += n;
@@ -4357,6 +4388,17 @@ xpush(VM *vm, Operand *op)
 	Val v;
 	getvalrand(vm, op, &v);
 	vmpush(vm, &v);
+}
+
+static void
+xpushi(VM *vm, Operand *op)
+{
+	Val v;
+	Cval *cv;
+
+	getvalrand(vm, op, &v);
+	cv = valcval(&v);
+	vmpushi(vm, cv->val);
 }
 
 static void
@@ -4544,15 +4586,14 @@ xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 static void
 xlist(VM *vm, Operand *op, Operand *dst)
 {
-	Val v, *vp;
+	Val v;
 	Imm sp, n, i;
 	List *lst;
 	Val rv;
 	
 	getvalrand(vm, op, &v);
 	sp = valimm(&v);
-	vp = &vm->stack[sp];
-	n = valimm(vp);
+	n = stkimm(&vm->stack[sp]);
 	lst = mklist();
 	for(i = 0; i < n; i++)
 		listappend(vm, lst, &vm->stack[sp+1+i]);
@@ -5461,6 +5502,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Inop] 	= &&Inop;
 		gotab[Ipanic] 	= &&Ipanic;
 		gotab[Ipush] 	= &&Ipush;
+		gotab[Ipushi] 	= &&Ipushi;
 		gotab[Iref] 	= &&Iref;
 		gotab[Iret] 	= &&Iret;
 		gotab[Ishl] 	= &&Ishl;
@@ -5478,25 +5520,31 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	gcprotpush(vm);
 
 	/* for recursive entry, store current context */
-	mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
-	vmpush(vm, &val);	/* fp */
+//	mkstkimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
+//	vmpush(vm, &val);	/* fp */
+	vmpushi(vm, vm->fp);	/* fp */
 	vmpush(vm, &vm->cl);	/* cl */
-	mkvalimm(vm->litdom, vm->litbase[Vuint], vm->pc, &val);
-	vmpush(vm, &val);	/* pc */
-	mkvalimm(vm->litdom, vm->litbase[Vuint], 0, &val);
-	vmpush(vm, &val);	/* narg */
+//	mkstkimm(vm->litdom, vm->litbase[Vuint], vm->pc, &val);
+//	vmpush(vm, &val);	/* pc */
+	vmpushi(vm, vm->pc);	/* pc */
+//	mkstkimm(vm->litdom, vm->litbase[Vuint], 0, &val);
+//	vmpush(vm, &val);	/* narg */
+	vmpushi(vm, 0);		/* narg */
 	vm->fp = vm->sp;
 
 	/* push frame for halt thunk */
-	mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
-	vmpush(vm, &val);	/* fp */
+//	mkstkimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
+//	vmpush(vm, &val);	/* fp */
+	vmpushi(vm, vm->fp);	/* fp */
 	vmpush(vm, &haltv);	/* cl */
-	mkvalimm(vm->litdom, vm->litbase[Vuint], halt->entry, &val);
-	vmpush(vm, &val);	/* pc */
+//	mkstkimm(vm->litdom, vm->litbase[Vuint], halt->entry, &val);
+//	vmpush(vm, &val);	/* pc */
+	vmpushi(vm, halt->entry); /* pc */
 	for(m = argc; m > 0; m--)
 		vmpush(vm, &argv[m-1]);
-	mkvalimm(vm->litdom, vm->litbase[Vuint], argc, &val);
-	vmpush(vm, &val);	/* narg */
+//	mkstkimm(vm->litdom, vm->litbase[Vuint], argc, &val);
+//	vmpush(vm, &val);	/* narg */
+	vmpushi(vm, argc);	/* narg */
 	vm->fp = vm->sp;
 
 	/* switch to cl */
@@ -5544,10 +5592,13 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Ipush:
 		xpush(vm, &i->op1);
 		continue;
+	Ipushi:
+		xpushi(vm, &i->op1);
+		continue;
 	Iargc:
 		getvalrand(vm, &i->op1, &val);
 		cv = valcval(&val);
-		if(valimm(&vm->stack[vm->fp]) != cv->val)
+		if(stkimm(&vm->stack[vm->fp]) != cv->val)
 			vmerr(vm, "wrong number of arguments to %s",
 			      vm->clx->id);
 		continue;
@@ -5561,8 +5612,8 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		getvalrand(vm, &i->op1, &vm->cl);
 		vmsetcl(vm, &vm->cl);
 		/* shift current arguments over previous arguments */
-		narg = valimm(&vm->stack[vm->sp]);
-		onarg = valimm(&vm->stack[vm->fp]);
+		narg = stkimm(&vm->stack[vm->sp]);
+		onarg = stkimm(&vm->stack[vm->fp]);
 		vm->fp = vm->fp+onarg-narg;
 		memmove(&vm->stack[vm->fp], &vm->stack[vm->sp],
 			(narg+1)*sizeof(Val));
@@ -5570,33 +5621,35 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->pc = vm->clx->entry;
 		continue;
 	Iframe:
-		mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
-		vmpush(vm, &val);
+//		mkstkimm(vm->litdom, vm->litbase[Vuint], vm->fp, &val);
+//		vmpush(vm, &val);
+		vmpushi(vm, vm->fp);
 		vmpush(vm, &vm->cl);
-		mkvalimm(vm->litdom, vm->litbase[Vuint],
-			 i->dstlabel->insn, &val);
-		vmpush(vm, &val);
+//		mkstkimm(vm->litdom, vm->litbase[Vuint],
+//			 i->dstlabel->insn, &val);
+//		vmpush(vm, &val);
+		vmpushi(vm, i->dstlabel->insn);
 		continue;
 	Ipanic:
 		fatal("vm panic");
 	Ihalt:
 		/* Ihalt is exactly like Iret... */
-		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1; /* narg+1 */
-		vm->fp = valimm(&vm->stack[vm->sp+2]);
+		vm->sp = vm->fp+stkimm(&vm->stack[vm->fp])+1; /* narg+1 */
+		vm->fp = stkimm(&vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
 		vmsetcl(vm, &vm->cl);
-		vm->pc = valimm(&vm->stack[vm->sp]);
+		vm->pc = stkimm(&vm->stack[vm->sp]);
 		vmpop(vm, 3);
 
 		/* ...except that it returns from dovm */
 		gcprotpop(vm);
 		return &vm->ac;
 	Iret:
-		vm->sp = vm->fp+valimm(&vm->stack[vm->fp])+1; /* narg+1 */
-		vm->fp = valimm(&vm->stack[vm->sp+2]);
+		vm->sp = vm->fp+stkimm(&vm->stack[vm->fp])+1; /* narg+1 */
+		vm->fp = stkimm(&vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
 		vmsetcl(vm, &vm->cl);
-		vm->pc = valimm(&vm->stack[vm->sp]);
+		vm->pc = stkimm(&vm->stack[vm->sp]);
 		vmpop(vm, 3);
 		continue;
 	Ijmp:

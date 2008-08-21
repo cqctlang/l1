@@ -34,3 +34,18 @@ dw_process_location_list        (dweval.cqct:583)
 
 Abort
 
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+internal error: valns on non-namespace
+backtrace of vm 0x9e86b18:
+            P3
+              нг
+                        (builtin closure)
+            looktype    (builtin function)
+dw_process_location_list        (dweval.cqct:583)
+      dw_process_die    (dw.cqct:3456)
+         get_cu_info    (dw.cqct:3991)
+     get_all_cu_info    (dw.cqct:4014)
+               entry    (test.cqct:27)
+
+./doperf: line 15: 21661 Aborted                 $HOME/src/l1/l1 -e test.cqct
+

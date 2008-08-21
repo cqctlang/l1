@@ -356,6 +356,7 @@ enum {
 	Inop,
 	Ipanic,
 	Ipush,
+	Ipushi,
 	Iref,
 	Iret,
 	Ishl,
