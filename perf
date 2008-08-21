@@ -112,3 +112,33 @@ or% ./l1 -t -e test/qsort.l1
 1540323 usec
 1519706 usec
 1445870 usec
+
+
+---
+commit 93742b05910a2a1391b065d09f6c0dad8be98831
+Author: vic zandy <vic@or>
+Date:   Thu Aug 21 00:01:22 2008 -0400
+
+    perf data
+
+commit ab04927d2c7ee05dc903e36111621e8a5241b7f3
+Author: vic zandy <vic@or>
+Date:   Wed Aug 20 23:02:19 2008 -0400
+
+    clear on allocation on when necessary
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+2856406 usec
+2918006 usec
+2970516 usec
+2897778 usec
+2868649 usec
+
+
+ub233% cd /.ccs/u02/vczandy/perf/scripts
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+46323696
+46198960
+45464577
+45682668
+46235817
