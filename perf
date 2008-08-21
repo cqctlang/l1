@@ -65,3 +65,29 @@ ub233% ~/src/l1/l1 -e test.cqct
 45703691
 45751179
 
+---
+commit 77db041ccc667d78daf14ef570dc48a72446e720
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Wed Aug 20 18:31:13 2008 -0400
+
+    rerep: general representation conversion, to give
+    correct sign extended results for expressions
+    such as (`int32)(`int8)0xff
+
+
+or% pwd
+/Users/vic/src/l1/dev/perf/scripts
+or% ../../../l1 -e test.cqct 
+29245397
+29602450
+29953620
+
+
+or% ./l1 -t -e test/qsort.l1
+1879620 usec
+1918130 usec
+1904758 usec
+1863615 usec
+2002761 usec
+1856348 usec
+

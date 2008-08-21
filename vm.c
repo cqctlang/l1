@@ -126,6 +126,7 @@ enum {
 struct Heap {
 	char *id;
 	unsigned sz;
+	unsigned clearit;
 	void (*free1)(Head *hd);
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	Head *alloc, *swept, *sweep, *free;
@@ -307,7 +308,7 @@ struct Dom {
 
 struct Fd {
 	Head hd;
-	void (*free)(int fd);
+	void (*free)(Fd *fd);
 	int fd;
 	Str *name;
 	enum Fflag {
@@ -470,21 +471,21 @@ static Head *itervec(Head*, Ictx*);
 static Head *iterxtn(Head*, Ictx*);
 
 static Heap heap[Qnkind] = {
-	[Qas]	= { "as", sizeof(As), 0, iteras },
-	[Qbox]	= { "box", sizeof(Box),	0, iterbox },
-	[Qcval] = { "cval", sizeof(Cval), 0, itercval },
-	[Qcl]	= { "closure", sizeof(Closure), freecl, itercl },
-	[Qcode]	= { "code", sizeof(Code), freecode, 0 },
-	[Qdom]	= { "domain", sizeof(Dom), 0, iterdom },
-	[Qfd]	= { "fd", sizeof(Fd), freefd, iterfd },
-	[Qlist]	= { "list", sizeof(List), freelist, iterlist },
-	[Qns]	= { "ns", sizeof(Ns), freens, iterns },
-	[Qpair]	= { "pair", sizeof(Pair), 0, iterpair },
-	[Qrange] = { "range", sizeof(Range), 0, iterrange },
-	[Qstr]	= { "string", sizeof(Str), freestr, 0 },
-	[Qtab]	= { "table", sizeof(Tab), freetab, itertab },
-	[Qvec]	= { "vector", sizeof(Vec), freevec, itervec },
-	[Qxtn]	= { "typename", sizeof(Xtypename), 0, iterxtn },
+	[Qas]	= { "as", sizeof(As), 0, 0, iteras },
+	[Qbox]	= { "box", sizeof(Box),	0, 0, iterbox },
+	[Qcval] = { "cval", sizeof(Cval), 0, 0, itercval },
+	[Qcl]	= { "closure", sizeof(Closure), 1, freecl, itercl },
+	[Qcode]	= { "code", sizeof(Code), 1, freecode, 0 },
+	[Qdom]	= { "domain", sizeof(Dom), 0, 0, iterdom },
+	[Qfd]	= { "fd", sizeof(Fd), 0, freefd, iterfd },
+	[Qlist]	= { "list", sizeof(List), 0, freelist, iterlist },
+	[Qns]	= { "ns", sizeof(Ns), 1, freens, iterns },
+	[Qpair]	= { "pair", sizeof(Pair), 0, 0, iterpair },
+	[Qrange] = { "range", sizeof(Range), 0, 0, iterrange },
+	[Qstr]	= { "string", sizeof(Str), 1, freestr, 0 },
+	[Qtab]	= { "table", sizeof(Tab), 1, freetab, itertab },
+	[Qvec]	= { "vector", sizeof(Vec), 0, freevec, itervec },
+	[Qxtn]	= { "typename", sizeof(Xtypename), 1, 0, iterxtn },
 };
 
 static u32 nohash(Val*);
@@ -645,7 +646,8 @@ retry:
 	// (e.g., Xtypename) need to be cleared.  Perhaps add a bit
 	// to heap to select clearing.
 //	VALGRIND_MAKE_MEM_UNDEFINED(o+1, heap->sz-sizeof(Head));
-	memset(o+1, 0, heap->sz-sizeof(Head));
+	if(heap->clearit)
+		memset(o+1, 0, heap->sz-sizeof(Head));
 	return o;
 }
 
@@ -1276,9 +1278,9 @@ freecl(Head *hd)
 }
 
 static void
-freefdclose(int fd)
+freefdclose(Fd *fd)
 {
-	close(fd);
+	close(fd->fd);
 }
 
 static void
@@ -1287,18 +1289,17 @@ freefd(Head *hd)
 	Fd *fd;
 	fd = (Fd*)hd;
 	if(fd->free)
-		fd->free(fd->fd);
+		fd->free(fd);
 }
 
 static Fd*
-mkfd(Str *name, int xfd, int flags, int doclose)
+mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd))
 {
 	Fd *fd;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
 	fd->fd = xfd;
-	if(doclose)
-		fd->free = freefdclose;
+	fd->free = free;
 	fd->flags = flags;
 	return fd;
 }
@@ -7667,7 +7668,7 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	free(mode);
 	if(0 > xfd)
 		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
-	fd = mkfd(names, xfd, flags, 1);
+	fd = mkfd(names, xfd, flags, freefdclose);
 	mkvalfd(fd, rv);
 }
 
@@ -7864,7 +7865,7 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "opentcp: %m");
 	nodelay(xfd);
-	fd = mkfd(str, xfd, Fread|Fwrite, 1);
+	fd = mkfd(str, xfd, Fread|Fwrite, freefdclose);
 	mkvalfd(fd, rv);
 }
 
