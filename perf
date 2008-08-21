@@ -91,3 +91,24 @@ or% ./l1 -t -e test/qsort.l1
 2002761 usec
 1856348 usec
 
+---
+commit ab04927d2c7ee05dc903e36111621e8a5241b7f3
+Author: vic zandy <vic@or>
+Date:   Wed Aug 20 23:02:19 2008 -0400
+
+    clear on allocation on when necessary
+
+or% pwd
+/Users/vic/src/l1/dev/perf/scripts
+or% ../../../l1 -e test.cqct 
+20051809
+20178059
+20109877
+
+or% ./l1 -t -e test/qsort.l1
+1522046 usec
+1547076 usec
+1497971 usec
+1540323 usec
+1519706 usec
+1445870 usec
