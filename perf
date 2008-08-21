@@ -142,3 +142,26 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 45464577
 45682668
 46235817
+
+
+---
+commit e4f8c078f0496f942f01d46855c42cd17702b8b0
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Thu Aug 21 18:06:21 2008 -0400
+
+    merge Val and Head: rough draft
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+2636410 usec
+2445886 usec
+2585614 usec
+2578991 usec
+2416503 usec
+
+ub233% cd /.ccs/u02/vczandy/perf/scripts
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+41796495
+40992151
+40798658
+41773295
+41385629
