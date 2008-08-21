@@ -404,7 +404,7 @@ struct Ictx {
 	void *x;
 } Ictx;
 
-typedef struct Val Val;
+typedef struct Head* Val;
 
 typedef
 struct Location {
@@ -454,16 +454,40 @@ struct Insn {
 	Ctl *dstlabel;
 } Insn;
 
+typedef
+enum {
+	Qundef = 0,
+	Qnil,
+	Qnulllist,
+	Qas,
+	Qbox,
+	Qcl,
+	Qcode,
+	Qcval,
+	Qdom,
+	Qfd,
+	Qlist,
+	Qns,
+	Qpair,
+	Qrange,
+	Qstr,
+	Qtab,
+	Qvec,
+	Qxtn,
+	Qimm,
+	Qnkind
+} Qkind;
+
 typedef struct Head Head;
 typedef struct Heap Heap;
 struct Head {
 	unsigned color;
 	unsigned inrootset;	/* racily limit duplicates on rootsets */
+	Qkind qkind;
 	Heap *heap;
 	Head *alink;
 	Head *link;
 	int state;		/* debugging */
-	char data[0];
 };
 
 struct Code {
@@ -510,7 +534,7 @@ jmp_buf* _pusherror(VM *vm);
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 void nexterror(VM *vm) NORETURN;
 void poperror(VM *vm);
-Val* dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+Val dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 void* gcprotect(VM *vm, void *hd);
 
 void freecode(Head *hd);

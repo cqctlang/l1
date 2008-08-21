@@ -49,3 +49,19 @@ dw_process_location_list        (dweval.cqct:583)
 
 ./doperf: line 15: 21661 Aborted                 $HOME/src/l1/l1 -e test.cqct
 
+
+
+
+copy ~jdraper/projects/cqct64/testdir2 and cd into the scripts subdirectory. Then invoke l1 on test.cqct
+
+bash-3.2$ pwd
+/u01/jdraper/projects/cqct64/testdir2/scripts
+bash-3.2$ ../l1/l1 -e test.cqct
+internal error: multiple labels L170613,L170615
+backtrace of vm 0x1bbf0530:
+
+Aborted
+bash-3.2$ 
+
+/u01/jdraper/projects/cqct64/testdir2/scripts/dw.cqct:3719
+	empty else clause in {}, in switch case, followed by return expr;
