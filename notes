@@ -152,6 +152,14 @@ todo
 	get address space layout from os
 	with adequate /proc, can we do with just builtin access to ptr 0?
 
+  - extend ns to accommodate non-contiguous functions with inlined code
+    inside
+	- multiple symbol definitions for the same fn symbol for functions
+          that are inlined
+	- notion of set of location ranges associated with a symbol
+	- lookaddr that can handle these cases
+	- @names syntax for above
+
 - grammar
   - sort out problems with odd rule about int(int) in abstract declarators;
 

@@ -16,7 +16,8 @@ enum {
 struct HT {
 	unsigned long sz;
 	unsigned long nent;
-	Hent **ht;
+	Hent **ht;		/* table */
+	Hent **hent;		/* vector of allocated Hents */
 };
 
 static HT*
@@ -26,6 +27,7 @@ mkhtsz(unsigned long sz)
 	ht = xmalloc(sizeof(HT));
 	ht->sz = sz;
 	ht->ht = xmalloc(ht->sz*sizeof(Hent*));
+	ht->hent = xmalloc(ht->sz*sizeof(Hent*));
 	return ht;
 }
 
@@ -50,6 +52,7 @@ freeht(HT* ht)
 		}
 	}
 	free(ht->ht);
+	free(ht->hent);
 	free(ht);
 }
 
@@ -139,6 +142,9 @@ hexpand(HT *ht)
 	}
 	free(ht->ht);
 	ht->ht = nht;
+	ht->hent = xrealloc(ht->hent,
+			    ht->sz*sizeof(sizeof(Hent*)),
+			    nsz*sizeof(sizeof(Hent*)));
 	ht->sz = nsz;
 }
 
@@ -164,6 +170,7 @@ hput(HT *ht, char *k, unsigned len, void *v)
 	idx = shash(k, len)%ht->sz;
 	hp->next = ht->ht[idx];
 	ht->ht[idx] = hp;
+	ht->hent[ht->nent] = hp;
 	ht->nent++;
 }
 
@@ -180,4 +187,18 @@ hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u)
 			hp = hp->next;
 		}
 	}
+}
+
+unsigned long
+hnent(HT *ht)
+{
+	return ht->nent;
+}
+
+void*
+hrefval(HT *ht, unsigned long idx)
+{
+	if(idx >= ht->nent)
+		return 0;
+	return ht->hent[idx]->val;
 }

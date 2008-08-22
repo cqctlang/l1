@@ -419,7 +419,7 @@ struct Operand {
 	unsigned okind;
 	union{
 		Location loc;
-		Liti liti;
+		Val liti;
 		Lits *lits;
 	} u;
 } Operand;
@@ -428,6 +428,7 @@ typedef struct Ctl Ctl;
 typedef struct Code Code;
 typedef struct Topvec Topvec;
 typedef struct Konst Konst;
+typedef struct Konsti Konsti;
 
 struct Ctl {
 	unsigned ckind;
@@ -490,6 +491,14 @@ struct Head {
 	int state;		/* debugging */
 };
 
+struct Konst {
+	HT *ht;
+};
+
+struct Konsti {
+	HT *ht;
+};
+
 struct Code {
 	Head hd;
 	unsigned long refcnt;
@@ -502,6 +511,7 @@ struct Code {
 	Expr *src;
 	Topvec *topvec;
 	Konst *konst;
+	Konsti *konsti;
 };
 
 void initcompile();
@@ -537,6 +547,7 @@ void poperror(VM *vm);
 Val dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 void* gcprotect(VM *vm, void *hd);
 
+Val mklitcval(Cbase base, Imm val);
 void freecode(Head *hd);
 
 /* cutil.c */

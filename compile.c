@@ -29,10 +29,6 @@ struct Frstat {
 	HT *locals;
 } Frstat;
 
-struct Konst {
-	HT *ht;
-};
-
 static Location toploc[8];
 static Location *Effect;
 static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
@@ -41,6 +37,8 @@ static Topvec *mktopvec();
 static void freetopvec(Topvec *tv);
 static Konst* mkkonst();
 static void freekonst(Konst *kon);
+static Konsti* mkkonsti();
+static void freekonsti(Konsti *koni);
 static void freedecl(Decl *d);
 
 static void
@@ -132,6 +130,7 @@ mkcode()
 	code->ninsn = 0;
 	code->topvec = mktopvec();
 	code->konst = mkkonst();
+	code->konsti = mkkonsti();
 
 	return code;
 }
@@ -144,6 +143,7 @@ freecode(Head *hd)
 
 	code = (Code*)hd;
 	freekonst(code->konst);
+	freekonsti(code->konsti);
 	freetopvec(code->topvec);
 	p = code->clist;
 	while(p){
@@ -255,7 +255,8 @@ printrand(Code *code, Operand *r)
 		}
 		break;
 	case Oliti:
-		printf("%" PRIu64, r->u.liti.val);
+//		printf("%" PRIu64, r->u.liti.val);
+		printf("FIXME %s:%d\n", __FILE__, __LINE__);
 		break;
 	case Onil:
 		printf("nil");
@@ -727,6 +728,73 @@ freekonst(Konst *kon)
 	free(kon);
 }
 
+static Konsti*
+mkkonsti()
+{
+	Konsti *koni;
+	koni = xmalloc(sizeof(Konsti));
+	koni->ht = mkht();
+	return koni;
+}
+
+static Val
+konstilookup(Liti *liti, Konsti *koni)
+{
+	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
+	snprintf(buf, sizeof(buf), "%s%llu", basename[liti->base], liti->val);
+	return hget(koni->ht, buf, strlen(buf));
+}
+
+static Val
+konstiadd(Liti *liti, Konsti *koni)
+{
+	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
+	char *s;
+	Val v;
+	snprintf(buf, sizeof(buf), "%s%llu", basename[liti->base], liti->val);
+	s = xstrdup(buf);
+	v = mklitcval(liti->base, liti->val);
+	hput(koni->ht, s, strlen(s), v);
+	return v;
+}
+
+static Val
+konsti2val(Cbase base, Imm imm, Konsti *koni)
+{
+	Val v;
+	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
+	char *s;
+
+	snprintf(buf, sizeof(buf), "%s%llu", basename[base], imm);
+	v = hget(koni->ht, buf, strlen(buf));
+	if(v)
+		return v;
+	s = xstrdup(buf);
+	v = mklitcval(base, imm);
+	hput(koni->ht, s, strlen(s), v);
+	return v;
+}
+
+static Val
+konstival(Liti *liti, Konsti *koni)
+{
+	return konsti2val(liti->base, liti->val, koni);
+}
+
+static void
+free1konsti(void *u, char *k, void *v)
+{
+	free(k);
+}
+
+static void
+freekonsti(Konsti *koni)
+{
+	hforeach(koni->ht, free1konsti, 0);
+	freeht(koni->ht);
+	free(koni);
+}
+
 static VEnv*
 mkvenv()
 {
@@ -1033,7 +1101,7 @@ vardeflookup(Vardef *vd, VEnv *ve)
 
 static void
 mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
-	 Konst *kon, unsigned ploc)
+	 Konst *kon, Konsti *koni, unsigned ploc)
 {
 	char *id;
 	Lambda *b;
@@ -1047,6 +1115,9 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 		return;
 
 	switch(e->kind){
+	case Econst:
+		e->xp = konstival(&e->liti, koni);
+		break;
 	case Econsts:
 		e->xp = konstlookup(e->lits, kon);
 		if(e->xp == NULL)
@@ -1073,7 +1144,7 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 			vr = mkvarref(vd);
 		}
 		e->e1->xp = vr;
-		mapframe(e->e2, curb, ve, tv, env, kon, ploc);
+		mapframe(e->e2, curb, ve, tv, env, kon, koni, ploc);
 		break;
 	case Eblock:
 		nloc = bindlocal(curb, e->e1, ploc);
@@ -1085,7 +1156,7 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 			e->xp = nve;
 			ve = nve;
 		}
-		mapframe(e->e2, curb, ve, tv, env, kon, nloc);
+		mapframe(e->e2, curb, ve, tv, env, kon, koni, nloc);
 		break;
 	case Elambda:
 		b = mklambda(e);
@@ -1094,20 +1165,20 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 		ve = b->ve;
 		if(e->e3) /* Edefine */
 			b->id = xstrdup(e->e3->id);
-		mapframe(e->e2, b, b->ve, tv, env, kon, 0);
+		mapframe(e->e2, b, b->ve, tv, env, kon, koni, 0);
 		break;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			mapframe(p->e1, curb, ve, tv, env, kon, ploc);
+			mapframe(p->e1, curb, ve, tv, env, kon, koni, ploc);
 			p = p->e2;
 		}
 		break;
 	default:
-		mapframe(e->e1, curb, ve, tv, env, kon, ploc);
-		mapframe(e->e2, curb, ve, tv, env, kon, ploc);
-		mapframe(e->e3, curb, ve, tv, env, kon, ploc);
-		mapframe(e->e4, curb, ve, tv, env, kon, ploc);
+		mapframe(e->e1, curb, ve, tv, env, kon, koni, ploc);
+		mapframe(e->e2, curb, ve, tv, env, kon, koni, ploc);
+		mapframe(e->e3, curb, ve, tv, env, kon, koni, ploc);
+		mapframe(e->e4, curb, ve, tv, env, kon, koni, ploc);
 		break;
 	}	
 }
@@ -1383,11 +1454,10 @@ randlits(Operand *rand, Lits *lits)
 }
 
 static void
-randliti(Operand *rand, Imm val, unsigned base)
+randliti(Operand *rand, Val v)
 {
 	rand->okind = Oliti;
-	rand->u.liti.val = val;
-	rand->u.liti.base = base;
+	rand->u.liti = v;
 }
 
 static void
@@ -1489,7 +1559,7 @@ cgrand(Operand *rand, Expr *e, CGEnv *p)
 		randvarloc(rand, e);
 		break;
 	case Econst:
-		randliti(rand, e->liti.val, e->liti.base);
+		randliti(rand, e->xp);
 		break;
 	case Econsts:
 		randlits(rand, e->xp);
@@ -1790,7 +1860,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("bug");
 		varloc(&dst, e->e1);
 		randloc(&r1, &dst);
-		randliti(&r2, 1, Vint);
+		randliti(&r2, konsti2val(Vint, 1, code->konsti));
 		if(loc != Effect){
 			L = genlabel(code, 0);
 			cgbinop(code, p, e->kind, &r1, &r2, &dst, L, L);
@@ -1809,7 +1879,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("bug");
 		varloc(&dst, e->e1);
 		randloc(&r1, &dst);
-		randliti(&r2, 1, Vint);
+		randliti(&r2, konsti2val(Vint, 1, code->konsti));
 		if(loc != Effect){
 			i = nextinsn(code);
 			i->kind = Imov;
@@ -1909,7 +1979,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		
 		i = nextinsn(code);
 		i->kind = Ipushi;
-		randliti(&i->op1, narg, Vint);
+		randliti(&i->op1, konsti2val(Vint, narg, code->konsti));
 
 		L0 = genlabel(code, 0);
 		emitlabel(L0, e->e1);
@@ -1955,7 +2025,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Econst:
 		i = nextinsn(code);
 		i->kind = Imov;
-		randliti(&i->op1, e->liti.val, e->liti.base);
+		randliti(&i->op1, e->xp);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt);
 		break;
@@ -1990,7 +2060,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 		i = nextinsn(code);
 		i->kind = Iclo;
-		randliti(&i->op1, b->capture->nvr, Vint);
+		randliti(&i->op1,
+			 konsti2val(Vint, b->capture->nvr, code->konsti));
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
@@ -2030,13 +2101,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(Lthen, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randliti(&i->op1, 1, Vint);
+			randliti(&i->op1, konsti2val(Vint, 1, code->konsti));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, Lelse);
 			emitlabel(Lelse, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randliti(&i->op1, 0, Vint);
+			randliti(&i->op1, konsti2val(Vint, 0, code->konsti));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt);
 		}
@@ -2068,13 +2139,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(Lthen, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randliti(&i->op1, 1, Vint);
+			randliti(&i->op1, konsti2val(Vint, 1, code->konsti));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, Lelse);
 			emitlabel(Lelse, e);
 			i = nextinsn(code);
 			i->kind = Imov;
-			randliti(&i->op1, 0, Vint);
+			randliti(&i->op1, konsti2val(Vint, 0, code->konsti));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt);
 		}
@@ -2302,14 +2373,15 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	if(!b->vararg){
 		i = nextinsn(code);
 		i->kind = Iargc;
-		randliti(&i->op1, b->npar, Vuint);
+		randliti(&i->op1, konsti2val(Vuint, b->npar, code->konsti));
 		needtop = 1;
 	}
 	if(b->maxloc+b->ntmp > 0){
 		i = nextinsn(code);
 		i->kind = Isub;
 		randloc(&i->op1, SP);
-		randliti(&i->op2, b->maxloc+b->ntmp, Vint);
+		randliti(&i->op2,
+			 konsti2val(Vint, b->maxloc+b->ntmp, code->konsti));
 		randloc(&i->dst, SP);
 		needtop = 1;
 	}
@@ -2393,7 +2465,7 @@ compileentry(Expr *el, Env *env)
                             0, 0, 0),
                     0, 0);
 
-	mapframe(le, 0, 0, code->topvec, env, code->konst, 0);
+	mapframe(le, 0, 0, code->topvec, env, code->konst, code->konsti, 0);
 	cap = mkvdset();
 	mapcapture(le, cap);
 	freevdset(cap);

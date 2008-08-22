@@ -6,6 +6,9 @@ void freeht(HT *ht);
 void hput(HT *ht, char *k, unsigned len, void *v);
 void *hget(HT *ht, char *k, unsigned len);
 void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
+unsigned long hnent(HT *ht);
+void* hrefval(HT *ht, unsigned long idx);
+
 
 void warn(char *fmt, ...);
 void fatal(char *fmt, ...) NORETURN;

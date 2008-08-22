@@ -376,6 +376,10 @@ static u32 listxlen(Listx *x);
 static Val Xundef;
 static Val Xnil;
 static Val Xnulllist;
+static Dom *litdom;
+static Ns *litns;
+static Xtypename **litbase;
+
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
 
@@ -408,6 +412,7 @@ static void freevec(Head*);
 static Head *iteras(Head*, Ictx*);
 static Head *iterbox(Head*, Ictx*);
 static Head *itercl(Head*, Ictx*);
+static Head *itercode(Head*, Ictx*);
 static Head *itercval(Head*, Ictx*);
 static Head *iterdom(Head*, Ictx*);
 static Head *iterfd(Head*, Ictx*);
@@ -424,7 +429,7 @@ static Heap heap[Qnkind] = {
 	[Qbox]	= { "box", Qbox, sizeof(Box),	0, 0, iterbox },
 	[Qcval] = { "cval", Qcval, sizeof(Cval), 0, 0, itercval },
 	[Qcl]	= { "closure", Qcl, sizeof(Closure), 1, freecl, itercl },
-	[Qcode]	= { "code", Qcode, sizeof(Code), 1, freecode, 0 },
+	[Qcode]	= { "code", Qcode, sizeof(Code), 1, freecode, itercode },
 	[Qdom]	= { "domain", Qdom, sizeof(Dom), 0, 0, iterdom },
 	[Qfd]	= { "fd", Qfd,sizeof(Fd), 0, freefd, iterfd },
 	[Qlist]	= { "list", Qlist, sizeof(List), 0, freelist, iterlist },
@@ -1326,6 +1331,16 @@ itercl(Head *hd, Ictx *ictx)
 		return (Head*)cl->code;
 	}
 	return valhead(cl->display[ictx->n++]);
+}
+
+static Head*
+itercode(Head *hd, Ictx *ictx)
+{
+	Code *code;
+	code = (Code*)hd;
+	if(ictx->n >= hnent(code->konsti->ht))
+		return GCiterdone;
+	return valhead(hrefval(code->konsti->ht, ictx->n++));
 }
 
 static Head*
@@ -3007,6 +3022,12 @@ mkvalcval2(Cval *cv)
 	return (Val)cv;
 }
 
+Val
+mklitcval(Cbase base, Imm val)
+{
+	return mkvalcval(litdom, litbase[base], val);
+}
+
 static Val
 mkvalcl(Closure *cl)
 {
@@ -3377,9 +3398,7 @@ getvalrand(VM *vm, Operand *r)
 	case Oloc:
 		return getval(vm, &r->u.loc);
 	case Oliti:
-		/* FIXME: replace u.liti with cval */
-		return mkvalcval(vm->litdom, vm->litbase[r->u.liti.base],
-				 r->u.liti.val);
+		return r->u.liti;
 	case Olits:
 		return (Val)mkstrlits(r->u.lits);
 	case Onil:
@@ -3396,9 +3415,7 @@ getcvalrand(VM *vm, Operand *r)
 	case Oloc:
 		return getcval(vm, &r->u.loc);
 	case Oliti:
-		/* FIXME: replace u.liti with cval */
-		return mkcval(vm->litdom, vm->litbase[r->u.liti.base],
-			      r->u.liti.val);
+		return valcval(r->u.liti);
 	default:
 		fatal("bug");
 	}
@@ -9261,6 +9278,11 @@ mklitdom()
 {
 	Dom *dom;
 	dom = mkdom(mkrootns(&clp64le), mknas(), mkstr0("litdom"));
+
+	litdom = dom;
+	litns = dom->ns;
+	litbase = litns->base;
+
 	return dom;
 }
 

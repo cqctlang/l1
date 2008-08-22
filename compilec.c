@@ -599,7 +599,6 @@ Expr* groomc(U *ctx, Expr *e)
 		e->e4 = groomc(ctx, e->e4);
 		return e;
 	}
-
 }
 
 static Expr*
