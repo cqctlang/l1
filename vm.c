@@ -123,6 +123,7 @@ struct Rootset {
 	Root *last;
 	Root *before_last;
 	Root *this;
+	Root *free;
 } Rootset;
 
 static Rootset roots;
@@ -338,6 +339,7 @@ struct VM {
 	Str *sget, *sput, *smap;/* cached dispatch operands */
 	Fd *stdout, *stdin;
 	Root **prot;		/* stack of lists of GC-protected objects */
+	Rootset rs;		/* Root free list for prot */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
 	Imm sp, fp, pc;
@@ -859,24 +861,32 @@ valhead(Val v)
 }
 
 static Root*
-newroot()
+newroot(Rootset *rs)
 {
+	Root *r;
+	if(rs->free){
+		r = rs->free;
+		rs->free = r->link;
+		return r;
+	}
 	return xmalloc(sizeof(Root));
 }
 
 static void
-freeroot(Root *r)
+freeroot(Rootset *rs, Root *r)
 {
-	free(r);
+//	free(r);
+	r->link = rs->free;
+	rs->free = r;
 }
 
 static void
-freerootlist(Root *r)
+freerootlist(Rootset *rs, Root *r)
 {
 	Root *nxt;
 	while(r){
 		nxt = r->link;
-		freeroot(r);
+		freeroot(rs, r);
 		r = nxt;
 	}
 }
@@ -893,7 +903,7 @@ doaddroot(Rootset *rs, Head *h)
 		fatal("addroot %p (%s) bad state %d", h, h->heap->id, x);
 	atomic_inc(&h->state);
 
-	r = newroot();
+	r = newroot(rs);
 	h->inrootset = 1;
 	r->hd = h;
 	r->link = rs->roots;
@@ -1058,7 +1068,7 @@ rootset(VM *vm)
 static void
 rootsetreset(Rootset *rs)
 {
-	freerootlist(rs->roots);
+	freerootlist(rs, rs->roots);
 	rs->roots = 0;
 	rs->last = 0;
 	rs->before_last = 0;
@@ -5332,7 +5342,7 @@ gcprotpush(VM *vm)
 static void
 gcprotpop(VM *vm)
 {
-	freerootlist(vm->prot[vm->pdepth-1]);
+	freerootlist(&vm->rs, vm->prot[vm->pdepth-1]);
 	vm->prot[vm->pdepth-1] = 0;
 	vm->pdepth--;
 }
@@ -5342,7 +5352,7 @@ gcprotect(VM *vm, void *obj)
 {
 	Root *r;
 
-	r = newroot();
+	r = newroot(&vm->rs);
 	r->hd = obj;
 	r->link = vm->prot[vm->pdepth-1];
 	vm->prot[vm->pdepth-1] = r;	
