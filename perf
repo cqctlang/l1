@@ -313,3 +313,31 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 ./doperf: line 16: 12126 Segmentation fault      $HOME/src/l1/l1 -e test.cqct
 31276178
 32429978
+
+---
+commit a3b229418755bd974e65490f79d2a3e712b2985b
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 17:48:02 2008 -0400
+
+    cg: avoid inefficient branch control flow by implementing what dybvig actually
+    wrong, instead of the opposite
+
+commit b8797d4ca06928f0877b88946f8728e781b8e376
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 17:29:04 2008 -0400
+
+    box variables that are updated by any form of assignment (not just =)
+
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+1595427 usec
+1609767 usec
+1666243 usec
+1714588 usec
+1656238 usec
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+32105518
+32051108
+32026211
+32224045
+31905117
