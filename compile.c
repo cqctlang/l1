@@ -1644,18 +1644,18 @@ cgbranch(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt)
 	   be return; otherwise, i'm not sure that it matters. */
 	if(returnlabel(p, l2) || (l2 == nxt && !returnlabel(p, l1))){
 		i = nextinsn(code);
-		i->kind = Ijnz;
-		randloc(&i->op1, AC);
-		i->dstlabel = l1;
-		l1->used = 1;
-		cgjmp(code, p, l2, nxt);
-	}else{
-		i = nextinsn(code);
 		i->kind = Ijz;
 		randloc(&i->op1, AC);
 		i->dstlabel = l2;
 		l2->used = 1;
 		cgjmp(code, p, l1, nxt);
+	}else{
+		i = nextinsn(code);
+		i->kind = Ijnz;
+		randloc(&i->op1, AC);
+		i->dstlabel = l1;
+		l1->used = 1;
+		cgjmp(code, p, l2, nxt);
 	}
 }
 
