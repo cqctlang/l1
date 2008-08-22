@@ -166,7 +166,7 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 41773295
 41385629
 
-% ./l1 -t -e test/qsort.l1 [increase!]
+or % ./l1 -t -e test/qsort.l1 [increase!]
 1753402 usec
 1865218 usec
 1724486 usec
@@ -177,3 +177,31 @@ or%  ../../../l1 -e test.cqct
 19682278
 19978344
 19867367
+
+commit 9d1a38872725a8059619c6b6a7bb5e22b5b9d0df
+Author: vic zandy <vic@or>
+Date:   Fri Aug 22 00:08:24 2008 -0400
+
+    recycle Root for rootlist, instead of mallocing them
+
+commit 32a2ea5981f43604bb5122ffdd731288088401ff
+Author: vic zandy <vic@or>
+Date:   Thu Aug 21 23:44:34 2008 -0400
+
+    mkval returns vals
+
+or% cd /Users/vic/src/l1
+or% ./l1 -t -e test/qsort.l1
+1015504 usec
+1012974 usec
+1097547 usec
+965322 usec
+1003748 usec
+
+or% cd /Users/vic/src/l1/dev/perf/scripts
+or% ../../../l1 -e test.cqct
+13773104
+13706475
+13756828
+14013092
+13813903
