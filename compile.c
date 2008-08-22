@@ -1986,13 +1986,18 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				randloc(&i->op1, AC);
 			if(loc != Effect){
 				emitlabel(R, e);
-				/* FIXME: we emit this mov even if loc is AC,
-				   because there seems to be no simple way
-				   to manage the labels otherwise. */
-				i = nextinsn(code);
-				i->kind = Imov;
-				randloc(&i->op1, AC);
-				randloc(&i->dst, loc);
+				if(loc == AC){
+					/* FIXME: nop because there
+					   seems to be no simple way to manage
+					   the labels otherwise. */
+					i = nextinsn(code);
+					i->kind = Inop;
+				}else{
+					i = nextinsn(code);
+					i->kind = Imov;
+					randloc(&i->op1, AC);
+					randloc(&i->dst, loc);
+				}
 			}
 			cgctl(code, p, ctl, nxt);
 		}else{

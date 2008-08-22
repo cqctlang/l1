@@ -270,4 +270,25 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 36083971
 36187447
 36034929
-ub233% pwd
+
+---
+commit c142e3af47b49e4730918ceb3ebed2fe13df76e3
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 16:19:39 2008 -0400
+
+    cg: collapse mov+push into push on function calls
+    tidy
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+1704441 usec
+1730080 usec
+1646699 usec
+1741696 usec
+1754949 usec
+
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+31928383
+32453554
+31805341
+32310523
+31991369
