@@ -165,3 +165,15 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 40798658
 41773295
 41385629
+
+% ./l1 -t -e test/qsort.l1 [increase!]
+1753402 usec
+1865218 usec
+1724486 usec
+1679015 usec
+1675986 usec
+
+or%  ../../../l1 -e test.cqct 
+19682278
+19978344
+19867367
