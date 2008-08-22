@@ -205,3 +205,18 @@ or% ../../../l1 -e test.cqct
 13756828
 14013092
 13813903
+
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+2364078 usec
+2255271 usec
+2292394 usec
+2234161 usec
+2371641 usec
+
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+38888361
+39072049
+./doperf: line 16:  1738 Segmentation fault      $HOME/src/l1/l1 -e test.cqct
+38841866
+38924632

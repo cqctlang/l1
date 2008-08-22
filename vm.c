@@ -892,6 +892,18 @@ freerootlist(Rootset *rs, Root *r)
 }
 
 static void
+freefreeroots(Rootset *rs)
+{
+	Root *r, *nxt;
+	r = rs->free;
+	while(r){
+		nxt = r->link;
+		free(r);
+		r = nxt;
+	}
+}
+
+static void
 doaddroot(Rootset *rs, Head *h)
 {
 	Root *r;
@@ -9509,6 +9521,9 @@ cqctfreevm(VM *vm)
 		vmp++;
 	}
 	gckill(vm);
+
+	freefreeroots(&vm->rs);
+
 	free(vm->prot);
 	free(vm->err);
 	free(vm);
@@ -9563,6 +9578,9 @@ finivm()
 	gc(0);
 	gc(0);
 	gcreset();
+
+	freefreeroots(&roots);
+	freefreeroots(&stores);
 
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);

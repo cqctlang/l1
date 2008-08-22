@@ -554,9 +554,58 @@ expanddot(U *ctx, Expr *e)
 	}
 }
 
+static int
+isemptyblock(Expr *e)
+{
+	if(e->kind == Eblock && e->e2->kind == Enull)
+		return 1;
+	else
+		return 0;
+}
+
+static
+Expr* groomc(U *ctx, Expr *e)
+{
+	Expr *p;
+
+	if(e == 0)
+		return e;
+
+	switch(e->kind){
+	case Eif:
+		e->e1 = groomc(ctx, e->e1);
+		if(isemptyblock(e->e2)){
+			freeexpr(e->e2);
+			e->e2 = newexpr(Enop, 0, 0, 0, 0);
+		}else
+			e->e2 = groomc(ctx, e->e2);
+		if(e->e3 && isemptyblock(e->e3)){
+			freeexpr(e->e3);
+			e->e3 = newexpr(Enop, 0, 0, 0, 0);
+		}else
+			e->e3 = groomc(ctx, e->e3);
+		return e;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = groomc(ctx, p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = groomc(ctx, e->e1);
+		e->e2 = groomc(ctx, e->e2);
+		e->e3 = groomc(ctx, e->e3);
+		e->e4 = groomc(ctx, e->e4);
+		return e;
+	}
+
+}
+
 static Expr*
 compilec(U *ctx, Expr* e)
 {
+	groomc(ctx, e);
 	expandc(ctx, e);
 	expanddot(ctx, e);
 	compile_rval(ctx, e, 0);
