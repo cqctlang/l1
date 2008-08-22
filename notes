@@ -135,6 +135,10 @@ todo
     shadow on the way down, to reduce
     unwanted boxing.
   - simplify labels in cg
+  - rationalize protection of toplevel vals from gc 
+  - c.y: replace empty statement bodies with nop statement?
+    (empty statement bodies caused cg bug:
+	if(1) {} return 3; (fixed 8/22/08)
 
 - ideas
   - immutable vectors for type datastructures (fields and params)?

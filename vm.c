@@ -379,6 +379,7 @@ static Val Xnulllist;
 static Dom *litdom;
 static Ns *litns;
 static Xtypename **litbase;
+static Cval *cvalnull, *cval0, *cval1;
 
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
@@ -3911,10 +3912,9 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 		break;
 	case Inot:
 		if(imm)
-			nv = 0;
+			cvr = cval0;
 		else
-			nv = 1;
-		cvr = mkcval(vm->litdom, vm->litbase[Vint], nv);
+			cvr = cval1;
 		break;
 	default:
 		fatal("unknown unary operator %d", op);
@@ -4164,7 +4164,10 @@ xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 		default:
 			fatal("bug");
 		}
-	return mkcval(vm->litdom, vm->litbase[Vint], rv);
+	if(rv)
+		return cval1;
+	else
+		return cval0;
 }
 
 static void
@@ -4216,8 +4219,10 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		s2 = valstr(v2);
 dostr:
 		nv = binopstr(vm, op, s1, s2);
-		putvalrand(vm, mkvalcval(vm->litdom, vm->litbase[Vint], nv),
-			   dst);
+		if(nv)
+			putvalrand(vm, mkvalcval2(cval1), dst);
+		else
+			putvalrand(vm, mkvalcval2(cval0), dst);
 		return;
 	}
 
@@ -4248,7 +4253,10 @@ dostr:
 	nv = eqval(v1, v2);
 	if(op == Icmpneq)
 		nv = !nv;
-	putvalrand(vm, mkvalcval(vm->litdom, vm->litbase[Vint], nv), dst);
+	if(nv)
+		putvalrand(vm, mkvalcval2(cval1), dst);
+	else
+		putvalrand(vm, mkvalcval2(cval0), dst);
 }
 
 static void
@@ -4697,8 +4705,9 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		if(argc != 1)
 			vmerr(vm, "wrong number of arguments to map");
 		v = mkvec(1);
-		val = mkvalrange(mkcval(vm->litdom, vm->litbase[Vptr], 0),
-				 mkcval(vm->litdom, vm->litbase[Vptr], s->len));
+		val = mkvalrange(cvalnull,
+				 mkcval(vm->litdom,
+					vm->litbase[Vptr], s->len));
 		_vecset(v, 0, val);
 		*rv = mkvalvec(v);
 	}else
@@ -9476,7 +9485,15 @@ mktopenv()
 	builtinns(env, "c64be", mkrootns(&c64be));
 	builtinns(env, "clp64le", mkrootns(&clp64le));
 	builtinns(env, "clp64be", mkrootns(&clp64be));
-	builtincval(env, "NULL", mkcval(litdom, litdom->ns->base[Vptr], 0));
+	cvalnull = mkcval(litdom, litdom->ns->base[Vptr], 0);
+	builtincval(env, "NULL", cvalnull);
+
+	cval0 = mkcval(litdom, litdom->ns->base[Vint], 0);
+	cval1 = mkcval(litdom, litdom->ns->base[Vint], 1);
+
+	/* stashed in env only so gc doesn't eat them */
+	builtincval(env, "$0", cval0);
+	builtincval(env, "$1", cval1);
 
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));

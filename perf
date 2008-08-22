@@ -220,3 +220,33 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 ./doperf: line 16:  1738 Segmentation fault      $HOME/src/l1/l1 -e test.cqct
 38841866
 38924632
+
+---
+commit a79c12e9fb60866d3589bd3965b21cf1ab963481
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 14:59:23 2008 -0400
+
+    constant pool for literal integers
+
+commit 0072b2e4c5449fc32485e6628dfa522e3a177bef
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 12:23:41 2008 -0400
+
+    don't leak Root free list
+    fix empty statement lists cg bug
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+1968623 usec
+2041225 usec
+2081086 usec
+1961254 usec
+1959757 usec
+
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+37357506
+37082131
+37287087
+37195258
+40899547
+
+
