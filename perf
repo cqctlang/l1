@@ -250,3 +250,24 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 40899547
 
 
+---
+commit 4f7ed48c0e7f3196fc1f46fde178125d1779b24c
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 15:33:44 2008 -0400
+
+    don't allocate cvals for dynamically computed constants 1, 0, and null
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+1906577 usec
+1904621 usec
+1938330 usec
+1998532 usec
+2060199 usec
+
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+35936199
+36475025
+36083971
+36187447
+36034929
+ub233% pwd

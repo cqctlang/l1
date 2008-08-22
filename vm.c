@@ -497,8 +497,7 @@ stkimm(Val v)
 	return imm;
 }
 
-#ifdef PARANOID
-static Imm
+Imm
 valimm(Val v)
 {
 	Cval *cv;
@@ -508,6 +507,7 @@ valimm(Val v)
 	return cv->val;
 }
 
+#ifdef PARANOID
 static Cval*
 valcval(Val v)
 {
@@ -642,7 +642,6 @@ valboxed(Val v)
 	return b->v;
 }
 
-#define valimm(v)	(((Cval*)(v))->val)
 #define valas(v)	((As*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valcl(v)	((Closure*)(v))

@@ -1,8 +1,8 @@
 entry: 0 params, 0 locals, 0 temps
 L4: 3 params, 0 locals, 0 temps
-L18: 3 params, 0 locals, 0 temps
-L32: 3 params, 0 locals, 0 temps
-L46: 1 params, 0 locals, 0 temps
+L10: 3 params, 0 locals, 0 temps
+L16: 3 params, 0 locals, 0 temps
+L22: 1 params, 0 locals, 0 temps
 <cval 3>
 <cval 2>
 <cval 1>

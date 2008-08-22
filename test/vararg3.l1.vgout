@@ -1,7 +1,7 @@
 entry: 0 params, 0 locals, 0 temps
 L4: 1 params, 1 locals, 0 temps
-L25: 0 params, 1 locals, 0 temps
-L30: var params, 2 locals, 0 temps
+L16: 0 params, 1 locals, 0 temps
+L21: var params, 2 locals, 0 temps
 <cval 1>
 <cval 2>
 <cval 3>

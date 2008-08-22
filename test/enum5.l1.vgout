@@ -1,9 +1,9 @@
 entry: 0 params, 7 locals, 1 temps
-L58: 1 params, 3 locals, 0 temps
-L190: 1 params, 3 locals, 0 temps
-L300: 1 params, 3 locals, 0 temps
-L355: 1 params, 0 locals, 0 temps
-L370: 1 params, 0 locals, 0 temps
+L30: 1 params, 3 locals, 0 temps
+L94: 1 params, 3 locals, 0 temps
+L135: 1 params, 3 locals, 0 temps
+L155: 1 params, 0 locals, 0 temps
+L164: 1 params, 0 locals, 0 temps
 d = 3
 v0 = 1
 v1 = 2

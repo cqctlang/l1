@@ -255,8 +255,7 @@ printrand(Code *code, Operand *r)
 		}
 		break;
 	case Oliti:
-//		printf("%" PRIu64, r->u.liti.val);
-		printf("FIXME %s:%d\n", __FILE__, __LINE__);
+		printf("%" PRIu64, valimm(r->u.liti));
 		break;
 	case Onil:
 		printf("nil");
@@ -735,27 +734,6 @@ mkkonsti()
 	koni = xmalloc(sizeof(Konsti));
 	koni->ht = mkht();
 	return koni;
-}
-
-static Val
-konstilookup(Liti *liti, Konsti *koni)
-{
-	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
-	snprintf(buf, sizeof(buf), "%s%llu", basename[liti->base], liti->val);
-	return hget(koni->ht, buf, strlen(buf));
-}
-
-static Val
-konstiadd(Liti *liti, Konsti *koni)
-{
-	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
-	char *s;
-	Val v;
-	snprintf(buf, sizeof(buf), "%s%llu", basename[liti->base], liti->val);
-	s = xstrdup(buf);
-	v = mklitcval(liti->base, liti->val);
-	hput(koni->ht, s, strlen(s), v);
-	return v;
 }
 
 static Val
@@ -1964,14 +1942,22 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		narg = 0;
 		L0 = prv;
 		while(q->kind != Enull){
-			L = genlabel(code, 0);
 			// FIXME: can we check for simple? here and push
 			// the operand directly? (and likewise for the call?)
-			cg(q->e1, code, p, AC, L, L0, L, tmp);
-			emitlabel(L, q->e2);
-			i = nextinsn(code);
-			i->kind = Ipush;
-			randloc(&i->op1, AC);
+			if(issimple(q->e1)){
+				L = L0;
+				cgrand(&r1, q->e1, p);
+				i = nextinsn(code);
+				i->kind = Ipush;
+				i->op1 = r1;
+			}else{
+				L = genlabel(code, 0);
+				cg(q->e1, code, p, AC, L, L0, L, tmp);
+				emitlabel(L, q->e2);
+				i = nextinsn(code);
+				i->kind = Ipush;
+				randloc(&i->op1, AC);
+			}
 			q = q->e2;
 			narg++;
 			L0 = L;
@@ -1981,16 +1967,23 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i->kind = Ipushi;
 		randliti(&i->op1, konsti2val(Vint, narg, code->konsti));
 
-		L0 = genlabel(code, 0);
-		emitlabel(L0, e->e1);
-		L = genlabel(code, 0);
-		cg(e->e1, code, p, AC, L, L0, L, tmp);
-		emitlabel(L, e);
+		if(issimple(e->e1)){
+			cgrand(&r1, e->e1, p);
+		}else {
+			L0 = genlabel(code, 0);
+			emitlabel(L0, e->e1);
+			L = genlabel(code, 0);
+			cg(e->e1, code, p, AC, L, L0, L, tmp);
+			emitlabel(L, e);
+		}
 
 		if(!istail){
 			i = nextinsn(code);
 			i->kind = Icall;
-			randloc(&i->op1, AC);
+			if(issimple(e->e1))
+				i->op1 = r1;
+			else
+				randloc(&i->op1, AC);
 			if(loc != Effect){
 				emitlabel(R, e);
 				/* FIXME: we emit this mov even if loc is AC,
@@ -2005,7 +1998,10 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}else{
 			i = nextinsn(code);
 			i->kind = Icallt;
-			randloc(&i->op1, AC);
+			if(issimple(e->e1))
+				i->op1 = r1;
+			else
+				randloc(&i->op1, AC);
 		}
 		break;
 	case Eret:

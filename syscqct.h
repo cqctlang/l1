@@ -526,6 +526,7 @@ Closure* compileentry(Expr *el, Env *env);
 void printvmac(VM *vm);
 char* topvecid(unsigned idx, Topvec *tv);
 Val* topvecval(unsigned idx, Topvec *tv);
+Imm valimm(Val v);
 Closure* haltthunk();
 Closure* callcc();
 Closure* panicthunk();
