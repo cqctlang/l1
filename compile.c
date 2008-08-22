@@ -1110,7 +1110,12 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 			vr = mkvarref(vd);
 		e->xp = vr;
 		break;
+	case Epreinc:
+	case Epostinc:
+	case Epredec:
+	case Epostdec:
 	case Eg:
+	case Egop:
 		if(e->e1->kind != Eid)
 			fatal("bug");
 		id = e->e1->id;
@@ -1122,7 +1127,8 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 			vr = mkvarref(vd);
 		}
 		e->e1->xp = vr;
-		mapframe(e->e2, curb, ve, tv, env, kon, koni, ploc);
+		if(e->kind == Eg || e->kind == Egop)
+			mapframe(e->e2, curb, ve, tv, env, kon, koni, ploc);
 		break;
 	case Eblock:
 		nloc = bindlocal(curb, e->e1, ploc);
@@ -2472,6 +2478,7 @@ compileentry(Expr *el, Env *env)
 	freevdset(cap);
 	code->src = le;
 
+//	printframe(le);
 	compilelambda(L, code, le);
 	b = (Lambda*)le->xp;
 	cl = mkcl(code, 0, b->capture->nvr, L->label);

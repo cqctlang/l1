@@ -292,3 +292,24 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 31805341
 32310523
 31991369
+
+
+---
+commit 3d9042b84909b76c12fd03b0fd2f6edf2f9fb662
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 16:38:11 2008 -0400
+
+    emit nop instead of mov %ac %ac in call expressions
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+1620629 usec
+1653746 usec
+1682857 usec
+1697837 usec
+1632628 usec
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+30976915
+31080331
+./doperf: line 16: 12126 Segmentation fault      $HOME/src/l1/l1 -e test.cqct
+31276178
+32429978

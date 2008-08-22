@@ -1,0 +1,18 @@
+
+define f(x,y,z){
+	@local g, c;
+	c = x;
+	define g() {
+		c++;
+		x++;
+		y += 1;
+		z = z+1;
+		return;
+	}
+	g();
+	g();
+	printf("%d %d %d %d\n", c, x, y, z);
+}
+
+f(1,1,1);
+
