@@ -1667,21 +1667,21 @@ hashxtn(Val val)
 	case Tbase:
 		return hash6432shift(xtn->basename);
 	case Ttypedef:
-		return hashstr((Val)xtn->tid)<<xtn->tkind;
+		return hashstr((Val)xtn->tid)>>xtn->tkind;
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		return hashstr((Val)xtn->tag)<<xtn->tkind;
+		return hashstr((Val)xtn->tag)>>xtn->tkind;
 	case Tundef:
 	case Tptr:
-		return hashxtn((Val)xtn->link)<<xtn->tkind;
+		return hashxtn((Val)xtn->link)>>xtn->tkind;
 	case Tarr:
-		x = hashxtn((Val)xtn->link)<<xtn->tkind;
+		x = hashxtn((Val)xtn->link)>>xtn->tkind;
 		if(xtn->cnt->qkind == Qcval)
 			x ^= hashcval(xtn->cnt);
 		return x;
 	case Tfun:
-		x = hashxtn((Val)xtn->link)<<xtn->tkind;
+		x = hashxtn((Val)xtn->link)>>xtn->tkind;
 		for(m = 0; m < xtn->param->len; m++){
 			x <<= 1;
 			vec = valvec(vecref(xtn->param, m));
@@ -1689,11 +1689,11 @@ hashxtn(Val val)
 		}
 		return x;
 	case Tbitfield:
-		x = hashxtn((Val)xtn->link)<<xtn->tkind;
+		x = hashxtn((Val)xtn->link)>>xtn->tkind;
 		x ^= hashcval(xtn->sz);
 		return x;
 	case Tconst:
-		return hashxtn((Val)xtn->link)<<xtn->tkind;
+		return hashxtn((Val)xtn->link)>>xtn->tkind;
 	}
 	fatal("bug");
 }
