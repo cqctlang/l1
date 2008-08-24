@@ -4,7 +4,7 @@
 
 char cqctflags[256];
 
-char* basename[Vnbase] = {
+char* basename[Vnbase+1] = {
 	[Vundef]              = "error!",
 	[Vchar]               = "char",
 	[Vshort]	      = "short",
@@ -19,10 +19,7 @@ char* basename[Vnbase] = {
 	[Vfloat]	      = "float",
 	[Vdouble]	      = "double",
 	[Vlongdouble]	      = "long double",
-/*
-	[Vvoid]		      = "void",
-	[Vptr]		      = "void*",
-*/
+	[Vptr]		      = "$nsptr",
 };
 
 char* tkindstr[Tntkind] = {
@@ -1481,6 +1478,12 @@ Closure*
 cqctcompile(Expr *e, Env *env)
 {
 	U ctx;
+
+	if(cqctflags['p']){
+		printf("input:\n");
+		printexpr(e);
+		printf("\n");
+	}
 
 	memset(&ctx, 0, sizeof(ctx));
 	dotypes(&ctx, e);
