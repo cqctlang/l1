@@ -357,3 +357,74 @@ or% ../../../l1 -e test.cqct
 11030890
 10950998
 10981986
+
+
+commit 99dd65667f18f04e4c1956f9f63a6122b15b8049
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Mon Aug 25 14:16:41 2008 -0400
+
+    if statement can be expressions; with that, support ?:
+
+commit 105a2ccca0e1c76d6129cf2907a3a83b3ade79a6
+Author: vic zandy <vic@or>
+Date:   Sun Aug 24 22:50:10 2008 -0400
+
+    return constant 1/0 instead of constructing cval in builtins
+    update tests affected by new hash function
+
+commit 178c33574a176ec1741efd9779025b9062f6ef7a
+Author: vic zandy <vic@or>
+Date:   Sun Aug 24 15:02:50 2008 -0400
+
+    give Vptr basename string; debugging print
+
+commit 583aea7cd4f21f8278d6fdc3cc28ae8922c9ec86
+Author: vic zandy <vic@or>
+Date:   Sun Aug 24 15:01:30 2008 -0400
+
+    better typename hash function
+
+commit a67edf0bc376cf620ed8c3a2b4b42c3a6a2a6ff0
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 18:03:36 2008 -0400
+
+    perf
+
+commit a3b229418755bd974e65490f79d2a3e712b2985b
+Author: vic zandy <zandy@cs.wisc.edu>
+Date:   Fri Aug 22 17:48:02 2008 -0400
+
+    cg: avoid inefficient branch control flow by implementing what dybvig actually
+    wrong, instead of the opposite
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+1522280 usec
+1534891 usec
+1557446 usec
+1611036 usec
+1572214 usec
+
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+31255147
+30580414
+34237660
+30727163
+31085246
+
+----
+UPDATED DW BENCHMARK to "testdir3"
+
+ub233% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+1593608 usec
+1623568 usec
+1594791 usec
+1641444 usec
+1643142 usec
+
+ub233% /u02/vczandy/src/l1/l1 -e test.cqct
+32255151
+32487660
+33148383
+32376367
+32742529
+

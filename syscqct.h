@@ -437,6 +437,7 @@ struct Ctl {
 	char *label;		/* for humans, only; (duplicates in code ok) */
 	int used;
 	unsigned long insn;
+	void *insnx;
 
 	/* ckind == Clabelpair */
 	Ctl *l1, *l2;
@@ -449,7 +450,6 @@ struct Ctl {
 typedef
 struct Insn {
 	ikind kind;
-	u8 bits;			/* typename/typedesc */
 	void *go;
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;

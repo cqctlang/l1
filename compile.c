@@ -743,7 +743,7 @@ konsti2val(Cbase base, Imm imm, Konsti *koni)
 	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
 	char *s;
 
-	snprintf(buf, sizeof(buf), "%s%llu", basename[base], imm);
+	snprintf(buf, sizeof(buf), "%s%" PRIu64, basename[base], imm);
 	v = hget(koni->ht, buf, strlen(buf));
 	if(v)
 		return v;

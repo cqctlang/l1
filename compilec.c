@@ -572,8 +572,8 @@ isemptyblock(Expr *e)
 		return 0;
 }
 
-static
-Expr* groomc(U *ctx, Expr *e)
+static Expr*
+groomc(U *ctx, Expr *e)
 {
 	Expr *p;
 

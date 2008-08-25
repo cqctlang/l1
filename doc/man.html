@@ -403,7 +403,7 @@ the arguments.  The constructors are:
 Arithmetic
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_char()<br />
 mkctype_short()<br />
 mkctype_int()<br />
@@ -420,7 +420,7 @@ mkctype_ldouble()
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 <em>n/a</em>
 </div>
 </td>
@@ -431,13 +431,13 @@ mkctype_ldouble()
 Aggregate
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_struct(<em>tag</em>)<br />
 mkctype_union(<em>tag</em>)
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_struct(<em>tag</em>, <em>fields</em>, <em>sz</em>)<br />
 mkctype_union(<em>tag</em>, <em>fields</em>, <em>sz</em>)<br />
 </div>
@@ -449,12 +449,12 @@ mkctype_union(<em>tag</em>, <em>fields</em>, <em>sz</em>)<br />
 Array
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_array(<em>ctype</em>, <em>count</em>)<br />
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_array(<em>ctype</em>, <em>count</em>)<br />
 </div>
 </td>
@@ -465,12 +465,12 @@ mkctype_array(<em>ctype</em>, <em>count</em>)<br />
 Function
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_fn(<em>ctype</em>, <em>params</em>)
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_fn(<em>ctype</em>, <em>params</em>)
 </div>
 </td>
@@ -481,12 +481,12 @@ mkctype_fn(<em>ctype</em>, <em>params</em>)
 Enumeration
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_enum(<em>tag</em>)
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_enum(<em>tag</em>, <em>ctype</em>, <em>consts</em>)
 </div>
 </td>
@@ -497,12 +497,12 @@ mkctype_enum(<em>tag</em>, <em>ctype</em>, <em>consts</em>)
 Typedef
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_typedef(<em>id</em>)
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_typedef(<em>id</em>, <em>ctype</em>)
 </div>
 </td>
@@ -513,12 +513,12 @@ mkctype_typedef(<em>id</em>, <em>ctype</em>)
 Pointer
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_ptr(<em>ctype</em>)
-</div id=symbols>
+</div id="symbols">
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_ptr(<em>ctype</em>, <em>repctype</em>)
 </div>
 </td>
@@ -529,12 +529,12 @@ mkctype_ptr(<em>ctype</em>, <em>repctype</em>)
 Void
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_void()
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_void()
 </div>
 </td>
@@ -545,12 +545,12 @@ mkctype_void()
 Typedef
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_typedef(<em>id</em>)
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_typedef(<em>id</em>,<em>ctype</em>)
 </div>
 </td>
@@ -561,12 +561,12 @@ mkctype_typedef(<em>id</em>,<em>ctype</em>)
 Bitfield
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_bitfield(<em>ctype</em>,<em>width</em>,<em>off</em>)
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_bitfield(<em>ctype</em>,<em>width</em>,<em>off</em>)
 </div>
 </td>
@@ -577,12 +577,12 @@ mkctype_bitfield(<em>ctype</em>,<em>width</em>,<em>off</em>)
 Enum constant
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_const(<em>ctype</em>)
 </div>
 </td>
 <td>
-<div id=symbols>
+<div id="symbols">
 mkctype_const(<em>ctype</em>)
 </div>
 </td>
@@ -943,141 +943,141 @@ connections.  An open file or network connection is
 represented by an instance of the file descriptor type.
 </p>
 
-<div class=proto>
-<div class=function>
-<span class=id>open(<span class=arg>filename</span>,<span class=arg>mode</span>)</span>
+<div class="proto">
+<div class="function">
+<span class="id">open(<span class="arg">filename</span>,<span class="arg">mode</span>)</span>
 </div>
-<div class=param>
-<span class=arg>filename</span>: <span class=type>string</span>
+<div class="param">
+<span class="arg">filename</span>: <span class="type">string</span>
 </div>
-<div class=param>
-<span class=arg>mode</span>: <span class=type>string</span>
+<div class="param">
+<span class="arg">mode</span>: <span class="type">string</span>
 </div>
-<div class=returns>
-<span class=type>file descriptor</span>
+<div class="returns">
+<span class="type">file descriptor</span>
 </div>
 </div>
 
 <p>
-Opens the file named <span class=arg>filename</span> and
+Opens the file named <span class="arg">filename</span> and
 returns the associated file descriptor.  <span
-class=arg>Mode</span> specifies whether the file is to
+class="arg">Mode</span> specifies whether the file is to
 be opened for reading, writing, or both, and whether
 the file is to be created or truncated.  The syntax of
-<span class=arg>mode</span> follows that of the C
+<span class="arg">mode</span> follows that of the C
 library stdio <tt>fopen</tt> function.  Common modes
-are <span class=lit>"r"</span> (read an existing file)
-<span class=lit>"w"</span> (truncate an existing file
-for writing), and <span class=lit>"rw"</span> (truncate
+are <span class="lit">"r"</span> (read an existing file)
+<span class="lit">"w"</span> (truncate an existing file
+for writing), and <span class="lit">"rw"</span> (truncate
 an existing file for reading and writing).
 </p>
 
-<div class=proto>
-<div class=function>
-<span class=id>opentcp(<span class=arg>address</span>)</span>
+<div class="proto">
+<div class="function">
+<span class="id">opentcp(<span class="arg">address</span>)</span>
 </div>
-<div class=param>
-<span class=arg>address</span>: <span class=type>string</span>
+<div class="param">
+<span class="arg">address</span>: <span class="type">string</span>
 </div>
-<div class=returns>
-<span class=type>file descriptor</span>
+<div class="returns">
+<span class="type">file descriptor</span>
 </div>
 </div>
 
 <p>
-Opens a TCP connection to <span class=arg>address</span> and
+Opens a TCP connection to <span class="arg">address</span> and
 returns the associated file descriptor.
-<span class=arg>Address</span> is a string of the form
+<span class="arg">Address</span> is a string of the form
 <tt>"<em>addr</em>:<em>port</em>"</tt>, where
-<span class=arg>addr</span> is an IP address or hostname and
-<span class=arg>port</span> is a port number or service
+<span class="arg">addr</span> is an IP address or hostname and
+<span class="arg">port</span> is a port number or service
 name.
 </p>
 
-<div class=proto>
-<div class=function>
-<span class=id>read(<span class=arg>fd</span>,<span class=arg>len</span>)</span>
+<div class="proto">
+<div class="function">
+<span class="id">read(<span class="arg">fd</span>,<span class="arg">len</span>)</span>
 </div>
-<div class=param>
-<span class=arg>fd</span>: <span class=type>file descriptor</span>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
 </div>
-<div class=param>
-<span class=arg>len</span>: <span class=type>cvalue</span>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
 </div>
-<div class=returns>
-<span class=type>string</span> or <span class=type>nil</span>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
 </div>
 </div>
 
 <p>
-Reads at most <span class=arg>len</span> bytes from the I/O
-resource associated with <span class=arg>fd</span>.  The
-call blocks until <span class=arg>len</span> bytes are
+Reads at most <span class="arg">len</span> bytes from the I/O
+resource associated with <span class="arg">fd</span>.  The
+call blocks until <span class="arg">len</span> bytes are
 read or end of file is encountered.  Returns a string
 containing the bytes read, or <tt>nil</tt> if end of
 file was encountered and no bytes were read.
 </p>
 
-<div class=proto>
-<div class=function>
-<span class=id>write(<span class=arg>fd</span>,<span class=arg>str</span>)</span>
+<div class="proto">
+<div class="function">
+<span class="id">write(<span class="arg">fd</span>,<span class="arg">str</span>)</span>
 </div>
-<div class=param>
-<span class=arg>fd</span>: <span class=type>file descriptor</span>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
 </div>
-<div class=param>
-<span class=arg>str</span>: <span class=type>string</span>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
 </div>
-<div class=returns>
-<span class=type>nil</span>
+<div class="returns">
+<span class="type">nil</span>
 </div>
 </div>
 <p>
 Writes the bytes contained in the string
-<span class=arg>str</span> to the I/O resource associated
-with <span class=arg>fd</span>.
+<span class="arg">str</span> to the I/O resource associated
+with <span class="arg">fd</span>.
 </p>
 
-<div class=proto>
-<div class=function>
-<span class=id>close(<span class=arg>fd</span>)</span>
+<div class="proto">
+<div class="function">
+<span class="id">close(<span class="arg">fd</span>)</span>
 </div>
-<div class=param>
-<span class=arg>fd</span>: <span class=type>file descriptor</span>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
 </div>
-<div class=returns>
-<span class=type>nil</span>
+<div class="returns">
+<span class="type">nil</span>
 </div>
 </div>
 <p>
 Closes the I/O resource associated with <span
-class=arg>fd</span>.  Any pending buffered output is
-written.  A call to <span class=id>close</span> on an
+class="arg">fd</span>.  Any pending buffered output is
+written.  A call to <span class="id">close</span> on an
 already closed descriptor has no effect.  A call to
-<span class=id>read</span> or <span
-class=id>write</span> on a closed descriptor draws an
+<span class="id">read</span> or <span
+class="id">write</span> on a closed descriptor draws an
 error.
 </p>
 
-<div class=proto>
+<div class="proto">
 
-<div class=function>
-<span class=id>fdname(<span class=arg>fd</span>)</span>
+<div class="function">
+<span class="id">fdname(<span class="arg">fd</span>)</span>
 </div>
 
-<div class=param>
-<span class=arg>fd</span>: <span class=type>file descriptor</span>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
 </div>
 
-<div class=returns>
-<span class=type>string</span>
+<div class="returns">
+<span class="type">string</span>
 </div>
 
 </div>
 
 <p>
 Returns the name of the I/O resource associated with <span
-class=arg>fd</span>.
+class="arg">fd</span>.
 </p>
 
 
