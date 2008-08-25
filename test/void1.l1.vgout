@@ -2,19 +2,19 @@ entry: 0 params, 0 locals, 0 temps
 printtype: 1 params, 6 locals, 0 temps
 dumpns: 1 params, 2 locals, 0 temps
 foo: 0 params, 11 locals, 0 temps
-typedef unsigned long uint32;
-typedef char int8;
 typedef long int32;
-typedef long long int64;
-typedef unsigned long uintptr;
 typedef short int16;
-typedef unsigned char uint8;
 typedef unsigned short uint16;
-typedef unsigned long long uint64;
+typedef unsigned long uint32;
 struct foo {
 	@0x0	void *x;
 	@0x28;
 };
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef unsigned long uintptr;
+typedef unsigned char uint8;
+typedef char int8;
 sizeof(p->x) = 4
 typeof(p->x) = void *
 sizeof(p) = 4

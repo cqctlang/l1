@@ -6439,9 +6439,9 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 		vmerr(vm, "operand 1 to %s must be a ctype", id);
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind == kind)
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 1);
+		*rv = mkvalcval2(cval1);
 	else
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 0);
+		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -6484,9 +6484,9 @@ l1_issu(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to issu must be a ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind == Tstruct || xtn->tkind == Tunion)
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 1);
+		*rv = mkvalcval2(cval1);
 	else
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 0);
+		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -7402,9 +7402,9 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isnil");
 	if(argv[0]->qkind == Qnil)
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 1);
+		*rv = mkvalcval2(cval1);
 	else
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 0);
+		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -8434,9 +8434,9 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = valcval(argv[1]);
 	}
 	if(ismapped(vm, addr, len))
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 1);
+		*rv = mkvalcval2(cval1);
 	else
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 0);
+		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -8530,8 +8530,10 @@ l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to isempty");
 	if(argv[0]->qkind == Qlist){
 		lst = vallist(argv[0]);
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vuint],
-				listxlen(lst->x) == 0);
+		if(listxlen(lst->x) != 0)
+			*rv = mkvalcval2(cval0);
+		else
+			*rv = mkvalcval2(cval1);
 	}else
 		vmerr(vm, "isempty defined only for lists");
 }
@@ -8761,11 +8763,13 @@ l1_equal(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to equal");
 	kind = argv[0]->qkind;
 	if(kind != argv[1]->qkind)
-		*rv = mkvalcval(vm->litdom, vm->litns->base[Vint], 0);
-	else if(kind == Qlist)
-		*rv = mkvalcval(vm->litdom, vm->litns->base[Vint],
-				equallistv(argv[0], argv[1]));
-	else
+		*rv = mkvalcval2(cval0);
+	else if(kind == Qlist){
+		if(equallistv(argv[0], argv[1]))
+			*rv = mkvalcval2(cval1);
+		else
+			*rv = mkvalcval2(cval0);
+	}else
 		vmerr(vm, "equal defined only for lists");
 }
 
@@ -8775,9 +8779,9 @@ l1_isx(VM *vm, Imm argc, Val *argv, Val *rv, char *name, Qkind kind)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", name);
 	if(argv[0]->qkind == kind)
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 1);
+		*rv = mkvalcval2(cval1);
 	else
-		*rv = mkvalcval(vm->litdom, vm->litbase[Vint], 0);
+		*rv = mkvalcval2(cval0);
 }
 
 static void

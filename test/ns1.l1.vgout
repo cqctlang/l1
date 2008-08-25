@@ -1,34 +1,21 @@
 entry: 0 params, 0 locals, 0 temps
 printtype: 1 params, 6 locals, 0 temps
 foo: 0 params, 11 locals, 0 temps
-typedef unsigned long uint32;
 struct bar {
 	@0x0	int x;
 		int y;
 	@0x8;
 };
-typedef char int8;
-typedef long int32;
-typedef long long int64;
 typedef struct foo foo_t;
-struct abc {
-		int x;
-	@0x4;
-};
-typedef unsigned long uintptr;
+typedef long int32;
 struct blah {
 	@0x0	int x;
 	@0x4	int y;
 	@0x8;
 };
-struct t2 {
-		int z;
-	@0x4;
-};
 typedef short int16;
-typedef unsigned char uint8;
 typedef unsigned short uint16;
-typedef unsigned long long uint64;
+typedef unsigned long uint32;
 struct foo {
 	@0x0	int x;
 	@0x4	int y;
@@ -42,4 +29,17 @@ struct foo {
 	@0x30	struct blah blahvar;
 	@0x34	foo_t *ptrtofoo;
 	@0x28;
+};
+typedef long long int64;
+typedef unsigned long long uint64;
+struct t2 {
+		int z;
+	@0x4;
+};
+typedef unsigned long uintptr;
+typedef unsigned char uint8;
+typedef char int8;
+struct abc {
+		int x;
+	@0x4;
 };

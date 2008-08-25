@@ -5,10 +5,10 @@ L135: 1 params, 3 locals, 0 temps
 L155: 1 params, 0 locals, 0 temps
 L164: 1 params, 0 locals, 0 temps
 d = 3
+a = 0
+b = 1
+c = 2
 v0 = 1
 v1 = 2
 v2 = 4
 v3 = 8
-a = 0
-b = 1
-c = 2

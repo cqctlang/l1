@@ -341,3 +341,19 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 32026211
 32224045
 31905117
+
+
+or% cd /Users/vic/src/l1
+or% ./l1 -t -e test/qsort.l1
+753704 usec
+754084 usec
+853626 usec
+774336 usec
+814914 usec
+or% cd /Users/vic/src/l1/dev/perf/scripts
+or% ../../../l1 -e test.cqct
+10962860
+11046489
+11030890
+10950998
+10981986
