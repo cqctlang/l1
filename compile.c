@@ -2165,7 +2165,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 						     Lelse);
 				cg(e->e1, code, p, AC, lpair, prv, Lelse, tmp);
 				emitlabel(Lelse, e->e3);
-				cg(e->e3, code, p, Effect, ctl,
+				cg(e->e3, code, p, loc, ctl,
 				   Lelse, nxt, tmp);
 			}else if(!escaping(e->e2) && escaping(e->e3)){
 				Lthen = genlabel(code, 0);
@@ -2173,7 +2173,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 						     escapectl(e->e3, p));
 				cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
 				emitlabel(Lthen, e->e2);
-				cg(e->e2, code, p, Effect, ctl,
+				cg(e->e2, code, p, loc, ctl,
 				   Lthen, nxt, tmp);
 			}else if(escaping(e->e2) && escaping(e->e3)){
 				lpair = genlabelpair(code, escapectl(e->e2, p),
@@ -2185,10 +2185,10 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				lpair = genlabelpair(code, Lthen, Lelse);
 				cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
 				emitlabel(Lthen, e->e2);
-				cg(e->e2, code, p, Effect, ctl,
+				cg(e->e2, code, p, loc, ctl,
 				   Lthen, Lelse, tmp);
 				emitlabel(Lelse, e->e3);
-				cg(e->e3, code, p, Effect, ctl,
+				cg(e->e3, code, p, loc, ctl,
 				   Lelse, nxt, tmp);
 			}
 		}else{
@@ -2201,7 +2201,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				lpair = genlabelpair(code, Lthen, ctl);
 				cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
 				emitlabel(Lthen, e->e2);
-				cg(e->e2, code, p, Effect, ctl,
+				cg(e->e2, code, p, loc, ctl,
 				   Lthen, nxt, tmp);
 			}
 		}

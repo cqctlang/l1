@@ -485,6 +485,15 @@ expandc(U *ctx, Expr *e)
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
+	case Econd:
+		se = Zifelse(expandc(ctx, e->e1),
+			     expandc(ctx, e->e2),
+			     expandc(ctx, e->e3));
+		e->e1 = 0;
+		e->e2 = 0;
+		e->e3 = 0;
+		freeexpr(e);
+		return se;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
