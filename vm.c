@@ -170,7 +170,8 @@ struct Cval {
 struct Closure {
 	Head hd;
 	Code *code;
-	unsigned long entry;
+	Imm entry;
+	Insn *entryx;
 	unsigned dlen;
 	Val *display;
 	char *id;
@@ -342,7 +343,8 @@ struct VM {
 	Rootset rs;		/* Root free list for prot */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
 	Env *top;
-	Imm sp, fp, pc;
+	Imm sp, fp;
+	Insn *pc;
 	Closure *clx;
 	Insn *ibuf;
 	Val ac, cl;
@@ -1398,12 +1400,13 @@ newcode()
 }
 
 Closure*
-mkcl(Code *code, unsigned long entry, unsigned len, char *id)
+mkcl(Code *code, Imm entry, unsigned len, char *id)
 {
 	Closure *cl;
 	cl = (Closure*)halloc(&heap[Qcl]);
 	cl->code = code;
 	cl->entry = entry;
+	cl->entryx = &code->insn[entry];
 	cl->dlen = len;
 	cl->display = xmalloc(cl->dlen*sizeof(Val));
 	cl->id = xstrdup(id);
@@ -3178,7 +3181,7 @@ putval(VM *vm, Val v, Location *loc)
 			vm->fp = valimm(v);
 			break;
 		case Rpc:
-			vm->pc = valimm(v);
+			vm->pc = (Insn*)(uintptr_t)valimm(v);
 			break;
 		case Rcl:
 			vm->cl = v;
@@ -3219,11 +3222,13 @@ putval(VM *vm, Val v, Location *loc)
 }
 
 static void
-printsrc(FILE *out, Closure *cl, Imm pc)
+printsrc(FILE *out, Closure *cl, Insn* pcx)
 {
 	Code *code;
+	Imm pc;
 	
 	code = cl->code;
+	pc = pcx-code->insn;
 	if(cl->cfn || cl->ccl){
 		fprintf(out, "%20s\t(builtin %s)\n", cl->id,
 			cl->cfn ? "function" : "closure");
@@ -3247,7 +3252,8 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 static void
 fvmbacktrace(FILE *out, VM *vm)
 {
-	Imm pc, fp, narg;
+	Imm fp, narg;
+	Insn *pc;
 	Closure *cl;
 
 	pc = vm->pc-1;		/* vm loop increments pc after fetch */
@@ -3263,7 +3269,7 @@ fvmbacktrace(FILE *out, VM *vm)
 			printsrc(out, cl, pc);
 		}
 		narg = stkimm(vm->stack[fp]);
-		pc = stkimm(vm->stack[fp+narg+1]);
+		pc = (Insn*)(uintptr_t)stkimm(vm->stack[fp+narg+1]);
 		pc--; /* pc was insn following call */
 		cl = valcl(vm->stack[fp+narg+2]);
 		fp = stkimm(vm->stack[fp+narg+3]);
@@ -3308,7 +3314,8 @@ getval(VM *vm, Location *loc)
 		case Rfp:
 			return mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp);
 		case Rpc:
-			return mkvalimm(vm->litdom, vm->litbase[Vuint], vm->pc);
+			return mkvalimm(vm->litdom, vm->litbase[Vuint],
+					(Imm)(uintptr_t)vm->pc);
 		case Rcl:
 			return vm->cl;
 		default:
@@ -3359,7 +3366,8 @@ getcval(VM *vm, Location *loc)
 		case Rfp:
 			return mkcval(vm->litdom, vm->litbase[Vint], vm->fp);
 		case Rpc:
-			return mkcval(vm->litdom, vm->litbase[Vint], vm->pc);
+			return mkcval(vm->litdom, vm->litbase[Vint],
+				      (Imm)(uintptr_t)vm->pc);
 		case Rcl:
 		default:
 			fatal("bug");
@@ -4319,7 +4327,7 @@ xjnz(VM *vm, Operand *src, Ctl *label)
 	Cval *cv;
 	cv = getcvalrand(vm, src);
 	if(cv->val != 0)
-		vm->pc = label->insn;
+		vm->pc = label->insnx;
 }
 
 static void
@@ -4328,7 +4336,7 @@ xjz(VM *vm, Operand *src, Ctl *label)
 	Val v;
 	v = getvalrand(vm, src);
 	if(zeroval(v))
-		vm->pc = label->insn;
+		vm->pc = label->insnx;
 }
 
 static void
@@ -5476,14 +5484,14 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	/* for recursive entry, store current context */
 	vmpushi(vm, vm->fp);	/* fp */
 	vmpush(vm, vm->cl);	/* cl */
-	vmpushi(vm, vm->pc);	/* pc */
+	vmpushi(vm, (Imm)(uintptr_t)vm->pc);	/* pc */
 	vmpushi(vm, 0);		/* narg */
 	vm->fp = vm->sp;
 
 	/* push frame for halt thunk */
 	vmpushi(vm, vm->fp);	/* fp */
 	vmpush(vm, haltv);	/* cl */
-	vmpushi(vm, halt->entry); /* pc */
+	vmpushi(vm, (Imm)(uintptr_t)halt->entryx); /* pc */
 	for(m = argc; m > 0; m--)
 		vmpush(vm, argv[m-1]);
 	vmpushi(vm, argc);	/* narg */
@@ -5492,10 +5500,11 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	/* switch to cl */
 	vm->cl = mkvalcl(cl);
 	vmsetcl(vm, vm->cl);
-	vm->pc = vm->clx->entry;
+	vm->pc = vm->clx->entryx;
 
 	while(1){
-		i = &vm->ibuf[vm->pc++];
+//		i = &vm->ibuf[vm->pc++];
+		i = vm->pc++;
 		tick++;
 		gcpoll(vm);
 		goto *(i->go);
@@ -5547,7 +5556,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Icall:
 		vm->cl = getvalrand(vm, &i->op1);
 		vmsetcl(vm, vm->cl);
-		vm->pc = vm->clx->entry;
+		vm->pc = vm->clx->entryx;
 		vm->fp = vm->sp;
 		continue;
 	Icallt:
@@ -5560,12 +5569,12 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		memmove(&vm->stack[vm->fp], &vm->stack[vm->sp],
 			(narg+1)*sizeof(Val));
 		vm->sp = vm->fp;
-		vm->pc = vm->clx->entry;
+		vm->pc = vm->clx->entryx;
 		continue;
 	Iframe:
 		vmpushi(vm, vm->fp);
 		vmpush(vm, vm->cl);
-		vmpushi(vm, i->dstlabel->insn);
+		vmpushi(vm, (Imm)(uintptr_t)i->dstlabel->insnx);
 		continue;
 	Ipanic:
 		fatal("vm panic");
@@ -5575,7 +5584,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->fp = stkimm(vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
 		vmsetcl(vm, vm->cl);
-		vm->pc = stkimm(vm->stack[vm->sp]);
+		vm->pc = (Insn*)(uintptr_t)stkimm(vm->stack[vm->sp]);
 		vmpop(vm, 3);
 
 		/* ...except that it returns from dovm */
@@ -5586,11 +5595,11 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->fp = stkimm(vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
 		vmsetcl(vm, vm->cl);
-		vm->pc = stkimm(vm->stack[vm->sp]);
+		vm->pc = (Insn*)(uintptr_t)stkimm(vm->stack[vm->sp]);
 		vmpop(vm, 3);
 		continue;
 	Ijmp:
-		vm->pc = i->dstlabel->insn;
+		vm->pc = i->dstlabel->insnx;
 		continue;
 	Ijnz:
 		xjnz(vm, &i->op1, i->dstlabel);
