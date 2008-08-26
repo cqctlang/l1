@@ -428,3 +428,38 @@ ub233% /u02/vczandy/src/l1/l1 -e test.cqct
 32376367
 32742529
 
+ucs2l% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+684326 usec
+708010 usec
+716306 usec
+760534 usec
+715927 usec
+ucs2l% /u02/vczandy/src/l1/l1 -e test.cqct
+11191257
+11304528
+11042678
+11127594
+11031577
+
+---
+commit 63f1bf3f9747cd632310ebe926c7fa104d41615a
+Author: vic zandy <vic@or>
+Date:   Mon Aug 25 23:44:13 2008 -0400
+
+    vm.c, compile.c: use absolute pcs instead of code vector indices
+
+
+ucs2l% /u02/vczandy/src/l1/l1 -t -e /u02/vczandy/src/l1/test/qsort.l1
+679575 usec
+732000 usec
+669095 usec
+669300 usec
+703965 usec
+ucs2l% /u02/vczandy/src/l1/l1 -e test.cqct
+10874824
+10880252
+10871964
+10816902
+10916340
+
+
