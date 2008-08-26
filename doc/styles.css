@@ -1,6 +1,6 @@
 /* layout */
 
-ol, ul {
+dl, ol, ul {
 	list-style: disc;
 	margin: inherit;
 }
@@ -10,7 +10,7 @@ ol, ul {
 	margin-top: 20px;
 	left:	20px;
 	top:	20px;
-	width: 580px;
+	width: 40em;
 }
 
 #content h3 {
@@ -84,11 +84,25 @@ ol, ul {
 	color: navy;
 }
 
+.docitem {
+	margin-top: 20px;
+	margin-left: 20px;
+	margin-bottom: 20px;
+}
+
+.desc {
+	margin-right: 20px;
+	margin-top: 10px;
+}
+
 .function:after {
 	font-style: italic;
 }
 
 .function {
+}
+
+.syntax {
 }
 
 .returns {
@@ -108,7 +122,15 @@ ol, ul {
 	font-weight: bold;
 }
 
-.lit {
+.fnindex {
+	margin-left: 20px;
+}
+
+.fnindex a:link, a:visited, a:hover, a:active {
+	color: navy;
+}
+
+.val {
 	font-family: monospace;
 }
 
@@ -142,11 +164,3 @@ a:link, a:visited, a:hover, a:active {
 	text-decoration: none;
 }
 
-a:link, a:visited, #header p.ads a:link, #header p.ads a:visited {
-	color: #c4112f;
-}
-
-a:hover, a:active, #header p.ads a:hover, #header p.ads a:active {
-	color: black;
-	border-bottom: 1px solid black;
-}

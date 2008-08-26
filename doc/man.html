@@ -12,6 +12,8 @@
 
 <div id="content">
 
+<a href="#sec:fnindex">Function Index</a>
+
 <h3>Introduction</h3>
 
 <p>
@@ -725,19 +727,6 @@ other.
 </p>
 
 <p>
-The function <tt>mapfile(<em>filename</em>)</tt>
-returns a string containing the contents of the file
-named <tt><em>filename</em></tt>.  The idiom for
-constructing a file-backed address space is to compose
-this function with <tt>mksas</tt>:
-<div id="code">
-<pre>
-; fileas = mksas(mapfile("/var/log/wtmp"));
-</pre>
-</div>
-</p>
-
-<p>
 The function <tt>mkzas(<em>len</em>)</tt> creates a
 zero-filled address space backed by
 <tt><em>len</em></tt> bytes of unshared, cleared
@@ -891,49 +880,868 @@ cvalue used to construct the address
 <tt><em>addr</em></tt>.
 </p>
 
-
-<h3>Address space utilities</h3>
+<h3>Containers</h3>
 
 <p>
-The function <tt>getbytes(<em>p</em>,<em>len</em>)</tt>
-returns selected contents of an address space as a
-string.  <tt><em>P</em></tt> is a pointer in some
-address space <em>as</em>; <tt><em>len</em></tt> is a
-non-negative byte count.  Returns a string containing
-the <tt><em>len</em></tt> bytes in <em>as</em>
-beginning at <tt><em>p</em></tt>.
+Cinquecento supports three built-in container types:
+lists, vectors, and tables.
 </p>
 
 <p>
-The function <tt>putbytes(<em>p</em>,
-<em>str</em>)</tt> copies bytes into an address space.
-<tt><em>P</em></tt> is a pointer in some address space
-<em>as</em>.  The bytes of the string
-<tt><em>str</em></tt> are copies into <em>as</em>
-beginning at <tt><em>p</em></tt>.  Returns
-<tt>nil</tt>.
+Several functions operate on any type of container.
 </p>
+
+<div class="docitem" id="fn:length">
+<div class="proto">
+<div class="function">
+<span class="id">length(<span class="arg">container</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the number of items stored in 
+<span class="arg">container</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:copy">
+<div class="proto">
+<div class="function">
+<span class="id">copy(<span class="arg">container</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
+</div>
+<div class="returns">
+<span class="type">whatever container is</span>
+</div>
+</div>
+<div class="desc">
+Returns a shallow copy of <span class="arg">container</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:foreach">
+<div class="proto">
+<div class="function">
+<span class="id">foreach(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">procedure</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+
+Calls <span class="arg">fn</span> on each item in <span
+class="arg">container</span>.  For lists and vectors,
+<span class="id">foreach</span> visits each item in
+sequential order, calling <span class="arg">fn</span>
+with the item as the sole argument.  For tables, <span
+class="id">foreach</span> visits each key/value pair in
+unspecified order, calling <span class="arg">fn</span>
+with the key and value, in that order, as separate
+arguments.  </div> </div>
+
+<h3>Lists</h3>
+
+<p>
+Lists are variable-length ordered collections, possibly
+empty.  Lists are mutable, allowing items to be added
+or deleted from any position, and contiguously indexed
+from position 0.
+</p>
+
+<div class="docitem" id="fn:list">
+<div class="proto">
+<div class="function">
+<span class="id">list(<span class="arg">value</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new list containing the zero or more values passed as arguments.
+The values are stored in argument order.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="syntax">
+<span class="id">[ <span class="arg">value</span>, ... ]</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+The syntax <span class="id">[...]</span> constructs a
+new list containing the zero or more values enclosed in the
+braces.  It is equivalent to calling <span
+class="id">list</span> on the enclosed values.
+</div>
+</div>
+
+<div class="docitem" id="fn:isempty">
+<div class="proto">
+<div class="function">
+<span class="id">isempty(<span class="arg">list</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+
+Returns <span class="val">1</span> if <span
+class="arg">list</span> is empty, <span class="val">0</span> otherwise.
+
+</div>
+</div>
+
+<div class="docitem" id="fn:head">
+<div class="proto">
+<div class="function">
+<span class="id">head(<span class="arg">list</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">depends on contents of <span class="arg">list</span></span>
+</div>
+</div>
+<div class="desc">
+Returns the first element of <span class="arg">list</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:tail">
+<div class="proto">
+<div class="function">
+<span class="id">tail(<span class="arg">list</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns a copy of <span class="arg">list</span> with the first element removed.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:listref">
+<div class="proto">
+<div class="function">
+<span class="id">listref(<span class="arg">list</span>,<span class="arg">idx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">depends on contents of <span class="arg">list</span></span>
+</div>
+</div>
+<div class="desc">
+Returns the item stored at position <span class="arg">idx</span> in
+<span class="arg">list</span>.
+</div>
+</div>
+
+<div class="docitem" id="listset">
+<div class="proto">
+<div class="function">
+<span class="id">listset(<span class="arg">list</span>,<span class="arg">idx</span>,<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Replaces the item at position <span
+class="arg">idx</span> in <span
+class="type">list</span> with <span
+class="arg">value</span>.  It is an error if <span
+class="type">list</span> does not contain more than
+<span class="arg">idx</span> items.  Returns the updated list.
+</div>
+</div>
+
+<div class="docitem" id="fn:listins">
+<div class="proto">
+<div class="function">
+<span class="id">listins(<span class="arg">list</span>,<span class="arg">idx</span>,<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Inserts <span class="arg">value</span>  at position <span
+class="arg">idx</span> in <span
+class="type">list</span>.  The elements at position <span
+class="arg">idx</span> and higher, if any, are shifted up one position.
+It is an error if <span
+class="type">list</span> does not contain more than
+<span class="arg">idx-1</span> items.  Returns the updated list.
+</div>
+</div>
+
+<div class="docitem" id="fn:listdel">
+<div class="proto">
+<div class="function">
+<span class="id">listdel(<span class="arg">list</span>,<span class="arg">idx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Deletes the item at position <span
+class="arg">idx</span> in <span
+class="type">list</span>.  The elements at higher
+positions, if any, are shifted down one position.
+Returns the updated list.
+</div>
+</div>
+
+<div class="docitem" id="fn:append">
+<div class="proto">
+<div class="function">
+<span class="id">append(<span class="arg">list</span>,<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Inserts <span class="arg">value</span> at the end of
+<span class="type">list</span>.  Returns the updated list.
+</div>
+</div>
+
+<div class="docitem" id="fn:push">
+<div class="proto">
+<div class="function">
+<span class="id">push(<span class="arg">list</span>,<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Inserts <span class="arg">value</span> at the beginning of
+<span class="type">list</span>, shifting all other elements up one position.
+Returns the updated list.
+</div>
+</div>
+
+<div class="docitem" id="fn:pop">
+<div class="proto">
+<div class="function">
+<span class="id">pop(<span class="arg">list</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">depends on contents of <span class="arg">list</span></span>
+</div>
+</div>
+<div class="desc">
+Removes and returns the first element of <span class="type">list</span>,
+shifting any remaining elements down one position.
+</div>
+</div>
+
+<div class="docitem" id="fn:reverse">
+<div class="proto">
+<div class="function">
+<span class="id">reverse(<span class="arg">list</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns a new list containing the elements of <span class="arg">list</span> in reverse order.
+</div>
+</div>
+
+<h3>Vectors</h3>
+
+<p>
+Vectors are fixed-length ordered collections, possibly
+empty.  Vectors are mutable, allowing items to be
+changed at any position, and contiguously indexed from
+position 0.
+</p>
+
+<div class="docitem" id="fn:mkvec">
+<div class="proto">
+<div class="function">
+<span class="id">mkvec(<span class="arg">len</span>)</span>
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new vector of size <span class="arg">len</span>.
+Each element is initialized to <span class="val">nil</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:vector">
+<div class="proto">
+<div class="function">
+<span class="id">vector(<span class="arg">value</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new vector containing the zero or more values passed as arguments.
+The values are stored in argument order.  The size of the vector is equal to the number of arguments.
+</div>
+</div>
+
+<div class="docitem" id="fn:veclen">
+<div class="proto">
+<div class="function">
+<span class="id">veclen(<span class="arg">vec</span>)</span>
+</div>
+<div class="param">
+<span class="arg">vec</span>: <span class="type">vector</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the number of items in <span class="arg">vec</span>.
+Equivalent to <tt>length(<span class="arg">vec</span>)</tt>.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:vecref">
+<div class="proto">
+<div class="function">
+<span class="id">vecref(<span class="arg">vec</span>,<span class="arg">idx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">vec</span>: <span class="type">vector</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">depends on contents of <span class="arg">vec</span></span>
+</div>
+</div>
+<div class="desc">
+Returns the item stored at position <span class="arg">idx</span> in
+<span class="arg">vec</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:vecset">
+<div class="proto">
+<div class="function">
+<span class="id">vecset(<span class="arg">vec</span>,<span class="arg">idx</span>,<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">vec</span>: <span class="type">vector</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Replaces the item at position <span
+class="arg">idx</span> in <span
+class="type">vec</span> with <span
+class="arg">value</span>.  It is an error if <span
+class="type">vec</span> does not contain more than
+<span class="arg">idx</span> items.
+</div>
+</div>
+
+<h3>Tables</h3>
+
+<p>
+Tables store key/value pairs.  Keys and values may be
+any type of Cinquecento value other than <span
+class="type">nil</span>.
+</p>
+
+<div class="docitem" id="fn:mktab">
+<div class="proto">
+<div class="function">
+<span class="id">mktab()</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+Creates and returns a new, empty table.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:tabinsert">
+<div class="proto">
+<div class="function">
+<span class="id">tabinsert(<span class="arg">tab</span>,<span class="arg">key</span>,<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">key</span>: <span class="type">any type</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Inserts the pair <span class="arg">key</span>/<span
+class="arg">value</span> into <span
+class="arg">tab</span>.  Any previous entry for
+the same <span class="arg">key</span> is removed.
+</div>
+</div>
+
+<div class="docitem" id="fn:tablook">
+<div class="proto">
+<div class="function">
+<span class="id">tablook(<span class="arg">tab</span>,<span class="arg">key</span>)</span>
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">key</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">depends on the contents of <span class="arg">tab</span></span>
+</div>
+</div>
+<div class="desc">
+Searches <span class="arg">tab</span> for a pair whose
+key is <span class="arg">key</span> and returns the
+associated value.  Returns <span class="val">nil</span>
+if <span class="arg">tab</span> has no such pair.
+
+</div>
+</div>
+
+<div class="docitem" id="fn:tabdelete">
+<div class="proto">
+<div class="function">
+<span class="id">tabdelete(<span class="arg">tab</span>,<span class="arg">key</span>)</span>
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">key</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Deletes the pair with key <span class="arg">key</span>
+from <span class="arg">tab</span>, if it exists.
+</div>
+</div>
+
+<div class="docitem" id="fn:tabkeys">
+<div class="proto">
+<div class="function">
+<span class="id">tabkeys(<span class="arg">tab</span>)
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Returns a vector containing all keys in
+<span class="arg">tab</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:tabvals">
+<div class="proto">
+<div class="function">
+<span class="id">tabvals(<span class="arg">tab</span>)
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Returns a vector containing all values in
+<span class="arg">tab</span>.</div>
+</div>
+
+<div class="docitem" id="fn:tabenum">
+<div class="proto">
+<div class="function">
+<span class="id">tabenum(<span class="arg">tab</span>)
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Returns a vector containing all keys and values in
+<span class="arg">tab</span>.  The length of the
+returned vector is twice the number of pairs in <span
+class="arg">tab</span>.  The first half of the vector
+contains the keys of <span class="arg">tab</span>; the
+second half contains, in corresponding order,  the values.
+</div>
+</div>
+
 
 <h3>Strings</h3>
 
 <p>
 The Cinquecento string type represents an array of
-bytes.  String instances have a fixed length.  They are
-not null terminated.
+bytes.  Cinquecento strings have fixed length (possibly
+zero), are indexed from position 0, and are not
+null terminated.  Strings are mutable, but do not share
+storage with other strings.  The maximum string length
+is 2^64-1.
 </p>
 
 <p>
-The function <tt>length(<tt><em>val</em></tt>)</tt>,
-when <tt><em>val</em></tt> is a string, returns the
-number of bytes in the string.
+The C relational operators (<tt>==</tt>, <tt>!=</tt>,
+<tt><</tt>, <tt>></tt>, <tt><=</tt>, <tt>>=</tt>) are
+defined over strings.  They compare the contents of the
+strings.  There is no way to test whether two string
+instances are the same object.
 </p>
 
 <p>
-The C relational operators are defined over strings.
-They compare the bytes of the strings.  (There is no
-way to check whether two string instances are the same
-object.)
+The following functions comprise the basic string
+operations.
 </p>
+
+<div class="docitem" id="fn:mkstr">
+<div class="proto">
+<div class="function">
+<span class="id">mkstr(<span class="arg">len</span>)</span>
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a new string containing <span
+class="arg">len</span> null bytes.
+</div>
+</div>
+
+<div class="docitem" id="fn:strlen">
+<div class="proto">
+<div class="function">
+<span class="id">strlen(<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the number of bytes in <span class="arg">str</span>.
+Equivalent to <tt>length(<span class="arg">str</span>)</tt>.
+</div>
+</div>
+
+<div class="docitem" id="fn:substr">
+<div class="proto">
+<div class="function">
+<span class="id">substr(<span class="arg">str</span>,<span class="arg">start</span>,<span class="arg">end</span>)</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">start</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">end</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the substring of <span
+class="arg">from</span> starting at position
+<span class="arg">start</span> up to but not including position 
+<span class="arg">end</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:strput">
+<div class="proto">
+<div class="function">
+<span class="id">strput(<span class="arg">to</span>,<span class="arg">offset</span>,<span class="arg">from</span>)</span>
+</div>
+<div class="param">
+<span class="arg">to</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">offset</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">from</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Copies the contents of string <span
+class="arg">from</span> into <span of
+class="arg">to</span>.  The copy begins at position
+<span class="arg">offset</span> within <span
+class="arg">to</span>.  It is an error if <span class="arg">to</span> is too short for <span
+class="arg">from</span> to be copied in entirety.
+</div>
+</div>
+
+<div class="docitem" id="fn:strton">
+<div class="proto">
+<div class="function">
+<span class="id">strton(<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Converts the contents of <span class="arg">str</span>
+to an integer cvalue in the literal domain.  The format
+of <span class="arg">str</span> may be any valid C
+integer constant.
+</div>
+</div>
+
+<div class="docitem" id="fn:mapfile">
+<div class="proto">
+<div class="function">
+<span class="id">mapfile(<span class="arg">filename</span>)</span>
+</div>
+<div class="param">
+<span class="arg">filename</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the contents of
+the file named <span class="arg">filename</span>.
+</div>
+</div>
+
+<p>
+Several functions move strings to and
+from address spaces.
+</p>
+
+<div class="docitem" id="fn:stringof">
+<div class="proto">
+<div class="function">
+<span class="id">stringof(<span class="arg">ptr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the bytes
+beginning at <span class="arg">ptr</span> from the
+address space associated with <span
+class="arg">ptr</span>.  The string extends to, but
+does not include, the first null byte at or beyond
+<span class="arg">ptr</span>.  <span
+class="id">Stringof</span> does not span address space
+mapping boundaries: if the boundary of the address
+space mapping containing <span class="arg">ptr</span>
+is reached before a null byte is encountered, then the
+search ends and the string of bytes seen so far is
+returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:getbytes">
+<div class="proto">
+<div class="function">
+<span class="id">getbytes(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the bytes
+beginning at <span class="arg">ptr</span> from the
+address space associated with <span
+class="arg">ptr</span>.  If provided, <span
+class="arg">len</span> is a non-negative count of bytes
+to read; otherwise, <tt>sizeof(*<span
+class="arg">ptr</span>)</tt> bytes are read.  It is an
+error for the read to cross the boundary of the address
+space mapping containing <span
+class="arg">ptr</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:putbytes">
+<div class="proto">
+<div class="function">
+<span class="id">putbytes(<span class="arg">ptr</span>,<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Copies the bytes in <span class="arg">str</span> into
+address space associated with <span
+class="arg">ptr</span>, starting at the location
+pointed to by <span class="arg">ptr</span>.  It is an
+error for the write to cross the boundary of the
+address space mapping containing <span
+class="arg">ptr</span>.
+</div>
+</div>
 
 <h3>I/O</h3>
 
@@ -943,6 +1751,7 @@ connections.  An open file or network connection is
 represented by an instance of the file descriptor type.
 </p>
 
+<div class="docitem" id="fn:open">
 <div class="proto">
 <div class="function">
 <span class="id">open(<span class="arg">filename</span>,<span class="arg">mode</span>)</span>
@@ -957,8 +1766,7 @@ represented by an instance of the file descriptor type.
 <span class="type">file descriptor</span>
 </div>
 </div>
-
-<p>
+<div class="desc">
 Opens the file named <span class="arg">filename</span> and
 returns the associated file descriptor.  <span
 class="arg">Mode</span> specifies whether the file is to
@@ -966,12 +1774,14 @@ be opened for reading, writing, or both, and whether
 the file is to be created or truncated.  The syntax of
 <span class="arg">mode</span> follows that of the C
 library stdio <tt>fopen</tt> function.  Common modes
-are <span class="lit">"r"</span> (read an existing file)
-<span class="lit">"w"</span> (truncate an existing file
-for writing), and <span class="lit">"rw"</span> (truncate
+are <span class="val">"r"</span> (read an existing file)
+<span class="val">"w"</span> (truncate an existing file
+for writing), and <span class="val">"rw"</span> (truncate
 an existing file for reading and writing).
-</p>
+</div>
+</div>
 
+<div class="docitem" id="fn:opentcp">
 <div class="proto">
 <div class="function">
 <span class="id">opentcp(<span class="arg">address</span>)</span>
@@ -983,8 +1793,7 @@ an existing file for reading and writing).
 <span class="type">file descriptor</span>
 </div>
 </div>
-
-<p>
+<div class="desc">
 Opens a TCP connection to <span class="arg">address</span> and
 returns the associated file descriptor.
 <span class="arg">Address</span> is a string of the form
@@ -992,8 +1801,10 @@ returns the associated file descriptor.
 <span class="arg">addr</span> is an IP address or hostname and
 <span class="arg">port</span> is a port number or service
 name.
-</p>
+</div>
+</div>
 
+<div class="docitem" id="fn:read">
 <div class="proto">
 <div class="function">
 <span class="id">read(<span class="arg">fd</span>,<span class="arg">len</span>)</span>
@@ -1008,16 +1819,17 @@ name.
 <span class="type">string</span> or <span class="type">nil</span>
 </div>
 </div>
-
-<p>
+<div class="desc">
 Reads at most <span class="arg">len</span> bytes from the I/O
 resource associated with <span class="arg">fd</span>.  The
 call blocks until <span class="arg">len</span> bytes are
 read or end of file is encountered.  Returns a string
 containing the bytes read, or <tt>nil</tt> if end of
 file was encountered and no bytes were read.
-</p>
+</div>
+</div>
 
+<div class="docitem" id="fn:write">
 <div class="proto">
 <div class="function">
 <span class="id">write(<span class="arg">fd</span>,<span class="arg">str</span>)</span>
@@ -1032,12 +1844,14 @@ file was encountered and no bytes were read.
 <span class="type">nil</span>
 </div>
 </div>
-<p>
+<div class="desc">
 Writes the bytes contained in the string
 <span class="arg">str</span> to the I/O resource associated
 with <span class="arg">fd</span>.
-</p>
+</div>
+</div>
 
+<div class="docitem" id="fn:close">
 <div class="proto">
 <div class="function">
 <span class="id">close(<span class="arg">fd</span>)</span>
@@ -1049,7 +1863,7 @@ with <span class="arg">fd</span>.
 <span class="type">nil</span>
 </div>
 </div>
-<p>
+<div class="desc">
 Closes the I/O resource associated with <span
 class="arg">fd</span>.  Any pending buffered output is
 written.  A call to <span class="id">close</span> on an
@@ -1057,31 +1871,339 @@ already closed descriptor has no effect.  A call to
 <span class="id">read</span> or <span
 class="id">write</span> on a closed descriptor draws an
 error.
-</p>
+</div>
+</div>
 
+<div class="docitem" id="fn:fdname">
 <div class="proto">
-
 <div class="function">
 <span class="id">fdname(<span class="arg">fd</span>)</span>
 </div>
-
 <div class="param">
 <span class="arg">fd</span>: <span class="type">file descriptor</span>
 </div>
-
 <div class="returns">
 <span class="type">string</span>
 </div>
+</div>
+<div class="desc">
+Returns the name of the I/O resource associated with <span
+class="arg">fd</span>.
+</div>
+</div>
 
+<h3 id="sec:system">Formatted Output</h3>
+
+<p>
+Cinquecento provides several functions for C-style
+formatted output to various destinations.
+</p>
+
+<p>
+Each function expects a format string argument.
+The format string
+can contain conversion specifications similar (but not identical)
+to those handled by C stdio library functions.
+Each conversion specification has the form <span
+class="val">%<span class="arg">verb</span></span>.  The
+specifications are processed in order; each operates
+in turn on the remaining values passed to the format
+function.
+</p>
+
+<p>
+Each <span class="arg">verb</span> is a
+single character.  The recognized verbs are:
+</p>
+
+<div id="table">
+<table>
+
+<tr>
+<td><span class="val">a</span></td>
+<td>
+Formats any type of value in an implementation-defined
+format.
+</td>
+</tr>
+
+<tr>
+<td><span class="val">c</span></td>
+<td>
+Formats a character value as an ascii character (if printable)
+or in octal.
+</td>
+</tr>
+
+<tr>
+<td><span class="val">d,o,x,X,u</span></td>
+<td>
+Formats an integer or pointer value in signed decimal,
+octal, lowercase hex, uppercase hex, or unsigned
+decimal.
+</td>
+</tr>
+
+<tr>
+<td><span class="val">p</span></td>
+<td>
+Formats a pointer value in lowercase hex.
+</td>
+</tr>
+
+<tr>
+<td><span class="val">s</span></td>
+<td>
+Copies a string value.  If the value is not already a string, it is first passed to  <span class="id"><a
+href="#fn:stringof">stringof</a></span>, which expects
+a cvalue of type <span
+class="type">char*</span> or <span
+class="type">unsigned char*</span>.
+</td>
+</tr>
+
+<tr>
+<td>
+<span class="val">t</span>
+</td>
+<td>
+Formats a ctype.  The value may be in one of two forms:
+(1) a ctype, in which case it is formatted as a
+conventional C type specification, or (2) a vector,
+representing a C symbol, of the form <span
+class="val">[ <span class="arg">T</span>, <span
+class="arg">ID</span>, ... ]</span>, where <span
+class="arg">T</span> is a ctype and <span
+class="arg">ID</span> is a string or <span
+class="val">nil</span>, in which case the symbol is
+formatted as conventional (possibly abstract) C
+declaration.
+</td>
+</tr>
+
+<tr>
+<td>
+<span class="val">y</span>
+</td>
+<td>
+Formats an integer or pointer value as <span
+class="val">"<span class="arg">symbol</span>+<span
+class="arg">offset</span>"</span>.
+<span class="arg">Symbol</span> is the symbol returned
+by a call to the name space <span class="arg"><a
+href="#fn:lookaddr">lookaddr</a></span> operation on
+the value.  <span class="arg">Offset</span> is the
+difference between the value and the location of the symbol returned by
+<span class="arg">lookaddr</span>.  If the difference
+is zero, the offset is suppressed.
+</td>
+</tr>
+</table>
 </div>
 
 <p>
-Returns the name of the I/O resource associated with <span
-class="arg">fd</span>.
+The formatted output functions are:
 </p>
 
+<div class="docitem" id="fn:printf">
+<div class="proto">
+<div class="function">
+<span class="id">printf(<span class="arg">fmt</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">format string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sends formatted output to the current standard output.
+</div>
+</div>
 
+<div class="docitem" id="fn:fprintf">
+<div class="proto">
+<div class="function">
+<span class="id">fprintf(<span class="arg">fd</span>, <span class="arg">fmt</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">format string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sends formatted output to I/O resource associated with <span class="arg">fd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:sprintfa">
+<div class="proto">
+<div class="function">
+<span class="id">sprintfa(<span class="arg">fmt</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">format string</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a new string containing formatted output.
+</div>
+</div>
+
+
+
+<h3 id="sec:system">System Functions</h3>
+
+<p>
+This section documents various system-level functions.
 </p>
+
+<div class="docitem" id="fn:getpid">
+<div class="proto">
+<div class="function">
+<span class="id">getpid()</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the process identifier of the process in which
+the Cinquecento system is running.
+</div>
+</div>
+
+<div class="docitem" id="fn:gettimeofday">
+<div class="proto">
+<div class="function">
+<span class="id">gettimeofday()</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the current time in microseconds.
+</div>
+</div>
+
+<div class="docitem" id="fn:backtrace">
+<div class="proto">
+<div class="function">
+<span class="id">backtrace()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Prints to the current standard output a formatted
+snapshot of the Cinquecento call stack.
+</div>
+</div>
+
+<div class="docitem" id="fn:rand">
+<div class="proto">
+<div class="function">
+<span class="id">rand(<span class="arg">max</span>)</span>
+</div>
+<div class="param">
+<span class="arg">max</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns a random integer in the range [0...<span
+class="arg">max</span>).  It is an error if <span
+class="arg">max</span> exceeds the
+implementation-defined maximum random number.
+</div>
+</div>
+
+<div class="docitem" id="fn:randseed">
+<div class="proto">
+<div class="function">
+<span class="id">randseed(<span class="arg">seed</span>)</span>
+</div>
+<div class="param">
+<span class="arg">seed</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Seeds the random number generator used by <span class="id">rand</span>.
+</div>
+</div>
+
+<h3 id="sec:fnindex">Function Index</h3>
+<div class="id">
+<div class="fnindex">
+<a href="#fn:append">append</a><br>
+<a href="#fn:backtrace">backtrace</a><br>
+<a href="#fn:close">close</a><br>
+<a href="#fn:copy">copy</a><br>
+<a href="#fn:fdname">fdname</a><br>
+<a href="#fn:foreach">foreach</a><br>
+<a href="#fn:fprintf">fprintf</a><br>
+<a href="#fn:getbytes">getbytes</a><br>
+<a href="#fn:getpid">getpid</a><br>
+<a href="#fn:gettimeofday">gettimeofday</a><br>
+<a href="#fn:head">head</a><br>
+<a href="#fn:isempty">isempty</a><br>
+<a href="#fn:length">length</a><br>
+<a href="#fn:list">list</a><br>
+<a href="#fn:listdel">listdel</a><br>
+<a href="#fn:listins">listins</a><br>
+<a href="#fn:listref">listref</a><br>
+<a href="#fn:listset">listset</a><br>
+<a href="#fn:mapfile">mapfile</a><br>
+<a href="#fn:mkstr">mkstr</a><br>
+<a href="#fn:mktab">mktab</a><br>
+<a href="#fn:mkvec">mkvec</a><br>
+<a href="#fn:open">open</a><br>
+<a href="#fn:opentcp">opentcp</a><br>
+<a href="#fn:pop">pop</a><br>
+<a href="#fn:printf">printf</a><br>
+<a href="#fn:push">push</a><br>
+<a href="#fn:putbytes">putbytes</a><br>
+<a href="#fn:rand">rand</a><br>
+<a href="#fn:rand">randseed</a><br>
+<a href="#fn:read">read</a><br>
+<a href="#fn:reverse">reverse</a><br>
+<a href="#fn:sprintfa">sprintfa</a><br>
+<a href="#fn:stringof">stringof</a><br>
+<a href="#fn:strlen">strlen</a><br>
+<a href="#fn:strput">strput</a><br>
+<a href="#fn:strton">strton</a><br>
+<a href="#fn:substr">substr</a><br>
+<a href="#fn:tabdelete">tabdelete</a><br>
+<a href="#fn:tabenum">tabenum</a><br>
+<a href="#fn:tabinsert">tabinsert</a><br>
+<a href="#fn:tabkeys">tabkeys</a><br>
+<a href="#fn:tablook">tablook</a><br>
+<a href="#fn:tabvals">tabvals</a><br>
+<a href="#fn:tail">tail</a><br>
+<a href="#fn:veclen">veclen</a><br>
+<a href="#fn:vecref">vecref</a><br>
+<a href="#fn:vecset">vecset</a><br>
+<a href="#fn:vector">vector</a><br>
+<a href="#fn:write">write</a><br>
+</div>
+</div>
+
 </div>
 </body>
 </html>

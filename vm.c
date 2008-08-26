@@ -5733,7 +5733,7 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	Imm r;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to randseed");
+		vmerr(vm, "wrong number of arguments to rand");
 	arg0 = argv[0];
 	if(arg0->qkind != Qcval)
 		vmerr(vm, "operand 1 to randseed must be an integer");
@@ -6210,6 +6210,13 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(fmticval(f, ch, cv))
 				return;
 			break;
+		case 'p':
+			if(vp->qkind != Qcval)
+				goto badarg;
+			cv = valcval(vp);
+			if(fmticval(f, 'x', cv))
+				return;
+			break;
 		case 's':
 			if(vp->qkind == Qstr)
 				as = valstr(vp);
@@ -6217,7 +6224,10 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				cv = valcval(vp);
 				if(!isstrcval(cv))
 					goto badarg;
-				as = stringof(vm, cv);
+				if(cv->val == 0)
+					as = mkstr0("(null)");
+				else
+					as = stringof(vm, cv);
 			}else
 				goto badarg;
 			if(fmtputs(f, as->s, as->len))
@@ -6404,7 +6414,7 @@ l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_vmbacktrace(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_backtrace(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to backtrace");
@@ -9328,6 +9338,7 @@ mktopenv()
 	FN(arraynelm);
 	FN(asdispatch);
 	FN(asof);
+	FN(backtrace);
 	FN(baseid);
 	FN(bitfieldcontainer);
 	FN(bitfieldpos);
@@ -9483,7 +9494,6 @@ mktopenv()
 	FN(vecref);
 	FN(vecset);
 	FN(vector);
-	FN(vmbacktrace);
 	FN(write);
 
 	/* FIXME: these bindings should be immutable */

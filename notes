@@ -3,6 +3,13 @@ todo
 - core functionality
   - other string functions
     strcata
+    isstring like old cqct isstring?
+  - make len argument to getbytes optional
+  - provide a mapfile mode argument:
+	"r" - private copy of the file
+	"w" - shared copy of the file
+    perhaps there should be a way to map a newly created file?
+  - implement copy and foreach on missing container types (strings and tables)
   - formatted printing:
 	- with widths (and precisions)
   - switch enum operands shortform
