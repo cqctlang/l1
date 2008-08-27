@@ -59,7 +59,7 @@ dl, ol, ul {
 /* typography */
 
 #content {
-	font-family: "Lucida Sans", sans-serif;
+	font-family: Verdana, "Lucida Sans", sans-serif;
 	font-size: 14px;
 	line-height: 18px;
 	color: black;
@@ -67,7 +67,7 @@ dl, ol, ul {
 }
 
 #content #table {
-	font-family: "Lucida Sans", sans-serif;
+	font-family: Verdana, "Lucida Sans", sans-serif;
 	font-size: 12px;
 	line-height: 14px;
 	color: black;
@@ -75,7 +75,7 @@ dl, ol, ul {
 }
 
 #content h3 {
-	font-family: "Lucida Sans", sans-serif;
+	font-family: Verdana, "Lucida Sans", sans-serif;
 	font-size: 15px;
 	text-align: left;
 }
@@ -117,13 +117,21 @@ dl, ol, ul {
 	text-indent: 50px;
 }
 
+.protoid {
+}
+
 .id {
 	font-family: monospace;
 	font-weight: bold;
 }
 
-.fnindex {
+.index {
 	margin-left: 20px;
+}
+.fnindex {
+	color: navy;
+	font-family: monospace;
+	font-weight: bold;
 }
 
 .fnindex a:link, a:visited, a:hover, a:active {

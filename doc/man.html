@@ -283,18 +283,7 @@ cvalue that represents a C pointers provides a reference
 
 <h3>C Types</h3>
 
-<p>The Cinquecento type <em>ctype</em> represents types
-defined in C programs.  Cinquecento subdivides the set
-of types that can be defined in C into several
-categories.  The main categories are: the <tt>void</tt>
-type, the base arithmetic types (<tt>char</tt>,
-<tt>int</tt>, <tt>unsigned long</tt>, <em>etc</em>),
-pointers, arrays, aggregates (<tt>struct</tt> and
-<tt>union</tt>), functions, enumerations, and
-<tt>typedef</tt>s.  In addition, Cinquecento also has
-separate categories for bitfields, enumeration
-constants, and undefined types.
-</p>
+
 
 <p>
 Each type used by a C program is represented in
@@ -337,124 +326,6 @@ address of a 32-bit integer encoded in little-endian
 order.
 </p>
 
-<div id="table">
-<table>
-<tr>
-<th>Type category</th>
-<th>Name properties</th>
-<th>Definition properties</th>
-</tr>
-
-<tr>
-<td>
-Arithmetic
-</td>
-<td>
-Name (<tt>int</tt>, ...)
-</td>
-<td>
-Name (<tt>int</tt>, ...)<br />
-Size and encoding
-</td>
-</tr>
-
-<tr>
-<td>
-Aggregate
-</td>
-<td>
-Tag
-</td>
-<td>
-Tag (optional)<br />
-Size<br />
-Fields
-</td>
-</tr>
-
-<tr>
-<td>
-Array
-</td>
-<td>
-Element type<br />
-Count (optional)
-</td>
-<td>
-Element type<br />
-Count (optional)
-</td>
-</tr>
-
-<tr>
-<td>
-Function
-</td>
-<td>
-Return type<br />
-Parameters
-</td>
-<td>
-Return type<br />
-Parameters
-</td>
-</tr>
-
-<tr>
-<td>
-Enumeration
-</td>
-<td>
-Tag
-</td>
-<td>
-Tag (optional)<br />
-Size and encoding (optional)<br />
-Constants (optional)
-</td>
-</tr>
-
-<tr>
-<td>
-Typedef
-</td>
-<td>
-Identifier<br />
-</td>
-<td>
-Identifier<br />
-Aliased type
-</td>
-</tr>
-
-<tr>
-<td>
-Pointer
-</td>
-<td>
-Pointed-to type
-</td>
-<td>
-Pointed-to type<br />
-Size and encoding
-</td>
-</tr>
-
-<tr>
-<td>
-Void
-</td>
-<td>
-None
-</td>
-<td>
-None
-</td>
-</tr>
-
-</table>
-</div>
-
 <p>
 Type names and type definitions are first-class
 Cinquecento values represented by the type
@@ -470,278 +341,6 @@ For a given category, the same constructor can generate
 either a type name or a type definition, depending on
 the arguments.  The constructors are:
 </p>
-
-<div id="table">
-<table>
-<tr>
-<th>Type category</th>
-<th>Name constructor</th>
-<th>Definition constructor</th>
-</tr>
-<tr>
-<td>
-Arithmetic
-</td>
-<td>
-<div id="symbols">
-mkctype_char()<br />
-mkctype_short()<br />
-mkctype_int()<br />
-mkctype_long()<br />
-mkctype_vlong()<br />
-mkctype_uchar()<br />
-mkctype_ushort()<br />
-mkctype_uint()<br />
-mkctype_ulong()<br />
-mkctype_uvlong()<br />
-mkctype_float()<br />
-mkctype_double()<br />
-mkctype_ldouble()
-</div>
-</td>
-<td>
-<div id="symbols">
-<em>n/a</em>
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Aggregate
-</td>
-<td>
-<div id="symbols">
-mkctype_struct(<em>tag</em>)<br />
-mkctype_union(<em>tag</em>)
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_struct(<em>tag</em>, <em>fields</em>, <em>sz</em>)<br />
-mkctype_union(<em>tag</em>, <em>fields</em>, <em>sz</em>)<br />
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Array
-</td>
-<td>
-<div id="symbols">
-mkctype_array(<em>ctype</em>, <em>count</em>)<br />
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_array(<em>ctype</em>, <em>count</em>)<br />
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Function
-</td>
-<td>
-<div id="symbols">
-mkctype_fn(<em>ctype</em>, <em>params</em>)
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_fn(<em>ctype</em>, <em>params</em>)
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Enumeration
-</td>
-<td>
-<div id="symbols">
-mkctype_enum(<em>tag</em>)
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_enum(<em>tag</em>, <em>ctype</em>, <em>consts</em>)
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Typedef
-</td>
-<td>
-<div id="symbols">
-mkctype_typedef(<em>id</em>)
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_typedef(<em>id</em>, <em>ctype</em>)
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Pointer
-</td>
-<td>
-<div id="symbols">
-mkctype_ptr(<em>ctype</em>)
-</div id="symbols">
-</td>
-<td>
-<div id="symbols">
-mkctype_ptr(<em>ctype</em>, <em>repctype</em>)
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Void
-</td>
-<td>
-<div id="symbols">
-mkctype_void()
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_void()
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Typedef
-</td>
-<td>
-<div id="symbols">
-mkctype_typedef(<em>id</em>)
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_typedef(<em>id</em>,<em>ctype</em>)
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Bitfield
-</td>
-<td>
-<div id="symbols">
-mkctype_bitfield(<em>ctype</em>,<em>width</em>,<em>off</em>)
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_bitfield(<em>ctype</em>,<em>width</em>,<em>off</em>)
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Enum constant
-</td>
-<td>
-<div id="symbols">
-mkctype_const(<em>ctype</em>)
-</div>
-</td>
-<td>
-<div id="symbols">
-mkctype_const(<em>ctype</em>)
-</div>
-</td>
-</tr>
-
-
-</table>
-</div>
-
-<p>
-Arguments corresponding to optional properties may be
-<tt>nil</tt>.
-
-<p>
-The <em><tt>fields</tt></em> parameter is a vector of
-field definitions.  Each field definition is a vector
-of four elements:
-</p>
-
-<div id="inset">
-<p>
-<tt>vector(<em>ctype</em>, <em>id</em>, <em>offset</em>, <em>width</em>);</tt>
-</p>
-</div>
-
-<div id="noindent">
-<p>
-where <em><tt>ctype</tt></em> is the type of the field,
-and <em><tt>id</tt></em> is the name of the field.  If
-the field is a bitfield, then <em><tt>width</tt></em>
-is the width in bits of the field and
-<em><tt>offset</tt></em> is the bit offset from the
-beginning of the aggregate to the start of the
-bitfield.  Otherwise, <em><tt>width</tt></em> is
-<tt>nil</tt>, and <em><tt>offset</tt></em> is the
-<em>byte</em> offset from the beginning of the
-aggregate to the start of the field.
-
-</p>
-</div>
-
-<p>
-The <em><tt>params</tt></em> parameter is a vector of
-function parameter definitions, ordered by parameter
-position.  Each parameter definition is a vector of two
-elements:
-</p>
-
-<div id="inset">
-<p>
-<tt>vector(<em>ctype</em>, <em>id</em>);</tt>
-</p>
-</div>
-
-<div id="noindent">
-<p>
-where <em><tt>ctype</tt></em> is the type of the
-parameter, and <em><tt>id</tt></em> is the name of the
-parameter or <tt>nil</tt>.
-</p>
-</div>
-
-<p>
-The <em><tt>consts</tt></em> parameter is a vector of
-enumeration constant definitions.  Each constant
-definition is a vector of two elements:
-</p>
-
-<div id="inset">
-<p>
-<tt>vector(<em>id</em>, <em>value</em>);</tt>
-</p>
-</div>
-
-<div id="noindent">
-<p>
-The exact behavior of <tt>mkctype_enum</tt> remains a mystery.
-</p>
-</div>
 
 <p>
 Part of the role of a Cinquecento name space is to
@@ -957,6 +556,331 @@ function <tt>addrval(<em>addr</em>)</tt> returns the
 cvalue used to construct the address
 <tt><em>addr</em></tt>.
 </p>
+
+<h3>Ctypes</h3>
+
+<p>The Cinquecento type <em>ctype</em> represents types
+defined in C programs.  Cinquecento subdivides the set
+of types that can be defined in C into several
+categories.  The main categories are: the <tt>void</tt>
+type, the base arithmetic types (<tt>char</tt>,
+<tt>int</tt>, <tt>unsigned long</tt>, <em>etc</em>),
+pointers, arrays, aggregates (<tt>struct</tt> and
+<tt>union</tt>), functions, enumerations, and
+<tt>typedef</tt>s.  In addition, Cinquecento also has
+separate categories for bitfields, enumeration
+constants, and undefined types.
+</p>
+
+
+
+<p>
+
+The following table summarizes the category-specific
+functions that manipulate ctypes.  The predicates
+determine to which category a ctype belongs.  Each
+predicate takes one argument, a ctype, and returns
+<span class="val">1</span> if the predicate is true for
+that ctype, <span class="val">0</span> otherwise.  The
+predicates are mutually exclusive.  The accessors
+return attributes of a ctype instance in each category;
+the constructors construct new instances of each
+category.  Details on the accessors and constructors
+follow the table.
+</p>
+
+<div id="table">
+<table>
+
+<tr>
+<th>Type category</th>
+<th>Predicate</th>
+<th>Accessors</th>
+<th>Constructors</th>
+</tr>
+
+
+<tr>
+<td>
+Aggregate
+</td>
+<td>
+<span class="fnindex" id="fn:isstruct">isstruct</span><br />
+<span class="fnindex" id="fn:issu">issu</span><br />
+<span class="fnindex" id="fn:isunion">isunion</span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:fields">fields</a></span><br />
+<span class="fnindex"><a href="#fn:suetag">suetag</a></span><br />
+<span class="fnindex"><a href="#fn:susize">susize</a></span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>
+</td>
+</tr>
+
+
+<tr>
+<td>
+Array
+</td>
+<td><span class="fnindex" id="fn:isarray">isarray</span></td>
+<td>
+<span class="fnindex"><a href="#fn:arraynelm">arraynelm</a></span><br />
+<span class="fnindex"><a href="#fn:subtype">subtype</a></span><br />
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_array">mkctype_array</a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Base C type
+</td>
+<td><span class="fnindex" id="fn:isbase">isbase</span></td>
+<td>
+<span class="fnindex">baseid</span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_char">mkctype_char</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_short">mkctype_short</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_int">mkctype_int</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_long">mkctype_long</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_vlong">mkctype_vlong</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_uchar">mkctype_uchar</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_ushort">mkctype_ushort</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_uint">mkctype_uint</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_ulong">mkctype_ulong</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_uvlong">mkctype_uvlong</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_float">mkctype_float</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_double">mkctype_double</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_ldouble">mkctype_ldouble</a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Bitfield
+</td>
+<td><span class="fnindex" id="fn:isbitfield">isbitfield</span></td>
+<td>
+<span class="fnindex"><a href="#fn:bitfieldcontainer"><a href="#fn:bitfieldcontainer">bitfieldcontainer</a></a></span><br />
+<span class="fnindex"><a href="#fn:bitfieldpos"><a href="#fn:bitfieldpos">bitfieldpos</a></a></span><br />
+<span class="fnindex"><a href="#fn:bitfieldwidth"><a href="#fn:bitfieldwidth">bitfieldwidth</a></a></span><br />
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_bitfield"><a href="#fn:mkctype">mkctype</a>_bitfield</a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Enumeration
+</td>
+<td><span class="fnindex" id="fn:isenum">isenum</span></td>
+<td>
+<span class="fnindex"><a href="#fn:enumconsts"><a href="#fn:enumconsts">enumconsts</a></a></span><br />
+<span class="fnindex"><a href="#fn:suetag"><a href="#fn:suetag">suetag</a></a></span><br />
+<span class="fnindex"><a href="#fn:subtype"><a href="#fn:subtype">subtype</a></a></span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_enum"><a href="#fn:mkctype_enum">mkctype_enum</a></a></span><br />
+</td>
+</tr>
+
+<tr>
+<td>
+Enumeration constant
+</td>
+<td><span class="fnindex" id="fn:isenumconst">isenumconst</span></td>
+<td>
+<span class="fnindex"><a href="#fn:subtype"><a href="#fn:subtype">subtype</a></a></span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_const"><a href="#fn:mkctype_const">mkctype_const</a></a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Function
+</td>
+<td><span class="fnindex" id="fn:isfunc">isfunc</span></td>
+<td>
+<span class="fnindex"><a href="#fn:params">params</a></span><br />
+<span class="fnindex"><a href="#fn:rettype">rettype</a></span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Pointer
+</td>
+<td><span class="fnindex" id="fn:isptr">isptr</span></td>
+<td>
+<span class="fnindex"><a href="#fn:subtype">subtype</a></span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_ptr">mkctype_ptr</a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Typedef
+</td>
+<td><span class="fnindex" id="fn:istypedef">istypedef</span></td>
+<td>
+<span class="fnindex"><a href="#fn:typedefid">typedefid</a></span><br />
+<span class="fnindex"><a href="#fn:typedeftype">typedeftype</a></span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_typedef">mkctype_typedef</a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Undefined
+</td>
+<td><span class="fnindex" id="fn:isundeftype">isundeftype</span></td>
+<td>
+<span class="fnindex"><a href="#fn:subtype">subtype</a></span>
+</td>
+<td>
+<em>n/a</em>
+</td>
+</tr>
+
+<tr>
+<td>
+Union
+</td>
+<td><span class="fnindex" id="fn:isunion">isunion</span></td>
+<td>
+<span class="fnindex"><a href="#fn:fields">fields</a></span><br />
+<span class="fnindex"><a href="#fn:suetag">suetag</a></span><br />
+<span class="fnindex"><a href="#fn:susize">susize</a></span>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>
+</td>
+</tr>
+
+<tr>
+<td>
+Void
+</td>
+<td><span class="fnindex" id="fn:isvoid">isvoid</span></td>
+<td>
+<em>n/a</em>
+</td>
+<td>
+<span class="fnindex"><a href="#fn:mkctype_void">mkctype_void</a></span>
+</td>
+</tr>
+
+</table>
+</div>
+
+<div class="docitem" id="fn:fields">
+<div class="proto">
+<div class="function">
+<span class="id">fields(type)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">aggregate ctype</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Returns a vector containing the
+definitions of the fields in the aggregate <span
+class="arg">type</span>.  Each item in the vector defines a field 
+that can be examined with the functions
+<span class="fnindex"><a
+href="#fn:fieldid">fieldid</a></span>, <span
+class="fnindex"><a
+href="#fn:fieldoff">fieldoff</a></span>, and <span
+class="fnindex"><a
+href="#fn:fieldtype">fieldtype</a></span>.
+Modifying the vector may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:fieldid">fieldid(<span class="arg">field</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:fieldoff">fieldoff(<span class="arg">field</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:fieldtype">fieldtype(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">item in the vector returned by <span
+class="fnindex"><a
+href="#fn:fieldtype">fields</a></span></span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+These functions examine  an aggregate field definition returned by <span
+class="id">fields</span>.  <span
+class="id">Fieldid</span> returns the name of the field
+as a string.  <span class="id">Fieldoff</span> returns
+the offset in bytes of the field from the start of the
+aggregate as a cvalue, or <span class="val">nil</span>
+if the offset is undefined.  <span
+class="id">Fieldtype</span> returns the type of the
+field as a ctype.
+</div>
+</div>
+
+<div class="docitem" id="syn:typeof">
+<div class="proto">
+<div class="function">
+<span class="id">typeof(<span class="arg">typename</span>)</span>
+</div>
+<div class="param">
+<span class="arg">typename</span>: <span class="type">type name expression</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+<div class="function">
+<span class="id">typeof(<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">cvalue expression</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+The <span class="id">typeof</span> operator is similar
+to the <span class="id">sizeof</span> operator in that
+it is applied to either a type name or to an expression
+that yields a cvalue.  In both cases it returns a ctype
+value that represents the type of its operand.  In the
+type name case, if the operand is a fully qualified
+type name, then the type name is resolved in the domain
+referenced by the type name; otherwise, the type name
+is resolved in the literal domain.
+</div>
+</div>
 
 <h3>Containers</h3>
 
@@ -2125,7 +2049,7 @@ declaration.
 Formats an integer or pointer value as <span
 class="val">"<span class="arg">symbol</span>+<span
 class="arg">offset</span>"</span>.
-<span class="arg">Symbol</span> is the symbol returned
+<span class="arg">Symbol</span> is the name of the symbol returned
 by a call to the name space <span class="arg"><a
 href="#fn:lookaddr">lookaddr</a></span> operation on
 the value.  <span class="arg">Offset</span> is the
@@ -2286,6 +2210,7 @@ Seeds the random number generator used by <span class="id">rand</span>.
 
 <h3 id="sec:fnindex">Function Index</h3>
 <div class="id">
+<div class="index">
 <div class="fnindex">
 <a href="#fn:append">append</a><br>
 <a href="#fn:backtrace">backtrace</a><br>
@@ -2298,6 +2223,19 @@ Seeds the random number generator used by <span class="id">rand</span>.
 <a href="#fn:getpid">getpid</a><br>
 <a href="#fn:gettimeofday">gettimeofday</a><br>
 <a href="#fn:head">head</a><br>
+<a href="#fn:isarray">isarray</a><br>
+<a href="#fn:isbase">isbase</a><br>
+<a href="#fn:isbitfield">isbitfield</a><br>
+<a href="#fn:isenum">isenum</a><br>
+<a href="#fn:isenumconst">isenumconst</a><br>
+<a href="#fn:isfunc">isfunc</a><br>
+<a href="#fn:isptr">isptr</a><br>
+<a href="#fn:isstruct">isstruct</a><br>
+<a href="#fn:issu">issu</a><br>
+<a href="#fn:istypedef">istypedef</a><br>
+<a href="#fn:isundeftype">isundeftype</a><br>
+<a href="#fn:isunion">isunion</a><br>
+<a href="#fn:isvoid">isvoid</a><br>
 <a href="#fn:isempty">isempty</a><br>
 <a href="#fn:length">length</a><br>
 <a href="#fn:list">list</a><br>
@@ -2339,6 +2277,7 @@ Seeds the random number generator used by <span class="id">rand</span>.
 <a href="#fn:vecset">vecset</a><br>
 <a href="#fn:vector">vector</a><br>
 <a href="#fn:write">write</a><br>
+</div>
 </div>
 </div>
 

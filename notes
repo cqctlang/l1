@@ -5,6 +5,8 @@ todo
     strcata
     isstring like old cqct isstring?
   - make len argument to getbytes optional
+  - rationalize names of various type routines
+	 (isfunc/mkctype_fn, isenumconst/mkctype_const,...)
   - provide a mapfile mode argument:
 	"r" - private copy of the file
 	"w" - shared copy of the file
