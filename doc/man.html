@@ -162,6 +162,65 @@ all arithmetic is performed using C operators over
 values of type cvalue.
 </p>
 
+<h3>Concepts</h3>
+
+<p>
+The syntax and types of Cinquecento are used to
+construct and interact with an abstract model of a
+program in execution.  This section describes the
+concepts and terminology underlying this model.
+</p>
+
+<p>
+A program in execution reads and writes values stored
+in its memory.  This memory is represented in
+Cinquecento by an <em>address space</em>.  An address
+space is any mapping from byte addresses to byte
+values.  Address spaces are dynamic: the value of a
+byte at a given address may change over time as it is
+updated by the program.  Moreover, not all valid byte
+addresses are necessarily mapped by a given address
+space; typically, an address space maps a small number
+(dozens) of large, contiguous address ranges (each
+spanning megabytes), and this mapping may change over
+time.
+</p>
+
+<p>
+For example, the address space of a typical Unix or
+Windows program contains mappings for the program text,
+data, stack, and heap.  Only the contents of the text
+mapping are likely to remain unchanged during execution.
+New mappings may be added over time as the program
+loads dynamic libraries or as its demand for stack and
+heap space increases.
+</p>
+
+<p>
+The address space provides a raw, untyped view of
+program memory.  A more abstract, symbolic view of
+memory is provided by the types associated with values
+stored in memory.  This association comes from the type
+and variable definitions made in the source code of the
+program.  The type system used by Cinquecento is based,
+tightly, on the type system of the C programming
+language.
+</p>
+
+<p>
+Programs written in languages other than C may have, at
+source level, type that are wildly different from those
+of C.  However, at the level of program memory, these
+types much eventually be reduced to a simple set of
+primitive values, which often are easily modeled as C
+types, particularly if the underlying implementation of
+the language is written in C.
+</p>
+
+<p>
+</p>
+
+
 <h3>Domains</h3>
 
 <p>
@@ -201,6 +260,25 @@ new name spaces to be defined from extended form of C
 declaration syntax.  Both name spaces and address
 spaces can also be constructed from user-defined
 functions.
+</p>
+
+<h3>C Values</h3>
+
+<p>
+Values corresponding to values in C programs are represented
+with the Cinquecento type <span class="type">cvalue</span>.
+</p>
+
+<p>
+In addition to its value, each cvalue has an associated
+domain and ctype.  The domain is a generally a
+reference to the domain from which the value was
+generated.  For example, the domain associated with a
+cvalue that represents a C pointers provides a reference
+
+
+
+
 </p>
 
 <h3>C Types</h3>
@@ -1892,6 +1970,64 @@ class="arg">fd</span>.
 </div>
 </div>
 
+<h3 id="sec:system">Filesystem Operations</h3>
+
+<p>
+This section documents functions that operate on the file system.
+</p>
+
+<div class="docitem" id="fn:mkdir">
+<div class="proto">
+<div class="function">
+<span class="id">mkdir(<span class="arg">name</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Creates a new directory named <span class="arg">name</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rmdir">
+<div class="proto">
+<div class="function">
+<span class="id">rmdir(<span class="arg">name</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Removes the directory named <span class="arg">name</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:unlink">
+<div class="proto">
+<div class="function">
+<span class="id">unlink(<span class="arg">name</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Removes the file named <span class="arg">name</span>.
+</div>
+</div>
+
+
 <h3 id="sec:system">Formatted Output</h3>
 
 <p>
@@ -2170,6 +2306,7 @@ Seeds the random number generator used by <span class="id">rand</span>.
 <a href="#fn:listref">listref</a><br>
 <a href="#fn:listset">listset</a><br>
 <a href="#fn:mapfile">mapfile</a><br>
+<a href="#fn:mkdir">mkdir</a><br>
 <a href="#fn:mkstr">mkstr</a><br>
 <a href="#fn:mktab">mktab</a><br>
 <a href="#fn:mkvec">mkvec</a><br>
@@ -2196,6 +2333,7 @@ Seeds the random number generator used by <span class="id">rand</span>.
 <a href="#fn:tablook">tablook</a><br>
 <a href="#fn:tabvals">tabvals</a><br>
 <a href="#fn:tail">tail</a><br>
+<a href="#fn:unlink">unlink</a><br>
 <a href="#fn:veclen">veclen</a><br>
 <a href="#fn:vecref">vecref</a><br>
 <a href="#fn:vecset">vecset</a><br>

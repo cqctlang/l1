@@ -76,7 +76,6 @@
 	FN(mkctype_uvlong);
 	FN(mkctype_vlong);
 	FN(mkctype_void);
-	FN(mkdir);
 	FN(mkdom);
 	FN(mkfield);
 	FN(mknas);
@@ -100,7 +99,6 @@
 	FN(rangebeg);
 	FN(rangelen);
 	FN(rettype);
-	FN(rmdir);
 	FN(subtype);
 	FN(suekind);
 	FN(suetag);
@@ -110,4 +108,4 @@
 	FN(symval);
 	FN(typedefid);
 	FN(typedeftype);
-	FN(unlink);
+

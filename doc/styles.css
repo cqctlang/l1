@@ -59,7 +59,7 @@ dl, ol, ul {
 /* typography */
 
 #content {
-	font-family: Verdana;
+	font-family: "Lucida Sans", sans-serif;
 	font-size: 14px;
 	line-height: 18px;
 	color: black;
@@ -67,7 +67,7 @@ dl, ol, ul {
 }
 
 #content #table {
-	font-family: Verdana;
+	font-family: "Lucida Sans", sans-serif;
 	font-size: 12px;
 	line-height: 14px;
 	color: black;
@@ -75,8 +75,8 @@ dl, ol, ul {
 }
 
 #content h3 {
-	font-family: Georgia, Garamond, "Times New Roman", serif;
-	font-size: 16px;
+	font-family: "Lucida Sans", sans-serif;
+	font-size: 15px;
 	text-align: left;
 }
 
