@@ -275,15 +275,9 @@ domain and ctype.  The domain is a generally a
 reference to the domain from which the value was
 generated.  For example, the domain associated with a
 cvalue that represents a C pointers provides a reference
-
-
-
-
 </p>
 
 <h3>C Types</h3>
-
-
 
 <p>
 Each type used by a C program is represented in
@@ -560,10 +554,47 @@ cvalue used to construct the address
 <h3>Ctypes</h3>
 
 <p>The Cinquecento type <em>ctype</em> represents types
-defined in C programs.  Cinquecento subdivides the set
-of types that can be defined in C into several
-categories.  The main categories are: the <tt>void</tt>
-type, the base arithmetic types (<tt>char</tt>,
+defined in C programs.  The <span class="fnindex"><a href="#syn:typeof">typeof</a></span> operator can be used to obtain
+a ctype representing the type of a cvalue or the type
+denoted by a type name.
+</p>
+
+<div class="docitem" id="syn:typeof">
+<div class="proto">
+<div class="function">
+<span class="id">typeof(<span class="arg">typename</span>)</span>
+</div>
+<div class="function">
+<span class="id">typeof(<span class="arg">value</span>)</span>
+</div>
+<div class="param">
+<span class="arg">typename</span>: <span class="type">type name expression</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">cvalue expression</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+The <span class="id">typeof</span> operator is similar
+to the <span class="id">sizeof</span> operator in that
+it is applied to either a type name or to an expression
+that yields a cvalue.  In both cases it returns a ctype
+value that represents the type of its operand.  In the
+type name case, if the operand is a fully qualified
+type name, then the type name is resolved in the domain
+referenced by the type name; otherwise, the type name
+is resolved in the literal domain.
+</div>
+</div>
+
+<p>
+In Cinquecento, the set of types that can be defined in
+a C program are divided into several categories.  The
+main categories are: the <tt>void</tt> type, the base
+arithmetic types (<tt>char</tt>,
 <tt>int</tt>, <tt>unsigned long</tt>, <em>etc</em>),
 pointers, arrays, aggregates (<tt>struct</tt> and
 <tt>union</tt>), functions, enumerations, and
@@ -572,21 +603,25 @@ separate categories for bitfields, enumeration
 constants, and undefined types.
 </p>
 
-
-
 <p>
-
 The following table summarizes the category-specific
 functions that manipulate ctypes.  The predicates
 determine to which category a ctype belongs.  Each
 predicate takes one argument, a ctype, and returns
 <span class="val">1</span> if the predicate is true for
-that ctype, <span class="val">0</span> otherwise.  The
-predicates are mutually exclusive.  The accessors
-return attributes of a ctype instance in each category;
-the constructors construct new instances of each
-category.  Details on the accessors and constructors
-follow the table.
+that ctype, <span class="val">0</span> otherwise.  With
+the exception
+of <span class="id">issu</span>, <span class="id">isstruct</span>,
+and <span class="id">isunion</span>, the predicates are
+mutually exclusive; <span class="id">issu</span>
+returns true if its argument is structure or union
+aggregate, <span class="id">isstruct</span> returns
+true if its argument is a structure,
+and <span class="id">isunion</span> returns true if its
+argument is a union.  The accessors return attributes
+of a ctype instance in each category; the constructors
+construct new instances of each category.  Descriptions of
+the accessors and constructors follow the table.
 </p>
 
 <div id="table">
@@ -598,7 +633,6 @@ follow the table.
 <th>Accessors</th>
 <th>Constructors</th>
 </tr>
-
 
 <tr>
 <td>
@@ -619,7 +653,6 @@ Aggregate
 <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>
 </td>
 </tr>
-
 
 <tr>
 <td>
@@ -759,21 +792,6 @@ Undefined
 
 <tr>
 <td>
-Union
-</td>
-<td><span class="fnindex" id="fn:isunion">isunion</span></td>
-<td>
-<span class="fnindex"><a href="#fn:fields">fields</a></span><br />
-<span class="fnindex"><a href="#fn:suetag">suetag</a></span><br />
-<span class="fnindex"><a href="#fn:susize">susize</a></span>
-</td>
-<td>
-<span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>
-</td>
-</tr>
-
-<tr>
-<td>
 Void
 </td>
 <td><span class="fnindex" id="fn:isvoid">isvoid</span></td>
@@ -788,10 +806,36 @@ Void
 </table>
 </div>
 
+<p>
+The following functions are the ctype accessors.
+</p>
+
+<div class="docitem" id="fn:subtype">
+<div class="proto">
+<div class="function">
+<span class="id">subtype(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype or nil</span>
+</div>
+</div>
+<div class="desc">
+The ctype categories array, enumeration, enumeration
+constant, pointer, and undefined each modify another,
+subordinate ctype.  Given a ctype from any one of these
+categories, <span class="id">subtype</span> returns the
+subordinate ctype, or <span class="val">nil</span> if
+the ctype does not define its subordinate.
+</div>
+</div>
+
 <div class="docitem" id="fn:fields">
 <div class="proto">
 <div class="function">
-<span class="id">fields(type)</span>
+<span class="id">fields(<span class="arg">type</span>)</span>
 </div>
 <div class="param">
 <span class="arg">type</span>: <span class="type">aggregate ctype</span>
@@ -829,15 +873,15 @@ Modifying the vector may cause undefined effects.
 <div class="param">
 <span class="arg">field</span>: <span class="type">item in the vector returned by <span
 class="fnindex"><a
-href="#fn:fieldtype">fields</a></span></span>
+href="#fn:fields">fields</a></span></span>
 </div>
 <div class="returns">
 <span class="type">see description</span>
 </div>
 </div>
 <div class="desc">
-These functions examine  an aggregate field definition returned by <span
-class="id">fields</span>.  <span
+These functions examine an aggregate field definition returned by <span
+class="fnindex"><a href="#fn:fields">fields</a></span>.  <span
 class="id">Fieldid</span> returns the name of the field
 as a string.  <span class="id">Fieldoff</span> returns
 the offset in bytes of the field from the start of the
@@ -848,39 +892,608 @@ field as a ctype.
 </div>
 </div>
 
-<div class="docitem" id="syn:typeof">
+<div class="docitem" id="fn:suetag">
 <div class="proto">
 <div class="function">
-<span class="id">typeof(<span class="arg">typename</span>)</span>
+<span class="id">suetag(<span class="arg">type</span>)</span>
 </div>
 <div class="param">
-<span class="arg">typename</span>: <span class="type">type name expression</span>
+<span class="arg">type</span>: <span class="type">aggregate or enumeration ctype</span>
 </div>
 <div class="returns">
-<span class="type">ctype</span>
+<span class="type">string or nil</span>
 </div>
+</div>
+<div class="desc">
+Returns the tag of the aggregate or enumeration
+ctype <span class="arg">type</span> as a string.
+Returns <span class="val">nil</span>
+if <span class="arg">type</span> does not define a tag
+(<em>i.e.</em>, if <span class="arg">type</span> is an
+anonymous aggregate or enumeration).
+</div>
+</div>
+
+<div class="docitem" id="fn:susize">
+<div class="proto">
 <div class="function">
-<span class="id">typeof(<span class="arg">value</span>)</span>
+<span class="id">susize(<span class="arg">type</span>)</span>
 </div>
 <div class="param">
-<span class="arg">value</span>: <span class="type">cvalue expression</span>
+<span class="arg">type</span>: <span class="type">aggregate ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the size in bytes of the aggregate
+ctype <span class="arg">type</span> as a cvalue.
+Returns <span class="val">nil</span>
+if <span class="arg">type</span> does not define its size.
+</div>
+</div>
+
+<div class="docitem" id="fn:arraynelm">
+<div class="proto">
+<div class="function">
+<span class="id">arraynelm(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">array ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the number of elements in the array type <span
+class="arg">type</span>.  Returns <span class="val">nil</span> if the type does not define the number of elements.
+</div>
+</div>
+
+<div class="docitem" id="fn:baseid">
+<div class="proto">
+<div class="function">
+<span class="id">baseid(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">base ctype</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of the base C type represented
+by <span class="arg">type</span> as a string.
+</div>
+</div>
+
+<div class="docitem" id="fn:bitfieldcontainer">
+<div class="proto">
+<div class="function">
+<span class="id">bitfieldcontainer(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">bitfield ctype</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the ctype in which the bitfield type
+represented by <span class="arg">type</span> is contained.
+</div>
+</div>
+
+<div class="docitem" id="fn:bitfieldpos">
+<div class="proto">
+<div class="function">
+<span class="id">bitfieldpos(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">bitfield ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the bit offset within its container of the
+first bit of the bitfield type represented by
+<span class="arg">type</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:bitfieldwidth">
+<div class="proto">
+<div class="function">
+<span class="id">bitfieldwidth(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">bitfield ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the width of the bitfield type represented
+by <span class="arg">type</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:enumconsts">
+<div class="proto">
+<div class="function">
+<span class="id">enumconsts(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">enumeration ctype</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Returns a vector containing the definitions of the
+constants in the enumeration
+type <span class="arg">type</span>.  Each item in the
+vector is a two-element vector that defines one
+constant.  The first element is the name of the
+constant as a string, the second is the value of
+constant as a cvalue.
+</div>
+</div>
+
+<div class="docitem" id="fn:params">
+<div class="proto">
+<div class="function">
+<span class="id">params(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">function ctype</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Returns a vector containing the
+definitions of the parameters in the function type represented by <span
+class="arg">type</span>.  Each item in the vector defines a parameter
+that can be examined with the functions
+<span class="fnindex"><a
+href="#fn:paramid">paramid</a></span> and <span
+class="fnindex"><a
+href="#fn:paramtype">paramtype</a></span>.
+The parameters occur in the vector in the order they are 
+declared in the function type represented by <span
+class="arg">type</span>.
+Modifying the vector may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:paramid">paramid(<span class="arg">param</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:paramtype">paramtype(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">item in the vector returned by <span
+class="fnindex"><a
+href="#fn:fieldtype">params</a></span></span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+These functions examine a parameter definition returned by <span
+class="fnindex"><a href="#fn:params">params</a></span>.  <span
+class="id">Paramid</span> returns the name of the parameter
+as a string.  <span
+class="id">Paramtype</span> returns the type of the
+parameter as a ctype.
+</div>
+</div>
+
+<div class="docitem" id="fn:rettype">
+<div class="proto">
+<div class="function">
+<span class="id">rettype(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">function ctype</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
 </div>
 </div>
 <div class="desc">
-The <span class="id">typeof</span> operator is similar
-to the <span class="id">sizeof</span> operator in that
-it is applied to either a type name or to an expression
-that yields a cvalue.  In both cases it returns a ctype
-value that represents the type of its operand.  In the
-type name case, if the operand is a fully qualified
-type name, then the type name is resolved in the domain
-referenced by the type name; otherwise, the type name
-is resolved in the literal domain.
+Returns the return type of the function type represented by
+<span class="arg">type</span>.
 </div>
 </div>
+
+
+<div class="docitem" id="fn:typedefid">
+<div class="proto">
+<div class="function">
+<span class="id">typedefid(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">typedef ctype</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of the type defined by the typedef type represented by
+<span class="arg">type</span> as a string.
+</div>
+</div>
+
+<div class="docitem" id="fn:typedeftype">
+<div class="proto">
+<div class="function">
+<span class="id">typedeftype(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">typedef ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns the type aliased defined by the typedef type represented by
+<span class="arg">type</span> as a ctype.
+</div>
+</div>
+
+<p>
+The following functions are the ctype constructors.
+</p>
+
+<div class="docitem">
+<div class="proto">
+
+<div class="function">
+<span class="id" id="fn:mkctype_struct">mkctype_struct(<span class="arg">tag</span>[,<span class="arg">fields</span>,<span class="arg">size</span>])</span>
+</div>
+
+<div class="function">
+<span class="id" id="fn:mkctype_union">mkctype_union(<span class="arg">tag</span>[,<span class="arg">fields</span>,<span class="arg">size</span>])</span>
+</div>
+
+<div class="param">
+<span class="arg">tag</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">fields</span>: <span class="type">vector</span>
+</div>
+<div class="param">
+<span class="arg">size</span>: <span class="type">size</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing a struct or union
+aggregate type.
+<span class="arg">Tag</span> is the type tag.  If
+specified, <span class="arg">fields</span> is a vector
+defining the fields of the aggregate, each element of
+which is constructed
+by <span class="fnindex"><a href="#fn:mkfield">mkfield</a></span>,
+and <span class="arg">size</span> is the size in bytes
+of the aggregate.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkfield">
+<div class="proto">
+<div class="function">
+<span class="id">mkfield(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">off</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">off</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+
+Returns a new field definition that is a suitable
+element of the <span class="arg">fields</span>
+argument
+of <span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span>
+or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
+<span class="arg">Type</span> is the type of the field,
+<span class="arg">id</span> is the name of the field, and
+<span class="arg">off</span>, if specified, is the offset in bytes of the field from the beginning of the aggregate.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:mkctype_array">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_array(<span class="arg">type</span>[,<span class="arg">nelm</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">typedef ctype</span>
+</div>
+<div class="param">
+<span class="arg">nelm</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing an array of 
+represented by <span class="arg">type</span>.
+<span class="arg">Nelm</span>, if specified, is the number of elements
+in arrays represented by the type.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:mkctype_char">mkctype_char()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_short">mkctype_short()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_int">mkctype_int()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_long">mkctype_long()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_vlong">mkctype_vlong()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_uchar">mkctype_uchar()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_ushort">mkctype_ushort()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_uint">mkctype_uint()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_ulong">mkctype_ulong()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_uvlong">mkctype_uvlong()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_float">mkctype_float()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_double">mkctype_double()</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_longdouble">mkctype_longdouble()</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing the base C type corresponding
+to the suffix of the constructor name.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_bitfield">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_bitfield(<span class="arg">type</span>,<span class="arg">width</span>,<span class="arg">pos</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">width</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">pos</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing a bitfield type.  The
+constructed bitfield type
+has <span class="arg">width</span> bits, is contained in a
+field of the type represented
+by <span class="arg">type</span>, and starts at bit
+offset <span class="arg">pos</span> in the containing type.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_enum">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_enum(<span class="arg">tag</span>[,<span class="arg">type</span>,<span class="arg">consts</span>])</span>
+</div>
+<div class="param">
+<span class="arg">tag</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">consts</span>: <span class="type">vector</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing an enumeration type.  
+<span class="arg">Tag</span> is the type tag.  
+If specified, <span class="arg">type</span> is the
+underlying (subordinate) type of the enumeration,
+and <span class="arg">consts</span> is a vector defining
+the constants of the enumeration type.  Each element of 
+<span class="arg">consts</span> is a two-element vector.
+The first element is the name of the
+constant as a string, the second is the value of
+constant as a cvalue.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_const">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_const(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing an enumeration
+constant.
+<span class="arg">Type</span> is the underlying (subordinate) enumeration type of the constant.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_fn">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_fn(<span class="arg">rettype</span>,<span class="arg">params</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rettype</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">params</span>: <span class="type">vector</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing a function type.
+<span class="arg">Type</span> is the return type of the function.
+<span class="arg">Params</span> is a vector
+defining the parameters of the function, each element of which
+is constructed
+by <span class="fnindex"><a href="#fn:mkparam">mkparam</a></span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkparam">
+<div class="proto">
+<div class="function">
+<span class="id">mkparam(<span class="arg">type</span>[,<span class="arg">id</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+Returns a new parameter definition that is a suitable
+element of the <span class="arg">params</span>
+argument
+of <span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>.
+<span class="arg">Type</span> is the type of the parameter and
+<span class="arg">id</span>, if specified, is the name of the parameter.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_ptr">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_ptr(<span class="arg">type</span>[,<span class="arg">reptype</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">reptype</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing a pointer to the type represented by
+<span class="arg">type</span>.  If
+specified, <span class="arg">reptype</span> is a ctype
+representing the pointer representation type.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_typedef">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_typedef(<span class="arg">id</span>[,<span class="arg">type</span>])</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing a typedef.  
+<span class="arg">Id</span> is the name of typedef.
+If specified, <span class="arg">type</span> is a ctype representing
+the aliased type.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_void">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_void()</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing the void type.
+</div>
+</div>
+
 
 <h3>Containers</h3>
 
@@ -2208,75 +2821,132 @@ Seeds the random number generator used by <span class="id">rand</span>.
 </div>
 </div>
 
+<h3 id="sec:fnindex">Syntax Index</h3>
+
+<div class="id">
+<div class="index">
+<div class="fnindex">
+<a href="#syn:typeof">typeof</a><br />
+</div>
+</div>
+</div>
+
+
 <h3 id="sec:fnindex">Function Index</h3>
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<a href="#fn:append">append</a><br>
-<a href="#fn:backtrace">backtrace</a><br>
-<a href="#fn:close">close</a><br>
-<a href="#fn:copy">copy</a><br>
-<a href="#fn:fdname">fdname</a><br>
-<a href="#fn:foreach">foreach</a><br>
-<a href="#fn:fprintf">fprintf</a><br>
-<a href="#fn:getbytes">getbytes</a><br>
-<a href="#fn:getpid">getpid</a><br>
-<a href="#fn:gettimeofday">gettimeofday</a><br>
-<a href="#fn:head">head</a><br>
-<a href="#fn:isarray">isarray</a><br>
-<a href="#fn:isbase">isbase</a><br>
-<a href="#fn:isbitfield">isbitfield</a><br>
-<a href="#fn:isenum">isenum</a><br>
-<a href="#fn:isenumconst">isenumconst</a><br>
-<a href="#fn:isfunc">isfunc</a><br>
-<a href="#fn:isptr">isptr</a><br>
-<a href="#fn:isstruct">isstruct</a><br>
-<a href="#fn:issu">issu</a><br>
-<a href="#fn:istypedef">istypedef</a><br>
-<a href="#fn:isundeftype">isundeftype</a><br>
-<a href="#fn:isunion">isunion</a><br>
-<a href="#fn:isvoid">isvoid</a><br>
-<a href="#fn:isempty">isempty</a><br>
-<a href="#fn:length">length</a><br>
-<a href="#fn:list">list</a><br>
-<a href="#fn:listdel">listdel</a><br>
-<a href="#fn:listins">listins</a><br>
-<a href="#fn:listref">listref</a><br>
-<a href="#fn:listset">listset</a><br>
-<a href="#fn:mapfile">mapfile</a><br>
-<a href="#fn:mkdir">mkdir</a><br>
-<a href="#fn:mkstr">mkstr</a><br>
-<a href="#fn:mktab">mktab</a><br>
-<a href="#fn:mkvec">mkvec</a><br>
-<a href="#fn:open">open</a><br>
-<a href="#fn:opentcp">opentcp</a><br>
-<a href="#fn:pop">pop</a><br>
-<a href="#fn:printf">printf</a><br>
-<a href="#fn:push">push</a><br>
-<a href="#fn:putbytes">putbytes</a><br>
-<a href="#fn:rand">rand</a><br>
-<a href="#fn:rand">randseed</a><br>
-<a href="#fn:read">read</a><br>
-<a href="#fn:reverse">reverse</a><br>
-<a href="#fn:sprintfa">sprintfa</a><br>
-<a href="#fn:stringof">stringof</a><br>
-<a href="#fn:strlen">strlen</a><br>
-<a href="#fn:strput">strput</a><br>
-<a href="#fn:strton">strton</a><br>
-<a href="#fn:substr">substr</a><br>
-<a href="#fn:tabdelete">tabdelete</a><br>
-<a href="#fn:tabenum">tabenum</a><br>
-<a href="#fn:tabinsert">tabinsert</a><br>
-<a href="#fn:tabkeys">tabkeys</a><br>
-<a href="#fn:tablook">tablook</a><br>
-<a href="#fn:tabvals">tabvals</a><br>
-<a href="#fn:tail">tail</a><br>
-<a href="#fn:unlink">unlink</a><br>
-<a href="#fn:veclen">veclen</a><br>
-<a href="#fn:vecref">vecref</a><br>
-<a href="#fn:vecset">vecset</a><br>
-<a href="#fn:vector">vector</a><br>
-<a href="#fn:write">write</a><br>
+<a href="#fn:append">append</a><br />
+<a href="#fn:arraynelm">arraynelm</a><br />
+<a href="#fn:backtrace">backtrace</a><br />
+<a href="#fn:baseid">baseid</a><br />
+<a href="#fn:bitfieldcontainer">bitfieldcontainer</a><br />
+<a href="#fn:bitfieldpos">bitfieldpos</a><br />
+<a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
+<a href="#fn:close">close</a><br />
+<a href="#fn:copy">copy</a><br />
+<a href="#fn:enumconsts">enumconsts</a><br />
+<a href="#fn:fdname">fdname</a><br />
+<a href="#fn:fieldid">fieldid</a><br />
+<a href="#fn:fieldoff">fieldoff</a><br />
+<a href="#fn:fields">fields</a><br />
+<a href="#fn:fieldtype">fieldtype</a><br />
+<a href="#fn:foreach">foreach</a><br />
+<a href="#fn:fprintf">fprintf</a><br />
+<a href="#fn:getbytes">getbytes</a><br />
+<a href="#fn:getpid">getpid</a><br />
+<a href="#fn:gettimeofday">gettimeofday</a><br />
+<a href="#fn:head">head</a><br />
+<a href="#fn:isarray">isarray</a><br />
+<a href="#fn:isbase">isbase</a><br />
+<a href="#fn:isbitfield">isbitfield</a><br />
+<a href="#fn:isenum">isenum</a><br />
+<a href="#fn:isenumconst">isenumconst</a><br />
+<a href="#fn:isfunc">isfunc</a><br />
+<a href="#fn:isptr">isptr</a><br />
+<a href="#fn:isstruct">isstruct</a><br />
+<a href="#fn:issu">issu</a><br />
+<a href="#fn:istypedef">istypedef</a><br />
+<a href="#fn:isundeftype">isundeftype</a><br />
+<a href="#fn:isunion">isunion</a><br />
+<a href="#fn:isvoid">isvoid</a><br />
+<a href="#fn:isempty">isempty</a><br />
+<a href="#fn:length">length</a><br />
+<a href="#fn:list">list</a><br />
+<a href="#fn:listdel">listdel</a><br />
+<a href="#fn:listins">listins</a><br />
+<a href="#fn:listref">listref</a><br />
+<a href="#fn:listset">listset</a><br />
+<a href="#fn:mapfile">mapfile</a><br />
+<a href="#fn:mkctype_array">mkctype_array</a><br />
+<a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
+<a href="#fn:mkctype_char">mkctype_char</a><br />
+<a href="#fn:mkctype_const">mkctype_const</a><br />
+<a href="#fn:mkctype_double">mkctype_double</a><br />
+<a href="#fn:mkctype_enum">mkctype_enum</a><br />
+<a href="#fn:mkctype_float">mkctype_float</a><br />
+<a href="#fn:mkctype_fn">mkctype_fn</a><br />
+<a href="#fn:mkctype_int">mkctype_int</a><br />
+<a href="#fn:mkctype_ldouble">mkctype_ldouble</a><br />
+<a href="#fn:mkctype_long">mkctype_long</a><br />
+<a href="#fn:mkctype_ptr">mkctype_ptr</a><br />
+<a href="#fn:mkctype_short">mkctype_short</a><br />
+<a href="#fn:mkctype_struct">mkctype_struct</a><br />
+<a href="#fn:mkctype_typedef">mkctype_typedef</a><br />
+<a href="#fn:mkctype_uchar">mkctype_uchar</a><br />
+<a href="#fn:mkctype_uint">mkctype_uint</a><br />
+<a href="#fn:mkctype_ulong">mkctype_ulong</a><br />
+<a href="#fn:mkctype_union">mkctype_union</a><br />
+<a href="#fn:mkctype_ushort">mkctype_ushort</a><br />
+<a href="#fn:mkctype_uvlong">mkctype_uvlong</a><br />
+<a href="#fn:mkctype_vlong">mkctype_vlong</a><br />
+<a href="#fn:mkctype_void">mkctype_void</a><br />
+<a href="#fn:mkdir">mkdir</a><br />
+<a href="#fn:mkfield">mkfield</a><br />
+<a href="#fn:mkparam">mkparam</a><br />
+<a href="#fn:mkstr">mkstr</a><br />
+<a href="#fn:mktab">mktab</a><br />
+<a href="#fn:mkvec">mkvec</a><br />
+<a href="#fn:open">open</a><br />
+<a href="#fn:opentcp">opentcp</a><br />
+<a href="#fn:paramid">paramid</a><br />
+<a href="#fn:params">params</a><br />
+<a href="#fn:paramtype">paramtype</a><br />
+<a href="#fn:pop">pop</a><br />
+<a href="#fn:printf">printf</a><br />
+<a href="#fn:push">push</a><br />
+<a href="#fn:putbytes">putbytes</a><br />
+<a href="#fn:rand">rand</a><br />
+<a href="#fn:rand">randseed</a><br />
+<a href="#fn:read">read</a><br />
+<a href="#fn:rettype">rettype</a><br />
+<a href="#fn:reverse">reverse</a><br />
+<a href="#fn:sprintfa">sprintfa</a><br />
+<a href="#fn:stringof">stringof</a><br />
+<a href="#fn:strlen">strlen</a><br />
+<a href="#fn:strput">strput</a><br />
+<a href="#fn:strton">strton</a><br />
+<a href="#fn:substr">substr</a><br />
+<a href="#fn:subtype">subtype</a><br />
+<a href="#fn:suekind">suekind</a><br />
+<a href="#fn:suetag">suetag</a><br />
+<a href="#fn:susize">susize</a><br />
+<a href="#fn:tabdelete">tabdelete</a><br />
+<a href="#fn:tabenum">tabenum</a><br />
+<a href="#fn:tabinsert">tabinsert</a><br />
+<a href="#fn:tabkeys">tabkeys</a><br />
+<a href="#fn:tablook">tablook</a><br />
+<a href="#fn:tabvals">tabvals</a><br />
+<a href="#fn:tail">tail</a><br />
+<a href="#fn:typedefid">typedefid</a><br />
+<a href="#fn:typedeftype">typedeftype</a><br />
+<a href="#fn:unlink">unlink</a><br />
+<a href="#fn:veclen">veclen</a><br />
+<a href="#fn:vecref">vecref</a><br />
+<a href="#fn:vecset">vecset</a><br />
+<a href="#fn:vector">vector</a><br />
+<a href="#fn:write">write</a><br />
+
 </div>
 </div>
 </div>

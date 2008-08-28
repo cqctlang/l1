@@ -7381,7 +7381,7 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-mksymorfield(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
+mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *vec;
 
@@ -7406,13 +7406,19 @@ mksymorfield(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mksym(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	mksymorfield("mksym", vm, argc, argv, rv);
+	mksymorfieldorparam("mksym", vm, argc, argv, rv);
 }
 
 static void
 l1_mkfield(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	mksymorfield("mkfield", vm, argc, argv, rv);	
+	mksymorfieldorparam("mkfield", vm, argc, argv, rv);	
+}
+
+static void
+l1_mkparam(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	mksymorfieldorparam("mkparam", vm, argc, argv, rv);	
 }
 
 static void
@@ -9434,6 +9440,7 @@ mktopenv()
 	FN(mkfield);
 	FN(mknas);
 	FN(mkns);
+	FN(mkparam);
 	FN(mkrange);
 	FN(mksas);
 	FN(mkstr);
