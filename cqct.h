@@ -10,6 +10,7 @@ Closure*	cqctcompile(Expr *e, Env *env);
 void		cqctfini(Env *env);
 void		cqctfreeexpr(Expr *e);
 void		cqctfreevm(VM *vm);
+void		cqctgcprotect(VM *vm, void *o);
 Env*		cqctinit();
 VM*		cqctmkvm(Env *env);
 Expr*		cqctparsefile(char *filename);

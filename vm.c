@@ -358,6 +358,7 @@ struct VM {
 static void vmsetcl(VM *vm, Val val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
+static void* gcprotect(VM *vm, void *hd);
 static void vmerr(VM *vm, char *fmt, ...) NORETURN;
 static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
@@ -5392,7 +5393,7 @@ gcprotpop(VM *vm)
 	vm->pdepth--;
 }
 
-void*
+static void*
 gcprotect(VM *vm, void *obj)
 {
 	Root *r;
@@ -5402,6 +5403,12 @@ gcprotect(VM *vm, void *obj)
 	r->link = vm->prot[vm->pdepth-1];
 	vm->prot[vm->pdepth-1] = r;	
 	return obj;
+}
+
+void
+cqctgcprotect(VM *vm, void *obj)
+{
+	gcprotect(vm, obj);
 }
 
 void

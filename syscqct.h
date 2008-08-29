@@ -545,7 +545,6 @@ jmp_buf* _pusherror(VM *vm);
 void nexterror(VM *vm) NORETURN;
 void poperror(VM *vm);
 Val dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
-void* gcprotect(VM *vm, void *hd);
 
 Val mklitcval(Cbase base, Imm val);
 void freecode(Head *hd);
