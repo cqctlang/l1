@@ -121,8 +121,10 @@ main(int argc, char *argv[])
 
 		if(filename)
 			e = cqctparsefile(filename);
-		else if(inbuf)
+		else if(inbuf){
 			e = cqctparsestr(inbuf);
+			free(inbuf);
+		}
 		else
 			fatal("bug");
 		if(e == 0)

@@ -1374,10 +1374,9 @@ pushyy(U *ctx, char *filename, char *buf)
 		hput(filenames, keyed, strlen(keyed), keyed);
 	}
 	ctx->inp->src.filename = keyed;
-	if(buf){
+	if(buf)
 		ctx->inp->yy = mkyystatestr(buf);
-		free(buf);
-	}else
+	else
 		ctx->inp->yy = mkyystate(fp);
 	ctx->inp->src.line = 1;
 	ctx->inp->src.col = 0;
@@ -1392,8 +1391,6 @@ popyy(U *ctx)
 	if(ctx->inp->fp != stdin)
 		fclose(ctx->inp->fp);
 	ctx->inp->src.filename = 0;
-	free(ctx->inp->inbuf);
-	ctx->inp->inbuf = 0;
 	freeyystate(ctx->inp->yy);
 	if(ctx->inp == ctx->in){
 		ctx->inp = 0;

@@ -241,7 +241,6 @@ typedef
 struct In {
 	struct Src src;
 	FILE *fp;
-	char *inbuf;
 	YYstate *yy;
 } In;
 
