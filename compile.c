@@ -2430,7 +2430,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	p.Return = genlabel(code, 0);
 	p.Break = 0;
 	p.Continue = 0;
-	cg(e->e2, code, &p, Effect, p.Return0, top, p.Return0, b->maxloc);
+	cg(e->e2, code, &p, AC, p.Return0, top, p.Return0, b->maxloc);
 
 	if(p.Return0->used) /* hack for lambdas with empty bodies */
 		emitlabel(p.Return0, e->e2);

@@ -5,5 +5,4 @@ put 0 1
 put 1 2
 put 2 3
 put 3 4
-get 0 80
-hell
+(null)
