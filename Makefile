@@ -20,7 +20,7 @@ C =\
 O = $(C:.c=.o)
 
 c.tab.c: c.y $(HDR)
-	bison -v -d c.y
+	bison -d c.y
 
 c.tab.h: c.tab.c
 
