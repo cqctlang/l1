@@ -6,12 +6,12 @@ define mkindispatch(fd, eofk){
 	off = 0;
 	eof = 0;
 	max = 1024*1024;
-	buf = string(max);
+	buf = mkstr(max);
 
 	define grow(){
 		@local nbuf;
 		max = 2*(beg+len);
-		nbuf = string(max);
+		nbuf = mkstr(max);
 		strput(nbuf, 0, buf);
 		buf = nbuf;
 	}
@@ -53,11 +53,11 @@ define mkindispatch(fd, eofk){
 		}else if(arg == "flush"){
 			if(hi < peek){
 				s = substr(buf, peek, 1);
-				buf = string(max);
+				buf = mkstr(max);
 				strput(buf, 0, s);
 				peek = peek-hi;
 			}else{
-				buf = string(max);
+				buf = mkstr(max);
 				peek = 0;
 			}
 			off += hi;
@@ -93,7 +93,7 @@ define mkoutdispatch(fd, eofk){
 	hi = 0;
 	off = 0;
 	max = 1024*1024;
-	buf = string(max);
+	buf = mkstr(max);
 	define dispatch args {
 		@local arg, r, s, beg, len, need;
 		arg = listref(args, 0);
@@ -125,7 +125,7 @@ define mkoutdispatch(fd, eofk){
 			if(beg+len > max){
 				@local nbuf;
 				max = 2*(beg+len);
-				nbuf = string(max);
+				nbuf = mkstr(max);
 				strput(nbuf, 0, buf);
 				buf = nbuf;
 			}
@@ -136,7 +136,7 @@ define mkoutdispatch(fd, eofk){
 			printf("flushing %d bytes\n", hi);
 			write(fd, substr(buf, 0, hi));
 			printf("did flush\n", hi);
-			buf = string(max);
+			buf = mkstr(max);
 			off += hi;
 			hi = 0;
 			return nil;
