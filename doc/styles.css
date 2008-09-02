@@ -1,8 +1,9 @@
 /* layout */
 
 dl, ol, ul {
-	list-style: disc;
 	margin: inherit;
+	margin-right: 20px;
+	margin-bottom: 10px;
 }
 
 #content {
@@ -35,7 +36,8 @@ dl, ol, ul {
       margin-left: 40px;
 }
 
-#code pre {
+.code {
+      font-family: monospace;
       margin-top: 10px;
       margin-bottom: 10px;
       margin-left: 40px;
@@ -151,7 +153,7 @@ dl, ol, ul {
 	font-style: italic;
 }
 
-#code pre {
+.code pre {
       font-family: "Droid Sans Mono", "Andale Mono", monospace;
       font-size: 12px;
       line-height: 15px;

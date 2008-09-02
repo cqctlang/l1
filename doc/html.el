@@ -8,6 +8,9 @@
     (insert text)
     (insert "</a>")))
 
-
-    
+(defun xval (text)
+  (interactive "sText: ")
+  (insert "<span class=\"val\">")
+  (insert text)
+  (insert "</span>"))
 

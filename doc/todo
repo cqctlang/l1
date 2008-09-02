@@ -1,55 +1,56 @@
+undocumented?
 	FN(_readdir);
-	FN(apply);
-	FN(asdispatch);
-	FN(asof);
+	FN(print);		/* FIXME: remove: held for test suite */
 	FN(car);
 	FN(cdr);
 	FN(cons);
-	FN(domof);
-	FN(enconsts);
+	FN(gc);
+	FN(isnull);
+	FN(null);
+	FN(ispair);
+
+general
+	FN(apply);
+	FN(isprocedure);
 	FN(equal);
 	FN(error);
-	FN(fault);
-	FN(gc);
-	FN(isas);
-	FN(isctype);
 	FN(iscvalue);
-	FN(isdomain);
-	FN(isfd);
-	FN(islist);
-	FN(ismapped);
 	FN(isnil);
-	FN(isns);
-	FN(isnull);
-	FN(ispair);
-	FN(isprocedure);
 	FN(isrange);
-	FN(isstring);
-	FN(istable);
-	FN(isvector);
+
+domains
+	FN(mkdom);
+	FN(isdomain);
+	FN(domof);
+	FN(asof);
+	FN(nsof);
+
+address spaces
+	FN(mkas);
+	FN(isas);
+	FN(fault);
+	FN(asdispatch);
+	FN(ismapped);
+	FN(mkrange);
+	FN(rangebeg);
+	FN(rangelen);
+	FN(mknas);
+	FN(mksas);
+	FN(mkzas);
+
+name spaces
+	FN(mkns);
+	FN(isns);
+	FN(enconsts);
 	FN(lookfield);
 	FN(looktype);
-	FN(mkas);
-	FN(mkdom);
-	FN(mknas);
-	FN(mkns);
-	FN(mkrange);
-	FN(mksas);
 	FN(mksym);
-	FN(mkzas);
-	FN(nsof);
+	FN(symid);
+	FN(symtype);
+	FN(symval);
 	FN(nsenumsym);
 	FN(nsenumtype);
 	FN(nslookaddr);
 	FN(nslooksym);
 	FN(nslooktype);
 	FN(nsptr);
-	FN(null);
-	FN(print);		/* FIXME: remove: held for test suite */
-	FN(rangebeg);
-	FN(rangelen);
-	FN(symid);
-	FN(symtype);
-	FN(symval);
-
-

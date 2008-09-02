@@ -12,7 +12,10 @@
 
 <div id="content">
 
-<a href="#sec:fnindex">Function Index</a>
+<a href="#sec:system">System Functions</a><br />
+<a href="#sec:cinterface">C Interface</a><br />
+<a href="#sec:synindex">Syntax Index</a><br />
+<a href="#sec:fnindex">Function Index</a><br />
 
 <h3>Introduction</h3>
 
@@ -22,9 +25,9 @@ programmers examine the state of programs in execution,
 particularly C programs.  The central feature of
 Cinquecento is a first-class abstraction, called
 a <em>domain</em>, that represents a program in
-execution.  Cinquecento programs access the program
-state represented by domains using types, operators,
-and expressions of the C programming language.
+execution.  Cinquecento allows programmers to access
+the program state represented by domains with the types
+and operators of the C programming language.
 </p>
 
 <p>
@@ -61,58 +64,49 @@ A separate document fills in the details for Linux.
 <h3>Preliminaries</h3>
 
 <p>
-Here is how to print something:
+A Cinquecento program consists of a sequence of
+expressions to be evaluated by the Cinquecento
+evaluator in order.  Variables are dynamically typed,
+lexically scoped, and can be updated by assignment.
+Variable bindings can be created in the top-level
+environment, by the <span class="fnindex"
+id="syn:@local">@local</span> binding form within
+compound expressions, and by the function
+constructor <span class="fnindex"
+id="syn:lambda">lambda</span>.  Cinquecento provides
+several built-in data structures including lists, hash
+tables, vectors, and strings, and a built-in library of
+supporting functions and interfaces to host OS
+services.
 </p>
 
-<div id="code">
-<pre>
-; printf("hello, world!");
-hello, world
-</pre>
+<p>
+During parsing of an input expression, occurrences
+of either of the forms
+<div class="code">
+@include "<span class="arg">filename</span>"<br />
+@include <<span class="arg">filename</span>>
 </div>
-
-<p>
-Our Cinquecento implementation can be used
-interactively, like most scripting languages.  In this
-manual, <tt>;</tt> is the input prompt at which a
-Cinquecento form to be evaluated is entered.  The
-result of the evaluation is printed on the following
-line.  We will occasionally omit some or all output
-when it detracts from the main point.
+are replaced with the contents of the named file.
+There is currently no difference between the forms,
+but this is likely to change.
 </p>
 
 <p>
-Input can also be read from a file.  Suppose
-<tt>filename</tt> contains the line <tt>printf("hello,
-world!");</tt>.  Then:
-</p>
-
-<div id="code">
-<pre>
-; @include "filename"
-hello, world
-</pre>
-</div>
-
-<p>
-When reading input source, Cinquecento replaces any
-occurrence of the <tt>@include</tt> form with the
-contents of the named file.  They may appear anywhere
-in input.
-</p>
-
-<p>
-Comment syntax follows C.  Input enclosed in
+Comment syntax follows C and C++.  Input enclosed in
 <tt>/*</tt> <tt>*/</tt> is a comment.  Input between
 <tt>//</tt> and the next newline character is also a
 comment.
 </p>
 
+
 <h3>Cinquecento Types</h3>
 
 <p>
 Cinquecento defines several types of values.  Every
-value in Cinquecento has exactly one type.
+value in Cinquecento belongs to exactly one type.  For
+each type there is a predicate to test whether a value
+belongs to the type.
 </p>
 
 <p>
@@ -135,19 +129,18 @@ values of any type: <em>list</em>, <em>vector</em>, and
 </p>
 
 <p>
-The special value, <tt>nil</tt>, is not a member of any
+The special value <tt>nil</tt> is not a member of any
 other type or equal to any other value.
 </p>
 
 <p>
-The <em>undefined</em> value uninitialized variables
-and containers bindings and containers.  There is no
-corresponding literal.
+The <em>undefined</em> value is the value of
+uninitialized variables.  There is no literal
+expression for this value.
 </p>
 
 <p>
-For each type there is a predicate to test whether a
-value belongs to the type.  The predicates are
+The predicates are
 <tt>isctype</tt>, <tt>isdom</tt>, <tt>isas</tt>,
 <tt>isns</tt>, <tt>isrange</tt>, <tt>isaddr</tt>,
 <tt>isstr</tt>, <tt>isprocedure</tt>, <tt>isfd</tt>
@@ -165,10 +158,10 @@ values of type cvalue.
 <h3>Concepts</h3>
 
 <p>
-The syntax and types of Cinquecento are used to
-construct and interact with an abstract model of a
-program in execution.  This section describes the
-concepts and terminology underlying this model.
+A Cinquecento program constructs and interacts with an
+abstract model of a program in execution.  This section
+describes the concepts and terminology underlying this
+model.
 </p>
 
 <p>
@@ -198,97 +191,383 @@ heap space increases.
 
 <p>
 The address space provides a raw, untyped view of
-program memory.  A more abstract, symbolic view of
-memory is provided by the types associated with values
-stored in memory.  This association comes from the type
-and variable definitions made in the source code of the
-program.  The type system used by Cinquecento is based,
-tightly, on the type system of the C programming
-language.
-</p>
-
-<p>
-Programs written in languages other than C may have, at
-source level, type that are wildly different from those
-of C.  However, at the level of program memory, these
-types much eventually be reduced to a simple set of
-primitive values, which often are easily modeled as C
-types, particularly if the underlying implementation of
-the language is written in C.
-</p>
-
-<p>
-</p>
-
-
-<h3>Domains</h3>
-
-<p>
-The most important type in Cinquecento is the
-<em>domain</em>.  A domain is a representation of the
-state of a C program in execution suitable for
-examining and modifying program variables and data
-structures.  In Cinquecento these interactions are
-expressed using ordinary C expressions; a more precise
-definition of a domain is that it represents a context
-in which C expressions can be evaluated.  This context
-includes definitions of the types, variables, and
-constants referenced, perhaps implicitly, by a C
-expression.  It also includes the storage to which
-operations that reference memory are directed.
-</p>
-
-<p>
-The structure of a Cinquecento domain has two parts,
-represented by two Cinquecento values.  First, the
-<em>name space</em> is symbolic information about the
-program, the names and definitions of types and
-variables as defined in the source code of the program.
-Second, the <em>address space</em> is the uninterpreted
-memory image of a running instance of the program, a
-mapping from program addresses to the corresponding
-contents of memory.  A Cinquecento domain is a
-projection of the symbolic view of memory defined by
-the name space over memory image defined by the address
+program memory.  A higher-level view of this memory can
+be constructed by overlaying the types associated with
+the values stored in memory.  The type system used by
+Cinquecento is tightly based on the type system of the
+C programming language.  The definitions of C types to
+be associated with an address space are collected in a
+Cinquecento <em>name space</em>.  In addition, name
+spaces contain definitions of <em>symbols</em>, which
+associated names and C types to locations in an address
 space.
 </p>
 
 <p>
-Domains, name spaces, and address spaces are
-first-class values in Cinquecento.  Syntax forms allow
-new name spaces to be defined from extended form of C
-declaration syntax.  Both name spaces and address
-spaces can also be constructed from user-defined
-functions.
+Most Cinquecento programs do not operate directly on
+address spaces or name spaces.  Instead, they operate
+on a single abstraction, a <em>domain</em>, which is
+the projection of the types and symbols of a name space
+over the values stored in an address space.  A domain
+represents a context in which C expressions can be
+evaluated.  The syntax and semantics of the operators
+of the C programming language are extended to operate
+over domains.  Values yielded by these operators are
+called <em>cvalues</em>.  Cvalues are typed values; the
+type includes a reference to the domain from which the
+cvalue was derived and a reference to a definition of
+a <em>ctype</em> corresponding to the C type of the
+value.
 </p>
+
+<p>
+Domains, name spaces, and address spaces are
+first-class values in Cinquecento.  A special syntax
+form, <span class="fnindex"
+id="syn:@names">@names</span>, defines new name spaces
+using an extended form of C declaration syntax.  Name
+spaces and address spaces can also be constructed from
+by Cinquecento functions written by the user.
+</p>
+
+<h3>A Simple Domain</h3>
+
+<p>
+The following is a definition a simple domain, and its
+constituent name space and address space, that we will
+reference in the following sections.
+</p>
+
+<div class="code">
+<pre>
+/* name space */
+ns = @names c32le {
+	struct T {
+		@0	int id;
+		@4	struct T *next;
+		@8;	/* sizeof(T) */
+	};
+	@0	int x;
+	@4	int y;
+	@0	struct T t;
+};
+
+/* address space */
+as = mksas(1024);
+
+/* domain */
+dom = mkdom(ns, as);
+</div>
+
+<p>
+The usual way to construct a name space is by using
+the <span class="fnindex" id="syn:@names">@names</span>
+syntactic form.  Every new name space inherits
+definitions from a previously defined name space.
+Here, <span class="val">c32le</span> is a built-in name
+space that defines the base C types as they are
+commonly defined on 32-bit little-endian machines
+(<em>e.g.</em>, <span class="val">int</span> is four
+bytes).  The body of this <span class="fnindex"
+id="syn:@names">@names</span> expression contains
+(ignoring the <span class="val">@</span>
+subexpressions) four C declarations, one defining the
+type <span class="val">struct T</span>, and three
+declaring variables (two <span class="val">int</span>s
+and a <span class="val">struct T</span>).
+</p>
+
+<p>
+The usual way to construct an address space is by calling any one
+of a variety of built-in address space constructors.  A
+fresh instance of a zero-filled address space is
+created by a call to <span class="fnindex"
+id="fn:mksas">mksas</span>, a built-in function
+typically used to provide fixed amount (here, 1024
+bytes) of backing storage for scratch domains that do
+not represent external data.  Storage in this address
+space begins at address 0 and is contiguous.
+</p>
+
+<p>
+The built-in function <span class="fnindex"
+id="fn:mkdom">mkdom</span> constructs a new domain
+value from a pair of name space and address space
+values.  Here, <span class="val">ns</span>
+and <span class="val">as</span> are Cinquecento
+variables bound, respectively, to the previously
+defined name space and address space values, and
+<span class="val">dom</span> is bound to the resulting domain.
+</p>
+
 
 <h3>C Values</h3>
 
 <p>
-Values corresponding to values in C programs are represented
-with the Cinquecento type <span class="type">cvalue</span>.
+Most Cinquecento computations begin with a reference to
+a name in a domain.  These are resolved by the
+backtick operator.  For example, the Cinquecento
+expression
+</p>
+
+<div class="code">
+dom`x
+</div>
+
+<p>
+yields a reference to the typed location associated
+with the name <span class="val">x</span> in the
+domain <span class="val">dom</span>.  This reference is
+analogous to an <em>lvalue</em> in C: a reference
+through which a stored value may be examined or
+modified.
 </p>
 
 <p>
-In addition to its value, each cvalue has an associated
-domain and ctype.  The domain is a generally a
-reference to the domain from which the value was
-generated.  For example, the domain associated with a
-cvalue that represents a C pointers provides a reference
+The Cinquecento expression 
 </p>
 
-<h3>C Types</h3>
+<div class="code">
+a = dom`x;
+</div>
 
 <p>
-Each type used by a C program is represented in
-Cinquecento as a combination of instances of these
-categories.  Cinquecento has a distinct ctype
-constructor for each category, a predicate to test a
-ctype instance for membership in the category, and
-accessors for category-dependent attributes such as the
-fields of an aggregate and the pointed-to type of a
-pointer.
+binds a representation of the referenced value to the
+Cinquecento variable <span class="val">a</span>.
+Several things happen during the evaluation of this
+expression:
 </p>
+
+<ol>
+
+<li> The name <span class="val">x</span> is resolved in
+the domain <span class="val">dom</span>, determining
+the location of <span class="val">x</span>
+(<span class="val">@0</span> means byte offset 0) and
+the name of its type <span class="val">int</span>;
+</li>
+
+<li> Consecutive bytes comprising the value
+of <span class="val">x</span> are read from the address
+space associated with <span class="val">dom</span>
+starting at the location of <span class="val">x</span>.
+The definition of <span class="val">int</span> in the
+name space of <span class="val">dom</span> determines
+the number of bytes (4) and the encoding of the value
+(little-endian integer);
+</li>
+
+<li> A <em>cvalue</em> is constructed to represent the
+accessed value.  Conceptually, this cvalue is a tuple
+containing the domain, the type name, and the
+interpretation of the value encoded by the bytes;
+</li>
+
+<li>The variable <span class="val">a</span> is bound to the cvalue.</li>
+</ol>
+
+
+<p>
+Most C operators that compute or compare values, such
+as the arithmetic, bitwise, logical, and relational
+operators, operate over and yield typed values that
+standard descriptions of C call <em>rvalues</em>.
+Cinquecento cvalues
+are concrete, first-class representations of C rvalues.
+</p>
+
+<p>
+Cinquecento emulates the behavior of all C operators.
+Operations that yield an rvalue in C yield a cvalue in
+Cinquecento with equivalent value and type.  Overflow
+and underflow semantics on arithmetic are preserved,
+the standard promotion and conversion rules are applied
+to the operands of operators, and so on.
+</p>
+
+<p>
+For example, following the evaluation of this sequence
+of expressions:
+</p>
+
+<div class="code">
+a = dom`x;<br />
+b = dom`y;<br />
+c = a+b;
+</div>
+
+<p>
+the variable <span class="val">c</span> is bound to a
+new cvalue that represents the same
+32-bit <span class="val">int</span> value that would be
+computed in a C program modeled
+by <span class="val">dom</span>.
+</p>
+
+<p>
+As another example, in C the result of a relational
+operation is an integer rvalue representing the boolean
+outcome of the comparison. In Cinquecento the result of
+a relational operator is a cvalue of type <span class="val">int</span>
+with value <span class="val">0</span> or <span class="val">1</span>.
+</p>
+
+<p>
+There is an important conceptual difference between C
+rvalues and Cinquecento cvalues.  Rvalues are
+intangible abstractions for values computed by C
+expressions.  An rvalue can be stored in a typed
+location in the address space of the program
+(<em>i.e.</em>, by assigning it to a declared variable
+or a dereferenced pointer), but it cannot be handled
+directly.  Cvalues, in contrast, are first-class values
+that can be bound to Cinquecento variables.  Like other
+values in dynamically typed languages, cvalues carry
+their types with them.  Similarly, storage for
+Cinquecento cvalues is like storage for ordinary data
+in most functional languages: it is unnamed storage
+implicitly managed by the Cinquecento implementation.
+In particular, cvalues do not occupy storage in a
+domain.
+</p>
+
+<h3>Pointers</h3>
+
+<p>
+Pointers are values that represent typed locations.
+Cvalues, in addition to their type, carry a reference
+to a domain.  This reference is used to resolve pointer
+operations on pointer-typed cvalues to a location in an
+address space.  The expression:
+</p>
+
+<div class="code">
+	p = &dom`x;
+</div>
+
+</p>
+binds <span class="val">p</span>
+to a cvalue that represents the
+location associated with
+<span class="val">x</span> in <span class="val">dom</span>.
+(The
+precedence of
+<span class="val">`</span>
+is higher than that of
+<span class="val">&</span>
+and most other operators so that domain name references
+bind tightly.)  Specifically, this cvalue comprises:
+</p>
+
+\begin{itemize}
+
+\item a value corresponding to the address of {\tt x}
+      in {\tt dom};
+\item the type name {\tt int*};
+\item a reference to the domain {\tt dom}.
+
+\end{itemize}
+
+The C pointer dereference operator {\tt *} is defined
+in Cinquecento over pointer-typed cvalues.  Precisely
+as a C programmer would expect, {\tt *} accesses the
+contents of the location in the associated domain,
+using the underlying type of the pointer, as defined by
+the domain, to determine the number of bytes to access
+and their encoding.  For example, given the above
+binding of {\tt p}, either of the two expressions:
+
+\begin{verbatimtab}[4]
+	a = *p;		a = dom`x;
+\end{verbatimtab}
+
+\noindent would bind {\tt a} to the same cvalue.
+
+Pointer arithmetic works as expected.  The following
+sequence of expressions:
+
+\begin{verbatimtab}[4]
+	p = &dom`x;
+	p = p+1;
+\end{verbatimtab}
+
+\noindent leaves {\tt p} bound to a pointer cvalue that
+refers to the location following {\tt x} in {\tt dom}.
+In C pointer arithmetic, the amount by which the value
+of a pointer is incremented is determined by the size
+of the underlying type of the pointer.  In Cinquecento,
+this size is determined by the definition of the type
+in the domain of the cvalue.
+
+Pointers to aggregate types also work as expected.  The
+following sequence of expressions:
+
+\begin{verbatimtab}[4]
+	p = &dom`t;
+	p->next = p+1;
+\end{verbatimtab}
+
+\noindent assigns the {\tt next} field of the {\tt
+struct T} at location {\tt t} in {\tt dom} to point to
+the beginning of the next logical {\tt struct T}.
+Although there is no symbol corresponding to this
+location, we can, as in C, use pointers to impute types
+to otherwise untyped locations.
+
+The C pointer/array relationship works as expected.
+This sequence of expressions has an equivalent effect
+to the preceding one:
+
+\begin{verbatimtab}[4]
+	p = &dom`t;
+	p[0].next = p+1;
+\end{verbatimtab}
+
+The adherence to C pointer semantics extends to
+disregard for pointer safety.  The following sequence
+of expressions:
+
+\begin{verbatimtab}[4]
+	p = &dom`x;
+	p = p+256;
+\end{verbatimtab}
+
+\noindent binds {\tt p} to a pointer to a location that
+does not exist in the address space of {\tt dom} (since
+we used {\tt mkzas} to create a fixed 1024-byte address
+space).
+
+Such pointers, as in C, are harmless until
+dereferenced.  An attempt to dereference a pointer to
+an unmapped location in Cinquecento raises a top-level
+access fault exception that aborts execution of the
+current Cinquecento program (but leaves the Cinquecento
+system running).  There is no way for a program to
+catch this or any other Cinquecento exception: they are
+indications to the user that there is a bug in their
+Cinquecento program, which they should stop and fix.
+(Automated recovery from bugs is for robots and
+spacecraft, not debuggers.)  Programs can test, without
+risk of raising an exception, whether a span of storage
+in a domain is mapped by calling the built-in function
+{\tt ismapped}.
+
+Operations on incorrect pointer values in Cinquecento,
+unlike such operations in C, never cause corruption to
+the runtime of the Cinquecento system.  The
+environment, control, and other execution state of the
+Cinquecento system are not represented by a domain, and
+thus are not addressable data that a Cinquecento
+program can mutate.  (For example, you cannot apply the
+{\tt \&} operator to a Cinquecento variable in hope of
+discovering its address.)  As with other safe
+functional language runtimes, misbehavior or failure of
+the Cinquecento runtime is an implementation bug, never
+a consequence of operating on erroneous user data.
+
+
+
+<h3>Name spaces</h3>
 
 <p>
 Cinquecento ctypes represent both C type names and C
@@ -318,22 +597,6 @@ address of a 64-bit integer encoded in big-endian
 order, while another may be define it be a 32-bit
 address of a 32-bit integer encoded in little-endian
 order.
-</p>
-
-<p>
-Type names and type definitions are first-class
-Cinquecento values represented by the type
-<em>ctype</em>.  Whether a ctype value represents a
-type name or a type definition depends on its
-properties.  Usually it is clear from the context in
-which the ctype was produced.
-</p>
-
-<p>
-There is a ctype constructor for each type category.
-For a given category, the same constructor can generate
-either a type name or a type definition, depending on
-the arguments.  The constructors are:
 </p>
 
 <p>
@@ -487,7 +750,7 @@ expressions that involve storage access operations
 (such as dereferencing a pointer).  However, programs
 may directly invoked these functions by name using an
 overloaded form of the C binary dot operator:
-<div id="code">
+<div class="code">
 <pre>
 ; as.get(mkrange(0,1024));
 </pre>
@@ -510,7 +773,7 @@ In addition, if the right operand is the identifier
 simply the dispatch function of the address space,
 instead of the curried version described above.
 For example, the above call to <tt>get</tt> is equivalent to:
-<div id="code">
+<div class="code">
 <pre>
 ; as.dispatch("get",mkrange(0,1024));
 </pre>
@@ -554,9 +817,12 @@ cvalue used to construct the address
 <h3>Ctypes</h3>
 
 <p>The Cinquecento type <em>ctype</em> represents types
-defined in C programs.  The <span class="fnindex"><a href="#syn:typeof">typeof</a></span> operator can be used to obtain
-a ctype representing the type of a cvalue or the type
-denoted by a type name.
+defined in C programs.  The predicate
+<span class="id" id="fn:isctype">isctype</span> tests whether a value is
+a ctype.
+The <span class="fnindex"><a href="#syn:typeof">typeof</a></span>
+operator can be used to obtain a ctype representing the
+type of a cvalue or the type denoted by a type name.
 </p>
 
 <div class="docitem" id="syn:typeof">
@@ -1574,7 +1840,9 @@ arguments.  </div> </div>
 Lists are variable-length ordered collections, possibly
 empty.  Lists are mutable, allowing items to be added
 or deleted from any position, and contiguously indexed
-from position 0.
+from position 0.  The predicate
+<span class="id" id="fn:islist">islist</span> tests whether a value is
+a list.
 </p>
 
 <div class="docitem" id="fn:list">
@@ -1859,7 +2127,9 @@ Returns a new list containing the elements of <span class="arg">list</span> in r
 Vectors are fixed-length ordered collections, possibly
 empty.  Vectors are mutable, allowing items to be
 changed at any position, and contiguously indexed from
-position 0.
+position 0.  The predicate
+<span class="id" id="fn:isvector">isvector</span> tests whether a value is
+a vector.
 </p>
 
 <div class="docitem" id="fn:mkvec">
@@ -1971,7 +2241,9 @@ class="type">vec</span> does not contain more than
 <p>
 Tables store key/value pairs.  Keys and values may be
 any type of Cinquecento value other than <span
-class="type">nil</span>.
+class="type">nil</span>.  The predicate
+<span class="id" id="fn:istable">istable</span> tests whether a value is
+a table.
 </p>
 
 <div class="docitem" id="fn:mktab">
@@ -2123,10 +2395,12 @@ second half contains, in corresponding order,  the values.
 <p>
 The Cinquecento string type represents an array of
 bytes.  Cinquecento strings have fixed length (possibly
-zero), are indexed from position 0, and are not
-null terminated.  Strings are mutable, but do not share
+zero), are indexed from position 0, and are not null
+terminated.  Strings are mutable, but do not share
 storage with other strings.  The maximum string length
-is 2^64-1.
+is 2^64-1.  The predicate
+<span class="id" id="fn:isstring">isstring</span> tests whether a value is
+a string.
 </p>
 
 <p>
@@ -2364,6 +2638,8 @@ class="arg">ptr</span>.
 Cinquecento supports I/O over regular files and network
 connections.  An open file or network connection is
 represented by an instance of the file descriptor type.
+The predicate <span class="id" id="fn:isfd">isfd</span>
+tests whether a value is a file descriptor.
 </p>
 
 <div class="docitem" id="fn:open">
@@ -2573,15 +2849,15 @@ formatted output to various destinations.
 </p>
 
 <p>
-Each function expects a format string argument.
-The format string
-can contain conversion specifications similar (but not identical)
-to those handled by C stdio library functions.
-Each conversion specification has the form <span
-class="val">%<span class="arg">verb</span></span>.  The
-specifications are processed in order; each operates
-in turn on the remaining values passed to the format
-function.
+Each function expects a format string argument.  The
+format string may include conversion specifications
+that are similar (but not identical) to those handled
+by C stdio library functions.  Each conversion
+specification has the
+form <span class="val">%<span class="arg">verb</span></span>.
+The specifications are processed in order; each
+operates in turn on the remaining values passed to the
+format function.
 </p>
 
 <p>
@@ -2821,7 +3097,7 @@ Seeds the random number generator used by <span class="id">rand</span>.
 </div>
 </div>
 
-<h3 id="sec:system">C Interface</h3>
+<h3 id="sec:cinterface">C Interface</h3>
 
 <p>
 The following functions comprise the C interface to the
@@ -2829,11 +3105,38 @@ L1 implementation of Cinquecento.  The interface is defined in
 <span class="val">cqct.h</span>.
 For an example of
 how to use the interface, see the file <span
-class="val">main.c</span> in the L1 distribution, which
+class="val">main.c</span> in the L1 implementation, which
 implements a simple Cinquecento read-eval-print loop.
 The functions are described below in the general order in
 which they would be called.
 </p>
+
+<p>
+The interface operates on values of several opaque
+types.
+</p>
+
+<div id="table">
+<table>
+<tr>
+<td><span class="id">Closure</span><td>
+<td>Closure<td>
+</tr>
+<tr>
+<td><span class="id">Env</span><td>
+<td>Environment<td>
+</tr>
+<tr>
+<td><span class="id">Expr</span><td>
+<td>Parsed Cinquecento expression<td>
+</tr>
+<tr>
+<td><span class="id">VM</span><td>
+<td>Virtual machine for evaluating compiled Cinquecento expression<td>
+</tr>
+</table>
+</div>
+
 
 <div class="docitem" id="fn:cqctinit">
 <div class="proto">
@@ -2871,6 +3174,154 @@ class="arg">env</span>.
 </div>
 </div>
 
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctparsefile">Expr* cqctparsefile(char *<span class="arg">filename</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctparsestr">Expr* cqctparsestr(char *<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">filename</span>: <span class="type">file name</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">C string</span>
+</div>
+<div class="returns">
+<span class="type"><span class="arg">Expr</span></span>
+</div>
+</div>
+<div class="desc">
+Returns an <span class="arg">Expr</span> representing
+the parsed form of the input expression.  The input
+expression for <span class="id">cqctparsefile</span> is
+the contents of the
+file <span class="arg">filename</span>.  The input
+expression for <span class="id">cqctparsestr</span> is
+the contents of the
+string <span class="arg">str</span>.  Unless it is subsequently passed to 
+<span class="fnindex"><a href="#fn:cqctcompile">cqctcompile</a></span>,
+the returned expression should be freed
+with <span class="fnindex"><a href="#fn:cqctfreeexpr">cqctfreeexpr</a></span>.
+
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctcompile">Closure* cqctcompile(Expr *<span class="arg">expr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">Expression to be compiled</span>
+</div>
+<div class="returns">
+<span class="type">Closure</span>
+</div>
+</div>
+<div class="desc">
+Compiles Cinquecento code represented
+by <span class="arg">expr</span> and returns a function
+of zero arguments (thunk) that, when called, executes the code.
+The closure captures a reference
+to <span class="arg">expr</span> that will be freed by
+the storage manager when the closure is reclaimed.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(Closure *<span class="arg">thunk</span>)</span>
+</div>
+<div class="param">
+<span class="arg">thunk</span>: <span class="type">Closure</span>
+</div>
+<div class="returns">
+<span class="type">status</span>
+</div>
+</div>
+<div class="desc">
+Calls <span class="arg">thunk</span>.
+Returns <span class="val">-1</span> if an error occurred,
+<span class="val">0</span> otherwise.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctprintvmac">int cqctprintvmac(Closure *<span class="arg">vm</span>)</span>
+</div>
+<div class="param">
+<span class="arg">vm</span>: <span class="type">VM</span>
+</div>
+</div>
+<div class="desc">
+Print on the standard output of <span class="arg">vm</span>
+the value currently stored in its accumulator register.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctgcprotect">int cqctgcprotect(Closure *<span class="arg">vm</span>, void *<span class="arg">object</span>)</span>
+</div>
+<div class="param">
+<span class="arg">vm</span>: <span class="type">VM</span>
+</div>
+<div class="param">
+<span class="arg">obj</span>: <span class="type">Object</span>
+</div>
+</div>
+<div class="desc">
+Protects <span class="arg">obj</span> from collection by
+registering it with the current protection frame
+of <span class="arg">vm</span>.  The only valid type to which
+<span class="arg">obj</span> may point
+ is <span class="type">Closure</span>.  The object will
+ not be reclaimed until the frame is popped
+ or <span class="arg">vm</span> is freed.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctfreeexpr">void cqctfreeexpr(Expr *<span class="arg">expr</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctfreevm">void cqctfreevm(VM *<span class="arg">vm</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctfini">void cqctfini(Env *<span class="arg">env</span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">Expr</span>
+</div>
+<div class="param">
+<span class="arg">vm</span>: <span class="type">VM</span>
+</div>
+<div class="param">
+<span class="arg">env</span>: <span class="type">Env</span>
+</div>
+</div>
+<div class="desc">
+These functions free the resources allocated by the above functions.
+<span class="id">Cqctfreeexpr</span> frees an
+expression, and should be called only if the expression
+has not been successfully compiled.
+<span class="id">Cqctfreevm</span> frees a virtual machine.
+<span class="id">Cqctfreeenv</span> frees a toplevel
+environment, and should be called only after all virtual
+machines sharing the environment have been freed.
+</div>
+</div>
+
+
 
 <h3 id="sec:fnindex">Syntax Index</h3>
 
@@ -2896,6 +3347,17 @@ class="arg">env</span>.
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
 <a href="#fn:close">close</a><br />
 <a href="#fn:copy">copy</a><br />
+<a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
+<a href="#fn:cqctcompile">cqctcompile</a><br />
+<a href="#fn:cqctfini">cqctfini</a><br />
+<a href="#fn:cqctfreeexpr">cqctfreeexpr</a><br />
+<a href="#fn:cqctfreevm">cqctfreevm</a><br />
+<a href="#fn:cqctgcprotect">cqctgcprotect</a><br />
+<a href="#fn:cqctinit">cqctinit</a><br />
+<a href="#fn:cqctmkvm">cqctmkvm</a><br />
+<a href="#fn:cqctparsefile">cqctparsefile</a><br />
+<a href="#fn:cqctparsestr">cqctparsestr</a><br />
+<a href="#fn:cqctprintvmac">cqctprintvmac</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:fdname">fdname</a><br />
 <a href="#fn:fieldid">fieldid</a><br />
@@ -2911,8 +3373,10 @@ class="arg">env</span>.
 <a href="#fn:isarray">isarray</a><br />
 <a href="#fn:isbase">isbase</a><br />
 <a href="#fn:isbitfield">isbitfield</a><br />
+<a href="#fn:isctype">isctype</a><br />
 <a href="#fn:isenum">isenum</a><br />
 <a href="#fn:isenumconst">isenumconst</a><br />
+<a href="#fn:isfd">isfd</a><br />
 <a href="#fn:isfunc">isfunc</a><br />
 <a href="#fn:isptr">isptr</a><br />
 <a href="#fn:isstruct">isstruct</a><br />

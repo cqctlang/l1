@@ -67,28 +67,17 @@ todo
   - can we programmatically dump all fields in a struct, even
     if there are bitfields?  would be a nice example.
   - handle stack overflow
-  - @include at interactive prompt confusingly does not necessarily
-    print the value of the last expression:
-	x = 2;
-	y = 5;
-	z = x;
-    ... probably because their is no mechanism to force the
-    final statement to have its value returned.
-    ideally, want return E for all E that can be final expression.
   - how to define strings of length 2^64?
   - check for negative cvals on Irange, Istr, Islice*, Ivec*, etc.
   - change all thunks that do not return values to return nil
   - check various parse/compile error recovery paths for leaks
-  - while(1); should run in constant memory but it does not.
-    problem seems to be that mutator can alloc new cvalues
-    faster than gc can put them back onto the freelist.
-
+  - mutator can alloc new cvalues faster than gc can
+    put them back onto the freelist.
     potential solution: block halloc from allocating new memory
          until one of more gc epoch has finished;
          then retry.
          need to be careful about not restarting gc, because
          existing invariant holds that dovm is a gc epoch barrier.
-
   - all type deconstructors (e.g., fields) need to check for
     type attributes that are not required for constructors
   - why do vmerr backtraces include entry, but not fatal ones?
@@ -148,6 +137,15 @@ todo
   - c.y: replace empty statement bodies with nop statement?
     (empty statement bodies caused cg bug:
 	if(1) {} return 3; (fixed 8/22/08)
+  - jvm "quick" instructions that replace themselves
+    on first execution with new instructions that cache
+    results of first execution.  e.g., getfield instructions
+  - david gregg et al use super instructions
+    and replication of code implementing an instruction
+    to reduce branch misprediction.  how does their
+    model of branch prediction map to current intel processors?
+    (2-level indirect as used on pentium M?)
+    see also at least 3 items in related work.
 
 - ideas
   - immutable vectors for type datastructures (fields and params)?
