@@ -322,8 +322,8 @@ struct Xtypename {
 	Val bit0;		/* bitfield */
 	Xtypename *link;	/* ptr, arr, func, bitfield, enum, const */
 	Vec *field;		/* struct, union */
-	Vec *param;		/* abstract declarators for func */
-	Vec *konst;		/* constants for enum */
+	Vec *param;		/* func */
+	Vec *konst;		/* enum (constants) */
 };
 
 typedef
@@ -6158,6 +6158,34 @@ fmticval(Fmt *f, unsigned char conv, Cval *cv)
 	return fmtputs(f, buf, strlen(buf));
 }
 
+static int
+fmtenconst(Fmt *f, Cval *cv)
+{
+	Xtypename *t;
+	Vec *v;
+	Cval *k;
+	Str *s;
+	u32 m;
+
+	t = cv->type;
+	while(t->tkind == Ttypedef)
+		t = t->link;
+	if(t->tkind != Tenum)
+		return fmticval(f, 'd', cv);
+	for(m = 0; m < t->konst->len; m++){
+		v = valvec(vecref(t->konst, m));
+		k = valcval(vecref(v, 1));
+		/* direct comparison is sane because
+		 * enum consts all have the same
+		 * type */
+		if(cv->val == k->val){
+			s = valstr(vecref(v, 0));
+			return fmtputs(f, s->s, s->len);
+		}
+	}
+	return fmticval(f, 'd', cv);
+}
+
 static void
 dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
@@ -6215,6 +6243,13 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				goto badarg;
 			cv = valcval(vp);
 			if(fmticval(f, ch, cv))
+				return;
+			break;
+		case 'e':
+			if(vp->qkind != Qcval)
+				goto badarg;
+			cv = valcval(vp);
+			if(fmtenconst(f, cv))
 				return;
 			break;
 		case 'p':

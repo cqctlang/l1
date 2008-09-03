@@ -1,0 +1,15 @@
+ns = @names c32le {
+   enum E {
+   	a = 0,
+	b,
+	c,
+	d = c,
+	e,
+   };
+};
+
+dom = mkdom(ns, mknas());
+
+x = dom`a;
+for(x = dom`a; x < 5; x++)
+      printf("%t\t%e\n", x, x);
