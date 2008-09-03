@@ -4539,6 +4539,19 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	putvalrand(vm, rv, dst);
 }
 
+static int
+iscvaltype(Xtypename *t)
+{
+	static int okay[Tntkind] = {
+		[Tbase] = 1,
+		[Tptr] = 1,
+		[Tbitfield] = 1,
+	};
+
+	t = chasetype(t);
+	return okay[t->tkind];
+}
+
 static void
 xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 {
@@ -4556,6 +4569,8 @@ xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 	typeordomv = getvalrand(vm, typeordom);
 	if(typeordomv->qkind == Qxtn){
 		t = valxtn(typeordomv);
+		if(!iscvaltype(t))
+			vmerr(vm, "illegal type conversion");
 		rv = mkvalcval2(typecast(vm, t, cv));
 	}else if(typeordomv->qkind == Qdom){
 		d = valdom(typeordomv);
