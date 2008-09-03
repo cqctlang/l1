@@ -18,6 +18,8 @@ ffffffff
 ; printf("%x\n", (`int32)(`int8)0xff);
 ff
 
+*****  I think I fixed these, but I don't remember ******
+
 ub233% pwd
 /.ccs/u02/vczandy/perf/scripts
 ub233% ~/src/l1/l1 -e test.cqct;
@@ -50,18 +52,64 @@ dw_process_location_list        (dweval.cqct:583)
 ./doperf: line 15: 21661 Aborted                 $HOME/src/l1/l1 -e test.cqct
 
 
+*****  **********************************   ******
+
+these occurred on commit: (sep 3 08)
+	c8d55f92f448128e8881f1758ed76a53be860d11
+on two consecutive runs, then again on a later run,
+otherwise not reproduced
+
+ucs2l% ./l1
+; @include <pras.l1>
+<procedure mkpras>
+; mkpras("localhost:30000", "/bin/ls", "/");
+connecting to localhost:30000
+output flushing 27 bytes
+did output flush
+internal error: sweep heap (vector) 0x14570d40 bad state 1
+backtrace of vm 0x14308150:
+                read	(builtin function)
+            dispatch	(fdas.l1:76)
+               apply	(builtin function)
+               read1	(pras.l1:179)
+              launch	(pras.l1:241)
+              mkpras	(pras.l1:321)
+
+Abort
+ucs2l% ./l1
+; @include <pras.l1>
+<procedure mkpras>
+; mkpras("localhost:30000", "/bin/ls", "/");
+connecting to localhost:30000
+output flushing 27 bytes
+did output flush
+internal error: sweep heap (vector) 0x16a57d40 bad state 1
+backtrace of vm 0x167ef150:
+                read	(builtin function)
+            dispatch	(fdas.l1:76)
+               apply	(builtin function)
+               read1	(pras.l1:179)
+              launch	(pras.l1:241)
+              mkpras	(pras.l1:321)
+
+Abort
 
 
-copy ~jdraper/projects/cqct64/testdir2 and cd into the scripts subdirectory. Then invoke l1 on test.cqct
+ucs2l% ./l1
+; @include <pras.l1>
+<procedure testpras>
+; testpras();
+connecting to localhost:30000
+output flushing 27 bytes
+did output flush
+internal error: sweep heap (vector) 0x38fc9f0 bad state 1
+backtrace of vm 0x368d150:
+                read	(builtin function)
+            dispatch	(fdas.l1:82)
+               apply	(builtin function)
+               read1	(pras.l1:179)
+              launch	(pras.l1:241)
+              mkpras	(pras.l1:323)
+            testpras	(pras.l1:333)
 
-bash-3.2$ pwd
-/u01/jdraper/projects/cqct64/testdir2/scripts
-bash-3.2$ ../l1/l1 -e test.cqct
-internal error: multiple labels L170613,L170615
-backtrace of vm 0x1bbf0530:
-
-Aborted
-bash-3.2$ 
-
-/u01/jdraper/projects/cqct64/testdir2/scripts/dw.cqct:3719
-	empty else clause in {}, in switch case, followed by return expr;
+Abort

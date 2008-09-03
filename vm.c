@@ -6908,6 +6908,10 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(i = 0; i < xtn->field->len; i++){
 		vp = vecref(xtn->field, i);
 		if(eqstrv(argv[1], vecref(valvec(vp), Idpos))){
+			printf("lookfield on %.*s returning %p\n",
+			       (int)((Str*)argv[1])->len,
+			       ((Str*)argv[1])->s,
+			       vp);
 			*rv = vp;
 			return;
 		}

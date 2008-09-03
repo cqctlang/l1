@@ -1,3 +1,9 @@
+// on input streams, it is easy to not read all pending input on the
+// stream, for example by having a pointer to a struct for the last
+// message and not accessing the last byte in the message.  in this
+// case, when the stream closes, the other side sees RST instead of
+// FIN.
+
 define mkindispatch(fd, eofk){
 	@local buf, lo, hi, peek, off, max, grow, dispatch;
 	lo = 0;
@@ -133,9 +139,9 @@ define mkoutdispatch(fd, eofk){
 			if(beg+len > hi)
 				hi = beg+len;
 		}else if(arg == "flush"){
-			printf("flushing %d bytes\n", hi);
+			printf("output flushing %d bytes\n", hi);
 			write(fd, substr(buf, 0, hi));
-			printf("did flush\n", hi);
+			printf("did output flush\n", hi);
 			buf = mkstr(max);
 			off += hi;
 			hi = 0;

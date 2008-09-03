@@ -41,6 +41,12 @@ protns = @names c32le {
 		Rtest
 	};
 
+	enum State {
+		Running,
+		Stopped,
+		Dead,
+	};
+
 	typedef
 	struct Reg {
 		@0	uint64 ebx;
@@ -80,7 +86,7 @@ protns = @names c32le {
 		@89;
 	};
 	typedef struct Rlaunch Rlaunch;
-	typedef struct Rlaunch Rlaunch;
+	typedef struct Rlaunch Rstop;
 
 	struct Rcont{
 		@0	uint8 op;
@@ -89,6 +95,7 @@ protns = @names c32le {
 		@9;
 	};
 	typedef struct Rcont Tcont;
+	typedef struct Rcont Tstop;
 	typedef struct Rcont Rcont;
 	typedef struct Rcont Rwrite;
 	typedef struct Rcont Rattach;
@@ -134,11 +141,24 @@ protns = @names c32le {
 
 define mkpras arg {
 	@local addr, fd, cmd, as, protdom, l;
-	@local indom, outdom, ip, op, narg, argvlen, i, id, read1;
+	@local indom, outdom, ip, op, p;
+	@local read1, ipress, opress, xwr, launch; 
+	@local id, state, reg;
 
-	define press(t){
+	define ipress(t){
 		ip = {t}ip;
 		return ip++;
+	}
+
+	define opress(t){
+		op = {t}op;
+		return op++;
+	}
+
+	define copydata(p){
+		@local dom;
+		dom = mkdom(nsof(p), mksas(getbytes(p)));
+		return {typeof(p)}{dom}0;
 	}
 
 	define xwr(v){
@@ -153,26 +173,22 @@ define mkpras arg {
 			error("bad argument to xwr: %a", v);
 	}
 
-	define xwp(t){
-		...
-	}
-
 	define read1() {
 		@local sz;
 
 		if(indom.iseof())
 			return nil;
 
-		sz = *press(#indom`uint64*#);
+		sz = *ipress(#indom`uint64*#);
 		printf("received %u byte reply\n", sz);
 		ip = (`uint8*)ip;
 		switch((enum Mkind)*ip){
 		case indom`Rlaunch:
-			return press(#indom`Rlaunch*#);
+			return ipress(#indom`Rlaunch*#);
 		case indom`Rcont:
-			return press(#indom`Rcont*#);
+			return ipress(#indom`Rcont*#);
 		case indom`Aobit:
-			return press(#indom`Aobit*#);
+			return ipress(#indom`Aobit*#);
 		case indom`Rstop:
 		case indom`Rkill:
 		case indom`Rsetbrk:
@@ -191,68 +207,126 @@ define mkpras arg {
 		}
 	}
 
+	define checkreply(op, reply){
+		if(reply->op == indom`Rerror)
+			error("pras: while waiting for %e: %s",
+			      op, reply->bytes);
+		if(reply->op != op)
+			error("pras: while waiting for %e: received %e",
+			      op, (enum Mkind)reply->op);
+	}
+
+	define launch(arg){
+		@local argvlen, narg, i;
+
+		narg = length(arg);
+		if(narg == 0)
+			error("mkpras: launch: empty command");
+
+		/* format Tlaunch message */
+		argvlen = 0;
+		for(i = 0; i < narg; i++)
+			argvlen += strlen(listref(arg, i))+1;
+		xwr((`uint64)(sizeof(outdom`Tlaunch)+argvlen));
+		p = opress(#outdom`Tlaunch*#);
+		p->op = outdom`Tlaunch;
+		p->narg = narg;
+		for(i = 0; i < narg; i++){
+			xwr(listref(arg, i));
+			xwr((`uint8)0);
+		}
+		outdom.flush();
+
+		/* receive Rlaunch reply */
+		reply = read1();
+		checkreply(indom`Rlaunch, reply);
+		id = reply->id;
+		printf("about to copydata\n");
+		reg = copydata(&reply->reg);
+		printf("did copydata\n");
+		indom.flush();
+
+		state = indom`Stopped;
+	}
+
+	define cont(){
+		if(state != indom`Stopped)
+			return;
+
+		xwr((`uint64)sizeof(outdom`Tcont));
+		p = opress(#outdom`Tcont*#);
+		p->op = outdom`Tcont;
+		p->id = id;
+		outdom.flush();
+
+		reply = read1();
+		checkreply(indom`Rcont, reply);
+		indom.flush();
+
+		state = indom`Running;
+	}
+
+	define brk(){
+		if(state != indom`Running)
+			return;
+
+		xwr((`uint64)sizeof(outdom`Tstop));
+		p = opress(#outdom`Tstop*#);
+		p->op = outdom`Tstop;
+		p->id = id;
+		outdom.flush();
+
+		reply = read1();
+		checkreply(indom`Rstop, reply);
+		reg = copydata(reply->reg);
+		indom.flush();
+
+		state = indom`Stopped;
+	}
+
+	define ack(){
+		xwr((`uint64)sizeof(outdom`Aack));
+		p = opress(#outdom`Aack*#);
+		p->op = outdom`Aack;
+		p->id = id;
+		outdom.flush();
+	}
+
+	define sync(){
+		reply = read1();
+		switch(reply->op){
+		case indom`Aobit:
+			ack();
+			if(reply->id != id)
+				error("pras: got obituary for unknown task");
+			state = indom`Dead;
+			break;
+		case indom`Abrk:
+		case indom`Asnap:
+			error("pras: sync: unhandled message: %e",
+			      (enum Mkind)reply->op);
+		default:
+			error("pras: sync: unexpected message: %e",
+			      (enum Mkind)reply->op);
+		}
+	}
+
 	addr = listref(arg, 0);
 	pop(arg);
-	narg = length(arg);
-	if(narg == 0)
-		error("mkpras: empty command");
-
 	printf("connecting to %s\n", addr);
 	fd = opentcp(addr);
 	l = mkfdas(fd, nil);
 	indom = mkdom(protns, listref(l, 0));
 	outdom = mkdom(protns, listref(l, 1));
-
-	printf("sizeof(indom`Tcont) is %d\n", sizeof(indom`Tcont));
-
 	ip = {indom}0;
 	op = {outdom}0;
+	launch(arg);
 
-	/* format Tlaunch message */
-	argvlen = 0;
-	for(i = 0; i < narg; i++)
-		argvlen += strlen(listref(arg, i))+1;
-	printf("%u bytes in message header\n", sizeof(outdom`Tlaunch));
-	printf("%u bytes in argument list\n", argvlen);
-	xwr((`uint64)(sizeof(outdom`Tlaunch)+argvlen));
-	xwr((`uint8)outdom`Tlaunch);
-	xwr((`uint64)narg);
-	for(i = 0; i < narg; i++){
-		xwr(listref(arg, i));
-		xwr((`uint8)0);
-	}
-	/* send it */
-	outdom.flush();
+	cont();
+	sync();
+}
 
-	/* receive Rlaunch reply */
-	reply = read1();
-	printf("op is %e\n", (enum Mkind)reply->op);
-	id = reply->id;
-	printf("id is %u\n", id);
-	printf("eip is %x\n", reply->reg.eip);
-	indom.flush();
-
-	/* continue proc */
-	xwr((`uint64)sizeof(outdom`Tcont));
-	xwr((`uint8)outdom`Tcont);	
-	xwr(id);
-	outdom.flush();
-
-	/* receive Rcont reply */
-	reply = read1();
-	printf("op is %e\n", (enum Mkind)reply->op);
-	printf("id is %u\n", reply->id);
-	indom.flush();
-
-	/* receive Aobit */
-	reply = read1();
-	printf("op is %e\n", (enum Mkind)reply->op);
-	printf("id is %u\n", reply->id);
-	indom.flush();
-	
-	/* send Aack */
-	xwr((`uint64)sizeof(outdom`Aack));
-	xwr((`uint8)outdom`Aack);	
-	xwr(id);
-	outdom.flush();
+define testpras()
+{
+	mkpras("localhost:30000", "/bin/ls", "/");
 }
