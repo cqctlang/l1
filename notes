@@ -4,7 +4,6 @@ todo
   - other string functions
     strcata
     isstring like old cqct isstring?
-  - make len argument to getbytes optional
   - rationalize names of various type routines
 	 (isfunc/mkctype_fn, isenumconst/mkctype_const,...)
   - provide a mapfile mode argument:
@@ -61,6 +60,7 @@ todo
     typedef X and enum X or sym X and user says
     	    sizeof(dom`X);
     seems now that typedef wins.
+  - make define implicitly add @local binding to enclosing block
 
 - usability
   - change "entry" to "toplevel"

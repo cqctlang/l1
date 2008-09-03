@@ -8529,22 +8529,30 @@ static void
 l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 {
 	Cval *addr, *len;
+	Imm n;
 	Xtypename *t;
 	Val argv[2], p;
 	Range *r;
 
-	if(iargc != 2)
+	if(iargc != 1 && iargc != 2)
 		vmerr(vm, "wrong number of arguments to getbytes");
+
 	checkarg(vm, "getbytes", iargv, 0, Qcval);
-	checkarg(vm, "getbytes", iargv, 1, Qcval);
 	addr = valcval(iargv[0]);
-	len = valcval(iargv[1]);
 	t = chasetype(addr->type);
 	if(t->tkind != Tptr)
 		vmerr(vm, "operand 1 to getbytes must be a pointer");
+
+	if(iargc == 2){
+		checkarg(vm, "getbytes", iargv, 1, Qcval);
+		len = valcval(iargv[1]);
+		n = len->val;
+	}else
+		n = typesize(vm, t->link);
+
 	argv[0] = mkvalstr(vm->sget);
 	r = mkrange(mkcval(addr->dom, addr->dom->ns->base[Vptr], addr->val),
-		    mkcval(addr->dom, addr->dom->ns->base[Vptr], len->val));
+		    mkcval(addr->dom, addr->dom->ns->base[Vptr], n));
 	argv[1] = mkvalrange2(r);
 	p = dovm(vm, addr->dom->as->dispatch, 2, argv);
 	if(p->qkind != Qstr)
