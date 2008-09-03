@@ -57,11 +57,19 @@ todo
   
           4. gc walks gc prot list on all continuations
 
+  - determine and document what happens when ns defines
+    typedef X and enum X or sym X and user says
+    	    sizeof(dom`X);
+    seems now that typedef wins.
 
 - usability
   - change "entry" to "toplevel"
   - print the original source for a lambda
   - use-before-define analysis
+  - when an as .operator errors, the stack trace shows "apply"
+    as the next frame, followed by the name of the as dispatch
+    routine, instead of the name of the faulting operator.
+    it would be nice to see the name of the operator.
 
 - robustness
   - can we programmatically dump all fields in a struct, even

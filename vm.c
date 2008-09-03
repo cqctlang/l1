@@ -7670,16 +7670,19 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = open(name, O_RDONLY);
 	free(name);
 	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		      strerror(errno));
 	if(0 > fstat(fd, &st)){
 		close(fd);
-		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		      strerror(errno));
 	}
 	p = mmap(0, st.st_size, PROT_READ|PROT_WRITE,
 		 MAP_NORESERVE|MAP_PRIVATE, fd, 0);
 	close(fd);
 	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		      strerror(errno));
 	map = mkstrk(p, st.st_size, Smmap);
 	*rv = mkvalstr(map);
 }
@@ -7723,7 +7726,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	free(name);
 	free(mode);
 	if(0 > xfd)
-		vmerr(vm, "cannot open %.*s: %m", (int)names->len, names->s);
+		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		      strerror(errno));
 	fd = mkfd(names, xfd, flags, freefdclose);
 	*rv = mkvalfd(fd);
 }
@@ -7774,7 +7778,7 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	buf = xmalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
 	r = xread(fd->fd, buf, n->val);
 	if(r == (Imm)-1)
-		vmerr(vm, "read error: %m");
+		vmerr(vm, "read error: %s", strerror(errno));
 	if(n->val > 0 && r == 0)
 		return;		/* nil */
 	s = mkstrk(buf, r, Smalloc);
@@ -7798,7 +7802,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	s = valstr(argv[1]);
 	r = xwrite(fd->fd, s->s, s->len);
 	if(r == -1)
-		vmerr(vm, "write error: %m");
+		vmerr(vm, "write error: %s", strerror(errno));
 	/* return nil */
 }
 
@@ -7817,7 +7821,7 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = mkdir(name, 0777);	/* ~umask */
 	free(name);
 	if(0 > r)
-		vmerr(vm, "mkdir: %m");
+		vmerr(vm, "mkdir: %s", strerror(errno));
 	/* return nil */
 }
        
@@ -7836,7 +7840,7 @@ l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = unlink(name);
 	free(name);
 	if(0 > r)
-		vmerr(vm, "unlink: %m");
+		vmerr(vm, "unlink: %s", strerror(errno));
 	/* return nil */
 }
 
@@ -7855,7 +7859,7 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = rmdir(name);
 	free(name);
 	if(0 > r)
-		vmerr(vm, "rmdir: %m");
+		vmerr(vm, "rmdir: %s", strerror(errno));
 	/* return nil */
 }
 
@@ -7877,7 +7881,7 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	dir = opendir(name);
 	free(name);
 	if(dir == NULL)
-		vmerr(vm, "opendir: %m");
+		vmerr(vm, "opendir: %s", strerror(errno));
 
 	lim = 128;
 	buf = xmalloc(lim*sizeof(struct dirent));
@@ -7917,9 +7921,9 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	free(s);
 	xfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd)
-		vmerr(vm, "opentcp: %m");
+		vmerr(vm, "opentcp: %s", strerror(errno));
 	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
-		vmerr(vm, "opentcp: %m");
+		vmerr(vm, "opentcp: %s", strerror(errno));
 	nodelay(xfd);
 	fd = mkfd(str, xfd, Fread|Fwrite, freefdclose);
 	*rv = mkvalfd(fd);

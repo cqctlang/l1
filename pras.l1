@@ -36,26 +36,12 @@ protns = @names c32le {
 		Asnap,
 		Tattach,
 		Rattach,
-
 		Ttest,
+
 		Rtest
 	};
 
-	struct Msg {
-		@0	unsigned char op;
-		@4	uint64 id;	/* all except Tlaunch */
-		@12	uint64 addr;	/* Tread, Twrite, Tsetbrk, Tsetsnap */
-		@20	uint64 bp;	/* Rsetbrk, Rsetsnap, Tclrbrk,
-					   Abrk, Asnap */
-		@28	uint64 cnt;	/* Tread, Twrite */
-		@36	uint64 cid;	/* Rcleave, Asnap */
-		@44	Reg reg;	/* Abrk, Rstop, Rlaunch */
-		@124	char *bytes;	/* Rread, Twrite */
-		@128	char **argv;	/* Tlaunch */
-		@132	char *err;	/* Rerror */
-		@136;
-	};
-
+	typedef
 	struct Reg {
 		@0	uint64 ebx;
 		@8	uint64 ecx;
@@ -68,72 +54,142 @@ protns = @names c32le {
 		@64	uint64 esp;
 		@72	uint64 eflags;
 		@80;
-	};
-	typedef struct Reg Reg;
+	} Reg;
 
-	struct Hdr {
-		@0	uint64	len;
-		@8	unsigned char op;
-		@12;
+	struct Rerror{
+		@0	uint8 op;
+		@1	uint64 id;
+		@9	char err[0];
+		@9	char bytes[0];
+		@9;
 	};
-
-	struct Ttest {
-		@0	uint64	len;
-		@8	unsigned char op;
-		@9	uint64 cnt;
-		@17	char bytes[0];
-		@17;
-	};
-
-	struct Rtest {
-		@0	uint64	len;
-		@8	unsigned char op;
-		@9	uint64 cnt;
-		@17	char bytes[0];
-		@17;
-	};
+	typedef struct Rerror Rerror;
+	typedef struct Rerror Rread;
 
 	struct Tlaunch{
 		@0	uint8 op;
 		@1	uint64 narg;
 		@9;
 	};
+	typedef struct Tlaunch Tlaunch;
 
 	struct Rlaunch{
 		@0	uint8 op;
 		@1	uint64 id;
-		@9	struct Reg reg;
+		@9	Reg reg;
 		@89;
 	};
-
-	struct Tcont{
-		@0	uint8 op;
-		@1	uint64 id;
-		@9;
-	};
+	typedef struct Rlaunch Rlaunch;
+	typedef struct Rlaunch Rlaunch;
 
 	struct Rcont{
 		@0	uint8 op;
 		@1	uint64 id;
+		@1	uint64 cnt;
 		@9;
 	};
+	typedef struct Rcont Tcont;
+	typedef struct Rcont Rcont;
+	typedef struct Rcont Rwrite;
+	typedef struct Rcont Rattach;
+	typedef struct Rcont Rclrbrk;
+	typedef struct Rcont Rkill;
+	typedef struct Rcont Rsetregs;
+	typedef struct Rcont Aobit;
+	typedef struct Rcont Aack;
+	typedef struct Rcont Rtest;
 
-	struct Aobit{
+	struct Tsetbrk{
 		@0	uint8 op;
 		@1	uint64 id;
-		@9;
+		@9	uint64 bp;
+		@9	uint64 addr;
+		@9	uint64 cid;
+		@17;
 	};
-	
-	struct Aack{
+	typedef struct Tsetbrk Tsetbrk;
+	typedef struct Tsetbrk Tclrbrk;
+	typedef struct Tsetbrk Rsetbrk;
+	typedef struct Tsetbrk Rsetsnap;
+	typedef struct Tsetbrk Rcleave;
+
+	struct Abrk{
 		@0	uint8 op;
 		@1	uint64 id;
-		@9;
+		@9	uint64 bp;
+		@17	Reg reg;
+		@97;
 	};
+	typedef struct Abrk Abrk;
+
+	struct Asnap{
+		@0	uint8 op;
+		@1	uint64 id;
+		@9	uint64 bp;
+		@17	uint64 cid;
+		@25;
+	};
+	typedef struct Asnap Asnap;
 };
 
 define mkpras arg {
 	@local addr, fd, cmd, as, protdom, l;
-	@local indom, outdom, ip, op, narg, argvlen, i, id;
+	@local indom, outdom, ip, op, narg, argvlen, i, id, read1;
+
+	define press(t){
+		ip = {t}ip;
+		return ip++;
+	}
+
+	define xwr(v){
+		if(iscvalue(v)){
+			op = {mkctype_ptr(typeof(v),nsptr(domof(v)))}op;
+			*op++ = v;
+		}else if(isstring(v)){
+			op = (char*)op;
+			putbytes(op, v);
+			op += strlen(v);
+		}else
+			error("bad argument to xwr: %a", v);
+	}
+
+	define xwp(t){
+		...
+	}
+
+	define read1() {
+		@local sz;
+
+		if(indom.iseof())
+			return nil;
+
+		sz = *press(#indom`uint64*#);
+		printf("received %u byte reply\n", sz);
+		ip = (`uint8*)ip;
+		switch((enum Mkind)*ip){
+		case indom`Rlaunch:
+			return press(#indom`Rlaunch*#);
+		case indom`Rcont:
+			return press(#indom`Rcont*#);
+		case indom`Aobit:
+			return press(#indom`Aobit*#);
+		case indom`Rstop:
+		case indom`Rkill:
+		case indom`Rsetbrk:
+		case indom`Rclrbrk:
+		case indom`Rread:
+		case indom`Abrk:
+		case indom`Rcleave:
+		case indom`Rwrite:
+		case indom`Rsetregs:
+		case indom`Rsetsnap:
+		case indom`Asnap:
+		case indom`Rattach:
+		case indom`Rtest:
+		default:
+			error("received unhandled message: %e", *ip);
+		}
+	}
 
 	addr = listref(arg, 0);
 	pop(arg);
@@ -147,77 +203,56 @@ define mkpras arg {
 	indom = mkdom(protns, listref(l, 0));
 	outdom = mkdom(protns, listref(l, 1));
 
+	printf("sizeof(indom`Tcont) is %d\n", sizeof(indom`Tcont));
+
+	ip = {indom}0;
+	op = {outdom}0;
+
 	/* format Tlaunch message */
-	op = (`uint64*){outdom}0;
 	argvlen = 0;
 	for(i = 0; i < narg; i++)
 		argvlen += strlen(listref(arg, i))+1;
+	printf("%u bytes in message header\n", sizeof(outdom`Tlaunch));
 	printf("%u bytes in argument list\n", argvlen);
-	*op++ = sizeof(struct outdom`Tlaunch)+argvlen;
-	printf("after len, op: %p\n", op);
-	op = (struct Tlaunch*)op;
-	op->op = outdom`Tlaunch;
-	op->narg = narg;
-	printf("before ++, op: %p (sizeof *op is %u)\n", op, sizeof(*op));
-	op++;
-	printf("after ++, op: %p (sizeof *op is %u)\n", op, sizeof(*op));
-	op = (char*)op;
+	xwr((`uint64)(sizeof(outdom`Tlaunch)+argvlen));
+	xwr((`uint8)outdom`Tlaunch);
+	xwr((`uint64)narg);
 	for(i = 0; i < narg; i++){
-		printf("arg %u, op: %p\n", i, op);
-		putbytes(op, listref(arg, i));
-		op += strlen(listref(arg, i));
-		*op++ = 0;
+		xwr(listref(arg, i));
+		xwr((`uint8)0);
 	}
-
 	/* send it */
 	outdom.flush();
 
 	/* receive Rlaunch reply */
-	ip = (`uint64*){indom}0;
-	printf("received %u byte reply\n", *ip);
-	ip++;
-	ip = (struct Rlaunch*)ip;
-	printf("op is %u\n", ip->op);
-	id = ip->id;
+	reply = read1();
+	printf("op is %e\n", (enum Mkind)reply->op);
+	id = reply->id;
 	printf("id is %u\n", id);
-	printf("eip is %x\n", ip->reg.eip);
-	ip++;
+	printf("eip is %x\n", reply->reg.eip);
+	indom.flush();
 
 	/* continue proc */
-	op = (`uint64*)op;
-	*op++ = sizeof(struct outdom`Tcont);
-	op = (struct Tcont*)op;
-	op->op = outdom`Tcont;
-	op->id = id;
-	op++;
+	xwr((`uint64)sizeof(outdom`Tcont));
+	xwr((`uint8)outdom`Tcont);	
+	xwr(id);
 	outdom.flush();
 
 	/* receive Rcont reply */
-	ip = (`uint64*)ip;
-	printf("received %u byte reply\n", *ip);
-	ip++;
-	ip = (struct Rcont*)ip;
-	printf("op is %u\n", ip->op);
-	printf("id is %u\n", ip->id);
-	ip++;
+	reply = read1();
+	printf("op is %e\n", (enum Mkind)reply->op);
+	printf("id is %u\n", reply->id);
+	indom.flush();
 
 	/* receive Aobit */
-	ip = (`uint64*)ip;
-	printf("received %u byte msg\n", *ip);
-	ip++;
-	ip = (struct Aobit*)ip;
-	printf("op is %u\n", ip->op);
-	printf("id is %u\n", ip->id);
-	ip++;
+	reply = read1();
+	printf("op is %e\n", (enum Mkind)reply->op);
+	printf("id is %u\n", reply->id);
+	indom.flush();
 	
 	/* send Aack */
-	op = (`uint64*)op;
-	*op++ = sizeof(struct outdom`Aack);
-	op = (struct Tcont*)op;
-	op->op = outdom`Aack;
-	op->id = id;
-	op++;
+	xwr((`uint64)sizeof(outdom`Aack));
+	xwr((`uint8)outdom`Aack);	
+	xwr(id);
 	outdom.flush();
-
 }
-

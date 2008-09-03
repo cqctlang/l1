@@ -52,7 +52,7 @@ define mkindispatch(fd, eofk){
 			error("attempt to write to input stream");
 		}else if(arg == "flush"){
 			if(hi < peek){
-				s = substr(buf, peek, 1);
+				s = substr(buf, hi, peek);
 				buf = mkstr(max);
 				strput(buf, 0, s);
 				peek = peek-hi;
