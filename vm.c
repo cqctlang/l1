@@ -8088,11 +8088,17 @@ static void
 l1_asof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
+	Cval *cv;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to asof");
-	checkarg(vm, "asof", argv, 0, Qdom);
-	dom = valdom(argv[0]);
+	if(argv[0]->qkind == Qdom)
+		dom = valdom(argv[0]);
+	else if(argv[0]->qkind == Qcval){
+		cv = valcval(argv[0]);
+		dom = cv->dom;
+	}else
+		vmerr(vm, "operand 1 to asof must be a domain or cvalue");
 	*rv = mkvalas(dom->as);
 }
 
@@ -8100,11 +8106,17 @@ static void
 l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
+	Cval *cv;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nsof");
-	checkarg(vm, "nsof", argv, 0, Qdom);
-	dom = valdom(argv[0]);
+	if(argv[0]->qkind == Qdom)
+		dom = valdom(argv[0]);
+	else if(argv[0]->qkind == Qcval){
+		cv = valcval(argv[0]);
+		dom = cv->dom;
+	}else
+		vmerr(vm, "operand 1 to nsof must be a domain or cvalue");
 	*rv = mkvalns(dom->ns);
 }
 
