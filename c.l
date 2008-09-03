@@ -125,6 +125,7 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+ { count(ctx); return(chars(lvalp, STRING_LITERAL));
 "?"			{ count(ctx); return('?'); }
 "@"			{ count(ctx); return('@'); }
 "`"			{ count(ctx); return('`'); }
+"#"			{ count(ctx); return('#'); }
 
 [ \t\v\n\f]		{ count(ctx); }
 .			{ /* ignore bad characters */ }

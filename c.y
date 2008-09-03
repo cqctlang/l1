@@ -147,6 +147,8 @@ unary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeofe, $2, 0, 0, 0); }
 	| TYPEOF '(' type_name ')'			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $3, 0, 0, 0); }
+	| '#' type_name '#'
+	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $2, 0, 0, 0); }
 	;
 
 unary_operator
