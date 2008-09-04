@@ -76,6 +76,7 @@ todo
     if there are bitfields?  would be a nice example.
   - handle stack overflow
   - how to define strings of length 2^64?
+  - does a negative array index work?
   - check for negative cvals on Irange, Istr, Islice*, Ivec*, etc.
   - change all thunks that do not return values to return nil
   - check various parse/compile error recovery paths for leaks

@@ -1,0 +1,73 @@
+@include <pras.l1>
+
+define aqsortdom(){
+	@local aqsortns, pras;
+
+	aqsortns = @names clp64le {
+		@0x4002a4 int cmpx(void *va, void *vb);
+		@0x681b68 int ncmp;
+	};
+
+	pras = mkpras("localhost:30000", "/home/vczandy/src/l1/test/aqsort");
+	return mkdom(aqsortns, pras);
+}
+
+define testaqsort(){
+	@local val, gas, nsolid, candidate, tmp, pr;
+
+	tmp = mkdom(@names clp64le { @0x0 int val[64]; }, mkzas(1024));
+	pr = aqsortdom();
+
+	gas = 63;
+	nsolid = 0;
+	candidate = 0;
+	val = tmp`val;
+	for(i = 0; i < 64; i++)
+		val[i] = gas;
+	pr.bpset(&pr`cmpx, lambda(addr){
+			 @local x, y, ra, id;
+			 x = {tmp}*(int*){pr}pr.getrdi();
+			 y = {tmp}*(int*){pr}pr.getrsi();
+			 pr`ncmp++;
+			 if(val[x] == gas && val[y] == gas)
+				 if(x == candidate)
+					 val[x] = nsolid++;
+				 else
+					 val[y] = nsolid++;
+			 if(val[x] == gas)
+				 candidate = x;
+			 else if(val[y] == gas)
+				 candidate = y;
+			 ra = *(long*){pr}pr.getrsp();
+			 id = pr.bpset(ra, lambda(addr){
+					       pr.setrax(val[x]-val[y]);
+					       pr.bpdel(id);
+				       });
+		 });
+
+	pr.xcontwait();
+
+	for(i = 0; i < 64; i++)
+		printf("%d ", val[i]);
+	printf("\n");
+}
+
+define testfoo()
+{
+     ns = @names clp64le {
+	  @0x4002a4 int cmpx(void *va, void *vb);
+	  @0x6809c8 int ncmp;
+     };
+
+     tmp = domain(@names clp64le { @0x0 int val[64]; }, mkzas(1024));
+     pras = mkpras("localhost:30000", "./aqsort");
+     pr = domain(ns, pras);
+
+     bpset(pr, &pr`cmpx, lambda(addr){ 0; });
+     bpset(pr, &pr`cmpx, lambda(addr){ 0; });
+     snapset(pr, &pr`cmpx, lambda(addr){ 0; });
+
+     printf("%a\n", bplist(pr));
+     bpreset(pr);
+     printf("%a\n", bplist(pr));
+}

@@ -150,8 +150,31 @@ define mkpras arg {
 	@local indom, outdom, ip, op, p;
 	@local read1, ipress, opress, xwr, copydata, checkreply;
 	@local launch, cont, brk, ack, xread, xwrite, setbrk, clrbrk, sync;
+	@local dispatch, get, put;
 	@local id, state, reg;
-	@local brktab;
+	@local brktab, dtab;
+	@local logsend, logrecv, verbose;
+
+	verbose = 0;
+
+	define logsend(s){
+		if(verbose)
+			printf("%s <-- %s\n", addr, s);
+	}
+
+	define logrecv(s){
+		if(verbose)
+			printf("%s --> %s\n", addr, s);
+	}
+
+	/* read n-1th byte ahead in input stream,
+	   thereby extending window to include it and preceding bytes. */
+	define ifetch(n){
+		@local p;
+		p = (char*)ip;
+		p += n-1;
+		p = *p;
+	}
 
 	define ipress(t){
 		ip = {t}ip;
@@ -181,6 +204,14 @@ define mkpras arg {
 			error("bad argument to xwr: %a", v);
 	}
 
+	define xrds(cnt){
+		@local s;
+		ip = (char*)ip;
+		s = getbytes(ip, cnt);
+		ip += cnt;
+		return s;
+	}
+
 	define read1() {
 		@local sz;
 
@@ -188,9 +219,11 @@ define mkpras arg {
 			return nil;
 
 		sz = *ipress(#indom`uint64*#);
-		printf("received %u byte reply\n", sz);
+		ifetch(sz);
 		ip = (`uint8*)ip;
 		switch((enum Mkind)*ip){
+		case indom`Rerror:
+			return ipress(#indom`Rerror*#);
 		case indom`Rlaunch:
 			return ipress(#indom`Rlaunch*#);
 		case indom`Rcont:
@@ -223,6 +256,8 @@ define mkpras arg {
 	}
 
 	define checkreply(op, reply){
+		if(reply == nil)
+			error("unexpected end of file from prctl");
 		if(reply->op == indom`Rerror)
 			error("pras: while waiting for %e: %s",
 			      op, reply->bytes);
@@ -251,15 +286,15 @@ define mkpras arg {
 			xwr((`uint8)0);
 		}
 		outdom.flush();
+		logsend("Tlaunch");
 
 		/* receive Rlaunch reply */
 		reply = read1();
 		checkreply(indom`Rlaunch, reply);
 		id = reply->id;
-		printf("about to copydata\n");
 		reg = copydata(&reply->reg);
-		printf("did copydata\n");
 		indom.flush();
+		logrecv("Rlaunch");
 
 		state = indom`Stopped;
 	}
@@ -273,6 +308,7 @@ define mkpras arg {
 		p->op = outdom`Tcont;
 		p->id = id;
 		outdom.flush();
+		logsend("Tcont");
 
 		reply = read1();
 		checkreply(indom`Rcont, reply);
@@ -280,6 +316,7 @@ define mkpras arg {
 			error("pras: got %e for unknown task",
 			      (enum Mkind)reply->op);
 		indom.flush();
+		logrecv("Rcont");
 
 		state = indom`Running;
 	}
@@ -293,6 +330,7 @@ define mkpras arg {
 		p->op = outdom`Tstop;
 		p->id = id;
 		outdom.flush();
+		logsend("Tstop");
 
 		reply = read1();
 		checkreply(indom`Rstop, reply);
@@ -301,6 +339,7 @@ define mkpras arg {
 			      (enum Mkind)reply->op);
 		reg = copydata(reply->reg);
 		indom.flush();
+		logrecv("Rstop");
 
 		state = indom`Stopped;
 	}
@@ -311,6 +350,7 @@ define mkpras arg {
 		p->op = outdom`Aack;
 		p->id = id;
 		outdom.flush();
+		logsend("Aack");
 	}
 
 	define xread(addr, cnt){
@@ -323,27 +363,30 @@ define mkpras arg {
 		p->addr = addr;
 		p->cnt = cnt;
 		outdom.flush();
+		logsend("Tread");
 
 		reply = read1();
 		checkreply(indom`Rread, reply);
 		if(reply->id != id)
 			error("pras: got %e for unknown task",
 			      (enum Mkind)reply->op);
-		s = getbytes(reply->bytes, cnt);
+		s = xrds(cnt);
 		indom.flush();
+		logrecv("Rread");
 
 		return s;
 	}
 
 	define xwrite(addr, cnt, bytes){
-		xwr((`uint64)sizeof(outdom`Twrite));
+		xwr((`uint64)(sizeof(outdom`Twrite)+cnt));
 		p = opress(#outdom`Twrite*#);
 		p->op = outdom`Twrite;
 		p->id = id;
 		p->addr = addr;
 		p->cnt = cnt;
-		putbytes(p->bytes, bytes);
+		xwr(bytes);
 		outdom.flush();
+		logsend("Twrite");
 
 		reply = read1();
 		checkreply(indom`Rwrite, reply);
@@ -351,6 +394,7 @@ define mkpras arg {
 			error("pras: got %e for unknown task",
 			      (enum Mkind)reply->op);
 		indom.flush();
+		logrecv("Rwrite");
 	}
 
 	define setbrk(addr, fn){
@@ -362,6 +406,7 @@ define mkpras arg {
 		p->id = id;
 		p->addr = addr;
 		outdom.flush();
+		logsend("Tsetbrk");
 
 		reply = read1();
 		checkreply(indom`Rsetbrk, reply);
@@ -371,8 +416,9 @@ define mkpras arg {
 		bp = reply->bp;
 		tabinsert(brktab, bp, [addr, fn]);
 		indom.flush();
+		logrecv("Rsetbrk");
 
-		return rv;
+		return bp;
 	}
 
 	define clrbrk(bp){
@@ -382,14 +428,34 @@ define mkpras arg {
 		p->id = id;
 		p->bp = bp;
 		outdom.flush();
+		logsend("Tclrbrk");
 
 		reply = read1();
-		checkreply(indom`Rsetbrk, reply);
-		indom.flush();
+		checkreply(indom`Rclrbrk, reply);
 		if(reply->id != id)
 			error("pras: got %e for unknown task",
 			      (enum Mkind)reply->op);
-		tabdel(brktab, bp);
+		tabdelete(brktab, bp);
+		indom.flush();
+		logrecv("Rclrbrk");
+	}
+
+	define setregs(){
+		xwr((`uint64)sizeof(outdom`Tsetregs));
+		p = opress(#outdom`Tsetregs*#);
+		p->op = outdom`Tsetregs;
+		p->id = id;
+		putbytes(&p->reg, getbytes(reg));
+		outdom.flush();
+		logsend("Tsetregs");
+
+		reply = read1();
+		checkreply(indom`Rsetregs, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		indom.flush();
+		logrecv("Rsetregs");
 	}
 
 	define sync(){
@@ -398,26 +464,32 @@ define mkpras arg {
 		reply = read1();
 		switch(reply->op){
 		case indom`Aobit:
+			logrecv("Aobit");
 			ack();
 			if(reply->id != id)
 				error("pras: got obituary for unknown task");
+			indom.flush();
 			state = indom`Dead;
 			break;
 		case indom`Abrk:
+			logrecv("Abrk");
 			ack();
 			if(reply->id != id)
 				error("pras: got %e for unknown task",
 				      (enum Mkind)reply->op);
+			reg = copydata(&reply->reg);
 			state = indom`Stopped;
 			bp = tablook(brktab, reply->bp);
 			if(bp == nil)
 				error("unregistered breakpoint: %d",
 				      reply->bp);
+			indom.flush();
 			rv = listref(bp, 1)(listref(bp, 0));
 			if(rv != 1)
 				cont();
 			break;
 		case indom`Asnap:
+			logrecv("Asnap");
 			error("pras: sync: unhandled message: %e",
 			      (enum Mkind)reply->op);
 		default:
@@ -426,9 +498,110 @@ define mkpras arg {
 		}
 	}
 
+	define contwait(){
+		cont();
+		while(state == indom`Running)
+			sync();
+	}
+
+	define get(r){
+		return xread(rangebeg(r), rangelen(r));
+	}
+
+	define put(r, s){
+		return xwrite(rangebeg(r), rangelen(r), s);
+	}
+
+	define map(){
+		return vector(mkrange(0, (uint64)-1));
+	}
+
+	define getebx() { return {litdom}reg->ebx; }
+	define getecx() { return {litdom}reg->ecx; }
+	define getedx() { return {litdom}reg->edx; }
+	define getesi() { return {litdom}reg->esi; }
+	define getedi() { return {litdom}reg->edi; }
+	define getebp() { return {litdom}reg->ebp; }
+	define geteax() { return {litdom}reg->eax; }
+	define geteip() { return {litdom}reg->eip; }
+	define getesp() { return {litdom}reg->esp; }
+	define geteflags() { return {litdom}reg->eflags; }
+
+	define setebx(x) { reg->ebx = x; setregs(); }
+	define setecx(x) { reg->ecx = x; setregs(); }
+	define setedx(x) { reg->edx = x; setregs(); }
+	define setesi(x) { reg->esi = x; setregs(); }
+	define setedi(x) { reg->edi = x; setregs(); }
+	define setebp(x) { reg->ebp = x; setregs(); }
+	define seteax(x) { reg->eax = x; setregs(); }
+	define seteip(x) { reg->eip = x; setregs(); }
+	define setesp(x) { reg->esp = x; setregs(); }
+	define seteflags(x) { reg->eflags = x; setregs(); }
+
+	dtab = mktab();
+	tabinsert(dtab, "get",		get);
+	tabinsert(dtab, "put",		put);
+	tabinsert(dtab, "map",		map);
+
+	tabinsert(dtab, "getebx",	getebx);
+	tabinsert(dtab, "getecx",	getecx);
+	tabinsert(dtab, "getedx",	getedx);
+	tabinsert(dtab, "getesi",	getesi);
+	tabinsert(dtab, "getedi",	getedi);
+	tabinsert(dtab, "getebp",	getebp);
+	tabinsert(dtab, "geteax",	geteax);
+	tabinsert(dtab, "geteip",	geteip);
+	tabinsert(dtab, "getesp",	getesp);
+
+	tabinsert(dtab, "setebx",	setebx);
+	tabinsert(dtab, "setecx",	setecx);
+	tabinsert(dtab, "setedx",	setedx);
+	tabinsert(dtab, "setesi",	setesi);
+	tabinsert(dtab, "setedi",	setedi);
+	tabinsert(dtab, "setebp",	setebp);
+	tabinsert(dtab, "seteax",	seteax);
+	tabinsert(dtab, "seteip",	seteip);
+	tabinsert(dtab, "setesp",	setesp);
+
+	tabinsert(dtab, "getrbx",	getebx);
+	tabinsert(dtab, "getrcx",	getecx);
+	tabinsert(dtab, "getrdx",	getedx);
+	tabinsert(dtab, "getrsi",	getesi);
+	tabinsert(dtab, "getrdi",	getedi);
+	tabinsert(dtab, "getrbp",	getebp);
+	tabinsert(dtab, "getrax",	geteax);
+	tabinsert(dtab, "getrip",	geteip);
+	tabinsert(dtab, "getrsp",	getesp);
+
+	tabinsert(dtab, "setrbx",	setebx);
+	tabinsert(dtab, "setrcx",	setecx);
+	tabinsert(dtab, "setrdx",	setedx);
+	tabinsert(dtab, "setrsi",	setesi);
+	tabinsert(dtab, "setrdi",	setedi);
+	tabinsert(dtab, "setrbp",	setebp);
+	tabinsert(dtab, "setrax",	seteax);
+	tabinsert(dtab, "setrip",	seteip);
+	tabinsert(dtab, "setrsp",	setesp);
+
+	tabinsert(dtab, "geteflags",	geteflags);
+	tabinsert(dtab, "seteflags",	seteflags);
+
+	tabinsert(dtab, "bpset",	setbrk);
+	tabinsert(dtab, "bpdel",	clrbrk);
+	tabinsert(dtab, "xcont",	cont);
+	tabinsert(dtab, "xcontwait",	contwait);
+	tabinsert(dtab, "xbreak",	brk);
+
+	define dispatch arg {
+		cmd = pop(arg);
+		fn = tablook(dtab, cmd);
+		if(fn == nil)
+			error("call to undefined pras operator: %s", cmd);
+		return apply(fn, arg);
+	}
+
 	addr = listref(arg, 0);
 	pop(arg);
-	printf("connecting to %s\n", addr);
 	fd = opentcp(addr);
 	l = mkfdas(fd, nil);
 	indom = mkdom(protns, listref(l, 0));
@@ -438,12 +611,10 @@ define mkpras arg {
 	brktab = mktab();
 
 	launch(arg);
-
-	cont();
-	sync();
+	return mkas(dispatch);
 }
 
 define testpras()
 {
-	mkpras("192.168.183.130:30000", "/bin/ls", "/");
+	return mkpras("localhost:30000", "/home/vczandy/src/l1/test/aqsort");
 }

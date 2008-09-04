@@ -6908,10 +6908,6 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(i = 0; i < xtn->field->len; i++){
 		vp = vecref(xtn->field, i);
 		if(eqstrv(argv[1], vecref(valvec(vp), Idpos))){
-			printf("lookfield on %.*s returning %p\n",
-			       (int)((Str*)argv[1])->len,
-			       ((Str*)argv[1])->s,
-			       vp);
 			*rv = vp;
 			return;
 		}
@@ -8479,8 +8475,8 @@ l1_tabdelete(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Tab *t;
 	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to tabdel");
-	checkarg(vm, "tabdel", argv, 0, Qtab);
+		vmerr(vm, "wrong number of arguments to tabdelete");
+	checkarg(vm, "tabdelete", argv, 0, Qtab);
 	t = valtab(argv[0]);
 	tabdel(vm, t, argv[1]);
 }
@@ -8491,8 +8487,8 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 	Tab *t;
 	Val vp;
 	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to tabget");
-	checkarg(vm, "tabget", argv, 0, Qtab);
+		vmerr(vm, "wrong number of arguments to tablook");
+	checkarg(vm, "tablook", argv, 0, Qtab);
 	t = valtab(argv[0]);
 	vp = tabget(t, argv[1]);
 	if(vp)
@@ -8505,8 +8501,8 @@ l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Tab *t;
 	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to tabput");
-	checkarg(vm, "tabput", argv, 0, Qtab);
+		vmerr(vm, "wrong number of arguments to tabinsert");
+	checkarg(vm, "tabinsert", argv, 0, Qtab);
 	t = valtab(argv[0]);
 	tabput(vm, t, argv[1], argv[2]);
 }

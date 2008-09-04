@@ -1,0 +1,7 @@
+dom = mkdom(c32le, mkzas(1024));
+p = (char*){dom}0;
+s = getbytes(p);
+printf("%d %d\n", isstring(s), strlen(s));
+p = (`uint64*)p;
+s = getbytes(p);
+printf("%d %d\n", isstring(s), strlen(s));

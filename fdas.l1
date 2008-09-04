@@ -4,6 +4,10 @@
 // case, when the stream closes, the other side sees RST instead of
 // FIN.
 
+// might be nice to have a way to advance leading portion of window
+// without accessing bytes, so that maps knows it is there.
+// would replace ifetch mechanism in pras.l1
+
 define mkindispatch(fd, eofk){
 	@local buf, lo, hi, peek, off, max, grow, dispatch;
 	lo = 0;
@@ -47,13 +51,10 @@ define mkindispatch(fd, eofk){
 				hi += need;
 				peek += need;
 			}
-			printf("about to substr %d %d %d\n", beg, beg+len, hi);
 			s = substr(buf, beg, beg+len);
-			if(s == nil)
-				printf("get -> nil!\n");
 			return s;
 		}else if(arg == "map"){
-			return range(off, off+hi);
+			return vector(mkrange(off, hi));
 		}else if(arg == "put"){
 			error("attempt to write to input stream");
 		}else if(arg == "flush"){
@@ -113,8 +114,6 @@ define mkoutdispatch(fd, eofk){
 			if(beg+len > hi)
 				fault();
 			s = substr(buf, beg, beg+len);
-			if(s == nil)
-				printf("get -> nil!\n");
 			return s;
 		}else if(arg == "map"){
 			return range(off, off+hi);
@@ -123,10 +122,8 @@ define mkoutdispatch(fd, eofk){
 			s = listref(args, 2);
 			beg = rangebeg(r);
 			len = rangelen(r);
-			if(beg < off){
-				printf("beg=%d, off=%d\n", beg, off);
+			if(beg < off)
 				fault();
-			}
 			beg -= off;
 			if(beg+len > max){
 				@local nbuf;
@@ -139,9 +136,7 @@ define mkoutdispatch(fd, eofk){
 			if(beg+len > hi)
 				hi = beg+len;
 		}else if(arg == "flush"){
-			printf("output flushing %d bytes\n", hi);
 			write(fd, substr(buf, 0, hi));
-			printf("did output flush\n", hi);
 			buf = mkstr(max);
 			off += hi;
 			hi = 0;
