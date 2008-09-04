@@ -1,0 +1,133 @@
+Attaching L1 to a linux process with prctl
+------------------------------------------
+
+1.  get and build prctl.  prctl lives in the cqct/utils/prctl
+    subdirectory of the cqct git repository
+
+    # clone the cqct repository, if you haven't already
+    % git clone <user>@stormteam3000:/git/cqct.git cqct
+
+    % cd cqct/utils/prctl
+    % make
+
+    NOTE: the Makefile contains an optional -DX86_64 flag for 64-bit
+          builds.  be sure it is set appropriately for the machine on
+          which you will run prctl.
+
+2.  start prctl
+
+    % prctl --
+
+    NOTE: prctl exits after 60 seconds have elapsed since the
+          the most recent client connection.  so you may need
+          start it again later
+
+3.  start l1
+
+    % ./l1
+    ;
+
+4.  construct a process address space
+
+    ; pras = mkpras("localhost:30000", "command", "arg0", ...);
+
+    the first argument to mkpras is the host:port address where prctl
+    is listening.  by default, prctl listens on port 30000; the -p
+    option to prctl selects a different port.
+
+    the remaining arguments are the elements of argv for the program
+    to be executed.  the first argument (argv[0]) must be the
+    pathname of an executable.
+
+    e.g.,
+
+    ; pras = mkpras("localhost:30000", "/bin/ls", "/etc");
+
+5.  construct a process domain
+
+    ; prdom = mkdom(prns, pras);
+
+    you must provide the name space; there is no support for
+    automatically extracting types and symbols from the target
+    program.
+
+    one way to populate a name space is to run dwarf2cqct on the
+    executable.
+
+6.  have at it!
+
+    the process represented by prdom is initially stopped at its first
+    instruction.
+
+    ordinary domain memory access operations on prdom will read and
+    write the process memory.
+
+    in addition, the process domain supports several operators:
+
+    prdom.xcont();
+
+	resume execution of the process.
+        returns nil.
+
+        breakpoints set by bpset will NOT be serviced; instead,
+        the will cause the process to stop.
+
+    prdom.xbreak();
+
+	suspend execution of the process.
+        return nil.
+
+    prdom.bpset(addr, fn);
+
+	set a breakpoint at address ADDR in the process
+        and register FN as an associated breakpoint handler.
+        returns the breakpoint identifier, an integer.
+
+    prdom.bpdel(bpid)
+
+        clears a breakpoint previously set with bpset.
+        BPID is an identifier returned by bpset.
+	returns nil.
+
+    prdom.geteax()          prdom.getrax()          prdom.geteflags()
+    prdom.getebx()	    prdom.getrbx()
+    prdom.getecx()	    prdom.getrcx()
+    prdom.getedx()	    prdom.getrdx()
+    prdom.getesi()	    prdom.getrsi()
+    prdom.getedi()	    prdom.getrdi()
+    prdom.getebp()	    prdom.getrbp()
+    prdom.geteax()	    prdom.getrax()
+    prdom.geteip()	    prdom.getrip()
+    prdom.getesp()	    prdom.getrsp()
+
+	returns the current value of the named register.
+	the value is in the literal domain (this will change).
+
+    prdom.seteax(x)         prdom.setrax(x)          prdom.seteflags(x)
+    prdom.setebx(x)	    prdom.setrbx(x)
+    prdom.setecx(x)	    prdom.setrcx(x)
+    prdom.setedx(x)	    prdom.setrdx(x)
+    prdom.setesi(x)	    prdom.setrsi(x)
+    prdom.setedi(x)	    prdom.setrdi(x)
+    prdom.setebp(x)	    prdom.setrbp(x)
+    prdom.seteax(x)	    prdom.setrax(x)
+    prdom.seteip(x)	    prdom.setrip(x)
+    prdom.setesp(x)	    prdom.setrsp(x)
+
+	sets the named register to X.
+        returns nil.
+
+    prdom.xcontwait()
+
+	resume execution of the process and block until it exits or
+	stops again.
+
+        breakpoints set by bpset will be serviced by the system as
+        they occur.  they are serviced by (1) suspending execution of
+        the process, (2) calling the associated breakpoint handler,
+        then (3) resuming execution.
+
+        if a breakpoint handler returns 1, then the system will leave
+        the process stopped and xcontwait will return.
+
+	returns nil.
