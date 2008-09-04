@@ -87,6 +87,7 @@ protns = @names c32le {
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rstop;
+	typedef struct Rlaunch Tsetregs;
 
 	struct Rcont{
 		@0	uint8 op;
@@ -133,17 +134,24 @@ protns = @names c32le {
 		@0	uint8 op;
 		@1	uint64 id;
 		@9	uint64 bp;
+		@9	uint64 addr;
 		@17	uint64 cid;
+		@17	uint64 cnt;
+		@25	char bytes[0];
 		@25;
 	};
 	typedef struct Asnap Asnap;
+	typedef struct Asnap Tread;
+	typedef struct Asnap Twrite;
 };
 
 define mkpras arg {
 	@local addr, fd, cmd, as, protdom, l;
 	@local indom, outdom, ip, op, p;
-	@local read1, ipress, opress, xwr, launch; 
+	@local read1, ipress, opress, xwr, copydata, checkreply;
+	@local launch, cont, brk, ack, xread, xwrite, setbrk, clrbrk, sync;
 	@local id, state, reg;
+	@local brktab;
 
 	define ipress(t){
 		ip = {t}ip;
@@ -190,18 +198,25 @@ define mkpras arg {
 		case indom`Aobit:
 			return ipress(#indom`Aobit*#);
 		case indom`Rstop:
-		case indom`Rkill:
+			return ipress(#indom`Rstop*#);
 		case indom`Rsetbrk:
+			return ipress(#indom`Rsetbrk*#);
 		case indom`Rclrbrk:
+			return ipress(#indom`Rclrbrk*#);
 		case indom`Rread:
+			return ipress(#indom`Rread*#);
 		case indom`Abrk:
-		case indom`Rcleave:
+			return ipress(#indom`Abrk*#);
 		case indom`Rwrite:
+			return ipress(#indom`Rwrite*#);
 		case indom`Rsetregs:
+			return ipress(#indom`Rsetregs*#);
+		case indom`Rcleave:
 		case indom`Rsetsnap:
 		case indom`Asnap:
 		case indom`Rattach:
 		case indom`Rtest:
+		case indom`Rkill:
 		default:
 			error("received unhandled message: %e", *ip);
 		}
@@ -261,6 +276,9 @@ define mkpras arg {
 
 		reply = read1();
 		checkreply(indom`Rcont, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
 		indom.flush();
 
 		state = indom`Running;
@@ -278,6 +296,9 @@ define mkpras arg {
 
 		reply = read1();
 		checkreply(indom`Rstop, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
 		reg = copydata(reply->reg);
 		indom.flush();
 
@@ -292,7 +313,88 @@ define mkpras arg {
 		outdom.flush();
 	}
 
+	define xread(addr, cnt){
+		@local s;
+
+		xwr((`uint64)sizeof(outdom`Tread));
+		p = opress(#outdom`Tread*#);
+		p->op = outdom`Tread;
+		p->id = id;
+		p->addr = addr;
+		p->cnt = cnt;
+		outdom.flush();
+
+		reply = read1();
+		checkreply(indom`Rread, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		s = getbytes(reply->bytes, cnt);
+		indom.flush();
+
+		return s;
+	}
+
+	define xwrite(addr, cnt, bytes){
+		xwr((`uint64)sizeof(outdom`Twrite));
+		p = opress(#outdom`Twrite*#);
+		p->op = outdom`Twrite;
+		p->id = id;
+		p->addr = addr;
+		p->cnt = cnt;
+		putbytes(p->bytes, bytes);
+		outdom.flush();
+
+		reply = read1();
+		checkreply(indom`Rwrite, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		indom.flush();
+	}
+
+	define setbrk(addr, fn){
+		@local bp;
+
+		xwr((`uint64)sizeof(outdom`Tsetbrk));
+		p = opress(#outdom`Tsetbrk*#);
+		p->op = outdom`Tsetbrk;
+		p->id = id;
+		p->addr = addr;
+		outdom.flush();
+
+		reply = read1();
+		checkreply(indom`Rsetbrk, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		bp = reply->bp;
+		tabinsert(brktab, bp, [addr, fn]);
+		indom.flush();
+
+		return rv;
+	}
+
+	define clrbrk(bp){
+		xwr((`uint64)sizeof(outdom`Tclrbrk));
+		p = opress(#outdom`Tclrbrk*#);
+		p->op = outdom`Tclrbrk;
+		p->id = id;
+		p->bp = bp;
+		outdom.flush();
+
+		reply = read1();
+		checkreply(indom`Rsetbrk, reply);
+		indom.flush();
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		tabdel(brktab, bp);
+	}
+
 	define sync(){
+		@local bp, rv;
+
 		reply = read1();
 		switch(reply->op){
 		case indom`Aobit:
@@ -302,6 +404,19 @@ define mkpras arg {
 			state = indom`Dead;
 			break;
 		case indom`Abrk:
+			ack();
+			if(reply->id != id)
+				error("pras: got %e for unknown task",
+				      (enum Mkind)reply->op);
+			state = indom`Stopped;
+			bp = tablook(brktab, reply->bp);
+			if(bp == nil)
+				error("unregistered breakpoint: %d",
+				      reply->bp);
+			rv = listref(bp, 1)(listref(bp, 0));
+			if(rv != 1)
+				cont();
+			break;
 		case indom`Asnap:
 			error("pras: sync: unhandled message: %e",
 			      (enum Mkind)reply->op);
@@ -320,6 +435,8 @@ define mkpras arg {
 	outdom = mkdom(protns, listref(l, 1));
 	ip = {indom}0;
 	op = {outdom}0;
+	brktab = mktab();
+
 	launch(arg);
 
 	cont();
@@ -328,5 +445,5 @@ define mkpras arg {
 
 define testpras()
 {
-	mkpras("localhost:30000", "/bin/ls", "/");
+	mkpras("192.168.183.130:30000", "/bin/ls", "/");
 }
