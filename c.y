@@ -766,9 +766,9 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement
+	: IF '(' expression ')' statement			%dprec 2
 	{ $$ = newexprsrc(&ctx->inp->src, Eif, $3, $5, 0, 0); }
-	| IF '(' expression ')' statement ELSE statement
+	| IF '(' expression ')' statement ELSE statement	%dprec 1
 	{ $$ = newexprsrc(&ctx->inp->src, Eif, $3, $5, $7, 0); }
 	| SWITCH '(' expression ')' compound_statement
 	/* note: C permits body of switch to be a statement */
