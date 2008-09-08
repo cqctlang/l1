@@ -510,131 +510,6 @@ valimm(Val v)
 	return cv->val;
 }
 
-#ifdef PARANOID
-static Cval*
-valcval(Val v)
-{
-	if(v->qkind != Qcval)
-		fatal("valcval on non-cval");
-	return (Cval*)v;
-}
-
-static Closure*
-valcl(Val v)
-{
-	if(v->qkind != Qcl)
-		fatal("valcl on non-closure");
-	return (Closure*)v;
-}
-
-static As*
-valas(Val v)
-{
-	if(v->qkind != Qas)
-		fatal("valas on non-addrspace");
-	return (As*)v;
-}
-
-static Dom*
-valdom(Val v)
-{
-	if(v->qkind != Qdom)
-		fatal("valdom on non-domain");
-	return (Dom*)v;
-}
-
-static Fd*
-valfd(Val v)
-{
-	if(v->qkind != Qfd)
-		fatal("valfd on non-filedescriptor");
-	return (Fd*)v;
-}
-
-static List*
-vallist(Val v)
-{
-	if(v->qkind != Qlist)
-		fatal("vallist on non-list");
-	return (List*)v;
-}
-
-static Ns*
-valns(Val v)
-{
-	if(v->qkind != Qns)
-		fatal("valns on non-namespace");
-	return (Ns*)v;
-}
-
-static Pair*
-valpair(Val v)
-{
-	if(v->qkind != Qpair)
-		fatal("valpair on non-pair");
-	return (Pair*)v;
-}
-
-static Range*
-valrange(Val v)
-{
-	if(v->qkind != Qrange)
-		fatal("valrange on non-range");
-	return (Range*)v;
-}
-
-static Str*
-valstr(Val v)
-{
-	if(v->qkind != Qstr)
-		fatal("valstr on non-string");
-	return (Str*)v;
-}
-
-static Tab*
-valtab(Val v)
-{
-	if(v->qkind != Qtab)
-		fatal("valtab on non-table");
-	return (Tab*)v;
-}
-
-static Vec*
-valvec(Val v)
-{
-	if(v->qkind != Qvec)
-		fatal("valvec on non-vector");
-	return (Vec*)v;
-}
-
-static Xtypename*
-valxtn(Val v)
-{
-	if(v->qkind != Qxtn)
-		fatal("valxtn on non-typename");
-	return (Xtypename*)v;
-}
-
-static Val
-valboxed(Val v)
-{
-	Box *b;
-	if(v->qkind != Qbox)
-		fatal("valboxed on non-box");
-	b = (Box*)v;
-	return b->v;
-}
-
-static Cval*
-valboxedcval(Val v)
-{
-	Box *b;
-	b = (Box*)v;
-	return (Cval*)b->v;
-}
-
-#else
-
 static Val
 valboxed(Val v)
 {
@@ -659,8 +534,6 @@ valboxed(Val v)
 #define valvec(v)	((Vec*)(v))
 #define valxtn(v)	((Xtypename*)(v))
 #define valboxedcval(b)	((Cval*)((Box*)(b))->v)
-
-#endif /* PARANOID */
 
 static void*
 read_and_clear(void *pp)
@@ -5408,6 +5281,24 @@ gcprotpop(VM *vm)
 	vm->pdepth--;
 }
 
+static void
+gcunprotect(VM *vm, Val v)
+{
+	Root *r, **pr;
+	
+	pr = &vm->prot[vm->pdepth-1];
+	r = *pr;
+	while(r){
+		if(r->hd == v){
+			(*pr)->link = r;
+			freeroot(&vm->rs, r);
+			break;
+		}
+		pr = &r->link;
+		r = *pr;
+	}
+}
+
 static void*
 gcprotect(VM *vm, void *obj)
 {
@@ -8991,12 +8882,9 @@ printval(VM *vm, Val val)
 }
 
 void
-cqctprintvmac(VM *vm)
+cqctprintval(VM *vm, Val v)
 {
-	if(vm->ac->qkind != Qnil){
-		printval(vm, vm->ac);
-		printf("\n");
-	}
+	printval(vm, v);
 }
 
 typedef
@@ -9647,6 +9535,7 @@ cqctmkvm(Env *env)
 
 	vmreset(vm);
 	concurrentgc(vm);
+	gcprotpush(vm);
 	
 	/* vm is now callable */
 
@@ -9661,6 +9550,12 @@ void
 cqctfreevm(VM *vm)
 {
 	VM **vmp;
+
+	gcprotpop(vm);
+	gckill(vm);
+	freefreeroots(&vm->rs);
+	free(vm->prot);
+	free(vm->err);
 	vmp = vms;
 	while(vmp < vms+Maxvms){
 		if(*vmp == vm){
@@ -9669,12 +9564,6 @@ cqctfreevm(VM *vm)
 		}
 		vmp++;
 	}
-	gckill(vm);
-
-	freefreeroots(&vm->rs);
-
-	free(vm->prot);
-	free(vm->err);
 	free(vm);
 }
 
@@ -9748,12 +9637,135 @@ finivm()
 }
 
 int
-cqctcallthunk(VM *vm, Closure *cl)
+cqctcallthunk(VM *vm, Closure *cl, Val *vp)
 {
 	if(waserror(vm)){
 		vmreset(vm);
 		return -1;
 	}
 	dovm(vm, cl, 0, 0);
+	*vp = vm->ac;
 	return 0;
+}
+
+/* these routines assume litdom is clp64le */
+
+int8_t
+cqctval2int8(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xint8];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+int16_t
+cqctval2int16(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xint16];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+int32_t
+cqctval2int32(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xint32];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+int64_t
+cqctval2int64(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xint64];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+uint8_t
+cqctval2uint8(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xuint8];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+uint16_t
+cqctval2uint16(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xint16];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+uint32_t
+cqctval2uint32(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xuint32];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+uint64_t
+cqctval2uint64(Val v)
+{
+	Cval *cv, *rv;
+	Xtypename *t;
+
+	if(v->qkind != Qcval)
+		return -1;
+	cv = valcval(v);
+	t = litdom->ns->base[clp64le.xuint64];
+	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
+	return rv->val;
+}
+
+char*
+cqctval2cstr(Val v)
+{
+	if(v->qkind != Qstr)
+		return 0;
+	return str2cstr(valstr(v));
 }

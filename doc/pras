@@ -70,7 +70,7 @@ Attaching L1 to a linux process with prctl
         returns nil.
 
         breakpoints set by bpset will NOT be serviced; instead,
-        the will cause the process to stop.
+        they will cause the process to stop.
 
     prdom.xbreak();
 

@@ -58,6 +58,7 @@ int
 main(int argc, char *argv[])
 {
 	Closure *entry;
+	Val v;
 	Expr *e;
 	VM *vm;
 	Env *env;
@@ -143,7 +144,7 @@ main(int argc, char *argv[])
 		wast = cqctflags['t'];
 		if(wast)
 			gettimeofday(&beg, 0);
-		if(cqctcallthunk(vm, entry))
+		if(cqctcallthunk(vm, entry, &v))
 			continue; /* error */
 		if(wast && cqctflags['t']){
 			gettimeofday(&end, 0);
@@ -151,8 +152,10 @@ main(int argc, char *argv[])
 			printf("%lu usec\n",
 			       1000000*end.tv_sec+end.tv_usec);
 		}
-		if(dorepl)
-			cqctprintvmac(vm);
+		if(dorepl && v->qkind != Qnil){
+			cqctprintval(vm, v);
+			printf("\n");
+		}
 	}while(dorepl);
 
 	if(cqctflags['x'])

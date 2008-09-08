@@ -403,8 +403,6 @@ struct Ictx {
 	void *x;
 } Ictx;
 
-typedef struct Head* Val;
-
 typedef
 struct Location {
 	unsigned kind;
@@ -452,42 +450,6 @@ struct Insn {
 	void *go;
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;
-};
-
-typedef
-enum {
-	Qundef = 0,
-	Qnil,
-	Qnulllist,
-	Qas,
-	Qbox,
-	Qcl,
-	Qcode,
-	Qcval,
-	Qdom,
-	Qfd,
-	Qlist,
-	Qns,
-	Qpair,
-	Qrange,
-	Qstr,
-	Qtab,
-	Qvec,
-	Qxtn,
-	Qimm,
-	Qnkind
-} Qkind;
-
-typedef struct Head Head;
-typedef struct Heap Heap;
-struct Head {
-	unsigned color;
-	unsigned inrootset;	/* racily limit duplicates on rootsets */
-	Qkind qkind;
-	Heap *heap;
-	Head *alink;
-	Head *link;
-	int state;		/* debugging */
 };
 
 struct Konst {

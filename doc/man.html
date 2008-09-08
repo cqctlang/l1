@@ -3144,6 +3144,10 @@ types.
 <td>Parsed Cinquecento expression<td>
 </tr>
 <tr>
+<td><span class="id">Val</span><td>
+<td>Cinquecento value<td>
+</tr>
+<tr>
 <td><span class="id">VM</span><td>
 <td>Virtual machine for evaluating compiled Cinquecento expression<td>
 </tr>
@@ -3155,9 +3159,6 @@ types.
 <div class="proto">
 <div class="function">
 <span class="id">Env* cqctinit()</span>
-</div>
-<div class="returns">
-<span class="type">a fresh Cinquecento toplevel environment</span>
 </div>
 </div>
 <div class="desc">
@@ -3173,17 +3174,11 @@ other values.
 <div class="function">
 <span class="id">VM* cqctmkvm(Env *<span class="arg">env</span>)</span>
 </div>
-<div class="param">
-<span class="arg">env</span>: <span class="type">environment returned by <span id="fnindex">cqctinit</span></span>
-</div>
-<div class="returns">
-<span class="type">a fresh Cinquecento evaluator</span>
-</div>
 </div>
 <div class="desc">
 Returns a new Cinquecento evaluator initialized with
-the top-level environment defined in <span
-class="arg">env</span>.
+the top-level environment bound
+to <span class="arg">env</span>.
 </div>
 </div>
 
@@ -3194,15 +3189,6 @@ class="arg">env</span>.
 </div>
 <div class="function">
 <span class="id" id="fn:cqctparsestr">Expr* cqctparsestr(char *<span class="arg">str</span>)</span>
-</div>
-<div class="param">
-<span class="arg">filename</span>: <span class="type">file name</span>
-</div>
-<div class="param">
-<span class="arg">str</span>: <span class="type">C string</span>
-</div>
-<div class="returns">
-<span class="type"><span class="arg">Expr</span></span>
 </div>
 </div>
 <div class="desc">
@@ -3217,7 +3203,6 @@ string <span class="arg">str</span>.  Unless it is subsequently passed to
 <span class="fnindex"><a href="#fn:cqctcompile">cqctcompile</a></span>,
 the returned expression should be freed
 with <span class="fnindex"><a href="#fn:cqctfreeexpr">cqctfreeexpr</a></span>.
-
 </div>
 </div>
 
@@ -3225,12 +3210,6 @@ with <span class="fnindex"><a href="#fn:cqctfreeexpr">cqctfreeexpr</a></span>.
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:cqctcompile">Closure* cqctcompile(Expr *<span class="arg">expr</span>)</span>
-</div>
-<div class="param">
-<span class="arg">expr</span>: <span class="type">Expression to be compiled</span>
-</div>
-<div class="returns">
-<span class="type">Closure</span>
 </div>
 </div>
 <div class="desc">
@@ -3246,13 +3225,7 @@ the storage manager when the closure is reclaimed.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(Closure *<span class="arg">thunk</span>)</span>
-</div>
-<div class="param">
-<span class="arg">thunk</span>: <span class="type">Closure</span>
-</div>
-<div class="returns">
-<span class="type">status</span>
+<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Closure *<span class="arg">thunk</span>, Val *v)</span>
 </div>
 </div>
 <div class="desc">
@@ -3265,10 +3238,7 @@ Returns <span class="val">-1</span> if an error occurred,
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctprintvmac">int cqctprintvmac(Closure *<span class="arg">vm</span>)</span>
-</div>
-<div class="param">
-<span class="arg">vm</span>: <span class="type">VM</span>
+<span class="id" id="fn:cqctprintvmac">int cqctprintvmac(VM *<span class="arg">vm</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -3281,23 +3251,31 @@ the value currently stored in its accumulator register.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctgcprotect">int cqctgcprotect(Closure *<span class="arg">vm</span>, void *<span class="arg">object</span>)</span>
-</div>
-<div class="param">
-<span class="arg">vm</span>: <span class="type">VM</span>
-</div>
-<div class="param">
-<span class="arg">obj</span>: <span class="type">Object</span>
+<span class="id" id="fn:cqctgcprotect">int cqctgcprotect(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
 </div>
 </div>
 <div class="desc">
-Protects <span class="arg">obj</span> from collection by
-registering it with the current protection frame
-of <span class="arg">vm</span>.  The only valid type to which
-<span class="arg">obj</span> may point
- is <span class="type">Closure</span>.  The object will
- not be reclaimed until the frame is popped
- or <span class="arg">vm</span> is freed.
+Protects the value <span class="arg">v</span> from
+garbage collection by registering it with the current
+GC protection frame of <span class="arg">vm</span>.
+References to value will be valid until after at least
+one of the following events: (1) the frame is popped, (2)
+<span class="fnindex"><a href="#fn:cqctgcunprotect">cqctgcunprotect</a></span>
+is called on the same arguments while the current GC frame is active,
+or (3) <span class="arg">vm</span> is freed.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctgcunprotect">int cqctgcunprotect(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+Unregister <span class="arg">v</span> from the current GC protection frame
+of <span class="arg">vm</span>.
 </div>
 </div>
 
@@ -3311,15 +3289,6 @@ of <span class="arg">vm</span>.  The only valid type to which
 </div>
 <div class="function">
 <span class="id" id="fn:cqctfini">void cqctfini(Env *<span class="arg">env</span>)</span>
-</div>
-<div class="param">
-<span class="arg">expr</span>: <span class="type">Expr</span>
-</div>
-<div class="param">
-<span class="arg">vm</span>: <span class="type">VM</span>
-</div>
-<div class="param">
-<span class="arg">env</span>: <span class="type">Env</span>
 </div>
 </div>
 <div class="desc">
