@@ -1,5 +1,7 @@
 CC = gcc
-CFLAGS = -Wall -g -fPIC
+CFLAGS = -Wall -g
+
+libl1.so: CFLAGS += -fPIC
 
 TARG = l1
 all: $(TARG)
