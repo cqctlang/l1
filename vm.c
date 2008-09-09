@@ -5322,6 +5322,7 @@ vmreset(VM *vm)
 {
 	while(vm->pdepth > 0)
 		gcprotpop(vm);
+	gcprotpush(vm);
 	vm->edepth = 0;
 	vm->fp = 0;
 	vm->sp = Maxstk;
