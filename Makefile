@@ -1,11 +1,11 @@
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -fPIC
 
 TARG = l1
 all: $(TARG)
 
 HDR = sys.h util.h cqct.h syscqct.h 
-C =\
+L1C =\
 	hash.c\
 	util.c\
 	printexpr.c\
@@ -15,9 +15,8 @@ C =\
 	compile0.c\
 	cutil.c\
 	compile.c\
-	vm.c\
-	main.c
-O = $(C:.c=.o)
+	vm.c
+L1O = $(L1C:.c=.o)
 
 c.tab.c: c.y $(HDR)
 	bison -d c.y
@@ -27,12 +26,15 @@ c.tab.h: c.tab.c
 lex.yy.c: c.l $(HDR)
 	flex c.l
 
-l1: c.tab.o lex.yy.o $(O)
+l1: c.tab.o lex.yy.o main.o $(L1O)
 	$(CC) -o $@ $^ -lfl -lpthread
+
+libl1.so: c.tab.o lex.yy.o $(L1O)
+	$(CC) -shared -Xlinker -Bsymbolic -o $@ $^ -lfl -lpthread
 
 -include depend
 depend: Makefile
-	gcc $(INC) -MM $(C) > depend
+	gcc $(INC) -MM $(L1C) > depend
 
 clean:
-	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed lex.yy.* *.tab.* c.output $(O) $(TARG) depend 
+	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed lex.yy.* *.tab.* c.output main.o $(L1O) $(TARG) depend 
