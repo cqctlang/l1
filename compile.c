@@ -1958,7 +1958,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->op1 = r1;
 			}else{
 				L = genlabel(code, 0);
-// we may be able to track frame state here
+// we may be able to track frame state here.
 				cg(q->e1, code, p, AC, L, L0, L, tmp);
 				emitlabel(L, q->e2);
 				i = nextinsn(code);
