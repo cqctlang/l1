@@ -815,29 +815,11 @@ addroot(Rootset *rs, Head *h)
 		printf("addroot %s %p %d %d\n",
 		       rs == &roots ? "roots" : "stores",
 		       h, h->inrootset, h->state);
-
-	if(h->inrootset)
-		return;
-	doaddroot(rs, h);
-}
-
-static void
-addrootstk(Rootset *rs, Head *h)
-{
-	if(h == 0)
-		return;
-
-	if(HEAPDEBUG)
-		printf("addroot %s %p %d %d\n",
-		       rs == &roots ? "roots" : "stores",
-		       h, h->inrootset, h->state);
-
 	if(h->color == GCfree)
-		/* stale value on stack already collected */
+		/* stale value, presumably on a stack, already collected */
 		return;
 	if(h->inrootset)
 		return;
-
 	doaddroot(rs, h);
 }
 
@@ -938,7 +920,7 @@ rootset(VM *vm)
 		return;
 
 	for(m = vm->sp; m < Maxstk; m++)
-		addrootstk(&roots, valhead(vm->stack[m]));
+		addroot(&roots, valhead(vm->stack[m]));
 	hforeach(vm->top->ht, bindingroot, 0);
 	addroot(&roots, valhead(vm->ac));
 	addroot(&roots, valhead(vm->cl));
@@ -5420,7 +5402,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 //		i = &vm->ibuf[vm->pc++];
 		i = vm->pc++;
 		tick++;
-		gcpoll(vm);
 		goto *(i->go);
 		fatal("bug");
 	Inop:
@@ -5468,6 +5449,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			      vm->clx->id);
 		continue;
 	Icall:
+		gcpoll(vm);
 		vm->cl = getvalrand(vm, &i->op1);
 		vmsetcl(vm, vm->cl);
 		vm->pc = vm->clx->entryx;
