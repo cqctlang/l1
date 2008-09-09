@@ -5294,12 +5294,35 @@ gcprotect(VM *vm, void *obj)
 }
 
 void
-cqctgcprotect(VM *vm, void *obj)
+cqctgcprotect(VM *vm, Val v)
 {
-	gcprotect(vm, obj);
+	gcprotect(vm, v);
 }
 
 void
+cqctgcunprotect(VM *vm, Val v)
+{
+	gcunprotect(vm, v);
+}
+
+static void
+checkframe(VM *vm, Imm ofp, Imm nargp1)
+{
+	Insn *fsi, *livei;
+	uintptr_t fs;
+	uintptr_t live;
+
+	fsi = vm->pc-1;
+	livei = vm->pc-2;
+	fs = fsi->data;
+	live = livei->data;
+
+	if(ofp+fs+nargp1+3 != vm->fp)
+		warn("checkframe: ofp=%lu, nargp1=%lu, fs=%lu, fp=%lu",
+		     ofp, nargp1, fs, vm->fp);
+}
+
+static void
 vmreset(VM *vm)
 {
 	while(vm->pdepth > 0)
@@ -5341,6 +5364,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icmple] 	= &&Icmple;
 		gotab[Icmpneq] 	= &&Icmpneq;
 		gotab[Icval] 	= &&Icval;
+		gotab[Idata] 	= &&Idata;
 		gotab[Idiv] 	= &&Idiv;
 		gotab[Iframe] 	= &&Iframe;
 		gotab[Ihalt] 	= &&Ihalt;
@@ -5487,12 +5511,18 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gcprotpop(vm);
 		return vm->ac;
 	Iret:
+		{
+			Imm ofp, nargp1;
+			ofp = vm->fp;
+			nargp1 = stkimm(vm->stack[vm->fp])+1;
 		vm->sp = vm->fp+stkimm(vm->stack[vm->fp])+1; /* narg+1 */
 		vm->fp = stkimm(vm->stack[vm->sp+2]);
 		vm->cl = vm->stack[vm->sp+1];
 		vmsetcl(vm, vm->cl);
 		vm->pc = (Insn*)(uintptr_t)stkimm(vm->stack[vm->sp]);
 		vmpop(vm, 3);
+		checkframe(vm, ofp, nargp1);
+		}
 		continue;
 	Ijmp:
 		vm->pc = i->dstlabel->insnx;
@@ -5535,6 +5565,8 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Isizeof:
 		xsizeof(vm, &i->op1, &i->dst);
 		continue;
+	Idata:
+		fatal("control reached data");
 	}
 }
 
@@ -9518,7 +9550,7 @@ cqctmkvm(Env *env)
 
 	vmreset(vm);
 	concurrentgc(vm);
-	gcprotpush(vm);
+	gcprotpush(vm);		/* FIXME: isn't this a bug? cf vmreset? */
 	
 	/* vm is now callable */
 
