@@ -5300,24 +5300,18 @@ cqctgcunprotect(VM *vm, Val v)
 static void
 checkframe(VM *vm, Imm ofp, Imm nargp1)
 {
-	static int bitched;
 	Insn *fsi, *livei;
 	uintptr_t fs;
 	uintptr_t live;
-
-	if(bitched)
-		return;
 
 	fsi = vm->pc-1;
 	livei = vm->pc-2;
 	fs = fsi->data;
 	live = livei->data;
 
-	if(ofp+fs+nargp1+3 != vm->fp){
+	if(ofp+fs+nargp1+3 != vm->fp)
 		warn("checkframe: ofp=%lu, nargp1=%lu, fs=%lu, fp=%lu",
 		     ofp, nargp1, fs, vm->fp);
-		bitched++;
-	}
 }
 
 static void

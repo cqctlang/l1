@@ -26,7 +26,7 @@ struct CGEnv {
 typedef
 struct Frstat {
 	uintptr_t frsz;
-	Imm live;
+	uintptr_t live;
 } Frstat;
 
 static Location toploc[8];
@@ -40,7 +40,6 @@ static void freekonst(Konst *kon);
 static Konsti* mkkonsti();
 static void freekonsti(Konsti *koni);
 static void freedecl(Decl *d);
-static Insn* nextinsn(Code *code);
 
 static void
 newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
@@ -106,7 +105,6 @@ static void
 emitlabel(Ctl *ctl, Expr *e)
 {
 	Code *code;
-
 	code = ctl->code;
 	if(ctl->ckind != Clabel)
 		fatal("attempt to emit label pair");
@@ -133,8 +131,6 @@ mkcode()
 	code->topvec = mktopvec();
 	code->konst = mkkonst();
 	code->konsti = mkkonsti();
-	code->maxlive = LiveAlloc;
-	code->live = xmalloc(code->maxlive*sizeof(Imm*));
 
 	return code;
 }
@@ -144,12 +140,8 @@ freecode(Head *hd)
 {
 	Code *code;
 	Ctl *p, *q;
-	unsigned m;
 
 	code = (Code*)hd;
-	for(m = 0; m < code->nlive; m++)
-		free(code->live[m]);
-	free(code->live);
 	freekonst(code->konst);
 	freekonsti(code->konsti);
 	freetopvec(code->topvec);
@@ -1749,7 +1741,7 @@ cgbinop(Code *code, CGEnv *p, unsigned kind, Operand *r1, Operand *r2,
 }
 
 static void
-frpop(Code *code, Frstat *fr, unsigned n)
+frpop(Frstat *fr, unsigned n)
 {
 	if(n > fr->frsz)
 		fatal("miscalculated frame size");
@@ -1758,14 +1750,10 @@ frpop(Code *code, Frstat *fr, unsigned n)
 }
 
 static void
-frpush(Code *code, Frstat *fr, unsigned n, unsigned live)
+frpush(Frstat *fr, unsigned n, unsigned live)
 {
-	static int bitched;
-	if(fr->frsz+n > sizeof(fr->live)*8){
-		if(bitched == 0)
-			warn("stack frame size limit exceeded");
-		bitched++;
-	}
+	if(fr->frsz+n > sizeof(fr->live)*8)
+		warn("stack frame size limit exceeded");
 	fr->frsz += n;
 	fr->live <<= n;
 	if(live)
@@ -1773,15 +1761,15 @@ frpush(Code *code, Frstat *fr, unsigned n, unsigned live)
 }
 
 static void
-frpushlive(Code *code, Frstat *fr, unsigned n)
+frpushlive(Frstat *fr, unsigned n)
 {
-	frpush(code, fr, n, 1);
+	frpush(fr, n, 1);
 }
 
 static void
-frpushdead(Code *code, Frstat *fr, unsigned n)
+frpushdead(Frstat *fr, unsigned n)
 {
-	frpush(code, fr, n, 0);
+	frpush(fr, n, 0);
 }
 
 static void
@@ -1982,18 +1970,17 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		istail = (ctl == p->Return && (loc == AC || loc == Effect));
 
 		if(!istail){
-//			if(loc != Effect)
-//				R = genlabel(code, 0);
-//			else
-//				R = ctl;
-			R = genlabel(code, 0);
+			if(loc != Effect)
+				R = genlabel(code, 0);
+			else
+				R = ctl;
 			i = nextinsn(code);
 			i->kind = Iframe;
 			i->dstlabel = R;
 			R->used = 1;
-			frpushdead(code, fr, 1); /* fp */
-			frpushlive(code, fr, 1); /* cl */
-			frpushdead(code, fr, 1); /* pc */
+			frpushdead(fr, 1); /* fp */
+			frpushlive(fr, 1); /* cl */
+			frpushdead(fr, 1); /* pc */
 		}
 		
 		q = e->e2;
@@ -2017,7 +2004,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			q = q->e2;
 			narg++;
 			if(1 || !istail)
-				frpushlive(code, fr, 1);
+				frpushlive(fr, 1);
 			L0 = L;
 		}
 		
@@ -2031,9 +2018,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(L, e);
 		}
 
-		frpop(code, fr, narg);
+		frpop(fr, narg);
 		if(!istail)
-			frpop(code, fr, 3);
+			frpop(fr, 3);
 
 		/* pushi narg must be last instruction before
 		   Icall/Icallt to satisfy gc invariant that on call
@@ -2072,10 +2059,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 					randloc(&i->op1, AC);
 					randloc(&i->dst, loc);
 				}
-			}else{
-				emitlabel(R, e);
-				i = nextinsn(code);
-				i->kind = Inop;
 			}
 			cgctl(code, p, ctl, nxt);
 		}else{
@@ -2466,7 +2449,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 			 konsti2val(Vint, b->maxloc+b->ntmp, code->konsti));
 		randloc(&i->dst, SP);
 		needtop = 1;
-		frpushlive(code, &fr, b->maxloc+b->ntmp);
+		frpushlive(&fr, b->maxloc+b->ntmp);
 	}
 	for(m = 0; m < b->npar; m++)
 		if(b->param[m].indirect){
