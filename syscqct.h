@@ -336,7 +336,6 @@ enum {
 	Icmple,
 	Icmpneq,
 	Icval,
-	Idata,
 	Idiv,
 	Iframe,
 	Ihalt,
@@ -449,7 +448,6 @@ typedef
 struct Insn {
 	ikind kind;
 	void *go;
-	uintptr_t data;
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;
 } Insn;
@@ -503,6 +501,7 @@ Val* envgetbind(Env *env, char *id);
 
 void initvm();
 void finivm();
+void vmreset(VM *vm);
 jmp_buf* _pusherror(VM *vm);
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 void nexterror(VM *vm) NORETURN;
