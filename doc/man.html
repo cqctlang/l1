@@ -12,10 +12,15 @@
 
 <div id="content">
 
-<a href="#sec:system">System Functions</a><br />
-<a href="#sec:cinterface">C Interface</a><br />
-<a href="#sec:synindex">Syntax Index</a><br />
-<a href="#sec:fnindex">Function Index</a><br />
+
+<p>
+Jump to Section:
+<a href="#sec:synindex">Syntax Index</a> |
+<a href="#sec:fnindex">Function Index</a> |
+<a href="#sec:cinterface">C Interface</a>
+</p>
+
+<h4>The Cinquecento Manual</h4>
 
 <h3>Introduction</h3>
 
@@ -31,34 +36,41 @@ and operators of the C programming language.
 </p>
 
 <p>
-Cinquecento is designed to be intuitive to programmers
-who are already familiar with C and Scheme.  The syntax
-and semantics of the Cinquecento types, values, and
+Cinquecento is a hybrid of C and Scheme.  The syntax of
 expressions used to examine program state are nearly
-identical to C; the main differences are
-generalizations that allow multiple type and symbol
-name spaces and different processor and compiler models
-to coexist in a single Cinquecento program.  While the
-syntax of Cinquecento in no way resembles Scheme, many
-of the central features of Scheme --- dynamic typing,
-lexical scope, proper tail recursion, first-class
-functions, even continuations --- appear in Cinquecento
-with similar generality.  C provides the data model;
-Scheme provides the naming and control model.
+identical to the syntax of C, including all forms
+pointer arithmetic and dereference.  The semantics of
+these operations are also precisely based on those of
+C.  In addition, the C control constructs (<span
+class="val">if</span>, <span class="val">while</span>,
+<span class="val">do while</span>, and <span
+class="val">switch</span>) are also defined as they are
+in C.  Finally, the types associated with a program can
+be specified in an extended form of C's type definition
+syntax.
 </p>
 
 <p>
-In practice, Cinquecento must be coupled with a
-facility for accessing the state of running programs.
-A facility for accessing remotely executing Linux
-processes accompanies our distribution.  However, the
-role of Cinquecento is to provide a uniform,
-programmable interface to the program state exposed by
-the variety of such facilities.  This manual focuses on
-these generic features of the language, which are
-necessary for all users, at the expense of concrete
-examples on real programs for a specific environment.
-A separate document fills in the details for Linux.
+The influence of Scheme appears in the semantics of
+variables and functions.  Cinqucento variables are
+dynamically typed and lexically scoped, like Scheme
+variables.  Cinquecento functions are first-class
+objects constructed with <span
+class="val">lambda</span>, like Scheme functions.
+Cinquecento is properly tail recursive and supports
+continuations.
+</p>
+
+<p>
+To be useful for program debugging, Cinquecento must be
+coupled with a facility for accessing the state of
+running programs.  We provide such a facility for Linux
+processes as a separate package.  Because the role of
+Cinquecento is to provide a uniform, programmable
+interface to the program state exposed by the variety
+of such facilities, this manual focuses on generic
+features of the language that are independent of 
+any particular debugger implementation.
 </p>
 
 <h3>Preliminaries</h3>
@@ -257,6 +269,7 @@ as = mksas(1024);
 
 /* domain */
 dom = mkdom(ns, as);
+</pre>
 </div>
 
 <p>
@@ -391,9 +404,11 @@ of expressions:
 </p>
 
 <div class="code">
-a = dom`x;<br />
-b = dom`y;<br />
+<pre>
+a = dom`x;
+b = dom`y;
 c = a+b;
+</pre>
 </div>
 
 <p>
@@ -445,7 +460,7 @@ address space.  The expression:
 	p = &dom`x;
 </div>
 
-</p>
+<p>
 binds <span class="val">p</span>
 to a cvalue that represents the
 location associated with
@@ -459,84 +474,114 @@ and most other operators so that domain name references
 bind tightly.)  Specifically, this cvalue comprises:
 </p>
 
-\begin{itemize}
+<ol>
+<li> value corresponding to the address of <span class="val">x</span>
+      in <span class="val">dom</span>;
+</li>      
+<li>
+the type name <span class="val">int*</span>;
+</li>
+<li>
+a reference to the domain <span class="val">dom</span>.
+</li>
+</ol>
 
-\item a value corresponding to the address of {\tt x}
-      in {\tt dom};
-\item the type name {\tt int*};
-\item a reference to the domain {\tt dom}.
-
-\end{itemize}
-
-The C pointer dereference operator {\tt *} is defined
+<p>
+The C pointer dereference operator <span class="val">*</span> is defined
 in Cinquecento over pointer-typed cvalues.  Precisely
-as a C programmer would expect, {\tt *} accesses the
+as a C programmer would expect, <span class="val">*</span> accesses the
 contents of the location in the associated domain,
 using the underlying type of the pointer, as defined by
 the domain, to determine the number of bytes to access
 and their encoding.  For example, given the above
-binding of {\tt p}, either of the two expressions:
+binding of <span class="val">p</span>, either of the two expressions:
+</p>
 
-\begin{verbatimtab}[4]
+<div class="code">
 	a = *p;		a = dom`x;
-\end{verbatimtab}
+</div>
 
-\noindent would bind {\tt a} to the same cvalue.
+<p>
+would bind <span class="val">a</span> to the same cvalue.
+</p>
 
+<p>
 Pointer arithmetic works as expected.  The following
 sequence of expressions:
+</p>
 
-\begin{verbatimtab}[4]
-	p = &dom`x;
-	p = p+1;
-\end{verbatimtab}
+<div class="code">
+<pre>
+p = &dom`x;
+p = p+1;
+</pre>
+</div>
 
-\noindent leaves {\tt p} bound to a pointer cvalue that
-refers to the location following {\tt x} in {\tt dom}.
+<p>
+leaves <span class="val">p</span> bound to a pointer cvalue that
+refers to the location following <span class="val">x} in {\tt dom</span>.
 In C pointer arithmetic, the amount by which the value
 of a pointer is incremented is determined by the size
 of the underlying type of the pointer.  In Cinquecento,
 this size is determined by the definition of the type
 in the domain of the cvalue.
+</p>
 
+<p>
 Pointers to aggregate types also work as expected.  The
 following sequence of expressions:
+</p>
 
-\begin{verbatimtab}[4]
-	p = &dom`t;
-	p->next = p+1;
-\end{verbatimtab}
+<div class="code">
+<pre>
+p = &dom`t;
+p->next = p+1;
+</pre>
+</div>
 
-\noindent assigns the {\tt next} field of the {\tt
-struct T} at location {\tt t} in {\tt dom} to point to
-the beginning of the next logical {\tt struct T}.
+<p>
+assigns the <span class="val">next</span> field of the <span class="val">struct T</span>
+at location <span class="val">t</span> in <span class="val">dom</span> to point to
+the beginning of the next logical <span class="val">struct T</span>.
 Although there is no symbol corresponding to this
 location, we can, as in C, use pointers to impute types
 to otherwise untyped locations.
+</p>
 
+<p>
 The C pointer/array relationship works as expected.
 This sequence of expressions has an equivalent effect
 to the preceding one:
+</p>
 
-\begin{verbatimtab}[4]
-	p = &dom`t;
-	p[0].next = p+1;
-\end{verbatimtab}
+<div class="code">
+<pre>
+p = &dom`t;
+p[0].next = p+1;
+</pre>
+</div>
 
+<p>
 The adherence to C pointer semantics extends to
 disregard for pointer safety.  The following sequence
 of expressions:
+</p>
 
-\begin{verbatimtab}[4]
-	p = &dom`x;
-	p = p+256;
-\end{verbatimtab}
+<div class="code">
+<pre>
+p = &dom`x;
+p = p+256;
+</pre>
+</div>
 
-\noindent binds {\tt p} to a pointer to a location that
-does not exist in the address space of {\tt dom} (since
-we used {\tt mkzas} to create a fixed 1024-byte address
+<p>
+binds <span class="val">p</span> to a pointer to a location that
+does not exist in the address space of <span class="val">dom</span> (since
+we used <span class="val">mkzas</span> to create a fixed 1024-byte address
 space).
+</p>
 
+<p>
 Such pointers, as in C, are harmless until
 dereferenced.  An attempt to dereference a pointer to
 an unmapped location in Cinquecento raises a top-level
@@ -550,8 +595,10 @@ Cinquecento program, which they should stop and fix.
 spacecraft, not debuggers.)  Programs can test, without
 risk of raising an exception, whether a span of storage
 in a domain is mapped by calling the built-in function
-{\tt ismapped}.
+<span class="val">ismapped</span>.
+</p>
 
+<p>
 Operations on incorrect pointer values in Cinquecento,
 unlike such operations in C, never cause corruption to
 the runtime of the Cinquecento system.  The
@@ -559,12 +606,12 @@ environment, control, and other execution state of the
 Cinquecento system are not represented by a domain, and
 thus are not addressable data that a Cinquecento
 program can mutate.  (For example, you cannot apply the
-{\tt \&} operator to a Cinquecento variable in hope of
+<span class="val">&</span> operator to a Cinquecento variable in hope of
 discovering its address.)  As with other safe
 functional language runtimes, misbehavior or failure of
 the Cinquecento runtime is an implementation bug, never
 a consequence of operating on erroneous user data.
-
+</p>
 
 
 <h3>Name spaces</h3>
@@ -3305,7 +3352,7 @@ machines sharing the environment have been freed.
 
 
 
-<h3 id="sec:fnindex">Syntax Index</h3>
+<h3 id="sec:synindex">Syntax Index</h3>
 
 <div class="id">
 <div class="index">

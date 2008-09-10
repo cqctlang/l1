@@ -1,17 +1,26 @@
 /* layout */
 
-dl, ol, ul {
-	margin: inherit;
-	margin-right: 20px;
-	margin-bottom: 10px;
-}
-
 #content {
-	margin-left: 20px;
+	margin-left: auto;
+	margin-right: auto;
 	margin-top: 20px;
 	left:	20px;
 	top:	20px;
 	width: 40em;
+	list-style-position: inside;
+}
+
+dl, ol, ul {
+	margin-right: 20px;
+	margin-bottom: 10px;
+}
+
+#content h4 {
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	text-align: center;
 }
 
 #content h3 {
@@ -61,7 +70,7 @@ dl, ol, ul {
 /* typography */
 
 #content {
-	font-family: Verdana, "Lucida Sans", sans-serif;
+	font-family: "Lucida Sans", "Luxi Sans", sans-serif;
 	font-size: 14px;
 	line-height: 18px;
 	color: black;
@@ -69,7 +78,7 @@ dl, ol, ul {
 }
 
 #content #table {
-	font-family: Verdana, "Lucida Sans", sans-serif;
+	font-family: "Lucida Sans", "Luxi Sans", sans-serif;
 	font-size: 12px;
 	line-height: 14px;
 	color: black;
@@ -77,7 +86,7 @@ dl, ol, ul {
 }
 
 #content h3 {
-	font-family: Verdana, "Lucida Sans", sans-serif;
+	font-family:  "Lucida Sans", "Luxi Sans", sans-serif;
 	font-size: 15px;
 	text-align: left;
 }
