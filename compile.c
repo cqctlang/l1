@@ -2525,19 +2525,6 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	i->kind = Iret;
 }
 
-static void
-linkinsns(Code *code)
-{
-	unsigned long m;
-	Ctl *ctl;
-	for(m = 0; m < code->ninsn; m++){
-		ctl = code->labels[m];
-		if(ctl == 0)
-			continue;
-		ctl->insnx = &code->insn[ctl->insn];
-	}
-}
-
 Closure*
 compileentry(Expr *el, Env *env)
 {
@@ -2575,7 +2562,6 @@ compileentry(Expr *el, Env *env)
 	if(cqctflags['o'])
 		printcode(code);
 
-	linkinsns(code);
 	return cl;
 }
 
@@ -2602,7 +2588,6 @@ haltthunk()
 
 	i = nextinsn(code);
 	i->kind = Ihalt;
-	linkinsns(code);
 	return cl;
 }
 
@@ -2630,7 +2615,6 @@ callcc()
 	i->kind = Icallt;
 	randloc(&i->op1, AC);
 
-	linkinsns(code);
 	return cl;
 }
 
@@ -2646,7 +2630,6 @@ callccode()
 	i = nextinsn(code);
 	i->kind = Iret;
 
-	linkinsns(code);
 	return code;
 }
 
@@ -2666,7 +2649,6 @@ contcode()
 	i = nextinsn(code);
 	i->kind = Iret;
 
-	linkinsns(code);
 	return code;
 }
 
@@ -2686,7 +2668,6 @@ panicthunk()
 	i = nextinsn(code);
 	i->kind = Ipanic;
 
-	linkinsns(code);
 	return cl;
 }
 

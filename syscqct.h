@@ -428,7 +428,6 @@ typedef struct Code Code;
 typedef struct Topvec Topvec;
 typedef struct Konst Konst;
 typedef struct Konsti Konsti;
-typedef struct Insn Insn;
 
 struct Ctl {
 	unsigned ckind;
@@ -436,8 +435,8 @@ struct Ctl {
 	/* ckind == Clabel */
 	char *label;		/* for humans, only; (duplicates in code ok) */
 	int used;
-	Imm insn;
-	Insn *insnx;
+	unsigned long insn;
+	void *insnx;
 
 	/* ckind == Clabelpair */
 	Ctl *l1, *l2;
@@ -447,13 +446,14 @@ struct Ctl {
 	Code *code;
 };
 
+typedef
 struct Insn {
 	ikind kind;
 	void *go;
 	uintptr_t data;
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;
-};
+} Insn;
 
 struct Konst {
 	HT *ht;
@@ -483,7 +483,7 @@ struct Code {
 void initcompile();
 void finicompile();
 Code* newcode();
-Closure* mkcl(Code *code, Imm entry, unsigned len, char *id);
+Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 int docompilec(U *ctx, Expr *e);
 int docompile0(U *ctx, Expr *e);
 typedef Expr*(Pass)(U*, Expr*);
