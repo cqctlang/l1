@@ -228,3 +228,4 @@ setyystate(YYstate *yy)
 {
 	yy_switch_to_buffer(yy->yy);
 }
+

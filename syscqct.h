@@ -118,6 +118,7 @@ enum{
 	Emax,
 } Kind;
 
+/* base C types */
 typedef
 enum Cbase {
 	Vundef=0,
@@ -140,6 +141,30 @@ enum Cbase {
 	Vnallbase,
 } Cbase;
 
+/* type representations */ 
+typedef
+enum Rkind {
+	Rundef,
+	Ru08le,
+	Ru16le,
+	Ru32le,
+	Ru64le,
+	Rs08le,
+	Rs16le,
+	Rs32le,
+	Rs64le,
+	Ru08be,
+	Ru16be,
+	Ru32be,
+	Ru64be,
+	Rs08be,
+	Rs16be,
+	Rs32be,
+	Rs64be,
+	Rnrep, 
+} Rkind;
+
+/* ctypes */
 typedef
 enum Tkind {
 	Tvoid=0,
@@ -155,14 +180,19 @@ enum Tkind {
 	Tconst,			/* xtn only */
 	Tundef,			/* xtn only */
 } Tkind;
-
 enum {
-	Tntkind = Tundef+1
+	Tntkind=Tundef+1,	/* keep outside of Tkind */
 };
 
 typedef struct Decl Decl;
 typedef struct Enum Enum;
 typedef struct Type Type;
+
+typedef struct Ctl Ctl;
+typedef struct Code Code;
+typedef struct Topvec Topvec;
+typedef struct Konst Konst;
+typedef struct Konsti Konsti;
 
 typedef
 struct Src {
@@ -231,6 +261,205 @@ struct Type {
 	Type *link;		/* typedef, ptr, arr, func(return type) */
 };
 
+typedef struct As As;
+typedef struct Box Box;
+typedef struct Cval Cval;
+typedef struct Dom Dom;
+typedef struct Fd Fd;
+typedef struct List List;
+typedef struct Ns Ns;
+typedef struct Pair Pair;
+typedef struct Range Range;
+typedef struct Str Str;
+typedef struct Tab Tab;
+typedef struct Vec Vec;
+typedef struct Xtypename Xtypename;
+
+typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
+typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
+
+struct Cval {
+	Head hd;
+	Dom *dom;
+	Xtypename *type;
+	Imm val;
+};
+
+struct Closure {
+	Head hd;
+	Code *code;
+	unsigned long entry;
+	unsigned dlen;
+	Val *display;
+	char *id;
+	Imm fp;			/* of continuation, always >0 */
+	Cfn *cfn;
+	Ccl *ccl;
+};
+
+struct Box {
+	Head hd;
+	Val v;
+};
+
+typedef struct Tabidx Tabidx;
+struct Tabidx {
+	u32 idx;
+	Tabidx *link;
+};
+
+typedef
+struct Tabx {
+	u32 nxt, lim;
+	u32 sz;
+	Val *key;
+	Val *val;
+	Tabidx **idx;
+} Tabx;
+
+struct Tab {
+	Head hd;
+	u32 cnt;		/* key/val pairs stored */
+	Tabx *x;		/* current storage, atomically swappable */
+};
+
+typedef
+struct Listx {
+	/* invariants:
+	 *  if(hd == tl)
+	 *  	list is empty.
+	 *  else
+	 *  	tl>hd and list has tl-hd elements,
+	 *      hd points to first element in list, and
+	 *	tl-1 points to last.
+	 */
+	u32 hd, tl, sz;
+	Val *val;		/* atomically swappable */
+	Val *oval;		/* buffer for gc-safe sliding */
+} Listx;
+
+struct List {
+	Head hd;
+	Listx *x;		/* current storage, atomically swappable */
+};
+
+struct As {
+	Head hd;
+	Closure *dispatch;
+};
+
+typedef
+struct Nssym {
+	Imm addr;
+	Vec *sym;
+} Nssym;
+
+struct Ns {
+	Head hd;
+
+	/* interface for all instances */
+	Closure *enumsym;
+	Closure *enumtype;
+	Closure *looksym;
+	Closure *looktype;
+	Closure *lookaddr;
+
+	/* cached base type definition */
+	Xtypename *base[Vnallbase];
+
+	/* data for instances created by @names */
+	/* FIXME: push into closure defining interface */
+	Tab *type;
+	Tab *sym;
+	Nssym *symvec;		/* points to elements of sym; no mark needed */
+	Imm nsym;
+};
+
+struct Dom {
+	Head hd;
+	As *as;
+	Ns *ns;
+	Str *name;
+};
+
+struct Fd {
+	Head hd;
+	void (*free)(Fd *fd);
+	int fd;
+	Str *name;
+	enum Fflag {
+		Fclosed =	1,
+		Fread =		Fclosed<<1,
+		Fwrite =	Fread<<1,
+	} flags;
+};
+
+struct Pair {
+	Head hd;
+	Val car;
+	Val cdr;
+};
+
+struct Range {
+	Head hd;
+	Cval *beg;
+	Cval *len;
+};
+
+typedef
+enum Skind {
+	Sperm,			/* don't free */
+	Smalloc,		/* free with free() */
+	Smmap,			/* free with munmap() */
+} Skind;
+
+struct Str {
+	Head hd;
+	Skind skind;
+	u64 len;
+	size_t mlen;		/* Smmap size */
+	char *s;
+};
+
+struct Vec {
+	Head hd;
+	Imm len;
+	Val *vec;
+};
+
+struct Xtypename {
+	Head hd;
+	Tkind tkind;		/* = Tbase, Tstruct, ... */
+	Cbase basename;		/* base (FIXME: rename cbase) */
+	Rkind rep;		/* base, ptr, enum; = Ru08le ... */
+	Str *tid;		/* typedef */
+	Str *tag;		/* struct, union, enum */
+	Val cnt;		/* arr */
+	Val sz;			/* struct, union, bitfield */
+	Val bit0;		/* bitfield */
+	Xtypename *link;	/* ptr, arr, func, bitfield, enum, const */
+	Vec *field;		/* struct, union */
+	Vec *param;		/* func */
+	Vec *konst;		/* enum (constants) */
+};
+
+#define valas(v)	((As*)(v))
+#define valcval(v)	((Cval*)(v))
+#define valcl(v)	((Closure*)(v))
+#define valdom(v)	((Dom*)(v))
+#define valfd(v)	((Fd*)(v))
+#define vallist(v)	((List*)(v))
+#define valns(v)	((Ns*)(v))
+#define valpair(v)	((Pair*)(v))
+#define valrange(v)	((Range*)(v))
+#define valstr(v)	((Str*)(v))
+#define valtab(v)	((Tab*)(v))
+#define valvec(v)	((Vec*)(v))
+#define valxtn(v)	((Xtypename*)(v))
+#define valboxedcval(b)	((Cval*)((Box*)(b))->v)
+
+#define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
+
 enum {
 	MaxIn	= 128,
 };
@@ -257,50 +486,51 @@ extern char* S[];
 extern char* basename[];
 extern char* tkindstr[];
 
-YYstate* mkyystate(FILE *fp);
-YYstate* mkyystatestr(char *buf);
-void freeyystate(YYstate *yy);
-void setyystate(YYstate *yy);
+/* c.l */
+void		freeyystate(YYstate *yy);
+YYstate*	mkyystate(FILE *fp);
+YYstate*	mkyystatestr(char *buf);
+void		setyystate(YYstate *yy);
 
-int yyparse(U *ctx);
-Expr* newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
-Expr* newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
-Expr* copyexpr(Expr *e);
-Expr* newbinop(unsigned, Expr*, Expr*);
-Expr* newbinopsrc(Src*, unsigned, Expr*, Expr*);
-Expr* newgop(unsigned, Expr*, Expr*);
-Expr* newgopsrc(Src*, unsigned, Expr*, Expr*);
-Expr* mkconst(Cbase base, Imm val); /* rename newconst? */
-void freeexpr(Expr*);
-void freeenum(Enum *en);
-void freeexprx(Expr *e);
-Expr* invert(Expr*);
-Expr* nullelist();
-Expr* ptrto(Expr*, Expr*);
-Expr* doid(char*);
-Expr* doidn(char *s, unsigned long len);
-Expr* doidnsrc(Src *src, char *s, unsigned long len);
-int parseliti(char *s, unsigned long len, Liti *liti, char **err);
-Expr* doconst(U *ctx, char*, unsigned long len);
-Expr* doconsts(char*, unsigned long len);
-Expr* doconstssrc(Src*, char*, unsigned long len);
-Expr* dotick(Expr*, Expr*);
-Expr* doticksrc(Src *src, Expr*, Expr*);
-Lits* mklits(char*, unsigned len);
-Lits* copylits(Lits *lits);
-void freelits(Lits *lits);
-char* fmttype(Type *t, char *o);
+/* parse.c */
+Expr*		copyexpr(Expr *e);
+Lits*		copylits(Lits *lits);
+Expr*		doconst(U *ctx, char*, unsigned long len);
+Expr*		doconsts(char*, unsigned long len);
+Expr*		doconstssrc(Src*, char*, unsigned long len);
+Expr*		doid(char*);
+Expr*		doidn(char *s, unsigned long len);
+Expr*		doidnsrc(Src *src, char *s, unsigned long len);
+Expr*		dotick(Expr*, Expr*);
+Expr*		doticksrc(Src *src, Expr*, Expr*);
+void		dotop(U*, Expr*);
+Expr*		dotypes(U*, Expr*);
+char*		fmttype(Type *t, char *o);
+void		freeenum(Enum *en);
+void		freeexpr(Expr*);
+void		freeexprx(Expr *e);
+void		freelits(Lits *lits);
+Expr*		invert(Expr*);
+Expr*		mkconst(Cbase base, Imm val); /* rename newconst? */
+Lits*		mklits(char*, unsigned len);
+Expr*		newbinop(unsigned, Expr*, Expr*);
+Expr*		newbinopsrc(Src*, unsigned, Expr*, Expr*);
+Expr*		newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
+Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
+Expr*		newgop(unsigned, Expr*, Expr*);
+Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
+Expr*		nullelist();
+int		parseliti(char *s, unsigned long len, Liti *liti, char **err);
+Expr*		ptrto(Expr*, Expr*);
+void		parseerror(U *ctx, char *fmt, ...);
+void		pushyy(U *ctx, char *filename, char *inbuf);
+int		popyy(U *ctx);
+void		tryinclude(U *ctx, char *raw);
+int		yyparse(U *ctx);
 
-Expr* dotypes(U*, Expr*);
-void dotop(U*, Expr*);
-
-void printexpr(Expr*);
-void printcqct(Expr*);
-
-void pushyy(U *ctx, char *filename, char *inbuf);
-int popyy(U *ctx);
-void tryinclude(U *ctx, char *raw);
-void parseerror(U *ctx, char *fmt, ...);
+/* printexpr.c */
+void		printcqct(Expr*);
+void		printexpr(Expr*);
 
 typedef
 struct BFgeom {
@@ -421,12 +651,6 @@ struct Operand {
 	} u;
 } Operand;
 
-typedef struct Ctl Ctl;
-typedef struct Code Code;
-typedef struct Topvec Topvec;
-typedef struct Konst Konst;
-typedef struct Konsti Konsti;
-
 struct Ctl {
 	unsigned ckind;
 
@@ -499,6 +723,40 @@ Env* mktopenv();
 void freeenv(Env *env);
 Val* envgetbind(Env *env, char *id);
 
+void builtinfn(Env *env, char *name, Closure *cl);
+Cval* mkcval(Dom *dom, Xtypename *type, Imm val);
+Fd* mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd));
+Range* mkrange(Cval *beg, Cval *len);
+Str* mkstr(char *s, Imm len);
+Str* mkstrn(VM *vm, Imm len);
+Str* mkstrlits(Lits *lits);
+
+Val mkvalcval(Dom *dom, Xtypename *t, Imm imm);
+Val mkvalimm(Dom *dom, Xtypename *t, Imm imm);
+Val mkvalcval2(Cval *cv);
+Val mklitcval(Cbase base, Imm val);
+Val mkvalcl(Closure *cl);
+Val mkvalbox(Val boxed);
+Val mkvalas(As *as);
+Val mkvaldom(Dom *dom);
+Val mkvalfd(Fd *fd);
+Val mkvallist(List *lst);
+Val mkvalns(Ns *ns);
+Val mkvalpair(Val car, Val cdr);
+Val mkvalstr(Str *str);
+Val mkvaltab(Tab *tab);
+Val mkvalvec(Vec *vec);
+Val mkvalrange(Cval *beg, Cval *len);
+Val mkvalrange2(Range *r);
+Val mkvalxtn(Xtypename *xtn);
+
+
+char* str2cstr(Str *str);
+Str* mkstr0(char *s);
+Str* mkstrk(char *s, Imm len, Skind skind);
+void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
+void vmerr(VM *vm, char *fmt, ...) NORETURN;
+Closure* mkcfn(char *id, Cfn *cfn);
 void initvm();
 void finivm();
 void vmreset(VM *vm);

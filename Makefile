@@ -17,7 +17,9 @@ L1C =\
 	compile0.c\
 	cutil.c\
 	compile.c\
-	vm.c
+	vm.c\
+	fnio.c\
+	fnnet.c
 L1O = $(L1C:.c=.o)
 
 c.tab.c: c.y $(HDR)

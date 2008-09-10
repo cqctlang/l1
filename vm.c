@@ -28,29 +28,6 @@ static char *qname[Qnkind] = {
 	[Qxtn]=		"ctype",
 };
 
-typedef
-enum Rkind {
-	/* type representations */ 
-	Rundef,
-	Ru08le,
-	Ru16le,
-	Ru32le,
-	Ru64le,
-	Rs08le,
-	Rs16le,
-	Rs32le,
-	Rs64le,
-	Ru08be,
-	Ru16be,
-	Ru32be,
-	Ru64be,
-	Rs08be,
-	Rs16be,
-	Rs32be,
-	Rs64be,
-	Rnrep, 
-} Rkind;
-
 static Imm repsize[Rnrep] = {
 	[Ru08le]=	1,
 	[Ru16le]=	2,
@@ -139,178 +116,8 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-typedef struct As As;
-typedef struct Box Box;
-typedef struct Cval Cval;
-typedef struct Dom Dom;
-typedef struct Fd Fd;
-typedef struct List List;
-typedef struct Ns Ns;
-typedef struct Pair Pair;
-typedef struct Range Range;
-typedef struct Str Str;
-typedef struct Tab Tab;
-typedef struct Vec Vec;
-typedef struct Xtypename Xtypename;
-
 struct Env {
 	HT *ht;
-};
-
-typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
-typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
-
-struct Cval {
-	Head hd;
-	Dom *dom;
-	Xtypename *type;
-	Imm val;
-};
-
-struct Closure {
-	Head hd;
-	Code *code;
-	unsigned long entry;
-	unsigned dlen;
-	Val *display;
-	char *id;
-	Imm fp;			/* of continuation, always >0 */
-	Cfn *cfn;
-	Ccl *ccl;
-};
-
-struct Box {
-	Head hd;
-	Val v;
-};
-
-typedef struct Tabidx Tabidx;
-struct Tabidx {
-	u32 idx;
-	Tabidx *link;
-};
-
-typedef
-struct Tabx {
-	u32 nxt, lim;
-	u32 sz;
-	Val *key;
-	Val *val;
-	Tabidx **idx;
-} Tabx;
-
-struct Tab {
-	Head hd;
-	u32 cnt;		/* key/val pairs stored */
-	Tabx *x;		/* current storage, atomically swappable */
-};
-
-typedef
-struct Listx {
-	/* invariants:
-	 *  if(hd == tl)
-	 *  	list is empty.
-	 *  else
-	 *  	tl>hd and list has tl-hd elements,
-	 *      hd points to first element in list, and
-	 *	tl-1 points to last.
-	 */
-	u32 hd, tl, sz;
-	Val *val;		/* atomically swappable */
-	Val *oval;		/* buffer for gc-safe sliding */
-} Listx;
-
-struct List {
-	Head hd;
-	Listx *x;		/* current storage, atomically swappable */
-};
-
-struct As {
-	Head hd;
-	Closure *dispatch;
-	Str *name;
-};
-
-struct Ns {
-	Head hd;
-
-	Closure *enumsym;
-	Closure *enumtype;
-	Closure *looksym;
-	Closure *looktype;
-	Closure *lookaddr;
-	Str *name;
-
-	/* cached base type definition */
-	Xtypename *base[Vnallbase];
-};
-
-struct Dom {
-	Head hd;
-	As *as;
-	Ns *ns;
-	Str *name;
-};
-
-struct Fd {
-	Head hd;
-	void (*free)(Fd *fd);
-	int fd;
-	Str *name;
-	enum Fflag {
-		Fclosed =	1,
-		Fread =		Fclosed<<1,
-		Fwrite =	Fread<<1,
-	} flags;
-};
-
-struct Pair {
-	Head hd;
-	Val car;
-	Val cdr;
-};
-
-struct Range {
-	Head hd;
-	Cval *beg;
-	Cval *len;
-};
-
-typedef
-enum Skind {
-	Sperm,			/* don't free */
-	Smalloc,		/* free with free() */
-	Smmap,			/* free with munmap() */
-} Skind;
-
-struct Str {
-	Head hd;
-	Skind skind;
-	u64 len;
-	size_t mlen;		/* Smmap size */
-	char *s;
-};
-
-struct Vec {
-	Head hd;
-	Imm len;
-	Val *vec;
-};
-
-struct Xtypename {
-	Head hd;
-	Tkind tkind;		/* = Tbase, Tstruct, ... */
-	Cbase basename;		/* base (FIXME: rename cbase) */
-	Rkind rep;		/* base, ptr, enum; = Ru08le ... */
-	Str *tid;		/* typedef */
-	Str *tag;		/* struct, union, enum */
-	Val cnt;		/* arr */
-	Val sz;			/* struct, union, bitfield */
-	Val bit0;		/* bitfield */
-	Xtypename *link;	/* ptr, arr, func, bitfield, enum, const */
-	Vec *field;		/* struct, union */
-	Vec *param;		/* func */
-	Vec *konst;		/* enum (constants) */
 };
 
 typedef
@@ -345,7 +152,6 @@ static void vmsetcl(VM *vm, Val val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
 static void* gcprotect(VM *vm, void *hd);
-static void vmerr(VM *vm, char *fmt, ...) NORETURN;
 static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn();
@@ -355,7 +161,6 @@ static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
 static Xtypename* mkundefxtn(Xtypename *t);
 static Str* fmtxtn(Xtypename *xtn);
-static void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
 static int isstrcval(Cval *cv);
 static Str* stringof(VM *vm, Cval *cv);
 static Val vecref(Vec *vec, Imm idx);
@@ -506,21 +311,6 @@ valboxed(Val v)
 	b = (Box*)v;
 	return b->v;
 }
-
-#define valas(v)	((As*)(v))
-#define valcval(v)	((Cval*)(v))
-#define valcl(v)	((Closure*)(v))
-#define valdom(v)	((Dom*)(v))
-#define valfd(v)	((Fd*)(v))
-#define vallist(v)	((List*)(v))
-#define valns(v)	((Ns*)(v))
-#define valpair(v)	((Pair*)(v))
-#define valrange(v)	((Range*)(v))
-#define valstr(v)	((Str*)(v))
-#define valtab(v)	((Tab*)(v))
-#define valvec(v)	((Vec*)(v))
-#define valxtn(v)	((Xtypename*)(v))
-#define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 
 static void*
 read_and_clear(void *pp)
@@ -1311,12 +1101,6 @@ freecl(Head *hd)
 }
 
 static void
-freefdclose(Fd *fd)
-{
-	close(fd->fd);
-}
-
-static void
 freefd(Head *hd)
 {
 	Fd *fd;
@@ -1325,7 +1109,7 @@ freefd(Head *hd)
 		fd->free(fd);
 }
 
-static Fd*
+Fd*
 mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd))
 {
 	Fd *fd;
@@ -1611,7 +1395,7 @@ eqxtnv(Val a, Val b)
 	return eqxtn(valxtn(a), valxtn(b));
 }
 
-static Str*
+Str*
 mkstr0(char *s)
 {
 	Str *str;
@@ -1623,7 +1407,7 @@ mkstr0(char *s)
 	return str;
 }
 
-static Str*
+Str*
 mkstr(char *s, Imm len)
 {
 	Str *str;
@@ -1635,7 +1419,7 @@ mkstr(char *s, Imm len)
 	return str;
 }
 
-static Str*
+Str*
 mkstrk(char *s, Imm len, Skind skind)
 {
 	Str *str;
@@ -1648,7 +1432,7 @@ mkstrk(char *s, Imm len, Skind skind)
 	return str;
 }
 
-static Str*
+Str*
 mkstrn(VM *vm, Imm len)
 {
 	Str *str;
@@ -1669,13 +1453,13 @@ mkstrn(VM *vm, Imm len)
 	return str;
 }
 
-static Str*
+Str*
 mkstrlits(Lits *lits)
 {
 	return mkstr(lits->s, lits->len);
 }
 
-static char*
+char*
 str2cstr(Str *str)
 {
 	char *s;
@@ -2858,7 +2642,7 @@ freeenv(Env *env)
 	free(env);
 }
 
-static Cval*
+Cval*
 mkcval(Dom *dom, Xtypename *type, Imm val)
 {
 	Cval *cv;
@@ -2869,7 +2653,7 @@ mkcval(Dom *dom, Xtypename *type, Imm val)
 	return cv;
 }
 
-static Val
+Val
 mkvalcval(Dom *dom, Xtypename *t, Imm imm)
 {
 	return (Val)mkcval(dom, t, imm);
@@ -2877,13 +2661,13 @@ mkvalcval(Dom *dom, Xtypename *t, Imm imm)
 
 /* the difference between mkvalimm and mkvalcval is usage:
    the former is for VM literals, the latter for other values */
-static Val
+Val
 mkvalimm(Dom *dom, Xtypename *t, Imm imm)
 {
 	return mkvalcval(dom, t, imm);
 }
 
-static Val
+Val
 mkvalcval2(Cval *cv)
 {
 	return (Val)cv;
@@ -2895,13 +2679,13 @@ mklitcval(Cbase base, Imm val)
 	return mkvalcval(litdom, litbase[base], val);
 }
 
-static Val
+Val
 mkvalcl(Closure *cl)
 {
 	return (Val)cl;
 }
 
-static Val
+Val
 mkvalbox(Val boxed)
 {
 	Box *box;
@@ -2910,37 +2694,37 @@ mkvalbox(Val boxed)
 	return (Val)box;
 }
 
-static Val
+Val
 mkvalas(As *as)
 {
 	return (Val)as;
 }
 
-static Val
+Val
 mkvaldom(Dom *dom)
 {
 	return (Val)dom;
 }
 
-static Val
+Val
 mkvalfd(Fd *fd)
 {
 	return (Val)fd;
 }
 
-static Val
+Val
 mkvallist(List *lst)
 {
 	return (Val)lst;
 }
 
-static Val
+Val
 mkvalns(Ns *ns)
 {
 	return (Val)ns;
 }
 
-static Val
+Val
 mkvalpair(Val car, Val cdr)
 {
 	Pair *pair;
@@ -2950,25 +2734,25 @@ mkvalpair(Val car, Val cdr)
 	return (Val)pair;
 }
 
-static Val
+Val
 mkvalstr(Str *str)
 {
 	return (Val)str;
 }
 
-static Val
+Val
 mkvaltab(Tab *tab)
 {
 	return (Val)tab;
 }
 
-static Val
+Val
 mkvalvec(Vec *vec)
 {
 	return (Val)vec;
 }
 
-static Range*
+Range*
 mkrange(Cval *beg, Cval *len)
 {
 	Range *r;
@@ -2978,7 +2762,7 @@ mkrange(Cval *beg, Cval *len)
 	return r;
 }
 
-static Val
+Val
 mkvalrange(Cval *beg, Cval *len)
 {
 	Range *r;
@@ -2986,13 +2770,13 @@ mkvalrange(Cval *beg, Cval *len)
 	return (Val)r;
 }
 
-static Val
+Val
 mkvalrange2(Range *r)
 {
 	return (Val)r;
 }
 
-static Val
+Val
 mkvalxtn(Xtypename *xtn)
 {
 	return (Val)xtn;
@@ -3143,7 +2927,7 @@ vmbacktrace(VM *vm)
 	fvmbacktrace(stderr, vm);
 }
 
-static void
+void
 vmerr(VM *vm, char *fmt, ...)
 {
 	va_list args;
@@ -5640,7 +5424,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	}
 }
 
-static void
+void
 builtinfn(Env *env, char *name, Closure *cl)
 {
 	Val val;
@@ -5680,7 +5464,7 @@ builtinfd(Env *env, char *name, Fd *fd)
 	envbind(env, name, val);
 }
 
-static void
+void
 checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 {
 	if(argv[arg]->qkind != qkind)
@@ -7846,84 +7630,6 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
-l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	int fd;
-	Str *names, *map;
-	char *p, *name;
-	struct stat st;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to mapfile");
-	checkarg(vm, "mapfile", argv, 0, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	fd = open(name, O_RDONLY);
-	free(name);
-	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	if(0 > fstat(fd, &st)){
-		close(fd);
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	}
-	p = mmap(0, st.st_size, PROT_READ|PROT_WRITE,
-		 MAP_NORESERVE|MAP_PRIVATE, fd, 0);
-	close(fd);
-	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	map = mkstrk(p, st.st_size, Smmap);
-	*rv = mkvalstr(map);
-}
-
-static void
-l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	int xfd;
-	Str *names;
-	char *name, *mode;
-	int oflags, flags;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to open");
-	checkarg(vm, "open", argv, 0, Qstr);
-	checkarg(vm, "open", argv, 1, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	mode = str2cstr(valstr(argv[1]));
-
-	flags = 0;
-	oflags = 0;
-	if(strchr(mode, 'r'))
-		flags |= Fread;
-	if(strchr(mode, 'w')){
-		flags |= Fwrite;
-		oflags |= O_CREAT;
-	}
-	if((flags&Fwrite) && !strchr(mode, 'a'))
-		oflags |= O_TRUNC;
-
-	if((flags&Fread) && (flags&Fwrite))
-		oflags |= O_RDWR;
-	else if(flags&Fread)
-		oflags |= O_RDONLY;
-	else if(flags&Fwrite)
-		oflags |= O_WRONLY;
-
-	xfd = open(name, oflags, 0777); /* ~umask */
-	free(name);
-	free(mode);
-	if(0 > xfd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	fd = mkfd(names, xfd, flags, freefdclose);
-	*rv = mkvalfd(fd);
-}
-
-static void
 l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -7943,58 +7649,10 @@ l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to close");
+		vmerr(vm, "wrong number of arguments to fdname");
 	checkarg(vm, "close", argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	*rv = mkvalstr(fd->name);
-}
-
-static void
-l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *s;
-	char *buf;
-	Cval *n;
-	Imm r;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to read");
-	checkarg(vm, "read", argv, 0, Qfd);
-	checkarg(vm, "read", argv, 1, Qcval);
-	fd = valfd(argv[0]);
-	if(fd->flags&Fclosed)
-		vmerr(vm, "attempt to read from closed file descriptor");
-	n = valcval(argv[1]);
-	buf = xmalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
-	r = xread(fd->fd, buf, n->val);
-	if(r == (Imm)-1)
-		vmerr(vm, "read error: %s", strerror(errno));
-	if(n->val > 0 && r == 0)
-		return;		/* nil */
-	s = mkstrk(buf, r, Smalloc);
-	*rv = mkvalstr(s);
-}
-
-static void
-l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *s;
-	int r;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to write");
-	checkarg(vm, "write", argv, 0, Qfd);
-	checkarg(vm, "write", argv, 1, Qstr);
-	fd = valfd(argv[0]);
-	if(fd->flags&Fclosed)
-		vmerr(vm, "attempt to write to closed file descriptor");
-	s = valstr(argv[1]);
-	r = xwrite(fd->fd, s->s, s->len);
-	if(r == -1)
-		vmerr(vm, "write error: %s", strerror(errno));
-	/* return nil */
 }
 
 static void
@@ -8091,33 +7749,6 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	closedir(dir);
 	*rv = mkvalas(mksas(mkstrk(buf, ndir*sizeof(struct dirent), Smalloc)));
-}
-
-static void
-l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *str;
-	char *s;
-	int xfd;
-	struct sockaddr_in saddr;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to opentcp");
-	checkarg(vm, "opentcp", argv, 0, Qstr);
-	str = valstr(argv[0]);
-	s = str2cstr(str);
-	if(0 > parseip(s, &saddr))
-		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
-	free(s);
-	xfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(0 > xfd)
-		vmerr(vm, "opentcp: %s", strerror(errno));
-	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
-		vmerr(vm, "opentcp: %s", strerror(errno));
-	nodelay(xfd);
-	fd = mkfd(str, xfd, Fread|Fwrite, freefdclose);
-	*rv = mkvalfd(fd);
 }
 
 static void
@@ -9594,8 +9225,6 @@ mklitdom()
 
 static VM *vms[Maxvms];
 
-#define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
-
 Env*
 mktopenv()
 {
@@ -9679,7 +9308,6 @@ mktopenv()
 	FN(listset);
 	FN(lookfield);
 	FN(looktype);
-	FN(mapfile);
 	FN(mkas);
 	FN(mkctype_array);
 	FN(mkctype_bitfield);
@@ -9726,8 +9354,6 @@ mktopenv()
 	FN(nslooktype);
 	FN(nsptr);
 	FN(null);
-	FN(open);
-	FN(opentcp);
 	FN(paramid);
 	FN(params);
 	FN(paramtype);
@@ -9740,7 +9366,6 @@ mktopenv()
 	FN(rangelen);
 	FN(rand);
 	FN(randseed);
-	FN(read);
 	FN(rettype);
 	FN(reverse);
 	FN(rmdir);
@@ -9772,7 +9397,9 @@ mktopenv()
 	FN(vecref);
 	FN(vecset);
 	FN(vector);
-	FN(write);
+
+	fnio(env);
+	fnnet(env);
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();
