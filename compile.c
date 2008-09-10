@@ -1970,6 +1970,10 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			L0 = L;
 		}
 		
+		i = nextinsn(code);
+		i->kind = Ipushi;
+		randliti(&i->op1, konsti2val(Vint, narg, code->konsti));
+
 		if(issimple(e->e1)){
 			cgrand(&r1, e->e1, p);
 		}else {
@@ -1979,13 +1983,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cg(e->e1, code, p, AC, L, L0, L, tmp);
 			emitlabel(L, e);
 		}
-
-		/* pushi narg must be last instruction before Icall/Icallt
-		   to satisfy gc invariant that all immediates on stack
-		   are in complete frames on call boundaries */ 
-		i = nextinsn(code);
-		i->kind = Ipushi;
-		randliti(&i->op1, konsti2val(Vint, narg, code->konsti));
 
 		if(!istail){
 			i = nextinsn(code);
