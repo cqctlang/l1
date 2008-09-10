@@ -396,6 +396,7 @@ enum {
 	Maxstk = 1024,
 	InsnAlloc = 1024,
 	AllocBatch = 128,
+	LiveAlloc = 128,
 };
 
 typedef
@@ -475,6 +476,8 @@ struct Code {
 	Topvec *topvec;
 	Konst *konst;
 	Konsti *konsti;
+	unsigned long nlive, maxlive;
+	Imm **live;
 };
 
 void initcompile();
