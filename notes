@@ -61,6 +61,7 @@ todo
     	    sizeof(dom`X);
     seems now that typedef wins.
   - make define implicitly add @local binding to enclosing block
+  - b6b4d11b339 (sep 8 2008) causes label conflict on "x.f();"
 
 - usability
   - change "entry" to "toplevel"
