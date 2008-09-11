@@ -18,6 +18,7 @@ L1C =\
 	cutil.c\
 	compile.c\
 	vm.c\
+	fnfs.c\
 	fnio.c\
 	fnnet.c
 L1O = $(L1C:.c=.o)

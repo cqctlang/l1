@@ -21,7 +21,7 @@ static char* cbasector[Vnbase] = {
 };
 
 Expr*
-gentypename(Type *t, Pass *recpass, U *ctx)
+gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 {
 	Expr *e, *se, *te, *id, *off, *tn, *sz, *loc;
 	Enum *en;

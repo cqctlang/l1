@@ -187,7 +187,6 @@ enum {
 typedef struct Decl Decl;
 typedef struct Enum Enum;
 typedef struct Type Type;
-
 typedef struct Ctl Ctl;
 typedef struct Code Code;
 typedef struct Topvec Topvec;
@@ -443,23 +442,6 @@ struct Xtypename {
 	Vec *konst;		/* enum (constants) */
 };
 
-#define valas(v)	((As*)(v))
-#define valcval(v)	((Cval*)(v))
-#define valcl(v)	((Closure*)(v))
-#define valdom(v)	((Dom*)(v))
-#define valfd(v)	((Fd*)(v))
-#define vallist(v)	((List*)(v))
-#define valns(v)	((Ns*)(v))
-#define valpair(v)	((Pair*)(v))
-#define valrange(v)	((Range*)(v))
-#define valstr(v)	((Str*)(v))
-#define valtab(v)	((Tab*)(v))
-#define valvec(v)	((Vec*)(v))
-#define valxtn(v)	((Xtypename*)(v))
-#define valboxedcval(b)	((Cval*)((Box*)(b))->v)
-
-#define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
-
 enum {
 	MaxIn	= 128,
 };
@@ -480,72 +462,6 @@ struct U {
 	In *inp;
 	Expr *el;
 } U;
-
-extern U ctx;
-extern char* S[];
-extern char* basename[];
-extern char* tkindstr[];
-
-/* c.l */
-void		freeyystate(YYstate *yy);
-YYstate*	mkyystate(FILE *fp);
-YYstate*	mkyystatestr(char *buf);
-void		setyystate(YYstate *yy);
-
-/* parse.c */
-Expr*		copyexpr(Expr *e);
-Lits*		copylits(Lits *lits);
-Expr*		doconst(U *ctx, char*, unsigned long len);
-Expr*		doconsts(char*, unsigned long len);
-Expr*		doconstssrc(Src*, char*, unsigned long len);
-Expr*		doid(char*);
-Expr*		doidn(char *s, unsigned long len);
-Expr*		doidnsrc(Src *src, char *s, unsigned long len);
-Expr*		dotick(Expr*, Expr*);
-Expr*		doticksrc(Src *src, Expr*, Expr*);
-void		dotop(U*, Expr*);
-Expr*		dotypes(U*, Expr*);
-char*		fmttype(Type *t, char *o);
-void		freeenum(Enum *en);
-void		freeexpr(Expr*);
-void		freeexprx(Expr *e);
-void		freelits(Lits *lits);
-Expr*		invert(Expr*);
-Expr*		mkconst(Cbase base, Imm val); /* rename newconst? */
-Lits*		mklits(char*, unsigned len);
-Expr*		newbinop(unsigned, Expr*, Expr*);
-Expr*		newbinopsrc(Src*, unsigned, Expr*, Expr*);
-Expr*		newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
-Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
-Expr*		newgop(unsigned, Expr*, Expr*);
-Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
-Expr*		nullelist();
-int		parseliti(char *s, unsigned long len, Liti *liti, char **err);
-Expr*		ptrto(Expr*, Expr*);
-void		parseerror(U *ctx, char *fmt, ...);
-void		pushyy(U *ctx, char *filename, char *inbuf);
-int		popyy(U *ctx);
-void		tryinclude(U *ctx, char *raw);
-int		yyparse(U *ctx);
-
-/* printexpr.c */
-void		printcqct(Expr*);
-void		printexpr(Expr*);
-
-typedef
-struct BFgeom {
-	Imm bp, bs;
-	Imm addr, cnt;
-	unsigned isbe;
-	int les, bes;
-} BFgeom;
-int bitfieldgeom(BFgeom *bfg);
-Imm bitfieldget(char *s, BFgeom *bfg);
-Imm bitfieldput(char *s, BFgeom *bfg, Imm val);
-
-#define MAX(a,b) ((a)>(b)?(a):(b))
-#define MIN(a,b) ((a)<(b)?(a):(b))
-
 
 typedef
 enum {
@@ -699,102 +615,183 @@ struct Code {
 	Konsti *konsti;
 };
 
-void initcompile();
-void finicompile();
-Code* newcode();
-Closure* mkcl(Code *code, unsigned long entry, unsigned len, char *id);
-int docompilec(U *ctx, Expr *e);
-int docompile0(U *ctx, Expr *e);
-typedef Expr*(Pass)(U*, Expr*);
-Expr* gentypename(Type *t, Pass*, U*);
-Closure* compileentry(Expr *el, Env *env);
-void printvmac(VM *vm);
-char* topvecid(unsigned idx, Topvec *tv);
-Val* topvecval(unsigned idx, Topvec *tv);
-Imm valimm(Val v);
-Closure* haltthunk();
-Closure* callcc();
-Closure* panicthunk();
+typedef
+struct BFgeom {
+	Imm bp, bs;
+	Imm addr, cnt;
+	unsigned isbe;
+	int les, bes;
+} BFgeom;
 
-Code* callccode();
-Code* contcode();
+extern char* S[];
+extern char* basename[];
+extern char* tkindstr[];
 
-Env* mktopenv();
-void freeenv(Env *env);
-Val* envgetbind(Env *env, char *id);
+/* c.l */
+void		freeyystate(YYstate *yy);
+YYstate*	mkyystate(FILE *fp);
+YYstate*	mkyystatestr(char *buf);
+void		setyystate(YYstate *yy);
 
-void builtinfn(Env *env, char *name, Closure *cl);
-Cval* mkcval(Dom *dom, Xtypename *type, Imm val);
-Fd* mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd));
-Range* mkrange(Cval *beg, Cval *len);
-Str* mkstr(char *s, Imm len);
-Str* mkstrn(VM *vm, Imm len);
-Str* mkstrlits(Lits *lits);
+/* parse.c */
+Expr*		copyexpr(Expr *e);
+Lits*		copylits(Lits *lits);
+Expr*		doconst(U *ctx, char*, unsigned long len);
+Expr*		doconsts(char*, unsigned long len);
+Expr*		doconstssrc(Src*, char*, unsigned long len);
+Expr*		doid(char*);
+Expr*		doidn(char *s, unsigned long len);
+Expr*		doidnsrc(Src *src, char *s, unsigned long len);
+Expr*		dotick(Expr*, Expr*);
+Expr*		doticksrc(Src *src, Expr*, Expr*);
+void		dotop(U*, Expr*);
+Expr*		dotypes(U*, Expr*);
+char*		fmttype(Type *t, char *o);
+void		freeenum(Enum *en);
+void		freeexpr(Expr*);
+void		freeexprx(Expr *e);
+void		freelits(Lits *lits);
+Expr*		invert(Expr*);
+Expr*		mkconst(Cbase base, Imm val); /* rename newconst? */
+Lits*		mklits(char*, unsigned len);
+Expr*		newbinop(unsigned, Expr*, Expr*);
+Expr*		newbinopsrc(Src*, unsigned, Expr*, Expr*);
+Expr*		newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
+Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
+Expr*		newgop(unsigned, Expr*, Expr*);
+Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
+Expr*		nullelist();
+int		parseliti(char *s, unsigned long len, Liti *liti, char **err);
+Expr*		ptrto(Expr*, Expr*);
+void		parseerror(U *ctx, char *fmt, ...);
+void		pushyy(U *ctx, char *filename, char *inbuf);
+int		popyy(U *ctx);
+void		tryinclude(U *ctx, char *raw);
+int		yyparse(U *ctx);
 
-Val mkvalcval(Dom *dom, Xtypename *t, Imm imm);
-Val mkvalimm(Dom *dom, Xtypename *t, Imm imm);
-Val mkvalcval2(Cval *cv);
-Val mklitcval(Cbase base, Imm val);
-Val mkvalcl(Closure *cl);
-Val mkvalbox(Val boxed);
-Val mkvalas(As *as);
-Val mkvaldom(Dom *dom);
-Val mkvalfd(Fd *fd);
-Val mkvallist(List *lst);
-Val mkvalns(Ns *ns);
-Val mkvalpair(Val car, Val cdr);
-Val mkvalstr(Str *str);
-Val mkvaltab(Tab *tab);
-Val mkvalvec(Vec *vec);
-Val mkvalrange(Cval *beg, Cval *len);
-Val mkvalrange2(Range *r);
-Val mkvalxtn(Xtypename *xtn);
+/* printexpr.c */
+void		printcqct(Expr*);
+void		printexpr(Expr*);
 
+/* bitfield.c */
+int		bitfieldgeom(BFgeom *bfg);
+Imm		bitfieldget(char *s, BFgeom *bfg);
+Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
-char* str2cstr(Str *str);
-Str* mkstr0(char *s);
-Str* mkstrk(char *s, Imm len, Skind skind);
-void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
-void vmerr(VM *vm, char *fmt, ...) NORETURN;
-Closure* mkcfn(char *id, Cfn *cfn);
-void initvm();
-void finivm();
-void vmreset(VM *vm);
-jmp_buf* _pusherror(VM *vm);
+/* compile.c */
+Closure*	callcc();
+Code*		callccode();
+Closure*	compileentry(Expr *el, Env *env);
+Code*		contcode();
+void		finicompile();
+Closure*	haltthunk();
+void		initcompile();
+Closure*	panicthunk();
+char*		topvecid(unsigned idx, Topvec *tv);
+Val*		topvecval(unsigned idx, Topvec *tv);
+
+/* compilec.c */
+int		docompilec(U *ctx, Expr *e);
+
+/* compile0.c */
+int		docompile0(U *ctx, Expr *e);
+Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
+
+/* vm.c */
+void		builtinfn(Env *env, char *name, Closure *cl);
+void		checkarg(VM *vm, char *f, Val *argv, unsigned arg, Qkind qkind);
+Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+Val*		envgetbind(Env *env, char *id);
+void		freeenv(Env *env);
+void		initvm();
+void		finivm();
+void		freecode(Head *hd);
+Closure*	mkcfn(char *id, Cfn *cfn);
+Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
+Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
+Fd*		mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd));
+Val		mklitcval(Cbase base, Imm val);
+Range*		mkrange(Cval *beg, Cval *len);
+As*		mksas(Str *s);
+Str*		mkstr(char *s, Imm len);
+Str*		mkstrlits(Lits *lits);
+Str*		mkstr0(char *s);
+Str*		mkstrk(char *s, Imm len, Skind skind);
+Str*		mkstrn(VM *vm, Imm len);
+Env*		mktopenv();
+Val		mkvalas(As *as);
+Val		mkvalbox(Val boxed);
+Val		mkvalcl(Closure *cl);
+Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
+Val		mkvalcval2(Cval *cv);
+Val		mkvaldom(Dom *dom);
+Val		mkvalfd(Fd *fd);
+Val		mkvalimm(Dom *dom, Xtypename *t, Imm imm);
+Val		mkvallist(List *lst);
+Val		mkvalns(Ns *ns);
+Val		mkvalpair(Val car, Val cdr);
+Val		mkvalrange(Cval *beg, Cval *len);
+Val		mkvalrange2(Range *r);
+Val		mkvalstr(Str *str);
+Val		mkvaltab(Tab *tab);
+Val		mkvalvec(Vec *vec);
+Val		mkvalxtn(Xtypename *xtn);
+As*		mkzas(VM *vm, Imm len);
+Code*		newcode();
+void		nexterror(VM *vm) NORETURN;
+void		poperror(VM *vm);
+void		printvmac(VM *vm);
+jmp_buf*	_pusherror(VM *vm);
+char*		str2cstr(Str *str);
+Imm		valimm(Val v);
+void		vmerr(VM *vm, char *fmt, ...) NORETURN;
+void		vmreset(VM *vm);
+#define valas(v)	((As*)(v))
+#define valcval(v)	((Cval*)(v))
+#define valcl(v)	((Closure*)(v))
+#define valdom(v)	((Dom*)(v))
+#define valfd(v)	((Fd*)(v))
+#define vallist(v)	((List*)(v))
+#define valns(v)	((Ns*)(v))
+#define valpair(v)	((Pair*)(v))
+#define valrange(v)	((Range*)(v))
+#define valstr(v)	((Str*)(v))
+#define valtab(v)	((Tab*)(v))
+#define valvec(v)	((Vec*)(v))
+#define valxtn(v)	((Xtypename*)(v))
+#define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
-void nexterror(VM *vm) NORETURN;
-void poperror(VM *vm);
-Val dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
-
-Val mklitcval(Cbase base, Imm val);
-void freecode(Head *hd);
+#define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
 
 /* cutil.c */
-void cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
-Expr* Zadd(Expr *x, Expr *y);
-Expr* Zapply(Expr *fn, Expr *args);
-Expr* Zargs(unsigned n, ...);
-Expr* Zbinop(unsigned op, Expr *x, Expr *y);
-Expr* Zblock(Expr *locs, ...);
-Expr* Zcall(Expr *fn, unsigned narg, ...);
-Expr* Zcons(Expr *hd, Expr *tl);
-Expr* Zconsts(char *s);
-Expr* Zcval(Expr *dom, Expr *type, Expr *val);
-Expr* Zif(Expr *cond, Expr *true);
-Expr* Zifelse(Expr *cond, Expr *true, Expr *false);
-Expr* Zlambda(Expr *args, Expr *body);
-Expr* Zlambdn(Expr *args, Expr *body, Expr *name);
-Expr* Zlocals(unsigned n, ...);
-Expr* Znil();
-Expr* Zrange(Expr *addr, Expr *sz);
-Expr* Zref(Expr *dom, Expr *type, Expr *val);
-Expr* Zret(Expr *e);
-Expr* Zset(Expr *l, Expr *r);
-Expr* Zsizeof(Expr *e);
-Expr* Zstr(char *s);
-Expr* Zsub(Expr *x, Expr *y);
-Expr* Zuint(Imm val);
-Expr* Zxcast(Expr *type, Expr *cval);
+void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
+Expr*		Zadd(Expr *x, Expr *y);
+Expr*		Zapply(Expr *fn, Expr *args);
+Expr*		Zargs(unsigned n, ...);
+Expr*		Zbinop(unsigned op, Expr *x, Expr *y);
+Expr*		Zblock(Expr *locs, ...);
+Expr*		Zcall(Expr *fn, unsigned narg, ...);
+Expr*		Zcons(Expr *hd, Expr *tl);
+Expr*		Zconsts(char *s);
+Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
+Expr*		Zif(Expr *cond, Expr *true);
+Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
+Expr*		Zlambda(Expr *args, Expr *body);
+Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
+Expr*		Zlocals(unsigned n, ...);
+Expr*		Znil();
+Expr*		Zrange(Expr *addr, Expr *sz);
+Expr*		Zref(Expr *dom, Expr *type, Expr *val);
+Expr*		Zret(Expr *e);
+Expr*		Zset(Expr *l, Expr *r);
+Expr*		Zsizeof(Expr *e);
+Expr*		Zstr(char *s);
+Expr*		Zsub(Expr *x, Expr *y);
+Expr*		Zuint(Imm val);
+Expr*		Zxcast(Expr *type, Expr *cval);
+
+/* builtins */
+void		fnio(Env *env);
+void		fnnet(Env *env);
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */
-
