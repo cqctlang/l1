@@ -18,9 +18,9 @@ define mkindispatch(fd, eofk){
 	max = 1024*1024;
 	buf = mkstr(max);
 
-	define grow(beg){
+	define grow(beg, oldlen){
 		@local nbuf;
-		max = 2*(beg+len);
+		max = 2*(beg+oldlen);
 		nbuf = mkstr(max);
 		strput(nbuf, 0, buf);
 		buf = nbuf;
@@ -38,7 +38,7 @@ define mkindispatch(fd, eofk){
 			beg -= off;
 			if(beg+len > peek){
 				if(beg+len > max)
-					grow(beg);
+					grow(beg, len);
 				need = beg+len-peek;
 				s = read(fd, need);
 				if(s == nil || strlen(s) < need){
@@ -79,7 +79,7 @@ define mkindispatch(fd, eofk){
 			if(hi < peek)
 				return 0;
 			if(hi+1 > max)
-				grow(beg);
+				grow(beg, len);
 			s = read(fd, 1);
 			if(s == nil){
 				eof = 1;
