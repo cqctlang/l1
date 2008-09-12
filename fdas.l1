@@ -18,7 +18,7 @@ define mkindispatch(fd, eofk){
 	max = 1024*1024;
 	buf = mkstr(max);
 
-	define grow(){
+	define grow(beg){
 		@local nbuf;
 		max = 2*(beg+len);
 		nbuf = mkstr(max);
