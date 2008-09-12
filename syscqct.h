@@ -383,7 +383,7 @@ struct Dom {
 
 struct Fd {
 	Head hd;
-	void (*free)(Fd *fd);
+	void (*close)(Fd *fd);
 	int fd;
 	Str *name;
 	enum Fflag {
@@ -728,6 +728,7 @@ Val		mkvaldom(Dom *dom);
 Val		mkvalfd(Fd *fd);
 Val		mkvalimm(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvallist(List *lst);
+Val		mkvallitcval(VM *vm, Cbase base, Imm imm);
 Val		mkvalns(Ns *ns);
 Val		mkvalpair(Val car, Val cdr);
 Val		mkvalrange(Cval *beg, Cval *len);
@@ -794,5 +795,6 @@ Expr*		Zxcast(Expr *type, Expr *cval);
 void		fnfs(Env *env);
 void		fnio(Env *env);
 void		fnnet(Env *env);
+void		fnsys(Env *env);
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */

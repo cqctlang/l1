@@ -17,10 +17,14 @@ L1C =\
 	compile0.c\
 	cutil.c\
 	compile.c\
-	vm.c\
-	fnfs.c\
-	fnio.c\
-	fnnet.c
+	vm.c
+
+#L1C +=\
+#	fnfs.c\
+#	fnio.c\
+#	fnnet.c\
+#	fnsys.c
+
 L1O = $(L1C:.c=.o)
 
 c.tab.c: c.y $(HDR)
@@ -28,8 +32,9 @@ c.tab.c: c.y $(HDR)
 
 c.tab.h: c.tab.c
 
+# -s drops fwrite dependency
 lex.yy.c: c.l $(HDR)
-	flex c.l
+	flex -f -s c.l
 
 l1: c.tab.o lex.yy.o main.o $(L1O)
 	$(CC) -o $@ $^ -lfl -lpthread

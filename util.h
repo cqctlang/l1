@@ -12,7 +12,6 @@ void* hrefval(HT *ht, unsigned long idx);
 
 void warn(char *fmt, ...);
 void fatal(char *fmt, ...) NORETURN;
-void fatalno(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);
 void* xmalloc(size_t size);
@@ -22,10 +21,6 @@ char* strnchr(char *s, int c, unsigned long len);
 
 typedef void(Faulthook)();
 void setfaulthook(Faulthook *h);
-Imm xread(int fd, char *p, Imm len);
-Imm xwrite(int fd, char *p, Imm len);
-int parseip(char *s, struct sockaddr_in *addr);
-void nodelay(int fd);
 
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #define MIN(a,b) ((a)<(b)?(a):(b))

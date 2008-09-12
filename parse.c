@@ -1354,8 +1354,8 @@ pushyy(U *ctx, char *filename, char *buf)
 
 	if(filename == stdinname)
 		fp = stdin;
-	else
-		fp = fopen(filename, "r");
+//	else
+//		fp = fopen(filename, "r");
 	if(fp == 0)
 		parseerror(ctx, "cannot @include %s", filename);
 
@@ -1388,8 +1388,8 @@ popyy(U *ctx)
 {
 	if(ctx->inp == 0)
 		return 0;
-	if(ctx->inp->fp != stdin)
-		fclose(ctx->inp->fp);
+//	if(ctx->inp->fp != stdin)
+//		fclose(ctx->inp->fp);
 	ctx->inp->src.filename = 0;
 	freeyystate(ctx->inp->yy);
 	if(ctx->inp == ctx->in){

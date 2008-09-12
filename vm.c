@@ -5,8 +5,6 @@
 #define HEAPPROF 0
 #define HEAPDEBUG 0
 
-static void printval(VM *vm, Val val);
-
 static char *qname[Qnkind] = {
 	[Qundef]=	"undefined",
 	[Qnil]=		"nil",
@@ -769,8 +767,8 @@ waitmutator(VM *vm)
 	char b;
 	
 	vm->gcpause = 1;
-	if(0 > read(vm->cgc, &b, 1))
-		fatal("gc synchronization failure"); 
+//	if(0 > read(vm->cgc, &b, 1))
+//		fatal("gc synchronization failure"); 
 	if(b == GCdie)
 		return 1;
 	if(b != GCpaused)
@@ -785,8 +783,8 @@ resumemutator(VM *vm)
 
 	vm->gcpause = 0;
 	b = GCresume;
-	if(0 > write(vm->cgc, &b, 1))
-		fatal("gc synchronization failure");
+//	if(0 > write(vm->cgc, &b, 1))
+//		fatal("gc synchronization failure");
 }
 
 static void
@@ -794,13 +792,13 @@ waitgcrun(VM *vm)
 {
 	char b;
 	
-	if(0 > read(vm->cgc, &b, 1))
-		fatal("gc synchronization failure"); 
+//	if(0 > read(vm->cgc, &b, 1))
+//		fatal("gc synchronization failure"); 
 	if(b == GCdie){
 		b = GCdied;
-		if(0 > write(vm->cgc, &b, 1))
-			fatal("gc sychronization failure");
-		pthread_exit(0);
+//		if(0 > write(vm->cgc, &b, 1))
+//			fatal("gc sychronization failure");
+//		pthread_exit(0);
 	}
 	if(b != GCrun)
 		fatal("gc protocol botch");
@@ -811,8 +809,8 @@ waitgcrun(VM *vm)
 	vm->gcrun = 1;
 	b = GCrunning;
 	if(HEAPPROF) heapstat("start");
-	if(0 > write(vm->cgc, &b, 1))
-		fatal("gc synchronization failure");
+//	if(0 > write(vm->cgc, &b, 1))
+//		fatal("gc synchronization failure");
 
 }
 
@@ -820,10 +818,10 @@ static void
 gcsync(int fd, char t, char r)
 {
 	char b;
-	if(0 > write(fd, &t, 1))
-		fatal("gc synchronization failure");
-	if(0 > read(fd, &b, 1))
-		fatal("gc synchronization failure");
+//	if(0 > write(fd, &t, 1))
+//		fatal("gc synchronization failure");
+//	if(0 > read(fd, &b, 1))
+//		fatal("gc synchronization failure");
 	if(b != r)
 		fatal("gc protocol botch");
 }
@@ -853,9 +851,9 @@ static void
 concurrentgckill(VM *vm)
 {
 	gcsync(vm->cm, GCdie, GCdied);
-	close(vm->cm);
-	close(vm->cgc);
-	pthread_join(vm->t, 0);
+//	close(vm->cm);
+//	close(vm->cgc);
+//	pthread_join(vm->t, 0);
 }
 
 static void*
@@ -884,9 +882,9 @@ gcchild(void *p)
 	}
 
 	b = GCdied;
-	if(0 > write(vm->cgc, &b, 1))
-		fatal("gc sychronization failure");
-	pthread_exit(0);
+//	if(0 > write(vm->cgc, &b, 1))
+//		fatal("gc sychronization failure");
+//	pthread_exit(0);
 	return 0;
 }
 
@@ -895,8 +893,8 @@ newchan(int *left, int *right)
 {
 	int fd[2];
 
-	if(0 > socketpair(PF_UNIX, SOCK_STREAM, 0, fd))
-		fatal("cannot allocate channel");
+//	if(0 > socketpair(PF_UNIX, SOCK_STREAM, 0, fd))
+//		fatal("cannot allocate channel");
 	*left = fd[0];
 	*right = fd[1];
 }
@@ -906,8 +904,8 @@ concurrentgc(VM *vm)
 {
 	newchan(&vm->cm, &vm->cgc);
 	vm->gcpause = 0;
-	if(0 > pthread_create(&vm->t, 0, gcchild, vm))
-		fatal("pthread create failed");
+//	if(0 > pthread_create(&vm->t, 0, gcchild, vm))
+//		fatal("pthread create failed");
 }
 
 static void
@@ -1118,18 +1116,18 @@ freefd(Head *hd)
 {
 	Fd *fd;
 	fd = (Fd*)hd;
-	if(fd->free)
-		fd->free(fd);
+	if(fd->close && (fd->flags&Fclosed) == 0)
+		fd->close(fd);
 }
 
 Fd*
-mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd))
+mkfd(Str *name, int xfd, int flags, void (*close)(Fd *fd))
 {
 	Fd *fd;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
 	fd->fd = xfd;
-	fd->free = free;
+	fd->close = close;
 	fd->flags = flags;
 	return fd;
 }
@@ -2672,6 +2670,12 @@ mkvalcval(Dom *dom, Xtypename *t, Imm imm)
 	return (Val)mkcval(dom, t, imm);
 }
 
+Val
+mkvallitcval(VM *vm, Cbase base, Imm imm)
+{
+	return mkvalcval(vm->litdom, vm->litbase[base], imm);
+}
+
 /* the difference between mkvalimm and mkvalcval is usage:
    the former is for VM literals, the latter for other values */
 Val
@@ -2951,7 +2955,7 @@ vmerr(VM *vm, char *fmt, ...)
 	vfprintf(out, fmt, args);
 	fprintf(out, "\n");
 	va_end(args);
-	fflush(out);
+//	fflush(out);
 
 	fvmbacktrace(out, vm);
 	nexterror(vm);
@@ -5075,7 +5079,7 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			as = fmtxtn(xtn);
 			printf("\t%.*s\n", (int)as->len, as->s);
 		}
-		fflush(stdout);
+//		fflush(stdout);
 	}
 
 	ns = mknstypesym(vm, ctx.type, ctx.sym, name);
@@ -5658,65 +5662,6 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 		return;
 	}
 	*rv = dobsearch(vm, argv[0], vs, n, cmp);
-}
-
-static void
-l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vulong], getpid());
-}
-
-static void
-l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Imm tod;
-	struct timeval tv;
-
-	gettimeofday(&tv, 0);
-	tod = tv.tv_sec;
-	tod *= 1000000;
-	tod += tv.tv_usec;
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vulong], tod);
-}
-
-static void
-l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-	Val arg0;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to randseed");
-	arg0 = argv[0];
-	if(arg0->qkind != Qcval)
-		vmerr(vm, "operand 1 to randseed must be an integer");
-
-	cv = valcval(arg0);
-	srand((unsigned int)cv->val);
-}
-
-static void
-l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-	Val arg0;
-	Imm r;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to rand");
-	arg0 = argv[0];
-	if(arg0->qkind != Qcval)
-		vmerr(vm, "operand 1 to randseed must be an integer");
-
-	cv = valcval(arg0);
-	if(cv->val > RAND_MAX)
-		vmerr(vm, "operand to rand exceeds RAND_MAX (%d)", RAND_MAX);
-	if(cv->val == 0)
-		vmerr(vm, "operand to rand must be positive");
-	
-	r = rand();
-	r %= cv->val;
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vulong], r);
 }
 
 static void
@@ -6326,71 +6271,6 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	/* not reached */
 badarg:
 	vmerr(vm, "wrong type to %%%c conversion", ch);
-}
-
-static int
-fmtfdflush(Fmt *f)
-{
-	Fd *fd;
-	fd = (Fd*)f->farg;
-	if(fd->flags&Fclosed)
-		return -1;
-	if((fd->flags&Fwrite) == 0)
-		return -1;
-	if(0 > xwrite(fd->fd, f->start, f->to-f->start))
-		return -1;
-	f->to = f->start;
-	return 0;
-}
-
-static void
-dofdprint(VM *vm, Fd *fd, char *fmt, Imm fmtlen, Imm argc, Val *argv)
-{
-	Fmt f;
-	char buf[256];
-
-	f.farg = fd;
-	f.start = buf;
-	f.to = buf;
-	f.stop = buf+sizeof(buf);
-	f.flush = fmtfdflush;
-	dofmt(vm, &f, fmt, fmtlen, argc, argv);
-	fmtfdflush(&f);
-}
-
-static void
-l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *fmts;
-	if(argc < 1)
-		vmerr(vm, "wrong number of arguments to printf");
-	if(argv[0]->qkind != Qstr)
-		vmerr(vm, "operand 1 to printf must be a format string");
-	fmts = valstr(argv[0]);
-	dofdprint(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
-}
-
-static void
-l1_print(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	static char *fmt = "%a\n";
-	dofdprint(vm, vm->stdout, fmt, strlen(fmt), argc, argv);
-}
-
-static void
-l1_fprintf(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *fmts;
-	if(argc < 2)
-		vmerr(vm, "wrong number of arguments to fprintf");
-	if(argv[0]->qkind != Qfd)
-		vmerr(vm, "operand 1 to fprintf must be a file descriptor");
-	if(argv[1]->qkind != Qstr)
-		vmerr(vm, "operand 2 to fprintf must be a format string");
-	fd = valfd(argv[0]);
-	fmts = valstr(argv[1]);
-	dofdprint(vm, fd, fmts->s, fmts->len, argc-2, argv+2);
 }
 
 static int
@@ -7660,8 +7540,9 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		return;
+	if(fd->close)
+		fd->close(fd);
 	fd->flags |= Fclosed;
-	close(fd->fd);
 }
 
 static void
@@ -8708,23 +8589,6 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 }
 
-static void
-printval(VM *vm, Val val)
-{
-	Val argv[2], rv;
-	Str *s;
-	s = mkstrk("%a", 2, Sperm);
-	argv[0] = mkvalstr(s);
-	argv[1] = val;
-	l1_printf(vm, 2, argv, &rv);
-}
-
-void
-cqctprintval(VM *vm, Val v)
-{
-	printval(vm, v);
-}
-
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -9200,11 +9064,8 @@ mktopenv()
 	FN(fields);
 	FN(fieldtype);
 	FN(foreach);
-	FN(fprintf);
 	FN(gc);
 	FN(getbytes);
-	FN(getpid);
-	FN(gettimeofday);
 	FN(head);
 	FN(isarray);
 	FN(isas);
@@ -9293,14 +9154,10 @@ mktopenv()
 	FN(params);
 	FN(paramtype);
 	FN(pop);
-	FN(print);		/* FIXME: remove: held for test suite */
-	FN(printf);
 	FN(push);
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);
-	FN(rand);
-	FN(randseed);
 	FN(rettype);
 	FN(reverse);
 	FN(sort);
@@ -9331,9 +9188,10 @@ mktopenv()
 	FN(vecset);
 	FN(vector);
 
-	fnfs(env);
-	fnio(env);
-	fnnet(env);
+//	fnfs(env);
+//	fnio(env);
+//	fnnet(env);
+//	fnsys(env);
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();

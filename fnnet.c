@@ -2,8 +2,97 @@
 #include "util.h"
 #include "syscqct.h"
 
+static char *
+ipstr(struct sockaddr_in *sa)
+{
+	static char buf[128];
+	static char addr[32];
+	static char serv[32];
+	struct servent *servent;
+
+	strcpy(addr, inet_ntoa(sa->sin_addr));
+	servent = getservbyport(sa->sin_port, "tcp");
+	if(servent){
+		strcpy(serv, servent->s_name);
+		sprintf(buf, "%s:%s", addr, serv);
+	}else
+		sprintf(buf, "%s:%d", addr, ntohs(sa->sin_port));
+	return buf;
+}
+
+static int
+parseaddr(const char *s, struct in_addr *addr)
+{
+	struct hostent* h;
+	h = gethostbyname(s);
+	if(!h)
+		return -1;
+	*addr = *((struct in_addr *) h->h_addr); /* network order */
+	return 0;
+}
+
+static int
+parseport(const char *s, unsigned short *port)
+{
+	char *p;
+	struct servent *se;
+	unsigned long l;
+
+	se = getservbyname(s, "tcp");
+	if(se){
+		*port = se->s_port;
+		return 0;
+	}
+	l = strtoul(s, &p, 10);
+	if(*p != '\0')
+		return -1;
+	*port = (short)htons(l);
+	return 0;
+}
+
+static int
+parseip(char *s, struct sockaddr_in *addr)
+{
+	char *buf = NULL;
+	char *p;
+	int ret = -1;
+
+	buf = xstrdup(s);
+	addr->sin_family = AF_INET;
+	addr->sin_addr.s_addr = INADDR_ANY;
+	addr->sin_port = htons(0);
+	if((p = strchr(buf, ':'))){
+		/* HOST:PORT */
+		*p++ = '\0';
+		if(0 > parseaddr(buf, &addr->sin_addr))
+			goto out;
+		if(0 > parseport(p, &addr->sin_port))
+			goto out;
+	}else if ((p = strchr(buf, '.'))){
+		/* HOST */
+		if(0 > parseaddr(buf, &addr->sin_addr))
+			goto out;
+	}else{
+		/* PORT or HOST? */
+		if(0 > parseport(buf, &addr->sin_port)
+		   && 0 > parseaddr(buf, &addr->sin_addr))
+			goto out;
+	}
+	ret = 0;
+out:
+	free(buf);
+	return ret;
+}
+
 static void
-freefdclose(Fd *fd)
+nodelay(int fd)
+{
+	int optval = 1;
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval));
+}
+
+static void
+fdclose(Fd *fd)
 {
 	close(fd->fd);
 }
@@ -31,7 +120,7 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "opentcp: %s", strerror(errno));
 	nodelay(xfd);
-	fd = mkfd(str, xfd, Fread|Fwrite, freefdclose);
+	fd = mkfd(str, xfd, Fread|Fwrite, fdclose);
 	*rv = mkvalfd(fd);
 }
 

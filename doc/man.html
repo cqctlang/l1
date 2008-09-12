@@ -3574,16 +3574,12 @@ occurs, returns <span class="val">-1</span>.
 <div class="proto">
 
 <div class="function">
-<span class="id" id="fn:cqctprintval">int cqctprintval(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
-</div>
-<div class="function">
 <span class="id" id="fn:cqctsprintval">int cqctsprintval(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
 </div>
 
 </div>
 <div class="desc">
-<span class="id">Cqctprintval</span> prints the value <span class="arg">v</span> to the standard output of <span class="arg">vm</span>.
-<span class="id">Cqctsprintval</span> prints the value into a freshly allocated C string;
+<span class="id">Cqctsprintval</span> prints the value <span class="arg">v</span> into a freshly allocated C string;
 the caller is responsible for freeing the string with <span class="id">free</span>.
 </div>
 </div>
@@ -3682,7 +3678,6 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctmkvm">cqctmkvm</a><br />
 <a href="#fn:cqctparsefile">cqctparsefile</a><br />
 <a href="#fn:cqctparsestr">cqctparsestr</a><br />
-<a href="#fn:cqctprintval">cqctprintval</a><br />
 <a href="#fn:cqctsprintval">cqctsprintval</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:fdname">fdname</a><br />
