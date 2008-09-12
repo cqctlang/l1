@@ -920,7 +920,6 @@ gc(VM *vm)
 	sweep(GCCOLOR(gcepoch-2));
 	while(!rootsetempty(&stores))
 		mark(GCCOLOR(gcepoch));
-	printf("gc\n");
 }
 
 static void
