@@ -8725,6 +8725,19 @@ cqctprintval(VM *vm, Val v)
 	printval(vm, v);
 }
 
+char*
+cqctsprintval(VM *vm, Val v)
+{
+	Val argv[2], rv;
+
+	Str *s;
+	s = mkstrk("%a", 2, Sperm);
+	argv[0] = mkvalstr(s);
+	argv[1] = v;
+	l1_sprintfa(vm, 2, argv, &rv);
+	return str2cstr(valstr(rv));
+}
+
 typedef
 struct NSroot {
 	Rkind base[Vnbase];

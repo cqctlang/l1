@@ -30,29 +30,26 @@ programmers examine the state of programs in execution,
 particularly C programs.  The central feature of
 Cinquecento is a first-class abstraction, called
 a <em>domain</em>, that represents a program in
-execution.  Cinquecento allows programmers to access
-the program state represented by domains with the types
-and operators of the C programming language.
-</p>
+execution.</p>
 
 <p>
-Cinquecento is a hybrid of C and Scheme.  The syntax of
-expressions used to examine program state are nearly
-identical to the syntax of C, including all forms
-pointer arithmetic and dereference.  The semantics of
-these operations are also precisely based on those of
-C.  In addition, the C control constructs (<span
-class="val">if</span>, <span class="val">while</span>,
-<span class="val">do while</span>, and <span
-class="val">switch</span>) are also defined as they are
-in C.  Finally, the types associated with a program can
-be specified in an extended form of C's type definition
-syntax.
+Cinquecento is a hybrid of C and Scheme.  Domains use
+the C type system to specify the types of values
+associated with a program.  These values are accessed
+and manipulated using C operators and expressions,
+including all forms of pointer arithmetic and
+dereference.  In addition, Cinquecento supports the C
+control constructs
+(<span class="val">if</span>, <span class="val">while</span>,
+<span class="val">do while</span>,
+and <span class="val">switch</span>).  Most
+conventional C expressions, statements, and idioms work
+in Cinquecento without any syntactic modification.
 </p>
 
 <p>
 The influence of Scheme appears in the semantics of
-variables and functions.  Cinqucento variables are
+variables and functions.  Cinquecento variables are
 dynamically typed and lexically scoped, like Scheme
 variables.  Cinquecento functions are first-class
 objects constructed with <span
@@ -62,26 +59,26 @@ continuations.
 </p>
 
 <p>
-To be useful for program debugging, Cinquecento must be
-coupled with a facility for accessing the state of
-running programs.  We provide such a facility for Linux
-processes as a separate package.  Because the role of
-Cinquecento is to provide a uniform, programmable
-interface to the program state exposed by the variety
-of such facilities, this manual focuses on generic
-features of the language that are independent of 
-any particular debugger implementation.
+To be useful for program debugging, Cinquecento
+requires a facility for controlling and accessing the
+state of running programs.  We provide such a facility
+for Linux processes as a separate package.  Cinquecento
+defines a standard (and simple) interface for such
+facilities, but implementations are not part of the
+language.  This manual focuses on generic features of
+the language that are independent of any debugging
+facility.
 </p>
 
 <h3>Preliminaries</h3>
 
 <p>
 A Cinquecento program consists of a sequence of
-expressions to be evaluated by the Cinquecento
-evaluator in order.  Variables are dynamically typed,
-lexically scoped, and can be updated by assignment.
-Variable bindings can be created in the top-level
-environment, by the <span class="fnindex"
+expressions to be evaluated in order by the Cinquecento
+evaluator.  Variables are dynamically typed, lexically
+scoped, and can be updated by assignment.  Variable
+bindings can be created in the top-level environment,
+by the <span class="fnindex"
 id="syn:@local">@local</span> binding form within
 compound expressions, and by the function
 constructor <span class="fnindex"
@@ -93,13 +90,14 @@ services.
 </p>
 
 <p>
-During parsing of an input expression, occurrences
-of either of the forms
+During parsing of an input expression, any occurrence
+(other than in string literals and comments) of
+either of the forms
 <div class="code">
 @include "<span class="arg">filename</span>"<br />
 @include <<span class="arg">filename</span>>
 </div>
-are replaced with the contents of the named file.
+is replaced with the contents of the named file.
 There is currently no difference between the forms,
 but this is likely to change.
 </p>
@@ -180,15 +178,14 @@ model.
 A program in execution reads and writes values stored
 in its memory.  This memory is represented in
 Cinquecento by an <em>address space</em>.  An address
-space is any mapping from byte addresses to byte
-values.  Address spaces are dynamic: the value of a
-byte at a given address may change over time as it is
-updated by the program.  Moreover, not all valid byte
-addresses are necessarily mapped by a given address
-space; typically, an address space maps a small number
-(dozens) of large, contiguous address ranges (each
-spanning megabytes), and this mapping may change over
-time.
+space maps byte addresses to byte values.  Address
+spaces are dynamic: the value of a byte at a given
+address may change over time as it is updated by the
+program.  Moreover, not all valid byte addresses are
+necessarily mapped by a given address space; typically,
+an address space maps a small number (dozens) of large,
+contiguous address ranges (each spanning megabytes),
+and this mapping may change over time.
 </p>
 
 <p>
@@ -202,17 +199,15 @@ heap space increases.
 </p>
 
 <p>
-The address space provides a raw, untyped view of
-program memory.  A higher-level view of this memory can
-be constructed by overlaying the types associated with
-the values stored in memory.  The type system used by
-Cinquecento is tightly based on the type system of the
-C programming language.  The definitions of C types to
-be associated with an address space are collected in a
-Cinquecento <em>name space</em>.  In addition, name
-spaces contain definitions of <em>symbols</em>, which
-associated names and C types to locations in an address
-space.
+An address space is a raw, untyped view of program
+memory.  A higher-level view of memory is formed by
+overlaying program-defined types.  Cinquecento uses the
+type system of the C programming language.  The
+definitions of C types to be associated with an address
+space are collected in a Cinquecento <em>name
+space</em>.  In addition, name spaces contain
+definitions of <em>symbols</em>, which associated names
+and C types to locations in an address space.
 </p>
 
 <p>
@@ -3565,21 +3560,31 @@ the storage manager when the closure is reclaimed.
 </div>
 </div>
 <div class="desc">
-Calls <span class="arg">thunk</span>.
-Returns <span class="val">-1</span> if an error occurred,
-<span class="val">0</span> otherwise.
+Calls <span class="arg">thunk</span>.  On success, the
+value returned by <span class="arg">thunk</span> is
+stored in the value pointed to
+by <span class="arg">v</span> and the call
+returns <span class="val">0</span>.  If an error
+occurs, returns <span class="val">-1</span>.
 </div>
 </div>
 
+
 <div class="docitem">
 <div class="proto">
+
 <div class="function">
-<span class="id" id="fn:cqctprintvmac">int cqctprintvmac(VM *<span class="arg">vm</span>)</span>
+<span class="id" id="fn:cqctprintval">int cqctprintval(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
 </div>
+<div class="function">
+<span class="id" id="fn:cqctsprintval">int cqctsprintval(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+</div>
+
 </div>
 <div class="desc">
-Print on the standard output of <span class="arg">vm</span>
-the value currently stored in its accumulator register.
+<span class="id">Cqctprintval</span> prints the value <span class="arg">v</span> to the standard output of <span class="arg">vm</span>.
+<span class="id">Cqctsprintval</span> prints the value into a freshly allocated C string;
+the caller is responsible for freeing the string with <span class="id">free</span>.
 </div>
 </div>
 
@@ -3677,7 +3682,8 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctmkvm">cqctmkvm</a><br />
 <a href="#fn:cqctparsefile">cqctparsefile</a><br />
 <a href="#fn:cqctparsestr">cqctparsestr</a><br />
-<a href="#fn:cqctprintvmac">cqctprintvmac</a><br />
+<a href="#fn:cqctprintval">cqctprintval</a><br />
+<a href="#fn:cqctsprintval">cqctsprintval</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:fdname">fdname</a><br />
 <a href="#fn:fieldid">fieldid</a><br />

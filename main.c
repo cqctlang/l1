@@ -68,7 +68,7 @@ main(int argc, char *argv[])
 	struct timeval beg, end;
 	int dorepl;
 	unsigned len;
-	char *inbuf;
+	char *inbuf, *s;
 
 	cqctflags['c'] = 1;		/* compile */
 	cqctflags['x'] = 1;		/* execute */
@@ -156,8 +156,9 @@ main(int argc, char *argv[])
 			       1000000*end.tv_sec+end.tv_usec);
 		}
 		if(dorepl && v->qkind != Qnil){
-			cqctprintval(vm, v);
-			printf("\n");
+			s = cqctsprintval(vm, v);
+			printf("%s\n", s);
+			free(s);
 		}
 	}while(dorepl);
 

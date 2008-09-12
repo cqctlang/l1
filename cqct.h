@@ -55,6 +55,7 @@ VM*		cqctmkvm(Env *env, int gcthread);
 Expr*		cqctparsefile(char *filename);
 Expr*		cqctparsestr(char *str);
 void		cqctprintval(VM *vm, Val v);
+char*		cqctsprintval(VM *vm, Val v);
 int8_t		cqctval2int8(Val);
 int16_t		cqctval2int16(Val);
 int32_t		cqctval2int32(Val);
