@@ -22,6 +22,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-b dump frame storage\n");
 	fprintf(stderr, "\t-c do not compile expanded source\n");
 	fprintf(stderr, "\t-x do not execute object code\n");
+	fprintf(stderr, "\t-g do not run gc in separate thread\n");
 
 	exit(0);
 }
@@ -71,8 +72,9 @@ main(int argc, char *argv[])
 
 	cqctflags['c'] = 1;		/* compile */
 	cqctflags['x'] = 1;		/* execute */
+	cqctflags['g'] = 1;		/* gc in separate thread */
 	dorepl = 1;
-	while(EOF != (c = getopt(argc, argv, "bce:hopqtx"))){
+	while(EOF != (c = getopt(argc, argv, "bce:hopqtxg"))){
 		switch(c){
 		case 'o':
 		case 'p':
@@ -83,6 +85,7 @@ main(int argc, char *argv[])
 			break;
 		case 'c':
 		case 'x':
+		case 'g':
 			cqctflags[c] = 0;
 			break;
 		case 'e':
@@ -97,7 +100,7 @@ main(int argc, char *argv[])
 
 	env = cqctinit();
 	if(cqctflags['x']){
-		vm = cqctmkvm(env);
+		vm = cqctmkvm(env, cqctflags['g']);
 		if(vm == 0){
 			cqctfini(env);
 			return -1;

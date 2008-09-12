@@ -146,6 +146,8 @@ struct VM {
 	pthread_t t;
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
+	void (*gcpoll)(VM*);
+	void (*gckill)(VM*);
 };
 
 static void vmsetcl(VM *vm, Val val);
@@ -837,7 +839,7 @@ needsgc()
 }
 
 static void
-gcpoll(VM *vm)
+concurrentgcpoll(VM *vm)
 {
 	if(vm->gcpause)
 		gcsync(vm->cm, GCpaused, GCresume);
@@ -848,24 +850,12 @@ gcpoll(VM *vm)
 }
 
 static void
-gckill(VM *vm)
+concurrentgckill(VM *vm)
 {
 	gcsync(vm->cm, GCdie, GCdied);
 	close(vm->cm);
 	close(vm->cgc);
 	pthread_join(vm->t, 0);
-}
-
-static void
-gc(VM *vm)
-{
-	gcreset();
-	rootset(vm);
-	gcepoch++;
-	mark(GCCOLOR(gcepoch));
-	sweep(GCCOLOR(gcepoch-2));
-	while(!rootsetempty(&stores))
-		mark(GCCOLOR(gcepoch));
 }
 
 static void*
@@ -916,9 +906,33 @@ concurrentgc(VM *vm)
 {
 	newchan(&vm->cm, &vm->cgc);
 	vm->gcpause = 0;
-
 	if(0 > pthread_create(&vm->t, 0, gcchild, vm))
 		fatal("pthread create failed");
+}
+
+static void
+gc(VM *vm)
+{
+	gcreset();
+	rootset(vm);
+	gcepoch++;
+	mark(GCCOLOR(gcepoch));
+	sweep(GCCOLOR(gcepoch-2));
+	while(!rootsetempty(&stores))
+		mark(GCCOLOR(gcepoch));
+	printf("gc\n");
+}
+
+static void
+gcpoll(VM *vm)
+{
+	if(needsgc())
+		gc(vm);
+}
+
+static void
+gckill(VM *vm)
+{
 }
 
 static Imm
@@ -5342,6 +5356,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			      vm->clx->id);
 		continue;
 	Icall:
+		vm->gcpoll(vm);
 		vm->cl = getvalrand(vm, &i->op1);
 		vmsetcl(vm, vm->cl);
 		vm->pc = vm->clx->entry;
@@ -9304,6 +9319,7 @@ mktopenv()
 	FN(vecset);
 	FN(vector);
 
+	fnfs(env);
 	fnio(env);
 	fnnet(env);
 
@@ -9338,7 +9354,7 @@ mktopenv()
 }
 
 VM*
-cqctmkvm(Env *env)
+cqctmkvm(Env *env, int gcthread)
 {
 	VM *vm, **vmp;
 	Val val;
@@ -9371,7 +9387,14 @@ cqctmkvm(Env *env)
 	*vmp = vm;
 
 	vmreset(vm);
-	concurrentgc(vm);
+	if(gcthread){
+		vm->gcpoll = concurrentgcpoll;
+		vm->gckill = concurrentgckill;
+		concurrentgc(vm);
+	}else{
+		vm->gcpoll = gcpoll;
+		vm->gckill = gckill;
+	}
 	gcprotpush(vm);
 	
 	/* vm is now callable */
@@ -9389,7 +9412,7 @@ cqctfreevm(VM *vm)
 	VM **vmp;
 
 	gcprotpop(vm);
-	gckill(vm);
+	vm->gckill(vm);
 	freefreeroots(&vm->rs);
 	free(vm->prot);
 	free(vm->err);

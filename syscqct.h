@@ -791,6 +791,7 @@ Expr*		Zuint(Imm val);
 Expr*		Zxcast(Expr *type, Expr *cval);
 
 /* builtins */
+void		fnfs(Env *env);
 void		fnio(Env *env);
 void		fnnet(Env *env);
 

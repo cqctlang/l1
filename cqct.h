@@ -51,7 +51,7 @@ void		cqctfreevm(VM *vm);
 void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
 Env*		cqctinit();
-VM*		cqctmkvm(Env *env);
+VM*		cqctmkvm(Env *env, int gcthread);
 Expr*		cqctparsefile(char *filename);
 Expr*		cqctparsestr(char *str);
 void		cqctprintval(VM *vm, Val v);

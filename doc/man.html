@@ -3506,13 +3506,15 @@ other values.
 <div class="docitem" id="fn:cqctmkvm">
 <div class="proto">
 <div class="function">
-<span class="id">VM* cqctmkvm(Env *<span class="arg">env</span>)</span>
+<span class="id">VM* cqctmkvm(Env *<span class="arg">env</span>, int<span class="arg">gcthread</span>)</span>
 </div>
 </div>
 <div class="desc">
 Returns a new Cinquecento evaluator initialized with
 the top-level environment bound
 to <span class="arg">env</span>.
+If <span class="arg">gcthread</span> is non-zero,
+the VM garbage collector runs in a separate thread.
 </div>
 </div>
 
