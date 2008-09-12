@@ -513,7 +513,7 @@ define mkpras arg {
 	}
 
 	define map(){
-		return vector(mkrange(0, (uint64)-1));
+		return vector(mkrange(0, (`uint64)-1));
 	}
 
 	define getebx() { return {litdom}reg->ebx; }
