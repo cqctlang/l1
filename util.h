@@ -9,8 +9,6 @@ void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
 unsigned long hnent(HT *ht);
 void* hrefval(HT *ht, unsigned long idx);
 
-
-void warn(char *fmt, ...);
 void fatal(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);
@@ -29,5 +27,12 @@ void setfaulthook(Faulthook *h);
 char* readfile(char *filename);
 Imm xread(int fd, char *p, Imm len);
 Imm xwrite(int fd, char *p, Imm len);
+void xprintf(char *fmt, ...);
+void xvprintf(char *fmt, va_list args);
+void msg(char *fmt, ...);
+void vmsg(char *fmt, va_list args);
+int xisgraph(int c);
+int xisspace(int c);
+void xabort(void) NORETURN;
 
 #endif /* _BISONFLAW_UTIL_H_ */

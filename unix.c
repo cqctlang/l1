@@ -62,3 +62,18 @@ xwrite(int fd, char *p, Imm len)
 	}
 	return ns;
 }
+
+void
+xvprintf(char *fmt, va_list args)
+{
+	vfprintf(stdout, fmt, args);
+}
+
+void
+xprintf(char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	xvprintf(fmt, args);
+	va_end(args);
+}

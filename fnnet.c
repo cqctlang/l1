@@ -14,9 +14,9 @@ ipstr(struct sockaddr_in *sa)
 	servent = getservbyport(sa->sin_port, "tcp");
 	if(servent){
 		strcpy(serv, servent->s_name);
-		sprintf(buf, "%s:%s", addr, serv);
+		snprintf(buf, sizeof(buf), "%s:%s", addr, serv);
 	}else
-		sprintf(buf, "%s:%d", addr, ntohs(sa->sin_port));
+		snprintf(buf, sizeof(buf), "%s:%d", addr, ntohs(sa->sin_port));
 	return buf;
 }
 

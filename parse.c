@@ -96,18 +96,15 @@ parseerror(U *ctx, char *fmt, ...)
 		 * resolvers, which do not convey %parse-param's
 		 */
 		va_start(args, fmt);
-		vfprintf(stderr, fmt, args);
-		fprintf(stderr, "\n");
+		vmsg(fmt, args);
 		va_end(args);
 		return;
 	}
 
 	if(ctx->inp)
-		fprintf(stderr, "%s:%u: ",
-			ctx->inp->src.filename, ctx->inp->src.line);
+		xprintf("%s:%u: ", ctx->inp->src.filename, ctx->inp->src.line);
 	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	vmsg(fmt, args);
 	va_end(args);
 
 	while(popyy(ctx))
@@ -378,6 +375,20 @@ isoctdigit(int c)
 	return ('0' <= c) && (c <= '7');
 }
 
+static int
+xisdigit(int c)
+{
+	return ('0' <= c) && (c <= '9');
+}
+
+static int
+xisxdigit(int c)
+{
+	return(xisdigit(c)
+	       || (('a' <= c) && (c <= 'f'))
+	       || (('A' <= c) && (c <= 'F')));
+}
+
 int
 parseliti(char *s, unsigned long len, Liti *liti, char **err)
 {
@@ -449,9 +460,9 @@ parseliti(char *s, unsigned long len, Liti *liti, char **err)
 			c = 0;
 			if(*p == 'x'){
 				p++;
-				while(isxdigit(*p)){
+				while(xisxdigit(*p)){
 					c *= 16;
-					if(isdigit(*p))
+					if(xisdigit(*p))
 						c += *p - '0';
 					else if('a' <= *p && *p <= 'f')
 						c += *p - 'a' + 10;
@@ -687,9 +698,9 @@ doconstssrc(Src *src, char *s, unsigned long len)
 			c = 0;
 			if(*r == 'x'){
 				r++;
-				while(isxdigit(*r)){
+				while(xisxdigit(*r)){
 					c *= 16;
-					if(isdigit(*r))
+					if(xisdigit(*r))
 						c += *r - '0';
 					else if('a' <= *r && *r <= 'f')
 						c += *r - 'a' + 10;
@@ -1175,7 +1186,7 @@ printdecl(Decl *d)
 	char *o;
 
 	o = fmtdecl(d);
-	printf("%s", o);
+	xprintf("%s", o);
 	free(o);
 }
 
@@ -1414,10 +1425,10 @@ tryinclude(U *ctx, char *raw)
 
 	switch(c){
 	case '"':
-//		printf("include relative %s\n", p);
+//		xprintf("include relative %s\n", p);
 		break;
 	case '<':
-//		printf("include system %s\n", p);
+//		xprintf("include system %s\n", p);
 		break;
 	}
 
@@ -1475,9 +1486,9 @@ cqctcompile(Expr *e, Env *env)
 	U ctx;
 
 	if(cqctflags['p']){
-		printf("input:\n");
+		xprintf("input:\n");
 		printexpr(e);
-		printf("\n");
+		xprintf("\n");
 	}
 
 	memset(&ctx, 0, sizeof(ctx));
@@ -1488,14 +1499,14 @@ cqctcompile(Expr *e, Env *env)
 		return 0;
 
 	if(cqctflags['p']){
-		printf("compile0:\n");
+		xprintf("compile0:\n");
 		printexpr(e);
-		printf("\n");
+		xprintf("\n");
 	}
 	if(cqctflags['q']){
-		printf("transformed source:\n");
+		xprintf("transformed source:\n");
 		printcqct(e);
-		printf("\n");
+		xprintf("\n");
 	}
 
 	if(cqctflags['c'])

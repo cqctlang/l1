@@ -352,17 +352,17 @@ heapstat(char *s)
 	unsigned i;
 	Heap *hp;
 
-	printf("\n                              %s (epoch %lu)\n", s, gcepoch);
-	printf("%-10s %10s %10s %10s\n",
-	       "heap", "nalloc", "nfree", "nha");
-	printf("--------------------------------"
-	       "---------------------------------\n");
+	xprintf("\n                             %s (epoch %lu)\n", s, gcepoch);
+	xprintf("%-10s %10s %10s %10s\n",
+		"heap", "nalloc", "nfree", "nha");
+	xprintf("--------------------------------"
+		"---------------------------------\n");
 	for(i = 0; i < Qnkind; i++){
 		hp = &heap[i];
 		if(hp->id)
-			printf("%-10s %10lu %10lu %10lu\n",
-			       hp->id,
-			       hp->nalloc, hp->nfree, hp->nha);
+			xprintf("%-10s %10lu %10lu %10lu\n",
+				hp->id,
+				hp->nalloc, hp->nfree, hp->nha);
 	}
 }
 
@@ -422,7 +422,7 @@ retry:
 	o->color = GCCOLOR(gcepoch);
 	if(HEAPPROF) heap->nha++;
 	if(HEAPDEBUG)
-		printf("alloc %p (%s)\n", o, heap->id);
+		xprintf("alloc %p (%s)\n", o, heap->id);
 
 	// FIXME: only object types that do not initialize all fields
 	// (e.g., Xtypename) need to be cleared.  Perhaps add a bit
@@ -443,7 +443,7 @@ sweepheap(Heap *heap, unsigned color)
 			if(heap->free1)
 				heap->free1(p);
 			if(HEAPDEBUG)
-				printf("collect %s %p\n", heap->id, p); 
+				xprintf("collect %s %p\n", heap->id, p); 
 			if(p->state != 0 || p->inrootset)
 				fatal("sweep heap (%s) %p bad state %d",
 				      heap->id, p, p->state);
@@ -589,26 +589,9 @@ addroot(Rootset *rs, Head *h)
 		return;
 
 	if(HEAPDEBUG)
-		printf("addroot %s %p %d %d\n",
-		       rs == &roots ? "roots" : "stores",
-		       h, h->inrootset, h->state);
-
-	if(h->inrootset)
-		return;
-	doaddroot(rs, h);
-}
-
-static void
-addrootstk(Rootset *rs, Head *h)
-{
-	if(h == 0)
-		return;
-
-	if(HEAPDEBUG)
-		printf("addroot %s %p %d %d\n",
-		       rs == &roots ? "roots" : "stores",
-		       h, h->inrootset, h->state);
-
+		xprintf("addroot %s %p %d %d\n",
+			rs == &roots ? "roots" : "stores",
+			h, h->inrootset, h->state);
 	if(h->color == GCfree)
 		/* stale value on stack already collected */
 		return;
@@ -635,7 +618,7 @@ removeroot(Rootset *rs)
 	rs->this = r->link;
 	h = r->hd;
 	if(HEAPDEBUG)
-		printf("rmroot %p %d %d\n", h, h->inrootset, h->state);
+		xprintf("rmroot %p %d %d\n", h, h->inrootset, h->state);
 	h->inrootset = 0;
 	x = h->state;
 	if(x > 2 || x <= 0)
@@ -2893,14 +2876,14 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 	
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
-		fprintf(out, "%20s\t(builtin %s)\n", cl->id,
+		xprintf("%20s\t(builtin %s)\n", cl->id,
 			cl->cfn ? "function" : "closure");
 		return;
 	}
 
 	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
-			fprintf(out, "%20s\t(%s:%u)\n", cl->id,
+			xprintf("%20s\t(%s:%u)\n", cl->id,
 				code->labels[pc]->src->filename,
 				code->labels[pc]->src->line);
 			return;
@@ -2909,7 +2892,7 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 			break;
 		pc--;
 	}
-	fprintf(out, "%20s\t(no source information)\n", cl->id);
+	xprintf("%20s\t(no source information)\n", cl->id);
 }
 
 static void
@@ -2923,11 +2906,11 @@ fvmbacktrace(FILE *out, VM *vm)
 	cl = vm->clx;
 	while(fp != 0){
 //		if(!strcmp(cl->id, "$halt"))
-//			fprintf(out, "\t-- vmcall --\n");
+//			xprintf("\t-- vmcall --\n");
 //		else
 //			printsrc(out, cl, pc);
 		if(strcmp(cl->id, "$halt")){
-//			fprintf(out, "fp=%05lld pc=%08lld ", fp, pc);
+//			xprintf("fp=%05lld pc=%08lld ", fp, pc);
 			printsrc(out, cl, pc);
 		}
 		narg = stkimm(vm->stack[fp]);
@@ -2941,23 +2924,18 @@ fvmbacktrace(FILE *out, VM *vm)
 static void
 vmbacktrace(VM *vm)
 {
-	fvmbacktrace(stderr, vm);
+	fvmbacktrace(0, vm);
 }
 
 void
 vmerr(VM *vm, char *fmt, ...)
 {
 	va_list args;
-	FILE *out = stdout;
-
+	xprintf("error: ");
 	va_start(args, fmt);
-	fprintf(out, "error: ");
-	vfprintf(out, fmt, args);
-	fprintf(out, "\n");
+	vmsg(fmt, args);
 	va_end(args);
-//	fflush(out);
-
-	fvmbacktrace(out, vm);
+	fvmbacktrace(0, vm);
 	nexterror(vm);
 }
 
@@ -5070,16 +5048,15 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	vec = tabenum(ctx.undef);
 	m = vec->len/2;
 	if(m > 0){
-		printf("warning: name space references undefined "
-		       "type%s:\n", m > 1 ? "s" : "");
+		xprintf("warning: name space references undefined "
+			"type%s:\n", m > 1 ? "s" : "");
 		while(m != 0){
 			m--;
 			vp = vecref(vec, m);
 			xtn = valxtn(vp);
 			as = fmtxtn(xtn);
-			printf("\t%.*s\n", (int)as->len, as->s);
+			xprintf("\t%.*s\n", (int)as->len, as->s);
 		}
-//		fflush(stdout);
 	}
 
 	ns = mknstypesym(vm, ctx.type, ctx.sym, name);
@@ -5978,11 +5955,10 @@ fmtval(Fmt *f, Val val)
 		str = valstr(val);
 		return fmtputs(f, str->s, str->len);
 	default:
-		printf("<unprintable type %d>", val->qkind);
-		return -1;
+		snprintf(buf, sizeof(buf), "<unhandled type %d>", val->qkind);
+		return fmtputs0(f, buf);
 	}
 }
-
 
 static int
 fmticval(Fmt *f, unsigned char conv, Cval *cv)
@@ -6152,7 +6128,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				goto badarg;
 			cv = valcval(vp);
 			c = cv->val;
-			if(isgraph(c) || isspace(c))
+			if(xisgraph(c) || xisspace(c))
 				snprintf(buf, sizeof(buf), "%c", c);
 			else
 				snprintf(buf, sizeof(buf), "\\%.3o", c);
@@ -8978,7 +8954,7 @@ mksysdom(VM *vm)
 	char *rootname;
 
 	rootname = myroot();
-//	printf("host name space: %s\n", rootname);
+//	xprintf("host name space: %s\n", rootname);
 	if(!envlookup(vm->top, rootname, &valv))
 		vmerr(vm, "undefined name space: %s", rootname);
 	root = valns(valv);
@@ -9304,9 +9280,9 @@ vmfaulthook()
 	vmp = vms;
 	while(vmp < vms+Maxvms){
 		if(*vmp){
-			fprintf(stderr, "backtrace of vm %p:\n", *vmp);
-			fvmbacktrace(stderr, *vmp);
-			fprintf(stderr, "\n");
+			xprintf("backtrace of vm %p:\n", *vmp);
+			fvmbacktrace(0, *vmp);
+			xprintf("\n");
 		}
 		vmp++;
 	}

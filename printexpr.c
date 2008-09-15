@@ -141,49 +141,49 @@ printexpr(Expr *e)
 
 	switch(e->kind){
 	case Econst:
-		printf("%" PRIu64, e->liti.val);
+		xprintf("%" PRIu64, e->liti.val);
 		break;
 	case Econsts:
-//		printf("(Econsts %.*s)", e->lits->len, e->lits->s);
+//		xprintf("(Econsts %.*s)", e->lits->len, e->lits->s);
 		abbrevlits(consts, sizeof(consts), e->lits);
-		printf("(Econsts \"%s\")", consts);
+		xprintf("(Econsts \"%s\")", consts);
 		break;
 	case Eid:
-		printf("(Eid %s)", e->id);
+		xprintf("(Eid %s)", e->id);
 		break;
 	case Ebinop:
-		printf("(%s ", S[e->op]);
+		xprintf("(%s ", S[e->op]);
 		printexpr(e->e1);
-		printf(" ");
+		xprintf(" ");
 		printexpr(e->e2);
-		printf(")");
+		xprintf(")");
 		break;
 	case Egop:
-		printf("(Egop %s ", S[e->op]);
+		xprintf("(Egop %s ", S[e->op]);
 		printexpr(e->e1);
-		printf(" ");
+		xprintf(" ");
 		printexpr(e->e2);
-		printf(")");
+		xprintf(")");
 		break;
 	default:
-		printf("(%s", S[e->kind]);
+		xprintf("(%s", S[e->kind]);
 		if(e->e1){
-			printf(" ");
+			xprintf(" ");
 			printexpr(e->e1);
 		}
 		if(e->e2){
-			printf(" ");
+			xprintf(" ");
 			printexpr(e->e2);
 		}
 		if(e->e3){
-			printf(" ");
+			xprintf(" ");
 			printexpr(e->e3);
 		}
 		if(e->e4){
-			printf(" ");
+			xprintf(" ");
 			printexpr(e->e4);
 		}
-		printf(")");
+		xprintf(")");
 	}
 }
 
@@ -191,7 +191,7 @@ static void
 indent(unsigned nindent)
 {
 	while(nindent--)
-		printf("\t");
+		xprintf("\t");
 }
 
 static int
@@ -205,17 +205,17 @@ printlocals(Expr *e, unsigned ni)
 		q = p->e1;
 		while(q->kind != Enull){
 			if(!cnt){
-				indent(ni); printf("@local ");
+				indent(ni); xprintf("@local ");
 			}else
-				printf(", ");
+				xprintf(", ");
 			cnt++;
-			printf("%s", q->e1->id);
+			xprintf("%s", q->e1->id);
 			q = q->e2;
 		}
 		p = p->e2;
 	}
 	if(cnt)
-		printf(";");
+		xprintf(";");
 	return cnt;
 }
 
@@ -227,7 +227,7 @@ printargs(Expr *e, unsigned ni, int more)
 	printargs(e->e2, ni, 1);
 	printcqct0(e->e1, ni);
 	if(more)
-		printf(", ");
+		xprintf(", ");
 }
 
 static char* Opstr[Emax] = {
@@ -277,145 +277,145 @@ printcqct0(Expr *e, unsigned ni)
 	switch(e->kind){
 	case Etick:
 		printcqct0(e->e1, ni);
-		printf("`");
+		xprintf("`");
 		printcqct0(e->e2, ni);
 		break;
 	case Edefine:
-		printf("define ");
+		xprintf("define ");
 		printcqct0(e->e1, ni);
 		if(e->e2->kind == Eid){
-			printf(" ");
+			xprintf(" ");
 			printcqct0(e->e2, ni);
 		}else{
-			printf("(");
+			xprintf("(");
 			printargs(e->e2, ni, 0);
-			printf(")");
+			xprintf(")");
 		}
 		printcqct0(e->e3, ni);
 		break;
 	case Enil:
-		printf("nil");
+		xprintf("nil");
 		break;
 	case Econst:
-		printf("%" PRIu64, e->liti.val);
+		xprintf("%" PRIu64, e->liti.val);
 		break;
 	case Econsts:
 		abbrevlits(consts, sizeof(consts), e->lits);
-		printf("\"%s\"", consts);
+		xprintf("\"%s\"", consts);
 		break;
 	case Eid:
-		printf("%s", e->id);
+		xprintf("%s", e->id);
 		break;
 	case Elambda:
-		printf("lambda");
+		xprintf("lambda");
 		if(e->e1->kind == Eid){
-			printf(" ");
+			xprintf(" ");
 			printcqct0(e->e1, ni);
 		}else{
-			printf("(");
+			xprintf("(");
 			printargs(e->e1, ni, 0);
-			printf(")");
+			xprintf(")");
 		}
 		printcqct0(e->e2, ni);
 		break;
 	case Ecall:
 		printcqct0(e->e1, ni);
-		printf("(");
+		xprintf("(");
 		printargs(e->e2, ni, 0);
-		printf(")");
+		xprintf(")");
 		break;
 	case Eblock:
-		printf("\n");
-		indent(ni); printf("{\n");
+		xprintf("\n");
+		indent(ni); xprintf("{\n");
 		if(printlocals(e->e1, ni+1) && e->e2->e1->kind != Eblock)
-			printf("\n");
+			xprintf("\n");
 		printcqct0(e->e2, ni+1);
-		indent(ni); printf("}");
+		indent(ni); xprintf("}");
 		break;
 	case Eg:
 		printcqct0(e->e1, ni);
-		printf(" = ");
+		xprintf(" = ");
 		printcqct0(e->e2, ni);
 		break;
 	case Euminus:
 	case Eunot:
 	case Euplus:
 	case Eutwiddle:
-		printf("%s", opstr(e->kind));
+		xprintf("%s", opstr(e->kind));
 		printcqct0(e->e1, ni);
 		break;
 	case Ebinop:
 		switch(e->op){
 		case Excast:
-			printf("{");
+			xprintf("{");
 			printcqct0(e->e1, ni);
-			printf("}(");
+			xprintf("}(");
 			printcqct0(e->e2, ni);
-			printf(")");
+			xprintf(")");
 			break;
 		default:
-			printf("(");
+			xprintf("(");
 			printcqct0(e->e1, ni);
-			printf(" %s ", opstr(e->op));
+			xprintf(" %s ", opstr(e->op));
 			printcqct0(e->e2, ni);
-			printf(")");
+			xprintf(")");
 			break;
 		}
 		break;
 	case Eland:
 	case Elor:
-		printf("(");
+		xprintf("(");
 		printcqct0(e->e1, ni);
-		printf(" %s ", opstr(e->kind));
+		xprintf(" %s ", opstr(e->kind));
 		printcqct0(e->e2, ni);
-		printf(")");
+		xprintf(")");
 		break;
 	case Enull:
 	case Enop:
 		break;
 	case Epreinc:
 	case Epredec:
-		printf("%s(", opstr(e->kind));
+		xprintf("%s(", opstr(e->kind));
 		printcqct0(e->e1, ni);
-		printf(")");
+		xprintf(")");
 		break;
 	case Epostinc:
 	case Epostdec:
-		printf("(");
+		xprintf("(");
 		printcqct0(e->e1, ni);
-		printf(")%s", opstr(e->kind));
+		xprintf(")%s", opstr(e->kind));
 		break;
 	case Eref:
-		printf("&(");
+		xprintf("&(");
 		printcqct0(e->e1, ni);
-		printf(")");
+		xprintf(")");
 		break;
 	case Ederef:
-		printf("*(");
+		xprintf("*(");
 		printcqct0(e->e1, ni);
-		printf(")");
+		xprintf(")");
 		break;
 	case Earef:
-		printf("(");
+		xprintf("(");
 		printcqct0(e->e1, ni);
-		printf(")[");
+		xprintf(")[");
 		printcqct0(e->e2, ni);
-		printf("]");
+		xprintf("]");
 		break;
 	case Edot:
-		printf("(");
+		xprintf("(");
 		printcqct0(e->e1, ni);
-		printf(").");
+		xprintf(").");
 		printcqct0(e->e2, ni);
 		break;
 	case Earrow:
-		printf("(");
+		xprintf("(");
 		printcqct0(e->e1, ni);
-		printf(")->");
+		xprintf(")->");
 		printcqct0(e->e2, ni);
 		break;
 	case Ens:
-		printf("@names ...");
+		xprintf("@names ...");
 		break;
 	case Eelist:
 		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
@@ -424,56 +424,56 @@ printcqct0(Expr *e, unsigned ni)
 			indent(ni);
 		printcqct0(e->e1, ni);
 		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
-			printf("\n");
+			xprintf("\n");
 		else
-			printf(";\n");
+			xprintf(";\n");
 		printcqct0(e->e2, ni);
 		break;
 	case Eswitch:
-		printf("switch(");
+		xprintf("switch(");
 		printcqct0(e->e1, ni);
-		printf(")");
+		xprintf(")");
 		printcqct0(e->e2, ni);
 		break;
 	case Edefault:
-		printf("default:\n");
+		xprintf("default:\n");
 		indent(ni); printcqct0(e->e1, ni);
-		printf(";");
+		xprintf(";");
 		break;
 	case Ecase:
-		printf("case ");
+		xprintf("case ");
 		printcqct0(e->e1, ni);
-		printf(":\n");
+		xprintf(":\n");
 		indent(ni); printcqct0(e->e2, ni);
-		printf(";");
+		xprintf(";");
 		break;
 	case Ebreak:
-		printf("break");
+		xprintf("break");
 		break;
 	case Efor:
-		printf("for(");
+		xprintf("for(");
 		if(e->e1)
 			printcqct0(e->e1, ni);
-		printf("; ");
+		xprintf("; ");
 		if(e->e2)
 			printcqct0(e->e2, ni);
-		printf("; ");
+		xprintf("; ");
 		if(e->e3)
 			printcqct0(e->e3, ni);
-		printf(")");
+		xprintf(")");
 		if(e->e4->kind != Eblock){
-			printf("\n");
+			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e4, ni+1);
 		}else
 			printcqct0(e->e4, ni);
 		break;
 	case Eif:
-		printf("if(");
+		xprintf("if(");
 		printcqct0(e->e1, ni);
-		printf(")");
+		xprintf(")");
 		if(e->e2->kind != Eblock){
-			printf("\n");
+			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e2, ni+1);
 			wasstmt = 1;
@@ -481,9 +481,9 @@ printcqct0(Expr *e, unsigned ni)
 			printcqct0(e->e2, ni);
 		if(e->e3){
 			if(wasstmt)
-				printf(";");
-			printf("\n");
-			indent(ni); printf("else\n");
+				xprintf(";");
+			xprintf("\n");
+			indent(ni); xprintf("else\n");
 			if(e->e3->kind != Eblock){
 				indent(ni+1);
 				printcqct0(e->e3, ni+1);
@@ -492,29 +492,29 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		break;
 	case Eret:
-		printf("return");
+		xprintf("return");
 		if(e->e1){
-			printf(" ");
+			xprintf(" ");
 			printcqct0(e->e1, ni);
 		}
 		break;
 	case E_sizeof:
-		printf("%s(", S[e->kind]);
+		xprintf("%s(", S[e->kind]);
 		printcqct0(e->e1, ni);
-		printf(")");
+		xprintf(")");
 		break;
 	case E_ref:
 	case E_cval:
-		printf("%s(", S[e->kind]);
+		xprintf("%s(", S[e->kind]);
 		printcqct0(e->e1, ni);
-		printf(", ");
+		xprintf(", ");
 		printcqct0(e->e2, ni);
-		printf(", ");
+		xprintf(", ");
 		printcqct0(e->e3, ni);
-		printf(")");
+		xprintf(")");
 		break;
 	default:
-		printf("[%d]???", e->kind);
+		xprintf("[%d]???", e->kind);
 		break;
 	}
 	

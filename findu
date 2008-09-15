@@ -1,0 +1,12 @@
+#!/bin/tcsh
+
+set pat=$1
+shift
+
+foreach f ($*)
+	echo $f
+	nm $f | grep 'U' | grep $pat
+end
+
+
+

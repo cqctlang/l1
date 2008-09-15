@@ -226,46 +226,46 @@ printrand(Code *code, Operand *r)
 		loc = &r->u.loc;
 		switch(loc->kind){
 		case Lreg:
-			printf("%s", regtos(loc->idx));
+			xprintf("%s", regtos(loc->idx));
 			break;
 		case Lparam:
 			if(loc->indirect)
-				printf("[");
-			printf("%d(%s)", loc->idx+1, regtos(Rfp));
+				xprintf("[");
+			xprintf("%d(%s)", loc->idx+1, regtos(Rfp));
 			if(loc->indirect)
-				printf("]");
+				xprintf("]");
 			break;
 		case Llocal:
 			if(loc->indirect)
-				printf("[");
-			printf("-%d(%s)", loc->idx+1, regtos(Rfp));
+				xprintf("[");
+			xprintf("-%d(%s)", loc->idx+1, regtos(Rfp));
 			if(loc->indirect)
-				printf("]");
+				xprintf("]");
 			break;
 		case Ldisp:
 			if(loc->indirect)
-				printf("[");
-			printf("%d(%s)", loc->idx, regtos(Rcl));
+				xprintf("[");
+			xprintf("%d(%s)", loc->idx, regtos(Rcl));
 			if(loc->indirect)
-				printf("]");
+				xprintf("]");
 			break;
 		case Ltopl:
-			printf("<%s>", topvecid(loc->idx, code->topvec));
+			xprintf("<%s>", topvecid(loc->idx, code->topvec));
 			break;
 		}
 		break;
 	case Oliti:
-		printf("%" PRIu64, valimm(r->u.liti));
+		xprintf("%" PRIu64, valimm(r->u.liti));
 		break;
 	case Onil:
-		printf("nil");
+		xprintf("nil");
 		break;
 	case Olits:
 		lits = r->u.lits;
 		if(lits->len > 10)
-			printf("*lits*");
+			xprintf("*lits*");
 		else
-			printf("\"%.*s\"", lits->len, lits->s);
+			xprintf("\"%.*s\"", lits->len, lits->s);
 		break;
 	default:
 		fatal("unknown operand kind %d", r->okind);
@@ -275,21 +275,21 @@ printrand(Code *code, Operand *r)
 static void
 printinsn(Code *code, Insn *i)
 {
-	printf("\t");
+	xprintf("\t");
 	switch(i->kind){
 	case Iargc:
-		printf("argc ");
+		xprintf("argc ");
 		printrand(code, &i->op1);
 		break;
 	case Icallc:
-		printf("callc");
+		xprintf("callc");
 		break;
 	case Iinv:
 	case Ineg:
 	case Inot:
-		printf("%s ", itos(i->kind));
+		xprintf("%s ", itos(i->kind));
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Iadd:
@@ -308,120 +308,120 @@ printinsn(Code *code, Insn *i)
 	case Icmple:
 	case Icmpeq:
 	case Icmpneq:
-		printf("%s ", itos(i->kind));
+		xprintf("%s ", itos(i->kind));
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->op2);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Imov:
-		printf("mov ");
+		xprintf("mov ");
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Ipush:
-		printf("push ");
+		xprintf("push ");
 		printrand(code, &i->op1);
 		break;
 	case Ipushi:
-		printf("pushi ");
+		xprintf("pushi ");
 		printrand(code, &i->op1);
 		break;
 	case Icall:
-		printf("call ");
+		xprintf("call ");
 		printrand(code, &i->op1);
 		break;
 	case Icallt:
-		printf("callt ");
+		xprintf("callt ");
 		printrand(code, &i->op1);
 		break;
 	case Icval:
-		printf("cval ");
+		xprintf("cval ");
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->op2);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Ixcast:
-		printf("xcast ");
+		xprintf("xcast ");
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->op2);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Ilist:
-		printf("list ");
+		xprintf("list ");
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Isizeof:
-		printf("sizeof ");
+		xprintf("sizeof ");
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Iframe:
-		printf("frame %s", i->dstlabel->label);
+		xprintf("frame %s", i->dstlabel->label);
 		break;
 	case Iret:
-		printf("ret");
+		xprintf("ret");
 		break;
 	case Ihalt:
-		printf("halt");
+		xprintf("halt");
 		break;
 	case Ipanic:
-		printf("panic");
+		xprintf("panic");
 		break;
 	case Iclo:
-		printf("clo %s ", i->dstlabel->label);
+		xprintf("clo %s ", i->dstlabel->label);
 		printrand(code, &i->op1);
-		printf(" ");
+		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
 	case Ikg:
-		printf("kg ");
+		xprintf("kg ");
 		printrand(code, &i->dst);
 		break;
 	case Ikp:
-		printf("kp");
+		xprintf("kp");
 		break;
 	case Ijmp:
-		printf("jmp %s", i->dstlabel->label);
+		xprintf("jmp %s", i->dstlabel->label);
 		break;
 	case Ijnz:
-		printf("jnz ");
+		xprintf("jnz ");
 		printrand(code, &i->op1);
-		printf(" %s", i->dstlabel->label);
+		xprintf(" %s", i->dstlabel->label);
 		break;
 	case Ijz:
-		printf("jz ");
+		xprintf("jz ");
 		printrand(code, &i->op1);
-		printf(" %s", i->dstlabel->label);
+		xprintf(" %s", i->dstlabel->label);
 		break;
 	case Ibox:
-		printf("box ");
+		xprintf("box ");
 		printrand(code, &i->op1);
 		break;
 	case Ibox0:
-		printf("box0 ");
+		xprintf("box0 ");
 		printrand(code, &i->op1);
 		break;
 	case Inop:
-		printf("nop");
+		xprintf("nop");
 		break;
 	case Iref:
-		printf("ref ");
+		xprintf("ref ");
 		printrand(code, &i->op1);
 		break;
 	default:
 		fatal("printinsn: unrecognized insn %d", i->kind);
 	}
-	printf("\n");
+	xprintf("\n");
 }
 
 static void
@@ -430,7 +430,7 @@ printcode(Code *code)
 	unsigned i;
 	for(i = 0; i < code->ninsn; i++){
 		if(code->labels[i] && code->labels[i]->used)
-			printf("%s", code->labels[i]->label);
+			xprintf("%s", code->labels[i]->label);
 		printinsn(code, &code->insn[i]);
 	}
 }
@@ -561,8 +561,8 @@ printvars(Expr *e)
 		q = e->e1;
 		while(q->kind != Enull){
 			if(!first)
-				printf(", ");
-			printf("%s", q->e1->id);
+				xprintf(", ");
+			xprintf("%s", q->e1->id);
 			first = 0;
 			q = q->e2;
 		}
@@ -1288,76 +1288,76 @@ printframe(Expr *e)
 
 	switch(e->kind){
 	case Econst:
-		printf("%" PRIu64, e->liti.val);
+		xprintf("%" PRIu64, e->liti.val);
 		break;
 	case Econsts:
-		printf("(Econsts %.*s)", e->lits->len, e->lits->s);
+		xprintf("(Econsts %.*s)", e->lits->len, e->lits->s);
 		break;
 	case Eblock:
 		printframe(e->e2);
 		break;
 	case Eid:
-		printf("(Eid ");
+		xprintf("(Eid ");
 		vr = (Varref*)e->xp;
 		if(vr == NULL)
 			fatal("no varref for Eid");
 		if(vr->vd->kind == VDtoplevel)
-			printf("<t,%d,%s>", vr->vd->idx, vr->vd->id);
+			xprintf("<t,%d,%s>", vr->vd->idx, vr->vd->id);
 		else
-			printf("<%c,%p,%d,%s,%d>",
+			xprintf("<%c,%p,%d,%s,%d>",
 			       vr->vd->kind == VDparam ? 'p' : 'l',
 			       vr->vd->lambda,
 			       vr->vd->idx,
 			       vr->vd->id,
 			       vr->closed ? vr->cidx : -1);
-		printf(")");
+		xprintf(")");
 		break;
 	case Elambda:
 		b = (Lambda*)e->xp;
 		if(b == NULL)
 			fatal("no lambda for Elambda");
-		printf("(Elambda %p", b);
+		xprintf("(Elambda %p", b);
 		vd = b->param;
 		for(m = 0; m < b->npar; m++)
-			printf(" <p,%d,%s,%d>",
+			xprintf(" <p,%d,%s,%d>",
 			       vd[m].idx, vd[m].id, vd[m].indirect);
 		vd = b->local;
 		for(m = 0; m < b->maxloc; m++)
-			printf(" <l,%d,%s,%d>",
+			xprintf(" <l,%d,%s,%d>",
 			       vd[m].idx, vd[m].id, vd[m].indirect);
-		printf(" ");
+		xprintf(" ");
 		for(m = 0; m < b->capture->nvr; m++){
 			vr = &b->capture->vr[m];
-			printf(" <%c,%p,%d,%s,%d>",
+			xprintf(" <%c,%p,%d,%s,%d>",
 			       vr->vd->kind == VDparam ? 'p' : 'l',
 			       vr->vd->lambda,
 			       vr->vd->idx,
 			       vr->vd->id,
 			       vr->closed ? vr->cidx : -1);
 		}
-		printf(" ");
+		xprintf(" ");
 		printframe(e->e2);
-		printf(")");
+		xprintf(")");
 		break;
 	default:
-		printf("(%s", S[e->kind]);
+		xprintf("(%s", S[e->kind]);
 		if(e->e1){
-			printf(" ");
+			xprintf(" ");
 			printframe(e->e1);
 		}
 		if(e->e2){
-			printf(" ");
+			xprintf(" ");
 			printframe(e->e2);
 		}
 		if(e->e3){
-			printf(" ");
+			xprintf(" ");
 			printframe(e->e3);
 		}
 		if(e->e4){
-			printf(" ");
+			xprintf(" ");
 			printframe(e->e4);
 		}
-		printf(")");
+		xprintf(")");
 	}
 }
 
@@ -1382,7 +1382,7 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 		}
 		cs->cmp[cs->n] = e;
 		cs->ctl[cs->n] = genlabel(code, 0);
-// printf("case label %s\n", cs->ctl[cs->n]->label);
+// xprintf("case label %s\n", cs->ctl[cs->n]->label);
 		cs->n++;
 		recswitchctl(e->e2, code, cs);
 		break;
@@ -1390,7 +1390,7 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 		if(cs->dflt)
 			fatal("too many default cases in switch");
 		cs->dflt = genlabel(code, 0);
-// printf("default label %s\n", cs->dflt->label);
+// xprintf("default label %s\n", cs->dflt->label);
 		cs->dflte = e;
 		recswitchctl(e->e1, code, cs);
 		break;
@@ -1596,10 +1596,8 @@ escaping(Expr *e)
 static Expr*
 nextstmt(Expr *e)
 {
-	if(e == 0){
-		warn("nextstmt is null"); 
+	if(e == 0)
 		return 0;
-	}
 	switch(e->kind){
 	case Eblock:
 		return nextstmt(e->e2);
@@ -1783,7 +1781,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			if(L == 0){
 				L = genlabel(code, 0);
 				genl = 1;
-//				printf("elist label %s %s %s\n",
+//				xprintf("elist label %s %s %s\n",
 //				       L->label,
 //				       S[ep->e1->kind],
 //				       S[ep->e2->e1->kind]);
@@ -2368,12 +2366,11 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	b = (Lambda*)e->xp;
 	if(cqctflags['b']){
 		if(b->vararg)
-			printf("%s: var params, %u locals, %u temps\n",
+			xprintf("%s: var params, %u locals, %u temps\n",
 			       name->label, b->maxloc, b->ntmp);
 		else
-			printf("%s: %u params, %u locals, %u temps\n",
+			xprintf("%s: %u params, %u locals, %u temps\n",
 			       name->label, b->npar, b->maxloc, b->ntmp);
-//		fflush(stdout);
 	}
 	p.b = b;
 

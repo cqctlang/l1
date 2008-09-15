@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -g
 
-libl1.so: CFLAGS += -fPIC
+libl1.so: CFLAGS += -fPIC -nostdlib
 
 TARG = l1
 all: $(TARG)
@@ -18,7 +18,7 @@ L1C =\
 	cutil.c\
 	compile.c\
 	vm.c\
-	unix.c\
+	noix.c\
 
 #L1C +=\
 #	fnfs.c\
@@ -41,7 +41,7 @@ l1: c.tab.o lex.yy.o main.o $(L1O)
 	$(CC) -o $@ $^ -lfl -lpthread
 
 libl1.so: c.tab.o lex.yy.o $(L1O)
-	$(CC) -shared -Xlinker -Bsymbolic -o $@ $^ -lfl -lpthread
+	$(CC) -nostdlib -shared -Xlinker -Bsymbolic -o $@ $^
 
 -include depend
 depend: Makefile

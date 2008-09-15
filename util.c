@@ -10,13 +10,18 @@ setfaulthook(Faulthook *h)
 }
 
 void
-warn(char *fmt, ...)
+vmsg(char *fmt, va_list args)
+{
+	xvprintf(fmt, args);
+}
+
+void
+msg(char *fmt, ...)
 {
 	va_list args;
-
 	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	vmsg(fmt, args);
+	xprintf("\n");
 	va_end(args);
 }
 
@@ -24,15 +29,13 @@ void
 fatal(char *fmt, ...)
 {
 	va_list args;
-
+	xprintf("internal error: ");
 	va_start(args, fmt);
-	fprintf(stderr, "internal error: ");
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	vmsg(fmt, args);
 	va_end(args);
 	if(faulthook)
 		faulthook();
-	abort();
+	xabort();
 }
 
 char*
