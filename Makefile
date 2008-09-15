@@ -43,6 +43,9 @@ l1: c.tab.o lex.yy.o main.o $(L1O)
 libl1.so: c.tab.o lex.yy.o $(L1O)
 	$(CC) -nostdlib -shared -Xlinker -Bsymbolic -o $@ $^
 
+lo.o: lo.c
+	$(CC) -g -Wall -fPIC -c $^
+
 lo: lo.o libl1.so
 	$(CC) -g -o lo lo.o -L. -ll1
 

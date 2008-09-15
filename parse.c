@@ -1509,7 +1509,6 @@ cqctcompile(Expr *e, Env *env)
 		xprintf("\n");
 	}
 
-	printf("in compile %p\n", &cqctflags['c']);
 	if(cqctflags['c'])
 		return compileentry(e, env);
 	else

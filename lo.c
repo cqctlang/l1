@@ -13,7 +13,6 @@ main(int argc, char *argv[])
 	char *s;
 
 	cqctflags['c'] = 1;		/* compile */
-	printf("%p\n", &cqctflags['c']);
 	cqctflags['x'] = 1;		/* execute */
 	cqctflags['g'] = 0;		/* gc in separate thread */
 	env = cqctinit();
