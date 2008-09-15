@@ -105,3 +105,15 @@ strnchr(char *s, int c, unsigned long len)
 	}
 	return 0;
 }
+
+int
+xisgraph(int c)
+{
+	return ('!' <= c) && (c <= '~');
+}
+
+int
+xisspace(int c)
+{
+	return c == ' ' || ('\t' <= c && c <= 'r');
+}

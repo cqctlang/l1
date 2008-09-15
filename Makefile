@@ -43,9 +43,13 @@ l1: c.tab.o lex.yy.o main.o $(L1O)
 libl1.so: c.tab.o lex.yy.o $(L1O)
 	$(CC) -nostdlib -shared -Xlinker -Bsymbolic -o $@ $^
 
+lo: lo.o libl1.so
+	$(CC) -g -o lo lo.o -L. -ll1
+
 -include depend
 depend: Makefile
 	gcc $(INC) -MM $(L1C) > depend
 
 clean:
-	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o $(L1O) $(TARG) libl1.so lo depend 
+	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o lo lo.o l1.o $(L1O) $(TARG) libl1.so depend 
+
