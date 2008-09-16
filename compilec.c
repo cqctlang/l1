@@ -531,15 +531,17 @@ expanddot(U *ctx, Expr *e)
 		else if(!strcmp(id, "as"))
 			te = Zcall(doid("asof"), 1, expanddot(ctx, e->e1));
 		else
-			te = Zblock(Zlocals(1, "$disp"),
+			te = Zblock(Zlocals(2, "$disp", "$obj"),
+				    Zset(doid("$obj"), expanddot(ctx, e->e1)),
 				    Zset(doid("$disp"),
 					 Zcall(doid("asdispatch"), 1,
-					       expanddot(ctx, e->e1))),
+					       doid("$obj"))),
 				    Zlambdn(doid("$args"),
 					    Zblock(nullelist(),
-						   Zret(Zcall(doid("apply"), 3,
+						   Zret(Zcall(doid("apply"), 4,
 							      doid("$disp"),
 							      Zconsts(id),
+							      doid("$obj"),
 							      doid("$args"))),
 						   NULL),
 					    copyexpr(e->e2)),

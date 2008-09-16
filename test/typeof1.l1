@@ -13,7 +13,7 @@ define mkzas(len){
 		arg = listref(args, 0);
 
 		if(arg == "get"){
-			range = listref(args, 1);
+			range = listref(args, 2);
 			beg = rangebeg(range);
 			end = beg+rangelen(range);
 			printf("get %x %x\n", beg, end);
@@ -21,10 +21,10 @@ define mkzas(len){
 		}
 
 		if(arg == "put"){
-			range = listref(args, 1);
+			range = listref(args, 2);
 			beg = rangebeg(range);
 			end = beg+rangelen(range);
-			new = listref(args, 2);
+			new = listref(args, 3);
 			strput(str, beg, new);
 			printf("put %x %x\n", beg, end);
 			return;

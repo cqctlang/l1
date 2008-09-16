@@ -7,8 +7,8 @@ define dispatch args {
 }
 
 ns = c32le;
-as = mkas(dispatch);
-dom = mkdom(ns, as);
+as = mkas(dispatch, "myas");
+dom = mkdom(ns, as, "mydom");
 printf("isns(dom.names) = %d\n", isns(dom.names));
 printf("isas(dom.as) = %d\n", isas(dom.as));
 

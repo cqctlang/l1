@@ -5,7 +5,7 @@ define aqsortdom(){
 
 	aqsortns = @names clp64le {
 		@0x4002a4 int cmpx(void *va, void *vb);
-		@0x681b68 int ncmp;
+		@0x41fc10 int ncmp;
 	};
 
 	pras = mkpras("localhost:30000", "/home/vczandy/src/l1/test/aqsort");

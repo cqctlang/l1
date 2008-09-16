@@ -397,7 +397,7 @@ define mkpras arg {
 		logrecv("Rwrite");
 	}
 
-	define setbrk(addr, fn){
+	define setbrk(dom, addr, fn){
 		@local bp;
 
 		xwr((`uint64)sizeof(outdom`Tsetbrk));
@@ -421,7 +421,7 @@ define mkpras arg {
 		return bp;
 	}
 
-	define clrbrk(bp){
+	define clrbrk(dom, bp){
 		xwr((`uint64)sizeof(outdom`Tclrbrk));
 		p = opress(#outdom`Tclrbrk*#);
 		p->op = outdom`Tclrbrk;
@@ -440,7 +440,7 @@ define mkpras arg {
 		logrecv("Rclrbrk");
 	}
 
-	define setregs(){
+	define setregs(dom){
 		xwr((`uint64)sizeof(outdom`Tsetregs));
 		p = opress(#outdom`Tsetregs*#);
 		p->op = outdom`Tsetregs;
@@ -458,7 +458,7 @@ define mkpras arg {
 		logrecv("Rsetregs");
 	}
 
-	define sync(){
+	define sync(dom){
 		@local bp, rv;
 
 		reply = read1();
@@ -498,45 +498,45 @@ define mkpras arg {
 		}
 	}
 
-	define contwait(){
+	define contwait(dom){
 		cont();
 		while(state == indom`Running)
-			sync();
+			sync(dom);
 	}
 
-	define get(r){
+	define get(dom, r){
 		return xread(rangebeg(r), rangelen(r));
 	}
 
-	define put(r, s){
+	define put(dom, r, s){
 		return xwrite(rangebeg(r), rangelen(r), s);
 	}
 
-	define map(){
+	define map(dom){
 		return vector(mkrange(0, (`uint64)-1));
 	}
 
-	define getebx() { return {litdom}reg->ebx; }
-	define getecx() { return {litdom}reg->ecx; }
-	define getedx() { return {litdom}reg->edx; }
-	define getesi() { return {litdom}reg->esi; }
-	define getedi() { return {litdom}reg->edi; }
-	define getebp() { return {litdom}reg->ebp; }
-	define geteax() { return {litdom}reg->eax; }
-	define geteip() { return {litdom}reg->eip; }
-	define getesp() { return {litdom}reg->esp; }
-	define geteflags() { return {litdom}reg->eflags; }
+	define getebx(dom) { return {dom}reg->ebx; }
+	define getecx(dom) { return {dom}reg->ecx; }
+	define getedx(dom) { return {dom}reg->edx; }
+	define getesi(dom) { return {dom}reg->esi; }
+	define getedi(dom) { return {dom}reg->edi; }
+	define getebp(dom) { return {dom}reg->ebp; }
+	define geteax(dom) { return {dom}reg->eax; }
+	define geteip(dom) { return {dom}reg->eip; }
+	define getesp(dom) { return {dom}reg->esp; }
+	define geteflags(dom) { return {dom}reg->eflags; }
 
-	define setebx(x) { reg->ebx = x; setregs(); }
-	define setecx(x) { reg->ecx = x; setregs(); }
-	define setedx(x) { reg->edx = x; setregs(); }
-	define setesi(x) { reg->esi = x; setregs(); }
-	define setedi(x) { reg->edi = x; setregs(); }
-	define setebp(x) { reg->ebp = x; setregs(); }
-	define seteax(x) { reg->eax = x; setregs(); }
-	define seteip(x) { reg->eip = x; setregs(); }
-	define setesp(x) { reg->esp = x; setregs(); }
-	define seteflags(x) { reg->eflags = x; setregs(); }
+	define setebx(dom, x) { reg->ebx = x; setregs(dom); }
+	define setecx(dom, x) { reg->ecx = x; setregs(dom); }
+	define setedx(dom, x) { reg->edx = x; setregs(dom); }
+	define setesi(dom, x) { reg->esi = x; setregs(dom); }
+	define setedi(dom, x) { reg->edi = x; setregs(dom); }
+	define setebp(dom, x) { reg->ebp = x; setregs(dom); }
+	define seteax(dom, x) { reg->eax = x; setregs(dom); }
+	define seteip(dom, x) { reg->eip = x; setregs(dom); }
+	define setesp(dom, x) { reg->esp = x; setregs(dom); }
+	define seteflags(dom, x) { reg->eflags = x; setregs(dom); }
 
 	dtab = mktab();
 	tabinsert(dtab, "get",		get);
