@@ -39,4 +39,4 @@ depend: Makefile
 	gcc $(INC) -MM $(L1C) > depend
 
 clean:
-	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o $(L1O) $(TARG) libl1.so depend 
+	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o $(L1O) $(TARG) libl1.so lo depend 
