@@ -1,9 +1,6 @@
-entry: 0 params, 7 locals, 1 temps
-L30: 1 params, 3 locals, 0 temps
-L95: 1 params, 3 locals, 0 temps
-L137: 1 params, 3 locals, 0 temps
-L158: 1 params, 0 locals, 0 temps
-L168: 1 params, 0 locals, 0 temps
+entry: 0 params, 6 locals, 1 temps
+L107: 1 params, 0 locals, 0 temps
+L117: 1 params, 0 locals, 0 temps
 d = 3
 a = 0
 b = 1

@@ -103,7 +103,7 @@ gentypename(Type *t, Pass *recpass, U *ctx)
 		if(t->tag == 0)
 			fatal("anonymous enums not implemented");
 
-		loc = Zlocals(3, "$tmp", "$tn", "$type");
+		loc = Zlocals(2, "$tmp", "$tn");
 		te = nullelist();
 
 		/* count enum constants and allocate vector
@@ -131,13 +131,6 @@ gentypename(Type *t, Pass *recpass, U *ctx)
 			nen++;
 		}
 
-		/* compute type sufficent to represent all constants;
-		   by side-effect, cast all constants to that type */
-		se = Zset(doid("$type"),
-			  Zcall(doid("enconsts"), 2,
-				doid("$ns"), doid("$tmp")));
-		te = Zcons(se, te);
-
 		/* define enum type */
 		se = Zset(doid("$tn"),
 			  Zcall(doid("mkctype_enum"), 1, Zstr(t->tag)));
@@ -145,32 +138,8 @@ gentypename(Type *t, Pass *recpass, U *ctx)
 		se = Zcall(doid("tabinsert"), 3,
 			   doid("$typetab"),
 			   doid("$tn"),
-			   Zcall(doid("mkctype_enum"), 3,
-				 Zstr(t->tag), doid("$type"), doid("$tmp")));
-		te = Zcons(se, te);
-
-		/* add enum constants to symtab */
-		se = Zcall(doid("foreach"), 2,
-			   Zlambda(Zargs(1, "$e"),
-				   Zblock(Zlocals(3, "$ctn", "$id", "$val"),
-					  Zset(doid("$ctn"),
-					       Zcall(doid("mkctype_const"), 1,
-						     doid("$tn"))),
-					  Zset(doid("$id"),
-					       Zcall(doid("vecref"), 2,
-						     doid("$e"),Zuint(0))),
-					  Zset(doid("$val"),
-					       Zcall(doid("vecref"), 2,
-						     doid("$e"),Zuint(1))),
-					  Zcall(doid("tabinsert"), 3,
-						doid("$symtab"),
-						doid("$id"),
-						Zcall(doid("mksym"), 3,
-						      doid("$ctn"),
-						      doid("$id"),
-						      doid("$val"))),
-					  NULL)),
-			   doid("$tmp"));
+			   Zcall(doid("mkctype_enum"), 2,
+				 Zstr(t->tag), doid("$tmp")));
 		te = Zcons(se, te);
 
 		se = doid("$tn");

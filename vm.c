@@ -351,6 +351,7 @@ static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn();
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
 static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
+static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
 static Xtypename* mkundefxtn(Xtypename *t);
 static Str* fmtxtn(Xtypename *xtn);
@@ -4818,6 +4819,7 @@ lookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 typedef
 struct NSctx {
+	Ns *ons;		/* name space being extended */
 	Tab *otype, *osym;	/* bindings passed to @names */
 	Tab *rawtype, *rawsym;	/* @names declarations */
 	Tab *type, *sym;	/* resulting bindings */
@@ -4861,6 +4863,43 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 	tabput(vm, ctx->undef, xtnv, xtnv);
 	xtn = valxtn(xtnv);
 	return mkundefxtn(xtn);
+}
+
+/* determine a common type for all constants defined in an enumeration;
+   cast the constants to this type in place.  return the type. */
+static Xtypename*
+doenconsts(VM *vm, Vec *v, Ns *ns)
+{
+	Dom *d;
+	Vec *e;
+	Imm m;
+	Cval *a, *cv;
+	Xtypename *t;
+	Val val;
+
+	/* abstract domain for name space being extended */
+	d = mkdom(ns, mknas(), 0);
+
+	/* this code assumes that domcast does not dolooktype */
+
+	/* determine type that contains all constant values */
+	a = mkcval(d, d->ns->base[Vint], 0);
+	for(m = 0; m < v->len; m++){
+		e = valvec(vecref(v, m)); /* FIXME check sanity */
+		a = xcvalalu(vm, Iadd, a,
+			     domcast(vm, d, valcval(vecref(e, 1))));
+	}
+	t = a->type;
+
+	/* cast all values to new type */
+	for(m = 0; m < v->len; m++){
+		e = valvec(vecref(v, m)); /* FIXME check sanity */
+		cv = typecast(vm, t, domcast(vm, d, valcval(vecref(e, 1))));
+		val = mkvalcval2(cv);
+		vecset(vm, e, 1, val);
+	}
+
+	return t;
 }
 
 static Xtypename*
@@ -4911,13 +4950,14 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 			}
 			return new;
 		case Tenum:
+			tmp = doenconsts(vm, valvec(xtn->konst), ctx->ons);
 			new = mkxtn();
 			new->tkind = Tenum;
 			new->tag = xtn->tag;
 			new->konst = xtn->konst;
 
 			tabput(vm, ctx->type, xtnv, mkvalxtn(new));
-			new->link = resolvetypename(vm, xtn->link, ctx);
+			new->link = resolvetypename(vm, tmp, ctx);
 			return new;
 		default:
 			es = fmtxtn(xtn);
@@ -5118,12 +5158,12 @@ static Ns*
 mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 {
 	Val v, idv, vecv, vp;
-	Vec *vec;
+	Vec *vec, *kvec, *nvec;
 	Tabx *x;
 	Tabidx *tk;
-	Xtypename *xtn;
+	Xtypename *xtn, *tmp;
 	NSctx ctx;
-	u32 i;
+	u32 i, j;
 	Ns *ns;
 	Imm m;
 	Str *as;
@@ -5135,6 +5175,7 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	ctx.sym = mktab();
 	ctx.undef = mktab();
 
+	ctx.ons = ons;
 	ctx.otype = valtab(dovm(vm, ons->enumtype, 0, 0));
 	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
 
@@ -5197,6 +5238,30 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			vp = x->key[tk->idx];
 			if(!tabget(ctx.sym, vp))
 				tabput(vm, ctx.sym, vp, x->val[tk->idx]);
+			tk = tk->link;
+		}
+	}
+
+	/* add enumeration constants to symtab */
+	x = ctx.type->x;
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		while(tk){
+			xtn = valxtn(x->val[tk->idx]);
+			if(xtn->tkind != Tenum)
+				goto next;
+			tmp = mkconstxtn(xtn);
+			vec = valvec(xtn->konst);
+			for(j = 0; j < vec->len; j++){
+				kvec = valvec(vecref(vec, j));
+				nvec = mkvec(3);
+				_vecset(nvec, 0, mkvalxtn(tmp));
+				_vecset(nvec, 1, vecref(kvec, 0));
+				_vecset(nvec, 2, vecref(kvec, 1));
+				tabput(vm, ctx.sym,
+				       vecref(kvec, 0), mkvalvec(nvec));
+			}
+		next:
 			tk = tk->link;
 		}
 	}
@@ -7438,14 +7503,25 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tenum;
 		xtn->tag = s;
 		break;
-	case 3:
-		/* TAG TYPE CONSTS */
+	case 2:
+		/* TAG CONSTS */
 		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
-		checkarg(vm, "mkctype_enum", argv, 1, Qxtn);
-		checkarg(vm, "mkctype_enum", argv, 2, Qvec);
+		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
 		s = valstr(argv[0]);
-		t = valxtn(argv[1]);
-		c = valvec(argv[2]);
+		c = valvec(argv[1]);
+		xtn = mkxtn();
+		xtn->tkind = Tenum;
+		xtn->tag = s;
+		xtn->konst = c;
+		break;
+	case 3:
+		/* TAG CONSTS TYPE */
+		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
+		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
+		checkarg(vm, "mkctype_enum", argv, 2, Qxtn);
+		s = valstr(argv[0]);
+		c = valvec(argv[1]);
+		t = valxtn(argv[2]);
 		xtn = mkxtn();
 		xtn->tkind = Tenum;
 		xtn->tag = s;
@@ -7981,50 +8057,6 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	nodelay(xfd);
 	fd = mkfd(str, xfd, Fread|Fwrite, freefdclose);
 	*rv = mkvalfd(fd);
-}
-
-static void
-l1_enconsts(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Ns *ns;
-	Vec *v, *e;
-	Dom *d;
-	Imm m;
-	Cval *a, *cv;
-	Xtypename *t;
-	Val val;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to enconsts");
-	checkarg(vm, "enconsts", argv, 0, Qns);
-	checkarg(vm, "enconsts", argv, 1, Qvec);
-	ns = valns(argv[0]);
-	v = valvec(argv[1]);
-
-	/* abstract domain for name space being extended */
-	d = mkdom(ns, mknas(), 0);
-
-	/* this code assumes that domcast does not dolooktype */
-
-	/* determine type that contains all constant values */
-	a = mkcval(d, d->ns->base[Vint], 0);
-	for(m = 0; m < v->len; m++){
-		e = valvec(vecref(v, m)); /* FIXME check sanity */
-		a = xcvalalu(vm, Iadd, a,
-			     domcast(vm, d, valcval(vecref(e, 1))));
-	}
-	t = a->type;
-
-	/* cast all values to new type */
-	for(m = 0; m < v->len; m++){
-		e = valvec(vecref(v, m)); /* FIXME check sanity */
-		cv = typecast(vm, t, domcast(vm, d, valcval(vecref(e, 1))));
-		val = mkvalcval2(cv);
-		vecset(vm, e, 1, val);
-	}
-
-	/* return type */
-	*rv = mkvalxtn(t);
 }
 
 static void
@@ -9296,6 +9328,16 @@ mkptrxtn(Xtypename *t, Rkind rep)
 }
 
 static Xtypename*
+mkconstxtn(Xtypename *t)
+{
+	Xtypename *xtn;
+	xtn = mkxtn();
+	xtn->tkind = Tconst;
+	xtn->link = t;
+	return xtn;
+}
+
+static Xtypename*
 mktypedefxtn(Str *tid, Xtypename *t)
 {
 	Xtypename *xtn;
@@ -9521,7 +9563,6 @@ mktopenv()
 	FN(cons);
 	FN(copy);
 	FN(domof);
-	FN(enconsts);
 	FN(enumconsts);
 	FN(equal);
 	FN(error);
