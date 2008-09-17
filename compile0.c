@@ -460,7 +460,7 @@ compilens(U *ctx, Expr *e)
 	freeht(enid);
 
 	/* new name space */
-	se = Zcall(doid("mkns"), 3,
+	se = Zcall(doid("mknsraw"), 3,
 		   doid("$ns"), doid("$typetab"), doid("$symtab"));
 	te = Zcons(se, te);
 

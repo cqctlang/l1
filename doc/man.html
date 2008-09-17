@@ -617,61 +617,287 @@ a consequence of operating on erroneous user data.
 <h3>Name spaces</h3>
 
 <p>
-Cinquecento ctypes represent both C type names and C
-type definitions.  Type names are the syntactic
-constructions, such as <tt>int*</tt>, that can appear
-in C declarations, or as operands to type operations
-such as <tt>sizeof</tt> and explicit casts.
-Type definitions specify the encoding in memory of the
-value of a C type.  For base types, this specification
-includes the number of bytes that represent the value
-and how the bytes are to be interpreted (e.g., big- or
-little-endian order).  For pointer types, it includes
-the size and representation of the pointer value
-memory.  For aggregates, it includes the offset from
-the beginning of the aggregate to each field and
-the overall size of the aggregate.
+A name space is a mapping from C type and symbol names
+to C type and symbol definitions.  This section
+describes the representation of types and symbols used
+by name spaces, then describes the organization and
+construction of name spaces.
 </p>
 
 <p>
-The distinction between type name and definition
-matters when the same type name different domains have
-types with the same name.  For example, the type name
-<tt>int*</tt> always corresponds to the type
-pointer-to-<tt>int</tt>, but there are many possible
-definitions.  One domain can define it to be a 64-bit
-address of a 64-bit integer encoded in big-endian
-order, while another may be define it be a 32-bit
-address of a 32-bit integer encoded in little-endian
-order.
+Both type names and type definitions are represented by
+ctypes.  Type names are the syntactic constructions,
+such as <tt>int*</tt>, that can appear in C
+declarations or as operands to type operations such as
+<tt>sizeof</tt> and explicit casts.  In Cinquecento,
+these syntactic constructions are represented by ctype
+values.
 </p>
 
 <p>
-Part of the role of a Cinquecento name space is to
-define a set of C types.  This is implemented by
-defining a function, conventionally
-called <tt>looktype</tt>, that maps type names to type
-definitions.  The argument to this function is a ctype
-that <tt>looktype</tt> treats as a type name.  It
-returns the corresponding definition for that name,
-or <tt>nil</tt> if there is no definition.
+In addition, a ctype can also specify the encoding in
+memory of objects of the type that it names.  For base
+types, this specification includes the number of bytes
+that represent the value and how the bytes are to be
+interpreted (e.g., big- or little-endian order).  For
+pointer types, it includes the size and representation
+of the pointer value memory.  For aggregates, it
+includes the offset from the beginning of the aggregate
+to each field and the overall size of the aggregate.
 </p>
 
 <p>
-Most name spaces are defined by the <tt>@names</tt>
-operator, which translates C declarations into a
-definition of a name space.  The name space
-constructor <tt>mkns</tt> provides an alternate way to
-define a name space.  The argument to mkns is a table,
-conventionally named <tt>typetab</tt>, that maps type
-names to type definitions.
+For example, the type name <tt>int*</tt> always
+corresponds to the type pointer-to-<tt>int</tt>, but
+there are many possible definitions.  One domain can
+define it to be a 64-bit address of a 64-bit integer
+encoded in big-endian order, while another may be
+define it be a 32-bit address of a 32-bit integer
+encoded in little-endian order.  Given a ctype for
+<tt>int*</tt>, part of the role of a name space is to
+provide a ctype that defines its encoding.
 </p>
 
 <p>
-Unlike <tt>looktype</tt>, the type names to
-which <tt>typetab</tt> maps names do not need to be
-fully defined type names.
+A symbol name is represented by a string.  A symbol
+definition is represented by a vector of three
+elements.  The first element is a ctype representing
+the type of the symbol.  The second element is the name
+of the symbol as a string.  The third element is a
+cvalue representing the <em>offset</em>, in bytes, of
+the object named by symbol from the beginning of the
+address space in which it is located.  The offset value
+may be <span class="val">nil</span>, in which case the
+symbol definition can be used only to associate a type
+with a name.
 </p>
+
+<p>
+Conceputally, a name space is an interface consisting
+of five functions:
+</p>
+
+<ol>
+<li><span class="arg">looktype(ctype) -> ctype</span></li>
+<li><span class="arg">enumtype() -> table</span></li>
+<li><span class="arg">looksym(string) -> symbol</span></li>
+<li><span class="arg">enumsym() -> table</span></li>
+<li><span class="arg">lookaddr(cval) -> symbol</span></li>
+</ol>
+
+<p>
+Given a type name (as a ctype), <span
+class="arg">looktype</span> returns a ctype representing
+the definition of the type.  If the name space does not
+define the type, <span class="arg">looktype</span>
+returns <span class="val">nil</span>.
+</p>
+
+<p>
+Given a symbol name, <span class="arg">looksym</span>
+returns the corresponding symbol (a vector of three
+elements defined above).  If the name space does not
+define the symbol, <span class="arg">looksym</span>
+returns <span class="val">nil</span>.
+</p>
+
+<p>
+<span class="arg">Enumtype</span> and <span
+class="arg">enumsym</span> each return a table
+representing the mapping defined by <span
+class="arg">looktype</span> and
+<span class="arg">looksym</span>.  For <span
+class="arg">enumtype</span> the keys are type names (as
+ctypes) and the values are the corresponding defintions
+(also as ctypes).  For <span class="arg">enumsym</span>
+the keys are symbol names (as strings) and the values
+are the corresponding defintions (as vectors).
+</p>
+
+<p>
+<span class="arg">Lookaddr</span> performs the inverse
+of <span class="arg">looksym</span>.  Given an address,
+<span class="arg">lookaddr</span> returns the symbol
+definition whose offset is the greatest value less than
+or equal to the address in the name space.  If more
+than one symbol qualifies, an arbitrary one is returned.
+</p>
+
+<p>
+Given a type name (as a ctype), <span
+class="arg">looktype</span> returns a ctype representing
+the definition of the type.  If the name space does not
+define the type, <span class="arg">looktype</span>
+returns <span class="val">nil</span>.
+</p>
+
+<p>To construct a new name space, you must supply an
+implementation of the name space interface.
+Cinquecento provides three mechanisms for doing so.
+The <span class="id"><a href="#fn:mkns">mkns</a></span>
+function accepts pre-defined functions and returns a
+new name space.  The <span class="id"><a
+href="#fn:mknsraw">mknsraw</a></span> function accepts
+two tables that define the symbols and types in the
+namespace.  Finally, the <span class="id"><a
+href="#syn:@names">@names</a></span> syntactic form
+accepts symbol and type definitions in C declaration
+syntax.  Each of these mechanisms also accepts an
+optional human-readable name to be associated with
+resulting name space; this name is used only for
+presentation, and need not be unique.  The remainder of
+this section further describes these mechanisms.
+</p>
+
+<div class="docitem" id="fn:mkns">
+<div class="proto">
+<div class="function">
+<span class="id">mkns(<span class="arg">looktype</span>,<span class="arg">enumtype</span>,<span class="arg">looksym</span>,<span class="arg">enumsym</span>,<span class="arg">enumsym</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="param">
+<span class="arg">looktype</span>, <span class="arg">enumtype</span>, <span class="arg">looksym</span>, <span class="arg">enumsym</span>, <span class="arg">lookaddr</span>: <span class="type">procedure</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+The five function parameters implement the Cinqucento
+name space interface.  <span class="id">Mkns</span>
+constructs and returns a new name space corresponding
+to this implementation.  If specified, <span
+class="arg">name</span> is a human-readable name
+associated with the name space.
+</div>
+</div>
+
+<div class="docitem" id="fn:mknsraw">
+<div class="proto">
+<div class="function">
+<span class="id">mknsraw(<span class="arg">parent</span>,<span class="arg">typetab</span>,<span class="arg">symtab</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="param">
+<span class="arg">parent</span>: <span class="type">namespace</span>
+</div>
+<div class="param">
+<span class="arg">typetab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">symtab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+<span class="arg">Typetab</span> is a table whose keys
+are type names (as ctypes) and whose values are type
+definitions (as ctypes).  The type definitions may be
+<em>incomplete</em>: types definitions may refer to
+type names rather than fully specified types.  As long
+as a definition for the referenced type occurs either
+elsewhere in <span class="arg">typetab</span> or in the
+name space <span class="arg">parent</span>, the type
+definition will be implicity resolved.  If a referenced
+type is defined in both <span
+class="arg">typetab</span> and <span
+class="arg">parent</span>, the <span
+class="arg">typetab</span> definition has precedence.
+</div>
+<div class="desc">
+<span class="arg">Symtab</span> is a table whose keys
+are symbol names (as strings) and whose values are
+symbols (in the 3-element vector form defined above).
+As with <span class="arg">typetab</span>, the types
+occurring in symbols may be type references.
+</div>
+<div class="desc">
+<span class="id">Mknsraw</span> resolves all type
+references, then constructs and returns a new name
+space.
+If specified, <span
+class="arg">name</span> is a human-readable name
+associated with the name space.
+</div>
+</div>
+
+<div class="docitem" id="syn:@names">
+<div class="proto">
+<div class="syntax">
+<span class="id">@names <span class="arg">parent</span> {
+	<span class="arg">decl</span> ...
+};
+</span>
+</div>
+<div class="param">
+<span class="arg">parent</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">decl</span>: <span class="type">see description</span>
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+This syntax constructs a new name space from a sequence
+of symbol and type declarations.  The declarations are
+written in an extension of the C variable and type
+declaration syntax.
+</div>
+<div class="desc">
+There are four forms of declaration: aggregates, symbols,
+enums, and typedefs.
+</div>
+
+<div class="desc">
+The syntax for an aggregate declaration is the same as C
+aggregate declaration except that:
+<ul>
+<li> each field declaration must includes an offset
+         expression that specifies the offset of the
+          field relative to the beginning of the
+          aggregate;</li>
+<li> the declaration must end with a final offset
+          expression (not associated with any field)
+          that specifies the size of the aggregate.</li>
+</ul>
+The offset expression has two variants: one (<span class="val">@<span class="arg">expr</span></span>)
+to specify the offset in <em>bytes</em>, and
+one (<span class="val">@@<span class="arg">expr</span></span>)
+to specify the offset in <em>
+bits</em>.  The bit offset variant must be used to
+define fields corresponding to C bitfields.
+</div>
+<div class="desc">
+The syntax for a symbol declaration is the same as C
+variable declarations (without initializers) except
+that: each symbol declaration may be preceded by an
+offset expression that specifies the offset of the
+first byte in the address space of the object named by
+the symbol.
+The offset expression syntax is the same as the byte offset expression
+used in aggregate fields.  There is no way to associate a bit offset
+with a symbol.
+</div>
+
+<div class="desc">
+The syntax for enum declarations is the same as their syntax in C,
+except that the terms in expressions used to define enumeration values
+must be literal values or preceding constant names within the same enumeration.
+</div>
+
+<div class="desc">
+The syntax for typedef declarations is the same as their syntax in C.
+</div>
+</div>
+
 
 <h3>Standard address spaces</h3>
 
@@ -1880,6 +2106,35 @@ class="id">foreach</span> visits each key/value pair in
 unspecified order, calling <span class="arg">fn</span>
 with the key and value, in that order, as separate
 arguments.  </div> </div>
+
+<div class="docitem" id="fn:sort">
+<div class="proto">
+<div class="function">
+<span class="id">sort(<span class="arg">container</span>,<span class="arg">cmp</span>,)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list or vector</span>
+</div>
+<div class="param">
+<span class="arg">cmp</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sorts the elements of <span
+class="arg">container</span>, using <span
+class="arg">cmp</span> to compare elements.  <span
+class="arg">Cmp</span> accepts two arguments, each an
+element of <span class="arg">container</span>, and
+returns: a negative cvalue if the first argument
+compares less than the second; a positive cvalue if the
+first argument compares greater than the second; or
+zero if they are equal.
+</div>
+</div>
+
 
 <h3>Lists</h3>
 
@@ -3357,6 +3612,7 @@ machines sharing the environment have been freed.
 <div class="id">
 <div class="index">
 <div class="fnindex">
+<a href="#syn:@names">@names</a><br />
 <a href="#syn:typeof">typeof</a><br />
 </div>
 </div>
@@ -3447,6 +3703,8 @@ machines sharing the environment have been freed.
 <a href="#fn:mkctype_void">mkctype_void</a><br />
 <a href="#fn:mkdir">mkdir</a><br />
 <a href="#fn:mkfield">mkfield</a><br />
+<a href="#fn:mkns">mkns</a><br />
+<a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mktab">mktab</a><br />
@@ -3465,6 +3723,7 @@ machines sharing the environment have been freed.
 <a href="#fn:read">read</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
+<a href="#fn:sort">sort</a><br />
 <a href="#fn:sprintfa">sprintfa</a><br />
 <a href="#fn:stringof">stringof</a><br />
 <a href="#fn:strlen">strlen</a><br />

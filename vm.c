@@ -239,6 +239,7 @@ struct Ns {
 	Closure *looksym;
 	Closure *looktype;
 	Closure *lookaddr;
+	Str *name;
 
 	/* cached base type definition */
 	Xtypename *base[Vnallbase];
@@ -2789,10 +2790,12 @@ iterns(Head *hd, Ictx *ictx)
 		return (Head*)ns->enumtype;
 	case 4:
 		return (Head*)ns->enumsym;
+	case 5:
+		return (Head*)ns->name;
 	}
-	if(n >= 4+Vnbase) /* assume elements at+above nbase are aliases */
+	if(n >= 5+Vnbase) /* assume elements at+above nbase are aliases */
 		return GCiterdone;
-	return (Head*)ns->base[n-4];
+	return (Head*)ns->base[n-5];
 }
 
 Env*
@@ -5028,16 +5031,31 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 }
 
 static Ns*
-mknstype(Tab *type)
+mknsfn(Closure *looktype, Closure *enumtype,
+       Closure *looksym, Closure *enumsym,
+       Closure *lookaddr, Str *name)
 {
 	Ns *ns;
-	ns = mkns();	
-	ns->looktype = mkccl("looktype", looktype, 1, mkvaltab(type));
-	ns->enumtype = mkccl("enumtype", enumtype, 1, mkvaltab(type));
-	ns->enumsym = mkccl("enumsym", enumsym, 1, mkvaltab(mktab()));
-	ns->looksym = mkcfn("looksym", nilfn);
-	ns->lookaddr = mkcfn("lookaddr", nilfn);
+	ns = mkns();
+	ns->looktype = looktype;
+	ns->enumtype = enumtype;
+	ns->looksym = looksym;
+	ns->enumsym = enumsym;
+	ns->lookaddr = lookaddr;
+	ns->name = name;
 	return ns;
+}
+       
+
+static Ns*
+mknstype(Tab *type, Str *name)
+{
+	return mknsfn(mkccl("looktype", looktype, 1, mkvaltab(type)),
+		      mkccl("enumtype", enumtype, 1, mkvaltab(type)),
+		      mkcfn("looksym", nilfn),
+		      mkccl("enumsym", enumsym, 1, mkvaltab(mktab())),
+		      mkcfn("lookaddr", nilfn),
+		      name);
 }
 
 static void
@@ -5058,21 +5076,19 @@ symcmp(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static Ns*
-mknstypesym(VM *vm, Tab *type, Tab *sym)
+mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 {
 	Val rv, vp, op;
-	Ns *ns;
 	Vec *vec, *s;
 	List *ls;
 	Imm m, len;
 	Val argv[2];
 
-	ns = mkns();
-	ns->enumtype = mkccl("enumtype", enumtype, 1, mkvaltab(type));
-	ns->looktype = mkccl("looktype", looktype, 1, mkvaltab(type));
-	ns->enumsym = mkccl("enumsym", enumsym, 1, mkvaltab(sym));
-	ns->looksym = mkccl("looksym", looksym, 1, mkvaltab(sym));
+	gcprotect(vm, type);
+	gcprotect(vm, sym);
+	gcprotect(vm, name);
 
+	/* create sorted list of symbols with offsets for lookaddr*/
 	vec = tabenum(sym);
 	len = vec->len/2;
 	ls = mklist();
@@ -5089,12 +5105,17 @@ mknstypesym(VM *vm, Tab *type, Tab *sym)
 	gcprotect(vm, argv[0]);
 	gcprotect(vm, argv[1]);
 	l1_sort(vm, 2, argv, &rv);
-	ns->lookaddr = mkccl("lookaddr", lookaddr, 1, mkvallist(ls));
-	return ns;
+
+	return mknsfn(mkccl("looktype", looktype, 1, mkvaltab(type)),
+		      mkccl("enumtype", enumtype, 1, mkvaltab(type)),
+		      mkccl("looksym", looksym, 1, mkvaltab(sym)),
+		      mkccl("enumsym", enumsym, 1, mkvaltab(sym)),
+		      mkccl("lookaddr", lookaddr, 1, mkvallist(ls)),
+		      name);
 }
 
 static Ns*
-dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
+mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 {
 	Val v, idv, vecv, vp;
 	Vec *vec;
@@ -5195,7 +5216,7 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 		fflush(stdout);
 	}
 
-	ns = mknstypesym(vm, ctx.type, ctx.sym);
+	ns = mknstypesym(vm, ctx.type, ctx.sym, name);
 	nscachebase(vm, ns);
 	return ns;
 }
@@ -5301,6 +5322,8 @@ gcprotect(VM *vm, void *obj)
 {
 	Root *r;
 
+	if(obj == 0)
+		return 0;
 	r = newroot(&vm->rs);
 	r->hd = obj;
 	r->link = vm->prot[vm->pdepth-1];
@@ -8066,20 +8089,54 @@ l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_mknsraw(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ns *ons, *ns;
 	Tab *rawtype, *rawsym;
+	Str *name;
 
-	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to mkns");
+	if(argc != 3 && argc != 4)
+		vmerr(vm, "wrong number of arguments to mknsraw");
 	checkarg(vm, "mkns", argv, 0, Qns);
 	checkarg(vm, "mkns", argv, 1, Qtab);
 	checkarg(vm, "mkns", argv, 2, Qtab);
+	name = 0;
+	if(argc == 4){
+		checkarg(vm, "mknsraw", argv, 3, Qstr);
+		name = valstr(argv[3]);
+	}
 	ons = valns(argv[0]);
 	rawtype = valtab(argv[1]);
 	rawsym = valtab(argv[2]);
-	ns = dorawns(vm, ons, rawtype, rawsym);
+	ns = mknstab(vm, ons, rawtype, rawsym, name);
+	*rv = mkvalns(ns);
+}
+
+static void
+l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Ns *ns;
+	Str *name;
+
+	if(argc != 5 && argc != 6)
+		vmerr(vm, "wrong number of arguments to mkns");
+	checkarg(vm, "mkns", argv, 0, Qcl);
+	checkarg(vm, "mkns", argv, 1, Qcl);
+	checkarg(vm, "mkns", argv, 2, Qcl);
+	checkarg(vm, "mkns", argv, 3, Qcl);
+	checkarg(vm, "mkns", argv, 4, Qcl);
+	name = 0;
+	if(argc == 6){
+		checkarg(vm, "mknsraw", argv, 5, Qstr);
+		name = valstr(argv[5]);
+	}
+	ns = mknsfn(valcl(argv[0]),
+		    valcl(argv[1]),
+		    valcl(argv[2]),
+		    valcl(argv[3]),
+		    valcl(argv[4]),
+		    name);
+	nscachebase(vm, ns);
 	*rv = mkvalns(ns);
 }
 
@@ -9026,6 +9083,7 @@ struct NSroot {
 	Cbase ptr;
 	Cbase xint8, xint16, xint32, xint64;
 	Cbase xuint8, xuint16, xuint32, xuint64;
+	char *name;
 } NSroot;
 
 static NSroot c32le = {
@@ -9053,6 +9111,7 @@ static NSroot c32le = {
 .xuint16 = Vushort,
 .xuint32 = Vulong,
 .xuint64 = Vuvlong,
+.name = "c32le",
 };
 
 static NSroot c32be = {
@@ -9080,6 +9139,7 @@ static NSroot c32be = {
 .xuint16 = Vushort,
 .xuint32 = Vulong,
 .xuint64 = Vuvlong,
+.name = "c32be",
 };
 
 static NSroot c64le = {
@@ -9107,6 +9167,7 @@ static NSroot c64le = {
 .xuint16 = Vushort,
 .xuint32 = Vuint,
 .xuint64 = Vulong,
+.name = "c64le",
 };
 
 static NSroot c64be = {
@@ -9134,6 +9195,7 @@ static NSroot c64be = {
 .xuint16 = Vushort,
 .xuint32 = Vuint,
 .xuint64 = Vulong,
+.name = "c64be",
 };
 
 static NSroot clp64le = {
@@ -9161,6 +9223,7 @@ static NSroot clp64le = {
 .xuint16 = Vushort,
 .xuint32 = Vuint,
 .xuint64 = Vulong,
+.name = "clp64le",
 };
 
 static NSroot clp64be = {
@@ -9188,6 +9251,7 @@ static NSroot clp64be = {
 .xuint16 = Vushort,
 .xuint32 = Vuint,
 .xuint64 = Vulong,
+.name = "clp64be",
 };
 
 static Xtypename*
@@ -9319,7 +9383,7 @@ mkrootns(NSroot *def)
 
 	memset(base, 0, sizeof(base)); /* values will be seen by GC */
 	type = basetab(def, base);
-	ns = mknstype(type);
+	ns = mknstype(type, mkstr0(def->name));
 	memcpy(ns->base, base, sizeof(base));
 	return ns;
 }
@@ -9406,7 +9470,7 @@ mksysdom(VM *vm)
 	valv = mkvalvec(v);
 	tabput(vm, rawsym, keyv, valv);
 
-	ns = dorawns(vm, root, rawtype, rawsym);
+	ns = mknstab(vm, root, rawtype, rawsym, mkstr0("sys"));
 	dom = mkdom(ns, mksas(mkstrk(0, ~(0ULL), Sperm)), mkstr0("sys"));
 
 	return dom;
@@ -9542,6 +9606,7 @@ mktopenv()
 	FN(mkfield);
 	FN(mknas);
 	FN(mkns);
+	FN(mknsraw);
 	FN(mkparam);
 	FN(mkrange);
 	FN(mksas);
