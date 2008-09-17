@@ -4787,7 +4787,7 @@ lookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		return;
 	}
 	sym = valvec(listref(vm, l, 0));
-	a = valcval(vecref(sym, Offpos));;
+	a = valcval(vecref(sym, Offpos));
 	if(a->val > addr){
 		*rv = Xnil;
 		return;
@@ -4809,7 +4809,7 @@ lookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 			n = n-i;
 		}
 	}
-
+	sym = valvec(listref(vm, l, m));
 	*rv = mkvalvec(sym);
 }
 
@@ -5034,9 +5034,9 @@ mknstype(Tab *type)
 	ns = mkns();	
 	ns->looktype = mkccl("looktype", looktype, 1, mkvaltab(type));
 	ns->enumtype = mkccl("enumtype", enumtype, 1, mkvaltab(type));
-	ns->enumsym = mkcfn("enumsym", nilfn);
+	ns->enumsym = mkccl("enumsym", enumsym, 1, mkvaltab(mktab()));
 	ns->looksym = mkcfn("looksym", nilfn);
-	ns->lookaddr = mkcfn("looksym", nilfn);
+	ns->lookaddr = mkcfn("lookaddr", nilfn);
 	return ns;
 }
 
@@ -5617,37 +5617,58 @@ isnegcval(VM *vm, Val v)
 	return (s64)cv->val < 0;
 }
 
+static int
+docmp(VM *vm, Val *vs, Imm i, Imm j, Closure *cmp)
+{
+	Val argv[2], rv;
+	argv[0] = vs[i];
+	argv[1] = vs[j];
+	rv = dovm(vm, cmp, 2, argv);
+	if(isnegcval(vm, rv))
+		return -1;
+	if(zeroval(rv))
+		return 0;
+	return 1;
+}
+
+static void
+doswap(VM *vm, Val *vs, Imm i, Imm j)
+{
+	Val t;
+	if(vm->gcrun){
+		addroot(&stores, valhead(vs[i]));
+		addroot(&stores, valhead(vs[j]));
+	}
+	t = vs[i];
+	vs[i] = vs[j];
+	vs[j] = t;
+}
+
 static void
 dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
 {
-	Val p, rv, t, argv[2];
-	Imm lo, hi;
+	Imm lo, hi, p;
 	if(n < 2)
 		return;
-	p = vs[0];
+
 	lo = 0;
 	hi = n;
+	p = n>>1;		/* weak pivot */
+	doswap(vm, vs, p, lo);
 	while(1){
-		argv[0] = p;
-		do{
-			hi--;
-			argv[1] = vs[hi];
-			rv = dovm(vm, cmp, 2, argv);
-		}while(lo < hi && !isnegcval(vm, rv));
-		argv[1] = p;
-		do{
+		do
 			lo++;
-			argv[0] = vs[lo];
-			rv = dovm(vm, cmp, 2, argv);
-		}while(lo < hi && isnegcval(vm, rv));
-		if(lo >= hi)
+		while(lo < n && docmp(vm, vs, lo, 0, cmp) < 0);
+		do
+			hi--;
+		while(0 < hi && docmp(vm, vs, hi, 0, cmp) > 0);
+		if(hi < lo)
 			break;
-		t = vs[lo];
-		vs[lo] = vs[hi];
-		vs[hi] = t;
+		doswap(vm, vs, lo, hi);
 	}
-	dosort(vm, vs, lo, cmp);
-	dosort(vm, vs+lo, n-lo, cmp);
+	doswap(vm, vs, 0, hi);
+	dosort(vm, vs, hi, cmp);
+	dosort(vm, vs+hi+1, n-hi-1, cmp);
 }
 
 static void
@@ -5656,9 +5677,9 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *l;
 	Listx *x;
 	Vec *v;
-	Val *es;
+	Val *vs;
 	Closure *cmp;
-	Imm i, n;
+	Imm n;
 	
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to sort");
@@ -5671,22 +5692,19 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 		l = vallist(argv[0]);
 		x = l->x;
 		n = x->tl-x->hd;
-		es = &x->val[x->hd];
+		vs = &x->val[x->hd];
 		break;
 	case Qvec:
 		v = valvec(argv[0]);
 		n = v->len;
-		es = v->vec;
+		vs = v->vec;
 		break;
 	default:
 		return;
 	}
 	if(n < 2)
 		return;
-	if(vm->gcrun)
-		for(i = 0; i < n; i++)
-			addroot(&stores, valhead(es[i]));
-	dosort(vm, es, n, cmp);
+	dosort(vm, vs, n, cmp);
 }
 
 static void
