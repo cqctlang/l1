@@ -55,7 +55,6 @@ todo
              and gc prot list.
   
           4. gc walks gc prot list on all continuations
-
   - determine and document what happens when ns defines
     typedef X and enum X or sym X and user says
     	    sizeof(dom`X);

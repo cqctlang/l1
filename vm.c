@@ -231,16 +231,9 @@ struct As {
 	Str *name;
 };
 
-typedef
-struct Nssym {
-	Imm addr;
-	Vec *sym;
-} Nssym;
-
 struct Ns {
 	Head hd;
 
-	/* interface for all instances */
 	Closure *enumsym;
 	Closure *enumtype;
 	Closure *looksym;
@@ -249,13 +242,6 @@ struct Ns {
 
 	/* cached base type definition */
 	Xtypename *base[Vnallbase];
-
-	/* data for instances created by @names */
-	/* FIXME: push into closure defining interface */
-	Tab *type;
-	Tab *sym;
-	Nssym *symvec;		/* points to elements of sym; no mark needed */
-	Imm nsym;
 };
 
 struct Dom {
@@ -374,6 +360,7 @@ static Val vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val v);
 static void vecset(VM *vm, Vec *vec, Imm idx, Val v);
 static u32 listxlen(Listx *x);
+static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 
 static Val Xundef;
 static Val Xnil;
@@ -381,7 +368,7 @@ static Val Xnulllist;
 static Dom *litdom;
 static Ns *litns;
 static Xtypename **litbase;
-static Cval *cvalnull, *cval0, *cval1;
+static Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
@@ -407,7 +394,6 @@ static char *opstr[Iopmax] = {
 static void freecl(Head*);
 static void freefd(Head*);
 static void freelist(Head*);
-static void freens(Head*);
 static void freestr(Head*);
 static void freetab(Head*);
 static void freevec(Head*);
@@ -436,7 +422,7 @@ static Heap heap[Qnkind] = {
 	[Qdom]	= { "domain", Qdom, sizeof(Dom), 0, 0, iterdom },
 	[Qfd]	= { "fd", Qfd,sizeof(Fd), 0, freefd, iterfd },
 	[Qlist]	= { "list", Qlist, sizeof(List), 0, freelist, iterlist },
-	[Qns]	= { "ns", Qns, sizeof(Ns), 1, freens, iterns },
+	[Qns]	= { "ns", Qns, sizeof(Ns), 1, 0, iterns },
 	[Qpair]	= { "pair", Qpair, sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", Qrange, sizeof(Range), 0, 0, iterrange },
 	[Qstr]	= { "string", Qstr, sizeof(Str), 1, freestr, 0 },
@@ -1360,14 +1346,6 @@ iterfd(Head *hd, Ictx *ictx)
 	default:
 		return GCiterdone;
 	}
-}
-
-static void
-freens(Head *hd)
-{
-	Ns *ns;
-	ns = (Ns*)hd;
-	free(ns->symvec);
 }
 
 static int
@@ -2412,6 +2390,17 @@ listins(VM *vm, List *lst, Imm idx, Val v)
 	return lst;
 }
 
+static void
+_listappend(List *lst, Val v)
+{
+	Listx *x;
+	u32 idx;
+	x = lst->x;
+	idx = listxlen(x);
+	x = maybelistexpand(lst);
+	x->val[x->tl++] = v;
+}
+
 static List*
 listpush(VM *vm, List *lst, Val v)
 {
@@ -2791,23 +2780,19 @@ iterns(Head *hd, Ictx *ictx)
 	n = ictx->n++;
 	switch(n){
 	case 0:
-		return (Head*)ns->sym;
-	case 1:
-		return (Head*)ns->type;
-	case 2:
 		return (Head*)ns->lookaddr;
-	case 3:
+	case 1:
 		return (Head*)ns->looksym;
-	case 4:
+	case 2:
 		return (Head*)ns->looktype;
-	case 5:
+	case 3:
 		return (Head*)ns->enumtype;
-	case 6:
+	case 4:
 		return (Head*)ns->enumsym;
 	}
-	if(n >= 6+Vnbase) /* assume elements at+above nbase are aliases */
+	if(n >= 4+Vnbase) /* assume elements at+above nbase are aliases */
 		return GCiterdone;
-	return (Head*)ns->base[n-6];
+	return (Head*)ns->base[n-4];
 }
 
 Env*
@@ -4492,30 +4477,27 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	putvalrand(vm, rv, dst);
 }
 
+static void
+nilfn(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+}
+
 /* enumsym for namespaces constructed by @names */
 static void
 enumsym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Ns *ns;
-
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to enumsym");
-
-	ns = valns(disp[0]);
-	*rv = mkvaltab(ns->sym);
+	*rv = disp[0];
 }
 
 /* enumtype for namespaces constructed by @names */
 static void
 enumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Ns *ns;
-
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to enumtype");
-
-	ns = valns(disp[0]);
-	*rv = mkvaltab(ns->type);
+	*rv = disp[0];
 }
 
 /* dispatch for abstract address spaces */
@@ -4751,16 +4733,15 @@ nscachebase(VM *vm, Ns *ns)
 static void
 looksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Ns *ns;
+	Tab *sym;
 	Val vp;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to looksym");
 	if(argv[0]->qkind != Qstr)
 		vmerr(vm, "argument 1 to looksym must be a string");
-
-	ns = valns(disp[0]);
-	vp = tabget(ns->sym, argv[0]);
+	sym = valtab(disp[0]);
+	vp = tabget(sym, argv[0]);
 	if(vp)
 		*rv = vp;
 }
@@ -4769,7 +4750,7 @@ looksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 static void
 looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Ns *ns;
+	Tab *type;
 	Val vp;
 
 	if(argc != 1)
@@ -4777,8 +4758,8 @@ looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argv[0]->qkind != Qxtn)
 		vmerr(vm, "argument 1 to looktype must be a typename");
 
-	ns = valns(disp[0]);
-	vp = tabget(ns->type, argv[0]);
+	type = valtab(disp[0]);
+	vp = tabget(type, argv[0]);
 	if(vp)
 		*rv = vp;
 }
@@ -4787,44 +4768,49 @@ looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 static void
 lookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Ns *ns;
-	Cval *cv;
+	List *l;
+	Cval *cv, *a;
 	Imm addr, m, i, b, n;
+	Vec *sym;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to lookaddr");
 	if(argv[0]->qkind != Qcval)
 		vmerr(vm, "argument 1 to lookaddr must be an address");
 
-	ns = valns(disp[0]);
+	l = vallist(disp[0]);
 	cv = valcval(argv[0]);
 	addr = cv->val;
-
-	if(ns->nsym == 0){
+	listlen(disp[0], &n);
+	if(n == 0){
+		*rv = Xnil;
+		return;
+	}
+	sym = valvec(listref(vm, l, 0));
+	a = valcval(vecref(sym, Offpos));;
+	if(a->val > addr){
 		*rv = Xnil;
 		return;
 	}
 
-	if(ns->symvec[0].addr > addr){
-		*rv = Xnil;
-		return;
-	}
-
+	/* binary search */
 	b = 0;
-	n = ns->nsym;
 	while(1){
 		i = n/2;
 		m = b+i;
 		if(i == 0)
 			break;
-		if(addr < ns->symvec[m].addr)
+		sym = valvec(listref(vm, l, m));
+		a = valcval(vecref(sym, Offpos));
+		if(addr < a->val)
 			n = i;
 		else{
 			b = m;
 			n = n-i;
 		}
 	}
-	*rv = mkvalvec(ns->symvec[m].sym);
+
+	*rv = mkvalvec(sym);
 }
 
 typedef
@@ -5041,56 +5027,69 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	fatal("bug");
 }
 
-static int
-nssymcmp(const void *va, const void *vb)
+static Ns*
+mknstype(Tab *type)
 {
-	Nssym *a, *b;
-	a = (Nssym*)va;
-	b = (Nssym*)vb;
-	if(a->addr < b->addr)
-		return -1;
-	else if(a->addr > b->addr)
-		return 1;
+	Ns *ns;
+	ns = mkns();	
+	ns->looktype = mkccl("looktype", looktype, 1, mkvaltab(type));
+	ns->enumtype = mkccl("enumtype", enumtype, 1, mkvaltab(type));
+	ns->enumsym = mkcfn("enumsym", nilfn);
+	ns->looksym = mkcfn("looksym", nilfn);
+	ns->lookaddr = mkcfn("looksym", nilfn);
+	return ns;
+}
+
+static void
+symcmp(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *sa, *sb;
+	Cval *a, *b;
+	sa = valvec(argv[0]);
+	sb = valvec(argv[1]);
+	a = valcval(vecref(sa, Offpos));
+	b = valcval(vecref(sb, Offpos));
+	if(a->val < b->val)
+		*rv = mkvalcval2(cvalminus1);
+	else if(a->val > b->val)
+		*rv = mkvalcval2(cval1);
 	else
-		return 0;
+		*rv = mkvalcval2(cval0);
 }
 
 static Ns*
-mknstab(Tab *type, Tab *sym)
+mknstypesym(VM *vm, Tab *type, Tab *sym)
 {
-	Val v, vp, op;
+	Val rv, vp, op;
 	Ns *ns;
 	Vec *vec, *s;
-	Imm m, cnt, len;
-	Cval *off;
+	List *ls;
+	Imm m, len;
+	Val argv[2];
 
 	ns = mkns();
-	ns->type = type;
-	ns->sym = sym;
-	v = mkvalns(ns);
-	ns->enumsym = mkccl("enumsym", enumsym, 1, v);
-	ns->enumtype = mkccl("enumtype", enumtype, 1, v);
-	ns->looksym = mkccl("looksym", looksym, 1, v);
-	ns->looktype = mkccl("looktype", looktype, 1, v);
-	ns->lookaddr = mkccl("lookaddr", lookaddr, 1, v);
+	ns->enumtype = mkccl("enumtype", enumtype, 1, mkvaltab(type));
+	ns->looktype = mkccl("looktype", looktype, 1, mkvaltab(type));
+	ns->enumsym = mkccl("enumsym", enumsym, 1, mkvaltab(sym));
+	ns->looksym = mkccl("looksym", looksym, 1, mkvaltab(sym));
 
-	vec = tabenum(ns->sym);
+	vec = tabenum(sym);
 	len = vec->len/2;
-	ns->symvec = xmalloc(len*sizeof(Nssym));
-	cnt = 0;
+	ls = mklist();
 	for(m = 0; m < len; m++){
-		vp = vecref(vec, len+m); /* value containing symbol m */
+		vp = vecref(vec, len+m);	/* symbol #m */
 		s = valvec(vp);
 		op = vecref(s, Offpos);
 		if(op->qkind != Qcval)
 			continue;
-		off = valcval(op);
-		ns->symvec[cnt].addr = off->val;
-		ns->symvec[cnt].sym = s;
-		cnt++;
+		_listappend(ls, vp);
 	}
-	qsort(ns->symvec, cnt, sizeof(Nssym), nssymcmp);
-	ns->nsym = cnt;
+	argv[0] = mkvallist(ls);
+	argv[1] = mkvalcl(mkcfn("symcmp", symcmp));
+	gcprotect(vm, argv[0]);
+	gcprotect(vm, argv[1]);
+	l1_sort(vm, 2, argv, &rv);
+	ns->lookaddr = mkccl("lookaddr", lookaddr, 1, mkvallist(ls));
 	return ns;
 }
 
@@ -5196,7 +5195,7 @@ dorawns(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym)
 		fflush(stdout);
 	}
 
-	ns = mknstab(ctx.type, ctx.sym);
+	ns = mknstypesym(vm, ctx.type, ctx.sym);
 	nscachebase(vm, ns);
 	return ns;
 }
@@ -5599,6 +5598,95 @@ checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 	if(argv[arg]->qkind != qkind)
 		vmerr(vm, "operand %d to %s must be a %s",
 		      arg+1, fn, qname[qkind]);
+}
+
+static int
+isnegcval(VM *vm, Val v)
+{
+	Cval *cv;
+	Xtypename *t;
+	if(v->qkind != Qcval)
+		vmerr(vm, "got %s where expecting cvalue", qname[v->qkind]);
+	cv = valcval(v);
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase)
+		vmerr(vm, "got %s where expecting integer cvalue",
+		      tkindstr[t->tkind]);
+	if(isunsigned[t->basename])
+		return 0;
+	return (s64)cv->val < 0;
+}
+
+static void
+dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
+{
+	Val p, rv, t, argv[2];
+	Imm lo, hi;
+	if(n < 2)
+		return;
+	p = vs[0];
+	lo = 0;
+	hi = n;
+	while(1){
+		argv[0] = p;
+		do{
+			hi--;
+			argv[1] = vs[hi];
+			rv = dovm(vm, cmp, 2, argv);
+		}while(lo < hi && !isnegcval(vm, rv));
+		argv[1] = p;
+		do{
+			lo++;
+			argv[0] = vs[lo];
+			rv = dovm(vm, cmp, 2, argv);
+		}while(lo < hi && isnegcval(vm, rv));
+		if(lo >= hi)
+			break;
+		t = vs[lo];
+		vs[lo] = vs[hi];
+		vs[hi] = t;
+	}
+	dosort(vm, vs, lo, cmp);
+	dosort(vm, vs+lo, n-lo, cmp);
+}
+
+static void
+l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	Listx *x;
+	Vec *v;
+	Val *es;
+	Closure *cmp;
+	Imm i, n;
+	
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to sort");
+	if(argv[0]->qkind != Qlist && argv[0]->qkind != Qvec)
+		vmerr(vm, "operand 1 to sort must a list or vector");
+	checkarg(vm, "sort", argv, 1, Qcl);
+	cmp = valcl(argv[1]);
+	switch(argv[0]->qkind){
+	case Qlist:
+		l = vallist(argv[0]);
+		x = l->x;
+		n = x->tl-x->hd;
+		es = &x->val[x->hd];
+		break;
+	case Qvec:
+		v = valvec(argv[0]);
+		n = v->len;
+		es = v->vec;
+		break;
+	default:
+		return;
+	}
+	if(n < 2)
+		return;
+	if(vm->gcrun)
+		for(i = 0; i < n; i++)
+			addroot(&stores, valhead(es[i]));
+	dosort(vm, es, n, cmp);
 }
 
 static void
@@ -9213,7 +9301,7 @@ mkrootns(NSroot *def)
 
 	memset(base, 0, sizeof(base)); /* values will be seen by GC */
 	type = basetab(def, base);
-	ns = mknstab(type, mktab());
+	ns = mknstype(type);
 	memcpy(ns->base, base, sizeof(base));
 	return ns;
 }
@@ -9470,6 +9558,7 @@ mktopenv()
 	FN(rettype);
 	FN(reverse);
 	FN(rmdir);
+	FN(sort);
 	FN(sprintfa);
 	FN(stringof);
 	FN(strlen);
@@ -9515,10 +9604,12 @@ mktopenv()
 
 	cval0 = mkcval(litdom, litdom->ns->base[Vint], 0);
 	cval1 = mkcval(litdom, litdom->ns->base[Vint], 1);
+	cvalminus1 = mkcval(litdom, litdom->ns->base[Vint], -1);
 
-	/* stashed in env only so gc doesn't eat them */
+	/* stashed in env only to protect them from gc */
 	builtincval(env, "$0", cval0);
 	builtincval(env, "$1", cval1);
+	builtincval(env, "$-1", cvalminus1);
 
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
