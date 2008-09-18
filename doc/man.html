@@ -2134,6 +2134,39 @@ zero if they are equal.
 </div>
 </div>
 
+<div class="docitem" id="fn:bsearch">
+<div class="proto">
+<div class="function">
+<span class="id">bsearch(<span class="arg">key</span>,<span class="arg">container</span>,<span class="arg">cmp</span>,)</span>
+</div>
+<div class="param">
+<span class="arg">key</span>: <span class="type">any value</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list or vector</span>
+</div>
+<div class="param">
+<span class="arg">cmp</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">element of container or nil</span>
+</div>
+</div>
+<div class="desc">
+Searches the elements of <span
+class="arg">container</span> for one matching <span class="arg">key</span>.
+The elements of the container must be sorted in ascending order
+according to the comparison function <span class="arg">cmp</span>.
+<span
+class="arg">Cmp</span> accepts two arguments, first (always) <span class="arg">key</span> and second an
+element of <span class="arg">container</span>, and
+returns: a negative cvalue if the first argument
+compares less than the second; a positive cvalue if the
+first argument compares greater than the second; or
+zero if they are equal.
+</div>
+</div>
+
 
 <h3>Lists</h3>
 
@@ -3629,6 +3662,7 @@ machines sharing the environment have been freed.
 <a href="#fn:bitfieldcontainer">bitfieldcontainer</a><br />
 <a href="#fn:bitfieldpos">bitfieldpos</a><br />
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
+<a href="#fn:bsearch">bsearch</a><br />
 <a href="#fn:close">close</a><br />
 <a href="#fn:copy">copy</a><br />
 <a href="#fn:cqctcallthunk">cqctcallthunk</a><br />

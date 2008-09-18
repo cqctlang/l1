@@ -5706,11 +5706,11 @@ isnegcval(VM *vm, Val v)
 }
 
 static int
-docmp(VM *vm, Val *vs, Imm i, Imm j, Closure *cmp)
+docmp(VM *vm, Val a, Val b, Closure *cmp)
 {
 	Val argv[2], rv;
-	argv[0] = vs[i];
-	argv[1] = vs[j];
+	argv[0] = a;
+	argv[1] = b;
 	rv = dovm(vm, cmp, 2, argv);
 	if(isnegcval(vm, rv))
 		return -1;
@@ -5735,6 +5735,7 @@ doswap(VM *vm, Val *vs, Imm i, Imm j)
 static void
 dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
 {
+	Val pv;
 	Imm lo, hi, p;
 	if(n < 2)
 		return;
@@ -5742,14 +5743,15 @@ dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
 	lo = 0;
 	hi = n;
 	p = n>>1;		/* weak pivot */
+	pv = vs[p];
 	doswap(vm, vs, p, lo);
 	while(1){
 		do
 			lo++;
-		while(lo < n && docmp(vm, vs, lo, 0, cmp) < 0);
+		while(lo < n && docmp(vm, vs[lo], pv, cmp) < 0);
 		do
 			hi--;
-		while(0 < hi && docmp(vm, vs, hi, 0, cmp) > 0);
+		while(0 < hi && docmp(vm, vs[hi], pv, cmp) > 0);
 		if(hi < lo)
 			break;
 		doswap(vm, vs, lo, hi);
@@ -5793,6 +5795,65 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(n < 2)
 		return;
 	dosort(vm, vs, n, cmp);
+}
+
+static Val
+dobsearch(VM *vm, Val key, Val *vs, Imm n, Closure *cmp)
+{
+	Imm m, i, b;
+	int rv;
+
+	b = 0;
+	while(n > 1){
+		i = n/2;
+		m = b+i;
+		rv = docmp(vm, key, vs[m], cmp);
+		if(rv == 0)
+			return vs[m];
+		if(rv < 0)
+			n = i;
+		else{
+			b = m;
+			n = n-i;
+		}
+	}
+	if(n && docmp(vm, key, vs[b], cmp) == 0)
+		return vs[b];
+	return Xnil;
+}
+
+static void
+l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	Listx *x;
+	Vec *v;
+	Val *vs;
+	Closure *cmp;
+	Imm n;
+	
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to bsearch");
+	if(argv[1]->qkind != Qlist && argv[1]->qkind != Qvec)
+		vmerr(vm, "operand 2 to bsearch must a list or vector");
+	checkarg(vm, "bsearch", argv, 2, Qcl);
+	cmp = valcl(argv[2]);
+	switch(argv[1]->qkind){
+	case Qlist:
+		l = vallist(argv[1]);
+		x = l->x;
+		n = x->tl-x->hd;
+		vs = &x->val[x->hd];
+		break;
+	case Qvec:
+		v = valvec(argv[1]);
+		n = v->len;
+		vs = v->vec;
+		break;
+	default:
+		return;
+	}
+	*rv = dobsearch(vm, argv[0], vs, n, cmp);
 }
 
 static void
@@ -9557,6 +9618,7 @@ mktopenv()
 	FN(bitfieldcontainer);
 	FN(bitfieldpos);
 	FN(bitfieldwidth);
+	FN(bsearch);
 	FN(car);
 	FN(cdr);
 	FN(close);

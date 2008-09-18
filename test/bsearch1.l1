@@ -1,0 +1,31 @@
+define cmp(x,y) { return x - listref(y,0); }
+define tst(k,v){
+	@local rv;
+	rv = bsearch(k, v, cmp);
+	printf("%a  => %a\n", k, rv);
+}
+
+tst(1, [[1,2],[2,2],[3,3]]);
+tst(2, [[1,2],[2,2],[3,3]]);
+tst(3, [[1,2],[2,2],[3,3]]);
+tst(0, [[1,2],[2,2],[3,3]]);
+tst(0, []);
+l = [];
+for(i = 0; i < 1000; i++)
+	append(l, [i*2,i]);
+tst(0, l);
+tst(1, l);
+tst(998, l);
+tst(999, l);
+tst(10000, l);
+
+for(i = 0; i < 1024; i++)
+	append(l, [i*2,i]);
+tst(0, l);
+tst(1, l);
+tst(998, l);
+tst(999, l);
+tst(1023, l);
+tst(1024, l);
+tst(10000, l);
+
