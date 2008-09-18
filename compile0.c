@@ -183,12 +183,12 @@ gentypename(Type *t, Pass *recpass, U *ctx)
 	}
 
 	if(t->bitw){
-		if(t->kind != Tbase && t->kind != Ttypedef)
-			cerror(ctx, se, "invalid bitfield");
+		if(t->kind != Tbase && t->kind != Ttypedef && t->kind != Tenum)
+			// FIXME: E does not have source location information!
+			cerror(ctx, e, "invalid bitfield");
 		t->bitw = recpass(ctx, t->bitw);
 		t->bit0 = recpass(ctx, t->bit0);
-		e = Zcall(doid("mkctype_bitfield"), 3,
-			  e, t->bitw, t->bit0);
+		e = Zcall(doid("mkctype_bitfield"), 3, e, t->bitw, t->bit0);
 		t->bitw = 0;	/* steal */
 		t->bit0 = 0;	/* steal */
 	}
