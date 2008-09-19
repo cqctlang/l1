@@ -9559,7 +9559,7 @@ mksysdom(VM *vm)
 	t->cnt = mkvalcval(vm->litdom, vm->litbase[Vint], 256);
 	t->link = mkbasextn(Vchar, Rundef);
 	id = mkstr0("flags");
-	o = mkcval(vm->litdom, vm->litbase[Vptr], (Imm)&cqctflags);
+	o = mkcval(vm->litdom, vm->litbase[Vptr], (Imm)(uintptr_t)&cqctflags);
 	
 	v = mkvec(3);
 	valv = mkvalxtn(t);
