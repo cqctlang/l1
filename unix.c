@@ -67,6 +67,7 @@ void
 xvprintf(char *fmt, va_list args)
 {
 	vfprintf(stdout, fmt, args);
+	fflush(stdout);
 }
 
 void
@@ -76,4 +77,64 @@ xprintf(char *fmt, ...)
 	va_start(args, fmt);
 	xvprintf(fmt, args);
 	va_end(args);
+}
+
+void
+xabort()
+{
+	abort();
+}
+
+void
+newchan(int *left, int *right)
+{
+	int fd[2];
+
+	if(0 > socketpair(PF_UNIX, SOCK_STREAM, 0, fd))
+		fatal("cannot allocate channel");
+	*left = fd[0];
+	*right = fd[1];
+}
+
+void
+chanclose(int c)
+{
+	close(c);
+}
+
+int
+chanreadb(int c, char *b)
+{
+	if(0 > read(c, b, 1))
+		return -1;
+	return 0;
+}
+
+int
+chanwriteb(int c, char *b)
+{
+	if(0 > write(c, b, 1))
+		return -1;
+	return 0;
+}
+
+Thread
+newthread(void* (*fn)(void*), void *arg)
+{
+	Thread t;
+	if(0 > pthread_create(&t, 0, fn, arg))
+		return 0;
+	return t;
+}
+
+void
+threadexit(void *vp)
+{
+	pthread_exit(vp);
+}
+
+void
+threadwait(Thread t)
+{
+	pthread_join(t, 0);
 }

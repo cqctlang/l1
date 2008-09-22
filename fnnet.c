@@ -2,24 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-static char *
-ipstr(struct sockaddr_in *sa)
-{
-	static char buf[128];
-	static char addr[32];
-	static char serv[32];
-	struct servent *servent;
-
-	strcpy(addr, inet_ntoa(sa->sin_addr));
-	servent = getservbyport(sa->sin_port, "tcp");
-	if(servent){
-		strcpy(serv, servent->s_name);
-		snprintf(buf, sizeof(buf), "%s:%s", addr, serv);
-	}else
-		snprintf(buf, sizeof(buf), "%s:%d", addr, ntohs(sa->sin_port));
-	return buf;
-}
-
 static int
 parseaddr(const char *s, struct in_addr *addr)
 {

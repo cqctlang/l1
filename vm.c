@@ -141,7 +141,7 @@ struct VM {
 	Val ac, cl;
 	unsigned char gcpause, gcrun;
 	int cm, cgc;
-	pthread_t t;
+	Thread t;		/* gc thread id */
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
 	void (*gcpoll)(VM*);
@@ -698,7 +698,7 @@ rootset(VM *vm)
 		return;
 
 	for(m = vm->sp; m < Maxstk; m++)
-		addrootstk(&roots, valhead(vm->stack[m]));
+		addroot(&roots, valhead(vm->stack[m]));
 	hforeach(vm->top->ht, bindingroot, 0);
 	addroot(&roots, valhead(vm->ac));
 	addroot(&roots, valhead(vm->cl));
@@ -750,8 +750,8 @@ waitmutator(VM *vm)
 	char b;
 	
 	vm->gcpause = 1;
-//	if(0 > read(vm->cgc, &b, 1))
-//		fatal("gc synchronization failure"); 
+	if(0 > chanreadb(vm->cgc, &b))
+		fatal("gc synchronization failure"); 
 	if(b == GCdie)
 		return 1;
 	if(b != GCpaused)
@@ -766,8 +766,8 @@ resumemutator(VM *vm)
 
 	vm->gcpause = 0;
 	b = GCresume;
-//	if(0 > write(vm->cgc, &b, 1))
-//		fatal("gc synchronization failure");
+	if(0 > chanwriteb(vm->cgc, &b))
+		fatal("gc synchronization failure");
 }
 
 static void
@@ -775,13 +775,13 @@ waitgcrun(VM *vm)
 {
 	char b;
 	
-//	if(0 > read(vm->cgc, &b, 1))
-//		fatal("gc synchronization failure"); 
+	if(0 > chanreadb(vm->cgc, &b))
+		fatal("gc synchronization failure"); 
 	if(b == GCdie){
 		b = GCdied;
-//		if(0 > write(vm->cgc, &b, 1))
-//			fatal("gc sychronization failure");
-//		pthread_exit(0);
+		if(0 > chanwriteb(vm->cgc, &b))
+			fatal("gc sychronization failure");
+		threadexit(0);
 	}
 	if(b != GCrun)
 		fatal("gc protocol botch");
@@ -792,19 +792,18 @@ waitgcrun(VM *vm)
 	vm->gcrun = 1;
 	b = GCrunning;
 	if(HEAPPROF) heapstat("start");
-//	if(0 > write(vm->cgc, &b, 1))
-//		fatal("gc synchronization failure");
-
+	if(0 > chanwriteb(vm->cgc, &b))
+		fatal("gc synchronization failure");
 }
 
 static void
 gcsync(int fd, char t, char r)
 {
 	char b;
-//	if(0 > write(fd, &t, 1))
-//		fatal("gc synchronization failure");
-//	if(0 > read(fd, &b, 1))
-//		fatal("gc synchronization failure");
+	if(0 > chanwriteb(fd, &t))
+		fatal("gc synchronization failure");
+	if(0 > chanreadb(fd, &b))
+		fatal("gc synchronization failure");
 	if(b != r)
 		fatal("gc protocol botch");
 }
@@ -834,9 +833,9 @@ static void
 concurrentgckill(VM *vm)
 {
 	gcsync(vm->cm, GCdie, GCdied);
-//	close(vm->cm);
-//	close(vm->cgc);
-//	pthread_join(vm->t, 0);
+	chanclose(vm->cm);
+	chanclose(vm->cgc);
+	threadwait(vm->t);
 }
 
 static void*
@@ -865,21 +864,10 @@ gcchild(void *p)
 	}
 
 	b = GCdied;
-//	if(0 > write(vm->cgc, &b, 1))
-//		fatal("gc sychronization failure");
-//	pthread_exit(0);
+	if(0 > chanwriteb(vm->cgc, &b))
+		fatal("gc sychronization failure");
+	threadexit(0);
 	return 0;
-}
-
-static void
-newchan(int *left, int *right)
-{
-	int fd[2];
-
-//	if(0 > socketpair(PF_UNIX, SOCK_STREAM, 0, fd))
-//		fatal("cannot allocate channel");
-	*left = fd[0];
-	*right = fd[1];
 }
 
 static void
@@ -887,8 +875,9 @@ concurrentgc(VM *vm)
 {
 	newchan(&vm->cm, &vm->cgc);
 	vm->gcpause = 0;
-//	if(0 > pthread_create(&vm->t, 0, gcchild, vm))
-//		fatal("pthread create failed");
+	vm->t = newthread(gcchild, vm);
+	if(vm->t == 0)
+		fatal("newthread failed");
 }
 
 static void
@@ -2935,6 +2924,7 @@ vmerr(VM *vm, char *fmt, ...)
 	va_start(args, fmt);
 	vmsg(fmt, args);
 	va_end(args);
+	xprintf("\n");
 	fvmbacktrace(0, vm);
 	nexterror(vm);
 }
@@ -5199,6 +5189,12 @@ vmreset(VM *vm)
 	vm->cl = mkvalcl(panicthunk());
 }
 
+Fd*
+vmstdout(VM *vm)
+{
+	return vm->stdout;
+}
+
 Val
 dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
@@ -5802,13 +5798,6 @@ ismapped(VM *vm, Cval *addr, Cval *len)
 	return r != 0;
 }
 
-typedef struct Fmt Fmt;
-struct Fmt {
-	char *start, *to, *stop;
-	int (*flush)(Fmt*);
-	void *farg;
-};
-
 static int
 fmtputc(Fmt *f, char ch)
 {
@@ -6088,7 +6077,7 @@ fmtenconst(Fmt *f, Cval *cv)
 	return fmticval(f, 'd', cv);
 }
 
-static void
+void
 dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	static char buf[3+Maxprintint];
@@ -9164,10 +9153,7 @@ mktopenv()
 	FN(vecset);
 	FN(vector);
 
-//	fnfs(env);
-//	fnio(env);
-//	fnnet(env);
-//	fnsys(env);
+	fns(env);
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();

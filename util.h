@@ -35,4 +35,14 @@ int xisgraph(int c);
 int xisspace(int c);
 void xabort(void) NORETURN;
 
+typedef unsigned long Thread;
+void		chanclose(int c);
+int		chanreadb(int c, char *b);
+int		chanwriteb(int c, char *b);
+void		newchan(int *left, int *right);
+Thread		newthread(void* (*fn)(void*), void *arg);
+void		threadexit(void *vp);
+void		threadwait(Thread t);
+
+
 #endif /* _BISONFLAW_UTIL_H_ */

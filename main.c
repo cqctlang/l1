@@ -127,7 +127,7 @@ main(int argc, char *argv[])
 			inbuf = readfile(filename);
 		if(inbuf == 0)
 			continue;
-		e = cqctparsestr(inbuf);
+		e = cqctparsestr(filename, inbuf);
 		free(inbuf);
 		if(e == 0)
 			continue;

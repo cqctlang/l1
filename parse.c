@@ -1475,9 +1475,9 @@ cqctparsefile(char *filename)
 }
 
 Expr*
-cqctparsestr(char *str)
+cqctparsestr(char *filename, char *str)
 {
-	return doparse(stdinname, str);
+	return doparse(filename ? filename : stdinname, str);
 }
 
 Closure*

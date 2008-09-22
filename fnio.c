@@ -47,14 +47,14 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argv[0]->qkind != Qstr)
 		vmerr(vm, "operand 1 to printf must be a format string");
 	fmts = valstr(argv[0]);
-	dofdprint(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
+	dofdprint(vm, vmstdout(vm), fmts->s, fmts->len, argc-1, argv+1);
 }
 
 static void
 l1_print(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	static char *fmt = "%a\n";
-	dofdprint(vm, vm->stdout, fmt, strlen(fmt), argc, argv);
+	dofdprint(vm, vmstdout(vm), fmt, strlen(fmt), argc, argv);
 }
 
 static void

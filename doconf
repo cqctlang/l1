@@ -1,6 +1,3 @@
-#!/bin/sh
-
-awk -v "CONF="$CONF '
 BEGIN{
 }
 
@@ -25,17 +22,17 @@ collect && section ~ "other" {
 END{
 	file = "fns." CONF ".c"
 	printf "#include \"sys.h\"\n" > file
+	printf "#include \"util.h\"\n\n" >> file
 	printf "#include \"syscqct.h\"\n\n" >> file
 
 	printf "void\n" >> file
-	printf "fns()\n" >> file
+	printf "fns(Env *env)\n" >> file
 	printf "{\n" >> file
 	for(i = 0; i < nfn; i++)
-		printf("\t%s();\n", fn[i])  >> file
+		printf("\t%s(env);\n", fn[i])  >> file
 	printf "}\n" >> file
 	for(i = 0; i < nfn; i++)
 		printf("%s.c ", fn[i]);
 	for(i = 0; i < nother; i++)
 		printf("%s.c ", other[i]);
 }
-'

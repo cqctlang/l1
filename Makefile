@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -g
 
-CONF = port
+CONF = unix
 
 libl1.so: CFLAGS += -fPIC -nostdlib
 
@@ -20,14 +20,9 @@ L1C =\
 	cutil.c\
 	compile.c\
 	vm.c\
+	fns.$(CONF).c
 
-L1C += $(shell cat conf.$(CONF))
-
-#L1C +=\
-#	fnfs.c\
-#	fnio.c\
-#	fnnet.c\
-#	fnsys.c
+L1C += $(shell awk -v 'CONF='$(CONF) -f ./doconf < conf.$(CONF))
 
 L1O = $(L1C:.c=.o)
 

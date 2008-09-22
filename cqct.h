@@ -53,7 +53,7 @@ void		cqctgcunprotect(VM *vm, Val v);
 Env*		cqctinit();
 VM*		cqctmkvm(Env *env, int gcthread);
 Expr*		cqctparsefile(char *filename);
-Expr*		cqctparsestr(char *str);
+Expr*		cqctparsestr(char *filename, char *str);
 void		cqctprintval(VM *vm, Val v);
 char*		cqctsprintval(VM *vm, Val v);
 int8_t		cqctval2int8(Val);

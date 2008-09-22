@@ -345,6 +345,7 @@ struct List {
 struct As {
 	Head hd;
 	Closure *dispatch;
+	Str *name;
 };
 
 typedef
@@ -362,16 +363,10 @@ struct Ns {
 	Closure *looksym;
 	Closure *looktype;
 	Closure *lookaddr;
+	Str *name;
 
 	/* cached base type definition */
 	Xtypename *base[Vnallbase];
-
-	/* data for instances created by @names */
-	/* FIXME: push into closure defining interface */
-	Tab *type;
-	Tab *sym;
-	Nssym *symvec;		/* points to elements of sym; no mark needed */
-	Imm nsym;
 };
 
 struct Dom {
@@ -440,6 +435,13 @@ struct Xtypename {
 	Vec *field;		/* struct, union */
 	Vec *param;		/* func */
 	Vec *konst;		/* enum (constants) */
+};
+
+typedef struct Fmt Fmt;
+struct Fmt {
+	char *start, *to, *stop;
+	int (*flush)(Fmt*);
+	void *farg;
 };
 
 enum {
@@ -699,7 +701,10 @@ Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
 
 /* vm.c */
 void		builtinfn(Env *env, char *name, Closure *cl);
-void		checkarg(VM *vm, char *f, Val *argv, unsigned arg, Qkind qkind);
+void		checkarg(VM *vm, char *f, Val *argv,
+			 unsigned arg, Qkind qkind);
+void		dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen,
+		      Imm argc, Val *argv);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 Val*		envgetbind(Env *env, char *id);
 void		freeenv(Env *env);
@@ -747,6 +752,7 @@ char*		str2cstr(Str *str);
 Imm		valimm(Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 void		vmreset(VM *vm);
+Fd*		vmstdout(VM *vm);
 #define valas(v)	((As*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valcl(v)	((Closure*)(v))
@@ -763,6 +769,8 @@ void		vmreset(VM *vm);
 #define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 #define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
+
+extern		void fns(Env*);
 
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
