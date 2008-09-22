@@ -1,7 +1,10 @@
 CC = gcc
+LD = ld
 CFLAGS = -Wall -g
 
-libl1.so: CFLAGS += -fPIC
+CONF = unix
+
+libl1.so: CFLAGS += -fPIC -nostdlib
 
 TARG = l1
 all: $(TARG)
@@ -17,7 +20,11 @@ L1C =\
 	compile0.c\
 	cutil.c\
 	compile.c\
-	vm.c
+	vm.c\
+	fns.$(CONF).c\
+
+L1C += $(shell awk -v 'CONF='$(CONF) -f ./mkconf < conf.$(CONF))
+
 L1O = $(L1C:.c=.o)
 
 c.tab.c: c.y $(HDR)
@@ -25,18 +32,28 @@ c.tab.c: c.y $(HDR)
 
 c.tab.h: c.tab.c
 
+# -s drops fwrite dependency
 lex.yy.c: c.l $(HDR)
-	flex c.l
+	flex -f -s c.l
 
-l1: c.tab.o lex.yy.o main.o $(L1O)
-	$(CC) -o $@ $^ -lfl -lpthread
+l1: l1.o main.o
+	$(CC) -o $@ $^ -lpthread
+
+l1.o: c.tab.o lex.yy.o $(L1O)
+	$(LD) -r -o $@ $^
 
 libl1.so: c.tab.o lex.yy.o $(L1O)
-	$(CC) -shared -Xlinker -Bsymbolic -o $@ $^ -lfl -lpthread
+	$(CC) -nostdlib -shared -Xlinker -Bsymbolic -o $@ $^
+
+lo.o: lo.c
+	$(CC) -g -Wall -fPIC -c $^
+
+lo: lo.o libl1.so
+	$(CC) -g -o lo lo.o -L. -ll1
 
 -include depend
 depend: Makefile
 	gcc $(INC) -MM $(L1C) > depend
 
 clean:
-	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o $(L1O) $(TARG) libl1.so lo depend 
+	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o lo lo.o l1.o fns.$(CONF).c $(L1O) $(TARG) libl1.so depend 

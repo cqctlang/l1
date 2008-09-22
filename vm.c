@@ -5,8 +5,6 @@
 #define HEAPPROF 0
 #define HEAPDEBUG 0
 
-static void printval(VM *vm, Val val);
-
 static char *qname[Qnkind] = {
 	[Qundef]=	"undefined",
 	[Qnil]=		"nil",
@@ -27,29 +25,6 @@ static char *qname[Qnkind] = {
 	[Qvec]=		"vector",
 	[Qxtn]=		"ctype",
 };
-
-typedef
-enum Rkind {
-	/* type representations */ 
-	Rundef,
-	Ru08le,
-	Ru16le,
-	Ru32le,
-	Ru64le,
-	Rs08le,
-	Rs16le,
-	Rs32le,
-	Rs64le,
-	Ru08be,
-	Ru16be,
-	Ru32be,
-	Ru64be,
-	Rs08be,
-	Rs16be,
-	Rs32be,
-	Rs64be,
-	Rnrep, 
-} Rkind;
 
 static Imm repsize[Rnrep] = {
 	[Ru08le]=	1,
@@ -139,178 +114,8 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-typedef struct As As;
-typedef struct Box Box;
-typedef struct Cval Cval;
-typedef struct Dom Dom;
-typedef struct Fd Fd;
-typedef struct List List;
-typedef struct Ns Ns;
-typedef struct Pair Pair;
-typedef struct Range Range;
-typedef struct Str Str;
-typedef struct Tab Tab;
-typedef struct Vec Vec;
-typedef struct Xtypename Xtypename;
-
 struct Env {
 	HT *ht;
-};
-
-typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
-typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
-
-struct Cval {
-	Head hd;
-	Dom *dom;
-	Xtypename *type;
-	Imm val;
-};
-
-struct Closure {
-	Head hd;
-	Code *code;
-	unsigned long entry;
-	unsigned dlen;
-	Val *display;
-	char *id;
-	Imm fp;			/* of continuation, always >0 */
-	Cfn *cfn;
-	Ccl *ccl;
-};
-
-struct Box {
-	Head hd;
-	Val v;
-};
-
-typedef struct Tabidx Tabidx;
-struct Tabidx {
-	u32 idx;
-	Tabidx *link;
-};
-
-typedef
-struct Tabx {
-	u32 nxt, lim;
-	u32 sz;
-	Val *key;
-	Val *val;
-	Tabidx **idx;
-} Tabx;
-
-struct Tab {
-	Head hd;
-	u32 cnt;		/* key/val pairs stored */
-	Tabx *x;		/* current storage, atomically swappable */
-};
-
-typedef
-struct Listx {
-	/* invariants:
-	 *  if(hd == tl)
-	 *  	list is empty.
-	 *  else
-	 *  	tl>hd and list has tl-hd elements,
-	 *      hd points to first element in list, and
-	 *	tl-1 points to last.
-	 */
-	u32 hd, tl, sz;
-	Val *val;		/* atomically swappable */
-	Val *oval;		/* buffer for gc-safe sliding */
-} Listx;
-
-struct List {
-	Head hd;
-	Listx *x;		/* current storage, atomically swappable */
-};
-
-struct As {
-	Head hd;
-	Closure *dispatch;
-	Str *name;
-};
-
-struct Ns {
-	Head hd;
-
-	Closure *enumsym;
-	Closure *enumtype;
-	Closure *looksym;
-	Closure *looktype;
-	Closure *lookaddr;
-	Str *name;
-
-	/* cached base type definition */
-	Xtypename *base[Vnallbase];
-};
-
-struct Dom {
-	Head hd;
-	As *as;
-	Ns *ns;
-	Str *name;
-};
-
-struct Fd {
-	Head hd;
-	void (*free)(Fd *fd);
-	int fd;
-	Str *name;
-	enum Fflag {
-		Fclosed =	1,
-		Fread =		Fclosed<<1,
-		Fwrite =	Fread<<1,
-	} flags;
-};
-
-struct Pair {
-	Head hd;
-	Val car;
-	Val cdr;
-};
-
-struct Range {
-	Head hd;
-	Cval *beg;
-	Cval *len;
-};
-
-typedef
-enum Skind {
-	Sperm,			/* don't free */
-	Smalloc,		/* free with free() */
-	Smmap,			/* free with munmap() */
-} Skind;
-
-struct Str {
-	Head hd;
-	Skind skind;
-	u64 len;
-	size_t mlen;		/* Smmap size */
-	char *s;
-};
-
-struct Vec {
-	Head hd;
-	Imm len;
-	Val *vec;
-};
-
-struct Xtypename {
-	Head hd;
-	Tkind tkind;		/* = Tbase, Tstruct, ... */
-	Cbase basename;		/* base (FIXME: rename cbase) */
-	Rkind rep;		/* base, ptr, enum; = Ru08le ... */
-	Str *tid;		/* typedef */
-	Str *tag;		/* struct, union, enum */
-	Val cnt;		/* arr */
-	Val sz;			/* struct, union, bitfield */
-	Val bit0;		/* bitfield */
-	Xtypename *link;	/* ptr, arr, func, bitfield, enum, const */
-	Vec *field;		/* struct, union */
-	Vec *param;		/* func */
-	Vec *konst;		/* enum (constants) */
 };
 
 typedef
@@ -336,16 +141,17 @@ struct VM {
 	Val ac, cl;
 	unsigned char gcpause, gcrun;
 	int cm, cgc;
-	pthread_t t;
+	Thread t;		/* gc thread id */
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
+	void (*gcpoll)(VM*);
+	void (*gckill)(VM*);
 };
 
 static void vmsetcl(VM *vm, Val val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
 static void* gcprotect(VM *vm, void *hd);
-static void vmerr(VM *vm, char *fmt, ...) NORETURN;
 static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn();
@@ -355,7 +161,6 @@ static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
 static Xtypename* mkundefxtn(Xtypename *t);
 static Str* fmtxtn(Xtypename *xtn);
-static void checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind);
 static int isstrcval(Cval *cv);
 static Str* stringof(VM *vm, Cval *cv);
 static Val vecref(Vec *vec, Imm idx);
@@ -507,21 +312,6 @@ valboxed(Val v)
 	return b->v;
 }
 
-#define valas(v)	((As*)(v))
-#define valcval(v)	((Cval*)(v))
-#define valcl(v)	((Closure*)(v))
-#define valdom(v)	((Dom*)(v))
-#define valfd(v)	((Fd*)(v))
-#define vallist(v)	((List*)(v))
-#define valns(v)	((Ns*)(v))
-#define valpair(v)	((Pair*)(v))
-#define valrange(v)	((Range*)(v))
-#define valstr(v)	((Str*)(v))
-#define valtab(v)	((Tab*)(v))
-#define valvec(v)	((Vec*)(v))
-#define valxtn(v)	((Xtypename*)(v))
-#define valboxedcval(b)	((Cval*)((Box*)(b))->v)
-
 static void*
 read_and_clear(void *pp)
 {
@@ -562,17 +352,17 @@ heapstat(char *s)
 	unsigned i;
 	Heap *hp;
 
-	printf("\n                              %s (epoch %lu)\n", s, gcepoch);
-	printf("%-10s %10s %10s %10s\n",
-	       "heap", "nalloc", "nfree", "nha");
-	printf("--------------------------------"
-	       "---------------------------------\n");
+	xprintf("\n                             %s (epoch %lu)\n", s, gcepoch);
+	xprintf("%-10s %10s %10s %10s\n",
+		"heap", "nalloc", "nfree", "nha");
+	xprintf("--------------------------------"
+		"---------------------------------\n");
 	for(i = 0; i < Qnkind; i++){
 		hp = &heap[i];
 		if(hp->id)
-			printf("%-10s %10lu %10lu %10lu\n",
-			       hp->id,
-			       hp->nalloc, hp->nfree, hp->nha);
+			xprintf("%-10s %10lu %10lu %10lu\n",
+				hp->id,
+				hp->nalloc, hp->nfree, hp->nha);
 	}
 }
 
@@ -632,7 +422,7 @@ retry:
 	o->color = GCCOLOR(gcepoch);
 	if(HEAPPROF) heap->nha++;
 	if(HEAPDEBUG)
-		printf("alloc %p (%s)\n", o, heap->id);
+		xprintf("alloc %p (%s)\n", o, heap->id);
 
 	// FIXME: only object types that do not initialize all fields
 	// (e.g., Xtypename) need to be cleared.  Perhaps add a bit
@@ -653,7 +443,7 @@ sweepheap(Heap *heap, unsigned color)
 			if(heap->free1)
 				heap->free1(p);
 			if(HEAPDEBUG)
-				printf("collect %s %p\n", heap->id, p); 
+				xprintf("collect %s %p\n", heap->id, p); 
 			if(p->state != 0 || p->inrootset)
 				fatal("sweep heap (%s) %p bad state %d",
 				      heap->id, p, p->state);
@@ -799,26 +589,9 @@ addroot(Rootset *rs, Head *h)
 		return;
 
 	if(HEAPDEBUG)
-		printf("addroot %s %p %d %d\n",
-		       rs == &roots ? "roots" : "stores",
-		       h, h->inrootset, h->state);
-
-	if(h->inrootset)
-		return;
-	doaddroot(rs, h);
-}
-
-static void
-addrootstk(Rootset *rs, Head *h)
-{
-	if(h == 0)
-		return;
-
-	if(HEAPDEBUG)
-		printf("addroot %s %p %d %d\n",
-		       rs == &roots ? "roots" : "stores",
-		       h, h->inrootset, h->state);
-
+		xprintf("addroot %s %p %d %d\n",
+			rs == &roots ? "roots" : "stores",
+			h, h->inrootset, h->state);
 	if(h->color == GCfree)
 		/* stale value on stack already collected */
 		return;
@@ -845,7 +618,7 @@ removeroot(Rootset *rs)
 	rs->this = r->link;
 	h = r->hd;
 	if(HEAPDEBUG)
-		printf("rmroot %p %d %d\n", h, h->inrootset, h->state);
+		xprintf("rmroot %p %d %d\n", h, h->inrootset, h->state);
 	h->inrootset = 0;
 	x = h->state;
 	if(x > 2 || x <= 0)
@@ -925,7 +698,7 @@ rootset(VM *vm)
 		return;
 
 	for(m = vm->sp; m < Maxstk; m++)
-		addrootstk(&roots, valhead(vm->stack[m]));
+		addroot(&roots, valhead(vm->stack[m]));
 	hforeach(vm->top->ht, bindingroot, 0);
 	addroot(&roots, valhead(vm->ac));
 	addroot(&roots, valhead(vm->cl));
@@ -977,7 +750,7 @@ waitmutator(VM *vm)
 	char b;
 	
 	vm->gcpause = 1;
-	if(0 > read(vm->cgc, &b, 1))
+	if(0 > chanreadb(vm->cgc, &b))
 		fatal("gc synchronization failure"); 
 	if(b == GCdie)
 		return 1;
@@ -993,7 +766,7 @@ resumemutator(VM *vm)
 
 	vm->gcpause = 0;
 	b = GCresume;
-	if(0 > write(vm->cgc, &b, 1))
+	if(0 > chanwriteb(vm->cgc, &b))
 		fatal("gc synchronization failure");
 }
 
@@ -1002,13 +775,13 @@ waitgcrun(VM *vm)
 {
 	char b;
 	
-	if(0 > read(vm->cgc, &b, 1))
+	if(0 > chanreadb(vm->cgc, &b))
 		fatal("gc synchronization failure"); 
 	if(b == GCdie){
 		b = GCdied;
-		if(0 > write(vm->cgc, &b, 1))
+		if(0 > chanwriteb(vm->cgc, &b))
 			fatal("gc sychronization failure");
-		pthread_exit(0);
+		threadexit(0);
 	}
 	if(b != GCrun)
 		fatal("gc protocol botch");
@@ -1019,18 +792,17 @@ waitgcrun(VM *vm)
 	vm->gcrun = 1;
 	b = GCrunning;
 	if(HEAPPROF) heapstat("start");
-	if(0 > write(vm->cgc, &b, 1))
+	if(0 > chanwriteb(vm->cgc, &b))
 		fatal("gc synchronization failure");
-
 }
 
 static void
 gcsync(int fd, char t, char r)
 {
 	char b;
-	if(0 > write(fd, &t, 1))
+	if(0 > chanwriteb(fd, &t))
 		fatal("gc synchronization failure");
-	if(0 > read(fd, &b, 1))
+	if(0 > chanreadb(fd, &b))
 		fatal("gc synchronization failure");
 	if(b != r)
 		fatal("gc protocol botch");
@@ -1047,7 +819,7 @@ needsgc()
 }
 
 static void
-gcpoll(VM *vm)
+concurrentgcpoll(VM *vm)
 {
 	if(vm->gcpause)
 		gcsync(vm->cm, GCpaused, GCresume);
@@ -1058,24 +830,12 @@ gcpoll(VM *vm)
 }
 
 static void
-gckill(VM *vm)
+concurrentgckill(VM *vm)
 {
 	gcsync(vm->cm, GCdie, GCdied);
-	close(vm->cm);
-	close(vm->cgc);
-	pthread_join(vm->t, 0);
-}
-
-static void
-gc(VM *vm)
-{
-	gcreset();
-	rootset(vm);
-	gcepoch++;
-	mark(GCCOLOR(gcepoch));
-	sweep(GCCOLOR(gcepoch-2));
-	while(!rootsetempty(&stores))
-		mark(GCCOLOR(gcepoch));
+	chanclose(vm->cm);
+	chanclose(vm->cgc);
+	threadwait(vm->t);
 }
 
 static void*
@@ -1104,21 +864,10 @@ gcchild(void *p)
 	}
 
 	b = GCdied;
-	if(0 > write(vm->cgc, &b, 1))
+	if(0 > chanwriteb(vm->cgc, &b))
 		fatal("gc sychronization failure");
-	pthread_exit(0);
+	threadexit(0);
 	return 0;
-}
-
-static void
-newchan(int *left, int *right)
-{
-	int fd[2];
-
-	if(0 > socketpair(PF_UNIX, SOCK_STREAM, 0, fd))
-		fatal("cannot allocate channel");
-	*left = fd[0];
-	*right = fd[1];
 }
 
 static void
@@ -1126,9 +875,33 @@ concurrentgc(VM *vm)
 {
 	newchan(&vm->cm, &vm->cgc);
 	vm->gcpause = 0;
+	vm->t = newthread(gcchild, vm);
+	if(vm->t == 0)
+		fatal("newthread failed");
+}
 
-	if(0 > pthread_create(&vm->t, 0, gcchild, vm))
-		fatal("pthread create failed");
+static void
+gc(VM *vm)
+{
+	gcreset();
+	rootset(vm);
+	gcepoch++;
+	mark(GCCOLOR(gcepoch));
+	sweep(GCCOLOR(gcepoch-2));
+	while(!rootsetempty(&stores))
+		mark(GCCOLOR(gcepoch));
+}
+
+static void
+gcpoll(VM *vm)
+{
+	if(needsgc())
+		gc(vm);
+}
+
+static void
+gckill(VM *vm)
+{
 }
 
 static Imm
@@ -1311,28 +1084,22 @@ freecl(Head *hd)
 }
 
 static void
-freefdclose(Fd *fd)
-{
-	close(fd->fd);
-}
-
-static void
 freefd(Head *hd)
 {
 	Fd *fd;
 	fd = (Fd*)hd;
-	if(fd->free)
-		fd->free(fd);
+	if(fd->close && (fd->flags&Fclosed) == 0)
+		fd->close(fd);
 }
 
-static Fd*
-mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd))
+Fd*
+mkfd(Str *name, int xfd, int flags, void (*close)(Fd *fd))
 {
 	Fd *fd;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
 	fd->fd = xfd;
-	fd->free = free;
+	fd->close = close;
 	fd->flags = flags;
 	return fd;
 }
@@ -1611,7 +1378,7 @@ eqxtnv(Val a, Val b)
 	return eqxtn(valxtn(a), valxtn(b));
 }
 
-static Str*
+Str*
 mkstr0(char *s)
 {
 	Str *str;
@@ -1623,7 +1390,7 @@ mkstr0(char *s)
 	return str;
 }
 
-static Str*
+Str*
 mkstr(char *s, Imm len)
 {
 	Str *str;
@@ -1635,7 +1402,7 @@ mkstr(char *s, Imm len)
 	return str;
 }
 
-static Str*
+Str*
 mkstrk(char *s, Imm len, Skind skind)
 {
 	Str *str;
@@ -1648,7 +1415,7 @@ mkstrk(char *s, Imm len, Skind skind)
 	return str;
 }
 
-static Str*
+Str*
 mkstrn(VM *vm, Imm len)
 {
 	Str *str;
@@ -1669,13 +1436,13 @@ mkstrn(VM *vm, Imm len)
 	return str;
 }
 
-static Str*
+Str*
 mkstrlits(Lits *lits)
 {
 	return mkstr(lits->s, lits->len);
 }
 
-static char*
+char*
 str2cstr(Str *str)
 {
 	char *s;
@@ -2858,7 +2625,7 @@ freeenv(Env *env)
 	free(env);
 }
 
-static Cval*
+Cval*
 mkcval(Dom *dom, Xtypename *type, Imm val)
 {
 	Cval *cv;
@@ -2869,21 +2636,27 @@ mkcval(Dom *dom, Xtypename *type, Imm val)
 	return cv;
 }
 
-static Val
+Val
 mkvalcval(Dom *dom, Xtypename *t, Imm imm)
 {
 	return (Val)mkcval(dom, t, imm);
 }
 
+Val
+mkvallitcval(VM *vm, Cbase base, Imm imm)
+{
+	return mkvalcval(vm->litdom, vm->litbase[base], imm);
+}
+
 /* the difference between mkvalimm and mkvalcval is usage:
    the former is for VM literals, the latter for other values */
-static Val
+Val
 mkvalimm(Dom *dom, Xtypename *t, Imm imm)
 {
 	return mkvalcval(dom, t, imm);
 }
 
-static Val
+Val
 mkvalcval2(Cval *cv)
 {
 	return (Val)cv;
@@ -2895,13 +2668,13 @@ mklitcval(Cbase base, Imm val)
 	return mkvalcval(litdom, litbase[base], val);
 }
 
-static Val
+Val
 mkvalcl(Closure *cl)
 {
 	return (Val)cl;
 }
 
-static Val
+Val
 mkvalbox(Val boxed)
 {
 	Box *box;
@@ -2910,37 +2683,37 @@ mkvalbox(Val boxed)
 	return (Val)box;
 }
 
-static Val
+Val
 mkvalas(As *as)
 {
 	return (Val)as;
 }
 
-static Val
+Val
 mkvaldom(Dom *dom)
 {
 	return (Val)dom;
 }
 
-static Val
+Val
 mkvalfd(Fd *fd)
 {
 	return (Val)fd;
 }
 
-static Val
+Val
 mkvallist(List *lst)
 {
 	return (Val)lst;
 }
 
-static Val
+Val
 mkvalns(Ns *ns)
 {
 	return (Val)ns;
 }
 
-static Val
+Val
 mkvalpair(Val car, Val cdr)
 {
 	Pair *pair;
@@ -2950,25 +2723,25 @@ mkvalpair(Val car, Val cdr)
 	return (Val)pair;
 }
 
-static Val
+Val
 mkvalstr(Str *str)
 {
 	return (Val)str;
 }
 
-static Val
+Val
 mkvaltab(Tab *tab)
 {
 	return (Val)tab;
 }
 
-static Val
+Val
 mkvalvec(Vec *vec)
 {
 	return (Val)vec;
 }
 
-static Range*
+Range*
 mkrange(Cval *beg, Cval *len)
 {
 	Range *r;
@@ -2978,7 +2751,7 @@ mkrange(Cval *beg, Cval *len)
 	return r;
 }
 
-static Val
+Val
 mkvalrange(Cval *beg, Cval *len)
 {
 	Range *r;
@@ -2986,13 +2759,13 @@ mkvalrange(Cval *beg, Cval *len)
 	return (Val)r;
 }
 
-static Val
+Val
 mkvalrange2(Range *r)
 {
 	return (Val)r;
 }
 
-static Val
+Val
 mkvalxtn(Xtypename *xtn)
 {
 	return (Val)xtn;
@@ -3092,14 +2865,14 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 	
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
-		fprintf(out, "%20s\t(builtin %s)\n", cl->id,
+		xprintf("%20s\t(builtin %s)\n", cl->id,
 			cl->cfn ? "function" : "closure");
 		return;
 	}
 
 	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
-			fprintf(out, "%20s\t(%s:%u)\n", cl->id,
+			xprintf("%20s\t(%s:%u)\n", cl->id,
 				code->labels[pc]->src->filename,
 				code->labels[pc]->src->line);
 			return;
@@ -3108,7 +2881,7 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 			break;
 		pc--;
 	}
-	fprintf(out, "%20s\t(no source information)\n", cl->id);
+	xprintf("%20s\t(no source information)\n", cl->id);
 }
 
 static void
@@ -3122,11 +2895,11 @@ fvmbacktrace(FILE *out, VM *vm)
 	cl = vm->clx;
 	while(fp != 0){
 //		if(!strcmp(cl->id, "$halt"))
-//			fprintf(out, "\t-- vmcall --\n");
+//			xprintf("\t-- vmcall --\n");
 //		else
 //			printsrc(out, cl, pc);
 		if(strcmp(cl->id, "$halt")){
-//			fprintf(out, "fp=%05lld pc=%08lld ", fp, pc);
+//			xprintf("fp=%05lld pc=%08lld ", fp, pc);
 			printsrc(out, cl, pc);
 		}
 		narg = stkimm(vm->stack[fp]);
@@ -3140,23 +2913,19 @@ fvmbacktrace(FILE *out, VM *vm)
 static void
 vmbacktrace(VM *vm)
 {
-	fvmbacktrace(stderr, vm);
+	fvmbacktrace(0, vm);
 }
 
-static void
+void
 vmerr(VM *vm, char *fmt, ...)
 {
 	va_list args;
-	FILE *out = stdout;
-
+	xprintf("error: ");
 	va_start(args, fmt);
-	fprintf(out, "error: ");
-	vfprintf(out, fmt, args);
-	fprintf(out, "\n");
+	vmsg(fmt, args);
 	va_end(args);
-	fflush(out);
-
-	fvmbacktrace(out, vm);
+	xprintf("\n");
+	fvmbacktrace(0, vm);
 	nexterror(vm);
 }
 
@@ -4595,13 +4364,13 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      (int)cmd->len, cmd->s);
 }
 
-static As*
+As*
 mksas(Str *s)
 {
 	return mkas(mkccl("sasdispatch", sasdispatch, 1, mkvalstr(s)), 0);
 }
 
-static As*
+As*
 mkzas(VM *vm, Imm len)
 {
 	return mksas(mkstrn(vm, len));
@@ -5273,16 +5042,15 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	vec = tabenum(ctx.undef);
 	m = vec->len/2;
 	if(m > 0){
-		printf("warning: name space references undefined "
-		       "type%s:\n", m > 1 ? "s" : "");
+		xprintf("warning: name space references undefined "
+			"type%s:\n", m > 1 ? "s" : "");
 		while(m != 0){
 			m--;
 			vp = vecref(vec, m);
 			xtn = valxtn(vp);
 			as = fmtxtn(xtn);
-			printf("\t%.*s\n", (int)as->len, as->s);
+			xprintf("\t%.*s\n", (int)as->len, as->s);
 		}
-		fflush(stdout);
 	}
 
 	ns = mknstypesym(vm, ctx.type, ctx.sym, name);
@@ -5401,9 +5169,15 @@ gcprotect(VM *vm, void *obj)
 }
 
 void
-cqctgcprotect(VM *vm, void *obj)
+cqctgcprotect(VM *vm, Val v)
 {
-	gcprotect(vm, obj);
+	gcprotect(vm, v);
+}
+
+void
+cqctgcunprotect(VM *vm, Val v)
+{
+	gcunprotect(vm, v);
 }
 
 void
@@ -5417,6 +5191,12 @@ vmreset(VM *vm)
 	vm->sp = Maxstk;
 	vm->ac = Xundef;
 	vm->cl = mkvalcl(panicthunk());
+}
+
+Fd*
+vmstdout(VM *vm)
+{
+	return vm->stdout;
 }
 
 Val
@@ -5508,7 +5288,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	while(1){
 		i = &vm->ibuf[vm->pc++];
 		tick++;
-		gcpoll(vm);
 		goto *(i->go);
 		fatal("bug");
 	Inop:
@@ -5556,6 +5335,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			      vm->clx->id);
 		continue;
 	Icall:
+		vm->gcpoll(vm);
 		vm->cl = getvalrand(vm, &i->op1);
 		vmsetcl(vm, vm->cl);
 		vm->pc = vm->clx->entry;
@@ -5644,7 +5424,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	}
 }
 
-static void
+void
 builtinfn(Env *env, char *name, Closure *cl)
 {
 	Val val;
@@ -5684,7 +5464,7 @@ builtinfd(Env *env, char *name, Fd *fd)
 	envbind(env, name, val);
 }
 
-static void
+void
 checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 {
 	if(argv[arg]->qkind != qkind)
@@ -5861,65 +5641,6 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vulong], getpid());
-}
-
-static void
-l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Imm tod;
-	struct timeval tv;
-
-	gettimeofday(&tv, 0);
-	tod = tv.tv_sec;
-	tod *= 1000000;
-	tod += tv.tv_usec;
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vulong], tod);
-}
-
-static void
-l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-	Val arg0;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to randseed");
-	arg0 = argv[0];
-	if(arg0->qkind != Qcval)
-		vmerr(vm, "operand 1 to randseed must be an integer");
-
-	cv = valcval(arg0);
-	srand((unsigned int)cv->val);
-}
-
-static void
-l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-	Val arg0;
-	Imm r;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to rand");
-	arg0 = argv[0];
-	if(arg0->qkind != Qcval)
-		vmerr(vm, "operand 1 to randseed must be an integer");
-
-	cv = valcval(arg0);
-	if(cv->val > RAND_MAX)
-		vmerr(vm, "operand to rand exceeds RAND_MAX (%d)", RAND_MAX);
-	if(cv->val == 0)
-		vmerr(vm, "operand to rand must be positive");
-	
-	r = rand();
-	r %= cv->val;
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vulong], r);
-}
-
-static void
 l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
@@ -6080,13 +5801,6 @@ ismapped(VM *vm, Cval *addr, Cval *len)
 	return r != 0;
 }
 
-typedef struct Fmt Fmt;
-struct Fmt {
-	char *start, *to, *stop;
-	int (*flush)(Fmt*);
-	void *farg;
-};
-
 static int
 fmtputc(Fmt *f, char ch)
 {
@@ -6233,11 +5947,10 @@ fmtval(Fmt *f, Val val)
 		str = valstr(val);
 		return fmtputs(f, str->s, str->len);
 	default:
-		printf("<unprintable type %d>", val->qkind);
-		return -1;
+		snprintf(buf, sizeof(buf), "<unhandled type %d>", val->qkind);
+		return fmtputs0(f, buf);
 	}
 }
-
 
 static int
 fmticval(Fmt *f, unsigned char conv, Cval *cv)
@@ -6367,7 +6080,7 @@ fmtenconst(Fmt *f, Cval *cv)
 	return fmticval(f, 'd', cv);
 }
 
-static void
+void
 dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	static char buf[3+Maxprintint];
@@ -6407,7 +6120,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				goto badarg;
 			cv = valcval(vp);
 			c = cv->val;
-			if(isgraph(c) || isspace(c))
+			if(xisgraph(c) || xisspace(c))
 				snprintf(buf, sizeof(buf), "%c", c);
 			else
 				snprintf(buf, sizeof(buf), "\\%.3o", c);
@@ -6526,71 +6239,6 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	/* not reached */
 badarg:
 	vmerr(vm, "wrong type to %%%c conversion", ch);
-}
-
-static int
-fmtfdflush(Fmt *f)
-{
-	Fd *fd;
-	fd = (Fd*)f->farg;
-	if(fd->flags&Fclosed)
-		return -1;
-	if((fd->flags&Fwrite) == 0)
-		return -1;
-	if(0 > xwrite(fd->fd, f->start, f->to-f->start))
-		return -1;
-	f->to = f->start;
-	return 0;
-}
-
-static void
-dofdprint(VM *vm, Fd *fd, char *fmt, Imm fmtlen, Imm argc, Val *argv)
-{
-	Fmt f;
-	char buf[256];
-
-	f.farg = fd;
-	f.start = buf;
-	f.to = buf;
-	f.stop = buf+sizeof(buf);
-	f.flush = fmtfdflush;
-	dofmt(vm, &f, fmt, fmtlen, argc, argv);
-	fmtfdflush(&f);
-}
-
-static void
-l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *fmts;
-	if(argc < 1)
-		vmerr(vm, "wrong number of arguments to printf");
-	if(argv[0]->qkind != Qstr)
-		vmerr(vm, "operand 1 to printf must be a format string");
-	fmts = valstr(argv[0]);
-	dofdprint(vm, vm->stdout, fmts->s, fmts->len, argc-1, argv+1);
-}
-
-static void
-l1_print(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	static char *fmt = "%a\n";
-	dofdprint(vm, vm->stdout, fmt, strlen(fmt), argc, argv);
-}
-
-static void
-l1_fprintf(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *fmts;
-	if(argc < 2)
-		vmerr(vm, "wrong number of arguments to fprintf");
-	if(argv[0]->qkind != Qfd)
-		vmerr(vm, "operand 1 to fprintf must be a file descriptor");
-	if(argv[1]->qkind != Qstr)
-		vmerr(vm, "operand 2 to fprintf must be a format string");
-	fd = valfd(argv[0]);
-	fmts = valstr(argv[1]);
-	dofdprint(vm, fd, fmts->s, fmts->len, argc-2, argv+2);
 }
 
 static int
@@ -7863,84 +7511,6 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
-l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	int fd;
-	Str *names, *map;
-	char *p, *name;
-	struct stat st;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to mapfile");
-	checkarg(vm, "mapfile", argv, 0, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	fd = open(name, O_RDONLY);
-	free(name);
-	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	if(0 > fstat(fd, &st)){
-		close(fd);
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	}
-	p = mmap(0, st.st_size, PROT_READ|PROT_WRITE,
-		 MAP_NORESERVE|MAP_PRIVATE, fd, 0);
-	close(fd);
-	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	map = mkstrk(p, st.st_size, Smmap);
-	*rv = mkvalstr(map);
-}
-
-static void
-l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	int xfd;
-	Str *names;
-	char *name, *mode;
-	int oflags, flags;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to open");
-	checkarg(vm, "open", argv, 0, Qstr);
-	checkarg(vm, "open", argv, 1, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	mode = str2cstr(valstr(argv[1]));
-
-	flags = 0;
-	oflags = 0;
-	if(strchr(mode, 'r'))
-		flags |= Fread;
-	if(strchr(mode, 'w')){
-		flags |= Fwrite;
-		oflags |= O_CREAT;
-	}
-	if((flags&Fwrite) && !strchr(mode, 'a'))
-		oflags |= O_TRUNC;
-
-	if((flags&Fread) && (flags&Fwrite))
-		oflags |= O_RDWR;
-	else if(flags&Fread)
-		oflags |= O_RDONLY;
-	else if(flags&Fwrite)
-		oflags |= O_WRONLY;
-
-	xfd = open(name, oflags, 0777); /* ~umask */
-	free(name);
-	free(mode);
-	if(0 > xfd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
-		      strerror(errno));
-	fd = mkfd(names, xfd, flags, freefdclose);
-	*rv = mkvalfd(fd);
-}
-
-static void
 l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -7951,8 +7521,9 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		return;
+	if(fd->close)
+		fd->close(fd);
 	fd->flags |= Fclosed;
-	close(fd->fd);
 }
 
 static void
@@ -7960,181 +7531,10 @@ l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to close");
+		vmerr(vm, "wrong number of arguments to fdname");
 	checkarg(vm, "close", argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	*rv = mkvalstr(fd->name);
-}
-
-static void
-l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *s;
-	char *buf;
-	Cval *n;
-	Imm r;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to read");
-	checkarg(vm, "read", argv, 0, Qfd);
-	checkarg(vm, "read", argv, 1, Qcval);
-	fd = valfd(argv[0]);
-	if(fd->flags&Fclosed)
-		vmerr(vm, "attempt to read from closed file descriptor");
-	n = valcval(argv[1]);
-	buf = xmalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
-	r = xread(fd->fd, buf, n->val);
-	if(r == (Imm)-1)
-		vmerr(vm, "read error: %s", strerror(errno));
-	if(n->val > 0 && r == 0)
-		return;		/* nil */
-	s = mkstrk(buf, r, Smalloc);
-	*rv = mkvalstr(s);
-}
-
-static void
-l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *s;
-	int r;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to write");
-	checkarg(vm, "write", argv, 0, Qfd);
-	checkarg(vm, "write", argv, 1, Qstr);
-	fd = valfd(argv[0]);
-	if(fd->flags&Fclosed)
-		vmerr(vm, "attempt to write to closed file descriptor");
-	s = valstr(argv[1]);
-	r = xwrite(fd->fd, s->s, s->len);
-	if(r == -1)
-		vmerr(vm, "write error: %s", strerror(errno));
-	/* return nil */
-}
-
-static void
-l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *names;
-	char *name;
-	int r;
-	
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to mkdir");
-	checkarg(vm, "mkdir", argv, 0, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	r = mkdir(name, 0777);	/* ~umask */
-	free(name);
-	if(0 > r)
-		vmerr(vm, "mkdir: %s", strerror(errno));
-	/* return nil */
-}
-       
-static void
-l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *names;
-	char *name;
-	int r;
-	
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to unlink");
-	checkarg(vm, "unlink", argv, 0, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	r = unlink(name);
-	free(name);
-	if(0 > r)
-		vmerr(vm, "unlink: %s", strerror(errno));
-	/* return nil */
-}
-
-static void
-l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *names;
-	char *name;
-	int r;
-	
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to rmdir");
-	checkarg(vm, "rmdir", argv, 0, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	r = rmdir(name);
-	free(name);
-	if(0 > r)
-		vmerr(vm, "rmdir: %s", strerror(errno));
-	/* return nil */
-}
-
-static void
-l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	DIR *dir;
-	Str *names;
-	char *name;
-	u32 ndir, lim;
-	char *buf;
-	struct dirent *p, *d;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to readdir");
-	checkarg(vm, "readdir", argv, 0, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	dir = opendir(name);
-	free(name);
-	if(dir == NULL)
-		vmerr(vm, "opendir: %s", strerror(errno));
-
-	lim = 128;
-	buf = xmalloc(lim*sizeof(struct dirent));
-	ndir = 0;
-	p = (struct dirent*)buf;
-	while((d = readdir(dir))){
-		if(ndir >= lim){
-			buf = xrealloc(buf, lim*sizeof(struct dirent),
-				       2*lim*sizeof(struct dirent));
-			lim *= 2;
-			p = (struct dirent*)buf+ndir;
-		}
-		memcpy(p, d, d->d_reclen);
-		p++;
-		ndir++;
-	}
-	closedir(dir);
-	*rv = mkvalas(mksas(mkstrk(buf, ndir*sizeof(struct dirent), Smalloc)));
-}
-
-static void
-l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *str;
-	char *s;
-	int xfd;
-	struct sockaddr_in saddr;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to opentcp");
-	checkarg(vm, "opentcp", argv, 0, Qstr);
-	str = valstr(argv[0]);
-	s = str2cstr(str);
-	if(0 > parseip(s, &saddr))
-		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
-	free(s);
-	xfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(0 > xfd)
-		vmerr(vm, "opentcp: %s", strerror(errno));
-	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
-		vmerr(vm, "opentcp: %s", strerror(errno));
-	nodelay(xfd);
-	fd = mkfd(str, xfd, Fread|Fwrite, freefdclose);
-	*rv = mkvalfd(fd);
 }
 
 static void
@@ -9170,21 +8570,17 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 }
 
-static void
-printval(VM *vm, Val val)
+char*
+cqctsprintval(VM *vm, Val v)
 {
 	Val argv[2], rv;
+
 	Str *s;
 	s = mkstrk("%a", 2, Sperm);
 	argv[0] = mkvalstr(s);
-	argv[1] = val;
-	l1_printf(vm, 2, argv, &rv);
-}
-
-void
-cqctprintval(VM *vm, Val v)
-{
-	printval(vm, v);
+	argv[1] = v;
+	l1_sprintfa(vm, 2, argv, &rv);
+	return str2cstr(valstr(rv));
 }
 
 typedef
@@ -9563,7 +8959,7 @@ mksysdom(VM *vm)
 	char *rootname;
 
 	rootname = myroot();
-//	printf("host name space: %s\n", rootname);
+//	xprintf("host name space: %s\n", rootname);
 	if(!envlookup(vm->top, rootname, &valv))
 		vmerr(vm, "undefined name space: %s", rootname);
 	root = valns(valv);
@@ -9611,8 +9007,6 @@ mklitdom()
 
 static VM *vms[Maxvms];
 
-#define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
-
 Env*
 mktopenv()
 {
@@ -9624,7 +9018,6 @@ mktopenv()
 	builtinfn(env, "halt", haltthunk());
 	builtinfn(env, "callcc", callcc());
 
-	FN(_readdir);
 	FN(append);
 	FN(apply);
 	FN(arraynelm);
@@ -9652,11 +9045,8 @@ mktopenv()
 	FN(fields);
 	FN(fieldtype);
 	FN(foreach);
-	FN(fprintf);
 	FN(gc);
 	FN(getbytes);
-	FN(getpid);
-	FN(gettimeofday);
 	FN(head);
 	FN(isarray);
 	FN(isas);
@@ -9696,7 +9086,6 @@ mktopenv()
 	FN(listset);
 	FN(lookfield);
 	FN(looktype);
-	FN(mapfile);
 	FN(mkas);
 	FN(mkctype_array);
 	FN(mkctype_bitfield);
@@ -9721,7 +9110,6 @@ mktopenv()
 	FN(mkctype_uvlong);
 	FN(mkctype_vlong);
 	FN(mkctype_void);
-	FN(mkdir);
 	FN(mkdom);
 	FN(mkfield);
 	FN(mknas);
@@ -9743,24 +9131,16 @@ mktopenv()
 	FN(nslooktype);
 	FN(nsptr);
 	FN(null);
-	FN(open);
-	FN(opentcp);
 	FN(paramid);
 	FN(params);
 	FN(paramtype);
 	FN(pop);
-	FN(print);		/* FIXME: remove: held for test suite */
-	FN(printf);
 	FN(push);
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);
-	FN(rand);
-	FN(randseed);
-	FN(read);
 	FN(rettype);
 	FN(reverse);
-	FN(rmdir);
 	FN(sort);
 	FN(sprintfa);
 	FN(stringof);
@@ -9784,12 +9164,12 @@ mktopenv()
 	FN(tail);
 	FN(typedefid);
 	FN(typedeftype);
-	FN(unlink);
 	FN(veclen);
 	FN(vecref);
 	FN(vecset);
 	FN(vector);
-	FN(write);
+
+	fns(env);
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();
@@ -9822,7 +9202,7 @@ mktopenv()
 }
 
 VM*
-cqctmkvm(Env *env)
+cqctmkvm(Env *env, int gcthread)
 {
 	VM *vm, **vmp;
 	Val val;
@@ -9855,7 +9235,14 @@ cqctmkvm(Env *env)
 	*vmp = vm;
 
 	vmreset(vm);
-	concurrentgc(vm);
+	if(gcthread){
+		vm->gcpoll = concurrentgcpoll;
+		vm->gckill = concurrentgckill;
+		concurrentgc(vm);
+	}else{
+		vm->gcpoll = gcpoll;
+		vm->gckill = gckill;
+	}
 	gcprotpush(vm);
 	
 	/* vm is now callable */
@@ -9873,7 +9260,7 @@ cqctfreevm(VM *vm)
 	VM **vmp;
 
 	gcprotpop(vm);
-	gckill(vm);
+	vm->gckill(vm);
 	freefreeroots(&vm->rs);
 	free(vm->prot);
 	free(vm->err);
@@ -9895,9 +9282,9 @@ vmfaulthook()
 	vmp = vms;
 	while(vmp < vms+Maxvms){
 		if(*vmp){
-			fprintf(stderr, "backtrace of vm %p:\n", *vmp);
-			fvmbacktrace(stderr, *vmp);
-			fprintf(stderr, "\n");
+			xprintf("backtrace of vm %p:\n", *vmp);
+			fvmbacktrace(0, *vmp);
+			xprintf("\n");
 		}
 		vmp++;
 	}

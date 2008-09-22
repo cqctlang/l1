@@ -40,5 +40,7 @@ typedef uint64_t	u64;
 typedef u64 Imm;
 
 #define NORETURN	__attribute__((noreturn))
+#define PAGESZ 4096
+#define PAGEUP(sz)   (((sz)+PAGESZ-1)&~(PAGESZ-1))
 
 #endif /* _BISONFLAW_SYS_H_ */

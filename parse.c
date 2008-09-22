@@ -96,18 +96,15 @@ parseerror(U *ctx, char *fmt, ...)
 		 * resolvers, which do not convey %parse-param's
 		 */
 		va_start(args, fmt);
-		vfprintf(stderr, fmt, args);
-		fprintf(stderr, "\n");
+		vmsg(fmt, args);
 		va_end(args);
 		return;
 	}
 
 	if(ctx->inp)
-		fprintf(stderr, "%s:%u: ",
-			ctx->inp->src.filename, ctx->inp->src.line);
+		xprintf("%s:%u: ", ctx->inp->src.filename, ctx->inp->src.line);
 	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	vmsg(fmt, args);
 	va_end(args);
 
 	while(popyy(ctx))
@@ -378,6 +375,20 @@ isoctdigit(int c)
 	return ('0' <= c) && (c <= '7');
 }
 
+static int
+xisdigit(int c)
+{
+	return ('0' <= c) && (c <= '9');
+}
+
+static int
+xisxdigit(int c)
+{
+	return(xisdigit(c)
+	       || (('a' <= c) && (c <= 'f'))
+	       || (('A' <= c) && (c <= 'F')));
+}
+
 int
 parseliti(char *s, unsigned long len, Liti *liti, char **err)
 {
@@ -449,9 +460,9 @@ parseliti(char *s, unsigned long len, Liti *liti, char **err)
 			c = 0;
 			if(*p == 'x'){
 				p++;
-				while(isxdigit(*p)){
+				while(xisxdigit(*p)){
 					c *= 16;
-					if(isdigit(*p))
+					if(xisdigit(*p))
 						c += *p - '0';
 					else if('a' <= *p && *p <= 'f')
 						c += *p - 'a' + 10;
@@ -687,9 +698,9 @@ doconstssrc(Src *src, char *s, unsigned long len)
 			c = 0;
 			if(*r == 'x'){
 				r++;
-				while(isxdigit(*r)){
+				while(xisxdigit(*r)){
 					c *= 16;
-					if(isdigit(*r))
+					if(xisdigit(*r))
 						c += *r - '0';
 					else if('a' <= *r && *r <= 'f')
 						c += *r - 'a' + 10;
@@ -1175,7 +1186,7 @@ printdecl(Decl *d)
 	char *o;
 
 	o = fmtdecl(d);
-	printf("%s", o);
+	xprintf("%s", o);
 	free(o);
 }
 
@@ -1346,40 +1357,28 @@ finiparse()
 	freeht(filenames);
 }
 
-void
-pushyy(U *ctx, char *filename, char *buf)
+static void
+pushyy(U *ctx, char *filename, char *buf, int dofree)
 {
-	FILE *fp;
 	char *keyed;
-
-	if(filename == stdinname)
-		fp = stdin;
-	else
-		fp = fopen(filename, "r");
-	if(fp == 0)
-		parseerror(ctx, "cannot @include %s", filename);
 
 	if(ctx->inp == 0)
 		ctx->inp = ctx->in;
 	else
 		ctx->inp++;
-
 	if(ctx->inp >= ctx->in+MaxIn)
 		fatal("maximum include depth exceeded");
-
-	ctx->inp->fp = fp;
 	keyed = hget(filenames, filename, strlen(filename));
 	if(!keyed){
 		keyed = xstrdup(filename);
 		hput(filenames, keyed, strlen(keyed), keyed);
 	}
 	ctx->inp->src.filename = keyed;
-	if(buf)
-		ctx->inp->yy = mkyystatestr(buf);
-	else
-		ctx->inp->yy = mkyystate(fp);
+	ctx->inp->yy = mkyystatestr(buf);
 	ctx->inp->src.line = 1;
 	ctx->inp->src.col = 0;
+	ctx->inp->dofree = dofree;
+	ctx->inp->buf = buf;
 	setyystate(ctx->inp->yy);
 }
 
@@ -1388,10 +1387,10 @@ popyy(U *ctx)
 {
 	if(ctx->inp == 0)
 		return 0;
-	if(ctx->inp->fp != stdin)
-		fclose(ctx->inp->fp);
 	ctx->inp->src.filename = 0;
 	freeyystate(ctx->inp->yy);
+	if(ctx->inp->dofree)
+		free(ctx->inp->buf);
 	if(ctx->inp == ctx->in){
 		ctx->inp = 0;
 		return 0;
@@ -1404,7 +1403,7 @@ popyy(U *ctx)
 void
 tryinclude(U *ctx, char *raw)
 {
-	char *p, *q;
+	char *p, *q, *buf;
 	unsigned len;
 	int c, f;
 
@@ -1426,25 +1425,28 @@ tryinclude(U *ctx, char *raw)
 
 	switch(c){
 	case '"':
-//		printf("include relative %s\n", p);
+//		xprintf("include relative %s\n", p);
 		break;
 	case '<':
-//		printf("include system %s\n", p);
+//		xprintf("include system %s\n", p);
 		break;
 	}
 
-	pushyy(ctx, p, 0);
+	buf = readfile(p);
+	if(buf == 0)
+		parseerror(ctx, "cannot @include %s", p);
+	pushyy(ctx, p, buf, 1);
 }
 
 static Expr*
-doparse(char *filename, char *inbuf)
+doparse(char *filename, char *buf)
 {
 	U ctx;
 
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.el = nullelist();
 	if(setjmp(ctx.jmp) == 0){
-		pushyy(&ctx, filename, inbuf);
+		pushyy(&ctx, filename, buf, 0);
 		if(yyparse(&ctx) != 0)
 			fatal("parse error");
 	}else
@@ -1462,13 +1464,20 @@ doparse(char *filename, char *inbuf)
 Expr*
 cqctparsefile(char *filename)
 {
-	return doparse(filename, 0);
+	Expr *e;
+	char *str;
+	str = readfile(filename);
+	if(str == 0)
+		return 0;
+	e = doparse(filename, str);
+	free(str);
+	return e;
 }
 
 Expr*
-cqctparsestr(char *str)
+cqctparsestr(char *filename, char *str)
 {
-	return doparse(stdinname, str);
+	return doparse(filename ? filename : stdinname, str);
 }
 
 Closure*
@@ -1477,9 +1486,9 @@ cqctcompile(Expr *e, Env *env)
 	U ctx;
 
 	if(cqctflags['p']){
-		printf("input:\n");
+		xprintf("input:\n");
 		printexpr(e);
-		printf("\n");
+		xprintf("\n");
 	}
 
 	memset(&ctx, 0, sizeof(ctx));
@@ -1490,14 +1499,14 @@ cqctcompile(Expr *e, Env *env)
 		return 0;
 
 	if(cqctflags['p']){
-		printf("compile0:\n");
+		xprintf("compile0:\n");
 		printexpr(e);
-		printf("\n");
+		xprintf("\n");
 	}
 	if(cqctflags['q']){
-		printf("transformed source:\n");
+		xprintf("transformed source:\n");
 		printcqct(e);
-		printf("\n");
+		xprintf("\n");
 	}
 
 	if(cqctflags['c'])

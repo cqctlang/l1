@@ -7,12 +7,12 @@ cerror(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
 	if(e->src.filename)
-		fprintf(stderr, "%s:%u: ", e->src.filename, e->src.line);
+		xprintf("%s:%u: ", e->src.filename, e->src.line);
 	else
-		fprintf(stderr, "<lost-location!>: ");
+		xprintf("<lost-location!>: ");
 	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	xvprintf(fmt, args);
+	xprintf("\n");
 	va_end(args);
 	longjmp(ctx->jmp, 1);
 }

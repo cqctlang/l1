@@ -203,7 +203,7 @@ mkyystate(FILE *fp)
 {
 	YYstate *yy;
 	yy = xmalloc(sizeof(YYstate));
-	yy->yy = yy_create_buffer(fp, YY_BUF_SIZE);
+//	yy->yy = yy_create_buffer(fp, YY_BUF_SIZE);
 	return yy;
 }
 
@@ -228,3 +228,4 @@ setyystate(YYstate *yy)
 {
 	yy_switch_to_buffer(yy->yy);
 }
+

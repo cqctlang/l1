@@ -9,10 +9,7 @@ void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
 unsigned long hnent(HT *ht);
 void* hrefval(HT *ht, unsigned long idx);
 
-
-void warn(char *fmt, ...);
 void fatal(char *fmt, ...) NORETURN;
-void fatalno(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);
 void* xmalloc(size_t size);
@@ -22,11 +19,30 @@ char* strnchr(char *s, int c, unsigned long len);
 
 typedef void(Faulthook)();
 void setfaulthook(Faulthook *h);
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define MIN(a,b) ((a)<(b)?(a):(b))
+
+/* misplaced */
+char* readfile(char *filename);
 Imm xread(int fd, char *p, Imm len);
 Imm xwrite(int fd, char *p, Imm len);
-int parseip(char *s, struct sockaddr_in *addr);
-void nodelay(int fd);
+void xprintf(char *fmt, ...);
+void xvprintf(char *fmt, va_list args);
+void msg(char *fmt, ...);
+void vmsg(char *fmt, va_list args);
+int xisgraph(int c);
+int xisspace(int c);
+void xabort(void) NORETURN;
 
-#define PAGESZ 4096
-#define PAGEUP(sz)   (((sz)+PAGESZ-1)&~(PAGESZ-1))
+typedef unsigned long Thread;
+void		chanclose(int c);
+int		chanreadb(int c, char *b);
+int		chanwriteb(int c, char *b);
+void		newchan(int *left, int *right);
+Thread		newthread(void* (*fn)(void*), void *arg);
+void		threadexit(void *vp);
+void		threadwait(Thread t);
+
+
 #endif /* _BISONFLAW_UTIL_H_ */
