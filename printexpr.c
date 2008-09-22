@@ -3,6 +3,8 @@
 #include "syscqct.h"
 
 static void printcqct0(Expr *e, unsigned ni);
+static char* fmtdecl(Decl *d);
+
 enum {
 	Abbrevlen = 10,
 };
@@ -525,3 +527,186 @@ printcqct(Expr *e)
 {
 	printcqct0(e, 0);
 }
+
+static int
+needsparen(unsigned kind)
+{
+	switch(kind){
+	case Tfun:
+	case Tarr:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static char*
+fmtdecllist(Decl *p)
+{
+	char **ds, *buf, *bp;
+	unsigned i, n;
+	unsigned long m;
+	Decl *q;
+
+	n = 0;
+	q = p;
+	while(q){
+		n++;
+		q = q->link;
+	}
+
+	if(n == 0)
+		return xstrdup("");
+
+	ds = xmalloc(n*sizeof(char**));
+	m = 1;			/* null */
+	for(i = 0, q = p; i < n; i++, q = q->link){
+		ds[i] = fmtdecl(q);
+		m += strlen(ds[i]);
+		if(i < n-1)
+			m += 2;	/* comma, space */
+	}
+
+	buf = xmalloc(m);
+	bp = buf;
+	for(i = 0; i < n; i++){
+		strcpy(bp, ds[i]);
+		bp += strlen(ds[i]);
+		if(i < n-1){
+			strcpy(bp, ", ");
+			bp += 2;
+		}
+	}
+	*bp = 0;
+
+	return buf;
+}
+
+/* o must be dynamically allocated; caller turns over its management
+   to fmttype.  returned string is also dynamically allocated; caller
+   must free it */
+char*
+fmttype(Type *t, char *o)
+{
+	char *buf, *w, *pl;
+	unsigned m;
+
+	switch(t->kind){
+	case Tvoid:
+		m = 4+1+strlen(o)+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "void %s", o);
+		free(o);
+		return buf;
+	case Tbase:
+		m = strlen(basename[t->base])+1+strlen(o)+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s %s", basename[t->base], o);
+		free(o);
+		return buf;
+	case Ttypedef:
+		m = strlen(t->tid)+1+strlen(o)+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s %s", t->tid, o);
+		free(o);
+		return buf;
+	case Tstruct:
+	case Tunion:
+		w = tkindstr[t->kind];
+		if(t->tag){
+			m = strlen(w)+1+strlen(t->tag)+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "%s %s %s", w, t->tag, o);
+		}else{
+			m = strlen(w)+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "%s %s", w, o);
+		}
+		free(o);
+		return buf;
+	case Tenum:
+		if(t->tag){
+			m = 4+1+strlen(t->tag)+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "enum %s %s", t->tag, o);
+		}else{
+			m = 4+1+strlen(o)+1;
+			buf = xmalloc(m);
+			snprintf(buf, m, "enum %s", o);
+		}
+		free(o);
+		return buf;
+	case Tptr:
+		m = 2+strlen(o)+1+1;
+		buf = xmalloc(m);
+		if(needsparen(t->link->kind))
+			snprintf(buf, m, "(*%s)", o);
+		else
+			snprintf(buf, m, "*%s", o);
+		free(o);
+		return fmttype(t->link, buf);
+	case Tarr:
+		m = strlen(o)+2+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s[]", o);
+		free(o);
+		return fmttype(t->link, buf);
+	case Tfun:
+		pl = fmtdecllist(t->param);
+		m = strlen(o)+1+strlen(pl)+1+1;
+		buf = xmalloc(m);
+		snprintf(buf, m, "%s(%s)", o, pl);
+		free(o);
+		free(pl);
+		return fmttype(t->link, buf);
+	default:
+		fatal("bug");
+	}
+	return NULL;
+}
+
+static char*
+fmtdecl(Decl *d)
+{
+	char *o;
+
+	if(d->type == NULL)
+		return NULL;
+
+	if(d->id)
+		o = xstrdup(d->id);
+	else
+		o = xstrdup("");
+
+	return fmttype(d->type, o);
+}
+
+void
+printdecl(Decl *d)
+{
+	char *o;
+
+	o = fmtdecl(d);
+	xprintf("%s", o);
+	free(o);
+}
+
+void
+printvars(Expr *e)
+{
+	int first = 1;
+
+	Expr *q;
+	while(e->kind != Enull){
+		q = e->e1;
+		while(q->kind != Enull){
+			if(!first)
+				xprintf(", ");
+			xprintf("%s", q->e1->id);
+			first = 0;
+			q = q->e2;
+		}
+		e = e->e2;
+	}
+}
+

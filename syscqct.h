@@ -674,6 +674,8 @@ int		yyparse(U *ctx);
 /* printexpr.c */
 void		printcqct(Expr*);
 void		printexpr(Expr*);
+void		printdecl(Decl *d);
+void		printvars(Expr *e);
 
 /* bitfield.c */
 int		bitfieldgeom(BFgeom *bfg);
