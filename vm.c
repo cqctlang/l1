@@ -4925,7 +4925,8 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 		case Tunion:
 			fld = xtn->field;
 			sz = xtn->sz;
-
+			if(fld == 0 || sz->qkind == Qnil)
+				goto error;
 			new = mkxtn();
 			new->tkind = xtn->tkind;
 			new->tag = xtn->tag;
@@ -4950,6 +4951,8 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 			}
 			return new;
 		case Tenum:
+			if(xtn->konst == 0)
+				goto error;
 			tmp = doenconsts(vm, valvec(xtn->konst), ctx->ons);
 			new = mkxtn();
 			new->tkind = Tenum;
@@ -4960,6 +4963,7 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 			new->link = resolvetypename(vm, tmp, ctx);
 			return new;
 		default:
+		error:
 			es = fmtxtn(xtn);
 			vmerr(vm, "bad definition for tagged type: %.*s",
 			      (int)es->len, es->s);
@@ -7042,6 +7046,8 @@ l1_fields(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
 		vmerr(vm,
 		      "operand 1 to fields must be a struct or union ctype");
+	if(xtn->field == 0)
+		return;		/* nil */
 	*rv = mkvalvec(xtn->field);
 }
 
@@ -7448,6 +7454,7 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn = mkxtn();
 		xtn->tkind = tkind;
 		xtn->tag = s;
+		xtn->sz = Xnil;
 		break;
 	case 3:
 		/* TAG FIELDS SIZE */
@@ -7493,6 +7500,7 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn = mkxtn();
 		xtn->tkind = Tarr;
 		xtn->link = sub;
+		xtn->cnt = Xnil;
 		break;
 	case 2:
 		/* TYPE CNT */
@@ -7563,6 +7571,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn = mkxtn();
 		xtn->tkind = Tenum;
 		xtn->tag = s;
+		xtn->konst = 0;
 		break;
 	case 2:
 		/* TAG CONSTS */
