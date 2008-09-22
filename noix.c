@@ -30,13 +30,16 @@ xwrite(int fd, char *p, Imm len)
 void
 xvprintf(char *fmt, va_list args)
 {
-	notimpl("xvprintf");
+	vprintf(fmt, args);
 }
 
 void
 xprintf(char *fmt, ...)
 {
-	notimpl("printf");
+	va_list args;
+	va_start(args, fmt);
+	xvprintf(fmt, args);
+	va_end(args);
 }
 
 void*
@@ -67,12 +70,68 @@ xabort(void)
 		;
 }
 
+void
+newchan(int *left, int *right)
+{
+	notimpl("newchan");
+}
+
+void
+chanclose(int c)
+{
+	notimpl("chanclose");
+}
+
+int
+chanreadb(int c, char *b)
+{
+	notimpl("chanreadb");
+}
+
+int
+chanwriteb(int c, char *b)
+{
+	notimpl("chanwriteb");
+}
+
+Thread
+newthread(void* (*fn)(void*), void *arg)
+{
+	notimpl("newthread");
+}
+
+void
+threadexit(void *vp)
+{
+	notimpl("threadexit");
+}
+
+void
+threadwait(Thread t)
+{
+	notimpl("threadwait");
+}
+
 /* referenced only by lex.yy.o */
-//FILE *stdin = 0;
-//FILE *stdout = 0;
+FILE *stdin = 0;
+FILE *stdout = 0;
 
 /* referenced only by lex.yy.o and c.tab.o */
-//FILE *stderr = 0;
+FILE *stderr = 0;
+
+/* referenced only by lex.yy.o */
+void
+clearerr(FILE *fp)
+{
+	notimpl("clearerr");
+}
+
+/* referenced only by lex.yy.o */
+int*
+__errno_loc()
+{
+	notimpl("__errno_loc");
+}
 
 /* referenced only by lex.yy.o */
 ssize_t

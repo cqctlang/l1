@@ -64,29 +64,31 @@ main(int argc, char *argv[])
 	VM *vm;
 	Env *env;
 	char *filename = 0;
-	int c, wast;
+	int c;
 	struct timeval beg, end;
 	int dorepl;
+	char opt[256];
 	unsigned len;
 	char *inbuf, *s;
 
-	cqctflags['c'] = 1;		/* compile */
-	cqctflags['x'] = 1;		/* execute */
-	cqctflags['g'] = 1;		/* gc in separate thread */
+	memset(opt, 0, sizeof(opt));
+	opt['x'] = 1;		/* execute */
+	opt['g'] = 1;		/* gc in separate thread */
 	dorepl = 1;
-	while(EOF != (c = getopt(argc, argv, "bce:hopqtxg"))){
+	while(EOF != (c = getopt(argc, argv, "be:hopqtxg"))){
 		switch(c){
 		case 'o':
 		case 'p':
 		case 'q':
 		case 'b':
-		case 't':
 			cqctflags[c] = 1;
 			break;
-		case 'c':
+		case 't':
+			opt[c] = 1;
+			break;
 		case 'x':
 		case 'g':
-			cqctflags[c] = 0;
+			opt[c] = 0;
 			break;
 		case 'e':
 			dorepl = 0;
@@ -99,8 +101,8 @@ main(int argc, char *argv[])
 	}
 
 	env = cqctinit();
-	if(cqctflags['x']){
-		vm = cqctmkvm(env, cqctflags['g']);
+	if(opt['x']){
+		vm = cqctmkvm(env, opt['g']);
 		if(vm == 0){
 			cqctfini(env);
 			return -1;
@@ -125,13 +127,14 @@ main(int argc, char *argv[])
 
 		if(filename)
 			inbuf = readfile(filename);
-		if(inbuf == 0)
+		if(inbuf == 0){
+			printf("%s: %s\n", filename, strerror(errno));
 			continue;
+		}
 		e = cqctparsestr(filename, inbuf);
 		free(inbuf);
 		if(e == 0)
 			continue;
-
 		entry = cqctcompile(e, env);
 		if(entry == 0){
 			cqctfreeexpr(e);
@@ -139,15 +142,14 @@ main(int argc, char *argv[])
 		}
 		/* now storage for E is managed by cqct storage manager */
 
-		if(cqctflags['x'] == 0)
+		if(opt['x'] == 0)
 			continue; /* just compiling */
 		
-		wast = cqctflags['t'];
-		if(wast)
+		if(opt['t'])
 			gettimeofday(&beg, 0);
 		if(cqctcallthunk(vm, entry, &v))
 			continue; /* error */
-		if(wast && cqctflags['t']){
+		if(opt['t']){
 			gettimeofday(&end, 0);
 			tvdiff(&end, &beg, &end);
 			printf("%lu usec\n",
@@ -160,7 +162,7 @@ main(int argc, char *argv[])
 		}
 	}while(dorepl);
 
-	if(cqctflags['x'])
+	if(opt['x'])
 		cqctfreevm(vm);
 	cqctfini(env);
 	return 0;

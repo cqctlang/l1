@@ -13,6 +13,7 @@ void
 vmsg(char *fmt, va_list args)
 {
 	xvprintf(fmt, args);
+	xprintf("\n");
 }
 
 void

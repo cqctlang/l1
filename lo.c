@@ -12,13 +12,9 @@ main(int argc, char *argv[])
 	Env *env;
 	char *s;
 
-	cqctflags['c'] = 1;		/* compile */
-	cqctflags['x'] = 1;		/* execute */
-	cqctflags['g'] = 0;		/* gc in separate thread */
 	env = cqctinit();
-	vm = cqctmkvm(env, cqctflags['g']);
-
-	e = cqctparsestr("3+3;");
+	vm = cqctmkvm(env, 0);		/* gc in same thread */
+	e = cqctparsestr(0, "3+3;");
 	if(e == 0)
 		goto out;
 	entry = cqctcompile(e, env);

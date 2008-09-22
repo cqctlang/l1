@@ -2924,7 +2924,6 @@ vmerr(VM *vm, char *fmt, ...)
 	va_start(args, fmt);
 	vmsg(fmt, args);
 	va_end(args);
-	xprintf("\n");
 	fvmbacktrace(0, vm);
 	nexterror(vm);
 }
@@ -9226,14 +9225,6 @@ cqctmkvm(Env *env, int gcthread)
 	envlookup(env, "stdout", &val);
 	vm->stdout = valfd(val);
 
-	vmp = vms;
-	while(*vmp){
-		vmp++;
-		if(vmp > vms+Maxvms)
-			fatal("too many vms");
-	}
-	*vmp = vm;
-
 	vmreset(vm);
 	if(gcthread){
 		vm->gcpoll = concurrentgcpoll;
@@ -9245,6 +9236,15 @@ cqctmkvm(Env *env, int gcthread)
 	}
 	gcprotpush(vm);
 	
+	/* register vm with fault handler */
+	vmp = vms;
+	while(*vmp){
+		vmp++;
+		if(vmp > vms+Maxvms)
+			fatal("too many vms");
+	}
+	*vmp = vm;
+
 	/* vm is now callable */
 
 	/* add toplevel bindings that require VM to construct */

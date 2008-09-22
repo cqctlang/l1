@@ -1326,14 +1326,12 @@ cqctcompile(Expr *e, Env *env)
 		printexpr(e);
 		xprintf("\n");
 	}
-
 	memset(&ctx, 0, sizeof(ctx));
 	dotypes(&ctx, e);
 	if(docompilec(&ctx, e) != 0)
 		return 0;
 	if(docompile0(&ctx, e) != 0)
 		return 0;
-
 	if(cqctflags['p']){
 		xprintf("compile0:\n");
 		printexpr(e);
@@ -1344,11 +1342,7 @@ cqctcompile(Expr *e, Env *env)
 		printcqct(e);
 		xprintf("\n");
 	}
-
-	if(cqctflags['c'])
-		return compileentry(e, env);
-	else
-		return 0;
+	return compileentry(e, env);
 }
 
 Env*
