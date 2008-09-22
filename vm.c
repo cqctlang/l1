@@ -5284,7 +5284,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	while(1){
 		i = &vm->ibuf[vm->pc++];
 		tick++;
-		gcpoll(vm);
 		goto *(i->go);
 		fatal("bug");
 	Inop:

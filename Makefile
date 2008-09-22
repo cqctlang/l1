@@ -1,4 +1,5 @@
 CC = gcc
+LD = ld
 CFLAGS = -Wall -g
 
 CONF = unix
@@ -20,9 +21,9 @@ L1C =\
 	cutil.c\
 	compile.c\
 	vm.c\
-	fns.$(CONF).c
+	fns.$(CONF).c\
 
-L1C += $(shell awk -v 'CONF='$(CONF) -f ./doconf < conf.$(CONF))
+L1C += $(shell awk -v 'CONF='$(CONF) -f ./mkconf < conf.$(CONF))
 
 L1O = $(L1C:.c=.o)
 
@@ -35,8 +36,11 @@ c.tab.h: c.tab.c
 lex.yy.c: c.l $(HDR)
 	flex -f -s c.l
 
-l1: c.tab.o lex.yy.o main.o $(L1O)
-	$(CC) -o $@ $^ -lfl -lpthread
+l1: l1.o main.o
+	$(CC) -o $@ $^ -lpthread
+
+l1.o: c.tab.o lex.yy.o $(L1O)
+	$(LD) -r -o $@ $^
 
 libl1.so: c.tab.o lex.yy.o $(L1O)
 	$(CC) -nostdlib -shared -Xlinker -Bsymbolic -o $@ $^
@@ -52,4 +56,4 @@ depend: Makefile
 	gcc $(INC) -MM $(L1C) > depend
 
 clean:
-	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o lo lo.o l1.o $(L1O) $(TARG) libl1.so depend 
+	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o lo lo.o l1.o fns.$(CONF).c $(L1O) $(TARG) libl1.so depend 
