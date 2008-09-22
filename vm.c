@@ -7086,6 +7086,34 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalxtn(xtn);
 }
 
+static int
+issymvec(Vec *v)
+{
+	Imm m;
+	Val e, x;
+	Vec *sym;
+	for(m = 0; m < v->len; m++){
+		e = vecref(v, m);
+		if(e->qkind != Qvec)
+			return 0;
+		sym = valvec(e);
+		if(sym->len != 2 && sym->len != 3)
+			return 0;
+		x = vecref(sym, Typepos);
+		if(x->qkind != Qxtn)
+			return 0;
+		x = vecref(sym, Idpos);
+		if(x->qkind != Qstr && x->qkind != Qnil)
+			return 0;
+		if(sym->len < 3)
+			continue;
+		x = vecref(sym, Offpos);
+		if(x->qkind != Qcval && x->qkind != Qnil)
+			return 0;
+	}
+	return 1;
+}
+
 static void
 domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 {
@@ -7110,6 +7138,8 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		checkarg(vm, fn, argv, 2, Qcval);
 		s = valstr(argv[0]);
 		f = valvec(argv[1]);
+		if(!issymvec(f))
+			vmerr(vm, "bad field vector", fn);
 		xtn = mkxtn();
 		xtn->tkind = tkind;
 		xtn->tag = s;
@@ -7177,6 +7207,8 @@ l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "mkctype_fn", argv, 1, Qvec);
 	sub = valxtn(argv[0]);
 	p = valvec(argv[1]);
+	if(!issymvec(p))
+		vmerr(vm, "bad parameter vector");
 	xtn = mkxtn();
 	xtn->tkind = Tfun;
 	xtn->link = sub;
