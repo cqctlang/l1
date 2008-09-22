@@ -1,6 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -g
 
+CONF = port
+
 libl1.so: CFLAGS += -fPIC -nostdlib
 
 TARG = l1
@@ -18,7 +20,8 @@ L1C =\
 	cutil.c\
 	compile.c\
 	vm.c\
-	noix.c\
+
+L1C += $(shell cat conf.$(CONF))
 
 #L1C +=\
 #	fnfs.c\

@@ -1,0 +1,41 @@
+#!/bin/sh
+
+awk -v "CONF="$CONF '
+BEGIN{
+}
+
+collect && /^[^ \t]/ {
+	collect = 0;
+}
+
+collect && section ~ "fn" {
+	fn[nfn++] = $1
+}
+
+collect && section ~ "other" {
+	other[nother++] = $1
+}
+
+/^[^ \t]/ {
+	collect = 1
+	section = $1
+	next
+}
+
+END{
+	file = "fns." CONF ".c"
+	printf "#include \"sys.h\"\n" > file
+	printf "#include \"syscqct.h\"\n\n" >> file
+
+	printf "void\n" >> file
+	printf "fns()\n" >> file
+	printf "{\n" >> file
+	for(i = 0; i < nfn; i++)
+		printf("\t%s();\n", fn[i])  >> file
+	printf "}\n" >> file
+	for(i = 0; i < nfn; i++)
+		printf("%s.c ", fn[i]);
+	for(i = 0; i < nother; i++)
+		printf("%s.c ", other[i]);
+}
+'
