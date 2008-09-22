@@ -7615,18 +7615,20 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *vec;
 
-	if(argc != 2 && argc != 3)
-		vmerr(vm, "wrong number of arguments to %s", what);
 	checkarg(vm, what, argv, 0, Qxtn);
-	checkarg(vm, what, argv, 1, Qstr);
+	if(argc > 1)
+		checkarg(vm, what, argv, 1, Qstr);
 	if(argc == 3)
 		if(argv[2]->qkind != Qcval && argv[2]->qkind != Qnil)
 			vmerr(vm, "operand 3 to %s must be a cvalue or nil",
 			      what);
 	vec = mkvec(3);
 	_vecset(vec, 0, argv[0]);
-	_vecset(vec, 1, argv[1]);
-	if(argc == 3)
+	if(argc > 1)
+		_vecset(vec, 1, argv[1]);
+	else
+		_vecset(vec, 1, Xnil);
+	if(argc > 2)
 		_vecset(vec, 2, argv[2]);
 	else
 		_vecset(vec, 2, Xnil);
@@ -7636,18 +7638,24 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mksym(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	if(argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to mksym");
 	mksymorfieldorparam("mksym", vm, argc, argv, rv);
 }
 
 static void
 l1_mkfield(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	if(argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to mkfield");
 	mksymorfieldorparam("mkfield", vm, argc, argv, rv);	
 }
 
 static void
 l1_mkparam(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	if(argc < 1 || argc > 2)
+		vmerr(vm, "wrong number of arguments to mkparam");
 	mksymorfieldorparam("mkparam", vm, argc, argv, rv);	
 }
 
