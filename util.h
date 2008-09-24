@@ -35,7 +35,7 @@ int xisgraph(int c);
 int xisspace(int c);
 void xabort(void) NORETURN;
 
-typedef unsigned long Thread;
+typedef uintptr_t Thread;
 void		chanclose(int c);
 int		chanreadb(int c, char *b);
 int		chanwriteb(int c, char *b);

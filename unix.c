@@ -122,7 +122,7 @@ Thread
 newthread(void* (*fn)(void*), void *arg)
 {
 	Thread t;
-	if(0 > pthread_create(&t, 0, fn, arg))
+	if(0 > pthread_create((pthread_t*)&t, 0, fn, arg))
 		return 0;
 	return t;
 }
@@ -136,5 +136,5 @@ threadexit(void *vp)
 void
 threadwait(Thread t)
 {
-	pthread_join(t, 0);
+	pthread_join((pthread_t)t, 0);
 }
