@@ -61,6 +61,9 @@ todo
     seems now that typedef wins.
   - make define implicitly add @local binding to enclosing block
   - b6b4d11b339 (sep 8 2008) causes label conflict on "x.f();"
+  - define equality operators, their meaning (==, equal, ...),
+    and their role in hash tables
+    - for ctypes: pointer eq, name eq, structure eq;
 
 - usability
   - change "entry" to "toplevel"
