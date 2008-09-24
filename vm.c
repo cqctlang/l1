@@ -6454,7 +6454,8 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	   && xtn->tkind != Tundef)
 		vmerr(vm, err);
 
-	*rv = mkvalxtn(xtn->link);
+	if(xtn->link)
+		*rv = mkvalxtn(xtn->link);
 }
 
 static void
@@ -6619,7 +6620,8 @@ l1_typedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(xtn->tkind != Ttypedef)
 		vmerr(vm,
 		      "operand 1 to typedeftype must be a typedef ctype");
-	*rv = mkvalxtn(xtn->link);
+	if(xtn->link)
+		*rv = mkvalxtn(xtn->link);
 }
 
 static void
