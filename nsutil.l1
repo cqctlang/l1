@@ -1,0 +1,89 @@
+define nsdiff(ns1, ns2){
+	@local u1, u2, nsdiff0;
+
+	define nsdiff0(ns1, ns2){
+		@local t2, undef;
+
+		undef = [];
+		foreach(lambda(k, t1){
+				t2 = looktype(ns2, t1);
+				if(t2 == nil)
+					append(undef, t1);
+			}, nsenumtype(ns1)());
+		return undef;
+	}
+
+
+	u2 = nsdiff0(ns1, ns2);
+	u1 = nsdiff0(ns2, ns1);
+
+	printf("defined in ns1 but not ns2:\n");
+	foreach(lambda(t){
+			printf("\t%t\n", t);
+		}, u2);
+	printf("defined in ns2 but not ns1:\n");
+	foreach(lambda(t){
+			printf("\t%t\n", t);
+		}, u1);
+}
+
+define printtype(t){
+	@local ct, i, fld, flds, sz, off;
+
+	if(issu(t)){
+		printf("%s %s {\n", suekind(t), suetag(t));
+		flds = fields(t);
+		for(i = 0; i < veclen(flds); i++){
+			fld = vecref(flds, i);
+			off = fieldoff(fld);
+			ft = fieldtype(fld);
+			id = fieldid(fld);
+			if(off == nil){
+				printf("\t");
+				printf("\t%t;\n", fld);
+			}else if(isbitfield(ft)){
+				printf("\t/*@@(8*0x%x+%x)*/",
+				       off, bitfieldpos(ft));
+				printf("\t%t %s : %d;\n",
+				       bitfieldcontainer(ft), id,
+				       bitfieldwidth(ft));
+			}else{
+				printf("\t/*@0x%x*/", off);
+				printf("\t%t;\n", fld);
+			}
+		}
+		sz = susize(t);
+		if(sz == nil)
+			printf("\t/*@0x%x;*/\n", sz);
+		printf("};\n");
+	}else if(istypedef(t)){
+		printf("typedef %t %s\n", typedeftype(t), typedefid(t));
+	}else if(isenum(t)){
+		printf("%s %s {\n", suekind(t), suetag(t));
+		ens = enumconsts(t);
+		for(i = 0; i < veclen(ens); i++){
+			en = vecref(ens, i);
+			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
+		}
+		printf("};\n");
+	}
+}
+
+define printns(ns){
+	@local i, vec;
+	vec = tabvals(nsenumtype(ns)());
+	for(i = 0; i < veclen(vec); i++)
+		printtype(vecref(vec, i));
+	vec = tabvals(enenumsym(ns)());
+	for(i = 0; i < veclen(vec); i++){
+		@local sym, off, type;
+		sym = vecref(vec, i);
+		type = symtype(sym);
+		if(isenumconst(type))
+			continue;
+		off = symval(sym);
+		if(off != nil)
+			printf("/*@0x%x*/", off);
+		printf("\t%t;\n", sym);
+	}
+}

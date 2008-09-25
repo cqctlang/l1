@@ -64,6 +64,8 @@ todo
   - define equality operators, their meaning (==, equal, ...),
     and their role in hash tables
     - for ctypes: pointer eq, name eq, structure eq;
+  - make enumtype etc implicit calls to underlying ns functions
+    get rid of nsenumtype accessor
 
 - usability
   - change "entry" to "toplevel"
