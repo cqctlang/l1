@@ -135,7 +135,7 @@ copylits(Lits *lits)
 void
 freelits(Lits *lits)
 {
-	free(lits);
+	xfree(lits);
 }
 
 static Type*
@@ -221,7 +221,7 @@ freeexpr(Expr *e)
 		while(p->kind == Eelist){
 			freeexpr(p->e1);
 			e = p->e2;
-			free(p);
+			xfree(p);
 			p = e;
 		}
 		freeexpr(p);
@@ -230,7 +230,7 @@ freeexpr(Expr *e)
 
 	switch(e->kind){
 	case Eid:
-		free(e->id);
+		xfree(e->id);
 		break;
 	case Econsts:
 		freelits(e->lits);
@@ -244,7 +244,7 @@ freeexpr(Expr *e)
 	freeexpr(e->e4);
 	if(e->xp)
 		freeexprx(e);
-	free(e);
+	xfree(e);
 }
 
 Expr*
@@ -771,9 +771,9 @@ freeenum(Enum *en)
 
 	while(en){
 		q = en->link;
-		free(en->id);
+		xfree(en->id);
 		freeexpr(en->val);
-		free(en);
+		xfree(en);
 		en = q;
 	}
 }
@@ -1183,7 +1183,7 @@ initparse()
 static void
 freefilename(void *u, char *k, void *v)
 {
-	free(k);
+	xfree(k);
 }
 
 static void
@@ -1226,7 +1226,7 @@ popyy(U *ctx)
 	ctx->inp->src.filename = 0;
 	freeyystate(ctx->inp->yy);
 	if(ctx->inp->dofree)
-		free(ctx->inp->buf);
+		xfree(ctx->inp->buf);
 	if(ctx->inp == ctx->in){
 		ctx->inp = 0;
 		return 0;
@@ -1306,7 +1306,7 @@ cqctparsefile(char *filename)
 	if(str == 0)
 		return 0;
 	e = doparse(filename, str);
-	free(str);
+	xfree(str);
 	return e;
 }
 
@@ -1346,11 +1346,11 @@ cqctcompile(Expr *e, Env *env)
 }
 
 Env*
-cqctinit()
+cqctinit(int gcthread, u64 heapmax)
 {
 	initparse();
 	initcompile();
-	initvm();
+	initvm(gcthread, heapmax);
 	return mktopenv();
 }
 

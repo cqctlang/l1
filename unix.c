@@ -36,7 +36,7 @@ readfile(char *filename)
 		return 0;
 	buf = xmalloc(st.st_size+1);
 	if(0 > xread(fd, buf, st.st_size)){
-		free(buf);
+		xfree(buf);
 		close(fd);
 		return 0;
 	}

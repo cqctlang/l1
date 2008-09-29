@@ -12,8 +12,8 @@ main(int argc, char *argv[])
 	Env *env;
 	char *s;
 
-	env = cqctinit();
-	vm = cqctmkvm(env, 0);		/* gc in same thread */
+	env = cqctinit(0);
+	vm = cqctmkvm(env);
 	e = cqctparsestr(0, "3+3;");
 	if(e == 0)
 		goto out;
@@ -27,7 +27,7 @@ main(int argc, char *argv[])
 		return 0;
 	s = cqctsprintval(vm, v);
 	printf("%s\n", s);
-	free(s);
+	xfree(s);
 out:
 	cqctfreevm(vm);
 	cqctfini(env);

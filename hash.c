@@ -47,13 +47,13 @@ freeht(HT* ht)
 		hp = ht->ht[i];
 		while(hp){
 			np = hp->next;
-			free(hp);
+			xfree(hp);
 			hp = np;
 		}
 	}
-	free(ht->ht);
-	free(ht->hent);
-	free(ht);
+	xfree(ht->ht);
+	xfree(ht->hent);
+	xfree(ht);
 }
 
 /* one-at-a-time by jenkins */
@@ -140,7 +140,7 @@ hexpand(HT *ht)
 			hp = nxt;
 		}
 	}
-	free(ht->ht);
+	xfree(ht->ht);
 	ht->ht = nht;
 	ht->hent = xrealloc(ht->hent,
 			    ht->sz*sizeof(sizeof(Hent*)),

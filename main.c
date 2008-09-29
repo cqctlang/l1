@@ -7,7 +7,7 @@ usage(char *argv0)
 {
 	fprintf(stderr, "usage: %s [flags] [-e <file>] \n", argv0);
 	fprintf(stderr, "without -e, runs in interactive evaluation mode:\n");
-	fprintf(stderr, "\type cinquecento expressions on stdin, "
+	fprintf(stderr, "\ttype cinquecento expressions on stdin, "
 		" followed by newline\n");
 	fprintf(stderr, "\tto exit send SIGTERM (^c).\n");
 	fprintf(stderr, "\nuser flags:\n");
@@ -15,6 +15,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-t report timing statistics\n");
 	fprintf(stderr, "\t-e <file> read input from <file> "
 			"instead of stdin\n");
+	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
 	fprintf(stderr, "\ndeveloper flags:\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
 	fprintf(stderr, "\t-p dump IR at various stages\n");
@@ -44,7 +45,7 @@ readexpr(unsigned *cp)
 			m = len-1;
 		}
 		if(0 == fgets(buf+cnt, len, stdin)){
-			free(buf);
+			xfree(buf);
 			return 0;
 		}
 		rv = strlen(buf);
@@ -70,12 +71,14 @@ main(int argc, char *argv[])
 	char opt[256];
 	unsigned len;
 	char *inbuf, *s;
+	u64 heapmax;
 
 	memset(opt, 0, sizeof(opt));
 	opt['x'] = 1;		/* execute */
 	opt['g'] = 1;		/* gc in separate thread */
 	dorepl = 1;
-	while(EOF != (c = getopt(argc, argv, "be:hopqtxg"))){
+	heapmax = 0;
+	while(EOF != (c = getopt(argc, argv, "be:hopqtxgm:"))){
 		switch(c){
 		case 'o':
 		case 'p':
@@ -94,15 +97,18 @@ main(int argc, char *argv[])
 			dorepl = 0;
 			filename = optarg;
 			break;
+		case 'm':
+			heapmax = atoi(optarg);
+			break;
 		case 'h':
 		case '?':
 			usage(argv[0]);
 		}
 	}
 
-	env = cqctinit();
+	env = cqctinit(opt['g'], heapmax);
 	if(opt['x']){
-		vm = cqctmkvm(env, opt['g']);
+		vm = cqctmkvm(env);
 		if(vm == 0){
 			cqctfini(env);
 			return -1;
@@ -132,7 +138,7 @@ main(int argc, char *argv[])
 			continue;
 		}
 		e = cqctparsestr(filename, inbuf);
-		free(inbuf);
+		xfree(inbuf);
 		if(e == 0)
 			continue;
 		entry = cqctcompile(e, env);
@@ -158,7 +164,7 @@ main(int argc, char *argv[])
 		if(dorepl && v->qkind != Qnil){
 			s = cqctsprintval(vm, v);
 			printf("%s\n", s);
-			free(s);
+			xfree(s);
 		}
 	}while(dorepl);
 

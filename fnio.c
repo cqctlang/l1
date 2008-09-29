@@ -87,7 +87,7 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	fd = open(name, O_RDONLY);
-	free(name);
+	xfree(name);
 	if(0 > fd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
@@ -142,8 +142,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 		oflags |= O_WRONLY;
 
 	xfd = open(name, oflags, 0777); /* ~umask */
-	free(name);
-	free(mode);
+	xfree(name);
+	xfree(mode);
 	if(0 > xfd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));

@@ -542,8 +542,9 @@ enum {
 
 	Maxtmp = 128,
 	Maxstk = 1024,
-	InsnAlloc = 1024,
+	InsnAlloc = 10,
 	AllocBatch = 128,
+	Maxheap	= 5*1024*1024,
 };
 
 typedef
@@ -710,7 +711,7 @@ void		dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen,
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 Val*		envgetbind(Env *env, char *id);
 void		freeenv(Env *env);
-void		initvm();
+void		initvm(int gcthread, u64 heapmax);
 void		finivm();
 void		freecode(Head *hd);
 Closure*	mkcfn(char *id, Cfn *cfn);

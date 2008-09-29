@@ -16,6 +16,7 @@ void* xmalloc(size_t size);
 void* xrealloc(void *p, size_t old, size_t new);
 void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);
 char* strnchr(char *s, int c, unsigned long len);
+void xfree(void *p);
 
 typedef void(Faulthook)();
 void setfaulthook(Faulthook *h);
@@ -44,5 +45,7 @@ Thread		newthread(void* (*fn)(void*), void *arg);
 void		threadexit(void *vp);
 void		threadwait(Thread t);
 
+extern u64 cqctmeminuse;
+extern u64 cqctmemtotal;
 
 #endif /* _BISONFLAW_UTIL_H_ */

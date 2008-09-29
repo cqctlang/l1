@@ -220,7 +220,7 @@ void
 freeyystate(YYstate *yy)
 {
 	yy_delete_buffer(yy->yy);
-	free(yy);
+	xfree(yy);
 }
 
 void

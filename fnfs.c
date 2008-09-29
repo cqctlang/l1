@@ -18,7 +18,7 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	dir = opendir(name);
-	free(name);
+	xfree(name);
 	if(dir == NULL)
 		vmerr(vm, "opendir: %s", strerror(errno));
 
@@ -54,7 +54,7 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = mkdir(name, 0777);	/* ~umask */
-	free(name);
+	xfree(name);
 	if(0 > r)
 		vmerr(vm, "mkdir: %s", strerror(errno));
 	/* return nil */
@@ -73,7 +73,7 @@ l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = unlink(name);
-	free(name);
+	xfree(name);
 	if(0 > r)
 		vmerr(vm, "unlink: %s", strerror(errno));
 	/* return nil */
@@ -92,7 +92,7 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = rmdir(name);
-	free(name);
+	xfree(name);
 	if(0 > r)
 		vmerr(vm, "rmdir: %s", strerror(errno));
 	/* return nil */

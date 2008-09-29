@@ -1,7 +1,6 @@
 CC = gcc
 LD = ld
 CFLAGS = -Wall -g
-
 CONF = unix
 
 libl1.so: CFLAGS += -fPIC -nostdlib

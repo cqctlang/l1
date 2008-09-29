@@ -596,19 +596,19 @@ fmttype(Type *t, char *o)
 		m = 4+1+strlen(o)+1;
 		buf = xmalloc(m);
 		snprintf(buf, m, "void %s", o);
-		free(o);
+		xfree(o);
 		return buf;
 	case Tbase:
 		m = strlen(basename[t->base])+1+strlen(o)+1;
 		buf = xmalloc(m);
 		snprintf(buf, m, "%s %s", basename[t->base], o);
-		free(o);
+		xfree(o);
 		return buf;
 	case Ttypedef:
 		m = strlen(t->tid)+1+strlen(o)+1;
 		buf = xmalloc(m);
 		snprintf(buf, m, "%s %s", t->tid, o);
-		free(o);
+		xfree(o);
 		return buf;
 	case Tstruct:
 	case Tunion:
@@ -622,7 +622,7 @@ fmttype(Type *t, char *o)
 			buf = xmalloc(m);
 			snprintf(buf, m, "%s %s", w, o);
 		}
-		free(o);
+		xfree(o);
 		return buf;
 	case Tenum:
 		if(t->tag){
@@ -634,7 +634,7 @@ fmttype(Type *t, char *o)
 			buf = xmalloc(m);
 			snprintf(buf, m, "enum %s", o);
 		}
-		free(o);
+		xfree(o);
 		return buf;
 	case Tptr:
 		m = 2+strlen(o)+1+1;
@@ -643,21 +643,21 @@ fmttype(Type *t, char *o)
 			snprintf(buf, m, "(*%s)", o);
 		else
 			snprintf(buf, m, "*%s", o);
-		free(o);
+		xfree(o);
 		return fmttype(t->link, buf);
 	case Tarr:
 		m = strlen(o)+2+1;
 		buf = xmalloc(m);
 		snprintf(buf, m, "%s[]", o);
-		free(o);
+		xfree(o);
 		return fmttype(t->link, buf);
 	case Tfun:
 		pl = fmtdecllist(t->param);
 		m = strlen(o)+1+strlen(pl)+1+1;
 		buf = xmalloc(m);
 		snprintf(buf, m, "%s(%s)", o, pl);
-		free(o);
-		free(pl);
+		xfree(o);
+		xfree(pl);
 		return fmttype(t->link, buf);
 	default:
 		fatal("bug");
@@ -688,7 +688,7 @@ printdecl(Decl *d)
 
 	o = fmtdecl(d);
 	xprintf("%s", o);
-	free(o);
+	xfree(o);
 }
 
 void

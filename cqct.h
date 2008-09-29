@@ -1,4 +1,5 @@
 extern char cqctflags[];
+extern u64 cqctmaxheap;
 
 typedef
 enum {
@@ -50,8 +51,8 @@ void		cqctfreeexpr(Expr *e);
 void		cqctfreevm(VM *vm);
 void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
-Env*		cqctinit();
-VM*		cqctmkvm(Env *env, int gcthread);
+Env*		cqctinit(int gcthread, u64 heapmax);
+VM*		cqctmkvm(Env *env);
 Expr*		cqctparsefile(char *filename);
 Expr*		cqctparsestr(char *filename, char *str);
 void		cqctprintval(VM *vm, Val v);

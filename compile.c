@@ -64,8 +64,8 @@ static void
 freelabel(Ctl *ctl)
 {
 	if(ctl->ckind == Clabel)
-		free(ctl->label);
-	free(ctl);
+		xfree(ctl->label);
+	xfree(ctl);
 }
 
 static Ctl*
@@ -153,8 +153,8 @@ freecode(Head *hd)
 	}
 	
 	freeexpr(code->src);
-	free(code->insn);
-	free(code->labels);
+	xfree(code->insn);
+	xfree(code->labels);
 }
 
 static Insn*
@@ -559,7 +559,7 @@ struct Vardef {
 		VDlocal,
 		VDtoplevel,
 	} kind;
-	Lambda *lambda;
+	Lambda *lmbda;
 	unsigned idx;
 	Val *val;		/* VDtoplevel */
 	unsigned indirect;
@@ -622,10 +622,10 @@ freetopvec(Topvec *tv)
 {
 	unsigned m;
 	for(m = 0; m < tv->nid; m++)
-		free(tv->id[m]);
-	free(tv->id);
-	free(tv->val);
-	free(tv);
+		xfree(tv->id[m]);
+	xfree(tv->id);
+	xfree(tv->val);
+	xfree(tv);
 }
 
 char*
@@ -705,7 +705,7 @@ freekonst(Konst *kon)
 {
 	hforeach(kon->ht, free1konst, 0);
 	freeht(kon->ht);
-	free(kon);
+	xfree(kon);
 }
 
 static Konsti*
@@ -743,7 +743,7 @@ konstival(Liti *liti, Konsti *koni)
 static void
 free1konsti(void *u, char *k, void *v)
 {
-	free(k);
+	xfree(k);
 }
 
 static void
@@ -751,7 +751,7 @@ freekonsti(Konsti *koni)
 {
 	hforeach(koni->ht, free1konsti, 0);
 	freeht(koni->ht);
-	free(koni);
+	xfree(koni);
 }
 
 static VEnv*
@@ -765,7 +765,7 @@ mkvenv()
 static void
 freevenv(VEnv *ve)
 {
-	free(ve);
+	xfree(ve);
 }
 
 static VDset*
@@ -781,8 +781,8 @@ mkvdset()
 static void
 freevdset(VDset *vs)
 {
-	free(vs->vd);
-	free(vs);
+	xfree(vs->vd);
+	xfree(vs);
 }
 
 static void
@@ -829,8 +829,8 @@ mkvrset(unsigned n)
 static void
 freevrset(VRset *vs)
 {
-	free(vs->vr);
-	free(vs);
+	xfree(vs->vr);
+	xfree(vs);
 }
 
 static Lambda*
@@ -872,7 +872,7 @@ mklambda(Expr *p)
 		m = 0;
 		q = p->e1;
 		while(q->kind != Enull){
-			vd->lambda = b;
+			vd->lmbda = b;
 			vd->id = q->e1->id;
 			vd->kind = VDparam;
 			vd->idx = m;
@@ -894,10 +894,10 @@ freelambda(Lambda *b)
 {
 	freevrset(b->capture);
 	freevenv(b->ve);
-	free(b->local);
-	free(b->param);
-	free(b->id);
-	free(b);
+	xfree(b->local);
+	xfree(b->param);
+	xfree(b->id);
+	xfree(b);
 }
 
 static unsigned
@@ -919,7 +919,7 @@ bindlocal(Lambda *b, Expr *p, unsigned nloc)
 	vd = b->local+nloc;
 	q = p;
 	while(q->kind != Enull){
-		vd->lambda = b;
+		vd->lmbda = b;
 		vd->id = q->e1->id;
 		vd->kind = VDlocal;
 		/* all locals are indirect, since they must be written
@@ -966,8 +966,8 @@ freevarref(Varref *vr)
 	if(vr == 0)
 		return;
 	if(vr->vd->kind == VDtoplevel)
-		free(vr->vd);
-	free(vr);
+		xfree(vr->vd);
+	xfree(vr);
 }
 
 static void
@@ -977,9 +977,9 @@ freetype(Type *t)
 		return;
 
 	freetype(t->link);
-	free(t->dom);
-	free(t->tid);
-	free(t->tag);
+	xfree(t->dom);
+	xfree(t->tid);
+	xfree(t->tag);
 	freedecl(t->field);
 	freeenum(t->en);
 	freedecl(t->param);
@@ -987,7 +987,7 @@ freetype(Type *t)
 	freeexpr(t->bit0);
 	freeexpr(t->sz);
 	freeexpr(t->cnt);
-	free(t);
+	xfree(t);
 }
 
 static void
@@ -1001,8 +1001,8 @@ freedecl(Decl *d)
 		nxt = d->link;
 		freetype(d->type);
 		freeexpr(d->offs);
-		free(d->id);
-		free(d);
+		xfree(d->id);
+		xfree(d);
 	}
 }
 
@@ -1287,7 +1287,7 @@ printframe(Expr *e)
 		else
 			xprintf("<%c,%p,%d,%s,%d>",
 			       vr->vd->kind == VDparam ? 'p' : 'l',
-			       vr->vd->lambda,
+			       vr->vd->lmbda,
 			       vr->vd->idx,
 			       vr->vd->id,
 			       vr->closed ? vr->cidx : -1);
@@ -1311,7 +1311,7 @@ printframe(Expr *e)
 			vr = &b->capture->vr[m];
 			xprintf(" <%c,%p,%d,%s,%d>",
 			       vr->vd->kind == VDparam ? 'p' : 'l',
-			       vr->vd->lambda,
+			       vr->vd->lmbda,
 			       vr->vd->idx,
 			       vr->vd->id,
 			       vr->closed ? vr->cidx : -1);
@@ -1399,9 +1399,9 @@ switchctl(Expr *e, Code *code)
 static void
 freeswitchctl(Cases *cs)
 {
-	free(cs->cmp);
-	free(cs->ctl);
-	free(cs);
+	xfree(cs->cmp);
+	xfree(cs->ctl);
+	xfree(cs);
 }
 
 static void
