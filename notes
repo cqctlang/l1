@@ -229,7 +229,15 @@ todo
 		{
 			stmt;
 		};  <---  this ; would be new
-	} 
+	}
+
+  - choice of $ in @names extension is unfortunate but other choices
+    are also problematic:
+
+	@names expr expr { ... }       ambiguous
+	@names expr , expr { ... }     ambiguous
+	@names expr (expr) { ... }     ambiguous
+
 
 
 other systems
