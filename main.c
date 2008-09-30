@@ -137,7 +137,7 @@ main(int argc, char *argv[])
 			printf("%s: %s\n", filename, strerror(errno));
 			continue;
 		}
-		e = cqctparsestr(filename, inbuf);
+		e = cqctparsestr(inbuf, filename);
 		xfree(inbuf);
 		if(e == 0)
 			continue;

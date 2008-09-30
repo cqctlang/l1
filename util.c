@@ -1,15 +1,37 @@
 #include "sys.h"
 #include "util.h"
-#include <execinfo.h>
 
-static Faulthook *faulthook;
+enum {
+	Maxfaulthook = 5,
+};
+typedef void(Faulthook)();
+static Faulthook *faulthook[Maxfaulthook];
+static unsigned nfh;
 u64 cqctmeminuse;
 u64 cqctmemtotal;
 
-void
-setfaulthook(Faulthook *h)
+int
+cqctfaulthook(Faulthook *h, int in)
 {
-	faulthook = h;
+	unsigned n;
+
+	if(in){
+		/* insert */
+		if(nfh >= Maxfaulthook)
+			return -1;
+		faulthook[nfh++] = h;
+		return 0;
+	}else{
+		/* remove */
+		for(n = 0; n < nfh; n++)
+			if(faulthook[n] == h){
+				memmove(faulthook+n, faulthook+n+1,
+					(nfh-1)*sizeof(Faulthook*));
+				nfh--;
+				return 0;
+			}
+		return -1;
+	}
 }
 
 void
@@ -32,13 +54,15 @@ msg(char *fmt, ...)
 void
 fatal(char *fmt, ...)
 {
+	unsigned n;
 	va_list args;
 	xprintf("internal error: ");
 	va_start(args, fmt);
 	vmsg(fmt, args);
 	va_end(args);
-	if(faulthook)
-		faulthook();
+	n = nfh;
+	while(n-- != 0)
+		faulthook[n]();
 	xabort();
 }
 
@@ -72,24 +96,12 @@ void*
 xmalloc(size_t size)
 {
 	void *p;
-	int i, nbt;
-	void *bt[64];
-	char **sym;
 	p = malloc(size+sizeof(size_t));
 	if (!p)
 		fatal("out of memory");
 	memset(p, 0, size+sizeof(size_t));
 	cqctmeminuse += size;
 	cqctmemtotal += size;
-	if(0){
-		printf("alloc %p\t%ld\n", p, size);
-		nbt = backtrace(bt, 64);
-		sym = backtrace_symbols(bt, nbt);
-		for(i = 0; i < nbt; i++)
-			printf("\t%s\n", sym[i]);
-		printf("\n");
-		free(sym);
-	}
 	*(size_t*)p = size;
 	return p+sizeof(size_t);
 }

@@ -18,9 +18,6 @@ void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);
 char* strnchr(char *s, int c, unsigned long len);
 void xfree(void *p);
 
-typedef void(Faulthook)();
-void setfaulthook(Faulthook *h);
-
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #define MIN(a,b) ((a)<(b)?(a):(b))
 

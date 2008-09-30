@@ -3488,29 +3488,58 @@ types.
 <div class="docitem" id="fn:cqctinit">
 <div class="proto">
 <div class="function">
-<span class="id">Env* cqctinit()</span>
+<span class="id">Env* cqctinit(int <span class="arg">gcthread</span>, uint64_t <span class="arg">heapmax</span>)</span>
 </div>
 </div>
 <div class="desc">
 This function must be called first.  It allocates,
 initializes, and returns a Cinquecento environment
 containing bindings for all built-in functions and
-other values.
+other values.  It also initializes the Cinquecento
+storage manager.  If <span class="arg">gcthread</span>
+is non-zero, the garbage collector runs in a separate
+thread.  If <span class="arg">heapmax</span> is
+non-zero, the memory allocator restricts the heap size
+to <span class="arg">heapmax</span> megabytes.
 </div>
 </div>
+
+<div class="docitem" id="fn:cqctfaulthook">
+<div class="proto">
+<div class="function">
+<span class="id">int cqctfaulthook(void (*<span class="arg">fn</span>)(void), int <span class="arg">in</span>)</span>
+</div>
+</div>
+<div class="desc">
+In the event of a non-recoverable error in the
+Cinquecento system, functions previously registered by
+this interface are called in reverse order.
+When <span class="arg">in</span> is non-zero, this
+function registers <span class="arg">fn</span>;
+when <span class="arg">in</span> is
+zero, <span class="arg">fn</span> is unregistered.  At
+most 4 functions can be registered.  When a
+non-recoverable error occurs, if no functions are
+registered, or if each registered function returns, the
+system stops executing in an unspecified manner.
+Programs wishing to regain control should register a
+function that performs a non-local escape.
+<span class="id">Cqctfaulthook</span> returns non-zero
+if there an error occurs during (un)registration.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:cqctmkvm">
 <div class="proto">
 <div class="function">
-<span class="id">VM* cqctmkvm(Env *<span class="arg">env</span>, int<span class="arg">gcthread</span>)</span>
+<span class="id">VM* cqctmkvm(Env *<span class="arg">env</span>)</span>
 </div>
 </div>
 <div class="desc">
 Returns a new Cinquecento evaluator initialized with
 the top-level environment bound
 to <span class="arg">env</span>.
-If <span class="arg">gcthread</span> is non-zero,
-the VM garbage collector runs in a separate thread.
 </div>
 </div>
 
@@ -3520,21 +3549,25 @@ the VM garbage collector runs in a separate thread.
 <span class="id" id="fn:cqctparsefile">Expr* cqctparsefile(char *<span class="arg">filename</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctparsestr">Expr* cqctparsestr(char *<span class="arg">str</span>)</span>
+<span class="id" id="fn:cqctparsestr">Expr* cqctparsestr(char *<span class="arg">str</span>, char *<span class="arg">whence</str>)</span>
 </div>
 </div>
 <div class="desc">
 Returns an <span class="arg">Expr</span> representing
-the parsed form of the input expression.  The input
-expression for <span class="id">cqctparsefile</span> is
-the contents of the
-file <span class="arg">filename</span>.  The input
-expression for <span class="id">cqctparsestr</span> is
-the contents of the
-string <span class="arg">str</span>.  Unless it is subsequently passed to 
+the parsed form of the input expression.  Unless it is
+subsequently passed to
 <span class="fnindex"><a href="#fn:cqctcompile">cqctcompile</a></span>,
-the returned expression should be freed
+the expression returned should be freed
 with <span class="fnindex"><a href="#fn:cqctfreeexpr">cqctfreeexpr</a></span>.
+The input expression
+for <span class="id">cqctparsefile</span> is the
+contents of the file <span class="arg">filename</span>.
+The input expression
+for <span class="id">cqctparsestr</span> is the
+contents of the string <span class="arg">str</span>.
+If <span class="arg">whence</span> is non-zero, it will
+be printed during error formatting as a location
+identifier for <span class="arg">str</span>.
 </div>
 </div>
 
@@ -3557,31 +3590,90 @@ the storage manager when the closure is reclaimed.
 <div class="docitem">
 <div class="proto">
 <div class="function">
+<span class="id" id="fn:cqctcallfn">int cqctcallfn(VM *<span class="arg">vm</span>, Closure *<span class="arg">fn</span>, int <span class="arg">argc</span>, Val *<span class="arg">argv</span>, Val *rv)</span>
+</div>
+<div class="function">
 <span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Closure *<span class="arg">thunk</span>, Val *v)</span>
 </div>
 </div>
 <div class="desc">
-Calls <span class="arg">thunk</span>.  On success, the
+<span class="id">Cqctcallfn</span> calls <span class="arg">fn</span>, passing the <span class="arg">argc</span> arguments stored in the array <span class="arg">argv</span>.  On success, the
 value returned by <span class="arg">thunk</span> is
 stored in the value pointed to
-by <span class="arg">v</span> and the call
+by <span class="arg">rv</span> and the call
+returns <span class="val">0</span>.  If an error
+occurs, returns <span class="val">-1</span>.
+
+<span class="id">Cqctcallthunk</span> calls <span class="arg">thunk</span>.  On success, the
+value returned by <span class="arg">thunk</span> is
+stored in the value pointed to
+by <span class="arg">rv</span> and the call
 returns <span class="val">0</span>.  If an error
 occurs, returns <span class="val">-1</span>.
 </div>
 </div>
 
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctsprintval">char* cqctsprintval(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+Prints the value <span class="arg">v</span> into a freshly allocated C string;
+the
+caller is responsible for freeing the returned string
+with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
+</div>
+</div>
 
 <div class="docitem">
 <div class="proto">
-
 <div class="function">
-<span class="id" id="fn:cqctsprintval">int cqctsprintval(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctval2int8">int8_t cqctval2int8(Val <span class="arg">v</span>)</span>
 </div>
-
+<div class="function">
+<span class="id" id="fn:cqctval2int16">int16_t cqctval2int16(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctval2int32">int32_t cqctval2int32(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctval2int64">int64_t cqctval2int64(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctval2uint8">uint8_t cqctval2uint8(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctval2uint16">uint16_t cqctval2uint16(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctval2uint32">uint32_t cqctval2uint32(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctval2uint64">uint64_t cqctval2uint64(Val <span class="arg">v</span>)</span>
+</div>
 </div>
 <div class="desc">
-<span class="id">Cqctsprintval</span> prints the value <span class="arg">v</span> into a freshly allocated C string;
-the caller is responsible for freeing the string with <span class="id">free</span>.
+These functions convert the
+value <span class="arg">v</span> to a C integer of the
+indicated type.  The result is undefined
+if <span class="arg">v</span> is not a cvalue.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctval2cstr">char* cqctval2cstr(Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+Converts the value <span class="arg">v</span> to a C
+string.  The result is undefined
+if <span class="arg">v</span> is not a string.  The
+caller is responsible for freeing the returned string
+with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 </div>
 </div>
 
@@ -3620,6 +3712,9 @@ of <span class="arg">vm</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
+<span class="id" id="fn:cqctfreecstr">void cqctfreecstr(char *<span class="arg">str</span>)</span>
+</div>
+<div class="function">
 <span class="id" id="fn:cqctfreeexpr">void cqctfreeexpr(Expr *<span class="arg">expr</span>)</span>
 </div>
 <div class="function">
@@ -3631,6 +3726,9 @@ of <span class="arg">vm</span>.
 </div>
 <div class="desc">
 These functions free the resources allocated by the above functions.
+<span class="id">Cqctfreecstr</span> frees a C string returned by
+<span class="fnindex"><a href="#fn:cqctval2cstr">cqctval2cstr</a></span>
+or <span class="fnindex"><a href="#fn:cqctsprintval">cqctsprintval</a></span>.
 <span class="id">Cqctfreeexpr</span> frees an
 expression, and should be called only if the expression
 has not been successfully compiled.
@@ -3669,8 +3767,10 @@ machines sharing the environment have been freed.
 <a href="#fn:bsearch">bsearch</a><br />
 <a href="#fn:close">close</a><br />
 <a href="#fn:copy">copy</a><br />
+<a href="#fn:cqctcallfn">cqctcallfn</a><br />
 <a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
 <a href="#fn:cqctcompile">cqctcompile</a><br />
+<a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
 <a href="#fn:cqctfini">cqctfini</a><br />
 <a href="#fn:cqctfreeexpr">cqctfreeexpr</a><br />
 <a href="#fn:cqctfreevm">cqctfreevm</a><br />
@@ -3680,6 +3780,15 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctparsefile">cqctparsefile</a><br />
 <a href="#fn:cqctparsestr">cqctparsestr</a><br />
 <a href="#fn:cqctsprintval">cqctsprintval</a><br />
+<a href="#fn:cqctval2cstr">cqctval2cstr</a><br />
+<a href="#fn:cqctval2int8">cqctval2int8</a><br />
+<a href="#fn:cqctval2int16">cqctval2int16</a><br />
+<a href="#fn:cqctval2int32">cqctval2int32</a><br />
+<a href="#fn:cqctval2int64">cqctval2int64</a><br />
+<a href="#fn:cqctval2uint8">cqctval2uint8</a><br />
+<a href="#fn:cqctval2uint16">cqctval2uint16</a><br />
+<a href="#fn:cqctval2uint32">cqctval2uint32</a><br />
+<a href="#fn:cqctval2uint64">cqctval2uint64</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:fdname">fdname</a><br />
 <a href="#fn:fieldid">fieldid</a><br />

@@ -14,7 +14,7 @@ main(int argc, char *argv[])
 
 	env = cqctinit(0);
 	vm = cqctmkvm(env);
-	e = cqctparsestr(0, "3+3;");
+	e = cqctparsestr("3+3;", 0);
 	if(e == 0)
 		goto out;
 	entry = cqctcompile(e, env);

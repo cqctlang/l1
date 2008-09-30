@@ -188,7 +188,6 @@ static Ns *litns;
 static Xtypename **litbase;
 static Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
-u64 cqctmaxheap = Maxheap;
 static VM *vms[Maxvms];
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
@@ -9379,7 +9378,7 @@ initvm(int gcthread, u64 heapmax)
 	kcode = contcode();
 	cccode = callccode();
 
-	setfaulthook(vmfaulthook);
+	cqctfaulthook(vmfaulthook, 1);
 }
 
 void
@@ -9411,18 +9410,28 @@ finivm()
 		if(hp->id)
 			freeheap(hp);
 	}
-	setfaulthook(0);
+	cqctfaulthook(vmfaulthook, 0);
 }
 
 int
-cqctcallthunk(VM *vm, Closure *cl, Val *vp)
+cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
 {
 	if(waserror(vm)){
 		vmreset(vm);
 		return -1;
 	}
-	dovm(vm, cl, 0, 0);
-	*vp = vm->ac;
+	*rv = dovm(vm, cl, argc, argv);
+	return 0;
+}
+
+int
+cqctcallthunk(VM *vm, Closure *cl, Val *rv)
+{
+	if(waserror(vm)){
+		vmreset(vm);
+		return -1;
+	}
+	*rv = dovm(vm, cl, 0, 0);
 	return 0;
 }
 
@@ -9546,4 +9555,10 @@ cqctval2cstr(Val v)
 	if(v->qkind != Qstr)
 		return 0;
 	return str2cstr(valstr(v));
+}
+
+void
+cqctfreestr(char *s)
+{
+	xfree(s);
 }

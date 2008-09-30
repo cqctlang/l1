@@ -1,5 +1,4 @@
 extern char cqctflags[];
-extern u64 cqctmaxheap;
 
 typedef
 enum {
@@ -44,18 +43,19 @@ typedef struct Env Env;
 typedef struct Expr Expr;
 typedef struct VM VM;
 
-int		cqctcallthunk(VM *vm, Closure *cl, Val *v);
+int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
+int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
 Closure*	cqctcompile(Expr *e, Env *env);
+int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Env *env);
 void		cqctfreeexpr(Expr *e);
 void		cqctfreevm(VM *vm);
 void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
-Env*		cqctinit(int gcthread, u64 heapmax);
+Env*		cqctinit(int gcthread, uint64_t heapmax);
 VM*		cqctmkvm(Env *env);
 Expr*		cqctparsefile(char *filename);
-Expr*		cqctparsestr(char *filename, char *str);
-void		cqctprintval(VM *vm, Val v);
+Expr*		cqctparsestr(char *str, char *whence);
 char*		cqctsprintval(VM *vm, Val v);
 int8_t		cqctval2int8(Val);
 int16_t		cqctval2int16(Val);

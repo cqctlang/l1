@@ -1275,14 +1275,14 @@ tryinclude(U *ctx, char *raw)
 }
 
 static Expr*
-doparse(char *filename, char *buf)
+doparse(char *buf, char *whence)
 {
 	U ctx;
 
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.el = nullelist();
 	if(setjmp(ctx.jmp) == 0){
-		pushyy(&ctx, filename, buf, 0);
+		pushyy(&ctx, whence, buf, 0);
 		if(yyparse(&ctx) != 0)
 			fatal("parse error");
 	}else
@@ -1305,15 +1305,15 @@ cqctparsefile(char *filename)
 	str = readfile(filename);
 	if(str == 0)
 		return 0;
-	e = doparse(filename, str);
+	e = doparse(str, filename);
 	xfree(str);
 	return e;
 }
 
 Expr*
-cqctparsestr(char *filename, char *str)
+cqctparsestr(char *str, char *whence)
 {
-	return doparse(filename ? filename : stdinname, str);
+	return doparse(str, whence ? whence : stdinname);
 }
 
 Closure*
