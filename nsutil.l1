@@ -225,18 +225,24 @@ define nsdiff(ns1, ns2){
 	u2 = nsdiff0(ns1, ns2);
 	u1 = nsdiff0(ns2, ns1);
 
-	printf("defined in %s but not %s:\n", name1, name2);
-	foreach(lambda(t,ignore){
-			printf("\t%t\n", t);
-		}, u2);
-	printf("defined in %s but not %s:\n", name2, name1);
-	foreach(lambda(t,ignore){
-			printf("\t%t\n", t);
-		}, u1);
-	printf("defined differently in %s and %s:\n", name1, name2);
-	foreach(lambda(t,ignore){
-			printf("\t%t\n", t);
-		}, diff);
+	if(length(u2) > 0){
+		printf("in %s but not %s:\n", name1, name2);
+		foreach(lambda(t,ignore){
+				printf("\t%t\n", t);
+			}, u2);
+	}
+	if(length(u1) > 0){
+		printf("in %s but not %s:\n", name2, name1);
+		foreach(lambda(t,ignore){
+				printf("\t%t\n", t);
+			}, u1);
+	}
+	if(length(diff)){
+		printf("differences between %s and %s:\n", name1, name2);
+		foreach(lambda(t,ignore){
+				printf("\t%t\n", t);
+			}, diff);
+	}
 }
 
 define printtype(t){

@@ -8333,6 +8333,7 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *lst;
 	Vec *vec;
 	Str *str;
+	Tab *tab;
 	Imm len;
 
 	if(argc != 1)
@@ -8351,6 +8352,10 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Qvec:
 		vec = valvec(argv[0]);
 		len = vec->len;
+		break;
+	case Qtab:
+		tab = valtab(argv[0]);
+		len = tab->cnt;
 		break;
 	}
 	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], len);
