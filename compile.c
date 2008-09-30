@@ -2445,7 +2445,7 @@ compileentry(Expr *el, Env *env)
 	emitlabel(L, el);
 
 //	le = newexpr(Elambda, nullelist(), el, 0, 0);
-	le = newexpr(Elambda, nullelist(), 
+	le = newexpr(Elambda, doid("args"),
                     newexpr(Eret,
                             newexpr(Eblock, nullelist(), el, 0, 0),
                             0, 0, 0),

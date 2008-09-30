@@ -1,4 +1,4 @@
-entry: 0 params, 6 locals, 0 temps
+entry: var params, 7 locals, 0 temps
 5
 error: name space does not define struct foo
             looktype	(builtin function)

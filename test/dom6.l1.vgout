@@ -1,4 +1,4 @@
-entry: 0 params, 5 locals, 0 temps
+entry: var params, 6 locals, 0 temps
 p = 0
 q=p+3 = 18
 q-p = 3

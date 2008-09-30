@@ -1,4 +1,4 @@
-entry: 0 params, 5 locals, 0 temps
+entry: var params, 6 locals, 0 temps
 enum E	a
 enum E	b
 enum E	c

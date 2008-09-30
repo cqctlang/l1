@@ -1,4 +1,4 @@
-entry: 0 params, 6 locals, 1 temps
+entry: var params, 7 locals, 1 temps
 L107: 1 params, 0 locals, 0 temps
 L117: 1 params, 0 locals, 0 temps
 d = 3

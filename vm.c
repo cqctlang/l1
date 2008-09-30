@@ -8631,6 +8631,28 @@ l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallitcval(vm, Vulong, cqctmeminuse);
 }
 
+static void
+l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *str;
+	Expr *e;
+	Closure *cl;
+
+	char *s;
+	checkarg(vm, "eval", argv, 0, Qstr);
+	str = valstr(argv[0]);
+	s = str2cstr(str);
+	e = cqctparsestr(s, "<eval-input>");
+	if(e == 0)
+		return;
+	cl = cqctcompile(e, vm->top);
+	if(cl == 0){
+		freeexpr(e);
+		return;
+	}
+	*rv = dovm(vm, cl, 0, 0);
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -9096,6 +9118,7 @@ mktopenv()
 	FN(domof);
 	FN(enumconsts);
 	FN(equal);
+	FN(eval);
 	FN(error);
 	FN(fault);
 	FN(fdname);
@@ -9438,7 +9461,7 @@ cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 /* these routines assume litdom is clp64le */
 
 int8_t
-cqctval2int8(Val v)
+cqctvalint8(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9452,7 +9475,7 @@ cqctval2int8(Val v)
 }
 
 int16_t
-cqctval2int16(Val v)
+cqctvalint16(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9466,7 +9489,7 @@ cqctval2int16(Val v)
 }
 
 int32_t
-cqctval2int32(Val v)
+cqctvalint32(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9480,7 +9503,7 @@ cqctval2int32(Val v)
 }
 
 int64_t
-cqctval2int64(Val v)
+cqctvalint64(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9494,7 +9517,7 @@ cqctval2int64(Val v)
 }
 
 uint8_t
-cqctval2uint8(Val v)
+cqctvaluint8(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9508,7 +9531,7 @@ cqctval2uint8(Val v)
 }
 
 uint16_t
-cqctval2uint16(Val v)
+cqctvaluint16(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9522,7 +9545,7 @@ cqctval2uint16(Val v)
 }
 
 uint32_t
-cqctval2uint32(Val v)
+cqctvaluint32(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9536,7 +9559,7 @@ cqctval2uint32(Val v)
 }
 
 uint64_t
-cqctval2uint64(Val v)
+cqctvaluint64(Val v)
 {
 	Cval *cv, *rv;
 	Xtypename *t;
@@ -9550,11 +9573,65 @@ cqctval2uint64(Val v)
 }
 
 char*
-cqctval2cstr(Val v)
+cqctvalcstr(Val v)
 {
 	if(v->qkind != Qstr)
 		return 0;
 	return str2cstr(valstr(v));
+}
+
+Val
+cqctcstrval(char *s)
+{
+	return mkvalstr(mkstr0(s));
+}
+
+Val
+cqctint8val(int8_t x)
+{
+	return mklitcval(clp64le.xint8, x);
+}
+
+Val
+cqctint16val(int16_t x)
+{
+	return mklitcval(clp64le.xint16, x);
+}
+
+Val
+cqctint32val(int32_t x)
+{
+	return mklitcval(clp64le.xint32, x);
+}
+
+Val
+cqctint64val(int64_t x)
+{
+	return mklitcval(clp64le.xint64, x);
+}
+
+Val
+cqctuint8val(uint8_t x)
+{
+	return mklitcval(clp64le.xuint8, x);
+}
+
+Val
+cqctuint16val(uint16_t x)
+{
+	return mklitcval(clp64le.xuint16, x);
+}
+
+Val
+cqctuint32val(uint32_t x)
+{
+	return mklitcval(clp64le.xuint32, x);
+}
+
+Val
+cqctuint64val(uint64_t x)
+{
+	return mklitcval(clp64le.xuint64, x);
 }
 
 void

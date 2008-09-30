@@ -5,7 +5,7 @@
 static void
 usage(char *argv0)
 {
-	fprintf(stderr, "usage: %s [flags] [-e <file>] \n", argv0);
+	fprintf(stderr, "usage: %s [flags] [-e <file>] arg ... \n", argv0);
 	fprintf(stderr, "without -e, runs in interactive evaluation mode:\n");
 	fprintf(stderr, "\ttype cinquecento expressions on stdin, "
 		" followed by newline\n");
@@ -72,6 +72,8 @@ main(int argc, char *argv[])
 	unsigned len;
 	char *inbuf, *s;
 	u64 heapmax;
+	int i, valc;
+	Val *valv;
 
 	memset(opt, 0, sizeof(opt));
 	opt['x'] = 1;		/* execute */
@@ -118,6 +120,17 @@ main(int argc, char *argv[])
 	if(dorepl)
 		if(setvbuf(stdin, 0, _IONBF, 0))
 			fatal("cannot clear stdin buffering");
+	if(dorepl){
+		valc = 0;
+		valv = 0;
+	}else{
+		valc = argc-optind;
+		valv = malloc(valc*sizeof(Val));
+		if(valv == 0)
+			fatal("out of memory");
+		for(i = 0; i < valc; i++)
+			valv[i] = cqctcstrval(argv[optind+i]);
+	}
 
 	do{
 		inbuf = 0;
@@ -153,7 +166,7 @@ main(int argc, char *argv[])
 		
 		if(opt['t'])
 			gettimeofday(&beg, 0);
-		if(cqctcallthunk(vm, entry, &v))
+		if(cqctcallfn(vm, entry, valc, valv, &v))
 			continue; /* error */
 		if(opt['t']){
 			gettimeofday(&end, 0);
@@ -168,6 +181,8 @@ main(int argc, char *argv[])
 		}
 	}while(dorepl);
 
+	if(!dorepl)
+		free(valv);
 	if(opt['x'])
 		cqctfreevm(vm);
 	cqctfini(env);

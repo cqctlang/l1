@@ -3596,21 +3596,27 @@ the storage manager when the closure is reclaimed.
 <span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Closure *<span class="arg">thunk</span>, Val *v)</span>
 </div>
 </div>
-<div class="desc">
-<span class="id">Cqctcallfn</span> calls <span class="arg">fn</span>, passing the <span class="arg">argc</span> arguments stored in the array <span class="arg">argv</span>.  On success, the
-value returned by <span class="arg">thunk</span> is
-stored in the value pointed to
-by <span class="arg">rv</span> and the call
-returns <span class="val">0</span>.  If an error
-occurs, returns <span class="val">-1</span>.
 
-<span class="id">Cqctcallthunk</span> calls <span class="arg">thunk</span>.  On success, the
-value returned by <span class="arg">thunk</span> is
-stored in the value pointed to
-by <span class="arg">rv</span> and the call
-returns <span class="val">0</span>.  If an error
-occurs, returns <span class="val">-1</span>.
+<div class="desc">
+
+<span class="id">Cqctcallfn</span> calls <span class="arg">fn</span>,
+passing the <span class="arg">argc</span> arguments stored in the
+array <span class="arg">argv</span>.  On success, the value returned
+by <span class="arg">fn</span> is stored in the value pointed to by
+<span class="arg">rv</span> and the call returns <span
+class="val">0</span>.  If an error occurs, the call returns <span
+class="val">-1</span>.
+
 </div>
+
+<div class="desc">
+<span class="id">Cqctcallthunk</span> calls <span
+class="arg">thunk</span>.  On success, the value returned by <span
+class="arg">thunk</span> is stored in the value pointed to by <span
+class="arg">rv</span> and the call returns <span class="val">0</span>.
+If an error occurs, the call returns <span class="val">-1</span>.
+</div>
+
 </div>
 
 <div class="docitem">
@@ -3630,28 +3636,62 @@ with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctval2int8">int8_t cqctval2int8(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctint8val">Val cqctvalint8(int8_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctval2int16">int16_t cqctval2int16(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctint16val">Val cqctvalint16(int16_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctval2int32">int32_t cqctval2int32(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctint32val">Val cqctvalint32(int32_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctval2int64">int64_t cqctval2int64(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctint64val">Val cqctvalint64(int64_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctval2uint8">uint8_t cqctval2uint8(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctuint8val">Val cqctvaluint8(uint8_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctval2uint16">uint16_t cqctval2uint16(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctuint16val">Val cqctvaluint16(uint16_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctval2uint32">uint32_t cqctval2uint32(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctuint32val">Val cqctvaluint32(uint32_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctval2uint64">uint64_t cqctval2uint64(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctuint64val">Val cqctvaluint64(uint64_t <span class="arg">x</span>)</span>
+</div>
+</div>
+<div class="desc">
+These functions construct and return a Cinquecento literal cvalue
+of the indicated type from <span class="arg">x</span>.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctvalint8">int8_t cqctvalint8(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctvalint16">int16_t cqctvalint16(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctvalint32">int32_t cqctvalint32(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctvalint64">int64_t cqctvalint64(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctvaluint8">uint8_t cqctvaluint8(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctvaluint16">uint16_t cqctvaluint16(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctvaluint32">uint32_t cqctvaluint32(Val <span class="arg">v</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:cqctvaluint64">uint64_t cqctvaluint64(Val <span class="arg">v</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -3665,7 +3705,18 @@ if <span class="arg">v</span> is not a cvalue.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctval2cstr">char* cqctval2cstr(Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctcstrval">Val cqctcstrval(char *<span class="arg">s</span>)</span>
+</div>
+</div>
+<div class="desc">
+Constructs and returns a Cinquecento string from the C string <span class="arg">s</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctvalcstr">char* cqctvalcstr(Val <span class="arg">v</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -3770,25 +3821,34 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctcallfn">cqctcallfn</a><br />
 <a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
 <a href="#fn:cqctcompile">cqctcompile</a><br />
+<a href="#fn:cqctcstrval">cqctcstrval</a><br />
 <a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
 <a href="#fn:cqctfini">cqctfini</a><br />
 <a href="#fn:cqctfreeexpr">cqctfreeexpr</a><br />
 <a href="#fn:cqctfreevm">cqctfreevm</a><br />
 <a href="#fn:cqctgcprotect">cqctgcprotect</a><br />
 <a href="#fn:cqctinit">cqctinit</a><br />
+<a href="#fn:cqctint8val">cqctint8val</a><br />
+<a href="#fn:cqctint16val">cqctint16val</a><br />
+<a href="#fn:cqctint32val">cqctint32val</a><br />
+<a href="#fn:cqctint64val">cqctint64val</a><br />
 <a href="#fn:cqctmkvm">cqctmkvm</a><br />
 <a href="#fn:cqctparsefile">cqctparsefile</a><br />
 <a href="#fn:cqctparsestr">cqctparsestr</a><br />
 <a href="#fn:cqctsprintval">cqctsprintval</a><br />
-<a href="#fn:cqctval2cstr">cqctval2cstr</a><br />
-<a href="#fn:cqctval2int8">cqctval2int8</a><br />
-<a href="#fn:cqctval2int16">cqctval2int16</a><br />
-<a href="#fn:cqctval2int32">cqctval2int32</a><br />
-<a href="#fn:cqctval2int64">cqctval2int64</a><br />
-<a href="#fn:cqctval2uint8">cqctval2uint8</a><br />
-<a href="#fn:cqctval2uint16">cqctval2uint16</a><br />
-<a href="#fn:cqctval2uint32">cqctval2uint32</a><br />
-<a href="#fn:cqctval2uint64">cqctval2uint64</a><br />
+<a href="#fn:cqctuint8val">cqctuint8val</a><br />
+<a href="#fn:cqctuint16val">cqctuint16val</a><br />
+<a href="#fn:cqctuint32val">cqctuint32val</a><br />
+<a href="#fn:cqctuint64val">cqctuint64val</a><br />
+<a href="#fn:cqctvalcstr">cqctvalcstr</a><br />
+<a href="#fn:cqctvalint8">cqctvalint8</a><br />
+<a href="#fn:cqctvalint16">cqctvalint16</a><br />
+<a href="#fn:cqctvalint32">cqctvalint32</a><br />
+<a href="#fn:cqctvalint64">cqctvalint64</a><br />
+<a href="#fn:cqctvaluint8">cqctvaluint8</a><br />
+<a href="#fn:cqctvaluint16">cqctvaluint16</a><br />
+<a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
+<a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:fdname">fdname</a><br />
 <a href="#fn:fieldid">fieldid</a><br />

@@ -1,4 +1,4 @@
-entry: 0 params, 0 locals, 0 temps
+entry: var params, 1 locals, 0 temps
 length: 1000
 length: 2000
 x == y -> 1
