@@ -429,8 +429,13 @@ compilens(U *ctx, Expr *e)
 	freeht(enid);
 
 	/* new name space */
-	se = Zcall(doid("mknsraw"), 3,
-		   doid("$ns"), doid("$typetab"), doid("$symtab"));
+	if(e->e3)
+		se = Zcall(doid("mknsraw"), 4,
+			   doid("$ns"), doid("$typetab"), doid("$symtab"),
+			   compile0(ctx, e->e3));
+	else
+		se = Zcall(doid("mknsraw"), 3,
+			   doid("$ns"), doid("$typetab"), doid("$symtab"));
 	te = Zcons(se, te);
 
 	return newexpr(Eblock, loc, invert(te), 0, 0);
@@ -782,6 +787,7 @@ compile0(U *ctx, Expr *e)
 	case Ens:
 		se = compilens(ctx, e);
 		e->e1 = 0;
+		e->e3 = 0;
 		freeexpr(e);
 		return se;
 	default:

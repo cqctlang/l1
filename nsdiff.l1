@@ -1,0 +1,15 @@
+@include <nsutil.l1>
+
+if(length(args) != 3)
+	error("usage: l1 -e nsdiff.l1 <rootns> <names1> <names2>");
+
+rootns = listref(args, 0);
+file1 = listref(args, 1);
+file2 = listref(args, 2);
+
+s = sprintfa("@names %s $\"%s\" { @include <%s> };", rootns, file1, file1);
+ns1 = eval(s);
+s = sprintfa("@names %s $\"%s\" { @include <%s> };", rootns, file2, file2);
+ns2 = eval(s);
+
+nsdiff(ns1, ns2);

@@ -326,6 +326,10 @@ names_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, invert($4), 0, 0); }
 	| NAMES expression '{' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, nullelist(), 0, 0); }
+	| NAMES expression '$' expression '{' names_declaration_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, invert($6), $4, 0); }
+	| NAMES expression '$' expression  '{' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, nullelist(), $4, 0); }
 	;
 
 root_expression

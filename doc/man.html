@@ -231,8 +231,8 @@ value.
 <p>
 Domains, name spaces, and address spaces are
 first-class values in Cinquecento.  A special syntax
-form, <span class="fnindex"
-id="syn:@names">@names</span>, defines new name spaces
+form, <span class="id"><a
+href="#syn:@names">@names</a></span>, defines new name spaces
 using an extended form of C declaration syntax.  Name
 spaces and address spaces can also be constructed from
 by Cinquecento functions written by the user.
@@ -270,15 +270,16 @@ dom = mkdom(ns, as);
 
 <p>
 The usual way to construct a name space is by using
-the <span class="fnindex" id="syn:@names">@names</span>
+the <span class="id"><a
+href="#syn:@names">@names</a></span>
 syntactic form.  Every new name space inherits
 definitions from a previously defined name space.
 Here, <span class="val">c32le</span> is a built-in name
 space that defines the base C types as they are
 commonly defined on 32-bit little-endian machines
 (<em>e.g.</em>, <span class="val">int</span> is four
-bytes).  The body of this <span class="fnindex"
-id="syn:@names">@names</span> expression contains
+bytes).  The body of this <span class="id"><a
+href="#syn:@names">@names</a></span> expression contains
 (ignoring the <span class="val">@</span>
 subexpressions) four C declarations, one defining the
 type <span class="val">struct T</span>, and three
@@ -826,13 +827,16 @@ associated with the name space.
 <div class="docitem" id="syn:@names">
 <div class="proto">
 <div class="syntax">
-<span class="id">@names <span class="arg">parent</span> {
+<span class="id">@names <span class="arg">parent</span> [ $ <span class="arg">name</span> ] {
 	<span class="arg">decl</span> ...
 };
 </span>
 </div>
 <div class="param">
 <span class="arg">parent</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
 </div>
 <div class="param">
 <span class="arg">decl</span>: <span class="type">see description</span>
@@ -845,7 +849,11 @@ associated with the name space.
 This syntax constructs a new name space from a sequence
 of symbol and type declarations.  The declarations are
 written in an extension of the C variable and type
-declaration syntax.
+declaration syntax.  If specified,
+<span
+class="arg">name</span> is a human-readable name
+associated with the name space.
+
 </div>
 <div class="desc">
 There are four forms of declaration: aggregates, symbols,

@@ -1364,7 +1364,7 @@ eqxtn(Xtypename *a, Xtypename *b)
 		return eqstr(a->tag, b->tag);
 	case Tundef:
 	case Tptr:
-		return eqxtn(a, b);
+		return eqxtn(a->link, b->link);
 	case Tarr:
 		if(a->cnt->qkind != b->cnt->qkind)
 			return 0;
@@ -1372,11 +1372,11 @@ eqxtn(Xtypename *a, Xtypename *b)
 			if(!eqcval(a->cnt, b->cnt))
 				return 0;
 		}
-		return eqxtn(a, b);
+		return eqxtn(a->link, b->link);
 	case Tfun:
 		if(a->param->len != b->param->len)
 			return 0;
-		if(!eqxtn(a, b))
+		if(!eqxtn(a->link, b->link))
 			return 0;
 		for(m = 0; m < a->param->len; m++)
 			if(!eqxtn(valxtn(vecref(valvec(vecref(a->param, m)),
@@ -1388,9 +1388,9 @@ eqxtn(Xtypename *a, Xtypename *b)
 	case Tbitfield:
 		if(!eqcval(a->sz, b->sz))
 			return 0;
-		return eqxtn(a, b);
+		return eqxtn(a->link, b->link);
 	case Tconst:
-		return eqxtn(a, b);
+		return eqxtn(a->link, b->link);
 	}
 	fatal("bug");
 }
@@ -7723,6 +7723,32 @@ l1_mkdom(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_nameof(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+	Ns *ns;
+	As *as;
+	Str *name;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to nameof");
+	if(argv[0]->qkind == Qdom){
+		dom = valdom(argv[0]);
+		name = dom->name;
+	}else if(argv[0]->qkind == Qns){
+		ns = valns(argv[0]);
+		name = ns->name;
+	}else if(argv[0]->qkind == Qas){
+		as = valas(argv[0]);
+		name = as->name;
+	}else
+		vmerr(vm, "operand 1 to nameof must be a domain, name space"
+		      " or address space");
+	if(name)
+		*rv = mkvalstr(name);
+}
+
+static void
 l1_asof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
@@ -7989,6 +8015,23 @@ l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(b->val > e->val)
 		vmerr(vm, "substring out of bounds");
 	*rv = mkvalstr(strslice(s, b->val, e->val));
+}
+
+static void
+l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char *s1, *s2, *p;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to strstr");
+	checkarg(vm, "substr", argv, 0, Qstr);
+	checkarg(vm, "substr", argv, 1, Qstr);
+	s1 = str2cstr(valstr(argv[0]));
+	s2 = str2cstr(valstr(argv[1]));
+	p = strstr(s1, s2);
+	if(p)
+		*rv = mklitcval(Vuvlong, p-s1);
+	xfree(s1);
+	xfree(s2);
 }
 
 static void
@@ -9206,6 +9249,7 @@ mktopenv()
 	FN(mktab);
 	FN(mkvec);
 	FN(mkzas);
+	FN(nameof);
 	FN(nsof);
 	FN(nsenumsym);
 	FN(nsenumtype);
@@ -9229,6 +9273,7 @@ mktopenv()
 	FN(stringof);
 	FN(strlen);
 	FN(strput);
+	FN(strstr);
 	FN(strton);
 	FN(substr);
 	FN(subtype);
