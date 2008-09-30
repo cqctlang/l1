@@ -39,7 +39,7 @@ l1: l1.o main.o
 	$(CC) -o $@ $^ -lpthread
 
 l1.o: c.tab.o lex.yy.o $(L1O)
-	$(LD) -r -o $@ $^
+	$(LD) -d -r -o $@ $^
 
 libl1.so: c.tab.o lex.yy.o $(L1O)
 	$(CC) -nostdlib -shared -Xlinker -Bsymbolic -o $@ $^
