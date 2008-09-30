@@ -164,7 +164,7 @@ main(int argc, char *argv[])
 		if(dorepl && v->qkind != Qnil){
 			s = cqctsprintval(vm, v);
 			printf("%s\n", s);
-			xfree(s);
+			cqctfreecstr(s);
 		}
 	}while(dorepl);
 

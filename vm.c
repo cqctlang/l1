@@ -9558,7 +9558,7 @@ cqctval2cstr(Val v)
 }
 
 void
-cqctfreestr(char *s)
+cqctfreecstr(char *s)
 {
 	xfree(s);
 }

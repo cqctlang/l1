@@ -48,6 +48,7 @@ int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
 Closure*	cqctcompile(Expr *e, Env *env);
 int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Env *env);
+void		cqctfreecstr(char *s);
 void		cqctfreeexpr(Expr *e);
 void		cqctfreevm(VM *vm);
 void		cqctgcprotect(VM *vm, Val v);
