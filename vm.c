@@ -5393,6 +5393,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vmsetcl(vm, vm->cl);
 		vm->pc = stkimm(vm->stack[vm->sp]);
 		vmpop(vm, 3);
+		thegc->gcpoll(thegc);
 		continue;
 	Ijmp:
 		vm->pc = i->dstlabel->insn;
