@@ -932,6 +932,8 @@ typesize(VM *vm, Xtypename *xtn)
 {
 	Cval *cv;
 	Str *es;
+	if(xtn == 0)
+		vmerr(vm, "attempt to compute size of undefined type");
 	switch(xtn->tkind){
 	case Tvoid:
 		vmerr(vm, "attempt to compute size of void type");

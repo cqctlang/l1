@@ -1,9 +1,14 @@
 todo
 ----
 - core functionality
-  - other string functions
-    strcata
-    isstring like old cqct isstring?
+  - string operations:
+    - strcata?
+    - isstring like old cqct isstring?
+    - search for a substring
+    - parse/tokenize ascii, e.g., file of lines containing
+	val1 val2
+	val1 val2
+	...
   - rationalize names of various type routines
 	 (isfunc/mkctype_fn, isenumconst/mkctype_const,...)
   - provide a mapfile mode argument:
