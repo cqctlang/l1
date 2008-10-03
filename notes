@@ -64,27 +64,6 @@ todo
     - for ctypes: pointer eq, name eq, structure eq;
   - make enumtype etc implicit calls to underlying ns functions
     get rid of nsenumtype accessor
-  - source line mapping in presence of expansion is broken.
-    figure out a way to test;
-
-    the m++ is an error because m is not initialized;
-    the error handler reports the error at the close }
-    of the while body.
-
-		define mkbpfn2(){
-			@local n, h, hd, m;
-			return lambda(addr){
-				printf("at trap2\n");
-				
-				h = &dom`heap[dom`Qcval];
-				hd = h->sweep;
-				while(hd){
-					m++;
-					hd = hd->link;
-				}
-				printf("nsweep is %u\n", m);
-			};
-		}
 
 - usability
   - change "entry" to "toplevel"

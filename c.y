@@ -747,12 +747,22 @@ local_list
 compound_statement
 	: '{' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Eblock, nullelist(), nullelist(), 0, 0); }
-	| '{' statement_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Eblock, nullelist(), invert($2), 0, 0); }
 	| '{' local_list '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Eblock, invert($2), nullelist(), 0, 0); }
+	| '{' statement_list '}'
+	{
+		/* use src of first statement */
+		Expr *sl;
+		sl = invert($2);
+		$$ = newexprsrc(&sl->src, Eblock, nullelist(), sl, 0, 0);
+	}
 	| '{' local_list statement_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Eblock, invert($2), invert($3), 0, 0); }
+	{ 
+		/* use src of first statement */
+		Expr *sl;
+		sl = invert($3);
+		$$ = newexprsrc(&sl->src, Eblock, invert($2), sl, 0, 0); 
+	}
 	;
 
 statement_list
