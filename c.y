@@ -86,6 +86,15 @@ tickid
 
 tag:	id;
 
+lambda_expression
+	: LAMBDA '(' identifier_list ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
+	| LAMBDA '(' ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
+	| LAMBDA id compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Elambda, $2, $3, 0, 0); }
+	;
+
 primary_expression
 	: id
 	| tickid
@@ -101,6 +110,7 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
+	| lambda_expression
 	;
 
 postfix_expression
@@ -298,16 +308,6 @@ identifier_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
-lambda_expression
-	: assignment_expression
-	| LAMBDA '(' identifier_list ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
-	| LAMBDA '(' ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
-	| LAMBDA id compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Elambda, $2, $3, 0, 0); }
-	;
-
 names_declaration_list
 	: names_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
@@ -321,7 +321,7 @@ names_declaration
 	;
 
 names_expression
-	: lambda_expression
+	: assignment_expression
 	| NAMES expression '{' names_declaration_list '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, invert($4), 0, 0); }
 	| NAMES expression '{' '}'

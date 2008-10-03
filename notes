@@ -22,8 +22,6 @@ todo
     interactions of signals with threads?
     gc state vs exit and interruption
     useful for blocking/polling on remote events
-  - optional names for as, ns, and dom
-    - display names in errors such as "undefined type"
   - does pointer conversion make sense when type comes from a domain
     with different pointer size?
     e.g.:
@@ -116,7 +114,6 @@ todo
   - all type deconstructors (e.g., fields) need to check for
     type attributes that are not required for constructors
   - why do vmerr backtraces include entry, but not fatal ones?
-  - why doesn't inline fn call work:  lambda(x){ printf("%d\n"); }()
   - this draws confusing diagnostic:
     	tab = mktab(); print("%d\n", tab->len);
   - rationalize MAX and max()
