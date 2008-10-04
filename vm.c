@@ -106,7 +106,7 @@ static Head *GCiterdone;
 #define GCCOLOR(i) ((i)%3)
 enum {
 	GCfree = 3,
-	GCrate = 1000,
+	GCrate = 100000,
 	GCinitprot = 128,	/* initial # of GC-protected lists in VM */
 };
 
@@ -154,8 +154,6 @@ struct GC {
 	Rootset stores;
 	u64 heapmax, heaphi;
 };
-
-
 
 static void dogc(GC*);
 static void vmsetcl(VM *vm, Val val);
