@@ -453,7 +453,7 @@ expandc(U *ctx, Expr *e)
 	case Eswitch: /* for cg */
 		/*
 		   switch(E){       { @local $tmp;
-		   case V1:     =>    switch($tmp == E){
+		   case V1:     =>    switch($tmp = E){
 		      ...             case $tmp==V1:
 		   }                      ...
                                       }

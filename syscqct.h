@@ -766,6 +766,7 @@ void		freeenv(Env *env);
 void		initvm(int gcthread, u64 heapmax);
 void		finivm();
 int		freecode(Head *hd);
+void		heapfree(Head *p);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
@@ -828,10 +829,9 @@ Fd*		vmstdout(VM *vm);
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 #define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
 
-typedef int(*hf)(Head*);
-
-hf getheapfree(Qkind qkind);
-void setheapfree(Qkind qkind, hf free1);
+typedef int(*Freeheadfn)(Head*);
+Freeheadfn getfreeheadfn(Qkind qkind);
+void setfreeheadfn(Qkind qkind, Freeheadfn free1);
 
 extern		void fns(Env*);
 

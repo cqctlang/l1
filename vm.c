@@ -69,7 +69,7 @@ struct Heap {
 	Qkind qkind;
 	unsigned sz;
 	unsigned clearit;
-	int (*free1)(Head *hd);
+	Freeheadfn free1;
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	Head *alloc, *swept, *sweep, *free;
 	unsigned long nalloc, nfree, nha;    /* statistics */
@@ -394,6 +394,21 @@ retry:
 	return o;
 }
 
+void
+heapfree(Head *p)
+{
+	if(HEAPDEBUG)
+		xprintf("collect %s %p\n", p->heap->id, p); 
+	if(p->state != 0 || p->inrootset)
+		fatal("sweep heap (%s) %p bad state %d",
+		      p->heap->id, p, p->state);
+	p->link = p->heap->sweep;
+	p->heap->sweep = p;
+	p->state = -1;
+	p->color = GCfree;
+//	VALGRIND_MAKE_MEM_NOACCESS(p+1, p->heap->sz-sizeof(Head));
+}
+
 static void
 sweepheap(Heap *heap, unsigned color)
 {
@@ -401,23 +416,10 @@ sweepheap(Heap *heap, unsigned color)
 	p = heap->alloc;
 	while(p){
 		if(p->color == color){
-			if(heap->free1){
-				if(heap->free1(p) == 0){
-					xprintf("defer %s %p\n", heap->id, p);
-					p->color = GCfree;
-					continue; /* deferred free */
-				}
-			}
-			if(HEAPDEBUG)
-				xprintf("collect %s %p\n", heap->id, p); 
-			if(p->state != 0 || p->inrootset)
-				fatal("sweep heap (%s) %p bad state %d",
-				      heap->id, p, p->state);
-			p->link = heap->sweep;
-			heap->sweep = p;
-			p->state = -1;
 			p->color = GCfree;
-//			VALGRIND_MAKE_MEM_NOACCESS(p+1, heap->sz-sizeof(Head));
+			if(heap->free1 && heap->free1(p) == 0)
+				continue; /* deferred free */
+			heapfree(p);
 		}
 		p = p->alink;
 	}
@@ -454,14 +456,14 @@ freeheap(Heap *heap)
 	}
 }
 
-hf
-getheapfree(Qkind qkind)
+Freeheadfn
+getfreeheadfn(Qkind qkind)
 {
 	return heap[qkind].free1;
 }
 
 void
-setheapfree(Qkind qkind, hf free1)
+setfreeheadfn(Qkind qkind, Freeheadfn free1)
 {
 	heap[qkind].free1 = free1;
 }
@@ -1705,7 +1707,6 @@ tabexpand(Tab *tab)
 
 	x = tab->x;
 	nx = mktabx(x->sz*2);
-xprintf("tabexpand %d\n", x->sz*2);
 	m = 0;
 	for(i = 0; i < x->sz && m < tab->cnt; i++){
 		tk = x->idx[i];

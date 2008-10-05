@@ -2,7 +2,30 @@
 #include "util.h"
 #include "syscqct.h"
 
-static Tab *prof;		/* FIXME: gc vulnerable with multiple VMs */
+enum {
+	Maxtrace = 1000000,	/* Trace records while profiler engaged  */
+	Maxdefer = 1000000,	/* Deferred closure and code garbage */
+};
+
+typedef
+struct Trace {
+	Imm pc;
+	Closure *cl;
+} Trace;
+
+typedef
+struct Profiler
+{
+	Trace *trace;
+	u32 ntrace;
+	Head **defer;
+	u32 ndefer;
+	Freeheadfn freecl, freecode;
+} Profiler;
+
+static Profiler *prof;
+static void	finiprof();
+
 
 static void
 l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -63,31 +86,27 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallitcval(vm, Vulong, r);
 }
 
-enum {
-	Maxtr = 1000000,
-};
-typedef
-struct Tr {
-	Imm pc;
-	Closure *cl;
-} Tr;
-static Tr trs[Maxtr];
-static u32 ntr;
-
 static void
 profsample(VM *vm)
 {
-	struct Tr *tr;
-	if(ntr >= Maxtr){
-		xprintf("profile trace buffer exhausted\n");
+	Trace *tr;
+	if(prof->ntrace >= Maxtrace){
+		xprintf("profile: trace buffer exhausted, "
+			"profile suspended\n");
+		setproftimer(0, 0);
 		return;
 	}
-	tr = &trs[ntr++];
-	tr->pc = vm->pc-1;
+	tr = &prof->trace[prof->ntrace++];
+	tr->pc = vm->pc;
+	/* we assume that pc is on next insn, but it may not be if profiler
+	   interrupted the insn fetch!  we catch only the easy, necessary
+	   case of pc==0 */
+	if(tr->pc != 0)
+		tr->pc -= 1;
 	tr->cl = vm->clx;
 }
 
-static void
+static Tab*
 dotrs(VM *vm)
 {
 	char buf[256];
@@ -96,44 +115,49 @@ dotrs(VM *vm)
 	Code *code;
 	Val k, v;
 	Cval *cv;
-	struct Tr *tr;
+	Trace *tr;
 	Ctl **ls;
-
-	tr = trs;
-	while(tr < trs+ntr){
-		pc = tr->pc;		/* vm loop increments pc after fetch */
+	Tab *tab;
+	
+	tab = mktab();
+	tr = prof->trace;
+	while(tr < prof->trace+prof->ntrace){
+		pc = tr->pc;
 		cl = tr->cl;
 		tr++;
 		code = cl->code;
 		if(cl->cfn || cl->ccl)
-			snprintf(buf, sizeof(buf), "%20s\t(builtin %s)", cl->id,
-				 cl->cfn ? "function" : "closure");
-		else
+			snprintf(buf, sizeof(buf), "%30s\t(builtin %s)",
+				 cl->id, cl->cfn ? "function" : "closure");
+		else{
 			while(1){
 				ls = code->labels;
 				if(ls[pc] && ls[pc]->src){
 					snprintf(buf, sizeof(buf),
-						 "%20s\t(%s:%u)", cl->id,
+						 "%30s\t(%s:%u)", cl->id,
 						 ls[pc]->src->filename,
 						 ls[pc]->src->line);
 					break;
 				}
 				if(pc == 0){
 					snprintf(buf, sizeof(buf),
-						 "(unknown code)");
+						 "%30s", "(unknown code)");
 					break;
 				}
 				pc--;
 			}
+		}
 		k = mkvalstr(mkstr0(buf));
-		v = tabget(prof, k);
+		v = tabget(tab, k);
 		if(v){
 			cv = valcval(v);
 			v = mklitcval(Vuvlong, 1+cv->val);
 		}else
 			v = mklitcval(Vuvlong, 1);
-		tabput(vm, prof, k, v);
+		tabput(vm, tab, k, v);
 	}
+	xprintf("profile: %d samples\n", prof->ntrace);
+	return tab;
 }
 
 static void
@@ -151,23 +175,57 @@ doprof()
 }
 
 static int
-dontfree(Head *hd)
+deferfree(Head *hd)
 {
+	if(prof->ndefer >= Maxdefer-1){
+		prof->defer[prof->ndefer++] = hd;
+		setproftimer(0, 0);
+		finiprof();
+		xprintf("profile: deferral buffer exhausted, "
+			"profile aborted\n");
+		return 0;
+	}
+	prof->defer[prof->ndefer++] = hd;
 	return 0;
 }
 
 static void
-l1_profoff(VM *vm, Imm argc, Val *argv, Val *rv)
+initprof()
 {
-	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to profon");
-	if(prof == 0)
-		return;
-	dotrs(vm);
-	*rv = mkvaltab(prof);
-	vm->prof = 0;		/* gc rootset */
+	prof = xmalloc(sizeof(Profiler));
+	prof->trace = xmalloc(Maxtrace*sizeof(Trace));
+	prof->defer = xmalloc(Maxdefer*sizeof(Head*));
+	prof->freecl = getfreeheadfn(Qcl);
+	prof->freecode = getfreeheadfn(Qcode);
+	setfreeheadfn(Qcl, deferfree);
+	setfreeheadfn(Qcode, deferfree);
+}
+
+static void
+finiprof()
+{
+	Head *hd;
+
+	while(prof->ndefer-- > 0){
+		hd = prof->defer[prof->ndefer];
+		switch(hd->qkind){
+		case Qcl:
+			prof->freecl(hd);
+			break;
+		case Qcode:
+			prof->freecode(hd);
+			break;
+		default:
+			fatal("unexpected object in deferral buffer");
+		}
+		heapfree(hd);
+	}
+	setfreeheadfn(Qcl, prof->freecl);
+	setfreeheadfn(Qcode, prof->freecode);
+	xfree(prof->trace);
+	xfree(prof->defer);
+	xfree(prof);
 	prof = 0;
-	setproftimer(0, 0);
 }
 
 static void
@@ -177,12 +235,20 @@ l1_profon(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to profon");
 	if(prof)
 		return;
-	setheapfree(Qcode, dontfree);
-	setheapfree(Qcl, dontfree);
-	prof = mktab();
-	ntr = 0;
-	vm->prof = prof;
+	initprof();
 	setproftimer(1000, doprof);
+}
+
+static void
+l1_profoff(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to profoff");
+	if(prof == 0)
+		return;
+	setproftimer(0, 0);
+	*rv = mkvaltab(dotrs(vm));
+	finiprof();
 }
 
 void
