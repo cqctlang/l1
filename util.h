@@ -39,7 +39,9 @@ int		chanreadb(int c, char *b);
 int		chanwriteb(int c, char *b);
 void		newchan(int *left, int *right);
 Thread		newthread(void* (*fn)(void*), void *arg);
+void		setproftimer(u32 usec, void(*fn)());
 void		threadexit(void *vp);
+void		threadinit();
 void		threadwait(Thread t);
 
 extern u64 cqctmeminuse;

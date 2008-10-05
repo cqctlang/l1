@@ -64,42 +64,16 @@ static unsigned isbigendian[Rnrep] = {
 	[Rs64be]=	1,
 };
 
-enum {
-	Tabinitsize=1024,	/* power of 2 */
-	Listinitsize=16,
-	Maxprintint=32,
-	Typepos=0,
-	Idpos=1,
-	Offpos=2,
-	Maxvms=1024,
-	Errinitdepth=128,	/* initial max error stack */
-};
-
 struct Heap {
 	char *id;
 	Qkind qkind;
 	unsigned sz;
 	unsigned clearit;
-	void (*free1)(Head *hd);
+	Freeheadfn free1;
 	Head* (*iter)(Head *hd, Ictx *ictx);
 	Head *alloc, *swept, *sweep, *free;
 	unsigned long nalloc, nfree, nha;    /* statistics */
 };
-
-typedef struct Root Root;
-struct Root {
-	Head *hd;
-	Root *link;
-};
-
-typedef
-struct Rootset {
-	Root *roots;
-	Root *last;
-	Root *before_last;
-	Root *this;
-	Root *free;
-} Rootset;
 
 static Head *GCiterdone;
 
@@ -114,31 +88,6 @@ static unsigned long long nextgctick = GCrate;
 
 struct Env {
 	HT *ht;
-};
-
-typedef
-struct Err {
-	jmp_buf esc;
-	unsigned pdepth;	/* vm->pdepth when error label set */
-} Err;
-
-struct VM {
-	Val stack[Maxstk];
-	Dom *litdom;
-	Ns *litns;
-	Xtypename **litbase;	/* always points to litns->base */
-	Str *sget, *sput, *smap;/* cached dispatch operands */
-	Fd *stdout, *stdin;
-	Root **prot;		/* stack of lists of GC-protected objects */
-	Rootset rs;		/* Root free list for prot */
-	unsigned pdepth, pmax;	/* # live and max prot lists  */
-	Env *top;
-	Imm sp, fp, pc;
-	Closure *clx;
-	Insn *ibuf;
-	Val ac, cl;
-	Err *err;		/* stack of error labels */
-	unsigned edepth, emax;	/* # live and max error labels */
 };
 
 typedef struct GC GC;
@@ -186,7 +135,7 @@ static Ns *litns;
 static Xtypename **litbase;
 static Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
-static VM *vms[Maxvms];
+VM *vms[Maxvms];
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
 
@@ -208,12 +157,12 @@ static char *opstr[Iopmax] = {
 	[Icmple] = "<=",
 };
 
-static void freecl(Head*);
-static void freefd(Head*);
-static void freelist(Head*);
-static void freestr(Head*);
-static void freetab(Head*);
-static void freevec(Head*);
+static int freecl(Head*);
+static int freefd(Head*);
+static int freelist(Head*);
+static int freestr(Head*);
+static int freetab(Head*);
+static int freevec(Head*);
 
 static Head *iteras(Head*, Ictx*);
 static Head *iterbox(Head*, Ictx*);
@@ -445,6 +394,21 @@ retry:
 	return o;
 }
 
+void
+heapfree(Head *p)
+{
+	if(HEAPDEBUG)
+		xprintf("collect %s %p\n", p->heap->id, p); 
+	if(p->state != 0 || p->inrootset)
+		fatal("sweep heap (%s) %p bad state %d",
+		      p->heap->id, p, p->state);
+	p->link = p->heap->sweep;
+	p->heap->sweep = p;
+	p->state = -1;
+	p->color = GCfree;
+//	VALGRIND_MAKE_MEM_NOACCESS(p+1, p->heap->sz-sizeof(Head));
+}
+
 static void
 sweepheap(Heap *heap, unsigned color)
 {
@@ -452,18 +416,10 @@ sweepheap(Heap *heap, unsigned color)
 	p = heap->alloc;
 	while(p){
 		if(p->color == color){
-			if(heap->free1)
-				heap->free1(p);
-			if(HEAPDEBUG)
-				xprintf("collect %s %p\n", heap->id, p); 
-			if(p->state != 0 || p->inrootset)
-				fatal("sweep heap (%s) %p bad state %d",
-				      heap->id, p, p->state);
-			p->link = heap->sweep;
-			heap->sweep = p;
-			p->state = -1;
 			p->color = GCfree;
-//			VALGRIND_MAKE_MEM_NOACCESS(p+1, heap->sz-sizeof(Head));
+			if(heap->free1 && heap->free1(p) == 0)
+				continue; /* deferred free */
+			heapfree(p);
 		}
 		p = p->alink;
 	}
@@ -498,6 +454,18 @@ freeheap(Heap *heap)
 		xfree(p);
 		p = q;
 	}
+}
+
+Freeheadfn
+getfreeheadfn(Qkind qkind)
+{
+	return heap[qkind].free1;
+}
+
+void
+setfreeheadfn(Qkind qkind, Freeheadfn free1)
+{
+	heap[qkind].free1 = free1;
 }
 
 static Head*
@@ -716,6 +684,7 @@ rootset(GC *gc)
 		addroot(&gc->roots, (Head*)vm->sget);
 		addroot(&gc->roots, (Head*)vm->sput);
 		addroot(&gc->roots, (Head*)vm->smap);
+		addroot(&gc->roots, (Head*)vm->prof);
 
 		/* current GC-protected objects */
 		for(m = 0; m < vm->pdepth; m++){
@@ -864,6 +833,7 @@ gcchild(void *p)
 	int die = 0;
 	char b;
 
+	threadinit();
 	while(!die){
 		waitgcrun(gc);
 		mark(gc, GCCOLOR(gcepoch));
@@ -1097,22 +1067,24 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 	return cl;
 }
 
-static void
+static int
 freecl(Head *hd)
 {
 	Closure *cl;
 	cl = (Closure*)hd;
 	xfree(cl->display);
 	xfree(cl->id);
+	return 1;
 }
 
-static void
+static int
 freefd(Head *hd)
 {
 	Fd *fd;
 	fd = (Fd*)hd;
 	if(fd->close && (fd->flags&Fclosed) == 0)
 		fd->close(fd);
+	return 1;
 }
 
 Fd*
@@ -1480,7 +1452,7 @@ strslice(Str *str, Imm beg, Imm end)
 	return mkstr(str->s+beg, end-beg);
 }
 
-static void
+static int
 freestr(Head *hd)
 {
 	Str *str;
@@ -1495,6 +1467,7 @@ freestr(Head *hd)
 	case Sperm:
 		break;
 	}
+	return 1;
 }
 
 static int
@@ -1590,12 +1563,13 @@ itervec(Head *hd, Ictx *ictx)
 	return valhead(vec->vec[ictx->n++]);
 }
 
-static void
+static int
 freevec(Head *hd)
 {
 	Vec *vec;
 	vec = (Vec*)hd;
 	xfree(vec->vec);
+	return 1;
 }
 
 static Tabx*
@@ -1629,7 +1603,7 @@ _mktab(Tabx *x)
 	return tab;
 }
 
-static Tab*
+Tab*
 mktab()
 {
 	return _mktab(mktabx(Tabinitsize));
@@ -1661,7 +1635,7 @@ itertab(Head *hd, Ictx *ictx)
 	return valhead(x->key[idx]);
 }
 
-static void
+static int
 freetab(Head *hd)
 {
 	u32 i;
@@ -1680,6 +1654,7 @@ freetab(Head *hd)
 		}
 	}
 	freetabx(x);
+	return 1;
 }
 
 static Tabidx*
@@ -1711,7 +1686,7 @@ _tabget(Tab *tab, Val keyv, Tabidx ***prev)
 	return 0;
 }
 
-static Val
+Val
 tabget(Tab *tab, Val keyv)
 {
 	Tabidx *tk;
@@ -1805,7 +1780,7 @@ _tabput(Tab *tab, Val keyv, Val val)
 	dotabput(0, tab, keyv, val);
 }
 
-static void
+void
 tabput(VM *vm, Tab *tab, Val keyv, Val val)
 {
 	dotabput(vm, tab, keyv, val);
@@ -1942,12 +1917,13 @@ freelistx(Listx *x)
 	xfree(x);
 }
 
-static void
+static int
 freelist(Head *hd)
 {
 	List *lst;
 	lst = (List*)hd;
 	freelistx(lst->x);
+	return 1;
 }
 
 static void

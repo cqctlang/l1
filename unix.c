@@ -128,6 +128,14 @@ newthread(void* (*fn)(void*), void *arg)
 }
 
 void
+threadinit()
+{
+	sigset_t mask;
+	sigfillset(&mask);
+	pthread_sigmask(SIG_BLOCK, &mask, 0);
+}
+
+void
 threadexit(void *vp)
 {
 	pthread_exit(vp);
@@ -137,4 +145,19 @@ void
 threadwait(Thread t)
 {
 	pthread_join((pthread_t)t, 0);
+}
+
+void
+setproftimer(u32 usec, void(*fn)())
+{
+	struct itimerval it;
+	memset(&it, 0, sizeof(it));
+	it.it_interval.tv_usec = usec;
+	it.it_value.tv_usec = usec;
+	if(fn)
+		signal(SIGPROF, fn);
+	if(0 > setitimer(ITIMER_PROF, &it, 0))
+		fatal("setitimer: %s", strerror(errno));
+	if(fn == 0)
+		signal(SIGPROF, SIG_DFL);
 }

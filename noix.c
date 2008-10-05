@@ -101,6 +101,12 @@ newthread(void* (*fn)(void*), void *arg)
 }
 
 void
+threadinit()
+{
+	notimpl("threadinit");
+}
+
+void
 threadexit(void *vp)
 {
 	notimpl("threadexit");
