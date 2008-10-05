@@ -135,7 +135,7 @@ mkcode()
 	return code;
 }
 
-void
+int
 freecode(Head *hd)
 {
 	Code *code;
@@ -155,6 +155,7 @@ freecode(Head *hd)
 	freeexpr(code->src);
 	xfree(code->insn);
 	xfree(code->labels);
+	return 1;
 }
 
 static Insn*

@@ -184,6 +184,22 @@ enum {
 	Tntkind=Tundef+1,	/* keep outside of Tkind */
 };
 
+enum {
+	Tabinitsize=1024,	/* power of 2 */
+	Listinitsize=16,
+	Maxprintint=32,
+	Typepos=0,
+	Idpos=1,
+	Offpos=2,
+	Maxvms=1024,
+	Errinitdepth=128,	/* initial max error stack */
+	Maxtmp = 128,
+	Maxstk = 1024,
+	InsnAlloc = 10,
+	AllocBatch = 128,
+	Maxheap	= 5*1024*1024,
+};
+
 typedef struct Decl Decl;
 typedef struct Enum Enum;
 typedef struct Type Type;
@@ -539,12 +555,6 @@ enum {
 
 	Clabel = 0,
 	Clabelpair,
-
-	Maxtmp = 128,
-	Maxstk = 1024,
-	InsnAlloc = 10,
-	AllocBatch = 128,
-	Maxheap	= 5*1024*1024,
 };
 
 typedef
@@ -627,9 +637,51 @@ struct BFgeom {
 	int les, bes;
 } BFgeom;
 
+typedef struct Root Root;
+struct Root {
+	Head *hd;
+	Root *link;
+};
+
+typedef
+struct Rootset {
+	Root *roots;
+	Root *last;
+	Root *before_last;
+	Root *this;
+	Root *free;
+} Rootset;
+
+typedef
+struct Err {
+	jmp_buf esc;
+	unsigned pdepth;	/* vm->pdepth when error label set */
+} Err;
+
+struct VM {
+	Val stack[Maxstk];
+	Dom *litdom;
+	Ns *litns;
+	Xtypename **litbase;	/* always points to litns->base */
+	Str *sget, *sput, *smap;/* cached dispatch operands */
+	Fd *stdout, *stdin;
+	Root **prot;		/* stack of lists of GC-protected objects */
+	Rootset rs;		/* Root free list for prot */
+	unsigned pdepth, pmax;	/* # live and max prot lists  */
+	Env *top;
+	Imm sp, fp, pc;
+	Closure *clx;
+	Insn *ibuf;
+	Val ac, cl;
+	Err *err;		/* stack of error labels */
+	unsigned edepth, emax;	/* # live and max error labels */
+	Tab *prof;
+};
+
 extern char* S[];
 extern char* basename[];
 extern char* tkindstr[];
+extern VM*   vms[];
 
 /* c.l */
 void		freeyystate(YYstate *yy);
@@ -713,7 +765,7 @@ Val*		envgetbind(Env *env, char *id);
 void		freeenv(Env *env);
 void		initvm(int gcthread, u64 heapmax);
 void		finivm();
-void		freecode(Head *hd);
+int		freecode(Head *hd);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
@@ -726,6 +778,7 @@ Str*		mkstrlits(Lits *lits);
 Str*		mkstr0(char *s);
 Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(VM *vm, Imm len);
+Tab*		mktab();
 Env*		mktopenv();
 Val		mkvalas(As *as);
 Val		mkvalbox(Val boxed);
@@ -752,6 +805,8 @@ void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
 char*		str2cstr(Str *str);
+Val		tabget(Tab *tab, Val keyv);
+void		tabput(VM *vm, Tab *tab, Val keyv, Val val);
 Imm		valimm(Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 void		vmreset(VM *vm);
@@ -772,6 +827,11 @@ Fd*		vmstdout(VM *vm);
 #define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 #define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
+
+typedef int(*hf)(Head*);
+
+hf getheapfree(Qkind qkind);
+void setheapfree(Qkind qkind, hf free1);
 
 extern		void fns(Env*);
 

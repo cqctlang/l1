@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <pthread.h>
+#include <signal.h>
 
 //#include <valgrind/memcheck.h>
 
