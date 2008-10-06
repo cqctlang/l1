@@ -236,6 +236,8 @@ dtrace
 
 emmett
 
+gdb agent
+
 parsers
 - antlr/peg
 
