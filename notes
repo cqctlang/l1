@@ -219,7 +219,10 @@ todo
 	@names expr , expr { ... }     ambiguous
 	@names expr (expr) { ... }     ambiguous
 
+- documentation
 
+  cqct is a special-purpose language designed for working with an
+  unusual type of data: programs in execution.
 
 other systems
 -------------

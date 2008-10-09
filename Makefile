@@ -54,5 +54,11 @@ lo: lo.o libl1.so
 depend: Makefile
 	gcc $(INC) -MM $(L1C) > depend
 
+archive:
+	git archive --format=tar --prefix=l1/ HEAD > ../l1.tar
+
+git.tar:
+	tar -C .. -cz l1 > ../l1.git.tar.gz
+
 clean:
 	rm -f *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o lo lo.o l1.o fns.$(CONF).c $(L1O) $(TARG) libl1.so depend 
