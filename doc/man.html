@@ -670,7 +670,7 @@ with a name.
 </p>
 
 <p>
-Conceputally, a name space is an interface consisting
+Conceptually, a name space is an interface consisting
 of five functions:
 </p>
 
@@ -705,10 +705,10 @@ representing the mapping defined by <span
 class="arg">looktype</span> and
 <span class="arg">looksym</span>.  For <span
 class="arg">enumtype</span> the keys are type names (as
-ctypes) and the values are the corresponding defintions
+ctypes) and the values are the corresponding definitions
 (also as ctypes).  For <span class="arg">enumsym</span>
 the keys are symbol names (as strings) and the values
-are the corresponding defintions (as vectors).
+are the corresponding definitions (as vectors).
 </p>
 
 <p>
@@ -749,7 +749,7 @@ this section further describes these mechanisms.
 <div class="docitem" id="fn:mkns">
 <div class="proto">
 <div class="function">
-<span class="id">mkns(<span class="arg">looktype</span>,<span class="arg">enumtype</span>,<span class="arg">looksym</span>,<span class="arg">enumsym</span>,<span class="arg">enumsym</span>[,<span class="arg">name</span>])</span>
+<span class="id">mkns(<span class="arg">looktype</span>,<span class="arg">enumtype</span>,<span class="arg">looksym</span>,<span class="arg">enumsym</span>,<span class="arg">lookaddr</span>[,<span class="arg">name</span>])</span>
 </div>
 <div class="param">
 <span class="arg">looktype</span>, <span class="arg">enumtype</span>, <span class="arg">looksym</span>, <span class="arg">enumsym</span>, <span class="arg">lookaddr</span>: <span class="type">procedure</span>
@@ -762,7 +762,7 @@ this section further describes these mechanisms.
 </div>
 </div>
 <div class="desc">
-The five function parameters implement the Cinqucento
+The five function parameters implement the Cinquecento
 name space interface.  <span class="id">Mkns</span>
 constructs and returns a new name space corresponding
 to this implementation.  If specified, <span
@@ -801,7 +801,7 @@ type names rather than fully specified types.  As long
 as a definition for the referenced type occurs either
 elsewhere in <span class="arg">typetab</span> or in the
 name space <span class="arg">parent</span>, the type
-definition will be implicity resolved.  If a referenced
+definition will be implicitly resolved.  If a referenced
 type is defined in both <span
 class="arg">typetab</span> and <span
 class="arg">parent</span>, the <span
@@ -3187,20 +3187,37 @@ formatted output to various destinations.
 </p>
 
 <p>
+
 Each function expects a format string argument.  The
 format string may include conversion specifications
 that are similar (but not identical) to those handled
 by C stdio library functions.  Each conversion
-specification has the
-form <span class="val">%<span class="arg">verb</span></span>.
-The specifications are processed in order; each
+specification begins with
+the <span class="val">%</span> character, optionally
+followed by zero or more modifiers characters,
+optionally followed by a decimal width specifier, optionally
+followed by the <span class="val">.</span> character
+and a decimal precision specifier, finally followed by a single
+verb character.  The accepted modifier characters are
+<span class="val">+</span>, <span class="val">-</span>, <span class="val">0</span>,
+<span class="val">#</span>, and a single space.  The
+modifier characters and the width and precision
+specifiers have the same effects they have in C.  In
+addition, the
+modifiers <span class="val">l</span>, <span class="val">L</span>, <span class="val">h</span>
+are accepted but have no effect; unlike the C stdio
+formatter, Cinquecento can determine the size of an
+integer operand from its type.
+</p>
+
+<p>
+The conversions are processed in order; each
 operates in turn on the remaining values passed to the
 format function.
 </p>
 
 <p>
-Each <span class="arg">verb</span> is a
-single character.  The recognized verbs are:
+The recognized verb characters are:
 </p>
 
 <div id="table">
@@ -3521,7 +3538,7 @@ to <span class="arg">heapmax</span> megabytes.
 <div class="desc">
 In the event of a non-recoverable error in the
 Cinquecento system, functions previously registered by
-this interface are called in reverse order.
+this interface are called in reverse order of their registration.
 When <span class="arg">in</span> is non-zero, this
 function registers <span class="arg">fn</span>;
 when <span class="arg">in</span> is

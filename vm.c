@@ -3077,6 +3077,42 @@ getbeint(char *s, unsigned nb)
 	return w;
 }
 
+static int
+cval2int(Cval *cv)
+{
+	/* FIXME: implement with rerep? */
+	Xtypename *t;
+	t = chasetype(cv->type);
+	switch(t->rep){
+	case Rs08le:
+	case Rs08be:
+		return (int)(s8)cv->val;
+	case Rs16le:
+	case Rs16be:
+		return (int)(s16)cv->val;
+	case Rs32le:
+	case Rs32be:
+		return (int)(s32)cv->val;
+	case Rs64le:
+	case Rs64be:
+		return (int)(s64)cv->val;
+	case Ru08le:
+	case Ru08be:
+		return (int)(u8)cv->val;
+	case Ru16le:
+	case Ru16be:
+		return (int)(u16)cv->val;
+	case Ru32le:
+	case Ru32be:
+		return (int)(u32)cv->val;
+	case Ru64le:
+	case Ru64be:
+		return (int)(u64)cv->val;
+	default:
+		fatal("bug");
+	}
+}
+
 static Imm
 str2imm(Xtypename *xtn, Str *str)
 {
@@ -5804,14 +5840,38 @@ fmtputc(Fmt *f, char ch)
 }
 
 static int
+fmtpad(Fmt *f, int n)
+{
+	char c;
+	c = (f->flags&FmtZero) ? '0' : ' ';
+	while(n-- > 0)
+		if(fmtputc(f, c))
+			return -1;
+	return 0;
+}
+
+static int
 fmtputs(Fmt *f, char *p, Imm m)
 {
-	while(m > 0){
+	unsigned int fl, l;
+
+	fl = f->flags;
+	if((fl&FmtPrec) && m > f->prec)
+		m = f->prec;
+	l = m;			/* lost precision */
+	if((fl&FmtWidth) && !(fl&FmtLeft)){
+		if(fmtpad(f, f->width-m))
+			return -1;
+	}
+	while(l-- > 0){
 		if(f->to >= f->stop)
 			if(f->flush(f) == -1)
 				return -1;
 		*f->to++ = *p++;
-		m--;
+	}
+	if((fl&FmtWidth) && (fl&FmtLeft)){
+		if(fmtpad(f, f->width-m))
+			return -1;
 	}
 	return 0;
 }
@@ -5948,63 +6008,89 @@ static int
 fmticval(Fmt *f, unsigned char conv, Cval *cv)
 {
 	static char buf[Maxprintint];
-	static char* fmttab[Rnrep][256] = {
-	[Ru08le]['d'] = "%"PRId8,	[Ru08le]['i'] = "%"PRIi8,   
-	[Ru08be]['d'] = "%"PRId8,	[Ru08be]['i'] = "%"PRIi8,   
-	[Rs08le]['d'] = "%"PRId8,	[Rs08le]['i'] = "%"PRIi8,   
-	[Rs08be]['d'] = "%"PRId8,	[Rs08be]['i'] = "%"PRIi8,   
-	[Ru16le]['d'] = "%"PRId16,	[Ru16le]['i'] = "%"PRIi16,  
-	[Ru16be]['d'] = "%"PRId16,	[Ru16be]['i'] = "%"PRIi16,  
-	[Rs16le]['d'] = "%"PRId16,	[Rs16le]['i'] = "%"PRIi16,  
-	[Rs16be]['d'] = "%"PRId16,	[Rs16be]['i'] = "%"PRIi16,  
-	[Ru32le]['d'] = "%"PRId32,	[Ru32le]['i'] = "%"PRIi32,  
-	[Ru32be]['d'] = "%"PRId32,	[Ru32be]['i'] = "%"PRIi32,  
-	[Rs32le]['d'] = "%"PRId32,	[Rs32le]['i'] = "%"PRIi32,  
-	[Rs32be]['d'] = "%"PRId32,	[Rs32be]['i'] = "%"PRIi32,  
-	[Ru64le]['d'] = "%"PRId64,	[Ru64le]['i'] = "%"PRIi64,  
-	[Ru64be]['d'] = "%"PRId64,	[Ru64be]['i'] = "%"PRIi64,  
-	[Rs64le]['d'] = "%"PRId64,	[Rs64le]['i'] = "%"PRIi64,  
-	[Rs64be]['d'] = "%"PRId64,	[Rs64be]['i'] = "%"PRIi64,  
-
-	[Ru08le]['o'] = "%"PRIo8,	[Ru08le]['u'] = "%"PRIu8, 
-	[Ru08be]['o'] = "%"PRIo8,	[Ru08be]['u'] = "%"PRIu8, 
-	[Rs08le]['o'] = "%"PRIo8,	[Rs08le]['u'] = "%"PRIu8, 
-	[Rs08be]['o'] = "%"PRIo8,	[Rs08be]['u'] = "%"PRIu8, 
-	[Ru16le]['o'] = "%"PRIo16,	[Ru16le]['u'] = "%"PRIu16,
-	[Ru16be]['o'] = "%"PRIo16,	[Ru16be]['u'] = "%"PRIu16,
-	[Rs16le]['o'] = "%"PRIo16,	[Rs16le]['u'] = "%"PRIu16,
-	[Rs16be]['o'] = "%"PRIo16,	[Rs16be]['u'] = "%"PRIu16,
-	[Ru32le]['o'] = "%"PRIo32,	[Ru32le]['u'] = "%"PRIu32,
-	[Ru32be]['o'] = "%"PRIo32,	[Ru32be]['u'] = "%"PRIu32,
-	[Rs32le]['o'] = "%"PRIo32,	[Rs32le]['u'] = "%"PRIu32,
-	[Rs32be]['o'] = "%"PRIo32,	[Rs32be]['u'] = "%"PRIu32,
-	[Ru64le]['o'] = "%"PRIo64,	[Ru64le]['u'] = "%"PRIu64,
-	[Ru64be]['o'] = "%"PRIo64,	[Ru64be]['u'] = "%"PRIu64,
-	[Rs64le]['o'] = "%"PRIo64,	[Rs64le]['u'] = "%"PRIu64,
-	[Rs64be]['o'] = "%"PRIo64,	[Rs64be]['u'] = "%"PRIu64,
-
-	[Ru08le]['x'] = "%"PRIx8,	[Ru08le]['X'] = "%"PRIX8, 
-	[Ru08be]['x'] = "%"PRIx8,	[Ru08be]['X'] = "%"PRIX8, 
-	[Rs08le]['x'] = "%"PRIx8,	[Rs08le]['X'] = "%"PRIX8, 
-	[Rs08be]['x'] = "%"PRIx8,	[Rs08be]['X'] = "%"PRIX8, 
-	[Ru16le]['x'] = "%"PRIx16,	[Ru16le]['X'] = "%"PRIX16,
-	[Ru16be]['x'] = "%"PRIx16,	[Ru16be]['X'] = "%"PRIX16,
-	[Rs16le]['x'] = "%"PRIx16,	[Rs16le]['X'] = "%"PRIX16,
-	[Rs16be]['x'] = "%"PRIx16,	[Rs16be]['X'] = "%"PRIX16,
-	[Ru32le]['x'] = "%"PRIx32,	[Ru32le]['X'] = "%"PRIX32,
-	[Ru32be]['x'] = "%"PRIx32,	[Ru32be]['X'] = "%"PRIX32,
-	[Rs32le]['x'] = "%"PRIx32,	[Rs32le]['X'] = "%"PRIX32,
-	[Rs32be]['x'] = "%"PRIx32,	[Rs32be]['X'] = "%"PRIX32,
-	[Ru64le]['x'] = "%"PRIx64,	[Ru64le]['X'] = "%"PRIX64,
-	[Ru64be]['x'] = "%"PRIx64,	[Ru64be]['X'] = "%"PRIX64,
-	[Rs64le]['x'] = "%"PRIx64,	[Rs64le]['X'] = "%"PRIX64,
-	[Rs64be]['x'] = "%"PRIx64,	[Rs64be]['X'] = "%"PRIX64,	};
-
-	char *fmt;
+	static char fmt[1+3+1+Maxprintint+5];
+	static char mod[4], *mp;
+	unsigned int fl;
 	Xtypename *t;
+	char *fp;
+	static char* fmttab[Rnrep][256] = {
+	[Ru08le]['d'] = PRId8,	[Ru08le]['i'] = PRIi8,   
+	[Ru08be]['d'] = PRId8,	[Ru08be]['i'] = PRIi8,   
+	[Rs08le]['d'] = PRId8,	[Rs08le]['i'] = PRIi8,   
+	[Rs08be]['d'] = PRId8,	[Rs08be]['i'] = PRIi8,   
+	[Ru16le]['d'] = PRId16,	[Ru16le]['i'] = PRIi16,  
+	[Ru16be]['d'] = PRId16,	[Ru16be]['i'] = PRIi16,  
+	[Rs16le]['d'] = PRId16,	[Rs16le]['i'] = PRIi16,  
+	[Rs16be]['d'] = PRId16,	[Rs16be]['i'] = PRIi16,  
+	[Ru32le]['d'] = PRId32,	[Ru32le]['i'] = PRIi32,  
+	[Ru32be]['d'] = PRId32,	[Ru32be]['i'] = PRIi32,  
+	[Rs32le]['d'] = PRId32,	[Rs32le]['i'] = PRIi32,  
+	[Rs32be]['d'] = PRId32,	[Rs32be]['i'] = PRIi32,  
+	[Ru64le]['d'] = PRId64,	[Ru64le]['i'] = PRIi64,  
+	[Ru64be]['d'] = PRId64,	[Ru64be]['i'] = PRIi64,  
+	[Rs64le]['d'] = PRId64,	[Rs64le]['i'] = PRIi64,  
+	[Rs64be]['d'] = PRId64,	[Rs64be]['i'] = PRIi64,  
+
+	[Ru08le]['o'] = PRIo8,	[Ru08le]['u'] = PRIu8, 
+	[Ru08be]['o'] = PRIo8,	[Ru08be]['u'] = PRIu8, 
+	[Rs08le]['o'] = PRIo8,	[Rs08le]['u'] = PRIu8, 
+	[Rs08be]['o'] = PRIo8,	[Rs08be]['u'] = PRIu8, 
+	[Ru16le]['o'] = PRIo16,	[Ru16le]['u'] = PRIu16,
+	[Ru16be]['o'] = PRIo16,	[Ru16be]['u'] = PRIu16,
+	[Rs16le]['o'] = PRIo16,	[Rs16le]['u'] = PRIu16,
+	[Rs16be]['o'] = PRIo16,	[Rs16be]['u'] = PRIu16,
+	[Ru32le]['o'] = PRIo32,	[Ru32le]['u'] = PRIu32,
+	[Ru32be]['o'] = PRIo32,	[Ru32be]['u'] = PRIu32,
+	[Rs32le]['o'] = PRIo32,	[Rs32le]['u'] = PRIu32,
+	[Rs32be]['o'] = PRIo32,	[Rs32be]['u'] = PRIu32,
+	[Ru64le]['o'] = PRIo64,	[Ru64le]['u'] = PRIu64,
+	[Ru64be]['o'] = PRIo64,	[Ru64be]['u'] = PRIu64,
+	[Rs64le]['o'] = PRIo64,	[Rs64le]['u'] = PRIu64,
+	[Rs64be]['o'] = PRIo64,	[Rs64be]['u'] = PRIu64,
+
+	[Ru08le]['x'] = PRIx8,	[Ru08le]['X'] = PRIX8, 
+	[Ru08be]['x'] = PRIx8,	[Ru08be]['X'] = PRIX8, 
+	[Rs08le]['x'] = PRIx8,	[Rs08le]['X'] = PRIX8, 
+	[Rs08be]['x'] = PRIx8,	[Rs08be]['X'] = PRIX8, 
+	[Ru16le]['x'] = PRIx16,	[Ru16le]['X'] = PRIX16,
+	[Ru16be]['x'] = PRIx16,	[Ru16be]['X'] = PRIX16,
+	[Rs16le]['x'] = PRIx16,	[Rs16le]['X'] = PRIX16,
+	[Rs16be]['x'] = PRIx16,	[Rs16be]['X'] = PRIX16,
+	[Ru32le]['x'] = PRIx32,	[Ru32le]['X'] = PRIX32,
+	[Ru32be]['x'] = PRIx32,	[Ru32be]['X'] = PRIX32,
+	[Rs32le]['x'] = PRIx32,	[Rs32le]['X'] = PRIX32,
+	[Rs32be]['x'] = PRIx32,	[Rs32be]['X'] = PRIX32,
+	[Ru64le]['x'] = PRIx64,	[Ru64le]['X'] = PRIX64,
+	[Ru64be]['x'] = PRIx64,	[Ru64be]['X'] = PRIX64,
+	[Rs64le]['x'] = PRIx64,	[Rs64le]['X'] = PRIX64,
+	[Rs64be]['x'] = PRIx64,	[Rs64be]['X'] = PRIX64,	};
 
 	t = chasetype(cv->type);
-	fmt = fmttab[t->rep][conv];
+	fp = fmttab[t->rep][conv];
+	fl = f->flags;
+	f->flags &= ~(FmtWidth|FmtPrec|FmtSpace|FmtSign|FmtSharp);
+
+	mp = mod;
+	if(fl&FmtSharp)
+		*mp++ = '#';
+	if(fl&FmtSign)
+		*mp++ = '+';	/* trumps FmtSpace */
+	else if(fl&FmtSpace)
+		*mp++ = ' ';
+	if(fl&FmtLeft)
+		*mp++ = '-';	/* trumps FmtZero */
+	else if(fl&FmtZero)
+		*mp++ = '0';
+	*mp = 0;
+	if((fl&FmtWidth) && (fl&FmtPrec))
+		snprintf(fmt, sizeof(fmt), "%%%s%d.%d%s", mod, f->width, f->prec, fp);
+	else if(fl&FmtPrec)
+		snprintf(fmt, sizeof(fmt), "%%%s.%d%s", mod, f->prec, fp);
+	else if(fl&FmtWidth)
+		snprintf(fmt, sizeof(fmt), "%%%s%d%s", mod, f->width, fp);
+	else
+		snprintf(fmt, sizeof(fmt), "%%%s%s", mod, fp);
+	
 	switch(t->rep){
 	case Ru08le:
 	case Ru08be:
@@ -6072,26 +6158,35 @@ fmtenconst(Fmt *f, Cval *cv)
 	return fmticval(f, 'd', cv);
 }
 
+/* dofmt: dispatch format conversions.
+   based on code, data, and ideas from plan 9 libc */
 void
 dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	static char buf[3+Maxprintint];
 	Val *vpp, vp, vq;
 	Cval *cv;
-	Str *as;
+	Str *as, *ys;
 	char *efmt;
 	char ch;
 	unsigned char c;
 	Xtypename *xtn;
 	Vec *vec;
+	int i;
 
 	vpp = &argv[0];
 	efmt = fmt+fmtlen;
 	while(1){
-		vp = *vpp;
 		while(fmt < efmt && (ch = *fmt++) != '%')
 			if(fmtputc(f, ch))
 				return;
+		if(fmt >= efmt)
+			return;
+		if(argc == 0)
+			vmerr(vm, "format string needs more arguments");
+		vp = *vpp++;
+		argc--;
+	morespec:
 		if(fmt >= efmt)
 			return;
 		ch = *fmt++;
@@ -6100,9 +6195,77 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				return;
 			continue;
 		}
-		if(argc == 0)
-			vmerr(vm, "format string needs more arguments");
 		switch(ch){
+		case '.':
+			f->flags |= FmtWidth|FmtPrec;
+			goto morespec;
+		case '0':
+			if(!(f->flags&FmtWidth)){
+				f->flags |= FmtZero;
+				goto morespec;
+			}
+			/* fall through */
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			i = 0;
+			while(ch >= '0' && ch <= '9'){
+				i = i*10+ch-'0';
+				if(fmt >= efmt)
+					return;
+				ch = *fmt++;
+			}
+			fmt--;
+		numflag:
+			if(f->flags&FmtWidth){
+				f->flags |= FmtPrec;
+				f->prec = i;
+			}else{
+				f->flags |= FmtWidth;
+				f->width = i;
+			}
+			goto morespec;
+		case '*':
+			cv = valcval(vp);
+			if(argc == 0)
+				vmerr(vm, "format string needs more arguments");
+			vp = *vpp++;
+			argc--;
+			i = cval2int(cv);
+			if(i < 0){
+				/* negative precision => ignore the precision */
+				if(f->flags&FmtPrec){
+					f->flags &= ~FmtPrec;
+					f->prec = 0;
+					goto morespec;
+				}
+				i = -i;
+				f->flags |= FmtLeft;
+			}
+			goto numflag;
+		case '-':
+			f->flags |= FmtLeft;
+			goto morespec;
+		case '+':
+			f->flags |= FmtSign;
+			goto morespec;
+		case ' ':
+			f->flags |= FmtSpace;
+			goto morespec;
+		case '#':
+			f->flags |= FmtSharp;
+			goto morespec;
+		case 'l':
+		case 'L':
+		case 'h':
+			/* ignore length modifier */
+			goto morespec;
 		case 'a':
 			if(fmtval(f, vp))
 				return;
@@ -6212,21 +6375,20 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			vq = vecref(vec, Offpos);
 			if(vq->qkind != Qcval)
 				goto bady;
-			if(fmtputs(f, as->s, as->len))
-				return;
 			cv = xcvalalu(vm, Isub, cv, valcval(vq));
 			if(cv->val != 0){
-				snprintf(buf, sizeof(buf),
-					 "+0x%" PRIx64, cv->val);
-				if(fmtputs(f, buf, strlen(buf)))
-					return;
-			}
+				snprintf(buf, sizeof(buf), "+0x%" PRIx64, cv->val);
+				ys = mkstrn(vm, as->len+strlen(buf));
+				memcpy(ys->s, as->s, as->len);
+				memcpy(ys->s+as->len, buf, strlen(buf));
+			}else
+				ys = as;
+			if(fmtputs(f, ys->s, ys->len))
+				return;
 			break;
 		default:
 			vmerr(vm, "unrecognized format conversion: %%%c", ch);
 		}
-		argc--;
-		vpp++;
 	}
 	/* not reached */
 badarg:
@@ -6252,7 +6414,8 @@ static Str*
 dovsprinta(VM *vm, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	Fmt f;
-	u32 initlen = 128;
+	static u32 initlen = 128;
+	memset(&f, 0, sizeof(f));
 	f.start = xmalloc(initlen);
 	f.farg = (void*)(uintptr_t)initlen;
 	f.to = f.start;
