@@ -453,11 +453,26 @@ struct Xtypename {
 	Vec *konst;		/* enum (constants) */
 };
 
+enum{
+	FmtWidth	= 1,
+	FmtLeft		= FmtWidth << 1,
+	FmtPrec		= FmtLeft << 1,
+	FmtSharp	= FmtPrec << 1,
+	FmtSpace	= FmtSharp << 1,
+	FmtSign		= FmtSpace << 1,
+	FmtZero		= FmtSign << 1,
+
+	FmtFlag		= FmtZero << 1
+};
+
 typedef struct Fmt Fmt;
 struct Fmt {
 	char *start, *to, *stop;
 	int (*flush)(Fmt*);
 	void *farg;
+	int width;
+	int prec;
+	unsigned int flags;
 };
 
 enum {

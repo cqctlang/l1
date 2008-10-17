@@ -29,6 +29,7 @@ dofdprint(VM *vm, Fd *fd, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Fmt f;
 	char buf[256];
 
+	memset(&f, 0, sizeof(f));
 	f.farg = fd;
 	f.start = buf;
 	f.to = buf;
