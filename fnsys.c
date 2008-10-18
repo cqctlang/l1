@@ -30,7 +30,7 @@ static void	finiprof();
 static void
 l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	*rv = mkvallitcval(vm, Vulong, getpid());
+	*rv = mkvallitcval(Vulong, getpid());
 }
 
 static void
@@ -43,7 +43,7 @@ l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
 	tod = tv.tv_sec;
 	tod *= 1000000;
 	tod += tv.tv_usec;
-	*rv = mkvallitcval(vm, Vulong, tod);
+	*rv = mkvallitcval(Vulong, tod);
 }
 
 static void
@@ -83,7 +83,7 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	
 	r = rand();
 	r %= cv->val;
-	*rv = mkvallitcval(vm, Vulong, r);
+	*rv = mkvallitcval(Vulong, r);
 }
 
 static void
@@ -151,9 +151,9 @@ dotrs(VM *vm)
 		v = tabget(tab, k);
 		if(v){
 			cv = valcval(v);
-			v = mklitcval(Vuvlong, 1+cv->val);
+			v = mkvallitcval(Vuvlong, 1+cv->val);
 		}else
-			v = mklitcval(Vuvlong, 1);
+			v = mkvallitcval(Vuvlong, 1);
 		tabput(vm, tab, k, v);
 	}
 	xprintf("profile: %d samples\n", prof->ntrace);

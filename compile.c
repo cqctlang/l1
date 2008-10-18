@@ -730,7 +730,7 @@ konsti2val(Cbase base, Imm imm, Konsti *koni)
 	if(v)
 		return v;
 	s = xstrdup(buf);
-	v = mklitcval(base, imm);
+	v = mkvallitcval(base, imm);
 	hput(koni->ht, s, strlen(s), v);
 	return v;
 }

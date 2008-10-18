@@ -329,6 +329,7 @@ static unsigned long
 hlen(Head *h)
 {
 	unsigned n;
+	n = 0;
 	while(h){
 		n++;
 		h = h->link;
@@ -2629,6 +2630,12 @@ mkcval(Dom *dom, Xtypename *type, Imm val)
 	return cv;
 }
 
+Cval*
+mklitcval(Cbase base, Imm val)
+{
+	return mkcval(litdom, litbase[base], val);
+}
+
 Val
 mkvalcval(Dom *dom, Xtypename *t, Imm imm)
 {
@@ -2636,9 +2643,9 @@ mkvalcval(Dom *dom, Xtypename *t, Imm imm)
 }
 
 Val
-mkvallitcval(VM *vm, Cbase base, Imm imm)
+mkvallitcval(Cbase base, Imm imm)
 {
-	return mkvalcval(vm->litdom, vm->litbase[base], imm);
+	return (Val)mklitcval(base, imm);
 }
 
 /* the difference between mkvalimm and mkvalcval is usage:
@@ -2653,12 +2660,6 @@ Val
 mkvalcval2(Cval *cv)
 {
 	return (Val)cv;
-}
-
-Val
-mklitcval(Cbase base, Imm val)
-{
-	return mkvalcval(litdom, litbase[base], val);
 }
 
 Val
@@ -8169,7 +8170,7 @@ l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 	s2 = str2cstr(valstr(argv[1]));
 	p = strstr(s1, s2);
 	if(p)
-		*rv = mklitcval(Vuvlong, p-s1);
+		*rv = mkvallitcval(Vuvlong, p-s1);
 	xfree(s1);
 	xfree(s2);
 }
@@ -8816,7 +8817,7 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	*rv = mkvallitcval(vm, Vulong, cqctmeminuse);
+	*rv = mkvallitcval(Vulong, cqctmeminuse);
 }
 
 static void
@@ -9779,49 +9780,49 @@ cqctcstrval(char *s)
 Val
 cqctint8val(int8_t x)
 {
-	return mklitcval(clp64le.xint8, x);
+	return mkvallitcval(clp64le.xint8, x);
 }
 
 Val
 cqctint16val(int16_t x)
 {
-	return mklitcval(clp64le.xint16, x);
+	return mkvallitcval(clp64le.xint16, x);
 }
 
 Val
 cqctint32val(int32_t x)
 {
-	return mklitcval(clp64le.xint32, x);
+	return mkvallitcval(clp64le.xint32, x);
 }
 
 Val
 cqctint64val(int64_t x)
 {
-	return mklitcval(clp64le.xint64, x);
+	return mkvallitcval(clp64le.xint64, x);
 }
 
 Val
 cqctuint8val(uint8_t x)
 {
-	return mklitcval(clp64le.xuint8, x);
+	return mkvallitcval(clp64le.xuint8, x);
 }
 
 Val
 cqctuint16val(uint16_t x)
 {
-	return mklitcval(clp64le.xuint16, x);
+	return mkvallitcval(clp64le.xuint16, x);
 }
 
 Val
 cqctuint32val(uint32_t x)
 {
-	return mklitcval(clp64le.xuint32, x);
+	return mkvallitcval(clp64le.xuint32, x);
 }
 
 Val
 cqctuint64val(uint64_t x)
 {
-	return mklitcval(clp64le.xuint64, x);
+	return mkvallitcval(clp64le.xuint64, x);
 }
 
 void
