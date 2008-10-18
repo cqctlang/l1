@@ -118,7 +118,12 @@ static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
 static Xtypename* mkundefxtn(Xtypename *t);
 static Str* fmtxtn(Xtypename *xtn);
+static void _listappend(List *lst, Val v);
+static int isbasecval(Cval *cv);
 static int isstrcval(Cval *cv);
+static int isnatcval(Cval *cv);
+static int isnegcval(Cval *cv);
+static int iszerocval(Cval *cv);
 static Str* stringof(VM *vm, Cval *cv);
 static Val vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val v);
@@ -310,8 +315,10 @@ heapstat(char *s)
 {
 	unsigned i;
 	Heap *hp;
-
-	xprintf("\n                             %s (epoch %lu)\n", s, gcepoch);
+	
+	if(s)
+		xprintf("%s ", s);
+	xprintf("gc epoch: %lu\n", gcepoch);
 	xprintf("%-10s %10s %10s %10s\n",
 		"heap", "nalloc", "nfree", "nha");
 	xprintf("--------------------------------"
@@ -1515,14 +1522,14 @@ mkvec(Imm len)
 }
 
 static Vec*
-mkvecnil(Imm len)
+mkvecinit(Imm len, Val v)
 {
 	Vec *vec;
 	Imm i;
 
 	vec = mkvec(len);
 	for(i = 0; i < len; i++)
-		vec->vec[i] = Xnil;
+		vec->vec[i] = v;
 	return vec;
 }
 
@@ -1908,6 +1915,18 @@ static List*
 mklist()
 {
 	return _mklist(mklistx(Listinitsize));
+}
+
+static List*
+mklistinit(Imm len, Val v)
+{
+	List *l;
+	Imm m;
+
+	l = _mklist(mklistx(len));
+	for(m = 0; m < len; m++)
+		_listappend(l, v); 
+	return l;
 }
 
 static void
@@ -4352,11 +4371,11 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		beg = r->beg;
 		end = xcvalalu(vm, Iadd, beg, r->len);
 		if(beg->val > s->len)
-			vmerr(vm, "out of bounds string access");
+			vmerr(vm, "address space access out of bounds");
 		if(end->val > s->len)
-			vmerr(vm, "out of bounds string access");
+			vmerr(vm, "address space access out of bounds");
 		if(beg->val > end->val)
-			vmerr(vm, "out of bounds string access");
+			vmerr(vm, "address space access out of bounds");
 		dat = strslice(s, beg->val, end->val);
 		*rv = mkvalstr(dat);
 	}else if(eqstrc(cmd, "put")){
@@ -4368,12 +4387,12 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		dat = valstr(argv[3]);
 		beg = r->beg;
 		end = xcvalalu(vm, Iadd, beg, r->len);
-		if(beg->val > s->len)
-			vmerr(vm, "out of bounds string access");
+		if(beg->val >= s->len)
+			vmerr(vm, "address space access out of bounds");
 		if(end->val > s->len)
-			vmerr(vm, "out of bounds string access");
+			vmerr(vm, "address space access out of bounds");
 		if(beg->val > end->val)
-			vmerr(vm, "out of bounds string access");
+			vmerr(vm, "address space access out of bounds");
 		if(dat->len < r->len->val)
 			vmerr(vm, "short put");
 		/* FIXME: rationalize with l1_strput */
@@ -5504,32 +5523,62 @@ checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 }
 
 static int
-isnegcval(VM *vm, Val v)
+isbasecval(Cval *cv)
 {
-	Cval *cv;
 	Xtypename *t;
-	if(v->qkind != Qcval)
-		vmerr(vm, "got %s where expecting cvalue", qname[v->qkind]);
-	cv = valcval(v);
 	t = chasetype(cv->type);
 	if(t->tkind != Tbase)
-		vmerr(vm, "got %s where expecting integer cvalue",
-		      tkindstr[t->tkind]);
+		return 0;
+	return 1;
+}
+
+static int
+isnegcval(Cval *cv)
+{
+	Xtypename *t;
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase)
+		return 0;
 	if(isunsigned[t->basename])
 		return 0;
 	return (s64)cv->val < 0;
 }
 
 static int
+isnatcval(Cval *cv)
+{
+	Xtypename *t;
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase)
+		return 0;
+	if(isunsigned[t->basename])
+		return 1;
+	return (s64)cv->val >= 0;
+}
+
+static int
+iszerocval(Cval *cv)
+{
+	return cv->val == 0;
+}
+
+static int
 docmp(VM *vm, Val a, Val b, Closure *cmp)
 {
 	Val argv[2], rv;
+	Cval *cv;
+
 	argv[0] = a;
 	argv[1] = b;
 	rv = dovm(vm, cmp, 2, argv);
-	if(isnegcval(vm, rv))
+	if(rv->qkind != Qcval)
+		vmerr(vm, "comparison function must return an integer cvalue");
+	cv = valcval(rv);
+	if(!isbasecval(cv))
+		vmerr(vm, "comparison function must return an integer cvalue");
+	if(isnegcval(cv))
 		return -1;
-	if(zeroval(rv))
+	if(iszerocval(cv))
 		return 0;
 	return 1;
 }
@@ -5820,8 +5869,11 @@ ismapped(VM *vm, Cval *addr, Cval *len)
 
 	if(len == 0)
 		sz = typesize(vm, addr->type);
-	else
-		sz = len->val;	/* FIXME: check sign */
+	else{
+		if(!isnatcval(len))
+			vmerr(vm, "ismapped expects a non-negative length");
+		sz = len->val;
+	}
 	if(addr->val+sz < addr->val)
 		/* bogus size */
 		return 0;	
@@ -6238,12 +6290,14 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 		case '*':
 			cv = valcval(vp);
 			if(argc == 0)
-				vmerr(vm, "format string needs more arguments");
+				vmerr(vm,
+				      "format string needs more arguments");
 			vp = *vpp++;
 			argc--;
 			i = cval2int(cv);
 			if(i < 0){
-				/* negative precision => ignore the precision */
+				/* negative precision =>
+				   ignore the precision */
 				if(f->flags&FmtPrec){
 					f->flags &= ~FmtPrec;
 					f->prec = 0;
@@ -6381,7 +6435,8 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				goto bady;
 			cv = xcvalalu(vm, Isub, cv, valcval(vq));
 			if(cv->val != 0){
-				snprintf(buf, sizeof(buf), "+0x%" PRIx64, cv->val);
+				snprintf(buf, sizeof(buf),
+					 "+0x%" PRIx64, cv->val);
 				ys = mkstrn(vm, as->len+strlen(buf));
 				memcpy(ys->s, as->s, as->len);
 				memcpy(ys->s+as->len, buf, strlen(buf));
@@ -8124,7 +8179,8 @@ l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkstr");
 	checkarg(vm, "mkstr", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	/* FIXME: sanity */
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 1 to mkstr must be a non-negative integer");
 	*rv = mkvalstr(mkstrn(vm, cv->val));
 }
 
@@ -8217,13 +8273,19 @@ static void
 l1_mkvec(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *cv;
+	Val v;
 
-	if(argc != 1)
+	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkvec");
 	checkarg(vm, "mkvec", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	/* FIXME: sanity */
-	*rv = mkvalvec(mkvecnil(cv->val));
+	if(argc == 2)
+		v = argv[1];
+	else
+		v = Xnil;
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 1 to mkvec must be a non-negative integer");
+	*rv = mkvalvec(mkvecinit(cv->val, v));
 }
 
 static void
@@ -8262,7 +8324,9 @@ l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "vecref", argv, 1, Qcval);
 	v = valvec(argv[0]);
 	cv = valcval(argv[1]);
-	/* FIXME: check sign of cv */
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to vecref must be "
+		      "a non-negative integer");
 	if(cv->val >= v->len)
 		vmerr(vm, "vecref out of bounds");
 	vp = vecref(v, cv->val);
@@ -8281,7 +8345,9 @@ l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "vecset", argv, 1, Qcval);
 	v = valvec(argv[0]);
 	cv = valcval(argv[1]);
-	/* FIXME: check sign of cv */
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to vecset must be "
+		      "a non-negative integer");
 	if(cv->val >= v->len)
 		vmerr(vm, "vecset out of bounds");
 	vecset(vm, v, cv->val, argv[2]);
@@ -8558,6 +8624,26 @@ l1_list(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mklist(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	Val v;
+
+	if(argc != 1 && argc != 2)
+		vmerr(vm, "wrong number of arguments to mklist");
+	checkarg(vm, "mklist", argv, 0, Qcval);
+	cv = valcval(argv[0]);
+	if(argc == 2)
+		v = argv[1];
+	else
+		v = Xnil;
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 1 to mklist must be "
+		      "a non-negative integer");
+	*rv = mkvallist(mklistinit(cv->val, v));
+}
+
+static void
 l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val vp;
@@ -8567,7 +8653,10 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to listref");
 	checkarg(vm, "listref", argv, 0, Qlist);
 	checkarg(vm, "listref", argv, 1, Qcval);
-	cv = valcval(argv[1]);	/* FIXME check sign */
+	cv = valcval(argv[1]);
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to listref must be "
+		      "a non-negative integer");
 	lst = vallist(argv[0]);
 	vp = listref(vm, lst, cv->val);
 	*rv = vp;
@@ -8582,7 +8671,10 @@ l1_listdel(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to listdel");
 	checkarg(vm, "listdel", argv, 0, Qlist);
 	checkarg(vm, "listdel", argv, 1, Qcval);
-	cv = valcval(argv[1]);	/* FIXME check sign */
+	cv = valcval(argv[1]);
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to listdel must be "
+		      "a non-negative integer");
 	lst = listdel(vm, vallist(argv[0]), cv->val);
 	*rv = mkvallist(lst);
 }
@@ -8596,7 +8688,10 @@ l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to listset");
 	checkarg(vm, "listset", argv, 0, Qlist);
 	checkarg(vm, "listset", argv, 1, Qcval);
-	cv = valcval(argv[1]);	/* FIXME check sign */
+	cv = valcval(argv[1]);
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to listset must be "
+		      "a non-negative integer");
 	lst = vallist(argv[0]);
 	lst = listset(vm, lst, cv->val, argv[2]);
 	*rv = mkvallist(lst);
@@ -8611,7 +8706,10 @@ l1_listins(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to listins");
 	checkarg(vm, "listins", argv, 0, Qlist);
 	checkarg(vm, "listins", argv, 1, Qcval);
-	cv = valcval(argv[1]);	/* FIXME check sign */
+	cv = valcval(argv[1]);
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to listins must be "
+		      "a non-negative integer");
 	lst = listins(vm, vallist(argv[0]), cv->val, argv[2]);
 	*rv = mkvallist(lst);
 }
@@ -8821,6 +8919,27 @@ static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	*rv = mkvallitcval(Vulong, cqctmeminuse);
+}
+
+static void
+l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	*rv = mkvallitcval(Vulong, cqctmemtotal);
+}
+
+static void
+l1_heapstat(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char *s;
+
+	s = 0;
+	if(argc != 0 && argc != 1)
+		vmerr(vm, "wrong number of arguments to heapstat");
+	if(argc == 1){
+		checkarg(vm, "heapstat", argv, 0, Qstr);
+		s = str2cstr(valstr(argv[0]));
+	}
+	heapstat(s);
 }
 
 static void
@@ -9322,6 +9441,7 @@ mktopenv()
 	FN(gc);
 	FN(getbytes);
 	FN(head);
+	FN(heapstat);
 	FN(isarray);
 	FN(isas);
 	FN(isbase);
@@ -9361,6 +9481,7 @@ mktopenv()
 	FN(lookfield);
 	FN(looktype);
 	FN(meminuse);
+	FN(memtotal);
 	FN(mkas);
 	FN(mkctype_array);
 	FN(mkctype_bitfield);
@@ -9387,6 +9508,7 @@ mktopenv()
 	FN(mkctype_void);
 	FN(mkdom);
 	FN(mkfield);
+	FN(mklist);
 	FN(mknas);
 	FN(mkns);
 	FN(mknsraw);

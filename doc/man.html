@@ -2201,6 +2201,28 @@ The values are stored in argument order.
 </div>
 </div>
 
+<div class="docitem" id="fn:mklist">
+<div class="proto">
+<div class="function">
+<span class="id">mklist(<span class="arg">len</span>[,<span class="arg">val</span>])</span>
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">val</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new list of size <span class="arg">len</span>.
+Each element is initialized to <span class="arg">val</span>, if specified,
+otherwise to <span class="val">nil</span>.
+</div>
+</div>
+
 <div class="docitem">
 <div class="proto">
 <div class="syntax">
@@ -2321,7 +2343,8 @@ class="arg">idx</span> in <span
 class="type">list</span> with <span
 class="arg">value</span>.  It is an error if <span
 class="type">list</span> does not contain more than
-<span class="arg">idx</span> items.  Returns the updated list.
+<span class="arg">idx</span> items.  Returns <span
+class="type">list</span> following the update.
 </div>
 </div>
 
@@ -2350,7 +2373,8 @@ class="type">list</span>.  The elements at position <span
 class="arg">idx</span> and higher, if any, are shifted up one position.
 It is an error if <span
 class="type">list</span> does not contain more than
-<span class="arg">idx-1</span> items.  Returns the updated list.
+<span class="arg">idx-1</span> items.  Returns <span
+class="type">list</span> following the update.
 </div>
 </div>
 
@@ -2374,7 +2398,7 @@ Deletes the item at position <span
 class="arg">idx</span> in <span
 class="type">list</span>.  The elements at higher
 positions, if any, are shifted down one position.
-Returns the updated list.
+Returns <span class="type">list</span> following the update.
 </div>
 </div>
 
@@ -2395,7 +2419,8 @@ Returns the updated list.
 </div>
 <div class="desc">
 Inserts <span class="arg">value</span> at the end of
-<span class="type">list</span>.  Returns the updated list.
+<span class="type">list</span>.
+Returns <span class="type">list</span> following the update.
 </div>
 </div>
 
@@ -2417,7 +2442,7 @@ Inserts <span class="arg">value</span> at the end of
 <div class="desc">
 Inserts <span class="arg">value</span> at the beginning of
 <span class="type">list</span>, shifting all other elements up one position.
-Returns the updated list.
+Returns <span class="type">list</span> following the update.
 </div>
 </div>
 
@@ -2473,10 +2498,13 @@ a vector.
 <div class="docitem" id="fn:mkvec">
 <div class="proto">
 <div class="function">
-<span class="id">mkvec(<span class="arg">len</span>)</span>
+<span class="id">mkvec(<span class="arg">len</span>[,<span class="arg">val</span>])</span>
 </div>
 <div class="param">
 <span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">val</span>: <span class="type">any value</span>
 </div>
 <div class="returns">
 <span class="type">vector</span>
@@ -2484,7 +2512,8 @@ a vector.
 </div>
 <div class="desc">
 Constructs a new vector of size <span class="arg">len</span>.
-Each element is initialized to <span class="val">nil</span>.
+Each element is initialized to <span class="arg">val</span>, if specified,
+otherwise to <span class="val">nil</span>.
 </div>
 </div>
 
@@ -3934,6 +3963,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mkctype_void">mkctype_void</a><br />
 <a href="#fn:mkdir">mkdir</a><br />
 <a href="#fn:mkfield">mkfield</a><br />
+<a href="#fn:mklist">mklist</a><br />
 <a href="#fn:mkns">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
