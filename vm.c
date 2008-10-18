@@ -6187,6 +6187,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			vmerr(vm, "format string needs more arguments");
 		vp = *vpp++;
 		argc--;
+		f->flags = 0;
+		f->width = 0;
+		f->prec = 0;
 	morespec:
 		if(fmt >= efmt)
 			return;
