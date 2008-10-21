@@ -1267,7 +1267,7 @@ popyy(U *ctx)
 void
 tryinclude(U *ctx, char *raw)
 {
-	char *p, *q, *buf, *full, **lp;
+	char *p, *q, *path, *buf, *full, **lp;
 	unsigned len;
 	int c, f;
 
@@ -1302,12 +1302,12 @@ tryinclude(U *ctx, char *raw)
 		}
 	}else{
 		if(p[0] != '/' && ctx->inp->src.filename){
-			len = strlen(ctx->inp->src.filename)+1+strlen(p)+1;
+			path = xstrdup(ctx->inp->src.filename);
+			len = strlen(path)+1+strlen(p)+1;
 			full = emalloc(len);
-			snprintf(full, len, "%s", ctx->inp->src.filename);
-			snprintf(full, len, "%s/%s", dirname(full), p);
-		}
-		else
+			snprintf(full, len, "%s/%s", dirname(path), p);
+			efree(path);
+		}else
 			full = xstrdup(p);
 		buf = readfile(full);
 	}
