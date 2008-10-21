@@ -1303,7 +1303,7 @@ expandconst(Expr *e, Env *top, Xenv *lex, Xenv *con)
 	switch(e->kind){
 	case Edefconst:
 		e->e2 = expandconst(e->e2, top, lex, con);
-		xenvbind(con, xstrdup(e->e1->id), copyexpr(e->e2));
+		xenvbind(con, xstrdup(e->e1->id), e->e2);
 		e->e2 = 0;
 		freeexpr(e);
 		return newexpr(Enop, 0, 0, 0, 0);
@@ -1311,8 +1311,10 @@ expandconst(Expr *e, Env *top, Xenv *lex, Xenv *con)
 		if(xenvlook(lex, e->id) || envbinds(top, e->id))
 			return e;
 		p = xenvlook(con, e->id);
-		if(p)
+		if(p){
+			freeexpr(e);
 			return copyexpr(p);
+		}
 		return e;
 	case Elambda:
 		lexrib = mkxenv(lex);
