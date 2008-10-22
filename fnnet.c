@@ -62,7 +62,7 @@ parseip(char *s, struct sockaddr_in *addr)
 	}
 	ret = 0;
 out:
-	xfree(buf);
+	efree(buf);
 	return ret;
 }
 
@@ -95,7 +95,7 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	s = str2cstr(str);
 	if(0 > parseip(s, &saddr))
 		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
-	xfree(s);
+	efree(s);
 	xfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd)
 		vmerr(vm, "opentcp: %s", strerror(errno));

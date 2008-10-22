@@ -558,7 +558,7 @@ fmtdecllist(Decl *p)
 	if(n == 0)
 		return xstrdup("");
 
-	ds = xmalloc(n*sizeof(char**));
+	ds = emalloc(n*sizeof(char**));
 	m = 1;			/* null */
 	for(i = 0, q = p; i < n; i++, q = q->link){
 		ds[i] = fmtdecl(q);
@@ -567,7 +567,7 @@ fmtdecllist(Decl *p)
 			m += 2;	/* comma, space */
 	}
 
-	buf = xmalloc(m);
+	buf = emalloc(m);
 	bp = buf;
 	for(i = 0; i < n; i++){
 		strcpy(bp, ds[i]);
@@ -594,70 +594,70 @@ fmttype(Type *t, char *o)
 	switch(t->kind){
 	case Tvoid:
 		m = 4+1+strlen(o)+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		snprintf(buf, m, "void %s", o);
-		xfree(o);
+		efree(o);
 		return buf;
 	case Tbase:
 		m = strlen(basename[t->base])+1+strlen(o)+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		snprintf(buf, m, "%s %s", basename[t->base], o);
-		xfree(o);
+		efree(o);
 		return buf;
 	case Ttypedef:
 		m = strlen(t->tid)+1+strlen(o)+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		snprintf(buf, m, "%s %s", t->tid, o);
-		xfree(o);
+		efree(o);
 		return buf;
 	case Tstruct:
 	case Tunion:
 		w = tkindstr[t->kind];
 		if(t->tag){
 			m = strlen(w)+1+strlen(t->tag)+1+strlen(o)+1;
-			buf = xmalloc(m);
+			buf = emalloc(m);
 			snprintf(buf, m, "%s %s %s", w, t->tag, o);
 		}else{
 			m = strlen(w)+1+strlen(o)+1;
-			buf = xmalloc(m);
+			buf = emalloc(m);
 			snprintf(buf, m, "%s %s", w, o);
 		}
-		xfree(o);
+		efree(o);
 		return buf;
 	case Tenum:
 		if(t->tag){
 			m = 4+1+strlen(t->tag)+1+strlen(o)+1;
-			buf = xmalloc(m);
+			buf = emalloc(m);
 			snprintf(buf, m, "enum %s %s", t->tag, o);
 		}else{
 			m = 4+1+strlen(o)+1;
-			buf = xmalloc(m);
+			buf = emalloc(m);
 			snprintf(buf, m, "enum %s", o);
 		}
-		xfree(o);
+		efree(o);
 		return buf;
 	case Tptr:
 		m = 2+strlen(o)+1+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		if(needsparen(t->link->kind))
 			snprintf(buf, m, "(*%s)", o);
 		else
 			snprintf(buf, m, "*%s", o);
-		xfree(o);
+		efree(o);
 		return fmttype(t->link, buf);
 	case Tarr:
 		m = strlen(o)+2+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		snprintf(buf, m, "%s[]", o);
-		xfree(o);
+		efree(o);
 		return fmttype(t->link, buf);
 	case Tfun:
 		pl = fmtdecllist(t->param);
 		m = strlen(o)+1+strlen(pl)+1+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		snprintf(buf, m, "%s(%s)", o, pl);
-		xfree(o);
-		xfree(pl);
+		efree(o);
+		efree(pl);
 		return fmttype(t->link, buf);
 	default:
 		fatal("bug");
@@ -688,7 +688,7 @@ printdecl(Decl *d)
 
 	o = fmtdecl(d);
 	xprintf("%s", o);
-	xfree(o);
+	efree(o);
 }
 
 void

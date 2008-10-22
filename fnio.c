@@ -88,7 +88,7 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	fd = open(name, O_RDONLY);
-	xfree(name);
+	efree(name);
 	if(0 > fd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
@@ -143,8 +143,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 		oflags |= O_WRONLY;
 
 	xfd = open(name, oflags, 0777); /* ~umask */
-	xfree(name);
-	xfree(mode);
+	efree(name);
+	efree(mode);
 	if(0 > xfd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
@@ -169,7 +169,7 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to read from closed file descriptor");
 	n = valcval(argv[1]);
-	buf = xmalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
+	buf = emalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
 	r = xread(fd->fd, buf, n->val);
 	if(r == (Imm)-1)
 		vmerr(vm, "read error: %s", strerror(errno));

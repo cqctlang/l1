@@ -34,9 +34,9 @@ readfile(char *filename)
 	fd = open(filename, O_RDONLY);
 	if(0 > fd)
 		return 0;
-	buf = xmalloc(st.st_size+1);
+	buf = emalloc(st.st_size+1);
 	if(0 > xread(fd, buf, st.st_size)){
-		xfree(buf);
+		efree(buf);
 		close(fd);
 		return 0;
 	}

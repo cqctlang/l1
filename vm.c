@@ -370,7 +370,7 @@ retry:
 		ap = heap->alloc;
 		fp = 0;
 		for(m = 0; m < AllocBatch; m++){
-			o = xmalloc(heap->sz);
+			o = emalloc(heap->sz);
 //			VALGRIND_MAKE_MEM_NOACCESS(o+1, heap->sz-sizeof(Head));
 			o->heap = heap;
 			o->qkind = heap->qkind;
@@ -459,7 +459,7 @@ freeheap(Heap *heap)
 //		if(p->color != GCfree)
 //			printf("freeing heap (%s) with live data\n", heap->id);
 		q = p->alink;
-		xfree(p);
+		efree(p);
 		p = q;
 	}
 }
@@ -511,7 +511,7 @@ newroot(Rootset *rs)
 		rs->free = r->link;
 		return r;
 	}
-	return xmalloc(sizeof(Root));
+	return emalloc(sizeof(Root));
 }
 
 static void
@@ -539,7 +539,7 @@ freefreeroots(Rootset *rs)
 	r = rs->free;
 	while(r){
 		nxt = r->link;
-		xfree(r);
+		efree(r);
 		r = nxt;
 	}
 }
@@ -1042,7 +1042,7 @@ mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 	cl->code = code;
 	cl->entry = entry;
 	cl->dlen = len;
-	cl->display = xmalloc(cl->dlen*sizeof(Val));
+	cl->display = emalloc(cl->dlen*sizeof(Val));
 	cl->id = xstrdup(id);
 	return cl;
 }
@@ -1080,8 +1080,8 @@ freecl(Head *hd)
 {
 	Closure *cl;
 	cl = (Closure*)hd;
-	xfree(cl->display);
-	xfree(cl->id);
+	efree(cl->display);
+	efree(cl->id);
 	return 1;
 }
 
@@ -1387,7 +1387,7 @@ mkstr0(char *s)
 	Str *str;
 	str = (Str*)halloc(&heap[Qstr]);
 	str->len = strlen(s);
-	str->s = xmalloc(str->len);
+	str->s = emalloc(str->len);
 	memcpy(str->s, s, str->len);
 	str->skind = Smalloc;
 	return str;
@@ -1399,7 +1399,7 @@ mkstr(char *s, Imm len)
 	Str *str;
 	str = (Str*)halloc(&heap[Qstr]);
 	str->len = len;
-	str->s = xmalloc(str->len);
+	str->s = emalloc(str->len);
 	memcpy(str->s, s, str->len);
 	str->skind = Smalloc;
 	return str;
@@ -1433,7 +1433,7 @@ mkstrn(VM *vm, Imm len)
 		str->skind = Smmap;
 	}else{
 		str->len = len;
-		str->s = xmalloc(str->len);
+		str->s = emalloc(str->len);
 		str->skind = Smalloc;
 	}
 	return str;
@@ -1449,7 +1449,7 @@ char*
 str2cstr(Str *str)
 {
 	char *s;
-	s = xmalloc(str->len+1);
+	s = emalloc(str->len+1);
 	memcpy(s, str->s, str->len);
 	return s;
 }
@@ -1470,7 +1470,7 @@ freestr(Head *hd)
 		munmap(str->s, str->mlen);
 		break;
 	case Smalloc:
-		xfree(str->s);
+		efree(str->s);
 		break;
 	case Sperm:
 		break;
@@ -1517,7 +1517,7 @@ mkvec(Imm len)
 
 	vec = (Vec*)halloc(&heap[Qvec]);
 	vec->len = len;
-	vec->vec = xmalloc(len*sizeof(Val));
+	vec->vec = emalloc(len*sizeof(Val));
 	return vec;
 }
 
@@ -1576,7 +1576,7 @@ freevec(Head *hd)
 {
 	Vec *vec;
 	vec = (Vec*)hd;
-	xfree(vec->vec);
+	efree(vec->vec);
 	return 1;
 }
 
@@ -1584,22 +1584,22 @@ static Tabx*
 mktabx(u32 sz)
 {
 	Tabx *x;
-	x = xmalloc(sizeof(Tabx));
+	x = emalloc(sizeof(Tabx));
 	x->sz = sz;
 	x->lim = 2*sz/3;
-	x->val = xmalloc(x->lim*sizeof(Val)); /* must be 0 or Xundef */
-	x->key = xmalloc(x->lim*sizeof(Val)); /* must be 0 or Xundef */
-	x->idx = xmalloc(x->sz*sizeof(Tabidx*));
+	x->val = emalloc(x->lim*sizeof(Val)); /* must be 0 or Xundef */
+	x->key = emalloc(x->lim*sizeof(Val)); /* must be 0 or Xundef */
+	x->idx = emalloc(x->sz*sizeof(Tabidx*));
 	return x;
 }
 
 static void
 freetabx(Tabx *x)
 {
-	xfree(x->val);
-	xfree(x->key);
-	xfree(x->idx);
-	xfree(x);
+	efree(x->val);
+	efree(x->key);
+	efree(x->idx);
+	efree(x);
 }
 
 static Tab*
@@ -1658,7 +1658,7 @@ freetab(Head *hd)
 		while(tk){
 			pk = tk;
 			tk = tk->link;
-			xfree(pk);
+			efree(pk);
 		}
 	}
 	freetabx(x);
@@ -1767,7 +1767,7 @@ dotabput(VM *vm, Tab *tab, Val keyv, Val val)
 		x = tab->x;
 	}
 
-	tk = xmalloc(sizeof(Tabidx));
+	tk = emalloc(sizeof(Tabidx));
 
 	/* FIXME: snapshot-at-beginning seems to imply that it does
 	   not matter whether gc can see these new values in this
@@ -1809,7 +1809,7 @@ tabdel(VM *vm, Tab *tab, Val keyv)
 	x->key[tk->idx] = Xundef;
 	x->val[tk->idx] = Xundef;
 	*ptk = tk->link;
-	xfree(tk);
+	efree(tk);
 	tab->cnt--;
 }
 
@@ -1895,10 +1895,10 @@ static Listx*
 mklistx(u32 sz)
 {
 	Listx *x;
-	x = xmalloc(sizeof(Listx));
+	x = emalloc(sizeof(Listx));
 	x->hd = x->tl = sz/2;
 	x->sz = sz;
-	x->val = xmalloc(x->sz*sizeof(Val)); /* must be 0 or Xundef */
+	x->val = emalloc(x->sz*sizeof(Val)); /* must be 0 or Xundef */
 	return x;
 }
 
@@ -1932,9 +1932,9 @@ mklistinit(Imm len, Val v)
 static void
 freelistx(Listx *x)
 {
-	xfree(x->val);
-	xfree(x->oval);
-	xfree(x);
+	efree(x->val);
+	efree(x->oval);
+	efree(x);
 }
 
 static int
@@ -2114,7 +2114,7 @@ slide(Listx *x, u32 idx, int op)
 		/* deleting last element; nothing to do */
 		return;		
 	if(x->oval == 0)
-		x->oval = xmalloc(x->sz*sizeof(Val));
+		x->oval = emalloc(x->sz*sizeof(Val));
 	memcpy(&x->oval[x->hd], &x->val[x->hd], idx*sizeof(Val));
 	switch(op){
 	case SlideIns:
@@ -2325,7 +2325,7 @@ fmtplist(Vec *param)
 	if(n == 0)
 		return xstrdup("");
 
-	ds = xmalloc(n*sizeof(char**));
+	ds = emalloc(n*sizeof(char**));
 	m = 1;			/* null */
 	for(i = 0; i < n; i++){
 		pvec = valvec(vecref(param, i));
@@ -2339,19 +2339,19 @@ fmtplist(Vec *param)
 		if(i < n-1)
 			m += 2;	/* comma, space */
 	}
-	buf = xmalloc(m);
+	buf = emalloc(m);
 	bp = buf;
 	for(i = 0; i < n; i++){
 		strcpy(bp, ds[i]);
 		bp += strlen(ds[i]);
-		xfree(ds[i]);
+		efree(ds[i]);
 		if(i < n-1){
 			strcpy(bp, ", ");
 			bp += 2;
 		}
 	}
 	*bp = 0;
-	xfree(ds);
+	efree(ds);
 	return buf;
 }
 
@@ -2367,31 +2367,31 @@ _fmtxtn(Xtypename *xtn, char *o)
 	switch(xtn->tkind){
 	case Tvoid:
 		m = 4+1+leno+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		if(leno)
 			snprintf(buf, m, "void %s", o);
 		else
 			snprintf(buf, m, "void");
-		xfree(o);
+		efree(o);
 		return buf;
 	case Tbase:
 		m = strlen(basename[xtn->basename])+1+leno+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		if(leno)
 			snprintf(buf, m, "%s %s", basename[xtn->basename], o);
 		else
 			snprintf(buf, m, "%s", basename[xtn->basename]);
-		xfree(o);
+		efree(o);
 		return buf;
 	case Ttypedef:
 		s = xtn->tid;
 		m = s->len+1+leno+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		if(leno)
 			snprintf(buf, m, "%.*s %s", (int)s->len, s->s, o);
 		else
 			snprintf(buf, m, "%.*s", (int)s->len, s->s);
-		xfree(o);
+		efree(o);
 		return buf;
 	case Tstruct:
 	case Tunion:
@@ -2400,7 +2400,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		if(xtn->tag){
 			s = xtn->tag;
 			m = strlen(w)+1+s->len+1+leno+1;
-			buf = xmalloc(m);
+			buf = emalloc(m);
 			if(leno)
 				snprintf(buf, m, "%s %.*s %s",
 					 w, (int)s->len, s->s, o);
@@ -2409,46 +2409,46 @@ _fmtxtn(Xtypename *xtn, char *o)
 					 (int)s->len, s->s);
 		}else{
 			m = strlen(w)+1+leno+1;
-			buf = xmalloc(m);
+			buf = emalloc(m);
 			if(leno)
 				snprintf(buf, m, "%s %s", w, o);
 			else
 				snprintf(buf, m, "%s", w);
 		}
-		xfree(o);
+		efree(o);
 		return buf;
 	case Tundef:
 		m = leno+1+strlen("/*UNDEFINED*/")+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		snprintf(buf, m, "%s /*UNDEFINED*/", o);
 		return _fmtxtn(xtn->link, buf);
 	case Tptr:
 		m = 2+leno+1+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		if(xtn->link->tkind == Tfun || xtn->link->tkind == Tarr)
 			snprintf(buf, m, "(*%s)", o);
 		else
 			snprintf(buf, m, "*%s", o);
-		xfree(o);
+		efree(o);
 		return _fmtxtn(xtn->link, buf);
 	case Tarr:
 		m = leno+1+10+1+1;	/* assume max 10 digit size */
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		if(xtn->cnt->qkind == Qnil)
 			snprintf(buf, m, "%s[]", o);
 		else{
 			cv = valcval(xtn->cnt);
 			snprintf(buf, m, "%s[%" PRIu64 "]", o, cv->val);
 		}
-		xfree(o);
+		efree(o);
 		return _fmtxtn(xtn->link, buf);
 	case Tfun:
 		pl = fmtplist(xtn->param);
 		m = leno+1+strlen(pl)+1+1;
-		buf = xmalloc(m);
+		buf = emalloc(m);
 		snprintf(buf, m, "%s(%s)", o, pl);
-		xfree(o);
-		xfree(pl);
+		efree(o);
+		efree(pl);
 		return _fmtxtn(xtn->link, buf);
 	case Tconst:
 	case Tbitfield:
@@ -2464,7 +2464,7 @@ static char*
 _fmtdecl(Xtypename *xtn, Str *id)
 {
 	char *o;
-	o = xmalloc(id->len+1);
+	o = emalloc(id->len+1);
 	memcpy(o, id->s, id->len);
 	return _fmtxtn(xtn, o);
 }
@@ -2476,7 +2476,7 @@ fmtdecl(Xtypename *xtn, Str *id)
 	Str *str;
 	s = _fmtdecl(xtn, id);
 	str = mkstr0(s);
-	xfree(s);
+	efree(s);
 	return str;
 }
 
@@ -2487,7 +2487,7 @@ fmtxtn(Xtypename *xtn)
 	Str *str;
 	s = _fmtxtn(xtn, xstrdup(""));
 	str = mkstr0(s);
-	xfree(s);
+	efree(s);
 	return str;
 }
 
@@ -2583,7 +2583,7 @@ Env*
 mkenv()
 {
 	Env *env;
-	env = xmalloc(sizeof(Env));
+	env = emalloc(sizeof(Env));
 	env->ht = mkht();
 	return env;
 }
@@ -2595,7 +2595,7 @@ envgetbind(Env *env, char *id)
 
 	v = hget(env->ht, id, strlen(id));
 	if(!v){
-		v = xmalloc(sizeof(Val));
+		v = emalloc(sizeof(Val));
 		*v = Xundef;
 		hput(env->ht, xstrdup(id), strlen(id), v);
 	}
@@ -2626,8 +2626,8 @@ envlookup(Env *env, char *id, Val *val)
 static void
 freebinding(void *u, char *id, void *v)
 {
-	xfree(id);
-	xfree((Val*)v);
+	efree(id);
+	efree((Val*)v);
 }
 
 void
@@ -2635,7 +2635,7 @@ freeenv(Env *env)
 {
 	hforeach(env->ht, freebinding, 0);
 	freeht(env->ht);
-	xfree(env);
+	efree(env);
 }
 
 Cval*
@@ -5133,7 +5133,7 @@ _pusherror(VM *vm)
 {
 	Err *ep;
 	if(vm->edepth >= vm->emax){
-		vm->err = xrealloc(vm->err, vm->emax*sizeof(Err),
+		vm->err = erealloc(vm->err, vm->emax*sizeof(Err),
 				   2*vm->emax*sizeof(Err));
 		vm->emax *= 2;
 	}
@@ -5167,7 +5167,7 @@ static void
 gcprotpush(VM *vm)
 {
 	if(vm->pdepth >= vm->pmax){
-		vm->prot = xrealloc(vm->prot,
+		vm->prot = erealloc(vm->prot,
 				    vm->pmax*sizeof(Root*),
 				    2*vm->pmax*sizeof(Root*));
 		vm->pmax *= 2;
@@ -5834,9 +5834,9 @@ stringof(VM *vm, Cval *cv)
 	while(m > 0){
 		n = MIN(m, unit);
 		if(buf == 0)
-			buf = xmalloc(unit);
+			buf = emalloc(unit);
 		else
-			buf = xrealloc(buf, l, l+n);
+			buf = erealloc(buf, l, l+n);
 		argv[0] = mkvalstr(vm->sget);
 		argv[1] = mkvaldom(cv->dom);
 		r = mkrange(mkcval(cv->dom, cv->dom->ns->base[Vptr], o),
@@ -5856,7 +5856,7 @@ stringof(VM *vm, Cval *cv)
 		m -= s->len;
 	}
 	s = mkstr(buf, l);	/* FIXME: mkstr copies buf; should steal */
-	xfree(buf);
+	efree(buf);
 	return s;
 }
 
@@ -6461,7 +6461,7 @@ fmtstrflush(Fmt *f)
 	char *s;
 	len = (u32)(uintptr_t)f->farg;
 	s = f->start;
-	f->start = xrealloc(f->start, len, len*2);
+	f->start = erealloc(f->start, len, len*2);
 	len *= 2;
 	f->farg = (void*)(uintptr_t)len;
 	f->to = f->start+(f->to-s);
@@ -6475,7 +6475,7 @@ dovsprinta(VM *vm, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Fmt f;
 	static u32 initlen = 128;
 	memset(&f, 0, sizeof(f));
-	f.start = xmalloc(initlen);
+	f.start = emalloc(initlen);
 	f.farg = (void*)(uintptr_t)initlen;
 	f.to = f.start;
 	f.stop = f.start+initlen;
@@ -8230,8 +8230,8 @@ l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 	p = strstr(s1, s2);
 	if(p)
 		*rv = mkvallitcval(Vuvlong, p-s1);
-	xfree(s1);
-	xfree(s2);
+	efree(s1);
+	efree(s2);
 }
 
 static void
@@ -8506,7 +8506,7 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	if(listlen(iargv[iargc-1], &ll) == 0)
 		vmerr(vm, "final operand to apply must be a proper list");
 	argc = iargc-2+ll;
-	argv = xmalloc(argc*sizeof(Val));
+	argv = emalloc(argc*sizeof(Val));
 	ap = argv;
 	ip = &iargv[1];
 	for(m = 0; m < iargc-2; m++)
@@ -8518,7 +8518,7 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	}
 	vp = dovm(vm, cl, argc, argv);
 	*rv = vp;
-	xfree(argv);
+	efree(argv);
 }
 
 static void
@@ -9606,12 +9606,12 @@ cqctmkvm(Env *env)
 	VM *vm, **vmp;
 	Val val;
 
-	vm = xmalloc(sizeof(VM));
+	vm = emalloc(sizeof(VM));
 	vm->top = env;
 	vm->pmax = GCinitprot;
-	vm->prot = xmalloc(vm->pmax*sizeof(Root*));
+	vm->prot = emalloc(vm->pmax*sizeof(Root*));
 	vm->emax = Errinitdepth;
-	vm->err = xmalloc(vm->emax*sizeof(Err));
+	vm->err = emalloc(vm->emax*sizeof(Err));
 	
 	envlookup(env, "litdom", &val);
 	vm->litdom = valdom(val);
@@ -9653,8 +9653,8 @@ cqctfreevm(VM *vm)
 
 	gcprotpop(vm);
 	freefreeroots(&vm->rs);
-	xfree(vm->prot);
-	xfree(vm->err);
+	efree(vm->prot);
+	efree(vm->err);
 	vmp = vms;
 	while(vmp < vms+Maxvms){
 		if(*vmp == vm){
@@ -9663,7 +9663,7 @@ cqctfreevm(VM *vm)
 		}
 		vmp++;
 	}
-	xfree(vm);
+	efree(vm);
 }
 
 static void
@@ -9686,8 +9686,8 @@ initvm(int gcthread, u64 heapmax)
 {
 	Head *hd;
 
-	GCiterdone = xmalloc(1); /* unique pointer */
-	thegc = xmalloc(sizeof(GC));
+	GCiterdone = emalloc(1); /* unique pointer */
+	thegc = emalloc(sizeof(GC));
 	if(heapmax){
 		heapmax *= 1024*1024; /* heapmax was in MB */
 		thegc->heapmax = heapmax;
@@ -9702,15 +9702,15 @@ initvm(int gcthread, u64 heapmax)
 		thegc->gckill = gckill;
 	}
 
-	hd = xmalloc(sizeof(Head));
+	hd = emalloc(sizeof(Head));
 	hd->qkind = Qundef;
 	Xundef = hd;
 
-	hd = xmalloc(sizeof(Head));
+	hd = emalloc(sizeof(Head));
 	hd->qkind = Qnil;
 	Xnil = hd;
 
-	hd = xmalloc(sizeof(Head));
+	hd = emalloc(sizeof(Head));
 	hd->qkind = Qnulllist;
 	Xnulllist = hd;
 
@@ -9734,15 +9734,15 @@ finivm()
 	gcreset(thegc);
 	freefreeroots(&thegc->roots);
 	freefreeroots(&thegc->stores);
-	xfree(thegc);
+	efree(thegc);
 
 	freecode((Head*)kcode);
 	freecode((Head*)cccode);
-	xfree(GCiterdone);
+	efree(GCiterdone);
 
-	xfree(Xundef);
-	xfree(Xnil);
-	xfree(Xnulllist);
+	efree(Xundef);
+	efree(Xnil);
+	efree(Xnulllist);
 
 	for(i = 0; i < Qnkind; i++){
 		hp = &heap[i];
@@ -9953,5 +9953,5 @@ cqctuint64val(uint64_t x)
 void
 cqctfreecstr(char *s)
 {
-	xfree(s);
+	efree(s);
 }

@@ -36,7 +36,7 @@ lex.yy.c: c.l $(HDR)
 	flex -f -s c.l
 
 l1: l1.o main.o
-	$(CC) -o $@ $^ -lpthread
+	$(CC) -o $@ $^ -lpthread -lreadline -ltermcap
 
 l1.o: c.tab.o lex.yy.o $(L1O)
 	$(LD) -d -r -o $@ $^

@@ -53,7 +53,7 @@ static Ctl*
 mklabel(Code *code)
 {
 	Ctl *ctl;
-	ctl = xmalloc(sizeof(Ctl));
+	ctl = emalloc(sizeof(Ctl));
 	ctl->link = code->clist;
 	ctl->code = code;
 	code->clist = ctl;
@@ -64,8 +64,8 @@ static void
 freelabel(Ctl *ctl)
 {
 	if(ctl->ckind == Clabel)
-		xfree(ctl->label);
-	xfree(ctl);
+		efree(ctl->label);
+	efree(ctl);
 }
 
 static Ctl*
@@ -125,8 +125,8 @@ mkcode()
 	
 	code = newcode();
 	code->maxinsn = InsnAlloc;
-	code->insn = xmalloc(code->maxinsn*sizeof(Insn));
-	code->labels = xmalloc(code->maxinsn*sizeof(Ctl*));
+	code->insn = emalloc(code->maxinsn*sizeof(Insn));
+	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
 	code->ninsn = 0;
 	code->topvec = mktopvec();
 	code->konst = mkkonst();
@@ -153,8 +153,8 @@ freecode(Head *hd)
 	}
 	
 	freeexpr(code->src);
-	xfree(code->insn);
-	xfree(code->labels);
+	efree(code->insn);
+	efree(code->labels);
 	return 1;
 }
 
@@ -163,10 +163,10 @@ nextinsn(Code *code)
 {
 	/* plan for one extra instruction for emitlabel */
 	if(code->ninsn+1 >= code->maxinsn){
-		code->insn = xrealloc(code->insn,
+		code->insn = erealloc(code->insn,
 				      code->maxinsn*sizeof(Insn),
 				      2*code->maxinsn*sizeof(Insn));
-		code->labels = xrealloc(code->labels,
+		code->labels = erealloc(code->labels,
 					code->maxinsn*sizeof(Ctl*),
 					2*code->maxinsn*sizeof(Ctl*));
 		code->maxinsn *= 2;
@@ -611,10 +611,10 @@ static Topvec*
 mktopvec()
 {
 	Topvec *tv;
-	tv = xmalloc(sizeof(Topvec));
+	tv = emalloc(sizeof(Topvec));
 	tv->maxid = 128;
-	tv->id = xmalloc(tv->maxid*sizeof(char*));
-	tv->val = xmalloc(tv->maxid*sizeof(Val*));
+	tv->id = emalloc(tv->maxid*sizeof(char*));
+	tv->val = emalloc(tv->maxid*sizeof(Val*));
 	return tv;
 }
 
@@ -623,10 +623,10 @@ freetopvec(Topvec *tv)
 {
 	unsigned m;
 	for(m = 0; m < tv->nid; m++)
-		xfree(tv->id[m]);
-	xfree(tv->id);
-	xfree(tv->val);
-	xfree(tv);
+		efree(tv->id[m]);
+	efree(tv->id);
+	efree(tv->val);
+	efree(tv);
 }
 
 char*
@@ -659,10 +659,10 @@ static int
 topvecadd(char *id, Topvec *tv, Env *env)
 {
 	if(tv->nid >= tv->maxid){
-		tv->id = xrealloc(tv->id,
+		tv->id = erealloc(tv->id,
 				  tv->maxid*sizeof(char*),
 				  2*tv->maxid*sizeof(char*));
-		tv->val = xrealloc(tv->val,
+		tv->val = erealloc(tv->val,
 				   tv->maxid*sizeof(Val*),
 				   2*tv->maxid*sizeof(Val*));
 		tv->maxid *= 2;
@@ -676,7 +676,7 @@ static Konst*
 mkkonst()
 {
 	Konst *kon;
-	kon = xmalloc(sizeof(Konst));
+	kon = emalloc(sizeof(Konst));
 	kon->ht = mkht();
 	return kon;
 }
@@ -706,14 +706,14 @@ freekonst(Konst *kon)
 {
 	hforeach(kon->ht, free1konst, 0);
 	freeht(kon->ht);
-	xfree(kon);
+	efree(kon);
 }
 
 static Konsti*
 mkkonsti()
 {
 	Konsti *koni;
-	koni = xmalloc(sizeof(Konsti));
+	koni = emalloc(sizeof(Konsti));
 	koni->ht = mkht();
 	return koni;
 }
@@ -744,7 +744,7 @@ konstival(Liti *liti, Konsti *koni)
 static void
 free1konsti(void *u, char *k, void *v)
 {
-	xfree(k);
+	efree(k);
 }
 
 static void
@@ -752,38 +752,38 @@ freekonsti(Konsti *koni)
 {
 	hforeach(koni->ht, free1konsti, 0);
 	freeht(koni->ht);
-	xfree(koni);
+	efree(koni);
 }
 
 static VEnv*
 mkvenv()
 {
 	VEnv *ve;
-	ve = xmalloc(sizeof(VEnv));
+	ve = emalloc(sizeof(VEnv));
 	return ve;
 }
 
 static void
 freevenv(VEnv *ve)
 {
-	xfree(ve);
+	efree(ve);
 }
 
 static VDset*
 mkvdset()
 {
 	VDset *vs;
-	vs = xmalloc(sizeof(VDset));
+	vs = emalloc(sizeof(VDset));
 	vs->maxvd = 128;
-	vs->vd = xmalloc(vs->maxvd*sizeof(*vs->vd));
+	vs->vd = emalloc(vs->maxvd*sizeof(*vs->vd));
 	return vs;
 }
 
 static void
 freevdset(VDset *vs)
 {
-	xfree(vs->vd);
-	xfree(vs);
+	efree(vs->vd);
+	efree(vs);
 }
 
 static void
@@ -796,7 +796,7 @@ addvdset(Vardef *vd, VDset *vs)
 		if(*p == vd)
 			return;
 	if(vs->nvd >= vs->maxvd){
-		vs->vd = xrealloc(vs->vd,
+		vs->vd = erealloc(vs->vd,
 				  vs->maxvd*sizeof(*vs->vd),
 				  2*vs->maxvd*sizeof(*vs->vd));
 		vs->maxvd *= 2;
@@ -821,17 +821,17 @@ static VRset*
 mkvrset(unsigned n)
 {
 	VRset *vs;
-	vs = xmalloc(sizeof(VRset));
+	vs = emalloc(sizeof(VRset));
 	vs->nvr = n;
-	vs->vr = xmalloc(vs->nvr*sizeof(Varref));
+	vs->vr = emalloc(vs->nvr*sizeof(Varref));
 	return vs;
 }
 
 static void
 freevrset(VRset *vs)
 {
-	xfree(vs->vr);
-	xfree(vs);
+	efree(vs->vr);
+	efree(vs);
 }
 
 static Lambda*
@@ -842,7 +842,7 @@ mklambda(Expr *p)
 	Vardef *vd;
 	unsigned m;
 	
-	b = xmalloc(sizeof(Lambda));
+	b = emalloc(sizeof(Lambda));
 
 	q = p->e1;
 	b->npar = 0;
@@ -863,10 +863,10 @@ mklambda(Expr *p)
 			q = q->e2;
 		}
 
-	b->param = xmalloc(b->npar*sizeof(Vardef));
+	b->param = emalloc(b->npar*sizeof(Vardef));
 	b->ntmp = tmppass(p->e2);
 	b->maxloc = locpass(p->e2);
-	b->local = xmalloc(b->maxloc*sizeof(Vardef));
+	b->local = emalloc(b->maxloc*sizeof(Vardef));
 
 	if(!b->vararg){
 		vd = b->param;
@@ -895,10 +895,10 @@ freelambda(Lambda *b)
 {
 	freevrset(b->capture);
 	freevenv(b->ve);
-	xfree(b->local);
-	xfree(b->param);
-	xfree(b->id);
-	xfree(b);
+	efree(b->local);
+	efree(b->param);
+	efree(b->id);
+	efree(b);
 }
 
 static unsigned
@@ -939,7 +939,7 @@ static Varref*
 mkvarref(Vardef *vd)
 {
 	Varref *vr;
-	vr = xmalloc(sizeof(Varref));
+	vr = emalloc(sizeof(Varref));
 	vr->vd = vd;
 	return vr;
 }
@@ -950,7 +950,7 @@ mktoplevelref(char *id, Topvec *tv, Env *env)
 	Vardef *vd;
 	int idx;
 
-	vd = xmalloc(sizeof(Vardef));
+	vd = emalloc(sizeof(Vardef));
 	idx = topveclookup(id, tv);
 	if(idx == -1)
 		idx = topvecadd(id, tv, env);
@@ -967,8 +967,8 @@ freevarref(Varref *vr)
 	if(vr == 0)
 		return;
 	if(vr->vd->kind == VDtoplevel)
-		xfree(vr->vd);
-	xfree(vr);
+		efree(vr->vd);
+	efree(vr);
 }
 
 static void
@@ -978,9 +978,9 @@ freetype(Type *t)
 		return;
 
 	freetype(t->link);
-	xfree(t->dom);
-	xfree(t->tid);
-	xfree(t->tag);
+	efree(t->dom);
+	efree(t->tid);
+	efree(t->tag);
 	freedecl(t->field);
 	freeenum(t->en);
 	freedecl(t->param);
@@ -988,7 +988,7 @@ freetype(Type *t)
 	freeexpr(t->bit0);
 	freeexpr(t->sz);
 	freeexpr(t->cnt);
-	xfree(t);
+	efree(t);
 }
 
 static void
@@ -1002,8 +1002,8 @@ freedecl(Decl *d)
 		nxt = d->link;
 		freetype(d->type);
 		freeexpr(d->offs);
-		xfree(d->id);
-		xfree(d);
+		efree(d->id);
+		efree(d);
 	}
 }
 
@@ -1354,10 +1354,10 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 		return;
 	case Ecase:
 		if(cs->n >= cs->max){
-			cs->cmp = xrealloc(cs->cmp,
+			cs->cmp = erealloc(cs->cmp,
 					   cs->max*sizeof(Expr),
 					   2*cs->max*sizeof(Expr));
-			cs->ctl = xrealloc(cs->ctl,
+			cs->ctl = erealloc(cs->ctl,
 					   cs->max*sizeof(Expr),
 					   2*cs->max*sizeof(Expr));
 			cs->max *= 2;
@@ -1389,10 +1389,10 @@ static Cases*
 switchctl(Expr *e, Code *code)
 {
 	Cases *cs;
-	cs = xmalloc(sizeof(Cases));
+	cs = emalloc(sizeof(Cases));
 	cs->max = 128;
-	cs->cmp = xmalloc(cs->max*sizeof(Expr*));
-	cs->ctl = xmalloc(cs->max*sizeof(Expr*));
+	cs->cmp = emalloc(cs->max*sizeof(Expr*));
+	cs->ctl = emalloc(cs->max*sizeof(Expr*));
 	recswitchctl(e, code, cs);
 	return cs;
 }
@@ -1400,9 +1400,9 @@ switchctl(Expr *e, Code *code)
 static void
 freeswitchctl(Cases *cs)
 {
-	xfree(cs->cmp);
-	xfree(cs->ctl);
-	xfree(cs);
+	efree(cs->cmp);
+	efree(cs->ctl);
+	efree(cs);
 }
 
 static void

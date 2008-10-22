@@ -18,17 +18,17 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	dir = opendir(name);
-	xfree(name);
+	efree(name);
 	if(dir == NULL)
 		vmerr(vm, "opendir: %s", strerror(errno));
 
 	lim = 128;
-	buf = xmalloc(lim*sizeof(struct dirent));
+	buf = emalloc(lim*sizeof(struct dirent));
 	ndir = 0;
 	p = (struct dirent*)buf;
 	while((d = readdir(dir))){
 		if(ndir >= lim){
-			buf = xrealloc(buf, lim*sizeof(struct dirent),
+			buf = erealloc(buf, lim*sizeof(struct dirent),
 				       2*lim*sizeof(struct dirent));
 			lim *= 2;
 			p = (struct dirent*)buf+ndir;
@@ -54,7 +54,7 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = mkdir(name, 0777);	/* ~umask */
-	xfree(name);
+	efree(name);
 	if(0 > r)
 		vmerr(vm, "mkdir: %s", strerror(errno));
 	/* return nil */
@@ -73,7 +73,7 @@ l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = unlink(name);
-	xfree(name);
+	efree(name);
 	if(0 > r)
 		vmerr(vm, "unlink: %s", strerror(errno));
 	/* return nil */
@@ -92,7 +92,7 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = rmdir(name);
-	xfree(name);
+	efree(name);
 	if(0 > r)
 		vmerr(vm, "rmdir: %s", strerror(errno));
 	/* return nil */

@@ -118,7 +118,7 @@ mklits(char *s, unsigned len)
 	Lits *lits;
 	char *p;
 
-	lits = xmalloc(sizeof(Lits)+len);
+	lits = emalloc(sizeof(Lits)+len);
 	p = (char*)(lits+1);
 	memcpy(p, s, len);
 	lits->s = p;
@@ -135,14 +135,14 @@ copylits(Lits *lits)
 void
 freelits(Lits *lits)
 {
-	xfree(lits);
+	efree(lits);
 }
 
 static Type*
 newtype()
 {
 	Type *t;
-	t = xmalloc(sizeof(Type));
+	t = emalloc(sizeof(Type));
 	return t;
 }
 
@@ -150,7 +150,7 @@ static Decl*
 newdecl()
 {
 	Decl *d;
-	d = xmalloc(sizeof(Decl));
+	d = emalloc(sizeof(Decl));
 	return d;
 }
 
@@ -159,7 +159,7 @@ newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 {
 	Expr *e;
 
-	e = xmalloc(sizeof(Expr));
+	e = emalloc(sizeof(Expr));
 	e->kind = kind;
 	e->e1 = e1;
 	e->e2 = e2;	
@@ -221,7 +221,7 @@ freeexpr(Expr *e)
 		while(p->kind == Eelist){
 			freeexpr(p->e1);
 			e = p->e2;
-			xfree(p);
+			efree(p);
 			p = e;
 		}
 		freeexpr(p);
@@ -230,7 +230,7 @@ freeexpr(Expr *e)
 
 	switch(e->kind){
 	case Eid:
-		xfree(e->id);
+		efree(e->id);
 		break;
 	case Econsts:
 		freelits(e->lits);
@@ -244,7 +244,7 @@ freeexpr(Expr *e)
 	freeexpr(e->e4);
 	if(e->xp)
 		freeexprx(e);
-	xfree(e);
+	efree(e);
 }
 
 Expr*
@@ -255,7 +255,7 @@ copyexpr(Expr *e)
 	if(e == 0)
 		return 0;
 
-	ne = xmalloc(sizeof(Expr));
+	ne = emalloc(sizeof(Expr));
 	ne->kind = e->kind;
 	switch(e->kind){
 	case Eid:
@@ -771,9 +771,9 @@ freeenum(Enum *en)
 
 	while(en){
 		q = en->link;
-		xfree(en->id);
+		efree(en->id);
 		freeexpr(en->val);
-		xfree(en);
+		efree(en);
 		en = q;
 	}
 }
@@ -795,7 +795,7 @@ recenums(Type *t, Expr *e, Expr *val)
 	if(el->kind != Eenumel)	/* FIXME delete */
 		fatal("bug");
 
-	en = xmalloc(sizeof(Enum));
+	en = emalloc(sizeof(Enum));
 	en->id = el->e1->id; /* steal */
 	el->e1->id = NULL;
 	if(el->e2){
@@ -1183,7 +1183,7 @@ initparse()
 static void
 freefilename(void *u, char *k, void *v)
 {
-	xfree(k);
+	efree(k);
 }
 
 static void
@@ -1226,7 +1226,7 @@ popyy(U *ctx)
 	ctx->inp->src.filename = 0;
 	freeyystate(ctx->inp->yy);
 	if(ctx->inp->dofree)
-		xfree(ctx->inp->buf);
+		efree(ctx->inp->buf);
 	if(ctx->inp == ctx->in){
 		ctx->inp = 0;
 		return 0;
@@ -1306,7 +1306,7 @@ cqctparsefile(char *filename)
 	if(str == 0)
 		return 0;
 	e = doparse(str, filename);
-	xfree(str);
+	efree(str);
 	return e;
 }
 

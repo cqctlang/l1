@@ -27,7 +27,7 @@ main(int argc, char *argv[])
 		return 0;
 	s = cqctsprintval(vm, v);
 	printf("%s\n", s);
-	xfree(s);
+	efree(s);
 out:
 	cqctfreevm(vm);
 	cqctfini(env);

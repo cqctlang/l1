@@ -192,9 +192,9 @@ deferfree(Head *hd)
 static void
 initprof()
 {
-	prof = xmalloc(sizeof(Profiler));
-	prof->trace = xmalloc(Maxtrace*sizeof(Trace));
-	prof->defer = xmalloc(Maxdefer*sizeof(Head*));
+	prof = emalloc(sizeof(Profiler));
+	prof->trace = emalloc(Maxtrace*sizeof(Trace));
+	prof->defer = emalloc(Maxdefer*sizeof(Head*));
 	prof->freecl = getfreeheadfn(Qcl);
 	prof->freecode = getfreeheadfn(Qcode);
 	setfreeheadfn(Qcl, deferfree);
@@ -222,9 +222,9 @@ finiprof()
 	}
 	setfreeheadfn(Qcl, prof->freecl);
 	setfreeheadfn(Qcode, prof->freecode);
-	xfree(prof->trace);
-	xfree(prof->defer);
-	xfree(prof);
+	efree(prof->trace);
+	efree(prof->defer);
+	efree(prof);
 	prof = 0;
 }
 

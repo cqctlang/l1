@@ -203,7 +203,7 @@ YYstate*
 mkyystate(FILE *fp)
 {
 	YYstate *yy;
-	yy = xmalloc(sizeof(YYstate));
+	yy = emalloc(sizeof(YYstate));
 //	yy->yy = yy_create_buffer(fp, YY_BUF_SIZE);
 	return yy;
 }
@@ -212,7 +212,7 @@ YYstate*
 mkyystatestr(char *buf)
 {
 	YYstate *yy;
-	yy = xmalloc(sizeof(YYstate));
+	yy = emalloc(sizeof(YYstate));
 	yy->yy = yy_scan_string(buf);
 	return yy;
 }
@@ -221,7 +221,7 @@ void
 freeyystate(YYstate *yy)
 {
 	yy_delete_buffer(yy->yy);
-	xfree(yy);
+	efree(yy);
 }
 
 void

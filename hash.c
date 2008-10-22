@@ -24,10 +24,10 @@ static HT*
 mkhtsz(unsigned long sz)
 {
 	HT *ht;
-	ht = xmalloc(sizeof(HT));
+	ht = emalloc(sizeof(HT));
 	ht->sz = sz;
-	ht->ht = xmalloc(ht->sz*sizeof(Hent*));
-	ht->hent = xmalloc(ht->sz*sizeof(Hent*));
+	ht->ht = emalloc(ht->sz*sizeof(Hent*));
+	ht->hent = emalloc(ht->sz*sizeof(Hent*));
 	return ht;
 }
 
@@ -47,13 +47,13 @@ freeht(HT* ht)
 		hp = ht->ht[i];
 		while(hp){
 			np = hp->next;
-			xfree(hp);
+			efree(hp);
 			hp = np;
 		}
 	}
-	xfree(ht->ht);
-	xfree(ht->hent);
-	xfree(ht);
+	efree(ht->ht);
+	efree(ht->hent);
+	efree(ht);
 }
 
 /* one-at-a-time by jenkins */
@@ -129,7 +129,7 @@ hexpand(HT *ht)
 	unsigned long idx;
 
 	nsz = ht->sz*2;
-	nht = xmalloc(nsz*sizeof(sizeof(Hent*)));
+	nht = emalloc(nsz*sizeof(sizeof(Hent*)));
 	for(i = 0; i < ht->sz; i++){
 		hp = ht->ht[i];
 		while(hp){
@@ -140,9 +140,9 @@ hexpand(HT *ht)
 			hp = nxt;
 		}
 	}
-	xfree(ht->ht);
+	efree(ht->ht);
 	ht->ht = nht;
-	ht->hent = xrealloc(ht->hent,
+	ht->hent = erealloc(ht->hent,
 			    ht->sz*sizeof(sizeof(Hent*)),
 			    nsz*sizeof(sizeof(Hent*)));
 	ht->sz = nsz;
@@ -163,7 +163,7 @@ hput(HT *ht, char *k, unsigned len, void *v)
 	if(3*ht->nent > 2*ht->sz)
 		hexpand(ht);
 
-	hp = xmalloc(sizeof(Hent));
+	hp = emalloc(sizeof(Hent));
 	hp->key = k;
 	hp->keylen = len;
 	hp->val = v;

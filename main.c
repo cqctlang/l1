@@ -1,5 +1,17 @@
-#include "sys.h"
-#include "util.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <strings.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/fcntl.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
 #include "cqct.h"
 
 static void
@@ -28,6 +40,48 @@ usage(char *argv0)
 	exit(0);
 }
 
+static void
+fatal(char *fmt, ...)
+{
+	va_list args;
+	vprintf(fmt, args);
+	printf("\n");
+	abort();
+}
+
+static void*
+emalloc(size_t size)
+{
+	void *p;
+	p = malloc(size);
+	if(!p)
+		fatal("out of memory");
+	memset(p, 0, size);
+	return p;
+}
+
+static ssize_t
+xread(int fd, char *p, size_t len)
+{
+	size_t nr;
+	ssize_t rv;
+	
+	nr = 0;
+	while(nr < len){
+		rv = read(fd, p, len-nr);
+		if(0 > rv && errno == EINTR)
+			continue;
+		if(0 > rv)
+			return -1;
+		if(0 == rv)
+			return nr;
+		nr += rv;
+		p += rv;
+	}
+	return nr;
+}
+
+#if 0
 static char*
 readexpr(unsigned *cp)
 {
@@ -35,17 +89,17 @@ readexpr(unsigned *cp)
 	unsigned len, m, rv, cnt;
 
 	len = 1024;
-	buf = xmalloc(len);
+	buf = emalloc(len);
 	m = len-1;
 	cnt = 0;
 	while(1){
 		if(m == 0){
-			buf = xrealloc(buf, len, 2*len);
+			buf = erealloc(buf, len, 2*len);
 			len *= 2;
 			m = len-1;
 		}
 		if(0 == fgets(buf+cnt, len, stdin)){
-			xfree(buf);
+			free(buf);
 			return 0;
 		}
 		rv = strlen(buf);
@@ -54,6 +108,40 @@ readexpr(unsigned *cp)
 		m -= rv;
 		cnt += rv;
 	}
+}
+#endif
+
+static char*
+readfile(char *filename)
+{
+	char *buf;
+	struct stat st;
+	int fd;
+
+	if(0 > stat(filename, &st))
+		return 0;
+	fd = open(filename, O_RDONLY);
+	if(0 > fd)
+		return 0;
+	buf = emalloc(st.st_size+1);
+	if(0 > xread(fd, buf, st.st_size)){
+		free(buf);
+		close(fd);
+		return 0;
+	}
+	close(fd);
+	return buf;
+}
+
+static void
+tvdiff(struct timeval *a, struct timeval *b, struct timeval *c)
+{
+        c->tv_sec = a->tv_sec - b->tv_sec;
+        c->tv_usec = a->tv_usec - b->tv_usec;
+        if (c->tv_usec < 0) {
+                c->tv_sec -= 1;
+                c->tv_usec += 1000000;
+        }
 }
 
 int
@@ -69,9 +157,8 @@ main(int argc, char *argv[])
 	struct timeval beg, end;
 	int dorepl;
 	char opt[256];
-	unsigned len;
 	char *inbuf, *s;
-	u64 heapmax;
+	uint64_t heapmax;
 	int i, valc;
 	Val *valv;
 
@@ -120,38 +207,39 @@ main(int argc, char *argv[])
 	if(dorepl)
 		if(setvbuf(stdin, 0, _IONBF, 0))
 			fatal("cannot clear stdin buffering");
-	if(dorepl){
-		valc = 0;
-		valv = 0;
-	}else{
-		valc = argc-optind;
-		valv = malloc(valc*sizeof(Val));
-		if(valv == 0)
-			fatal("out of memory");
-		for(i = 0; i < valc; i++)
-			valv[i] = cqctcstrval(argv[optind+i]);
-	}
+
+	valc = argc-optind;
+	valv = emalloc(valc*sizeof(Val));
+	if(valv == 0)
+		fatal("out of memory");
+	for(i = 0; i < valc; i++)
+		valv[i] = cqctcstrval(argv[optind+i]);
 
 	do{
 		inbuf = 0;
 		if(dorepl){
-			printf("; ");
-			fflush(stdout);
-			inbuf = readexpr(&len);
+//			printf("; ");
+//			fflush(stdout);
+//			inbuf = readexpr(&len);
+//			if(inbuf == 0){
+//				printf("\n");
+//				break;
+//			}
+			inbuf = readline("; ");
 			if(inbuf == 0){
 				printf("\n");
 				break;
 			}
-		}
-
-		if(filename)
+			add_history(inbuf);
+		}else{
 			inbuf = readfile(filename);
-		if(inbuf == 0){
-			printf("%s: %s\n", filename, strerror(errno));
-			continue;
+			if(inbuf == 0){
+				printf("%s: %s\n", filename, strerror(errno));
+				continue;
+			}
 		}
 		e = cqctparsestr(inbuf, filename);
-		xfree(inbuf);
+		free(inbuf);
 		if(e == 0)
 			continue;
 		entry = cqctcompile(e, env);
@@ -181,8 +269,7 @@ main(int argc, char *argv[])
 		}
 	}while(dorepl);
 
-	if(!dorepl)
-		free(valv);
+	free(valv);
 	if(opt['x'])
 		cqctfreevm(vm);
 	cqctfini(env);

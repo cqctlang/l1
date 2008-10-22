@@ -47,13 +47,13 @@ mmap(void *start, size_t length, int prot, int flags, int fd, off_t off)
 {
 	if((flags&MAP_ANON) == 0)
 		notimpl("mmap");
-	return xmalloc(length);
+	return emalloc(length);
 }
 
 int
 munmap(void *start, size_t length)
 {
-	xfree(start);
+	efree(start);
 	return 0;
 }
 

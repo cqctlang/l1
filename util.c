@@ -74,7 +74,7 @@ xstrdup(char *s)
 		return NULL;
 //	s = strdup(s);
 //	if(s == 0)
-	p = xmalloc(strlen(s)+1);
+	p = emalloc(strlen(s)+1);
 	if(p == 0)
 		fatal("out of memory");
 	memcpy(p, s, strlen(s));
@@ -87,13 +87,13 @@ xstrndup(char *s, unsigned long len)
 	char *t;
 	if(s == 0)
 		return NULL;
-	t = xmalloc(len+1);
+	t = emalloc(len+1);
 	memcpy(t, s, len);
 	return t;
 }
 
 void*
-xmalloc(size_t size)
+emalloc(size_t size)
 {
 	void *p;
 	p = malloc(size+sizeof(size_t));
@@ -107,7 +107,7 @@ xmalloc(size_t size)
 }
 
 void
-xfree(void *p)
+efree(void *p)
 {
 	if(0)
 		printf("free %p\n", p);
@@ -119,17 +119,25 @@ xfree(void *p)
 }
 
 void*
-xrealloc(void *p, size_t old, size_t new)
+erealloc(void *p, size_t old, size_t new)
 {
 	void *q;
+	size_t d;
 	q = p-sizeof(size_t);
 	q = realloc(q, new+sizeof(size_t));
 	if(q == NULL)
 		fatal("out of memory");
 	p = q+sizeof(size_t);
-	memset(p+old, 0, new-old);
-	cqctmeminuse += new-old;
-	cqctmemtotal += new-old;
+	if(new > old){
+		d = new-old;
+		memset(p+old, 0, d);
+		cqctmeminuse += d;
+		cqctmemtotal += d;
+	}else{
+		d = old-new;
+		cqctmeminuse -= d;
+		cqctmemtotal -= d;
+	}
 	return p;
 }
 
