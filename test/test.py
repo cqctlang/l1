@@ -13,7 +13,7 @@ fault = []
 for m in glob.glob('*.l1'):
     print m,
     sys.stdout.flush()
-    cmd = '../l1 -b -e '+m
+    cmd = '../l1 -b -w -e '+m
     p = popen2.Popen4(cmd);
     rv = p.wait()
     if rv != 0:

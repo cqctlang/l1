@@ -854,6 +854,7 @@ extern		void fns(Env*);
 
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
+void		cwarn(Expr *e, char *fmt, ...);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);
 Expr*		Zargs(unsigned n, ...);

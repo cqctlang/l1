@@ -1186,10 +1186,13 @@ topresolve(Expr *e, Env *env, Expr *lex)
 		id = e->e1->id;
 		if(lexbinds(lex, id) || envbinds(env, id))
 			return;
-		if(lex)
+		if(lex){
 			/* create binding in inner-most lexical scope */
+			if(cqctflags['w'])
+				cwarn(e, "assignment to unbound variable: %s",
+				      id);
 			newlocal(lex, id);
-		else
+		}else
 			/* create top-level binding */
 			envgetbind(env, id);
 		break;

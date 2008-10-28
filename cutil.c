@@ -3,6 +3,20 @@
 #include "syscqct.h"
 
 void
+cwarn(Expr *e, char *fmt, ...)
+{
+	va_list args;
+	if(e->src.filename)
+		xprintf("%s:%u: warning: ", e->src.filename, e->src.line);
+	else
+		xprintf("<lost-location!>: warning: ");
+	va_start(args, fmt);
+	xvprintf(fmt, args);
+	xprintf("\n");
+	va_end(args);
+}
+
+void
 cerror(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;

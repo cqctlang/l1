@@ -28,7 +28,8 @@ usage(char *argv0)
 	fprintf(stderr, "\t-e <file> read input from <file> "
 			"instead of stdin\n");
 	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
-	fprintf(stderr, "\ndeveloper flags:\n");
+	fprintf(stderr, "\t-w print warnings about dodgy code\n"); 
+	fprintf(stderr, "\nl1 developer flags:\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
 	fprintf(stderr, "\t-p dump IR at various stages\n");
 	fprintf(stderr, "\t-q dump expanded cinquecento source\n");
@@ -167,12 +168,13 @@ main(int argc, char *argv[])
 	opt['g'] = 1;		/* gc in separate thread */
 	dorepl = 1;
 	heapmax = 0;
-	while(EOF != (c = getopt(argc, argv, "be:hopqtxgm:"))){
+	while(EOF != (c = getopt(argc, argv, "be:hopqtwxgm:"))){
 		switch(c){
 		case 'o':
 		case 'p':
 		case 'q':
 		case 'b':
+		case 'w':
 			cqctflags[c] = 1;
 			break;
 		case 't':

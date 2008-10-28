@@ -79,6 +79,7 @@ for(i = 0; i < veclen(vec); i++){
 
 fs = fields(s);
 for(i = 0; i < veclen(fs); i++){
+	@local f, t;
 	f = vecref(fs, i);
 	t = fieldtype(f);
 	if(isbitfield(t)){
