@@ -199,21 +199,17 @@ indent(unsigned nindent)
 static int
 printlocals(Expr *e, unsigned ni)
 {
-	Expr *p, *q;
+	Expr *p;
 	unsigned cnt = 0;
 
 	p = e;
 	while(p->kind != Enull){
-		q = p->e1;
-		while(q->kind != Enull){
-			if(!cnt){
-				indent(ni); xprintf("@local ");
-			}else
-				xprintf(", ");
-			cnt++;
-			xprintf("%s", q->e1->id);
-			q = q->e2;
-		}
+		if(!cnt){
+			indent(ni); xprintf("@local ");
+		}else
+			xprintf(", ");
+		cnt++;
+		xprintf("%s", p->e1->id);
 		p = p->e2;
 	}
 	if(cnt)

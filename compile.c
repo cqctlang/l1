@@ -451,6 +451,19 @@ issimple(Expr *e)
 }
 
 static unsigned
+listlen(Expr *l)
+{
+	unsigned n;
+	n = 0;
+	while(l->kind != Enull){
+		l = l->e2;
+		n++;
+	}
+	return n;
+}
+
+#if 0		
+static unsigned
 flattenlocal(Expr *b)
 {
 	Expr *p, *q;
@@ -476,6 +489,7 @@ flattenlocal(Expr *b)
 
 	return nloc;
 }
+#endif		
 
 /* flatten local declarations within and determine # of locals for lambda E */
 static unsigned
@@ -491,7 +505,7 @@ locpass(Expr *e)
 	case Elambda:
 		return 0;
 	case Eblock:
-		m = flattenlocal(e);
+		m = listlen(e->e1);
 		return m+locpass(e->e2);
 	case Eelist:
 		p = e;
@@ -844,24 +858,18 @@ mklambda(Expr *p)
 	
 	b = emalloc(sizeof(Lambda));
 
-	q = p->e1;
 	b->npar = 0;
+	q = p->e1;
 	if(q->kind == Eid){
 		b->vararg = 1;
 		/* wrap lambda in block declaration to allocate conventional
 		   local 0 vararg list bound to vararg variable */
-		p->e2 = newexpr(Eblock,
-				newexpr(Eelist,
-					newexpr(Eelist, q, nullelist(), 0, 0),
-					nullelist(), 0, 0),
-				p->e2, 0, 0);
+		p->e2 = newexpr(Eblock, Zlocals(1, q->id), p->e2, 0, 0);
+		freeexpr(q);
 		p->e1 = 0;
 	}else
 		/* ordinary argument list */
-		while(q->kind != Enull){
-			b->npar++;
-			q = q->e2;
-		}
+		b->npar = listlen(q);
 
 	b->param = emalloc(b->npar*sizeof(Vardef));
 	b->ntmp = tmppass(p->e2);
@@ -1148,6 +1156,41 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 		break;
 	}	
 }
+
+#if 0		
+static void
+topresolve(Expr *e, Env *env, Expr *lex)
+{
+	Expr *p;
+
+	switch(e->kind){
+	case Eid:
+		if(isbound(e->id, lex))
+			return;
+		if(envbinds(env, e->id))
+			return;
+		addbinding(lex, e->id);
+		break;
+	case Elambda:
+		break;
+	case Eblock:
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			topresolve(p->e1, env, lex);
+			p = p->e2;
+		}
+		break;
+	default:
+		freevars(e->e1, ve, fr);
+		freevars(e->e2, ve, fr);
+		freevars(e->e3, ve, fr);
+		freevars(e->e4, ve, fr);
+		break;
+	}
+}
+#endif		
 
 static void
 freevars(Expr *e, VEnv *ve, VDset *fr)
@@ -2452,6 +2495,7 @@ compileentry(Expr *el, Env *env)
                             0, 0, 0),
                     0, 0);
 
+//	topresolve(le);
 	mapframe(le, 0, 0, code->topvec, env, code->konst, code->konsti, 0);
 	cap = mkvdset();
 	mapcapture(le, cap);

@@ -748,7 +748,7 @@ compound_statement
 	: '{' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Eblock, nullelist(), nullelist(), 0, 0); }
 	| '{' local_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Eblock, invert($2), nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eblock, flatten($2), nullelist(), 0, 0); }
 	| '{' statement_list '}'
 	{
 		/* use src of first statement */
@@ -761,7 +761,7 @@ compound_statement
 		/* use src of first statement */
 		Expr *sl;
 		sl = invert($3);
-		$$ = newexprsrc(&sl->src, Eblock, invert($2), sl, 0, 0); 
+		$$ = newexprsrc(&sl->src, Eblock, flatten($2), sl, 0, 0); 
 	}
 	;
 

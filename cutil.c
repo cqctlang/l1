@@ -174,8 +174,7 @@ Zlocals(unsigned n, ...)
 		l = Zcons(doid(va_arg(args, char*)), l);
 	va_end(args);
 
-	/* local bindings are list of identifier lists */
-	return Zcons(invert(l), nullelist());
+	return invert(l);
 }
 
 Expr*

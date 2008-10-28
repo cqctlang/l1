@@ -2588,6 +2588,15 @@ mkenv()
 	return env;
 }
 
+int
+envbinds(Env *env, char *id)
+{
+	if(hget(env->ht, id, strlen(id)))
+		return 1;
+	else
+		return 0;
+}
+
 Val*
 envgetbind(Env *env, char *id)
 {

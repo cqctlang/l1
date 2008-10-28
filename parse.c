@@ -306,6 +306,28 @@ invert(Expr *e)
 	return q;
 }
 
+/* Flatten Eelist of Eelists into single Eelist */
+Expr*
+flatten(Expr *e)
+{
+	Expr *p, *q;
+	Expr *nl;
+
+	nl = nullelist();
+	p = e;
+	while(p->kind != Enull){
+		q = p->e1;
+		while(q->kind != Enull){
+			nl = newexpr(Eelist, q->e1, nl, 0, 0);
+			q->e1 = 0;
+			q = q->e2;
+		}
+		p = p->e2;
+	}
+	freeexpr(e);
+	return invert(nl);
+}
+
 Expr*
 nullelist()
 {

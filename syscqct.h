@@ -718,6 +718,7 @@ Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 Expr*		dotypes(U*, Expr*);
 char*		fmttype(Type *t, char *o);
+Expr*		flatten(Expr *e);
 void		freeenum(Enum *en);
 void		freeexpr(Expr*);
 void		freeexprx(Expr *e);
@@ -776,6 +777,7 @@ void		checkarg(VM *vm, char *f, Val *argv,
 void		dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen,
 		      Imm argc, Val *argv);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+int		envbinds(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
 void		freeenv(Env *env);
 void		initvm(int gcthread, u64 heapmax);
