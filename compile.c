@@ -462,35 +462,6 @@ listlen(Expr *l)
 	return n;
 }
 
-#if 0		
-static unsigned
-flattenlocal(Expr *b)
-{
-	Expr *p, *q;
-	Expr *nl;
-	unsigned nloc;
-
-	nl = nullelist();
-	nloc = 0;
-
-	p = b->e1;
-	while(p->kind != Enull){
-		q = p->e1;
-		while(q->kind != Enull){
-			nl = newexpr(Eelist, q->e1, nl, 0, 0);
-			q->e1 = 0;
-			q = q->e2;
-			nloc++;
-		}
-		p = p->e2;
-	}
-	freeexpr(b->e1);
-	b->e1 = invert(nl);
-
-	return nloc;
-}
-#endif		
-
 /* flatten local declarations within and determine # of locals for lambda E */
 static unsigned
 locpass(Expr *e)
@@ -1157,23 +1128,76 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 	}	
 }
 
-#if 0		
+static int
+lexbinds(Expr *e, char *id)
+{
+	Expr *p;
+
+	if(e == 0)
+		return 0;
+	
+	/* special case: vararg Lambda */
+	if(e->kind == Elambda && e->e1->kind == Eid){
+		if(!strcmp(e->e1->id, id))
+			return 1;
+		return lexbinds((Expr*)e->xp, id);
+	}
+
+	/* Eblock or Elambda with variable list */
+	p = e->e1;
+	while(p->kind != Enull){
+		if(!strcmp(p->e1->id, id))
+			return 1;
+		p = p->e2;
+	}
+	return lexbinds((Expr*)e->xp, id);
+}
+
+static void
+newlocal(Expr *e, char *id)
+{
+	if(e == 0)
+		fatal("bug");	/* there should be an outer Eblock */
+	if(e->kind == Elambda){
+		newlocal((Expr*)e->xp, id);
+		return;
+	}
+	e->e1 = newexpr(Eelist, doid(id), e->e1, 0, 0);
+}
+
 static void
 topresolve(Expr *e, Env *env, Expr *lex)
 {
 	Expr *p;
+	char *id;
+
+	if(e == 0)
+		return;
 
 	switch(e->kind){
-	case Eid:
-		if(isbound(e->id, lex))
+	case Epreinc:
+	case Epostinc:
+	case Epredec:
+	case Epostdec:
+	case Eg:
+	case Egop:
+		if(e->e1->kind != Eid)
+			fatal("bug");
+		id = e->e1->id;
+		if(lexbinds(lex, id) || envbinds(env, id))
 			return;
-		if(envbinds(env, e->id))
-			return;
-		addbinding(lex, e->id);
+		if(lex)
+			/* create binding in inner-most lexical scope */
+			newlocal(lex, id);
+		else
+			/* create top-level binding */
+			envgetbind(env, id);
 		break;
 	case Elambda:
-		break;
 	case Eblock:
+		e->xp = lex;
+		topresolve(e->e2, env, e);
+		e->xp = 0;
 		break;
 	case Eelist:
 		p = e;
@@ -1183,14 +1207,13 @@ topresolve(Expr *e, Env *env, Expr *lex)
 		}
 		break;
 	default:
-		freevars(e->e1, ve, fr);
-		freevars(e->e2, ve, fr);
-		freevars(e->e3, ve, fr);
-		freevars(e->e4, ve, fr);
+		topresolve(e->e1, env, lex);
+		topresolve(e->e2, env, lex);
+		topresolve(e->e3, env, lex);
+		topresolve(e->e4, env, lex);
 		break;
 	}
 }
-#endif		
 
 static void
 freevars(Expr *e, VEnv *ve, VDset *fr)
@@ -2488,14 +2511,12 @@ compileentry(Expr *el, Env *env)
 	L->used = 1;
 	emitlabel(L, el);
 
-//	le = newexpr(Elambda, nullelist(), el, 0, 0);
+	topresolve(el, env, 0);
 	le = newexpr(Elambda, doid("args"),
                     newexpr(Eret,
                             newexpr(Eblock, nullelist(), el, 0, 0),
                             0, 0, 0),
                     0, 0);
-
-//	topresolve(le);
 	mapframe(le, 0, 0, code->topvec, env, code->konst, code->konsti, 0);
 	cap = mkvdset();
 	mapcapture(le, cap);

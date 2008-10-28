@@ -70,6 +70,7 @@ ns = @names c32le {
 
 fn = nsenumtype(ns);
 vec = tabvals(fn());
+s = nil;
 for(i = 0; i < veclen(vec); i++){
 	s = vecref(vec, i);
 	if(isstruct(s))
