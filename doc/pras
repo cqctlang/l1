@@ -1,13 +1,12 @@
 Attaching L1 to a linux process with prctl
 ------------------------------------------
 
-1.  get and build prctl.  prctl lives in the cqct/utils/prctl
-    subdirectory of the cqct git repository
+1.  get and build prctl.
 
     # clone the cqct repository, if you haven't already
-    % git clone <user>@stormteam3000:/git/cqct.git cqct
+    % git clone <user>@stormteam3000:/git/prctl.git prctl
 
-    % cd cqct/utils/prctl
+    % cd prctl
     % make
 
     NOTE: the Makefile contains an optional -DX86_64 flag for 64-bit
