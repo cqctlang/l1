@@ -11,10 +11,6 @@ todo
 	...
   - rationalize names of various type routines
 	 (isfunc/mkctype_fn, isenumconst/mkctype_const,...)
-  - provide a mapfile mode argument:
-	"r" - private copy of the file
-	"w" - shared copy of the file
-    perhaps there should be a way to map a newly created file?
   - implement copy and foreach on missing container types (strings and tables)
   - switch enum operands shortform
   - introduce address types
@@ -69,6 +65,14 @@ todo
     get rid of nsenumtype accessor
   - sometimes it would be nice to reference symbols/types in
     a namespace without creating a domain.
+  - direct access to name space types and functions
+  - named constants outside of a name space
+    - seek and its constants
+    - provide a mapfile mode argument:
+	"r" - private copy of the file
+	"w" - shared copy of the file
+      perhaps there should be a way to map a newly created file?
+      make mmap general
 
 - usability
   - change "entry" to "toplevel"
