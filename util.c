@@ -97,13 +97,14 @@ emalloc(size_t size)
 {
 	void *p;
 	p = malloc(size+sizeof(size_t));
-	if (!p)
+	if(p == 0)
 		fatal("out of memory");
-	memset(p, 0, size+sizeof(size_t));
+	*(size_t*)p = size;
+	p += sizeof(size_t);
+	memset(p, 0, size);
 	cqctmeminuse += size;
 	cqctmemtotal += size;
-	*(size_t*)p = size;
-	return p+sizeof(size_t);
+	return p;
 }
 
 void
@@ -121,13 +122,14 @@ efree(void *p)
 void*
 erealloc(void *p, size_t old, size_t new)
 {
-	void *q;
 	size_t d;
-	q = p-sizeof(size_t);
-	q = realloc(q, new+sizeof(size_t));
-	if(q == NULL)
+	p -= sizeof(size_t);
+	/* assert(*(size_t*)p == old); */
+	p = realloc(p, new+sizeof(size_t));
+	if(p == 0)
 		fatal("out of memory");
-	p = q+sizeof(size_t);
+	*(size_t*)p = new;
+	p += sizeof(size_t);
 	if(new > old){
 		d = new-old;
 		memset(p+old, 0, d);
@@ -135,8 +137,7 @@ erealloc(void *p, size_t old, size_t new)
 		cqctmemtotal += d;
 	}else{
 		d = old-new;
-		cqctmeminuse -= d;
-		cqctmemtotal -= d;
+		cqctmeminuse += d;
 	}
 	return p;
 }
