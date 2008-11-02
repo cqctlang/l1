@@ -51,6 +51,7 @@ enum{
 	Edecl,			/* type specifier + 1 declarator */
 	Edecls,			/* type specifier + list of declarators */
 	Edefault,
+	Edefconst,
 	Edefine,
 	Ederef,
 	Ediv,

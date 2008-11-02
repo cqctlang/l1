@@ -28,7 +28,7 @@ extern char *yytext;
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
 %token LOCAL LAMBDA NAMES
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
-%token STRUCT UNION ENUM ELLIPSIS
+%token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
 
 %type <expr> base base_list
@@ -48,7 +48,7 @@ extern char *yytext;
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
 %type <expr> parameter_type_list parameter_list parameter_declaration
 %type <expr> abstract_declarator direct_abstract_declarator statement
-%type <expr> compound_statement statement_list
+%type <expr> defconst_statement compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
 %type <expr> type_name tn_type_specifier tn_struct_or_union_specifier
@@ -730,6 +730,7 @@ statement
 	| jump_statement
 	| define_statement
 	| labeled_statement
+	| defconst_statement
 	;
 
 local
@@ -829,6 +830,11 @@ define_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $5, 0); }
 	| DEFINE id id compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $4, 0); }
+	;
+
+defconst_statement
+	: DEFCONST id '=' expression ';'
+	{ $$ = newexprsrc(&ctx->inp->src, Edefconst, $2, $4, 0, 0); }
 	;
 
 translation_unit_seq

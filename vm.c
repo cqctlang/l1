@@ -87,7 +87,8 @@ enum {
 static unsigned long long nextgctick = GCrate;
 
 struct Env {
-	HT *ht;
+	HT *var;
+	HT *con;
 };
 
 typedef struct GC GC;
@@ -684,7 +685,7 @@ rootset(GC *gc)
 
 		for(m = vm->sp; m < Maxstk; m++)
 			addroot(&gc->roots, valhead(vm->stack[m]));
-		hforeach(vm->top->ht, bindingroot, gc);
+		hforeach(vm->top->var, bindingroot, gc);
 		addroot(&gc->roots, valhead(vm->ac));
 		addroot(&gc->roots, valhead(vm->cl));
 	
@@ -2584,14 +2585,15 @@ mkenv()
 {
 	Env *env;
 	env = emalloc(sizeof(Env));
-	env->ht = mkht();
+	env->var = mkht();
+	env->con = mkht();
 	return env;
 }
 
 int
 envbinds(Env *env, char *id)
 {
-	if(hget(env->ht, id, strlen(id)))
+	if(hget(env->var, id, strlen(id)))
 		return 1;
 	else
 		return 0;
@@ -2602,11 +2604,11 @@ envgetbind(Env *env, char *id)
 {
 	Val *v;
 
-	v = hget(env->ht, id, strlen(id));
+	v = hget(env->var, id, strlen(id));
 	if(!v){
 		v = emalloc(sizeof(Val));
 		*v = Xundef;
-		hput(env->ht, xstrdup(id), strlen(id), v);
+		hput(env->var, xstrdup(id), strlen(id), v);
 	}
 	return v;
 }
@@ -2639,11 +2641,20 @@ freebinding(void *u, char *id, void *v)
 	efree((Val*)v);
 }
 
+static void
+freeconst(void *u, char *id, void *v)
+{
+	efree(id);
+	freeexpr(v);
+}
+
 void
 freeenv(Env *env)
 {
-	hforeach(env->ht, freebinding, 0);
-	freeht(env->ht);
+	hforeach(env->var, freebinding, 0);
+	hforeach(env->con, freeconst, 0);
+	freeht(env->var);
+	freeht(env->con);
 	efree(env);
 }
 

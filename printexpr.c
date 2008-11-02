@@ -45,6 +45,7 @@ char* S[] = {
 	[Edecl] =	"Edecl",
 	[Edecls] =	"Edecls",
 	[Edefault] =	"Edefault",
+	[Edefconst] =	"Edefconst",
 	[Edefine] =	"Edefine",
 	[Ederef] =	"Ederef",
 	[Ediv] =	"Ediv",
@@ -276,6 +277,11 @@ printcqct0(Expr *e, unsigned ni)
 	case Etick:
 		printcqct0(e->e1, ni);
 		xprintf("`");
+		printcqct0(e->e2, ni);
+		break;
+	case Edefconst:
+		printcqct0(e->e1, ni);
+		xprintf(" = ");
 		printcqct0(e->e2, ni);
 		break;
 	case Edefine:

@@ -111,17 +111,6 @@ todo
   - sizeof(t) errors if t references an undefined subtype;
     we need a simple test for whether a type has such a reference.
 
-- check semantics of scope
-
-  old cqct: var refs create binding in nearest
-  lexical scope, unless there is already a binding
-  in outer scope, or a top-level binding.
-
-  new cqct: harder to determine at compile time
-  whether there is a toplevel binding (really?);
-  also, i don't think there is a mechanism to
-  add new local bindings to a lambda.
-
 - performance/simplicity
   - consider making routines like nsptr take a cvalue argument
     to avoid intermediate domof calls (they already accept domains)
@@ -178,7 +167,6 @@ todo
 	read-only for all but "user controls", e.g., flags.
 	get address space layout from os
 	with adequate /proc, can we do with just builtin access to ptr 0?
-
   - extend ns to accommodate non-contiguous functions with inlined code
     inside
 	- multiple symbol definitions for the same fn symbol for functions
@@ -186,6 +174,7 @@ todo
 	- notion of set of location ranges associated with a symbol
 	- lookaddr that can handle these cases
 	- @names syntax for above
+  - @const values
 
 - grammar
   - sort out problems with odd rule about int(int) in abstract declarators;

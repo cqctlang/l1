@@ -577,6 +577,14 @@ struct VRset {
 	Varref *vr;
 } VRset;
 
+typedef struct Conset Conset;
+struct Conset {
+	unsigned n, max;
+	char **id;
+	Expr **e;
+	Conset *link;
+};
+
 struct Topvec {
 	unsigned nid, maxid;
 	char **id;
@@ -1165,22 +1173,33 @@ newlocal(Expr *e, char *id)
 	e->e1 = newexpr(Eelist, doid(id), e->e1, 0, 0);
 }
 
-static void
-topresolve(Expr *e, Env *env, Expr *lex)
+static Expr*
+topresolve(Expr *e, Env *env, Expr *lex, Conset *con)
 {
-	Expr *p;
+	Expr *p, *c;
 	char *id;
 
 	if(e == 0)
 		return;
 
 	switch(e->kind){
+	case Edefconst:
+		e->e2 = topresolve(e->e2, env, lex, con);
+		if(con)
+			addcon(con, e->e1->id, e->e2);
+		else
+			envbindcon(env, e->e1->id, e->e2);
+		break;
+	case Eid:
+		c = lookupcon(con, e->id)
+		break;
 	case Epreinc:
 	case Epostinc:
 	case Epredec:
 	case Epostdec:
 	case Eg:
 	case Egop:
+		e->e2 = topresolve(e->e2, env, lex, con);
 		if(e->e1->kind != Eid)
 			fatal("bug");
 		id = e->e1->id;
@@ -1195,26 +1214,26 @@ topresolve(Expr *e, Env *env, Expr *lex)
 		}else
 			/* create top-level binding */
 			envgetbind(env, id);
-		break;
+		return e;
 	case Elambda:
 	case Eblock:
 		e->xp = lex;
-		topresolve(e->e2, env, e);
+		e->e2 = topresolve(e->e2, env, e, con);
 		e->xp = 0;
-		break;
+		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			topresolve(p->e1, env, lex);
+			p->e1 = topresolve(p->e1, env, lex, con);
 			p = p->e2;
 		}
-		break;
+		return e;
 	default:
-		topresolve(e->e1, env, lex);
-		topresolve(e->e2, env, lex);
-		topresolve(e->e3, env, lex);
-		topresolve(e->e4, env, lex);
-		break;
+		e->e1 = topresolve(e->e1, env, lex, con);
+		e->e2 = topresolve(e->e2, env, lex, con);
+		e->e3 = topresolve(e->e3, env, lex, con);
+		e->e4 = topresolve(e->e4, env, lex, con);
+		return e;
 	}
 }
 
@@ -2514,7 +2533,7 @@ compileentry(Expr *el, Env *env)
 	L->used = 1;
 	emitlabel(L, el);
 
-	topresolve(el, env, 0);
+	topresolve(el, env, 0, 0);
 	le = newexpr(Elambda, doid("args"),
                     newexpr(Eret,
                             newexpr(Eblock, nullelist(), el, 0, 0),
