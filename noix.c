@@ -134,9 +134,9 @@ clearerr(FILE *fp)
 
 /* referenced only by lex.yy.o */
 int*
-__errno_loc()
+__errno_location()
 {
-	notimpl("__errno_loc");
+	notimpl("__errno_location");
 }
 
 /* referenced only by lex.yy.o */

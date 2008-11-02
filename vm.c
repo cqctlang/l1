@@ -6501,7 +6501,6 @@ dovsprinta(VM *vm, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	f.stop = f.start+initlen;
 	f.flush = fmtstrflush;
 	dofmt(vm, &f, fmt, fmtlen, argc, argv);
-	fmtstrflush(&f);
 	return mkstrk(f.start, f.to-f.start, Smalloc);
 }
 
@@ -9780,6 +9779,7 @@ cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
 		return -1;
 	}
 	*rv = dovm(vm, cl, argc, argv);
+	poperror(vm);
 	return 0;
 }
 
@@ -9791,6 +9791,7 @@ cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 		return -1;
 	}
 	*rv = dovm(vm, cl, 0, 0);
+	poperror(vm);
 	return 0;
 }
 
