@@ -1,7 +1,7 @@
 entry: var params, 1 locals, 0 temps
-printtype: 1 params, 6 locals, 0 temps
-dumpns: 1 params, 2 locals, 0 temps
-foo: 0 params, 11 locals, 0 temps
+printtype: 1 params, 8 locals, 0 temps
+dumpns: 1 params, 4 locals, 0 temps
+foo: 0 params, 13 locals, 0 temps
 typedef long int32;
 typedef short int16;
 typedef unsigned short uint16;

@@ -1,5 +1,5 @@
 entry: var params, 5 locals, 0 temps
-typemix: 2 params, 3 locals, 0 temps
+typemix: 2 params, 6 locals, 0 temps
 t1 + t2 ->	long
 expect:		long
 

@@ -1292,7 +1292,7 @@ bindids(Xenv *xe, Expr *e, void *v)
 }
 
 static Expr*
-expandconst(Expr *e, Xenv *lex, Xenv *con)
+expandconst(Expr *e, Env *top, Xenv *lex, Xenv *con)
 {
 	Expr *p;
 	Xenv *lexrib, *conrib;
@@ -1302,13 +1302,13 @@ expandconst(Expr *e, Xenv *lex, Xenv *con)
 
 	switch(e->kind){
 	case Edefconst:
-		e->e2 = expandconst(e->e2, lex, con);
+		e->e2 = expandconst(e->e2, top, lex, con);
 		xenvbind(con, xstrdup(e->e1->id), copyexpr(e->e2));
 		e->e2 = 0;
 		freeexpr(e);
 		return newexpr(Enop, 0, 0, 0, 0);
 	case Eid:
-		if(xenvlook(lex, e->id))
+		if(xenvlook(lex, e->id) || envbinds(top, e->id))
 			return e;
 		p = xenvlook(con, e->id);
 		if(p)
@@ -1317,14 +1317,14 @@ expandconst(Expr *e, Xenv *lex, Xenv *con)
 	case Elambda:
 		lexrib = mkxenv(lex);
 		bindids(lexrib, e->e1, e);
-		e->e2 = expandconst(e->e2, lexrib, con);
+		e->e2 = expandconst(e->e2, top, lexrib, con);
 		freexenv(lexrib);
 		return e;
 	case Eblock:
 		conrib = mkxenv(con);
 		lexrib = mkxenv(lex);
 		bindids(lexrib, e->e1, e);
-		e->e2 = expandconst(e->e2, lexrib, conrib);
+		e->e2 = expandconst(e->e2, top, lexrib, conrib);
 		freexenv(lexrib);
 		xenvforeach(conrib, freeconst, 0);
 		freexenv(conrib);
@@ -1338,20 +1338,20 @@ expandconst(Expr *e, Xenv *lex, Xenv *con)
 	case Eg:
 	case Egop:
 		/* don't expand assigned identifiers */
-		e->e2 = expandconst(e->e2, lex, con);
+		e->e2 = expandconst(e->e2, top, lex, con);
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expandconst(p->e1, lex, con);
+			p->e1 = expandconst(p->e1, top, lex, con);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expandconst(e->e1, lex, con);
-		e->e2 = expandconst(e->e2, lex, con);
-		e->e3 = expandconst(e->e3, lex, con);
-		e->e4 = expandconst(e->e4, lex, con);
+		e->e1 = expandconst(e->e1, top, lex, con);
+		e->e2 = expandconst(e->e2, top, lex, con);
+		e->e3 = expandconst(e->e3, top, lex, con);
+		e->e4 = expandconst(e->e4, top, lex, con);
 		return e;
 	}
 }
@@ -2653,7 +2653,7 @@ compileentry(Expr *el, Env *env)
 	emitlabel(L, el);
 
 	topresolve(el, env, 0);
-	el = expandconst(el, 0, env->con);
+	el = expandconst(el, env, 0, env->con);
 	le = newexpr(Elambda, doid("args"),
                     newexpr(Eret,
                             newexpr(Eblock, nullelist(), el, 0, 0),
