@@ -5,6 +5,7 @@ define printtype(t){
 		printf("%s %s {\n", suekind(t), suetag(t));
 		flds = fields(t);
 		for(i = 0; i < veclen(flds); i++){
+			@local ft, id;
 			fld = vecref(flds, i);
 			off = fieldoff(fld);
 			ft = fieldtype(fld);
@@ -30,9 +31,11 @@ define printtype(t){
 	}else if(istypedef(t))
 		printf("typedef %t %s;\n", typedeftype(t), typedefid(t));
 	else if(isenum(t)){
+		@local ens;
 		printf("%s %s {\n", suekind(t), suetag(t));
 		ens = enumconsts(t);
 		for(i = 0; i < veclen(ens); i++){
+			@local en;
 			en = vecref(ens, i);
 			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
 		}
@@ -41,7 +44,7 @@ define printtype(t){
 };
 
 define dumpns(dn){
-	@local ns, fn;
+	@local ns, fn, vec, i;
 	if(isdomain(dn))
 		ns = domns(dn);
 	else
@@ -59,7 +62,7 @@ define dumpns(dn){
 }
 
 define foo(){
-	@local ns, fn, tab, vec, i;
+	@local ns, fn, tab, vec, i, dom, p;
 
  	ns = @names c32le {
  		struct foo {

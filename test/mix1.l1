@@ -1,4 +1,5 @@
 define typemix(ns, exp){
+	@local dom, t1, t2;
 	dom = mkdom(ns, mknas());
 	t1 = (`t1){dom}1;
 	t2 = (`t2){dom}2;

@@ -1,5 +1,5 @@
 x = lambda(a, b){
-	@local c;
+	@local y, z, c;
 	c = a;
 	y = lambda(d){
 		z = a;

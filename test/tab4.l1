@@ -3,6 +3,7 @@ mkstr = lambda(){
 };
 
 test = lambda(){
+	@local t, i, v;
 	t = mktab();
 	for(i = 0; i < 1024*2*2*2+5; i++)
 		tabinsert(t, mkstr(), i);

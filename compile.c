@@ -23,12 +23,6 @@ struct CGEnv {
 	Cases *cases;
 } CGEnv;
 
-typedef
-struct Frstat {
-	unsigned nloc;
-	HT *locals;
-} Frstat;
-
 static Location toploc[8];
 static Location *Effect;
 static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
@@ -577,14 +571,6 @@ struct VRset {
 	Varref *vr;
 } VRset;
 
-typedef struct Conset Conset;
-struct Conset {
-	unsigned n, max;
-	char **id;
-	Expr **e;
-	Conset *link;
-};
-
 struct Topvec {
 	unsigned nid, maxid;
 	char **id;
@@ -599,6 +585,54 @@ struct Lambda {
 	VRset *capture;
 	char *id;
 };
+
+Xenv*
+mkxenv(Xenv *link)
+{
+	Xenv *xe;
+	xe = emalloc(sizeof(Xenv));
+	xe->ht = mkht();
+	xe->link = link;
+	return xe;
+}
+
+void
+freexenv(Xenv *xe)
+{
+	freeht(xe->ht);
+	efree(xe);
+}
+
+void*
+xenvlook(Xenv *xe, char *id)
+{
+	void *v;
+
+	if(xe == 0)
+		return 0;
+	v = hget(xe->ht, id, strlen(id));
+	if(v)
+		return v;
+	return xenvlook(xe->link, id);
+}
+
+void
+xenvbind(Xenv *xe, char *id, void *v)
+{
+	hput(xe->ht, id, strlen(id), v);
+}
+
+void
+xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v), void *u)
+{
+	hforeach(xe->ht, f, u);
+}
+
+unsigned long
+xenvsize(Xenv *xe)
+{
+	return hnent(xe->ht);
+}
 
 static Topvec*
 mktopvec()
@@ -1173,39 +1207,28 @@ newlocal(Expr *e, char *id)
 	e->e1 = newexpr(Eelist, doid(id), e->e1, 0, 0);
 }
 
-static Expr*
-topresolve(Expr *e, Env *env, Expr *lex, Conset *con)
+static void
+topresolve(Expr *e, Env *env, Expr *lex)
 {
-	Expr *p, *c;
+	Expr *p;
 	char *id;
 
 	if(e == 0)
 		return;
 
 	switch(e->kind){
-	case Edefconst:
-		e->e2 = topresolve(e->e2, env, lex, con);
-		if(con)
-			addcon(con, e->e1->id, e->e2);
-		else
-			envbindcon(env, e->e1->id, e->e2);
-		break;
-	case Eid:
-		c = lookupcon(con, e->id)
-		break;
 	case Epreinc:
 	case Epostinc:
 	case Epredec:
 	case Epostdec:
 	case Eg:
 	case Egop:
-		e->e2 = topresolve(e->e2, env, lex, con);
 		if(e->e1->kind != Eid)
 			fatal("bug");
 		id = e->e1->id;
 		if(lexbinds(lex, id) || envbinds(env, id))
-			return;
-		if(lex){
+			; /* no binding required */
+		else if(lex){
 			/* create binding in inner-most lexical scope */
 			if(cqctflags['w'])
 				cwarn(e, "assignment to unbound variable: %s",
@@ -1214,25 +1237,121 @@ topresolve(Expr *e, Env *env, Expr *lex, Conset *con)
 		}else
 			/* create top-level binding */
 			envgetbind(env, id);
-		return e;
+		if(e->kind == Eg || e->kind == Egop)
+			topresolve(e->e2, env, lex);
+		break;
 	case Elambda:
 	case Eblock:
 		e->xp = lex;
-		e->e2 = topresolve(e->e2, env, e, con);
+		topresolve(e->e2, env, e);
 		e->xp = 0;
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			topresolve(p->e1, env, lex);
+			p = p->e2;
+		}
+		break;
+	default:
+		topresolve(e->e1, env, lex);
+		topresolve(e->e2, env, lex);
+		topresolve(e->e3, env, lex);
+		topresolve(e->e4, env, lex);
+		break;
+	}
+}
+
+void
+freeconst(void *u, char *id, void *v)
+{
+	efree(id);
+	freeexpr((Expr*)v);
+}
+
+static void
+bindids(Xenv *xe, Expr *e, void *v)
+{
+	Expr *p;
+	switch(e->kind){
+	case Eid:
+		xenvbind(xe, e->id, v);
+		break;
+	case Enull:
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			xenvbind(xe, p->e1->id, v);
+			p = p->e2;
+		}
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
+static Expr*
+expandconst(Expr *e, Xenv *lex, Xenv *con)
+{
+	Expr *p;
+	Xenv *lexrib, *conrib;
+
+	if(e == 0)
+		return 0;
+
+	switch(e->kind){
+	case Edefconst:
+		e->e2 = expandconst(e->e2, lex, con);
+		xenvbind(con, xstrdup(e->e1->id), copyexpr(e->e2));
+		e->e2 = 0;
+		freeexpr(e);
+		return newexpr(Enop, 0, 0, 0, 0);
+	case Eid:
+		if(xenvlook(lex, e->id))
+			return e;
+		p = xenvlook(con, e->id);
+		if(p)
+			return copyexpr(p);
+		return e;
+	case Elambda:
+		lexrib = mkxenv(lex);
+		bindids(lexrib, e->e1, e);
+		e->e2 = expandconst(e->e2, lexrib, con);
+		freexenv(lexrib);
+		return e;
+	case Eblock:
+		conrib = mkxenv(con);
+		lexrib = mkxenv(lex);
+		bindids(lexrib, e->e1, e);
+		e->e2 = expandconst(e->e2, lexrib, conrib);
+		freexenv(lexrib);
+		xenvforeach(conrib, freeconst, 0);
+		freexenv(conrib);
+		return e;
+	case Epreinc:
+	case Epostinc:
+	case Epredec:
+	case Epostdec:
+		/* don't expand assigned identifiers */
+		return e;
+	case Eg:
+	case Egop:
+		/* don't expand assigned identifiers */
+		e->e2 = expandconst(e->e2, lex, con);
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = topresolve(p->e1, env, lex, con);
+			p->e1 = expandconst(p->e1, lex, con);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = topresolve(e->e1, env, lex, con);
-		e->e2 = topresolve(e->e2, env, lex, con);
-		e->e3 = topresolve(e->e3, env, lex, con);
-		e->e4 = topresolve(e->e4, env, lex, con);
+		e->e1 = expandconst(e->e1, lex, con);
+		e->e2 = expandconst(e->e2, lex, con);
+		e->e3 = expandconst(e->e3, lex, con);
+		e->e4 = expandconst(e->e4, lex, con);
 		return e;
 	}
 }
@@ -2533,7 +2652,8 @@ compileentry(Expr *el, Env *env)
 	L->used = 1;
 	emitlabel(L, el);
 
-	topresolve(el, env, 0, 0);
+	topresolve(el, env, 0);
+	el = expandconst(el, 0, env->con);
 	le = newexpr(Elambda, doid("args"),
                     newexpr(Eret,
                             newexpr(Eblock, nullelist(), el, 0, 0),

@@ -588,7 +588,7 @@ compilecontainer(U *ctx, Expr *e)
 
 	te = nullelist();
 
-	loc = Zlocals(4, "$tn", "$fld", "$ptype", "$type", "$tmp");
+	loc = Zlocals(5, "$tn", "$fld", "$ptype", "$type", "$tmp");
 
 	// $tmp = e->e1;
 	e->e1 = compile0(ctx, e->e1);

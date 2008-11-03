@@ -674,6 +674,17 @@ struct Err {
 	unsigned pdepth;	/* vm->pdepth when error label set */
 } Err;
 
+typedef struct Xenv Xenv;
+struct Xenv {
+	HT *ht;
+	Xenv *link;
+};
+
+struct Env {
+	HT *var;
+	Xenv *con;
+};
+
 struct VM {
 	Val stack[Maxstk];
 	Dom *litdom;
@@ -758,11 +769,19 @@ Code*		callccode();
 Closure*	compileentry(Expr *el, Env *env);
 Code*		contcode();
 void		finicompile();
+void		freeconst(void *u, char *id, void *v);
+void		freexenv(Xenv *xe);
 Closure*	haltthunk();
 void		initcompile();
+Xenv*		mkxenv(Xenv *link);
 Closure*	panicthunk();
 char*		topvecid(unsigned idx, Topvec *tv);
 Val*		topvecval(unsigned idx, Topvec *tv);
+void*		xenvlook(Xenv *xe, char *id);
+void		xenvbind(Xenv *xe, char *id, void *v);
+void		xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v),
+			    void *u);
+unsigned long	xenvsize(Xenv *xe);
 
 /* compilec.c */
 int		docompilec(U *ctx, Expr *e);

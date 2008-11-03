@@ -5,6 +5,7 @@ randvec = lambda(len){
 	for(i = 0; i < len; i++)
 		vecset(v, i, cons(i, null()));
 	for(i = 0; i < len; i++){
+		@local x, y;
 		x = rand(len);
 		y = rand(len);
 		t = vecref(v, x);

@@ -29,7 +29,7 @@ define mkzas(len){
 }
 
 define main(){
-	@local dom, ns, as;
+	@local dom, ns, as, p;
 
 	as = mkzas(1024);
 	ns = @names c32le {

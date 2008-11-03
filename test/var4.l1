@@ -1,11 +1,12 @@
 x = lambda(a, b){
-	@local c;
+	@local c, y;
 	c = 3;
 	b = b+1;		/* 3 */
 	print(a);
 	print(b);
 	print(c);
 	y = lambda(a){
+		@local z;
 		a = 4;
 		b = b+1;	/* 4 */
 		c = 6;

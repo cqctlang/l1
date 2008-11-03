@@ -1,5 +1,5 @@
 foo = lambda(){
-    @local x;
+    @local x, z;
     x = callcc(lambda(k){
       z = k;
       k(2);

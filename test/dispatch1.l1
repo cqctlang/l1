@@ -13,6 +13,7 @@ printf("isns(dom.names) = %d\n", isns(dom.names));
 printf("isas(dom.as) = %d\n", isas(dom.as));
 
 define test(o){
+	@local fn;
 	o.foo(1, 2, 3);
 	o.bar();
 	fn = o.baz;

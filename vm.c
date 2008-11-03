@@ -86,11 +86,6 @@ enum {
 
 static unsigned long long nextgctick = GCrate;
 
-struct Env {
-	HT *var;
-	HT *con;
-};
-
 typedef struct GC GC;
 struct GC {
 	void (*gcpoll)(GC*);
@@ -2586,7 +2581,7 @@ mkenv()
 	Env *env;
 	env = emalloc(sizeof(Env));
 	env->var = mkht();
-	env->con = mkht();
+	env->con = mkxenv(0);
 	return env;
 }
 
@@ -2641,20 +2636,13 @@ freebinding(void *u, char *id, void *v)
 	efree((Val*)v);
 }
 
-static void
-freeconst(void *u, char *id, void *v)
-{
-	efree(id);
-	freeexpr(v);
-}
-
 void
 freeenv(Env *env)
 {
 	hforeach(env->var, freebinding, 0);
-	hforeach(env->con, freeconst, 0);
+	xenvforeach(env->con, freeconst, 0);
 	freeht(env->var);
-	freeht(env->con);
+	freexenv(env->con);
 	efree(env);
 }
 

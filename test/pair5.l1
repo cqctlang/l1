@@ -6,6 +6,7 @@ length = lambda(l){
 };
 
 iota = lambda(n){
+     @local l;
      l = null();
      while(n-- > 0)
 	  l = cons(n, l);

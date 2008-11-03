@@ -1,4 +1,5 @@
 test = lambda(){
+	@local t, i;
 	t = mktab();
 	for(i = 0; i < 1024*2*2*2+5; i++)
 		tabinsert(t, i, i);
