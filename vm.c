@@ -120,6 +120,7 @@ static int isstrcval(Cval *cv);
 static int isnatcval(Cval *cv);
 static int isnegcval(Cval *cv);
 static int iszerocval(Cval *cv);
+static Env* mktopenv();
 static Str* stringof(VM *vm, Cval *cv);
 static Val vecref(Vec *vec, Imm idx);
 static void _vecset(Vec *vec, Imm idx, Val v);
@@ -680,7 +681,7 @@ rootset(GC *gc)
 
 		for(m = vm->sp; m < Maxstk; m++)
 			addroot(&gc->roots, valhead(vm->stack[m]));
-		hforeach(vm->top->var, bindingroot, gc);
+		hforeach(vm->top->env->var, bindingroot, gc);
 		addroot(&gc->roots, valhead(vm->ac));
 		addroot(&gc->roots, valhead(vm->cl));
 	
@@ -2644,6 +2645,22 @@ freeenv(Env *env)
 	freeht(env->var);
 	freexenv(env->con);
 	efree(env);
+}
+
+Toplevel*
+mktoplevel()
+{
+	Toplevel *top;
+	top = emalloc(sizeof(Toplevel));
+	top->env = mktopenv();
+	return top;
+}
+
+void
+freetoplevel(Toplevel *top)
+{
+	freeenv(top->env);
+	efree(top);
 }
 
 Cval*
@@ -5113,6 +5130,95 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	return ns;
 }
 
+static char*
+myroot()
+{
+	u32 x;
+	char *p;
+	int longsz;
+	int ptrsz;
+	int flags;
+	enum {
+		lw = 1<<0,
+		lp = 1<<1,
+		be = 1<<2,
+	};
+	static char *root[] = {
+		[0] 		= "c32le",
+		[lw]		= "c64le",
+		[lp|lw]		= "clp64le",
+		[be] 		= "c32be",
+		[be|lw]		= "c64be",
+		[be|lp|lw]	= "clp64be",
+	};
+	char *r;
+
+	flags = 0;
+	longsz = 8*sizeof(long);
+	if(longsz == 64)
+		flags |= lw;
+	ptrsz = 8*sizeof(void*);
+	if(ptrsz == 64)
+		flags |= lp;
+	x = 0x01020304;
+	p = (char*)&x;
+	if(*p == 0x01)
+		flags |= be;
+
+	r = root[flags];
+	if(r == 0)
+		return "unsupported";
+	return r;
+}
+
+/* FIXME: this should be a domain constructor */
+static Dom*
+mksysdom(VM *vm)
+{
+	Ns *ns, *root;
+	Dom *dom;
+	Tab *rawtype, *rawsym;
+	Vec *v;
+	Str *id;
+	Xtypename *t;
+	Cval *o;
+	Val keyv, valv;
+	char *rootname;
+
+	rootname = myroot();
+//	xprintf("host name space: %s\n", rootname);
+	if(!envlookup(vm->top->env, rootname, &valv))
+		vmerr(vm, "undefined name space: %s", rootname);
+	root = valns(valv);
+
+	rawtype = mktab();
+	rawsym = mktab();
+
+	t = mkxtn();
+	t->tkind = Tarr;
+	t->cnt = mkvalcval(vm->litdom, vm->litbase[Vint], 256);
+	t->link = mkbasextn(Vchar, Rundef);
+	id = mkstr0("flags");
+	o = mkcval(vm->litdom, vm->litbase[Vptr], (Imm)(uintptr_t)&cqctflags);
+	
+	v = mkvec(3);
+	valv = mkvalxtn(t);
+	_vecset(v, Typepos, valv);
+	valv = mkvalstr(id);
+	_vecset(v, Idpos, valv);
+	valv = mkvalcval2(o);
+	_vecset(v, Offpos, valv);
+
+	keyv = mkvalstr(id);
+	valv = mkvalvec(v);
+	tabput(vm, rawsym, keyv, valv);
+
+	ns = mknstab(vm, root, rawtype, rawsym, mkstr0("sys"));
+	dom = mkdom(ns, mksas(mkstrk(0, ~(0ULL), Sperm)), mkstr0("sys"));
+
+	return dom;
+}
+
 static void* gotab[Iopmax];
 
 static void
@@ -5236,7 +5342,47 @@ cqctgcunprotect(VM *vm, Val v)
 }
 
 void
-vmreset(VM *vm)
+builtinfn(Env *env, char *name, Closure *cl)
+{
+	Val val;
+	val = mkvalcl(cl);
+	envbind(env, name, val);
+}
+
+static void
+builtinns(Env *env, char *name, Ns *ns)
+{
+	Val val;
+	val = mkvalns(ns);
+	envbind(env, name, val);
+}
+
+static void
+builtindom(Env *env, char *name, Dom *dom)
+{
+	Val val;
+	val = mkvaldom(dom);
+	envbind(env, name, val);
+}
+
+static void
+builtincval(Env *env, char *name, Cval *cv)
+{
+	Val val;
+	val = mkvalcval2(cv);
+	envbind(env, name, val);
+}
+
+static void
+builtinfd(Env *env, char *name, Fd *fd)
+{
+	Val val;
+	val = mkvalfd(fd);
+	envbind(env, name, val);
+}
+
+static void
+vmresetctl(VM *vm)
 {
 	while(vm->pdepth > 0)
 		gcprotpop(vm);
@@ -5246,6 +5392,34 @@ vmreset(VM *vm)
 	vm->sp = Maxstk;
 	vm->ac = Xundef;
 	vm->cl = mkvalcl(panicthunk());
+}
+
+static void
+vmresettop(VM *vm)
+{
+	Val val;
+	
+	if(!envlookup(vm->top->env, "halt", &val))
+		fatal("bad vm environment");
+	vm->halt = valcl(val);
+	if(!envlookup(vm->top->env, "litdom", &val))
+		fatal("bad vm environment");
+	vm->litdom = valdom(val);
+	vm->litns = vm->litdom->ns;
+	vm->litbase = vm->litns->base;
+	vm->sget = mkstr0("get");
+	vm->sput = mkstr0("put");
+	vm->smap = mkstr0("map");
+	if(!envlookup(vm->top->env, "stdin", &val))
+		fatal("bad vm environment");
+	vm->stdin = valfd(val);
+	if(!envlookup(vm->top->env, "stdout", &val))
+		fatal("bad vm environment");
+	vm->stdout = valfd(val);
+
+	/* toplevel bindings that require calling VM to construct */
+	if(!envlookup(vm->top->env, "sys", &val))
+		builtindom(vm->top->env, "sys", mksysdom(vm));
 }
 
 Fd*
@@ -5258,8 +5432,6 @@ Val
 dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	static int once;
-	static Val haltv;
-	static Closure *halt;
 	Insn *i;
 	Cval *cv;
 	Val val;
@@ -5311,10 +5483,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Isub] 	= &&Isub;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
-
-		if(!envlookup(vm->top, "halt", &haltv))
-			fatal("broken vm");
-		halt = valcl(haltv);
 	}
 
 	gcprotpush(vm);
@@ -5327,12 +5495,12 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	vm->fp = vm->sp;
 
 	/* push frame for halt thunk */
-	vmpushi(vm, vm->fp);	/* fp */
-	vmpush(vm, haltv);	/* cl */
-	vmpushi(vm, halt->entry); /* pc */
+	vmpushi(vm, vm->fp);		/* fp */
+	vmpush(vm, mkvalcl(vm->halt));	/* cl */
+	vmpushi(vm, vm->halt->entry);	/* pc */
 	for(m = argc; m > 0; m--)
 		vmpush(vm, argv[m-1]);
-	vmpushi(vm, argc);	/* narg */
+	vmpushi(vm, argc);		/* narg */
 	vm->fp = vm->sp;
 
 	/* switch to cl */
@@ -5480,46 +5648,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		xsizeof(vm, &i->op1, &i->dst);
 		continue;
 	}
-}
-
-void
-builtinfn(Env *env, char *name, Closure *cl)
-{
-	Val val;
-	val = mkvalcl(cl);
-	envbind(env, name, val);
-}
-
-static void
-builtinns(Env *env, char *name, Ns *ns)
-{
-	Val val;
-	val = mkvalns(ns);
-	envbind(env, name, val);
-}
-
-static void
-builtindom(Env *env, char *name, Dom *dom)
-{
-	Val val;
-	val = mkvaldom(dom);
-	envbind(env, name, val);
-}
-
-static void
-builtincval(Env *env, char *name, Cval *cv)
-{
-	Val val;
-	val = mkvalcval2(cv);
-	envbind(env, name, val);
-}
-
-static void
-builtinfd(Env *env, char *name, Fd *fd)
-{
-	Val val;
-	val = mkvalfd(fd);
-	envbind(env, name, val);
 }
 
 void
@@ -8915,7 +9043,7 @@ static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(thegc->gcrun)
-		printf("gc already running\n");
+		xprintf("gc already running\n");
 	else{
 		dogc(thegc);
 		dogc(thegc);
@@ -8969,6 +9097,18 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 		return;
 	}
 	*rv = dovm(vm, cl, 0, 0);
+}
+
+static void
+l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(thegc->gcrun){
+		xprintf("gc is running; try again\n");
+		return;
+	}
+	freeenv(vm->top->env);
+	vm->top->env = mktopenv();
+	vmresettop(vm);
 }
 
 char*
@@ -9305,94 +9445,6 @@ mkrootns(NSroot *def)
 	return ns;
 }
 
-static char*
-myroot()
-{
-	u32 x;
-	char *p;
-	int longsz;
-	int ptrsz;
-	int flags;
-	enum {
-		lw = 1<<0,
-		lp = 1<<1,
-		be = 1<<2,
-	};
-	static char *root[] = {
-		[0] 		= "c32le",
-		[lw]		= "c64le",
-		[lp|lw]		= "clp64le",
-		[be] 		= "c32be",
-		[be|lw]		= "c64be",
-		[be|lp|lw]	= "clp64be",
-	};
-	char *r;
-
-	flags = 0;
-	longsz = 8*sizeof(long);
-	if(longsz == 64)
-		flags |= lw;
-	ptrsz = 8*sizeof(void*);
-	if(ptrsz == 64)
-		flags |= lp;
-	x = 0x01020304;
-	p = (char*)&x;
-	if(*p == 0x01)
-		flags |= be;
-
-	r = root[flags];
-	if(r == 0)
-		return "unsupported";
-	return r;
-}
-
-static Dom*
-mksysdom(VM *vm)
-{
-	Ns *ns, *root;
-	Dom *dom;
-	Tab *rawtype, *rawsym;
-	Vec *v;
-	Str *id;
-	Xtypename *t;
-	Cval *o;
-	Val keyv, valv;
-	char *rootname;
-
-	rootname = myroot();
-//	xprintf("host name space: %s\n", rootname);
-	if(!envlookup(vm->top, rootname, &valv))
-		vmerr(vm, "undefined name space: %s", rootname);
-	root = valns(valv);
-
-	rawtype = mktab();
-	rawsym = mktab();
-
-	t = mkxtn();
-	t->tkind = Tarr;
-	t->cnt = mkvalcval(vm->litdom, vm->litbase[Vint], 256);
-	t->link = mkbasextn(Vchar, Rundef);
-	id = mkstr0("flags");
-	o = mkcval(vm->litdom, vm->litbase[Vptr], (Imm)(uintptr_t)&cqctflags);
-	
-	v = mkvec(3);
-	valv = mkvalxtn(t);
-	_vecset(v, Typepos, valv);
-	valv = mkvalstr(id);
-	_vecset(v, Idpos, valv);
-	valv = mkvalcval2(o);
-	_vecset(v, Offpos, valv);
-
-	keyv = mkvalstr(id);
-	valv = mkvalvec(v);
-	tabput(vm, rawsym, keyv, valv);
-
-	ns = mknstab(vm, root, rawtype, rawsym, mkstr0("sys"));
-	dom = mkdom(ns, mksas(mkstrk(0, ~(0ULL), Sperm)), mkstr0("sys"));
-
-	return dom;
-}
-
 static Dom*
 mklitdom()
 {
@@ -9406,7 +9458,7 @@ mklitdom()
 	return dom;
 }
 
-Env*
+static Env*
 mktopenv()
 {
 	Env *env;
@@ -9544,6 +9596,7 @@ mktopenv()
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);
+	FN(resettop);
 	FN(rettype);
 	FN(reverse);
 	FN(sort);
@@ -9575,7 +9628,7 @@ mktopenv()
 	FN(vecset);
 	FN(vector);
 
-	fns(env);
+	fns(env);		/* configuration-supplied function */
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();
@@ -9608,33 +9661,20 @@ mktopenv()
 }
 
 VM*
-cqctmkvm(Env *env)
+cqctmkvm(Toplevel *top)
 {
 	VM *vm, **vmp;
-	Val val;
 
 	vm = emalloc(sizeof(VM));
-	vm->top = env;
+	vm->top = top;
 	vm->pmax = GCinitprot;
 	vm->prot = emalloc(vm->pmax*sizeof(Root*));
 	vm->emax = Errinitdepth;
 	vm->err = emalloc(vm->emax*sizeof(Err));
 	
-	envlookup(env, "litdom", &val);
-	vm->litdom = valdom(val);
-	vm->litns = vm->litdom->ns;
-	vm->litbase = vm->litns->base;
-	vm->sget = mkstr0("get");
-	vm->sput = mkstr0("put");
-	vm->smap = mkstr0("map");
-	envlookup(env, "stdin", &val);
-	vm->stdin = valfd(val);
-	envlookup(env, "stdout", &val);
-	vm->stdout = valfd(val);
-
-	vmreset(vm);
+	vmresetctl(vm);
 	gcprotpush(vm);
-	
+
 	/* register vm with fault handler */
 	vmp = vms;
 	while(*vmp){
@@ -9645,11 +9685,7 @@ cqctmkvm(Env *env)
 	*vmp = vm;
 
 	/* vm is now callable */
-
-	/* add toplevel bindings that require VM to construct */
-	if(!envlookup(env, "sys", &val))
-		builtindom(env, "sys", mksysdom(vm));
-
+	vmresettop(vm);		/* populate toplevel */
 	return vm;
 }
 
@@ -9763,7 +9799,7 @@ int
 cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
 {
 	if(waserror(vm)){
-		vmreset(vm);
+		vmresetctl(vm);
 		return -1;
 	}
 	*rv = dovm(vm, cl, argc, argv);
@@ -9775,7 +9811,7 @@ int
 cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 {
 	if(waserror(vm)){
-		vmreset(vm);
+		vmresetctl(vm);
 		return -1;
 	}
 	*rv = dovm(vm, cl, 0, 0);

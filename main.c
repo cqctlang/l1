@@ -152,7 +152,6 @@ main(int argc, char *argv[])
 	Val v;
 	Expr *e;
 	VM *vm;
-	Env *env;
 	char *filename = 0;
 	int c;
 	struct timeval beg, end;
@@ -162,6 +161,7 @@ main(int argc, char *argv[])
 	uint64_t heapmax;
 	int i, valc;
 	Val *valv;
+	Toplevel *top;
 
 	memset(opt, 0, sizeof(opt));
 	opt['x'] = 1;		/* execute */
@@ -197,11 +197,11 @@ main(int argc, char *argv[])
 		}
 	}
 
-	env = cqctinit(opt['g'], heapmax);
+	top = cqctinit(opt['g'], heapmax);
 	if(opt['x']){
-		vm = cqctmkvm(env);
+		vm = cqctmkvm(top);
 		if(vm == 0){
-			cqctfini(env);
+			cqctfini(top);
 			return -1;
 		}
 	}
@@ -244,7 +244,7 @@ main(int argc, char *argv[])
 		free(inbuf);
 		if(e == 0)
 			continue;
-		entry = cqctcompile(e, env);
+		entry = cqctcompile(e, top);
 		if(entry == 0){
 			cqctfreeexpr(e);
 			continue;
@@ -274,6 +274,6 @@ main(int argc, char *argv[])
 	free(valv);
 	if(opt['x'])
 		cqctfreevm(vm);
-	cqctfini(env);
+	cqctfini(top);
 	return 0;
 }

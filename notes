@@ -75,6 +75,11 @@ todo
       make mmap general
   - fn-backed types
 
+  - alternate equality for cvalues (useful for table keys):
+    - struct* : structure equality on values of fields, or recursively thus
+                used as simple mech for showing variety of values
+                some structure obtains
+
 - usability
   - change "entry" to "toplevel"
   - print the original source for a lambda
@@ -119,6 +124,7 @@ todo
   - does enconsts make bad assumption about domlook?
   - map-based ismapped model is broken, because map may be expensive;
     maybe as should implement both.
+  - can <domain > occur during %a printing?
 
 - performance/simplicity
   - consider making routines like nsptr take a cvalue argument
