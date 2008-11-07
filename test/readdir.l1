@@ -1,5 +1,5 @@
 ns = @names c32le {
-	@include <l1.names>
+	@include "l1.names"
 };
 
 define readdir(name){
