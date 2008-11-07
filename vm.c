@@ -8923,7 +8923,7 @@ l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to append");
 	if(argv[0]->qkind == Qlist)
 		*rv = mkvallist(listcopy(vallist(argv[0])));
-	else if(argv[1]->qkind == Qvec)
+	else if(argv[0]->qkind == Qvec)
 		*rv = mkvalvec(veccopy(valvec(argv[0])));
 	else
 		vmerr(vm, "operand 1 to copy must be a list or vector");
