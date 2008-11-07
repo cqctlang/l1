@@ -9,10 +9,15 @@
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <libgen.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
 #include "cqct.h"
+
+enum{
+	Maxloadpath = 128,
+};
 
 static void
 usage(char *argv0)
@@ -162,13 +167,19 @@ main(int argc, char *argv[])
 	uint64_t heapmax;
 	int i, valc;
 	Val *valv;
+	char *argv0, *root;
+	unsigned n, nlp;
+	char *lp[Maxloadpath+1];	/* extra one is final null */
 
+	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
 	opt['x'] = 1;		/* execute */
 	opt['g'] = 1;		/* gc in separate thread */
+	opt['s'] = 1;		/* include default load path */
 	dorepl = 1;
 	heapmax = 0;
-	while(EOF != (c = getopt(argc, argv, "be:hopqtwxgm:"))){
+	nlp = 0;
+	while(EOF != (c = getopt(argc, argv, "be:hol:m:pqtwgxs"))){
 		switch(c){
 		case 'o':
 		case 'p':
@@ -182,6 +193,7 @@ main(int argc, char *argv[])
 			break;
 		case 'x':
 		case 'g':
+		case 's':
 			opt[c] = 0;
 			break;
 		case 'e':
@@ -191,13 +203,31 @@ main(int argc, char *argv[])
 		case 'm':
 			heapmax = atoi(optarg);
 			break;
+		case 'l':
+			if(nlp >= Maxloadpath)
+				fatal("too many directories in load path");
+			n = strlen(optarg);
+			while(n > 0 && optarg[n-1] == '/')
+				n--;
+			lp[nlp] = emalloc(n+1);
+			memcpy(lp[nlp++], optarg, n);
+			break;
 		case 'h':
 		case '?':
-			usage(argv[0]);
+			usage(argv0);
 		}
 	}
 
-	env = cqctinit(opt['g'], heapmax);
+	if(opt['s']){
+		if(nlp >= Maxloadpath)
+			fatal("too many directories in load path");
+		root = dirname(argv0);
+		lp[nlp] = emalloc(strlen(root)+1+4+1);
+		sprintf(lp[nlp++], "%s/lib", dirname(argv0));
+	}
+	lp[nlp] = 0;
+	
+	env = cqctinit(opt['g'], heapmax, lp);
 	if(opt['x']){
 		vm = cqctmkvm(env);
 		if(vm == 0){

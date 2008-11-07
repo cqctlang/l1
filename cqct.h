@@ -54,7 +54,7 @@ void		cqctfreeexpr(Expr *e);
 void		cqctfreevm(VM *vm);
 void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
-Env*		cqctinit(int gcthread, uint64_t heapmax);
+Env*		cqctinit(int gcthread, uint64_t heapmax, char **loadpath);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);

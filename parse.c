@@ -80,6 +80,7 @@ static Decl* dodecl(U *ctx, Expr *e);
 static Type* copytype(Type *t);
 
 static HT *filenames;
+static char **loadpath;
 static char *stdinname = "<stdin>";
 
 extern int yylex_destroy(void);
@@ -1261,7 +1262,7 @@ popyy(U *ctx)
 void
 tryinclude(U *ctx, char *raw)
 {
-	char *p, *q, *buf;
+	char *p, *q, *buf, *full, **lp;
 	unsigned len;
 	int c, f;
 
@@ -1281,19 +1282,28 @@ tryinclude(U *ctx, char *raw)
 		fatal("bug");
 	*q = 0;
 
-	switch(c){
-	case '"':
-//		xprintf("include relative %s\n", p);
-		break;
-	case '<':
-//		xprintf("include system %s\n", p);
-		break;
+	buf = 0;
+	if(f == '>'){
+		/* use load path */
+		lp = loadpath;
+		while(*lp){
+			len = strlen(*lp)+1+strlen(p)+1;
+			full = emalloc(len);
+			snprintf(full, len, "%s/%s", *lp, p);
+			buf = readfile(full);
+			if(buf)
+				break;
+			lp++;
+		}
+	}else{
+		full = p;
+		buf = readfile(full);
 	}
-
-	buf = readfile(p);
 	if(buf == 0)
 		parseerror(ctx, "cannot @include %s", p);
-	pushyy(ctx, p, buf, 1);
+	pushyy(ctx, full, buf, 1);
+	if(f == '>')
+		efree(full);
 }
 
 static Expr*
@@ -1367,9 +1377,40 @@ cqctcompile(Expr *e, Env *env)
 	return compileentry(e, env);
 }
 
-Env*
-cqctinit(int gcthread, u64 heapmax)
+static char**
+copyargv(char **lp)
 {
+	unsigned n, i, nlp;
+	char **p, **rv, *s;
+
+	n = 0;
+	nlp = 0;
+
+	if(lp != 0){
+		p = lp;
+		while(*p){
+			n += strlen(*p)+1;
+			nlp++;
+			p++;
+		}
+	}
+	rv = emalloc((nlp+1)*sizeof(char*)+n);
+	p = rv;
+	s = (char*)(rv+nlp+1);
+	for(i = 0; i < nlp; i++){
+		p[i] = s;
+		strcpy(s, lp[i]);
+		s += strlen(lp[i])+1;
+	}
+	p[nlp] = 0;
+
+	return rv;
+}
+
+Env*
+cqctinit(int gcthread, u64 heapmax, char **lp)
+{
+	loadpath = copyargv(lp);
 	initparse();
 	initcompile();
 	initvm(gcthread, heapmax);
@@ -1379,6 +1420,7 @@ cqctinit(int gcthread, u64 heapmax)
 void
 cqctfini(Env *env)
 {
+	efree(loadpath);
 	freeenv(env);
 	finivm();
 	finicompile();
