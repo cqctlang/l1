@@ -39,27 +39,27 @@ struct Head {
 typedef struct Head* Val;
 
 typedef struct Closure Closure;
-typedef struct Env Env;
 typedef struct Expr Expr;
+typedef struct Toplevel Toplevel;
 typedef struct VM VM;
 
 int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
-Closure*	cqctcompile(Expr *e, Env *env);
+Closure*	cqctcompile(Expr *e, Toplevel *top);
 Val		cqctcstrval(char *s);
 int		cqctfaulthook(void (*h)(void), int in);
-void		cqctfini(Env *env);
+void		cqctfini(Toplevel *top);
 void		cqctfreecstr(char *s);
 void		cqctfreeexpr(Expr *e);
 void		cqctfreevm(VM *vm);
 void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
-Env*		cqctinit(int gcthread, uint64_t heapmax, char **loadpath);
+Toplevel*	cqctinit(int gcthread, uint64_t heapmax, char **loadpath);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);
 Val		cqctint64val(int64_t);
-VM*		cqctmkvm(Env *env);
+VM*		cqctmkvm(Toplevel *top);
 Expr*		cqctparsefile(char *filename);
 Expr*		cqctparsestr(char *str, char *whence);
 char*		cqctsprintval(VM *vm, Val v);

@@ -1349,7 +1349,7 @@ cqctparsestr(char *str, char *whence)
 }
 
 Closure*
-cqctcompile(Expr *e, Env *env)
+cqctcompile(Expr *e, Toplevel *top)
 {
 	U ctx;
 
@@ -1374,7 +1374,7 @@ cqctcompile(Expr *e, Env *env)
 		printcqct(e);
 		xprintf("\n");
 	}
-	return compileentry(e, env);
+	return compileentry(e, top);
 }
 
 static char**
@@ -1407,21 +1407,21 @@ copyargv(char **lp)
 	return rv;
 }
 
-Env*
+Toplevel*
 cqctinit(int gcthread, u64 heapmax, char **lp)
 {
 	loadpath = copyargv(lp);
 	initparse();
 	initcompile();
 	initvm(gcthread, heapmax);
-	return mktopenv();
+	return mktoplevel();
 }
 
 void
-cqctfini(Env *env)
+cqctfini(Toplevel *top)
 {
 	efree(loadpath);
-	freeenv(env);
+	freetoplevel(top);
 	finivm();
 	finicompile();
 	finiparse();

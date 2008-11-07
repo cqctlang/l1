@@ -3499,6 +3499,22 @@ Seeds the random number generator used by <span class="id">rand</span>.
 </div>
 </div>
 
+<div class="docitem" id="fn:resettop">
+<div class="proto">
+<div class="function">
+<span class="id">resettop()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Resets the top-level environment to the initial bindings established
+when the Cinquecento is started.  All user-defined bindings are
+destroyed.
+</div>
+</div>
+
 <h3 id="sec:cinterface">C Interface</h3>
 
 <p>
@@ -3525,8 +3541,8 @@ types.
 <td>Closure<td>
 </tr>
 <tr>
-<td><span class="id">Env</span><td>
-<td>Environment<td>
+<td><span class="id">Toplevel</span><td>
+<td>Toplevel environment<td>
 </tr>
 <tr>
 <td><span class="id">Expr</span><td>
@@ -3547,12 +3563,12 @@ types.
 <div class="docitem" id="fn:cqctinit">
 <div class="proto">
 <div class="function">
-<span class="id">Env* cqctinit(int <span class="arg">gcthread</span>, uint64_t <span class="arg">heapmax</span>)</span>
+<span class="id">Toplevel* cqctinit(int <span class="arg">gcthread</span>, uint64_t <span class="arg">heapmax</span>)</span>
 </div>
 </div>
 <div class="desc">
 This function must be called first.  It allocates,
-initializes, and returns a Cinquecento environment
+initializes, and returns a Cinquecento top-level environment
 containing bindings for all built-in functions and
 other values.  It also initializes the Cinquecento
 storage manager.  If <span class="arg">gcthread</span>
@@ -3592,13 +3608,13 @@ if there an error occurs during (un)registration.
 <div class="docitem" id="fn:cqctmkvm">
 <div class="proto">
 <div class="function">
-<span class="id">VM* cqctmkvm(Env *<span class="arg">env</span>)</span>
+<span class="id">VM* cqctmkvm(Toplevel *<span class="arg">top</span>)</span>
 </div>
 </div>
 <div class="desc">
 Returns a new Cinquecento evaluator initialized with
 the top-level environment bound
-to <span class="arg">env</span>.
+to <span class="arg">top</span>.
 </div>
 </div>
 
@@ -3831,7 +3847,7 @@ of <span class="arg">vm</span>.
 <span class="id" id="fn:cqctfreevm">void cqctfreevm(VM *<span class="arg">vm</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctfini">void cqctfini(Env *<span class="arg">env</span>)</span>
+<span class="id" id="fn:cqctfini">void cqctfini(Toplevel *<span class="arg">top</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -3843,13 +3859,11 @@ or <span class="fnindex"><a href="#fn:cqctsprintval">cqctsprintval</a></span>.
 expression, and should be called only if the expression
 has not been successfully compiled.
 <span class="id">Cqctfreevm</span> frees a virtual machine.
-<span class="id">Cqctfreeenv</span> frees a toplevel
+<span class="id">Cqctfini</span> frees a top-level
 environment, and should be called only after all virtual
 machines sharing the environment have been freed.
 </div>
 </div>
-
-
 
 <h3 id="sec:synindex">Syntax Index</h3>
 
@@ -3987,6 +4001,7 @@ machines sharing the environment have been freed.
 <a href="#fn:rand">rand</a><br />
 <a href="#fn:rand">randseed</a><br />
 <a href="#fn:read">read</a><br />
+<a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
 <a href="#fn:sort">sort</a><br />

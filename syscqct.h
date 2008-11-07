@@ -680,9 +680,14 @@ struct Xenv {
 	Xenv *link;
 };
 
+typedef
 struct Env {
 	HT *var;
 	Xenv *con;
+} Env;
+
+struct Toplevel {
+	struct Env *env;
 };
 
 struct VM {
@@ -695,9 +700,10 @@ struct VM {
 	Root **prot;		/* stack of lists of GC-protected objects */
 	Rootset rs;		/* Root free list for prot */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
-	Env *top;
+	Toplevel *top;
 	Imm sp, fp, pc;
 	Closure *clx;
+	Closure *halt;
 	Insn *ibuf;
 	Val ac, cl;
 	Err *err;		/* stack of error labels */
@@ -766,7 +772,7 @@ Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 /* compile.c */
 Closure*	callcc();
 Code*		callccode();
-Closure*	compileentry(Expr *el, Env *env);
+Closure*	compileentry(Expr *el, Toplevel *top);
 Code*		contcode();
 void		finicompile();
 void		freeconst(void *u, char *id, void *v);
@@ -803,6 +809,7 @@ void		freeenv(Env *env);
 void		initvm(int gcthread, u64 heapmax);
 void		finivm();
 int		freecode(Head *hd);
+void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
@@ -817,7 +824,7 @@ Str*		mkstr0(char *s);
 Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(VM *vm, Imm len);
 Tab*		mktab();
-Env*		mktopenv();
+Toplevel*	mktoplevel();
 Val		mkvalas(As *as);
 Val		mkvalbox(Val boxed);
 Val		mkvalcl(Closure *cl);
@@ -847,7 +854,6 @@ Val		tabget(Tab *tab, Val keyv);
 void		tabput(VM *vm, Tab *tab, Val keyv, Val val);
 Imm		valimm(Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
-void		vmreset(VM *vm);
 Fd*		vmstdout(VM *vm);
 #define valas(v)	((As*)(v))
 #define valcval(v)	((Cval*)(v))

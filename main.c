@@ -157,7 +157,6 @@ main(int argc, char *argv[])
 	Val v;
 	Expr *e;
 	VM *vm;
-	Env *env;
 	char *filename = 0;
 	int c;
 	struct timeval beg, end;
@@ -170,6 +169,7 @@ main(int argc, char *argv[])
 	char *argv0, *root;
 	unsigned n, nlp;
 	char *lp[Maxloadpath+1];	/* extra one is final null */
+	Toplevel *top;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -227,11 +227,11 @@ main(int argc, char *argv[])
 	}
 	lp[nlp] = 0;
 	
-	env = cqctinit(opt['g'], heapmax, lp);
+	top = cqctinit(opt['g'], heapmax, lp);
 	if(opt['x']){
-		vm = cqctmkvm(env);
+		vm = cqctmkvm(top);
 		if(vm == 0){
-			cqctfini(env);
+			cqctfini(top);
 			return -1;
 		}
 	}
@@ -250,13 +250,6 @@ main(int argc, char *argv[])
 	do{
 		inbuf = 0;
 		if(dorepl){
-//			printf("; ");
-//			fflush(stdout);
-//			inbuf = readexpr(&len);
-//			if(inbuf == 0){
-//				printf("\n");
-//				break;
-//			}
 			inbuf = readline("; ");
 			if(inbuf == 0){
 				printf("\n");
@@ -274,7 +267,7 @@ main(int argc, char *argv[])
 		free(inbuf);
 		if(e == 0)
 			continue;
-		entry = cqctcompile(e, env);
+		entry = cqctcompile(e, top);
 		if(entry == 0){
 			cqctfreeexpr(e);
 			continue;
@@ -304,6 +297,6 @@ main(int argc, char *argv[])
 	free(valv);
 	if(opt['x'])
 		cqctfreevm(vm);
-	cqctfini(env);
+	cqctfini(top);
 	return 0;
 }

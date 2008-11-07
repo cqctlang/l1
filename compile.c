@@ -2639,7 +2639,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 }
 
 Closure*
-compileentry(Expr *el, Env *env)
+compileentry(Expr *el, Toplevel *top)
 {
 	Ctl *L;
 	Expr *le;
@@ -2654,14 +2654,15 @@ compileentry(Expr *el, Env *env)
 	L->used = 1;
 	emitlabel(L, el);
 
-	topresolve(el, env, 0);
-	el = expandconst(el, env, 0, env->con);
+	topresolve(el, top->env, 0);
+	el = expandconst(el, top->env, 0, top->env->con);
 	le = newexpr(Elambda, doid("args"),
                     newexpr(Eret,
                             newexpr(Eblock, nullelist(), el, 0, 0),
                             0, 0, 0),
                     0, 0);
-	mapframe(le, 0, 0, code->topvec, env, code->konst, code->konsti, 0);
+	mapframe(le, 0, 0, code->topvec, top->env,
+		 code->konst, code->konsti, 0);
 	cap = mkvdset();
 	mapcapture(le, cap);
 	freevdset(cap);
