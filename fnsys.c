@@ -118,6 +118,7 @@ dotrs(VM *vm)
 	Trace *tr;
 	Ctl **ls;
 	Tab *tab;
+	char *fn;
 	
 	tab = mktab();
 	tr = prof->trace;
@@ -133,10 +134,12 @@ dotrs(VM *vm)
 			while(1){
 				ls = code->labels;
 				if(ls[pc] && ls[pc]->src){
+					fn = (ls[pc]->src->filename
+					      ? ls[pc]->src->filename
+					      : "<stdin>");
 					snprintf(buf, sizeof(buf),
 						 "%30s\t(%s:%u)", cl->id,
-						 ls[pc]->src->filename,
-						 ls[pc]->src->line);
+						 fn, ls[pc]->src->line);
 					break;
 				}
 				if(pc == 0){

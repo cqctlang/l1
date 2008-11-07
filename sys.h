@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <libgen.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/stat.h>

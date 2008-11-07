@@ -72,7 +72,7 @@ dl, ol, ul {
 #content {
 	font-family: "Lucida Sans", sans-serif;
 	font-size: 14px;
-	line-height: 18px;
+	line-height: 20px;
 	color: black;
 	text-align: left;
 }
@@ -163,7 +163,7 @@ dl, ol, ul {
 }
 
 .code pre {
-      font-family: "Droid Sans Mono", "Andale Mono", monospace;
+      font-family: "Andale Mono", monospace;
       font-size: 12px;
       line-height: 15px;
       color: black;

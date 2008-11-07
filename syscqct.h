@@ -712,7 +712,7 @@ struct VM {
 };
 
 extern char* S[];
-extern char* basename[];
+extern char* cbasename[];
 extern char* tkindstr[];
 extern VM*   vms[];
 

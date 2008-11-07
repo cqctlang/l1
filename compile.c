@@ -108,7 +108,7 @@ emitlabel(Ctl *ctl, Expr *e)
 		fatal("multiple labels %s,%s", ctl->label,
 		      code->labels[code->ninsn]->label);
 	code->labels[code->ninsn] = ctl;
-	if(e && e->src.filename)
+	if(e && e->src.line)
 		ctl->src = &e->src;
 }
 
@@ -752,7 +752,7 @@ konsti2val(Cbase base, Imm imm, Konsti *koni)
 	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
 	char *s;
 
-	snprintf(buf, sizeof(buf), "%s%" PRIu64, basename[base], imm);
+	snprintf(buf, sizeof(buf), "%s%" PRIu64, cbasename[base], imm);
 	v = hget(koni->ht, buf, strlen(buf));
 	if(v)
 		return v;

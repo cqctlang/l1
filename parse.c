@@ -4,7 +4,7 @@
 
 char cqctflags[256];
 
-char* basename[Vnbase+1] = {
+char* cbasename[Vnbase+1] = {
 	[Vundef]              = "error!",
 	[Vchar]               = "char",
 	[Vshort]	      = "short",
@@ -81,7 +81,6 @@ static Type* copytype(Type *t);
 
 static HT *filenames;
 static char **loadpath;
-static char *stdinname = "<stdin>";
 
 extern int yylex_destroy(void);
 
@@ -102,7 +101,10 @@ parseerror(U *ctx, char *fmt, ...)
 	}
 
 	if(ctx->inp)
-		xprintf("%s:%u: ", ctx->inp->src.filename, ctx->inp->src.line);
+		xprintf("%s:%u: ",
+			ctx->inp->src.filename
+			? ctx->inp->src.filename : "<stdin>",
+			ctx->inp->src.line);
 	va_start(args, fmt);
 	vmsg(fmt, args);
 	va_end(args);
@@ -1227,10 +1229,13 @@ pushyy(U *ctx, char *filename, char *buf, int dofree)
 		ctx->inp++;
 	if(ctx->inp >= ctx->in+MaxIn)
 		fatal("maximum include depth exceeded");
-	keyed = hget(filenames, filename, strlen(filename));
-	if(!keyed){
-		keyed = xstrdup(filename);
-		hput(filenames, keyed, strlen(keyed), keyed);
+	keyed = 0;
+	if(filename){
+		keyed = hget(filenames, filename, strlen(filename));
+		if(!keyed){
+			keyed = xstrdup(filename);
+			hput(filenames, keyed, strlen(keyed), keyed);
+		}
 	}
 	ctx->inp->src.filename = keyed;
 	ctx->inp->yy = mkyystatestr(buf);
@@ -1296,14 +1301,20 @@ tryinclude(U *ctx, char *raw)
 			lp++;
 		}
 	}else{
-		full = p;
+		if(p[0] != '/' && ctx->inp->src.filename){
+			len = strlen(ctx->inp->src.filename)+1+strlen(p)+1;
+			full = emalloc(len);
+			snprintf(full, len, "%s", ctx->inp->src.filename);
+			snprintf(full, len, "%s/%s", dirname(full), p);
+		}
+		else
+			full = xstrdup(p);
 		buf = readfile(full);
 	}
 	if(buf == 0)
 		parseerror(ctx, "cannot @include %s", p);
 	pushyy(ctx, full, buf, 1);
-	if(f == '>')
-		efree(full);
+	efree(full);
 }
 
 static Expr*
@@ -1345,7 +1356,7 @@ cqctparsefile(char *filename)
 Expr*
 cqctparsestr(char *str, char *whence)
 {
-	return doparse(str, whence ? whence : stdinname);
+	return doparse(str, whence);
 }
 
 Closure*

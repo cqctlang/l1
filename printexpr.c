@@ -601,9 +601,9 @@ fmttype(Type *t, char *o)
 		efree(o);
 		return buf;
 	case Tbase:
-		m = strlen(basename[t->base])+1+strlen(o)+1;
+		m = strlen(cbasename[t->base])+1+strlen(o)+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "%s %s", basename[t->base], o);
+		snprintf(buf, m, "%s %s", cbasename[t->base], o);
 		efree(o);
 		return buf;
 	case Ttypedef:

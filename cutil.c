@@ -6,8 +6,10 @@ void
 cwarn(Expr *e, char *fmt, ...)
 {
 	va_list args;
-	if(e->src.filename)
-		xprintf("%s:%u: warning: ", e->src.filename, e->src.line);
+	if(e->src.line)
+		xprintf("%s:%u: warning: ",
+			e->src.filename ? e->src.filename : "<stdin>",
+			e->src.line);
 	else
 		xprintf("<lost-location!>: warning: ");
 	va_start(args, fmt);
@@ -20,8 +22,10 @@ void
 cerror(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
-	if(e->src.filename)
-		xprintf("%s:%u: ", e->src.filename, e->src.line);
+	if(e->src.line)
+		xprintf("%s:%u: ",
+			e->src.filename ? e->src.filename : "<stdin>",
+			e->src.line);
 	else
 		xprintf("<lost-location!>: ");
 	va_start(args, fmt);

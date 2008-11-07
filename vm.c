@@ -2372,12 +2372,12 @@ _fmtxtn(Xtypename *xtn, char *o)
 		efree(o);
 		return buf;
 	case Tbase:
-		m = strlen(basename[xtn->basename])+1+leno+1;
+		m = strlen(cbasename[xtn->basename])+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprintf(buf, m, "%s %s", basename[xtn->basename], o);
+			snprintf(buf, m, "%s %s", cbasename[xtn->basename], o);
 		else
-			snprintf(buf, m, "%s", basename[xtn->basename]);
+			snprintf(buf, m, "%s", cbasename[xtn->basename]);
 		efree(o);
 		return buf;
 	case Ttypedef:
@@ -2899,6 +2899,7 @@ static void
 printsrc(FILE *out, Closure *cl, Imm pc)
 {
 	Code *code;
+	char *fn;
 	
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
@@ -2909,9 +2910,11 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 
 	while(1){
 		if(code->labels[pc] && code->labels[pc]->src){
+			fn = code->labels[pc]->src->filename;
+			if(fn == 0)
+				fn = "<stdin>";
 			xprintf("%20s\t(%s:%u)\n", cl->id,
-				code->labels[pc]->src->filename,
-				code->labels[pc]->src->line);
+				fn, code->labels[pc]->src->line);
 			return;
 		}
 		if(pc == 0)
@@ -4561,7 +4564,7 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 
 	xtn = _dolooktype(vm, xtn, ns);
 	if(xtn == 0)
-		vmerr(vm, "name space does not define %s", basename[cb]);
+		vmerr(vm, "name space does not define %s", cbasename[cb]);
 	ns->base[cb] = xtn;
 }
 
@@ -4843,7 +4846,7 @@ resolvebase(VM *vm, Val xtnv, NSctx *ctx)
 	}
 	
 	xtn = valxtn(xtnv);
-	vmerr(vm, "undefined base type %s", basename[xtn->basename]);
+	vmerr(vm, "undefined base type %s", cbasename[xtn->basename]);
 }
 
 static Xtypename*
@@ -6782,7 +6785,7 @@ l1_baseid(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tbase)
 		vmerr(vm, "operand 1 to baseid must be a base ctype");
-	*rv = mkvalstr(mkstr0(basename[xtn->basename]));
+	*rv = mkvalstr(mkstr0(cbasename[xtn->basename]));
 }
 
 static void
