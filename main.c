@@ -228,6 +228,8 @@ main(int argc, char *argv[])
 	lp[nlp] = 0;
 	
 	top = cqctinit(opt['g'], heapmax, lp);
+	while(nlp > 0)
+		free(lp[--nlp]);
 	if(opt['x']){
 		vm = cqctmkvm(top);
 		if(vm == 0){
