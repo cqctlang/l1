@@ -22,11 +22,11 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER CONSTANT STRING_LITERAL 
-%token SIZEOF TYPEOF TYPEDEF NIL DEFINE CONTAINEROF
+%token SIZEOF TYPEOF TYPEDEF NIL DEFINE DEFLOCAL CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
-%token LOCAL LAMBDA NAMES
+%token GLOBAL LOCAL LAMBDA NAMES
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
@@ -51,6 +51,7 @@ extern char *yytext;
 %type <expr> defconst_statement compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
+%type <expr> global_statement
 %type <expr> type_name tn_type_specifier tn_struct_or_union_specifier
 %type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
 %type <expr> tn_parameter_declaration tn_abstract_declarator
@@ -731,6 +732,12 @@ statement
 	| define_statement
 	| labeled_statement
 	| defconst_statement
+	| global_statement
+	;
+
+global_statement
+	: GLOBAL identifier_list ';'
+	{ $$ = newexprsrc(&ctx->inp->src, Eglobal, invert($2), 0, 0, 0); }
 	;
 
 local
@@ -830,6 +837,12 @@ define_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $5, 0); }
 	| DEFINE id id compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $4, 0); }
+	| DEFLOCAL id '(' identifier_list ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edeflocal, $2, invert($4), $6, 0); }
+	| DEFLOCAL id '('  ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edeflocal, $2, nullelist(), $5, 0); }
+	| DEFLOCAL id id compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edeflocal, $2, $3, $4, 0); }
 	;
 
 defconst_statement

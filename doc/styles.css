@@ -70,7 +70,8 @@ dl, ol, ul {
 /* typography */
 
 #content {
-	font-family: "Lucida Sans", sans-serif;
+//	font-family: "Lucida Sans", sans-serif;
+	font-family: "Helvetica";
 	font-size: 14px;
 	line-height: 20px;
 	color: black;

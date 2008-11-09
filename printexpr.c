@@ -47,6 +47,7 @@ char* S[] = {
 	[Edefault] =	"Edefault",
 	[Edefconst] =	"Edefconst",
 	[Edefine] =	"Edefine",
+	[Edeflocal] =	"Edeflocal",
 	[Ederef] =	"Ederef",
 	[Ediv] =	"Ediv",
 	[Edo] =		"Edo",
@@ -62,6 +63,7 @@ char* S[] = {
 	[Efun] =	"Efun",
 	[Eg] =		"Eg",
 	[Ege] =		"Ege",
+	[Eglobal] =	"Eglobal",
 	[Egt] =		"Egt",
 	[Eid] =		"Eid",
 	[Eif] =		"Eif",
@@ -285,7 +287,11 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Edefine:
-		xprintf("define ");
+	case Edeflocal:
+		if(e->kind == Edefine)
+			xprintf("define ");
+		else
+			xprintf("deflocal ");
 		printcqct0(e->e1, ni);
 		if(e->e2->kind == Eid){
 			xprintf(" ");
@@ -335,6 +341,11 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf("\n");
 		printcqct0(e->e2, ni+1);
 		indent(ni); xprintf("}");
+		break;
+	case Eglobal:
+		xprintf("@global ");
+		printargs(e->e1, ni, 0);
+		xprintf(";");
 		break;
 	case Eg:
 		printcqct0(e->e1, ni);

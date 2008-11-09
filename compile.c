@@ -1150,7 +1150,7 @@ mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
 		e->xp = b;
 		b->ve->link = ve;
 		ve = b->ve;
-		if(e->e3) /* Edefine */
+		if(e->e3) /* Edefine, Edeflocal */
 			b->id = xstrdup(e->e3->id);
 		mapframe(e->e2, b, b->ve, tv, env, kon, koni, 0);
 		break;
@@ -1205,6 +1205,53 @@ newlocal(Expr *e, char *id)
 		return;
 	}
 	e->e1 = newexpr(Eelist, doid(id), e->e1, 0, 0);
+}
+
+static Expr*
+globals(Expr *e, Env *env)
+{
+	Expr *p;
+
+	if(e == 0)
+		return e;
+
+	switch(e->kind){
+	case Edeflocal:
+	case Edefine:
+		p = Zset(e->e1,
+			 Zlambdn(e->e2,
+				 globals(e->e3, env),
+				 copyexpr(e->e1)));
+		if(e->kind == Edefine)
+			envgetbind(env, e->e1->id);
+		e->e1 = 0;
+		e->e2 = 0;
+		e->e3 = 0;
+		p->src = e->src;
+		freeexpr(e);
+		return p;
+	case Eglobal:
+		p = e->e1;
+		while(p->kind == Eelist){
+			envgetbind(env, p->e1->id);
+			p = p->e2;
+		}
+		freeexpr(e);
+		return newexpr(Enop, 0, 0, 0, 0);
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = globals(p->e1, env);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = globals(e->e1, env);
+		e->e2 = globals(e->e2, env);
+		e->e3 = globals(e->e3, env);
+		e->e4 = globals(e->e4, env);
+		return e;
+	}
 }
 
 static void
@@ -2642,35 +2689,47 @@ Closure*
 compileentry(Expr *el, Toplevel *top)
 {
 	Ctl *L;
-	Expr *le;
 	VDset *cap;
 	Code *code;
 	Closure *cl;
 	Lambda *b;
 
+	/* enclose expression in block to reduce top-level pollution */
+//	el = Zblock(nullelist(), el, 0);
+
+	/* add @global and implicit @global bindings to env */
+	el = globals(el, top->env);
+
+	/* resolve top-level bindings */
+	topresolve(el, top->env, 0);
+
+	/* expand @const references */
+	el = expandconst(el, top->env, 0, top->env->con);
+
+	/* enclose expression in lambda to make it callable */
+	el = newexpr(Elambda, doid("args"),
+		     newexpr(Eret,
+			     newexpr(Eblock, nullelist(), el, 0, 0),
+			     0, 0, 0),
+		     0, 0);
+
+	/* map variable references and bindings to storage */
 	code = mkcode();
-	
 	L = genlabel(code, "entry");
 	L->used = 1;
 	emitlabel(L, el);
-
-	topresolve(el, top->env, 0);
-	el = expandconst(el, top->env, 0, top->env->con);
-	le = newexpr(Elambda, doid("args"),
-                    newexpr(Eret,
-                            newexpr(Eblock, nullelist(), el, 0, 0),
-                            0, 0, 0),
-                    0, 0);
-	mapframe(le, 0, 0, code->topvec, top->env,
+	mapframe(el, 0, 0, code->topvec, top->env,
 		 code->konst, code->konsti, 0);
 	cap = mkvdset();
-	mapcapture(le, cap);
+	mapcapture(el, cap);
 	freevdset(cap);
-	code->src = le;
+	code->src = el;
 
-//	printframe(le);
-	compilelambda(L, code, le);
-	b = (Lambda*)le->xp;
+//	printframe(el);
+
+	/* compile and prepare closure */
+	compilelambda(L, code, el);
+	b = (Lambda*)el->xp;
 	cl = mkcl(code, 0, b->capture->nvr, L->label);
 
 	if(cqctflags['o'])

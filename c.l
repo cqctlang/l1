@@ -34,6 +34,7 @@ static int chars(YYSTYPE *lvalp, int);
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
 "/*"			{ comment(ctx); }
 "@local"		{ count(ctx); return(LOCAL); }
+"@global"		{ count(ctx); return(GLOBAL); }
 "@names"		{ count(ctx); return(NAMES); }
 "@const"		{ count(ctx); return(DEFCONST); }
 "break"			{ count(ctx); return(BREAK); }
@@ -43,6 +44,7 @@ static int chars(YYSTYPE *lvalp, int);
 "continue"		{ count(ctx); return(CONTINUE); }
 "default"		{ count(ctx); return(DEFAULT); }
 "define"		{ count(ctx); return(DEFINE); }
+"deflocal"		{ count(ctx); return(DEFLOCAL); }
 "do"			{ count(ctx); return(DO); }
 "double"		{ count(ctx); return(DOUBLE); }
 "else"			{ count(ctx); return(ELSE); }

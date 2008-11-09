@@ -741,19 +741,12 @@ compile0(U *ctx, Expr *e)
 		return e;
 
 	switch(e->kind){
+	case Eglobal:
+		return e;
 	case Elambda:
 	case Eblock:
 		e->e2 = compile0(ctx, e->e2);
 		return e;
-	case Edefine:
-		se = Zset(e->e1,
-			  Zlambdn(e->e2, compile0(ctx, e->e3),
-				  copyexpr(e->e1)));
-		e->e1 = 0;
-		e->e2 = 0;
-		e->e3 = 0;
-		freeexpr(e);
-		return se;
 	case Eambig:
 		se = compileambig(ctx, e);
 		e->e1 = 0;
