@@ -20,6 +20,8 @@ static char *qname[Qnkind] = {
 	[Qns]=		"name space",
 	[Qpair]=	"pair",
 	[Qrange]=	"range",
+	[Qrec]=		"record",
+	[Qrecdesc]=	"record descriptor",
 	[Qstr]=		"string",
 	[Qtab]=		"table",
 	[Qvec]=		"vector",
@@ -193,6 +195,9 @@ static Heap heap[Qnkind] = {
 	[Qns]	= { "ns", Qns, sizeof(Ns), 1, 0, iterns },
 	[Qpair]	= { "pair", Qpair, sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", Qrange, sizeof(Range), 0, 0, iterrange },
+	[Qrec]	= { "record", Qrec, sizeof(Rec), 0, freerec, iterrec },
+	[Qrecdesc] = { "recdesc", Qrecdesc, sizeof(Recdesc),
+		       0, freerecdesc, iterrecdesc },
 	[Qstr]	= { "string", Qstr, sizeof(Str), 1, freestr, 0 },
 	[Qtab]	= { "table", Qtab, sizeof(Tab), 1, freetab, itertab },
 	[Qvec]	= { "vector", Qvec, sizeof(Vec), 0, freevec, itervec },
@@ -234,6 +239,8 @@ static Hashop hashop[Qnkind] = {
 	[Qns]	= { hashptr, eqptr },
 	[Qpair]	= { hashptr, eqptr },
 	[Qrange] =  { hashrange, eqrange },
+	[Qrec] =  { hashrec, eqrec },
+	[Qrecdesc] =  { hashrecdesc, eqrecdesc },
 	[Qstr]	= { hashstr, eqstrv },
 	[Qtab]	= { hashptr, eqptr },
 	[Qvec]	= { hashptr, eqptr },
@@ -490,7 +497,6 @@ valhead(Val v)
 	case Qundef:
 	case Qnil:
 	case Qnulllist:
-	case Qimm:
 		return 0;
 		break;
 	default:
@@ -2759,6 +2765,18 @@ mkvalpair(Val car, Val cdr)
 	pair->car = car;
 	pair->cdr = cdr;
 	return (Val)pair;
+}
+
+Val
+mkvalrec(Rec *rec)
+{
+	return (Val)rec;
+}
+
+Val
+mkvalrecdesc(Recdesc *desc)
+{
+	return (Val)desc;
 }
 
 Val

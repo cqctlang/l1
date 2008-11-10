@@ -16,11 +16,12 @@ enum {
 	Qns,
 	Qpair,
 	Qrange,
+	Qrec,
+	Qrecdesc,
 	Qstr,
 	Qtab,
 	Qvec,
 	Qxtn,
-	Qimm,
 	Qnkind
 } Qkind;
 

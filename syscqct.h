@@ -288,6 +288,8 @@ typedef struct List List;
 typedef struct Ns Ns;
 typedef struct Pair Pair;
 typedef struct Range Range;
+typedef struct Rec Rec;
+typedef struct Recdesc Recdesc;
 typedef struct Str Str;
 typedef struct Tab Tab;
 typedef struct Vec Vec;
@@ -417,6 +419,23 @@ struct Range {
 	Head hd;
 	Cval *beg;
 	Cval *len;
+};
+
+struct Rec {
+	Head hd;
+	Recdesc *desc;
+	Val *field;
+};
+
+struct Recdesc {
+	Head hd;
+	u32 nfield;
+	Str *name;
+	Closure *is;		/* predicate */
+	Closure *mk;		/* constructor */
+	Closure *pr;		/* printer */
+	Closure **get;		/* field get */
+	Closure **set;		/* field set */
 };
 
 typedef
@@ -866,6 +885,8 @@ Fd*		vmstdout(VM *vm);
 #define valns(v)	((Ns*)(v))
 #define valpair(v)	((Pair*)(v))
 #define valrange(v)	((Range*)(v))
+#define valrec(v)	((Rec*)(v))
+#define valrecdesc(v)	((Recdesc*)(v))
 #define valstr(v)	((Str*)(v))
 #define valtab(v)	((Tab*)(v))
 #define valvec(v)	((Vec*)(v))

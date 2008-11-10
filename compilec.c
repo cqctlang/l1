@@ -522,6 +522,8 @@ expanddot(U *ctx, Expr *e)
 	case Edot:
 		if(islval(e->e1))
 			return e;
+
+		/* cval/as/ns/dom case */
 		id = e->e2->id;
 		if(!strcmp(id, "dispatch"))
 			te = Zcall(doid("asdispatch"), 1,
@@ -546,6 +548,9 @@ expanddot(U *ctx, Expr *e)
 						   NULL),
 					    copyexpr(e->e2)),
 				    NULL);
+
+		te = Zifelse(Zuint(1), te, Znil());
+
 		e->e1 = 0;
 		freeexpr(e);
 		return te;
