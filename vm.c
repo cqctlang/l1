@@ -21,7 +21,7 @@ static char *qname[Qnkind] = {
 	[Qpair]=	"pair",
 	[Qrange]=	"range",
 	[Qrec]=		"record",
-	[Qrecdesc]=	"record descriptor",
+	[Qrd]=	"record descriptor",
 	[Qstr]=		"string",
 	[Qtab]=		"table",
 	[Qvec]=		"vector",
@@ -196,8 +196,8 @@ static Heap heap[Qnkind] = {
 	[Qpair]	= { "pair", Qpair, sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", Qrange, sizeof(Range), 0, 0, iterrange },
 	[Qrec]	= { "record", Qrec, sizeof(Rec), 0, freerec, iterrec },
-	[Qrecdesc] = { "recdesc", Qrecdesc, sizeof(Recdesc),
-		       0, freerecdesc, iterrecdesc },
+	[Qrd] = { "rd", Qrd, sizeof(Rd),
+		       0, freerd, iterrd },
 	[Qstr]	= { "string", Qstr, sizeof(Str), 1, freestr, 0 },
 	[Qtab]	= { "table", Qtab, sizeof(Tab), 1, freetab, itertab },
 	[Qvec]	= { "vector", Qvec, sizeof(Vec), 0, freevec, itervec },
@@ -240,7 +240,7 @@ static Hashop hashop[Qnkind] = {
 	[Qpair]	= { hashptr, eqptr },
 	[Qrange] =  { hashrange, eqrange },
 	[Qrec] =  { hashrec, eqrec },
-	[Qrecdesc] =  { hashrecdesc, eqrecdesc },
+	[Qrd] =  { hashrd, eqrd },
 	[Qstr]	= { hashstr, eqstrv },
 	[Qtab]	= { hashptr, eqptr },
 	[Qvec]	= { hashptr, eqptr },
@@ -2214,6 +2214,119 @@ iterlist(Head *hd, Ictx *ictx)
 	return valhead(x->val[ictx->n++]);
 }
 
+static void
+recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Rd *rd;
+	Rec *r;
+	Cval *ndx;
+	Str *mn;
+	
+	rd = valrd(disp[0]);
+	mn = valstr(disp[1]);
+	ndx = valcval(disp[2]);
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %.*s",
+		      (int)mn->len, mn->s);
+	if(argv[0]->qkind != Qrec)
+		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
+		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+	r = valrec(argv[0]);
+	if(r->rd != rd)
+		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
+		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+
+	/* weak test for compatible record descriptor */
+	if(r->nf <= ndx->val)
+		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
+		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+
+	*rv = r->field[ndx->val];
+}
+
+static void
+recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Rec *r;
+	Rd *rd;
+	Cval *ndx;
+	Str *mn;
+	
+	rd = valrd(disp[0]);
+	mn = valstr(disp[1]);
+	ndx = valcval(disp[2]);
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to %.*s",
+		      (int)mn->len, mn->s);
+	if(argv[0]->qkind != Qrec)
+		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
+		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+	r = valrec(argv[0]);
+	if(r->rd != rd)
+		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
+		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+
+	/* weak test for compatible record descriptor */
+	if(r->nf <= ndx->val)
+		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
+		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+
+	gcwb(thegc, r->field[ndx->val]);
+	r->field[ndx->val] = argv[1];
+}
+
+static Rd*
+mkrd(VM *vm, Str *name, List *fname, Closure *pr)
+{
+	Rd *rd;
+	Imm n;
+	Closure *cl;
+	unsigned len;
+	Str *f;
+	Val mn;
+	char *buf;
+
+	rd = hget(vm->top->env->rd, name->s, (unsigned)name->len);
+	if(rd == 0){
+		rd = (Rd*)halloc(&heap[Qrd]);
+		hput(vm->top->env->rd,
+		     xstrndup(name->s, (unsigned)name->len),
+		     (unsigned)name->len, rd);
+	}
+
+	rd->name = name;
+	rd->fname = fname;
+	listlen(mkvallist(fname), &rd->nf);
+	rd->get = mktab();
+	rd->set = mktab();
+	for(n = 0; n < rd->nf; n++){
+		f = valstr(listref(vm, fname, n));
+		len = name->len+3+f->len+1;
+		buf = emalloc(len);
+
+		/* get method */
+		snprintf(buf, len, "%.*s%.*s",
+			 (int)name->len, name->s, (int)f->len, f->s);
+		mn = mkvalstr(mkstr0(buf));
+		cl = mkccl(buf, recget, 3,
+			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
+		_tabput(rd->get, mkvalstr(f), mkvalcl(cl));
+
+		/* set method */
+		snprintf(buf, len, "%.*sset%.*s",
+			 (int)name->len, name->s, (int)f->len, f->s);
+		mn = mkvalstr(mkstr0(buf));
+		cl = mkccl(buf, recset, 3,
+			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
+		_tabput(rd->set, mkvalstr(f), mkvalcl(cl));
+
+		efree(buf);
+	}
+	return rd;
+}
+
 static Xtypename*
 mkxtn()
 {
@@ -2588,6 +2701,7 @@ mkenv()
 	Env *env;
 	env = emalloc(sizeof(Env));
 	env->var = mkht();
+	env->rd = mkht();
 	env->con = mkxenv(0);
 	return env;
 }
@@ -2649,6 +2763,7 @@ freeenv(Env *env)
 	hforeach(env->var, freebinding, 0);
 	xenvforeach(env->con, freeconst, 0);
 	freeht(env->var);
+	freeht(env->rd);
 	freexenv(env->con);
 	efree(env);
 }
@@ -2774,7 +2889,7 @@ mkvalrec(Rec *rec)
 }
 
 Val
-mkvalrecdesc(Recdesc *desc)
+mkvalrd(Rd *desc)
 {
 	return (Val)desc;
 }
