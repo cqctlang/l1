@@ -435,7 +435,7 @@ struct Rd {
 	List *fname;
 	Closure *is;		/* predicate */
 	Closure *mk;		/* constructor */
-	Closure *pr;		/* printer */
+	Closure *fmt;		/* printer */
 	Tab *get;		/* field get */
 	Tab *set;		/* field set */
 };

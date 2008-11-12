@@ -8,7 +8,7 @@
 static char *qname[Qnkind] = {
 	[Qundef]=	"undefined",
 	[Qnil]=		"nil",
-	[Qnulllist]=	"null",
+	[Qnull]=	"null",
 	[Qas]=		"address space",
 	[Qbox]=		"box",
 	[Qcl]=		"closure",
@@ -21,7 +21,7 @@ static char *qname[Qnkind] = {
 	[Qpair]=	"pair",
 	[Qrange]=	"range",
 	[Qrec]=		"record",
-	[Qrd]=	"record descriptor",
+	[Qrd]=		"record descriptor",
 	[Qstr]=		"string",
 	[Qtab]=		"table",
 	[Qvec]=		"vector",
@@ -164,6 +164,7 @@ static char *opstr[Iopmax] = {
 static int freecl(Head*);
 static int freefd(Head*);
 static int freelist(Head*);
+static int freerec(Head*);
 static int freestr(Head*);
 static int freetab(Head*);
 static int freevec(Head*);
@@ -175,8 +176,10 @@ static Head *itercode(Head*, Ictx*);
 static Head *itercval(Head*, Ictx*);
 static Head *iterdom(Head*, Ictx*);
 static Head *iterfd(Head*, Ictx*);
-static Head *iterns(Head*, Ictx*);
 static Head *iterlist(Head*, Ictx*);
+static Head *iterrd(Head*, Ictx*);
+static Head *iterrec(Head*, Ictx*);
+static Head *iterns(Head*, Ictx*);
 static Head *iterpair(Head*, Ictx*);
 static Head *iterrange(Head*, Ictx*);
 static Head *itertab(Head*, Ictx*);
@@ -184,30 +187,30 @@ static Head *itervec(Head*, Ictx*);
 static Head *iterxtn(Head*, Ictx*);
 
 static Heap heap[Qnkind] = {
-	[Qas]	= { "as", Qas, sizeof(As), 0, 0, iteras },
-	[Qbox]	= { "box", Qbox, sizeof(Box),	0, 0, iterbox },
-	[Qcval] = { "cval", Qcval, sizeof(Cval), 0, 0, itercval },
-	[Qcl]	= { "closure", Qcl, sizeof(Closure), 1, freecl, itercl },
-	[Qcode]	= { "code", Qcode, sizeof(Code), 1, freecode, itercode },
-	[Qdom]	= { "domain", Qdom, sizeof(Dom), 0, 0, iterdom },
-	[Qfd]	= { "fd", Qfd,sizeof(Fd), 0, freefd, iterfd },
-	[Qlist]	= { "list", Qlist, sizeof(List), 0, freelist, iterlist },
-	[Qns]	= { "ns", Qns, sizeof(Ns), 1, 0, iterns },
-	[Qpair]	= { "pair", Qpair, sizeof(Pair), 0, 0, iterpair },
+	[Qas]	 = { "as", Qas, sizeof(As), 0, 0, iteras },
+	[Qbox]	 = { "box", Qbox, sizeof(Box),	0, 0, iterbox },
+	[Qcval]  = { "cval", Qcval, sizeof(Cval), 0, 0, itercval },
+	[Qcl]	 = { "closure", Qcl, sizeof(Closure), 1, freecl, itercl },
+	[Qcode]	 = { "code", Qcode, sizeof(Code), 1, freecode, itercode },
+	[Qdom]	 = { "domain", Qdom, sizeof(Dom), 0, 0, iterdom },
+	[Qfd]	 = { "fd", Qfd,sizeof(Fd), 0, freefd, iterfd },
+	[Qlist]	 = { "list", Qlist, sizeof(List), 0, freelist, iterlist },
+	[Qns]	 = { "ns", Qns, sizeof(Ns), 1, 0, iterns },
+	[Qpair]	 = { "pair", Qpair, sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", Qrange, sizeof(Range), 0, 0, iterrange },
-	[Qrec]	= { "record", Qrec, sizeof(Rec), 0, freerec, iterrec },
-	[Qrd] = { "rd", Qrd, sizeof(Rd),
-		       0, freerd, iterrd },
-	[Qstr]	= { "string", Qstr, sizeof(Str), 1, freestr, 0 },
-	[Qtab]	= { "table", Qtab, sizeof(Tab), 1, freetab, itertab },
-	[Qvec]	= { "vector", Qvec, sizeof(Vec), 0, freevec, itervec },
-	[Qxtn]	= { "typename", Qxtn, sizeof(Xtypename), 1, 0, iterxtn },
+	[Qrd]    = { "rd", Qrd, sizeof(Rd), 0, 0, iterrd },
+	[Qrec]	 = { "record", Qrec, sizeof(Rec), 0, freerec, iterrec },
+	[Qstr]	 = { "string", Qstr, sizeof(Str), 1, freestr, 0 },
+	[Qtab]	 = { "table", Qtab, sizeof(Tab), 1, freetab, itertab },
+	[Qvec]	 = { "vector", Qvec, sizeof(Vec), 0, freevec, itervec },
+	[Qxtn]	 = { "typename", Qxtn, sizeof(Xtypename), 1, 0, iterxtn },
 };
 
 static u32 nohash(Val);
 static u32 hashcval(Val);
 static u32 hashptr(Val);
 static u32 hashconst(Val);
+static u32 hashrange(Val);
 static u32 hashrange(Val);
 static u32 hashstr(Val);
 static u32 hashxtn(Val);
@@ -226,25 +229,25 @@ typedef struct Hashop {
 
 static Hashop hashop[Qnkind] = {
 	[Qundef] = { nohash, 0 },
-	[Qnil]	= { hashconst, eqtrue },
-	[Qnulllist] = { hashconst, eqtrue },
-	[Qas]	= { hashptr, eqptr },
-	[Qbox]	= { nohash, 0 },
-	[Qcl]	= { hashptr, eqptr },
-	[Qcode]	= { nohash, 0 },
-	[Qcval]	= { hashcval, eqcval },
-	[Qdom]	= { hashptr, eqptr },
-	[Qfd]	= { hashptr, eqptr },
-	[Qlist]	= { hashptr, eqptr },
-	[Qns]	= { hashptr, eqptr },
-	[Qpair]	= { hashptr, eqptr },
-	[Qrange] =  { hashrange, eqrange },
-	[Qrec] =  { hashrec, eqrec },
-	[Qrd] =  { hashrd, eqrd },
-	[Qstr]	= { hashstr, eqstrv },
-	[Qtab]	= { hashptr, eqptr },
-	[Qvec]	= { hashptr, eqptr },
-	[Qxtn]	= { hashxtn, eqxtnv },
+	[Qnil]	 = { hashconst, eqtrue },
+	[Qnull]  = { hashconst, eqtrue },
+	[Qas]	 = { hashptr, eqptr },
+	[Qbox]	 = { nohash, 0 },
+	[Qcl]	 = { hashptr, eqptr },
+	[Qcode]	 = { nohash, 0 },
+	[Qcval]	 = { hashcval, eqcval },
+	[Qdom]	 = { hashptr, eqptr },
+	[Qfd]	 = { hashptr, eqptr },
+	[Qlist]	 = { hashptr, eqptr },
+	[Qns]	 = { hashptr, eqptr },
+	[Qpair]	 = { hashptr, eqptr },
+	[Qrange] = { hashrange, eqrange },
+	[Qrd]    = { hashptr, eqptr },
+	[Qrec]   = { hashptr, eqptr },
+	[Qstr]	 = { hashstr, eqstrv },
+	[Qtab]	 = { hashptr, eqptr },
+	[Qvec]	 = { hashptr, eqptr },
+	[Qxtn]	 = { hashxtn, eqxtnv },
 };
 
 static Code *kcode, *cccode;
@@ -496,7 +499,7 @@ valhead(Val v)
 	switch(v->qkind){
 	case Qundef:
 	case Qnil:
-	case Qnulllist:
+	case Qnull:
 		return 0;
 		break;
 	default:
@@ -1031,6 +1034,31 @@ iterrange(Head *hd, Ictx *ictx)
 	}
 }
 
+static Head*
+iterrd(Head *hd, Ictx *ictx)
+{
+	Rd *rd;
+	rd = (Rd*)hd;
+	switch(ictx->n++){
+	case 0:
+		return (Head*)rd->name;
+	case 1:
+		return (Head*)rd->fname;
+	case 2:
+		return (Head*)rd->is;
+	case 3:
+		return (Head*)rd->mk;
+	case 4:
+		return (Head*)rd->fmt;
+	case 5:
+		return (Head*)rd->get;
+	case 6:
+		return (Head*)rd->set;
+	default:
+		return GCiterdone;
+	}
+}
+
 Code*
 newcode()
 {
@@ -1203,7 +1231,7 @@ hashconst(Val val)
 	switch(val->qkind){
 	case Qnil:
 		return hashptr32shift(Xnil);
-	case Qnulllist:
+	case Qnull:
 		return hashptr32shift(Xnulllist);
 	default:
 		fatal("bug");
@@ -1493,7 +1521,7 @@ listlenpair(Val v, Imm *rv)
 		p = valpair(v);
 		v = p->cdr;
 	}
-	if(v->qkind != Qnulllist)
+	if(v->qkind != Qnull)
 		return 0;
 	*rv = m;
 	return 1;
@@ -1503,7 +1531,7 @@ static int
 listlen(Val v, Imm *rv)
 {
 	List *lst;
-	if(v->qkind == Qpair || v->qkind == Qnulllist)
+	if(v->qkind == Qpair || v->qkind == Qnull)
 		return listlenpair(v, rv);
 	if(v->qkind == Qlist){
 		lst = vallist(v);
@@ -2214,6 +2242,106 @@ iterlist(Head *hd, Ictx *ictx)
 	return valhead(x->val[ictx->n++]);
 }
 
+static Rec*
+mkrec(Rd *rd)
+{
+	Rec *r;
+	r = (Rec*)halloc(&heap[Qrec]);
+	r->rd = rd;
+	r->nf = rd->nf;
+	r->field = emalloc(r->nf*sizeof(Val));
+	return r;
+}
+
+static Head*
+iterrec(Head *hd, Ictx *ictx)
+{
+	Rec *r;
+	r = (Rec*)hd;
+	if(ictx->n < r->nf)
+		return valhead(r->field[ictx->n++]);
+	switch(ictx->n-r->nf){
+	case 0:
+		return (Head*)r->rd;
+	default:
+		return GCiterdone;
+	}
+}
+
+static int
+freerec(Head *hd)
+{
+	Rec *r;
+	r = (Rec*)hd;
+	efree(r->field);
+	return 1;
+}
+
+static void
+recis(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Rd *rd;
+	Str *mn;
+	Rec *r;
+
+	rd = valrd(disp[0]);
+	mn = valstr(disp[1]);
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %.*s",
+		      (int)mn->len, mn->s);
+	if(argv[0]->qkind != Qrec){
+		*rv = mkvalcval2(cval0);
+		return;
+	}
+	r = valrec(argv[0]);
+	if(r->rd == rd)
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
+recmk(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Rd *rd;
+	Str *mn;
+	Rec *r;
+	Imm m;
+
+	rd = valrd(disp[0]);
+	mn = valstr(disp[1]);
+	if(argc != rd->nf)
+		vmerr(vm, "wrong number of arguments to %.*s",
+		      (int)mn->len, mn->s);
+	r = mkrec(rd);
+	for(m = 0; m < rd->nf; m++)
+		r->field[m] = argv[m];
+	*rv = mkvalrec(r);
+}
+
+static void
+recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Rd *rd;
+	Str *mn;
+	Rec *r;
+	unsigned len;
+	char *buf;
+
+	rd = valrd(disp[0]);
+	mn = valstr(disp[1]);
+
+	if(argv[0]->qkind != Qrec)
+		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
+		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+	r = valrec(argv[0]);
+	len = 1+rd->name->len+1+16+1+1;
+	buf = emalloc(len);
+	snprintf(buf, len, "<%.*s %p>", (int)rd->name->len, rd->name->s, r);
+	*rv = mkvalstr(mkstr0(buf));
+	efree(buf);
+}
+
 static void
 recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
@@ -2278,7 +2406,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 }
 
 static Rd*
-mkrd(VM *vm, Str *name, List *fname, Closure *pr)
+mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 {
 	Rd *rd;
 	Imm n;
@@ -2294,11 +2422,35 @@ mkrd(VM *vm, Str *name, List *fname, Closure *pr)
 		hput(vm->top->env->rd,
 		     xstrndup(name->s, (unsigned)name->len),
 		     (unsigned)name->len, rd);
+	}else{
+		gcwb(thegc, mkvalstr(rd->name));
+		gcwb(thegc, mkvallist(rd->fname));
+		gcwb(thegc, mkvalcl(rd->is));
+		gcwb(thegc, mkvalcl(rd->mk));
+		gcwb(thegc, mkvalcl(rd->fmt));
+		gcwb(thegc, mkvaltab(rd->get));
+		gcwb(thegc, mkvaltab(rd->set));
 	}
 
+	listlen(mkvallist(fname), &rd->nf);
 	rd->name = name;
 	rd->fname = fname;
-	listlen(mkvallist(fname), &rd->nf);
+
+	len = 3+name->len+1;
+	buf = emalloc(len);
+
+	snprintf(buf, len, "is%.*s", (int)name->len, name->s);
+	rd->is = mkccl(buf, recis, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
+	snprintf(buf, len, "%.*s", (int)name->len, name->s);
+	rd->mk = mkccl(buf, recmk, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
+	if(fmt == 0){
+		snprintf(buf, len, "fmt%.*s", (int)name->len, name->s);
+		rd->fmt = mkccl(buf, recfmt, 2,
+				mkvalrd(rd), mkvalstr(mkstr0(buf)));
+	}else
+		rd->fmt = fmt;
+	efree(buf);
+
 	rd->get = mktab();
 	rd->set = mktab();
 	for(n = 0; n < rd->nf; n++){
@@ -6208,7 +6360,7 @@ fmtputs0(Fmt *f, char *p)
 }
 
 static int
-fmtval(Fmt *f, Val val)
+fmtval(VM *vm, Fmt *f, Val val)
 {
 	char buf[256];
 	Cval *cv;
@@ -6217,8 +6369,10 @@ fmtval(Fmt *f, Val val)
 	Listx *lx;
 	Vec *v;
 	Range *r;
+	Rd *rd;
+	Rec *rec;
 	Str *str;
-	Val bv;
+	Val bv, rv;
 	u32 m;
 	Head *hd;
 	Dom *d;
@@ -6248,13 +6402,13 @@ fmtval(Fmt *f, Val val)
 		return 0;
 	case Qnil:
 		return fmtputs0(f, "<nil>");
-	case Qnulllist:
+	case Qnull:
 		return fmtputs0(f, "<null>");
 	case Qbox:
 		if(fmtputs0(f, "<box >"))
 			return -1;
 		bv = valboxed(val);
-		if(fmtval(f, bv))
+		if(fmtval(vm, f, bv))
 			return -1;
 		return fmtputs0(f, ">");
 	case Qas:
@@ -6293,7 +6447,7 @@ fmtval(Fmt *f, Val val)
 				if(fmtputs0(f, " "))
 					return -1;
 			}
-			if(fmtval(f, v->vec[m]))
+			if(fmtval(vm, f, v->vec[m]))
 				return -1;
 		}
 		return fmtputs0(f, " )");
@@ -6310,7 +6464,7 @@ fmtval(Fmt *f, Val val)
 				if(fmtputs0(f, " "))
 					return -1;
 			}
-			if(fmtval(f, lx->val[lx->hd+m]))
+			if(fmtval(vm, f, lx->val[lx->hd+m]))
 				return -1;
 		}
 		return fmtputs0(f, " ]");
@@ -6322,6 +6476,18 @@ fmtval(Fmt *f, Val val)
 		return fmtputs0(f, buf);
 	case Qstr:
 		str = valstr(val);
+		return fmtputs(f, str->s, str->len);
+	case Qrd:
+		rd = valrd(val);
+		if(fmtputs0(f, "<recdesc "))
+			return -1;
+		if(fmtputs(f, rd->name->s, rd->name->len))
+			return -1;
+		return fmtputs0(f, ">");
+	case Qrec:
+		rec = valrec(val);
+		rv = dovm(vm, rec->rd->fmt, 1, &val);
+		str = valstr(rv);
 		return fmtputs(f, str->s, str->len);
 	default:
 		snprintf(buf, sizeof(buf), "<unhandled type %d>", val->qkind);
@@ -6597,7 +6763,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			/* ignore length modifier */
 			goto morespec;
 		case 'a':
-			if(fmtval(f, vp))
+			if(fmtval(vm, f, vp))
 				return;
 			break;
 		case 'c':
@@ -9063,6 +9229,113 @@ l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkrecdesc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Closure *fmt;
+	List *lst;
+	Imm n, nf;
+	Val v;
+
+	if(argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to mkrecdesc");
+	checkarg(vm, "mkrecdesc", argv, 0, Qstr);
+	checkarg(vm, "mkrecdesc", argv, 1, Qlist);
+	
+	fmt = 0;
+	if(argc == 3){
+		checkarg(vm, "mkrecdesc", argv, 1, Qcl);
+		fmt = valcl(argv[2]);
+	}
+	listlen(argv[1], &nf);
+	lst = vallist(argv[1]);
+	for(n = 0; n < nf; n++){
+		v = listref(vm, lst, n);
+		if(v->qkind != Qstr)
+			vmerr(vm, "operand 2 to mkrecdesc must be a "
+			      "list of field names");
+	}
+	*rv = mkvalrd(mkrd(vm, valstr(argv[0]), lst, fmt));
+}
+
+static void
+l1_recdescname(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recdescname");
+	checkarg(vm, "recdescname", argv, 0, Qrd);
+	rd = valrd(argv[0]);
+	*rv = mkvalstr(rd->name);
+}
+
+static void
+l1_recdescis(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recdescis");
+	checkarg(vm, "recdescis", argv, 0, Qrd);
+	rd = valrd(argv[0]);
+	*rv = mkvalcl(rd->is);
+}
+
+
+static void
+l1_recdescmk(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recdescmk");
+	checkarg(vm, "recdescmk", argv, 0, Qrd);
+	rd = valrd(argv[0]);
+	*rv = mkvalcl(rd->mk);
+}
+
+static void
+l1_recdescfmt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recdescfmt");
+	checkarg(vm, "recdescfmt", argv, 0, Qrd);
+	rd = valrd(argv[0]);
+	*rv = mkvalcl(rd->fmt);
+}
+
+static void
+l1_recdescfields(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recdescfields");
+	checkarg(vm, "recdescname", argv, 0, Qrd);
+	rd = valrd(argv[0]);
+	*rv = mkvallist(rd->fname);
+}
+
+static void
+l1_recdescgettab(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recdescgettab");
+	checkarg(vm, "recdescgettab", argv, 0, Qrd);
+	rd = valrd(argv[0]);
+	*rv = mkvaltab(rd->get);
+}
+
+static void
+l1_recdescsettab(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recdescsettab");
+	checkarg(vm, "recdescsettab", argv, 0, Qrd);
+	rd = valrd(argv[0]);
+	*rv = mkvaltab(rd->set);
+}
+
+static void
 l1_equal(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Qkind kind;
@@ -9136,7 +9409,7 @@ l1_isns(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_isnull(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isx(vm, argc, argv, rv, "isnull", Qnulllist);
+	l1_isx(vm, argc, argv, rv, "isnull", Qnull);
 }
 
 static void
@@ -9155,6 +9428,18 @@ static void
 l1_isrange(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isrange", Qrange);
+}
+
+static void
+l1_isrec(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isrec", Qrec);
+}
+
+static void
+l1_isrecdesc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isrecdesc", Qrd);
 }
 
 static void
@@ -9658,6 +9943,8 @@ mktopenv()
 	FN(isprocedure);
 	FN(isptr);
 	FN(isrange);
+	FN(isrec);
+	FN(isrecdesc);
 	FN(isstring);
 	FN(isstruct);
 	FN(issu);
@@ -9709,6 +9996,7 @@ mktopenv()
 	FN(mknsraw);
 	FN(mkparam);
 	FN(mkrange);
+	FN(mkrecdesc);
 	FN(mksas);
 	FN(mkstr);
 	FN(mksym);
@@ -9732,6 +10020,13 @@ mktopenv()
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);
+	FN(recdescfields);
+	FN(recdescfmt);
+	FN(recdescgettab);
+	FN(recdescis);
+	FN(recdescmk);
+	FN(recdescname);
+	FN(recdescsettab);
 	FN(resettop);
 	FN(rettype);
 	FN(reverse);
@@ -9890,7 +10185,7 @@ initvm(int gcthread, u64 heapmax)
 	Xnil = hd;
 
 	hd = emalloc(sizeof(Head));
-	hd->qkind = Qnulllist;
+	hd->qkind = Qnull;
 	Xnulllist = hd;
 
 	kcode = contcode();
