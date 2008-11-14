@@ -9,6 +9,6 @@ foof2 = tablook(gt, "f2");
 foosetf1 = tablook(st, "f1");
 foosetf2 = tablook(st, "f2");
 
-foo(1, 2);
-printf("%a\n", foof1(foo));
-printf("%a\n", foof2(foo));
+x = foo(1, 2);
+printf("%a\n", foof1(x));
+printf("%a\n", foof2(x));
