@@ -2909,10 +2909,17 @@ freebinding(void *u, char *id, void *v)
 	efree((Val*)v);
 }
 
+static void
+freerd(void *u, char *id, void *v)
+{
+	efree(id);
+}
+
 void
 freeenv(Env *env)
 {
 	hforeach(env->var, freebinding, 0);
+	hforeach(env->rd, freerd, 0);
 	xenvforeach(env->con, freeconst, 0);
 	freeht(env->var);
 	freeht(env->rd);
