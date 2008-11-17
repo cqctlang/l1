@@ -1248,8 +1248,6 @@ globals(Expr *e, Env *env)
 			   Zset(doid(is), Zcall(doid("rdis"), 1, doid("$rd"))),
 			   NULL);
 		efree(is);
-		e->e1 = 0;
-		e->e2 = 0;
 		p->src = e->src;
 		freeexpr(e);
 		return p;
