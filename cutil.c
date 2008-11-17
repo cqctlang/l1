@@ -239,3 +239,15 @@ Zblock(Expr *locs, ...)
 	}
 	return newexpr(Eblock, locs, invert(te), 0, 0);
 }
+
+Expr*
+Zids2strs(Expr *l)
+{
+	Expr *te;
+	te = nullelist();
+	while(l->kind == Eelist){
+		te = Z2(Eelist, Zconsts(l->e1->id), te);
+		l = l->e2;
+	}
+	return Zapply(doid("list"), invert(te));
+}

@@ -1211,6 +1211,8 @@ static Expr*
 globals(Expr *e, Env *env)
 {
 	Expr *p;
+	char *id, *is;
+	unsigned len;
 
 	if(e == 0)
 		return e;
@@ -1227,6 +1229,27 @@ globals(Expr *e, Env *env)
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
+		p->src = e->src;
+		freeexpr(e);
+		return p;
+	case Edefrec:
+		id = e->e1->id;
+		len = 2+strlen(id)+1;
+		is = emalloc(len);
+		snprintf(is, len, "is%s", id);
+		envgetbind(env, id);
+		envgetbind(env, is);
+		p = Zblock(Zlocals(1, "$rd"),
+			   Zset(doid("$rd"),
+				Zcall(doid("mkrd"), 2,
+				      Zconsts(id),
+				      Zids2strs(e->e2))),
+			   Zset(doid(id), Zcall(doid("rdmk"), 1, doid("$rd"))),
+			   Zset(doid(is), Zcall(doid("rdis"), 1, doid("$rd"))),
+			   NULL);
+		efree(is);
+		e->e1 = 0;
+		e->e2 = 0;
 		p->src = e->src;
 		freeexpr(e);
 		return p;

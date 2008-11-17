@@ -513,44 +513,153 @@ expandc(U *ctx, Expr *e)
 static Expr*
 expanddot(U *ctx, Expr *e)
 {
-	Expr *te, *p;
+	Expr *te, *se, *o, *p;
 	char *id;
 
 	if(e == 0)
 		return e;
 	switch(e->kind){
+	case Eg:
+		e->e2 = expanddot(ctx, e->e2);
+		if(e->e1->kind != Edot)
+			return e;
+		if(islval(e->e1->e1))
+			return e;
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(1, "$o"),
+			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
+			    Zcall(Zcall(doid("tablook"), 2,
+					Zcall(doid("rdsettab"), 1,
+					      Zcall(doid("recrd"), 1,
+						    doid("$o"))),
+					Zconsts(id)), 2,
+				  doid("$o"), e->e2),
+			    NULL);
+		e->e1->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return te;
+	case Egop:
+		e->e2 = expanddot(ctx, e->e2);
+		if(e->e1->kind != Edot)
+			return e;
+		if(islval(e->e1->e1))
+			return e;
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(2, "$o", "$rd"),
+			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
+			    Zset(doid("$rd"), Zcall(doid("recrd"), 1,
+						    doid("$o"))),
+			    Zcall(Zcall(doid("tablook"), 2,
+					Zcall(doid("rdsettab"), 1, doid("$rd")),
+					Zconsts(id)), 2,
+				  doid("$o"),
+				  Zbinop(e->op,
+					 Zcall(Zcall(doid("tablook"), 2,
+						     Zcall(doid("rdgettab"), 1,
+							   doid("$rd")),
+						     Zconsts(id)), 1,
+					       doid("$o")),
+					 e->e2)),
+			    NULL);
+		e->e1->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return te;
+	case Epreinc:
+	case Epredec:
+		if(e->e1->kind != Edot)
+			return e;
+		if(islval(e->e1->e1))
+			return e;
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(2, "$o", "$rd"),
+			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
+			    Zset(doid("$rd"), Zcall(doid("recrd"), 1,
+						    doid("$o"))),
+			    Zcall(Zcall(doid("tablook"), 2,
+					Zcall(doid("rdsettab"), 1, doid("$rd")),
+					Zconsts(id)), 2,
+				  doid("$o"),
+				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
+					 Zcall(Zcall(doid("tablook"), 2,
+						     Zcall(doid("rdgettab"), 1,
+							   doid("$rd")),
+						     Zconsts(id)), 1,
+					       doid("$o")),
+					 Zuint(1))),
+			    NULL);
+		e->e1->e1 = 0;
+		freeexpr(e);
+		return te;
+	case Epostinc:
+	case Epostdec:
+		if(e->e1->kind != Edot)
+			return e;
+		if(islval(e->e1->e1))
+			return e;
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
+			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
+			    Zset(doid("$rd"), Zcall(doid("recrd"), 1,
+						    doid("$o"))),
+			    Zset(doid("$l"),
+				 Zcall(Zcall(doid("tablook"), 2,
+					     Zcall(doid("rdgettab"), 1,
+						   doid("$rd")),
+					     Zconsts(id)), 1,
+				       doid("$o"))),
+			    Zcall(Zcall(doid("tablook"), 2,
+					Zcall(doid("rdsettab"), 1, doid("$rd")),
+					Zconsts(id)), 2,
+				  doid("$o"),
+				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
+					 doid("$l"), Zuint(1))),
+			    doid("$l"),
+			    NULL);
+		e->e1->e1 = 0;
+		freeexpr(e);
+		return te;
 	case Edot:
 		if(islval(e->e1))
 			return e;
 
+		id = e->e2->id; 
+		o = Zset(doid("$o"), expanddot(ctx, e->e1));
+
+		/* record accessor case */
+		se = Zcall(Zcall(doid("tablook"), 2,
+				 Zcall(doid("rdgettab"), 1,
+				       Zcall(doid("recrd"), 1, doid("$o"))),
+				 Zconsts(id)),
+			   1, doid("$o"));
+
 		/* cval/as/ns/dom case */
-		id = e->e2->id;
 		if(!strcmp(id, "dispatch"))
-			te = Zcall(doid("asdispatch"), 1,
-				   expanddot(ctx, e->e1));
+			te = Zcall(doid("asdispatch"), 1, doid("$o"));
 		else if(!strcmp(id, "names"))
-			te = Zcall(doid("nsof"), 1, expanddot(ctx, e->e1));
+			te = Zcall(doid("nsof"), 1, doid("$o"));
 		else if(!strcmp(id, "as"))
-			te = Zcall(doid("asof"), 1, expanddot(ctx, e->e1));
+			te = Zcall(doid("asof"), 1, doid("$o"));
 		else
-			te = Zblock(Zlocals(2, "$disp", "$obj"),
-				    Zset(doid("$obj"), expanddot(ctx, e->e1)),
+			te = Zblock(Zlocals(1, "$disp"),
 				    Zset(doid("$disp"),
 					 Zcall(doid("asdispatch"), 1,
-					       doid("$obj"))),
+					       doid("$o"))),
 				    Zlambdn(doid("$args"),
 					    Zblock(nullelist(),
 						   Zret(Zcall(doid("apply"), 4,
 							      doid("$disp"),
 							      Zconsts(id),
-							      doid("$obj"),
+							      doid("$o"),
 							      doid("$args"))),
 						   NULL),
 					    copyexpr(e->e2)),
 				    NULL);
 
-		te = Zifelse(Zuint(1), te, Znil());
-
+		te = Zblock(Zlocals(1, "$o"),
+			    Zifelse(Zcall(doid("isrec"), 1, o), se, te),
+			    NULL);
 		e->e1 = 0;
 		freeexpr(e);
 		return te;

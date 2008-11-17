@@ -48,6 +48,7 @@ char* S[] = {
 	[Edefconst] =	"Edefconst",
 	[Edefine] =	"Edefine",
 	[Edeflocal] =	"Edeflocal",
+	[Edefrec] =	"Edefrec",
 	[Ederef] =	"Ederef",
 	[Ediv] =	"Ediv",
 	[Edo] =		"Edo",
@@ -303,6 +304,13 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		printcqct0(e->e3, ni);
 		break;
+	case Edefrec:
+		xprintf("@record ");
+		printcqct0(e->e1, ni);
+		xprintf("{ ");
+		printargs(e->e2, ni, 0);
+		xprintf(" }");
+		break;
 	case Enil:
 		xprintf("nil");
 		break;
@@ -498,8 +506,9 @@ printcqct0(Expr *e, unsigned ni)
 			if(wasstmt)
 				xprintf(";");
 			xprintf("\n");
-			indent(ni); xprintf("else\n");
+			indent(ni); xprintf("else");
 			if(e->e3->kind != Eblock){
+				xprintf("\n");
 				indent(ni+1);
 				printcqct0(e->e3, ni+1);
 			}else

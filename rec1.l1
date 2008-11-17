@@ -1,14 +1,69 @@
-rd = mkrecdesc("foo", [ "f1", "f2" ]);
+//rd = mkrd("foo", [ "f1", "f2" ]);
+@record foo { f1, f2 }
 
-gt = recdescgettab(rd);
-st = recdescsettab(rd);
+xx = foo(1,2);
+rd = recrd(xx);
 
-foo = recdescmk(rd);
+gt = rdgettab(rd);
+st = rdsettab(rd);
+
+foo = rdmk(rd);
 foof1 = tablook(gt, "f1");
 foof2 = tablook(gt, "f2");
 foosetf1 = tablook(st, "f1");
 foosetf2 = tablook(st, "f2");
 
 x = foo(1, 2);
+y = foo(4, 5);
 printf("%a\n", foof1(x));
 printf("%a\n", foof2(x));
+printf("%a\n", foof1(y));
+printf("%a\n", foof2(y));
+
+printf("%a\n", x.f1);
+printf("%a\n", x.f2);
+
+printf("%a\n", y.f1);
+printf("%a\n", y.f2);
+
+x.f1 = 3;
+x.f2 = 4;
+
+y.f1 = 6;
+y.f2 = 7;
+
+printf("%a\n", x.f1);
+printf("%a\n", x.f2);
+
+printf("%a\n", y.f1);
+printf("%a\n", y.f2);
+
+x.f1 += 3;
+x.f2 *= 9;
+printf("%a\n", x.f1);
+printf("%a\n", x.f2);
+
+y.f1 -= 6;
+y.f2 /= 7;
+printf("%a\n", y.f1);
+printf("%a\n", y.f2);
+
+x.f1 += (x.f2 = 3);
+
+printf("%a\n", x.f1);
+printf("%a\n", x.f2);
+
+a = ++x.f1;
+printf("%a %a\n", a, x.f1);
+
+a = --x.f1;
+printf("%a %a\n", a, x.f1);
+
+
+a = x.f1++;
+printf("%a %a\n", a, x.f1);
+
+a = x.f1--;
+printf("%a %a\n", a, x.f1);
+
+printf("%d %d\n", isrec(x), isfoo(x));

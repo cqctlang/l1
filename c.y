@@ -22,7 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER CONSTANT STRING_LITERAL 
-%token SIZEOF TYPEOF TYPEDEF NIL DEFINE DEFLOCAL CONTAINEROF
+%token SIZEOF TYPEOF TYPEDEF NIL DEFINE DEFLOCAL DEFREC CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -843,6 +843,10 @@ define_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edeflocal, $2, nullelist(), $5, 0); }
 	| DEFLOCAL id id compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edeflocal, $2, $3, $4, 0); }
+	| DEFREC id '{' identifier_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
+	| DEFREC id '{' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
 	;
 
 defconst_statement

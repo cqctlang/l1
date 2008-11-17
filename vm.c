@@ -2403,6 +2403,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	gcwb(thegc, r->field[ndx->val]);
 	r->field[ndx->val] = argv[1];
+	*rv = argv[1];
 }
 
 static Rd*
@@ -6486,7 +6487,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs(f, str->s, str->len);
 	case Qrd:
 		rd = valrd(val);
-		if(fmtputs0(f, "<recdesc "))
+		if(fmtputs0(f, "<rd "))
 			return -1;
 		if(fmtputs(f, rd->name->s, rd->name->len))
 			return -1;
@@ -9236,7 +9237,19 @@ l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkrecdesc(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_recrd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rec *r;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recrd");
+	checkarg(vm, "recrd", argv, 0, Qrec);
+	r = valrec(argv[0]);
+	*rv = mkvalrd(r->rd);
+}
+
+static void
+l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Closure *fmt;
 	List *lst;
@@ -9244,13 +9257,13 @@ l1_mkrecdesc(VM *vm, Imm argc, Val *argv, Val *rv)
 	Val v;
 
 	if(argc != 2 && argc != 3)
-		vmerr(vm, "wrong number of arguments to mkrecdesc");
-	checkarg(vm, "mkrecdesc", argv, 0, Qstr);
-	checkarg(vm, "mkrecdesc", argv, 1, Qlist);
+		vmerr(vm, "wrong number of arguments to mkrd");
+	checkarg(vm, "mkrd", argv, 0, Qstr);
+	checkarg(vm, "mkrd", argv, 1, Qlist);
 	
 	fmt = 0;
 	if(argc == 3){
-		checkarg(vm, "mkrecdesc", argv, 1, Qcl);
+		checkarg(vm, "mkrd", argv, 1, Qcl);
 		fmt = valcl(argv[2]);
 	}
 	listlen(argv[1], &nf);
@@ -9258,86 +9271,86 @@ l1_mkrecdesc(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(n = 0; n < nf; n++){
 		v = listref(vm, lst, n);
 		if(v->qkind != Qstr)
-			vmerr(vm, "operand 2 to mkrecdesc must be a "
+			vmerr(vm, "operand 2 to mkrd must be a "
 			      "list of field names");
 	}
 	*rv = mkvalrd(mkrd(vm, valstr(argv[0]), lst, fmt));
 }
 
 static void
-l1_recdescname(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdname(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recdescname");
-	checkarg(vm, "recdescname", argv, 0, Qrd);
+		vmerr(vm, "wrong number of arguments to rdname");
+	checkarg(vm, "rdname", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalstr(rd->name);
 }
 
 static void
-l1_recdescis(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdis(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recdescis");
-	checkarg(vm, "recdescis", argv, 0, Qrd);
+		vmerr(vm, "wrong number of arguments to rdis");
+	checkarg(vm, "rdis", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalcl(rd->is);
 }
 
 
 static void
-l1_recdescmk(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdmk(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recdescmk");
-	checkarg(vm, "recdescmk", argv, 0, Qrd);
+		vmerr(vm, "wrong number of arguments to rdmk");
+	checkarg(vm, "rdmk", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalcl(rd->mk);
 }
 
 static void
-l1_recdescfmt(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdfmt(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recdescfmt");
-	checkarg(vm, "recdescfmt", argv, 0, Qrd);
+		vmerr(vm, "wrong number of arguments to rdfmt");
+	checkarg(vm, "rdfmt", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalcl(rd->fmt);
 }
 
 static void
-l1_recdescfields(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdfields(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recdescfields");
-	checkarg(vm, "recdescname", argv, 0, Qrd);
+		vmerr(vm, "wrong number of arguments to rdfields");
+	checkarg(vm, "rdname", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvallist(rd->fname);
 }
 
 static void
-l1_recdescgettab(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdgettab(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recdescgettab");
-	checkarg(vm, "recdescgettab", argv, 0, Qrd);
+		vmerr(vm, "wrong number of arguments to rdgettab");
+	checkarg(vm, "rdgettab", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvaltab(rd->get);
 }
 
 static void
-l1_recdescsettab(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdsettab(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recdescsettab");
-	checkarg(vm, "recdescsettab", argv, 0, Qrd);
+		vmerr(vm, "wrong number of arguments to rdsettab");
+	checkarg(vm, "rdsettab", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvaltab(rd->set);
 }
@@ -9444,9 +9457,9 @@ l1_isrec(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_isrecdesc(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_isrd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isx(vm, argc, argv, rv, "isrecdesc", Qrd);
+	l1_isx(vm, argc, argv, rv, "isrd", Qrd);
 }
 
 static void
@@ -9951,7 +9964,7 @@ mktopenv()
 	FN(isptr);
 	FN(isrange);
 	FN(isrec);
-	FN(isrecdesc);
+	FN(isrd);
 	FN(isstring);
 	FN(isstruct);
 	FN(issu);
@@ -10003,7 +10016,7 @@ mktopenv()
 	FN(mknsraw);
 	FN(mkparam);
 	FN(mkrange);
-	FN(mkrecdesc);
+	FN(mkrd);
 	FN(mksas);
 	FN(mkstr);
 	FN(mksym);
@@ -10027,13 +10040,14 @@ mktopenv()
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);
-	FN(recdescfields);
-	FN(recdescfmt);
-	FN(recdescgettab);
-	FN(recdescis);
-	FN(recdescmk);
-	FN(recdescname);
-	FN(recdescsettab);
+	FN(recrd);
+	FN(rdfields);
+	FN(rdfmt);
+	FN(rdgettab);
+	FN(rdis);
+	FN(rdmk);
+	FN(rdname);
+	FN(rdsettab);
 	FN(resettop);
 	FN(rettype);
 	FN(reverse);

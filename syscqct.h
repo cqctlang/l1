@@ -54,6 +54,7 @@ enum{
 	Edefconst,
 	Edefine,
 	Edeflocal,
+	Edefrec,
 	Ederef,
 	Ediv,
 	Edo,
@@ -918,6 +919,7 @@ Expr*		Zcall(Expr *fn, unsigned narg, ...);
 Expr*		Zcons(Expr *hd, Expr *tl);
 Expr*		Zconsts(char *s);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
+Expr*		Zids2strs(Expr *l);
 Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
 Expr*		Zlambda(Expr *args, Expr *body);
