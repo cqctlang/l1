@@ -5195,6 +5195,15 @@ To disassociate a finalizer from a value <span class="arg">v</span>,
 call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
 </p>
 
+<p>
+When shutting down the last VM (via 
+<span class="fnindex"><a href="#fn:cqctfreevm">cqctfreevm</a></span>),
+the Cinquecento system performs a final garbage
+collection and calls finalizers for unreachable values.
+However, finalizers for objects that are still reachable
+at shutdown may not be called.
+</p>
+
 </div>
 </div>
 

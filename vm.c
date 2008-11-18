@@ -85,12 +85,14 @@ enum {
 	GCfinal = 4,
 	GCrate = 100000,
 	GCinitprot = 128,	/* initial # of GC-protected lists in VM */
+	GCshutdown = 1,
 };
 
 static unsigned long long nextgctick = GCrate;
 
 typedef struct GC GC;
 struct GC {
+	int state;
 	void (*gcpoll)(GC*, VM*);
 	void (*gckill)(GC*);
 	unsigned char gcpause;	/* gc is waiting for mutator */
@@ -144,6 +146,7 @@ static Xtypename **litbase;
 
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 VM *vms[Maxvms];
+static unsigned nvms;
 static unsigned long long tick;
 static unsigned long gcepoch = 2;
 
@@ -430,13 +433,13 @@ heapfree(Head *p)
 }
 
 static void
-sweepheap(Heap *heap, unsigned color)
+sweepheap(GC *gc, Heap *heap, unsigned color)
 {
 	Head *p;
 	p = heap->alloc;
 	while(p){
 		if(p->color == color){
-			if(p->final){
+			if(p->final && !(gc->state&GCshutdown)){
 				p->color = GCfinal;
 				addroot(&thegc->finals, p);
 				goto next;
@@ -464,7 +467,7 @@ sweep(GC *gc, unsigned color)
 	for(i = 0; i < Qnkind; i++){
 		hp = &heap[i];
 		if(hp->id)
-			sweepheap(hp, color);
+			sweepheap(gc, hp, color);
 	}
 }
 
@@ -880,21 +883,6 @@ gcfinal(GC *gc, VM *vm)
 		dovm(vm, cl, 1, &arg);
 	}
 	vm->ac = ac;
-}
-
-static void
-gcclearfinal(GC *gc)
-{
-	Head *hd, *fhd;
-	while(1){
-		hd = removeroot(&gc->finals);
-		if(hd == 0)
-			break;
-		fhd = (Head*)hd->final;
-		if(fhd->color != GCfree)
-			heapfree(fhd);
-		heapfree(hd);
-	}
 }
 
 static void
@@ -11262,6 +11250,7 @@ cqctmkvm(Toplevel *top)
 			fatal("too many vms");
 	}
 	*vmp = vm;
+	nvms++;
 
 	/* vm is now callable */
 	vmresettop(vm);		/* populate toplevel */
@@ -11273,7 +11262,20 @@ cqctfreevm(VM *vm)
 {
 	VM **vmp;
 
+	if(nvms == 1){
+		/* last one -- switch to serial gc and run finalizers */
+		thegc->gckill(thegc);
+		thegc->gcpoll = gcpoll;
+		thegc->gckill = gckill;
+		do{
+			gcfinal(thegc, vm);
+			dogc(thegc);
+			dogc(thegc);
+		}while(!rootsetempty(&thegc->finals));
+	}
+
 	gcprotpop(vm);
+
 	freefreeroots(&vm->rs);
 	efree(vm->prot);
 	efree(vm->err);
@@ -11286,6 +11288,7 @@ cqctfreevm(VM *vm)
 		vmp++;
 	}
 	efree(vm);
+	nvms--;
 }
 
 static void
@@ -11348,12 +11351,13 @@ finivm()
 	unsigned i;
 	Heap *hp;
 
+	/* concurrent gc should be off (cqctfreevm) */
+
 	/* run two epochs without mutator to collect all objects;
 	   then gcreset to free rootsets */
-	thegc->gckill(thegc);
+	thegc->state |= GCshutdown; /* don't schedule finalizers */
 	dogc(thegc);
 	dogc(thegc);
-	gcclearfinal(thegc); /* FIXME: move to gcreset? */
 	gcreset(thegc);
 	freefreeroots(&thegc->roots);
 	freefreeroots(&thegc->stores);
