@@ -1246,6 +1246,7 @@ globals(Expr *e, Env *env)
 				      Zids2strs(e->e2))),
 			   Zset(doid(id), Zcall(doid("rdmk"), 1, doid("$rd"))),
 			   Zset(doid(is), Zcall(doid("rdis"), 1, doid("$rd"))),
+			   doid("$rd"),
 			   NULL);
 		efree(is);
 		p->src = e->src;

@@ -51,7 +51,7 @@ extern char *yytext;
 %type <expr> defconst_statement compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
-%type <expr> global_statement
+%type <expr> global_statement defrec_expression
 %type <expr> type_name tn_type_specifier tn_struct_or_union_specifier
 %type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
 %type <expr> tn_parameter_declaration tn_abstract_declarator
@@ -96,6 +96,13 @@ lambda_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, $2, $3, 0, 0); }
 	;
 
+defrec_expression
+	: DEFREC id '{' identifier_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
+	| DEFREC id '{' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
+	;
+
 primary_expression
 	: id
 	| tickid
@@ -112,6 +119,7 @@ primary_expression
 	| '[' argument_expression_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
 	| lambda_expression
+	| defrec_expression
 	;
 
 postfix_expression
@@ -843,10 +851,6 @@ define_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edeflocal, $2, nullelist(), $5, 0); }
 	| DEFLOCAL id id compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edeflocal, $2, $3, $4, 0); }
-	| DEFREC id '{' identifier_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
-	| DEFREC id '{' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
 	;
 
 defconst_statement

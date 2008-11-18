@@ -1,5 +1,5 @@
 //rd = mkrd("foo", [ "f1", "f2" ]);
-@record foo { f1, f2 }
+@record foo { f1, f2 };
 
 xx = foo(1,2);
 rd = recrd(xx);
