@@ -597,6 +597,18 @@ addroot(Rootset *rs, Head *h)
 	doaddroot(rs, h);
 }
 
+static Root*
+firstroot(Rootset *rs)
+{
+	if(rs->this == rs->before_last){
+		rs->before_last = rs->last;
+		rs->this = rs->last = rs->roots;
+	}
+	if(rs->this == rs->before_last)
+		return 0;
+	return rs->this;
+}
+
 static Head*
 removeroot(Rootset *rs)
 {
@@ -729,11 +741,11 @@ rootset(GC *gc)
 	}
 
 	/* pending finalizers */
-//	r = gc->finals.roots;
-//	while(r){
-//		addroot(&gc->roots, (Head*)r->hd->final);
-//		r = r->link;
-//	}
+	r = firstroot(&gc->finals);
+	while(r){
+		addroot(&gc->roots, (Head*)r->hd->final);
+		r = r->link;
+	}
 }
 
 static void
@@ -873,12 +885,14 @@ gcfinal(GC *gc, VM *vm)
 static void
 gcclearfinal(GC *gc)
 {
-	Head *hd;
+	Head *hd, *fhd;
 	while(1){
 		hd = removeroot(&gc->finals);
 		if(hd == 0)
 			break;
-		hd->final = 0;
+		fhd = (Head*)hd->final;
+		if(fhd->color != GCfree)
+			heapfree(fhd);
 		heapfree(hd);
 	}
 }
