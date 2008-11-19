@@ -1,5 +1,5 @@
-CC        = gcc
-LD        = ld
+CC        ?= gcc
+LD        ?= ld
 INC	  = -I../.. -I../include
 CFLAGS   += $(INC)
 TARG      = libflate.a
@@ -26,7 +26,7 @@ depend: $(C) Makefile
 	gcc $(INC) -MM $(C) > depend
 
 libflate.a: $(O)
-	ar rsc $@ $^
+	$(AR) rsc $@ $^
 
 clean:
 	$(RM) depend libflate.a *~ $(O) core core.*

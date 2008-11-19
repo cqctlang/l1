@@ -1,5 +1,5 @@
-CC        = gcc
-LD        = ld
+CC        ?= gcc
+LD        ?= ld
 INC	  = -I../.. -I../include
 CFLAGS   += $(INC)
 TARG      = libmp.a
@@ -46,7 +46,7 @@ depend: $(C) Makefile
 	gcc $(INC) -MM $(C) > depend
 
 libmp.a: $(O)
-	ar rsc $@ $^
+	$(AR) rsc $@ $^
 
 clean:
 	$(RM) depend libmp.a *~ $(O) core core.*

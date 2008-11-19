@@ -1,5 +1,5 @@
-CC        = gcc
-LD        = ld
+CC        ?= gcc
+LD        ?= ld
 INC	  = -I../.. -I../include
 CFLAGS   += $(INC)
 TARG      = libsec.a
@@ -67,7 +67,7 @@ depend: $(C) Makefile
 	gcc $(INC) -MM $(C) > depend
 
 $(TARG): $(O)
-	ar rsc $@ $^
+	$(AR) rsc $@ $^
 
 clean:
 	$(RM) depend $(TARG) *~ *.o core core.*
