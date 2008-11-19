@@ -1,0 +1,8 @@
+// no output: the point of this test is not to crash or mishandle memory
+ftab = mktab();
+define fn(val) {
+       error("does this work?");
+}
+for(i = 0; i < 100000; i++){
+	finalize(i, fn);
+}

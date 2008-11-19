@@ -11267,13 +11267,20 @@ cqctfreevm(VM *vm)
 		thegc->gckill(thegc);
 		thegc->gcpoll = gcpoll;
 		thegc->gckill = gckill;
-		do{
-			gcfinal(thegc, vm);
-			dogc(thegc);
-			dogc(thegc);
-		}while(!rootsetempty(&thegc->finals));
-	}
 
+		if(!waserror(vm)){
+			do{
+				gcfinal(thegc, vm);
+				dogc(thegc);
+				dogc(thegc);
+			}while(!rootsetempty(&thegc->finals));
+			poperror(vm);
+		}else
+			// game over: some finalizer threw an error.
+			// clear the finals list.
+			while(removeroot(&thegc->finals))
+				;
+	}
 	gcprotpop(vm);
 
 	freefreeroots(&vm->rs);
