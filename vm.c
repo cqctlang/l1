@@ -676,7 +676,7 @@ rdroot(void *u, char *k, void *v)
 {
 	GC *gc;
 	gc = u;
-	addroot(&gc->roots, valhead((Val)v));
+	addroot(&gc->roots, (Head*)v);
 }
 
 static void
@@ -6504,6 +6504,10 @@ fmtval(VM *vm, Fmt *f, Val val)
 	case Qrec:
 		rec = valrec(val);
 		rv = dovm(vm, rec->rd->fmt, 1, &val);
+		if(rv->qkind != Qstr)
+			vmerr(vm, "formatter for record type %.*s must "
+			      "return a string",
+			      (int)rec->rd->name->len, rec->rd->name->s);
 		str = valstr(rv);
 		return fmtputs(f, str->s, str->len);
 	default:
@@ -9332,6 +9336,20 @@ l1_rdfmt(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_rdsetfmt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rd *rd;
+	Closure *cl;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to rdsetfmt");
+	checkarg(vm, "rdsetfmt", argv, 0, Qrd);
+	checkarg(vm, "rdsetfmt", argv, 1, Qcl);
+	rd = valrd(argv[0]);
+	cl = valcl(argv[1]);
+	rd->fmt = cl;
+}
+
+static void
 l1_rdfields(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
@@ -10056,6 +10074,7 @@ mktopenv()
 	FN(rdis);
 	FN(rdmk);
 	FN(rdname);
+	FN(rdsetfmt);
 	FN(rdsettab);
 	FN(resettop);
 	FN(rettype);
@@ -10089,7 +10108,7 @@ mktopenv()
 	FN(vecset);
 	FN(vector);
 
-	fns(env);		/* configuration-supplied function */
+	fns(env);		/* configuration-specific functions */
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();

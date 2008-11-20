@@ -1,0 +1,5 @@
+entry: var params, 2 locals, 0 temps
+L19: 1 params, 2 locals, 0 temps
+f2: var params, 1 locals, 0 temps
+f1: var params, 1 locals, 0 temps
+<f1=1,f2=2>
