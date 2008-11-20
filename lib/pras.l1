@@ -633,12 +633,20 @@ define mkpras arg {
 define mkremoteprocdom arg {
 }
 
+define mklocalprocas arg {
+	@local cmd, fd, as;
+
+	cmd = listref(arg, 0);
+	fd = popen("prctl", "-c");
+	as = apply(mkpras, fd, arg);
+	return as;
+}
+
 define mklocalprocdom arg {
-	@local cmd, ns, fd, as;
+	@local cmd, ns, as;
 
 	cmd = listref(arg, 0);
 	ns = eval(sprintfa("@names c32le { @include \"%s.names\" };", cmd));
-	fd = popen("prctl", "-c");
-	as = apply(mkpras, fd, arg);
+	as = apply(mklocalprocas, arg);
 	return mkdom(ns, as);
 }
