@@ -99,6 +99,8 @@ lambda_expression
 defrec_expression
 	: DEFREC id '{' identifier_list '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
+	| DEFREC id '{' identifier_list ',' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
 	| DEFREC id '{' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
 	;
