@@ -161,3 +161,24 @@ setproftimer(u32 usec, void(*fn)())
 	if(fn == 0)
 		signal(SIGPROF, SIG_DFL);
 }
+
+int
+xpopen(Imm argc, char **argv)
+{
+	int fd[2];
+	
+	newchan(&fd[0], &fd[1]);
+	switch(fork()){
+	case 0:
+		close(fd[0]);
+		dup2(fd[1], 0);
+		execvp(argv[0], argv);
+		/* FIXME: communicate exec error to caller */
+		exit(1);
+	case -1:
+		return -1;
+	default:
+		close(fd[1]);
+		return fd[0];
+	}
+}

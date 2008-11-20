@@ -43,6 +43,7 @@ void		setproftimer(u32 usec, void(*fn)());
 void		threadexit(void *vp);
 void		threadinit();
 void		threadwait(Thread t);
+int		xpopen(Imm argc, char **argv);
 
 extern u64 cqctmeminuse;
 extern u64 cqctmemtotal;

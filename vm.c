@@ -5409,7 +5409,7 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 
 	vec = tabenum(ctx.undef);
 	m = vec->len/2;
-	if(m > 0){
+	if(m > 0 && cqctflags['w']){
 		xprintf("warning: name space references undefined "
 			"type%s:\n", m > 1 ? "s" : "");
 		while(m != 0){

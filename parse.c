@@ -1288,7 +1288,7 @@ tryinclude(U *ctx, char *raw)
 	*q = 0;
 
 	buf = 0;
-	if(f == '>'){
+	if(f == '>' && p[0] != '/' && p[0] != '.'){
 		/* use load path */
 		lp = loadpath;
 		while(*lp){

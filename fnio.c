@@ -200,12 +200,39 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	/* return nil */
 }
 
+static void
+l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	int xfd;
+	Imm m;
+	char **xargv;
+
+	if(argc == 0)
+		vmerr(vm, "wrong number of arguments to popen");
+	for(m = 0; m < argc; m++)
+		checkarg(vm, "popen", argv, m, Qstr);
+	xargv = emalloc((argc+1)*sizeof(char*)); /* null terminated */
+	for(m = 0; m < argc; m++)
+		xargv[m] = str2cstr(valstr(argv[m]));
+
+	xfd = xpopen(argc, xargv);
+	for(m = 0; m < argc; m++)
+		efree(xargv[m]);
+	efree(xargv);
+	if(xfd == -1)
+		vmerr(vm, "popen error: %s", strerror(errno));
+	fd = mkfd(mkstr0("<pipe>"), xfd, Fread|Fwrite, fdclose);
+	*rv = mkvalfd(fd);
+}
+
 void
 fnio(Env *env)
 {
 	FN(fprintf);
 	FN(mapfile);
 	FN(open);
+	FN(popen);
 	FN(print);		/* FIXME: remove: held for test suite */
 	FN(printf);
 	FN(read);

@@ -37,6 +37,7 @@ lex.yy.c: c.l $(HDR)
 
 l1: l1.o main.o
 	$(CC) -o $@ $^ -lpthread -lreadline -ltermcap
+#	dwarf2cqct < l1 > l1.names
 
 l1.o: c.tab.o lex.yy.o $(L1O)
 	$(LD) -d -r -o $@ $^

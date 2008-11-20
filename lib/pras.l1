@@ -153,18 +153,23 @@ define mkpras arg {
 	@local dispatch, get, put;
 	@local id, state, reg;
 	@local brktab, dtab;
-	@local logsend, logrecv, verbose;
+	@local logsend, logrecv, log, verbose;
 
 	verbose = 0;
 
 	define logsend(s){
 		if(verbose)
-			printf("%s <-- %s\n", addr, s);
+			printf("<-- %s\n", s);
 	}
 
 	define logrecv(s){
 		if(verbose)
-			printf("%s --> %s\n", addr, s);
+			printf("--> %s\n", s);
+	}
+
+	define log(s){
+		if(verbose)
+			printf("%s\n", s);
 	}
 
 	/* read n-1th byte ahead in input stream,
@@ -273,6 +278,8 @@ define mkpras arg {
 		if(narg == 0)
 			error("mkpras: launch: empty command");
 
+		log("1");
+
 		/* format Tlaunch message */
 		argvlen = 0;
 		for(i = 0; i < narg; i++)
@@ -282,9 +289,11 @@ define mkpras arg {
 		p->op = outdom`Tlaunch;
 		p->narg = narg;
 		for(i = 0; i < narg; i++){
+			log("2");
 			xwr(listref(arg, i));
 			xwr((`uint8)0);
 		}
+		log("3");
 		outdom.flush();
 		logsend("Tlaunch");
 
@@ -600,9 +609,16 @@ define mkpras arg {
 		return apply(fn, arg);
 	}
 
-	addr = listref(arg, 0);
-	pop(arg);
-	fd = opentcp(addr);
+	if(isstring(listref(arg, 0))){
+		addr = listref(arg, 0);
+		pop(arg);
+		fd = opentcp(addr);
+	}else if(isfd(listref(arg, 0))){
+		fd = listref(arg, 0);
+		pop(arg);
+	}else
+		error("operand 1 to mkpras must be an address or an fd");
+
 	l = mkfdas(fd, nil);
 	indom = mkdom(protns, listref(l, 0));
 	outdom = mkdom(protns, listref(l, 1));
@@ -614,7 +630,15 @@ define mkpras arg {
 	return mkas(dispatch);
 }
 
-define testpras()
-{
-	return mkpras("localhost:30000", "/home/vczandy/src/l1/test/aqsort");
+define mkremoteprocdom arg {
+}
+
+define mklocalprocdom arg {
+	@local cmd, ns, fd, as;
+
+	cmd = listref(arg, 0);
+	ns = eval(sprintfa("@names c32le { @include \"%s.names\" };", cmd));
+	fd = popen("prctl", "-c");
+	as = apply(mkpras, fd, arg);
+	return mkdom(ns, as);
 }
