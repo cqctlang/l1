@@ -1,0 +1,32 @@
+The syntax
+
+@record myrec {
+	field1,
+	field2,
+	field3
+};
+
+defines a new record type, named myrec.
+the record has three fields, named field1, field2, and field3.
+evaluation of the form causes definition of a new record descriptor
+type and two top-level procedures, named myrec and ismyrec.
+
+myrec is the constructor for instances of the myrec type.
+for example:
+
+x = myrec("abc", 1, lambda(x){ printf("hi\n")});
+
+binds x to a new instance of the myrec type.
+
+record fields are dynamically typed, like all variables.
+
+the dot operator provides access to the fields of the record:
+
+printf("%a", x.field1);   // print x's field1
+x.field1 = "bcd";         // update x's field1
+
+x.field2 += 5;		  // update x's field2
+++x.field2;               // update x's field2
+
+x.field3("blah");	  // call the value of x's field3
+
