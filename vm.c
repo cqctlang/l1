@@ -672,6 +672,14 @@ bindingroot(void *u, char *k, void *v)
 }
 
 static void
+rdroot(void *u, char *k, void *v)
+{
+	GC *gc;
+	gc = u;
+	addroot(&gc->roots, valhead((Val)v));
+}
+
+static void
 rootset(GC *gc)
 {
 	unsigned m;
@@ -691,6 +699,7 @@ rootset(GC *gc)
 		for(m = vm->sp; m < Maxstk; m++)
 			addroot(&gc->roots, valhead(vm->stack[m]));
 		hforeach(vm->top->env->var, bindingroot, gc);
+		hforeach(vm->top->env->rd, rdroot, gc);
 		addroot(&gc->roots, valhead(vm->ac));
 		addroot(&gc->roots, valhead(vm->cl));
 	
