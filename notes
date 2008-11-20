@@ -74,7 +74,6 @@ todo
       perhaps there should be a way to map a newly created file?
       make mmap general
   - fn-backed types
-
   - alternate equality for cvalues (useful for table keys):
     - struct* : structure equality on values of fields, or recursively thus
                 used as simple mech for showing variety of values
@@ -98,17 +97,9 @@ todo
   - does a negative array index work?
   - check for negative cvals on Irange, Istr, Islice*, Ivec*, etc.
   - change all thunks that do not return values to return nil
-  - check various parse/compile error recovery paths for leaks
-  - mutator can alloc new cvalues faster than gc can
-    put them back onto the freelist.
-    potential solution: block halloc from allocating new memory
-         until one of more gc epoch has finished;
-         then retry.
-         need to be careful about not restarting gc, because
-         existing invariant holds that dovm is a gc epoch barrier.
+  - fix leaks in parse/compile error recovery paths
   - all type deconstructors (e.g., fields) need to check for
     type attributes that are not required for constructors
-  - why do vmerr backtraces include entry, but not fatal ones?
   - this draws confusing diagnostic:
     	tab = mktab(); print("%d\n", tab->len);
   - rationalize MAX and max()
@@ -166,6 +157,14 @@ todo
     model of branch prediction map to current intel processors?
     (2-level indirect as used on pentium M?)
     see also at least 3 items in related work.
+  - mutator can alloc new cvalues faster than gc can
+    put them back onto the freelist.
+    potential solution: block halloc from allocating new memory
+         until one of more gc epoch has finished;
+         then retry.
+         need to be careful about not restarting gc, because
+         existing invariant holds that dovm is a gc epoch barrier.
+
 
 - ideas
   - immutable vectors for type datastructures (fields and params)?

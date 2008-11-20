@@ -329,6 +329,7 @@ printcqct0(Expr *e, unsigned ni)
 		if(e->e1->kind == Eid){
 			xprintf(" ");
 			printcqct0(e->e1, ni);
+			xprintf(" ");
 		}else{
 			xprintf("(");
 			printargs(e->e1, ni, 0);
@@ -470,8 +471,22 @@ printcqct0(Expr *e, unsigned ni)
 		indent(ni); printcqct0(e->e2, ni);
 		xprintf(";");
 		break;
+	case Econtinue:
+		xprintf("continue");
+		break;
 	case Ebreak:
 		xprintf("break");
+		break;
+	case Ewhile:
+		xprintf("while(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
+		if(e->e2->kind != Eblock){
+			xprintf("\n");
+			indent(ni+1);
+			printcqct0(e->e2, ni+1);
+		}else
+			printcqct0(e->e2, ni);
 		break;
 	case Efor:
 		xprintf("for(");

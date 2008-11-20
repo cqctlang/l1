@@ -5647,6 +5647,12 @@ cqctgcunprotect(VM *vm, Val v)
 }
 
 void
+builtinnil(Env *env, char *name)
+{
+	envbind(env, name, Xnil);
+}
+
+void
 builtinfn(Env *env, char *name, Closure *cl)
 {
 	Val val;
@@ -10123,6 +10129,7 @@ mktopenv()
 	builtinns(env, "clp64be", mkrootns(&clp64be));
 	cvalnull = mkcval(litdom, litdom->ns->base[Vptr], 0);
 	builtincval(env, "NULL", cvalnull);
+	builtinnil(env, "$$");
 
 	cval0 = mkcval(litdom, litdom->ns->base[Vint], 0);
 	cval1 = mkcval(litdom, litdom->ns->base[Vint], 1);

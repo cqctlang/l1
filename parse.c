@@ -1380,11 +1380,6 @@ cqctcompile(Expr *e, Toplevel *top)
 		printexpr(e);
 		xprintf("\n");
 	}
-	if(cqctflags['q']){
-		xprintf("transformed source:\n");
-		printcqct(e);
-		xprintf("\n");
-	}
 	return compileentry(e, top);
 }
 

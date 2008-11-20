@@ -2695,11 +2695,8 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	i = nextinsn(code);
 	i->kind = Imov;
 
-
-// what does a function without an explicit return <expr> return?
-// either nil or the value of last expression evaluated.
+	// return nil if the function does not explicitly return
 	randnil(&i->op1);
-//	randloc(&i->op1, AC);
 
 	randloc(&i->dst, AC);
 	emitlabel(p.Return, e->e2);
@@ -2716,8 +2713,19 @@ compileentry(Expr *el, Toplevel *top)
 	Closure *cl;
 	Lambda *b;
 
-	/* enclose expression in block to reduce top-level pollution */
-//	el = Zblock(nullelist(), el, 0);
+	/* 
+	 * enclose expression in block to reduce
+	 * top-level pollution.
+	 * disabled: breaks too many existing programs
+	 */
+	// el = Zblock(nullelist(), el, 0);
+
+	/* FIXME: test/null1.l1 fails on multiple labels;
+	   this is a workaround. */
+	if(el->kind == Enull)
+		el = newexpr(Eelist,
+			     newexpr(Enop, 0, 0, 0, 0),
+			     el, 0, 0);
 
 	/* add @global and implicit @global bindings to env */
 	el = globals(el, top->env);
@@ -2728,13 +2736,26 @@ compileentry(Expr *el, Toplevel *top)
 	/* expand @const references */
 	el = expandconst(el, top->env, 0, top->env->con);
 
-	/* enclose expression in lambda to make it callable */
+	/* 
+	 * convert expression into callable lambda.
+	 * errors occurring in toplevel tail calls lack
+	 * top-level source line information.  prevent
+	 * tail optimization by wrapping the body in a
+	 * continuation; as a bonus, we get a binding
+	 * for the most recent toplevel evaluation.
+	 */
 	el = newexpr(Elambda, doid("args"),
 		     newexpr(Eret,
-			     newexpr(Eblock, nullelist(), el, 0, 0),
+			     Zset(doid("$$"),
+				  newexpr(Eblock, nullelist(), el, 0, 0)),
 			     0, 0, 0),
 		     0, 0);
 
+	if(cqctflags['q']){
+		xprintf("transformed source:\n");
+		printcqct(el);
+		xprintf("\n");
+	}
 	/* map variable references and bindings to storage */
 	code = mkcode();
 	L = genlabel(code, "entry");
