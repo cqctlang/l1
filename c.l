@@ -1,5 +1,5 @@
 D			[0-9]
-L			[a-zA-Z_]
+L			[a-zA-Z_$]
 H			[a-fA-F0-9]
 O			[0-7]
 E			[Ee][+-]?{D}+
@@ -130,7 +130,6 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+ { count(ctx); return(chars(lvalp, STRING_LITERAL));
 "@"			{ count(ctx); return('@'); }
 "`"			{ count(ctx); return('`'); }
 "#"			{ count(ctx); return('#'); }
-"$"			{ count(ctx); return('$'); }
 
 [ \t\v\n\f]		{ count(ctx); }
 .			{ /* ignore bad characters */ }
