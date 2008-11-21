@@ -9026,31 +9026,12 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvalcval2(cval0);
 }
 
-static void
-l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
+static Str*
+getbytes(VM *vm, Cval *addr, Imm n)
 {
-	Cval *addr, *len;
-	Imm n;
-	Xtypename *t;
-	Val argv[3], p;
 	Range *r;
-
-	if(iargc != 1 && iargc != 2)
-		vmerr(vm, "wrong number of arguments to getbytes");
-
-	checkarg(vm, "getbytes", iargv, 0, Qcval);
-	addr = valcval(iargv[0]);
-	t = chasetype(addr->type);
-	if(t->tkind != Tptr)
-		vmerr(vm, "operand 1 to getbytes must be a pointer");
-
-	if(iargc == 2){
-		checkarg(vm, "getbytes", iargv, 1, Qcval);
-		len = valcval(iargv[1]);
-		n = len->val;
-	}else
-		n = typesize(vm, t->link);
-
+	Val argv[3], p;
+	
 	argv[0] = mkvalstr(vm->sget);
 	r = mkrange(mkcval(addr->dom, addr->dom->ns->base[Vptr], addr->val),
 		    mkcval(addr->dom, addr->dom->ns->base[Vptr], n));
@@ -9059,7 +9040,30 @@ l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	p = dovm(vm, addr->dom->as->dispatch, 3, argv);
 	if(p->qkind != Qstr)
 		vmerr(vm, "address space get operation did not return string");
-	*rv = p;
+	return valstr(p);
+}
+
+static void
+l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
+{
+	Cval *addr, *len;
+	Imm n;
+	Xtypename *t;
+
+	if(iargc != 1 && iargc != 2)
+		vmerr(vm, "wrong number of arguments to getbytes");
+	checkarg(vm, "getbytes", iargv, 0, Qcval);
+	addr = valcval(iargv[0]);
+	t = chasetype(addr->type);
+	if(t->tkind != Tptr)
+		vmerr(vm, "operand 1 to getbytes must be a pointer");
+	if(iargc == 2){
+		checkarg(vm, "getbytes", iargv, 1, Qcval);
+		len = valcval(iargv[1]);
+		n = len->val;
+	}else
+		n = typesize(vm, t->link);
+	*rv = mkvalstr(getbytes(vm, addr, n));
 }
 
 static void
