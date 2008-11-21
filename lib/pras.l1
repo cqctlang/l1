@@ -406,7 +406,7 @@ define mkpras arg {
 		logrecv("Rwrite");
 	}
 
-	define setbrk(dom, addr, fn){
+	define setbrk(domas, addr, fn){
 		@local bp;
 
 		xwr((`uint64)sizeof(outdom`Tsetbrk));
@@ -430,7 +430,7 @@ define mkpras arg {
 		return bp;
 	}
 
-	define clrbrk(dom, bp){
+	define clrbrk(domas, bp){
 		xwr((`uint64)sizeof(outdom`Tclrbrk));
 		p = opress(#outdom`Tclrbrk*#);
 		p->op = outdom`Tclrbrk;
@@ -467,7 +467,7 @@ define mkpras arg {
 		logrecv("Rsetregs");
 	}
 
-	define sync(dom){
+	define sync(domas){
 		@local bp, rv;
 
 		reply = read1();
@@ -507,21 +507,21 @@ define mkpras arg {
 		}
 	}
 
-	define contwait(dom){
+	define contwait(domas){
 		cont();
 		while(state == indom`Running)
-			sync(dom);
+			sync(domas);
 	}
 
-	define get(dom, r){
+	define get(domas, r){
 		return xread(rangebeg(r), rangelen(r));
 	}
 
-	define put(dom, r, s){
+	define put(domas, r, s){
 		return xwrite(rangebeg(r), rangelen(r), s);
 	}
 
-	define map(dom){
+	define map(domas){
 		return vector(mkrange(0, (`uint64)-1));
 	}
 
