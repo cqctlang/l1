@@ -956,6 +956,8 @@ typesize(VM *vm, Xtypename *xtn)
 		      (int)es->len, es->s);
 	case Tconst:
 		vmerr(vm, "shouldn't this be impossible?");
+	case Txaccess:
+		return typesize(vm, xtn->link);
 	}
 	fatal("bug");
 }
@@ -1359,6 +1361,11 @@ hashxtn(Val val)
 		return x;
 	case Tconst:
 		return hashxtn((Val)xtn->link)>>xtn->tkind;
+	case Txaccess:
+		x = hashxtn((Val)xtn->link)>>xtn->tkind;
+		x ^= hashptr((Val)xtn->get);
+		x ^= hashptr((Val)xtn->put);
+		return x;
 	}
 	fatal("bug");
 }
@@ -1411,6 +1418,10 @@ eqxtn(Xtypename *a, Xtypename *b)
 		return eqxtn(a->link, b->link);
 	case Tconst:
 		return eqxtn(a->link, b->link);
+	case Txaccess:
+		return (eqptr((Val)a->get, (Val)b->get)
+			&& eqptr((Val)a->put, (Val)b->put)
+			&& eqxtn(a->link, b->link));
 	}
 	fatal("bug");
 }
@@ -2582,6 +2593,18 @@ iterxtn(Head *hd, Ictx *ictx)
 		default:
 			return GCiterdone;
 		}
+	case Txaccess:
+		switch(ictx->n++){
+		case 0:
+			return (Head*)xtn->link;
+		case 1:
+			return (Head*)xtn->get;
+		case 2:
+			return (Head*)xtn->put;
+		default:
+			return GCiterdone;
+		}
+
 	}
 	return 0;
 }
@@ -2730,6 +2753,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		return _fmtxtn(xtn->link, buf);
 	case Tconst:
 	case Tbitfield:
+	case Txaccess:
 		/* this is questionable...maybe we want more accurate printed
 		   representation of these objects, especially bitfields */
 		return _fmtxtn(xtn->link, o);
@@ -4450,6 +4474,9 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		vmerr(vm, "attempt to use enumeration constant as location");
 	case Ttypedef:
 		fatal("bug");
+	case Txaccess:
+		vmerr(vm, "attempt to construct pointer to value of "
+		      "extended access type");
 	}
 	putvalrand(vm, rv, dst);
 }
@@ -4480,9 +4507,9 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	Str *s, *es;
 	BFgeom bfg;
 
+	domv = getvalrand(vm, dom);
 	typev = getvalrand(vm, type);
 	cvalv = getvalrand(vm, cval);
-	domv = getvalrand(vm, dom);
 	d = valdom(domv);
 	t = valxtn(typev);
 	cv = valcval(cvalv);
@@ -4526,6 +4553,15 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		pt = mkptrxtn(t->link, d->ns->base[Vptr]->rep);
 		imm = truncimm(cv->val, pt->rep);
 		rv = mkvalcval(d, pt, imm);
+		break;
+	case Txaccess:
+		argv[0] = domv;
+		p = dovm(vm, t->get, 1, argv);
+		if(p->qkind != Qcval)
+			vmerr(vm,
+			      "get method of extended access type returned "
+			      "non-cval");
+		rv = mkvalcval2(typecast(vm, t->link, valcval(p)));
 		break;
 	case Tvoid:
 	case Tfun:
@@ -4835,6 +4871,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		return _dolooktype(vm, xtn->link, ns);
 	case Tconst:
 	case Tbitfield:
+	case Txaccess:
 		fatal("bug");
 	}
 	fatal("bug");
@@ -5184,6 +5221,13 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		return new;
+	case Txaccess:
+		new = mkxtn();
+		new->tkind = xtn->tkind;
+		new->link = resolvetypename(vm, xtn->link, ctx);
+		new->get = xtn->get;
+		new->put = xtn->put;
 		return new;
 	case Tptr:
 		new = mkxtn();
@@ -7019,6 +7063,12 @@ l1_isvoid(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_isxaccess(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	dotypepredicate(vm, argc, argv, rv, "isxaccess", Txaccess);
+}
+
+static void
 l1_isundeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	dotypepredicate(vm, argc, argv, rv, "isundeftype", Tundef);
@@ -7130,7 +7180,7 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tptr && xtn->tkind != Tarr
 	   && xtn->tkind != Tenum && xtn->tkind != Tconst
-	   && xtn->tkind != Tundef)
+	   && xtn->tkind != Txaccess && xtn->tkind != Tundef)
 		vmerr(vm, err);
 
 	if(xtn->link)
@@ -7252,6 +7302,38 @@ l1_bitfieldpos(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(xtn->tkind != Tbitfield)
 		vmerr(vm, "operand 1 to bitfieldpos must be a bitfield ctype");
 	*rv = xtn->bit0;
+}
+
+static void
+l1_xaccessget(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to xaccessget");
+	if(argv[0]->qkind != Qxtn)
+		vmerr(vm, "operand 1 to xaccessget must be an "
+		      "extended access bitfield ctype");
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Txaccess)
+		vmerr(vm, "operand 1 to xaccessget must be an "
+		      "extended access bitfield ctype");
+	*rv = mkvalcl(xtn->get);
+}
+
+static void
+l1_xaccessput(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to xaccessput");
+	if(argv[0]->qkind != Qxtn)
+		vmerr(vm, "operand 1 to xaccessput must be an "
+		      "extended access bitfield ctype");
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Txaccess)
+		vmerr(vm, "operand 1 to xaccessput must be an "
+		      "extended access bitfield ctype");
+	*rv = mkvalcl(xtn->put);
 }
 
 static void
@@ -7583,7 +7665,8 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 		t = cv->type;
 	}else if(argv[0]->qkind == Qxtn){
 		t = valxtn(argv[0]);
-		if(t->tkind == Tbitfield || t->tkind == Tconst)
+		if(t->tkind == Tbitfield || t->tkind == Tconst
+		   || t->tkind == Txaccess)
 			t = t->link;
 	}else
 		vmerr(vm, "operand 1 to $typeof must be a cvalue or type");
@@ -7980,6 +8063,24 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkctype_xaccess(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to mkctype_xaccess");
+	checkarg(vm, "mkctype_xaccess", argv, 0, Qxtn);
+	checkarg(vm, "mkctype_xaccess", argv, 1, Qcl);
+	checkarg(vm, "mkctype_xaccess", argv, 2, Qcl);
+	xtn = mkxtn();
+	xtn->tkind = Txaccess;
+	xtn->link = valxtn(argv[0]);
+	xtn->get = valcl(argv[1]);
+	xtn->put = valcl(argv[2]);
+	*rv = mkvalxtn(xtn);
+}
+
+static void
 mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *vec;
@@ -8148,6 +8249,19 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 
 		/* return value of bitfield (not container) */
 		*rv = mkvalcval(d, b->link, imm);
+		break;
+	case Txaccess:
+		if(b->link->tkind == Tundef){
+			es = fmtxtn(b->link->link);
+			vmerr(vm, "attempt to write object of undefined type: "
+			      "%.*s", (int)es->len, es->s);
+		}
+
+		cv = typecast(vm, b->link, cv);
+		argv[0] = mkvaldom(d);
+		argv[1] = mkvalcval2(cv);
+		dovm(vm, b->put, 2, argv);
+		*rv = mkvalcval2(cv);
 		break;
 	case Tconst:
 		vmerr(vm, "attempt to use enumeration constant as location");
@@ -10007,6 +10121,7 @@ mktopenv()
 	FN(isunion);
 	FN(isvector);
 	FN(isvoid);
+	FN(isxaccess);
 	FN(length);
 	FN(list);
 	FN(listdel);
@@ -10041,6 +10156,7 @@ mktopenv()
 	FN(mkctype_uvlong);
 	FN(mkctype_vlong);
 	FN(mkctype_void);
+	FN(mkctype_xaccess);
 	FN(mkdom);
 	FN(mkfield);
 	FN(mklist);
@@ -10113,6 +10229,8 @@ mktopenv()
 	FN(vecref);
 	FN(vecset);
 	FN(vector);
+	FN(xaccessget);
+	FN(xaccessput);
 
 	fns(env);		/* configuration-specific functions */
 

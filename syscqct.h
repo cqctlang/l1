@@ -182,6 +182,7 @@ enum Tkind {
 	Ttypedef,
 	Tbitfield,		/* xtn only */
 	Tconst,			/* xtn only */
+	Txaccess,		/* xtn only */
 	Tundef,			/* xtn only */
 } Tkind;
 enum {
@@ -472,10 +473,13 @@ struct Xtypename {
 	Val cnt;		/* arr */
 	Val sz;			/* struct, union, bitfield */
 	Val bit0;		/* bitfield */
-	Xtypename *link;	/* ptr, arr, func, bitfield, enum, const */
+	Xtypename *link;	/* ptr, arr, func, bitfield, enum,
+				   const, xaccess */
 	Vec *field;		/* struct, union */
 	Vec *param;		/* func */
 	Vec *konst;		/* enum (constants) */
+	Closure *get;		/* xaccess */
+	Closure *put;		/* xaccess */
 };
 
 enum{

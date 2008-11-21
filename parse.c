@@ -34,6 +34,7 @@ char* tkindstr[Tntkind] = {
 	[Tvoid]			= "void",
 	[Tbitfield]		= "bitfield",
 	[Tconst]		= "constant",
+	[Txaccess]		= "xaccess",
 	[Tundef]		= "undef",
 };
 

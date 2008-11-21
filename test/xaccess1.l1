@@ -1,0 +1,18 @@
+xget = lambda(dom){
+	printf("get(%a)\n", dom);
+	return 1;
+};
+
+xput = lambda(dom, val){
+	printf("put(%a,%a)\n", dom, val);
+};
+
+symtab = mktab();
+tabinsert(symtab, "x",
+	  mksym(mkctype_xaccess(mkctype_int(), xget, xput), "x", 10));
+ns = mknsraw(c32le, mktab(), symtab);
+as = mknas();
+dom = mkdom(ns, as, "xdom");
+
+printf("x = %d\n", dom`x);
+dom`x = 5;
