@@ -449,7 +449,7 @@ define mkpras arg {
 		logrecv("Rclrbrk");
 	}
 
-	define setregs(dom){
+	define setregs(){
 		xwr((`uint64)sizeof(outdom`Tsetregs));
 		p = opress(#outdom`Tsetregs*#);
 		p->op = outdom`Tsetregs;
@@ -525,27 +525,77 @@ define mkpras arg {
 		return vector(mkrange(0, (`uint64)-1));
 	}
 
-	define getebx(dom) { return {dom}reg->ebx; }
-	define getecx(dom) { return {dom}reg->ecx; }
-	define getedx(dom) { return {dom}reg->edx; }
-	define getesi(dom) { return {dom}reg->esi; }
-	define getedi(dom) { return {dom}reg->edi; }
-	define getebp(dom) { return {dom}reg->ebp; }
-	define geteax(dom) { return {dom}reg->eax; }
-	define geteip(dom) { return {dom}reg->eip; }
-	define getesp(dom) { return {dom}reg->esp; }
-	define geteflags(dom) { return {dom}reg->eflags; }
+	define getebx(domas){
+		if(isdomain(domas))
+			return {domas}reg->ebx;
+		else
+			return reg->ebx;
+	}
+	define getecx(domas){
+		if(isdomain(domas))
+			return {domas}reg->ecx;
+		else
+			return reg->ecx;
+	}
+	define getedx(domas){
+		if(isdomain(domas))
+			return {domas}reg->edx;
+		else
+			return reg->edx;
+	}
+	define getesi(domas){
+		if(isdomain(domas))
+			return {domas}reg->esi;
+		else
+			return reg->esi;
+	}
+	define getedi(domas){
+		if(isdomain(domas))
+			return {domas}reg->edi;
+		else
+			return reg->edi;
+	}
+	define getebp(domas){
+		if(isdomain(domas))
+			return {domas}reg->ebp;
+		else
+			return reg->ebp;
+	}
+	define geteax(domas){
+		if(isdomain(domas))
+			return {domas}reg->eax;
+		else
+			return reg->eax;
+	}
+	define geteip(domas){
+		if(isdomain(domas))
+			return {domas}reg->eip;
+		else
+			return reg->eip;
+	}
+	define getesp(domas){
+		if(isdomain(domas))
+			return {domas}reg->esp;
+		else
+			return reg->esp;
+	}
+	define geteflags(domas){
+		if(isdomain(domas))
+			return {domas}reg->eflags;
+		else
+			return reg->eflags;
+	}
 
-	define setebx(dom, x) { reg->ebx = x; setregs(dom); }
-	define setecx(dom, x) { reg->ecx = x; setregs(dom); }
-	define setedx(dom, x) { reg->edx = x; setregs(dom); }
-	define setesi(dom, x) { reg->esi = x; setregs(dom); }
-	define setedi(dom, x) { reg->edi = x; setregs(dom); }
-	define setebp(dom, x) { reg->ebp = x; setregs(dom); }
-	define seteax(dom, x) { reg->eax = x; setregs(dom); }
-	define seteip(dom, x) { reg->eip = x; setregs(dom); }
-	define setesp(dom, x) { reg->esp = x; setregs(dom); }
-	define seteflags(dom, x) { reg->eflags = x; setregs(dom); }
+	define setebx(domas, x) { reg->ebx = x; setregs(); }
+	define setecx(domas, x) { reg->ecx = x; setregs(); }
+	define setedx(domas, x) { reg->edx = x; setregs(); }
+	define setesi(domas, x) { reg->esi = x; setregs(); }
+	define setedi(domas, x) { reg->edi = x; setregs(); }
+	define setebp(domas, x) { reg->ebp = x; setregs(); }
+	define seteax(domas, x) { reg->eax = x; setregs(); }
+	define seteip(domas, x) { reg->eip = x; setregs(); }
+	define setesp(domas, x) { reg->esp = x; setregs(); }
+	define seteflags(domas, x) { reg->eflags = x; setregs(); }
 
 	dtab = mktab();
 	tabinsert(dtab, "get",		get);
