@@ -5026,6 +5026,8 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, xtnv);
 	if(rv){
+		if(rv->qkind != Qxtn)
+			vmerr(vm, "invalid raw type table");
 		xtn = valxtn(xtnv);
 		new = mktypedefxtn(xtn->tid, 0);
 
@@ -5102,6 +5104,8 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, xtnv);
 	if(rv){
+		if(rv->qkind != Qxtn)
+			vmerr(vm, "invalid raw type table");
 		xtn = valxtn(rv);
 		switch(xtn->tkind){
 		case Tstruct:
@@ -5389,7 +5393,10 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
-			xtn = valxtn(x->key[tk->idx]);
+			v = x->key[tk->idx];
+			if(v->qkind != Qxtn)
+				vmerr(vm, "invalid raw type table");
+			xtn = valxtn(v);
 			resolvetypename(vm, xtn, &ctx);
 			tk = tk->link;
 		}
@@ -5402,7 +5409,20 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			/* id -> [ xtn, id, off ] */
 			idv = x->key[tk->idx];
 			vecv = x->val[tk->idx];
+			if(idv->qkind != Qstr)
+				vmerr(vm, "invalid raw symbol table");
+			if(vecv->qkind != Qvec)
+				vmerr(vm, "invalid raw symbol table");
 			vec = valvec(vecv);
+			if(vec->len != 3)
+				vmerr(vm, "invalid raw symbol table");
+			if(vecref(vec, Typepos)->qkind != Qxtn)
+				vmerr(vm, "invalid raw symbol table");
+			if(vecref(vec, Idpos)->qkind != Qstr)
+				vmerr(vm, "invalid raw symbol table");
+			if(vecref(vec, Offpos)->qkind != Qcval
+			   && vecref(vec, Offpos)->qkind != Qnil)
+				vmerr(vm, "invalid raw symbol table");
 			xtn = valxtn(vecref(vec, Typepos));
 			xtn = resolvetypename(vm, xtn, &ctx);
 			if(xtn != 0){

@@ -1,0 +1,4 @@
+stab = mktab();
+tabinsert(stab, "test", 0x1);
+mknsraw(c32le, mktab(), stab);
+
