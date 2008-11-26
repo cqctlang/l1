@@ -749,7 +749,7 @@ static Val
 konsti2val(Cbase base, Imm imm, Konsti *koni)
 {
 	Val v;
-	char buf[11+Maxliti];	/* Vlongdouble+Maxliti */
+	char buf[18+Maxliti];	/* "unsigned long long"+Maxliti */
 	char *s;
 
 	snprintf(buf, sizeof(buf), "%s%" PRIu64, cbasename[base], imm);
