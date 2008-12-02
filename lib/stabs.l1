@@ -1,0 +1,29 @@
+@include <elf.cqct>
+
+edom = mkelfdom(mapfile(listref(args, 0)));
+//showallelfsectionheaders(edom);
+stab = getelfsection(edom, ".stab");
+
+
+if(sizeof(nsptr(edom)) == 4)
+     stabns = @names nsof(edom) { @include "stabs32.names" };
+else
+     stabns = @names nsof(edom) { @include "stabs64.names" };
+
+stdom = mkdom(stabns, asof(edom));
+
+stabs = getelfsection(edom, ".stab");
+stablim = strlen(stabs);
+stab = mkdom(stabns, mksas(stabs));
+stabstr = mkdom(stabns, mksas(getelfsection(edom, ".stabstr")));
+p = (char*){stabstr}0;
+
+sp = (struct stab*){stab}0;
+esp = (struct stab*)((unsigned char*)sp + stablim);
+
+n = 0;
+while(sp < esp){
+     printf("%d\t%x\n", n, sp->n_strx);
+     sp++;
+     n++;
+}

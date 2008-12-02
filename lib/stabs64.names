@@ -1,0 +1,8 @@
+struct stab {
+	@0x0	uint64	n_strx;
+	@0x8	uint8	n_type;
+	@0x9	uint8	n_other;
+	@0xa	uint16	n_desc;
+	@0x10	uint64	n_value;
+	@0x18;
+};
