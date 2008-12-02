@@ -8816,6 +8816,25 @@ l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *str;
+	Cval *cv;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to strref");
+	checkarg(vm, "strref", argv, 0, Qstr);
+	checkarg(vm, "strref", argv, 1, Qcval);
+	cv = valcval(argv[1]);
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to strref must be "
+		      "a non-negative integer");
+	str = valstr(argv[0]);
+	if(cv->val >= str->len)
+		vmerr(vm, "strref out of bounds");
+	*rv = mkvallitcval(Vuchar, str->s[cv->val]);
+}
+
+static void
 l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	char *s1, *s2, *p;
@@ -10230,6 +10249,7 @@ mktopenv()
 	FN(stringof);
 	FN(strlen);
 	FN(strput);
+	FN(strref);
 	FN(strstr);
 	FN(strton);
 	FN(substr);

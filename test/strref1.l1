@@ -1,0 +1,8 @@
+s = "";
+for(i = 0; i < strlen(s); i++)
+      printf("%c\n", strref(s, i));
+
+s = "abc\0defghi\n\xff";
+for(i = 0; i < strlen(s); i++)
+      printf("%c\n", strref(s, i));
+

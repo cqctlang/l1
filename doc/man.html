@@ -2890,6 +2890,28 @@ Equivalent to <tt>length(<span class="arg">str</span>)</tt>.
 </div>
 </div>
 
+<div class="docitem" id="fn:strref">
+<div class="proto">
+<div class="function">
+<span class="id">strref(<span class="arg">str</span>,<span class="arg">idx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue of type <span class="type">uchar</span>
+</span>
+</div>
+</div>
+<div class="desc">
+Returns the character at index <span class="arg">idx</span> in
+<span class="arg">str</span>.
+</div>
+</div>
+
 <div class="docitem" id="fn:substr">
 <div class="proto">
 <div class="function">
@@ -4082,6 +4104,7 @@ machines sharing the environment have been freed.
 <a href="#fn:stringof">stringof</a><br />
 <a href="#fn:strlen">strlen</a><br />
 <a href="#fn:strput">strput</a><br />
+<a href="#fn:strref">strref</a><br />
 <a href="#fn:strton">strton</a><br />
 <a href="#fn:substr">substr</a><br />
 <a href="#fn:subtype">subtype</a><br />
