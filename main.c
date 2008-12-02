@@ -223,7 +223,7 @@ main(int argc, char *argv[])
 			fatal("too many directories in load path");
 		root = dirname(argv0);
 		lp[nlp] = emalloc(strlen(root)+1+4+1);
-		sprintf(lp[nlp++], "%s/lib", dirname(argv0));
+		sprintf(lp[nlp++], "%s/lib", root);
 	}
 	lp[nlp] = 0;
 	
