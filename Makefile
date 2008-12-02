@@ -25,7 +25,7 @@ L1C =\
 L1C += $(shell awk -v 'CONF='$(CONF) -f ./mkconf < conf.$(CONF))
 
 L1O = $(L1C:.c=.o)
-STATICLIBS = /usr/lib/libreadline.a /usr/lib/libtermcap.a 
+STATICLIBS = /usr/lib64/libreadline.a /usr/lib64/libtermcap.a 
 
 c.tab.c: c.y $(HDR)
 	bison -d c.y
