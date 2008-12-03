@@ -137,8 +137,8 @@ static Val Xnulllist;
 static Dom *litdom;
 static Ns *litns;
 static Xtypename **litbase;
-static Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
+Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 VM *vms[Maxvms];
 static unsigned long long tick;
 static unsigned long gcepoch = 2;

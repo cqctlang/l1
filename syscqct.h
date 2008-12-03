@@ -744,6 +744,7 @@ extern char* S[];
 extern char* cbasename[];
 extern char* tkindstr[];
 extern VM*   vms[];
+extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
 
 /* c.l */
 void		freeyystate(YYstate *yy);

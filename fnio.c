@@ -2,6 +2,12 @@
 #include "util.h"
 #include "syscqct.h"
 
+/* FIXME: It would be nice to have open, append, etc,
+   take cval O_ flags and pass them directly to kernel,
+   but the definition of some flags varies by os.
+   E.g., on osx O_TRUNC == 0x400, on 32-bit linux == 0x200
+*/
+
 static void
 fdclose(Fd *fd)
 {
@@ -105,6 +111,47 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 		      strerror(errno));
 	map = mkstrk(p, st.st_size, Smmap);
 	*rv = mkvalstr(map);
+}
+
+static void
+l1_access(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *names;
+	char *name, *mode;
+	int flags;
+	int xrv;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to access");
+	checkarg(vm, "access", argv, 0, Qstr);
+	checkarg(vm, "access", argv, 1, Qstr);
+	names = valstr(argv[0]);
+	name = str2cstr(names);
+	mode = str2cstr(valstr(argv[1]));
+
+	flags = 0;
+	if(strchr(mode, 'r'))
+		flags |= R_OK;
+	if(strchr(mode, 'w'))
+		flags |= W_OK;
+	if(strchr(mode, 'x'))
+		flags |= X_OK;
+	if(strchr(mode, 'f'))
+		flags |= F_OK;
+	xrv = access(name, flags);
+	efree(name);
+	efree(mode);
+	if(xrv == 0)
+		*rv = mkvalcval2(cval1);
+	else if(errno == EACCES
+		|| errno == ENOENT
+		|| errno == EROFS
+		|| errno == ENOTDIR
+		|| errno == ETXTBSY)
+		*rv = mkvalcval2(cval0);
+	else
+		vmerr(vm, "access %.*s: %s", (int)names->len, names->s,
+		      strerror(errno));
 }
 
 static void
@@ -229,6 +276,7 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnio(Env *env)
 {
+	FN(access);
 	FN(fprintf);
 	FN(mapfile);
 	FN(open);
