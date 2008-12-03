@@ -32,6 +32,7 @@ static int chars(YYSTYPE *lvalp, int);
 <<EOF>>                 { if(popyy(ctx) == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
+^#!.*			{ /* treat as comment */ ctx->inp->src.col = 0; }
 "/*"			{ comment(ctx); }
 "@local"		{ count(ctx); return(LOCAL); }
 "@global"		{ count(ctx); return(GLOBAL); }
