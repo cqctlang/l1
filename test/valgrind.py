@@ -21,7 +21,7 @@ if not os.path.exists(valgrind):
 suppress=' --suppressions=./pthread-suppression'
 cmd = valgrind+' -q --show-reachable=yes --leak-check=full'+suppress+' ../l1 -w -b -e '
 
-for m in glob.glob('*.l1'):
+for m in glob.glob('[A-Za-z0-9]*.l1'):
     print m,
     sys.stdout.flush()
 #    f = open(m);

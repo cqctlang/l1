@@ -1,3 +1,6 @@
+// disabled because definition of struct dirent depends on
+// machine size
+
 ns = @names c32le {
 	@include "l1.names"
 };
