@@ -244,8 +244,6 @@ main(int argc, char *argv[])
 
 	valc = argc-optind;
 	valv = emalloc(valc*sizeof(Val));
-	if(valv == 0)
-		fatal("out of memory");
 	for(i = 0; i < valc; i++)
 		valv[i] = cqctcstrval(argv[optind+i]);
 
