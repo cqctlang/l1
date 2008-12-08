@@ -25,7 +25,6 @@ L1C =\
 L1C += $(shell awk -v 'CONF='$(CONF) -f ./mkconf < conf.$(CONF))
 
 L1O = $(L1C:.c=.o)
-STATICLIBS = /usr/lib64/libreadline.a /usr/lib64/libtermcap.a 
 
 c.tab.c: c.y $(HDR)
 	bison -d c.y
@@ -37,7 +36,7 @@ lex.yy.c: c.l $(HDR)
 	flex -f -s c.l
 
 l1: l1.o main.o
-	$(CC) -o $@ $^ $(STATICLIBS) -lpthread 
+	$(CC) -o $@ $^ -lreadline -ltermcap -lpthread 
 #	dwarf2cqct < l1 > l1.names
 
 l1.o: c.tab.o lex.yy.o $(L1O)

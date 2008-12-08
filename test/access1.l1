@@ -1,0 +1,8 @@
+printf("%d\n", access("/etc/passwd", "r"));
+printf("%d\n", access("/etc/passwd", "w"));
+printf("%d\n", access("/etc/passwd", "x"));
+printf("%d\n", access("/etc/passwd", "f"));
+printf("%d\n", access("/etc/whowoulddothattoetc", "r"));
+printf("%d\n", access("/etc/whowoulddothattoetc", "w"));
+printf("%d\n", access("/etc/whowoulddothattoetc", "x"));
+printf("%d\n", access("/etc/whowoulddothattoetc", "f"));
