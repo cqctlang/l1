@@ -60,11 +60,11 @@ define mkindispatch(fd, eofk){
 		}else if(arg == "flush"){
 			if(hi < peek){
 				s = substr(buf, hi, peek);
-				buf = mkstr(max);
+//				buf = mkstr(max);
 				strput(buf, 0, s);
 				peek = peek-hi;
 			}else{
-				buf = mkstr(max);
+//				buf = mkstr(max);
 				peek = 0;
 			}
 			off += hi;
@@ -137,7 +137,7 @@ define mkoutdispatch(fd, eofk){
 				hi = beg+len;
 		}else if(arg == "flush"){
 			write(fd, substr(buf, 0, hi));
-			buf = mkstr(max);
+//			buf = mkstr(max);
 			off += hi;
 			hi = 0;
 			return nil;
