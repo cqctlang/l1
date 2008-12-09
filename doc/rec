@@ -17,6 +17,9 @@ for example:
 x = myrec("abc", 1, lambda(x){ printf("hi\n")});
 
 binds x to a new instance of the myrec type.
+myrec expects either zero arguments,
+in which case the fields are undefined,
+or exactly as many arguments as fields.
 
 record fields are dynamically typed, like all variables.
 
