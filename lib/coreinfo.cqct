@@ -1,3 +1,4 @@
+#!/usr/bin/env l1
 // dump information about a core file
 // usage: coreinfo.cqct <corefile>
 

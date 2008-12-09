@@ -1,3 +1,4 @@
+#!/usr/bin/env l1
 // attempt to mimic readelf C program
 
 @include <elf.cqct>
