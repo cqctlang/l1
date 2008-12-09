@@ -802,7 +802,7 @@ Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 /* compile.c */
 Closure*	callcc();
 Code*		callccode();
-Closure*	compileentry(Expr *el, Toplevel *top);
+Closure*	compileentry(Expr *el, Toplevel *top, char *argsid);
 Code*		contcode();
 void		finicompile();
 void		freeconst(void *u, char *id, void *v);

@@ -17,7 +17,7 @@ main(int argc, char *argv[])
 	e = cqctparsestr("3+3;", 0);
 	if(e == 0)
 		goto out;
-	entry = cqctcompile(e, env);
+	entry = cqctcompile(e, env, 0);
 	if(entry == 0){
 		cqctfreeexpr(e);
 		goto out;

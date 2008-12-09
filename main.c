@@ -177,6 +177,7 @@ main(int argc, char *argv[])
 	unsigned n, nlp;
 	char *lp[Maxloadpath+1];	/* extra one is final null */
 	Toplevel *top;
+	char *argsid;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -247,14 +248,21 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if(dorepl)
+	if(dorepl){
 		if(setvbuf(stdin, 0, _IONBF, 0))
 			fatal("cannot clear stdin buffering");
+	}
 
-	valc = argc-optind;
-	valv = emalloc(valc*sizeof(Val));
-	for(i = 0; i < valc; i++)
-		valv[i] = cqctcstrval(argv[optind+i]);
+	valc = 0;
+	valv = 0;
+	argsid = 0;
+	if(!dorepl){
+		valc = argc-optind;
+		valv = emalloc(valc*sizeof(Val));
+		for(i = 0; i < valc; i++)
+			valv[i] = cqctcstrval(argv[optind+i]);
+		argsid = "args";
+	}
 
 	do{
 		inbuf = 0;
@@ -275,7 +283,7 @@ main(int argc, char *argv[])
 		free(inbuf);
 		if(e == 0)
 			continue;
-		entry = cqctcompile(e, top);
+		entry = cqctcompile(e, top, argsid);
 		if(entry == 0){
 			cqctfreeexpr(e);
 			continue;

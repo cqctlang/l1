@@ -2705,7 +2705,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 }
 
 Closure*
-compileentry(Expr *el, Toplevel *top)
+compileentry(Expr *el, Toplevel *top, char *argsid)
 {
 	Ctl *L;
 	VDset *cap;
@@ -2744,7 +2744,7 @@ compileentry(Expr *el, Toplevel *top)
 	 * continuation; as a bonus, we get a binding
 	 * for the most recent toplevel evaluation.
 	 */
-	el = newexpr(Elambda, doid("args"),
+	el = newexpr(Elambda, argsid ? doid(argsid) : nullelist(),
 		     newexpr(Eret,
 			     Zset(doid("$$"),
 				  newexpr(Eblock, nullelist(), el, 0, 0)),

@@ -9803,7 +9803,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 	e = cqctparsestr(s, "<eval-input>");
 	if(e == 0)
 		return;
-	cl = cqctcompile(e, vm->top);
+	cl = cqctcompile(e, vm->top, 0);
 	if(cl == 0){
 		freeexpr(e);
 		return;

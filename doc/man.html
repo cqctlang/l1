@@ -3811,16 +3811,25 @@ identifier for <span class="arg">str</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcompile">Closure* cqctcompile(Expr *<span class="arg">expr</span>)</span>
+<span class="id" id="fn:cqctcompile">Closure* cqctcompile(Expr *<span class="arg">expr</span>,
+Toplevel *<span class="arg">top</span>,
+char *<span class="arg">argsid</span>
+)</span>
 </div>
 </div>
 <div class="desc">
 Compiles Cinquecento code represented
-by <span class="arg">expr</span> and returns a function
-of zero arguments (thunk) that, when called, executes the code.
-The closure captures a reference
+by <span class="arg">expr</span> and returns a procedure
+that, when called, executes the code.
+If <span class="arg">argsid</span> is null, the returned
+procedure takes no arguments; otherwise it is a variable arity
+procedure whose argument list is bound to a parameter
+whose name is the string pointed to be <span class="arg">argsid</span>.
+<div>
+The returned procedure captures a reference
 to <span class="arg">expr</span> that will be freed by
-the storage manager when the closure is reclaimed.
+the storage manager when the function is reclaimed.
+</div>
 </div>
 </div>
 

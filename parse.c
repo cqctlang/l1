@@ -1361,7 +1361,7 @@ cqctparsestr(char *str, char *whence)
 }
 
 Closure*
-cqctcompile(Expr *e, Toplevel *top)
+cqctcompile(Expr *e, Toplevel *top, char *argsid)
 {
 	U ctx;
 
@@ -1381,7 +1381,7 @@ cqctcompile(Expr *e, Toplevel *top)
 		printexpr(e);
 		xprintf("\n");
 	}
-	return compileentry(e, top);
+	return compileentry(e, top, argsid);
 }
 
 static char**

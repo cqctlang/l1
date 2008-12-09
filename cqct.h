@@ -46,7 +46,7 @@ typedef struct VM VM;
 
 int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
-Closure*	cqctcompile(Expr *e, Toplevel *top);
+Closure*	cqctcompile(Expr *e, Toplevel *top, char *argsid);
 Val		cqctcstrval(char *s);
 int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Toplevel *top);
