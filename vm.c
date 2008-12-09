@@ -2282,6 +2282,7 @@ iterrec(Head *hd, Ictx *ictx)
 		return valhead(r->field[ictx->n++]);
 	switch(ictx->n-r->nf){
 	case 0:
+		ictx->n++;
 		return (Head*)r->rd;
 	default:
 		return GCiterdone;
@@ -2330,11 +2331,11 @@ recmk(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	rd = valrd(disp[0]);
 	mn = valstr(disp[1]);
-	if(argc != rd->nf)
+	if(argc != 0 && argc != rd->nf)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, mn->s);
 	r = mkrec(rd);
-	for(m = 0; m < rd->nf; m++)
+	for(m = 0; m < argc; m++)
 		r->field[m] = argv[m];
 	*rv = mkvalrec(r);
 }
@@ -6288,6 +6289,22 @@ isstrcval(Cval *cv)
 	return 1;
 }
 
+static Str*
+valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg)
+{
+	Cval *cv;
+	if(argv[arg]->qkind == Qstr)
+		return valstr(argv[arg]);
+	else if(argv[arg]->qkind == Qcval){
+		cv = valcval(argv[arg]);
+		if(isstrcval(cv))
+			return stringof(vm, cv);
+	}
+	vmerr(vm, "operand %d to %s must be a string, char* cvalue, "
+	      "or uchar* cvalue",
+	      arg+1, fn);
+}
+
 static Vec*
 callmap(VM *vm, As *as)
 {
@@ -6359,7 +6376,7 @@ stringof(VM *vm, Cval *cv)
 		memcpy(buf+l, s->s, s->len);
 		q = strnchr(buf+l, '\0', s->len);
 		if(q){
-			l += q-buf+l;
+			l += q-(buf+l);
 			break;
 		}
 		l += s->len;
@@ -6957,6 +6974,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 					as = mkstr0("(null)");
 				else
 					as = stringof(vm, cv);
+				len = as->len;
+			}else if(vp->qkind == Qnil){
+				as = mkstr0("(nil)");
 				len = as->len;
 			}else
 				goto badarg;
@@ -8845,8 +8865,7 @@ l1_strlen(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to strlen");
-	checkarg(vm, "strlen", argv, 0, Qstr);
-	s = valstr(argv[0]);
+	s = valstrorcval(vm, "strlen", argv, 0);
 	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], s->len);
 }
 
@@ -8857,10 +8876,9 @@ l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to substr");
-	checkarg(vm, "substr", argv, 0, Qstr);
+	s = valstrorcval(vm, "strstr", argv, 0);
 	checkarg(vm, "substr", argv, 1, Qcval);
 	checkarg(vm, "substr", argv, 2, Qcval);
-	s = valstr(argv[0]);
 	b = valcval(argv[1]);
 	e = valcval(argv[2]);
 	if(b->val > s->len)
@@ -8879,13 +8897,12 @@ l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to strref");
-	checkarg(vm, "strref", argv, 0, Qstr);
 	checkarg(vm, "strref", argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to strref must be "
 		      "a non-negative integer");
-	str = valstr(argv[0]);
+	str = valstrorcval(vm, "strref", argv, 0);
 	if(cv->val >= str->len)
 		vmerr(vm, "strref out of bounds");
 	*rv = mkvallitcval(Vuchar, str->s[cv->val]);
@@ -8895,12 +8912,13 @@ static void
 l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	char *s1, *s2, *p;
+	Str *s;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to strstr");
-	checkarg(vm, "substr", argv, 0, Qstr);
-	checkarg(vm, "substr", argv, 1, Qstr);
-	s1 = str2cstr(valstr(argv[0]));
-	s2 = str2cstr(valstr(argv[1]));
+	s = valstrorcval(vm, "strstr", argv, 0);
+	s1 = str2cstr(s);
+	s = valstrorcval(vm, "strstr", argv, 1);
+	s2 = str2cstr(s);
 	p = strstr(s1, s2);
 	if(p)
 		*rv = mkvallitcval(Vuvlong, p-s1);
@@ -8918,13 +8936,12 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to memset");
-	checkarg(vm, "substr", argv, 0, Qstr);
-	checkarg(vm, "substr", argv, 1, Qcval);
-	s = valstr(argv[0]);
+	s = valstrorcval(vm, "memset", argv, 0);
+	checkarg(vm, "memset", argv, 1, Qcval);
 	bcv = valcval(argv[1]);
 	b = bcv->val&0xff;
 	if(argc == 3){
-		checkarg(vm, "substr", argv, 2, Qcval);
+		checkarg(vm, "memset", argv, 2, Qcval);
 		lcv = valcval(argv[2]);
 		lim = lcv->val;
 	}else
@@ -8961,7 +8978,7 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to strton");
 	checkarg(vm, "strton", argv, 0, Qstr);
-	s = valstr(argv[0]);
+	s = valstrorcval(vm, "strton", argv, 0);
 	if(0 != parseliti(s->s, s->len, &liti, &err))
 		vmerr(vm, err);
 	*rv = mkvalcval(vm->litdom, vm->litbase[liti.base], liti.val);
