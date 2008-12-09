@@ -38,7 +38,9 @@ protns = @names c32le {
 		Rattach,
 		Ttest,
 
-		Rtest
+		Rtest,
+		Tstep,
+		Rstep,
 	};
 
 	enum State {
@@ -49,17 +51,25 @@ protns = @names c32le {
 
 	typedef
 	struct Reg {
-		@0	uint64 ebx;
-		@8	uint64 ecx;
-		@16	uint64 edx;
-		@24	uint64 esi;
-		@32	uint64 edi;
-		@40	uint64 ebp;
-		@48	uint64 eax;
-		@56	uint64 eip;
-		@64	uint64 esp;
-		@72	uint64 eflags;
-		@80;
+		@0	uint64 eflags;
+		@8	uint64 rbx;
+		@16	uint64 rcx;
+		@24	uint64 rdx;
+		@32	uint64 rsi;
+		@40	uint64 rdi;
+		@48	uint64 rbp;
+		@56	uint64 rax;
+		@64	uint64 rip;
+		@72	uint64 rsp;
+		@80	uint64 r8;
+		@88	uint64 r9;
+		@96	uint64 r10;
+		@104	uint64 r11;
+		@112	uint64 r12;
+		@120	uint64 r13;
+		@128	uint64 r14;
+		@136	uint64 r15;
+		@144;
 	} Reg;
 
 	struct Rerror{
@@ -83,7 +93,7 @@ protns = @names c32le {
 		@0	uint8 op;
 		@1	uint64 id;
 		@9	Reg reg;
-		@89;
+		@153;
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rstop;
@@ -106,6 +116,8 @@ protns = @names c32le {
 	typedef struct Rcont Aobit;
 	typedef struct Rcont Aack;
 	typedef struct Rcont Rtest;
+	typedef struct Rcont Tstep;
+	typedef struct Rcont Rstep;
 
 	struct Tsetbrk{
 		@0	uint8 op;
@@ -126,7 +138,7 @@ protns = @names c32le {
 		@1	uint64 id;
 		@9	uint64 bp;
 		@17	Reg reg;
-		@97;
+		@161;
 	};
 	typedef struct Abrk Abrk;
 
@@ -233,6 +245,8 @@ define mkpras arg {
 			return ipress(#indom`Rlaunch*#);
 		case indom`Rcont:
 			return ipress(#indom`Rcont*#);
+		case indom`Rstep:
+			return ipress(#indom`Rstep*#);
 		case indom`Aobit:
 			return ipress(#indom`Aobit*#);
 		case indom`Rstop:
@@ -308,7 +322,7 @@ define mkpras arg {
 		state = indom`Stopped;
 	}
 
-	define cont(){
+	define cont(domas){
 		if(state != indom`Stopped)
 			return;
 
@@ -330,7 +344,39 @@ define mkpras arg {
 		state = indom`Running;
 	}
 
-	define brk(){
+	define step args {
+		@local n;
+
+		if(state != indom`Stopped)
+			return;
+
+		printf("step %a\n", args);
+
+		if(length(args) == 2)
+			n = listref(args, 1);
+		else
+			n = 1;
+		if(n == 0)
+			return;
+		while(n-- > 0){
+			xwr((`uint64)sizeof(outdom`Tstep));
+			p = opress(#outdom`Tstep*#);
+			p->op = outdom`Tstep;
+			p->id = id;
+			outdom.flush();
+			logsend("Tstep");
+			
+			reply = read1();
+			checkreply(indom`Rstep, reply);
+			if(reply->id != id)
+				error("pras: got %e for unknown task",
+				      (enum Mkind)reply->op);
+			indom.flush();
+			logrecv("Rstep");
+		}
+	}
+
+	define brk(domas){
 		if(state != indom`Running)
 			return;
 
@@ -495,7 +541,7 @@ define mkpras arg {
 			indom.flush();
 			rv = listref(bp, 1)(listref(bp, 0));
 			if(rv != 1)
-				cont();
+				cont(domas);
 			break;
 		case indom`Asnap:
 			logrecv("Asnap");
@@ -508,7 +554,7 @@ define mkpras arg {
 	}
 
 	define contwait(domas){
-		cont();
+		cont(domas);
 		while(state == indom`Running)
 			sync(domas);
 	}
@@ -525,60 +571,109 @@ define mkpras arg {
 		return vector(mkrange(0, (`uint64)-1));
 	}
 
-	define getebx(domas){
+	define getrbx(domas){
 		if(isdomain(domas))
-			return {domas}reg->ebx;
+			return {domas}reg->rbx;
 		else
-			return reg->ebx;
+			return reg->rbx;
 	}
-	define getecx(domas){
+	define getrcx(domas){
 		if(isdomain(domas))
-			return {domas}reg->ecx;
+			return {domas}reg->rcx;
 		else
-			return reg->ecx;
+			return reg->rcx;
 	}
-	define getedx(domas){
+	define getrdx(domas){
 		if(isdomain(domas))
-			return {domas}reg->edx;
+			return {domas}reg->rdx;
 		else
-			return reg->edx;
+			return reg->rdx;
 	}
-	define getesi(domas){
+	define getrsi(domas){
 		if(isdomain(domas))
-			return {domas}reg->esi;
+			return {domas}reg->rsi;
 		else
-			return reg->esi;
+			return reg->rsi;
 	}
-	define getedi(domas){
+	define getrdi(domas){
 		if(isdomain(domas))
-			return {domas}reg->edi;
+			return {domas}reg->rdi;
 		else
-			return reg->edi;
+			return reg->rdi;
 	}
-	define getebp(domas){
+	define getrbp(domas){
 		if(isdomain(domas))
-			return {domas}reg->ebp;
+			return {domas}reg->rbp;
 		else
-			return reg->ebp;
+			return reg->rbp;
 	}
-	define geteax(domas){
+	define getrax(domas){
 		if(isdomain(domas))
-			return {domas}reg->eax;
+			return {domas}reg->rax;
 		else
-			return reg->eax;
+			return reg->rax;
 	}
-	define geteip(domas){
+	define getrip(domas){
 		if(isdomain(domas))
-			return {domas}reg->eip;
+			return {domas}reg->rip;
 		else
-			return reg->eip;
+			return reg->rip;
 	}
-	define getesp(domas){
+	define getrsp(domas){
 		if(isdomain(domas))
-			return {domas}reg->esp;
+			return {domas}reg->rsp;
 		else
-			return reg->esp;
+			return reg->rsp;
 	}
+	define getr8(domas){
+		if(isdomain(domas))
+			return {domas}reg->r8;
+		else
+			return reg->r8;
+	}
+	define getr9(domas){
+		if(isdomain(domas))
+			return {domas}reg->r9;
+		else
+			return reg->r9;
+	}
+	define getr10(domas){
+		if(isdomain(domas))
+			return {domas}reg->r10;
+		else
+			return reg->r10;
+	}
+	define getr11(domas){
+		if(isdomain(domas))
+			return {domas}reg->r11;
+		else
+			return reg->r11;
+	}
+	define getr12(domas){
+		if(isdomain(domas))
+			return {domas}reg->r12;
+		else
+			return reg->r12;
+	}
+	define getr13(domas){
+		if(isdomain(domas))
+			return {domas}reg->r13;
+		else
+			return reg->r13;
+	}
+	define getr14(domas){
+		if(isdomain(domas))
+			return {domas}reg->r14;
+		else
+			return reg->r14;
+	}
+	define getr15(domas){
+		if(isdomain(domas))
+			return {domas}reg->r15;
+		else
+			return reg->r15;
+	}
+
 	define geteflags(domas){
 		if(isdomain(domas))
 			return {domas}reg->eflags;
@@ -586,15 +681,23 @@ define mkpras arg {
 			return reg->eflags;
 	}
 
-	define setebx(domas, x) { reg->ebx = x; setregs(); }
-	define setecx(domas, x) { reg->ecx = x; setregs(); }
-	define setedx(domas, x) { reg->edx = x; setregs(); }
-	define setesi(domas, x) { reg->esi = x; setregs(); }
-	define setedi(domas, x) { reg->edi = x; setregs(); }
-	define setebp(domas, x) { reg->ebp = x; setregs(); }
-	define seteax(domas, x) { reg->eax = x; setregs(); }
-	define seteip(domas, x) { reg->eip = x; setregs(); }
-	define setesp(domas, x) { reg->esp = x; setregs(); }
+	define setrbx(domas, x) { reg->rbx = x; setregs(); }
+	define setrcx(domas, x) { reg->rcx = x; setregs(); }
+	define setrdx(domas, x) { reg->rdx = x; setregs(); }
+	define setrsi(domas, x) { reg->rsi = x; setregs(); }
+	define setrdi(domas, x) { reg->rdi = x; setregs(); }
+	define setrbp(domas, x) { reg->rbp = x; setregs(); }
+	define setrax(domas, x) { reg->rax = x; setregs(); }
+	define setrip(domas, x) { reg->rip = x; setregs(); }
+	define setrsp(domas, x) { reg->rsp = x; setregs(); }
+	define setr8(domas, x)  { reg->r8 = x; setregs(); }
+	define setr9(domas, x)  { reg->r9 = x; setregs(); }
+	define setr10(domas, x) { reg->r10 = x; setregs(); }
+	define setr11(domas, x) { reg->r11 = x; setregs(); }
+	define setr12(domas, x) { reg->r12 = x; setregs(); }
+	define setr13(domas, x) { reg->r13 = x; setregs(); }
+	define setr14(domas, x) { reg->r14 = x; setregs(); }
+	define setr15(domas, x) { reg->r15 = x; setregs(); }
 	define seteflags(domas, x) { reg->eflags = x; setregs(); }
 
 	dtab = mktab();
@@ -602,45 +705,61 @@ define mkpras arg {
 	tabinsert(dtab, "put",		put);
 	tabinsert(dtab, "map",		map);
 
-	tabinsert(dtab, "getebx",	getebx);
-	tabinsert(dtab, "getecx",	getecx);
-	tabinsert(dtab, "getedx",	getedx);
-	tabinsert(dtab, "getesi",	getesi);
-	tabinsert(dtab, "getedi",	getedi);
-	tabinsert(dtab, "getebp",	getebp);
-	tabinsert(dtab, "geteax",	geteax);
-	tabinsert(dtab, "geteip",	geteip);
-	tabinsert(dtab, "getesp",	getesp);
+	tabinsert(dtab, "getebx",	getrbx);
+	tabinsert(dtab, "getecx",	getrcx);
+	tabinsert(dtab, "getedx",	getrdx);
+	tabinsert(dtab, "getesi",	getrsi);
+	tabinsert(dtab, "getedi",	getrdi);
+	tabinsert(dtab, "getebp",	getrbp);
+	tabinsert(dtab, "geteax",	getrax);
+	tabinsert(dtab, "geteip",	getrip);
+	tabinsert(dtab, "getesp",	getrsp);
 
-	tabinsert(dtab, "setebx",	setebx);
-	tabinsert(dtab, "setecx",	setecx);
-	tabinsert(dtab, "setedx",	setedx);
-	tabinsert(dtab, "setesi",	setesi);
-	tabinsert(dtab, "setedi",	setedi);
-	tabinsert(dtab, "setebp",	setebp);
-	tabinsert(dtab, "seteax",	seteax);
-	tabinsert(dtab, "seteip",	seteip);
-	tabinsert(dtab, "setesp",	setesp);
+	tabinsert(dtab, "setebx",	setrbx);
+	tabinsert(dtab, "setecx",	setrcx);
+	tabinsert(dtab, "setedx",	setrdx);
+	tabinsert(dtab, "setesi",	setrsi);
+	tabinsert(dtab, "setedi",	setrdi);
+	tabinsert(dtab, "setebp",	setrbp);
+	tabinsert(dtab, "seteax",	setrax);
+	tabinsert(dtab, "seteip",	setrip);
+	tabinsert(dtab, "setesp",	setrsp);
 
-	tabinsert(dtab, "getrbx",	getebx);
-	tabinsert(dtab, "getrcx",	getecx);
-	tabinsert(dtab, "getrdx",	getedx);
-	tabinsert(dtab, "getrsi",	getesi);
-	tabinsert(dtab, "getrdi",	getedi);
-	tabinsert(dtab, "getrbp",	getebp);
-	tabinsert(dtab, "getrax",	geteax);
-	tabinsert(dtab, "getrip",	geteip);
-	tabinsert(dtab, "getrsp",	getesp);
+	tabinsert(dtab, "getrbx",	getrbx);
+	tabinsert(dtab, "getrcx",	getrcx);
+	tabinsert(dtab, "getrdx",	getrdx);
+	tabinsert(dtab, "getrsi",	getrsi);
+	tabinsert(dtab, "getrdi",	getrdi);
+	tabinsert(dtab, "getrbp",	getrbp);
+	tabinsert(dtab, "getrax",	getrax);
+	tabinsert(dtab, "getrip",	getrip);
+	tabinsert(dtab, "getrsp",	getrsp);
+	tabinsert(dtab, "getr8",	getr8);
+	tabinsert(dtab, "getr9",	getr9);
+	tabinsert(dtab, "getr10",	getr10);
+	tabinsert(dtab, "getr11",	getr11);
+	tabinsert(dtab, "getr12",	getr12);
+	tabinsert(dtab, "getr13",	getr13);
+	tabinsert(dtab, "getr14",	getr14);
+	tabinsert(dtab, "getr15",	getr15);
 
-	tabinsert(dtab, "setrbx",	setebx);
-	tabinsert(dtab, "setrcx",	setecx);
-	tabinsert(dtab, "setrdx",	setedx);
-	tabinsert(dtab, "setrsi",	setesi);
-	tabinsert(dtab, "setrdi",	setedi);
-	tabinsert(dtab, "setrbp",	setebp);
-	tabinsert(dtab, "setrax",	seteax);
-	tabinsert(dtab, "setrip",	seteip);
-	tabinsert(dtab, "setrsp",	setesp);
+	tabinsert(dtab, "setrbx",	setrbx);
+	tabinsert(dtab, "setrcx",	setrcx);
+	tabinsert(dtab, "setrdx",	setrdx);
+	tabinsert(dtab, "setrsi",	setrsi);
+	tabinsert(dtab, "setrdi",	setrdi);
+	tabinsert(dtab, "setrbp",	setrbp);
+	tabinsert(dtab, "setrax",	setrax);
+	tabinsert(dtab, "setrip",	setrip);
+	tabinsert(dtab, "setrsp",	setrsp);
+	tabinsert(dtab, "setr8",	setr8);
+	tabinsert(dtab, "setr9",	setr9);
+	tabinsert(dtab, "setr10",	setr10);
+	tabinsert(dtab, "setr11",	setr11);
+	tabinsert(dtab, "setr12",	setr12);
+	tabinsert(dtab, "setr13",	setr13);
+	tabinsert(dtab, "setr14",	setr14);
+	tabinsert(dtab, "setr15",	setr15);
 
 	tabinsert(dtab, "geteflags",	geteflags);
 	tabinsert(dtab, "seteflags",	seteflags);
@@ -648,6 +767,7 @@ define mkpras arg {
 	tabinsert(dtab, "bpset",	setbrk);
 	tabinsert(dtab, "bpdel",	clrbrk);
 	tabinsert(dtab, "xcont",	cont);
+	tabinsert(dtab, "xstep",	step);
 	tabinsert(dtab, "xcontwait",	contwait);
 	tabinsert(dtab, "xbreak",	brk);
 
