@@ -1,0 +1,10 @@
+@include "stabs.names"
+
+struct stab {
+	@0x0	uint32	n_strx;
+	@0x4	uint8	n_type;
+	@0x5	uint8	n_other;
+	@0x6	uint16	n_desc;
+	@0x8	uint32	n_value;
+	@0xc;
+};

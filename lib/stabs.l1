@@ -21,9 +21,39 @@ p = (char*){stabstr}0;
 sp = (struct stab*){stab}0;
 esp = (struct stab*)((unsigned char*)sp + stablim);
 
+@record lsym { id, desc };
+
+define dolsym(stab){
+     @local c, x, rv;
+     rv = lsym();
+     x = strstr(stab, ":");
+     if(x == nil)
+	  error("bad lsym");
+     rv.id = substr(stab, 0, x);
+     if(rv.id == "" || rv.id == " ")
+	  rv.id = nil;		/* anonymous */
+     x++;
+     rv.desc = strref(stab, x);
+     switch(rv.desc){
+     case 't':
+	  break;
+     case 'T':
+	  break;
+     }
+     return rv;
+}
+
 n = 0;
 while(sp < esp){
-     printf("%d\t%x\n", n, sp->n_strx);
+     if(sp->n_type == stab`N_LSYM){
+	  @local sym;
+	  sym = dolsym(p+sp->n_strx);
+	  printf("%d\t%x\t%e\t%c %s\n", n,
+		 sp->n_strx,
+		 (enum stabtype)sp->n_type,
+		 sym.desc,
+		 sym.id);
+     }
      sp++;
      n++;
 }

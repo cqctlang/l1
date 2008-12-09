@@ -1,3 +1,5 @@
+@include "stabs.names"
+
 struct stab {
 	@0x0	uint64	n_strx;
 	@0x8	uint8	n_type;

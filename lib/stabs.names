@@ -1,0 +1,13 @@
+enum stabtype {
+     N_GSYM	= 0x20,
+     N_OPT	= 0x3c,
+     N_SLINE	= 0x44,
+     N_FUN	= 0x24,
+     N_SO	= 0x64,
+     N_LSYM	= 0x80,
+     N_BINCL	= 0x82,
+     N_PSYM	= 0xa0,
+     N_EINCL	= 0xa2,
+     N_LBRAC	= 0xc0,
+     N_RBRAC	= 0xe0,
+};
