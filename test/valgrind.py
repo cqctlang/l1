@@ -19,7 +19,7 @@ if not os.path.exists(valgrind):
     sys.exit();
 
 suppress=' --suppressions=./pthread-suppression'
-cmd = valgrind+' -q --show-reachable=yes --leak-check=full'+suppress+' ../l1 -w -b -e '
+cmd = valgrind+' -q --show-reachable=yes --leak-check=full'+suppress+' ../l1 -w -b '
 
 for m in glob.glob('[A-Za-z0-9]*.l1'):
     print m,
