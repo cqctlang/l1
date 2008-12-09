@@ -137,6 +137,7 @@ define mkoutdispatch(fd, eofk){
 				hi = beg+len;
 		}else if(arg == "flush"){
 			write(fd, substr(buf, 0, hi));
+			memset(buf, 0, hi);
 //			buf = mkstr(max);
 			off += hi;
 			hi = 0;
