@@ -1,0 +1,41 @@
+define _dw_get_regval (exdom, regno)
+{
+  switch (regno) {
+  case 0: return  exdom.geteax();
+    break;
+  case 1: return  exdom.getecx();
+    break;
+  case 2: return  exdom.getedx();
+    break;
+  case 3: return  exdom.getebx();
+    break;
+  case 4: return  exdom.getesp();
+    break;
+  case 5: return  exdom.getebp();
+    break;
+  case 6: return  exdom.getesi();
+    break;
+  case 7: return  exdom.getedi();
+    break;
+  case 8: return  exdom.geteip();
+    break;
+  default:
+    printf ("No get_regval function registered for regno %a in domain %a\n",
+	    regno, exdom);
+    break;
+  }
+  return 0;
+}
+
+define dumpregs (exdom)
+{
+  printf ("reg 0 = 0x%x (%d)\n", exdom.geteax(), exdom.geteax());
+  printf ("reg 1 = 0x%x (%d)\n", exdom.getecx(), exdom.getecx());
+  printf ("reg 2 = 0x%x (%d)\n", exdom.getedx(), exdom.getedx());
+  printf ("reg 3 = 0x%x (%d)\n", exdom.getebx(), exdom.getebx());
+  printf ("reg 4 = 0x%x (%d)\n", exdom.getesp(), exdom.getesp());
+  printf ("reg 5 = 0x%x (%d)\n", exdom.getebp(), exdom.getebp());
+  printf ("reg 6 = 0x%x (%d)\n", exdom.getesi(), exdom.getesi());
+  printf ("reg 7 = 0x%x (%d)\n", exdom.getedi(), exdom.getedi());
+  printf ("reg 8 = 0x%x (%d)\n", exdom.geteip(), exdom.geteip());
+}

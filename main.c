@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <strings.h>
+#include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -10,8 +10,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <libgen.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 
 #include "cqct.h"
 
@@ -22,7 +20,8 @@ enum{
 static void
 usage(char *argv0)
 {
-	fprintf(stderr, "usage: %s [flags] [-e <file>] arg ... \n", argv0);
+	fprintf(stderr, "usage: %s [flags] [ <script> [ arg ... ] ]\n",
+		argv0);
 	fprintf(stderr, "without -e, runs in interactive evaluation mode:\n");
 	fprintf(stderr, "\ttype cinquecento expressions on stdin, "
 		" followed by newline\n");
@@ -30,8 +29,6 @@ usage(char *argv0)
 	fprintf(stderr, "\nuser flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
 	fprintf(stderr, "\t-t report timing statistics\n");
-	fprintf(stderr, "\t-e <file> read input from <file> "
-			"instead of stdin\n");
 	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n"); 
 	fprintf(stderr, "\nl1 developer flags:\n");
@@ -66,6 +63,17 @@ emalloc(size_t size)
 	return p;
 }
 
+static void*
+erealloc(void *p, size_t old, size_t new)
+{
+	p = realloc(p, new);
+	if(p == 0)
+		fatal("out of memory");
+	if(new > old)
+		memset(p+old, 0, new-old);
+	return p;
+}
+
 static ssize_t
 xread(int fd, char *p, size_t len)
 {
@@ -87,13 +95,13 @@ xread(int fd, char *p, size_t len)
 	return nr;
 }
 
-#if 0
 static char*
-readexpr(unsigned *cp)
+readexpr(char *prompt)
 {
 	char *buf;
 	unsigned len, m, rv, cnt;
 
+	printf("%s", prompt);
 	len = 1024;
 	buf = emalloc(len);
 	m = len-1;
@@ -115,7 +123,6 @@ readexpr(unsigned *cp)
 		cnt += rv;
 	}
 }
-#endif
 
 static char*
 readfile(char *filename)
@@ -157,7 +164,7 @@ main(int argc, char *argv[])
 	Val v;
 	Expr *e;
 	VM *vm;
-	char *filename = 0;
+	char *filename;
 	int c;
 	struct timeval beg, end;
 	int dorepl;
@@ -179,7 +186,8 @@ main(int argc, char *argv[])
 	dorepl = 1;
 	heapmax = 0;
 	nlp = 0;
-	while(EOF != (c = getopt(argc, argv, "be:hol:m:pqtwgxs"))){
+	filename = 0;
+	while(EOF != (c = getopt(argc, argv, "bhol:m:pqtwgxs"))){
 		switch(c){
 		case 'o':
 		case 'p':
@@ -195,10 +203,6 @@ main(int argc, char *argv[])
 		case 'g':
 		case 's':
 			opt[c] = 0;
-			break;
-		case 'e':
-			dorepl = 0;
-			filename = optarg;
 			break;
 		case 'm':
 			heapmax = atoi(optarg);
@@ -216,6 +220,11 @@ main(int argc, char *argv[])
 		case '?':
 			usage(argv0);
 		}
+	}
+
+	if(argv[optind]){
+		filename = argv[optind++];
+		dorepl = 0;
 	}
 
 	if(opt['s']){
@@ -250,12 +259,11 @@ main(int argc, char *argv[])
 	do{
 		inbuf = 0;
 		if(dorepl){
-			inbuf = readline("; ");
+			inbuf = readexpr("; ");
 			if(inbuf == 0){
 				printf("\n");
 				break;
 			}
-			add_history(inbuf);
 		}else{
 			inbuf = readfile(filename);
 			if(inbuf == 0){

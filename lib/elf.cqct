@@ -1,0 +1,652 @@
+define mkelfdom (binfile) {
+  @local elfas, elfnames, elfheader, tempnames, tempdom;
+  elfnames= nil;
+  elfas = mksas (binfile);
+  tempnames = @names c32le {
+    @include "elf.names"
+  };
+
+  tempdom = mkdom (tempnames, elfas);
+  elfheader = (tempdom`Elf32_Ehdr *) {tempdom}0;
+
+  if (getbytes(elfheader->e_ident, 4) != "\x7f""ELF")
+    error ("argument to mkelfdom must be a string containing an elf binary");
+
+  if (elfheader->e_ident[4] == (unsigned char ) 1) {
+    /* then file is 32 bit */
+    if (elfheader->e_ident[5] == (unsigned char ) 1)
+      /* then file is little-endian */
+      elfnames = @names c32le {
+	@include "elf.names"
+      };
+    else if (elfheader->e_ident[5] == (unsigned char ) 2)
+      /* then file is big-endian */
+      elfnames = @names c32be {
+	@include "elf.names"
+      };
+  }
+  else if (elfheader->e_ident[4] == (unsigned char ) 2) {
+    /* then file is 64 bit */
+    if (elfheader->e_ident[5] == (unsigned char ) 1) {
+      //printf ("Choosing clp64le namespace\n");
+      /* then file is little-endian */
+      elfnames = @names clp64le {
+	@include "elf.names"
+      };
+    }
+    else if (elfheader->e_ident[5] == (unsigned char ) 2)
+      /* then file is big-endian */
+      elfnames = @names clp64be {
+	@include "elf.names"
+      };
+  }
+  if (!isnil (elfnames)) {
+    @local dom;
+    dom = mkdom (elfnames, elfas);
+    return dom;
+  }
+  return nil;
+}
+
+/* functions to perform some macros defined in /usr/include/elf.h */
+define DT_VALTAGIDX (edom, tag)
+{
+  return (edom`DT_VALRNGHI - (tag));
+}
+
+define DT_ADDRTAGIDX (edom, tag)
+{
+  return (edom`DT_ADDRRNGHI - (tag));
+}
+
+define DT_VERSIONTAGIDX (edom, tag)
+{
+  return (edom`DT_VERNEEDNUM - (tag));
+}
+
+define EF_ARM_EABI_VERSION (edom, flags)
+{
+  return ((flags) & edom`EF_ARM_EABIMASK);
+}
+
+define ELF32_ST_BIND (val)
+{
+  return (((unsigned char) (val)) >> 4);
+}
+
+define ELF32_ST_TYPE (val)
+{
+  return ((val) & 0xf);
+}
+
+define ELF32_ST_INFO (bind, type)
+{
+  return (((bind) << 4) + ((type) & 0xf));
+}
+
+define ELF64_ST_BIND (val)
+{
+  return (((unsigned char) (val)) >> 4);
+}
+
+define ELF64_ST_TYPE (val)
+{
+  return ((val) & 0xf);
+}
+
+define ELF64_ST_INFO (bind, type)
+{
+  return (((bind) << 4) + ((type) & 0xf));
+}
+
+define ELF32_ST_VISIBILITY (o)
+{
+  return ((o) & 0x03);
+}
+
+define ELF64_ST_VISIBILITY (o)
+{
+  return ((o) & 0x03);
+}
+
+define ELF32_R_SYM (val)
+{
+  return ((val) >> 8);
+}
+
+define ELF32_R_TYPE (val)
+{
+  return ((val) & 0xff);
+}
+
+define ELF32_R_INFO (sym, type)
+{
+  return (((sym) << 8) + ((type) & 0xff));
+}
+
+define ELF64_R_SYM (val)
+{
+  return ((val) >> 32);
+}
+
+define ELF64_R_TYPE (val)
+{
+  return ((val) & 0xffffffff);
+}
+
+define ELF64_R_INFO (sym, type)
+{
+  return ((((Elf64_Xword) (sym)) << 32) + (type));
+}
+
+define ELF32_M_SYM (info)
+{
+  return ((info) >> 8);
+}
+
+define ELF32_M_SIZE (info)
+{
+  return ((unsigned char) (info));
+}
+
+define ELF32_M_INFO (sym, size)
+{
+  return (((sym) << 8) + (unsigned char) (size));
+}
+
+define ELF64_M_SYM (info)
+{
+  return ((info) >> 8);
+}
+
+define ELF64_M_SIZE (info)
+{
+  return ((unsigned char) (info));
+}
+
+define ELF64_M_INFO (sym, size)
+{
+  return (((sym) << 8) + (unsigned char) (size));
+}
+
+define showelfheader (elfdom)
+{
+  @local e;
+  if (sizeof (nsptr (elfdom.names)) == 4)
+    e = (elfdom`Elf32_Ehdr *){elfdom} 0;
+  else
+    e = (elfdom`Elf64_Ehdr *){elfdom} 0;
+  printf ("e_type = %d\te_machine = %d\te_version = %d\n",
+	  e->e_type, e->e_machine, e->e_version);
+  printf ("e_entry = 0x%x\te_phoff = 0x%x\te_shoff = 0x%x\n",
+	  e->e_entry, e->e_phoff, e->e_shoff);
+  printf ("e_flags = 0x%x\te_ehsize = %d\te_phentsize = 0x%x\n",
+	  e->e_flags, e->e_ehsize, e->e_phentsize);
+  printf ("e_phnum = %d\te_shentsize = %d\te_shnum = %d\te_shstrndx = %d\n",
+	  e->e_phnum, e->e_shentsize, e->e_shnum, e->e_shstrndx);
+}
+
+define showallelfsectionheaders (elfdom)
+{
+  @local e, sarray, s, i;
+  if (sizeof (nsptr (elfdom.names)) == 4){
+    e = (elfdom`Elf32_Ehdr *){elfdom} 0;
+    sarray = (elfdom`Elf32_Shdr *) e->e_shoff;
+  }else{
+    e = (elfdom`Elf64_Ehdr *){elfdom} 0;
+    sarray = (elfdom`Elf64_Shdr *) e->e_shoff;
+  }
+  printf ("Size of section header is %d\n", sizeof (elfdom`Elf32_Shdr));
+  for (i = 0; i < e->e_shnum; i++) {
+    printf ("Section header %d begins at offset 0x%x\n", i, &sarray[i]);
+    show32sectionheader (elfdom, &sarray[0], i);
+  }
+}
+
+define show32sectionheader (elfdom, sbase, index)
+{
+  @local e, s, st;
+  if (sizeof (nsptr (elfdom.names)) == 4) {
+    e = (elfdom`Elf32_Ehdr *){elfdom} 0;
+    st = (unsigned char *) sbase[e->e_shstrndx].sh_offset;
+    s = (elfdom`Elf32_Shdr *) &sbase[index];
+  }
+  else {
+    e = (elfdom`Elf64_Ehdr *){elfdom} 0;
+    st = (unsigned char *) sbase[e->e_shstrndx].sh_offset;
+    s = (elfdom`Elf64_Shdr *) &sbase[index];
+  }
+  printf ("sh_name = %d(%s)\tsh_type = 0x%x\tsh_flags = 0x%x\n",
+	  s->sh_name, &st[s->sh_name], s->sh_type, s->sh_flags);
+  printf ("sh_addr = 0x%x\tsh_offset = 0x%x\tsh_size = 0x%x\n",
+	  s->sh_addr, s->sh_offset, s->sh_size);
+  printf ("sh_link = %d\tsh_info = 0x%x\tsh_addralign = 0x%x\n",
+	  s->sh_link, s->sh_info, s->sh_addralign);
+  printf ("sh_entsize = 0x%x\n", s->sh_entsize);
+}
+
+define showelfsym (elfdom, addr, strind)
+{
+  @local e, sym, sind, sbase, i;
+  if (sizeof (nsptr (elfdom.names)) == 4) {
+    e = (elfdom`Elf32_Ehdr *){elfdom} 0;
+    sbase = (elfdom`Elf32_Shdr *) (e->e_shoff);
+    sym = (elfdom`Elf32_Sym *)(addr);
+  }
+  else {
+    e = (elfdom`Elf64_Ehdr *){elfdom} 0;
+    sbase = (elfdom`Elf64_Shdr *) (e->e_shoff);
+    sym = (elfdom`Elf64_Sym *)(addr);
+  }
+  /* Find the right string table for the name. It could be static or
+     dynamic, but the link field of the containing symbol table tells
+     us which to use. */
+  sind = sym->st_shndx;
+  st = (unsigned char *) sbase[strind].sh_offset;
+  printf ("%s : st_value = 0x%x\tst_size = 0x%x\n",
+	  &st[sym->st_name], sym->st_value, sym->st_size);
+  printf ("st_info = 0x%x\tst_other = 0x%x\tst_shndx = %d\n",
+	  sym->st_info, sym->st_other, sind);
+}
+  
+define get32syms (elfdom)
+{
+  @local e, shbase, strbase, symbase, sec, sym, ht, i;
+  ht = table ();
+  if (sizeof (nsptr (elfdom.names)) == 4) {
+    e = (elfdom`Elf32_Ehdr *){elfdom} 0;
+    shbase = (elfdom`Elf32_Shdr *) (e->e_shoff);
+  }
+  else {
+    e = (elfdom`Elf64_Ehdr *){elfdom} 0;
+    shbase = (elfdom`Elf64_Shdr *) (e->e_shoff);
+  }
+  for (i = 0; i < e->e_shnum; i++) {
+    sec = &shbase[i];
+    if (sec->sh_type == 2  /* SHT_SYMTAB in elf.h */
+	|| sec->sh_type == 11) {  /* SHT_DYNSYMTAB in elf.h */
+      @local symcount, strind, j;
+      if (sizeof (nsptr (elfdom.names)) == 4)
+	symbase = (elfdom`Elf32_Sym *)sec->sh_offset;
+      else
+	symbase = (elfdom`Elf64_Sym *)sec->sh_offset;
+      strind = sec->sh_link;
+      strbase = (unsigned char *) shbase[strind].sh_offset;
+      if (sizeof (nsptr (elfdom.names)) == 4)
+	symcount = sec->sh_size / (sizeof (elfdom`Elf32_Sym));
+      else
+	symcount = sec->sh_size / (sizeof (elfdom`Elf64_Sym));
+      printf ("sec %d link %d count %d\n", i, strind, symcount);
+      for (j = 1; j < symcount; j++) {
+	@local name;
+	if (sizeof (nsptr (elfdom.names)) == 4)
+	  sym = (elfdom`Elf32_Sym *)(&symbase[j]);
+	else
+	  sym = (elfdom`Elf64_Sym *)(&symbase[j]);
+	name = sprintfa ("%s", &strbase[sym->st_name]);
+	tabinsert (ht, name, sym);
+      }
+    }
+  }
+  return ht;
+}
+
+define getelfsymtab (edom)
+{
+  @local e, shbase, strbase, symbase, sec, sym, symtab, symsize, i, symcount;
+  @local syml, sl, asl, as;
+
+  syml = [];
+  
+  if (sizeof (nsptr (edom.names)) == 4) {
+    e = (edom`Elf32_Ehdr *){edom} 0;
+    shbase = (edom`Elf32_Shdr *) (e->e_shoff);
+    symbase = (edom`Elf32_Sym *) {edom} 0;
+    symsize = sizeof (edom`Elf32_Sym);
+  }
+  else if (sizeof (nsptr (edom.names)) == {edom} 8) {
+    e = (edom`Elf64_Ehdr *){edom} 0;
+    shbase = (edom`Elf64_Shdr *) (e->e_shoff);
+    symbase = (edom`Elf64_Sym *) {edom} 0;
+    symsize = sizeof (edom`Elf64_Sym);
+  }
+  else {
+    printf ("Elf support available only for address sizes of 4 or 8 bytes.\n");
+    return []; /* so that the caller will get a type mismatch */
+  }
+  symcount = {edom} 0;
+  for (i = 0; i < e->e_shnum; i++) {
+    sec = &shbase[i];
+    if (sec->sh_type == 2  /* SHT_SYMTAB in elf.h */
+	|| sec->sh_type == 11) {  /* SHT_DYNSYMTAB in elf.h */
+      @local shsymcount, strind, j;
+      if (sizeof (nsptr (edom.names)) == 4)
+	symbase = (edom`Elf32_Sym *)sec->sh_offset;
+      else
+	symbase = (edom`Elf64_Sym *)sec->sh_offset;
+      strind = sec->sh_link;
+      strbase = (unsigned char *) shbase[strind].sh_offset;
+      shsymcount = sec->sh_size / symsize;
+      /* start at 1 because the ELF spec requires that the 0 element is 0 */
+      for (j = 1; j < shsymcount; j++) {
+	@local name, csym;
+	if (sizeof (nsptr (edom.names)) == 4)
+	  sym = (edom`Elf32_Sym *)(&symbase[j]);
+	else
+	  sym = (edom`Elf64_Sym *)(&symbase[j]);
+	name = sprintfa ("%s", &strbase[sym->st_name]);
+	csym = getcqctelfsym (edom, sym, name);
+	if (veclen (csym) != 0) {
+	  append (syml, csym);
+	  symcount++;
+	}
+      }
+    }
+  }
+  symtab = mkvec (symcount);
+  for (symind = 0, sl = syml; symind < symcount && !isempty (sl);
+       symind++, sl = tail (sl)) {
+    vecset (symtab, symind, head (sl));
+  }
+  if (symind < symcount || !isempty (sl))
+    printf ("Unexpected mismatch between symcount and syml\n");
+  qs (symtab, 0, symcount - 1,
+      lambda (a, b) { if (vecref (a, 1) < vecref (b, 1)) return -1;
+	else if (vecref (a, 1) > vecref (b, 1)) return 1;
+	else return 0;});
+  return symtab;
+}
+
+define dumpsym (name, esym)
+{
+  printf ("0x%x\t%d\t0x%x\t0x%x\t%d\t%s\n", esym->st_value, esym->st_size,
+	  esym->st_info, esym->st_other, esym->st_shndx, name);
+}
+
+/* return a byte string containing the data of an ELF section */
+define getelfsection (edom, name)
+{
+  @local e, sarray, st, sname, i;
+  if (sizeof (nsptr (edom.names)) == 4) {
+    //printf ("choosing 32 header\n");
+    e = (edom`Elf32_Ehdr *){edom} 0;
+    /* get the base of the section header array */
+    sarray = (edom`Elf32_Shdr *) e->e_shoff;
+  }
+  else {
+    //printf ("choosing 64 header\n");
+    e = (edom`Elf64_Ehdr *){edom} 0;
+    /* get the base of the section header array */
+    sarray = (edom`Elf64_Shdr *) e->e_shoff;
+    //printf ("sarray is 0x%x (%d)\n", sarray, sarray);
+  }
+  /* get the base address of the section header name table. sh_name values
+     are byte offsets from this base address. */
+  st = (edom`unsigned char *) sarray[e->e_shstrndx].sh_offset;
+  //printf ("st is 0x%x (%d)\n", st, st);
+  for (i = 0; i < e->e_shnum; i++) {
+    sname = stringof (st + sarray[i].sh_name);
+    if (name == sname) {
+      /* Should perhaps enter the [name, section] pair to
+	 global_dwarf_domain_list */
+      //printf ("returning string at 0x%x of size 0x%x\n",
+      //      sarray[i].sh_offset, sarray[i].sh_size);
+      return getbytes ((edom`char *)sarray[i].sh_offset, sarray[i].sh_size);
+    }
+  }
+  return "";
+}
+  
+define getelfsecname (edom, ind)
+{
+  @local e, sarray, st;
+  if (sizeof (nsptr (edom.names)) == 4) {
+    e = (edom`Elf32_Ehdr *){edom} 0;
+    /* get the base of the section header array */
+    sarray = (edom`Elf32_Shdr *) e->e_shoff;
+  }
+  else {
+    e = (edom`Elf64_Ehdr *){edom} 0;
+    /* get the base of the section header array */
+    sarray = (edom`Elf64_Shdr *) e->e_shoff;
+  }
+  /* get the base address of the section header name table. sh_name values
+     are byte offsets from this base address. */
+  st = (unsigned char *) sarray[e->e_shstrndx].sh_offset;
+  return stringof (st + sarray[ind].sh_name);
+}
+  
+/* return the header for an ELF segment */
+define getelfsegmenthdr (edom, n)
+{
+  @local e, pharray, ph, cnt;
+  if (sizeof (nsptr (edom.names)) == 4) {
+    e = (edom`Elf32_Ehdr *){edom} 0;
+    cnt = {edom} n;
+    if (e->e_phnum < cnt) {
+      printf ("Elf domain has only %d segment headers.\n", e->e_phnum);
+      return (edom`Elf32_Phdr *) {edom} 0;
+    }
+    /* get the base of the segment header table */
+    pharray = (edom`Elf32_Phdr *) e->e_phoff;
+    return (edom`Elf32_Phdr *) (&pharray [cnt]);
+  }
+  else {
+    e = (edom`Elf64_Ehdr *){edom} 0;
+    cnt = {edom} n;
+    if (e->e_phnum < cnt) {
+      printf ("Elf domain has only %d segment headers.\n", e->e_phnum);
+      return (edom`Elf64_Phdr *) {edom} 0;
+    }
+    /* get the base of the segment header table */
+    pharray = (edom`Elf64_Phdr *) e->e_phoff;
+    return (edom`Elf64_Phdr *) (&pharray [cnt]);
+  }
+}
+
+/* return a byte string containing the data of an ELF section */
+define getelfsegment (edom, n)
+{
+  @local e, pharray, ph, cnt;
+  if (sizeof (nsptr (edom.names)) == 4) {
+    e = (edom`Elf32_Ehdr *){edom} 0;
+    cnt = {edom} n;
+    if (e->e_phnum < cnt) {
+      printf ("Elf domain has only %d segments.\n", e->e_phnum);
+      return "";
+    }
+    /* get the base of the segment header table */
+    pharray = (edom`Elf32_Phdr *) e->e_phoff;
+    
+    ph = (edom`Elf32_Phdr *) (&pharray [cnt]);
+    return getbytes ((char *)ph->p_paddr, ph->p_filesz);
+  }
+  else {
+    e = (edom`Elf64_Ehdr *){edom} 0;
+    cnt = {edom} n;
+    if (e->e_phnum < cnt) {
+      printf ("Elf domain has only %d segments.\n", e->e_phnum);
+      return "";
+    }
+    /* get the base of the segment header table */
+    pharray = (edom`Elf64_Phdr *) e->e_phoff;
+    
+    ph = (edom`Elf64_Phdr *) (&pharray [cnt]);
+    return getbytes ((char *)ph->p_paddr, ph->p_filesz);
+  }
+}
+
+define showsegmentheader (eseg)
+{
+  printf ("p_type = 0x%x\tp_flags = 0x%x\tp_offset = 0x%x\n",
+	  eseg->p_type, eseg->p_flags, eseg->p_offset);
+  printf ("p_vaddr = 0x%x\tp_paddr = 0x%x\n",
+	  eseg->p_vaddr, eseg->p_paddr);
+  printf ("p_filesz = 0x%x\tp_memsz = 0x%x\n",
+	  eseg->p_filesz, eseg->p_memsz);
+  printf ("p_align = 0x%x\n", eseg->p_align);
+}
+
+/* Convert a raw ELF symbol from the binary into a Cinquecento list of
+   the processed field values. */
+define getcqctelfsym (edom, esym, name)
+{
+  @local result, i, typec, sarray, st, e, visibility;
+  if (sizeof (nsptr (edom.names)) == 4) {
+    e = (edom`Elf32_Ehdr *){edom} 0;
+    sarray = (edom`Elf32_Shdr *) e->e_shoff;
+  }
+  else {
+    e = (edom`Elf64_Ehdr *){edom} 0;
+    sarray = (edom`Elf64_Shdr *) e->e_shoff;
+  }
+  /* get the base address of the section header name table. sh_name values
+     are byte offsets from this base address. */
+  st = (unsigned char *) sarray[e->e_shstrndx].sh_offset;
+  typec = ' ';
+  if (ELF32_ST_BIND (esym->st_info) == edom`STB_WEAK)
+    {
+      if (esym->st_shndx == edom`SHN_UNDEF)
+	typec = 'w';
+      else
+	typec = 'W';
+    }
+  else if (esym->st_shndx == edom`SHN_UNDEF)
+    return mkvec (0);
+  else if (ELF64_ST_TYPE (esym->st_info) == edom`STT_SECTION
+	   || ELF64_ST_TYPE (esym->st_info) == edom`STT_FILE)
+    /* ELF64_ST_TYPE and ELF32_ST_TYPE are equivalent, so we
+       can use either one */
+    return mkvec (0);
+  else if (esym->st_shndx >= ((edom`Elf32_Ehdr *) {edom} 0)->e_shnum)
+    {
+      if (esym->st_shndx == edom`SHN_ABS)
+	typec = 'a';
+    }
+  else if (ELF32_ST_TYPE (esym->st_info) == edom`STT_FUNC)
+    typec = 't';
+  else if (stringeq (stringof (st + sarray[esym->st_shndx].sh_name), ".bss"))
+    typec = 'b';
+  else if (stringeq (stringof (st + sarray[esym->st_shndx].sh_name), ".data"))
+    typec = 'd';
+  else if (stringeq (stringof (st + sarray[esym->st_shndx].sh_name), ".rodata"))
+    typec = 'r';
+  else if (stringeq (stringof (st + sarray[esym->st_shndx].sh_name), ".rdata"))
+    typec = 'r';
+  /* Both Elf32_Sym and Elf64_Sym use the same one-byte st_info field.  */
+  if (ELF32_ST_BIND (esym->st_info) == edom`STB_GLOBAL)
+    typec = typec - 32;     /*toupper (typec) */
+  if (typec >= 'A' && typec <= 'Z')  /* isupper (typec) */
+    visibility = "global";
+  else
+    visibility = "local";
+  result = mkvec (8);
+  vecset (result, 0, name);
+  vecset (result, 1, esym->st_value);
+  vecset (result, 2, typec);
+  vecset (result, 3, visibility);
+  vecset (result, 4, esym->st_size);
+  vecset (result, 5, esym->st_info);
+  vecset (result, 6, esym->st_other);
+  vecset (result, 7, esym->st_shndx);
+  
+  return result;
+}
+
+define show_elf_symtab (tab)
+{
+  @local i, len;
+  len = veclen (tab);
+  for (i = 0; i < len; i++)
+    printf ("%a\n", vecref (tab, i));
+}
+
+define show_elf_addrs (tab)
+{
+  @local i, len;
+  len = veclen (tab);
+  for (i = 0; i < len; i++)
+    printf ("0x%x\n", listref (vecref (tab, i), 1));
+}
+
+/* Accessor functions for ELF symbols */
+define elfname (esym)
+{
+  return vecref (esym, 0);
+}
+
+define elfaddr (esym)
+{
+  return vecref (esym, 1);
+}
+
+define elftype (esym)
+{
+  return vecref (esym, 2);
+}
+
+define elfvisibility (esym)
+{
+  return vecref (esym, 3);
+}
+
+define elfsize (esym)
+{
+  return vecref (esym, 4);
+}
+
+define elfinfo (esym)
+{
+  return vecref (esym, 5);
+}
+
+define elfother (esym)
+{
+  return vecref (esym, 6);
+}
+
+define elfshndx (esym)
+{
+  return vecref (esym, 7);
+}
+
+/* Accessor functions for ELF segments */
+define elfsegtype (eseg)
+{
+  return head (eseg);
+}
+
+define elfsegoffset (eseg)
+{
+  return head (tail (eseg));
+}
+
+define elfsegvaddr (eseg)
+{
+  return head (tail (tail (eseg)));
+}
+
+define elfsegpaddr (eseg)
+{
+  return head (tail (tail (tail (eseg))));
+}
+
+define elfsegfilesz (eseg)
+{
+  return head (tail (tail (tail (tail (eseg)))));
+}
+
+define elfsegmemsz (eseg)
+{
+  return head (tail (tail (tail (tail (tail (eseg))))));
+}
+
+define elfsegflags (eseg)
+{
+  return head (tail (tail (tail (tail (tail (tail (eseg)))))));
+}
+
+define elfsegalign (eseg)
+{
+  return head (tail (tail (tail (tail (tail (tail (tail (eseg))))))));
+}
