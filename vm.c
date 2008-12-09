@@ -6427,18 +6427,61 @@ fmtputs(Fmt *f, char *p, Imm m)
 		if(fmtpad(f, f->width-m))
 			return -1;
 	}
-	while(l-- > 0){
-		if(f->to >= f->stop)
-			if(f->flush(f) == -1)
-				return -1;
-		*f->to++ = *p++;
-	}
+	while(l-- > 0)
+		fmtputc(f, *p++);
 	if((fl&FmtWidth) && (fl&FmtLeft)){
 		if(fmtpad(f, f->width-m))
 			return -1;
 	}
 	return 0;
 }
+
+static int
+fmtputB(Fmt *f, char *p, Imm m)
+{
+	unsigned int fl, l;
+	char *q;
+	unsigned char c;
+	Imm w;
+
+	fl = f->flags;
+	if((fl&FmtPrec) && m > f->prec)
+		m = f->prec;
+	if(fl&FmtWidth){
+		q = p;
+		l = m;			/* lost precision */
+		w = 0;
+		while(l-- > 0){
+			c = *q++;
+			if(xisgraph(c) || xisspace(c))
+				w++;
+			else
+				w += 4;
+		}
+	}
+	l = m;			/* lost precision */
+	if((fl&FmtWidth) && !(fl&FmtLeft)){
+		if(fmtpad(f, f->width-w))
+			return -1;
+	}
+	while(l-- > 0){
+		c = *p++;
+		if(xisgraph(c) || xisspace(c))
+			fmtputc(f, c);
+		else{
+			fmtputc(f, '\\');
+			fmtputc(f, '0'+((c>>6)&0x3));
+			fmtputc(f, '0'+((c>>3)&0x7));
+			fmtputc(f, '0'+(c&0x7));
+		}
+	}
+	if((fl&FmtWidth) && (fl&FmtLeft)){
+		if(fmtpad(f, f->width-w))
+			return -1;
+	}
+	return 0;
+}
+
 
 static int
 fmtputs0(Fmt *f, char *p)
@@ -6755,7 +6798,8 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Xtypename *xtn;
 	Vec *vec;
 	int i;
-
+	Imm len;
+	
 	vpp = &argv[0];
 	efmt = fmt+fmtlen;
 	while(1){
@@ -6896,8 +6940,15 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				return;
 			break;
 		case 's':
-			if(vp->qkind == Qstr)
+		case 'b':
+		case 'B':
+			if(vp->qkind == Qstr){
 				as = valstr(vp);
+				if(ch == 's')
+					len = xstrnlen(as->s, as->len);
+				else
+					len = as->len;
+			}
 			else if(vp->qkind == Qcval){
 				cv = valcval(vp);
 				if(!isstrcval(cv))
@@ -6906,10 +6957,16 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 					as = mkstr0("(null)");
 				else
 					as = stringof(vm, cv);
+				len = as->len;
 			}else
 				goto badarg;
-			if(fmtputs(f, as->s, as->len))
-				return;
+			if(ch == 'B'){
+				if(fmtputB(f, as->s, len))
+					return;
+			}else{
+				if(fmtputs(f, as->s, len))
+					return;
+			}
 			break;
 		case 't':
 			if(vp->qkind == Qxtn)
@@ -8852,6 +8909,30 @@ l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *s;
+	unsigned char b;
+	Cval *bcv, *lcv;
+	Imm lim;
+
+	if(argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to memset");
+	checkarg(vm, "substr", argv, 0, Qstr);
+	checkarg(vm, "substr", argv, 1, Qcval);
+	s = valstr(argv[0]);
+	bcv = valcval(argv[1]);
+	b = bcv->val&0xff;
+	if(argc == 3){
+		checkarg(vm, "substr", argv, 2, Qcval);
+		lcv = valcval(argv[2]);
+		lim = lcv->val;
+	}else
+		lim = s->len;
+	memset(s->s, b, lim);
+}
+
+static void
 l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -10174,6 +10255,7 @@ mktopenv()
 	FN(lookfield);
 	FN(looktype);
 	FN(meminuse);
+	FN(memset);
 	FN(memtotal);
 	FN(mkas);
 	FN(mkctype_array);

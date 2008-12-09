@@ -2966,6 +2966,31 @@ class="arg">from</span> to be copied in entirety.
 </div>
 </div>
 
+<div class="docitem" id="fn:memset">
+<div class="proto">
+<div class="function">
+<span class="id">memset(<span class="arg">str</span>,<span class="arg">byte</span>[,<span class="arg">lim</span>])</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">byte</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">lim</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Fills the first <span class="arg">lim</span> bytes of string <span
+class="arg">str</span> with the low eight bits of <span class="arg">byte</span>.
+If <span class="arg">lim</span> is unspecified, the entire string is filled.
+</div>
+</div>
+
 <div class="docitem" id="fn:strton">
 <div class="proto">
 <div class="function">
@@ -3427,13 +3452,21 @@ Formats a pointer value in lowercase hex.
 </tr>
 
 <tr>
-<td><span class="val">s</span></td>
+<td><span class="val">s,b,B</span></td>
 <td>
-Copies a string value.  If the value is not already a string, it is first passed to  <span class="id"><a
-href="#fn:stringof">stringof</a></span>, which expects
-a cvalue of type <span
-class="type">char*</span> or <span
-class="type">unsigned char*</span>.
+If the value is not a string, the result of calling <span class="id"><a
+href="#fn:stringof">stringof</a></span> on the value is used.
+<div>
+<span class="val">s</span> copies the string value, stopping at the first null byte.
+</div>
+<div>
+<span class="val">b</span> is like <span class="val">s</span>, except the entire
+string is printed, including null bytes.
+</div>
+<div>
+<span class="val">B</span> is like <span class="val">b</span>, except unprintable
+characters are formatted as octal literals.
+</div>
 </td>
 </tr>
 
@@ -4088,6 +4121,7 @@ machines sharing the environment have been freed.
 <a href="#fn:listref">listref</a><br />
 <a href="#fn:listset">listset</a><br />
 <a href="#fn:mapfile">mapfile</a><br />
+<a href="#fn:memset">memset</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
 <a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
 <a href="#fn:mkctype_char">mkctype_char</a><br />

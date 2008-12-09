@@ -3,4 +3,4 @@ p = (char*){dom}0;
 putbytes(p, "abcdef");
 s = getbytes(p, 128);
 printf("%d %d\n", isstring(s), strlen(s));
-printf("%s\n", s);
+printf("%b\n", s);

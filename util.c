@@ -66,6 +66,18 @@ fatal(char *fmt, ...)
 	xabort();
 }
 
+size_t
+xstrnlen(char *s, size_t max)
+{
+	size_t rv;
+	rv = 0;
+	while(rv < max && *s != '\0'){
+		s++;
+		rv++;
+	}
+	return rv;
+}
+
 char*
 xstrdup(char *s)
 {
