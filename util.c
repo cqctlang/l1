@@ -149,7 +149,7 @@ erealloc(void *p, size_t old, size_t new)
 		cqctmemtotal += d;
 	}else{
 		d = old-new;
-		cqctmeminuse += d;
+		cqctmeminuse -= d;
 	}
 	return p;
 }
