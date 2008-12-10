@@ -73,11 +73,12 @@ todo
 	"w" - shared copy of the file
       perhaps there should be a way to map a newly created file?
       make mmap general
-  - fn-backed types
   - alternate equality for cvalues (useful for table keys):
     - struct* : structure equality on values of fields, or recursively thus
                 used as simple mech for showing variety of values
                 some structure obtains
+  - detect variable use-before-define errors, especially
+    because locals share storage in frame 
 
 - usability
   - change "entry" to "toplevel"
@@ -188,11 +189,17 @@ todo
 	- notion of set of location ranges associated with a symbol
 	- lookaddr that can handle these cases
 	- @names syntax for above
-  - @const values
   - on string types, arithmetic works like pointer arithmetic:
 	s += 3;	/* bind s to new string advanced by 3 */
     might be confusing unless there is a shared string notion
     that we can use to generate pointers.
+  - expressions in a @names form are evaluated in unspecified order;
+    cannot depend on side effects occurring in some order.
+    this precludes a potentially useful idiom:
+	x = 0;
+	@(x+=4) int x;
+	@(x+=4) int y;
+
 
 - grammar
   - sort out problems with odd rule about int(int) in abstract declarators;

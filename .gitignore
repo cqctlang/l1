@@ -5,3 +5,4 @@ c.tab.h
 depend
 l1
 .DS_Store
+fns.*.c

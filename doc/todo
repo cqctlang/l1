@@ -11,12 +11,8 @@ undocumented?
 
 general
 	FN(apply);
-	FN(isprocedure);
 	FN(equal);
 	FN(error);
-	FN(iscvalue);
-	FN(isnil);
-	FN(isrange);
 
 domains
 	FN(mkdom);

@@ -9789,9 +9789,9 @@ l1_iscvalue(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_isdomain(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_isdom(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isx(vm, argc, argv, rv, "isdomain", Qdom);
+	l1_isx(vm, argc, argv, rv, "isdom", Qdom);
 }
 
 static void
@@ -10340,7 +10340,7 @@ mktopenv()
 	FN(isctype);
 	FN(iscvalue);
 	FN(isdigit);
-	FN(isdomain);
+	FN(isdom);
 	FN(isempty);
 	FN(isenum);
 	FN(isenumconst);

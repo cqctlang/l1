@@ -42,20 +42,12 @@ on generic features of the language that are
 independent of any debugging facility.
 </p>
 
-<h3>Preliminaries</h3>
+<h3>Input</h3>
 
 <p>
 A Cinquecento program consists of a sequence of
 expressions to be evaluated in order by the Cinquecento
-evaluator.  Variables are dynamically typed, lexically
-scoped, and can be updated by assignment.  Variable
-bindings can be created in the top-level environment,
-by the <span class="fnindex"
-id="syn:@local">@local</span> binding form within
-compound expressions, and by the function
-constructor <span class="fnindex"
-id="syn:lambda">lambda</span>.
-</p>
+evaluator.</p>
 
 <p id="syn:@include">
 The Cinquecento evaluator reads code from its current
@@ -68,11 +60,10 @@ forms
 @include <<span class="arg">filename</span>>
 </div>
 is replaced with the contents of the named file.
-The first form searches
-for <span class="arg">filename</span> in the
-Cinquecento system load path.
-
-The second form searches the directory containing the
+The first form searches for
+<span class="arg">filename</span>
+in the Cinquecento system load path.
+The second form searches the directory that contains the
 current input file.
 
 The current input file is temporarily switched to 
@@ -81,12 +72,23 @@ The current input file is temporarily switched to
 </p>
 
 <p>
-Comment syntax follows C and C++.  Input enclosed in
-<tt>/*</tt> <tt>*/</tt> is a comment.  Input between
-<tt>//</tt> and the next newline character is also a
-comment.
+Comments have the same syntax as C and C++ comments.
+Input enclosed in <tt>/*</tt> <tt>*/</tt> is a comment.
+Input between <tt>//</tt> and the next newline character is also a comment.
 </p>
 
+<h3>Variables and Scope</h3>
+
+<p>
+Variables are dynamically typed, lexically
+scoped, and can be updated by assignment.  Variable
+bindings can be created in the top-level environment,
+by the <span class="fnindex"
+id="syn:@local">@local</span> binding form within
+compound expressions, and by the function
+constructor <span class="fnindex"
+id="syn:lambda">lambda</span>.
+</p>
 
 <h3>Cinquecento Types</h3>
 
@@ -128,20 +130,75 @@ expression for this value.
 </p>
 
 <p>
-The predicates are
-<tt>isctype</tt>, <tt>isdom</tt>, <tt>isas</tt>,
-<tt>isns</tt>, <tt>isrange</tt>, <tt>isaddr</tt>,
-<tt>isstr</tt>, <tt>isprocedure</tt>, <tt>isfd</tt>
-(file descriptor), <tt>isnil</tt>, <tt>islist</tt>,
-<tt>isvec</tt>, <tt>istable</tt>, <tt>isnil</tt>, and
-<tt>isundefined</tt>.
-</p>
-
-<p>
 There are no explicit numeric types.  In Cinquecento,
 all arithmetic is performed using C operators over
 values of type cvalue.
 </p>
+
+<p>
+The following functions are predicates on the type of a value.
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isas">isas(<span class="arg">val</span>)</span>  (address space)
+</div>
+<div class="function">
+<span class="id" id="fn:isctype">isctype(<span class="arg">val</span>)</span> (C type)
+</div>
+<div class="function">
+<span class="id" id="fn:iscvalue">iscvalue(<span class="arg">val</span>)</span> (C value)
+</div>
+<div class="function">
+<span class="id" id="fn:isdom">isdom(<span class="arg">val</span>)</span> (domain)
+</div>
+<div class="function">
+<span class="id" id="fn:isfd">isfd(<span class="arg">val</span>)</span> (file descriptor)
+</div>
+<div class="function">
+<span class="id" id="fn:islist">islist(<span class="arg">val</span>)</span> (list)
+</div>
+<div class="function">
+<span class="id" id="fn:isnil">isnil(<span class="arg">val</span>)</span> (nil)
+</div>
+<div class="function">
+<span class="id" id="fn:isns">isns(<span class="arg">val</span>)</span> (name space)
+</div>
+<div class="function">
+<span class="id" id="fn:isprocedure">isprocedure(<span class="arg">val</span>)</span> (procedure)
+</div>
+<div class="function">
+<span class="id" id="fn:isrange">isrange(<span class="arg">val</span>)</span> (range)
+</div>
+<div class="function">
+<span class="id" id="fn:isrec">isrec(<span class="arg">val</span>)</span> (record)
+</div>
+<div class="function">
+<span class="id" id="fn:isrd">isrd(<span class="arg">val</span>)</span> (record descriptor)
+</div>
+<div class="function">
+<span class="id" id="fn:isstring">isstring(<span class="arg">val</span>)</span> (string)
+</div>
+<div class="function">
+<span class="id" id="fn:istable">istable(<span class="arg">val</span>)</span> (table)
+</div>
+<div class="function">
+<span class="id" id="fn:isvector">isvector(<span class="arg">val</span>)</span> (vector)
+</div>
+<div class="returns">
+<span class="type">cvalue (1 or 0)</span>
+</div>
+</div>
+<div class="desc">
+These functions test <span class="arg">val</span> for membership
+in a particular type.  They return
+<span class="arg">1</span> if
+the value belongs to the type,   
+<span class="arg">0</span> otherwise.
+</div>
+</div>
+
 
 <h3>Concepts</h3>
 
@@ -1067,6 +1124,92 @@ function <tt>addrval(<em>addr</em>)</tt> returns the
 cvalue used to construct the address
 <tt><em>addr</em></tt>.
 </p>
+
+
+<h3>Literal Domain</h3>
+
+<p>
+Cinquecento represents arithmetic literals as cvalues
+from a special built-in literal domain, named
+<span class="val">litdom</span>.
+This domain is based on a commonly used model of C
+types on 64-bit machines.  Only the size of arithmetic
+types matters in this domain; details of representation
+such as pointer size and endianness are irrelevant,
+because expressions in this domain never reference
+memory.
+</p>
+
+<h3>Mixed-domain Expressions</h3>
+
+<p>
+A binary C operator may be applied to cvalue operands
+from two different domains.  Several rules determine
+the outcome of such mixed-domain expressions.
+The motivation behind these rules is to give sensible
+meaning to mixed-domain expressions that yield or
+compare arithmetic quantities, but to disallow rarely
+sensible mixed-domain combinations of pointer values.
+</p>
+
+<p>
+The first rule concerns expressions with literal terms,
+such as
+<span class="val">(dom`x+5)</span>.
+When evaluating a mixed-domain
+expression, the Cinquecento evaluator first checks
+whether one of the operands is from the literal domain.
+If so, it implicitly converts the domain of the literal
+operand to the domain of the other operand.  In
+essence, the non-literal operand absorbs the literal
+operand into its domain.  Undesired truncation of high
+bits can be avoided by explicitly casting the literal
+operand to a large type or by employing suffix syntax
+when expressing the literal (e.g., 
+<span class="val">0x100000000ULL</span>).
+</p>
+
+<p>
+The second rule concerns mixed-domain arithmetic,
+bitwise, and relational operations on non-literal
+operands that are not pointers.  Such operands are both
+converted to the literal domain.  This rule allows
+comparison or aggregation of arithmetic values from
+different domains to be expressed naturally without the
+clutter of explicit domain conversions.
+</p>
+
+<p>
+The third rule concerns mixed expressions in which one
+operand is a pointer.  Pointer addition operations
+(including array subscripting) comprise one pointer
+operand and one arithmetic operand.  In mixed-domain
+pointer addition, the domain of the arithmetic operand
+is implicitly cast to that of the pointer operand.
+Since the type of the result is pointer, the domain of
+the result should remain in the domain of the pointer
+operand.  (This rule also maintains consistency with
+the rule for literals.)  Pointer subtraction operations
+involve either one pointer operand and one arithmetic
+operand or two pointer operands.  In the former case,
+the rule is the same as that for pointer addition.  The
+latter case is disallowed: it makes no sense to relate
+locations in two different address spaces.  A program
+that wishes to do so must explicitly domain cast one of
+the operands.
+</p>
+
+<p>
+The final rule is that all other mixed-domain
+expressions are disallowed.  Generally this rule covers
+the other mixed-domain pointer expressions.  For
+example, comparison of pointers from different domains
+is prohibited for the same reason that pointer
+subtraction is prohibited.  An explicit domain cast can
+be used to circumvent this rule.
+</p>
+
+
 
 <h3>Ctypes</h3>
 
@@ -2562,7 +2705,7 @@ Vectors are fixed-length ordered collections, possibly
 empty.  Vectors are mutable, allowing items to be
 changed at any position, and contiguously indexed from
 position 0.  The predicate
-<span class="id" id="fn:isvector">isvector</span> tests whether a value is
+<span class="id">isvector</span> tests whether a value is
 a vector.
 </p>
 
@@ -2680,7 +2823,7 @@ class="type">vec</span> does not contain more than
 Tables store key/value pairs.  Keys and values may be
 any type of Cinquecento value other than <span
 class="type">nil</span>.  The predicate
-<span class="id" id="fn:istable">istable</span> tests whether a value is
+<span class="id">istable</span> tests whether a value is
 a table.
 </p>
 
@@ -2843,7 +2986,6 @@ The following functions operate on characters.
 
 <div class="docitem">
 <div class="proto">
-
 <div class="function">
 <span class="id" id="fn:isalnum">isalnum(<span class="arg">char</span>)</span>
 </div>
@@ -4185,31 +4327,44 @@ machines sharing the environment have been freed.
 <a href="#fn:isalnum">isalnum</a><br />
 <a href="#fn:isalpha">isalpha</a><br />
 <a href="#fn:isarray">isarray</a><br />
+<a href="#fn:isas">isas</a><br />
 <a href="#fn:isascii">isascii</a><br />
 <a href="#fn:isbase">isbase</a><br />
 <a href="#fn:isbitfield">isbitfield</a><br />
 <a href="#fn:isblank">isblank</a><br />
 <a href="#fn:iscntrl">iscntrl</a><br />
 <a href="#fn:isctype">isctype</a><br />
+<a href="#fn:iscvalue">iscvalue</a><br />
 <a href="#fn:isdigit">isdigit</a><br />
+<a href="#fn:isdomain">isdomain</a><br />
 <a href="#fn:isempty">isempty</a><br />
 <a href="#fn:isenum">isenum</a><br />
 <a href="#fn:isenumconst">isenumconst</a><br />
 <a href="#fn:isfd">isfd</a><br />
 <a href="#fn:isfunc">isfunc</a><br />
 <a href="#fn:isgraph">isgraph</a><br />
+<a href="#fn:islist">islist</a><br />
 <a href="#fn:islower">islower</a><br />
+<a href="#fn:isnil">isnil</a><br />
+<a href="#fn:isns">isns</a><br />
 <a href="#fn:isodigit">isodigit</a><br />
 <a href="#fn:isprint">isprint</a><br />
+<a href="#fn:isprocedure">isprocedure</a><br />
 <a href="#fn:isptr">isptr</a><br />
 <a href="#fn:ispunct">ispunct</a><br />
+<a href="#fn:isrange">isrange</a><br />
+<a href="#fn:isrd">isrd</a><br />
+<a href="#fn:isrec">isrec</a><br />
 <a href="#fn:isspace">isspace</a><br />
+<a href="#fn:isstring">isstring</a><br />
 <a href="#fn:isstruct">isstruct</a><br />
 <a href="#fn:issu">issu</a><br />
+<a href="#fn:istable">istable</a><br />
 <a href="#fn:istypedef">istypedef</a><br />
 <a href="#fn:isundeftype">isundeftype</a><br />
 <a href="#fn:isunion">isunion</a><br />
 <a href="#fn:isupper">isupper</a><br />
+<a href="#fn:isvector">isvector</a><br />
 <a href="#fn:isvoid">isvoid</a><br />
 <a href="#fn:isxdigit">isxdigit</a><br />
 <a href="#fn:length">length</a><br />

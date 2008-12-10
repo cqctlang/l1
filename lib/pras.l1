@@ -572,110 +572,110 @@ define mkpras arg {
 	}
 
 	define getrbx(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rbx;
 		else
 			return reg->rbx;
 	}
 	define getrcx(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rcx;
 		else
 			return reg->rcx;
 	}
 	define getrdx(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rdx;
 		else
 			return reg->rdx;
 	}
 	define getrsi(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rsi;
 		else
 			return reg->rsi;
 	}
 	define getrdi(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rdi;
 		else
 			return reg->rdi;
 	}
 	define getrbp(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rbp;
 		else
 			return reg->rbp;
 	}
 	define getrax(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rax;
 		else
 			return reg->rax;
 	}
 	define getrip(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rip;
 		else
 			return reg->rip;
 	}
 	define getrsp(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->rsp;
 		else
 			return reg->rsp;
 	}
 	define getr8(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r8;
 		else
 			return reg->r8;
 	}
 	define getr9(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r9;
 		else
 			return reg->r9;
 	}
 	define getr10(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r10;
 		else
 			return reg->r10;
 	}
 	define getr11(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r11;
 		else
 			return reg->r11;
 	}
 	define getr12(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r12;
 		else
 			return reg->r12;
 	}
 	define getr13(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r13;
 		else
 			return reg->r13;
 	}
 	define getr14(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r14;
 		else
 			return reg->r14;
 	}
 	define getr15(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->r15;
 		else
 			return reg->r15;
 	}
 
 	define geteflags(domas){
-		if(isdomain(domas))
+		if(isdom(domas))
 			return {domas}reg->eflags;
 		else
 			return reg->eflags;
