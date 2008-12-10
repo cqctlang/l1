@@ -30,8 +30,22 @@ void xprintf(char *fmt, ...);
 void xvprintf(char *fmt, va_list args);
 void msg(char *fmt, ...);
 void vmsg(char *fmt, va_list args);
+
+int xisalnum(int c);
+int xisalpha(int c);
+int xisascii(int c);
+int xisblank(int c);
+int xiscntrl(int c);
+int xisdigit(int c);
 int xisgraph(int c);
+int xislower(int c);
+int xisodigit(int c);
+int xisprint(int c);
+int xispunct(int c);
 int xisspace(int c);
+int xisupper(int c);
+int xisxdigit(int c);
+
 void xabort(void) NORETURN;
 
 typedef uintptr_t Thread;

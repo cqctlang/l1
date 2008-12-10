@@ -394,26 +394,6 @@ mkconstliti(Liti *liti)
 	return e;
 }
 
-static int
-isoctdigit(int c)
-{
-	return ('0' <= c) && (c <= '7');
-}
-
-static int
-xisdigit(int c)
-{
-	return ('0' <= c) && (c <= '9');
-}
-
-static int
-xisxdigit(int c)
-{
-	return(xisdigit(c)
-	       || (('a' <= c) && (c <= 'f'))
-	       || (('A' <= c) && (c <= 'F')));
-}
-
 int
 parseliti(char *s, unsigned long len, Liti *liti, char **err)
 {
@@ -497,7 +477,7 @@ parseliti(char *s, unsigned long len, Liti *liti, char **err)
 				}
 			}else{
 				noct = 0;
-				while(noct < 3 && isoctdigit(*p)){
+				while(noct < 3 && xisodigit(*p)){
 					c *= 8;
 					c += *p - '0';
 					p++;
@@ -735,7 +715,7 @@ doconstssrc(Src *src, char *s, unsigned long len)
 				}
 			}else{
 				noct = 0;
-				while(noct < 3 && isoctdigit(*r)){
+				while(noct < 3 && xisodigit(*r)){
 					c *= 8;
 					c += *r - '0';
 					r++;

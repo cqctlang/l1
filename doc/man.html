@@ -2828,6 +2828,81 @@ second half contains, in corresponding order,  the values.
 </div>
 
 
+<h3>Characters</h3>
+
+<p>
+
+ASCII characters are represented as cvalues of type
+<span class="val">char</span> or <span
+class="val">unsigned char</span>.
+</p>
+
+<p>
+The following functions operate on characters.
+</p>
+
+<div class="docitem">
+<div class="proto">
+
+<div class="function">
+<span class="id" id="fn:isalnum">isalnum(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isalpha">isalpha(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isascii">isascii(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isblank">isblank(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:iscntrl">iscntrl(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isdigit">isdigit(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isgraph">isgraph(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:islower">islower(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isodigit">isodigit(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isprint">isprint(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:ispunct">ispunct(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isspace">isspace(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isupper">isupper(<span class="arg">char</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:isxdigit">isxdigit(<span class="arg">char</span>)</span>
+</div>
+<div class="param">
+<span class="arg">char</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue (1 or 0)</span>
+</div>
+</div>
+<div class="desc">
+These functions implement predicates on character values.
+They correspond to the ctype (character type) interface of the
+C library.  The predicates are based on fixed character values,
+and do not depend on the locale of the Cinquecento
+evaluator.
+</div>
+</div>
+
+
 <h3>Strings</h3>
 
 <p>
@@ -4107,22 +4182,36 @@ machines sharing the environment have been freed.
 <a href="#fn:getpid">getpid</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
+<a href="#fn:isalnum">isalnum</a><br />
+<a href="#fn:isalpha">isalpha</a><br />
 <a href="#fn:isarray">isarray</a><br />
+<a href="#fn:isascii">isascii</a><br />
 <a href="#fn:isbase">isbase</a><br />
 <a href="#fn:isbitfield">isbitfield</a><br />
+<a href="#fn:isblank">isblank</a><br />
+<a href="#fn:iscntrl">iscntrl</a><br />
 <a href="#fn:isctype">isctype</a><br />
+<a href="#fn:isdigit">isdigit</a><br />
+<a href="#fn:isempty">isempty</a><br />
 <a href="#fn:isenum">isenum</a><br />
 <a href="#fn:isenumconst">isenumconst</a><br />
 <a href="#fn:isfd">isfd</a><br />
 <a href="#fn:isfunc">isfunc</a><br />
+<a href="#fn:isgraph">isgraph</a><br />
+<a href="#fn:islower">islower</a><br />
+<a href="#fn:isodigit">isodigit</a><br />
+<a href="#fn:isprint">isprint</a><br />
 <a href="#fn:isptr">isptr</a><br />
+<a href="#fn:ispunct">ispunct</a><br />
+<a href="#fn:isspace">isspace</a><br />
 <a href="#fn:isstruct">isstruct</a><br />
 <a href="#fn:issu">issu</a><br />
 <a href="#fn:istypedef">istypedef</a><br />
 <a href="#fn:isundeftype">isundeftype</a><br />
 <a href="#fn:isunion">isunion</a><br />
+<a href="#fn:isupper">isupper</a><br />
 <a href="#fn:isvoid">isvoid</a><br />
-<a href="#fn:isempty">isempty</a><br />
+<a href="#fn:isxdigit">isxdigit</a><br />
 <a href="#fn:length">length</a><br />
 <a href="#fn:list">list</a><br />
 <a href="#fn:listdel">listdel</a><br />

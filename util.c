@@ -186,7 +186,81 @@ xisgraph(int c)
 }
 
 int
+xisblank(int c)
+{
+	return (c == ' ') || (c == '\t');
+}
+
+int
 xisspace(int c)
 {
 	return c == ' ' || ('\t' <= c && c <= 'r');
+}
+
+int
+xisodigit(int c)
+{
+	return ('0' <= c) && (c <= '7');
+}
+
+int
+xisdigit(int c)
+{
+	return ('0' <= c) && (c <= '9');
+}
+
+int
+xisxdigit(int c)
+{
+	return(xisdigit(c)
+	       || (('a' <= c) && (c <= 'f'))
+	       || (('A' <= c) && (c <= 'F')));
+}
+
+int
+xislower(int c)
+{
+	return ('a' <= c) && (c <= 'z');
+}
+
+int
+xisupper(int c)
+{
+	return ('A' <= c) && (c <= 'Z');
+}
+
+int
+xisalpha(int c)
+{
+	return xisupper(c) || xislower(c);
+}
+
+int
+xisalnum(int c)
+{
+	return xisalpha(c) || xisdigit(c);
+}
+
+int
+xisascii(int c)
+{
+	return c >= 0 && c <= 0x7f;
+}
+
+int
+xisprint(int c)
+{
+	return xisgraph(c) || xisspace(c);
+}
+
+int
+xispunct(int c)
+{
+	return xisgraph(c) && !xisalpha(c);
+}
+
+int
+xiscntrl(int c)
+{
+	return (0 <= c && c <= 0x1f) || c == 0x7f;
 }
