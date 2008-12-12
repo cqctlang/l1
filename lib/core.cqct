@@ -1,5 +1,4 @@
-@include <elf.cqct>
-
+// likely depends on elf.cqct
 
 define align(l, sz)
 {
