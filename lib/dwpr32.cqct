@@ -27,8 +27,25 @@ define _dw_get_regval (exdom, regno)
   return 0;
 }
 
+// define _dw_get_fp (exdom)
+// {
+//   return exdom.getebp ();
+// }
+
+define _dw_fpregnum (exdom)
+{
+  return 5;
+}
+
+define _dw_spregnum (exdom)
+{
+  return 4;
+}
+
 define dumpregs (exdom)
 {
+  printf ("for domain %a sizeof (int) is %a and sizeof (int*) is %a\n",
+	  exdom, sizeof (exdom`int), sizeof (exdom`int *));
   printf ("reg 0 = 0x%x (%d)\n", exdom.geteax(), exdom.geteax());
   printf ("reg 1 = 0x%x (%d)\n", exdom.getecx(), exdom.getecx());
   printf ("reg 2 = 0x%x (%d)\n", exdom.getedx(), exdom.getedx());
