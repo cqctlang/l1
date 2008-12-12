@@ -394,11 +394,16 @@ mkconstliti(Liti *liti)
 	return e;
 }
 
+enum{
+	Rany = 0,
+	Roct = 8,
+	Rhex = 16,
+};
+
 int
-parseliti(char *s, unsigned long len, Liti *liti, char **err)
+parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 {
 	Imm n;
-	enum { Rdec, Rhex, Roct } radix;
 	enum { Snone=0, Su, Sl, Sul, Sll, Sull } suf;
 	unsigned base, noct;
 	char c, *p, *z;
@@ -498,13 +503,13 @@ parseliti(char *s, unsigned long len, Liti *liti, char **err)
 	}
 
 	/* integer constant */
-	if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
-		radix = Rhex;
-	else if(s[0] == '0')
-		radix = Roct;
-	else
-		radix = Rdec;
-	n = strtoull(s, &p, 0);
+	if(radix == Rany){
+		if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+			radix = Rhex;
+		else if(s[0] == '0')
+			radix = Roct;
+	}
+	n = strtoull(s, &p, radix);
 
 	suf = Snone;
 	if(p == s){
@@ -552,7 +557,7 @@ parseliti(char *s, unsigned long len, Liti *liti, char **err)
 		p++;
 	}
 		
-	if(radix == Rdec && suf == Snone){
+	if(radix == Rany && suf == Snone){
 		if(n <= Vintmax)
 			base = Vint;
 		else if(n <= Vlongmax)
@@ -617,7 +622,7 @@ doconst(U *ctx, char *s, unsigned long len)
 {
 	Liti liti;
 	char *err;
-	if(0 != parseliti(s, len, &liti, &err))
+	if(0 != parseliti(s, len, &liti, 0, &err))
 		parseerror(ctx, err);
 	return mkconstliti(&liti);
 }

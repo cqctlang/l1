@@ -3234,10 +3234,13 @@ If <span class="arg">lim</span> is unspecified, the entire string is filled.
 <div class="docitem" id="fn:strton">
 <div class="proto">
 <div class="function">
-<span class="id">strton(<span class="arg">str</span>)</span>
+<span class="id">strton(<span class="arg">str</span>[,<span class="radix">base</span>])</span>
 </div>
 <div class="param">
 <span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">base</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
 <span class="type">cvalue</span>
@@ -3247,7 +3250,8 @@ If <span class="arg">lim</span> is unspecified, the entire string is filled.
 Converts the contents of <span class="arg">str</span>
 to an integer cvalue in the literal domain.  The format
 of <span class="arg">str</span> may be any valid C
-integer constant.
+integer constant.  If provided and non-zero, <span class="arg">base</span>
+specifies the base in which the string is interpreted.
 </div>
 </div>
 

@@ -8451,6 +8451,34 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
+l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
+{
+	List *l, *r;
+	Closure *cl;
+	Imm len, m;
+	Val v, argv[1];
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to map");
+	checkarg(vm, "map", iargv, 0, Qcl);
+	if(iargv[1]->qkind != Qlist)
+		vmerr(vm,
+		      "operand 1 to map must be a map");
+	cl = valcl(iargv[0]);
+	l = vallist(iargv[1]);
+	r = mklist();
+	gcprotect(vm, mkvallist(r));
+	len = listxlen(l->x);
+	for(m = 0; m < len; m++){
+		argv[0] = listref(vm, l, m);
+		v = dovm(vm, cl, 1, argv);
+		gcprotect(vm, v);
+		listins(vm, r, m, v);
+	}
+	*rv = mkvallist(r);
+}
+
+static void
 l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -8990,13 +9018,25 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
 	Liti liti;
+	Cval *cv;
 	char *err;
+	unsigned radix;
 
-	if(argc != 1)
+	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to strton");
 	checkarg(vm, "strton", argv, 0, Qstr);
+	radix = 0;
+	if(argc == 2){
+		checkarg(vm, "strton", argv, 1, Qcval);
+		cv = valcval(argv[1]);
+		if(!isnatcval(cv))
+			vmerr(vm, "operand 2 to strton must be "
+			      "non-negative");
+		radix = cv->val;
+	}
+		
 	s = valstrorcval(vm, "strton", argv, 0);
-	if(0 != parseliti(s->s, s->len, &liti, &err))
+	if(0 != parseliti(s->s, s->len, &liti, radix, &err))
 		vmerr(vm, err);
 	*rv = mkvalcval(vm->litdom, vm->litbase[liti.base], liti.val);
 }
@@ -10482,6 +10522,7 @@ mktopenv()
 	FN(listset);
 	FN(lookfield);
 	FN(looktype);
+	FN(map);
 	FN(meminuse);
 	FN(memset);
 	FN(memtotal);
