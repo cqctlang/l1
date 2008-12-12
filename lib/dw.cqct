@@ -279,12 +279,9 @@ define dw_get_aranges (ardom)
   }
   if (!ismapped (artuple))
     return nil;
-  //printf ("ar_start is 0x%x\n", artuple->ar_start);
   while (artuple->ar_start || artuple->ar_len) {
     while (artuple->ar_start || artuple->ar_len) {
       append (arl, [artuple->ar_start, artuple->ar_start + artuple->ar_len]);
-      //printf ("ar_start = 0x%x:\tar_len = 0x%x:\n",
-      //	      artuple->ar_start, artuple->ar_len);
       artuple++;
       if (!ismapped (artuple)) {
 	printf ("unmapped address at 0x%x\n", artuple);
@@ -940,39 +937,40 @@ define dw_find_fde_for_addr (fdom, addr)
   done = {fdom} 0;
   asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom);
   while (ismapped ((char *) cptr) && !done) {
-    if (asize == 4)
+    //if (asize == 4)
       cie = (struct dw_cie_struct *) cptr;
-    else if (asize == 8)
-      cie = (struct dw64_cie_struct *) cptr;
+      //else if (asize == 8)
+      //cie = (struct dw64_cie_struct *) cptr;
     /* Now search all the fde's for this cie to see if any have the correct
        address range. */
     
     if (asize == 4)
       fde = (struct dw_fde_struct *) (cptr + cie->len + sizeof (cie->len));
     else if (asize == 8)
-      fde = (struct dw64_fde_struct *) (cptr + cie->real_len + sizeof (cie->len) + sizeof (cie->real_len));
+      fde = (struct dw64_fde_struct *) (cptr /*+ cie->real_len*/ + sizeof (cie->len));// + sizeof (cie->real_len));
     while (!done) {
-      if ((asize == 4 && fde->cie_off == 0xffffffff)
-	  || (asize == 8 && fde->cie_off == 0xffffffffffffffff)){
+      //if ((asize == 4 && fde->cie_off == 0xffffffff)
+      //	  || (asize == 8 && fde->cie_off == 0xffffffffffffffff)){
+      if (fde->cie_off == 0xffffffff) {
 	cptr  = (unsigned int) fde;
 	break;
       }
       if (fde->init_loc <= cad && cad < (fde->init_loc + fde->addr_range)) {
 	/* then we have found the correct fde */
 	done = 1;
-	if (asize == 4)
+	//if (asize == 4)
 	  cie = (struct dw_cie_struct *) (fde->cie_off);
-	else if (asize == 8)
-	  cie = (struct dw64_cie_struct *) (fde->cie_off);
+	  //else if (asize == 8)
+	  //cie = (struct dw64_cie_struct *) (fde->cie_off);
 	result = [ fde, cie ];
 	break;
       }
       else {
-	if (asize == 4)
+	//if (asize == 4)
 	  fde = (unsigned int) fde + fde->len + sizeof (fde->len);
-	else if (asize == 8)
-	  fde = (unsigned int) fde + fde->real_len
-	    + sizeof (fde->len) + sizeof (fde->real_len);
+	  //else if (asize == 8)
+	  //fde = (unsigned int) fde + fde->real_len
+	  //  + sizeof (fde->len) + sizeof (fde->real_len);
 	if (!ismapped ((char *) fde)) {
 	  done = 1; /* We've run out of room. No point in setting cie to fde */
 	  break;
@@ -1000,22 +998,27 @@ define dw_unwind_to_caller (fdom, addr)
   cptr = {fdom} 0;
   asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom);
   ftab = dw_get_value (_dwcqct_frametable, _dwcqct_debug_frame, fdom);
+  //  printf ("searching for %a in ftab %a\n", cad, ftab);
   fdel = bsearch (cad, ftab,
 		 lambda (a,b) {if (a < listref (b, 0)) return -1;
 		   else if (a >= listref (b, 1)) return 1;
 		   else return 0;});
-  if (isnil (fdel))
+  if (isnil (fdel)) {
+    //printf ("returning %a because fdel is nil\n", result);
     return result;
-  fde = listref (fdel, 2);
-  if (asize == 4) {
-    clim = (int) fde + listref (fdel, 3) + sizeof (fde->len);
   }
-  else if (asize == 8)
-    clim = (int) fde + listref (fdel, 3) + sizeof (fde->len) + sizeof (fde->real_len);
+  fde = listref (fdel, 2);
+  //if (asize == 4) {
+    clim = (int) fde + listref (fdel, 3) + sizeof (fde->len);
+    //}
+    //else if (asize == 8)
+    //clim = (int) fde + listref (fdel, 3) + sizeof (fde->len) + sizeof (fde->real_len);
   cie = (struct dw_cie_struct *) fde->cie_off;
   loc = fde->init_loc;
   end = (unsigned int) loc + fde->addr_range;
   if (cad < loc || cad >= end) {
+    printf ("returning %a because cad = %d loc = %d end = %d\n", result,
+	    cad, loc, end);
     return result;
   }
   rules = dw_get_cie_init_ruleset (fdom, cie);
@@ -1025,6 +1028,7 @@ define dw_unwind_to_caller (fdom, addr)
   rval = [ curstate, iptr, statestack ];
   while (!isnil (result)
 	 && head (listref (result, 0)) <= cad) {
+    //printf ("inside while result is %a and cad is %a\n", result, cad);
     rval = result;
     curstate = listref (result, 0);
     iptr = listref (result, 1);
@@ -1040,6 +1044,7 @@ define dw_unwind_to_caller (fdom, addr)
     curstate = [ cad, listref (curstate, 1) ];
     rval = [ curstate, iptr, statestack ];
   }
+  //printf ("about to return %a from dw_unw_to_cal \n", rval);
   return rval;
 }
 
@@ -1048,22 +1053,37 @@ define dw_unwind_to_caller (fdom, addr)
    the file being executed. exbase is the dynamic base address of the
    exdom (0 for absolute addresses in the executables, dynamic base
    load addresses for shared libraries. */
-define dw_unwind (exdom, fdom, ip, exbase, curregs)
+define dw_unwind (exdom, fdom, ip, exbase)
 {
   @local ebp, eip, rvec, r, rlist, cfa, newcfa, result, dinfo;
-  @local vlen, newregs, i;
+  @local curregs, newregs, i, fp, sp;
+  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom);
+  if (asize == 4) {
+    curregs = mklist (9);
+    newregs = mklist (9);
+  }
+  else if (asize == 8) {
+    curregs = mklist (17);
+    newregs = mklist (17);
+  }
+  listset (curregs, 0, 0);
+  listset (newregs, 0, 0);
+  for (i = 1; i < length (curregs); i++) {
+    listset (curregs, i, _dw_get_regval (exdom, i));
+    listset (newregs, i, _dw_get_regval (exdom, i));
+  }
   result = append ([], ip);
   eip = (unsigned int) {exdom} ip - (unsigned int) {exdom} exbase;
-  vlen = length (curregs);
-  newregs = [];
-  for (i = 0; i < vlen; i++) {
-    append (newregs, listref(curregs, i));
-  }
   rlist = dw_unwind_to_caller (fdom, eip);
 
+  //printf ("rlist is %a\n", rlist);
+  //  printf ("newregs is %a\n", newregs);
   cfa = 0;
   newcfa =  0;
-  ebp = {fdom} (getebp (exdom));
+  //ebp = {fdom} (_dw_get_fp (exdom));
+  fp = _dw_fpregnum (exdom);
+  sp = _dw_spregnum (exdom);
+  ebp = {fdom}(_dw_get_regval (exdom, fp));
   /* For the moment assume that register rules are in order CFA, 1, 2, ...*/
   while (!isempty (rlist)) {
     /* First restore Canonical Frame Address (CFA) */
@@ -1077,96 +1097,131 @@ define dw_unwind (exdom, fdom, ip, exbase, curregs)
       if (reg == fdom`DW_FRAME_CFA_COL) {
 	switch (listref (r, 1)) {
 	case 5: base = {fdom} (listref (curregs, 5));
-	  cfa = {fdom} ((unsigned int) ({exdom} (base + listref (r, 2))));
+	  cfa = {fdom} ((unsigned long) ({exdom} (base + listref (r, 2))));
 	  listset (newregs, 0, cfa);
 	  newcfa = 1;
 	  break;
 	case 4: base = {fdom} (listref (curregs, 4));
-	  cfa = {fdom} ((unsigned int) ({exdom} (base + listref (r, 2))));
+	  cfa = {fdom} ((unsigned long) ({exdom} (base + listref (r, 2))));
+	  listset (newregs, 0, cfa);
+	  newcfa = 1;
+	  break;
+	case 6: base = {fdom} (listref (curregs, 6));
+	  cfa = {fdom} ((unsigned long) ({exdom} (base + listref (r, 2))));
+	  listset (newregs, 0, cfa);
+	  newcfa = 1;
+	  break;
+	case 7: base = {fdom} (listref (curregs, 7));
+	  cfa = {fdom} ((unsigned long) ({exdom} (base + listref (r, 2))));
 	  listset (newregs, 0, cfa);
 	  newcfa = 1;
 	  break;
 	default: printf ("CFA relative to reg %d\n", listref (r, 1));
 	  break;
 	}
-      }
-      else if (reg == 5) {
-	switch (listref (r, 1)) {
-	case 0: ebp = {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2)))));
-	  listset (newregs, 5, ebp);
-	  break;
-	default: printf ("ebp rule is %a\n", r);
+	/* If there is no rule for either the frame pointer or the stack
+	   pointer, then we assume that the function has no frame pointer
+	   and that the DWARF producer is expecting the consumer to use
+	   the Canonical Frame Address (cfa) for restoring the stack
+	   pointer. In Intel architectures the cfa is the value of the
+	   stack pointer when the call occurs. The hardware pushes the
+	   return address on the stack. When the call returns, the
+	   stack pointer is once again equal to the cfa of the returning
+	   function. Set the value of the sp register to the cfa so that
+	   further unwinds work. */
+	if (isnil (listref (rvec, fp))
+	    && isnil (listref (rvec, sp))) {
+	  listset (newregs, sp, cfa);
 	}
       }
-      else if (reg == 8) {
-	switch (listref (r, 1)) {
-	case 0: eip = {fdom} (*(unsigned int *) ({exdom}(cfa + listref (r,2))));
-	  /* keep eip in the exdom so that address adjustment is easy */
-	  eip = {exdom} eip;
-	  listset (newregs, 8, eip);
-	  append (result, eip);
-	  break;
-	default: printf ("eip rule is %a\n", r);
+      else if (asize == 4) {
+	switch (reg) {
+	case 5: {
+	  switch (listref (r, 1)) {
+	  case 0: ebp = {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2)))));
+	    listset (newregs, 5, ebp);
+	    break;
+	  default: printf ("ebp rule is %a\n", r);
+	  }
 	}
-      }
-      else if (reg == 1) {
-	switch (listref (r, 1)) {
-	case 0:
-	  listset (newregs, 1,
+	  break;
+	case 8: {
+	  switch (listref (r, 1)) {
+	  case 0: eip = {fdom} (*(unsigned int *) ({exdom}(cfa + listref (r,2))));
+	    /* keep eip in the exdom so that address adjustment is easy */
+	    eip = {exdom} eip;
+	    listset (newregs, 8, eip);
+	    append (result, eip);
+	    break;
+	  default: printf ("eip rule is %a\n", r);
+	  }
+	}
+	  break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 6:
+	case 7:
+	  listset (newregs, reg,
 		   {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2))))));
 	  break;
-	default: printf ("r1 rule is %a\n", r);
+	default:
+	  printf ("reg is %d and rule is %a\n", r);
 	}
       }
-      else if (reg == 2) {
-	switch (listref (r, 1)) {
-	case 0:
-	  listset (newregs, 2,
-		   {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2))))));
+      else if (asize == 8) {
+	switch (reg) {
+	case 6: {
+	  switch (listref (r, 1)) {
+	  case 0: ebp = {fdom} (*((unsigned long *) ({exdom}(cfa + listref (r,2)))));
+	    listset (newregs, 6, ebp);
+	    break;
+	  default: printf ("ebp rule is %a\n", r);
+	  }
+	}
 	  break;
-	default: printf ("r2 rule is %a\n", r);
+	case 16: {
+	  switch (listref (r, 1)) {
+	  case 0:
+// 	    printf ("about to read eip from 0x%x (%d) + 0x%x (%d)\n",
+// 		    cfa, cfa, listref (r, 2), listref (r, 2));
+// 	    printf ("rlist is %a\n", rlist);
+// 	    printf ("newregs is %a\n", newregs);
+// 	    printf ("curregs is %a\n", curregs);
+	    eip = {fdom} (*(unsigned long *) ({exdom}(cfa + listref (r,2))));
+	    /* keep eip in the exdom so that address adjustment is easy */
+	    eip = {exdom} eip;
+	    listset (newregs, 16, eip);
+	    append (result, eip);
+	    break;
+	  default: printf ("eip rule is %a\n", r);
+	  }
 	}
-      }
-      else if (reg == 3) {
-	switch (listref (r, 1)) {
-	case 0:
-	  listset (newregs, 3,
-		   {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2))))));
 	  break;
-	default: printf ("r3 rule is %a\n", r);
-	}
-      }
-      else if (reg == 4) {
-	switch (listref (r, 1)) {
-	case 0:
-	  listset (newregs, 4,
-		   {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2))))));
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 7:
+	case 8:
+	case 9:
+	case 10:
+	case 11:
+	case 12:
+	case 13:
+	case 14:
+	case 15:
+	  listset (newregs, reg,
+		   {fdom} (*((unsigned long *) ({exdom}(cfa + listref (r,2))))));
 	  break;
-	default: printf ("r4 rule is %a\n", r);
+	default:
+	  printf ("reg is %d and rule is %a\n", r);
 	}
       }
-      else if (reg == 6) {
-	switch (listref (r, 1)) {
-	case 0:
-	  listset (newregs, 6,
-		   {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2))))));
-	  break;
-	default: printf ("r6 rule is %a\n", r);
-	}
-      }
-      else if (reg == 7) {
-	switch (listref (r, 1)) {
-	case 0:
-	  listset (newregs, 7,
-		   {fdom} (*((unsigned int *) ({exdom}(cfa + listref (r,2))))));
-	  break;
-	default: printf ("r7 rule is %a\n", r);
-	}
-      }
-      else
-	printf ("reg is %d and rule is %a\n", r);
     }
-    for (i = 0; i < 9; i++) {
+    for (i = 0; i < length (curregs); i++) {
       listset(curregs, i, listref(newregs, i));
     }
     rlist =  dw_unwind_to_caller (fdom, eip);
@@ -1210,6 +1265,7 @@ define dw_process_one_fde_inst (dwdom, instptr, cie, curstate, statestack)
     loc = 0;
   }
   caf = dw_cie_afs (dwdom, cie); /* returns a list of caf and daf */
+  //printf ("caf is %a\tdaf is %a\n", listref (caf, 0), listref (caf, 1));
   daf = listref (caf, 1);
   caf = listref (caf, 0);
   cptr = {dwdom} instptr;
@@ -1253,7 +1309,7 @@ define dw_process_one_fde_inst (dwdom, instptr, cie, curstate, statestack)
     op = op & 0x3f;
     switch (op) {
     case dwdom`DW_CFA_set_loc: {
-      loc = *(unsigned int *) cptr;  /* assume that unsigned int is the size
+      loc = *(unsigned long *) cptr;  /* assume that unsigned long is the size
 					 of an address */
       cptr += sizeof (loc);
       curstate = [ loc, rules ];
@@ -1281,7 +1337,7 @@ define dw_process_one_fde_inst (dwdom, instptr, cie, curstate, statestack)
       break;
     case dwdom`DW_CFA_advance_loc4: {
       @local delta;
-      delta = *(unsigned int *) cptr;
+      delta = *(unsigned long *) cptr;
       cptr += sizeof (delta);
       curstate = [ loc + delta, rules ];
       result = [ curstate, cptr, statestack ];
@@ -1499,8 +1555,13 @@ define dw_cie_afs (dwdom, cie)
 
 define dw_get_cie_init_ruleset (dwdom, cie)
 {
-  @local aug, caf, daf, instptr, result, rvec;
-  rvec = [nil, nil, nil, nil, nil, nil, nil, nil, nil];
+  @local aug, caf, daf, instptr, result, rvec, asize;
+  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom);
+  if (asize == 4)
+    rvec = mklist (9);
+  else if (asize == 8)
+    rvec = mklist (17);
+  //  rvec = [nil, nil, nil, nil, nil, nil, nil, nil, nil];
   aug = advance_strptr (dwdom, (char *) ((unsigned int) cie + sizeof (*cie)));
   caf = decodeuleb128 (listref (aug, 1));
   daf = decodesleb128 (listref (caf, 1));
@@ -1556,18 +1617,22 @@ define dw_build_frametab (fdom)
   cptr = {fdom} 0;
   done = {fdom} 0;
   while (ismapped ((char *) cptr) && !done) {
-    if (asize == 4)
+    //if (asize == 4)
       cie = (struct dw_cie_struct *) cptr;
-    else if (asize == 8)
-      cie = (struct dw64_cie_struct *) cptr;
+      //else if (asize == 8)
+      //  cie = (struct dw64_cie_struct *) cptr;
     /* Now accumulate all the fde's for this cie */
     if (asize == 4)
       fde = (struct dw_fde_struct *) (cptr + cie->len + sizeof (cie->len));
     else if (asize == 8)
       fde = (struct dw64_fde_struct *) (cptr + cie->len + sizeof (cie->len));
+//     printf ("cie has 0x%x 0x%x %a\n", cie->len, cie->id, cie->version);
+//     printf ("fde has 0x%x 0x%x 0x%x 0x%x\n", fde->len, fde->cie_off,
+// 	    fde->init_loc, fde->addr_range);
     while (!done) {
-      if ( (asize == 4 && fde->cie_off == 0xffffffff)
-	   || (asize == 8 && fde->cie_off == 0xffffffffffffffff)){
+      //if ( (asize == 4 && fde->cie_off == 0xffffffff)
+      //	   || (asize == 8 && fde->cie_off == 0xffffffffffffffff)){
+      if (fde->cie_off == 0xffffffff) {
 	cptr  = (unsigned int) fde;
 	break;
       }
@@ -1575,26 +1640,28 @@ define dw_build_frametab (fdom)
 	fentry = [];
 	append (fentry, fde->init_loc);
 	append (fentry, fde->init_loc + fde->addr_range);
+	//printf ("fde is 0x%x and len is 0x%x\n", fde, fde->len);
 	append (fentry, fde);
-	if (asize == 4)
+	//if (asize == 4)
 	  append (fentry, fde->len);
-	else if (asize == 8)
-	  append (fentry, fde->real_len);
+	  //else if (asize == 8)
+	  //append (fentry, fde->real_len);
+	  //printf ("0x%x\t0x%x\n", listref (fentry, 0), listref (fentry, 1));
 	append (result, fentry);
       }
-      if (asize == 4)
-	fde = (unsigned int) fde + fde->len + sizeof (fde->len);
-      else if (asize == 8)
-	fde = (unsigned int) fde + fde->real_len
-	  + sizeof (fde->len) + sizeof (fde->real_len);
+      //if (asize == 4)
+	fde = (unsigned long) fde + fde->len + sizeof (fde->len);
+	//else if (asize == 8)
+	//fde = (unsigned long) fde + fde->real_len
+	// + sizeof (fde->len) + sizeof (fde->real_len);
       if (!ismapped ((char *) fde)) {
 	done = 1; /* We've run out of room. No point in setting cie to fde */
 	break;
       }
-    if (asize == 4)
-      fde = (struct dw_fde_struct *) fde;
-    else if (asize == 8)
-      fde = (struct dw64_fde_struct *) fde;
+      if (asize == 4)
+	fde = (struct dw_fde_struct *) fde;
+      else if (asize == 8)
+	fde = (struct dw64_fde_struct *) fde;
     }
   }
   printf ("Returning from dw_build_frametab\n");
@@ -2641,7 +2708,6 @@ define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab)
       locfun = lambda () {
 	@local savedstackind, rv, fbase;
 	fbase = lambda () {return get_frame_base_from_pc (infodom, exas, ctab);};
-	//printf ("In closure just set fbase to %a\n", fbase);
 	while (lcptr < lend) {
 	  /* As long as we are in the evaluation of a DWARF block, the values
 	     we care about are on the evaluator stack. It's only when we
@@ -2660,10 +2726,8 @@ define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab)
 	listset (rv, 0, _dw_pop());
 	/* I think that the following is correct. */
 	if (isnil (listref (rv, 1))) {
-	  //printf ("type is nil for %a\n", rv);
 	  listset (rv, 1, _dwcqct_addr_type);
 	}
-	//printf ("rv is %a\n", rv);
 	return rv;
       };
       val = locfun;
@@ -2887,8 +2951,6 @@ define dw_get_value (key2, key1, val1)
 {
   @local l, i, vec;
   l = nil;
-  //printf ("dw_get_value called with key2 %d key1 %d val1 %a\n",
-  //  key2, key1, val1);
   if (key1 == _dwcqct_execdomain) {
     printf ("Cannot select domains on the basis of execdomain\n");
     return nil;
@@ -3065,7 +3127,6 @@ define dw_print_list (l)
     printf ("Element %d is %a\n", i, listref (l,  i));
 }
 
-//current_function_context = [];
 local_scope_stack = [];
 
 define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblist, ptr, cubase, toplevel, etab)
@@ -3073,12 +3134,10 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
   @local acode, cptr, ab, abl, tag, spec, speclist, cqcttype;
   @local val, atname, form, i;
   cptr = {indom} ptr;
-  //printf ("processing die at 0x%x (%d)\n", cptr, cptr);
   acode = decodeuleb128 (cptr);
   cptr = listref (acode, 1);
   acode = head (acode);
   if (!acode || acode > length (abtab)) {
-    //printf ("ab is %a\n", ab);
     return [ nil, cptr ];
   }
   ab = nil;
@@ -3094,13 +3153,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       }
   }
 
-//   callcc (lambda (brk) {
-// 	    foreach (lambda (v) {if (head (v) == acode) {ab = v;
-// 				   brk (nil);}}, abtab);});
-//   if (isempty (abl)) {
-//     //printf ("returning %a\n", [ nil, cptr ]);
-//     return [ nil, cptr ];
-//   }
   if (isnil (ab)) {
     printf ("ab is %a\n", ab);
     return [ nil, cptr ];
@@ -3127,7 +3179,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       val = head (val);
       if (atname == indom`DW_AT_name) {
 	if (form == indom`DW_FORM_strp) {
-	  //printf ("looking for string at %a\n", val);
 	  name = stringof ((unsigned char *) {strdom} val);
 	}
 	else if (form == indom`DW_FORM_string)
@@ -3139,8 +3190,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	type = val;
       }
       else if (atname == indom`DW_AT_location) {
-// 	if (ptr == 50223 || ptr == 50223 + cubase)
-// 	  printf ("form is 0x%x (%d)\n", form, form);
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
 	  /* then val is an offset into the .debug_loc section */
@@ -3149,24 +3198,13 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	  location = dw_process_location_list (locdom, exas, val, form, cubase,
 					 _dw_current_frame_base);
 	  location = head (location);
-// 	  if (name == "yymsg")
-// 	    printf ("At fp1 ptr is %d; location of %a is %a\n",
-// 		    ptr, name, location);
 	}
 	else {
 	  if (isempty (local_scope_stack)) {
 	    location = val;
-// 	    printf ("At fp2 ptr is %d; location of %a is %a\n",
-// 	        ptr, name, location);
 	  }
 	  else {
-// 	    @local lopc, hipc;
-// 	    lopc = listref (listref (local_scope_stack, 0), 1);
-// 	    hipc = listref (listref (local_scope_stack, 0), 2);
-// 	    location = [lopc, hipc, val];
 	    location = [[listref (local_scope_stack, 0), val]];
-// 	    printf ("At fp3 ptr is %d; location of %a is %a\n",
-// 	        ptr, name, location);
 	  }
 	}
       }
@@ -3196,17 +3234,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	  scope = isempty (local_scope_stack) ? local_scope_stack :
 	    head (local_scope_stack);
 	  append (locinfo, [scope, location]);
-// 	  loc = listref (refparam, 5);
-// 	  if (isnil (loc)) {
-// 	    loc = [ location ];
-// 	    listset (refparam, 5, loc);
-// 	  }
-// 	  else if (islist (loc)) {
-// 	    append (loc, location);
-// 	  }
-// 	  else
-// 	    printf ("unexpected nonnil nonlist %a as location of var %a\n",
-// 		    loc, refparam);
 	}
       }
     }
@@ -3216,12 +3243,8 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	       : head (local_scope_stack),
 	       location]] ];
     if (!abstorigin) {
-//       if (name == "ctx")
-// 	printf ("in dwpd inserting param %a in symtab.\n", fparam);
       tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), fparam);
     }
-//     if (name == "yymsg")
-//       printf ("fparam is %a\n", fparam);
     return [ fparam, cptr ];
     break;
   }
@@ -3237,11 +3260,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      if (isempty (local_scope_stack)// || toplevel
-// 	  || (length (local_scope_stack) == 1
-// 	      && isnil (listref (listref (local_scope_stack, 0), 1))
-// 	      && isnil (listref (listref (local_scope_stack, 0), 2)))
-	  ) {
+      if (isempty (local_scope_stack)) {
 	val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab);
       }
       else {
@@ -3269,36 +3288,20 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	  location = dw_process_location_list (locdom, exas, val, form, cubase,
 					       _dw_current_frame_base);
 	  location = head (location);
-// 	  printf ("At 1 set location of %a to %a\n", name, location);
 	}
 	else {
 	  if (isempty (local_scope_stack)
-// 	      || (length (local_scope_stack) == 1
-// 		  && isnil (listref (listref (local_scope_stack, 0), 1))
-// 		  && isnil (listref (listref (local_scope_stack, 0), 2)))
 	      ) {
 	    if (isprocedure (val)) {
 	      //val ();
 	      location = listref (val(), 0);
-// 	      printf ("At 4 setting location of %a to %a\n", name, location);
 	    }
 	    else {
 	      location = val;
-// 	      printf ("At 2 setting location of %a to %a\n", name, location);
 	    }
 	  }
 	  else {
-// 	    @local lopc, hipc;
-// 	    lopc = listref (listref (local_scope_stack, 0), 1);
-// 	    hipc = listref (listref (local_scope_stack, 0), 2);
-// 	    location = [lopc, hipc, val];
-// 	    if (isprocedure (val)) {
-// 	      val ();
-// 	      printf ("For ptr %d At 4 res is %a\n", ptr, _dw_pop());
-// 	    }
-	    //location = [listref (local_scope_stack, 0), val];
 	    location = [[listref (local_scope_stack, 0), val]];
-// 	    printf ("At 3 setting location of %a to %a\n", name, location);
 	  }
 	}
       }
@@ -3328,16 +3331,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	  scope = isempty (local_scope_stack) ? local_scope_stack :
 	    head (local_scope_stack);
 	  append (locinfo, [scope, location]);
-// 	  if (isnil (loc)) {
-// 	    loc = [ location ];
-// 	    listset (refvar, 5, loc);
-// 	  }
-// 	  else if (islist (loc)) {
-// 	    append (loc, location);
-// 	  }
-// 	  else
-// 	    printf ("unexpected nonnil nonlist %a as location of var %a\n",
-// 		    loc, refvar);
 	}
       }
     }
@@ -3345,11 +3338,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	    [[isempty (local_scope_stack) ? local_scope_stack
 	    : head (local_scope_stack),
 	    location]], toplevel];
-    //if (name == "yystack")
-//     if (22882 < (ptr-cubase) && (ptr - cubase) < 22974)
-//       printf ("var is %a\n", var);
     if (!abstorigin) {
-      //printf ("in dwpd inserting var %a in symtab.\n", var);
       tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), var);
     }
     return [ var, cptr ];
@@ -3424,13 +3413,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	mtype = val;
       }
       else if (atname == indom`DW_AT_data_member_location) {
-	//mloc = val;
-	//printf ("for ptr %d (%d) fld loc is %a\n",
-	//(int)ptr, (int)ptr + (int)cubase, val);
-	//val();
-	//mloc = _dw_pop();
 	mloc = listref (val(), 0);
-	//printf ("top of stack is %a\n", mloc);
       }
     }
     if (bitfield && !isnil (bitsize) && !isnil (bitoff))
@@ -3492,25 +3475,16 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       else if (atname == indom`DW_AT_frame_base) {
 	@local locdom, rv;
 	if (!isnil (hipc)) {
-// 	  printf ("pushing %a onto local_scope_stack %a\n",
-// 		  [name, [[lopc, hipc]]], local_scope_stack);
 	  push (local_scope_stack, [[lopc, hipc]]);
-// 	  printf ("lss is now %a\n", local_scope_stack);
 	  contextset = 1;
 	}
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
 	  locdom = dw_get_value (_dwcqct_debug_loc, _dwcqct_debug_info, indom);
-	  //printf ("About to call dpll w cubase %a and fb %a\n", cubase,
-	  //  _dw_current_frame_base);
 	  rv = dw_process_location_list (locdom, exas, val, form, cubase,
 					 _dw_current_frame_base);
-	  //printf ("After call to dppl\n");
 	  _dw_current_frame_base = head (rv);
-	  //printf ("fblist is %a\n and _dw_current_frame_base is %a\n", fblist,
-	  //	  _dw_current_frame_base);
 	  foreach (lambda (v) {append (fblist, v);}, _dw_current_frame_base);
-	  //append (fblist, listref (_dw_current_frame_base, 1));
 	}
 	else {
 	  fbase = val;
@@ -3575,31 +3549,11 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	  progtype = listref (refprog, 3);
       }
     }
-//     if (ptr == 22683 || ptr == 22673) {
-//       printf ("lex blk at 22683 name is %a, lopc = %a, hipc = %a\n",
-// 	      name, lopc, hipc);
-//       printf ("local_scope_stack is %a\n", local_scope_stack);
-//       printf ("range list is %a\n", rl);
-//     }
-//     if (!isnil (hipc) && head (tag) == abdom`DW_TAG_lexical_block)
-//       push (local_scope_stack, [name, [[lopc, hipc]]]);
-//     else if (!contextset && head (tag) != abdom`DW_TAG_subroutine_type) {
-//       //if (! (isnil (name) && isnil (lopc) && isnil (hipc)))
-// 	//printf ("At ptr %d about to push [nil, nil, nil] onto func context of %a\n",
-// 	//	ptr, local_scope_stack);
-//       push (local_scope_stack, [name, lopc, hipc]);
-//     }
     if (isnil (hipc) && !isnil (rl)){
-//       printf ("pushing %a onto local_scope_stack %a\n",
-// 	      [name, [rl]], local_scope_stack);
       push (local_scope_stack, rl);
-//       printf ("lss is now %a\n", local_scope_stack);
     }
     else if (!contextset){
-      //printf ("pushing %a onto local_scope_stack %a\n",
-      //      [name, [[lopc, hipc]]], local_scope_stack);
       push (local_scope_stack, [[lopc, hipc]]);
-      //printf ("lss is now %a\n", local_scope_stack);
     }
     if (!isnil (rl) && !isempty (local_scope_stack)
 	&& length (listref (local_scope_stack, 0)) == 3
@@ -3627,21 +3581,12 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	case indom`DW_TAG_formal_parameter:
 	case indom`DW_TAG_unspecified_parameters:
 	  append (paramlist, subdie);
-	  //	  printf ("paramlist is %a\n", paramlist);
-// 	  if (listref (subdie, 2) == "ctx")
-// 	    printf ("For fp ctx subdie is %a\ncfcontext is %a\n",
-// 	  	    subdie, local_scope_stack);
 	  if (stag == indom`DW_TAG_formal_parameter)
 	    append (symlist, subdie);
 	  break;
 	case indom`DW_TAG_variable:
-// 	  printf ("lopc = %a, hipc = %a, rl = %a\nvar  = %a\n",
-// 		  lopc, hipc, rl, subdie);
 	  append (locals, subdie);
 	  append (symlist, subdie);
-	  //if (listref (subdie, 2) == "yysval")
-	  //  printf ("For var yysval subdie is %a\ncfcontext is %a\n",
-	  //	    subdie, local_scope_stack);
 	  break;
 	case indom`DW_TAG_inlined_subroutine:
 	  break;
@@ -3660,10 +3605,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	break;
       }
     }
-//     if (head (tag) != abdom`DW_TAG_subroutine_type
-// 	|| (!isnil (hipc) && head (tag) == abdom`DW_TAG_lexical_block)) {
-//       pop (local_scope_stack);
-//     }
     if (isnil (hipc) && !isnil (rl))
       pop (local_scope_stack);
     else
@@ -3671,17 +3612,13 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
     if (head (tag) == abdom`DW_TAG_subprogram) {
       prog = [ ptr, {indom}head (tag),
 	       name, (unsigned char *){indom}(ptr - cubase), lopc, toplevel];
-      //if ({indom}(ptr - cubase) == 3202)
-      //printf ("Inserting %a at loc 1\n", prog);
       tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), prog);
     }
     prog = [ ptr, {indom} head (tag),
 	     name, progtype, paramlist, locals, toplevel ];
-//     printf ("prog is %a\nand paramlist is %a\n", prog, paramlist);
     if (abstorigin) {
       @local refprog, lscope;
       if (isnil (hipc) && !isnil (rl))
-	//lscope = [name, rl];
 	lscope = rl;
       else
 	lscope = [[lopc, hipc]];
@@ -3689,30 +3626,17 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       if (isnil (refprog)) {
 	prog = [ ptr, {indom} head (tag), name, progtype, lscope,
 		 toplevel ];
-// 	if ({indom}(ptr - cubase) == 23684)
-// 	  printf ("Inserting %a at loc 2 with abstorigin %a\n", prog,
-// 		  abstorigin);
 	tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), prog);
       }
       else {
 	@local loc;
-	//printf ("About to add cfc %a to location of %a\n",
-	//local_scope_stack, refprog);
 	loc = listref (refprog, 4);
-// 	if (abstorigin == 22671)
-// 	  printf ("1 for refprog %a\nlocation is %a\n", refprog, loc);
 	if (isnil (loc)) {
-	  //loc = [ [lopc, hipc, local_scope_stack] ];
 	  loc = lscope;
 	  listset (refprog, 4, loc);
-// 	if (abstorigin == 22671)
-// 	  printf ("2 for refprog %a\nlocation is now %a\n", refprog, loc);
 	}
 	else if (islist (loc)) {
-	  //append (loc, [ lopc, hipc, local_scope_stack]);
 	  append (loc, lscope); // address ranges only
-// 	if (abstorigin == 22671)
-// 	  printf ("3 for refprog %a\nlocation is now %a\n", refprog, loc);
 	}
 	else
 	  printf ("unexpected nonnil nonlist %a as location of prog %a\n",
@@ -3721,8 +3645,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
     }
     else if (head (tag) != abdom`DW_TAG_lexical_block)
       tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), prog);
-//     printf ("typetab now holds %a\n",
-// 	    tablook (typetab, (unsigned char *){indom}(ptr - cubase)));
     if (!isnil (rl)) {
       lscope = [ rl, {indom} head (tag), name, symlist, typelist, subscopes ];
       for (i = 0; i < length (rl); i++) {
@@ -3739,10 +3661,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
     }
     else
       lscope = nil;
-      //printf ("for prog %a rl is %a, lopc is %a, and hipc is %a\n",
-      //	      prog, rl, lopc, hipc);
-//     printf ("before return typetab now holds %a\n",
-// 	    tablook (typetab, (unsigned char *){indom}(ptr - cubase)));
     return [ prog, cptr, lscope ];
   }
     break;
@@ -3859,7 +3777,6 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       mem = head (mem);
       if (!isnil (mem) && listref (mem, 1) == indom`DW_TAG_member)
 	append (memlist, mem);
-      //_dw_pop ();
       if ({indom}stend && (unsigned int)cptr >= (unsigned int)stend + (unsigned int)cubase)
 	break;
     }
@@ -4225,7 +4142,6 @@ define get_cu_baseaddr (indom, abdom, strdom, exas, ptr)
   abtlen = length (abtable);
   cptr = (unsigned int) cptr + sizeof (*cu);
   di = dw_process_die (indom, abdom, strdom, indom, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1, etab);
-  //printf ("%a\n", di);
   return head (di);;
 }
     
@@ -4233,7 +4149,6 @@ define get_cu_info (indom, abdom, strdom, exas, ptr, etab)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
   @local typetab, cnt, symtab, fblist, cuscope, subscopelist;
-  //printf ("processing cu at 0x%x (%d)\n", ptr, ptr);
   local_scope_stack = [];
   cnt = 0;
   fblist = [];
@@ -4246,7 +4161,6 @@ define get_cu_info (indom, abdom, strdom, exas, ptr, etab)
   end = (unsigned int) cptr + cu->len + sizeof (cu->len);
   abptr = {abdom} cu->abbroff;
   abtable = dw_get_cu_abbrev_table (abdom, abptr);
-  //gabtab = abtable;
   abtlen = length (abtable);
   cptr = (unsigned int) cptr + sizeof (*cu);
   while ((unsigned int) cptr < end /*&& cnt < 180*/) {
@@ -4264,13 +4178,6 @@ define get_cu_info (indom, abdom, strdom, exas, ptr, etab)
 		 listref (cuinfo, 0)];
     }
     else if (listref (listref (di, 0), 1) == indom`DW_TAG_subprogram) {
-//       @local nv, scope, slocpair, locinfo;
-//       nv = listref (di, 0);
-//       locinfo = listref (nv, 4);
-//       printf ("at 57 table has %a\n", tablook (typetab, (`uint8 *){indom}512));
-//       scope = [listref (cuscope, 0), listref (cuscope, 1)];
-//       listset (nv, 4, [[scope, locinfo]]); /* to fit the scope-loc pattern */
-//       printf ("at 58 table has %a\n", tablook (typetab, (`uint8 *){indom}512));
       if (length (di) > 2 && !isnil (listref (di, 2)))
  	append (subscopelist, listref (di, 2));
     }
@@ -4281,16 +4188,9 @@ define get_cu_info (indom, abdom, strdom, exas, ptr, etab)
       slocpair = listref (locinfo, 0);
       scope = [listref (cuscope, 0), listref (cuscope, 1)];
       listset (slocpair, 0, scope);
-      //listset (nv, 4, [[listref (cuscope, 0), listref (cuscope, 1)]]);
-//       printf ("cuscope is %a\nvariable die is %a\n", cuscope,
-// 	      head (di));
-//       printf ("result of tablook (symtab ..) is %a\n",
-// 	      tablook (symtab, listref (listref (di, 0), 0)));
     }
     di = head (di);
   }
-  //gttab = typetab;
-  //gstab = symtab;
   return [cptr, typetab, symtab, fblist, append (cuscope, subscopelist), ptr ];
 }
 
@@ -4310,8 +4210,6 @@ define get_all_cu_info (indom, abdom, strdom, exas, etab)
     append (scopelist, listref (rv, 4));
     cptr = ( head (rv));
   }
-//   printf ("setting gfb to %a\n", framebaselists);
-//   gfb = framebaselists;
   return [cptr, typetabs, symtabs, framebaselists, scopelist];
 }
 
@@ -5146,7 +5044,6 @@ define dw_process_range_list (rangedom, ptr, cubase)
       indom = dw_get_value (_dwcqct_debug_info, _dwcqct_debug_ranges, rangedom);
       abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_debug_ranges, rangedom);
       strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_debug_ranges, rangedom);
-      //exdom = dw_get_value (_dwcqct_execdomain, _dwcqct_debug_ranges, rangedom);
       /* we can use indom.as because get_cu_baseaddr doesn't use the as */
       cuinfo = get_cu_baseaddr (indom, abdom, strdom, indom.as, cubase);
       cubaseaddr = listref (cuinfo, 2);
@@ -5178,49 +5075,6 @@ define show_all_range_lists (rangedom, cubase)
   }
   printf ("Found %d range lists\n", cnt);
 }
-
-// define dtabtoctab (indom, stab, ttab, cubase)
-// {
-//   @local ctab, i, loc;
-//   ctab = mktab ();
-//   foreach (lambda (k, v) {test_and_insert (indom, ctab, v, stab, ttab);}, stab);
-//   return ctab;
-// }
-
-// define test_and_insert (indom, tab, var, stab, ttab)
-// {
-//   @local oldvar, oldloc;
-//   if (isnil (listref (var, 5)))
-//     return;
-//   oldvar = tablook (tab, listref (var, 2));
-//   if (isnil (oldvar)) {
-//     tabinsert (tab, listref (var, 2),
-// 	       [listref (var, 2),
-// 		dw_get_typename (indom, tablook (ttab, listref (var, 3)), ttab),
-// 		[ listref (var, 5)] ]);
-//   }
-//   else {
-//     @local newloc;
-//     newloc = listref (var, 5);
-//     oldloc = listref (oldvar, 2);
-//     if (isnil (oldloc))
-//       listset (oldvar, 2, [ newloc ] );
-//     else {
-//       //if (!islist (oldloc))
-//       //printf ("About to append %a to oldloc %a in oldvar %a\n",
-//       //	listref (var, 4), oldloc, oldvar);
-//       /* If this is a local variable, append it */
-//       if (islist (newloc))
-// 	append (oldloc, listref (var, 5));
-//       else {
-// 	/* this must be the address of a global. Put it at the front. */
-// 	printf ("pushing var loc %a onto %a\n",
-// 		newloc, listref (oldvar, 2));
-// 	push (listref (oldvar, 2), newloc);
-//       }
-//     }
-//   }
-// }
 
 define process_frame_base_list (fb)
 {
@@ -5275,45 +5129,11 @@ define isfbsorted (fb)
   }
 }
 
-// define get_frame_base_from_pc (exas)
-// {
-//   @local ptr, locdom, i, j, k, n, len1, len2, fbl, gfbi, gfbj;
-//   @local lo, hi, ent, rv, dumdom, pc;
-//   dumdom = mkdom (clp64le, exas);
-//   pc = dumdom.getrip();
-//   for (i = 0; i < length (gfb); i++) {
-//     gfbi = listref (gfb, i);
-//     for (j = 0; j < length (gfbi); j++) {
-// 	fbl = listref (gfbi, j);
-// 	lo = listref (listref (fbl, 0), 0);
-// 	hi = listref (listref (fbl, length (fbl) - 1), 1);
-// 	if (lo <= pc && pc < hi) {
-// 	  /* then this is the right list. search for the right entry */
-// 	  for (n = 0; n < length (fbl); n++) {
-// 	    ent = listref (fbl, n);
-// 	    if (listref (ent, 0) <= pc && pc < listref (ent, 1)) {
-// 	      /* then this is the right entry */
-// 	      rv = _dw_eval (listref (ent, 2), exas, listref (ent, 4), pc);
-// 	      if (listref (rv, 1) == _dwcqct_addr_type)
-// 		return listref (rv, 0);
-// 	      else if (listref (rv, 1) == _dwcqct_reg_type)
-// 		return _dw_get_regval (exas, listref (rv, 0));
-// 	      else {
-// 		printf ("unexpected eval return val of %a\n", rv);
-// 		return 0;
-// 	      }
-// 	    }
-// 	}
-//       }
-//     }
-//   }
-// }
-
 define get_frame_base_from_pc (indom, exas, etab)
 {
   @local ptr, locdom, i, j, k, n, len1, len2, fbl, gfbi, gfbj;
   @local ar, ardom, arl;
-  @local lo, hi, ent, entl, rv, dumdom, pc;
+  @local lo, hi, ent, rv, dumdom, pc;
   dumdom = mkdom (indom.names, exas);
   pc = dumdom.getrip();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom);
@@ -5324,7 +5144,6 @@ define get_frame_base_from_pc (indom, exas, etab)
 		  else if (k >= listref (tar, 1)) return 1;
 		  else return 0;});
   cukey = listref (ar, 1);
-  //printf ("looking in %a for %a\n", etab, cukey);
   cu = tablook (etab, cukey);
   if (isnil (cu)) {
     printf ("In get_frame_base_from_pc need to build cu at %d for pc %a\n",
@@ -5333,29 +5152,13 @@ define get_frame_base_from_pc (indom, exas, etab)
   }
   else
     fbl = listref (cu, 4);
-  //printf ("fbl is %a and cu is %a\n", fbl, cu);
-  entl = bsearch (pc, fbl,
+  ent = bsearch (pc, fbl,
 		 lambda (k, el) {@local e, lo, hi;
-		    //printf ("k is %a and el is %a\n", k, el);
-		    //if (k < listref (listref (el, 0), 0))
 		    if (k < listref (el, 0))
 		     return -1;
-		    //else if (k >= listref (listref (el, length (el) -1), 1))
 		    else if (k >= listref (el, 1))
 		     return 1;
 		   else return 0;});
-//   printf ("entl is %a\n", entl);
-//   /* Tt this point we should have the correct entry. Search its elements
-//      for the right closure to run */
-//   ent = bsearch (pc, entl,
-// 		 lambda (k, el) {
-// 		   if (k < listref (el, 0))
-// 		     return -1;
-// 		   else if (k > listref (el, 1))
-// 		     return 1;
-// 		   else
-// 		     return 0;});
-  ent = entl;
   rv = _dw_eval (listref (ent, 2), exas, listref (ent, 4), pc);
   if (listref (rv, 1) == _dwcqct_addr_type)
     return listref (rv, 0);
@@ -5447,11 +5250,6 @@ define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
     for (i = 0; i < len; i++) {
       @local pname, ptype, p;
       p = listref (params, i);
-//       printf ("dt is %a\n", dt);
-//       printf ("params is %a\np is %a\n", params, p);
-//       if (isempty (listref (p, 1)))
-// 	continue;
-//      p = listref (listref (p, 1), 0);
       pname = listref (p, 2);
       ptype = dwtype2ctype (rns, ddom, tablook (ttab, listref (p, 3)),
 			    stab, ttab, cqtab, 0);
@@ -5641,52 +5439,26 @@ define getcbasetype (name)
 define dwsym2csym (rns, ddom, dsym, stab, ttab, cstab, cttab)
 {
   @local rv, stype, sname, sloc, tag;
-//   printf ("sym is %a\n", dsym);
   tag = listref (dsym, 1);
-//   if (listref (dsym, 1) == ddom`DW_TAG_subprogram
-//       && (isnil (listref (dsym, 4)) || islist (listref (dsym, 4))))
-//     return nil;
-//   else if (isnil (listref (listref (listref (dsym, 4), 0), 1)))
-//     return nil;
-//   if (isprocedure (listref (listref (listref (dsym, 4), 0), 1)))
-//     return nil;
-//   if (listref (dsym, 1) == ddom`DW_TAG_formal_parameter)
-//     return nil;
-//   if (islist (listref (listref (listref (dsym, 4), 0), 1))) {
-//     return nil;
-//   }
-//   else
   sloc = listref (dsym, 4);
   if (!islist (sloc)) {
-//     printf ("sloc is not a list for sym %a\n", dsym);
     return nil;
   }
   if (isnil (sloc)) {
-//     printf ("sloc is nil for sym %a\n", dsym);
     return nil;
   }
   if (isnil (listref (listref (sloc, 0), 1))) {
-//     printf ("nil location for sym %a\n", dsym);
     return nil;
   }
   else if (islist (listref (listref (sloc, 0), 1))) {
-//     if (head (dsym) == 22882)
-//       printf ("location for sym %a is a list\n", dsym);
     return nil;
   }
   else
     sloc = listref (listref (sloc, 0), 1);
 
-//     sloc = listref (dsym, 1) == ddom`DW_TAG_subprogram ?
-//       listref (dsym, 4)
-//       : listref (dsym, 5);
   sname = listref (dsym, 2);
-//   if (head (dsym) == 22882 && isnil (tablook (ttab, listref (dsym, 3))))
-//     printf ("For %a dsym is %a\n", sname, dsym);
   stype = dwtype2ctype (rns, ddom, tablook (ttab, listref (dsym, 3)), stab,
 			ttab, cttab, 0);
-//   if (head (dsym) == 22882 || sname == "ctx" || islist (sloc) || isnil (sloc))
-//     printf ("calling mksym with %a, %a, and %a\n", stype, sname, sloc);
   rv = mksym (stype, sname, sloc);
   tabinsert (cstab, sname, rv);
   return rv;
@@ -5875,14 +5647,6 @@ define binsrch_lineno (ldom, ltab, addr)
     return listref (ltab, hi - 1);
 }
 
-// define isprocedure (obj)
-// {
-//   if ("procedure" == whatis (obj)))
-//     return 1;
-//   else
-//     return 0;
-// }
-
 define print_scope (scope, level)
 {
   @local arl, ar, lsyml, lsym, ltypel, ltype, lscopel, lscope, name, i, j, ins;
@@ -6057,7 +5821,6 @@ define print_subscope_names (ssc, indent)
   }
 }
 
-//define make_function_tables (fscope)
 define make_function_tables (fscope, cutypetab, cusymtab, cttab, rns, dom)
 {
   @local symtab, symlist, subscopes, typetab, typelist, i, fname, faranges;
@@ -6071,10 +5834,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, cttab, rns, dom)
   fname = listref (fscope, 2);
   symlist = listref (fscope, 3);
   typelist = listref (fscope, 4);
-//   if (!isempty (typelist)) {
-//     print_scope_typelist (typelist, indent);
-//     printf ("scope typelist is %a\n", typelist);
-//   }
   for (i = 0; i < length (typelist); i++) {
     @local ltype;
     ltype = listref (typelist, i);
@@ -6093,9 +5852,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, cttab, rns, dom)
     stype = tablook (cutypetab, stype);
     stype = dwtype2ctype (rns, dom, stype, cusymtab, cutypetab, cttab, 1);
     sloc = listref (sym, 4);
-//     if (sname == "ctx") {
-//       printf ("in make_f_t location of ctx is %a\n", sloc);
-//     }
     /* If the location is nil, then the variable has been optimized
        out. Enter it into the table with a nil to indicate no location
        and the address ranges of the function to indicate places
@@ -6106,8 +5862,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, cttab, rns, dom)
        ranges in case there are address ranges in the scope of the
        function where sname is not live.*/
     oldsym = tablook (symtab, sname);
-//     if (sname == "x")
-//       printf ("oldsym is %a\nand sloc is %a\n", oldsym, sloc);
     if (isnil (oldsym))
       tabinsert (symtab, sname, [sname, stype, sloc]);
     else {
@@ -6115,55 +5869,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, cttab, rns, dom)
       foreach (lambda (v) {push (oldloc, v);}, sloc);
       tabinsert (symtab, sname, [sname, stype, sloc]);
     }
-//     if (sname == "x")
-//       printf ("after foreach oldloc is %a\nand sloc is %a\n", oldloc, sloc);
-//     if (isnil (oldloc)) {
-//       if (isnil (sloc))
-// 	tabinsert (symtab, sname, [sname, stype, faranges, []]);
-//       else {
-// // 	if (sname == "ctx") {
-// // 	  printf ("inserting into symtab %a\n", [sname, stype, faranges, sloc]);
-// // 	}
-// 	tabinsert (symtab, sname, [sname, stype, faranges, sloc]);
-//       }
-//     }
-//     else {
-//       oldloc = listref (oldloc, 3);
-//       //printf ("at 1 oldloc is %a\n", oldloc);
-//       if (isnil (sloc)){
-// 	//printf ("pushing [] as onto location %a of %a\n", oldloc, sname);
-// 	if (isempty (oldloc))
-// 	  tabinsert (symtab, sname, [sname, stype, faranges,
-// 				     push (oldloc, [])]);
-// 	else
-// 	  tabinsert (stab, sname, [sname, stype, saranges,
-// 				   push (listref (oldloc, 1), [])]);
-//       }
-//       else {
-// 	//printf ("pushing %a onto location %a of %a\n", listref (sloc, 0),
-// 	//oldloc, sname);
-// 	if (isempty (oldloc))
-// 	  tabinsert (stab, sname, [sname, stype, saranges, sloc]);
-// 	else {
-// 	  @local noloc, nsloc;
-// 	  if (length (oldloc) < 2) {
-// 	    noloc = oldloc;
-// 	  }
-// 	  else
-// 	    noloc = listref (oldloc, 1);
-// 	  if (length (sloc) < 2)
-// 	    nsloc = sloc;
-// 	  else
-// 	    nsloc = listref (sloc, 1);
-// 	  foreach (lambda (v) {push (noloc, v);}, nsloc);
-// 	  if (length (oldloc) >= 2) {
-// 	    listset (oldloc, 1, noloc);
-// 	  }
-// 	  tabinsert (symtab, sname, [sname, stype, faranges, oldloc]);
-// // 				   push (oldloc, listref (sloc, 0))]);
-// 	}
-//       }
-//     }      
   }
   if (!isempty (subscopes)) {
     @local ssc, j;
@@ -6174,9 +5879,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, cttab, rns, dom)
 			 cttab, rns, dom);
     }
   }
-  //printf ("Local vars for function %a\n", fname);
-  //foreach (lambda (k,v) {printf ("%a ", k);}, symtab);
-  //printf ("\n");
   return [faranges, fname, typetab, symtab];
 }
 
@@ -6184,11 +5886,9 @@ define add_scoped_vars (stab, ttab, scope, indent, cutypetab, cusymtab, cttab, r
 {
   @local symlist, subscopes, typelist, i, saranges, nindent, sname;
   nindent = sprintfa ("%s  ", indent);
-  //  printf ("in asvars scope is %a\n", scope);
   saranges = listref (scope, 0);
   sname = listref (scope, 2);
   symlist = listref (scope, 3);
-  //  printf ("For fn %a symlist is %a\n", sname, symlist);
   typelist = listref (scope, 4);
   if (!isempty (typelist))
     print_scope_typelist (typelist, nindent);
@@ -6202,9 +5902,6 @@ define add_scoped_vars (stab, ttab, scope, indent, cutypetab, cusymtab, cttab, r
     stype = tablook (cutypetab, stype);
     stype = dwtype2ctype (rns, dom, stype, cusymtab, cutypetab, cttab, 1);
     sloc = listref (sym, 4);
-//     if (sname == "yyconflicts") {
-//       printf ("in asv saranges of yyconflicts is %a\n", saranges);
-//     }
     /* If the location is nil, then the variable has been optimized
        out. Enter it into the table with a nil to indicate no location
        and the address ranges of the function to indicate places
@@ -6215,8 +5912,6 @@ define add_scoped_vars (stab, ttab, scope, indent, cutypetab, cusymtab, cttab, r
        ranges in case there are address ranges in the scope of the
        function where sname is not live.*/
     oldsym = tablook (stab, sname);
-//     if (sname == "x")
-//       printf ("at 2 oldsym is %a\nand sloc is %a\n", oldsym, sloc);
     if (isnil (oldsym))
       tabinsert (stab, sname, [sname, stype, sloc]);
     else {
@@ -6224,69 +5919,6 @@ define add_scoped_vars (stab, ttab, scope, indent, cutypetab, cusymtab, cttab, r
       foreach (lambda (v) {push (oldloc, v);}, sloc);
       tabinsert (stab, sname, [sname, stype, sloc]);
     }
-//     if (sname == "x")
-//       printf ("after foreach 2 oldloc is %a\nand sloc is %a\n", oldloc, sloc);
-// //     if (sname == "yyconflicts") {
-// //       printf ("at 2 sloc is %a and oldloc is %a\n", sloc, oldloc);
-// //     }
-//     if (isnil (oldloc)) {
-//       if (isnil (sloc)) {
-// 	//printf ("inserting [] as location of %a\n", sname);
-// 	tabinsert (stab, sname, [sname, stype, saranges, []]);
-//       }
-//       else {
-// 	//printf ("inserting %a as location of %a\n", sloc, sname);
-// 	tabinsert (stab, sname, [sname, stype, saranges, sloc]);
-//       }
-//     }
-//     else {
-//       //printf ("oldloc is %a\n", oldloc);
-//       //oldloc = listref (listref (oldloc, 3), 1);
-//       oldloc = listref (oldloc, 3);
-// //       if (sname == "yyconflicts") {
-// // 	printf ("at 2 oldloc is %a for %a\n", oldloc, tablook (stab, sname));
-// //       }
-//       if (isnil (sloc)) {
-// 	//printf ("pushing [] as onto location %a of %a\n", oldloc, sname);
-// 	if (isempty (oldloc))
-// 	  tabinsert (stab, sname, [sname, stype, saranges,
-// 				   push (oldloc, [])]);
-// 	else
-// 	  tabinsert (stab, sname, [sname, stype, saranges,
-// 				   push (listref (oldloc, 1), [])]);
-//       }
-//       else {
-// 	//printf ("pushing %a onto location %a of %a\n", listref (sloc, 0),
-// 	//oldloc, sname);
-// // 	if (sname == "yyconflicts") {
-// // 	  printf ("pushing %a onto location %a of %a\n", listref (sloc, 0),
-// // 		  oldloc, sname);
-// // 	}
-// 	if (isempty (oldloc))
-// 	  tabinsert (stab, sname, [sname, stype, saranges, sloc]);
-// 	else {
-// 	  @local noloc, nsloc;
-// 	  if (length (oldloc) < 2) {
-// 	    noloc = oldloc;
-// // 	    printf ("for sym %a with name %s\n oldloc is %a\nand sloc is %a\n",
-// // 		    sym, sname, oldloc, sloc);
-// 	  }
-// 	  else
-// 	    noloc = listref (oldloc, 1);
-// 	  if (length (sloc) < 2)
-// 	    nsloc = sloc;
-// 	  else
-// 	    nsloc = listref (sloc, 1);
-// 	  foreach (lambda (v) {push (noloc, v);}, nsloc);
-// 	  if (length (oldloc) >= 2) {
-// 	    listset (oldloc, 1, noloc);
-// 	  }
-// 	  tabinsert (stab, sname, [sname, stype, saranges, oldloc]);
-// 	  //  push (listref (oldloc, 1),
-// 	  //listref (sloc, 1))]);
-// 	}
-//       }
-//     } 
   }
   if (!isempty (subscopes)) {
     @local ssc, j;
@@ -6302,7 +5934,6 @@ define get_function_tables_for_cu (cu, rns, dom, ctab)
 {
   @local i, f, ftabs, fscopes, cusymtab, cutypetab, stab, ttab, ns;
   @local cudwsymtab, cudwtypetab;
-  //  printf ("in get_func... cu is %a\n", cu);
   stab = mktab ();
   ttab = mktab ();
   ftabs = [];
@@ -6318,19 +5949,13 @@ define get_function_tables_for_cu (cu, rns, dom, ctab)
   ns = mknsraw (rns, ttab, stab);
   for (i = 0; i < length (fscopes); i++) {
     @local newtabs;
-    //printf ("in get_fntab fscope is %a\n", listref (fscopes, i));
     newtabs = make_function_tables (listref (fscopes, i), cudwtypetab,
 				    cudwsymtab, ttab, ns, dom);
     append (ftabs, newtabs);
   }
-  //printf ("About to insert %a into %a with key %a\n",
-  //  [ttab, stab, ftabs, ns, listref (cu, 3)], ctab, head (cu));
   tabinsert (ctab, listref (cu, length (cu) -1),
 	     [ttab, stab, ftabs, ns, listref (cu, 3)]);
-  //printf ("now tablook (%a, %a) gives %a\n", ctab, head (cu),
-  //  tablook (ctab, head (cu)));
   return [ttab, stab, ftabs, ns, listref (cu, 3)];
-  //return 1;
 }
 
 define get_all_function_tables (indom, abdom, strdom, exas)
@@ -6347,17 +5972,11 @@ define get_all_function_tables (indom, abdom, strdom, exas)
     rv = get_cu_info (indom, abdom, strdom, exas, cptr, result);
     ctab = listref (rv, 1);
     cstab = listref (rv, 2);
-//     printf ("starting dwarf symtab.\n");
-//     foreach (lambda (k,v) {if (!isnil (v)) printf ("%a\n", v);}, cstab);
-//     printf ("ending dwarf symtab.\n");
-//     append (gfb, listref (rv, 3)); 
     dtime = gettimeofday();
     cutabs = get_function_tables_for_cu (rv, rns, indom, result);
     etime = gettimeofday();
     printf ("elapsed time for dwarf info is %d, cqct %d\n", dtime - stime,
 	    etime - dtime);
-    //tabinsert (result, cptr, cutabs);
-    //append (result, cutabs);
     cptr = ( head (rv));
   }
   return result;
@@ -6379,7 +5998,6 @@ define show_cu_function_tables (cutabs)
     ftab = listref (ftabs, i);
     lttab = listref (ftab, 2);
     lstab = listref (ftab, 3);
-    //foreach (lambda (k, v) {printf ("%a\t%t %a\n", listref (v, 3), listref (v, 0), listref (v, 1));}, lstab);
     foreach (lambda (k, v) {printf ("%a\t%a\n", k, v);}, lstab);
     printf ("\tEnd of local symbols\n");
   }
@@ -6400,27 +6018,6 @@ define issorted (fnl)
   return 1;
 }
 
-// define find_fn_and_cu (indom, addr, etab)
-// {
-//   @local pc, ear, ardom, i, e, abdom, strdom, elfdom, cukey, cu;
-//   @local stime, etime;
-//   pc = {indom} addr;
-//   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom);
-//   ear = dw_get_aranges (ardom);
-//   for (i = 0; i < length (ear); i++) {
-//     @local r;
-//     e = listref (ear, i);
-//     r = listref (listref (e, 0), 0);
-//     if (pc >= listref (r, 0) && pc < listref (r, 1))
-//       break;
-//   }
-//   if (i >= length (ear))
-//     return [[], []];
-//   cukey = listref (e, 1);
-//   cu = tablook (etab, cukey);
-//   return cu;
-// }
-
 define find_fn_and_cu (indom, addr, etab)
 {
   @local pc, arl, ardom, i, ar, abdom, strdom, elfdom, cukey, cu;
@@ -6438,11 +6035,7 @@ define find_fn_and_cu (indom, addr, etab)
     return nil;
   }
   cukey = listref (ar, 1);
-  //printf ("looking in %a for %a\n", etab, cukey);
   cu = tablook (etab, cukey);
-  //printf ("found %a in %a at %a\n", cu, etab, cukey);
-  //printf ("Also found %a in %a at {indom}%a\n", tablook (etab, {indom}cukey),
-  //	  etab, {indom}cukey);
   return cu;
 }
 
@@ -6458,16 +6051,12 @@ define find_fn (indom, addr, cu)
   return f;
 }
 
-//define symloc (typetab, symtab, sym, getpc)
 define symloc (typetab, symtab, sym, pc, ctab)
 {
   @local syment, scope, rv, scl, slplist, slpent, i, j, loc;
-  //pc = getpc();
   scope = nil;
   loc = nil;
   syment = tablook (symtab, sym);
-//   if (sym == "yyresult")
-//     printf ("for pc 0x%x (%d) syment is %a\n", pc, pc, syment);
   if (isnil (syment)) {
     printf ("returning nil because tablook (%a, %a) is nil\n", symtab, sym);
     return nil;
@@ -6500,96 +6089,8 @@ define symloc (typetab, symtab, sym, pc, ctab)
       break;
   }
   if (isnil (loc)) {
-//     printf ("returning nil from symloc for syment %a at pc 0x%x (%d)\n",
-// 	    syment, pc, pc);
     return nil;
   }
-//   printf ("in symloc for %a at pc 0x%x (%d) scl is %a\n", sym, pc, pc, scl);
-//   /* we probably need to do something else here since syment may be
-//      shadowing another symbol for the duration of its scope. */
-//   if (isempty (scl)) {
-// //     printf ("scl is empty for syment %a\n", syment);
-//     return nil;
-//   }
-//   scope = nil;
-//   if (islist (listref (scl, 0))) {
-//     //printf ("inside if (islist)\n");
-//     for (i = 0; i < length (scl); i++) {
-//       @local el, arl, ar, lopc, hipc;;
-//       el = listref (scl, i);
-// //       if (sym == "yyaction")
-// // 	printf ("in if el is %a\n", el);
-//       if (isempty (el)) {
-// 	/* then we have a local variable of name sym that has been
-// 	   optimized away. We have to check the address range, but
-// 	   for the moment we return nil.*/
-// // 	printf ("about to return nil from symloc for sym %s\nsyment %a\nscl %a\nel %a\n",
-// // 		sym, syment, scl, el);
-// 	return nil;
-//       }
-//       if (islist (el) && islist (listref (el, 0))) {
-// 	arl = listref (listref (el, 0), 1);
-// // 	if (!islist (arl)) {
-// // 	  printf ("for sym %s syment is %a and arl is %a\n", sym, syment,arl);
-// // 	}
-// 	ar = listref (arl, 0);
-// 	lopc = listref (ar, 0);
-// 	hipc = listref (ar, 1);
-//  	//printf ("ar is %a and pc is %a\n", ar, pc);
-// 	if (isnil (lopc))
-// 	  printf ("at 1 element %d of scl %a is %a instead of a list\n", i,
-// 		scl, el);
-// 	else if (lopc <= pc && pc < hipc) {
-// 	  scope = el;
-// 	  //printf ("just set scope to %a for pc %a\n", el, pc);
-// 	  break;
-// 	}
-//       }
-// //       else
-// // 	printf ("at 2element %d of scl %a is %a instead of a list\n", i,
-// // 		scl, el);
-//     }
-//   }
-//   else {
-// //     printf ("inside else of islist scl is %a\n", scl);
-//     scl = listref (scl, 1);
-//     for (i = 0; i < length (scl); i++) {
-//       @local el, arl, ar, lopc, hipc;
-//       el = listref (scl, i);
-// //       printf ("el is %a\n", el);
-//       lopc = listref (el, 0);
-//       hipc = listref (el, 1);
-//       if (lopc <= pc && pc < hipc) {
-// 	scope = el;
-// 	break;
-//       }
-//     }
-//   }
-
-// //   scope = bsearch (pc, listref (syment, 3),
-// // 		     lambda (k, el)
-// // 		      {@local arl, ar, lopc, hipc;
-// // 		       printf ("k is %a and el is %a\n", k, el);
-// // 		       arl = listref (listref (el, 0), 1);
-// // 		       ar = listref (arl, 0);
-// // 		       lopc = listref (ar, 0);
-// // 		       hipc = listref (ar, 1);
-// // 		       if (k < lopc) return -1;
-// // 		       else if (k >= hipc) return 1;
-// // 		       else return 0;});
-// // 		   lambda (k, el) {if (k < listref (el, 0)) return -1;
-// // 		     else if (k >= listref (el, 1)) return 1;
-// // 		     else return 0;});
-//   if (isnil (scope)) {
-//     //printf ("returning nil because scope is nil for %a at pc %a\n",
-//     //	    syment, pc);
-//     return nil;
-//   }
-//   /* At this point we know that there is a sym whose scope includes
-//      the current pc. Find a location. */
-//   //  printf ("scope is %a and loc should be %a\n", scope, listref (scope, 1)());
-// //   if (1)
-// //     rv = listref (scope, 1) ();
   if (isprocedure (loc))
     return (loc());
   else if (!islist (loc))
@@ -6609,18 +6110,14 @@ define symloc (typetab, symtab, sym, pc, ctab)
       locent = listref (loc, i);
       if (length (locent) == 2 && isprocedure (listref (locent, 1)))
 	return listref (locent, 1) ();
-//       printf ("for syment %a\nloc is %a\nlocent is %a\n", syment, loc, locent);
       if (pc < listref (locent, 0) || pc >= listref (locent, 1))
 	continue;
       dom = listref (locent, 2);
       as = listref (locent, 3);
       lcptr = listref (locent, 4);
       lend = lcptr + listref (locent, 5);
-      //     printf ("lcptr = %d len = %d, lend = %d\n", lcptr, listref (scope, 5),
-      // 	    lend);
       indom = dw_get_value (_dwcqct_debug_info, _dwcqct_debug_loc, dom);
       fbase = get_frame_base_from_pc (indom, as, ctab);
-      //     printf ("fbase is %a\n", fbase);
       while (lcptr < lend) {
 	/* As long as we are in the evaluation of a DWARF block, the values
 	   we care about are on the evaluator stack. It's only when we
@@ -6633,196 +6130,52 @@ define symloc (typetab, symtab, sym, pc, ctab)
 	 the last call to _dw_eval. The caller must check the type to
 	 determine whether listref (rv, 0) is an address or a register
 	 number. */
-      //     printf ("rv is %a and _dwstack [0] is %a\n", rv, listref (_dwstack, 0));
       listset (rv, 0, _dw_pop());
       /* I think that the following is correct. */
       if (isnil (listref (rv, 1))) {
-	//printf ("type is nil for %a\n", rv);
 	listset (rv, 1, _dwcqct_addr_type);
       }
-      //printf ("rv is %a\n", rv);
       return rv;
     }
   }
   /* if we got here, we just return nil. */
   return nil;
-//   if (1)
-//     rv = nil;
-//   else if (islist (listref (listref (syment, 3), 0))
-//       && length (listref (syment, 3)) > 1) {
-//     /* then there should be a single closure. run it for a location */
-//     //printf ("at pc %d (0x%x) syment is %a and\n", pc, pc,
-//     //    syment);
-//     if (isprocedure (listref (listref (syment, 3), 1))) {
-//       //printf ("About to run %a\n", listref (listref (syment, 3), 1));
-//       rv = listref (listref (syment, 3), 1) ();
-//     }
-//     else {
-//       /* we have to search the list for the correct closure */
-//       @local aspl, asp; /*address scope pair */
-//       aspl = listref (syment, 3);
-//       //printf ("aspl is %a\n", aspl);
-//       asp = bsearch (pc, aspl,
-// 		     lambda (k, el)
-// 		     {@local ar, lopc, hipc;
-// 		       ar = listref (listref (listref (el, 0), 1), 0);
-// 		       lopc = listref (ar, 0);
-// 		       hipc = listref (ar, 1);
-// 		       if (k < lopc) return -1;
-// 		       else if (k >= hipc) return 1;
-// 		       else return 0;});
-//       if (!isnil (asp)) {
-// 	//printf ("choosing asp %a\n", asp);
-// 	rv = listref (asp, 1);
-//       }
-//       else {
-// 	printf ("Didn't find closure in %a for pc %a\n", aspl, pc);
-// 	rv = lambda () {return nil;};
-//       }
-//     }
-//   }
-//   else {
-//     /* then we have to search the pairs of address ranges and closures to
-//        find the right closure to run */
-//     @local aclist, ac;
-//     //printf ("syment is %a\n", syment);
-//     if (length (listref (listref (syment, 3), 0)) > 1
-// 	&& isprocedure (listref (listref (listref (syment, 3), 0), 1)))
-//       return listref (listref (listref (syment, 3), 0), 1)();
-//     aclist = listref (listref (syment, 3), 0);
-//     ac = bsearch (pc, aclist,
-// 		  lambda (k, el)
-// 		  {@local ar, lopc, hipc;
-// 		    ar = listref (listref (listref (el, 0), 1), 0);
-// 		    lopc = listref (ar, 0);
-// 		    hipc = listref (ar, 1);
-// 		    if (k < lopc) return -1;
-// 		    else if (k >= hipc) return 1;
-// 		    else return 0;});
-// // 		 lambda (k, el) {if (k  < listref (el, 0)) return -1;
-// // 		     else if (k >= listref (el, 1)) return 1;
-// // 		     else return 0;});
-//     if (isnil (ac)) {
-//       printf ("returning nil because ac is nil for syment %a at pc %a\n",
-// 	      syment, pc);
-//       return nil;
-//     }
-//     else {
-//       //printf ("ac is %a\n", ac);
-//       /* this is the right pair; run the closure to get a location */
-//       rv = listref (ac, 1) ();
-//     }
-//   }
-//  return rv;
 }
 
 define make_local_ns (indom, pc, etab)
 {
   @local f, cu, ns, ftab, fstab, ntab, nstab, inscope, rns;
-  //pc = getpc ();
   ntab = mktab ();
   nstab = mktab ();
   cu = find_fn_and_cu (indom, pc, etab);
-  //  printf ("for pc 0x%x (%d) cu is %a\n", pc, pc, cu);
   rns = listref (cu, 3);
   f = find_fn (indom, pc, cu);
-  //printf ("f is %a for pc 0x%x (%d)\n", f, pc, pc); //listref (f, 1));
   ftab = listref (f, 2);
   fstab = listref (f, 3);
-//   printf ("start of symtab for function:\n");
-//   foreach (lambda (k,v){if (!isnil (v)) printf ("local sym is %a\n", v);},
-// 	   fstab);
-//   printf ("end of symtab for function:\n");
-//   //foreach (lambda (k,v){}, ftab); /* handle local types later */
   foreach (lambda (k,v){ @local sloc;
-//  	     if (k == "ctx")
-// 	       printf ("symbol is %a\n", v);
 	     sloc = symloc (ftab, fstab, k, pc, etab);
-// 	     if (k == "ctx")
-// 	       printf ("for ctx sloc is %a\n", sloc);
-// 	     if (islist (sloc))
-// 	       printf ("symloc is 0x%x\n", head (sloc));
 	     if (islist (sloc) && listref (sloc, 1) == _dwcqct_addr_type)
 	       sloc = listref (sloc, 0);
-	     //printf ("inserting sloc %a in nstab.\n", sloc);
 	     if (!isnil (sloc)) {
 	       @local nsym;
 	       if (isprocedure (sloc))
 		 sloc = listref (sloc(), 0);
-	       //       printf ("symloc is now %a\n", sloc);
 	       if (islist (sloc) && listref (sloc, 1) == _dwcqct_reg_type) {
 		 @local vtype, getv, putv, itype;
 		 getv = make_get_regval (listref (sloc, 0));
 		 putv = make_put_regval (listref (sloc, 0));
 		 vtype = mkctype_xaccess (mkctype_int(), getv, putv);
 		 nsym = mksym (vtype, k, 0);
-		 //intf ("inserting register location for %s\n", k);
 		 tabinsert (nstab, k, nsym);
- 		 //intf ("sym %a is in reg %d\n", k, listref (sloc, 0));
 	       }
 	       else {
-// 		 printf ("for symbol %s calling mksym with %a, %a, %a\n",
-// 			 k, listref (v, 1), k, sloc);
 		 nsym = mksym (listref (v, 1), k, sloc);
 		 tabinsert (nstab, k, nsym);
 	       }
 	     }},
 	   fstab);
-  //printf ("local type table for pc %a is:\n", pc);
-  //foreach (lambda (k,v) {if (!isnil (v)) printf ("type %t is %t\n", k, v);}, ntab);
-  //printf ("local symbol table for pc %a is:\n", pc);
-  //  foreach (lambda (k,v) {if (!isnil (v)) printf ("symbol %a has value %a\n", k, v);}, nstab);
-  //printf ("About to call mknsraw with rns %a, ntab %a, and nstab %a\n",
-  //  rns, ntab, nstab);
   ns = mknsraw (rns, ntab, nstab);
-  //printf ("After call to mknsraw\n");
   return ns;
-}
-
-define getv (indom, exdom, getpc, etab, sym)
-{
-  @local ns, sloc, asize;
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_info, indom);
-  //printf ("at 0x%x rbp: %a\trsp: %a\n", getpc(), exdom.getrbp (),
-  //  exdom.getrsp());
-  ns = make_local_ns (indom, getpc(), etab);
-  sloc = nslooksym (ns)(sym);
-  if (!isvector (sloc)) {
-    printf ("nslooksym(ns %a)(%a) returned %a\n", ns, sym, sloc);
-    return nil;
-  }
-  if (islist (vecref (sloc, 2))
-      && listref (vecref (sloc, 2), 1) == _dwcqct_addr_type) {
-    @local cptr, tdom;
-//     cptr = {exdom} (listref (vecref (sloc, 2), 0));
-//     if (asize == 4)
-//       cptr = (`uint32 *) cptr;
-//     else if (asize == 8)
-//       cptr = (`uint64 *) cptr;
-//     printf ("at 1 cptr is now %a\n", cptr);
-    tdom = mkdom (ns, exdom.as);
-    //cptr = (vecref (sloc, 0) *) vecref (sloc, 2);
-    return (tdom`sym);
-  }
-  else if (islist (vecref (sloc, 2))
-	   && listref (vecref (sloc, 2), 1) == _dwcqct_reg_type)
-    return _dw_get_regval (exdom, listref (vecref (sloc, 2), 0));
-  else {
-    @local cptr, tdom;
-//     cptr = {exdom} vecref (sloc, 2);
-//     if (asize == 4)
-//       cptr = (`uint32 *) cptr;
-//     else if (asize == 8)
-//       cptr = (`uint64 *) cptr;
-//     printf ("at 2 sloc is %a and cptr is now %a\n", sloc, cptr);
-    tdom = mkdom (ns, exdom.as);
-    return (tdom`sym);
-    //cptr = (vecref (sloc, 0) *) vecref (sloc, 2);
-    //return (*cptr);
-    //    printf ("Don't know what to do with sym location of %a\n", sloc);
-    //return nil;
-  }
-  return nil;
 }
 
 define make_namespace_constructor (binfile)
@@ -6855,8 +6208,6 @@ define make_namespace_constructor (binfile)
 		      else if (k >= listref (tar, 1)) return 1;
 		      else return 0;});
       cu = get_cu_info (indom, abdom, strdom, uas, listref (ar, 1), etab);
-      //foreach (lambda (k, v) {printf ("%a\t%a\n", k, v);}, listref (cu, 1));
-      //      append (gfb, listref (cu, 3));
       cutabs = get_function_tables_for_cu (cu, rns, indom, etab);
     }
     rv = make_local_ns (indom, addr, etab);
