@@ -8451,6 +8451,34 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
+l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
+{
+	List *l, *r;
+	Closure *cl;
+	Imm len, m;
+	Val v, argv[1];
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to map");
+	checkarg(vm, "map", iargv, 0, Qcl);
+	if(iargv[1]->qkind != Qlist)
+		vmerr(vm,
+		      "operand 1 to map must be a map");
+	cl = valcl(iargv[0]);
+	l = vallist(iargv[1]);
+	r = mklist();
+	gcprotect(vm, mkvallist(r));
+	len = listxlen(l->x);
+	for(m = 0; m < len; m++){
+		argv[0] = listref(vm, l, m);
+		v = dovm(vm, cl, 1, argv);
+		gcprotect(vm, v);
+		listins(vm, r, m, v);
+	}
+	*rv = mkvallist(r);
+}
+
+static void
 l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -8990,13 +9018,25 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
 	Liti liti;
+	Cval *cv;
 	char *err;
+	unsigned radix;
 
-	if(argc != 1)
+	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to strton");
 	checkarg(vm, "strton", argv, 0, Qstr);
+	radix = 0;
+	if(argc == 2){
+		checkarg(vm, "strton", argv, 1, Qcval);
+		cv = valcval(argv[1]);
+		if(!isnatcval(cv))
+			vmerr(vm, "operand 2 to strton must be "
+			      "non-negative");
+		radix = cv->val;
+	}
+		
 	s = valstrorcval(vm, "strton", argv, 0);
-	if(0 != parseliti(s->s, s->len, &liti, &err))
+	if(0 != parseliti(s->s, s->len, &liti, radix, &err))
 		vmerr(vm, err);
 	*rv = mkvalcval(vm->litdom, vm->litbase[liti.base], liti.val);
 }
@@ -9020,15 +9060,6 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 	p = s->s;
 	e = s->s+s->len;
 
-	/* delimiter set */
-	if(argc > 1 && (s = valstrorcvalornil(vm, "split", argv, 1))){
-		set = str2cstr(s);
-		mflag = 0;
-	}else{
-		set = xstrdup(" \t");
-		mflag = 1;
-	}
-
 	/* split limit */
 	lim = 0;
 	if(argc == 3){
@@ -9042,31 +9073,52 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 		}
 	}
 
-	n = 0;
-	q = p;
-	intok = 0;
-	while(q < e){
-		if(strchr(set, *q)){
-			if(lim && n >= lim->val)
-				break;
-			if(intok || !mflag)
+	/* delimiter set */
+	if(argc > 1 && (s = valstrorcvalornil(vm, "split", argv, 1))){
+		set = str2cstr(s);
+		mflag = 0;
+	}else{
+		set = xstrdup(" \t");
+		mflag = 1;
+	}
+
+	if(!mflag){
+		n = 0;
+		q = p;
+		while(q < e && (!lim || n < lim->val)){
+			if(strchr(set, *q)){
 				listins(vm, r, n++, mkvalstr(mkstr(p, q-p)));
-			intok = 0;
-			p = q+1;
-			if(mflag){
+				p = q+1;
+				q = p;
+			}else
+				q++;
+		}
+		if(p < e)
+			listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
+	}else{
+		n = 0;
+		q = p;
+		intok = 0;
+		while(q < e && (!lim || n < lim->val)){
+			if(strchr(set, *q)){
+				if(intok)
+					listins(vm, r, n++,
+						mkvalstr(mkstr(p, q-p)));
+				intok = 0;
+				p = q+1;
 				while(p < e && strchr(set, *p))
 					p++;
 				if(p >= e)
 					break;
+				q = p;
+			}else{
+				q++;
+				intok = 1;
 			}
-			q = p;
-		}else{
-			q++;
-			intok = 1;
 		}
+		if(intok)
+			listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
 	}
-	if(intok && (!lim || n < lim->val))
-		listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
 	efree(set);
 	*rv = mkvallist(r);
 }
@@ -10470,6 +10522,7 @@ mktopenv()
 	FN(listset);
 	FN(lookfield);
 	FN(looktype);
+	FN(map);
 	FN(meminuse);
 	FN(memset);
 	FN(memtotal);

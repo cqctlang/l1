@@ -781,7 +781,8 @@ Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr*		newgop(unsigned, Expr*, Expr*);
 Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
 Expr*		nullelist();
-int		parseliti(char *s, unsigned long len, Liti *liti, char **err);
+int		parseliti(char *s, unsigned long len, Liti *liti,
+			  unsigned radix, char **err);
 Expr*		ptrto(Expr*, Expr*);
 void		parseerror(U *ctx, char *fmt, ...);
 int		popyy(U *ctx);
