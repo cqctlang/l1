@@ -6305,6 +6305,23 @@ valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg)
 	      arg+1, fn);
 }
 
+static Str*
+valstrorcvalornil(VM *vm, char *fn, Val *argv, unsigned arg)
+{
+	Cval *cv;
+	if(argv[arg]->qkind == Qstr)
+		return valstr(argv[arg]);
+	else if(argv[arg]->qkind == Qcval){
+		cv = valcval(argv[arg]);
+		if(isstrcval(cv))
+			return stringof(vm, cv);
+	}else if(argv[arg]->qkind == Qnil)
+		return 0;
+	vmerr(vm, "operand %d to %s must be a string, char* cvalue, "
+	      "uchar* cvalue, or nil",
+	      arg+1, fn);
+}
+
 static Vec*
 callmap(VM *vm, As *as)
 {
@@ -8985,6 +9002,76 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *s;
+	char *p, *q, *e, *set;
+	Cval *lim;
+	Imm n;
+	List *r;
+	int intok, mflag;
+
+	r = mklist();
+
+	/* subject string */
+	if(argc != 1 && argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to split");
+	s = valstrorcval(vm, "split", argv, 0);
+	p = s->s;
+	e = s->s+s->len;
+
+	/* delimiter set */
+	if(argc > 1 && (s = valstrorcvalornil(vm, "split", argv, 1))){
+		set = str2cstr(s);
+		mflag = 0;
+	}else{
+		set = xstrdup(" \t");
+		mflag = 1;
+	}
+
+	/* split limit */
+	lim = 0;
+	if(argc == 3){
+		checkarg(vm, "split", argv, 2, Qcval);
+		lim = valcval(argv[2]);
+		if(!isnatcval(lim))
+			vmerr(vm, "split expects a non-negative limit");
+		if(lim->val == 0){
+			*rv = mkvallist(r);
+			return;
+		}
+	}
+
+	n = 0;
+	q = p;
+	intok = 0;
+	while(q < e){
+		if(strchr(set, *q)){
+			if(lim && n >= lim->val)
+				break;
+			if(intok || !mflag)
+				listins(vm, r, n++, mkvalstr(mkstr(p, q-p)));
+			intok = 0;
+			p = q+1;
+			if(mflag){
+				while(p < e && strchr(set, *p))
+					p++;
+				if(p >= e)
+					break;
+			}
+			q = p;
+		}else{
+			q++;
+			intok = 1;
+		}
+	}
+	if(intok && (!lim || n < lim->val))
+		listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
+	efree(set);
+	*rv = mkvallist(r);
+}
+
+static void
 l1_mkvec(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *cv;
@@ -10456,6 +10543,7 @@ mktopenv()
 	FN(rettype);
 	FN(reverse);
 	FN(sort);
+	FN(split);
 	FN(sprintfa);
 	FN(stringof);
 	FN(strlen);
