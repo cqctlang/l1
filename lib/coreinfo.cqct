@@ -133,48 +133,78 @@ define main(args)
 					nhdr = (elfdom`Elf64_Nhdr *) cur;
 				}
 				
-				printf("Note %d is: ", cnt);
+				printf("Note %d (%s) is:  ", cnt, (char *){elfdom}(cur + sizeof(*nhdr)));
 				// cur is now data beginning
 				cur = cur + sizeof(*nhdr) + align(nhdr->n_namesz, 4);
 
-				if (nhdr->n_type == elfdom`NT_PRPSINFO && 
-				    nhdr->n_descsz == sizeof(struct elfdom`elf_prpsinfo_32)) {
+				if (nhdr->n_type == elfdom`NT_PRPSINFO) {
 					@local prpsinfo;
-					
-					printf("32-bit PRPSINFO:\n");
-					prpsinfo = (struct elfdom`elf_prpsinfo_32 *)cur;
-					printf("\tpr_state:  %d\n", prpsinfo->pr_state);
-					printf("\tpr_sname:  %d\n", prpsinfo->pr_sname);
-					printf("\tpr_zomb:   %d\n", prpsinfo->pr_zomb);
-					printf("\tpr_nice:   %d\n", prpsinfo->pr_nice);
-					printf("\tpr_flag:   %d\n", prpsinfo->pr_flag);
-					printf("\tpr_uid:    %d\n", prpsinfo->pr_uid);
-					printf("\tpr_gid:    %d\n", prpsinfo->pr_gid);
-					printf("\tpr_pid:    %d\n", prpsinfo->pr_pid);
-					printf("\tpr_ppid:   %d\n", prpsinfo->pr_ppid);
-					printf("\tpr_pgrp:   %d\n", prpsinfo->pr_pgrp);
-					printf("\tpr_sid:    %d\n", prpsinfo->pr_sid);
-					printf("\tpr_fname:  %s\n", prpsinfo->pr_fname);
-					printf("\tpr_psargs: %s\n", prpsinfo->pr_psargs);
-				}
-				else if (nhdr->n_type == elfdom`NT_PRSTATUS && 
-					 nhdr->n_descsz == sizeof(struct elfdom`elf_prstatus_32)) {
-					@local prstatus, j;
-					
-					printf("32-bit PRSTATUS:\n");
-					prstatus = (struct elfdom`elf_prstatus_32 *)cur;
-					printf("\tpr_cursig: %d\n", prstatus->pr_cursig);
-					printf("\tpr_pid:    %d\n", prstatus->pr_pid);
-					printf("\tpr_ppid:   %d\n", prstatus->pr_ppid);
-					printf("\tpr_pgrp:   %d\n", prstatus->pr_pgrp);
-					printf("\tpr_sid:    %d\n", prstatus->pr_sid);
-					for(j = 0; j < sizeof(prstatus->pr_reg) / sizeof(prstatus->pr_reg[0]); j++) {
-						printf("\treg %2d:    0x%.8x\n", j, prstatus->pr_reg[j]);
+
+					prpsinfo = nil;
+					if (nhdr->n_descsz == sizeof(struct elfdom`elf_prpsinfo_32)) {
+						printf("32-bit PRPSINFO:\n");
+						prpsinfo = (struct elfdom`elf_prpsinfo_32 *)cur;
 					}
-					printf("\tpr_fpvalid %d\n", prstatus->pr_fpvalid);
+					else if (nhdr->n_descsz == sizeof(struct elfdom`elf_prpsinfo_64)) {
+						printf("64-bit PRPSINFO:\n");
+						prpsinfo = (struct elfdom`elf_prpsinfo_64 *)cur;
+					}
+					else if (nhdr->n_descsz == sizeof(struct elfdom`compat_elf_prpsinfo)) {
+						printf("compat PRPSINFO:\n");
+						prpsinfo = (struct elfdom`compat_elf_prpsinfo *)cur;
+					}
+					if(isnil(prpsinfo)) {
+						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+						       nhdr->n_descsz);
+					}
+					else {
+						printf("\tpr_state:  %d\n", prpsinfo->pr_state);
+						printf("\tpr_sname:  %d\n", prpsinfo->pr_sname);
+						printf("\tpr_zomb:   %d\n", prpsinfo->pr_zomb);
+						printf("\tpr_nice:   %d\n", prpsinfo->pr_nice);
+						printf("\tpr_flag:   %d\n", prpsinfo->pr_flag);
+						printf("\tpr_uid:    %d\n", prpsinfo->pr_uid);
+						printf("\tpr_gid:    %d\n", prpsinfo->pr_gid);
+						printf("\tpr_pid:    %d\n", prpsinfo->pr_pid);
+						printf("\tpr_ppid:   %d\n", prpsinfo->pr_ppid);
+						printf("\tpr_pgrp:   %d\n", prpsinfo->pr_pgrp);
+						printf("\tpr_sid:    %d\n", prpsinfo->pr_sid);
+						printf("\tpr_fname:  %s\n", prpsinfo->pr_fname);
+						printf("\tpr_psargs: %s\n", prpsinfo->pr_psargs);
+					}
+				}
+				else if (nhdr->n_type == elfdom`NT_PRSTATUS) {
+					@local prstatus;
+					
+					prstatus = nil;
+					
+					if (nhdr->n_descsz == sizeof(struct elfdom`elf_prstatus_32)) {
+						printf("32-bit PRSTATUS:\n");
+						prstatus = (struct elfdom`elf_prstatus_32 *)cur;
+					}
+					else if (nhdr->n_descsz == sizeof(struct elfdom`elf_prstatus_64)) {
+						printf("64-bit PRSTATUS:\n");
+						prstatus = (struct elfdom`elf_prstatus_64 *)cur;
+					}
+					if (isnil(prstatus)) {
+						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+						       nhdr->n_descsz);
+					}
+					else {
+						printf("\tpr_cursig: %d\n", prstatus->pr_cursig);
+						printf("\tpr_pid:    %d\n", prstatus->pr_pid);
+						printf("\tpr_ppid:   %d\n", prstatus->pr_ppid);
+						printf("\tpr_pgrp:   %d\n", prstatus->pr_pgrp);
+						printf("\tpr_sid:    %d\n", prstatus->pr_sid);
+						for(j = 0; j < sizeof(prstatus->pr_reg) / sizeof(prstatus->pr_reg[0]); j++) {
+							printf("\treg %2d:    0x%.8x\n", j, prstatus->pr_reg[j]);
+						}
+						printf("\tpr_fpvalid %d\n", prstatus->pr_fpvalid);
+					}
 				}
 				else {
-					printf("%s of unknown format.\n", ntype2str(elfdom, nhdr->n_type));
+					printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+					       nhdr->n_descsz);
 				}
 				// next section
 				cur = cur + align(nhdr->n_descsz, 4);

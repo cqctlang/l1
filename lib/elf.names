@@ -399,20 +399,56 @@ struct elf_siginfo {
 };
 
 struct elf_prstatus_32 {
-       @0 	    struct elf_siginfo pr_info;
-       @12  	    short int pr_cursig;
-       @16 	    long unsigned int pr_sigpend;
-       @24	    int pr_pid;
-       @28 	    int pr_ppid;
-       @32	    int pr_pgrp;
-       @36          int pr_sid;
+	@0 	    struct elf_siginfo pr_info;
+	@12  	    short int pr_cursig;
+	@16 	    uint32_t pr_sigpend;
+	@20         uint32_t pr_sighold;
+	@24	    int pr_pid;
+	@28 	    int pr_ppid;
+	@32	    int pr_pgrp;
+	@36         int pr_sid;
 /*        @40 	    struct timeval pr_utime; */
 /*        @48	    struct timeval pr_stime; */
 /*        @56 	    struct timeval pr_cutime; */
 /*        @64	    struct timeval pr_cstime; */
-       @72	    long unsigned int pr_reg[17];
-       @140	    int pr_fpvalid;
-       @144;
+	@72	    uint32_t pr_reg[17];
+	@140	    int pr_fpvalid;
+	@144;
+};
+
+struct elf_prstatus_64 {
+        @0      struct elf_siginfo pr_info;
+        @12     short int pr_cursig;
+        @16     uint64_t pr_sigpend;
+        @24     uint64_t pr_sighold;
+        @32     int pr_pid;
+        @36     int pr_ppid;
+        @40     int pr_pgrp;
+        @44     int pr_sid;
+/*         @48     struct timeval pr_utime; */
+/*         @64     struct timeval pr_stime; */
+/*         @80     struct timeval pr_cutime; */
+/*         @96     struct timeval pr_cstime; */
+        @112    uint64_t pr_reg[27];
+        @328    int pr_fpvalid;
+        @336;
+};
+
+struct compat_elf_prpsinfo {
+        @0      char pr_state;
+        @1      char pr_sname;
+        @2      char pr_zomb;
+        @3      char pr_nice;
+        @4      uint32_t pr_flag;
+        @8      uint32_t pr_uid;
+        @12     uint32_t pr_gid;
+        @16     int pr_pid;
+        @20     int pr_ppid;
+        @24     int pr_pgrp;
+        @28     int pr_sid;
+        @32     char pr_fname[16];
+        @48     char pr_psargs[80];
+        @128;
 };
 
 struct elf_prpsinfo_32 {
@@ -420,9 +456,9 @@ struct elf_prpsinfo_32 {
        @1 	    char pr_sname;
        @2	    char pr_zomb;
        @3 	    char pr_nice;
-       @4	    long unsigned int pr_flag;
-       @8	    short unsigned int pr_uid;
-       @10	    short unsigned int pr_gid;
+       @4	    uint32_t pr_flag;
+       @8	    uint16_t pr_uid;
+       @10	    uint16_t pr_gid;
        @12	    int pr_pid;
        @16 	    int pr_ppid;
        @20	    int pr_pgrp;
@@ -431,6 +467,24 @@ struct elf_prpsinfo_32 {
        @44	    char pr_psargs[80];
        @124;
 };
+
+struct elf_prpsinfo_64 {
+        @0      char pr_state;
+        @1      char pr_sname;
+        @2      char pr_zomb;
+        @3      char pr_nice;
+        @8      uint64_t pr_flag;
+        @16     uint32_t pr_uid;
+        @20     uint32_t pr_gid;
+        @24     int pr_pid;
+        @28     int pr_ppid;
+        @32     int pr_pgrp;
+        @36     int pr_sid;
+        @40     char pr_fname[16];
+        @56     char pr_psargs[80];
+        @136;
+};
+
 
 enum elfmacro {
 EI_NIDENT	=16,
