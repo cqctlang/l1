@@ -9020,15 +9020,6 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 	p = s->s;
 	e = s->s+s->len;
 
-	/* delimiter set */
-	if(argc > 1 && (s = valstrorcvalornil(vm, "split", argv, 1))){
-		set = str2cstr(s);
-		mflag = 0;
-	}else{
-		set = xstrdup(" \t");
-		mflag = 1;
-	}
-
 	/* split limit */
 	lim = 0;
 	if(argc == 3){
@@ -9042,31 +9033,52 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 		}
 	}
 
-	n = 0;
-	q = p;
-	intok = 0;
-	while(q < e){
-		if(strchr(set, *q)){
-			if(lim && n >= lim->val)
-				break;
-			if(intok || !mflag)
+	/* delimiter set */
+	if(argc > 1 && (s = valstrorcvalornil(vm, "split", argv, 1))){
+		set = str2cstr(s);
+		mflag = 0;
+	}else{
+		set = xstrdup(" \t");
+		mflag = 1;
+	}
+
+	if(!mflag){
+		n = 0;
+		q = p;
+		while(q < e && (!lim || n < lim->val)){
+			if(strchr(set, *q)){
 				listins(vm, r, n++, mkvalstr(mkstr(p, q-p)));
-			intok = 0;
-			p = q+1;
-			if(mflag){
+				p = q+1;
+				q = p;
+			}else
+				q++;
+		}
+		if(p < e)
+			listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
+	}else{
+		n = 0;
+		q = p;
+		intok = 0;
+		while(q < e && (!lim || n < lim->val)){
+			if(strchr(set, *q)){
+				if(intok)
+					listins(vm, r, n++,
+						mkvalstr(mkstr(p, q-p)));
+				intok = 0;
+				p = q+1;
 				while(p < e && strchr(set, *p))
 					p++;
 				if(p >= e)
 					break;
+				q = p;
+			}else{
+				q++;
+				intok = 1;
 			}
-			q = p;
-		}else{
-			q++;
-			intok = 1;
 		}
+		if(intok)
+			listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
 	}
-	if(intok && (!lim || n < lim->val))
-		listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
 	efree(set);
 	*rv = mkvallist(r);
 }
