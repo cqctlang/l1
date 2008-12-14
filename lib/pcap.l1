@@ -1,0 +1,116 @@
+
+pcap_names = @names c32le {
+	typedef struct pcap_hdr_s pcap_hdr_t;
+
+	struct pcap_hdr_s {
+		@0      uint32 magic_number;   /* magic number */
+		@4      uint16 version_major;  /* major version number */
+		@6      uint16 version_minor;  /* minor version number */
+		@8      int32  thiszone;       /* GMT to local correction */
+		@12     uint32 sigfigs;        /* accuracy of timestamps */
+		@16     uint32 snaplen;        /* max length of captured packets, in octets */
+		@20     uint32 network;        /* data link type */
+		@24;
+	};
+
+	struct timeval {
+		@0x0    int32    tv_sec;
+		@0x4    int32    tv_usec;
+		@0x8;
+	};
+
+	struct pcap_pkthdr {
+		@0x0    struct timeval ts;
+		@0x8    uint32  caplen;
+		@0xc    uint32 len;
+		@0x10;
+	};
+
+	// from libpcap/savefile.c
+	// there are others possible
+	enum pcap_magic {
+		TCPDUMP_MAGIC	        =   0xa1b2c3d4, 
+		KUZNETZOV_TCPDUMP_MAGIC	=   0xa1b2cd34,
+		FMESQUITA_TCPDUMP_MAGIC	=   0xa1b234cd,
+		NAVTEL_TCPDUMP_MAGIC	=   0xa12b3c4d,
+		NSEC_TCPDUMP_MAGIC	=   0xa1b23c4d,
+	};
+
+	// from libpcap/savefile.c
+	// Not even close to all them are here...
+	enum pcap_linktype {
+		LINKTYPE_NULL           =   0,
+		LINKTYPE_ETHERNET       =   1, /* also for 100Mb and up */
+		LINKTYPE_EXP_ETHERNET   =   2, /* 3Mb experimental Ethernet */
+	};
+};
+
+
+define mkpcapdom(fname)
+{
+	@local myas;
+
+	myas = mksas(mapfile(fname));
+
+	return mkdom(pcap_names, myas);
+}
+
+define pcap_domlen(pdom){
+	return rangelen(vecref(pdom.map(),0)); 
+}
+
+
+// pdom: pcap domain from mkpcapdom()
+// fn(hdrptr, pktnum): called for each packet with ptr to header and pktnum
+define pcap_iter(pdom, fn)
+{
+	@local cur, cnt, sz;
+
+	sz = pcap_domlen(pdom);
+
+	cur = sizeof(pdom`pcap_hdr_t);
+	cnt = 0;
+	while (cur < sz) {		
+		@local pkthdr; 
+
+		pkthdr = (struct pdom`pcap_pkthdr *){pdom}cur;
+		fn(pkthdr, cnt);
+		cur = cur +  sizeof(struct pdom`pcap_pkthdr) + pkthdr->caplen;
+		cnt++;
+	}	
+}
+
+define pcap_numpkts(pdom)
+{
+	@local cnt;
+	
+	cnt = 0;
+	pcap_iter(pdom, lambda(hdr, i) { cnt++; });
+	return cnt;
+}
+
+define pcap_info(pdom)
+{
+	@local hdr;
+	@local fsz;
+	
+	fsz = pcap_domlen(pdom);
+
+	hdr = (pdom`pcap_hdr_t *){pdom}0;
+
+	printf("magic:           %e\n", 
+	       (enum pdom`pcap_magic)hdr->magic_number);
+	printf("version_major:   0x%x\n", hdr->version_major);
+	printf("version_minor:   0x%x\n", hdr->version_minor);
+	printf("zone:            0x%x\n", hdr->thiszone);
+	printf("sigfigs:         0x%x\n", hdr->sigfigs);
+	printf("snaplen:         0x%x\n", hdr->snaplen);
+	printf("network:         %e\n", 
+	       (enum pdom`pcap_linktype)hdr->network);       
+	printf("File size:       %d bytes\n", fsz);     
+	printf("Packets:         %d\n", pcap_numpkts(pdom));
+}
+
+
+pdom = mkpcapdom(listref(args, 0));
+pcap_info(pdom);
