@@ -45,6 +45,48 @@ pcap_names = @names c32le {
 	};
 };
 
+eth_names = @names c32be {
+	// ethernet stuff from linux/if_ether.h
+	struct ethhdr {
+		@0  unsigned char   h_dest[6];       /* destination eth addr */
+		@6  unsigned char   h_source[6];     /* source ether addr    */
+		@12 uint16          h_proto;         /* packet type ID field */
+		@14;
+	}; 
+
+	// not exhaustive...
+	enum proto_ids {
+		ETH_P_LOOP =	0x0060,		/* Ethernet Loopback packet	*/
+		ETH_P_PUP  =	0x0200,		/* Xerox PUP packet		*/
+		ETH_P_PUPAT=	0x0201,		/* Xerox PUP Addr Trans packet	*/
+		ETH_P_IP   =	0x0800,		/* Internet Protocol packet	*/
+		ETH_P_X25  =	0x0805,		/* CCITT X.25			*/
+		ETH_P_ARP  =	0x0806,		/* Address Resolution packet	*/
+	};
+
+	struct iphdr {
+		@@0x0   uint8  ip_vers:4;
+		@@0x4   uint8  ip_hlen:4;
+		@@0x8   uint8  ip_prec:3;
+		@@0xb   uint8  ip_mdflag:1;
+		@@0xc   uint8  ip_mtflag:1;
+		@@0xd   uint8  ip_mrflag:1;
+		@@0xe   uint8  ip_mmflag:1;
+		@0x2    uint16 ip_len;
+		@0x4    uint16 ip_id;
+		@@0x2e  uint8  ip_dfflag:1;
+		@@0x2f  uint8  ip_mfflag:1;
+		@@0x30  uint16 ip_fragoffs:13;
+		@0x8    uint8  ip_ttl;
+		@0x9    uint8  ip_proto;
+		@0xa    uint16 ip_csum;
+		@0xc    uint32 ip_src;
+		@0x10   uint32 ip_dst;
+		@0x14;
+	};
+
+};
+
 
 define mkpcapdom(fname)
 {
@@ -111,6 +153,48 @@ define pcap_info(pdom)
 	printf("Packets:         %d\n", pcap_numpkts(pdom));
 }
 
+define ethaddr2str(addr)
+{
+	return sprintfa("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x", 
+			addr[0], addr[1], addr[2], 
+			addr[3], addr[4], addr[5]);
+}
+
+define pcap_dump_ip(ipkt)
+{
+	printf("Version:    %d\n", ipkt->ip_vers);
+	printf("Header len: %d\n", ipkt->ip_hlen);
+	printf("Length:     %d\n", ipkt->ip_len);
+	printf("ID:         %d\n", ipkt->ip_id);
+	printf("Frag:       %s\n", ipkt->ip_dfflag ? "If necessary" : "No");
+	printf("More frag:  %s\n", ipkt->ip_mfflag ? "yes" : "no");
+	printf("Frag offs:  %d\n", ipkt->ip_fragoffs);
+	printf("TTL:        %d\n", ipkt->ip_ttl);
+	printf("Proto:      %d\n", ipkt->ip_proto);
+	printf("SRC:        0x%x\n", ipkt->ip_src);
+	printf("DST:        0x%x\n", ipkt->ip_dst);
+}
+
+define pcap_dump(pdom)
+{
+	pcap_iter(pdom, lambda(hdr, n) {
+			@local edom, ehdr;
+
+			printf("\nPacket %d\n", n);
+			edom = mkdom(eth_names, pdom.as);
+			ehdr = (struct edom`ethhdr *){edom}((unsigned char *)hdr + sizeof(*hdr));
+			printf("dst:   %s\n", ethaddr2str(ehdr->h_dest));
+			printf("src:   %s\n", ethaddr2str(ehdr->h_source));
+			printf("proto: %e\n", (enum edom`proto_ids)ehdr->h_proto);
+			switch(ehdr->h_proto) {
+			case edom`ETH_P_IP:
+				pcap_dump_ip((struct edom`iphdr *)((unsigned char *)ehdr + sizeof(struct edom`ethhdr)));
+				break;
+			}
+		});
+}
+
 
 pdom = mkpcapdom(listref(args, 0));
 pcap_info(pdom);
+pcap_dump(pdom);
