@@ -74,9 +74,9 @@ eth_names = @names c32be {
 		@@0xe   uint8  ip_mmflag:1;
 		@0x2    uint16 ip_len;
 		@0x4    uint16 ip_id;
-		@@0x2e  uint8  ip_dfflag:1;
-		@@0x2f  uint8  ip_mfflag:1;
-		@@0x30  uint16 ip_fragoffs:13;
+		@@0x31  uint8  ip_dfflag:1;
+		@@0x32  uint8  ip_mfflag:1;
+		@@0x33  uint16 ip_fragoffs:13;
 		@0x8    uint8  ip_ttl;
 		@0x9    uint8  ip_proto;
 		@0xa    uint16 ip_csum;
