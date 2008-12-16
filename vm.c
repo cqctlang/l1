@@ -4483,14 +4483,14 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 }
 
 static int
-dobitfieldgeom(Cval *addr, Xtypename *b, BFgeom *bfg)
+dobitfieldgeom(Xtypename *b, BFgeom *bfg)
 {
 	Cval *bit0, *bs;
 	Xtypename *bb;
 		
 	bit0 = valcval(b->bit0);
 	bs = valcval(b->sz);
-	bfg->bp = 8*addr->val+bit0->val; /* FIXME: overflow bug */
+	bfg->bp = bit0->val;
 	bfg->bs = bs->val;
 	bb = chasetype(b->link);
 	bfg->isbe = isbigendian[bb->rep];
@@ -4523,12 +4523,13 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 			vmerr(vm, "attempt to read object of undefined type: "
 			      "%.*s", (int)es->len, es->s);
 		}
-		if(0 > dobitfieldgeom(cv, b, &bfg))
+		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
 		argv[0] = mkvalstr(vm->sget);
 		argv[1] = domv;
 		argv[2] = mkvalrange(mkcval(vm->litdom,
-					    vm->litbase[Vptr], bfg.addr),
+					    vm->litbase[Vptr],
+					    cv->val+bfg.addr),
 				     mkcval(vm->litdom,
 					    vm->litbase[Vptr], bfg.cnt));
 		p = dovm(vm, d->as->dispatch, 3, argv);
@@ -8337,14 +8338,15 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 			vmerr(vm, "attempt to write object of undefined type: "
 			      "%.*s", (int)es->len, es->s);
 		}
-		if(0 > dobitfieldgeom(addr, b, &bfg))
+		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
 
 		/* get contents of bitfield container */
 		argv[0] = mkvalstr(vm->sget);
 		argv[1] = mkvaldom(d);
 		/* FIXME: why litbase[Vptr]; why not d->ns->base[Vptr] ? */
-		r = mkrange(mkcval(vm->litdom, vm->litbase[Vptr], bfg.addr),
+		r = mkrange(mkcval(vm->litdom, vm->litbase[Vptr],
+				   addr->val+bfg.addr),
 			    mkcval(vm->litdom, vm->litbase[Vptr], bfg.cnt));
 		gcprotect(vm, r);
 		argv[2] = mkvalrange2(r);

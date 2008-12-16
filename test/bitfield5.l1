@@ -1,0 +1,24 @@
+ns = @names c32le {
+	struct foo {
+		@@48  int bar:10;
+		@12;
+	};
+};
+
+dom = mkdom(ns, mkzas(1024));
+q = (`uint16*){dom}0x0;
+
+*(q+3) = 0xfeaa;
+*(q+4) = 0xd;
+p = (struct dom`foo *){dom}0x0;
+printf("%x\n", p->bar);		/* expect 0x2aa */
+p = (struct dom`foo *){dom}0x1;
+printf("%x\n", p->bar);		/* expect 0x1fe */
+
+*(q+3) = 0xfeaa;
+*(q+4) = 0xd;
+p = (struct dom`foo *){dom}0x0;
+p->bar = 0x0ff;
+printf("%x\n", p->bar);		/* expect 0xff */
+p = (struct dom`foo *){dom}0x1;
+printf("%x\n", p->bar);		/* expect 0x1fc */
