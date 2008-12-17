@@ -85,6 +85,64 @@ eth_names = @names c32be {
 		@0x14;
 	};
 
+	// from include/netinet/in.h
+	enum ip_protos {
+		IPPROTO_IP = 0,	   /* Dummy protocol for TCP.  */
+		IPPROTO_HOPOPTS = 0,   /* IPv6 Hop-by-Hop options.  */
+		IPPROTO_ICMP = 1,	   /* Internet Control Message Protocol.  */
+		IPPROTO_IGMP = 2,	   /* Internet Group Management Protocol. */
+		IPPROTO_IPIP = 4,	   /* IPIP tunnels (older KA9Q tunnels use 94).  */
+		IPPROTO_TCP = 6,	   /* Transmission Control Protocol.  */
+		IPPROTO_EGP = 8,	   /* Exterior Gateway Protocol.  */
+		IPPROTO_PUP = 12,	   /* PUP protocol.  */
+		IPPROTO_UDP = 17,	   /* User Datagram Protocol.  */
+		IPPROTO_IDP = 22,	   /* XNS IDP protocol.  */
+		IPPROTO_TP = 29,	   /* SO Transport Protocol Class 4.  */
+		IPPROTO_IPV6 = 41,     /* IPv6 header.  */
+		IPPROTO_ROUTING = 43,  /* IPv6 routing header.  */
+		IPPROTO_FRAGMENT = 44, /* IPv6 fragmentation header.  */
+		IPPROTO_RSVP = 46,	   /* Reservation Protocol.  */
+		IPPROTO_GRE = 47,	   /* General Routing Encapsulation.  */
+		IPPROTO_ESP = 50,      /* encapsulating security payload.  */
+		IPPROTO_AH = 51,       /* authentication header.  */
+		IPPROTO_ICMPV6 = 58,   /* ICMPv6.  */
+		IPPROTO_NONE = 59,     /* IPv6 no next header.  */
+		IPPROTO_DSTOPTS = 60,  /* IPv6 destination options.  */
+		IPPROTO_MTP = 92,	   /* Multicast Transport Protocol.  */
+		IPPROTO_ENCAP = 98,	   /* Encapsulation Header.  */
+		IPPROTO_PIM = 103,	   /* Protocol Independent Multicast.  */
+		IPPROTO_COMP = 108,	   /* Compression Header Protocol.  */
+		IPPROTO_SCTP = 132,	   /* Stream Control Transmission Protocol.  */
+		IPPROTO_RAW = 255,	   /* Raw IP packets.  */
+	};
+
+	struct tcphdr {
+		@0x0    uint16 source;
+		@0x2    uint16 dest;
+		@0x4    uint32 seq;
+		@0x8    uint32 ack_seq;
+		@@0x60  uint16 doff:4;
+		@@0x6a  uint16 urg:1;
+		@@0x6b  uint16 ack:1;
+		@@0x6c  uint16 psh:1;
+		@@0x6d  uint16 rst:1;
+		@@0x6e  uint16 syn:1;
+		@@0x6f  uint16 fin:1;
+		@0xe    uint16 window;
+		@0x10   uint16 check;
+		@0x12   uint16 urg_ptr;
+		@0x16;
+	};
+
+	struct udphdr {
+		@0x0    uint16 source;
+		@0x2    uint16 dest;
+		@0x4    uint16 len;
+		@0x8    uint16 check;
+		@0x40;
+	};
+
+	
 };
 
 
@@ -160,8 +218,41 @@ define ethaddr2str(addr)
 			addr[3], addr[4], addr[5]);
 }
 
+define ipv42str(a)
+{
+	return sprintfa("%d.%d.%d.%d", 
+			a >> 24, (a & 0xff0000)>>16, (a & 0xff00)>>8, (a & 0xff));
+}
+
+define pcap_dump_tcp(tpkt)
+{
+	printf("source: %u\n", tpkt->source);
+	printf("dest:   %u\n", tpkt->dest);
+	printf("seq:    %u\n", tpkt->seq);
+	printf("ack:    %u\n", tpkt->ack_seq);
+	printf("doff:   %u\n", tpkt->doff);
+	printf("Flags:  %s\n",
+	       sprintfa("%s%s%s%s%s%s",
+			tpkt->urg ? "urg " : "",
+			tpkt->ack ? "ack " : "",
+			tpkt->psh ? "psh " : "",
+			tpkt->rst ? "rst " : "",
+			tpkt->syn ? "syn " : "",
+			tpkt->fin ? "fin " : ""));
+	printf("Window: %d\n", tpkt->window);
+}
+
+define pcap_dump_udp(upkt)
+{
+	printf("source: %u\n", upkt->source);
+	printf("dest:   %u\n", upkt->dest);
+	printf("length: %u\n", upkt->len);
+}
+
 define pcap_dump_ip(ipkt)
 {
+	@local ipdom;
+
 	printf("Version:    %d\n", ipkt->ip_vers);
 	printf("Header len: %d\n", ipkt->ip_hlen);
 	printf("Length:     %d\n", ipkt->ip_len);
@@ -170,9 +261,20 @@ define pcap_dump_ip(ipkt)
 	printf("More frag:  %s\n", ipkt->ip_mfflag ? "yes" : "no");
 	printf("Frag offs:  %d\n", ipkt->ip_fragoffs);
 	printf("TTL:        %d\n", ipkt->ip_ttl);
-	printf("Proto:      %d\n", ipkt->ip_proto);
-	printf("SRC:        0x%x\n", ipkt->ip_src);
-	printf("DST:        0x%x\n", ipkt->ip_dst);
+	printf("Proto:      %e\n", (enum ip_protos)ipkt->ip_proto);
+	printf("SRC:        %s\n", ipv42str(ipkt->ip_src));
+	printf("DST:        %s\n", ipv42str(ipkt->ip_dst));
+
+	ipdom = domof(ipkt);
+
+	switch(ipkt->ip_proto) {
+	case ipdom`IPPROTO_TCP:
+		pcap_dump_tcp((struct ipdom`tcphdr *)((unsigned char *) ipkt + 4 * ipkt->ip_hlen));
+		break;
+	case ipdom`IPPROTO_UDP:
+		pcap_dump_udp((struct ipdom`udphdr *)((unsigned char *) ipkt + 4 * ipkt->ip_hlen));
+		break;
+	}
 }
 
 define pcap_dump(pdom)
@@ -193,8 +295,3 @@ define pcap_dump(pdom)
 			}
 		});
 }
-
-
-pdom = mkpcapdom(listref(args, 0));
-pcap_info(pdom);
-pcap_dump(pdom);
