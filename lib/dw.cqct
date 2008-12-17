@@ -5867,7 +5867,7 @@ define make_function_tables (fscope, cutypetab, cusymtab, cttab, rns, dom)
     else {
       oldloc = listref (oldsym, 2);
       foreach (lambda (v) {push (oldloc, v);}, sloc);
-      tabinsert (symtab, sname, [sname, stype, sloc]);
+      tabinsert (symtab, sname, [sname, stype, oldloc]);
     }
   }
   if (!isempty (subscopes)) {
@@ -5917,7 +5917,7 @@ define add_scoped_vars (stab, ttab, scope, indent, cutypetab, cusymtab, cttab, r
     else {
       oldloc = listref (oldsym, 2);
       foreach (lambda (v) {push (oldloc, v);}, sloc);
-      tabinsert (stab, sname, [sname, stype, sloc]);
+      tabinsert (stab, sname, [sname, stype, oldloc]);
     }
   }
   if (!isempty (subscopes)) {
