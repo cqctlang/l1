@@ -79,6 +79,7 @@ todo
                 some structure obtains
   - detect variable use-before-define errors, especially
     because locals share storage in frame 
+  - it should be easier to write htons
 
 - usability
   - change "entry" to "toplevel"

@@ -12,7 +12,6 @@
 
 <div id="content">
 
-
 <p>
 Jump to Section:
 <a href="#sec:synindex">Syntax Index</a> |
@@ -27,19 +26,74 @@ Jump to Section:
 <p>
 Cinquecento is a programming language designed to help
 programmers examine the state of programs in execution,
-in particular C programs.
+in particular C programs.  This manual describes the
+Cinquecento language and built-in library functions.
 </p>
 
 <p>
-To be useful for program debugging, Cinquecento
-requires a facility for controlling and accessing the
-state of running programs.  We provide one such
-facility for Linux processes as a separate program.  In
-general, Cinquecento defines a standard (and simple)
-interface for such facilities, but implementations are
-not part of the language.  Instead this manual focuses
-on generic features of the language that are
-independent of any debugging facility.
+The main convenience Cinquecento offers programmers is
+the ability to examine and modify program state
+through fragments of code written in C.
+
+This goes beyond the support for C expression
+evaluation that debuggers commonly provide.
+
+In addition to supporting all C operators and
+expressions, Cinquecento supports all C control
+constructs.
+
+Conventional C idioms, such as loops for traversing
+linked data structures, have identical syntax and
+semantics in Cinquecento.  Generally the same code that
+one might add to a C program to facilitate debugging
+can be directly executed as external Cinquecento code.
+
+</p>
+
+<p>
+Another convenience is the ability to operate on
+multiple target progams simultaneously from within a
+single Cinquecento program.  This allows Cinquecento
+programs to observe the execution of distributed
+systems.
+
+Every Cinquecento expression that operates on program
+state is directed a particular <em>domain</em>
+that represents 
+
+</p>
+
+<p>
+Mechanisms for accessing program state vary among
+operating systems.  Rather than favoring one particular
+operating system, Cinquecento defines a generic
+procedural interface for reading and writing target
+process memory.  This interface can be implemented by
+Cinquecento code.  Implementations can extend the
+interface to represent specialized aspects of a target
+process, such as machine-dependent registers and
+os-dependent process control interfaces.  This design
+avoids system dependencies in the language definition
+and implementation; rather, it empowers users to
+provide custom access via libraries of Cinquecento code
+and external programs.
+</p>
+
+<p>
+Of course, not all users need or want to define their
+own implementations of the interface to process state.
+We provide an implementation for single-threaded,
+remotely executing Linux processes, which we distribute
+as a separate program called prctl, and we are happy to
+work with others to develop similar implementations
+for other systems.
+</p>
+
+<p>
+Users new to Cinquecento who want a concrete example of
+how to run Cinquecento on a program (Linux) should read
+the example.  This manual describes the basic language
+and the library functions of our implementation.
 </p>
 
 <h3>Input</h3>
@@ -3285,9 +3339,9 @@ specifies the base in which the string is interpreted.
 </div>
 </div>
 <div class="desc">
-Splits <span class="arg">str</span> into substrings delimited
+Searches <span class="arg">str</span> for substrings delimited
 by characters in <span class="arg">set</span> and returns
-a list containing the substrings.
+a list of the substrings.
 
 If <span class="arg">set</span> is not specified or is <span class="val">nil</span>,
 the split occurs on consecutive white space delimiters.  Otherwise,
