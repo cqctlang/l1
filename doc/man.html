@@ -35,66 +35,95 @@ The main convenience Cinquecento offers programmers is
 the ability to examine and modify program state
 through fragments of code written in C.
 
-This goes beyond the support for C expression
-evaluation that debuggers commonly provide.
+Cinquecento, like many debuggers, supports the
+evaluation of arbitrary C expressions.
 
-In addition to supporting all C operators and
-expressions, Cinquecento supports all C control
-constructs.
+In addition, Cinquecento also supports the use of C
+control constructs.
 
 Conventional C idioms, such as loops for traversing
 linked data structures, have identical syntax and
-semantics in Cinquecento.  Generally the same code that
-one might add to a C program to facilitate debugging
-can be directly executed as external Cinquecento code.
+semantics in Cinquecento.
 
+Generally the same code that one might add to a C
+program to facilitate debugging can be directly
+executed as Cinquecento code.
 </p>
 
 <p>
 Another convenience is the ability to operate on
 multiple target progams simultaneously from within a
-single Cinquecento program.  This allows Cinquecento
-programs to observe the execution of distributed
+single Cinquecento program.
+
+This feature allows the creation of Cinquecento
+programs that observe the execution of distributed
 systems.
-
-Every Cinquecento expression that operates on program
-state is directed a particular <em>domain</em>
-that represents 
-
 </p>
 
 <p>
-Mechanisms for accessing program state vary among
-operating systems.  Rather than favoring one particular
-operating system, Cinquecento defines a generic
-procedural interface for reading and writing target
-process memory.  This interface can be implemented by
-Cinquecento code.  Implementations can extend the
-interface to represent specialized aspects of a target
-process, such as machine-dependent registers and
-os-dependent process control interfaces.  This design
-avoids system dependencies in the language definition
-and implementation; rather, it empowers users to
-provide custom access via libraries of Cinquecento code
-and external programs.
+Underlying these conveniences is an abstraction, called
+a <em>domain</em>, that represents a program in
+execution.
+
+Procedural interfaces to domains provide direct access
+to the memory, types, and symbols of the process
+represented by a domain.  These interfaces hide details
+such as the location of the process and the
+architecture and operating system of the machine on
+which it runs.
 </p>
 
 <p>
-Of course, not all users need or want to define their
-own implementations of the interface to process state.
-We provide an implementation for single-threaded,
-remotely executing Linux processes, which we distribute
-as a separate program called prctl, and we are happy to
-work with others to develop similar implementations
-for other systems.
+However, often the more natural and expressive way to
+examine the state of process is through expressions in
+C.
+
+In Cinquecento, C is the primary interface to domains.
+
+Every C expression occurs in the context of a
+particular domain --- the process upon which the
+expression is intended to operate.
+
+The Cinquecento evaluator maps C expressions into
+operations on the referenced domain, giving the user
+the illusion that their Cinquecento code executes in
+the address space of the target process.
 </p>
 
 <p>
-Users new to Cinquecento who want a concrete example of
-how to run Cinquecento on a program (Linux) should read
-the example.  This manual describes the basic language
-and the library functions of our implementation.
+Domains are first-class objects.
+
+A rich set of supporting language types and built-in
+library functions enable Cinquecento users to tailor
+custom domain implementations to the environment
+in which their target application runs.
+
+Rather than favor the idiosyncrasies of one operating
+system, architecture, compiler, and debugging
+information format, Cinquecento encourages the use of
+libraries, written in Cinquecento, and remote services
+that implement the domain abstraction for different
+environments.
+
+In this sense, Cinquecento is as much as language for writing
+debuggers as it is a language for operating debuggers.
 </p>
+
+<p>
+We provide a domain implementation for single-threaded Linux
+processes running on TCP/IP networks, which we
+distribute as a separate program called prctl.
+
+A separate manual describes the installation
+and operation of prctl.
+</p>
+
+<p>
+This manual describes the general C-based interface
+to domains, as well as the types and libraries
+used to define domains. 
+</p>
+
 
 <h3>Input</h3>
 
