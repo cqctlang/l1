@@ -26,34 +26,51 @@ Jump to Section:
 <p>
 Cinquecento is a programming language designed to help
 programmers examine the state of programs in execution,
-in particular C programs.  This manual describes the
+in particular C programs.
+
+<!-- Cinquecento
+is used to automated examination,
+validation, and comparison of intricate program state 
+in either single or multi-process applications.
+Cinquecento can also be used interactively,
+as a debugger, although its syntax is optimized
+for the writing of debugging and validation scripts.
+
+Many of the ideas for language-based debugging
+come from Acid and D (the language DTrace).
+Cinquecento differs from these languages
+in OS-independence, support for arbitrary
+The key differences are ...
+-->
+
+This manual describes the
 Cinquecento language and built-in library functions.
 </p>
 
 <p>
-The main convenience Cinquecento offers programmers is
-the ability to examine and modify program state
+Cinquecento allow programmers
+to examine and modify program state
 through fragments of code written in C.
 
-Cinquecento, like many debuggers, supports the
+Like many language-based debuggers, Cinquecento supports the
 evaluation of arbitrary C expressions.
 
-In addition, Cinquecento also supports the use of C
-control constructs.
+In addition, Cinquecento also supports general use of C
+control constructions.
 
-Conventional C idioms, such as loops for traversing
-linked data structures, have identical syntax and
-semantics in Cinquecento.
+C idioms, such as loops for traversing linked data
+structures, have identical syntax and semantics in
+Cinquecento.
 
-Generally the same code that one might add to a C
-program to facilitate debugging can be directly
-executed as Cinquecento code.
+Generally code that one might add to a C
+program to facilitate debugging can be made
+to execute as Cinquecento code with little or no
+modification.
 </p>
 
 <p>
-Another convenience is the ability to operate on
-multiple target progams simultaneously from within a
-single Cinquecento program.
+A Cinquecento program may operate on
+multiple target progams simultaneously.
 
 This feature allows the creation of Cinquecento
 programs that observe the execution of distributed
@@ -61,7 +78,7 @@ systems.
 </p>
 
 <p>
-Underlying these conveniences is an abstraction, called
+Underlying these features is an abstraction, called
 a <em>domain</em>, that represents a program in
 execution.
 
@@ -94,16 +111,15 @@ the address space of the target process.
 Domains are first-class objects.
 
 A rich set of supporting language types and built-in
-library functions enable Cinquecento users to tailor
-custom domain implementations to the environment
-in which their target application runs.
+library functions enable Cinquecento users to create
+domains tailored for the environment in which
+their target application runs.
 
 Rather than favor the idiosyncrasies of one operating
 system, architecture, compiler, and debugging
-information format, Cinquecento encourages the use of
-libraries, written in Cinquecento, and remote services
-that implement the domain abstraction for different
-environments.
+information format, Cinquecento encourages the
+development of libraries of user-defined domain
+implementations.
 
 In this sense, Cinquecento is as much as language for writing
 debuggers as it is a language for operating debuggers.
@@ -140,7 +156,7 @@ within a string literal or comment) of either of the
 forms
 <div class="code">
 @include "<span class="arg">filename</span>"<br />
-@include <<span class="arg">filename</span>>
+@include &#60;<span class="arg">filename</span>&#62;
 </div>
 is replaced with the contents of the named file.
 The first form searches for
@@ -151,37 +167,38 @@ current input file.
 
 The current input file is temporarily switched to 
 <span class="arg">filename</span> during the substitution.
+</p>
 
+<h3>Comments</h3>
+
+<p>
+Cinquecento recognizes C and C++ comment syntax.
+Input enclosed in <tt>/*</tt> <tt>*/</tt> is a comment.
+Input between <tt>//</tt> and the next newline character is also a comment.
 </p>
 
 <p>
-Comments have the same syntax as C and C++ comments.
-Input enclosed in <tt>/*</tt> <tt>*/</tt> is a comment.
-Input between <tt>//</tt> and the next newline character is also a comment.
+In addition, lines beginning with <tt>#!</tt> are treated
+as comments to allow files of Cinquecento code to be
+treated as interpreter scripts on Unix systems.
 </p>
 
 <h3>Variables and Scope</h3>
 
 <p>
-Cinquecento variables bind names to values.  Variables
-are lexically scoped and dynamically typed.
+Cinquecento is lexically scoped.
+Variables bind names to values,
+and are dynamically typed.
 </p>
 
 <p>
-Binding
-</p>
-
-<p>
+Bindings are 
 created in the top-level environment,
 by the <span class="fnindex"
 id="syn:@local">@local</span> binding form within
 compound expressions, and by the function
 constructor <span class="fnindex"
 id="syn:lambda">lambda</span>.
-</p>
-
-<p>
-
 </p>
 
 <h3>Cinquecento Types</h3>
