@@ -1056,7 +1056,10 @@ define dw_unwind_to_caller (fdom, addr)
 define dw_unwind (exdom, fdom, ip, exbase)
 {
   @local ebp, eip, rvec, r, rlist, cfa, newcfa, result, dinfo;
-  @local curregs, newregs, i, fp, sp;
+  @local curregs, newregs, i, fp, sp, bt;
+  bt = []; /* a place to store register values for all call frames
+	      so that the caller can move up and down the call stack,
+	      not just toward the caller. */
   asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom);
   if (asize == 4) {
     curregs = mklist (9);
@@ -1067,11 +1070,13 @@ define dw_unwind (exdom, fdom, ip, exbase)
     newregs = mklist (17);
   }
   listset (curregs, 0, 0);
-  listset (newregs, 0, 0);
+  //  listset (newregs, 0, 0);
   for (i = 1; i < length (curregs); i++) {
     listset (curregs, i, _dw_get_regval (exdom, i));
-    listset (newregs, i, _dw_get_regval (exdom, i));
+    //listset (newregs, i, _dw_get_regval (exdom, i));
   }
+  newregs = copy (curregs);
+  append (bt, copy (curregs));
   result = append ([], ip);
   eip = (unsigned int) {exdom} ip - (unsigned int) {exdom} exbase;
   rlist = dw_unwind_to_caller (fdom, eip);
@@ -1215,8 +1220,12 @@ define dw_unwind (exdom, fdom, ip, exbase)
     for (i = 0; i < length (curregs); i++) {
       listset(curregs, i, listref(newregs, i));
     }
+    append (bt, copy (newregs));
     rlist =  dw_unwind_to_caller (fdom, eip);
   }
+  /* Comment this out for now. Later we will figure out how to use it. */
+  //printf ("bt is %a\n", bt);
+  //printf ("result is %a\n", result);
   return result;
 }
 
