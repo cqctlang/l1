@@ -48,24 +48,23 @@ Cinquecento language and built-in library functions.
 </p>
 
 <p>
-Cinquecento allow programmers
-to examine and modify program state
-through fragments of code written in C.
 
-Like many language-based debuggers, Cinquecento supports the
-evaluation of arbitrary C expressions.
+Like many languages designed for debugging, Cinquecento
+understands C types and pointers, and supports the use
+of arbitrary C expressions to examine and modify the
+state of a target program.
 
-In addition, Cinquecento also supports general use of C
-control constructions.
+Cinquecento additionally supports all C control
+constructions.
 
-C idioms, such as loops for traversing linked data
-structures, have identical syntax and semantics in
+Loops for traversing linked data structures and other
+C idioms have identical syntax and semantics in
 Cinquecento.
 
-Generally code that one might add to a C
-program to facilitate debugging can be made
-to execute as Cinquecento code with little or no
-modification.
+Generally, code that one might add to a C
+program to faciliate debugging
+can be used in Cinquecento programs with little or
+no modification.
 </p>
 
 <p>
@@ -102,16 +101,17 @@ particular domain --- the process upon which the
 expression is intended to operate.
 
 The Cinquecento evaluator maps C expressions into
-operations on the referenced domain, giving the user
-the illusion that their Cinquecento code executes in
-the address space of the target process.
+operations on the referenced domain.  To the user
+Cinquecento serves the illusion of fragments of
+C executing in the address space of their target
+process.
 </p>
 
 <p>
 Domains are first-class objects.
 
 A rich set of supporting language types and built-in
-library functions enable Cinquecento users to create
+functions enable Cinquecento users to create
 domains tailored for the environment in which
 their target application runs.
 
@@ -137,9 +137,19 @@ and operation of prctl.
 <p>
 This manual describes the general C-based interface
 to domains, as well as the types and libraries
-used to define domains. 
+used to define domains.
+
+Cinquecento is an active research project,
+undergoing continuous revision and extension.
+
+Until things settle down, we will strive to keep this
+manual current with the implementation it accompanies,
+but sometimes will fall behind.
 </p>
 
+<p>
+We welcome feedback of any kind from all users.
+</p>
 
 <h3>Input</h3>
 

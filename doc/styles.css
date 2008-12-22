@@ -70,10 +70,10 @@ dl, ol, ul {
 /* typography */
 
 #content {
-//	font-family: "Lucida Sans", sans-serif;
-	font-family: "Helvetica";
-	font-size: 14px;
-	line-height: 20px;
+	font-family: "Lucida Sans", sans-serif;
+//	font-family: "Helvetica";
+	font-size: 12px;
+	line-height: 15px;
 	color: black;
 	text-align: left;
 }
@@ -177,8 +177,6 @@ tt {
 #symbols {
 	font-family: monospace;
 }
-
-/* links */
 
 a:link, a:visited, a:hover, a:active {
 	text-decoration: none;
