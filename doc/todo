@@ -10,9 +10,7 @@ undocumented?
 	FN(ispair);
 
 general
-	FN(apply);
 	FN(equal);
-	FN(error);
 
 domains
 	FN(mkdom);
@@ -24,7 +22,6 @@ domains
 address spaces
 	FN(mkas);
 	FN(isas);
-	FN(fault);
 	FN(asdispatch);
 	FN(ismapped);
 	FN(mkrange);

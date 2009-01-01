@@ -10,18 +10,53 @@
 
 <body>
 
-<div id="content">
+<div id="side1">
+<a href="#sec:introduction">Introduction</a><br />
+<br />
+<em>Basic Language</em><br />
+<a href="#sec:input">Input</a><br />
+<a href="#sec:comments">Comments</a><br />
+<a href="#sec:keywords">Keywords</a><br />
+<a href="#sec:identifiers">Identifiers</a><br />
+<a href="#sec:literals">Literals</a><br />
+<a href="#sec:scope">Scope and Variables</a><br />
+<a href="#sec:types">Types</a><br />
+<a href="#sec:functions">Functions</a><br />
+<a href="#sec:control">Control Operators</a><br />
+<a href="#sec:statements">Statements</a><br />
+<br />
+<em>Domains</em><br />
+<a href="#sec:domainover">Overview of Domains</a><br />
+<a href="#sec:backtick">Backtick Operator</a><br />
+<a href="#sec:litdom">Literal Domain</a><br />
+<a href="#sec:mixeddom">Mixed-domain Expressions</a><br />
+<a href="#sec:cvalueops">Operations on Cvalues</a><br />
+<br />
+<em>Data Structures</em><br />
+<a href="#sec:containers">Container Types</a><br />
+<a href="#sec:lists">Lists</a><br />
+<a href="#sec:vectors">Vectors</a><br />
+<a href="#sec:tables">Tables</a><br />
+<a href="#sec:characters">Characters</a><br />
+<a href="#sec:strings">Strings</a><br />
+<br />
+<em>Built-in Libraries</em><br />
+<a href="#sec:io">I/O</a><br />
+<a href="#sec:fs">Filesystem Functions</a><br />
+<a href="#sec:fmt">Formatted Output</a><br />
+<a href="#sec:system">System Functions</a><br />
+<br />
+<a href="#sec:cinterface">C Interface</a><br />
+<br />
+<a href="#sec:synindex">Syntax Index</a><br />
+<a href="#sec:fnindex">Function Index</a><br />
+</div>
 
-<p>
-Jump to Section:
-<a href="#sec:synindex">Syntax Index</a> |
-<a href="#sec:fnindex">Function Index</a> |
-<a href="#sec:cinterface">C Interface</a>
-</p>
+<div id="content">
 
 <h4>Cinquecento Manual</h4>
 
-<h3>Introduction</h3>
+<h3 id="sec:introduction">Introduction</h3>
 
 <p>
 Cinquecento is a programming language designed to help
@@ -48,7 +83,6 @@ Cinquecento language and built-in library functions.
 </p>
 
 <p>
-
 Like many languages designed for debugging, Cinquecento
 understands C types and pointers, and supports the use
 of arbitrary C expressions to examine and modify the
@@ -57,8 +91,8 @@ state of a target program.
 Cinquecento additionally supports all C control
 constructions.
 
-Loops for traversing linked data structures and other
-C idioms have identical syntax and semantics in
+Idioms from C such as loops for traversing linked data
+structures have identical syntax and semantics in
 Cinquecento.
 
 Generally, code that one might add to a C
@@ -69,7 +103,7 @@ no modification.
 
 <p>
 A Cinquecento program may operate on
-multiple target progams simultaneously.
+multiple target programs simultaneously.
 
 This feature allows the creation of Cinquecento
 programs that observe the execution of distributed
@@ -151,7 +185,7 @@ but sometimes will fall behind.
 We welcome feedback of any kind from all users.
 </p>
 
-<h3>Input</h3>
+<h3 id="sec:input">Input</h3>
 
 <p>
 A Cinquecento program consists of a sequence of
@@ -166,7 +200,7 @@ within a string literal or comment) of either of the
 forms
 <div class="code">
 @include "<span class="arg">filename</span>"<br />
-@include &#60;<span class="arg">filename</span>&#62;
+@include &lt;<span class="arg">filename</span>&gt;
 </div>
 is replaced with the contents of the named file.
 The first form searches for
@@ -179,39 +213,295 @@ The current input file is temporarily switched to
 <span class="arg">filename</span> during the substitution.
 </p>
 
-<h3>Comments</h3>
+<h3 id="sec:comments">Comments</h3>
 
 <p>
-Cinquecento recognizes C and C++ comment syntax.
-Input enclosed in <tt>/*</tt> <tt>*/</tt> is a comment.
-Input between <tt>//</tt> and the next newline character is also a comment.
+The following are comments:
+</p>
+
+<ul>
+<li>
+Input enclosed in <span class="val">/*</span>
+<span class="val">*/</span>;
+</li>
+<li>
+Input between <span class="val">//</span>
+and the beginning of the next line;
+</li>
+<li>
+Lines beginning with <span class="val">#!</span>.
+</li>
+</ul>
+
+<h3 id="sec:keywords">Keywords</h3>
+
+<p>
+The following are the keywords of Cinquecento.
+</p>
+
+<div class="code">
+<!-- pipe through mc -60
+@const 
+@local 
+@global 
+@names 
+@record 
+break 
+case 
+char 
+containerof 
+continue 
+default 
+define
+do 
+double 
+else 
+enum 
+float 
+for 
+if 
+int 
+lambda 
+long 
+nil 
+return 
+short 
+signed 
+sizeof 
+struct 
+switch 
+typedef 
+typeof 
+union 
+unsigned 
+void 
+while 
+-->
+<pre>
+@const       continue     if           struct 
+@local       default      int          switch 
+@global      define       lambda       typedef 
+@names       do           long         typeof 
+@record      double       nil          union 
+break        else         return       unsigned 
+case         enum         short        void 
+char         float        signed       while 
+containerof  for          sizeof 
+</pre>
+</div>
+
+<h3 id="sec:identifiers">Identifiers</h3>
+
+<p>
+Identifiers are non-keyword tokens used to identify
+Cinquecento variables and the symbols represented
+within domains.
 </p>
 
 <p>
-In addition, lines beginning with <tt>#!</tt> are treated
-as comments to allow files of Cinquecento code to be
-treated as interpreter scripts on Unix systems.
-</p>
-
-<h3>Variables and Scope</h3>
-
-<p>
-Cinquecento is lexically scoped.
-Variables bind names to values,
-and are dynamically typed.
+The first character of an identifier must be a letter or underscore.
+Subsequent characters must be letters, underscores, or digits.
 </p>
 
 <p>
-Bindings are 
-created in the top-level environment,
-by the <span class="fnindex"
-id="syn:@local">@local</span> binding form within
-compound expressions, and by the function
-constructor <span class="fnindex"
-id="syn:lambda">lambda</span>.
+There is an exception: the two character sequence <span class="val">::</span>
+may appear anywhere within an identifier, including
+at the beginning.
 </p>
 
-<h3>Cinquecento Types</h3>
+
+<h3 id="sec:literals">Literals</h3>
+
+<p>
+Literals are lexical tokens that encode character, string,
+and integer constants.  Their syntax follows that of C literals.
+</p>
+
+<p>
+A character literal is a printable ASCII character
+surrounded by single quotes.
+</p>
+
+<p>
+Cinquecento also recognizes the C character escape sequences:
+<span class="val">\a</span>,
+<span class="val">\b</span>,
+<span class="val">\f</span>,
+<span class="val">\n</span>,
+<span class="val">\r</span>,
+<span class="val">\t</span>,
+<span class="val">\v</span>,
+<span class="val">\\</span>,
+<span class="val">\?</span>,
+<span class="val">\'</span>,
+<span class="val">\"</span>,
+<span class="val">\<span class="arg">o</span></span>,
+<span class="val">\<span class="arg">oo</span></span>,
+<span class="val">\<span class="arg">ooo</span></span>,
+<span class="val">\x<span class="arg">h</span>...<span class="arg">h</span></span>.
+</p>
+
+
+<p>
+A string literal is a sequence of ASCII or escaped characters
+surrounded by double quotes.
+</p>
+
+<p>
+Two string literals separated by
+whitespace are concatenated into
+a single string.
+</p>
+
+<p>
+An integer literal is a sequence of digit characters.
+With no prefix, integer literals are interpreted in decimal.
+The <span class="val">0x</span> prefix causes hexidecimal interpretation.
+The <span class="val">0</span> prefix causes octal interpretation.
+</p>
+
+<p>
+As in C, the C type of an integer constant is
+ordinarily the smallest integer type (up
+to <span class="val">int</span>) that can represent the
+value.  The suffixes <span class="val">U</span>,
+<span class="val">UL</span>, <span class="val">ULL</span>,
+<span class="val">L</span>, 
+<span class="val">LL</span>, and their lowercase variants
+impose the specified long and/or unsigned types upon the value.
+</p>
+
+<h3 id="sec:scope">Scope and Variables</h3>
+
+<p>
+Cinquecento is lexically scoped and dynamically typed.
+</p>
+
+<p>
+The block statement:
+
+<div class="code">
+<pre>
+{
+	<span class="arg">statement</span>;
+	...
+}
+</pre>
+</div>
+
+introduces a new level of lexical scope.
+</p>
+
+<p>
+Expressions that appear outside of a block statement
+are called top-level expressions.
+
+The outermost level of scope, called the top-level environment,
+contains bindings for built-in
+functions and other values.
+</p>
+
+<p>
+Bindings are mutable.  The assignment form
+
+<div class="code">
+<span class="arg">var</span> = <span class="arg">expr</span>;
+</div>
+
+updates the value bound to the variable <span class="arg">var</span>
+to the value of <span class="arg">expr</span>.
+</p>
+
+<p>
+If <span class="arg">var</span> is an unbound variable,
+the <span class="id">=</span> operator implicitly creates
+a new binding for <span class="arg">var</span>
+in the innermost
+level of lexical scope.  If the assignment occurs
+in a top-level expression, the new binding is added
+to the top-level environment.
+There is no way to remove a binding from any scope.
+</p>
+
+<p>
+The other assignment operators
+(<span class="id">+=</span>,
+<span class="id">-=</span>,
+<span class="id">*=</span>,
+<span class="id">/=</span>,
+<span class="id">%=</span>,
+<span class="id">&=</span>,
+<span class="id">|=</span>,
+<span class="id">^=</span>,
+<span class="id">&lt;&lt;=</span>,
+<span class="id">&gt;&gt;=</span>,
+<span class="id">++</span>,
+<span class="id">--</span>)
+update existing bindings but do not
+create new ones.
+</p>
+
+<p>
+The <span class="fnindex" id="syn:@local">@local</span> statement
+explicitly declares new variable bindings for the block
+in which it appears:
+
+<div class="code">
+<pre>
+{
+	@local <span class="arg">var</span>, ... ;
+	...
+	<span class="arg">statement</span>;
+	...
+}
+</pre>
+</div>
+
+establishes new bindings for the
+variables <span class="arg">var ... </span> within the
+enclosing block.
+
+These bindings shadow any other bindings of
+<span class="arg">var ... </span> in enclosing blocks
+or the top-level environment.
+
+Any number of <span class="id">@local</span> statements
+may appear in a block, but they all must appear 
+before any other statements.
+</p>
+
+<p>
+The <span class="fnindex" id="syn:@global">@global</span>
+statement declares new variable bindings in the
+top-level environment:
+
+<div class="code">
+<pre>
+@global <span class="arg">var</span>, ... ;
+</pre>
+</div>
+</p>
+
+<p>
+Variables declared with
+<span class="id">@local</span>
+and
+<span class="id">@global</span>
+are initially bound to the undefined value.
+</p>
+
+<p>
+The parameters of a <span class="id">lambda</span> form
+establish local bindings in the block that forms the
+body of the function definition, just as if they had
+been declared with <span class="id">@local</span>.
+</p>
+
+<p>
+A reference to an unbound variable is an error.
+</p>
+
+<h3 id="sec:types">Types</h3>
 
 <p>
 Cinquecento defines several types of values.  Every
@@ -230,8 +520,10 @@ indexed by values of type <em>address</em> and
 </p>
 
 <p>
-Other basic types include <em>string</em>,
-<em>procedure</em>, and <em>file descriptor</em>.
+Other types with standard semantics include <em>string</em>,
+<em>function</em>, <em>record</em>, <em>record descriptor</em>,
+and <em>file descriptor</em>.
+</p>
 
 <p>
 There are also several container types for storing
@@ -258,6 +550,7 @@ values of type cvalue.
 
 <p>
 The following functions are predicates on the type of a value.
+(The tested type is given in parentheses.)
 </p>
 
 <div class="docitem">
@@ -287,7 +580,7 @@ The following functions are predicates on the type of a value.
 <span class="id" id="fn:isns">isns(<span class="arg">val</span>)</span> (name space)
 </div>
 <div class="function">
-<span class="id" id="fn:isprocedure">isprocedure(<span class="arg">val</span>)</span> (procedure)
+<span class="id" id="fn:isprocedure">isprocedure(<span class="arg">val</span>)</span> (function)
 </div>
 <div class="function">
 <span class="id" id="fn:isrange">isrange(<span class="arg">val</span>)</span> (range)
@@ -304,9 +597,15 @@ The following functions are predicates on the type of a value.
 <div class="function">
 <span class="id" id="fn:istable">istable(<span class="arg">val</span>)</span> (table)
 </div>
+
+<div class="function">
+<span class="id" id="fn:isundefined">isundefined(<span class="arg">val</span>)</span> (undefined value)
+</div>
+
 <div class="function">
 <span class="id" id="fn:isvector">isvector(<span class="arg">val</span>)</span> (vector)
 </div>
+
 <div class="returns">
 <span class="type">cvalue (1 or 0)</span>
 </div>
@@ -320,77 +619,700 @@ the value belongs to the type,
 </div>
 </div>
 
+<!-- this is wrong: equal is like scheme equal,
+     but implemented only on lists for now -->
 
-<h3>Concepts</h3>
+<!-- <div class="docitem" id="fn:equal"> -->
+<!-- <div class="proto"> -->
+<!-- <div class="function"> -->
+<!-- <span class="id">equal(<span class="arg">v1</span>,<span class="arg">v2</span>)</span> -->
+<!-- </div> -->
+<!-- <div class="param"> -->
+<!-- <span class="arg">v1</span>: <span class="type">any value</span> -->
+<!-- </div> -->
+<!-- <div class="param"> -->
+<!-- <span class="arg">v2</span>: <span class="type">any value</span> -->
+<!-- </div> -->
+<!-- <div class="returns"> -->
+<!-- <span class="type">cvalue (1 or 0)</span> -->
+<!-- </div> -->
+<!-- </div> -->
+<!-- <div class="desc"> -->
+<!-- Compares <span class="arg">v1</span> -->
+<!-- and <span class="arg">v2</span> for equality. -->
+<!-- Generally two values are <span class="id">equal</span> -->
+<!-- if they are the same instance of an object (pointer equality). -->
+<!-- Several types define equality based on their value: -->
+<!-- <span class="type">ctype</span>, -->
+<!-- <span class="type">cvalue</span>, -->
+<!-- <span class="type">range</span>, and -->
+<!-- <span class="type">string</span>. -->
+<!-- </div> -->
+<!-- </div> -->
+
+
+<h3 id="sec:functions">Functions</h3>
 
 <p>
-A Cinquecento program constructs and interacts with an
-abstract model of a program in execution.  This section
-describes the concepts and terminology underlying this
-model.
+The <span class="fnindex" id="syn:@local">lambda</span>
+expression defines new function values.  The syntax
+variants are:
+
+<div class="code">
+<pre>
+lambda() { <span class="arg">statement</span>; ... }
+lambda(<span class="arg">var</span>, ...) { <span class="arg">statement</span>; ... }
+lambda <span class="arg">var</span> { <span class="arg">statement</span>; ... }
+</pre>
+</div>
+
+The first form defines a function of zero arguments.
+
+The second form defines a function with a fixed number of
+arguments.
+The argument values are bound to the variables <span class="arg">var ... </span> within the body.
+
+The third form defines a function that accepts zero or more
+arguments.  The argument values are collected in a list bound
+to the variable <span class="arg">var</span> within the body.
 </p>
 
 <p>
-A program in execution reads and writes values stored
-in its memory.  This memory is represented in
-Cinquecento by an <em>address space</em>.  An address
-space maps byte addresses to byte values.  Address
-spaces are dynamic: the value of a byte at a given
-address may change over time as it is updated by the
-program.  Moreover, not all valid byte addresses are
-necessarily mapped by a given address space; typically,
-an address space maps a small number (dozens) of large,
-contiguous address ranges (each spanning megabytes),
-and this mapping may change over time.
+The body of the function is a sequence of statements
+to be evaluated when the function is called.
+Cinquecento functions are closures: free variables in
+the body of a function definition refer to the
+bindings of those variables contained in the enclosing blocks or
+in the top-level environment.
 </p>
 
 <p>
-For example, the address space of a typical Unix or
-Windows program contains mappings for the program text,
-data, stack, and heap.  Only the contents of the text
-mapping are likely to remain unchanged during execution.
-New mappings may be added over time as the program
-loads dynamic libraries or as its demand for stack and
-heap space increases.
+A function call is an expression of the form
+
+<div class="code">
+<pre>
+<span class="arg">fn</span>(<span class="arg">expr</span>, ...)
+<pre>
+</div>
+
+where <span class="arg">fn</span> is an expression
+that evaluates to a function.
+
+The number of expressions appearing in the argument
+list <span class="arg">expr</span>, ... must match
+the number expected by the function.
 </p>
 
 <p>
-An address space is a raw, untyped view of program
-memory.  A higher-level view of memory is formed by
-overlaying program-defined types.  Cinquecento uses the
-type system of the C programming language.  The
-definitions of C types to be associated with an address
-space are collected in a Cinquecento <em>name
-space</em>.  In addition, name spaces contain
-definitions of <em>symbols</em>, which associated names
-and C types to locations in an address space.
+
+A <span class="fnindex" id="syn:return">return</span>
+statement in the body of a function returns control to
+the expression that called the function.  The syntax
+variants are:
+
+<div class="code">
+<pre>
+return;
+return <span class="arg">expr</span>;
+</pre>
+</div>
+
+The first form returns the value <span class="val">nil</span>.
+The second form returns the value of <span class="arg">expr</span>. 
 </p>
 
 <p>
-Most Cinquecento programs do not operate directly on
-address spaces or name spaces.  Instead, they operate
-on a single abstraction, a <em>domain</em>, which is
-the projection of the types and symbols of a name space
-over the values stored in an address space.  A domain
-represents a context in which C expressions can be
-evaluated.  The syntax and semantics of the operators
-of the C programming language are extended to operate
-over domains.  Values yielded by these operators are
-called <em>cvalues</em>.  Cvalues are typed values; the
-type includes a reference to the domain from which the
-cvalue was derived and a reference to a definition of
-a <em>ctype</em> corresponding to the C type of the
-value.
+The value of a function call expression is the value
+returned by evaluation
+of a <span class="id">return</span> statement in
+the body of the called function, or <span class="val">nil</span>
+if the function returns without reaching a
+<span class="id">return</span> statement.
+</p>
+
+<p>
+The <span class="fnindex" id="syn:define">define</span> form
+is syntactic sugar for naming functions.
+For example
+
+<div class="code">
+<pre>
+define <span class="arg">name</span>(<span class="arg">var</span>, ...)
+{
+	<span class="arg">statement</span>;
+	...
+}
+</div>
+
+is equivalent to 
+
+<div class="code">
+<pre>
+<span class="arg">name</span> = lambda(<span class="arg">var</span>, ...)
+{
+	<span class="arg">statement</span>;
+	...
+}
+</pre>
+</div>
+</p>
+
+<p>
+The built-in function <span class="id">apply</span>
+calls functions.
+</p>
+
+<div class="docitem" id="fn:apply">
+<div class="proto">
+<div class="function">
+<span class="id">apply(<span class="arg">fn</span>, <span class="arg">arg</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+Calls the function <span class="arg">fn</span>
+on the arguments <span class="arg">arg ... </span>
+and returns the value returned by the call.
+</div>
+</div>
+
+<h3 id="sec:control">Control Operators</h3>
+
+<p>
+Several built-in functions support non-local control
+flow.
+<p>
+
+<div class="docitem" id="fn:error">
+<div class="proto">
+<div class="function">
+<span class="id">error(<span class="arg">fmt</span>, <span class="arg">arg</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">does not return</span>
+</div>
+</div>
+<div class="desc">
+Aborts the current continuation and signals an error to the current caller of the
+the Cinquecento evaluator.  An error message
+is formatted by passing <span class="arg">fmt</span> and <span class="arg">arg ...</span>
+to <span class="id"><a href="#fn:sprintfa">sprintfa</a></span>
+and printed along with a stack trace to the current
+output stream.
+</div>
+</div>
+
+<div class="docitem" id="fn:fault">
+<div class="proto">
+<div class="function">
+<span class="id">fault()</span>
+</div>
+<div class="returns">
+<span class="type">does not return</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Fault</span> should be called
+only in the context of an address space 
+<span class="id">get</span> or <span class="id">put</span>
+function to signal an address space access error
+to the Cinquecento evaluator. 
+</div>
+</div>
+
+<div class="docitem" id="fn:callcc">
+<div class="proto">
+<div class="function">
+<span class="id">callcc(<span class="arg">fn</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+Calls <span class="arg">fn</span>, passing the current
+continuation, represented as a function,
+as its sole argument.  Returns the value
+returned by the call to <span class="arg">fn</span>.
+
+<div>
+It is currently unsafe to call the continuation
+passed <span class="arg">fn</span> if the
+continuation returns to calls to built-in
+functions.
+</div>
+</div>
+</div>
+
+<h3 id="sec:statements">Statements</h3>
+
+<p>
+Cinquecento supports the statements of C,
+including <span class="val">do</span>-<span class="val">while</span>,
+<span class="val">for</span>,
+and <span class="val">while</span> loops,
+and <span class="val">if</span>,
+<span class="val">if</span>-<span class="val">else</span>,
+and <span class="val">switch</span> (with <span class="val">case</span>
+and <span class="val">default</span> labels) conditionals.
+</p>
+
+<p>
+These statements have the same syntax they have in C.
+Loop and <span class="val">switch</span> 
+statements can be controlled with <span class="val">break</span>
+and <span class="val">continue</span> as in C.
+</p>
+
+<p>
+Unlike C, the <span class="val">switch</span> statement
+dispatches values of any type, not just integers.
+
+The <span class="val">==</span> operator determines
+equality.
+
+Also unlike C, the
+<span class="val">case</span>s of a
+<span class="val">switch</span> are compared in
+lexical order; control transfers to the first statement
+with a matching <span class="val">case</span> label.
+
+Control transfers to the
+optional <span class="val">default</span> label,
+regardless of where it appears, if
+no <span class="val">case</span> matches.
+</p>
+
+<p>
+Cinquecento does not (yet) implement
+<span class="val">goto</span>.
+</p>
+
+<h3 id="sec:domainover">Overview of Domains</h3>
+
+<p>
+This section summarizes the concepts and terminology
+of Cinquecento domains.
+</p>
+
+<p>
+A domain is an interface to three features of a program
+in execution: its memory, symbols, and types.  This
+interface is defined procedurally; like an object in an
+object-oriented language, a domain encapsulates the
+implementation of a pre-defined set of operations.
+</p>
+
+<p>
+The domain interface can be called directly, but Cinquecento programs normally interact
+with domains through C expressions, which are
+translated by the Cinquecento evaluator into
+implicit calls to the domain interface.
+</p>
+
+<p>
+A domain is formed by pairing a Cinquecento
+<span class="type">address space</span> with a Cinquecento <span class="type">name space</span>.
+These objects define complementary subsets of the domain interface.
+</p>
+
+<p>
+An <span class="type">address space</span> represents the memory of a C program:
+a mapping of byte addresses to byte values.
+It encapsulates four functions.
+Two access functions,
+<span class="type">get</span>
+and <span class="type">put</span>,
+read and write memory.
+<span class="type">Ismapped</span>
+tests whether a contiguous
+address range is accessible.
+<span class="type">Map</span>
+returns the accessible address
+ranges.
+</p>
+
+<p>
+A <span class="type">name space</span>
+catalogs the symbols and types of a C program.
+It encapsulates five functions.
+<span class="type">Looksym</span>
+and <span class="type">looktype</span>
+map symbol and type names to their definitions.
+<span class="type">Enumsym</span>
+and <span class="type">enumtype</span>
+list the symbols and types
+of the name space.
+<span class="type">Lookaddr</span>
+reverse-maps an address to the nearest
+symbol.
+</p>
+
+<p>
+Address spaces and name spaces can be shared among domains.
+For example, domains representing multiple running instances of the same
+program binary will necessarily have separate address spaces, but
+may share a common name space.
+</p>
+
+<p>
+Domains are supported by two other types of Cinquecento values:
+<span class="type">ctype</span>,
+and <span class="type">cvalue</span>.
+</p>
+
+<p>
+A <span class="type">ctype</span> represents
+a type that can be defined in a C program.
+Ctypes both identify C types
+(<em>e.g.</em>, pointer to <span class="val">struct foo</span>),
+and define C types
+(<em>e.g.</em>, the fields and size of <span class="val">struct foo</span>).
+</p>
+
+<p>
+A <span class="type">cvalue</span> represents a typed,
+scalar value that can be computed in a C program.
+Every cvalue has an associated ctype that defines
+its type.  Cvalues in Cinquecento are much like
+<span class="type">rvalues</span> in C: they can be read and written
+from memory using variable reference and assignment
+operators, combined with other cvalues using C
+operators, and cast to other types using casting operators.
+</p>
+
+<p>
+Every cvalue has an associated domain that
+gives meaning to C operations performed on the cvalue.
+For example, when a cvalue pointer is dereferenced,
+memory is accessed through the address space of its associated domain.
+When a cvalue is cast to another type,
+the new type definition is obtained from 
+the name space of its associated domain.
+</p>
+
+<p>
+Cvalues from different domains can be combined
+without casting in certain sensible cases,
+such as array indexing.
+
+Otherwise, a cvalue can be explicitly cast into a different domain using
+the <em>extended cast operator</em>.
 </p>
 
 <p>
 Domains, name spaces, and address spaces are
-first-class values in Cinquecento.  A special syntax
-form, <span class="id"><a
+first-class values in Cinquecento.
+Name spaces and address spaces can be constructed from
+Cinquecento functions that implement their interfaces.
+In addition, a syntax form, <span class="id"><a
 href="#syn:@names">@names</a></span>, defines new name spaces
-using an extended form of C declaration syntax.  Name
-spaces and address spaces can also be constructed from
-by Cinquecento functions written by the user.
+using an extended form of C declaration syntax.  
+</p>
+
+<p>
+Programs can extend
+the domain interface by associating additional functions
+with name spaces and address spaces
+to expose platform-specific
+debugging functionality,
+such as access to registers, process control,
+and breakpoint control.
+</p>
+
+
+<h3 id="sec:backtick">Backtick Operator</h3>
+
+<p>
+Symbols and types in a domain are referenced with the backtick operator.
+</p>
+
+<p>
+An expression of the form
+
+<div class="code">
+<pre>
+dom`x
+</pre>
+</div>
+
+resolves <span class="val">x</span> 
+as either a symbol or type name in the domain 
+<span class="val">dom</span>, depending on the context
+of the expression.
+</p>
+
+<p>
+Symbol resolution occurs when the backtick expression
+appears where an lvalue or rvalue would be expected in C.
+For example, in the expression
+
+<div class="code">
+<pre>
+dom`x = dom`y;
+</pre>
+</div>
+
+the names
+<span class="val">x</span>
+and
+<span class="val">y</span>
+are both resolved as symbols
+in the domain
+<span class="val">dom</span>.
+</p>
+
+<p>
+In symbol resolution,
+the backtick expression yields a reference to
+the typed location associated with the name
+in the domain, through which the stored value
+may be examined or modified.
+The evaluator calls
+the <span class="type">looksym</span>
+function of the referenced domain
+to obtain the type and location
+associated with the symbol.
+</p>
+
+<p>
+When the location is read, such as in the
+reference to <span class="val">dom`y</span>
+above, the <span class="type">get</span> function
+of the domain is called.
+When the location is written, such as in the
+reference to <span class="val">dom`x</span>
+above, the <span class="type">put</span> function
+of the domain is called.
+</p>
+
+<p>
+Type resolution occurs when the backtick expression
+appears where a type name would be expected or accepted in C.
+This includes the operand to <span class="id">sizeof</span>,
+and the type operand to the cast operator.
+The Cinquecento <span class="id">typeof</span> operator
+is syntactically similar to <span class="id">sizeof</span>;
+it also accepts a type name.
+</p>
+
+<p>
+In type name position, the domain operand to the
+backtick operator can be omitted.
+</p>
+
+<h3 id="sec:litdom">Literal Domain</h3>
+
+<p>
+Cinquecento represents arithmetic literals as cvalues
+from the built-in literal domain <span class="val">litdom</span>.
+This domain is constructed from the <span class="val">clp64le</span> name space
+and the abstract address space returned by
+<span class="id"><a href="#fn:sprintfa">mknas</a></span>.
+Only the size of arithmetic types matters in this domain; 
+pointer size and endianness are irrelevant,
+because expressions in this domain never reference memory.
+</p>
+
+<h3 id="sec:casts">Type and Domain Casting</h3>
+
+<p>
+The Cinquecento casting operators can be used to
+change the type or domain of a cvalue.
+</p>
+
+<p>
+The standard cast operator <span class="id">()</span>
+operates on a syntactically specified type and a cvalue.
+It returns a new cvalue that has been cast to
+the new type.  The domain of the cvalue is searched
+(using looktype) for a ctype definition of 
+the specified type.
+If one is found, the operator returns a new
+cvalue in the same domain and the new type.
+(Change of representation.)
+</p>
+
+<p>
+The extended cast operator operands on a ctype
+or domain value and a cvalue.
+
+If the operand is a ctype, the behavior is similar
+to that of the standard cast operator <span class="id">()</span>.
+Regardless of the definition of the ctype,
+the ctype is used as a name to search the
+domain of the cvalue operand.
+</p>
+
+<p>
+If the operand is a domain, the resulting
+cvalue is the original cvalue, with the new
+domain....
+</p>
+
+
+<h3 id="sec:mixeddom">Mixed-domain Expressions</h3>
+
+<p>
+A binary C operator may be applied to cvalue operands
+from two different domains.  Several rules determine
+the outcome of such <em>mixed-domain expressions</em>.
+These rules give sensible meaning to mixed-domain
+expressions that yield or compare arithmetic
+quantities, but disallow rarely sensible
+mixed-domain combinations of pointer values.
+</p>
+
+<p>
+The first rule concerns expressions in which exactly
+one operand is from the literal domain,
+such as
+<span class="val">dom`x+5</span>.
+The domain of the literal operand is implicitly
+converted to the domain of the other, non-literal
+operand.
+</p>
+
+<p>
+The second rule concerns mixed-domain arithmetic,
+bitwise, and relational operations on non-literal
+operands that are not pointers.  Such operands are both
+converted to the literal domain.  This rule allows
+comparison or aggregation of arithmetic values from
+different domains to be expressed naturally without the
+clutter of explicit domain conversions.
+</p>
+
+<p>
+The third rule concerns mixed expressions in which one
+operand is a pointer.  Pointer addition operations
+(including array subscripting) comprise one pointer
+operand and one arithmetic operand.  In mixed-domain
+pointer addition, the domain of the arithmetic operand
+is implicitly cast to that of the pointer operand.
+Since the type of the result is pointer, the domain of
+the result should remain in the domain of the pointer
+operand.  (This rule also maintains consistency with
+the rule for literals.)  Pointer subtraction operations
+involve either one pointer operand and one arithmetic
+operand or two pointer operands.  In the former case,
+the rule is the same as that for pointer addition.  The
+latter case is disallowed: it makes no sense to relate
+locations in two different address spaces.  A program
+that wishes to do so must explicitly domain cast one of
+the operands.
+</p>
+
+<p>
+The final rule is that all other mixed-domain
+expressions are disallowed.  Generally this rule covers
+the other mixed-domain pointer expressions.  For
+example, comparison of pointers from different domains
+is prohibited for the same reason that pointer
+subtraction is prohibited.  An explicit domain cast can
+be used to circumvent this rule.
+</p>
+
+
+<h3 id="sec:cvalueops">Operations on Cvalues</h3>
+
+<p>
+The operators of Cinquecento are based on the operators of C.
+The operator set includes arithmetic, bitwise, relational, and logical operators,
+as well as operators for accessing values of C's aggregate data types,
+and pointer dereference.  All of the operators observe the precedence
+and associativity rules of C.
+</p>
+
+<p>
+The binary arithmetic and bitwise operators
+(<span class="id">+</span>,
+<span class="id">-</span>,
+<span class="id">*</span>,
+<span class="id">/</span>,
+<span class="id">%</span>,
+<span class="id">&</span>,
+<span class="id">|</span>,
+<span class="id">^</span>,
+<span class="id">&lt;&lt;</span>,
+<span class="id">&gt;&gt;</span>
+)
+operate on cvalues of integer type.
+Each yields a cvalue of value and
+type equivalent to the result in C of
+the same operator on operands of
+equivalent type and value.
+Overflow and underflow semantics on arithmetic are preserved,
+and the C type promotion and conversion rules are applied.
+</p>
+
+
+<p>
+Similarly, the unary operators 
+(<span class="id">+</span>,
+<span class="id">-</span>,
+<span class="id">!</span>,
+<span class="id">~</span>)
+operate on cvalues of integer type
+and yield a cvalue of type and value
+equivalent to the result in C of
+the same operator on an operand of equivalent
+type and value.
+</p>
+
+<p>
+The relational operators 
+(<span class="id">&lt;</span>,
+<span class="id">&lt;=</span>,
+<span class="id">&gt;</span>,
+<span class="id">&gt;=</span>,
+<span class="id">==</span>,
+<span class="id">!=</span>)
+compare cvalues and yield
+a value of <span class="val">0</span>
+or <span class="val">1</span> represented
+as a cvalue of type <span class="val">int</span>
+in the literal domain.
+</p>
+
+<p>
+A pointer-typed cvalue represents a typed location in a domain.
+The unary dereference operator <span class="val">*</span>
+accesses (reads or writes)
+such locations.
+The value of the cvalue is the offset in the associated address space to access.
+The type of the cvalue determines the number of bytes to access
+and their encoding.
+</p>
+
+<p>
+Addition and subtraction is defined on pointer-typed
+cvalues, as in C.  Adding or subtracting an
+integer-typed cvalue to a pointer-typed cvalue yields
+to a new pointer of the same type and domain, adjusted
+by the integer value scaled by the size of the
+pointed-to type.
+
+Subtracting two pointer-typed cvalues of the same type
+returns the number of elements of the pointed-to type
+between the pointers.
 </p>
 
 <h3>A Simple Domain</h3>
@@ -907,7 +1829,7 @@ this section further describes these mechanisms.
 <span class="id">mkns(<span class="arg">looktype</span>,<span class="arg">enumtype</span>,<span class="arg">looksym</span>,<span class="arg">enumsym</span>,<span class="arg">lookaddr</span>[,<span class="arg">name</span>])</span>
 </div>
 <div class="param">
-<span class="arg">looktype</span>, <span class="arg">enumtype</span>, <span class="arg">looksym</span>, <span class="arg">enumsym</span>, <span class="arg">lookaddr</span>: <span class="type">procedure</span>
+<span class="arg">looktype</span>, <span class="arg">enumtype</span>, <span class="arg">looksym</span>, <span class="arg">enumsym</span>, <span class="arg">lookaddr</span>: <span class="type">function</span>
 </div>
 <div class="param">
 <span class="arg">name</span>: <span class="type">string</span>
@@ -1244,90 +2166,6 @@ value from the cvalue <tt><em>val</em></tt>.  The
 function <tt>addrval(<em>addr</em>)</tt> returns the
 cvalue used to construct the address
 <tt><em>addr</em></tt>.
-</p>
-
-
-<h3>Literal Domain</h3>
-
-<p>
-Cinquecento represents arithmetic literals as cvalues
-from a special built-in literal domain, named
-<span class="val">litdom</span>.
-This domain is based on a commonly used model of C
-types on 64-bit machines.  Only the size of arithmetic
-types matters in this domain; details of representation
-such as pointer size and endianness are irrelevant,
-because expressions in this domain never reference
-memory.
-</p>
-
-<h3>Mixed-domain Expressions</h3>
-
-<p>
-A binary C operator may be applied to cvalue operands
-from two different domains.  Several rules determine
-the outcome of such mixed-domain expressions.
-The motivation behind these rules is to give sensible
-meaning to mixed-domain expressions that yield or
-compare arithmetic quantities, but to disallow rarely
-sensible mixed-domain combinations of pointer values.
-</p>
-
-<p>
-The first rule concerns expressions with literal terms,
-such as
-<span class="val">(dom`x+5)</span>.
-When evaluating a mixed-domain
-expression, the Cinquecento evaluator first checks
-whether one of the operands is from the literal domain.
-If so, it implicitly converts the domain of the literal
-operand to the domain of the other operand.  In
-essence, the non-literal operand absorbs the literal
-operand into its domain.  Undesired truncation of high
-bits can be avoided by explicitly casting the literal
-operand to a large type or by employing suffix syntax
-when expressing the literal (e.g., 
-<span class="val">0x100000000ULL</span>).
-</p>
-
-<p>
-The second rule concerns mixed-domain arithmetic,
-bitwise, and relational operations on non-literal
-operands that are not pointers.  Such operands are both
-converted to the literal domain.  This rule allows
-comparison or aggregation of arithmetic values from
-different domains to be expressed naturally without the
-clutter of explicit domain conversions.
-</p>
-
-<p>
-The third rule concerns mixed expressions in which one
-operand is a pointer.  Pointer addition operations
-(including array subscripting) comprise one pointer
-operand and one arithmetic operand.  In mixed-domain
-pointer addition, the domain of the arithmetic operand
-is implicitly cast to that of the pointer operand.
-Since the type of the result is pointer, the domain of
-the result should remain in the domain of the pointer
-operand.  (This rule also maintains consistency with
-the rule for literals.)  Pointer subtraction operations
-involve either one pointer operand and one arithmetic
-operand or two pointer operands.  In the former case,
-the rule is the same as that for pointer addition.  The
-latter case is disallowed: it makes no sense to relate
-locations in two different address spaces.  A program
-that wishes to do so must explicitly domain cast one of
-the operands.
-</p>
-
-<p>
-The final rule is that all other mixed-domain
-expressions are disallowed.  Generally this rule covers
-the other mixed-domain pointer expressions.  For
-example, comparison of pointers from different domains
-is prohibited for the same reason that pointer
-subtraction is prohibited.  An explicit domain cast can
-be used to circumvent this rule.
 </p>
 
 
@@ -1968,11 +2806,11 @@ Returns the type aliased defined by the typedef type represented by
 <span class="arg">type</span>: <span class="type">extended accessor ctype</span>
 </div>
 <div class="returns">
-<span class="type">procedure</span>
+<span class="type">function</span>
 </div>
 </div>
 <div class="desc">
-Returns the get procedure of the extended accessor ctype
+Returns the get function of the extended accessor ctype
 <span class="arg">type</span>.
 </div>
 </div>
@@ -1986,11 +2824,11 @@ Returns the get procedure of the extended accessor ctype
 <span class="arg">type</span>: <span class="type">extended accessor ctype</span>
 </div>
 <div class="returns">
-<span class="type">procedure</span>
+<span class="type">function</span>
 </div>
 </div>
 <div class="desc">
-Returns the put procedure of the extended accessor ctype
+Returns the put function of the extended accessor ctype
 <span class="arg">type</span>.
 </div>
 </div>
@@ -2339,10 +3177,10 @@ Returns a new ctype representing the void type.
 <span class="arg">type</span>: <span class="type">ctype</span>
 </div>
 <div class="param">
-<span class="arg">get</span>: <span class="type">procedure</span>
+<span class="arg">get</span>: <span class="type">function</span>
 </div>
 <div class="param">
-<span class="arg">put</span>: <span class="type">procedure</span>
+<span class="arg">put</span>: <span class="type">function</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
@@ -2372,7 +3210,7 @@ return value is ignored.
 </div>
 
 
-<h3>Containers</h3>
+<h3 id="sec:containers">Container Types</h3>
 
 <p>
 Cinquecento supports three built-in container types:
@@ -2418,13 +3256,14 @@ Returns a shallow copy of <span class="arg">container</span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:foreach">
+<div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id">foreach(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
+<span class="id" id="fn:foreach">foreach(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
+<span class="id" id="fn:map">map(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
 </div>
 <div class="param">
-<span class="arg">fn</span>: <span class="type">procedure</span>
+<span class="arg">fn</span>: <span class="type">function</span>
 </div>
 <div class="param">
 <span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
@@ -2443,7 +3282,29 @@ with the item as the sole argument.  For tables, <span
 class="id">foreach</span> visits each key/value pair in
 unspecified order, calling <span class="arg">fn</span>
 with the key and value, in that order, as separate
-arguments.  </div> </div>
+arguments.
+
+<div>
+<span class="id">Foreach</span> discards the values
+returned by <span class="arg">fn</span> and returns
+<span class="val">nil</span>.
+</div>
+
+<div>
+<span class="id">Map</span> is like <span class="id">foreach</span>
+except that it collects the values
+returned by <span class="arg">fn</span> in a list,
+and returns the list.  If <span class="arg">container</span>
+is a vector or list,
+the order of the elements in
+the list returned by <span class="id">map</span>
+corresponds to the order of the elements
+in <span class="arg">container</span>.
+</div>
+
+
+</div>
+</div>
 
 <div class="docitem" id="fn:sort">
 <div class="proto">
@@ -2454,7 +3315,7 @@ arguments.  </div> </div>
 <span class="arg">container</span>: <span class="type">list or vector</span>
 </div>
 <div class="param">
-<span class="arg">cmp</span>: <span class="type">procedure</span>
+<span class="arg">cmp</span>: <span class="type">function</span>
 </div>
 <div class="returns">
 <span class="type">nil</span>
@@ -2485,7 +3346,7 @@ zero if they are equal.
 <span class="arg">container</span>: <span class="type">list or vector</span>
 </div>
 <div class="param">
-<span class="arg">cmp</span>: <span class="type">procedure</span>
+<span class="arg">cmp</span>: <span class="type">function</span>
 </div>
 <div class="returns">
 <span class="type">element of container or nil</span>
@@ -2507,7 +3368,7 @@ zero if they are equal.
 </div>
 
 
-<h3>Lists</h3>
+<h3 id="sec:lists">Lists</h3>
 
 <p>
 Lists are variable-length ordered collections, possibly
@@ -2819,7 +3680,7 @@ Returns a new list containing the elements of <span class="arg">list</span> in r
 </div>
 </div>
 
-<h3>Vectors</h3>
+<h3 id="sec:vectors">Vectors</h3>
 
 <p>
 Vectors are fixed-length ordered collections, possibly
@@ -2938,7 +3799,7 @@ class="type">vec</span> does not contain more than
 </div>
 </div>
 
-<h3>Tables</h3>
+<h3 id="sec:tables">Tables</h3>
 
 <p>
 Tables store key/value pairs.  Keys and values may be
@@ -3092,7 +3953,7 @@ second half contains, in corresponding order,  the values.
 </div>
 
 
-<h3>Characters</h3>
+<h3 id="sec:characters">Characters</h3>
 
 <p>
 
@@ -3166,7 +4027,7 @@ evaluator.
 </div>
 
 
-<h3>Strings</h3>
+<h3 id="sec:strings">Strings</h3>
 
 <p>
 The Cinquecento string type represents an array of
@@ -3517,7 +4378,7 @@ class="arg">ptr</span>.
 </div>
 </div>
 
-<h3>I/O</h3>
+<h3 id="sec:io">I/O</h3>
 
 <p>
 Cinquecento supports I/O over regular files and network
@@ -3668,7 +4529,7 @@ class="arg">fd</span>.
 </div>
 </div>
 
-<h3 id="sec:system">Filesystem Operations</h3>
+<h3 id="sec:fs">Filesystem Functions</h3>
 
 <p>
 This section documents functions that operate on the file system.
@@ -3693,7 +4554,7 @@ This section documents functions that operate on the file system.
 
 Evaluates <span class="arg">filename</span> for accessibility.
 <span class="arg">Mode</span> is one or more of the following
-access modes specifications:
+access mode specifications:
 read permission
 (<span class="val">"r"</span>),
 write permission
@@ -3762,7 +4623,7 @@ Removes the file named <span class="arg">name</span>.
 </div>
 
 
-<h3 id="sec:system">Formatted Output</h3>
+<h3 id="sec:fmt">Formatted Output</h3>
 
 <p>
 Cinquecento provides several functions for C-style
@@ -3854,7 +4715,8 @@ Formats a pointer value in lowercase hex.
 <tr>
 <td><span class="val">s,b,B</span></td>
 <td>
-If the value is not a string, the result of calling <span class="id"><a
+Formats strings.
+If the value is not a string, then the result of calling <span class="id"><a
 href="#fn:stringof">stringof</a></span> on the value is used.
 <div>
 <span class="val">s</span> copies the string value, stopping at the first null byte.
@@ -4219,14 +5081,14 @@ char *<span class="arg">argsid</span>
 </div>
 <div class="desc">
 Compiles Cinquecento code represented
-by <span class="arg">expr</span> and returns a procedure
+by <span class="arg">expr</span> and returns a function
 that, when called, executes the code.
 If <span class="arg">argsid</span> is null, the returned
-procedure takes no arguments; otherwise it is a variable arity
-procedure whose argument list is bound to a parameter
+function takes no arguments; otherwise it is a variable arity
+function whose argument list is bound to a parameter
 whose name is the string pointed to be <span class="arg">argsid</span>.
 <div>
-The returned procedure captures a reference
+The returned function captures a reference
 to <span class="arg">expr</span> that will be freed by
 the storage manager when the function is reclaimed.
 </div>
@@ -4441,8 +5303,13 @@ machines sharing the environment have been freed.
 <div class="id">
 <div class="index">
 <div class="fnindex">
+<a href="#syn:@global">@global</a><br />
 <a href="#syn:@include">@include</a><br />
+<a href="#syn:@local">@local</a><br />
 <a href="#syn:@names">@names</a><br />
+<a href="#syn:define">define</a><br />
+<a href="#syn:lambda">lambda</a><br />
+<a href="#syn:return">return</a><br />
 <a href="#syn:typeof">typeof</a><br />
 </div>
 </div>
@@ -4453,8 +5320,12 @@ machines sharing the environment have been freed.
 <div class="id">
 <div class="index">
 <div class="fnindex">
+<table>
+<tr>
+<td>
 <a href="#fn:access">access</a><br />
 <a href="#fn:append">append</a><br />
+<a href="#fn:apply">apply</a><br />
 <a href="#fn:arraynelm">arraynelm</a><br />
 <a href="#fn:backtrace">backtrace</a><br />
 <a href="#fn:baseid">baseid</a><br />
@@ -4496,7 +5367,11 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
 <a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
+<a href="#fn:error">error</a><br />
+<a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
+</td>
+<td>
 <a href="#fn:fieldid">fieldid</a><br />
 <a href="#fn:fieldoff">fieldoff</a><br />
 <a href="#fn:fields">fields</a><br />
@@ -4544,6 +5419,8 @@ machines sharing the environment have been freed.
 <a href="#fn:issu">issu</a><br />
 <a href="#fn:istable">istable</a><br />
 <a href="#fn:istypedef">istypedef</a><br />
+</td>
+<td>
 <a href="#fn:isundeftype">isundeftype</a><br />
 <a href="#fn:isunion">isunion</a><br />
 <a href="#fn:isupper">isupper</a><br />
@@ -4556,6 +5433,7 @@ machines sharing the environment have been freed.
 <a href="#fn:listins">listins</a><br />
 <a href="#fn:listref">listref</a><br />
 <a href="#fn:listset">listset</a><br />
+<a href="#fn:map">map</a><br />
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
@@ -4590,6 +5468,8 @@ machines sharing the environment have been freed.
 <a href="#fn:mkparam">mkparam</a><br />
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mktab">mktab</a><br />
+</td>
+<td>
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:opentcp">opentcp</a><br />
@@ -4637,6 +5517,9 @@ machines sharing the environment have been freed.
 <a href="#fn:write">write</a><br />
 <a href="#fn:xaccessget">xaccessget</a><br />
 <a href="#fn:xaccessput">xaccessput</a><br />
+</td>
+</tr>
+</table>
 
 </div>
 </div>

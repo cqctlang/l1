@@ -3338,7 +3338,7 @@ getval(VM *vm, Location *loc)
 	case Ltopl:
 		p = *(loc->val);
 		if(p == Xundef)
-			vmerr(vm, "reference to undefined variable: %s",
+			vmerr(vm, "reference to unbound variable: %s",
 			      topvecid(loc->idx, vm->clx->code->topvec));
 		return p;
 	default:
@@ -3385,7 +3385,7 @@ getcval(VM *vm, Location *loc)
 	case Ltopl:
 		p = *(loc->val);
 		if(p->qkind == Qundef)
-			vmerr(vm, "reference to undefined variable: %s",
+			vmerr(vm, "reference to unbound variable: %s",
 			      topvecid(loc->idx, vm->clx->code->topvec));
 		return valcval(p);
 	default:
@@ -8456,26 +8456,56 @@ static void
 l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 {
 	List *l, *r;
+	Vec *k, *v;
+	Tab *t;
 	Closure *cl;
-	Imm len, m;
-	Val v, argv[1];
+	Imm m, len;
+	Val x, argv[2];
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to map");
 	checkarg(vm, "map", iargv, 0, Qcl);
-	if(iargv[1]->qkind != Qlist)
+	if(iargv[1]->qkind != Qlist
+	   && iargv[1]->qkind != Qvec
+	   && iargv[1]->qkind != Qtab)
 		vmerr(vm,
-		      "operand 1 to map must be a map");
+		      "operand 1 to map must be a list, table, or vector");
 	cl = valcl(iargv[0]);
-	l = vallist(iargv[1]);
 	r = mklist();
 	gcprotect(vm, mkvallist(r));
-	len = listxlen(l->x);
-	for(m = 0; m < len; m++){
-		argv[0] = listref(vm, l, m);
-		v = dovm(vm, cl, 1, argv);
+	switch(iargv[1]->qkind){
+	case Qlist:
+		l = vallist(iargv[1]);
+		len = listxlen(l->x);
+		for(m = 0; m < len; m++){
+			argv[0] = listref(vm, l, m);
+			x = dovm(vm, cl, 1, argv);
+			listins(vm, r, m, gcprotect(vm, x));
+		}
+		break;
+	case Qtab:
+		t = valtab(iargv[1]);
+		k = tabenumkeys(t);
+		v = tabenumvals(t);
+		gcprotect(vm, k);
 		gcprotect(vm, v);
-		listins(vm, r, m, v);
+		for(m = 0; m < v->len; m++){
+			argv[0] = vecref(k, m);
+			argv[1] = vecref(v, m);
+			x = dovm(vm, cl, 2, argv);
+			listins(vm, r, m, gcprotect(vm, x));
+		}
+		break;
+	case Qvec:
+		v = valvec(iargv[1]);
+		for(m = 0; m < v->len; m++){
+			argv[0] = vecref(v, m);
+			x = dovm(vm, cl, 1, argv);
+			listins(vm, r, m, gcprotect(vm, x));
+		}
+		break;
+	default:
+		fatal("bug");
 	}
 	*rv = mkvallist(r);
 }
@@ -10008,6 +10038,12 @@ l1_isvector(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_isundefined(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isundefined", Qundef);
+}
+
+static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(thegc->gcrun)
@@ -10509,6 +10545,7 @@ mktopenv()
 	FN(issu);
 	FN(istable);
 	FN(istypedef);
+	FN(isundefined);
 	FN(isundeftype);
 	FN(isunion);
 	FN(isupper);

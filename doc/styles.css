@@ -1,18 +1,24 @@
 /* layout */
 
+#side1 {
+	position: fixed;
+	margin-top: 1em;
+	margin-left: 2em;
+}
+
 #content {
-	margin-left: auto;
-	margin-right: auto;
+	margin-left: 20em;
 	margin-top: 20px;
 	left:	20px;
 	top:	20px;
-	width: 40em;
-	list-style-position: inside;
+	width: 45em;
 }
 
 dl, ol, ul {
-	margin-right: 20px;
+//	margin-right: 20px;
+	margin-left: 20px;
 	margin-bottom: 10px;
+	list-style: square outside;
 }
 
 #content h4 {
@@ -69,6 +75,12 @@ dl, ol, ul {
 
 /* typography */
 
+#side1 {
+	font-family: "Lucida Sans", sans-serif;
+	font-size: 10px;
+	line-height: 12px;
+}
+
 #content {
 	font-family: "Lucida Sans", sans-serif;
 //	font-family: "Helvetica";
@@ -88,7 +100,7 @@ dl, ol, ul {
 
 #content h3 {
 	font-family:  "Lucida Sans", "Luxi Sans", sans-serif;
-	font-size: 15px;
+	font-size: 13px;
 	text-align: left;
 }
 
@@ -139,11 +151,20 @@ dl, ol, ul {
 
 .index {
 	margin-left: 20px;
+	font-size: 9px;
+        line-height: 11px;
 }
+
+.index table,td,th {
+       padding: 10px;
+
+}
+
 .fnindex {
 	color: navy;
 	font-family: monospace;
 	font-weight: bold;
+
 }
 
 .fnindex a:link, a:visited, a:hover, a:active {
