@@ -367,8 +367,15 @@ struct List {
 
 struct As {
 	Head hd;
-	Closure *dispatch;
+
+	Tab *mtab;
 	Str *name;
+
+	/* cached methods */
+	Closure *get;
+	Closure *put;
+	Closure *map;
+	Closure *dispatch;
 };
 
 typedef
@@ -380,13 +387,16 @@ struct Nssym {
 struct Ns {
 	Head hd;
 
-	/* interface for all instances */
+	Tab *mtab;
+	Str *name;
+
+	/* cached methods */
 	Closure *enumsym;
 	Closure *enumtype;
 	Closure *looksym;
 	Closure *looktype;
 	Closure *lookaddr;
-	Str *name;
+	Closure *dispatch;
 
 	/* cached base type definition */
 	Xtypename *base[Vnallbase];
@@ -905,7 +915,7 @@ Fd*		vmstdout(VM *vm);
 #define valxtn(v)	((Xtypename*)(v))
 #define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
-#define FN(name) builtinfn(env, #name, mkcfn(#name, l1_##name))
+#define FN(name) builtinfn(env, "%"#name, mkcfn(#name, l1_##name))
 
 typedef int(*Freeheadfn)(Head*);
 Freeheadfn getfreeheadfn(Qkind qkind);

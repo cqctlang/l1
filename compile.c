@@ -1241,11 +1241,13 @@ globals(Expr *e, Env *env)
 		envgetbind(env, is);
 		p = Zblock(Zlocals(1, "$rd"),
 			   Zset(doid("$rd"),
-				Zcall(doid("mkrd"), 2,
+				Zcall(doid("%mkrd"), 2,
 				      Zconsts(id),
 				      Zids2strs(e->e2))),
-			   Zset(doid(id), Zcall(doid("rdmk"), 1, doid("$rd"))),
-			   Zset(doid(is), Zcall(doid("rdis"), 1, doid("$rd"))),
+			   Zset(doid(id), Zcall(doid("%rdmk"),
+						1, doid("$rd"))),
+			   Zset(doid(is), Zcall(doid("%rdis"),
+						1, doid("$rd"))),
 			   doid("$rd"),
 			   NULL);
 		efree(is);

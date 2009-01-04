@@ -48,12 +48,12 @@ define dumpns(dn){
 		ns = dn;
 	
 	fn = nsenumtype(ns);
-	vec = tabvals(fn());
+	vec = tabvals(fn(ns));
 	for(i = 0; i < veclen(vec); i++)
 		printtype(vecref(vec, i));
 
 	fn = nsenumsym(ns);
-	vec = tabvals(fn());
+	vec = tabvals(fn(ns));
 	for(i = 0; i < veclen(vec); i++)
 		printf("%t;\n", vecref(vec, i));
 }
@@ -98,7 +98,7 @@ define foo(){
  	};
 
 	fn = nsenumtype(ns);
-	vec = tabvals(fn());
+	vec = tabvals(fn(ns));
 	for(i = 0; i < veclen(vec); i++)
 		printtype(vecref(vec, i));
 };

@@ -56,7 +56,7 @@ define foo(){
  	};
 
 	fn = nsenumtype(ns);
-	vec = tabvals(fn());
+	vec = tabvals(fn(ns));
 	for(i = 0; i < veclen(vec); i++)
 		printtype(vecref(vec, i));
 };

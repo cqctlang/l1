@@ -69,7 +69,7 @@ ns = @names c32le {
 };
 
 fn = nsenumtype(ns);
-vec = tabvals(fn());
+vec = tabvals(fn(ns));
 s = nil;
 for(i = 0; i < veclen(vec); i++){
 	s = vecref(vec, i);

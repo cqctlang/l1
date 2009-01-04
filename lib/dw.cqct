@@ -6283,7 +6283,7 @@ define build_global_ns (file)
 {
   @local elfd, indom, abdom, strdom, tabs, procdoml, i, nstab, result;
   @local newlooktype, newlooksym, newlookaddr, newenumsym, newenumtype;
-  @local stab, ttab, culist, i, stime, etime;
+  @local stab, ttab, culist, i, stime, etime, mtab;
   stime = gettimeofday ();
   elfd = mkelfdom (mapfile (file));
   procdoml = [];
@@ -6310,39 +6310,39 @@ define build_global_ns (file)
     append (result, cutabs);
     cptr = ( head (rv));
   }
-  newlooksym = lambda (sym)
+  newlooksym = lambda (this, sym)
     {
       @local i, rv, ns;
       rv = nil;
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	rv = nslooksym (ns) (sym);
+	rv = nslooksym (ns) (ns, sym);
 	if (!isnil (rv))
 	  return rv;
       }
       return rv;
     };
-  newlooktype = lambda (type)
+  newlooktype = lambda (this, type)
     {
       @local i, rv, ns;
       rv = nil;
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	rv = nslooktype (ns) (type);
+	rv = nslooktype (ns) (ns, type);
 	if (!isnil (rv))
 	  return rv;
       }
       return rv;
     };
-  newenumsym = lambda ()
+  newenumsym = lambda (this)
     {
       return stab;
     };
-  newenumtype = lambda ()
+  newenumtype = lambda (this)
     {
       return ttab;
     };
-  newlookaddr = lambda (addr)
+  newlookaddr = lambda (this, addr)
     /* Perform lookaddr on the namespace from each compilation unit,
        and take the maximum entry. */
     {
@@ -6350,7 +6350,7 @@ define build_global_ns (file)
       slist = [];
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	s = nslookaddr (ns) (addr);
+	s = nslookaddr (ns) (ns, addr);
 	if (!isnil (s) && !isnil (vecref (s, 2)))
 	  append (slist, s);
       }
@@ -6391,14 +6391,20 @@ define build_global_ns (file)
   printf ("Elapsed time before call to mkns is %a\n", etime - stime);
   //return [result, culist];
   //return result;
-  return mkns (newlooktype, newenumtype, newlooksym, newenumsym, newlookaddr);
+  mtab = mktab();
+  tabinsert(mtab, "looktype", newlooktype);
+  tabinsert(mtab, "enumtype", newenumtype);
+  tabinsert(mtab, "looksym", newlooksym);
+  tabinsert(mtab, "enumsym", newenumsym);
+  tabinsert(mtab, "lookaddr", newlookaddr);
+  return mkns (mtab);
 }
 
 define init_debug_domain (exfile)
 {
   @local elfd, indom, abdom, strdom, tabs, procdoml, i, nstab, result;
   @local newlooktype, newlooksym, newlookaddr, newenumsym, newenumtype;
-  @local stab, ttab, culist, i, stime, etime, gns, nscon;
+  @local stab, ttab, culist, i, stime, etime, gns, nscon, mtab;
   stime = gettimeofday ();
   procdoml = []; /* process-associated dwarf_domain_list */
 //   exfile = get_executable_from_proc (uproc);
@@ -6428,39 +6434,39 @@ define init_debug_domain (exfile)
   etime = gettimeofday ();
   printf ("getting function tables takes %a\n", etime - stime);
   stime = etime;
-  newlooksym = lambda (sym)
+  newlooksym = lambda (this, sym)
     {
       @local i, rv, ns;
       rv = nil;
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	rv = nslooksym (ns) (sym);
+	rv = nslooksym (ns) (ns, sym);
 	if (!isnil (rv))
 	  return rv;
       }
       return rv;
     };
-  newlooktype = lambda (type)
+  newlooktype = lambda (this, type)
     {
       @local i, rv, ns;
       rv = nil;
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	rv = nslooktype (ns) (type);
+	rv = nslooktype (ns) (ns, type);
 	if (!isnil (rv))
 	  return rv;
       }
       return rv;
     };
-  newenumsym = lambda ()
+  newenumsym = lambda (this)
     {
       return stab;
     };
-  newenumtype = lambda ()
+  newenumtype = lambda (this)
     {
       return ttab;
     };
-  newlookaddr = lambda (addr)
+  newlookaddr = lambda (this, addr)
     /* Perform lookaddr on the namespace from each compilation unit,
        and take the maximum entry. */
     {
@@ -6468,7 +6474,7 @@ define init_debug_domain (exfile)
       slist = [];
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	s = nslookaddr (ns) (addr);
+	s = nslookaddr (ns) (ns, addr);
 	if (!isnil (s) && !isnil (vecref (s, 2)))
 	  append (slist, s);
       }
@@ -6505,7 +6511,13 @@ define init_debug_domain (exfile)
     foreach (lambda (k, v) {tabinsert (ttab, k, v);}, localttab);
     foreach (lambda (k, v) {tabinsert (stab, k, v);}, localstab);
   }
-  gns = mkns (newlooktype, newenumtype, newlooksym, newenumsym, newlookaddr);
+  mtab = mktab();
+  tabinsert(mtab, "looktype", newlooktype);
+  tabinsert(mtab, "enumtype", newenumtype);
+  tabinsert(mtab, "looksym", newlooksym);
+  tabinsert(mtab, "enumsym", newenumsym);
+  tabinsert(mtab, "lookaddr", newlookaddr);
+  gns = mkns (mtab);
   etime = gettimeofday ();
   printf ("Additional time for building gns is  %a\n", etime - stime);
   stime = etime;

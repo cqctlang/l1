@@ -71,10 +71,10 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = Zblock(Zlocals(1, "$tn"),
 			    Zset(doid("$tn"), gentypename(t, compilec, ctx)),
 			    Zset(doid("$type"),
-				 Zcall(doid("looktype"), 2,
+				 Zcall(doid("%looktype"), 2,
 				       dom, doid("$tn"))),
-			    Zif(Zcall(doid("isnil"), 1, doid("$type")),
-				Zcall(doid("error"), 2,
+			    Zif(Zcall(doid("%isnil"), 1, doid("$type")),
+				Zcall(doid("%error"), 2,
 				      Zconsts("undefined type: %t"),
 				      doid("$tn"))),
 			    NULL);
@@ -90,17 +90,17 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = Zset(doid("$dom"), e->e1);
 		te = Zcons(se, te);
 
-		// $tmp = nslooksym(domns($dom))(sym)
-		se = Zcall(doid("nsof"), 1, doid("$dom"));
-		se = Zcall(doid("nslooksym"), 1, se);
-		se = Zcall(se, 1, Zconsts(e->e2->id));
+		// $tmp = nslooksym(domns($dom))($dom,sym)
+		se = Zcall(doid("%nsof"), 1, doid("$dom"));
+		se = Zcall(doid("%nslooksym"), 1, se);
+		se = Zcall(se, 2, doid("$dom"), Zconsts(e->e2->id));
 		se = Zset(doid("$tmp"), se);
 		te = Zcons(se, te);
 		
 		// if(isnil($tmp)) error("undefined symbol: %s", sym);
 		se = newexpr(Eif,
-			     Zcall(doid("isnil"), 1, doid("$tmp")),
-			     Zcall(doid("error"), 2,
+			     Zcall(doid("%isnil"), 1, doid("$tmp")),
+			     Zcall(doid("%error"), 2,
 				   Zconsts("undefined symbol: %s"),
 				   Zconsts(e->e2->id)),
 			     0, 0);
@@ -108,19 +108,19 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 		// $type = symtype($tmp);
 		se = Zset(doid("$type"),
-			  Zcall(doid("symtype"), 1, doid("$tmp")));
+			  Zcall(doid("%symtype"), 1, doid("$tmp")));
 		te = Zcons(se, te);
 
 		// $addr = symval($tmp, 2);
 		if(needaddr){
 			se = Zset(doid("$addr"),
-				  Zcall(doid("symval"), 1, doid("$tmp")));
+				  Zcall(doid("%symval"), 1, doid("$tmp")));
 			te = Zcons(se, te);
 
 			// if(isnil($addr)) error("symbol lacks address: %s");
 			se = newexpr(Eif,
-				     Zcall(doid("isnil"), 1, doid("$addr")),
-				     Zcall(doid("error"), 2,
+				     Zcall(doid("%isnil"), 1, doid("$addr")),
+				     Zcall(doid("%error"), 2,
 					   Zconsts("symbol lacks address: %s"),
 					   Zconsts(e->e2->id)),
 				     0, 0);
@@ -142,22 +142,22 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 			// $type = subtype($typeof($tmp));
 			se = Zset(doid("$type"),
-				  Zcall(doid("subtype"), 1,
+				  Zcall(doid("%subtype"), 1,
 					Zcall(doid("$typeof"), 1,
 					      doid("$tmp"))));
 			te = Zcons(se, te);
 
 			// $dom = domof($tmp);
 			se = Zset(doid("$dom"),
-				  Zcall(doid("domof"), 1, doid("$tmp")));
+				  Zcall(doid("%domof"), 1, doid("$tmp")));
 			te = Zcons(se, te);
 
 			// $addr = {nsptr($dom)}$tmp
 			if(needaddr){
 				se = Zset(doid("$addr"),
-					  Zxcast(Zcall(doid("nsptr"), 1,
+					  Zxcast(Zcall(doid("%nsptr"), 1,
 						       doid("$dom")),
-							doid("$tmp")));
+						 doid("$tmp")));
 				te = Zcons(se, te);
 			}
 		}else{
@@ -168,7 +168,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 			// $type = subtype($type);
 			se = Zset(doid("$type"),
-				  Zcall(doid("subtype"), 1, doid("$type")));
+				  Zcall(doid("%subtype"), 1, doid("$type")));
 			te = Zcons(se, te);
 		}
 		e->e1 = 0;
@@ -184,14 +184,14 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		
 		// $tmp = lookfield(type, field);
 		se = Zset(doid("$tmp"),
-			  Zcall(doid("lookfield"), 2,
+			  Zcall(doid("%lookfield"), 2,
 				doid("$type"), Zconsts(e->e2->id)));
 		te = Zcons(se, te);
 
 		// if(isnil($tmp)) error("undefined field: %s", sym);
 		se = newexpr(Eif,
-			     Zcall(doid("isnil"), 1, doid("$tmp")),
-			     Zcall(doid("error"), 2,
+			     Zcall(doid("%isnil"), 1, doid("$tmp")),
+			     Zcall(doid("%error"), 2,
 				   Zconsts("undefined field: %s"),
 				   Zconsts(e->e2->id)),
 			     0, 0);
@@ -199,14 +199,14 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 		// $type = fieldtype($tmp);
 		se = Zset(doid("$type"),
-			  Zcall(doid("fieldtype"), 1, doid("$tmp")));
+			  Zcall(doid("%fieldtype"), 1, doid("$tmp")));
 		te = Zcons(se, te);
 				     
 		// $addr = $addr + fieldoff($tmp)
 		if(needaddr){
 			se = Zset(doid("$addr"),
 				  Zadd(doid("$addr"),
-				       Zcall(doid("fieldoff"), 1,
+				       Zcall(doid("%fieldoff"), 1,
 					     doid("$tmp"))));
 			te = Zcons(se, te);
 		}
@@ -528,9 +528,9 @@ expanddot(U *ctx, Expr *e)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(1, "$o"),
 			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zcall(Zcall(doid("tablook"), 2,
-					Zcall(doid("rdsettab"), 1,
-					      Zcall(doid("recrd"), 1,
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"), 1,
+					      Zcall(doid("%recrd"), 1,
 						    doid("$o"))),
 					Zconsts(id)), 2,
 				  doid("$o"), e->e2),
@@ -548,16 +548,17 @@ expanddot(U *ctx, Expr *e)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zset(doid("$rd"), Zcall(doid("recrd"), 1,
+			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
 						    doid("$o"))),
-			    Zcall(Zcall(doid("tablook"), 2,
-					Zcall(doid("rdsettab"), 1, doid("$rd")),
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"),
+					      1, doid("$rd")),
 					Zconsts(id)), 2,
 				  doid("$o"),
 				  Zbinop(e->op,
-					 Zcall(Zcall(doid("tablook"), 2,
-						     Zcall(doid("rdgettab"), 1,
-							   doid("$rd")),
+					 Zcall(Zcall(doid("%tablook"), 2,
+						     Zcall(doid("%rdgettab"),
+							   1, doid("$rd")),
 						     Zconsts(id)), 1,
 					       doid("$o")),
 					 e->e2)),
@@ -575,16 +576,17 @@ expanddot(U *ctx, Expr *e)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zset(doid("$rd"), Zcall(doid("recrd"), 1,
+			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
 						    doid("$o"))),
-			    Zcall(Zcall(doid("tablook"), 2,
-					Zcall(doid("rdsettab"), 1, doid("$rd")),
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"),
+					      1, doid("$rd")),
 					Zconsts(id)), 2,
 				  doid("$o"),
 				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
-					 Zcall(Zcall(doid("tablook"), 2,
-						     Zcall(doid("rdgettab"), 1,
-							   doid("$rd")),
+					 Zcall(Zcall(doid("%tablook"), 2,
+						     Zcall(doid("%rdgettab"),
+							   1, doid("$rd")),
 						     Zconsts(id)), 1,
 					       doid("$o")),
 					 Zuint(1))),
@@ -601,16 +603,17 @@ expanddot(U *ctx, Expr *e)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
 			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zset(doid("$rd"), Zcall(doid("recrd"), 1,
+			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
 						    doid("$o"))),
 			    Zset(doid("$l"),
-				 Zcall(Zcall(doid("tablook"), 2,
-					     Zcall(doid("rdgettab"), 1,
+				 Zcall(Zcall(doid("%tablook"), 2,
+					     Zcall(doid("%rdgettab"), 1,
 						   doid("$rd")),
 					     Zconsts(id)), 1,
 				       doid("$o"))),
-			    Zcall(Zcall(doid("tablook"), 2,
-					Zcall(doid("rdsettab"), 1, doid("$rd")),
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"),
+					      1, doid("$rd")),
 					Zconsts(id)), 2,
 				  doid("$o"),
 				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
@@ -628,37 +631,30 @@ expanddot(U *ctx, Expr *e)
 		o = Zset(doid("$o"), expanddot(ctx, e->e1));
 
 		/* record accessor case */
-		se = Zcall(Zcall(doid("tablook"), 2,
-				 Zcall(doid("rdgettab"), 1,
-				       Zcall(doid("recrd"), 1, doid("$o"))),
+		se = Zcall(Zcall(doid("%tablook"), 2,
+				 Zcall(doid("%rdgettab"), 1,
+				       Zcall(doid("%recrd"), 1, doid("$o"))),
 				 Zconsts(id)),
 			   1, doid("$o"));
 
 		/* cval/as/ns/dom case */
 		if(!strcmp(id, "dispatch"))
-			te = Zcall(doid("asdispatch"), 1, doid("$o"));
+			te = Zcall(doid("%dispatch"), 1, doid("$o"));
 		else if(!strcmp(id, "names"))
-			te = Zcall(doid("nsof"), 1, doid("$o"));
+			te = Zcall(doid("%nsof"), 1, doid("$o"));
 		else if(!strcmp(id, "as"))
-			te = Zcall(doid("asof"), 1, doid("$o"));
+			te = Zcall(doid("%asof"), 1, doid("$o"));
 		else
-			te = Zblock(Zlocals(1, "$disp"),
-				    Zset(doid("$disp"),
-					 Zcall(doid("asdispatch"), 1,
-					       doid("$o"))),
-				    Zlambdn(doid("$args"),
-					    Zblock(nullelist(),
-						   Zret(Zcall(doid("apply"), 4,
-							      doid("$disp"),
-							      Zconsts(id),
-							      doid("$o"),
-							      doid("$args"))),
-						   NULL),
-					    copyexpr(e->e2)),
-				    NULL);
+			te = Zlambdn(doid("$args"),
+				     Zret(Zcall(doid("%callmethod"),
+						3,
+						Zconsts(id),
+						doid("$o"),
+						doid("$args"))),
+				     copyexpr(e->e2));
 
 		te = Zblock(Zlocals(1, "$o"),
-			    Zifelse(Zcall(doid("isrec"), 1, o), se, te),
+			    Zifelse(Zcall(doid("%isrec"), 1, o), se, te),
 			    NULL);
 		e->e1 = 0;
 		freeexpr(e);

@@ -107,6 +107,7 @@ static void vmsetcl(VM *vm, Val val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
 static void* gcprotect(VM *vm, void *hd);
+static As* mkastab(Tab *mtab, Str *name);
 static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn();
@@ -187,7 +188,7 @@ static Head *itervec(Head*, Ictx*);
 static Head *iterxtn(Head*, Ictx*);
 
 static Heap heap[Qnkind] = {
-	[Qas]	 = { "as", Qas, sizeof(As), 0, 0, iteras },
+	[Qas]	 = { "as", Qas, sizeof(As), 1, 0, iteras },
 	[Qbox]	 = { "box", Qbox, sizeof(Box),	0, 0, iterbox },
 	[Qcval]  = { "cval", Qcval, sizeof(Cval), 0, 0, itercval },
 	[Qcl]	 = { "closure", Qcl, sizeof(Closure), 1, freecl, itercl },
@@ -2039,6 +2040,14 @@ listcopy(List *lst)
 	return new;
 }
 
+static void
+listcopyv(List *lst, Imm ndx, Imm n, Val *v)
+{
+	Listx *x;
+	x = lst->x;
+	memcpy(v, x->val+x->hd+ndx, n*sizeof(Val));
+}
+
 static List*
 listreverse(List *lst)
 {
@@ -2795,12 +2804,10 @@ fmtxtn(Xtypename *xtn)
 }
 
 static As*
-mkas(Closure *dispatch, Str *name)
+mkas()
 {
 	As *as;
 	as = (As*)halloc(&heap[Qas]);
-	as->dispatch = dispatch;
-	as->name = name;
 	return as;
 }
 
@@ -2811,9 +2818,15 @@ iteras(Head *hd, Ictx *ictx)
 	as = (As*)hd;
 	switch(ictx->n++){
 	case 0:
-		return (Head*)as->dispatch;
+		return (Head*)as->mtab;
 	case 1:
 		return (Head*)as->name;
+	case 2:
+		return (Head*)as->get;
+	case 3:
+		return (Head*)as->put;
+	case 4:
+		return (Head*)as->map;
 	default:
 		return GCiterdone;
 	}
@@ -2860,6 +2873,7 @@ iterns(Head *hd, Ictx *ictx)
 {
 	Ns *ns;
 	unsigned n;
+	enum { lastfield = 7 };
 
 	ns = (Ns*)hd;
 	n = ictx->n++;
@@ -2876,10 +2890,15 @@ iterns(Head *hd, Ictx *ictx)
 		return (Head*)ns->enumsym;
 	case 5:
 		return (Head*)ns->name;
+	case 6:
+		return (Head*)ns->dispatch;
+	case lastfield:
+		return (Head*)ns->mtab;
 	}
-	if(n >= 5+Vnbase) /* assume elements at+above nbase are aliases */
+	n -= lastfield;
+	if(n >= Vnbase) /* assume elements at+above nbase are aliases */
 		return GCiterdone;
-	return (Head*)ns->base[n-5];
+	return (Head*)ns->base[n];
 }
 
 Env*
@@ -4670,24 +4689,6 @@ nilfn(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 }
 
-/* enumsym for namespaces constructed by @names */
-static void
-enumsym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
-{
-	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to enumsym");
-	*rv = disp[0];
-}
-
-/* enumtype for namespaces constructed by @names */
-static void
-enumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
-{
-	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to enumtype");
-	*rv = disp[0];
-}
-
 /* dispatch for abstract address spaces */
 static void
 nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -4712,7 +4713,12 @@ static As*
 mknas()
 {
 	As *as;
-	as = mkas(mkcfn("nasdispatch", nasdispatch), mkstr0("nullas"));
+	Tab *mtab;
+	mtab = mktab();
+	_tabput(mtab,
+		mkvalstr(mkstr0("dispatch")),
+		mkvalcl(mkcfn("nasdispatch", nasdispatch)));
+	as = mkastab(mtab, mkstr0("nullas"));
 	return as;
 }
 
@@ -4782,7 +4788,12 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 As*
 mksas(Str *s)
 {
-	return mkas(mkccl("sasdispatch", sasdispatch, 1, mkvalstr(s)), 0);
+	Tab *mtab;
+	mtab = mktab();
+	_tabput(mtab,
+		mkvalstr(mkstr0("dispatch")),
+		mkvalcl(mkccl("sasdispatch", sasdispatch, 1, mkvalstr(s))));
+	return mkastab(mtab, 0);
 }
 
 As*
@@ -4803,7 +4814,7 @@ chasetype(Xtypename *xtn)
 static Xtypename*
 _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 {
-	Val argv[1], rv;
+	Val argv[2], rv;
 	Xtypename *tmp, *xtmp, *new;
 	Vec *vec;
 	Imm i;
@@ -4817,8 +4828,11 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		argv[0] = mkvalxtn(xtn);
-		rv = dovm(vm, ns->looktype, 1, argv);
+		argv[0] = mkvalns(ns);
+		argv[1] = mkvalxtn(xtn);
+		if(ns->looktype == 0)
+			vmerr(vm, "name space does not define looktype");
+		rv = dovm(vm, ns->looktype, 2, argv);
 		if(rv->qkind == Qnil)
 			return 0;
 		return valxtn(rv);
@@ -4918,57 +4932,70 @@ nscachebase(VM *vm, Ns *ns)
 	nscache1base(vm, ns, Vptr);
 }
 
+/* enumsym for namespaces constructed by @names */
+static void
+stdenumsym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to enumsym");
+	*rv = disp[0];
+}
+
+/* enumtype for namespaces constructed by @names */
+static void
+stdenumtype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to enumtype");
+	*rv = disp[0];
+}
+
 /* looksym for namespaces constructed by @names */
 static void
-looksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+stdlooksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Tab *sym;
 	Val vp;
 
-	if(argc != 1)
+	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to looksym");
-	if(argv[0]->qkind != Qstr)
-		vmerr(vm, "argument 1 to looksym must be a string");
+	checkarg(vm, "looksym", argv, 1, Qstr);
 	sym = valtab(disp[0]);
-	vp = tabget(sym, argv[0]);
+	vp = tabget(sym, argv[1]);
 	if(vp)
 		*rv = vp;
 }
 
 /* looktype for namespaces constructed by @names */
 static void
-looktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+stdlooktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Tab *type;
 	Val vp;
 
-	if(argc != 1)
+	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to looktype");
-	if(argv[0]->qkind != Qxtn)
-		vmerr(vm, "argument 1 to looktype must be a typename");
-
+	checkarg(vm, "looktype", argv, 1, Qxtn);
 	type = valtab(disp[0]);
-	vp = tabget(type, argv[0]);
+	vp = tabget(type, argv[1]);
 	if(vp)
 		*rv = vp;
 }
 
 /* lookaddr for namespaces constructed by @names */
 static void
-lookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	List *l;
 	Cval *cv, *a;
 	Imm addr, m, i, b, n;
 	Vec *sym;
 
-	if(argc != 1)
+	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to lookaddr");
-	if(argv[0]->qkind != Qcval)
-		vmerr(vm, "argument 1 to lookaddr must be an address");
-
+	checkarg(vm, "lookaddr", argv, 1, Qcval);
 	l = vallist(disp[0]);
-	cv = valcval(argv[0]);
+	cv = valcval(argv[1]);
 	addr = cv->val;
 	listlen(disp[0], &n);
 	if(n == 0){
@@ -5270,30 +5297,143 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	fatal("bug");
 }
 
+static void
+calldispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Closure *dcl;
+	Val *xargv;
+
+	dcl = valcl(disp[0]);
+	xargv = emalloc((1+argc)*sizeof(Val));
+	xargv[0] = disp[1];	/* name of method to call */
+	memcpy(xargv+1, argv, argc*sizeof(Val));
+	if(waserror(vm)){
+		efree(xargv);
+		nexterror(vm);
+	}
+	*rv = dovm(vm, dcl, argc+1, xargv);
+	efree(xargv);
+	poperror(vm);
+}
+
+static void
+ascache1method(As *as, char *id, Closure **p)
+{
+	Val v;
+	Str *ids;
+
+	ids = mkstr0(id);
+
+	/* is method in method table? */
+	v = tabget(as->mtab, mkvalstr(ids));
+	if(v){
+		*p = valcl(v);
+		return;
+	}
+
+	/* no dispatch, no dice */
+	if(as->dispatch == 0){
+		*p = 0;
+		return;
+	}
+
+	/* bind a new caller to dispatch and hope for the best */
+	*p = mkccl(id, calldispatch, 2, mkvalcl(as->dispatch), mkvalstr(ids));
+}
+
+static void
+ascachemethod(As *as)
+{
+	/* dispatch must be resolved first */
+	ascache1method(as, "dispatch", &as->dispatch);
+
+	ascache1method(as, "get", &as->get);
+	ascache1method(as, "put", &as->put);
+	ascache1method(as, "map", &as->map);
+}
+
+static As*
+mkastab(Tab *mtab, Str *name)
+{
+	As *as;
+	as = mkas();
+	as->mtab = mtab;
+	as->name = name;
+	ascachemethod(as);
+	return as;
+}
+
+static void
+nscache1method(Ns *ns, char *id, Closure **p)
+{
+	Val v;
+	Str *ids;
+
+	ids = mkstr0(id);
+
+	/* is method in method table? */
+	v = tabget(ns->mtab, mkvalstr(ids));
+	if(v){
+		*p = valcl(v);
+		return;
+	}
+
+	/* no dispatch, no dice */
+	if(ns->dispatch == 0){
+		*p = 0;
+		return;
+	}
+
+	/* bind a new caller to dispatch and hope for the best */
+	*p = mkccl(id, calldispatch, 2, mkvalcl(ns->dispatch), mkvalstr(ids));
+}
+
+static void
+nscachemethod(Ns *ns)
+{
+	/* dispatch must be resolved first */
+	nscache1method(ns, "dispatch", &ns->dispatch);
+
+	nscache1method(ns, "looktype", &ns->looktype);
+	nscache1method(ns, "enumtype", &ns->enumtype);
+	nscache1method(ns, "looksym", &ns->looksym);
+	nscache1method(ns, "enumsym", &ns->enumsym);
+	nscache1method(ns, "lookaddr", &ns->lookaddr);
+}
+
+static Ns*
+mknstab(Tab *mtab, Str *name)
+{
+	Ns *ns;
+	ns = mkns();
+	ns->mtab = mtab;
+	ns->name = name;
+	nscachemethod(ns);
+	return ns;
+}
+       
 static Ns*
 mknsfn(Closure *looktype, Closure *enumtype,
        Closure *looksym, Closure *enumsym,
        Closure *lookaddr, Str *name)
 {
-	Ns *ns;
-	ns = mkns();
-	ns->looktype = looktype;
-	ns->enumtype = enumtype;
-	ns->looksym = looksym;
-	ns->enumsym = enumsym;
-	ns->lookaddr = lookaddr;
-	ns->name = name;
-	return ns;
+	Tab *mtab;
+	mtab = mktab();
+	_tabput(mtab, mkvalstr(mkstr0("looktype")), mkvalcl(looktype));
+	_tabput(mtab, mkvalstr(mkstr0("enumtype")), mkvalcl(enumtype));
+	_tabput(mtab, mkvalstr(mkstr0("looksym")), mkvalcl(looksym));
+	_tabput(mtab, mkvalstr(mkstr0("enumsym")), mkvalcl(enumsym));
+	_tabput(mtab, mkvalstr(mkstr0("lookaddr")), mkvalcl(lookaddr));
+	return mknstab(mtab, name);
 }
-       
 
 static Ns*
 mknstype(Tab *type, Str *name)
 {
-	return mknsfn(mkccl("looktype", looktype, 1, mkvaltab(type)),
-		      mkccl("enumtype", enumtype, 1, mkvaltab(type)),
+	return mknsfn(mkccl("looktype", stdlooktype, 1, mkvaltab(type)),
+		      mkccl("enumtype", stdenumtype, 1, mkvaltab(type)),
 		      mkcfn("looksym", nilfn),
-		      mkccl("enumsym", enumsym, 1, mkvaltab(mktab())),
+		      mkccl("enumsym", stdenumsym, 1, mkvaltab(mktab())),
 		      mkcfn("lookaddr", nilfn),
 		      name);
 }
@@ -5346,16 +5486,16 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	gcprotect(vm, argv[1]);
 	l1_sort(vm, 2, argv, &rv);
 
-	return mknsfn(mkccl("looktype", looktype, 1, mkvaltab(type)),
-		      mkccl("enumtype", enumtype, 1, mkvaltab(type)),
-		      mkccl("looksym", looksym, 1, mkvaltab(sym)),
-		      mkccl("enumsym", enumsym, 1, mkvaltab(sym)),
-		      mkccl("lookaddr", lookaddr, 1, mkvallist(ls)),
+	return mknsfn(mkccl("looktype", stdlooktype, 1, mkvaltab(type)),
+		      mkccl("enumtype", stdenumtype, 1, mkvaltab(type)),
+		      mkccl("looksym", stdlooksym, 1, mkvaltab(sym)),
+		      mkccl("enumsym", stdenumsym, 1, mkvaltab(sym)),
+		      mkccl("lookaddr", stdlookaddr, 1, mkvallist(ls)),
 		      name);
 }
 
 static Ns*
-mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
+mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 {
 	Val v, idv, vecv, vp;
 	Vec *vec, *kvec, *nvec;
@@ -5367,6 +5507,7 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	Ns *ns;
 	Imm m;
 	Str *as;
+	Val xargv[1];
 
 	ctx.rawtype = rawtype;
 	ctx.rawsym = rawsym;
@@ -5376,8 +5517,13 @@ mknstab(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	ctx.undef = mktab();
 
 	ctx.ons = ons;
-	ctx.otype = valtab(dovm(vm, ons->enumtype, 0, 0));
-	ctx.osym = valtab(dovm(vm, ons->enumsym, 0, 0));
+	xargv[0] = mkvalns(ons);
+	if(ons->enumtype == 0)
+		vmerr(vm, "parent name space does not define enumtype");
+	if(ons->enumsym == 0)
+		vmerr(vm, "parent name space does not define enumsym");
+	ctx.otype = valtab(dovm(vm, ons->enumtype, 1, xargv));
+	ctx.osym = valtab(dovm(vm, ons->enumsym, 1, xargv));
 
 	/* get pointer representation from parent name space */
 	xtn = mkxtn();		/* will be garbage */
@@ -5584,7 +5730,7 @@ mksysdom(VM *vm)
 	valv = mkvalvec(v);
 	tabput(vm, rawsym, keyv, valv);
 
-	ns = mknstab(vm, root, rawtype, rawsym, mkstr0("sys"));
+	ns = mknsraw(vm, root, rawtype, rawsym, mkstr0("sys"));
 	dom = mkdom(ns, mksas(mkstrk(0, ~(0ULL), Sperm)), mkstr0("sys"));
 
 	return dom;
@@ -5724,6 +5870,8 @@ builtinfn(Env *env, char *name, Closure *cl)
 	Val val;
 	val = mkvalcl(cl);
 	envbind(env, name, val);
+	if(name[0] == '%')
+		envbind(env, name+1, val);		
 }
 
 static void
@@ -6834,6 +6982,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Vec *vec;
 	int i;
 	Imm len;
+	Val xargv[2];
 	
 	vpp = &argv[0];
 	efmt = fmt+fmtlen;
@@ -7036,7 +7185,12 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(vp->qkind != Qcval)
 				vmerr(vm, "bad operand to %%y");
 			cv = valcval(vp);
-			vq = dovm(vm, cv->dom->ns->lookaddr, 1, &vp);
+			xargv[0] = mkvalns(cv->dom->ns);
+			xargv[1] = vp;
+			if(cv->dom->ns->lookaddr == 0)
+				vmerr(vm, "name space does not"
+				      " define lookaddr");
+			vq = dovm(vm, cv->dom->ns->lookaddr, 2, xargv);
 			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			if(vq->qkind == Qnil){
 				snprintf(buf, sizeof(buf),
@@ -8582,8 +8736,8 @@ static void
 l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	As *as;
-	Closure *cl;
 	Str *name;
+	Tab *mtab;
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkas");
@@ -8593,8 +8747,9 @@ l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
 		checkarg(vm, "mkas", argv, 1, Qstr);
 		name = valstr(argv[1]);
 	}
-	cl = valcl(argv[0]);
-	as = mkas(cl, name);
+	mtab = mktab();
+	_tabput(mtab, mkvalstr(mkstr0("dispatch")), argv[0]);
+	as = mkastab(mtab, name);
 	*rv = mkvalas(as);
 }
 
@@ -8618,7 +8773,7 @@ l1_mknsraw(VM *vm, Imm argc, Val *argv, Val *rv)
 	ons = valns(argv[0]);
 	rawtype = valtab(argv[1]);
 	rawsym = valtab(argv[2]);
-	ns = mknstab(vm, ons, rawtype, rawsym, name);
+	ns = mknsraw(vm, ons, rawtype, rawsym, name);
 	*rv = mkvalns(ns);
 }
 
@@ -8627,25 +8782,18 @@ l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ns *ns;
 	Str *name;
+	Tab *mtab;
 
-	if(argc != 5 && argc != 6)
+	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkns");
-	checkarg(vm, "mkns", argv, 0, Qcl);
-	checkarg(vm, "mkns", argv, 1, Qcl);
-	checkarg(vm, "mkns", argv, 2, Qcl);
-	checkarg(vm, "mkns", argv, 3, Qcl);
-	checkarg(vm, "mkns", argv, 4, Qcl);
+	checkarg(vm, "mkns", argv, 0, Qtab);
 	name = 0;
-	if(argc == 6){
-		checkarg(vm, "mknsraw", argv, 5, Qstr);
-		name = valstr(argv[5]);
+	if(argc == 2){
+		checkarg(vm, "mkns", argv, 1, Qstr);
+		name = valstr(argv[1]);
 	}
-	ns = mknsfn(valcl(argv[0]),
-		    valcl(argv[1]),
-		    valcl(argv[2]),
-		    valcl(argv[3]),
-		    valcl(argv[4]),
-		    name);
+	mtab = valtab(argv[0]);
+	ns = mknstab(mtab, name);
 	nscachebase(vm, ns);
 	*rv = mkvalns(ns);
 }
@@ -8736,25 +8884,100 @@ l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_asdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val arg0, arg1, arg2, v, *xargv;
+	Dom *dom;
+	As *as;
+	Ns *ns;
+	Tab *mtab;
+	Str *id;
+	Closure *cl, *dcl;
+	Imm ll, xargc;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to callmethod");
+	checkarg(vm, "callmethod", argv, 0, Qstr);
+	checkarg(vm, "callmethod", argv, 2, Qlist);
+	arg0 = argv[0];
+	arg1 = argv[1];
+	arg2 = argv[2];
+	if(arg1->qkind == Qas){
+		as = valas(arg1);
+		mtab = as->mtab;
+		dcl = as->dispatch;
+	}else if(arg1->qkind == Qns){
+		ns = valns(arg1);
+		mtab = ns->mtab;
+		dcl = ns->dispatch;
+	}else if(arg1->qkind == Qdom){
+		dom = valdom(arg1);
+		mtab = dom->as->mtab;
+		dcl = dom->as->dispatch;
+	}else
+		vmerr(vm,
+		      "operand 2 to callmethod must be an address space, "
+		      "name space, or domain");
+
+	v = tabget(mtab, arg0);
+	if(v == 0 && dcl == 0){
+		id = valstr(arg0);
+		vmerr(vm, "callmethod target must define %.*s or dispatch",
+		      (int)id->len, id->s);
+	}
+
+	listlen(arg2, &ll);
+	if(v){
+		cl = valcl(cl);
+		xargc = ll+1;
+		xargv = emalloc(xargc*sizeof(Val));
+		xargv[0] = arg1;
+		listcopyv(vallist(arg2), 0, ll, xargv+1);
+	}else{
+		cl = dcl;
+		xargc = ll+2;
+		xargv = emalloc(xargc*sizeof(Val));
+		xargv[0] = arg0;
+		xargv[1] = arg1;
+		listcopyv(vallist(arg2), 0, ll, xargv+2);
+	}
+	if(waserror(vm)){
+		efree(xargv);
+		nexterror(vm);
+	}
+	*rv = dovm(vm, cl, xargc, xargv);
+	poperror(vm);
+	efree(xargv);
+}
+
+static void
+l1_dispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg0;
 	Dom *dom;
 	As *as;
+	Ns *ns;
+	Closure *cl;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to asdispatch");
+		vmerr(vm, "wrong number of arguments to dispatch");
 	arg0 = argv[0];
-	if(arg0->qkind != Qas && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslooksym must be an addrspace or domain");
-	if(arg0->qkind == Qas)
+	if(arg0->qkind == Qas){
 		as = valas(arg0);
-	else{
+		cl = as->dispatch;
+	}else if(arg0->qkind == Qns){
+		ns = valns(arg0);
+		cl = ns->dispatch;
+	}else if(arg0->qkind == Qdom){
 		dom = valdom(arg0);
 		as = dom->as;
-	}
-	*rv = mkvalcl(as->dispatch);
+		cl = as->dispatch;
+	}else
+		vmerr(vm,
+		      "operand 1 to dispatch must be an address space, "
+		      "name space, or domain");
+	if(cl)
+		*rv = mkvalcl(cl);
 }
 
 static void
@@ -8776,7 +8999,8 @@ l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalcl(ns->lookaddr);
+	if(ns->lookaddr)
+		*rv = mkvalcl(ns->lookaddr);
 }
 
 static void
@@ -8798,7 +9022,8 @@ l1_nslooksym(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalcl(ns->looksym);
+	if(ns->looksym)
+		*rv = mkvalcl(ns->looksym);
 }
 
 static void
@@ -8820,7 +9045,8 @@ l1_nslooktype(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalcl(ns->looktype);
+	if(ns->looktype)
+		*rv = mkvalcl(ns->looktype);
 }
 
 static void
@@ -8842,7 +9068,8 @@ l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalcl(ns->enumsym);
+	if(ns->enumsym)
+		*rv = mkvalcl(ns->enumsym);
 }
 
 static void
@@ -8864,7 +9091,8 @@ l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalcl(ns->enumtype);
+	if(ns->enumtype)
+		*rv = mkvalcl(ns->enumtype);
 }
 
 static void
@@ -9406,9 +9634,14 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 		vp = listref(vm, lst, m);
 		*ap++ = vp;
 	}
+	if(waserror(vm)){
+		efree(argv);
+		nexterror(vm);
+	}
 	vp = dovm(vm, cl, argc, argv);
 	*rv = vp;
 	efree(argv);
+	poperror(vm);
 }
 
 static void
@@ -10476,7 +10709,6 @@ mktopenv()
 	FN(append);
 	FN(apply);
 	FN(arraynelm);
-	FN(asdispatch);
 	FN(asof);
 	FN(backtrace);
 	FN(baseid);
@@ -10484,11 +10716,13 @@ mktopenv()
 	FN(bitfieldpos);
 	FN(bitfieldwidth);
 	FN(bsearch);
+	FN(callmethod);
 	FN(car);
 	FN(cdr);
 	FN(close);
 	FN(cons);
 	FN(copy);
+	FN(dispatch);
 	FN(domof);
 	FN(enumconsts);
 	FN(equal);

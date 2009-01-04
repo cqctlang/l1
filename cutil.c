@@ -176,7 +176,7 @@ Zref(Expr *dom, Expr *type, Expr *val)
 Expr*
 Zrange(Expr *addr, Expr *sz)
 {
-	return Zcall(doid("mkrange"), 2, addr, sz);
+	return Zcall(doid("%mkrange"), 2, addr, sz);
 }
 
 Expr*
@@ -249,5 +249,5 @@ Zids2strs(Expr *l)
 		te = Z2(Eelist, Zconsts(l->e1->id), te);
 		l = l->e2;
 	}
-	return Zapply(doid("list"), invert(te));
+	return Zapply(doid("%list"), invert(te));
 }

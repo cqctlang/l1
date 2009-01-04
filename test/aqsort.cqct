@@ -6,9 +6,9 @@
 
 define aqsortdom(){
 	@local aqsortns, pras, binpair;
-	binpair = init_debug_domain ("/home/vczandy/src/l1/test/aqsort");
+	binpair = init_debug_domain ("./aqsort");
 
- 	pras = mkpras("localhost:30000", "/home/vczandy/src/l1/test/aqsort");
+ 	pras = mkpras("localhost:30000", "./aqsort");
 	return mkdom(listref (binpair, 0), pras);
 }
 

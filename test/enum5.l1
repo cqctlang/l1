@@ -19,7 +19,7 @@ ns = @names c32le {
 };
 
 fn = nsenumtype(ns);
-vec = tabvals(fn());
+vec = tabvals(fn(ns));
 foreach(lambda(t){
 		if(isenum(t))
 			foreach(lambda(en){

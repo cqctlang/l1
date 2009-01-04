@@ -216,7 +216,7 @@ define nsdiff(ns1, ns2){
 					tabinsert(undef, t1, t1);
 				else if(!typeequal(t1, t2))
 					tabinsert(diff, t1, t1);
-			}, nsenumtype(ns1)());
+			}, nsenumtype(ns1)(ns1));
 		return undef;
 	}
 
@@ -289,10 +289,10 @@ define printtype(t){
 
 define printns(ns){
 	@local i, vec;
-	vec = tabvals(nsenumtype(ns)());
+	vec = tabvals(nsenumtype(ns)(ns));
 	for(i = 0; i < veclen(vec); i++)
 		printtype(vecref(vec, i));
-	vec = tabvals(nsenumsym(ns)());
+	vec = tabvals(nsenumsym(ns)(ns));
 	for(i = 0; i < veclen(vec); i++){
 		@local sym, off, type;
 		sym = vecref(vec, i);

@@ -76,13 +76,13 @@ dl, ol, ul {
 /* typography */
 
 #side1 {
-	font-family: "Lucida Sans", sans-serif;
+	font-family: sans-serif;
 	font-size: 10px;
 	line-height: 12px;
 }
 
 #content {
-	font-family: "Lucida Sans", sans-serif;
+	font-family: sans-serif;
 //	font-family: "Helvetica";
 	font-size: 12px;
 	line-height: 15px;
@@ -91,7 +91,7 @@ dl, ol, ul {
 }
 
 #content #table {
-	font-family: "Lucida Sans", "Luxi Sans", sans-serif;
+	font-family: sans-serif;
 	font-size: 12px;
 	line-height: 14px;
 	color: black;
@@ -99,7 +99,7 @@ dl, ol, ul {
 }
 
 #content h3 {
-	font-family:  "Lucida Sans", "Luxi Sans", sans-serif;
+	font-family:  sans-serif;
 	font-size: 13px;
 	text-align: left;
 }
@@ -146,12 +146,12 @@ dl, ol, ul {
 
 .id {
 	font-family: monospace;
-	font-weight: bold;
+//	font-weight: bold;
 }
 
 .index {
 	margin-left: 20px;
-	font-size: 9px;
+	font-size: 10px;
         line-height: 11px;
 }
 
@@ -161,9 +161,9 @@ dl, ol, ul {
 }
 
 .fnindex {
-	color: navy;
+//	color: navy;
 	font-family: monospace;
-	font-weight: bold;
+//	font-weight: bold;
 
 }
 
@@ -185,7 +185,7 @@ dl, ol, ul {
 }
 
 .code pre {
-      font-family: "Andale Mono", monospace;
+      font-family: monospace;
       font-size: 12px;
       line-height: 15px;
       color: black;
