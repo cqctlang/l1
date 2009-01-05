@@ -1081,21 +1081,20 @@ in the domain
 
 <p>
 In symbol resolution,
-the backtick expression yields a reference to
-the typed location associated with the name
-in the domain, through which the stored value
-may be examined or modified.
-The evaluator calls
+the evaluator calls
 the <span class="type">looksym</span>
 function of the referenced domain
 to obtain the type and location
-associated with the symbol.
+associated with the symbol, yielding
+a reference to the typed location associated with the symbol.
 </p>
 
 <p>
-When the location is read, such as in the
-reference to <span class="val">dom`y</span>
-above, the <span class="type">get</span> function
+The resulting reference may be used
+to examine or modify the value stored at the location.  When the
+location is read, such as in the reference
+to <span class="val">dom`y</span> above,
+the <span class="type">get</span> function
 of the domain is called.
 When the location is written, such as in the
 reference to <span class="val">dom`x</span>
@@ -1285,9 +1284,9 @@ The relational operators
 <span class="id">&gt;=</span>,
 <span class="id">==</span>,
 <span class="id">!=</span>)
-compare cvalues and yield
-a value of <span class="val">0</span>
-or <span class="val">1</span> represented
+compare cvalues.  The result of each operator
+is <span class="val">0</span>
+or <span class="val">1</span>, represented
 as a cvalue of type <span class="val">int</span>
 in the literal domain.
 </p>
@@ -1385,139 +1384,6 @@ and <span class="val">as</span> are Cinquecento
 variables bound, respectively, to the previously
 defined name space and address space values, and
 <span class="val">dom</span> is bound to the resulting domain.
-</p>
-
-
-<h3>C Values</h3>
-
-<p>
-Most Cinquecento computations begin with a reference to
-a name in a domain.  These are resolved by the
-backtick operator.  For example, the Cinquecento
-expression
-</p>
-
-<div class="code">
-dom`x
-</div>
-
-<p>
-yields a reference to the typed location associated
-with the name <span class="val">x</span> in the
-domain <span class="val">dom</span>.  This reference is
-analogous to an <em>lvalue</em> in C: a reference
-through which a stored value may be examined or
-modified.
-</p>
-
-<p>
-The Cinquecento expression 
-</p>
-
-<div class="code">
-a = dom`x;
-</div>
-
-<p>
-binds a representation of the referenced value to the
-Cinquecento variable <span class="val">a</span>.
-Several things happen during the evaluation of this
-expression:
-</p>
-
-<ol>
-
-<li> The name <span class="val">x</span> is resolved in
-the domain <span class="val">dom</span>, determining
-the location of <span class="val">x</span>
-(<span class="val">@0</span> means byte offset 0) and
-the name of its type <span class="val">int</span>;
-</li>
-
-<li> Consecutive bytes comprising the value
-of <span class="val">x</span> are read from the address
-space associated with <span class="val">dom</span>
-starting at the location of <span class="val">x</span>.
-The definition of <span class="val">int</span> in the
-name space of <span class="val">dom</span> determines
-the number of bytes (4) and the encoding of the value
-(little-endian integer);
-</li>
-
-<li> A <em>cvalue</em> is constructed to represent the
-accessed value.  Conceptually, this cvalue is a tuple
-containing the domain, the type name, and the
-interpretation of the value encoded by the bytes;
-</li>
-
-<li>The variable <span class="val">a</span> is bound to the cvalue.</li>
-</ol>
-
-
-<p>
-Most C operators that compute or compare values, such
-as the arithmetic, bitwise, logical, and relational
-operators, operate over and yield typed values that
-standard descriptions of C call <em>rvalues</em>.
-Cinquecento cvalues
-are concrete, first-class representations of C rvalues.
-</p>
-
-<p>
-Cinquecento emulates the behavior of all C operators.
-Operations that yield an rvalue in C yield a cvalue in
-Cinquecento with equivalent value and type.  Overflow
-and underflow semantics on arithmetic are preserved,
-the standard promotion and conversion rules are applied
-to the operands of operators, and so on.
-</p>
-
-<p>
-For example, following the evaluation of this sequence
-of expressions:
-</p>
-
-<div class="code">
-<pre>
-a = dom`x;
-b = dom`y;
-c = a+b;
-</pre>
-</div>
-
-<p>
-the variable <span class="val">c</span> is bound to a
-new cvalue that represents the same
-32-bit <span class="val">int</span> value that would be
-computed in a C program modeled
-by <span class="val">dom</span>.
-</p>
-
-<p>
-As another example, in C the result of a relational
-operation is an integer rvalue representing the boolean
-outcome of the comparison. In Cinquecento the result of
-a relational operator is a cvalue of type <span class="val">int</span>
-with value <span class="val">0</span> or <span class="val">1</span>.
-</p>
-
-<p>
-There is an important conceptual difference between C
-rvalues and Cinquecento cvalues.  Rvalues are
-intangible abstractions for values computed by C
-expressions.  An rvalue can be stored in a typed
-location in the address space of the program
-(<em>i.e.</em>, by assigning it to a declared variable
-or a dereferenced pointer), but it cannot be handled
-directly.  Cvalues, in contrast, are first-class values
-that can be bound to Cinquecento variables.  Like other
-values in dynamically typed languages, cvalues carry
-their types with them.  Similarly, storage for
-Cinquecento cvalues is like storage for ordinary data
-in most functional languages: it is unnamed storage
-implicitly managed by the Cinquecento implementation.
-In particular, cvalues do not occupy storage in a
-domain.
 </p>
 
 <h3>Pointers</h3>
@@ -1739,11 +1605,11 @@ elements.  The first element is a ctype representing
 the type of the symbol.  The second element is the name
 of the symbol as a string.  The third element is a
 cvalue representing the <em>offset</em>, in bytes, of
-the object named by symbol from the beginning of the
-address space in which it is located.  The offset value
-may be <span class="val">nil</span>, in which case the
-symbol definition can be used only to associate a type
-with a name.
+the object named by the symbol from the beginning of
+the address space in which it is located.  The offset
+value may be <span class="val">nil</span>, in which
+case the symbol is used only to associate a type with a
+name.
 </p>
 
 <p>
