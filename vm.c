@@ -8928,7 +8928,7 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	listlen(arg2, &ll);
 	if(v){
-		cl = valcl(cl);
+		cl = valcl(v);
 		xargc = ll+1;
 		xargv = emalloc(xargc*sizeof(Val));
 		xargv[0] = arg1;
