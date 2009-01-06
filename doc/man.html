@@ -129,22 +129,20 @@ systems.
 </p>
 
 <p>
-Underlying these features is an abstraction, called
+Underlying these features is a language abstraction, called
 a <em>domain</em>, that represents a program in
 execution.
 
 Procedural interfaces to domains provide direct access
 to the memory, types, and symbols of the process
-represented by a domain.  These interfaces hide details
-such as the location of the process and the
-architecture and operating system of the machine on
-which it runs.
+represented by a domain.  These interfaces hide the
+location of the process and the architecture and
+operating system of the machine on which it runs.
 </p>
 
 <p>
-However, often the more natural and expressive way to
-examine the state of process is through expressions in
-C.
+C is often a natural and expressive notation for
+examining the state of a process.
 
 In Cinquecento, C is the primary interface to domains.
 
@@ -152,18 +150,18 @@ Every C expression occurs in the context of a
 particular domain &mdash; the process upon which the
 expression is intended to operate.
 
-The Cinquecento evaluator maps C expressions into
-operations on the referenced domain.  To the user
-Cinquecento serves the illusion of fragments of
-C executing in the address space of their target
-process.
+The Cinquecento evaluator maps the expression into
+operations on the referenced domain.  To the user,
+Cinquecento supplies the illusion of fragments of
+C executing in the address space of target
+processes.
 </p>
 
 <p>
-Domains are first-class objects.
+Domains are first-class values.
 
-A rich set of supporting language types and built-in
-functions enable Cinquecento users to create
+A rich set of built-in
+functions and supporting types enable Cinquecento users to create
 domains tailored for the environment in which
 their target application runs.
 
@@ -174,7 +172,12 @@ development of libraries of user-defined domain
 implementations.
 
 In this sense, Cinquecento is as much as language for writing
-debuggers as it is a language for operating debuggers.
+debuggers as it is a language for performing debugging.
+</p>
+
+<p>
+Domains can also be defined to access the contents
+of binary files, such as core dumps or program-generated output. 
 </p>
 
 <p>
@@ -187,16 +190,12 @@ and operation of prctl.
 </p>
 
 <p>
-This manual describes the general C-based interface
-to domains, as well as the types and libraries
-used to define domains.
+The Cinquecento language design and implementation is an active research project,
+still undergoing revision and extension.
 
-Cinquecento is an active research project,
-undergoing continuous revision and extension.
-
-Until things settle down, we will strive to keep this
+We strive to keep this
 manual current with the implementation it accompanies,
-but sometimes will fall behind.
+but until things settle down, sometimes we will fall behind.
 </p>
 
 <p>
