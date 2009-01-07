@@ -923,7 +923,180 @@ Cinquecento does not (yet) implement
 </p>
 
 <h3 id="sec:constants">Constants</h3>
+
+<p id="syn:@const">
+The <span class="id">@const</span> form defines constant expressions.
+The syntax is:
+<div class="code">
+<pre>
+@const <span class="arg">id</span> = <span class="arg">expr</span>;
+</pre>
+</div>
+</p>
+
+<p>
+The identifier <span class="arg">id</span> is bound to
+<span class="arg">expr</span> in a global constant name space.
+</p>
+
+<p>
+Occurrences of <span class="arg">id</span> in the current
+and subsequent input files are lexically
+replaced with <span class="arg">expr</span>.
+</p>
+
+<p>
+The constant name space is distinct from the top level
+environment and local scopes occupied by Cinquecento
+variables.  The use of the same identifier as both a constant
+and a variable has undefined behavior.  (This feature needs more work.)
+</p>
+
+
 <h3 id="sec:records">Records</h3>
+
+<p id="syn:@record">
+The Cinquecento record system allows the creation of new
+aggregate types with named fields.  A <em>record descriptor</em>
+is a Cinquecento value that define a particular record type;
+it associates a record type name with the definition
+of the record type.
+A <em>record</em> is instance of a record type.
+It has an associated record descriptor and bindings for
+the fields defined by the record descriptor.
+</p>
+
+<p>
+The syntax
+
+<div class="code">
+<pre>
+@record myrec { field1, field2, field3 };
+</pre>
+</div>
+
+defines a new record type, named <span class="id">myrec</span>.
+
+The record type has three fields, named
+<span class="id">field1</span>, 
+<span class="id">field2</span>, and 
+<span class="id">field3</span>.
+
+The value of the <span class="id">@record</span> expression
+is the resulting record descriptor.
+
+In addition, evaluation of the <span class="id">@record</span>
+expression defines 
+two top-level functions, named <span class="id">myrec</span>
+and <span class="id">ismyrec</span>.
+</p>
+
+<p>
+The function <span class="id">ismyrec</span> is a predicate
+for instances of <span class="id">myrec</span>.  Like
+the type predicates, it accepts
+a single argument and returns <span class="val">1</span>
+if the argument is an instance of <span class="id">myrec</span>,
+and <span class="val">0</span> otherwise.
+</p>
+
+<p>
+The function <span class="id">myrec</span> is the
+constructor for instances of the myrec type.
+
+For example:
+
+<div class="code">
+<pre>
+x = myrec("abc", 1, lambda(x){ printf("hi\n")});
+</pre>
+</div>
+
+binds <span class="id">x</span> to a new instance of the
+<span class="id">myrec</span> type.
+</p>
+
+<p>
+The function <span class="id"myrec</span>
+expects either zero arguments,
+in which case the fields are undefined,
+or exactly as many arguments as there are fields in the type;
+the arguments are assigned to the fields in the order
+they were given in the <span class="id">@record</span> definition .
+</p>
+
+<p>
+The dot operator provides access to the fields of a record instance:
+
+<div class="code">
+<pre>
+printf("%a", x.field1);   // print x's field1
+x.field1 = "bcd";         // update x's field1
+
+x.field2 += 5;		  // update x's field2
+++x.field2;               // update x's field2
+
+x.field3("blah");	  // call the value of x's field3
+</pre>
+</div>
+</p>
+
+<p>
+Record descriptors have an associated format procedure
+that is implicitly called when 
+the <span class="val">%a</span> conversion of the
+formatted I/O library routines is applied to an instance of the record type.
+The format procedure takes a single argument,
+the record instance,
+and returns a string representing the formatted
+record.
+</p>
+
+<p>
+The following routines access the format procedure
+associated with a record descriptor.
+</p>
+
+<div class="docitem" id="fn:rdfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdfmt(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the format procedure of the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rdsetfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the format procedure of the record descriptor
+<span class="arg">rd</span> to <span class="arg">fmt</span>.
+</div>
+</div>
+
+
 
 <h3 id="sec:domainover">Overview of Domains</h3>
 
@@ -5263,14 +5436,27 @@ machines sharing the environment have been freed.
 <div class="id">
 <div class="index">
 <div class="fnindex">
+
+<div class="id">
+<div class="index">
+<div class="fnindex">
+<table>
+<tr>
+<td>
+
+<a href="#syn:@const">@const</a><br />
 <a href="#syn:@global">@global</a><br />
 <a href="#syn:@include">@include</a><br />
 <a href="#syn:@local">@local</a><br />
 <a href="#syn:@names">@names</a><br />
+<a href="#syn:@record">@record</a><br />
 <a href="#syn:define">define</a><br />
 <a href="#syn:lambda">lambda</a><br />
 <a href="#syn:return">return</a><br />
 <a href="#syn:typeof">typeof</a><br />
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -5442,6 +5628,8 @@ machines sharing the environment have been freed.
 <a href="#fn:putbytes">putbytes</a><br />
 <a href="#fn:rand">rand</a><br />
 <a href="#fn:rand">randseed</a><br />
+<a href="#fn:rdfmt">rdfmt</a><br />
+<a href="#fn:rdsetfmt">rdsetfmt</a><br />
 <a href="#fn:read">read</a><br />
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
