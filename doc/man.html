@@ -24,13 +24,25 @@
 <a href="#sec:functions">Functions</a><br />
 <a href="#sec:control">Control Operators</a><br />
 <a href="#sec:statements">Statements</a><br />
+<a href="#sec:constants">Constants</a><br />
+<a href="#sec:records">Records</a><br />
 <br />
-<em>Domains</em><br />
+<em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
 <a href="#sec:backtick">Backtick Operator</a><br />
-<a href="#sec:litdom">Literal Domain</a><br />
+<a href="#sec:litdom">The Literal Domain</a><br />
+<a href="#sec:casts">Type and Domain Casting</a><br />
 <a href="#sec:mixeddom">Mixed-domain Expressions</a><br />
-<a href="#sec:cvalueops">Operations on Cvalues</a><br />
+<a href="#sec:cvalueops">C Operators</a><br />
+<a href="#sec:pointers">Pointers</a><br />
+<br />
+<em>Defining Domains</em><br />
+<a href="#sec:mkdom">Domain constructor</a><br />
+<a href="#sec:namespaces">Name spaces</a><br />
+<a href="#sec:@names"><span class="id">@names</span></a><br />
+<a href="#sec:addressspaces">Address spaces</a><br />
+<a href="#sec:customaddressspaces">Custom address spaces</a><br />
+<a href="#sec:ctypes">Ctype constructor</a><br />
 <br />
 <em>Data Structures</em><br />
 <a href="#sec:containers">Container Types</a><br />
@@ -46,6 +58,7 @@
 <a href="#sec:fmt">Formatted Output</a><br />
 <a href="#sec:system">System Functions</a><br />
 <br />
+<br />
 <a href="#sec:cinterface">C Interface</a><br />
 <br />
 <a href="#sec:synindex">Syntax Index</a><br />
@@ -59,9 +72,12 @@
 <h3 id="sec:introduction">Introduction</h3>
 
 <p>
-Cinquecento is a programming language designed to help
-programmers examine the state of programs in execution,
-in particular C programs.
+This manual describes the
+language and built-in library functions
+of the L1 implementation of Cinquecento.
+</p>
+
+<p>
 
 <!-- Cinquecento
 is used to automated examination,
@@ -78,25 +94,27 @@ in OS-independence, support for arbitrary
 The key differences are ...
 -->
 
-This manual describes the
-Cinquecento language and built-in library functions.
 </p>
 
 <p>
+Cinquecento is a programming language designed to help
+programmers examine the state of programs in execution,
+in particular C programs.
+
 Like many languages designed for debugging, Cinquecento
 understands C types and pointers, and supports the use
 of arbitrary C expressions to examine and modify the
 state of a target program.
 
-Cinquecento additionally supports all C control
-constructions.
+In addition, Cinquecento supports C control
+constructions: 
 
-Idioms from C such as loops for traversing linked data
-structures have identical syntax and semantics in
+many idioms from C, such as loops for traversing pointer-linked data
+structures, have identical syntax and semantics in
 Cinquecento.
 
 Generally, code that one might add to a C
-program to faciliate debugging
+program to facilitate debugging
 can be used in Cinquecento programs with little or
 no modification.
 </p>
@@ -111,41 +129,39 @@ systems.
 </p>
 
 <p>
-Underlying these features is an abstraction, called
+Underlying these features is a language abstraction, called
 a <em>domain</em>, that represents a program in
 execution.
 
 Procedural interfaces to domains provide direct access
 to the memory, types, and symbols of the process
-represented by a domain.  These interfaces hide details
-such as the location of the process and the
-architecture and operating system of the machine on
-which it runs.
+represented by a domain.  These interfaces hide the
+location of the process and the architecture and
+operating system of the machine on which it runs.
 </p>
 
 <p>
-However, often the more natural and expressive way to
-examine the state of process is through expressions in
-C.
+C is often a natural and expressive notation for
+examining the state of a process.
 
 In Cinquecento, C is the primary interface to domains.
 
 Every C expression occurs in the context of a
-particular domain --- the process upon which the
+particular domain &mdash; the process upon which the
 expression is intended to operate.
 
-The Cinquecento evaluator maps C expressions into
-operations on the referenced domain.  To the user
-Cinquecento serves the illusion of fragments of
-C executing in the address space of their target
-process.
+The Cinquecento evaluator maps the expression into
+operations on the referenced domain.  To the user,
+Cinquecento supplies the illusion of fragments of
+C executing in the address space of target
+processes.
 </p>
 
 <p>
-Domains are first-class objects.
+Domains are first-class values.
 
-A rich set of supporting language types and built-in
-functions enable Cinquecento users to create
+A rich set of built-in
+functions and supporting types enable Cinquecento users to create
 domains tailored for the environment in which
 their target application runs.
 
@@ -156,7 +172,12 @@ development of libraries of user-defined domain
 implementations.
 
 In this sense, Cinquecento is as much as language for writing
-debuggers as it is a language for operating debuggers.
+debuggers as it is a language for performing debugging.
+</p>
+
+<p>
+Domains can also be defined to access the contents
+of binary files, such as core dumps or program-generated output. 
 </p>
 
 <p>
@@ -169,16 +190,12 @@ and operation of prctl.
 </p>
 
 <p>
-This manual describes the general C-based interface
-to domains, as well as the types and libraries
-used to define domains.
+The Cinquecento language design and implementation is an active research project,
+still undergoing revision and extension.
 
-Cinquecento is an active research project,
-undergoing continuous revision and extension.
-
-Until things settle down, we will strive to keep this
+We strive to keep this
 manual current with the implementation it accompanies,
-but sometimes will fall behind.
+but until things settle down, sometimes we will fall behind.
 </p>
 
 <p>
@@ -356,7 +373,7 @@ a single string.
 <p>
 An integer literal is a sequence of digit characters.
 With no prefix, integer literals are interpreted in decimal.
-The <span class="val">0x</span> prefix causes hexidecimal interpretation.
+The <span class="val">0x</span> prefix causes hexadecimal interpretation.
 The <span class="val">0</span> prefix causes octal interpretation.
 </p>
 
@@ -905,6 +922,182 @@ Cinquecento does not (yet) implement
 <span class="val">goto</span>.
 </p>
 
+<h3 id="sec:constants">Constants</h3>
+
+<p id="syn:@const">
+The <span class="id">@const</span> form defines constant expressions.
+The syntax is:
+<div class="code">
+<pre>
+@const <span class="arg">id</span> = <span class="arg">expr</span>;
+</pre>
+</div>
+</p>
+
+<p>
+The identifier <span class="arg">id</span> is bound to
+<span class="arg">expr</span> in a global constant name space.
+</p>
+
+<p>
+Occurrences of <span class="arg">id</span> in the current
+and subsequent input files are lexically
+replaced with <span class="arg">expr</span>.
+</p>
+
+<p>
+The constant name space is distinct from the top level
+environment and local scopes occupied by Cinquecento
+variables.  The use of the same identifier as both a constant
+and a variable has undefined behavior.  (This feature needs more work.)
+</p>
+
+
+<h3 id="sec:records">Records</h3>
+
+<p id="syn:@record">
+The Cinquecento record system allows the creation of new
+aggregate types with named fields.  A <em>record descriptor</em>
+is a Cinquecento value that define a particular record type;
+it associates a record type name with the definition
+of the record type.
+A <em>record</em> is instance of a record type.
+It has an associated record descriptor and bindings for
+the fields defined by the record descriptor.
+</p>
+
+<p>
+The syntax
+
+<div class="code">
+<pre>
+@record myrec { field1, field2, field3 };
+</pre>
+</div>
+
+defines a new record type, named <span class="id">myrec</span>.
+
+The record type has three fields, named
+<span class="id">field1</span>, 
+<span class="id">field2</span>, and 
+<span class="id">field3</span>.
+
+The value of the <span class="id">@record</span> expression
+is the resulting record descriptor.
+
+In addition, evaluation of the <span class="id">@record</span>
+expression defines 
+two top-level functions, named <span class="id">myrec</span>
+and <span class="id">ismyrec</span>.
+</p>
+
+<p>
+The function <span class="id">ismyrec</span> is a predicate
+for instances of <span class="id">myrec</span>.  Like
+the type predicates, it accepts
+a single argument and returns <span class="val">1</span>
+if the argument is an instance of <span class="id">myrec</span>,
+and <span class="val">0</span> otherwise.
+</p>
+
+<p>
+The function <span class="id">myrec</span> is the
+constructor for instances of the myrec type.
+
+For example:
+
+<div class="code">
+<pre>
+x = myrec("abc", 1, lambda(x){ printf("hi\n")});
+</pre>
+</div>
+
+binds <span class="id">x</span> to a new instance of the
+<span class="id">myrec</span> type.
+</p>
+
+<p>
+The function <span class="id"myrec</span>
+expects either zero arguments,
+in which case the fields are undefined,
+or exactly as many arguments as there are fields in the type;
+the arguments are assigned to the fields in the order
+they were given in the <span class="id">@record</span> definition .
+</p>
+
+<p>
+The dot operator provides access to the fields of a record instance:
+
+<div class="code">
+<pre>
+printf("%a", x.field1);   // print x's field1
+x.field1 = "bcd";         // update x's field1
+
+x.field2 += 5;		  // update x's field2
+++x.field2;               // update x's field2
+
+x.field3("blah");	  // call the value of x's field3
+</pre>
+</div>
+</p>
+
+<p>
+Record descriptors have an associated format procedure
+that is implicitly called when 
+the <span class="val">%a</span> conversion of the
+formatted I/O library routines is applied to an instance of the record type.
+The format procedure takes a single argument,
+the record instance,
+and returns a string representing the formatted
+record.
+</p>
+
+<p>
+The following routines access the format procedure
+associated with a record descriptor.
+</p>
+
+<div class="docitem" id="fn:rdfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdfmt(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the format procedure of the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rdsetfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the format procedure of the record descriptor
+<span class="arg">rd</span> to <span class="arg">fmt</span>.
+</div>
+</div>
+
+
+
 <h3 id="sec:domainover">Overview of Domains</h3>
 
 <p>
@@ -1080,44 +1273,154 @@ in the domain
 </p>
 
 <p>
-In symbol resolution,
-the evaluator calls
-the <span class="type">looksym</span>
-function of the referenced domain
-to obtain the type and location
-associated with the symbol, yielding
-a reference to the typed location associated with the symbol.
+In general, the syntax for symbol resolution is:
+
+<div class="code">
+<pre>
+<span class="arg">domain</span>`<span class="arg">identifier</span>
+</pre>
+</div>
+
 </p>
 
 <p>
-The resulting reference may be used
-to examine or modify the value stored at the location.  When the
-location is read, such as in the reference
-to <span class="val">dom`y</span> above,
-the <span class="type">get</span> function
-of the domain is called.
-When the location is written, such as in the
-reference to <span class="val">dom`x</span>
-above, the <span class="type">put</span> function
-of the domain is called.
+where <span class="arg">domain</span> is a
+variable bound to a domain (not an expression that evaluates to a domain), and
+<span class="arg">identifier</span> is a symbol defined in the domain.
+
+<p>
+
+To obtain the type and location
+associated with the symbol, the evaluator implicitly calls
+<span class="val"><span class="arg">domain</span>.looksym(<span class="arg">identifier</span>)</span></span>
 </p>
+
+
+<!-- <p> -->
+<!-- The resulting reference may be used -->
+<!-- to examine or modify the value stored at the location.  When the -->
+<!-- location is read, such as in the reference -->
+<!-- to <span class="val">dom`y</span> above, -->
+<!-- the <span class="type">get</span> function -->
+<!-- of the domain is called. -->
+<!-- When the location is written, such as in the -->
+<!-- reference to <span class="val">dom`x</span> -->
+<!-- above, the <span class="type">put</span> function -->
+<!-- of the domain is called. -->
+<!-- </p> -->
+
+
 
 <p>
 Type resolution occurs when the backtick expression
-appears where a type name would be expected or accepted in C.
-This includes the operand to <span class="id">sizeof</span>,
-and the type operand to the cast operator.
-The Cinquecento <span class="id">typeof</span> operator
-is syntactically similar to <span class="id">sizeof</span>;
-it also accepts a type name.
+appears where a type name would be expected or accepted in C:
+the operand to <span class="id">sizeof</span>,
+and the type operand of the cast operator.
+The Cinquecento <span class="id">typeof</span> operator,
+which is syntactically similar to <span class="id">sizeof</span>,
+also accepts a type name.
 </p>
 
 <p>
-In type name position, the domain operand to the
-backtick operator can be omitted.
+Variants of the type resolution form express the different forms of C type names:
+
+<div id="table-short">
+<table>
+
+<tr>
+<td>
+Base types
+</td>
+<td>
+<span class="id">
+<span class="arg">domain</span>`<span class="arg">identifier</span> ...
+</span>
+</td>
+</tr>
+
+<tr>
+<td>
+<span class="id">typedef</span>s
+</td>
+<td>
+<span class="id">
+<span class="arg">domain</span>`<span class="arg">identifier</span>
+</span>
+</td>
+</tr>
+
+
+<tr>
+<td>
+Structs
+</td>
+<td>
+<span class="id">
+struct <span class="arg">domain</span>`<span class="arg">identifier</span>
+</span>
+</td>
+</tr>
+
+<tr>
+<td>
+Unions
+</td>
+<td>
+<span class="id">
+union <span class="arg">domain</span>`<span class="arg">identifier</span>
+</span>
+</td>
+</tr>
+
+<tr>
+<td>
+Enums
+</td>
+<td>
+<span class="id">
+enum <span class="arg">domain</span>`<span class="arg">identifier</span>
+</span>
+</td>
+</tr>
+
+</table>
+</div>
 </p>
 
-<h3 id="sec:litdom">Literal Domain</h3>
+<p>
+The first variant references base C type specifiers,
+which comprise one or more type specifier tokens.
+For example, these expressions
+<div class="code">
+<pre>
+dom`int
+dom`unsigned long
+dom`signed short int
+</pre>
+</div>
+
+reference the base C types
+<span class="id">int</span>, 
+<span class="id">unsigned long</span>, 
+and <span class="id">signed short int</span>.
+</p>
+
+<p>
+The second variant is used to reference types
+defined with <span class="id">typedef</span>.
+The <span class="arg">domain</span> may be omitted for this variant.
+The meaning of this abbreviated form depends on the context.
+When used in the operand to <span class="id">sizeof</span>
+or <span class="id">typeof</span>, the type name is resolved
+in the literal domain (see next section).
+When used in the type operand to the cast operator,
+the meaning is the same as if the domain has been specified,
+since the cast operator always resolves the type name in the domain
+of its other operand (see <a href="#sec:casts">Type and Domain Casting</a>).
+</p>
+
+
+<h3 id="sec:litdom">The Literal Domain</h3>
 
 <p>
 Cinquecento represents arithmetic literals as cvalues
@@ -1230,10 +1533,12 @@ be used to circumvent this rule.
 </p>
 
 
-<h3 id="sec:cvalueops">Operations on Cvalues</h3>
+<h3 id="sec:cvalueops">C Operators</h3>
 
 <p>
-The operators of Cinquecento are based on the operators of C.
+The operators of C are defined over Cinquecento cvalues
+and have isomorphic semantics.
+
 The operator set includes arithmetic, bitwise, relational, and logical operators,
 as well as operators for accessing values of C's aggregate data types,
 and pointer dereference.  All of the operators observe the precedence
@@ -1285,115 +1590,31 @@ The relational operators
 <span class="id">==</span>,
 <span class="id">!=</span>)
 compare cvalues.  The result of each operator
-is <span class="val">0</span>
+is a boolean: <span class="val">0</span>
 or <span class="val">1</span>, represented
 as a cvalue of type <span class="val">int</span>
 in the literal domain.
 </p>
 
 <p>
-A pointer-typed cvalue represents a typed location in a domain.
-The unary dereference operator <span class="val">*</span>
-accesses (reads or writes)
-such locations.
-The value of the cvalue is the offset in the associated address space to access.
-The type of the cvalue determines the number of bytes to access
-and their encoding.
+The logical operators
+(<span class="id">&&</span> and 
+<span class="id">||</span>)
+compute logical and and over integers, treated as boolean values,
+as in C.  Evaluation is short circuited, as in C.
+</p>
+
+<h3 id="sec:pointers">Pointers</h3>
+
+<p>
+Pointer-typed cvalues represent typed locations.
+The domain of a pointer-typed cvalue provides the address space in
+which pointer operators on the cvalue are applied.
 </p>
 
 <p>
-Addition and subtraction is defined on pointer-typed
-cvalues, as in C.  Adding or subtracting an
-integer-typed cvalue to a pointer-typed cvalue yields
-to a new pointer of the same type and domain, adjusted
-by the integer value scaled by the size of the
-pointed-to type.
-
-Subtracting two pointer-typed cvalues of the same type
-returns the number of elements of the pointed-to type
-between the pointers.
-</p>
-
-<h3>A Simple Domain</h3>
-
-<p>
-The following is a definition a simple domain, and its
-constituent name space and address space, that we will
-reference in the following sections.
-</p>
-
-<div class="code">
-<pre>
-/* name space */
-ns = @names c32le {
-	struct T {
-		@0	int id;
-		@4	struct T *next;
-		@8;	/* sizeof(T) */
-	};
-	@0	int x;
-	@4	int y;
-	@0	struct T t;
-};
-
-/* address space */
-as = mksas(1024);
-
-/* domain */
-dom = mkdom(ns, as);
-</pre>
-</div>
-
-<p>
-The usual way to construct a name space is by using
-the <span class="id"><a
-href="#syn:@names">@names</a></span>
-syntactic form.  Every new name space inherits
-definitions from a previously defined name space.
-Here, <span class="val">c32le</span> is a built-in name
-space that defines the base C types as they are
-commonly defined on 32-bit little-endian machines
-(<em>e.g.</em>, <span class="val">int</span> is four
-bytes).  The body of this <span class="id"><a
-href="#syn:@names">@names</a></span> expression contains
-(ignoring the <span class="val">@</span>
-subexpressions) four C declarations, one defining the
-type <span class="val">struct T</span>, and three
-declaring variables (two <span class="val">int</span>s
-and a <span class="val">struct T</span>).
-</p>
-
-<p>
-The usual way to construct an address space is by calling any one
-of a variety of built-in address space constructors.  A
-fresh instance of a zero-filled address space is
-created by a call to <span class="fnindex"
-id="fn:mksas">mksas</span>, a built-in function
-typically used to provide fixed amount (here, 1024
-bytes) of backing storage for scratch domains that do
-not represent external data.  Storage in this address
-space begins at address 0 and is contiguous.
-</p>
-
-<p>
-The built-in function <span class="fnindex"
-id="fn:mkdom">mkdom</span> constructs a new domain
-value from a pair of name space and address space
-values.  Here, <span class="val">ns</span>
-and <span class="val">as</span> are Cinquecento
-variables bound, respectively, to the previously
-defined name space and address space values, and
-<span class="val">dom</span> is bound to the resulting domain.
-</p>
-
-<h3>Pointers</h3>
-
-<p>
-Pointers are values that represent typed locations.
-Cvalues, in addition to their type, carry a reference
-to a domain.  This reference is used to resolve pointer
-operations on pointer-typed cvalues to a location in an
-address space.  The expression:
+As in C, one way to obtain a pointer is through the unary
+reference operator.  For example, the statement
 </p>
 
 <div class="code">
@@ -1405,34 +1626,14 @@ binds <span class="val">p</span>
 to a cvalue that represents the
 location associated with
 <span class="val">x</span> in <span class="val">dom</span>.
-(The
-precedence of
-<span class="val">`</span>
-is higher than that of
-<span class="val">&</span>
-and most other operators so that domain name references
-bind tightly.)  Specifically, this cvalue comprises:
 </p>
-
-<ol>
-<li> value corresponding to the address of <span class="val">x</span>
-      in <span class="val">dom</span>;
-</li>      
-<li>
-the type name <span class="val">int*</span>;
-</li>
-<li>
-a reference to the domain <span class="val">dom</span>.
-</li>
-</ol>
 
 <p>
 The C pointer dereference operator <span class="val">*</span> is defined
 in Cinquecento over pointer-typed cvalues.  Precisely
 as a C programmer would expect, <span class="val">*</span> accesses the
 contents of the location in the associated domain,
-using the underlying type of the pointer, as defined by
-the domain, to determine the number of bytes to access
+using the pointed-to type to determine the number of bytes to access
 and their encoding.  For example, given the above
 binding of <span class="val">p</span>, either of the two expressions:
 </p>
@@ -1459,7 +1660,8 @@ p = p+1;
 
 <p>
 leaves <span class="val">p</span> bound to a pointer cvalue that
-refers to the location following <span class="val">x} in {\tt dom</span>.
+refers to the location following <span class="val">x</span>
+in <span class="val">dom</span>.
 In C pointer arithmetic, the amount by which the value
 of a pointer is incremented is determined by the size
 of the underlying type of the pointer.  In Cinquecento,
@@ -1553,8 +1755,9 @@ the Cinquecento runtime is an implementation bug, never
 a consequence of operating on erroneous user data.
 </p>
 
+<h3 id="sec:mkdom">Domain constructor</h3>
 
-<h3>Name spaces</h3>
+<h3 id="sec:namespaces">Name spaces</h3>
 
 <p>
 A name space is a mapping from C type and symbol names
@@ -1845,8 +2048,72 @@ The syntax for typedef declarations is the same as their syntax in C.
 </div>
 </div>
 
+<h3 id="sec:@names"><span class="id">@names</span></h3>
 
-<h3>Standard address spaces</h3>
+<p>
+The usual way to construct a name space is by using
+the <span class="id"><a
+href="#syn:@names">@names</a></span>
+syntactic form, which translates declarations in an extended C syntax
+into a name space definition.  For example, the expression
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	struct T {
+		@0	int id;
+		@4	struct T *next;
+		@8;	/* sizeof(T) */
+	};
+	@0	int x;
+	@4	int y;
+	@0	struct T t;
+};
+</pre>
+</div>
+
+binds to <span class="val">ns</span> a new name space.
+
+Every new name space inherits
+definitions from a previously defined name space.
+Here, <span class="val">c32le</span> is a built-in name
+space that defines the base C types as they are
+commonly defined on 32-bit little-endian machines
+(<em>e.g.</em>, <span class="val">int</span> is four
+bytes).  The body of this <span class="id"><a
+href="#syn:@names">@names</a></span> expression contains
+(ignoring the <span class="val">@</span>
+subexpressions) four C declarations, one defining the
+type <span class="val">struct T</span>, and three
+declaring variables (two <span class="val">int</span>s
+and a <span class="val">struct T</span>).
+</p>
+
+<p>
+The usual way to construct an address space is by calling any one
+of a variety of built-in address space constructors.  A
+fresh instance of a zero-filled address space is
+created by a call to <span class="fnindex"
+id="fn:mksas">mksas</span>, a built-in function
+typically used to provide fixed amount (here, 1024
+bytes) of backing storage for scratch domains that do
+not represent external data.  Storage in this address
+space begins at address 0 and is contiguous.
+</p>
+
+<p>
+The built-in function <span class="fnindex"
+id="fn:mkdom">mkdom</span> constructs a new domain
+value from a pair of name space and address space
+values.  Here, <span class="val">ns</span>
+and <span class="val">as</span> are Cinquecento
+variables bound, respectively, to the previously
+defined name space and address space values, and
+<span class="val">dom</span> is bound to the resulting domain.
+</p>
+
+
+<h3 id="sec:addressspaces">Address spaces</h3>
 
 <p>
 An address space represents random access,
@@ -1887,7 +2154,7 @@ zero-filled address space backed by
 memory supplied by the system.
 </p>
 
-<h3>Custom address spaces</h3>
+<h3 id="sec:customaddressspaces">Custom address spaces</h3>
 
 <p>
 Cinquecento allows programs to construct an address space
@@ -2036,7 +2303,7 @@ cvalue used to construct the address
 
 
 
-<h3>Ctypes</h3>
+<h3 id="sec:ctypes">Ctypes</h3>
 
 <p>The Cinquecento type <em>ctype</em> represents types
 defined in C programs.  The predicate
@@ -4544,7 +4811,7 @@ format.
 <tr>
 <td><span class="val">c</span></td>
 <td>
-Formats a character value as an ascii character (if printable)
+Formats a character value as an ASCII character (if printable)
 or in octal.
 </td>
 </tr>
@@ -5169,14 +5436,27 @@ machines sharing the environment have been freed.
 <div class="id">
 <div class="index">
 <div class="fnindex">
+
+<div class="id">
+<div class="index">
+<div class="fnindex">
+<table>
+<tr>
+<td>
+
+<a href="#syn:@const">@const</a><br />
 <a href="#syn:@global">@global</a><br />
 <a href="#syn:@include">@include</a><br />
 <a href="#syn:@local">@local</a><br />
 <a href="#syn:@names">@names</a><br />
+<a href="#syn:@record">@record</a><br />
 <a href="#syn:define">define</a><br />
 <a href="#syn:lambda">lambda</a><br />
 <a href="#syn:return">return</a><br />
 <a href="#syn:typeof">typeof</a><br />
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -5348,6 +5628,8 @@ machines sharing the environment have been freed.
 <a href="#fn:putbytes">putbytes</a><br />
 <a href="#fn:rand">rand</a><br />
 <a href="#fn:rand">randseed</a><br />
+<a href="#fn:rdfmt">rdfmt</a><br />
+<a href="#fn:rdsetfmt">rdsetfmt</a><br />
 <a href="#fn:read">read</a><br />
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />

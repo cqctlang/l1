@@ -10070,7 +10070,7 @@ l1_isxctype(VM *vm, Imm argc, Val *argv, Val *rv, char *name, int (*fn)(int))
 {
 	Cval *cv;
 	if(argc != 1)
-		vmerr(vm, "wrong number of argumets to %s", name);
+		vmerr(vm, "wrong number of arguments to %s", name);
 	checkarg(vm, name, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	if(fn((int)cv->val))
