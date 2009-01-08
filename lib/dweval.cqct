@@ -574,7 +574,7 @@ define _dw_eval (dom, exas, cptr, pceval)
   return [rv, rvtype, lptr];
 }
 
-define dw_process_location_list (dom, exdom, ptr, form, cubase, fb)
+define dw_process_location_list (dom, exdom, ptr, form, cubase, fb, doml)
 {
   @local op, cptr, size, rv, l, fn, sloc, eloc, baseaddrflag, cubaseaddr;
   @local isdone, cnt, len, end;
@@ -583,24 +583,19 @@ define dw_process_location_list (dom, exdom, ptr, form, cubase, fb)
   fn = nil;
   isdone = 0;
   cnt = 0;
-  //printf ("current_compilation_unit is %a\n", current_compilation_unit);
   if (!isnil (current_compilation_unit)
       && cubase == head (current_compilation_unit)) {
-    //printf ("cubase is %a\n", cubase);
     cubaseaddr = listref (current_compilation_unit, 2);
   }
   else {
     @local indom, abdom, strdom, exdom, cuinfo;
     indom = domof (cubase);
-    abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_debug_info, indom);
-    strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_debug_info, indom);
-    //exdom = dw_get_value (_dwcqct_execdomain, _dwcqct_debug_info, indom);
+    abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_debug_info, indom, doml);
+    strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_debug_info, indom, doml);
     cuinfo = get_cu_baseaddr (indom, abdom, strdom, exdom, cubase);
-    //printf ("cuinfo is %a\n", cuinfo);
     cubaseaddr = listref (cuinfo, 2);
   }
-  //  printf ("After lineno of error.\n");
-  size = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_info, domof (cubase));
+  size = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_info, domof (cubase), doml);
   if (size == 4)
     baseaddrflag = 0xffffffff;
   else if (size == 8)
