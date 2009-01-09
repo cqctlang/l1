@@ -77,7 +77,7 @@ _dwcqct_rootns = 14;
 _dwcqct_vectorsize = 15;
 
 global_dwarf_domain_list = [];
-global_scope_list = [];
+//global_scope_list = [];
 _dw_current_frame_base = nil;
 current_compilation_unit = nil;
 
@@ -339,14 +339,14 @@ define dw_get_dieoff_for_cu (dwdom, addr)
     while (artuple->ar_start || artuple->ar_len) {
       if (artuple->ar_start <= eaddr
 	  && eaddr < (artuple->ar_start + artuple->ar_len)) {
-	printf ("ar_start = 0x%x:\tar_len = 0x%x:\n",
-		artuple->ar_start, artuple->ar_len);
+// 	printf ("ar_start = 0x%x:\tar_len = 0x%x:\n",
+// 		artuple->ar_start, artuple->ar_len);
 	return arhdr->di_off;
       }
       artuple++;
       if (!ismapped (artuple)) {
 	printf ("unmapped address at 0x%x\n", artuple);
-	return;
+	return nil;
       }
     }
     /* advance past 0 offset and length indicating end of this arange set.*/
@@ -365,7 +365,34 @@ define dw_get_dieoff_for_cu (dwdom, addr)
     if (!ismapped (artuple))
       break;
   }
-  return -1;
+  return nil;
+}
+
+define dw_get_lineoff_for_cu (ardom, addr, doml)
+{
+  @local cptr, cu, abdom, strdom, indom, cubase, lineoff;
+  abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_debug_aranges,
+			ardom, doml);
+  strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_debug_aranges,
+			ardom, doml);
+  indom = dw_get_value (_dwcqct_debug_info, _dwcqct_debug_aranges,
+			ardom, doml);
+  cptr = dw_get_dieoff_for_cu (ardom, addr);
+  if (isnil (cptr))
+    return nil;
+  else
+    cptr = {indom} cptr;
+  cubase = cptr;
+  cu = (struct dw_cu_hdr *) cptr;
+  abptr = {abdom} cu->abbroff;
+  abtab = dw_get_cu_abbrev_table (abdom, abptr);
+  cptr = (unsigned int) cptr + sizeof (*cu);
+  cul = dw_process_die (indom, abdom, strdom, mkzas(1024), abtab, mktab(),
+			mktab (), [], cptr, cubase, 1, mktab(), doml);
+  //printf ("cul is %a\n", cul);
+  lineoff = listref (listref (cul, 0), 5);
+  //printf ("lineoff for cu at %d is %d\n", cubase, lineoff);
+  return lineoff;
 }
 
 define dw_show_fixed_spp (dwdom, addr)
@@ -453,18 +480,19 @@ define dw_show_files (dwdom, addr)
 }
 
 /* Straight from the DWARF 2 spec, section 6.2 */
-define dw_get_cu_linenumber_info (dwdom, ptr, doml)
+define dw_get_cu_linenumber_info (linedom, ptr, doml)
 {
   @local addr, file, line, column, is_stmt, bb, endseq, spp, obase;
   @local stoplens, op, cptr, lastfnum, pfiles, oplim, base, result;
   @local saddr, eaddr, amap, cmap, tmap, i, al, avec, asize;
-  base = {dwdom} ptr;
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_line, dwdom, doml);
+  base = {linedom} ptr;
+  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_line, linedom, doml);
   saddr = 0;
   eaddr = 0;
   amap = [];
   cmap = [ 0, 0, 0 ];
-  result = [base, saddr, eaddr, head (dw_show_dirs (dwdom, ptr))];
+  //printf ("in getculinenoinfo ptr is 0x%x (%d)\n", base, base);
+  result = [base, saddr, eaddr, head (dw_show_dirs (linedom, ptr))];
   oplim = 0;
   addr = 0;
   file = 1;
@@ -473,11 +501,11 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
   is_stmt = 0; /* reset by reading spp */
   bb = 0; /* Boolean false */
   endseq = 0; /* Boolean false */
-  spp = dw_get_fixed_spp (dwdom, base);
+  spp = dw_get_fixed_spp (linedom, base);
   is_stmt = spp->def_is_stmt;
   obase =  spp->opcode_base;
-  stoplens = dw_show_stdopcodelens (dwdom, base);
-  pfiles = dw_show_files (dwdom, base);
+  stoplens = dw_show_stdopcodelens (linedom, base);
+  pfiles = dw_show_files (linedom, base);
   append (result, head (pfiles));
   lastfnum = listref (pfiles, 2);
   
@@ -493,7 +521,7 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
       cptr = listref (elen, 1);
       subop = *cptr++;
       switch (subop) {
-      case dwdom`DW_LNE_end_sequence: {
+      case linedom`DW_LNE_end_sequence: {
 	endseq = 1;
 	tmap = [ addr, file, line ];
 	if (listref (tmap, 0) != listref (cmap, 0)
@@ -511,7 +539,7 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	endseq = 0; /* Boolean false */
 	break;
       }
-      case dwdom`DW_LNE_set_address: {
+      case linedom`DW_LNE_set_address: {
 	if (asize == 4)
 	  addr = * (`uint32 *)cptr;
 	else
@@ -525,10 +553,10 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	}
 	break;
       }
-      case dwdom`DW_LNE_define_file: {
+      case linedom`DW_LNE_define_file: {
 	@local fname;
 	lastfnum ++;
-	fname = advance_strptr (dwdom, cptr);
+	fname = advance_strptr (linedom, cptr);
 	tmap = [ addr, file, line ];
 	if (listref (tmap, 0) != listref (cmap, 0)
 	    || listref (tmap, 1) != listref (cmap, 1)
@@ -547,11 +575,11 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
     else if (op < obase) {
       /* then we have a standard opcode */
       switch (op) {
-      case dwdom`DW_LNS_copy:
+      case linedom`DW_LNS_copy:
 	cptr++;
 	bb = 0;
 	break;
-      case dwdom`DW_LNS_advance_pc: {
+      case linedom`DW_LNS_advance_pc: {
 	@local lad;
 	cptr++;
 	lad = decodeuleb128 (cptr);
@@ -566,7 +594,7 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	}
 	break;
       }
-      case dwdom`DW_LNS_advance_line: {
+      case linedom`DW_LNS_advance_line: {
 	@local lad;
 	cptr++;
 	lad = decodesleb128 (cptr);
@@ -581,7 +609,7 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	}
 	break;
       }
-      case dwdom`DW_LNS_set_file: {
+      case linedom`DW_LNS_set_file: {
 	@local lad;
 	cptr++;
 	lad = decodeuleb128 (cptr);
@@ -589,7 +617,7 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	cptr = listref (lad, 1);
 	break;
       }
-      case dwdom`DW_LNS_set_column: {
+      case linedom`DW_LNS_set_column: {
 	@local lad;
 	cptr++;
 	lad = decodeuleb128 (cptr);
@@ -597,16 +625,16 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	cptr = listref (lad, 1);
 	break;
       }
-      case dwdom`DW_LNS_negate_stmt:
+      case linedom`DW_LNS_negate_stmt:
 	if (is_stmt)
 	  is_stmt = 0;
 	else
 	  is_stmt = 1;
 	break;
-      case dwdom`DW_LNS_set_basic_block:
+      case linedom`DW_LNS_set_basic_block:
 	bb = 1;
 	break;
-      case dwdom`DW_LNS_const_add_pc:{
+      case linedom`DW_LNS_const_add_pc:{
 	@local redop, ainc;
 	cptr++;
 	redop = 255 - obase;
@@ -614,7 +642,7 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	addr += ainc;
 	break;
       }
-      case dwdom`DW_LNS_fixed_advance_pc: {
+      case linedom`DW_LNS_fixed_advance_pc: {
 	@local ainc;
 	cptr++;
 	ainc = *(unsigned short *)cptr;
@@ -629,9 +657,9 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
 	}
 	break;
       }
-      case dwdom`DW_LNS_set_prologue_end:
-      case dwdom`DW_LNS_set_epilogue_begin:
-      case dwdom`DW_LNS_set_isa:
+      case linedom`DW_LNS_set_prologue_end:
+      case linedom`DW_LNS_set_epilogue_begin:
+      case linedom`DW_LNS_set_isa:
 	break;
       default:
 	printf ("default op is %d\n", op);
@@ -659,7 +687,7 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
   }
   /* We can rely on the addresses being in increasing order. Reset saddr
      to head (head (amap)) and eaddr to head (cmap); */
-  listset (result, 0, cptr);
+  //listset (result, 0, cptr);
   if (isempty (amap) || isempty (head (amap))) {
     printf ("amap is %a and result is %a\n", amap, result);
     listset (result, 1, 0);
@@ -669,15 +697,18 @@ define dw_get_cu_linenumber_info (dwdom, ptr, doml)
     listset (result, 1, head (head (amap)));
   listset (result, 2, head (cmap));
   append (result, amap);
+  append (result, cptr);
   return result;
 }
 
-define dw_get_all_line_info (dwdom, doml)
+define dw_get_all_line_info (linedom, doml)
 {
   @local base;
-  base = {dwdom} 0;
+  base = {linedom} 0;
   do {
-    base = listref (dw_get_cu_linenumber_info (dwdom, base), 0, doml);
+    @local culinfo;
+    culinfo = dw_get_cu_linenumber_info (linedom, base, doml);
+    base = listref (culinfo, length (culinfo) - 1);
   }
   while (ismapped (base));
 }
@@ -1584,7 +1615,8 @@ define dw_build_linetab (linedom, doml)
   last = [0, 0, 0];
   do {
     temp = dw_get_cu_linenumber_info (linedom, base, doml);
-    base = listref (temp, 0);
+    //printf ("dwgetculineinfo returned %a\n", temp);
+    base = listref (temp, length (temp) - 1);
     if (!isnil (listref (temp, 5))
 	&& length (listref (temp, 5)) != 0) { /* don't append empty list */
       /* if last was a noncontiguous address range, shorten it to be in
@@ -2900,13 +2932,20 @@ define dw_get_lang_string (dwdom, lang)
 
 define dw_addr2line (linedom, addr, doml)
 {
-  @local ltab, cuinfo, cutab, dlist, flist, entry, dir, f, rv, ardom, arl;
-  ltab = dw_get_value (_dwcqct_linetable, _dwcqct_debug_line, linedom, doml);
-  cuinfo = bsearch (addr, ltab,
-		    lambda (a,b) {if (a < listref (b, 1)) return -1;
-		      else if (a > listref (b, 2)) return 1;
-		      else return 0;});
-//   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_line, linedom, doml);
+  @local ltab, cuinfo, cutab, dlist, flist, entry, dir, f, rv, ardom, arl, i;
+  @local cuoff;
+  cuinfo = nil;
+  //ltab = dw_get_value (_dwcqct_linetable, _dwcqct_debug_line, linedom, doml);
+//   cuinfo = bsearch (addr, ltab,
+// 		    lambda (a,b) {if (a < listref (b, 1)) return -1;
+// 		      else if (a > listref (b, 2)) return 1;
+// 		      else return 0;});
+  ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_line, linedom, doml);
+  //cuoff = {linedom}dw_get_dieoff_for_cu (ardom, addr);
+  cuoff = dw_get_lineoff_for_cu (ardom, addr, doml);
+  if (isnil (cuoff))
+    return "no line number info";
+  cuinfo = dw_get_cu_linenumber_info (linedom, {linedom}cuoff, doml);
 //   arl = dw_get_aranges (ardom);
 //   ar = bsearch (addr, arl,
 // 	       lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
@@ -2915,12 +2954,21 @@ define dw_addr2line (linedom, addr, doml)
 // 		  else return 0;});
 //   if (isnil (ar))
 //     return "no line number info";
-  if (isnil (cuinfo))
-    return "no line number info";
-  
+//   for (i = 0; i < length (ltab); i++) {
+//     cuinfo = listref (ltab, i);
+//     if (listref (cuinfo, 0) == cuoff)
+//       break;
+//   }
+//   if (i == length (ltab)) {
+//     printf ("no line number infor cuoff %d and addr 0x%x (%d)\n",
+// 	    cuoff, addr, addr);
+//     printf ("length of ltab is %d\n", length (ltab));
+//     return "no line number info";
+//   }
   dlist = listref (cuinfo, 3);
   flist = listref (cuinfo, 4);
   cutab = listref (cuinfo, 5);
+  //  printf ("cu linetab is %a\n", cutab);
   entry = binsrch_lineno (linedom, cutab, addr);
   f = listref (flist, listref (entry, 1) - 1);
   dir = listref (dlist, listref (f, 1));
@@ -3126,7 +3174,7 @@ define dw_get_value args
 
 define dw_put_value args
 {
-  @local vec, key2, val2, key1, val1, doml;
+  @local l, key2, val2, key1, val1, doml;
   key2 = listref (args, 0);
   val2 = listref (args, 1);
   key1 = listref (args, 2);
@@ -3136,19 +3184,19 @@ define dw_put_value args
   else
     doml = global_dwarf_domain_list;
   /* find the right vector */
-  vec = dw_find_vector (key1, val1);
-  if (isnil (vec)) {
+  l = dw_find_vector (key1, val1, doml);
+  if (isnil (l)) {
     @local i;
-    vec = [];
+    l = [];
     for (i = 0; i < _dwcqct_vectorsize; i++)
-      append (vec, nil);
+      append (l, nil);
     listset (l, key1, val1);
     listset (l, key2, val2);
-    append (doml, vec);
+    append (doml, l);
   }
   else {
     if (!isnil (listref (l, key2)))
-      printf ("Overwriting value for key %d\n");
+      printf ("Overwriting value for key %d\n", key2);
     listset (l, key2, val2);
   }
 }
@@ -3685,14 +3733,14 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       for (i = 0; i < length (rl); i++) {
 	@local r;
 	r = listref (rl, i);
-	append (global_scope_list,
-		[listref (r, 0), listref (r, 1), {indom} head (tag), prog]);
+// 	append (global_scope_list,
+// 		[listref (r, 0), listref (r, 1), {indom} head (tag), prog]);
       }
     }
     else if (!isnil (lopc) && !isnil (hipc)) {
       lscope = [ [ [lopc, hipc] ], {indom} head (tag), name, symlist,
 		 typelist, subscopes ];
-      append (global_scope_list, [lopc, hipc, {indom} head (tag), prog]);
+//       append (global_scope_list, [lopc, hipc, {indom} head (tag), prog]);
     }
     else
       lscope = nil;
@@ -4086,11 +4134,12 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       }
       else if (atname == indom`DW_AT_stmt_list) {
 	lineoff = val;
+	//printf ("in dwprocdie lineoff for cu at %d is %d\n", cubase, lineoff);
       }
     }
     cu = [cubase, {indom}(head (tag)), lopc, hipc, name, lineoff ];
     current_compilation_unit = cu;
-    append (global_scope_list, [lopc, hipc, {indom}(head (tag)), cu]);
+//     append (global_scope_list, [lopc, hipc, {indom}(head (tag)), cu]);
     return [cu, cptr];
   }
     break;
@@ -5181,13 +5230,18 @@ define get_frame_base_from_pc (indom, exas, etab, doml)
   dumdom = mkdom (indom.names, exas);
   pc = dumdom.getrip();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom, doml);
-  arl = dw_get_aranges (ardom);
-  ar = bsearch (pc, arl,
-	       lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
-		  if (k < listref (tar, 0)) return -1;
-		  else if (k >= listref (tar, 1)) return 1;
-		  else return 0;});
-  cukey = listref (ar, 1);
+//   arl = dw_get_aranges (ardom);
+//   ar = bsearch (pc, arl,
+// 	       lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
+// 		  if (k < listref (tar, 0)) return -1;
+// 		  else if (k >= listref (tar, 1)) return 1;
+// 		  else return 0;});
+//   cukey = listref (ar, 1);
+  cukey = dw_get_dieoff_for_cu (ardom, pc);
+  if (isnil (cukey)) {
+    printf ("pc 0x%x not in any arange.\n", pc);
+    return nil;
+  }
   cu = tablook (etab, cukey);
   if (isnil (cu)) {
     printf ("In get_frame_base_from_pc need to build cu at %d for pc %a\n",
@@ -6095,18 +6149,19 @@ define find_fn_and_cu (indom, addr, etab, doml)
   @local pc, arl, ardom, i, ar, abdom, strdom, elfdom, cukey, cu;
   @local stime, etime;
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom, doml);
-  arl = dw_get_aranges (ardom);
+  //  arl = dw_get_aranges (ardom);
   pc = {ardom} addr;
-  ar = bsearch (pc, arl,
-	       lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
-		  if (k < listref (tar, 0)) return -1;
-		  else if (k >= listref (tar, 1)) return 1;
-		  else return 0;});
-  if (isnil (ar)) {
-    printf ("found no address range for addr 0x%x (%d)\n", addr, addr);
-    return nil;
-  }
-  cukey = listref (ar, 1);
+//   ar = bsearch (pc, arl,
+// 	       lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
+// 		  if (k < listref (tar, 0)) return -1;
+// 		  else if (k >= listref (tar, 1)) return 1;
+// 		  else return 0;});
+//   if (isnil (ar)) {
+//     printf ("found no address range for addr 0x%x (%d)\n", addr, addr);
+//     return nil;
+//   }
+//   cukey = listref (ar, 1);
+  cukey = dw_get_dieoff_for_cu (ardom, pc);
   cu = tablook (etab, cukey);
   return cu;
 }
@@ -6272,15 +6327,16 @@ define make_namespace_constructor (binfile)
     rns = dw_get_value (_dwcqct_rootns, _dwcqct_debug_info, indom, doml);
     cutabs = find_fn_and_cu (indom, addr, etab, doml);
     if (isnil (cutabs)) {
-      @local ar, arl, ardom, cuns;
+      @local ar, arl, ardom, cuns, cuoff;
       ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom, doml);
-      arl = dw_get_aranges (ardom);
-      ar = bsearch ({ardom}addr, arl,
-		    lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
-		      if (k < listref (tar, 0)) return -1;
-		      else if (k >= listref (tar, 1)) return 1;
-		      else return 0;});
-      cu = get_cu_info (indom, abdom, strdom, uas, listref (ar, 1), etab, doml);
+//       arl = dw_get_aranges (ardom);
+//       ar = bsearch ({ardom}addr, arl,
+// 		    lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
+// 		      if (k < listref (tar, 0)) return -1;
+// 		      else if (k >= listref (tar, 1)) return 1;
+// 		      else return 0;});
+      cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
+      cu = get_cu_info (indom, abdom, strdom, uas, cuoff, etab, doml);
       cutabs = get_function_tables_for_cu (cu, rns, indom, etab);
     }
     rv = make_local_ns (indom, addr, etab, doml);
@@ -6568,16 +6624,17 @@ define init_debug_domain (exfile)
     @local cu, rv, cutabs;
     cutabs = find_fn_and_cu (indom, addr, dietab, procdoml);
     if (isnil (cutabs)) {
-      @local ar, arl, ardom, cuns;
+      @local ar, arl, ardom, cuns, cuoff;
       ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom,
 			    procdoml);
-      arl = dw_get_aranges (ardom);
-      ar = bsearch ({ardom}addr, arl,
-		    lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
-		      if (k < listref (tar, 0)) return -1;
-		      else if (k >= listref (tar, 1)) return 1;
-		      else return 0;});
-      cu = get_cu_info (indom, abdom, strdom, uas, listref (ar, 1), dietab, procdoml);
+//       arl = dw_get_aranges (ardom);
+//       ar = bsearch ({ardom}addr, arl,
+// 		    lambda (k, el) {@local tar; tar = listref (listref (el, 0), 0);
+// 		      if (k < listref (tar, 0)) return -1;
+// 		      else if (k >= listref (tar, 1)) return 1;
+// 		      else return 0;});
+      cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
+      cu = get_cu_info (indom, abdom, strdom, uas, cuoff, dietab, procdoml);
       cutabs = get_function_tables_for_cu (cu, rns, indom, dietab);
     }
     rv = make_local_ns (indom, addr, dietab, procdoml);
