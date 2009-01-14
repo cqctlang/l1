@@ -5,9 +5,6 @@
 /* switch on OP value */
 
 _dwstack = [];
-//_dwind = -1;
-//_dw_current_frame_base = nil;
-//current_compilation_unit = nil;
 
 define _dw_push (val)
 {
@@ -40,7 +37,6 @@ define _dw_eval (dom, exas, cptr, pceval)
   exdom = mkdom (dom.names, exas);
   lptr = (`uint8 *) cptr;
   op = *lptr;
-  // printf ("op at location 0x%x (%d) is %d\n", lptr, lptr, op);
   lptr++;
   switch (op) {
   case dom`DW_OP_plus_uconst: {
@@ -49,10 +45,7 @@ define _dw_eval (dom, exas, cptr, pceval)
     lptr = listref (val2, 1);
     val2 = head (val2);
     val1 = _dw_pop ();
-    //printf ("In dw_eval for plus_uconst val1 is %d, val2 is %d, pushing %d\n",
-    //	    val1, val2, val1 + val2);
     _dw_push (val2 + val1);
-    //    printf ("In dw_eval for plus_uconst _dwind is now %d\n", _dwind);
     break;
   }
   case dom`DW_OP_reg0:
@@ -87,11 +80,8 @@ define _dw_eval (dom, exas, cptr, pceval)
   case dom`DW_OP_reg29:
   case dom`DW_OP_reg30:
   case dom`DW_OP_reg31:
-    //rv = _dw_get_regval (exdom, op - dom`DW_OP_reg0);
     rv = op - dom`DW_OP_reg0;
     rvtype = _dwcqct_reg_type;
-//     printf ("before push rv is %a and rvtype is %a for op %a\n",
-// 	    rv, rvtype, op);
     _dw_push (rv);
     break;
   case dom`DW_OP_breg0:
@@ -131,14 +121,9 @@ define _dw_eval (dom, exas, cptr, pceval)
     lptr = listref (offset, 1);
     offset = head (offset);
     basereg = op - dom`DW_OP_breg0;
-    //printf ("getting value of basereg  %d\n", basereg);
     base = _dw_get_regval (exdom, basereg);
-    //printf ("in breg eval reg %d contains %d and offset is %d\n",
-    //    basereg, base, offset);
-    //printf ("In dw_eval for op %d creating lambda to return sum of offset %d and runtime value in register %d.\n", op, offset, basereg);
     rv = base + offset;
     rvtype = _dwcqct_addr_type;
-    //printf ("pushing rv of %a and rvtype of %a on stack\n", rv, rvtype);
     _dw_push (rv);
     break;
   }
@@ -147,22 +132,13 @@ define _dw_eval (dom, exas, cptr, pceval)
     offset = decodesleb128 (lptr);
     lptr = listref (offset, 1);
     offset = head (offset);
-    //lpc = getpc();
-    //printf ("About to call get_frame_base with %a and %a\n", exdom, pceval);
-    //fbaddr = pceval ();;
     if (isprocedure (pceval))
-      fbaddr = pceval();
+      fbaddr = pceval(exas);
     else
       fbaddr = pceval;
     fbaddr = (`uintptr) fbaddr;
-//     printf ("About to use %a as frame base\n", fbaddr);
-    //fbaddr = get_frame_base_from_pc (exdom, lpc);
-    //printf ("About to use %a as frame base\n", fb);
-    //fbaddr = fb; //process_frame_base_list (fb);
-    //printf ("pceval is %a fbaddr is %a and offset is %a\n", pceval, fbaddr, offset);
     rv = fbaddr + offset;
     rv = (`uintptr) rv;
-//     printf ("in eval of fbreg returning address 0x%x (%a)\n", rv, rv);
     rvtype = _dwcqct_addr_type;
     _dw_push (rv);
     break;
@@ -466,7 +442,6 @@ define _dw_eval (dom, exas, cptr, pceval)
     lptr = listref (basereg, 1);
     basereg = head (basereg);
     base = _dw_get_regval (exdom, basereg);
-    //printf ("In dw_eval for op %d creating lambda to return sum of offset %d and runtime value in register %d.\n", op, offset, basereg);
     rv = base + offset;
     rvtype = _dwcqct_addr_type;
     _dw_push (rv);
@@ -570,7 +545,6 @@ define _dw_eval (dom, exas, cptr, pceval)
   default:
     break;
   }
-  //  printf ("returning list of %a and %a from _dw_eval\n", rv, lptr);
   return [rv, rvtype, lptr];
 }
 
@@ -618,8 +592,6 @@ define dw_process_location_list (dom, exdom, ptr, form, cubase, fb, doml)
     eloc = *cptr;
     cptr++;
 
-    //printf ("at 0x%x (%d) sloc is 0x%x (%d) and eloc is 0x%x (%d)\n",
-    //	    ptr, ptr, sloc, sloc, eloc, eloc);
     if (sloc == baseaddrflag)
       /* then eloc is the base address of the compilation unit */
       cubaseaddr = eloc;
@@ -631,63 +603,23 @@ define dw_process_location_list (dom, exdom, ptr, form, cubase, fb, doml)
 	 range. */
       /* store the pointer to the Dwarf Expression code and the length
 	 along with the address interval. Leave evaluation until runtime */
-      //@local locfun;
-      //printf ("Starting eval\n");
       len = *(unsigned short *)cptr;
       cptr = (`uint8 *) {dom}((unsigned int) cptr + sizeof (unsigned short));
       end = (unsigned int) cptr + {dom} len;
-      //printf ("About to call evaluator at 0x%x (%d)\n", cptr, cptr);
-      //printf ("Generating locfun with fb %a, sloc %a, eloc %a\n",
-      //	      _dw_current_frame_base, sloc, eloc);
-      //printf ("Current_function_context is %a\n", current_function_context);
-//       locfun = lambda () {
-// 	@local savedstackind, lcptr, lend, fb;
-// 	fb = _dw_current_frame_base;
-// 	savedstackind = _dwind;
-// 	lcptr = cptr;
-// 	lend = end;
-// 	while (lcptr < lend) {
-// 	  val = _dw_eval (dom, exdom, lcptr, fb);
-// 	  lcptr = (unsigned int) (listref (val, 2));
-// 	}
-// 	val = vecref (_dwstack, _dwind);
-// 	_dwind = savedstackind;
-// 	return val;
-//       };
       append (l, [cubaseaddr + sloc, cubaseaddr + eloc, dom, exdom, cptr, len]);
       cptr = end;
     }
   }
-  //   if (cnt == 6)
-  //     printf ("Reached arbitrary safety limit of 6 in dw_process_location_list\n for ptr 0x%x (%d) and with loclist %a\n",
-  // 	    ptr, ptr, l);
   if (isempty (l)) {
     /* then this is an empty location list indicating that the variable
        is present in the source code but not in the binary. */
     return [nil, cptr];
   }
-//   if (isnil (cubaseaddr)) {
-//     /* then there was no base address selection entry. Use the base
-//        address of the compilation unit */
-//     if (cubase == head (current_compilation_unit))
-//       cubaseaddr = listref (current_compilation_unit, 1);
-//     else {
-//       printf ("Processing cu at 0x%x (%d) but current cu is %a\n",
-// 	      cubase, cubase, current_compilation_unit);
-//       return [nil, cptr];
-//     }
-//   }
   /* At this point cubaseaddr should be correct so that we can construct
      a location function whose address ranges have been adjusted to those
      of the compilation unit itself. For now, though, we are just going to
      print ranges and location expressions */
-  //printf ("CU base address is %a and locations are %a\n",
-  //  cubaseaddr, l);
-  //rv = [ [cubaseaddr, l], cptr ];
   rv = [ l, cptr ];
-  //  printf ("4 bytes at debug_loc %d are 0x%x\n", cptr,
-  //  *(`unsigned long *){dom}cptr);
-  //  printf ("Return val for loclist at 0x%x (%d) is %a\n", cptr, cptr, rv);
   return rv;
 }
 

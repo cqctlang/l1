@@ -46,7 +46,7 @@ define nsiter(ns, fn)
 {
 	@local ttable, tlist, numtypes, i;
 	
-	ttable = nsenumtype(ns)(0);
+	ttable = ns.enumtype();
 	tlist = tabenum(ttable);
 
 	numtypes = length(tlist) / 2;
