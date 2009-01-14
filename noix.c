@@ -187,3 +187,9 @@ fwrite(const void *ptr, size_t size, size_t nmeb, FILE *fp)
 {
 	xabort();
 }
+
+char*
+dirname(char *path)
+{
+	xabort();
+}

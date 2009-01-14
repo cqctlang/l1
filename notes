@@ -94,7 +94,11 @@ todo
   - get rid of efree
   - can we programmatically dump all fields in a struct, even
     if there are bitfields?  would be a nice example.
-  - handle stack overflow
+  - handle stack overflow:
+     stack should grow as needed;
+     mechanisms need to work with gc and continuations;
+     BUG: sub %sp, n, %sp does not detect overflow of sp;
+          allows code to write off the stack.
   - how to define strings of length 2^64?
   - does a negative array index work?
   - check for negative cvals on Irange, Istr, Islice*, Ivec*, etc.
