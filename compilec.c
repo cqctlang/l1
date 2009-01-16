@@ -638,9 +638,7 @@ expanddot(U *ctx, Expr *e)
 			   1, doid("$o"));
 
 		/* cval/as/ns/dom case */
-		if(!strcmp(id, "dispatch"))
-			te = Zcall(doid("%dispatch"), 1, doid("$o"));
-		else if(!strcmp(id, "names"))
+		if(!strcmp(id, "ns"))
 			te = Zcall(doid("%nsof"), 1, doid("$o"));
 		else if(!strcmp(id, "as"))
 			te = Zcall(doid("%asof"), 1, doid("$o"));
@@ -648,8 +646,8 @@ expanddot(U *ctx, Expr *e)
 			te = Zlambdn(doid("$args"),
 				     Zret(Zcall(doid("%callmethod"),
 						3,
-						Zconsts(id),
 						doid("$o"),
+						Zconsts(id),
 						doid("$args"))),
 				     copyexpr(e->e2));
 

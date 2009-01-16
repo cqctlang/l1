@@ -4544,14 +4544,17 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		}
 		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
-		argv[0] = mkvalstr(vm->sget);
-		argv[1] = domv;
+		argv[0] = domv;
+		argv[1] = mkvalstr(vm->sget);
 		argv[2] = mkvalrange(mkcval(vm->litdom,
 					    vm->litbase[Vptr],
 					    cv->val+bfg.addr),
 				     mkcval(vm->litdom,
 					    vm->litbase[Vptr], bfg.cnt));
 		p = dovm(vm, d->as->dispatch, 3, argv);
+		if(p->qkind != Qstr)
+			vmerr(vm,
+			      "address space get method returned non-string");
 		s = valstr(p);
 		imm = bitfieldget(s->s, &bfg);
 		rv = mkvalcval(d, b->link, imm);
@@ -4562,10 +4565,13 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	case Tbase:
 	case Tptr:
 		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
-		argv[0] = mkvalstr(vm->sget);
-		argv[1] = domv;
+		argv[0] = domv;
+		argv[1] = mkvalstr(vm->sget);
 		argv[2] = mkvalrange(cv, len);
 		p = dovm(vm, d->as->dispatch, 3, argv);
+		if(p->qkind != Qstr)
+			vmerr(vm,
+			      "address space get method returned non-string");
 		imm = str2imm(t, valstr(p));
 		rv = mkvalcval(d, t, imm);
 		break;
@@ -4698,10 +4704,10 @@ nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc < 2)
 		vmerr(vm,
 		      "wrong number of arguments to address space dispatch");
-	checkarg(vm, "nasdispatch", argv, 0, Qstr);
-	cmd = valstr(argv[0]);
+	checkarg(vm, "nasdispatch", argv, 1, Qstr);
+	cmd = valstr(argv[1]);
 	if(eqstrc(cmd, "map")){
-		if(argc != 1)
+		if(argc != 2)
 			vmerr(vm, "wrong number of arguments to map");
 		*rv = mkvalvec(mkvec(0));
 		return;
@@ -4735,8 +4741,8 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc < 1)
 		vmerr(vm,
 		      "wrong number of arguments to address space dispatch");
-	checkarg(vm, "sasdispatch", argv, 0, Qstr);
-	cmd = valstr(argv[0]);
+	checkarg(vm, "sasdispatch", argv, 1, Qstr);
+	cmd = valstr(argv[1]);
 	if(eqstrc(cmd, "get")){
 		if(argc != 3)
 			vmerr(vm, "wrong number of arguments to get");
@@ -5305,8 +5311,9 @@ calldispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	dcl = valcl(disp[0]);
 	xargv = emalloc((1+argc)*sizeof(Val));
-	xargv[0] = disp[1];	/* name of method to call */
-	memcpy(xargv+1, argv, argc*sizeof(Val));
+	xargv[0] = argv[0];	/* this */
+	xargv[1] = disp[1];	/* name of method to call */
+	memcpy(xargv+2, argv+1, (argc-1)*sizeof(Val));
 	if(waserror(vm)){
 		efree(xargv);
 		nexterror(vm);
@@ -6475,8 +6482,8 @@ static Vec*
 callmap(VM *vm, As *as)
 {
 	Val argv[2], rv;
-	argv[0] = mkvalstr(vm->smap);
-	argv[1] = mkvalas(as);
+	argv[0] = mkvalas(as);
+	argv[1] = mkvalstr(vm->smap);
 	rv = dovm(vm, as->dispatch, 2, argv);
 	if(rv->qkind != Qvec)
 		vmerr(vm, "address space map returned invalid value");
@@ -6531,13 +6538,16 @@ stringof(VM *vm, Cval *cv)
 			buf = emalloc(unit);
 		else
 			buf = erealloc(buf, l, l+n);
-		argv[0] = mkvalstr(vm->sget);
-		argv[1] = mkvaldom(cv->dom);
+		argv[0] = mkvaldom(cv->dom);
+		argv[1] = mkvalstr(vm->sget);
 		r = mkrange(mkcval(cv->dom, cv->dom->ns->base[Vptr], o),
 			    mkcval(cv->dom, cv->dom->ns->base[Vptr], n));
 		gcprotect(vm, r); /* FIXME: why? */
 		argv[2] = mkvalrange2(r);
 		p = dovm(vm, cv->dom->as->dispatch, 3, argv);
+		if(p->qkind != Qstr)
+			vmerr(vm,
+			      "address space get method returned non-string");
 		s = valstr(p);
 		memcpy(buf+l, s->s, s->len);
 		q = strnchr(buf+l, '\0', s->len);
@@ -6690,6 +6700,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Head *hd;
 	Dom *d;
 	As *as;
+	Ns *ns;
 
 	switch(val->qkind){
 	case Qcval:
@@ -6724,6 +6735,14 @@ fmtval(VM *vm, Fmt *f, Val val)
 		if(fmtval(vm, f, bv))
 			return -1;
 		return fmtputs0(f, ">");
+	case Qns:
+		ns = valns(val);
+		if(ns->name)
+			snprintf(buf, sizeof(buf), "<ns %.*s>",
+				 (int)ns->name->len, ns->name->s);
+		else
+			snprintf(buf, sizeof(buf), "<ns %p>", as);
+		return fmtputs0(f, buf);
 	case Qas:
 		as = valas(val);
 		if(as->name)
@@ -6741,7 +6760,6 @@ fmtval(VM *vm, Fmt *f, Val val)
 			snprintf(buf, sizeof(buf), "<domain %p>", d);
 		return fmtputs0(f, buf);
 	case Qfd:
-	case Qns:
 	case Qpair:
 	case Qtab:
 	case Qxtn:
@@ -8479,8 +8497,8 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		gcprotect(vm, cv);
 		bytes = imm2str(vm, t, cv->val);
 		len = mkcval(vm->litdom, vm->litbase[Vptr], typesize(vm, t));
-		argv[0] = mkvalstr(vm->sput);
-		argv[1] = mkvaldom(d);
+		argv[0] = mkvaldom(d);
+		argv[1] = mkvalstr(vm->sput);
 		argv[2] = mkvalrange(addr, len);
 		argv[3] = mkvalstr(bytes);
 		dovm(vm, d->as->dispatch, 4, argv);
@@ -8496,8 +8514,8 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 			vmerr(vm, "invalid bitfield access");
 
 		/* get contents of bitfield container */
-		argv[0] = mkvalstr(vm->sget);
-		argv[1] = mkvaldom(d);
+		argv[0] = mkvaldom(d);
+		argv[1] = mkvalstr(vm->sget);
 		/* FIXME: why litbase[Vptr]; why not d->ns->base[Vptr] ? */
 		r = mkrange(mkcval(vm->litdom, vm->litbase[Vptr],
 				   addr->val+bfg.addr),
@@ -8505,14 +8523,17 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		gcprotect(vm, r);
 		argv[2] = mkvalrange2(r);
 		p = dovm(vm, d->as->dispatch, 3, argv);
+		if(p->qkind != Qstr)
+			vmerr(vm,
+			      "address space get method returned non-string");
 		bytes = valstr(p);
 
 		/* update bitfield container */
 		imm = bitfieldput(bytes->s, &bfg, cv->val);
 
 		/* put updated bitfield container */
-		argv[0] = mkvalstr(vm->sput);
-			/* reuse argv[1] dom */
+			/* reuse argv[0] dom */
+		argv[1] = mkvalstr(vm->sput);
 			/* reuse argv[2] range */
 		argv[3] = mkvalstr(bytes);
 		dovm(vm, d->as->dispatch, 4, argv);
@@ -8886,60 +8907,67 @@ l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Val arg0, arg1, arg2, v, *xargv;
+	Val this, id, args, v, *xargv;
 	Dom *dom;
 	As *as;
 	Ns *ns;
-	Tab *mtab;
-	Str *id;
+	Str *s;
 	Closure *cl, *dcl;
 	Imm ll, xargc;
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to callmethod");
-	checkarg(vm, "callmethod", argv, 0, Qstr);
+	checkarg(vm, "callmethod", argv, 1, Qstr);
 	checkarg(vm, "callmethod", argv, 2, Qlist);
-	arg0 = argv[0];
-	arg1 = argv[1];
-	arg2 = argv[2];
-	if(arg1->qkind == Qas){
-		as = valas(arg1);
-		mtab = as->mtab;
-		dcl = as->dispatch;
-	}else if(arg1->qkind == Qns){
-		ns = valns(arg1);
-		mtab = ns->mtab;
-		dcl = ns->dispatch;
-	}else if(arg1->qkind == Qdom){
-		dom = valdom(arg1);
-		mtab = dom->as->mtab;
-		dcl = dom->as->dispatch;
+	this = argv[0];
+	id = argv[1];
+	args = argv[2];
+	dcl = 0;
+	if(this->qkind == Qas){
+		as = valas(this);
+		v = tabget(as->mtab, id);
+		if(v == 0)
+			dcl = as->dispatch;
+	}else if(this->qkind == Qns){
+		ns = valns(this);
+		v = tabget(ns->mtab, id);
+		if(v == 0)
+			dcl = ns->dispatch;
+	}else if(this->qkind == Qdom){
+		dom = valdom(this);
+		/* search as, then ns */
+		v = tabget(dom->as->mtab, id);
+		if(v == 0)
+			v = tabget(dom->ns->mtab, id);
+		if(v == 0)
+			dcl = dom->as->dispatch;
+		if(dcl == 0)
+			dcl = dom->ns->dispatch;
 	}else
 		vmerr(vm,
 		      "operand 2 to callmethod must be an address space, "
 		      "name space, or domain");
 
-	v = tabget(mtab, arg0);
 	if(v == 0 && dcl == 0){
-		id = valstr(arg0);
+		s = valstr(id);
 		vmerr(vm, "callmethod target must define %.*s or dispatch",
-		      (int)id->len, id->s);
+		      (int)s->len, s->s);
 	}
 
-	listlen(arg2, &ll);
+	listlen(args, &ll);
 	if(v){
 		cl = valcl(v);
 		xargc = ll+1;
 		xargv = emalloc(xargc*sizeof(Val));
-		xargv[0] = arg1;
-		listcopyv(vallist(arg2), 0, ll, xargv+1);
+		xargv[0] = this;
+		listcopyv(vallist(args), 0, ll, xargv+1);
 	}else{
 		cl = dcl;
 		xargc = ll+2;
 		xargv = emalloc(xargc*sizeof(Val));
-		xargv[0] = arg0;
-		xargv[1] = arg1;
-		listcopyv(vallist(arg2), 0, ll, xargv+2);
+		xargv[0] = this;
+		xargv[1] = id;
+		listcopyv(vallist(args), 0, ll, xargv+2);
 	}
 	if(waserror(vm)){
 		efree(xargv);
@@ -8948,36 +8976,6 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = dovm(vm, cl, xargc, xargv);
 	poperror(vm);
 	efree(xargv);
-}
-
-static void
-l1_dispatch(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	As *as;
-	Ns *ns;
-	Closure *cl;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to dispatch");
-	arg0 = argv[0];
-	if(arg0->qkind == Qas){
-		as = valas(arg0);
-		cl = as->dispatch;
-	}else if(arg0->qkind == Qns){
-		ns = valns(arg0);
-		cl = ns->dispatch;
-	}else if(arg0->qkind == Qdom){
-		dom = valdom(arg0);
-		as = dom->as;
-		cl = as->dispatch;
-	}else
-		vmerr(vm,
-		      "operand 1 to dispatch must be an address space, "
-		      "name space, or domain");
-	if(cl)
-		*rv = mkvalcl(cl);
 }
 
 static void
@@ -9548,14 +9546,14 @@ getbytes(VM *vm, Cval *addr, Imm n)
 	Range *r;
 	Val argv[3], p;
 	
-	argv[0] = mkvalstr(vm->sget);
+	argv[0] = mkvaldom(addr->dom);
+	argv[1] = mkvalstr(vm->sget);
 	r = mkrange(mkcval(addr->dom, addr->dom->ns->base[Vptr], addr->val),
 		    mkcval(addr->dom, addr->dom->ns->base[Vptr], n));
-	argv[1] = mkvaldom(addr->dom);
 	argv[2] = mkvalrange2(r);
 	p = dovm(vm, addr->dom->as->dispatch, 3, argv);
 	if(p->qkind != Qstr)
-		vmerr(vm, "address space get operation did not return string");
+		vmerr(vm, "address space get method returned non-string");
 	return valstr(p);
 }
 
@@ -9600,8 +9598,8 @@ l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	t = chasetype(addr->type);
 	if(t->tkind != Tptr)
 		vmerr(vm, "operand 1 to putbytes must be a pointer");
-	argv[0] = mkvalstr(vm->sput);
-	argv[1] = mkvaldom(addr->dom);
+	argv[0] = mkvaldom(addr->dom);
+	argv[1] = mkvalstr(vm->sput);
 	r = mkrange(mkcval(addr->dom, addr->dom->ns->base[Vptr], addr->val),
 		    mkcval(addr->dom, addr->dom->ns->base[Vptr], str->len));
 	argv[2] = mkvalrange2(r);
@@ -10722,7 +10720,6 @@ mktopenv()
 	FN(close);
 	FN(cons);
 	FN(copy);
-	FN(dispatch);
 	FN(domof);
 	FN(enumconsts);
 	FN(equal);

@@ -27,9 +27,9 @@ define mkindispatch(fd, eofk){
 	}
 
 	define dispatch args {
-		@local arg, r, s, beg, len, need;
-		arg = listref(args, 0);
-		if(arg == "get"){
+		@local method, r, s, beg, len, need;
+		method = listref(args, 1);
+		if(method == "get"){
 			r = listref(args, 2);
 			beg = rangebeg(r);
 			len = rangelen(r);
@@ -53,11 +53,11 @@ define mkindispatch(fd, eofk){
 			}
 			s = substr(buf, beg, beg+len);
 			return s;
-		}else if(arg == "map"){
+		}else if(method == "map"){
 			return vector(mkrange(off, hi));
-		}else if(arg == "put"){
+		}else if(method == "put"){
 			error("attempt to write to input stream");
-		}else if(arg == "flush"){
+		}else if(method == "flush"){
 			if(hi < peek){
 				s = substr(buf, hi, peek);
 //				buf = mkstr(max);
@@ -70,10 +70,10 @@ define mkindispatch(fd, eofk){
 			off += hi;
 			hi = 0;
 			return nil;
-		}else if(arg == "seteofk"){
+		}else if(method == "seteofk"){
 			eofk = listref(args, 2);
 			return nil;
-		}else if(arg == "iseof"){
+		}else if(method == "iseof"){
 			if(eof)
 				return 1;
 			if(hi < peek)
@@ -89,7 +89,7 @@ define mkindispatch(fd, eofk){
 			peek = hi+1;
 			return 0;
 		}else
-			error("bad command to fdas: %a", arg);
+			error("bad command to fdas: %a", method);
 	}
 	return dispatch;
 }
@@ -102,9 +102,9 @@ define mkoutdispatch(fd, eofk){
 	max = 1024*1024;
 	buf = mkstr(max);
 	define dispatch args {
-		@local arg, r, s, beg, len, need;
-		arg = listref(args, 0);
-		if(arg == "get"){
+		@local method, r, s, beg, len, need;
+		method = listref(args, 1);
+		if(method == "get"){
 			r = listref(args, 2);
 			beg = rangebeg(r);
 			len = rangelen(r);
@@ -115,9 +115,9 @@ define mkoutdispatch(fd, eofk){
 				fault();
 			s = substr(buf, beg, beg+len);
 			return s;
-		}else if(arg == "map"){
+		}else if(method == "map"){
 			return range(off, off+hi);
-		}else if(arg == "put"){
+		}else if(method == "put"){
 			r = listref(args, 2);
 			s = listref(args, 3);
 			beg = rangebeg(r);
@@ -135,18 +135,18 @@ define mkoutdispatch(fd, eofk){
 			strput(buf, beg, s);
 			if(beg+len > hi)
 				hi = beg+len;
-		}else if(arg == "flush"){
+		}else if(method == "flush"){
 			write(fd, substr(buf, 0, hi));
 			memset(buf, 0, hi);
 //			buf = mkstr(max);
 			off += hi;
 			hi = 0;
 			return nil;
-		}else if(arg == "seteofk"){
+		}else if(method == "seteofk"){
 			eofk = listref(args, 2);
 			return nil;
 		}else
-			error("bad command to fdas: %a", arg);
+			error("bad command to fdas: %a", method);
 	}
 	return dispatch;
 }

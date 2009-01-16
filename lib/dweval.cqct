@@ -34,7 +34,7 @@ define _dw_eval (dom, exas, cptr, pceval)
 	       return values when necessary as well as any updates to
 	       cptr. The return value is [rv, rvtype, lptr] */
   rvtype = nil;
-  exdom = mkdom (dom.names, exas);
+  exdom = mkdom (dom.ns, exas);
   lptr = (`uint8 *) cptr;
   op = *lptr;
   lptr++;

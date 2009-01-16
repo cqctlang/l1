@@ -172,7 +172,7 @@ define ELF64_M_INFO (sym, size)
 define showelfheader (elfdom)
 {
   @local e;
-  if (sizeof (nsptr (elfdom.names)) == 4)
+  if (sizeof (nsptr (elfdom.ns)) == 4)
     e = (elfdom`Elf32_Ehdr *){elfdom} 0;
   else
     e = (elfdom`Elf64_Ehdr *){elfdom} 0;
@@ -189,7 +189,7 @@ define showelfheader (elfdom)
 define showallelfsectionheaders (elfdom)
 {
   @local e, sarray, s, i, shsize;
-  if (sizeof (nsptr (elfdom.names)) == 4){
+  if (sizeof (nsptr (elfdom.ns)) == 4){
     e = (elfdom`Elf32_Ehdr *){elfdom} 0;
     sarray = (elfdom`Elf32_Shdr *) e->e_shoff;
     shsize = sizeof (elfdom`Elf32_Shdr);
@@ -208,7 +208,7 @@ define showallelfsectionheaders (elfdom)
 define showsectionheader (elfdom, sbase, index)
 {
   @local e, s, st;
-  if (sizeof (nsptr (elfdom.names)) == 4) {
+  if (sizeof (nsptr (elfdom.ns)) == 4) {
     e = (elfdom`Elf32_Ehdr *){elfdom} 0;
     st = (unsigned char *) sbase[e->e_shstrndx].sh_offset;
     s = (elfdom`Elf32_Shdr *) &sbase[index];
@@ -230,7 +230,7 @@ define showsectionheader (elfdom, sbase, index)
 define showelfsym (elfdom, addr, strind)
 {
   @local e, sym, sind, sbase, i, st;
-  if (sizeof (nsptr (elfdom.names)) == 4) {
+  if (sizeof (nsptr (elfdom.ns)) == 4) {
     e = (elfdom`Elf32_Ehdr *){elfdom} 0;
     sbase = (elfdom`Elf32_Shdr *) (e->e_shoff);
     sym = (elfdom`Elf32_Sym *)(addr);
@@ -255,7 +255,7 @@ define getsyms (elfdom)
 {
   @local e, shbase, strbase, symbase, sec, sym, ht, i;
   ht = table ();
-  if (sizeof (nsptr (elfdom.names)) == 4) {
+  if (sizeof (nsptr (elfdom.ns)) == 4) {
     e = (elfdom`Elf32_Ehdr *){elfdom} 0;
     shbase = (elfdom`Elf32_Shdr *) (e->e_shoff);
   }
@@ -268,20 +268,20 @@ define getsyms (elfdom)
     if (sec->sh_type == 2  /* SHT_SYMTAB in elf.h */
 	|| sec->sh_type == 11) {  /* SHT_DYNSYMTAB in elf.h */
       @local symcount, strind, j;
-      if (sizeof (nsptr (elfdom.names)) == 4)
+      if (sizeof (nsptr (elfdom.ns)) == 4)
 	symbase = (elfdom`Elf32_Sym *)sec->sh_offset;
       else
 	symbase = (elfdom`Elf64_Sym *)sec->sh_offset;
       strind = sec->sh_link;
       strbase = (unsigned char *) shbase[strind].sh_offset;
-      if (sizeof (nsptr (elfdom.names)) == 4)
+      if (sizeof (nsptr (elfdom.ns)) == 4)
 	symcount = sec->sh_size / (sizeof (elfdom`Elf32_Sym));
       else
 	symcount = sec->sh_size / (sizeof (elfdom`Elf64_Sym));
       printf ("sec %d link %d count %d\n", i, strind, symcount);
       for (j = 1; j < symcount; j++) {
 	@local name;
-	if (sizeof (nsptr (elfdom.names)) == 4)
+	if (sizeof (nsptr (elfdom.ns)) == 4)
 	  sym = (elfdom`Elf32_Sym *)(&symbase[j]);
 	else
 	  sym = (elfdom`Elf64_Sym *)(&symbase[j]);
@@ -300,13 +300,13 @@ define getelfsymtab (edom)
 
   syml = [];
   
-  if (sizeof (nsptr (edom.names)) == 4) {
+  if (sizeof (nsptr (edom.ns)) == 4) {
     e = (edom`Elf32_Ehdr *){edom} 0;
     shbase = (edom`Elf32_Shdr *) (e->e_shoff);
     symbase = (edom`Elf32_Sym *) {edom} 0;
     symsize = sizeof (edom`Elf32_Sym);
   }
-  else if (sizeof (nsptr (edom.names)) == {edom} 8) {
+  else if (sizeof (nsptr (edom.ns)) == {edom} 8) {
     e = (edom`Elf64_Ehdr *){edom} 0;
     shbase = (edom`Elf64_Shdr *) (e->e_shoff);
     symbase = (edom`Elf64_Sym *) {edom} 0;
@@ -322,7 +322,7 @@ define getelfsymtab (edom)
     if (sec->sh_type == 2  /* SHT_SYMTAB in elf.h */
 	|| sec->sh_type == 11) {  /* SHT_DYNSYMTAB in elf.h */
       @local shsymcount, strind, j;
-      if (sizeof (nsptr (edom.names)) == 4)
+      if (sizeof (nsptr (edom.ns)) == 4)
 	symbase = (edom`Elf32_Sym *)sec->sh_offset;
       else
 	symbase = (edom`Elf64_Sym *)sec->sh_offset;
@@ -332,7 +332,7 @@ define getelfsymtab (edom)
       /* start at 1 because the ELF spec requires that the 0 element is 0 */
       for (j = 1; j < shsymcount; j++) {
 	@local name, csym;
-	if (sizeof (nsptr (edom.names)) == 4)
+	if (sizeof (nsptr (edom.ns)) == 4)
 	  sym = (edom`Elf32_Sym *)(&symbase[j]);
 	else
 	  sym = (edom`Elf64_Sym *)(&symbase[j]);
@@ -392,7 +392,7 @@ define showsym (esym)
 define getelfsection (edom, name)
 {
   @local e, sarray, st, sname, i;
-  if (sizeof (nsptr (edom.names)) == 4) {
+  if (sizeof (nsptr (edom.ns)) == 4) {
     //printf ("choosing 32 header\n");
     e = (edom`Elf32_Ehdr *){edom} 0;
     /* get the base of the section header array */
@@ -425,7 +425,7 @@ define getelfsection (edom, name)
 define getelfsecname (edom, ind)
 {
   @local e, sarray, st;
-  if (sizeof (nsptr (edom.names)) == 4) {
+  if (sizeof (nsptr (edom.ns)) == 4) {
     e = (edom`Elf32_Ehdr *){edom} 0;
     /* get the base of the section header array */
     sarray = (edom`Elf32_Shdr *) e->e_shoff;
@@ -445,7 +445,7 @@ define getelfsecname (edom, ind)
 define getelfsegmenthdr (edom, n)
 {
   @local e, pharray, ph, cnt;
-  if (sizeof (nsptr (edom.names)) == 4) {
+  if (sizeof (nsptr (edom.ns)) == 4) {
     e = (edom`Elf32_Ehdr *){edom} 0;
     cnt = {edom} n;
     if (e->e_phnum < cnt) {
@@ -473,7 +473,7 @@ define getelfsegmenthdr (edom, n)
 define getelfsegment (edom, n)
 {
   @local e, pharray, ph, cnt;
-  if (sizeof (nsptr (edom.names)) == 4) {
+  if (sizeof (nsptr (edom.ns)) == 4) {
     e = (edom`Elf32_Ehdr *){edom} 0;
     cnt = {edom} n;
     if (e->e_phnum < cnt) {
@@ -517,7 +517,7 @@ define showsegmentheader (eseg)
 define getcqctelfsym (edom, esym, name)
 {
   @local result, i, typec, sarray, st, e, visibility;
-  if (sizeof (nsptr (edom.names)) == 4) {
+  if (sizeof (nsptr (edom.ns)) == 4) {
     e = (edom`Elf32_Ehdr *){edom} 0;
     sarray = (edom`Elf32_Shdr *) e->e_shoff;
   }

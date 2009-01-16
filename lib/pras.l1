@@ -772,7 +772,8 @@ define mkpras arg {
 	tabinsert(dtab, "xbreak",	brk);
 
 	define dispatch arg {
-		cmd = pop(arg);
+		cmd = listref(arg, 1);
+		listdel(arg, 1);
 		fn = tablook(dtab, cmd);
 		if(fn == nil)
 			error("call to undefined pras operator: %s", cmd);

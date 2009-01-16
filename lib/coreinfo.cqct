@@ -100,7 +100,7 @@ define main(args)
 
 	elfdom = mkelfdom(mapfile(infile));
 
-	if (sizeof (nsptr (elfdom.names)) == 4) {
+	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		ehdr = (elfdom`Elf32_Ehdr *){elfdom} 0;
 		pharray = (elfdom`Elf32_Phdr *) ehdr->e_phoff;
 		is32 = 1;
