@@ -6492,9 +6492,13 @@ define init_debug_domain (exfile)
 	   return dw_unwind (exdom, fdom, addr, 0, procdoml);
 	 };
   tabinsert(mtab, "unwind", uw);
-  nscon = lambda (this, uas, addr) {
+  nscon = lambda (this, addr) {
     @local cu, rv, cutabs;
-    @local tns, lt, ls, la, et, es, getretaddr, lnstab;
+    @local tns, lt, ls, la, et, es, getretaddr, lnstab, uas;
+    if (isdom (this))
+      uas = this.as;
+    else
+      error ("nscon must be called from a domain that can supply an as\n");
     cutabs = find_fn_and_cu (indom, addr, dietab, procdoml);
     if (isnil (cutabs)) {
       @local ar, arl, ardom, cuns, cuoff;
@@ -6530,7 +6534,7 @@ define init_debug_domain (exfile)
     };
     tabinsert(lnstab, "unwind", uw);
     //getretaddr = lambda (this, exdom, addr, exbase) {
-    getretaddr = lambda (this, exdom) {
+    getretaddr = lambda (this) {
       @local asize, rlist, rvec, retaddrloc, raregno, cfa;
       retaddrloc = nil;
       asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, procdoml);
@@ -6549,10 +6553,10 @@ define init_debug_domain (exfile)
 	  continue;
 	reg = head (r);
 	if (reg == fdom`DW_FRAME_CFA_COL) {
-	  cfa = _dw_get_regval (exdom, listref (r, 1)) + listref (r, 2);
+	  cfa = _dw_get_regval (this, listref (r, 1)) + listref (r, 2);
 	}
 	else if (reg == raregno) {
-	  retaddrloc = (unsigned long *) ({exdom}(cfa + listref (r,2)));
+	  retaddrloc = (unsigned long *) ({this}(cfa + listref (r,2)));
 	  break;
 	}
 	else
@@ -6588,8 +6592,9 @@ define skip_prologue (dom, name)
 {
   @local ns, sym, saddr, cultab, lent, ardom, cuoff, doml, linedom;
   @local cuinfo, nextent, i, lim, eindex, esrcline, rv, lastaddr, reset;
-  ns = dom.ns;
-  sym = ns.looksym (name);
+  //ns = dom.ns;
+  //sym = ns.looksym (name);
+  sym = dom.looksym (name);
   if (isnil (sym))
     return nil;
   if (!isfunc (vecref (sym, 0)))
@@ -6603,7 +6608,8 @@ define skip_prologue (dom, name)
      will need to make sure that any additions of lists for such other
      binaries as shared libraries are appended to this list instead of
      pushed on it. */
-  doml = dom.ns.nsdomlist ();
+  //doml = dom.ns.nsdomlist ();
+  doml = dom.nsdomlist ();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_elfdomain,
 			listref (listref (doml, 0), _dwcqct_elfdomain),
 			doml);
