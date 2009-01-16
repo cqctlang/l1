@@ -1,6 +1,6 @@
 define mkdwdom (elfdom, dbsec) {
   @local dwas, dwnames;
-  dwnames = @names elfdom.names {
+  dwnames = @names elfdom.ns {
     @include "dw.names"
   };
   dwas = mksas (dbsec);
@@ -5154,7 +5154,7 @@ define get_frame_base_from_pc (indom, exas, etab, doml)
   @local ptr, locdom, i, j, k, n, len1, len2, fbl, gfbi, gfbj;
   @local ar, ardom, arl, cu, cukey;
   @local lo, hi, ent, rv, dumdom, pc;
-  dumdom = mkdom (indom.names, exas);
+  dumdom = mkdom (indom.ns, exas);
   pc = dumdom.getrip();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom, doml);
   cukey = dw_get_dieoff_for_cu (ardom, pc);
@@ -6378,7 +6378,6 @@ define init_debug_domain (exfile)
   @local elfd, indom, abdom, strdom, fdom, tabs, procdoml, i, nstab, result;
   @local newlooktype, newlooksym, newlookaddr, newenumsym, newenumtype;
   @local stab, ttab, culist, i, stime, etime, gns, nscon, mtab, ldom, a2l, uw;
-  stime = gettimeofday ();
   procdoml = []; /* process-associated dwarf_domain_list */
 //   exfile = get_executable_from_proc (uproc);
   elfd = mkelfdom (mapfile (exfile));
@@ -6405,8 +6404,6 @@ define init_debug_domain (exfile)
     append (result, cutabs);
     cptr = ( head (rv));
   }
-  etime = gettimeofday ();
-  stime = etime;
   newlooksym = lambda (this, sym)
     {
       @local i, rv, ns;
@@ -6490,16 +6487,12 @@ define init_debug_domain (exfile)
   tabinsert(mtab, "nsdomlist", lambda (this) {return procdoml;});
   a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
   tabinsert(mtab, "addr2line", a2l);
-  uw = lambda (this, exdom, addr, exbase)
+  uw = lambda (this, exdom, addr)
          {
-	   return dw_unwind (exdom, fdom, addr, exbase, procdoml);
+	   return dw_unwind (exdom, fdom, addr, 0, procdoml);
 	 };
   tabinsert(mtab, "unwind", uw);
-  gns = mkns (mtab);
-  etime = gettimeofday ();
-  printf ("Additional time for building gns is  %a\n", etime - stime);
-  stime = etime;
-  nscon = lambda (uas, addr) {
+  nscon = lambda (this, uas, addr) {
     @local cu, rv, cutabs;
     @local tns, lt, ls, la, et, es, getretaddr, lnstab;
     cutabs = find_fn_and_cu (indom, addr, dietab, procdoml);
@@ -6530,12 +6523,14 @@ define init_debug_domain (exfile)
     tabinsert(lnstab, "nsdomlist", lambda (this) {return procdoml;});
     a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
     tabinsert(lnstab, "addr2line", a2l);
-    uw = lambda (this, exdom, addr, exbase)
+    //uw = lambda (this, exdom, addr, exbase)
+    uw = lambda (this, exdom, addr)
     {
-      return dw_unwind (exdom, fdom, addr, exbase, procdoml);
+      return tns.unwind (exdom, addr);
     };
     tabinsert(lnstab, "unwind", uw);
-    getretaddr = lambda (this, exdom, addr, exbase) {
+    //getretaddr = lambda (this, exdom, addr, exbase) {
+    getretaddr = lambda (this, exdom) {
       @local asize, rlist, rvec, retaddrloc, raregno, cfa;
       retaddrloc = nil;
       asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, procdoml);
@@ -6569,9 +6564,9 @@ define init_debug_domain (exfile)
     rv = mkns (lnstab);
     return rv;
   };
-  etime = gettimeofday ();
-  printf ("Time for defining nscon is %a\n", etime - stime);
-  return [gns, nscon];
+  tabinsert (mtab, "nscon", nscon);
+  gns = mkns (mtab);
+  return gns;
 }
 
 /* Everything about this is ugly. This function exists because GCC emits
@@ -6593,7 +6588,7 @@ define skip_prologue (dom, name)
 {
   @local ns, sym, saddr, cultab, lent, ardom, cuoff, doml, linedom;
   @local cuinfo, nextent, i, lim, eindex, esrcline, rv, lastaddr, reset;
-  ns = dom.names;
+  ns = dom.ns;
   sym = ns.looksym (name);
   if (isnil (sym))
     return nil;
@@ -6608,7 +6603,7 @@ define skip_prologue (dom, name)
      will need to make sure that any additions of lists for such other
      binaries as shared libraries are appended to this list instead of
      pushed on it. */
-  doml = dom.names.nsdomlist ();
+  doml = dom.ns.nsdomlist ();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_elfdomain,
 			listref (listref (doml, 0), _dwcqct_elfdomain),
 			doml);
