@@ -1,36 +1,37 @@
 entry: var params, 2 locals, 0 temps
-dispatch: var params, 3 locals, 0 temps
+dispatch: var params, 2 locals, 0 temps
 test: 1 params, 2 locals, 0 temps
 foo: var params, 1 locals, 0 temps
 bar: var params, 1 locals, 0 temps
 baz: var params, 1 locals, 0 temps
-isns(dom.names) = 1
+dispatch: var params, 1 locals, 0 temps
+isns(dom.ns) = 1
 isas(dom.as) = 1
-dispatch arg is foo, 4 arguments
-<domain mydom>
-<cval 1>
-<cval 2>
-<cval 3>
-dispatch arg is bar, 1 arguments
-<domain mydom>
-dispatch arg is baz, 3 arguments
-<domain mydom>
-<closure baz>
-<closure baz>
-dispatch arg is yo!, 2 arguments
-<procedure dispatch>
-<procedure dispatch>
-dispatch arg is foo, 4 arguments
-<as myas>
-<cval 1>
-<cval 2>
-<cval 3>
-dispatch arg is bar, 1 arguments
-<as myas>
-dispatch arg is baz, 3 arguments
-<as myas>
-<closure baz>
-<closure baz>
-dispatch arg is yo!, 2 arguments
-<procedure dispatch>
-<procedure dispatch>
+dispatch invoked on <domain mydom>
+dispatch method is foo
+arg[0] = <cval 1>
+arg[1] = <cval 2>
+arg[2] = <cval 3>
+dispatch invoked on <domain mydom>
+dispatch method is bar
+dispatch invoked on <domain mydom>
+dispatch method is baz
+arg[0] = <closure baz>
+arg[1] = <closure baz>
+dispatch invoked on <domain mydom>
+dispatch method is yo!
+arg[0] = <closure dispatch>
+dispatch invoked on <as myas>
+dispatch method is foo
+arg[0] = <cval 1>
+arg[1] = <cval 2>
+arg[2] = <cval 3>
+dispatch invoked on <as myas>
+dispatch method is bar
+dispatch invoked on <as myas>
+dispatch method is baz
+arg[0] = <closure baz>
+arg[1] = <closure baz>
+dispatch invoked on <as myas>
+dispatch method is yo!
+arg[0] = <closure dispatch>

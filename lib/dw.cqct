@@ -1,6 +1,6 @@
 define mkdwdom (elfdom, dbsec) {
   @local dwas, dwnames;
-  dwnames = @names elfdom.names {
+  dwnames = @names elfdom.ns {
     @include "dw.names"
   };
   dwas = mksas (dbsec);
@@ -5154,7 +5154,7 @@ define get_frame_base_from_pc (indom, exas, etab, doml)
   @local ptr, locdom, i, j, k, n, len1, len2, fbl, gfbi, gfbj;
   @local ar, ardom, arl, cu, cukey;
   @local lo, hi, ent, rv, dumdom, pc;
-  dumdom = mkdom (indom.names, exas);
+  dumdom = mkdom (indom.ns, exas);
   pc = dumdom.getrip();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom, doml);
   cukey = dw_get_dieoff_for_cu (ardom, pc);
@@ -6593,7 +6593,7 @@ define skip_prologue (dom, name)
 {
   @local ns, sym, saddr, cultab, lent, ardom, cuoff, doml, linedom;
   @local cuinfo, nextent, i, lim, eindex, esrcline, rv, lastaddr, reset;
-  ns = dom.names;
+  ns = dom.ns;
   sym = ns.looksym (name);
   if (isnil (sym))
     return nil;
@@ -6608,7 +6608,7 @@ define skip_prologue (dom, name)
      will need to make sure that any additions of lists for such other
      binaries as shared libraries are appended to this list instead of
      pushed on it. */
-  doml = dom.names.nsdomlist ();
+  doml = dom.ns.nsdomlist ();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_elfdomain,
 			listref (listref (doml, 0), _dwcqct_elfdomain),
 			doml);

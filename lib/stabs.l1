@@ -5,11 +5,11 @@ edom = mkelfdom(mapfile(listref(args, 0)));
 stab = getelfsection(edom, ".stab");
 
 if(sizeof(nsptr(edom)) == 4)
-     stabns = @names nsof(edom) { @include "stabs32.names" };
+     stabns = @names edom.ns { @include "stabs32.names" };
 else
-     stabns = @names nsof(edom) { @include "stabs64.names" };
+     stabns = @names edom.ns { @include "stabs64.names" };
 
-stdom = mkdom(stabns, asof(edom));
+stdom = mkdom(stabns, edom.as);
 
 stabs = getelfsection(edom, ".stab");
 stablim = strlen(stabs);

@@ -1,15 +1,15 @@
 define dispatch args {
-	@local arg, i;
-	arg = listref(args, 0);
-	printf("dispatch arg is %s, %d arguments\n", arg, length(args)-1);
-	for(i = 1; i < length(args); i++)
-		printf("%a\n", listref(args, i));
+	@local i;
+	printf("dispatch invoked on %a\n", pop(args));
+	printf("dispatch method is %s\n", pop(args));
+	for(i = 0; i < length(args); i++)
+		printf("arg[%d] = %a\n", i, listref(args, i));
 }
 
 ns = c32le;
 as = mkas(dispatch, "myas");
 dom = mkdom(ns, as, "mydom");
-printf("isns(dom.names) = %d\n", isns(dom.names));
+printf("isns(dom.ns) = %d\n", isns(dom.ns));
 printf("isas(dom.as) = %d\n", isas(dom.as));
 
 define test(o){
@@ -19,7 +19,7 @@ define test(o){
 	fn = o.baz;
 	fn(fn, fn);
 	fn = o.dispatch;
-	fn("yo!", fn, fn);
+	fn("yo!", fn);
 }
 test(dom);
 test(as);

@@ -4,7 +4,7 @@ define mkzas(len){
 	map = vector(mkrange(0,len));
 	define dispatch args {
 		@local arg, range, s, new, beg, end;
-		arg = listref(args, 0);
+		arg = listref(args, 1);
 
 		if(arg == "get"){
 			range = listref(args, 2);

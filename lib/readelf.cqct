@@ -529,7 +529,7 @@ define ntype2str(elfdom, ntype)
 define print_fileheader(elfdom)
 {
 	@local e, i, elftype;
-	if (sizeof (nsptr (elfdom.names)) == 4) {
+	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		e = (elfdom`Elf32_Ehdr *){elfdom} 0;
 		elftype = "ELF32";
 	}
@@ -615,7 +615,7 @@ define print_secheaders64(elfdom, e, sarray)
 define print_secheaders(elfdom)
 {
 	@local e, sarray;
-	if (sizeof (nsptr (elfdom.names)) == 4) {
+	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		e = (elfdom`Elf32_Ehdr *){elfdom} 0;
 		sarray = (elfdom`Elf32_Shdr *) e->e_shoff;
 		print_secheaders32(elfdom, e, sarray);
@@ -635,7 +635,7 @@ define print_progheaders(elfdom)
 {
 	@local e, pharray, p, i, is32;
 
-	if (sizeof (nsptr (elfdom.names)) == 4) {
+	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		e = (elfdom`Elf32_Ehdr *){elfdom} 0;
 		pharray = (elfdom`Elf32_Phdr *) e->e_phoff;
 		is32 = 1;
@@ -684,7 +684,7 @@ define print_progheaders(elfdom)
 define print_symbols(elfdom)
 {
 	@local e, shbase, strbase, symbase, sec, sym, i, st, is32;
-	if (sizeof (nsptr (elfdom.names)) == 4) {
+	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		e = (elfdom`Elf32_Ehdr *){elfdom} 0;
 		shbase = (elfdom`Elf32_Shdr *) (e->e_shoff);
 		is32 = 1;
@@ -750,7 +750,7 @@ define print_notes(elfdom)
 {
 	@local e, pharray, p, i, is32;
 
-	if (sizeof (nsptr (elfdom.names)) == 4) {
+	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		e = (elfdom`Elf32_Ehdr *){elfdom} 0;
 		pharray = (elfdom`Elf32_Phdr *) e->e_phoff;
 		is32 = 1;
@@ -907,7 +907,7 @@ define main(args)
 	if (do_progheaders) {
 		if (!do_fileheader) {
 			@local e;
-			if (sizeof (nsptr (elfdom.names)) == 4) {
+			if (sizeof (nsptr (elfdom.ns)) == 4) {
 				e = (elfdom`Elf32_Ehdr *){elfdom} 0;
 			}
 			else {
