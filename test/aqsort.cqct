@@ -53,3 +53,5 @@ define testaqsort(){
 		printf("%d ", val[i]);
 	printf("\n");
 }
+
+testaqsort ();
