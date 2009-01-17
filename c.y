@@ -58,6 +58,7 @@ extern char *yytext;
 %type <expr> tn_direct_abstract_declarator tn_declarator tn_direct_declarator
 %type <expr> tn_param_type_specifier tn_param_struct_or_union_specifier
 %type <expr> tn_param_enum_specifier
+%type <expr> table_init table_init_list
 
 %type <kind> unary_operator assignment_operator struct_or_union
 
@@ -105,6 +106,24 @@ defrec_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
 	;
 
+table_init
+	: root_expression ':' root_expression
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
+			  $1,
+			  newexprsrc(&ctx->inp->src, Eelist,
+				     $3, nullelist(), 0, 0),
+			  0, 0);
+	}
+	;
+
+table_init_list
+	: table_init
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
+	| table_init_list ',' table_init
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
+	;
+
+
 primary_expression
 	: id
 	| tickid
@@ -120,6 +139,10 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
+	| '{' table_init_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
+	| '{' table_init_list ',' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| lambda_expression
 	| defrec_expression
 	;

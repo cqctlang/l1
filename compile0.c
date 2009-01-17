@@ -378,6 +378,34 @@ rmenids(Type *t, HT *enid)
 }
 
 static Expr*
+compiletab(U *ctx, Expr *e)
+{
+	Expr *loc, *te, *se, *ti;
+
+	loc = Zlocals(1, "$tab");
+	te = nullelist();
+
+	se = Zset(doid("$tab"), Zcall(doid("%mktab"), 0));
+	se->src = e->src;
+	te = Zcons(se, te);
+
+	e = e->e1;
+	while(e->kind == Eelist){
+		ti = e->e1;
+		se = Zcall(doid("%tabinsert"), 3,
+			   doid("$tab"), ti->e1, ti->e2->e1);
+		te = Zcons(se, te);
+		ti->e1 = 0;
+		ti->e2->e1 = 0;
+		e = e->e2;
+	}
+	se = doid("$tab");
+	te = Zcons(se, te);
+
+	return newexpr(Eblock, loc, invert(te), 0, 0);
+}
+
+static Expr*
 compilens(U *ctx, Expr *e)
 {
 	Expr *se, *te;
@@ -771,6 +799,10 @@ compile0(U *ctx, Expr *e)
 	case Econtainer:
 		se = compilecontainer(ctx, e);
 		e->e1 = 0;
+		freeexpr(e);
+		return se;
+	case Etab:
+		se = compiletab(ctx, e);
 		freeexpr(e);
 		return se;
 	case Elist:

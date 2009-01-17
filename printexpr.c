@@ -95,6 +95,7 @@ char* S[] = {
 	[Estruct] =	"Estruct",
 	[Esub] =	"Esub",
 	[Eswitch] =	"Eswitch",
+	[Etab] =	"Etab",
 	[Etick] = 	"Etick",
 	[Etid] = 	"Etid",
 	[Etypedef] =	"Etypedef",

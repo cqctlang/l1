@@ -102,6 +102,7 @@ enum{
 	Estruct,
 	Esub,
 	Eswitch,
+	Etab,
 	Etick,
 	Etid,
 	Etypedef,
