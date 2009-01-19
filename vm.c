@@ -8446,7 +8446,7 @@ static void
 l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s, *t;
-	Cval *off;
+	Cval *off, *cv;
 	Imm o;
 
 	if(argc != 3)
@@ -8455,15 +8455,22 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to strput must be a string");
 	if(argv[1]->qkind != Qcval)
 		vmerr(vm, "operand 2 to strput must be an offset");
-	if(argv[2]->qkind != Qstr)
-		vmerr(vm, "operand 3 to strput must be a string");
+	if(argv[2]->qkind != Qstr && argv[2]->qkind != Qcval)
+		vmerr(vm, "operand 3 to strput must be a string or character");
 	s = valstr(argv[0]);
 	off = valcval(argv[1]);
-	t = valstr(argv[2]);
 	o = off->val;		/* FIXME: use type */
-	if(o >= s->len || o+t->len > s->len)
+	if(o >= s->len)
 		vmerr(vm, "strput out of bounds");
-	memcpy(s->s+o, t->s, t->len);
+	if(argv[2]->qkind == Qstr){
+		t = valstr(argv[2]);
+		if(o+t->len > s->len)
+			vmerr(vm, "strput out of bounds");
+		memcpy(s->s+o, t->s, t->len);
+	}else{
+		cv = valcval(argv[2]);
+		s->s[o] = (char)cv->val;
+	}
 }
 
 static void
@@ -9671,7 +9678,7 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to length");
 	switch(argv[0]->qkind){
 	default:
-		vmerr(vm, "operand 1 to length must be something lengthy");
+		vmerr(vm, "operand 1 to length must be a container");
 	case Qlist:
 		lst = vallist(argv[0]);
 		len = listxlen(lst->x);
@@ -10043,6 +10050,62 @@ l1_rdsettab(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "rdsettab", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvaltab(rd->set);
+}
+
+static void
+l1_cntrget(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cntrget");
+	switch(argv[0]->qkind){
+	default:
+		vmerr(vm, "operand 1 to cntrget must be a container");
+	case Qlist:
+		l1_listref(vm, argc, argv, rv);
+		break;
+	case Qstr:
+		l1_strref(vm, argc, argv, rv);
+		break;
+	case Qvec:
+		l1_vecref(vm, argc, argv, rv);
+		break;
+	case Qtab:
+		l1_tablook(vm, argc, argv, rv);
+		break;
+	}
+}
+
+static void
+l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to cntrput");
+	switch(argv[0]->qkind){
+	default:
+		vmerr(vm, "operand 1 to cntrput must be a container");
+	case Qlist:
+		l1_listset(vm, argc, argv, rv);
+		*rv = argv[2];
+		break;
+	case Qstr:
+		l1_strput(vm, argc, argv, rv);
+		if(argv[2]->qkind == Qcval){
+			cv = valcval(argv[2]);
+			cv = typecast(vm, cv->dom->ns->base[Vchar], cv);
+			*rv = mkvalcval2(cv);
+		}else
+			*rv = argv[2];
+		break;
+	case Qvec:
+		l1_vecset(vm, argc, argv, rv);
+		*rv = argv[2];
+		break;
+	case Qtab:
+		l1_tabinsert(vm, argc, argv, rv);
+		*rv = argv[2];
+		break;
+	}
 }
 
 static void
@@ -10718,6 +10781,8 @@ mktopenv()
 	FN(car);
 	FN(cdr);
 	FN(close);
+	FN(cntrget);
+	FN(cntrput);
 	FN(cons);
 	FN(copy);
 	FN(domof);

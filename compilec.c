@@ -535,18 +535,94 @@ expandaref(U *ctx, Expr *e)
 			    Zset(doid("$i"), i),
 			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
 				    e,
-				    Zcall(doid("%ctnrput"), 3,
+				    Zcall(doid("%cntrput"), 3,
 					  doid("$a"),
 					  doid("$i"),
 					  copyexpr(e->e2))),
 			    NULL);
 		return te;
 	case Egop:
+		e->e2 = expandaref(ctx, e->e2);
+		if(e->e1->kind != Earef)
+			return e;
+		e->e1->e2 = expandaref(ctx, e->e1->e2);
+		if(islval(e->e1->e1))
+			return e;
+		a = expandaref(ctx, e->e1->e1);
+		i = e->e1->e2;
+		e->e1->e1 = doid("$a");
+		e->e1->e2 = doid("$i");
+		te = Zblock(Zlocals(2, "$a", "$i"),
+			    Zset(doid("$a"), a),
+			    Zset(doid("$i"), i),
+			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
+				    e,
+				    Zcall(doid("%cntrput"), 3,
+					  doid("$a"),
+					  doid("$i"),
+					  Zbinop(e->op,
+						 Zcall(doid("%cntrget"), 2,
+						       doid("$a"), doid("$i")),
+						 copyexpr(e->e2)))),
+			    NULL);
+		return te;
 	case Epreinc:
 	case Epredec:
+		if(e->e1->kind != Earef)
+			return e;
+		e->e1->e2 = expandaref(ctx, e->e1->e2);
+		if(islval(e->e1->e1))
+			return e;
+		a = expandaref(ctx, e->e1->e1);
+		i = e->e1->e2;
+		e->e1->e1 = doid("$a");
+		e->e1->e2 = doid("$i");
+		te = Zblock(Zlocals(2, "$a", "$i"),
+			    Zset(doid("$a"), a),
+			    Zset(doid("$i"), i),
+			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
+				    e,
+				    Zcall(doid("%cntrput"), 3,
+					  doid("$a"),
+					  doid("$i"),
+					  Zbinop(e->kind == Epreinc ?
+						 Eadd : Esub,
+						 Zcall(doid("%cntrget"), 2,
+						       doid("$a"), doid("$i")),
+						 Zuint(1)))),
+			    NULL);
+		return te;
 	case Epostinc:
 	case Epostdec:
-		cerror(ctx, e, "unhandled aref expansion case");
+		if(e->e1->kind != Earef)
+			return e;
+		e->e1->e2 = expandaref(ctx, e->e1->e2);
+		if(islval(e->e1->e1))
+			return e;
+		a = expandaref(ctx, e->e1->e1);
+		i = e->e1->e2;
+		e->e1->e1 = doid("$a");
+		e->e1->e2 = doid("$i");
+		te = Zblock(Zlocals(2, "$a", "$i"),
+			    Zset(doid("$a"), a),
+			    Zset(doid("$i"), i),
+			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
+				    e,
+				    Zblock(Zlocals(1, "$l"),
+					   Zset(doid("$l"),
+						Zcall(doid("%cntrget"), 2,
+						      doid("$a"), doid("$i"))),
+					   Zcall(doid("%cntrput"), 3,
+						 doid("$a"),
+						 doid("$i"),
+						 Zbinop(e->kind == Epostinc ?
+							Eadd : Esub,
+							doid("$l"),
+							Zuint(1))),
+					   doid("$l"),
+					   NULL)),
+			    NULL);
+		return te;
 	case Earef:
 		e->e2 = expandaref(ctx, e->e2);
 		if(islval(e->e1))
@@ -561,7 +637,7 @@ expandaref(U *ctx, Expr *e)
 			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
 				    e,
 				    Zcall(doid("%cntrget"), 2,
-					  doid("$e"), doid("$i"))),
+					  doid("$a"), doid("$i"))),
 			    NULL);
 		return te;
 	case Eelist:
@@ -794,7 +870,7 @@ static Expr*
 compilec(U *ctx, Expr* e)
 {
 	groomc(ctx, e);
-//	expandaref(ctx, e);
+	expandaref(ctx, e);
 	expandc(ctx, e);
 	expanddot(ctx, e);
 	compile_rval(ctx, e, 0);

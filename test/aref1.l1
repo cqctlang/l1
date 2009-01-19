@@ -1,0 +1,92 @@
+tab = { "abc" : 1,
+	"def" : 2,
+	"ghi" : 3 };
+
+printf("expect 1 => %d\n", tab["abc"]);
+printf("expect 2 => %d\n", tab["def"]);
+printf("expect 3 => %d\n", tab["ghi"]);
+printf("expect 1 => %d\n", isnil(tab["jkl"]));
+
+tab["jkl"] = 4;
+printf("expect 4 => %d\n", tab["jkl"]);
+
+tab["jkl"] += 1;
+printf("expect 5 => %d\n", tab["jkl"]);
+
+tab["jkl"] *= 2;
+printf("expect 10 => %d\n", tab["jkl"]);
+
+tab["jkl"] /= 2;
+printf("expect 5 => %d\n", tab["jkl"]);
+
+x = tab["jkl"]++;
+printf("expect 5 => %d\n", x);
+printf("expect 6 => %d\n", tab["jkl"]);
+
+x = tab["jkl"]--;
+printf("expect 6 => %d\n", x);
+printf("expect 5 => %d\n", tab["jkl"]);
+
+x = ++tab["jkl"];
+printf("expect 6 => %d\n", x);
+printf("expect 6 => %d\n", tab["jkl"]);
+
+x = --tab["jkl"];
+printf("expect 5 => %d\n", x);
+printf("expect 5 => %d\n", tab["jkl"]);
+
+
+l = [ 1, 2, 3, 0];
+
+printf("expect 0 => %d\n", l[3]);
+l[3] = 3;
+printf("expect 3 => %d\n", l[3]);
+x = l[3] = 4;
+printf("expect 4 => %d\n", l[3]);
+
+
+printf("expect 4 => %d\n", l[3]);
+
+l[3] += 1;
+printf("expect 5 => %d\n", l[3]);
+
+l[3] *= 2;
+printf("expect 10 => %d\n", l[3]);
+
+l[3] /= 2;
+printf("expect 5 => %d\n", l[3]);
+
+x = l[3]++;
+printf("expect 5 => %d\n", x);
+printf("expect 6 => %d\n", l[3]);
+
+x = l[3]--;
+printf("expect 6 => %d\n", x);
+printf("expect 5 => %d\n", l[3]);
+
+x = ++l[3];
+printf("expect 6 => %d\n", x);
+printf("expect 6 => %d\n", l[3]);
+
+x = --l[3];
+printf("expect 5 => %d\n", x);
+printf("expect 5 => %d\n", l[3]);
+
+
+s = "abc";
+
+printf("expect b => %c\n", s[1]);
+s[1] = 'c';
+printf("expect c => %c\n", s[1]);
+
+x = s[1]++;
+printf("expect c => %c\n", x);
+printf("expect d => %c\n", s[1]);
+
+printf("expect 1 => %d\n", s[1] == s[1]);
+printf("expect 0 => %d\n", s[0] == s[1]);
+
+x = s[1] = "bc";
+printf("expect bc => %s\n", x);
+printf("expect abc => %s\n", s);
+
