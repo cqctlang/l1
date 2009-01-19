@@ -251,3 +251,30 @@ Zids2strs(Expr *l)
 	}
 	return Zapply(doid("%list"), invert(te));
 }
+
+void
+putsrc(Expr *e, Src *src)
+{
+	Expr *p;
+	if(e == 0)
+		return;
+
+	/* only put source information if there isn't any */
+	if(e->src.line == 0)
+		e->src = *src;
+	switch(e->kind){
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			putsrc(p->e1, src);
+			p = p->e2;
+		}
+		break;
+	default:
+		putsrc(e->e1, src);
+		putsrc(e->e2, src);
+		putsrc(e->e3, src);
+		putsrc(e->e4, src);
+		break;
+	} 
+}

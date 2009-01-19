@@ -519,6 +519,18 @@ expandaref(U *ctx, Expr *e)
 		return e;
 	/* FIXME: unify with expanddot */
 	switch(e->kind){
+	case Eref:
+	case Edot:
+		if(e->e1->kind == Earef){
+			/* E->E1 must be a lvalue, so don't expand it
+			   (but do expand its children) */
+			e->e1->e1 = expandaref(ctx, e->e1->e1);
+			e->e1->e2 = expandaref(ctx, e->e1->e2);
+		}else{
+			e->e1 = expandaref(ctx, e->e1);
+			e->e2 = expandaref(ctx, e->e2);
+		}
+		return e;
 	case Eg:
 		e->e2 = expandaref(ctx, e->e2);
 		if(e->e1->kind != Earef)
@@ -540,6 +552,7 @@ expandaref(U *ctx, Expr *e)
 					  doid("$i"),
 					  copyexpr(e->e2))),
 			    NULL);
+		putsrc(te, &e->src);
 		return te;
 	case Egop:
 		e->e2 = expandaref(ctx, e->e2);
@@ -565,6 +578,7 @@ expandaref(U *ctx, Expr *e)
 						       doid("$a"), doid("$i")),
 						 copyexpr(e->e2)))),
 			    NULL);
+		putsrc(te, &e->src);
 		return te;
 	case Epreinc:
 	case Epredec:
@@ -591,6 +605,7 @@ expandaref(U *ctx, Expr *e)
 						       doid("$a"), doid("$i")),
 						 Zuint(1)))),
 			    NULL);
+		putsrc(te, &e->src);
 		return te;
 	case Epostinc:
 	case Epostdec:
@@ -622,6 +637,7 @@ expandaref(U *ctx, Expr *e)
 					   doid("$l"),
 					   NULL)),
 			    NULL);
+		putsrc(te, &e->src);
 		return te;
 	case Earef:
 		e->e2 = expandaref(ctx, e->e2);
@@ -639,6 +655,7 @@ expandaref(U *ctx, Expr *e)
 				    Zcall(doid("%cntrget"), 2,
 					  doid("$a"), doid("$i"))),
 			    NULL);
+		putsrc(te, &e->src);
 		return te;
 	case Eelist:
 		p = e;
