@@ -8769,14 +8769,13 @@ l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkas");
-	checkarg(vm, "mkas", argv, 0, Qcl);
+	checkarg(vm, "mkas", argv, 0, Qtab);
 	name = 0;
 	if(argc == 2){
 		checkarg(vm, "mkas", argv, 1, Qstr);
 		name = valstr(argv[1]);
 	}
-	mtab = mktab();
-	_tabput(mtab, mkvalstr(mkstr0("dispatch")), argv[0]);
+	mtab = valtab(argv[0]);
 	as = mkastab(mtab, name);
 	*rv = mkvalas(as);
 }

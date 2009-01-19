@@ -152,5 +152,6 @@ define mkoutdispatch(fd, eofk){
 }
 
 define mkfdas(fd, eofk){
-	return [ mkas(mkindispatch(fd, eofk)), mkas(mkoutdispatch(fd, eofk)) ];
+	return [ mkas({ "dispatch" : mkindispatch(fd, eofk) }),
+		 mkas({ "dispatch" : mkoutdispatch(fd, eofk) }) ];
 }

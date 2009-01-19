@@ -32,7 +32,7 @@ define mkzas(len){
 
 		printf("bad argument to dispatch!\n");
 	}
-	return mkas(dispatch);
+	return mkas({ "dispatch" : dispatch });
 }
 
 dom1 = mkdom(c32le, mkzas(0));

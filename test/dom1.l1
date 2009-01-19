@@ -25,7 +25,7 @@ define mkzas(len){
 
 		printf("bad argument to dispatch: %s!\n", arg);
 	}
-	return mkas(dispatch);
+	return mkas({ "dispatch" : dispatch });
 }
 
 define main(){

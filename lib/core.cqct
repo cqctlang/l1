@@ -171,5 +171,5 @@ define mkcoreas(fname)
 		}
 		error("bad argument to dispatch in core file %s\n", fname);
 	}
-	return mkas(dispatch, fname);       
+	return mkas({ "dispatch" : dispatch }, fname);       
 }

@@ -25,7 +25,7 @@ define mkzas(len){
 
 		printf("bad argument to dispatch!\n");
 	}
-	return mkas(dispatch);
+	return mkas({ "dispatch" : dispatch });
 }
 
 ns = @names c32le {
