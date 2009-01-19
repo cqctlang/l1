@@ -4,7 +4,7 @@ Attaching L1 to a linux process with prctl
 1.  get and build prctl.
 
     # clone the cqct repository, if you haven't already
-    % git clone <user>@stormteam3000:/git/prctl.git prctl
+    % git clone <user>@cqctworld.org:/git/prctl.git prctl
 
     % cd prctl
     % make
