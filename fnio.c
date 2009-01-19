@@ -267,8 +267,8 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(m = 0; m < argc; m++)
 		efree(xargv[m]);
 	efree(xargv);
-	if(xfd == -1)
-		vmerr(vm, "popen error: %s", strerror(errno));
+	if(xfd < 0)
+		vmerr(vm, "%s", strerror(-xfd));
 	fd = mkfd(mkstr0("<pipe>"), xfd, Fread|Fwrite, fdclose);
 	*rv = mkvalfd(fd);
 }

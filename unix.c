@@ -162,23 +162,51 @@ setproftimer(u32 usec, void(*fn)())
 		signal(SIGPROF, SIG_DFL);
 }
 
+static void
+cloexec(int fd)
+{
+	int f;
+	f = fcntl(fd, F_GETFD);
+	if(f == -1)
+		fatal("fcntl: %s", strerror(errno));
+	f |= FD_CLOEXEC;
+	if(fcntl(fd, F_SETFD, f))
+		fatal("fcntl: %s", strerror(errno));
+}
+
 int
 xpopen(Imm argc, char **argv)
 {
-	int fd[2];
-	
-	newchan(&fd[0], &fd[1]);
+	int io[2], ctl[2];
+	Imm rv;
+	int err;
+
+	newchan(&io[0], &io[1]);
+	newchan(&ctl[0], &ctl[1]);
+	cloexec(ctl[1]);
 	switch(fork()){
 	case 0:
-		close(fd[0]);
-		dup2(fd[1], 0);
+		close(io[0]);
+		close(ctl[0]);
+		dup2(io[1], 0);
 		execvp(argv[0], argv);
-		/* FIXME: communicate exec error to caller */
+		err = errno;
+		xwrite(ctl[1], (char*)&err, sizeof(err));
 		exit(1);
 	case -1:
-		return -1;
+		return -errno;
 	default:
-		close(fd[1]);
-		return fd[0];
+		close(io[1]);
+		close(ctl[1]);
+		rv = xread(ctl[0], (char*)&err, sizeof(err));
+		close(ctl[0]);
+		if(rv == 0)
+			return io[0];
+		if(rv == -1)
+			fatal("popen: cannot communicate with child: %s",
+			      strerror(errno));
+		/* child exec failed */
+		close(io[0]);
+		return -err; /* -errno of child */
 	}
 }

@@ -6378,7 +6378,6 @@ define init_debug_domain (exfile)
   @local elfd, indom, abdom, strdom, fdom, tabs, procdoml, i, nstab, result;
   @local newlooktype, newlooksym, newlookaddr, newenumsym, newenumtype;
   @local stab, ttab, culist, i, stime, etime, gns, nscon, mtab, ldom, a2l, uw;
-  stime = gettimeofday ();
   procdoml = []; /* process-associated dwarf_domain_list */
 //   exfile = get_executable_from_proc (uproc);
   elfd = mkelfdom (mapfile (exfile));
@@ -6405,8 +6404,6 @@ define init_debug_domain (exfile)
     append (result, cutabs);
     cptr = ( head (rv));
   }
-  etime = gettimeofday ();
-  stime = etime;
   newlooksym = lambda (this, sym)
     {
       @local i, rv, ns;
@@ -6490,18 +6487,18 @@ define init_debug_domain (exfile)
   tabinsert(mtab, "nsdomlist", lambda (this) {return procdoml;});
   a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
   tabinsert(mtab, "addr2line", a2l);
-  uw = lambda (this, exdom, addr, exbase)
+  uw = lambda (this, exdom, addr)
          {
-	   return dw_unwind (exdom, fdom, addr, exbase, procdoml);
+	   return dw_unwind (exdom, fdom, addr, 0, procdoml);
 	 };
   tabinsert(mtab, "unwind", uw);
-  gns = mkns (mtab);
-  etime = gettimeofday ();
-  printf ("Additional time for building gns is  %a\n", etime - stime);
-  stime = etime;
-  nscon = lambda (uas, addr) {
+  nscon = lambda (this, addr) {
     @local cu, rv, cutabs;
-    @local tns, lt, ls, la, et, es, getretaddr, lnstab;
+    @local tns, lt, ls, la, et, es, getretaddr, lnstab, uas;
+    if (isdom (this))
+      uas = this.as;
+    else
+      error ("nscon must be called from a domain that can supply an as\n");
     cutabs = find_fn_and_cu (indom, addr, dietab, procdoml);
     if (isnil (cutabs)) {
       @local ar, arl, ardom, cuns, cuoff;
@@ -6530,12 +6527,14 @@ define init_debug_domain (exfile)
     tabinsert(lnstab, "nsdomlist", lambda (this) {return procdoml;});
     a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
     tabinsert(lnstab, "addr2line", a2l);
-    uw = lambda (this, exdom, addr, exbase)
+    //uw = lambda (this, exdom, addr, exbase)
+    uw = lambda (this, exdom, addr)
     {
-      return dw_unwind (exdom, fdom, addr, exbase, procdoml);
+      return tns.unwind (exdom, addr);
     };
     tabinsert(lnstab, "unwind", uw);
-    getretaddr = lambda (this, exdom, addr, exbase) {
+    //getretaddr = lambda (this, exdom, addr, exbase) {
+    getretaddr = lambda (this) {
       @local asize, rlist, rvec, retaddrloc, raregno, cfa;
       retaddrloc = nil;
       asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, procdoml);
@@ -6554,10 +6553,10 @@ define init_debug_domain (exfile)
 	  continue;
 	reg = head (r);
 	if (reg == fdom`DW_FRAME_CFA_COL) {
-	  cfa = _dw_get_regval (exdom, listref (r, 1)) + listref (r, 2);
+	  cfa = _dw_get_regval (this, listref (r, 1)) + listref (r, 2);
 	}
 	else if (reg == raregno) {
-	  retaddrloc = (unsigned long *) ({exdom}(cfa + listref (r,2)));
+	  retaddrloc = (unsigned long *) ({this}(cfa + listref (r,2)));
 	  break;
 	}
 	else
@@ -6569,9 +6568,9 @@ define init_debug_domain (exfile)
     rv = mkns (lnstab);
     return rv;
   };
-  etime = gettimeofday ();
-  printf ("Time for defining nscon is %a\n", etime - stime);
-  return [gns, nscon];
+  tabinsert (mtab, "nscon", nscon);
+  gns = mkns (mtab);
+  return gns;
 }
 
 /* Everything about this is ugly. This function exists because GCC emits
@@ -6593,8 +6592,9 @@ define skip_prologue (dom, name)
 {
   @local ns, sym, saddr, cultab, lent, ardom, cuoff, doml, linedom;
   @local cuinfo, nextent, i, lim, eindex, esrcline, rv, lastaddr, reset;
-  ns = dom.ns;
-  sym = ns.looksym (name);
+  //ns = dom.ns;
+  //sym = ns.looksym (name);
+  sym = dom.looksym (name);
   if (isnil (sym))
     return nil;
   if (!isfunc (vecref (sym, 0)))
@@ -6608,7 +6608,8 @@ define skip_prologue (dom, name)
      will need to make sure that any additions of lists for such other
      binaries as shared libraries are appended to this list instead of
      pushed on it. */
-  doml = dom.ns.nsdomlist ();
+  //doml = dom.ns.nsdomlist ();
+  doml = dom.nsdomlist ();
   ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_elfdomain,
 			listref (listref (doml, 0), _dwcqct_elfdomain),
 			doml);
