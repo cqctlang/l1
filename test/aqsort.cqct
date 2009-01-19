@@ -6,9 +6,9 @@
 
 define aqsortdom(){
 	@local aqsortns, pras, gns;
-	gns = init_debug_domain ("./aqsort");
+	gns = init_debug_domain("./aqsort");
 
- 	pras = mklocalprocas ("./aqsort");
+ 	pras = mklocalprocas("./aqsort");
 	return mkdom(gns, pras);
 }
 
@@ -24,10 +24,10 @@ define testaqsort(){
 	val = tmp`val;
 	for(i = 0; i < 64; i++)
 		val[i] = gas;
-	pr.bpset((pr`uint64)skip_prologue (pr, "cmpx"), lambda(addr){
+	pr.bpset((pr`uint64)skip_prologue(pr, "cmpx"), lambda(addr){
 	                 @local x, y, ra, id, lns, ldom;
-			 lns = pr.nscon (addr);
-			 ldom = mkdom (lns, pr.as);
+			 lns = pr.nscon(addr);
+			 ldom = mkdom(lns, pr.as);
 			 x = {tmp}*((int*)ldom`px);
 			 y = {tmp}*((int*)ldom`py);
 			 pr`ncmp++;
@@ -40,7 +40,7 @@ define testaqsort(){
 				 candidate = x;
 			 else if(val[y] == gas)
 				 candidate = y;
-			 ra = *(long *)ldom.getretaddr ();
+			 ra = *(long *)ldom.getretaddr();
 			 id = pr.bpset(ra, lambda(addr){
 					       pr.seteax(val[x]-val[y]);
 					       pr.bpdel(id);
@@ -54,4 +54,4 @@ define testaqsort(){
 	printf("\n");
 }
 
-testaqsort ();
+testaqsort();
