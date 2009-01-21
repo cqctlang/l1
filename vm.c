@@ -77,7 +77,7 @@ struct Heap {
 	unsigned long nalloc, nfree, nha;    /* statistics */
 };
 
-static Head *GCiterdone;
+static void *GCiterdone;
 
 #define GCCOLOR(i) ((i)%3)
 enum {
