@@ -274,10 +274,13 @@ do1tid(void *u, char *k, void *v)
 	loc = Zlocals(1, "$tn");
 
 	te = nullelist();
-	se = Zset(doid("$tn"), gentypename(d->type, compile0, up->ctx));
+	se = Zset(doid("$tn"),
+		  Zcall(doid("%mkctype_typedef"), 2,
+			Zstr(d->id),
+			gentypename(d->type, compile0, up->ctx)));
 	te = Zcons(se, te);
 
-	/* typedef T TID => typetab[typedef(TID)] = typename(T) */
+	/* typedef T TID => typetab[typedef(TID)] = typedef(TID,typename(T)) */
 	tn = Zcall(doid("%mkctype_typedef"), 1, Zstr(d->id));
 	se = Zcall(doid("%tabinsert"), 3, doid("$typetab"), tn, 
 		   doid("$tn"));

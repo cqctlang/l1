@@ -5051,7 +5051,7 @@ static Xtypename*
 resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 {
 	Val rv;
-	Xtypename *xtn, *new;
+	Xtypename *xtn, *new, *def;
 
 	/* have we already defined this type in the new namespace? */
 	rv = tabget(ctx->type, xtnv);
@@ -5069,7 +5069,12 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 		/* bind before recursive resolve call to stop cycles */
 		tabput(vm, ctx->type, xtnv, mkvalxtn(new));
 
-		new->link = resolvetypename(vm, valxtn(rv), ctx);
+		def = valxtn(rv);
+		if(def->tkind != Ttypedef)
+			vmerr(vm, "invalid typedef in raw type table");
+		if(!eqstr(def->tid, xtn->tid))
+			vmerr(vm, "invalid typedef in raw type table");
+		new->link = resolvetypename(vm, def->link, ctx);
 		return new;
 	}
 
@@ -5298,7 +5303,10 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		}
 		return new;
 	case Tundef:
-		fatal("bug");
+		new = mkxtn();
+		new->tkind = Tundef;
+		new->link = xtn->link;
+		return new;
 	}
 	fatal("bug");
 }
@@ -5522,6 +5530,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	ctx.type = mktab();
 	ctx.sym = mktab();
 	ctx.undef = mktab();
+	gcprotect(vm, ctx.type);
+	gcprotect(vm, ctx.sym);
+	gcprotect(vm, ctx.undef);
 
 	ctx.ons = ons;
 	xargv[0] = mkvalns(ons);
@@ -5530,7 +5541,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	if(ons->enumsym == 0)
 		vmerr(vm, "parent name space does not define enumsym");
 	ctx.otype = valtab(dovm(vm, ons->enumtype, 1, xargv));
+	gcprotect(vm, ctx.otype);
 	ctx.osym = valtab(dovm(vm, ons->enumsym, 1, xargv));
+	gcprotect(vm, ctx.osym);
 
 	/* get pointer representation from parent name space */
 	xtn = mkxtn();		/* will be garbage */

@@ -5400,7 +5400,7 @@ define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
       else
 	aliastype = dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 3)),
 				  stab, ttab, cqtab, 0);
-      tabinsert (cqtab, ttype, aliastype);
+      tabinsert (cqtab, ttype, mkctype_typedef (tagname, aliastype));
       return ttype;
     }
     else
