@@ -42,7 +42,7 @@ define printtype(t){
 
 define dumpns(dn){
 	@local ns, fn;
-	if(isdomain(dn))
+	if(isdom(dn))
 		ns = dn.ns;
 	else
 		ns = dn;

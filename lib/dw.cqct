@@ -1225,7 +1225,8 @@ define dw_unwind (exdom, fdom, ip, exbase, doml)
   /* Comment this out for now. Later we will figure out how to use it. */
   //printf ("bt is %a\n", bt);
   //printf ("result is %a\n", result);
-  return result;
+  //return result;
+  return [result, bt];
 }
 
 /* Each register will be defined by a register and an offset. Register
@@ -6167,13 +6168,15 @@ define symloc (typetab, symtab, sym, exas, pc, ctab, doml)
 define make_local_ns (indom, exas, pc, etab, doml)
 {
   @local f, cu, ns, ftab, fstab, ntab, nstab, inscope, rns;
-  ntab = mktab ();
-  nstab = mktab ();
+  //ntab = mktab ();
+  //nstab = mktab ();
   cu = find_fn_and_cu (indom, pc, etab, doml);
   rns = listref (cu, 3);
   f = find_fn (indom, pc, cu);
   ftab = listref (f, 2);
   fstab = listref (f, 3);
+  ntab = mycopy (rns.enumtype());
+  nstab = mycopy (rns.enumsym());
   foreach (lambda (k,v){ @local sloc;
       sloc = symloc (ftab, fstab, k, exas, {indom}pc, etab, doml);
 	     if (islist (sloc) && listref (sloc, 1) == _dwcqct_addr_type)
@@ -6487,9 +6490,12 @@ define init_debug_domain (exfile)
   tabinsert(mtab, "nsdomlist", lambda (this) {return procdoml;});
   a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
   tabinsert(mtab, "addr2line", a2l);
-  uw = lambda (this, exdom, addr)
+  uw = lambda (this, addr)
          {
-	   return dw_unwind (exdom, fdom, addr, 0, procdoml);
+	   if (isdom (this))
+	     return dw_unwind (this, fdom, addr, 0, procdoml);
+	   else
+	     error ("unwind must be called through a domain\n");
 	 };
   tabinsert(mtab, "unwind", uw);
   nscon = lambda (this, addr) {
@@ -6498,20 +6504,19 @@ define init_debug_domain (exfile)
     if (isdom (this))
       uas = this.as;
     else
-      error ("nscon must be called from a domain that can supply an as\n");
+      error ("nscon must be called from a domain that can supply an as\n, not from %a\n",
+	     this);
     cutabs = find_fn_and_cu (indom, addr, dietab, procdoml);
     if (isnil (cutabs)) {
       @local ar, arl, ardom, cuns, cuoff;
       ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom,
 			    procdoml);
       cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
+      if (isnil (cuoff))
+	return nil;
       cu = get_cu_info (indom, abdom, strdom, uas, cuoff, dietab, procdoml);
-      //cu = get_cu_info (indom, abdom, strdom, uas, cuoff, nstab, procdoml);
       cutabs = get_function_tables_for_cu (cu, rns, indom, dietab);
-      //cutabs = get_function_tables_for_cu (cu, rns, indom, nstab);
     }
-    //rv = make_local_ns (indom, uas, addr, dietab, procdoml);
-    //rv = make_local_ns (indom, addr, nstab, procdoml);
     tns = make_local_ns (indom, uas, addr, dietab, procdoml);
     lnstab = mktab ();
     lt = lambda (this, type) {return tns.looktype (type);};
@@ -6527,15 +6532,18 @@ define init_debug_domain (exfile)
     tabinsert(lnstab, "nsdomlist", lambda (this) {return procdoml;});
     a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
     tabinsert(lnstab, "addr2line", a2l);
-    //uw = lambda (this, exdom, addr, exbase)
-    uw = lambda (this, exdom, addr)
-    {
-      return tns.unwind (exdom, addr);
+    uw = lambda (this) {
+      if (isdom (this))
+	return dw_unwind (this, fdom, addr, 0, procdoml);
+      else
+	error ("unwind must be called through a domain instead of %a.\n",
+	       this);
     };
     tabinsert(lnstab, "unwind", uw);
-    //getretaddr = lambda (this, exdom, addr, exbase) {
     getretaddr = lambda (this) {
       @local asize, rlist, rvec, retaddrloc, raregno, cfa;
+      if (!isdom (this))
+	error ("getretaddr must be called through a domain.\n");
       retaddrloc = nil;
       asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, procdoml);
       /* at some point we should get this from the DWARF information in
@@ -6648,4 +6656,80 @@ define skip_prologue (dom, name)
     }
   }
   return rv;
+}
+
+define dumpstack (addr)
+{
+  @local dom, gns, ul, bt, cdom, cns, i, j, pcregno;
+  dom = domof (addr);
+  pcregno = _dw_pcregnum (dom);
+  cns = dom.nscon (addr);
+  cdom = mkdom (cns, dom.as);
+  ul = cdom.unwind ();
+  bt = listref (ul, 1);
+  for (i = 0; i < length (bt); i++) {
+    @local fr, lns, las, ldom, lpc, sym, stab;
+    fr = listref (bt, i);
+    lpc = listref (fr, pcregno);
+    las = make_local_as (dom.as, fr);
+    lns = dom.nscon (lpc);
+    if (isnil (lns))
+      continue;
+    ldom = mkdom (lns, las);
+    foreach (lambda (k,v) {
+	if (!isenum (symtype (v)) && !isenumconst (symtype (v)))
+	  print_sym (v, dom);},
+      lns.enumsym());
+  }
+  return listref (ul, 0);
+}
+
+define make_local_as (ras, regset)
+{
+  @local ldis, mtab;
+  mtab = mktab ();
+  define ldis args {
+    @local cmd, regno;
+    cmd = listref(args, 1);
+    regno = _dw_map_getfun_to_regnum (cmd);
+    if (regno == -1 || regno > length (regset)
+	|| isnil (listref (regset, regno)))
+      return ras.dispatch (args);
+    else
+      return listref (regset, regno);
+  }
+  tabinsert (mtab, "get", ras.get);
+  tabinsert (mtab, "put", ras.put);
+  tabinsert (mtab, "map", ras.map);
+  tabinsert (mtab, "dispatch", ldis);
+  return mkas (mtab);
+}
+
+define print_sym (sym, dom)
+{
+  @local stype;
+  stype = vecref (sym, 0);
+  if (istypedef (stype))
+    stype = typedeftype (stype);
+  if (isfunc (stype) || isstruct (stype) || isunion (stype) || isarray (stype)) {
+    return;
+  }
+  else if (isxaccess (stype)) {
+    printf ("0\t%t %s\t0x%x\n", stype,
+	    vecref (sym, 1), xaccessget (stype)(dom));
+  }
+  else {
+    @local rng, type, nsym, p;
+    p = {dom}{mkctype_ptr (symtype (sym), nsptr (dom))}symval (sym);
+    printf ("0x%x\t%t\t%s\t0x%x\n", symval (sym), symtype (sym),
+	    vecref (sym, 1), *p);
+  }
+}
+
+define mycopy (tab)
+{
+  @local ntab;
+  ntab = mktab();
+  foreach (lambda (k,v) {tabinsert (ntab, k, v);}, tab);
+  return ntab;
 }

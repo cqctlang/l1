@@ -43,11 +43,6 @@ define _dw_get_regval (exdom, regno)
   return 0;
 }
 
-// define _dw_get_fp (exdom)
-// {
-//   return exdom.getrbp ();
-// }
-
 define _dw_fpregnum (exdom)
 {
   return 6;
@@ -56,6 +51,11 @@ define _dw_fpregnum (exdom)
 define _dw_spregnum (exdom)
 {
   return 7;
+}
+
+define _dw_pcregnum (exdom)
+{
+  return 16;
 }
 
 define dumpregs (exdom)
@@ -77,4 +77,46 @@ define dumpregs (exdom)
   printf ("reg 14 = 0x%x (%d)\n", exdom.getr14(),exdom.getr14());
   printf ("reg 15 = 0x%x (%d)\n", exdom.getr15(),exdom.getr15());
   printf ("reg 16 = 0x%x (%d)\n", exdom.getrip(),exdom.getrip());
+}
+
+define _dw_map_getfun_to_regnum (str)
+{
+  if (!strcmp (str, "getrax"))
+    return 0;
+  else if (!strcmp (str, "getrdx"))
+    return 1;
+  else if (!strcmp (str, "getrcx"))
+    return 2;
+  else if (!strcmp (str, "getrbx"))
+    return 3;
+  else if (!strcmp (str, "getrsi"))
+    return 4;
+  else if (!strcmp (str, "getrdi"))
+    return 5;
+  else if (!strcmp (str, "getrbp"))
+    return 6;
+  else if (!strcmp (str, "getrsp"))
+    return 7;
+  else if (!strcmp (str, "getr8"))
+    return 8;
+  else if (!strcmp (str, "getr9"))
+    return 9;
+  else if (!strcmp (str, "getr10"))
+    return 10;
+  else if (!strcmp (str, "getr11"))
+    return 11;
+  else if (!strcmp (str, "getr11"))
+    return 11;
+  else if (!strcmp (str, "getr12"))
+    return 12;
+  else if (!strcmp (str, "getr13"))
+    return 13;
+  else if (!strcmp (str, "getr14"))
+    return 14;
+  else if (!strcmp (str, "getr15"))
+    return 15;
+  else if (!strcmp (str, "getrip"))
+    return 16;
+  else
+    return -1;
 }
