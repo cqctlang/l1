@@ -6473,11 +6473,14 @@ define init_debug_domain (exfile)
      compilation units. At the moment I don't know how to guarantee both
      that the type of a symbol is in the type table and that it is correct. */
   for (i = (int)(length (result) - 1); i >= 0; i--) {
-    @local localttab, localstab;
+    @local localttab, localstab, cuns;
     if (i < 0)
       break;
-    localttab = listref (listref (result, i), 0);
-    localstab = listref (listref (result, i), 1);
+    cuns = listref (listref (result, i), 3);
+    //localttab = listref (listref (result, i), 0);
+    localttab = cuns.enumtype();
+    //localstab = listref (listref (result, i), 1);
+    localstab = cuns.enumsym();
     foreach (lambda (k, v) {tabinsert (ttab, k, v);}, localttab);
     foreach (lambda (k, v) {tabinsert (stab, k, v);}, localstab);
   }
