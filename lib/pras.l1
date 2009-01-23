@@ -109,6 +109,7 @@ protns = @names c32le {
 	typedef struct Rcont Tstop;
 	typedef struct Rcont Rcont;
 	typedef struct Rcont Rwrite;
+	typedef struct Rcont Tattach;
 	typedef struct Rcont Rattach;
 	typedef struct Rcont Rclrbrk;
 	typedef struct Rcont Rkill;
@@ -157,7 +158,7 @@ protns = @names c32le {
 	typedef struct Asnap Twrite;
 };
 
-define mkpras arg {
+define mkpras(arg) {
 	@local addr, fd, cmd, as, protdom, l;
 	@local indom, outdom, ip, op, p;
 	@local read1, ipress, opress, xwr, copydata, checkreply;
@@ -263,10 +264,11 @@ define mkpras arg {
 			return ipress(#indom`Rwrite*#);
 		case indom`Rsetregs:
 			return ipress(#indom`Rsetregs*#);
+		case indom`Rattach:
+			return ipress(#indom`Rattach*#);
 		case indom`Rcleave:
 		case indom`Rsetsnap:
 		case indom`Asnap:
-		case indom`Rattach:
 		case indom`Rtest:
 		case indom`Rkill:
 		default:
@@ -285,14 +287,31 @@ define mkpras arg {
 			      op, (enum Mkind)reply->op);
 	}
 
-	define launch(arg){
+	define attach(domas, pid){
+		xwr((`uint64)sizeof(outdom`Tattach));
+		p = opress(#outdom`Tattach*#);
+		p->op = outdom`Tattach;
+		p->id = pid;
+		outdom.flush();
+		logsend("Tattach");
+
+		reply = read1();
+		checkreply(indom`Rattach, reply);
+		id = reply->id;
+		/* since attach does not stop, initialize regs to zero */
+		reg = {#indom`Reg*#}{mkdom(indom.ns,
+					   mksas(mkstr(sizeof(indom`Reg))))}0;
+		indom.flush();
+
+		state = indom`Running;
+	}
+
+	define launch(domas, arg){
 		@local argvlen, narg, i;
 
 		narg = length(arg);
 		if(narg == 0)
 			error("mkpras: launch: empty command");
-
-		log("1");
 
 		/* format Tlaunch message */
 		argvlen = 0;
@@ -700,116 +719,112 @@ define mkpras arg {
 	define setr15(domas, x) { reg->r15 = x; setregs(); }
 	define seteflags(domas, x) { reg->eflags = x; setregs(); }
 
-	dtab = mktab();
-	tabinsert(dtab, "get",		get);
-	tabinsert(dtab, "put",		put);
-	tabinsert(dtab, "map",		map);
-
-	tabinsert(dtab, "getebx",	getrbx);
-	tabinsert(dtab, "getecx",	getrcx);
-	tabinsert(dtab, "getedx",	getrdx);
-	tabinsert(dtab, "getesi",	getrsi);
-	tabinsert(dtab, "getedi",	getrdi);
-	tabinsert(dtab, "getebp",	getrbp);
-	tabinsert(dtab, "geteax",	getrax);
-	tabinsert(dtab, "geteip",	getrip);
-	tabinsert(dtab, "getesp",	getrsp);
-
-	tabinsert(dtab, "setebx",	setrbx);
-	tabinsert(dtab, "setecx",	setrcx);
-	tabinsert(dtab, "setedx",	setrdx);
-	tabinsert(dtab, "setesi",	setrsi);
-	tabinsert(dtab, "setedi",	setrdi);
-	tabinsert(dtab, "setebp",	setrbp);
-	tabinsert(dtab, "seteax",	setrax);
-	tabinsert(dtab, "seteip",	setrip);
-	tabinsert(dtab, "setesp",	setrsp);
-
-	tabinsert(dtab, "getrbx",	getrbx);
-	tabinsert(dtab, "getrcx",	getrcx);
-	tabinsert(dtab, "getrdx",	getrdx);
-	tabinsert(dtab, "getrsi",	getrsi);
-	tabinsert(dtab, "getrdi",	getrdi);
-	tabinsert(dtab, "getrbp",	getrbp);
-	tabinsert(dtab, "getrax",	getrax);
-	tabinsert(dtab, "getrip",	getrip);
-	tabinsert(dtab, "getrsp",	getrsp);
-	tabinsert(dtab, "getr8",	getr8);
-	tabinsert(dtab, "getr9",	getr9);
-	tabinsert(dtab, "getr10",	getr10);
-	tabinsert(dtab, "getr11",	getr11);
-	tabinsert(dtab, "getr12",	getr12);
-	tabinsert(dtab, "getr13",	getr13);
-	tabinsert(dtab, "getr14",	getr14);
-	tabinsert(dtab, "getr15",	getr15);
-
-	tabinsert(dtab, "setrbx",	setrbx);
-	tabinsert(dtab, "setrcx",	setrcx);
-	tabinsert(dtab, "setrdx",	setrdx);
-	tabinsert(dtab, "setrsi",	setrsi);
-	tabinsert(dtab, "setrdi",	setrdi);
-	tabinsert(dtab, "setrbp",	setrbp);
-	tabinsert(dtab, "setrax",	setrax);
-	tabinsert(dtab, "setrip",	setrip);
-	tabinsert(dtab, "setrsp",	setrsp);
-	tabinsert(dtab, "setr8",	setr8);
-	tabinsert(dtab, "setr9",	setr9);
-	tabinsert(dtab, "setr10",	setr10);
-	tabinsert(dtab, "setr11",	setr11);
-	tabinsert(dtab, "setr12",	setr12);
-	tabinsert(dtab, "setr13",	setr13);
-	tabinsert(dtab, "setr14",	setr14);
-	tabinsert(dtab, "setr15",	setr15);
-
-	tabinsert(dtab, "geteflags",	geteflags);
-	tabinsert(dtab, "seteflags",	seteflags);
-
-	tabinsert(dtab, "bpset",	setbrk);
-	tabinsert(dtab, "bpdel",	clrbrk);
-	tabinsert(dtab, "xcont",	cont);
-	tabinsert(dtab, "xstep",	step);
-	tabinsert(dtab, "xcontwait",	contwait);
-	tabinsert(dtab, "xbreak",	brk);
-
-	define dispatch arg {
-		cmd = listref(arg, 1);
-		listdel(arg, 1);
-		fn = tablook(dtab, cmd);
-		if(fn == nil)
-			error("call to undefined pras operator: %s", cmd);
-		return apply(fn, arg);
-	}
-
-	if(isstring(listref(arg, 0))){
-		addr = listref(arg, 0);
-		pop(arg);
-		fd = opentcp(addr);
-	}else if(isfd(listref(arg, 0))){
-		fd = listref(arg, 0);
-		pop(arg);
-	}else
+	dtab = {
+		"get"		:       get,
+		"put"		:	put,
+		"map"		:	map,
+		
+		"getebx"	:	getrbx,
+		"getecx"	:	getrcx,
+		"getedx"	:	getrdx,
+		"getesi"	:	getrsi,
+		"getedi"	:	getrdi,
+		"getebp"	:	getrbp,
+		"geteax"	:	getrax,
+		"geteip"	:	getrip,
+		"getesp"	:	getrsp,
+		
+		"setebx"	:	setrbx,
+		"setecx"	:	setrcx,
+		"setedx"	:	setrdx,
+		"setesi"	:	setrsi,
+		"setedi"	:	setrdi,
+		"setebp"	:	setrbp,
+		"seteax"	:	setrax,
+		"seteip"	:	setrip,
+		"setesp"	:	setrsp,
+		
+		"getrbx"	:	getrbx,
+		"getrcx"	:	getrcx,
+		"getrdx"	:	getrdx,
+		"getrsi"	:	getrsi,
+		"getrdi"	:	getrdi,
+		"getrbp"	:	getrbp,
+		"getrax"	:	getrax,
+		"getrip"	:	getrip,
+		"getrsp"	:	getrsp,
+		"getr8"		:	getr8,
+		"getr9"		:	getr9,
+		"getr10"	:	getr10,
+		"getr11"	:	getr11,
+		"getr12"	:	getr12,
+		"getr13"	:	getr13,
+		"getr14"	:	getr14,
+		"getr15"	:	getr15,
+		
+		"setrbx"	:	setrbx,
+		"setrcx"	:	setrcx,
+		"setrdx"	:	setrdx,
+		"setrsi"	:	setrsi,
+		"setrdi"	:	setrdi,
+		"setrbp"	:	setrbp,
+		"setrax"	:	setrax,
+		"setrip"	:	setrip,
+		"setrsp"	:	setrsp,
+		"setr8"		:	setr8,
+		"setr9"		:	setr9,
+		"setr10"	:	setr10,
+		"setr11"	:	setr11,
+		"setr12"	:	setr12,
+		"setr13"	:	setr13,
+		"setr14"	:	setr14,
+		"setr15"	:	setr15,
+		
+		"geteflags"	:	geteflags,
+		"seteflags"	:	seteflags,
+		
+		"launch"	:	launch,
+		"attach"	:	attach,
+		"bpset"		:	setbrk,
+		"bpdel"		:	clrbrk,
+		"xcont"		:	cont,
+		"xstep"		:	step,
+		"xcontwait"	:	contwait,
+		"xbreak"	:	brk,
+	};
+	
+	if(isstring(arg))
+		fd = opentcp(arg);
+	else if(isfd(arg))
+		fd = arg;
+	else
 		error("operand 1 to mkpras must be an address or an fd");
 
 	l = mkfdas(fd, nil);
-	indom = mkdom(protns, listref(l, 0));
-	outdom = mkdom(protns, listref(l, 1));
+	indom = mkdom(protns, l[0]);
+	outdom = mkdom(protns, l[1]);
 	ip = {indom}0;
 	op = {outdom}0;
 	brktab = mktab();
-
-	launch(arg);
-	return mkas({ "dispatch" : dispatch });
+	return mkas(dtab);
 }
 
 define mkremoteprocdom arg {
 }
 
-define mklocalprocas arg {
-	@local cmd, fd, as;
-
-	cmd = listref(arg, 0);
+define launchlocalproc arg {
+	@local fd, as;
 	fd = popen("prctl", "-c");
-	as = apply(mkpras, fd, arg);
+	as = mkpras(fd);
+	as.launch(arg);
+	return as;
+}
+
+define attachlocalproc(pid) {
+	@local fd, as;
+	fd = popen("prctl", "-c");
+	as = mkpras(fd);
+	as.attach(pid);
 	return as;
 }
 
@@ -818,6 +833,6 @@ define mklocalprocdom arg {
 
 	cmd = listref(arg, 0);
 	ns = eval(sprintfa("@names c32le { @include \"%s.names\" };", cmd));
-	as = apply(mklocalprocas, arg);
+	as = apply(launchlocalproc, arg);
 	return mkdom(ns, as);
 }

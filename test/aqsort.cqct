@@ -8,7 +8,7 @@ define aqsortdom(){
 	@local aqsortns, pras, gns;
 	gns = init_debug_domain("./aqsort");
 
- 	pras = mklocalprocas("./aqsort");
+ 	pras = launchlocalproc("./aqsort");
 	return mkdom(gns, pras);
 }
 
