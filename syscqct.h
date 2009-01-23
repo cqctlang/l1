@@ -735,7 +735,6 @@ struct VM {
 	Dom *litdom;
 	Ns *litns;
 	Xtypename **litbase;	/* always points to litns->base */
-	Str *sget, *sput, *smap;/* cached dispatch operands */
 	Fd *stdout, *stdin;
 	Root **prot;		/* stack of lists of GC-protected objects */
 	Rootset rs;		/* Root free list for prot */
