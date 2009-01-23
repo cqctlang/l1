@@ -1,0 +1,9 @@
+
+tab = { "a" : 1, "b" : 2, "c" : 3 };
+while(length(tab)){
+	@local v;
+	v = pop(tab);
+	printf("%a -> %a\n", v[0], v[1]);
+}
+
+

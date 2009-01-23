@@ -1,0 +1,15 @@
+tab1 = { "abc" : 1, "def" : 2, "ghi" : 3 };
+
+tab2 = copy(tab1);
+
+while(length(tab1)){
+	@local v;
+	v = pop(tab1);
+	printf("%a -> %a\n", v[0], v[1]);
+}
+
+while(length(tab2)){
+	@local v;
+	v = pop(tab2);
+	printf("%a -> %a\n", v[0], v[1]);
+}
