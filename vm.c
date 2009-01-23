@@ -130,6 +130,10 @@ static void _vecset(Vec *vec, Imm idx, Val v);
 static void vecset(VM *vm, Vec *vec, Imm idx, Val v);
 static u32 listxlen(Listx *x);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
+static List* mklistn(u32 sz);
+static Val listref(VM *vm, List *lst, Imm idx);
+static List* listset(VM *vm, List *lst, Imm idx, Val v);
+static void _listappend(List *lst, Val v);
 
 static struct GC *thegc;
 static Val Xundef;
@@ -1872,8 +1876,7 @@ tabenum(Tab *tab)
 {
 	Vec *vec;
 	Tabidx *tk;
-	u32 i;
-	Imm m;
+	u32 i, m;
 	Tabx *x;
 
 	x = tab->x;
@@ -1896,8 +1899,7 @@ tabenumkeys(Tab *tab)
 {
 	Vec *vec;
 	Tabidx *tk;
-	u32 i;;
-	Imm m;
+	u32 i, m;
 	Tabx *x;
 
 	x = tab->x;
@@ -1919,8 +1921,7 @@ tabenumvals(Tab *tab)
 {
 	Vec *vec;
 	Tabidx *tk;
-	u32 i;;
-	Imm m;
+	u32 i, m;
 	Tabx *x;
 
 	x = tab->x;
@@ -1935,6 +1936,60 @@ tabenumvals(Tab *tab)
 		}
 	}
 	return vec;
+}
+
+static void
+tabpop(VM *vm, Tab *tab, Val *rv)
+{
+	Tabidx *tk;
+	Tabx *x;
+	u32 i;
+	Vec *vec;
+
+	if(tab->cnt == 0)
+		vmerr(vm, "pop on empty table");
+	x = tab->x;
+
+	for(i = 0; i < x->sz; i++){
+		tk = x->idx[i];
+		if(!tk)
+			continue;
+		x->idx[i] = tk->link;
+		tab->cnt--;
+		break;
+	}
+	
+	vec = mkvec(2);
+	_vecset(vec, 0, x->key[tk->idx]);
+	_vecset(vec, 1, x->val[tk->idx]);
+	gcwb(thegc, x->key[tk->idx]);
+	gcwb(thegc, x->val[tk->idx]);
+	x->key[tk->idx] = Xundef;
+	x->val[tk->idx] = Xundef;
+	efree(tk);
+	*rv = mkvalvec(vec);
+}
+
+static Tab*
+tabcopy(Tab *tab)
+{
+	Tabidx *tk;
+	Tab *rv;
+	Tabx *x;
+	u32 i, m;
+
+	rv = mktab();
+	m = 0;
+	x = tab->x;
+	for(i = 0; i < x->sz && m < tab->cnt; i++){
+		tk = x->idx[i];
+		while(tk){
+			_tabput(rv, x->key[tk->idx], x->val[tk->idx]);
+			m++;
+			tk = tk->link;
+		}
+	}
+	return rv;
 }
 
 static u32
@@ -1964,9 +2019,15 @@ _mklist(Listx *x)
 }
 
 static List*
+mklistn(u32 sz)
+{
+	return _mklist(mklistx(sz));
+}
+
+static List*
 mklist()
 {
-	return _mklist(mklistx(Listinitsize));
+	return mklistn(Listinitsize);
 }
 
 static List*
@@ -1975,7 +2036,7 @@ mklistinit(Imm len, Val v)
 	List *l;
 	Imm m;
 
-	l = _mklist(mklistx(len));
+	l = mklistn(len);
 	for(m = 0; m < len; m++)
 		_listappend(l, v); 
 	return l;
@@ -2032,7 +2093,7 @@ listcopy(List *lst)
 {
 	List *new;
 	u32 hd, tl, len;
-	new = _mklist(mklistx(lst->x->sz));
+	new = mklistn(lst->x->sz);
 	new->x->hd = hd = lst->x->hd;
 	new->x->tl = tl = lst->x->tl;
 	len = tl-hd;
@@ -2053,7 +2114,7 @@ listreverse(List *lst)
 {
 	List *new;
 	u32 hd, tl, len, m;
-	new = _mklist(mklistx(lst->x->sz));
+	new = mklistn(lst->x->sz);
 	new->x->hd = hd = lst->x->hd;
 	new->x->tl = tl = lst->x->tl;
 	len = tl-hd;
@@ -2253,6 +2314,22 @@ static List*
 listappend(VM *vm, List *lst, Val v)
 {
 	return listins(vm, lst, listxlen(lst->x), v);
+}
+
+static List*
+listconcat(VM *vm, List *l1, List *l2)
+{
+	List *rv;
+	u32 m, len1, len2;
+
+	len1 = listxlen(l1->x);
+	len2 = listxlen(l2->x);
+	rv = mklistn(len1+len2);
+	for(m = 0; m < len1; m++)
+		listappend(vm, rv, listref(vm, l1, m));
+	for(m = 0; m < len2; m++)
+		listappend(vm, rv, listref(vm, l2, m));
+	return rv;
 }
 
 static Head*
@@ -9857,10 +9934,16 @@ l1_listins(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	Val arg;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to listpop");
-	checkarg(vm, "listpop", argv, 0, Qlist);
-	listpop(vm, vallist(argv[0]), rv);
+		vmerr(vm, "wrong number of arguments to pop");
+	arg = argv[0];
+	if(arg->qkind == Qlist)
+		listpop(vm, vallist(argv[0]), rv);
+	else if(arg->qkind == Qtab)
+		tabpop(vm, valtab(argv[0]), rv);
+	else
+		vmerr(vm, "operand 1 to pop must be a list or table");
 }
 
 static void
@@ -9927,8 +10010,22 @@ l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvallist(listcopy(vallist(argv[0])));
 	else if(argv[0]->qkind == Qvec)
 		*rv = mkvalvec(veccopy(valvec(argv[0])));
+	else if(argv[0]->qkind == Qtab)
+		*rv = mkvaltab(tabcopy(valtab(argv[0])));
 	else
 		vmerr(vm, "operand 1 to copy must be a list or vector");
+}
+
+static void
+l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *lst;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to concat");
+	checkarg(vm, "concat", argv, 0, Qlist);
+	checkarg(vm, "concat", argv, 1, Qlist);
+	lst = listconcat(vm, vallist(argv[0]), vallist(argv[1]));
+	*rv = mkvallist(lst);
 }
 
 static void
@@ -10795,6 +10892,7 @@ mktopenv()
 	FN(close);
 	FN(cntrget);
 	FN(cntrput);
+	FN(concat);
 	FN(cons);
 	FN(copy);
 	FN(domof);
