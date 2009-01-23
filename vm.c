@@ -3738,35 +3738,49 @@ imm2str(VM *vm, Xtypename *xtn, Imm imm)
 	}	
 }
 
-/* transform representation of VAL used for type OLD to type NEW */
+/* transform representation of VAL used for type OLD to type NEW.
+   OLD and NEW must be chased types with defined representations. */
 static Imm
-rerep(Imm val, Xtypename *old, Xtypename *new)
+_rerep(Imm val, Xtypename *old, Xtypename *new)
 {
 	/* FIXME: non-trivial cases are : real <-> int,
 	   real <-> alternate real
 	   integer truncation
 	   (so div and shr work)
 	*/
+	switch((new->rep<<5)|old->rep){
+		#include "rerep.switch" /* re-cast val */
+	}
+ 	return val;
+}
+
+
+static Imm
+rerep(Imm val, Xtypename *old, Xtypename *new)
+{
 	old = chasetype(old);
 	new = chasetype(new);
 	if(old->rep == Rundef || new->rep == Rundef)
 		fatal("undef!");
-	switch((new->rep<<5)|old->rep){
-		#include "rerep.switch"
-	}
- 	return val;
+	return _rerep(val, old, new);
 }
 
 static Cval*
 typecast(VM *vm, Xtypename *xtn, Cval *cv)
 {
-	return mkcval(cv->dom, xtn, rerep(cv->val, cv->type, xtn));
+	Xtypename *old, *new;
+	old = chasetype(cv->type);
+	new = chasetype(xtn);
+	if(old->rep == Rundef || new->rep == Rundef)
+		vmerr(vm, "attempt to cast to type "
+		      "with undefined representation");
+	return mkcval(cv->dom, xtn, _rerep(cv->val, old, new));
 }
 
 static Cval*
 domcast(VM *vm, Dom *dom, Cval *cv)
 {
-	Xtypename *xtn;
+	Xtypename *xtn, *old, *new;
 	Str *es;
 
 	/* FIXME: do we really want to lookup the type in the new domain? */
@@ -3779,7 +3793,12 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 		vmerr(vm, "cast to domain that does not define %.*s",
 		      (int)es->len, es->s);
 	}
-	return mkcval(dom, xtn, rerep(cv->val, cv->type, xtn));
+	old = chasetype(cv->type);
+	new = chasetype(xtn);
+	if(old->rep == Rundef || new->rep == Rundef)
+		vmerr(vm, "attempt to cast to type "
+		      "with undefined representation");
+	return mkcval(dom, xtn, rerep(cv->val, old, new));
 }
 
 static void
