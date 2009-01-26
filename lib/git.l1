@@ -1,0 +1,64 @@
+
+packns = @names c32be {
+	struct pack_header {
+		@0x0	uint32 hdr_signature;
+	       	@0x4	uint32 hdr_version;
+		@0x8	uint32 hdr_entries;
+		@0xc;
+	};
+
+	enum object_type {
+		OBJ_BAD = -1,
+		OBJ_NONE = 0,
+		OBJ_COMMIT = 1,
+		OBJ_TREE = 2,
+		OBJ_BLOB = 3,
+		OBJ_TAG = 4,
+		/* 5 for future expansion */
+		OBJ_OFS_DELTA = 6,
+		OBJ_REF_DELTA = 7,
+		OBJ_ANY,
+		OBJ_MAX,
+	};
+
+	typedef char sha1[20];
+};
+
+define dumppack(pack)
+{
+	@local p, q, i, c, type, size;
+
+	p = (struct pack`pack_header*){pack}0;
+	q = (char*)&p->hdr_signature;
+	printf("signature: ");
+	for(i = 0; i < 4; i++)
+		printf("%c", q[i]);
+	printf("\n");
+	printf("version: %d\n", (char*)p->hdr_version);
+	printf("entries: %d\n", (char*)p->hdr_entries);
+
+	q = (unsigned char*)(p+1);
+	for(i = 0; i < p->hdr_entries; i++){
+		c = *q++;
+		type = (c>>4)&7;
+		size = (c&15);
+		shift = 4;
+		while(c&0x80){
+			printf("c = %x, size=%x, shift=%d\n", c, size, shift);
+			c = *q++;
+			size += (c&0x7f)<<shift;
+			shift += 7;
+		}
+		printf("done: c = %x, size=%x, shift=%d\n", c, size, shift);
+		printf("[%4d] type=%e size=%x\n",
+		       i,
+		       (enum pack`object_type)type,
+		       size);
+		q += size;
+	}
+}
+
+as = mksas(mapfile(".git/objects/pack/pack-69e85119a854fd6a2ee39492c89badfbcea253c1.pack"));
+pack = mkdom(packns, as);
+dumppack(pack);
+
