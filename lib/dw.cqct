@@ -6168,39 +6168,37 @@ define symloc (typetab, symtab, sym, exas, pc, ctab, doml)
 define make_local_ns (indom, exas, pc, etab, doml)
 {
   @local f, cu, ns, ftab, fstab, ntab, nstab, inscope, rns;
-  //ntab = mktab ();
-  //nstab = mktab ();
+  ntab = mktab ();
+  nstab = mktab ();
   cu = find_fn_and_cu (indom, pc, etab, doml);
   rns = listref (cu, 3);
   f = find_fn (indom, pc, cu);
   ftab = listref (f, 2);
   fstab = listref (f, 3);
-  ntab = mycopy (rns.enumtype());
-  nstab = mycopy (rns.enumsym());
   foreach (lambda (k,v){ @local sloc;
       sloc = symloc (ftab, fstab, k, exas, {indom}pc, etab, doml);
-	     if (islist (sloc) && listref (sloc, 1) == _dwcqct_addr_type)
-	       sloc = listref (sloc, 0);
-	     if (!isnil (sloc)) {
-	       @local nsym;
-	       if (isprocedure (sloc)) {
-		 printf ("calling sloc with arg %a\n", exas);
-		 sloc = listref (sloc(exas), 0);
-	       }
-	       if (islist (sloc) && listref (sloc, 1) == _dwcqct_reg_type) {
-		 @local vtype, getv, putv, itype;
-		 getv = make_get_regval (listref (sloc, 0));
-		 putv = make_put_regval (listref (sloc, 0));
-		 vtype = mkctype_xaccess (mkctype_int(), getv, putv);
-		 nsym = mksym (vtype, k, 0);
-		 tabinsert (nstab, k, nsym);
-	       }
-	       else {
-		 nsym = mksym (listref (v, 1), k, sloc);
-		 tabinsert (nstab, k, nsym);
-	       }
-	     }},
-	   fstab);
+      if (islist (sloc) && listref (sloc, 1) == _dwcqct_addr_type)
+	sloc = listref (sloc, 0);
+      if (!isnil (sloc)) {
+	@local nsym;
+	if (isprocedure (sloc)) {
+	  printf ("calling sloc with arg %a\n", exas);
+	  sloc = listref (sloc(exas), 0);
+	}
+	if (islist (sloc) && listref (sloc, 1) == _dwcqct_reg_type) {
+	  @local vtype, getv, putv, itype;
+	  getv = make_get_regval (listref (sloc, 0));
+	  putv = make_put_regval (listref (sloc, 0));
+	  vtype = mkctype_xaccess (mkctype_int(), getv, putv);
+	  nsym = mksym (vtype, k, 0);
+	  tabinsert (nstab, k, nsym);
+	}
+	else {
+	  nsym = mksym (listref (v, 1), k, sloc);
+	  tabinsert (nstab, k, nsym);
+	}
+      }},
+    fstab);
   ns = mknsraw (rns, ntab, nstab);
   return ns;
 }
@@ -6679,9 +6677,10 @@ define dumpstack (addr)
     if (isnil (lns))
       continue;
     ldom = mkdom (lns, las);
+    printf ("symbols for address 0x%x:\n", lpc);
     foreach (lambda (k,v) {
 	if (!isenum (symtype (v)) && !isenumconst (symtype (v)))
-	  print_sym (v, dom);},
+	  print_sym (v, ldom);},
       lns.enumsym());
   }
   return listref (ul, 0);
@@ -6694,16 +6693,32 @@ define make_local_as (ras, regset)
   define ldis args {
     @local cmd, regno;
     cmd = listref(args, 1);
+    printf ("in ldis args are %a and cmd is %a\n", args, cmd);
     regno = _dw_map_getfun_to_regnum (cmd);
     if (regno == -1 || regno > length (regset)
-	|| isnil (listref (regset, regno)))
-      return ras.dispatch (args);
+	|| isnil (listref (regset, regno))) {
+      pop (args);
+      printf ("calling dispatch with args %a\n", args);
+      return (apply (ras.dispatch, args));
+    }
     else
       return listref (regset, regno);
   }
-  tabinsert (mtab, "get", ras.get);
-  tabinsert (mtab, "put", ras.put);
-  tabinsert (mtab, "map", ras.map);
+  define lget args{
+    pop (args);
+    return (apply (ras.get, args));
+  }
+  define lput args {
+    pop (args);
+    return (apply (ras.put, args));
+  }
+  define lmap args {
+    pop (args);
+    return (apply (ras.map, args));
+  }
+  tabinsert (mtab, "get", lget);
+  tabinsert (mtab, "put", lput);
+  tabinsert (mtab, "map", lmap);
   tabinsert (mtab, "dispatch", ldis);
   return mkas (mtab);
 }
@@ -6718,7 +6733,7 @@ define print_sym (sym, dom)
     return;
   }
   else if (isxaccess (stype)) {
-    printf ("0\t%t %s\t0x%x\n", stype,
+    printf ("0\t\t%t %s\t0x%x\n", stype,
 	    vecref (sym, 1), xaccessget (stype)(dom));
   }
   else {
