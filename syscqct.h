@@ -839,6 +839,9 @@ Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
 
 /* vm.c */
 void		builtinfn(Env *env, char *name, Closure *cl);
+Str*		callget(VM *vm, As *as, Imm off, Imm len);
+Vec*		callmap(VM *vm, As *as);
+void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
 void		checkarg(VM *vm, char *f, Val *argv,
 			 unsigned arg, Qkind qkind);
 void		dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen,
@@ -847,6 +850,7 @@ Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 int		envbinds(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
 void		freeenv(Env *env);
+Str*		getbytes(VM *vm, Cval *addr, Imm n);
 void		initvm(int gcthread, u64 heapmax);
 void		finivm();
 int		freecode(Head *hd);
