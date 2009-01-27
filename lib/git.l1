@@ -24,9 +24,12 @@ packns = @names c32be {
 	typedef char sha1[20];
 };
 
+gittypename = [ "", "commit", "tree", "blob", "tag", "",
+		"ofsdelta", "refsdelta" ];
+
 define dumppack(pack)
 {
-	@local p, q, i, c, type, size;
+	@local p, q, i, c, b, type, size, zsize, infl, obj, off;
 
 	p = (struct pack`pack_header*){pack}0;
 	q = (char*)&p->hdr_signature;
@@ -39,22 +42,43 @@ define dumppack(pack)
 
 	q = (unsigned char*)(p+1);
 	for(i = 0; i < p->hdr_entries; i++){
+		off = q;
 		c = *q++;
 		type = (c>>4)&7;
 		size = (c&15);
 		shift = 4;
 		while(c&0x80){
-			printf("c = %x, size=%x, shift=%d\n", c, size, shift);
+//			printf("c = %x, size=%d, shift=%d\n", c, size, shift);
 			c = *q++;
 			size += (c&0x7f)<<shift;
 			shift += 7;
 		}
-		printf("done: c = %x, size=%x, shift=%d\n", c, size, shift);
-		printf("[%4d] type=%e size=%x\n",
-		       i,
-		       (enum pack`object_type)type,
-		       size);
-		q += size;
+		if(type == pack`OBJ_REF_DELTA)
+			q += 20; /* skip base sha1 */
+		else if(type == pack`OBJ_OFS_DELTA){
+			/* consume base offset.
+			   this is not documented in the git pack format
+			   documentation. */
+			b = *q++;
+			while(b&128)
+				b = *q++;
+		}
+		infl = inflate(q);
+		obj = infl[0];
+		if(strlen(obj) != size)
+			error("deflated object is %d bytes, expected %d",
+			      size, strlen(obj));
+		zsize = infl[1]+(q-off);
+		q += infl[1];
+		printf("%s %s %d %d %d\n",
+		       sha1(sprintfa("%s %u\0%s",
+				     gittypename[type],
+				     size,
+				     obj)),
+		       gittypename[type],
+		       size,
+		       zsize,
+		       off);
 	}
 }
 

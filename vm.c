@@ -119,15 +119,11 @@ static Xtypename* mkundefxtn(Xtypename *t);
 static Str* fmtxtn(Xtypename *xtn);
 static void _listappend(List *lst, Val v);
 static int isbasecval(Cval *cv);
-static int isstrcval(Cval *cv);
 static int isnatcval(Cval *cv);
 static int isnegcval(Cval *cv);
 static int iszerocval(Cval *cv);
 static Env* mktopenv();
 static Str* stringof(VM *vm, Cval *cv);
-static Val vecref(Vec *vec, Imm idx);
-static void _vecset(Vec *vec, Imm idx, Val v);
-static void vecset(VM *vm, Vec *vec, Imm idx, Val v);
 static u32 listxlen(Listx *x);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static List* mklistn(u32 sz);
@@ -1563,7 +1559,7 @@ listlen(Val v, Imm *rv)
 	return 0;
 }
 
-static Vec*
+Vec*
 mkvec(Imm len)
 {
 	Vec *vec;
@@ -1586,19 +1582,19 @@ mkvecinit(Imm len, Val v)
 	return vec;
 }
 
-static Val
+Val
 vecref(Vec *vec, Imm idx)
 {
 	return vec->vec[idx];
 }
 
-static void
+void
 _vecset(Vec *vec, Imm idx, Val v)
 {
 	vec->vec[idx] = v;
 }
 
-static void
+void
 vecset(VM *vm, Vec *vec, Imm idx, Val v)
 {
 	gcwb(thegc, vec->vec[idx]);
@@ -6516,7 +6512,7 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvaldom(cv->dom);
 }
 
-static int
+int
 isstrcval(Cval *cv)
 {
 	Xtypename *t;
@@ -6607,7 +6603,7 @@ callmap(VM *vm, As *as)
 	return valvec(rv);
 }
 
-static Range*
+Range*
 mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 {
 	Imm m;
@@ -6626,7 +6622,6 @@ mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 	}
 	return 0;
 }
-
 
 /* assume CV has been vetted by isstrcval */
 static Str*
