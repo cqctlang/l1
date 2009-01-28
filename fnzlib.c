@@ -109,7 +109,7 @@ l1_inflate(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *rvec;
 	static char *err =
 		"operand 1 to inflate must be a string or a"
-		"char* or unsigned char* pointer";
+		"char* or unsigned char*";
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to inflate");
