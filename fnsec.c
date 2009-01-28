@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
-#include <openssl/evp.h>
+#include <openssl/sha.h>
 
 #if 1
 static void
