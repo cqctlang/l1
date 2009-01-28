@@ -9337,6 +9337,31 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_memcpy(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *ncv, *scv, *dcv;
+	Str *buf;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of argument to memcpy");
+
+	checkarg(vm, "memcpy", argv, 0, Qcval);
+	checkarg(vm, "memcpy", argv, 1, Qcval);
+	checkarg(vm, "memcpy", argv, 2, Qcval);
+	dcv = valcval(argv[0]);
+	scv = valcval(argv[1]);
+	ncv = valcval(argv[2]);
+	if(!isstrcval(dcv))
+		vmerr(vm, "operand 1 to memcpy must be a char* or "
+		      "unsigned char*");
+	if(!isstrcval(scv))
+		vmerr(vm, "operand 2 to memcpy must be a char* or "
+		      "unsigned char*");
+	buf = callget(vm, scv->dom->as, scv->val, ncv->val);
+	callput(vm, dcv->dom->as, dcv->val, ncv->val, buf);
+}
+
+static void
 l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -10931,6 +10956,7 @@ mktopenv()
 	FN(lookfield);
 	FN(looktype);
 	FN(map);
+	FN(memcpy);
 	FN(meminuse);
 	FN(memset);
 	FN(memtotal);
