@@ -47,8 +47,8 @@ define patchdelta(src, delta)
 	data = mkstrdom(delta);
 	top = data+strlen(delta);
 
-	printf("\npatching delta (%d byte src, %d byte delta)\n",
-	       strlen(src), strlen(delta));
+//	printf("\npatching delta (%d byte src, %d byte delta)\n",
+//	       strlen(src), strlen(delta));
 	/* get size of original source */
 	size = 0;
 	i = 0;
@@ -57,7 +57,6 @@ define patchdelta(src, delta)
 		size |= (cmd&~0x80)<<i;
 		i += 7;
 	} while((cmd&0x80) && data < top); /* bug in origin in delta.h? */
-	printf("origin string is %d bytes\n", size);
 	if(size != src_size)
 		error("original size mismatch");
 
@@ -70,7 +69,6 @@ define patchdelta(src, delta)
 		i += 7;
 	} while((cmd&0x80) && data < top); /* bug in origin in delta.h? */
 	dst_size = size;
-	printf("destination string is %d bytes\n", dst_size);
 	dst_buf = mkstrdom(mkstr(dst_size));
 
 	out = dst_buf;
@@ -113,13 +111,6 @@ define patchdelta(src, delta)
 		}
 	}
 
-//	fd = open("/tmp/old", "w");
-//	write(fd, getbytes(src_buf, src_size));
-//	close(fd);
-//	fd = open("/tmp/new", "w");
-//	write(fd, getbytes(dst_buf, dst_size));
-//	close(fd);
-//	error("i did it!");
 	return getbytes(dst_buf, dst_size);
 }
 
@@ -248,11 +239,9 @@ define findpacks(repo)
 	gitobjdir = sprintfa("%s/.git/objects/pack", repo);
 	foreachfile(gitobjdir,
 		    lambda(file){
-			    printf("dumping %s\n", file);
 			    if(!ispack(file))
 				    return;
 			    fn = sprintfa("%s/%s", gitobjdir, file);
-			    printf("dumping %s\n", fn);
 			    pack = packdom(fn);
 			    dumppack(pack);
 		    });
