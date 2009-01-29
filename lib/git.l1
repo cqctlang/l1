@@ -219,23 +219,23 @@ define dumppack(pack)
 
 define packdom(packfilename)
 {
-	@local as, 
-	as = mksas(mapfile(".git/objects/pack/pack-69e85119a854fd6a2ee39492c89badfbcea253c1.pack"));	
+	@local as;
+	as = mksas(mapfile(packfilename));
+	return mkdom(packns, as);
 }
-
 
 define doit()
 {
-as = mksas(mapfile(".git/objects/pack/pack-69e85119a854fd6a2ee39492c89badfbcea253c1.pack"));
-//as = mksas(mapfile(".git/objects/pack/pack-6fbc3dd6ef5081869f060178a99a8ed07f41eec1.pack"));
-pack = mkdom(packns, as);
-dumppack(pack);
+	dumppack(".git/objects/pack/pack-69e85119a854fd6a2ee39492c89badfbcea253c1.pack");
+	dumppack(".git/objects/pack/pack-6fbc3dd6ef5081869f060178a99a8ed07f41eec1.pack");
 }
 
 define ispack(name)
 {
 	@local l;
 	l = strlen(name);
+	if(l < 5)
+		return 0;
 	if(substr(name, l-5, l) == ".pack")
 		return 1;
 	else
@@ -244,14 +244,16 @@ define ispack(name)
 
 define findpacks(repo)
 {
-	@local gitobjdir, pdom;
+	@local gitobjdir, pdom, fn;
 	gitobjdir = sprintfa("%s/.git/objects/pack", repo);
 	foreachfile(gitobjdir,
 		    lambda(file){
+			    printf("dumping %s\n", file);
 			    if(!ispack(file))
 				    return;
-			    pdom = mkdom(packns, 
-
-			    dumppack(sprintfa("%s/%s", gitobjdir, file));
+			    fn = sprintfa("%s/%s", gitobjdir, file);
+			    printf("dumping %s\n", fn);
+			    pack = packdom(fn);
+			    dumppack(pack);
 		    });
 }
