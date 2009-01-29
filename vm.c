@@ -7429,6 +7429,15 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_myrootns(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char *r;
+	r = myroot();
+	if(!envlookup(vm->top->env, r, rv))
+		vmerr(vm, "my root name space is undefined: %s", r);
+}
+
+static void
 dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 {
 	Xtypename *xtn;
@@ -11000,6 +11009,7 @@ mktopenv()
 	FN(mktab);
 	FN(mkvec);
 	FN(mkzas);
+	FN(myrootns);
 	FN(nameof);
 	FN(nsof);
 	FN(nsenumsym);
