@@ -26,8 +26,8 @@ L1C =\
 	fns.$(CONF).c\
 	$(L1_EXTRAS)
 
-FNS_DECLS = $(foreach fn, $(L1_FUNS), "void $(fn)(Env *); \n")
-FNS_CALLS = $(foreach fn, $(L1_FUNS), "	$(fn)(env);\n")
+FNS_DECLS = $(foreach fn, $(L1_FUNS), "void $(fn)(Env *);")
+FNS_CALLS = $(foreach fn, $(L1_FUNS), "	$(fn)(env);")
 
 fns.$(CONF).c: $(L1_EXTRAS)
 	@echo '#include "sys.h"' > $@
