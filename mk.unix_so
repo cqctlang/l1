@@ -1,0 +1,13 @@
+UNIX_FILES = fnfs fnio fnnet fnsys fnsec fnzlib 
+
+
+L1_EXTRAS := $(addsuffix .c, $(UNIX_FILES)) \
+	     unix.c
+
+L1_FUNS   := $(UNIX_FILES)
+
+TARG      := libl1.so
+CFLAGS    += -fPIC -nostdlib
+
+libl1.so: l1.o
+	$(CC) -shared -Xlinker -Bsymbolic -o $@ $^

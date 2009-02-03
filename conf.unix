@@ -1,9 +1,0 @@
-fn
-	fnfs
-	fnio
-	fnnet
-	fnsec
-	fnsys
-	fnzlib
-other
-	unix

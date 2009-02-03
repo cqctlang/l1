@@ -1,0 +1,3 @@
+L1_EXTRAS := noix.c
+
+TARG      := l1.o
