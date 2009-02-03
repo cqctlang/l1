@@ -9,15 +9,15 @@ main(int argc, char *argv[])
 	Val v;
 	Expr *e;
 	VM *vm;
-	Env *env;
+	Toplevel *toplevel;
 	char *s;
 
-	env = cqctinit(0);
-	vm = cqctmkvm(env);
-	e = cqctparsestr("3+3;", 0);
+	toplevel = cqctinit(0, 0, NULL);
+	vm = cqctmkvm(toplevel);
+	e = cqctparsestr("3+3;", NULL);
 	if(e == 0)
 		goto out;
-	entry = cqctcompile(e, env, 0);
+	entry = cqctcompile(e, toplevel, NULL);
 	if(entry == 0){
 		cqctfreeexpr(e);
 		goto out;
@@ -30,6 +30,6 @@ main(int argc, char *argv[])
 	efree(s);
 out:
 	cqctfreevm(vm);
-	cqctfini(env);
+	cqctfini(toplevel);
 	return 0;
 }
