@@ -1,0 +1,4 @@
+L1_EXTRAS := noix.c
+CFLAGS    += -fPIC 
+
+TARG      := l1.o

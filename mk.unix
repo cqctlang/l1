@@ -1,0 +1,7 @@
+UNIX_FILES = fnfs fnio fnnet fnsec fnzlib 
+
+
+L1_EXTRAS := $(addsuffix .c, $(UNIX_FILES)) \
+	     unix.c
+
+L1_FUNS   := $(UNIX_FILES)
