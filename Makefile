@@ -43,7 +43,7 @@ l1.o: c.tab.o lex.yy.o $(L1O)
 	$(LD) -d -r -o $@ $^
 
 lo: lo.o l1.o
-	$(CC) -g -o lo lo.o l1.o -lpthread -lz -lcrypto
+	$(CC) -o $@ $^ -lpthread -lz -lcrypto
 
 -include depend
 depend: Makefile
