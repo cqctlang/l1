@@ -42,14 +42,8 @@ l1: l1.o main.o
 l1.o: c.tab.o lex.yy.o $(L1O)
 	$(LD) -d -r -o $@ $^
 
-libl1.so: c.tab.o lex.yy.o $(L1O)
-	$(CC) -shared -Xlinker -Bsymbolic -o $@ $^
-
-lo.o: lo.c
-	$(CC) -g -nostdlib  -Wall -fPIC -c $^
-
-lo: lo.o libl1.so
-	$(CC) -g -o lo lo.o -L. -ll1 -lpthread -lz -lcrypto
+lo: lo.o l1.o
+	$(CC) -g -o lo lo.o l1.o -lpthread -lz -lcrypto
 
 -include depend
 depend: Makefile
