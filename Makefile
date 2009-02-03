@@ -1,7 +1,8 @@
-CC = gcc
-LD = ld
-CFLAGS = -Wall -g
-CONF = unix
+CC        = gcc
+LD        = ld
+CFLAGS    = -Wall -g
+CONF      = unix
+L1LDFLAGS = -lpthread -lz -lcrypto
 
 libl1.so: CFLAGS += -fPIC -nostdlib
 
@@ -36,14 +37,14 @@ lex.yy.c: c.l $(HDR)
 	flex -f -s c.l
 
 l1: l1.o main.o
-	$(CC) -o $@ $^ -lpthread -lz -lcrypto
+	$(CC) -o $@ $^ $(L1LDFLAGS)
 #	dwarf2cqct < l1 > l1.names
 
 l1.o: c.tab.o lex.yy.o $(L1O)
 	$(LD) -d -r -o $@ $^
 
 lo: lo.o l1.o
-	$(CC) -o $@ $^ -lpthread -lz -lcrypto
+	$(CC) -o $@ $^ $(L1LDFLAGS)
 
 -include depend
 depend: Makefile
