@@ -76,4 +76,4 @@ git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
 
 clean:
-	$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output main.o lo lo.o l1.o fns.$(CONF).c $(L1O) $(TARG)  depend 
+	$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o lo lo.o l1.o fns.*.c fns.*.o $(L1O) $(TARG)  depend 
