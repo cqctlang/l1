@@ -26,8 +26,7 @@ depend: $(C)
 	gcc $(INC) -MM $(C) > depend
 
 libflate.a: $(O)
-	ar -r $@ $^
+	ar rsc $@ $^
 
 clean:
-	$(RM) *~ $(O) core core.*
-
+	$(RM) libflate.a *~ $(O) core core.*

@@ -3,7 +3,10 @@ LD        = ld
 CFLAGS    = -Wall -g
 CONF     ?= unix
 L1LIBS	  = -lpthread
+L1DEPS    =
 TARG      = l1
+
+.DEFAULT_GOAL := all
 
 -include mk.$(CONF)
 
@@ -56,8 +59,8 @@ l1: l1.o main.o
 	$(CC) -o $@ $^ $(L1LIBS)
 #	dwarf2cqct < l1 > l1.names
 
-l1.o: c.tab.o lex.yy.o $(L1O)
-	$(LD) -d -r -o $@ $^
+l1.o: c.tab.o lex.yy.o $(L1O) $(L1DEPS)
+	$(LD) -d -r -o $@ $^ $(L1DEPS)
 
 -include depend
 depend: $(L1C)
@@ -70,4 +73,5 @@ git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
 
 clean:
+	make -C x/libflate clean
 	$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c fns.*.o $(L1O) $(TARG) depend
