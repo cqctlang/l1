@@ -1,7 +1,7 @@
-UNIX_FILES = fnfs fnio fnnet fnsys fnsec fnzlib 
+UNIX = fnfs fnio fnnet fnsys fnsec fnzlib 
+L1LIBS += -lz -lcrypto
 
-
-L1_EXTRAS := $(addsuffix .c, $(UNIX_FILES)) \
+L1EXTRAS := $(addsuffix .c, $(UNIX)) \
 	     unix.c
 
-L1_FUNS   := $(UNIX_FILES)
+L1FUNS   := $(UNIX)
