@@ -24,6 +24,8 @@ L1C =\
 	fns.$(CONF).c\
 	$(L1EXTRAS)
 
+L1O = $(L1C:.c=.o)
+
 FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env *);")
 FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);")
 
@@ -40,8 +42,6 @@ fns.$(CONF).c: $(L1EXTRAS)
 	@echo '{' >> $@
 	@echo $(FNSCALLS) >> $@
 	@echo '}' >> $@
-
-L1O = $(L1C:.c=.o)
 
 c.tab.c: c.y $(HDR)
 	bison -d c.y
