@@ -1,7 +1,8 @@
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
-#include "x/libflate/flate.h"
+#include "x/include/lib9.h"
+#include "x/include/flate.h"
 
 struct getr {
 	VM *vm;

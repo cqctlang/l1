@@ -1,6 +1,6 @@
 CC        = gcc
 LD        = ld
-INC	  = -I../.. -I. -I../libsec -I../libmp
+INC	  = -I../.. -I../include
 CFLAGS    = -Wall -g $(INC)
 TARG      = libsec.a
 
@@ -63,11 +63,11 @@ C=\
 O = $(C:.c=.o)
 
 -include depend
-depend: $(C)
+depend: $(C) Makefile
 	gcc $(INC) -MM $(C) > depend
 
-libsec.a: $(O)
+$(TARG): $(O)
 	ar rsc $@ $^
 
 clean:
-	$(RM) libsec.a *~ *.o core core.*
+	$(RM) depend $(TARG) *~ *.o core core.*

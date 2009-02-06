@@ -1,5 +1,14 @@
 UNIX = fnfs fnio fnnet fnsys fnsec fnzlib 
-L1LIBS += -lz -lcrypto
+L1DEPS += x/lib9/lib9.a x/libflate/libflate.a x/libsec/libsec.a 
+
+x/lib9/lib9.a:
+	make -C x/lib9
+
+x/libflate/libflate.a:
+	make -C x/libflate
+
+x/libsec/libsec.a:
+	make -C x/libsec
 
 L1EXTRAS := $(addsuffix .c, $(UNIX)) \
 	     unix.c

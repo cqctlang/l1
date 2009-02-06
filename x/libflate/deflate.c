@@ -1,4 +1,4 @@
-#include "sys.h"
+#include "os.h"
 #include "flate.h"
 
 typedef struct Chain	Chain;

@@ -1,6 +1,6 @@
 CC        = gcc
 LD        = ld
-INC	  = -I../.. -I.
+INC	  = -I../.. -I../include
 CFLAGS    = -Wall -g $(INC)
 TARG      = libmp.a
 
@@ -38,18 +38,15 @@ C=\
 	mptoui.c\
 	mptov.c\
 	mptouv.c\
-	u16.c\
-	u32.c\
-	u64.c\
 
 O = $(C:.c=.o)
 
 -include depend
-depend: $(C)
+depend: $(C) Makefile
 	gcc $(INC) -MM $(C) > depend
 
 libmp.a: $(O)
 	ar rsc $@ $^
 
 clean:
-	$(RM) libmp.a *~ $(O) core core.*
+	$(RM) depend libmp.a *~ $(O) core core.*

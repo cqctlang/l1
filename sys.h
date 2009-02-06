@@ -45,15 +45,4 @@ typedef u64 Imm;
 #define PAGESZ 4096
 #define PAGEUP(sz)   (((sz)+PAGESZ-1)&~(PAGESZ-1))
 
-/* for plan9port libraries */
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned int uint;
-typedef unsigned long ulong;
-typedef unsigned long long uvlong;
-typedef u32 u32int;
-typedef long long vlong;
-#define	nil	((void*)0)
-#define	nelem(x)	(sizeof(x)/sizeof((x)[0]))
-
 #endif /* _BISONFLAW_SYS_H_ */
