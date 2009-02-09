@@ -62,6 +62,11 @@ l1: l1.o main.o
 l1.o: c.tab.o lex.yy.o $(L1O) $(L1DEPS)
 	$(LD) -d -r -o $@ $^ $(L1DEPS)
 
+libl1.so: CFLAGS += -fPIC -nostdlib
+
+libl1.so: l1.o
+	$(CC) -shared -Xlinker -Bsymbolic -o $@ $^
+
 -include depend
 depend: $(L1C) Makefile
 	gcc $(INC) -MM $(L1C) > depend
@@ -73,7 +78,7 @@ git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
 
 clean:
-	make -C x/lib9 clean
-	make -C x/libflate clean
-	make -C x/libsec clean
+	$(MAKE) -C x/lib9 clean
+	$(MAKE) -C x/libflate clean
+	$(MAKE) -C x/libsec clean
 	$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c fns.*.o $(L1O) $(TARG) *.so depend

@@ -1,7 +1,7 @@
 CC        = gcc
 LD        = ld
 INC	  = -I../.. -I../include
-CFLAGS    = -Wall -g $(INC)
+CFLAGS   += $(INC)
 TARG      = lib9.a
 
 all: $(TARG)
