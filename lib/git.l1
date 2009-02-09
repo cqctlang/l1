@@ -37,6 +37,18 @@ define mkstrdom(str)
 	return (unsigned char*){dom}0;
 }
 
+define decodesha(md)
+{
+	@local i, x, rv;
+	x = "0123456780abcdef";
+	rv = mkstr(2*20);
+	for(i = 0; i < 20; i++){
+		rv[i*2] = x[md[i]>>4];
+		rv[i*2+1] = x[md[i]&0xf];
+	}
+	return rv;
+}
+
 define patchdelta(src, delta)
 {
 	@local data, cmd, size, out, i, cp_off, src_size, cp_size;
@@ -117,7 +129,7 @@ define patchdelta(src, delta)
 define dumppack(pack)
 {
 	@local p, q, i, c, b, type, size, zsize, infl, obj, off, ref, roff;
-	@local sha1tab, offtab, s1, go, dep;
+	@local sha1tab, offtab, deltaq, s1, go, dep;
 
 	p = (struct pack`pack_header*){pack}0;
 	q = (char*)&p->hdr_signature;
@@ -130,6 +142,7 @@ define dumppack(pack)
 
 	sha1tab = mktab();
 	offtab = mktab();
+	deltaq = [];
 
 	q = (unsigned char*)(p+1);
 	for(i = 0; i < p->hdr_entries; i++){
@@ -179,8 +192,9 @@ define dumppack(pack)
 		       zsize,
 		       off);
 		if(ref != nil){
-			error("delta by reference unimplemented!\n");
-			printf(" %s", ref);
+			ref = decodesha(ref);
+			printf(" ref: %s", ref);
+			append(deltaq, ref);
 		}else if(roff != nil){
 			@local fd;
 			printf(" %d", off-roff);
@@ -205,6 +219,8 @@ define dumppack(pack)
 		}
 		printf("\n");
 	}
+
+	foreach(lambda(ref){ if(sha1tab[ref] == nil) printf("don't have %s\n", ref); }, deltaq);
 }
 
 
@@ -242,6 +258,7 @@ define findpacks(repo)
 			    if(!ispack(file))
 				    return;
 			    fn = sprintfa("%s/%s", gitobjdir, file);
+			    printf("pack %s\n", fn);
 			    pack = packdom(fn);
 			    dumppack(pack);
 		    });

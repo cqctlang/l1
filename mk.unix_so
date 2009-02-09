@@ -1,10 +1,19 @@
-UNIX_FILES = fnfs fnio fnnet fnsys fnsec fnzlib 
+UNIX = fnfs fnio fnnet fnsys fnsec fnzlib 
+L1DEPS += x/lib9/lib9.a x/libflate/libflate.a x/libsec/libsec.a 
 
+x/lib9/lib9.a:
+	make -C x/lib9
 
-L1_EXTRAS := $(addsuffix .c, $(UNIX_FILES)) \
+x/libflate/libflate.a:
+	make -C x/libflate
+
+x/libsec/libsec.a:
+	make -C x/libsec
+
+L1EXTRAS := $(addsuffix .c, $(UNIX)) \
 	     unix.c
 
-L1_FUNS   := $(UNIX_FILES)
+L1FUNS   := $(UNIX)
 
 TARG      := libl1.so
 CFLAGS    += -fPIC -nostdlib

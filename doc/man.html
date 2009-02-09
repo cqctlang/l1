@@ -438,10 +438,10 @@ to the value of <span class="arg">expr</span>.
 <p>
 If <span class="arg">var</span> is an unbound variable,
 the <span class="id">=</span> operator implicitly creates
-a new binding for <span class="arg">var</span>
-in the innermost
+a binding for <span class="arg">var</span>
+that is visible in the innermost
 level of lexical scope.  If the assignment occurs
-in a top-level expression, the new binding is added
+in a top-level expression, a new binding is added
 to the top-level environment.
 There is no way to remove a binding from any scope.
 </p>
