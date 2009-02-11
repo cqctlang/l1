@@ -106,7 +106,6 @@ static void dogc(GC*);
 static void vmsetcl(VM *vm, Val val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
-static void* gcprotect(VM *vm, void *hd);
 static As* mkastab(Tab *mtab, Str *name);
 static Xtypename* chasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
@@ -5907,11 +5906,11 @@ gcprotpop(VM *vm)
 }
 
 static void
-gcunprotect(VM *vm, Val v)
+_gcunprotect(VM *vm, Val v, unsigned depth)
 {
 	Root *r, **pr;
 	
-	pr = &vm->prot[vm->pdepth-1];
+	pr = &vm->prot[depth];
 	r = *pr;
 	while(r){
 		if(r->hd == v){
@@ -5925,7 +5924,7 @@ gcunprotect(VM *vm, Val v)
 }
 
 static void*
-gcprotect(VM *vm, void *obj)
+_gcprotect(VM *vm, void *obj, unsigned depth)
 {
 	Root *r;
 
@@ -5933,9 +5932,33 @@ gcprotect(VM *vm, void *obj)
 		return 0;
 	r = newroot(&vm->rs);
 	r->hd = obj;
-	r->link = vm->prot[vm->pdepth-1];
-	vm->prot[vm->pdepth-1] = r;	
+	r->link = vm->prot[depth];
+	vm->prot[depth] = r;	
 	return obj;
+}
+
+void
+gcunprotect(VM *vm, void *v)
+{
+	_gcunprotect(vm, v, vm->pdepth-1);
+}
+
+void*
+gcprotect(VM *vm, void *v)
+{
+  	return _gcprotect(vm, v, vm->pdepth-1);
+}
+
+void
+gcunpersist(VM *vm, void *v)
+{
+	_gcunprotect(vm, v, 0);
+}
+
+void*
+gcpersist(VM *vm, void *v)
+{
+	return _gcprotect(vm, v, 0);
 }
 
 void
@@ -5948,6 +5971,18 @@ void
 cqctgcunprotect(VM *vm, Val v)
 {
 	gcunprotect(vm, v);
+}
+
+void
+cqctgcpersist(VM *vm, Val v)
+{
+	gcpersist(vm, v);
+}
+
+void
+cqctgcunpersist(VM *vm, Val v)
+{
+	gcunpersist(vm, v);
 }
 
 void
@@ -6003,7 +6038,7 @@ vmresetctl(VM *vm)
 {
 	while(vm->pdepth > 0)
 		gcprotpop(vm);
-	gcprotpush(vm);
+	gcprotpush(vm);		/* push a level for persistent references */
 	vm->edepth = 0;
 	vm->fp = 0;
 	vm->sp = Maxstk;
@@ -6098,7 +6133,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
 	}
-
+	
 	gcprotpush(vm);
 
 	/* for recursive entry, store current context */
@@ -11118,7 +11153,6 @@ cqctmkvm(Toplevel *top)
 	vm->err = emalloc(vm->emax*sizeof(Err));
 	
 	vmresetctl(vm);
-	gcprotpush(vm);
 
 	/* register vm with fault handler */
 	vmp = vms;

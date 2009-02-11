@@ -5462,14 +5462,13 @@ with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 Protects the value <span class="arg">v</span> from
 garbage collection by registering it with the current
 GC protection frame of <span class="arg">vm</span>.
-References to value will be valid until after at least
+References to the value will be valid until after at least
 one of the following events: (1) the frame is popped, (2)
 <span class="fnindex"><a href="#fn:cqctgcunprotect">cqctgcunprotect</a></span>
 is called on the same arguments while the current GC frame is active,
 or (3) <span class="arg">vm</span> is freed.
 </div>
 </div>
-
 
 <div class="docitem">
 <div class="proto">
@@ -5482,6 +5481,38 @@ Unregister <span class="arg">v</span> from the current GC protection frame
 of <span class="arg">vm</span>.
 </div>
 </div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctgcpersist">int cqctgcpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+Protects the value <span class="arg">v</span> from
+garbage collection.  
+Unlike
+values protected by <a href="#fn:cqctgcprotect">cqctgcprotect</a></span>,
+the protection persists beyond return from the current GC protection
+frame.
+References to the value will be valid until
+<span class="arg">vm</span> is freed.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctgcunpersist">int cqctgcunpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+Remove GC the protection of <span class="arg">v</span>
+established by a previous call to <a href="#fn:cqctgcprotect">cqctgcprotect</a></span>.
+</div>
+</div>
+
+
 
 <div class="docitem">
 <div class="proto">
@@ -5571,6 +5602,7 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctfini">cqctfini</a><br />
 <a href="#fn:cqctfreeexpr">cqctfreeexpr</a><br />
 <a href="#fn:cqctfreevm">cqctfreevm</a><br />
+<a href="#fn:cqctgcpersist">cqctgcpersist</a><br />
 <a href="#fn:cqctgcprotect">cqctgcprotect</a><br />
 <a href="#fn:cqctinit">cqctinit</a><br />
 <a href="#fn:cqctint8val">cqctint8val</a><br />
@@ -5585,6 +5617,8 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctuint16val">cqctuint16val</a><br />
 <a href="#fn:cqctuint32val">cqctuint32val</a><br />
 <a href="#fn:cqctuint64val">cqctuint64val</a><br />
+<a href="#fn:cqctgcunpersist">cqctgcunpersist</a><br />
+<a href="#fn:cqctgcunprotect">cqctgcunprotect</a><br />
 <a href="#fn:cqctvalcstr">cqctvalcstr</a><br />
 <a href="#fn:cqctvalint8">cqctvalint8</a><br />
 <a href="#fn:cqctvalint16">cqctvalint16</a><br />
