@@ -200,7 +200,7 @@ enum {
 	Maxvms=1024,
 	Errinitdepth=128,	/* initial max error stack */
 	Maxtmp = 128,
-	Maxstk = 1024,
+	Maxstk = 102400,
 	InsnAlloc = 10,
 	AllocBatch = 128,
 	Maxheap	= 5*1024*1024,
@@ -822,6 +822,7 @@ Closure*	haltthunk();
 void		initcompile();
 Xenv*		mkxenv(Xenv *link);
 Closure*	panicthunk();
+void		printinsn(Code *code, Insn *i);
 char*		topvecid(unsigned idx, Topvec *tv);
 Val*		topvecval(unsigned idx, Topvec *tv);
 void*		xenvlook(Xenv *xe, char *id);

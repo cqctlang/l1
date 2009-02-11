@@ -1,8 +1,8 @@
 ftab = mktab();
 fn = lambda(val) {
-	if(ftab[val] == nil){
-		ftab[val] = 1;
-	}else
+	if(ftab[val] == nil)
+		ftab[0] = 1;
+	else
 		error("re-finalized %a\n", val);
 };
 for(i = 0; i < 100000; i++){
