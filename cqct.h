@@ -25,8 +25,14 @@ enum {
 	Qnkind
 } Qkind;
 
+typedef struct Closure Closure;
+typedef struct Expr Expr;
+typedef struct Toplevel Toplevel;
+typedef struct VM VM;
 typedef struct Head Head;
+typedef struct Head* Val;
 typedef struct Heap Heap;
+
 struct Head {
 	Qkind qkind;
 	unsigned color;
@@ -35,14 +41,8 @@ struct Head {
 	Head *alink;
 	Head *link;
 	int state;		/* debugging */
+	Closure *final;
 };
-
-typedef struct Head* Val;
-
-typedef struct Closure Closure;
-typedef struct Expr Expr;
-typedef struct Toplevel Toplevel;
-typedef struct VM VM;
 
 int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);

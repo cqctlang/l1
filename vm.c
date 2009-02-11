@@ -82,6 +82,7 @@ static void *GCiterdone;
 #define GCCOLOR(i) ((i)%3)
 enum {
 	GCfree = 3,
+	GCfinal = 4,
 	GCrate = 100000,
 	GCinitprot = 128,	/* initial # of GC-protected lists in VM */
 };
@@ -90,7 +91,7 @@ static unsigned long long nextgctick = GCrate;
 
 typedef struct GC GC;
 struct GC {
-	void (*gcpoll)(GC*);
+	void (*gcpoll)(GC*, VM*);
 	void (*gckill)(GC*);
 	unsigned char gcpause;	/* gc is waiting for mutator */
 	unsigned char gcrun;	/* gc is running */
@@ -99,6 +100,7 @@ struct GC {
 	int cgc;		/* gc->mutator channel */
 	Rootset roots;
 	Rootset stores;
+	Rootset finals;
 	u64 heapmax, heaphi;
 };
 
@@ -129,6 +131,8 @@ static List* mklistn(u32 sz);
 static Val listref(VM *vm, List *lst, Imm idx);
 static List* listset(VM *vm, List *lst, Imm idx, Val v);
 static void _listappend(List *lst, Val v);
+static void addroot(Rootset *rs, Head *h);
+static Head* removeroot(Rootset *rs);
 
 static struct GC *thegc;
 static Val Xundef;
@@ -421,6 +425,7 @@ heapfree(Head *p)
 	p->heap->sweep = p;
 	p->state = -1;
 	p->color = GCfree;
+	p->final = 0;
 //	VALGRIND_MAKE_MEM_NOACCESS(p+1, p->heap->sz-sizeof(Head));
 }
 
@@ -431,11 +436,17 @@ sweepheap(Heap *heap, unsigned color)
 	p = heap->alloc;
 	while(p){
 		if(p->color == color){
+			if(p->final){
+				p->color = GCfinal;
+				addroot(&thegc->finals, p);
+				goto next;
+			}
 			p->color = GCfree;
 			if(heap->free1 && heap->free1(p) == 0)
-				continue; /* deferred free */
+				goto next; /* deferred free */
 			heapfree(p);
 		}
+next:
 		p = p->alink;
 	}
 	if(heap->swept == 0){
@@ -631,6 +642,7 @@ markhead(GC *gc, Head *hd, unsigned color)
 		return;
 
 	hd->color = color;
+	addroot(&gc->roots, (Head*)hd->final);
 	if(hd->heap->iter == 0)
 		return;
 	memset(&ictx, 0, sizeof(ictx));
@@ -732,6 +744,9 @@ gcreset(GC *gc)
 {
 	rootsetreset(&gc->roots);
 	rootsetreset(&gc->stores);
+	if(rootsetempty(&gc->finals))
+		// safe: mutator is blocked from finals; nothing there anyway
+		rootsetreset(&gc->finals);
 }
 
 enum {
@@ -827,14 +842,35 @@ needsgc(GC *gc)
 }
 
 static void
-concurrentgcpoll(GC *gc)
+gcfinal(GC *gc, VM *vm)
+{
+	Head *hd;
+	Closure *cl;
+	Val arg;
+
+	while(1){
+		hd = removeroot(&gc->finals);
+		if(hd == 0)
+			break;
+		cl = hd->final;
+		hd->final = 0;
+		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
+		arg = hd;
+		dovm(vm, cl, 1, &arg);
+	}
+}
+
+static void
+concurrentgcpoll(GC *gc, VM *vm)
 {
 	if(gc->gcpause)
 		gcsync(gc->cm, GCpaused, GCresume);
 	else if(gc->gcrun)
 		return;
-	else if(needsgc(gc))
+	else if(needsgc(gc)){
 		gcsync(gc->cm, GCrun, GCrunning);
+		gcfinal(gc, vm);
+	}
 }
 
 static void
@@ -902,11 +938,12 @@ dogc(GC *gc)
 }
 
 static void
-gcpoll(GC *gc)
+gcpoll(GC *gc, VM *vm)
 {
 	if(needsgc(gc)){
 		dogc(gc);
 		dogc(gc);
+		gcfinal(gc, vm);
 	}
 }
 
@@ -6250,19 +6287,19 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vmsetcl(vm, vm->cl);
 		vm->pc = stkimm(vm->stack[vm->sp]);
 		vmpop(vm, 3);
-		thegc->gcpoll(thegc);
+		thegc->gcpoll(thegc, vm);
 		continue;
 	Ijmp:
 		vm->pc = i->dstlabel->insn;
-		thegc->gcpoll(thegc);
+		thegc->gcpoll(thegc, vm);
 		continue;
 	Ijnz:
 		xjnz(vm, &i->op1, i->dstlabel);
-		thegc->gcpoll(thegc);
+		thegc->gcpoll(thegc, vm);
 		continue;
 	Ijz:
 		xjz(vm, &i->op1, i->dstlabel);
-		thegc->gcpoll(thegc);
+		thegc->gcpoll(thegc, vm);
 		continue;
 	Iclo:
 		xclo(vm, &i->op1, i->dstlabel, &i->dst); 
@@ -10486,7 +10523,21 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 	else{
 		dogc(thegc);
 		dogc(thegc);
+		gcfinal(thegc, vm);
 	}
+}
+
+static void
+l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Head *hd;
+	Closure *cl;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to finalize");
+	checkarg(vm, "finalize", argv, 1, Qcl);
+	hd = (Head*)argv[0];
+	cl = valcl(argv[1]);
+	hd->final = cl;
 }
 
 static void
@@ -10938,6 +10989,7 @@ mktopenv()
 	FN(fieldoff);
 	FN(fields);
 	FN(fieldtype);
+	FN(finalize);
 	FN(foreach);
 	FN(gc);
 	FN(getbytes);
@@ -11254,8 +11306,10 @@ finivm()
 	dogc(thegc);
 	dogc(thegc);
 	gcreset(thegc);
+	rootsetreset(&thegc->finals); /* force reset in case it is non-empty */
 	freefreeroots(&thegc->roots);
 	freefreeroots(&thegc->stores);
+	freefreeroots(&thegc->finals);
 	efree(thegc);
 
 	freecode((Head*)kcode);
