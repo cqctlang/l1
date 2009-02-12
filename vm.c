@@ -444,7 +444,7 @@ sweepheap(Heap *heap, unsigned color)
 			p->color = GCfree;
 			if(heap->free1 && heap->free1(p) == 0)
 				goto next; /* deferred free */
-//			heapfree(p);
+			heapfree(p);
 		}
 next:
 		p = p->alink;
@@ -844,12 +844,12 @@ needsgc(GC *gc)
 static void
 gcfinal(GC *gc, VM *vm)
 {
-	static int d = 0;
 	Head *hd;
 	Closure *cl;
-	Val arg;
+	Val ac, arg;
 
-	printf("enter gcfinal %d\n", d++);
+	ac = vm->ac;
+	gcprotect(vm, valhead(ac)); /* valhead filters Xnil, ...  */
 	while(1){
 		hd = removeroot(&gc->finals);
 		if(hd == 0)
@@ -859,10 +859,9 @@ gcfinal(GC *gc, VM *vm)
 		hd->final = 0;
 		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
 		arg = hd;
-		printf("finalize\n");
 		dovm(vm, cl, 1, &arg);
 	}
-	printf("leave gcfinal %d\n", --d);
+	vm->ac = ac;
 }
 
 static void
@@ -3545,10 +3544,8 @@ getcvalrand(VM *vm, Operand *r)
 {
 	switch(r->okind){
 	case Oloc:
-		printf("loc\n");
 		return getcval(vm, &r->u.loc);
 	case Oliti:
-		printf("lit\n");
 		return valcval(r->u.liti);
 	default:
 		fatal("bug");
@@ -6204,8 +6201,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	while(1){
 		i = &vm->ibuf[vm->pc++];
 		tick++;
-		printf("%lu %lu ", vm->sp, vm->fp);
-		printinsn(vm->clx->code, i);
 		goto *(i->go);
 		fatal("bug");
 	Inop:
