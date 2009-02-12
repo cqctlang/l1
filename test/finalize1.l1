@@ -1,4 +1,4 @@
-# no output: the point of this test is not to crash or mishandle memory
+// no output: the point of this test is not to crash or mishandle memory
 ftab = mktab();
 fn = lambda(val) {
 	if(ftab[val] == nil)
