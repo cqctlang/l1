@@ -822,6 +822,7 @@ Closure*	haltthunk();
 void		initcompile();
 Xenv*		mkxenv(Xenv *link);
 Closure*	panicthunk();
+void		printinsn(Code *code, Insn *i);
 char*		topvecid(unsigned idx, Topvec *tv);
 Val*		topvecval(unsigned idx, Topvec *tv);
 void*		xenvlook(Xenv *xe, char *id);

@@ -846,18 +846,22 @@ gcfinal(GC *gc, VM *vm)
 {
 	Head *hd;
 	Closure *cl;
-	Val arg;
+	Val ac, arg;
 
+	ac = vm->ac;
+	gcprotect(vm, valhead(ac)); /* valhead filters Xnil, ...  */
 	while(1){
 		hd = removeroot(&gc->finals);
 		if(hd == 0)
 			break;
 		cl = hd->final;
+		hd->link = 0;
 		hd->final = 0;
 		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
 		arg = hd;
 		dovm(vm, cl, 1, &arg);
 	}
+	vm->ac = ac;
 }
 
 static void

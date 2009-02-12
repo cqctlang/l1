@@ -267,7 +267,7 @@ printrand(Code *code, Operand *r)
 	}
 }
 
-static void
+void
 printinsn(Code *code, Insn *i)
 {
 	xprintf("\t");
