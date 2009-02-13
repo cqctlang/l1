@@ -80,6 +80,7 @@ todo
   - detect variable use-before-define errors, especially
     because locals share storage in frame 
   - it should be easier to write htons
+  - move gcpersist's list to GC (from VM), and put kcode, ccode, etc. on it
 
 - usability
   - change "entry" to "toplevel"

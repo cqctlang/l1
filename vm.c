@@ -727,6 +727,13 @@ rootset(GC *gc)
 			}
 		}
 	}
+
+	/* pending finalizers */
+//	r = gc->finals.roots;
+//	while(r){
+//		addroot(&gc->roots, (Head*)r->hd->final);
+//		r = r->link;
+//	}
 }
 
 static void
@@ -855,13 +862,25 @@ gcfinal(GC *gc, VM *vm)
 		if(hd == 0)
 			break;
 		cl = hd->final;
-		hd->link = 0;
 		hd->final = 0;
 		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
 		arg = hd;
 		dovm(vm, cl, 1, &arg);
 	}
 	vm->ac = ac;
+}
+
+static void
+gcclearfinal(GC *gc)
+{
+	Head *hd;
+	while(1){
+		hd = removeroot(&gc->finals);
+		if(hd == 0)
+			break;
+		hd->final = 0;
+		heapfree(hd);
+	}
 }
 
 static void
@@ -10538,10 +10557,18 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 	Closure *cl;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to finalize");
-	checkarg(vm, "finalize", argv, 1, Qcl);
 	hd = (Head*)argv[0];
-	cl = valcl(argv[1]);
-	hd->final = cl;
+	if(argv[1]->qkind == Qcl){
+		cl = valcl(argv[1]);
+		if(hd->final)
+			gcwb(thegc, mkvalcl(hd->final));
+		hd->final = cl;
+	}else if(argv[1]->qkind == Qnil){
+		if(hd->final)
+			gcwb(thegc, mkvalcl(hd->final));
+		hd->final = 0;
+	}else
+		vmerr(vm, "argument 1 to finalize must be a function or nil");
 }
 
 static void
@@ -11309,8 +11336,8 @@ finivm()
 	thegc->gckill(thegc);
 	dogc(thegc);
 	dogc(thegc);
+	gcclearfinal(thegc); /* FIXME: move to gcreset? */
 	gcreset(thegc);
-	rootsetreset(&thegc->finals); /* force reset in case it is non-empty */
 	freefreeroots(&thegc->roots);
 	freefreeroots(&thegc->stores);
 	freefreeroots(&thegc->finals);

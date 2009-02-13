@@ -5149,6 +5149,55 @@ started.  All user-defined bindings are destroyed.
 </div>
 </div>
 
+
+<div class="docitem" id="fn:finalize">
+<div class="proto">
+<div class="function">
+<span class="id">finalize(v, fn)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function or nil</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+
+Registers a finalizer function to be called before the
+garbage collector reclaims storage for the
+value <span class="arg">v</span>.  The GC schedules a
+call to the finalizer <span class="arg">fn</span> some
+time after determining that <span class="arg">v</span>
+is unreachable.  The sole argument passed
+to <span class="arg">fn</span>
+is <span class="arg">v</span>.
+
+<p>
+At the time it is passed to the finalizer, the
+value <span class="arg">v</span> is unreachable but
+otherwise has no special status.  In particular, the
+finalizer may reintroduce references to the value,
+e.g. by storing it in a hash table.  The finalizer will
+not be called again for such a reincarnated value;
+a new call to <span class="id">finalize</span>
+must be arranged.
+</p>
+
+<p>
+Only one finalizer can be associated with a value at
+a time; <span class="id">finalize</span> replaces
+the previously registered finalizer, if any.
+To disassociate a finalizer from a value <span class="arg">v</span>,
+call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
+</p>
+
+</div>
+</div>
+
 <h3 id="sec:cinterface">C Interface</h3>
 
 <p>
@@ -5638,6 +5687,7 @@ machines sharing the environment have been freed.
 <a href="#fn:fieldoff">fieldoff</a><br />
 <a href="#fn:fields">fields</a><br />
 <a href="#fn:fieldtype">fieldtype</a><br />
+<a href="#fn:finalize">finalize</a><br />
 <a href="#fn:foreach">foreach</a><br />
 <a href="#fn:fprintf">fprintf</a><br />
 <a href="#fn:getbytes">getbytes</a><br />
