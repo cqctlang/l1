@@ -2417,11 +2417,14 @@ iterlist(Head *hd, Ictx *ictx)
 static Rec*
 mkrec(Rd *rd)
 {
+	Imm m;
 	Rec *r;
 	r = (Rec*)halloc(&heap[Qrec]);
 	r->rd = rd;
 	r->nf = rd->nf;
 	r->field = emalloc(r->nf*sizeof(Val));
+	for(m = 0; m < r->nf; m++)
+		r->field[m] = Xnil;
 	return r;
 }
 
