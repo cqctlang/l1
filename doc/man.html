@@ -5408,28 +5408,28 @@ with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctint8val">Val cqctvalint8(int8_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctint8val">Val cqctint8val(int8_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctint16val">Val cqctvalint16(int16_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctint16val">Val cqctint16val(int16_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctint32val">Val cqctvalint32(int32_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctint32val">Val cqctint32val(int32_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctint64val">Val cqctvalint64(int64_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctint64val">Val cqctint64val(int64_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctuint8val">Val cqctvaluint8(uint8_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctuint8val">Val cqctuint8val(uint8_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctuint16val">Val cqctvaluint16(uint16_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctuint16val">Val cqctuint16val(uint16_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctuint32val">Val cqctvaluint32(uint32_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctuint32val">Val cqctuint32val(uint32_t <span class="arg">x</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctuint64val">Val cqctvaluint64(uint64_t <span class="arg">x</span>)</span>
+<span class="id" id="fn:cqctuint64val">Val cqctuint64val(uint64_t <span class="arg">x</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -5504,7 +5504,7 @@ with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctgcprotect">int cqctgcprotect(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctgcprotect">void cqctgcprotect(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -5522,7 +5522,7 @@ or (3) <span class="arg">vm</span> is freed.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctgcunprotect">int cqctgcunprotect(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctgcunprotect">void cqctgcunprotect(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -5534,7 +5534,7 @@ of <span class="arg">vm</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctgcpersist">int cqctgcpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctgcpersist">void cqctgcpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
 </div>
 </div>
 <div class="desc">
@@ -5552,7 +5552,7 @@ References to the value will be valid until
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctgcunpersist">int cqctgcunpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
+<span class="id" id="fn:cqctgcunpersist">void cqctgcunpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
 </div>
 </div>
 <div class="desc">
