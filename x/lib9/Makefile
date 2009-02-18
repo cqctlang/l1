@@ -18,7 +18,7 @@ depend: $(C) Makefile
 	gcc $(INC) -MM $(C) > depend
 
 $(TARG): $(O)
-	ar rsc $@ $^
+	$(AR) rsc $@ $^
 
 clean:
 	$(RM) depend $(TARG) *~ $(O) core core.*
