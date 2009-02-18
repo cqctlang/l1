@@ -2,6 +2,10 @@ CC  = cilly --merge --keepmerged
 LD  = cilly --merge --keepmerged
 AR  = cilly --mode=AR --merge --keepmerged
 
+export CC
+export LD
+export AR
+
 include mk.unix
 
 clean: cilclean

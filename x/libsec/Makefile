@@ -1,5 +1,5 @@
-CC        = gcc
-LD        = ld
+CC        ?= gcc
+LD        ?= ld
 INC	  = -I../.. -I../include
 CFLAGS   += $(INC)
 TARG      = libsec.a
