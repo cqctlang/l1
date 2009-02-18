@@ -700,6 +700,15 @@ define mkpras(arg) {
 			return reg->eflags;
 	}
 
+	define getpc(domas){
+		if(!isdom(domas))
+			error("getpc must be invoked on a domain");
+		if(sizeof(nsptr(domas)) == 8)
+			return {domas}reg->rip;
+		else
+			return {domas}reg->eip;
+	}
+
 	define setrbx(domas, x) { reg->rbx = x; setregs(); }
 	define setrcx(domas, x) { reg->rcx = x; setregs(); }
 	define setrdx(domas, x) { reg->rdx = x; setregs(); }
@@ -718,6 +727,16 @@ define mkpras(arg) {
 	define setr14(domas, x) { reg->r14 = x; setregs(); }
 	define setr15(domas, x) { reg->r15 = x; setregs(); }
 	define seteflags(domas, x) { reg->eflags = x; setregs(); }
+
+	define setpc(domas, x){
+		if(!isdom(domas))
+			error("setpc must be invoked on a domain");
+		if(sizeof(nsptr(domas)) == 8)
+			reg->rip = x;
+		else
+			reg->eip = x;
+		setregs();
+	}
 
 	dtab = {
 		"get"		:       get,
@@ -780,6 +799,9 @@ define mkpras(arg) {
 		"setr14"	:	setr14,
 		"setr15"	:	setr15,
 		
+		"getpc"		:	getpc, 
+		"setpc"		:	setpc, 
+
 		"geteflags"	:	geteflags,
 		"seteflags"	:	seteflags,
 		
