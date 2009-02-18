@@ -1,0 +1,10 @@
+CC  = cilly --merge --keepmerged
+LD  = cilly --merge --keepmerged
+AR  = cilly --mode=AR --merge --keepmerged
+
+include mk.unix
+
+clean: cilclean
+
+cilclean:
+	$(RM) l1_comb.o l1_comb.c l1.o_trueobjs ___extra_files
