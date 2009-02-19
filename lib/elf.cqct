@@ -1,5 +1,10 @@
-define mkelfdom (binfile) {
-  @local elfas, elfnames, elfheader, tempnames, hdom, hns, root;
+@record bd {exec, elf, debug_aranges, debug_pubnames, debug_info, debug_abbrev,
+    debug_line, debug_frame, debug_str, debug_ranges, debug_loc, frametable,
+    linetable, addrsize, rootns};
+
+define mkelfrec (binfile) {
+  @local elfas, elfheader, elfnames, hdom, hns, root, rv;
+  rv = bd();
   elfas = mksas (binfile);
   hns = @names c32le {
 	  enum x {
@@ -49,9 +54,10 @@ define mkelfdom (binfile) {
   }
   else
     error ("unsupported ELF class: %d", elfheader[hdom`EI_CLASS]);
-
+  rv.rootns = root;
   elfnames = @names root { @include "elf.names" };  
-  return mkdom (elfnames, elfas);
+  rv.elf = mkdom (elfnames, elfas);
+  return rv;
 }
 
 /* functions to perform some macros defined in /usr/include/elf.h */

@@ -48,6 +48,12 @@ define _dw_eval (dom, exas, cptr, pceval)
     _dw_push (val2 + val1);
     break;
   }
+  case dom`DW_OP_addr:{
+    val = * (`uintptr *) lptr;
+    lptr += sizeof (`uintptr);
+    _dw_push (val);
+    break;
+  }
   case dom`DW_OP_reg0:
   case dom`DW_OP_reg1:
   case dom`DW_OP_reg2:
@@ -141,12 +147,6 @@ define _dw_eval (dom, exas, cptr, pceval)
     rv = (`uintptr) rv;
     rvtype = _dwcqct_addr_type;
     _dw_push (rv);
-    break;
-  }
-  case dom`DW_OP_addr:{
-    val = * (`uintptr *) lptr;
-    lptr += sizeof (`uintptr);
-    _dw_push (val);
     break;
   }
   case dom`DW_OP_minus: {
@@ -548,10 +548,13 @@ define _dw_eval (dom, exas, cptr, pceval)
   return [rv, rvtype, lptr];
 }
 
-define dw_process_location_list (dom, exdom, ptr, form, cubase, fb, doml)
+define dw_process_location_list (bdrec, exdom, ptr, form, cubase, fb, doml)
 {
-  @local op, cptr, size, rv, l, fn, sloc, eloc, baseaddrflag, cubaseaddr;
+  @local op, cptr, asize, rv, l, fn, sloc, eloc, baseaddrflag, cubaseaddr;
   @local isdone, cnt, len, end;
+  @local dom;
+  dom = bdrec.debug_loc;
+  asize = bdrec.addrsize;
   cptr = {dom} ptr;
   l = [];
   fn = nil;
@@ -563,16 +566,12 @@ define dw_process_location_list (dom, exdom, ptr, form, cubase, fb, doml)
   }
   else {
     @local indom, abdom, strdom, exdom, cuinfo;
-    indom = domof (cubase);
-    abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_debug_info, indom, doml);
-    strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_debug_info, indom, doml);
-    cuinfo = get_cu_baseaddr (indom, abdom, strdom, exdom, cubase);
+    cuinfo = get_cu_baseaddr (bdrec, exdom, cubase);
     cubaseaddr = listref (cuinfo, 2);
   }
-  size = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_info, domof (cubase), doml);
-  if (size == 4)
+  if (asize == 4)
     baseaddrflag = 0xffffffff;
-  else if (size == 8)
+  else if (asize == 8)
     baseaddrflag = 0xffffffffffffffff;
   else {
     printf ("Don't know what to do with location list with addr form %a\n",
@@ -583,7 +582,7 @@ define dw_process_location_list (dom, exdom, ptr, form, cubase, fb, doml)
     cnt++;
     /* for each location list, get the start address, the end address,
        and the location function (from _dw_eval) */
-    if (size == 4)
+    if (asize == 4)
       cptr = (`uint32 *){dom}cptr;
     else
       cptr = (`uint64 *){dom}cptr;
