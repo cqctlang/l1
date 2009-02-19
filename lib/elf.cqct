@@ -1,51 +1,57 @@
 define mkelfdom (binfile) {
-  @local elfas, elfnames, elfheader, tempnames, tempdom;
-  elfnames= nil;
+  @local elfas, elfnames, elfheader, tempnames, hdom, hns, root;
   elfas = mksas (binfile);
-  tempnames = @names c32le {
-    @include "elf.names"
+  hns = @names c32le {
+	  enum x {
+		  EI_NIDENT	=16,
+		  EI_MAG0	=0,
+		  ELFMAG0	=0x7f,
+		  EI_MAG1	=1,
+		  ELFMAG1	='E',
+		  EI_MAG2	=2,
+		  ELFMAG2	='L',
+		  EI_MAG3	=3,
+		  ELFMAG3	='F',
+		  EI_CLASS	=4,
+		  ELFCLASSNONE	=0,
+		  ELFCLASS32	=1,
+		  ELFCLASS64	=2,
+		  ELFCLASSNUM	=3,
+		  EI_DATA	=5,
+		  ELFDATANONE	=0,
+		  ELFDATA2LSB	=1,
+		  ELFDATA2MSB	=2,
+		  ELFDATANUM	=3,
+	  };
   };
 
-  tempdom = mkdom (tempnames, elfas);
-  elfheader = (tempdom`Elf32_Ehdr *) {tempdom}0;
+  hdom = mkdom (hns, elfas);
+  elfheader = (unsigned char *) {hdom}0;
 
-  if (getbytes(elfheader->e_ident, 4) != "\x7f""ELF")
+  if (getbytes(elfheader, 4) != "\x7f""ELF")
     error ("argument to mkelfdom must be a string containing an elf binary");
 
-  if (elfheader->e_ident[4] == (unsigned char ) 1) {
-    /* then file is 32 bit */
-    if (elfheader->e_ident[5] == (unsigned char ) 1)
-      /* then file is little-endian */
-      elfnames = @names c32le {
-	@include "elf.names"
-      };
-    else if (elfheader->e_ident[5] == (unsigned char ) 2)
-      /* then file is big-endian */
-      elfnames = @names c32be {
-	@include "elf.names"
-      };
+  if (elfheader[hdom`EI_CLASS] == hdom`ELFCLASS32) {
+    if (elfheader[hdom`EI_DATA] == hdom`ELFDATA2LSB)
+      root = c32le;
+    else if (elfheader[hdom`EI_DATA] == hdom`ELFDATA2MSB)
+      root = c32be;
+    else
+      error ("unsupported ELF data encoding: %d", elfheader[hdom`EI_DATA]);
   }
-  else if (elfheader->e_ident[4] == (unsigned char ) 2) {
-    /* then file is 64 bit */
-    if (elfheader->e_ident[5] == (unsigned char ) 1) {
-      //printf ("Choosing clp64le namespace\n");
-      /* then file is little-endian */
-      elfnames = @names clp64le {
-	@include "elf.names"
-      };
-    }
-    else if (elfheader->e_ident[5] == (unsigned char ) 2)
-      /* then file is big-endian */
-      elfnames = @names clp64be {
-	@include "elf.names"
-      };
+  else if (elfheader[hdom`EI_CLASS] == hdom`ELFCLASS64) {
+    if (elfheader[hdom`EI_DATA] == hdom`ELFDATA2LSB)
+      root = clp64le;
+    else if (elfheader[hdom`EI_DATA] == hdom`ELFDATA2MSB)
+      root = clp64be;
+    else
+      error ("unsupported ELF data encoding: %d", elfheader[hdom`EI_DATA]);
   }
-  if (!isnil (elfnames)) {
-    @local dom;
-    dom = mkdom (elfnames, elfas);
-    return dom;
-  }
-  return nil;
+  else
+    error ("unsupported ELF class: %d", elfheader[hdom`EI_CLASS]);
+
+  elfnames = @names root { @include "elf.names" };  
+  return mkdom (elfnames, elfas);
 }
 
 /* functions to perform some macros defined in /usr/include/elf.h */
