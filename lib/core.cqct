@@ -101,7 +101,7 @@ define mkcoreas(fname)
 	@local elfdom;
 	@local addr_ranges, regptr, parseout;
 
-	elfdom = mkelfdom(mapfile(fname));
+	elfdom = mkelfrec(mapfile(fname)).elf;
 	
 	parseout = parse_core(elfdom, fname);
 	addr_ranges = listref(parseout, 1);

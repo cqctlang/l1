@@ -7,22 +7,6 @@ define mkdwdom (elfdom, dbsec, domname) {
   return mkdom (dwnames, dwas, domname);
 }
 
-/* generalized from previous dw_get_fdom_from_binary, which always
-   constructed the domain for ".debug_frame". Name should be a
-   DWARF section, usually ".debug_<name>", although it might work
-   for .eh sections that hold DWARF information. The name must be
-   a valid name for an ELF section in the binfile. */
-define dw_get_dwarfdom_from_binary (binfile, name)
-{
-  @local belfdom, bfsec, bfdom;
-  /* Should perhaps enter the [name, domain] pair as well as
-     ["elfdomain", belfdom] to global_dwarf_domain_list */
-  belfdom = mkelfdom (binfile);
-  bfsec = getelfsection (belfdom, name);
-  bfdom = mkdwdom (bfsec);
-  return bfdom;
-}
-
 /* We don't want to keep rebuilding this information, so I'm creating
    a global list of vectors until we figure out a better way to keep
    expensively generated data around . Each vector will contain values
@@ -75,10 +59,6 @@ _dwcqct_linetable = 12;
 _dwcqct_addrsize = 13;
 _dwcqct_rootns = 14;
 _dwcqct_vectorsize = 15;
-
-@record bd {exec, elf, debug_aranges, debug_pubnames, debug_info, debug_abbrev,
-    debug_line, debug_frame, debug_str, debug_ranges, debug_loc, frametable,
-    linetable, addrsize, rootns};
 
 global_dwarf_domain_list = [];
 _dw_current_frame_base = nil;
@@ -148,13 +128,19 @@ define advance_strptr (dwdom, sptr)
 define dw_show_names (dwdom)
 {
   @local nshdr, curaddr, hdrcnt, noff;
+  @local m, r, rbeg, rend, inrange;
   hdrcnt = {dwdom}0;
   curaddr = {dwdom}0x0;
   nshdr = (struct dwdom`nsethdr *)curaddr;
   printf ("Header %d:\tlen = 0x%x\tdioff = 0x%x\tdisize = 0x%x\n",
 	  hdrcnt, nshdr->ns_len, nshdr->di_off, nshdr->di_size);
   curaddr += sizeof (struct dwdom`nsethdr);
-  if (!ismapped ((unsigned int *)curaddr))
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange ((unsigned int *)curaddr))
     return nil;
   noff = * (unsigned int *)curaddr;
   printf ("noff is 0x%x\n", noff);
@@ -165,7 +151,7 @@ define dw_show_names (dwdom)
 	name = head (val);
 	printf ("offset 0x%x:\t%s\n", noff, name);
 	curaddr = listref (val, 1);
-	if (ismapped ((unsigned int *)curaddr))
+	if (inrange ((unsigned int *)curaddr))
 	  noff = * (unsigned int *)curaddr;
 	else
 	  noff = 0; /* to terminate loop */
@@ -174,11 +160,11 @@ define dw_show_names (dwdom)
       curaddr += sizeof (unsigned int);
       hdrcnt ++;
       nshdr = (struct dwdom`nsethdr *)curaddr;
-      if (ismapped (nshdr))
+      if (inrange (nshdr))
 	printf ("Header %d:\tlen = 0x%x\tdioff = 0x%x\tdisize = 0x%x\n",
 		hdrcnt, nshdr->ns_len, nshdr->di_off, nshdr->di_size);
       curaddr += sizeof (struct dwdom`nsethdr);
-      if (ismapped ((unsigned int *)curaddr))
+      if (inrange ((unsigned int *)curaddr))
 	noff = * (unsigned int *)curaddr;
       else
 	noff = 0; /* to terminate loop */
@@ -189,6 +175,7 @@ define dw_show_names (dwdom)
 define dw_show_aranges (dwdom)
 {
   @local hdrcnt, curaddr, arhdr, asize, alen, rem, artuple;
+  @local m, r, rbeg, rend, inrange;
   hdrcnt = {dwdom}0;
   curaddr = {dwdom}0x0;
   alen = {dwdom}0x0;
@@ -214,7 +201,12 @@ define dw_show_aranges (dwdom)
     return nil;
   }
   printf ("artuple = 0x%x\n", artuple);
-  if (!ismapped (artuple))
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange (artuple))
     return nil;
   printf ("ar_start is 0x%x\n", artuple->ar_start);
   while (artuple->ar_start || artuple->ar_len) {
@@ -222,7 +214,7 @@ define dw_show_aranges (dwdom)
       printf ("ar_start = 0x%x:\tar_len = 0x%x:\n",
 	      artuple->ar_start, artuple->ar_len);
       artuple++;
-      if (!ismapped (artuple)) {
+      if (!inrange (artuple)) {
 	printf ("unmapped address at 0x%x\n", artuple);
 	return;
       }
@@ -231,7 +223,7 @@ define dw_show_aranges (dwdom)
     artuple++; 
     arhdr = (struct dwdom`arangehdr *)artuple;
     hdrcnt ++;
-    if (ismapped (arhdr))
+    if (inrange (arhdr))
       printf ("Header %d:\tlen = 0x%x\tdioff = 0x%x\n",
 		hdrcnt, arhdr->ar_len, arhdr->di_off);
     curaddr = (unsigned int) arhdr;
@@ -243,7 +235,7 @@ define dw_show_aranges (dwdom)
       artuple = (struct arange32 *)curaddr;
     else if (asize == 8)
       artuple = (struct arange64 *)curaddr;
-    if (!ismapped (artuple))
+    if (!inrange (artuple))
       break;
   }
   printf ("final value of curaddr is 0x%x\n", artuple);
@@ -252,6 +244,7 @@ define dw_show_aranges (dwdom)
 define dw_get_aranges (ardom)
 {
   @local hdrcnt, curaddr, arhdr, asize, alen, rem, artuple, rv, arl;
+  @local m, r, rbeg, rend, inrange;
   rv = [];
   arl = [];
   hdrcnt = {ardom}0;
@@ -274,13 +267,18 @@ define dw_get_aranges (ardom)
     printf ("unsupported address size: %d\n", asize);
     return nil;
   }
-  if (!ismapped (artuple))
+  m = ardom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange (artuple))
     return nil;
   while (artuple->ar_start || artuple->ar_len) {
     while (artuple->ar_start || artuple->ar_len) {
       append (arl, [artuple->ar_start, artuple->ar_start + artuple->ar_len]);
       artuple++;
-      if (!ismapped (artuple)) {
+      if (!inrange (artuple)) {
 	printf ("unmapped address at 0x%x\n", artuple);
 	return;
       }
@@ -300,7 +298,7 @@ define dw_get_aranges (ardom)
       artuple = (struct arange32 *)curaddr;
     else if (asize == 8)
       artuple = (struct arange64 *)curaddr;
-    if (!ismapped (artuple))
+    if (!inrange (artuple))
       break;
   }
   return rv;
@@ -309,6 +307,7 @@ define dw_get_aranges (ardom)
 define dw_get_dieoff_for_cu (dwdom, addr)
 {
   @local arhdr, curaddr, asize, aoff, alen, rem, artuple, eaddr, hdrcnt;
+  @local m, r, rbeg, rend, inrange;
   hdrcnt = {dwdom}0;
   curaddr = {dwdom}0x0;
   alen = {dwdom}0x0;
@@ -330,7 +329,12 @@ define dw_get_dieoff_for_cu (dwdom, addr)
     printf ("unsupported address size: %d\n", asize);
     return nil;
   }
-  if (!ismapped (artuple))
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange (artuple))
     return nil;
   while (artuple->ar_start || artuple->ar_len) {
     while (artuple->ar_start || artuple->ar_len) {
@@ -339,7 +343,7 @@ define dw_get_dieoff_for_cu (dwdom, addr)
 	return arhdr->di_off;
       }
       artuple++;
-      if (!ismapped (artuple)) {
+      if (!inrange (artuple)) {
 	printf ("unmapped address at 0x%x\n", artuple);
 	return nil;
       }
@@ -357,21 +361,20 @@ define dw_get_dieoff_for_cu (dwdom, addr)
       artuple = (struct arange32 *)curaddr;
     else if (asize == 8)
       artuple = (struct arange64 *)curaddr;
-    if (!ismapped (artuple))
+    if (!inrange (artuple))
       break;
   }
   return nil;
 }
 
-define dw_get_lineoff_for_cu (ardom, addr, doml)
+define dw_get_lineoff_for_cu (bdrec, addr, doml)
 {
-  @local cptr, cu, abdom, strdom, indom, cubase, lineoff;
-  abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_debug_aranges,
-			ardom, doml);
-  strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_debug_aranges,
-			ardom, doml);
-  indom = dw_get_value (_dwcqct_debug_info, _dwcqct_debug_aranges,
-			ardom, doml);
+  @local cptr, cu, abdom, strdom, indom, cubase, lineoff, ardom;
+  @local abptr, abtab, cul;
+  abdom = bdrec.debug_abbrev;
+  strdom = bdrec.debug_str;
+  indom = bdrec.debug_info;
+  ardom = bdrec.debug_aranges;
   cptr = dw_get_dieoff_for_cu (ardom, addr);
   if (isnil (cptr))
     return nil;
@@ -382,7 +385,7 @@ define dw_get_lineoff_for_cu (ardom, addr, doml)
   abptr = {abdom} cu->abbroff;
   abtab = dw_get_cu_abbrev_table (abdom, abptr);
   cptr = (unsigned int) cptr + sizeof (*cu);
-  cul = dw_process_die (indom, abdom, strdom, mkzas(1024), abtab, mktab(),
+  cul = dw_process_die (bdrec, mkzas(1024), abtab, mktab(),
 			mktab (), [], cptr, cubase, 1, mktab(), doml);
   lineoff = listref (listref (cul, 0), 5);
   return lineoff;
@@ -426,11 +429,17 @@ define dw_show_stdopcodelens (dwdom, addr)
 define dw_show_dirs (dwdom, addr)
 {
   @local base, sptr, dbase, dlist, dir;
+  @local m, r, rbeg, rend, inrange;
   base = {dwdom} addr;
   dlist = append ([], ".");
   sptr = (struct dwdom`dw_fixed_spp *) base;
   dbase = (unsigned char *)(base + sizeof (*sptr) + sptr->opcode_base - 1);
-  while (ismapped (dbase) && (*dbase)) {
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  while (inrange (dbase) && (*dbase)) {
     dir = advance_strptr (dwdom, dbase);
     append (dlist, head (dir));
     dbase = (unsigned char *) (listref (dir, 1));
@@ -448,13 +457,19 @@ define dw_show_dirs (dwdom, addr)
 define dw_show_files (dwdom, addr)
 {
   @local fbase, f, fentry, flist, dlist, dres, count, base;
+  @local m, r, rbeg, rend, inrange;
   base = {dwdom} addr;
   flist = [];
   count = 0;
   dres = dw_show_dirs (dwdom, base);
   dlist = head (dres);
   fbase = listref (dres, 1);
-  while (ismapped (fbase) && (*fbase)) {
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  while (inrange (fbase) && (*fbase)) {
     @local dpair, mtime, fsize;
     f = advance_strptr (dwdom, fbase);
     dpair = decodeuleb128 (listref (f, 1));
@@ -473,13 +488,15 @@ define dw_show_files (dwdom, addr)
 }
 
 /* Straight from the DWARF 2 spec, section 6.2 */
-define dw_get_cu_linenumber_info (linedom, ptr, doml)
+define dw_get_cu_linenumber_info (bdrec, ptr, doml)
 {
   @local addr, file, line, column, is_stmt, bb, endseq, spp, obase;
   @local stoplens, op, cptr, lastfnum, pfiles, oplim, base, result;
   @local saddr, eaddr, amap, cmap, tmap, i, al, avec, asize;
+  @local linedom;
+  linedom = bdrec.debug_line;
   base = {linedom} ptr;
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_line, linedom, doml);
+  asize = bdrec.addrsize;
   saddr = 0;
   eaddr = 0;
   amap = [];
@@ -696,20 +713,32 @@ define dw_get_cu_linenumber_info (linedom, ptr, doml)
 define dw_get_all_line_info (linedom, doml)
 {
   @local base;
+  @local m, r, rbeg, rend, inrange;
   base = {linedom} 0;
+  m = linedom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
   do {
     @local culinfo;
     culinfo = dw_get_cu_linenumber_info (linedom, base, doml);
     base = listref (culinfo, length (culinfo) - 1);
   }
-  while (ismapped (base));
+  while (inrange (base));
 }
 
 define dw_get_cie (dwdom, addr)
 {
   @local base, cie, aug, caf, daf, rareg, initinsptr, result;
+  @local m, r, rbeg, rend, inrange;
   result = [];
-  if (!ismapped ((char *){dwdom}addr)) {
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange ((char *){dwdom}addr)) {
     printf ("Addr 0x%x is not mapped in domain %a\n", addr, dwdom);
     return result;
   }
@@ -739,8 +768,14 @@ define dw_get_cie (dwdom, addr)
 define dw_get_fde (dwdom, addr)
 {
   @local base, fde, cie, insptr, result;
+  @local m, r, rbeg, rend, inrange;
   result = [];
-  if (!ismapped ((char *) {dwdom} addr)) {
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange ((char *) {dwdom} addr)) {
     printf ("Addr 0x%x is not mapped in domain %a\n", addr, dwdom);
     return result;
   }
@@ -784,8 +819,14 @@ define dw_get_cie_with_fdes (dwdom, addr)
 define dw_get_all_frame_entries (dwdom, addr)
 {
   @local base;
+  @local m, r, rbeg, rend, inrange;
   base = {dwdom} addr;
-  while (ismapped ((char *) base))
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  while (inrange ((char *) base))
     base = dw_get_cie_with_fdes (dwdom, base);
   printf ("base is now 0x%x\n", base);
   return base;
@@ -794,7 +835,13 @@ define dw_get_all_frame_entries (dwdom, addr)
 define dw_decode_cfi (dwdom, addr, len)
 {
   @local cptr, primop, op, reg, end, result;
-  if (!ismapped ((char *) {dwdom} addr)) {
+  @local m, r, rbeg, rend, inrange;
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange ((char *) {dwdom} addr)) {
     printf ("Addr 0x%x is not mapped in domain %a\n", addr, dwdom);
     return;
   }
@@ -945,15 +992,23 @@ define dw_decode_cfi (dwdom, addr, len)
   }
 }
 
-define dw_find_fde_for_addr (fdom, addr)
+define dw_find_fde_for_addr (bdrec, addr)
 {
   @local cptr, cie, fde, cad, done, result, asize;
+  @local fdom;
+  @local m, r, rbeg, rend, inrange;
+  fdom = bdrec.debug_frame;
+  m = fdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
   result = [];
   cad = {fdom} addr;
   cptr = {fdom} 0;
   done = {fdom} 0;
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, doml);
-  while (ismapped ((char *) cptr) && !done) {
+  asize = bdrec.addrsize;
+  while (inrange ((char *) cptr) && !done) {
       cie = (struct dw_cie_struct *) cptr;
     /* Now search all the fde's for this cie to see if any have the correct
        address range. */
@@ -984,7 +1039,7 @@ define dw_find_fde_for_addr (fdom, addr)
 	  //else if (asize == 8)
 	  //fde = (unsigned int) fde + fde->real_len
 	  //  + sizeof (fde->len) + sizeof (fde->real_len);
-	if (!ismapped ((char *) fde)) {
+	  if (!inrange ((char *) fde)) {
 	  done = 1; /* We've run out of room. No point in setting cie to fde */
 	  break;
 	}
@@ -998,19 +1053,21 @@ define dw_find_fde_for_addr (fdom, addr)
   return result;
 }
 
-define dw_unwind_to_caller (fdom, addr, doml)
+define dw_unwind_to_caller (bdrec, addr, doml)
 {
   @local result, loc, curstate, statestack, rules, cie, fde, iptr, end, rval;
   @local cad, cptr, clim, asize, fdel;
   @local ftab;
+  @local fdom;
+  fdom = bdrec.debug_frame;
   statestack = [];
   result = [];
   rules = [];
   rval = [];
   cad = {fdom} addr;
   cptr = {fdom} 0;
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, doml);
-  ftab = dw_get_value (_dwcqct_frametable, _dwcqct_debug_frame, fdom, doml);
+  asize = bdrec.addrsize;
+  ftab = dw_build_frametab (bdrec, doml);
   fdel = bsearch (cad, ftab,
 		 lambda (a,b) {if (a < listref (b, 0)) return -1;
 		   else if (a >= listref (b, 1)) return 1;
@@ -1028,7 +1085,7 @@ define dw_unwind_to_caller (fdom, addr, doml)
 	    cad, loc, end);
     return result;
   }
-  rules = dw_get_cie_init_ruleset (fdom, cie, doml);
+  rules = dw_get_cie_init_ruleset (bdrec, cie, doml);
   curstate = [ loc, rules ];
   iptr = (unsigned char *) ((unsigned int) fde + sizeof (*fde));
   result = dw_process_one_fde_inst (fdom, iptr, cie, curstate, statestack);
@@ -1051,187 +1108,6 @@ define dw_unwind_to_caller (fdom, addr, doml)
     rval = [ curstate, iptr, statestack ];
   }
   return rval;
-}
-
-/* We have to alternate between 2 different domains, one representing the
-   execution and one representing the DWARF .debug_frame information in
-   the file being executed. exbase is the dynamic base address of the
-   exdom (0 for absolute addresses in the executables, dynamic base
-   load addresses for shared libraries. */
-define dw_unwind (exdom, fdom, ip, exbase, doml)
-{
-  @local ebp, eip, rvec, r, rlist, cfa, newcfa, result, dinfo;
-  @local curregs, newregs, i, fp, sp, bt, asize;
-  bt = []; /* a place to store register values for all call frames
-	      so that the caller can move up and down the call stack,
-	      not just toward the caller. */
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, doml);
-  if (asize == 4) {
-    curregs = mklist (9);
-    newregs = mklist (9);
-  }
-  else if (asize == 8) {
-    curregs = mklist (17);
-    newregs = mklist (17);
-  }
-  listset (curregs, 0, {exdom}0);
-  for (i = 1; i < length (curregs); i++) {
-    listset (curregs, i, _dw_get_regval (exdom, i));
-  }
-  newregs = copy (curregs);
-  append (bt, copy (curregs));
-  result = append ([], ip);
-  eip = (unsigned int) {exdom} ip - (unsigned int) {exdom} exbase;
-  rlist = dw_unwind_to_caller (fdom, eip, doml);
-
-  cfa = 0;
-  newcfa =  0;
-  fp = _dw_fpregnum (exdom);
-  sp = _dw_spregnum (exdom);
-  ebp = _dw_get_regval (exdom, fp);
-  /* For the moment assume that register rules are in order CFA, 1, 2, ...*/
-  while (!isempty (rlist)) {
-    /* First restore Canonical Frame Address (CFA) */
-    rvec = listref (head (rlist), 1);
-    for (i = 0; i < length (rvec); i++) {
-      @local reg, base;
-      r = listref (rvec, i);
-      if (isnil (r))
-	continue;
-      reg = head (r);
-      if (reg == fdom`DW_FRAME_CFA_COL) {
-	switch (listref (r, 1)) {
-	case 5: base = {exdom} (listref (curregs, 5));
-	  cfa = (unsigned long) ({exdom} (base + listref (r, 2)));
-	  listset (newregs, 0, cfa);
-	  newcfa = 1;
-	  break;
-	case 4: base = listref (curregs, 4);
-	  cfa = (unsigned long) ({exdom} (base + listref (r, 2)));
-	  listset (newregs, 0, cfa);
-	  newcfa = 1;
-	  break;
-	case 6: base = listref (curregs, 6);
-	  cfa = (unsigned long) ({exdom} (base + listref (r, 2)));
-	  listset (newregs, 0, cfa);
-	  newcfa = 1;
-	  break;
-	case 7: base = listref (curregs, 7);
-	  cfa = (unsigned long) ({exdom} (base + listref (r, 2)));
-	  listset (newregs, 0, cfa);
-	  newcfa = 1;
-	  break;
-	default: printf ("CFA relative to reg %d\n", listref (r, 1));
-	  break;
-	}
-	/* If there is no rule for the stack pointer, then we assume
-	   that the function has no frame pointer and that the DWARF
-	   producer is expecting the consumer to use the Canonical
-	   Frame Address (cfa) for restoring the stack pointer. In
-	   Intel architectures the cfa is the value of the stack
-	   pointer when the call occurs. The hardware pushes the
-	   return address on the stack. When the call returns, the
-	   stack pointer is once again equal to the cfa of the
-	   returning function. Set the value of the sp register to the
-	   cfa so that further unwinds work. */
-	if (isnil (listref (rvec, sp))) {
-	  listset (newregs, sp, cfa);
-	}
-      }
-      else if (asize == 4) {
-	switch (reg) {
-	case 5: {
-	  switch (listref (r, 1)) {
-	  case 0: ebp = *((unsigned int *) ({exdom}(cfa + listref (r,2))));
-	    listset (newregs, 5, ebp);
-	    break;
-	  default: printf ("ebp rule is %a\n", r);
-	  }
-	}
-	  break;
-	case 8: {
-	  switch (listref (r, 1)) {
-	  case 0: eip = *(unsigned int *) ({exdom}(cfa + listref (r,2)));
-	    /* keep eip in the exdom so that address adjustment is easy */
-	    eip = eip;
-	    listset (newregs, 8, eip);
-	    append (result, eip);
-	    break;
-	  default: printf ("eip rule is %a\n", r);
-	  }
-	}
-	  break;
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 6:
-	case 7:
-	  listset (newregs, reg,
-		   *((unsigned int *) ({exdom}(cfa + listref (r,2)))));
-	  break;
-	default:
-	  printf ("reg is %d and rule is %a\n", r);
-	}
-      }
-      else if (asize == 8) {
-	switch (reg) {
-	case 6: {
-	  switch (listref (r, 1)) {
-	  case 0: ebp = *((unsigned long *) ({exdom}(cfa + listref (r,2))));
-	    listset (newregs, 6, ebp);
-	    break;
-	  default: printf ("ebp rule is %a\n", r);
-	  }
-	}
-	  break;
-	case 16: {
-	  switch (listref (r, 1)) {
-	  case 0:
-	    eip = *(unsigned long *) ({exdom}(cfa + listref (r,2)));
-	    /* keep eip in the exdom so that address adjustment is easy */
-	    eip = eip;
-	    listset (newregs, 16, eip);
-	    append (result, eip);
-	    break;
-	  default: printf ("eip rule is %a\n", r);
-	  }
-	}
-	  break;
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-	case 7:
-	case 8:
-	case 9:
-	case 10:
-	case 11:
-	case 12:
-	case 13:
-	case 14:
-	case 15:
-	  listset (newregs, reg,
-		   *((unsigned long *) ({exdom}(cfa + listref (r,2)))));
-	  break;
-	default:
-	  printf ("reg is %d and rule is %a\n", r);
-	}
-      }
-    }
-    for (i = 0; i < length (curregs); i++) {
-      listset(curregs, i, listref(newregs, i));
-    }
-    append (bt, copy (newregs));
-    rlist =  dw_unwind_to_caller (fdom, eip, doml);
-  }
-  /* Comment this out for now. Later we will figure out how to use it. */
-  //printf ("bt is %a\n", bt);
-  //printf ("result is %a\n", result);
-  //return result;
-//   return [result, bt];
-  return bt;
 }
 
 /* Each register will be defined by a register and an offset. Register
@@ -1557,10 +1433,12 @@ define dw_cie_afs (dwdom, cie)
   return result;
 }
 
-define dw_get_cie_init_ruleset (fdom, cie, doml)
+define dw_get_cie_init_ruleset (bdrec, cie, doml)
 {
   @local aug, caf, daf, instptr, result, rvec, asize;
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, doml);
+  @local fdom;
+  fdom = bdrec.debug_frame;
+  asize = bdrec.addrsize;
   if (asize == 4)
     rvec = mklist (9);
   else if (asize == 8)
@@ -1579,9 +1457,19 @@ define dw_get_cie_init_ruleset (fdom, cie, doml)
   return rvec;
 }
 
-define dw_build_linetab (linedom, doml)
+define dw_build_linetab (bdrec, doml)
 {
   @local base, result, temp, last, vec, len, i, rl;
+  @local linedom;
+  @local m, r, rbeg, rend, inrange;
+  if (!isnil (bdrec.linetable))
+    return bdrec.linetable;
+  linedom = bdrec.debug_line;
+  m = linedom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
   base = {linedom} 0;
   result = [];
   last = [0, 0, 0];
@@ -1598,28 +1486,35 @@ define dw_build_linetab (linedom, doml)
       last = temp;
     }
   }
-  while (ismapped ((unsigned char *) base));
+  while (inrange ((unsigned char *) base));
   return result;
 }
 
-define dw_build_frametab (fdom, doml)
+define dw_build_frametab (bdrec, doml)
 {
   @local cptr, cie, fde, done, result, fentry, fl, rv, i, asize;
   @local f, vec;
+  @local fdom;
+  @local m, r, rbeg, rend, inrange;
+  if (!isnil (bdrec.frametable))
+    return bdrec.frametable;
+  fdom = bdrec.debug_frame;
+  m = fdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
   f = nil;
   /* Since the argument to this function is a domain associated with the
      .debug_frame section of an ELF file, the global_dwarf_domain_list
      should not be empty, and it should contain a list associated with
      this domain. Nevertheless, I have this guarded and f set to nil
      so that we can test it later with isnil. */
-  vec = dw_find_vector (_dwcqct_debug_frame, fdom);
-  asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, doml);
-  if (!isnil (vec) && !isnil (listref (vec, _dwcqct_frametable)))
-    return listref (vec, _dwcqct_frametable);
+  asize = bdrec.addrsize;
   result = [];
   cptr = {fdom} 0;
   done = {fdom} 0;
-  while (ismapped ((char *) cptr) && !done) {
+  while (inrange ((char *) cptr) && !done) {
     //if (asize == 4)
       cie = (struct dw_cie_struct *) cptr;
       //else if (asize == 8)
@@ -1653,7 +1548,7 @@ define dw_build_frametab (fdom, doml)
 	//else if (asize == 8)
 	//fde = (unsigned long) fde + fde->real_len
 	// + sizeof (fde->len) + sizeof (fde->real_len);
-      if (!ismapped ((char *) fde)) {
+	if (!inrange ((char *) fde)) {
 	done = 1; /* We've run out of room. No point in setting cie to fde */
 	break;
       }
@@ -2470,6 +2365,7 @@ define show_cu_hdr (dwdom, addr)
 define show_cu_hdr_aranges (ardom, infodom)
 {
   @local arhdr, curaddr, asize, alen, rem, artuple, hdrcnt;
+  @local m, r, rbeg, rend, inrange;
   hdrcnt = {ardom}0;
   curaddr = {ardom}0x0;
   alen = {ardom}0x0;
@@ -2491,14 +2387,19 @@ define show_cu_hdr_aranges (ardom, infodom)
     printf ("unsupported address size: %d\n", asize);
     return nil;
   }
-  if (!ismapped (artuple))
+  m = ardom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  if (!inrange (artuple))
     return nil;
   while (artuple->ar_start || artuple->ar_len) {
     while (artuple->ar_start || artuple->ar_len) {
       printf ("ar_start = 0x%x:\tar_len = 0x%x:\n",
 	      artuple->ar_start, artuple->ar_len);
       artuple++;
-      if (!ismapped (artuple)) {
+      if (!inrange (artuple)) {
 	printf ("unmapped address at 0x%x\n", artuple);
 	return;
       }
@@ -2507,7 +2408,7 @@ define show_cu_hdr_aranges (ardom, infodom)
     artuple++; 
     arhdr = (struct arangehdr *)artuple;
     hdrcnt ++;
-    if (ismapped (arhdr)) {
+    if (inrange (arhdr)) {
       show_cu_hdr (infodom, {infodom}(arhdr->di_off));
     }
     curaddr = (unsigned int) arhdr;
@@ -2519,7 +2420,7 @@ define show_cu_hdr_aranges (ardom, infodom)
       artuple = (struct arange32 *)curaddr;
     else if (asize == 8)
       artuple = (struct arange64 *)curaddr;
-    if (!ismapped (artuple))
+    if (!inrange (artuple))
       break;
   }
 }
@@ -2618,6 +2519,12 @@ define dw_get_one_abbrev (dwdom, ptr)
 define dw_get_cu_abbrev_table (dwdom, ptr)
 {
   @local cptr, result, ab, len;
+  @local m, r, rbeg, rend, inrange;
+  m = dwdom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
   cptr = {dwdom} ptr;
   result = [];
   ab = dw_get_one_abbrev (dwdom, cptr);
@@ -2625,7 +2532,7 @@ define dw_get_cu_abbrev_table (dwdom, ptr)
     len = length (ab);
     append (result, ab);
     cptr = listref (ab, len - 1); /* last element is new cptr */
-    if (!ismapped ((unsigned char*) cptr))
+    if (!inrange ((unsigned char*) cptr))
       break;
     ab = dw_get_one_abbrev (dwdom, cptr);
   }
@@ -2633,38 +2540,39 @@ define dw_get_cu_abbrev_table (dwdom, ptr)
 }
 
 lastlocfun = nil;
-define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab, doml)
+define dw_get_attr_val (bdrec, exas, form, ptr, dynamic, etab, doml)
 {
   @local cptr, val, len, end;
+  @local indom, abdom, asize;
+  indom = bdrec.debug_info;
+  abdom = bdrec.debug_abbrev;
   cptr = {indom} ptr;
   val = nil;
+  asize = bdrec.addrsize;
   switch (form) {
-  case indom`DW_FORM_addr: {
-    @local asize;
-    asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_info, indom, doml);
-    if (asize == 4)
-      cptr = (`uint32 *) cptr;
-    else if (asize == 8)
-      cptr = (`uint64 *) cptr;
-    val = *cptr;
-    cptr++;
-  }
+  case indom`DW_FORM_data1:
+    val = * (unsigned char *) cptr;
+    cptr = (unsigned int) cptr + 1;
+    break;
+  case indom`DW_FORM_ref4:
+    val = * (`uint32 *) cptr;
+    cptr = (unsigned int) cptr + 4;
+    break;
+  case indom`DW_FORM_strp:
+    val = * (`uint32 *) cptr;
+    cptr = (unsigned int) cptr + 4;
     break;
   case indom`DW_FORM_data2:
     val = * (`uint16 *) cptr;
     cptr = (unsigned int) cptr + sizeof (indom`uint16);
     break;
-  case indom`DW_FORM_data4:
-    val = * (`uint32 *) cptr;
-    cptr = (unsigned int) cptr + sizeof (indom`uint32);
-    break;
-  case indom`DW_FORM_data8:
-    val = * (`uint64 *) cptr;
-    cptr = (unsigned int) cptr + sizeof (indom`uint64);
-    break;
   case indom`DW_FORM_string:
     val = stringof ( (`uint8 *) cptr);
     cptr = (unsigned int) cptr + strlen (val) + 1;
+    break;
+  case indom`DW_FORM_data4:
+    val = * (`uint32 *) cptr;
+    cptr = (unsigned int) cptr + sizeof (indom`uint32);
     break;
   case indom`DW_FORM_block1:
   case indom`DW_FORM_block2:
@@ -2705,7 +2613,7 @@ define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab, doml)
       ctab = etab;
       locfun = lambda (uas) {
 	@local savedstackind, rv, fbase;
-	fbase = lambda (uas) {return get_frame_base_from_pc (infodom, uas, ctab, doml);};
+	fbase = lambda (uas) {return get_frame_base_from_pc (bdrec, uas, ctab, doml);};
 	while (lcptr < lend) {
 	  /* As long as we are in the evaluation of a DWARF block, the values
 	     we care about are on the evaluator stack. It's only when we
@@ -2742,32 +2650,12 @@ define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab, doml)
       
     break;
   }
-  case indom`DW_FORM_data1:
-    val = * (unsigned char *) cptr;
-    cptr = (unsigned int) cptr + 1;
-    break;
-  case indom`DW_FORM_flag:
-    val = * (unsigned char *) cptr;
-    cptr = (unsigned int) cptr + 1;
-    break;
   case indom`DW_FORM_sdata:
     val = decodesleb128 (cptr);
     cptr = listref (val, 1);
     val = head (val);
     break;
-  case indom`DW_FORM_strp:
-    val = * (`uint32 *) cptr;
-    cptr = (unsigned int) cptr + 4;
-    break;
-  case indom`DW_FORM_udata:
-    val = decodeuleb128 (cptr);
-    cptr = listref (val, 1);
-    val = head (val);
-    break;
-  case indom`DW_FORM_ref_addr: {
-    /* for this we need target address size. For now assume sizeof (uint) */
-    @local asize;
-    asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_info, indom, doml);
+  case indom`DW_FORM_addr: {
     if (asize == 4)
       cptr = (`uint32 *) cptr;
     else if (asize == 8)
@@ -2776,6 +2664,28 @@ define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab, doml)
     cptr++;
   }
     break;
+  case indom`DW_FORM_flag:
+    val = * (unsigned char *) cptr;
+    cptr = (unsigned int) cptr + 1;
+    break;
+  case indom`DW_FORM_udata:
+    val = decodeuleb128 (cptr);
+    cptr = listref (val, 1);
+    val = head (val);
+    break;
+  case indom`DW_FORM_ref_addr: {
+    if (asize == 4)
+      cptr = (`uint32 *) cptr;
+    else if (asize == 8)
+      cptr = (`uint64 *) cptr;
+    val = *cptr;
+    cptr++;
+  }
+    break;
+  case indom`DW_FORM_data8:
+    val = * (`uint64 *) cptr;
+    cptr = (unsigned int) cptr + sizeof (indom`uint64);
+    break;
   case indom`DW_FORM_ref1:
     val = * (`uint8 *) cptr;
     cptr = (unsigned int) cptr + 1;
@@ -2783,10 +2693,6 @@ define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab, doml)
   case indom`DW_FORM_ref2:
     val = * (`uint16 *) cptr;
     cptr = (unsigned int) cptr + 2;
-    break;
-  case indom`DW_FORM_ref4:
-    val = * (`uint32 *) cptr;
-    cptr = (unsigned int) cptr + 4;
     break;
   case indom`DW_FORM_ref8:
     val = * (`uint64 *) cptr;
@@ -2802,7 +2708,7 @@ define dw_get_attr_val (indom, abdom, exas, form, ptr, dynamic, etab, doml)
     val = decodeuleb128 (cptr);
     cptr = listref (val, 1);
     val = head (val);
-    val = dw_get_attr_val (indom, abdom, exas, val, cptr, 0, etab, doml);
+    val = dw_get_attr_val (bdrec, exas, val, cptr, 0, etab, doml);
     cptr = listref (val, 1);
     val = head (val);
     break;
@@ -2896,16 +2802,18 @@ define dw_get_lang_string (dwdom, lang)
   }
 }
 
-define dw_addr2line (linedom, addr, doml)
+define dw_addr2line (bdrec, addr, doml)
 {
   @local ltab, cuinfo, cutab, dlist, flist, entry, dir, f, rv, ardom, arl, i;
   @local cuoff;
+  @local linedom;
+  linedom = bdrec.debug_line;
   cuinfo = nil;
-  ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_line, linedom, doml);
-  cuoff = dw_get_lineoff_for_cu (ardom, addr, doml);
+  ardom = bdrec.debug_aranges;
+  cuoff = dw_get_lineoff_for_cu (bdrec, addr, doml);
   if (isnil (cuoff))
     return "no line number info";
-  cuinfo = dw_get_cu_linenumber_info (linedom, {linedom}cuoff, doml);
+  cuinfo = dw_get_cu_linenumber_info (bdrec, {linedom}cuoff, doml);
   dlist = listref (cuinfo, 3);
   flist = listref (cuinfo, 4);
   cutab = listref (cuinfo, 5);
@@ -2992,6 +2900,8 @@ define dw_get_value args
       @local newdom, esec, secname;
       if (isnil (listref (l, _dwcqct_elfdomain))) {
 	printf ("Cannot build DWARF domain without an existing ELF domain.\n");
+	backtrace();
+	error ("shouldn't be here\n");
 	return nil;
       }
       switch (key2) {
@@ -3150,10 +3060,14 @@ define dw_print_list (l)
 
 local_scope_stack = [];
 
-define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblist, ptr, cubase, toplevel, etab, doml)
+define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase, toplevel, etab, doml)
 {
   @local acode, cptr, ab, abl, tag, spec, speclist, cqcttype;
   @local val, atname, form, i;
+  @local indom, abdom, strdom;
+  indom = bdrec.debug_info;
+  abdom = bdrec.debug_abbrev;
+  strdom = bdrec.debug_str;
   cptr = {indom} ptr;
   acode = decodeuleb128 (cptr);
   cptr = listref (acode, 1);
@@ -3193,9 +3107,9 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       atname = head (spec);
       form = listref (spec, 1);
       if (isempty (local_scope_stack))
-	val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       else
-	val = dw_get_attr_val (indom, abdom, exas, form, cptr, 1, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3214,9 +3128,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
 	  /* then val is an offset into the .debug_loc section */
-	  @local locdom;
-	  locdom = dw_get_value (_dwcqct_debug_loc, _dwcqct_debug_info, indom, doml);
-	  location = dw_process_location_list (locdom, exas, val, form, cubase,
+	  location = dw_process_location_list (bdrec, exas, val, form, cubase,
 					 _dw_current_frame_base, doml);
 	  location = head (location);
 	}
@@ -3282,10 +3194,10 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       atname = head (spec);
       form = listref (spec, 1);
       if (isempty (local_scope_stack)) {
-	val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       }
       else {
-	val = dw_get_attr_val (indom, abdom, exas, form, cptr, 1, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab, doml);
       }
       cptr = listref (val, 1);
       val = head (val);
@@ -3304,9 +3216,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
 	  /* then val is an offset into the .debug_loc section */
-	  @local locdom;
-	  locdom = dw_get_value (_dwcqct_debug_loc, _dwcqct_debug_info, indom, doml);
-	  location = dw_process_location_list (locdom, exas, val, form, cubase,
+	  location = dw_process_location_list (bdrec, exas, val, form, cubase,
 					       _dw_current_frame_base, doml);
 	  location = head (location);
 	}
@@ -3372,7 +3282,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3404,7 +3314,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3474,7 +3384,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       form = listref (spec, 1);
       /* call with dynamic == 1 in order to handle DW_AT_frame_base attributes
 	 that are not location lists */
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 1, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3500,8 +3410,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	}
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
-	  locdom = dw_get_value (_dwcqct_debug_loc, _dwcqct_debug_info, indom, doml);
-	  rv = dw_process_location_list (locdom, exas, val, form, cubase,
+	  rv = dw_process_location_list (bdrec, exas, val, form, cubase,
 					 _dw_current_frame_base, doml);
 	  _dw_current_frame_base = head (rv);
 	  foreach (lambda (v) {append (fblist, v);}, _dw_current_frame_base);
@@ -3523,8 +3432,8 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       }
       else if (atname == indom`DW_AT_ranges) {
 	@local rdom, r, rmin, rmax, i, cubaseaddr;
-	rdom = dw_get_value (_dwcqct_debug_ranges, _dwcqct_debug_info, indom, doml);
-	rlv = dw_process_range_list (rdom, val, cubase, doml);
+	rdom = bdrec.debug_ranges;
+	rlv = dw_process_range_list (bdrec, val, cubase, doml);
 	cubaseaddr = listref (listref (rlv, 0), 0);
 	rl = listref (listref (rlv, 0), 1);
 	if (!isempty (rl)) {
@@ -3591,7 +3500,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
 	 local variables, and scopes associated with lexical blocks or
 	 inlined subroutines */
       @local srv;
-      srv = dw_process_die (indom, abdom, strdom, exas, abtab, typetab,
+      srv = dw_process_die (bdrec, exas, abtab, typetab,
 			    symtab, fblist, cptr, cubase, 0, etab, doml);
       cptr = (unsigned char *) (listref (srv, 1));
       if (!isnil (head (srv))) {
@@ -3691,7 +3600,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3724,7 +3633,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3759,7 +3668,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3790,7 +3699,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
     while (isnotdone()) {
       @local mem;
       _dw_push ({indom} 0);
-      mem = dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
+      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
       cptr = (unsigned int) (listref (mem, 1));
       mem = head (mem);
       if (!isnil (mem) && listref (mem, 1) == indom`DW_TAG_member)
@@ -3812,7 +3721,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3849,7 +3758,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3876,7 +3785,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local subrange;
-      subrange = dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
+      subrange = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
       cptr = (unsigned int) (listref (subrange, 1));
       subrange = head (subrange);
       if (!isnil (subrange)
@@ -3912,7 +3821,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3955,7 +3864,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3977,7 +3886,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -4001,7 +3910,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -4023,7 +3932,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local emem;
-      emem = dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
+      emem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
       cptr = (unsigned int) (listref (emem, 1));
       emem = head (emem);
       if (!isnil (emem) && listref (emem, 1) == indom`DW_TAG_enumerator)
@@ -4048,7 +3957,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -4088,7 +3997,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -4118,7 +4027,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local mem;
-      mem = dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
+      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, etab, doml);
       cptr = (unsigned int) (listref (mem, 1));
       mem = head (mem);
       if (!isnil (mem) && listref (mem, 1) == indom`DW_TAG_member)
@@ -4137,7 +4046,7 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (indom, abdom, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
       cptr = listref (val, 1);
       val = head (val);
     }
@@ -4150,10 +4059,14 @@ define dw_process_die (indom, abdom, strdom, exas, abtab, typetab, symtab, fblis
   printf ("Wouldn't expect to reach this; cptr = 0x%x (%d).\n", cptr, cptr);
 }
 
-define get_cu_baseaddr (indom, abdom, strdom, exas, ptr)
+define get_cu_baseaddr (bdrec, exas, ptr)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
   @local typetab, cnt, symtab, fblist, etab, doml;
+  @local indom, abdom, strdom;
+  indom = bdrec.debug_info;
+  abdom = bdrec.debug_abbrev;
+  strdom = bdrec.debug_str;
   fblist = [];
   typetab = mktab ();
   symtab = mktab ();
@@ -4167,14 +4080,18 @@ define get_cu_baseaddr (indom, abdom, strdom, exas, ptr)
   abtable = dw_get_cu_abbrev_table (abdom, abptr);
   abtlen = length (abtable);
   cptr = (unsigned int) cptr + sizeof (*cu);
-  di = dw_process_die (indom, abdom, strdom, indom, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1, etab, doml);
+  di = dw_process_die (bdrec, indom, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1, etab, doml);
   return head (di);;
 }
     
-define get_cu_info (indom, abdom, strdom, exas, ptr, etab, doml)
+define get_cu_info (bdrec, exas, ptr, etab, doml)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
   @local typetab, cnt, symtab, fblist, cuscope, subscopelist;
+  @local indom, abdom, strdom;
+  indom = bdrec.debug_info;
+  abdom = bdrec.debug_abbrev;
+  strdom = bdrec.debug_str;
   local_scope_stack = [];
   cnt = 0;
   fblist = [];
@@ -4191,7 +4108,7 @@ define get_cu_info (indom, abdom, strdom, exas, ptr, etab, doml)
   cptr = (unsigned int) cptr + sizeof (*cu);
   while ((unsigned int) cptr < end /*&& cnt < 180*/) {
     cnt++;
-    di = dw_process_die (indom, abdom, strdom, exas, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1, etab, doml);
+    di = dw_process_die (bdrec, exas, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1, etab, doml);
     cptr = listref (di, 1);
     if (isnil (listref (di, 0)))
       continue;
@@ -4220,16 +4137,24 @@ define get_cu_info (indom, abdom, strdom, exas, ptr, etab, doml)
   return [cptr, typetab, symtab, fblist, append (cuscope, subscopelist), ptr ];
 }
 
-define get_all_cu_info (indom, abdom, strdom, exas, etab, doml)
+define get_all_cu_info (bdrec, exas, etab, doml)
 {
   @local cptr, typetabs, symtabs, scopelist, rv, framebaselists;
+  @local indom;
+  @local m, r, rbeg, rend, inrange;
+  indom = bdrec.debug_info;
+  m = indom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
   typetabs = [];
   symtabs = [];
   framebaselists = [];
   scopelist = [];
   cptr = {indom}0;
-  while (ismapped ((unsigned char *)cptr)) {
-    rv = get_cu_info (indom, abdom, strdom, exas, cptr, etab, doml);
+  while (inrange ((unsigned char *)cptr)) {
+    rv = get_cu_info (bdrec, exas, cptr, etab, doml);
     append (typetabs, listref (rv, 1));
     append (symtabs, listref (rv, 2));
     append (framebaselists, listref (rv, 3));
@@ -5012,19 +4937,21 @@ define dw_print_symbol (indom, v, symtab, typetab)
     printf ("%s\t%a %s", location, tname, name);
 }
 
-define dw_process_range_list (rangedom, ptr, cubase, doml)
+define dw_process_range_list (bdrec, ptr, cubase, doml)
 {
-  @local rl, size, cubaseaddr, cptr, baseaddrflag, sloc, eloc;
+  @local rl, asize, cubaseaddr, cptr, baseaddrflag, sloc, eloc;
   @local isdone, cnt, len, end, rv;
+  @local rangedom;
+  rangedom = bdrec.debug_ranges;
   cptr = {rangedom} ptr;
   rl = [];
   isdone = 0;
   cnt = 0;
   cubaseaddr = nil;
-  size = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_ranges, rangedom, doml);
-  if (size == 4)
+  asize = bdrec.addrsize;
+  if (asize == 4)
     baseaddrflag = 0xffffffff;
-  else if (size == 8)
+  else if (asize == 8)
     baseaddrflag = 0xffffffffffffffff;
   else {
     printf ("Don't know what to do with range list with addr form %a\n",
@@ -5034,7 +4961,7 @@ define dw_process_range_list (rangedom, ptr, cubase, doml)
   while (!isdone /*&& cnt < 56*/) {
     cnt++;
     /* for each range list, get the start address and the end address */
-    if (size == 4)
+    if (asize == 4)
       cptr = (`uint32 *){rangedom}cptr;
     else
       cptr = (`uint64 *){rangedom}cptr;
@@ -5067,11 +4994,7 @@ define dw_process_range_list (rangedom, ptr, cubase, doml)
     else {
       @local indom, abdom, strdom, cuinfo;
       printf ("ccu is %a and cubase is %a\n", current_compilation_unit, cubase);
-      indom = dw_get_value (_dwcqct_debug_info, _dwcqct_debug_ranges, rangedom, doml);
-      abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_debug_ranges, rangedom, doml);
-      strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_debug_ranges, rangedom, doml);
-      /* we can use indom.as because get_cu_baseaddr doesn't use the as */
-      cuinfo = get_cu_baseaddr (indom, abdom, strdom, indom.as, cubase);
+      cuinfo = get_cu_baseaddr (bdrec, bdrec.debug_info.as, cubase);
       cubaseaddr = listref (cuinfo, 2);
     }
   }
@@ -5083,15 +5006,23 @@ define dw_process_range_list (rangedom, ptr, cubase, doml)
   return rv;
 }
 
-define show_all_range_lists (rangedom, cubase, doml)
+define show_all_range_lists (bdrec, cubase, doml)
 {
   @local cptr, isdone, rl, cnt, i, r;
+  @local rangedom;
+  @local m, r, rbeg, rend, inrange;
+  rangedom = bdrec.debug_ranges;
   cnt = 0;
   cptr = (`uint8 *){rangedom} 0;
-  while (ismapped ((`uint8 *)cptr)) {
+  m = rangedom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  while (inrange ((`uint8 *)cptr)) {
     cnt++;
     printf ("Address range located at 0x%x (%d):\n", cptr, cptr);
-    rl = dw_process_range_list (rangedom, cptr, cubase, doml);
+    rl = dw_process_range_list (bdrec, cptr, cubase, doml);
     cptr = listref (rl, 1);
     rl = listref (head (rl), 1);
     for (i = 0; i < length (rl); i++) {
@@ -5155,14 +5086,16 @@ define isfbsorted (fb)
   }
 }
 
-define get_frame_base_from_pc (indom, exas, etab, doml)
+define get_frame_base_from_pc (bdrec, exas, etab, doml)
 {
   @local ptr, locdom, i, j, k, n, len1, len2, fbl, gfbi, gfbj;
   @local ar, ardom, arl, cu, cukey;
   @local lo, hi, ent, rv, dumdom, pc;
+  @local indom;
+  indom = bdrec.debug_info;
   dumdom = mkdom (indom.ns, exas);
   pc = dumdom.getrip();
-  ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom, doml);
+  ardom = bdrec.debug_aranges;
   cukey = dw_get_dieoff_for_cu (ardom, pc);
   if (isnil (cukey)) {
     printf ("pc 0x%x not in any arange.\n", pc);
@@ -5264,6 +5197,41 @@ define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
     printf ("dt is %a\n", dt);
   dtag = listref (dt, 1);
   switch (dtag) {
+  case ddom`DW_TAG_typedef: {
+    @local tagname, ttype, aliastype;
+    tagname = listref (dt, 2);
+    ttype = mkctype_typedef (tagname);
+    /* prevent recursion */
+    if (!isnil (tablook (cqtab, ttype))) {
+      return ttype;
+    }
+    else {
+      tabinsert (cqtab, ttype, mkctype_void());
+    }
+    if (def) {
+      if (0) {
+	printf ("dt is %a\n", dt);
+	backtrace();
+      }
+      if (isnil (listref (dt, 3)))
+	aliastype = mkctype_void();
+      else {
+	aliastype = dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 3)),
+				  stab, ttab, cqtab, 1);
+      }
+      tabinsert (cqtab, ttype, mkctype_typedef (tagname, aliastype));
+      return ttype;
+    }
+    else
+      return ttype;
+  }
+  case ddom`DW_TAG_pointer_type:
+    if (isnil (listref (dt, 3)))
+      return mkctype_ptr (mkctype_void());
+    else
+      return (mkctype_ptr (dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 3)),
+					 stab, ttab, cqtab, 1)));
+    break;
   case ddom`DW_TAG_base_type: {
     @local retval;
     retval = getcbasetype (listref (dt, 2));
@@ -5305,29 +5273,8 @@ define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
     return (mkctype_fn (rettype, cparams));
   }
     break;
-  case ddom`DW_TAG_enumeration_type: {
-    @local epair, etag, elist, i, evec, vel, etype;
-    etag = listref (dt, 2);
-    if (isnil (etag))
-      etag = sprintfa ("anon_%d", head (dt));
-    etype = mkctype_enum (etag);
-    if (length (dt) > 4 && def) {
-      elist = listref (dt, 4);
-      evec = mkvec (length (elist));
-      for (i = 0; i < length (elist); i++) {
-	epair = listref (elist, i);
-	vel = mkvec (2);
-	vecset (vel, 0, listref (epair, 2));
-	vecset (vel, 1, listref (epair, 3));
-	vecset (evec, i, vel);
-      }
-      tabinsert (cqtab, etype, mkctype_enum (etag, evec));
-    }
-    return etype;
-  }
-    break;
-  case ddom`DW_TAG_union_type:
-  case ddom`DW_TAG_structure_type: {
+  case ddom`DW_TAG_structure_type:
+  case ddom`DW_TAG_union_type: {
     @local f, flist, fvec, fname, ftype, ssize, i, tagname, ctag;
     tagname = listref (dt, 2);
     if (isnil (tagname)) {
@@ -5374,14 +5321,6 @@ define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
     }
     if (dtag == ddom`DW_TAG_structure_type) {
       tabinsert (cqtab, ctag, mkctype_struct (tagname, fvec, ssize));
-      if (debugflag) {
-	if (!isnil (tablook (cqtab, ctag)))
-	  printf ("found struct %s in cqtab %a\n", tagname, cqtab);
-      }
-      if (0) {
-	printf ("At 2 for tagname %s tablook (cqtab, ctag) is %a\n", tagname,
-		tablook (cqtab, ctag));
-      }
       return ctag;
     }
     else if (dtag == ddom`DW_TAG_union_type) {
@@ -5390,50 +5329,6 @@ define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
     }
   }
     break;
-  case ddom`DW_TAG_pointer_type:
-    if (isnil (listref (dt, 3)))
-      return mkctype_ptr (mkctype_void());
-    else
-      return (mkctype_ptr (dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 3)),
-					 stab, ttab, cqtab, 1)));
-    break;
-  case ddom`DW_TAG_const_type:
-  case ddom`DW_TAG_volatile_type:
-  case ddom`DW_TAG_restrict_type:
-    if (isnil (listref (dt, 2)))
-      return mkctype_void ();
-    else
-      return (dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 2)),
-			    stab, ttab, cqtab, 1));
-    break;
-  case ddom`DW_TAG_typedef: {
-    @local tagname, ttype, aliastype;
-    tagname = listref (dt, 2);
-    ttype = mkctype_typedef (tagname);
-    /* prevent recursion */
-    if (!isnil (tablook (cqtab, ttype))) {
-      return ttype;
-    }
-    else {
-      tabinsert (cqtab, ttype, mkctype_void());
-    }
-    if (def) {
-      if (0) {
-	printf ("dt is %a\n", dt);
-	backtrace();
-      }
-      if (isnil (listref (dt, 3)))
-	aliastype = mkctype_void();
-      else {
-	aliastype = dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 3)),
-				  stab, ttab, cqtab, 1);
-      }
-      tabinsert (cqtab, ttype, mkctype_typedef (tagname, aliastype));
-      return ttype;
-    }
-    else
-      return ttype;
-  }
   case ddom`DW_TAG_array_type: {
     @local subtype, elcnt, i;
     subtype = dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 3)),
@@ -5459,7 +5354,37 @@ define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
   case ddom`DW_TAG_subrange_type:
     return nil;
     break;
- default:
+  case ddom`DW_TAG_enumeration_type: {
+    @local epair, etag, elist, i, evec, vel, etype;
+    etag = listref (dt, 2);
+    if (isnil (etag))
+      etag = sprintfa ("anon_%d", head (dt));
+    etype = mkctype_enum (etag);
+    if (length (dt) > 4 && def) {
+      elist = listref (dt, 4);
+      evec = mkvec (length (elist));
+      for (i = 0; i < length (elist); i++) {
+	epair = listref (elist, i);
+	vel = mkvec (2);
+	vecset (vel, 0, listref (epair, 2));
+	vecset (vel, 1, listref (epair, 3));
+	vecset (evec, i, vel);
+      }
+      tabinsert (cqtab, etype, mkctype_enum (etag, evec));
+    }
+    return etype;
+  }
+    break;
+  case ddom`DW_TAG_const_type:
+  case ddom`DW_TAG_volatile_type:
+  case ddom`DW_TAG_restrict_type:
+    if (isnil (listref (dt, 2)))
+      return mkctype_void ();
+    else
+      return (dwtype2ctype (rns, ddom, tablook (ttab, listref (dt, 2)),
+			    stab, ttab, cqtab, 1));
+    break;
+  default:
     printf ("No code yet to convert DW_TAG 0x%x (%d)\n", dtag, dtag);
     break;
   }
@@ -5635,52 +5560,6 @@ define print_ctype (name, t)
   }
   else
     printf ("don't know what to do with %a %t\n", t, t);
-}
-
-/* This function depends on the following files being included:
-   elf.cqct, dw.cqct, dweval.cqct.  Any attempt to use the namespace
-   with a process address space will also require either dwpr64.cqct
-   or dwpr32.cqct */
-define mkdwarfns (file)
-{
-  @local elfd, indom, abdom, strdom, tabs, cttab, cstab, rns;
-  elfd = mkelfdom (mapfile (file));
-  /* the following builds the debug_info domain, creates a list for this
-     binary file, and appends it to global_dwarf_domain_list, which is
-     initially nil. */
-  indom = dw_get_value (_dwcqct_debug_info, _dwcqct_elfdomain, elfd, doml);
-  /* the next two just add domains to the list associated with elfd */
-  abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_elfdomain, elfd, doml);
-  strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_elfdomain, elfd, doml);
-  rns = dw_get_value (_dwcqct_rootns, _dwcqct_elfdomain, elfd, doml);
-  tabs = get_all_cu_info (indom, abdom, strdom, mknas (), elfd);
-  cttab = mktab ();
-  cstab = mktab ();
-  dw_type_conversion (indom, tabs, cttab, rns);
-  dw_sym_conversion (indom, tabs, cstab, cttab, rns);
-  return mknsraw (rns, cttab, cstab);
-}
-
-define mkcuns (file)
-{
-  @local elfd, indom, abdom, strdom, tabs, cttab, cstab, rns, nstree;
-  nstree = [];
-  elfd = mkelfdom (mapfile (file));
-  /* the following builds the debug_info domain, creates a list for this
-     binary file, and appends it to global_dwarf_domain_list, which is
-     initially nil. */
-  indom = dw_get_value (_dwcqct_debug_info, _dwcqct_elfdomain, elfd, doml);
-  /* the next two just add domains to the list associated with elfd */
-  abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_elfdomain, elfd, doml);
-  strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_elfdomain, elfd, doml);
-  rns = dw_get_value (_dwcqct_rootns, _dwcqct_elfdomain, elfd, doml);
-  tabs = get_all_cu_info (indom, abdom, strdom, mknas(), elfd);
-  
-  cttab = mktab ();
-  cstab = mktab ();
-  dw_type_conversion (indom, tabs, cttab, rns);
-  dw_sym_conversion (indom, tabs, cstab, cttab, rns);
-  return mknsraw (rns, cttab, cstab);
 }
 
 define binsrch_lineno (ldom, ltab, addr)
@@ -5880,7 +5759,6 @@ define print_subscope_names (ssc, indent)
   }
 }
 
-debugflag = 0;
 define make_function_tables (fscope, cutypetab, cusymtab, rns, dom)
 {
   @local symtab, symlist, subscopes, typetab, typelist, i, fname, faranges;
@@ -5897,7 +5775,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, rns, dom)
   for (i = 0; i < length (typelist); i++) {
     @local ltype;
     ltype = listref (typelist, i);
-    //debugflag = 1;
     /* the call to dwtype2ctype takes care of inserting the type into typetab*/
     ltype = dwtype2ctype (rns, dom, ltype, cusymtab, cutypetab, typetab, 1);
   }
@@ -5916,10 +5793,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, rns, dom)
     stype = tablook (cutypetab, stype); /* the actual DWARF type */
     /* Should this next call use typetab instead of cttab ? */
     stype = dwtype2ctype (rns, dom, stype, cusymtab, cutypetab, typetab, 1);
-    if (debugflag) {
-      printf ("in processing local syms for fn %s typetab is now:\n", fname);
-      foreach (lambda(k,v) {printf ("local type %t\n", v);}, typetab);
-    }
     sloc = listref (sym, 4);
     /* If the location is nil, then the variable has been optimized
        out. Enter it into the table with a nil to indicate no location
@@ -5948,7 +5821,6 @@ define make_function_tables (fscope, cutypetab, cusymtab, rns, dom)
 			 typetab, rns, dom);
     }
   }
-  debugflag = 0;
   return [typetab, symtab];
 }
 
@@ -6030,24 +5902,6 @@ define get_function_tables_for_cu (cu, rns, dom, ctab)
   return [ttab, stab, ftabs, ns, listref (cu, 3)];
 }
 
-define get_all_function_tables (indom, abdom, strdom, exas, doml)
-{
-  @local cptr, typetabs, symtabs, scopelist, rv, rns, result;
-  result = mktab ();
-  rns = dw_get_value (_dwcqct_rootns, _dwcqct_debug_info, indom, doml);
-  cptr = {indom}0;
-  while (ismapped ((unsigned char *)cptr)) {
-    @local cutabs;
-    @local ctab, cstab;
-    rv = get_cu_info (indom, abdom, strdom, exas, cptr, result, doml);
-    ctab = listref (rv, 1);
-    cstab = listref (rv, 2);
-    cutabs = get_function_tables_for_cu (rv, rns, indom, result);
-    cptr = ( head (rv));
-  }
-  return result;
-}
-
 define show_cu_function_tables (cutabs)
 {
   @local cuttab, custab, ftabs, ftab, i;
@@ -6084,19 +5938,20 @@ define issorted (fnl)
   return 1;
 }
 
-define find_fn_and_cu (indom, addr, etab, doml)
+define find_fn_and_cu (bdrec, addr, etab, doml)
 {
   @local pc, arl, ardom, i, ar, abdom, strdom, elfdom, cukey, cu;
-  ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom, doml);
+  ardom = bdrec.debug_aranges;
   pc = {ardom} addr;
   cukey = dw_get_dieoff_for_cu (ardom, pc);
   cu = tablook (etab, cukey);
   return cu;
 }
 
-define find_fn (indom, addr, cu)
+define find_fn (bdrec, addr, cu)
 {
-  @local i, fl, f;
+  @local i, fl, f, indom;
+  indom = bdrec.debug_info;
   fl = listref (cu, 2);
   f = bsearch ({indom}addr, fl,
 	       lambda (k, el) {@local tf; tf = listref (listref (el, 0), 0);
@@ -6106,7 +5961,7 @@ define find_fn (indom, addr, cu)
   return f;
 }
 
-define symloc (symtab, sym, exas, pc, ctab, doml)
+define symloc (symtab, sym, exas, pc, ctab, bdrec, doml)
 {
   @local syment, scope, rv, scl, slplist, slpent, i, j, loc;
   scope = nil;
@@ -6173,8 +6028,7 @@ define symloc (symtab, sym, exas, pc, ctab, doml)
       as = exas;
       lcptr = listref (locent, 4);
       lend = lcptr + listref (locent, 5);
-      indom = dw_get_value (_dwcqct_debug_info, _dwcqct_debug_loc, dom, doml);
-      fbase = get_frame_base_from_pc (indom, as, ctab, doml);
+      fbase = get_frame_base_from_pc (bdrec, as, ctab, doml);
       while (lcptr < lend) {
 	/* As long as we are in the evaluation of a DWARF block, the values
 	   we care about are on the evaluator stack. It's only when we
@@ -6199,22 +6053,24 @@ define symloc (symtab, sym, exas, pc, ctab, doml)
   return nil;
 }
 
-define make_local_ns (indom, exas, pc, etab, doml)
+define make_local_ns (bdrec, exas, pc, etab, doml)
 {
   @local f, cu, lns, ns, ftabs, fstab, ntab, nstab, inscope, rns, cuns;
   @local newlksym, newlktype, newlkaddr, newet, newes;
   @local finaltab, tempdom;
+  @local indom;
+  indom = bdrec.debug_info;
   nstab = mktab ();
-  cu = find_fn_and_cu (indom, pc, etab, doml);
+  cu = find_fn_and_cu (bdrec, pc, etab, doml);
   cuns = listref (cu, 3);
-  rns = dw_get_value (_dwcqct_rootns, _dwcqct_debug_info, indom, doml);
-  f = find_fn (indom, pc, cu);
+  rns = bdrec.rootns;
+  f = find_fn (bdrec, pc, cu);
   ftabs = listref (f, 2) ();
   ntab = listref (ftabs, 0);
   fstab = listref (ftabs, 1);
   foreach (lambda (k,v){ @local sloc;
       /* make sure that sym's type is in local type table */
-      sloc = symloc (fstab, k, exas, {indom}pc, etab, doml);
+      sloc = symloc (fstab, k, exas, {indom}pc, etab, bdrec, doml);
       if (islist (sloc) && listref (sloc, 1) == _dwcqct_addr_type)
 	sloc = listref (sloc, 0);
       if (!isnil (sloc)) {
@@ -6228,7 +6084,6 @@ define make_local_ns (indom, exas, pc, etab, doml)
 	  getv = make_get_regval (listref (sloc, 0));
 	  putv = make_put_regval (listref (sloc, 0));
 	  vtype = mkctype_xaccess (mkctype_int(), getv, putv);
-	  //nsym = mksym (vtype, k, 0);
 	  nsym = mksym (vtype, k, listref (sloc, 0));
 	  tabinsert (nstab, k, nsym);
 	}
@@ -6321,208 +6176,6 @@ define print_fbl (fbl)
   }
 }
 
-define init_debug_domain (exfile)
-{
-  @local elfd, indom, abdom, strdom, fdom, tabs, procdoml, i, nstab, result;
-  @local newlooktype, newlooksym, newlookaddr, newenumsym, newenumtype;
-  @local stab, ttab, culist, i, gns, nscon, mtab, ldom, a2l, uw;
-  @local drec;
-  drec = bd ();
-  procdoml = []; /* process-associated dwarf_domain_list */
-  elfd = mkelfdom (mapfile (exfile));
-  drec.elf = elfd;
-  /* the following builds the debug_info domain, creates a vector for this
-     binary file, and appends it to procdoml, which is initially empty. */
-  indom = dw_get_value (_dwcqct_debug_info, _dwcqct_elfdomain, elfd, procdoml);
-  /* the next two just add domains to the vector associated with elfd */
-  abdom = dw_get_value (_dwcqct_debug_abbrev, _dwcqct_elfdomain, elfd, procdoml);
-  strdom = dw_get_value (_dwcqct_debug_str, _dwcqct_elfdomain, elfd, procdoml);
-  ldom = dw_get_value (_dwcqct_debug_line, _dwcqct_elfdomain, elfd, procdoml);
-  fdom = dw_get_value (_dwcqct_debug_frame, _dwcqct_elfdomain, elfd, procdoml);
-  nstab = mktab ();
-  dietab = mktab ();
-  stab = mktab ();
-  ttab = mktab ();
-  result = [];
-  rns = dw_get_value (_dwcqct_rootns, _dwcqct_debug_info, indom, procdoml);
-  cptr = {indom}0;
-  while (ismapped ((unsigned char *)cptr)) {
-    @local cutabs;
-    @local ctab, cstab;
-    rv = get_cu_info (indom, abdom, strdom, mknas(), cptr, dietab, procdoml);
-    cutabs = get_function_tables_for_cu (rv, rns, indom, dietab);
-    append (result, cutabs);
-    cptr = ( head (rv));
-  }
-  newlooksym = lambda (this, sym)
-    {
-      @local i, rv, ns;
-      rv = nil;
-      for (i = 0; i < length (result); i++) {
-	ns = listref (listref (result, i), 3);
-	rv = nslooksym (ns) (ns, sym);
-	if (!isnil (rv))
-	  return rv;
-      }
-      return rv;
-    };
-  newlooktype = lambda (this, type)
-    {
-      @local i, rv, ns;
-      rv = nil;
-      for (i = 0; i < length (result); i++) {
-	ns = listref (listref (result, i), 3);
-	rv = nslooktype (ns) (ns, type);
-	if (!isnil (rv))
-	  return rv;
-      }
-      return rv;
-    };
-  newenumsym = lambda (this)
-    {
-      return stab;
-    };
-  newenumtype = lambda (this)
-    {
-      return ttab;
-    };
-  newlookaddr = lambda (this, addr)
-    /* Perform lookaddr on the namespace from each compilation unit,
-       and take the maximum entry. */
-    {
-      @local i, rv, ns, s, slist;
-      slist = [];
-      for (i = 0; i < length (result); i++) {
-	ns = listref (listref (result, i), 3);
-	s = nslookaddr (ns) (ns, addr);
-	if (!isnil (s) && !isnil (vecref (s, 2)))
-	  append (slist, s);
-      }
-      if (isempty (slist))
-	return nil;
-      rv = listref (slist, 0);
-      for (i = 1; i < length (slist); i++) {
-	s = listref (slist, i);
-	if (vecref (s, 2) > rv)
-	  rv = s;
-      }
-      return rv;
-    };
-  /* We may need to modify this. As written, it starts at the
-     opposite end of the list of compilation units so that any overwrites
-     should correspond to the type or symbol values that we get from
-     taking the first type or symbol match we get in traversing the list
-     forward. However, we want to make sure that any symbol that we keep
-     has a type that is still in the type table. In theory, a type that
-     overwrites a symbol's type should have the same name, but in the case
-     of user-defined types we could end up with the wrong type for the symbol
-     if the same type name is used for different types in different
-     compilation units. At the moment I don't know how to guarantee both
-     that the type of a symbol is in the type table and that it is correct. */
-  for (i = (int)(length (result) - 1); i >= 0; i--) {
-    @local localttab, localstab, cuns;
-    if (i < 0)
-      break;
-    cuns = listref (listref (result, i), 3);
-    localttab = cuns.enumtype();
-    localstab = cuns.enumsym();
-    foreach (lambda (k, v) {tabinsert (ttab, k, v);}, localttab);
-    foreach (lambda (k, v) {tabinsert (stab, k, v);}, localstab);
-  }
-  mtab = mktab();
-  tabinsert(mtab, "looktype", newlooktype);
-  tabinsert(mtab, "enumtype", newenumtype);
-  tabinsert(mtab, "looksym", newlooksym);
-  tabinsert(mtab, "enumsym", newenumsym);
-  tabinsert(mtab, "lookaddr", newlookaddr);
-  tabinsert(mtab, "nsdomlist", lambda (this) {return procdoml;});
-  a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
-  tabinsert(mtab, "addr2line", a2l);
-  nscon = lambda (this, addr) {
-    @local cu, rv, cutabs;
-    @local tns, lt, ls, la, et, es, nsl, getretaddr, lnstab, uas;
-    if (isdom (this))
-      uas = this.as;
-    else
-      error ("nscon must be called from a domain that can supply an as\n, not from %a\n",
-	     this);
-    cutabs = find_fn_and_cu (indom, addr, dietab, procdoml);
-    if (isnil (cutabs)) {
-      @local ar, arl, ardom, cuns, cuoff;
-      ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_debug_info, indom,
-			    procdoml);
-      cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
-      if (isnil (cuoff))
-	return nil;
-      cu = get_cu_info (indom, abdom, strdom, uas, cuoff, dietab, procdoml);
-      cutabs = get_function_tables_for_cu (cu, rns, indom, dietab);
-    }
-    tns = make_local_ns (indom, uas, addr, dietab, procdoml);
-    lnstab = mktab ();
-    lt = lambda (this, type) {return tns.looktype (type);};
-    ls = lambda (this, sym) {return tns.looksym (sym);};
-    la = lambda (this, addr) {return tns.lookaddr (addr);};
-    et = lambda (this) {return tns.enumtype ();};
-    es = lambda (this) {return tns.enumsym ();};
-    nsl = lambda (this) {return tns.nslocals ();};
-    tabinsert(lnstab, "looktype", lt);
-    tabinsert(lnstab, "enumtype", et);
-    tabinsert(lnstab, "looksym", ls);
-    tabinsert(lnstab, "enumsym", es);
-    tabinsert(lnstab, "lookaddr", la);
-    tabinsert(lnstab, "nslocals", nsl);
-    tabinsert(lnstab, "nsdomlist", lambda (this) {return procdoml;});
-    a2l = lambda (this, addr) {return dw_addr2line (ldom, addr, procdoml);};
-    tabinsert(lnstab, "addr2line", a2l);
-    uw = lambda (this) {
-      if (isdom (this))
-	return dw_unwind (this, fdom, addr, 0, procdoml);
-      else
-	error ("unwind must be called through a domain instead of %a.\n",
-	       this);
-    };
-    tabinsert(lnstab, "unwind", uw);
-    getretaddr = lambda (this) {
-      @local asize, rlist, rvec, retaddrloc, raregno, cfa;
-      if (!isdom (this))
-	error ("getretaddr must be called through a domain.\n");
-      retaddrloc = nil;
-      asize = dw_get_value (_dwcqct_addrsize, _dwcqct_debug_frame, fdom, procdoml);
-      /* at some point we should get this from the DWARF information in
-	 the CIE */
-      if (asize == 4)
-	raregno = 8;
-      else if (asize == 8)
-	raregno = 16;
-      rlist = dw_unwind_to_caller (fdom, addr, procdoml);
-      rvec = listref (head (rlist), 1);
-      for (i = 0; i < length (rvec); i++) {
-	@local r, reg, base;
-	r = listref (rvec, i);
-	if (isnil (r))
-	  continue;
-	reg = head (r);
-	if (reg == fdom`DW_FRAME_CFA_COL) {
-	  cfa = _dw_get_regval (this, listref (r, 1)) + listref (r, 2);
-	}
-	else if (reg == raregno) {
-	  retaddrloc = (unsigned long *) ({this}(cfa + listref (r,2)));
-	  break;
-	}
-	else
-	  continue;
-      }
-      return retaddrloc;
-    };
-    tabinsert(lnstab, "getretaddr", getretaddr);
-    rv = mkns (lnstab, sprintfa ("lnstab0x%x", addr));
-    return rv;
-  };
-  tabinsert (mtab, "nscon", nscon);
-  gns = mkns (mtab, "allcuns");
-  return gns;
-}
-
 /* Everything about this is ugly. This function exists because GCC emits
    location information for formal parameters that is not correct during
    the function prologue unless the location is the same as that of the
@@ -6540,8 +6193,9 @@ define init_debug_domain (exfile)
    last address associated with the source line of the function entry. */
 define skip_prologue (dom, name)
 {
-  @local ns, sym, saddr, cultab, lent, ardom, cuoff, doml, linedom;
+  @local ns, sym, saddr, cutab, entry, ardom, cuoff, doml, linedom;
   @local cuinfo, nextent, i, lim, eindex, esrcline, rv, lastaddr, reset;
+  @local bdrec;
   sym = dom.looksym (name);
   if (isnil (sym))
     return nil;
@@ -6557,15 +6211,13 @@ define skip_prologue (dom, name)
      binaries as shared libraries are appended to this list instead of
      pushed on it. */
   doml = dom.nsdomlist ();
-  ardom = dw_get_value (_dwcqct_debug_aranges, _dwcqct_elfdomain,
-			listref (listref (doml, 0), _dwcqct_elfdomain),
-			doml);
-  linedom = dw_get_value (_dwcqct_debug_line, _dwcqct_debug_aranges, ardom,
-  	    doml);
-  cuoff = dw_get_lineoff_for_cu (ardom, {ardom}saddr, doml);
+  bdrec = listref (doml, 0);
+  ardom = bdrec.debug_aranges;
+  linedom = bdrec.debug_line;
+  cuoff = dw_get_lineoff_for_cu (bdrec, {ardom}saddr, doml);
   if (isnil (cuoff))
     return "no line number info";
-  cuinfo = dw_get_cu_linenumber_info (linedom, {linedom}cuoff, doml);
+  cuinfo = dw_get_cu_linenumber_info (bdrec, {linedom}cuoff, doml);
   cutab = listref (cuinfo, 5);
   entry = binsrch_lineno (linedom, cutab, {linedom}saddr);
   /* binsrch_lineno returns a pair consisting of an entry and its index
@@ -6600,17 +6252,10 @@ define dumpstack (addr)
 {
   @local dom, gns, bt, cdom, cns, i, j, pcregno;
   dom = domof (addr);
+  addr = (`uintptr) addr;
   pcregno = _dw_pcregnum (dom);
-  cns = dom.nscon (addr);
-  cdom = mkdom (cns, dom.as, sprintfa ("cdom0x%x", addr));
-  printf ("symbols for address 0x%x:\n", addr);
-  foreach (lambda (k,v) {
-	     if (!isenum (symtype (v)) && !isenumconst (symtype (v)))
-	       print_obj (v, cdom);},
-    cns.nslocals().enumsym());
-  bt = cdom.unwind ();
-  /* start with 1 to skip cns */
-  for (i = 1; i < length (bt); i++) {
+  bt = unwind (addr);
+  for (i = 0; i < length (bt); i++) {
     @local fr, lns, las, ldom, lpc, sym, stab, tdom;
     fr = listref (bt, i);
     lpc = listref (fr, pcregno);
@@ -6632,17 +6277,114 @@ define dumpstack (addr)
 	  print_obj (v, ldom);},
       lns.enumsym());
   }
-  return [cdom, bt];
+  return bt;
+}
+
+/* Once we decide how to handle domains
+   for libraries as well as primary executables, we can change this function
+   to find the right pair */
+define get_context (addr)
+{
+  @local dom, doml, bdrec, i;
+  dom = domof (addr);
+  doml = dom.nsdomlist ();
+  bdrec = listref (doml, 0);
+//   /* possible future code */
+//   doml = dom.nsdomlist (); /* we have to figure out how to append to this
+// 			      list and make it available to each record of
+// 			      a binary domain */
+//   for (i = 0; i < length (doml); i++)
+//     if (addr is in range of binary associated with listref (doml, i))
+//       return listref (doml, i);
+  return [bdrec, doml];
+}
+
+define get_loadbase (bdrec)
+{
+  return 0;  /* later figure out how to get load address for libraries */
 }
 
 define unwind (addr)
 {
-  @local dom, cdom, cns;
-  @local i;
-  dom = domof (addr);
-  cns = dom.nscon (addr);
-  cdom = mkdom (cns, dom.as, sprintfa ("cdom0x%x", addr));
-  return cdom.unwind ();
+  @local exdom, bdrec, doml, bpair, bt, curregs, newregs, pc, pcregno, fp, sp;
+  @local i, asize, fdom, exbase, ip, rlist, rvec, cfa;
+  bpair = get_context (addr);
+  pc = (`uintptr) addr; /* get rid of any type information. It can get in
+			   the way when casting to DWARF domains for lookup */
+  exdom = domof (pc);
+  bdrec = bpair [0];
+  doml = bpair [1];
+  bt = [];
+  fdom = bdrec.debug_frame;
+  asize = bdrec.addrsize;
+  if (asize == 4) {
+    curregs = mklist (9);
+    newregs = mklist (9);
+  }
+  else if (asize == 8) {
+    curregs = mklist (17);
+    newregs = mklist (17);
+  }
+  listset (curregs, 0, {exdom}0);
+  for (i = 1; i < length (curregs); i++) {
+    listset (curregs, i, _dw_get_regval (exdom, i));
+  }
+  newregs = copy (curregs);
+  append (bt, copy (curregs));
+  exbase = get_loadbase (bdrec);
+  ip = (unsigned int) {exdom} pc - (unsigned int) {exdom} exbase;
+  rlist = dw_unwind_to_caller (bdrec, ip, doml);
+  cfa = 0;
+  pcregno = _dw_pcregnum (exdom);
+  fp = _dw_fpregnum (exdom);
+  sp = _dw_spregnum (exdom);
+  /* For the moment assume that register rules are in order CFA, 1, 2, ...*/
+  while (!isempty (rlist)) {
+    /* First restore Canonical Frame Address (CFA) */
+    rvec = listref (head (rlist), 1);
+    for (i = 0; i < length (rvec); i++) {
+      @local reg, base, r;
+      r = listref (rvec, i);
+      if (isnil (r))
+	continue;
+      reg = head (r);
+      if (reg == fdom`DW_FRAME_CFA_COL) {
+	base = {exdom} (listref (curregs, listref (r, 1)));
+	cfa = (unsigned long) ({exdom} (base + listref (r, 2)));
+	listset (newregs, 0, cfa);
+	/* If there is no rule for the stack pointer, then we assume
+	   that the function has no frame pointer and that the DWARF
+	   producer is expecting the consumer to use the Canonical
+	   Frame Address (cfa) for restoring the stack pointer. In
+	   Intel architectures the cfa is the value of the stack
+	   pointer when the call occurs. The hardware pushes the
+	   return address on the stack. When the call returns, the
+	   stack pointer is once again equal to the cfa of the
+	   returning function. Set the value of the sp register to the
+	   cfa so that further unwinds work. */
+	if (isnil (listref (rvec, sp))) {
+	  listset (newregs, sp, cfa);
+	}
+      }
+      else {
+	listset (newregs, reg,
+		 *((`uintptr *) ({exdom}(cfa + listref (r,2)))));
+      }
+    }
+    ip = listref (newregs, pcregno);
+    for (i = 0; i < length (curregs); i++) {
+      listset(curregs, i, listref(newregs, i));
+    }
+    append (bt, copy (newregs));
+    bpair = get_context (ip);
+    bdrec = bpair [0];
+    doml = bpair [1];
+    fdom = bdrec.debug_frame;
+    exbase = get_loadbase (bdrec);
+    ip = (unsigned int) {exdom} ip - (unsigned int) {exdom} exbase;
+    rlist = dw_unwind_to_caller (bdrec, ip, doml);
+  }
+  return bt;
 }
 
 define make_local_as (ras, regset)
@@ -6759,96 +6501,217 @@ define show_locals (dom)
   foreach (lambda (k,v) {print_obj (v, dom);}, dom.enumsym());
 }
 
-define get_local_dom (edom, rset)
+define init_debug_domain (binfile)
 {
-  @local las, lns, ldom, cdom;
-  cdom = domof (listref (rset, 0));
-  lpc = listref (rset, length (rset) - 1);
-  las = make_local_as (cdom.as, rset);
-  tdom = mkdom (edom.ns, las);
-  lns = tdom.nscon (lpc);
-  if (isnil (lns))
-    return nil;
-  lns = lns.nslocals ();
-  ldom = mkdom (lns, las, sprintfa ("ldom%s", sprintfa ("%a", lns)));
-  return ldom;
-}
-
-define mkbd (binfile)
-{
-  @local erec, elfas, elfnames, elfheader, tempnames, tempdom, dom;
-  erec = bd();
-  elfnames= nil;
-  elfas = mksas (binfile);
-  tempnames = @names c32le {
-    @include "elf.names"
-  };
-  tempdom = mkdom (tempnames, elfas);
-  elfheader = (tempdom`Elf32_Ehdr *) {tempdom}0;
-  if (getbytes(elfheader->e_ident, 4) != "\x7f""ELF")
-    error ("argument to mkelfdom must be a string containing an elf binary");
-
-  if (elfheader->e_ident[4] == (unsigned char ) 1) {
-    /* then file is 32 bit */
-    if (elfheader->e_ident[5] == (unsigned char ) 1) {
-      /* then file is little-endian */
-      erec.rootns = c32le;
-      elfnames = @names c32le {
-	@include "elf.names"
-      };
-    }
-    else if (elfheader->e_ident[5] == (unsigned char ) 2) {
-      /* then file is big-endian */
-      erec.rootns = c32be;
-      elfnames = @names c32be {
-	@include "elf.names"
-      };
-    }
-  }
-  else if (elfheader->e_ident[4] == (unsigned char ) 2) {
-    /* then file is 64 bit */
-    if (elfheader->e_ident[5] == (unsigned char ) 1) {
-      /* then file is little-endian */
-      erec.rootns = clp64le;
-      elfnames = @names clp64le {
-	@include "elf.names"
-      };
-    }
-    else if (elfheader->e_ident[5] == (unsigned char ) 2) {
-      /* then file is big-endian */
-      erec.rootns = clp64be;
-      elfnames = @names clp64be {
-	@include "elf.names"
-      };
-    }
-  }
-  if (!isnil (elfnames)) {
-    dom = mkdom (elfnames, elfas);
-    erec.elf = dom;
-  }
+  @local bdrec, elfas, elfnames, elfheader, tempnames, tempdom, dom, gns;
+  @local indom, tabs, procdoml, i, result, fdom, dietab, rns, cptr, rv;
+  @local newlooktype, newlooksym, newlookaddr, newenumsym, newenumtype;
+  @local stab, ttab, i, gns, nscon, mtab, a2l, uw;
+  @local drec, dbeg, dend, dr;
+  @local m, r, rbeg, rend, inrange;
+  bdrec = mkelfrec (mapfile (binfile));
+  rns = bdrec.rootns;
+  dom = bdrec.elf;
   if (isnil (dom))
     return nil;
-  erec.debug_aranges = mkdwdom (dom, getelfsection (dom, ".debug_aranges"),
+  bdrec.debug_aranges = mkdwdom (dom, getelfsection (dom, ".debug_aranges"),
 			     ".debug_aranges");
-  erec.debug_pubnames = mkdwdom (dom, getelfsection (dom, ".debug_pubnames"),
+  bdrec.debug_pubnames = mkdwdom (dom, getelfsection (dom, ".debug_pubnames"),
 			     ".debug_pubnames");
-  erec.debug_info = mkdwdom (dom, getelfsection (dom, ".debug_info"),
+  bdrec.debug_info = mkdwdom (dom, getelfsection (dom, ".debug_info"),
 			     ".debug_info");
-  erec.debug_abbrev = mkdwdom (dom, getelfsection (dom, ".debug_abbrev"),
+  bdrec.debug_abbrev = mkdwdom (dom, getelfsection (dom, ".debug_abbrev"),
 			     ".debug_abbrev");
-  erec.debug_line = mkdwdom (dom, getelfsection (dom, ".debug_line"),
+  bdrec.debug_line = mkdwdom (dom, getelfsection (dom, ".debug_line"),
 			     ".debug_line");
-  erec.debug_frame = mkdwdom (dom, getelfsection (dom, ".debug_frame"),
+  bdrec.debug_frame = mkdwdom (dom, getelfsection (dom, ".debug_frame"),
 			     ".debug_frame");
-  erec.debug_str = mkdwdom (dom, getelfsection (dom, ".debug_str"),
+  bdrec.debug_str = mkdwdom (dom, getelfsection (dom, ".debug_str"),
 			     ".debug_str");
-  erec.debug_ranges = mkdwdom (dom, getelfsection (dom, ".debug_ranges"),
+  bdrec.debug_ranges = mkdwdom (dom, getelfsection (dom, ".debug_ranges"),
 			     ".debug_ranges");
-  erec.debug_loc = mkdwdom (dom, getelfsection (dom, ".debug_loc"),
+  bdrec.debug_loc = mkdwdom (dom, getelfsection (dom, ".debug_loc"),
 			     ".debug_loc");
-  erec.frametable = nil;
-  erec.linetable = nil;
-  erec.addrsize = sizeof (nsptr (dom));
-  return erec;
+  bdrec.frametable = nil;
+  bdrec.linetable = nil;
+  bdrec.addrsize = sizeof (nsptr (dom));
+  procdoml = [bdrec]; /* process-associated dwarf_domain_list */
+  indom = bdrec.debug_info;
+  fdom = bdrec.debug_frame;
+  dietab = mktab ();
+  stab = mktab ();
+  ttab = mktab ();
+  result = [];
+  cptr = {indom}0;
+  m = indom.map();
+  r = m[0];
+  rbeg = rangebeg (r);
+  rend = rbeg + rangelen (r);
+  inrange = lambda (v) {return rbeg <= v && v < rend;};
+  while (inrange ((unsigned char *)cptr)) {
+    @local cutabs;
+    @local ctab, cstab;
+    rv = get_cu_info (bdrec, mknas(), cptr, dietab, procdoml);
+    cutabs = get_function_tables_for_cu (rv, rns, indom, dietab);
+    append (result, cutabs);
+    cptr = ( head (rv));
+  }
+  newlooksym = lambda (this, sym)
+    {
+      @local i, rv, ns;
+      rv = nil;
+      for (i = 0; i < length (result); i++) {
+	ns = listref (listref (result, i), 3);
+	rv = nslooksym (ns) (ns, sym);
+	if (!isnil (rv))
+	  return rv;
+      }
+      return rv;
+    };
+  newlooktype = lambda (this, type)
+    {
+      @local i, rv, ns;
+      rv = nil;
+      for (i = 0; i < length (result); i++) {
+	ns = listref (listref (result, i), 3);
+	rv = nslooktype (ns) (ns, type);
+	if (!isnil (rv))
+	  return rv;
+      }
+      return rv;
+    };
+  newenumsym = lambda (this)
+    {
+      return stab;
+    };
+  newenumtype = lambda (this)
+    {
+      return ttab;
+    };
+  newlookaddr = lambda (this, addr)
+    /* Perform lookaddr on the namespace from each compilation unit,
+       and take the maximum entry. */
+    {
+      @local i, rv, ns, s, slist;
+      slist = [];
+      for (i = 0; i < length (result); i++) {
+	ns = listref (listref (result, i), 3);
+	s = nslookaddr (ns) (ns, addr);
+	if (!isnil (s) && !isnil (vecref (s, 2)))
+	  append (slist, s);
+      }
+      if (isempty (slist))
+	return nil;
+      rv = listref (slist, 0);
+      for (i = 1; i < length (slist); i++) {
+	s = listref (slist, i);
+	if (vecref (s, 2) > rv)
+	  rv = s;
+      }
+      return rv;
+    };
+  /* We may need to modify this. As written, it starts at the
+     opposite end of the list of compilation units so that any overwrites
+     should correspond to the type or symbol values that we get from
+     taking the first type or symbol match we get in traversing the list
+     forward. However, we want to make sure that any symbol that we keep
+     has a type that is still in the type table. In theory, a type that
+     overwrites a symbol's type should have the same name, but in the case
+     of user-defined types we could end up with the wrong type for the symbol
+     if the same type name is used for different types in different
+     compilation units. At the moment I don't know how to guarantee both
+     that the type of a symbol is in the type table and that it is correct. */
+  for (i = (int)(length (result) - 1); i >= 0; i--) {
+    @local localttab, localstab, cuns;
+    if (i < 0)
+      break;
+    cuns = listref (listref (result, i), 3);
+    localttab = cuns.enumtype();
+    localstab = cuns.enumsym();
+    foreach (lambda (k, v) {tabinsert (ttab, k, v);}, localttab);
+    foreach (lambda (k, v) {tabinsert (stab, k, v);}, localstab);
+  }
+  mtab = mktab();
+  tabinsert(mtab, "looktype", newlooktype);
+  tabinsert(mtab, "enumtype", newenumtype);
+  tabinsert(mtab, "looksym", newlooksym);
+  tabinsert(mtab, "enumsym", newenumsym);
+  tabinsert(mtab, "lookaddr", newlookaddr);
+  tabinsert(mtab, "nsdomlist", lambda (this) {return procdoml;});
+  a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr, procdoml);};
+  tabinsert(mtab, "addr2line", a2l);
+  nscon = lambda (this, addr) {
+    @local cu, rv, cutabs;
+    @local tns, lt, ls, la, et, es, nsl, getretaddr, lnstab, uas;
+    if (isdom (this))
+      uas = this.as;
+    else
+      error ("nscon must be called from a domain that can supply an as\n, not from %a\n",
+	     this);
+    cutabs = find_fn_and_cu (bdrec, (`uintptr)addr, dietab, procdoml);
+    if (isnil (cutabs)) {
+      @local ar, arl, ardom, cuns, cuoff;
+      ardom = bdrec.debug_aranges;
+      cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
+      if (isnil (cuoff))
+	return nil;
+      cu = get_cu_info (bdrec, uas, cuoff, dietab, procdoml);
+      cutabs = get_function_tables_for_cu (cu, rns, indom, dietab);
+    }
+    tns = make_local_ns (bdrec, uas, (`uintptr)addr, dietab, procdoml);
+    lnstab = mktab ();
+    lt = lambda (this, type) {return tns.looktype (type);};
+    ls = lambda (this, sym) {return tns.looksym (sym);};
+    la = lambda (this, addr) {return tns.lookaddr (addr);};
+    et = lambda (this) {return tns.enumtype ();};
+    es = lambda (this) {return tns.enumsym ();};
+    nsl = lambda (this) {return tns.nslocals ();};
+    tabinsert(lnstab, "looktype", lt);
+    tabinsert(lnstab, "enumtype", et);
+    tabinsert(lnstab, "looksym", ls);
+    tabinsert(lnstab, "enumsym", es);
+    tabinsert(lnstab, "lookaddr", la);
+    tabinsert(lnstab, "nslocals", nsl);
+    tabinsert(lnstab, "nsdomlist", lambda (this) {return procdoml;});
+    a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr, procdoml);};
+    tabinsert(lnstab, "addr2line", a2l);
+    getretaddr = lambda (this) {
+      @local asize, rlist, rvec, retaddrloc, raregno, cfa;
+      if (!isdom (this))
+	error ("getretaddr must be called through a domain.\n");
+      retaddrloc = nil;
+      asize = bdrec.addrsize;
+      /* at some point we should get this from the DWARF information in
+	 the CIE */
+      if (asize == 4)
+	raregno = 8;
+      else if (asize == 8)
+	raregno = 16;
+      rlist = dw_unwind_to_caller (bdrec, addr, procdoml);
+      rvec = listref (head (rlist), 1);
+      for (i = 0; i < length (rvec); i++) {
+	@local r, reg, base;
+	r = listref (rvec, i);
+	if (isnil (r))
+	  continue;
+	reg = head (r);
+	if (reg == fdom`DW_FRAME_CFA_COL) {
+	  cfa = _dw_get_regval (this, listref (r, 1)) + listref (r, 2);
+	}
+	else if (reg == raregno) {
+	  retaddrloc = (unsigned long *) ({this}(cfa + listref (r,2)));
+	  break;
+	}
+	else
+	  continue;
+      }
+      return retaddrloc;
+    };
+    tabinsert(lnstab, "getretaddr", getretaddr);
+    rv = mkns (lnstab, sprintfa ("lnstab0x%x", addr));
+    return rv;
+  };
+  tabinsert (mtab, "nscon", nscon);
+  gns = mkns (mtab, "allcuns");
+  return gns;
 }
-  

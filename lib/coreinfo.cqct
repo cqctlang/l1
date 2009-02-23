@@ -98,7 +98,7 @@ define main(args)
 	
 	infile = listref(args, 0);
 
-	elfdom = mkelfdom(mapfile(infile));
+	elfdom = mkelfrec(mapfile(infile)).elf;
 
 	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		ehdr = (elfdom`Elf32_Ehdr *){elfdom} 0;
