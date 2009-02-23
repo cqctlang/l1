@@ -39,10 +39,9 @@
 <em>Defining Domains</em><br />
 <a href="#sec:mkdom">Domain constructor</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
-<a href="#sec:@names"><span class="id">@names</span></a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
 <a href="#sec:customaddressspaces">Custom address spaces</a><br />
-<a href="#sec:ctypes">Ctype constructor</a><br />
+<a href="#sec:ctypes">Ctypes</a><br />
 <br />
 <em>Data Structures</em><br />
 <a href="#sec:containers">Container Types</a><br />
@@ -103,19 +102,18 @@ in particular C programs.
 
 Like many languages designed for debugging, Cinquecento
 understands C types and pointers, and supports the use
-of arbitrary C expressions to examine and modify the
+of standard C expressions to examine and modify the
 state of a target program.
 
-In addition, Cinquecento supports C control
-constructions: 
+In addition, Cinquecento supports standard C control
+constructions;
 
 many idioms from C, such as loops for traversing pointer-linked data
-structures, have identical syntax and semantics in
-Cinquecento.
+structures, look and mean the same in Cinquecento.
 
-Generally, code that one might add to a C
-program to facilitate debugging
-can be used in Cinquecento programs with little or
+Generally, debugging code that one might sprinkle in a C
+program
+can be used as Cinquecento code with little or
 no modification.
 </p>
 
@@ -1791,91 +1789,154 @@ and address space are
 </div>
 </div>
 
-<h3 id="sec:rootnamespaces">Root name spaces</h3>
-
-<p>
-Every new name space inherits type and symbol definitions from a
-previously defined name space.  The built-in {\em root
-name spaces\/} from which all others are derived define
-base C types for several common machine models.  They
-are bound to the Cinquecento variables {\tt c32le},
-{\tt c32be}, {\tt c64le}, {\tt c64be}, {\tt clp64le},
-and {\tt clp64be}.
-</p>
-
-Each root name space defines the
-representation of C base types, including the number of
-bytes in the type and the encoding of the type in
-memory.  It also defines the size of pointers; for
-example, {\tt c64le} and {\tt clp64le} define the same
-commonly used definitions of C types on 64-bit
-machines, except that the size of pointers is 32-bits
-in {\tt c64le} and 64-bits (``long pointer'') in {\tt
-clp64le}.
-</p>
-
-
 <h3 id="sec:namespaces">Name spaces</h3>
 
 <p>
-A name space is a mapping from C type and symbol names
-to C type and symbol definitions.  This section
-describes the representation of types and symbols used
-by name spaces, then describes the organization and
-construction of name spaces.
+Name spaces catalog information about C types and symbols.
 </p>
 
 <p>
-Both type names and type definitions are represented by
-ctypes.  Type names are the syntactic constructions,
-such as <tt>int*</tt>, that can appear in C
-declarations or as operands to type operations such as
-<tt>sizeof</tt> and explicit casts.  In Cinquecento,
-these syntactic constructions are represented by ctype
-values.
+C types are represented by the Cinquecento type <em>ctype</em>.
+Ctypes represent two related but subtly different concepts:
+C type names and C type definitions.
 </p>
 
 <p>
-In addition, a ctype can also specify the encoding in
-memory of objects of the type that it names.  For base
-types, this specification includes the number of bytes
-that represent the value and how the bytes are to be
-interpreted (e.g., big- or little-endian order).  For
-pointer types, it includes the size and representation
-of the pointer value memory.  For aggregates, it
-includes the offset from the beginning of the aggregate
-to each field and the overall size of the aggregate.
+C type names are the syntactic constructions, such
+as <tt>int*</tt>, that in C appear as type declarations
+and as type operands to operators such as
+<tt>sizeof</tt> and the cast operator.
 </p>
 
 <p>
+C type definitions are the definition of types referenced
+by type names.  What a definition specifies depends on the type.  
+
+For base C types, the definition specifies the number of bytes
+used to represent values of the type and how the bytes are
+interpreted (<em>e.g.</em>, big- or little-endian order).
+
+For pointers, it specifies the size and representation
+of the pointer value in memory.
+
+For aggregates, it specifies the offset from the beginning
+of the aggregate to each field, 
+the name and type of each field,
+and the total size of the aggregate.
+
+For enums, it specifies the enumeration constant
+identifiers and their values, and the common type used to
+repesent all values of the enumeration.
+
+For typedefs, it specifies the binding of a name to another
+type.
+</p>
+
+<p>
+The distinction between type name and definition enables
+Cinquecento to represent multiple
+programs that have potentially conflicting meanings for
+the same type.
+
 For example, the type name <tt>int*</tt> always
-corresponds to the type pointer-to-<tt>int</tt>, but
-there are many possible definitions.  One domain can
-define it to be a 64-bit address of a 64-bit integer
-encoded in big-endian order, while another may be
-define it be a 32-bit address of a 32-bit integer
-encoded in little-endian order.  Given a ctype for
-<tt>int*</tt>, part of the role of a name space is to
+references the type pointer-to-<tt>int</tt>, but
+there are many possible definitions for this type.
+
+One domain can define it to be a 64-bit address of a
+64-bit integer encoded in big-endian order, while
+another may be define it be a 32-bit address of a
+32-bit integer encoded in little-endian order.  Given a
+ctype for <tt>int*</tt>, part of the role of a name space is to
 provide a ctype that defines its encoding.
 </p>
 
 <p>
-A symbol name is represented by a string.  A symbol
-definition is represented by a vector of three
-elements.  The first element is a ctype representing
-the type of the symbol.  The second element is the name
-of the symbol as a string.  The third element is a
-cvalue representing the <em>offset</em>, in bytes, of
-the object named by the symbol from the beginning of
-the address space in which it is located.  The offset
-value may be <span class="val">nil</span>, in which
-case the symbol is used only to associate a type with a
-name.
+Functions that operate on ctypes are described in the
+section <a href="#sec:ctypes">Ctypes</a>.
 </p>
 
 <p>
-Conceptually, a name space is an interface consisting
-of five functions:
+C symbols have three components: the type of the symbol
+(represented as a ctype),
+the name of the symbol (string),
+and the location of the symbol (cvalue).
+C symbols are not represented by a distinct Cinquecento
+type; rather a symbol is represented by a vector
+containing the three components.
+</p>
+
+<p>
+The representation may change in a later version of Cinquecento.
+To avoid future incompatibility, programs should use the following
+interface to create and access symbols.  (The notation
+<span class="arg">symbol</span> denotes the representation
+of symbols.)
+</p>
+
+<div class="docitem" id="fn:mksym">
+<div class="proto">
+<div class="function">
+<span class="id">mksym(<span class="arg">type</span>,<span class="arg">id</span>,<span class="arg">loc</span>)
+</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">val</span>: <span class="type">cvalue</span> or
+<span class="type">nil</span>
+</div>
+
+<div class="returns">
+<span class="type">symbol</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new symbol from
+<span class="arg">type</span>,
+<span class="arg">id</span>, and
+<span class="arg">val</span>.
+Usually <span class="arg">val</span>
+gives the offset in bytes of the object named
+by the symbol from the beginning of the
+address space in which it is located.
+<span class="arg">Val</span> may be <span class="val">nil</span>,
+in which case the symbol is used only to associate a type with a name.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symtype">
+<span class="id">symtype(<span class="arg">sym</span>)
+</span>
+</div>
+<div class="function"  id="fn:symid">
+<span class="id">symid(<span class="arg">sym</span>)
+</span>
+</div>
+<div class="function"  id="fn:symval">
+<span class="id">symval(<span class="arg">sym</span>)
+</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+see description
+</div>
+</div>
+<div class="desc">
+Each of these functions returns one of the components of 
+<span class="arg">symbol</span>.
+</div>
+</div>
+
+<p>
+Name spaces implement an interface of five functions:
 </p>
 
 <ol>
@@ -1896,8 +1957,8 @@ returns <span class="val">nil</span>.
 
 <p>
 Given a symbol name, <span class="arg">looksym</span>
-returns the corresponding symbol (a vector of three
-elements defined above).  If the name space does not
+returns the corresponding symbol.
+If the name space does not
 define the symbol, <span class="arg">looksym</span>
 returns <span class="val">nil</span>.
 </p>
@@ -1931,6 +1992,127 @@ the definition of the type.  If the name space does not
 define the type, <span class="arg">looktype</span>
 returns <span class="val">nil</span>.
 </p>
+
+<p>
+Every name space created by a Cinquecento program
+inherits type and symbol definitions from an
+existing name space.
+
+This inheritance relation starts with
+a <em>root name space</em> that defines the
+representation of the C base types,
+including the size and encoding for each base type.
+</p>
+
+<p>
+The built-in root name spaces correspond to several
+common machine models, and vary in the size of
+pointers and <span class="id">long</span> integers.
+</p>
+
+<div id="table">
+<table>
+
+<tr>
+<th>Root name space</th>
+<th>Endianness</th>
+<th><span class="id">sizeof(void*)</span></th>
+<th><span class="id">sizeof(long)</span></th>
+</tr>
+
+<tr>
+<td>
+<span class="id">c32le</span>
+</td>
+<td>
+little
+</td>
+<td>
+4
+</td>
+<td>
+4
+</td>
+</tr>
+
+<tr>
+<td>
+<span class="id">c32be</span>
+</td>
+<td>
+big
+</td>
+<td>
+4
+</td>
+<td>
+4
+</td>
+</tr>
+
+<tr>
+<td>
+<span class="id">c64le</span>
+</td>
+<td>
+little
+</td>
+<td>
+4
+</td>
+<td>
+8
+</td>
+</tr>
+
+<tr>
+<td>
+<span class="id">c64be</span>
+</td>
+<td>
+big
+</td>
+<td>
+4
+</td>
+<td>
+8
+</td>
+</tr>
+
+<tr>
+<td>
+<span class="id">clp64le</span>
+</td>
+<td>
+little
+</td>
+<td>
+8
+</td>
+<td>
+8
+</td>
+</tr>
+<tr>
+<td>
+
+<span class="id">clp64be</span>
+</td>
+<td>
+big
+</td>
+<td>
+8
+</td>
+<td>
+8
+</td>
+</tr>
+
+</table>
+</div>
+ 
 
 <p>To construct a new name space, you must supply an
 implementation of the name space interface.
@@ -2105,71 +2287,6 @@ must be literal values or preceding constant names within the same enumeration.
 The syntax for typedef declarations is the same as their syntax in C.
 </div>
 </div>
-
-<h3 id="sec:@names"><span class="id">@names</span></h3>
-
-<p>
-The usual way to construct a name space is by using
-the <span class="id"><a
-href="#syn:@names">@names</a></span>
-syntactic form, which translates declarations in an extended C syntax
-into a name space definition.  For example, the expression
-
-<div class="code">
-<pre>
-ns = @names c32le {
-	struct T {
-		@0	int id;
-		@4	struct T *next;
-		@8;	/* sizeof(T) */
-	};
-	@0	int x;
-	@4	int y;
-	@0	struct T t;
-};
-</pre>
-</div>
-
-binds to <span class="val">ns</span> a new name space.
-
-Every new name space inherits
-definitions from a previously defined name space.
-Here, <span class="val">c32le</span> is a built-in name
-space that defines the base C types as they are
-commonly defined on 32-bit little-endian machines
-(<em>e.g.</em>, <span class="val">int</span> is four
-bytes).  The body of this <span class="id"><a
-href="#syn:@names">@names</a></span> expression contains
-(ignoring the <span class="val">@</span>
-subexpressions) four C declarations, one defining the
-type <span class="val">struct T</span>, and three
-declaring variables (two <span class="val">int</span>s
-and a <span class="val">struct T</span>).
-</p>
-
-<p>
-The usual way to construct an address space is by calling any one
-of a variety of built-in address space constructors.  A
-fresh instance of a zero-filled address space is
-created by a call to <span class="fnindex"
-id="fn:mksas">mksas</span>, a built-in function
-typically used to provide fixed amount (here, 1024
-bytes) of backing storage for scratch domains that do
-not represent external data.  Storage in this address
-space begins at address 0 and is contiguous.
-</p>
-
-<p>
-The built-in function <span class="fnindex"
-id="fn:mkdom">mkdom</span> constructs a new domain
-value from a pair of name space and address space
-values.  Here, <span class="val">ns</span>
-and <span class="val">as</span> are Cinquecento
-variables bound, respectively, to the previously
-defined name space and address space values, and
-<span class="val">dom</span> is bound to the resulting domain.
-</p>
-
 
 <h3 id="sec:addressspaces">Address spaces</h3>
 
@@ -5789,6 +5906,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
 <a href="#fn:mkstr">mkstr</a><br />
+<a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
 </td>
 <td>
@@ -5824,6 +5942,9 @@ machines sharing the environment have been freed.
 <a href="#fn:suekind">suekind</a><br />
 <a href="#fn:suetag">suetag</a><br />
 <a href="#fn:susize">susize</a><br />
+<a href="#fn:symid">symid</a><br />
+<a href="#fn:symtype">symtype</a><br />
+<a href="#fn:symval">symval</a><br />
 <a href="#fn:tabdelete">tabdelete</a><br />
 <a href="#fn:tabenum">tabenum</a><br />
 <a href="#fn:tabinsert">tabinsert</a><br />
