@@ -324,28 +324,6 @@ writebarrier()
 	   intel vol 3, chapter 10), things would be different. */
 }
 
-static void
-heapstat(char *s)
-{
-	unsigned i;
-	Heap *hp;
-	
-	if(s)
-		xprintf("%s ", s);
-	xprintf("gc epoch: %lu\n", gcepoch);
-	xprintf("%-10s %10s %10s %10s\n",
-		"heap", "nalloc", "nfree", "nha");
-	xprintf("--------------------------------"
-		"---------------------------------\n");
-	for(i = 0; i < Qnkind; i++){
-		hp = &heap[i];
-		if(hp->id)
-			xprintf("%-10s %10lu %10lu %10lu\n",
-				hp->id,
-				hp->nalloc, hp->nfree, hp->nha);
-	}
-}
-
 static unsigned long
 hlen(Head *h)
 {
@@ -356,6 +334,41 @@ hlen(Head *h)
 		h = h->link;
 	}
 	return n;
+}
+
+static void
+heapstat(char *s)
+{
+	unsigned i;
+	Heap *hp;
+	unsigned long nf, na, ns0, ns1;
+	
+	if(s)
+		xprintf("%s ", s);
+	xprintf("gc epoch: %lu\n", gcepoch);
+	xprintf("%-10s %10s %10s %10s %10s %10s\n",
+		"heap", "nalloc", "nfree", "nswept", "nsweep", "total");
+	xprintf("--------------------------------"
+		"---------------------------------\n");
+	for(i = 0; i < Qnkind; i++){
+		hp = &heap[i];
+		if(hp->id){
+			na = hp->nalloc;
+			nf = hp->nfree;
+			ns0 = hlen(hp->swept);
+			ns1 = hlen(hp->sweep);
+			xprintf("%-10s %10lu %10lu %10lu %10lu %10lu",
+				hp->id,
+				na, nf, ns0, ns1, hp->nha);
+			if(na > nf+ns0+ns1)
+				xprintf(" (%lu not collected)\n",
+					na-(nf+ns0+ns1));
+			else if(na < nf+ns0+ns1)
+				xprintf(" (inconsistent alloc count!)\n");
+			else
+				xprintf("\n");
+		}
+	}
 }
 
 // FIXME: remove sanity checks
@@ -436,8 +449,11 @@ static void
 sweepheap(GC *gc, Heap *heap, unsigned color)
 {
 	Head *p;
+	unsigned long n;
+	n = 0;
 	p = heap->alloc;
 	while(p){
+		n++;
 		if(p->color == color){
 			if(p->final && !(gc->state&GCshutdown)){
 				p->color = GCfinal;
@@ -452,6 +468,8 @@ sweepheap(GC *gc, Heap *heap, unsigned color)
 next:
 		p = p->alink;
 	}
+	if(n != heap->nalloc)
+		fatal("heap inconsistency");
 	if(heap->swept == 0){
 		heap->swept = heap->sweep;
 		heap->sweep = 0;
@@ -475,13 +493,22 @@ static void
 freeheap(Heap *heap)
 {
 	Head *p, *q;
-	p = heap->alloc;
-	while(p){
-//		if(p->color != GCfree)
-//			printf("freeing heap (%s) with live data\n", heap->id);
-		q = p->alink;
-		efree(p);
-		p = q;
+again:
+	if(heap->free){
+		p = heap->free;
+		while(p){
+			q = p->link;
+			efree(p);
+			p = q;
+		}
+	}
+	if(heap->swept){
+		heap->free = (Head*)read_and_clear(&heap->swept);
+		goto again;
+	}
+	if(heap->sweep){
+		heap->free = (Head*)read_and_clear(&heap->sweep);
+		goto again;
 	}
 }
 
@@ -6942,7 +6969,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			snprintf(buf, sizeof(buf), "<ns %.*s>",
 				 (int)ns->name->len, ns->name->s);
 		else
-			snprintf(buf, sizeof(buf), "<ns %p>", as);
+			snprintf(buf, sizeof(buf), "<ns %p>", ns);
 		return fmtputs0(f, buf);
 	case Qas:
 		as = valas(val);
@@ -11360,21 +11387,23 @@ finivm()
 
 	/* concurrent gc should be off (cqctfreevm) */
 
+	/* drop persistent refs (FIXME: these should go into gc persist) */
+	kcode = 0;
+	cccode = 0;
+
 	/* run two epochs without mutator to collect all objects;
 	   then gcreset to free rootsets */
 	thegc->state |= GCshutdown; /* don't schedule finalizers */
 	dogc(thegc);
 	dogc(thegc);
 	gcreset(thegc);
+//	heapstat("the end");
+
 	freefreeroots(&thegc->roots);
 	freefreeroots(&thegc->stores);
 	freefreeroots(&thegc->finals);
 	efree(thegc);
-
-	freecode((Head*)kcode);
-	freecode((Head*)cccode);
 	efree(GCiterdone);
-
 	efree(Xundef);
 	efree(Xnil);
 	efree(Xnulllist);
