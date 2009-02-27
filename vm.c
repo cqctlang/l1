@@ -449,11 +449,8 @@ static void
 sweepheap(GC *gc, Heap *heap, unsigned color)
 {
 	Head *p;
-	unsigned long n;
-	n = 0;
 	p = heap->alloc;
 	while(p){
-		n++;
 		if(p->color == color){
 			if(p->final && !(gc->state&GCshutdown)){
 				p->color = GCfinal;
@@ -468,8 +465,6 @@ sweepheap(GC *gc, Heap *heap, unsigned color)
 next:
 		p = p->alink;
 	}
-	if(n != heap->nalloc)
-		fatal("heap inconsistency");
 	if(heap->swept == 0){
 		heap->swept = heap->sweep;
 		heap->sweep = 0;
@@ -888,6 +883,20 @@ needsgc(GC *gc)
 		return 1;
 	}else
 		return 0;
+}
+
+static void
+gcclearfinal(GC *gc)
+{
+	Head *hd;
+
+	while(1){
+		hd = removeroot(&gc->finals);
+		if(hd == 0)
+			break;
+		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
+		hd->final = 0;
+	}
 }
 
 static void
@@ -11295,6 +11304,7 @@ cqctfreevm(VM *vm)
 		thegc->gcpoll = gcpoll;
 		thegc->gckill = gckill;
 
+		// run finalizers until they are gone or one of them errors
 		if(!waserror(vm)){
 			do{
 				gcfinal(thegc, vm);
@@ -11302,11 +11312,7 @@ cqctfreevm(VM *vm)
 				dogc(thegc);
 			}while(!rootsetempty(&thegc->finals));
 			poperror(vm);
-		}else
-			// game over: some finalizer threw an error.
-			// clear the finals list.
-			while(removeroot(&thegc->finals))
-				;
+		}
 	}
 	gcprotpop(vm);
 
@@ -11393,7 +11399,8 @@ finivm()
 
 	/* run two epochs without mutator to collect all objects;
 	   then gcreset to free rootsets */
-	thegc->state |= GCshutdown; /* don't schedule finalizers */
+	gcclearfinal(thegc);	    /* clear finalizer list  */
+	thegc->state |= GCshutdown; /* don't schedule new finalizers */
 	dogc(thegc);
 	dogc(thegc);
 	gcreset(thegc);
