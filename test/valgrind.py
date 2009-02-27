@@ -1,15 +1,14 @@
-#!/usr/bin/env /usr/bin/python
+#!/usr/bin/env python
 
 import glob
 import os
 import popen2
 import sys
 
-nok = 0
-nnew = 0
-nfail = 0
-nfault = 0
-
+ok = []
+new = []
+fail = []
+fault = []
 
 valgrind = '/usr/bin/valgrind'
 if not os.path.exists(valgrind):
@@ -24,14 +23,11 @@ cmd = valgrind+' -q --show-reachable=yes --leak-check=full'+suppress+' ../l1 -w 
 for m in glob.glob('[A-Za-z0-9]*.l1'):
     print m,
     sys.stdout.flush()
-#    f = open(m);
-#    s = f.read();
-#    f.close()
     p = popen2.Popen4(cmd+m)
     rv = p.wait()
     if rv != 0:
         print 'fault'
-        nfault = nfault+1
+        fault.append(m);
         continue
     out = p.fromchild.read()
     del p
@@ -42,18 +38,33 @@ for m in glob.glob('[A-Za-z0-9]*.l1'):
         f.close()
         if s == out:
             print 'ok'
-            nok = nok+1
+            ok.append(m);
         else:
             f = open(m+'.vgfailed','w')
             f.write(out)
             f.close
             print 'failed'
-            nfail = nfail+1
+            fail.append(m);
     else:
         f = open(fn,'w')
         f.write(out)
         f.close()
         print 'new'
-        nnew = nnew+1
+        new.append(m);
 
-print nok, 'ok', nnew, 'new', nfault, 'fault', nfail, 'fail'
+print len(ok), 'ok', len(new), 'new', len(fault), 'fault', len(fail), 'fail'
+
+if len(new) > 0:
+    print 'new:'
+    for m in new:
+        print '\t', m
+
+if len(fault) > 0:
+    print 'fault:'
+    for m in fault:
+        print '\t', m
+
+if len(fail) > 0:
+    print 'fail:'
+    for m in fail:
+        print '\t', m
