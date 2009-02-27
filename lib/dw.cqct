@@ -482,7 +482,7 @@ define dw_show_files (dwdom, addr)
     append (fentry, fsize);
     count++;
     append (flist, fentry);
-    fbase = (unsigned char *) (listref (dpair, 1));
+    fbase = listref (dpair, 1);
   }
   return append (append (append ([], flist), fbase + 1), count);
 }
@@ -2540,12 +2540,13 @@ define dw_get_cu_abbrev_table (dwdom, ptr)
 }
 
 lastlocfun = nil;
-define dw_get_attr_val (bdrec, exas, form, ptr, dynamic, etab, doml)
+define dw_get_attr_val (bdrec, exas, form, ptr, dynamic, etab)
 {
   @local cptr, val, len, end;
   @local indom, abdom, asize;
   indom = bdrec.debug_info;
   abdom = bdrec.debug_abbrev;
+//   printf ("ptr 0x%x has type %t\n", ptr, ptr);
   cptr = {indom} ptr;
   val = nil;
   asize = bdrec.addrsize;
@@ -2582,65 +2583,40 @@ define dw_get_attr_val (bdrec, exas, form, ptr, dynamic, etab, doml)
     switch (form) {
     case indom`DW_FORM_block1:
       len = * (`uint8 *)cptr;
-      cptr = (unsigned int) cptr + 1;
+      cptr = (unsigned char *) cptr + 1;
       end = cptr + (unsigned int) len;
       break;
     case indom`DW_FORM_block2:
       len = * (`uint16 *) cptr;
-      cptr = (unsigned int) cptr + 2;
-      end = (unsigned int) cptr + len;
+      cptr = (unsigned char *) cptr + 2;
+      end =  cptr + len;
       break;
     case indom`DW_FORM_block4:
       len = * (`uint32 *) cptr;
-      cptr = (unsigned int) cptr + 4;
-      end = (unsigned int) cptr + len;
+      cptr = (unsigned char *) cptr + 4;
+      end =  cptr + len;
       break;
     case indom`DW_FORM_block:
       len = decodeuleb128 (cptr);
       cptr = listref (len, 1);
       len = head (len);
-      end = (unsigned int) cptr + len;
+      end =  cptr + len;
       break;
     }
 
     if (1 || dynamic) {
-      @local lcptr, lend, fb, savecptr, infodom, ctab;
+      @local lend, fb, savecptr, infodom, ctab;
       fb = _dw_current_frame_base;
-      lcptr = cptr;
-      savecptr = cptr;
-      lend = end;
-      infodom = indom;
       ctab = etab;
-      locfun = lambda (uas) {
-	@local savedstackind, rv, fbase;
-	fbase = lambda (uas) {return get_frame_base_from_pc (bdrec, uas, ctab, doml);};
-	while (lcptr < lend) {
-	  /* As long as we are in the evaluation of a DWARF block, the values
-	     we care about are on the evaluator stack. It's only when we
-	     exit that we will care about the type. */
-	  rv = _dw_eval (indom, uas, lcptr, fbase);
-	  lcptr = (unsigned int) (listref (rv, 2));
-	}
-	/* Don't get the return value from the stack because we need to
-	   know if it's a register. The type is listref (rv, 1) after
-	   the last call to _dw_eval. The caller must check the type to
-	   determine whether listref (rv, 0) is an address or a register
-	   number. */
-	/* restore lcptr to starting value for subsequent invocations
-	   of closure. */
-	lcptr = savecptr;
-	listset (rv, 0, _dw_pop());
-	/* I think that the following is correct. */
-	if (isnil (listref (rv, 1))) {
-	  listset (rv, 1, _dwcqct_addr_type);
-	}
-	return rv;
-      };
+      locfun = build_locfun (cptr, end, bdrec, ctab);
       val = locfun;
       cptr = end;
-   }
+    }
     else {
       @local i;
+ 	printf ("in else cptr is %a\t%t\n", cptr, cptr);
+	printf ("in elseend is %a\t%t\n", end, end);
+
       while (cptr < end) {
 	val = _dw_eval (indom, exas, cptr, _dw_current_frame_base);
 	cptr = (unsigned int) (listref (val, 2));
@@ -2708,7 +2684,7 @@ define dw_get_attr_val (bdrec, exas, form, ptr, dynamic, etab, doml)
     val = decodeuleb128 (cptr);
     cptr = listref (val, 1);
     val = head (val);
-    val = dw_get_attr_val (bdrec, exas, val, cptr, 0, etab, doml);
+    val = dw_get_attr_val (bdrec, exas, val, cptr, 0, etab);
     cptr = listref (val, 1);
     val = head (val);
     break;
@@ -2716,7 +2692,7 @@ define dw_get_attr_val (bdrec, exas, form, ptr, dynamic, etab, doml)
     printf ("reached default in FORM switch for 0x%x.\n", form);
     break;
   }
-  return [ val, cptr ];
+  return [ val, (unsigned char *)cptr ];
 }
 
 define dw_get_lang_string (dwdom, lang)
@@ -3107,9 +3083,9 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       atname = head (spec);
       form = listref (spec, 1);
       if (isempty (local_scope_stack))
-	val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       else
-	val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3147,10 +3123,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     if (abstorigin) {
       @local refparam;
       refparam = tablook (symtab, (unsigned char *)abstorigin);
-      if (isnil (refparam))
-	printf ("formal param %a with abstorigin %d has no ref in symtab\n",
-		[ptr, {indom}head (tag), name, type, location], abstorigin);
-      else {
+      if (!isnil (refparam)) {
 	@local locinfo;
 	if (!isnil (name))
 	  printf ("formal param %a has abstorigin named %a\n", name, listref (refparam, 2));
@@ -3176,7 +3149,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	       : head (local_scope_stack),
 	       location]] ];
     if (!abstorigin) {
-      tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), fparam);
+      tabinsert (symtab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+		 fparam);
     }
     return [ fparam, cptr ];
     break;
@@ -3194,10 +3168,10 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       atname = head (spec);
       form = listref (spec, 1);
       if (isempty (local_scope_stack)) {
-	val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       }
       else {
-	val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab, doml);
+	val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab);
       }
       cptr = listref (val, 1);
       val = head (val);
@@ -3241,10 +3215,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     if (abstorigin) {
       @local refvar;
       refvar = tablook (symtab, (unsigned char *)abstorigin);
-      if (isnil (refvar))
-	printf ("var %a with abstorigin %d has no ref in symtab\n",
-		[ptr, {indom}head (tag), name, type, location], abstorigin);
-      else {
+      if (!isnil (refvar)) {
 	@local locinfo;
 	if (!isnil (name))
 	  printf ("var %a has abstorigin named %a\n", name, listref (refvar, 2));
@@ -3269,7 +3240,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	    : head (local_scope_stack),
 	    location]], toplevel];
     if (!abstorigin) {
-      tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), var);
+      tabinsert (symtab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+		 var);
     }
     return [ var, cptr ];
     break;
@@ -3282,7 +3254,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3314,7 +3286,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3384,7 +3356,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       form = listref (spec, 1);
       /* call with dynamic == 1 in order to handle DW_AT_frame_base attributes
 	 that are not location lists */
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 1, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3475,8 +3447,11 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	if (!isnil (progtype))
 	  printf ("inlined subroutine %a has type %a and abstorigin type %a\n",
 		  name, progtype, listref (refprog, 3));
-	else
+	else {
 	  progtype = listref (refprog, 3);
+	  if (isnil (progtype))
+	    printf ("progtype is nil for refprog %a and ptr %a\n", refprog, ptr);
+	}
       }
     }
     if (isnil (hipc) && !isnil (rl)){
@@ -3540,9 +3515,14 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     else
       pop (local_scope_stack);
     if (head (tag) == abdom`DW_TAG_subprogram) {
-      prog = [ ptr, {indom}head (tag),
-	       name, (unsigned char *){indom}(ptr - cubase), lopc, toplevel];
-      tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), prog);
+      if (abstorigin)
+	prog = [ ptr, {indom}head (tag),
+		 name, (unsigned char *){indom}abstorigin, lopc, toplevel];
+      else	
+	prog = [ ptr, {indom}head (tag),
+		 name, (unsigned char *){indom}(ptr - cubase), lopc, toplevel];
+      tabinsert (symtab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+		 prog);
     }
     prog = [ ptr, {indom} head (tag),
 	     name, progtype, paramlist, locals, toplevel ];
@@ -3556,7 +3536,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       if (isnil (refprog)) {
 	prog = [ ptr, {indom} head (tag), name, progtype, lscope,
 		 toplevel ];
-	tabinsert (symtab, (unsigned char *){indom}(ptr - cubase), prog);
+	tabinsert (symtab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+		   prog);
       }
       else {
 	@local loc;
@@ -3573,8 +3554,10 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 		  loc, refprog);
       }
     }
-    else if (head (tag) != abdom`DW_TAG_lexical_block)
-      tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), prog);
+    else if (head (tag) != abdom`DW_TAG_lexical_block) {
+      tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+		 prog);
+    }
     if (!isnil (rl)) {
       lscope = [ rl, {indom} head (tag), name, symlist, typelist, subscopes ];
       for (i = 0; i < length (rl); i++) {
@@ -3600,7 +3583,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3620,7 +3603,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       }
     }
     td = [ ptr, {indom} head (tag), tdname, ttype, tsize, toplevel ];
-    tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), td);
+    tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+	       td);
     return [ td, cptr ];
   }
     break;
@@ -3633,7 +3617,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3652,7 +3636,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       }
     }
     td = [ ptr, {indom} head (tag), tdname, ttype, tsize ];
-    tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), td);
+    tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+	       td);
     return [ td, cptr ];
     break;
   }
@@ -3668,7 +3653,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3691,7 +3676,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     if (declonly) {
       append (cqctstruct, []);
       append (cqctstruct, toplevel);
-      tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), cqctstruct);
+      tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+		 cqctstruct);
       return [ cqctstruct, cptr ];
     }
     isnotdone = lambda () { if (listref (tag, 1) == 0) return 0; else if (stend && (unsigned int)cptr < ((unsigned int)stend + (unsigned int)cubase)) return 1;
@@ -3709,7 +3695,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     }
     append (cqctstruct, memlist);
     append (cqctstruct, toplevel);
-    tabinsert (typetab, (indom`unsigned char *)(ptr - cubase), cqctstruct);
+    tabinsert (typetab, (indom`unsigned char *)((unsigned int)ptr - cubase), cqctstruct);
     return [ cqctstruct, cptr ];
     break;
   }
@@ -3721,7 +3707,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3738,7 +3724,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     }
     if (!isnil (tname)) {
       cqcttype = [ptr, {indom} head (tag), tname, size ];
-      tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), cqcttype);
+      tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+		 cqcttype);
     }
     else
       cqcttype = nil;
@@ -3758,7 +3745,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3805,7 +3792,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       asize = elsize * elcnt;
     append (a, asize);
     append (a, dimlist);
-    tabinsert (typetab, (indom`unsigned char *)(ptr - cubase), a);
+    tabinsert (typetab, (indom`unsigned char *)((unsigned int)ptr - cubase),
+	       a);
     return [ a, cptr ];
     break;
   }
@@ -3821,7 +3809,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3852,7 +3840,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     if (isnil (sname))
       sname = sprintfa ("anon_%d", ptr);
     cqcttype = [ptr, {indom} head (tag), sname, stype, size, ecnt ];
-    tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), cqcttype);
+    tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+	       cqcttype);
     return [ cqcttype, cptr];
     break;
   }
@@ -3864,7 +3853,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3874,7 +3863,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       }
     }
     cqcttype = [ptr, {indom} head (tag), ttype, tsize ];
-    tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), cqcttype);
+    tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+	       cqcttype);
     return [ cqcttype, cptr];
     break;
   }
@@ -3886,7 +3876,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3896,7 +3886,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       }
     }
     cqcttype = [ptr, {indom} head (tag), ttype, tsize ];
-    tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), cqcttype);
+    tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+	       cqcttype);
     return [ cqcttype, cptr];
     break;
   }
@@ -3910,7 +3901,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3941,7 +3932,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	break;
     }
     en = [ ptr, {indom} head (tag), name, esize, elist, toplevel ];
-    tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), en);
+    tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+	       en);
     return [ en, cptr ];
   }
     break;
@@ -3957,7 +3949,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3997,7 +3989,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -4020,7 +4012,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     if (declonly) {
       append (cqctunion, []);
       append (cqctunion, toplevel);
-      tabinsert (typetab, (indom`unsigned char *)(ptr - cubase), cqctunion);
+      tabinsert (typetab, (indom`unsigned char *)((unsigned int)ptr - cubase),
+		 cqctunion);
       return [ cqctunion, cptr ];
     }
     isnotdone = lambda () { if (listref (tag, 1) == 0) return 0; else if (stend && cptr < stend) return 1;
@@ -4037,7 +4030,8 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     }
     append (cqctunion, memlist);
     append (cqctunion, toplevel);
-    tabinsert (typetab, (unsigned char *){indom}(ptr - cubase), cqctunion);
+    tabinsert (typetab, (unsigned char *){indom}((unsigned int)ptr - cubase),
+	       cqctunion);
     return [ cqctunion, cptr ];
     break;
   }
@@ -4046,7 +4040,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab, doml);
+      val = dw_get_attr_val (bdrec, exas, form, cptr, 0, etab);
       cptr = listref (val, 1);
       val = head (val);
     }
@@ -5086,7 +5080,7 @@ define isfbsorted (fb)
   }
 }
 
-define get_frame_base_from_pc (bdrec, exas, etab, doml)
+define get_frame_base_from_pc (bdrec, exas, etab)
 {
   @local ptr, locdom, i, j, k, n, len1, len2, fbl, gfbi, gfbj;
   @local ar, ardom, arl, cu, cukey;
@@ -5447,6 +5441,8 @@ define dwsym2csym (rns, ddom, dsym, stab, ttab, cstab, cttab)
   else if (!iscvalue (sloc))
     return nil;
   sname = listref (dsym, 2);
+  if (isnil (tablook (ttab, listref (dsym, 3))))
+    printf ("type is nil for dsym %a on lookup of %a\n", dsym, listref (dsym, 3));
   stype = dwtype2ctype (rns, ddom, tablook (ttab, listref (dsym, 3)), stab,
 			ttab, cttab, 1);
   rv = mksym (stype, sname, sloc);
@@ -6028,7 +6024,7 @@ define symloc (symtab, sym, exas, pc, ctab, bdrec, doml)
       as = exas;
       lcptr = listref (locent, 4);
       lend = lcptr + listref (locent, 5);
-      fbase = get_frame_base_from_pc (bdrec, as, ctab, doml);
+      fbase = get_frame_base_from_pc (bdrec, as, ctab);
       while (lcptr < lend) {
 	/* As long as we are in the evaluation of a DWARF block, the values
 	   we care about are on the evaluator stack. It's only when we
@@ -6427,8 +6423,9 @@ define print_obj (obj, dom)
 {
   @local stype;
   stype = vecref (obj, 0);
-  if (istypedef (stype))
+  if (istypedef (stype)) {
     stype = typedeftype (stype);
+  }
   if (isfunc (stype)) {
     printf ("0x%x\t%t\n", symval (obj), obj);
     return;
@@ -6463,10 +6460,13 @@ define print_obj (obj, dom)
 
 define print_struct (s, dom)
 {
-  @local f, fv, sloc, ft, foff, i;
-  if (!isstruct (symtype (s)))
+  @local f, fv, sloc, ft, foff, i, stype;
+  stype = symtype (s);
+  if (istypedef (stype))
+    stype = typedeftype (stype);
+  if (!isstruct (stype)&& !isunion (stype))
     return;
-  fv = fields (symtype (s));
+  fv = fields (stype);
   sloc = {dom}symval (s);
   printf ("0x%x\t%t\n", sloc, s);
   foreach (lambda (v) {
@@ -6475,7 +6475,11 @@ define print_struct (s, dom)
       pft = mkctype_ptr (ft, nsptr (dom.ns));
       p = {dom}((unsigned long)sloc + fieldoff (v));
       p = {pft} p;
-      printf ("\t%t\t%a\n", v, *p);},
+      if (isstruct (ft) || isunion (ft)
+	  || (istypedef (ft) && (isstruct (typedeftype (ft)) || isunion (typedeftype (ft)))))
+	printf ("\t%t\t%s\t*%a\n", ft, fieldid (v), p);
+      else
+	printf ("\t%t\t%a\n", v, *p);},
     fv);
   printf ("}\n");
 }
@@ -6714,4 +6718,38 @@ define init_debug_domain (binfile)
   tabinsert (mtab, "nscon", nscon);
   gns = mkns (mtab, "allcuns");
   return gns;
+}
+
+define build_locfun (cptr, end, bdrec, ctab)
+{
+  @local locfun;
+  locfun = lambda (uas)
+    {
+      @local rv, fbase, lptr, lend, indom;
+      indom = domof (cptr);
+      lcptr = cptr;
+      lend = end;
+      fbase = lambda (uas) {return get_frame_base_from_pc (bdrec, uas, ctab);};
+      while (lcptr < lend) {
+	/* As long as we are in the evaluation of a DWARF block, the values
+	   we care about are on the evaluator stack. It's only when we
+	   exit that we will care about the type. */
+	rv = _dw_eval (indom, uas, (unsigned char *)lcptr, fbase);
+	lcptr =  (listref (rv, 2));
+      }
+      /* Don't get the return value from the stack because we need to
+	 know if it's a register. The type is listref (rv, 1) after
+	 the last call to _dw_eval. The caller must check the type to
+	 determine whether listref (rv, 0) is an address or a register
+	 number. */
+      /* restore lcptr to starting value for subsequent invocations
+	 of closure. */
+      listset (rv, 0, _dw_pop());
+      /* I think that the following is correct. */
+      if (isnil (listref (rv, 1))) {
+	listset (rv, 1, _dwcqct_addr_type);
+      }
+      return rv;
+    };
+  return locfun;
 }
