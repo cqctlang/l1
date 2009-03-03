@@ -8822,7 +8822,7 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 	   && iargv[1]->qkind != Qvec
 	   && iargv[1]->qkind != Qtab)
 		vmerr(vm,
-		      "operand 1 to foreach must be a list, table, or vector");
+		      "operand 2 to foreach must be a list, table, or vector");
 	cl = valcl(iargv[0]);
 	switch(iargv[1]->qkind){
 	case Qlist:
