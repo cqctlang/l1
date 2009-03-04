@@ -48,6 +48,7 @@ int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
 Closure*	cqctcompile(Expr *e, Toplevel *top, char *argsid);
 Val		cqctcstrval(char *s);
+int		cqcteval(VM *vm, char *s, char *src, Val *rv);
 int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Toplevel *top);
 void		cqctfreecstr(char *s);

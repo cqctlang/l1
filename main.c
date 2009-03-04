@@ -31,6 +31,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-t report timing statistics\n");
 	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n"); 
+	fprintf(stderr, "\t-z send output to /dev/null\n");
 	fprintf(stderr, "\nl1 developer flags:\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
 	fprintf(stderr, "\t-p dump IR at various stages\n");
@@ -188,7 +189,7 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+bhol:m:pqtwgxs"))){
+	while(EOF != (c = getopt(argc, argv, "+bhol:m:pqtwgxsz"))){
 		switch(c){
 		case 'o':
 		case 'p':
@@ -198,6 +199,7 @@ main(int argc, char *argv[])
 			cqctflags[c] = 1;
 			break;
 		case 't':
+		case 'z':
 			opt[c] = 1;
 			break;
 		case 'x':
@@ -245,6 +247,14 @@ main(int argc, char *argv[])
 		if(vm == 0){
 			cqctfini(top);
 			return -1;
+		}
+		if(opt['z']){
+			if(0 > cqcteval(vm,
+					"stdout = open(\"/dev/null\", \"w\");",
+					0, 0)) {
+				cqctfini(top);
+				return -1;
+			}
 		}
 	}
 

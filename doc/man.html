@@ -5488,10 +5488,10 @@ the storage manager when the function is reclaimed.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcallfn">int cqctcallfn(VM *<span class="arg">vm</span>, Closure *<span class="arg">fn</span>, int <span class="arg">argc</span>, Val *<span class="arg">argv</span>, Val *rv)</span>
+<span class="id" id="fn:cqctcallfn">int cqctcallfn(VM *<span class="arg">vm</span>, Closure *<span class="arg">fn</span>, int <span class="arg">argc</span>, Val *<span class="arg">argv</span>, Val *<span class="arg">rv</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Closure *<span class="arg">thunk</span>, Val *v)</span>
+<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Closure *<span class="arg">thunk</span>, Val *<span class="arg">rv</span>)</span>
 </div>
 </div>
 
@@ -5515,6 +5515,26 @@ class="arg">rv</span> and the call returns <span class="val">0</span>.
 If an error occurs, the call returns <span class="val">-1</span>.
 </div>
 
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqcteval">int cqcteval(VM *<span class="arg">vm</span>, char *<span class="arg">str</span>, char *<span class="arg">whence</span>, Val *<span class="arg">rv</span></span>
+</div>
+</div>
+
+<div class="desc">
+<span class="id">Cqcteval</span> composes
+<span class="id">cqctparsestr</span>,
+<span class="id">cqctcompile</span>, and
+<span class="id">cqctcallthunk</span>.
+The Cinquecento expression <span class="arg">str</span> is parsed, compiled, and executed.
+On success, the value of the expression
+is stored in the value pointed to by
+<span class="arg">rv</span> and the call returns <span class="val">0</span>.
+If an error occurs, the call returns <span class="val">-1</span>.
+</div>
 </div>
 
 <div class="docitem">
@@ -5773,6 +5793,7 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
 <a href="#fn:cqctcompile">cqctcompile</a><br />
 <a href="#fn:cqctcstrval">cqctcstrval</a><br />
+<a href="#fn:cqcteval">cqcteval</a><br />
 <a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
 <a href="#fn:cqctfini">cqctfini</a><br />
 <a href="#fn:cqctfreeexpr">cqctfreeexpr</a><br />

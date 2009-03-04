@@ -6175,7 +6175,12 @@ vmresettop(VM *vm)
 Fd*
 vmstdout(VM *vm)
 {
-	return vm->stdout;
+	Val v;
+	if(!envlookup(vm->top->env, "stdout", &v))
+		vmerr(vm, "stdout is undefined");
+	if(v->qkind != Qfd)
+		vmerr(vm, "stdout not bound to a file descriptor");
+	return valfd(v);
 }
 
 Val
@@ -11444,6 +11449,28 @@ cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 	}
 	*rv = dovm(vm, cl, 0, 0);
 	poperror(vm);
+	return 0;
+}
+
+int
+cqcteval(VM *vm, char *s, char *src, Val *rv)
+{
+	Closure *cl;
+	Expr *e;
+	Val v;
+
+	e = cqctparsestr(s, src);
+	if(e == 0)
+		return -1;
+	cl = cqctcompile(e, vm->top, 0);
+	if(cl == 0){
+		cqctfreeexpr(e);
+		return -1;
+	}
+	if(rv == 0)
+		rv = &v;
+	if(cqctcallfn(vm, cl, 0, 0, rv))
+		return -1;
 	return 0;
 }
 
