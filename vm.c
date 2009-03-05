@@ -6015,7 +6015,7 @@ _gcunprotect(VM *vm, Val v, unsigned depth)
 	r = *pr;
 	while(r){
 		if(r->hd == v){
-			(*pr)->link = r;
+			*pr = r->link;
 			freeroot(&vm->rs, r);
 			break;
 		}
