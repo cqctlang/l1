@@ -186,13 +186,22 @@ xpopen(Imm argc, char **argv)
 	cloexec(ctl[1]);
 	switch(fork()){
 	case 0:
-		close(io[0]);
-		close(ctl[0]);
-		dup2(io[1], 0);
-		execvp(argv[0], argv);
-		err = errno;
-		xwrite(ctl[1], (char*)&err, sizeof(err));
-		exit(1);
+		switch(fork()){
+		case 0:
+			close(io[0]);
+			close(ctl[0]);
+			dup2(io[1], 0);
+			setsid();
+			execvp(argv[0], argv);
+			err = errno;
+			xwrite(ctl[1], (char*)&err, sizeof(err));
+			exit(1);
+		case -1:
+			xwrite(ctl[1], (char*)&err, sizeof(err)); 
+			exit(1);
+		default:
+			exit(0);
+		}
 	case -1:
 		return -errno;
 	default:
