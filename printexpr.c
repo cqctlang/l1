@@ -400,15 +400,25 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Epreinc:
 	case Epredec:
-		xprintf("%s(", opstr(e->kind));
-		printcqct0(e->e1, ni);
-		xprintf(")");
+		if(e->e1->kind != Eid){
+			xprintf("%s(", opstr(e->kind));
+			printcqct0(e->e1, ni);
+			xprintf(")");
+		}else{
+			xprintf("%s", opstr(e->kind));
+			printcqct0(e->e1, ni);			
+		}
 		break;
 	case Epostinc:
 	case Epostdec:
-		xprintf("(");
-		printcqct0(e->e1, ni);
-		xprintf(")%s", opstr(e->kind));
+		if(e->e1->kind != Eid){
+			xprintf("(");
+			printcqct0(e->e1, ni);
+			xprintf(")%s", opstr(e->kind));
+		}else{
+			printcqct0(e->e1, ni);
+			xprintf("%s", opstr(e->kind));
+		}
 		break;
 	case Eref:
 		xprintf("&(");
@@ -488,6 +498,21 @@ printcqct0(Expr *e, unsigned ni)
 			printcqct0(e->e2, ni+1);
 		}else
 			printcqct0(e->e2, ni);
+		break;
+	case Edo:
+		xprintf("do");
+		if(e->e1->kind != Eblock){
+			xprintf("\n");
+			indent(ni+1);
+			printcqct0(e->e1, ni+1);
+			printf("\n");
+			indent(ni);
+		}else
+			printcqct0(e->e1, ni);
+
+		xprintf("while(");
+		printcqct0(e->e2, ni);
+		xprintf(")");
 		break;
 	case Efor:
 		xprintf("for(");
