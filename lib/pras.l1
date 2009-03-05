@@ -859,7 +859,7 @@ define mklocalprocdom arg {
 	@local cmd, ns, as;
 
 	cmd = listref(arg, 0);
-	ns = eval(sprintfa("@names c32le { @include \"%s.names\" };", cmd));
+	ns = eval(sprintfa("@names clp64le { @include \"%s.names\" };", cmd));
 	as = apply(launchlocalproc, arg);
 	return mkdom(ns, as);
 }
