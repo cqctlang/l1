@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -9,6 +10,7 @@
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #include <libgen.h>
 
 #include "cqct.h"
@@ -158,6 +160,32 @@ tvdiff(struct timeval *a, struct timeval *b, struct timeval *c)
         }
 }
 
+struct memusage
+{
+	uint64_t size;
+	uint64_t rss;
+};
+
+// FIXME: we assume linux but fail graceless if not;
+// how do you get vm size on os x?
+static int
+memusage(struct memusage *mu)
+{
+	int fd;
+	char buf[128];
+
+	memset(mu, 0, sizeof(*mu));
+	fd = open("/proc/self/statm", O_RDONLY);
+	if(0 > fd)
+		return -1;
+	memset(buf, 0, sizeof(buf));
+	read(fd, buf, sizeof(buf)-1);
+	close(fd);
+	if(2 != sscanf(buf, "%" PRIu64 " %" PRIu64, &mu->size, &mu->rss))
+		return -1;
+	return 0;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -179,6 +207,9 @@ main(int argc, char *argv[])
 	char *lp[Maxloadpath+1];	/* extra one is final null */
 	Toplevel *top;
 	char *argsid;
+	struct memusage mu;
+	uint64_t usec;
+	int rv;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -305,14 +336,23 @@ main(int argc, char *argv[])
 		
 		if(opt['t'])
 			gettimeofday(&beg, 0);
-		if(cqctcallfn(vm, entry, valc, valv, &v))
-			continue; /* error */
+		rv = cqctcallfn(vm, entry, valc, valv, &v);
 		if(opt['t']){
 			gettimeofday(&end, 0);
 			tvdiff(&end, &beg, &end);
-			printf("%lu usec\n",
-			       1000000*end.tv_sec+end.tv_usec);
+			usec = 1000000*end.tv_sec+end.tv_usec;
+			if(dorepl){
+				if(0 > memusage(&mu))
+					printf("%" PRIu64 " usec\n", usec);
+				else
+					printf("%10" PRIu64 " usec"
+					       "%10" PRIu64 "K vm  "
+					       "%10" PRIu64 "K rss\n",
+					       usec, 4*mu.size, 4*mu.rss);
+			}
 		}
+		if(rv)
+			continue; /* error */
 		if(dorepl && v->qkind != Qnil){
 			s = cqctsprintval(vm, v);
 			printf("%s\n", s);
@@ -324,5 +364,16 @@ main(int argc, char *argv[])
 	if(opt['x'])
 		cqctfreevm(vm);
 	cqctfini(top);
+
+	if(opt['t'] && !dorepl){
+		if(0 > memusage(&mu))
+			printf("%10" PRIu64 " usec\n", usec);
+		else
+			printf("%10" PRIu64 " usec"
+			       "%10" PRIu64 "K vm  "
+			       "%10" PRIu64 "K rss\n",
+			       usec, 4*mu.size, 4*mu.rss);
+	}
+
 	return 0;
 }
