@@ -548,7 +548,7 @@ define _dw_eval (dom, exas, cptr, pceval)
   return [rv, rvtype, lptr];
 }
 
-define dw_process_location_list (bdrec, exdom, ptr, form, cubase, fb, doml)
+define dw_process_location_list (bdrec, exdom, ptr, cubase, fb, doml)
 {
   @local op, cptr, asize, rv, l, fn, sloc, eloc, baseaddrflag, cubaseaddr;
   @local isdone, cnt, len, end;
@@ -574,8 +574,7 @@ define dw_process_location_list (bdrec, exdom, ptr, form, cubase, fb, doml)
   else if (asize == 8)
     baseaddrflag = 0xffffffffffffffff;
   else {
-    printf ("Don't know what to do with location list with addr form %a\n",
-	    form);
+    printf ("Don't know what to do with location list at addr 0x%x\n", ptr);
     return [nil, ptr];
   }
   while (!isdone /* && cnt < 10 */) {
