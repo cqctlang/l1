@@ -8148,7 +8148,7 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = v->vec[Idpos];
-	if(vp->qkind != Qcval && vp->qkind != Qnil)
+	if(vp->qkind != Qstr && vp->qkind != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
 }
