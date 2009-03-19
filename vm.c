@@ -918,6 +918,7 @@ gcfinal(GC *gc, VM *vm)
 		arg = hd;
 		dovm(vm, cl, 1, &arg);
 	}
+	gcunprotect(vm, valhead(ac));
 	vm->ac = ac;
 }
 
@@ -5018,6 +5019,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tptr;
 		new->link = _dolooktype(vm, xtn->link, ns);
+		gcunprotect(vm, new);
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
@@ -5030,6 +5032,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tarr;
 		new->link = _dolooktype(vm, xtn->link, ns);
+		gcunprotect(vm, new);
 		if(new->link == 0){
 			es = fmtxtn(xtn->link);
 			vmerr(vm, "name space does not define %.*s",
@@ -5059,6 +5062,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			vecset(vm, vec, Typepos, mkvalxtn(tmp)); 
 			vecset(vm, new->param, i, mkvalvec(vec));
 		}
+		gcunprotect(vm, new);
 		return new;
 	case Tundef:
 		/* FIXME: do we want this? */
@@ -5651,9 +5655,9 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	Imm m, len;
 	Val argv[2];
 
-	gcprotect(vm, type);
-	gcprotect(vm, sym);
-	gcprotect(vm, name);
+//	gcprotect(vm, type);
+//	gcprotect(vm, sym);
+//	gcprotect(vm, name);
 
 	/* create sorted list of symbols with offsets for lookaddr*/
 	vec = tabenum(sym);
@@ -5669,8 +5673,8 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	}
 	argv[0] = mkvallist(ls);
 	argv[1] = mkvalcl(mkcfn("symcmp", symcmp));
-	gcprotect(vm, argv[0]);
-	gcprotect(vm, argv[1]);
+//	gcprotect(vm, argv[0]);
+//	gcprotect(vm, argv[1]);
 	l1_sort(vm, 2, argv, &rv);
 
 	return mknsfn(mkccl("looktype", stdlooktype, 1, mkvaltab(type)),
@@ -5836,6 +5840,13 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 
 	ns = mknstypesym(vm, ctx.type, ctx.sym, name);
 	nscachebase(vm, ns);
+
+	gcunprotect(vm, ctx.osym);
+	gcunprotect(vm, ctx.otype);
+	gcunprotect(vm, ctx.undef);
+	gcunprotect(vm, ctx.sym);
+	gcunprotect(vm, ctx.type);
+
 	return ns;
 }
 
@@ -8754,6 +8765,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		gcprotect(vm, cv);
 		bytes = imm2str(vm, t, cv->val);
 		callput(vm, d->as, addr->val, typesize(vm, t), bytes);
+		gcunprotect(vm, cv);
 		*rv = mkvalcval2(cv);
 		break;
 	case Tbitfield:
@@ -8849,6 +8861,8 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 			argv[1] = vecref(v, m);
 			dovm(vm, cl, 2, argv);
 		}
+		gcunprotect(vm, v);
+		gcunprotect(vm, k);
 		break;
 	case Qvec:
 		v = valvec(iargv[1]);
@@ -8890,7 +8904,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 		for(m = 0; m < len; m++){
 			argv[0] = listref(vm, l, m);
 			x = dovm(vm, cl, 1, argv);
-			listins(vm, r, m, gcprotect(vm, x));
+			listins(vm, r, m, x);
 		}
 		break;
 	case Qtab:
@@ -8903,15 +8917,17 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 			argv[0] = vecref(k, m);
 			argv[1] = vecref(v, m);
 			x = dovm(vm, cl, 2, argv);
-			listins(vm, r, m, gcprotect(vm, x));
+			listins(vm, r, m, x);
 		}
+		gcunprotect(vm, v);
+		gcunprotect(vm, k);
 		break;
 	case Qvec:
 		v = valvec(iargv[1]);
 		for(m = 0; m < v->len; m++){
 			argv[0] = vecref(v, m);
 			x = dovm(vm, cl, 1, argv);
-			listins(vm, r, m, gcprotect(vm, x));
+			listins(vm, r, m, x);
 		}
 		break;
 	default:
