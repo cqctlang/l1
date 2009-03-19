@@ -2,8 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-typedef struct Lambda Lambda;
-
 typedef
 struct Cases {
 	unsigned n, max;
@@ -15,7 +13,6 @@ struct Cases {
 
 typedef
 struct CGEnv {
-	Lambda *b;
 	Ctl *Return;
 	Ctl *Return0;
 	Ctl *Break;
@@ -26,14 +23,129 @@ struct CGEnv {
 static Location toploc[8];
 static Location *Effect;
 static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
-static void compilelambda(Ctl *name, Code *code, Expr *el);
-static Topvec *mktopvec();
-static void freetopvec(Topvec *tv);
+static void cglambda(Ctl *name, Code *code, Expr *el);
 static Konst* mkkonst();
 static void freekonst(Konst *kon);
 static Konsti* mkkonsti();
 static void freekonsti(Konsti *koni);
-static void freedecl(Decl *d);
+
+static Konst*
+mkkonst()
+{
+	Konst *kon;
+	kon = emalloc(sizeof(Konst));
+	kon->ht = mkht();
+	return kon;
+}
+
+static Lits*
+konstlookup(Lits *lits, Konst *kon)
+{
+	return hget(kon->ht, lits->s, lits->len);
+}
+
+static Lits*
+konstadd(Lits *lits, Konst *kon)
+{
+	lits = copylits(lits);
+	hput(kon->ht, lits->s, lits->len, lits);
+	return lits;
+}
+
+static void
+free1konst(void *u, char *k, void *v)
+{
+	freelits((Lits*)v);
+}
+
+static void
+freekonst(Konst *kon)
+{
+	hforeach(kon->ht, free1konst, 0);
+	freeht(kon->ht);
+	efree(kon);
+}
+
+static Konsti*
+mkkonsti()
+{
+	Konsti *koni;
+	koni = emalloc(sizeof(Konsti));
+	koni->ht = mkht();
+	return koni;
+}
+
+static Val
+konsti2val(Cbase base, Imm imm, Konsti *koni)
+{
+	Val v;
+	char buf[18+Maxliti];	/* "unsigned long long"+Maxliti */
+	char *s;
+
+	snprintf(buf, sizeof(buf), "%s%" PRIu64, cbasename[base], imm);
+	v = hget(koni->ht, buf, strlen(buf));
+	if(v)
+		return v;
+	s = xstrdup(buf);
+	v = mkvallitcval(base, imm);
+	hput(koni->ht, s, strlen(s), v);
+	return v;
+}
+
+static Val
+konstival(Liti *liti, Konsti *koni)
+{
+	return konsti2val(liti->base, liti->val, koni);
+}
+
+static void
+free1konsti(void *u, char *k, void *v)
+{
+	efree(k);
+}
+
+static void
+freekonsti(Konsti *koni)
+{
+	hforeach(koni->ht, free1konsti, 0);
+	freeht(koni->ht);
+	efree(koni);
+}
+
+// allocate and bind constants to constant pool
+// FIXME: do this for ctypes?
+static void
+konsts(Expr *e, Code *code)
+{
+	Expr *p;
+
+	if(e == 0)
+		return;
+
+	switch(e->kind){
+	case Econst:
+		e->xp = konstival(&e->liti, code->konsti);
+		break;
+	case Econsts:
+		e->xp = konstlookup(e->lits, code->konst);
+		if(e->xp == 0)
+			e->xp = konstadd(e->lits, code->konst);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			konsts(p->e1, code);
+			p = p->e2;
+		}
+		break;
+	default:
+		konsts(e->e1, code);
+		konsts(e->e2, code);
+		konsts(e->e3, code);
+		konsts(e->e4, code);
+		break;
+	}
+}
 
 static void
 newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
@@ -122,7 +234,6 @@ mkcode()
 	code->insn = emalloc(code->maxinsn*sizeof(Insn));
 	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
 	code->ninsn = 0;
-	code->topvec = mktopvec();
 	code->konst = mkkonst();
 	code->konsti = mkkonsti();
 
@@ -138,7 +249,6 @@ freecode(Head *hd)
 	code = (Code*)hd;
 	freekonst(code->konst);
 	freekonsti(code->konsti);
-	freetopvec(code->topvec);
 	p = code->clist;
 	while(p){
 		q = p->link;
@@ -245,7 +355,7 @@ printrand(Code *code, Operand *r)
 				xprintf("]");
 			break;
 		case Ltopl:
-			xprintf("<%s>", topvecid(loc->idx, code->topvec));
+			xprintf("<%s>", loc->var->id);
 			break;
 		}
 		break;
@@ -424,1202 +534,10 @@ printcode(Code *code)
 {
 	unsigned i;
 	for(i = 0; i < code->ninsn; i++){
+		xprintf("\t%4d\t", i);
 		if(code->labels[i] && code->labels[i]->used)
 			xprintf("%s", code->labels[i]->label);
 		printinsn(code, &code->insn[i]);
-	}
-}
-
-static unsigned
-max(unsigned x, unsigned y)
-{
-	return x>y?x:y;
-}
-
-static int
-issimple(Expr *e)
-{
-	return (e->kind == Eid
-		|| e->kind == Econst
-		|| e->kind == Enil);
-}
-
-static unsigned
-listlen(Expr *l)
-{
-	unsigned n;
-	n = 0;
-	while(l->kind != Enull){
-		l = l->e2;
-		n++;
-	}
-	return n;
-}
-
-/* flatten local declarations within and determine # of locals for lambda E */
-static unsigned
-locpass(Expr *e)
-{
-	unsigned m;
-	Expr *p;
-
-	if(e == NULL)
-		return 0;
-
-	switch(e->kind){
-	case Elambda:
-		return 0;
-	case Eblock:
-		m = listlen(e->e1);
-		return m+locpass(e->e2);
-	case Eelist:
-		p = e;
-		m = 0;
-		while(p->kind == Eelist){
-			m = max(m, locpass(p->e1));
-			p = p->e2;
-		}
-		return m;
-	default:
-		m = locpass(e->e1);
-		m = max(m, locpass(e->e2));
-		m = max(m, locpass(e->e3));
-		m = max(m, locpass(e->e4));
-		return m;
-	}
-}
-
-/* determine # of tmps for lambda E */
-static unsigned
-tmppass(Expr *e)
-{
-	Expr *p;
-	unsigned m;
-
-	if(e == NULL)
-		return 0;
-
-	switch(e->kind){
-	case Elambda:
-		return 0;
-	case Eblock:
-		return tmppass(e->e2);
-	case Ebinop:
-		if(issimple(e->e1) && issimple(e->e2))
-			return 0;
-		else if(issimple(e->e1))
-			return tmppass(e->e2);
-		else if(issimple(e->e2))
-			return tmppass(e->e1);
-		else
-			return 1+max(tmppass(e->e1),
-				     tmppass(e->e2));
-	case Eelist:
-		p = e;
-		m = 0;
-		while(p->kind == Eelist){
-			m = max(m, tmppass(p->e1));
-			p = p->e2;
-		}
-		return m;
-	default:
-		m = tmppass(e->e1);
-		m = max(m, tmppass(e->e2));
-		m = max(m, tmppass(e->e3));
-		m = max(m, tmppass(e->e4));
-		return m;
-	}
-}
-
-typedef
-struct Vardef {
-	char *id;
-	enum {
-		VDparam = 1,
-		VDlocal,
-		VDtoplevel,
-	} kind;
-	Lambda *lmbda;
-	unsigned idx;
-	Val *val;		/* VDtoplevel */
-	unsigned indirect;
-} Vardef;
-
-typedef
-struct Varref {
-	Vardef *vd;
-	unsigned closed;
-	unsigned cidx;
-} Varref;
-
-typedef struct VEnv VEnv;
-struct VEnv {
-	unsigned nv;
-	Vardef *hd;
-	VEnv *link;
-};
-
-typedef
-struct VDset {
-	unsigned nvd, maxvd;
-	Vardef **vd;
-} VDset;
-
-typedef
-struct VRset {
-	unsigned nvr;
-	Varref *vr;
-} VRset;
-
-struct Topvec {
-	unsigned nid, maxid;
-	char **id;
-	Val **val;
-};
-
-struct Lambda {
-	Vardef *param;
-	Vardef *local;
-	unsigned ntmp, npar, maxloc, vararg;
-	VEnv *ve;
-	VRset *capture;
-	char *id;
-};
-
-Xenv*
-mkxenv(Xenv *link)
-{
-	Xenv *xe;
-	xe = emalloc(sizeof(Xenv));
-	xe->ht = mkht();
-	xe->link = link;
-	return xe;
-}
-
-void
-freexenv(Xenv *xe)
-{
-	freeht(xe->ht);
-	efree(xe);
-}
-
-void*
-xenvlook(Xenv *xe, char *id)
-{
-	void *v;
-
-	if(xe == 0)
-		return 0;
-	v = hget(xe->ht, id, strlen(id));
-	if(v)
-		return v;
-	return xenvlook(xe->link, id);
-}
-
-void
-xenvbind(Xenv *xe, char *id, void *v)
-{
-	hput(xe->ht, id, strlen(id), v);
-}
-
-void
-xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v), void *u)
-{
-	hforeach(xe->ht, f, u);
-}
-
-unsigned long
-xenvsize(Xenv *xe)
-{
-	return hnent(xe->ht);
-}
-
-static Topvec*
-mktopvec()
-{
-	Topvec *tv;
-	tv = emalloc(sizeof(Topvec));
-	tv->maxid = 128;
-	tv->id = emalloc(tv->maxid*sizeof(char*));
-	tv->val = emalloc(tv->maxid*sizeof(Val*));
-	return tv;
-}
-
-static void
-freetopvec(Topvec *tv)
-{
-	unsigned m;
-	for(m = 0; m < tv->nid; m++)
-		efree(tv->id[m]);
-	efree(tv->id);
-	efree(tv->val);
-	efree(tv);
-}
-
-char*
-topvecid(unsigned idx, Topvec *tv)
-{
-	if(idx >= tv->nid)
-		fatal("bad toplevel symbol index");
-	return tv->id[idx];
-}
-
-Val*
-topvecval(unsigned idx, Topvec *tv)
-{
-	if(idx >= tv->nid)
-		fatal("bad toplevel symbol index");
-	return tv->val[idx];
-}
-
-static int
-topveclookup(char *id, Topvec *tv)
-{
-	int m;
-	for(m = 0; m < tv->nid; m++)
-		if(!strcmp(id, tv->id[m]))
-			return m;
-	return -1;
-}
-
-static int
-topvecadd(char *id, Topvec *tv, Env *env)
-{
-	if(tv->nid >= tv->maxid){
-		tv->id = erealloc(tv->id,
-				  tv->maxid*sizeof(char*),
-				  2*tv->maxid*sizeof(char*));
-		tv->val = erealloc(tv->val,
-				   tv->maxid*sizeof(Val*),
-				   2*tv->maxid*sizeof(Val*));
-		tv->maxid *= 2;
-	}
-	tv->id[tv->nid] = xstrdup(id);
-	tv->val[tv->nid] = envgetbind(env, id);
-	return tv->nid++;
-}
-
-static Konst*
-mkkonst()
-{
-	Konst *kon;
-	kon = emalloc(sizeof(Konst));
-	kon->ht = mkht();
-	return kon;
-}
-
-static Lits*
-konstlookup(Lits *lits, Konst *kon)
-{
-	return hget(kon->ht, lits->s, lits->len);
-}
-
-static Lits*
-konstadd(Lits *lits, Konst *kon)
-{
-	lits = copylits(lits);
-	hput(kon->ht, lits->s, lits->len, lits);
-	return lits;
-}
-
-static void
-free1konst(void *u, char *k, void *v)
-{
-	freelits((Lits*)v);
-}
-
-static void
-freekonst(Konst *kon)
-{
-	hforeach(kon->ht, free1konst, 0);
-	freeht(kon->ht);
-	efree(kon);
-}
-
-static Konsti*
-mkkonsti()
-{
-	Konsti *koni;
-	koni = emalloc(sizeof(Konsti));
-	koni->ht = mkht();
-	return koni;
-}
-
-static Val
-konsti2val(Cbase base, Imm imm, Konsti *koni)
-{
-	Val v;
-	char buf[18+Maxliti];	/* "unsigned long long"+Maxliti */
-	char *s;
-
-	snprintf(buf, sizeof(buf), "%s%" PRIu64, cbasename[base], imm);
-	v = hget(koni->ht, buf, strlen(buf));
-	if(v)
-		return v;
-	s = xstrdup(buf);
-	v = mkvallitcval(base, imm);
-	hput(koni->ht, s, strlen(s), v);
-	return v;
-}
-
-static Val
-konstival(Liti *liti, Konsti *koni)
-{
-	return konsti2val(liti->base, liti->val, koni);
-}
-
-static void
-free1konsti(void *u, char *k, void *v)
-{
-	efree(k);
-}
-
-static void
-freekonsti(Konsti *koni)
-{
-	hforeach(koni->ht, free1konsti, 0);
-	freeht(koni->ht);
-	efree(koni);
-}
-
-static VEnv*
-mkvenv()
-{
-	VEnv *ve;
-	ve = emalloc(sizeof(VEnv));
-	return ve;
-}
-
-static void
-freevenv(VEnv *ve)
-{
-	efree(ve);
-}
-
-static VDset*
-mkvdset()
-{
-	VDset *vs;
-	vs = emalloc(sizeof(VDset));
-	vs->maxvd = 128;
-	vs->vd = emalloc(vs->maxvd*sizeof(*vs->vd));
-	return vs;
-}
-
-static void
-freevdset(VDset *vs)
-{
-	efree(vs->vd);
-	efree(vs);
-}
-
-static void
-addvdset(Vardef *vd, VDset *vs)
-{
-	unsigned m;
-	Vardef **p;
-
-	for(m = 0, p = vs->vd; m < vs->nvd; m++, p++)
-		if(*p == vd)
-			return;
-	if(vs->nvd >= vs->maxvd){
-		vs->vd = erealloc(vs->vd,
-				  vs->maxvd*sizeof(*vs->vd),
-				  2*vs->maxvd*sizeof(*vs->vd));
-		vs->maxvd *= 2;
-	}
-	vs->vd[vs->nvd++] = vd;
-}
-
-static int
-lookupvdset(Vardef *vd, VDset *vs)
-{
-	unsigned m;
-	Vardef **p;
-
-	for(m = 0, p = vs->vd; m < vs->nvd; m++, p++)
-		if(*p == vd)
-			return m;
-
-	return -1;
-}
-
-static VRset*
-mkvrset(unsigned n)
-{
-	VRset *vs;
-	vs = emalloc(sizeof(VRset));
-	vs->nvr = n;
-	vs->vr = emalloc(vs->nvr*sizeof(Varref));
-	return vs;
-}
-
-static void
-freevrset(VRset *vs)
-{
-	efree(vs->vr);
-	efree(vs);
-}
-
-static Lambda*
-mklambda(Expr *p)
-{
-	Lambda *b;
-	Expr *q;
-	Vardef *vd;
-	unsigned m;
-	
-	b = emalloc(sizeof(Lambda));
-
-	b->npar = 0;
-	q = p->e1;
-	if(q->kind == Eid){
-		b->vararg = 1;
-		/* wrap lambda in block declaration to allocate conventional
-		   local 0 vararg list bound to vararg variable */
-		p->e2 = newexpr(Eblock, Zlocals(1, q->id), p->e2, 0, 0);
-		freeexpr(q);
-		p->e1 = 0;
-	}else
-		/* ordinary argument list */
-		b->npar = listlen(q);
-
-	b->param = emalloc(b->npar*sizeof(Vardef));
-	b->ntmp = tmppass(p->e2);
-	b->maxloc = locpass(p->e2);
-	b->local = emalloc(b->maxloc*sizeof(Vardef));
-
-	if(!b->vararg){
-		vd = b->param;
-		m = 0;
-		q = p->e1;
-		while(q->kind != Enull){
-			vd->lmbda = b;
-			vd->id = q->e1->id;
-			vd->kind = VDparam;
-			vd->idx = m;
-			vd++;
-			m++;
-			q = q->e2;
-		}
-	}
-
-	b->ve = mkvenv();
-	b->ve->nv = b->npar;
-	b->ve->hd = b->param;
-
-	return b;
-}
-
-static void
-freelambda(Lambda *b)
-{
-	freevrset(b->capture);
-	freevenv(b->ve);
-	efree(b->local);
-	efree(b->param);
-	efree(b->id);
-	efree(b);
-}
-
-static unsigned
-bindlocal(Lambda *b, Expr *p, unsigned nloc)
-{
-	Expr *q;
-	Vardef *vd;
-	unsigned m;
-
-	m = 0;
-	q = p;
-	while(q->kind != Enull){
-		m++;
-		q = q->e2;
-	}
-	if(m+nloc > b->maxloc)
-		fatal("bug");
-
-	vd = b->local+nloc;
-	q = p;
-	while(q->kind != Enull){
-		vd->lmbda = b;
-		vd->id = q->e1->id;
-		vd->kind = VDlocal;
-		/* all locals are indirect, since they must be written
-		   to be useful */
-		vd->indirect = 1;
-		vd->idx = nloc;
-		q = q->e2;
-		vd++;
-		nloc++;
-	}
-
-	return nloc;
-}
-
-static Varref*
-mkvarref(Vardef *vd)
-{
-	Varref *vr;
-	vr = emalloc(sizeof(Varref));
-	vr->vd = vd;
-	return vr;
-}
-
-static Varref*
-mktoplevelref(char *id, Topvec *tv, Env *env)
-{
-	Vardef *vd;
-	int idx;
-
-	vd = emalloc(sizeof(Vardef));
-	idx = topveclookup(id, tv);
-	if(idx == -1)
-		idx = topvecadd(id, tv, env);
-	vd->id = id;
-	vd->kind = VDtoplevel;
-	vd->idx = idx;
-	vd->val = topvecval(idx, tv);
-	return mkvarref(vd);
-}
-
-static void
-freevarref(Varref *vr)
-{
-	if(vr == 0)
-		return;
-	if(vr->vd->kind == VDtoplevel)
-		efree(vr->vd);
-	efree(vr);
-}
-
-static void
-freetype(Type *t)
-{
-	if(t == 0)
-		return;
-
-	freetype(t->link);
-	efree(t->dom);
-	efree(t->tid);
-	efree(t->tag);
-	freedecl(t->field);
-	freeenum(t->en);
-	freedecl(t->param);
-	freeexpr(t->bitw);
-	freeexpr(t->bit0);
-	freeexpr(t->sz);
-	freeexpr(t->cnt);
-	efree(t);
-}
-
-static void
-freedecl(Decl *d)
-{
-	Decl *nxt;
-
-	nxt = d;
-	while(nxt){
-		d = nxt;
-		nxt = d->link;
-		freetype(d->type);
-		freeexpr(d->offs);
-		efree(d->id);
-		efree(d);
-	}
-}
-
-void
-freeexprx(Expr *e)
-{
-	switch(e->kind){
-	case Eid:
-		freevarref((Varref*)e->xp);
-		break;
-	case Elambda:
-		freelambda((Lambda*)e->xp);
-		break;
-	case Eblock:
-		freevenv((VEnv*)e->xp);
-		break;
-	case Etypedef:
-	case Edecl:
-	case Edecls:
-		freedecl((Decl*)e->xp);
-		break;
-	default:
-		break;
-	}
-}
-
-static Vardef*
-varlookup(char *id, VEnv *ve)
-{
-	Vardef *p;
-	unsigned i;
-	while(ve){
-		for(i = 0, p = ve->hd; i < ve->nv; i++, p++)
-			if(!strcmp(p->id, id))
-				return p;
-		ve = ve->link;
-	}
-	return NULL;
-}
-
-static int
-vardeflookup(Vardef *vd, VEnv *ve)
-{
-	Vardef *p;
-	unsigned i;
-
-	while(ve){
-		for(i = 0, p = ve->hd; i < ve->nv; i++, p++)
-			if(p == vd)
-				return 1;
-		ve = ve->link;
-	}
-	return 0;
-}
-
-static void
-mapframe(Expr *e, Lambda *curb, VEnv *ve, Topvec *tv, Env *env,
-	 Konst *kon, Konsti *koni, unsigned ploc)
-{
-	char *id;
-	Lambda *b;
-	VEnv *nve;
-	Vardef *vd;
-	Varref *vr;
-	unsigned nloc;
-	Expr *p;
-
-	if(e == NULL)
-		return;
-
-	switch(e->kind){
-	case Econst:
-		e->xp = konstival(&e->liti, koni);
-		break;
-	case Econsts:
-		e->xp = konstlookup(e->lits, kon);
-		if(e->xp == NULL)
-			e->xp = konstadd(e->lits, kon);
-		break;
-	case Eid:
-		id = e->id;
-		vd = varlookup(id, ve);
-		if(vd == NULL)
-			vr = mktoplevelref(id, tv, env);
-		else
-			vr = mkvarref(vd);
-		e->xp = vr;
-		break;
-	case Epreinc:
-	case Epostinc:
-	case Epredec:
-	case Epostdec:
-	case Eg:
-	case Egop:
-		if(e->e1->kind != Eid)
-			fatal("bug");
-		id = e->e1->id;
-		vd = varlookup(id, ve);
-		if(vd == NULL)
-			vr = mktoplevelref(id, tv, env);
-		else{
-			vd->indirect = 1;
-			vr = mkvarref(vd);
-		}
-		e->e1->xp = vr;
-		if(e->kind == Eg || e->kind == Egop)
-			mapframe(e->e2, curb, ve, tv, env, kon, koni, ploc);
-		break;
-	case Eblock:
-		nloc = bindlocal(curb, e->e1, ploc);
-		if(nloc > ploc){
-			nve = mkvenv();
-			nve->link = ve;
-			nve->nv = nloc-ploc;
-			nve->hd = &curb->local[ploc];
-			e->xp = nve;
-			ve = nve;
-		}
-		mapframe(e->e2, curb, ve, tv, env, kon, koni, nloc);
-		break;
-	case Elambda:
-		b = mklambda(e);
-		e->xp = b;
-		b->ve->link = ve;
-		ve = b->ve;
-		if(e->e3) /* Edefine, Edeflocal */
-			b->id = xstrdup(e->e3->id);
-		mapframe(e->e2, b, b->ve, tv, env, kon, koni, 0);
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			mapframe(p->e1, curb, ve, tv, env, kon, koni, ploc);
-			p = p->e2;
-		}
-		break;
-	default:
-		mapframe(e->e1, curb, ve, tv, env, kon, koni, ploc);
-		mapframe(e->e2, curb, ve, tv, env, kon, koni, ploc);
-		mapframe(e->e3, curb, ve, tv, env, kon, koni, ploc);
-		mapframe(e->e4, curb, ve, tv, env, kon, koni, ploc);
-		break;
-	}	
-}
-
-static int
-lexbinds(Expr *e, char *id)
-{
-	Expr *p;
-
-	if(e == 0)
-		return 0;
-	
-	/* special case: vararg Lambda */
-	if(e->kind == Elambda && e->e1->kind == Eid){
-		if(!strcmp(e->e1->id, id))
-			return 1;
-		return lexbinds((Expr*)e->xp, id);
-	}
-
-	/* Eblock or Elambda with variable list */
-	p = e->e1;
-	while(p->kind != Enull){
-		if(!strcmp(p->e1->id, id))
-			return 1;
-		p = p->e2;
-	}
-	return lexbinds((Expr*)e->xp, id);
-}
-
-static void
-newlocal(Expr *e, char *id)
-{
-	if(e == 0)
-		fatal("bug");	/* there should be an outer Eblock */
-	if(e->kind == Elambda){
-		newlocal((Expr*)e->xp, id);
-		return;
-	}
-	e->e1 = newexpr(Eelist, doid(id), e->e1, 0, 0);
-}
-
-static Expr*
-globals(Expr *e, Env *env)
-{
-	Expr *p;
-	char *id, *is;
-	unsigned len;
-
-	if(e == 0)
-		return e;
-
-	switch(e->kind){
-	case Edeflocal:
-	case Edefine:
-		p = Zset(e->e1,
-			 Zlambdn(e->e2,
-				 globals(e->e3, env),
-				 copyexpr(e->e1)));
-		if(e->kind == Edefine)
-			envgetbind(env, e->e1->id);
-		e->e1 = 0;
-		e->e2 = 0;
-		e->e3 = 0;
-		p->src = e->src;
-		freeexpr(e);
-		return p;
-	case Edefrec:
-		id = e->e1->id;
-		len = 2+strlen(id)+1;
-		is = emalloc(len);
-		snprintf(is, len, "is%s", id);
-		envgetbind(env, id);
-		envgetbind(env, is);
-		p = Zblock(Zlocals(1, "$rd"),
-			   Zset(doid("$rd"),
-				Zcall(doid("%mkrd"), 2,
-				      Zconsts(id),
-				      Zids2strs(e->e2))),
-			   Zset(doid(id), Zcall(doid("%rdmk"),
-						1, doid("$rd"))),
-			   Zset(doid(is), Zcall(doid("%rdis"),
-						1, doid("$rd"))),
-			   doid("$rd"),
-			   NULL);
-		efree(is);
-		p->src = e->src;
-		freeexpr(e);
-		return p;
-	case Eglobal:
-		p = e->e1;
-		while(p->kind == Eelist){
-			envgetbind(env, p->e1->id);
-			p = p->e2;
-		}
-		freeexpr(e);
-		return newexpr(Enop, 0, 0, 0, 0);
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			p->e1 = globals(p->e1, env);
-			p = p->e2;
-		}
-		return e;
-	default:
-		e->e1 = globals(e->e1, env);
-		e->e2 = globals(e->e2, env);
-		e->e3 = globals(e->e3, env);
-		e->e4 = globals(e->e4, env);
-		return e;
-	}
-}
-
-static void
-topresolve(Expr *e, Env *env, Expr *lex)
-{
-	Expr *p;
-	char *id;
-
-	if(e == 0)
-		return;
-
-	switch(e->kind){
-	case Epreinc:
-	case Epostinc:
-	case Epredec:
-	case Epostdec:
-	case Eg:
-	case Egop:
-		if(e->e1->kind != Eid)
-			fatal("bug");
-		id = e->e1->id;
-		if(lexbinds(lex, id) || envbinds(env, id))
-			; /* no binding required */
-		else if(lex){
-			/* create binding in inner-most lexical scope */
-			if(cqctflags['w'])
-				cwarn(e, "assignment to unbound variable: %s",
-				      id);
-			newlocal(lex, id);
-		}else
-			/* create top-level binding */
-			envgetbind(env, id);
-		if(e->kind == Eg || e->kind == Egop)
-			topresolve(e->e2, env, lex);
-		break;
-	case Elambda:
-	case Eblock:
-		e->xp = lex;
-		topresolve(e->e2, env, e);
-		e->xp = 0;
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			topresolve(p->e1, env, lex);
-			p = p->e2;
-		}
-		break;
-	default:
-		topresolve(e->e1, env, lex);
-		topresolve(e->e2, env, lex);
-		topresolve(e->e3, env, lex);
-		topresolve(e->e4, env, lex);
-		break;
-	}
-}
-
-void
-freeconst(void *u, char *id, void *v)
-{
-	efree(id);
-	freeexpr((Expr*)v);
-}
-
-static void
-bindids(Xenv *xe, Expr *e, void *v)
-{
-	Expr *p;
-	switch(e->kind){
-	case Eid:
-		xenvbind(xe, e->id, v);
-		break;
-	case Enull:
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			xenvbind(xe, p->e1->id, v);
-			p = p->e2;
-		}
-		break;
-	default:
-		fatal("bug");
-	}
-}
-
-static Expr*
-expandconst(Expr *e, Env *top, Xenv *lex, Xenv *con)
-{
-	Expr *p;
-	Xenv *lexrib, *conrib;
-
-	if(e == 0)
-		return 0;
-
-	switch(e->kind){
-	case Edefconst:
-		e->e2 = expandconst(e->e2, top, lex, con);
-		xenvbind(con, xstrdup(e->e1->id), e->e2);
-		e->e2 = 0;
-		freeexpr(e);
-		return newexpr(Enop, 0, 0, 0, 0);
-	case Eid:
-		if(xenvlook(lex, e->id) || envbinds(top, e->id))
-			return e;
-		p = xenvlook(con, e->id);
-		if(p){
-			freeexpr(e);
-			return copyexpr(p);
-		}
-		return e;
-	case Elambda:
-		lexrib = mkxenv(lex);
-		bindids(lexrib, e->e1, e);
-		e->e2 = expandconst(e->e2, top, lexrib, con);
-		freexenv(lexrib);
-		return e;
-	case Eblock:
-		conrib = mkxenv(con);
-		lexrib = mkxenv(lex);
-		bindids(lexrib, e->e1, e);
-		e->e2 = expandconst(e->e2, top, lexrib, conrib);
-		freexenv(lexrib);
-		xenvforeach(conrib, freeconst, 0);
-		freexenv(conrib);
-		return e;
-	case Epreinc:
-	case Epostinc:
-	case Epredec:
-	case Epostdec:
-		/* don't expand assigned identifiers */
-		return e;
-	case Eg:
-	case Egop:
-		/* don't expand assigned identifiers */
-		e->e2 = expandconst(e->e2, top, lex, con);
-		return e;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			p->e1 = expandconst(p->e1, top, lex, con);
-			p = p->e2;
-		}
-		return e;
-	default:
-		e->e1 = expandconst(e->e1, top, lex, con);
-		e->e2 = expandconst(e->e2, top, lex, con);
-		e->e3 = expandconst(e->e3, top, lex, con);
-		e->e4 = expandconst(e->e4, top, lex, con);
-		return e;
-	}
-}
-
-static void
-freevars(Expr *e, VEnv *ve, VDset *fr)
-{
-	Lambda *b;
-	Varref *vr;
-	VEnv *nve;
-	Expr *p;
-
-	if(e == NULL)
-		return;
-
-	switch(e->kind){
-	case Eid:
-		vr = (Varref*)e->xp;
-		if(vr->vd->kind != VDtoplevel && !vardeflookup(vr->vd, ve))
-			addvdset(vr->vd, fr);
-		break;
-	case Elambda:
-		b = (Lambda*)e->xp;
-		nve = b->ve;
-		nve->link = ve;
-		freevars(e->e2, nve, fr);
-		break;
-	case Eblock:
-		nve = (VEnv*)e->xp;
-		if(nve){
-			nve->link = ve;
-			ve = nve;
-		}
-		freevars(e->e2, ve, fr);
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			freevars(p->e1, ve, fr);
-			p = p->e2;
-		}
-		break;
-	default:
-		freevars(e->e1, ve, fr);
-		freevars(e->e2, ve, fr);
-		freevars(e->e3, ve, fr);
-		freevars(e->e4, ve, fr);
-		break;
-	}
-}
-
-static void
-mapcapture(Expr *e, VDset *cap)
-{
-	VDset *fr;
-	Varref *vr;
-	Vardef **vd;
-	Lambda *b;
-	unsigned m;
-	int idx;
-	Expr *p;
-
-	if(e == NULL)
-		return;
-
-	switch(e->kind){
-	case Eid:
-		vr = (Varref*)e->xp;
-		idx = lookupvdset(vr->vd, cap);
-		if(idx >= 0){
-			vr->closed = 1;
-			vr->cidx = idx;
-		}
-		break;
-	case Elambda:
-		fr = mkvdset();
-		b = (Lambda*)e->xp;
-		b->ve->link = 0;
-		freevars(e->e2, b->ve, fr);
-
-		b->capture = mkvrset(fr->nvd);
-		vr = b->capture->vr;
-		vd = fr->vd;
-		for(m = 0; m < fr->nvd; m++){
-			vr->vd = *vd;
-			idx = lookupvdset(*vd, cap);
-			if(idx >= 0){
-				vr->closed = 1;
-				vr->cidx = idx;
-			}
-			vr++;
-			vd++;
-		}
-		mapcapture(e->e2, fr);
-		freevdset(fr);
-		break;
-	case Eblock:
-		mapcapture(e->e2, cap);
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			mapcapture(p->e1, cap);
-			p = p->e2;
-		}
-		break;
-	default:
-		mapcapture(e->e1, cap);
-		mapcapture(e->e2, cap);
-		mapcapture(e->e3, cap);
-		mapcapture(e->e4, cap);
-		break;
-	}
-}
-
-static void
-printframe(Expr *e)
-{
-	Lambda *b;
-	Varref *vr;
-	Vardef *vd;
-	unsigned m;
-
-	switch(e->kind){
-	case Econst:
-		xprintf("%" PRIu64, e->liti.val);
-		break;
-	case Econsts:
-		xprintf("(Econsts %.*s)", e->lits->len, e->lits->s);
-		break;
-	case Eblock:
-		printframe(e->e2);
-		break;
-	case Eid:
-		xprintf("(Eid ");
-		vr = (Varref*)e->xp;
-		if(vr == NULL)
-			fatal("no varref for Eid");
-		if(vr->vd->kind == VDtoplevel)
-			xprintf("<t,%d,%s>", vr->vd->idx, vr->vd->id);
-		else
-			xprintf("<%c,%p,%d,%s,%d>",
-			       vr->vd->kind == VDparam ? 'p' : 'l',
-			       vr->vd->lmbda,
-			       vr->vd->idx,
-			       vr->vd->id,
-			       vr->closed ? vr->cidx : -1);
-		xprintf(")");
-		break;
-	case Elambda:
-		b = (Lambda*)e->xp;
-		if(b == NULL)
-			fatal("no lambda for Elambda");
-		xprintf("(Elambda %p", b);
-		vd = b->param;
-		for(m = 0; m < b->npar; m++)
-			xprintf(" <p,%d,%s,%d>",
-			       vd[m].idx, vd[m].id, vd[m].indirect);
-		vd = b->local;
-		for(m = 0; m < b->maxloc; m++)
-			xprintf(" <l,%d,%s,%d>",
-			       vd[m].idx, vd[m].id, vd[m].indirect);
-		xprintf(" ");
-		for(m = 0; m < b->capture->nvr; m++){
-			vr = &b->capture->vr[m];
-			xprintf(" <%c,%p,%d,%s,%d>",
-			       vr->vd->kind == VDparam ? 'p' : 'l',
-			       vr->vd->lmbda,
-			       vr->vd->idx,
-			       vr->vd->id,
-			       vr->closed ? vr->cidx : -1);
-		}
-		xprintf(" ");
-		printframe(e->e2);
-		xprintf(")");
-		break;
-	default:
-		xprintf("(%s", S[e->kind]);
-		if(e->e1){
-			xprintf(" ");
-			printframe(e->e1);
-		}
-		if(e->e2){
-			xprintf(" ");
-			printframe(e->e2);
-		}
-		if(e->e3){
-			xprintf(" ");
-			printframe(e->e3);
-		}
-		if(e->e4){
-			xprintf(" ");
-			printframe(e->e4);
-		}
-		xprintf(")");
 	}
 }
 
@@ -1712,85 +630,48 @@ randnil(Operand *rand)
 	rand->okind = Onil;
 }
 
+/* if DEREF, reference box contents; otherwise the box itself */
 static void
-varloc(Location *loc, Expr *eid)
+varloc(Location *loc, Var *v, int deref)
 {
-	Varref *vr;
-
-	vr = (Varref*)eid->xp;
-	if(vr->closed)
-		newloc(loc, Ldisp, vr->cidx, vr->vd->indirect);
-	else
-		switch(vr->vd->kind){
-		case VDparam:
-			newloc(loc, Lparam, vr->vd->idx, vr->vd->indirect);
-			break;
-		case VDlocal:
-			newloc(loc, Llocal, vr->vd->idx, vr->vd->indirect);
-			break;
-		case VDtoplevel:
-			newloc(loc, Ltopl, vr->vd->idx, 0);
-			loc->val = vr->vd->val;
-			break;
-		}
-}
-
-static void
-randvarloc(Operand *rand, Expr *eid)
-{
-	rand->okind = Oloc;
-	varloc(&rand->u.loc, eid);
-}
-
-/* for non-boxes, return the location for VR.
-   for boxes, return the location for the box, not its contents. */
-static void
-randrefloc(Operand *rand, Varref *vr)
-{
-	rand->okind = Oloc;
-	if(vr->closed)
-		newloc(&rand->u.loc, Ldisp, vr->cidx, 0);
-	else
-		switch(vr->vd->kind){
-		case VDparam:
-			newloc(&rand->u.loc, Lparam, vr->vd->idx, 0);
-			break;
-		case VDlocal:
-			newloc(&rand->u.loc, Llocal, vr->vd->idx, 0);
-			break;
-		case VDtoplevel:
-			fatal("attempt to capture toplevel variable");
-			break;
-		}
-}
-
-/* for non-boxes, return the location for VD.
-   for boxes, return the location for the box, not its contents. */
-static void
-randvdloc(Operand *rand, Vardef *vd)
-{
-	rand->okind = Oloc;
-	switch(vd->kind){
-	case VDparam:
-		newloc(&rand->u.loc, Lparam, vd->idx, 0);
+	deref = deref && v->box;
+	switch(v->where){
+	case Vparam:
+		newloc(loc, Lparam, v->idx, deref);
 		break;
-	case VDlocal:
-		newloc(&rand->u.loc, Llocal, vd->idx, 0);
+	case Vlocal:
+		newloc(loc, Llocal, v->idx, deref);
 		break;
-	case VDtoplevel:
-		fatal("attempt to capture toplevel variable");
+	case Vdisp:
+		newloc(loc, Ldisp, v->idx, deref);
 		break;
+	case Vtop:
+		/* toplevel vars are not referencable boxes
+		   and use var instead of index */
+		newloc(loc, Ltopl, 0, 0);
+		loc->var = v;
+		break;
+	default:
+		fatal("bug");
 	}
 }
 
+/* if DEREF, reference box contents; otherwise the box itself */
 static void
-randstkloc(Operand *rand, unsigned kind, unsigned off, unsigned indirect)
+randvarloc(Operand *rand, Var *v, int deref)
+{
+	rand->okind = Oloc;
+	varloc(&rand->u.loc, v, deref);
+}
+
+static void
+randstkloc(Operand *rand, unsigned kind, unsigned idx)
 {
 	rand->okind = Oloc;
 	switch(kind){
 	case Lparam:
 	case Llocal:
-		newloc(&rand->u.loc, kind, off, indirect);
+		newloc(&rand->u.loc, kind, idx, 0);
 		break;
 	default:
 		fatal("bad kind to randstkloc");
@@ -1802,7 +683,7 @@ cgrand(Operand *rand, Expr *e, CGEnv *p)
 {
 	switch(e->kind){
 	case Eid:
-		randvarloc(rand, e);
+		randvarloc(rand, e->xp, 1);
 		break;
 	case Econst:
 		randliti(rand, e->xp);
@@ -2007,10 +888,10 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	Expr *q, *ep;
 	Insn *i;
 	unsigned narg, istail;
-	Lambda *b;
+	Lambda *l;
+	Block *b;
 	Location dst;
 	int m;
-	Varref *vr;
 	CGEnv np;
 	unsigned genl;
 
@@ -2043,10 +924,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			if(L == 0){
 				L = genlabel(code, 0);
 				genl = 1;
-//				xprintf("elist label %s %s %s\n",
-//				       L->label,
-//				       S[ep->e1->kind],
-//				       S[ep->e2->e1->kind]);
 			}
 			cg(ep->e1, code, p, Effect, L, prv, L, tmp);
 			if(genl)
@@ -2059,12 +936,20 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt);
 		break;
 	case Eblock:
+		/* move to block code */
+		b = (Block*)e->xp;
+		for(m = 0; m < b->nloc; m++)
+			if(b->loc[m].box){
+				i = nextinsn(code);
+				i->kind = Ibox0;
+				randvarloc(&i->op1, &b->loc[m], 0);
+			}
 		cg(e->e2, code, p, loc, ctl, prv, nxt, tmp);
 		break;
 	case Eg:
 		if(e->e1->kind != Eid)
 			fatal("bug");
-		varloc(&dst, e->e1);
+		varloc(&dst, e->e1->xp, 1);
 		if(loc != Effect){
 			L = genlabel(code, 0);
 			cg(e->e2, code, p, &dst, L, prv, L, tmp);
@@ -2080,7 +965,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Egop:
 		if(e->e1->kind != Eid)
 			fatal("bug");
-		varloc(&dst, e->e1);
+		varloc(&dst, e->e1->xp, 1);
 		randloc(&r1, &dst);
 		L0 = genlabel(code, 0);
 		cg(e->e2, code, p, AC, L0, prv, L0, tmp);
@@ -2102,7 +987,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Epredec:
 		if(e->e1->kind != Eid)
 			fatal("bug");
-		varloc(&dst, e->e1);
+		varloc(&dst, e->e1->xp, 1);
 		randloc(&r1, &dst);
 		randliti(&r2, konsti2val(Vint, 1, code->konsti));
 		if(loc != Effect){
@@ -2121,7 +1006,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Epostdec:
 		if(e->e1->kind != Eid)
 			fatal("bug");
-		varloc(&dst, e->e1);
+		varloc(&dst, e->e1->xp, 1);
 		randloc(&r1, &dst);
 		randliti(&r2, konsti2val(Vint, 1, code->konsti));
 		if(loc != Effect){
@@ -2180,7 +1065,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgrand(&r2, e->e2, p);
 		}else{
 			L0 = genlabel(code, 0);
-			randstkloc(&r1, Llocal, tmp, 0);
+			randstkloc(&r1, Llocal, tmp);
 			cg(e->e1, code, p, &r1.u.loc, L0, prv, L0, tmp);
 			emitlabel(L0, e->e2);
 			L = genlabel(code, 0);
@@ -2286,7 +1171,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Eid:
 		i = nextinsn(code);
 		i->kind = Imov;
-		randvarloc(&i->op1, e);
+		randvarloc(&i->op1, e->xp, 1);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt);
 		break;
@@ -2312,14 +1197,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt);
 		break;
 	case Elambda:
-		b = (Lambda*)e->xp;
-		L = genlabel(code, b->id);
+		l = (Lambda*)e->xp;
+		L = genlabel(code, l->id);
 
-		for(m = b->capture->nvr-1; m >= 0; m--){
-			vr = &b->capture->vr[m];
+		for(m = l->ncap-1; m >= 0; m--){
 			i = nextinsn(code);
 			i->kind = Imov;
-			randrefloc(&i->op1, vr);
+			randvarloc(&i->op1, l->cap[m], 0);
 			randloc(&i->dst, AC);
 			i = nextinsn(code);
 			i->kind = Ipush;
@@ -2328,8 +1212,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 		i = nextinsn(code);
 		i->kind = Iclo;
-		randliti(&i->op1,
-			 konsti2val(Vint, b->capture->nvr, code->konsti));
+		randliti(&i->op1, konsti2val(Vint, l->ncap, code->konsti));
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
@@ -2340,7 +1223,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		ctl->used = 1;
 
 		emitlabel(L, e);
-		compilelambda(L, code, e);
+		cglambda(L, code, e);
 
 		break;
 	case Eland:
@@ -2612,66 +1495,58 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 }
 
 static void
-compilelambda(Ctl *name, Code *code, Expr *e)
+cglambda(Ctl *name, Code *code, Expr *e)
 {
 	unsigned entry;
-	Lambda *b;
+	Lambda *l;
 	Insn *i;
 	CGEnv p;
 	unsigned m, needtop = 0;
 	Ctl *top;
 
 	if(e->kind != Elambda)
-		fatal("compilelambda on non-lambda");
+		fatal("cglambda on non-lambda");
 
 	memset(&p, 0, sizeof(p));
-	b = (Lambda*)e->xp;
+	l = (Lambda*)e->xp;
 	if(cqctflags['b']){
-		if(b->vararg)
+		if(l->isvarg)
 			xprintf("%s: var params, %u locals, %u temps\n",
-			       name->label, b->maxloc, b->ntmp);
+			       name->label, l->nloc, l->ntmp);
 		else
 			xprintf("%s: %u params, %u locals, %u temps\n",
-			       name->label, b->npar, b->maxloc, b->ntmp);
+			       name->label, l->nparam, l->nloc, l->ntmp);
 	}
-	p.b = b;
 
 	entry = code->ninsn;
-	if(!b->vararg){
+	if(!l->isvarg){
 		i = nextinsn(code);
 		i->kind = Iargc;
-		randliti(&i->op1, konsti2val(Vuint, b->npar, code->konsti));
+		randliti(&i->op1, konsti2val(Vuint, l->nparam, code->konsti));
 		needtop = 1;
 	}
-	if(b->maxloc+b->ntmp > 0){
+	if(l->nloc+l->ntmp > 0){
 		i = nextinsn(code);
 		i->kind = Isub;
 		randloc(&i->op1, SP);
 		randliti(&i->op2,
-			 konsti2val(Vint, b->maxloc+b->ntmp, code->konsti));
+			 konsti2val(Vint, l->nloc+l->ntmp, code->konsti));
 		randloc(&i->dst, SP);
 		needtop = 1;
 	}
-	for(m = 0; m < b->npar; m++)
-		if(b->param[m].indirect){
+	for(m = 0; m < l->nparam; m++)
+		if(l->param[m].box){
 			i = nextinsn(code);
 			i->kind = Ibox;
-			randvdloc(&i->op1, &b->param[m]);
+			randvarloc(&i->op1, &l->param[m], 0);
 			needtop = 1;
 		}
-	for(m = 0; m < b->maxloc; m++)
-		if(b->local[m].indirect){
-			i = nextinsn(code);
-			i->kind = Ibox0;
-			randvdloc(&i->op1, &b->local[m]);
-			needtop = 1;
-		}
-	if(b->vararg){
+	if(l->isvarg){
 		i = nextinsn(code);
 		i->kind = Ilist;
 		randloc(&i->op1, FP);
-		/* by convention local 0 is var arg list */
-		randstkloc(&i->dst, Llocal, 0, b->local[0].indirect); 
+		/* by convention param 0 is first local stack variable */
+		randvarloc(&i->dst, &l->param[0], 1);
 	}
 
 	/* hack to return nil in degenerate cases */
@@ -2690,7 +1565,7 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 	p.Return = genlabel(code, 0);
 	p.Break = 0;
 	p.Continue = 0;
-	cg(e->e2, code, &p, AC, p.Return0, top, p.Return0, b->maxloc);
+	cg(e->e2, code, &p, AC, p.Return0, top, p.Return0, l->nloc);
 
 	if(p.Return0->used) /* hack for lambdas with empty bodies */
 		emitlabel(p.Return0, e->e2);
@@ -2707,79 +1582,24 @@ compilelambda(Ctl *name, Code *code, Expr *e)
 }
 
 Closure*
-compileentry(Expr *el, Toplevel *top, char *argsid)
+codegen(Expr *e)
 {
 	Ctl *L;
-	VDset *cap;
-	Code *code;
+	Lambda *l;
 	Closure *cl;
-	Lambda *b;
+	Code *code;
 
-	/* 
-	 * enclose expression in block to reduce
-	 * top-level pollution.
-	 * disabled: breaks too many existing programs
-	 */
-	// el = Zblock(nullelist(), el, 0);
-
-	/* FIXME: test/null1.l1 fails on multiple labels;
-	   this is a workaround. */
-	if(el->kind == Enull)
-		el = newexpr(Eelist,
-			     newexpr(Enop, 0, 0, 0, 0),
-			     el, 0, 0);
-
-	/* add @global and implicit @global bindings to env */
-	el = globals(el, top->env);
-
-	/* resolve top-level bindings */
-	topresolve(el, top->env, 0);
-
-	/* expand @const references */
-	el = expandconst(el, top->env, 0, top->env->con);
-
-	/* 
-	 * convert expression into callable lambda.
-	 * errors occurring in toplevel tail calls lack
-	 * top-level source line information.  prevent
-	 * tail optimization by wrapping the body in a
-	 * continuation; as a bonus, we get a binding
-	 * for the most recent toplevel evaluation.
-	 */
-	el = newexpr(Elambda, argsid ? doid(argsid) : nullelist(),
-		     newexpr(Eret,
-			     Zset(doid("$$"),
-				  newexpr(Eblock, nullelist(), el, 0, 0)),
-			     0, 0, 0),
-		     0, 0);
-
-	if(cqctflags['q']){
-		xprintf("transformed source:\n");
-		printcqct(el);
-		xprintf("\n");
-	}
-	/* map variable references and bindings to storage */
 	code = mkcode();
 	L = genlabel(code, "entry");
 	L->used = 1;
-	emitlabel(L, el);
-	mapframe(el, 0, 0, code->topvec, top->env,
-		 code->konst, code->konsti, 0);
-	cap = mkvdset();
-	mapcapture(el, cap);
-	freevdset(cap);
-	code->src = el;
-
-//	printframe(el);
-
-	/* compile and prepare closure */
-	compilelambda(L, code, el);
-	b = (Lambda*)el->xp;
-	cl = mkcl(code, 0, b->capture->nvr, L->label);
-
+	emitlabel(L, e);
+	konsts(e, code);
+	code->src = e;
+	cglambda(L, code, e);
+	l = (Lambda*)e->xp;
+	cl = mkcl(code, 0, l->ncap, L->label);
 	if(cqctflags['o'])
 		printcode(code);
-
 	return cl;
 }
 
@@ -2816,11 +1636,11 @@ callcc()
 	emitlabel(L, 0);
 	i = nextinsn(code);
 	i->kind = Imov;
-	randstkloc(&i->op1, Lparam, 0, 0);
+	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);
 	i->kind = Ikg;
-	randstkloc(&i->dst, Lparam, 0, 0);
+	randloc(&i->dst, ARG0);
 	i = nextinsn(code);
 	i->kind = Icallt;
 	randloc(&i->op1, AC);
@@ -2852,7 +1672,7 @@ contcode()
 	code = mkcode();
 	i = nextinsn(code);
 	i->kind = Imov;
-	randstkloc(&i->op1, Lparam, 0, 0);
+	randloc(&i->op1, ARG0);
 	randloc(&i->dst, AC);
 	i = nextinsn(code);
 	i->kind = Ikp;
@@ -2882,7 +1702,7 @@ panicthunk()
 }
 
 void
-initcompile()
+initcg()
 {
 	Effect = &toploc[0];
 	newloc(Effect, Lreg, Rac, 0);
@@ -2903,6 +1723,6 @@ initcompile()
 }
 
 void
-finicompile()
+finicg()
 {
 }

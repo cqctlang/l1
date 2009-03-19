@@ -3403,7 +3403,7 @@ putval(VM *vm, Val v, Location *loc)
 			*dst = v;
 		break;
 	case Ltopl:
-		dst = loc->val;
+		dst = loc->var->val;
 		*dst = v;
 		break;
 	default:
@@ -3525,10 +3525,10 @@ getval(VM *vm, Location *loc)
 		else
 			return p;
 	case Ltopl:
-		p = *(loc->val);
+		p = *(loc->var->val);
 		if(p == Xundef)
 			vmerr(vm, "reference to unbound variable: %s",
-			      topvecid(loc->idx, vm->clx->code->topvec));
+			      loc->var->id);
 		return p;
 	default:
 		fatal("bug");
@@ -3572,10 +3572,10 @@ getcval(VM *vm, Location *loc)
 			return valboxedcval(p);
 		return valcval(p);
 	case Ltopl:
-		p = *(loc->val);
+		p = *(loc->var->val);
 		if(p->qkind == Qundef)
 			vmerr(vm, "reference to unbound variable: %s",
-			      topvecid(loc->idx, vm->clx->code->topvec));
+			      loc->var->id);
 		return valcval(p);
 	default:
 		fatal("bug");
@@ -9413,7 +9413,7 @@ l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to substr");
-	s = valstrorcval(vm, "strstr", argv, 0);
+	s = valstrorcval(vm, "substr", argv, 0);
 	checkarg(vm, "substr", argv, 1, Qcval);
 	checkarg(vm, "substr", argv, 2, Qcval);
 	b = valcval(argv[1]);
@@ -11449,28 +11449,6 @@ cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 	}
 	*rv = dovm(vm, cl, 0, 0);
 	poperror(vm);
-	return 0;
-}
-
-int
-cqcteval(VM *vm, char *s, char *src, Val *rv)
-{
-	Closure *cl;
-	Expr *e;
-	Val v;
-
-	e = cqctparsestr(s, src);
-	if(e == 0)
-		return -1;
-	cl = cqctcompile(e, vm->top, 0);
-	if(cl == 0){
-		cqctfreeexpr(e);
-		return -1;
-	}
-	if(rv == 0)
-		rv = &v;
-	if(cqctcallfn(vm, cl, 0, 0, rv))
-		return -1;
 	return 0;
 }
 

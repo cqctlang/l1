@@ -18,6 +18,7 @@ void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);
 char* strnchr(char *s, int c, unsigned long len);
 void efree(void *p);
 size_t xstrnlen(char *s, size_t max);
+unsigned max(unsigned a, unsigned b);
 
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #define MIN(a,b) ((a)<(b)?(a):(b))

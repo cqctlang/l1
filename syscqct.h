@@ -199,11 +199,9 @@ enum {
 	Offpos=2,
 	Maxvms=1024,
 	Errinitdepth=128,	/* initial max error stack */
-	Maxtmp = 128,
 	Maxstk = 4096,
 	InsnAlloc = 10,
 	AllocBatch = 128,
-	Maxheap	= 5*1024*1024,
 };
 
 typedef struct Decl Decl;
@@ -211,7 +209,6 @@ typedef struct Enum Enum;
 typedef struct Type Type;
 typedef struct Ctl Ctl;
 typedef struct Code Code;
-typedef struct Topvec Topvec;
 typedef struct Konst Konst;
 typedef struct Konsti Konsti;
 
@@ -251,7 +248,6 @@ struct Expr {
 
 	/* compiler-managed fields */
 	void *xp;
-	unsigned xn;
 };
 
 struct Enum {
@@ -379,12 +375,6 @@ struct As {
 	Closure *dispatch;
 };
 
-typedef
-struct Nssym {
-	Imm addr;
-	Vec *sym;
-} Nssym;
-
 struct Ns {
 	Head hd;
 
@@ -454,7 +444,7 @@ struct Rd {
 };
 
 typedef
-enum Skind {
+enum {
 	Sperm,			/* don't free */
 	Smalloc,		/* free with free() */
 	Smmap,			/* free with munmap() */
@@ -601,15 +591,6 @@ enum {
 	Oliti,
 	Olits,
 	Onil,
-
-	Lreg = 0,
-	Lparam,
-	Llocal,
-	Ldisp,
-	Ltopl,
-
-	Clabel = 0,
-	Clabelpair,
 };
 
 typedef
@@ -618,12 +599,63 @@ struct Ictx {
 	void *x;
 } Ictx;
 
+typedef 
+enum
+{
+	Vparam,
+	Vlocal,
+	Vtop,
+	Vdisp,
+} Vwhere;
+
+typedef
+struct Var
+{
+	char *id;
+	Vwhere where;
+	unsigned idx;
+	unsigned box;
+	Val *val;		/* Vtop */
+} Var;
+
+typedef
+enum
+{
+	Lreg,
+	Lparam,
+	Llocal,
+	Ldisp,
+	Ltopl,
+} Lkind;
+
+typedef
+struct Lambda
+{
+	char *id;
+	unsigned isvarg;
+	Var **cap;
+	unsigned ncap;
+	Var *disp;
+	unsigned ndisp;
+	Var *param;
+	unsigned nparam;
+	unsigned nloc;
+	unsigned ntmp;
+} Lambda;
+
+typedef
+struct Block
+{
+	Var *loc;
+	unsigned nloc;
+} Block;
+
 typedef
 struct Location {
-	unsigned kind;
+	Lkind kind;
 	unsigned indirect;
 	unsigned idx;
-	Val *val;
+	Var *var;		/* Ltopl */
 } Location;
 
 typedef
@@ -636,8 +668,14 @@ struct Operand {
 	} u;
 } Operand;
 
+typedef
+enum {
+	Clabel,
+	Clabelpair,
+} Ctlkind;
+
 struct Ctl {
-	unsigned ckind;
+	Ctlkind ckind;
 
 	/* ckind == Clabel */
 	char *label;		/* for humans, only; (duplicates in code ok) */
@@ -671,7 +709,6 @@ struct Konsti {
 
 struct Code {
 	Head hd;
-	unsigned long refcnt;
 	unsigned long ninsn;
 	unsigned long maxinsn;
 	unsigned long nconst;
@@ -679,7 +716,6 @@ struct Code {
 	Ctl **labels;
 	Ctl *clist;
 	Expr *src;
-	Topvec *topvec;
 	Konst *konst;
 	Konsti *konsti;
 };
@@ -755,6 +791,7 @@ extern char* cbasename[];
 extern char* tkindstr[];
 extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
+extern char  **cqctloadpath;
 
 /* c.l */
 void		freeyystate(YYstate *yy);
@@ -771,16 +808,19 @@ Expr*		doconstssrc(Src*, char*, unsigned long len);
 Expr*		doid(char*);
 Expr*		doidn(char *s, unsigned long len);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
+Expr*		doparse(char *buf, char *whence);
 Expr*		dotick(Expr*, Expr*);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 Expr*		dotypes(U*, Expr*);
-char*		fmttype(Type *t, char *o);
+void		finiparse();
 Expr*		flatten(Expr *e);
+char*		fmttype(Type *t, char *o);
 void		freeenum(Enum *en);
 void		freeexpr(Expr*);
 void		freeexprx(Expr *e);
 void		freelits(Lits *lits);
+void		initparse();
 Expr*		invert(Expr*);
 Expr*		mkconst(Cbase base, Imm val); /* rename newconst? */
 Lits*		mklits(char*, unsigned len);
@@ -810,33 +850,38 @@ int		bitfieldgeom(BFgeom *bfg);
 Imm		bitfieldget(char *s, BFgeom *bfg);
 Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
-/* compile.c */
+/* compile0.c */
+int		docompile0(U *ctx, Expr *e);
+
+/* compile1.c */
+int		docompile1(U *ctx, Expr *e);
+Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
+
+/* compile2.c */
+Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);
+int		issimple(Expr *e);
+void		freeconst(void *u, char *id, void *v);
+Closure*	compileentry(Expr *el, Toplevel *top, char *argsid);
+
+/* cg.c */
 Closure*	callcc();
 Code*		callccode();
-Closure*	compileentry(Expr *el, Toplevel *top, char *argsid);
+Closure*	codegen(Expr *e);
 Code*		contcode();
-void		finicompile();
-void		freeconst(void *u, char *id, void *v);
-void		freexenv(Xenv *xe);
+void		finicg();
 Closure*	haltthunk();
-void		initcompile();
-Xenv*		mkxenv(Xenv *link);
+void		initcg();
 Closure*	panicthunk();
 void		printinsn(Code *code, Insn *i);
-char*		topvecid(unsigned idx, Topvec *tv);
-Val*		topvecval(unsigned idx, Topvec *tv);
+
+/* xenv.c */
+void		freexenv(Xenv *xe);
+Xenv*		mkxenv(Xenv *link);
 void*		xenvlook(Xenv *xe, char *id);
 void		xenvbind(Xenv *xe, char *id, void *v);
 void		xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v),
 			    void *u);
 unsigned long	xenvsize(Xenv *xe);
-
-/* compilec.c */
-int		docompilec(U *ctx, Expr *e);
-
-/* compile0.c */
-int		docompile0(U *ctx, Expr *e);
-Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
 
 /* vm.c */
 void		builtinfn(Env *env, char *name, Closure *cl);

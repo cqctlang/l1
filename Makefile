@@ -19,11 +19,14 @@ L1C =\
 	printexpr.c\
 	bitfield.c\
 	parse.c\
-	compilec.c\
-	compile0.c\
+	xenv.c\
 	cutil.c\
-	compile.c\
+	compile0.c\
+	compile1.c\
+	compile2.c\
+	cg.c\
 	vm.c\
+	cqct.c\
 	fns.$(CONF).c\
 	$(L1EXTRAS)
 
@@ -56,7 +59,7 @@ lex.yy.c: c.l $(HDR)
 	flex -f -s c.l
 
 l1: l1.o main.o
-	$(CC) -o $@ $^ $(L1LIBS)
+	$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 #	dwarf2cqct < l1 > l1.names
 
 l1.o: c.tab.o lex.yy.o $(L1O) $(L1DEPS)
@@ -81,4 +84,4 @@ clean:
 	$(MAKE) -C x/lib9 clean
 	$(MAKE) -C x/libflate clean
 	$(MAKE) -C x/libsec clean
-	$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c fns.*.o $(L1O) $(TARG) *.so depend
+	$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so depend

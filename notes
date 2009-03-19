@@ -11,7 +11,7 @@ todo
 	...
   - rationalize names of various type routines
 	 (isfunc/mkctype_fn, isenumconst/mkctype_const,...)
-  - implement copy and foreach on missing container types (strings and tables)
+  - implement copy and foreach on missing container types (strings)
   - switch enum operands shortform
   - introduce address types
     - shouldn't bpset take an address argument?
@@ -36,7 +36,6 @@ todo
         do the i/o directly on the domain.
   - make cval and put instructions callable
   - isundefined
-  - rename istypename to isctype
   - move most thunks to builtins, clean up instruction set
   - ; 'a';
     <cval 97> // do 'a' instead
@@ -109,7 +108,6 @@ todo
     type attributes that are not required for constructors
   - this draws confusing diagnostic:
     	tab = mktab(); print("%d\n", tab->len);
-  - rationalize MAX and max()
   - what domain are cvals in symbol offsets in name spaces?
     for actual symbols (not consts), should they be Vptr in containing ns?
     can dorawns perform this cast?

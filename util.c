@@ -10,6 +10,12 @@ static unsigned nfh;
 u64 cqctmeminuse;
 u64 cqctmemtotal;
 
+unsigned
+max(unsigned x, unsigned y)
+{
+	return x>y?x:y;
+}
+
 int
 cqctfaulthook(Faulthook *h, int in)
 {

@@ -2,8 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-char cqctflags[256];
-
 char* cbasename[Vnbase+1] = {
 	[Vundef]              = "error!",
 	[Vchar]               = "char",
@@ -81,7 +79,6 @@ static Decl* dodecl(U *ctx, Expr *e);
 static Type* copytype(Type *t);
 
 static HT *filenames;
-static char **loadpath;
 
 extern int yylex_destroy(void);
 
@@ -1186,25 +1183,6 @@ dotop(U *ctx, Expr *e)
 }
 
 static void
-initparse()
-{
-	filenames = mkht();
-}
-
-static void
-freefilename(void *u, char *k, void *v)
-{
-	efree(k);
-}
-
-static void
-finiparse()
-{
-	hforeach(filenames, freefilename, 0);
-	freeht(filenames);
-}
-
-static void
 pushyy(U *ctx, char *filename, char *buf, int dofree)
 {
 	char *keyed;
@@ -1276,7 +1254,7 @@ tryinclude(U *ctx, char *raw)
 	buf = 0;
 	if(f == '>' && p[0] != '/' && p[0] != '.'){
 		/* use load path */
-		lp = loadpath;
+		lp = cqctloadpath;
 		while(*lp){
 			len = strlen(*lp)+1+strlen(p)+1;
 			full = emalloc(len);
@@ -1303,7 +1281,7 @@ tryinclude(U *ctx, char *raw)
 	efree(full);
 }
 
-static Expr*
+Expr*
 doparse(char *buf, char *whence)
 {
 	U ctx;
@@ -1326,101 +1304,21 @@ doparse(char *buf, char *whence)
 	return ctx.el;
 }
 
-Expr*
-cqctparsefile(char *filename)
+void
+initparse()
 {
-	Expr *e;
-	char *str;
-	str = readfile(filename);
-	if(str == 0)
-		return 0;
-	e = doparse(str, filename);
-	efree(str);
-	return e;
+	filenames = mkht();
 }
 
-Expr*
-cqctparsestr(char *str, char *whence)
+static void
+freefilename(void *u, char *k, void *v)
 {
-	return doparse(str, whence);
-}
-
-Closure*
-cqctcompile(Expr *e, Toplevel *top, char *argsid)
-{
-	U ctx;
-
-	if(cqctflags['p']){
-		xprintf("input:\n");
-		printexpr(e);
-		xprintf("\n");
-	}
-	memset(&ctx, 0, sizeof(ctx));
-	dotypes(&ctx, e);
-	if(docompilec(&ctx, e) != 0)
-		return 0;
-	if(docompile0(&ctx, e) != 0)
-		return 0;
-	if(cqctflags['p']){
-		xprintf("compile0:\n");
-		printexpr(e);
-		xprintf("\n");
-	}
-	return compileentry(e, top, argsid);
-}
-
-static char**
-copyargv(char **lp)
-{
-	unsigned n, i, nlp;
-	char **p, **rv, *s;
-
-	n = 0;
-	nlp = 0;
-
-	if(lp != 0){
-		p = lp;
-		while(*p){
-			n += strlen(*p)+1;
-			nlp++;
-			p++;
-		}
-	}
-	rv = emalloc((nlp+1)*sizeof(char*)+n);
-	p = rv;
-	s = (char*)(rv+nlp+1);
-	for(i = 0; i < nlp; i++){
-		p[i] = s;
-		strcpy(s, lp[i]);
-		s += strlen(lp[i])+1;
-	}
-	p[nlp] = 0;
-
-	return rv;
-}
-
-Toplevel*
-cqctinit(int gcthread, u64 heapmax, char **lp)
-{
-	loadpath = copyargv(lp);
-	initparse();
-	initcompile();
-	initvm(gcthread, heapmax);
-	return mktoplevel();
+	efree(k);
 }
 
 void
-cqctfini(Toplevel *top)
+finiparse()
 {
-	efree(loadpath);
-	freetoplevel(top);
-	finivm();
-	finicompile();
-	finiparse();
-}
-
-void
-cqctfreeexpr(Expr *e)
-{
-	freeexpr(e);
+	hforeach(filenames, freefilename, 0);
+	freeht(filenames);
 }
