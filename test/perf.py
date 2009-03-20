@@ -7,7 +7,8 @@ import sys
 import platform
 import time
 
-p = popen2.Popen4('git show');
+os.putenv('GIT_PAGER', 'cat');
+p = popen2.Popen4('git show --pretty=oneline');
 rv = p.wait()
 if rv == 0:
     commit = p.fromchild.readlines()[0].rstrip()
