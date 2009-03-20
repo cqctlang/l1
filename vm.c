@@ -10636,13 +10636,13 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	*rv = mkvallitcval(Vulong, cqctmeminuse);
+	*rv = mkvallitcval(Vuvlong, cqctmeminuse);
 }
 
 static void
 l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	*rv = mkvallitcval(Vulong, cqctmemtotal);
+	*rv = mkvallitcval(Vuvlong, cqctmemtotal);
 }
 
 static void
