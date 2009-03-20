@@ -652,11 +652,14 @@ struct Block
 
 typedef
 struct Location {
-	Lkind kind;
-	unsigned indirect;
-	unsigned idx;
 	Var *var;		/* Ltopl */
+	unsigned loc;		/* access with LOC macros */
 } Location;
+
+#define LOC(idx,box,kind)	(((idx)<<4)|((box&1)<<3)|((kind)&0x7))
+#define LOCIDX(loc)		((loc)>>4)
+#define LOCBOX(loc)		(((loc)>>3)&0x1)
+#define LOCKIND(loc)		((loc)&0x7)
 
 typedef
 struct Operand {
