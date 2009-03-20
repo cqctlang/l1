@@ -150,9 +150,7 @@ konsts(Expr *e, Code *code)
 static void
 newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
 {
-	loc->kind = kind;
-	loc->idx = idx;
-	loc->indirect = indirect;
+	loc->loc = LOC(idx,indirect,kind);
 }
 
 static Ctl*
@@ -329,29 +327,29 @@ printrand(Code *code, Operand *r)
 	switch(r->okind){
 	case Oloc:
 		loc = &r->u.loc;
-		switch(loc->kind){
+		switch(LOCKIND(loc->loc)){
 		case Lreg:
-			xprintf("%s", regtos(loc->idx));
+			xprintf("%s", regtos(LOCIDX(loc->loc)));
 			break;
 		case Lparam:
-			if(loc->indirect)
+			if(LOCBOX(loc->loc))
 				xprintf("[");
-			xprintf("%d(%s)", loc->idx+1, regtos(Rfp));
-			if(loc->indirect)
+			xprintf("%d(%s)", LOCIDX(loc->loc)+1, regtos(Rfp));
+			if(LOCBOX(loc->loc))
 				xprintf("]");
 			break;
 		case Llocal:
-			if(loc->indirect)
+			if(LOCBOX(loc->loc))
 				xprintf("[");
-			xprintf("-%d(%s)", loc->idx+1, regtos(Rfp));
-			if(loc->indirect)
+			xprintf("-%d(%s)", LOCIDX(loc->loc)+1, regtos(Rfp));
+			if(LOCBOX(loc->loc))
 				xprintf("]");
 			break;
 		case Ldisp:
-			if(loc->indirect)
+			if(LOCBOX(loc->loc))
 				xprintf("[");
-			xprintf("%d(%s)", loc->idx, regtos(Rcl));
-			if(loc->indirect)
+			xprintf("%d(%s)", LOCIDX(loc->loc), regtos(Rcl));
+			if(LOCBOX(loc->loc))
 				xprintf("]");
 			break;
 		case Ltopl:

@@ -3359,9 +3359,9 @@ putval(VM *vm, Val v, Location *loc)
 {
 	Val *dst;
 
-	switch(loc->kind){
+	switch(LOCKIND(loc->loc)){
 	case Lreg:
-		switch(loc->idx){
+		switch(LOCIDX(loc->loc)){
 		case Rac:
 			vm->ac = v;
 			break;
@@ -3383,22 +3383,22 @@ putval(VM *vm, Val v, Location *loc)
 		}
 		break;
 	case Lparam:
-		dst = &vm->stack[(vm->fp+1)+loc->idx];
-		if(loc->indirect)
+		dst = &vm->stack[(vm->fp+1)+LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			putbox(vm, *dst, v);
 		else
 			*dst = v;
 		break;
 	case Llocal:
-		dst = &vm->stack[(vm->fp-1)-loc->idx];
-		if(loc->indirect)
+		dst = &vm->stack[(vm->fp-1)-LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			putbox(vm, *dst, v);
 		else
 			*dst = v;
 		break;
 	case Ldisp:
-		dst = &vm->clx->display[loc->idx];
-		if(loc->indirect)
+		dst = &vm->clx->display[LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			putbox(vm, *dst, v);
 		else
 			*dst = v;
@@ -3490,9 +3490,9 @@ getval(VM *vm, Location *loc)
 {
 	Val p;
 
-	switch(loc->kind){
+	switch(LOCKIND(loc->loc)){
 	case Lreg:
-		switch(loc->idx){
+		switch(LOCIDX(loc->loc)){
 		case Rac:
 			return vm->ac;
 		case Rsp:
@@ -3508,20 +3508,20 @@ getval(VM *vm, Location *loc)
 		}
 		break;
 	case Lparam:
-		p = vm->stack[(vm->fp+1)+loc->idx];
-		if(loc->indirect)
+		p = vm->stack[(vm->fp+1)+LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			return valboxed(p);
 		else
 			return p;
 	case Llocal:
-		p = vm->stack[(vm->fp-1)-loc->idx];
-		if(loc->indirect)
+		p = vm->stack[(vm->fp-1)-LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			return valboxed(p);
 		else
 			return p;
 	case Ldisp:
-		p = vm->clx->display[loc->idx];
-		if(loc->indirect)
+		p = vm->clx->display[LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			return valboxed(p);
 		else
 			return p;
@@ -3541,9 +3541,9 @@ getcval(VM *vm, Location *loc)
 {
 	Val p;
 
-	switch(loc->kind){
+	switch(LOCKIND(loc->loc)){
 	case Lreg:
-		switch(loc->idx){
+		switch(LOCIDX(loc->loc)){
 		case Rac:
 			return valcval(vm->ac);
 		case Rsp:
@@ -3558,18 +3558,18 @@ getcval(VM *vm, Location *loc)
 		}
 		break;
 	case Lparam:
-		p = vm->stack[(vm->fp+1)+loc->idx];
-		if(loc->indirect)
+		p = vm->stack[(vm->fp+1)+LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			return valboxedcval(p);
 		return valcval(p);
 	case Llocal:
-		p = vm->stack[(vm->fp-1)-loc->idx];
-		if(loc->indirect)
+		p = vm->stack[(vm->fp-1)-LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			return valboxedcval(p);
 		return valcval(p);
 	case Ldisp:
-		p = vm->clx->display[loc->idx];
-		if(loc->indirect)
+		p = vm->clx->display[LOCIDX(loc->loc)];
+		if(LOCBOX(loc->loc))
 			return valboxedcval(p);
 		return valcval(p);
 	case Ltopl:
