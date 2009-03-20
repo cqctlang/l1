@@ -128,8 +128,6 @@ emalloc(size_t size)
 void
 efree(void *p)
 {
-	if(0)
-		printf("free %p\n", p);
 	if(p == 0)
 		return;
 	p -= sizeof(size_t);
