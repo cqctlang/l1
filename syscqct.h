@@ -684,7 +684,6 @@ struct Ctl {
 	char *label;		/* for humans, only; (duplicates in code ok) */
 	int used;
 	unsigned long insn;
-	void *insnx;
 
 	/* ckind == Clabelpair */
 	Ctl *l1, *l2;
