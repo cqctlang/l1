@@ -1547,11 +1547,9 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		randvarloc(&i->dst, &l->param[0], 1);
 	}
 
-	/* hack to return nil in degenerate cases */
+	/* was: hack to return nil in degenerate cases; insert nop instead */
 	i = nextinsn(code);
-	i->kind = Imov;
-	randnil(&i->op1);
-	randloc(&i->dst, AC);
+	i->kind = Inop;
 
 	if(needtop){
 		top = genlabel(code, 0);
@@ -1567,13 +1565,10 @@ cglambda(Ctl *name, Code *code, Expr *e)
 
 	if(p.Return0->used) /* hack for lambdas with empty bodies */
 		emitlabel(p.Return0, e->e2);
+
 	i = nextinsn(code);
-	i->kind = Imov;
+	i->kind = Inop;
 
-	// return nil if the function does not explicitly return
-	randnil(&i->op1);
-
-	randloc(&i->dst, AC);
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code);
 	i->kind = Iret;
