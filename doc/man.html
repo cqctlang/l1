@@ -3626,11 +3626,11 @@ in <span class="arg">container</span>.
 <span class="arg">cmp</span>: <span class="type">function</span>
 </div>
 <div class="returns">
-<span class="type">nil</span>
+<span class="type">see description</span>
 </div>
 </div>
 <div class="desc">
-Sorts the elements of <span
+Sorts in place the elements of <span
 class="arg">container</span>, using <span
 class="arg">cmp</span> to compare elements.  <span
 class="arg">Cmp</span> accepts two arguments, each an
@@ -3638,7 +3638,8 @@ element of <span class="arg">container</span>, and
 returns: a negative cvalue if the first argument
 compares less than the second; a positive cvalue if the
 first argument compares greater than the second; or
-zero if they are equal.
+zero if they are equal.  Returns <span class="arg">container</span>
+following the update.
 </div>
 </div>
 
