@@ -45,7 +45,6 @@ static int chars(YYSTYPE *lvalp, int);
 "continue"		{ count(ctx); return(CONTINUE); }
 "default"		{ count(ctx); return(DEFAULT); }
 "define"		{ count(ctx); return(DEFINE); }
-"deflocal"		{ count(ctx); return(DEFLOCAL); }
 "@record"		{ count(ctx); return(DEFREC); }
 "do"			{ count(ctx); return(DO); }
 "double"		{ count(ctx); return(DOUBLE); }

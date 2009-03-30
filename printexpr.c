@@ -47,7 +47,6 @@ char* S[] = {
 	[Edefault] =	"Edefault",
 	[Edefconst] =	"Edefconst",
 	[Edefine] =	"Edefine",
-	[Edeflocal] =	"Edeflocal",
 	[Edefrec] =	"Edefrec",
 	[Ederef] =	"Ederef",
 	[Ediv] =	"Ediv",
@@ -289,11 +288,7 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Edefine:
-	case Edeflocal:
-		if(e->kind == Edefine)
-			xprintf("define ");
-		else
-			xprintf("deflocal ");
+		xprintf("define ");
 		printcqct0(e->e1, ni);
 		if(e->e2->kind == Eid){
 			xprintf(" ");

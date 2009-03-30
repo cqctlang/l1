@@ -201,7 +201,6 @@ globals(Expr *e, Env *env)
 		return e;
 
 	switch(e->kind){
-	case Edeflocal:
 	case Edefine:
 		p = Zset(e->e1,
 			 Zlambdn(e->e2,
