@@ -163,7 +163,7 @@ define mkpras(arg) {
 	@local indom, outdom, ip, op, p;
 	@local read1, ipress, opress, xwr, copydata, checkreply;
 	@local launch, cont, brk, ack, xread, xwrite, setbrk, clrbrk, sync;
-	@local dispatch, get, put;
+	@local dispatch, get, put, map;
 	@local id, state, reg;
 	@local brktab, dtab;
 	@local logsend, logrecv, log, verbose;
