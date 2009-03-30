@@ -1,0 +1,220 @@
+Cinquecento provides tools, but not a design, for
+representing the symbolic and control information of a real
+program.
+
+By "real program", we mean programs like Firefox version
+3.0.7.  An instance of this program currently running on a
+handy Ubuntu 8.04 machine has 7 threads and 140 shared
+libraries.  How do we unwind the stack of thread #3?
+
+
+This note describes a design-in-progress for
+representing real programs in Cinquecento.  This is not
+the final design; the purpose at this point is to have
+a better-than-rough sketch of how the pieces fit
+together.
+
+
+Several aspects of a program are to be represented:
+
+- The subdivision of the program address space into distinct
+  binary images, each corresponding to a separately mapped
+  executable or library.
+
+- Symbols and types defined in each executable;
+
+- State and control of each thread.
+
+
+
+For now, we focus on single-threaded programs comprising one
+executable and multiple shared libaries.  Threads come later.
+
+Assume there is a primitive library function that returns an
+address space representing the memory of the program in
+execution.
+
+	as0 = mkas0(...);
+
+The parameters depend on whether we are attaching to or
+creating the process, whether it is local or remote, etc.,
+and do not matter for this discussion.
+
+As0 must implement the standard address space methods:
+
+	as0.get(range)         -> string           // read memory
+	as0.put(range, string) -> void             // write memory
+	as0.map()              -> list of range    // enumerate mappings
+
+Map tells us what address ranges are mapped, but it does not
+say what is mapped.  We need to know which mappings
+correspond to executables, and we need access to those
+executables to retrieve their associated debugging
+information.
+
+So we define an extended map method:
+
+	as0.xmap()             -> list of xmap
+
+where xmap is a record:
+
+	@record xmap
+	{
+		range,		// same as map's range
+		perm,		// some representation of access perms
+		file,		// if non-nil, the name of mapped file
+		off,		// if non-nil, the offset 
+	};
+
+
+    Note: The xmap record needs refinement.  Missing is a
+    fine-grained notion of the type of a mapping: is it a
+    file, anonymous memory, something special; if a file: is
+    it an executable or data file or device; is it mapped
+    shared or copy-on-write?  Which mappings are part of the
+    program (i.e., linked code to be executed) and which are
+    incidentally mapped (e.g., an mmap'd libc.so in a
+    recursive Cinquecento-on-Cinquecento debugging
+    situation).
+
+
+These mapped files live in the file name space of the target
+program, which generally is not the same as the name space
+in which Cinquecento runs.  Cinquecento needs some way to
+remotely access to the target file name space.
+
+Our design is to use the existing connection to the process
+as a remote file system channel.  The address space as0
+doubles as a file system interface.  Perhaps this interface
+is a remote open method for individual files; or perhaps it
+has a remote mount method to bind the entire name space to
+some part of the local Cinquecento name space.  For now,
+let's assume an interface for access to individual files.
+
+	fd = as0.open("/lib/libc-2.7.so");
+	fas = mkfas(fd);
+	close(fd);
+
+Here we define fas to be an address space representing the
+contents of the file named /lib/libc-2.7.so *in the target
+file system*.  Mkfas constructs an address space from a file
+descriptor open to a regular file; it holds a reference to
+the file, so it is safe to close the descriptor.
+
+
+Assume that the debugging information for /lib/libc-2.7.so
+is contained within that file.  On Windows, newer Linux
+systems, and some other systems, debugging information may
+be in a separate file.  If a name for that file can be found
+in the executable, we would just reuse the file system
+access routines to get the right file.  If some out-of-band
+method is needed (contact a remote symbol server, use a
+conventional file name, etc.), we would use a different
+mechanism.
+
+
+Whatever form the debugging information takes, we assume
+there is a routine that can turn a handle to the executable
+file containing the debugging information (fas) into a
+record of debugging information:
+
+	parsedebug(fas)	-> debugrec
+
+We will define functions on this record that allow us to
+make specific debugging queries.
+
+
+Clearly the above features allow us to enumerate the
+executable mappings for a program, and for each executable
+to instantiate its corresponding debugging record.
+
+How do we organize this debugging information?  Let's
+associate it with a new address space.  This is sensible
+because each target program has a potentially unique
+definition of this information.  Call the address space
+constructor mkgas ("global address space"):
+
+	gas = mkgas(as0);
+
+This address space defines several extended methods:
+
+   Return debugging information corresponding to an address:
+
+	@record drec
+	{
+		/* opaque */
+	};
+
+	gas.lookdebug(addr) -> drec
+
+   Enumerate the full map of debugging information:
+
+	@record dmap
+	{
+		range,
+		drec,
+	};
+
+	gas.enumdebug() -> list of drec
+
+
+One obviously useful domain is a "global" domain that
+defines a top-level name space for target program:
+
+	gdom = mkgdom(gas);
+
+This name space includes global symbols defined by
+each of the constituent executable mappings.
+
+For example, if one (and only one) executable defines the
+function FOO, then
+
+	 &gdom`FOO
+
+returns a pointer to the function FOO within the target
+address space.
+
+How is the name space implemented?  Here is one definition
+of its looksym method:
+
+	define looksym(this, name)
+	{
+		@local l, i, dm, sym;
+	
+		l = this.enumdebug();
+		for(i = 0; i < length(l); i++){
+			dm = l[i];
+			sym = looksym(dm.drec, name);
+			if(sym == nil)
+				continue;
+			return mksym(symtype(sym),
+				     symid(sym),
+				     symval+rangebeg(dm.range));
+		}
+		return nil;
+	}
+
+The idea is to iterate over each debug record until the
+one defining the desired symbol is found.  Debug
+records are independent of where the executable is
+loaded in the address space, so the gdom method adjusts
+the symbol offset to its absolute address in the
+address space.
+
+Similar searches could be performed for looktype and
+lookaddr.
+
+A few issues:
+
+* We are assuming that the order returned by enumdebug
+  is a sensible order to search for symbols.  If there
+  are multiple executables defining the same symbol,
+  which one prevails?  Similarly, in what order should
+  enumsym and enumtype traverse the address space?
+
+* The idea is to find global top-level symbols.  What
+  if one executable defines a local (C static) function
+  that has the same name as a global function in
+  another executable.  Which one prevails?  In general,
+  how do we limit searches of the underlying debug
+  records to names of certain visibility?
