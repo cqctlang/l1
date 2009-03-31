@@ -21,9 +21,11 @@ L1C =\
 	parse.c\
 	xenv.c\
 	cutil.c\
+	compilens.c\
 	compile0.c\
 	compile1.c\
 	compile2.c\
+	type.c\
 	cg.c\
 	vm.c\
 	cqct.c\

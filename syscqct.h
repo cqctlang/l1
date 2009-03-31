@@ -851,6 +851,12 @@ int		bitfieldgeom(BFgeom *bfg);
 Imm		bitfieldget(char *s, BFgeom *bfg);
 Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
+/* type.c */
+Expr*		gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx);
+
+/* compilens.c */
+int		docompilens(U *ctx, Expr *e);
+
 /* compile0.c */
 int		docompile0(U *ctx, Expr *e);
 
