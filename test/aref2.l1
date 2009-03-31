@@ -1,0 +1,8 @@
+ns = @names c32le {
+	@0x0 int x[30];
+};
+
+dom = mkdom(ns, mknas());
+
+s = dom`x;
+printf("%d\n", &s[20]);

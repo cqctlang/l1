@@ -1,0 +1,3 @@
+tab = mktab();
+tab["foo"] = c32le;
+tab["foo"].enumtype();
