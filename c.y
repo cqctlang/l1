@@ -127,9 +127,6 @@ table_init_list
 primary_expression
 	: id
 	| tickid
-	| '<'
-{ $$ = Zlambdn(Zargs(2, "%x", "%y"),
-	       Zbinop(Elor, doid("%x"), doid("%y")), Zstr("<")); }
 	| NIL
 	{ $$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); }
 	| CONSTANT
