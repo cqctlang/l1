@@ -45,6 +45,7 @@ define testaqsort(){
 					       pr.seteax(val[x]-val[y]);
 					       pr.bpdel(id);
 				       });
+			 return nil;
 		 });
 
 	pr.xcontwait();
