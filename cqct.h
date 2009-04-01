@@ -25,6 +25,53 @@ enum {
 	Qnkind
 } Qkind;
 
+
+/* base C types */
+typedef
+enum Cbase {
+	Vundef=0,
+	Vchar,
+	Vshort,
+	Vint,
+	Vlong,
+	Vvlong,
+	Vuchar,
+	Vushort,
+	Vuint,
+	Vulong,
+	Vuvlong,
+	Vfloat,
+	Vdouble,
+	Vlongdouble,
+	Vnbase,
+	Vptr = Vnbase,		/* alias for some other base type */
+	Vvoid,
+	Vnallbase,
+} Cbase;
+
+/* type representations */ 
+typedef
+enum Rkind {
+	Rundef,
+	Ru08le,
+	Ru16le,
+	Ru32le,
+	Ru64le,
+	Rs08le,
+	Rs16le,
+	Rs32le,
+	Rs64le,
+	Ru08be,
+	Ru16be,
+	Ru32be,
+	Ru64be,
+	Rs08be,
+	Rs16be,
+	Rs32be,
+	Rs64be,
+	Rnrep, 
+} Rkind;
+
 typedef struct Closure Closure;
 typedef struct Expr Expr;
 typedef struct Toplevel Toplevel;
@@ -47,7 +94,10 @@ struct Head {
 int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
 Closure*	cqctcompile(Expr *e, Toplevel *top, char *argsid);
+Val		cqctcstrnval(char *s, uint64_t len);
+Val		cqctcstrnvalshared(char *s, uint64_t len);
 Val		cqctcstrval(char *s);
+Val		cqctcstrvalshared(char *s);
 int		cqcteval(VM *vm, char *s, char *src, Val *rv);
 int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Toplevel *top);
@@ -71,11 +121,14 @@ Val		cqctuint8val(uint8_t);
 Val		cqctuint16val(uint16_t);
 Val		cqctuint32val(uint32_t);
 Val		cqctuint64val(uint64_t);
+Cbase		cqctvalcbase(Val);
 int8_t		cqctvalint8(Val);
 int16_t		cqctvalint16(Val);
 int32_t		cqctvalint32(Val);
 int64_t		cqctvalint64(Val);
 char*		cqctvalcstr(Val);
+uint64_t	cqctvalcstrlen(Val);
+char*		cqctvalcstrshared(Val);
 uint8_t		cqctvaluint8(Val);	
 uint16_t	cqctvaluint16(Val);
 uint32_t	cqctvaluint32(Val);

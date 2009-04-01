@@ -122,52 +122,6 @@ enum{
 	Emax,
 } Kind;
 
-/* base C types */
-typedef
-enum Cbase {
-	Vundef=0,
-	Vchar,
-	Vshort,
-	Vint,
-	Vlong,
-	Vvlong,
-	Vuchar,
-	Vushort,
-	Vuint,
-	Vulong,
-	Vuvlong,
-	Vfloat,
-	Vdouble,
-	Vlongdouble,
-	Vnbase,
-	Vptr = Vnbase,		/* alias for some other base type */
-	Vvoid,
-	Vnallbase,
-} Cbase;
-
-/* type representations */ 
-typedef
-enum Rkind {
-	Rundef,
-	Ru08le,
-	Ru16le,
-	Ru32le,
-	Ru64le,
-	Rs08le,
-	Rs16le,
-	Rs32le,
-	Rs64le,
-	Ru08be,
-	Ru16be,
-	Ru32be,
-	Ru64be,
-	Rs08be,
-	Rs16be,
-	Rs32be,
-	Rs64be,
-	Rnrep, 
-} Rkind;
-
 /* ctypes */
 typedef
 enum Tkind {

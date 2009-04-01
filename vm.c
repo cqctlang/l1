@@ -11469,6 +11469,26 @@ cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 	return 0;
 }
 
+Cbase
+cqctvalcbase(Val v)
+{
+	Cval *cv;
+	Xtypename *t;
+	if(v->qkind != Qcval)
+		return (Cbase)-1;
+	cv = valcval(v);
+	t = chasetype(cv->type);
+	switch(t->tkind){
+	case Tbase:
+		return t->basename;
+	case Tptr:
+		return cv->dom->ns->base[Vptr]->basename;
+	default:
+		/* only scalar types in cvalues */
+		fatal("bug");
+	}
+}
+
 /* these routines assume litdom is clp64le */
 
 int8_t
@@ -11591,10 +11611,48 @@ cqctvalcstr(Val v)
 	return str2cstr(valstr(v));
 }
 
+char*
+cqctvalcstrshared(Val v)
+{
+	Str *s;
+	if(v->qkind != Qstr)
+		return 0;
+	s = valstr(v);
+	return s->s;
+}
+
+uint64_t
+cqctvalcstrlen(Val v)
+{
+	Str *s;
+	if(v->qkind != Qstr)
+		return 0;
+	s = valstr(v);
+	return (uint64_t)s->len;
+}
+
 Val
 cqctcstrval(char *s)
 {
 	return mkvalstr(mkstr0(s));
+}
+
+Val
+cqctcstrnval(char *s, uint64_t len)
+{
+	return mkvalstr(mkstr(s, len));
+}
+
+Val
+cqctcstrvalshared(char *s)
+{
+	return mkvalstr(mkstrk(s, strlen(s), Sperm));
+}
+
+Val
+cqctcstrnvalshared(char *s, uint64_t len)
+{
+	return mkvalstr(mkstrk(s, len, Sperm));
 }
 
 Val
