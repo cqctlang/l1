@@ -548,7 +548,7 @@ define _dw_eval (dom, exas, cptr, pceval)
   return [rv, rvtype, lptr];
 }
 
-define dw_process_location_list (bdrec, exdom, ptr, cubase, fb, doml)
+define dw_process_location_list (bdrec, exdom, ptr, cubase, fb)
 {
   @local op, cptr, asize, rv, l, fn, sloc, eloc, baseaddrflag, cubaseaddr;
   @local isdone, cnt, len, end;

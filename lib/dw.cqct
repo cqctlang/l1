@@ -60,7 +60,6 @@ _dwcqct_addrsize = 13;
 _dwcqct_rootns = 14;
 _dwcqct_vectorsize = 15;
 
-global_dwarf_domain_list = [];
 _dw_current_frame_base = nil;
 current_compilation_unit = nil;
 
@@ -251,7 +250,7 @@ define dw_get_dieoff_for_cu (dwdom, addr)
   return nil;
 }
 
-define dw_get_lineoff_for_cu (bdrec, addr, doml)
+define dw_get_lineoff_for_cu (bdrec, addr)
 {
   @local cptr, cu, abdom, strdom, indom, cubase, lineoff, ardom;
   @local abptr, abtab, cul;
@@ -270,7 +269,7 @@ define dw_get_lineoff_for_cu (bdrec, addr, doml)
   abtab = dw_get_cu_abbrev_table (abdom, abptr);
   cptr = (unsigned int) cptr + sizeof (*cu);
   cul = dw_process_die (bdrec, mkzas(1024), abtab, mktab(),
-			mktab (), [], cptr, cubase, 1, doml);
+			mktab (), [], cptr, cubase, 1);
   lineoff = listref (listref (cul, 0), 5);
   return lineoff;
 }
@@ -358,7 +357,7 @@ define dw_get_files (dwdom, addr)
 }
 
 /* Straight from the DWARF 2 spec, section 6.2 */
-define dw_get_cu_linenumber_info (bdrec, ptr, doml)
+define dw_get_cu_linenumber_info (bdrec, ptr)
 {
   @local addr, file, line, column, is_stmt, bb, endseq, spp, obase;
   @local stoplens, op, cptr, lastfnum, pfiles, oplim, base, result;
@@ -579,7 +578,7 @@ define dw_get_cu_linenumber_info (bdrec, ptr, doml)
   return result;
 }
 
-define dw_unwind_to_caller (bdrec, addr, doml)
+define dw_unwind_to_caller (bdrec, addr)
 {
   @local result, loc, curstate, statestack, rules, cie, fde, iptr, end, rval;
   @local cad, cptr, clim, asize, fdel;
@@ -597,7 +596,7 @@ define dw_unwind_to_caller (bdrec, addr, doml)
   cad = {fdom} addr;
   cptr = {fdom} 0;
   asize = bdrec.addrsize;
-  ftab = dw_build_frametab (bdrec, doml);
+  ftab = dw_build_frametab (bdrec);
   fdel = bsearch (cad, ftab,
 		 lambda (a,b) {if (a < listref (b, 0)) return -1;
 		   else if (a >= listref (b, 1)) return 1;
@@ -615,7 +614,7 @@ define dw_unwind_to_caller (bdrec, addr, doml)
 	    cad, loc, end);
     return result;
   }
-  rules = dw_get_cie_init_ruleset (bdrec, cie, doml);
+  rules = dw_get_cie_init_ruleset (bdrec, cie);
   curstate = [ loc, rules ];
   iptr = (unsigned char *) ((unsigned int) fde + sizeof (*fde));
   result = dw_process_one_fde_inst (bdrec, iptr, cie, curstate, statestack);
@@ -714,7 +713,7 @@ define dw_process_one_fde_inst (bdrec, instptr, cie, curstate, statestack)
        and empty statestack so that we can retrieve just the rules. */
     @local irules;
     reg = op & 0x3f;
-    irules = dw_get_cie_init_ruleset (fdom, cie, doml);
+    irules = dw_get_cie_init_ruleset (fdom, cie);
     listset (rules, reg, listref (irules, reg));
     curstate = [ loc, rules ];
     result = [ curstate, cptr, statestack ];
@@ -783,7 +782,7 @@ define dw_process_one_fde_inst (bdrec, instptr, cie, curstate, statestack)
       cptr = listref (reg, 1);
       reg = head (reg);
       /* restore extended register reg */
-      irules = dw_get_cie_init_ruleset (fdom, cie, doml);
+      irules = dw_get_cie_init_ruleset (fdom, cie);
       listset (rules, reg, listref (irules, reg));
       /* At this point rules should have the restored rule for reg
 	 if it was in the initial rule set. */
@@ -969,7 +968,7 @@ define dw_cie_afs (dwdom, cie)
   return result;
 }
 
-define dw_get_cie_init_ruleset (bdrec, cie, doml)
+define dw_get_cie_init_ruleset (bdrec, cie)
 {
   @local aug, caf, daf, instptr, result, rvec, asize;
   @local fdom;
@@ -993,7 +992,7 @@ define dw_get_cie_init_ruleset (bdrec, cie, doml)
   return rvec;
 }
 
-define dw_build_linetab (bdrec, doml)
+define dw_build_linetab (bdrec)
 {
   @local base, result, temp, last, vec, len, i, rl;
   @local linedom;
@@ -1010,7 +1009,7 @@ define dw_build_linetab (bdrec, doml)
   result = [];
   last = [0, 0, 0];
   do {
-    temp = dw_get_cu_linenumber_info (linedom, base, doml);
+    temp = dw_get_cu_linenumber_info (linedom, base);
     base = listref (temp, length (temp) - 1);
     if (!isnil (listref (temp, 5))
 	&& length (listref (temp, 5)) != 0) { /* don't append empty list */
@@ -1026,7 +1025,7 @@ define dw_build_linetab (bdrec, doml)
   return result;
 }
 
-define dw_build_frametab (bdrec, doml)
+define dw_build_frametab (bdrec)
 {
   @local cptr, cie, fde, done, result, fentry, fl, rv, i, asize;
   @local f, vec;
@@ -2266,7 +2265,7 @@ define dw_get_lang_string (dwdom, lang)
   }
 }
 
-define dw_addr2line (bdrec, addr, doml)
+define dw_addr2line (bdrec, addr)
 {
   @local ltab, cuinfo, cutab, dlist, flist, entry, dir, f, rv, ardom, arl, i;
   @local cuoff;
@@ -2274,12 +2273,12 @@ define dw_addr2line (bdrec, addr, doml)
   linedom = bdrec.debug_line;
   cuinfo = nil;
   ardom = bdrec.debug_aranges;
-  cuoff = dw_get_lineoff_for_cu (bdrec, addr, doml);
+  cuoff = dw_get_lineoff_for_cu (bdrec, addr);
   if (isnil (cuoff))
     return "no line number info";
   cuinfo = tablook (bdrec.linetable, {linedom}cuoff);
   if (isnil (cuinfo)) {
-    cuinfo = dw_get_cu_linenumber_info (bdrec, {linedom}cuoff, doml);
+    cuinfo = dw_get_cu_linenumber_info (bdrec, {linedom}cuoff);
     tabinsert (bdrec.linetable, {linedom}cuoff, cuinfo);
   }
   dlist = listref (cuinfo, 3);
@@ -2294,7 +2293,7 @@ define dw_addr2line (bdrec, addr, doml)
 
 local_scope_stack = [];
 
-define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase, toplevel, doml)
+define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase, toplevel)
 {
   @local acode, cptr, ab, abl, tag, spec, speclist, cqcttype;
   @local val, atname, form, i;
@@ -2364,7 +2363,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	    || form == indom`DW_FORM_data8) {
 	  /* then val is an offset into the .debug_loc section */
 	  location = dw_process_location_list (bdrec, exas, val, cubase,
-					 _dw_current_frame_base, doml);
+					 _dw_current_frame_base);
 	  location = head (location);
 	}
 	else {
@@ -2450,7 +2449,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	    || form == indom`DW_FORM_data8) {
 	  /* then val is an offset into the .debug_loc section */
 	  location = dw_process_location_list (bdrec, exas, val, cubase,
-					       _dw_current_frame_base, doml);
+					       _dw_current_frame_base);
 	  location = head (location);
 	}
 	else {
@@ -2642,7 +2641,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
 	  rv = dw_process_location_list (bdrec, exas, val, cubase,
-					 _dw_current_frame_base, doml);
+					 _dw_current_frame_base);
 	  _dw_current_frame_base = head (rv);
 	  foreach (lambda (v) {append (fblist, v);}, _dw_current_frame_base);
 	}
@@ -2664,7 +2663,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       else if (atname == indom`DW_AT_ranges) {
 	@local rdom, r, rmin, rmax, i, cubaseaddr;
 	rdom = bdrec.debug_ranges;
-	rlv = dw_process_range_list (bdrec, val, cubase, doml);
+	rlv = dw_process_range_list (bdrec, val, cubase);
 	cubaseaddr = listref (listref (rlv, 0), 0);
 	rl = listref (listref (rlv, 0), 1);
 	if (!isempty (rl)) {
@@ -2735,7 +2734,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	 inlined subroutines */
       @local srv;
       srv = dw_process_die (bdrec, exas, abtab, typetab,
-			    symtab, fblist, cptr, cubase, 0, doml);
+			    symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned char *) (listref (srv, 1));
       if (!isnil (head (srv))) {
 	@local subdie, stag;
@@ -2944,7 +2943,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     while (isnotdone()) {
       @local mem;
       _dw_push ({indom} 0);
-      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, doml);
+      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (mem, 1));
       mem = head (mem);
       if (!isnil (mem) && listref (mem, 1) == indom`DW_TAG_member)
@@ -3031,7 +3030,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local subrange;
-      subrange = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, doml);
+      subrange = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (subrange, 1));
       subrange = head (subrange);
       if (!isnil (subrange)
@@ -3182,7 +3181,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local emem;
-      emem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, doml);
+      emem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (emem, 1));
       emem = head (emem);
       if (!isnil (emem) && listref (emem, 1) == indom`DW_TAG_enumerator)
@@ -3279,7 +3278,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local mem;
-      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0, doml);
+      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (mem, 1));
       mem = head (mem);
       if (!isnil (mem) && listref (mem, 1) == indom`DW_TAG_member)
@@ -3315,7 +3314,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 define get_cu_baseaddr (bdrec, exas, ptr)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
-  @local typetab, cnt, symtab, fblist, doml;
+  @local typetab, cnt, symtab, fblist;
   @local indom, abdom, strdom;
   indom = bdrec.debug_info;
   abdom = bdrec.debug_abbrev;
@@ -3323,7 +3322,6 @@ define get_cu_baseaddr (bdrec, exas, ptr)
   fblist = [];
   typetab = mktab ();
   symtab = mktab ();
-  doml = []; /* same comment */
   cptr = {indom} ptr;
   cu = (struct dw_cu_hdr *) cptr;
   end = (unsigned int) cptr + cu->len + sizeof (cu->len);
@@ -3331,11 +3329,11 @@ define get_cu_baseaddr (bdrec, exas, ptr)
   abtable = dw_get_cu_abbrev_table (abdom, abptr);
   abtlen = length (abtable);
   cptr = (unsigned int) cptr + sizeof (*cu);
-  di = dw_process_die (bdrec, indom, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1, doml);
+  di = dw_process_die (bdrec, indom, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1);
   return head (di);;
 }
     
-define get_cu_info (bdrec, exas, ptr, doml)
+define get_cu_info (bdrec, exas, ptr)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
   @local typetab, cnt, symtab, fblist, cuscope, subscopelist;
@@ -3359,7 +3357,7 @@ define get_cu_info (bdrec, exas, ptr, doml)
   cptr = (unsigned int) cptr + sizeof (*cu);
   while ((unsigned int) cptr < end /*&& cnt < 180*/) {
     cnt++;
-    di = dw_process_die (bdrec, exas, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1, doml);
+    di = dw_process_die (bdrec, exas, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1);
     cptr = listref (di, 1);
     if (isnil (listref (di, 0)))
       continue;
@@ -3388,7 +3386,7 @@ define get_cu_info (bdrec, exas, ptr, doml)
   return [cptr, typetab, symtab, fblist, append (cuscope, subscopelist), ptr ];
 }
 
-define get_all_cu_info (bdrec, exas, doml)
+define get_all_cu_info (bdrec, exas)
 {
   @local cptr, typetabs, symtabs, scopelist, rv, framebaselists;
   @local indom;
@@ -3405,7 +3403,7 @@ define get_all_cu_info (bdrec, exas, doml)
   scopelist = [];
   cptr = {indom}0;
   while (inrange ((unsigned char *)cptr)) {
-    rv = get_cu_info (bdrec, exas, cptr, doml);
+    rv = get_cu_info (bdrec, exas, cptr);
     append (typetabs, listref (rv, 1));
     append (symtabs, listref (rv, 2));
     append (framebaselists, listref (rv, 3));
@@ -3807,7 +3805,7 @@ define dw_print_symbol (indom, v, symtab, typetab)
     printf ("%s\t%a %s", location, tname, name);
 }
 
-define dw_process_range_list (bdrec, ptr, cubase, doml)
+define dw_process_range_list (bdrec, ptr, cubase)
 {
   @local rl, asize, cubaseaddr, cptr, baseaddrflag, sloc, eloc;
   @local isdone, cnt, len, end, rv;
@@ -3876,7 +3874,7 @@ define dw_process_range_list (bdrec, ptr, cubase, doml)
   return rv;
 }
 
-define show_all_range_lists (bdrec, cubase, doml)
+define show_all_range_lists (bdrec, cubase)
 {
   @local cptr, isdone, rl, cnt, i, r;
   @local rangedom;
@@ -3892,7 +3890,7 @@ define show_all_range_lists (bdrec, cubase, doml)
   while (inrange ((`uint8 *)cptr)) {
     cnt++;
     printf ("Address range located at 0x%x (%d):\n", cptr, cptr);
-    rl = dw_process_range_list (bdrec, cptr, cubase, doml);
+    rl = dw_process_range_list (bdrec, cptr, cubase);
     cptr = listref (rl, 1);
     rl = listref (head (rl), 1);
     for (i = 0; i < length (rl); i++) {
@@ -4744,7 +4742,7 @@ define issorted (fnl)
   return 1;
 }
 
-define find_fn_and_cu (bdrec, addr, doml)
+define find_fn_and_cu (bdrec, addr)
 {
   @local pc, arl, ardom, i, ar, abdom, strdom, elfdom, cukey, cu, etab;
   etab = bdrec.cuinfotab;
@@ -4769,7 +4767,7 @@ define find_fn (bdrec, addr, cu)
   return f;
 }
 
-define symloc (symtab, sym, exas, pc, bdrec, doml)
+define symloc (symtab, sym, exas, pc, bdrec)
 {
   @local syment, scope, rv, scl, slplist, slpent, i, j, loc;
   scope = nil;
@@ -4864,7 +4862,7 @@ define symloc (symtab, sym, exas, pc, bdrec, doml)
   return nil;
 }
 
-define make_local_ns (bdrec, exas, pc, doml)
+define make_local_ns (bdrec, exas, pc)
 {
   @local f, cu, lns, ns, ftabs, fstab, ntab, nstab, inscope, rns, cuns;
   @local newlksym, newlktype, newlkaddr, newet, newes;
@@ -4872,7 +4870,7 @@ define make_local_ns (bdrec, exas, pc, doml)
   @local indom;
   indom = bdrec.debug_info;
   nstab = mktab ();
-  cu = find_fn_and_cu (bdrec, pc, doml);
+  cu = find_fn_and_cu (bdrec, pc);
   cuns = listref (cu, 3);
   rns = bdrec.rootns;
   f = find_fn (bdrec, pc, cu);
@@ -4881,7 +4879,7 @@ define make_local_ns (bdrec, exas, pc, doml)
   fstab = listref (ftabs, 1);
   foreach (lambda (k,v){ @local sloc;
       /* make sure that sym's type is in local type table */
-      sloc = symloc (fstab, k, exas, {indom}pc, bdrec, doml);
+      sloc = symloc (fstab, k, exas, {indom}pc, bdrec);
       if (islist (sloc) && listref (sloc, 1) == _dwcqct_addr_type)
 	sloc = listref (sloc, 0);
       if (!isnil (sloc)) {
@@ -5004,7 +5002,7 @@ define print_fbl (fbl)
    last address associated with the source line of the function entry. */
 define skip_prologue (dom, name)
 {
-  @local ns, sym, saddr, cutab, entry, ardom, cuoff, doml, linedom;
+  @local ns, sym, saddr, cutab, entry, ardom, cuoff, linedom;
   @local cuinfo, nextent, i, lim, eindex, esrcline, rv, lastaddr, reset;
   @local bdrec;
   sym = dom.looksym (name);
@@ -5021,14 +5019,13 @@ define skip_prologue (dom, name)
      will need to make sure that any additions of lists for such other
      binaries as shared libraries are appended to this list instead of
      pushed on it. */
-  doml = dom.nsdomlist ();
-  bdrec = listref (doml, 0);
+  bdrec = dom.bdrec();
   ardom = bdrec.debug_aranges;
   linedom = bdrec.debug_line;
-  cuoff = dw_get_lineoff_for_cu (bdrec, {ardom}saddr, doml);
+  cuoff = dw_get_lineoff_for_cu (bdrec, {ardom}saddr);
   if (isnil (cuoff))
     return "no line number info";
-  cuinfo = dw_get_cu_linenumber_info (bdrec, {linedom}cuoff, doml);
+  cuinfo = dw_get_cu_linenumber_info (bdrec, {linedom}cuoff);
   cutab = listref (cuinfo, 5);
   entry = binsrch_lineno (linedom, cutab, {linedom}saddr);
   /* binsrch_lineno returns a pair consisting of an entry and its index
@@ -5095,15 +5092,41 @@ define dumpstack (addr)
   return bt;
 }
 
+define make_local_dom (regset)
+{
+  @local dom, bt, cdom, cns, i, j, pcregno, bdrec;
+  @local fr, lns, las, ldom, lpc, sym, stab, tdom;
+  dom = domof (listref (regset, length (regset) - 1));
+  bdrec = dom.bdrec();
+  pcregno = _dw_pcregnum (dom);
+  lpc = listref (regset, pcregno);
+  las = make_local_as (dom.as, regset);
+  /* This may look crazy, but we need to use the local address space
+     when executing the closures in nscon to calculate the CFA for
+     a particular addr. Once we have the local namespace, we combine
+     it with the local address space to create a local domain for
+     the address. */
+  tdom = mkdom (dom.ns, las);
+  /* clear out any stored ns for this address since it will not have
+     been built with the correct address space */
+  bdrec.nstab[lpc] = nil;
+  lns = tdom.nscon (lpc);
+  if (isnil (lns))
+    return nil;
+  lns = lns.nslocals ();
+  ldom = mkdom (lns, las, sprintfa ("ldom%s", sprintfa ("%a", lns)));
+  return ldom;
+}
+
+
 /* Once we decide how to handle domains
    for libraries as well as primary executables, we can change this function
    to find the right pair */
 define get_context (addr)
 {
-  @local dom, doml, bdrec, i;
+  @local dom, bdrec, i;
   dom = domof (addr);
-  doml = dom.nsdomlist ();
-  bdrec = listref (doml, 0);
+  bdrec = dom.bdrec();
 //   /* possible future code */
 //   doml = dom.nsdomlist (); /* we have to figure out how to append to this
 // 			      list and make it available to each record of
@@ -5111,7 +5134,7 @@ define get_context (addr)
 //   for (i = 0; i < length (doml); i++)
 //     if (addr is in range of binary associated with listref (doml, i))
 //       return listref (doml, i);
-  return [bdrec, doml];
+  return bdrec;
 }
 
 define get_loadbase (bdrec)
@@ -5121,14 +5144,12 @@ define get_loadbase (bdrec)
 
 define unwind (addr)
 {
-  @local exdom, bdrec, doml, bpair, bt, curregs, newregs, pc, pcregno, fp, sp;
+  @local exdom, bdrec, bt, curregs, newregs, pc, pcregno, fp, sp;
   @local i, asize, fdom, exbase, ip, rlist, rvec, cfa;
-  bpair = get_context (addr);
+  bdrec = get_context (addr);
   pc = (`uintptr) addr; /* get rid of any type information. It can get in
 			   the way when casting to DWARF domains for lookup */
   exdom = domof (pc);
-  bdrec = bpair [0];
-  doml = bpair [1];
   bt = [];
   fdom = bdrec.debug_frame;
   asize = bdrec.addrsize;
@@ -5148,7 +5169,7 @@ define unwind (addr)
   append (bt, copy (curregs));
   exbase = get_loadbase (bdrec);
   ip = (unsigned long) {exdom} pc - (unsigned long) {exdom} exbase;
-  rlist = dw_unwind_to_caller (bdrec, ip, doml);
+  rlist = dw_unwind_to_caller (bdrec, ip);
   cfa = 0;
   pcregno = _dw_pcregnum (exdom);
   fp = _dw_fpregnum (exdom);
@@ -5191,24 +5212,20 @@ define unwind (addr)
       listset(curregs, i, listref(newregs, i));
     }
     append (bt, copy (newregs));
-    bpair = get_context (ip);
-    bdrec = bpair [0];
-    doml = bpair [1];
+    bdrec = get_context (ip);
     fdom = bdrec.debug_frame;
     exbase = get_loadbase (bdrec);
     ip = (unsigned int) {exdom} ip - (unsigned int) {exdom} exbase;
-    rlist = dw_unwind_to_caller (bdrec, ip, doml);
+    rlist = dw_unwind_to_caller (bdrec, ip);
   }
   return bt;
 }
 
 define getretaddrloc (addr)
 {
-  @local bpair, bdrec, exdom, i, ip, asize, rlist, rvec, retaddrloc, raregno, cfa, fdom;
+  @local bdrec, exdom, i, ip, asize, rlist, rvec, retaddrloc, raregno, cfa, fdom;
   retaddrloc = nil;
-  bpair = get_context (addr);
-  bdrec = bpair [0];
-  doml = bpair [1];
+  bdrec = get_context (addr);
   exdom = domof (addr);
   fdom = bdrec.debug_frame;
   asize = bdrec.addrsize;
@@ -5218,7 +5235,7 @@ define getretaddrloc (addr)
     raregno = 16;
   exbase = get_loadbase (bdrec);
   ip = (unsigned long) {exdom} addr - (unsigned long) {exdom} exbase;
-  rlist = dw_unwind_to_caller (bdrec, ip, doml);
+  rlist = dw_unwind_to_caller (bdrec, ip);
   rvec = listref (head (rlist), 1);
   for (i = 0; i < length (rvec); i++) {
     @local r, reg, base;
@@ -5338,7 +5355,7 @@ define print_struct (s, dom)
     return;
   fv = fields (stype);
   sloc = {dom}symval (s);
-  printf ("0x%x\t%t\n", sloc, s);
+  printf ("0x%x\t%t {\n", sloc, s);
   foreach (lambda (v) {
       @local ft, foff, p, pft;
       ft = fieldtype (v);
@@ -5378,7 +5395,7 @@ define show_locals (dom)
 define init_debug_domain (binfile)
 {
   @local bdrec, elfas, elfnames, elfheader, tempnames, tempdom, dom, gns;
-  @local indom, tabs, procdoml, i, result, fdom, rns, cptr, rv;
+  @local indom, tabs, i, result, fdom, rns, cptr, rv;
   @local newlooktype, newlooksym, newlookaddr, newenumsym, newenumtype;
   @local stab, ttab, i, gns, nscon, mtab, a2l, uw;
   @local drec, dbeg, dend, dr;
@@ -5414,7 +5431,6 @@ define init_debug_domain (binfile)
   bdrec.nstab = mktab ();
   bdrec.fregtab = mktab ();
   bdrec.addrsize = sizeof (nsptr (dom));
-  procdoml = [bdrec]; /* process-associated dwarf_domain_list */
   indom = bdrec.debug_info;
   fdom = bdrec.debug_frame;
   stab = mktab ();
@@ -5429,7 +5445,7 @@ define init_debug_domain (binfile)
   while (inrange ((unsigned char *)cptr)) {
     @local cutabs;
     @local ctab, cstab;
-    rv = get_cu_info (bdrec, mknas(), cptr, procdoml);
+    rv = get_cu_info (bdrec, mknas(), cptr);
     tabinsert (bdrec.cuinfotab, cptr, rv);
     cutabs = get_function_tables_for_cu (rv, rns, indom, bdrec);
     append (result, cutabs);
@@ -5517,8 +5533,7 @@ define init_debug_domain (binfile)
   tabinsert(mtab, "enumsym", newenumsym);
   tabinsert(mtab, "lookaddr", newlookaddr);
   tabinsert(mtab, "bdrec", lambda (this) {return bdrec;});
-  tabinsert(mtab, "nsdomlist", lambda (this) {return procdoml;});
-  a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr, procdoml);};
+  a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr);};
   tabinsert(mtab, "addr2line", a2l);
   nscon = lambda (this, addr) {
     @local cu, rv, cutabs;
@@ -5531,17 +5546,17 @@ define init_debug_domain (binfile)
     rv = bdrec.nstab [addr];
     if (!isnil (rv))
       return rv;
-    cutabs = find_fn_and_cu (bdrec, (`uintptr)addr, procdoml);
+    cutabs = find_fn_and_cu (bdrec, (`uintptr)addr);
     if (isnil (cutabs)) {
       @local ar, arl, ardom, cuns, cuoff;
       ardom = bdrec.debug_aranges;
       cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
       if (isnil (cuoff))
 	return nil;
-      cu = get_cu_info (bdrec, uas, cuoff, procdoml);
+      cu = get_cu_info (bdrec, uas, cuoff);
       cutabs = get_function_tables_for_cu (cu, rns, indom, bdrec);
     }
-    tns = make_local_ns (bdrec, uas, (`uintptr)addr, procdoml);
+    tns = make_local_ns (bdrec, uas, (`uintptr)addr);
     lnstab = mktab ();
     lt = lambda (this, type) {return tns.looktype (type);};
     ls = lambda (this, sym) {return tns.looksym (sym);};
@@ -5555,8 +5570,7 @@ define init_debug_domain (binfile)
     tabinsert(lnstab, "enumsym", es);
     tabinsert(lnstab, "lookaddr", la);
     tabinsert(lnstab, "nslocals", nsl);
-    tabinsert(lnstab, "nsdomlist", lambda (this) {return procdoml;});
-    a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr, procdoml);};
+    a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr);};
     tabinsert(lnstab, "addr2line", a2l);
     getretaddr = lambda (this) {
       @local asize, rlist, rvec, retaddrloc, raregno, cfa;
@@ -5570,7 +5584,7 @@ define init_debug_domain (binfile)
 	raregno = 8;
       else if (asize == 8)
 	raregno = 16;
-      rlist = dw_unwind_to_caller (bdrec, (unsigned long) addr, procdoml);
+      rlist = dw_unwind_to_caller (bdrec, (unsigned long) addr);
       rvec = listref (head (rlist), 1);
       for (i = 0; i < length (rvec); i++) {
 	@local r, reg, base;
