@@ -1,0 +1,7 @@
+define switchblade(arg){
+   switch(arg){
+       case "kapow":
+           myvar="boom";
+   }
+}
+switchblade("kapow");

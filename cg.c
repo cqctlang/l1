@@ -934,7 +934,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt);
 		break;
 	case Eblock:
-		/* move to block code */
 		b = (Block*)e->xp;
 		for(m = 0; m < b->nloc; m++)
 			if(b->loc[m].box){
@@ -1431,6 +1430,18 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cg(e->e1, code, &np, Effect, L0, prv, L0, tmp);
 		emitlabel(L0, e->e2);
 		
+		/* bit of a hack: guarantee that locals in the switch
+		   block are initialized, replicating the Eblock prologue */
+		if(e->e2->kind == Eblock){
+			b = (Block*)e->e2->xp;
+			for(m = 0; m < b->nloc; m++)
+				if(b->loc[m].box){
+					i = nextinsn(code);
+					i->kind = Ibox0;
+					randvarloc(&i->op1, &b->loc[m], 0);
+				}
+		}
+
 		/* case comparisons (expect form $tmp == v) */
 		for(m = 0; m < np.cases->n; m++){
 			Lthen = np.cases->ctl[m];

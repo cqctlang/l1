@@ -1,0 +1,3 @@
+switch7.l1:4: warning: assignment to unbound variable: myvar
+entry: var params, 1 locals, 0 temps
+switchblade: 1 params, 2 locals, 0 temps
