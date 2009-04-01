@@ -520,6 +520,7 @@ expandaref(U *ctx, Expr *e)
 	/* FIXME: unify with expanddot */
 	switch(e->kind){
 	case Eref:
+	case Edot:
 		if(e->e1->kind == Earef){
 			/* E->E1 must be a lvalue, so don't expand it
 			   (but do expand its children) */
@@ -527,9 +528,6 @@ expandaref(U *ctx, Expr *e)
 			e->e1->e2 = expandaref(ctx, e->e1->e2);
 		}else
 			e->e1 = expandaref(ctx, e->e1);
-		return e;
-	case Edot:
-		e->e1 = expandaref(ctx, e->e1);
 		return e;
 	case Eg:
 		e->e2 = expandaref(ctx, e->e2);
