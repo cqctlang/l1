@@ -1,0 +1,11 @@
+ns = @names c32le {
+	struct X {
+		@0x0 int f;
+		@0x4;
+	};
+	@0x0 struct X x[10];
+};
+as = mksas(mkstr(1024));
+dom = mkdom(ns, as);
+s = dom`x;
+printf("%d\n", s[0].f);
