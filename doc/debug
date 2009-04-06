@@ -269,7 +269,9 @@ In the context of the breakpoint handler, how do we
 - obtain a list of PCs corresponding to the backtrace?
 - translate those PCs into function names and offsets?
 - add source and line numbers to each frame?
-- dump local variables for each frame?
+- read and write local variables for each frame?
+- set a breakpoint on return of any function on stack,
+  including the current one?
 
 We need to write down the code for each of these operations,
 then simplify until we have something resembling a API.
