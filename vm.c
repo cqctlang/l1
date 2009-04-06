@@ -5655,9 +5655,9 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	Imm m, len;
 	Val argv[2];
 
-//	gcprotect(vm, type);
-//	gcprotect(vm, sym);
-//	gcprotect(vm, name);
+	gcprotect(vm, type);
+	gcprotect(vm, sym);
+	gcprotect(vm, name);
 
 	/* create sorted list of symbols with offsets for lookaddr*/
 	vec = tabenum(sym);
@@ -5673,9 +5673,16 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	}
 	argv[0] = mkvallist(ls);
 	argv[1] = mkvalcl(mkcfn("symcmp", symcmp));
-//	gcprotect(vm, argv[0]);
-//	gcprotect(vm, argv[1]);
+	gcprotect(vm, argv[0]);
+	gcprotect(vm, argv[1]);
+
 	l1_sort(vm, 2, argv, &rv);
+
+	gcunprotect(vm, argv[1]);
+	gcunprotect(vm, argv[0]);
+	gcunprotect(vm, name);
+	gcunprotect(vm, sym);
+	gcunprotect(vm, type);
 
 	return mknsfn(mkccl("looktype", stdlooktype, 1, mkvaltab(type)),
 		      mkccl("enumtype", stdenumtype, 1, mkvaltab(type)),
