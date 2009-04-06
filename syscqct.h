@@ -811,6 +811,9 @@ Expr*		gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx);
 /* compilens.c */
 int		docompilens(U *ctx, Expr *e);
 
+/* compilea.c */
+int		docompilea(U *ctx, Expr *e);
+
 /* compile0.c */
 int		docompile0(U *ctx, Expr *e);
 

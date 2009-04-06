@@ -38,6 +38,8 @@ cqctcompile(Expr *e, Toplevel *top, char *argsid)
 	dotypes(&ctx, e);
 	if(docompilens(&ctx, e) != 0)
 		return 0;
+	if(docompilea(&ctx, e) != 0)
+		return 0;
 	if(docompile0(&ctx, e) != 0)
 		return 0;
 	if(docompile1(&ctx, e) != 0)

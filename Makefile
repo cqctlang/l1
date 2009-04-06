@@ -22,6 +22,7 @@ L1C =\
 	xenv.c\
 	cutil.c\
 	compilens.c\
+	compilea.c\
 	compile0.c\
 	compile1.c\
 	compile2.c\
