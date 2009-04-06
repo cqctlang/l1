@@ -5094,11 +5094,10 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 {
 	Xtypename *xtn;
 
-	/* will be garbage; safe across dolooktype
+	/* will be garbage; safe across _dolooktype
 	   because as an argument to looktype it will
 	   be in vm roots */
 	xtn = mkbasextn(cb, Rundef);
-
 	xtn = _dolooktype(vm, xtn, ns);
 	if(xtn == 0)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
@@ -5846,7 +5845,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	}
 
 	ns = mknstypesym(vm, ctx.type, ctx.sym, name);
+	gcprotect(vm, ns);
 	nscachebase(vm, ns);
+	gcunprotect(vm, ns);
 
 	gcunprotect(vm, ctx.osym);
 	gcunprotect(vm, ctx.otype);
@@ -9073,7 +9074,9 @@ l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	mtab = valtab(argv[0]);
 	ns = mknstab(mtab, name);
+	gcprotect(vm, ns);
 	nscachebase(vm, ns);
+	gcunprotect(vm, ns);
 	*rv = mkvalns(ns);
 }
 
