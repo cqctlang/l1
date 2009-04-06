@@ -450,50 +450,6 @@ expandc(U *ctx, Expr *e)
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
-	case Eswitch: /* for cg */
-		/*
-		   switch(E){       { @local $tmp;
-		   case V1:     =>    switch($tmp = E){
-		      ...             case $tmp==V1:
-		   }                      ...
-                                      }
-                                    }
-		*/ 
-		se = Zblock(Zlocals(1, "$tmp"),
-			   newexpr(Eswitch,
-				   Zset(doid("$tmp"), expandc(ctx, e->e1)),
-				   expandc(ctx, e->e2), 0, 0),
-			   NULL);
-		e->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
-	case Ecase:
-		se = newexpr(Ecase,
-			     Zbinop(Eeq, doid("$tmp"), expandc(ctx, e->e1)),
-			     expandc(ctx, e->e2), 0, 0);
-		e->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
-	case Ecomma:
-		se = Zblock(nullelist(),
-			    expandc(ctx, e->e1),
-			    expandc(ctx, e->e2),
-			    NULL);
-		e->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
-	case Econd:
-		se = Zifelse(expandc(ctx, e->e1),
-			     expandc(ctx, e->e2),
-			     expandc(ctx, e->e3));
-		e->e1 = 0;
-		e->e2 = 0;
-		e->e3 = 0;
-		freeexpr(e);
-		return se;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
@@ -846,7 +802,7 @@ isemptyblock(Expr *e)
 static Expr*
 groomc(U *ctx, Expr *e)
 {
-	Expr *p;
+	Expr *p, *se;
 
 	if(e == 0)
 		return e;
@@ -865,6 +821,50 @@ groomc(U *ctx, Expr *e)
 		}else
 			e->e3 = groomc(ctx, e->e3);
 		return e;
+	case Eswitch: /* for cg */
+		/*
+		   switch(E){       { @local $tmp;
+		   case V1:     =>    switch($tmp = E){
+		      ...             case $tmp==V1:
+		   }                      ...
+                                      }
+                                    }
+		*/ 
+		se = Zblock(Zlocals(1, "$tmp"),
+			   newexpr(Eswitch,
+				   Zset(doid("$tmp"), groomc(ctx, e->e1)),
+				   groomc(ctx, e->e2), 0, 0),
+			   NULL);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Ecase:
+		se = newexpr(Ecase,
+			     Zbinop(Eeq, doid("$tmp"), groomc(ctx, e->e1)),
+			     groomc(ctx, e->e2), 0, 0);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Ecomma:
+		se = Zblock(nullelist(),
+			    groomc(ctx, e->e1),
+			    groomc(ctx, e->e2),
+			    NULL);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Econd:
+		se = Zifelse(groomc(ctx, e->e1),
+			     groomc(ctx, e->e2),
+			     groomc(ctx, e->e3));
+		e->e1 = 0;
+		e->e2 = 0;
+		e->e3 = 0;
+		freeexpr(e);
+		return se;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
