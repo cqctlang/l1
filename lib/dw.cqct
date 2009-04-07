@@ -3920,8 +3920,6 @@ define process_frame_base_list (fb)
       if (listref (loc, 1) == _dwcqct_reg_type)
 	return _dw_get_regval (listref (ent, 3), head (loc));
       else if (listref (loc, 1) == _dwcqct_addr_type) {
-	printf ("About to return address 0x%x (%d) in domain %a\n",
-		head (loc), head (loc), listref (ent, 3));
 	return {listref (ent, 3)}head (loc);
       }
       else
@@ -4008,55 +4006,6 @@ define get_frame_base_from_pc (bdrec, exas)
     printf ("unexpected eval return val of %a\n", rv);
     return 0;
   }
-}
-
-define getloc (exas, symbol, stab, pc)
-{
-  @local rv, loc, loclist, ent, gloc, fb, i;
-  gloc = [];
-  ent = tablook (stab, symbol);
-  if (isnil (ent))
-    return [];
-  loclist = listref (ent, 2);
-  if (isnil (loclist) || isempty (loclist))
-    return [];
-  if (length (loclist) == 1 && !islist (listref (loclist, 0)))
-    return [ listref (loclist, 0), _dwcqct_addr_type ];
-  for (i = 0; i < length (loclist); i++) {
-    loc = listref (loclist, i);
-    if (!islist (loc)) {
-      gloc = [ loc, _dwcqct_addr_type ];
-    }
-    else {
-      if (listref (loc, 0) <= pc && pc < listref (loc, 1)) {
-	rv = listref (loc, 2)();
-	if (listref (rv, 1) == _dwcqct_addr_type
-	    || listref (rv, 1) == _dwcqct_reg_type)
-	  return rv;
-	else {
-	  printf ("unexpected eval return type in %a\n", rv);
-	  return [];
-	}
-      }
-    }
-  }
-  if (!islist (gloc))
-    printf ("gloc is %a\n", gloc);
-    return gloc;
-}
-
-define getval (exas, symbol, stab, pc)
-{
-  @local rv, loc, loclist, ent, gloc, fb;
-  loc = getloc (exas, symbol, stab, pc);
-  if (isempty (loc))
-    return nil;
-  else if (listref (loc, 1) == _dwcqct_addr_type)
-    return *(int *){exdom}listref (loc, 0);
-  else if (listref (loc, 1) == _dwcqct_reg_type)
-    return _dw_get_regval (exas, head (loc));
-  else
-    return nil;
 }
 
 define dwtype2ctype (rns, ddom, dt, stab, ttab, cqtab, def)
@@ -5056,6 +5005,7 @@ define skip_prologue (dom, name)
   }
   return rv;
 }
+
 define dumpstack (addr)
 {
   @local dom, gns, bt, cdom, cns, i, j, pcregno, bdrec;
@@ -5063,11 +5013,14 @@ define dumpstack (addr)
   bdrec = dom.bdrec();
   addr = (`uintptr) addr;
   pcregno = _dw_pcregnum (dom);
-  bt = unwind (addr);
+  bt = unwindregloc (addr, lambda (v) {return v;});
   for (i = 0; i < length (bt); i++) {
     @local fr, lns, las, ldom, lpc, sym, stab, tdom;
     fr = listref (bt, i);
-    lpc = listref (fr, pcregno);
+    if (isnil (listref (fr, pcregno)))
+      lpc = _dw_get_regval (dom, pcregno);
+    else
+      lpc = *(`uintptr *)listref (fr, pcregno);
     las = make_local_as (dom.as, fr);
     /* This may look crazy, but we need to use the local address space
        when executing the closures in nscon to calculate the CFA for
@@ -5092,14 +5045,20 @@ define dumpstack (addr)
   return bt;
 }
 
-define make_local_dom (regset)
+define make_local_dom (exdom, regset)
 {
   @local dom, bt, cdom, cns, i, j, pcregno, bdrec;
   @local fr, lns, las, ldom, lpc, sym, stab, tdom;
-  dom = domof (listref (regset, length (regset) - 1));
+  if (isnil (listref (regset, length (regset) - 1)))
+    dom = exdom;
+  else
+    dom = domof (listref (regset, length (regset) - 1));
   bdrec = dom.bdrec();
   pcregno = _dw_pcregnum (dom);
-  lpc = listref (regset, pcregno);
+  if (isnil (listref (regset, pcregno)))
+    lpc = _dw_get_regval (dom, pcregno);
+  else
+    lpc = *(`uintptr *)(listref (regset, pcregno));
   las = make_local_as (dom.as, regset);
   /* This may look crazy, but we need to use the local address space
      when executing the closures in nscon to calculate the CFA for
@@ -5144,8 +5103,27 @@ define get_loadbase (bdrec)
 
 define unwind (addr)
 {
+  @local fn;
+  fn = lambda (reglocset) {
+    @local dom, pcregno;
+    @local i, mset;
+    dom = domof (addr);
+    pcregno = _dw_pcregnum (dom);
+    mset = map (lambda (v) {if (isnil (v[pcregno]))
+	  return (`uintptr) addr;
+	else
+	  return *(`uintptr *)(v[pcregno]);},
+      reglocset);
+    return mset;
+  };
+  return unwindregloc (addr, fn);
+}
+
+define unwindregloc (addr, harvester)
+{
   @local exdom, bdrec, bt, curregs, newregs, pc, pcregno, fp, sp;
-  @local i, asize, fdom, exbase, ip, rlist, rvec, cfa;
+  @local i, asize, fdom, exbase, ip, rlist, rvec, cfa, reglocs;
+  @local retval;
   bdrec = get_context (addr);
   pc = (`uintptr) addr; /* get rid of any type information. It can get in
 			   the way when casting to DWARF domains for lookup */
@@ -5156,17 +5134,20 @@ define unwind (addr)
   if (asize == 4) {
     curregs = mklist (9);
     newregs = mklist (9);
+    reglocs = mklist (9);
   }
   else if (asize == 8) {
     curregs = mklist (17);
     newregs = mklist (17);
+    reglocs = mklist (17);
   }
   listset (curregs, 0, {exdom}0);
   for (i = 1; i < length (curregs); i++) {
     listset (curregs, i, _dw_get_regval (exdom, i));
   }
   newregs = copy (curregs);
-  append (bt, copy (curregs));
+  append (bt, copy (reglocs)); /* all nils since the regs themselves are
+				  the locations for the current frame */
   exbase = get_loadbase (bdrec);
   ip = (unsigned long) {exdom} pc - (unsigned long) {exdom} exbase;
   rlist = dw_unwind_to_caller (bdrec, ip);
@@ -5188,6 +5169,8 @@ define unwind (addr)
 	base = {exdom} (listref (curregs, listref (r, 1)));
 	cfa = (unsigned long) ({exdom} (base + listref (r, 2)));
 	listset (newregs, 0, cfa);
+	/* leave regloc[0] nil so that we'll always get register 0
+	   for register 0 */
 	/* If there is no rule for the stack pointer, then we assume
 	   that the function has no frame pointer and that the DWARF
 	   producer is expecting the consumer to use the Canonical
@@ -5200,25 +5183,27 @@ define unwind (addr)
 	   cfa so that further unwinds work. */
 	if (isnil (listref (rvec, sp))) {
 	  listset (newregs, sp, cfa);
+	  listset (reglocs, sp, nil);
 	}
       }
       else {
 	listset (newregs, reg,
 		 *((`uintptr *) ({exdom}(cfa + listref (r,2)))));
+	listset (reglocs, reg, ((`uintptr *) ({exdom}(cfa + listref (r,2)))));
       }
     }
     ip = listref (newregs, pcregno);
     for (i = 0; i < length (curregs); i++) {
       listset(curregs, i, listref(newregs, i));
     }
-    append (bt, copy (newregs));
+    append (bt, copy (reglocs));
     bdrec = get_context (ip);
     fdom = bdrec.debug_frame;
     exbase = get_loadbase (bdrec);
     ip = (unsigned int) {exdom} ip - (unsigned int) {exdom} exbase;
     rlist = dw_unwind_to_caller (bdrec, ip);
   }
-  return bt;
+  return harvester (bt);
 }
 
 define getretaddrloc (addr)
@@ -5270,40 +5255,62 @@ define setretaddr (addr, newaddr)
   return val;
 }
 
+/* regset is a set of locations for register values. If regset[i] is
+   nil, then the register value is in the register itself */
 define make_local_as (ras, regset)
 {
-  @local ldis, mtab;
+  @local ldis, mtab, dom, lpc, pcregno;
+  @local i;
+  dom = nil;
+  for (i = 0; i < length (regset); i++)
+    if (!isnil (regset [i])) {
+      dom = domof (regset[i]);
+      break;
+    }
+  if (isnil (dom))
+    dom = mkdom (clp64le, ras);
+  pcregno = _dw_pcregnum (dom);
+  if (isnil (regset [pcregno])) {
+    lpc = _dw_get_regval (dom, pcregno);
+  }
+  else
+    lpc = *(`uintptr *)(regset[pcregno]);
   mtab = mktab ();
   define ldis args {
     @local cmd, regno;
     cmd = listref(args, 1);
     regno = _dw_map_getfun_to_regnum (cmd);
-    if (regno == -1 || regno > length (regset)
-	|| isnil (listref (regset, regno))) {
-      pop (args);
-      printf ("calling dispatch with args %a\n", args);
-      return (apply (ras.dispatch, args));
+    if (0 <= regno && regno < length (regset)
+	&& !isnil (listref (regset, regno))) {
+      return *(`uintptr *) (listref (regset, regno));
     }
-    else
-      return listref (regset, regno);
+    regno = _dw_map_setfun_to_regnum (cmd);
+    if (0 <= regno && regno < length (regset)
+	&& !isnil (listref (regset, regno))) {
+      *(`uintptr *) (listref (regset, regno)) = listref (args, 2);
+      return *(`uintptr *) (listref (regset, regno));
+    }
+    pop (args);
+    pop (args);
+    return (callmethod (ras, cmd, args));
   }
   define lget args{
     pop (args);
-    return (apply (ras.get, args));
+    return callmethod (ras, "get", args);
   }
   define lput args {
     pop (args);
-    return (apply (ras.put, args));
+    return callmethod (ras, "put", args);
   }
   define lmap args {
     pop (args);
-    return (apply (ras.map, args));
+    return callmethod (ras, "map", args);
   }
   tabinsert (mtab, "get", lget);
   tabinsert (mtab, "put", lput);
   tabinsert (mtab, "map", lmap);
   tabinsert (mtab, "dispatch", ldis);
-  return mkas (mtab);
+  return mkas (mtab, sprintfa ("las0x%x", lpc));
 }
 
 define print_obj (obj, dom)
