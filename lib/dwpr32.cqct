@@ -27,11 +27,6 @@ define _dw_get_regval (exdom, regno)
   return 0;
 }
 
-// define _dw_get_fp (exdom)
-// {
-//   return exdom.getebp ();
-// }
-
 define _dw_fpregnum (exdom)
 {
   return 5;
@@ -40,6 +35,11 @@ define _dw_fpregnum (exdom)
 define _dw_spregnum (exdom)
 {
   return 4;
+}
+
+define _dw_pcregnum (exdom)
+{
+  return 8;
 }
 
 define dumpregs (exdom)
@@ -56,3 +56,33 @@ define dumpregs (exdom)
   printf ("reg 7 = 0x%x (%d)\n", exdom.getedi(), exdom.getedi());
   printf ("reg 8 = 0x%x (%d)\n", exdom.geteip(), exdom.geteip());
 }
+
+_dw_map_getfun_to_regnum = {
+    "geteax" : 0,
+    "getedx" : 1,
+    "getecx" : 2,
+    "getebx" : 3,
+    "getesi" : 4,
+    "getedi" : 5,
+    "getebp" : 6,
+    "getesp" : 7,
+    "geteip" : 8
+};
+
+_dw_getfun = vector ("geteax", "getedx", "getecx", "getebx", "getesi",
+		     "getedi", "getebp", "getesp", "geteip");
+
+_dw_map_setfun_to_regnum = {
+    "seteax" : 0,
+    "setedx" : 1,
+    "setecx" : 2,
+    "setebx" : 3,
+    "setesi" : 4,
+    "setedi" : 5,
+    "setebp" : 6,
+    "setesp" : 7,
+    "seteip" : 8
+};
+
+_dw_setfun = vector ("seteax", "setedx", "setecx", "setebx", "setesi",
+		     "setedi", "setebp", "setesp", "seteip");

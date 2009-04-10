@@ -5279,13 +5279,15 @@ define make_local_as (ras, regset)
   define ldis args {
     @local cmd, regno;
     cmd = listref(args, 1);
-    regno = _dw_map_getfun_to_regnum (cmd);
-    if (0 <= regno && regno < length (regset)
+    regno = _dw_map_getfun_to_regnum [cmd];
+    if (!isnil (regno)
+	&& 0 <= regno && regno < length (regset)
 	&& !isnil (listref (regset, regno))) {
       return *(`uintptr *) (listref (regset, regno));
     }
-    regno = _dw_map_setfun_to_regnum (cmd);
-    if (0 <= regno && regno < length (regset)
+    regno = _dw_map_setfun_to_regnum [cmd];
+    if (!isnil (regno)
+	&& 0 <= regno && regno < length (regset)
 	&& !isnil (listref (regset, regno))) {
       *(`uintptr *) (listref (regset, regno)) = listref (args, 2);
       return *(`uintptr *) (listref (regset, regno));

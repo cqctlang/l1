@@ -79,97 +79,52 @@ define dumpregs (exdom)
   printf ("reg 16 = 0x%x (%d)\n", exdom.getrip(),exdom.getrip());
 }
 
-define _dw_map_getfun_to_regnum (str)
-{
-  if (str == "getrax")
-    return 0;
-  else if (str == "getrdx")
-    return 1;
-  else if (str == "getrcx")
-    return 2;
-  else if (str == "getrbx")
-    return 3;
-  else if (str == "getrsi")
-    return 4;
-  else if (str == "getrdi")
-    return 5;
-  else if (str == "getrbp")
-    return 6;
-  else if (str == "getrsp")
-    return 7;
-  else if (str == "getr8")
-    return 8;
-  else if (str == "getr9")
-    return 9;
-  else if (str == "getr10")
-    return 10;
-  else if (str == "getr11")
-    return 11;
-  else if (str == "getr11")
-    return 11;
-  else if (str == "getr12")
-    return 12;
-  else if (str == "getr13")
-    return 13;
-  else if (str == "getr14")
-    return 14;
-  else if (str == "getr15")
-    return 15;
-  else if (str == "getrip")
-    return 16;
-  else
-    return -1;
-}
+_dw_map_getfun_to_regnum = {
+    "getrax" : 0,
+    "getrdx" : 1,
+    "getrcx" : 2,
+    "getrbx" : 3,
+    "getrsi" : 4,
+    "getrdi" : 5,
+    "getrbp" : 6,
+    "getrsp" : 7,
+    "getr8"  : 8,
+    "getr9"  : 9,
+    "getr10" : 10,
+    "getr11" : 11,
+    "getr12" : 12,
+    "getr13" : 13,
+    "getr14" : 14,
+    "getr15" : 15,
+    "getrip" : 16
+};
 
 _dw_getfun = vector ("getrax", "getrdx", "getrcx", "getrbx", "getrsi",
 		     "getrdi", "getrbp", "getrsp", "getr8", "getr9",
 		     "getr10", "getr11", "getr11", "getr12", "getr13",
 		     "getr14", "getr15", "getrip");
  
-define _dw_map_setfun_to_regnum (str)
-{
-  if (str == "setrax")
-    return 0;
-  else if (str == "setrdx")
-    return 1;
-  else if (str == "setrcx")
-    return 2;
-  else if (str == "setrbx")
-    return 3;
-  else if (str == "setrsi")
-    return 4;
-  else if (str == "setrdi")
-    return 5;
-  else if (str == "setrbp")
-    return 6;
-  else if (str == "setrsp")
-    return 7;
-  else if (str == "setr8")
-    return 8;
-  else if (str == "setr9")
-    return 9;
-  else if (str == "setr10")
-    return 10;
-  else if (str == "setr11")
-    return 11;
-  else if (str == "setr11")
-    return 11;
-  else if (str == "setr12")
-    return 12;
-  else if (str == "setr13")
-    return 13;
-  else if (str == "setr14")
-    return 14;
-  else if (str == "setr15")
-    return 15;
-  else if (str == "setrip")
-    return 16;
-  else
-    return -1;
-}
+_dw_map_setfun_to_regnum = {
+    "setrax" : 0,
+    "setrdx" : 1,
+    "setrcx" : 2,
+    "setrbx" : 3,
+    "setrsi" : 4,
+    "setrdi" : 5,
+    "setrbp" : 6,
+    "setrsp" : 7,
+    "setr8"  : 8,
+    "setr9"  : 9,
+    "setr10" : 10,
+    "setr11" : 11,
+    "setr12" : 12,
+    "setr13" : 13,
+    "setr14" : 14,
+    "setr15" : 15,
+    "setrip" : 16
+}; 
 
 _dw_setfun = vector ("setrax", "setrdx", "setrcx", "setrbx", "setrsi",
 		     "setrdi", "setrbp", "setrsp", "setr8", "setr9",
 		     "setr10", "setr11", "setr11", "setr12", "setr13",
 		     "setr14", "setr15", "setrip");
- 
