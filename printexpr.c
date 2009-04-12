@@ -277,6 +277,12 @@ printcqct0(Expr *e, unsigned ni)
 		return;
 
 	switch(e->kind){
+	case Ecast:
+		xprintf("(");
+		printdecl((Decl*)e->e1->xp);
+		xprintf(")");
+		printcqct0(e->e2, ni);
+		break;
 	case Etick:
 		printcqct0(e->e1, ni);
 		xprintf("`");
@@ -357,6 +363,11 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(" = ");
 		printcqct0(e->e2, ni);
 		break;
+	case Egop:
+		printcqct0(e->e1, ni);
+		xprintf(" %s= ", opstr(e->op));
+		printcqct0(e->e2, ni);
+		break;
 	case Euminus:
 	case Eunot:
 	case Euplus:
@@ -421,9 +432,8 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(")");
 		break;
 	case Ederef:
-		xprintf("*(");
+		xprintf("*");
 		printcqct0(e->e1, ni);
-		xprintf(")");
 		break;
 	case Earef:
 		xprintf("(");

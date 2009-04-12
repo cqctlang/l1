@@ -2,184 +2,529 @@
 #include "util.h"
 #include "syscqct.h"
 
-static int
-islval(Expr *e)
+typedef
+enum Attr {
+	Alval		= 1,
+	Aptr		= Alval<<1,
+	Anotlval 	= Aptr<<1
+} Attr;
+
+static Expr* expanda(U *ctx, Expr *e, unsigned d, unsigned *w);
+
+static Attr 
+islval(Expr *e, Expr **a)
 {
+	int x;
 	switch(e->kind){
 	case Etick:
-		return 1;
+		return Alval;
 	case Ederef:
-		return 1;
+		return Alval;
+	case Earef:
+		/* FIXME: check both operands? eg for e1[dom`x] and e1[x]. */
+		x = islval(e->e1, a);
+		if(x == Aptr)
+			return Alval;
+		if(x)
+			return x;
+		if(*a)
+			return 0;
+		*a = e;
+		return 0;
 	case Ecast:
-		return islval(e->e2);
+		return islval(e->e2, a);
+	case Earrow:
 	case Edot:
-		return islval(e->e1);
+		x = islval(e->e1, a);
+		if(x == Aptr)
+			return Alval;
+		return x;
 	default:
+		if(e->attr&Aptr)
+			return Aptr;
+		if(e->attr&Anotlval){
+			*a = 0;
+			return 0;
+		}
+		/* we need to know the run-time *value* of E */
+		*a = e;
 		return 0;
 	}
 }
 
 static Expr*
-expandaref(U *ctx, Expr *e)
+Zap(Expr *e, char *id)
 {
-	Expr *p, *te, *a, *i;
+	Expr *ne;
 
-	if(e == 0)
-		return e;
-	/* FIXME: unify with expanddot */
+	ne = newexpr(0, 0, 0, 0, 0);
+	*ne = *e;
+
+	e->kind = Eid;
+	e->id = xstrdup(id);
+	e->e1 = 0;
+	e->e2 = 0;
+	e->e3 = 0;
+	e->e4 = 0;
+
+	return ne;
+}
+
+/* assignment to c lvalue */
+static Expr*
+cassign(U *ctx, Expr *e, unsigned d, unsigned *w)
+{
+	e->e1->e1 = expanda(ctx, e->e1->e1, d, w);
+	e->e1->e2 = expanda(ctx, e->e1->e2, d, w);
+	e->e2 = expanda(ctx, e->e2, d, w);
+	return e;
+}
+
+/* disambiguate [] or . expression  */
+static Expr*
+disambig(U *ctx, Expr *a, Expr *e, unsigned d)
+{
+	char t[8];
+	Expr *p, *te, *ye, *ne, *xe;
+	unsigned w;
+
+	w = 0;
+	snprintf(t, sizeof(t), "$t%u", d);
+	p = expanda(ctx, Zap(a, t), d+1, 0);
+	a->attr = Aptr;
+	xe = copyexpr(e);
+	ye = expanda(ctx, xe, d+1, &w);
+	if(w){
+		freeexpr(ye);
+		ye = Zcall(doid("%error"), 1,
+			   Zconsts("cannot apply dot to a cvalue"));
+	}
+	a->attr = Anotlval;
+	xe = copyexpr(e);
+	ne = expanda(ctx, xe, d+1, 0);
+	if(ne == 0)
+		fatal("bug");
+	
+	te = Zblock(Zlocals(1, t),
+		    Zset(doid(t), p),
+		    Zifelse(Zcall(doid("%iscvalue"), 1,
+				  doid(t)),
+			    ye, ne),
+		    NULL);
+	putsrc(te, &e->src);
+	freeexpr(e);
+	return te;
+}
+
+static Expr*
+expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
+{
+	Expr *a, *te;
+	
+	/* recognize:
+	   e1[e2]
+	   e1[e2] = e3
+	   e1[e2] ?= e3
+	   (e1[e2])++, (e1[e2])--, ++(e1[e2]), --(e1[e2])
+	*/
 	switch(e->kind){
-	case Eref:
-	case Edot:
-		if(e->e1->kind == Earef){
-			/* E->E1 must be a lvalue, so don't expand it
-			   (but do expand its children) */
-			e->e1->e1 = expandaref(ctx, e->e1->e1);
-			e->e1->e2 = expandaref(ctx, e->e1->e2);
-		}else
-			e->e1 = expandaref(ctx, e->e1);
-		return e;
-	case Eg:
-		e->e2 = expandaref(ctx, e->e2);
-		if(e->e1->kind != Earef)
+	case Earef:
+		if(islval(e->e1, &a)){
+			/* either lval or ptr; C aref */
+			e->e1 = expanda(ctx, e->e1, d, w);
+			e->e2 = expanda(ctx, e->e2, d, w);
 			return e;
-		e->e1->e2 = expandaref(ctx, e->e1->e2);
-		if(islval(e->e1->e1))
-			return e;
-		a = expandaref(ctx, e->e1->e1);
-		i = e->e1->e2;
-		e->e1->e1 = doid("$a");
-		e->e1->e2 = doid("$i");
-		te = Zblock(Zlocals(2, "$a", "$i"),
-			    Zset(doid("$a"), a),
-			    Zset(doid("$i"), i),
-			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
-				    e,
-				    Zcall(doid("%cntrput"), 3,
-					  doid("$a"),
-					  doid("$i"),
-					  copyexpr(e->e2))),
-			    NULL);
+		}else if(a)
+			return disambig(ctx, a, e, d);
+		/* definitely a container ref */
+		te = Zcall(doid("%cntrget"), 2,
+			   expanda(ctx, e->e1, d, w),
+			   expanda(ctx, e->e2, d, w));
 		putsrc(te, &e->src);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return te;
+	case Eg:
+		if(e->e1->kind != Earef)
+			fatal("bug");
+		if(islval(e->e1->e1, &a))
+			return cassign(ctx, e, d, w);
+		else if(a)
+			return disambig(ctx, a, e, d);
+		te = Zcall(doid("%cntrput"), 3,
+			   expanda(ctx, e->e1->e1, d, w),
+			   expanda(ctx, e->e1->e2, d, w),
+			   expanda(ctx, e->e2, d, w));
+		putsrc(te, &e->src);
+		e->e1->e1 = 0;
+		e->e1->e2 = 0;
+		e->e2 = 0;
+		freeexpr(e);
 		return te;
 	case Egop:
-		e->e2 = expandaref(ctx, e->e2);
 		if(e->e1->kind != Earef)
-			return e;
-		e->e1->e2 = expandaref(ctx, e->e1->e2);
-		if(islval(e->e1->e1))
-			return e;
-		a = expandaref(ctx, e->e1->e1);
-		i = e->e1->e2;
-		e->e1->e1 = doid("$a");
-		e->e1->e2 = doid("$i");
+			fatal("bug");
+		if(islval(e->e1->e1, &a))
+			return cassign(ctx, e, d, w);
+		else if(a)
+			return disambig(ctx, a, e, d);
 		te = Zblock(Zlocals(2, "$a", "$i"),
-			    Zset(doid("$a"), a),
-			    Zset(doid("$i"), i),
-			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
-				    e,
-				    Zcall(doid("%cntrput"), 3,
-					  doid("$a"),
-					  doid("$i"),
-					  Zbinop(e->op,
-						 Zcall(doid("%cntrget"), 2,
-						       doid("$a"), doid("$i")),
-						 copyexpr(e->e2)))),
+			    Zset(doid("$a"),
+				 expanda(ctx, e->e1->e1, d, w)),
+			    Zset(doid("$i"),
+				 expanda(ctx, e->e1->e2, d, w)),
+			    Zcall(doid("%cntrput"), 3,
+				  doid("$a"),
+				  doid("$i"),
+				  Zbinop(e->op,
+					 Zcall(doid("%cntrget"), 2,
+					       doid("$a"), doid("$i")),
+					 expanda(ctx, e->e2, d, w))),
 			    NULL);
 		putsrc(te, &e->src);
+		e->e1->e1 = 0;
+		e->e1->e2 = 0;
+		e->e2 = 0;
+		freeexpr(e);
 		return te;
 	case Epreinc:
 	case Epredec:
 		if(e->e1->kind != Earef)
-			return e;
-		e->e1->e2 = expandaref(ctx, e->e1->e2);
-		if(islval(e->e1->e1))
-			return e;
-		a = expandaref(ctx, e->e1->e1);
-		i = e->e1->e2;
-		e->e1->e1 = doid("$a");
-		e->e1->e2 = doid("$i");
+			fatal("bug");
+		if(islval(e->e1->e1, &a))
+			return cassign(ctx, e, d, w);
+		else if(a)
+			return disambig(ctx, a, e, d);
 		te = Zblock(Zlocals(2, "$a", "$i"),
-			    Zset(doid("$a"), a),
-			    Zset(doid("$i"), i),
-			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
-				    e,
-				    Zcall(doid("%cntrput"), 3,
-					  doid("$a"),
-					  doid("$i"),
-					  Zbinop(e->kind == Epreinc ?
-						 Eadd : Esub,
-						 Zcall(doid("%cntrget"), 2,
-						       doid("$a"), doid("$i")),
-						 Zuint(1)))),
+			    Zset(doid("$a"),
+				 expanda(ctx, e->e1->e1, d, w)),
+			    Zset(doid("$i"),
+				 expanda(ctx, e->e1->e2, d, w)),
+			    Zcall(doid("%cntrput"), 3,
+				  doid("$a"),
+				  doid("$i"),
+				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
+					 Zcall(doid("%cntrget"), 2,
+					       doid("$a"), doid("$i")),
+					 Zuint(1))),
 			    NULL);
 		putsrc(te, &e->src);
+		e->e1->e1 = 0;
+		e->e1->e2 = 0;
+		e->e2 = 0;
+		freeexpr(e);
 		return te;
 	case Epostinc:
 	case Epostdec:
 		if(e->e1->kind != Earef)
-			return e;
-		e->e1->e2 = expandaref(ctx, e->e1->e2);
-		if(islval(e->e1->e1))
-			return e;
-		a = expandaref(ctx, e->e1->e1);
-		i = e->e1->e2;
-		e->e1->e1 = doid("$a");
-		e->e1->e2 = doid("$i");
-		te = Zblock(Zlocals(2, "$a", "$i"),
-			    Zset(doid("$a"), a),
-			    Zset(doid("$i"), i),
-			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
-				    e,
-				    Zblock(Zlocals(1, "$l"),
-					   Zset(doid("$l"),
-						Zcall(doid("%cntrget"), 2,
-						      doid("$a"), doid("$i"))),
-					   Zcall(doid("%cntrput"), 3,
-						 doid("$a"),
-						 doid("$i"),
-						 Zbinop(e->kind == Epostinc ?
-							Eadd : Esub,
-							doid("$l"),
-							Zuint(1))),
-					   doid("$l"),
-					   NULL)),
+			fatal("bug");
+		if(islval(e->e1->e1, &a))
+			return cassign(ctx, e, d, w);
+		else if(a)
+			return disambig(ctx, a, e, d);
+		te = Zblock(Zlocals(3, "$a", "$i", "$l"),
+			    Zset(doid("$a"),
+				 expanda(ctx, e->e1->e1, d, w)),
+			    Zset(doid("$i"),
+				 expanda(ctx, e->e1->e2, d, w)),
+			    Zset(doid("$l"),
+				 Zcall(doid("%cntrget"), 2,
+				       doid("$a"), doid("$i"))),
+			    Zcall(doid("%cntrput"), 3,
+				  doid("$a"),
+				  doid("$i"),
+				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
+					 doid("$l"), Zuint(1))),
+			    doid("$l"),
 			    NULL);
 		putsrc(te, &e->src);
+		e->e1->e1 = 0;
+		e->e1->e2 = 0;
+		freeexpr(e);
 		return te;
+	default:
+		fatal("bug");
+	}
+}
+
+static Expr*
+expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
+{
+	Expr *a, *o, *se, *te;
+	char *id;
+	Attr x;
+
+	/* recognize:
+	   e1.f
+	   e1.f = e3
+	   e1.f ?= e3
+	   (e1.f)++, (e1.f)--, ++(e1.f), --(e1.f)
+	*/
+	switch(e->kind){
+	case Edot:
+		x = islval(e->e1, &a);
+		if(x == Alval){
+			/* definitely an lval; C dot */
+			e->e1 = expanda(ctx, e->e1, d, w);
+			return e;
+		}
+		if(x == Aptr){
+			freeexpr(e);
+			if(w == 0)
+				fatal("bug");
+			*w = 1;
+			return Zcall(doid("%error"), 1,
+				     Zconsts("cannot apply dot to a cvalue"));
+		}
+		if(a)
+			return disambig(ctx, a, e, d);
+
+		id = e->e2->id; 
+		o = Zset(doid("$o"), expanda(ctx, e->e1, d, w));
+
+		/* record accessor case */
+		se = Zcall(Zcall(doid("%tablook"), 2,
+				 Zcall(doid("%rdgettab"), 1,
+				       Zcall(doid("%recrd"), 1, doid("$o"))),
+				 Zconsts(id)),
+			   1, doid("$o"));
+
+		/* cval/as/ns/dom case */
+		if(!strcmp(id, "ns"))
+			te = Zcall(doid("%nsof"), 1, doid("$o"));
+		else if(!strcmp(id, "as"))
+			te = Zcall(doid("%asof"), 1, doid("$o"));
+		else
+			te = Zlambdn(doid("$args"),
+				     Zret(Zcall(doid("%callmethod"),
+						3,
+						doid("$o"),
+						Zconsts(id),
+						doid("$args"))),
+				     copyexpr(e->e2));
+
+		te = Zblock(Zlocals(1, "$o"),
+			    Zifelse(Zcall(doid("%isrec"), 1, o), se, te),
+			    NULL);
+		e->e1 = 0;
+		freeexpr(e);
+		return te;
+	case Eg:
+		if(e->e1->kind != Edot)
+			fatal("bug");
+		x = islval(e->e1->e1, &a);
+		if(x == Alval)
+			return cassign(ctx, e, d, w);
+		if(x == Aptr){
+			freeexpr(e);
+			if(w == 0)
+				fatal("bug");
+			*w = 1;
+			return Zcall(doid("%error"), 1,
+				     Zconsts("cannot apply dot to a cvalue"));
+		}
+		if(a)
+			return disambig(ctx, a, e, d);
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(1, "$o"),
+			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"), 1,
+					      Zcall(doid("%recrd"), 1,
+						    doid("$o"))),
+					Zconsts(id)), 2,
+				  doid("$o"), expanda(ctx, e->e2, d, w)),
+			    NULL);
+		e->e1->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return te;
+	case Egop:
+		if(e->e1->kind != Edot)
+			fatal("bug");
+		x = islval(e->e1->e1, &a);
+		if(x == Alval)
+			return cassign(ctx, e, d, w);
+		if(x == Aptr){
+			freeexpr(e);
+			if(w == 0)
+				fatal("bug");
+			*w = 1;
+			return Zcall(doid("%error"), 1,
+				     Zconsts("cannot apply dot to a cvalue"));
+		}
+		if(a)
+			return disambig(ctx, a, e, d);
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(2, "$o", "$rd"),
+			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
+			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
+						    doid("$o"))),
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"),
+					      1, doid("$rd")),
+					Zconsts(id)), 2,
+				  doid("$o"),
+				  Zbinop(e->op,
+					 Zcall(Zcall(doid("%tablook"), 2,
+						     Zcall(doid("%rdgettab"),
+							   1, doid("$rd")),
+						     Zconsts(id)), 1,
+					       doid("$o")),
+					 expanda(ctx, e->e2, d, w))),
+			    NULL);
+		e->e1->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return te;
+	case Epreinc:
+	case Epredec:
+		if(e->e1->kind != Edot)
+			fatal("bug");
+		x = islval(e->e1->e1, &a);
+		if(x == Alval)
+			return cassign(ctx, e, d, w);
+		if(x == Aptr){
+			freeexpr(e);
+			if(w == 0)
+				fatal("bug");
+			*w = 1;
+			return Zcall(doid("%error"), 1,
+				     Zconsts("cannot apply dot to a cvalue"));
+		}
+		if(a)
+			return disambig(ctx, a, e, d);
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(2, "$o", "$rd"),
+			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
+			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
+						    doid("$o"))),
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"),
+					      1, doid("$rd")),
+					Zconsts(id)), 2,
+				  doid("$o"),
+				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
+					 Zcall(Zcall(doid("%tablook"), 2,
+						     Zcall(doid("%rdgettab"),
+							   1, doid("$rd")),
+						     Zconsts(id)), 1,
+					       doid("$o")),
+					 Zuint(1))),
+			    NULL);
+		e->e1->e1 = 0;
+		freeexpr(e);
+		return te;
+	case Epostinc:
+	case Epostdec:
+		if(e->e1->kind != Edot)
+			fatal("bug");
+		x = islval(e->e1->e1, &a);
+		if(x == Alval)
+			return cassign(ctx, e, d, w);
+		if(x == Aptr){
+			freeexpr(e);
+			if(w == 0)
+				fatal("bug");
+			*w = 1;
+			return Zcall(doid("%error"), 1,
+				     Zconsts("cannot apply dot to a cvalue"));
+		}
+		if(a)
+			return disambig(ctx, a, e, d);
+		id = e->e1->e2->id;
+		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
+			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
+			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
+						    doid("$o"))),
+			    Zset(doid("$l"),
+				 Zcall(Zcall(doid("%tablook"), 2,
+					     Zcall(doid("%rdgettab"), 1,
+						   doid("$rd")),
+					     Zconsts(id)), 1,
+				       doid("$o"))),
+			    Zcall(Zcall(doid("%tablook"), 2,
+					Zcall(doid("%rdsettab"),
+					      1, doid("$rd")),
+					Zconsts(id)), 2,
+				  doid("$o"),
+				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
+					 doid("$l"), Zuint(1))),
+			    doid("$l"),
+			    NULL);
+		e->e1->e1 = 0;
+		freeexpr(e);
+		return te;
+	default:
+		fatal("bug");
+	}
+}
+
+static Expr*
+expanda(U *ctx, Expr *e, unsigned d, unsigned *w)
+{
+	Expr *p;
+
+	if(e == 0)
+		return e;
+
+	/* recognize:
+
+	   e1[e2]
+	   e1.f
+
+	   e1[e2] = e3
+	   e1.e2 = e3;
+
+	   e1[e2] ?= e3
+	   e1.f ?= e3
+
+	   (e1[e2])++, (e1[e2])--, ++(e1[e2]), --(e1[e2])
+	   (e1.f)++, (e1.f)--, ++(e1.f), --(e1.f)
+	*/
+	switch(e->kind){
+	case Eref:
+		if(e->e1->kind == Earef || (e->e1->kind == Edot)){
+			/* the operand must be an lval, so don't
+			   try to disambiguate. */
+			e->e1->e1 = expanda(ctx, e->e1->e1, d, w);
+			e->e1->e2 = expanda(ctx, e->e1->e2, d, w);
+		}else
+			e->e1 = expanda(ctx, e->e1, d, w);
+		return e;
+	case Eg:
+	case Egop:
+	case Epostinc:
+	case Epostdec:
+	case Epreinc:
+	case Epredec:
+		if(e->e1->kind == Earef)
+			return expandaref(ctx, e, d, w);
+		if(e->e1->kind == Edot)
+			return expanddot(ctx, e, d, w);
+		e->e1 = expanda(ctx, e->e1, d, w);
+		e->e2 = expanda(ctx, e->e2, d, w);
+		return e;
 	case Earef:
-		e->e2 = expandaref(ctx, e->e2);
-		if(islval(e->e1))
-			return e;
-		a = expandaref(ctx, e->e1);
-		i = e->e2;
-		e->e1 = doid("$a");
-		e->e2 = doid("$i");
-		te = Zblock(Zlocals(2, "$a", "$i"),
-			    Zset(doid("$a"), a),
-			    Zset(doid("$i"), i),
-			    Zifelse(Zcall(doid("%iscvalue"), 1, doid("$a")),
-				    e,
-				    Zcall(doid("%cntrget"), 2,
-					  doid("$a"), doid("$i"))),
-			    NULL);
-		putsrc(te, &e->src);
-		return te;
+		return expandaref(ctx, e, d, w);
+	case Edot:
+		return expanddot(ctx, e, d, w);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expandaref(ctx, p->e1);
+			p->e1 = expanda(ctx, p->e1, d, w);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expandaref(ctx, e->e1);
-		e->e2 = expandaref(ctx, e->e2);
-		e->e3 = expandaref(ctx, e->e3);
-		e->e4 = expandaref(ctx, e->e4);
+		e->e1 = expanda(ctx, e->e1, d, w);
+		e->e2 = expanda(ctx, e->e2, d, w);
+		e->e3 = expanda(ctx, e->e3, d, w);
+		e->e4 = expanda(ctx, e->e4, d, w);
 		return e;
 	}
 }
-
 
 /* expand syntax of various C forms for subsequent stages */
 static Expr*
@@ -225,174 +570,10 @@ expandc(U *ctx, Expr *e)
 }
 
 static Expr*
-expanddot(U *ctx, Expr *e)
-{
-	Expr *te, *se, *o, *p;
-	char *id;
-
-	if(e == 0)
-		return e;
-	switch(e->kind){
-	case Eg:
-		e->e2 = expanddot(ctx, e->e2);
-		if(e->e1->kind != Edot)
-			return e;
-		if(islval(e->e1->e1))
-			return e;
-		id = e->e1->e2->id;
-		te = Zblock(Zlocals(1, "$o"),
-			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"), 1,
-					      Zcall(doid("%recrd"), 1,
-						    doid("$o"))),
-					Zconsts(id)), 2,
-				  doid("$o"), e->e2),
-			    NULL);
-		e->e1->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return te;
-	case Egop:
-		e->e2 = expanddot(ctx, e->e2);
-		if(e->e1->kind != Edot)
-			return e;
-		if(islval(e->e1->e1))
-			return e;
-		id = e->e1->e2->id;
-		te = Zblock(Zlocals(2, "$o", "$rd"),
-			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
-						    doid("$o"))),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"),
-					      1, doid("$rd")),
-					Zconsts(id)), 2,
-				  doid("$o"),
-				  Zbinop(e->op,
-					 Zcall(Zcall(doid("%tablook"), 2,
-						     Zcall(doid("%rdgettab"),
-							   1, doid("$rd")),
-						     Zconsts(id)), 1,
-					       doid("$o")),
-					 e->e2)),
-			    NULL);
-		e->e1->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return te;
-	case Epreinc:
-	case Epredec:
-		if(e->e1->kind != Edot)
-			return e;
-		if(islval(e->e1->e1))
-			return e;
-		id = e->e1->e2->id;
-		te = Zblock(Zlocals(2, "$o", "$rd"),
-			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
-						    doid("$o"))),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"),
-					      1, doid("$rd")),
-					Zconsts(id)), 2,
-				  doid("$o"),
-				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
-					 Zcall(Zcall(doid("%tablook"), 2,
-						     Zcall(doid("%rdgettab"),
-							   1, doid("$rd")),
-						     Zconsts(id)), 1,
-					       doid("$o")),
-					 Zuint(1))),
-			    NULL);
-		e->e1->e1 = 0;
-		freeexpr(e);
-		return te;
-	case Epostinc:
-	case Epostdec:
-		if(e->e1->kind != Edot)
-			return e;
-		if(islval(e->e1->e1))
-			return e;
-		id = e->e1->e2->id;
-		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
-			    Zset(doid("$o"), expanddot(ctx, e->e1->e1)),
-			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
-						    doid("$o"))),
-			    Zset(doid("$l"),
-				 Zcall(Zcall(doid("%tablook"), 2,
-					     Zcall(doid("%rdgettab"), 1,
-						   doid("$rd")),
-					     Zconsts(id)), 1,
-				       doid("$o"))),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"),
-					      1, doid("$rd")),
-					Zconsts(id)), 2,
-				  doid("$o"),
-				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
-					 doid("$l"), Zuint(1))),
-			    doid("$l"),
-			    NULL);
-		e->e1->e1 = 0;
-		freeexpr(e);
-		return te;
-	case Edot:
-		if(islval(e->e1))
-			return e;
-
-		id = e->e2->id; 
-		o = Zset(doid("$o"), expanddot(ctx, e->e1));
-
-		/* record accessor case */
-		se = Zcall(Zcall(doid("%tablook"), 2,
-				 Zcall(doid("%rdgettab"), 1,
-				       Zcall(doid("%recrd"), 1, doid("$o"))),
-				 Zconsts(id)),
-			   1, doid("$o"));
-
-		/* cval/as/ns/dom case */
-		if(!strcmp(id, "ns"))
-			te = Zcall(doid("%nsof"), 1, doid("$o"));
-		else if(!strcmp(id, "as"))
-			te = Zcall(doid("%asof"), 1, doid("$o"));
-		else
-			te = Zlambdn(doid("$args"),
-				     Zret(Zcall(doid("%callmethod"),
-						3,
-						doid("$o"),
-						Zconsts(id),
-						doid("$args"))),
-				     copyexpr(e->e2));
-
-		te = Zblock(Zlocals(1, "$o"),
-			    Zifelse(Zcall(doid("%isrec"), 1, o), se, te),
-			    NULL);
-		e->e1 = 0;
-		freeexpr(e);
-		return te;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			p->e1 = expanddot(ctx, p->e1);
-			p = p->e2;
-		}
-		return e;
-	default:
-		e->e1 = expanddot(ctx, e->e1);
-		e->e2 = expanddot(ctx, e->e2);
-		e->e3 = expanddot(ctx, e->e3);
-		e->e4 = expanddot(ctx, e->e4);
-		return e;
-	}
-}
-
-static Expr*
 compilea(U *ctx, Expr* e)
 {
-	expandaref(ctx, e);
+	expanda(ctx, e, 0, 0);
 	expandc(ctx, e);
-	expanddot(ctx, e);
 	return e;
 }
 

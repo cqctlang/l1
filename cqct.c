@@ -40,6 +40,11 @@ cqctcompile(Expr *e, Toplevel *top, char *argsid)
 		return 0;
 	if(docompilea(&ctx, e) != 0)
 		return 0;
+	if(cqctflags['a']){
+		xprintf("compilea:\n");
+		printcqct(e);
+		xprintf("\n");
+	}
 	if(docompile0(&ctx, e) != 0)
 		return 0;
 	if(docompile1(&ctx, e) != 0)
@@ -52,6 +57,11 @@ cqctcompile(Expr *e, Toplevel *top, char *argsid)
 	e = docompile2(&ctx, e, top, argsid);
 	if(e == 0)
 		return 0;
+	if(cqctflags['q']){
+		xprintf("transformed source:\n");
+		printcqct(e);
+		xprintf("\n");
+	}
 
 	return codegen(e);
 }

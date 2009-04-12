@@ -1,4 +1,4 @@
-entry: var params, 9 locals, 0 temps
+entry: var params, 8 locals, 0 temps
 def -> <cval 2>
 ghi -> <cval 3>
 abc -> <cval 1>

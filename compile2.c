@@ -909,11 +909,5 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 
 	newpasses(el, top->env);
 
-	if(cqctflags['q']){
-		xprintf("transformed source:\n");
-		printcqct(el);
-		xprintf("\n");
-	}
-
 	return el;
 }

@@ -220,8 +220,9 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+bhol:m:pqtwgxsz"))){
+	while(EOF != (c = getopt(argc, argv, "a+bhol:m:pqtwgxsz"))){
 		switch(c){
+		case 'a':
 		case 'o':
 		case 'p':
 		case 'q':

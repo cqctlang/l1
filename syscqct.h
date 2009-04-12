@@ -185,6 +185,7 @@ struct Liti {
 
 struct Expr {
 	Kind kind;
+	unsigned attr;		/* attributes (maybe collapse with op?) */
 
 	char *id;		/* Eid, Etick */
 	Lits *lits;		/* Econsts */

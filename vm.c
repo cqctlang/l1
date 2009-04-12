@@ -11332,6 +11332,8 @@ cqctfreevm(VM *vm)
 
 	if(nvms == 1){
 		/* last one -- switch to serial gc and run finalizers */
+		/* FIXME: can this been done in finivm (otherwise,
+		   never called in -x mode) */
 		thegc->gckill(thegc);
 		thegc->gcpoll = gcpoll;
 		thegc->gckill = gckill;

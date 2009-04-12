@@ -258,6 +258,7 @@ copyexpr(Expr *e)
 
 	ne = emalloc(sizeof(Expr));
 	ne->kind = e->kind;
+	ne->attr = e->attr;
 	switch(e->kind){
 	case Eid:
 		ne->id = xstrdup(e->id);
@@ -268,6 +269,7 @@ copyexpr(Expr *e)
 	case Econst:
 		ne->liti = e->liti;
 		break;
+	case Egop:
 	case Ebinop:
 		ne->op = e->op;
 		break;
