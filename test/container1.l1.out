@@ -1,4 +1,4 @@
-entry: var params, 7 locals, 2 temps
+entry: var params, 8 locals, 2 temps
 p is struct X * 0x0
 q is int * 0x4
 r is struct X * 0x0

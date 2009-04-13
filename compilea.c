@@ -117,6 +117,38 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 }
 
 static Expr*
+disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
+{
+	char t[8];
+	Expr *p, *te, *ye, *xe;
+	unsigned w;
+
+	w = 0;
+	snprintf(t, sizeof(t), "$t%u", d);
+	p = expanda(ctx, Zap(a, t), d+1, 0);
+	a->attr = Aptr;
+	xe = copyexpr(e);
+	ye = expanda(ctx, xe, d+1, &w);
+	if(w){
+		freeexpr(ye);
+		freeexpr(e);
+		return Zcall(doid("%error"), 1,
+			     Zconsts("cannot apply dot to a cvalue"));
+	}
+	te = Zblock(Zlocals(1, t),
+		    Zset(doid(t), p),
+		    Zifelse(Zcall(doid("%iscvalue"), 1,
+				  doid(t)),
+			    ye,
+			    Zcall(doid("%error"), 1,
+				  Zconsts("attempt to apply & to non-lvalue"))),
+		    NULL);
+	putsrc(te, &e->src);
+	freeexpr(e);
+	return te;
+}
+
+static Expr*
 expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 {
 	Expr *a, *te;
@@ -464,7 +496,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 static Expr*
 expanda(U *ctx, Expr *e, unsigned d, unsigned *w)
 {
-	Expr *p;
+	Expr *p, *a;
 
 	if(e == 0)
 		return e;
@@ -485,13 +517,10 @@ expanda(U *ctx, Expr *e, unsigned d, unsigned *w)
 	*/
 	switch(e->kind){
 	case Eref:
-		if(e->e1->kind == Earef || (e->e1->kind == Edot)){
-			/* the operand must be an lval, so don't
-			   try to disambiguate. */
-			e->e1->e1 = expanda(ctx, e->e1->e1, d, w);
-			e->e1->e2 = expanda(ctx, e->e1->e2, d, w);
-		}else
+		if(islval(e->e1, &a))
 			e->e1 = expanda(ctx, e->e1, d, w);
+		else if(a)
+			return disambig0(ctx, a, e, d);
 		return e;
 	case Eg:
 	case Egop:
