@@ -10420,6 +10420,32 @@ l1_equal(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_toupper(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	int x;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to toupper");
+	checkarg(vm, "toupper", argv, 0, Qcval);
+	cv = valcval(argv[0]);
+	x = xtoupper(cv->val);
+	*rv = mkvalcval(cv->dom, cv->type, x);
+}
+
+static void
+l1_tolower(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	int x;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to tolower");
+	checkarg(vm, "tolower", argv, 0, Qcval);
+	cv = valcval(argv[0]);
+	x = xtolower(cv->val);
+	*rv = mkvalcval(cv->dom, cv->type, x);
+}
+
+static void
 l1_isxctype(VM *vm, Imm argc, Val *argv, Val *rv, char *name, int (*fn)(int))
 {
 	Cval *cv;
@@ -11273,6 +11299,8 @@ mktopenv()
 	FN(tablook);
 	FN(tabvals);
 	FN(tail);
+	FN(tolower);
+	FN(toupper);
 	FN(typedefid);
 	FN(typedeftype);
 	FN(veclen);

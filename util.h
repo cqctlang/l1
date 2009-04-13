@@ -46,6 +46,8 @@ int xispunct(int c);
 int xisspace(int c);
 int xisupper(int c);
 int xisxdigit(int c);
+int xtolower(int c);
+int xtoupper(int c);
 
 void xabort(void) NORETURN;
 

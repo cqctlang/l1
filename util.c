@@ -268,3 +268,19 @@ xiscntrl(int c)
 {
 	return (0 <= c && c <= 0x1f) || c == 0x7f;
 }
+
+int
+xtolower(int c)
+{
+	if('A' <= c && c <= 'Z')
+		return c-'A'+'a';
+	return c;
+}
+
+int
+xtoupper(int c)
+{
+	if('a' <= c && c <= 'z')
+		return c-'a'+'A';
+	return c;
+}
