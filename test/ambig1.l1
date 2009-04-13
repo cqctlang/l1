@@ -1,0 +1,78 @@
+ns = @names c32le {
+
+	struct S {
+		@0x4	struct T t[10];
+		@8*10+4;
+	};
+
+	struct T {
+		@0x4	int x;
+		@0x8;
+	};
+
+
+	@0x0 struct S s[10];
+};
+
+as = mkzas(1024);
+
+dom = mkdom(ns, as);
+
+define pr(x)
+{
+	printf("%d\n", x);
+}
+
+dom`s[1].t[2].x = 1;
+pr(dom`s[1].t[2].x);
+dom`s[1].t[2].x += 1;
+pr(dom`s[1].t[2].x);
+dom`s[1].t[2].x++;
+pr(dom`s[1].t[2].x);
+++dom`s[1].t[2].x;
+pr(dom`s[1].t[2].x);
+
+pr(&dom`s);
+pr(&dom`s[1]);
+pr(&dom`s[1].t);
+pr(&dom`s[1].t[2]);
+pr(&dom`s[1].t[2].x);
+
+p = dom`s;
+pr(p[1].t[2].x);
+p[1].t[2].x = 1;
+pr(p[1].t[2].x);
+p[1].t[2].x += 1;
+pr(p[1].t[2].x);
+p[1].t[2].x++;
+pr(p[1].t[2].x);
+++p[1].t[2].x;
+pr(p[1].t[2].x);
+
+pr(&p[1]);
+pr(&p[1].t);
+pr(&p[1].t[2]);
+pr(&p[1].t[2].x);
+
+@record R { f };
+
+a = [ R(), R() ];
+a[1].f = R();
+a[1].f.f = [ R(), R(), p ];
+a[1].f.f[1].f = R();
+
+a[1].f.f[1].f.f = 1;
+pr(a[1].f.f[1].f.f);
+a[1].f.f[1].f.f++;
+pr(a[1].f.f[1].f.f);
+++a[1].f.f[1].f.f;
+pr(a[1].f.f[1].f.f);
+a[1].f.f[1].f.f += 1;
+pr(a[1].f.f[1].f.f);
+pr(a[1].f.f[1].f.f++);
+pr(a[1].f.f[1].f.f++);
+pr(++a[1].f.f[1].f.f);
+pr(a[1].f.f[1].f.f);
+
+pr(a[1].f.f[2][1].t[2].x);
+pr(&(a[1].f.f[2][1].t[2].x));
