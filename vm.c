@@ -1607,6 +1607,16 @@ strslice(Str *str, Imm beg, Imm end)
 	return mkstr(str->s+beg, end-beg);
 }
 
+static Str*
+strconcat(VM *vm, Str *s1, Str *s2)
+{
+	Str *s;
+	s = mkstrn(vm, s1->len+s2->len);
+	memcpy(s->s, s1->s, s1->len);
+	memcpy(s->s+s1->len, s2->s, s2->len);
+	return s;
+}
+
 static int
 freestr(Head *hd)
 {
@@ -4111,7 +4121,7 @@ Strcmp(Str *s1, Str *s2)
 }
 
 static Imm
-binopstr(VM *vm, ikind op, Str *s1, Str *s2)
+xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 {
 	int x;
 
@@ -4464,11 +4474,15 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		s1 = valstr(v1);
 		s2 = valstr(v2);
 dostr:
-		nv = binopstr(vm, op, s1, s2);
-		if(nv)
-			putvalrand(vm, mkvalcval2(cval1), dst);
-		else
-			putvalrand(vm, mkvalcval2(cval0), dst);
+		if(op == Iadd)
+			putvalrand(vm, mkvalstr(strconcat(vm, s1, s2)), dst);
+		else{
+			nv = xstrcmp(vm, op, s1, s2);
+			if(nv)
+				putvalrand(vm, mkvalcval2(cval1), dst);
+			else
+				putvalrand(vm, mkvalcval2(cval0), dst);
+		}
 		return;
 	}
 
@@ -10185,12 +10199,17 @@ static void
 l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	List *lst;
+	Str *str;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to concat");
-	checkarg(vm, "concat", argv, 0, Qlist);
-	checkarg(vm, "concat", argv, 1, Qlist);
-	lst = listconcat(vm, vallist(argv[0]), vallist(argv[1]));
-	*rv = mkvallist(lst);
+	if(argv[0]->qkind == Qlist && argv[1]->qkind == Qlist){
+		lst = listconcat(vm, vallist(argv[0]), vallist(argv[1]));
+		*rv = mkvallist(lst);
+	}else if(argv[0]->qkind == Qstr && argv[1]->qkind == Qstr){
+		str = strconcat(vm, valstr(argv[0]), valstr(argv[1]));
+		*rv = mkvalstr(str);
+	}else
+		vmerr(vm, "operands to concat must be lists or strings");
 }
 
 static void
