@@ -70,6 +70,31 @@ Zap(Expr *e, char *id)
 	return ne;
 }
 
+static void
+clearattr(Expr *e)
+{
+	Expr *p;
+
+	if(e == 0)
+		return;
+	e->attr = 0;
+	switch(e->kind){
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			clearattr(e->e1);
+			p = p->e2;
+		}
+		break;
+	default:
+		clearattr(e->e1);
+		clearattr(e->e2);
+		clearattr(e->e3);
+		clearattr(e->e4);
+		break;
+	}
+}
+
 /* assignment to c lvalue */
 static Expr*
 cassign(U *ctx, Expr *e, unsigned d, unsigned *w)
@@ -113,6 +138,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 		    NULL);
 	putsrc(te, &e->src);
 	freeexpr(e);
+	clearattr(te);
 	return te;
 }
 
@@ -145,6 +171,7 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 		    NULL);
 	putsrc(te, &e->src);
 	freeexpr(e);
+	clearattr(te);
 	return te;
 }
 
