@@ -10213,13 +10213,13 @@ l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_recrd(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rec *r;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recrd");
-	checkarg(vm, "recrd", argv, 0, Qrec);
+		vmerr(vm, "wrong number of arguments to rdof");
+	checkarg(vm, "rdof", argv, 0, Qrec);
 	r = valrec(argv[0]);
 	*rv = mkvalrd(r->rd);
 }
@@ -11263,13 +11263,13 @@ mktopenv()
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);
-	FN(recrd);
 	FN(rdfields);
 	FN(rdfmt);
 	FN(rdgettab);
 	FN(rdis);
 	FN(rdmk);
 	FN(rdname);
+	FN(rdof);
 	FN(rdsetfmt);
 	FN(rdsettab);
 	FN(resettop);

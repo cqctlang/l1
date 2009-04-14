@@ -2,7 +2,7 @@
 @record foo { f1, f2 };
 
 xx = foo(1,2);
-rd = recrd(xx);
+rd = rdof(xx);
 
 gt = rdgettab(rd);
 st = rdsettab(rd);
