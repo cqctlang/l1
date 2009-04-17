@@ -26,7 +26,7 @@ extern char *yytext;
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
-%token GLOBAL LOCAL LAMBDA NAMES
+%token GLOBAL LOCAL LET LAMBDA NAMES
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
@@ -51,7 +51,7 @@ extern char *yytext;
 %type <expr> defconst_statement compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
-%type <expr> global_statement defrec_expression
+%type <expr> global_statement defrec_expression let_expression
 %type <expr> type_name tn_type_specifier tn_struct_or_union_specifier
 %type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
 %type <expr> tn_parameter_declaration tn_abstract_declarator
@@ -106,6 +106,11 @@ defrec_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
 	;
 
+let_expression
+	: LET compound_statement
+	{ $$ = $2; }
+	;
+
 table_init
 	: root_expression ':' root_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
@@ -145,6 +150,7 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| lambda_expression
 	| defrec_expression
+        | let_expression
 	;
 
 postfix_expression
