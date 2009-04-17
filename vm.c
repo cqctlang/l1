@@ -6744,6 +6744,8 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr], off),
 			     mkcval(vm->litdom, vm->litns->base[Vptr], len));
 	argv[2] = mkvalstr(s);
+	if(s->len < len)
+		vmerr(vm, "attempt to put short string into longer range");
 	dovm(vm, as->put, 3, argv);
 }
 
@@ -6751,6 +6753,7 @@ Str*
 callget(VM *vm, As *as, Imm off, Imm len)
 {
 	Val rv, argv[2];
+	Str *s;
 
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr], off),
@@ -6758,7 +6761,11 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	rv = dovm(vm, as->get, 2, argv);
 	if(rv->qkind != Qstr)
 		vmerr(vm, "address space get method returned non-string");
-	return valstr(rv);
+	s = valstr(rv);
+	if(s->len != len)
+		vmerr(vm, "address space get method returned wrong number of "
+		      "bytes");
+	return s;
 }
 
 Str*
