@@ -7092,7 +7092,8 @@ fmtval(VM *vm, Fmt *f, Val val)
 		str = valstr(val);
 		if(fmtputs0(f, "\""))
 			return -1;
-		fmtputB(f, str->s, str->len);		
+		if(fmtputB(f, str->s, str->len))
+			return -1;
 		return fmtputs0(f, "\"");
 	case Qrd:
 		rd = valrd(val);
