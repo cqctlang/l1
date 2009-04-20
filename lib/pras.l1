@@ -41,6 +41,7 @@ protns = @names c32le {
 		Rtest,
 		Tstep,
 		Rstep,
+		Aclone,
 	};
 
 	enum State {
@@ -138,10 +139,12 @@ protns = @names c32le {
 		@0	uint8 op;
 		@1	uint64 id;
 		@9	uint64 bp;
+		@9	uint64 cid;
 		@17	Reg reg;
 		@161;
 	};
 	typedef struct Abrk Abrk;
+	typedef struct Abrk Aclone;
 
 	struct Asnap{
 		@0	uint8 op;
@@ -266,6 +269,8 @@ define mkpras(arg) {
 			return ipress(#indom`Rsetregs*#);
 		case indom`Rattach:
 			return ipress(#indom`Rattach*#);
+		case indom`Aclone:
+			return ipress(#indom`Aclone*#);
 		case indom`Rcleave:
 		case indom`Rsetsnap:
 		case indom`Asnap:
@@ -561,6 +566,13 @@ define mkpras(arg) {
 			rv = listref(bp, 1)(listref(bp, 0));
 			if(rv != 1)
 				cont(domas);
+			break;
+		case indom`Aclone:
+			logrecv("Aclone");
+			ack();
+			if(reply->id != id)
+				error("pras: got %e for unknown task",
+				      (enum Mkind)reply->op);
 			break;
 		case indom`Asnap:
 			logrecv("Asnap");
