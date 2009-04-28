@@ -26,7 +26,11 @@ extern char *yytext;
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
+<<<<<<< HEAD:c.y
 %token GLOBAL LOCAL LAMBDA NAMES LET
+=======
+%token GLOBAL LOCAL LET LAMBDA NAMES
+>>>>>>> 6d710c7a6d52e029697fb8d5afee72d70f691702:c.y
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
@@ -109,6 +113,11 @@ defrec_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
 	| DEFREC id '{' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
+	;
+
+let_expression
+	: LET compound_statement
+	{ $$ = $2; }
 	;
 
 table_init

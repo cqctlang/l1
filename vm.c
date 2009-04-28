@@ -6744,6 +6744,8 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr], off),
 			     mkcval(vm->litdom, vm->litns->base[Vptr], len));
 	argv[2] = mkvalstr(s);
+	if(s->len < len)
+		vmerr(vm, "attempt to put short string into longer range");
 	dovm(vm, as->put, 3, argv);
 }
 
@@ -6751,6 +6753,7 @@ Str*
 callget(VM *vm, As *as, Imm off, Imm len)
 {
 	Val rv, argv[2];
+	Str *s;
 
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr], off),
@@ -6758,7 +6761,11 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	rv = dovm(vm, as->get, 2, argv);
 	if(rv->qkind != Qstr)
 		vmerr(vm, "address space get method returned non-string");
-	return valstr(rv);
+	s = valstr(rv);
+	if(s->len != len)
+		vmerr(vm, "address space get method returned wrong number of "
+		      "bytes");
+	return s;
 }
 
 Str*
@@ -7083,7 +7090,11 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(f, buf);
 	case Qstr:
 		str = valstr(val);
-		return fmtputs(f, str->s, str->len);
+		if(fmtputs0(f, "\""))
+			return -1;
+		if(fmtputB(f, str->s, str->len))
+			return -1;
+		return fmtputs0(f, "\"");
 	case Qrd:
 		rd = valrd(val);
 		if(fmtputs0(f, "<rd "))
@@ -10213,13 +10224,13 @@ l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_recrd(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_rdof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rec *r;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to recrd");
-	checkarg(vm, "recrd", argv, 0, Qrec);
+		vmerr(vm, "wrong number of arguments to rdof");
+	checkarg(vm, "rdof", argv, 0, Qrec);
 	r = valrec(argv[0]);
 	*rv = mkvalrd(r->rd);
 }
@@ -11263,13 +11274,13 @@ mktopenv()
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);
-	FN(recrd);
 	FN(rdfields);
 	FN(rdfmt);
 	FN(rdgettab);
 	FN(rdis);
 	FN(rdmk);
 	FN(rdname);
+	FN(rdof);
 	FN(rdsetfmt);
 	FN(rdsettab);
 	FN(resettop);

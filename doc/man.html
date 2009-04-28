@@ -1024,8 +1024,8 @@ binds <span class="id">x</span> to a new instance of the
 The function <span class="id">myrec</span>
 expects either zero arguments,
 in which case the fields are <span class="id">nil</span>,
-or exactly as many arguments as there are fields in the type;
-the arguments are assigned to the fields in the order
+or exactly as many arguments as there are fields in the type,
+in which case the arguments are assigned to the fields in the order
 they were given in the <span class="id">@record</span> definition.
 </p>
 
@@ -1099,6 +1099,86 @@ Sets the format procedure of the record descriptor
 <span class="arg">rd</span> to <span class="arg">fmt</span>.
 </div>
 </div>
+
+<p>
+The following routines operate on records and record descriptors.
+</p>
+
+<div class="docitem" id="fn:rdof">
+<div class="proto">
+<div class="function">
+<span class="id">rdof(<span class="arg">r</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">record</span>
+</div>
+<div class="returns">
+<span class="type">record descriptor</span>
+</div>
+</div>
+<div class="desc">
+Returns the record descriptor associated with the record
+<span class="arg">r</span>. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rdfields">
+<div class="proto">
+<div class="function">
+<span class="id">rdfields(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns the list of field names for the record descriptor
+<span class="arg">rd</span> in the order they were given in the
+<span class="id">@record</span> definition for <span class="arg">rd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdis">
+<div class="proto">
+<div class="function">
+<span class="id">rdis(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns a function that is a predicate for instances of
+the record descriptor <span class="arg">rd</span>.  The
+function takes a single argument and returns non-zero
+if and only if the argument is an instance of <span class="arg">rd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdname">
+<div class="proto">
+<div class="function">
+<span class="id">rdname(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name associated with the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
 
 
 
@@ -6139,7 +6219,11 @@ machines sharing the environment have been freed.
 <a href="#fn:putbytes">putbytes</a><br />
 <a href="#fn:rand">rand</a><br />
 <a href="#fn:rand">randseed</a><br />
+<a href="#fn:rdis">rdis</a><br />
+<a href="#fn:rdfields">rdfields</a><br />
 <a href="#fn:rdfmt">rdfmt</a><br />
+<a href="#fn:rdname">rdname</a><br />
+<a href="#fn:rdof">rdof</a><br />
 <a href="#fn:rdsetfmt">rdsetfmt</a><br />
 <a href="#fn:read">read</a><br />
 <a href="#fn:resettop">resettop</a><br />

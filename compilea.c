@@ -345,7 +345,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		/* record accessor case */
 		se = Zcall(Zcall(doid("%tablook"), 2,
 				 Zcall(doid("%rdgettab"), 1,
-				       Zcall(doid("%recrd"), 1, doid("$o"))),
+				       Zcall(doid("%rdof"), 1, doid("$o"))),
 				 Zconsts(id)),
 			   1, doid("$o"));
 
@@ -390,7 +390,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zcall(Zcall(doid("%tablook"), 2,
 					Zcall(doid("%rdsettab"), 1,
-					      Zcall(doid("%recrd"), 1,
+					      Zcall(doid("%rdof"), 1,
 						    doid("$o"))),
 					Zconsts(id)), 2,
 				  doid("$o"), expanda(ctx, e->e2, d, w)),
@@ -418,7 +418,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
-			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
+			    Zset(doid("$rd"), Zcall(doid("%rdof"), 1,
 						    doid("$o"))),
 			    Zcall(Zcall(doid("%tablook"), 2,
 					Zcall(doid("%rdsettab"),
@@ -457,7 +457,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
-			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
+			    Zset(doid("$rd"), Zcall(doid("%rdof"), 1,
 						    doid("$o"))),
 			    Zcall(Zcall(doid("%tablook"), 2,
 					Zcall(doid("%rdsettab"),
@@ -495,7 +495,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
-			    Zset(doid("$rd"), Zcall(doid("%recrd"), 1,
+			    Zset(doid("$rd"), Zcall(doid("%rdof"), 1,
 						    doid("$o"))),
 			    Zset(doid("$l"),
 				 Zcall(Zcall(doid("%tablook"), 2,
