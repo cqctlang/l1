@@ -356,11 +356,23 @@ struct Dom {
 
 struct Fd {
 	Head hd;
-	void (*close)(Fd *fd);
+	union {
+		struct {
+			Imm (*read)(Fd *fd, char *buf, Imm len);
+			Imm (*write)(Fd *fd, char *buf, Imm len);
+			void (*close)(Fd *fd);
+		} fn;
+		struct {
+			Closure *read;
+			Closure *write;
+			Closure *close;
+		} cl;
+	} u;
 	int fd;
 	Str *name;
 	enum Fflag {
-		Fclosed =	1,
+		Ffn =		1,
+		Fclosed =	Ffn<<1,
 		Fread =		Fclosed<<1,
 		Fwrite =	Fread<<1,
 	} flags;
@@ -452,7 +464,7 @@ enum{
 typedef struct Fmt Fmt;
 struct Fmt {
 	char *start, *to, *stop;
-	int (*flush)(Fmt*);
+	int (*flush)(VM*, Fmt*);
 	void *farg;
 	int width;
 	int prec;
@@ -849,6 +861,7 @@ void		xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v),
 unsigned long	xenvsize(Xenv *xe);
 
 /* vm.c */
+void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
@@ -876,7 +889,12 @@ Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
-Fd*		mkfd(Str *name, int xfd, int flags, void (*free)(Fd *fd));
+Fd*		mkfdfn(Str *name, int xfd, int flags,
+		       Imm (*read)(Fd*, char*, Imm),
+		       Imm (*write)(Fd*, char*, Imm),
+		       void (*close)(Fd *fd));
+Fd*		mkfdcl(Str *name, int flags,
+		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);

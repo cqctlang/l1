@@ -1,0 +1,21 @@
+orig = stdout;
+
+define r(len){
+       fprintf(orig, "reading %d bytes from stdout\n", len);
+       return read(orig, len);
+}
+
+define w(buf){
+       fprintf(orig, "writing %d bytes to stdout\n", strlen(buf));
+       return write(orig, buf);
+}
+
+define c(){
+       fprintf(orig, "closing stdout!\n");
+       return close(orig);
+}
+
+stdout = mkfd(r,w,c);
+
+printf("hi!\n");
+close(stdout);

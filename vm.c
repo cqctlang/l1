@@ -1228,20 +1228,45 @@ freefd(Head *hd)
 {
 	Fd *fd;
 	fd = (Fd*)hd;
-	if(fd->close && (fd->flags&Fclosed) == 0)
-		fd->close(fd);
+	/* FIXME: should dovm close closure if there is one (as finalizer?) */
+	if((fd->flags&Fclosed) == 0
+	   && fd->flags&Ffn
+	   && fd->u.fn.close)
+		fd->u.fn.close(fd);
 	return 1;
 }
 
 Fd*
-mkfd(Str *name, int xfd, int flags, void (*close)(Fd *fd))
+mkfdfn(Str *name, int xfd, int flags,
+       Imm (*read)(Fd*, char*, Imm),
+       Imm (*write)(Fd*, char*, Imm),
+       void (*close)(Fd *fd))
 {
 	Fd *fd;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
 	fd->fd = xfd;
-	fd->close = close;
-	fd->flags = flags;
+	fd->u.fn.read = read;
+	fd->u.fn.write = write;
+	fd->u.fn.close = close;
+	fd->flags = flags|Ffn;
+	return fd;
+}
+
+Fd*
+mkfdcl(Str *name, int flags,
+       Closure *read,
+       Closure *write,
+       Closure *close)
+{
+	Fd *fd;
+	fd = (Fd*)halloc(&heap[Qfd]);
+	fd->name = name;
+	fd->fd = -1;
+	fd->u.cl.read = read;
+	fd->u.cl.write = write;
+	fd->u.cl.close = close;
+	fd->flags = flags&~Ffn;
 	return fd;
 }
 
@@ -1253,6 +1278,14 @@ iterfd(Head *hd, Ictx *ictx)
 	switch(ictx->n++){
 	case 0:
 		return (Head*)fd->name;
+	case 1:
+		if(fd->flags&Ffn)
+			return GCiterdone;
+		return (Head*)fd->u.cl.close;
+	case 2:
+		return (Head*)fd->u.cl.read;
+	case 3:
+		return (Head*)fd->u.cl.write;
 	default:
 		return GCiterdone;
 	}
@@ -6126,6 +6159,14 @@ builtinnil(Env *env, char *name)
 }
 
 void
+builtinfd(Env *env, char *name, Fd *fd)
+{
+	Val val;
+	val = mkvalfd(fd);
+	envbind(env, name, val);
+}
+
+void
 builtinfn(Env *env, char *name, Closure *cl)
 {
 	Val val;
@@ -6156,14 +6197,6 @@ builtincval(Env *env, char *name, Cval *cv)
 {
 	Val val;
 	val = mkvalcval2(cv);
-	envbind(env, name, val);
-}
-
-static void
-builtinfd(Env *env, char *name, Fd *fd)
-{
-	Val val;
-	val = mkvalfd(fd);
 	envbind(env, name, val);
 }
 
@@ -6870,28 +6903,28 @@ ismapped(VM *vm, Cval *addr, Cval *len)
 }
 
 static int
-fmtputc(Fmt *f, char ch)
+fmtputc(VM *vm, Fmt *f, char ch)
 {
 	if(f->to >= f->stop)
-		if(f->flush(f) == -1)
+		if(f->flush(vm, f) == -1)
 			return -1;
 	*f->to++ = ch;
 	return 0;
 }
 
 static int
-fmtpad(Fmt *f, int n)
+fmtpad(VM *vm, Fmt *f, int n)
 {
 	char c;
 	c = (f->flags&FmtZero) ? '0' : ' ';
 	while(n-- > 0)
-		if(fmtputc(f, c))
+		if(fmtputc(vm, f, c))
 			return -1;
 	return 0;
 }
 
 static int
-fmtputs(Fmt *f, char *p, Imm m)
+fmtputs(VM *vm, Fmt *f, char *p, Imm m)
 {
 	unsigned int fl, l;
 
@@ -6900,20 +6933,20 @@ fmtputs(Fmt *f, char *p, Imm m)
 		m = f->prec;
 	l = m;			/* lost precision */
 	if((fl&FmtWidth) && !(fl&FmtLeft)){
-		if(fmtpad(f, f->width-m))
+		if(fmtpad(vm, f, f->width-m))
 			return -1;
 	}
 	while(l-- > 0)
-		fmtputc(f, *p++);
+		fmtputc(vm, f, *p++);
 	if((fl&FmtWidth) && (fl&FmtLeft)){
-		if(fmtpad(f, f->width-m))
+		if(fmtpad(vm, f, f->width-m))
 			return -1;
 	}
 	return 0;
 }
 
 static int
-fmtputB(Fmt *f, char *p, Imm m)
+fmtputB(VM *vm, Fmt *f, char *p, Imm m)
 {
 	unsigned int fl, l;
 	char *q;
@@ -6937,22 +6970,22 @@ fmtputB(Fmt *f, char *p, Imm m)
 	}
 	l = m;			/* lost precision */
 	if((fl&FmtWidth) && !(fl&FmtLeft)){
-		if(fmtpad(f, f->width-w))
+		if(fmtpad(vm, f, f->width-w))
 			return -1;
 	}
 	while(l-- > 0){
 		c = *p++;
 		if(xisgraph(c) || xisspace(c))
-			fmtputc(f, c);
+			fmtputc(vm, f, c);
 		else{
-			fmtputc(f, '\\');
-			fmtputc(f, '0'+((c>>6)&0x3));
-			fmtputc(f, '0'+((c>>3)&0x7));
-			fmtputc(f, '0'+(c&0x7));
+			fmtputc(vm, f, '\\');
+			fmtputc(vm, f, '0'+((c>>6)&0x3));
+			fmtputc(vm, f, '0'+((c>>3)&0x7));
+			fmtputc(vm, f, '0'+(c&0x7));
 		}
 	}
 	if((fl&FmtWidth) && (fl&FmtLeft)){
-		if(fmtpad(f, f->width-w))
+		if(fmtpad(vm, f, f->width-w))
 			return -1;
 	}
 	return 0;
@@ -6960,9 +6993,9 @@ fmtputB(Fmt *f, char *p, Imm m)
 
 
 static int
-fmtputs0(Fmt *f, char *p)
+fmtputs0(VM *vm, Fmt *f, char *p)
 {
-	return fmtputs(f, p, strlen(p));
+	return fmtputs(vm, f, p, strlen(p));
 }
 
 static int
@@ -6989,35 +7022,35 @@ fmtval(VM *vm, Fmt *f, Val val)
 	case Qcval:
 		cv = valcval(val);
 		snprintf(buf, sizeof(buf), "<cval %" PRIu64 ">", cv->val);
-		return fmtputs0(f, buf);
+		return fmtputs0(vm, f, buf);
 	case Qcl:
 		cl = valcl(val);
 		if(cl->fp){
 			snprintf(buf, sizeof(buf), "<continuation %p>", cl);
-			return fmtputs0(f, buf);
+			return fmtputs0(vm, f, buf);
 		}else if(cl->dlen > 0){
-			if(fmtputs0(f, "<closure "))
+			if(fmtputs0(vm, f, "<closure "))
 				return -1;
 		}else{
-			if(fmtputs0(f, "<procedure "))
+			if(fmtputs0(vm, f, "<procedure "))
 				return -1;
 		}
-		if(fmtputs0(f, cl->id))
+		if(fmtputs0(vm, f, cl->id))
 			return -1;
-		return fmtputs0(f, ">");
+		return fmtputs0(vm, f, ">");
 	case Qundef:
 		return 0;
 	case Qnil:
-		return fmtputs0(f, "<nil>");
+		return fmtputs0(vm, f, "<nil>");
 	case Qnull:
-		return fmtputs0(f, "<null>");
+		return fmtputs0(vm, f, "<null>");
 	case Qbox:
-		if(fmtputs0(f, "<box >"))
+		if(fmtputs0(vm, f, "<box >"))
 			return -1;
 		bv = valboxed(val);
 		if(fmtval(vm, f, bv))
 			return -1;
-		return fmtputs0(f, ">");
+		return fmtputs0(vm, f, ">");
 	case Qns:
 		ns = valns(val);
 		if(ns->name)
@@ -7025,7 +7058,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 				 (int)ns->name->len, ns->name->s);
 		else
 			snprintf(buf, sizeof(buf), "<ns %p>", ns);
-		return fmtputs0(f, buf);
+		return fmtputs0(vm, f, buf);
 	case Qas:
 		as = valas(val);
 		if(as->name)
@@ -7033,7 +7066,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 				 (int)as->name->len, as->name->s);
 		else
 			snprintf(buf, sizeof(buf), "<as %p>", as);
-		return fmtputs0(f, buf);
+		return fmtputs0(vm, f, buf);
 	case Qdom:
 		d = valdom(val);
 		if(d->name)
@@ -7041,67 +7074,67 @@ fmtval(VM *vm, Fmt *f, Val val)
 				 (int)d->name->len, d->name->s);
 		else
 			snprintf(buf, sizeof(buf), "<domain %p>", d);
-		return fmtputs0(f, buf);
+		return fmtputs0(vm, f, buf);
 	case Qfd:
 	case Qpair:
 	case Qtab:
 	case Qxtn:
 		hd = valhead(val);
 		snprintf(buf, sizeof(buf), "<%s %p>", hd->heap->id, hd);
-		return fmtputs0(f, buf);
+		return fmtputs0(vm, f, buf);
 	case Qvec:
 		v = valvec(val);
-		if(fmtputs0(f, "vector("))
+		if(fmtputs0(vm, f, "vector("))
 			return -1;
 		for(m = 0; m < v->len; m++){
 			if(m > 0){
-				if(fmtputs0(f, ", "))
+				if(fmtputs0(vm, f, ", "))
 					return -1;
 			}else{
-				if(fmtputs0(f, " "))
+				if(fmtputs0(vm, f, " "))
 					return -1;
 			}
 			if(fmtval(vm, f, v->vec[m]))
 				return -1;
 		}
-		return fmtputs0(f, " )");
+		return fmtputs0(vm, f, " )");
 	case Qlist:
 		l = vallist(val);
 		lx = l->x;
-		if(fmtputs0(f, "["))
+		if(fmtputs0(vm, f, "["))
 			return -1;
 		for(m = 0; m < listxlen(lx); m++){
 			if(m > 0){
-				if(fmtputs0(f, ", "))
+				if(fmtputs0(vm, f, ", "))
 					return -1;
 			}else{
-				if(fmtputs0(f, " "))
+				if(fmtputs0(vm, f, " "))
 					return -1;
 			}
 			if(fmtval(vm, f, lx->val[lx->hd+m]))
 				return -1;
 		}
-		return fmtputs0(f, " ]");
+		return fmtputs0(vm, f, " ]");
 	case Qrange:
 		r = valrange(val);
  		snprintf(buf, sizeof(buf),
 			 "<range 0x%" PRIx64 " 0x%" PRIx64 ">",
 			 r->beg->val, r->len->val);
-		return fmtputs0(f, buf);
+		return fmtputs0(vm, f, buf);
 	case Qstr:
 		str = valstr(val);
-		if(fmtputs0(f, "\""))
+		if(fmtputs0(vm, f, "\""))
 			return -1;
-		if(fmtputB(f, str->s, str->len))
+		if(fmtputB(vm, f, str->s, str->len))
 			return -1;
-		return fmtputs0(f, "\"");
+		return fmtputs0(vm, f, "\"");
 	case Qrd:
 		rd = valrd(val);
-		if(fmtputs0(f, "<rd "))
+		if(fmtputs0(vm, f, "<rd "))
 			return -1;
-		if(fmtputs(f, rd->name->s, rd->name->len))
+		if(fmtputs(vm, f, rd->name->s, rd->name->len))
 			return -1;
-		return fmtputs0(f, ">");
+		return fmtputs0(vm, f, ">");
 	case Qrec:
 		rec = valrec(val);
 		rv = dovm(vm, rec->rd->fmt, 1, &val);
@@ -7110,15 +7143,15 @@ fmtval(VM *vm, Fmt *f, Val val)
 			      "return a string",
 			      (int)rec->rd->name->len, rec->rd->name->s);
 		str = valstr(rv);
-		return fmtputs(f, str->s, str->len);
+		return fmtputs(vm, f, str->s, str->len);
 	default:
 		snprintf(buf, sizeof(buf), "<unhandled type %d>", val->qkind);
-		return fmtputs0(f, buf);
+		return fmtputs0(vm, f, buf);
 	}
 }
 
 static int
-fmticval(Fmt *f, unsigned char conv, Cval *cv)
+fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 {
 	static char buf[Maxprintint];
 	static char fmt[1+3+1+Maxprintint+5];
@@ -7240,11 +7273,11 @@ fmticval(Fmt *f, unsigned char conv, Cval *cv)
 	default:
 		fatal("bug");
 	}
-	return fmtputs(f, buf, strlen(buf));
+	return fmtputs(vm, f, buf, strlen(buf));
 }
 
 static int
-fmtenconst(Fmt *f, Cval *cv)
+fmtenconst(VM *vm, Fmt *f, Cval *cv)
 {
 	Xtypename *t;
 	Vec *v;
@@ -7256,7 +7289,7 @@ fmtenconst(Fmt *f, Cval *cv)
 	while(t->tkind == Ttypedef)
 		t = t->link;
 	if(t->tkind != Tenum)
-		return fmticval(f, 'd', cv);
+		return fmticval(vm, f, 'd', cv);
 	for(m = 0; m < t->konst->len; m++){
 		v = valvec(vecref(t->konst, m));
 		k = valcval(vecref(v, 1));
@@ -7265,10 +7298,10 @@ fmtenconst(Fmt *f, Cval *cv)
 		 * type */
 		if(cv->val == k->val){
 			s = valstr(vecref(v, 0));
-			return fmtputs(f, s->s, s->len);
+			return fmtputs(vm, f, s->s, s->len);
 		}
 	}
-	return fmticval(f, 'd', cv);
+	return fmticval(vm, f, 'd', cv);
 }
 
 /* dofmt: dispatch format conversions.
@@ -7293,7 +7326,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	efmt = fmt+fmtlen;
 	while(1){
 		while(fmt < efmt && (ch = *fmt++) != '%')
-			if(fmtputc(f, ch))
+			if(fmtputc(vm, f, ch))
 				return;
 		if(fmt >= efmt)
 			return;
@@ -7309,7 +7342,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			return;
 		ch = *fmt++;
 		if(ch == '%'){
-			if(fmtputc(f, ch))
+			if(fmtputc(vm, f, ch))
 				return;
 			continue;
 		}
@@ -7399,7 +7432,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				snprintf(buf, sizeof(buf), "%c", c);
 			else
 				snprintf(buf, sizeof(buf), "\\%.3o", c);
-			if(fmtputs(f, buf, strlen(buf)))
+			if(fmtputs(vm, f, buf, strlen(buf)))
 				return;
 			break;
 		case 'd':
@@ -7411,21 +7444,21 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(vp->qkind != Qcval)
 				goto badarg;
 			cv = valcval(vp);
-			if(fmticval(f, ch, cv))
+			if(fmticval(vm, f, ch, cv))
 				return;
 			break;
 		case 'e':
 			if(vp->qkind != Qcval)
 				goto badarg;
 			cv = valcval(vp);
-			if(fmtenconst(f, cv))
+			if(fmtenconst(vm, f, cv))
 				return;
 			break;
 		case 'p':
 			if(vp->qkind != Qcval)
 				goto badarg;
 			cv = valcval(vp);
-			if(fmticval(f, 'x', cv))
+			if(fmticval(vm, f, 'x', cv))
 				return;
 			break;
 		case 's':
@@ -7453,10 +7486,10 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			}else
 				goto badarg;
 			if(ch == 'B'){
-				if(fmtputB(f, as->s, len))
+				if(fmtputB(vm, f, as->s, len))
 					return;
 			}else{
-				if(fmtputs(f, as->s, len))
+				if(fmtputs(vm, f, as->s, len))
 					return;
 			}
 			break;
@@ -7483,7 +7516,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				as = fmtxtn(cv->type);
 			}else
 				vmerr(vm, "bad operand to %%t");
-			if(fmtputs(f, as->s, as->len))
+			if(fmtputs(vm, f, as->s, as->len))
 				return;
 			break;
 		case 'y':
@@ -7500,7 +7533,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(vq->qkind == Qnil){
 				snprintf(buf, sizeof(buf),
 					 "0x%" PRIx64, cv->val);
-				if(fmtputs(f, buf, strlen(buf)))
+				if(fmtputs(vm, f, buf, strlen(buf)))
 					return;
 				break;
 			}else if(vq->qkind != Qvec)
@@ -7525,7 +7558,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				memcpy(ys->s+as->len, buf, strlen(buf));
 			}else
 				ys = as;
-			if(fmtputs(f, ys->s, ys->len))
+			if(fmtputs(vm, f, ys->s, ys->len))
 				return;
 			break;
 		default:
@@ -7538,7 +7571,7 @@ badarg:
 }
 
 static int
-fmtstrflush(Fmt *f)
+fmtstrflush(VM *vm, Fmt *f)
 {
 	u32 len;
 	char *s;
@@ -8981,9 +9014,13 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		return;
-	if(fd->close)
-		fd->close(fd);
 	fd->flags |= Fclosed;
+	if(fd->flags&Ffn){
+		if(fd->u.fn.close)
+			fd->u.fn.close(fd);
+	}else
+		if(fd->u.cl.close)
+			dovm(vm, fd->u.cl.close, 0, 0);
 }
 
 static void
@@ -8992,9 +9029,33 @@ l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
 	Fd *fd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fdname");
-	checkarg(vm, "close", argv, 0, Qfd);
+	checkarg(vm, "fdname", argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	*rv = mkvalstr(fd->name);
+}
+
+static void
+l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Closure *r, *w, *c;
+	Str *n;
+
+	if(argc != 3 && argc != 4)
+		vmerr(vm, "wrong number of arguments to mkfd");
+	checkarg(vm, "mkfd", argv, 0, Qcl);
+	checkarg(vm, "mkfd", argv, 1, Qcl);
+	checkarg(vm, "mkfd", argv, 2, Qcl);
+	if(argc == 4){
+		checkarg(vm, "mkfd", argv, 3, Qstr);
+		n = valstr(argv[3]);
+	}else
+		n = mkstr0("");
+	r = valcl(argv[0]);
+	w = valcl(argv[1]);
+	c = valcl(argv[2]);
+	fd = mkfdcl(n, Fread|Fwrite, r, w, c);
+	*rv = mkvalfd(fd);
 }
 
 static void
@@ -11242,6 +11303,7 @@ mktopenv()
 	FN(mkctype_void);
 	FN(mkctype_xaccess);
 	FN(mkdom);
+	FN(mkfd);
 	FN(mkfield);
 	FN(mklist);
 	FN(mknas);
@@ -11326,8 +11388,6 @@ mktopenv()
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();
 	builtindom(env, "litdom", litdom);
-	builtinfd(env, "stdin", mkfd(mkstr0("<stdin>"), 0, Fread, 0));
-	builtinfd(env, "stdout", mkfd(mkstr0("<stdout>"), 1, Fwrite, 0));
 	builtinns(env, "c32le", mkrootns(&c32le));
 	builtinns(env, "c32be", mkrootns(&c32be));
 	builtinns(env, "c64le", mkrootns(&c64le));

@@ -1,0 +1,8 @@
+entry: var params, 1 locals, 0 temps
+r: 1 params, 0 locals, 0 temps
+w: 1 params, 0 locals, 0 temps
+c: 0 params, 0 locals, 0 temps
+writing 3 bytes!
+reading 10 bytes!
+\000\000\000\000\000\000\000\000\000\000
+closing

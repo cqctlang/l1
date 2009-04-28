@@ -2,6 +2,24 @@
 #include "util.h"
 #include "syscqct.h"
 
+static void
+fdclose(Fd *fd)
+{
+	close(fd->fd);
+}
+
+static Imm
+fdread(Fd *fd, char *buf, Imm len)
+{
+	return xread(fd->fd, buf, len);
+}
+
+static Imm
+fdwrite(Fd *fd, char *buf, Imm len)
+{
+	return xwrite(fd->fd, buf, len);
+}
+
 static int
 parseaddr(const char *s, struct in_addr *addr)
 {
@@ -74,12 +92,6 @@ nodelay(int fd)
 }
 
 static void
-fdclose(Fd *fd)
-{
-	close(fd->fd);
-}
-
-static void
 l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -102,7 +114,7 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "opentcp: %s", strerror(errno));
 	nodelay(xfd);
-	fd = mkfd(str, xfd, Fread|Fwrite, fdclose);
+	fd = mkfdfn(str, xfd, Fread|Fwrite, fdread, fdwrite, fdclose);
 	*rv = mkvalfd(fd);
 }
 

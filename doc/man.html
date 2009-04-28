@@ -4821,11 +4821,19 @@ class="arg">ptr</span>.
 <h3 id="sec:io">I/O</h3>
 
 <p>
-Cinquecento supports I/O over regular files and network
-connections.  An open file or network connection is
-represented by an instance of the file descriptor type.
+Cinquecento supports I/O backed by regular files, network
+connections, or user-defined functions.  Such I/O resources
+are represented by an instance of the file descriptor type.
 The predicate <span class="id" id="fn:isfd">isfd</span>
 tests whether a value is a file descriptor.
+</p>
+
+<p>
+When the storage for a regular file or network
+connection descriptor is collected, the system
+implicitly closes the underlying system file resource.
+(This is not true for descriptors backed by
+user-defined functions.)
 </p>
 
 <div class="docitem" id="fn:open">
@@ -4968,6 +4976,72 @@ Returns the name of the I/O resource associated with <span
 class="arg">fd</span>.
 </div>
 </div>
+
+<div class="docitem" id="fn:mkfd">
+<div class="proto">
+<div class="function">
+<span class="id">mkfd(<span class="arg">read</span>,<span class="arg">write</span>,<span class="arg">close</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="param">
+<span class="arg">read</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">write</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">close</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">fd</span>
+</div>
+</div>
+
+<div class="desc">
+Returns a new file descriptor whose I/O semantics
+are implemented by the functions <span class="arg">read</span>
+and <span class="arg">write</span>.
+</div>
+
+<div class="desc">
+<span class="arg">Read</span>
+must be a function of one argument,
+a cvalue <span class="arg">length</span>.
+It is called to read data from the file descriptor;
+it must return a string of length no greater than
+<span class="arg">length</span>.
+</div>
+
+<div class="desc">
+<span class="arg">Write</span>
+must be a function of one argument,
+a string <span class="arg">buf</span>.
+It is called to write data to the file descriptor.
+The system interprets a return value other than <span class="id">nil</span>
+to signify an I/O error.
+</div>
+
+<div class="desc">
+When the file descriptor is explicitly closed (by a call
+to <span class="id">close</span>), the function
+<span class="arg">close</span> is called with zero arguments.
+Its return value is ignored.
+Subsequent calls to <span class="id">close</span>
+are ignored.
+<span class="arg">Close</span> is <em>not</em>
+called impliclity when the file descriptor storage is reclaimed;
+use a finalizer to arrange the <span class="arg">close</span> call.
+</div>
+
+<div class="desc">
+If specified, <span class="arg">name</span> is the string
+returned by <span class="id">fdname</span>; otherwise 
+<span class="id">fdname</span> returns the empty string.
+</div>
+</div>
+
 
 <h3 id="sec:fs">Filesystem Functions</h3>
 
@@ -6197,6 +6271,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mkctype_xaccess">mkctype_xaccess</a><br />
 <a href="#fn:mkdir">mkdir</a><br />
 <a href="#fn:mkdom">mkdom</a><br />
+<a href="#fn:mkfd">mkfd</a><br />
 <a href="#fn:mkfield">mkfield</a><br />
 <a href="#fn:mklist">mklist</a><br />
 <a href="#fn:mkns">mkns</a><br />

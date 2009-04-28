@@ -8,23 +8,51 @@
    E.g., on osx O_TRUNC == 0x400, on 32-bit linux == 0x200
 */
 
+
 static void
 fdclose(Fd *fd)
 {
 	close(fd->fd);
 }
 
-static int
-fmtfdflush(Fmt *f)
+static Imm
+fdread(Fd *fd, char *buf, Imm len)
 {
+	return xread(fd->fd, buf, len);
+}
+
+static Imm
+fdwrite(Fd *fd, char *buf, Imm len)
+{
+	return xwrite(fd->fd, buf, len);
+}
+
+static int
+fmtfdflush(VM *vm, Fmt *f)
+{
+	Imm rv;
 	Fd *fd;
+	Str *s;
+	Val argv[1], r;
+
 	fd = (Fd*)f->farg;
 	if(fd->flags&Fclosed)
 		return -1;
 	if((fd->flags&Fwrite) == 0)
 		return -1;
-	if(0 > xwrite(fd->fd, f->start, f->to-f->start))
-		return -1;
+	if(fd->flags&Ffn){
+		rv = fd->u.fn.write(fd, f->start, f->to-f->start);
+		if(rv == -1)
+			return -1;
+	}else{
+		s = mkstrk(f->start, f->to-f->start, Sperm);
+		gcprotect(vm, s);
+		argv[0] = mkvalstr(s);
+		r = dovm(vm, fd->u.cl.write, 1, argv);
+		gcunprotect(vm, s);
+		if(r->qkind != Qnil)
+			return -1;
+	}
 	f->to = f->start;
 	return 0;
 }
@@ -42,7 +70,7 @@ dofdprint(VM *vm, Fd *fd, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	f.stop = buf+sizeof(buf);
 	f.flush = fmtfdflush;
 	dofmt(vm, &f, fmt, fmtlen, argc, argv);
-	fmtfdflush(&f);
+	fmtfdflush(vm, &f);
 }
 
 static void
@@ -195,7 +223,7 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > xfd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
-	fd = mkfd(names, xfd, flags, fdclose);
+	fd = mkfdfn(names, xfd, flags, fdread, fdwrite, fdclose);
 	*rv = mkvalfd(fd);
 }
 
@@ -215,15 +243,20 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to read from closed file descriptor");
-	n = valcval(argv[1]);
-	buf = emalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
-	r = xread(fd->fd, buf, n->val);
-	if(r == (Imm)-1)
-		vmerr(vm, "read error: %s", strerror(errno));
-	if(n->val > 0 && r == 0)
-		return;		/* nil */
-	s = mkstrk(buf, r, Smalloc);
-	*rv = mkvalstr(s);
+	if((fd->flags&Fread) == 0)
+		vmerr(vm, "attempt to read non-readable file descriptor");
+	if(fd->flags&Ffn){
+		n = valcval(argv[1]);
+		buf = emalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
+		r = fd->u.fn.read(fd, buf, n->val);
+		if(r == (Imm)-1)
+			vmerr(vm, "read error: %s", strerror(errno));
+		if(n->val > 0 && r == 0)
+			return;		/* nil */
+		s = mkstrk(buf, r, Smalloc);
+		*rv = mkvalstr(s);
+	}else
+		*rv = dovm(vm, fd->u.cl.read, argc-1, argv+1);
 }
 
 static void
@@ -232,6 +265,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	Fd *fd;
 	Str *s;
 	int r;
+	Val x;
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to write");
@@ -240,10 +274,18 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to write to closed file descriptor");
-	s = valstr(argv[1]);
-	r = xwrite(fd->fd, s->s, s->len);
-	if(r == -1)
-		vmerr(vm, "write error: %s", strerror(errno));
+	if((fd->flags&Fwrite) == 0)
+		vmerr(vm, "attempt to write non-writable file descriptor");
+	if(fd->flags&Ffn){
+		s = valstr(argv[1]);
+		r = fd->u.fn.write(fd, s->s, s->len);
+		if(r == -1)
+			vmerr(vm, "write error: %s", strerror(errno));
+	}else{
+		x = dovm(vm, fd->u.cl.write, argc=1, argv+1);
+		if(x->qkind != Qnil)
+			vmerr(vm, "write error");
+	}
 	/* return nil */
 }
 
@@ -269,7 +311,8 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(xargv);
 	if(xfd < 0)
 		vmerr(vm, "%s", strerror(-xfd));
-	fd = mkfd(mkstr0("<pipe>"), xfd, Fread|Fwrite, fdclose);
+	fd = mkfdfn(mkstr0("<pipe>"), xfd, Fread|Fwrite,
+		    fdread, fdwrite, fdclose);
 	*rv = mkvalfd(fd);
 }
 
@@ -285,4 +328,8 @@ fnio(Env *env)
 	FN(printf);
 	FN(read);
 	FN(write);
+	builtinfd(env, "stdin", mkfdfn(mkstr0("<stdin>"), 0, Fread,
+				       fdread, fdwrite, 0));
+	builtinfd(env, "stdout", mkfdfn(mkstr0("<stdout>"), 1, Fwrite,
+					fdread, fdwrite, 0));
 }
