@@ -1,10 +1,9 @@
 Attaching L1 to a linux process with prctl
 ------------------------------------------
 
-1.  get and build prctl.
+1.  get prctl from cqctworld.org and untar it.
 
-    # clone the cqct repository, if you haven't already
-    % git clone <user>@cqctworld.org:/git/prctl.git prctl
+2.  build it.
 
     % cd prctl
     % make
@@ -13,7 +12,7 @@ Attaching L1 to a linux process with prctl
           builds.  be sure it is set appropriately for the machine on
           which you will run prctl.
 
-2.  start prctl
+3.  start prctl
 
     % prctl --
 
@@ -21,12 +20,12 @@ Attaching L1 to a linux process with prctl
           the most recent client connection.  so you may need
           start it again later
 
-3.  start l1
+4.  start l1
 
     % ./l1
     ;
 
-4.  construct a process address space
+5.  construct a process address space
 
     ; pras = mkpras("localhost:30000", "command", "arg0", ...);
 
@@ -42,7 +41,7 @@ Attaching L1 to a linux process with prctl
 
     ; pras = mkpras("localhost:30000", "/bin/ls", "/etc");
 
-5.  construct a process domain
+6.  construct a process domain
 
     ; prdom = mkdom(prns, pras);
 
@@ -53,7 +52,7 @@ Attaching L1 to a linux process with prctl
     one way to populate a name space is to run dwarf2cqct on the
     executable.
 
-6.  have at it!
+7.  have at it!
 
     the process represented by prdom is initially stopped at its first
     instruction.
