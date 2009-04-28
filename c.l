@@ -38,6 +38,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@global"		{ count(ctx); return(GLOBAL); }
 "@names"		{ count(ctx); return(NAMES); }
 "@const"		{ count(ctx); return(DEFCONST); }
+"@let"			{ count(ctx); return(LET); }
 "break"			{ count(ctx); return(BREAK); }
 "case"			{ count(ctx); return(CASE); }
 "char"			{ count(ctx); return(CHAR); }
