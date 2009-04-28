@@ -26,7 +26,7 @@ extern char *yytext;
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
-%token GLOBAL LOCAL LET LAMBDA NAMES
+%token GLOBAL LOCAL LAMBDA NAMES LET
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
@@ -144,13 +144,15 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
+	| '{' ':' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); }
 	| '{' table_init_list '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| '{' table_init_list ',' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| lambda_expression
 	| defrec_expression
-        | let_expression
+	| let_expression
 	;
 
 postfix_expression

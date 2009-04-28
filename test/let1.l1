@@ -1,0 +1,2 @@
+x = @let { @local x; x = 1; x++; };
+printf("%d\n", x);
