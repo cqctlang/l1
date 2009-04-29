@@ -101,5 +101,5 @@ clean:
 	@$(MAKE) -C x/lib9 clean
 	@$(MAKE) -C x/libflate clean
 	@$(MAKE) -C x/libsec clean
-	@$(MAKE) -C x/libtre clean
+#	@$(MAKE) -C x/libtre clean
 	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so depend

@@ -2,8 +2,7 @@ UNIX = fnfs fnio fnnet fnsys fnsec fnflate
 L1DEPS +=\
 	x/lib9/lib9.a\
 	x/libflate/libflate.a\
-	x/libsec/libsec.a\
-	x/libtre/libtre.a
+	x/libsec/libsec.a
 
 x/lib9/lib9.a:
 	$(MAKE) -s -C x/lib9
