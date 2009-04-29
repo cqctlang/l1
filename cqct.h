@@ -98,6 +98,8 @@ Val		cqctcstrnval(char *s, uint64_t len);
 Val		cqctcstrnvalshared(char *s, uint64_t len);
 Val		cqctcstrval(char *s);
 Val		cqctcstrvalshared(char *s);
+void		cqctenvbind(Toplevel *top, char *name, Val v);
+Val		cqctenvlook(Toplevel *top, char *name);
 int		cqcteval(VM *vm, char *s, char *src, Val *rv);
 int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Toplevel *top);
@@ -113,6 +115,11 @@ Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);
 Val		cqctint64val(int64_t);
+Val		cqctmkfd(Closure *r, Closure *w, Closure *c, char *name);
+Val		cqctmkcfd(uint64_t (*r)(Val, char*, uint64_t),
+			  uint64_t (*w)(Val, char*, uint64_t),
+			  void (*c)(Val),
+			  char *name);
 VM*		cqctmkvm(Toplevel *top);
 Expr*		cqctparsefile(char *filename);
 Expr*		cqctparsestr(char *str, char *whence);

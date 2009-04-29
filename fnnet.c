@@ -3,20 +3,26 @@
 #include "syscqct.h"
 
 static void
-fdclose(Fd *fd)
+fdclose(Val v)
 {
+	Fd *fd;
+	fd = valfd(v);
 	close(fd->fd);
 }
 
 static Imm
-fdread(Fd *fd, char *buf, Imm len)
+fdread(Val v, char *buf, Imm len)
 {
+	Fd *fd;
+	fd = valfd(v);
 	return xread(fd->fd, buf, len);
 }
 
 static Imm
-fdwrite(Fd *fd, char *buf, Imm len)
+fdwrite(Val v, char *buf, Imm len)
 {
+	Fd *fd;
+	fd = valfd(v);
 	return xwrite(fd->fd, buf, len);
 }
 
@@ -114,7 +120,8 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "opentcp: %s", strerror(errno));
 	nodelay(xfd);
-	fd = mkfdfn(str, xfd, Fread|Fwrite, fdread, fdwrite, fdclose);
+	fd = mkfdfn(str, Fread|Fwrite, fdread, fdwrite, fdclose);
+	fd->fd = xfd;
 	*rv = mkvalfd(fd);
 }
 

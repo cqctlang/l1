@@ -358,9 +358,9 @@ struct Fd {
 	Head hd;
 	union {
 		struct {
-			Imm (*read)(Fd *fd, char *buf, Imm len);
-			Imm (*write)(Fd *fd, char *buf, Imm len);
-			void (*close)(Fd *fd);
+			Imm (*read)(Val, char*, Imm);
+			Imm (*write)(Val, char*, Imm);
+			void (*close)(Val);
 		} fn;
 		struct {
 			Closure *read;
@@ -889,10 +889,10 @@ Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
-Fd*		mkfdfn(Str *name, int xfd, int flags,
-		       Imm (*read)(Fd*, char*, Imm),
-		       Imm (*write)(Fd*, char*, Imm),
-		       void (*close)(Fd *fd));
+Fd*		mkfdfn(Str *name, int flags,
+		       Imm (*read)(Val, char*, Imm),
+		       Imm (*write)(Val, char*, Imm),
+		       void (*close)(Val));
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);

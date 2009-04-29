@@ -10,20 +10,26 @@
 
 
 static void
-fdclose(Fd *fd)
+fdclose(Val v)
 {
+	Fd *fd;
+	fd = valfd(v);
 	close(fd->fd);
 }
 
 static Imm
-fdread(Fd *fd, char *buf, Imm len)
+fdread(Val v, char *buf, Imm len)
 {
+	Fd *fd;
+	fd = valfd(v);
 	return xread(fd->fd, buf, len);
 }
 
 static Imm
-fdwrite(Fd *fd, char *buf, Imm len)
+fdwrite(Val v, char *buf, Imm len)
 {
+	Fd *fd;
+	fd = valfd(v);
 	return xwrite(fd->fd, buf, len);
 }
 
@@ -41,7 +47,7 @@ fmtfdflush(VM *vm, Fmt *f)
 	if((fd->flags&Fwrite) == 0)
 		return -1;
 	if(fd->flags&Ffn){
-		rv = fd->u.fn.write(fd, f->start, f->to-f->start);
+		rv = fd->u.fn.write(mkvalfd(fd), f->start, f->to-f->start);
 		if(rv == -1)
 			return -1;
 	}else{
@@ -223,7 +229,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > xfd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
-	fd = mkfdfn(names, xfd, flags, fdread, fdwrite, fdclose);
+	fd = mkfdfn(names, flags, fdread, fdwrite, fdclose);
+	fd->fd = xfd;
 	*rv = mkvalfd(fd);
 }
 
@@ -248,7 +255,7 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(fd->flags&Ffn){
 		n = valcval(argv[1]);
 		buf = emalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
-		r = fd->u.fn.read(fd, buf, n->val);
+		r = fd->u.fn.read(argv[0], buf, n->val);
 		if(r == (Imm)-1)
 			vmerr(vm, "read error: %s", strerror(errno));
 		if(n->val > 0 && r == 0)
@@ -278,7 +285,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "attempt to write non-writable file descriptor");
 	if(fd->flags&Ffn){
 		s = valstr(argv[1]);
-		r = fd->u.fn.write(fd, s->s, s->len);
+		r = fd->u.fn.write(argv[0], s->s, s->len);
 		if(r == -1)
 			vmerr(vm, "write error: %s", strerror(errno));
 	}else{
@@ -311,14 +318,16 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(xargv);
 	if(xfd < 0)
 		vmerr(vm, "%s", strerror(-xfd));
-	fd = mkfdfn(mkstr0("<pipe>"), xfd, Fread|Fwrite,
-		    fdread, fdwrite, fdclose);
+	fd = mkfdfn(mkstr0("<pipe>"), Fread|Fwrite, fdread, fdwrite, fdclose);
+	fd->fd = xfd;
 	*rv = mkvalfd(fd);
 }
 
 void
 fnio(Env *env)
 {
+	Fd *fd;
+
 	FN(access);
 	FN(fprintf);
 	FN(mapfile);
@@ -328,8 +337,12 @@ fnio(Env *env)
 	FN(printf);
 	FN(read);
 	FN(write);
-	builtinfd(env, "stdin", mkfdfn(mkstr0("<stdin>"), 0, Fread,
-				       fdread, fdwrite, 0));
-	builtinfd(env, "stdout", mkfdfn(mkstr0("<stdout>"), 1, Fwrite,
-					fdread, fdwrite, 0));
+
+	fd = mkfdfn(mkstr0("<stdin>"), Fread, fdread, 0, 0);
+	fd->fd = 0;
+	builtinfd(env, "stdin", fd);
+
+	fd = mkfdfn(mkstr0("<stdout>"), Fwrite, 0, fdwrite, 0);
+	fd->fd = 1;
+	builtinfd(env, "stdout", fd);
 }

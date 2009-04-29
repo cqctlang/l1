@@ -1232,20 +1232,24 @@ freefd(Head *hd)
 	if((fd->flags&Fclosed) == 0
 	   && fd->flags&Ffn
 	   && fd->u.fn.close)
-		fd->u.fn.close(fd);
+		fd->u.fn.close(hd);
 	return 1;
 }
 
 Fd*
-mkfdfn(Str *name, int xfd, int flags,
-       Imm (*read)(Fd*, char*, Imm),
-       Imm (*write)(Fd*, char*, Imm),
-       void (*close)(Fd *fd))
+mkfdfn(Str *name, int flags,
+       Imm (*read)(Val, char*, Imm),
+       Imm (*write)(Val, char*, Imm),
+       void (*close)(Val))
 {
 	Fd *fd;
+	if(read == 0)
+		flags &= ~Fread;
+	if(write == 0)
+		flags &= ~Fwrite;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
-	fd->fd = xfd;
+	fd->fd = -1;
 	fd->u.fn.read = read;
 	fd->u.fn.write = write;
 	fd->u.fn.close = close;
@@ -1260,6 +1264,10 @@ mkfdcl(Str *name, int flags,
        Closure *close)
 {
 	Fd *fd;
+	if(read == 0)
+		flags &= ~Fread;
+	if(write == 0)
+		flags &= ~Fwrite;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
 	fd->fd = -1;
@@ -3147,6 +3155,12 @@ envgetbind(Env *env, char *id)
 		hput(env->var, xstrdup(id), strlen(id), v);
 	}
 	return v;
+}
+
+Val*
+envget(Env *env, char *id)
+{
+	return hget(env->var, id, strlen(id));
 }
 
 static void
@@ -9017,7 +9031,7 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd->flags |= Fclosed;
 	if(fd->flags&Ffn){
 		if(fd->u.fn.close)
-			fd->u.fn.close(fd);
+			fd->u.fn.close(argv[0]);
 	}else
 		if(fd->u.cl.close)
 			dovm(vm, fd->u.cl.close, 0, 0);
@@ -9043,17 +9057,25 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3 && argc != 4)
 		vmerr(vm, "wrong number of arguments to mkfd");
-	checkarg(vm, "mkfd", argv, 0, Qcl);
-	checkarg(vm, "mkfd", argv, 1, Qcl);
-	checkarg(vm, "mkfd", argv, 2, Qcl);
+	if(argv[0]->qkind != Qcl && argv[0]->qkind != Qnil)
+		vmerr(vm, "argument 1 to mkfd must be a function or nil");
+	if(argv[1]->qkind != Qcl && argv[1]->qkind != Qnil)
+		vmerr(vm, "argument 2 to mkfd must be a function or nil");
+	if(argv[2]->qkind != Qcl && argv[2]->qkind != Qnil)
+		vmerr(vm, "argument 3 to mkfd must be a function or nil");
+
+	r = w = c = 0;
+	if(argv[0]->qkind == Qcl)
+		r = valcl(argv[0]);
+	if(argv[1]->qkind == Qcl)
+		w = valcl(argv[1]);
+	if(argv[2]->qkind == Qcl)
+		c = valcl(argv[2]);
 	if(argc == 4){
 		checkarg(vm, "mkfd", argv, 3, Qstr);
 		n = valstr(argv[3]);
 	}else
 		n = mkstr0("");
-	r = valcl(argv[0]);
-	w = valcl(argv[1]);
-	c = valcl(argv[2]);
 	fd = mkfdcl(n, Fread|Fwrite, r, w, c);
 	*rv = mkvalfd(fd);
 }
@@ -11619,7 +11641,38 @@ cqctvalcbase(Val v)
 	}
 }
 
-/* these routines assume litdom is clp64le */
+Val
+cqctmkcfd(uint64_t (*r)(Val, char*, uint64_t),
+	  uint64_t (*w)(Val, char*, uint64_t),
+	  void (*c)(Val),
+	  char *name)
+{
+	Fd *fd;
+	Str *n;
+	
+	if(name)
+		n = mkstr0(name);
+	else
+		n = mkstr0("");
+	fd = mkfdfn(n, Fread|Fwrite, r, w, c);
+	return mkvalfd(fd);
+}
+
+Val
+cqctmkfd(Closure *r, Closure *w, Closure *c, char *name)
+{
+	Fd *fd;
+	Str *n;
+
+	if(name)
+		n = mkstr0(name);
+	else
+		n = mkstr0("");
+	fd = mkfdcl(n, Fread|Fwrite, r, w, c);
+	return mkvalfd(fd);
+}
+
+/* these cqctval<type> routines and their inverses assume litdom is clp64le */
 
 int8_t
 cqctvalint8(Val v)
@@ -11837,4 +11890,24 @@ void
 cqctfreecstr(char *s)
 {
 	efree(s);
+}
+
+void
+cqctenvbind(Toplevel *top, char *name, Val v)
+{
+	Val *vp;
+	vp = envget(top->env, name);
+	if(vp)
+		gcwb(thegc, *vp);
+	envbind(top->env, name, v);
+}
+
+Val
+cqctenvlook(Toplevel *top, char *name)
+{
+	Val *rv;
+	rv = envget(top->env, name);
+	if(rv)
+		return *rv;
+	return 0;
 }
