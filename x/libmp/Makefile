@@ -43,10 +43,11 @@ O = $(C:.c=.o)
 
 -include depend
 depend: $(C) Makefile
-	gcc $(INC) -MM $(C) > depend
+	@echo depend libmp
+	$(V)gcc $(INC) -MM $(C) > depend
 
 libmp.a: $(O)
 	$(AR) rsc $@ $^
 
 clean:
-	$(RM) depend libmp.a *~ $(O) core core.*
+	$(V)$(RM) depend libmp.a *~ $(O) core core.*

@@ -1,17 +1,21 @@
 UNIX = fnfs fnio fnnet fnsys fnsec fnflate 
-L1DEPS += x/lib9/lib9.a x/libflate/libflate.a x/libsec/libsec.a 
-
-# expose CFLAGS to libraries
-export CFLAGS
+L1DEPS +=\
+	x/lib9/lib9.a\
+	x/libflate/libflate.a\
+	x/libsec/libsec.a\
+	x/libtre/libtre.a
 
 x/lib9/lib9.a:
-	$(MAKE) -C x/lib9
+	$(MAKE) -s -C x/lib9
 
 x/libflate/libflate.a:
-	$(MAKE) -C x/libflate
+	$(MAKE) -s -C x/libflate
 
 x/libsec/libsec.a:
-	$(MAKE) -C x/libsec
+	$(MAKE) -s -C x/libsec
+
+x/libtre/libtre.a:
+	$(MAKE) -s -C x/libtre
 
 L1EXTRAS := $(addsuffix .c, $(UNIX)) \
 	     unix.c

@@ -23,10 +23,11 @@ O = $(C:.c=.o)
 
 -include depend
 depend: $(C) Makefile
-	gcc $(INC) -MM $(C) > depend
+	@echo depend libflate
+	$(V)gcc $(INC) -MM $(C) > depend
 
 libflate.a: $(O)
 	$(AR) rsc $@ $^
 
 clean:
-	$(RM) depend libflate.a *~ $(O) core core.*
+	$(V)$(RM) depend libflate.a *~ $(O) core core.*

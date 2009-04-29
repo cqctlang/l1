@@ -64,10 +64,11 @@ O = $(C:.c=.o)
 
 -include depend
 depend: $(C) Makefile
-	gcc $(INC) -MM $(C) > depend
+	@echo depend sec
+	$(V)gcc $(INC) -MM $(C) > depend
 
 $(TARG): $(O)
 	$(AR) rsc $@ $^
 
 clean:
-	$(RM) depend $(TARG) *~ *.o core core.*
+	$(V)$(RM) depend $(TARG) *~ *.o core core.*

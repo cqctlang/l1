@@ -1,0 +1,14 @@
+#!/bin/sh
+
+x=`pwd`
+tar zxf $1.tar.gz
+cd $1  # libtre source directory
+echo config tre
+./configure --enable-static --prefix=$x  > /dev/null 2>&1
+echo make tre
+make > /dev/null 2>&1
+echo install tre
+make install > /dev/null 2>&1
+cd ..
+cp include/tre/* ../include
+cp lib/libtre.a ./
