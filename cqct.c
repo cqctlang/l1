@@ -5,36 +5,25 @@
 char **cqctloadpath;
 char cqctflags[256];
 
-Expr*
-cqctparsefile(char *filename)
-{
-	Expr *e;
-	char *str;
-	str = readfile(filename);
-	if(str == 0)
-		return 0;
-	e = doparse(str, filename);
-	efree(str);
-	return e;
-}
-
-Expr*
-cqctparsestr(char *str, char *whence)
-{
-	return doparse(str, whence);
-}
-
 Closure*
-cqctcompile(Expr *e, Toplevel *top, char *argsid)
+cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 {
 	U ctx;
+	Expr *e;
 
+	if(src == 0)
+		src = "<stdin>";
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.xfd = &top->xfd;
+
+	e = doparse(&ctx, s, src);
+	if(e == 0)
+		return 0;
 	if(cqctflags['p']){
 		xprintf("input:\n");
 		printexpr(e);
 		xprintf("\n");
 	}
-	memset(&ctx, 0, sizeof(ctx));
 	dotypes(&ctx, e);
 	if(docompilens(&ctx, e) != 0)
 		return 0;
@@ -70,17 +59,11 @@ int
 cqcteval(VM *vm, char *s, char *src, Val *rv)
 {
 	Closure *cl;
-	Expr *e;
 	Val v;
 
-	e = cqctparsestr(s, src);
-	if(e == 0)
+	cl = cqctcompile(s, src, vm->top, 0);
+	if(cl == 0)
 		return -1;
-	cl = cqctcompile(e, vm->top, 0);
-	if(cl == 0){
-		cqctfreeexpr(e);
-		return -1;
-	}
 	if(rv == 0)
 		rv = &v;
 	if(cqctcallfn(vm, cl, 0, 0, rv))
@@ -124,14 +107,26 @@ cqctfreeexpr(Expr *e)
 	freeexpr(e);
 }
 
-Toplevel*
-cqctinit(int gcthread, u64 heapmax, char **lp)
+static uint64_t
+xfdwrite(Xfd *xfd, char *buf, uint64_t len)
 {
+	return xwrite(1, buf, len);
+}
+
+Toplevel*
+cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *xfd)
+{
+	Xfd def;
+	if(xfd == 0){
+		memset(&def, 0, sizeof(def));
+		def.write = xfdwrite;
+		xfd = &def;
+	}
 	cqctloadpath = copyargv(lp);
 	initparse();
 	initcg();
 	initvm(gcthread, heapmax);
-	return mktoplevel();
+	return mktoplevel(xfd);
 }
 
 void
@@ -143,3 +138,29 @@ cqctfini(Toplevel *top)
 	finicg();
 	finiparse();
 }
+
+void
+cvprintf(Xfd *xfd, char *fmt, va_list args)
+{
+	int len;
+	char *p;
+
+	if(!xfd->write)
+		return;
+	/* hold your nose */
+	len = vasprintf(&p, fmt, args);
+	if(p == 0 || len < 0)
+		xabort();
+	xfd->write(xfd, p, len);
+	free(p);
+}
+
+void
+cprintf(Xfd *xfd, char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	cvprintf(xfd, fmt, args);
+	va_end(args);
+}
+

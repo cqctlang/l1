@@ -93,19 +93,22 @@ parseerror(U *ctx, char *fmt, ...)
 		 * resolvers, which do not convey %parse-param's
 		 */
 		va_start(args, fmt);
-		vmsg(fmt, args);
+		xvprintf(fmt, args);
 		va_end(args);
+		xprintf("\n");
 		return;
 	}
 
 	if(ctx->inp)
-		xprintf("%s:%u: ",
+		cprintf(ctx->xfd,
+			"%s:%u: ",
 			ctx->inp->src.filename
 			? ctx->inp->src.filename : "<stdin>",
 			ctx->inp->src.line);
 	va_start(args, fmt);
-	vmsg(fmt, args);
+	cvprintf(ctx->xfd, fmt, args);
 	va_end(args);
+	cprintf(ctx->xfd, "\n");
 
 	while(popyy(ctx))
 		;
@@ -1284,26 +1287,25 @@ tryinclude(U *ctx, char *raw)
 }
 
 Expr*
-doparse(char *buf, char *whence)
+doparse(U *ctx, char *buf, char *whence)
 {
-	U ctx;
-
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.el = nullelist();
-	if(setjmp(ctx.jmp) == 0){
-		pushyy(&ctx, whence, buf, 0);
-		if(yyparse(&ctx) != 0)
+	Expr *rv;
+	ctx->el = nullelist();
+	if(setjmp(ctx->jmp) == 0){
+		pushyy(ctx, whence, buf, 0);
+		if(yyparse(ctx) != 0)
 			fatal("parse error");
 	}else
 		return 0;
 
-	ctx.el = invert(ctx.el);
-	popyy(&ctx);
+	rv = invert(ctx->el);
+	ctx->el = 0;
+	popyy(ctx);
 	/* FIXME: does bison normally call yylex_destroy implicitly?
 	   http://www.mail-archive.com/bison-patches@gnu.org/msg01521.html
 	*/
 	yylex_destroy();
-	return ctx.el;
+	return rv;
 }
 
 void

@@ -1232,27 +1232,21 @@ freefd(Head *hd)
 	if((fd->flags&Fclosed) == 0
 	   && fd->flags&Ffn
 	   && fd->u.fn.close)
-		fd->u.fn.close(hd);
+		fd->u.fn.close(&fd->u.fn);
 	return 1;
 }
 
 Fd*
-mkfdfn(Str *name, int flags,
-       Imm (*read)(Val, char*, Imm),
-       Imm (*write)(Val, char*, Imm),
-       void (*close)(Val))
+mkfdfn(Str *name, int flags, Xfd *xfd)
 {
 	Fd *fd;
-	if(read == 0)
-		flags &= ~Fread;
-	if(write == 0)
-		flags &= ~Fwrite;
+//	if(read == 0)
+//		flags &= ~Fread;
+//	if(write == 0)
+//		flags &= ~Fwrite;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
-	fd->fd = -1;
-	fd->u.fn.read = read;
-	fd->u.fn.write = write;
-	fd->u.fn.close = close;
+	fd->u.fn = *xfd;
 	fd->flags = flags|Ffn;
 	return fd;
 }
@@ -1270,7 +1264,6 @@ mkfdcl(Str *name, int flags,
 		flags &= ~Fwrite;
 	fd = (Fd*)halloc(&heap[Qfd]);
 	fd->name = name;
-	fd->fd = -1;
 	fd->u.cl.read = read;
 	fd->u.cl.write = write;
 	fd->u.cl.close = close;
@@ -3210,11 +3203,12 @@ freeenv(Env *env)
 }
 
 Toplevel*
-mktoplevel()
+mktoplevel(Xfd *xfd)
 {
 	Toplevel *top;
 	top = emalloc(sizeof(Toplevel));
 	top->env = mktopenv();
+	top->xfd = *xfd;
 	return top;
 }
 
@@ -3470,14 +3464,14 @@ putval(VM *vm, Val v, Location *loc)
 }
 
 static void
-printsrc(FILE *out, Closure *cl, Imm pc)
+printsrc(Xfd *xfd, Closure *cl, Imm pc)
 {
 	Code *code;
 	char *fn;
 	
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
-		xprintf("%20s\t(builtin %s)\n", cl->id,
+		cprintf(xfd, "%20s\t(builtin %s)\n", cl->id,
 			cl->cfn ? "function" : "closure");
 		return;
 	}
@@ -3487,7 +3481,7 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 			fn = code->labels[pc]->src->filename;
 			if(fn == 0)
 				fn = "<stdin>";
-			xprintf("%20s\t(%s:%u)\n", cl->id,
+			cprintf(xfd, "%20s\t(%s:%u)\n", cl->id,
 				fn, code->labels[pc]->src->line);
 			return;
 		}
@@ -3495,26 +3489,25 @@ printsrc(FILE *out, Closure *cl, Imm pc)
 			break;
 		pc--;
 	}
-	xprintf("%20s\t(no source information)\n", cl->id);
+	cprintf(xfd, "%20s\t(no source information)\n", cl->id);
 }
 
 static void
-fvmbacktrace(FILE *out, VM *vm)
+fvmbacktrace(VM *vm)
 {
 	Imm pc, fp, narg;
 	Closure *cl;
+	Xfd *xfd;
+
+	xfd = &vm->top->xfd;
 
 	pc = vm->pc-1;		/* vm loop increments pc after fetch */
 	fp = vm->fp;
 	cl = vm->clx;
 	while(fp != 0){
-//		if(!strcmp(cl->id, "$halt"))
-//			xprintf("\t-- vmcall --\n");
-//		else
-//			printsrc(out, cl, pc);
 		if(strcmp(cl->id, "$halt")){
-//			xprintf("fp=%05lld pc=%08lld ", fp, pc);
-			printsrc(out, cl, pc);
+//			cprintf(xfd, "fp=%05lld pc=%08lld ", fp, pc);
+			printsrc(xfd, cl, pc);
 		}
 		narg = stkimm(vm->stack[fp]);
 		pc = stkimm(vm->stack[fp+narg+1]);
@@ -3527,18 +3520,19 @@ fvmbacktrace(FILE *out, VM *vm)
 static void
 vmbacktrace(VM *vm)
 {
-	fvmbacktrace(0, vm);
+	fvmbacktrace(vm);
 }
 
 void
 vmerr(VM *vm, char *fmt, ...)
 {
 	va_list args;
-	xprintf("error: ");
+	cprintf(&vm->top->xfd, "error: ");
 	va_start(args, fmt);
-	vmsg(fmt, args);
+	cvprintf(&vm->top->xfd, fmt, args);
 	va_end(args);
-	fvmbacktrace(0, vm);
+	cprintf(&vm->top->xfd, "\n");
+	fvmbacktrace(vm);
 	nexterror(vm);
 }
 
@@ -9031,7 +9025,7 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd->flags |= Fclosed;
 	if(fd->flags&Ffn){
 		if(fd->u.fn.close)
-			fd->u.fn.close(argv[0]);
+			fd->u.fn.close(&fd->u.fn);
 	}else
 		if(fd->u.cl.close)
 			dovm(vm, fd->u.cl.close, 0, 0);
@@ -10814,21 +10808,16 @@ static void
 l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *str;
-	Expr *e;
 	Closure *cl;
 
 	char *s;
 	checkarg(vm, "eval", argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
-	e = cqctparsestr(s, "<eval-input>");
-	if(e == 0)
+	cl = cqctcompile(s, "<eval-input>", vm->top, 0);
+	efree(s);
+	if(cl == 0)
 		return;
-	cl = cqctcompile(e, vm->top, 0);
-	if(cl == 0){
-		freeexpr(e);
-		return;
-	}
 	*rv = dovm(vm, cl, 0, 0);
 }
 
@@ -11513,7 +11502,7 @@ vmfaulthook()
 	while(vmp < vms+Maxvms){
 		if(*vmp){
 			xprintf("backtrace of vm %p:\n", *vmp);
-			fvmbacktrace(0, *vmp);
+			fvmbacktrace(*vmp);
 			xprintf("\n");
 		}
 		vmp++;
@@ -11642,10 +11631,7 @@ cqctvalcbase(Val v)
 }
 
 Val
-cqctmkcfd(uint64_t (*r)(Val, char*, uint64_t),
-	  uint64_t (*w)(Val, char*, uint64_t),
-	  void (*c)(Val),
-	  char *name)
+cqctmkfd(Xfd *xfd, char *name)
 {
 	Fd *fd;
 	Str *n;
@@ -11654,21 +11640,7 @@ cqctmkcfd(uint64_t (*r)(Val, char*, uint64_t),
 		n = mkstr0(name);
 	else
 		n = mkstr0("");
-	fd = mkfdfn(n, Fread|Fwrite, r, w, c);
-	return mkvalfd(fd);
-}
-
-Val
-cqctmkfd(Closure *r, Closure *w, Closure *c, char *name)
-{
-	Fd *fd;
-	Str *n;
-
-	if(name)
-		n = mkstr0(name);
-	else
-		n = mkstr0("");
-	fd = mkfdcl(n, Fread|Fwrite, r, w, c);
+	fd = mkfdfn(n, Fread|Fwrite, xfd);
 	return mkvalfd(fd);
 }
 

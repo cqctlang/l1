@@ -41,31 +41,15 @@ cqctfaulthook(Faulthook *h, int in)
 }
 
 void
-vmsg(char *fmt, va_list args)
-{
-	xvprintf(fmt, args);
-	xprintf("\n");
-}
-
-void
-msg(char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	vmsg(fmt, args);
-	xprintf("\n");
-	va_end(args);
-}
-
-void
 fatal(char *fmt, ...)
 {
 	unsigned n;
 	va_list args;
 	xprintf("internal error: ");
 	va_start(args, fmt);
-	vmsg(fmt, args);
+	xvprintf(fmt, args);
 	va_end(args);
+	xprintf("\n");
 	n = nfh;
 	while(n-- != 0)
 		faulthook[n]();

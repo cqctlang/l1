@@ -1,5 +1,6 @@
 #ifndef _BISONFLAW_SYS_H_
 #define _BISONFLAW_SYS_H_
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

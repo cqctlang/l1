@@ -29,8 +29,7 @@ Imm xread(int fd, char *p, Imm len);
 Imm xwrite(int fd, char *p, Imm len);
 void xprintf(char *fmt, ...);
 void xvprintf(char *fmt, va_list args);
-void msg(char *fmt, ...);
-void vmsg(char *fmt, va_list args);
+
 
 int xisalnum(int c);
 int xisalpha(int c);

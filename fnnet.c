@@ -3,27 +3,21 @@
 #include "syscqct.h"
 
 static void
-fdclose(Val v)
+fdclose(Xfd *xfd)
 {
-	Fd *fd;
-	fd = valfd(v);
-	close(fd->fd);
+	close(xfd->fd);
 }
 
 static Imm
-fdread(Val v, char *buf, Imm len)
+fdread(Xfd *xfd, char *buf, Imm len)
 {
-	Fd *fd;
-	fd = valfd(v);
-	return xread(fd->fd, buf, len);
+	return xread(xfd->fd, buf, len);
 }
 
 static Imm
-fdwrite(Val v, char *buf, Imm len)
+fdwrite(Xfd *xfd, char *buf, Imm len)
 {
-	Fd *fd;
-	fd = valfd(v);
-	return xwrite(fd->fd, buf, len);
+	return xwrite(xfd->fd, buf, len);
 }
 
 static int
@@ -103,7 +97,7 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	Fd *fd;
 	Str *str;
 	char *s;
-	int xfd;
+	Xfd xfd;
 	struct sockaddr_in saddr;
 
 	if(argc != 1)
@@ -114,14 +108,16 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > parseip(s, &saddr))
 		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
 	efree(s);
-	xfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(0 > xfd)
+	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
+	if(0 > xfd.fd)
 		vmerr(vm, "opentcp: %s", strerror(errno));
-	if(0 > connect(xfd, (struct sockaddr*)&saddr, sizeof(saddr)))
+	if(0 > connect(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "opentcp: %s", strerror(errno));
-	nodelay(xfd);
-	fd = mkfdfn(str, Fread|Fwrite, fdread, fdwrite, fdclose);
-	fd->fd = xfd;
+	nodelay(xfd.fd);
+	xfd.read = fdread;
+	xfd.write = fdwrite;
+	xfd.close = fdclose;
+	fd = mkfdfn(str, Fread|Fwrite, &xfd);
 	*rv = mkvalfd(fd);
 }
 

@@ -164,6 +164,7 @@ typedef struct Ctl Ctl;
 typedef struct Code Code;
 typedef struct Konst Konst;
 typedef struct Konsti Konsti;
+typedef struct Expr Expr;
 
 typedef
 struct Src {
@@ -357,18 +358,13 @@ struct Dom {
 struct Fd {
 	Head hd;
 	union {
-		struct {
-			Imm (*read)(Val, char*, Imm);
-			Imm (*write)(Val, char*, Imm);
-			void (*close)(Val);
-		} fn;
+		Xfd fn;
 		struct {
 			Closure *read;
 			Closure *write;
 			Closure *close;
 		} cl;
 	} u;
-	int fd;
 	Str *name;
 	enum Fflag {
 		Ffn =		1,
@@ -490,7 +486,8 @@ struct U {
 	jmp_buf jmp;
 	In in[MaxIn];
 	In *inp;
-	Expr *el;
+	Expr *el;		/* parser accumulator */
+	Xfd *xfd;
 } U;
 
 typedef
@@ -732,6 +729,7 @@ struct Env {
 
 struct Toplevel {
 	struct Env *env;
+	Xfd xfd;
 };
 
 struct VM {
@@ -776,7 +774,7 @@ Expr*		doconstssrc(Src*, char*, unsigned long len);
 Expr*		doid(char*);
 Expr*		doidn(char *s, unsigned long len);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
-Expr*		doparse(char *buf, char *whence);
+Expr*		doparse(U*, char *buf, char *whence);
 Expr*		dotick(Expr*, Expr*);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
@@ -889,10 +887,7 @@ Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
-Fd*		mkfdfn(Str *name, int flags,
-		       Imm (*read)(Val, char*, Imm),
-		       Imm (*write)(Val, char*, Imm),
-		       void (*close)(Val));
+Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);
@@ -904,7 +899,7 @@ Str*		mkstr0(char *s);
 Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(VM *vm, Imm len);
 Tab*		mktab();
-Toplevel*	mktoplevel();
+Toplevel*	mktoplevel(Xfd *xfd);
 Val		mkvalas(As *as);
 Val		mkvalbox(Val boxed);
 Val		mkvalcl(Closure *cl);
@@ -966,9 +961,13 @@ void setfreeheadfn(Qkind qkind, Freeheadfn free1);
 
 extern		void fns(Env*);
 
+/* cqct.c (MISPLACED) */
+void cprintf(Xfd *xfd, char *fmt, ...);
+void cvprintf(Xfd *xfd, char *fmt, va_list args);
+
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
-void		cwarn(Expr *e, char *fmt, ...);
+void		cwarn(U *ctx, Expr *e, char *fmt, ...);
 void		putsrc(Expr *e, Src *src);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);

@@ -73,7 +73,6 @@ enum Rkind {
 } Rkind;
 
 typedef struct Closure Closure;
-typedef struct Expr Expr;
 typedef struct Toplevel Toplevel;
 typedef struct VM VM;
 typedef struct Head Head;
@@ -91,9 +90,18 @@ struct Head {
 	Closure *final;
 };
 
+typedef struct Xfd Xfd;
+struct Xfd {
+	uint64_t (*read)(Xfd*, char*, uint64_t);
+	uint64_t (*write)(Xfd*, char*, uint64_t);
+	void (*close)(Xfd*);
+//	void *arg;
+	int fd;
+};
+
 int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
-Closure*	cqctcompile(Expr *e, Toplevel *top, char *argsid);
+Closure*	cqctcompile(char *s, char *src, Toplevel *top, char *argsid);
 Val		cqctcstrnval(char *s, uint64_t len);
 Val		cqctcstrnvalshared(char *s, uint64_t len);
 Val		cqctcstrval(char *s);
@@ -104,25 +112,18 @@ int		cqcteval(VM *vm, char *s, char *src, Val *rv);
 int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Toplevel *top);
 void		cqctfreecstr(char *s);
-void		cqctfreeexpr(Expr *e);
 void		cqctfreevm(VM *vm);
 void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
 void		cqctgcpersist(VM *vm, Val v);
 void		cqctgcunpersist(VM *vm, Val v);
-Toplevel*	cqctinit(int gcthread, uint64_t heapmax, char **loadpath);
+Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp, Xfd *xfd);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);
 Val		cqctint64val(int64_t);
-Val		cqctmkfd(Closure *r, Closure *w, Closure *c, char *name);
-Val		cqctmkcfd(uint64_t (*r)(Val, char*, uint64_t),
-			  uint64_t (*w)(Val, char*, uint64_t),
-			  void (*c)(Val),
-			  char *name);
+Val		cqctmkfd(Xfd *xfd, char *name);
 VM*		cqctmkvm(Toplevel *top);
-Expr*		cqctparsefile(char *filename);
-Expr*		cqctparsestr(char *str, char *whence);
 char*		cqctsprintval(VM *vm, Val v);
 Val		cqctuint8val(uint8_t);
 Val		cqctuint16val(uint16_t);

@@ -10,27 +10,21 @@
 
 
 static void
-fdclose(Val v)
+fdclose(Xfd *xfd)
 {
-	Fd *fd;
-	fd = valfd(v);
-	close(fd->fd);
+	close(xfd->fd);
 }
 
 static Imm
-fdread(Val v, char *buf, Imm len)
+fdread(Xfd *xfd, char *buf, Imm len)
 {
-	Fd *fd;
-	fd = valfd(v);
-	return xread(fd->fd, buf, len);
+	return xread(xfd->fd, buf, len);
 }
 
 static Imm
-fdwrite(Val v, char *buf, Imm len)
+fdwrite(Xfd *xfd, char *buf, Imm len)
 {
-	Fd *fd;
-	fd = valfd(v);
-	return xwrite(fd->fd, buf, len);
+	return xwrite(xfd->fd, buf, len);
 }
 
 static int
@@ -47,7 +41,9 @@ fmtfdflush(VM *vm, Fmt *f)
 	if((fd->flags&Fwrite) == 0)
 		return -1;
 	if(fd->flags&Ffn){
-		rv = fd->u.fn.write(mkvalfd(fd), f->start, f->to-f->start);
+		if(!fd->u.fn.write)
+			return 0;
+		rv = fd->u.fn.write(&fd->u.fn, f->start, f->to-f->start);
 		if(rv == -1)
 			return -1;
 	}else{
@@ -192,7 +188,7 @@ static void
 l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
-	int xfd;
+	Xfd xfd;
 	Str *names;
 	char *name, *mode;
 	int oflags, flags;
@@ -223,14 +219,16 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	else if(flags&Fwrite)
 		oflags |= O_WRONLY;
 
-	xfd = open(name, oflags, 0777); /* ~umask */
+	xfd.fd = open(name, oflags, 0777); /* ~umask */
 	efree(name);
 	efree(mode);
-	if(0 > xfd)
+	if(0 > xfd.fd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
-	fd = mkfdfn(names, flags, fdread, fdwrite, fdclose);
-	fd->fd = xfd;
+	xfd.read = fdread;
+	xfd.write = fdwrite;
+	xfd.close = fdclose;
+	fd = mkfdfn(names, flags, &xfd);
 	*rv = mkvalfd(fd);
 }
 
@@ -255,7 +253,9 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(fd->flags&Ffn){
 		n = valcval(argv[1]);
 		buf = emalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
-		r = fd->u.fn.read(argv[0], buf, n->val);
+		if(!fd->u.fn.read)
+			return;	/* nil */
+		r = fd->u.fn.read(&fd->u.fn, buf, n->val);
 		if(r == (Imm)-1)
 			vmerr(vm, "read error: %s", strerror(errno));
 		if(n->val > 0 && r == 0)
@@ -285,7 +285,9 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "attempt to write non-writable file descriptor");
 	if(fd->flags&Ffn){
 		s = valstr(argv[1]);
-		r = fd->u.fn.write(argv[0], s->s, s->len);
+		if(!fd->u.fn.write)
+			return;	/* nil */
+		r = fd->u.fn.write(&fd->u.fn, s->s, s->len);
 		if(r == -1)
 			vmerr(vm, "write error: %s", strerror(errno));
 	}else{
@@ -300,7 +302,7 @@ static void
 l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
-	int xfd;
+	Xfd xfd;
 	Imm m;
 	char **xargv;
 
@@ -312,14 +314,16 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(m = 0; m < argc; m++)
 		xargv[m] = str2cstr(valstr(argv[m]));
 
-	xfd = xpopen(argc, xargv);
+	xfd.fd = xpopen(argc, xargv);
 	for(m = 0; m < argc; m++)
 		efree(xargv[m]);
 	efree(xargv);
-	if(xfd < 0)
-		vmerr(vm, "%s", strerror(-xfd));
-	fd = mkfdfn(mkstr0("<pipe>"), Fread|Fwrite, fdread, fdwrite, fdclose);
-	fd->fd = xfd;
+	if(xfd.fd < 0)
+		vmerr(vm, "%s", strerror(-xfd.fd));
+	xfd.read = fdread;
+	xfd.write = fdwrite;
+	xfd.close = fdclose;
+	fd = mkfdfn(mkstr0("<pipe>"), Fread|Fwrite, &xfd);
 	*rv = mkvalfd(fd);
 }
 
@@ -327,6 +331,7 @@ void
 fnio(Env *env)
 {
 	Fd *fd;
+	Xfd xfd;
 
 	FN(access);
 	FN(fprintf);
@@ -338,11 +343,15 @@ fnio(Env *env)
 	FN(read);
 	FN(write);
 
-	fd = mkfdfn(mkstr0("<stdin>"), Fread, fdread, 0, 0);
-	fd->fd = 0;
+	memset(&xfd, 0, sizeof(xfd));
+	xfd.read = fdread;
+	xfd.fd = 0;
+	fd = mkfdfn(mkstr0("<stdin>"), Fread, &xfd);
 	builtinfd(env, "stdin", fd);
 
-	fd = mkfdfn(mkstr0("<stdout>"), Fwrite, 0, fdwrite, 0);
-	fd->fd = 1;
+	memset(&xfd, 0, sizeof(xfd));
+	xfd.write = fdwrite;
+	xfd.fd = 1;
+	fd = mkfdfn(mkstr0("<stdout>"), Fwrite, &xfd);
 	builtinfd(env, "stdout", fd);
 }

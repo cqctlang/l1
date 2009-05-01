@@ -3,18 +3,20 @@
 #include "syscqct.h"
 
 void
-cwarn(Expr *e, char *fmt, ...)
+cwarn(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
 	if(e->src.line)
-		xprintf("%s:%u: warning: ",
+		cprintf(ctx->xfd,
+			"%s:%u: warning: ",
 			e->src.filename ? e->src.filename : "<stdin>",
 			e->src.line);
 	else
-		xprintf("<lost-location!>: warning: ");
+		cprintf(ctx->xfd,
+			"<lost-location!>: warning: ");
 	va_start(args, fmt);
-	xvprintf(fmt, args);
-	xprintf("\n");
+	cvprintf(ctx->xfd, fmt, args);
+	cprintf(ctx->xfd, "\n");
 	va_end(args);
 }
 
@@ -23,14 +25,15 @@ cerror(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
 	if(e->src.line)
-		xprintf("%s:%u: ",
+		cprintf(ctx->xfd,
+			"%s:%u: ",
 			e->src.filename ? e->src.filename : "<stdin>",
 			e->src.line);
 	else
-		xprintf("<lost-location!>: ");
+		cprintf(ctx->xfd, "<lost-location!>: ");
 	va_start(args, fmt);
-	xvprintf(fmt, args);
-	xprintf("\n");
+	cvprintf(ctx->xfd, fmt, args);
+	cprintf(ctx->xfd, "\n");
 	va_end(args);
 	longjmp(ctx->jmp, 1);
 }

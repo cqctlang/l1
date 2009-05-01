@@ -291,7 +291,7 @@ bindids(Xenv *xe, Expr *e, void *v)
 }
 
 static void
-topresolve(Expr *e, Env *top, Xenv *lex, Expr *inner)
+topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 {
 	Expr *p;
 	char *id;
@@ -315,7 +315,8 @@ topresolve(Expr *e, Env *top, Xenv *lex, Expr *inner)
 		else if(inner){
 			/* create binding in inner-most lexical scope */
 			if(cqctflags['w'])
-				cwarn(e, "assignment to unbound variable: %s",
+				cwarn(ctx,
+				      e, "assignment to unbound variable: %s",
 				      id);
 			newlocal(inner, id);
 			bindids(lex, e->e1, e);
@@ -323,32 +324,33 @@ topresolve(Expr *e, Env *top, Xenv *lex, Expr *inner)
 			/* create top-level binding */
 			envgetbind(top, id);
 		if(e->kind == Eg || e->kind == Egop)
-			topresolve(e->e2, top, lex, inner);
+			topresolve(ctx, e->e2, top, lex, inner);
 		break;
 	case Elambda:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		topresolve(e->e2, top, rib, inner); /* assume e->e2 is block */
+		/* assume e->e2 is Eblock */
+		topresolve(ctx, e->e2, top, rib, inner);
 		freexenv(rib);
 		break;
 	case Eblock:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		topresolve(e->e2, top, rib, e);
+		topresolve(ctx, e->e2, top, rib, e);
 		freexenv(rib);
 		break;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			topresolve(p->e1, top, lex, inner);
+			topresolve(ctx, p->e1, top, lex, inner);
 			p = p->e2;
 		}
 		break;
 	default:
-		topresolve(e->e1, top, lex, inner);
-		topresolve(e->e2, top, lex, inner);
-		topresolve(e->e3, top, lex, inner);
-		topresolve(e->e4, top, lex, inner);
+		topresolve(ctx, e->e1, top, lex, inner);
+		topresolve(ctx, e->e2, top, lex, inner);
+		topresolve(ctx, e->e3, top, lex, inner);
+		topresolve(ctx, e->e4, top, lex, inner);
 		break;
 	}
 }
@@ -887,7 +889,7 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 	el = globals(el, top->env);
 
 	/* resolve top-level bindings */
-	topresolve(el, top->env, 0, 0);
+	topresolve(ctx, el, top->env, 0, 0);
 
 	/* expand @const references */
 	el = expandconst(el, top->env, 0, top->env->con);

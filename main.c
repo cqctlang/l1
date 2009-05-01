@@ -191,7 +191,6 @@ main(int argc, char *argv[])
 {
 	Closure *entry;
 	Val v;
-	Expr *e;
 	VM *vm;
 	char *filename;
 	int c;
@@ -210,6 +209,7 @@ main(int argc, char *argv[])
 	struct memusage mu;
 	uint64_t usec;
 	int rv;
+	Xfd *xfd, devnull;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -270,8 +270,15 @@ main(int argc, char *argv[])
 		sprintf(lp[nlp++], "%s/lib", root);
 	}
 	lp[nlp] = 0;
+
+	xfd = 0;
+	if(opt['z']){
+		/* suppress printing */
+		memset(&devnull, 0, sizeof(devnull));
+		xfd = &devnull;
+	}
 	
-	top = cqctinit(opt['g'], heapmax, lp);
+	top = cqctinit(opt['g'], heapmax, lp, xfd);
 	while(nlp > 0)
 		free(lp[--nlp]);
 	if(opt['x']){
@@ -279,14 +286,6 @@ main(int argc, char *argv[])
 		if(vm == 0){
 			cqctfini(top);
 			return -1;
-		}
-		if(opt['z']){
-			if(0 > cqcteval(vm,
-					"stdout = open(\"/dev/null\", \"w\");",
-					0, 0)) {
-				cqctfini(top);
-				return -1;
-			}
 		}
 	}
 
@@ -321,20 +320,13 @@ main(int argc, char *argv[])
 				continue;
 			}
 		}
-		e = cqctparsestr(inbuf, filename);
-		free(inbuf);
-		if(e == 0)
-			continue;
-		entry = cqctcompile(e, top, argsid);
-		if(entry == 0){
-			cqctfreeexpr(e);
-			continue;
-		}
-		/* now storage for E is managed by cqct storage manager */
 
+		entry = cqctcompile(inbuf, filename, top, argsid);
+		free(inbuf);
+		if(entry == 0)
+			continue;
 		if(opt['x'] == 0)
 			continue; /* just compiling */
-		
 		if(opt['t'])
 			gettimeofday(&beg, 0);
 		rv = cqctcallfn(vm, entry, valc, valv, &v);
