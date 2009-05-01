@@ -15,7 +15,6 @@ O = $(C:.c=.o)
 
 -include depend
 depend: $(C) Makefile
-	@echo depend lib9
 	$(V)gcc $(INC) -MM $(C) > depend
 
 $(TARG): $(O)

@@ -43,7 +43,6 @@ O = $(C:.c=.o)
 
 -include depend
 depend: $(C) Makefile
-	@echo depend libmp
 	$(V)gcc $(INC) -MM $(C) > depend
 
 libmp.a: $(O)

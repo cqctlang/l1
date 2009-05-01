@@ -23,7 +23,6 @@ O = $(C:.c=.o)
 
 -include depend
 depend: $(C) Makefile
-	@echo depend libflate
 	$(V)gcc $(INC) -MM $(C) > depend
 
 libflate.a: $(O)

@@ -57,38 +57,37 @@ fns.$(CONF).c: $(L1EXTRAS)
 	@echo '}' >> $@
 
 c.tab.c: c.y $(HDR)
-	@echo bison $<
+	@echo + bison $<
 	$(V)bison -d c.y
 
 c.tab.h: c.tab.c
 
 # -s drops fwrite dependency
 lex.yy.c: c.l $(HDR)
-	@echo flex $<
+	@echo + flex $<
 	$(V)flex -f -s c.l
 
 %.o:%.c
-	@echo cc $<
+	@echo + cc $<
 	$(V)$(CC) $(CFLAGS) -c -o $@ $<
 
 l1: l1.o main.o
-	@echo ld $@
+	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 #	dwarf2cqct < l1 > l1.names
 
 l1.o: c.tab.o lex.yy.o $(L1O) $(L1DEPS)
-	@echo ld $@
+	@echo + ld $@
 	$(V)$(LD) -d -r -o $@ $^ $(L1DEPS)
 
 libl1.so: CFLAGS += -fPIC -nostdlib
 
 libl1.so: l1.o
-	@echo ld $@
+	@echo + ld $@
 	$(V)$(CC) -shared -Xlinker -Bsymbolic -o $@ $^
 
 -include depend
 depend: $(L1C) Makefile
-	@echo depend
 	$(V)gcc $(INC) -MM $(L1C) > depend
 
 archive:
