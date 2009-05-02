@@ -330,9 +330,6 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnio(Env *env)
 {
-	Fd *fd;
-	Xfd xfd;
-
 	FN(access);
 	FN(fprintf);
 	FN(mapfile);
@@ -342,16 +339,4 @@ fnio(Env *env)
 	FN(printf);
 	FN(read);
 	FN(write);
-
-	memset(&xfd, 0, sizeof(xfd));
-	xfd.read = fdread;
-	xfd.fd = 0;
-	fd = mkfdfn(mkstr0("<stdin>"), Fread, &xfd);
-	builtinfd(env, "stdin", fd);
-
-	memset(&xfd, 0, sizeof(xfd));
-	xfd.write = fdwrite;
-	xfd.fd = 1;
-	fd = mkfdfn(mkstr0("<stdout>"), Fwrite, &xfd);
-	builtinfd(env, "stdout", fd);
 }

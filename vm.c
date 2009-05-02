@@ -3206,9 +3206,14 @@ Toplevel*
 mktoplevel(Xfd *xfd)
 {
 	Toplevel *top;
+
 	top = emalloc(sizeof(Toplevel));
 	top->env = mktopenv();
 	top->xfd = *xfd;
+	builtinfd(top->env, "stdin",
+		  mkfdfn(mkstr0("<stdin>"), Fread, xfd));
+	builtinfd(top->env, "stdout",
+		  mkfdfn(mkstr0("<stdout>"), Fwrite, xfd));
 	return top;
 }
 
