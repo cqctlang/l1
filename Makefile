@@ -5,7 +5,7 @@ CONF     ?= unix
 L1LIBS	  = -lpthread
 L1DEPS    =
 TARG      = l1
-V	  = @
+#V	  = @
 
 .DEFAULT_GOAL := all
 

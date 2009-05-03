@@ -18,6 +18,7 @@ extern "C" {
  */
 
 #include <stdarg.h>
+#include "utf.h"
 
 typedef struct Fmt	Fmt;
 struct Fmt{

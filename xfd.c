@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
-#include "x/include/utf.h"
 #include "x/include/fmt.h"
 
 static int
