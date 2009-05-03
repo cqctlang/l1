@@ -445,28 +445,6 @@ struct Xtypename {
 	Closure *put;		/* xaccess */
 };
 
-enum{
-	FmtWidth	= 1,
-	FmtLeft		= FmtWidth << 1,
-	FmtPrec		= FmtLeft << 1,
-	FmtSharp	= FmtPrec << 1,
-	FmtSpace	= FmtSharp << 1,
-	FmtSign		= FmtSpace << 1,
-	FmtZero		= FmtSign << 1,
-
-	FmtFlag		= FmtZero << 1
-};
-
-typedef struct Fmt Fmt;
-struct Fmt {
-	char *start, *to, *stop;
-	int (*flush)(VM*, Fmt*);
-	void *farg;
-	int width;
-	int prec;
-	unsigned int flags;
-};
-
 enum {
 	MaxIn	= 128,
 };
@@ -758,6 +736,7 @@ extern char* tkindstr[];
 extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
 extern char  **cqctloadpath;
+extern char *qname[];
 
 /* c.l */
 void		freeyystate(YYstate *yy);
@@ -864,10 +843,10 @@ void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
 void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
+Xtypename*	chasetype(Xtypename *xtn);
 void		checkarg(VM *vm, char *f, Val *argv,
 			 unsigned arg, Qkind qkind);
-void		dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen,
-		      Imm argc, Val *argv);
+Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 int		envbinds(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
@@ -883,6 +862,7 @@ int		freecode(Head *hd);
 void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
 int		isstrcval(Cval *cv);
+u32		listxlen(Listx *x);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
@@ -928,14 +908,19 @@ void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
 char*		str2cstr(Str *str);
+Str*		stringof(VM *vm, Cval *cv);
 Val		tabget(Tab *tab, Val keyv);
 void		tabput(VM *vm, Tab *tab, Val keyv, Val val);
+Cval*		typecast(VM *vm, Xtypename *xtn, Cval *cv);
+Val		valboxed(Val v);
+Head*		valhead(Val v);
 Imm		valimm(Val v);
 Val		vecref(Vec *vec, Imm idx);
 void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(VM *vm, Vec *vec, Imm idx, Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 Fd*		vmstdout(VM *vm);
+Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define valas(v)	((As*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valcl(v)	((Closure*)(v))
@@ -959,11 +944,16 @@ typedef int(*Freeheadfn)(Head*);
 Freeheadfn getfreeheadfn(Qkind qkind);
 void setfreeheadfn(Qkind qkind, Freeheadfn free1);
 
-extern		void fns(Env*);
+/* lib9's reliable, portable snprintf (x/lib9) */
+int		snprint(char *buf, int len, char *fmt, ...);
 
-/* cqct.c (MISPLACED) */
-void cprintf(Xfd *xfd, char *fmt, ...);
-void cvprintf(Xfd *xfd, char *fmt, va_list args);
+/* fnfmt.c */
+Str*		fmtxtn(Xtypename *xtn);
+void		l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv);
+
+/* xfd.c */
+void		cprintf(Xfd *xfd, char *fmt, ...);
+void		cvprintf(Xfd *xfd, char *fmt, va_list args);
 
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
@@ -994,5 +984,7 @@ Expr*		Zstr(char *s);
 Expr*		Zsub(Expr *x, Expr *y);
 Expr*		Zuint(Imm val);
 Expr*		Zxcast(Expr *type, Expr *cval);
+
+extern		void fns(Env*);
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */

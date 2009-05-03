@@ -27,89 +27,6 @@ fdwrite(Xfd *xfd, char *buf, Imm len)
 	return xwrite(xfd->fd, buf, len);
 }
 
-static int
-fmtfdflush(VM *vm, Fmt *f)
-{
-	Imm rv;
-	Fd *fd;
-	Str *s;
-	Val argv[1], r;
-
-	fd = (Fd*)f->farg;
-	if(fd->flags&Fclosed)
-		return -1;
-	if((fd->flags&Fwrite) == 0)
-		return -1;
-	if(fd->flags&Ffn){
-		if(!fd->u.fn.write)
-			return 0;
-		rv = fd->u.fn.write(&fd->u.fn, f->start, f->to-f->start);
-		if(rv == -1)
-			return -1;
-	}else{
-		s = mkstrk(f->start, f->to-f->start, Sperm);
-		gcprotect(vm, s);
-		argv[0] = mkvalstr(s);
-		r = dovm(vm, fd->u.cl.write, 1, argv);
-		gcunprotect(vm, s);
-		if(r->qkind != Qnil)
-			return -1;
-	}
-	f->to = f->start;
-	return 0;
-}
-
-static void
-dofdprint(VM *vm, Fd *fd, char *fmt, Imm fmtlen, Imm argc, Val *argv)
-{
-	Fmt f;
-	char buf[256];
-
-	memset(&f, 0, sizeof(f));
-	f.farg = fd;
-	f.start = buf;
-	f.to = buf;
-	f.stop = buf+sizeof(buf);
-	f.flush = fmtfdflush;
-	dofmt(vm, &f, fmt, fmtlen, argc, argv);
-	fmtfdflush(vm, &f);
-}
-
-static void
-l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *fmts;
-	if(argc < 1)
-		vmerr(vm, "wrong number of arguments to printf");
-	if(argv[0]->qkind != Qstr)
-		vmerr(vm, "operand 1 to printf must be a format string");
-	fmts = valstr(argv[0]);
-	dofdprint(vm, vmstdout(vm), fmts->s, fmts->len, argc-1, argv+1);
-}
-
-static void
-l1_print(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	static char *fmt = "%a\n";
-	dofdprint(vm, vmstdout(vm), fmt, strlen(fmt), argc, argv);
-}
-
-static void
-l1_fprintf(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Str *fmts;
-	if(argc < 2)
-		vmerr(vm, "wrong number of arguments to fprintf");
-	if(argv[0]->qkind != Qfd)
-		vmerr(vm, "operand 1 to fprintf must be a file descriptor");
-	if(argv[1]->qkind != Qstr)
-		vmerr(vm, "operand 2 to fprintf must be a format string");
-	fd = valfd(argv[0]);
-	fmts = valstr(argv[1]);
-	dofdprint(vm, fd, fmts->s, fmts->len, argc-2, argv+2);
-}
-
 static void
 l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -331,12 +248,9 @@ void
 fnio(Env *env)
 {
 	FN(access);
-	FN(fprintf);
 	FN(mapfile);
 	FN(open);
 	FN(popen);
-	FN(print);		/* FIXME: remove: held for test suite */
-	FN(printf);
 	FN(read);
 	FN(write);
 }

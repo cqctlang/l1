@@ -34,10 +34,15 @@ L1C =\
 	cg.c\
 	vm.c\
 	cqct.c\
+	xfd.c\
 	fns.$(CONF).c\
 	$(L1EXTRAS)
 
 L1O = $(L1C:.c=.o)
+
+L1DEPS += x/lib9/lib9.a
+L1FUNS += fnfmt
+L1EXTRAS += fnfmt.c
 
 FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env *);")
 FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);")
@@ -61,6 +66,9 @@ c.tab.c: c.y $(HDR)
 	$(V)bison -d c.y
 
 c.tab.h: c.tab.c
+
+x/lib9/lib9.a:
+	$(MAKE) -s -C x/lib9
 
 # -s drops fwrite dependency
 lex.yy.c: c.l $(HDR)

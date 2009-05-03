@@ -139,28 +139,3 @@ cqctfini(Toplevel *top)
 	finiparse();
 }
 
-void
-cvprintf(Xfd *xfd, char *fmt, va_list args)
-{
-	int len;
-	char *p;
-
-	if(!xfd->write)
-		return;
-	/* hold your nose */
-	len = vasprintf(&p, fmt, args);
-	if(p == 0 || len < 0)
-		xabort();
-	xfd->write(xfd, p, len);
-	free(p);
-}
-
-void
-cprintf(Xfd *xfd, char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	cvprintf(xfd, fmt, args);
-	va_end(args);
-}
-
