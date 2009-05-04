@@ -480,6 +480,8 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $3, invert($4), $2, 0); }
 	| '@' '@' constant_expression specifier_list struct_declarator ':' constant_expression ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $4, $5, $3, $7); }
+	| '@' constant_expression specifier_list ';'
+	{ $$ = newexprsrc(&ctx->inp->src, Efields, $3, nullelist(), $2, 0); }
 	| specifier_list struct_declarator_list ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $1, invert($2), 0, 0); }
 	;

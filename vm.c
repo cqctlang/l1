@@ -7155,13 +7155,47 @@ l1_fields(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalvec(xtn->field);
 }
 
+static Val
+rlookfield(VM *vm, Xtypename *su, Val tag)
+{
+	Xtypename *t;
+	Val vp, rp, id, o;
+	Vec *f, *r;
+	Imm i;
+
+	for(i = 0; i < su->field->len; i++){
+		vp = vecref(su->field, i);
+		f = valvec(vp);
+		id = vecref(f, Idpos);
+		if(id->qkind == Qstr){
+			if(eqstrv(tag, id))
+				return vp;
+			else
+				continue;
+		}
+		/* assume id is nil */
+		t = chasetype(valxtn(vecref(f, Typepos)));
+		if(t->tkind != Tstruct && t->tkind != Tunion)
+			continue;
+		/* recursively search embedded anonymous field */
+		rp = rlookfield(vm, t, tag);
+		if(rp == 0)
+			continue;
+		r = veccopy(valvec(rp));
+		o = mkvalcval2(xcvalalu(vm, Iadd,
+					valcval(vecref(f, Offpos)),
+					valcval(vecref(r, Offpos))));
+		_vecset(r, Offpos, o);
+		return mkvalvec(r);
+	}
+	return 0;
+}
+
 static void
 l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Xtypename *xtn;
 	Val vp;
-	Imm i;
-
 	static char *err1
 		= "operand 1 to lookfield must be a struct or union ctype";
 	static char *err2
@@ -7177,13 +7211,9 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, err1);
 	if(argv[1]->qkind != Qstr)
 		vmerr(vm, err2);
-	for(i = 0; i < xtn->field->len; i++){
-		vp = vecref(xtn->field, i);
-		if(eqstrv(argv[1], vecref(valvec(vp), Idpos))){
-			*rv = vp;
-			return;
-		}
-	}
+	vp = rlookfield(vm, xtn, argv[1]);
+	if(vp)
+		*rv = vp;
 }
 
 static void
@@ -7781,7 +7811,9 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 
 	checkarg(vm, what, argv, 0, Qxtn);
 	if(argc > 1)
-		checkarg(vm, what, argv, 1, Qstr);
+		if(argv[1]->qkind != Qstr && argv[1]->qkind != Qnil)
+			vmerr(vm, "operand 2 to %s must be a string or nil",
+			      what);
 	if(argc == 3)
 		if(argv[2]->qkind != Qcval && argv[2]->qkind != Qnil)
 			vmerr(vm, "operand 3 to %s must be a cvalue or nil",

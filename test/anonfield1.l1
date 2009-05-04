@@ -1,0 +1,15 @@
+ns = @names c32le {
+   struct foo {
+   	  @0x4 union {
+	    	@0x0 int x;
+		@0x4;
+	  };
+	  @0x8;
+   };
+   @0x0 struct foo foo;
+};
+as = mkzas(1024);
+dom = mkdom(ns, as);
+p = &dom`foo;
+printf("%x %t %d\n", &p->x, p->x, p->x);
+

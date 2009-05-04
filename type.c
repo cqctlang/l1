@@ -52,7 +52,10 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		se = nullelist();
 		dl = t->field;
 		while(dl){
-			id = Zstr(dl->id);
+			if(dl->id)
+				id = Zstr(dl->id);
+			else
+				id = Znil();
 			if(dl->offs && dl->type->bitw){
 				/* bitfield */
 				dl->offs = recpass(ctx, dl->offs);
