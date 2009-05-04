@@ -663,19 +663,19 @@ fmttype(Type *t, char *o)
 	case Tvoid:
 		m = 4+1+strlen(o)+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "void %s", o);
+		snprint(buf, m, "void %s", o);
 		efree(o);
 		return buf;
 	case Tbase:
 		m = strlen(cbasename[t->base])+1+strlen(o)+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "%s %s", cbasename[t->base], o);
+		snprint(buf, m, "%s %s", cbasename[t->base], o);
 		efree(o);
 		return buf;
 	case Ttypedef:
 		m = strlen(t->tid)+1+strlen(o)+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "%s %s", t->tid, o);
+		snprint(buf, m, "%s %s", t->tid, o);
 		efree(o);
 		return buf;
 	case Tstruct:
@@ -684,11 +684,11 @@ fmttype(Type *t, char *o)
 		if(t->tag){
 			m = strlen(w)+1+strlen(t->tag)+1+strlen(o)+1;
 			buf = emalloc(m);
-			snprintf(buf, m, "%s %s %s", w, t->tag, o);
+			snprint(buf, m, "%s %s %s", w, t->tag, o);
 		}else{
 			m = strlen(w)+1+strlen(o)+1;
 			buf = emalloc(m);
-			snprintf(buf, m, "%s %s", w, o);
+			snprint(buf, m, "%s %s", w, o);
 		}
 		efree(o);
 		return buf;
@@ -696,11 +696,11 @@ fmttype(Type *t, char *o)
 		if(t->tag){
 			m = 4+1+strlen(t->tag)+1+strlen(o)+1;
 			buf = emalloc(m);
-			snprintf(buf, m, "enum %s %s", t->tag, o);
+			snprint(buf, m, "enum %s %s", t->tag, o);
 		}else{
 			m = 4+1+strlen(o)+1;
 			buf = emalloc(m);
-			snprintf(buf, m, "enum %s", o);
+			snprint(buf, m, "enum %s", o);
 		}
 		efree(o);
 		return buf;
@@ -708,22 +708,22 @@ fmttype(Type *t, char *o)
 		m = 2+strlen(o)+1+1;
 		buf = emalloc(m);
 		if(needsparen(t->link->kind))
-			snprintf(buf, m, "(*%s)", o);
+			snprint(buf, m, "(*%s)", o);
 		else
-			snprintf(buf, m, "*%s", o);
+			snprint(buf, m, "*%s", o);
 		efree(o);
 		return fmttype(t->link, buf);
 	case Tarr:
 		m = strlen(o)+2+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "%s[]", o);
+		snprint(buf, m, "%s[]", o);
 		efree(o);
 		return fmttype(t->link, buf);
 	case Tfun:
 		pl = fmtdecllist(t->param);
 		m = strlen(o)+1+strlen(pl)+1+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "%s(%s)", o, pl);
+		snprint(buf, m, "%s(%s)", o, pl);
 		efree(o);
 		efree(pl);
 		return fmttype(t->link, buf);

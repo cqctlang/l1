@@ -2578,7 +2578,7 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	r = valrec(argv[0]);
 	len = 1+rd->name->len+1+16+1+1;
 	buf = emalloc(len);
-	snprintf(buf, len, "<%.*s %p>", (int)rd->name->len, rd->name->s, r);
+	snprint(buf, len, "<%.*s %p>", (int)rd->name->len, rd->name->s, r);
 	*rv = mkvalstr(mkstr0(buf));
 	efree(buf);
 }
@@ -2681,12 +2681,12 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	len = 3+name->len+1;
 	buf = emalloc(len);
 
-	snprintf(buf, len, "is%.*s", (int)name->len, name->s);
+	snprint(buf, len, "is%.*s", (int)name->len, name->s);
 	rd->is = mkccl(buf, recis, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
-	snprintf(buf, len, "%.*s", (int)name->len, name->s);
+	snprint(buf, len, "%.*s", (int)name->len, name->s);
 	rd->mk = mkccl(buf, recmk, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
 	if(fmt == 0){
-		snprintf(buf, len, "fmt%.*s", (int)name->len, name->s);
+		snprint(buf, len, "fmt%.*s", (int)name->len, name->s);
 		rd->fmt = mkccl(buf, recfmt, 2,
 				mkvalrd(rd), mkvalstr(mkstr0(buf)));
 	}else
@@ -2701,7 +2701,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 		buf = emalloc(len);
 
 		/* get method */
-		snprintf(buf, len, "%.*s%.*s",
+		snprint(buf, len, "%.*s%.*s",
 			 (int)name->len, name->s, (int)f->len, f->s);
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recget, 3,
@@ -2709,7 +2709,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 		_tabput(rd->get, mkvalstr(f), mkvalcl(cl));
 
 		/* set method */
-		snprintf(buf, len, "%.*sset%.*s",
+		snprint(buf, len, "%.*sset%.*s",
 			 (int)name->len, name->s, (int)f->len, f->s);
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recset, 3,

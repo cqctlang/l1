@@ -218,7 +218,7 @@ globals(Expr *e, Env *env)
 		id = e->e1->id;
 		len = 2+strlen(id)+1;
 		is = emalloc(len);
-		snprintf(is, len, "is%s", id);
+		snprint(is, len, "is%s", id);
 		envgetbind(env, id);
 		envgetbind(env, is);
 		p = Zblock(Zlocals(1, "$rd"),

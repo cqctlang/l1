@@ -1263,7 +1263,7 @@ tryinclude(U *ctx, char *raw)
 		while(*lp){
 			len = strlen(*lp)+1+strlen(p)+1;
 			full = emalloc(len);
-			snprintf(full, len, "%s/%s", *lp, p);
+			snprint(full, len, "%s/%s", *lp, p);
 			buf = readfile(full);
 			if(buf)
 				break;
@@ -1274,7 +1274,7 @@ tryinclude(U *ctx, char *raw)
 			path = xstrdup(ctx->inp->src.filename);
 			len = strlen(path)+1+strlen(p)+1;
 			full = emalloc(len);
-			snprintf(full, len, "%s/%s", dirname(path), p);
+			snprint(full, len, "%s/%s", dirname(path), p);
 			efree(path);
 		}else
 			full = xstrdup(p);

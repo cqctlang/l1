@@ -85,18 +85,18 @@ _fmtxtn(Xtypename *xtn, char *o)
 		m = 4+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprintf(buf, m, "void %s", o);
+			snprint(buf, m, "void %s", o);
 		else
-			snprintf(buf, m, "void");
+			snprint(buf, m, "void");
 		efree(o);
 		return buf;
 	case Tbase:
 		m = strlen(cbasename[xtn->basename])+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprintf(buf, m, "%s %s", cbasename[xtn->basename], o);
+			snprint(buf, m, "%s %s", cbasename[xtn->basename], o);
 		else
-			snprintf(buf, m, "%s", cbasename[xtn->basename]);
+			snprint(buf, m, "%s", cbasename[xtn->basename]);
 		efree(o);
 		return buf;
 	case Ttypedef:
@@ -104,9 +104,9 @@ _fmtxtn(Xtypename *xtn, char *o)
 		m = s->len+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprintf(buf, m, "%.*s %s", (int)s->len, s->s, o);
+			snprint(buf, m, "%.*s %s", (int)s->len, s->s, o);
 		else
-			snprintf(buf, m, "%.*s", (int)s->len, s->s);
+			snprint(buf, m, "%.*s", (int)s->len, s->s);
 		efree(o);
 		return buf;
 	case Tstruct:
@@ -118,43 +118,43 @@ _fmtxtn(Xtypename *xtn, char *o)
 			m = strlen(w)+1+s->len+1+leno+1;
 			buf = emalloc(m);
 			if(leno)
-				snprintf(buf, m, "%s %.*s %s",
+				snprint(buf, m, "%s %.*s %s",
 					 w, (int)s->len, s->s, o);
 			else
-				snprintf(buf, m, "%s %.*s", w,
+				snprint(buf, m, "%s %.*s", w,
 					 (int)s->len, s->s);
 		}else{
 			m = strlen(w)+1+leno+1;
 			buf = emalloc(m);
 			if(leno)
-				snprintf(buf, m, "%s %s", w, o);
+				snprint(buf, m, "%s %s", w, o);
 			else
-				snprintf(buf, m, "%s", w);
+				snprint(buf, m, "%s", w);
 		}
 		efree(o);
 		return buf;
 	case Tundef:
 		m = leno+1+strlen("/*UNDEFINED*/")+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "%s /*UNDEFINED*/", o);
+		snprint(buf, m, "%s /*UNDEFINED*/", o);
 		return _fmtxtn(xtn->link, buf);
 	case Tptr:
 		m = 2+leno+1+1;
 		buf = emalloc(m);
 		if(xtn->link->tkind == Tfun || xtn->link->tkind == Tarr)
-			snprintf(buf, m, "(*%s)", o);
+			snprint(buf, m, "(*%s)", o);
 		else
-			snprintf(buf, m, "*%s", o);
+			snprint(buf, m, "*%s", o);
 		efree(o);
 		return _fmtxtn(xtn->link, buf);
 	case Tarr:
 		m = leno+1+10+1+1;	/* assume max 10 digit size */
 		buf = emalloc(m);
 		if(xtn->cnt->qkind == Qnil)
-			snprintf(buf, m, "%s[]", o);
+			snprint(buf, m, "%s[]", o);
 		else{
 			cv = valcval(xtn->cnt);
-			snprintf(buf, m, "%s[%" PRIu64 "]", o, cv->val);
+			snprint(buf, m, "%s[%" PRIu64 "]", o, cv->val);
 		}
 		efree(o);
 		return _fmtxtn(xtn->link, buf);
@@ -162,7 +162,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		pl = fmtplist(xtn->param);
 		m = leno+1+strlen(pl)+1+1;
 		buf = emalloc(m);
-		snprintf(buf, m, "%s(%s)", o, pl);
+		snprint(buf, m, "%s(%s)", o, pl);
 		efree(o);
 		efree(pl);
 		return _fmtxtn(xtn->link, buf);
@@ -363,12 +363,12 @@ fmtval(VM *vm, Fmt *f, Val val)
 	switch(val->qkind){
 	case Qcval:
 		cv = valcval(val);
-		snprintf(buf, sizeof(buf), "<cval %" PRIu64 ">", cv->val);
+		snprint(buf, sizeof(buf), "<cval %" PRIu64 ">", cv->val);
 		return fmtputs0(vm, f, buf);
 	case Qcl:
 		cl = valcl(val);
 		if(cl->fp){
-			snprintf(buf, sizeof(buf), "<continuation %p>", cl);
+			snprint(buf, sizeof(buf), "<continuation %p>", cl);
 			return fmtputs0(vm, f, buf);
 		}else if(cl->dlen > 0){
 			if(fmtputs0(vm, f, "<closure "))
@@ -396,33 +396,33 @@ fmtval(VM *vm, Fmt *f, Val val)
 	case Qns:
 		ns = valns(val);
 		if(ns->name)
-			snprintf(buf, sizeof(buf), "<ns %.*s>",
+			snprint(buf, sizeof(buf), "<ns %.*s>",
 				 (int)ns->name->len, ns->name->s);
 		else
-			snprintf(buf, sizeof(buf), "<ns %p>", ns);
+			snprint(buf, sizeof(buf), "<ns %p>", ns);
 		return fmtputs0(vm, f, buf);
 	case Qas:
 		as = valas(val);
 		if(as->name)
-			snprintf(buf, sizeof(buf), "<as %.*s>",
+			snprint(buf, sizeof(buf), "<as %.*s>",
 				 (int)as->name->len, as->name->s);
 		else
-			snprintf(buf, sizeof(buf), "<as %p>", as);
+			snprint(buf, sizeof(buf), "<as %p>", as);
 		return fmtputs0(vm, f, buf);
 	case Qdom:
 		d = valdom(val);
 		if(d->name)
-			snprintf(buf, sizeof(buf), "<domain %.*s>",
+			snprint(buf, sizeof(buf), "<domain %.*s>",
 				 (int)d->name->len, d->name->s);
 		else
-			snprintf(buf, sizeof(buf), "<domain %p>", d);
+			snprint(buf, sizeof(buf), "<domain %p>", d);
 		return fmtputs0(vm, f, buf);
 	case Qfd:
 	case Qpair:
 	case Qtab:
 	case Qxtn:
 		hd = valhead(val);
-		snprintf(buf, sizeof(buf), "<%s %p>", qname[hd->qkind], hd);
+		snprint(buf, sizeof(buf), "<%s %p>", qname[hd->qkind], hd);
 		return fmtputs0(vm, f, buf);
 	case Qvec:
 		v = valvec(val);
@@ -459,7 +459,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(vm, f, " ]");
 	case Qrange:
 		r = valrange(val);
- 		snprintf(buf, sizeof(buf),
+ 		snprint(buf, sizeof(buf),
 			 "<range 0x%" PRIx64 " 0x%" PRIx64 ">",
 			 r->beg->val, r->len->val);
 		return fmtputs0(vm, f, buf);
@@ -487,7 +487,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		str = valstr(rv);
 		return fmtputs(vm, f, str->s, str->len);
 	default:
-		snprintf(buf, sizeof(buf), "<unhandled type %d>", val->qkind);
+		snprint(buf, sizeof(buf), "<unhandled type %d>", val->qkind);
 		return fmtputs0(vm, f, buf);
 	}
 }
@@ -571,46 +571,46 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 		*mp++ = '0';
 	*mp = 0;
 	if((fl&FmtWidth) && (fl&FmtPrec))
-		snprintf(fmt, sizeof(fmt), "%%%s%d.%d%s", mod, f->width, f->prec, fp);
+		snprint(fmt, sizeof(fmt), "%%%s%d.%d%s", mod, f->width, f->prec, fp);
 	else if(fl&FmtPrec)
-		snprintf(fmt, sizeof(fmt), "%%%s.%d%s", mod, f->prec, fp);
+		snprint(fmt, sizeof(fmt), "%%%s.%d%s", mod, f->prec, fp);
 	else if(fl&FmtWidth)
-		snprintf(fmt, sizeof(fmt), "%%%s%d%s", mod, f->width, fp);
+		snprint(fmt, sizeof(fmt), "%%%s%d%s", mod, f->width, fp);
 	else
-		snprintf(fmt, sizeof(fmt), "%%%s%s", mod, fp);
+		snprint(fmt, sizeof(fmt), "%%%s%s", mod, fp);
 	
 	switch(t->rep){
 	case Ru08le:
 	case Ru08be:
-		snprintf(buf, sizeof(buf), fmt, (u8)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u8)cv->val);
 		break;
 	case Rs08le:
 	case Rs08be:
-		snprintf(buf, sizeof(buf), fmt, (s8)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s8)cv->val);
 		break;
 	case Ru16le:
 	case Ru16be:
-		snprintf(buf, sizeof(buf), fmt, (u16)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u16)cv->val);
 		break;
 	case Rs16le:
 	case Rs16be:
-		snprintf(buf, sizeof(buf), fmt, (s16)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s16)cv->val);
 		break;
 	case Ru32le:
 	case Ru32be:
-		snprintf(buf, sizeof(buf), fmt, (u32)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u32)cv->val);
 		break;
 	case Rs32le:
 	case Rs32be:
-		snprintf(buf, sizeof(buf), fmt, (s32)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s32)cv->val);
 		break;
 	case Ru64le:
 	case Ru64be:
-		snprintf(buf, sizeof(buf), fmt, (u64)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u64)cv->val);
 		break;
 	case Rs64le:
 	case Rs64be:
-		snprintf(buf, sizeof(buf), fmt, (s64)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s64)cv->val);
 		break;
 	default:
 		fatal("bug");
@@ -771,9 +771,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			cv = valcval(vp);
 			c = cv->val;
 			if(xisgraph(c) || xisspace(c))
-				snprintf(buf, sizeof(buf), "%c", c);
+				snprint(buf, sizeof(buf), "%c", c);
 			else
-				snprintf(buf, sizeof(buf), "\\%.3o", c);
+				snprint(buf, sizeof(buf), "\\%.3o", c);
 			if(fmtputs(vm, f, buf, strlen(buf)))
 				return;
 			break;
@@ -873,7 +873,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			vq = dovm(vm, cv->dom->ns->lookaddr, 2, xargv);
 			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			if(vq->qkind == Qnil){
-				snprintf(buf, sizeof(buf),
+				snprint(buf, sizeof(buf),
 					 "0x%" PRIx64, cv->val);
 				if(fmtputs(vm, f, buf, strlen(buf)))
 					return;
@@ -893,7 +893,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				goto bady;
 			cv = xcvalalu(vm, Isub, cv, valcval(vq));
 			if(cv->val != 0){
-				snprintf(buf, sizeof(buf),
+				snprint(buf, sizeof(buf),
 					 "+0x%" PRIx64, cv->val);
 				ys = mkstrn(vm, as->len+strlen(buf));
 				memcpy(ys->s, as->s, as->len);

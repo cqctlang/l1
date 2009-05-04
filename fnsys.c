@@ -128,7 +128,7 @@ dotrs(VM *vm)
 		tr++;
 		code = cl->code;
 		if(cl->cfn || cl->ccl)
-			snprintf(buf, sizeof(buf), "%30s\t(builtin %s)",
+			snprint(buf, sizeof(buf), "%30s\t(builtin %s)",
 				 cl->id, cl->cfn ? "function" : "closure");
 		else{
 			while(1){
@@ -137,13 +137,13 @@ dotrs(VM *vm)
 					fn = (ls[pc]->src->filename
 					      ? ls[pc]->src->filename
 					      : "<stdin>");
-					snprintf(buf, sizeof(buf),
+					snprint(buf, sizeof(buf),
 						 "%30s\t(%s:%u)", cl->id,
 						 fn, ls[pc]->src->line);
 					break;
 				}
 				if(pc == 0){
-					snprintf(buf, sizeof(buf),
+					snprint(buf, sizeof(buf),
 						 "%30s", "(unknown code)");
 					break;
 				}

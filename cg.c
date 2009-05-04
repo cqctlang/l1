@@ -82,7 +82,7 @@ konsti2val(Cbase base, Imm imm, Konsti *koni)
 	char buf[18+Maxliti];	/* "unsigned long long"+Maxliti */
 	char *s;
 
-	snprintf(buf, sizeof(buf), "%s%" PRIu64, cbasename[base], imm);
+	snprint(buf, sizeof(buf), "%s%" PRIu64, cbasename[base], imm);
 	v = hget(koni->ht, buf, strlen(buf));
 	if(v)
 		return v;
@@ -184,7 +184,7 @@ genlabel(Code *code, char *s)
 	if(s)
 		ctl->label = xstrdup(s);
 	else{
-		snprintf(buf, sizeof(buf), "L%d", labelseed++);
+		snprint(buf, sizeof(buf), "L%d", labelseed++);
 		ctl->label = xstrdup(buf);
 	}
 	ctl->used = 0;

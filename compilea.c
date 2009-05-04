@@ -114,7 +114,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 	unsigned w;
 
 	w = 0;
-	snprintf(t, sizeof(t), "$t%u", d);
+	snprint(t, sizeof(t), "$t%u", d);
 	p = expanda(ctx, Zap(a, t), d+1, 0);
 	a->attr = Aptr;
 	xe = copyexpr(e);
@@ -150,7 +150,7 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 	unsigned w;
 
 	w = 0;
-	snprintf(t, sizeof(t), "$t%u", d);
+	snprint(t, sizeof(t), "$t%u", d);
 	p = expanda(ctx, Zap(a, t), d+1, 0);
 	a->attr = Aptr;
 	xe = copyexpr(e);
