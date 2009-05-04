@@ -21,7 +21,7 @@ extern char *yytext;
 	int kind;
 }
 
-%token <chars> IDENTIFIER CONSTANT STRING_LITERAL 
+%token <chars> IDENTIFIER CONSTANT STRING_LITERAL CONST VOLATILE
 %token SIZEOF TYPEOF TYPEDEF NIL DEFINE DEFLOCAL DEFREC CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -52,11 +52,13 @@ extern char *yytext;
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
 %type <expr> global_statement defrec_expression let_expression
-%type <expr> type_name tn_type_specifier tn_struct_or_union_specifier
+%type <expr> type_name tn_type_specifier tn_type_qual_specifier
+%type <expr> tn_struct_or_union_specifier
 %type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
 %type <expr> tn_parameter_declaration tn_abstract_declarator
 %type <expr> tn_direct_abstract_declarator tn_declarator tn_direct_declarator
 %type <expr> tn_param_type_specifier tn_param_struct_or_union_specifier
+%type <expr> tn_param_type_qual_specifier
 %type <expr> tn_param_enum_specifier
 %type <expr> table_init table_init_list
 
@@ -491,9 +493,24 @@ struct_size
 	{ $$ = newexprsrc(&ctx->inp->src, Efieldoff, $2, 0, 0, 0); }
 	;
 
-/* specifier_list order does not affect meaning of specifier */
+// discard type qualifiers
+
+type_qualifier
+	: CONST
+	| VOLATILE
+	;
+
+type_qualifier_list
+	: type_qualifier
+	| type_qualifier type_qualifier_list
+	;
+
 specifier_list
 	: type_specifier
+	| type_qualifier_list type_specifier
+	{ $$ = $2; }
+	| type_specifier type_qualifier_list
+	{ $$ = $1; }
 	;
 
 struct_declarator_list
@@ -560,8 +577,12 @@ direct_declarator
 pointer
 	: '*'
 	{ $$ = newexprsrc(&ctx->inp->src, Eptr, 0, 0, 0, 0); }
+	| '*' type_qualifier_list
+	{ $$ = newexprsrc(&ctx->inp->src, Eptr, 0, 0, 0, 0); }
 	| '*' pointer
 	{ $$ = newexprsrc(&ctx->inp->src, Eptr, $2, 0, 0, 0); }
+	| '*' type_qualifier_list pointer
+	{ $$ = newexprsrc(&ctx->inp->src, Eptr, $3, 0, 0, 0); }
 	;
 
 parameter_type_list
@@ -639,10 +660,18 @@ direct_abstract_declarator
 	;
 
 type_name
-	: tn_type_specifier
+	: tn_type_qual_specifier
 	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, 0, 0, 0); }
-        | tn_type_specifier tn_abstract_declarator
+        | tn_type_qual_specifier tn_abstract_declarator
 	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
+	;
+
+tn_type_qual_specifier
+	: tn_type_specifier
+	| type_qualifier_list tn_type_specifier
+	{ $$ = $2; }
+	| tn_type_specifier type_qualifier_list
+	{ $$ = $1; }
 	;
 
 tn_type_specifier
@@ -692,12 +721,20 @@ tn_parameter_list
 	;
 
 tn_parameter_declaration
-	: tn_param_type_specifier tn_declarator
+	: tn_param_type_qual_specifier tn_declarator
 	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
-	| tn_param_type_specifier tn_abstract_declarator
+	| tn_param_type_qual_specifier tn_abstract_declarator
 	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
-	| tn_param_type_specifier
+	| tn_param_type_qual_specifier
 	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, 0, 0, 0); }
+	;
+
+tn_param_type_qual_specifier
+	: tn_param_type_specifier
+	| tn_param_type_specifier type_qualifier_list
+	{ $$ = $1; }
+	| type_qualifier_list tn_param_type_specifier
+	{ $$ = $2; }
 	;
 
 tn_param_type_specifier

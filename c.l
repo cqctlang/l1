@@ -42,6 +42,7 @@ static int chars(YYSTYPE *lvalp, int);
 "break"			{ count(ctx); return(BREAK); }
 "case"			{ count(ctx); return(CASE); }
 "char"			{ count(ctx); return(CHAR); }
+"const"			{ count(ctx); return(CONST); }
 "containerof"		{ count(ctx); return(CONTAINEROF); }
 "continue"		{ count(ctx); return(CONTINUE); }
 "default"		{ count(ctx); return(DEFAULT); }
@@ -69,6 +70,7 @@ static int chars(YYSTYPE *lvalp, int);
 "union"			{ count(ctx); return(UNION); }
 "unsigned"		{ count(ctx); return(UNSIGNED); }
 "void"			{ count(ctx); return(VOID); }
+"volatile"		{ count(ctx); return(VOLATILE); }
 "while"			{ count(ctx); return(WHILE); }
 
 {L}({L}|{D})*		{ count(ctx); return(chars(lvalp, IDENTIFIER)); }

@@ -1,0 +1,7 @@
+ns = @names c32le {
+	@0x0 const int x;
+	@0x0 int *const x;
+	@0x0 int f(int *const p);
+	@0x0 int f(const int *p);
+	@0x0 const int f(const int *p);
+};
