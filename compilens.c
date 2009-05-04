@@ -101,7 +101,6 @@ static void
 hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 {
 	Type *t;
-	static char *err = "anonymous tagged types not implemented";
 
 	switch(kind){
 	case Edecls:
@@ -110,16 +109,10 @@ hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 		else{
 			t = d->type;
 			if((t->kind == Tstruct || t->kind == Tunion)
-			   && (t->field != 0 || t->sz != 0)){
-				if(t->tag == 0)
-					fatal(err);
+			   && (t->field != 0 || t->sz != 0))
 				hput(tag, t->tag, strlen(t->tag), d);
-			}
-			if(t->kind == Tenum && t->en != 0){
-				if(t->tag == 0)
-					fatal(err);
+			if(t->kind == Tenum && t->en != 0)
 				hput(tag, t->tag, strlen(t->tag), d);
-			}
 		}
 		break;
 	case Etypedef:

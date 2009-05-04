@@ -924,6 +924,15 @@ baselist(U *ctx, Expr *e)
 	return base;
 }
 
+static char*
+mkanontag()
+{
+	static uint64_t cnt = 0;
+	char buf[32];
+	snprint(buf, sizeof(buf), "$anon%llu", cnt++);
+	return xstrdup(buf);
+}
+
 static Type*
 specifier(U *ctx, Expr *e)
 {
@@ -970,8 +979,11 @@ specifier(U *ctx, Expr *e)
 			fatal("bug");
 		}
 		id = e->e1;
-		t->tag = id->id; /* steal */
-		id->id = 0;
+		if(id){
+			t->tag = id->id; /* steal */
+			id->id = 0;
+		}else
+			t->tag = mkanontag();
 		dom = e->e3;
 		if(e->e2){
 			if(t->kind == Tenum)

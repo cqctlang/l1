@@ -1,0 +1,26 @@
+ns = @names c32le {
+    @0x0 struct {
+	    @0x0 int x;
+	    @0x4;
+    } x;
+    @0x0 struct {
+	    @0x0 int y;
+	    @0x4;
+    } y;
+};
+
+as = mkzas(1024);
+
+dom = mkdom(ns, as);
+
+t1 = subtype(typeof(&dom`x));
+t2 = subtype(typeof(&dom`x));
+
+printf("t1 (%t) == t2 (%t) => %d\n", t1, t2, t1 == t2);
+
+t1 = subtype(typeof(&dom`x));
+t2 = subtype(typeof(&dom`y));
+printf("%a\n", map(fieldid, fields(t1)));
+printf("%a\n", map(fieldid, fields(t2)));
+
+printf("t1 (%t) == t2 (%t) => %d\n", t1, t2, t1 == t2);

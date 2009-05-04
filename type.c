@@ -46,7 +46,8 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		}
 
 		if(t->tag == 0)
-			fatal("anonymous aggregates not implemented");
+			/* we missed a form of creating anonymous aggregates */
+			fatal("bug");
 
 		se = nullelist();
 		dl = t->field;
@@ -100,7 +101,8 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 			break;
 		}
 		if(t->tag == 0)
-			fatal("anonymous enums not implemented");
+			/* we missed a form of creating anonymous enums */
+			fatal("bug");
 
 		loc = Zlocals(2, "$tmp", "$tn");
 		te = nullelist();
