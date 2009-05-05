@@ -115,7 +115,6 @@ freetype(Type *t)
 	freeenum(t->en);
 	freedecl(t->param);
 	freeexpr(t->bitw);
-	freeexpr(t->bit0);
 	freeexpr(t->sz);
 	freeexpr(t->cnt);
 	efree(t);
@@ -131,7 +130,7 @@ freedecl(Decl *d)
 		d = nxt;
 		nxt = d->link;
 		freetype(d->type);
-		freeexpr(d->offs);
+		freeexpr(d->attr);
 		efree(d->id);
 		efree(d);
 	}

@@ -111,10 +111,10 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			  Zcall(doid("%symtype"), 1, doid("$tmp")));
 		te = Zcons(se, te);
 
-		// $addr = symval($tmp, 2);
+		// $addr = symoff($tmp, 2);
 		if(needaddr){
 			se = Zset(doid("$addr"),
-				  Zcall(doid("%symval"), 1, doid("$tmp")));
+				  Zcall(doid("%symoff"), 1, doid("$tmp")));
 			te = Zcons(se, te);
 
 			// if(isnil($addr)) error("symbol lacks address: %s");

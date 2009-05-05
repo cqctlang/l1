@@ -21,7 +21,7 @@ static char* cbasector[Vnbase] = {
 Expr*
 gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 {
-	Expr *e, *se, *te, *id, *off, *tn, *sz, *loc;
+	Expr *e, *se, *te, *id, *tn, *sz, *loc;
 	Enum *en;
 	Decl *dl;
 	char *mk;
@@ -52,28 +52,48 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		se = nullelist();
 		dl = t->field;
 		while(dl){
+			tn = gentypename(dl->type, recpass, ctx);
 			if(dl->id)
 				id = Zstr(dl->id);
 			else
 				id = Znil();
-			if(dl->offs && dl->type->bitw){
+			if(dl->attr && dl->type->bitw){
 				/* bitfield */
-				dl->offs = recpass(ctx, dl->offs);
-				dl->type->bit0 =          /* steal */
-					newbinop(Emod, dl->offs, Zuint(8));
-				off = newbinop(Ediv,
-					       copyexpr(dl->offs),
-					       Zuint(8));
-				dl->offs = 0;
-			}else if(dl->offs){
-				dl->offs = recpass(ctx, dl->offs);
-				off = dl->offs; /* steal */
-				dl->offs = 0;
+				te = Zblock(Zlocals(2, "$a", "$o"),
+					    Zset(doid("$a"),
+						 Zcall(doid("%mkattr"), 1,
+						       recpass(ctx, dl->attr))),
+					    Zset(doid("$o"),
+						 Zcall(doid("%attroff"),
+						       1, doid("$a"))),
+					    Zcall(doid("%setattroff"),
+						  2, doid("$a"), 
+						  Zbinop(Ediv, doid("$o"),
+							 Zuint(8))),
+					    Zcall(doid("%mkfield"), 3,
+						  Zcall(doid("%mkctype_bitfield"),
+							3,
+							tn,
+							dl->type->bitw,
+							Zbinop(Emod,
+							       doid("$o"),
+							       Zuint(8))),
+						  id,
+						  doid("$a")),
+					    NULL);
+				dl->attr = 0;
+				dl->type->bitw = 0;
+			}else if(dl->attr){
+				te = Zcall(doid("%mkfield"), 3,
+					   tn, 
+					   id,
+					   Zcall(doid("%mkattr"), 1,
+						 recpass(ctx, dl->attr)));
+				dl->attr = 0;
 			}else
-				off = Znil();
-			tn = gentypename(dl->type, recpass, ctx);
-			se = Zcons(Zcall(doid("%mkfield"),
-					 3, tn, id, off), se);
+				te = Zcall(doid("%mkfield"), 3,
+					   tn, id, Znil()); 
+			se = Zcons(te, se);
 			dl = dl->link;
 		}
 		se = Zapply(doid("%vector"), invert(se));
@@ -185,17 +205,5 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 	default:
 		fatal("bug");
 	}
-
-	if(t->bitw){
-		if(t->kind != Tbase && t->kind != Ttypedef && t->kind != Tenum)
-			// FIXME: E does not have source location information!
-			cerror(ctx, e, "invalid bitfield");
-		t->bitw = recpass(ctx, t->bitw);
-		t->bit0 = recpass(ctx, t->bit0);
-		e = Zcall(doid("%mkctype_bitfield"), 3, e, t->bitw, t->bit0);
-		t->bitw = 0;	/* steal */
-		t->bit0 = 0;	/* steal */
-	}
-
 	return e;
 }

@@ -131,6 +131,7 @@ static List* listset(VM *vm, List *lst, Imm idx, Val v);
 static void _listappend(List *lst, Val v);
 static void addroot(Rootset *rs, Head *h);
 static Head* removeroot(Rootset *rs);
+static int issym(Vec *sym);
 
 static struct GC *thegc;
 static Val Xundef;
@@ -4817,6 +4818,48 @@ mkzas(VM *vm, Imm len)
 	return mksas(mkstrn(vm, len));
 }
 
+Val
+mkattr(Val o)
+{
+	Tab *tab;
+
+	if(o->qkind != Qtab && o->qkind != Qcval)
+		fatal("bug");
+	if(o->qkind == Qtab)
+		tab = tabcopy(valtab(o));
+	else{
+		tab = mktab();
+		_tabput(tab, mkvalstr(mkstr0("offset")), o);
+	}
+	return mkvaltab(tab);
+}
+
+Val
+attroff(Val o)
+{
+	Tab *tab;
+	Val vp;
+
+	if(o->qkind != Qtab)
+		fatal("bug");
+	tab = valtab(o);
+	vp = tabget(tab, mkvalstr(mkstr0("offset")));
+	if(vp)
+		return vp;
+	return Xnil;
+}
+
+void
+setattroff(VM *vm, Val o, Val v)
+{
+	Tab *tab;
+
+	if(o->qkind != Qtab)
+		fatal("bug");
+	tab = valtab(o);
+	tabput(vm, tab, mkvalstr(mkstr0("offset")), v);
+}
+
 Xtypename*
 chasetype(Xtypename *xtn)
 {
@@ -5020,7 +5063,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		return;
 	}
 	sym = valvec(listref(vm, l, 0));
-	a = valcval(vecref(sym, Offpos));
+	a = valcval(attroff(vecref(sym, Attrpos)));
 	if(a->val > addr){
 		*rv = Xnil;
 		return;
@@ -5034,7 +5077,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		if(i == 0)
 			break;
 		sym = valvec(listref(vm, l, m));
-		a = valcval(vecref(sym, Offpos));
+		a = valcval(attroff(vecref(sym, Attrpos)));
 		if(addr < a->val)
 			n = i;
 		else{
@@ -5182,8 +5225,8 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 				v = mkvalxtn(tmp);
 				fv = mkvec(3);
 				_vecset(fv, Typepos, v);
-				_vecset(fv, Idpos, vecref(vec, 1));
-				_vecset(fv, Offpos, vecref(vec, 2));
+				_vecset(fv, Idpos, vecref(vec, Idpos));
+				_vecset(fv, Attrpos, vecref(vec, Attrpos));
 				v = mkvalvec(fv);
 				_vecset(new->field, i, v);
 			}
@@ -5471,8 +5514,8 @@ symcmp(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *a, *b;
 	sa = valvec(argv[0]);
 	sb = valvec(argv[1]);
-	a = valcval(vecref(sa, Offpos));
-	b = valcval(vecref(sb, Offpos));
+	a = valcval(attroff(vecref(sa, Attrpos)));
+	b = valcval(attroff(vecref(sb, Attrpos)));
 	if(a->val < b->val)
 		*rv = mkvalcval2(cvalminus1);
 	else if(a->val > b->val)
@@ -5501,8 +5544,8 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	for(m = 0; m < len; m++){
 		vp = vecref(vec, len+m);	/* symbol #m */
 		s = valvec(vp);
-		op = vecref(s, Offpos);
-		if(op->qkind != Qcval)
+		op = vecref(s, Attrpos);
+		if(op->qkind == Qnil)
 			continue;
 		_listappend(ls, vp);
 	}
@@ -5592,7 +5635,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		while(tk){
-			/* id -> [ xtn, id, off ] */
+			/* id -> [ xtn, id, attr ] */
 			idv = x->key[tk->idx];
 			vecv = x->val[tk->idx];
 			if(idv->qkind != Qstr)
@@ -5600,14 +5643,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			if(vecv->qkind != Qvec)
 				vmerr(vm, "invalid raw symbol table");
 			vec = valvec(vecv);
-			if(vec->len != 3)
-				vmerr(vm, "invalid raw symbol table");
-			if(vecref(vec, Typepos)->qkind != Qxtn)
-				vmerr(vm, "invalid raw symbol table");
-			if(vecref(vec, Idpos)->qkind != Qstr)
-				vmerr(vm, "invalid raw symbol table");
-			if(vecref(vec, Offpos)->qkind != Qcval
-			   && vecref(vec, Offpos)->qkind != Qnil)
+			if(!issym(vec))
 				vmerr(vm, "invalid raw symbol table");
 			xtn = valxtn(vecref(vec, Typepos));
 			xtn = resolvetypename(vm, xtn, &ctx);
@@ -5655,9 +5691,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			for(j = 0; j < vec->len; j++){
 				kvec = valvec(vecref(vec, j));
 				nvec = mkvec(3);
-				_vecset(nvec, 0, mkvalxtn(tmp));
-				_vecset(nvec, 1, vecref(kvec, 0));
-				_vecset(nvec, 2, vecref(kvec, 1));
+				_vecset(nvec, Typepos, mkvalxtn(tmp));
+				_vecset(nvec, Idpos, vecref(kvec, 0));
+				_vecset(nvec, Attrpos, mkattr(vecref(kvec, 1)));
 				tabput(vm, ctx.sym,
 				       vecref(kvec, 0), mkvalvec(nvec));
 			}
@@ -5771,7 +5807,7 @@ mksysdom(VM *vm)
 	valv = mkvalstr(id);
 	_vecset(v, Idpos, valv);
 	valv = mkvalcval2(o);
-	_vecset(v, Offpos, valv);
+	_vecset(v, Attrpos, mkattr(valv));
 
 	keyv = mkvalstr(id);
 	valv = mkvalvec(v);
@@ -7161,6 +7197,7 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 	Xtypename *t;
 	Val vp, rp, id, o;
 	Vec *f, *r;
+	Val attr;
 	Imm i;
 
 	for(i = 0; i < su->field->len; i++){
@@ -7183,9 +7220,11 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 			continue;
 		r = veccopy(valvec(rp));
 		o = mkvalcval2(xcvalalu(vm, Iadd,
-					valcval(vecref(f, Offpos)),
-					valcval(vecref(r, Offpos))));
-		_vecset(r, Offpos, o);
+					valcval(attroff(vecref(f, Attrpos))),
+					valcval(attroff(vecref(r, Attrpos)))));
+		attr = mkvaltab(tabcopy(valtab(vecref(r, Attrpos))));
+		setattroff(vm, attr, o);
+		_vecset(r, Attrpos, attr);
 		return mkvalvec(r);
 	}
 	return 0;
@@ -7273,10 +7312,11 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
-	vp = v->vec[Offpos];
-	if(vp->qkind != Qcval && vp->qkind != Qnil)
-		vmerr(vm, err);
-	*rv = vp;
+	vp = vecref(v, Attrpos);
+	if(vp->qkind == Qnil)
+		return;		/* nil */
+	vp = attroff(vp);
+	*rv  = vp;
 }
 
 static void
@@ -7340,21 +7380,21 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_symval(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to symval must be a vector returned by looksym";
+		= "operand 1 to symoff must be a vector returned by looksym";
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to symval");
+		vmerr(vm, "wrong number of arguments to symoff");
 	if(argv[0]->qkind != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
-	vp = v->vec[Offpos];
+	vp = attroff(vecref(v, Attrpos));
 	if(vp->qkind != Qcval && vp->qkind != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
@@ -7575,28 +7615,38 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static int
+issym(Vec *sym)
+{
+	Val x;
+
+	if(sym->len != 2 && sym->len != 3)
+		return 0;
+	x = vecref(sym, Typepos);
+	if(x->qkind != Qxtn)
+		return 0;
+	x = vecref(sym, Idpos);
+	if(x->qkind != Qstr && x->qkind != Qnil)
+		return 0;
+	if(sym->len < 3)
+		return 1;
+	x = vecref(sym, Attrpos);
+	if(x->qkind != Qtab && x->qkind != Qnil)
+		return 0;
+	return 1;
+}
+
+static int
 issymvec(Vec *v)
 {
 	Imm m;
-	Val e, x;
+	Val e;
 	Vec *sym;
 	for(m = 0; m < v->len; m++){
 		e = vecref(v, m);
 		if(e->qkind != Qvec)
 			return 0;
 		sym = valvec(e);
-		if(sym->len != 2 && sym->len != 3)
-			return 0;
-		x = vecref(sym, Typepos);
-		if(x->qkind != Qxtn)
-			return 0;
-		x = vecref(sym, Idpos);
-		if(x->qkind != Qstr && x->qkind != Qnil)
-			return 0;
-		if(sym->len < 3)
-			continue;
-		x = vecref(sym, Offpos);
-		if(x->qkind != Qcval && x->qkind != Qnil)
+		if(!issym(sym))
 			return 0;
 	}
 	return 1;
@@ -7808,6 +7858,7 @@ static void
 mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *vec;
+	Val attr;
 
 	checkarg(vm, what, argv, 0, Qxtn);
 	if(argc > 1)
@@ -7815,8 +7866,11 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "operand 2 to %s must be a string or nil",
 			      what);
 	if(argc == 3)
-		if(argv[2]->qkind != Qcval && argv[2]->qkind != Qnil)
-			vmerr(vm, "operand 3 to %s must be a cvalue or nil",
+		if(argv[2]->qkind != Qcval
+		   && argv[2]->qkind != Qtab
+		   && argv[2]->qkind != Qnil)
+			vmerr(vm,
+			      "operand 3 to %s must be a table, cvalue, or nil",
 			      what);
 	vec = mkvec(3);
 	_vecset(vec, 0, argv[0]);
@@ -7824,10 +7878,11 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 		_vecset(vec, 1, argv[1]);
 	else
 		_vecset(vec, 1, Xnil);
-	if(argc > 2)
-		_vecset(vec, 2, argv[2]);
+	if(argc > 2 && argv[2]->qkind == Qcval)
+		attr = mkattr(argv[2]);
 	else
-		_vecset(vec, 2, Xnil);
+		attr = argv[2];
+	_vecset(vec, 2, attr);
 	*rv = mkvalvec(vec);
 }
 
@@ -8259,6 +8314,34 @@ l1_mknsraw(VM *vm, Imm argc, Val *argv, Val *rv)
 	rawsym = valtab(argv[2]);
 	ns = mknsraw(vm, ons, rawtype, rawsym, name);
 	*rv = mkvalns(ns);
+}
+
+static void
+l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkattr");
+	if(argv[0]->qkind != Qcval && argv[0]->qkind != Qtab)
+		vmerr(vm, "argument 1 to mkattr must be a table or cvalue");
+	*rv = mkattr(argv[0]);
+}
+
+static void
+l1_setattroff(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to setattroff");
+	checkarg(vm, "setattroff", argv, 0, Qtab);
+	setattroff(vm, argv[0], argv[1]);
+}
+
+static void
+l1_attroff(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to attroff");
+	checkarg(vm, "setattroff", argv, 0, Qtab);
+	*rv = attroff(argv[0]);
 }
 
 static void
@@ -10297,6 +10380,7 @@ mktopenv()
 	FN(apply);
 	FN(arraynelm);
 	FN(asof);
+	FN(attroff);
 	FN(backtrace);
 	FN(baseid);
 	FN(bitfieldcontainer);
@@ -10391,6 +10475,7 @@ mktopenv()
 	FN(memset);
 	FN(memtotal);
 	FN(mkas);
+	FN(mkattr);
 	FN(mkctype_array);
 	FN(mkctype_bitfield);
 	FN(mkctype_char);
@@ -10461,6 +10546,7 @@ mktopenv()
 	FN(resettop);
 	FN(rettype);
 	FN(reverse);
+	FN(setattroff);
 	FN(sort);
 	FN(split);
 	FN(sprintfa);
@@ -10477,7 +10563,7 @@ mktopenv()
 	FN(susize);
 	FN(symid);
 	FN(symtype);
-	FN(symval);
+	FN(symoff);
 	FN(tabdelete);
 	FN(tabenum);
 	FN(tabinsert);

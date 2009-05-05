@@ -32,7 +32,7 @@ do1tag(void *u, char *k, void *v)
 static void
 do1sym(void *u, char *k, void *v)
 {
-	Expr *se, *te, *loc, *offs;
+	Expr *se, *te, *loc, *attr;
 	Expr **e;
 	Decl *d;
 	struct Arg *up;
@@ -47,15 +47,15 @@ do1sym(void *u, char *k, void *v)
 	se = Zset(doid("$tn"), gentypename(d->type, compile, up->ctx));
 	te = Zcons(se, te);
 
-	if(d->offs){
-		d->offs = compile(up->ctx, d->offs);
-		offs = d->offs; /* steal */
-		d->offs = 0;
+	if(d->attr){
+		attr = Zcall(doid("%mkattr"), 1,
+			     compile(up->ctx, d->attr)); /* steal */
+		d->attr = 0;
 	}else
-		offs = Znil();
+		attr = Znil();
 
 	se = Zset(doid("$tmp"),
-		  Zcall(doid("%mksym"), 3, doid("$tn"), Zstr(d->id), offs));
+		  Zcall(doid("%mksym"), 3, doid("$tn"), Zstr(d->id), attr));
 	te = Zcons(se, te);
 
 	se = Zcall(doid("%tabinsert"), 3, doid("$symtab"),

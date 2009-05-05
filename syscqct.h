@@ -149,7 +149,7 @@ enum {
 	Maxprintint=32,
 	Typepos=0,
 	Idpos=1,
-	Offpos=2,
+	Attrpos=2,
 	Maxvms=1024,
 	Errinitdepth=128,	/* initial max error stack */
 	Maxstk = 4096,
@@ -214,7 +214,7 @@ struct Enum {
 struct Decl {
 	Type *type;
 	char *id;
-	Expr *offs;		/* offset */
+	Expr *attr;		/* offset and other attributes */
 	Decl *link;
 };
 
@@ -227,7 +227,7 @@ struct Type {
 	Decl *field;		/* struct, union */
 	Enum *en;		/* enum */
 	Expr *sz;		/* struct, union */
-	Expr *bitw, *bit0;	/* bitfield geometry */
+	Expr *bitw;		/* bitfield width */
 	Decl *param;		/* func */
 	Expr *cnt;		/* arr */
 	Type *link;		/* typedef, ptr, arr, func(return type) */
@@ -838,6 +838,7 @@ void		xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v),
 unsigned long	xenvsize(Xenv *xe);
 
 /* vm.c */
+Val		attroff(Val o);
 void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
@@ -864,6 +865,7 @@ void		heapfree(Head *p);
 int		isstrcval(Cval *cv);
 u32		listxlen(Listx *x);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
+Val		mkattr(Val o);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
@@ -907,6 +909,7 @@ void		nexterror(VM *vm) NORETURN;
 void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
+void		setattroff(VM *vm, Val o, Val v);
 char*		str2cstr(Str *str);
 Str*		stringof(VM *vm, Cval *cv);
 Val		tabget(Tab *tab, Val keyv);

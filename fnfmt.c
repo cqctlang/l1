@@ -888,7 +888,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(vq->qkind != Qstr)
 				goto bady;
 			as = valstr(vq);
-			vq = vecref(vec, Offpos);
+			vq = attroff(vecref(vec, Attrpos));
 			if(vq->qkind != Qcval)
 				goto bady;
 			cv = xcvalalu(vm, Isub, cv, valcval(vq));

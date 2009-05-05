@@ -846,7 +846,7 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 	switch(e->e1->kind){
 	case Ebitfield:
 		hd = dodecl(ctx, e->e1);
-		hd->offs = e->e1->e3; /* steal */
+		hd->attr = e->e1->e3; /* steal */
 		e->e1->e3 = NULL;
 		hd->type->bitw = e->e1->e4; /* steal */
 		e->e1->e4 = NULL;
@@ -855,7 +855,7 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 	case Efields:
 		hd = dodecls(ctx, e->e1);
 		if(e->e1->e3){
-			hd->offs = e->e1->e3; /* steal */
+			hd->attr = e->e1->e3; /* steal */
 			e->e1->e3 = NULL;
 		}
 		p = hd;
@@ -1060,7 +1060,7 @@ copydecls(Decl *dl)
 		return 0;
 	nd = newdecl();
 	nd->id = xstrdup(dl->id);
-	nd->offs = copyexpr(dl->offs);
+	nd->attr = copyexpr(dl->attr);
 	nd->link = copydecls(dl->link);
 	return nd;
 }
@@ -1077,7 +1077,6 @@ copytype(Type *t)
 	nt->kind = t->kind;
 	nt->dom = xstrdup(t->dom);
 	nt->bitw = copyexpr(t->bitw);
-	nt->bit0 = copyexpr(t->bit0);
 	switch(nt->kind){
 	case Tvoid:
 		break;
@@ -1141,7 +1140,7 @@ dodecls(U *ctx, Expr *e)
 	if(e->e3){
 		if(rv == NULL)
 			fatal("bug");
-		rv->offs = e->e3; /* steal */
+		rv->attr = e->e3; /* steal */
 		e->e3 = NULL;
 	}
 

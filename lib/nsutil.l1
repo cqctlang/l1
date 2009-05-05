@@ -299,7 +299,7 @@ define printns(ns){
 		type = symtype(sym);
 		if(isenumconst(type))
 			continue;
-		off = symval(sym);
+		off = symoff(sym);
 		if(off != nil)
 			printf("/*@0x%x*/", off);
 		printf("\t%t;\n", sym);

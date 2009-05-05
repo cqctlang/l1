@@ -1,6 +1,6 @@
 entry: var params, 7 locals, 1 temps
-L109: 1 params, 0 locals, 0 temps
-L119: 1 params, 0 locals, 0 temps
+L111: 1 params, 0 locals, 0 temps
+L121: 1 params, 0 locals, 0 temps
 d = 3
 a = 0
 b = 1

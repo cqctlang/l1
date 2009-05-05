@@ -4880,7 +4880,7 @@ define make_local_ns (bdrec, exas, pc)
       return cuns.lookaddr (addr);
     else {
       curv = cuns.lookaddr (addr);
-      if (isnil (curv) || symval (curv) < symval (lrv))
+      if (isnil (curv) || symoff (curv) < symoff (lrv))
 	return lrv;
       else
 	return curv;
@@ -5323,11 +5323,11 @@ define print_obj (obj, dom)
     stype = typedeftype (stype);
   }
   if (isfunc (stype)) {
-    printf ("0x%x\t%t\n", symval (obj), obj);
+    printf ("0x%x\t%t\n", symoff (obj), obj);
     return;
   }
   else if (isarray (stype)) {
-    printf ("0x%x\t%t\n", symval (obj), obj);
+    printf ("0x%x\t%t\n", symoff (obj), obj);
     return;
   }
   else if (isstruct (stype) || isunion (stype)) {
@@ -5340,7 +5340,7 @@ define print_obj (obj, dom)
     return;
   }
   else if (isenum (stype)) {
-    printf ("0x%x\t%t\n", symval (obj), obj);
+    printf ("0x%x\t%t\n", symoff (obj), obj);
     return;
   }
   else if (isenumconst (stype)) {
@@ -5348,8 +5348,8 @@ define print_obj (obj, dom)
   }
   else {
     @local rng, type, nobj, p;
-    p = {dom}{mkctype_ptr (symtype (obj), nsptr (dom))}symval (obj);
-    printf ("0x%x\t%t\t%s\t0x%x\n", symval (obj), symtype (obj),
+    p = {dom}{mkctype_ptr (symtype (obj), nsptr (dom))}symoff (obj);
+    printf ("0x%x\t%t\t%s\t0x%x\n", symoff (obj), symtype (obj),
 	    vecref (obj, 1), *p);
   }
 }
@@ -5363,7 +5363,7 @@ define print_struct (s, dom)
   if (!isstruct (stype)&& !isunion (stype))
     return;
   fv = fields (stype);
-  sloc = {dom}symval (s);
+  sloc = {dom}symoff (s);
   printf ("0x%x\t%t {\n", sloc, s);
   foreach (lambda (v) {
       @local ft, foff, p, pft;
