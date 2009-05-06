@@ -7914,8 +7914,10 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 		_vecset(vec, 1, Xnil);
 	if(argc > 2 && argv[2]->qkind == Qcval)
 		attr = mkattr(argv[2]);
-	else
+	else if(argc > 2)
 		attr = argv[2];
+	else
+		attr = Xnil;
 	_vecset(vec, 2, attr);
 	*rv = mkvalvec(vec);
 }
