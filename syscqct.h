@@ -144,7 +144,7 @@ enum {
 };
 
 enum {
-	Tabinitsize=1024,	/* power of 2 */
+	Tabinitsize=1,	/* power of 2 */
 	Listinitsize=16,
 	Maxprintint=32,
 	Typepos=0,
