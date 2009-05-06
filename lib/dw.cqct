@@ -4663,7 +4663,7 @@ define show_cu_function_tables (cutabs)
   printf ("Types are:\n");
   foreach (lambda (k, v) {printf ("%t\t%t\n", k, v);}, cuttab);
   printf ("Symbols are:\n");
-  foreach (lambda (k, v) {printf ("0x%x\t%t %a\n", vecref (v, 2), vecref (v, 0), vecref (v, 1));}, custab);
+  foreach (lambda (k, v) {printf ("0x%x\t%t %a\n", symoff (v), symtype (v), symid (v));}, custab);
   ftabs = listref (cutabs, 2);
   for (i = 0; i < length (ftabs); i++) {
     @local lttab, lstab;
@@ -4957,9 +4957,9 @@ define skip_prologue (dom, name)
   sym = dom.looksym (name);
   if (isnil (sym))
     return nil;
-  if (!isfunc (vecref (sym, 0)))
-    return vecref (sym, 2);
-  saddr = vecref (sym, 2);
+  if (!isfunc (symtype (sym)))
+    return symoff (sym);
+  saddr = symoff (sym);
   rv = saddr;
   /* Neither of the arguments has precisely the domain information that
      we need to do the lookup, but in the process of building a global
@@ -5318,7 +5318,7 @@ define make_local_as (ras, regset)
 define print_obj (obj, dom)
 {
   @local stype;
-  stype = vecref (obj, 0);
+  stype = symtype (obj);
   if (istypedef (stype)) {
     stype = typedeftype (stype);
   }
@@ -5336,7 +5336,7 @@ define print_obj (obj, dom)
   }
   else if (isxaccess (stype)) {
     printf ("%d\t\t%t %s\t0x%x\n", symoff (obj), stype,
-	    vecref (obj, 1), xaccessget (stype)(dom));
+	    symid (obj), xaccessget (stype)(dom));
     return;
   }
   else if (isenum (stype)) {
@@ -5350,7 +5350,7 @@ define print_obj (obj, dom)
     @local rng, type, nobj, p;
     p = {dom}{mkctype_ptr (symtype (obj), nsptr (dom))}symoff (obj);
     printf ("0x%x\t%t\t%s\t0x%x\n", symoff (obj), symtype (obj),
-	    vecref (obj, 1), *p);
+	    symid (obj), *p);
   }
 }
 
