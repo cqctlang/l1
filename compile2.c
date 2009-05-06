@@ -5,6 +5,9 @@
 static void freedecl(Decl *d);
 static void freelambda(Lambda *l);
 static void freeblock(Block *b);
+static u64 szblock(Block *b);
+static u64 szlambda(Lambda *l);
+static u64 szdecl(Decl *d);
 
 int
 issimple(Expr *e)
@@ -120,6 +123,30 @@ freetype(Type *t)
 	efree(t);
 }
 
+static u64
+sztype(Type *t)
+{
+	u64 m;
+
+	m = 0;
+	if(t == 0)
+		return 0;
+
+	m += sztype(t->link);
+	m += esize(t->dom);
+	m += esize(t->tid);
+	m += esize(t->tag);
+	m += szdecl(t->field);
+	m += szenum(t->en);
+	m += szdecl(t->param);
+	m += szexpr(t->bitw);
+	m += szexpr(t->sz);
+	m += szexpr(t->cnt);
+	m += sizeof(*t);
+
+	return m;
+}
+
 static void
 freedecl(Decl *d)
 {
@@ -134,6 +161,21 @@ freedecl(Decl *d)
 		efree(d->id);
 		efree(d);
 	}
+}
+
+static u64
+szdecl(Decl *d)
+{
+	u64 m;
+	m = 0;
+	while(d){
+		m += sztype(d->type);
+		m += szexpr(d->attr);
+		m += esize(d->id);
+		m += sizeof(*d);
+		d = d->link;
+	}
+	return m;
 }
 
 void
@@ -162,6 +204,37 @@ freeexprx(Expr *e)
 	default:
 		break;
 	}
+}
+
+u64
+szexprx(Expr *e)
+{
+	Var *v;
+	u64 m;
+
+	m = 0;
+	switch(e->kind){
+	case Eid:
+		v = e->xp;
+		if(v->where == Vtop)
+			/* others types point to lambda/block vars */
+			m += esize(v);
+		break;
+	case Elambda:
+		m += szlambda(e->xp);
+		break;
+	case Eblock:
+		m += szblock(e->xp);
+		break;
+	case Etypedef:
+	case Edecl:
+	case Edecls:
+		m += szdecl(e->xp);
+		break;
+	default:
+		break;
+	}
+	return m;
 }
 
 static int
@@ -447,11 +520,33 @@ freelambda(Lambda *l)
 	efree(l);
 }
 
+static u64
+szlambda(Lambda *l)
+{
+	u64 m;
+	m = 0;
+	m += esize(l->cap);
+	m += esize(l->disp);
+	m += esize(l->param);
+	m += sizeof(*l);
+	return m;
+}
+
 static void
 freeblock(Block *b)
 {
 	efree(b->loc);
 	efree(b);
+}
+
+static u64
+szblock(Block *b)
+{
+	u64 m;
+	m = 0;
+	m += esize(b->loc);
+	m += sizeof(*b);
+	return m;
 }
 
 /* pass0: allocate lambda and block variable descriptors */

@@ -66,6 +66,27 @@ freekonst(Konst *kon)
 	efree(kon);
 }
 
+static void
+sz1konst(void *u, char *k, void *v)
+{
+	u64 *p;
+	Lits *l;
+	p = u;
+	l = v;
+	*p += esize(l);
+}
+
+static u64
+szkonst(Konst *kon)
+{
+	u64 m;
+	m = 0;
+	hforeach(kon->ht, sz1konst, &m);
+	m += hsz(kon->ht);
+	m += sizeof(*kon);
+	return m;
+}
+
 static Konsti*
 mkkonsti()
 {
@@ -110,6 +131,25 @@ freekonsti(Konsti *koni)
 	hforeach(koni->ht, free1konsti, 0);
 	freeht(koni->ht);
 	efree(koni);
+}
+
+static void
+sz1konsti(void *u, char *k, void *v)
+{
+	u64 *p;
+	p = u;
+	*p += esize(k);
+}
+
+static u64
+szkonsti(Konsti *kon)
+{
+	u64 m;
+	m = 0;
+	hforeach(kon->ht, sz1konsti, &m);
+	m += hsz(kon->ht);
+	m += sizeof(*kon);
+	return m;
 }
 
 // allocate and bind constants to constant pool
@@ -258,6 +298,29 @@ freecode(Head *hd)
 	efree(code->insn);
 	efree(code->labels);
 	return 1;
+}
+
+u64
+szcode(Code *code)
+{
+	u64 m;
+	Ctl *p;
+
+	m = 0;
+
+	m += szkonst(code->konst);
+	m += szkonsti(code->konsti);
+	p = code->clist;
+	while(p){
+		if(p->ckind == Clabel)
+			m += esize(p->label);
+		m += sizeof(*p);
+		p = p->link;
+	}
+	m += szexpr(code->src);
+	m += esize(code->insn);
+	m += esize(code->labels);
+	return m;
 }
 
 static Insn*

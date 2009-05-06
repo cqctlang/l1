@@ -109,6 +109,15 @@ emalloc(size_t size)
 	return p;
 }
 
+size_t
+esize(void *p)
+{
+	if(p == 0)
+		return 0;
+	p -= sizeof(size_t);
+	return sizeof(size_t)+*(size_t*)p;
+}
+
 void
 efree(void *p)
 {

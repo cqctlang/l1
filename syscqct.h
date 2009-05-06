@@ -763,7 +763,6 @@ Expr*		flatten(Expr *e);
 char*		fmttype(Type *t, char *o);
 void		freeenum(Enum *en);
 void		freeexpr(Expr*);
-void		freeexprx(Expr *e);
 void		freelits(Lits *lits);
 void		initparse();
 Expr*		invert(Expr*);
@@ -781,6 +780,8 @@ int		parseliti(char *s, unsigned long len, Liti *liti,
 Expr*		ptrto(Expr*, Expr*);
 void		parseerror(U *ctx, char *fmt, ...);
 int		popyy(U *ctx);
+u64		szenum(Enum *en);
+u64		szexpr(Expr *e);
 void		tryinclude(U *ctx, char *raw);
 int		yyparse(U *ctx);
 
@@ -813,9 +814,10 @@ Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
 
 /* compile2.c */
 Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);
-int		issimple(Expr *e);
 void		freeconst(void *u, char *id, void *v);
-Closure*	compileentry(Expr *el, Toplevel *top, char *argsid);
+void		freeexprx(Expr *e);
+int		issimple(Expr *e);
+u64		szexprx(Expr *e); 
 
 /* cg.c */
 Closure*	callcc();
@@ -847,6 +849,7 @@ void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
 Xtypename*	chasetype(Xtypename *xtn);
 void		checkarg(VM *vm, char *f, Val *argv,
 			 unsigned arg, Qkind qkind);
+u64		szcode(Code *code);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 int		envbinds(Env *env, char *id);

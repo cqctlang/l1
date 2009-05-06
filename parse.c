@@ -251,6 +251,45 @@ freeexpr(Expr *e)
 	efree(e);
 }
 
+u64
+szexpr(Expr *e)
+{
+	u64 m;
+	m = 0;
+
+	if(e == 0)
+		return m;
+
+	m += sizeof(*e);
+
+	if(e->kind == Eelist){
+		while(e->kind == Eelist){
+			m += szexpr(e->e1);
+			m += sizeof(*e);
+			e = e->e2;
+		}
+		return m;
+	}
+
+	switch(e->kind){
+	case Eid:
+		m += esize(e->id);
+		break;
+	case Econsts:
+		m += esize(e->lits);
+		break;
+	default:
+		break;
+	}
+	m += szexpr(e->e1);
+	m += szexpr(e->e2);
+	m += szexpr(e->e3);
+	m += szexpr(e->e4);
+	if(e->xp)
+		m += szexprx(e);
+	return m;
+}
+
 Expr*
 copyexpr(Expr *e)
 {
@@ -789,6 +828,19 @@ freeenum(Enum *en)
 		efree(en);
 		en = q;
 	}
+}
+
+u64
+szenum(Enum *en)
+{
+	u64 m;
+	m = 0;
+	while(en){
+		m += szexpr(en->val);
+		m += sizeof(*en);
+		en = en->link;
+	}
+	return m;
 }
 
 static Enum*

@@ -56,6 +56,27 @@ freeht(HT* ht)
 	efree(ht);
 }
 
+u64
+hsz(HT *ht)
+{
+	u64 m;
+	unsigned long i;
+	Hent *hp;
+
+	m = 0;
+	for(i = 0; i < ht->sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			m += esize(hp);
+			hp = hp->next;
+		}
+	}
+	m += esize(ht->ht);
+	m += esize(ht->hent);
+	m += esize(ht);
+	return m;
+}
+
 /* one-at-a-time by jenkins */
 static unsigned long
 shash(char *s, unsigned len)

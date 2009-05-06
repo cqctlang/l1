@@ -8,6 +8,7 @@ void *hget(HT *ht, char *k, unsigned len);
 void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
 unsigned long hnent(HT *ht);
 void* hrefval(HT *ht, unsigned long idx);
+u64 hsz(HT *ht);
 
 void fatal(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
@@ -17,6 +18,7 @@ void* erealloc(void *p, size_t old, size_t new);
 void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);
 char* strnchr(char *s, int c, unsigned long len);
 void efree(void *p);
+size_t esize(void *p);
 size_t xstrnlen(char *s, size_t max);
 unsigned max(unsigned a, unsigned b);
 

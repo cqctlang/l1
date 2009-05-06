@@ -333,29 +333,174 @@ hlen(Head *h)
 	return n;
 }
 
+static u64
+szlivehead(Head *h)
+{
+	Closure *cl;
+	Fd *fd;
+	List *l;
+	Rec *r;
+	Str *s;
+	Tab *t;
+	Vec *v;
+	u64 m;
+
+	m = 0;
+	switch(h->qkind){
+	case Qcode:
+		m += szcode((Code*)h);
+		break;
+	case Qcl:
+		cl = (Closure*)h;
+		m += esize(cl->display);
+		m += esize(cl->id);
+		break;
+	case Qfd:
+		fd = (Fd*)h;
+		break;
+	case Qlist:
+		l = (List*)h;
+		m += esize(l->x->val);
+		m += esize(l->x->oval);
+		m += esize(l->x);
+		break;
+	case Qrec:
+		r = (Rec*)h;
+		m += esize(r->field);
+		break;
+	case Qstr:
+		s = (Str*)h;
+		switch(s->skind){
+		case Smmap:
+			m += s->mlen;
+			break;
+		case Smalloc:
+			m += esize(s->s);
+			break;
+		case Sperm:
+			/* no bookkeeping on permanent strings */
+			break;
+		}
+		break;
+	case Qtab:
+		t = (Tab*)h;
+		m += esize(t->x->val);
+		m += esize(t->x->key);
+		m += esize(t->x->idx);
+		m += esize(t->x);
+		break;
+	case Qvec:
+		v = (Vec*)h;
+		m += esize(v->vec);
+		break;
+	default:
+		break;
+	}
+
+	return m;
+}
+
+
+static void
+tabstat1(void *u, char *k, void *v)
+{
+	unsigned m;
+	m = (unsigned)(uintptr_t)v;
+	printf("%s\t%u\n", k, m);
+	efree(k);
+}
+
+static void
+tabstat()
+{
+	Heap *hp;
+	Head *p;
+	HT *ht;
+	Tab *t;
+	char buf[32];
+	void *v;
+	unsigned m;
+
+	ht = mkht();
+	hp = &heap[Qtab];
+	p = hp->alloc;
+	while(p){
+		if(p->color == GCfree)
+			goto next;
+		t = (Tab*)p;
+		snprintf(buf, sizeof(buf), "%u", t->x->sz);
+		v = hget(ht, buf, strlen(buf));
+		if(v == 0)
+			hput(ht, xstrdup(buf), strlen(buf),
+			     (void*)(uintptr_t)1);
+		else{
+			m = (unsigned)(uintptr_t)v;
+			hput(ht, buf, strlen(buf), (void*)(uintptr_t)(m+1));
+		}
+		if(t->x->sz == 1024)
+			printf("%d\n", t->cnt);
+	next:
+		p = p->alink;
+		continue;
+	}
+	hforeach(ht, tabstat1, 0);
+	freeht(ht);
+}
+
+static void
+heapstatmem(Heap *hp, u64 *mlp, u64 *mfp)
+{
+	u64 ml, mf;
+	Head *p;
+
+	ml = 0;
+	mf = 0;
+	p = hp->alloc;
+	while(p){
+		if(p->color == GCfree)
+			mf += hp->sz;
+		else
+			ml += hp->sz+szlivehead(p);
+		p = p->alink;
+	}
+	*mlp = ml;
+	*mfp = mf;
+	if(0)
+		tabstat();
+}
+
 static void
 heapstat(char *s)
 {
 	unsigned i;
 	Heap *hp;
-	unsigned long nf, na, ns0, ns1;
+	unsigned long sz, nf, na, ns0, ns1;
+	u64 ml, mf;
 	
 	if(s)
 		xprintf("%s ", s);
 	xprintf("gc epoch: %lu\n", gcepoch);
-	xprintf("%-10s %10s %10s %10s %10s %10s\n",
-		"heap", "nalloc", "nfree", "nswept", "nsweep", "total");
-	xprintf("--------------------------------"
-		"---------------------------------\n");
+	xprintf("%-10s %10s %10s %10s %10s %10s %10s %10s %10s\n",
+		"heap", "base size",
+		"inuse", "free",
+		"nalloc", "nfree",
+		"nswept", "nsweep", "total");
+	xprintf("-------------------------------------------"
+		"-------------------------------------------------------\n");
 	for(i = 0; i < Qnkind; i++){
 		hp = &heap[i];
 		if(hp->id){
+			sz = hp->sz;
 			na = hp->nalloc;
 			nf = hp->nfree;
 			ns0 = hlen(hp->swept);
 			ns1 = hlen(hp->sweep);
-			xprintf("%-10s %10lu %10lu %10lu %10lu %10lu",
+			heapstatmem(hp, &ml, &mf);
+			xprintf("%-10s %10lu %10lu %10lu %10lu "
+				"%10lu %10lu %10lu %10lu",
 				hp->id,
+				sz,
+				(unsigned long)ml, (unsigned long)mf,
 				na, nf, ns0, ns1, hp->nha);
 			if(na > nf+ns0+ns1)
 				xprintf(" (%lu not collected)\n",
