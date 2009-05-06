@@ -5335,7 +5335,7 @@ define print_obj (obj, dom)
     return;
   }
   else if (isxaccess (stype)) {
-    printf ("%d\t\t%t %s\t0x%x\n", vecref (obj, 2), stype,
+    printf ("%d\t\t%t %s\t0x%x\n", symoff (obj), stype,
 	    vecref (obj, 1), xaccessget (stype)(dom));
     return;
   }
@@ -5501,7 +5501,7 @@ define init_debug_domain (binfile)
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
 	s = nslookaddr (ns) (ns, addr);
-	if (!isnil (s) && !isnil (vecref (s, 2)))
+	if (!isnil (s) && !isnil (symattr (s)))
 	  append (slist, s);
       }
       if (isempty (slist))
@@ -5509,7 +5509,7 @@ define init_debug_domain (binfile)
       rv = listref (slist, 0);
       for (i = 1; i < length (slist); i++) {
 	s = listref (slist, i);
-	if (vecref (s, 2) > vecref (rv, 2))
+	if (symoff (s) > symoff (rv))
 	  rv = s;
       }
       return rv;
