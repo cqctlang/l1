@@ -7298,6 +7298,23 @@ l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_fieldattr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	static char *err
+		= "operand 1 to fieldattr must be a vector returned by fields";
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to fieldattr");
+	if(argv[0]->qkind != Qvec)
+		vmerr(vm, err);
+	v = valvec(argv[0]);
+	if(v->len < 3)
+		vmerr(vm, err);
+	*rv = vecref(v, Attrpos);
+}
+
+static void
 l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
@@ -7380,6 +7397,23 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_symattr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	static char *err
+		= "operand 1 to symattr must be a vector returned by looksym";
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to symattr");
+	if(argv[0]->qkind != Qvec)
+		vmerr(vm, err);
+	v = valvec(argv[0]);
+	if(v->len < 3)
+		vmerr(vm, err);
+	*rv = vecref(v, Attrpos);
+}
+
+static void
 l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
@@ -7394,10 +7428,10 @@ l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
-	vp = attroff(vecref(v, Attrpos));
-	if(vp->qkind != Qcval && vp->qkind != Qnil)
-		vmerr(vm, err);
-	*rv = vp;
+	vp = vecref(v, Attrpos);
+	if(vp->qkind == Qnil)
+		return;		/* nil */
+	*rv = attroff(vp);
 }
 
 /* the purpose of typeof on types is to strip the
@@ -10403,6 +10437,7 @@ mktopenv()
 	FN(error);
 	FN(fault);
 	FN(fdname);
+	FN(fieldattr);
 	FN(fieldid);
 	FN(fieldoff);
 	FN(fields);
@@ -10561,6 +10596,7 @@ mktopenv()
 	FN(suekind);
 	FN(suetag);
 	FN(susize);
+	FN(symattr);
 	FN(symid);
 	FN(symtype);
 	FN(symoff);
