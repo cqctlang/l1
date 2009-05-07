@@ -208,7 +208,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(r == -1)
 			vmerr(vm, "write error: %s", strerror(errno));
 	}else{
-		x = dovm(vm, fd->u.cl.write, argc=1, argv+1);
+		x = dovm(vm, fd->u.cl.write, argc-1, argv+1);
 		if(x->qkind != Qnil)
 			vmerr(vm, "write error");
 	}

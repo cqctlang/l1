@@ -6,16 +6,27 @@ struct bar {
 		int y;
 	@0x8;
 };
-typedef struct foo foo_t;
+typedef long long int64;
 typedef long int32;
+typedef unsigned char uint8;
+typedef unsigned long long uint64;
+typedef unsigned short uint16;
+struct abc {
+		int x;
+	@0x4;
+};
+typedef short int16;
 struct blah {
 	@0x0	int x;
 	@0x4	int y;
 	@0x8;
 };
-typedef short int16;
-typedef unsigned short uint16;
+struct t2 {
+		int z;
+	@0x4;
+};
 typedef unsigned long uint32;
+typedef struct foo foo_t;
 struct foo {
 	@0x0	int x;
 	@0x4	int y;
@@ -30,16 +41,5 @@ struct foo {
 	@0x34	foo_t *ptrtofoo;
 	@0x28;
 };
-typedef long long int64;
-typedef unsigned long long uint64;
-struct t2 {
-		int z;
-	@0x4;
-};
-typedef unsigned long uintptr;
-typedef unsigned char uint8;
 typedef char int8;
-struct abc {
-		int x;
-	@0x4;
-};
+typedef unsigned long uintptr;
