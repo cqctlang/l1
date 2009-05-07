@@ -94,6 +94,11 @@ libl1.so: l1.o
 	@echo + ld $@
 	$(V)$(CC) -shared -Xlinker -Bsymbolic -o $@ $^
 
+libl1.dylib: l1.o 
+	@echo + ld $@
+	if [ ! -f libgcc_s.dylib ] ; then ln -s /usr/lib/libgcc_s.1.dylib libgcc_s.dylib ; fi
+	libtool -dynamic -lc -L. -lgcc_s -o $@ $^
+
 -include depend
 depend: $(L1C) Makefile
 	$(V)gcc $(INC) -MM $(L1C) > depend
@@ -109,4 +114,4 @@ clean:
 	@$(MAKE) -C x/libflate clean
 	@$(MAKE) -C x/libsec clean
 #	@$(MAKE) -C x/libtre clean
-	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so depend
+	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
