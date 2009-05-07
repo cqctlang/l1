@@ -4511,25 +4511,31 @@ define print_subscope_names (ssc, indent)
   }
 }
 
-define make_function_tables (fscope, cutypetab, cusymtab, rns, dom)
+define make_function_tables (fscope, cutypetab, cusymtab, rns, dom, typetab)
 {
-  @local symtab, symlist, subscopes, typetab, typelist, i, fname, faranges;
-  @local indent;
+  @local symtab, symlist, subscopes, typelist, i, fname, faranges;
+  @local indent, typesdone;
   indent = "  ";
   symtab = mktab ();
-  typetab = mktab ();
+  if (isnil (typetab)) {
+    typetab = mktab ();
+    typesdone = 0;
+  }
+  else
+    typesdone = 1;
   if (!islist (fscope))
     printf ("fscope is %a\n", fscope);
   faranges = listref (fscope, 0);
   fname = listref (fscope, 2);
   symlist = listref (fscope, 3);
   typelist = listref (fscope, 4);
-  for (i = 0; i < length (typelist); i++) {
-    @local ltype;
-    ltype = listref (typelist, i);
-    /* the call to dwtype2ctype takes care of inserting the type into typetab*/
-    ltype = dwtype2ctype (rns, dom, ltype, cusymtab, cutypetab, typetab, 1);
-  }
+  if (!typesdone)
+    for (i = 0; i < length (typelist); i++) {
+      @local ltype;
+      ltype = listref (typelist, i);
+      /* the call to dwtype2ctype takes care of inserting the type into typetab*/
+      ltype = dwtype2ctype (rns, dom, ltype, cusymtab, cutypetab, typetab, 1);
+    }
   if (length (typelist) > 0)
     foreach (lambda (k,v) {printf ("for function %s local type %t\n", fname, v);},
 	     typetab);
@@ -4699,7 +4705,6 @@ define find_fn_and_cu (bdrec, addr)
   pc = {ardom} addr;
   cukey = dw_get_dieoff_for_cu (ardom, pc);
   cu = tablook (etab, cukey);
-//   printf ("cu is %a\n", cu);
   return cu;
 }
 
@@ -5390,8 +5395,14 @@ define mycopy (tab)
 
 define buildclosure (fscope, cudwtypetab, cudwsymtab, ns, dom)
 {
+  @local ttab;
+  ttab = nil;
   return lambda () {
-    return make_function_tables (fscope, cudwtypetab, cudwsymtab, ns, dom);
+    @local rv;
+    rv = make_function_tables (fscope, cudwtypetab, cudwsymtab, ns, dom, ttab);
+    if (isnil (ttab))
+      ttab = rv[0];
+    return rv;
   };
 }
 
