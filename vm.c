@@ -458,9 +458,9 @@ heapstatmem(Heap *hp, u64 *mlp, u64 *mfp)
 	p = hp->alloc;
 	while(p){
 		if(p->color == GCfree)
-			mf += hp->sz;
+			mf += esize(p);
 		else
-			ml += hp->sz+szlivehead(p);
+			ml += esize(p)+szlivehead(p);
 		p = p->alink;
 	}
 	*mlp = ml;

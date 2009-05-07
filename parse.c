@@ -260,13 +260,13 @@ szexpr(Expr *e)
 	if(e == 0)
 		return m;
 
-	m += sizeof(*e);
+	m += esize(e);
 
 	if(e->kind == Eelist){
 		while(e->kind == Eelist){
 			m += szexpr(e->e1);
-			m += sizeof(*e);
 			e = e->e2;
+			m += esize(e);
 		}
 		return m;
 	}
@@ -837,7 +837,7 @@ szenum(Enum *en)
 	m = 0;
 	while(en){
 		m += szexpr(en->val);
-		m += sizeof(*en);
+		m += esize(en);
 		en = en->link;
 	}
 	return m;

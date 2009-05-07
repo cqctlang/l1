@@ -83,7 +83,7 @@ szkonst(Konst *kon)
 	m = 0;
 	hforeach(kon->ht, sz1konst, &m);
 	m += hsz(kon->ht);
-	m += sizeof(*kon);
+	m += esize(kon);
 	return m;
 }
 
@@ -148,7 +148,7 @@ szkonsti(Konsti *kon)
 	m = 0;
 	hforeach(kon->ht, sz1konsti, &m);
 	m += hsz(kon->ht);
-	m += sizeof(*kon);
+	m += esize(kon);
 	return m;
 }
 
@@ -314,12 +314,12 @@ szcode(Code *code)
 	while(p){
 		if(p->ckind == Clabel)
 			m += esize(p->label);
-		m += sizeof(*p);
+		m += esize(p);
 		p = p->link;
 	}
-	m += szexpr(code->src);
-	m += esize(code->insn);
 	m += esize(code->labels);
+	m += esize(code->insn);
+	m += szexpr(code->src);
 	return m;
 }
 

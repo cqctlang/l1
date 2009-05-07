@@ -24,7 +24,14 @@ fdread(Xfd *xfd, char *buf, Imm len)
 static Imm
 fdwrite(Xfd *xfd, char *buf, Imm len)
 {
-	return xwrite(xfd->fd, buf, len);
+	Imm rv;
+	rv = xwrite(xfd->fd, buf, len);
+	if(rv == -1)
+		xprintf("write failed (%p,%lu): %s\n",
+			buf, len, strerror(errno));
+	if(rv < len)
+		xprintf("short write\n");
+	return rv;
 }
 
 static void

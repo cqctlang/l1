@@ -43,7 +43,6 @@ snap(VM *vm, Fd *fd)
 		vmerr(vm, "attempt to write non-writable file descriptor");
 
 	mp = map;
-	cnt = 0;
 	nmap = 0;
 	maps = readmaps();
 	if(maps == 0)
@@ -55,7 +54,6 @@ snap(VM *vm, Fd *fd)
 			efree(maps);
 			vmerr(vm, "maps parse error");
 		}
-		fprintf(stderr, "%lx-%lx %c\n", lo, hi, r);
 		if(r == 'r'){
 			if(nmap >= MaxMap){
 				efree(maps);
@@ -65,7 +63,6 @@ snap(VM *vm, Fd *fd)
 			mp->hi = hi;
 			mp++;
 			nmap++;
-			cnt += hi-lo;
 		}
 		p = strchr(p, '\n');
 		if(p == 0)
@@ -74,21 +71,29 @@ snap(VM *vm, Fd *fd)
 	}
 	efree(maps);
 
-	fprintf(stderr, "%lu+%lu+%lu=%lu\n",
-		sizeof(nmap),
-		nmap*sizeof(Map),
-		cnt,
-		sizeof(nmap)+nmap*sizeof(Map)+cnt);
-	if(0 > dowrite(vm, fd, &nmap, sizeof(nmap)))
+	/* hack: assume last map is vsyscall page, which despite
+	   its perm mask cannot be read. */
+	nmap--;
+
+	if(-1 == dowrite(vm, fd, &nmap, sizeof(nmap)))
 		vmerr(vm, "write: %s", strerror(errno));
-	if(0 > dowrite(vm, fd, map, nmap*sizeof(Map)))
+	if(-1 == dowrite(vm, fd, map, nmap*sizeof(Map)))
 		vmerr(vm, "write: %s", strerror(errno));
 	mp = map;
+	cnt = 0;
 	for(i = 0; i < nmap; i++){
-		if(0 > dowrite(vm, fd, (void*)(uintptr_t)mp->lo, mp->hi-mp->lo))
+		if(-1 == dowrite(vm, fd, (void*)(uintptr_t)mp->lo,
+				 mp->hi-mp->lo))
 			vmerr(vm, "write: %s", strerror(errno));
+		fprintf(stderr, "%016lx-%016lx\n", mp->lo, mp->hi);
+		cnt += mp->hi-mp->lo;
 		mp++;
 	}
+	fprintf(stderr, "%lu+%u*%lu+%lu=%lu\n",
+		sizeof(nmap),
+		nmap, sizeof(Map),
+		cnt,
+		sizeof(nmap)+nmap*sizeof(Map)+cnt);
 	return;
 }
 
