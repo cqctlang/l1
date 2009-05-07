@@ -1,0 +1,422 @@
+@include <profile.l1>
+
+fd = open("/tmp/x", "w");
+snap(fd);
+close(fd);
+
+define mknsstat(ns)
+{
+	@local stab, ttab;
+
+	stab = {:};
+	ttab = {:};
+
+	define looksym(this, id){
+		if(stab[id] == nil)
+			stab[id] = 1;
+		else
+			stab[id]++;
+		return ns.looksym(id);
+	}
+
+	define looktype(this, t){
+		if(ttab[t] == nil)
+			ttab[t] = 1;
+		else
+			ttab[t]++;
+		return ns.looktype(t);
+	}
+
+	define enumsym(this){
+		return ns.enumsym();
+	}
+
+	define enumtype(this){
+		return ns.enumtype();
+	}
+
+	define lookaddr(this, addr){
+		return ns.lookaddr(addr);
+	}
+
+	define dump(this){
+		printf("symbols:\n");
+		dumptab(stab, lambda(k, v) { printf("%6d\t%t\n", v,
+						    ns.looksym(k));});
+		printf("types:\n");
+		dumptab(ttab, lambda(k, v) { printf("%6d\t%t\n", v, k); });
+	}
+
+	return mkns({
+			"dump" : dump,
+			"looksym" : looksym,
+			"looktype" : looktype,
+			"enumsym" : enumsym,
+			"enumtype" : enumtype,
+			"lookaddr" : lookaddr });
+
+}
+
+define mksnapas(file)
+{
+	@local ns, as, dom, nmap, mp, idx, ip, i;
+	@local get, put, map;
+	
+	ns = @names clp64le {
+		typedef
+		struct Map {
+			@0x00 uint64	lo;
+			@0x08 uint64	hi;
+			@0x10;
+		} Map;
+		@0x0	uint32 nmap;
+		@0x4	Map map[];
+	};
+
+	as = mksas(mapfile("/tmp/x"));
+
+	dom = mkdom(ns, as);
+
+	nmap = dom`nmap;
+	mp = dom`map;
+	idx = [];
+	ip = (void*)(mp+nmap);
+	for(i = 0; i < nmap; i++){
+//		printf("%016x-%016x\n", mp->lo, mp->hi);
+		append(idx, [ mp->lo, mp->hi, ip ]);
+		ip += mp->hi-mp->lo;
+		mp++;
+	}
+
+	define map(this){
+		return vector(mkrange(0, (`uint64)-1));
+	}
+
+	define get(this, r){
+		@local b, l, i, m;
+		b = rangebeg(r);
+		l = rangelen(r);
+		m = nil;
+		for(i = 0; i < nmap; i++)
+			if(idx[i][0] <= b && b < idx[i][1]){
+				m = idx[i];
+				break;
+			}
+		if(m == nil)
+			error("snapas: memory access out of bounds (%x)", b);
+		if(b+l > m[1])
+			error("snapas: memory access spans boundary (%x-%x)",
+			      b, b+l);
+		b -= idx[i][0];
+		return getbytes(idx[i][2]+b, l);
+	}
+
+	define put(this, r, bytes){
+		error("attempt to put on snapas");
+	}
+
+	return mkas({ "map" : map, "get" : get, "put" : put });
+}
+heapstat();
+ns = @names clp64le { @include "l1.names" };
+ns = mknsstat(ns);
+as = mksnapas("/tmp/x");
+
+dom = mkdom(ns, as);
+
+define dumptab(tab, fn)
+{
+	@local ks, vs, i;
+	ks = tabkeys(tab);
+	vs = tabvals(tab);
+	for(i = 0; i < length(ks); i++)
+		fn(ks[i], vs[i]);
+}
+
+define dumpcode(hp)
+{
+	@local p, dom, mf, ml, n, nl, tab;
+	dom = domof(hp);
+	p = hp->alloc;
+	n = 0;
+	nl = 0;
+	ml = 0;
+	mf = 0;
+	tab = {
+		"code"   : 0,
+		"konst"  : 0,
+		"konsti" : 0,
+		"labels" : 0,
+		"insn"	 : 0,
+		"expr"	 : 0,
+	};
+	while(p){
+		if(p->color == dom`GCfree)
+			mf += esize(p);
+		else{
+			@local a, b;
+			ml += szcode((`Code*)p, tab);
+			nl++;
+		}
+		p = p->alink;
+		n++;
+	}
+	printf("%d code objects (%d live)\n", n, nl);
+	printf("%d live code bytes\n", ml);
+	printf("%d free code bytes\n", mf);
+	dumptab(tab, lambda(k,v) { printf("%10s = %10d bytes\n", k, v); });
+}
+
+define szcode(cp, tab)
+{
+	@local m, x, dom;
+	m = 0;
+
+	x = esize(cp);
+	tab["code"] += x;
+	m += x;
+
+	x = szkonst(cp->konst);
+	tab["konst"] += x;
+	m += x;
+
+	x = szkonsti(cp->konsti);
+	tab["konsti"] += x;
+	m += x;
+
+	x = 0;
+	p = cp->clist;
+	dom = domof(p);
+	while(p){
+		if(p->ckind == dom`Clabel)
+			x += esize(p->label);
+		x += esize(p);
+		p = p->link;
+	}
+	x += esize(cp->labels);
+	tab["labels"] += x;
+	m += x;
+
+	x = esize(cp->insn);
+	tab["insn"] += x;
+	m += x;
+
+	x = szexpr(cp->src);
+	tab["expr"] += x;
+	m += x;
+
+	return m;
+}
+
+define szkonst(kon)
+{
+	@local m;
+	m = 0;
+	hforeach(kon->ht, lambda(k, v){
+			m += esize(v); /* Lits */
+		});
+	m += hsz(kon->ht);
+	m += esize(kon);
+	return m;
+}
+
+define szkonsti(kon)
+{
+	@local m;
+	m = 0;
+	hforeach(kon->ht, lambda(k, v) { m += esize(k); });
+	m += hsz(kon->ht);
+	m += esize(kon);
+	return m;
+}
+
+define szexpr(e)
+{
+	@local m, dom;
+
+	if(e == 0)
+		return 0;
+	dom = domof(e);
+	m = 0;
+	m += esize(e);
+	if(e->kind == dom`Eelist){
+		while(e->kind == dom`Eelist){
+			m += szexpr(e->e1);
+			e = e->e2;
+			m += esize(e);
+		}
+		return m;
+	}
+
+	switch(e->kind){
+	case dom`Eid:
+		m += esize(e->id);
+		break;
+	case dom`Econsts:
+		m += esize(e->lits);
+		break;
+	default:
+		break;
+	}
+	m += szexpr(e->e1);
+	m += szexpr(e->e2);
+	m += szexpr(e->e3);
+	m += szexpr(e->e4);
+	if(e->xp)
+		m += szexprx(e);
+	return m;
+}
+
+define szexprx(e)
+{
+	@local m, dom, v;
+
+	m = 0;
+	dom = domof(e);
+	switch(e->kind){
+	case dom`Eid:
+		v = (`Var*)e->xp;
+		if(v->where == dom`Vtop)
+			/* other wheres point to lambda/block vars  */
+			m += esize(v);
+		break;
+	case dom`Elambda:
+		m += szlambda((`Lambda*)e->xp);
+		break;
+	case dom`Eblock:
+		m += szblock((`Block*)e->xp);
+		break;
+	case dom`Etypedef:
+	case dom`Edecl:
+	case dom`Edecls:
+		m += szdecl((`Decl*)e->xp);
+		break;
+	default:
+		break;
+	}
+	return m;
+}
+
+define szlambda(l)
+{
+	@local m;
+	m = 0;
+	m += esize(l->cap);
+	m += esize(l->disp);
+	m += esize(l->param);
+	m += esize(l);
+	return m;
+}
+
+define szblock(b)
+{
+	@local m;
+	m = 0;
+	m += esize(b->loc);
+	m += esize(b);
+	return m;
+}
+
+define szdecl(d)
+{
+	@local m;
+	m = 0;
+	while(d){
+		m += sztype(d->type);
+		m += szexpr(d->attr);
+		m += esize(d->id);
+		m += esize(d);
+		d = d->link;
+	}
+	return m;
+}
+
+define sztype(t)
+{
+	@local m;
+
+	if(t == 0)
+		return 0;
+	m = 0;
+	m += sztype(t->link);
+	m += esize(t->dom);
+	m += esize(t->tid);
+	m += esize(t->tag);
+	m += szdecl(t->field);
+	m += szenum(t->en);
+	m += szdecl(t->param);
+	m += szexpr(t->bitw);
+	m += szexpr(t->sz);
+	m += szexpr(t->cnt);
+	m += esize(t);
+	return m;
+}
+
+define szenum(en)
+{
+	@local m;
+	m = 0;
+	while(en){
+		m += szexpr(en->val);
+		m += esize(en);
+		en = en->link;
+	}
+	return m;
+}
+
+define hforeach(ht, fn)
+{
+	@local i, hp;
+	for(i = 0; i < ht->sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			fn(hp->key, hp->val);
+			hp = hp->next;
+		}
+	}
+}
+
+define hsz(ht)
+{
+	@local m, i, hp;
+	m = 0;
+	m += esize(ht);
+	m += esize(ht->ht);
+	m += esize(ht->hent);
+	for(i = 0; i < ht->sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			m += esize(hp);
+			hp = hp->next;
+		}
+	}
+	return m;
+}
+
+define esize(p)
+{
+	@local dom, x;
+	dom = domof(p);
+	if(p == 0)
+		return 0;
+	p = (void*)p;
+	p -= sizeof(dom`size_t);
+	x = *(`size_t*)p;
+	return sizeof(dom`size_t)+x;
+}
+
+define time(fn)
+{
+	@local s, e;
+	s = gettimeofday();
+	fn();
+	e = gettimeofday();
+	
+	printf("%d seconds\n", (e-s)/1000000);
+}
+
+hp = &dom`heap[dom`Qcode];
+printf("%s\n", hp->id);
+dumpcode(hp);
+ns.dump();
+
