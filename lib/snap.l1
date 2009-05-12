@@ -1,61 +1,5 @@
 @include <profile.l1>
-
-fd = open("/tmp/x", "w");
-snap(fd);
-close(fd);
-
-define mknsstat(ns)
-{
-	@local stab, ttab;
-
-	stab = {:};
-	ttab = {:};
-
-	define looksym(this, id){
-		if(stab[id] == nil)
-			stab[id] = 1;
-		else
-			stab[id]++;
-		return ns.looksym(id);
-	}
-
-	define looktype(this, t){
-		if(ttab[t] == nil)
-			ttab[t] = 1;
-		else
-			ttab[t]++;
-		return ns.looktype(t);
-	}
-
-	define enumsym(this){
-		return ns.enumsym();
-	}
-
-	define enumtype(this){
-		return ns.enumtype();
-	}
-
-	define lookaddr(this, addr){
-		return ns.lookaddr(addr);
-	}
-
-	define dump(this){
-		printf("symbols:\n");
-		dumptab(stab, lambda(k, v) { printf("%6d\t%t\n", v,
-						    ns.looksym(k));});
-		printf("types:\n");
-		dumptab(ttab, lambda(k, v) { printf("%6d\t%t\n", v, k); });
-	}
-
-	return mkns({
-			"dump" : dump,
-			"looksym" : looksym,
-			"looktype" : looktype,
-			"enumsym" : enumsym,
-			"enumtype" : enumtype,
-			"lookaddr" : lookaddr });
-
-}
+@include <slimns.l1>
 
 define mksnapas(file)
 {
@@ -117,12 +61,6 @@ define mksnapas(file)
 
 	return mkas({ "map" : map, "get" : get, "put" : put });
 }
-heapstat();
-ns = @names clp64le { @include "l1.names" };
-ns = mknsstat(ns);
-as = mksnapas("/tmp/x");
-
-dom = mkdom(ns, as);
 
 define dumptab(tab, fn)
 {
@@ -169,7 +107,7 @@ define dumpcode(hp)
 
 define szcode(cp, tab)
 {
-	@local m, x, dom;
+	@local m, x, dom, p;
 	m = 0;
 
 	x = esize(cp);
@@ -354,8 +292,11 @@ define sztype(t)
 
 define szenum(en)
 {
-	@local m;
+	@local m, dom;
 	m = 0;
+	dom = domof(en);
+	if(en == (`Enum*)dom`EmptyDecl)
+		return 0;
 	while(en){
 		m += szexpr(en->val);
 		m += esize(en);
@@ -415,8 +356,22 @@ define time(fn)
 	printf("%d seconds\n", (e-s)/1000000);
 }
 
+fd = open("/tmp/x", "w");
+snap(fd);
+close(fd);
+heapstat();
+//ns = @names clp64le { @include "../l1.names" };
+ns = @names clp64le { @include "/tmp/x.names" };
+ns = mktracens(ns);
+as = mksnapas("/tmp/x");
+as = mkcas(as);
+dom = mkdom(ns, as);
 hp = &dom`heap[dom`Qcode];
 printf("%s\n", hp->id);
-dumpcode(hp);
-ns.dump();
-
+time(lambda(){dumpcode(hp);});
+s = casstat();
+printf("cas: hit=%u, miss=%u, span=%u\n", s[0], s[1], s[2]);
+//fd = open("/tmp/x.names", "w");
+//ns.dump(fd);
+//close(fd);
+heapstat();
