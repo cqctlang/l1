@@ -420,10 +420,12 @@ fmtval(VM *vm, Fmt *f, Val val)
 	case Qfd:
 	case Qpair:
 	case Qtab:
-	case Qxtn:
 		hd = valhead(val);
 		snprint(buf, sizeof(buf), "<%s %p>", qname[hd->qkind], hd);
 		return fmtputs0(vm, f, buf);
+	case Qxtn:
+		str = fmtxtn(valxtn(val));
+		return fmtputB(vm, f, str->s, str->len);
 	case Qvec:
 		v = valvec(val);
 		if(fmtputs0(vm, f, "vector("))
