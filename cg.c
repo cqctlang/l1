@@ -255,8 +255,9 @@ emitlabel(Ctl *ctl, Expr *e)
 
 	ctl->insn = code->ninsn;
 	if(code->labels[code->ninsn])
-		fatal("multiple labels %s,%s", ctl->label,
-		      code->labels[code->ninsn]->label);
+		return;
+//		fatal("multiple labels %s,%s", ctl->label,
+//		      code->labels[code->ninsn]->label);
 	code->labels[code->ninsn] = ctl;
 	if(e && e->src.line)
 		ctl->src = &e->src;
@@ -844,6 +845,7 @@ cgbranch(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt)
 	/* this condition is ambiguous in dybvig's report.  either
 	   grouping seems correct if we assume l1 and l2 both cannot
 	   be return; otherwise, i'm not sure that it matters. */
+#if 0
 	if(returnlabel(p, l2) || (l2 == nxt && !returnlabel(p, l1))){
 		i = nextinsn(code);
 		i->kind = Ijz;
@@ -859,6 +861,23 @@ cgbranch(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt)
 		l1->used = 1;
 		cgjmp(code, p, l2, nxt);
 	}
+#else
+	if(returnlabel(p, l2) || (l2 == nxt && !returnlabel(p, l1))){
+		i = nextinsn(code);
+		i->kind = Ijnz;
+		randloc(&i->op1, AC);
+		i->dstlabel = l1;
+		l1->used = 1;
+		cgjmp(code, p, l2, nxt);
+	}else{
+		i = nextinsn(code);
+		i->kind = Ijz;
+		randloc(&i->op1, AC);
+		i->dstlabel = l2;
+		l2->used = 1;
+		cgjmp(code, p, l1, nxt);
+	}
+#endif
 }
 
 static void
@@ -1198,6 +1217,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				randloc(&i->op1, AC);
 			if(loc != Effect){
 				emitlabel(R, e);
+#if 0
 				if(loc == AC){
 					/* FIXME: nop because there
 					   seems to be no simple way to manage
@@ -1210,6 +1230,14 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 					randloc(&i->op1, AC);
 					randloc(&i->dst, loc);
 				}
+#else
+				if(loc != AC){
+					i = nextinsn(code);
+					i->kind = Imov;
+					randloc(&i->op1, AC);
+					randloc(&i->dst, loc);
+				}
+#endif
 			}
 			cgctl(code, p, ctl, nxt);
 		}else{
@@ -1521,12 +1549,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgjmp(code, &np, ctl, np.cases->ctl[0]);
 		cg(e->e2, code, &np, Effect, ctl, np.cases->ctl[0], nxt, tmp);
 
+#if 0
 		/* hack for unique labels in code like:
 			   switch(e){ ... default: printf; break; } e = 5;
 		*/
 		i = nextinsn(code);
 		i->kind = Inop;
-
+#endif
 		freeswitchctl(np.cases);
 		np.cases = 0;
 		break;
@@ -1536,13 +1565,17 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		for(m = 0; m < p->cases->n; m++)
 			if(p->cases->cmp[m] == e){
 				emitlabel(p->cases->ctl[m], e);
+#if 0
 				i = nextinsn(code);
 				i->kind = Inop;
+#endif
 				cg(e->e2, code, p, Effect, ctl,
 				   p->cases->ctl[m],
 				   nxt, tmp);
+#if 0
 				i = nextinsn(code);
 				i->kind = Inop;
+#endif
 				break;
 			}
 		cgctl(code, p, ctl, nxt);
@@ -1552,8 +1585,10 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("default label with no switch");
 		if(p->cases->dflt){
 			emitlabel(p->cases->dflt, e);
+#if 0
 			i = nextinsn(code);
 			i->kind = Inop;
+#endif
 			cg(e->e1, code, p, Effect, ctl,
 			   p->cases->dflt,
 			   nxt, tmp);
@@ -1621,9 +1656,11 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		randvarloc(&i->dst, &l->param[0], 1);
 	}
 
+#if 0
 	/* was: hack to return nil in degenerate cases; insert nop instead */
 	i = nextinsn(code);
 	i->kind = Inop;
+#endif
 
 	if(needtop){
 		top = genlabel(code, 0);
@@ -1640,8 +1677,10 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	if(p.Return0->used) /* hack for lambdas with empty bodies */
 		emitlabel(p.Return0, e->e2);
 
+#if 0
 	i = nextinsn(code);
 	i->kind = Inop;
+#endif
 
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code);
