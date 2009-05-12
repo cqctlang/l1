@@ -85,7 +85,6 @@ snap(VM *vm, Fd *fd)
 		if(-1 == dowrite(vm, fd, (void*)(uintptr_t)mp->lo,
 				 mp->hi-mp->lo))
 			vmerr(vm, "write: %s", strerror(errno));
-		fprintf(stderr, "%016lx-%016lx\n", mp->lo, mp->hi);
 		cnt += mp->hi-mp->lo;
 		mp++;
 	}
