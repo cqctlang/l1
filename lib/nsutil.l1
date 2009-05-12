@@ -271,7 +271,7 @@ define printtype(t){
 			}
 		}
 		sz = susize(t);
-		if(sz == nil)
+		if(sz != nil)
 			printf("\t/*@0x%x;*/\n", sz);
 		printf("};\n");
 	}else if(istypedef(t)){
