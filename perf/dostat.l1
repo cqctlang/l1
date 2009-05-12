@@ -1,0 +1,13 @@
+@include <slimns.l1>
+@include <snapas.l1>
+@include <heapstat.l1>
+
+define dostat(ns, as)
+{
+	@local dom, s;
+	as = mkcas(as);
+	dom = mkdom(ns, as);
+	codestat(dom);
+	s = casstat();
+	printf("cas: hit=%u, miss=%u, span=%u\n", s[0], s[1], s[2]);
+}
