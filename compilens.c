@@ -159,7 +159,7 @@ rmenids(Type *t, HT *enid)
 	switch(t->kind){
 	case Tenum:
 		en = t->en;
-		while(en){
+		while(en && en != (Enum*)EmptyDecl){
 			en->val = rmenid(en->val, enid);
 			hput(enid, en->id, strlen(en->id), en->val);
 			en = en->link;

@@ -155,6 +155,7 @@ enum {
 	Maxstk = 4096,
 	InsnAlloc = 10,
 	AllocBatch = 128,
+	EmptyDecl = ~0,
 };
 
 typedef struct Decl Decl;

@@ -1,0 +1,18 @@
+ns = @names c32le {
+	enum x1 {
+	};
+	typedef enum { } x2;
+};
+as = mknas();
+dom = mkdom(ns, as);
+
+x = (enum dom`x1)1;
+printf("%t\n", x);
+printf("%d\n", x);
+
+x = (dom`x2)2;
+printf("%t\n", x);
+printf("%d\n", x);
+
+t = typedeftype(typeof(x));
+printf("%t\n", t);

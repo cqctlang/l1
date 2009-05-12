@@ -821,6 +821,8 @@ freeenum(Enum *en)
 {
 	Enum *q;
 
+	if(en == (Enum*)EmptyDecl)
+		return;
 	while(en){
 		q = en->link;
 		efree(en->id);
@@ -834,6 +836,8 @@ u64
 szenum(Enum *en)
 {
 	u64 m;
+	if(en == (Enum*)EmptyDecl)
+		return 0;
 	m = 0;
 	while(en){
 		m += szexpr(en->val);
@@ -853,13 +857,8 @@ recenums(Type *t, Expr *e, Expr *val)
 		freeexpr(val);
 		return NULL;
 	}
-	if(e->kind != Eelist)	/* FIXME delete */
-		fatal("bug");
 
 	el = e->e1;
-	if(el->kind != Eenumel)	/* FIXME delete */
-		fatal("bug");
-
 	en = emalloc(sizeof(Enum));
 	en->id = el->e1->id; /* steal */
 	el->e1->id = NULL;
@@ -876,6 +875,8 @@ recenums(Type *t, Expr *e, Expr *val)
 static Enum*
 enums(Type *t, Expr *e)
 {
+	if(e->kind == Enull)
+		return (Enum*)EmptyDecl;
 	return recenums(t, e, mkconst(Vuint, 0));
 }
 

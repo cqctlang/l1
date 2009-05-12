@@ -134,7 +134,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		   (FIXME: use list?) */
 		nen = 0;
 		en = t->en;
-		while(en){
+		while(en && en != (Enum*)EmptyDecl){
 			nen++;
 			en = en->link;
 		}
@@ -144,7 +144,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		/* insert enum constants into vector */
 		nen = 0;
 		en = t->en;
-		while(en){
+		while(en && en != (Enum*)EmptyDecl){
 			se = Zcall(doid("%vecset"), 3,
 				   doid("$tmp"), Zuint(nen),
 				   Zcall(doid("%vector"), 2,
