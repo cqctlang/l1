@@ -77,8 +77,8 @@ casget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	gcunprotect(vm, vr);
 	i = rand()%NWAY;
 	if(cache[i])
-		gcunprotect(vm, mkvalstr(cache[i]));
-	gcprotect(vm, *rv);
+		gcunpersist(vm, mkvalstr(cache[i]));
+	gcpersist(vm, *rv);
 	s = valstr(*rv);
 	cache[i] = s;
 	idx[i] = a;
