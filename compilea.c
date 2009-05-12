@@ -121,7 +121,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 	ye = expanda(ctx, xe, d+1, &w);
 	if(w){
 		freeexpr(ye);
-		ye = Zcall(doid("%error"), 1,
+		ye = Zcall(G("error"), 1,
 			   Zconsts("cannot apply dot to a cvalue"));
 	}
 	a->attr = Anotlval;
@@ -132,7 +132,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 	
 	te = Zblock(Zlocals(1, t),
 		    Zset(doid(t), p),
-		    Zifelse(Zcall(doid("%iscvalue"), 1,
+		    Zifelse(Zcall(G("iscvalue"), 1,
 				  doid(t)),
 			    ye, ne),
 		    NULL);
@@ -158,15 +158,15 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 	if(w){
 		freeexpr(ye);
 		freeexpr(e);
-		return Zcall(doid("%error"), 1,
+		return Zcall(G("error"), 1,
 			     Zconsts("cannot apply dot to a cvalue"));
 	}
 	te = Zblock(Zlocals(1, t),
 		    Zset(doid(t), p),
-		    Zifelse(Zcall(doid("%iscvalue"), 1,
+		    Zifelse(Zcall(G("iscvalue"), 1,
 				  doid(t)),
 			    ye,
-			    Zcall(doid("%error"), 1,
+			    Zcall(G("error"), 1,
 				  Zconsts("attempt to apply & to non-lvalue"))),
 		    NULL);
 	putsrc(te, &e->src);
@@ -196,7 +196,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}else if(a)
 			return disambig(ctx, a, e, d);
 		/* definitely a container ref */
-		te = Zcall(doid("%cntrget"), 2,
+		te = Zcall(G("cntrget"), 2,
 			   expanda(ctx, e->e1, d, w),
 			   expanda(ctx, e->e2, d, w));
 		putsrc(te, &e->src);
@@ -211,7 +211,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			return cassign(ctx, e, d, w);
 		else if(a)
 			return disambig(ctx, a, e, d);
-		te = Zcall(doid("%cntrput"), 3,
+		te = Zcall(G("cntrput"), 3,
 			   expanda(ctx, e->e1->e1, d, w),
 			   expanda(ctx, e->e1->e2, d, w),
 			   expanda(ctx, e->e2, d, w));
@@ -233,11 +233,11 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 				 expanda(ctx, e->e1->e1, d, w)),
 			    Zset(doid("$i"),
 				 expanda(ctx, e->e1->e2, d, w)),
-			    Zcall(doid("%cntrput"), 3,
+			    Zcall(G("cntrput"), 3,
 				  doid("$a"),
 				  doid("$i"),
 				  Zbinop(e->op,
-					 Zcall(doid("%cntrget"), 2,
+					 Zcall(G("cntrget"), 2,
 					       doid("$a"), doid("$i")),
 					 expanda(ctx, e->e2, d, w))),
 			    NULL);
@@ -260,11 +260,11 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 				 expanda(ctx, e->e1->e1, d, w)),
 			    Zset(doid("$i"),
 				 expanda(ctx, e->e1->e2, d, w)),
-			    Zcall(doid("%cntrput"), 3,
+			    Zcall(G("cntrput"), 3,
 				  doid("$a"),
 				  doid("$i"),
 				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
-					 Zcall(doid("%cntrget"), 2,
+					 Zcall(G("cntrget"), 2,
 					       doid("$a"), doid("$i")),
 					 Zuint(1))),
 			    NULL);
@@ -288,9 +288,9 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    Zset(doid("$i"),
 				 expanda(ctx, e->e1->e2, d, w)),
 			    Zset(doid("$l"),
-				 Zcall(doid("%cntrget"), 2,
+				 Zcall(G("cntrget"), 2,
 				       doid("$a"), doid("$i"))),
-			    Zcall(doid("%cntrput"), 3,
+			    Zcall(G("cntrput"), 3,
 				  doid("$a"),
 				  doid("$i"),
 				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
@@ -333,7 +333,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
-			return Zcall(doid("%error"), 1,
+			return Zcall(G("error"), 1,
 				     Zconsts("cannot apply dot to a cvalue"));
 		}
 		if(a)
@@ -343,20 +343,20 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		o = Zset(doid("$o"), expanda(ctx, e->e1, d, w));
 
 		/* record accessor case */
-		se = Zcall(Zcall(doid("%tablook"), 2,
-				 Zcall(doid("%rdgettab"), 1,
-				       Zcall(doid("%rdof"), 1, doid("$o"))),
+		se = Zcall(Zcall(G("tablook"), 2,
+				 Zcall(G("rdgettab"), 1,
+				       Zcall(G("rdof"), 1, doid("$o"))),
 				 Zconsts(id)),
 			   1, doid("$o"));
 
 		/* cval/as/ns/dom case */
 		if(!strcmp(id, "ns"))
-			te = Zcall(doid("%nsof"), 1, doid("$o"));
+			te = Zcall(G("nsof"), 1, doid("$o"));
 		else if(!strcmp(id, "as"))
-			te = Zcall(doid("%asof"), 1, doid("$o"));
+			te = Zcall(G("asof"), 1, doid("$o"));
 		else
 			te = Zlambdn(doid("$args"),
-				     Zret(Zcall(doid("%callmethod"),
+				     Zret(Zcall(G("callmethod"),
 						3,
 						doid("$o"),
 						Zconsts(id),
@@ -364,7 +364,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				     copyexpr(e->e2));
 
 		te = Zblock(Zlocals(1, "$o"),
-			    Zifelse(Zcall(doid("%isrec"), 1, o), se, te),
+			    Zifelse(Zcall(G("isrec"), 1, o), se, te),
 			    NULL);
 		e->e1 = 0;
 		freeexpr(e);
@@ -380,7 +380,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
-			return Zcall(doid("%error"), 1,
+			return Zcall(G("error"), 1,
 				     Zconsts("cannot apply dot to a cvalue"));
 		}
 		if(a)
@@ -388,9 +388,9 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(1, "$o"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"), 1,
-					      Zcall(doid("%rdof"), 1,
+			    Zcall(Zcall(G("tablook"), 2,
+					Zcall(G("rdsettab"), 1,
+					      Zcall(G("rdof"), 1,
 						    doid("$o"))),
 					Zconsts(id)), 2,
 				  doid("$o"), expanda(ctx, e->e2, d, w)),
@@ -410,7 +410,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
-			return Zcall(doid("%error"), 1,
+			return Zcall(G("error"), 1,
 				     Zconsts("cannot apply dot to a cvalue"));
 		}
 		if(a)
@@ -418,16 +418,16 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
-			    Zset(doid("$rd"), Zcall(doid("%rdof"), 1,
+			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
 						    doid("$o"))),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"),
+			    Zcall(Zcall(G("tablook"), 2,
+					Zcall(G("rdsettab"),
 					      1, doid("$rd")),
 					Zconsts(id)), 2,
 				  doid("$o"),
 				  Zbinop(e->op,
-					 Zcall(Zcall(doid("%tablook"), 2,
-						     Zcall(doid("%rdgettab"),
+					 Zcall(Zcall(G("tablook"), 2,
+						     Zcall(G("rdgettab"),
 							   1, doid("$rd")),
 						     Zconsts(id)), 1,
 					       doid("$o")),
@@ -449,7 +449,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
-			return Zcall(doid("%error"), 1,
+			return Zcall(G("error"), 1,
 				     Zconsts("cannot apply dot to a cvalue"));
 		}
 		if(a)
@@ -457,16 +457,16 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
-			    Zset(doid("$rd"), Zcall(doid("%rdof"), 1,
+			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
 						    doid("$o"))),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"),
+			    Zcall(Zcall(G("tablook"), 2,
+					Zcall(G("rdsettab"),
 					      1, doid("$rd")),
 					Zconsts(id)), 2,
 				  doid("$o"),
 				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
-					 Zcall(Zcall(doid("%tablook"), 2,
-						     Zcall(doid("%rdgettab"),
+					 Zcall(Zcall(G("tablook"), 2,
+						     Zcall(G("rdgettab"),
 							   1, doid("$rd")),
 						     Zconsts(id)), 1,
 					       doid("$o")),
@@ -487,7 +487,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
-			return Zcall(doid("%error"), 1,
+			return Zcall(G("error"), 1,
 				     Zconsts("cannot apply dot to a cvalue"));
 		}
 		if(a)
@@ -495,16 +495,16 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		id = e->e1->e2->id;
 		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
-			    Zset(doid("$rd"), Zcall(doid("%rdof"), 1,
+			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
 						    doid("$o"))),
 			    Zset(doid("$l"),
-				 Zcall(Zcall(doid("%tablook"), 2,
-					     Zcall(doid("%rdgettab"), 1,
+				 Zcall(Zcall(G("tablook"), 2,
+					     Zcall(G("rdgettab"), 1,
 						   doid("$rd")),
 					     Zconsts(id)), 1,
 				       doid("$o"))),
-			    Zcall(Zcall(doid("%tablook"), 2,
-					Zcall(doid("%rdsettab"),
+			    Zcall(Zcall(G("tablook"), 2,
+					Zcall(G("rdsettab"),
 					      1, doid("$rd")),
 					Zconsts(id)), 2,
 				  doid("$o"),

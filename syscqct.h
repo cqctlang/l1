@@ -746,6 +746,7 @@ YYstate*	mkyystatestr(char *buf);
 void		setyystate(YYstate *yy);
 
 /* parse.c */
+Expr*		G(char *s);
 Expr*		copyexpr(Expr *e);
 Lits*		copylits(Lits *lits);
 Expr*		doconst(U *ctx, char*, unsigned long len);

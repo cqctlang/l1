@@ -402,6 +402,19 @@ doid(char *s)
 }
 
 Expr*
+G(char *s)
+{
+	Expr *e;
+	if(cqctflags['r'])
+		return doid(s);
+	e = newexpr(Eid, 0, 0, 0, 0);
+	e->id = emalloc(strlen(s)+2);
+	memcpy(e->id+1, s, strlen(s));
+	e->id[0] = '%';
+	return e;
+}
+
+Expr*
 doidnsrc(Src *src, char *s, unsigned long len)
 {
 	Expr *e;

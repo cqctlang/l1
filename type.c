@@ -29,13 +29,13 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 
 	switch(t->kind){
 	case Tvoid:
-		e = Zcall(doid("%mkctype_void"), 0);
+		e = Zcall(G("mkctype_void"), 0);
 		break;	
 	case Tbase:
 		e = Zcall(doid(cbasector[t->base]), 0);
 		break;
 	case Ttypedef:
-		e = Zcall(doid("%mkctype_typedef"), 1, Zstr(t->tid));
+		e = Zcall(G("mkctype_typedef"), 1, Zstr(t->tid));
 		break;
 	case Tstruct:
 	case Tunion:
@@ -61,17 +61,17 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 				/* bitfield */
 				te = Zblock(Zlocals(2, "$a", "$o"),
 					    Zset(doid("$a"),
-						 Zcall(doid("%mkattr"), 1,
+						 Zcall(G("mkattr"), 1,
 						       recpass(ctx, dl->attr))),
 					    Zset(doid("$o"),
-						 Zcall(doid("%attroff"),
+						 Zcall(G("attroff"),
 						       1, doid("$a"))),
-					    Zcall(doid("%setattroff"),
+					    Zcall(G("setattroff"),
 						  2, doid("$a"), 
 						  Zbinop(Ediv, doid("$o"),
 							 Zuint(8))),
-					    Zcall(doid("%mkfield"), 3,
-						  Zcall(doid("%mkctype_bitfield"),
+					    Zcall(G("mkfield"), 3,
+						  Zcall(G("mkctype_bitfield"),
 							3,
 							tn,
 							dl->type->bitw,
@@ -84,19 +84,19 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 				dl->attr = 0;
 				dl->type->bitw = 0;
 			}else if(dl->attr){
-				te = Zcall(doid("%mkfield"), 3,
+				te = Zcall(G("mkfield"), 3,
 					   tn, 
 					   id,
-					   Zcall(doid("%mkattr"), 1,
+					   Zcall(G("mkattr"), 1,
 						 recpass(ctx, dl->attr)));
 				dl->attr = 0;
 			}else
-				te = Zcall(doid("%mkfield"), 3,
+				te = Zcall(G("mkfield"), 3,
 					   tn, id, Znil()); 
 			se = Zcons(te, se);
 			dl = dl->link;
 		}
-		se = Zapply(doid("%vector"), invert(se));
+		se = Zapply(G("vector"), invert(se));
 		if(t->sz){
 			t->sz = recpass(ctx, t->sz);
 			sz = t->sz; /* steal */
@@ -110,7 +110,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		te = Zcons(Zset(doid("$tmp"),
 				Zcall(doid(mk), 1, Zstr(t->tag))),
 			   te);
-		se = Zcall(doid("%tabinsert"), 3,
+		se = Zcall(G("tabinsert"), 3,
 			   doid("$typetab"), doid("$tmp"),
 			   Zcall(doid(mk), 3, Zstr(t->tag), se, sz));
 		te = Zcons(se, te);
@@ -120,7 +120,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		break;
 	case Tenum:
 		if(t->en == 0){
-			e = Zcall(doid("%mkctype_enum"), 1, Zstr(t->tag));
+			e = Zcall(G("mkctype_enum"), 1, Zstr(t->tag));
 			break;
 		}
 		if(t->tag == 0)
@@ -138,16 +138,16 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 			nen++;
 			en = en->link;
 		}
-		se = Zset(doid("$tmp"), Zcall(doid("%mkvec"), 1, Zuint(nen)));
+		se = Zset(doid("$tmp"), Zcall(G("mkvec"), 1, Zuint(nen)));
 		te = Zcons(se, te);
 
 		/* insert enum constants into vector */
 		nen = 0;
 		en = t->en;
 		while(en && en != (Enum*)EmptyDecl){
-			se = Zcall(doid("%vecset"), 3,
+			se = Zcall(G("vecset"), 3,
 				   doid("$tmp"), Zuint(nen),
-				   Zcall(doid("%vector"), 2,
+				   Zcall(G("vector"), 2,
 					 Zstr(en->id), en->val)); /* steal */
 			te = Zcons(se, te);
 			en->val = 0;
@@ -157,12 +157,12 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 
 		/* define enum type */
 		se = Zset(doid("$tn"),
-			  Zcall(doid("%mkctype_enum"), 1, Zstr(t->tag)));
+			  Zcall(G("mkctype_enum"), 1, Zstr(t->tag)));
 		te = Zcons(se, te);
-		se = Zcall(doid("%tabinsert"), 3,
+		se = Zcall(G("tabinsert"), 3,
 			   doid("$typetab"),
 			   doid("$tn"),
-			   Zcall(doid("%mkctype_enum"), 2,
+			   Zcall(G("mkctype_enum"), 2,
 				 Zstr(t->tag), doid("$tmp")));
 		te = Zcons(se, te);
 
@@ -171,7 +171,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		e = newexpr(Eblock, loc, invert(te), 0, 0);
 		break;
 	case Tptr:
-		e = Zcall(doid("%mkctype_ptr"), 1,
+		e = Zcall(G("mkctype_ptr"), 1,
 			  gentypename(t->link, recpass, ctx));
 		break;
 	case Tarr:
@@ -179,10 +179,10 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 			t->cnt = recpass(ctx, t->cnt);
 			se = t->cnt; /* steal */
 			t->cnt = 0;
-			e = Zcall(doid("%mkctype_array"), 2,
+			e = Zcall(G("mkctype_array"), 2,
 				  gentypename(t->link, recpass, ctx), se);
 		}else
-			e = Zcall(doid("%mkctype_array"), 1,
+			e = Zcall(G("mkctype_array"), 1,
 				  gentypename(t->link, recpass, ctx)); 
 		break;
 	case Tfun:
@@ -194,13 +194,13 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 			else
 				id = Znil();
 			tn = gentypename(dl->type, recpass, ctx);
-			te = Zcons(Zcall(doid("%vector"), 2, tn, id),
+			te = Zcons(Zcall(G("vector"), 2, tn, id),
 				   te);
 			dl = dl->link;
 		}
-		e = Zcall(doid("%mkctype_fn"), 2,
+		e = Zcall(G("mkctype_fn"), 2,
 			  gentypename(t->link, recpass, ctx),
-			  Zapply(doid("%vector"), invert(te)));
+			  Zapply(G("vector"), invert(te)));
 		break;
 	default:
 		fatal("bug");

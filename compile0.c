@@ -71,10 +71,10 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = Zblock(Zlocals(1, "$tn"),
 			    Zset(doid("$tn"), gentypename(t, compile0, ctx)),
 			    Zset(doid("$type"),
-				 Zcall(doid("%looktype"), 2,
+				 Zcall(G("looktype"), 2,
 				       dom, doid("$tn"))),
-			    Zif(Zcall(doid("%isnil"), 1, doid("$type")),
-				Zcall(doid("%error"), 2,
+			    Zif(Zcall(G("isnil"), 1, doid("$type")),
+				Zcall(G("error"), 2,
 				      Zconsts("undefined type: %t"),
 				      doid("$tn"))),
 			    NULL);
@@ -91,16 +91,16 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		te = Zcons(se, te);
 
 		// $tmp = nslooksym(domns($dom))($dom,sym)
-		se = Zcall(doid("%nsof"), 1, doid("$dom"));
-		se = Zcall(doid("%nslooksym"), 1, se);
+		se = Zcall(G("nsof"), 1, doid("$dom"));
+		se = Zcall(G("nslooksym"), 1, se);
 		se = Zcall(se, 2, doid("$dom"), Zconsts(e->e2->id));
 		se = Zset(doid("$tmp"), se);
 		te = Zcons(se, te);
 		
 		// if(isnil($tmp)) error("undefined symbol: %s", sym);
 		se = newexpr(Eif,
-			     Zcall(doid("%isnil"), 1, doid("$tmp")),
-			     Zcall(doid("%error"), 2,
+			     Zcall(G("isnil"), 1, doid("$tmp")),
+			     Zcall(G("error"), 2,
 				   Zconsts("undefined symbol: %s"),
 				   Zconsts(e->e2->id)),
 			     0, 0);
@@ -108,19 +108,19 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 		// $type = symtype($tmp);
 		se = Zset(doid("$type"),
-			  Zcall(doid("%symtype"), 1, doid("$tmp")));
+			  Zcall(G("symtype"), 1, doid("$tmp")));
 		te = Zcons(se, te);
 
 		// $addr = symoff($tmp, 2);
 		if(needaddr){
 			se = Zset(doid("$addr"),
-				  Zcall(doid("%symoff"), 1, doid("$tmp")));
+				  Zcall(G("symoff"), 1, doid("$tmp")));
 			te = Zcons(se, te);
 
 			// if(isnil($addr)) error("symbol lacks address: %s");
 			se = newexpr(Eif,
-				     Zcall(doid("%isnil"), 1, doid("$addr")),
-				     Zcall(doid("%error"), 2,
+				     Zcall(G("isnil"), 1, doid("$addr")),
+				     Zcall(G("error"), 2,
 					   Zconsts("symbol lacks address: %s"),
 					   Zconsts(e->e2->id)),
 				     0, 0);
@@ -142,20 +142,20 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 			// $type = subtype($typeof($tmp));
 			se = Zset(doid("$type"),
-				  Zcall(doid("%subtype"), 1,
+				  Zcall(G("subtype"), 1,
 					Zcall(doid("$typeof"), 1,
 					      doid("$tmp"))));
 			te = Zcons(se, te);
 
 			// $dom = domof($tmp);
 			se = Zset(doid("$dom"),
-				  Zcall(doid("%domof"), 1, doid("$tmp")));
+				  Zcall(G("domof"), 1, doid("$tmp")));
 			te = Zcons(se, te);
 
 			// $addr = {nsptr($dom)}$tmp
 			if(needaddr){
 				se = Zset(doid("$addr"),
-					  Zxcast(Zcall(doid("%nsptr"), 1,
+					  Zxcast(Zcall(G("nsptr"), 1,
 						       doid("$dom")),
 						 doid("$tmp")));
 				te = Zcons(se, te);
@@ -168,7 +168,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 			// $type = subtype($type);
 			se = Zset(doid("$type"),
-				  Zcall(doid("%subtype"), 1, doid("$type")));
+				  Zcall(G("subtype"), 1, doid("$type")));
 			te = Zcons(se, te);
 		}
 		e->e1 = 0;
@@ -184,14 +184,14 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		
 		// $tmp = lookfield(type, field);
 		se = Zset(doid("$tmp"),
-			  Zcall(doid("%lookfield"), 2,
+			  Zcall(G("lookfield"), 2,
 				doid("$type"), Zconsts(e->e2->id)));
 		te = Zcons(se, te);
 
 		// if(isnil($tmp)) error("undefined field: %s", sym);
 		se = newexpr(Eif,
-			     Zcall(doid("%isnil"), 1, doid("$tmp")),
-			     Zcall(doid("%error"), 2,
+			     Zcall(G("isnil"), 1, doid("$tmp")),
+			     Zcall(G("error"), 2,
 				   Zconsts("undefined field: %s"),
 				   Zconsts(e->e2->id)),
 			     0, 0);
@@ -199,14 +199,14 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 
 		// $type = fieldtype($tmp);
 		se = Zset(doid("$type"),
-			  Zcall(doid("%fieldtype"), 1, doid("$tmp")));
+			  Zcall(G("fieldtype"), 1, doid("$tmp")));
 		te = Zcons(se, te);
 				     
 		// $addr = $addr + fieldoff($tmp)
 		if(needaddr){
 			se = Zset(doid("$addr"),
 				  Zadd(doid("$addr"),
-				       Zcall(doid("%fieldoff"), 1,
+				       Zcall(G("fieldoff"), 1,
 					     doid("$tmp"))));
 			te = Zcons(se, te);
 		}

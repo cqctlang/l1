@@ -48,17 +48,17 @@ do1sym(void *u, char *k, void *v)
 	te = Zcons(se, te);
 
 	if(d->attr){
-		attr = Zcall(doid("%mkattr"), 1,
+		attr = Zcall(G("mkattr"), 1,
 			     compile(up->ctx, d->attr)); /* steal */
 		d->attr = 0;
 	}else
 		attr = Znil();
 
 	se = Zset(doid("$tmp"),
-		  Zcall(doid("%mksym"), 3, doid("$tn"), Zstr(d->id), attr));
+		  Zcall(G("mksym"), 3, doid("$tn"), Zstr(d->id), attr));
 	te = Zcons(se, te);
 
-	se = Zcall(doid("%tabinsert"), 3, doid("$symtab"),
+	se = Zcall(G("tabinsert"), 3, doid("$symtab"),
 		   Zstr(d->id), doid("$tmp"));
 	te = Zcons(se, te);
 
@@ -82,14 +82,14 @@ do1tid(void *u, char *k, void *v)
 
 	te = nullelist();
 	se = Zset(doid("$tn"),
-		  Zcall(doid("%mkctype_typedef"), 2,
+		  Zcall(G("mkctype_typedef"), 2,
 			Zstr(d->id),
 			gentypename(d->type, compile, up->ctx)));
 	te = Zcons(se, te);
 
 	/* typedef T TID => typetab[typedef(TID)] = typedef(TID,typename(T)) */
-	tn = Zcall(doid("%mkctype_typedef"), 1, Zstr(d->id));
-	se = Zcall(doid("%tabinsert"), 3, doid("$typetab"), tn, 
+	tn = Zcall(G("mkctype_typedef"), 1, Zstr(d->id));
+	se = Zcall(G("tabinsert"), 3, doid("$typetab"), tn, 
 		   doid("$tn"));
 	te = Zcons(se, te);
 
@@ -194,11 +194,11 @@ compilens(U *ctx, Expr *e)
 
 	te = nullelist();
 
-	se = Zcall(doid("%mktab"), 0);
+	se = Zcall(G("mktab"), 0);
 	se->src = e->src;
 	se = Zset(doid("$typetab"), se);
 	te = Zcons(se, te);
-	se = Zset(doid("$symtab"), Zcall(doid("%mktab"), 0));
+	se = Zset(doid("$symtab"), Zcall(G("mktab"), 0));
 	te = Zcons(se, te);
 
 	/* inherited names expression */
@@ -234,11 +234,11 @@ compilens(U *ctx, Expr *e)
 
 	/* new name space */
 	if(e->e3)
-		se = Zcall(doid("%mknsraw"), 4,
+		se = Zcall(G("mknsraw"), 4,
 			   doid("$ns"), doid("$typetab"), doid("$symtab"),
 			   compile(ctx, e->e3));
 	else
-		se = Zcall(doid("%mknsraw"), 3,
+		se = Zcall(G("mknsraw"), 3,
 			   doid("$ns"), doid("$typetab"), doid("$symtab"));
 	te = Zcons(se, te);
 

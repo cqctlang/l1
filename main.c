@@ -30,8 +30,9 @@ usage(char *argv0)
 	fprintf(stderr, "\tto exit send SIGTERM (^c).\n");
 	fprintf(stderr, "\nuser flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
-	fprintf(stderr, "\t-t report timing statistics\n");
+	fprintf(stderr, "\t-r allow redefinition of implicitly called builtins\n");
 	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
+	fprintf(stderr, "\t-t report timing statistics\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n"); 
 	fprintf(stderr, "\t-z send output to /dev/null\n");
 	fprintf(stderr, "\nl1 developer flags:\n");
@@ -220,13 +221,14 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "a+bhol:m:pqtwgxsz"))){
+	while(EOF != (c = getopt(argc, argv, "a+bghl:m:opqrstwxz"))){
 		switch(c){
 		case 'a':
+		case 'b':
 		case 'o':
 		case 'p':
 		case 'q':
-		case 'b':
+		case 'r':
 		case 'w':
 			cqctflags[c] = 1;
 			break;
@@ -234,9 +236,9 @@ main(int argc, char *argv[])
 		case 'z':
 			opt[c] = 1;
 			break;
-		case 'x':
 		case 'g':
 		case 's':
+		case 'x':
 			opt[c] = 0;
 			break;
 		case 'm':
