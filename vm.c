@@ -110,7 +110,6 @@ static void dogc(GC*);
 static void vmsetcl(VM *vm, Val val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
-static As* mkastab(Tab *mtab, Str *name);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn();
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
@@ -118,7 +117,6 @@ static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
 static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
 static Xtypename* mkundefxtn(Xtypename *t);
-static void _listappend(List *lst, Val v);
 static int isbasecval(Cval *cv);
 static int isnatcval(Cval *cv);
 static int isnegcval(Cval *cv);
@@ -128,7 +126,6 @@ static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static List* mklistn(u32 sz);
 static Val listref(VM *vm, List *lst, Imm idx);
 static List* listset(VM *vm, List *lst, Imm idx, Val v);
-static void _listappend(List *lst, Val v);
 static void addroot(Rootset *rs, Head *h);
 static Head* removeroot(Rootset *rs);
 static int issym(Vec *sym);
@@ -214,17 +211,22 @@ static u32 nohash(Val);
 static u32 hashcval(Val);
 static u32 hashptr(Val);
 static u32 hashconst(Val);
-static u32 hashrange(Val);
+static u32 hashlist(Val);
 static u32 hashrange(Val);
 static u32 hashstr(Val);
+static u32 hashvec(Val);
 static u32 hashxtn(Val);
 
+/* FIXME: these functions should be named eq vs. equal by semantics */
 static int eqcval(Val, Val);
 static int eqptr(Val, Val);
 static int eqtrue(Val, Val);
 static int eqrange(Val, Val);
 static int eqstrv(Val, Val);
 static int eqxtnv(Val, Val);
+static int equallistv(Val a, Val b);
+static int equalvecv(Val a, Val b);
+
 
 typedef struct Hashop {
 	u32 (*hash)(Val);
@@ -242,7 +244,7 @@ static Hashop hashop[Qnkind] = {
 	[Qcval]	 = { hashcval, eqcval },
 	[Qdom]	 = { hashptr, eqptr },
 	[Qfd]	 = { hashptr, eqptr },
-	[Qlist]	 = { hashptr, eqptr },
+	[Qlist]	 = { hashlist, equallistv },
 	[Qns]	 = { hashptr, eqptr },
 	[Qpair]	 = { hashptr, eqptr },
 	[Qrange] = { hashrange, eqrange },
@@ -250,7 +252,7 @@ static Hashop hashop[Qnkind] = {
 	[Qrec]   = { hashptr, eqptr },
 	[Qstr]	 = { hashstr, eqstrv },
 	[Qtab]	 = { hashptr, eqptr },
-	[Qvec]	 = { hashptr, eqptr },
+	[Qvec]	 = { hashvec, equalvecv },
 	[Qxtn]	 = { hashxtn, eqxtnv },
 };
 
@@ -1442,6 +1444,12 @@ eqval(Val v1, Val v2)
 	return hashop[v1->qkind].eq(v1, v2);
 }
 
+static u32
+hashval(Val v)
+{
+	return hashop[v->qkind].hash(v);
+}
+
 /* http://www.cris.com/~Ttwang/tech/inthash.htm */
 static u32
 hash6432shift(u64 key)
@@ -1777,7 +1785,7 @@ str2cstr(Str *str)
 	return s;
 }
 
-static Str*
+Str*
 strslice(Str *str, Imm beg, Imm end)
 {
 	return mkstr(str->s+beg, end-beg);
@@ -1883,6 +1891,38 @@ vecset(VM *vm, Vec *vec, Imm idx, Val v)
 {
 	gcwb(thegc, vec->vec[idx]);
 	_vecset(vec, idx, v);
+}
+
+static u32
+hashvec(Val v)
+{
+	Vec *a;
+	u32 i, len, m;
+	a = valvec(v);
+	m = v->qkind;
+	len = a->len;
+	for(i = 0; i < len; i++)
+		m ^= hashval(a->vec[i]);
+	return m;
+}
+
+static int
+equalvec(Vec *a, Vec *b)
+{
+	u32 len, m;
+	len = a->len;
+	if(len != b->len)
+		return 0;
+	for(m = 0; m < len; m++)
+		if(!eqval(a->vec[m], b->vec[m]))
+			return 0;
+	return 1;
+}
+
+static int
+equalvecv(Val a, Val b)
+{
+	return equalvec(valvec(a), valvec(b));
 }
 
 static Vec*
@@ -2115,7 +2155,7 @@ dotabput(VM *vm, Tab *tab, Val keyv, Val val)
 	tab->cnt++;
 }
 
-static void
+void
 _tabput(Tab *tab, Val keyv, Val val)
 {
 	dotabput(0, tab, keyv, val);
@@ -2224,9 +2264,9 @@ tabpop(VM *vm, Tab *tab, Val *rv)
 	Vec *vec;
 
 	if(tab->cnt == 0)
-		vmerr(vm, "pop on empty table");
-	x = tab->x;
+		return; 	/* nil */
 
+	x = tab->x;
 	for(i = 0; i < x->sz; i++){
 		tk = x->idx[i];
 		if(!tk)
@@ -2301,7 +2341,7 @@ mklistn(u32 sz)
 	return _mklist(mklistx(sz));
 }
 
-static List*
+List*
 mklist()
 {
 	return mklistn(Listinitsize);
@@ -2416,7 +2456,7 @@ listpop(VM *vm, List *lst, Val *vp)
 	Listx *x;
 	x = lst->x;
 	if(listxlen(x) == 0)
-		vmerr(vm, "pop on empty list");
+		return; 	/* nil */
 	*vp = x->val[x->hd];
 	listxaddroots(x, 0, 1);
 	x->val[x->hd] = Xundef;
@@ -2432,6 +2472,21 @@ listtail(VM *vm, List *lst)
 	new = listcopy(lst);
 	new->x->hd++;
 	return new;
+}
+
+static u32
+hashlist(Val v)
+{
+	List *l;
+	Listx *x;
+	u32 i, len, m;
+	l = vallist(v);
+	x = l->x;
+	m = v->qkind;
+	len = listxlen(x);
+	for(i = 0; i < len; i++)
+		m ^= hashval(x->val[x->hd+i]);
+	return m;
 }
 
 static int
@@ -2570,7 +2625,7 @@ listins(VM *vm, List *lst, Imm idx, Val v)
 	return lst;
 }
 
-static void
+void
 _listappend(List *lst, Val v)
 {
 	Listx *x;
@@ -2581,13 +2636,13 @@ _listappend(List *lst, Val v)
 	x->val[x->tl++] = v;
 }
 
-static List*
+List*
 listpush(VM *vm, List *lst, Val v)
 {
 	return listins(vm, lst, 0, v);
 }
 
-static List*
+List*
 listappend(VM *vm, List *lst, Val v)
 {
 	return listins(vm, lst, listxlen(lst->x), v);
@@ -5566,7 +5621,7 @@ ascachemethod(As *as)
 	ascache1method(as, "map", &as->map);
 }
 
-static As*
+As*
 mkastab(Tab *mtab, Str *name)
 {
 	As *as;
