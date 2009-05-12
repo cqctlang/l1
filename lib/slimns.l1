@@ -114,6 +114,8 @@ define dumpslim(fd, work, tt, et)
 define mktracens(ns)
 {
 	@local stab, ttab, ftab, _lookfield;
+	@local looksym, looktype, enumsym, enumtype, lookaddr;
+	@local dump;
 
 	stab = {:};
 	ttab = {:};
@@ -152,13 +154,13 @@ define mktracens(ns)
 
 	define dump(this, fd){
 		@local tt, et, work, done;
-		printf("symbols:\n");
-		dumptab(stab, lambda(k, v) { printf("%8d\t%t\n",
-						    v, ns.looksym(k));});
-		printf("types:\n");
-		dumptab(ttab, lambda(k, v) { printf("%8d\t%t\n", v, k); });
-		printf("fields:\n");
-		dumptab(ftab, lambda(k, v) { printf("%8d\t%a\n", v, k); });
+//		printf("symbols:\n");
+//		dumptab(stab, lambda(k, v) { printf("%8d\t%t\n",
+//						    v, ns.looksym(k));});
+//		printf("types:\n");
+//		dumptab(ttab, lambda(k, v) { printf("%8d\t%t\n", v, k); });
+//		printf("fields:\n");
+//		dumptab(ftab, lambda(k, v) { printf("%8d\t%a\n", v, k); });
 
 		et = mktab();
 		tt = mktab();
@@ -206,10 +208,8 @@ define mktracens(ns)
 	define lookfield(type, field){
 		@local l;
 		l = [ type, field ];
-		if(ftab[l] == nil){
-			printf("new: %a\n", l);
+		if(ftab[l] == nil)
 			ftab[l] = 1;
-		}
 		else
 			ftab[l]++;
 		return _lookfield(type, field);
