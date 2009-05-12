@@ -24,10 +24,11 @@ usage(char *argv0)
 {
 	fprintf(stderr, "usage: %s [flags] [ <script> [ arg ... ] ]\n",
 		argv0);
-	fprintf(stderr, "without -e, runs in interactive evaluation mode:\n");
-	fprintf(stderr, "\ttype cinquecento expressions on stdin, "
-		" followed by newline\n");
-	fprintf(stderr, "\tto exit send SIGTERM (^c).\n");
+	fprintf(stderr, "unless <script> is provided, "
+		"runs in interactive evaluation mode:\n");
+	fprintf(stderr, "\ttype cinquecento expression on stdin, "
+		"followed by newline;\n");
+	fprintf(stderr, "\tto exit send EOF (^d).\n");
 	fprintf(stderr, "\nuser flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
 	fprintf(stderr, "\t-r allow redefinition of implicitly called builtins\n");
@@ -35,7 +36,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-t report timing statistics\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n"); 
 	fprintf(stderr, "\t-z send output to /dev/null\n");
-	fprintf(stderr, "\nl1 developer flags:\n");
+	fprintf(stderr, "\nl1 internals flags:\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
 	fprintf(stderr, "\t-p dump IR at various stages\n");
 	fprintf(stderr, "\t-q dump expanded cinquecento source\n");
