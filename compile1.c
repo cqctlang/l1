@@ -17,14 +17,14 @@ compiletab(U *ctx, Expr *e)
 	loc = Zlocals(1, "$tab");
 	te = nullelist();
 
-	se = Zset(doid("$tab"), Zcall(doid("%mktab"), 0));
+	se = Zset(doid("$tab"), Zcall(G("mktab"), 0));
 	se->src = e->src;
 	te = Zcons(se, te);
 
 	e = e->e1;
 	while(e->kind == Eelist){
 		ti = e->e1;
-		se = Zcall(doid("%tabinsert"), 3,
+		se = Zcall(G("tabinsert"), 3,
 			   doid("$tab"), ti->e1, ti->e2->e1);
 		te = Zcons(se, te);
 		ti->e1 = 0;
@@ -60,14 +60,14 @@ compilesizeof(U *ctx, Decl *d)
 
 	// $tmp = looktype(dom, $tn);
 	se = Zset(doid("$tmp"),
-		  Zcall(doid("%looktype"), 2, doid(dom), doid("$tn")));
+		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
 	te = Zcons(se, te);
 
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
-		     Zcall(doid("%isnil"), 1, doid("$tmp")),
-		     Zcall(doid("%error"), 2,
+		     Zcall(G("isnil"), 1, doid("$tmp")),
+		     Zcall(G("error"), 2,
 			   Zconsts("undefined type: %t"),
 			   doid("$tn")),
 		     0, 0);
@@ -104,14 +104,14 @@ compiletypeof(U *ctx, Decl *d)
 
 	// $tmp = looktype(dom, $tn);
 	se = Zset(doid("$tmp"),
-		  Zcall(doid("%looktype"), 2, doid(dom), doid("$tn")));
+		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
 	te = Zcons(se, te);
 	
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
-		     Zcall(doid("%isnil"), 1, doid("$tmp")),
-		     Zcall(doid("%error"), 2,
+		     Zcall(G("isnil"), 1, doid("$tmp")),
+		     Zcall(G("error"), 2,
 			   Zconsts("undefined type: %t"),
 			   doid("$tn")),
 		     0, 0);
@@ -146,7 +146,7 @@ compilecast(U *ctx, Expr *e)
 	if(t->dom)
 		dom = doid(t->dom);
 	else
-		dom = Zcall(doid("%domof"), 1, doid("$tmp"));
+		dom = Zcall(G("domof"), 1, doid("$tmp"));
 
 	// $tn = gentypename(t);
 	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
@@ -154,14 +154,14 @@ compilecast(U *ctx, Expr *e)
 
 	// $type = looktype(dom, $tn);
 	se = Zset(doid("$type"),
-		  Zcall(doid("%looktype"), 2, dom, doid("$tn")));
+		  Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
 	
 	// if(isnil($type)) error("undefined type: %t", $tn);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
-		     Zcall(doid("%isnil"), 1, doid("$type")),
-		     Zcall(doid("%error"), 2,
+		     Zcall(G("isnil"), 1, doid("$type")),
+		     Zcall(G("error"), 2,
 			   Zconsts("undefined type: %t"),
 			   doid("$tn")),
 		     0, 0);
@@ -197,7 +197,7 @@ compilecontainer(U *ctx, Expr *e)
 	if(t->dom)
 		dom = doid(t->dom);
 	else
-		dom = Zcall(doid("%domof"), 1, doid("$tmp"));
+		dom = Zcall(G("domof"), 1, doid("$tmp"));
 
 	// $tn = gentypename(t);
 	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
@@ -205,13 +205,13 @@ compilecontainer(U *ctx, Expr *e)
 
 	// $type = looktype(dom, $tn);
 	se = Zset(doid("$type"),
-		  Zcall(doid("%looktype"), 2, dom, doid("$tn")));
+		  Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
 	
 	// if(isnil($type)) error("undefined type: %t", $tn);
 	se = newexpr(Eif,
-		     Zcall(doid("%isnil"), 1, doid("$type")),
-		     Zcall(doid("%error"), 2,
+		     Zcall(G("isnil"), 1, doid("$type")),
+		     Zcall(G("error"), 2,
 			   Zconsts("undefined type: %t"),
 			   doid("$tn")),
 		     0, 0);
@@ -219,14 +219,14 @@ compilecontainer(U *ctx, Expr *e)
 
 	// $fld = lookfield($type, field);
 	se = Zset(doid("$fld"),
-		  Zcall(doid("%lookfield"), 2,
+		  Zcall(G("lookfield"), 2,
 			doid("$type"), Zconsts(e->e3->id)));
 	te = Zcons(se, te);
 
 	// if(isnil($fld)) error("undefined field: %s", sym);
 	se = newexpr(Eif,
-		     Zcall(doid("%isnil"), 1, doid("$fld")),
-		     Zcall(doid("%error"), 2,
+		     Zcall(G("isnil"), 1, doid("$fld")),
+		     Zcall(G("error"), 2,
 			   Zconsts("undefined field: %s"),
 			   Zconsts(e->e3->id)),
 		     0, 0);
@@ -234,8 +234,8 @@ compilecontainer(U *ctx, Expr *e)
 
 	// $ptype = nsptr(domof($tmp));
 	se = Zset(doid("$ptype"),
-		  Zcall(doid("%nsptr"), 1,
-			Zcall(doid("%domof"), 1, doid("$tmp"))));
+		  Zcall(G("nsptr"), 1,
+			Zcall(G("domof"), 1, doid("$tmp"))));
 	te = Zcons(se, te);
 
 	// FIXME: maybe it be simpler to rewrite at higher level
@@ -245,10 +245,10 @@ compilecontainer(U *ctx, Expr *e)
 	//        from typename domain, whereas here we always draw from
 	//        P's domain.
 	// {mkctype_ptr($type,$ptype)} ({$ptype}$tmp - fieldoff($fld))
-	se = Zxcast(Zcall(doid("%mkctype_ptr"), 2,
+	se = Zxcast(Zcall(G("mkctype_ptr"), 2,
 			  doid("$type"), doid("$ptype")),
 		    Zsub(Zxcast(doid("$ptype"), doid("$tmp")),
-			 Zcall(doid("%fieldoff"), 1, doid("$fld"))));
+			 Zcall(G("fieldoff"), 1, doid("$fld"))));
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
@@ -310,8 +310,8 @@ compileambig(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	// $tmp = nslooktype(domns(dom))(dom, $tn)
-	se = Zcall(doid("%nsof"), 1, doid(dom));
-	se = Zcall(doid("%nslooktype"), 1, se);
+	se = Zcall(G("nsof"), 1, doid(dom));
+	se = Zcall(G("nslooktype"), 1, se);
 	se = Zset(doid("$tmp"), Zcall(se, 2, doid(dom), doid("$tn")));
 	te = Zcons(se, te);
 	
@@ -321,7 +321,7 @@ compileambig(U *ctx, Expr *e)
 	of = compile1(ctx, of);
 
 	// if(isnil($tmp)) <other form> else <type form>
-	se = newexpr(Eif, Zcall(doid("%isnil"), 1, doid("$tmp")), of, tf, 0);
+	se = newexpr(Eif, Zcall(G("isnil"), 1, doid("$tmp")), of, tf, 0);
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
@@ -373,7 +373,7 @@ compile1(U *ctx, Expr *e)
 		freeexpr(e);
 		return se;
 	case Elist:
-		se = Zapply(doid("%list"), compile1(ctx, e->e1));
+		se = Zapply(G("list"), compile1(ctx, e->e1));
 		e->e1 = 0;
 		freeexpr(e);
 		return se;

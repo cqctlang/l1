@@ -1,0 +1,19 @@
+@include "dostat.l1"
+
+define s1()
+{
+	@local fd, ns, as;
+
+	fd = open("./snap1", "w");
+	snap(fd);
+	close(fd);
+
+	heapstat();
+
+	as = mksnapas("./snap1");
+
+	ns = @names clp64le { @include "./stat.names" };
+	dostat(ns, as);
+}
+
+s1();

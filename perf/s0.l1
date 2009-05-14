@@ -1,0 +1,24 @@
+@include "dostat.l1"
+
+define s0()
+{
+	@local fd, ns, as;
+
+	fd = open("./snap0", "w");
+	snap(fd);
+	close(fd);
+
+	heapstat();
+
+	as = mksnapas("./snap0");
+
+	ns = @names clp64le { @include "../l1.names" };
+	ns = mktracens(ns);
+	dostat(ns, as);
+
+	fd = open("./stat.names", "w");
+	ns.dump(fd);
+	close(fd);
+}
+
+s0();

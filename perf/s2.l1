@@ -1,0 +1,20 @@
+@include "dostat.l1"
+
+define s2(snapfile)
+{
+	@local ns, as;
+
+	as = mksnapas(snapfile);
+	ns = @names clp64le { @include "./stat.names" };
+	dostat(ns, as);
+	heapstat();
+}
+
+{
+	@local file;
+	if(length(args) == 0)
+		file = "./snap1";
+	else
+		file = args[0];
+	s2(file);
+}

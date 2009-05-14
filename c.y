@@ -533,6 +533,14 @@ enum_specifier
 	{ $$ = newexprsrc(&ctx->inp->src, Eenum, 0, invert($3), 0, 0); }
 	| ENUM tag '{' enumerator_list ',' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, invert($4), 0, 0); }
+	| ENUM '{' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, 0, nullelist(), 0, 0); }
+	| ENUM tag '{' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, nullelist(), 0, 0); }
+	| ENUM '{' ',' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, 0, nullelist(), 0, 0); }
+	| ENUM tag '{' ',' '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, nullelist(), 0, 0); }
 	| ENUM tag
 	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, 0, 0, 0); }
 	;

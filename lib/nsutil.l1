@@ -211,12 +211,12 @@ define nsdiff(ns1, ns2){
 				if((issu(t1) || isenum(t1))
 				   && strstr(suetag(t1), "anon_") != nil)
 					return;
-				t2 = looktype(ns2, t1);
+				t2 = ns2.looktype(t1);
 				if(t2 == nil)
 					tabinsert(undef, t1, t1);
 				else if(!typeequal(t1, t2))
 					tabinsert(diff, t1, t1);
-			}, ns.enumtype(ns1));
+			}, ns1.enumtype());
 		return undef;
 	}
 
@@ -271,7 +271,7 @@ define printtype(t){
 			}
 		}
 		sz = susize(t);
-		if(sz == nil)
+		if(sz != nil)
 			printf("\t/*@0x%x;*/\n", sz);
 		printf("};\n");
 	}else if(istypedef(t)){

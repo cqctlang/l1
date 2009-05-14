@@ -155,6 +155,7 @@ enum {
 	Maxstk = 4096,
 	InsnAlloc = 10,
 	AllocBatch = 128,
+	EmptyDecl = ~0,
 };
 
 typedef struct Decl Decl;
@@ -745,6 +746,7 @@ YYstate*	mkyystatestr(char *buf);
 void		setyystate(YYstate *yy);
 
 /* parse.c */
+Expr*		G(char *s);
 Expr*		copyexpr(Expr *e);
 Lits*		copylits(Lits *lits);
 Expr*		doconst(U *ctx, char*, unsigned long len);
@@ -866,15 +868,21 @@ int		freecode(Head *hd);
 void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
 int		isstrcval(Cval *cv);
+List*		listappend(VM *vm, List *lst, Val v);
+void		_listappend(List *lst, Val v);
+List*		listpush(VM *vm, List *lst, Val v);
 u32		listxlen(Listx *x);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
+As*		mkastab(Tab *mtab, Str *name);
 Val		mkattr(Val o);
 Closure*	mkcfn(char *id, Cfn *cfn);
+Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
+List*		mklist();
 Cval*		mklitcval(Cbase base, Imm val);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
@@ -915,7 +923,9 @@ jmp_buf*	_pusherror(VM *vm);
 void		setattroff(VM *vm, Val o, Val v);
 char*		str2cstr(Str *str);
 Str*		stringof(VM *vm, Cval *cv);
+Str*		strslice(Str *str, Imm beg, Imm end);
 Val		tabget(Tab *tab, Val keyv);
+void		_tabput(Tab *tab, Val keyv, Val val);
 void		tabput(VM *vm, Tab *tab, Val keyv, Val val);
 Cval*		typecast(VM *vm, Xtypename *xtn, Cval *cv);
 Val		valboxed(Val v);

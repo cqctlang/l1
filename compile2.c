@@ -128,10 +128,9 @@ sztype(Type *t)
 {
 	u64 m;
 
-	m = 0;
 	if(t == 0)
 		return 0;
-
+	m = 0;
 	m += sztype(t->link);
 	m += esize(t->dom);
 	m += esize(t->tid);
@@ -142,7 +141,7 @@ sztype(Type *t)
 	m += szexpr(t->bitw);
 	m += szexpr(t->sz);
 	m += szexpr(t->cnt);
-	m += sizeof(*t);
+	m += esize(t);
 
 	return m;
 }
@@ -172,7 +171,7 @@ szdecl(Decl *d)
 		m += sztype(d->type);
 		m += szexpr(d->attr);
 		m += esize(d->id);
-		m += sizeof(*d);
+		m += esize(d);
 		d = d->link;
 	}
 	return m;
@@ -295,12 +294,12 @@ globals(Expr *e, Env *env)
 		envgetbind(env, is);
 		p = Zblock(Zlocals(1, "$rd"),
 			   Zset(doid("$rd"),
-				Zcall(doid("%mkrd"), 2,
+				Zcall(G("mkrd"), 2,
 				      Zconsts(id),
 				      Zids2strs(e->e2))),
-			   Zset(doid(id), Zcall(doid("%rdmk"),
+			   Zset(doid(id), Zcall(G("rdmk"),
 						1, doid("$rd"))),
-			   Zset(doid(is), Zcall(doid("%rdis"),
+			   Zset(doid(is), Zcall(G("rdis"),
 						1, doid("$rd"))),
 			   doid("$rd"),
 			   NULL);
@@ -528,7 +527,7 @@ szlambda(Lambda *l)
 	m += esize(l->cap);
 	m += esize(l->disp);
 	m += esize(l->param);
-	m += sizeof(*l);
+	m += esize(l);
 	return m;
 }
 
@@ -545,7 +544,7 @@ szblock(Block *b)
 	u64 m;
 	m = 0;
 	m += esize(b->loc);
-	m += sizeof(*b);
+	m += esize(b);
 	return m;
 }
 

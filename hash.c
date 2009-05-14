@@ -64,6 +64,9 @@ hsz(HT *ht)
 	Hent *hp;
 
 	m = 0;
+	m += esize(ht);
+	m += esize(ht->ht);
+	m += esize(ht->hent);
 	for(i = 0; i < ht->sz; i++){
 		hp = ht->ht[i];
 		while(hp){
@@ -71,9 +74,6 @@ hsz(HT *ht)
 			hp = hp->next;
 		}
 	}
-	m += esize(ht->ht);
-	m += esize(ht->hent);
-	m += esize(ht);
 	return m;
 }
 
