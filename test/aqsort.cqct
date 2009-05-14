@@ -40,7 +40,7 @@ define testaqsort(){
 				 candidate = x;
 			 else if(val[y] == gas)
 				 candidate = y;
-			 ra = *(long *)ldom.getretaddr();
+			 ra = getretaddr (addr);
 			 id = pr.bpset(ra, lambda(addr){
 					       pr.seteax(val[x]-val[y]);
 					       pr.bpdel(id);
