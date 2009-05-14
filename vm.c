@@ -3481,10 +3481,68 @@ putval(VM *vm, Val v, Location *loc)
 	}
 }
 
+Tab*
+doinsncnt(VM *vm)
+{
+	Tab *t;
+	Imm pc;
+	Head *p;
+	Code *c;
+	Insn *in;
+	Src *src;
+	Str *str;
+	static char buf[256];
+	char *fn;
+	Val v;
+	Cval *cv;
+
+	t = mktab();
+	p = heap[Qcode].alloc;
+	while(p){
+		if(p->color == GCfree)
+			goto next;
+		c = (Code*)p;
+		in = &c->insn[0];		
+		for(pc = 0; pc < c->ninsn; pc++, in++){
+			src = addr2line(c, pc);
+			if(src == 0)
+				continue;
+			fn = src->filename;
+			if(fn == 0)
+				fn = "<stdin>";
+			snprint(buf, sizeof(buf), "%s:%u", fn, src->line);
+			str = mkstr0(buf);
+			v = tabget(t, mkvalstr(str));
+			if(v){
+				cv = valcval(v);
+				cv->val++;
+			}else
+				tabput(vm, t, mkvalstr(str),
+				       mkvallitcval(Vuint, 1));
+		}
+	next:
+		p = p->alink;
+	}
+	return t;
+}
+
+Src*
+addr2line(Code *code, Imm pc)
+{
+	while(1){
+		if(code->labels[pc] && code->labels[pc]->src)
+			return code->labels[pc]->src;
+		if(pc == 0)
+			return 0;
+		pc--;
+	}
+}
+
 static void
 printsrc(Xfd *xfd, Closure *cl, Imm pc)
 {
 	Code *code;
+	Src *src;
 	char *fn;
 	
 	code = cl->code;
@@ -3494,20 +3552,15 @@ printsrc(Xfd *xfd, Closure *cl, Imm pc)
 		return;
 	}
 
-	while(1){
-		if(code->labels[pc] && code->labels[pc]->src){
-			fn = code->labels[pc]->src->filename;
-			if(fn == 0)
-				fn = "<stdin>";
-			cprintf(xfd, "%20s\t(%s:%u)\n", cl->id,
-				fn, code->labels[pc]->src->line);
-			return;
-		}
-		if(pc == 0)
-			break;
-		pc--;
+	src = addr2line(code, pc);
+	if(src == 0){
+		cprintf(xfd, "%20s\t(no source information)\n", cl->id);
+		return;
 	}
-	cprintf(xfd, "%20s\t(no source information)\n", cl->id);
+	fn = src->filename;
+	if(fn == 0)
+		fn = "<stdin>";
+	cprintf(xfd, "%20s\t(%s:%u)\n", cl->id, fn, src->line);
 }
 
 static void
@@ -6356,6 +6409,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 
 	while(1){
 		i = &vm->ibuf[vm->pc++];
+		i->cnt++;
 		tick++;
 		goto *(i->go);
 		fatal("bug");

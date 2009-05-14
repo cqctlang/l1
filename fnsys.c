@@ -254,11 +254,20 @@ l1_profoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	finiprof();
 }
 
+static void
+l1_insncnt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to insncnt");
+	*rv = mkvaltab(doinsncnt(vm));
+}
+
 void
 fnsys(Env *env)
 {
 	FN(getpid);
 	FN(gettimeofday);
+	FN(insncnt);
 	FN(profoff);
 	FN(profon);
 	FN(rand);

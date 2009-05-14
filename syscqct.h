@@ -641,6 +641,7 @@ struct Insn {
 	void *go;
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;
+	u32 cnt;
 } Insn;
 
 struct Konst {
@@ -712,6 +713,11 @@ struct Toplevel {
 };
 
 struct VM {
+	Imm sp, fp, pc;
+	Val ac, cl;
+	Closure *clx;
+	Toplevel *top;
+	Insn *ibuf;
 	Val stack[Maxstk];
 	Dom *litdom;
 	Ns *litns;
@@ -720,12 +726,7 @@ struct VM {
 	Root **prot;		/* stack of lists of GC-protected objects */
 	Rootset rs;		/* Root free list for prot */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
-	Toplevel *top;
-	Imm sp, fp, pc;
-	Closure *clx;
 	Closure *halt;
-	Insn *ibuf;
-	Val ac, cl;
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
 	Tab *prof;
@@ -842,6 +843,7 @@ void		xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v),
 unsigned long	xenvsize(Xenv *xe);
 
 /* vm.c */
+Src*		addr2line(Code *code, Imm pc);
 Val		attroff(Val o);
 void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
@@ -851,7 +853,7 @@ void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
 Xtypename*	chasetype(Xtypename *xtn);
 void		checkarg(VM *vm, char *f, Val *argv,
 			 unsigned arg, Qkind qkind);
-u64		szcode(Code *code);
+Tab*		doinsncnt(VM *vm);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 int		envbinds(Env *env, char *id);
@@ -924,6 +926,7 @@ void		setattroff(VM *vm, Val o, Val v);
 char*		str2cstr(Str *str);
 Str*		stringof(VM *vm, Cval *cv);
 Str*		strslice(Str *str, Imm beg, Imm end);
+u64		szcode(Code *code);
 Val		tabget(Tab *tab, Val keyv);
 void		_tabput(Tab *tab, Val keyv, Val val);
 void		tabput(VM *vm, Tab *tab, Val keyv, Val val);
