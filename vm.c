@@ -10308,6 +10308,31 @@ l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
 	vmresettop(vm);
 }
 
+static void
+l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val *x, *i;
+	Cval *lim;
+	x = envgetbind(vm->top->env, "x");
+	i = envgetbind(vm->top->env, "i");
+	*x = mkvalcval2(mklitcval(Vuvlong, 0));
+	*i = mkvalcval2(cval1);
+	lim = mklitcval(Vint, 10000000);
+	gcprotect(vm, mkvalcval2(lim));
+again:
+	thegc->gcpoll(thegc, vm);
+	vm->ac = mkvalcval2(xcvalcmp(vm, Icmplt, valcval(*i), lim));
+	if(iszerocval(valcval(vm->ac))){
+		gcunprotect(vm, mkvalcval2(lim));
+		return;
+	}
+	vm->ac = *i;
+	*x = mkvalcval2(xcvalalu(vm, Iadd, valcval(*x), valcval(vm->ac)));
+	*i = mkvalcval2(xcvalalu(vm, Iadd, valcval(*i), cval1));
+	tick += 5;
+	goto again;
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -10666,6 +10691,7 @@ mktopenv()
 	builtinfn(env, "halt", haltthunk());
 	builtinfn(env, "callcc", callcc());
 
+	FN(count);
 	FN(append);
 	FN(apply);
 	FN(arraynelm);

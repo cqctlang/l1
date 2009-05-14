@@ -1,43 +1,49 @@
-define _dw_get_regval (exdom, regno)
+define _dw_get_regval (domoras, regno)
 {
+  @local exas;
+  if (isas (domoras))
+    exas = domoras;
+  else
+    exas = domoras.as;
   switch (regno) {
-  case 0: return  exdom.getrax();
+  case 0: return  exas.getrax();
     break;
-  case 1: return  exdom.getrdx();
+  case 1: return  exas.getrdx();
     break;
-  case 2: return  exdom.getrcx();
+  case 2: return  exas.getrcx();
     break;
-  case 3: return  exdom.getrbx();
+  case 3: return  exas.getrbx();
     break;
-  case 4: return  exdom.getrsi();
+  case 4: return  exas.getrsi();
     break;
-  case 5: return  exdom.getrdi();
+  case 5: return  exas.getrdi();
     break;
-  case 6: return  exdom.getrbp();
+  case 6: return  exas.getrbp();
     break;
-  case 7: return  exdom.getrsp();
+  case 7: return  exas.getrsp();
     break;
-  case 8: return  exdom.getr8();
+  case 8: return  exas.getr8();
     break;
-  case 9: return  exdom.getr9();
+  case 9: return  exas.getr9();
     break;
-  case 10: return  exdom.getr10();
+  case 10: return  exas.getr10();
     break;
-  case 11: return  exdom.getr11();
+  case 11: return  exas.getr11();
     break;
-  case 12: return  exdom.getr12();
+  case 12: return  exas.getr12();
     break;
-  case 13: return  exdom.getr13();
+  case 13: return  exas.getr13();
     break;
-  case 14: return  exdom.getr14();
+  case 14: return  exas.getr14();
     break;
-  case 15: return  exdom.getr15();
+  case 15: return  exas.getr15();
     break;
-  case 16: return  exdom.getrip();
+  case 16: return  exas.getrip();
     break;
   default:
-    printf ("No get_regval function registered for regno %a in domain %a\n",
-	    regno, exdom);
+    printf ("No get_regval function registered for regno %a in as %a\n",
+	    regno, exas);
+    backtrace();
     break;
   }
   return 0;
@@ -103,7 +109,7 @@ _dw_getfun = vector ("getrax", "getrdx", "getrcx", "getrbx", "getrsi",
 		     "getrdi", "getrbp", "getrsp", "getr8", "getr9",
 		     "getr10", "getr11", "getr11", "getr12", "getr13",
 		     "getr14", "getr15", "getrip");
- 
+
 _dw_map_setfun_to_regnum = {
     "setrax" : 0,
     "setrdx" : 1,

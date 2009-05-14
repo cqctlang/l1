@@ -27,7 +27,7 @@ _dwcqct_func_type = 2;
 _dwcqct_reg_type = 3;
 
 
-define _dw_eval (dom, exas, cptr, pceval)
+define _dw_eval (dom, exas, cptr, pceval, wantclosure)
 {
   @local op, lptr, val, rv, rvtype, exdom;
   rv = nil; /* for most ops, rv stays nil, but we need a uniform way to
@@ -45,13 +45,18 @@ define _dw_eval (dom, exas, cptr, pceval)
     lptr = listref (val2, 1);
     val2 = head (val2);
     val1 = _dw_pop ();
-    _dw_push (val2 + val1);
+      rv = (val2 + val1);
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_addr:{
     val = * (`uintptr *) lptr;
     lptr += sizeof (`uintptr);
-    _dw_push (val);
+    if (wantclosure)
+      rv = (lambda (as) {return val;});
+    else
+      rv = (val);
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_reg0:
@@ -85,10 +90,16 @@ define _dw_eval (dom, exas, cptr, pceval)
   case dom`DW_OP_reg28:
   case dom`DW_OP_reg29:
   case dom`DW_OP_reg30:
-  case dom`DW_OP_reg31:
-    rv = op - dom`DW_OP_reg0;
+  case dom`DW_OP_reg31: {
+    @local regno;
+    regno = op - dom`DW_OP_reg0;
     rvtype = _dwcqct_reg_type;
+    if (wantclosure)
+      rv = lambda (as) {return regno;};
+    else
+      rv = regno;
     _dw_push (rv);
+  }
     break;
   case dom`DW_OP_breg0:
   case dom`DW_OP_breg1:
@@ -130,6 +141,10 @@ define _dw_eval (dom, exas, cptr, pceval)
     base = _dw_get_regval (exdom, basereg);
     rv = base + offset;
     rvtype = _dwcqct_addr_type;
+    if (wantclosure) {
+      rv = lambda (as) {
+	return (_dw_get_regval (as, basereg) + offset);};
+    }
     _dw_push (rv);
     break;
   }
@@ -138,57 +153,80 @@ define _dw_eval (dom, exas, cptr, pceval)
     offset = decodesleb128 (lptr);
     lptr = listref (offset, 1);
     offset = head (offset);
-    if (isprocedure (pceval))
-      fbaddr = pceval(exas);
-    else
-      fbaddr = pceval;
-    fbaddr = (`uintptr) fbaddr;
-    rv = fbaddr + offset;
-    rv = (`uintptr) rv;
+    if (wantclosure) {
+      rv = lambda (as) {
+	@local ret;
+	if (isprocedure (pceval))
+	  fbaddr = pceval(as);
+	else
+	  fbaddr = pceval;
+	if (isprocedure (fbaddr)) {
+	  fbaddr = (`uintptr) fbaddr(as);
+	}
+	ret = fbaddr + offset;
+	return (`uintptr) ret;
+      };
+    }
+    else {
+      if (isprocedure (pceval))
+	fbaddr = pceval(exas);
+      else
+	fbaddr = pceval;
+      fbaddr = (`uintptr) fbaddr;
+      rv = fbaddr + offset;
+      rv = (`uintptr) rv;
+    }
     rvtype = _dwcqct_addr_type;
     _dw_push (rv);
     break;
   }
   case dom`DW_OP_minus: {
-    @local val1, val2;
+    @local val1, val2, rv;
     val1 = _dw_pop ();
     val2 = _dw_pop ();
-    _dw_push (val2 - val1);
+    rv = (val2 - val1);
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_plus: {
-    @local val1, val2;
+    @local val1, val2, rv;
     val1 = _dw_pop ();
     val2 = _dw_pop ();
-    _dw_push (val2 + val1);
+    rv = (val2 + val1);
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_deref: {
-    @local ptr;
-    ptr = (`uintptr *) {exdom}(_dw_pop ());
-    _dw_push (*ptr);
+    @local ptr, rv, val1;
+    val1 = _dw_pop();
+    ptr = (`uintptr *) {exdom}(val1);
+    rv = (*ptr);
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_deref_size: {
-    @local ptr, size;
+    @local ptr, size, val1, rv;
     size = (unsigned int) (*lptr);
     lptr++;
+    val1 = _dw_pop();
     switch (size) {
-    case 1: ptr = (`uint8 *) {exdom}(_dw_pop ());
+    case 1: ptr = (`uint8 *) {exdom}(val1);
       break;
-    case 2: ptr = (`uint16 *) {exdom}(_dw_pop ());
+    case 2: ptr = (`uint16 *) {exdom}(val1);
       break;
-    case 4: ptr = (`uint32 *) {exdom}(_dw_pop ());
+    case 4: ptr = (`uint32 *) {exdom}(val1);
       break;
-    case 8: ptr = (`uint64 *) {exdom}(_dw_pop ());
+    case 8: ptr = (`uint64 *) {exdom}(val1);
       break;
     default: printf ("Accesses of size %d not allowed.\n", size);
       break;
     }
+    rv = (`uintptr) (*ptr);
     /* Is this cast adequate to zero extend *ptr before pushing? */
-    _dw_push ((`uintptr) (*ptr));
+    _dw_push (rv);
     break;
   }
+  /* These stack manipulation functions shouldn't be affected by the wantclosure flag*/
   case dom`DW_OP_dup:
     _dw_push (listref (_dwstack, 0));
     break;
@@ -240,15 +278,16 @@ define _dw_eval (dom, exas, cptr, pceval)
     break;
   }
   case dom`DW_OP_xderef: {
-    @local a1, a2, asid;
-    a1 = _dw_pop ();
+    @local a1, a2, asid, rv;
+    a1 = _dw_pop();
     asid = _dw_pop (); /* for now ignore the address space id */
     a2 = (`uintptr *) {exdom}a1;
-    _dw_push (*a2);
+    rv = *a2;
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_xderef_size: {
-    @local a1, ptr, asid, size;
+    @local a1, ptr, asid, size, rv;
     a1 = _dw_pop ();
     asid = _dw_pop (); /* for now ignore the address space id */
     size = (`uint32) (*lptr);
@@ -265,24 +304,27 @@ define _dw_eval (dom, exas, cptr, pceval)
     default: printf ("Accesses of size %d not allowed.\n", size);
       break;
     }
+    rv = (`uintptr) (*ptr);
     /* Is this cast adequate to zero extend *ptr before pushing? */
-    _dw_push ((`uintptr) (*ptr));
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_abs: {
-    @local val;
+    @local val, rv;
     val = _dw_pop ();
     if (val < 0)
-      _dw_push (-val);
+      rv = -val;
     else
-      _dw_push (val);
+      rv = val;
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_and: {
-    @local val1, val2;
+    @local val1, val2, rv;
     val1 = _dw_pop ();
     val2 = _dw_pop ();
-    _dw_push (val1 & val2);
+    rv = val1 & val2;
+    _dw_push (rv);
     break;
   }
   case dom`DW_OP_div: {
@@ -315,7 +357,7 @@ define _dw_eval (dom, exas, cptr, pceval)
   case dom`DW_OP_not: {
     @local val1;
     val1 = _dw_pop ();
-    _dw_push (~ val1);
+   _dw_push (~ val1);
     break;
   }
   case dom`DW_OP_or: {
