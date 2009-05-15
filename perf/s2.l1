@@ -1,4 +1,5 @@
 @include "dostat.l1"
+@include <profile.l1>
 
 define s2(snapfile)
 {
@@ -17,4 +18,5 @@ define s2(snapfile)
 	else
 		file = args[0];
 	s2(file);
+	profinsn();
 }

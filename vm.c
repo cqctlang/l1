@@ -3515,10 +3515,10 @@ doinsncnt(VM *vm)
 			v = tabget(t, mkvalstr(str));
 			if(v){
 				cv = valcval(v);
-				cv->val++;
+				cv->val += in->cnt;
 			}else
 				tabput(vm, t, mkvalstr(str),
-				       mkvallitcval(Vuint, 1));
+				       mkvallitcval(Vuint, in->cnt));
 		}
 	next:
 		p = p->alink;
@@ -3529,13 +3529,7 @@ doinsncnt(VM *vm)
 Src*
 addr2line(Code *code, Imm pc)
 {
-	while(1){
-		if(code->labels[pc] && code->labels[pc]->src)
-			return code->labels[pc]->src;
-		if(pc == 0)
-			return 0;
-		pc--;
-	}
+	return code->insn[pc].src;
 }
 
 static void

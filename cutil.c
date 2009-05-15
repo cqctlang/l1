@@ -263,8 +263,9 @@ putsrc(Expr *e, Src *src)
 		return;
 
 	/* only put source information if there isn't any */
-	if(e->src.line == 0)
-		e->src = *src;
+	if(e->src.line != 0)
+		return;
+	e->src = *src;
 	switch(e->kind){
 	case Eelist:
 		p = e;

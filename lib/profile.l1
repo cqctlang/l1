@@ -34,3 +34,31 @@ define profile(thunk)
 	}
 }
 
+//define profinsn()
+profinsn = lambda()
+{
+	@local tab, l, key, vals, i, lim;
+
+	tab = insncnt();
+	l = [];
+	keys = tabkeys(tab);
+	vals = tabvals(tab);
+	for(i = 0; i < length(keys); i++)
+		append(l, [ keys[i], vals[i] ]);
+	sort(l, lambda(a,b) {
+			if(a[1] < b[1])
+				return 1;
+			else if(a[1]>b[1])
+				return -11;
+			else
+			return 0;
+		});
+	lim = 100;
+	if(length(l) < lim)
+		lim = length(l);
+	for(i = 0; i < lim; i++){
+		if(l[i][1] == 0)
+			break;
+		printf("%6u\t%s\n", l[i][1], l[i][0]);
+	}
+};

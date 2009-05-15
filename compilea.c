@@ -366,6 +366,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		te = Zblock(Zlocals(1, "$o"),
 			    Zifelse(Zcall(G("isrec"), 1, o), se, te),
 			    NULL);
+		putsrc(te, &e->src);
 		e->e1 = 0;
 		freeexpr(e);
 		return te;
@@ -395,6 +396,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					Zconsts(id)), 2,
 				  doid("$o"), expanda(ctx, e->e2, d, w)),
 			    NULL);
+		putsrc(te, &e->src);
 		e->e1->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
@@ -433,6 +435,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					       doid("$o")),
 					 expanda(ctx, e->e2, d, w))),
 			    NULL);
+		putsrc(te, &e->src);
 		e->e1->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
@@ -472,6 +475,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					       doid("$o")),
 					 Zuint(1))),
 			    NULL);
+		putsrc(te, &e->src);
 		e->e1->e1 = 0;
 		freeexpr(e);
 		return te;
@@ -512,6 +516,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					 doid("$l"), Zuint(1))),
 			    doid("$l"),
 			    NULL);
+		putsrc(te, &e->src);
 		e->e1->e1 = 0;
 		freeexpr(e);
 		return te;
@@ -596,6 +601,7 @@ expandc(U *ctx, Expr *e)
 		se = newexpr(Ederef, 
 			     Zadd(expandc(ctx, e->e1), expandc(ctx, e->e2)),
 			     0, 0, 0);
+		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
@@ -605,6 +611,7 @@ expandc(U *ctx, Expr *e)
 		se = newexpr(Edot,
 			     newexpr(Ederef, expandc(ctx, e->e1), 0, 0, 0),
 			     e->e2, 0, 0);
+		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);

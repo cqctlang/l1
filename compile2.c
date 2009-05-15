@@ -236,31 +236,6 @@ szexprx(Expr *e)
 	return m;
 }
 
-static int
-lexbinds(Expr *e, char *id)
-{
-	Expr *p;
-
-	if(e == 0)
-		return 0;
-	
-	/* special case: vararg Lambda */
-	if(e->kind == Elambda && e->e1->kind == Eid){
-		if(!strcmp(e->e1->id, id))
-			return 1;
-		return lexbinds((Expr*)e->xp, id);
-	}
-
-	/* Eblock or Elambda with variable list */
-	p = e->e1;
-	while(p->kind != Enull){
-		if(!strcmp(p->e1->id, id))
-			return 1;
-		p = p->e2;
-	}
-	return lexbinds((Expr*)e->xp, id);
-}
-
 static Expr*
 globals(Expr *e, Env *env)
 {
@@ -282,7 +257,7 @@ globals(Expr *e, Env *env)
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
-		p->src = e->src;
+		putsrc(p, &e->src);
 		freeexpr(e);
 		return p;
 	case Edefrec:
@@ -304,7 +279,7 @@ globals(Expr *e, Env *env)
 			   doid("$rd"),
 			   NULL);
 		efree(is);
-		p->src = e->src;
+		putsrc(p, &e->src);
 		freeexpr(e);
 		return p;
 	case Eglobal:
@@ -964,6 +939,7 @@ newpasses(Expr *e, Env *top)
 Expr*
 docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 {
+	Expr *te;
 	/* 
 	 * enclose expression in block to reduce
 	 * top-level pollution.
@@ -995,14 +971,13 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 	 * continuation; as a bonus, we get a binding
 	 * for the most recent toplevel evaluation.
 	 */
-	el = newexpr(Elambda, argsid ? doid(argsid) : nullelist(),
+	te = newexpr(Elambda, argsid ? doid(argsid) : nullelist(),
 		     newexpr(Eret,
 			     Zset(doid("$$"),
 				  newexpr(Eblock, nullelist(), el, 0, 0)),
 			     0, 0, 0),
 		     0, 0);
-
-	newpasses(el, top->env);
-
-	return el;
+	putsrc(te, &el->src);
+	newpasses(te, top->env);
+	return te;
 }

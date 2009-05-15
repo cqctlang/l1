@@ -26,7 +26,9 @@ do1tag(void *u, char *k, void *v)
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, nullelist(), invert(te), 0, 0);
-	*e = Zcons(te, *e);
+	te = Zcons(te, *e);
+	putsrc(te, &(*e)->src);
+	*e = te;
 }
 
 static void
@@ -63,7 +65,9 @@ do1sym(void *u, char *k, void *v)
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
-	*e = Zcons(te, *e);
+	te = Zcons(te, *e);
+	putsrc(te, &(*e)->src);
+	*e = te;
 }
 
 static void
@@ -94,7 +98,9 @@ do1tid(void *u, char *k, void *v)
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
-	*e = Zcons(te, *e);
+	te = Zcons(te, *e);
+	putsrc(te, &(*e)->src);
+	*e = te;
 }
 
 static void
@@ -241,8 +247,9 @@ compilens(U *ctx, Expr *e)
 		se = Zcall(G("mknsraw"), 3,
 			   doid("$ns"), doid("$typetab"), doid("$symtab"));
 	te = Zcons(se, te);
-
-	return newexpr(Eblock, loc, invert(te), 0, 0);
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	putsrc(te, &e->src);
+	return te;
 }
 
 static Expr*

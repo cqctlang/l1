@@ -26,6 +26,7 @@ compiletab(U *ctx, Expr *e)
 		ti = e->e1;
 		se = Zcall(G("tabinsert"), 3,
 			   doid("$tab"), ti->e1, ti->e2->e1);
+		putsrc(se, &ti->src);
 		te = Zcons(se, te);
 		ti->e1 = 0;
 		ti->e2->e1 = 0;
@@ -33,15 +34,16 @@ compiletab(U *ctx, Expr *e)
 	}
 	se = doid("$tab");
 	te = Zcons(se, te);
-
-	return newexpr(Eblock, loc, invert(te), 0, 0);
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	putsrc(te, &e->src);
+	return te;
 }
 
 static Expr*
-compilesizeof(U *ctx, Decl *d)
+compilesizeof(U *ctx, Decl *d, Src *src)
 {
 	Type *t;
-	Expr *e, *se, *te, *loc;
+	Expr *se, *te, *loc;
 	char *dom;
 
 	t = d->type;
@@ -76,16 +78,16 @@ compilesizeof(U *ctx, Decl *d)
 	// sizeof($tmp);
 	se = Zsizeof(doid("$tmp"));
 	te = Zcons(se, te);
-
-	e = newexpr(Eblock, loc, invert(te), 0, 0);
-	return e;
+	te = newexpr(Eblock, loc, invert(te), 0, 0); 
+	putsrc(te, src);
+	return te;
 }
 
 static Expr*
-compiletypeof(U *ctx, Decl *d)
+compiletypeof(U *ctx, Decl *d, Src *src)
 {
 	Type *t;
-	Expr *e, *se, *te, *loc;
+	Expr *se, *te, *loc;
 	char *dom;
 
 	t = d->type;
@@ -120,9 +122,9 @@ compiletypeof(U *ctx, Decl *d)
 	// $tmp;
 	se = doid("$tmp");
 	te = Zcons(se, te);
-
-	e = newexpr(Eblock, loc, invert(te), 0, 0);
-	return e;
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	putsrc(te, src);
+	return te;
 }
 
 static Expr*
@@ -172,6 +174,7 @@ compilecast(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	putsrc(te, &e->src);
 	return te;
 }
 
@@ -252,6 +255,7 @@ compilecontainer(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	putsrc(te, &e->src);
 	return te;
 }
 
@@ -325,6 +329,7 @@ compileambig(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	putsrc(te, &e->src);
 	return te;
 }
 
@@ -350,11 +355,11 @@ compile1(U *ctx, Expr *e)
 		freeexpr(e);
 		return se;
 	case Esizeoft:
-		se = compilesizeof(ctx, e->e1->xp);
+		se = compilesizeof(ctx, e->e1->xp, &e->src);
 		freeexpr(e);
 		return se;
 	case Etypeoft:
-		se = compiletypeof(ctx, e->e1->xp);
+		se = compiletypeof(ctx, e->e1->xp, &e->src);
 		freeexpr(e);
 		return se;
 	case Ecast:
@@ -374,6 +379,7 @@ compile1(U *ctx, Expr *e)
 		return se;
 	case Elist:
 		se = Zapply(G("list"), compile1(ctx, e->e1));
+		putsrc(se, &e->src);
 		e->e1 = 0;
 		freeexpr(e);
 		return se;

@@ -642,6 +642,7 @@ struct Insn {
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;
 	u32 cnt;
+	Src *src;
 } Insn;
 
 struct Konst {

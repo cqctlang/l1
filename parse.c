@@ -675,10 +675,13 @@ Expr*
 doconst(U *ctx, char *s, unsigned long len)
 {
 	Liti liti;
+	Expr *e;
 	char *err;
 	if(0 != parseliti(s, len, &liti, 0, &err))
 		parseerror(ctx, err);
-	return mkconstliti(&liti);
+	e = mkconstliti(&liti);
+	putsrc(e, &ctx->inp->src);
+	return e;
 }
 
 Expr*
