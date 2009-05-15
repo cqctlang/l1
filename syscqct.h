@@ -641,7 +641,7 @@ struct Insn {
 	void *go;
 	Operand op1, op2, op3, dst;
 	Ctl *dstlabel;
-	u32 cnt;
+	u64 cnt;
 	Src *src;
 } Insn;
 

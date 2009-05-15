@@ -289,6 +289,14 @@ valboxed(Val v)
 	return b->v;
 }
 
+static u64
+rdtsc()
+{
+	u32 hi, lo;
+	asm("rdtsc" : "=a"(lo), "=d"(hi));
+	return (u64)lo|((u64)hi<<32);
+}
+
 static void*
 read_and_clear(void *pp)
 {
@@ -3518,7 +3526,7 @@ doinsncnt(VM *vm)
 				cv->val += in->cnt;
 			}else
 				tabput(vm, t, mkvalstr(str),
-				       mkvallitcval(Vuint, in->cnt));
+				       mkvallitcval(Vuvlong, in->cnt));
 		}
 	next:
 		p = p->alink;
@@ -6329,6 +6337,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Cval *cv;
 	Val val;
 	Imm m, narg, onarg;
+	u64 s0, s1;
 
 	if(!once){
 		once = 1;
@@ -6401,9 +6410,18 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	vmsetcl(vm, vm->cl);
 	vm->pc = vm->clx->entry;
 
+	s0 = 0;
+	s1 = rdtsc();
+	goto enter;
 	while(1){
+		s1 = rdtsc();
+		if(s1 < s0)
+			printf("rollback\n");
+		i->cnt += s1-s0;
+	enter:
+		s0 = s1;
 		i = &vm->ibuf[vm->pc++];
-		i->cnt++;
+//		i->cnt++;
 		tick++;
 		goto *(i->go);
 		fatal("bug");
