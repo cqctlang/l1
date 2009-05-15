@@ -1018,7 +1018,7 @@ mulmerge(YYSTYPE ye1, YYSTYPE ye2)
 
 	duptickid(other->e1);
 
-	return newexpr(Eambig, cast, other, NULL, NULL);
+	return newexprsrc(&cast->src, Eambig, cast, other, NULL, NULL);
 }
 
 static int
@@ -1044,6 +1044,5 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 		duptickid(e1->e1);
 	else
 		duptickid(e2->e1);
-
-	return newexpr(Eambig, e1, e2, NULL, NULL);
+	return newexprsrc(&e1->src, Eambig, e1, e2, NULL, NULL);
 }

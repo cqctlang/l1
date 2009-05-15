@@ -13,12 +13,14 @@ static Expr*
 compiletab(U *ctx, Expr *e)
 {
 	Expr *loc, *te, *se, *ti;
+	Src *src;
 
+	src = &e->src;
 	loc = Zlocals(1, "$tab");
 	te = nullelist();
 
 	se = Zset(doid("$tab"), Zcall(G("mktab"), 0));
-	se->src = e->src;
+//	putsrc(se, src);
 	te = Zcons(se, te);
 
 	e = e->e1;
@@ -35,7 +37,7 @@ compiletab(U *ctx, Expr *e)
 	se = doid("$tab");
 	te = Zcons(se, te);
 	te = newexpr(Eblock, loc, invert(te), 0, 0);
-	putsrc(te, &e->src);
+	putsrc(te, src);
 	return te;
 }
 
