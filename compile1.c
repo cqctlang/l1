@@ -315,12 +315,11 @@ compileambig(U *ctx, Expr *e)
 	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
 	te = Zcons(se, te);
 
-	// $tmp = nslooktype(domns(dom))(dom, $tn)
-	se = Zcall(G("nsof"), 1, doid(dom));
-	se = Zcall(G("nslooktype"), 1, se);
-	se = Zset(doid("$tmp"), Zcall(se, 2, doid(dom), doid("$tn")));
+	// $tmp = looktype(dom, $tn)
+	se = Zset(doid("$tmp"),
+		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
 	te = Zcons(se, te);
-	
+
 	/* must we compile TF only after using all references to TF->...->type?
 	   (including gentypename and dom?) */
 	tf = compile1(ctx, tf);

@@ -5123,7 +5123,10 @@ chasetype(Xtypename *xtn)
 	return xtn;
 }
 
-/* call looktype operator of NS on typename XTN */
+/* call looktype operator of NS on typename XTN.
+   NB: on failure, we throw away valuable information: which part
+   of the type was undefined.  consider adding a new return
+   parameter that, if result is 0, points to the undefined type name */
 static Xtypename*
 _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 {
@@ -5144,7 +5147,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		argv[0] = mkvalns(ns);
 		argv[1] = mkvalxtn(xtn);
 		if(ns->looktype == 0)
-			vmerr(vm, "name space does not define looktype");
+			return 0;
 		rv = dovm(vm, ns->looktype, 2, argv);
 		if(rv->qkind == Qnil)
 			return 0;
@@ -5154,11 +5157,8 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new->tkind = Tptr;
 		new->link = _dolooktype(vm, xtn->link, ns);
 		gcunprotect(vm, new);
-		if(new->link == 0){
-			es = fmtxtn(xtn->link);
-			vmerr(vm, "name space does not define %.*s",
-			      (int)es->len, es->s);
-		}
+		if(new->link == 0)
+			return 0;
 		tmp = ns->base[Vptr];
 		new->rep = tmp->rep;
 		return new;
@@ -5167,32 +5167,23 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new->tkind = Tarr;
 		new->link = _dolooktype(vm, xtn->link, ns);
 		gcunprotect(vm, new);
-		if(new->link == 0){
-			es = fmtxtn(xtn->link);
-			vmerr(vm, "name space does not define %.*s",
-			      (int)es->len, es->s);
-		}
+		if(new->link == 0)
+			return 0;
 		new->cnt = xtn->cnt;
 		return new;
 	case Tfun:
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tfun;
 		new->link = _dolooktype(vm, xtn->link, ns);
-		if(new->link == 0){
-			es = fmtxtn(xtn->link);
-			vmerr(vm, "name space does not define %.*s",
-			      (int)es->len, es->s);
-		}
+		if(new->link == 0)
+			return 0;
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = veccopy(valvec(vecref(xtn->param, i)));
 			xtmp = valxtn(vecref(vec, Typepos));
 			tmp = _dolooktype(vm, xtmp, ns);
-			if(tmp == 0){
-				es = fmtxtn(xtmp);
-				vmerr(vm, "name space does not define %.*s",
-				      (int)es->len, es->s);
-			}
+			if(tmp == 0)
+				return 0;
 			vecset(vm, vec, Typepos, mkvalxtn(tmp)); 
 			vecset(vm, new->param, i, mkvalvec(vec));
 		}
@@ -8875,29 +8866,6 @@ l1_nslooksym(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_nslooktype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nslooktype");
-	arg0 = argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslooktype must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->looktype)
-		*rv = mkvalcl(ns->looktype);
-}
-
-static void
 l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg0;
@@ -10852,7 +10820,6 @@ mktopenv()
 	FN(nsenumtype);
 	FN(nslookaddr);
 	FN(nslooksym);
-	FN(nslooktype);
 	FN(nsptr);
 	FN(null);
 	FN(paramid);

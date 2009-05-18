@@ -5450,7 +5450,7 @@ define init_debug_domain (binfile)
       rv = nil;
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	rv = nslooksym (ns) (ns, sym);
+	rv = ns.looksym (sym);
 	if (!isnil (rv))
 	  return rv;
       }
@@ -5462,7 +5462,7 @@ define init_debug_domain (binfile)
       rv = nil;
       for (i = 0; i < length (result); i++) {
 	ns = listref (listref (result, i), 3);
-	rv = nslooktype (ns) (ns, type);
+	rv = ns.looktype (type);
 	if (!isnil (rv))
 	  return rv;
       }

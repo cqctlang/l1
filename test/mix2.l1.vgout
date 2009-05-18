@@ -1,5 +1,5 @@
 entry: var params, 7 locals, 0 temps
 5
-error: name space does not define struct foo
-            looktype	(builtin function)
+error: undefined type: struct foo *
+               error	(builtin function)
                entry	(mix2.l1:21)
