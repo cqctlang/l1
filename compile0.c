@@ -94,11 +94,10 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = Zset(doid("$dom"), e->e1);
 		te = Zcons(se, te);
 
-		// $tmp = nslooksym(domns($dom))($dom,sym)
-		se = Zcall(G("nsof"), 1, doid("$dom"));
-		se = Zcall(G("nslooksym"), 1, se);
-		se = Zcall(se, 2, doid("$dom"), Zconsts(e->e2->id));
-		se = Zset(doid("$tmp"), se);
+		// $tmp = looksym($dom,sym)
+		se = Zset(doid("$tmp"),
+			  Zcall(G("looksym"), 2,
+				doid("$dom"), Zconsts(e->e2->id)));
 		te = Zcons(se, te);
 		
 		// if(isnil($tmp)) error("undefined symbol: %s", sym);

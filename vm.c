@@ -5134,7 +5134,6 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	Xtypename *tmp, *xtmp, *new;
 	Vec *vec;
 	Imm i;
-	Str *es;
 
 	switch(xtn->tkind){
 	case Tvoid:
@@ -6784,6 +6783,29 @@ l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = dolooktype(vm, xtn, ns);
 	if(xtn)
 		*rv = mkvalxtn(xtn);
+}
+
+static void
+l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+	Ns *ns;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to looksym");
+
+	if(argv[0]->qkind == Qns)
+		ns = valns(argv[0]);
+	else if(argv[0]->qkind == Qdom){
+		dom = valdom(argv[0]);
+		ns = dom->ns;
+	}else
+		vmerr(vm,
+		      "operand 1 to looksym must be a namespace or domain");
+		      
+	if(argv[1]->qkind != Qstr)
+		vmerr(vm, "operand 2 to looksym must be a string");
+	*rv = dovm(vm, ns->looksym, argc, argv);
 }
 
 static void
@@ -8843,29 +8865,6 @@ l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_nslooksym(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nslooksym");
-	arg0 = argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslooksym must be a namespace or domain");
-	if(arg0->qkind == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->looksym)
-		*rv = mkvalcl(ns->looksym);
-}
-
-static void
 l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg0;
@@ -10765,6 +10764,7 @@ mktopenv()
 	FN(listref);
 	FN(listset);
 	FN(lookfield);
+	FN(looksym);
 	FN(looktype);
 	FN(map);
 	FN(memcpy);
@@ -10819,7 +10819,6 @@ mktopenv()
 	FN(nsenumsym);
 	FN(nsenumtype);
 	FN(nslookaddr);
-	FN(nslooksym);
 	FN(nsptr);
 	FN(null);
 	FN(paramid);
