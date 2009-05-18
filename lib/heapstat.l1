@@ -278,7 +278,8 @@ define esize(p)
 		return 0;
 	p = (void*)p;
 	p -= sizeof(dom`size_t);
-	x = *(`size_t*)p;
+	p = (`size_t*)p;
+	x = *p;
 	return sizeof(dom`size_t)+x;
 }
 
