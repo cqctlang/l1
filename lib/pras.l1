@@ -170,6 +170,7 @@ define mkpras(arg) {
 	@local id, state, reg;
 	@local brktab, dtab;
 	@local logsend, logrecv, log, verbose;
+	@local as, rdom;
 
 	verbose = 0;
 
@@ -606,110 +607,110 @@ define mkpras(arg) {
 		if(isdom(domas))
 			return {domas}reg->rbx;
 		else
-			return reg->rbx;
+			return {rdom}reg->rbx;
 	}
 	define getrcx(domas){
 		if(isdom(domas))
 			return {domas}reg->rcx;
 		else
-			return reg->rcx;
+			return {rdom}reg->rcx;
 	}
 	define getrdx(domas){
 		if(isdom(domas))
 			return {domas}reg->rdx;
 		else
-			return reg->rdx;
+			return {rdom}reg->rdx;
 	}
 	define getrsi(domas){
 		if(isdom(domas))
 			return {domas}reg->rsi;
 		else
-			return reg->rsi;
+			return {rdom}reg->rsi;
 	}
 	define getrdi(domas){
 		if(isdom(domas))
 			return {domas}reg->rdi;
 		else
-			return reg->rdi;
+			return {rdom}reg->rdi;
 	}
 	define getrbp(domas){
 		if(isdom(domas))
 			return {domas}reg->rbp;
 		else
-			return reg->rbp;
+			return {rdom}reg->rbp;
 	}
 	define getrax(domas){
 		if(isdom(domas))
 			return {domas}reg->rax;
 		else
-			return reg->rax;
+			return {rdom}reg->rax;
 	}
 	define getrip(domas){
 		if(isdom(domas))
 			return {domas}reg->rip;
 		else
-			return reg->rip;
+			return {rdom}reg->rip;
 	}
 	define getrsp(domas){
 		if(isdom(domas))
 			return {domas}reg->rsp;
 		else
-			return reg->rsp;
+			return {rdom}reg->rsp;
 	}
 	define getr8(domas){
 		if(isdom(domas))
 			return {domas}reg->r8;
 		else
-			return reg->r8;
+			return {rdom}reg->r8;
 	}
 	define getr9(domas){
 		if(isdom(domas))
 			return {domas}reg->r9;
 		else
-			return reg->r9;
+			return {rdom}reg->r9;
 	}
 	define getr10(domas){
 		if(isdom(domas))
 			return {domas}reg->r10;
 		else
-			return reg->r10;
+			return {rdom}reg->r10;
 	}
 	define getr11(domas){
 		if(isdom(domas))
 			return {domas}reg->r11;
 		else
-			return reg->r11;
+			return {rdom}reg->r11;
 	}
 	define getr12(domas){
 		if(isdom(domas))
 			return {domas}reg->r12;
 		else
-			return reg->r12;
+			return {rdom}reg->r12;
 	}
 	define getr13(domas){
 		if(isdom(domas))
 			return {domas}reg->r13;
 		else
-			return reg->r13;
+			return {rdom}reg->r13;
 	}
 	define getr14(domas){
 		if(isdom(domas))
 			return {domas}reg->r14;
 		else
-			return reg->r14;
+			return {rdom}reg->r14;
 	}
 	define getr15(domas){
 		if(isdom(domas))
 			return {domas}reg->r15;
 		else
-			return reg->r15;
+			return {rdom}reg->r15;
 	}
 
 	define geteflags(domas){
 		if(isdom(domas))
 			return {domas}reg->eflags;
 		else
-			return reg->eflags;
+			return {rdom}reg->eflags;
 	}
 
 	define getpc(domas){
@@ -840,7 +841,9 @@ define mkpras(arg) {
 	ip = {indom}0;
 	op = {outdom}0;
 	brktab = mktab();
-	return mkas(dtab);
+	as = mkas(dtab);
+	rdom = mkdom(c32le, as);
+	return as;
 }
 
 define mkremoteprocdom arg {
