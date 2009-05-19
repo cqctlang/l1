@@ -61,6 +61,7 @@ extern char *yytext;
 %type <expr> tn_param_type_qual_specifier
 %type <expr> tn_param_enum_specifier
 %type <expr> table_init table_init_list
+%type <expr> maybe_attr
 
 %type <kind> unary_operator assignment_operator struct_or_union
 
@@ -394,6 +395,13 @@ typedef
 	{ $$ = newexprsrc(&ctx->inp->src, Etypedef, $2, $3, 0, 0); }
 	;
 
+maybe_attr
+	: '@' constant_expression
+	{ $$ = $2; }
+	|
+	{ $$ = 0; }
+	;
+
 declaration
 	: specifier_list ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Edecls, $1, nullelist(), 0, 0); }
@@ -613,12 +621,12 @@ parameter_list
 	;
 
 parameter_declaration
-	: specifier_list declarator
-	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
-	| specifier_list abstract_declarator
-	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
-	| specifier_list
-	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, 0, 0, 0); }
+	: maybe_attr specifier_list declarator
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $2, $3, $1, 0); }
+	| maybe_attr specifier_list abstract_declarator
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $2, $3, $1, 0); }
+	| maybe_attr specifier_list
+	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $2, 0, $1, 0); }
 	;
 
 abstract_declarator
