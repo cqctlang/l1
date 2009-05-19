@@ -252,8 +252,7 @@ globals(Expr *e, Env *env)
 			 Zlambdn(e->e2,
 				 globals(e->e3, env),
 				 copyexpr(e->e1)));
-		if(e->kind == Edefine)
-			envgetbind(env, e->e1->id);
+		envgetbind(env, e->e1->id);
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
