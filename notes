@@ -13,6 +13,7 @@ todo
 	 (isfunc/mkctype_fn, isenumconst/mkctype_const,...)
   - implement copy and foreach on missing container types (strings)
   - switch enum operands shortform
+  - more general: x == `enumconst: lookup enumconst in domof(x)
   - introduce address types
     - shouldn't bpset take an address argument?
   - figure out interactive control story:
@@ -80,7 +81,21 @@ todo
     because locals share storage in frame 
   - it should be easier to write htons
   - move gcpersist's list to GC (from VM), and put kcode, ccode, etc. on it
-
+  - del operator to force unbinding and gc
+    - e.g., terminate an iostats-like interposition op on a value
+  - what does typeof(`foo) on type foo mean?  does it compute
+    just the type name, or does it look it up in a dom, providing
+    a definition?  current impl looks it up in litdom; and there
+    is no syntactic way to build just the name (## is sugar for typeof)
+  - getcwd
+  - time formatting
+  - eq and equal tables
+  - weak keys?
+  - attr to xaccess ctype
+  - revise as interface to use unit idea
+  - enforce return value type on sort
+  - change tabenum to return kv pairs
+ 
 - usability
   - change "entry" to "toplevel"
   - print the original source for a lambda
@@ -121,6 +136,9 @@ todo
   - map-based ismapped model is broken, because map may be expensive;
     maybe as should implement both.
   - can <domain > occur during %a printing?
+  - fix lookaddr to ignore enums when matching addr values
+    (e.g. Vlongmax)
+
 
 - performance/simplicity
   - consider making routines like nsptr take a cvalue argument
@@ -169,6 +187,15 @@ todo
          then retry.
          need to be careful about not restarting gc, because
          existing invariant holds that dovm is a gc epoch barrier.
+  - measure useless computations, e.g., casts that don't change
+    the type of a value (instrument xcast instructions).
+    report for each operation program point # of id and non-id ops.
+
+- warnings
+  - statically report use of +=, ++, etc on uninitialized vars
+  - on unused variables
+  - redundantly declared locs
+  - locs that shadow params
 
 
 - ideas
@@ -239,6 +266,21 @@ todo
 
 - documentation
   - defining an enumeration type (enumconst)
+  - revise symbol interface docs (symval is defunct; describe attr tab)
+  - toplevel args variable
+
+- regular expressions
+  - ranges of values (0x1000-0x2000)
+  - binary (no constraints on pattern or text)
+  - generalize to searching over types (type patterns?)
+  - bit patterns c&0x3==1
+  - assertions (rsc terminology) for alignment matches
+    akin to beginning-of-line, etc matches
+  - backreferences (maybe)
+  - compound res: conveniently stream matches into next re search
+  - ensure that a0|a1|...|an for large n works as well
+    as sequential a0, a1, ..., an searches
+  
 
 other systems
 -------------
