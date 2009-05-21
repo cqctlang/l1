@@ -2841,7 +2841,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
   case abdom`DW_TAG_pointer_type: {
     @local name, tdname, ttype, tsize, td;
     tdname = "void"; /* If it's not there will be a type attribute */
-    tsize = sizeof (indom`uint32 *);
+    tsize = sizeof (indom`uintptr);
     ttype = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
@@ -3942,7 +3942,7 @@ define get_frame_base_from_pc (bdrec, exas)
     if (length (ent) == 6) {
       /* then ent is a location list; evaluate it using the pc to
 	 determine which location list element has the right closure. */
-      rv = _dw_eval (listref (ent, 2), exas, listref (ent, 4), pc, 1);
+      rv = _dw_eval (listref (ent, 2), listref (ent, 4), pc);
       closuretab[pc] = rv;
     }
     else if (length (ent) == 3) {
@@ -4753,7 +4753,7 @@ define symloc (symtab, sym, exas, pc, bdrec)
 	/* As long as we are in the evaluation of a DWARF block, the values
 	   we care about are on the evaluator stack. It's only when we
 	   exit that we will care about the type. */
-	rv = _dw_eval (dom, as, lcptr, fbase, 1);
+	rv = _dw_eval (dom, lcptr, fbase);
 	lcptr = (unsigned int) (listref (rv, 2));
       }
       /* Don't get the return value from the stack because we need to
@@ -4973,6 +4973,7 @@ define skip_prologue (dom, name)
 define dumpstack (addr)
 {
   @local dom, gns, bt, cdom, cns, i, j, pcregno, bdrec;
+  @local slastime, snscontime, sldomtime;
   dom = domof (addr);
   bdrec = dom.bdrec();
   addr = (`uintptr) addr;
@@ -4986,21 +4987,28 @@ define dumpstack (addr)
       lpc = _dw_get_regval (dom, pcregno);
     else
       lpc = *(`uintptr *)listref (fr, pcregno);
+//     slastime = gettimeofday();
     las = make_local_as (dom.as, fr);
+//     lastime += gettimeofday() - slastime;
     /* This may look crazy, but we need to use the local address space
        when executing the closures in nscon to calculate the CFA for
        a particular addr. Once we have the local namespace, we combine
        it with the local address space to create a local domain for
        the address. */
-    tdom = mkdom (dom.ns, las);
-    /* clear out any stored ns for this address since it will not have
-       been built with the correct address space */
-    bdrec.nstab[lpc] = nil;
-    lns = tdom.nscon (lpc);
+    //     tdom = mkdom (dom.ns, las);
+//     /* clear out any stored ns for this address since it will not have
+//        been built with the correct address space */
+//     bdrec.nstab[lpc] = nil;
+//    snscontime = gettimeofday();
+//     lns = tdom.nscon (lpc);
+    lns = dom.nscon (las, _dw_get_regval (las, pcregno));
+//     nscontime += gettimeofday() - snscontime;
     if (isnil (lns))
       continue;
     lns = lns.nslocals ();
+//     sldomtime = gettimeofday();
     ldom = mkdom (lns, las, sprintfa ("ldom%s", sprintfa ("%a", lns)));
+//     ldomtime += gettimeofday() - sldomtime;
     printf ("symbols for address 0x%x:\n", lpc);
     foreach (lambda (k,v) {
 	if (!isenum (symtype (v)) && !isenumconst (symtype (v)))
@@ -5030,11 +5038,9 @@ define make_local_dom (exdom, regset)
      a particular addr. Once we have the local namespace, we combine
      it with the local address space to create a local domain for
      the address. */
-  tdom = mkdom (dom.ns, las);
   /* clear out any stored ns for this address since it will not have
      been built with the correct address space */
-  bdrec.nstab[lpc] = nil;
-  lns = tdom.nscon (lpc);
+  lns = dom.nscon (las, lpc);
   if (isnil (lns))
     return nil;
   lns = lns.nslocals ();
@@ -5249,6 +5255,7 @@ define make_local_as (ras, regset)
   mtab = mktab ();
   define ldis args {
     @local cmd, regno;
+    @local rv;
     cmd = listref(args, 1);
     regno = _dw_map_getfun_to_regnum [cmd];
     /* We have no value for register 0 because DWARF uses it for the CFA, at
@@ -5258,7 +5265,8 @@ define make_local_as (ras, regset)
     if (!isnil (regno)
 	&& 1 <= regno && regno < length (regset)
 	&& !isnil (listref (regset, regno))) {
-      return *(`uintptr *) (listref (regset, regno));
+      rv =  *(`uintptr *) (listref (regset, regno));
+      return rv;
     }
     if (regno == spregno && isnil (regset[regno]) && !isnil (regset[0])) {
       return regset[0];
@@ -5272,7 +5280,8 @@ define make_local_as (ras, regset)
     }
     pop (args);
     pop (args);
-    return (callmethod (ras, cmd, args));
+    rv = callmethod (ras, cmd, args);
+    return rv;
   }
   define lget args{
     pop (args);
@@ -5528,17 +5537,15 @@ define init_debug_domain (binfile)
   tabinsert(mtab, "bdrec", lambda (this) {return bdrec;});
   a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr);};
   tabinsert(mtab, "addr2line", a2l);
-  nscon = lambda (this, addr) {
+  nscon = lambda (this, as, addr) {
     @local cu, rv, cutabs;
     @local tns, lt, ls, la, et, es, nsl, getretaddr, lnstab, uas;
-    if (isdom (this))
-      uas = this.as;
-    else
-      error ("nscon must be called from a domain that can supply an as\n, not from %a\n",
-	     this);
-    rv = bdrec.nstab [addr];
-    if (!isnil (rv))
+    @local slnstime;
+    uas = as;
+    rv = bdrec.nstab [uas];
+    if (!isnil (rv)) {
       return rv;
+    }
     cutabs = find_fn_and_cu (bdrec, (`uintptr)addr);
     if (isnil (cutabs)) {
       @local ar, arl, ardom, cuns, cuoff;
@@ -5549,7 +5556,9 @@ define init_debug_domain (binfile)
       cu = get_cu_info (bdrec, uas, cuoff);
       cutabs = get_function_tables_for_cu (cu, rns, indom, bdrec);
     }
+    slnstime = gettimeofday();
     tns = make_local_ns (bdrec, uas, (`uintptr)addr);
+    lnstime = gettimeofday() - slnstime;
     lnstab = mktab ();
     lt = lambda (this, type) {return tns.looktype (type);};
     ls = lambda (this, sym) {return tns.looksym (sym);};
@@ -5621,7 +5630,7 @@ define build_locfun (cptr, end, bdrec)
 	/* As long as we are in the evaluation of a DWARF block, the values
 	   we care about are on the evaluator stack. It's only when we
 	   exit that we will care about the type. */
-	rv = _dw_eval (indom, uas, (unsigned char *)lcptr, fbase, 1);
+	rv = _dw_eval (indom, (unsigned char *)lcptr, fbase);
 	lcptr =  (listref (rv, 2));
       }
       /* Don't get the return value from the stack because we need to

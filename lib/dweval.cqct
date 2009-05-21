@@ -27,14 +27,13 @@ _dwcqct_func_type = 2;
 _dwcqct_reg_type = 3;
 
 
-define _dw_eval (dom, exas, cptr, pceval, wantclosure)
+define _dw_eval (dom, cptr, pceval)
 {
-  @local op, lptr, val, rv, rvtype, exdom;
+  @local op, lptr, val, rv, rvtype;
   rv = nil; /* for most ops, rv stays nil, but we need a uniform way to
 	       return values when necessary as well as any updates to
 	       cptr. The return value is [rv, rvtype, lptr] */
   rvtype = nil;
-  exdom = mkdom (dom.ns, exas);
   lptr = (`uint8 *) cptr;
   op = *lptr;
   lptr++;
@@ -52,10 +51,7 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
   case dom`DW_OP_addr:{
     val = * (`uintptr *) lptr;
     lptr += sizeof (`uintptr);
-    if (wantclosure)
-      rv = (lambda (as) {return val;});
-    else
-      rv = (val);
+    rv = (lambda (as) {return val;});
     _dw_push (rv);
     break;
   }
@@ -94,10 +90,7 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     @local regno;
     regno = op - dom`DW_OP_reg0;
     rvtype = _dwcqct_reg_type;
-    if (wantclosure)
-      rv = lambda (as) {return regno;};
-    else
-      rv = regno;
+    rv = lambda (as) {return regno;};
     _dw_push (rv);
   }
     break;
@@ -138,13 +131,10 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     lptr = listref (offset, 1);
     offset = head (offset);
     basereg = op - dom`DW_OP_breg0;
-    base = _dw_get_regval (exdom, basereg);
-    rv = base + offset;
     rvtype = _dwcqct_addr_type;
-    if (wantclosure) {
-      rv = lambda (as) {
-	return (_dw_get_regval (as, basereg) + offset);};
-    }
+    rv = lambda (as) {
+      return (_dw_get_regval (as, basereg) + offset);
+    };
     _dw_push (rv);
     break;
   }
@@ -153,29 +143,21 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     offset = decodesleb128 (lptr);
     lptr = listref (offset, 1);
     offset = head (offset);
-    if (wantclosure) {
-      rv = lambda (as) {
-	@local ret;
-	if (isprocedure (pceval))
-	  fbaddr = pceval(as);
-	else
-	  fbaddr = pceval;
-	if (isprocedure (fbaddr)) {
-	  fbaddr = (`uintptr) fbaddr(as);
-	}
-	ret = fbaddr + offset;
-	return (`uintptr) ret;
-      };
-    }
-    else {
-      if (isprocedure (pceval))
-	fbaddr = pceval(exas);
-      else
+    rv = lambda (as) {
+      @local ret;
+      if (isprocedure (pceval)) {
+	fbaddr = pceval(as);
+      }
+      else {
 	fbaddr = pceval;
-      fbaddr = (`uintptr) fbaddr;
-      rv = fbaddr + offset;
-      rv = (`uintptr) rv;
-    }
+      }
+      if (isprocedure (fbaddr)) {
+	@local tres;
+	fbaddr = (`uintptr) fbaddr(as);
+      }
+      ret = fbaddr + offset;
+      return (`uintptr) ret;
+    };
     rvtype = _dwcqct_addr_type;
     _dw_push (rv);
     break;
@@ -199,7 +181,7 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
   case dom`DW_OP_deref: {
     @local ptr, rv, val1;
     val1 = _dw_pop();
-    ptr = (`uintptr *) {exdom}(val1);
+    ptr = (`uintptr *) {dom}(val1);
     rv = (*ptr);
     _dw_push (rv);
     break;
@@ -210,13 +192,13 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     lptr++;
     val1 = _dw_pop();
     switch (size) {
-    case 1: ptr = (`uint8 *) {exdom}(val1);
+    case 1: ptr = (`uint8 *) {dom}(val1);
       break;
-    case 2: ptr = (`uint16 *) {exdom}(val1);
+    case 2: ptr = (`uint16 *) {dom}(val1);
       break;
-    case 4: ptr = (`uint32 *) {exdom}(val1);
+    case 4: ptr = (`uint32 *) {dom}(val1);
       break;
-    case 8: ptr = (`uint64 *) {exdom}(val1);
+    case 8: ptr = (`uint64 *) {dom}(val1);
       break;
     default: printf ("Accesses of size %d not allowed.\n", size);
       break;
@@ -226,7 +208,6 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     _dw_push (rv);
     break;
   }
-  /* These stack manipulation functions shouldn't be affected by the wantclosure flag*/
   case dom`DW_OP_dup:
     _dw_push (listref (_dwstack, 0));
     break;
@@ -281,7 +262,7 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     @local a1, a2, asid, rv;
     a1 = _dw_pop();
     asid = _dw_pop (); /* for now ignore the address space id */
-    a2 = (`uintptr *) {exdom}a1;
+    a2 = (`uintptr *) {dom}a1;
     rv = *a2;
     _dw_push (rv);
     break;
@@ -293,13 +274,13 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     size = (`uint32) (*lptr);
     lptr++;
     switch (size) {
-    case 1: ptr = (`uint8 *) {exdom}a1;
+    case 1: ptr = (`uint8 *) {dom}a1;
       break;
-    case 2: ptr = (`uint16 *) {exdom}a1;
+    case 2: ptr = (`uint16 *) {dom}a1;
       break;
-    case 4: ptr = (`uint32 *) {exdom}a1;
+    case 4: ptr = (`uint32 *) {dom}a1;
       break;
-    case 8: ptr = (`uint64 *) {exdom}a1;
+    case 8: ptr = (`uint64 *) {dom}a1;
       break;
     default: printf ("Accesses of size %d not allowed.\n", size);
       break;
@@ -483,9 +464,10 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     basereg = decodeuleb128 (lptr);
     lptr = listref (basereg, 1);
     basereg = head (basereg);
-    base = _dw_get_regval (exdom, basereg);
-    rv = base + offset;
     rvtype = _dwcqct_addr_type;
+    rv = lambda (as) {
+      return (_dw_get_regval (as, basereg) + offset);
+    };
     _dw_push (rv);
     break;
   }
@@ -579,7 +561,7 @@ define _dw_eval (dom, exas, cptr, pceval, wantclosure)
     rno = decodeuleb128 (lptr);
     lptr = listref (rno, 1);
     rno = head (rno);
-    rv = _dw_get_regval (exdom, rno);
+    rv = _dw_get_regval (dom, rno);
     rvtype = _dwcqct_reg_type;
     _dw_push (rv);
     break;
