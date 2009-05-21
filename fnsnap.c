@@ -50,7 +50,7 @@ snap(VM *vm, Fd *fd)
 	emaps = maps+strlen(maps);
 	p = maps;
 	while(p < emaps){
-		if(3 != sscanf(p, "%lx-%lx %c", &lo, &hi, &r)){
+		if(3 != sscanf(p, "%" PRIx64 "-%" PRIx64 " %c", &lo, &hi, &r)){
 			efree(maps);
 			vmerr(vm, "maps parse error");
 		}
@@ -88,9 +88,10 @@ snap(VM *vm, Fd *fd)
 		cnt += mp->hi-mp->lo;
 		mp++;
 	}
-	fprintf(stderr, "%lu+%u*%lu+%lu=%lu\n",
+	fprintf(stderr, "%lu+%u*%lu+%" PRIu64 "=%" PRIu64 "\n",
 		sizeof(nmap),
-		nmap, sizeof(Map),
+		nmap,
+		sizeof(Map),
 		cnt,
 		sizeof(nmap)+nmap*sizeof(Map)+cnt);
 	return;
