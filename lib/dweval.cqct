@@ -572,7 +572,7 @@ define _dw_eval (dom, cptr, pceval)
   return [rv, rvtype, lptr];
 }
 
-define dw_process_location_list (bdrec, exdom, ptr, cubase, fb)
+define dw_process_location_list (bdrec, ptr, cubase, fb)
 {
   @local op, cptr, asize, rv, l, fn, sloc, eloc, baseaddrflag, cubaseaddr;
   @local isdone, cnt, len, end;
@@ -589,8 +589,8 @@ define dw_process_location_list (bdrec, exdom, ptr, cubase, fb)
     cubaseaddr = listref (current_compilation_unit, 2);
   }
   else {
-    @local indom, abdom, strdom, exdom, cuinfo;
-    cuinfo = get_cu_baseaddr (bdrec, exdom, cubase);
+    @local indom, abdom, strdom, cuinfo;
+    cuinfo = get_cu_baseaddr (bdrec, cubase);
     cubaseaddr = listref (cuinfo, 2);
   }
   if (asize == 4)
@@ -628,7 +628,7 @@ define dw_process_location_list (bdrec, exdom, ptr, cubase, fb)
       len = *(unsigned short *)cptr;
       cptr = (`uint8 *) {dom}((unsigned int) cptr + sizeof (unsigned short));
       end = (unsigned int) cptr + {dom} len;
-      append (l, [cubaseaddr + sloc, cubaseaddr + eloc, dom, exdom, cptr, len]);
+      append (l, [cubaseaddr + sloc, cubaseaddr + eloc, dom, cptr, len]);
       cptr = end;
     }
   }

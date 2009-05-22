@@ -268,7 +268,7 @@ define dw_get_lineoff_for_cu (bdrec, addr)
   abptr = {abdom} cu->abbroff;
   abtab = dw_get_cu_abbrev_table (abdom, abptr);
   cptr = (unsigned int) cptr + sizeof (*cu);
-  cul = dw_process_die (bdrec, mkzas(1024), abtab, mktab(),
+  cul = dw_process_die (bdrec, abtab, mktab(),
 			mktab (), [], cptr, cubase, 1);
   lineoff = listref (listref (cul, 0), 5);
   return lineoff;
@@ -2028,7 +2028,7 @@ define dw_get_cu_abbrev_table (dwdom, ptr)
 }
 
 lastlocfun = nil;
-define dw_get_attr_val (bdrec, exas, form, ptr)
+define dw_get_attr_val (bdrec, form, ptr)
 {
   @local cptr, val, len, end;
   @local indom, abdom, asize;
@@ -2152,7 +2152,7 @@ define dw_get_attr_val (bdrec, exas, form, ptr)
     val = decodeuleb128 (cptr);
     cptr = listref (val, 1);
     val = head (val);
-    val = dw_get_attr_val (bdrec, exas, val, cptr);
+    val = dw_get_attr_val (bdrec, val, cptr);
     cptr = listref (val, 1);
     val = head (val);
     break;
@@ -2274,7 +2274,7 @@ define dw_addr2line (bdrec, addr)
 
 { @local local_scope_stack;
   local_scope_stack = [];
-define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase, toplevel)
+define dw_process_die (bdrec, abtab, typetab, symtab, fblist, ptr, cubase, toplevel)
 {
   @local acode, cptr, ab, abl, tag, spec, speclist, cqcttype;
   @local val, atname, form, i;
@@ -2320,7 +2320,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2339,7 +2339,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
 	  /* then val is an offset into the .debug_loc section */
-	  location = dw_process_location_list (bdrec, exas, val, cubase,
+	  location = dw_process_location_list (bdrec, val, cubase,
 					 _dw_current_frame_base);
 	  location = head (location);
 	}
@@ -2402,7 +2402,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2420,7 +2420,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
 	  /* then val is an offset into the .debug_loc section */
-	  location = dw_process_location_list (bdrec, exas, val, cubase,
+	  location = dw_process_location_list (bdrec, val, cubase,
 					       _dw_current_frame_base);
 	  location = head (location);
 	}
@@ -2428,7 +2428,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	  if (isempty (local_scope_stack)
 	      ) {
 	    if (isprocedure (val)) {
-	      location = listref (val(exas), 0);
+	      location = listref (val(indom.as), 0);
 	    }
 	    else {
 	      location = val;
@@ -2484,7 +2484,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2516,7 +2516,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2545,7 +2545,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	mtype = val;
       }
       else if (atname == indom`DW_AT_data_member_location) {
-	mloc = listref (val(exas), 0);
+	mloc = listref (val(indom.as), 0);
       }
     }
     if (bitfield && !isnil (bitsize) && !isnil (bitoff))
@@ -2586,7 +2586,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       form = listref (spec, 1);
       /* call with dynamic == 1 in order to handle DW_AT_frame_base attributes
 	 that are not location lists */
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2612,7 +2612,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	}
 	if (form == indom`DW_FORM_data4
 	    || form == indom`DW_FORM_data8) {
-	  rv = dw_process_location_list (bdrec, exas, val, cubase,
+	  rv = dw_process_location_list (bdrec, val, cubase,
 					 _dw_current_frame_base);
 	  _dw_current_frame_base = head (rv);
 	  foreach (lambda (v) {append (fblist, v);}, _dw_current_frame_base);
@@ -2705,7 +2705,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 	 local variables, and scopes associated with lexical blocks or
 	 inlined subroutines */
       @local srv;
-      srv = dw_process_die (bdrec, exas, abtab, typetab,
+      srv = dw_process_die (bdrec, abtab, typetab,
 			    symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned char *) (listref (srv, 1));
       if (!isnil (head (srv))) {
@@ -2813,7 +2813,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2847,7 +2847,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -2883,7 +2883,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2915,7 +2915,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
     while (isnotdone()) {
       @local mem;
       _dw_push ({indom} 0);
-      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
+      mem = dw_process_die (bdrec, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (mem, 1));
       mem = head (mem);
       if (!isnil (mem) && listref (mem, 1) == indom`DW_TAG_member)
@@ -2937,7 +2937,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -2975,7 +2975,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3002,7 +3002,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local subrange;
-      subrange = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
+      subrange = dw_process_die (bdrec, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (subrange, 1));
       subrange = head (subrange);
       if (!isnil (subrange)
@@ -3039,7 +3039,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3083,7 +3083,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3106,7 +3106,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_type) {
@@ -3131,7 +3131,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3153,7 +3153,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local emem;
-      emem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
+      emem = dw_process_die (bdrec, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (emem, 1));
       emem = head (emem);
       if (!isnil (emem) && listref (emem, 1) == indom`DW_TAG_enumerator)
@@ -3183,7 +3183,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3223,7 +3223,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
       if (atname == indom`DW_AT_name) {
@@ -3254,7 +3254,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       else if (* (unsigned char *)cptr) return 1; else return 0;};
     while (isnotdone()) {
       @local mem;
-      mem = dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, cptr, cubase, 0);
+      mem = dw_process_die (bdrec, abtab, typetab, symtab, fblist, cptr, cubase, 0);
       cptr = (unsigned int) (listref (mem, 1));
       mem = head (mem);
       if (!isnil (mem) && listref (mem, 1) == indom`DW_TAG_member)
@@ -3274,7 +3274,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
       spec = listref (speclist, i);
       atname = head (spec);
       form = listref (spec, 1);
-      val = dw_get_attr_val (bdrec, exas, form, cptr);
+      val = dw_get_attr_val (bdrec, form, cptr);
       cptr = listref (val, 1);
       val = head (val);
     }
@@ -3288,7 +3288,7 @@ define dw_process_die (bdrec, exas, abtab, typetab, symtab, fblist, ptr, cubase,
 };
 }
 
-define get_cu_baseaddr (bdrec, exas, ptr)
+define get_cu_baseaddr (bdrec, ptr)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
   @local typetab, cnt, symtab, fblist;
@@ -3310,7 +3310,7 @@ define get_cu_baseaddr (bdrec, exas, ptr)
   return head (di);;
 }
     
-define get_cu_info (bdrec, exas, ptr)
+define get_cu_info (bdrec, ptr)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
   @local typetab, cnt, symtab, fblist, cuscope, subscopelist;
@@ -3333,7 +3333,7 @@ define get_cu_info (bdrec, exas, ptr)
   cptr = (unsigned int) cptr + sizeof (*cu);
   while ((unsigned int) cptr < end /*&& cnt < 180*/) {
     cnt++;
-    di = dw_process_die (bdrec, exas, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1);
+    di = dw_process_die (bdrec, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1);
     cptr = listref (di, 1);
     if (isnil (listref (di, 0)))
       continue;
@@ -3379,7 +3379,7 @@ define get_all_cu_info (bdrec, exas)
   scopelist = [];
   cptr = {indom}0;
   while (inrange ((unsigned char *)cptr)) {
-    rv = get_cu_info (bdrec, exas, cptr);
+    rv = get_cu_info (bdrec, cptr);
     append (typetabs, listref (rv, 1));
     append (symtabs, listref (rv, 2));
     append (framebaselists, listref (rv, 3));
@@ -3939,10 +3939,10 @@ define get_frame_base_from_pc (bdrec, exas)
       printf ("ent is %a for pc 0x%x (%d)\n", ent, pc, pc);
       print_fbl (fbl);
     }
-    if (length (ent) == 6) {
+    if (length (ent) == 5) {
       /* then ent is a location list; evaluate it using the pc to
 	 determine which location list element has the right closure. */
-      rv = _dw_eval (listref (ent, 2), listref (ent, 4), pc);
+      rv = _dw_eval (listref (ent, 2), listref (ent, 3), pc);
       closuretab[pc] = rv;
     }
     else if (length (ent) == 3) {
@@ -4746,8 +4746,8 @@ define symloc (symtab, sym, exas, pc, bdrec)
 	continue;
       dom = listref (locent, 2);
       as = exas;
-      lcptr = listref (locent, 4);
-      lend = lcptr + listref (locent, 5);
+      lcptr = listref (locent, 3);
+      lend = lcptr + listref (locent, 4);
       fbase = get_frame_base_from_pc (bdrec, as);
       while (lcptr < lend) {
 	/* As long as we are in the evaluation of a DWARF block, the values
@@ -5447,7 +5447,7 @@ define init_debug_domain (binfile)
   while (inrange ((unsigned char *)cptr)) {
     @local cutabs;
     @local ctab, cstab;
-    rv = get_cu_info (bdrec, mknas(), cptr);
+    rv = get_cu_info (bdrec, cptr);
     tabinsert (bdrec.cuinfotab, cptr, rv);
     cutabs = get_function_tables_for_cu (rv, rns, indom, bdrec);
     append (result, cutabs);
@@ -5540,7 +5540,6 @@ define init_debug_domain (binfile)
   nscon = lambda (this, as, addr) {
     @local cu, rv, cutabs;
     @local tns, lt, ls, la, et, es, nsl, getretaddr, lnstab, uas;
-    @local slnstime;
     uas = as;
     rv = bdrec.nstab [uas];
     if (!isnil (rv)) {
@@ -5553,12 +5552,10 @@ define init_debug_domain (binfile)
       cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
       if (isnil (cuoff))
 	return nil;
-      cu = get_cu_info (bdrec, uas, cuoff);
+      cu = get_cu_info (bdrec, cuoff);
       cutabs = get_function_tables_for_cu (cu, rns, indom, bdrec);
     }
-    slnstime = gettimeofday();
     tns = make_local_ns (bdrec, uas, (`uintptr)addr);
-    lnstime = gettimeofday() - slnstime;
     lnstab = mktab ();
     lt = lambda (this, type) {return tns.looktype (type);};
     ls = lambda (this, sym) {return tns.looksym (sym);};
