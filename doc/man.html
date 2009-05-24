@@ -77,114 +77,74 @@ of the L1 implementation of Cinquecento.
 </p>
 
 <p>
-
-<!-- Cinquecento
-is used to automated examination,
-validation, and comparison of intricate program state 
-in either single or multi-process applications.
-Cinquecento can also be used interactively,
-as a debugger, although its syntax is optimized
-for the writing of debugging and validation scripts.
-
-Many of the ideas for language-based debugging
-come from Acid and D (the language DTrace).
-Cinquecento differs from these languages
-in OS-independence, support for arbitrary
-The key differences are ...
--->
-
-</p>
-
-<p>
 Cinquecento is a programming language designed to help
 programmers examine the state of programs in execution,
-in particular C programs.
-
-Like many languages designed for debugging, Cinquecento
-understands C types and pointers, and supports the use
-of standard C expressions to examine and modify the
-state of a target program.
-
-In addition, Cinquecento supports standard C control
-constructions;
-
-many idioms from C, such as loops for traversing pointer-linked data
-structures, look and mean the same in Cinquecento.
-
-Generally, debugging code that one might sprinkle in a C
-program
-can be used as Cinquecento code with little or
-no modification.
+in particular C programs.  Its key feature is an
+extensible abstraction, called a <em>domain</em>, that
+represents the state of a remotely executing program.
 </p>
 
 <p>
-A Cinquecento program may operate on
+The primary interface for constructing and accessing
+domains is the syntax of the C programming
+language.  Cinquecento understands C operators and the
+C type system; any valid C expression may be used to
+read or modify the state of a target program.
+Cinquecento also supports C control statements.
+These features allow many C idioms, such
+as loops for traversing pointer-linked data structures,
+to work unmodified in Cinquecento.  Types and variables
+of target programs can be specified using C declaration
+syntax; minor extensions admit precise specification of
+layout and encoding of program data in memory.
+</p>
+
+<p>
+Cinquecento is designed to operate on
 multiple target programs simultaneously.
 
-This feature allows the creation of Cinquecento
-programs that observe the execution of distributed
-systems.
+Heterogeneity among the programs and their environments
+is assumed: each target program may have its own types,
+symbols, executable format; and each target program may
+execute on a different machine, possibly with a different
+architecture and operating system.
+
+Example applications include comparing the execution of
+different versions of a program, or verifying that a
+particular version has comparable executions on
+different architectures.  More generally, Cinquecento
+can be used to validate the execution of the
+constitutent programs of a distributed system.
 </p>
 
 <p>
-Underlying these features is a language abstraction, called
-a <em>domain</em>, that represents a program in
-execution.
-
-Procedural interfaces to domains provide direct access
-to the memory, types, and symbols of the process
-represented by a domain.  These interfaces hide the
-location of the process and the architecture and
-operating system of the machine on which it runs.
+Domains encapsulate
+the essence of what is needed to symbolically examine a
+remotely executing program: definitions of its types
+and symbols, and a way to access to its memory and
+other run-time state.  Rather than favor the
+idiosyncrasies of one operating system, architecture,
+compiler, or debugging information format, Cinquecento
+specifies a minimal interface that allows users to
+tailor domains for their execution environment.
+Built-in library functions and support programs simplify
+construction of domains for common environments, such
+as x86 Linux systems.
 </p>
 
 <p>
-C is often a natural and expressive notation for
-examining the state of a process.
-
-In Cinquecento, C is the primary interface to domains.
-
-Every C expression occurs in the context of a
-particular domain &mdash; the process upon which the
-expression is intended to operate.
-
-The Cinquecento evaluator maps the expression into
-operations on the referenced domain.  To the user,
-Cinquecento supplies the illusion of fragments of
-C executing in the address space of target
-processes.
-</p>
-
-<p>
-Domains are first-class values.
-
-A rich set of built-in
-functions and supporting types enable Cinquecento users to create
-domains tailored for the environment in which
-their target application runs.
-
-Rather than favor the idiosyncrasies of one operating
-system, architecture, compiler, and debugging
-information format, Cinquecento encourages the
-development of libraries of user-defined domain
-implementations.
-
-In this sense, Cinquecento is as much a language for writing
-debuggers as it is a language for performing debugging.
-</p>
-
-<p>
-Domains can also be defined to access the contents
-of binary files, such as core dumps or program-generated output. 
-</p>
-
-<p>
-We provide a domain implementation for single-threaded Linux
-processes running on TCP/IP networks, which we
-distribute as a separate program called prctl.
-
-A separate manual describes the installation
-and operation of prctl.
+Cinquecento is structured as a simple dynamic language
+with conventional functional semantics.  Its closest
+semantic relative is Scheme: Cinquecento is lexically
+scoped, dynamically typed, properly tail recursive; and
+it has first-class functions and automatic memory
+management.  Aside from its use of C syntax,
+Cinquecento is a Scheme at heart; purists, however,
+will notice departure from tradition in Cinquecento's
+model of arithmetic (which is aggressively faithful to
+C), in the more stateful flavor of its built-in list
+data type, and (today) by the absence of a compelling
+macro system.
 </p>
 
 <p>
