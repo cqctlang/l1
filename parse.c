@@ -76,6 +76,7 @@ static unsigned basemod[Vnbase][Enbase] = {
 
 static Decl* dodecls(U *ctx, Expr *e);
 static Decl* dodecl(U *ctx, Expr *e);
+static Decl* copydecls(Decl *dl);
 static Type* copytype(Type *t);
 
 static HT *filenames;
@@ -319,8 +320,13 @@ copyexpr(Expr *e)
 		break;
 	}
 
-	if(e->xp)
-		fatal("bug");
+	if(e->xp){
+		/* FIXME: hack: compilea may copy expressions with decls */
+		if(e->kind == Edecl || e->kind == Edecls)
+			ne->xp = copydecls(e->xp);
+		else
+			fatal("bug");
+	}
 
 	ne->e1 = copyexpr(e->e1);
 	ne->e2 = copyexpr(e->e2);
