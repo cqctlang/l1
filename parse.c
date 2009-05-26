@@ -1129,6 +1129,7 @@ copydecls(Decl *dl)
 		return 0;
 	nd = newdecl();
 	nd->id = xstrdup(dl->id);
+	nd->type = copytype(dl->type);
 	nd->attr = copyexpr(dl->attr);
 	nd->link = copydecls(dl->link);
 	return nd;
