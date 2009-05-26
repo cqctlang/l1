@@ -10,9 +10,9 @@ new = []
 fail = []
 fault = []
 
-valgrind = '/usr/bin/valgrind'
+valgrind = os.getenv('HOME')+'/bin/valgrind'
 if not os.path.exists(valgrind):
-    valgrind = os.getenv('HOME')+'/valgrind/bin/valgrind'
+    valgrind = '/usr/bin/valgrind'
 if not os.path.exists(valgrind):
     print 'no valgrind'
     sys.exit();
