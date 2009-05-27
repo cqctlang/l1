@@ -129,7 +129,6 @@ define dw_get_aranges (ardom)
   @local hdrcnt, curaddr, arhdr, asize, alen, rem, artuple, rv, arl;
   @local m, r, rbeg, rend, inrange;
   rv = [];
-  arl = [];
   hdrcnt = {ardom}0;
   curaddr = {ardom}0x0;
   alen = {ardom}0x0;
@@ -159,7 +158,8 @@ define dw_get_aranges (ardom)
     return nil;
   while (artuple->ar_start || artuple->ar_len) {
     while (artuple->ar_start || artuple->ar_len) {
-      append (arl, [artuple->ar_start, artuple->ar_start + artuple->ar_len]);
+      append (rv, [artuple->ar_start, artuple->ar_start + artuple->ar_len,
+	      arhdr->di_off]);
       artuple++;
       if (!inrange (artuple)) {
 	printf ("unmapped address at 0x%x\n", artuple);
@@ -168,7 +168,6 @@ define dw_get_aranges (ardom)
     }
     /* advance past 0 offset and length indicating end of this arange set.*/
     artuple++;
-    append (rv, [arl, arhdr->di_off]);
     arhdr = (struct ardom`arangehdr *)artuple;
     arl = [];
     hdrcnt ++;
@@ -184,70 +183,40 @@ define dw_get_aranges (ardom)
     if (!inrange (artuple))
       break;
   }
+  sort (rv, lambda (e1, e2) {
+      if (e1[0] < e2[0])
+	return -1;
+      else if (e1[0] > e2[0])
+	return 1;
+      return 0;
+    });
   return rv;
 }
 
-define dw_get_dieoff_for_cu (dwdom, addr)
+define dw_show_aranges (arl)
 {
-  @local arhdr, curaddr, asize, aoff, alen, rem, artuple, eaddr, hdrcnt;
-  @local m, r, rbeg, rend, inrange;
-  hdrcnt = {dwdom}0;
-  curaddr = {dwdom}0x0;
-  alen = {dwdom}0x0;
-  eaddr = {dwdom} addr;
-  arhdr = (struct dwdom`arangehdr *)curaddr;
-  asize = arhdr->addr_size;
-  /* The DWARF 2 spec (sec. 7.20) says that the first (offset, size) tuple
-     following the header begins at a multiple of the size of a single tuple
-     (twice the size of an address). */
-  curaddr += sizeof (struct dwdom`arangehdr);
-  rem = curaddr % (2 * asize);
-  if (rem)
-    curaddr += (2 * asize - rem);
-  if (asize == 4)
-    artuple = (struct arange32 *)curaddr;
-  else if (asize == 8)
-    artuple = (struct arange64 *)curaddr;
-  else {
-    printf ("unsupported address size: %d\n", asize);
-    return nil;
+  @local i, j, k, arent, ar, cuoff, cul;
+  for (i = 0; i < length (arl); i++) {
+    ar = arl[i];
+      printf ("0x%x\t\t0x%x\t\t%d\n", ar[0], ar[1], ar[2]);
   }
-  m = dwdom.map();
-  r = m[0];
-  rbeg = rangebeg (r);
-  rend = rbeg + rangelen (r);
-  inrange = lambda (v) {return rbeg <= v && v < rend;};
-  if (!inrange (artuple))
+}
+
+define dw_get_dieoff_for_cu (bdrec, addr)
+{
+  @local ardom, pc, entry, lopc, hipc, off;
+  ardom = bdrec.debug_aranges;
+  pc = {ardom}addr;
+  entry = binsrch_interval (ardom, bdrec.artab, pc);
+  if (!islist (entry))
     return nil;
-  while (artuple->ar_start || artuple->ar_len) {
-    while (artuple->ar_start || artuple->ar_len) {
-      if (artuple->ar_start <= eaddr
-	  && eaddr < (artuple->ar_start + artuple->ar_len)) {
-	return arhdr->di_off;
-      }
-      artuple++;
-      if (!inrange (artuple)) {
-	printf ("unmapped address at 0x%x\n", artuple);
-	return nil;
-      }
-    }
-    /* advance past 0 offset and length indicating end of this arange set.*/
-    artuple++; 
-    arhdr = (struct dwdom`arangehdr *)artuple;
-    hdrcnt ++;
-    curaddr = (unsigned int) arhdr;
-    curaddr += sizeof (struct dwdom`arangehdr);
-    rem = curaddr % (2 * asize);
-    if (rem)
-      curaddr += (2 * asize - rem);
-    if (asize == 4)
-      artuple = (struct arange32 *)curaddr;
-    else if (asize == 8)
-      artuple = (struct arange64 *)curaddr;
-    if (!inrange (artuple))
-      break;
+  entry = entry[0];
+  off = entry[2];
+  if (entry[0] <= addr && addr < entry[1]) {
+    return off;
   }
-  return nil;
+  else
+    return nil;
 }
 
 define dw_get_lineoff_for_cu (bdrec, addr)
@@ -258,7 +227,7 @@ define dw_get_lineoff_for_cu (bdrec, addr)
   strdom = bdrec.debug_str;
   indom = bdrec.debug_info;
   ardom = bdrec.debug_aranges;
-  cptr = dw_get_dieoff_for_cu (ardom, addr);
+  cptr = dw_get_dieoff_for_cu (bdrec, addr);
   if (isnil (cptr))
     return nil;
   else
@@ -1062,15 +1031,12 @@ define dw_build_frametab (bdrec)
 	break;
       }
       else {
-	fentry = [];
-	append (fentry, fde->init_loc);
-	append (fentry, fde->init_loc + fde->addr_range);
-	append (fentry, fde);
-	//if (asize == 4)
-	  append (fentry, fde->len);
-	  //else if (asize == 8)
-	  //append (fentry, fde->real_len);
-	  //printf ("0x%x\t0x%x\n", listref (fentry, 0), listref (fentry, 1));
+	fentry = [fde->init_loc, fde->init_loc + fde->addr_range, fde, fde->len];
+// 	//if (asize == 4)
+// 	  append (fentry, fde->len);
+// 	  //else if (asize == 8)
+// 	  //append (fentry, fde->real_len);
+// 	  //printf ("0x%x\t0x%x\n", listref (fentry, 0), listref (fentry, 1));
 	append (result, fentry);
       }
       //if (asize == 4)
@@ -1088,9 +1054,11 @@ define dw_build_frametab (bdrec)
 	fde = (struct dw64_fde_struct *) fde;
     }
   }
+  printf ("length of result = %d\n", length (result));
   sort (result, lambda (a, b) {if (listref (a, 0) < listref (b, 0)) return -1;
 	  else if (listref (a, 0) > listref (b, 0)) return 1;
 	  else return 0;});
+  bdrec.frametable = result;
   return result;
 }
 
@@ -2265,7 +2233,7 @@ define dw_addr2line (bdrec, addr)
   dlist = listref (cuinfo, 3);
   flist = listref (cuinfo, 4);
   cutab = listref (cuinfo, 5);
-  entry = listref (binsrch_lineno (linedom, cutab, addr), 0);
+  entry = listref (binsrch_interval (linedom, cutab, addr), 0);
   f = listref (flist, listref (entry, 1) - 1);
   dir = listref (dlist, listref (f, 1));
   rv = sprintfa ("%s/%s:\t%d", dir, head (f), listref (entry, 2));
@@ -3910,12 +3878,11 @@ define get_frame_base_from_pc (bdrec, exas)
   etab = bdrec.cuinfotab;
   dumdom = mkdom (indom.ns, exas);
   pc = dumdom.getrip();
-  stime = gettimeofday();
   if (!isnil (closuretab[pc]))
     rv = closuretab[pc];
   else {
     ardom = bdrec.debug_aranges;
-    cukey = dw_get_dieoff_for_cu (ardom, pc);
+    cukey = dw_get_dieoff_for_cu (bdrec, pc);
     if (isnil (cukey)) {
       printf ("pc 0x%x not in any arange.\n", pc);
       return nil;
@@ -4296,16 +4263,16 @@ define print_ctype (name, t)
     printf ("don't know what to do with %a %t\n", t, t);
 }
 
-define binsrch_lineno (ldom, ltab, addr)
+define binsrch_interval (dwdom, dwtab, addr)
 {
   @local el, ad, hi, lo, i, len;
-  ad = {ldom}addr;
-  len = length (ltab);
+  ad = {dwdom}addr;
+  len = length (dwtab);
   lo = 0;
   hi = len;
   while ( (hi - lo) > 1) {
     i = (lo + hi) / 2;
-    el = listref (ltab, i);
+    el = listref (dwtab, i);
     if (head (el) == ad)
       return [el, i];
     else if (head (el) < ad)
@@ -4313,10 +4280,10 @@ define binsrch_lineno (ldom, ltab, addr)
     else
       hi = i;
   }
-  if (head (listref (ltab, hi - 1)) > ad)
-    return [listref (ltab, lo), lo];
+  if (head (listref (dwtab, hi - 1)) > ad)
+    return [listref (dwtab, lo), lo];
   else
-    return [listref (ltab, hi - 1), hi - 1];
+    return [listref (dwtab, hi - 1), hi - 1];
 }
 
 define print_scope (scope, level)
@@ -4662,7 +4629,7 @@ define find_fn_and_cu (bdrec, addr)
   etab = bdrec.cuinfotab;
   ardom = bdrec.debug_aranges;
   pc = {ardom} addr;
-  cukey = dw_get_dieoff_for_cu (ardom, pc);
+  cukey = dw_get_dieoff_for_cu (bdrec, pc);
   cu = tablook (etab, cukey);
   return cu;
 }
@@ -4776,8 +4743,8 @@ define symloc (symtab, sym, exas, pc, bdrec)
 define make_local_ns (bdrec, exas, pc)
 {
   @local f, cu, lns, ns, ftabs, fstab, ntab, nstab, inscope, rns, cuns;
-  @local newlksym, newlktype, newlkaddr, newet, newes;
-  @local finaltab, tempdom;
+  @local newlksym, newlktype, newlkaddr, newet, newes, cfa;
+  @local finaltab, tempdom, a2l, getretaddr;
   @local indom;
   indom = bdrec.debug_info;
   nstab = mktab ();
@@ -4788,6 +4755,9 @@ define make_local_ns (bdrec, exas, pc)
   ftabs = listref (f, 2) ();
   ntab = listref (ftabs, 0);
   fstab = listref (ftabs, 1);
+  fb = get_frame_base_from_pc (bdrec, exas);
+  if (isprocedure (fb))
+    fb = fb (exas);
   foreach (lambda (k,v){ @local sloc;
       /* make sure that sym's type is in local type table */
       sloc = symloc (fstab, k, exas, {indom}pc, bdrec);
@@ -4796,7 +4766,7 @@ define make_local_ns (bdrec, exas, pc)
       if (!isnil (sloc)) {
 	@local nsym;
 	if (isprocedure (sloc)) {
-	  sloc = sloc(exas);
+ 	  sloc = sloc(exas);
 	}
 	if (islist (sloc) && listref (sloc, 1) == _dwcqct_reg_type) {
 	  @local vtype, getv, putv, itype;
@@ -4870,6 +4840,41 @@ define make_local_ns (bdrec, exas, pc)
   tabinsert (finaltab, "enumtype", newet);
   tabinsert (finaltab, "enumsym", newes);
   tabinsert (finaltab, "nslocals", lambda (this) {return lns;});
+  a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr);};
+  tabinsert(finaltab, "addr2line", a2l);
+  getretaddr = lambda (this) {
+    @local asize, rlist, rvec, retaddrloc, raregno, cfa;
+    if (!isdom (this))
+      error ("getretaddr must be called through a domain.\n");
+    retaddrloc = nil;
+    asize = bdrec.addrsize;
+    /* at some point we should get this from the DWARF information in
+       the CIE */
+    if (asize == 4)
+      raregno = 8;
+    else if (asize == 8)
+      raregno = 16;
+    rlist = dw_unwind_to_caller (bdrec, (unsigned long) addr);
+    rvec = listref (head (rlist), 1);
+    for (i = 0; i < length (rvec); i++) {
+      @local r, reg, base;
+      r = listref (rvec, i);
+      if (isnil (r))
+	continue;
+      reg = head (r);
+      if (reg == fdom`DW_FRAME_CFA_COL) {
+	cfa = _dw_get_regval (this, listref (r, 1)) + listref (r, 2);
+      }
+      else if (reg == raregno) {
+	retaddrloc = (unsigned long *) ({this}(cfa + listref (r,2)));
+	break;
+      }
+      else
+	continue;
+    }
+    return retaddrloc;
+  };
+  tabinsert(finaltab, "getretaddr", getretaddr);
   ns = mkns (finaltab, sprintfa ("finaltab0x%x", pc));
   return ns;
 }
@@ -4940,8 +4945,8 @@ define skip_prologue (dom, name)
     return "no line number info";
   cuinfo = dw_get_cu_linenumber_info (bdrec, {linedom}cuoff);
   cutab = listref (cuinfo, 5);
-  entry = binsrch_lineno (linedom, cutab, {linedom}saddr);
-  /* binsrch_lineno returns a pair consisting of an entry and its index
+  entry = binsrch_interval (linedom, cutab, {linedom}saddr);
+  /* binsrch_interval returns a pair consisting of an entry and its index
      in the cutab */
   eindex = listref (entry, 1);
   entry = listref (entry, 0);
@@ -4973,7 +4978,6 @@ define skip_prologue (dom, name)
 define dumpstack (addr)
 {
   @local dom, gns, bt, cdom, cns, i, j, pcregno, bdrec;
-  @local slastime, snscontime, sldomtime;
   dom = domof (addr);
   bdrec = dom.bdrec();
   addr = (`uintptr) addr;
@@ -4987,9 +4991,7 @@ define dumpstack (addr)
       lpc = _dw_get_regval (dom, pcregno);
     else
       lpc = *(`uintptr *)listref (fr, pcregno);
-//     slastime = gettimeofday();
     las = make_local_as (dom.as, fr);
-//     lastime += gettimeofday() - slastime;
     /* This may look crazy, but we need to use the local address space
        when executing the closures in nscon to calculate the CFA for
        a particular addr. Once we have the local namespace, we combine
@@ -4999,16 +5001,12 @@ define dumpstack (addr)
 //     /* clear out any stored ns for this address since it will not have
 //        been built with the correct address space */
 //     bdrec.nstab[lpc] = nil;
-//    snscontime = gettimeofday();
 //     lns = tdom.nscon (lpc);
     lns = dom.nscon (las, _dw_get_regval (las, pcregno));
-//     nscontime += gettimeofday() - snscontime;
     if (isnil (lns))
       continue;
     lns = lns.nslocals ();
-//     sldomtime = gettimeofday();
     ldom = mkdom (lns, las, sprintfa ("ldom%s", sprintfa ("%a", lns)));
-//     ldomtime += gettimeofday() - sldomtime;
     printf ("symbols for address 0x%x:\n", lpc);
     foreach (lambda (k,v) {
 	if (!isenum (symtype (v)) && !isenumconst (symtype (v)))
@@ -5432,6 +5430,7 @@ define init_debug_domain (binfile)
   bdrec.cuinfotab = mktab ();
   bdrec.nstab = mktab ();
   bdrec.fregtab = mktab ();
+  bdrec.artab = dw_get_aranges (bdrec.debug_aranges);
   bdrec.addrsize = sizeof (nsptr (dom));
   indom = bdrec.debug_info;
   fdom = bdrec.debug_frame;
@@ -5549,64 +5548,17 @@ define init_debug_domain (binfile)
     if (isnil (cutabs)) {
       @local ar, arl, ardom, cuns, cuoff;
       ardom = bdrec.debug_aranges;
-      cuoff = dw_get_dieoff_for_cu (ardom, {ardom}addr);
+      cuoff = dw_get_dieoff_for_cu (bdrec, {ardom}addr);
       if (isnil (cuoff))
 	return nil;
+      else
+	printf ("cuoff for 0x%x (%d) is %a\n", addr, addr, cuoff);
       cu = get_cu_info (bdrec, cuoff);
       cutabs = get_function_tables_for_cu (cu, rns, indom, bdrec);
     }
     tns = make_local_ns (bdrec, uas, (`uintptr)addr);
-    lnstab = mktab ();
-    lt = lambda (this, type) {return tns.looktype (type);};
-    ls = lambda (this, sym) {return tns.looksym (sym);};
-    la = lambda (this, addr) {return tns.lookaddr (addr);};
-    et = lambda (this) {return tns.enumtype ();};
-    es = lambda (this) {return tns.enumsym ();};
-    nsl = lambda (this) {return tns.nslocals ();};
-    tabinsert(lnstab, "looktype", lt);
-    tabinsert(lnstab, "enumtype", et);
-    tabinsert(lnstab, "looksym", ls);
-    tabinsert(lnstab, "enumsym", es);
-    tabinsert(lnstab, "lookaddr", la);
-    tabinsert(lnstab, "nslocals", nsl);
-    a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr);};
-    tabinsert(lnstab, "addr2line", a2l);
-    getretaddr = lambda (this) {
-      @local asize, rlist, rvec, retaddrloc, raregno, cfa;
-      if (!isdom (this))
-	error ("getretaddr must be called through a domain.\n");
-      retaddrloc = nil;
-      asize = bdrec.addrsize;
-      /* at some point we should get this from the DWARF information in
-	 the CIE */
-      if (asize == 4)
-	raregno = 8;
-      else if (asize == 8)
-	raregno = 16;
-      rlist = dw_unwind_to_caller (bdrec, (unsigned long) addr);
-      rvec = listref (head (rlist), 1);
-      for (i = 0; i < length (rvec); i++) {
-	@local r, reg, base;
-	r = listref (rvec, i);
-	if (isnil (r))
-	  continue;
-	reg = head (r);
-	if (reg == fdom`DW_FRAME_CFA_COL) {
-	  cfa = _dw_get_regval (this, listref (r, 1)) + listref (r, 2);
-	}
-	else if (reg == raregno) {
-	  retaddrloc = (unsigned long *) ({this}(cfa + listref (r,2)));
-	  break;
-	}
-	else
-	  continue;
-      }
-      return retaddrloc;
-    };
-    tabinsert(lnstab, "getretaddr", getretaddr);
-    rv = mkns (lnstab, sprintfa ("lnstab0x%x", addr));
-    bdrec.nstab [addr] = rv;
-    return rv;
+    bdrec.nstab [addr] = tns;
+    return tns;
   };
   tabinsert (mtab, "nscon", nscon);
   gns = mkns (mtab, "allcuns");

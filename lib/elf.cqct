@@ -1,6 +1,6 @@
 @record bd {exec, elf, debug_aranges, debug_pubnames, debug_info, debug_abbrev,
     debug_line, debug_frame, debug_str, debug_ranges, debug_loc, frametable,
-    linetable, addrsize, rootns, cuinfotab, nstab, fregtab};
+    linetable, addrsize, rootns, cuinfotab, nstab, fregtab, artab};
 
 define mkelfrec (binfile) {
   @local elfas, elfheader, elfnames, hdom, hns, root, rv;
