@@ -1,0 +1,4 @@
+ns = @names c32le { @0x0 struct { @0x0 int *x, y; @0x8; } x, y; };
+dom = mkdom(ns,mknas());
+printf("%a\n", map(fieldtype, fields(typeof(dom`x))));
+printf("%a\n", map(fieldtype, fields(typeof(dom`y))));

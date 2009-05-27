@@ -1,0 +1,4 @@
+define x() {
+       @local y;
+       y = ((unsigned int*){dom}0)[0];
+}

@@ -10,15 +10,18 @@ new = []
 fail = []
 fault = []
 
-valgrind = '/usr/bin/valgrind'
+valgrind = os.getenv('HOME')+'/bin/valgrind'
 if not os.path.exists(valgrind):
-    valgrind = os.getenv('HOME')+'/valgrind/bin/valgrind'
+    valgrind = '/usr/bin/valgrind'
 if not os.path.exists(valgrind):
     print 'no valgrind'
     sys.exit();
 
-suppress=' --suppressions=./pthread-suppression'
-cmd = valgrind+' -q --show-reachable=yes --leak-check=full'+suppress+' ../l1 -w -b '
+suppress = ' --suppressions=./pthread-suppression'
+vgopt = ' -q --show-reachable=yes --leak-check=full'+suppress
+#vgopt = ' -q --tool=exp-ptrcheck'
+l1 = ' ../l1 -w -b '
+cmd = valgrind+vgopt+l1
 
 for m in glob.glob('[A-Za-z0-9]*.l1'):
     print m,
