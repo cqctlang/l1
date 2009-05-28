@@ -874,10 +874,12 @@ copyenums(Enum *en)
 {
 	Enum *nen;
 
+	if(en == (Enum*)EmptyDecl)
+		return en;
 	if(en == 0)
 		return 0;
 	nen = emalloc(sizeof(Enum));
-	nen->id = en->id;
+	nen->id = xstrdup(en->id);
 	nen->val = copyexpr(en->val);
 	nen->link = copyenums(en->link);
 	return nen;
