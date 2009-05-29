@@ -870,6 +870,22 @@ szenum(Enum *en)
 }
 
 static Enum*
+copyenums(Enum *en)
+{
+	Enum *nen;
+
+	if(en == (Enum*)EmptyDecl)
+		return en;
+	if(en == 0)
+		return 0;
+	nen = emalloc(sizeof(Enum));
+	nen->id = xstrdup(en->id);
+	nen->val = copyexpr(en->val);
+	nen->link = copyenums(en->link);
+	return nen;
+}
+
+static Enum*
 recenums(Type *t, Expr *e, Expr *val)
 {
 	Expr *el;
@@ -1169,7 +1185,9 @@ copytype(Type *t)
 		nt->sz = copyexpr(t->sz);
 		break;
 	case Tenum:
-		fatal("define copytype on enum");
+		nt->tag = xstrdup(t->tag);
+		nt->en = copyenums(t->en);
+		break;
 	case Tptr:
 		nt->link = copytype(t->link);
 		break;

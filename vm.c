@@ -6273,9 +6273,8 @@ builtincval(Env *env, char *name, Cval *cv)
 static void
 vmresetctl(VM *vm)
 {
-	while(vm->pdepth > 0)
+	while(vm->pdepth > 1)	/* don't pop persistent level */
 		gcprotpop(vm);
-	gcprotpush(vm);		/* push a level for persistent references */
 	vm->edepth = 0;
 	vm->fp = 0;
 	vm->sp = Maxstk;
@@ -10921,6 +10920,7 @@ cqctmkvm(Toplevel *top)
 	vm->emax = Errinitdepth;
 	vm->err = emalloc(vm->emax*sizeof(Err));
 	
+	gcprotpush(vm);		/* persistent references */
 	vmresetctl(vm);
 
 	/* register vm with fault handler */
