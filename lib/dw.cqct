@@ -126,7 +126,7 @@ define advance_strptr (dwdom, sptr)
 
 define dw_get_aranges (ardom)
 {
-  @local hdrcnt, curaddr, arhdr, asize, alen, rem, artuple, rv, arl;
+  @local hdrcnt, curaddr, arhdr, asize, alen, rem, artuple, rv;
   @local m, r, rbeg, rend, inrange;
   rv = [];
   hdrcnt = {ardom}0;
@@ -169,7 +169,6 @@ define dw_get_aranges (ardom)
     /* advance past 0 offset and length indicating end of this arange set.*/
     artuple++;
     arhdr = (struct ardom`arangehdr *)artuple;
-    arl = [];
     hdrcnt ++;
     curaddr = (unsigned int) arhdr;
     curaddr += sizeof (struct ardom`arangehdr);
@@ -234,8 +233,15 @@ define dw_get_lineoff_for_cu (bdrec, addr)
     cptr = {indom} cptr;
   cubase = cptr;
   cu = (struct dw_cu_hdr *) cptr;
-  abptr = {abdom} cu->abbroff;
-  abtab = dw_get_cu_abbrev_table (abdom, abptr);
+  if (!isnil (bdrec.cuinfotab[(unsigned char *)cptr])) {
+    abtab = listref (bdrec.cuinfotab[(unsigned char *)cptr],
+		     length (bdrec.cuinfotab[(unsigned char *)cptr]) - 1);
+  }
+  else {
+    printf ("in get lineoff did not find bdrec.cuinfotab value at %d\n", cptr);
+    abptr = {abdom} cu->abbroff;
+    abtab = dw_get_cu_abbrev_table (abdom, abptr);
+  }
   cptr = (unsigned int) cptr + sizeof (*cu);
   cul = dw_process_die (bdrec, abtab, mktab(),
 			mktab (), [], cptr, cubase, 1);
@@ -1054,7 +1060,6 @@ define dw_build_frametab (bdrec)
 	fde = (struct dw64_fde_struct *) fde;
     }
   }
-  printf ("length of result = %d\n", length (result));
   sort (result, lambda (a, b) {if (listref (a, 0) < listref (b, 0)) return -1;
 	  else if (listref (a, 0) > listref (b, 0)) return 1;
 	  else return 0;});
@@ -1926,8 +1931,7 @@ define show_cu_hdr_aranges (ardom, infodom)
 define dw_get_att_spec (dwdom, ptr)
 {
   @local name, form, cptr;
-  cptr = {dwdom} ptr;
-  cptr = decodeuleb128 (cptr);
+  cptr = decodeuleb128 (ptr);
   name = head (cptr);
   cptr = listref (cptr, 1);
   cptr = decodeuleb128 (cptr);
@@ -3258,7 +3262,7 @@ define dw_process_die (bdrec, abtab, typetab, symtab, fblist, ptr, cubase, tople
 
 define get_cu_baseaddr (bdrec, ptr)
 {
-  @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
+  @local cptr, abtable, abptr, di, cu, end, ab, sibloc;
   @local typetab, cnt, symtab, fblist;
   @local indom, abdom, strdom;
   indom = bdrec.debug_info;
@@ -3270,9 +3274,15 @@ define get_cu_baseaddr (bdrec, ptr)
   cptr = {indom} ptr;
   cu = (struct dw_cu_hdr *) cptr;
   end = (unsigned int) cptr + cu->len + sizeof (cu->len);
-  abptr = {abdom} cu->abbroff;
-  abtable = dw_get_cu_abbrev_table (abdom, abptr);
-  abtlen = length (abtable);
+  if (!isnil (bdrec.cuinfotab[(unsigned char *)cptr])) {
+    abtab = listref (bdrec.cuinfotab[(unsigned char *)cptr],
+		     length (bdrec.cuinfotab[(unsigned char *)cptr]) - 1);
+  }
+  else {
+    printf ("in get_cu_baseaddr found no info at cptr %d\n", cptr);
+    abptr = {abdom} cu->abbroff;
+    abtab = dw_get_cu_abbrev_table (abdom, abptr);
+  }
   cptr = (unsigned int) cptr + sizeof (*cu);
   di = dw_process_die (bdrec, indom, abtable, typetab, symtab, fblist, cptr, (unsigned int){indom}ptr, 1);
   return head (di);;
@@ -3280,7 +3290,7 @@ define get_cu_baseaddr (bdrec, ptr)
     
 define get_cu_info (bdrec, ptr)
 {
-  @local cptr, abtable, abptr, di, cu, end, ab, abtlen, sibloc;
+  @local cptr, abtable, abptr, di, cu, end, ab, sibloc;
   @local typetab, cnt, symtab, fblist, cuscope, subscopelist;
   @local indom, abdom, strdom;
   indom = bdrec.debug_info;
@@ -3297,7 +3307,6 @@ define get_cu_info (bdrec, ptr)
   end = (unsigned int) cptr + cu->len + sizeof (cu->len);
   abptr = {abdom} cu->abbroff;
   abtable = dw_get_cu_abbrev_table (abdom, abptr);
-  abtlen = length (abtable);
   cptr = (unsigned int) cptr + sizeof (*cu);
   while ((unsigned int) cptr < end /*&& cnt < 180*/) {
     cnt++;
@@ -3327,7 +3336,7 @@ define get_cu_info (bdrec, ptr)
     }
     di = head (di);
   }
-  return [cptr, typetab, symtab, fblist, append (cuscope, subscopelist), ptr ];
+  return [cptr, typetab, symtab, fblist, append (cuscope, subscopelist), abtable, ptr ];
 }
 
 define get_all_cu_info (bdrec, exas)
@@ -4560,6 +4569,7 @@ define get_function_tables_for_cu (cu, rns, dom, bdrec)
 {
   @local i, f, ftabs, fscopes, cusymtab, cutypetab, stab, ttab, ns;
   @local cudwsymtab, cudwtypetab, ctab;
+  @local abtable;
   stab = mktab ();
   ttab = mktab ();
   ctab = bdrec.cuinfotab;
@@ -4582,9 +4592,10 @@ define get_function_tables_for_cu (cu, rns, dom, bdrec)
     newtabs = [listref (tempfsc, 0), listref (tempfsc, 2), ftfn];
     append (ftabs, newtabs);
   }
+  abtable = listref (cu, (length (cu) - 2));
   tabinsert (ctab, listref (cu, length (cu) -1),
-	     [ttab, stab, ftabs, ns, listref (cu, 3)]);
-  return [ttab, stab, ftabs, ns, listref (cu, 3)];
+	     [ttab, stab, ftabs, ns, listref (cu, 3), abtable]);
+  return [ttab, stab, ftabs, ns, listref (cu, 3), abtable];
 }
 
 define show_cu_function_tables (cutabs)
@@ -5009,8 +5020,13 @@ define dumpstack (addr)
     ldom = mkdom (lns, las, sprintfa ("ldom%s", sprintfa ("%a", lns)));
     printf ("symbols for address 0x%x:\n", lpc);
     foreach (lambda (k,v) {
-	if (!isenum (symtype (v)) && !isenumconst (symtype (v)))
+	@local vt;
+	vt = symtype (v);
+	if (!isenum (vt)
+	    && !isenumconst (vt))
 	  print_obj (v, ldom);},
+// 	if (!isenum (symtype (v)) && !isenumconst (symtype (v)))
+// 	  print_obj (v, ldom);},
       lns.enumsym());
   }
   return bt;
