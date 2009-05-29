@@ -14,6 +14,8 @@ valgrind = os.getenv('HOME')+'/bin/valgrind'
 if not os.path.exists(valgrind):
     valgrind = '/usr/bin/valgrind'
 if not os.path.exists(valgrind):
+    valgrind = '/usr/local/bin/valgrind'
+if not os.path.exists(valgrind):
     print 'no valgrind'
     sys.exit();
 
