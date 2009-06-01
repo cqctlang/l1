@@ -5553,13 +5553,9 @@ define init_debug_domain (binfile)
   a2l = lambda (this, addr) {return dw_addr2line (bdrec, addr);};
   tabinsert(mtab, "addr2line", a2l);
   nscon = lambda (this, as, addr) {
-    @local cu, rv, cutabs;
-    @local tns, lt, ls, la, et, es, nsl, getretaddr, lnstab, uas;
+    @local cu, cutabs;
+    @local tns, lt, ls, la, et, es, nsl, getretaddr, uas;
     uas = as;
-    rv = bdrec.nstab [uas];
-    if (!isnil (rv)) {
-      return rv;
-    }
     cutabs = find_fn_and_cu (bdrec, (`uintptr)addr);
     if (isnil (cutabs)) {
       @local ar, arl, ardom, cuns, cuoff;
@@ -5573,7 +5569,6 @@ define init_debug_domain (binfile)
       cutabs = get_function_tables_for_cu (cu, rns, indom, bdrec);
     }
     tns = make_local_ns (bdrec, uas, (`uintptr)addr);
-    bdrec.nstab [addr] = tns;
     return tns;
   };
   tabinsert (mtab, "nscon", nscon);
