@@ -438,7 +438,7 @@ tabstat()
 		if(p->color == GCfree)
 			goto next;
 		t = (Tab*)p;
-		snprintf(buf, sizeof(buf), "%u", t->x->sz);
+		snprint(buf, sizeof(buf), "%u", t->x->sz);
 		v = hget(ht, buf, strlen(buf));
 		if(v == 0)
 			hput(ht, xstrdup(buf), strlen(buf),

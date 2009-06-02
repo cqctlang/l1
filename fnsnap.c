@@ -106,7 +106,7 @@ readmaps()
 	char *buf;
 
 	max = 4096;
-	snprintf(name, sizeof(name), "/proc/%d/maps", getpid());
+	snprint(name, sizeof(name), "/proc/%d/maps", getpid());
 again:
 	buf = emalloc(max);
 	fd = open(name, O_RDONLY);
