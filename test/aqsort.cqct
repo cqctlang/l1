@@ -26,7 +26,7 @@ define testaqsort(){
 		val[i] = gas;
 	pr.bpset((pr`uint64)skip_prologue(pr, "cmpx"), lambda(addr){
 	                 @local x, y, ra, id, lns, ldom;
-			 lns = pr.nscon(addr);
+			 lns = pr.nscon(pr.as, addr);
 			 ldom = mkdom(lns, pr.as);
 			 x = {tmp}*((int*)ldom`px);
 			 y = {tmp}*((int*)ldom`py);
