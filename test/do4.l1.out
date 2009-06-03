@@ -1,26 +1,26 @@
 entry: var params, 3 locals, 0 temps
-<cval 25>
-<cval 20>
-<cval 15>
-<cval 10>
-<cval 5>
-<cval 20>
-<cval 16>
-<cval 12>
-<cval 8>
-<cval 4>
-<cval 15>
-<cval 12>
-<cval 9>
-<cval 6>
-<cval 3>
-<cval 10>
-<cval 8>
-<cval 6>
-<cval 4>
-<cval 2>
-<cval 5>
-<cval 4>
-<cval 3>
-<cval 2>
-<cval 1>
+25
+20
+15
+10
+5
+20
+16
+12
+8
+4
+15
+12
+9
+6
+3
+10
+8
+6
+4
+2
+5
+4
+3
+2
+1

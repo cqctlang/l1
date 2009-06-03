@@ -1,51 +1,51 @@
 entry: var params, 2 locals, 0 temps
-<cval 1>
-<cval 3>
-<cval 5>
-<cval 7>
-<cval 9>
-<cval 2>
-<cval 4>
-<cval 6>
-<cval 8>
-<cval 10>
-<cval 3>
-<cval 5>
-<cval 7>
-<cval 9>
-<cval 11>
-<cval 4>
-<cval 6>
-<cval 8>
-<cval 10>
-<cval 12>
-<cval 5>
-<cval 7>
-<cval 9>
-<cval 11>
-<cval 13>
-<cval 6>
-<cval 8>
-<cval 10>
-<cval 12>
-<cval 14>
-<cval 7>
-<cval 9>
-<cval 11>
-<cval 13>
-<cval 15>
-<cval 8>
-<cval 10>
-<cval 12>
-<cval 14>
-<cval 16>
-<cval 9>
-<cval 11>
-<cval 13>
-<cval 15>
-<cval 17>
-<cval 10>
-<cval 12>
-<cval 14>
-<cval 16>
-<cval 18>
+1
+3
+5
+7
+9
+2
+4
+6
+8
+10
+3
+5
+7
+9
+11
+4
+6
+8
+10
+12
+5
+7
+9
+11
+13
+6
+8
+10
+12
+14
+7
+9
+11
+13
+15
+8
+10
+12
+14
+16
+9
+11
+13
+15
+17
+10
+12
+14
+16
+18

@@ -47,7 +47,7 @@ static Imm repsize[Rnrep] = {
 	[Rs64be]=	8,
 };
 
-static unsigned isunsigned[Vnbase] = {
+unsigned isunsigned[Vnbase] = {
 	[Vuchar] = 1,
 	[Vushort] = 1,
 	[Vuint] = 1,

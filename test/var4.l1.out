@@ -2,9 +2,9 @@ entry: var params, 1 locals, 0 temps
 L5: 2 params, 2 locals, 0 temps
 L15: 1 params, 1 locals, 0 temps
 L23: 0 params, 0 locals, 0 temps
-<cval 1>
-<cval 3>
-<cval 3>
-<cval 1>
-<cval 5>
-<cval 6>
+1
+3
+3
+1
+5
+6

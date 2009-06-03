@@ -1,20 +1,20 @@
 entry: var params, 1 locals, 0 temps
 cmp: 2 params, 0 locals, 0 temps
 tst: 2 params, 1 locals, 0 temps
-<cval 1>  => [ <cval 1>, <cval 2> ]
-<cval 2>  => [ <cval 2>, <cval 2> ]
-<cval 3>  => [ <cval 3>, <cval 3> ]
-<cval 0>  => <nil>
-<cval 0>  => <nil>
-<cval 0>  => [ <cval 0>, <cval 0> ]
-<cval 1>  => <nil>
-<cval 998>  => [ <cval 998>, <cval 499> ]
-<cval 999>  => <nil>
-<cval 10000>  => <nil>
-<cval 0>  => [ <cval 0>, <cval 0> ]
-<cval 1>  => <nil>
-<cval 998>  => [ <cval 998>, <cval 499> ]
-<cval 999>  => <nil>
-<cval 1023>  => <nil>
-<cval 1024>  => [ <cval 1024>, <cval 512> ]
-<cval 10000>  => <nil>
+1  => [ 1, 2 ]
+2  => [ 2, 2 ]
+3  => [ 3, 3 ]
+0  => <nil>
+0  => <nil>
+0  => [ 0, 0 ]
+1  => <nil>
+998  => [ 998, 499 ]
+999  => <nil>
+10000  => <nil>
+0  => [ 0, 0 ]
+1  => <nil>
+998  => [ 998, 499 ]
+999  => <nil>
+1023  => <nil>
+1024  => [ 1024, 512 ]
+10000  => <nil>

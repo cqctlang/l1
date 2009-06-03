@@ -359,11 +359,27 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Dom *d;
 	As *as;
 	Ns *ns;
+	Xtypename *t;
 
 	switch(val->qkind){
 	case Qcval:
 		cv = valcval(val);
-		snprint(buf, sizeof(buf), "<cval %" PRIu64 ">", cv->val);
+		t = chasetype(cv->type);
+		switch(t->tkind){
+		case Tbase:
+			if(isunsigned[t->basename])
+				snprint(buf, sizeof(buf), "%" PRIu64,
+					cv->val);
+			else
+				snprint(buf, sizeof(buf), "%" PRId64,
+					(int64_t)cv->val);
+			break;
+		case Tptr:
+			snprint(buf, sizeof(buf), "%" PRIx64, cv->val);
+			break;
+		default:
+			fatal("bug");
+		}
 		return fmtputs0(vm, f, buf);
 	case Qcl:
 		cl = valcl(val);

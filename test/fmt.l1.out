@@ -1,6 +1,6 @@
 entry: var params, 6 locals, 0 temps
 <range 0xa 0x14>
-[ <cval 1>, <cval 0> ]
+[ 1, 0 ]
 abcdef
 int *
 y

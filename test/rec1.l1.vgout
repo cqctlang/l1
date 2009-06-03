@@ -17,26 +17,26 @@ f1: var params, 1 locals, 0 temps
 f1: var params, 1 locals, 0 temps
 f1: var params, 1 locals, 0 temps
 f1: var params, 1 locals, 0 temps
-<cval 1>
-<cval 2>
-<cval 4>
-<cval 5>
-<cval 1>
-<cval 2>
-<cval 4>
-<cval 5>
-<cval 3>
-<cval 4>
-<cval 6>
-<cval 7>
-<cval 6>
-<cval 36>
-<cval 0>
-<cval 1>
-<cval 9>
-<cval 3>
-<cval 10> <cval 10>
-<cval 9> <cval 9>
-<cval 9> <cval 10>
-<cval 10> <cval 9>
+1
+2
+4
+5
+1
+2
+4
+5
+3
+4
+6
+7
+6
+36
+0
+1
+9
+3
+10 10
+9 9
+9 10
+10 9
 1 1

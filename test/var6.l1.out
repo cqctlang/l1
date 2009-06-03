@@ -2,4 +2,4 @@ entry: var params, 1 locals, 0 temps
 L5: 1 params, 0 locals, 0 temps
 L9: 0 params, 0 locals, 0 temps
 L16: 0 params, 0 locals, 0 temps
-<cval 1>
+1

@@ -1,16 +1,16 @@
 entry: var params, 1 locals, 0 temps
-<cval 0>
-<cval 1>
-<cval 2>
-<cval 3>
-<cval 4>
-<cval 5>
-<cval 6>
-<cval 6>
-<cval 7>
-<cval 7>
-<cval 8>
-<cval 8>
-<cval 9>
-<cval 9>
-<cval 10>
+0
+1
+2
+3
+4
+5
+6
+6
+7
+7
+8
+8
+9
+9
+10

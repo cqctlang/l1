@@ -735,6 +735,7 @@ struct VM {
 
 extern char* S[];
 extern char* cbasename[];
+extern unsigned isunsigned[Vnbase];
 extern char* tkindstr[];
 extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;

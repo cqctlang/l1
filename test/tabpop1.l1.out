@@ -1,4 +1,4 @@
 entry: var params, 8 locals, 0 temps
-"c" -> <cval 3>
-"a" -> <cval 1>
-"b" -> <cval 2>
+"c" -> 3
+"a" -> 1
+"b" -> 2

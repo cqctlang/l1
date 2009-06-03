@@ -1,6 +1,6 @@
 entry: var params, 1 locals, 0 temps
-<cval 123>
-<cval 12>
-<cval 291>
-<cval 7>
-<cval 8>
+123
+12
+291
+7
+8

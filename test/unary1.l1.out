@@ -1,5 +1,5 @@
 entry: var params, 1 locals, 0 temps
-<cval 0>
-<cval 1>
-<cval 18446744073709551611>
-<cval 18446744073709551610>
+0
+1
+-5
+-6
