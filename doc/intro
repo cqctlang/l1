@@ -168,12 +168,12 @@ Likewise, syntax for integer literals follows that of C.
 	; ~0ULL;
 	18446744073709551615
 
-(The difference between the previous examples is
-that 0 by itself is a signed integer literal,
-while 0ULL is an unsigned literal.) 
+(The difference between the previous examples is that 0
+by itself is a signed integer literal, while 0ULL is an
+unsigned literal.)
 
-Expressions also include C statements.  This
-expression:
+Another set of forms of Cinquecento expressions are C
+statements.  This expression:
 
 	for(i = 0; i < 5; i++){
 		if(i%2 == 0)
