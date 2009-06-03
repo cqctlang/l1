@@ -39,6 +39,12 @@ cerror(U *ctx, Expr *e, char *fmt, ...)
 }
 
 static Expr*
+Z0(unsigned kind)
+{
+	return newexpr(kind, 0, 0, 0, 0);
+}
+
+static Expr*
 Z1(unsigned kind, Expr *e1)
 {
 	return newexpr(kind, e1, 0, 0, 0);
@@ -150,9 +156,7 @@ Zuint(Imm val)
 Expr*
 Znil()
 {
-	Expr *e;
-	e = newexpr(Enil, 0, 0, 0, 0);
-	return e;
+	return Z0(Enil);
 }
 
 Expr*
@@ -221,9 +225,9 @@ Zlambda(Expr *args, Expr *body)
 }
 
 Expr*
-Zlambdn(Expr *args, Expr *body, Expr *name)
+Zlambdn(Expr *args, Expr *body, Expr *name, Expr *spec)
 {
-	return newexpr(Elambda, args, body, name, 0);
+	return newexpr(Elambda, args, body, name, spec);
 }
 
 Expr*
@@ -253,6 +257,17 @@ Zids2strs(Expr *l)
 		l = l->e2;
 	}
 	return Zapply(G("list"), invert(te));
+}
+
+Expr*
+Zkon(Val v)
+{
+	Expr *e;
+	e = newexpr(Ekon, 0, 0, 0, 0);
+	if(v == 0)
+		fatal("bug");
+	e->xp = v;
+	return e;
 }
 
 void

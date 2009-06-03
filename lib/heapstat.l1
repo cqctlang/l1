@@ -270,7 +270,7 @@ define hsz(ht)
 	return m;
 }
 
-define esize(p)
+define esize(p)[domof(p)]
 {
 	@local dom, x;
 	dom = domof(p);

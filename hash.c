@@ -223,3 +223,38 @@ hrefval(HT *ht, unsigned long idx)
 		return 0;
 	return ht->hent[idx]->val;
 }
+
+struct arg{
+	HT *ht;
+	unsigned long n;
+};
+
+static void
+cmp1(void *u, char *id, void *v)
+{
+	struct arg *a;
+	a = u;
+	if(hget(a->ht, id, strlen(id)) != v)
+		a->n++;		/* not found */
+}
+
+int
+heq(HT *ha, HT *hb)
+{
+	struct arg a;
+
+	if(hnent(ha) != hnent(hb))
+		return 0;
+
+	a.ht = hb;
+	a.n = 0;
+	hforeach(ha, cmp1, &a);
+	if(a.n)
+		return 0;
+	a.ht = ha;
+	a.n = 0;
+	hforeach(hb, cmp1, &a);
+	if(a.n)
+		return 0;
+	return 1;
+}

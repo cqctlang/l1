@@ -5,6 +5,31 @@
 char **cqctloadpath;
 char cqctflags[256];
 
+static void
+checkxp(Expr *e)
+{
+	Expr *p;
+	if(e == 0)
+		return;
+	if(e->xp)
+		fatal("compiler was untidy");
+	switch(e->kind){
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			checkxp(p->e1);
+			p = p->e2;
+		}
+		break;
+	default:
+		checkxp(e->e1);
+		checkxp(e->e2);
+		checkxp(e->e3);
+		checkxp(e->e4);
+		break;
+	}
+}
+
 Closure*
 cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 {
@@ -44,6 +69,10 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		xprintf("\n");
 	}
 	e = docompile2(&ctx, e, top, argsid);
+	if(e == 0)
+		return 0;
+	checkxp(e);
+	e = docompilev(e, top);
 	if(e == 0)
 		return 0;
 	if(cqctflags['q']){

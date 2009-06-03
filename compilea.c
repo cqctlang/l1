@@ -361,7 +361,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 						doid("$o"),
 						Zconsts(id),
 						doid("$args"))),
-				     copyexpr(e->e2));
+				     copyexpr(e->e2), 0);
 
 		te = Zblock(Zlocals(1, "$o"),
 			    Zifelse(Zcall(G("isrec"), 1, o), se, te),

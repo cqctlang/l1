@@ -19,6 +19,17 @@ freexenv(Xenv *xe)
 	efree(xe);
 }
 
+void
+freexenvall(Xenv *xe)
+{
+	Xenv *l;
+	if(xe == 0)
+		return;
+	l = xe->link;
+	freexenv(xe);
+	freexenvall(l);
+}
+
 void*
 xenvlook(Xenv *xe, char *id)
 {
@@ -39,6 +50,18 @@ xenvbind(Xenv *xe, char *id, void *v)
 }
 
 void
+xenvupdate(Xenv *xe, char *id, void *v)
+{
+	if(xe == 0)
+		fatal("xenvupdate on unbound identifier: %s", id);
+	if(hget(xe->ht, id, strlen(id))){
+		hput(xe->ht, id, strlen(id), v);
+		return;
+	}
+	xenvupdate(xe->link, id, v);
+}
+
+void
 xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v), void *u)
 {
 	hforeach(xe->ht, f, u);
@@ -48,4 +71,63 @@ unsigned long
 xenvsize(Xenv *xe)
 {
 	return hnent(xe->ht);
+}
+
+static void
+wrapbind(void *u, char *k, void *v)
+{
+	xenvbind(u, k, v);
+}
+
+Xenv*
+xenvcopy(Xenv *xe)
+{
+	Xenv *nxe;
+	if(xe == 0)
+		return 0;
+	nxe = mkxenv(xenvcopy(xe->link));
+	xenvforeach(xe, wrapbind, nxe);
+	return nxe;
+}
+
+struct arg {
+	HT *ht;
+	Xenv *fr;
+};
+
+static void
+diff1(void *u, char *id, void *v)
+{
+	struct arg *a;
+	a = u;
+	if(xenvlook(a->fr, id) != v)
+		hput(a->ht, id, strlen(id), v);
+}
+
+/* assume TO and FR bind the same identifiers;
+   return bindings in TO with different value.
+   bindings returned in caller-freed hash table,
+   possibly empty. */
+HT*
+xenvdiff(Xenv *fr, Xenv *to)
+{
+	struct arg a;
+	a.ht = mkht();
+	a.fr = fr;
+	xenvforeach(to, diff1, &a);
+	return a.ht;
+}
+
+static void
+appl1(void *u, char *id, void *v)
+{
+	Xenv *xe;
+	xe = u;
+	xenvbind(xe, id, v);
+}
+
+void
+xenvapply(Xenv *xe, HT *d)
+{
+	hforeach(d, appl1, xe);
 }

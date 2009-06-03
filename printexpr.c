@@ -67,6 +67,7 @@ char* S[] = {
 	[Egt] =		"Egt",
 	[Eid] =		"Eid",
 	[Eif] =		"Eif",
+	[Ekon] =	"Ekon",
 	[Elambda] =	"Elambda",
 	[Eland] =	"Eland",
 	[Ele] =		"Ele",
@@ -146,6 +147,9 @@ printexpr(Expr *e)
 	static char consts[Abbrevlen];
 
 	switch(e->kind){
+	case Ekon:
+		printkon(e->xp);
+		break;
 	case Econst:
 		xprintf("%" PRIu64, e->liti.val);
 		break;
@@ -316,6 +320,9 @@ printcqct0(Expr *e, unsigned ni)
 	case Enil:
 		xprintf("nil");
 		break;
+	case Ekon:
+		printkon(e->xp);
+		break;
 	case Econst:
 		xprintf("%" PRIu64, e->liti.val);
 		break;
@@ -336,6 +343,11 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf("(");
 			printargs(e->e1, ni, 0);
 			xprintf(")");
+		}
+		if(e->e4){
+			xprintf("[");
+			printcqct0(e->e4, ni);
+			xprintf("]");
 		}
 		printcqct0(e->e2, ni);
 		break;

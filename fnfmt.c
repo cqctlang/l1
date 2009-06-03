@@ -197,12 +197,18 @@ fmtdecl(Xtypename *xtn, Str *id)
 	return str;
 }
 
+char*
+fmtxtnc(Xtypename *xtn)
+{
+	return _fmtxtn(xtn, xstrdup(""));
+}
+
 Str*
 fmtxtn(Xtypename *xtn)
 {
 	char *s;
 	Str *str;
-	s = _fmtxtn(xtn, xstrdup(""));
+	s = fmtxtnc(xtn);
 	str = mkstr0(s);
 	efree(s);
 	return str;

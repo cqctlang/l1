@@ -291,6 +291,7 @@ szexpr(Expr *e)
 	return m;
 }
 
+/* intentionally does not copy e->xp except Ekon */
 Expr*
 copyexpr(Expr *e)
 {
@@ -316,17 +317,17 @@ copyexpr(Expr *e)
 	case Ebinop:
 		ne->op = e->op;
 		break;
+	case Ekon:
+		ne->xp = e->xp;	/* FIXME: caller must ensure gc safety  */
+		break;
 	default:
 		break;
 	}
 
-	if(e->xp){
+	if(e->xp)
 		/* FIXME: hack: compilea may copy expressions with decls */
 		if(e->kind == Edecl || e->kind == Edecls)
 			ne->xp = copydecls(e->xp);
-		else
-			fatal("bug");
-	}
 
 	ne->e1 = copyexpr(e->e1);
 	ne->e2 = copyexpr(e->e2);

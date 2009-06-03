@@ -9,6 +9,7 @@ void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
 unsigned long hnent(HT *ht);
 void* hrefval(HT *ht, unsigned long idx);
 u64 hsz(HT *ht);
+int heq(HT *ha, HT *hb);
 
 void fatal(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);

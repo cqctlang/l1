@@ -11,6 +11,7 @@ enum{
 	Vvlongmax	= 9223372036854775807ULL,
 	Vuvlongmax	= 18446744073709551615ULL,
 	Maxliti		= 24,	/* longest integer literal plus null */
+	Maxspec		= 32,
 };
 
 typedef
@@ -74,6 +75,7 @@ enum{
 	Egt,
 	Eid,
 	Eif,
+	Ekon,
 	Elambda,
 	Eland,
 	Ele,
@@ -163,8 +165,6 @@ typedef struct Enum Enum;
 typedef struct Type Type;
 typedef struct Ctl Ctl;
 typedef struct Code Code;
-typedef struct Konst Konst;
-typedef struct Konsti Konsti;
 typedef struct Expr Expr;
 
 typedef
@@ -513,6 +513,7 @@ enum {
 	Ishl,
 	Ishr,
 	Isizeof,
+	Ispec,
 	Isub,
 	Ixcast,
 	Ixor,
@@ -530,8 +531,7 @@ enum {
 
 enum {
 	Oloc = 0,
-	Oliti,
-	Olits,
+	Okon,
 	Onil,
 };
 
@@ -608,8 +608,7 @@ struct Operand {
 	unsigned okind;
 	union{
 		Location loc;
-		Val liti;
-		Lits *lits;
+		Val kon;
 	} u;
 } Operand;
 
@@ -645,25 +644,18 @@ struct Insn {
 	Src *src;
 } Insn;
 
-struct Konst {
-	HT *ht;
-};
-
-struct Konsti {
-	HT *ht;
-};
-
 struct Code {
 	Head hd;
 	unsigned long ninsn;
 	unsigned long maxinsn;
 	unsigned long nconst;
+	unsigned long nspec;
 	Insn *insn;
 	Ctl **labels;
 	Ctl *clist;
 	Expr *src;
-	Konst *konst;
-	Konsti *konsti;
+	Tab *konst;
+	Expr *spec[Maxspec];
 };
 
 typedef
@@ -819,6 +811,9 @@ Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
 
 /* compile2.c */
 Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);
+
+/* compilev.c */
+Expr*		docompilev(Expr *el, Toplevel *top);
 void		freeconst(void *u, char *id, void *v);
 void		freeexprx(Expr *e);
 int		issimple(Expr *e);
@@ -827,6 +822,7 @@ u64		szexprx(Expr *e);
 /* cg.c */
 Closure*	callcc();
 Code*		callccode();
+void		cgspec(VM *vm, Closure *orig, Imm idx, Val ac);
 Closure*	codegen(Expr *e);
 Code*		contcode();
 void		finicg();
@@ -834,15 +830,24 @@ Closure*	haltthunk();
 void		initcg();
 Closure*	panicthunk();
 void		printinsn(Code *code, Insn *i);
+void		printkon(Val v);
+
+/* spec.c */
+Expr*		residue(VM *vm, Expr *e, Expr *pat, Val v);
 
 /* xenv.c */
 void		freexenv(Xenv *xe);
+void		freexenvall(Xenv *xe);
 Xenv*		mkxenv(Xenv *link);
+void		xenvapply(Xenv *xe, HT *d);
+Xenv*		xenvcopy(Xenv *xe);
+HT*		xenvdiff(Xenv *fr, Xenv *to);
 void*		xenvlook(Xenv *xe, char *id);
 void		xenvbind(Xenv *xe, char *id, void *v);
 void		xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v),
 			    void *u);
 unsigned long	xenvsize(Xenv *xe);
+void		xenvupdate(Xenv *xe, char *id, void *v);
 
 /* vm.c */
 Src*		addr2line(Code *code, Imm pc);
@@ -859,7 +864,9 @@ Tab*		doinsncnt(VM *vm);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 int		envbinds(Env *env, char *id);
+Val*		envget(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
+int		eqval(Val v1, Val v2);
 void		freeenv(Env *env);
 void*		gcpersist(VM *vm, void *hd);
 void*		gcprotect(VM *vm, void *hd);
@@ -867,6 +874,10 @@ void		gcunpersist(VM *vm, void *hd);
 void		gcunprotect(VM *vm, void *hd);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
 void		initvm(int gcthread, u64 heapmax);
+int		isbasecval(Cval *cv);
+int		isnatcval(Cval *cv);
+int		isnegcval(Cval *cv);
+int		iszerocval(Cval *cv);
 void		finivm();
 int		freecode(Head *hd);
 void		freetoplevel(Toplevel *top);
@@ -969,6 +980,7 @@ void setfreeheadfn(Qkind qkind, Freeheadfn free1);
 int		snprint(char *buf, int len, char *fmt, ...);
 
 /* fnfmt.c */
+char*		fmtxtnc(Xtypename *xtn);
 Str*		fmtxtn(Xtypename *xtn);
 void		l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv);
 
@@ -992,8 +1004,9 @@ Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
 Expr*		Zids2strs(Expr *l);
 Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
+Expr*		Zkon(Val v);
 Expr*		Zlambda(Expr *args, Expr *body);
-Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
+Expr*		Zlambdn(Expr *args, Expr *body, Expr *name, Expr *spec);
 Expr*		Zlocals(unsigned n, ...);
 Expr*		Znil();
 Expr*		Zrange(Expr *addr, Expr *sz);

@@ -24,166 +24,70 @@ static Location toploc[8];
 static Location *Effect;
 static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
 static void cglambda(Ctl *name, Code *code, Expr *el);
-static Konst* mkkonst();
-static void freekonst(Konst *kon);
-static Konsti* mkkonsti();
-static void freekonsti(Konsti *koni);
-
-static Konst*
-mkkonst()
-{
-	Konst *kon;
-	kon = emalloc(sizeof(Konst));
-	kon->ht = mkht();
-	return kon;
-}
-
-static Lits*
-konstlookup(Lits *lits, Konst *kon)
-{
-	return hget(kon->ht, lits->s, lits->len);
-}
-
-static Lits*
-konstadd(Lits *lits, Konst *kon)
-{
-	lits = copylits(lits);
-	hput(kon->ht, lits->s, lits->len, lits);
-	return lits;
-}
-
-static void
-free1konst(void *u, char *k, void *v)
-{
-	freelits((Lits*)v);
-}
-
-static void
-freekonst(Konst *kon)
-{
-	hforeach(kon->ht, free1konst, 0);
-	freeht(kon->ht);
-	efree(kon);
-}
-
-static void
-sz1konst(void *u, char *k, void *v)
-{
-	u64 *p;
-	Lits *l;
-	p = u;
-	l = v;
-	*p += esize(l);
-}
-
-static u64
-szkonst(Konst *kon)
-{
-	u64 m;
-	m = 0;
-	hforeach(kon->ht, sz1konst, &m);
-	m += hsz(kon->ht);
-	m += esize(kon);
-	return m;
-}
-
-static Konsti*
-mkkonsti()
-{
-	Konsti *koni;
-	koni = emalloc(sizeof(Konsti));
-	koni->ht = mkht();
-	return koni;
-}
 
 static Val
-konsti2val(Cbase base, Imm imm, Konsti *koni)
+konval(Tab *kon, Val v)
 {
-	Val v;
-	char buf[18+Maxliti];	/* "unsigned long long"+Maxliti */
-	char *s;
-
-	snprint(buf, sizeof(buf), "%s%" PRIu64, cbasename[base], imm);
-	v = hget(koni->ht, buf, strlen(buf));
-	if(v)
-		return v;
-	s = xstrdup(buf);
-	v = mkvallitcval(base, imm);
-	hput(koni->ht, s, strlen(s), v);
+	Val hv;	
+	hv = tabget(kon, v);
+	if(hv)
+		return hv;
+	_tabput(kon, v, v);
 	return v;
 }
 
 static Val
-konstival(Liti *liti, Konsti *koni)
+konimm(Tab *kon, Cbase base, Imm imm)
 {
-	return konsti2val(liti->base, liti->val, koni);
+	return konval(kon, mkvallitcval(base, imm));
 }
 
-static void
-free1konsti(void *u, char *k, void *v)
+static Val
+koncstr(Tab *kon, char *s, Imm len)
 {
-	efree(k);
+	return konval(kon, mkvalstr(mkstr(s, len)));
 }
 
-static void
-freekonsti(Konsti *koni)
+static Val
+konxtn(Tab *kon, Xtypename *xtn)
 {
-	hforeach(koni->ht, free1konsti, 0);
-	freeht(koni->ht);
-	efree(koni);
-}
-
-static void
-sz1konsti(void *u, char *k, void *v)
-{
-	u64 *p;
-	p = u;
-	*p += esize(k);
-}
-
-static u64
-szkonsti(Konsti *kon)
-{
-	u64 m;
-	m = 0;
-	hforeach(kon->ht, sz1konsti, &m);
-	m += hsz(kon->ht);
-	m += esize(kon);
-	return m;
+	return konval(kon, mkvalxtn(xtn));
 }
 
 // allocate and bind constants to constant pool
-// FIXME: do this for ctypes?
-static void
+static Expr*
 konsts(Expr *e, Code *code)
 {
 	Expr *p;
 
 	if(e == 0)
-		return;
+		return 0;
 
 	switch(e->kind){
 	case Econst:
-		e->xp = konstival(&e->liti, code->konsti);
-		break;
+		p = Zkon(konimm(code->konst, e->liti.base, e->liti.val));
+		freeexpr(e);
+		return p;
 	case Econsts:
-		e->xp = konstlookup(e->lits, code->konst);
-		if(e->xp == 0)
-			e->xp = konstadd(e->lits, code->konst);
-		break;
+		p = Zkon(koncstr(code->konst, e->lits->s, e->lits->len));
+		freeexpr(e);
+		return p;
+	case Ekon:
+		e->xp = konval(code->konst, e->xp);
+		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			konsts(p->e1, code);
+			p->e1 = konsts(p->e1, code);
 			p = p->e2;
 		}
-		break;
+		return e;
 	default:
-		konsts(e->e1, code);
-		konsts(e->e2, code);
-		konsts(e->e3, code);
-		konsts(e->e4, code);
-		break;
+		e->e1 = konsts(e->e1, code);
+		e->e2 = konsts(e->e2, code);
+		e->e3 = konsts(e->e3, code);
+		e->e4 = konsts(e->e4, code);
+		return e;
 	}
 }
 
@@ -273,8 +177,7 @@ mkcode()
 	code->insn = emalloc(code->maxinsn*sizeof(Insn));
 	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
 	code->ninsn = 0;
-	code->konst = mkkonst();
-	code->konsti = mkkonsti();
+	code->konst = mktab();
 
 	return code;
 }
@@ -286,15 +189,12 @@ freecode(Head *hd)
 	Ctl *p, *q;
 
 	code = (Code*)hd;
-	freekonst(code->konst);
-	freekonsti(code->konsti);
 	p = code->clist;
 	while(p){
 		q = p->link;
 		freelabel(p);
 		p = q;
 	}
-	
 	freeexpr(code->src);
 	efree(code->insn);
 	efree(code->labels);
@@ -309,8 +209,6 @@ szcode(Code *code)
 
 	m = 0;
 
-	m += szkonst(code->konst);
-	m += szkonsti(code->konsti);
 	p = code->clist;
 	while(p){
 		if(p->ckind == Clabel)
@@ -385,11 +283,62 @@ regtos(Reg reg)
 	return s[reg];
 }
 
+/* lightweight val printer compared to fmtval, but does not require a VM */
+void
+printkon(Val v)
+{
+	Cval *cv;
+	Str *str;
+	Xtypename *xtn;
+	char c, *p;
+	Imm i, m;
+
+	switch(v->qkind){
+	case Qcval:
+		cv = valcval(v);
+		xprintf("%" PRIu64, cv->val);
+		break;
+	case Qstr:
+		str = valstr(v);
+		p = str->s;
+		m = str->len;
+		if(m > 15)
+			m = 15;
+		xprintf("\"");
+		for(i = 0; i < m; i++){
+			c = *p++;
+			switch(c){
+			case '\n':
+				xprintf("\\n");
+				break;
+			case '\t':
+				xprintf("\\t");
+				break;
+			default:
+				xprintf("%c", c);
+				break;
+			}
+		}
+		if(str->len > m)
+			xprintf("...");
+		xprintf("\"");
+		break;
+	case Qxtn:
+		xtn = valxtn(v);
+		p = fmtxtnc(xtn);
+		xprintf("#%p %s#", xtn, p);
+		efree(p);
+		break;
+	default:
+		xprintf("<%s %p>", qname[v->qkind], v);
+		break;
+	}
+}
+
 static void
 printrand(Code *code, Operand *r)
 {
 	Location *loc;
-	Lits *lits;
 
 	switch(r->okind){
 	case Oloc:
@@ -424,18 +373,11 @@ printrand(Code *code, Operand *r)
 			break;
 		}
 		break;
-	case Oliti:
-		xprintf("%" PRIu64, valimm(r->u.liti));
+	case Okon:
+		printkon(r->u.kon);
 		break;
 	case Onil:
 		xprintf("nil");
-		break;
-	case Olits:
-		lits = r->u.lits;
-		if(lits->len > 10)
-			xprintf("*lits*");
-		else
-			xprintf("\"%.*s\"", lits->len, lits->s);
 		break;
 	default:
 		fatal("unknown operand kind %d", r->okind);
@@ -447,6 +389,10 @@ printinsn(Code *code, Insn *i)
 {
 	xprintf("\t");
 	switch(i->kind){
+	case Ispec:
+		xprintf("spec ");
+		printrand(code, &i->op1);
+		break;
 	case Iargc:
 		xprintf("argc ");
 		printrand(code, &i->op1);
@@ -686,17 +632,10 @@ randloc(Operand *rand, Location* loc)
 }
 
 static void
-randlits(Operand *rand, Lits *lits)
+randkon(Operand *rand, Val v)
 {
-	rand->okind = Olits;
-	rand->u.lits = lits;
-}
-
-static void
-randliti(Operand *rand, Val v)
-{
-	rand->okind = Oliti;
-	rand->u.liti = v;
+	rand->okind = Okon;
+	rand->u.kon = v;
 }
 
 static void
@@ -761,10 +700,10 @@ cgrand(Operand *rand, Expr *e, CGEnv *p)
 		randvarloc(rand, e->xp, 1);
 		break;
 	case Econst:
-		randliti(rand, e->xp);
-		break;
 	case Econsts:
-		randlits(rand, e->xp);
+		fatal("residual Econst");
+	case Ekon:
+		randkon(rand, e->xp);
 		break;
 	case Enil:
 		randnil(rand);
@@ -1082,7 +1021,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("bug");
 		varloc(&dst, e->e1->xp, 1);
 		randloc(&r1, &dst);
-		randliti(&r2, konsti2val(Vint, 1, code->konsti));
+		randkon(&r2, konimm(code->konst, Vint, 1));
 		if(loc != Effect){
 			L = genlabel(code, 0);
 			cgbinop(code, p, e->kind, &r1, &r2, &dst, L, L,
@@ -1103,7 +1042,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("bug");
 		varloc(&dst, e->e1->xp, 1);
 		randloc(&r1, &dst);
-		randliti(&r2, konsti2val(Vint, 1, code->konsti));
+		randkon(&r2, konimm(code->konst, Vint, 1));
 		if(loc != Effect){
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
@@ -1212,7 +1151,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		
 		i = nextinsn(code, &e->src);
 		i->kind = Ipushi;
-		randliti(&i->op1, konsti2val(Vint, narg, code->konsti));
+		randkon(&i->op1, konimm(code->konst, Vint, narg));
 
 		if(issimple(e->e1)){
 			cgrand(&r1, e->e1, p);
@@ -1280,24 +1219,22 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Econst:
-		i = nextinsn(code, &e->src);
-		i->kind = Imov;
-		randliti(&i->op1, e->xp);
-		randloc(&i->dst, loc);
-		cgctl(code, p, ctl, nxt, &e->src);
-		break;
 	case Econsts:
+		fatal("residual Econst");
+	case Ekon:
 		i = nextinsn(code, &e->src);
 		i->kind = Imov;
-		randlits(&i->op1, e->xp);
+		randkon(&i->op1, e->xp);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Enil:
-		i = nextinsn(code, &e->src);
-		i->kind = Imov;
-		randnil(&i->op1);
-		randloc(&i->dst, loc);
+		if(loc != Effect){
+			i = nextinsn(code, &e->src);
+			i->kind = Imov;
+			randnil(&i->op1);
+			randloc(&i->dst, loc);
+		}
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Elambda:
@@ -1316,7 +1253,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 		i = nextinsn(code, &e->src);
 		i->kind = Iclo;
-		randliti(&i->op1, konsti2val(Vint, l->ncap, code->konsti));
+		randkon(&i->op1, konimm(code->konst, Vint, l->ncap));
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
@@ -1356,13 +1293,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(Lthen, e);
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
-			randliti(&i->op1, konsti2val(Vint, 1, code->konsti));
+			randkon(&i->op1, konimm(code->konst, Vint, 1));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, Lelse, &e->src);
 			emitlabel(Lelse, e);
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
-			randliti(&i->op1, konsti2val(Vint, 0, code->konsti));
+			randkon(&i->op1, konimm(code->konst, Vint, 0));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
 		}
@@ -1394,13 +1331,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(Lthen, e);
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
-			randliti(&i->op1, konsti2val(Vint, 1, code->konsti));
+			randkon(&i->op1, konimm(code->konst, Vint, 1));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, Lelse, &e->src);
 			emitlabel(Lelse, e);
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
-			randliti(&i->op1, konsti2val(Vint, 0, code->konsti));
+			randkon(&i->op1, konimm(code->konst, Vint, 0));
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
 		}
@@ -1618,7 +1555,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	}
 }
 
-static void
+void
 cglambda(Ctl *name, Code *code, Expr *e)
 {
 	unsigned entry;
@@ -1626,6 +1563,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	Insn *i;
 	CGEnv p;
 	unsigned m, needtop = 0;
+	unsigned long ns;
 	Ctl *top;
 
 	if(e->kind != Elambda)
@@ -1646,15 +1584,14 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	if(!l->isvarg){
 		i = nextinsn(code, &e->src);
 		i->kind = Iargc;
-		randliti(&i->op1, konsti2val(Vuint, l->nparam, code->konsti));
+		randkon(&i->op1, konimm(code->konst, Vuint, l->nparam));
 		needtop = 1;
 	}
 	if(l->nloc+l->ntmp > 0){
 		i = nextinsn(code, &e->src);
 		i->kind = Isub;
 		randloc(&i->op1, SP);
-		randliti(&i->op2,
-			 konsti2val(Vint, l->nloc+l->ntmp, code->konsti));
+		randkon(&i->op2, konimm(code->konst, Vint, l->nloc+l->ntmp));
 		randloc(&i->dst, SP);
 		needtop = 1;
 	}
@@ -1689,6 +1626,24 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	p.Return = genlabel(code, 0);
 	p.Break = 0;
 	p.Continue = 0;
+
+	if(e->e4){
+		Ctl *L;
+		if(code->nspec >= Maxspec){
+			xprintf("specialization queue filled\n");
+			goto body;
+		}
+
+		L = genlabel(code, 0);
+		cg(e->e4, code, &p, AC, L, top, L, l->nloc);
+		ns = code->nspec++;
+		code->spec[ns] = e;
+		i = nextinsn(code, &e->src);
+		i->kind = Ispec;
+		randkon(&i->op1, konimm(code->konst, Vint, ns));
+		top = genlabel(code, 0);
+	}
+body:
 	cg(e->e2, code, &p, AC, p.Return0, top, p.Return0, l->nloc);
 
 	if(p.Return0->used) /* hack for lambdas with empty bodies */
@@ -1716,7 +1671,7 @@ codegen(Expr *e)
 	L = genlabel(code, "entry");
 	L->used = 1;
 	emitlabel(L, e);
-	konsts(e, code);
+	e = konsts(e, code);
 	code->src = e;
 	cglambda(L, code, e);
 	l = (Lambda*)e->xp;
@@ -1724,6 +1679,44 @@ codegen(Expr *e)
 	if(cqctflags['o'])
 		printcode(code);
 	return cl;
+}
+
+void
+cgspec(VM *vm, Closure *cl, Imm idx, Val ac)
+{
+	Code *ocode, *code;
+	Expr *oe, *e4, *e;
+	Ctl *L;
+	Lambda *l;
+
+	ocode = cl->code;
+	oe = ocode->spec[idx];
+	if(oe->kind != Elambda)
+		fatal("bug");
+	e4 = oe->e4;
+	oe->e4 = 0;
+	e = copyexpr(oe);
+	oe->e4 = e4;
+	l = (Lambda*)oe->xp;
+	if(l->ncap)
+		fatal("unimplemented specialization mode");
+	e = residue(vm, e, e4, ac);
+	e = docompilev(e, vm->top);
+	if(cqctflags['q']){
+		printcqct(e);
+		xprintf("\n");
+	}
+	code = mkcode();
+	L = genlabel(code, "special");
+	L->used = 1;
+	emitlabel(L, e);
+	konsts(e, code);
+	code->src = e;
+	cglambda(L, code, e);
+	cl->code = code;
+	cl->entry = 0;
+	if(cqctflags['o'])
+		printcode(code);
 }
 
 Closure*

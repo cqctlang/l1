@@ -30,6 +30,8 @@ L1C =\
 	compile0.c\
 	compile1.c\
 	compile2.c\
+	compilev.c\
+	spec.c\
 	type.c\
 	cg.c\
 	vm.c\

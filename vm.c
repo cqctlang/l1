@@ -117,10 +117,6 @@ static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
 static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
 static Xtypename* mkundefxtn(Xtypename *t);
-static int isbasecval(Cval *cv);
-static int isnatcval(Cval *cv);
-static int isnegcval(Cval *cv);
-static int iszerocval(Cval *cv);
 static Env* mktopenv();
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static List* mklistn(u32 sz);
@@ -129,6 +125,7 @@ static List* listset(VM *vm, List *lst, Imm idx, Val v);
 static void addroot(Rootset *rs, Head *h);
 static Head* removeroot(Rootset *rs);
 static int issym(Vec *sym);
+static void setgo(Insn *i, Imm lim);
 
 static struct GC *thegc;
 static Val Xundef;
@@ -217,16 +214,17 @@ static u32 hashstr(Val);
 static u32 hashvec(Val);
 static u32 hashxtn(Val);
 
-/* FIXME: these functions should be named eq vs. equal by semantics */
 static int eqcval(Val, Val);
 static int eqptr(Val, Val);
 static int eqtrue(Val, Val);
-static int eqrange(Val, Val);
-static int eqstrv(Val, Val);
-static int eqxtnv(Val, Val);
-static int equallistv(Val a, Val b);
-static int equalvecv(Val a, Val b);
 
+static int equalcval(Val, Val);
+static int equallistv(Val a, Val b);
+static int equalrange(Val, Val);
+static int equalstrv(Val, Val);
+static int equalvecv(Val a, Val b);
+static int equalxtn(Xtypename*, Xtypename*);
+static int equalxtnv(Val, Val);
 
 typedef struct Hashop {
 	u32 (*hash)(Val);
@@ -247,13 +245,13 @@ static Hashop hashop[Qnkind] = {
 	[Qlist]	 = { hashlist, equallistv },
 	[Qns]	 = { hashptr, eqptr },
 	[Qpair]	 = { hashptr, eqptr },
-	[Qrange] = { hashrange, eqrange },
+	[Qrange] = { hashrange, equalrange },
 	[Qrd]    = { hashptr, eqptr },
 	[Qrec]   = { hashptr, eqptr },
-	[Qstr]	 = { hashstr, eqstrv },
+	[Qstr]	 = { hashstr, equalstrv },
 	[Qtab]	 = { hashptr, eqptr },
 	[Qvec]	 = { hashvec, equalvecv },
-	[Qxtn]	 = { hashxtn, eqxtnv },
+	[Qxtn]	 = { hashxtn, equalxtnv },
 };
 
 static Code *kcode, *cccode;
@@ -1240,9 +1238,10 @@ itercode(Head *hd, Ictx *ictx)
 {
 	Code *code;
 	code = (Code*)hd;
-	if(ictx->n >= hnent(code->konsti->ht))
+	if(ictx->n > 0)
 		return GCiterdone;
-	return valhead(hrefval(code->konsti->ht, ictx->n++));
+	ictx->n++;
+	return (Head*)(code->konst);
 }
 
 static Head*
@@ -1444,7 +1443,7 @@ iterfd(Head *hd, Ictx *ictx)
 	}
 }
 
-static int
+int
 eqval(Val v1, Val v2)
 {
 	if(v1->qkind != v2->qkind)
@@ -1548,11 +1547,22 @@ hashcval(Val val)
 {
 	Cval *cv;
 	cv = valcval(val);
-	return hash6432shift(cv->val);
+	return hash6432shift(cv->val)^hashxtn(mkvalxtn(cv->type));
 }
 
 static int
 eqcval(Val a, Val b)
+{
+	Cval *cva, *cvb;
+	cva = valcval(a);
+	cvb = valcval(b);
+	if(cva->val!=cvb->val)
+		return 0;
+	return equalxtn(cva->type, cvb->type);
+}
+
+static int
+equalcval(Val a, Val b)
 {
 	Cval *cva, *cvb;
 	cva = valcval(a);
@@ -1569,7 +1579,7 @@ hashrange(Val val)
 }
 
 static int
-eqrange(Val a, Val b)
+equalrange(Val a, Val b)
 {
 	Range *ra, *rb;
 	ra = valrange(a);
@@ -1586,7 +1596,7 @@ hashstr(Val val)
 }
 
 static int
-eqstrc(Str *a, char *b)
+equalstrc(Str *a, char *b)
 {
 	if(a->len != strlen(b))
 		return 0;
@@ -1594,7 +1604,7 @@ eqstrc(Str *a, char *b)
 }
 
 static int
-eqstr(Str *a, Str *b)
+equalstr(Str *a, Str *b)
 {
 	if(a->len != b->len)
 		return 0;
@@ -1602,9 +1612,9 @@ eqstr(Str *a, Str *b)
 }
 
 static int
-eqstrv(Val a, Val b)
+equalstrv(Val a, Val b)
 {
-	return eqstr(valstr(a), valstr(b));
+	return equalstr(valstr(a), valstr(b));
 }
 
 static u32
@@ -1620,7 +1630,7 @@ hashxtn(Val val)
 	case Tvoid:
 		return hash6432shift(xtn->tkind);
 	case Tbase:
-		return hash6432shift(xtn->basename);
+		return hash6432shift(xtn->basename^xtn->rep);
 	case Ttypedef:
 		return hashstr((Val)xtn->tid)>>xtn->tkind;
 	case Tstruct:
@@ -1629,7 +1639,7 @@ hashxtn(Val val)
 		return hashstr((Val)xtn->tag)>>xtn->tkind;
 	case Tundef:
 	case Tptr:
-		return hashxtn((Val)xtn->link)>>xtn->tkind;
+		return xtn->rep^hashxtn((Val)xtn->link)>>xtn->tkind;
 	case Tarr:
 		x = hashxtn((Val)xtn->link)>>xtn->tkind;
 		if(xtn->cnt->qkind == Qcval)
@@ -1659,7 +1669,7 @@ hashxtn(Val val)
 }
 
 static int
-eqxtn(Xtypename *a, Xtypename *b)
+equalxtn(Xtypename *a, Xtypename *b)
 {
 	Imm m;
 
@@ -1670,54 +1680,54 @@ eqxtn(Xtypename *a, Xtypename *b)
 	case Tvoid:
 		return 1;
 	case Tbase:
-		return a->basename == b->basename;
+		return (a->basename == b->basename) && (a->rep == b->rep);
 	case Ttypedef:
-		return eqstr(a->tid, b->tid);
+		return equalstr(a->tid, b->tid);
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		return eqstr(a->tag, b->tag);
+		return equalstr(a->tag, b->tag);
 	case Tundef:
 	case Tptr:
-		return eqxtn(a->link, b->link);
+		return (a->rep == b->rep) && equalxtn(a->link, b->link);
 	case Tarr:
 		if(a->cnt->qkind != b->cnt->qkind)
 			return 0;
 		if(a->cnt->qkind == Qcval){
-			if(!eqcval(a->cnt, b->cnt))
+			if(!equalcval(a->cnt, b->cnt))
 				return 0;
 		}
-		return eqxtn(a->link, b->link);
+		return equalxtn(a->link, b->link);
 	case Tfun:
 		if(a->param->len != b->param->len)
 			return 0;
-		if(!eqxtn(a->link, b->link))
+		if(!equalxtn(a->link, b->link))
 			return 0;
 		for(m = 0; m < a->param->len; m++)
-			if(!eqxtn(valxtn(vecref(valvec(vecref(a->param, m)),
-						Typepos)),
-				  valxtn(vecref(valvec(vecref(b->param, m)),
-						Typepos))))
+			if(!equalxtn(valxtn(vecref(valvec(vecref(a->param, m)),
+						   Typepos)),
+				     valxtn(vecref(valvec(vecref(b->param, m)),
+						   Typepos))))
 				return 0;
 		return 1;
 	case Tbitfield:
-		if(!eqcval(a->sz, b->sz))
+		if(!equalcval(a->sz, b->sz))
 			return 0;
-		return eqxtn(a->link, b->link);
+		return equalxtn(a->link, b->link);
 	case Tconst:
-		return eqxtn(a->link, b->link);
+		return equalxtn(a->link, b->link);
 	case Txaccess:
 		return (eqptr((Val)a->get, (Val)b->get)
 			&& eqptr((Val)a->put, (Val)b->put)
-			&& eqxtn(a->link, b->link));
+			&& equalxtn(a->link, b->link));
 	}
 	fatal("bug");
 }
 
 static int
-eqxtnv(Val a, Val b)
+equalxtnv(Val a, Val b)
 {
-	return eqxtn(valxtn(a), valxtn(b));
+	return equalxtn(valxtn(a), valxtn(b));
 }
 
 Str*
@@ -1782,6 +1792,12 @@ Str*
 mkstrlits(Lits *lits)
 {
 	return mkstr(lits->s, lits->len);
+}
+
+static Str*
+strcopy(Str *s)
+{
+	return mkstr(s->s, s->len);
 }
 
 char*
@@ -3710,13 +3726,21 @@ getcval(VM *vm, Location *loc)
 static Val
 getvalrand(VM *vm, Operand *r)
 {
+	Val v;
 	switch(r->okind){
 	case Oloc:
 		return getval(vm, &r->u.loc);
-	case Oliti:
-		return r->u.liti;
-	case Olits:
-		return (Val)mkstrlits(r->u.lits);
+	case Okon:
+		v = r->u.kon;
+		/* any mutable vals must be copied */
+		switch(v->qkind){
+		case Qstr:
+			v = mkvalstr(strcopy(valstr(v)));
+			break;
+		default:
+			break;
+		}
+		return v;
 	case Onil:
 		return Xnil;
 	default:
@@ -3730,8 +3754,9 @@ getcvalrand(VM *vm, Operand *r)
 	switch(r->okind){
 	case Oloc:
 		return getcval(vm, &r->u.loc);
-	case Oliti:
-		return valcval(r->u.liti);
+	case Okon:
+		/* FIXME: check for cval? */
+		return valcval(r->u.kon);
 	default:
 		fatal("bug");
 	}
@@ -3978,7 +4003,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	old = chasetype(cv->type);
 	new = chasetype(xtn);
 	if(old->rep == Rundef || new->rep == Rundef)
-		vmerr(vm, "attempt to cast to type "
+		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
 	return mkcval(dom, xtn, rerep(cv->val, old, new));
 }
@@ -4050,7 +4075,7 @@ commontype(Xtypename *t1, Xtypename *t2)
 	while(1){
 		p2 = t2;
 		while(1){
-			if(eqxtn(p1, p2))
+			if(equalxtn(p1, p2))
 				return p1;
 			if(p2->tkind != Ttypedef && p2->tkind != Tenum)
 				break;
@@ -4170,6 +4195,25 @@ xcallc(VM *vm)
 	vm->ac = rv;
 }
 
+static void
+xspec(VM *vm, Operand *op)
+{
+	Val v;
+	Cval *cv;
+	Imm idx;
+
+	v = getvalrand(vm, op);
+	cv = valcval(v);
+	idx = cv->val;
+	xprintf("spec %d\n", idx);
+	cgspec(vm, vm->clx, idx, vm->ac);
+	vmsetcl(vm, vm->cl);
+	vm->sp = vm->fp;
+	vm->pc = vm->clx->entry;
+//	vm->ibuf = vm->clx->code->insn;
+//	setgo(&vm->ibuf[vm->pc], vm->clx->code->ninsn-vm->pc);
+}
+
 static int
 Strcmp(Str *s1, Str *s2)
 {
@@ -4205,9 +4249,9 @@ xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 
 	switch(op){
 	case Icmpeq:
-		return eqstr(s1, s2);
+		return equalstr(s1, s2);
 	case Icmpneq:
-		return !eqstr(s1, s2);
+		return !equalstr(s1, s2);
 	case Icmpgt:
 		x = Strcmp(s1, s2);
 		return x > 0 ? 1 : 0;
@@ -4722,6 +4766,10 @@ xbox(VM *vm, Operand *op)
 {
 	Val v;
 	v = getvalrand(vm, op);
+	// specializer can trigger redundant boxing of parameters
+	// when jumping from original to new function
+	if(v->qkind == Qbox)
+		return;
 	putvalrand(vm, mkvalbox(v), op);
 }
 
@@ -4971,7 +5019,7 @@ nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 		      "wrong number of arguments to address space dispatch");
 	checkarg(vm, "nasdispatch", argv, 1, Qstr);
 	cmd = valstr(argv[1]);
-	if(eqstrc(cmd, "map")){
+	if(equalstrc(cmd, "map")){
 		if(argc != 2)
 			vmerr(vm, "wrong number of arguments to map");
 		*rv = mkvalvec(mkvec(0));
@@ -5008,7 +5056,7 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      "wrong number of arguments to address space dispatch");
 	checkarg(vm, "sasdispatch", argv, 1, Qstr);
 	cmd = valstr(argv[1]);
-	if(eqstrc(cmd, "get")){
+	if(equalstrc(cmd, "get")){
 		if(argc != 3)
 			vmerr(vm, "wrong number of arguments to get");
 		checkarg(vm, "sasdispatch", argv, 2, Qrange);
@@ -5023,7 +5071,7 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 			vmerr(vm, "address space access out of bounds");
 		dat = strslice(s, beg->val, end->val);
 		*rv = mkvalstr(dat);
-	}else if(eqstrc(cmd, "put")){
+	}else if(equalstrc(cmd, "put")){
 		if(argc != 4)
 			vmerr(vm, "wrong number of arguments to put");
 		checkarg(vm, "sasdispatch", argv, 2, Qrange);
@@ -5042,7 +5090,7 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 			vmerr(vm, "short put");
 		/* FIXME: rationalize with l1_strput */
 		memcpy(s->s+beg->val, dat->s, dat->len);
-	}else if(eqstrc(cmd, "map")){
+	}else if(equalstrc(cmd, "map")){
 		if(argc != 2)
 			vmerr(vm, "wrong number of arguments to map");
 		v = mkvec(1);
@@ -5371,7 +5419,7 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 		def = valxtn(rv);
 		if(def->tkind != Ttypedef)
 			vmerr(vm, "invalid typedef in raw type table");
-		if(!eqstr(def->tid, xtn->tid))
+		if(!equalstr(def->tid, xtn->tid))
 			vmerr(vm, "invalid typedef in raw type table");
 		new->link = resolvetypename(vm, def->link, ctx);
 		return new;
@@ -5544,7 +5592,19 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	case Tvoid:
 		return mkvoidxtn();
 	case Tbase:
+		if(xtn->rep != Rundef){
+			new = mkxtn();
+			new->tkind = Tbase;
+			new->basename = xtn->basename;
+			xtn = new;
+		}
 		return resolvebase(vm, mkvalxtn(xtn), ctx);
+	case Tptr:
+		new = mkxtn();
+		new->tkind = xtn->tkind;
+		new->rep = ctx->ptrrep;
+		new->link = resolvetypename(vm, xtn->link, ctx);
+		return new;
 	case Ttypedef:
 		new = resolvetid(vm, mkvalxtn(xtn), ctx);
 		return new;
@@ -5571,12 +5631,6 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		new->get = xtn->get;
 		new->put = xtn->put;
-		return new;
-	case Tptr:
-		new = mkxtn();
-		new->tkind = xtn->tkind;
-		new->rep = ctx->ptrrep;
-		new->link = resolvetypename(vm, xtn->link, ctx);
 		return new;
 	case Tarr:
 		new = mkxtn();
@@ -6067,24 +6121,27 @@ mksysdom(VM *vm)
 static void* gotab[Iopmax];
 
 static void
+setgo(Insn *i, Imm lim)
+{
+	Imm k;
+	for(k = 0; k < lim; k++){
+		i->go = gotab[i->kind];
+		i++;
+	}
+}
+
+static void
 vmsetcl(VM *vm, Val val)
 {
-	unsigned k;
 	Closure *cl;
-	Insn *i;
 
 	if(val->qkind != Qcl)
 		vmerr(vm, "attempt to apply non-procedure");
 	cl = valcl(val);
 	vm->clx = cl;
 	vm->ibuf = vm->clx->code->insn;
-	if(vm->ibuf->go == 0){
-		i = vm->ibuf;
-		for(k = 0; k < vm->clx->code->ninsn; k++){
-			i->go = gotab[i->kind];
-			i++;
-		}
-	}
+	if(vm->ibuf->go == 0)
+		setgo(vm->ibuf, vm->clx->code->ninsn);
 }
 
 jmp_buf*
@@ -6371,6 +6428,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isizeof]	= &&Isizeof;
+		gotab[Ispec] 	= &&Ispec;
 		gotab[Isub] 	= &&Isub;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
@@ -6415,6 +6473,9 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		goto *(i->go);
 		fatal("bug");
 	Inop:
+		continue;
+	Ispec:
+		xspec(vm, &i->op1);
 		continue;
 	Icallc:
 		xcallc(vm);
@@ -6559,7 +6620,7 @@ checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 		      arg+1, fn, qname[qkind]);
 }
 
-static int
+int
 isbasecval(Cval *cv)
 {
 	Xtypename *t;
@@ -6569,7 +6630,7 @@ isbasecval(Cval *cv)
 	return 1;
 }
 
-static int
+int
 isnegcval(Cval *cv)
 {
 	Xtypename *t;
@@ -6581,7 +6642,7 @@ isnegcval(Cval *cv)
 	return (s64)cv->val < 0;
 }
 
-static int
+int
 isnatcval(Cval *cv)
 {
 	Xtypename *t;
@@ -6593,7 +6654,7 @@ isnatcval(Cval *cv)
 	return (s64)cv->val >= 0;
 }
 
-static int
+int
 iszerocval(Cval *cv)
 {
 	return cv->val == 0;
@@ -7483,7 +7544,7 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 		f = valvec(vp);
 		id = vecref(f, Idpos);
 		if(id->qkind == Qstr){
-			if(eqstrv(tag, id))
+			if(equalstrv(tag, id))
 				return vp;
 			else
 				continue;
@@ -10577,7 +10638,7 @@ basetab(NSroot *def, Xtypename **base)
 
 	type = mktab();
 	for(cb = Vchar; cb < Vnbase; cb++){
-		kv = mkvalxtn(base[cb]);
+		kv = mkvalxtn(mkbasextn(cb, Rundef));
 		vv = mkvalxtn(base[cb]);
 		_tabput(type, kv, vv);
 	}

@@ -1,0 +1,44 @@
+define foo(x) [domof(x)] {
+	return x+x;
+}
+
+define foodemo()
+{
+	printf("%d\n", foo(3));
+	printf("%d\n", foo(3));
+}
+
+define esize(p) [domof(p)]
+{
+	@local dom, x, rv;
+	rv = 0;
+	dom = domof(p);
+	if(p == 0)
+		return 0;
+	p = (void*)p;
+	p -= sizeof(dom`size_t);
+	p = (`size_t*)p;
+	x = *p;
+	rv = sizeof(dom`size_t)+x;
+	return rv;
+}
+
+
+define esizedemo()
+{
+	@local ns, as, dom, p;
+
+	ns = @names c32le {
+		typedef unsigned int size_t;
+	};
+	as = mkzas(1024);
+	dom = mkdom(ns, as);
+
+	p = (char*){dom}4;
+	printf("%d\n", esize(p));
+	printf("%d\n", esize(p));
+}
+
+//foodemo();
+esizedemo();
+
