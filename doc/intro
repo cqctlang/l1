@@ -106,7 +106,7 @@ implementation.
 Interacting with Cinquecento
 ----------------------------
 
-This introduction presents examples that can be
+The examples presented in this introduction can be
 executed interactively with the l1 executable.
 
 To start l1 from the L1 directory, run
@@ -121,18 +121,17 @@ The ';' is the interactive L1 prompt.
 
 The l1 evaluator has a rudimentary interface that does
 support history or readline-like editing.  Some users
-run l1 under in an emacs subshell or under a program
-like rlwrap to gain history and editing support.
+run l1 in an emacs subshell or under a program like
+rlwrap to gain history and editing support.
 
 While the interactive prompt is fine for simple
 one-line expressions, a more convenient way to send
-complex input to L1 is by loading it from a file:
+complex input to L1 is to load it from a file:
 
 	; @include "hello.l1"
 
-This reads the file "hello.l1" from the current
-working directory of the L1 process and executes
-its contents.
+This reads the file "hello.l1" from the current working
+directory of the L1 process and evaluates its contents.
 
 Loading from a file is especially convenient for
 multi-line input.
@@ -141,17 +140,26 @@ multi-line input.
 Basic Expressions
 -----------------
 
-Cinqucento is an expression-oriented language:
-input consists of a sequence of expressions,
-which the evaluators executes in order.
+Cinquecento is an expression-oriented language: input
+consists of a sequence of expressions, which the
+evaluator executes in order.
+
+The general syntax (and semantics) of expressions
+is based on C.
 
 Expressions include simple C expressions:
 
 	; 3+4;
 	7
 
+	; (0x5>>1)&2;
+	2
 
+Note that simple expressions must be terminated with a
+semicolon.
 
+Expressions also include many forms of C *statements*.
 
-
-
+	for(i = 0; i < 10; i++){
+		printf("%d\n", i);
+	}
