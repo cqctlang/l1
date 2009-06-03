@@ -48,12 +48,6 @@ koncstr(Tab *kon, char *s, Imm len)
 	return konval(kon, mkvalstr(mkstr(s, len)));
 }
 
-static Val
-konxtn(Tab *kon, Xtypename *xtn)
-{
-	return konval(kon, mkvalxtn(xtn));
-}
-
 // allocate and bind constants to constant pool
 static Expr*
 konsts(Expr *e, Code *code)
