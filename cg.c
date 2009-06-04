@@ -60,10 +60,12 @@ konsts(Expr *e, Code *code)
 	switch(e->kind){
 	case Econst:
 		p = Zkon(konimm(code->konst, e->liti.base, e->liti.val));
+		putsrc(p, &e->src);
 		freeexpr(e);
 		return p;
 	case Econsts:
 		p = Zkon(koncstr(code->konst, e->lits->s, e->lits->len));
+		putsrc(p, &e->src);
 		freeexpr(e);
 		return p;
 	case Ekon:
@@ -920,6 +922,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	int m;
 	CGEnv np;
 	unsigned genl;
+	Src *src;
 
 	switch(e->kind){
 	case Enop:
@@ -1219,25 +1222,26 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Elambda:
 		l = (Lambda*)e->xp;
 		L = genlabel(code, l->id);
+		src = &e->e1->src; /* argument list */
 
 		for(m = l->ncap-1; m >= 0; m--){
-			i = nextinsn(code, &e->src);
+			i = nextinsn(code, src);
 			i->kind = Imov;
 			randvarloc(&i->op1, l->cap[m], 0);
 			randloc(&i->dst, AC);
-			i = nextinsn(code, &e->src);
+			i = nextinsn(code, src);
 			i->kind = Ipush;
 			randloc(&i->op1, AC);
 		}
 
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Iclo;
 		randkon(&i->op1, konimm(code->konst, Vint, l->ncap));
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
 
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Ijmp;
 		i->dstlabel = ctl;
 		ctl->used = 1;
@@ -1524,6 +1528,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	unsigned m, needtop = 0;
 	unsigned long ns;
 	Ctl *top;
+	Src *src;
 
 	if(e->kind != Elambda)
 		fatal("cglambda on non-lambda");
@@ -1540,14 +1545,15 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	}
 
 	entry = code->ninsn;
+	src = &e->e1->src; /* argument list */
 	if(!l->isvarg){
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Iargc;
 		randkon(&i->op1, konimm(code->konst, Vuint, l->nparam));
 		needtop = 1;
 	}
 	if(l->nloc+l->ntmp > 0){
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Isub;
 		randloc(&i->op1, SP);
 		randkon(&i->op2, konimm(code->konst, Vint, l->nloc+l->ntmp));
@@ -1556,13 +1562,13 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	}
 	for(m = 0; m < l->nparam; m++)
 		if(l->param[m].box){
-			i = nextinsn(code, &e->src);
+			i = nextinsn(code, src);
 			i->kind = Ibox;
 			randvarloc(&i->op1, &l->param[m], 0);
 			needtop = 1;
 		}
 	if(l->isvarg){
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Ilist;
 		randloc(&i->op1, FP);
 		/* by convention param 0 is first local stack variable */
@@ -1591,7 +1597,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		cg(e->e4, code, &p, AC, L, top, L, l->nloc);
 		ns = code->nspec++;
 		code->spec[ns] = e;
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Ispec;
 		randkon(&i->op1, konimm(code->konst, Vint, ns));
 		top = genlabel(code, 0);
