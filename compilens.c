@@ -210,6 +210,7 @@ compilens(U *ctx, Expr *e)
 	/* inherited names expression */
 	se = Zset(doid("$ns"), compile(ctx, e->e1));
 	te = Zcons(se, te);
+	putsrc(te, &e->e1->src);
 
 	/* declarations */
 	ex = e->e2;
