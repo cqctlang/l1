@@ -60,10 +60,12 @@ konsts(Expr *e, Code *code)
 	switch(e->kind){
 	case Econst:
 		p = Zkon(konimm(code->konst, e->liti.base, e->liti.val));
+		putsrc(p, &e->src);
 		freeexpr(e);
 		return p;
 	case Econsts:
 		p = Zkon(koncstr(code->konst, e->lits->s, e->lits->len));
+		putsrc(p, &e->src);
 		freeexpr(e);
 		return p;
 	case Ekon:
@@ -920,6 +922,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	int m;
 	CGEnv np;
 	unsigned genl;
+	Src *src;
 
 	switch(e->kind){
 	case Enop:
@@ -1166,27 +1169,12 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				randloc(&i->op1, AC);
 			if(loc != Effect){
 				emitlabel(R, e);
-#if 0
-				if(loc == AC){
-					/* FIXME: nop because there
-					   seems to be no simple way to manage
-					   the labels otherwise. */
-					i = nextinsn(code, &e->src);
-					i->kind = Inop;
-				}else{
-					i = nextinsn(code, &e->src);
-					i->kind = Imov;
-					randloc(&i->op1, AC);
-					randloc(&i->dst, loc);
-				}
-#else
 				if(loc != AC){
 					i = nextinsn(code, &e->src);
 					i->kind = Imov;
 					randloc(&i->op1, AC);
 					randloc(&i->dst, loc);
 				}
-#endif
 			}
 			cgctl(code, p, ctl, nxt, &e->src);
 		}else{
@@ -1234,25 +1222,26 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Elambda:
 		l = (Lambda*)e->xp;
 		L = genlabel(code, l->id);
+		src = &e->e1->src; /* argument list */
 
 		for(m = l->ncap-1; m >= 0; m--){
-			i = nextinsn(code, &e->src);
+			i = nextinsn(code, src);
 			i->kind = Imov;
 			randvarloc(&i->op1, l->cap[m], 0);
 			randloc(&i->dst, AC);
-			i = nextinsn(code, &e->src);
+			i = nextinsn(code, src);
 			i->kind = Ipush;
 			randloc(&i->op1, AC);
 		}
 
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Iclo;
 		randkon(&i->op1, konimm(code->konst, Vint, l->ncap));
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
 
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Ijmp;
 		i->dstlabel = ctl;
 		ctl->used = 1;
@@ -1496,14 +1485,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		else
 			cgjmp(code, &np, ctl, np.cases->ctl[0], &e->src);
 		cg(e->e2, code, &np, Effect, ctl, np.cases->ctl[0], nxt, tmp);
-
-#if 0
-		/* hack for unique labels in code like:
-			   switch(e){ ... default: printf; break; } e = 5;
-		*/
-		i = nextinsn(code, &e->src);
-		i->kind = Inop;
-#endif
 		freeswitchctl(np.cases);
 		np.cases = 0;
 		break;
@@ -1513,17 +1494,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		for(m = 0; m < p->cases->n; m++)
 			if(p->cases->cmp[m] == e){
 				emitlabel(p->cases->ctl[m], e);
-#if 0
-				i = nextinsn(code, &e->src);
-				i->kind = Inop;
-#endif
 				cg(e->e2, code, p, Effect, ctl,
 				   p->cases->ctl[m],
 				   nxt, tmp);
-#if 0
-				i = nextinsn(code, &e->src);
-				i->kind = Inop;
-#endif
 				break;
 			}
 		cgctl(code, p, ctl, nxt, &e->src);
@@ -1533,10 +1506,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("default label with no switch");
 		if(p->cases->dflt){
 			emitlabel(p->cases->dflt, e);
-#if 0
-			i = nextinsn(code, &e->src);
-			i->kind = Inop;
-#endif
 			cg(e->e1, code, p, Effect, ctl,
 			   p->cases->dflt,
 			   nxt, tmp);
@@ -1559,6 +1528,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	unsigned m, needtop = 0;
 	unsigned long ns;
 	Ctl *top;
+	Src *src;
 
 	if(e->kind != Elambda)
 		fatal("cglambda on non-lambda");
@@ -1575,14 +1545,15 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	}
 
 	entry = code->ninsn;
+	src = &e->e1->src; /* argument list */
 	if(!l->isvarg){
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Iargc;
 		randkon(&i->op1, konimm(code->konst, Vuint, l->nparam));
 		needtop = 1;
 	}
 	if(l->nloc+l->ntmp > 0){
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Isub;
 		randloc(&i->op1, SP);
 		randkon(&i->op2, konimm(code->konst, Vint, l->nloc+l->ntmp));
@@ -1591,24 +1562,18 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	}
 	for(m = 0; m < l->nparam; m++)
 		if(l->param[m].box){
-			i = nextinsn(code, &e->src);
+			i = nextinsn(code, src);
 			i->kind = Ibox;
 			randvarloc(&i->op1, &l->param[m], 0);
 			needtop = 1;
 		}
 	if(l->isvarg){
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Ilist;
 		randloc(&i->op1, FP);
 		/* by convention param 0 is first local stack variable */
 		randvarloc(&i->dst, &l->param[0], 1);
 	}
-
-#if 0
-	/* was: hack to return nil in degenerate cases; insert nop instead */
-	i = nextinsn(code, &e->src);
-	i->kind = Inop;
-#endif
 
 	if(needtop){
 		top = genlabel(code, 0);
@@ -1632,7 +1597,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		cg(e->e4, code, &p, AC, L, top, L, l->nloc);
 		ns = code->nspec++;
 		code->spec[ns] = e;
-		i = nextinsn(code, &e->src);
+		i = nextinsn(code, src);
 		i->kind = Ispec;
 		randkon(&i->op1, konimm(code->konst, Vint, ns));
 		top = genlabel(code, 0);
@@ -1642,12 +1607,6 @@ body:
 
 	if(p.Return0->used) /* hack for lambdas with empty bodies */
 		emitlabel(p.Return0, e->e2);
-
-#if 0
-	i = nextinsn(code, &e->src);
-	i->kind = Inop;
-#endif
-
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code, &e->src);
 	i->kind = Iret;
