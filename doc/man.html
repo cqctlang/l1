@@ -4,8 +4,8 @@
 
 <head>
 <title>Cinquecento Manual</title>
-<link rel="stylesheet" type="text/css" media="screen" href="reset.css"/>
-<link rel="stylesheet" type="text/css" media="screen" href="styles.css"/>
+<link rel="stylesheet" type="text/css" href="reset.css"/>
+<link rel="stylesheet" type="text/css" href="styles.css"/>
 </head>
 
 <body>
@@ -23,7 +23,7 @@
 <a href="#sec:types">Types</a><br />
 <a href="#sec:functions">Functions</a><br />
 <a href="#sec:control">Control Operators</a><br />
-<a href="#sec:statements">Statements</a><br />
+<a href="#sec:statements">Control Flow Statements</a><br />
 <a href="#sec:constants">Constants</a><br />
 <a href="#sec:records">Records</a><br />
 <br />
@@ -79,81 +79,87 @@ of the L1 implementation of Cinquecento.
 <p>
 Cinquecento is a programming language designed to help
 programmers examine the state of programs in execution,
-in particular C programs.  Its key feature is an
-extensible abstraction, called a <em>domain</em>, that
-represents the state of a remotely executing program.
+in particular C programs.  Its distinguishing feature
+is an extensible abstraction, called a <em>domain</em>,
+that represents the state of a remotely executing
+program.
 </p>
 
 <p>
-The primary interface for constructing and accessing
-domains is the syntax of the C programming
-language.  Cinquecento understands C operators and the
-C type system; any valid C expression may be used to
-read or modify the state of a target program.
-Cinquecento also supports C control statements.
-These features allow many C idioms, such
-as loops for traversing pointer-linked data structures,
-to work unmodified in Cinquecento.  Types and variables
-of target programs can be specified using C declaration
-syntax; minor extensions admit precise specification of
-layout and encoding of program data in memory.
+The syntax of the C programming language is the main
+interface to Cinquecento domains.
+
+C expressions can be used to read or modify the state
+of a target program; Cinquecento understands the C type
+system and supports all C operators.  Cinquecento also
+supports C control flow statements; most C data
+traversal idioms, such as pointer-chasing loops, work
+unmodified in Cinquecento.  Names and types of target
+program data can be specified in C declaration syntax;
+minor extensions to the syntax admit machine-level
+specification of location, layout, and encoding of data
+in memory.  In essence, Cinquecento makes the state of
+remotely executing programs accessible through
+ordinary, arbitrary, local fragments of C.
 </p>
 
 <p>
 Cinquecento is designed to operate on
-multiple target programs simultaneously.
+multiple target programs at the same time.
 
 Heterogeneity among the programs and their environments
-is assumed: each target program may have its own types,
+is expected: each target program may have its own types,
 symbols, executable format; and each target program may
 execute on a different machine, possibly with a different
 architecture and operating system.
 
-Example applications include comparing the execution of
+Example applications include comparing executions of
 different versions of a program, or verifying that a
 particular version has comparable executions on
-different architectures.  More generally, Cinquecento
-can be used to validate the execution of the
-constitutent programs of a distributed system.
+different machine types or operating systems.  More
+generally, Cinquecento can be used to validate dynamic
+state spanning the constitutent programs of a
+distributed system.
 </p>
 
 <p>
-Domains encapsulate
-the essence of what is needed to symbolically examine a
-remotely executing program: definitions of its types
-and symbols, and a way to access to its memory and
-other run-time state.  Rather than favor the
-idiosyncrasies of one operating system, architecture,
-compiler, or debugging information format, Cinquecento
-specifies a minimal interface that allows users to
-tailor domains for their execution environment.
-Built-in library functions and support programs simplify
-construction of domains for common environments, such
-as x86 Linux systems.
+Domains encapsulate the essence of what is needed to
+symbolically examine a remotely executing program:
+definitions of its types and symbols, and a way to
+access to its memory and other run-time state.  Rather
+than favor the idiosyncrasies of one operating system,
+architecture, compiler, or debugging information
+format, Cinquecento specifies a small, extensible
+interface that allows users to easily tailor domains
+for their system environment.  New domain
+implementations can be written entirely in Cinquecento;
+built-in library functions and support programs
+simplify construction of domains for common
+environments, such as x86 Linux systems.
 </p>
 
 <p>
-Apart from domains, Cinquecento is a simple dynamic language
-with conventional functional semantics.  Its closest
-semantic relative is Scheme: Cinquecento is lexically
-scoped, dynamically typed, properly tail recursive; and
-it has first-class functions and automatic memory
-management.  Aside from the C-based syntax,
-Cinquecento is a Scheme at heart; purists, however,
-will notice departure from tradition in Cinquecento's
-model of arithmetic (which is aggressively faithful to
-C), in the more stateful flavor of its built-in list
-data type, and (today) by the absence of a compelling
+Apart from domains and the C-based syntax, Cinquecento
+is a simple dynamic language with conventional
+functional semantics.  At heart it is a dialect of
+Scheme: Cinquecento is lexically scoped, dynamically
+typed, properly tail recursive, and has first-class
+functions and automatic memory management.  Faithful
+Schemers will note departure in Cinquecento's model of
+integers (which rigorously emulates C's fixed precision
+semantics), the more imperative flavor of its built-in
+list data type, and the absence (today) of a compelling
 macro system.
 </p>
 
 <p>
-The Cinquecento language design and implementation is an active research project,
-still undergoing revision and extension.
+The Cinquecento language design and implementation is
+an active research project, still undergoing revision,
+extension, and tuning.
 
-We strive to keep this
-manual current with the implementation it accompanies,
-but until things settle down, sometimes we will fall behind.
+We strive to keep this manual current with the
+implementation it accompanies, but until things settle
+down, sometimes we will fall behind.
 </p>
 
 <p>
@@ -223,13 +229,15 @@ The following are the keywords of Cinquecento.
 <div class="code">
 <!-- pipe through mc -60
 @const 
-@local 
+@let
+@local
 @global 
 @names 
 @record 
 break 
 case 
 char 
+const
 containerof 
 continue 
 default 
@@ -256,18 +264,20 @@ typeof
 union 
 unsigned 
 void 
+volatile
 while 
 -->
 <pre>
-@const       continue     if           struct 
-@local       default      int          switch 
-@global      define       lambda       typedef 
-@names       do           long         typeof 
-@record      double       nil          union 
-break        else         return       unsigned 
-case         enum         short        void 
-char         float        signed       while 
-containerof  for          sizeof 
+@const       containerof  if           switch 
+@let         continue     int          typedef 
+@local       default      lambda       typeof 
+@global      define       long         union 
+@names       do           nil          unsigned 
+@record      double       return       void 
+break        else         short        volatile
+case         enum         signed       while 
+char         float        sizeof 
+const        for          struct 
 </pre>
 </div>
 
@@ -350,6 +360,10 @@ value.  The suffixes <span class="val">U</span>,
 <span class="val">L</span>, 
 <span class="val">LL</span>, and their lowercase variants
 impose the specified long and/or unsigned types upon the value.
+</p>
+
+<p>
+Cinquecento currently does not support floating point types or values.
 </p>
 
 <h3 id="sec:scope">Scope and Variables</h3>
@@ -492,18 +506,18 @@ belongs to the type.
 </p>
 
 <p>
-The types special to Cinquecento are <em>cvalue</em>,
-<em>ctype</em>, <em>domain</em>, <em>address
-space</em>, and <em>name space</em>.  In certain
-(usually invisible) contexts, address spaces are
-indexed by values of type <em>address</em> and
-<em>range</em>.
+Types with standard semantics include <em>string</em>,
+<em>function</em>, <em>record</em>, <em>record descriptor</em>,
+and <em>file descriptor</em>.
 </p>
 
 <p>
-Other types with standard semantics include <em>string</em>,
-<em>function</em>, <em>record</em>, <em>record descriptor</em>,
-and <em>file descriptor</em>.
+The types special to Cinquecento are <em>cvalue</em>,
+<em>ctype</em>, <em>domain</em>, <em>address
+space</em>, <em>name space</em>, and <em>range</em>.
+These types represent different aspects of a program in
+execution; their roles are described in the
+<a href="#sec:domainover">overview of domains</a>.
 </p>
 
 <p>
@@ -635,6 +649,21 @@ the value belongs to the type,
 <h3 id="sec:functions">Functions</h3>
 
 <p>
+As in Scheme and other functional languages,
+Cinquecento functions are first-class values.
+They may be dynamically created, returned from
+functions, bound to variables, and stored in containers.
+</p>
+
+<p>
+Cinquecento functions are closures over their lexical
+environment: free variables in the body of a function
+definition refer to the bindings of those variables
+contained in the enclosing blocks or in the top-level
+environment.
+</p>
+
+<p>
 The <span class="fnindex" id="syn:@local">lambda</span>
 expression defines new function values.  The syntax
 variants are:
@@ -661,10 +690,6 @@ to the variable <span class="arg">var</span> within the body.
 <p>
 The body of the function is a sequence of statements
 to be evaluated when the function is called.
-Cinquecento functions are closures: free variables in
-the body of a function definition refer to the
-bindings of those variables contained in the enclosing blocks or
-in the top-level environment.
 </p>
 
 <p>
@@ -706,14 +731,15 @@ The second form returns the value of <span class="arg">expr</span>.
 The value of a function call expression is the value
 returned by evaluation
 of a <span class="id">return</span> statement in
-the body of the called function, or <span class="val">nil</span>
+the body of the called function, or the value of the
+last evaluated expression in the body 
 if the function returns without reaching a
 <span class="id">return</span> statement.
 </p>
 
 <p>
 The <span class="fnindex" id="syn:define">define</span> form
-is syntactic sugar for naming functions.
+is syntactic sugar for naming a function definition.
 For example
 
 <div class="code">
@@ -789,7 +815,7 @@ flow.
 </div>
 <div class="desc">
 Aborts the current continuation and signals an error to the current caller of the
-the Cinquecento evaluator.  An error message
+Cinquecento evaluator.  An error message
 is formatted by passing <span class="arg">fmt</span> and <span class="arg">arg ...</span>
 to <span class="id"><a href="#fn:sprintfa">sprintfa</a></span>
 and printed along with a stack trace to the current
@@ -842,10 +868,10 @@ functions.
 </div>
 </div>
 
-<h3 id="sec:statements">Statements</h3>
+<h3 id="sec:statements">Control Flow Statements</h3>
 
 <p>
-Cinquecento supports the statements of C,
+Cinquecento supports the control flow statements of C,
 including <span class="val">do</span>-<span class="val">while</span>,
 <span class="val">for</span>,
 and <span class="val">while</span> loops,
@@ -857,7 +883,7 @@ and <span class="val">default</span> labels) conditionals.
 
 <p>
 These statements have the same syntax they have in C.
-Loop and <span class="val">switch</span> 
+Control flow through loops and <span class="val">switch</span> 
 statements can be controlled with <span class="val">break</span>
 and <span class="val">continue</span> as in C.
 </p>
@@ -865,20 +891,21 @@ and <span class="val">continue</span> as in C.
 <p>
 Unlike C, the <span class="val">switch</span> statement
 dispatches values of any type, not just integers.
-
 The <span class="val">==</span> operator determines
 equality.
+</p>
 
-Also unlike C, the
-<span class="val">case</span>s of a
+<p>
+The <span class="val">case</span>s of a
 <span class="val">switch</span> are compared in
-lexical order; control transfers to the first statement
-with a matching <span class="val">case</span> label.
-
-Control transfers to the
+lexical order; control jumps to the first statement
+with a matching <span class="val">case</span> label, or to the
 optional <span class="val">default</span> label,
 regardless of where it appears, if
 no <span class="val">case</span> matches.
+Controls skips past the <span class="val">switch</span> body 
+if there is no matching case
+and no <span class="val">default</span> label.
 </p>
 
 <p>
@@ -931,7 +958,7 @@ the fields defined by the record descriptor.
 </p>
 
 <p>
-The syntax
+For example, the expression:
 
 <div class="code">
 <pre>
@@ -948,10 +975,13 @@ The record type has three fields, named
 
 The value of the <span class="id">@record</span> expression
 is the resulting record descriptor.
+</p>
 
-In addition, evaluation of the <span class="id">@record</span>
-expression defines 
-two top-level functions, named <span class="id">myrec</span>
+<p>
+In addition, evaluation of
+the <span class="id">@record</span> expression
+implicitly defines two top-level functions,
+named <span class="id">myrec</span>
 and <span class="id">ismyrec</span>.
 </p>
 
@@ -966,7 +996,7 @@ and <span class="val">0</span> otherwise.
 
 <p>
 The function <span class="id">myrec</span> is the
-constructor for instances of the myrec type.
+constructor for instances of the <span class="id">myrec</span> type.
 
 For example:
 
@@ -983,9 +1013,9 @@ binds <span class="id">x</span> to a new instance of the
 <p>
 The function <span class="id">myrec</span>
 expects either zero arguments,
-in which case the fields are <span class="id">nil</span>,
+in which case the fields of the new instance are bound to <span class="id">nil</span>,
 or exactly as many arguments as there are fields in the type,
-in which case the arguments are assigned to the fields in the order
+in which case the arguments are bound to the fields in the order
 they were given in the <span class="id">@record</span> definition.
 </p>
 
@@ -1004,61 +1034,6 @@ x.field3("blah");	  // call the value of x's field3
 </pre>
 </div>
 </p>
-
-<p>
-Record descriptors have an associated format procedure
-that is implicitly called when 
-the <span class="val">%a</span> conversion of the
-formatted I/O library routines is applied to an instance of the record type.
-The format procedure takes a single argument,
-the record instance,
-and returns a string representing the formatted
-record.
-</p>
-
-<p>
-The following routines access the format procedure
-associated with a record descriptor.
-</p>
-
-<div class="docitem" id="fn:rdfmt">
-<div class="proto">
-<div class="function">
-<span class="id">rdfmt(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the format procedure of the record descriptor
-<span class="arg">rd</span>. 
-</div>
-</div>
-
-<div class="docitem" id="fn:rdsetfmt">
-<div class="proto">
-<div class="function">
-<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="param">
-<span class="arg">fmt</span>: <span class="type">function</span>
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-Sets the format procedure of the record descriptor
-<span class="arg">rd</span> to <span class="arg">fmt</span>.
-</div>
-</div>
 
 <p>
 The following routines operate on records and record descriptors.
@@ -1139,7 +1114,60 @@ Returns the name associated with the record descriptor
 </div>
 </div>
 
+<p>
+Record descriptors have an associated format procedure
+that is implicitly called when 
+the <span class="val">%a</span> conversion of the
+formatted I/O library routines is applied to an instance of the record type.
+The format procedure takes a single argument,
+the record instance,
+and returns a string representing the formatted
+record.
+</p>
 
+<p>
+The following routines access the format procedure
+associated with a record descriptor.
+</p>
+
+<div class="docitem" id="fn:rdfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdfmt(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the format procedure of the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rdsetfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the format procedure of the record descriptor
+<span class="arg">rd</span> to <span class="arg">fmt</span>.
+</div>
+</div>
 
 
 <h3 id="sec:domainover">Overview of Domains</h3>
@@ -1154,14 +1182,15 @@ A domain is an interface to three features of a program
 in execution: its memory, symbols, and types.  This
 interface is defined procedurally; like an object in an
 object-oriented language, a domain encapsulates the
-implementation of a pre-defined set of operations.
+implementation of a predefined set of operations.
 </p>
 
 <p>
-The domain interface can be called directly, but Cinquecento programs normally interact
-with domains through C expressions, which are
-translated by the Cinquecento evaluator into
-implicit calls to the domain interface.
+The domain interface can be called directly, but
+normally Cinquecento programs interact with domains
+through C expressions, which are translated by the
+Cinquecento evaluator into implicit calls to the domain
+interface.
 </p>
 
 <p>
@@ -1198,7 +1227,7 @@ and <span class="type">enumtype</span>
 list the symbols and types
 of the name space.
 <span class="type">Lookaddr</span>
-reverse-maps an address to the nearest
+maps an address to the nearest
 symbol.
 </p>
 
@@ -2158,7 +2187,7 @@ big
 implementation of the name space interface.
 Cinquecento provides three mechanisms for doing so.
 The <span class="id"><a href="#fn:mkns">mkns</a></span>
-function accepts pre-defined functions and returns a
+function accepts predefined functions and returns a
 new name space.  The <span class="id"><a
 href="#fn:mknsraw">mknsraw</a></span> function accepts
 two tables that define the symbols and types in the
