@@ -3750,7 +3750,7 @@ zero if they are equal.
 <div class="docitem" id="fn:pop">
 <div class="proto">
 <div class="function">
-<span class="id">pop(<span class="arg">list</span>)</span>
+<span class="id">pop(<span class="arg">container</span>)</span>
 </div>
 <div class="param">
 <span class="arg">container</span>: <span class="type">list or table</span>
@@ -3792,6 +3792,94 @@ Returns the concatentation of the arguments.  The arguments must
 be of the same type.
 </div>
 </div>
+
+<div class="docitem" id="fn:count">
+<div class="proto">
+<div class="function">
+<span class="id">count(<span class="arg">container</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list, string, or vector</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">value</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the number of occurrences of <span class="arg">v</span>
+in <span class="arg">container</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:index">
+<div class="proto">
+<div class="function">
+<span class="id">index(<span class="arg">container</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list, string, or vector</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">value</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the index of the first occurrences of <span class="arg">v</span>
+in <span class="arg">container</span> or <span class="val">nil</span>
+if <span class="arg">v</span> is not in <span class="arg">container</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:ismember">
+<div class="proto">
+<div class="function">
+<span class="id">ismember(<span class="arg">container</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list, string, table, or vector</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">value</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns <span class="val">1</span> if <span class="arg">v</span>
+occurs in <span class="arg">container</span> or <span class="val">0</span>
+otherwise.
+</div>
+</div>
+
+<div class="docitem" id="fn:delete">
+<div class="proto">
+<div class="function">
+<span class="id">delete(<span class="arg">container</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list or table</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">value</span>
+</div>
+<div class="returns">
+<span class="type">container</span>
+</div>
+</div>
+<div class="desc">
+Deletes the first occurrence of <span class="arg">v</span>
+in <span class="arg">container</span>, if one exists.
+Returns <span class="arg">container</span> following the update.
+</div>
+</div>
+
 
 <h3 id="sec:lists">Lists</h3>
 
@@ -6194,6 +6282,7 @@ machines sharing the environment have been freed.
 <a href="#fn:close">close</a><br />
 <a href="#fn:concat">concat</a><br />
 <a href="#fn:copy">copy</a><br />
+<a href="#fn:count">count</a><br />
 <a href="#fn:cqctcallfn">cqctcallfn</a><br />
 <a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
 <a href="#fn:cqctcompile">cqctcompile</a><br />
@@ -6235,6 +6324,7 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctvaluint16">cqctvaluint16</a><br />
 <a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
 <a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
+<a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:fault">fault</a><br />
@@ -6252,6 +6342,7 @@ machines sharing the environment have been freed.
 <a href="#fn:getpid">getpid</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
+<a href="#fn:index">index</a><br />
 <a href="#fn:isalnum">isalnum</a><br />
 <a href="#fn:isalpha">isalpha</a><br />
 <a href="#fn:isarray">isarray</a><br />
@@ -6273,6 +6364,7 @@ machines sharing the environment have been freed.
 <a href="#fn:isgraph">isgraph</a><br />
 <a href="#fn:islist">islist</a><br />
 <a href="#fn:islower">islower</a><br />
+<a href="#fn:ismember">ismember</a><br />
 <a href="#fn:isnil">isnil</a><br />
 <a href="#fn:isns">isns</a><br />
 <a href="#fn:isodigit">isodigit</a><br />

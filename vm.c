@@ -9570,6 +9570,199 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val v;
+	List *lst;
+	Vec *vec;
+	Str *str;
+	Imm len, i, m;
+	Listx *x;
+	char c;
+	Cval *cv;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to count");
+	v = argv[1];
+	m = 0;
+	switch(argv[0]->qkind){
+	default:
+		vmerr(vm, "operand 1 to count must be a list, string, "
+		      "or vector");
+	case Qlist:
+		lst = vallist(argv[0]);
+		x = lst->x;
+		len = listxlen(x);
+		for(i = 0; i < len; i++)
+			if(eqval(v, x->val[x->hd+i]))
+				m++;
+		break;
+	case Qstr:
+		if(v->qkind != Qcval)
+			vmerr(vm, "operand 2 to count must a character when"
+			      " operand 1 is a string");
+		cv = valcval(v);
+		c = (char)cv->val;
+		str = valstr(argv[0]);
+		len = str->len;
+		for(i = 0; i < len; i++)
+			if(c == str->s[i])
+				m++;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(eqval(v, vec->vec[i]))
+				m++;
+		break;
+	}
+	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], m);
+}
+
+static void
+l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val v;
+	List *lst;
+	Vec *vec;
+	Str *str;
+	Imm len, i;
+	Listx *x;
+	char c;
+	Cval *cv;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to index");
+	v = argv[1];
+	switch(argv[0]->qkind){
+	default:
+		vmerr(vm, "operand 1 to index must be a list, string, "
+		      "or vector");
+	case Qlist:
+		lst = vallist(argv[0]);
+		x = lst->x;
+		len = listxlen(x);
+		for(i = 0; i < len; i++)
+			if(eqval(v, x->val[x->hd+i]))
+				goto gotit;
+		break;
+	case Qstr:
+		if(v->qkind != Qcval)
+			vmerr(vm, "operand 2 to index must a character when"
+			      " operand 1 is a string");
+		cv = valcval(v);
+		c = (char)cv->val;
+		str = valstr(argv[0]);
+		len = str->len;
+		for(i = 0; i < len; i++)
+			if(c == str->s[i])
+				goto gotit;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(eqval(v, vec->vec[i]))
+				goto gotit;
+		break;
+	}
+	return;   /* nil */
+gotit:
+	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], i);
+}
+
+static void
+l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val v;
+	List *lst;
+	Vec *vec;
+	Str *str;
+	Imm len, i;
+	Listx *x;
+	char c;
+	Cval *cv;
+	Tab *tab;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to ismember");
+	*rv = mkvalcval2(cval0);
+	v = argv[1];
+	switch(argv[0]->qkind){
+	default:
+		vmerr(vm, "operand 1 to ismember must be a list, string, "
+		      "table, or vector");
+	case Qlist:
+		lst = vallist(argv[0]);
+		x = lst->x;
+		len = listxlen(x);
+		for(i = 0; i < len; i++)
+			if(eqval(v, x->val[x->hd+i]))
+				goto gotit;
+		break;
+	case Qstr:
+		if(v->qkind != Qcval)
+			vmerr(vm, "operand 2 to ismember must a character when"
+			      " operand 1 is a string");
+		cv = valcval(v);
+		c = (char)cv->val;
+		str = valstr(argv[0]);
+		len = str->len;
+		for(i = 0; i < len; i++)
+			if(c == str->s[i])
+				goto gotit;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(eqval(v, vec->vec[i]))
+				goto gotit;
+		break;
+	case Qtab:
+		tab = valtab(argv[0]);
+		if(tabget(tab, argv[1]))
+			goto gotit;
+		break;
+	}
+	return;
+gotit:
+	*rv = mkvalcval2(cval1);;
+}
+
+static void
+l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val v;
+	List *lst;
+	Imm len, i;
+	Listx *x;
+	Tab *tab;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to delete");
+	v = argv[1];
+	switch(argv[0]->qkind){
+	default:
+		vmerr(vm, "operand 1 to delete must be a list or table");
+	case Qlist:
+		lst = vallist(argv[0]);
+		x = lst->x;
+		len = listxlen(x);
+		for(i = 0; i < len; i++)
+			if(eqval(v, x->val[x->hd+i]))
+				listdel(vm, lst, i);
+		break;
+	case Qtab:
+		tab = valtab(argv[0]);
+		tabdel(vm, tab, v);
+		break;
+	}
+	*rv = argv[0];
+}
+
+static void
 l1_null(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
@@ -10347,31 +10540,6 @@ l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
 	vmresettop(vm);
 }
 
-static void
-l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val *x, *i;
-	Cval *lim;
-	x = envgetbind(vm->top->env, "x");
-	i = envgetbind(vm->top->env, "i");
-	*x = mkvalcval2(mklitcval(Vuvlong, 0));
-	*i = mkvalcval2(cval1);
-	lim = mklitcval(Vint, 10000000);
-	gcprotect(vm, mkvalcval2(lim));
-again:
-	thegc->gcpoll(thegc, vm);
-	vm->ac = mkvalcval2(xcvalcmp(vm, Icmplt, valcval(*i), lim));
-	if(iszerocval(valcval(vm->ac))){
-		gcunprotect(vm, mkvalcval2(lim));
-		return;
-	}
-	vm->ac = *i;
-	*x = mkvalcval2(xcvalalu(vm, Iadd, valcval(*x), valcval(vm->ac)));
-	*i = mkvalcval2(xcvalalu(vm, Iadd, valcval(*i), cval1));
-	tick += 5;
-	goto again;
-}
-
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -10730,7 +10898,6 @@ mktopenv()
 	builtinfn(env, "halt", haltthunk());
 	builtinfn(env, "callcc", callcc());
 
-	FN(count);
 	FN(append);
 	FN(apply);
 	FN(arraynelm);
@@ -10751,6 +10918,8 @@ mktopenv()
 	FN(concat);
 	FN(cons);
 	FN(copy);
+	FN(count);
+	FN(delete);
 	FN(domof);
 	FN(enumconsts);
 	FN(equal);
@@ -10769,6 +10938,7 @@ mktopenv()
 	FN(getbytes);
 	FN(head);
 	FN(heapstat);
+	FN(index);
 	FN(isalnum);
 	FN(isalpha);
 	FN(isarray);
@@ -10791,6 +10961,7 @@ mktopenv()
 	FN(islist);
 	FN(islower);
 	FN(ismapped);
+	FN(ismember);
 	FN(isnil);
 	FN(isns);
 	FN(isnull);
