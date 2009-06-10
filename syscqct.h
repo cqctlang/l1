@@ -187,17 +187,19 @@ struct Liti {
 
 struct Expr {
 	Kind kind;
-	unsigned attr;		/* attributes (maybe collapse with op?) */
-
-	char *id;		/* Eid, Etick */
-	Lits *lits;		/* Econsts */
-	Liti liti;		/* Econst */
-	Kind op;		/* Ebinop, Egop */
-
 	Expr *e1;
 	Expr *e2;
 	Expr *e3;
 	Expr *e4;
+
+	union{
+		char *id;		/* Eid, Etick */
+		Lits *lits;		/* Econsts */
+		Liti liti;		/* Econst */
+		Kind op;		/* Ebinop, Egop */
+	};
+
+	char attr;			/* disambiguation attribute */
 
 	/* source */
 	Src src;
