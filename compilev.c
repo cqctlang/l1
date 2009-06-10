@@ -366,7 +366,7 @@ pass0(Expr *e)
 	} 
 }
 
-/* pass 1.5: determine variables that must be boxed;
+/* pass 0.5: determine variables that must be boxed;
    FIXME: this is very conservative, mainly because of continuations.
    it may make more sense to do free variable analysis
    first; if so, the display allocation in free var pass should  

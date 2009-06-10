@@ -796,7 +796,7 @@ Imm		bitfieldget(char *s, BFgeom *bfg);
 Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
 /* type.c */
-Expr*		gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx);
+Expr*		gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect);
 
 /* compilens.c */
 int		docompilens(U *ctx, Expr *e);
@@ -809,7 +809,6 @@ int		docompile0(U *ctx, Expr *e);
 
 /* compile1.c */
 int		docompile1(U *ctx, Expr *e);
-Expr*		gentypename(Type *t, Expr*(*)(U*, Expr*), U*);
 
 /* compile2.c */
 Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);

@@ -73,7 +73,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			dom = doid("$dom");
 
 		se = Zblock(Zlocals(1, "$tn"),
-			    Zset(doid("$tn"), gentypename(t, compile0, ctx)),
+			    Zset(doid("$tn"), gentypename(t, compile0, ctx, 0)),
 			    Zset(doid("$type"),
 				 Zcall(G("looktype"), 2,
 				       dom, doid("$tn"))),
