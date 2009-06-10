@@ -59,7 +59,7 @@ compilesizeof(U *ctx, Decl *d, Src *src)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
+	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
@@ -103,7 +103,7 @@ compiletypeof(U *ctx, Decl *d, Src *src)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
+	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
@@ -153,7 +153,7 @@ compilecast(U *ctx, Expr *e)
 		dom = Zcall(G("domof"), 1, doid("$tmp"));
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
+	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
 	te = Zcons(se, te);
 
 	// $type = looktype(dom, $tn);
@@ -205,7 +205,7 @@ compilecontainer(U *ctx, Expr *e)
 		dom = Zcall(G("domof"), 1, doid("$tmp"));
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
+	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
 	te = Zcons(se, te);
 
 	// $type = looktype(dom, $tn);
@@ -312,7 +312,7 @@ compileambig(U *ctx, Expr *e)
 	te = nullelist();
 
 	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx));
+	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn)

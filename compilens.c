@@ -21,7 +21,7 @@ do1tag(void *u, char *k, void *v)
 	e = up->e;
 	d = v;
 
-	te = gentypename(d->type, compile, up->ctx);
+	te = gentypename(d->type, compile, up->ctx, 1);
 	te = Zcons(te, *e);
 	putsrc(te, &(*e)->src);
 	*e = te;
@@ -40,7 +40,7 @@ do1sym(void *u, char *k, void *v)
 	e = up->e;
 	d = v;
 
-	tn = gentypename(d->type, compile, up->ctx);
+	tn = gentypename(d->type, compile, up->ctx, 0);
 	if(d->attr){
 		attr = Zcall(G("mkattr"), 1, compile(up->ctx, d->attr));
 		d->attr = 0; /* steal */
@@ -68,7 +68,7 @@ do1tid(void *u, char *k, void *v)
 	/* typedef T TID => typetab[typedef(TID)] = typedef(TID,typename(T)) */
 	tn0 = Zcall(G("mkctype_typedef"), 1, Zstr(d->id));
 	tn1 = Zcall(G("mkctype_typedef"), 2, Zstr(d->id),
-		    gentypename(d->type, compile, up->ctx));
+		    gentypename(d->type, compile, up->ctx, 0));
 	te = Zcall(G("tabinsert"), 3, doid("$typetab"), tn0, tn1);
 	te = Zcons(te, *e);
 	putsrc(te, &(*e)->src);
