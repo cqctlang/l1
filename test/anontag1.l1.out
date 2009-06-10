@@ -1,4 +1,4 @@
-entry: var params, 7 locals, 0 temps
+entry: var params, 6 locals, 0 temps
 t1 (struct $anon0) == t2 (struct $anon0) => 1
 [ "x" ]
 [ "y" ]
