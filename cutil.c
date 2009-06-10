@@ -274,10 +274,10 @@ void
 putsrc(Expr *e, Src *src)
 {
 	Expr *p;
+
 	if(e == 0)
 		return;
 
-	/* only put source information if there isn't any */
 	if(e->src.line != 0)
 		return;
 	e->src = *src;
@@ -287,6 +287,9 @@ putsrc(Expr *e, Src *src)
 		while(p->kind == Eelist){
 			putsrc(p->e1, src);
 			p = p->e2;
+			if(p->src.line != 0)
+				return;
+			p->src = *src;
 		}
 		break;
 	default:
