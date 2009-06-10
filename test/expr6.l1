@@ -1,0 +1,9 @@
+ns = @names c32le { typedef int* T; };
+as = mkzas(1024);
+dom = mkdom(ns, as);
+
+p = (dom`T)4;
+x = (dom`int)0;
+
+printf("%d\n", p-x);
+printf("%d\n", x-p);

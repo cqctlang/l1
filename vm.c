@@ -4337,7 +4337,7 @@ static Cval*
 xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	    Xtypename *t1, Xtypename *t2)
 {
-	Xtypename *sub;
+	Xtypename *sub, *pt;
 	Cval *ptr;
 	Imm sz, osz, n;
 
@@ -4377,7 +4377,9 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		sub = chasetype(t1->link);
 		ptr = op1;
 		n = op2->val;
-	}else{
+	}else if(op == Isub)
+		vmerr(vm, "invalid right-hand pointer operand to -");
+	else{
 		sub = chasetype(t2->link);
 		ptr = op2;
 		n = op1->val;
@@ -4393,7 +4395,8 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		n = ptr->val+n*sz;
 	else
 		n = ptr->val-n*sz;
-	n = truncimm(n, ptr->type->rep);
+	pt = chasetype(ptr->type);
+	n = truncimm(n, pt->rep);
 	return mkcval(ptr->dom, ptr->type, n);
 }
 

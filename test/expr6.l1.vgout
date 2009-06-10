@@ -1,0 +1,4 @@
+entry: var params, 4 locals, 0 temps
+4
+error: invalid right-hand pointer operand to -
+               entry	(expr6.l1:9)
