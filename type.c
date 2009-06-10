@@ -39,9 +39,9 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 		break;
 	case Tstruct:
 	case Tunion:
-		mk = t->kind == Tstruct ? "%mkctype_struct" : "%mkctype_union";
+		mk = t->kind == Tstruct ? "mkctype_struct" : "mkctype_union";
 		if(t->field == 0 && t->sz == 0){
-			e = Zcall(doid(mk), 1, Zstr(t->tag));
+			e = Zcall(G(mk), 1, Zstr(t->tag));
 			break;
 		}
 
@@ -108,11 +108,11 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx)
 
 		te = nullelist();
 		te = Zcons(Zset(doid("$tmp"),
-				Zcall(doid(mk), 1, Zstr(t->tag))),
+				Zcall(G(mk), 1, Zstr(t->tag))),
 			   te);
 		se = Zcall(G("tabinsert"), 3,
 			   doid("$typetab"), doid("$tmp"),
-			   Zcall(doid(mk), 3, Zstr(t->tag), se, sz));
+			   Zcall(G(mk), 3, Zstr(t->tag), se, sz));
 		te = Zcons(se, te);
 		se = doid("$tmp");
 		te = Zcons(se, te);

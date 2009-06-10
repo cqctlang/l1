@@ -12,7 +12,7 @@ struct Arg {
 static void
 do1tag(void *u, char *k, void *v)
 {
-	Expr *se, *te;
+	Expr *te;
 	Expr **e;
 	Decl *d;
 	struct Arg *up;
@@ -21,11 +21,7 @@ do1tag(void *u, char *k, void *v)
 	e = up->e;
 	d = v;
 
-	te = nullelist();
-	se = gentypename(d->type, compile, up->ctx);
-	te = Zcons(se, te);
-
-	te = newexpr(Eblock, nullelist(), invert(te), 0, 0);
+	te = gentypename(d->type, compile, up->ctx);
 	te = Zcons(te, *e);
 	putsrc(te, &(*e)->src);
 	*e = te;
@@ -34,8 +30,9 @@ do1tag(void *u, char *k, void *v)
 static void
 do1sym(void *u, char *k, void *v)
 {
-	Expr *se, *te, *loc, *attr;
+	Expr *te, *attr;
 	Expr **e;
+	Expr *tn, *ms;
 	Decl *d;
 	struct Arg *up;
 
@@ -43,28 +40,14 @@ do1sym(void *u, char *k, void *v)
 	e = up->e;
 	d = v;
 
-	loc = Zlocals(2, "$tmp", "$tn");
-
-	te = nullelist();
-	se = Zset(doid("$tn"), gentypename(d->type, compile, up->ctx));
-	te = Zcons(se, te);
-
+	tn = gentypename(d->type, compile, up->ctx);
 	if(d->attr){
-		attr = Zcall(G("mkattr"), 1,
-			     compile(up->ctx, d->attr)); /* steal */
-		d->attr = 0;
+		attr = Zcall(G("mkattr"), 1, compile(up->ctx, d->attr));
+		d->attr = 0; /* steal */
 	}else
 		attr = Znil();
-
-	se = Zset(doid("$tmp"),
-		  Zcall(G("mksym"), 3, doid("$tn"), Zstr(d->id), attr));
-	te = Zcons(se, te);
-
-	se = Zcall(G("tabinsert"), 3, doid("$symtab"),
-		   Zstr(d->id), doid("$tmp"));
-	te = Zcons(se, te);
-
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	ms = Zcall(G("mksym"), 3, tn, Zstr(d->id), attr);
+	te = Zcall(G("tabinsert"), 3, doid("$symtab"), Zstr(d->id), ms);
 	te = Zcons(te, *e);
 	putsrc(te, &(*e)->src);
 	*e = te;
@@ -73,7 +56,7 @@ do1sym(void *u, char *k, void *v)
 static void
 do1tid(void *u, char *k, void *v)
 {
-	Expr *se, *te, *tn, *loc;
+	Expr *te, *tn0, *tn1;
 	Expr **e;
 	Decl *d;
 	struct Arg *up;
@@ -82,22 +65,11 @@ do1tid(void *u, char *k, void *v)
 	e = up->e;
 	d = v;
 
-	loc = Zlocals(1, "$tn");
-
-	te = nullelist();
-	se = Zset(doid("$tn"),
-		  Zcall(G("mkctype_typedef"), 2,
-			Zstr(d->id),
-			gentypename(d->type, compile, up->ctx)));
-	te = Zcons(se, te);
-
 	/* typedef T TID => typetab[typedef(TID)] = typedef(TID,typename(T)) */
-	tn = Zcall(G("mkctype_typedef"), 1, Zstr(d->id));
-	se = Zcall(G("tabinsert"), 3, doid("$typetab"), tn, 
-		   doid("$tn"));
-	te = Zcons(se, te);
-
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	tn0 = Zcall(G("mkctype_typedef"), 1, Zstr(d->id));
+	tn1 = Zcall(G("mkctype_typedef"), 2, Zstr(d->id),
+		    gentypename(d->type, compile, up->ctx));
+	te = Zcall(G("tabinsert"), 3, doid("$typetab"), tn0, tn1);
 	te = Zcons(te, *e);
 	putsrc(te, &(*e)->src);
 	*e = te;
