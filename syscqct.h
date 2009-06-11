@@ -869,6 +869,8 @@ Val*		envget(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
 int		eqval(Val v1, Val v2);
 void		freeenv(Env *env);
+void		gcinit();
+void		gckill();
 void*		gcpersist(VM *vm, void *hd);
 void*		gcprotect(VM *vm, void *hd);
 void		gcunpersist(VM *vm, void *hd);

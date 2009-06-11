@@ -113,6 +113,8 @@ int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Toplevel *top);
 void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);
+void		cqctgcinit();
+void		cqctgckill();
 void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
 void		cqctgcpersist(VM *vm, Val v);

@@ -85,14 +85,24 @@ enum {
 	GCfinal = 4,
 	GCrate = 100000,
 	GCinitprot = 128,	/* initial # of GC-protected lists in VM */
-	GCshutdown = 1,
+	/* gc->state */
+	GCenabled = 1,
+	GCshutdown = 2,
 };
+
+typedef
+enum GCstate
+{
+	GCenabled = 1,
+	GCshutdown = 2,
+} GCstate;
 
 static unsigned long long nextgctick = GCrate;
 
 typedef struct GC GC;
 struct GC {
 	int state;
+	void (*gcinit)(GC*);
 	void (*gcpoll)(GC*, VM*);
 	void (*gckill)(GC*);
 	unsigned char gcpause;	/* gc is waiting for mutator */
@@ -1150,7 +1160,12 @@ dogc(GC *gc)
 }
 
 static void
-gcpoll(GC *gc, VM *vm)
+serialgcinit(GC *gc)
+{
+}
+
+static void
+serialgcpoll(GC *gc, VM *vm)
 {
 	if(needsgc(gc)){
 		dogc(gc);
@@ -1160,8 +1175,20 @@ gcpoll(GC *gc, VM *vm)
 }
 
 static void
-gckill(GC *gc)
+serialgckill(GC *gc)
 {
+}
+
+void
+gcinit()
+{
+	thegc->gcinit(gc);
+}
+
+void
+gckill()
+{
+	thegc->gckill(gc);
 }
 
 static Imm
@@ -10467,6 +10494,18 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gcinit(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	gcinit();
+}
+
+static void
+l1_gckill(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	gckill();
+}
+
+static void
 l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Head *hd;
@@ -11183,8 +11222,9 @@ cqctfreevm(VM *vm)
 		/* FIXME: can this been done in finivm (otherwise,
 		   never called in -x mode) */
 		thegc->gckill(thegc);
-		thegc->gcpoll = gcpoll;
-		thegc->gckill = gckill;
+		thegc->gcinit = serialgcinit;
+		thegc->gcpoll = serialgcpoll;
+		thegc->gckill = serialgckill;
 
 		// run finalizers until they are gone or one of them errors
 		if(!waserror(vm)){
@@ -11241,13 +11281,16 @@ initvm(int gcthread, u64 heapmax)
 		thegc->heaphi = 2*heapmax/3;
 	}
 	if(gcthread){
+		thegc->gcinit = concurrentgcinit;
 		thegc->gcpoll = concurrentgcpoll;
 		thegc->gckill = concurrentgckill;
-		concurrentgc(thegc);
 	}else{
+		thegc->gcinit = gcinit;
 		thegc->gcpoll = gcpoll;
 		thegc->gckill = gckill;
 	}
+
+	thegc->gcinit(thegc);
 
 	hd = emalloc(sizeof(Head));
 	hd->qkind = Qundef;
@@ -11303,6 +11346,12 @@ finivm()
 			freeheap(hp);
 	}
 	cqctfaulthook(vmfaulthook, 0);
+}
+
+void
+gcsuspend()
+{
+	thegc->
 }
 
 int

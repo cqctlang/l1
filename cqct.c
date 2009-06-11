@@ -100,6 +100,18 @@ cqcteval(VM *vm, char *s, char *src, Val *rv)
 	return 0;
 }
 
+void
+cqctgcinit()
+{
+	gcinit();
+}
+
+void
+cqctgckill()
+{
+	gckill();
+}
+
 static char**
 copyargv(char **lp)
 {
@@ -146,6 +158,7 @@ Toplevel*
 cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *xfd)
 {
 	Xfd def;
+
 	if(xfd == 0){
 		memset(&def, 0, sizeof(def));
 		def.write = xfdwrite;
