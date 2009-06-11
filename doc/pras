@@ -75,17 +75,36 @@ Attaching L1 to a linux process with prctl
 	suspend execution of the process.
         return nil.
 
-    prdom.bpset(addr, fn);
+    prdom.xtrap(addr, fn);
 
-	set a breakpoint at address ADDR in the process
-        and register FN as an associated breakpoint handler.
-        returns the breakpoint identifier, an integer.
+        trap execution of the address ADDR by calling the handler
+	function FN.  returns ID, an integer identifier for the trap.
 
-    prdom.bpdel(bpid)
+        when execution reaches ADDR, FN is called with
+    	two arguments, ID and ADDR.
 
-        clears a breakpoint previously set with bpset.
-        BPID is an identifier returned by bpset.
+	FN must return either 0 or 1.  0 resumes execution
+	of the target process; 1 requests that the process break.
+
+	if more than one trap is set for the same ADDR,
+	the handlers are all called but in undefined
+	order.  if all handlers return 0, execution
+	resumes.  if some handler returns 1, then
+	execution breaks but it is undefined whether
+	and when the remaining handlers are called.
+
+    prdom.traplist();
+
+        return a list of the currently registered traps.
+
+    prdom.trapdel(id);
+
+        clear the trap associated with identifier ID.
 	returns nil.
+
+    prdom.trapreset();
+
+        clear all traps.  returns nil.
 
     prdom.geteax()          prdom.getrax()          prdom.geteflags()
     prdom.getebx()	    prdom.getrbx()

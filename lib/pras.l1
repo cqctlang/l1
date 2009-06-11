@@ -596,10 +596,12 @@ define mkpras(arg) {
 
 	define trapdel(domas, tid){
 		trapman.clr(tid);
+		return nil;
 	}
 
 	define trapreset(domas){
 		trapman.reset();
+		return nil;
 	}
 
 	define traplist(domas){
