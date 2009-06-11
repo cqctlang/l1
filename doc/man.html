@@ -61,7 +61,8 @@
 <a href="#sec:cinterface">C Interface</a><br />
 <br />
 <a href="#sec:synindex">Syntax Index</a><br />
-<a href="#sec:fnindex">Function Index</a><br />
+<a href="#sec:cindex">C Interface Index</a><br />
+<a href="#sec:fnindex">Built-in Function Index</a><br />
 </div>
 
 <div id="content">
@@ -3688,7 +3689,7 @@ in <span class="arg">container</span>.
 <div class="docitem" id="fn:sort">
 <div class="proto">
 <div class="function">
-<span class="id">sort(<span class="arg">container</span>,<span class="arg">cmp</span>,)</span>
+<span class="id">sort(<span class="arg">container</span>,<span class="arg">cmp</span>)</span>
 </div>
 <div class="param">
 <span class="arg">container</span>: <span class="type">list or vector</span>
@@ -3717,7 +3718,7 @@ following the update.
 <div class="docitem" id="fn:bsearch">
 <div class="proto">
 <div class="function">
-<span class="id">bsearch(<span class="arg">key</span>,<span class="arg">container</span>,<span class="arg">cmp</span>,)</span>
+<span class="id">bsearch(<span class="arg">key</span>,<span class="arg">container</span>,<span class="arg">cmp</span>)</span>
 </div>
 <div class="param">
 <span class="arg">key</span>: <span class="type">any value</span>
@@ -5816,6 +5817,7 @@ If <span class="arg">argsid</span> is null, the returned
 function takes no arguments; otherwise it is a variable arity
 function whose argument list is bound to a parameter
 whose name is the string pointed to be <span class="arg">argsid</span>.
+</div>
 <div>
 The returned function captures a reference
 to <span class="arg">expr</span> that will be freed by
@@ -6232,18 +6234,12 @@ machines sharing the environment have been freed.
 </div>
 
 <h3 id="sec:synindex">Syntax Index</h3>
-
-<div class="id">
-<div class="index">
-<div class="fnindex">
-
 <div class="id">
 <div class="index">
 <div class="fnindex">
 <table>
 <tr>
 <td>
-
 <a href="#syn:@const">@const</a><br />
 <a href="#syn:@global">@global</a><br />
 <a href="#syn:@include">@include</a><br />
@@ -6261,8 +6257,69 @@ machines sharing the environment have been freed.
 </div>
 </div>
 
+<h3 id="sec:cindex">C Interface Index</h3>
+<div class="id">
+<div class="index">
+<div class="fnindex">
+<table>
+<tr>
+<td>
+<a href="#fn:cqctcallfn">cqctcallfn</a><br />
+<a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
+<a href="#fn:cqctcompile">cqctcompile</a><br />
+<a href="#fn:cqctcstrnval">cqctcstrnval</a><br />
+<a href="#fn:cqctcstrnvalshared">cqctcstrnvalshared</a><br />
+<a href="#fn:cqctcstrval">cqctcstrval</a><br />
+<a href="#fn:cqctcstrvalshared">cqctcstrvalshared</a><br />
+<a href="#fn:cqctenvbind">cqctenvbind</a><br />
+<a href="#fn:cqctenvlook">cqctenvlook</a><br />
+<a href="#fn:cqcteval">cqcteval</a><br />
+<a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
+</td>
+<td>
+<a href="#fn:cqctfini">cqctfini</a><br />
+<a href="#fn:cqctfreevm">cqctfreevm</a><br />
+<a href="#fn:cqctgcpersist">cqctgcpersist</a><br />
+<a href="#fn:cqctgcprotect">cqctgcprotect</a><br />
+<a href="#fn:cqctinit">cqctinit</a><br />
+<a href="#fn:cqctint8val">cqctint8val</a><br />
+<a href="#fn:cqctint16val">cqctint16val</a><br />
+<a href="#fn:cqctint32val">cqctint32val</a><br />
+<a href="#fn:cqctint64val">cqctint64val</a><br />
+<a href="#fn:cqctmkfd">cqctmkfd</a><br />
+</td>
+<td>
+<a href="#fn:cqctmkvm">cqctmkvm</a><br />
+<a href="#fn:cqctsprintval">cqctsprintval</a><br />
+<a href="#fn:cqctuint8val">cqctuint8val</a><br />
+<a href="#fn:cqctuint16val">cqctuint16val</a><br />
+<a href="#fn:cqctuint32val">cqctuint32val</a><br />
+<a href="#fn:cqctuint64val">cqctuint64val</a><br />
+<a href="#fn:cqctgcunpersist">cqctgcunpersist</a><br />
+<a href="#fn:cqctgcunprotect">cqctgcunprotect</a><br />
+<a href="#fn:cqctvalcbase">cqctvalcbase</a><br />
+<a href="#fn:cqctvalcstr">cqctvalcstr</a><br />
+</td>
+<td>
+<a href="#fn:cqctvalcstrlen">cqctvalcstrlen</a><br />
+<a href="#fn:cqctvalcstrshared">cqctvalcstrshared</a><br />
+<a href="#fn:cqctvalint8">cqctvalint8</a><br />
+<a href="#fn:cqctvalint16">cqctvalint16</a><br />
+<a href="#fn:cqctvalint32">cqctvalint32</a><br />
+<a href="#fn:cqctvalint64">cqctvalint64</a><br />
+<a href="#fn:cqctvaluint8">cqctvaluint8</a><br />
+<a href="#fn:cqctvaluint16">cqctvaluint16</a><br />
+<a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
+<a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
 
-<h3 id="sec:fnindex">Function Index</h3>
+
+<h3 id="sec:fnindex">Built-in Function Index</h3>
 <div class="id">
 <div class="index">
 <div class="fnindex">
@@ -6283,54 +6340,11 @@ machines sharing the environment have been freed.
 <a href="#fn:concat">concat</a><br />
 <a href="#fn:copy">copy</a><br />
 <a href="#fn:count">count</a><br />
-<a href="#fn:cqctcallfn">cqctcallfn</a><br />
-<a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
-<a href="#fn:cqctcompile">cqctcompile</a><br />
-<a href="#fn:cqctcstrnval">cqctcstrnval</a><br />
-<a href="#fn:cqctcstrnvalshared">cqctcstrnvalshared</a><br />
-<a href="#fn:cqctcstrval">cqctcstrval</a><br />
-<a href="#fn:cqctcstrvalshared">cqctcstrvalshared</a><br />
-<a href="#fn:cqctenvbind">cqctenvbind</a><br />
-<a href="#fn:cqctenvlook">cqctenvlook</a><br />
-<a href="#fn:cqcteval">cqcteval</a><br />
-<a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
-<a href="#fn:cqctfini">cqctfini</a><br />
-<a href="#fn:cqctfreevm">cqctfreevm</a><br />
-<a href="#fn:cqctgcpersist">cqctgcpersist</a><br />
-<a href="#fn:cqctgcprotect">cqctgcprotect</a><br />
-<a href="#fn:cqctinit">cqctinit</a><br />
-<a href="#fn:cqctint8val">cqctint8val</a><br />
-<a href="#fn:cqctint16val">cqctint16val</a><br />
-<a href="#fn:cqctint32val">cqctint32val</a><br />
-<a href="#fn:cqctint64val">cqctint64val</a><br />
-<a href="#fn:cqctmkfd">cqctmkfd</a><br />
-<a href="#fn:cqctmkvm">cqctmkvm</a><br />
-<a href="#fn:cqctsprintval">cqctsprintval</a><br />
-<a href="#fn:cqctuint8val">cqctuint8val</a><br />
-<a href="#fn:cqctuint16val">cqctuint16val</a><br />
-<a href="#fn:cqctuint32val">cqctuint32val</a><br />
-<a href="#fn:cqctuint64val">cqctuint64val</a><br />
-<a href="#fn:cqctgcunpersist">cqctgcunpersist</a><br />
-<a href="#fn:cqctgcunprotect">cqctgcunprotect</a><br />
-<a href="#fn:cqctvalcbase">cqctvalcbase</a><br />
-<a href="#fn:cqctvalcstr">cqctvalcstr</a><br />
-<a href="#fn:cqctvalcstrlen">cqctvalcstrlen</a><br />
-<a href="#fn:cqctvalcstrshared">cqctvalcstrshared</a><br />
-<a href="#fn:cqctvalint8">cqctvalint8</a><br />
-<a href="#fn:cqctvalint16">cqctvalint16</a><br />
-<a href="#fn:cqctvalint32">cqctvalint32</a><br />
-<a href="#fn:cqctvalint64">cqctvalint64</a><br />
-<a href="#fn:cqctvaluint8">cqctvaluint8</a><br />
-<a href="#fn:cqctvaluint16">cqctvaluint16</a><br />
-<a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
-<a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
 <a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
-</td>
-<td>
 <a href="#fn:fieldid">fieldid</a><br />
 <a href="#fn:fieldoff">fieldoff</a><br />
 <a href="#fn:fields">fields</a><br />
@@ -6357,6 +6371,8 @@ machines sharing the environment have been freed.
 <a href="#fn:isdigit">isdigit</a><br />
 <a href="#fn:isdomain">isdomain</a><br />
 <a href="#fn:isempty">isempty</a><br />
+</td>
+<td>
 <a href="#fn:isenum">isenum</a><br />
 <a href="#fn:isenumconst">isenumconst</a><br />
 <a href="#fn:isfd">isfd</a><br />
@@ -6381,8 +6397,6 @@ machines sharing the environment have been freed.
 <a href="#fn:issu">issu</a><br />
 <a href="#fn:istable">istable</a><br />
 <a href="#fn:istypedef">istypedef</a><br />
-</td>
-<td>
 <a href="#fn:isundeftype">isundeftype</a><br />
 <a href="#fn:isunion">isunion</a><br />
 <a href="#fn:isupper">isupper</a><br />
@@ -6403,6 +6417,8 @@ machines sharing the environment have been freed.
 <a href="#fn:mkctype_char">mkctype_char</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
 <a href="#fn:mkctype_double">mkctype_double</a><br />
+</td>
+<td>
 <a href="#fn:mkctype_enum">mkctype_enum</a><br />
 <a href="#fn:mkctype_float">mkctype_float</a><br />
 <a href="#fn:mkctype_fn">mkctype_fn</a><br />
@@ -6433,8 +6449,6 @@ machines sharing the environment have been freed.
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
-</td>
-<td>
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:opentcp">opentcp</a><br />
@@ -6449,6 +6463,8 @@ machines sharing the environment have been freed.
 <a href="#fn:rand">randseed</a><br />
 <a href="#fn:rdis">rdis</a><br />
 <a href="#fn:rdfields">rdfields</a><br />
+</td>
+<td>
 <a href="#fn:rdfmt">rdfmt</a><br />
 <a href="#fn:rdname">rdname</a><br />
 <a href="#fn:rdof">rdof</a><br />
