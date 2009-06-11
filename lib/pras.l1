@@ -161,6 +161,65 @@ protns = @names c32le {
 	typedef struct Asnap Twrite;
 };
 
+@record Trapman { look, add, clr, reset, list };
+rdsetfmt(@record Trap { uid, mid, fn, arg, clr },
+	 lambda(t) { sprintfa("[ %u %u %a %a ]", t.uid, t.mid, t.fn, t.arg); });
+
+define mktrapman()
+{
+	@local trapman, nextid;
+	@local uidmap, midmap, look, add, clr, list, reset;
+	
+	nextid = 0;
+	uidmap = {:};
+	midmap = {:};
+
+	define look(mid)
+	{
+		return midmap[mid];
+	}
+
+	define add(mid, fn, arg, clr)
+	{
+		@local t, uid;
+		uid = nextid++;
+		t = Trap(uid, mid, fn, arg, clr);
+		uidmap[uid] = t;
+		midmap[mid] = t;
+		return t;
+	}
+
+	define clr(uid)
+	{
+		@local t;
+		t = uidmap[uid];
+		if(t == nil)
+			error("no such trap: %a", uid);
+		tabdelete(uidmap, t.uid);
+		tabdelete(midmap, t.mid);
+		t.clr();
+	}
+
+	define list()
+	{
+		@local k, rv;
+		k = tabkeys(uidmap);
+		sort(k, lambda(a,b){ return a-b; });
+		return map(lambda(uid){ uidmap[uid]; }, k);
+	}
+
+	define reset()
+	{
+		@local k, rv;
+		k = tabkeys(uidmap);
+		sort(k, lambda(a,b){ return a-b; });
+		foreach(clr, k);
+		nextid = 0;
+	}
+
+	return Trapman(look, add, clr, reset, list);
+}
+
 define mkpras(arg) {
 	@local addr, fd, cmd, as, protdom, l;
 	@local indom, outdom, ip, op, p;
@@ -170,8 +229,9 @@ define mkpras(arg) {
 	@local id, state, reg;
 	@local brktab, dtab;
 	@local logsend, logrecv, log, verbose;
-	@local as, rdom;
+	@local as, rdom, trapman;
 
+	trapman = mktrapman();
 	verbose = 0;
 
 	define logsend(s){
@@ -477,6 +537,75 @@ define mkpras(arg) {
 		logrecv("Rwrite");
 	}
 
+	define clrbrk(domas, bp){
+		xwr((`uint64)sizeof(outdom`Tclrbrk));
+		p = opress(#outdom`Tclrbrk*#);
+		p->op = outdom`Tclrbrk;
+		p->id = id;
+		p->bp = bp;
+		outdom.flush();
+		logsend("Tclrbrk");
+
+		reply = read1();
+		checkreply(indom`Rclrbrk, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		indom.flush();
+		logrecv("Rclrbrk");
+	}
+
+	define xtrap(domas, addr, fn){
+		xwr((`uint64)sizeof(outdom`Tsetbrk));
+		p = opress(#outdom`Tsetbrk*#);
+		p->op = outdom`Tsetbrk;
+		p->id = id;
+		p->addr = addr;
+		outdom.flush();
+		logsend("Tsetbrk");
+
+		reply = read1();
+		checkreply(indom`Rsetbrk, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		bp = reply->bp;
+		indom.flush();
+		logrecv("Rsetbrk");
+
+		return trapman.add(bp, fn, [addr],
+				lambda() {
+					xwr((`uint64)sizeof(outdom`Tclrbrk));
+					p = opress(#outdom`Tclrbrk*#);
+					p->op = outdom`Tclrbrk;
+					p->id = id;
+					p->bp = bp;
+					outdom.flush();
+					logsend("Tclrbrk");
+					
+					reply = read1();
+					checkreply(indom`Rclrbrk, reply);
+					if(reply->id != id)
+						error("pras: got %e "
+						      "for unknown task",
+						      (enum Mkind)reply->op);
+					indom.flush();
+					logrecv("Rclrbrk");
+				});
+	}
+
+	define trapdel(domas, tid){
+		trapman.clr(tid);
+	}
+
+	define trapreset(domas){
+		trapman.reset();
+	}
+
+	define traplist(domas){
+		return trapman.list();
+	}
+
 	define setbrk(domas, addr, fn){
 		@local bp;
 
@@ -501,25 +630,6 @@ define mkpras(arg) {
 		return bp;
 	}
 
-	define clrbrk(domas, bp){
-		xwr((`uint64)sizeof(outdom`Tclrbrk));
-		p = opress(#outdom`Tclrbrk*#);
-		p->op = outdom`Tclrbrk;
-		p->id = id;
-		p->bp = bp;
-		outdom.flush();
-		logsend("Tclrbrk");
-
-		reply = read1();
-		checkreply(indom`Rclrbrk, reply);
-		if(reply->id != id)
-			error("pras: got %e for unknown task",
-			      (enum Mkind)reply->op);
-		tabdelete(brktab, bp);
-		indom.flush();
-		logrecv("Rclrbrk");
-	}
-
 	define setregs(){
 		xwr((`uint64)sizeof(outdom`Tsetregs));
 		p = opress(#outdom`Tsetregs*#);
@@ -539,7 +649,7 @@ define mkpras(arg) {
 	}
 
 	define sync(domas){
-		@local bp, rv;
+		@local bp, rv, t;
 
 		reply = read1();
 		switch(reply->op){
@@ -559,14 +669,14 @@ define mkpras(arg) {
 				      (enum Mkind)reply->op);
 			reg = copydata(&reply->reg);
 			state = indom`Stopped;
-			bp = tablook(brktab, reply->bp);
-			if(bp == nil)
-				error("unregistered breakpoint: %d",
-				      reply->bp);
+			t = trapman.look(reply->bp);
 			indom.flush();
-			rv = listref(bp, 1)(listref(bp, 0));
-			if(rv != 1)
+			rv = t.fn(t.uid, getpc(domas));
+			if(rv == 1)
 				cont(domas);
+			else if(rv != 0)
+				error("xtrap handler returned bad value (%d)",
+				      rv);
 			break;
 		case indom`Aclone:
 			logrecv("Aclone");
@@ -820,8 +930,10 @@ define mkpras(arg) {
 		
 		"launch"	:	launch,
 		"attach"	:	attach,
-		"bpset"		:	setbrk,
-		"bpdel"		:	clrbrk,
+		"xtrap"		:	xtrap,
+		"trapdel"	:	trapdel,
+		"traplist"	:	traplist,
+		"trapreset"	:	trapreset,
 		"xcont"		:	cont,
 		"xstep"		:	step,
 		"xcontwait"	:	contwait,
