@@ -6177,7 +6177,7 @@ of <span class="arg">vm</span>.
 </div>
 </div>
 
-<div class="docitem">
+v<div class="docitem">
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:cqctgcpersist">void cqctgcpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
@@ -6202,11 +6202,36 @@ References to the value will be valid until
 </div>
 </div>
 <div class="desc">
-Remove GC the protection of <span class="arg">v</span>
+Remove the protection of <span class="arg">v</span>
 established by a previous call to <a href="#fn:cqctgcprotect">cqctgcprotect</a></span>.
 </div>
 </div>
 
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctgcdisable">void cqctgcdisable(VM *<span class="arg">vm</span>)</span>
+</div>
+</div>
+<div class="desc">
+Disable the garbage collector, if it is enabled.  If
+the concurrent GC is selected, the underlying GC thread
+is killed.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctgcenable">void cqctgcenable(VM *<span class="arg">vm</span>)</span>
+</div>
+</div>
+<div class="desc">
+Reenable the garbage collector, if it was previously disabled with
+<span class="fnindex"><a href="#fn:cqctgcdisable">cqctgcdisable</a></span>.
+If the concurrent GC is selected, a fresh GC thread is started.
+</div>
+</div>
 
 
 <div class="docitem">
@@ -6281,6 +6306,10 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctfreevm">cqctfreevm</a><br />
 <a href="#fn:cqctgcpersist">cqctgcpersist</a><br />
 <a href="#fn:cqctgcprotect">cqctgcprotect</a><br />
+<a href="#fn:cqctgcenable">cqctgcenable</a><br />
+<a href="#fn:cqctgcdisable">cqctgcdisable</a><br />
+<a href="#fn:cqctgcunpersist">cqctgcunpersist</a><br />
+<a href="#fn:cqctgcunprotect">cqctgcunprotect</a><br />
 <a href="#fn:cqctinit">cqctinit</a><br />
 <a href="#fn:cqctint8val">cqctint8val</a><br />
 <a href="#fn:cqctint16val">cqctint16val</a><br />
@@ -6295,8 +6324,6 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctuint16val">cqctuint16val</a><br />
 <a href="#fn:cqctuint32val">cqctuint32val</a><br />
 <a href="#fn:cqctuint64val">cqctuint64val</a><br />
-<a href="#fn:cqctgcunpersist">cqctgcunpersist</a><br />
-<a href="#fn:cqctgcunprotect">cqctgcunprotect</a><br />
 <a href="#fn:cqctvalcbase">cqctvalcbase</a><br />
 <a href="#fn:cqctvalcstr">cqctvalcstr</a><br />
 </td>

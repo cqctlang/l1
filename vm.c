@@ -86,8 +86,6 @@ enum {
 	GCrate = 100000,
 	GCinitprot = 128,	/* initial # of GC-protected lists in VM */
 	/* gc->state */
-	GCenabled = 1,
-	GCshutdown = 2,
 };
 
 typedef
@@ -101,7 +99,7 @@ static unsigned long long nextgctick = GCrate;
 
 typedef struct GC GC;
 struct GC {
-	int state;
+	GCstate state;
 	void (*gcinit)(GC*);
 	void (*gcpoll)(GC*, VM*);
 	void (*gckill)(GC*);
@@ -957,7 +955,7 @@ enum {
 	GCdie = 0x1,
 	GCdied = 0x2,
 	GCpaused = 0x4,
-	GCresume = 0x8,
+	Gcenable = 0x8,
 	GCrun = 0x10,
 	GCrunning = 0x20,
 };
@@ -983,7 +981,7 @@ resumemutator(GC *gc)
 	char b;
 
 	gc->gcpause = 0;
-	b = GCresume;
+	b = Gcenable;
 	if(0 > chanwriteb(gc->cgc, &b))
 		fatal("gc synchronization failure");
 }
@@ -1085,8 +1083,10 @@ gcfinal(GC *gc, VM *vm)
 static void
 concurrentgcpoll(GC *gc, VM *vm)
 {
+	if((gc->state&GCenabled) == 0)
+		return;
 	if(gc->gcpause)
-		gcsync(gc->cm, GCpaused, GCresume);
+		gcsync(gc->cm, GCpaused, Gcenable);
 	else if(gc->gcrun)
 		return;
 	else if(needsgc(gc)){
@@ -1102,6 +1102,7 @@ concurrentgckill(GC *gc)
 	chanclose(gc->cm);
 	chanclose(gc->cgc);
 	threadwait(gc->t);
+	gc->state = 0;
 }
 
 static void*
@@ -1138,13 +1139,14 @@ gcchild(void *p)
 }
 
 static void
-concurrentgc(GC *gc)
+concurrentgcinit(GC *gc)
 {
 	newchan(&gc->cm, &gc->cgc);
 	gc->gcpause = 0;
 	gc->t = newthread(gcchild, gc);
 	if(gc->t == 0)
 		fatal("newthread failed");
+	gc->state = GCenabled;
 }
 
 static void
@@ -1162,11 +1164,14 @@ dogc(GC *gc)
 static void
 serialgcinit(GC *gc)
 {
+	gc->state = GCenabled;
 }
 
 static void
 serialgcpoll(GC *gc, VM *vm)
 {
+	if((gc->state&GCenabled) == 0)
+		return;
 	if(needsgc(gc)){
 		dogc(gc);
 		dogc(gc);
@@ -1177,18 +1182,23 @@ serialgcpoll(GC *gc, VM *vm)
 static void
 serialgckill(GC *gc)
 {
+	gc->state = 0;
 }
 
 void
-gcinit()
+gcenable(VM *vm)
 {
-	thegc->gcinit(gc);
+	if(thegc->state&GCenabled)
+		vmerr(vm, "GC is already enabled");
+	thegc->gcinit(thegc);
 }
 
 void
-gckill()
+gcdisable(VM *vm)
 {
-	thegc->gckill(gc);
+	if((thegc->state&GCenabled) == 0)
+		vmerr(vm, "GC is already disabled");
+	thegc->gckill(thegc);
 }
 
 static Imm
@@ -10484,6 +10494,8 @@ l1_isundefined(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	if((thegc->state&GCenabled) == 0)
+		vmerr(vm, "GC is disabled");
 	if(thegc->gcrun)
 		xprintf("gc already running\n");
 	else{
@@ -10494,15 +10506,15 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_gcinit(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_gcenable(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	gcinit();
+	gcenable(vm);
 }
 
 static void
-l1_gckill(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_gcdisable(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	gckill();
+	gcdisable(vm);
 }
 
 static void
@@ -10977,6 +10989,8 @@ mktopenv()
 	FN(finalize);
 	FN(foreach);
 	FN(gc);
+	FN(gcenable);
+	FN(gcdisable);
 	FN(getbytes);
 	FN(head);
 	FN(heapstat);
@@ -11221,10 +11235,12 @@ cqctfreevm(VM *vm)
 		/* last one -- switch to serial gc and run finalizers */
 		/* FIXME: can this been done in finivm (otherwise,
 		   never called in -x mode) */
-		thegc->gckill(thegc);
+		if(thegc->state&GCenabled)
+			thegc->gckill(thegc);
 		thegc->gcinit = serialgcinit;
 		thegc->gcpoll = serialgcpoll;
 		thegc->gckill = serialgckill;
+		thegc->gcinit(thegc);
 
 		// run finalizers until they are gone or one of them errors
 		if(!waserror(vm)){
@@ -11285,9 +11301,9 @@ initvm(int gcthread, u64 heapmax)
 		thegc->gcpoll = concurrentgcpoll;
 		thegc->gckill = concurrentgckill;
 	}else{
-		thegc->gcinit = gcinit;
-		thegc->gcpoll = gcpoll;
-		thegc->gckill = gckill;
+		thegc->gcinit = serialgcinit;
+		thegc->gcpoll = serialgcpoll;
+		thegc->gckill = serialgckill;
 	}
 
 	thegc->gcinit(thegc);
@@ -11346,12 +11362,6 @@ finivm()
 			freeheap(hp);
 	}
 	cqctfaulthook(vmfaulthook, 0);
-}
-
-void
-gcsuspend()
-{
-	thegc->
 }
 
 int

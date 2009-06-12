@@ -101,15 +101,15 @@ cqcteval(VM *vm, char *s, char *src, Val *rv)
 }
 
 void
-cqctgcinit()
+cqctgcenable(VM *vm)
 {
-	gcinit();
+	gcenable(vm);
 }
 
 void
-cqctgckill()
+cqctgcdisable(VM *vm)
 {
-	gckill();
+	gcdisable(vm);
 }
 
 static char**
