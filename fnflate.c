@@ -86,6 +86,7 @@ cvinflate(VM *vm, Cval *p, Cval *omaxcv)
 	int err;
 	Vec *rvec;
 
+	/* effectively r = unit(vm, p->dom->as, p->val) */
 	v = callmap(vm, p->dom->as);
 	r = mapstab(vm, v, p->val, 0);	/* FIXME: type sanity */
 	if(r == 0)

@@ -2361,8 +2361,94 @@ The syntax for typedef declarations is the same as their syntax in C.
 <h3 id="sec:addressspaces">Address spaces</h3>
 
 <p>
-An address space represents random access,
-byte-addressed storage.  Cinquecento provides functions
+A Cinquecento address space is an object that
+represents byte-addressed storage.  An address space
+implements methods to reflect the set
+of <em>mapped</em> locations -- the set of addresses
+backed by storage -- and methods to read and write the
+contents of mapped locations.  The prototypical address
+space represents the live memory of a running programs.
+Address spaces can also represent less dynamic content,
+such as the contents of file or a string.  More
+generally, address spaces can be composed of ordinary
+Cinquecento functions that manage a view of arbitrary
+synthetic storage.
+</p>
+
+<p>
+Mapped locations in an address space are subdivided
+into disjoint <em>units</em>.  Each unit spans a
+contiguous range of the address space.  Units are
+commonly used to represent the sparse page-based
+virtual address spaces of running programs.  The units
+of an address space need not be of equal size, and the
+number of units and their dimensions may change over
+time.
+</p>
+
+<p>
+The address space interface comprises four methods:
+<div id="table-short">
+<table>
+<tr>
+<td align="right">
+<span class="arg">get</span>&emsp:&emsp
+</td>
+<td align="right">
+<span class="type">range</span>&emsp&rarr&emsp
+</td>
+<td>
+<span class="type">string</span> <em>or</em> <span class="type">nil</span>
+</td>
+</tr>
+
+<tr>
+<td align="right">
+<span class="arg">put</span>&emsp:&emsp
+</td>
+<td align="right">
+<span class="type">range</span> &times <span class="type">string</span>&emsp&rarr&emsp
+</td>
+<td>
+<span class="type">cvalue</span> <em>or</em> <span class="type">nil</span>
+</td>
+</tr>
+
+<tr>
+<td align="right">
+<span class="arg">unit</span>&emsp:&emsp
+</td>
+<td align="right">
+<span class="type">cvalue</span>&emsp&rarr&emsp
+</td>
+<td>
+<span class="type">range</span> <em>or</em> <span class="type">nil</span>
+</td>
+</tr>
+
+<tr>
+<td align="right">
+<span class="arg">range</span>&emsp:&emsp
+</td>
+<td align="right">
+<span class="type">void</span>&emsp&rarr&emsp
+</td>
+<td>
+<em>list of</em> <span class="type">cvalue</span>
+</td>
+</tr>
+
+</table>
+</div>
+
+</p>
+
+
+
+
+
+<p>
+Cinquecento provides functions
 to construct address spaces whose underlying backing
 storage comes from files, strings, or system-provided
 memory.

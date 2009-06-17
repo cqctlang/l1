@@ -7053,6 +7053,7 @@ stringof(VM *vm, Cval *cv)
 	Imm l, m, n, o;
 	static unsigned unit = 128;
 	
+	/* effectively a call to unit */
 	v = callmap(vm, cv->dom->as);
 	r = mapstab(vm, v, cv->val, 0);	/* FIXME: type sanity */
 	if(r == 0)
