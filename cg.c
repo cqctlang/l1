@@ -1188,7 +1188,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Eret:
 		if(e->e1)
-			cg(e->e1, code, p, loc, p->Return, prv, nxt, tmp);
+			cg(e->e1, code, p, AC, p->Return, prv, nxt, tmp);
 		else
 			cgctl(code, p, p->Return0, nxt, &e->src);
 		break;
