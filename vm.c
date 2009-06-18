@@ -5227,6 +5227,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tvoid:
 		return mkvoidxtn();
 	case Tbase:
+		return ns->base[xtn->basename];
 	case Ttypedef:
 	case Tstruct:
 	case Tunion:
@@ -5304,16 +5305,17 @@ dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 static void
 nscache1base(VM *vm, Ns *ns, Cbase cb)
 {
+	Val rv, argv[2];
 	Xtypename *xtn;
-
-	/* will be garbage; safe across _dolooktype
-	   because as an argument to looktype it will
-	   be in vm roots */
-	xtn = mkbasextn(cb, Rundef);
-	xtn = _dolooktype(vm, xtn, ns);
-	if(xtn == 0)
+	argv[0] = mkvalns(ns);
+	xtn = mkxtn();
+	xtn->tkind = Tbase;
+	xtn->basename = cb;
+	argv[1] = mkvalxtn(xtn);
+	rv = dovm(vm, ns->looktype, 2, argv);
+	if(rv->qkind == Qnil)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
-	ns->base[cb] = xtn;
+	ns->base[cb] = valxtn(rv);
 }
 
 static void

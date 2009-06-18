@@ -1,0 +1,12 @@
+ns1 = @names c32le { struct X1 { @0x0 int x; @0x4; }; };
+ns2 = @names c32le { struct X2 { @0x0 int x; @0x4; }; };
+
+as = mknas();
+
+d1 = mkdom(ns1, as);
+d2 = mkdom(ns2, as);
+
+x1 = (struct X1*){d1}0;
+x2 = {d2}(char*)x1;  // okay
+x2 = {d2}(int)x1;  // okay
+x2 = {d2}x1;  // not okay (no struct X1 in d2)
