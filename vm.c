@@ -6197,6 +6197,10 @@ _pusherror(VM *vm)
 	}
 	ep = &vm->err[vm->edepth++];
 	ep->pdepth = vm->pdepth;
+	ep->fp = vm->fp;
+	ep->sp = vm->sp;
+	ep->pc = vm->pc;
+	ep->cl = vm->cl;
 	return &ep->esc;
 }
 
@@ -6210,6 +6214,11 @@ nexterror(VM *vm)
 	ep = &vm->err[vm->edepth];
 	while(vm->pdepth > ep->pdepth)
 		gcprotpop(vm);
+	vm->fp = ep->fp;
+	vm->sp = ep->sp;
+	vm->pc = ep->pc;
+	vm->cl = ep->cl;
+	vmsetcl(vm, vm->cl);
 	longjmp(ep->esc, 1);
 }
 
@@ -11370,10 +11379,8 @@ finivm()
 int
 cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
 {
-	if(waserror(vm)){
-		vmresetctl(vm);
+	if(waserror(vm))
 		return -1;
-	}
 	*rv = dovm(vm, cl, argc, argv);
 	poperror(vm);
 	return 0;
@@ -11382,10 +11389,8 @@ cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
 int
 cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 {
-	if(waserror(vm)){
-		vmresetctl(vm);
+	if(waserror(vm))
 		return -1;
-	}
 	*rv = dovm(vm, cl, 0, 0);
 	poperror(vm);
 	return 0;

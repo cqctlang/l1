@@ -687,6 +687,8 @@ typedef
 struct Err {
 	jmp_buf esc;
 	unsigned pdepth;	/* vm->pdepth when error label set */
+	Imm sp, fp, pc;
+	Val cl;
 } Err;
 
 typedef struct Xenv Xenv;
