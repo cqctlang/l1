@@ -1,0 +1,12 @@
+// circular definitions should be caught
+ns = @names c32le {
+	struct X {
+		@0x0 X x;
+		@0x4;
+	};
+	typedef X X;
+	@0x0 struct X x;
+};
+dom = mkdom(ns, as);
+printf("%t\n", &dom`x->x);
+

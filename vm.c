@@ -5464,6 +5464,10 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 		if(!equalstr(def->tid, xtn->tid))
 			vmerr(vm, "invalid typedef in raw type table");
 		new->link = resolvetypename(vm, def->link, ctx);
+		if(new->link == new)
+			vmerr(vm, "circular definition in name space: "
+			      "typedef %.*s",
+			      def->tid->len, def->tid->s);
 		return new;
 	}
 
