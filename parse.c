@@ -618,9 +618,11 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 		p++;
 	}
 		
-	if(radix == Rany && suf == Snone){
+	if((radix == Roct || radix == Rhex) && suf == Snone){
 		if(n <= Vintmax)
 			base = Vint;
+		else if(n <= Vuintmax)
+			base = Vuint;
 		else if(n <= Vlongmax)
 			base = Vlong;
 		else if(n <= Vulongmax)
@@ -629,11 +631,9 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 			base = Vvlong;
 		else
 			base = Vuvlong;
-	}else if((radix == Roct || radix == Rhex) && (suf == Snone)){
+	}else if(suf == Snone){
 		if(n <= Vintmax)
 			base = Vint;
-		else if(n <= Vuintmax)
-			base = Vuint;
 		else if(n <= Vlongmax)
 			base = Vlong;
 		else if(n <= Vulongmax)
