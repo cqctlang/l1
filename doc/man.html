@@ -40,7 +40,6 @@
 <a href="#sec:mkdom">Domain constructor</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
-<a href="#sec:customaddressspaces">Custom address spaces</a><br />
 <a href="#sec:ctypes">Ctypes</a><br />
 <br />
 <em>Data Structures</em><br />
@@ -78,41 +77,39 @@ of the L1 implementation of Cinquecento.
 </p>
 
 <p>
-Cinquecento is a programming language designed to help
-programmers examine the state of programs in execution,
-in particular C programs.  Its distinguishing feature
-is an extensible abstraction, called a <em>domain</em>,
-that represents the state of a remotely executing
+Cinquecento is a programming language designed for
+examining programs in execution.  Its distinguishing
+feature is an extensible abstraction, called
+a <em>domain</em>, that represents a remotely executing
 program.
 </p>
 
 <p>
-The syntax of the C programming language is the main
-interface to Cinquecento domains.
-
-C expressions can be used to read or modify the state
-of a target program; Cinquecento understands the C type
-system and supports all C operators.  Cinquecento also
-supports C control flow statements; most C data
-traversal idioms, such as pointer-chasing loops, work
-unmodified in Cinquecento.  Names and types of target
-program data can be specified in C declaration syntax;
-minor extensions to the syntax admit machine-level
-specification of location, layout, and encoding of data
-in memory.  In essence, Cinquecento makes the state of
-remotely executing programs accessible through
-ordinary, arbitrary, local fragments of C.
+The main interface to Cinquecento domains is the syntax
+of the C programming language.  The state of a target
+program can be read or modified with C expressions;
+Cinquecento understands C operators and the C type
+system.  Cinquecento provides C control flow
+statements; most C data traversal idioms, such as
+pointer-chasing loops, work unmodified in Cinquecento.
+Names and types of target program data can be specified
+in C declaration syntax; minor extensions to the syntax
+admit machine-level specification of location, layout,
+and encoding of data in memory.  In essence,
+Cinquecento makes the state of remotely executing
+programs accessible through ordinary, arbitrary, local
+fragments of C.
 </p>
 
 <p>
-Cinquecento is designed to operate on
-multiple target programs at the same time.
+A Cinquecento program can simultaneously manipulate
+multiple target programs.
 
 Heterogeneity among the programs and their environments
-is expected: each target program may have its own types,
-symbols, executable format; and each target program may
-execute on a different machine, possibly with a different
-architecture and operating system.
+is expected: each target may have different types,
+symbols, and executable format; and each target may
+execute on a different machine, possibly with a
+different architecture and operating system.
 
 Example applications include comparing executions of
 different versions of a program, or verifying that a
@@ -124,17 +121,16 @@ distributed system.
 </p>
 
 <p>
-Domains encapsulate the essence of what is needed to
-symbolically examine a remotely executing program:
-definitions of its types and symbols, and a way to
-access to its memory and other run-time state.  Rather
-than favor the idiosyncrasies of one operating system,
-architecture, compiler, or debugging information
-format, Cinquecento specifies a small, extensible
-interface that allows users to easily tailor domains
-for their system environment.  New domain
+Each domain encapsulates a way to symbolically examine
+a remotely executing program: definitions of its types
+and symbols, and access to its memory and other
+run-time state.  Rather than favor the idiosyncrasies
+of one operating system, architecture, compiler, or
+debugging information format, Cinquecento specifies a
+small, extensible interface that allows users to easily
+tailor domains for their system.  New domain
 implementations can be written entirely in Cinquecento;
-built-in library functions and support programs
+built-in library functions and accompanying programs
 simplify construction of domains for common
 environments, such as x86 Linux systems.
 </p>
@@ -146,7 +142,7 @@ functional semantics.  At heart it is a dialect of
 Scheme: Cinquecento is lexically scoped, dynamically
 typed, properly tail recursive, and has first-class
 functions and automatic memory management.  Faithful
-Schemers will note departure in Cinquecento's model of
+Schemers will notice departure in Cinquecento's model of
 integers (which rigorously emulates C's fixed precision
 semantics), the more imperative flavor of its built-in
 list data type, and the absence (today) of a compelling
@@ -2361,19 +2357,49 @@ The syntax for typedef declarations is the same as their syntax in C.
 <h3 id="sec:addressspaces">Address spaces</h3>
 
 <p>
-A Cinquecento address space is an object that
-represents byte-addressed storage.  An address space
-implements methods to reflect the set
-of <em>mapped</em> locations -- the set of addresses
-backed by storage -- and methods to read and write the
-contents of mapped locations.  The prototypical address
-space represents the live memory of a running programs.
-Address spaces can also represent less dynamic content,
-such as the contents of file or a string.  More
-generally, address spaces can be composed of ordinary
-Cinquecento functions that manage a view of arbitrary
-synthetic storage.
+Cinquecento address spaces represent byte-addressed
+storage.  An address space implements methods to
+reflect the set of <em>mapped</em> locations &mdash the set
+of addresses backed by storage &mdash and methods to read
+and write the contents of mapped locations.  The
+prototypical address space represents the live memory
+of a running programs, but address spaces can also
+represent less dynamic content, such as the content of
+files or strings.  More generally, address spaces can
+be composed of ordinary Cinquecento functions that
+manage a view of arbitrary synthetic storage.
 </p>
+
+<p>
+Several built-in functions create new address spaces
+with specific forms of backing storage.
+</p>
+
+<p>
+The function <tt>mknas()</tt> returns a null address
+space that has no backing storage.  Any attempt to read
+or write this address space fails.  This address space
+is used to construct domains that act solely as sources
+for types and symbols; for example, the literal domain
+is backed by a null address space.
+</p>
+
+<p>
+The function <tt>mksas(<em>str</em>)</tt> creates an
+address base backed by the string <em>str</em>.  The
+memory associated with the string is shared with the
+address space, so that an update made to either the
+string or the address space will be reflected in the
+other.
+</p>
+
+<p>
+The function <tt>mkzas(<em>len</em>)</tt> creates a
+zero-filled address space backed by
+<tt><em>len</em></tt> bytes of unshared, cleared
+memory supplied by the system.
+</p>
+
 
 <p>
 Mapped locations in an address space are subdivided
@@ -2387,9 +2413,34 @@ time.
 </p>
 
 <p>
-The address space interface comprises four methods:
+Every address space implements four methods:
 <div id="table-short">
 <table>
+
+<tr>
+<td align="right">
+<span class="arg">unit</span>&emsp:&emsp
+</td>
+<td align="right">
+<span class="type">cvalue</span>&emsp&rarr&emsp
+</td>
+<td>
+<span class="type">range</span> <em>or</em> <span class="type">nil</span>
+</td>
+</tr>
+
+<tr>
+<td align="right">
+<span class="arg">limit</span>&emsp:&emsp
+</td>
+<td align="right">
+<span class="type">void</span>&emsp&rarr&emsp
+</td>
+<td>
+<em>list of</em> <span class="type">cvalue</span>
+</td>
+</tr>
+
 <tr>
 <td align="right">
 <span class="arg">get</span>&emsp:&emsp
@@ -2414,95 +2465,15 @@ The address space interface comprises four methods:
 </td>
 </tr>
 
-<tr>
-<td align="right">
-<span class="arg">unit</span>&emsp:&emsp
-</td>
-<td align="right">
-<span class="type">cvalue</span>&emsp&rarr&emsp
-</td>
-<td>
-<span class="type">range</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">range</span>&emsp:&emsp
-</td>
-<td align="right">
-<span class="type">void</span>&emsp&rarr&emsp
-</td>
-<td>
-<em>list of</em> <span class="type">cvalue</span>
-</td>
-</tr>
-
 </table>
 </div>
 
 </p>
 
-
-
-
-
 <p>
-Cinquecento provides functions
-to construct address spaces whose underlying backing
-storage comes from files, strings, or system-provided
-memory.
-</p>
-
-<p>
-Several built-in functions create new address spaces
-with specific forms of backing storage.
-</p>
-
-<p>
-The function <tt>mknas()</tt> returns a null address
-space that has no backing storage.  An attempt to read
-or write any location in this address space draws an
-error.  This address space is used to construct domains
-that act solely as sources for types and symbols; for
-example, the literal domain is backed by a null address
-space.
-</p>
-
-<p>
-The function <tt>mksas(<em>str</em>)</tt> creates an
-address base backed by the string <em>str</em>.  The
-memory associated with the string is shared with the
-address space, so that an update made to either the
-string or the address space will be reflected in the
-other.
-</p>
-
-<p>
-The function <tt>mkzas(<em>len</em>)</tt> creates a
-zero-filled address space backed by
-<tt><em>len</em></tt> bytes of unshared, cleared
-memory supplied by the system.
-</p>
-
-<h3 id="sec:customaddressspaces">Custom address spaces</h3>
-
-<p>
-Cinquecento allows programs to construct an address space
-with a custom implementation of the underlying backing
-storage.
-</p>
-
-<p>A custom implementation requires the program to
-define three functions: <tt><em>map</em></tt>,
-<tt><em>get</em></tt>, and <tt><em>put</em></tt>.
-</p>
-
-<p>
-These functions receive and return values of the
-Cinquecento type <em>range</em>.  The range type
-represents a contiguous span of locations in an address
-space.  A range value is constructed by the function
+The range type represents a contiguous span of
+locations in an address space.
+A range is constructed by the function
 <tt>mkrange(<em>beg</em>,<em>len</em>)</tt>, where
 <tt><em>beg</em></tt> is the non-negative start address
 of the range and <tt><em>len</em></tt> is the positive
@@ -2514,38 +2485,46 @@ address and byte count from a range as cvalues.
 </p>
 
 <p>
-<tt><em>Map</em></tt> takes no arguments and returns a
-description of the <em>mapped ranges</em> of the
-address space as a vector of range values.  Each
-element of the vector must be a range describing a
-maximal contiguous span of locations backed by the
-address space.  The vector must be sorted in ascending
-order by start address.  The ranges must not overlap.
+The <span class="arg">unit</span> method queries the
+units of an address space.  Its argument is an address.
+If the address is mapped,
+<span class="arg">unit</span> returns a range that specifies
+the boundaries of the containing unit.  Otherwise it returns
+<span class="type">nil</span>.
 </p>
 
 <p>
-<tt><em>Get</em></tt> takes a range argument and
-returns a string.  The string should contain the
-contents of storage corresponding to the range.
+The <span class="arg">limit</span> method queries the
+overall address boundaries of an address space.  It
+returns a list containing two addresses (as cvalues).
+The first is the smallest address defined by the
+address space; the second is the highest.  These values
+need not be mapped, but are merely the minimum and
+maximum address values handled by the address space.
 </p>
 
 <p>
-<tt><em>Put</em></tt> takes two arguments, a range and
-a string, and returns <tt>nil</tt>.
-<tt><em>Put</em></tt> should replace the contents of
-storage corresponding to the range with the contents of
-the string, ignoring the trailing portion of the string
-if it is longer than the range.
+The <span class="arg">get</span> method reads from a range of the
+address space, returning the stored bytes as a string.
+<span class="arg">Get</span> fails (returns <span class="type">nil</span>)
+if the access includes unmapped locations.
+<span class="arg">Get</span> may also fail
+if the access spans
+the boundary of a unit of the address space.
 </p>
 
 <p>
-A call to <tt>fault()</tt> in the dynamic extent of a
-call to <tt><em>get</em></tt> or <tt><em>put</em></tt>
-will cause a toplevel memory access fault error to be
-raised in the context of the call.  Implementations of
-<tt><em>get</em></tt> and <tt><em>put</em></tt> are
-expected to call <tt>fault</tt> to signal invalid
-arguments and related exceptions.
+The <span class="arg">put</span> method writes to a
+range of the address space.  The string argument
+contains the bytes to be written; its length be of
+equal to that of the range argument.  If the write
+succeeds, the number of bytes written (always the
+length of the string) is returned.  
+<span class="arg">Put</span> fails (returns <span class="type">nil</span>)
+if the access includes unmapped locations.
+<span class="arg">Put</span> may also fail
+if the access spans
+the boundary of a unit of the address space.
 </p>
 
 <p>
@@ -2620,18 +2599,6 @@ interface with additional custom functions.  This
 feature can be used, for example, to associate a
 function for setting breakpoints with an address space.
 </p>
-
-<p>
-The Cinquecento address type exists to support the
-implementation of operations like setting a breakpoint
-on a solitary address.  The function
-<tt>mkaddr(<em>val</em>)</tt> constructs an address
-value from the cvalue <tt><em>val</em></tt>.  The
-function <tt>addrval(<em>addr</em>)</tt> returns the
-cvalue used to construct the address
-<tt><em>addr</em></tt>.
-</p>
-
 
 
 <h3 id="sec:ctypes">Ctypes</h3>
