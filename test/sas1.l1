@@ -1,0 +1,6 @@
+s = "abc";
+sas = mksas(s);
+dom = mkdom(c32le, sas);
+p = (char*){dom}0;
+putbytes(p+3, "");
+printf("%B\n", s);

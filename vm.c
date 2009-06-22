@@ -5119,6 +5119,9 @@ sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		r = valrange(argv[2]);
 		dat = valstr(argv[3]);
 		beg = r->beg;
+		if(r->len->val == 0 && beg->val <= s->len)
+			/* special case: empty string */
+			return;
 		end = xcvalalu(vm, Iadd, beg, r->len);
 		if(beg->val >= s->len)
 			vmerr(vm, "address space access out of bounds");
