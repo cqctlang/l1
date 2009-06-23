@@ -131,15 +131,15 @@ eth_names = @names c32be {
 		@0xe    uint16 window;
 		@0x10   uint16 check;
 		@0x12   uint16 urg_ptr;
-		@0x16;
+		@0x14;
 	};
 
 	struct udphdr {
 		@0x0    uint16 source;
 		@0x2    uint16 dest;
 		@0x4    uint16 len;
-		@0x8    uint16 check;
-		@0x40;
+		@0x6    uint16 check;
+		@0x8;
 	};
 
 	
