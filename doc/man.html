@@ -6158,6 +6158,34 @@ The result is undefined if <span class="arg">v</span> is not a string.
 <div class="docitem">
 <div class="proto">
 <div class="function">
+<span class="id" id="fn:cqctlength">uint64_t cqctlength(Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+If <span class="arg">v</span> is a container object, returns the number of elements
+in the container; it is equivalent to the built-in function <span class="id"><a href="#fn:length">length</a></span>.
+The result is undefined if <span class="arg">v</span> is not a container.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctlistvals">Val* cqctlistvals(Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+Returns a pointer to the array of <span class="id">Val</span>s in
+the list <span class="arg">v</span>.
+The number of elements in the array is the length returned by
+<span class="id"><a href="#fn:cqctlength">cqctlength</a></span>.
+The result is undefined if <span class="arg">v</span> is not a list.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
 <span class="id" id="fn:cqctmkfd">Val cqctmkfd(Xfd *<span class="arg">Xfd</span>,
 char *<span class="arg">name</span>);
 </div>
@@ -6368,9 +6396,12 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctint16val">cqctint16val</a><br />
 <a href="#fn:cqctint32val">cqctint32val</a><br />
 <a href="#fn:cqctint64val">cqctint64val</a><br />
-<a href="#fn:cqctmkfd">cqctmkfd</a><br />
+
 </td>
 <td>
+<a href="#fn:cqctlength">cqctlength</a><br />
+<a href="#fn:cqctlistvals">cqctlistvals</a><br />
+<a href="#fn:cqctmkfd">cqctmkfd</a><br />
 <a href="#fn:cqctmkvm">cqctmkvm</a><br />
 <a href="#fn:cqctsprintval">cqctsprintval</a><br />
 <a href="#fn:cqctuint8val">cqctuint8val</a><br />

@@ -11676,3 +11676,41 @@ cqctenvlook(Toplevel *top, char *name)
 		return *rv;
 	return 0;
 }
+
+uint64_t
+cqctlength(Val v)
+{
+	List *lst;
+	Vec *vec;
+	Str *str;
+	Tab *tab;
+
+	switch(v->qkind){
+	default:
+		return (uint64_t)-1;
+	case Qlist:
+		lst = vallist(v);
+		return listxlen(lst->x);
+	case Qstr:
+		str = valstr(v);
+		return str->len;
+	case Qvec:
+		vec = valvec(v);
+		return vec->len;
+	case Qtab:
+		tab = valtab(v);
+		return tab->cnt;
+	}
+}
+
+Val*
+cqctlistvals(Val v)
+{
+	List *lst;
+	Listx *x;
+	if(v->qkind != Qlist)
+		return 0;
+	lst = vallist(v);
+	x = lst->x;
+	return &x->val[x->hd];
+}

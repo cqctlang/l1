@@ -124,6 +124,8 @@ Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);
 Val		cqctint64val(int64_t);
+uint64_t	cqctlength(Val v);
+Val*		cqctlistvals(Val v);
 Val		cqctmkfd(Xfd *xfd, char *name);
 VM*		cqctmkvm(Toplevel *top);
 char*		cqctsprintval(VM *vm, Val v);
