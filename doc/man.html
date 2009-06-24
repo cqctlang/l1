@@ -1855,6 +1855,15 @@ and address space are
 </div>
 </div>
 
+<h3 id="sec:domobj">Domains as objects</h3>
+
+Cinquecento address spaces and name spaces encapsulate
+functions that implement the behavior of these
+abstractions.  The structure of this encapsulation is
+similar to that of simple objects in a conventional
+object-oriented language.
+
+
 <h3 id="sec:namespaces">Name spaces</h3>
 
 <p>
@@ -2358,9 +2367,9 @@ The syntax for typedef declarations is the same as their syntax in C.
 
 <p>
 Cinquecento address spaces represent byte-addressed
-storage.  An address space implements methods to
-reflect the set of <em>mapped</em> locations &mdash the set
-of addresses backed by storage &mdash and methods to read
+storage by providing methods to reflect the set
+of <em>mapped</em> locations &mdash the set of
+addresses backed by storage &mdash and methods to read
 and write the contents of mapped locations.  The
 prototypical address space represents the live memory
 of a running programs, but address spaces can also
