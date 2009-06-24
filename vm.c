@@ -3103,6 +3103,9 @@ mkas()
 static Head*
 iteras(Head *hd, Ictx *ictx)
 {
+	/* FIXME: is it really necessary
+	   to mark dispatch and the other
+	   cached functions? */
 	As *as;
 	as = (As*)hd;
 	switch(ictx->n++){
@@ -3116,6 +3119,8 @@ iteras(Head *hd, Ictx *ictx)
 		return (Head*)as->put;
 	case 4:
 		return (Head*)as->map;
+	case 5:
+		return (Head*)as->dispatch;
 	default:
 		return GCiterdone;
 	}
@@ -3160,6 +3165,9 @@ mkns()
 static Head*
 iterns(Head *hd, Ictx *ictx)
 {
+	/* FIXME: is it really necessary
+	   to mark dispatch and the other
+	   cached functions? */
 	Ns *ns;
 	unsigned n;
 	enum { lastfield = 7 };
