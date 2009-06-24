@@ -6810,10 +6810,10 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	default:
 		return;
 	}
+	*rv = argv[0];
 	if(n < 2)
 		return;
 	dosort(vm, vs, n, cmp);
-	*rv = argv[0];
 }
 
 static Val
