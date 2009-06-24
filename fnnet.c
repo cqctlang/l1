@@ -85,6 +85,14 @@ out:
 }
 
 static void
+sa2str(struct sockaddr_in *sa, char *buf, unsigned long sz)
+{
+	static char addr[32];
+	strcpy(addr, inet_ntoa(sa->sin_addr));
+	snprintf(buf, sz, "%s:%d", addr, ntohs(sa->sin_port));
+}
+
+static void
 nodelay(int fd)
 {
 	int optval = 1;
@@ -92,7 +100,14 @@ nodelay(int fd)
 }
 
 static void
-l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
+reuseaddr(int fd)
+{
+	int optval = 1;
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+}
+
+static void
+l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
 	Str *str;
@@ -101,8 +116,8 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	struct sockaddr_in saddr;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to opentcp");
-	checkarg(vm, "opentcp", argv, 0, Qstr);
+		vmerr(vm, "wrong number of arguments to tcpopen");
+	checkarg(vm, "tcpopen", argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
 	if(0 > parseip(s, &saddr))
@@ -110,9 +125,9 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(s);
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd.fd)
-		vmerr(vm, "opentcp: %s", strerror(errno));
+		vmerr(vm, "tcpopen: %s", strerror(errno));
 	if(0 > connect(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
-		vmerr(vm, "opentcp: %s", strerror(errno));
+		vmerr(vm, "tcpopen: %s", strerror(errno));
 	nodelay(xfd.fd);
 	xfd.read = fdread;
 	xfd.write = fdwrite;
@@ -121,8 +136,70 @@ l1_opentcp(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalfd(fd);
 }
 
+static void
+l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Str *str;
+	char *s;
+	Xfd xfd;
+	struct sockaddr_in saddr;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to tcplisten");
+	checkarg(vm, "tcplisten", argv, 0, Qstr);
+	str = valstr(argv[0]);
+	s = str2cstr(str);
+	if(0 > parseip(s, &saddr))
+		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
+	efree(s);
+	
+	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
+	if(0 > xfd.fd)
+		vmerr(vm, "tcpopen: %s", strerror(errno));
+	reuseaddr(xfd.fd);
+	if(0 > bind(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
+		vmerr(vm, "tcplisten: %s", strerror(errno));
+	if(0 > listen(xfd.fd, 1))
+		vmerr(vm, "tcplisten: %s", strerror(errno));
+	xfd.close = fdclose;
+	fd = mkfdfn(str, 0, &xfd);
+	*rv = mkvalfd(fd);
+}
+
+static void
+l1_tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd0, *fd1;
+	Xfd *xfd0, xfd1;
+	struct sockaddr_in saddr;
+	socklen_t len;
+	char buf[128];
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to tcpaccept");
+	checkarg(vm, "tcpaccept", argv, 0, Qfd);
+	fd0 = valfd(argv[0]);
+	if((fd0->flags&Ffn) == 0)
+		vmerr(vm, "file descriptor is not a listener");
+	xfd0 = &fd0->u.fn;
+	len = sizeof(saddr);
+	xfd1.fd = accept(xfd0->fd, (struct sockaddr*)&saddr, &len);
+	if(0 > xfd1.fd)
+		vmerr(vm, "tcpaccept: %s", strerror(errno));
+	nodelay(xfd1.fd);
+	xfd1.read = fdread;
+	xfd1.write = fdwrite;
+	xfd1.close = fdclose;
+	sa2str(&saddr, buf, sizeof(buf));
+	fd1 = mkfdfn(mkstr0(buf), Fread|Fwrite, &xfd1);
+	*rv = mkvalfd(fd1);
+}
+
 void
 fnnet(Env *env)
 {
-	FN(opentcp);
+	FN(tcpaccept);
+	FN(tcplisten);
+	FN(tcpopen);
 }

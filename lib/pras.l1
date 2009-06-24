@@ -943,7 +943,7 @@ define mkpras(arg) {
 	};
 	
 	if(isstring(arg))
-		fd = opentcp(arg);
+		fd = tcpopen(arg);
 	else if(isfd(arg))
 		fd = arg;
 	else
@@ -962,7 +962,7 @@ define mkpras(arg) {
 
 define mkremoteprocdom arg {
        @local fd, as;
-       fd = opentcp(pop(arg));
+       fd = tcpopen(pop(arg));
        as = mkpras(fd);
        as.launch(arg);
        return as;

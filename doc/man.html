@@ -5006,10 +5006,10 @@ an existing file for reading and writing).
 </div>
 </div>
 
-<div class="docitem" id="fn:opentcp">
+<div class="docitem" id="fn:tcpopen">
 <div class="proto">
 <div class="function">
-<span class="id">opentcp(<span class="arg">address</span>)</span>
+<span class="id">tcpopen(<span class="arg">address</span>)</span>
 </div>
 <div class="param">
 <span class="arg">address</span>: <span class="type">string</span>
@@ -5028,6 +5028,52 @@ returns the associated file descriptor.
 name.
 </div>
 </div>
+
+<div class="docitem" id="fn:tcplisten">
+<div class="proto">
+<div class="function">
+<span class="id">tcplisten(<span class="arg">address</span>)</span>
+</div>
+<div class="param">
+<span class="arg">address</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">file descriptor</span>
+</div>
+</div>
+<div class="desc">
+Starts a TCP listener on <span class="arg">address</span> and
+returns the associated file descriptor.
+<span class="arg">Address</span> is a string of the form
+<tt>"<em>addr</em>:<em>port</em>"</tt>, where
+<span class="arg">addr</span> is an IP address or hostname and
+<span class="arg">port</span> is a port number or service
+name.
+</div>
+</div>
+
+<div class="docitem" id="fn:tcpaccept">
+<div class="proto">
+<div class="function">
+<span class="id">tcpaccept(<span class="arg">fd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="returns">
+<span class="type">file descriptor</span>
+</div>
+</div>
+<div class="desc">
+Accepts an incoming connection on the TCP listener associated
+with <span class="arg">fd</span> (returned by 
+<span class="fnindex"><a href="#fn:tcplisten">tcplisten</a></span>)
+and returns a file descriptor for the new connection.
+If no connection is waiting, the call blocks until one arrives.
+</div>
+</div>
+
+
 
 <div class="docitem" id="fn:read">
 <div class="proto">
@@ -6571,7 +6617,6 @@ machines sharing the environment have been freed.
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:open">open</a><br />
-<a href="#fn:opentcp">opentcp</a><br />
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />
 <a href="#fn:paramtype">paramtype</a><br />
@@ -6617,6 +6662,9 @@ machines sharing the environment have been freed.
 <a href="#fn:tablook">tablook</a><br />
 <a href="#fn:tabvals">tabvals</a><br />
 <a href="#fn:tail">tail</a><br />
+<a href="#fn:tcpaccept">tcpaccept</a><br />
+<a href="#fn:tcplisten">tcplisten</a><br />
+<a href="#fn:tcpopen">tcpopen</a><br />
 <a href="#fn:tolower">tolower</a><br />
 <a href="#fn:toupper">toupper</a><br />
 <a href="#fn:typedefid">typedefid</a><br />
