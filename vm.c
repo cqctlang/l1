@@ -5478,7 +5478,7 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 		if(new->link == new)
 			vmerr(vm, "circular definition in name space: "
 			      "typedef %.*s",
-			      def->tid->len, def->tid->s);
+			      (int)def->tid->len, def->tid->s);
 		return new;
 	}
 
