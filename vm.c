@@ -11171,8 +11171,8 @@ mktopenv()
 	FN(susize);
 	FN(symattr);
 	FN(symid);
-	FN(symtype);
 	FN(symoff);
+	FN(symtype);
 	FN(tabdelete);
 	FN(tabenum);
 	FN(tabinsert);
