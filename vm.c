@@ -3464,21 +3464,6 @@ mkvalxtn(Xtypename *xtn)
 	return (Val)xtn;
 }
 
-static int
-zeroval(Val v)
-{
-	Cval *cv;
-
-	switch(v->qkind){
-	case Qcval:
-		cv = valcval(v);
-		return cv->val == 0;
-	default:
-		fatal("branch on non-integer value");
-		return 0;
-	}
-}
-
 static void
 putbox(VM *vm, Val box, Val boxed)
 {
@@ -4744,12 +4729,26 @@ xmov(VM *vm, Operand *src, Operand *dst)
 	putvalrand(vm, v, dst);
 }
 
+static int
+zeroval(Val v)
+{
+	Cval *cv;
+
+	switch(v->qkind){
+	case Qcval:
+		cv = valcval(v);
+		return cv->val == 0;
+	default:
+		return 0;
+	}
+}
+
 static void
 xjnz(VM *vm, Operand *src, Ctl *label)
 {
-	Cval *cv;
-	cv = getcvalrand(vm, src);
-	if(cv->val != 0)
+	Val v;
+	v = getvalrand(vm, src);
+	if(!zeroval(v))
 		vm->pc = label->insn;
 }
 
