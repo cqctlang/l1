@@ -1376,12 +1376,12 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Ebreak:
 		if(p->Break == 0)
-			fatal("break outside loop");
+			fatal("break not within loop or switch");
 		cgctl(code, p, p->Break, nxt, &e->src);
 		break;
 	case Econtinue:
 		if(p->Continue == 0)
-			fatal("continue outside loop");
+			fatal("continue not within loop");
 		cgctl(code, p, p->Continue, nxt, &e->src);
 		break;
 	case Efor:

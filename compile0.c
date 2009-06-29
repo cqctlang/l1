@@ -543,9 +543,69 @@ groomc(U *ctx, Expr *e)
 	}
 }
 
+// checkctl: check that break and continue statements occur only within
+// control structures
+static void
+checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
+{
+	Expr *p;
+
+	if(e == 0)
+		return;
+	switch(e->kind){
+	case Eswitch:
+		checkctl(ctx, e->e1, inloop, inswitch);
+		checkctl(ctx, e->e3, inloop, 1);
+		break;
+	case Efor:
+		checkctl(ctx, e->e1, inloop, inswitch);
+		checkctl(ctx, e->e2, inloop, inswitch);
+		checkctl(ctx, e->e3, inloop, inswitch);
+		checkctl(ctx, e->e4, 1, inswitch);
+		break;
+	case Ewhile:
+		checkctl(ctx, e->e1, inloop, inswitch);
+		checkctl(ctx, e->e2, 1, inswitch);
+		break;
+	case Edo:
+		checkctl(ctx, e->e1, 1, inswitch);
+		checkctl(ctx, e->e2, inloop, inswitch);
+		break;
+	case Elambda:
+		checkctl(ctx, e->e2, 0, 0);
+		break;
+	case Edefine:
+		checkctl(ctx, e->e3, 0, 0);
+		checkctl(ctx, e->e4, 0, 0);
+		break;
+	case Econtinue:
+		if(inloop == 0)
+			cerror(ctx, e, "continue not within loop");
+		break;
+	case Ebreak:
+		if(inloop == 0 && inswitch == 0)
+			cerror(ctx, e, "break not within loop or switch");
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			checkctl(ctx, p->e1, inloop, inswitch);
+			p = p->e2;
+		}
+		break;
+	default:
+		checkctl(ctx, e->e1, inloop, inswitch);
+		checkctl(ctx, e->e2, inloop, inswitch);
+		checkctl(ctx, e->e3, inloop, inswitch);
+		checkctl(ctx, e->e4, inloop, inswitch);
+		break;
+	}
+}
+
 static Expr*
 compile0(U *ctx, Expr* e)
 {
+	checkctl(ctx, e, 0, 0);
 	groomc(ctx, e);
 	compile_rval(ctx, e, 0);
 	return e;
