@@ -696,6 +696,12 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				return;
 		if(fmt >= efmt)
 			return;
+		if(*fmt == '%'){
+			if(fmtputc(vm, f, ch))
+				return;
+			fmt++;
+			continue;
+		}
 		if(argc == 0)
 			vmerr(vm, "format string needs more arguments");
 		vp = *vpp++;
@@ -707,11 +713,6 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 		if(fmt >= efmt)
 			return;
 		ch = *fmt++;
-		if(ch == '%'){
-			if(fmtputc(vm, f, ch))
-				return;
-			continue;
-		}
 		switch(ch){
 		case '.':
 			f->flags |= FmtWidth|FmtPrec;
