@@ -6241,6 +6241,21 @@ The result is undefined if <span class="arg">v</span> is not a list.
 <div class="docitem">
 <div class="proto">
 <div class="function">
+<span class="id" id="fn:cqctvecvals">Val* cqctvecvals(Val <span class="arg">v</span>)</span>
+</div>
+</div>
+<div class="desc">
+Returns a pointer to the array of <span class="id">Val</span>s in
+the vector <span class="arg">v</span>.
+The number of elements in the array is the length returned by
+<span class="id"><a href="#fn:cqctlength">cqctlength</a></span>.
+The result is undefined if <span class="arg">v</span> is not a vector.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
 <span class="id" id="fn:cqctmkfd">Val cqctmkfd(Xfd *<span class="arg">Xfd</span>,
 char *<span class="arg">name</span>);
 </div>
@@ -6477,6 +6492,7 @@ machines sharing the environment have been freed.
 <a href="#fn:cqctvaluint16">cqctvaluint16</a><br />
 <a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
 <a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
+<a href="#fn:cqctvecvals">cqctvecvals</a><br />
 </td>
 </tr>
 </table>

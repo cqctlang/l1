@@ -11721,3 +11721,14 @@ cqctlistvals(Val v)
 	x = lst->x;
 	return &x->val[x->hd];
 }
+
+Val*
+cqctvecvals(Val v)
+{
+	Vec *vec;
+	if(v->qkind != Qvec)
+		return 0;
+	vec = valvec(v);
+	return vec->vec;
+}
+

@@ -145,3 +145,4 @@ uint8_t		cqctvaluint8(Val);
 uint16_t	cqctvaluint16(Val);
 uint32_t	cqctvaluint32(Val);
 uint64_t	cqctvaluint64(Val);
+Val*		cqctvecvals(Val v);
