@@ -166,22 +166,25 @@ yywrap()
 static void
 comment(U *ctx)
 {
-	char c, c1;
+	char c;
 
 loop:
-	while((c = input()) != '*' && c != 0){
+	while((c = input()) != '*' && c != EOF){
 		if(c == '\n'){
 			ctx->inp->src.col = 0;
 			ctx->inp->src.line++;
 		}else
 			ctx->inp->src.col++;
 	}
-
-	if((c1 = input()) != '/' && c != 0){
+	if(c == EOF)
+		parseerror(ctx, "end of input inside comment");
+	if((c = input()) != '/' && c != EOF){
 		ctx->inp->src.col++;	/* '*' */
-		unput(c1);
+		unput(c);
 		goto loop;
 	}
+	if(c == EOF)
+		parseerror(ctx, "end of input inside comment");
 }
 
 static void
