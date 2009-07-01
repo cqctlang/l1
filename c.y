@@ -494,6 +494,9 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $3, nullelist(), $2, 0); }
 	| specifier_list struct_declarator_list ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $1, invert($2), 0, 0); }
+	/* accept (but discard) c++ labels such as "public:" */
+	| id ':'
+	{ $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
 	;
 
 struct_size

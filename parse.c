@@ -960,6 +960,8 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 		e->e1->e1 = NULL;
 		return sufields(ctx, su, e->e2, sz);
 		break;
+	case Enop:
+		return sufields(ctx, su, e->e2, sz);
 	default:
 		fatal("unrecognized su declaration %d", e->e1->kind);
 	}
