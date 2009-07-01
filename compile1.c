@@ -26,8 +26,9 @@ compiletab(U *ctx, Expr *e)
 	e = e->e1;
 	while(e->kind == Eelist){
 		ti = e->e1;
-		se = Zcall(G("tabinsert"), 3,
-			   doid("$tab"), ti->e1, ti->e2->e1);
+		ti->e1 = compile1(ctx, ti->e1);
+		ti->e2 = compile1(ctx, ti->e2);
+		se = Zcall(G("tabinsert"), 3, doid("$tab"), ti->e1, ti->e2->e1);
 		putsrc(se, &ti->src);
 		te = Zcons(se, te);
 		ti->e1 = 0;
