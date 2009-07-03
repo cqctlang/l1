@@ -10627,6 +10627,22 @@ l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
 	vmresettop(vm);
 }
 
+static void
+l1_loadpath(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char **lp;
+	List *l;
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to loadpath");
+	l = mklist();
+	lp = cqctloadpath;
+	while(*lp){
+		listappend(vm, l, mkvalstr(mkstr0(*lp)));
+		lp++;
+	}
+	*rv = mkvallist(l);
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -11083,6 +11099,7 @@ mktopenv()
 	FN(listins);
 	FN(listref);
 	FN(listset);
+	FN(loadpath);
 	FN(lookfield);
 	FN(looksym);
 	FN(looktype);
