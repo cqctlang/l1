@@ -4453,7 +4453,14 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 	case Idiv:
 		if(i2 == 0)
 			vmerr(vm, "divide by zero");
-		rv = i1/i2;
+		if(isunsigned[t1->basename] && isunsigned[t2->basename])
+			rv = i1/i2;
+		else if(isunsigned[t1->basename])
+			rv = i1/(s64)i2;
+		else if(isunsigned[t2->basename])
+			rv = (s64)i1/i2;
+		else
+			rv = (s64)i1/(s64)i2;
 		break;
 	case Imod:
 		if(i2 == 0)
