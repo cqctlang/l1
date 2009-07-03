@@ -363,6 +363,8 @@ names_declaration_list
 names_declaration
 	: declaration
 	| typedef
+	| error ';'
+	{ $$ = 0; }
 	;
 
 names_expression
@@ -497,6 +499,8 @@ struct_declaration
 	/* accept (but discard) c++ labels such as "public:" */
 	| id ':'
 	{ $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
+	| error ';'
+	{ $$ = 0; }
 	;
 
 struct_size
@@ -884,6 +888,8 @@ expression_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
 	| expression ';'
 	{ $$ = $1; }
+	| error ';'
+	{ $$ = 0; }
 	;
 
 selection_statement

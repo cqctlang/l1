@@ -110,7 +110,10 @@ parseerror(U *ctx, char *fmt, ...)
 	cvprintf(ctx->xfd, fmt, args);
 	va_end(args);
 	cprintf(ctx->xfd, "\n");
+	ctx->errors++;
 
+	if(cqctflags['k'])
+		return;
 	while(popyy(ctx))
 		;
 	yylex_destroy();
@@ -1397,12 +1400,17 @@ tryinclude(U *ctx, char *raw)
 Expr*
 doparse(U *ctx, char *buf, char *whence)
 {
+	int yy;
 	Expr *rv;
 	ctx->el = nullelist();
+	ctx->errors = 0;
 	if(setjmp(ctx->jmp) == 0){
 		pushyy(ctx, whence, buf, 0);
-		if(yyparse(ctx) != 0)
-			fatal("parse error");
+		yy = yyparse(ctx);
+		if(yy == 1 || ctx->errors)
+			return 0;
+		if(yy != 0)
+			fatal("parser failure");
 	}else
 		return 0;
 

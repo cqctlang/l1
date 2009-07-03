@@ -468,6 +468,7 @@ struct U {
 	In in[MaxIn];
 	In *inp;
 	Expr *el;		/* parser accumulator */
+	unsigned errors;
 	Xfd *xfd;
 } U;
 

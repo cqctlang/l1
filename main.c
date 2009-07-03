@@ -232,10 +232,11 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "a+bghl:m:opqrstwxz"))){
+	while(EOF != (c = getopt(argc, argv, "a+bghkl:m:opqrstwxz"))){
 		switch(c){
 		case 'a':
 		case 'b':
+		case 'k':
 		case 'o':
 		case 'p':
 		case 'q':
