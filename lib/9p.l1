@@ -1,0 +1,193 @@
+ns9p = @names c32le {
+enum
+{
+	// these 9P and 9P2000.u definitions come from plan9port
+	OREAD	 	= 0,		// open for read
+	OWRITE	 	= 1,		// write
+	ORDWR	 	= 2,		// read and write
+	OEXEC	 	= 3,		// execute, == read but check execute
+				   	//   permission
+	OTRUNC	 	= 16,		// or'ed in (except for exec),
+				   	//   truncate file first
+	OCEXEC	 	= 32,		// or'ed in, close on exec
+	ORCLOSE	 	= 64,		// or'ed in, remove on close
+	ODIRECT	 	= 128,		// or'ed in, direct access
+	ONONBLOCK	=  256,		// or'ed in, non-blocking call
+	OEXCL	 	= 0x1000,	// or'ed in, exclusive use (create only)
+	OLOCK	 	= 0x2000,	// or'ed in, lock after opening
+	OAPPEND	 	= 0x4000,	// or'ed in, append only
+	
+	// bits in Qid.type
+	QTDIR		= 0x80,		// type bit for directories
+	QTAPPEND	= 0x40,		// type bit for append only files
+	QTEXCL		= 0x20,		// type bit for exclusive use files
+	QTMOUNT		= 0x10,		// type bit for mounted channel
+	QTAUTH		= 0x08,		// type bit for authentication file
+	QTTMP		= 0x04,		// type bit for non-backed-up file
+	QTSYMLINK	= 0x02,		// type bit for symbolic link
+	QTFILE		= 0x00,		// type bits for plain file
+
+	// 9P mode bits
+	DMDIR		= 0x80000000,	// mode bit for directories
+	DMAPPEND	= 0x40000000,	// mode bit for append only files
+	DMEXCL		= 0x20000000,	// mode bit for exclusive use files
+	DMMOUNT		= 0x10000000,	// mode bit for mounted channel
+	DMAUTH		= 0x08000000,	// mode bit for authentication file
+	DMTMP		= 0x04000000,	// mode bit for non-backed-up file
+
+	// 9P2000.u mode bits
+	DMSYMLINK	= 0x02000000,	// mode bit for symbolic link
+	DMDEVICE	= 0x00800000,	// mode bit for device file
+	DMNAMEDPIPE	= 0x00200000,	// mode bit for named pipe
+	DMSOCKET	= 0x00100000,	// mode bit for socket
+	DMSETUID	= 0x00080000,	// mode bit for setuid
+	DMSETGID	= 0x00040000,	// mode bit for setgid
+
+	DMREAD		= 0x4,		// mode bit for read permission
+	DMWRITE		= 0x2,		// mode bit for write permission
+	DMEXEC		= 0x1,		// mode bit for execute permission
+
+};
+
+enum P9Pmsg
+{
+	Tversion =	100,
+	Rversion,
+	Tauth =		102,
+	Rauth,
+	Tattach =	104,
+	Rattach,
+	Terror =	106,	/* illegal */
+	Rerror,
+	Tflush =	108,
+	Rflush,
+	Twalk =		110,
+	Rwalk,
+	Topen =		112,
+	Ropen,
+	Tcreate =	114,
+	Rcreate,
+	Tread =		116,
+	Rread,
+	Twrite =	118,
+	Rwrite,
+	Tclunk =	120,
+	Rclunk,
+	Tremove =	122,
+	Rremove,
+	Tstat =		124,
+	Rstat,
+	Twstat =	126,
+	Rwstat,
+	Tmax,
+};
+
+};
+
+@const NOTAG   = (`uint16)~0;
+@const BIT8SZ  = 1;
+@const BIT16SZ = 2;
+@const BIT32SZ = 4;
+@const BIT64SZ = 8;
+@const QIDSZ   = BIT8SZ+BIT32SZ+BIT64SZ;
+
+dom9p = mkdom(ns9p, mknas());
+
+define ptr(ns, s)
+{
+	return (unsigned char*){mkdom(ns,mksas(s))}0;
+}
+
+define push1(p, v)
+{
+	*(`uint8*)p = v;
+	return p+1;
+}
+
+define push2(p, v)
+{
+	*(`uint16*)p = v;
+	return p+2;
+}
+
+define push4(p, v)
+{
+	*(`uint32*)p = v;
+	return p+4;
+}
+
+define tversion(tag, msize, version)
+{
+	@local sz, s, p;
+	// size[4] Tversion tag[2] msize[4] version[s]
+	sz = 4+1+2+4+2+length(version);
+	s = mkstr(sz);
+	p = ptr(ns9p, s);
+	p = push4(p, sz);
+	p = push1(p, dom9p`Tversion);
+	p = push2(p, tag);
+	p = push4(p, msize);
+	p = push2(p, length(version));
+	putbytes(p, version);
+	return s;
+}
+
+define read9pmsg(fd)
+{
+	@local s, p, n;
+	s = read(fd, 4);
+	if(s == nil)
+		return nil;
+	if(length(s) != 4)
+		error("bad 9P2000 message");
+	p = ptr(ns9p, s);
+	n = *(`uint32*)p;
+	if(n <= 4)
+		error("bad length in 9P2000 message header");
+	s = read(fd, n-4);
+	if(s == nil || length(s) < n-4)
+		return nil;
+	return s;
+}
+
+define rversion(sz, p)
+{
+	@local tag, msize, len, version;
+	// (size[4]) Rversion tag[2] msize[4] version[s]
+	if(sz <= 1+2+4+2)
+		error("Rversion is too short");
+	p += 1;  // Rversion
+	tag = *(`uint16*)p;
+	p += 2;	
+	msize = *(`uint32*)p;
+	p += 4;
+	len = *(`uint16*)p;
+	p += 2;
+	if(sz != 1+2+4+2+len)
+		error("bad Rversion");
+	version = getbytes(p, len);
+	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
+}
+
+define session9p(fd)
+{
+	@local m, p, sz;
+	write(fd, tversion(NOTAG, 8192, "9P2000.u"));
+	m = read9pmsg(fd);
+	if(m == nil)
+		error("unexpected end-of-file");
+	sz = length(m);
+	p = ptr(ns9p, m);
+	if(*p == dom9p`Rversion)
+		rversion(sz, p);
+	else
+		error("i got %e", (dom9p`P9Pmsg)*p);
+}
+
+define test()
+{
+	@local fd;
+	fd = popen("/Users/vic/src/u9fs/u9fs", "-a", "none", "-n");
+	session9p(fd);
+	close(fd);
+}
