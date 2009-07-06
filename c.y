@@ -498,7 +498,7 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $1, invert($2), 0, 0); }
 	/* accept (but discard) c++ labels such as "public:" */
 	| id ':'
-	{ $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
+	{ freeexpr($1); $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
 	| error ';'
 	{ $$ = 0; }
 	;
