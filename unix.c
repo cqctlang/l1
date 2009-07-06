@@ -191,6 +191,7 @@ xpopen(Imm argc, char **argv)
 			close(io[0]);
 			close(ctl[0]);
 			dup2(io[1], 0);
+			dup2(io[1], 1);
 			setsid();
 			execvp(argv[0], argv);
 			err = errno;
