@@ -1,0 +1,22 @@
+ns = @names c32le {
+	struct H {
+		@@ 0 unsigned short a:9;
+		@2;
+	};
+};
+
+dom = mkdom(ns, mkzas(10));
+t = typeof(struct dom`H);
+p = (struct H*){dom}0;
+p->a = 0x3<<8|0xef;
+printf("%x\n", p->a);
+q = &p->a;
+printf("%x\n", *q);
+*q = 0x3<<8|0xff;
+printf("%x\n", p->a);
+printf("%x\n", *q);
+foreach(lambda(x) {
+		if(!isbitfield(fieldtype(x)))
+			return;
+		t = mkctype_ptr(fieldtype(x), nsptr(dom));
+}, fields(t));

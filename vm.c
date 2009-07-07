@@ -4872,6 +4872,7 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	case Tunion:
 	case Tfun:
 	case Tenum:
+	case Tbitfield: /* bitfield bonus: C wouldn't let you do this */
 		/* construct pointer */
 		pt = mkptrxtn(t, d->ns->base[Vptr]->rep);
 		imm = truncimm(cv->val, pt->rep);
@@ -4883,9 +4884,6 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		imm = cv->val;
 		imm = truncimm(imm, pt->rep);
 		rv = mkvalcval(d, pt, imm);
-		break;
-	case Tbitfield:
-		vmerr(vm, "attempt to construct pointer to a bitfield");
 		break;
 	case Tconst:
 		vmerr(vm, "attempt to use enumeration constant as location");
