@@ -5311,9 +5311,19 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		/* FIXME: do we want this? */
 		return _dolooktype(vm, xtn->link, ns);
 	case Tconst:
+		vmerr(vm, "looktype is undefined on enumeration constants");
 	case Tbitfield:
+		new = gcprotect(vm, mkxtn());
+		new->tkind = Tbitfield;
+		new->sz = xtn->sz;
+		new->bit0 = xtn->bit0;
+		new->link = _dolooktype(vm, xtn->link, ns);
+		gcunprotect(vm, new);
+		if(new->link == 0)
+			return 0;
+		return new;
 	case Txaccess:
-		fatal("bug");
+		vmerr(vm, "looktype is undefined on extend access types");
 	}
 	fatal("bug");
 }
