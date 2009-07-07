@@ -43,7 +43,7 @@ define work(wk, fn)
 
 define links(p)
 {
-	@local t, fs, f, ft, m, i, ls;
+	@local t, fs, f, ft, pft, m, n, q, i, j, ls;
 	t = chasetype(subtype(chasetype(typeof(p))));
 	if(!issu(t))
 		error("chased wrong type: %t", t);
@@ -59,8 +59,18 @@ define links(p)
 		else if(issu(ft))
 			ls = concat(ls,
 				    links({mkctype_ptr(ft)}(p+fieldoff(f))));
-		else if(isarray(ft))
-			printf("implement array support\n");
+		else if(isarray(ft)){
+			n = arraynelm(ft);
+			if(n == nil)
+				continue;
+			ft = chasetype(subtype(ft));
+			pft = mkctype_ptr(ft);
+			q = p+fieldoff(f);
+			for(j = 0; j < n; j++){
+				ls = concat(ls, links({pft}q));
+				q += sizeof(ft);
+			}
+		}
 	}
 	return ls;
 }
@@ -72,12 +82,13 @@ define fmtnode(p)
 
 define testchase()
 {
-	@local ns, as, dom, p, q, i;
+	@local ns, as, dom, p, q, i, j;
 	ns = @names c32le {
 		struct X {
 			@0x00 struct X *x1;
 			@0x10 struct Y y;
-			@0x20;
+			@0x20 struct X *x[10];
+			@0x100;
 		};
 		struct Y {
 			@0x00 struct X *x2;
@@ -85,12 +96,14 @@ define testchase()
 		};
 		@0x0 struct X root;
 	};
-	as = mkzas(1024);
+	as = mkzas(10240);
 	dom = mkdom(ns, as);
 	q = p = (struct X*){dom}0;
 	for(i = 0; i < 10; i++){
 		p->x1 = p+1;
 		p->y.x2 = p+2;
+		for(j = 0; j < 9; j++)
+			p->x[j] = &q[j];
 		p++;
 	}
 	chase(q+1, lambda(p, ls){
