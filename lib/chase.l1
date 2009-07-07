@@ -1,13 +1,11 @@
 define chase(p, fn)
 {
-	printf("chase: %a\n", typeof(p));
 	if(p && chaseable(typeof(p)))
 		work([p], fn);
 }
 
 define chasetype(t)
 {
-	printf("%a\n", t);
 	if(istypedef(t))
 		return chasetype(typedeftype(t));
 	return t;
@@ -15,7 +13,6 @@ define chasetype(t)
 
 define chaseable(t)
 {
-	printf("chaseable: %a\n", t);
 	t = chasetype(t);
 	if(!isptr(t))
 		return 0;
@@ -30,13 +27,15 @@ define work(wk, fn)
 	seen = mktab();
 	while(length(wk) > 0){
 		x = pop(wk);
+		if(seen[x] != nil)
+			continue;
 		ls = links(x);
 		seen[x] = 1;
 		fn(x, ls);
 		m = length(ls);
 		for(i = 0; i < m; i++){
 			y = pop(ls);
-			if(y && !seen[y] && chaseable(typeof(y)))
+			if(y && chaseable(typeof(y)))
 				append(wk, y);
 		}
 	}
@@ -66,6 +65,11 @@ define links(p)
 	return ls;
 }
 
+define fmtnode(p)
+{
+	return sprintfa("(%t)0x%p", p, p);
+}
+
 define testchase()
 {
 	@local ns, as, dom, p, q, i;
@@ -89,6 +93,10 @@ define testchase()
 		p->y.x2 = p+2;
 		p++;
 	}
-	chase(q+1, lambda(p) { printf("%t %p\n", p, p); });
+	chase(q+1, lambda(p, ls){
+			printf("%s: ", fmtnode(p));
+			foreach(lambda(p) { printf("%s ", fmtnode(p)); }, ls);
+			printf("\n");
+		});
 	return nil;
 }
