@@ -1,0 +1,62 @@
+define chase(p, fn)
+{
+	@local t;
+	if(chaseable(typeof(p)))
+		work([p], fn);
+}
+
+define chasetype(t)
+{
+	if(istypedef(t))
+		return chasetype(typedeftype(t));
+	return t;
+}
+
+define chaseable(t)
+{
+	@local t;
+	t = chasetype(t);
+	if(!isptr(t))
+		return 0;
+	if(!issu(chasetype(subtype(t))))
+		return 0;
+	return 1;
+}
+
+define work(wk, fn)
+{
+	@local x, y, m, ls, i, seen;
+	seen = mktab();
+	while(length(wk) > 0){
+		x = pop(wk);
+		ls = links(x);
+		seen[x] = 1;
+		fn(x, ls);
+		m = length(ls);
+		for(i = 0; i < m; i++){
+			y = pop(ls);
+			if(!seen[y] && chaseable(typeof(y)))
+				append(wk, y);
+		}
+	}
+}
+
+define links(p)
+{
+	@local t, fs, f, ft, m, i, ls;
+	t = chasetype(subtype(chasetype(typeof(p))));
+	if(!issu(t))
+		error("chased wrong type: %t", t);
+	fs = fields(t);
+	m = length(fs);
+	ls = [];
+	p = (void*)p;
+	for(i = 0; i < m; i++){
+		f = fs[i];
+		ft = chasetype(fieldtype(f));
+		if(chaseable(ft))
+			append(ls, {ft}*(`uintptr*)(p+fieldoff(f)));
+		else if(issu(ft))
+			concat(ls, links(/*mk a pointer to ft*/))
+	}
+}
