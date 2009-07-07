@@ -916,7 +916,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			vq = attroff(vecref(vec, Attrpos));
 			if(vq->qkind != Qcval)
 				goto bady;
-			cv = xcvalalu(vm, Isub, cv, valcval(vq));
+			cv = xcvalalu(vm, Isub, cv,
+				      typecast(vm, cv->dom->ns->base[Vptr],
+					       valcval(vq)));
 			if(cv->val != 0){
 				snprint(buf, sizeof(buf),
 					 "+0x%" PRIx64, cv->val);
