@@ -153,8 +153,11 @@ static char *opstr[Iopmax] = {
 	[Iadd] = "+",
 	[Iand] = "&",
 	[Idiv] = "/",
+	[Iinv] = "~",
 	[Imod] = "%",
 	[Imul] = "*",
+	[Ineg] = "-",
+	[Inot] = "!",
 	[Ior] = "|",
 	[Ishl] = "<<",
 	[Ishr] = ">>",
@@ -4008,9 +4011,16 @@ typecast(VM *vm, Xtypename *xtn, Cval *cv)
 	Xtypename *old, *new;
 	old = chasetype(cv->type);
 	new = chasetype(xtn);
-	if(old->rep == Rundef || new->rep == Rundef)
-		vmerr(vm, "attempt to cast to type "
-		      "with undefined representation");
+	if(new->rep == Rundef){
+		/* steal pointer representation from old */
+		if(old->rep == Rundef)
+			/* this is possible? */
+			fatal("whoa.");
+		if(old->tkind != Tptr)
+			vmerr(vm, "attempt to cast to type "
+			      "with undefined representation");
+		new->rep = old->rep;
+	}
 	return mkcval(cv->dom, xtn, _rerep(cv->val, old, new));
 }
 
@@ -4302,11 +4312,14 @@ xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 static void
 xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 {
+	Val v;
 	Cval *cv, *cvr;
 	Imm imm, nv;
 	
-	cv = getcvalrand(vm, op1);
-	cv = intpromote(vm, cv);
+	v = getvalrand(vm, op1);
+	if(v->qkind != Qcval)
+		vmerr(vm, "incompatible operand for unary %s", opstr[op]);
+	cv = intpromote(vm, valcval(v));
 	imm = cv->val;
 
 	switch(op){
