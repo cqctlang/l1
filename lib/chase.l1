@@ -1,12 +1,13 @@
 define chase(p, fn)
 {
-	@local t;
-	if(chaseable(typeof(p)))
+	printf("chase: %a\n", typeof(p));
+	if(p && chaseable(typeof(p)))
 		work([p], fn);
 }
 
 define chasetype(t)
 {
+	printf("%a\n", t);
 	if(istypedef(t))
 		return chasetype(typedeftype(t));
 	return t;
@@ -14,7 +15,7 @@ define chasetype(t)
 
 define chaseable(t)
 {
-	@local t;
+	printf("chaseable: %a\n", t);
 	t = chasetype(t);
 	if(!isptr(t))
 		return 0;
@@ -35,7 +36,7 @@ define work(wk, fn)
 		m = length(ls);
 		for(i = 0; i < m; i++){
 			y = pop(ls);
-			if(!seen[y] && chaseable(typeof(y)))
+			if(y && !seen[y] && chaseable(typeof(y)))
 				append(wk, y);
 		}
 	}
@@ -57,6 +58,37 @@ define links(p)
 		if(chaseable(ft))
 			append(ls, {ft}*(`uintptr*)(p+fieldoff(f)));
 		else if(issu(ft))
-			concat(ls, links(/*mk a pointer to ft*/))
+			ls = concat(ls,
+				    links({mkctype_ptr(ft)}(p+fieldoff(f))));
+		else if(isarray(ft))
+			printf("implement array support\n");
 	}
+	return ls;
+}
+
+define testchase()
+{
+	@local ns, as, dom, p, q, i;
+	ns = @names c32le {
+		struct X {
+			@0x00 struct X *x1;
+			@0x10 struct Y y;
+			@0x20;
+		};
+		struct Y {
+			@0x00 struct X *x2;
+			@0x10;
+		};
+		@0x0 struct X root;
+	};
+	as = mkzas(1024);
+	dom = mkdom(ns, as);
+	q = p = (struct X*){dom}0;
+	for(i = 0; i < 10; i++){
+		p->x1 = p+1;
+		p->y.x2 = p+2;
+		p++;
+	}
+	chase(q+1, lambda(p) { printf("%t %p\n", p, p); });
+	return nil;
 }
