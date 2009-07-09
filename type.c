@@ -68,11 +68,14 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 							dl->type->bitw,
 							Zbinop(Emod,
 							       doid("$o"),
-							       Zuint(8))),
+							       Zuint(32))),
 						  id,
 						  Zcall(G("mkattr"), 1,
-							Zbinop(Ediv, doid("$o"),
-							       Zuint(8)))),
+							Zbinop(Emul,
+							       Zbinop(Ediv,
+								     doid("$o"),
+								     Zuint(32)),
+							       Zuint(4)))),
 					    NULL);
 				dl->attr = 0;
 				dl->type->bitw = 0;

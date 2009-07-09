@@ -79,6 +79,9 @@ bitfieldgeom(BFgeom *bfg)
 	bfg->les = les;
 	bfg->bes = bes;
 
+//	xprintf("geom: addr=%lld cnt=%lld les=%d bp=%lld bs=%lld lob=%d\n",
+//		bfg->addr, bfg->cnt, bfg->les, bfg->bp, bfg->bs, lob);
+
 	return 0;
 }
 

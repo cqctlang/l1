@@ -4939,6 +4939,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		}
 		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
+//		xprintf("get %lld %lld\n", cv->val+bfg.addr, bfg.cnt);
 		s = callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
 		imm = bitfieldget(s->s, &bfg);
 		rv = mkvalcval(d, b->link, imm);

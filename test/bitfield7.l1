@@ -1,0 +1,11 @@
+ns = @names c32le {
+	struct S {
+		@@15 unsigned int length:17;
+		@4;
+	};
+};
+
+dom = mkdom(ns, mkzas(4));
+p = (struct dom`S*){dom}0;
+p->length;
+
