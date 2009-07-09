@@ -1,7 +1,7 @@
 define mksnapas(file)
 {
 	@local ns, as, dom, nmap, mp, idx, ip, i;
-	@local get, put, map;
+	@local get, put, map, lookmap;
 	
 	// this needs to match the conventions in l1/fnsnap.c
 	ns = @names clp64le {
@@ -33,28 +33,40 @@ define mksnapas(file)
 		return vector(mkrange(0, (`uint64)-1));
 	}
 
+	define lookmap(a)
+	{
+		@local i;
+		for(i = 0; i < nmap; i++)
+			if(idx[i][0] <= a && a < idx[i][1])
+				return idx[i];
+		return nil;
+	}
+
 	define get(this, r){
 		@local b, l, i, m;
 		b = rangebeg(r);
 		l = rangelen(r);
-		m = nil;
-		for(i = 0; i < nmap; i++)
-			if(idx[i][0] <= b && b < idx[i][1]){
-				m = idx[i];
-				break;
-			}
+		m = lookmap(b);
 		if(m == nil)
 			error("snapas: memory access out of bounds (%x)", b);
 		if(b+l > m[1])
 			error("snapas: memory access spans boundary (%x-%x)",
 			      b, b+l);
-		b -= idx[i][0];
-		return getbytes(idx[i][2]+b, l);
+		b -= m[0];
+		return getbytes(m[2]+b, l);
 	}
 
 	define put(this, r, bytes){
 		error("attempt to put on snapas");
 	}
 
-	return mkas({ "map" : map, "get" : get, "put" : put });
+	define ismapped(this, a){
+		if(lookmap((`uintptr)a) == nil)
+			return 0;
+		else
+			return 1;
+	}
+
+	return mkas({ "map" : map, "get" : get,
+				"put" : put, "ismapped" : ismapped });
 }
