@@ -1,7 +1,12 @@
-define chase(p, fn)
+define mkchaser(fn)
 {
-	if(p)
-		work(domof(p), [p], fn);
+	@local seen;
+	seen = mktab();
+	return lambda(p){
+		if(p)
+			work(domof(p), [p], fn, seen);
+		return nil;
+	};
 }
 
 define chasetype(t)
@@ -21,15 +26,14 @@ define chaseable(t)
 	return 1;
 }
 
-define work(dom, wk, fn)
+define work(dom, wk, fn, seen)
 {
-	@local x, y, m, ls, i, seen;
-	seen = mktab();
+	@local x, y, m, ls, i;
 	while(length(wk) > 0){
 		x = pop(wk);
 		if(seen[x] != nil)
 			continue;
-		ls = links2(x);
+		ls = links(x);
 		seen[x] = 1;
 		fn(x, ls);
 		m = length(ls);
@@ -42,40 +46,6 @@ define work(dom, wk, fn)
 }
 
 define links(p)
-{
-	@local t, fs, f, ft, pft, m, n, q, i, j, ls;
-	t = chasetype(subtype(chasetype(typeof(p))));
-	if(!issu(t))
-		error("chased wrong type: %t", t);
-	fs = fields(t);
-	m = length(fs);
-	ls = [];
-	p = (void*)p;
-	for(i = 0; i < m; i++){
-		f = fs[i];
-		ft = chasetype(fieldtype(f));
-		if(chaseable(ft))
-			append(ls, {ft}*(`uintptr*)(p+fieldoff(f)));
-		else if(issu(ft))
-			ls = concat(ls,
-				    links({mkctype_ptr(ft)}(p+fieldoff(f))));
-		else if(isarray(ft)){
-			n = arraynelm(ft);
-			if(n == nil)
-				continue;
-			ft = chasetype(subtype(ft));
-			pft = mkctype_ptr(ft);
-			q = p+fieldoff(f);
-			for(j = 0; j < n; j++){
-				ls = concat(ls, links({pft}q));
-				q += sizeof(ft);
-			}
-		}
-	}
-	return ls;
-}
-
-define links2(p)
 {
 	@local t, l;
 	@local loop, f, fs, m, pft, q, i, n;
