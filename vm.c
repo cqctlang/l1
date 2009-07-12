@@ -7341,7 +7341,9 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argv[0]->qkind != Qxtn)
 		vmerr(vm, err);
 		      
-	xtn = chasetype(valxtn(argv[0]));
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind == Ttypedef)
+		xtn = chasetype(xtn);
 	if(xtn->tkind != Tptr && xtn->tkind != Tarr
 	   && xtn->tkind != Tenum && xtn->tkind != Tconst
 	   && xtn->tkind != Txaccess && xtn->tkind != Tundef)
