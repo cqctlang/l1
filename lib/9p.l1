@@ -47,6 +47,27 @@ enum
 	DMWRITE		= 0x2,		// mode bit for write permission
 	DMEXEC		= 0x1,		// mode bit for execute permission
 
+	typedef struct Qid {
+		@0x00	uint8	type;
+		@0x01	uint32	vers;
+		@0x05	uint64	path;
+		@0x13;
+	} Qid;
+
+	typedef struct Dir {
+		@0x00	uint16	type;
+		@0x02	uint32	dev;
+		@0x06	Qid	qid;
+		@0x13	uint32	mode;
+		@0x17	uint32	atime;
+		@0x1b	uint32	mtime;
+		@0x1f	uint64	length;
+		@0x27	char	*name;
+		@0x2b	char	*uid;
+		@0x2f	char	*gid;
+		@0x33	char	*muid;
+		@0x37;
+	} Dir;
 };
 
 enum P9Pmsg
@@ -85,6 +106,7 @@ enum P9Pmsg
 };
 
 @const NOTAG   = (`uint16)~0;
+@const NOFID   = (`uint32)~0;
 @const BIT8SZ  = 1;
 @const BIT16SZ = 2;
 @const BIT32SZ = 4;
@@ -93,7 +115,7 @@ enum P9Pmsg
 
 dom9p = mkdom(ns9p, mknas());
 
-define ptr(ns, s)
+define charstar(ns, s)
 {
 	return (unsigned char*){mkdom(ns,mksas(s))}0;
 }
@@ -116,20 +138,25 @@ define push4(p, v)
 	return p+4;
 }
 
-define tversion(tag, msize, version)
+define pushn(p, s)
 {
-	@local sz, s, p;
-	// size[4] Tversion tag[2] msize[4] version[s]
-	sz = 4+1+2+4+2+length(version);
-	s = mkstr(sz);
-	p = ptr(ns9p, s);
-	p = push4(p, sz);
-	p = push1(p, dom9p`Tversion);
-	p = push2(p, tag);
-	p = push4(p, msize);
-	p = push2(p, length(version));
-	putbytes(p, version);
-	return s;
+	@local m;
+	if(s == nil)
+		return push2(p, 0);
+	m = length(s);
+	p = push2(p, m);
+	putbytes(p, s);
+	return p+m;
+}
+
+define lenn(s)
+{
+	@local sz;
+	sz = 2;
+	if(s == nil)
+		return sz;
+	else
+		return sz+length(s);
 }
 
 define read9pmsg(fd)
@@ -140,13 +167,74 @@ define read9pmsg(fd)
 		return nil;
 	if(length(s) != 4)
 		error("bad 9P2000 message");
-	p = ptr(ns9p, s);
+	p = charstar(ns9p, s);
 	n = *(`uint32*)p;
 	if(n <= 4)
 		error("bad length in 9P2000 message header");
 	s = read(fd, n-4);
 	if(s == nil || length(s) < n-4)
 		return nil;
+	return s;
+}
+
+define tversion(tag, msize, version)
+{
+	@local sz, s, p;
+	// size[4] Tversion tag[2] msize[4] version[s]
+	sz = 4+1+2+4+lenn(version);
+	s = mkstr(sz);
+	p = charstar(ns9p, s);
+	p = push4(p, sz);
+	p = push1(p, dom9p`Tversion);
+	p = push2(p, tag);
+	p = push4(p, msize);
+	p = pushn(p, version);
+	return s;
+}
+
+define tattach(tag, fid, afid, uname, aname)
+{
+	@local sz, s, p;
+	// size[4] Tattach tag[2] fid[4] afid[4] uname[s] aname[s]
+	sz = 4+1+2+4+4+lenn(uname)+lenn(aname);
+	s = mkstr(sz);
+	p = charstar(ns9p, s);
+	p = push4(p, sz);
+	p = push1(p, dom9p`Tattach);
+	p = push2(p, tag);
+	p = push4(p, fid);
+	p = push4(p, afid);
+	p = pushn(p, uname);
+	p = pushn(p, aname);
+	return s;
+}
+
+define tstat(tag, fid)
+{
+	@local sz, s, p;
+	// size[4] Tstat tag[2] fid[4]
+	sz = 4+1+2+4;
+	s = mkstr(sz);
+	p = charstar(ns9p, s);
+	p = push4(p, sz);
+	p = push1(p, dom9p`Tstat);
+	p = push2(p, tag);
+	p = push4(p, fid);
+	return s;
+}
+
+define twstat(tag, fid, stat)
+{
+	@local sz, s, p;
+	// size[4] Tstat tag[2] fid[4] stat[n]
+	sz = 4+1+2+4+lenn(stat);
+	s = mkstr(sz);
+	p = charstar(ns9p, s);
+	p = push4(p, sz);
+	p = push1(p, dom9p`Tstat);
+	p = push2(p, tag);
+	p = push4(p, fid);
+	p = pushn(p, stat);
 	return s;
 }
 
@@ -169,6 +257,50 @@ define rversion(sz, p)
 	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
 }
 
+define rattach(sz, p)
+{
+	@local tag, type, vers, path;
+	// (size[4]) Rattach tag[2] qid[13]
+	if(sz != 1+2+13)
+		error("bad Rattach");
+	p += 1;  // Rattach
+	tag = *(`uint16*)p;
+	p += 2;	
+	type = *(`uint8*)p;
+	p += 1;
+	vers = *(`uint32*)p;
+	p += 4;
+	path = *(`uint64*)p;
+	p += 8;
+	printf("Rattach: tag=%u qid=%x.%u.%x\n", tag, type, vers, path);
+}
+
+define convM2D(p, len)
+{
+	@local s, q, r;
+	s = mkstr(sz);
+	q = charstar(s);
+	memcpy(q, p, 0x27); //offsetof(Dir, name)
+	r = q+sizeof(
+}
+
+define rstat(sz, p)
+{
+	@local tag, stat;
+	// (size[4]) Rstat tag[2] stat[n]
+	if(sz <= 1+2+2)
+		error("Rstat is too short");
+	p += 1;  // Rstat
+	tag = *(`uint16*)p;
+	p += 2;	
+	len = *(`uint16*)p;
+	p += 2;
+	if(sz != 1+2+4+2+len)
+		error("bad Rstat");
+	stat = convM2D(p, len);
+	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
+}
+
 define session9p(fd)
 {
 	@local m, p, sz;
@@ -177,9 +309,24 @@ define session9p(fd)
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
-	p = ptr(ns9p, m);
+	p = charstar(ns9p, m);
 	if(*p == dom9p`Rversion)
 		rversion(sz, p);
+	else
+		error("i got %e", (dom9p`P9Pmsg)*p);
+}
+
+define attach9p(fd)
+{
+	@local m, p, sz;
+	write(fd, tattach(0, 0, NOFID, "vic", ""));
+	m = read9pmsg(fd);
+	if(m == nil)
+		error("unexpected end-of-file");
+	sz = length(m);
+	p = charstar(ns9p, m);
+	if(*p == dom9p`Rattach)
+		rattach(sz, p);
 	else
 		error("i got %e", (dom9p`P9Pmsg)*p);
 }
@@ -187,7 +334,8 @@ define session9p(fd)
 define test()
 {
 	@local fd;
-	fd = popen("/Users/vic/src/u9fs/u9fs", "-a", "none", "-n");
+	fd = popen("/Users/vic/src/u9fs/u9fs", "-D", "-a", "none", "-n");
 	session9p(fd);
+	attach9p(fd);
 	close(fd);
 }
