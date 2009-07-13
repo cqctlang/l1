@@ -26,6 +26,19 @@ struct Profiler
 static Profiler *prof;
 static void	finiprof();
 
+static void
+l1_getenv(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char *s, *t;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to getenv");
+	checkarg(vm, "getenv", argv, 0, Qstr);
+	s = str2cstr(valstr(argv[0]));
+	t = getenv(s);
+	if(t == 0)
+		return;		/* nil */
+	*rv = mkvalstr(mkstr0(t));
+}
 
 static void
 l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -265,6 +278,7 @@ l1_insncnt(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnsys(Env *env)
 {
+	FN(getenv);
 	FN(getpid);
 	FN(gettimeofday);
 	FN(insncnt);
