@@ -46,28 +46,6 @@ enum
 	DMREAD		= 0x4,		// mode bit for read permission
 	DMWRITE		= 0x2,		// mode bit for write permission
 	DMEXEC		= 0x1,		// mode bit for execute permission
-
-	typedef struct Qid {
-		@0x00	uint8	type;
-		@0x01	uint32	vers;
-		@0x05	uint64	path;
-		@0x13;
-	} Qid;
-
-	typedef struct Dir {
-		@0x00	uint16	type;
-		@0x02	uint32	dev;
-		@0x06	Qid	qid;
-		@0x13	uint32	mode;
-		@0x17	uint32	atime;
-		@0x1b	uint32	mtime;
-		@0x1f	uint64	length;
-		@0x27	char	*name;
-		@0x2b	char	*uid;
-		@0x2f	char	*gid;
-		@0x33	char	*muid;
-		@0x37;
-	} Dir;
 };
 
 enum P9Pmsg
@@ -102,6 +80,30 @@ enum P9Pmsg
 	Rwstat,
 	Tmax,
 };
+
+// fields are in wire format
+typedef struct Qid {
+	@0x00	uint8	type;
+	@0x01	uint32	vers;
+	@0x05	uint64	path;
+	@0x13;
+} Qid;
+
+// fields through length are in wire format
+typedef struct Dir {
+	@0x00	uint16	type;
+	@0x02	uint32	dev;
+	@0x06	Qid	qid;
+	@0x13	uint32	mode;
+	@0x17	uint32	atime;
+	@0x1b	uint32	mtime;
+	@0x1f	uint64	length;
+	@0x27	char	*name;
+	@0x2b	char	*uid;
+	@0x2f	char	*gid;
+	@0x33	char	*muid;
+	@0x37;
+} Dir;
 
 };
 
@@ -275,13 +277,53 @@ define rattach(sz, p)
 	printf("Rattach: tag=%u qid=%x.%u.%x\n", tag, type, vers, path);
 }
 
-define convM2D(p, len)
+define convM2D(p, sz)
 {
-	@local s, q, r;
-	s = mkstr(sz);
-	q = charstar(s);
-	memcpy(q, p, 0x27); //offsetof(Dir, name)
-	r = q+sizeof(
+	@local s, q, r, slen;
+	s = mkstr(sz+4*4+4);    // four field ptrs, four NULL bytes in fields
+	q = charstar(ns9p, s);
+	memcpy(q, p, 0x27); // offsetof(Dir, name)
+	p += 0x27;
+	q = (`Dir*)q;
+	r = (char*)(q+1);
+
+	slen = *(`uint16*)p;
+	p += 2;
+	q->name = r;
+	memcpy(r, p, slen);
+	printf("name %d\n", slen);
+	p += slen;
+	r += slen;
+	*r++ = 0;
+	
+	slen = *(`uint16*)p;
+	p += 2;
+	q->uid = r;
+	memcpy(r, p, slen);
+	printf("uid %d\n", slen);
+	p += slen;
+	r += slen;
+	*r++ = 0;
+
+	slen = *(`uint16*)p;
+	p += 2;
+	q->gid = r;
+	memcpy(r, p, slen);
+	printf("gid %d\n", slen);
+	p += slen;
+	r += slen;
+	*r++ = 0;
+
+	slen = *(`uint16*)p;
+	p += 2;
+	q->muid = r;
+	memcpy(r, p, slen);
+	printf("muid %d\n", slen);
+	p += slen;
+	r += slen;
+	*r++ = 0;
+
+	return q;
 }
 
 define rstat(sz, p)
@@ -295,10 +337,30 @@ define rstat(sz, p)
 	p += 2;	
 	len = *(`uint16*)p;
 	p += 2;
-	if(sz != 1+2+4+2+len)
+	if(sz != 1+2+2+len)
 		error("bad Rstat");
 	stat = convM2D(p, len);
-	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
+	printf("Rstat tag=%u len=%u mode=%x at=%u mt=%u name=%s uid=%s gid=%s muid=%s\n",
+	       tag, stat->length, stat->mode,
+	       stat->atime, stat->mtime,
+	       stat->name, stat->uid, stat->gid, stat->muid);
+}
+
+define rerror(sz, p)
+{
+	@local tag, len, ename;
+	// (size[4]) Rerror tag[2] ename[s]
+	if(sz <= 1+2+2)
+		error("Rerror is too short");
+	p += 1; // Rerror
+	tag = *(`uint16*)p;
+	p += 2;
+	len = *(`uint16*)p;
+	p += 2;
+	if(sz != 1+2+2+len)
+		error("bad Rerror");
+	ename = getbytes(p, len);
+	printf("Rerror: tag=%u ename=\"%s\"\n", tag, ename);
 }
 
 define session9p(fd)
@@ -312,14 +374,16 @@ define session9p(fd)
 	p = charstar(ns9p, m);
 	if(*p == dom9p`Rversion)
 		rversion(sz, p);
+	else if(*p == dom9p`Rerror)
+		rerror(sz, p);
 	else
-		error("i got %e", (dom9p`P9Pmsg)*p);
+		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define attach9p(fd)
+define attach9p(fd, uname)
 {
 	@local m, p, sz;
-	write(fd, tattach(0, 0, NOFID, "vic", ""));
+	write(fd, tattach(0, 0, NOFID, uname, ""));
 	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
@@ -327,15 +391,40 @@ define attach9p(fd)
 	p = charstar(ns9p, m);
 	if(*p == dom9p`Rattach)
 		rattach(sz, p);
+	else if(*p == dom9p`Rerror)
+		rerror(sz, p);
 	else
-		error("i got %e", (dom9p`P9Pmsg)*p);
+		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
+
+define stat9p(fd, fid)
+{
+	@local m, p, sz;
+	write(fd, tstat(0, fid));
+	m = read9pmsg(fd);
+	if(m == nil)
+		error("unexpected end-of-file");
+	sz = length(m);
+	p = charstar(ns9p, m);
+	if(*p == dom9p`Rstat)
+		rstat(sz, p);
+	else if(*p == dom9p`Rerror)
+		rerror(sz, p);
+	else
+		error("i got %e", (enum dom9p`P9Pmsg)*p);
+}
+
 
 define test()
 {
 	@local fd;
-	fd = popen("/Users/vic/src/u9fs/u9fs", "-D", "-a", "none", "-n");
+	fd = popen(getenv("HOME")+"/src/u9fs/u9fs",
+		   "-D",
+		   "-a", "none",
+		   "-n",
+		   "-u", getenv("USER"));
 	session9p(fd);
-	attach9p(fd);
+	attach9p(fd, getenv("USER"));
+	stat9p(fd, 0);
 	close(fd);
 }
