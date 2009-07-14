@@ -240,6 +240,34 @@ define twstat(tag, fid, stat)
 	return s;
 }
 
+define tclunk(tag, fid)
+{
+	@local sz, s, p;
+	// size[4] Tclunk tag[2] fid[4]
+	sz = 4+1+2+4;
+	s = mkstr(sz);
+	p = charstar(ns9p, s);
+	p = push4(p, sz);
+	p = push1(p, dom9p`Tclunk);
+	p = push2(p, tag);
+	p = push4(p, fid);
+	return s;
+}
+
+define tflush(tag, oldtag)
+{
+	@local sz, s, p;
+	// size[4] Tflush tag[2] oldtag[2]
+	sz = 4+1+2+2;
+	s = mkstr(sz);
+	p = charstar(ns9p, s);
+	p = push4(p, sz);
+	p = push1(p, dom9p`Tflush);
+	p = push2(p, tag);
+	p = push2(p, oldtag);
+	return s;
+}
+
 define rversion(sz, p)
 {
 	@local tag, msize, len, version;
@@ -277,9 +305,11 @@ define rattach(sz, p)
 	printf("Rattach: tag=%u qid=%x.%u.%x\n", tag, type, vers, path);
 }
 
-define convM2D(p, sz)
+define convM2D(p)
 {
 	@local s, q, r, slen;
+	sz = *(`uint16*)p;
+	p += 2;
 	s = mkstr(sz+4*4+4);    // four field ptrs, four NULL bytes in fields
 	q = charstar(ns9p, s);
 	memcpy(q, p, 0x27); // offsetof(Dir, name)
@@ -339,11 +369,45 @@ define rstat(sz, p)
 	p += 2;
 	if(sz != 1+2+2+len)
 		error("bad Rstat");
-	stat = convM2D(p, len);
-	printf("Rstat tag=%u len=%u mode=%x at=%u mt=%u name=%s uid=%s gid=%s muid=%s\n",
+	stat = convM2D(p);
+	printf("Rstat tag=%u len=%u mode=%o at=%u mt=%u "
+	       "name=%s uid=%s gid=%s muid=%s\n",
 	       tag, stat->length, stat->mode,
 	       stat->atime, stat->mtime,
 	       stat->name, stat->uid, stat->gid, stat->muid);
+}
+
+define rwstat(sz, p)
+{
+	@local tag;
+	// (size[4]) Rwstat tag[2]
+	if(sz != 1+2)
+		error("bad Rwstat");
+	p += 1; // Rwstat
+	tag = *(`uint16*)p;
+	printf("Rwstat: tag=%u\n", tag);
+}
+
+define rclunk(sz, p)
+{
+	@local tag;
+	// (size[4]) Rclunk tag[2]
+	if(sz != 1+2)
+		error("bad Rclunk");
+	p += 1; // Rclunk
+	tag = *(`uint16*)p;
+	printf("Rclunk: tag=%u\n", tag);
+}
+
+define rflush(sz, p)
+{
+	@local tag;
+	// (size[4]) Rflush tag[2]
+	if(sz != 1+2)
+		error("bad Rflush");
+	p += 1; // Rflush
+	tag = *(`uint16*)p;
+	printf("Rflush: tag=%u\n", tag);
 }
 
 define rerror(sz, p)
@@ -414,6 +478,39 @@ define stat9p(fd, fid)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
+define clunk9p(fd, fid)
+{
+	@local m, p, sz;
+	write(fd, tclunk(0, fid));
+	m = read9pmsg(fd);
+	if(m == nil)
+		error("unexpected end-of-file");
+	sz = length(m);
+	p = charstar(ns9p, m);
+	if(*p == dom9p`Rclunk)
+		rclunk(sz, p);
+	else if(*p == dom9p`Rerror)
+		rerror(sz, p);
+	else
+		error("i got %e", (enum dom9p`P9Pmsg)*p);
+}
+
+define flush9p(fd, oldtag)
+{
+	@local m, p, sz;
+	write(fd, tflush(0, oldtag));
+	m = read9pmsg(fd);
+	if(m == nil)
+		error("unexpected end-of-file");
+	sz = length(m);
+	p = charstar(ns9p, m);
+	if(*p == dom9p`Rflush)
+		rflush(sz, p);
+	else if(*p == dom9p`Rerror)
+		rerror(sz, p);
+	else
+		error("i got %e", (enum dom9p`P9Pmsg)*p);
+}
 
 define test()
 {
@@ -426,5 +523,7 @@ define test()
 	session9p(fd);
 	attach9p(fd, getenv("USER"));
 	stat9p(fd, 0);
+	clunk9p(fd, 0);
+	flush9p(fd, 1);
 	close(fd);
 }
