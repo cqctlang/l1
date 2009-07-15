@@ -179,19 +179,26 @@ xpopen(Imm argc, char **argv)
 {
 	int io[2], ctl[2];
 	Imm rv;
-	int err;
+	int pid, fd, err;
 
 	newchan(&io[0], &io[1]);
 	newchan(&ctl[0], &ctl[1]);
 	cloexec(ctl[1]);
-	switch(fork()){
+	switch(pid = fork()){
 	case 0:
 		switch(fork()){
 		case 0:
 			close(io[0]);
 			close(ctl[0]);
+			if(io[1] == 0 || io[1] == 1)
+				fatal("oops");
 			dup2(io[1], 0);
 			dup2(io[1], 1);
+			close(io[1]);
+			fd = open("/dev/null", O_WRONLY);
+			dup2(fd, 2);
+			if(fd != 2)
+				close(fd);
 			setsid();
 			execvp(argv[0], argv);
 			err = errno;
@@ -208,6 +215,7 @@ xpopen(Imm argc, char **argv)
 	default:
 		close(io[1]);
 		close(ctl[1]);
+		waitpid(pid, 0, 0);
 		rv = xread(ctl[0], (char*)&err, sizeof(err));
 		close(ctl[0]);
 		if(rv == 0)
