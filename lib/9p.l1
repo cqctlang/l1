@@ -512,6 +512,32 @@ define flush9p(fd, oldtag)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
+define newvac(name)
+{
+	@local vac;
+	// empty string lets us create an empty vac
+	fd = popen("vac", "-h", "localhost", "");
+	vac = read(fd, 100);
+	close(fd);
+	return vac;
+}
+
+define vaccons(vac, name, bytes)
+{
+}
+
+define mountvac(vac)
+{
+	@local fd, i;
+	fd = popen("vacfs", "-d", "-h", "localhost", "-i", vac);
+	session9p(fd);	
+	attach9p(fd, getenv("USER"));
+	for(i = 0; i < 100; i++)
+		stat9p(fd, 0);
+	clunk9p(fd, 0);
+	close(fd);
+}
+
 define test()
 {
 	@local fd;
