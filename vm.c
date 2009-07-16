@@ -3288,17 +3288,24 @@ freeenv(Env *env)
 }
 
 Toplevel*
-mktoplevel(Xfd *xfd)
+mktoplevel(Xfd *in, Xfd *out, Xfd *err)
 {
 	Toplevel *top;
 
 	top = emalloc(sizeof(Toplevel));
 	top->env = mktopenv();
-	top->xfd = *xfd;
+
+	/* persistent storage for stdio xfds */
+	top->in = *in;
+	top->out = *out;
+	top->err = *err;
+
 	builtinfd(top->env, "stdin",
-		  mkfdfn(mkstr0("<stdin>"), Fread, xfd));
+		  mkfdfn(mkstr0("<stdin>"), Fread, &top->in));
 	builtinfd(top->env, "stdout",
-		  mkfdfn(mkstr0("<stdout>"), Fwrite, xfd));
+		  mkfdfn(mkstr0("<stdout>"), Fwrite, &top->out));
+	builtinfd(top->env, "stderr",
+		  mkfdfn(mkstr0("<stderr>"), Fwrite, &top->err));
 	return top;
 }
 
@@ -3621,7 +3628,7 @@ fvmbacktrace(VM *vm)
 	Closure *cl;
 	Xfd *xfd;
 
-	xfd = &vm->top->xfd;
+	xfd = &vm->top->out;
 
 	pc = vm->pc-1;		/* vm loop increments pc after fetch */
 	fp = vm->fp;
@@ -3649,11 +3656,11 @@ void
 vmerr(VM *vm, char *fmt, ...)
 {
 	va_list args;
-	cprintf(&vm->top->xfd, "error: ");
+	cprintf(&vm->top->out, "error: ");
 	va_start(args, fmt);
-	cvprintf(&vm->top->xfd, fmt, args);
+	cvprintf(&vm->top->out, fmt, args);
 	va_end(args);
-	cprintf(&vm->top->xfd, "\n");
+	cprintf(&vm->top->out, "\n");
 	fvmbacktrace(vm);
 	nexterror(vm);
 }
@@ -6446,12 +6453,6 @@ vmresettop(VM *vm)
 	vm->litdom = valdom(val);
 	vm->litns = vm->litdom->ns;
 	vm->litbase = vm->litns->base;
-	if(!envlookup(vm->top->env, "stdin", &val))
-		fatal("bad vm environment");
-	vm->stdin = valfd(val);
-	if(!envlookup(vm->top->env, "stdout", &val))
-		fatal("bad vm environment");
-	vm->stdout = valfd(val);
 
 	/* toplevel bindings that require calling VM to construct */
 	if(!envlookup(vm->top->env, "sys", &val))

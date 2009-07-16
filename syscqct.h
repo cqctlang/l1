@@ -469,7 +469,7 @@ struct U {
 	In *inp;
 	Expr *el;		/* parser accumulator */
 	unsigned errors;
-	Xfd *xfd;
+	Xfd *out;
 } U;
 
 typedef
@@ -707,7 +707,9 @@ struct Env {
 
 struct Toplevel {
 	struct Env *env;
-	Xfd xfd;
+	Xfd in;
+	Xfd out;
+	Xfd err;
 };
 
 struct VM {
@@ -720,7 +722,6 @@ struct VM {
 	Dom *litdom;
 	Ns *litns;
 	Xtypename **litbase;	/* always points to litns->base */
-	Fd *stdout, *stdin;
 	Root **prot;		/* stack of lists of GC-protected objects */
 	Rootset rs;		/* Root free list for prot */
 	unsigned pdepth, pmax;	/* # live and max prot lists  */
@@ -913,7 +914,7 @@ Str*		mkstr0(char *s);
 Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(VM *vm, Imm len);
 Tab*		mktab();
-Toplevel*	mktoplevel(Xfd *xfd);
+Toplevel*	mktoplevel(Xfd *in, Xfd *out, Xfd *err);
 Val		mkvalas(As *as);
 Val		mkvalbox(Val boxed);
 Val		mkvalcl(Closure *cl);
@@ -993,6 +994,9 @@ void		l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv);
 /* xfd.c */
 void		cprintf(Xfd *xfd, char *fmt, ...);
 void		cvprintf(Xfd *xfd, char *fmt, va_list args);
+void		xfdclose(Xfd *xfd);
+Imm		xfdread(Xfd *xfd, char *buf, Imm len);
+Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
 
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;

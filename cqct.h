@@ -95,7 +95,6 @@ struct Xfd {
 	uint64_t (*read)(Xfd*, char*, uint64_t);
 	uint64_t (*write)(Xfd*, char*, uint64_t);
 	void (*close)(Xfd*);
-//	void *arg;
 	int fd;
 };
 
@@ -119,7 +118,8 @@ void		cqctgcprotect(VM *vm, Val v);
 void		cqctgcunprotect(VM *vm, Val v);
 void		cqctgcpersist(VM *vm, Val v);
 void		cqctgcunpersist(VM *vm, Val v);
-Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp, Xfd *xfd);
+Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp,
+			 Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);

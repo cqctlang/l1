@@ -3,6 +3,29 @@
 #include "syscqct.h"
 #include "x/include/fmt.h"
 
+void
+xfdclose(Xfd *xfd)
+{
+	close(xfd->fd);
+}
+
+Imm
+xfdread(Xfd *xfd, char *buf, Imm len)
+{
+	return xread(xfd->fd, buf, len);
+}
+
+Imm
+xfdwrite(Xfd *xfd, char *buf, Imm len)
+{
+	Imm rv;
+	rv = xwrite(xfd->fd, buf, len);
+	if(rv == -1)
+		xprintf("write failed (%p,%lu): %s\n",
+			buf, len, strerror(errno));
+	return rv;
+}
+
 static int
 xfdflush(Fmt *f)
 {

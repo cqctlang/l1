@@ -7,16 +7,16 @@ cwarn(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
 	if(e->src.line)
-		cprintf(ctx->xfd,
+		cprintf(ctx->out,
 			"%s:%u: warning: ",
 			e->src.filename ? e->src.filename : "<stdin>",
 			e->src.line);
 	else
-		cprintf(ctx->xfd,
+		cprintf(ctx->out,
 			"<lost-location!>: warning: ");
 	va_start(args, fmt);
-	cvprintf(ctx->xfd, fmt, args);
-	cprintf(ctx->xfd, "\n");
+	cvprintf(ctx->out, fmt, args);
+	cprintf(ctx->out, "\n");
 	va_end(args);
 }
 
@@ -25,15 +25,15 @@ cerror(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
 	if(e->src.line)
-		cprintf(ctx->xfd,
+		cprintf(ctx->out,
 			"%s:%u: ",
 			e->src.filename ? e->src.filename : "<stdin>",
 			e->src.line);
 	else
-		cprintf(ctx->xfd, "<lost-location!>: ");
+		cprintf(ctx->out, "<lost-location!>: ");
 	va_start(args, fmt);
-	cvprintf(ctx->xfd, fmt, args);
-	cprintf(ctx->xfd, "\n");
+	cvprintf(ctx->out, fmt, args);
+	cprintf(ctx->out, "\n");
 	va_end(args);
 	longjmp(ctx->jmp, 1);
 }

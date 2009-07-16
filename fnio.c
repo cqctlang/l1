@@ -8,32 +8,6 @@
    E.g., on osx O_TRUNC == 0x400, on 32-bit linux == 0x200
 */
 
-
-static void
-fdclose(Xfd *xfd)
-{
-	close(xfd->fd);
-}
-
-static Imm
-fdread(Xfd *xfd, char *buf, Imm len)
-{
-	return xread(xfd->fd, buf, len);
-}
-
-static Imm
-fdwrite(Xfd *xfd, char *buf, Imm len)
-{
-	Imm rv;
-	rv = xwrite(xfd->fd, buf, len);
-	if(rv == -1)
-		xprintf("write failed (%p,%lu): %s\n",
-			buf, len, strerror(errno));
-	if(rv < len)
-		xprintf("short write\n");
-	return rv;
-}
-
 static void
 l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -149,9 +123,9 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > xfd.fd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
-	xfd.read = fdread;
-	xfd.write = fdwrite;
-	xfd.close = fdclose;
+	xfd.read = xfdread;
+	xfd.write = xfdwrite;
+	xfd.close = xfdclose;
 	fd = mkfdfn(names, flags, &xfd);
 	*rv = mkvalfd(fd);
 }
@@ -244,9 +218,9 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(xargv);
 	if(xfd.fd < 0)
 		vmerr(vm, "%s", strerror(-xfd.fd));
-	xfd.read = fdread;
-	xfd.write = fdwrite;
-	xfd.close = fdclose;
+	xfd.read = xfdread;
+	xfd.write = xfdwrite;
+	xfd.close = xfdclose;
 	fd = mkfdfn(mkstr0("<pipe>"), Fread|Fwrite, &xfd);
 	*rv = mkvalfd(fd);
 }

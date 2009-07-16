@@ -5844,12 +5844,15 @@ if the system needs to call a <span class="id">NULL</span> function, it becomes 
 <div class="proto">
 <div class="function">
 <span class="id">Toplevel* cqctinit(int <span class="arg">gcthread</span>, uint64_t <span class="arg">heapmax</span>,
-char **<span class="arg">loadpath</span>, Xfd *<span class="arg">xfd</span>)</span>
+char **<span class="arg">loadpath</span>, 
+Xfd *<span class="arg">in</span>, 
+Xfd *<span class="arg">out</span>, 
+Xfd *<span class="arg">err</span>)</span>
 </div>
 </div>
 <div class="desc">
-This function must be called first.  It allocates,
-initializes, and returns a Cinquecento top-level environment
+This function must be called first.  It allocates
+and returns an initialized Cinquecento top-level environment
 containing bindings for all built-in functions and
 other values.  It also initializes the Cinquecento
 storage manager.  If <span class="arg">gcthread</span>
@@ -5861,11 +5864,16 @@ If <span class="arg">loadpath</span> is non-NULL,
 it is the vector of directories in which the
 the @include <<span class="arg">filename</span>>
 form searches for <span class="arg">filename</span>; its final element must be NULL.
-If <span class="arg">xfd</span> is non-NULL,
-it defines the interface to standard output used by
-system to print error messages and values written to
-the Cinquecento <span class="id">stdout</span> file descriptor;
-otherwise the standard output of the host process is used.
+If <span class="arg">in</span> is non-NULL,
+it specifies the input file to which the
+the Cinquecento <span class="id">stdin</span> file descriptor
+is bound; otherwise its default value is the standard input of the host
+process.
+Similarly, <span class="arg">out</span>
+and <span class="arg">err</span>
+specify the Cinquecento <span class="id">stdout</span>
+and <span class="id">stderr</span> descriptors,
+which are otherwise default to standard output and error.
 </div>
 </div>
 

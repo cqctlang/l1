@@ -101,15 +101,15 @@ parseerror(U *ctx, char *fmt, ...)
 	}
 
 	if(ctx->inp)
-		cprintf(ctx->xfd,
+		cprintf(ctx->out,
 			"%s:%u: ",
 			ctx->inp->src.filename
 			? ctx->inp->src.filename : "<stdin>",
 			ctx->inp->src.line);
 	va_start(args, fmt);
-	cvprintf(ctx->xfd, fmt, args);
+	cvprintf(ctx->out, fmt, args);
 	va_end(args);
-	cprintf(ctx->xfd, "\n");
+	cprintf(ctx->out, "\n");
 	ctx->errors++;
 
 	if(cqctflags['k'])

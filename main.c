@@ -287,12 +287,12 @@ main(int argc, char *argv[])
 
 	xfd = 0;
 	if(opt['z']){
-		/* suppress printing */
+		/* suppress output */
 		memset(&devnull, 0, sizeof(devnull));
 		xfd = &devnull;
 	}
 	
-	top = cqctinit(opt['g'], heapmax, lp, xfd);
+	top = cqctinit(opt['g'], heapmax, lp, 0, xfd, 0);
 	while(nlp > 0)
 		free(lp[--nlp]);
 	if(opt['x']){

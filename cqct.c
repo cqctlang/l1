@@ -39,7 +39,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	if(src == 0)
 		src = "<stdin>";
 	memset(&ctx, 0, sizeof(ctx));
-	ctx.xfd = &top->xfd;
+	ctx.out = &top->out;
 
 	e = doparse(&ctx, s, src);
 	if(e == 0)
@@ -148,27 +148,35 @@ cqctfreeexpr(Expr *e)
 	freeexpr(e);
 }
 
-static uint64_t
-xfdwrite(Xfd *xfd, char *buf, uint64_t len)
-{
-	return xwrite(1, buf, len);
-}
-
 Toplevel*
-cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *xfd)
+cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
+	 
 {
-	Xfd def;
+	Xfd xfd[3];
 
-	if(xfd == 0){
-		memset(&def, 0, sizeof(def));
-		def.write = xfdwrite;
-		xfd = &def;
+	if(in == 0){
+		in = &xfd[0];
+		memset(in, 0, sizeof(Xfd));
+		in->read = xfdread;
+		in->fd = 0;
+	}
+	if(out == 0){
+		out = &xfd[1];
+		memset(out, 0, sizeof(Xfd));
+		out->write = xfdwrite;
+		out->fd = 1;
+	}
+	if(err == 0){
+		err = &xfd[2];
+		memset(err, 0, sizeof(Xfd));
+		err->write = xfdwrite;
+		err->fd = 2;
 	}
 	cqctloadpath = copyargv(lp);
 	initparse();
 	initcg();
 	initvm(gcthread, heapmax);
-	return mktoplevel(xfd);
+	return mktoplevel(in, out, err);
 }
 
 void
