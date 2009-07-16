@@ -175,37 +175,51 @@ cloexec(int fd)
 }
 
 int
-xpopen(Imm argc, char **argv)
+xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 {
-	int io[2], ctl[2];
+	int ctl[2], in[2], out[2], err[2];
 	Imm rv;
-	int pid, fd, err;
+	int pid, eno;
 
-	newchan(&io[0], &io[1]);
 	newchan(&ctl[0], &ctl[1]);
+	newchan(&in[0], &in[1]);
+	if(flags&PopenFullDuplex){
+		out[0] = in[0];
+		out[1] = in[1];
+	}else
+		newchan(&out[0], &out[1]);
+	if(flags&PopenNoErr)
+		err[0] = err[1] = -1;
+	else
+		newchan(&err[0], &err[1]);
 	cloexec(ctl[1]);
 	switch(pid = fork()){
 	case 0:
 		switch(fork()){
 		case 0:
-			close(io[0]);
+			close(in[0]);
+			close(out[0]);
+			close(err[0]);
 			close(ctl[0]);
-			if(io[1] == 0 || io[1] == 1)
-				fatal("oops");
-			dup2(io[1], 0);
-			dup2(io[1], 1);
-			close(io[1]);
-			fd = open("/dev/null", O_WRONLY);
-			dup2(fd, 2);
-			if(fd != 2)
-				close(fd);
+			dup2(in[1], 0);
+			dup2(out[1], 1);
+			if(flags&PopenNoErr)
+				err[1] = open("/dev/null", O_WRONLY);
+			dup2(err[1], 2);
+			if(in[1] > 2)
+				close(in[1]);
+			if(out[1] > 2)
+				close(out[1]);
+			if(err[1] > 2)
+				close(err[1]);
 			setsid();
 			execvp(argv[0], argv);
-			err = errno;
-			xwrite(ctl[1], (char*)&err, sizeof(err));
+			eno = errno;
+			xwrite(ctl[1], (char*)&eno, sizeof(eno));
 			exit(1);
 		case -1:
-			xwrite(ctl[1], (char*)&err, sizeof(err)); 
+			eno = errno;
+			xwrite(ctl[1], (char*)&eno, sizeof(eno)); 
 			exit(1);
 		default:
 			exit(0);
@@ -213,18 +227,27 @@ xpopen(Imm argc, char **argv)
 	case -1:
 		return -errno;
 	default:
-		close(io[1]);
+		close(in[1]);
+		close(out[1]);
+		close(err[1]);
 		close(ctl[1]);
 		waitpid(pid, 0, 0);
-		rv = xread(ctl[0], (char*)&err, sizeof(err));
+		rv = xread(ctl[0], (char*)&eno, sizeof(eno));
 		close(ctl[0]);
-		if(rv == 0)
-			return io[0];
+		if(rv == 0){
+			rfd[0] = in[0];
+			rfd[1] = out[0];
+			if((flags&PopenNoErr) == 0)
+				rfd[2] = err[0];
+			return 0;
+		}
 		if(rv == -1)
 			fatal("popen: cannot communicate with child: %s",
 			      strerror(errno));
 		/* child exec failed */
-		close(io[0]);
-		return -err; /* -errno of child */
+		close(in[0]);
+		close(out[0]);
+		close(err[0]);
+		return -eno; /* -errno of child */
 	}
 }

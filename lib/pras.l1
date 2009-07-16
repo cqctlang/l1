@@ -969,17 +969,17 @@ define mkremoteprocdom arg {
 }
 
 define launchlocalproc arg {
-	@local fd, as;
-	fd = popen("prctl", "-c");
-	as = mkpras(fd);
+	@local fds, as;
+	fds = popen("prctl", "-c", 2); // 2==FullDuplex on fd 0
+	as = mkpras(fds[0]);
 	as.launch(arg);
 	return as;
 }
 
 define attachlocalproc(pid) {
 	@local fd, as;
-	fd = popen("prctl", "-c");
-	as = mkpras(fd);
+	fds = popen("prctl", "-c", 2); // 2==FullDuplex on fd 0
+	as = mkpras(fds[0]);
 	as.attach(pid);
 	return as;
 }

@@ -53,6 +53,11 @@ int xtoupper(int c);
 
 void xabort(void) NORETURN;
 
+enum {
+	PopenNoErr	= 1,	/* popen flag -- send stderr to /dev/null */
+	PopenFullDuplex	= 2,	/* popen flag -- put i/o on same channel */
+};
+
 typedef uintptr_t Thread;
 void		chanclose(int c);
 int		chanreadb(int c, char *b);
@@ -63,7 +68,7 @@ void		setproftimer(u32 usec, void(*fn)());
 void		threadexit(void *vp);
 void		threadinit();
 void		threadwait(Thread t);
-int		xpopen(Imm argc, char **argv);
+int		xpopen(Imm argc, char **argv, unsigned flags, int *rfd);
 
 extern u64 cqctmeminuse;
 extern u64 cqctmemtotal;

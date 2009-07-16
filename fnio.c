@@ -199,30 +199,74 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
+	int fds[3];
 	Xfd xfd;
 	Imm m;
 	char **xargv;
+	int xrv;
+	int flags;
+	Cval *cv;
+	List *ls;
+	Fd *fd;
 
 	if(argc == 0)
 		vmerr(vm, "wrong number of arguments to popen");
+	flags = 0;
+	if(argv[argc-1]->qkind == Qcval){
+		cv = valcval(argv[argc-1]);
+		flags = cv->val;
+		argc--;
+		if(argc == 0)
+			vmerr(vm, "wrong number of arguments to popen");
+	}else if(argv[argc-1]->qkind != Qstr)
+		vmerr(vm, "final argument to popen must be a string or cvalue");
+
 	for(m = 0; m < argc; m++)
 		checkarg(vm, "popen", argv, m, Qstr);
 	xargv = emalloc((argc+1)*sizeof(char*)); /* null terminated */
 	for(m = 0; m < argc; m++)
 		xargv[m] = str2cstr(valstr(argv[m]));
-
-	xfd.fd = xpopen(argc, xargv);
+	xrv = xpopen(argc, xargv, flags, fds);
 	for(m = 0; m < argc; m++)
 		efree(xargv[m]);
 	efree(xargv);
-	if(xfd.fd < 0)
-		vmerr(vm, "%s", strerror(-xfd.fd));
-	xfd.read = xfdread;
+	if(xrv < 0)
+		vmerr(vm, "%s", strerror(-xrv));
+
+	ls = mklist();
+	*rv = mkvallist(ls);
+
+	memset(&xfd, 0, sizeof(xfd));
+	if(flags&PopenFullDuplex)
+		xfd.read = xfdread;
 	xfd.write = xfdwrite;
 	xfd.close = xfdclose;
-	fd = mkfdfn(mkstr0("<pipe>"), Fread|Fwrite, &xfd);
-	*rv = mkvalfd(fd);
+	xfd.fd = fds[0];
+	fd = mkfdfn(mkstr0("<popen0>"),
+		    Fwrite|(flags&PopenFullDuplex)?Fread:0,
+		    &xfd);
+	listappend(vm, ls, mkvalfd(fd));
+
+	if(flags&PopenFullDuplex)
+		listappend(vm, ls, mkvalfd(fd));
+	else{
+		memset(&xfd, 0, sizeof(xfd));
+		xfd.read = xfdread;
+		xfd.close = xfdclose;
+		xfd.fd = fds[1];
+		fd = mkfdfn(mkstr0("<popen1>"), Fread, &xfd);
+		listappend(vm, ls, mkvalfd(fd));
+	}
+
+	if(flags&PopenNoErr)
+		return;
+
+	memset(&xfd, 0, sizeof(xfd));
+	xfd.read = xfdread;
+	xfd.close = xfdclose;
+	xfd.fd = fds[2];
+	fd = mkfdfn(mkstr0("<popen2>"), Fread, &xfd);
+	listappend(vm, ls, mkvalfd(fd));
 }
 
 void
