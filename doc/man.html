@@ -5919,27 +5919,20 @@ to <span class="arg">top</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcompile">Closure* cqctcompile(Expr *<span class="arg">expr</span>,
+<span class="id" id="fn:cqctcompile">Closure* cqctcompile(char *<span class="arg">expr</span>,
 char *<span class="arg">src</span>,
 Toplevel *<span class="arg">top</span>,
 char *<span class="arg">argsid</span>)</span>
 </div>
 </div>
 <div class="desc">
-Compiles Cinquecento code represented
-by <span class="arg">expr</span> and returns a function
+Compiles Cinquecento code in the string
+<span class="arg">expr</span> and returns a function
 that, when called, executes the code.
 If <span class="arg">argsid</span> is null, the returned
 function takes no arguments; otherwise it is a variable arity
 function whose argument list is bound to a parameter
-whose name is the string pointed to be <span class="arg">argsid</span>.
-</div>
-<div>
-The returned function captures a reference
-to <span class="arg">expr</span> that will be freed by
-the storage manager when the function is reclaimed.
-</div>
-<div>
+whose name is the string pointed to <span class="arg">argsid</span>.
 If <span class="arg">src</span> is non-zero, it will
 be printed during error formatting as a location
 identifier for <span class="arg">str</span>.
