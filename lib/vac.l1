@@ -1,0 +1,51 @@
+
+define chomp(s)
+{
+	@local m;
+	m = length(s);
+	if(s[m-1] == '\n')
+		return substr(s, 0, m-1);
+	return s;
+}
+
+define newvac(name)
+{
+	@local fd, vac;
+	// empty string lets us create an empty vac
+	fd = popen("vac", "-h", "localhost", "");
+	close(fd[0]);
+	vac = read(fd[1], 100);
+	close(fd[1]);
+	return chomp(vac);
+}
+
+define vaccons(vac, name, bytes)
+{
+	@local fd;
+	fd = popen("vaccons", vac, name);
+	write(fd[0], bytes);
+	close(fd[0]);
+	vac = read(fd[1], 100);
+	close(fd[1]);
+	return chomp(vac);
+}
+
+define mountvac(vac)
+{
+	@local fd, i;
+	fd = popen("vacfs", "-d", "-h", "localhost", "-i", vac, 2);
+	session9p(fd);	
+	attach9p(fd, getenv("USER"));
+	stat9p(fd, 0);
+	clunk9p(fd, 0);
+	close(fd[0]);
+}
+
+define test()
+{
+	@local v;
+	v = newvac("name");
+	v = vaccons(v, "f1", "abc");
+	v = vaccons(v, "f2", "def");
+	mountvac(v);
+}

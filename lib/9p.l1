@@ -648,8 +648,8 @@ define rerror(sz, p)
 define session9p(fd)
 {
 	@local m, p, sz;
-	write(fd[0], tversion(NOTAG, 8192, "9P2000.u"));
-	m = read9pmsg(fd[1]);
+	write(fd, tversion(NOTAG, 8192, "9P2000.u"));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -665,8 +665,8 @@ define session9p(fd)
 define attach9p(fd, uname)
 {
 	@local m, p, sz;
-	write(fd[0], tattach(0, 0, NOFID, uname, ""));
-	m = read9pmsg(fd[1]);
+	write(fd, tattach(0, 0, NOFID, uname, ""));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -682,8 +682,8 @@ define attach9p(fd, uname)
 define stat9p(fd, fid)
 {
 	@local m, p, sz;
-	write(fd[0], tstat(0, fid));
-	m = read9pmsg(fd[1]);
+	write(fd, tstat(0, fid));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -717,8 +717,8 @@ define walk9p(fd, fid, newfid, path)
 {
 	@local m, p, sz, wname;
 	wname = path2walk(path);
-	write(fd[0], twalk(0, fid, newfid, wname));
-	m = read9pmsg(fd[1]);
+	write(fd, twalk(0, fid, newfid, wname));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -734,8 +734,8 @@ define walk9p(fd, fid, newfid, path)
 define open9p(fd, fid, mode)
 {
 	@local m, p, sz, wname;
-	write(fd[0], topen(0, fid, mode));
-	m = read9pmsg(fd[1]);
+	write(fd, topen(0, fid, mode));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -751,8 +751,8 @@ define open9p(fd, fid, mode)
 define create9p(fd, fid, name, perm, mode)
 {
 	@local m, p, sz, wname;
-	write(fd[0], tcreate(0, fid, name, perm, mode));
-	m = read9pmsg(fd[1]);
+	write(fd, tcreate(0, fid, name, perm, mode));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -768,8 +768,8 @@ define create9p(fd, fid, name, perm, mode)
 define remove9p(fd, fid)
 {
 	@local m, p, sz;
-	write(fd[0], tremove(0, fid));
-	m = read9pmsg(fd[1]);
+	write(fd, tremove(0, fid));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -785,8 +785,8 @@ define remove9p(fd, fid)
 define read9p(fd, fid, offset, count)
 {
 	@local m, p, sz, wname;
-	write(fd[0], tread(0, fid, offset, count));
-	m = read9pmsg(fd[1]);
+	write(fd, tread(0, fid, offset, count));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -802,8 +802,8 @@ define read9p(fd, fid, offset, count)
 define write9p(fd, fid, offset, data)
 {
 	@local m, p, sz, wname;
-	write(fd[0], twrite(0, fid, offset, data));
-	m = read9pmsg(fd[1]);
+	write(fd, twrite(0, fid, offset, data));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -819,8 +819,8 @@ define write9p(fd, fid, offset, data)
 define clunk9p(fd, fid)
 {
 	@local m, p, sz;
-	write(fd[0], tclunk(0, fid));
-	m = read9pmsg(fd[1]);
+	write(fd, tclunk(0, fid));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -836,8 +836,8 @@ define clunk9p(fd, fid)
 define flush9p(fd, oldtag)
 {
 	@local m, p, sz;
-	write(fd[0], tflush(0, oldtag));
-	m = read9pmsg(fd[1]);
+	write(fd, tflush(0, oldtag));
+	m = read9pmsg(fd);
 	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
@@ -850,56 +850,37 @@ define flush9p(fd, oldtag)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define chomp(s)
+@record mnt9p
 {
-	@local m;
-	m = length(s);
-	if(s[m-1] == '\n')
-		return substr(s, 0, m-1);
-	return s;
-}
+	open, stat, fstat, dirread, close, read, write
+};
 
-define newvac(name)
+define mount9p(fd)
 {
-	@local fd, vac;
-	// empty string lets us create an empty vac
-	fd = popen("vac", "-h", "localhost", "");
-	close(fd[0]);
-	vac = read(fd[1], 100);
-	close(fd[1]);
-	return chomp(vac);
-}
+	@local tab, nextc, nextfid, version, m, sz, p;
 
-define vaccons(vac, name, bytes)
-{
-	@local fd;
-	fd = popen("vaccons", vac, name);
-	write(fd[0], bytes);
-	close(fd[0]);
-	vac = read(fd[1], 100);
-	close(fd[1]);
-	return chomp(vac);
-}
+	ctab = mktab();
+	nextc = 0;
+	nextfid = 0;
 
-define mountvac(vac)
-{
-	@local fd, i;
-	fd = popen("vacfs", "-d", "-h", "localhost", "-i", vac, 2);
-	session9p(fd);	
-	attach9p(fd, getenv("USER"));
-	stat9p(fd, 0);
-	clunk9p(fd, 0);
-	close(fd[0]);
+	write(fd, tversion(NOTAG, 8192, "9P2000.u"));
+	m = read9pmsg(fd);
+	if(m == nil)
+		error("remote 9P hung up");
+	sz = length(m);
+	p = charstar(ns9p, m);
 }
 
 define test()
 {
-	@local fd;
-	fd = popen(getenv("HOME")+"/src/u9fs/u9fs",
-		   "-D",
-		   "-a", "none",
-		   "-n",
-		   "-u", getenv("USER"));
+	@local fds;
+	fds = popen(getenv("HOME")+"/src/u9fs/u9fs",
+		    "-D",
+		    "-a", "none",
+		    "-n",
+		    "-u", getenv("USER"),
+		    4); // 4==FullDuplex on fd 0
+	fd = fds[0];
 	session9p(fd);
 	attach9p(fd, getenv("USER"));
 	stat9p(fd, 0);
@@ -917,14 +898,6 @@ define test()
 	clunk9p(fd, 2);
 
 	clunk9p(fd, 0);
-	close(fd[0]);
+	close(fd);
 }
 
-define test2()
-{
-	@local v;
-	v = newvac("name");
-	v = vaccons(v, "f1", "abc");
-	v = vaccons(v, "f2", "def");
-	mountvac(v);
-}
