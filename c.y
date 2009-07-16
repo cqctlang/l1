@@ -885,7 +885,7 @@ statement_list
 
 expression_statement
 	: ';'
-	{ $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); }
 	| expression ';'
 	{ $$ = $1; }
 	| error ';'

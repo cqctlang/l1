@@ -926,8 +926,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 	switch(e->kind){
 	case Enop:
-		i = nextinsn(code, &e->src);
-		i->kind = Inop;
+//		i = nextinsn(code, &e->src);
+//		i->kind = Inop;
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Eelist:
