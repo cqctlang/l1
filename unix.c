@@ -188,7 +188,9 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 		out[1] = in[1];
 	}else
 		newchan(&out[0], &out[1]);
-	if(flags&PopenNoErr)
+	if(flags&PopenStderr)
+		err[0] = err[1] = -1;
+	else if(flags&PopenNoErr)
 		err[0] = err[1] = -1;
 	else
 		newchan(&err[0], &err[1]);
@@ -205,6 +207,8 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 			dup2(out[1], 1);
 			if(flags&PopenNoErr)
 				err[1] = open("/dev/null", O_WRONLY);
+			else if(flags&PopenStderr)
+				err[1] = 2;
 			dup2(err[1], 2);
 			if(in[1] > 2)
 				close(in[1]);
@@ -237,7 +241,7 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 		if(rv == 0){
 			rfd[0] = in[0];
 			rfd[1] = out[0];
-			if((flags&PopenNoErr) == 0)
+			if((flags&(PopenNoErr|PopenStderr)) == 0)
 				rfd[2] = err[0];
 			return 0;
 		}

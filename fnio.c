@@ -243,7 +243,7 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	xfd.close = xfdclose;
 	xfd.fd = fds[0];
 	fd = mkfdfn(mkstr0("<popen0>"),
-		    Fwrite|(flags&PopenFullDuplex)?Fread:0,
+		    Fwrite|((flags&PopenFullDuplex)?Fread:0),
 		    &xfd);
 	listappend(vm, ls, mkvalfd(fd));
 
@@ -258,7 +258,7 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 		listappend(vm, ls, mkvalfd(fd));
 	}
 
-	if(flags&PopenNoErr)
+	if(flags&(PopenNoErr|PopenStderr))
 		return;
 
 	memset(&xfd, 0, sizeof(xfd));

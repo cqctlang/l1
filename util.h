@@ -55,7 +55,8 @@ void xabort(void) NORETURN;
 
 enum {
 	PopenNoErr	= 1,	/* popen flag -- send stderr to /dev/null */
-	PopenFullDuplex	= 2,	/* popen flag -- put i/o on same channel */
+	PopenStderr	= 2,	/* popen flag -- leave stderr on stderr */
+	PopenFullDuplex	= 4,	/* popen flag -- put i/o on same channel */
 };
 
 typedef uintptr_t Thread;
