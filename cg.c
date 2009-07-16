@@ -1387,13 +1387,16 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Efor:
 		if(ctl->ckind != Clabel)
 			fatal("branch on statement");
+		L = ctl;
+		if(loc != Effect)
+			L = genlabel(code, 0);
 		Ltest = genlabel(code, 0);
 		Lbody = genlabel(code, 0);
 		Linc = genlabel(code, 0);
-		lpair = genlabelpair(code, Lbody, ctl);
+		lpair = genlabelpair(code, Lbody, L);
 		np = *p;
 		np.Continue = Linc;
-		np.Break = ctl;
+		np.Break = L;
 		
 		if(e->e1){
 			cg(e->e1, code, p, Effect, Ltest, prv, Ltest, tmp);
@@ -1417,39 +1420,69 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cg(e->e3, code, p, Effect, Ltest, Linc, nxt, tmp);
 		else
 			cgctl(code, p, Ltest, nxt, &e->src);
+		if(loc != Effect){
+			emitlabel(L, e);
+			i = nextinsn(code, &e->src);
+			i->kind = Imov;
+			randnil(&i->op1);
+			randloc(&i->dst, loc);
+		}			
 		break;
 	case Ewhile:
 		if(ctl->ckind != Clabel)
 			fatal("branch on statement");
+		L = ctl;
+		if(loc != Effect)
+			L = genlabel(code, 0);
 		Lbody = genlabel(code, 0);
-		lpair = genlabelpair(code, Lbody, ctl);
+		lpair = genlabelpair(code, Lbody, L);
 		Ltest = prv;
 		np = *p;
 		np.Continue = Ltest;
-		np.Break = ctl;
+		np.Break = L;
 		cg(e->e1, code, p, AC, lpair, Ltest, Lbody, tmp);
 		emitlabel(Lbody, e->e2);
 		cg(e->e2, code, &np, Effect, Ltest, Lbody, nxt, tmp);
+		if(loc != Effect){
+			emitlabel(L, e);
+			i = nextinsn(code, &e->src);
+			i->kind = Imov;
+			randnil(&i->op1);
+			randloc(&i->dst, loc);
+		}			
 		break;
 	case Edo:
 		if(ctl->ckind != Clabel)
 			fatal("branch on statement");
+		L = ctl;
+		if(loc != Effect)
+			L = genlabel(code, 0);
 		Lbody = prv;
 		Ltest = genlabel(code, 0);
-		lpair = genlabelpair(code, Lbody, ctl);
+		lpair = genlabelpair(code, Lbody, L);
 		np = *p;
 		np.Continue = Ltest;
-		np.Break = ctl;
+		np.Break = L;
 		cg(e->e1, code, &np, Effect, Ltest, Lbody, Ltest, tmp);
 		if(code->ninsn > Lbody->insn){
 			emitlabel(Ltest, e->e2);
 			cg(e->e2, code, p, AC, lpair, Ltest, nxt, tmp);
 		}else
 			cg(e->e2, code, p, AC, lpair, Lbody, nxt, tmp);
+		if(loc != Effect){
+			emitlabel(L, e);
+			i = nextinsn(code, &e->src);
+			i->kind = Imov;
+			randnil(&i->op1);
+			randloc(&i->dst, loc);
+		}			
 		break;
 	case Eswitch:
+		L = ctl;
+		if(loc != Effect)
+			L = genlabel(code, 0);
 		np = *p;
-		np.Break = ctl;
+		np.Break = L;
 		np.cases = switchctl(e->e2, code);
 
 		/* operand expression (expect form $tmp = e) */
@@ -1483,10 +1516,17 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgjmp(code, &np, np.cases->dflt, np.cases->ctl[0],
 			      &e->src);
 		else
-			cgjmp(code, &np, ctl, np.cases->ctl[0], &e->src);
-		cg(e->e2, code, &np, Effect, ctl, np.cases->ctl[0], nxt, tmp);
+			cgjmp(code, &np, L, np.cases->ctl[0], &e->src);
+		cg(e->e2, code, &np, Effect, L, np.cases->ctl[0], nxt, tmp);
 		freeswitchctl(np.cases);
 		np.cases = 0;
+		if(loc != Effect){
+			emitlabel(L, e);
+			i = nextinsn(code, &e->src);
+			i->kind = Imov;
+			randnil(&i->op1);
+			randloc(&i->dst, loc);
+		}			
 		break;
 	case Ecase:
 		if(p->cases == 0)

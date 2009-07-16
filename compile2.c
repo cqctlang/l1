@@ -56,7 +56,7 @@ globals(Expr *e, Env *env)
 			p = p->e2;
 		}
 		freeexpr(e);
-		return newexpr(Enop, 0, 0, 0, 0);
+		return newexpr(Enil, 0, 0, 0, 0);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
@@ -191,7 +191,7 @@ expandconst(Expr *e, Env *top, Xenv *lex, Xenv *con)
 		xenvbind(con, xstrdup(e->e1->id), e->e2);
 		e->e2 = 0;
 		freeexpr(e);
-		return newexpr(Enop, 0, 0, 0, 0);
+		return newexpr(Enil, 0, 0, 0, 0);
 	case Eid:
 		if(xenvlook(lex, e->id) || envbinds(top, e->id))
 			return e;
@@ -259,7 +259,7 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 	   this is a workaround. */
 	if(el->kind == Enull)
 		el = newexpr(Eelist,
-			     newexpr(Enop, 0, 0, 0, 0),
+			     newexpr(Enil, 0, 0, 0, 0),
 			     el, 0, 0);
 
 	/* add @global and implicit @global bindings to env */

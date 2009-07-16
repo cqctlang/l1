@@ -469,12 +469,12 @@ groomc(U *ctx, Expr *e)
 		e->e1 = groomc(ctx, e->e1);
 		if(isemptyblock(e->e2)){
 			freeexpr(e->e2);
-			e->e2 = newexpr(Enop, 0, 0, 0, 0);
+			e->e2 = newexpr(Enil, 0, 0, 0, 0);
 		}else
 			e->e2 = groomc(ctx, e->e2);
 		if(e->e3 && isemptyblock(e->e3)){
 			freeexpr(e->e3);
-			e->e3 = newexpr(Enop, 0, 0, 0, 0);
+			e->e3 = newexpr(Enil, 0, 0, 0, 0);
 		}else
 			e->e3 = groomc(ctx, e->e3);
 		putsrc(e, &e->src);
