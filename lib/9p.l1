@@ -419,6 +419,7 @@ define rversion(sz, p)
 		error("bad Rversion");
 	version = getbytes(p, len);
 	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
+	return [ msize, version ];
 }
 
 define rattach(sz, p)
@@ -432,6 +433,7 @@ define rattach(sz, p)
 	p += 2;	
 	qid = (`Qid*)p;
 	printf("Rattach: tag=%u qid=%s\n", tag, fmtqid(qid));
+	return [ qid ];
 }
 
 define convM2D(p)
@@ -500,6 +502,7 @@ define rstat(sz, p)
 	       tag, stat->length, stat->mode,
 	       stat->atime, stat->mtime,
 	       stat->name, stat->uid, stat->gid, stat->muid);
+	return [ stat ];
 }
 
 define rwstat(sz, p)
@@ -511,6 +514,7 @@ define rwstat(sz, p)
 	p += 1; // Rwstat
 	tag = *(`uint16*)p;
 	printf("Rwstat: tag=%u\n", tag);
+	return [];
 }
 
 define rclunk(sz, p)
@@ -522,6 +526,7 @@ define rclunk(sz, p)
 	p += 1; // Rclunk
 	tag = *(`uint16*)p;
 	printf("Rclunk: tag=%u\n", tag);
+	return [];
 }
 
 define rflush(sz, p)
@@ -533,11 +538,12 @@ define rflush(sz, p)
 	p += 1; // Rflush
 	tag = *(`uint16*)p;
 	printf("Rflush: tag=%u\n", tag);
+	return [];
 }
 
 define rwalk(sz, p)
 {
-	@local tag, nwqid, qid, i;
+	@local tag, nwqid, qid, i, rv;
 	// (size[4]) Rwalk tag[2] nwqid[2] nwqid*(qid[13])
 	if(sz <= 1+2+2)
 		error("Rwalk is too short");
@@ -550,10 +556,12 @@ define rwalk(sz, p)
 		error("bad Rwalk");
 	printf("Rwalk tag=%u nwqid=%u\n", tag, nwqid);
 	qid = (`Qid*)p;
+	rv = [];
 	for(i = 0; i < nwqid; i++){
 		printf("\tqid[%u]=%s\n", i, fmtqid(qid));
-		qid++;
+		append(rv, qid++);
 	}
+	return rv;
 }
 
 define ropen(sz, p)
@@ -569,6 +577,7 @@ define ropen(sz, p)
 	p += sizeof(*qid);
 	iounit = *(`uint32*)p;
 	printf("Ropen tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
+	return [ qid, iounit ];
 }
 
 define rcreate(sz, p)
@@ -584,6 +593,7 @@ define rcreate(sz, p)
 	p += sizeof(*qid);
 	iounit = *(`uint32*)p;
 	printf("Rcreate tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
+	return [ qid, iounit ];
 }
 
 define rremove(sz, p)
@@ -595,6 +605,7 @@ define rremove(sz, p)
 	p += 1; // Rremove
 	tag = *(`uint16*)p;
 	printf("Rremove: tag=%u\n", tag);
+	return [];
 }
 
 define rread(sz, p)
@@ -612,6 +623,7 @@ define rread(sz, p)
 		error("bad Rread");
 	data = getbytes(p, count);
 	printf("Rread: tag=%u count=%u data='%B'\n", tag, count, data);
+	return [ data ];
 }
 
 define rwrite(sz, p)
@@ -626,6 +638,7 @@ define rwrite(sz, p)
 	count = *(`uint32*)p;
 	p += 4;
 	printf("Rwrite: tag=%u count=%u\n", tag, count);
+	return [ count ];
 }
 
 define rerror(sz, p)
@@ -643,6 +656,54 @@ define rerror(sz, p)
 		error("bad Rerror");
 	ename = getbytes(p, len);
 	printf("Rerror: tag=%u ename=\"%s\"\n", tag, ename);
+	return ename;
+}
+
+define do9p(fd, t)
+{
+	@local r, p, sz, op;
+	p = charstar(ns9p, t);
+	op = *(`uint8*)(p+4);
+	write(fd, t);
+	r = read9pmsg(fd);
+	if(r == nil)
+		error("remote 9P hung up");
+	sz = length(r);
+	p = charstar(ns9p, r);
+	if(*p == dom9p`Rerror)
+		return rerror(sz, p);
+	if(*p != op+1)
+		error("remote 9p returned %e (expected %e)",
+		      (enum dom9p`P9Pmsg)*p,
+		      (enum dom9p`P9Pmsg)(op+1));
+	switch(*p){
+	case dom9p`Rread:
+		return rread(sz, p);
+	case dom9p`Rwrite:
+		return rwrite(sz, p);
+	case dom9p`Rwalk:
+		return rwalk(sz, p);
+	case dom9p`Ropen:
+		return ropen(sz, p);
+	case dom9p`Rclunk:
+		return rclunk(sz, p);
+	case dom9p`Rstat:
+		return rstat(sz, p);
+	case dom9p`Rversion:
+		return rversion(sz, p);
+	case dom9p`Rauth:
+		return rversion(sz, p);
+	case dom9p`Rattach:
+		return rattach(sz, p);
+	case dom9p`Rflush:
+		return rflush(sz, p);
+	case dom9p`Rcreate:
+		return rcreate(sz, p);
+	case dom9p`Rremove:
+		return rremove(sz, p);
+	case dom9p`Rwstat:
+		return rwstat(sz, p);
+	}
 }
 
 define session9p(fd)
@@ -857,18 +918,25 @@ define flush9p(fd, oldtag)
 
 define mount9p(fd)
 {
-	@local tab, nextc, nextfid, version, m, sz, p;
+	@local msize, version;
+	@local rfid, rqid;
+	@local tab, nextc, nextfid, version, m, sz, p, rv;
 
 	ctab = mktab();
 	nextc = 0;
 	nextfid = 0;
 
-	write(fd, tversion(NOTAG, 8192, "9P2000.u"));
-	m = read9pmsg(fd);
-	if(m == nil)
-		error("remote 9P hung up");
-	sz = length(m);
-	p = charstar(ns9p, m);
+	rv = do9p(fd, tversion(NOTAG, 8192, "9P2000.u"));
+	if(isstring(rv))
+		error(rv);
+	msize = rv[0];
+	version = rv[1];
+
+	rfid = 0;
+	rv = do9p(fd, tattach(0, rfid, NOFID, getenv("USER"), ""));
+	if(isstring(rv))
+		error(rv);
+	rqid = rv[0];
 }
 
 define test()
@@ -900,4 +968,3 @@ define test()
 	clunk9p(fd, 0);
 	close(fd);
 }
-
