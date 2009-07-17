@@ -1,3 +1,4 @@
+venti = "localhost";
 
 define chomp(s)
 {
@@ -12,12 +13,23 @@ define newvac(name)
 {
 	@local fd, vac;
 	// empty string lets us create an empty vac
-	fd = popen("vac", "-h", "localhost", "");
+	fd = popen("vac", "-h", venti, "");
 	close(fd[0]);
 	vac = read(fd[1], 100);
 	close(fd[1]);
 	return chomp(vac);
 }
+
+// #!/bin/sh
+// vac=$1
+// name=$2
+// dir=`mktemp -d`
+// old=`pwd`
+// cd $dir
+// echo $vac > x.vac
+// vac -b 4k -h localhost -i $name -m x.vac
+// cd $old
+// rm -rf $dir
 
 define vaccons(vac, name, bytes)
 {
@@ -33,7 +45,7 @@ define vaccons(vac, name, bytes)
 define mountvac(vac)
 {
 	@local fd, i;
-	fd = popen("vacfs", "-d", "-h", "localhost", "-i", vac, 2);
+	fd = popen("vacfs", "-d", "-h", venti, "-i", vac, 2);
 	session9p(fd);	
 	attach9p(fd, getenv("USER"));
 	stat9p(fd, 0);
