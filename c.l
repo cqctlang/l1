@@ -169,21 +169,21 @@ comment(U *ctx)
 	char c;
 
 loop:
-	while((c = input()) != '*' && c != EOF){
+	while((c = input()) != '*' && c != EOF && c != 0){
 		if(c == '\n'){
 			ctx->inp->src.col = 0;
 			ctx->inp->src.line++;
 		}else
 			ctx->inp->src.col++;
 	}
-	if(c == EOF)
+	if(c == EOF || c == 0)
 		parseerror(ctx, "end of input inside comment");
-	if((c = input()) != '/' && c != EOF){
+	if((c = input()) != '/' && c != EOF && c != 0){
 		ctx->inp->src.col++;	/* '*' */
 		unput(c);
 		goto loop;
 	}
-	if(c == EOF)
+	if(c == EOF || c == 0)
 		parseerror(ctx, "end of input inside comment");
 }
 
