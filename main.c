@@ -79,27 +79,6 @@ erealloc(void *p, size_t old, size_t new)
 	return p;
 }
 
-static ssize_t
-xread(int fd, char *p, size_t len)
-{
-	size_t nr;
-	ssize_t rv;
-	
-	nr = 0;
-	while(nr < len){
-		rv = read(fd, p, len-nr);
-		if(0 > rv && errno == EINTR)
-			continue;
-		if(0 > rv)
-			return -1;
-		if(0 == rv)
-			return nr;
-		nr += rv;
-		p += rv;
-	}
-	return nr;
-}
-
 static char*
 readexpr(char *prompt)
 {
@@ -130,23 +109,47 @@ readexpr(char *prompt)
 }
 
 static char*
+readfd(int fd)
+{
+	char *buf, *p;
+	int rv;
+	unsigned m, max, off;
+
+	max = 1024;
+	buf = emalloc(max);
+	p = buf;
+	m = max-1;
+	while(1){
+		if(m == 0){
+			off = p-buf;
+			buf = erealloc(buf, max, 2*max);
+			p = buf+off;
+			max *= 2;
+			m = max-off;
+		}
+		rv = read(fd, p, m);
+		if(0 > rv){
+			if(errno == EINTR || EAGAIN)
+				continue;
+			free(buf);
+			return 0;
+		}
+		if(0 == rv)
+			return buf;
+		m -= rv;
+		p += rv;
+	}
+}
+
+static char*
 readfile(char *filename)
 {
-	char *buf;
-	struct stat st;
 	int fd;
-
-	if(0 > stat(filename, &st))
-		return 0;
+	char *buf;
 	fd = open(filename, O_RDONLY);
 	if(0 > fd)
 		return 0;
-	buf = emalloc(st.st_size+1);
-	if(0 > xread(fd, buf, st.st_size)){
-		free(buf);
-		close(fd);
-		return 0;
-	}
+	buf = readfd(fd);
 	close(fd);
 	return buf;
 }
@@ -328,7 +331,11 @@ main(int argc, char *argv[])
 				break;
 			}
 		}else{
-			inbuf = readfile(filename);
+			if(!strcmp(filename, "-")){
+				filename = "<stdin>";
+				inbuf = readfd(0);
+			}else
+				inbuf = readfile(filename);
 			if(inbuf == 0){
 				printf("%s: %s\n", filename, strerror(errno));
 				continue;
