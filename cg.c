@@ -1600,21 +1600,26 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		randloc(&i->dst, SP);
 		needtop = 1;
 	}
-	for(m = 0; m < l->nparam; m++)
-		if(l->param[m].box){
+	if(l->isvarg){
+		/* by convention param 0 is first local stack variable */
+		if(l->param[0].box){
 			i = nextinsn(code, src);
-			i->kind = Ibox;
-			randvarloc(&i->op1, &l->param[m], 0);
+			i->kind = Ibox0;
+			randvarloc(&i->op1, &l->param[0], 0);
 			needtop = 1;
 		}
-	if(l->isvarg){
 		i = nextinsn(code, src);
 		i->kind = Ilist;
 		randloc(&i->op1, FP);
-		/* by convention param 0 is first local stack variable */
 		randvarloc(&i->dst, &l->param[0], 1);
-	}
-
+	}else
+		for(m = 0; m < l->nparam; m++)
+			if(l->param[m].box){
+				i = nextinsn(code, src);
+				i->kind = Ibox;
+				randvarloc(&i->op1, &l->param[m], 0);
+				needtop = 1;
+			}
 	if(needtop){
 		top = genlabel(code, 0);
 		emitlabel(top, e->e2);
