@@ -115,6 +115,8 @@ typedef struct Dir {
 @const BIT64SZ  = 8;
 @const QIDSZ    = BIT8SZ+BIT32SZ+BIT64SZ;
 @const MAXWELEM = 16;
+@const STATMAX  = 65535U;
+@const IOHDRSZ  = 24; /* ample room for Twrite/Rread header (iounit) */
 
 dom9p = mkdom(ns9p, mknas());
 
@@ -483,6 +485,15 @@ define convM2D(p)
 	return q;
 }
 
+define dumpstat(stat)
+{
+	printf("\t name=%s len=%u mode=%o at=%u mt=%u "
+	       "uid=%s gid=%s muid=%s\n",
+	       stat->name, stat->length, stat->mode,
+	       stat->atime, stat->mtime,
+	       stat->uid, stat->gid, stat->muid);
+}
+
 define rstat(sz, p)
 {
 	@local tag, stat;
@@ -497,11 +508,8 @@ define rstat(sz, p)
 	if(sz != 1+2+2+len)
 		error("bad Rstat");
 	stat = convM2D(p);
-	printf("Rstat tag=%u len=%u mode=%o at=%u mt=%u "
-	       "name=%s uid=%s gid=%s muid=%s\n",
-	       tag, stat->length, stat->mode,
-	       stat->atime, stat->mtime,
-	       stat->name, stat->uid, stat->gid, stat->muid);
+	printf("Rstat tag=%u\n", tag);
+	dumpstat(stat);
 	return [ stat ];
 }
 
@@ -913,18 +921,27 @@ define flush9p(fd, oldtag)
 
 @record mnt9p
 {
-	open, stat, fstat, dirread, close, read, write
+	open, close, read, write, stat, fstat, dirread
 };
+
+@record openfile
+{
+	fid, path, off, qid, iounit
+};
+
+@const maxfd = 128;
 
 define mount9p(fd)
 {
 	@local msize, version;
 	@local rfid, rqid;
-	@local nextc, nextfid, version, rv;
+	@local allocfd, open, close, read, dirread;
+	@local nextc, nextfid, version, rv, tag, ftab;
 
 	ctab = mktab();
 	nextc = 0;
-	nextfid = 0;
+	tag = 0;
+	ftab = mklist(maxfd);
 
 	rv = do9p(fd, tversion(NOTAG, 8192, "9P2000.u"));
 	if(isstring(rv))
@@ -933,10 +950,108 @@ define mount9p(fd)
 	version = rv[1];
 
 	rfid = 0;
-	rv = do9p(fd, tattach(0, rfid, NOFID, getenv("USER"), ""));
+	rv = do9p(fd, tattach(tag, rfid, NOFID, getenv("USER"), ""));
 	if(isstring(rv))
 		error(rv);
 	rqid = rv[0];
+	nextfid = rfid+1;
+
+	define allocfd()
+	{
+		@local i;
+		for(i = 0; i < maxfd; i++)
+			if(ftab[i] == nil)
+				return i;
+		error("out of file descriptors");
+	}
+
+	define open(path, mode)
+	{
+		@local fid, rv, xfd, wname;
+
+		fid = nextfid++;
+
+		wname = path2walk(path);
+		rv = do9p(fd, twalk(tag, rfid, fid, wname));
+		if(isstring(rv))
+			error(rv);
+		if(length(wname) != length(rv))
+			error(sprintfa("cannot walk to %s", wname[length(rv)]));
+
+		rv = do9p(fd, topen(tag, fid, mode));
+		if(isstring(rv))
+			error(rv);
+		xfd = allocfd();
+		ftab[xfd] = openfile(fid, path, 0, rv[0], rv[1]);
+		return xfd;
+	}
+
+	define close(xfd)
+	{
+		@local rv;
+		if(ftab[xfd] == nil)
+			return nil;
+		rv = do9p(fd, tclunk(tag, ftab[xfd].fid));
+		if(isstring(rv))
+			error(rv);
+		ftab[xfd] = nil;
+		return nil;
+	}
+
+	define read(xfd, len)
+	{
+		@local of, rv;
+		of = ftab[xfd];
+		if(of == nil)
+			error("bad file descriptor: %a", xfd);
+		if(of.iounit && len > of.iounit)
+			error("read exceeds iounit");
+		rv = do9p(fd, tread(tag, of.fid, of.off, len));
+		if(isstring(rv))
+			error(rv);
+		rv = rv[0];
+		of.off += length(rv);
+		return rv;
+	}
+
+	define dirread(xfd)
+	{
+		@local of, rv, unit, buf, p, len, ss;
+		of = ftab[xfd];
+		if(of == nil)
+			error("bad file descriptor: %a", xfd);
+		unit = msize-IOHDRSZ;
+		if(of.iounit && of.iounit < unit)
+			unit = of.iounit;
+//		if(of.iounit)
+//			unit = of.iounit;
+//		else
+//			unit = STATMAX;
+		buf = "";
+		while(1){
+			rv = do9p(fd, tread(tag, of.fid, of.off, unit));
+			if(isstring(rv))
+				error(rv);
+			rv = rv[0];
+			of.off += length(rv);
+			if(length(rv) == 0)
+				break;
+			buf += rv;
+		}
+		len = length(buf);
+		buf = charstar(ns9p, buf);
+		p = buf;
+		ss = [];
+		while(p < buf+len){
+			sz = *(`uint16*)p;
+			printf("dirread %u\n", sz);
+			append(ss, convM2D(p));
+			p += 2+sz;
+		}
+		return ss;
+	}
+
+	return mnt9p(open, close, read, nil, nil, nil, dirread);
 }
 
 define test()
@@ -967,4 +1082,22 @@ define test()
 
 	clunk9p(fd, 0);
 	close(fd);
+}
+
+define test2()
+{
+	@local fds, mnt, fd;
+	fds = popen(getenv("HOME")+"/src/u9fs/u9fs",
+		    "-D",
+		    "-a", "none",
+		    "-n",
+		    "-u", getenv("USER"),
+		    4); // 4==FullDuplex on fd 0
+	mnt = mount9p(fds[0]);
+	fd = mnt.open("/etc/passwd", dom9p`OREAD);
+	printf("%s\n", mnt.read(fd, 100));
+	mnt.close(fd);
+	fd = mnt.open("/etc", dom9p`OREAD);
+	map(dumpstat, mnt.dirread(fd));
+	mnt.close(fd);
 }
