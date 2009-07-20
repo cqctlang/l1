@@ -20,9 +20,6 @@ xfdwrite(Xfd *xfd, char *buf, Imm len)
 {
 	Imm rv;
 	rv = xwrite(xfd->fd, buf, len);
-	if(rv == -1)
-		xprintf("write failed (%p,%lu): %s\n",
-			buf, len, strerror(errno));
 	return rv;
 }
 

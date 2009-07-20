@@ -181,6 +181,9 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 	Imm rv;
 	int pid, eno;
 
+	/* ignore sigpipe from now on */
+	signal(SIGPIPE, SIG_IGN);
+
 	newchan(&ctl[0], &ctl[1]);
 	newchan(&in[0], &in[1]);
 	if(flags&PopenFullDuplex){
