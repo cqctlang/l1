@@ -72,7 +72,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	if(e == 0)
 		return 0;
 	checkxp(e);
-	e = docompilev(e, top);
+	e = docompilev(&ctx, e, top);
 	if(e == 0)
 		return 0;
 	if(cqctflags['q']){

@@ -1699,7 +1699,7 @@ cgspec(VM *vm, Closure *cl, Imm idx, Val ac)
 	if(l->ncap)
 		fatal("unimplemented specialization mode");
 	e = residue(vm, e, e4, ac);
-	e = docompilev(e, vm->top);
+	e = docompilev(0, e, vm->top);
 	if(cqctflags['q']){
 		printcqct(e);
 		xprintf("\n");

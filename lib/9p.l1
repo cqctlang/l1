@@ -794,7 +794,7 @@ define walk9p(fd, fid, newfid, path)
 
 define open9p(fd, fid, mode)
 {
-	@local m, p, sz, wname;
+	@local m, p, sz;
 	write(fd, topen(0, fid, mode));
 	m = read9pmsg(fd);
 	if(m == nil)
@@ -811,7 +811,7 @@ define open9p(fd, fid, mode)
 
 define create9p(fd, fid, name, perm, mode)
 {
-	@local m, p, sz, wname;
+	@local m, p, sz;
 	write(fd, tcreate(0, fid, name, perm, mode));
 	m = read9pmsg(fd);
 	if(m == nil)
@@ -845,7 +845,7 @@ define remove9p(fd, fid)
 
 define read9p(fd, fid, offset, count)
 {
-	@local m, p, sz, wname;
+	@local m, p, sz;
 	write(fd, tread(0, fid, offset, count));
 	m = read9pmsg(fd);
 	if(m == nil)
@@ -862,7 +862,7 @@ define read9p(fd, fid, offset, count)
 
 define write9p(fd, fid, offset, data)
 {
-	@local m, p, sz, wname;
+	@local m, p, sz;
 	write(fd, twrite(0, fid, offset, data));
 	m = read9pmsg(fd);
 	if(m == nil)
@@ -920,7 +920,7 @@ define mount9p(fd)
 {
 	@local msize, version;
 	@local rfid, rqid;
-	@local tab, nextc, nextfid, version, m, sz, p, rv;
+	@local nextc, nextfid, version, rv;
 
 	ctab = mktab();
 	nextc = 0;

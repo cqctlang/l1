@@ -9,6 +9,12 @@ static u64 szblock(Block *b);
 static u64 szlambda(Lambda *l);
 static u64 szdecl(Decl *d);
 
+enum
+{
+	/* pass4 states: must be non-zero, non-pointer values */
+	Vref = 1,
+};
+
 int
 issimple(Expr *e)
 {
@@ -697,13 +703,113 @@ pass3(Expr *e, unsigned ln)
 	}
 }
 
+static void
+countunused(void *u, char *k, void *v)
+{
+	unsigned *x;
+	Var *var;
+	x = u;
+	if(v == (void*)Vref)
+		return;
+	var = v;
+	if(var->id[0] == '$')	/* FIXME: system vars should not be unused! */
+		return;
+	(*x)++;
+}
+
+static void
+warn1unused(void *u, char *k, void *v)
+{
+	U *ctx;
+	Var *var;
+	ctx = u;
+	if(v == (void*)Vref)
+		return;
+	var = v;
+	cprintf(ctx->out, "%s ", var->id);
+}
+
+static void
+warnunused(U *ctx, Expr *e, Xenv *rib)
+{
+	unsigned unused;
+	unused = 0;
+	xenvforeach(rib, countunused, &unused);
+	if(unused == 0)
+		return;
+	if(unused == 1)
+		cwarn(ctx, e, "unused variable: ");
+	else
+		cwarn(ctx, e, "unused variables: ");
+	xenvforeach(rib, warn1unused, ctx);
+	cprintf(ctx->out, "\n");
+}
+
+/* FIXME: rationalize with the uv pass in spec */
+static void
+pass4(U *ctx, Expr *e, Xenv *lex)
+{
+	Lambda *l;
+	Block *b;
+	Xenv *rib;
+	char *id;
+	Var *v;
+	Expr *p;
+
+	if(e == 0)
+		return;
+
+	switch(e->kind){
+	case Elambda:
+		l = (Lambda*)e->xp;
+		rib = mkxenv(lex);
+		bindvars(rib, l->disp, l->ndisp);
+		bindvars(rib, l->param, l->nparam);
+		pass4(ctx, e->e2, rib);
+		pass4(ctx, e->e4, rib);
+//		warnunused(ctx, e->e1, rib);
+		freexenv(rib);
+		break;
+	case Eblock:
+		b = (Block*)e->xp;
+		rib = mkxenv(lex);
+		bindvars(rib, b->loc, b->nloc);
+		pass4(ctx, e->e2, rib);
+		warnunused(ctx, e->e1, rib);
+		freexenv(rib);
+		break;
+	case Eid:
+		id = e->id;
+		v = xenvlook(lex, id);
+		if(!v)
+			return;	/* must be toplevel */
+		xenvupdate(lex, id, (void*)Vref);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			pass4(ctx, p->e1, lex);
+			p = p->e2;
+		}
+		break;
+	default:
+		pass4(ctx, e->e1, lex);
+		pass4(ctx, e->e2, lex);
+		pass4(ctx, e->e3, lex);
+		pass4(ctx, e->e4, lex);
+		break;
+	}
+}
+
 Expr*
-docompilev(Expr *e, Toplevel *top)
+docompilev(U *ctx, Expr *e, Toplevel *top)
 {
 	pass0(e);
 	pass0_5(e, 0);
 	pass1(e, 0);
 	pass2(e, 0, top->env);
 	pass3(e, 0);
+	if(0 && ctx)
+		pass4(ctx, e, 0);
 	return e;
 }

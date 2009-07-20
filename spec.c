@@ -245,7 +245,7 @@ cfeval(VM *vm, Expr *e)
 	Val rv;
 
 	e = Zlambda(nullelist(), Zblock(nullelist(), e, NULL));
-	e = docompilev(e, vm->top);
+	e = docompilev(0, e, vm->top);
 	if(cqctflags['q']){
 		xprintf("evaluate constant expression: ");
 		printcqct(e->e2->e2->e1);

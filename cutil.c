@@ -16,6 +16,23 @@ cwarn(U *ctx, Expr *e, char *fmt, ...)
 			"<lost-location!>: warning: ");
 	va_start(args, fmt);
 	cvprintf(ctx->out, fmt, args);
+	va_end(args);
+}
+
+void
+cwarnl(U *ctx, Expr *e, char *fmt, ...)
+{
+	va_list args;
+	if(e->src.line)
+		cprintf(ctx->out,
+			"%s:%u: warning: ",
+			e->src.filename ? e->src.filename : "<stdin>",
+			e->src.line);
+	else
+		cprintf(ctx->out,
+			"<lost-location!>: warning: ");
+	va_start(args, fmt);
+	cvprintf(ctx->out, fmt, args);
 	cprintf(ctx->out, "\n");
 	va_end(args);
 }

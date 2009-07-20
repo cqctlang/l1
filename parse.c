@@ -379,8 +379,12 @@ flatten(Expr *e)
 		}
 		p = p->e2;
 	}
+	putsrc(nl, &e->src);
+	nl = invert(nl);
 	freeexpr(e);
-	return invert(nl);
+	if(nl->src.line == 0)
+		printf("no src for flatten!\n");
+	return nl;
 }
 
 Expr*

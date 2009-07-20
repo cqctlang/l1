@@ -78,7 +78,7 @@ newlocal(Expr *e, char *id)
 {
 	if(e->kind != Eblock)
 		fatal("bug");
-	e->e1 = newexpr(Eelist, doid(id), e->e1, 0, 0);
+	e->e1 = newexprsrc(&e->e1->src, Eelist, doid(id), e->e1, 0, 0);
 }
 
 static void
@@ -128,9 +128,9 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 		else if(inner){
 			/* create binding in inner-most lexical scope */
 			if(cqctflags['w'])
-				cwarn(ctx,
-				      e, "assignment to unbound variable: %s",
-				      id);
+				cwarnl(ctx,
+				       e, "assignment to unbound variable: %s",
+				       id);
 			newlocal(inner, id);
 			bindids(lex, e->e1, e);
 		}else

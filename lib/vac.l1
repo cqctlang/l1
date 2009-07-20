@@ -44,7 +44,7 @@ define vaccons(vac, name, bytes)
 
 define mountvac(vac)
 {
-	@local fd, i;
+	@local fd;
 	fd = popen("vacfs", "-d", "-h", venti, "-i", vac, 2);
 	session9p(fd);	
 	attach9p(fd, getenv("USER"));

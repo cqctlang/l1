@@ -818,7 +818,7 @@ int		docompile1(U *ctx, Expr *e);
 Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);
 
 /* compilev.c */
-Expr*		docompilev(Expr *el, Toplevel *top);
+Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
 void		freeconst(void *u, char *id, void *v);
 void		freeexprx(Expr *e);
 int		issimple(Expr *e);
@@ -1001,6 +1001,7 @@ Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
+void		cwarnl(U *ctx, Expr *e, char *fmt, ...);
 void		putsrc(Expr *e, Src *src);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);
