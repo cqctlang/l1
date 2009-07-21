@@ -2837,6 +2837,9 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	rd = valrd(disp[0]);
 	mn = valstr(disp[1]);
 
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %.*s",
+		      (int)mn->len, mn->s);
 	if(argv[0]->qkind != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
 		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
