@@ -1101,7 +1101,7 @@ define mount9p(fd)
 					      b-(a<<CNBITS)+l);
 			}
 			// FIXME: subtract 1
-			if((b+l)>>CNBITS > a){
+			if((b+l-1)>>CNBITS > a){
 				/* spans block boundary; read directly */
 				printf("direct read\n");
 				return doread(of.fid, l, b);
