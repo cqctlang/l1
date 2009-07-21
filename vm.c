@@ -1075,6 +1075,7 @@ gcfinal(GC *gc, VM *vm)
 			break;
 		cl = hd->final;
 		hd->final = 0;
+		gcunpersist(vm, cl);
 		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
 		arg = hd;
 		dovm(vm, cl, 1, &arg);
@@ -10588,8 +10589,11 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 	hd = (Head*)argv[0];
 	if(argv[1]->qkind == Qcl){
 		cl = valcl(argv[1]);
-		if(hd->final)
+		if(hd->final){
+			gcunpersist(vm, hd->final);
 			gcwb(thegc, mkvalcl(hd->final));
+		}
+		gcpersist(vm, cl);
 		hd->final = cl;
 	}else if(argv[1]->qkind == Qnil){
 		if(hd->final)

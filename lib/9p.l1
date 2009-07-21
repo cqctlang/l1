@@ -1104,6 +1104,7 @@ define mount9p(fd)
 		unit = msize-IOHDRSZ;
 		if(of.iounit && of.iounit < unit)
 			unit = of.iounit;
+		buf = "";
 		while(1){
 			rv = do9p(fd, tread(tag, of.fid, of.off, unit));
 			if(isstring(rv))
@@ -1129,6 +1130,7 @@ define mount9p(fd)
 
 	mnt = mnt9p(open, close, read, nil, stat, fstat, dirread);
 	finalize(mnt, lambda(mnt) { close(fd); });
+	return mnt;
 }
 
 define test()
