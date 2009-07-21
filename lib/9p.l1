@@ -117,6 +117,7 @@ typedef struct Dir {
 @const MAXWELEM = 16;
 @const STATMAX  = 65535U;
 @const IOHDRSZ  = 24; /* ample room for Twrite/Rread header (iounit) */
+@const CNBITS   = 12;
 
 dom9p = mkdom(ns9p, mknas());
 
@@ -935,8 +936,8 @@ define mount9p(fd)
 {
 	@local msize, version;
 	@local rfid, rqid;
-	@local allocfd, open, close, read, dirread;
-	@local nextc, nextfid, version, rv, tag, ftab;
+	@local allocfd, open, close, read, stat, fstat, dirread;
+	@local nextc, nextfid, version, rv, tag, ftab, mnt;
 
 	ctab = mktab();
 	nextc = 0;
@@ -986,6 +987,37 @@ define mount9p(fd)
 		return xfd;
 	}
 
+	define fstat(xfd)
+	{
+		@local rv;
+		if(ftab[xfd] == nil)
+			return nil;
+		rv = do9p(fd, tstat(tag, ftab[xfd].fid));
+		if(isstring(rv))
+			error(rv);
+		return rv[0];
+	}
+
+	define stat(path)
+	{
+		@local fid, rv, wname;
+
+		fid = nextfid++;
+
+		wname = path2walk(path);
+		rv = do9p(fd, twalk(tag, rfid, fid, wname));
+		if(isstring(rv))
+			error(rv);
+		if(length(wname) != length(rv))
+			error(sprintfa("cannot walk to %s", wname[length(rv)]));
+
+		rv = do9p(fd, tstat(tag, fid));
+		do9p(fd, tclunk(tag, fid));
+		if(isstring(rv))
+			error(rv);
+		return rv[0];
+	}
+
 	define close(xfd)
 	{
 		@local rv;
@@ -998,6 +1030,16 @@ define mount9p(fd)
 		return nil;
 	}
 
+	define doread(fid, len, off)
+	{
+		@local rv;
+		rv = do9p(fd, tread(tag, fid, off, len));
+		if(isstring(rv))
+			error(rv);
+		return rv[0];
+	}
+			
+
 	define read(xfd, len)
 	{
 		@local of, rv;
@@ -1006,12 +1048,51 @@ define mount9p(fd)
 			error("bad file descriptor: %a", xfd);
 		if(of.iounit && len > of.iounit)
 			error("read exceeds iounit");
-		rv = do9p(fd, tread(tag, of.fid, of.off, len));
-		if(isstring(rv))
-			error(rv);
-		rv = rv[0];
+		rv = doread(of.fid, len, of.off);
 		of.off += length(rv);
 		return rv;
+	}
+
+	define pread(xfd, len, off)
+	{
+		@local of, rv;
+		of = ftab[xfd];
+		if(of == nil)
+			error("bad file descriptor: %a", xfd);
+		if(of.iounit && len > of.iounit)
+			error("read exceeds iounit");
+		rv = doread(of.fid, len, off);
+		of.off = off+length(rv);
+		return rv;
+	}
+
+	define mmap(xfd)
+	{
+		@local of, unit, st, cache, as, get, put, map, ma;
+		of = ftab[xfd];
+		if(of == nil)
+			error("bad file descriptor: %a", xfd);
+		unit = 4096;
+		if(of.unit && of.iounit < unit)
+			error("unit too small"); /* not really */
+		cache = mktab();
+		st = fstat(xfd);
+
+		ma = st->length>>CNBITS;
+
+		define get(r)
+		{
+			@local b, l, a;
+			b = rangebeg(r);
+			l = rangelen(r);
+			a = b>>CNBITS;
+			if((b+l)>>NBITS > a)
+				/* spans block boundary; read directly */
+				return doread(of.fid, b, l);
+			if(cache[a] == nil)
+				cache[a] = doread(of.fid, unit, a<<CNBITS);
+			return substr(cache[a], b-(a<<CNBITS), l);
+		}
 	}
 
 	define dirread(xfd)
@@ -1023,11 +1104,6 @@ define mount9p(fd)
 		unit = msize-IOHDRSZ;
 		if(of.iounit && of.iounit < unit)
 			unit = of.iounit;
-//		if(of.iounit)
-//			unit = of.iounit;
-//		else
-//			unit = STATMAX;
-		buf = "";
 		while(1){
 			rv = do9p(fd, tread(tag, of.fid, of.off, unit));
 			if(isstring(rv))
@@ -1051,7 +1127,8 @@ define mount9p(fd)
 		return ss;
 	}
 
-	return mnt9p(open, close, read, nil, nil, nil, dirread);
+	mnt = mnt9p(open, close, read, nil, stat, fstat, dirread);
+	finalize(mnt, lambda(mnt) { close(fd); });
 }
 
 define test()
@@ -1098,6 +1175,12 @@ define test2()
 	printf("%s\n", mnt.read(fd, 100));
 	mnt.close(fd);
 	fd = mnt.open("/etc", dom9p`OREAD);
-	map(dumpstat, mnt.dirread(fd));
+//	map(dumpstat, mnt.dirread(fd));
+	map(lambda(st) { printf("\t%s\n", st->name); }, mnt.dirread(fd));
+	mnt.close(fd);
+	dumpstat(mnt.stat("/Users/vic"));
+	fd = mnt.open("/Users/vic/src", dom9p`OREAD);
+	dumpstat(mnt.fstat(fd));
+	dumpstat(mnt.fstat(fd));
 	mnt.close(fd);
 }
