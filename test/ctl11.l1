@@ -1,0 +1,46 @@
+define foo(x)
+{
+	if(x){
+		while(0){
+		}
+	}else{
+		printf("whoops\n");
+	}
+}
+
+define bar(x)
+{
+	if(x){
+		do{
+		}while(0);
+	}else{
+		printf("whoops\n");
+	}
+}
+
+define baz(x)
+{
+	if(x){
+		for(; 0; )
+			;
+	}else{
+		printf("whoops\n");
+	}
+}
+
+define bax(x)
+{
+	if(x){
+		if(0)
+			5;
+		else
+			6;
+	}else{
+		printf("whoops\n");
+	}
+}
+
+foo(1);
+bar(1);
+baz(1);
+bax(1);
