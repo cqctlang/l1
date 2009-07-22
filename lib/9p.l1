@@ -422,7 +422,7 @@ define rversion(sz, p)
 	if(sz != 1+2+4+2+len)
 		error("bad Rversion");
 	version = getbytes(p, len);
-	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
+//	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
 	return [ msize, version ];
 }
 
@@ -436,7 +436,7 @@ define rattach(sz, p)
 	tag = *(`uint16*)p;
 	p += 2;	
 	qid = (`Qid*)p;
-	printf("Rattach: tag=%u qid=%s\n", tag, fmtqid(qid));
+//	printf("Rattach: tag=%u qid=%s\n", tag, fmtqid(qid));
 	return [ qid ];
 }
 
@@ -510,8 +510,8 @@ define rstat(sz, p)
 	if(sz != 1+2+2+len)
 		error("bad Rstat");
 	stat = convM2D(p);
-	printf("Rstat tag=%u\n", tag);
-	dumpstat(stat);
+//	printf("Rstat tag=%u\n", tag);
+//	dumpstat(stat);
 	return [ stat ];
 }
 
@@ -523,7 +523,7 @@ define rwstat(sz, p)
 		error("bad Rwstat");
 	p += 1; // Rwstat
 	tag = *(`uint16*)p;
-	printf("Rwstat: tag=%u\n", tag);
+//	printf("Rwstat: tag=%u\n", tag);
 	return [];
 }
 
@@ -535,7 +535,7 @@ define rclunk(sz, p)
 		error("bad Rclunk");
 	p += 1; // Rclunk
 	tag = *(`uint16*)p;
-	printf("Rclunk: tag=%u\n", tag);
+//	printf("Rclunk: tag=%u\n", tag);
 	return [];
 }
 
@@ -547,7 +547,7 @@ define rflush(sz, p)
 		error("bad Rflush");
 	p += 1; // Rflush
 	tag = *(`uint16*)p;
-	printf("Rflush: tag=%u\n", tag);
+//	printf("Rflush: tag=%u\n", tag);
 	return [];
 }
 
@@ -564,11 +564,11 @@ define rwalk(sz, p)
 	p += 2;
 	if(sz != 1+2+2+nwqid*13)
 		error("bad Rwalk");
-	printf("Rwalk tag=%u nwqid=%u\n", tag, nwqid);
+//	printf("Rwalk tag=%u nwqid=%u\n", tag, nwqid);
 	qid = (`Qid*)p;
 	rv = [];
 	for(i = 0; i < nwqid; i++){
-		printf("\tqid[%u]=%s\n", i, fmtqid(qid));
+//		printf("\tqid[%u]=%s\n", i, fmtqid(qid));
 		append(rv, qid++);
 	}
 	return rv;
@@ -586,7 +586,7 @@ define ropen(sz, p)
 	qid = (`Qid*)p;
 	p += sizeof(*qid);
 	iounit = *(`uint32*)p;
-	printf("Ropen tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
+//	printf("Ropen tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
 	return [ qid, iounit ];
 }
 
@@ -602,7 +602,7 @@ define rcreate(sz, p)
 	qid = (`Qid*)p;
 	p += sizeof(*qid);
 	iounit = *(`uint32*)p;
-	printf("Rcreate tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
+//	printf("Rcreate tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
 	return [ qid, iounit ];
 }
 
@@ -614,7 +614,7 @@ define rremove(sz, p)
 		error("bad Rremove");
 	p += 1; // Rremove
 	tag = *(`uint16*)p;
-	printf("Rremove: tag=%u\n", tag);
+//	printf("Rremove: tag=%u\n", tag);
 	return [];
 }
 
@@ -632,7 +632,7 @@ define rread(sz, p)
 	if(sz != 1+2+4+count)
 		error("bad Rread");
 	data = getbytes(p, count);
-	printf("Rread: tag=%u count=%u data='%B'\n", tag, count, data);
+//	printf("Rread: tag=%u count=%u data='%B'\n", tag, count, data);
 	return [ data ];
 }
 
@@ -647,7 +647,7 @@ define rwrite(sz, p)
 	p += 2;
 	count = *(`uint32*)p;
 	p += 4;
-	printf("Rwrite: tag=%u count=%u\n", tag, count);
+//	printf("Rwrite: tag=%u count=%u\n", tag, count);
 	return [ count ];
 }
 
@@ -665,7 +665,7 @@ define rerror(sz, p)
 	if(sz != 1+2+2+len)
 		error("bad Rerror");
 	ename = getbytes(p, len);
-	printf("Rerror: tag=%u ename=\"%s\"\n", tag, ename);
+//	printf("Rerror: tag=%u ename=\"%s\"\n", tag, ename);
 	return ename;
 }
 
@@ -1101,11 +1101,9 @@ define mount9p(fd)
 					      b-(a<<CNBITS)+l);
 			}
 			// FIXME: subtract 1
-			if((b+l-1)>>CNBITS > a){
+			if((b+l-1)>>CNBITS > a)
 				/* spans block boundary; read directly */
-				printf("direct read\n");
 				return doread(of.fid, l, b);
-			}
 			if(cache[a] == nil)
 				cache[a] = doread(of.fid, unit, a<<CNBITS);
 			return substr(cache[a], b-(a<<CNBITS), b-(a<<CNBITS)+l);
@@ -1151,7 +1149,6 @@ define mount9p(fd)
 		ss = [];
 		while(p < buf+len){
 			sz = *(`uint16*)p;
-			printf("dirread %u\n", sz);
 			append(ss, convM2D(p));
 			p += 2+sz;
 		}
