@@ -11,6 +11,7 @@ void* hrefval(HT *ht, unsigned long idx);
 u64 hsz(HT *ht);
 int heq(HT *ha, HT *hb);
 
+char** copystrv(char **lp);
 void fatal(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);

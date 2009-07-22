@@ -277,3 +277,33 @@ xtoupper(int c)
 		return c-'a'+'A';
 	return c;
 }
+
+char**
+copystrv(char **lp)
+{
+	unsigned n, i, nlp;
+	char **p, **rv, *s;
+
+	n = 0;
+	nlp = 0;
+
+	if(lp != 0){
+		p = lp;
+		while(*p){
+			n += strlen(*p)+1;
+			nlp++;
+			p++;
+		}
+	}
+	rv = emalloc((nlp+1)*sizeof(char*)+n);
+	p = rv;
+	s = (char*)(rv+nlp+1);
+	for(i = 0; i < nlp; i++){
+		p[i] = s;
+		strcpy(s, lp[i]);
+		s += strlen(lp[i])+1;
+	}
+	p[nlp] = 0;
+
+	return rv;
+}

@@ -112,36 +112,6 @@ cqctgcdisable(VM *vm)
 	gcdisable(vm);
 }
 
-static char**
-copyargv(char **lp)
-{
-	unsigned n, i, nlp;
-	char **p, **rv, *s;
-
-	n = 0;
-	nlp = 0;
-
-	if(lp != 0){
-		p = lp;
-		while(*p){
-			n += strlen(*p)+1;
-			nlp++;
-			p++;
-		}
-	}
-	rv = emalloc((nlp+1)*sizeof(char*)+n);
-	p = rv;
-	s = (char*)(rv+nlp+1);
-	for(i = 0; i < nlp; i++){
-		p[i] = s;
-		strcpy(s, lp[i]);
-		s += strlen(lp[i])+1;
-	}
-	p[nlp] = 0;
-
-	return rv;
-}
-
 void
 cqctfreeexpr(Expr *e)
 {
@@ -172,7 +142,7 @@ cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
 		err->write = xfdwrite;
 		err->fd = 2;
 	}
-	cqctloadpath = copyargv(lp);
+	cqctloadpath = copystrv(lp);
 	initparse();
 	initcg();
 	initvm(gcthread, heapmax);

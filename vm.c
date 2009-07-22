@@ -10675,6 +10675,35 @@ l1_loadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallist(l);
 }
 
+static void
+l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char **lp;
+	List *l;
+	Imm i, m;
+	Val v;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to loadpath");
+	checkarg(vm, "setloadpath", argv, 0, Qlist);
+	l = vallist(argv[0]);
+	m = listxlen(l->x);
+	for(i = 0; i < m; i++){
+		v = listref(vm, l, i);
+		if(v->qkind != Qstr)
+			vmerr(vm, "argument 1 to setloadpath "
+			      "must be a list of strings");
+	}
+	lp = emalloc((m+1)*sizeof(char*));
+	for(i = 0; i < m; i++)
+		lp[i] = str2cstr(valstr(listref(vm, l, i)));
+	efree(cqctloadpath);
+	cqctloadpath = copystrv(lp);
+	for(i = 0; i < m; i++)
+		efree(lp[i]);
+	efree(lp);
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -11211,6 +11240,7 @@ mktopenv()
 	FN(rettype);
 	FN(reverse);
 	FN(setattroff);
+	FN(setloadpath);
 	FN(sort);
 	FN(split);
 	FN(sprintfa);
