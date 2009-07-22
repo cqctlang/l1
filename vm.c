@@ -9340,7 +9340,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 		set = str2cstr(s);
 		mflag = 0;
 	}else{
-		set = xstrdup(" \t");
+		set = xstrdup(" \t\n");
 		mflag = 1;
 	}
 
