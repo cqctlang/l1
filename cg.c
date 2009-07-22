@@ -1426,6 +1426,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Imov;
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
+			cgctl(code, p, ctl, nxt, &e->src);
 		}			
 		break;
 	case Ewhile:
@@ -1449,6 +1450,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Imov;
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
+			cgctl(code, p, ctl, nxt, &e->src);
 		}			
 		break;
 	case Edo:
@@ -1475,6 +1477,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Imov;
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
+			cgctl(code, p, ctl, nxt, &e->src);
 		}			
 		break;
 	case Eswitch:
@@ -1526,6 +1529,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Imov;
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
+			cgctl(code, p, ctl, nxt, &e->src);
 		}			
 		break;
 	case Ecase:
