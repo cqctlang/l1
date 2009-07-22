@@ -118,6 +118,7 @@ typedef struct Dir {
 @const STATMAX  = 65535U;
 @const IOHDRSZ  = 24; /* ample room for Twrite/Rread header (iounit) */
 @const CNBITS   = 12;
+@const CMASK    = ((1<<CNBITS)-1);
 
 dom9p = mkdom(ns9p, mknas());
 
@@ -922,7 +923,7 @@ define flush9p(fd, oldtag)
 
 @record mnt9p
 {
-	open, close, read, write, stat, fstat, dirread
+	open, close, read, write, stat, fstat, dirread, mmap
 };
 
 @record openfile
@@ -936,7 +937,8 @@ define mount9p(fd)
 {
 	@local msize, version;
 	@local rfid, rqid;
-	@local allocfd, open, close, read, stat, fstat, dirread;
+	@local allocfd, doread;
+	@local xopen, xclose, xread, xpread, xstat, xfstat, xdirread;
 	@local nextc, nextfid, version, rv, tag, ftab, mnt;
 
 	ctab = mktab();
@@ -966,7 +968,7 @@ define mount9p(fd)
 		error("out of file descriptors");
 	}
 
-	define open(path, mode)
+	define xopen(path, mode)
 	{
 		@local fid, rv, xfd, wname;
 
@@ -987,7 +989,7 @@ define mount9p(fd)
 		return xfd;
 	}
 
-	define fstat(xfd)
+	define xfstat(xfd)
 	{
 		@local rv;
 		if(ftab[xfd] == nil)
@@ -998,7 +1000,7 @@ define mount9p(fd)
 		return rv[0];
 	}
 
-	define stat(path)
+	define xstat(path)
 	{
 		@local fid, rv, wname;
 
@@ -1018,7 +1020,7 @@ define mount9p(fd)
 		return rv[0];
 	}
 
-	define close(xfd)
+	define xclose(xfd)
 	{
 		@local rv;
 		if(ftab[xfd] == nil)
@@ -1040,7 +1042,7 @@ define mount9p(fd)
 	}
 			
 
-	define read(xfd, len)
+	define xread(xfd, len)
 	{
 		@local of, rv;
 		of = ftab[xfd];
@@ -1053,7 +1055,7 @@ define mount9p(fd)
 		return rv;
 	}
 
-	define pread(xfd, len, off)
+	define xpread(xfd, len, off)
 	{
 		@local of, rv;
 		of = ftab[xfd];
@@ -1066,36 +1068,64 @@ define mount9p(fd)
 		return rv;
 	}
 
-	define mmap(xfd)
+	define xmmap(xfd)
 	{
-		@local of, unit, st, cache, as, get, put, map, ma;
+		@local of, unit, st, cache, as, get, put, map, ma, ml;
 		of = ftab[xfd];
 		if(of == nil)
 			error("bad file descriptor: %a", xfd);
 		unit = 4096;
-		if(of.unit && of.iounit < unit)
+		if(of.iounit && of.iounit < unit)
 			error("unit too small"); /* not really */
 		cache = mktab();
-		st = fstat(xfd);
+		st = xfstat(xfd);
 
 		ma = st->length>>CNBITS;
+		ml = st->length&CMASK;
 
-		define get(r)
+		define get(this, r)
 		{
 			@local b, l, a;
 			b = rangebeg(r);
 			l = rangelen(r);
 			a = b>>CNBITS;
-			if((b+l)>>NBITS > a)
+			if(a > ma){
+				if(a > ma+1 || ml == 0)
+					error("access out of bounds");
+				if((b&CNMASK)+l > ml)
+					error("access out of bounds");
+				if(cache[a] == nil)
+					cache[a] = doread(of.fid,
+							  ml, a<<CNBITS);
+				return substr(cache[a], b-(a<<CNBITS),
+					      b-(a<<CNBITS)+l);
+			}
+			// FIXME: subtract 1
+			if((b+l-1)>>CNBITS > a){
 				/* spans block boundary; read directly */
-				return doread(of.fid, b, l);
+				printf("direct read\n");
+				return doread(of.fid, l, b);
+			}
 			if(cache[a] == nil)
 				cache[a] = doread(of.fid, unit, a<<CNBITS);
-			return substr(cache[a], b-(a<<CNBITS), l);
+			return substr(cache[a], b-(a<<CNBITS), b-(a<<CNBITS)+l);
 		}
+
+		define put(this, r, s)
+		{
+			error("writing mmapped files is unsupported");
+		}
+
+		define map(this)
+		{
+			return vector(mkrange(0, st->length));
+		}
+
+		return mkas({ "get" : get, "put" : put, "map" : map});
+		
 	}
 
-	define dirread(xfd)
+	define xdirread(xfd)
 	{
 		@local of, rv, unit, buf, p, len, ss;
 		of = ftab[xfd];
@@ -1104,6 +1134,7 @@ define mount9p(fd)
 		unit = msize-IOHDRSZ;
 		if(of.iounit && of.iounit < unit)
 			unit = of.iounit;
+		buf = "";
 		while(1){
 			rv = do9p(fd, tread(tag, of.fid, of.off, unit));
 			if(isstring(rv))
@@ -1127,8 +1158,9 @@ define mount9p(fd)
 		return ss;
 	}
 
-	mnt = mnt9p(open, close, read, nil, stat, fstat, dirread);
+	mnt = mnt9p(xopen, xclose, xread, nil, xstat, xfstat, xdirread, xmmap);
 	finalize(mnt, lambda(mnt) { close(fd); });
+	return mnt;
 }
 
 define test()
@@ -1163,7 +1195,7 @@ define test()
 
 define test2()
 {
-	@local fds, mnt, fd;
+	@local fds, mnt, fd, st, p, as, i;
 	fds = popen(getenv("HOME")+"/src/u9fs/u9fs",
 		    "-D",
 		    "-a", "none",
@@ -1178,9 +1210,25 @@ define test2()
 //	map(dumpstat, mnt.dirread(fd));
 	map(lambda(st) { printf("\t%s\n", st->name); }, mnt.dirread(fd));
 	mnt.close(fd);
-	dumpstat(mnt.stat("/Users/vic"));
-	fd = mnt.open("/Users/vic/src", dom9p`OREAD);
+	dumpstat(mnt.stat(getenv("HOME")));
+	fd = mnt.open(getenv("HOME"), dom9p`OREAD);
 	dumpstat(mnt.fstat(fd));
 	dumpstat(mnt.fstat(fd));
+
+	fd = mnt.open("/etc/bash_completion", dom9p`OREAD);
+	
+	as = mnt.mmap(fd);
+	p = (unsigned char*){mkdom(c32le, as)}0;
+	st = mnt.fstat(fd);
+	printf("dumping file\n");
+	s = mkstr(st->length);
+	for(i = 0; i < st->length; i++){
+		s[i] = *p++;
+//		printf("%c", *p++);
+	}
 	mnt.close(fd);
+	fd = open("/tmp/out", "w+");
+	write(fd, s);
+	close(fd);
+
 }

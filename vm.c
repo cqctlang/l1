@@ -1075,6 +1075,7 @@ gcfinal(GC *gc, VM *vm)
 			break;
 		cl = hd->final;
 		hd->final = 0;
+		gcunpersist(vm, cl);
 		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
 		arg = hd;
 		dovm(vm, cl, 1, &arg);
@@ -2837,6 +2838,9 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	rd = valrd(disp[0]);
 	mn = valstr(disp[1]);
 
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %.*s",
+		      (int)mn->len, mn->s);
 	if(argv[0]->qkind != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
 		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
@@ -10585,8 +10589,11 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 	hd = (Head*)argv[0];
 	if(argv[1]->qkind == Qcl){
 		cl = valcl(argv[1]);
-		if(hd->final)
+		if(hd->final){
+			gcunpersist(vm, hd->final);
 			gcwb(thegc, mkvalcl(hd->final));
+		}
+		gcpersist(vm, cl);
 		hd->final = cl;
 	}else if(argv[1]->qkind == Qnil){
 		if(hd->final)
