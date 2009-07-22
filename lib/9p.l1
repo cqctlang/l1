@@ -1156,7 +1156,7 @@ define mount9p(fd)
 	}
 
 	mnt = mnt9p(xopen, xclose, xread, nil, xstat, xfstat, xdirread, xmmap);
-	finalize(mnt, lambda(mnt) { close(fd); });
+//	finalize(mnt, lambda(mnt) { close(fd); });
 	return mnt;
 }
 
