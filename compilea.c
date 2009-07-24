@@ -633,8 +633,43 @@ expandc(U *ctx, Expr *e)
 }
 
 static Expr*
+expandarrow(U *ctx, Expr *e)
+{
+	Expr *se, *p;
+
+	if(e == 0)
+		return e;
+	switch(e->kind){
+	case Earrow: /* for compile_rval */
+		/* rewrite: E->field => (*E).field */
+		se = newexpr(Edot,
+			     newexpr(Ederef, expandarrow(ctx, e->e1), 0, 0, 0),
+			     e->e2, 0, 0);
+		putsrc(se, &e->src);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = expandarrow(ctx, p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = expandarrow(ctx, e->e1);
+		e->e2 = expandarrow(ctx, e->e2);
+		e->e3 = expandarrow(ctx, e->e3);
+		e->e4 = expandarrow(ctx, e->e4);
+		return e;
+	}
+}
+
+static Expr*
 compilea(U *ctx, Expr* e)
 {
+	expandarrow(ctx, e);
 	expanda(ctx, e, 0, 0);
 	expandc(ctx, e);
 	return e;
