@@ -5232,15 +5232,29 @@ attroff(Val o)
 	return Xnil;
 }
 
-void
-setattroff(VM *vm, Val o, Val v)
+static Val
+copyattr(VM *vm, Val attr, Val newoff)
 {
-	Tab *tab;
-
-	if(o->qkind != Qtab)
+	Tab *t;
+	Val off;
+	Val key;
+#if 0
+	if(attr->qkind == Qcval)
+		if(newoff)
+			return mkvalcval2(newoff);
+		else
+			return attr;
+#endif
+	if(attr->qkind != Qtab)
 		fatal("bug");
-	tab = valtab(o);
-	tabput(vm, tab, mkvalstr(mkstr0("offset")), v);
+	t = tabcopy(valtab(attr));
+	key = mkvalstr(mkstr0("offset"));
+	if(newoff)
+		off = newoff;
+	else
+		off = tabget(t, key);
+	tabput(vm, t, key, off);
+	return mkvaltab(t);
 }
 
 Xtypename*
@@ -7638,7 +7652,6 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 	Xtypename *t;
 	Val vp, rp, id, o;
 	Vec *f, *r;
-	Val attr;
 	Imm i;
 
 	for(i = 0; i < su->field->len; i++){
@@ -7663,9 +7676,7 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 		o = mkvalcval2(xcvalalu(vm, Iadd,
 					valcval(attroff(vecref(f, Attrpos))),
 					valcval(attroff(vecref(r, Attrpos)))));
-		attr = mkvaltab(tabcopy(valtab(vecref(r, Attrpos))));
-		setattroff(vm, attr, o);
-		_vecset(r, Attrpos, attr);
+		_vecset(r, Attrpos, copyattr(vm, vecref(r, Attrpos), o));
 		return mkvalvec(r);
 	}
 	return 0;
@@ -8804,20 +8815,11 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_setattroff(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to setattroff");
-	checkarg(vm, "setattroff", argv, 0, Qtab);
-	setattroff(vm, argv[0], argv[1]);
-}
-
-static void
 l1_attroff(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to attroff");
-	checkarg(vm, "setattroff", argv, 0, Qtab);
+	checkarg(vm, "attroff", argv, 0, Qtab);
 	*rv = attroff(argv[0]);
 }
 
@@ -11239,7 +11241,6 @@ mktopenv()
 	FN(resettop);
 	FN(rettype);
 	FN(reverse);
-	FN(setattroff);
 	FN(setloadpath);
 	FN(sort);
 	FN(split);
@@ -11817,4 +11818,3 @@ cqctvecvals(Val v)
 	vec = valvec(v);
 	return vec->vec;
 }
-

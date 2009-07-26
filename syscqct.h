@@ -942,7 +942,6 @@ void		nexterror(VM *vm) NORETURN;
 void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
-void		setattroff(VM *vm, Val o, Val v);
 char*		str2cstr(Str *str);
 Str*		stringof(VM *vm, Cval *cv);
 Str*		strslice(Str *str, Imm beg, Imm end);
