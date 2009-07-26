@@ -522,6 +522,11 @@ type_qualifier_list
 	| type_qualifier type_qualifier_list
 	;
 
+maybe_type_qualifier
+	: type_qualifier_list
+	|
+	;
+
 specifier_list
 	: type_specifier
 	| type_qualifier_list type_specifier
@@ -593,9 +598,9 @@ direct_declarator
 	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
 	| direct_declarator '[' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, 0, 0, 0); }
-	| direct_declarator '(' parameter_type_list ')'
+	| direct_declarator '(' parameter_type_list ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, $3, 0, 0); }
-	| direct_declarator '(' ')'
+	| direct_declarator '(' ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, nullelist(), 0, 0); }
 	;
 
@@ -656,7 +661,7 @@ direct_abstract_declarator
 	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, 0, 0, 0); }
 	| direct_abstract_declarator '[' constant_expression ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
-	| '(' ')'
+	| '(' ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, nullelist(), 0, 0); }
 /*
  * without this rule, you cannot write abstract function types like
@@ -674,13 +679,13 @@ direct_abstract_declarator
  * conflicted state is via a context in which type_specifier is
  * always the right reduction).  since this rule seems obscure,
  * we leave it out.
-	| '(' parameter_type_list ')'
+	| '(' parameter_type_list ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, $2, 0, 0); }
  * (if you restore this, be sure to revisit tn_direct_abstract_declarator)
 */
-	| direct_abstract_declarator '(' ')'
+	| direct_abstract_declarator '(' ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, nullelist(), 0, 0); }
-	| direct_abstract_declarator '(' parameter_type_list ')'
+	| direct_abstract_declarator '(' parameter_type_list ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, $3, 0, 0); }
 	;
 
@@ -799,11 +804,11 @@ tn_direct_abstract_declarator
 	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, 0, 0, 0); }
 	| tn_direct_abstract_declarator '[' constant_expression ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
-	| '(' ')'
+	| '(' ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, nullelist(), 0, 0); }
-	| tn_direct_abstract_declarator '(' ')'
+	| tn_direct_abstract_declarator '(' ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, nullelist(), 0, 0); }
-	| tn_direct_abstract_declarator '(' tn_parameter_type_list ')'
+	| tn_direct_abstract_declarator '(' tn_parameter_type_list ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, $3, 0, 0); }
 	;
 
