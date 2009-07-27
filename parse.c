@@ -100,12 +100,20 @@ parseerror(U *ctx, char *fmt, ...)
 		return;
 	}
 
-	if(ctx->inp)
-		cprintf(ctx->out,
-			"%s:%u: ",
-			ctx->inp->src.filename
-			? ctx->inp->src.filename : "<stdin>",
-			ctx->inp->src.line);
+	if(ctx->inp){
+		if(cqctflags['k'])
+			cprintf(ctx->out,
+				"%s:%u:%u ",
+				ctx->inp->src.filename
+				? ctx->inp->src.filename : "<stdin>",
+				ctx->inp->src.line, ctx->inp->src.col);
+		else
+			cprintf(ctx->out,
+				"%s:%u ",
+				ctx->inp->src.filename
+				? ctx->inp->src.filename : "<stdin>",
+				ctx->inp->src.line);
+	}
 	va_start(args, fmt);
 	cvprintf(ctx->out, fmt, args);
 	va_end(args);
