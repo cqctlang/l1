@@ -66,9 +66,11 @@
 
 <div id="content">
 
-<h4>Cinquecento Manual</h4>
+<div id="title">
+<h3>Cinquecento Manual</h3>
+</div>
 
-<h3 id="sec:introduction">Introduction</h3>
+<h4 id="sec:introduction">Introduction</h4>
 
 <p>
 This manual describes the
@@ -163,7 +165,7 @@ down, sometimes we will fall behind.
 We welcome feedback of any kind from all users.
 </p>
 
-<h3 id="sec:input">Input</h3>
+<h4 id="sec:input">Input</h4>
 
 <p>
 A Cinquecento program consists of a sequence of
@@ -197,7 +199,7 @@ The current input file is temporarily switched to
      it seems dependent on the code div above, even
      if the body of that div is empty. -->
 
-<h3 id="sec:comments">Comments</h3>
+<h4 id="sec:comments">Comments</h4>
 
 <p>
 The following are comments:
@@ -217,7 +219,7 @@ Lines beginning with <span class="val">#!</span>.
 </li>
 </ul>
 
-<h3 id="sec:keywords">Keywords</h3>
+<h4 id="sec:keywords">Keywords</h4>
 
 <p>
 The following are the keywords of Cinquecento.
@@ -278,7 +280,7 @@ const        for          struct
 </pre>
 </div>
 
-<h3 id="sec:identifiers">Identifiers</h3>
+<h4 id="sec:identifiers">Identifiers</h4>
 
 <p>
 Identifiers are non-keyword tokens used to identify
@@ -298,7 +300,7 @@ at the beginning.
 </p>
 
 
-<h3 id="sec:literals">Literals</h3>
+<h4 id="sec:literals">Literals</h4>
 
 <p>
 Literals are lexical tokens that encode character, string,
@@ -363,7 +365,7 @@ impose the specified long and/or unsigned types upon the value.
 Cinquecento currently does not support floating point types or values.
 </p>
 
-<h3 id="sec:scope">Scope and Variables</h3>
+<h4 id="sec:scope">Scope and Variables</h4>
 
 <p>
 Cinquecento is lexically scoped and dynamically typed.
@@ -493,7 +495,7 @@ been declared with <span class="id">@local</span>.
 A reference to an unbound variable is an error.
 </p>
 
-<h3 id="sec:types">Types</h3>
+<h4 id="sec:types">Types</h4>
 
 <p>
 Cinquecento defines several types of values.  Every
@@ -643,7 +645,7 @@ the value belongs to the type,
 <!-- </div> -->
 
 
-<h3 id="sec:functions">Functions</h3>
+<h4 id="sec:functions">Functions</h4>
 
 <p>
 As in Scheme and other functional languages,
@@ -788,7 +790,7 @@ and returns the value returned by the call.
 </div>
 </div>
 
-<h3 id="sec:control">Control Operators</h3>
+<h4 id="sec:control">Control Operators</h4>
 
 <p>
 Several built-in functions support non-local control
@@ -865,7 +867,7 @@ functions.
 </div>
 </div>
 
-<h3 id="sec:statements">Control Flow Statements</h3>
+<h4 id="sec:statements">Control Flow Statements</h4>
 
 <p>
 Cinquecento supports the control flow statements of C,
@@ -910,7 +912,7 @@ Cinquecento does not (yet) implement
 <span class="val">goto</span>.
 </p>
 
-<h3 id="sec:constants">Constants</h3>
+<h4 id="sec:constants">Constants</h4>
 
 <p id="syn:@const">
 The <span class="id">@const</span> form defines constant expressions.
@@ -941,7 +943,7 @@ and a variable has undefined behavior.  (This feature needs more work.)
 </p>
 
 
-<h3 id="sec:records">Records</h3>
+<h4 id="sec:records">Records</h4>
 
 <p id="syn:@record">
 The Cinquecento record system allows the creation of new
@@ -1167,7 +1169,7 @@ Sets the format procedure of the record descriptor
 </div>
 
 
-<h3 id="sec:domainover">Overview of Domains</h3>
+<h4 id="sec:domainover">Overview of Domains</h4>
 
 <p>
 This section summarizes the concepts and terminology
@@ -1301,7 +1303,7 @@ and breakpoint control.
 </p>
 
 
-<h3 id="sec:backtick">Backtick Operator</h3>
+<h4 id="sec:backtick">Backtick Operator</h4>
 
 <p>
 Symbols and types in a domain are referenced with the backtick operator.
@@ -1490,7 +1492,7 @@ of its other operand (see <a href="#sec:casts">Type and Domain Casting</a>).
 </p>
 
 
-<h3 id="sec:litdom">The Literal Domain</h3>
+<h4 id="sec:litdom">The Literal Domain</h4>
 
 <p>
 Cinquecento represents arithmetic literals as cvalues
@@ -1503,7 +1505,7 @@ pointer size and endianness are irrelevant,
 because expressions in this domain never reference memory.
 </p>
 
-<h3 id="sec:casts">Type and Domain Casting</h3>
+<h4 id="sec:casts">Type and Domain Casting</h4>
 
 <p>
 The Cinquecento casting operators can be used to
@@ -1540,7 +1542,7 @@ domain....
 </p>
 
 
-<h3 id="sec:mixeddom">Mixed-domain Expressions</h3>
+<h4 id="sec:mixeddom">Mixed-domain Expressions</h4>
 
 <p>
 A binary C operator may be applied to cvalue operands
@@ -1603,7 +1605,7 @@ be used to circumvent this rule.
 </p>
 
 
-<h3 id="sec:cvalueops">C Operators</h3>
+<h4 id="sec:cvalueops">C Operators</h4>
 
 <p>
 The operators of C are defined over Cinquecento cvalues
@@ -1674,7 +1676,7 @@ compute logical and and over integers, treated as boolean values,
 as in C.  Evaluation is short circuited, as in C.
 </p>
 
-<h3 id="sec:pointers">Pointers</h3>
+<h4 id="sec:pointers">Pointers</h4>
 
 <p>
 Pointer-typed cvalues represent typed locations.
@@ -1825,7 +1827,7 @@ the Cinquecento runtime is an implementation bug, never
 a consequence of operating on erroneous user data.
 </p>
 
-<h3 id="sec:mkdom">Domain constructor</h3>
+<h4 id="sec:mkdom">Domain constructor</h4>
 
 <p>
 New domain instances are created with
@@ -1855,7 +1857,7 @@ and address space are
 </div>
 </div>
 
-<h3 id="sec:domobj">Domains as objects</h3>
+<h4 id="sec:domobj">Domains as objects</h4>
 
 Cinquecento address spaces and name spaces encapsulate
 functions that implement the behavior of these
@@ -1864,7 +1866,7 @@ similar to that of simple objects in a conventional
 object-oriented language.
 
 
-<h3 id="sec:namespaces">Name spaces</h3>
+<h4 id="sec:namespaces">Name spaces</h4>
 
 <p>
 Name spaces catalog information about C types and symbols.
@@ -2363,7 +2365,7 @@ The syntax for typedef declarations is the same as their syntax in C.
 </div>
 </div>
 
-<h3 id="sec:addressspaces">Address spaces</h3>
+<h4 id="sec:addressspaces">Address spaces</h4>
 
 <p>
 Cinquecento address spaces represent byte-addressed
@@ -2610,7 +2612,7 @@ function for setting breakpoints with an address space.
 </p>
 
 
-<h3 id="sec:ctypes">Ctypes</h3>
+<h4 id="sec:ctypes">Ctypes</h4>
 
 <p>The Cinquecento type <em>ctype</em> represents types
 defined in C programs.  The predicate
@@ -3650,7 +3652,7 @@ return value is ignored.
 </div>
 
 
-<h3 id="sec:containers">Container Types</h3>
+<h4 id="sec:containers">Container Types</h4>
 
 <p>
 Cinquecento supports three built-in container types:
@@ -3944,7 +3946,7 @@ Returns <span class="arg">container</span> following the update.
 </div>
 
 
-<h3 id="sec:lists">Lists</h3>
+<h4 id="sec:lists">Lists</h4>
 
 <p>
 Lists are variable-length ordered collections, possibly
@@ -4235,7 +4237,7 @@ Returns a new list containing the elements of <span class="arg">list</span> in r
 </div>
 </div>
 
-<h3 id="sec:vectors">Vectors</h3>
+<h4 id="sec:vectors">Vectors</h4>
 
 <p>
 Vectors are fixed-length ordered collections, possibly
@@ -4354,7 +4356,7 @@ class="type">vec</span> does not contain more than
 </div>
 </div>
 
-<h3 id="sec:tables">Tables</h3>
+<h4 id="sec:tables">Tables</h4>
 
 <p>
 Tables store key/value pairs.  Keys and values may be
@@ -4508,7 +4510,7 @@ second half contains, in corresponding order,  the values.
 </div>
 
 
-<h3 id="sec:characters">Characters</h3>
+<h4 id="sec:characters">Characters</h4>
 
 <p>
 
@@ -4603,7 +4605,7 @@ to the corresponding uppercase (or lowercase) character.
 </div>
 
 
-<h3 id="sec:strings">Strings</h3>
+<h4 id="sec:strings">Strings</h4>
 
 <p>
 The Cinquecento string type represents an array of
@@ -4958,7 +4960,7 @@ class="arg">ptr</span>.
 </div>
 </div>
 
-<h3 id="sec:io">I/O</h3>
+<h4 id="sec:io">I/O</h4>
 
 <p>
 Cinquecento supports I/O backed by regular files, network
@@ -5238,7 +5240,7 @@ returned by <span class="id">fdname</span>; otherwise
 </div>
 
 
-<h3 id="sec:fs">Filesystem Functions</h3>
+<h4 id="sec:fs">Filesystem Functions</h4>
 
 <p>
 This section documents functions that operate on the file system.
@@ -5332,7 +5334,7 @@ Removes the file named <span class="arg">name</span>.
 </div>
 
 
-<h3 id="sec:fmt">Formatted Output</h3>
+<h4 id="sec:fmt">Formatted Output</h4>
 
 <p>
 Cinquecento provides several functions for C-style
@@ -5540,7 +5542,7 @@ Returns a new string containing formatted output.
 
 
 
-<h3 id="sec:system">System Functions</h3>
+<h4 id="sec:system">System Functions</h4>
 
 <p>
 This section documents various system-level functions.
@@ -5701,7 +5703,7 @@ at shutdown may not be called.
 </div>
 </div>
 
-<h3 id="sec:cinterface">C Interface</h3>
+<h4 id="sec:cinterface">C Interface</h4>
 
 <p>
 The following functions comprise the C interface to the
@@ -6410,7 +6412,7 @@ machines sharing the environment have been freed.
 </div>
 </div>
 
-<h3 id="sec:synindex">Syntax Index</h3>
+<h4 id="sec:synindex">Syntax Index</h4>
 <div class="id">
 <div class="index">
 <div class="fnindex">
@@ -6434,7 +6436,7 @@ machines sharing the environment have been freed.
 </div>
 </div>
 
-<h3 id="sec:cindex">C Interface Index</h3>
+<h4 id="sec:cindex">C Interface Index</h4>
 <div class="id">
 <div class="index">
 <div class="fnindex">
@@ -6502,7 +6504,7 @@ machines sharing the environment have been freed.
 </div>
 
 
-<h3 id="sec:fnindex">Built-in Function Index</h3>
+<h4 id="sec:fnindex">Built-in Function Index</h4>
 <div class="id">
 <div class="index">
 <div class="fnindex">

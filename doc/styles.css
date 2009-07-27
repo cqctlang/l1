@@ -14,11 +14,27 @@
 	width: 45em;
 }
 
-dl, ol, ul {
+ol, ul {
 //	margin-right: 20px;
 	margin-left: 20px;
 	margin-bottom: 10px;
 	list-style: square outside;
+}
+
+dl.bolddt-indentdd {
+	margin: 0;
+	padding: 0;
+}
+
+.bolddt-indentdd dt {
+	margin: 0;
+	padding: 0;
+	font-weight: bold;
+}
+
+.bolddt-indentdd dd {
+	margin: .5em 2em;
+	padding: 0;
 }
 
 #content h4 {
@@ -26,12 +42,16 @@ dl, ol, ul {
 	margin-right: auto;
 	margin-top: 10px;
 	margin-bottom: 10px;
-	text-align: center;
 }
 
 #content h3 {
 	padding-top: 5px;
 	padding-bottom: 0px;
+}
+
+#content h2 {
+	padding-top: 25px;
+	padding-bottom: 10px;
 }
 
 #content #noindent p {
@@ -105,9 +125,27 @@ padding: 0px;
 	text-align: left;
 }
 
+#content h4 {
+	font-family:  sans-serif;
+	font-size: 12px;
+	text-align: left;
+}
+
 #content h3 {
 	font-family:  sans-serif;
 	font-size: 13px;
+	text-align: left;
+}
+
+#title h3 {
+	font-family:  sans-serif;
+	font-size: 13px;
+	text-align: center;
+}
+
+#content h2 {
+	font-family:  sans-serif;
+	font-size: 20px;
 	text-align: left;
 }
 
