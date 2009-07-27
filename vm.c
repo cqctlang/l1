@@ -10090,8 +10090,10 @@ l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvalvec(veccopy(valvec(argv[0])));
 	else if(argv[0]->qkind == Qtab)
 		*rv = mkvaltab(tabcopy(valtab(argv[0])));
+	else if(argv[0]->qkind == Qstr)
+		*rv = mkvalstr(strcopy(valstr(argv[0])));
 	else
-		vmerr(vm, "operand 1 to copy must be a list or vector");
+		vmerr(vm, "operand 1 to copy must be a container");
 }
 
 static void
