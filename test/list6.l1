@@ -1,0 +1,2 @@
+printf("%a\n", append(mklist(0), 1));
+

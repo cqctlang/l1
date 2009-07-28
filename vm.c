@@ -2580,10 +2580,14 @@ static void
 listexpand(List *lst)
 {
 	Listx *x, *nx;
-	u32 len;
+	u32 len, newsz;
 
 	x = lst->x;
-	nx = mklistx(x->sz*2);
+	if(x->sz)
+		newsz = x->sz*2;
+	else
+		newsz = 1;
+	nx = mklistx(newsz);
 	len = listxlen(x);
 	if(x->hd == 0){
 		/* expanding to the left */
