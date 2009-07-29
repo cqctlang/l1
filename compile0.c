@@ -391,6 +391,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 	case Esizeofe:
 		if(!islval(e->e1)){
 			se = Zsizeof(compile_rval(ctx, e->e1, 0));
+			putsrc(se, &src);
 			e->e1 = 0;
 			freeexpr(e);
 			return se;
@@ -413,6 +414,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		if(!islval(e->e1)){
 			se = Zcall(doid("$typeof"), 1,
 				   compile_rval(ctx, e->e1, 0));
+			putsrc(se, &src);
 			e->e1 = 0;
 			freeexpr(e);
 			return se;
