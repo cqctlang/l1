@@ -17,6 +17,15 @@ define newvac(name)
 	close(fd[0]);
 	vac = read(fd[1], 100);
 	close(fd[1]);
+	if(vac == nil){
+		@local err;
+		err = read(fd[2], 128);
+		if(err != nil)
+			error("newvac: %s", err);
+		else
+			error("newvac: failed");
+	}
+	close(fd[2]);
 	return chomp(vac);
 }
 
@@ -39,6 +48,15 @@ define vaccons(vac, name, bytes)
 	close(fd[0]);
 	vac = read(fd[1], 100);
 	close(fd[1]);
+	if(vac == nil){
+		@local err;
+		err = read(fd[2], 128);
+		if(err != nil)
+			error("vaccons: %s", err);
+		else
+			error("vaccons: failed");
+	}
+	close(fd[2]);
 	return chomp(vac);
 }
 

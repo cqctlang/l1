@@ -179,7 +179,7 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 {
 	int ctl[2], in[2], out[2], err[2];
 	Imm rv;
-	int pid, eno;
+	int pid, eno, i, m;
 
 	/* ignore sigpipe from now on */
 	signal(SIGPIPE, SIG_IGN);
@@ -219,6 +219,10 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 				close(out[1]);
 			if(err[1] > 2)
 				close(err[1]);
+			m = sysconf(_SC_OPEN_MAX);
+			for(i = 3; i < m; i++)
+				if(i != ctl[1])
+					close(i);
 			setsid();
 			execvp(argv[0], argv);
 			eno = errno;
