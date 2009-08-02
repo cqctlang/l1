@@ -862,7 +862,7 @@ static ikind EtoVM[] = {
 	[Eneq] = Icmpneq,
 	[Euminus] = Ineg,
 	[Eunot] = Inot,
-	[Euplus] = Inop,
+	[Euplus] = Imov,
 	[Eutwiddle] = Iinv,
 	[Excast] = Ixcast,
 
@@ -882,10 +882,8 @@ cgunop(Code *code, CGEnv *p, unsigned kind, Operand *r1,
 
 	i = nextinsn(code, src);
 	i->kind = EtoVM[kind];
-	if(i->kind != Inop){
-		i->op1 = *r1;
-		randloc(&i->dst, loc);
-	}
+	i->op1 = *r1;
+	randloc(&i->dst, loc);
 	cgctl(code, p, ctl, nxt, src);
 }
 

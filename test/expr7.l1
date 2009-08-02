@@ -1,0 +1,2 @@
+// unary + is identity, on anything
+printf("%s\n", "foo" + + "foo"); 
