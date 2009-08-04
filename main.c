@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>
+#include <signal.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -18,6 +19,14 @@
 enum{
 	Maxloadpath = 128,
 };
+
+static VM *vm;
+
+static void
+sigint(int sig)
+{
+	cqctinterrupt(vm);
+}
 
 static void
 usage(char *argv0)
@@ -205,7 +214,6 @@ main(int argc, char *argv[])
 {
 	Closure *entry;
 	Val v;
-	VM *vm;
 	char *filename;
 	int c;
 	struct timeval beg, end;
@@ -304,6 +312,7 @@ main(int argc, char *argv[])
 			cqctfini(top);
 			return -1;
 		}
+		signal(SIGINT, sigint);
 	}
 
 	if(dorepl){

@@ -118,6 +118,12 @@ cqctfreeexpr(Expr *e)
 	freeexpr(e);
 }
 
+void
+cqctinterrupt(VM *vm)
+{
+	vm->flags |= VMirq;
+}
+
 Toplevel*
 cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
 	 

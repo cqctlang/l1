@@ -6387,6 +6387,18 @@ If the concurrent GC is selected, a fresh GC thread is started.
 </div>
 </div>
 
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctinterrupt">void cqctinterrupt(VM *<span class="arg">vm</span>)</span>
+</div>
+</div>
+<div class="desc">
+Interrupt the Cinquecento evaluator <span class="arg">vm</span>,
+if it is executing.
+</div>
+</div>
+
 
 <div class="docitem">
 <div class="proto">
@@ -6472,6 +6484,7 @@ machines sharing the environment have been freed.
 
 </td>
 <td>
+<a href="#fn:cqctinterrupt">cqctinterrupt</a><br />
 <a href="#fn:cqctlength">cqctlength</a><br />
 <a href="#fn:cqctlistvals">cqctlistvals</a><br />
 <a href="#fn:cqctmkfd">cqctmkfd</a><br />

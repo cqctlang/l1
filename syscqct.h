@@ -712,10 +712,15 @@ struct Toplevel {
 	Xfd err;
 };
 
+enum {
+	VMirq = 1,
+};
+
 struct VM {
 	Imm sp, fp, pc;
 	Val ac, cl;
 	Closure *clx;
+	unsigned int flags;
 	Toplevel *top;
 	Insn *ibuf;
 	Val stack[Maxstk];

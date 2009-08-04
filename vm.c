@@ -6680,18 +6680,26 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vmsetcl(vm, vm->cl);
 		vm->pc = stkimm(vm->stack[vm->sp]);
 		vmpop(vm, 3);
+		if(vm->flags&VMirq)
+			vmerr(vm, "interrupted");
 		thegc->gcpoll(thegc, vm);
 		continue;
 	Ijmp:
 		vm->pc = i->dstlabel->insn;
+		if(vm->flags&VMirq)
+			vmerr(vm, "interrupted");
 		thegc->gcpoll(thegc, vm);
 		continue;
 	Ijnz:
 		xjnz(vm, &i->op1, i->dstlabel);
+		if(vm->flags&VMirq)
+			vmerr(vm, "interrupted");
 		thegc->gcpoll(thegc, vm);
 		continue;
 	Ijz:
 		xjz(vm, &i->op1, i->dstlabel);
+		if(vm->flags&VMirq)
+			vmerr(vm, "interrupted");
 		thegc->gcpoll(thegc, vm);
 		continue;
 	Iclo:
@@ -11488,6 +11496,7 @@ cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
+	vm->flags &= ~VMirq;
 	*rv = dovm(vm, cl, argc, argv);
 	poperror(vm);
 	return 0;
@@ -11498,6 +11507,7 @@ cqctcallthunk(VM *vm, Closure *cl, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
+	vm->flags &= ~VMirq;
 	*rv = dovm(vm, cl, 0, 0);
 	poperror(vm);
 	return 0;
