@@ -1,5 +1,5 @@
 CC        = gcc
-LD        = ld
+LD        = ld -m
 CFLAGS    = -Wall -g
 CONF     ?= unix
 L1LIBS	  = -lpthread
