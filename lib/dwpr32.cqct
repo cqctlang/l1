@@ -25,6 +25,8 @@ define _dw_get_regval (domoras, regno)
   case 8: return  exas.geteip();
     break;
   default:
+    if (isprocedure (regno))
+      return _dw_get_regval (domoras, regno (domoras));
     printf ("No get_regval function registered for regno %a in as %a\n",
 	    regno, exas);
     break;
@@ -49,43 +51,43 @@ define _dw_pcregnum (exdom)
 
 define dumpregs (exdom)
 {
-  printf ("reg 0 = 0x%x (%d)\n", exdom.geteax(), exdom.geteax());
-  printf ("reg 1 = 0x%x (%d)\n", exdom.getecx(), exdom.getecx());
-  printf ("reg 2 = 0x%x (%d)\n", exdom.getedx(), exdom.getedx());
-  printf ("reg 3 = 0x%x (%d)\n", exdom.getebx(), exdom.getebx());
-  printf ("reg 4 = 0x%x (%d)\n", exdom.getesp(), exdom.getesp());
-  printf ("reg 5 = 0x%x (%d)\n", exdom.getebp(), exdom.getebp());
-  printf ("reg 6 = 0x%x (%d)\n", exdom.getesi(), exdom.getesi());
-  printf ("reg 7 = 0x%x (%d)\n", exdom.getedi(), exdom.getedi());
-  printf ("reg 8 = 0x%x (%d)\n", exdom.geteip(), exdom.geteip());
+  printf ("reg 0 = 0x%x (%u)\n", exdom.geteax(), exdom.geteax());
+  printf ("reg 1 = 0x%x (%u)\n", exdom.getecx(), exdom.getecx());
+  printf ("reg 2 = 0x%x (%u)\n", exdom.getedx(), exdom.getedx());
+  printf ("reg 3 = 0x%x (%u)\n", exdom.getebx(), exdom.getebx());
+  printf ("reg 4 = 0x%x (%u)\n", exdom.getesp(), exdom.getesp());
+  printf ("reg 5 = 0x%x (%u)\n", exdom.getebp(), exdom.getebp());
+  printf ("reg 6 = 0x%x (%u)\n", exdom.getesi(), exdom.getesi());
+  printf ("reg 7 = 0x%x (%u)\n", exdom.getedi(), exdom.getedi());
+  printf ("reg 8 = 0x%x (%u)\n", exdom.geteip(), exdom.geteip());
 }
 
 _dw_map_getfun_to_regnum = {
     "geteax" : 0,
-    "getedx" : 1,
-    "getecx" : 2,
+    "getecx" : 1,
+    "getedx" : 2,
     "getebx" : 3,
-    "getesi" : 4,
-    "getedi" : 5,
-    "getebp" : 6,
-    "getesp" : 7,
+    "getesp" : 4,
+    "getebp" : 5,
+    "getesi" : 6,
+    "getedi" : 7,
     "geteip" : 8
 };
 
-_dw_getfun = vector ("geteax", "getedx", "getecx", "getebx", "getesi",
-		     "getedi", "getebp", "getesp", "geteip");
+_dw_getfun = vector ("geteax", "getecx", "getedx", "getebx", "getesp",
+		     "getebp", "getesi", "getedi", "geteip");
 
 _dw_map_setfun_to_regnum = {
     "seteax" : 0,
-    "setedx" : 1,
-    "setecx" : 2,
+    "setecx" : 1,
+    "setedx" : 2,
     "setebx" : 3,
-    "setesi" : 4,
-    "setedi" : 5,
-    "setebp" : 6,
-    "setesp" : 7,
+    "setesp" : 4,
+    "setebp" : 5,
+    "setesi" : 6,
+    "setedi" : 7,
     "seteip" : 8
 };
 
-_dw_setfun = vector ("seteax", "setedx", "setecx", "setebx", "setesi",
-		     "setedi", "setebp", "setesp", "seteip");
+_dw_setfun = vector ("seteax", "setecx", "setedx", "setebx", "setesp",
+		     "setebp", "setesi", "setedi", "seteip");
