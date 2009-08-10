@@ -138,7 +138,9 @@ todo
   - can <domain > occur during %a printing?
   - fix lookaddr to ignore enums when matching addr values
     (e.g. Vlongmax)
-
+  - replace calls to l1_fn with dovm call, avoiding need
+    for (possibly forgotten) gcprotects on args.
+    e.g., l1_sort in mknstypesym
 
 - performance/simplicity
   - consider making routines like nsptr take a cvalue argument
