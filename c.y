@@ -26,6 +26,7 @@ extern char *yytext;
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
+%token CAST_ASSIGN XCAST_ASSIGN
 %token GLOBAL LOCAL LAMBDA NAMES LET
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
@@ -315,6 +316,24 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression
+	| unary_expression CAST_ASSIGN type_name
+	{ $$ = newexprsrc(&ctx->inp->src,
+			  Eg,
+			  $1,
+			  newexprsrc(&ctx->inp->src,
+				     Ecast,
+				     $3,
+				     copyexpr($1),
+				     0, 0),
+			  0, 0);
+	}
+	| unary_expression XCAST_ASSIGN root_expression
+	{ $$ = newexprsrc(&ctx->inp->src,
+			  Eg,
+			  $1,
+			  newbinopsrc(&ctx->inp->src, Excast, $3, copyexpr($1)),
+			  0, 0);
+	}
 	| unary_expression assignment_operator root_expression
 	{ if($2 == Eg)
 	  	$$ = newexprsrc(&ctx->inp->src, $2, $1, $3, 0, 0);
