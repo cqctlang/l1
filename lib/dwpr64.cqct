@@ -41,6 +41,8 @@ define _dw_get_regval (domoras, regno)
   case 16: return  exas.getrip();
     break;
   default:
+    if (isprocedure (regno))
+      return _dw_get_regval (domoras, regno (domoras));
     printf ("No get_regval function registered for regno %a in as %a\n",
 	    regno, exas);
     backtrace();
@@ -66,23 +68,23 @@ define _dw_pcregnum (exdom)
 
 define dumpregs (exdom)
 {
-  printf ("reg 0 (rax) = 0x%x (%d)\n", exdom.getrax(), exdom.getrax());
-  printf ("reg 1 (rdx) = 0x%x (%d)\n", exdom.getrdx(), exdom.getrdx());
-  printf ("reg 2 (rcx) = 0x%x (%d)\n", exdom.getrcx(), exdom.getrcx());
-  printf ("reg 3 (rbx) = 0x%x (%d)\n", exdom.getrbx(), exdom.getrbx());
-  printf ("reg 4 (rsi) = 0x%x (%d)\n", exdom.getrsi(), exdom.getrsi());
-  printf ("reg 5 (rdi) = 0x%x (%d)\n", exdom.getrdi(), exdom.getrdi());
-  printf ("reg 6 (rbp) = 0x%x (%d)\n", exdom.getrbp(), exdom.getrbp());
-  printf ("reg 7 (rsp) = 0x%x (%d)\n", exdom.getrsp(), exdom.getrsp());
-  printf ("reg 8 = 0x%x (%d)\n", exdom.getr8(), exdom.getr8());
-  printf ("reg 9 = 0x%x (%d)\n", exdom.getr9(), exdom.getr9());
-  printf ("reg 10 = 0x%x (%d)\n", exdom.getr10(),exdom.getr10());
-  printf ("reg 11 = 0x%x (%d)\n", exdom.getr11(),exdom.getr11());
-  printf ("reg 12 = 0x%x (%d)\n", exdom.getr12(),exdom.getr12());
-  printf ("reg 13 = 0x%x (%d)\n", exdom.getr13(),exdom.getr13());
-  printf ("reg 14 = 0x%x (%d)\n", exdom.getr14(),exdom.getr14());
-  printf ("reg 15 = 0x%x (%d)\n", exdom.getr15(),exdom.getr15());
-  printf ("reg 16 = 0x%x (%d)\n", exdom.getrip(),exdom.getrip());
+  printf ("reg 0 (rax) = 0x%x (%u)\n", exdom.getrax(), exdom.getrax());
+  printf ("reg 1 (rdx) = 0x%x (%u)\n", exdom.getrdx(), exdom.getrdx());
+  printf ("reg 2 (rcx) = 0x%x (%u)\n", exdom.getrcx(), exdom.getrcx());
+  printf ("reg 3 (rbx) = 0x%x (%u)\n", exdom.getrbx(), exdom.getrbx());
+  printf ("reg 4 (rsi) = 0x%x (%u)\n", exdom.getrsi(), exdom.getrsi());
+  printf ("reg 5 (rdi) = 0x%x (%u)\n", exdom.getrdi(), exdom.getrdi());
+  printf ("reg 6 (rbp) = 0x%x (%u)\n", exdom.getrbp(), exdom.getrbp());
+  printf ("reg 7 (rsp) = 0x%x (%u)\n", exdom.getrsp(), exdom.getrsp());
+  printf ("reg 8 = 0x%x (%u)\n", exdom.getr8(), exdom.getr8());
+  printf ("reg 9 = 0x%x (%u)\n", exdom.getr9(), exdom.getr9());
+  printf ("reg 10 = 0x%x (%u)\n", exdom.getr10(),exdom.getr10());
+  printf ("reg 11 = 0x%x (%u)\n", exdom.getr11(),exdom.getr11());
+  printf ("reg 12 = 0x%x (%u)\n", exdom.getr12(),exdom.getr12());
+  printf ("reg 13 = 0x%x (%u)\n", exdom.getr13(),exdom.getr13());
+  printf ("reg 14 = 0x%x (%u)\n", exdom.getr14(),exdom.getr14());
+  printf ("reg 15 = 0x%x (%u)\n", exdom.getr15(),exdom.getr15());
+  printf ("reg 16 = 0x%x (%u)\n", exdom.getrip(),exdom.getrip());
 }
 
 _dw_map_getfun_to_regnum = {
