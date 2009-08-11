@@ -1,0 +1,4 @@
+tab = mktab();
+{ @local x;
+  tab[x];
+}
