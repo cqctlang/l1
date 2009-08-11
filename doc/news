@@ -1,0 +1,32 @@
+aug 10 2009
+
+	The new assignment operators ()= and {}= are
+	like +=, but for casting.
+	
+	()= casts by type name.  The statement
+
+		x ()= unsigned int;
+
+	is equivalent in effect and value to
+
+		x = (unsigned int)x;
+
+	Likewise,
+
+		x ()= struct dom`X*;
+		
+	is equivalent to
+
+		x = (struct dom`X*)x;
+
+	()= has the same precedence and associativity
+	as the other assignment operators.
+
+	In a similar way, {}= applies the extended cast
+	operator to its operands:
+
+		x {}= dom;
+
+	is equivalent to
+
+		x = {dom}x;
