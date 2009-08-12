@@ -1,0 +1,4 @@
+entry: var params, 8 locals, 0 temps
+error: attempt to access table with undefined key value
+             cntrget	(builtin function)
+               entry	(tab6.l1:3)

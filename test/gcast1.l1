@@ -1,0 +1,9 @@
+x = (`uint16)0;
+printf("%t\n", x);
+x ()= `uint32;
+printf("%t\n", x);
+
+y = (`uint16)0;
+printf("%t\n", y);
+y {}= typeof(`uint32);
+printf("%t\n", y);
