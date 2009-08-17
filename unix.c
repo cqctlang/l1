@@ -207,6 +207,8 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 			close(err[0]);
 			close(ctl[0]);
 			dup2(in[1], 0);
+			if(flags&PopenStdout)
+				out[1] = 1;
 			dup2(out[1], 1);
 			if(flags&PopenNoErr)
 				err[1] = open("/dev/null", O_WRONLY);

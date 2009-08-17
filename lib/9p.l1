@@ -1168,7 +1168,7 @@ define test()
 		    "-a", "none",
 		    "-n",
 		    "-u", getenv("USER"),
-		    4); // 4==FullDuplex on fd 0
+		    8); // 8==FullDuplex on fd 0
 	fd = fds[0];
 	session9p(fd);
 	attach9p(fd, getenv("USER"));
@@ -1198,7 +1198,7 @@ define test2()
 		    "-a", "none",
 		    "-n",
 		    "-u", getenv("USER"),
-		    4); // 4==FullDuplex on fd 0
+		    8); // 8==FullDuplex on fd 0
 	mnt = mount9p(fds[0]);
 	fd = mnt.open("/etc/passwd", dom9p`OREAD);
 	printf("%s\n", mnt.read(fd, 100));
