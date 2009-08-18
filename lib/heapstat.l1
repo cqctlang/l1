@@ -18,8 +18,6 @@ define dumpcode(hp)
 	mf = 0;
 	tab = {
 		"code"   : 0,
-		"konst"  : 0,
-		"konsti" : 0,
 		"labels" : 0,
 		"insn"	 : 0,
 		"expr"	 : 0,
@@ -50,13 +48,7 @@ define szcode(cp, tab)
 	tab["code"] += x;
 	m += x;
 
-	x = szkonst(cp->konst);
-	tab["konst"] += x;
-	m += x;
-
-	x = szkonsti(cp->konsti);
-	tab["konsti"] += x;
-	m += x;
+	// FIXME: constant pool?
 
 	x = 0;
 	p = cp->clist;
@@ -79,28 +71,6 @@ define szcode(cp, tab)
 	tab["expr"] += x;
 	m += x;
 
-	return m;
-}
-
-define szkonst(kon)
-{
-	@local m;
-	m = 0;
-	hforeach(kon->ht, lambda(k, v){
-			m += esize(v); /* Lits */
-		});
-	m += hsz(kon->ht);
-	m += esize(kon);
-	return m;
-}
-
-define szkonsti(kon)
-{
-	@local m;
-	m = 0;
-	hforeach(kon->ht, lambda(k, v) { m += esize(k); });
-	m += hsz(kon->ht);
-	m += esize(kon);
 	return m;
 }
 
