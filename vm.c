@@ -5123,69 +5123,76 @@ mknas()
 }
 
 static void
-sasdispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+sasget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Str *s, *cmd, *dat;
+	Str *s, *dat;
 	Range *r;
-	Vec *v;
 	Cval *beg, *end;
-	Val val;
 
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to get");
+	checkarg(vm, "sasget", argv, 1, Qrange);
 	s = valstr(disp[0]);
-	if(argc < 1)
-		vmerr(vm,
-		      "wrong number of arguments to address space dispatch");
-	checkarg(vm, "sasdispatch", argv, 1, Qstr);
-	cmd = valstr(argv[1]);
-	if(equalstrc(cmd, "get")){
-		if(argc != 3)
-			vmerr(vm, "wrong number of arguments to get");
-		checkarg(vm, "sasdispatch", argv, 2, Qrange);
-		r = valrange(argv[2]);
-		beg = r->beg;
-		end = xcvalalu(vm, Iadd, beg, r->len);
-		if(beg->val > s->len)
-			vmerr(vm, "address space access out of bounds");
-		if(end->val > s->len)
-			vmerr(vm, "address space access out of bounds");
-		if(beg->val > end->val)
-			vmerr(vm, "address space access out of bounds");
-		dat = strslice(s, beg->val, end->val);
-		*rv = mkvalstr(dat);
-	}else if(equalstrc(cmd, "put")){
-		if(argc != 4)
-			vmerr(vm, "wrong number of arguments to put");
-		checkarg(vm, "sasdispatch", argv, 2, Qrange);
-		checkarg(vm, "sasdispatch", argv, 3, Qstr);
-		r = valrange(argv[2]);
-		dat = valstr(argv[3]);
-		beg = r->beg;
-		if(r->len->val == 0 && beg->val <= s->len)
-			/* special case: empty string */
-			return;
-		end = xcvalalu(vm, Iadd, beg, r->len);
-		if(beg->val >= s->len)
-			vmerr(vm, "address space access out of bounds");
-		if(end->val > s->len)
-			vmerr(vm, "address space access out of bounds");
-		if(beg->val > end->val)
-			vmerr(vm, "address space access out of bounds");
-		if(dat->len < r->len->val)
-			vmerr(vm, "short put");
-		/* FIXME: rationalize with l1_strput */
-		memcpy(s->s+beg->val, dat->s, dat->len);
-	}else if(equalstrc(cmd, "map")){
-		if(argc != 2)
-			vmerr(vm, "wrong number of arguments to map");
-		v = mkvec(1);
-		val = mkvalrange(cvalnull,
-				 mkcval(vm->litdom,
-					vm->litbase[Vptr], s->len));
-		_vecset(v, 0, val);
-		*rv = mkvalvec(v);
-	}else
-		vmerr(vm, "undefined operation on address space: %.*s",
-		      (int)cmd->len, cmd->s);
+	r = valrange(argv[1]);
+	beg = r->beg;
+	end = xcvalalu(vm, Iadd, beg, r->len);
+	if(beg->val > s->len)
+		vmerr(vm, "address space access out of bounds");
+	if(end->val > s->len)
+		vmerr(vm, "address space access out of bounds");
+	if(beg->val > end->val)
+		vmerr(vm, "address space access out of bounds");
+	dat = strslice(s, beg->val, end->val);
+	*rv = mkvalstr(dat);
+}
+
+static void
+sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Str *s, *dat;
+	Range *r;
+	Cval *beg, *end;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to put");
+	checkarg(vm, "sasput", argv, 1, Qrange);
+	checkarg(vm, "sasput", argv, 2, Qstr);
+	s = valstr(disp[0]);
+	r = valrange(argv[1]);
+	dat = valstr(argv[2]);
+	beg = r->beg;
+	if(r->len->val == 0 && beg->val <= s->len)
+		/* special case: empty string */
+		return;
+	end = xcvalalu(vm, Iadd, beg, r->len);
+	if(beg->val >= s->len)
+		vmerr(vm, "address space access out of bounds");
+	if(end->val > s->len)
+		vmerr(vm, "address space access out of bounds");
+	if(beg->val > end->val)
+		vmerr(vm, "address space access out of bounds");
+	if(dat->len < r->len->val)
+		vmerr(vm, "short put");
+	/* FIXME: rationalize with l1_strput */
+	memcpy(s->s+beg->val, dat->s, dat->len);
+}
+
+static void
+sasmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Val val;
+	Vec *v;
+	Str *s;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to map");
+	s = valstr(disp[0]);
+	v = mkvec(1);
+	val = mkvalrange(cvalnull,
+			 mkcval(vm->litdom,
+				vm->litbase[Vptr], s->len));
+	_vecset(v, 0, val);
+	*rv = mkvalvec(v);
 }
 
 As*
@@ -5193,9 +5200,12 @@ mksas(Str *s)
 {
 	Tab *mtab;
 	mtab = mktab();
-	_tabput(mtab,
-		mkvalstr(mkstr0("dispatch")),
-		mkvalcl(mkccl("sasdispatch", sasdispatch, 1, mkvalstr(s))));
+	_tabput(mtab, mkvalstr(mkstr0("get")),
+		mkvalcl(mkccl("sasget", sasget, 1, mkvalstr(s))));
+	_tabput(mtab, mkvalstr(mkstr0("put")),
+		mkvalcl(mkccl("sasput", sasput, 1, mkvalstr(s))));
+	_tabput(mtab, mkvalstr(mkstr0("map")),
+		mkvalcl(mkccl("sasmap", sasmap, 1, mkvalstr(s))));
 	return mkastab(mtab, 0);
 }
 
