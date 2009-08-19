@@ -1,0 +1,13 @@
+define foo args
+{
+	while(length(args))
+		printf("%a ", pop(args)());
+}
+
+@lazyapply(foo, 1, 2, 3);
+printf("\n");
+@lazyapply(foo);
+printf("\n");
+@lazyapply(foo, lambda() { printf("not called\n"); });
+printf("\n");
+

@@ -337,7 +337,7 @@ compileambig(U *ctx, Expr *e)
 static Expr*
 compile1(U *ctx, Expr *e)
 {
-	Expr *se;
+	Expr *se, *q;
 
 	if(e == NULL)
 		return e;
@@ -384,6 +384,20 @@ compile1(U *ctx, Expr *e)
 		se = Zapply(G("list"), compile1(ctx, e->e1));
 		putsrc(se, &e->src);
 		e->e1 = 0;
+		freeexpr(e);
+		return se;
+	case Elapply:
+		q = e->e2;
+		while(q->kind == Eelist){
+			q->e1 = Zlambda(nullelist(),
+					Zblock(nullelist(),
+					       compile1(ctx, q->e1),
+					       NULL));
+			q = q->e2;
+		}
+		se = Zapply(compile1(ctx, e->e1), e->e2);
+		e->e1 = 0;
+		e->e2 = 0;
 		freeexpr(e);
 		return se;
 #if 0

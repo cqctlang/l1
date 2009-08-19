@@ -27,7 +27,7 @@ extern char *yytext;
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
 %token CAST_ASSIGN XCAST_ASSIGN
-%token GLOBAL LOCAL LAMBDA NAMES LET
+%token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
@@ -42,6 +42,7 @@ extern char *yytext;
 %type <expr> logical_and_expression logical_or_expression conditional_expression
 %type <expr> assignment_expression lambda_expression expression root_expression
 %type <expr> names_expression names_declaration_list names_declaration
+%type <expr> lapply_expression
 %type <expr> identifier_list local_list local type_specifier
 %type <expr> id tag tickid struct_or_union_specifier 
 %type <expr> struct_declaration_list struct_declaration struct_size
@@ -400,8 +401,17 @@ names_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, nullelist(), $4, 0); }
 	;
 
+lapply_expression
+	: LAPPLY '(' root_expression ',' argument_expression_list ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Elapply, $3, invert($5), 0, 0); }
+	| LAPPLY '(' root_expression ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Elapply, $3, nullelist(), 0, 0); }
+	;
+
 root_expression
 	: names_expression
+	| lapply_expression
+	;
 
 expression
 	: root_expression

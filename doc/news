@@ -1,3 +1,19 @@
+aug 17 2009
+
+	The new syntax form @lazyapply calls a function
+	without evaluating its arguments.
+
+	The expression:
+
+		@lazyapply(<fn>, <arg>, ...)
+
+	is equivalent to
+
+		<fn>(lambda(){ <arg> }, ...);
+
+	Where <fn> and <arg> are arbitrary expressions.
+
+
 aug 10 2009
 
 	The new assignment operators ()= and {}= are

@@ -1,0 +1,10 @@
+entry: var params, 1 locals, 0 temps
+foo: var params, 1 locals, 0 temps
+L18: 0 params, 0 locals, 0 temps
+L23: 0 params, 0 locals, 0 temps
+L28: 0 params, 0 locals, 0 temps
+L37: 0 params, 0 locals, 0 temps
+L41: 0 params, 0 locals, 0 temps
+1 2 3 
+
+<procedure L41> 

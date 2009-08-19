@@ -77,6 +77,7 @@ enum{
 	Eif,
 	Ekon,
 	Elambda,
+	Elapply,
 	Eland,
 	Ele,
 	Elist,

@@ -765,7 +765,8 @@ is equivalent to
 
 <p>
 The built-in function <span class="id">apply</span>
-calls functions.
+and the syntax form <span class="id">@lazyapply</span>
+are used to call functions.
 </p>
 
 <div class="docitem" id="fn:apply">
@@ -789,6 +790,34 @@ on the arguments <span class="arg">arg ... </span>
 and returns the value returned by the call.
 </div>
 </div>
+
+<div class="docitem" id="syn:@lazyapply">
+<div class="proto">
+<div class="function">
+<span class="id">@lazyapply(<span class="arg">fn</span>, <span class="arg">arg</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: <span class="type">any expression</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+Like <span class="id">apply</span>,
+<span class="id">@lazyapply</span>
+calls the function <span class="arg">fn</span>, but
+the arguments are evaluated lazily.  This is
+implemented by passing each argument <span class="arg">arg ... </span>
+as a procedure that, when called, 
+evaluate the argument expression.
+<span class="id">@lazyapply</span> returns the value returned by the call.
+</div>
+</div>
+
 
 <h4 id="sec:control">Control Operators</h4>
 
@@ -6434,6 +6463,7 @@ machines sharing the environment have been freed.
 <a href="#syn:@const">@const</a><br />
 <a href="#syn:@global">@global</a><br />
 <a href="#syn:@include">@include</a><br />
+<a href="#syn:@lazyapply">@lazyapply</a><br />
 <a href="#syn:@local">@local</a><br />
 <a href="#syn:@names">@names</a><br />
 <a href="#syn:@record">@record</a><br />
