@@ -768,7 +768,7 @@ Expr*		doparse(U*, char *buf, char *whence);
 Expr*		dotick(Expr*, Expr*);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
-Expr*		dotypes(U*, Expr*);
+int		dotypes(U*, Expr*);
 void		finiparse();
 Expr*		flatten(Expr *e);
 char*		fmttype(Type *t, char *o);

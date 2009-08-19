@@ -1024,10 +1024,10 @@ baselist(U *ctx, Expr *e)
 			/* FIXME: can we rely on parser to structure these
 			   constructions, and eliminate Vundef? */
 			if(base == Vundef)
-				parseerror(ctx, "bad type specifier");
+				cerror(ctx, s, "bad type specifier");
 			break;
 		default:
-			parseerror(ctx, "bad type specifier");
+			cerror(ctx, s, "bad type specifier");
 		}
 	}
 	return base;
@@ -1271,8 +1271,8 @@ dodecl(U *ctx, Expr *e)
 	return rv;
 }
 
-Expr*
-dotypes(U *ctx, Expr *e)
+static Expr*
+rdotypes(U *ctx, Expr *e)
 {
 	Expr *p;
 
@@ -1290,18 +1290,27 @@ dotypes(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			dotypes(ctx, p->e1);
+			rdotypes(ctx, p->e1);
 			p = p->e2;
 		}
 		break;
 	default:
-		dotypes(ctx, e->e1);
-		dotypes(ctx, e->e2);
-		dotypes(ctx, e->e3);
-		dotypes(ctx, e->e4);
+		rdotypes(ctx, e->e1);
+		rdotypes(ctx, e->e2);
+		rdotypes(ctx, e->e3);
+		rdotypes(ctx, e->e4);
 		break;
 	}
 	return e;
+}
+
+int
+dotypes(U *ctx, Expr *e)
+{
+	if(setjmp(ctx->jmp) != 0)
+		return -1;
+	rdotypes(ctx, e);
+	return 0;
 }
 
 void
@@ -1390,6 +1399,7 @@ tryinclude(U *ctx, char *raw)
 			buf = readfile(full);
 			if(buf)
 				break;
+			efree(full);
 			lp++;
 		}
 	}else{
