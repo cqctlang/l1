@@ -31,6 +31,8 @@ readfile(char *filename)
 
 	if(0 > stat(filename, &st))
 		return 0;
+	if(!S_ISREG(st.st_mode))
+		return 0;
 	fd = open(filename, O_RDONLY);
 	if(0 > fd)
 		return 0;
