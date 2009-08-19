@@ -393,6 +393,10 @@ printinsn(Code *code, Insn *i)
 		xprintf("argc ");
 		printrand(code, &i->op1);
 		break;
+	case Ivargc:
+		xprintf("vargc ");
+		printrand(code, &i->op1);
+		break;
 	case Icallc:
 		xprintf("callc");
 		break;
@@ -468,6 +472,8 @@ printinsn(Code *code, Insn *i)
 	case Ilist:
 		xprintf("list ");
 		printrand(code, &i->op1);
+		xprintf(" ");
+		printrand(code, &i->op2);
 		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
@@ -1588,7 +1594,12 @@ cglambda(Ctl *name, Code *code, Expr *e)
 
 	entry = code->ninsn;
 	src = &e->e1->src; /* argument list */
-	if(!l->isvarg){
+	if(l->isvarg){
+		i = nextinsn(code, src);
+		i->kind = Ivargc;
+		randkon(&i->op1, konimm(code->konst, Vuint, l->nparam-1));
+		needtop = 1;
+	}else{
 		i = nextinsn(code, src);
 		i->kind = Iargc;
 		randkon(&i->op1, konimm(code->konst, Vuint, l->nparam));
@@ -1603,17 +1614,28 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		needtop = 1;
 	}
 	if(l->isvarg){
-		/* by convention param 0 is first local stack variable */
-		if(l->param[0].box){
+		m = 0;
+		while(m < l->nparam-1){
+			if(l->param[m].box){
+				i = nextinsn(code, src);
+				i->kind = Ibox;
+				randvarloc(&i->op1, &l->param[m], 0);
+				needtop = 1;
+			}
+			m++;
+		}
+		/* by convention varg is first local stack variable */
+		if(l->param[m].box){
 			i = nextinsn(code, src);
 			i->kind = Ibox0;
-			randvarloc(&i->op1, &l->param[0], 0);
+			randvarloc(&i->op1, &l->param[m], 0);
 			needtop = 1;
 		}
 		i = nextinsn(code, src);
 		i->kind = Ilist;
 		randloc(&i->op1, FP);
-		randvarloc(&i->dst, &l->param[0], 1);
+		randkon(&i->op2, konimm(code->konst, Vint, m));
+		randvarloc(&i->dst, &l->param[m], 1);
 	}else
 		for(m = 0; m < l->nparam; m++)
 			if(l->param[m].box){

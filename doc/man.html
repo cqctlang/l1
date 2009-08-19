@@ -665,26 +665,56 @@ environment.
 <p>
 The <span class="fnindex" id="syn:@local">lambda</span>
 expression defines new function values.  The syntax
-variants are:
+is:
 
 <div class="code">
 <pre>
-lambda() { <span class="arg">statement</span>; ... }
-lambda(<span class="arg">var</span>, ...) { <span class="arg">statement</span>; ... }
-lambda <span class="arg">var</span> { <span class="arg">statement</span>; ... }
+lambda <span class="arg">formals</span> { <span class="arg">statement</span>; ... }
 </pre>
 </div>
 
-The first form defines a function of zero arguments.
-
-The second form defines a function with a fixed number of
-arguments.
-The argument values are bound to the variables <span class="arg">var ... </span> within the body.
-
-The third form defines a function that accepts zero or more
-arguments.  The argument values are collected in a list bound
-to the variable <span class="arg">var</span> within the body.
+<p>
+The syntax of <span class="arg">formals</span> determines
+how formal parameters are bound to actual parameters:
 </p>
+
+<ul>
+<li>
+If <span class="arg">formals</span> is a list of variable identifiers of the form
+<span class="id">(<span class="arg">v1</span>, <span class="arg">v2</span>, ...,
+<span class="arg">vn</span>)</span>,
+then the function accepts
+<span class="arg"><em>n</em></span> parameters,
+and each actual
+parameter is bound to the corresponding variable.
+<span class="arg">Formals</span> may be <span class="id">()</span>,
+defining a function of zero parameters.
+</li>
+
+<li>
+If <span class="arg">formals</span> is a single identifier
+<span class="arg">v</span>, then the
+function is a variable arity function that accepts any number of actual parameters.
+The parameters are passed in a freshly allocated
+list that is bound to <span class="arg">v</span>.
+</li>
+
+<li>
+If <span class="arg">formals</span> is a list of identifiers of the form
+<span class="id">(<span class="arg">v1</span>, <span class="arg">v2</span>, ...,
+<span class="arg">vn</span>, <span class="arg">vn+1</span> ...)</span>,
+then the function is a variable arity function of at
+least
+<span class="arg"><em>n</em></span> parameters (the
+final <span class="id">...</span> is concrete syntax).
+The first <span class="arg"><em>n</em></span> actual parameters
+are bound to the first <span class="arg"><em>n</em></span> variables;
+<span class="arg"><em>n</em></span> may be zero.
+The remaining parameters, possibly zero, are passed in a freshly allocated
+list that is bound to <span class="arg">vn</span>.
+</li>
+
+</ul>
 
 <p>
 The body of the function is a sequence of statements

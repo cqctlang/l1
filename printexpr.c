@@ -54,6 +54,7 @@ char* S[] = {
 	[Edot] =	"Edot",
 	[Edotdot] =	"Edotdot",
 	[Eelist] =	"Eelist",
+	[Eellipsis] =	"Eellipsis",
 	[Eenum] =	"Eenum",
 	[Eenumel] =	"Eenumel",
 	[Eeq] =		"Eeq",
@@ -333,6 +334,9 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Eid:
 		xprintf("%s", e->id);
+		break;
+	case Eellipsis:
+		xprintf("...");
 		break;
 	case Elambda:
 		xprintf("lambda");

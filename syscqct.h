@@ -61,6 +61,7 @@ enum{
 	Edot,
 	Edotdot,
 	Eelist,
+	Eellipsis,
 	Eenum,
 	Eenumel,
 	Eeq,
@@ -519,6 +520,7 @@ enum {
 	Isizeof,
 	Ispec,
 	Isub,
+	Ivargc,
 	Ixcast,
 	Ixor,
 	Iopmax         

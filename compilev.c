@@ -292,6 +292,22 @@ szblock(Block *b)
 	return m;
 }
 
+static int
+hasvarg(Expr *e)
+{
+	Expr *p;
+	p = e;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eellipsis){
+			if(p->e2->kind != Enull)
+				fatal("bug");
+			return 1;
+		}
+		p = p->e2;
+	}
+	return 0;
+}
+
 /* pass0: allocate lambda and block variable descriptors */
 static void
 pass0(Expr *e)
@@ -318,6 +334,23 @@ pass0(Expr *e)
 			l->nparam = 1;
 			v = l->param = emalloc(sizeof(Var));
 			v->id = p->id;
+			v->where = Vlocal;
+			v->idx = 0;
+		}else if(hasvarg(p)){
+			l->isvarg = 1;
+			l->nparam = elistlen(p)-1; /* don't count ellipsis */
+			v = l->param = emalloc(l->nparam*sizeof(Var));
+			p = e->e1;
+			m = 0;
+			while(m < l->nparam-1){
+				v->id = p->e1->id;
+				v->where = Vparam;
+				v->idx = m++;
+				v++;
+				p = p->e2;
+			}
+			/* by convention varg is first local stack variable */
+			v->id = p->e1->id;
 			v->where = Vlocal;
 			v->idx = 0;
 		}else{

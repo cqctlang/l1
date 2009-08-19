@@ -43,7 +43,7 @@ extern char *yytext;
 %type <expr> assignment_expression lambda_expression expression root_expression
 %type <expr> names_expression names_declaration_list names_declaration
 %type <expr> lapply_expression
-%type <expr> identifier_list local_list local type_specifier
+%type <expr> arg_id_list identifier_list local_list local type_specifier
 %type <expr> id tag tickid struct_or_union_specifier 
 %type <expr> struct_declaration_list struct_declaration struct_size
 %type <expr> struct_declarator_list struct_declarator enum_specifier
@@ -94,7 +94,7 @@ tickid
 tag:	id;
 
 lambda_expression
-	: LAMBDA '(' identifier_list ')' compound_statement
+	: LAMBDA '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
 	| LAMBDA '(' ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
@@ -373,6 +373,16 @@ identifier_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| identifier_list ',' id
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
+	;
+
+arg_id_list
+	: identifier_list
+	{ $$ = $1; }
+	| identifier_list ELLIPSIS
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
+			  newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0),
+			  $1, 0, 0);
+	}
 	;
 
 names_declaration_list
@@ -972,13 +982,13 @@ jump_statement
 	;
 
 define_statement
-	: DEFINE id '(' identifier_list ')' compound_statement
+	: DEFINE id '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, invert($4), $6, 0); }
 	| DEFINE id '('  ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $5, 0); }
 	| DEFINE id id compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $4, 0); }
-	| DEFINE id '(' identifier_list ')' '[' expression ']' compound_statement
+	| DEFINE id '(' arg_id_list ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, invert($4), $9, $7); }
 	| DEFINE id '('  ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $8, $6); }

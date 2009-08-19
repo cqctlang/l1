@@ -5046,18 +5046,23 @@ xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
 }
 
 static void
-xlist(VM *vm, Operand *op, Operand *dst)
+xlist(VM *vm, Operand *op1, Operand *op2, Operand *dst)
 {
 	Val v;
-	Imm sp, n, i;
+	Imm sp, n, m, i;
 	List *lst;
 	Val rv;
-	
-	v = getvalrand(vm, op);
+	Cval *cv;
+
+	v = getvalrand(vm, op1);
 	sp = valimm(v);
 	n = stkimm(vm->stack[sp]);
+	v = getvalrand(vm, op2);
+	cv = valcval(v);
+	m = cv->val;
+
 	lst = mklist();
-	for(i = 0; i < n; i++)
+	for(i = m; i < n; i++)
 		listappend(vm, lst, vm->stack[sp+1+i]);
 	rv = mkvallist(lst);
 	putvalrand(vm, rv, dst);
@@ -6557,6 +6562,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Isizeof]	= &&Isizeof;
 		gotab[Ispec] 	= &&Ispec;
 		gotab[Isub] 	= &&Isub;
+		gotab[Ivargc]	= &&Ivargc;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
 	}
@@ -6644,6 +6650,13 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		cv = valcval(val);
 		if(stkimm(vm->stack[vm->fp]) != cv->val)
 			vmerr(vm, "wrong number of arguments to %s",
+			      vm->clx->id);
+		continue;
+	Ivargc:
+		val = getvalrand(vm, &i->op1);
+		cv = valcval(val);
+		if(stkimm(vm->stack[vm->fp]) < cv->val)
+			vmerr(vm, "insufficient number of arguments to %s",
 			      vm->clx->id);
 		continue;
 	Icall:
@@ -6739,7 +6752,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		xxcast(vm, &i->op1, &i->op2, &i->dst);
 		continue;
 	Ilist:
-		xlist(vm, &i->op1, &i->dst);
+		xlist(vm, &i->op1, &i->op2, &i->dst);
 		continue;
 	Isizeof:
 		xsizeof(vm, &i->op1, &i->dst);
