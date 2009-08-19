@@ -1,45 +1,3 @@
-aug 18 2009
-
-	There is new syntax for variable arity
-	functions.  It accomplishes a similar
-	specification as the dotted list syntax
-	in Scheme lambda expressions.
-
-	For example, the expression
-
-		lambda(a, b ...) { ... }
-
-	evaluates to a variable arity function of at
-	least one parameter.  The first actual
-	parameter is bound to a.  The remaining
-	parameters are passed in a freshly allocated
-	list that is bound to b.
-
-	The original variable arity syntax
-
-		lambda x { ... }
-		
-	will soon go away, since it is equivalent to
-
-		lambda(x ...) { ... }
-
-
-aug 17 2009
-
-	The new syntax form @lazyapply calls a function
-	without evaluating its arguments.
-
-	The expression:
-
-		@lazyapply(<fn>, <arg>, ...)
-
-	is equivalent to
-
-		<fn>(lambda(){ <arg> }, ...);
-
-	Where <fn> and <arg> are arbitrary expressions.
-
-
 aug 10 2009
 
 	The new assignment operators ()= and {}= are
@@ -72,3 +30,45 @@ aug 10 2009
 	is equivalent to
 
 		x = {dom}x;
+
+
+aug 18 2009
+
+	The new syntax form @lazyapply calls a function
+	without evaluating its arguments.
+
+	The expression:
+
+		@lazyapply(<fn>, <arg>, ...)
+
+	is equivalent to
+
+		<fn>(lambda(){ <arg> }, ...);
+
+	Where <fn> and <arg> are arbitrary expressions.
+
+
+aug 19 2009
+
+	There is new syntax for variable arity
+	functions.  It accomplishes a similar
+	specification as the dotted list syntax
+	in Scheme lambda expressions.
+
+	For example, the expression
+
+		lambda(a, b ...) { ... }
+
+	evaluates to a variable arity function of at
+	least one parameter.  The first actual
+	parameter is bound to a.  The remaining
+	parameters are passed in a freshly allocated
+	list that is bound to b.
+
+	The original variable arity syntax
+
+		lambda x { ... }
+		
+	will soon go away, since it is equivalent to
+
+		lambda(x ...) { ... }
