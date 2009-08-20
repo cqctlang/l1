@@ -4800,7 +4800,7 @@ static void
 checkoverflow(VM *vm, unsigned dec)
 {
 	if(dec > vm->sp)
-		fatal("stack overflow");
+		vmerr(vm, "stack overflow");
 }
 
 static void
