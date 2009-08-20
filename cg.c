@@ -1111,8 +1111,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgbinop(code, p, e->op, &r1, &r2, loc, ctl, nxt, &e->src);
 		break;
 	case Ecall:
-		istail = (ctl == p->Return && (loc == AC || loc == Effect));
-
+		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
 		if(!istail){
 			if(loc != Effect)
 				R = genlabel(code, 0);

@@ -2,6 +2,7 @@
 ftab = mktab();
 define fn(val) {
        error("does this work?");
+       1; // suppress tail call
 }
 for(i = 0; i < 100000; i++){
 	finalize(i, fn);
