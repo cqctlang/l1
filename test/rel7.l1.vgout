@@ -1,7 +1,7 @@
 entry: var params, 4 locals, 0 temps
 docmp: 3 params, 0 locals, 0 temps
-L32: 0 params, 0 locals, 0 temps
-L37: 0 params, 0 locals, 0 temps
+L30: 0 params, 0 locals, 0 temps
+L34: 0 params, 0 locals, 0 temps
 ns1 == ns2 => 0
 ns1 != ns2 => 1
 ns1 == ns1 => 1
