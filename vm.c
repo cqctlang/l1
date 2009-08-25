@@ -10749,6 +10749,74 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(lp);
 }
 
+static Val
+expr2list(Expr *e)
+{
+	List *l;
+	Expr *p;
+
+	if(e == 0)
+		return Xnil;
+	l = mklist();
+	_listappend(l, mkvalstr(mkstr0(S[e->kind])));
+	_listappend(l, mkvalstr(mkstr0(e->src.filename)));
+	_listappend(l, mkvallitcval(Vuint, e->src.line));
+	switch(e->kind){
+	case Eid:
+		_listappend(l, mkvalstr(mkstr0(e->id)));
+		break;
+	case Econst:
+	case Econsts:
+		break;
+	case Ebinop:
+	case Egop:
+		_listappend(l, mkvalstr(mkstr0(S[e->op])));
+		_listappend(l, expr2list(e->e1));
+		_listappend(l, expr2list(e->e2));
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			_listappend(l, expr2list(p->e1));
+			p = p->e2;
+		}
+		break;
+	default:
+		_listappend(l, expr2list(e->e1));
+		_listappend(l, expr2list(e->e2));
+		_listappend(l, expr2list(e->e3));
+		_listappend(l, expr2list(e->e4));
+		break;
+	}
+	return mkvallist(l);
+}
+
+static void
+l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+	char *whence;
+	char *buf;
+
+	if(argc != 1 && argc != 2)
+		vmerr(vm, "wrong number of arguments to parse");
+	checkarg(vm, "parse", argv, 0, Qstr);
+	if(argc == 2)
+		checkarg(vm, "parse", argv, 1, Qstr);
+	buf = str2cstr(valstr(argv[0]));
+	whence = "<stdin>";
+	if(argc == 2)
+		whence = str2cstr(valstr(argv[1]));
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.out = &vm->top->out;
+	e = doparse(&ctx, buf, whence);
+	if(e == 0)
+		vmerr(vm, "could not parse expression");
+	*rv = expr2list(e);
+	freeexpr(e);
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -11267,6 +11335,7 @@ mktopenv()
 	FN(paramid);
 	FN(params);
 	FN(paramtype);
+	FN(parse);
 	FN(pop);
 	FN(push);
 	FN(putbytes);

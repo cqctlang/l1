@@ -28,6 +28,7 @@ char* S[] = {
 	[Earrow] =	"Earrow",
 	[Ebase] =	"Ebase",
 	[Eband] =	"Eband",
+	[Ebinop] =	"Ebinop",
 	[Ebitfield] =	"Ebitfield",
 	[Eblock] =	"Eblock",
 	[Ebor] =	"Ebor",
