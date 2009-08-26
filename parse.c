@@ -181,10 +181,8 @@ newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 	e->e2 = e2;	
 	e->e3 = e3;
 	e->e4 = e4;
-
 	if(src)
-		e->src = *src;
-
+		putsrc(e, src);
 	return e;
 }
 
@@ -314,6 +312,7 @@ copyexpr(Expr *e)
 	ne = emalloc(sizeof(Expr));
 	ne->kind = e->kind;
 	ne->attr = e->attr;
+	ne->src = e->src;
 	switch(e->kind){
 	case Eid:
 		ne->id = xstrdup(e->id);
@@ -828,12 +827,6 @@ doticksrc(Src *src, Expr *dom, Expr *id)
 	Expr *e;
 	e = newexprsrc(src, Etick, dom, id, 0, 0);
 	return e;
-}
-
-Expr*
-dotick(Expr *dom, Expr *id)
-{
-	return doticksrc(0, dom, id);
 }
 
 static Expr*
@@ -1419,11 +1412,14 @@ tryinclude(U *ctx, char *raw)
 	efree(full);
 }
 
+extern int yydebug;
+
 Expr*
 doparse(U *ctx, char *buf, char *whence)
 {
 	int yy;
 	Expr *rv;
+	yydebug = 1;
 	ctx->el = nullelist();
 	ctx->errors = 0;
 	if(setjmp(ctx->jmp) == 0){

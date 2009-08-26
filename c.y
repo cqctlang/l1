@@ -3,6 +3,8 @@
 #include "util.h"
 #include "syscqct.h"
 
+#define YYDEBUG 1
+
 extern int yylex();
 extern char *yytext;
 
@@ -68,6 +70,7 @@ extern char *yytext;
 %type <kind> unary_operator assignment_operator struct_or_union
 
 %start translation_unit_seq
+%debug
 %glr-parser
 %pure-parser
 %parse-param {U *ctx}

@@ -371,12 +371,41 @@ badnews:
 	efree(news);
 }
 
+static void
+l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	glob_t g;
+	char *pat;
+	int flags, r;
+	size_t m;
+	List *l;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to glob");
+	checkarg(vm, "glob", argv, 0, Qstr);
+	pat = str2cstr(valstr(argv[0]));
+	/* see GLOB_ALTDIRFUNC (osx & linux) */
+	flags = GLOB_TILDE|GLOB_BRACE;
+	r = glob(pat, flags, 0, &g);
+	efree(pat);
+	if(r && r != GLOB_NOMATCH){
+		globfree(&g);
+		vmerr(vm, "glob failed");
+	}
+	l = mklist();
+	for(m = 0; m < g.gl_pathc; m++)
+		_listappend(l, mkvalstr(mkstr0(g.gl_pathv[m])));
+	globfree(&g);
+	*rv = mkvallist(l);
+}
+
 void
 fnsys(Env *env)
 {
 	FN(getenv);
 	FN(getpid);
 	FN(gettimeofday);
+	FN(glob);
 	FN(insncnt);
 	FN(news);
 	FN(profoff);

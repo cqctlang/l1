@@ -765,7 +765,6 @@ Expr*		doid(char*);
 Expr*		doidn(char *s, unsigned long len);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
-Expr*		dotick(Expr*, Expr*);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 int		dotypes(U*, Expr*);

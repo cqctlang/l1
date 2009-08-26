@@ -1,0 +1,36 @@
+define parsefile(filename)
+{
+	return parse(sprintfa("@include \"%s\"", filename));
+}
+
+define cqctgrep(filename, pred)
+{
+	@local loop;
+	define loop(p){
+		@local kind, file, line;
+		if(p == nil)
+			return;
+		if(!islist(p))
+			return;
+		file = p[1];
+		line = p[2];
+		if(pred(p))
+			printf("%s:%u\n", file, line);
+		pop(p);
+		pop(p);
+		pop(p);
+		while(!isempty(p))
+			loop(pop(p));
+	}
+	loop(parsefile(filename));
+}
+
+define test1(filename)
+{
+	cqctgrep(filename, lambda(p) { return (p[0] == "Etab"); });
+}
+
+define test2(pat)
+{
+	foreach(lambda(f) {printf("%s\n", f); parsefile(f); }, glob(pat));
+}
