@@ -65,7 +65,7 @@ fns.$(CONF).c: $(L1EXTRAS)
 
 c.tab.c: c.y $(HDR)
 	@echo + bison $<
-	$(V)bison -t -d c.y
+	$(V)bison -d c.y
 
 c.tab.h: c.tab.c
 

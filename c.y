@@ -3,8 +3,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-#define YYDEBUG 1
-
 extern int yylex();
 extern char *yytext;
 
@@ -986,17 +984,17 @@ jump_statement
 
 define_statement
 	: DEFINE id '(' arg_id_list ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, invert($4), $6, 0); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
 	| DEFINE id '('  ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $5, 0); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
 	| DEFINE id id compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $4, 0); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, $3, $4, 0); }
 	| DEFINE id '(' arg_id_list ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, invert($4), $9, $7); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
 	| DEFINE id '('  ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $8, $6); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
 	| DEFINE id id '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $7, $5); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, $3, $7, $5); }
 	;
 
 defconst_statement

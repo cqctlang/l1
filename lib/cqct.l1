@@ -25,9 +25,20 @@ define cqctgrep(filename, pred)
 	loop(parsefile(filename));
 }
 
-define test1(filename)
+define cqctgreptabinit(filename)
 {
 	cqctgrep(filename, lambda(p) { return (p[0] == "Etab"); });
+}
+
+define cqctgrepvarg(filename)
+{
+	cqctgrep(filename, lambda(p) { 
+			if(p[0] == "Elambda" && p[3][0] == "Eid")
+				return 1;
+			if(p[0] == "Edefine" && p[4][0] == "Eid")
+				return 1;
+			return 0;
+		});
 }
 
 define test2(pat)

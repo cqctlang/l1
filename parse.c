@@ -1412,14 +1412,11 @@ tryinclude(U *ctx, char *raw)
 	efree(full);
 }
 
-extern int yydebug;
-
 Expr*
 doparse(U *ctx, char *buf, char *whence)
 {
 	int yy;
 	Expr *rv;
-	yydebug = 1;
 	ctx->el = nullelist();
 	ctx->errors = 0;
 	if(setjmp(ctx->jmp) == 0){
