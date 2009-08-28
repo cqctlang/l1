@@ -8648,7 +8648,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 	   && iargv[1]->qkind != Qvec
 	   && iargv[1]->qkind != Qtab)
 		vmerr(vm,
-		      "operand 1 to map must be a list, table, or vector");
+		      "operand 2 to map must be a list, table, or vector");
 	cl = valcl(iargv[0]);
 	r = mklist();
 	gcprotect(vm, mkvallist(r));
