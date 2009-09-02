@@ -359,16 +359,16 @@ main(int argc, char *argv[])
 			}
 		}
 
+		if(opt['t']){
+			gettimeofday(&beg, 0);
+			bt = rdtsc();
+		}
 		entry = cqctcompile(inbuf, filename, top, argsid);
 		free(inbuf);
 		if(entry == 0)
 			continue;
 		if(opt['x'] == 0)
 			continue; /* just compiling */
-		if(opt['t']){
-			gettimeofday(&beg, 0);
-			bt = rdtsc();
-		}
 		rv = cqctcallfn(vm, entry, valc, valv, &v);
 		if(opt['t']){
 			et = rdtsc();
