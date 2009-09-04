@@ -16,12 +16,12 @@ define dumpcode(hp)
 	nl = 0;
 	ml = 0;
 	mf = 0;
-	tab = {
+	tab = [
 		"code"   : 0,
 		"labels" : 0,
 		"insn"	 : 0,
 		"expr"	 : 0,
-	};
+	];
 	while(p){
 		if(p->color == dom`GCfree)
 			mf += esize(p);

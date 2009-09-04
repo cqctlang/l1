@@ -1,5 +1,5 @@
 
-tab = { "a" : 1, "b" : 2, "c" : 3 };
+tab = [ "a" : 1, "b" : 2, "c" : 3 ];
 while(length(tab)){
 	@local v;
 	v = pop(tab);

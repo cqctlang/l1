@@ -765,7 +765,6 @@ Expr*		doid(char*);
 Expr*		doidn(char *s, unsigned long len);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
-Expr*		dotick(Expr*, Expr*);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 int		dotypes(U*, Expr*);
@@ -777,6 +776,7 @@ void		freeexpr(Expr*);
 void		freelits(Lits *lits);
 void		initparse();
 Expr*		invert(Expr*);
+int		maybepopyy(U *ctx);
 Expr*		mkconst(Cbase base, Imm val); /* rename newconst? */
 Lits*		mklits(char*, unsigned len);
 Expr*		newbinop(unsigned, Expr*, Expr*);
@@ -786,6 +786,7 @@ Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr*		newgop(unsigned, Expr*, Expr*);
 Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
 Expr*		nullelist();
+Expr*		nullelistsrc(Src*);
 int		parseliti(char *s, unsigned long len, Liti *liti,
 			  unsigned radix, char **err);
 Expr*		ptrto(Expr*, Expr*);

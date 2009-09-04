@@ -181,10 +181,8 @@ newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 	e->e2 = e2;	
 	e->e3 = e3;
 	e->e4 = e4;
-
 	if(src)
-		e->src = *src;
-
+		putsrc(e, src);
 	return e;
 }
 
@@ -314,6 +312,7 @@ copyexpr(Expr *e)
 	ne = emalloc(sizeof(Expr));
 	ne->kind = e->kind;
 	ne->attr = e->attr;
+	ne->src = e->src;
 	switch(e->kind){
 	case Eid:
 		ne->id = xstrdup(e->id);
@@ -393,6 +392,12 @@ flatten(Expr *e)
 	if(nl->src.line == 0)
 		printf("no src for flatten!\n");
 	return nl;
+}
+
+Expr*
+nullelistsrc(Src *src)
+{
+	return newexprsrc(src, Enull, 0, 0, 0, 0);
 }
 
 Expr*
@@ -828,12 +833,6 @@ doticksrc(Src *src, Expr *dom, Expr *id)
 	Expr *e;
 	e = newexprsrc(src, Etick, dom, id, 0, 0);
 	return e;
-}
-
-Expr*
-dotick(Expr *dom, Expr *id)
-{
-	return doticksrc(0, dom, id);
 }
 
 static Expr*
@@ -1365,6 +1364,15 @@ popyy(U *ctx)
 	return 1;
 }
 
+int
+maybepopyy(U *ctx)
+{
+	/* keep top context in case parser needs to reduce */
+	if(ctx->inp == ctx->in)
+		return 0;
+	return popyy(ctx);
+}
+
 void
 tryinclude(U *ctx, char *raw)
 {
@@ -1424,10 +1432,10 @@ doparse(U *ctx, char *buf, char *whence)
 {
 	int yy;
 	Expr *rv;
-	ctx->el = nullelist();
-	ctx->errors = 0;
 	if(setjmp(ctx->jmp) == 0){
 		pushyy(ctx, whence, buf, 0);
+		ctx->el = nullelistsrc(&ctx->inp->src);
+		ctx->errors = 0;
 		yy = yyparse(ctx);
 		if(yy == 1 || ctx->errors)
 			return 0;

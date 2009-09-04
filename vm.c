@@ -10766,7 +10766,10 @@ expr2list(Expr *e)
 		_listappend(l, mkvalstr(mkstr0(e->id)));
 		break;
 	case Econst:
+		_listappend(l, mkvallitcval(e->liti.base, e->liti.val));
+		break;
 	case Econsts:
+		_listappend(l, mkvalstr(mkstr(e->lits->s, e->lits->len)));
 		break;
 	case Ebinop:
 	case Egop:

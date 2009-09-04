@@ -66,6 +66,7 @@ char* S[] = {
 	[Eg] =		"Eg",
 	[Ege] =		"Ege",
 	[Eglobal] =	"Eglobal",
+	[Egop] =	"Egop",
 	[Egt] =		"Egt",
 	[Eid] =		"Eid",
 	[Eif] =		"Eif",

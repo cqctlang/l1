@@ -1,4 +1,4 @@
-define dispatch args {
+define dispatch(args ...) {
 	@local i;
 	printf("dispatch invoked on %a\n", pop(args));
 	printf("dispatch method is %s\n", pop(args));
@@ -7,7 +7,7 @@ define dispatch args {
 }
 
 ns = c32le;
-as = mkas({ "dispatch" : dispatch }, "myas");
+as = mkas([ "dispatch" : dispatch ], "myas");
 dom = mkdom(ns, as, "mydom");
 printf("isns(dom.ns) = %d\n", isns(dom.ns));
 printf("isas(dom.as) = %d\n", isas(dom.as));

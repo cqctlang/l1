@@ -1,4 +1,4 @@
-tab1 = { "abc" : 1, "def" : 2, "ghi" : 3 };
+tab1 = [ "abc" : 1, "def" : 2, "ghi" : 3 ];
 
 tab2 = copy(tab1);
 

@@ -3805,7 +3805,6 @@ corresponds to the order of the elements
 in <span class="arg">container</span>.
 </div>
 
-
 </div>
 </div>
 
@@ -4004,6 +4003,47 @@ Returns <span class="arg">container</span> following the update.
 </div>
 </div>
 
+<p>
+Containers can be indexed with C array reference
+operator (<span class="id">[]</span>).  The statement
+
+<div class="code">
+<pre>
+	x = C[i];
+</pre>
+</div>
+
+reads the <span class="id">i</span>th element from
+container <span class="id">C</span>.  Likewise,
+
+<div class="code">
+<pre>
+	C[i] = x;
+</pre>
+</div>
+
+assigns the <span class="id">i</span>th element to
+the value bound to <span class="id">x</span>, and the
+statements
+
+<div class="code">
+<pre>
+	C[i] += 1;	C[i]++;
+</pre>
+</div>
+
+both increment the <span class="id">i</span>th element.
+</p>
+
+<p>
+Unlike its use on C arrays, the <span class="id">[]</span>
+operator on Cinquecento containers is not commutative.
+In an
+expression
+<span class="id"><span class="arg">C</span>[<span class="arg">i</span>]</span>,
+<span class="arg">C</span> must be a container and <span class="arg">i</span>
+a valid index for the container.  For tables, a valid index is a key.
+</p>
 
 <h4 id="sec:lists">Lists</h4>
 
@@ -4056,7 +4096,7 @@ otherwise to <span class="val">nil</span>.
 </div>
 </div>
 
-<div class="docitem">
+<div class="docitem" id="syn:[]">
 <div class="proto">
 <div class="syntax">
 <span class="id">[ <span class="arg">value</span>, ... ]</span>
@@ -4436,6 +4476,29 @@ a table.
 </div>
 <div class="desc">
 Creates and returns a new, empty table.
+</div>
+</div>
+
+
+<div class="docitem"  id="syn:[:]">
+<div class="proto">
+<div class="syntax">
+<span class="id">[ <span class="arg">key</span> : <span class="arg">value</span>, ... ]</span>
+</div>
+<div class="param">
+<span class="arg">key</span>: <span class="type">any type</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+This syntax constructs a
+new table containing the zero or more key/value pairs enclosed in the
+braces.  The syntax <span class="id">[ : ]</span> constructs an empty table.
 </div>
 </div>
 
@@ -6490,6 +6553,8 @@ machines sharing the environment have been freed.
 <table>
 <tr>
 <td>
+<a href="#syn:[]">[<span class="arg">value</span>, ... ]</a><br />
+<a href="#syn:[:]">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
 <a href="#syn:@const">@const</a><br />
 <a href="#syn:@global">@global</a><br />
 <a href="#syn:@include">@include</a><br />

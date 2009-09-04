@@ -1,6 +1,6 @@
-tab = { "abc" : 1,
+tab = [ "abc" : 1,
 	"def" : 2,
-	"ghi" : 3 };
+	"ghi" : 3 ];
 
 printf("expect 1 => %d\n", tab["abc"]);
 printf("expect 2 => %d\n", tab["def"]);
