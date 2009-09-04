@@ -579,13 +579,12 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 					   cs->max*sizeof(Expr),
 					   2*cs->max*sizeof(Expr));
 			cs->ctl = erealloc(cs->ctl,
-					   cs->max*sizeof(Expr),
-					   2*cs->max*sizeof(Expr));
+					   cs->max*sizeof(Ctl*),
+					   2*cs->max*sizeof(Ctl*));
 			cs->max *= 2;
 		}
 		cs->cmp[cs->n] = e;
 		cs->ctl[cs->n] = genlabel(code, 0);
-// xprintf("case label %s\n", cs->ctl[cs->n]->label);
 		cs->n++;
 		recswitchctl(e->e2, code, cs);
 		break;
@@ -593,7 +592,6 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 		if(cs->dflt)
 			fatal("too many default cases in switch");
 		cs->dflt = genlabel(code, 0);
-// xprintf("default label %s\n", cs->dflt->label);
 		cs->dflte = e;
 		recswitchctl(e->e1, code, cs);
 		break;
@@ -613,7 +611,7 @@ switchctl(Expr *e, Code *code)
 	cs = emalloc(sizeof(Cases));
 	cs->max = 128;
 	cs->cmp = emalloc(cs->max*sizeof(Expr*));
-	cs->ctl = emalloc(cs->max*sizeof(Expr*));
+	cs->ctl = emalloc(cs->max*sizeof(Ctl*));
 	recswitchctl(e, code, cs);
 	return cs;
 }
@@ -626,39 +624,35 @@ freeswitchctl(Cases *cs)
 	efree(cs);
 }
 
-static int
+static void
 reclabels(Expr *e, Code *code, HT *ls)
 {
-	int rv;
 	char *id;
 	Expr *p;
 
 	if(e == 0)
-		return 0;
+		return;
 	switch(e->kind){
 	case Elambda:
-		return 0;
+		break;
 	case Elabel:
 		id = e->e1->id;
-		if(hget(ls, id, strlen(id)))
-			/* duplicate label */
-			return -1;
 		hput(ls, id, strlen(id), genlabel(code, id));
-		return reclabels(e->e2, code, ls);
+		reclabels(e->e2, code, ls);
+		break;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			rv = reclabels(p->e1, code, ls);
-			if(rv)
-				return rv;
+			reclabels(p->e1, code, ls);
 			p = p->e2;
 		}
-		return 0;
+		break;
 	default:
-		return (reclabels(e->e1, code, ls)
-			|| reclabels(e->e2, code, ls)
-			|| reclabels(e->e3, code, ls)
-			|| reclabels(e->e4, code, ls));
+		reclabels(e->e1, code, ls);
+		reclabels(e->e2, code, ls);
+		reclabels(e->e3, code, ls);
+		reclabels(e->e4, code, ls);
+		break;
 	}
 }
 
@@ -667,10 +661,7 @@ labels(Expr *e, Code *code)
 {
 	HT *ls;
 	ls = mkht();
-	if(reclabels(e, code, ls)){
-		freeht(ls);
-		return 0;
-	}
+	reclabels(e, code, ls);
 	return ls;
 }
 
@@ -1721,10 +1712,6 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	p.Break = 0;
 	p.Continue = 0;
 	p.labels = labels(e->e2, code);
-	if(p.labels == 0)
-		/* FIXME: no way to bitch to the user from here; need
-		   a label verification pass in front end */
-		fatal("two bad programmers");
 
 	if(e->e4){
 		Ctl *L;
