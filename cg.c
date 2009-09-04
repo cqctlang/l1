@@ -579,13 +579,12 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 					   cs->max*sizeof(Expr),
 					   2*cs->max*sizeof(Expr));
 			cs->ctl = erealloc(cs->ctl,
-					   cs->max*sizeof(Expr),
-					   2*cs->max*sizeof(Expr));
+					   cs->max*sizeof(Ctl*),
+					   2*cs->max*sizeof(Ctl*));
 			cs->max *= 2;
 		}
 		cs->cmp[cs->n] = e;
 		cs->ctl[cs->n] = genlabel(code, 0);
-// xprintf("case label %s\n", cs->ctl[cs->n]->label);
 		cs->n++;
 		recswitchctl(e->e2, code, cs);
 		break;
@@ -593,7 +592,6 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 		if(cs->dflt)
 			fatal("too many default cases in switch");
 		cs->dflt = genlabel(code, 0);
-// xprintf("default label %s\n", cs->dflt->label);
 		cs->dflte = e;
 		recswitchctl(e->e1, code, cs);
 		break;
@@ -613,7 +611,7 @@ switchctl(Expr *e, Code *code)
 	cs = emalloc(sizeof(Cases));
 	cs->max = 128;
 	cs->cmp = emalloc(cs->max*sizeof(Expr*));
-	cs->ctl = emalloc(cs->max*sizeof(Expr*));
+	cs->ctl = emalloc(cs->max*sizeof(Ctl*));
 	recswitchctl(e, code, cs);
 	return cs;
 }
