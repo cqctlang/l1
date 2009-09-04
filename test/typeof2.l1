@@ -1,7 +1,7 @@
 define mkzas(len){
 	@local dispatch, str;
 	str = mkstr(len);
-	define dispatch args {
+	define dispatch(args ...) {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 1);
 
@@ -25,7 +25,7 @@ define mkzas(len){
 
 		printf("bad argument to dispatch!\n");
 	}
-	return mkas({ "dispatch" : dispatch });
+	return mkas([ "dispatch" : dispatch ]);
 }
 
 ns = @names c32le {

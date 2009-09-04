@@ -26,7 +26,7 @@ define mkindispatch(fd, eofk){
 		buf = nbuf;
 	}
 
-	define dispatch args {
+	define dispatch(args ...) {
 		@local method, r, s, beg, len, need;
 		method = listref(args, 1);
 		if(method == "get"){
@@ -101,7 +101,7 @@ define mkoutdispatch(fd, eofk){
 	off = 0;
 	max = 1024*1024;
 	buf = mkstr(max);
-	define dispatch args {
+	define dispatch(args ...) {
 		@local method, r, s, beg, len, need;
 		method = listref(args, 1);
 		if(method == "get"){
@@ -152,6 +152,6 @@ define mkoutdispatch(fd, eofk){
 }
 
 define mkfdas(fd, eofk){
-	return [ mkas({ "dispatch" : mkindispatch(fd, eofk) }),
-		 mkas({ "dispatch" : mkoutdispatch(fd, eofk) }) ];
+	return [ mkas([ "dispatch" : mkindispatch(fd, eofk) ]),
+		 mkas([ "dispatch" : mkoutdispatch(fd, eofk) ]) ];
 }

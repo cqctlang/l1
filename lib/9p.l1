@@ -1119,7 +1119,7 @@ define mount9p(fd)
 			return vector(mkrange(0, st->length));
 		}
 
-		return mkas({ "get" : get, "put" : put, "map" : map});
+		return mkas([ "get" : get, "put" : put, "map" : map ]);
 		
 	}
 

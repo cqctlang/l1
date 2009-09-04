@@ -1,4 +1,4 @@
-define foo args
+define foo(args ...)
 {
 	while(length(args))
 		printf("%a ", pop(args)());

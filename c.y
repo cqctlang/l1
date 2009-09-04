@@ -99,8 +99,6 @@ lambda_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
 	| LAMBDA '(' ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
-	| LAMBDA id compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Elambda, $2, $3, 0, 0); }
 	;
 
 defrec_expression
@@ -152,11 +150,11 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
 	| '[' argument_expression_list ',' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
-	| '{' ':' '}'
+	| '[' ':' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); }
-	| '{' table_init_list '}'
+	| '[' table_init_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
-	| '{' table_init_list ',' '}'
+	| '[' table_init_list ',' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| lambda_expression
 	| defrec_expression
@@ -987,14 +985,10 @@ define_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
 	| DEFINE id '('  ')' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
-	| DEFINE id id compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, $3, $4, 0); }
 	| DEFINE id '(' arg_id_list ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
 	| DEFINE id '('  ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
-	| DEFINE id id '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, $3, $7, $5); }
 	;
 
 defconst_statement

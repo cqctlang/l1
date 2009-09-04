@@ -140,6 +140,6 @@ printf("%a\n", ismember(l, 1));
 printf("%a\n", ismember(l, 2));
 printf("%a\n", ismember(l, 0));
 
-t = { "abc" : 1, "def" : 2 };
+t = [ "abc" : 1, "def" : 2 ];
 printf("%a\n", ismember(t, 1));
 printf("%a\n", ismember(t, "abc"));

@@ -67,6 +67,6 @@ define mksnapas(file)
 			return 1;
 	}
 
-	return mkas({ "map" : map, "get" : get,
-				"put" : put, "ismapped" : ismapped });
+	return mkas([ "map" : map, "get" : get,
+		      "put" : put, "ismapped" : ismapped ]);
 }
