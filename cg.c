@@ -17,6 +17,7 @@ struct CGEnv {
 	Ctl *Break;
 	Ctl *Continue;
 	Cases *cases;
+	HT *labels;
 } CGEnv;
 
 static Location toploc[8];
@@ -623,6 +624,60 @@ freeswitchctl(Cases *cs)
 	efree(cs->cmp);
 	efree(cs->ctl);
 	efree(cs);
+}
+
+static int
+reclabels(Expr *e, Code *code, HT *ls)
+{
+	int rv;
+	char *id;
+	Expr *p;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Elambda:
+		return 0;
+	case Elabel:
+		id = e->e1->id;
+		if(hget(ls, id, strlen(id)))
+			/* duplicate label */
+			return -1;
+		hput(ls, id, strlen(id), genlabel(code, id));
+		return reclabels(e->e2, code, ls);
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			rv = reclabels(p->e1, code, ls);
+			if(rv)
+				return rv;
+			p = p->e2;
+		}
+		return 0;
+	default:
+		return (reclabels(e->e1, code, ls)
+			|| reclabels(e->e2, code, ls)
+			|| reclabels(e->e3, code, ls)
+			|| reclabels(e->e4, code, ls));
+	}
+}
+
+static HT*
+labels(Expr *e, Code *code)
+{
+	HT *ls;
+	ls = mkht();
+	if(reclabels(e, code, ls)){
+		freeht(ls);
+		return 0;
+	}
+	return ls;
+}
+
+static void
+freelabels(HT *ls)
+{
+	freeht(ls);
 }
 
 static void
@@ -1559,6 +1614,19 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
+	case Egoto:
+		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		if(L == 0)
+			fatal("goto bug");
+		cgjmp(code, p, L, nxt, &e->src);
+		break;
+	case Elabel:
+		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		if(L == 0)
+			fatal("goto bug");
+		emitlabel(L, e);
+		cg(e->e2, code, p, loc, ctl, prv, nxt, tmp);
+		break;
 	default:
 		fatal("cg undefined for expression %d", e->kind);
 		break;
@@ -1652,6 +1720,11 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	p.Return = genlabel(code, 0);
 	p.Break = 0;
 	p.Continue = 0;
+	p.labels = labels(e->e2, code);
+	if(p.labels == 0)
+		/* FIXME: no way to bitch to the user from here; need
+		   a label verification pass in front end */
+		fatal("two bad programmers");
 
 	if(e->e4){
 		Ctl *L;
@@ -1674,6 +1747,7 @@ body:
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code, &e->src);
 	i->kind = Iret;
+	freelabels(p.labels);
 }
 
 Closure*

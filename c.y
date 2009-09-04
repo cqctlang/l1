@@ -26,7 +26,7 @@ extern char *yytext;
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
-%token CAST_ASSIGN XCAST_ASSIGN
+%token CAST_ASSIGN XCAST_ASSIGN GOTO
 %token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
@@ -948,7 +948,9 @@ selection_statement
 	;
 
 labeled_statement
-	: CASE expression ':' statement
+	: id ':' statement
+	  { $$ = newexprsrc(&ctx->inp->src, Elabel, $1, $3, NULL, NULL); }
+	| CASE expression ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
 	| DEFAULT ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Edefault, $3, NULL, NULL, NULL); }
@@ -970,7 +972,9 @@ iteration_statement
 	;
 
 jump_statement
-	: CONTINUE ';'
+	: GOTO id ';'
+	{ $$ = newexprsrc(&ctx->inp->src, Egoto, $2, 0, 0, 0); }
+	| CONTINUE ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Econtinue, 0, 0, 0, 0); }
 	| BREAK ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Ebreak, 0, 0, 0, 0); }
