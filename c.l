@@ -55,6 +55,7 @@ static int chars(YYSTYPE *lvalp, int);
 "enum"			{ count(ctx); return(ENUM); }
 "float"			{ count(ctx); return(FLOAT); }
 "for"			{ count(ctx); return(FOR); }
+"goto"			{ count(ctx); return(GOTO); }
 "if"			{ count(ctx); return(IF); }
 "int"			{ count(ctx); return(INT); }
 "lambda"		{ count(ctx); return(LAMBDA); }

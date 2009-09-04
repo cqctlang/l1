@@ -67,10 +67,12 @@ char* S[] = {
 	[Ege] =		"Ege",
 	[Eglobal] =	"Eglobal",
 	[Egop] =	"Egop",
+	[Egoto] =	"Egoto",
 	[Egt] =		"Egt",
 	[Eid] =		"Eid",
 	[Eif] =		"Eif",
 	[Ekon] =	"Ekon",
+	[Elabel] =	"Elabel",
 	[Elambda] =	"Elambda",
 	[Eland] =	"Eland",
 	[Elapply] =	"Elapply",
@@ -494,6 +496,10 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(")");
 		printcqct0(e->e2, ni);
 		break;
+	case Elabel:
+		xprintf("%s:\n", e->e1->id);
+		indent(ni); printcqct0(e->e2, ni);
+		break;
 	case Edefault:
 		xprintf("default:\n");
 		indent(ni); printcqct0(e->e1, ni);
@@ -579,6 +585,9 @@ printcqct0(Expr *e, unsigned ni)
 			}else
 				printcqct0(e->e3, ni);
 		}
+		break;
+	case Egoto:
+		xprintf("goto %s", e->e1->id);
 		break;
 	case Eret:
 		xprintf("return");
