@@ -949,7 +949,7 @@ selection_statement
 
 labeled_statement
 	: id ':' statement
-	  { $$ = newexprsrc(&ctx->inp->src, Elabel, $1, $3, NULL, NULL); }
+	  { $$ = newexprsrc(&$1->src, Elabel, $1, $3, NULL, NULL); }
 	| CASE expression ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
 	| DEFAULT ':' statement

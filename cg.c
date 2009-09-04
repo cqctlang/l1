@@ -624,39 +624,35 @@ freeswitchctl(Cases *cs)
 	efree(cs);
 }
 
-static int
+static void
 reclabels(Expr *e, Code *code, HT *ls)
 {
-	int rv;
 	char *id;
 	Expr *p;
 
 	if(e == 0)
-		return 0;
+		return;
 	switch(e->kind){
 	case Elambda:
-		return 0;
+		break;
 	case Elabel:
 		id = e->e1->id;
-		if(hget(ls, id, strlen(id)))
-			/* duplicate label */
-			return -1;
 		hput(ls, id, strlen(id), genlabel(code, id));
-		return reclabels(e->e2, code, ls);
+		reclabels(e->e2, code, ls);
+		break;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			rv = reclabels(p->e1, code, ls);
-			if(rv)
-				return rv;
+			reclabels(p->e1, code, ls);
 			p = p->e2;
 		}
-		return 0;
+		break;
 	default:
-		return (reclabels(e->e1, code, ls)
-			|| reclabels(e->e2, code, ls)
-			|| reclabels(e->e3, code, ls)
-			|| reclabels(e->e4, code, ls));
+		reclabels(e->e1, code, ls);
+		reclabels(e->e2, code, ls);
+		reclabels(e->e3, code, ls);
+		reclabels(e->e4, code, ls);
+		break;
 	}
 }
 
@@ -665,10 +661,7 @@ labels(Expr *e, Code *code)
 {
 	HT *ls;
 	ls = mkht();
-	if(reclabels(e, code, ls)){
-		freeht(ls);
-		return 0;
-	}
+	reclabels(e, code, ls);
 	return ls;
 }
 
@@ -1719,10 +1712,6 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	p.Break = 0;
 	p.Continue = 0;
 	p.labels = labels(e->e2, code);
-	if(p.labels == 0)
-		/* FIXME: no way to bitch to the user from here; need
-		   a label verification pass in front end */
-		fatal("two bad programmers");
 
 	if(e->e4){
 		Ctl *L;

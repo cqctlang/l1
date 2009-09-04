@@ -1,0 +1,8 @@
+if(13)
+	goto toomanylabels;
+
+toomanylabels:
+printf("do it\n");
+
+toomanylabels:
+printf("do it\n");

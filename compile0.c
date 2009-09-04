@@ -545,6 +545,109 @@ groomc(U *ctx, Expr *e)
 	}
 }
 
+static void checkgoto(U *ctx, Expr *e);
+#define UNUSEDLABEL ((void*)1)
+#define USEDLABEL   ((void*)2)
+
+static void
+labels(U *ctx, Expr *e, HT *ls)
+{
+	char *id;
+	Expr *p;
+
+	if(e == 0)
+		return;
+	switch(e->kind){
+	case Elambda:
+	case Edefine:
+		return;
+	case Elabel:
+		id = e->e1->id;
+		if(hget(ls, id, strlen(id)))
+			cerror(ctx, e, "duplicate label: %s", id);
+		e->e1->xp = UNUSEDLABEL;
+		hput(ls, id, strlen(id), e->e1);
+		labels(ctx, e->e2, ls);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			labels(ctx, p->e1, ls);
+			p = p->e2;
+		}
+		break;
+	default:
+		labels(ctx, e->e1, ls);
+		labels(ctx, e->e2, ls);
+		labels(ctx, e->e3, ls);
+		labels(ctx, e->e4, ls);
+		break;
+	}
+}
+
+static void
+reccheckgoto(U *ctx, Expr *e, HT *ls)
+{
+	char *id;
+	Expr *p;
+	void *q;
+
+	if(e == 0)
+		return;
+	switch(e->kind){
+	case Elambda:
+		checkgoto(ctx, e->e2);
+		break;
+	case Edefine:
+		checkgoto(ctx, e->e3);
+		break;
+	case Egoto:
+		id = e->e1->id;
+		q = hget(ls, id, strlen(id));
+		if(q == 0)
+			cerror(ctx, e, "undefined label: %s", id);
+		p = q;
+		p->xp = USEDLABEL;
+		reccheckgoto(ctx, e->e2, ls);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			reccheckgoto(ctx, p->e1, ls);
+			p = p->e2;
+		}
+		break;
+	default:
+		reccheckgoto(ctx, e->e1, ls);
+		reccheckgoto(ctx, e->e2, ls);
+		reccheckgoto(ctx, e->e3, ls);
+		reccheckgoto(ctx, e->e4, ls);
+		break;
+	}
+}
+
+static void
+check1label(void *u, char *k, void *q)
+{
+	Expr *p;
+	p = q;
+	if(p->xp == UNUSEDLABEL)
+		cerror((U*)u, q, "unused label: %s", p->id);
+	p->xp = 0; /* tidy */
+}
+
+static void
+checkgoto(U *ctx, Expr *e)
+{
+	HT *ls;
+
+	ls = mkht();
+	labels(ctx, e, ls);
+	reccheckgoto(ctx, e, ls);
+	hforeach(ls, check1label, ctx);
+	freeht(ls);
+}
+
 // checkctl: check that break and continue statements occur only within
 // control structures
 static void
@@ -608,6 +711,7 @@ static Expr*
 compile0(U *ctx, Expr* e)
 {
 	checkctl(ctx, e, 0, 0);
+	checkgoto(ctx, e);
 	groomc(ctx, e);
 	compile_rval(ctx, e, 0);
 	return e;
