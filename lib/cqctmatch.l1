@@ -1,0 +1,58 @@
+// search cqct source for syntactic patterns
+// example usage:  ./l1 lib/cqctmatch.l1 mylib/*.l1
+
+define parsefile(filename)
+{
+	return parse(sprintfa("@include \"%s\"", filename));
+}
+
+define cqctmatch(filename, pred)
+{
+	@local loop;
+	define loop(p){
+		@local kind, file, line;
+		if(p == nil)
+			return;
+		if(!islist(p))
+			return;
+		file = p[1];
+		line = p[2];
+		if(pred(p))
+			printf("%s:%u:\n", file, line);
+		pop(p);
+		pop(p);
+		pop(p);
+		while(!isempty(p))
+			loop(pop(p));
+	}
+	loop(parsefile(filename));
+	return tabkeys(hit);
+}
+
+hit = mktab();
+printf("{ key : val, ... } -> [ key : val, ... ]\n");
+foreach(lambda(f){
+		cqctmatch(f, lambda(p) {
+				if(p[0] != "Etab")
+					return 0;
+				if(hit[[p[1],p[2]]] != nil)
+					return 0;
+				hit[[p[1],p[2]]] = 1;
+				return 1;
+			});
+}, args);
+
+hit = mktab();
+printf("lambda arg body -> lambda (arg ...) body\n");
+printf("define id arg body -> define id (arg ...) body\n");
+foreach(lambda(f){
+		cqctmatch(f, lambda(p) {
+				if(!((p[0] == "Elambda" && p[3][0] == "Eid")
+				     || (p[0] == "Edefine" && p[4][0] == "Eid")))
+					return 0;
+				if(hit[[p[1],p[2]]] != nil)
+					return 0;
+				hit[[p[1],p[2]]] = 1;
+				return 1;
+			});
+}, args);
