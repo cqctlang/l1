@@ -72,3 +72,33 @@ aug 19 2009
 	will soon go away, since it is equivalent to
 
 		lambda(x ...) { ... }
+
+sep 04 2009
+
+	Three incompatible changes have been made to
+	Cinquecento syntax.
+
+	1. The original variable arity lambda syntax
+
+		lambda x <body>
+
+	   has been eliminated.  Instead, use
+
+		lambda(x ...) <body>
+
+	2. Similarly, the variable arity define syntax
+
+		define id x <body>
+
+	   has been eliminated.  Instead, use
+	
+		define id(x ...) <body>
+
+	3. Table initializer syntax now uses square
+	   braces instead of curly braces.  Forms like
+
+		tab = { <key> : <val>, ... };  // old
+	
+	   should now be written
+
+		tab = [ <key> : <val>, ... ];  // new
