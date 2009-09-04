@@ -395,6 +395,12 @@ flatten(Expr *e)
 }
 
 Expr*
+nullelistsrc(Src *src)
+{
+	return newexprsrc(src, Enull, 0, 0, 0, 0);
+}
+
+Expr*
 nullelist()
 {
 	return newexpr(Enull, 0, 0, 0, 0);
@@ -1358,6 +1364,15 @@ popyy(U *ctx)
 	return 1;
 }
 
+int
+maybepopyy(U *ctx)
+{
+	/* keep top context in case parser needs to reduce */
+	if(ctx->inp == ctx->in)
+		return 0;
+	return popyy(ctx);
+}
+
 void
 tryinclude(U *ctx, char *raw)
 {
@@ -1417,10 +1432,10 @@ doparse(U *ctx, char *buf, char *whence)
 {
 	int yy;
 	Expr *rv;
-	ctx->el = nullelist();
-	ctx->errors = 0;
 	if(setjmp(ctx->jmp) == 0){
 		pushyy(ctx, whence, buf, 0);
+		ctx->el = nullelistsrc(&ctx->inp->src);
+		ctx->errors = 0;
 		yy = yyparse(ctx);
 		if(yy == 1 || ctx->errors)
 			return 0;
