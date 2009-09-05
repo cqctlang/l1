@@ -1017,6 +1017,7 @@ Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
 
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
+void		cposterror(U *ctx, Expr *e, char *fmt, ...);
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
 void		cwarnl(U *ctx, Expr *e, char *fmt, ...);
 void		putsrc(Expr *e, Src *src);
