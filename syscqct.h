@@ -601,6 +601,13 @@ struct Block
 } Block;
 
 typedef
+struct Boxset
+{
+	Var **var;
+	unsigned max, n;
+} Boxset;
+
+typedef
 struct Location {
 	Var *var;		/* Ltopl */
 	unsigned loc;		/* access with LOC macros */

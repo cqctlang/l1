@@ -930,13 +930,14 @@ functions.
 
 <p>
 Cinquecento supports the control flow statements of C,
-including <span class="val">do</span>-<span class="val">while</span>,
+including the loop statments <span class="val">do</span>-<span class="val">while</span>,
 <span class="val">for</span>,
-and <span class="val">while</span> loops,
-and <span class="val">if</span>,
+and <span class="val">while</span>,
+the conditional statments <span class="val">if</span>,
 <span class="val">if</span>-<span class="val">else</span>,
 and <span class="val">switch</span> (with <span class="val">case</span>
-and <span class="val">default</span> labels) conditionals.
+and <span class="val">default</span> labels),
+and the <span class="val">goto</span> statement.
 </p>
 
 <p>
@@ -961,14 +962,16 @@ with a matching <span class="val">case</span> label, or to the
 optional <span class="val">default</span> label,
 regardless of where it appears, if
 no <span class="val">case</span> matches.
-Controls skips past the <span class="val">switch</span> body 
+Control skips past the <span class="val">switch</span> body 
 if there is no matching case
 and no <span class="val">default</span> label.
 </p>
 
 <p>
-Cinquecento does not (yet) implement
-<span class="val">goto</span>.
+None of the non-local control transfer statements
+(<span class="val">break</span>, <span class="val">continue</span>,
+<span class="val">goto</span>) can be used to leave
+or enter the body of a function.
 </p>
 
 <h4 id="sec:constants">Constants</h4>
