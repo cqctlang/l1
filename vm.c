@@ -5141,7 +5141,7 @@ sasget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	r = valrange(argv[1]);
 	beg = r->beg;
 	end = xcvalalu(vm, Iadd, beg, r->len);
-	if(beg->val > s->len)
+	if(beg->val > s->len)	/* FIXME: >=? */
 		vmerr(vm, "address space access out of bounds");
 	if(end->val > s->len)
 		vmerr(vm, "address space access out of bounds");
@@ -5211,6 +5211,102 @@ mksas(Str *s)
 		mkvalcl(mkccl("sasput", sasput, 1, mkvalstr(s))));
 	_tabput(mtab, mkvalstr(mkstr0("map")),
 		mkvalcl(mkccl("sasmap", sasmap, 1, mkvalstr(s))));
+	return mkastab(mtab, 0);
+}
+
+static void
+masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Str *s, *dat;
+	Range *r;
+	Cval *beg, *end;
+	Imm o;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to get");
+	checkarg(vm, "masget", argv, 1, Qrange);
+	s = valstr(disp[0]);
+	r = valrange(argv[1]);
+	beg = r->beg;
+	end = xcvalalu(vm, Iadd, beg, r->len);
+	o = (Imm)s->s;
+	if(beg->val < o)
+		vmerr(vm, "address space access out of bounds");
+	if(beg->val > o+s->len)	/* FIXME: >=? */
+		vmerr(vm, "address space access out of bounds");
+	if(end->val > o+s->len)
+		vmerr(vm, "address space access out of bounds");
+	if(beg->val > end->val)
+		vmerr(vm, "address space access out of bounds");
+	dat = strslice(s, beg->val-o, end->val-o); /* yee-haw! */
+	*rv = mkvalstr(dat);
+}
+
+static void
+masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Str *s, *dat;
+	Range *r;
+	Cval *beg, *end;
+	Imm o;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to put");
+	checkarg(vm, "masput", argv, 1, Qrange);
+	checkarg(vm, "masput", argv, 2, Qstr);
+	s = valstr(disp[0]);
+	r = valrange(argv[1]);
+	dat = valstr(argv[2]);
+	beg = r->beg;
+	o = (Imm)s->s;
+	if(r->len->val == 0 && beg->val <= o+s->len)
+		/* special case: empty string */
+		return;
+	end = xcvalalu(vm, Iadd, beg, r->len);
+	if(beg->val < o)
+		vmerr(vm, "address space access out of bounds");
+	if(beg->val >= o+s->len)
+		vmerr(vm, "address space access out of bounds");
+	if(end->val > o+s->len)
+		vmerr(vm, "address space access out of bounds");
+	if(beg->val > end->val)
+		vmerr(vm, "address space access out of bounds");
+	if(dat->len < r->len->val)
+		vmerr(vm, "short put");
+	/* FIXME: rationalize with l1_strput */
+	memcpy((char*)beg->val, dat->s, dat->len);
+}
+
+static void
+masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Val val;
+	Vec *v;
+	Str *s;
+	Imm o;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to map");
+	s = valstr(disp[0]);
+	v = mkvec(1);
+	o = (Imm)s->s;
+	val = mkvalrange(mkcval(vm->litdom, vm->litbase[Vptr], o),
+			 mkcval(vm->litdom, vm->litbase[Vptr], o+s->len));
+	_vecset(v, 0, val);
+	*rv = mkvalvec(v);
+}
+
+As*
+mkmas(Str *s)
+{
+	Tab *mtab;
+	mtab = mktab();
+	_tabput(mtab, mkvalstr(mkstr0("get")),
+		mkvalcl(mkccl("masget", masget, 1, mkvalstr(s))));
+	_tabput(mtab, mkvalstr(mkstr0("put")),
+		mkvalcl(mkccl("masput", masput, 1, mkvalstr(s))));
+	_tabput(mtab, mkvalstr(mkstr0("map")),
+		mkvalcl(mkccl("masmap", masmap, 1, mkvalstr(s))));
 	return mkastab(mtab, 0);
 }
 
@@ -8850,6 +8946,27 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *len;
+	Str *s;
+	As *as;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to malloc");
+	checkarg(vm, "malloc", argv, 0, Qcval);
+	len = valcval(argv[0]);
+	if(!isnatcval(len))
+		vmerr(vm, "malloc expects a non-negative length");
+	s = mkstrn(vm, len->val);
+	as = mkmas(s);
+	*rv = mkvalcval(mkdom(vm->litns, as, mkstr0("malloc")),
+			mkptrxtn(vm->litbase[Vchar],
+				 vm->litbase[Vptr]->rep),
+			(Imm)s->s);
+}
+
+static void
 l1_attroff(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
@@ -11280,6 +11397,7 @@ mktopenv()
 	FN(lookfield);
 	FN(looksym);
 	FN(looktype);
+	FN(malloc);
 	FN(map);
 	FN(memcpy);
 	FN(meminuse);
