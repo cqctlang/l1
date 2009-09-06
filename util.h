@@ -71,6 +71,7 @@ void		setproftimer(u32 usec, void(*fn)());
 void		threadexit(void *vp);
 void		threadinit();
 void		threadwait(Thread t);
+int		xioctl(int fd, unsigned long req, char *buf);
 int		xpopen(Imm argc, char **argv, unsigned flags, int *rfd);
 
 extern u64 cqctmeminuse;
