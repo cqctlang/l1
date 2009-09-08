@@ -107,6 +107,30 @@ reuseaddr(int fd)
 }
 
 static void
+l1_socket(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Xfd xfd;
+	Cval *dom, *type, *prot;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to socket");
+	checkarg(vm, "socket", argv, 0, Qcval);
+	checkarg(vm, "socket", argv, 1, Qcval);
+	checkarg(vm, "socket", argv, 2, Qcval);
+	dom = valcval(argv[0]);
+	type = valcval(argv[1]);
+	prot = valcval(argv[2]);
+	memset(&xfd, 0, sizeof(xfd));
+	xfd.fd = socket((int)dom->val, (int)type->val, (int)prot->val);
+	if(0 > xfd.fd)
+		vmerr(vm, "socket: %s", strerror(errno));
+	xfd.close = fdclose;
+	fd = mkfdfn(mkstr0("socket"), 0, &xfd);
+	*rv = mkvalfd(fd);
+}
+
+static void
 l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -199,6 +223,7 @@ l1_tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnnet(Env *env)
 {
+	FN(socket);
 	FN(tcpaccept);
 	FN(tcplisten);
 	FN(tcpopen);
