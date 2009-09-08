@@ -125,8 +125,10 @@ l1_socket(VM *vm, Imm argc, Val *argv, Val *rv)
 	xfd.fd = socket((int)dom->val, (int)type->val, (int)prot->val);
 	if(0 > xfd.fd)
 		vmerr(vm, "socket: %s", strerror(errno));
+	xfd.read = fdread;
+	xfd.write = fdwrite;
 	xfd.close = fdclose;
-	fd = mkfdfn(mkstr0("socket"), 0, &xfd);
+	fd = mkfdfn(mkstr0("socket"), Fread|Fwrite, &xfd);
 	*rv = mkvalfd(fd);
 }
 
