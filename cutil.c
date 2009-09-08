@@ -55,6 +55,24 @@ cerror(U *ctx, Expr *e, char *fmt, ...)
 	longjmp(ctx->jmp, 1);
 }
 
+void
+cposterror(U *ctx, Expr *e, char *fmt, ...)
+{
+	va_list args;
+	if(e->src.line)
+		cprintf(ctx->out,
+			"%s:%u: ",
+			e->src.filename ? e->src.filename : "<stdin>",
+			e->src.line);
+	else
+		cprintf(ctx->out, "<lost-location!>: ");
+	va_start(args, fmt);
+	cvprintf(ctx->out, fmt, args);
+	cprintf(ctx->out, "\n");
+	va_end(args);
+	ctx->errors++;
+}
+
 static Expr*
 Z0(unsigned kind)
 {

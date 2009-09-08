@@ -546,8 +546,10 @@ groomc(U *ctx, Expr *e)
 }
 
 static void checkgoto(U *ctx, Expr *e);
-#define UNUSEDLABEL ((void*)1)
-#define USEDLABEL   ((void*)2)
+enum {
+	Unusedlabel = 1,
+	Usedlabel,
+};
 
 static void
 labels(U *ctx, Expr *e, HT *ls)
@@ -564,9 +566,11 @@ labels(U *ctx, Expr *e, HT *ls)
 	case Elabel:
 		id = e->e1->id;
 		if(hget(ls, id, strlen(id)))
-			cerror(ctx, e, "duplicate label: %s", id);
-		e->e1->xp = UNUSEDLABEL;
-		hput(ls, id, strlen(id), e->e1);
+			cposterror(ctx, e, "duplicate label: %s", id);
+		else{
+			e->e1->attr = Unusedlabel;
+			hput(ls, id, strlen(id), e->e1);
+		}
 		labels(ctx, e->e2, ls);
 		break;
 	case Eelist:
@@ -605,9 +609,11 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		id = e->e1->id;
 		q = hget(ls, id, strlen(id));
 		if(q == 0)
-			cerror(ctx, e, "undefined label: %s", id);
-		p = q;
-		p->xp = USEDLABEL;
+			cposterror(ctx, e, "undefined label: %s", id);
+		else{
+			p = q;
+			p->attr = Usedlabel;
+		}
 		reccheckgoto(ctx, e->e2, ls);
 		break;
 	case Eelist:
@@ -631,9 +637,8 @@ check1label(void *u, char *k, void *q)
 {
 	Expr *p;
 	p = q;
-	if(p->xp == UNUSEDLABEL)
-		cerror((U*)u, q, "unused label: %s", p->id);
-	p->xp = 0; /* tidy */
+	if(p->attr == Unusedlabel)
+		cposterror((U*)u, p, "unused label: %s", p->id);
 }
 
 static void
@@ -726,5 +731,5 @@ docompile0(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return -1;	/* error */
 	compile0(ctx, e);
-	return 0;
+	return ctx->errors;
 }

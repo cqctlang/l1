@@ -102,3 +102,7 @@ sep 04 2009
 	   should now be written
 
 		tab = [ <key> : <val>, ... ];  // new
+
+sep 05 2009
+
+	The C goto statement is now supported.

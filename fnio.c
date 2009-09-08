@@ -83,6 +83,40 @@ l1_access(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Cval *req, *bufp;
+	int r;
+	Str *bufs;
+	char *p;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to ioctl");
+	checkarg(vm, "ioctl", argv, 0, Qfd);
+	checkarg(vm, "ioctl", argv, 1, Qcval);
+	if(argv[2]->qkind != Qstr && argv[2]->qkind != Qcval)
+		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
+	fd = valfd(argv[0]);
+	req = valcval(argv[1]);
+	if(argv[2]->qkind == Qstr){
+		bufs = valstr(argv[2]);
+		p = bufs->s;
+	}else{
+		bufp = valcval(argv[2]);
+		p = (char*)(uintptr_t)bufp->val;
+	}
+	if(fd->flags&Fclosed)
+		vmerr(vm, "attempt to ioctl on closed file descriptor");
+	if((fd->flags&Ffn) == 0)
+		vmerr(vm, "file descriptor does not support ioctl");
+	r = xioctl(fd->u.fn.fd, (unsigned long)req->val, p);
+	if(r == -1)
+		r = -errno;
+	*rv = mkvallitcval(Vint, r);
+}
+
+static void
 l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -273,6 +307,7 @@ void
 fnio(Env *env)
 {
 	FN(access);
+	FN(ioctl);
 	FN(mapfile);
 	FN(open);
 	FN(popen);

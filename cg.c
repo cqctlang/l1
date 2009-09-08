@@ -971,6 +971,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	unsigned narg, istail;
 	Lambda *l;
 	Block *b;
+	Boxset *bxst;
 	Location dst;
 	int m;
 	CGEnv np;
@@ -1606,6 +1607,12 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Egoto:
+		bxst = e->xp;
+		for(m = 0; m < bxst->n; m++){
+			i = nextinsn(code, &e->src);
+			i->kind = Ibox0;
+			randvarloc(&i->op1, bxst->var[m], 0);
+		}
 		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
 		if(L == 0)
 			fatal("goto bug");

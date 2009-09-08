@@ -1,0 +1,40 @@
+define foo(x)
+{
+	printf("foo(%d)\n", x);
+	switch(x){
+	case 1:
+		goto label1;
+	case 2:
+		goto label2;
+	case 3:
+		goto label3;
+	default:
+		printf("default\n");
+	}
+	return;
+	{
+		@local w;
+	label1:
+		printf("got to label! (w = %a)\n", w);
+		printf("kept going!\n");
+		{
+			@local y, z;
+		label2:
+			y = 5;
+			z = y+1;
+			w = y+z;
+			printf("got to label2!\n");
+			return;
+		}
+		{
+			@local x;
+		label3:
+			printf("got to label3 (x = %a, w = %a)!\n", x, w);
+		}
+	}
+}
+
+foo(0);
+foo(1);
+foo(2);
+foo(3);

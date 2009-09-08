@@ -266,3 +266,9 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 		return -eno; /* -errno of child */
 	}
 }
+
+int
+xioctl(int fd, unsigned long req, char *buf)
+{
+	return ioctl(fd, req, buf);
+}

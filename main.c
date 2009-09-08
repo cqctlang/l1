@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/param.h>
 #include <libgen.h>
 
 #include "cqct.h"
@@ -85,6 +86,17 @@ erealloc(void *p, size_t old, size_t new)
 		fatal("out of memory");
 	if(new > old)
 		memset(p+old, 0, new-old);
+	return p;
+}
+
+static char*
+xstrdup(char *s)
+{
+	void *p;
+	if(s == 0)
+		return NULL;
+	p = emalloc(strlen(s)+1);
+	memcpy(p, s, strlen(s));
 	return p;
 }
 
@@ -169,6 +181,165 @@ readfile(char *filename)
 	buf = readfd(fd);
 	close(fd);
 	return buf;
+}
+
+/*
+ * In place, rewrite name to compress multiple /, eliminate ., and process ..
+ * Lifted from plan9ports.
+ */
+#define SEP(x)	((x)=='/' || (x) == 0)
+char*
+cleanname(char *name)
+{
+	char *p, *q, *dotdot;
+	int rooted;
+
+	rooted = name[0] == '/';
+
+	/*
+	 * invariants:
+	 *	p points at beginning of path element we're considering.
+	 *	q points just past the last path element we wrote (no slash).
+	 *	dotdot points just past the point where .. cannot backtrack
+	 *		any further (no slash).
+	 */
+	p = q = dotdot = name+rooted;
+	while(*p) {
+		if(p[0] == '/')	/* null element */
+			p++;
+		else if(p[0] == '.' && SEP(p[1]))
+			p += 1;	/* don't count the separator in case it is nul */
+		else if(p[0] == '.' && p[1] == '.' && SEP(p[2])) {
+			p += 2;
+			if(q > dotdot) {	/* can backtrack */
+				while(--q > dotdot && *q != '/')
+					;
+			} else if(!rooted) {	/* /.. is / but ./../ is .. */
+				if(q != name)
+					*q++ = '/';
+				*q++ = '.';
+				*q++ = '.';
+				dotdot = q;
+			}
+		} else {	/* real path element */
+			if(q != name+rooted)
+				*q++ = '/';
+			while((*q = *p) != '/' && *q != 0)
+				p++, q++;
+		}
+	}
+	if(q == name)	/* empty string is really ``.'' */
+		*q++ = '.';
+	*q = '\0';
+	return name;
+}
+
+static char*
+searchpath(char *name)
+{
+	char *p, *np, *q, *w, *try;
+	unsigned nl;
+
+	nl = strlen(name);
+	p = getenv("PATH");
+	if(p == 0)
+		return 0;
+	q = p;
+	while(*p){
+		q = strchr(p, ':');
+		if(q == 0){
+			q = p+strlen(q); /* last element */
+			np = q;
+		}else
+			np = q+1;
+		try = emalloc(q-p+1+nl);
+		memcpy(try, p, q-p);
+		w = try+(q-p);
+		if(w[-1] != '/')
+			*w++ = '/';
+		memcpy(w, name, nl);
+//		printf("try: %s\n", try);
+		if(access(try, X_OK) == 0)
+			return try;
+		free(try);
+		p = np;
+	}
+	return 0;
+}
+
+static char*
+readlinkf(char *path)
+{
+	char *buf, *tmp, *p, *q;
+	struct stat st;
+	ssize_t sz, psz;
+
+//	printf("readlinkf(%s)\n", path);
+	buf = 0;
+	tmp = 0;
+	if(path[0] != '/' && path[0] != '.'){
+		path = searchpath(path);
+		if(path == 0)
+			goto fail;
+	}else
+		path = xstrdup(path);
+
+	if(path[0] != '/'){
+		buf = emalloc(MAXPATHLEN+1+strlen(path)+1);
+		p = getcwd(buf, MAXPATHLEN);
+		if(p == 0){
+//			printf("fail 1\n");
+			goto fail;
+		}
+		q = p+strlen(p);
+		if(*q != '/')
+			*q++ = '/';
+		memcpy(q, path, strlen(path));
+	}else
+		p = path;
+
+	while(1){
+//		printf("stat(%s)\n", p);
+		cleanname(p);
+//		printf("stat(clean:%s)\n", p);
+		if(0 > lstat(p, &st)){
+//			printf("fail 2\n");
+			goto fail;
+		}
+		if((st.st_mode&S_IFLNK) != S_IFLNK)
+			break;
+		tmp = buf;
+		buf = emalloc(MAXPATHLEN+1+strlen(p)+1);
+		sz = readlink(p, buf, MAXPATHLEN);
+		if(sz == -1){
+//			printf("fail 3\n");
+			goto fail;
+		}
+		if(buf[0] != '/'){
+			/* replace file name with symlink target */
+			psz = strlen(p);
+			while(p[psz-1] == '/')
+				p[--psz] = '0';
+			q = strrchr(p, '/');
+			if(*q == 0){
+//				printf("fail 4\n");
+				goto fail;
+			}
+			q++;
+			psz = q-p;
+			memmove(buf+psz, buf, sz);
+			memcpy(buf, p, psz);
+		}
+		p = buf;
+		free(tmp); tmp = 0;
+	}
+	return p;
+fail:
+//	printf("%s\n", strerror(errno));
+	free(path);
+	free(buf);
+	free(tmp);
+	return 0;
 }
 
 static void
@@ -294,6 +465,10 @@ main(int argc, char *argv[])
 		filename = argv[optind++];
 		dorepl = 0;
 	}
+
+	argv0 = readlinkf(argv0);
+	if(argv0 == 0)
+		fatal("cannot locate l1 executable");
 
 	if(opt['s']){
 		if(nlp >= Maxloadpath)
