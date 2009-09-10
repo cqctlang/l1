@@ -7770,10 +7770,11 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 		rp = rlookfield(vm, t, tag);
 		if(rp == 0)
 			continue;
-		r = veccopy(valvec(rp));
+		r = valvec(rp);
 		o = mkvalcval2(xcvalalu(vm, Iadd,
 					valcval(attroff(vecref(f, Attrpos))),
 					valcval(attroff(vecref(r, Attrpos)))));
+		r = veccopy(r);
 		_vecset(r, Attrpos, copyattr(vm, vecref(r, Attrpos), o));
 		return mkvalvec(r);
 	}
