@@ -3513,12 +3513,7 @@ putval(VM *vm, Val v, Location *loc)
 			vm->fp = valimm(v);
 			break;
 		case Rpc:
-			vm->pc = valimm(v);
-			break;
 		case Rcl:
-			vm->cl = v;
-			vmsetcl(vm, vm->cl);
-			break;
 		default:
 			fatal("bug");
 		}
@@ -3687,10 +3682,8 @@ getval(VM *vm, Location *loc)
 			return mkvalimm(vm->litdom, vm->litbase[Vuint], vm->sp);
 		case Rfp:
 			return mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp);
-		case Rpc:
-			return mkvalimm(vm->litdom, vm->litbase[Vuint], vm->pc);
 		case Rcl:
-			return vm->cl;
+		case Rpc:
 		default:
 			fatal("bug");
 		}
@@ -3739,7 +3732,6 @@ getcval(VM *vm, Location *loc)
 		case Rfp:
 			return mkcval(vm->litdom, vm->litbase[Vint], vm->fp);
 		case Rpc:
-			return mkcval(vm->litdom, vm->litbase[Vint], vm->pc);
 		case Rcl:
 		default:
 			fatal("bug");
