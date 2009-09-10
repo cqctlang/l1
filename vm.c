@@ -3507,11 +3507,7 @@ putval(VM *vm, Val v, Location *loc)
 			vm->ac = v;
 			break;
 		case Rsp:
-			vm->sp = valimm(v);
-			break;
 		case Rfp:
-			vm->fp = valimm(v);
-			break;
 		case Rpc:
 		case Rcl:
 		default:
@@ -3679,9 +3675,7 @@ getval(VM *vm, Location *loc)
 		case Rac:
 			return vm->ac;
 		case Rsp:
-			return mkvalimm(vm->litdom, vm->litbase[Vuint], vm->sp);
 		case Rfp:
-			return mkvalimm(vm->litdom, vm->litbase[Vuint], vm->fp);
 		case Rcl:
 		case Rpc:
 		default:
@@ -3728,9 +3722,7 @@ getcval(VM *vm, Location *loc)
 		case Rac:
 			return valcval(vm->ac);
 		case Rsp:
-			return mkcval(vm->litdom, vm->litbase[Vint], vm->sp);
 		case Rfp:
-			return mkcval(vm->litdom, vm->litbase[Vint], vm->fp);
 		case Rpc:
 		case Rcl:
 		default:
@@ -5044,14 +5036,12 @@ xlist(VM *vm, Operand *op1, Operand *op2, Operand *dst)
 	Imm sp, n, m, i;
 	List *lst;
 	Val rv;
-	Cval *cv;
 
 	v = getvalrand(vm, op1);
-	sp = valimm(v);
+	sp = vm->fp+valimm(v);
 	n = stkimm(vm->stack[sp]);
 	v = getvalrand(vm, op2);
-	cv = valcval(v);
-	m = cv->val;
+	m = valimm(v);
 
 	lst = mklist();
 	for(i = m; i < n; i++)
@@ -6597,6 +6587,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Isizeof]	= &&Isizeof;
 		gotab[Ispec] 	= &&Ispec;
 		gotab[Isub] 	= &&Isub;
+		gotab[Isubsp] 	= &&Isubsp;
 		gotab[Ivargc]	= &&Ivargc;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
@@ -6670,6 +6661,10 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Icmpeq:
 	Icmpneq:
 		xbinop(vm, i->kind, &i->op1, &i->op2, &i->dst);
+		continue;
+	Isubsp:
+		val = getvalrand(vm, &i->op1);
+		vm->sp -= valimm(val);
 		continue;
 	Imov:
 		xmov(vm, &i->op1, &i->dst);

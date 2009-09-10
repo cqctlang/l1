@@ -522,6 +522,7 @@ enum {
 	Isizeof,
 	Ispec,
 	Isub,
+	Isubsp,
 	Ivargc,
 	Ixcast,
 	Ixor,

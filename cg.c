@@ -431,6 +431,10 @@ printinsn(Code *code, Insn *i)
 		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
+	case Isubsp:
+		xprintf("subsp ", itos(i->kind));
+		printrand(code, &i->op1);
+		break;
 	case Imov:
 		xprintf("mov ");
 		printrand(code, &i->op1);
@@ -1672,10 +1676,8 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	}
 	if(l->nloc+l->ntmp > 0){
 		i = nextinsn(code, src);
-		i->kind = Isub;
-		randloc(&i->op1, SP);
-		randkon(&i->op2, konimm(code->konst, Vint, l->nloc+l->ntmp));
-		randloc(&i->dst, SP);
+		i->kind = Isubsp;
+		randkon(&i->op1, konimm(code->konst, Vint, l->nloc+l->ntmp));
 		needtop = 1;
 	}
 	if(l->isvarg){
@@ -1698,8 +1700,8 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		}
 		i = nextinsn(code, src);
 		i->kind = Ilist;
-		randloc(&i->op1, FP);
-		randkon(&i->op2, konimm(code->konst, Vint, m));
+		randkon(&i->op1, konimm(code->konst, Vuint, 0));
+		randkon(&i->op2, konimm(code->konst, Vuint, m));
 		randvarloc(&i->dst, &l->param[m], 1);
 	}else
 		for(m = 0; m < l->nparam; m++)
