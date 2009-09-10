@@ -4024,6 +4024,33 @@ typecast(VM *vm, Xtypename *xtn, Cval *cv)
 }
 
 Cval*
+domcastbase(VM *vm, Dom *dom, Cval *cv)
+{
+	Xtypename *xtn, *old, *new;
+	Str *es;
+
+	xtn = cv->type;
+	if(dom == vm->litdom)
+		xtn = chasetype(xtn);
+	if(xtn->tkind != Tbase)
+		vmerr(vm, "operand must be of base type");
+
+	/* FIXME: do we really want to lookup the type in the new domain? */
+	xtn = dom->ns->base[xtn->basename];
+	if(xtn == 0){
+		es = fmtxtn(cv->type);
+		vmerr(vm, "cast to domain that does not define %.*s",
+		      (int)es->len, es->s);
+	}
+	old = chasetype(cv->type);
+	new = chasetype(xtn);
+	if(old->rep == Rundef || new->rep == Rundef)
+		vmerr(vm, " attempt to cast to type "
+		      "with undefined representation");
+	return mkcval(dom, xtn, rerep(cv->val, old, new));
+}
+
+Cval*
 domcast(VM *vm, Dom *dom, Cval *cv)
 {
 	Xtypename *xtn, *old, *new;
@@ -4442,13 +4469,14 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	return mkcval(ptr->dom, ptr->type, n);
 }
 
-Cval*
-xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
+static Cval*
+xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
 	Xtypename *t1, *t2;
 
-	dompromote(vm, op, op1, op2, &op1, &op2);
+	if(op1->dom != op2->dom)
+		fatal("bug");
 	usualconvs(vm, op1, op2, &op1, &op2);
 	t1 = chasetype(op1->type);
 	t2 = chasetype(op2->type);
@@ -4500,6 +4528,13 @@ xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
 
 	rv = truncimm(rv, t1->rep);
 	return mkcval(op1->dom, op1->type, rv);
+}
+
+Cval*
+xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2)
+{
+	dompromote(vm, op, op1, op2, &op1, &op2);
+	return xcvalalu1dom(vm, op, op1, op2);
 }
 
 static Cval*
@@ -5658,21 +5693,19 @@ doenconsts(VM *vm, Vec *v, Ns *ns)
 	/* abstract domain for name space being extended */
 	d = mkdom(ns, mknas(), 0);
 
-	/* this code assumes that domcast does not dolooktype */
-
 	/* determine type that contains all constant values */
 	a = mkcval(d, d->ns->base[Vint], 0);
 	for(m = 0; m < v->len; m++){
 		e = valvec(vecref(v, m)); /* FIXME check sanity */
-		a = xcvalalu(vm, Iadd, a,
-			     domcast(vm, d, valcval(vecref(e, 1))));
+		a = xcvalalu1dom(vm, Iadd, a,
+				 domcastbase(vm, d, valcval(vecref(e, 1))));
 	}
 	t = a->type;
 
 	/* cast all values to new type */
 	for(m = 0; m < v->len; m++){
 		e = valvec(vecref(v, m)); /* FIXME check sanity */
-		cv = typecast(vm, t, domcast(vm, d, valcval(vecref(e, 1))));
+		cv = typecast(vm, t, domcastbase(vm, d, valcval(vecref(e, 1))));
 		val = mkvalcval2(cv);
 		vecset(vm, e, 1, val);
 	}
