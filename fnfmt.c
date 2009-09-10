@@ -677,7 +677,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	static char buf[3+Maxprintint];
 	Val *vpp, vp, vq;
-	Cval *cv;
+	Cval *cv, *ncv;
 	Str *as, *ys;
 	char *efmt;
 	char ch;
@@ -916,12 +916,15 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			vq = attroff(vecref(vec, Attrpos));
 			if(vq->qkind != Qcval)
 				goto bady;
-			cv = xcvalalu(vm, Isub, cv,
-				      typecast(vm, cv->dom->ns->base[Vptr],
+			/* FIXME: too complicated */
+			gcprotect(vm, cv);
+			ncv = xcvalalu(vm, Isub, cv,
+				       typecast(vm, cv->dom->ns->base[Vptr],
 					       valcval(vq)));
-			if(cv->val != 0){
+			gcunprotect(vm, cv);
+			if(ncv->val != 0){
 				snprint(buf, sizeof(buf),
-					 "+0x%" PRIx64, cv->val);
+					 "+0x%" PRIx64, ncv->val);
 				ys = mkstrn(vm, as->len+strlen(buf));
 				memcpy(ys->s, as->s, as->len);
 				memcpy(ys->s+as->len, buf, strlen(buf));
