@@ -8,6 +8,9 @@ export AR
 
 include mk.unix
 
+# inhibit OS X block declarations in system .h's
+CFLAGS += -U__BLOCKS__
+
 clean: cilclean
 
 cilclean:
