@@ -9415,6 +9415,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 	int intok, mflag;
 
 	r = mklist();
+	r = gcprotect(vm, r); /* valstrorcval(ornil) */
 
 	/* subject string */
 	if(argc != 1 && argc != 2 && argc != 3)
@@ -9483,6 +9484,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 			listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
 	}
 	efree(set);
+	gcunprotect(vm, r);
 	*rv = mkvallist(r);
 }
 
