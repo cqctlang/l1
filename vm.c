@@ -5388,7 +5388,7 @@ static Xtypename*
 _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 {
 	Val argv[2], rv;
-	Xtypename *tmp, *xtmp, *new;
+	Xtypename *tmp, *new;
 	Vec *vec;
 	Imm i;
 
@@ -5437,12 +5437,11 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = veccopy(valvec(vecref(xtn->param, i)));
-			xtmp = valxtn(vecref(vec, Typepos));
-			tmp = _dolooktype(vm, xtmp, ns);
+			vecset(vm, new->param, i, mkvalvec(vec));
+			tmp = _dolooktype(vm, valxtn(vecref(vec, Typepos)), ns);
 			if(tmp == 0)
 				return 0;
 			vecset(vm, vec, Typepos, mkvalxtn(tmp)); 
-			vecset(vm, new->param, i, mkvalvec(vec));
 		}
 		gcunprotect(vm, new);
 		return new;
