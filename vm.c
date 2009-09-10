@@ -4092,8 +4092,8 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		b1 = chasetype(op1->type);
 		b2 = chasetype(op2->type);
 		if(b1->tkind != Tptr && b2->tkind != Tptr){
-			op1 = domcast(vm, vm->litdom, op1);
-			op2 = domcast(vm, vm->litdom, op2);
+			op1 = domcastbase(vm, vm->litdom, op1);
+			op2 = domcastbase(vm, vm->litdom, op2);
 		}else if(b1->tkind == Tptr && b2->tkind == Tptr)
 			vmerr(vm, domerr);
 		else if(b1->tkind == Tptr){
