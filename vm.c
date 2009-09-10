@@ -6294,54 +6294,6 @@ myroot()
 	return r;
 }
 
-/* FIXME: this should be a domain constructor */
-static Dom*
-mksysdom(VM *vm)
-{
-	Ns *ns, *root;
-	Dom *dom;
-	Tab *rawtype, *rawsym;
-	Vec *v;
-	Str *id;
-	Xtypename *t;
-	Cval *o;
-	Val keyv, valv;
-	char *rootname;
-
-	rootname = myroot();
-//	xprintf("host name space: %s\n", rootname);
-	if(!envlookup(vm->top->env, rootname, &valv))
-		vmerr(vm, "undefined name space: %s", rootname);
-	root = valns(valv);
-
-	rawtype = mktab();
-	rawsym = mktab();
-
-	t = mkxtn();
-	t->tkind = Tarr;
-	t->cnt = mkvalcval(vm->litdom, vm->litbase[Vint], 256);
-	t->link = mkbasextn(Vchar, Rundef);
-	id = mkstr0("flags");
-	o = mkcval(vm->litdom, vm->litbase[Vptr], (Imm)(uintptr_t)&cqctflags);
-	
-	v = mkvec(3);
-	valv = mkvalxtn(t);
-	_vecset(v, Typepos, valv);
-	valv = mkvalstr(id);
-	_vecset(v, Idpos, valv);
-	valv = mkvalcval2(o);
-	_vecset(v, Attrpos, mkattr(valv));
-
-	keyv = mkvalstr(id);
-	valv = mkvalvec(v);
-	tabput(vm, rawsym, keyv, valv);
-
-	ns = mknsraw(vm, root, rawtype, rawsym, mkstr0("sys"));
-	dom = mkdom(ns, mksas(mkstrk(0, ~(0ULL), Sperm)), mkstr0("sys"));
-
-	return dom;
-}
-
 static void* gotab[Iopmax];
 
 static void
@@ -6568,7 +6520,7 @@ vmresetctl(VM *vm)
 	vm->edepth = 0;
 	vm->fp = 0;
 	vm->sp = Maxstk;
-	vm->ac = Xundef;
+	vm->ac = Xnil;
 	vm->cl = mkvalcl(panicthunk());
 }
 
@@ -6585,10 +6537,6 @@ vmresettop(VM *vm)
 	vm->litdom = valdom(val);
 	vm->litns = vm->litdom->ns;
 	vm->litbase = vm->litns->base;
-
-	/* toplevel bindings that require calling VM to construct */
-	if(!envlookup(vm->top->env, "sys", &val))
-		builtindom(vm->top->env, "sys", mksysdom(vm));
 }
 
 Fd*
