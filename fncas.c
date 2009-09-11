@@ -12,36 +12,9 @@ static Str* cache[NWAY];
 static unsigned idx[NWAY];
 static Imm nhit, nmiss, nspan;
 
-/* not right for dispatch calls */
-static void
-callmethod(VM *vm, Val this, Val id, Imm argc, Val *argv, Val *rv)
-{
-	Val v, xargv[4];
-	As *tas;
-	Closure *cl;
-	Imm xargc;
-
-	if(this->qkind != Qas)
-		vmerr(vm, "cas: callmethod botch");
-	tas = valas(this);
-	if(id->qkind != Qstr)
-		vmerr(vm, "cas: callmethod botch");
-	v = tabget(tas->mtab, id);
-	if(v == 0)
-		vmerr(vm, "cas: callmethod botch");
-	cl = valcl(v);
-	if(argc > 4)
-		vmerr(vm, "cas: callmethod botch");
-	xargc = argc;
-	memcpy(xargv+1, argv+1, (argc-1)*sizeof(Val));
-	xargv[0] = this;
-	*rv = dovm(vm, cl, xargc, xargv);
-}
-
 static void
 casget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Val vr;
 	Range *r;
 	Cval *beg, *len;
 	unsigned i;
@@ -56,8 +29,7 @@ casget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(((beg->val+len->val)>>NBITS) > a){
 		/* spans cache boundary...just read directly */
 		nspan++;
-		callmethod(vm, disp[0], mkvalstr(mkstr0("get")),
-			   argc, argv, rv);
+		*rv = mkvalstr(callget(vm, valas(disp[0]), beg->val, len->val));
 		return;
 	}
 	for(i = 0; i < NWAY; i++){
@@ -66,20 +38,11 @@ casget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 			goto havei;
 		}
 	}
-	vr = argv[1];
-	gcprotect(vm, vr);
-	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr],
-				    a<<NBITS),
-			     mkcval(vm->litdom, vm->litns->base[Vptr],
-				    1<<NBITS));
-	callmethod(vm, disp[0], mkvalstr(mkstr0("get")), argc, argv, rv);
-	argv[1] = vr;
-	gcunprotect(vm, vr);
+	s = callget(vm, valas(disp[0]), a<<NBITS, 1<<NBITS);
 	i = rand()%NWAY;
 	if(cache[i])
 		gcunpersist(vm, mkvalstr(cache[i]));
-	gcpersist(vm, *rv);
-	s = valstr(*rv);
+	gcpersist(vm, s);
 	cache[i] = s;
 	idx[i] = a;
 	nmiss++;
@@ -91,13 +54,19 @@ havei:
 static void
 casput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	callmethod(vm, disp[0], mkvalstr(mkstr0("put")), argc, argv, rv);
+	Range *r;
+	Cval *beg, *len;
+
+	r = valrange(argv[1]);
+	beg = r->beg;
+	len = r->len;
+	callput(vm, valas(disp[0]), beg->val, len->val, valstr(argv[2]));
 }
 
 static void
 casmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	callmethod(vm, disp[0], mkvalstr(mkstr0("map")), argc, argv, rv);
+	*rv = mkvalvec(callmap(vm, valas(disp[0])));
 }
 
 static void
