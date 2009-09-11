@@ -333,6 +333,7 @@ readlinkf(char *path)
 		p = buf;
 		free(tmp); tmp = 0;
 	}
+	free(path);
 	return p;
 fail:
 //	printf("%s\n", strerror(errno));
@@ -477,6 +478,7 @@ main(int argc, char *argv[])
 		lp[nlp] = emalloc(strlen(root)+1+4+1);
 		sprintf(lp[nlp++], "%s/lib", root);
 	}
+	free(argv0);
 	lp[nlp] = 0;
 
 	xfd = 0;
