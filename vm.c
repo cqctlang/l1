@@ -7695,9 +7695,11 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 		if(rp == 0)
 			continue;
 		r = valvec(rp);
+		gcprotect(vm, r);
 		o = mkvalcval2(xcvalalu(vm, Iadd,
 					valcval(attroff(vecref(f, Attrpos))),
 					valcval(attroff(vecref(r, Attrpos)))));
+		gcunprotect(vm, r);
 		r = veccopy(r);
 		_vecset(r, Attrpos, copyattr(vm, vecref(r, Attrpos), o));
 		return mkvalvec(r);
