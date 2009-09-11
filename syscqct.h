@@ -934,26 +934,13 @@ Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(VM *vm, Imm len);
 Tab*		mktab();
 Toplevel*	mktoplevel(Xfd *in, Xfd *out, Xfd *err);
-Val		mkvalas(As *as);
 Val		mkvalbox(Val boxed);
-Val		mkvalcl(Closure *cl);
 Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
-Val		mkvaldom(Dom *dom);
-Val		mkvalfd(Fd *fd);
-Val		mkvalimm(Dom *dom, Xtypename *t, Imm imm);
-Val		mkvallist(List *lst);
 Val		mkvallitcval(Cbase base, Imm imm);
-Val		mkvalns(Ns *ns);
 Val		mkvalpair(Val car, Val cdr);
 Val		mkvalrange(Cval *beg, Cval *len);
 Val		mkvalrange2(Range *r);
-Val		mkvalrd(Rd *rd);
-Val		mkvalrec(Rec *rec);
-Val		mkvalstr(Str *str);
-Val		mkvaltab(Tab *tab);
-Val		mkvalvec(Vec *vec);
-Val		mkvalxtn(Xtypename *xtn);
 Vec*		mkvec(Imm len);
 As*		mkzas(VM *vm, Imm len);
 Code*		newcode();
@@ -978,6 +965,19 @@ void		vecset(VM *vm, Vec *vec, Imm idx, Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
+#define mkvalas(x)	((Val)x)
+#define mkvalcl(x)	((Val)x)
+#define mkvaldom(x)	((Val)x)
+#define mkvalfd(x)	((Val)x)
+#define mkvallist(x)	((Val)x)
+#define mkvalns(x)	((Val)x)
+#define mkvalrd(x)	((Val)x)
+#define mkvalrec(x)	((Val)x)
+#define mkvalstr(x)	((Val)x)
+#define mkvaltab(x)	((Val)x)
+#define mkvalvec(x)	((Val)x)
+#define mkvalxtn(x)	((Val)x)
+
 #define valas(v)	((As*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valcl(v)	((Closure*)(v))

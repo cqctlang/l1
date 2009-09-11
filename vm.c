@@ -3353,24 +3353,10 @@ mkvallitcval(Cbase base, Imm imm)
 	return (Val)mklitcval(base, imm);
 }
 
-/* the difference between mkvalimm and mkvalcval is usage:
-   the former is for VM literals, the latter for other values */
-Val
-mkvalimm(Dom *dom, Xtypename *t, Imm imm)
-{
-	return mkvalcval(dom, t, imm);
-}
-
 Val
 mkvalcval2(Cval *cv)
 {
 	return (Val)cv;
-}
-
-Val
-mkvalcl(Closure *cl)
-{
-	return (Val)cl;
 }
 
 Val
@@ -3383,36 +3369,6 @@ mkvalbox(Val boxed)
 }
 
 Val
-mkvalas(As *as)
-{
-	return (Val)as;
-}
-
-Val
-mkvaldom(Dom *dom)
-{
-	return (Val)dom;
-}
-
-Val
-mkvalfd(Fd *fd)
-{
-	return (Val)fd;
-}
-
-Val
-mkvallist(List *lst)
-{
-	return (Val)lst;
-}
-
-Val
-mkvalns(Ns *ns)
-{
-	return (Val)ns;
-}
-
-Val
 mkvalpair(Val car, Val cdr)
 {
 	Pair *pair;
@@ -3420,36 +3376,6 @@ mkvalpair(Val car, Val cdr)
 	pair->car = car;
 	pair->cdr = cdr;
 	return (Val)pair;
-}
-
-Val
-mkvalrec(Rec *rec)
-{
-	return (Val)rec;
-}
-
-Val
-mkvalrd(Rd *desc)
-{
-	return (Val)desc;
-}
-
-Val
-mkvalstr(Str *str)
-{
-	return (Val)str;
-}
-
-Val
-mkvaltab(Tab *tab)
-{
-	return (Val)tab;
-}
-
-Val
-mkvalvec(Vec *vec)
-{
-	return (Val)vec;
 }
 
 Range*
@@ -3474,12 +3400,6 @@ Val
 mkvalrange2(Range *r)
 {
 	return (Val)r;
-}
-
-Val
-mkvalxtn(Xtypename *xtn)
-{
-	return (Val)xtn;
 }
 
 static void
