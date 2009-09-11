@@ -4618,8 +4618,10 @@ dostr:
 	if(v1->qkind == Qstr && v2->qkind == Qcval){
 		cv2 = valcval(v2);
 		if(isstrcval(cv2)){
+			gcprotect(vm, v1);
 			s1 = valstr(v1);
 			s2 = stringof(vm, cv2);
+			gcunprotect(vm, v1);
 			goto dostr;
 		}
 		/* fall through */
@@ -4628,8 +4630,10 @@ dostr:
 	if(v2->qkind == Qstr && v1->qkind == Qcval){
 		cv1 = valcval(v1);
 		if(isstrcval(cv1)){
+			gcprotect(vm, v2);
 			s1 = stringof(vm, cv1);
 			s2 = valstr(v2);
+			gcunprotect(vm, v2);
 			goto dostr;
 		}
 		/* fall through */
