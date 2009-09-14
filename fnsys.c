@@ -399,6 +399,50 @@ l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallist(l);
 }
 
+static void
+l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	unsigned long i, xarg[5];
+	Cval *cv;
+	int xrv, sysn;
+
+
+	if(argc < 1)
+		vmerr(vm, "too few arguments to syscall");
+	if(argc > 6)
+		vmerr(vm, "too many arguments to syscall");
+	checkarg(vm, "syscall", argv, 0, Qcval);
+	cv = valcval(argv[0]);
+	sysn = (int)cv->val;
+	for(i = 1; i < argc; i++){
+		checkarg(vm, "syscall", argv, i, Qcval);
+		cv = valcval(argv[i]);
+		xarg[i-1] = (unsigned long)cv->val;
+	}
+	switch(argc){
+	case 1:
+		xrv = syscall(sysn);
+		break;
+	case 2:
+		xrv = syscall(sysn, xarg[0]);
+		break;
+	case 3:
+		xrv = syscall(sysn, xarg[0], xarg[1]);
+		break;
+	case 4:
+		xrv = syscall(sysn, xarg[0], xarg[1], xarg[2]);
+		break;
+	case 5:
+		xrv = syscall(sysn, xarg[0], xarg[1], xarg[2], xarg[3]);
+		break;
+	case 6:
+		xrv = syscall(sysn, xarg[0], xarg[1], xarg[2], xarg[3],
+			      xarg[4]);
+		break;
+	}
+	*rv = mkvallitcval(Vint, (Imm)xrv);
+}
+
 void
 fnsys(Env *env)
 {
@@ -412,4 +456,5 @@ fnsys(Env *env)
 	FN(profon);
 	FN(rand);
 	FN(randseed);
+	FN(syscall);
 }
