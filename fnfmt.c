@@ -842,7 +842,8 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				cv = valcval(vp);
 				if(!isstrcval(cv))
 					goto badarg;
-				if(cv->val == 0)
+				if(cv->val == 0 && ch == 's'
+				   && !ismapped(vm, cv->dom->as, cv->val, 1))
 					as = mkstr0("(null)");
 				else
 					as = stringof(vm, cv);

@@ -7180,25 +7180,19 @@ stringof(VM *vm, Cval *cv)
 	return s;
 }
 
-static int
-ismapped(VM *vm, Cval *addr, Cval *len)
+int
+ismapped(VM *vm, As *as, Imm addr, Imm len)
 {
-	Imm sz;
 	Vec *v;
 	Range *r;
 
 	if(len == 0)
-		sz = typesize(vm, addr->type);
-	else{
-		if(!isnatcval(len))
-			vmerr(vm, "ismapped expects a non-negative length");
-		sz = len->val;
-	}
-	if(addr->val+sz < addr->val)
-		/* bogus size */
+		return 0;
+	if(addr+len < len)
+		/* bogus length */
 		return 0;	
-	v = callmap(vm, addr->dom->as);
-	r = mapstab(vm, v, addr->val, sz);	/* FIXME: type sanity */
+	v = callmap(vm, as);
+	r = mapstab(vm, v, addr, len);	/* FIXME: type sanity */
 	return r != 0;
 }
 
@@ -9585,16 +9579,22 @@ static void
 l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *addr, *len;
+	Imm sz;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to ismapped");
 	checkarg(vm, "ismapped", argv, 0, Qcval);
 	addr = valcval(argv[0]);
-	len = 0;
+	sz = 0;
 	if(argc == 2){
 		checkarg(vm, "ismapped", argv, 1, Qcval);
 		len = valcval(argv[1]);
+		if(!isnatcval(len))
+			vmerr(vm, "ismapped expects a non-negative length");
+		sz = len->val;
 	}
-	if(ismapped(vm, addr, len))
+	if(sz == 0)
+		sz = typesize(vm, addr->type);
+	if(ismapped(vm, addr->dom->as, addr->val, sz))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
