@@ -252,7 +252,7 @@ searchpath(char *name)
 			np = q;
 		}else
 			np = q+1;
-		try = emalloc(q-p+1+nl);
+		try = emalloc(q-p+1+nl+1);
 		memcpy(try, p, q-p);
 		w = try+(q-p);
 		if(w[-1] != '/')
@@ -274,7 +274,6 @@ readlinkf(char *path)
 	struct stat st;
 	ssize_t sz, psz;
 
-//	printf("readlinkf(%s)\n", path);
 	buf = 0;
 	tmp = 0;
 	if(path[0] != '/' && path[0] != '.'){
@@ -287,44 +286,35 @@ readlinkf(char *path)
 	if(path[0] != '/'){
 		buf = emalloc(MAXPATHLEN+1+strlen(path)+1);
 		p = getcwd(buf, MAXPATHLEN);
-		if(p == 0){
-//			printf("fail 1\n");
+		if(p == 0)
 			goto fail;
-		}
 		q = p+strlen(p);
 		if(*q != '/')
 			*q++ = '/';
 		memcpy(q, path, strlen(path));
+		free(path);
 	}else
-		p = path;
+		p = buf = path;
 
 	while(1){
-//		printf("stat(%s)\n", p);
 		cleanname(p);
-//		printf("stat(clean:%s)\n", p);
-		if(0 > lstat(p, &st)){
-//			printf("fail 2\n");
+		if(0 > lstat(p, &st))
 			goto fail;
-		}
 		if((st.st_mode&S_IFLNK) != S_IFLNK)
 			break;
 		tmp = buf;
 		buf = emalloc(MAXPATHLEN+1+strlen(p)+1);
 		sz = readlink(p, buf, MAXPATHLEN);
-		if(sz == -1){
-//			printf("fail 3\n");
+		if(sz == -1)
 			goto fail;
-		}
 		if(buf[0] != '/'){
 			/* replace file name with symlink target */
 			psz = strlen(p);
 			while(p[psz-1] == '/')
 				p[--psz] = '0';
 			q = strrchr(p, '/');
-			if(*q == 0){
-//				printf("fail 4\n");
+			if(*q == 0)
 				goto fail;
-			}
 			q++;
 			psz = q-p;
 			memmove(buf+psz, buf, sz);
@@ -333,10 +323,9 @@ readlinkf(char *path)
 		p = buf;
 		free(tmp); tmp = 0;
 	}
-	free(path);
+
 	return p;
 fail:
-//	printf("%s\n", strerror(errno));
 	free(path);
 	free(buf);
 	free(tmp);
