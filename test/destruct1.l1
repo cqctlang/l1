@@ -1,0 +1,11 @@
+
+
+define foo()
+{
+	printf("in foo!\n");
+	return [1,2,3];
+}
+
+[a,b,c] = foo();
+
+printf("%a %a %a\n", a, b, c);
