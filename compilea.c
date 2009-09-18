@@ -698,7 +698,7 @@ expandm(U *ctx, Expr *e)
 			se = Zcons(Zset(doid(p->e1->id),
 					Zcall(G("cntrget"), 2,
 					      doid("$tmp"),
-					      Zuint(i++))),
+					      Zint(i++))),
 				   se);
 			p = p->e2;
 		}

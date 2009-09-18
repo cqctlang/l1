@@ -189,6 +189,12 @@ Zuint(Imm val)
 }
 
 Expr*
+Zint(Imm val)
+{
+	return mkconst(Vint, val);
+}
+
+Expr*
 Znil()
 {
 	return Z0(Enil);

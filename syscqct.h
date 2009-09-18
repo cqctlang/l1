@@ -1035,6 +1035,7 @@ Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
 Expr*		Zids2strs(Expr *l);
 Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
+Expr*		Zint(Imm val);
 Expr*		Zkon(Val v);
 Expr*		Zlambda(Expr *args, Expr *body);
 Expr*		Zlambdn(Expr *args, Expr *body, Expr *name, Expr *spec);
