@@ -1,4 +1,4 @@
 entry: var params, 2 locals, 0 temps
-foo: 0 params, 0 locals, 0 temps
+foo: 0 params, 1 locals, 0 temps
 in foo!
 1 2 3
