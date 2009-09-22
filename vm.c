@@ -6578,8 +6578,9 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	goto enter;
 	while(1){
 		s1 = rdtsc();
-		if(s1 < s0)
-			printf("rollback\n");
+// FIXME: rollback happens on multiprocessors
+//		if(s1 < s0)
+//			printf("rollback\n");
 		i->cnt += s1-s0;
 	enter:
 		s0 = s1;
