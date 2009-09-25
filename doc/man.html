@@ -3763,10 +3763,10 @@ Returns a shallow copy of <span class="arg">container</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:foreach">foreach(<span class="arg">fn</span>,<span class="arg">container</span>, [ <span class="arg">container2</span>, ...])</span>
+<span class="id" id="fn:foreach">foreach(<span class="arg">fn</span>,<span class="arg">container</span>,[<span class="arg">container2</span>, ...])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:map">map(<span class="arg">fn</span>,<span class="arg">container</span>[ <span class="arg">container2, ...</span>])</span>
+<span class="id" id="fn:map">map(<span class="arg">fn</span>,<span class="arg">container</span>,[<span class="arg">container2, ...</span>])</span>
 </div>
 <div class="param">
 <span class="arg">fn</span>: <span class="type">function</span>
@@ -3783,9 +3783,9 @@ Returns a shallow copy of <span class="arg">container</span>.
 </div>
 <div class="desc">
 
-Calls <span class="arg">fn</span> on each item in <span
-class="arg">container</span>. 
-For lists and vectors,
+Calls <span class="arg">fn</span> on each item in the provided <span
+class="arg">containers</span>. 
+If all containers are lists and vectors,
 <span class="id">foreach</span> 
 iterates through the lists in order, 
 calling <span class="arg">fn</span>
@@ -3794,7 +3794,8 @@ If the provided function
 does not accept as many arguements as there are containers,
 there will be an error. Likewise if the provided containers
 are not the same size, there will be an error.
- For tables, no other containers may be provided, and 
+If <span class="arg"</span>container</span> is a table,
+then no other containers may be provided, and 
 <span class="id">foreach</span> visits each key/value pair in
 unspecified order, calling <span class="arg">fn</span>
 with the key and value, in that order, as separate
@@ -3815,7 +3816,7 @@ are vectors or lists,
 the order of the elements in
 the list returned by <span class="id">map</span>
 corresponds to the order of the elements
-in <span class="arg">container</span>.
+in the <span class="arg">containers</span>.
 </div>
 
 </div>
