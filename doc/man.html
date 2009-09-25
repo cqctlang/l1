@@ -3763,16 +3763,19 @@ Returns a shallow copy of <span class="arg">container</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:foreach">foreach(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
+<span class="id" id="fn:foreach">foreach(<span class="arg">fn</span>,<span class="arg">container</span>, [ <span class="arg">container2</span>, ...])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:map">map(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
+<span class="id" id="fn:map">map(<span class="arg">fn</span>,<span class="arg">container</span>[ <span class="arg">container2, ...</span>])</span>
 </div>
 <div class="param">
 <span class="arg">fn</span>: <span class="type">function</span>
 </div>
 <div class="param">
 <span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">container2, ... </span>: <span class="type">list</span> or <span class="type">vector</span>
 </div>
 <div class="returns">
 <span class="type">see description</span>
@@ -3781,11 +3784,18 @@ Returns a shallow copy of <span class="arg">container</span>.
 <div class="desc">
 
 Calls <span class="arg">fn</span> on each item in <span
-class="arg">container</span>.  For lists and vectors,
-<span class="id">foreach</span> visits each item in
-sequential order, calling <span class="arg">fn</span>
-with the item as the sole argument.  For tables, <span
-class="id">foreach</span> visits each key/value pair in
+class="arg">container</span>. 
+For lists and vectors,
+<span class="id">foreach</span> 
+iterates through the lists in order, 
+calling <span class="arg">fn</span>
+with each container providing exactly one item as an argument.
+If the provided function
+does not accept as many arguements as there are containers,
+there will be an error. Likewise if the provided containers
+are not the same size, there will be an error.
+ For tables, no other containers may be provided, and 
+<span class="id">foreach</span> visits each key/value pair in
 unspecified order, calling <span class="arg">fn</span>
 with the key and value, in that order, as separate
 arguments.
@@ -3800,8 +3810,8 @@ returned by <span class="arg">fn</span> and returns
 <span class="id">Map</span> is like <span class="id">foreach</span>
 except that it collects the values
 returned by <span class="arg">fn</span> in a list,
-and returns the list.  If <span class="arg">container</span>
-is a vector or list,
+and returns the list.  If the <span class="arg">containers</span>
+are vectors or lists,
 the order of the elements in
 the list returned by <span class="id">map</span>
 corresponds to the order of the elements

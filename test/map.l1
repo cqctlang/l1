@@ -1,0 +1,8 @@
+vec = mkvec(5,1);
+lst = [1,2,3,4,5];
+mp = [ 1 : "one", 2 : "two", 3 : "three" ];
+
+print(map(lambda(x,y) { sprintfa("%d,%s",x,y); }, mp));
+print(map(lambda(x) { x+1; }, vec));
+print(map(lambda(x) { x+1; }, lst));
+
