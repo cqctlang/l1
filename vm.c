@@ -8571,14 +8571,15 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 	Closure *cl;
 	Imm m, i, len, len2;
 	Val* argv;
-
-	if (argc < 2)
-		vmerr(vm, "foreach needs at least two arguments.");
+	
+	if(argc < 2)
+		vmerr(vm, "wrong number of arguments to foreach");
 	checkarg(vm, "foreach", iargv, 0, Qcl);
-	//handle the case where the first argument is a table.
-	if (iargv[1]->qkind == Qtab) {
-		if (argc > 2) 
-			vmerr(vm, "when second argument is a table, foreach takes only 2 arguments.");
+
+	// tables: only one container operand
+	if(iargv[1]->qkind == Qtab){
+		if(argc > 2) 
+			vmerr(vm, "bad combination of containers");
 		cl = valcl(iargv[0]);
 		t = valtab(iargv[1]);
 		k = tabenumkeys(t);
@@ -8594,42 +8595,52 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 		gcunprotect(vm, v);
 		gcunprotect(vm, k);
 		efree(argv);
-	} else {
-		//iterate over argument lists and ensure all have
-		//the same length and are all containers.
-		len = 0;
-		for(m=1; m<argc; ++m) {
-			if(iargv[m]->qkind == Qlist) {
-				l = vallist(iargv[m]);
-				len2 = listxlen(l->x);
-			} else if (iargv[m]->qkind == Qvec) {
-				v = valvec(iargv[m]);
-				len2 = v->len;
-			} else vmerr(vm, "operand %d to foreach must be list or vector",m);
-			if (m == 1) len = len2;
-			else if (len != len2) vmerr(vm, 
-				"operand containers for foreach must all have the same size")
-		}
-		cl = valcl(iargv[0]);
-		argv = emalloc((argc-1)*sizeof(Val));
-		for(i=0; i<len; ++i) {
-			for(m=1; m<argc; ++m) {
-				switch(iargv[m]->qkind){
-				case Qlist:
-					l = vallist(iargv[m]);
-					argv[m-1] = listref(vm, l, i);
-					break;
-				case Qvec:
-					v = valvec(iargv[m]);
-					argv[m-1] = vecref(v, i);
-					break;
-				default: fatal("bug");
-				}
-			}
-			dovm(vm, cl, argc-1, argv);
-		}
-		efree(argv);
+		return;
 	}
+
+	// list and vector: any number, but must have equal length
+	len = 0;
+	for(m = 1; m < argc; m++){
+		switch(iargv[m]->qkind){
+		case Qlist:
+			l = vallist(iargv[m]);
+			len2 = listxlen(l->x);
+			break;
+		case Qvec:
+			v = valvec(iargv[m]);
+			len2 = v->len;
+			break;
+		default:
+			vmerr(vm,
+			      "operand %u to foreach must be a list or vector",
+			      (unsigned)m);
+		}
+		if(m == 1)
+			len = len2;
+		else if(len != len2)
+			vmerr(vm,
+			      "container operands must be of the same length");
+	}
+	cl = valcl(iargv[0]);
+	argv = emalloc((argc-1)*sizeof(Val));
+	for(i = 0; i < len; i++){
+		for(m = 1; m < argc; m++){
+			switch(iargv[m]->qkind){
+			case Qlist:
+				l = vallist(iargv[m]);
+				argv[m-1] = listref(vm, l, i);
+				break;
+			case Qvec:
+				v = valvec(iargv[m]);
+				argv[m-1] = vecref(v, i);
+				break;
+			default:
+				fatal("bug");
+			}
+		}
+		dovm(vm, cl, argc-1, argv);
+	}
+	efree(argv);
 }
 
 static void
@@ -8643,18 +8654,20 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 	Val x, *argv;
 
 	if(argc < 2)
-		vmerr(vm, "map requires at least 2 arguments");
+		vmerr(vm, "wrong number of arguments to map");
 	checkarg(vm, "map", iargv, 0, Qcl);
-	if(iargv[1]->qkind == Qtab) {
-		if (argc != 2) vmerr(vm,
-		      "When mapping a table, only 2 arguments (the table and the function) are allowed");
-		argv = emalloc(2*sizeof(Val));
+
+	// tables: only one container operand
+	if(iargv[1]->qkind == Qtab){
+		if(argc > 2) 
+			vmerr(vm, "bad combination of containers");
 		r = mklist();
 		gcprotect(vm, mkvallist(r));
 		cl = valcl(iargv[0]);
 		t = valtab(iargv[1]);
 		k = tabenumkeys(t);
 		v = tabenumvals(t);
+		argv = emalloc(2*sizeof(Val));
 		gcprotect(vm, k);
 		gcprotect(vm, v);
 		for(m = 0; m < v->len; m++) {
@@ -8666,46 +8679,57 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 		gcunprotect(vm, v);
 		gcunprotect(vm, k);
 		efree(argv);
-	} else {
-		//find minimal length list and check types.
-		len = 0;
-		for(m=1; m<argc; ++m) {
-			if(iargv[m]->qkind == Qlist) {
-				l = vallist(iargv[m]);
-				len2 = listxlen(l->x);
-			} else if(iargv[m]->qkind == Qvec) {
-				v = valvec(iargv[m]);
-				len2 = v->len;
-			} else vmerr(vm,
- 				"operand %d to map must be list or vector",m);
-			if (m == 1) len = len2;
-			else if (len != len2) vmerr(vm, 
-				"operand containers for map must all be the same size");
-		}
-		cl = valcl(iargv[0]);
-		r = mklist();
-		gcprotect(vm, mkvallist(r));
-		argv = emalloc(len*sizeof(Val));
-		for(i=0; i<len; ++i) {
-			for(m=1; m<argc; ++m) {
-				switch(iargv[m]->qkind){
-				case Qlist:
-					l = vallist(iargv[m]);
-					argv[m-1] = listref(vm, l, i);
-					break;
-				case Qvec:
-					v = valvec(iargv[m]);
-					argv[m-1] = vecref(v, i);
-					break;
-				default:
-					fatal("bug");
-				}
-			}
-			x = dovm(vm, cl, m-1, argv);
-			listins(vm, r, i, x);
-		}
-		efree(argv);
+		*rv = mkvallist(r);
+		return;
 	}
+
+	// list and vector: any number, but must have equal length
+	len = 0;
+	for(m = 1; m < argc; m++){
+		switch(iargv[m]->qkind){
+		case Qlist:
+			l = vallist(iargv[m]);
+			len2 = listxlen(l->x);
+			break;
+		case Qvec:
+			v = valvec(iargv[m]);
+			len2 = v->len;
+			break;
+		default:
+			vmerr(vm,
+			      "operand %u to map must be a list or vector",
+			      (unsigned)m);
+		}
+		if(m == 1)
+			len = len2;
+		else if(len != len2)
+			vmerr(vm,
+			      "container operands must be of the same length");
+	}
+
+	cl = valcl(iargv[0]);
+	r = mklist();
+	gcprotect(vm, mkvallist(r));
+	argv = emalloc((argc-1)*sizeof(Val));
+	for(i = 0; i < len; i++){
+		for(m = 1; m < argc; m++){
+			switch(iargv[m]->qkind){
+			case Qlist:
+				l = vallist(iargv[m]);
+				argv[m-1] = listref(vm, l, i);
+				break;
+			case Qvec:
+				v = valvec(iargv[m]);
+				argv[m-1] = vecref(v, i);
+				break;
+			default:
+				fatal("bug");
+			}
+		}
+		x = dovm(vm, cl, m-1, argv);
+		listins(vm, r, i, x);
+	}
+	efree(argv);
 	*rv = mkvallist(r);
 }
 

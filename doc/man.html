@@ -3783,23 +3783,26 @@ Returns a shallow copy of <span class="arg">container</span>.
 </div>
 <div class="desc">
 
+<div>
 Calls <span class="arg">fn</span> on each item in the provided <span
 class="arg">containers</span>. 
-If all containers are lists and vectors,
+If the containers are either lists or vectors,
 <span class="id">foreach</span> 
-iterates through the lists in order, 
-calling <span class="arg">fn</span>
-with each container providing exactly one item as an argument.
-If the provided function
-does not accept as many arguements as there are containers,
-there will be an error. Likewise if the provided containers
-are not the same size, there will be an error.
+calls <span class="arg">fn</span>
+on corresponding elements of the containers.
+<span class="arg">fn</span> must 
+accept as many arguments as there are containers,
+and the containers must have the same length.
+</div>
+
+<div>
 If <span class="arg"</span>container</span> is a table,
 then no other containers may be provided, and 
 <span class="id">foreach</span> visits each key/value pair in
 unspecified order, calling <span class="arg">fn</span>
 with the key and value, in that order, as separate
 arguments.
+</div>
 
 <div>
 <span class="id">Foreach</span> discards the values
