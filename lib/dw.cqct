@@ -5552,7 +5552,8 @@ define init_debug_domain args
     };
   newenumsym = lambda (this)
     {
-      @local lazystab, i;
+      @local lazystab, i, dom;
+      dom = bdrec.debug_info;
       if (lazy) {
 	lazystab = mktab();
 	for (i = 0; i < length (result); i++) {
@@ -5570,7 +5571,8 @@ define init_debug_domain args
     };
   newenumtype = lambda (this)
     {
-      @local lazyttab, i;
+      @local lazyttab, i, dom;
+      dom = bdrec.debug_info;
       if (lazy) {
 	lazyttab = mktab();
 	foreach (lambda (k, v) {tabinsert (ttab, k, v);},
