@@ -1,2 +1,2 @@
 // nested table initializer
-x = { "a" : 1, "b" : { "c" : 2 } };
+x = [ "a" : 1, "b" : [ "c" : 2 ] ];

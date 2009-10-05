@@ -666,9 +666,81 @@ expandarrow(U *ctx, Expr *e)
 	}
 }
 
+// find multiple return value contexts and
+// expand into ordinary assignment.
+static Expr*
+expandm(U *ctx, Expr *e)
+{
+	Expr *p, *se;
+	Imm i;
+
+	if(e == 0)
+		return e;
+
+	switch(e->kind){
+	case Eg:
+		if(e->e1->kind != Elist){
+			e->e1 = expandm(ctx, e->e1);
+			e->e2 = expandm(ctx, e->e2);
+			return e;
+		}
+		p = e->e1->e1;
+		while(p->kind == Eelist){
+			if(p->e1->kind != Eid)
+				cerror(ctx, e, "invalid assignment");
+			p = p->e2;
+		}
+		e->e2 = expandm(ctx, e->e2);
+		se = nullelist();
+		i = 0;
+		p = e->e1->e1;
+		while(p->kind == Eelist){
+			se = Zcons(Zset(doid(p->e1->id),
+					Zcall(G("cntrget"), 2,
+					      doid("$tmp"),
+					      Zint(i++))),
+				   se);
+			p = p->e2;
+		}
+		se = invert(se);
+		se = Zcons(Zset(doid("$tmp"), expandm(ctx, e->e2)), se);
+		se = newexpr(Eblock, Zlocals(1, "$tmp"), se, 0, 0);
+
+		/* update target vars outside of new
+		   block so that they remain in scope
+		   of original expression.  FIXME:
+		   we need a statement sequence form
+		   without Eblock scope level */
+		se = Zcons(se, nullelist());
+		p = e->e1->e1;
+		while(p->kind == Eelist){
+			se = Zcons(Zset(doid(p->e1->id), Znil()), se);
+			p = p->e2;
+		}
+		putsrc(se, &e->src);
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = expandm(ctx, p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = expandm(ctx, e->e1);
+		e->e2 = expandm(ctx, e->e2);
+		e->e3 = expandm(ctx, e->e3);
+		e->e4 = expandm(ctx, e->e4);
+		return e;
+	}
+}
+
 static Expr*
 compilea(U *ctx, Expr* e)
 {
+	expandm(ctx, e);
 	expandarrow(ctx, e);
 	expanda(ctx, e, 0, 0);
 	expandc(ctx, e);

@@ -49,7 +49,8 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		printexpr(e);
 		xprintf("\n");
 	}
-	dotypes(&ctx, e);
+	if(dotypes(&ctx, e) != 0)
+		return 0;
 	if(docompilens(&ctx, e) != 0)
 		return 0;
 	if(docompilea(&ctx, e) != 0)
@@ -59,8 +60,10 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		printcqct(e);
 		xprintf("\n");
 	}
-	if(docompile0(&ctx, e) != 0)
+	if(docompile0(&ctx, e) != 0){
+		freeexpr(e);
 		return 0;
+	}
 	if(docompile1(&ctx, e) != 0)
 		return 0;
 	if(cqctflags['p']){

@@ -29,11 +29,12 @@ static int chars(YYSTYPE *lvalp, int);
 %%
 @include[ \t]*\"[^\"]+\"[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
 @include[ \t]*\<[^\<\>]+\>[ \t]* { count(ctx); tryinclude(ctx, yytext); }
-<<EOF>>                 { if(popyy(ctx) == 0) yyterminate(); }
+<<EOF>>                 { if(maybepopyy(ctx) == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
 ^#!.*			{ /* treat as comment */ ctx->inp->src.col = 0; }
 "/*"			{ comment(ctx); }
+"@lazyapply"		{ count(ctx); return(LAPPLY); }
 "@let"			{ count(ctx); return(LET); }
 "@local"		{ count(ctx); return(LOCAL); }
 "@global"		{ count(ctx); return(GLOBAL); }
@@ -54,6 +55,7 @@ static int chars(YYSTYPE *lvalp, int);
 "enum"			{ count(ctx); return(ENUM); }
 "float"			{ count(ctx); return(FLOAT); }
 "for"			{ count(ctx); return(FOR); }
+"goto"			{ count(ctx); return(GOTO); }
 "if"			{ count(ctx); return(IF); }
 "int"			{ count(ctx); return(INT); }
 "lambda"		{ count(ctx); return(LAMBDA); }

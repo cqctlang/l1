@@ -1,0 +1,8 @@
+vec = mkvec(5,1);
+lst = [1,2,3,4];
+mp = [ 1 : "one", 2 : "two", 3 : "three" ];
+
+foreach(lambda(x,y) { printf("%d,%s\n",x,y); }, mp);
+foreach(lambda(x) { print(x); }, vec);
+foreach(lambda(x) { print(x); }, lst);
+

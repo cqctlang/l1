@@ -61,6 +61,7 @@ enum{
 	Edot,
 	Edotdot,
 	Eelist,
+	Eellipsis,
 	Eenum,
 	Eenumel,
 	Eeq,
@@ -72,11 +73,14 @@ enum{
 	Ege,
 	Eglobal,
 	Egop,
+	Egoto,
 	Egt,
 	Eid,
 	Eif,
 	Ekon,
+	Elabel,
 	Elambda,
+	Elapply,
 	Eland,
 	Ele,
 	Elist,
@@ -518,6 +522,8 @@ enum {
 	Isizeof,
 	Ispec,
 	Isub,
+	Isubsp,
+	Ivargc,
 	Ixcast,
 	Ixor,
 	Iopmax         
@@ -594,6 +600,13 @@ struct Block
 	Var *loc;
 	unsigned nloc;
 } Block;
+
+typedef
+struct Boxset
+{
+	Var **var;
+	unsigned max, n;
+} Boxset;
 
 typedef
 struct Location {
@@ -762,10 +775,9 @@ Expr*		doid(char*);
 Expr*		doidn(char *s, unsigned long len);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
-Expr*		dotick(Expr*, Expr*);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
-Expr*		dotypes(U*, Expr*);
+int		dotypes(U*, Expr*);
 void		finiparse();
 Expr*		flatten(Expr *e);
 char*		fmttype(Type *t, char *o);
@@ -774,6 +786,7 @@ void		freeexpr(Expr*);
 void		freelits(Lits *lits);
 void		initparse();
 Expr*		invert(Expr*);
+int		maybepopyy(U *ctx);
 Expr*		mkconst(Cbase base, Imm val); /* rename newconst? */
 Lits*		mklits(char*, unsigned len);
 Expr*		newbinop(unsigned, Expr*, Expr*);
@@ -783,6 +796,7 @@ Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr*		newgop(unsigned, Expr*, Expr*);
 Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
 Expr*		nullelist();
+Expr*		nullelistsrc(Src*);
 int		parseliti(char *s, unsigned long len, Liti *liti,
 			  unsigned radix, char **err);
 Expr*		ptrto(Expr*, Expr*);
@@ -894,6 +908,7 @@ void		finivm();
 int		freecode(Head *hd);
 void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
+int		ismapped(VM *vm, As *as, Imm addr, Imm len);
 int		isstrcval(Cval *cv);
 List*		listappend(VM *vm, List *lst, Val v);
 void		_listappend(List *lst, Val v);
@@ -920,26 +935,13 @@ Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(VM *vm, Imm len);
 Tab*		mktab();
 Toplevel*	mktoplevel(Xfd *in, Xfd *out, Xfd *err);
-Val		mkvalas(As *as);
 Val		mkvalbox(Val boxed);
-Val		mkvalcl(Closure *cl);
 Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
-Val		mkvaldom(Dom *dom);
-Val		mkvalfd(Fd *fd);
-Val		mkvalimm(Dom *dom, Xtypename *t, Imm imm);
-Val		mkvallist(List *lst);
 Val		mkvallitcval(Cbase base, Imm imm);
-Val		mkvalns(Ns *ns);
 Val		mkvalpair(Val car, Val cdr);
 Val		mkvalrange(Cval *beg, Cval *len);
 Val		mkvalrange2(Range *r);
-Val		mkvalrd(Rd *rd);
-Val		mkvalrec(Rec *rec);
-Val		mkvalstr(Str *str);
-Val		mkvaltab(Tab *tab);
-Val		mkvalvec(Vec *vec);
-Val		mkvalxtn(Xtypename *xtn);
 Vec*		mkvec(Imm len);
 As*		mkzas(VM *vm, Imm len);
 Code*		newcode();
@@ -964,6 +966,19 @@ void		vecset(VM *vm, Vec *vec, Imm idx, Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
+#define mkvalas(x)	((Val)x)
+#define mkvalcl(x)	((Val)x)
+#define mkvaldom(x)	((Val)x)
+#define mkvalfd(x)	((Val)x)
+#define mkvallist(x)	((Val)x)
+#define mkvalns(x)	((Val)x)
+#define mkvalrd(x)	((Val)x)
+#define mkvalrec(x)	((Val)x)
+#define mkvalstr(x)	((Val)x)
+#define mkvaltab(x)	((Val)x)
+#define mkvalvec(x)	((Val)x)
+#define mkvalxtn(x)	((Val)x)
+
 #define valas(v)	((As*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valcl(v)	((Closure*)(v))
@@ -1004,6 +1019,7 @@ Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
 
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
+void		cposterror(U *ctx, Expr *e, char *fmt, ...);
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
 void		cwarnl(U *ctx, Expr *e, char *fmt, ...);
 void		putsrc(Expr *e, Src *src);
@@ -1019,6 +1035,7 @@ Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
 Expr*		Zids2strs(Expr *l);
 Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
+Expr*		Zint(Imm val);
 Expr*		Zkon(Val v);
 Expr*		Zlambda(Expr *args, Expr *body);
 Expr*		Zlambdn(Expr *args, Expr *body, Expr *name, Expr *spec);

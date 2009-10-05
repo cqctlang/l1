@@ -665,26 +665,56 @@ environment.
 <p>
 The <span class="fnindex" id="syn:@local">lambda</span>
 expression defines new function values.  The syntax
-variants are:
+is:
 
 <div class="code">
 <pre>
-lambda() { <span class="arg">statement</span>; ... }
-lambda(<span class="arg">var</span>, ...) { <span class="arg">statement</span>; ... }
-lambda <span class="arg">var</span> { <span class="arg">statement</span>; ... }
+lambda <span class="arg">formals</span> { <span class="arg">statement</span>; ... }
 </pre>
 </div>
 
-The first form defines a function of zero arguments.
-
-The second form defines a function with a fixed number of
-arguments.
-The argument values are bound to the variables <span class="arg">var ... </span> within the body.
-
-The third form defines a function that accepts zero or more
-arguments.  The argument values are collected in a list bound
-to the variable <span class="arg">var</span> within the body.
+<p>
+The syntax of <span class="arg">formals</span> determines
+how formal parameters are bound to actual parameters:
 </p>
+
+<ul>
+<li>
+If <span class="arg">formals</span> is a list of variable identifiers of the form
+<span class="id">(<span class="arg">v1</span>, <span class="arg">v2</span>, ...,
+<span class="arg">vn</span>)</span>,
+then the function accepts
+<span class="arg"><em>n</em></span> parameters,
+and each actual
+parameter is bound to the corresponding variable.
+<span class="arg">Formals</span> may be <span class="id">()</span>,
+defining a function of zero parameters.
+</li>
+
+<li>
+If <span class="arg">formals</span> is a single identifier
+<span class="arg">v</span>, then the
+function is a variable arity function that accepts any number of actual parameters.
+The parameters are passed in a freshly allocated
+list that is bound to <span class="arg">v</span>.
+</li>
+
+<li>
+If <span class="arg">formals</span> is a list of identifiers of the form
+<span class="id">(<span class="arg">v1</span>, <span class="arg">v2</span>, ...,
+<span class="arg">vn</span>, <span class="arg">vn+1</span> ...)</span>,
+then the function is a variable arity function of at
+least
+<span class="arg"><em>n</em></span> parameters (the
+final <span class="id">...</span> is concrete syntax).
+The first <span class="arg"><em>n</em></span> actual parameters
+are bound to the first <span class="arg"><em>n</em></span> variables;
+<span class="arg"><em>n</em></span> may be zero.
+The remaining parameters, possibly zero, are passed in a freshly allocated
+list that is bound to <span class="arg">vn+1</span>.
+</li>
+
+</ul>
 
 <p>
 The body of the function is a sequence of statements
@@ -765,7 +795,8 @@ is equivalent to
 
 <p>
 The built-in function <span class="id">apply</span>
-calls functions.
+and the syntax form <span class="id">@lazyapply</span>
+are used to call functions.
 </p>
 
 <div class="docitem" id="fn:apply">
@@ -789,6 +820,34 @@ on the arguments <span class="arg">arg ... </span>
 and returns the value returned by the call.
 </div>
 </div>
+
+<div class="docitem" id="syn:@lazyapply">
+<div class="proto">
+<div class="function">
+<span class="id">@lazyapply(<span class="arg">fn</span>, <span class="arg">arg</span>, ...)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: <span class="type">any expression</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+Like <span class="id">apply</span>,
+<span class="id">@lazyapply</span>
+calls the function <span class="arg">fn</span>, but
+the arguments are evaluated lazily.  This is
+implemented by passing each argument <span class="arg">arg ... </span>
+as a procedure that, when called, 
+evaluate the argument expression.
+<span class="id">@lazyapply</span> returns the value returned by the call.
+</div>
+</div>
+
 
 <h4 id="sec:control">Control Operators</h4>
 
@@ -871,13 +930,14 @@ functions.
 
 <p>
 Cinquecento supports the control flow statements of C,
-including <span class="val">do</span>-<span class="val">while</span>,
+including the loop statements <span class="val">do</span>-<span class="val">while</span>,
 <span class="val">for</span>,
-and <span class="val">while</span> loops,
-and <span class="val">if</span>,
+and <span class="val">while</span>,
+the conditional statements <span class="val">if</span>,
 <span class="val">if</span>-<span class="val">else</span>,
 and <span class="val">switch</span> (with <span class="val">case</span>
-and <span class="val">default</span> labels) conditionals.
+and <span class="val">default</span> labels),
+and the <span class="val">goto</span> statement.
 </p>
 
 <p>
@@ -902,14 +962,16 @@ with a matching <span class="val">case</span> label, or to the
 optional <span class="val">default</span> label,
 regardless of where it appears, if
 no <span class="val">case</span> matches.
-Controls skips past the <span class="val">switch</span> body 
+Control skips past the <span class="val">switch</span> body 
 if there is no matching case
 and no <span class="val">default</span> label.
 </p>
 
 <p>
-Cinquecento does not (yet) implement
-<span class="val">goto</span>.
+None of the non-local control transfer statements
+(<span class="val">break</span>, <span class="val">continue</span>,
+<span class="val">goto</span>) can be used to leave
+or enter the body of a function.
 </p>
 
 <h4 id="sec:constants">Constants</h4>
@@ -3701,10 +3763,10 @@ Returns a shallow copy of <span class="arg">container</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:foreach">foreach(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
+<span class="id" id="fn:foreach">foreach(<span class="arg">fn</span>,<span class="arg">container</span>,[<span class="arg">container2</span>, ...])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:map">map(<span class="arg">fn</span>,<span class="arg">container</span>)</span>
+<span class="id" id="fn:map">map(<span class="arg">fn</span>,<span class="arg">container</span>,[<span class="arg">container2, ...</span>])</span>
 </div>
 <div class="param">
 <span class="arg">fn</span>: <span class="type">function</span>
@@ -3712,21 +3774,35 @@ Returns a shallow copy of <span class="arg">container</span>.
 <div class="param">
 <span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
 </div>
+<div class="param">
+<span class="arg">container2, ... </span>: <span class="type">list</span> or <span class="type">vector</span>
+</div>
 <div class="returns">
 <span class="type">see description</span>
 </div>
 </div>
 <div class="desc">
 
-Calls <span class="arg">fn</span> on each item in <span
-class="arg">container</span>.  For lists and vectors,
-<span class="id">foreach</span> visits each item in
-sequential order, calling <span class="arg">fn</span>
-with the item as the sole argument.  For tables, <span
-class="id">foreach</span> visits each key/value pair in
+<div>
+Calls <span class="arg">fn</span> on each item in the provided <span
+class="arg">containers</span>. 
+If the containers are either lists or vectors,
+<span class="id">foreach</span> 
+calls <span class="arg">fn</span>
+on corresponding elements of the containers.
+<span class="arg">fn</span> must 
+accept as many arguments as there are containers,
+and the containers must have the same length.
+</div>
+
+<div>
+If <span class="arg"</span>container</span> is a table,
+then no other containers may be provided, and 
+<span class="id">foreach</span> visits each key/value pair in
 unspecified order, calling <span class="arg">fn</span>
 with the key and value, in that order, as separate
 arguments.
+</div>
 
 <div>
 <span class="id">Foreach</span> discards the values
@@ -3738,14 +3814,13 @@ returned by <span class="arg">fn</span> and returns
 <span class="id">Map</span> is like <span class="id">foreach</span>
 except that it collects the values
 returned by <span class="arg">fn</span> in a list,
-and returns the list.  If <span class="arg">container</span>
-is a vector or list,
+and returns the list.  If the <span class="arg">containers</span>
+are vectors or lists,
 the order of the elements in
 the list returned by <span class="id">map</span>
 corresponds to the order of the elements
-in <span class="arg">container</span>.
+in the <span class="arg">containers</span>.
 </div>
-
 
 </div>
 </div>
@@ -3945,6 +4020,47 @@ Returns <span class="arg">container</span> following the update.
 </div>
 </div>
 
+<p>
+Containers can be indexed with C array reference
+operator (<span class="id">[]</span>).  The statement
+
+<div class="code">
+<pre>
+	x = C[i];
+</pre>
+</div>
+
+reads the <span class="id">i</span>th element from
+container <span class="id">C</span>.  Likewise,
+
+<div class="code">
+<pre>
+	C[i] = x;
+</pre>
+</div>
+
+assigns the <span class="id">i</span>th element to
+the value bound to <span class="id">x</span>, and the
+statements
+
+<div class="code">
+<pre>
+	C[i] += 1;	C[i]++;
+</pre>
+</div>
+
+both increment the <span class="id">i</span>th element.
+</p>
+
+<p>
+Unlike its use on C arrays, the <span class="id">[]</span>
+operator on Cinquecento containers is not commutative.
+In an
+expression
+<span class="id"><span class="arg">C</span>[<span class="arg">i</span>]</span>,
+<span class="arg">C</span> must be a container and <span class="arg">i</span>
+a valid index for the container.  For tables, a valid index is a key.
+</p>
 
 <h4 id="sec:lists">Lists</h4>
 
@@ -3997,7 +4113,7 @@ otherwise to <span class="val">nil</span>.
 </div>
 </div>
 
-<div class="docitem">
+<div class="docitem" id="syn:[]">
 <div class="proto">
 <div class="syntax">
 <span class="id">[ <span class="arg">value</span>, ... ]</span>
@@ -4377,6 +4493,29 @@ a table.
 </div>
 <div class="desc">
 Creates and returns a new, empty table.
+</div>
+</div>
+
+
+<div class="docitem"  id="syn:[:]">
+<div class="proto">
+<div class="syntax">
+<span class="id">[ <span class="arg">key</span> : <span class="arg">value</span>, ... ]</span>
+</div>
+<div class="param">
+<span class="arg">key</span>: <span class="type">any type</span>
+</div>
+<div class="param">
+<span class="arg">value</span>: <span class="type">any type</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+This syntax constructs a
+new table containing the zero or more key/value pairs enclosed in the
+braces.  The syntax <span class="id">[ : ]</span> constructs an empty table.
 </div>
 </div>
 
@@ -6431,9 +6570,12 @@ machines sharing the environment have been freed.
 <table>
 <tr>
 <td>
+<a href="#syn:[]">[<span class="arg">value</span>, ... ]</a><br />
+<a href="#syn:[:]">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
 <a href="#syn:@const">@const</a><br />
 <a href="#syn:@global">@global</a><br />
 <a href="#syn:@include">@include</a><br />
+<a href="#syn:@lazyapply">@lazyapply</a><br />
 <a href="#syn:@local">@local</a><br />
 <a href="#syn:@names">@names</a><br />
 <a href="#syn:@record">@record</a><br />

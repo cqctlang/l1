@@ -1,0 +1,6 @@
+p = malloc(10);
+for(i = 0; i < 10; i++)
+	*(p+i) = i;
+for(i = 0; i < 10; i++)
+	printf("%d\n", *(p+i));
+*(p+10) = 1; // error

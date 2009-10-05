@@ -1,4 +1,4 @@
-foo = lambda args
+foo = lambda(args ...)
 {
 	@local x;
 	x = head(args);

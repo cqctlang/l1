@@ -30,3 +30,79 @@ aug 10 2009
 	is equivalent to
 
 		x = {dom}x;
+
+
+aug 18 2009
+
+	The new syntax form @lazyapply calls a function
+	without evaluating its arguments.
+
+	The expression:
+
+		@lazyapply(<fn>, <arg>, ...)
+
+	is equivalent to
+
+		<fn>(lambda(){ <arg> }, ...);
+
+	Where <fn> and <arg> are arbitrary expressions.
+
+
+aug 19 2009
+
+	There is new syntax for variable arity
+	functions.  It accomplishes a similar
+	specification as the dotted list syntax
+	in Scheme lambda expressions.
+
+	For example, the expression
+
+		lambda(a, b ...) { ... }
+
+	evaluates to a variable arity function of at
+	least one parameter.  The first actual
+	parameter is bound to a.  The remaining
+	parameters are passed in a freshly allocated
+	list that is bound to b.
+
+	The original variable arity syntax
+
+		lambda x { ... }
+		
+	will soon go away, since it is equivalent to
+
+		lambda(x ...) { ... }
+
+sep 04 2009
+
+	Three incompatible changes have been made to
+	Cinquecento syntax.
+
+	1. The original variable arity lambda syntax
+
+		lambda x <body>
+
+	   has been eliminated.  Instead, use
+
+		lambda(x ...) <body>
+
+	2. Similarly, the variable arity define syntax
+
+		define id x <body>
+
+	   has been eliminated.  Instead, use
+	
+		define id(x ...) <body>
+
+	3. Table initializer syntax now uses square
+	   braces instead of curly braces.  Forms like
+
+		tab = { <key> : <val>, ... };  // old
+	
+	   should now be written
+
+		tab = [ <key> : <val>, ... ];  // new
+
+sep 05 2009
+
+	The C goto statement is now supported.

@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/param.h>
 #include <libgen.h>
 
 #include "cqct.h"
@@ -89,6 +90,17 @@ erealloc(void *p, size_t old, size_t new)
 }
 
 static char*
+xstrdup(char *s)
+{
+	void *p;
+	if(s == 0)
+		return NULL;
+	p = emalloc(strlen(s)+1);
+	memcpy(p, s, strlen(s));
+	return p;
+}
+
+static char*
 readexpr(char *prompt)
 {
 	char *buf;
@@ -155,12 +167,169 @@ readfile(char *filename)
 {
 	int fd;
 	char *buf;
+	struct stat st;
+
+	if(0 > stat(filename, &st))
+		return 0;
+	if(!S_ISREG(st.st_mode)){
+		errno = EISDIR;
+		return 0;
+	}
 	fd = open(filename, O_RDONLY);
 	if(0 > fd)
 		return 0;
 	buf = readfd(fd);
 	close(fd);
 	return buf;
+}
+
+/*
+ * In place, rewrite name to compress multiple /, eliminate ., and process ..
+ * Lifted from plan9ports.
+ */
+#define SEP(x)	((x)=='/' || (x) == 0)
+char*
+cleanname(char *name)
+{
+	char *p, *q, *dotdot;
+	int rooted;
+
+	rooted = name[0] == '/';
+
+	/*
+	 * invariants:
+	 *	p points at beginning of path element we're considering.
+	 *	q points just past the last path element we wrote (no slash).
+	 *	dotdot points just past the point where .. cannot backtrack
+	 *		any further (no slash).
+	 */
+	p = q = dotdot = name+rooted;
+	while(*p) {
+		if(p[0] == '/')	/* null element */
+			p++;
+		else if(p[0] == '.' && SEP(p[1]))
+			p += 1;	/* don't count the separator in case it is nul */
+		else if(p[0] == '.' && p[1] == '.' && SEP(p[2])) {
+			p += 2;
+			if(q > dotdot) {	/* can backtrack */
+				while(--q > dotdot && *q != '/')
+					;
+			} else if(!rooted) {	/* /.. is / but ./../ is .. */
+				if(q != name)
+					*q++ = '/';
+				*q++ = '.';
+				*q++ = '.';
+				dotdot = q;
+			}
+		} else {	/* real path element */
+			if(q != name+rooted)
+				*q++ = '/';
+			while((*q = *p) != '/' && *q != 0)
+				p++, q++;
+		}
+	}
+	if(q == name)	/* empty string is really ``.'' */
+		*q++ = '.';
+	*q = '\0';
+	return name;
+}
+
+static char*
+searchpath(char *name)
+{
+	char *p, *np, *q, *w, *try;
+	unsigned nl;
+
+	nl = strlen(name);
+	p = getenv("PATH");
+	if(p == 0)
+		return 0;
+	q = p;
+	while(*p){
+		q = strchr(p, ':');
+		if(q == 0){
+			q = p+strlen(q); /* last element */
+			np = q;
+		}else
+			np = q+1;
+		try = emalloc(q-p+1+nl+1);
+		memcpy(try, p, q-p);
+		w = try+(q-p);
+		if(w[-1] != '/')
+			*w++ = '/';
+		memcpy(w, name, nl);
+//		printf("try: %s\n", try);
+		if(access(try, X_OK) == 0)
+			return try;
+		free(try);
+		p = np;
+	}
+	return 0;
+}
+
+static char*
+readlinkf(char *path)
+{
+	char *buf, *tmp, *p, *q;
+	struct stat st;
+	ssize_t sz, psz;
+
+	buf = 0;
+	tmp = 0;
+	if(path[0] != '/' && path[0] != '.'){
+		path = searchpath(path);
+		if(path == 0)
+			goto fail;
+	}else
+		path = xstrdup(path);
+
+	if(path[0] != '/'){
+		buf = emalloc(MAXPATHLEN+1+strlen(path)+1);
+		p = getcwd(buf, MAXPATHLEN);
+		if(p == 0)
+			goto fail;
+		q = p+strlen(p);
+		if(*q != '/')
+			*q++ = '/';
+		memcpy(q, path, strlen(path));
+		free(path);
+	}else
+		p = buf = path;
+
+	while(1){
+		cleanname(p);
+		if(0 > lstat(p, &st))
+			goto fail;
+		if((st.st_mode&S_IFLNK) != S_IFLNK)
+			break;
+		tmp = buf;
+		buf = emalloc(MAXPATHLEN+1+strlen(p)+1);
+		sz = readlink(p, buf, MAXPATHLEN);
+		if(sz == -1)
+			goto fail;
+		if(buf[0] != '/'){
+			/* replace file name with symlink target */
+			psz = strlen(p);
+			while(p[psz-1] == '/')
+				p[--psz] = '0';
+			q = strrchr(p, '/');
+			if(*q == 0)
+				goto fail;
+			q++;
+			psz = q-p;
+			memmove(buf+psz, buf, sz);
+			memcpy(buf, p, psz);
+		}
+		p = buf;
+		free(tmp); tmp = 0;
+	}
+
+	return p;
+fail:
+	free(path);
+	free(buf);
+	free(tmp);
+	return 0;
 }
 
 static void
@@ -287,6 +456,10 @@ main(int argc, char *argv[])
 		dorepl = 0;
 	}
 
+	argv0 = readlinkf(argv0);
+	if(argv0 == 0)
+		fatal("cannot locate l1 executable");
+
 	if(opt['s']){
 		if(nlp >= Maxloadpath)
 			fatal("too many directories in load path");
@@ -294,6 +467,7 @@ main(int argc, char *argv[])
 		lp[nlp] = emalloc(strlen(root)+1+4+1);
 		sprintf(lp[nlp++], "%s/lib", root);
 	}
+	free(argv0);
 	lp[nlp] = 0;
 
 	xfd = 0;
@@ -351,16 +525,16 @@ main(int argc, char *argv[])
 			}
 		}
 
+		if(opt['t']){
+			gettimeofday(&beg, 0);
+			bt = rdtsc();
+		}
 		entry = cqctcompile(inbuf, filename, top, argsid);
 		free(inbuf);
 		if(entry == 0)
 			continue;
 		if(opt['x'] == 0)
 			continue; /* just compiling */
-		if(opt['t']){
-			gettimeofday(&beg, 0);
-			bt = rdtsc();
-		}
 		rv = cqctcallfn(vm, entry, valc, valv, &v);
 		if(opt['t']){
 			et = rdtsc();

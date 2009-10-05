@@ -28,6 +28,7 @@ char* S[] = {
 	[Earrow] =	"Earrow",
 	[Ebase] =	"Ebase",
 	[Eband] =	"Eband",
+	[Ebinop] =	"Ebinop",
 	[Ebitfield] =	"Ebitfield",
 	[Eblock] =	"Eblock",
 	[Ebor] =	"Ebor",
@@ -54,6 +55,7 @@ char* S[] = {
 	[Edot] =	"Edot",
 	[Edotdot] =	"Edotdot",
 	[Eelist] =	"Eelist",
+	[Eellipsis] =	"Eellipsis",
 	[Eenum] =	"Eenum",
 	[Eenumel] =	"Eenumel",
 	[Eeq] =		"Eeq",
@@ -64,12 +66,16 @@ char* S[] = {
 	[Eg] =		"Eg",
 	[Ege] =		"Ege",
 	[Eglobal] =	"Eglobal",
+	[Egop] =	"Egop",
+	[Egoto] =	"Egoto",
 	[Egt] =		"Egt",
 	[Eid] =		"Eid",
 	[Eif] =		"Eif",
 	[Ekon] =	"Ekon",
+	[Elabel] =	"Elabel",
 	[Elambda] =	"Elambda",
 	[Eland] =	"Eland",
+	[Elapply] =	"Elapply",
 	[Ele] =		"Ele",
 	[Elist] =	"Elist",
 	[Elor] =	"Elor",
@@ -333,6 +339,9 @@ printcqct0(Expr *e, unsigned ni)
 	case Eid:
 		xprintf("%s", e->id);
 		break;
+	case Eellipsis:
+		xprintf("...");
+		break;
 	case Elambda:
 		xprintf("lambda");
 		if(e->e1->kind == Eid){
@@ -487,6 +496,10 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(")");
 		printcqct0(e->e2, ni);
 		break;
+	case Elabel:
+		xprintf("%s:\n", e->e1->id);
+		indent(ni); printcqct0(e->e2, ni);
+		break;
 	case Edefault:
 		xprintf("default:\n");
 		indent(ni); printcqct0(e->e1, ni);
@@ -572,6 +585,9 @@ printcqct0(Expr *e, unsigned ni)
 			}else
 				printcqct0(e->e3, ni);
 		}
+		break;
+	case Egoto:
+		xprintf("goto %s", e->e1->id);
 		break;
 	case Eret:
 		xprintf("return");

@@ -89,12 +89,15 @@ bindids(Xenv *xe, Expr *e, void *v)
 	case Eid:
 		xenvbind(xe, e->id, v);
 		break;
+	case Eellipsis:
+		break;
 	case Enull:
 		break;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			xenvbind(xe, p->e1->id, v);
+			if(p->e1->kind != Eellipsis)
+				xenvbind(xe, p->e1->id, v);
 			p = p->e2;
 		}
 		break;

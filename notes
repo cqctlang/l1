@@ -95,6 +95,10 @@ todo
   - revise as interface to use unit idea
   - enforce return value type on sort
   - change tabenum to return kv pairs
+  - " is accepted input to repl---caught in final . case in c.l
+    thus 
+    	 foo(1,2");
+    is accepted
  
 - usability
   - change "entry" to "toplevel"

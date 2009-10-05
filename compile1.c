@@ -42,6 +42,38 @@ compiletab(U *ctx, Expr *e)
 }
 
 static Expr*
+compilelist(U *ctx, Expr *e)
+{
+	Expr *loc, *te, *se;
+	Src *src;
+	Imm i;
+
+	src = &e->src;
+	loc = Zlocals(1, "$lst");
+	te = nullelist();
+
+	se = Zset(doid("$lst"), Zcall(G("mklist"), 1, Zuint(0)));
+//	putsrc(se, src);
+	te = Zcons(se, te);
+
+	e->e1 = compile1(ctx, e->e1);
+	e = e->e1;
+	i = 0;
+	while(e->kind == Eelist){
+		se = Zcall(G("listins"), 3, doid("$lst"), Zuint(i++), e->e1);
+		putsrc(se, &e->e1->src);
+		te = Zcons(se, te);
+		e->e1 = 0;
+		e = e->e2;
+	}
+	se = doid("$lst");
+	te = Zcons(se, te);
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	putsrc(te, src);
+	return te;
+}
+
+static Expr*
 compilesizeof(U *ctx, Decl *d, Src *src)
 {
 	Type *t;
@@ -337,7 +369,7 @@ compileambig(U *ctx, Expr *e)
 static Expr*
 compile1(U *ctx, Expr *e)
 {
-	Expr *se;
+	Expr *se, *q;
 
 	if(e == NULL)
 		return e;
@@ -381,9 +413,21 @@ compile1(U *ctx, Expr *e)
 		freeexpr(e);
 		return se;
 	case Elist:
-		se = Zapply(G("list"), compile1(ctx, e->e1));
-		putsrc(se, &e->src);
+		se = compilelist(ctx, e);
+		freeexpr(e);
+		return se;
+	case Elapply:
+		q = e->e2;
+		while(q->kind == Eelist){
+			q->e1 = Zlambda(nullelist(),
+					Zblock(nullelist(),
+					       compile1(ctx, q->e1),
+					       NULL));
+			q = q->e2;
+		}
+		se = Zapply(compile1(ctx, e->e1), e->e2);
 		e->e1 = 0;
+		e->e2 = 0;
 		freeexpr(e);
 		return se;
 #if 0

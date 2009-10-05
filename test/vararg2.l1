@@ -4,18 +4,18 @@ printlist = lambda(l) {
 		print(listref(l, i));
 };
 
-fn1 = lambda arg {
+fn1 = lambda(arg ...) {
 	@local x;
 	print(length(arg));
 	printlist(arg);
 };
 
-fn2 = lambda arg {
+fn2 = lambda(arg ...) {
 	print(length(arg));
 	printlist(arg);
 };
 
-fn3 = lambda arg {
+fn3 = lambda(arg ...) {
 	@local x;
 	x = arg;
 	print(length(x));

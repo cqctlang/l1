@@ -1,0 +1,9 @@
+define time(fn)
+{
+	@local s, e;
+	s = gettimeofday();
+	fn();
+	e = gettimeofday();
+	
+	printf("%d seconds\n", (e-s)/1000000);
+}

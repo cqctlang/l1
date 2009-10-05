@@ -5012,7 +5012,7 @@ define skip_prologue (dom, name)
   return rv;
 }
 
-define dumpstack args
+define dumpstack (args ...)
 {
   @local dom, gns, bt, cdom, cns, i, j, pcregno, bdrec;
   @local addr;
@@ -5056,7 +5056,7 @@ define dumpstack args
   return bt;
 }
 
-define make_local_dom args
+define make_local_dom (args ...)
 {
   @local dom, bt, cdom, cns, i, j, pcregno, bdrec, regset;
   @local fr, lns, las, ldom, lpc, sym, stab, tdom;
@@ -5109,7 +5109,7 @@ define get_loadbase (bdrec)
   return 0;  /* later figure out how to get load address for libraries */
 }
 
-define unwind args
+define unwind (args ...)
 {
   @local fn, dom, bdrec, addr;
   dom = args[0];
@@ -5132,7 +5132,7 @@ define unwind args
   return unwindregloc (dom, addr, fn, bdrec);
 }
 
-define unwindregloc args
+define unwindregloc (args ...)
 {
   @local exdom, bdrec, bt, curregs, newregs, pc, pcregno, fp, sp;
   @local i, asize, fdom, exbase, ip, rlist, rvec, cfa, reglocs;
@@ -5304,7 +5304,7 @@ define make_local_as (ras, regset, bdrec)
   else
     lpc = *(`uintptr *)(regset[pcregno]);
   mtab = mktab ();
-  define ldis args {
+  define ldis (args ...) {
     @local cmd, regno;
     @local rv;
     cmd = listref(args, 1);
@@ -5334,15 +5334,15 @@ define make_local_as (ras, regset, bdrec)
     rv = callmethod (ras, cmd, args);
     return rv;
   }
-  define lget args{
+  define lget (args ...) {
     pop (args);
     return callmethod (ras, "get", args);
   }
-  define lput args {
+  define lput (args ...) {
     pop (args);
     return callmethod (ras, "put", args);
   }
-  define lmap args {
+  define lmap (args ...) {
     pop (args);
     return callmethod (ras, "map", args);
   }
@@ -5445,7 +5445,7 @@ define show_locals (dom)
   foreach (lambda (k,v) {print_obj (v, dom);}, dom.enumsym());
 }
 
-define init_debug_domain args
+define init_debug_domain (args ...)
 {
   @local bdrec, elfas, elfnames, elfheader, tempnames, tempdom, dom, gns;
   @local indom, tabs, i, result, fdom, rns, cptr, rv;
@@ -5729,7 +5729,7 @@ define get_all_cu_keys (bdrec)
   return rv;
 }
 
-define get_cur_regs args
+define get_cur_regs (args ...)
 {
   @local dom, bdrec, regs, i;
   dom = args[0];

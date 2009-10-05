@@ -26,8 +26,8 @@ extern char *yytext;
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
-%token CAST_ASSIGN XCAST_ASSIGN
-%token GLOBAL LOCAL LAMBDA NAMES LET
+%token CAST_ASSIGN XCAST_ASSIGN GOTO
+%token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
@@ -42,7 +42,8 @@ extern char *yytext;
 %type <expr> logical_and_expression logical_or_expression conditional_expression
 %type <expr> assignment_expression lambda_expression expression root_expression
 %type <expr> names_expression names_declaration_list names_declaration
-%type <expr> identifier_list local_list local type_specifier
+%type <expr> lapply_expression
+%type <expr> arg_id_list identifier_list local_list local type_specifier
 %type <expr> id tag tickid struct_or_union_specifier 
 %type <expr> struct_declaration_list struct_declaration struct_size
 %type <expr> struct_declarator_list struct_declarator enum_specifier
@@ -67,6 +68,7 @@ extern char *yytext;
 %type <kind> unary_operator assignment_operator struct_or_union
 
 %start translation_unit_seq
+%debug
 %glr-parser
 %pure-parser
 %parse-param {U *ctx}
@@ -93,12 +95,10 @@ tickid
 tag:	id;
 
 lambda_expression
-	: LAMBDA '(' identifier_list ')' compound_statement
+	: LAMBDA '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
 	| LAMBDA '(' ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
-	| LAMBDA id compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Elambda, $2, $3, 0, 0); }
 	;
 
 defrec_expression
@@ -150,11 +150,11 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
 	| '[' argument_expression_list ',' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
-	| '{' ':' '}'
+	| '[' ':' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); }
-	| '{' table_init_list '}'
+	| '[' table_init_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
-	| '{' table_init_list ',' '}'
+	| '[' table_init_list ',' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| lambda_expression
 	| defrec_expression
@@ -374,6 +374,16 @@ identifier_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
+arg_id_list
+	: identifier_list
+	{ $$ = $1; }
+	| identifier_list ELLIPSIS
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
+			  newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0),
+			  $1, 0, 0);
+	}
+	;
+
 names_declaration_list
 	: names_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
@@ -400,8 +410,17 @@ names_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, nullelist(), $4, 0); }
 	;
 
+lapply_expression
+	: LAPPLY '(' root_expression ',' argument_expression_list ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Elapply, $3, invert($5), 0, 0); }
+	| LAPPLY '(' root_expression ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Elapply, $3, nullelist(), 0, 0); }
+	;
+
 root_expression
 	: names_expression
+	| lapply_expression
+	;
 
 expression
 	: root_expression
@@ -929,7 +948,9 @@ selection_statement
 	;
 
 labeled_statement
-	: CASE expression ':' statement
+	: id ':' statement
+	  { $$ = newexprsrc(&$1->src, Elabel, $1, $3, NULL, NULL); }
+	| CASE expression ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
 	| DEFAULT ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Edefault, $3, NULL, NULL, NULL); }
@@ -951,7 +972,9 @@ iteration_statement
 	;
 
 jump_statement
-	: CONTINUE ';'
+	: GOTO id ';'
+	{ $$ = newexprsrc(&ctx->inp->src, Egoto, $2, 0, 0, 0); }
+	| CONTINUE ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Econtinue, 0, 0, 0, 0); }
 	| BREAK ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Ebreak, 0, 0, 0, 0); }
@@ -962,18 +985,14 @@ jump_statement
 	;
 
 define_statement
-	: DEFINE id '(' identifier_list ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, invert($4), $6, 0); }
+	: DEFINE id '(' arg_id_list ')' compound_statement
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
 	| DEFINE id '('  ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $5, 0); }
-	| DEFINE id id compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $4, 0); }
-	| DEFINE id '(' identifier_list ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, invert($4), $9, $7); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
+	| DEFINE id '(' arg_id_list ')' '[' expression ']' compound_statement
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
 	| DEFINE id '('  ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, nullelist(), $8, $6); }
-	| DEFINE id id '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefine, $2, $3, $7, $5); }
+	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
 	;
 
 defconst_statement

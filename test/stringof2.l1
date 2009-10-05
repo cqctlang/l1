@@ -2,7 +2,7 @@ define mkzas(len){
 	@local dispatch, str, map;
 	str = mkstr(len);
 	map = vector(mkrange(0,len));
-	define dispatch args {
+	define dispatch(args ...) {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 1);
 
@@ -29,7 +29,7 @@ define mkzas(len){
 
 		printf("bad argument to dispatch!\n");
 	}
-	return mkas({ "dispatch" : dispatch });
+	return mkas([ "dispatch" : dispatch ]);
 }
 
 dom = mkdom(c32le, mkzas(1024));

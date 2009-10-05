@@ -5,15 +5,58 @@
 static void freedecl(Decl *d);
 static void freelambda(Lambda *l);
 static void freeblock(Block *b);
+static void freeboxset(Boxset *bxst);
 static u64 szblock(Block *b);
 static u64 szlambda(Lambda *l);
 static u64 szdecl(Decl *d);
+
+typedef struct Exprs Exprs;
+struct Exprs
+{
+	Expr *e;
+	Exprs *link;
+};
 
 enum
 {
 	/* pass4 states: must be non-zero, non-pointer values */
 	Vref = 1,
 };
+
+static Exprs*
+newexprs(Expr *e, Exprs *link)
+{
+	Exprs *es;
+	es = emalloc(sizeof(Exprs));
+	es->e = e;
+	es->link = link;
+	return es;
+}
+
+static void
+freeexprs(Exprs *es)
+{
+	Exprs *q;
+	while(es){
+		q = es->link;
+		efree(es);
+		es = q;
+	}
+}
+
+static void
+free1exprs(Exprs *es)
+{
+	efree(es);
+}
+
+static Exprs*
+copyexprs(Exprs *es)
+{
+	if(es == 0)
+		return 0;
+	return newexprs(es->e, copyexprs(es->link));
+}
 
 int
 issimple(Expr *e)
@@ -203,6 +246,9 @@ freeexprx(Expr *e)
 	case Eblock:
 		freeblock(e->xp);
 		break;
+	case Egoto:
+		freeboxset(e->xp);
+		break;
 	case Etypedef:
 	case Edecl:
 	case Edecls:
@@ -292,6 +338,22 @@ szblock(Block *b)
 	return m;
 }
 
+static int
+hasvarg(Expr *e)
+{
+	Expr *p;
+	p = e;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eellipsis){
+			if(p->e2->kind != Enull)
+				fatal("bug");
+			return 1;
+		}
+		p = p->e2;
+	}
+	return 0;
+}
+
 /* pass0: allocate lambda and block variable descriptors */
 static void
 pass0(Expr *e)
@@ -318,6 +380,23 @@ pass0(Expr *e)
 			l->nparam = 1;
 			v = l->param = emalloc(sizeof(Var));
 			v->id = p->id;
+			v->where = Vlocal;
+			v->idx = 0;
+		}else if(hasvarg(p)){
+			l->isvarg = 1;
+			l->nparam = elistlen(p)-1; /* don't count ellipsis */
+			v = l->param = emalloc(l->nparam*sizeof(Var));
+			p = e->e1;
+			m = 0;
+			while(m < l->nparam-1){
+				v->id = p->e1->id;
+				v->where = Vparam;
+				v->idx = m++;
+				v++;
+				p = p->e2;
+			}
+			/* by convention varg is first local stack variable */
+			v->id = p->e1->id;
 			v->where = Vlocal;
 			v->idx = 0;
 		}else{
@@ -801,6 +880,209 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 	}
 }
 
+static Boxset*
+newboxset()
+{
+	Boxset *bxst;
+	bxst = emalloc(sizeof(Boxset));
+	bxst->max = 8;
+	bxst->var = emalloc(bxst->max*sizeof(Var*));
+	return bxst;
+}
+
+static void
+freeboxset(Boxset *bxst)
+{
+	efree(bxst->var);
+	efree(bxst);
+}
+
+static int
+varequal(Var *a, Var *b)
+{
+	if(a->where != b->where)
+		return 0;
+	if(a->where == Vtop){
+		if(strcmp(a->id, b->id))
+			return 0;
+		else
+			return 1;
+	}
+	return (a->idx == b->idx && a->box == b->box);
+}
+
+static void
+boxsetins(Boxset *bxst, Var *v)
+{
+	if(bxst->n >= bxst->max){
+		bxst->var = erealloc(bxst->var, bxst->max*sizeof(Var*),
+				     2*bxst->max*sizeof(Var*));
+		bxst->max *= 2;
+	}
+	bxst->var[bxst->n++] = v;
+}
+
+static void
+boxsetdel(Boxset *bxst, Var *v)
+{
+	unsigned i;
+	for(i = 0; i < bxst->n; i++)
+		if(varequal(bxst->var[i], v))
+			break;
+	if(i >= bxst->n)
+		fatal("bug");
+	bxst->n--;
+	memmove(&bxst->var[i], &bxst->var[i+1], (bxst->n-i)*sizeof(Var*));
+}
+
+static int
+boxsethas(Boxset *bxst, Var *v)
+{
+	unsigned i;
+	for(i = 0; i < bxst->n; i++)
+		if(varequal(bxst->var[i], v))
+			return 1;
+	return 0;
+}
+
+static Boxset*
+mkboxset(Exprs *les, Exprs *lp)
+{
+	Boxset *bxst;
+	Block *b;
+	unsigned m;
+	Var *v;
+
+	if(les == lp)
+		return newboxset();
+	bxst = mkboxset(les->link, lp);
+	if(les->e->kind != Eblock)
+		fatal("bug");
+	b = (Block*)les->e->xp;
+	for(m = 0; m < b->nloc; m++){
+		v = &b->loc[m];
+		if(v->box && !boxsethas(bxst, v))
+			boxsetins(bxst, v);
+		else if(!v->box && boxsethas(bxst, v))
+			boxsetdel(bxst, v);
+	}
+	return bxst;
+}
+
+static Boxset*
+gotoplan(Exprs *les, Exprs *ges)
+{
+	Exprs *gp, *lp;
+
+	/* find nearest common Expr shared by les and ges */
+	lp = les;
+	while(lp){
+		gp = ges;
+		while(gp && gp->e != lp->e)
+			gp = gp->link;
+		if(gp)
+			/* match */
+			break;
+		lp = lp->link;
+	}
+	if(lp == 0)
+		fatal("gotoplan error");
+
+	return mkboxset(les, lp);
+}
+
+static void
+gotos(Expr *e, HT *ls, Exprs *ges)
+{
+	char *id;
+	Expr *p;
+	Exprs *les;
+
+	if(e == 0)
+		return;
+
+	switch(e->kind){
+	case Elambda:
+		break;
+	case Eblock:
+		ges = newexprs(e, ges);
+		gotos(e->e2, ls, ges);
+		free1exprs(ges);
+		break;
+	case Egoto:
+		id = e->e1->id;
+		les = hget(ls, id, strlen(id));
+		e->xp = gotoplan(les, ges);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			gotos(p->e1, ls, ges);
+			p = p->e2;
+		}
+		break;
+	default:
+		gotos(e->e1, ls, ges);
+		gotos(e->e2, ls, ges);
+		gotos(e->e3, ls, ges);
+		gotos(e->e4, ls, ges);
+		break;
+	}
+}
+
+static void
+free1ls(void *u, char *k, void *v)
+{
+	freeexprs((Exprs*)v);
+}
+
+// pass5: compute variable initialize plan for each goto
+static void
+pass5(Expr *e, HT *ls, Exprs *les)
+{
+	char *id;
+	Expr *p;
+
+	if(e == 0)
+		return;
+
+	switch(e->kind){
+	case Elambda:
+		les = newexprs(e, 0);
+		ls = mkht();
+		pass5(e->e2, ls, les);
+		pass5(e->e4, ls, les);
+		gotos(e->e2, ls, les);
+		gotos(e->e4, ls, les);
+		free1exprs(les);
+		hforeach(ls, free1ls, 0);
+		freeht(ls);
+		break;
+	case Eblock:
+		les = newexprs(e, les);
+		pass5(e->e2, ls, les);
+		free1exprs(les);
+		break;
+	case Elabel:
+		id = e->e1->id;
+		hput(ls, id, strlen(id), copyexprs(les));
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			pass5(p->e1, ls, les);
+			p = p->e2;
+		}
+		break;
+	default:
+		pass5(e->e1, ls, les);
+		pass5(e->e2, ls, les);
+		pass5(e->e3, ls, les);
+		pass5(e->e4, ls, les);
+		break;
+	}
+}
+
 Expr*
 docompilev(U *ctx, Expr *e, Toplevel *top)
 {
@@ -811,5 +1093,6 @@ docompilev(U *ctx, Expr *e, Toplevel *top)
 	pass3(e, 0);
 	if(0 && ctx)
 		pass4(ctx, e, 0);
+	pass5(e, 0, 0);
 	return e;
 }

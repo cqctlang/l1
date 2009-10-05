@@ -14,10 +14,10 @@ struct Cases {
 typedef
 struct CGEnv {
 	Ctl *Return;
-	Ctl *Return0;
 	Ctl *Break;
 	Ctl *Continue;
 	Cases *cases;
+	HT *labels;
 } CGEnv;
 
 static Location toploc[8];
@@ -393,6 +393,10 @@ printinsn(Code *code, Insn *i)
 		xprintf("argc ");
 		printrand(code, &i->op1);
 		break;
+	case Ivargc:
+		xprintf("vargc ");
+		printrand(code, &i->op1);
+		break;
 	case Icallc:
 		xprintf("callc");
 		break;
@@ -426,6 +430,10 @@ printinsn(Code *code, Insn *i)
 		printrand(code, &i->op2);
 		xprintf(" ");
 		printrand(code, &i->dst);
+		break;
+	case Isubsp:
+		xprintf("subsp ", itos(i->kind));
+		printrand(code, &i->op1);
 		break;
 	case Imov:
 		xprintf("mov ");
@@ -468,6 +476,8 @@ printinsn(Code *code, Insn *i)
 	case Ilist:
 		xprintf("list ");
 		printrand(code, &i->op1);
+		xprintf(" ");
+		printrand(code, &i->op2);
 		xprintf(" ");
 		printrand(code, &i->dst);
 		break;
@@ -573,13 +583,12 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 					   cs->max*sizeof(Expr),
 					   2*cs->max*sizeof(Expr));
 			cs->ctl = erealloc(cs->ctl,
-					   cs->max*sizeof(Expr),
-					   2*cs->max*sizeof(Expr));
+					   cs->max*sizeof(Ctl*),
+					   2*cs->max*sizeof(Ctl*));
 			cs->max *= 2;
 		}
 		cs->cmp[cs->n] = e;
 		cs->ctl[cs->n] = genlabel(code, 0);
-// xprintf("case label %s\n", cs->ctl[cs->n]->label);
 		cs->n++;
 		recswitchctl(e->e2, code, cs);
 		break;
@@ -587,7 +596,6 @@ recswitchctl(Expr *e, Code *code, Cases *cs)
 		if(cs->dflt)
 			fatal("too many default cases in switch");
 		cs->dflt = genlabel(code, 0);
-// xprintf("default label %s\n", cs->dflt->label);
 		cs->dflte = e;
 		recswitchctl(e->e1, code, cs);
 		break;
@@ -607,7 +615,7 @@ switchctl(Expr *e, Code *code)
 	cs = emalloc(sizeof(Cases));
 	cs->max = 128;
 	cs->cmp = emalloc(cs->max*sizeof(Expr*));
-	cs->ctl = emalloc(cs->max*sizeof(Expr*));
+	cs->ctl = emalloc(cs->max*sizeof(Ctl*));
 	recswitchctl(e, code, cs);
 	return cs;
 }
@@ -618,6 +626,53 @@ freeswitchctl(Cases *cs)
 	efree(cs->cmp);
 	efree(cs->ctl);
 	efree(cs);
+}
+
+static void
+reclabels(Expr *e, Code *code, HT *ls)
+{
+	char *id;
+	Expr *p;
+
+	if(e == 0)
+		return;
+	switch(e->kind){
+	case Elambda:
+		break;
+	case Elabel:
+		id = e->e1->id;
+		hput(ls, id, strlen(id), genlabel(code, id));
+		reclabels(e->e2, code, ls);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			reclabels(p->e1, code, ls);
+			p = p->e2;
+		}
+		break;
+	default:
+		reclabels(e->e1, code, ls);
+		reclabels(e->e2, code, ls);
+		reclabels(e->e3, code, ls);
+		reclabels(e->e4, code, ls);
+		break;
+	}
+}
+
+static HT*
+labels(Expr *e, Code *code)
+{
+	HT *ls;
+	ls = mkht();
+	reclabels(e, code, ls);
+	return ls;
+}
+
+static void
+freelabels(HT *ls)
+{
+	freeht(ls);
 }
 
 static void
@@ -714,9 +769,13 @@ cgjmp(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src *src)
 {
 	Insn *i;
 
-	if(ctl == nxt){
+	if(ctl == p->Return){
+		i = nextinsn(code, src);
+		i->kind = Iret;
+	}else if(ctl == nxt)
 		/* do nothing */
-	}else{
+		;
+	else{
 		i = nextinsn(code, src);
 		i->kind = Ijmp;
 		i->dstlabel = ctl;
@@ -727,7 +786,7 @@ cgjmp(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src *src)
 static int
 returnlabel(CGEnv *p, Ctl *ctl)
 {
-	return (ctl == p->Return || ctl == p->Return0);
+	return ctl == p->Return;
 }
 
 static Expr*
@@ -916,6 +975,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	unsigned narg, istail;
 	Lambda *l;
 	Block *b;
+	Boxset *bxst;
 	Location dst;
 	int m;
 	CGEnv np;
@@ -1105,8 +1165,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgbinop(code, p, e->op, &r1, &r2, loc, ctl, nxt, &e->src);
 		break;
 	case Ecall:
-		istail = (ctl == p->Return && (loc == AC || loc == Effect));
-
+		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
 		if(!istail){
 			if(loc != Effect)
 				R = genlabel(code, 0);
@@ -1188,7 +1247,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		if(e->e1)
 			cg(e->e1, code, p, AC, p->Return, prv, nxt, tmp);
 		else
-			cgctl(code, p, p->Return0, nxt, &e->src);
+			cgctl(code, p, p->Return, nxt, &e->src);
 		break;
 	/* can Eid and Econst be rationalized with cgrand? */
 	case Eid:
@@ -1239,10 +1298,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i->dstlabel = L;
 		L->used = 1;
 
-		i = nextinsn(code, src);
-		i->kind = Ijmp;
-		i->dstlabel = ctl;
-		ctl->used = 1;
+		cgctl(code, p, ctl, L, &e->src);
 
 		emitlabel(L, e);
 		cglambda(L, code, e);
@@ -1449,7 +1505,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
-		}			
+		} 
 		break;
 	case Edo:
 		if(ctl->ckind != Clabel)
@@ -1554,6 +1610,25 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
+	case Egoto:
+		bxst = e->xp;
+		for(m = 0; m < bxst->n; m++){
+			i = nextinsn(code, &e->src);
+			i->kind = Ibox0;
+			randvarloc(&i->op1, bxst->var[m], 0);
+		}
+		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		if(L == 0)
+			fatal("goto bug");
+		cgjmp(code, p, L, nxt, &e->src);
+		break;
+	case Elabel:
+		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		if(L == 0)
+			fatal("goto bug");
+		emitlabel(L, e);
+		cg(e->e2, code, p, loc, ctl, prv, nxt, tmp);
+		break;
 	default:
 		fatal("cg undefined for expression %d", e->kind);
 		break;
@@ -1588,7 +1663,12 @@ cglambda(Ctl *name, Code *code, Expr *e)
 
 	entry = code->ninsn;
 	src = &e->e1->src; /* argument list */
-	if(!l->isvarg){
+	if(l->isvarg){
+		i = nextinsn(code, src);
+		i->kind = Ivargc;
+		randkon(&i->op1, konimm(code->konst, Vuint, l->nparam-1));
+		needtop = 1;
+	}else{
 		i = nextinsn(code, src);
 		i->kind = Iargc;
 		randkon(&i->op1, konimm(code->konst, Vuint, l->nparam));
@@ -1596,24 +1676,33 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	}
 	if(l->nloc+l->ntmp > 0){
 		i = nextinsn(code, src);
-		i->kind = Isub;
-		randloc(&i->op1, SP);
-		randkon(&i->op2, konimm(code->konst, Vint, l->nloc+l->ntmp));
-		randloc(&i->dst, SP);
+		i->kind = Isubsp;
+		randkon(&i->op1, konimm(code->konst, Vint, l->nloc+l->ntmp));
 		needtop = 1;
 	}
 	if(l->isvarg){
-		/* by convention param 0 is first local stack variable */
-		if(l->param[0].box){
+		m = 0;
+		while(m < l->nparam-1){
+			if(l->param[m].box){
+				i = nextinsn(code, src);
+				i->kind = Ibox;
+				randvarloc(&i->op1, &l->param[m], 0);
+				needtop = 1;
+			}
+			m++;
+		}
+		/* by convention varg is first local stack variable */
+		if(l->param[m].box){
 			i = nextinsn(code, src);
 			i->kind = Ibox0;
-			randvarloc(&i->op1, &l->param[0], 0);
+			randvarloc(&i->op1, &l->param[m], 0);
 			needtop = 1;
 		}
 		i = nextinsn(code, src);
 		i->kind = Ilist;
-		randloc(&i->op1, FP);
-		randvarloc(&i->dst, &l->param[0], 1);
+		randkon(&i->op1, konimm(code->konst, Vuint, 0));
+		randkon(&i->op2, konimm(code->konst, Vuint, m));
+		randvarloc(&i->dst, &l->param[m], 1);
 	}else
 		for(m = 0; m < l->nparam; m++)
 			if(l->param[m].box){
@@ -1628,10 +1717,10 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	}else
 		top = name;
 
-	p.Return0 = genlabel(code, 0);
 	p.Return = genlabel(code, 0);
 	p.Break = 0;
 	p.Continue = 0;
+	p.labels = labels(e->e2, code);
 
 	if(e->e4){
 		Ctl *L;
@@ -1650,13 +1739,11 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		top = genlabel(code, 0);
 	}
 body:
-	cg(e->e2, code, &p, AC, p.Return0, top, p.Return0, l->nloc);
-
-	if(p.Return0->used) /* hack for lambdas with empty bodies */
-		emitlabel(p.Return0, e->e2);
+	cg(e->e2, code, &p, AC, p.Return, top, p.Return, l->nloc);
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code, &e->src);
 	i->kind = Iret;
+	freelabels(p.labels);
 }
 
 Closure*

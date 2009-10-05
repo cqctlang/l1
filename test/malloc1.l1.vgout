@@ -1,0 +1,15 @@
+entry: var params, 6 locals, 0 temps
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+error: address space access out of bounds
+              masput	(builtin closure)
+                $put	(builtin function)
+               entry	(malloc1.l1:6)

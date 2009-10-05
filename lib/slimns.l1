@@ -117,9 +117,9 @@ define mktracens(ns)
 	@local looksym, looktype, enumsym, enumtype, lookaddr;
 	@local dump;
 
-	stab = {:};
-	ttab = {:};
-	ftab = {:};
+	stab = [:];
+	ttab = [:];
+	ftab = [:];
 
 	define looksym(this, id){
 		if(stab[id] == nil)
@@ -215,10 +215,10 @@ define mktracens(ns)
 		return _lookfield(type, field);
 	}
 
-	return mkns({"dump" : dump,
-	             "looksym" : looksym,
-		     "looktype" : looktype,
-		     "enumsym" : enumsym,
-		     "enumtype" : enumtype,
-		     "lookaddr" : lookaddr });
+	return mkns([ "dump" : dump,
+		      "looksym" : looksym,
+		      "looktype" : looktype,
+		      "enumsym" : enumsym,
+		      "enumtype" : enumtype,
+		      "lookaddr" : lookaddr ]);
 }

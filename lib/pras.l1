@@ -171,8 +171,8 @@ define mktrapman()
 	@local uidmap, midmap, look, add, clr, list, reset;
 	
 	nextid = 0;
-	uidmap = {:};
-	midmap = {:};
+	uidmap = [:];
+	midmap = [:];
 
 	define look(mid)
 	{
@@ -429,7 +429,7 @@ define mkpras(arg) {
 		state = indom`Running;
 	}
 
-	define step args {
+	define step(args ...) {
 		@local n;
 
 		if(state != indom`Stopped)
@@ -863,7 +863,7 @@ define mkpras(arg) {
 		setregs();
 	}
 
-	dtab = {
+	dtab = [
 		"get"		:       get,
 		"put"		:	put,
 		"map"		:	map,
@@ -940,7 +940,7 @@ define mkpras(arg) {
 		"xstep"		:	step,
 		"xcontwait"	:	contwait,
 		"xbreak"	:	brk,
-	};
+	];
 	
 	if(isstring(arg))
 		fd = tcpopen(arg);
@@ -960,7 +960,7 @@ define mkpras(arg) {
 	return as;
 }
 
-define mkremoteprocdom arg {
+define mkremoteprocdom(arg ...) {
        @local fd, as;
        fd = tcpopen(pop(arg));
        as = mkpras(fd);
@@ -968,7 +968,7 @@ define mkremoteprocdom arg {
        return as;
 }
 
-define launchlocalproc arg {
+define launchlocalproc(arg ...) {
 	@local fds, as;
 	fds = popen("prctl", "-c", 4|8); // 4==Stdout on stdout; 8==FullDuplex on fd 0
 	as = mkpras(fds[0]);
@@ -984,7 +984,7 @@ define attachlocalproc(pid) {
 	return as;
 }
 
-define mklocalprocdom arg {
+define mklocalprocdom(arg ...) {
 	@local cmd, ns, as;
 
 	cmd = listref(arg, 0);

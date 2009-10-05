@@ -3,7 +3,7 @@ fn: 1 params, 0 locals, 0 temps
 error: does this work?
                error	(builtin function)
                   fn	(finalize2.l1:4)
-               entry	(finalize2.l1:7)
+               entry	(finalize2.l1:8)
 error: does this work?
                error	(builtin function)
                   fn	(finalize2.l1:4)

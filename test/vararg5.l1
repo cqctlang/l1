@@ -1,0 +1,19 @@
+define foo(a, b ...)
+{
+	printf("foo %a %a\n", a, b);
+}
+
+foo(1);
+foo(1, 2);
+foo(1, 2, 3);
+
+
+bar = lambda(a ...)
+{
+	printf("bar %a\n", a);
+};
+
+bar();
+bar(1);
+bar(1, 2);
+bar(1, 2, 3);

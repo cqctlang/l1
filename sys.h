@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <libgen.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -28,6 +29,7 @@
 #include <sched.h>
 #include <pthread.h>
 #include <signal.h>
+#include <glob.h>
 
 //#include <valgrind/memcheck.h>
 

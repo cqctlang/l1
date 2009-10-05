@@ -1,0 +1,18 @@
+define foo(args ...)
+{
+	@local f;
+	while(length(args) > 1){
+		f = pop(args);
+		f();
+		printf("%a ", f());
+	}
+}
+
+{
+	@local i;
+	i = 0;
+	@lazyapply(foo, i++, i++, i++);
+	printf("\n");
+	printf("i: %d\n", i);
+}
+

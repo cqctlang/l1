@@ -6,7 +6,7 @@ printlist = lambda(l) {
 
 f = lambda (){
 	@local x;
-	x = lambda arg {
+	x = lambda(arg ...) {
 	     @local f;
 	     if(length(arg) == 1){
 		  f = listref(arg, 0);

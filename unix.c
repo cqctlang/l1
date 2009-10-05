@@ -31,6 +31,8 @@ readfile(char *filename)
 
 	if(0 > stat(filename, &st))
 		return 0;
+	if(!S_ISREG(st.st_mode))
+		return 0;
 	fd = open(filename, O_RDONLY);
 	if(0 > fd)
 		return 0;
@@ -263,4 +265,10 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 		close(err[0]);
 		return -eno; /* -errno of child */
 	}
+}
+
+int
+xioctl(int fd, unsigned long req, char *buf)
+{
+	return ioctl(fd, req, buf);
 }
