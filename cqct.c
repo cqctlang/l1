@@ -30,20 +30,44 @@ checkxp(Expr *e)
 	}
 }
 
+// return A-B in usec
+static uint64_t
+toddiff(struct timeval *a, struct timeval *b)
+{
+	uint64_t usec;
+	usec = 1000000*(a->tv_sec-b->tv_sec);
+	usec += a->tv_usec-b->tv_usec;
+	return usec;
+}
+
 Closure*
 cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 {
 	U ctx;
 	Expr *e;
+	Closure *cl;
+	enum { Maxphase = 12 };
+	char *phase[Maxphase];
+	struct timeval tv[Maxphase];
+	unsigned i, ntv;
 
 	if(src == 0)
 		src = "<stdin>";
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = &top->out;
 
+	ntv = 0;
+	if(cqctflags['T']){
+		phase[ntv] = "init";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	e = doparse(&ctx, s, src);
 	if(e == 0)
 		return 0;
+	if(cqctflags['T']){
+		phase[ntv] = "parse";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	if(cqctflags['p']){
 		xprintf("input:\n");
 		printexpr(e);
@@ -51,8 +75,16 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	}
 	if(dotypes(&ctx, e) != 0)
 		return 0;
+	if(cqctflags['T']){
+		phase[ntv] = "types";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	if(docompilens(&ctx, e) != 0)
 		return 0;
+	if(cqctflags['T']){
+		phase[ntv] = "ns";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	if(docompilea(&ctx, e) != 0)
 		return 0;
 	if(cqctflags['a']){
@@ -60,9 +92,17 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		printcqct(e);
 		xprintf("\n");
 	}
+	if(cqctflags['T']){
+		phase[ntv] = "a";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	if(docompile0(&ctx, e) != 0){
 		freeexpr(e);
 		return 0;
+	}
+	if(cqctflags['T']){
+		phase[ntv] = "0";
+		gettimeofday(&tv[ntv++], 0);
 	}
 	if(docompile1(&ctx, e) != 0)
 		return 0;
@@ -71,20 +111,40 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		printexpr(e);
 		xprintf("\n");
 	}
+	if(cqctflags['T']){
+		phase[ntv] = "1";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	e = docompile2(&ctx, e, top, argsid);
 	if(e == 0)
 		return 0;
 	checkxp(e);
+	if(cqctflags['T']){
+		phase[ntv] = "2";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	e = docompilev(&ctx, e, top);
 	if(e == 0)
 		return 0;
+	if(cqctflags['T']){
+		phase[ntv] = "v";
+		gettimeofday(&tv[ntv++], 0);
+	}
 	if(cqctflags['q']){
 		xprintf("transformed source:\n");
 		printcqct(e);
 		xprintf("\n");
 	}
 
-	return codegen(e);
+	cl = codegen(e);
+	if(cqctflags['T']){
+		phase[ntv] = "codegen";
+		gettimeofday(&tv[ntv++], 0);
+		for(i = 0; i < ntv-1; i++)
+			printf("%-40s\t%16" PRIu64 " usec\n",
+			       phase[i+1], toddiff(&tv[i+1], &tv[i]));
+	}
+	return cl;
 }
 
 int
@@ -124,6 +184,8 @@ cqctfreeexpr(Expr *e)
 void
 cqctinterrupt(VM *vm)
 {
+	if(vm->flags&VMirq)
+		fatal("hard interrupt");
 	vm->flags |= VMirq;
 }
 
