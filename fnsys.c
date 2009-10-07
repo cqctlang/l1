@@ -371,6 +371,7 @@ badnews:
 	efree(news);
 }
 
+#if 0
 static void
 l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -398,6 +399,7 @@ l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
 	globfree(&g);
 	*rv = mkvallist(l);
 }
+#endif
 
 static void
 l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -449,7 +451,6 @@ fnsys(Env *env)
 	FN(getenv);
 	FN(getpid);
 	FN(gettimeofday);
-	FN(glob);
 	FN(insncnt);
 	FN(news);
 	FN(profoff);

@@ -1,6 +1,7 @@
 CC        = gcc
 LD        = ld
 CFLAGS    = -Wall -g
+LDFLAGS   = -r
 CONF     ?= unix
 L1LIBS	  = -lpthread
 L1DEPS    =
@@ -11,6 +12,7 @@ V	  = @
 
 -include mk.$(CONF)
 
+export CC
 export CFLAGS
 export V
 
@@ -88,7 +90,7 @@ l1: l1.o main.o
 
 l1.o: c.tab.o lex.yy.o $(L1O) $(L1DEPS)
 	@echo + ld $@
-	$(V)$(LD) -d -r -o $@ $^ $(L1DEPS)
+	$(V)$(LD) $(LDFLAGS) -o $@ $^
 
 libl1.so: CFLAGS += -fPIC -nostdlib
 
