@@ -62,7 +62,7 @@ define dumpregs (exdom)
   printf ("reg 8 = 0x%x (%u)\n", exdom.geteip(), exdom.geteip());
 }
 
-_dw_map_getfun_to_regnum = {
+_dw_map_getfun_to_regnum = [
     "geteax" : 0,
     "getecx" : 1,
     "getedx" : 2,
@@ -72,12 +72,12 @@ _dw_map_getfun_to_regnum = {
     "getesi" : 6,
     "getedi" : 7,
     "geteip" : 8
-};
+];
 
 _dw_getfun = vector ("geteax", "getecx", "getedx", "getebx", "getesp",
 		     "getebp", "getesi", "getedi", "geteip");
 
-_dw_map_setfun_to_regnum = {
+_dw_map_setfun_to_regnum = [
     "seteax" : 0,
     "setecx" : 1,
     "setedx" : 2,
@@ -87,7 +87,7 @@ _dw_map_setfun_to_regnum = {
     "setesi" : 6,
     "setedi" : 7,
     "seteip" : 8
-};
+];
 
 _dw_setfun = vector ("seteax", "setecx", "setedx", "setebx", "setesp",
 		     "setebp", "setesi", "setedi", "seteip");

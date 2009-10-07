@@ -87,7 +87,7 @@ define dumpregs (exdom)
   printf ("reg 16 = 0x%x (%u)\n", exdom.getrip(),exdom.getrip());
 }
 
-_dw_map_getfun_to_regnum = {
+_dw_map_getfun_to_regnum = [
     "getrax" : 0,
     "getrdx" : 1,
     "getrcx" : 2,
@@ -105,14 +105,14 @@ _dw_map_getfun_to_regnum = {
     "getr14" : 14,
     "getr15" : 15,
     "getrip" : 16
-};
+];
 
 _dw_getfun = vector ("getrax", "getrdx", "getrcx", "getrbx", "getrsi",
 		     "getrdi", "getrbp", "getrsp", "getr8", "getr9",
 		     "getr10", "getr11", "getr11", "getr12", "getr13",
 		     "getr14", "getr15", "getrip");
 
-_dw_map_setfun_to_regnum = {
+_dw_map_setfun_to_regnum = [
     "setrax" : 0,
     "setrdx" : 1,
     "setrcx" : 2,
@@ -130,7 +130,7 @@ _dw_map_setfun_to_regnum = {
     "setr14" : 14,
     "setr15" : 15,
     "setrip" : 16
-}; 
+]; 
 
 _dw_setfun = vector ("setrax", "setrdx", "setrcx", "setrbx", "setrsi",
 		     "setrdi", "setrbp", "setrsp", "setr8", "setr9",
