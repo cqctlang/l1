@@ -438,6 +438,13 @@ compile1(U *ctx, Expr *e)
 		freeexpr(e);
 		return se;
 #endif
+	case Eelist:
+		q = e;
+		while(q->kind == Eelist){
+			q->e1 = compile1(ctx, q->e1);
+			q = q->e2;
+		}
+		return e;
 	default:
 		e->e1 = compile1(ctx, e->e1);
 		e->e2 = compile1(ctx, e->e2);
