@@ -20,6 +20,8 @@ all: $(TARG)
 
 HDR = sys.h util.h cqct.h syscqct.h 
 L1C =\
+	lex.yy.c\
+	c.tab.c\
 	hash.c\
 	util.c\
 	printexpr.c\
@@ -65,19 +67,14 @@ fns.$(CONF).c: $(L1EXTRAS)
 	@echo $(FNSCALLS) >> $@
 	@echo '}' >> $@
 
-c.tab.c: c.y $(HDR)
-	@echo + bison $<
-	$(V)bison -d c.y
-
-c.tab.h: c.tab.c
-
 x/lib9/lib9.a:
 	$(MAKE) -s -C x/lib9
 
-# -s drops fwrite dependency
-lex.yy.c: c.l $(HDR)
+parser:
 	@echo + flex $<
-	$(V)flex -f -s c.l
+	$(V)flex -f -s c.l # -s drops fwrite dependency
+	@echo + bison $<
+	$(V)bison -d c.y
 
 %.o:%.c
 	@echo + cc $<
@@ -88,7 +85,7 @@ l1: l1.o main.o
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 #	dwarf2cqct < l1 > l1.names
 
-l1.o: c.tab.o lex.yy.o $(L1O) $(L1DEPS)
+l1.o: $(L1O) $(L1DEPS)
 	@echo + ld $@
 	$(V)$(LD) $(LDFLAGS) -o $@ $^
 
@@ -118,4 +115,4 @@ clean:
 	@$(MAKE) -C x/libflate clean
 	@$(MAKE) -C x/libsec clean
 #	@$(MAKE) -C x/libtre clean
-	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort lex.yy.* *.tab.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
+	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
