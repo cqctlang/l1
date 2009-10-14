@@ -94,10 +94,10 @@ define szexpr(e)
 
 	switch(e->kind){
 	case dom`Eid:
-		m += esize(e->id);
+//		m += esize(e->id);
 		break;
 	case dom`Econsts:
-		m += esize(e->lits);
+//		m += esize(e->lits);
 		break;
 	default:
 		break;
@@ -260,7 +260,7 @@ define time(fn)
 	fn();
 	e = gettimeofday();
 	
-	printf("%d seconds\n", (e-s)/1000000);
+	printf("%d seconds %d useconds\n", (e-s)/1000000, (e-s)%1000000);
 }
 
 define codestat(dom)
