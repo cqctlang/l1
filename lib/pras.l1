@@ -42,6 +42,11 @@ protns = @names c32le {
 		Tstep,
 		Rstep,
 		Aclone,
+		Tfread,
+	
+		Rfread,
+		Tfwrite,
+		Rfwrite,
 	};
 
 	enum State {
@@ -85,8 +90,9 @@ protns = @names c32le {
 
 	struct Tlaunch{
 		@0	uint8 op;
-		@1	uint64 narg;
-		@9;
+		@1	uint64 flags;
+		@9	uint64 narg;
+		@17;
 	};
 	typedef struct Tlaunch Tlaunch;
 
@@ -159,6 +165,27 @@ protns = @names c32le {
 	typedef struct Asnap Asnap;
 	typedef struct Asnap Tread;
 	typedef struct Asnap Twrite;
+
+	struct Tfread{
+		@0	uint8 op;
+		@1	uint64 id;
+		@9	uint64 fd;
+		@17	uint64 cnt;
+		@25	char bytes[0];
+		@25;
+	};
+	typedef struct Tfread Tfread;
+	typedef struct Tfread Tfwrite;
+
+	struct Rfread{
+		@0	uint8 op;
+		@1	uint64 id;
+		@9	uint64 cnt;
+		@17	char bytes[0];
+		@17;
+	};
+	typedef struct Rfread Rfread;
+	typedef struct Rfread Rfwrite;
 };
 
 @record Trapman { look, add, clr, reset, list };
@@ -332,6 +359,10 @@ define mkpras(arg) {
 			return ipress(#indom`Rattach*#);
 		case indom`Aclone:
 			return ipress(#indom`Aclone*#);
+		case indom`Rfread:
+			return ipress(#indom`Rfread*#);
+		case indom`Rfwrite:
+			return ipress(#indom`Rfwrite*#);
 		case indom`Rcleave:
 		case indom`Rsetsnap:
 		case indom`Asnap:
@@ -372,7 +403,7 @@ define mkpras(arg) {
 		state = indom`Running;
 	}
 
-	define launch(domas, arg){
+	define launch(domas, flags, arg){
 		@local argvlen, narg, i;
 
 		narg = length(arg);
@@ -386,6 +417,7 @@ define mkpras(arg) {
 		xwr((`uint64)(sizeof(outdom`Tlaunch)+argvlen));
 		p = opress(#outdom`Tlaunch*#);
 		p->op = outdom`Tlaunch;
+		p->flags = flags;
 		p->narg = narg;
 		for(i = 0; i < narg; i++){
 			log("2");
@@ -535,6 +567,53 @@ define mkpras(arg) {
 			      (enum Mkind)reply->op);
 		indom.flush();
 		logrecv("Rwrite");
+	}
+
+	define fread(fd, cnt){
+		@local s;
+
+		xwr((`uint64)sizeof(outdom`Tread));
+		p = opress(#outdom`Tfread*#);
+		p->op = outdom`Tread;
+		p->id = id;
+		p->fd = fd;
+		p->cnt = cnt;
+		outdom.flush();
+		logsend("Tfread");
+
+		reply = read1();
+		checkreply(indom`Rfread, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		s = xrds(cnt);
+		indom.flush();
+		logrecv("Rfread");
+
+		return s;
+	}
+
+	define fwrite(fd, bytes){
+		@local cnt;
+		cnt = length(bytes);
+		xwr((`uint64)(sizeof(outdom`Tfwrite)+cnt));
+		p = opress(#outdom`Tfwrite*#);
+		p->op = outdom`Tfwrite;
+		p->id = id;
+		p->fd = fd;
+		p->cnt = cnt;
+		xwr(bytes);
+		outdom.flush();
+		logsend("Tfwrite");
+
+		reply = read1();
+		checkreply(indom`Rfwrite, reply);
+		if(reply->id != id)
+			error("pras: got %e for unknown task",
+			      (enum Mkind)reply->op);
+		indom.flush();
+		logrecv("Rfwrite");
+		return reply->cnt;
 	}
 
 	define clrbrk(domas, bp){
@@ -863,6 +942,18 @@ define mkpras(arg) {
 		setregs();
 	}
 
+	define xfread(arg ...)
+	{
+		pop(arg); /* domas */
+		return apply(fread, arg);
+	}
+
+	define xfwrite(arg ...)
+	{
+		pop(arg); /* domas */
+		return apply(fwrite, arg);
+	}
+
 	dtab = [
 		"get"		:       get,
 		"put"		:	put,
@@ -940,6 +1031,8 @@ define mkpras(arg) {
 		"xstep"		:	step,
 		"xcontwait"	:	contwait,
 		"xbreak"	:	brk,
+		"xfread"	:	xfread,
+		"xfwrite"	:	xfwrite,
 	];
 	
 	if(isstring(arg))
@@ -964,7 +1057,7 @@ define mkremoteprocdom(arg ...) {
        @local fd, as;
        fd = tcpopen(pop(arg));
        as = mkpras(fd);
-       as.launch(arg);
+       as.launch(0, arg);
        return as;
 }
 
@@ -972,7 +1065,16 @@ define launchlocalproc(arg ...) {
 	@local fds, as;
 	fds = popen("prctl", "-c", 4|8); // 4==Stdout on stdout; 8==FullDuplex on fd 0
 	as = mkpras(fds[0]);
-	as.launch(arg);
+	as.launch(0, arg);
+	return as;
+}
+
+define launchlocalprocredir(arg ...)
+{
+	@local fds, as;
+	fds = popen("prctl", "-c", 4|8); // 4==Stdout on stdout; 8==FullDuplex on fd 0
+	as = mkpras(fds[0]);
+	as.launch(1|2, arg); // 1==redirect stdin; 2==redirect stdout
 	return as;
 }
 
