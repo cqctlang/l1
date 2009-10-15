@@ -420,11 +420,9 @@ define mkpras(arg) {
 		p->flags = flags;
 		p->narg = narg;
 		for(i = 0; i < narg; i++){
-			log("2");
 			xwr(listref(arg, i));
 			xwr((`uint8)0);
 		}
-		log("3");
 		outdom.flush();
 		logsend("Tlaunch");
 
@@ -572,9 +570,9 @@ define mkpras(arg) {
 	define fread(fd, cnt){
 		@local s;
 
-		xwr((`uint64)sizeof(outdom`Tread));
+		xwr((`uint64)sizeof(outdom`Tfread));
 		p = opress(#outdom`Tfread*#);
-		p->op = outdom`Tread;
+		p->op = outdom`Tfread;
 		p->id = id;
 		p->fd = fd;
 		p->cnt = cnt;
@@ -586,7 +584,7 @@ define mkpras(arg) {
 		if(reply->id != id)
 			error("pras: got %e for unknown task",
 			      (enum Mkind)reply->op);
-		s = xrds(cnt);
+		s = xrds(reply->cnt);
 		indom.flush();
 		logrecv("Rfread");
 
@@ -611,9 +609,9 @@ define mkpras(arg) {
 		if(reply->id != id)
 			error("pras: got %e for unknown task",
 			      (enum Mkind)reply->op);
+		cnt = reply->cnt;
 		indom.flush();
 		logrecv("Rfwrite");
-		return reply->cnt;
 	}
 
 	define clrbrk(domas, bp){
@@ -1072,7 +1070,8 @@ define launchlocalproc(arg ...) {
 define launchlocalprocredir(arg ...)
 {
 	@local fds, as;
-	fds = popen("prctl", "-c", 4|8); // 4==Stdout on stdout; 8==FullDuplex on fd 0
+	 // 2==Stderr on stderr; 4==Stdout on stdout; 8==FullDuplex on fd 0
+	fds = popen("prctl", "-c",2|4|8);
 	as = mkpras(fds[0]);
 	as.launch(1|2, arg); // 1==redirect stdin; 2==redirect stdout
 	return as;
