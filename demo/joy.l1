@@ -1,0 +1,15 @@
+@include <pras.l1>
+
+@global as;
+define init()
+{
+	as = launchlocalprocredir("./xtest");
+	as.xcont();
+}
+
+define test()
+{
+	as.xfwrite(0, "hello!");
+	s = as.xfread(1, 100);
+	printf("got %a\n", s);
+}
