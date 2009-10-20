@@ -4958,34 +4958,68 @@ iscvaltype(Xtypename *t)
 	return okay[t->tkind];
 }
 
-static void
-xxcast(VM *vm, Operand *typeordom, Operand *cval, Operand *dst)
+static int
+isptrtype(Xtypename *t)
 {
-	Val typeordomv, cvalv, rv;
+	t = chasetype(t);
+	return t->tkind == Tptr;
+}
+
+static Xtypename*
+nsvoidstar(Ns *ns)
+{
+	return mkptrxtn(ns->base[Vvoid], ns->base[Vptr]->rep);
+}
+
+static Cval*
+str2voidstar(Ns *ns, Str *s)
+{
+	Dom *d;
+	d = mkdom(ns, mksas(s), 0);
+	return mkcval(d, nsvoidstar(ns), 0);
+}
+
+static void
+xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
+{
+	Val tv, ov, rv;
 	Cval *cv;
 	Dom *d;
 	Xtypename *t;
 
-	cvalv = getvalrand(vm, cval);
-	if(cvalv->qkind != Qcval)
-		vmerr(vm,
-		      "operand 2 to extended cast operator must be a cvalue");
-	cv = valcval(cvalv);
-
-	typeordomv = getvalrand(vm, typeordom);
-	if(typeordomv->qkind == Qxtn){
-		t = valxtn(typeordomv);
+	ov = getvalrand(vm, o);
+	if(ov->qkind != Qcval && ov->qkind != Qstr)
+		vmerr(vm, "operand 2 to extended cast operator must a"
+		      " cvalue or string");
+	tv = getvalrand(vm, typeordom);
+	if(tv->qkind != Qxtn && ov->qkind == Qstr)
+		vmerr(vm, "illegal conversion");
+	if(tv->qkind == Qxtn){
+		t = valxtn(tv);
 		if(!iscvaltype(t))
 			vmerr(vm, "illegal type conversion");
+		if(ov->qkind == Qstr){
+			if(!isptrtype(t))
+				vmerr(vm, "illegal type conversion");
+			cv = str2voidstar(vm->litns, valstr(ov));
+		}else
+			cv = valcval(ov);
 		rv = mkvalcval2(typecast(vm, t, cv));
-	}else if(typeordomv->qkind == Qdom){
-		d = valdom(typeordomv);
-		rv = mkvalcval2(domcast(vm, d, cv));
+	}else if(tv->qkind == Qdom){
+		d = valdom(tv);
+		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+	}else if(tv->qkind == Qns){
+		cv = valcval(ov);
+		d = mkdom(valns(tv), cv->dom->as, 0);
+		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+	}else if(tv->qkind == Qas){
+		cv = valcval(ov);
+		d = mkdom(cv->dom->ns, valas(tv), 0);
+		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
 	}else
-		vmerr(vm,
-		      "operand 2 to extended cast operator must be "
-		      "a domain or ctype");
+		vmerr(vm, "bad type for operand 1 to extended cast operator");
 	putvalrand(vm, rv, dst);
+
 }
 
 static void
@@ -10891,6 +10925,19 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 	freeexpr(e);
 }
 
+static void
+l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *s;
+	Cval *cv;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cval2str");
+	checkarg(vm, "cval2str", argv, 0, Qcval);
+	cv = valcval(argv[0]);
+	s = imm2str(vm, cv->type, cv->val);
+	*rv = mkvalstr(s);
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -11270,6 +11317,7 @@ mktopenv()
 	FN(cons);
 	FN(copy);
 	FN(count);
+	FN(cval2str);
 	FN(delete);
 	FN(domof);
 	FN(enumconsts);
