@@ -1029,8 +1029,8 @@ define mkpras(arg) {
 		"xstep"		:	step,
 		"xcontwait"	:	contwait,
 		"xbreak"	:	brk,
-		"xfread"	:	xfread,
-		"xfwrite"	:	xfwrite,
+		"fread"		:	xfread,
+		"fwrite"	:	xfwrite,
 	];
 	
 	if(isstring(arg))
