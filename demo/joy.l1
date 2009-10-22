@@ -3,7 +3,7 @@
 @global as;
 define init()
 {
-	as = launchlocalprocredir("./xtest");
+	as = launchlocalprocredir("/home/vczandy/bin/prctl", "-c");
 	as.xcont();
 }
 
