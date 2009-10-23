@@ -3,20 +3,16 @@
 @global as;
 define init()
 {
-	as = launchlocalprocredir("/home/vic/bin/prctl", "-c");
+	as = launchlocalprocredir("/home/vczandy/bin/prctl", "-c");
 	as.xcont();
-}
-
-define mkread(dom)
-{
 }
 
 define mkasfd(as)
 {
 	@local read, write;
-	define read(fd, len)
+	define read(len)
 	{
-		return as.fread(1, len);
+		return as.fread(0, len);
 	}
 	define write(p)
 	{
@@ -37,8 +33,10 @@ define test()
 	write(fd, cval2str(sizeof(*p)+length(cmd)));
 	write(fd, getbytes(p));
 	write(fd, cmd);
-	sz = *(protns`uint64)xread(fd, sizeof(protns`uint64));
-	buf = xread(fd, sz);
+	printf("read0\n");
+	sz = *(protns`uint64)read(fd, sizeof(protns`uint64));
+	printf("read1 -> %d\n", sz);
+	buf = read(fd, sz);
 	op = *(protns`uint64*)buf;
 	if(op != protns`Rlaunch)
 		error("error");

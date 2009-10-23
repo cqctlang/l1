@@ -5019,7 +5019,6 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 	}else
 		vmerr(vm, "bad type for operand 1 to extended cast operator");
 	putvalrand(vm, rv, dst);
-
 }
 
 static void
