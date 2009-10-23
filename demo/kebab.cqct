@@ -1,0 +1,65 @@
+@include <linux.cqct>
+
+define listequal(pa, pb)
+{
+	if(!pa && !pb)
+		return 1;
+	if(!pa || !pb || pa->v != pb->v)
+		return 0;
+	return listequal(pa->next, pb->next);
+}
+
+define heads(kb)
+{
+	return map(lambda(dom) { dom`head; }, kb);
+}
+
+define printlist(dom)
+{
+	p = dom`head;
+	while(p){
+		printf("%d ", p->v);
+		p = p->next;
+	}
+	printf("\n");
+}
+
+target = "./list";
+
+define kebab(dom)
+{
+	@local ls, once;
+	ls = [];
+	once = 0;
+	dom.xtrap(&dom`insert,
+		  lambda(dom)
+		  {
+			  append(ls, dom.snap());
+		  });
+	dom.xcontwait();
+	return ls;
+}
+
+
+define demo1()
+{
+	old = heads(kebab(launch(target)));
+	new = heads(kebab(launch(target)));
+	launch(target);
+
+	define foo(o, n)
+	{
+		if(listequal(o, n))
+			printf("same\n");
+		else
+			printf("different\n");
+	}
+
+	foreach(foo, old, new);
+}
+
+define demo2()
+{
+	kb = kebab(launch(target, "100"));
+	foreach(printlist, kb);
+}
