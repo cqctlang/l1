@@ -7,9 +7,38 @@ define init()
 	as.xcont();
 }
 
+define mkasfd(as)
+{
+	@local read, write;
+	define read(len)
+	{
+		return as.fread(0, len);
+	}
+	define write(p)
+	{
+		as.fwrite(0, p);
+		return nil;
+	}
+	return mkfd(read, write, nil);
+}
+
 define test()
 {
-	as.xfwrite(0, "hello!");
-	s = as.xfread(1, 100);
-	printf("got %a\n", s);
+	cmd = "./xtest\0";
+	fd = mkasfd(as);
+	p = (protns`Tlaunch*)malloc(sizeof(protns`Tlaunch)+length(cmd));
+	p->op = protns`Tlaunch;
+	p->flags = 0;
+	p->narg = 1;
+	write(fd, cval2str(sizeof(*p)+length(cmd)));
+	write(fd, getbytes(p));
+	write(fd, cmd);
+	printf("read0\n");
+	sz = *(protns`uint64)read(fd, sizeof(protns`uint64));
+	printf("read1 -> %d\n", sz);
+	buf = read(fd, sz);
+	op = *(protns`uint64*)buf;
+	if(op != protns`Rlaunch)
+		error("error");
+	msg = *(protns`Rlaunch*)buf;
 }
