@@ -1,4 +1,4 @@
-@include <nsutil.l1>
+@include <nsutil.cqct>
 
 if(length(args) != 3)
 	error("usage: l1 nsdiff.l1 <rootns> <names1> <names2>");

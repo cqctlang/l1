@@ -1,6 +1,6 @@
-@include <slimns.l1>
-@include <snapas.l1>
-@include <heapstat.l1>
+@include <slimns.cqct>
+@include <snapas.cqct>
+@include <heapstat.cqct>
 
 define dostat(ns, as)
 {
