@@ -31,6 +31,7 @@ main(int argc, char *argv[])
 {
 	int i;
 	int m;
+	m = 100;
 	if(argc > 1)
 		m = atoi(argv[1]);
 	for(i = 0; i < m; i++)

@@ -45,8 +45,6 @@ define demo1()
 {
 	old = heads(kebab(launch(target)));
 	new = heads(kebab(launch(target)));
-	launch(target);
-
 	define foo(o, n)
 	{
 		if(listequal(o, n))
@@ -54,7 +52,6 @@ define demo1()
 		else
 			printf("different\n");
 	}
-
 	foreach(foo, old, new);
 }
 
