@@ -41,7 +41,7 @@ define kebab(dom)
 }
 
 
-define demo1()
+define demo2()
 {
 	old = heads(kebab(launch(target)));
 	new = heads(kebab(launch(target)));
@@ -55,7 +55,7 @@ define demo1()
 	foreach(foo, old, new);
 }
 
-define demo2()
+define demo1()
 {
 	kb = kebab(launch(target, "100"));
 	foreach(printlist, kb);
