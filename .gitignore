@@ -1,7 +1,4 @@
 *.o
-lex.yy.c
-c.tab.c
-c.tab.h
 depend
 l1
 .DS_Store

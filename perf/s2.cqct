@@ -1,5 +1,5 @@
-@include "dostat.l1"
-@include <profile.l1>
+@include "dostat.cqct"
+@include <profile.cqct>
 
 define s2(snapfile)
 {

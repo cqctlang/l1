@@ -1,5 +1,5 @@
 #!/usr/bin/env l1
-@include <pcap.l1>
+@include <pcap.cqct>
 
 define main(args)
 {

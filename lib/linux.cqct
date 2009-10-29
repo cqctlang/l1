@@ -1,0 +1,35 @@
+@include <elf.cqct>
+@include <dwarf.cqct>
+@include <pras.cqct>
+
+
+define launch(arg ...)
+{
+	@local xas, as, xtrap, xsnap, dispatch;
+	as = apply(launchlocalproc, arg);
+	as.launch(0, arg);
+	ns = init_debug_domain(arg[0]);
+
+	define xtrap(this, addr, fn)
+	{
+		@local x;
+		if(isdom(this))
+			x = mkdom(this.ns, as);
+		else
+			x = as;
+		x.xtrap(addr, lambda(id, addr) { fn(this); return 0; });
+	}
+
+	define dispatch(this, id, arg ...)
+	{
+		@local x;
+		if(isdom(this))
+			x = mkdom(this.ns, as);
+		else
+			x = as;
+		return callmethod(x, id, arg);
+	}
+
+	xas = mkas([ "xtrap" : xtrap, "dispatch" : dispatch ]);
+	return mkdom(ns, xas);
+}
