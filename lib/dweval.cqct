@@ -561,6 +561,8 @@ define _dw_eval (dom, cptr, pceval)
     rno = decodeuleb128 (lptr);
     lptr = listref (rno, 1);
     rno = head (rno);
+    /* This code will break. The address space for dom here is a DWARF
+    section, not something that can get register values. */
     rv = _dw_get_regval (dom, rno);
     rvtype = _dwcqct_reg_type;
     _dw_push (rv);
