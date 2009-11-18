@@ -1,0 +1,309 @@
+proto = @names c32le {
+	enum Mkind {
+		Rerror = 0,
+		Tlaunch,
+		Rlaunch,
+		Tcont,
+		Rcont,
+
+		Tstop,
+		Rstop,
+		Tkill,
+		Rkill,
+		Tsetbrk,
+
+		Rsetbrk,
+		Tclrbrk,
+		Rclrbrk,
+		Tread,
+		Rread,
+
+		Abrk,
+		Aobit,
+		Aack,
+		Tcleave,
+		Rcleave,
+
+		Twrite,
+		Rwrite,
+		Tsetregs,
+		Rsetregs,
+		Tsetsnap,
+
+		Rsetsnap,
+		Asnap,
+		Tattach,
+		Rattach,
+		Ttest,
+
+		Rtest,
+		Tstep,
+		Rstep,
+		Aclone,
+		Tfread,
+	
+		Rfread,
+		Tfwrite,
+		Rfwrite,
+	};
+
+	enum State {
+		Running,
+		Stopped,
+		Dead,
+	};
+
+	typedef
+	struct Reg {
+		@0	uint64 eflags;
+		@8	uint64 rbx;
+		@16	uint64 rcx;
+		@24	uint64 rdx;
+		@32	uint64 rsi;
+		@40	uint64 rdi;
+		@48	uint64 rbp;
+		@56	uint64 rax;
+		@64	uint64 rip;
+		@72	uint64 rsp;
+		@80	uint64 r8;
+		@88	uint64 r9;
+		@96	uint64 r10;
+		@104	uint64 r11;
+		@112	uint64 r12;
+		@120	uint64 r13;
+		@128	uint64 r14;
+		@136	uint64 r15;
+		@144;
+	} Reg;
+
+	struct Rerror{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	char err[0];
+		@13	char bytes[0];
+		@13;
+	};
+	typedef struct Rerror Rerror;
+	typedef struct Rerror Rread;
+
+	struct Tlaunch{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 flags;
+		@13	uint64 narg;
+		@21;
+	};
+	typedef struct Tlaunch Tlaunch;
+
+	struct Rlaunch{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	Reg reg;
+		@157;
+	};
+	typedef struct Rlaunch Rlaunch;
+	typedef struct Rlaunch Rstop;
+	typedef struct Rlaunch Tsetregs;
+
+	struct Rcont{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@5	uint64 cnt;
+		@13;
+	};
+	typedef struct Rcont Tcont;
+	typedef struct Rcont Tstop;
+	typedef struct Rcont Rcont;
+	typedef struct Rcont Rwrite;
+	typedef struct Rcont Tattach;
+	typedef struct Rcont Rattach;
+	typedef struct Rcont Rclrbrk;
+	typedef struct Rcont Rkill;
+	typedef struct Rcont Rsetregs;
+	typedef struct Rcont Aobit;
+	typedef struct Rcont Aack;
+	typedef struct Rcont Tcleave;
+	typedef struct Rcont Rtest;
+	typedef struct Rcont Tstep;
+	typedef struct Rcont Rstep;
+
+	struct Tsetbrk{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 bp;
+		@13     uint64 addr;
+		@13	uint64 cid;
+		@21;
+	};
+	typedef struct Tsetbrk Tsetbrk;
+	typedef struct Tsetbrk Tclrbrk;
+	typedef struct Tsetbrk Rsetbrk;
+	typedef struct Tsetbrk Rsetsnap;
+	typedef struct Tsetbrk Rcleave;
+
+	struct Abrk{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 bp;
+		@13	uint64 cid;
+		@21	Reg reg;
+		@165;
+	};
+	typedef struct Abrk Abrk;
+	typedef struct Abrk Aclone;
+
+	struct Asnap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 bp;
+		@13     uint64 addr;
+		@21	uint64 cid;
+		@21	uint64 cnt;
+		@29	char bytes[0];
+		@29;
+	};
+	typedef struct Asnap Asnap;
+	typedef struct Asnap Tread;
+	typedef struct Asnap Twrite;
+
+	struct Tfread{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 fd;
+		@21	uint64 cnt;
+		@29	char bytes[0];
+		@29;
+	};
+	typedef struct Tfread Tfread;
+	typedef struct Tfread Tfwrite;
+
+	struct Rfread{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 cnt;
+		@21	char bytes[0];
+		@21;
+	};
+	typedef struct Rfread Rfread;
+	typedef struct Rfread Rfwrite;
+};
+
+@record ctlmux { launch, run };
+@record targ { id, state, reg, as };
+
+define mkctlmux()
+{
+	@local tab, launch, run, fds, fd;
+	@local logsend, logrecv, log, verbose;
+	@local checkreply, cop, targs;
+
+	targs = [:];
+
+	verbose = 1;
+	define logsend(s){
+		if(verbose)
+			printf("<-- %s\n", s);
+	}
+	define logrecv(s){
+		if(verbose)
+			printf("--> %s\n", s);
+	}
+	define log(s){
+		if(verbose)
+			printf("%s\n", s);
+	}
+
+	fds = popen("prctl", "-c", 2|4|8);
+	fd = fds[0];
+
+	define cop(p){
+		return {typeof(p)}getbytes(p);
+	}
+
+	define checkreply(rep, op)
+	{
+		switch(rep->op){
+		case op:
+			break;
+		case proto`Rerror:
+			error("ctlmux: while waiting for %e: %s",
+			      op, rep->bytes);
+		default:
+			error("ctlmux: while waiting for %e: received %e",
+			      op, rep->op);
+		}
+	}
+
+	define mktargas(t)
+	{
+		return nil;
+	}
+
+	define runtiltag(tag)
+	{
+		@local sz, op, s;
+
+		// FIXME: would be nicer to say
+		//    *(proto`uint64*)read(fd, sizeof(proto`uint64));
+		// but throws error: operand 1 to domof must be a cvalue
+		s = read(fd, sizeof(proto`uint64));
+		if(!isstring(s))
+			error("s is %a", s);
+		sz = *{typeof(proto`uint64*)}s;
+		p = read(fd, sz);
+		op = *{typeof(enum proto`Mkind*)}p;
+		switch(op){
+		case proto`Rlaunch:
+			return {typeof(proto`Rlaunch*)}p;
+		case proto`Rerror:
+			return {typeof(proto`Rerror*)}p;
+		default:
+			error("unexpected op %e", op);
+		}
+	}
+
+	define launch(flags, arg ...)
+	{
+		@local narg, s, sz, i, p, q, t;
+
+		narg = length(arg);
+		if(narg == 0)
+			error("mkpras: launch: empty command");
+
+		/* format and send Tlaunch */
+		sz = sizeof(proto`Tlaunch);
+		write(fd, cval2str((proto`uint64)sz));
+		for(i = 0; i < narg; i++)
+			sz += strlen(listref(arg, i))+1;
+		p = (proto`Tlaunch*)malloc(sz);
+		p->op = proto`Tlaunch;
+		p->tag = 0;
+		p->flags = flags;
+		p->narg = narg;
+		q = (char*)p;
+		for(i = 0; i < narg; i++){
+			s = listref(arg, i);
+			putbytes(q, s);
+			q += strlen(s)+1;
+		}
+		write(fd, getbytes(p));
+		
+		/* wait for reply */
+		rep = runtiltag(0);
+		checkreply(rep, proto`Tlaunch);
+		t = targ(reply->id, proto`Stopped, cop(&reply->reg), nil);
+		t.as = mktargas(t);
+		targs[rep->id] = t;
+		return t.as;
+	}
+
+	return ctlmux(launch, run);
+}
