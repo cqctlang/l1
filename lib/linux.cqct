@@ -2,13 +2,9 @@
 @include <dwarf.cqct>
 @include <pras.cqct>
 
-
-define launch(arg ...)
+define mklinuxdom(ns, as)
 {
-	@local xas, as, xtrap, xsnap, dispatch;
-	as = apply(launchlocalproc, arg);
-	as.launch(0, arg);
-	ns = init_debug_domain(arg[0]);
+	@local xtrap, dispatch;
 
 	define xtrap(this, addr, fn)
 	{
@@ -32,4 +28,22 @@ define launch(arg ...)
 
 	xas = mkas([ "xtrap" : xtrap, "dispatch" : dispatch ]);
 	return mkdom(ns, xas);
+}
+
+define launch(arg ...)
+{
+	@local as, ns;
+	as = apply(launchlocalproc, arg);
+	as.launch(0, arg);
+	ns = init_debug_domain(arg[0]);
+	return mklinuxdom(ns, as);
+}
+
+define launchwithnames(names, arg ...)
+{
+	@local xas, as, xtrap, xsnap, dispatch;
+	as = apply(launchlocalproc, arg);
+	as.launch(0, arg);
+	ns = eval(sprintfa("@names clp64le { @include \"%s\" };", names));
+	return mklinuxdom(ns, as);
 }
