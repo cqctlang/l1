@@ -40,7 +40,7 @@ toddiff(struct timeval *a, struct timeval *b)
 	return usec;
 }
 
-Closure*
+Val
 cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 {
 	U ctx;
@@ -144,14 +144,13 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			printf("%-40s\t%16" PRIu64 " usec\n",
 			       phase[i+1], toddiff(&tv[i+1], &tv[i]));
 	}
-	return cl;
+	return mkvalcl(cl);
 }
 
 int
 cqcteval(VM *vm, char *s, char *src, Val *rv)
 {
-	Closure *cl;
-	Val v;
+	Val v, cl;
 
 	cl = cqctcompile(s, src, vm->top, 0);
 	if(cl == 0)
