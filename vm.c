@@ -4989,7 +4989,7 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 
 	ov = getvalrand(vm, o);
 	if(ov->qkind != Qcval && ov->qkind != Qstr)
-		vmerr(vm, "operand 2 to extended cast operator must a"
+		vmerr(vm, "operand 2 to extended cast operator must be a"
 		      " cvalue or string");
 	tv = getvalrand(vm, typeordom);
 	if(tv->qkind != Qxtn && ov->qkind == Qstr)
