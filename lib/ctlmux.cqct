@@ -259,8 +259,8 @@ define mkctlmux()
 			error("s is %a", s);
 		sz = *{typeof(proto`uint64*)}s;
 		p = read(fd, sz);
-		op = *{typeof(enum proto`Mkind*)}p;
-		switch(op){
+		op = *{typeof(proto`uint8*)}p;
+		switch((enum proto`Mkind)op){
 		case proto`Rlaunch:
 			return {typeof(proto`Rlaunch*)}p;
 		case proto`Rerror:
@@ -288,18 +288,18 @@ define mkctlmux()
 		p->tag = 0;
 		p->flags = flags;
 		p->narg = narg;
-		q = (char*)p;
+		q = (char*)(p+1);
 		for(i = 0; i < narg; i++){
 			s = listref(arg, i);
 			putbytes(q, s);
 			q += strlen(s)+1;
 		}
-		write(fd, getbytes(p));
+		write(fd, getbytes(p, sz));
 		
 		/* wait for reply */
 		rep = runtiltag(0);
-		checkreply(rep, proto`Tlaunch);
-		t = targ(reply->id, proto`Stopped, cop(&reply->reg), nil);
+		checkreply(rep, proto`Rlaunch);
+		t = targ(rep->id, proto`Stopped, cop(&rep->reg), nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
 		return t.as;
