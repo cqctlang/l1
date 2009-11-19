@@ -10783,7 +10783,7 @@ static void
 l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *str;
-	Closure *cl;
+	Val cl;
 
 	char *s;
 	checkarg(vm, "eval", argv, 0, Qstr);
@@ -10793,7 +10793,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(s);
 	if(cl == 0)
 		return;
-	*rv = dovm(vm, cl, 0, 0);
+	*rv = dovm(vm, valcl(cl), 0, 0);
 }
 
 static void
@@ -11712,23 +11712,27 @@ finivm()
 }
 
 int
-cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
+cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
+	if(cl->qkind != Qcl)
+		return -1;
 	vm->flags &= ~VMirq;
-	*rv = dovm(vm, cl, argc, argv);
+	*rv = dovm(vm, valcl(cl), argc, argv);
 	poperror(vm);
 	return 0;
 }
 
 int
-cqctcallthunk(VM *vm, Closure *cl, Val *rv)
+cqctcallthunk(VM *vm, Val cl, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
+	if(cl->qkind != Qcl)
+		return -1;
 	vm->flags &= ~VMirq;
-	*rv = dovm(vm, cl, 0, 0);
+	*rv = dovm(vm, valcl(cl), 0, 0);
 	poperror(vm);
 	return 0;
 }

@@ -80,27 +80,30 @@ protns = @names c32le {
 
 	struct Rerror{
 		@0	uint8 op;
-		@1	uint64 id;
-		@9	char err[0];
-		@9	char bytes[0];
-		@9;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	char err[0];
+		@13	char bytes[0];
+		@13;
 	};
 	typedef struct Rerror Rerror;
 	typedef struct Rerror Rread;
 
 	struct Tlaunch{
 		@0	uint8 op;
-		@1	uint64 flags;
-		@9	uint64 narg;
-		@17;
+		@1	uint32 tag;
+		@5	uint64 flags;
+		@13	uint64 narg;
+		@21;
 	};
 	typedef struct Tlaunch Tlaunch;
 
 	struct Rlaunch{
 		@0	uint8 op;
-		@1	uint64 id;
-		@9	Reg reg;
-		@153;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	Reg reg;
+		@157;
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rstop;
@@ -108,9 +111,10 @@ protns = @names c32le {
 
 	struct Rcont{
 		@0	uint8 op;
-		@1	uint64 id;
-		@1	uint64 cnt;
-		@9;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@5	uint64 cnt;
+		@13;
 	};
 	typedef struct Rcont Tcont;
 	typedef struct Rcont Tstop;
@@ -130,11 +134,12 @@ protns = @names c32le {
 
 	struct Tsetbrk{
 		@0	uint8 op;
-		@1	uint64 id;
-		@9	uint64 bp;
-		@9	uint64 addr;
-		@9	uint64 cid;
-		@17;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 bp;
+		@13     uint64 addr;
+		@13	uint64 cid;
+		@21;
 	};
 	typedef struct Tsetbrk Tsetbrk;
 	typedef struct Tsetbrk Tclrbrk;
@@ -144,24 +149,26 @@ protns = @names c32le {
 
 	struct Abrk{
 		@0	uint8 op;
-		@1	uint64 id;
-		@9	uint64 bp;
-		@9	uint64 cid;
-		@17	Reg reg;
-		@161;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 bp;
+		@13	uint64 cid;
+		@21	Reg reg;
+		@165;
 	};
 	typedef struct Abrk Abrk;
 	typedef struct Abrk Aclone;
 
 	struct Asnap{
 		@0	uint8 op;
-		@1	uint64 id;
-		@9	uint64 bp;
-		@9	uint64 addr;
-		@17	uint64 cid;
-		@17	uint64 cnt;
-		@25	char bytes[0];
-		@25;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 bp;
+		@13     uint64 addr;
+		@21	uint64 cid;
+		@21	uint64 cnt;
+		@29	char bytes[0];
+		@29;
 	};
 	typedef struct Asnap Asnap;
 	typedef struct Asnap Tread;
@@ -169,21 +176,23 @@ protns = @names c32le {
 
 	struct Tfread{
 		@0	uint8 op;
-		@1	uint64 id;
-		@9	uint64 fd;
-		@17	uint64 cnt;
-		@25	char bytes[0];
-		@25;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 fd;
+		@21	uint64 cnt;
+		@29	char bytes[0];
+		@29;
 	};
 	typedef struct Tfread Tfread;
 	typedef struct Tfread Tfwrite;
 
 	struct Rfread{
 		@0	uint8 op;
-		@1	uint64 id;
-		@9	uint64 cnt;
-		@17	char bytes[0];
-		@17;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 cnt;
+		@21	char bytes[0];
+		@21;
 	};
 	typedef struct Rfread Rfread;
 	typedef struct Rfread Rfwrite;

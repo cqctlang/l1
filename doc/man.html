@@ -5864,10 +5864,6 @@ types.
 <div id="table">
 <table>
 <tr>
-<td><span class="id">Closure</span><td>
-<td>Closure<td>
-</tr>
-<tr>
 <td><span class="id">Toplevel</span><td>
 <td>Toplevel environment<td>
 </tr>
@@ -6060,7 +6056,7 @@ to <span class="arg">top</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcompile">Closure* cqctcompile(char *<span class="arg">expr</span>,
+<span class="id" id="fn:cqctcompile">Val cqctcompile(char *<span class="arg">expr</span>,
 char *<span class="arg">src</span>,
 Toplevel *<span class="arg">top</span>,
 char *<span class="arg">argsid</span>)</span>
@@ -6083,10 +6079,10 @@ identifier for <span class="arg">str</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcallfn">int cqctcallfn(VM *<span class="arg">vm</span>, Closure *<span class="arg">fn</span>, int <span class="arg">argc</span>, Val *<span class="arg">argv</span>, Val *<span class="arg">rv</span>)</span>
+<span class="id" id="fn:cqctcallfn">int cqctcallfn(VM *<span class="arg">vm</span>, Val <span class="arg">fn</span>, int <span class="arg">argc</span>, Val *<span class="arg">argv</span>, Val *<span class="arg">rv</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Closure *<span class="arg">thunk</span>, Val *<span class="arg">rv</span>)</span>
+<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Val <span class="arg">thunk</span>, Val *<span class="arg">rv</span>)</span>
 </div>
 </div>
 
