@@ -280,9 +280,9 @@ define mkctlmux()
 
 		/* format and send Tlaunch */
 		sz = sizeof(proto`Tlaunch);
-		write(fd, cval2str((proto`uint64)sz));
 		for(i = 0; i < narg; i++)
 			sz += strlen(listref(arg, i))+1;
+		write(fd, cval2str((proto`uint64)sz));
 		p = (proto`Tlaunch*)malloc(sz);
 		p->op = proto`Tlaunch;
 		p->tag = 0;
