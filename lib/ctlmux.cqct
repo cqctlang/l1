@@ -1,4 +1,6 @@
-proto = @names c32le {
+@include <trapman.cqct>
+
+proto = @names clp64le {
 	enum Mkind {
 		Rerror = 0,
 		Tlaunch,
@@ -197,7 +199,7 @@ proto = @names c32le {
 };
 
 @record ctlmux { launch, run };
-@record targ { id, state, reg, as };
+@record targ { id, state, reg, traps, as };
 
 define mkctlmux()
 {
@@ -257,9 +259,42 @@ define mkctlmux()
 		}
 	}
 
+	define trapset(id, addr, fn)
+	{
+		@local t, tid, bp;
+		t = targs[id];
+		bp = setbrk(id, addr);
+		tid = t.traps.add(bp, fn, [addr], lambda(){ clrbrk(id, bp); });
+		return tid;
+	}
+
+	define trapdel(id, tid)
+	{
+		@local t;
+		t = targs[id];
+		t.traps.clr(tid);
+		return nil;
+	}
+
+	define trapreset(id)
+	{
+		@local t;
+		t = targs[id];
+		t.traps.reset();
+		return nil;
+	}
+
+	define traplist(id)
+	{
+		@local t;
+		t = targs[id];
+		return t.traps.list();
+	}
+
 	define mktargas(t)
 	{
 		@local mcont, mget, mput, mmap;
+		@local mxtrap, mtrapdel, mtraplist, mtrapreset;
 		
 		define mcont(this)
 		{
@@ -281,10 +316,34 @@ define mkctlmux()
 			error("unimplemented");
 		}
 
-		return mkas([ "get" : mget,
-			      "put" : mput,
-			      "map" : mmap,
-			      "xcont" : mcont ]);
+		define mxtrap(this, addr, fn)
+		{
+			return trapset(t.id, addr, fn);
+		}
+
+		define mtrapdel(this, tid)
+		{
+			trapdel(t.id, tid);
+		}
+
+		define mtraplist(this)
+		{
+			return traplist(t.id);
+		}
+
+		define mtrapreset(this)
+		{
+			trapreset(t.id);
+		}
+
+		return mkas([ "get"       : mget,
+			      "put"       : mput,
+			      "map"       : mmap,
+			      "xcont"     : mcont,
+			      "xtrap"     : mxtrap,
+			      "trapdel"   : mtrapdel,
+			      "traplist"  : mtraplist,
+			      "trapreset" : mtrapreset, ]);
 	}
 
 	define fmtmsg(msg)
@@ -415,26 +474,51 @@ define mkctlmux()
 
 	define handleasync(msg)
 	{
-		@local p;
+		@local t, c, trap;
+		t = targs[msg->id];
+		if(t == nil)
+			error("%e for unknown task: %d",
+			      (enum proto`Mkind)msg->op,
+			      msg->id);
 		switch((enum proto`Mkind)msg->op){
 		case proto`Aobit:
-			p = targs[msg->id];
-			if(p == nil)
-				error("Aobit for unknown task: %d", msg->id);
+			ack(msg);
 			log("task %d has died", msg->id);
 			tabdelete(targs, msg->id);
-			ack(msg);
 			break;
 		case proto`Abrk:
+			ack(msg);
+			t.state = proto`Stopped;
+			trap = t.traps.look(msg->bp);
+			t.reg = cop(&msg->reg);
+			/* FIXME: regs? */
+			rv = trap.fn(trap.uid, msg->id); /* FIXME: args */
+			if(rv == 0 || rv == nil)
+				cont(msg->id);
+			else if(rv != 1)
+				error("trap handler returned bad value (%a)",
+				      rv);
+			break;
 		case proto`Asnap:
 		case proto`Aclone:
+			ack(msg);
+			log("task %d has cloned %d", msg->id, msg->cid);
+			c = targ(msg->cid,
+				 proto`Stopped,
+				 cop(&msg->reg),
+				 t.traps,
+				 nil);
+			c.as = mktargas(c);
+			targs[msg->cid] = c;
+			cont(msg->cid);
+			break;
 		default:
 			error("unhandled async message: %e",
 			      (enum proto`Mkind)msg->op);
  		}
 	}
 
-	define nomoreprocs()
+	define noprocs()
 	{
 		return length(targs) == 0;
 	}
@@ -449,7 +533,10 @@ define mkctlmux()
 		@local s, sz, p, op, msg, h, tag;
 
 		while(!pred()){
-			if(noinflight() && nomoreprocs())
+			printf("|taghandler| = %d, |targs| = %d\n",
+			       length(taghandler),
+			       length(targs));
+			if(noinflight() && noprocs())
 				error("runtil: nothing to do");
 			s = read(fd, sizeof(proto`uint64));
 			if(s == nil)
@@ -465,7 +552,7 @@ define mkctlmux()
 
 			tag = msg->tag;
 			h = taghandler[tag];
-			taghandler[tag] = nil;
+			tabdelete(taghandler, tag);
 			reusetag(tag);
 			if(h == nil){
 				log("unhandled tag %d: %s", tag, fmtmsg(msg));
@@ -483,6 +570,36 @@ define mkctlmux()
 		taghandler[tag] = lambda(m) { msg = m; done = 1; };
 		runtil(lambda(){ done; });
 		return msg;
+	}
+
+	define clearbrk(id, bp)
+	{
+		@local t, p, rep;
+		t = targs[id];
+		p = (proto`Tclrbrk*)malloc(sizeof(proto`Tclrbrk));
+		p->op = proto`Tclrbrk;
+		p->tag = freshtag();
+		p->id = id;
+		p->bp = bp;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rclrbrk);
+		return nil;
+	}
+
+	define setbrk(id, addr)
+	{
+		@local t, p, rep, clear;
+		t = targs[id];
+		p = (proto`Tsetbrk*)malloc(sizeof(proto`Tsetbrk));
+		p->op = proto`Tsetbrk;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rsetbrk);
+		return rep->bp;
 	}
 
 	define cont(id)
@@ -531,7 +648,11 @@ define mkctlmux()
 		/* wait for reply */
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rlaunch);
-		t = targ(rep->id, proto`Stopped, cop(&rep->reg), nil);
+		t = targ(rep->id,
+			 proto`Stopped,
+			 cop(&rep->reg),
+			 mktrapman(),
+			 nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
 		return t.as;
@@ -539,7 +660,7 @@ define mkctlmux()
 
 	define run()
 	{
-		runtil(nomoreprocs);
+		runtil(noprocs);
 		printf("no more procs\n");
 	}
 
