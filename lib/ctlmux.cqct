@@ -533,9 +533,6 @@ define mkctlmux()
 		@local s, sz, p, op, msg, h, tag;
 
 		while(!pred()){
-			printf("|taghandler| = %d, |targs| = %d\n",
-			       length(taghandler),
-			       length(targs));
 			if(noinflight() && noprocs())
 				error("runtil: nothing to do");
 			s = read(fd, sizeof(proto`uint64));
@@ -661,7 +658,6 @@ define mkctlmux()
 	define run()
 	{
 		runtil(noprocs);
-		printf("no more procs\n");
 	}
 
 	fds = popen("prctl", "-c", 2|4|8);
