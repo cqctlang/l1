@@ -142,10 +142,10 @@ proto = @names clp64le {
 		@21;
 	};
 	typedef struct Tsetbrk Tsetbrk;
+	typedef struct Tsetbrk Tsetsnap;
 	typedef struct Tsetbrk Tclrbrk;
 	typedef struct Tsetbrk Rsetbrk;
 	typedef struct Tsetbrk Rsetsnap;
-	typedef struct Tsetbrk Rcleave;
 
 	struct Abrk{
 		@0	uint8 op;
@@ -158,8 +158,20 @@ proto = @names clp64le {
 	};
 	typedef struct Abrk Abrk;
 	typedef struct Abrk Aclone;
+	typedef struct Abrk Rcleave;
 
 	struct Asnap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 bp;
+		@21	uint64 cid;
+		@29	Reg reg;
+		@173;
+	};
+	typedef struct Asnap Asnap;
+
+	struct Tread{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
@@ -170,9 +182,8 @@ proto = @names clp64le {
 		@29	char bytes[0];
 		@29;
 	};
-	typedef struct Asnap Asnap;
-	typedef struct Asnap Tread;
-	typedef struct Asnap Twrite;
+	typedef struct Tread Tread;
+	typedef struct Tread Twrite;
 
 	struct Tfread{
 		@0	uint8 op;
@@ -259,11 +270,14 @@ define mkctlmux()
 		}
 	}
 
-	define trapset(id, addr, fn)
+	define trapset(id, addr, fn, snap)
 	{
 		@local t, tid, bp;
 		t = targs[id];
-		bp = setbrk(id, addr);
+		if(snap)
+			bp = setsnap(id, addr);
+		else
+			bp = setbrk(id, addr);
 		tid = t.traps.add(bp, fn, [addr], lambda(){ clrbrk(id, bp); });
 		return tid;
 	}
@@ -318,7 +332,12 @@ define mkctlmux()
 
 		define mxtrap(this, addr, fn)
 		{
-			return trapset(t.id, addr, fn);
+			return trapset(t.id, addr, fn, 0);
+		}
+
+		define mxsnap(this, addr, fn)
+		{
+			return trapset(t.id, addr, fn, 1);
 		}
 
 		define mtrapdel(this, tid)
@@ -341,6 +360,7 @@ define mkctlmux()
 			      "map"       : mmap,
 			      "xcont"     : mcont,
 			      "xtrap"     : mxtrap,
+			      "xsnap"     : mxsnap,
 			      "trapdel"   : mtrapdel,
 			      "traplist"  : mtraplist,
 			      "trapreset" : mtrapreset, ]);
@@ -491,7 +511,6 @@ define mkctlmux()
 			t.state = proto`Stopped;
 			trap = t.traps.look(msg->bp);
 			t.reg = cop(&msg->reg);
-			/* FIXME: regs? */
 			rv = trap.fn(trap.uid, msg->id); /* FIXME: args */
 			if(rv == 0 || rv == nil)
 				cont(msg->id);
@@ -500,6 +519,17 @@ define mkctlmux()
 				      rv);
 			break;
 		case proto`Asnap:
+			ack(msg);
+			c = targ(msg->cid,
+				 proto`Stopped,
+				 cop(&msg->reg),
+				 t.traps,
+				 nil);
+//			c.as = mktargas(c);
+//			targs[msg->cid] = c;
+			trap = t.traps.look(msg->bp);
+			trap.fn(trap.uid, msg->id, msg->cid);
+			break;
 		case proto`Aclone:
 			ack(msg);
 			log("task %d has cloned %d", msg->id, msg->cid);
@@ -596,6 +626,21 @@ define mkctlmux()
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rsetbrk);
+		return rep->bp;
+	}
+
+	define setsnap(id, addr)
+	{
+		@local t, p, rep, clear;
+		t = targs[id];
+		p = (proto`Tsetsnap*)malloc(sizeof(proto`Tsetsnap));
+		p->op = proto`Tsetsnap;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rsetsnap);
 		return rep->bp;
 	}
 
