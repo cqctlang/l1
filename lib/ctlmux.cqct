@@ -218,7 +218,7 @@ define mkctlmux()
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, cop, targs;
 	@local freetags, nexttag, taghandler, mux;
-
+	
 	nexttag = 0;
 	freetags = [ ];
 	targs = [:];
@@ -266,7 +266,7 @@ define mkctlmux()
 			      op, rep->bytes);
 		default:
 			error("ctlmux: while waiting for %e: received %e",
-			      op, rep->op);
+			      op, (enum proto`Mkind)rep->op);
 		}
 	}
 
@@ -308,7 +308,7 @@ define mkctlmux()
 	define mktargas(t)
 	{
 		@local mcont, mget, mput, mmap;
-		@local mxtrap, mtrapdel, mtraplist, mtrapreset;
+		@local mxtrap, mxsnap, mtrapdel, mtraplist, mtrapreset;
 		
 		define mcont(this)
 		{
@@ -317,17 +317,17 @@ define mkctlmux()
 
 		define mget(this, r)
 		{
-			error("unimplemented");
+			return pread(t.id, rangebeg(r), rangelen(r));
 		}
 
 		define mput(this, r, s)
 		{
-			error("unimplemented");
+			return pwrite(t.id, rangebeg(r), rangelen(r), s);
 		}
 
 		define mmap(this)
 		{
-			error("unimplemented");
+			return vector(mkrange(0, (`uint64)-1));
 		}
 
 		define mxtrap(this, addr, fn)
@@ -474,10 +474,16 @@ define mkctlmux()
 	{
 		@local p, sz;
 		p = arg[0];
-		if(length(arg) > 1)
-			sz = arg[1];
-		else
+		switch(length(arg)){
+		case 1:
 			sz = sizeof(*p);
+			break;
+		case 2:
+			sz = arg[1];
+			break;
+		default:
+			error("bad sendmsg");
+		}
 		write(fd, cval2str((proto`uint64)sz));
 		write(fd, getbytes(p, sz));
 	}
@@ -642,6 +648,44 @@ define mkctlmux()
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rsetsnap);
 		return rep->bp;
+	}
+
+	define pread(id, addr, cnt)
+	{
+		@local t, p, rep;
+
+		t = targs[id];
+		p = (proto`Tread*)malloc(sizeof(proto`Tread));
+		p->op = proto`Tread;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		p->cnt = cnt;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rread);
+		return getbytes(rep+1, cnt);
+	}
+
+	define pwrite(id, addr, cnt, bytes)
+	{
+		@local sz, t, p, rep;
+
+		t = targs[id];
+		sz = sizeof(proto`Twrite)+cnt;
+		p = (proto`Twrite*)malloc(sz);
+		p->op = proto`Twrite;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		p->cnt = cnt;
+		putbytes(p+1, bytes);
+		sendmsg(fd, p, sz);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rwrite);
+		return nil;
 	}
 
 	define cont(id)
