@@ -244,12 +244,12 @@ proto = @names clp64le {
 	typedef struct Rfread Rfwrite;
 };
 
-@record ctlmux { launch, run };
+@record ctlmux { launch, attach, run };
 @record targ { id, state, reg, traps, as };
 
 define mkctlmux()
 {
-	@local tab, launch, run, fds, fd;
+	@local tab, launch, attach, run, fds, fd;
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, cop, targs;
 	@local freetags, nexttag, taghandler, mux;
@@ -601,8 +601,7 @@ define mkctlmux()
 				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
-			cont(msg->cid);
-			break;
+			return cont(msg->cid); /* tail call */
 		case proto`Asyscall:
 			ack(msg);
 			t.state = proto`Stopped;
@@ -610,8 +609,7 @@ define mkctlmux()
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
-			cont(msg->id);
-			break;
+			return cont(msg->id); /* tail call */
 		default:
 			error("unhandled async message: %e",
 			      (enum proto`Mkind)msg->op);
@@ -786,7 +784,7 @@ define mkctlmux()
 
 	define launch(flags, arg ...)
 	{
-		@local narg, s, sz, i, p, q, t;
+		@local narg, s, sz, i, p, q, t, rep;
 
 		narg = length(arg);
 		if(narg == 0)
@@ -822,6 +820,29 @@ define mkctlmux()
 		return t.as;
 	}
 
+	define attach(pid)
+	{
+		@local p, rep, t;
+
+		p = (proto`Tattach*)malloc(sizeof(proto`Tattach));
+		p->op = proto`Tattach;
+		p->tag = freshtag();
+		p->id = pid;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rattach);
+		// attach leaves the target running
+		t = targ(rep->id,
+			 proto`Running,
+			 (proto`Reg*)malloc(sizeof(proto`Reg)),
+			 mktrapman(),
+			 nil);
+		t.as = mktargas(t);
+		targs[rep->id] = t;
+		return t.as;
+	}
+
 	define run()
 	{
 		runtil(noprocs);
@@ -829,7 +850,7 @@ define mkctlmux()
 
 	fds = popen("prctl", "-c", 2|4|8);
 	fd = fds[0];
-	mux = ctlmux(launch, run);
+	mux = ctlmux(launch, attach, run);
 	finalize(mux, lambda(x) { close(fd); });
 	return mux;
 }
