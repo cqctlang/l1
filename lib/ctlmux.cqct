@@ -47,12 +47,26 @@ proto = @names clp64le {
 		Rfread,
 		Tfwrite,
 		Rfwrite,
+		Ttrace,
+		Rtrace,
+
+		Asyscall,
 	};
 
 	enum State {
 		Running,
 		Stopped,
 		Dead,
+	};
+
+	enum Flags {
+		/* launch flags */
+		Fstdin   = 1,		  /* redirect stdin */
+		Fstdout  = (Fstdin<<1),   /* redirect stdout */
+		Fstderr  = (Fstdout<<1),  /* redirect stderr */
+
+		/* trace flags */
+		Fsyscall = (Fstderr<<1),  /* trace syscalls */
 	};
 
 	typedef
@@ -98,6 +112,15 @@ proto = @names clp64le {
 	};
 	typedef struct Tlaunch Tlaunch;
 
+	struct Ttrace{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 flags;
+		@21;
+	};
+	typedef struct Ttrace Ttrace;
+
 	struct Rlaunch{
 		@0	uint8 op;
 		@1	uint32 tag;
@@ -127,6 +150,7 @@ proto = @names clp64le {
 	typedef struct Rcont Rsetregs;
 	typedef struct Rcont Aobit;
 	typedef struct Rcont Aack;
+	typedef struct Rcont Rtrace;
 	typedef struct Rcont Tcleave;
 	typedef struct Rcont Rtest;
 	typedef struct Rcont Tstep;
@@ -170,6 +194,15 @@ proto = @names clp64le {
 		@173;
 	};
 	typedef struct Asnap Asnap;
+
+	struct Asyscall{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	Reg reg;
+		@157;
+	};
+	typedef struct Asyscall Asyscall;
 
 	struct Tread{
 		@0	uint8 op;
@@ -355,6 +388,11 @@ define mkctlmux()
 			trapreset(t.id);
 		}
 
+		define mtrace(this, flags)
+		{
+			trace(t.id, flags);
+		}
+
 		return mkas([ "get"       : mget,
 			      "put"       : mput,
 			      "map"       : mmap,
@@ -363,7 +401,9 @@ define mkctlmux()
 			      "xsnap"     : mxsnap,
 			      "trapdel"   : mtrapdel,
 			      "traplist"  : mtraplist,
-			      "trapreset" : mtrapreset, ]);
+			      "trapreset" : mtrapreset,
+			      "trace"	  : mtrace,
+			    ]);
 	}
 
 	define fmtmsg(msg)
@@ -452,6 +492,12 @@ define mkctlmux()
 			return (proto`Tfwrite*)p;
 		case proto`Rfwrite:
 			return (proto`Rfwrite*)p;
+		case proto`Ttrace:
+			return (proto`Ttrace*)p;
+		case proto`Rtrace:
+			return (proto`Rtrace*)p;
+		case proto`Asyscall:
+			return (proto`Asyscall*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -464,6 +510,7 @@ define mkctlmux()
 		case proto`Aobit:
 		case proto`Asnap:
 		case proto`Aclone:
+		case proto`Asyscall:
 			return 1;
 		default:
 			return 0;
@@ -547,6 +594,13 @@ define mkctlmux()
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
 			cont(msg->cid);
+			break;
+		case proto`Asyscall:
+			ack(msg);
+			log("task %d has hit a system call trap", msg->id);
+			t.state = proto`Stopped;
+			t.reg = cop(&msg->reg);
+			cont(msg->id);
 			break;
 		default:
 			error("unhandled async message: %e",
@@ -648,6 +702,20 @@ define mkctlmux()
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rsetsnap);
 		return rep->bp;
+	}
+
+	define trace(id, flags)
+	{
+		@local t, p, rep;
+		t = targs[id];
+		p = (proto`Ttrace*)malloc(sizeof(proto`Ttrace));
+		p->op = proto`Ttrace;
+		p->tag = freshtag();
+		p->id = id;
+		p->flags = flags;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rtrace);
 	}
 
 	define pread(id, addr, cnt)

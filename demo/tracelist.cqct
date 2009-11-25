@@ -1,0 +1,57 @@
+@include <ctlmux.cqct>
+
+define printlist(dom)
+{
+	p = dom`head;
+	while(p){
+		printf("%d ", p->v);
+		p = p->next;
+	}
+	printf("\n");
+}
+
+define manglelist(dom)
+{
+	p = dom`head;
+	while(p){
+		printf("%d ", p->v++);
+		p = p->next;
+	}
+	printf("\n");
+}
+
+define test1(n)
+{
+	@local tab, mux, ns, as, dom;
+
+	tab = [:];
+	ns = @names clp64le { @include "./demo/list.names" };
+	mux = mkctlmux();
+	as = mux.launch(0, "./demo/list", sprintfa("%d", n));
+	dom = mkdom(ns, as);
+	dom.trace(proto`Fsyscall);
+	dom.xtrap(&dom`insert,
+		  lambda(tid, task){
+			  if(tab[task] == nil)
+				  tab[task] = 0;
+			  tab[task]++;
+			  manglelist(dom);
+			  return nil;
+		  });
+//	dom.xsnap(&dom`insert,
+//		  lambda(tid, task, newtask){
+//			  printf("snap %d -> %d\n", task, newtask);
+//			  return nil;
+//		  });
+	dom.xcont();
+	mux.run();
+	foreach(lambda(k,v){ printf("task %d\t%d\n", k, v); }, tab);
+
+	return nil; /* tail call would drop only ref to mux */
+}
+
+if(length(args) > 1)
+	test1(strton(args[1]));
+else
+	test1(100);
+
