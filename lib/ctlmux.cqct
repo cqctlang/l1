@@ -1,3 +1,4 @@
+@include <linux-x86_64.cqct>
 @include <trapman.cqct>
 
 proto = @names clp64le {
@@ -89,7 +90,8 @@ proto = @names clp64le {
 		@120	uint64 r13;
 		@128	uint64 r14;
 		@136	uint64 r15;
-		@144;
+		@144	uint64 orig_rax;
+		@152;
 	} Reg;
 
 	struct Rerror{
@@ -126,7 +128,7 @@ proto = @names clp64le {
 		@1	uint32 tag;
 		@5	uint64 id;
 		@13	Reg reg;
-		@157;
+		@165;
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rstop;
@@ -178,7 +180,7 @@ proto = @names clp64le {
 		@13	uint64 bp;
 		@13	uint64 cid;
 		@21	Reg reg;
-		@165;
+		@173;
 	};
 	typedef struct Abrk Abrk;
 	typedef struct Abrk Aclone;
@@ -191,7 +193,7 @@ proto = @names clp64le {
 		@13	uint64 bp;
 		@21	uint64 cid;
 		@29	Reg reg;
-		@173;
+		@181;
 	};
 	typedef struct Asnap Asnap;
 
@@ -200,7 +202,7 @@ proto = @names clp64le {
 		@1	uint32 tag;
 		@5	uint64 id;
 		@13	Reg reg;
-		@157;
+		@165;
 	};
 	typedef struct Asyscall Asyscall;
 
@@ -393,6 +395,11 @@ define mkctlmux()
 			trace(t.id, flags);
 		}
 
+		define mreg(this)
+		{
+			return t.reg;
+		}
+
 		return mkas([ "get"       : mget,
 			      "put"       : mput,
 			      "map"       : mmap,
@@ -403,6 +410,7 @@ define mkctlmux()
 			      "traplist"  : mtraplist,
 			      "trapreset" : mtrapreset,
 			      "trace"	  : mtrace,
+			      "reg"	  : mreg,
 			    ]);
 	}
 
@@ -597,9 +605,11 @@ define mkctlmux()
 			break;
 		case proto`Asyscall:
 			ack(msg);
-			log("task %d has hit a system call trap", msg->id);
 			t.state = proto`Stopped;
 			t.reg = cop(&msg->reg);
+			log("task %d has hit a system call trap (%e)",
+			    msg->id,
+			    (enum linuxnames`syscall)msg->reg.orig_rax);
 			cont(msg->id);
 			break;
 		default:

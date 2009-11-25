@@ -25,9 +25,9 @@ define test1(n)
 	@local tab, mux, ns, as, dom;
 
 	tab = [:];
-	ns = @names clp64le { @include "./demo/list.names" };
+	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./demo/list", sprintfa("%d", n));
+	as = mux.launch(0, "./list", sprintfa("%d", n));
 	dom = mkdom(ns, as);
 	dom.trace(proto`Fsyscall);
 	dom.xtrap(&dom`insert,
