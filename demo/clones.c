@@ -5,18 +5,28 @@
 
 long depth;
 
+static void
+work()
+{
+	int i;
+	for(i = 0; i < 100000; i++)
+		i++;
+}
+
 static void*
 doit(void *p)
 {
 	pthread_t t1, t2;
-	long n;
+	long n, i;
 
 	n = (long)p;
-	printf("level %d\n", n);
+	printf("clone level %d\n", n);
 	if(n == 0)
 		return;
 	pthread_create(&t1, 0, doit, (void*)(n-1));
 	pthread_create(&t2, 0, doit, (void*)(n-1));
+	for(i = 0; i < 100; i++)
+		work();
 	pthread_join(t1, 0);
 	pthread_join(t2, 0);
 

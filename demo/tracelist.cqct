@@ -66,7 +66,10 @@ define test3(n)
 	mux = mkctlmux();
 	as = mux.launch(0, "./list", sprintfa("%d", n));
 	dom = mkdom(ns, as);
-	dom.trace(proto`Esyscall);
+	dom.trace(proto`Esyscall,
+		  lambda(id) {
+			  printf("-> %d hit syscall\n", id);
+		  });
 	dom.xcont();
 	mux.run();
 }

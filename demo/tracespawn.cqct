@@ -1,5 +1,6 @@
 @include <ctlmux.cqct>
 
+// trace thread creation/termination
 define test1(n)
 {
 	@local mux, ns, as, dom;
@@ -12,6 +13,7 @@ define test1(n)
 	mux.run();
 }
 
+// trace child creation/termination
 define test2(n)
 {
 	@local mux, ns, as, dom;
@@ -24,6 +26,39 @@ define test2(n)
 	mux.run();
 }
 
+// trace multi-threaded breakpoints
+define test3(n)
+{
+	@local mux, ns, as, dom, nc, nd, nw;
+
+	nc = nd = nw = 0;
+	ns = @names clp64le { @include "./clones.names" };
+	mux = mkctlmux();
+	as = mux.launch(0, "./clones", sprintfa("%d", n));
+	dom = mkdom(ns, as);
+	dom.trace(proto`Eclone,
+		  lambda(tid){
+			  printf("task %d has called clone\n", tid);
+			  nc++;
+			  return nil;
+		  });
+	dom.xtrap(&dom`doit,
+		  lambda(tid, task){
+			  printf("task %d has entered doit\n", task);
+			  nd++;
+			  return nil;
+		  });
+	dom.xtrap(&dom`work,
+		  lambda(tid, task){
+			  printf("task %d has entered work\n", task);
+			  nw++;
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+	printf("nclone = %d; ndoit = %d\n", nc, nd);
+}
+
 if(length(args) == 1)
 	test1(2);
 else if(length(args) == 2)
@@ -34,6 +69,8 @@ else if(length(args) == 3){
 		return test1(strton(args[2]));
 	case "2":
 		return test2(strton(args[2]));
+	case "3":
+		return test3(strton(args[2]));
 	default:
 		error("no such test %a", args[1]);
 	}

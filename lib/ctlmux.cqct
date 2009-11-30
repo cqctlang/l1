@@ -237,7 +237,7 @@ proto = @names clp64le {
 };
 
 @record ctlmux { launch, attach, run };
-@record targ { id, state, reg, traps, as };
+@record targ { id, state, reg, traps, callbacks, as };
 
 define mkctlmux()
 {
@@ -386,9 +386,10 @@ define mkctlmux()
 			trapreset(t.id);
 		}
 
-		define mtrace(this, flags)
+		define mtrace(this, flags, fn)
 		{
 			trace(t.id, flags);
+			t.callbacks[(proto`Event)flags] = fn;
 		}
 
 		define mreg(this)
@@ -537,7 +538,7 @@ define mkctlmux()
 
 	define handleasync(msg)
 	{
-		@local t, c, trap;
+		@local t, c, trap, ev, fn;
 		t = targs[msg->id];
 		if(t == nil)
 			error("%e for unknown task: %d",
@@ -546,7 +547,8 @@ define mkctlmux()
 		if((enum proto`Mkind)msg->op != proto`Aevent)
 			error("cltmux: unhandled message %e",
 			      (enum proto`Mkind)msg->op);
-		switch((proto`Event)msg->flags){
+		ev = (proto`Event)msg->flags;
+		switch(ev){
 		case proto`Eexit:
 			ack(msg);
 			log("task %d has died", msg->id);
@@ -569,6 +571,7 @@ define mkctlmux()
 					 proto`Stopped,
 					 cop(&msg->reg),
 					 t.traps,
+					 t.callbacks,
 					 nil);
 //				c.as = mktargas(c);
 //				targs[msg->cid] = c;
@@ -579,10 +582,14 @@ define mkctlmux()
 		case proto`Eclone:
 			ack(msg);
 			log("task %d has cloned %d", msg->id, msg->cid);
+			fn = t.callbacks[ev];
+			if(fn != nil)
+				fn(t.id);
 			c = targ(msg->cid,
 				 proto`Stopped,
 				 cop(&msg->reg),
 				 t.traps,
+				 t.callbacks,
 				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
@@ -590,10 +597,14 @@ define mkctlmux()
 		case proto`Efork:
 			ack(msg);
 			log("task %d has forked %d", msg->id, msg->cid);
+			fn = t.callbacks[ev];
+			if(fn != nil)
+				fn(t.id);
 			c = targ(msg->cid,
 				 proto`Stopped,
 				 cop(&msg->reg),
 				 t.traps,
+				 t.callbacks,
 				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
@@ -602,7 +613,10 @@ define mkctlmux()
 			ack(msg);
 			t.state = proto`Stopped;
 			t.reg = cop(&msg->reg);
-			log("task %d has called exe", msg->id);
+			log("task %d has called exec", msg->id);
+			fn = t.callbacks[ev];
+			if(fn != nil)
+				fn(t.id);
 			return cont(msg->id); /* tail call */
 		case proto`Esyscall:
 			ack(msg);
@@ -611,6 +625,9 @@ define mkctlmux()
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
+			fn = t.callbacks[ev];
+			if(fn != nil)
+				fn(t.id);
 			return cont(msg->id); /* tail call */
 		default:
 			error("unhandled event message: %e",
@@ -816,6 +833,7 @@ define mkctlmux()
 			 proto`Stopped,
 			 cop(&rep->reg),
 			 mktrapman(),
+			 [ : ],
 			 nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
@@ -839,6 +857,7 @@ define mkctlmux()
 			 proto`Running,
 			 (proto`Reg*)malloc(sizeof(proto`Reg)),
 			 mktrapman(),
+			 [ : ],
 			 nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
