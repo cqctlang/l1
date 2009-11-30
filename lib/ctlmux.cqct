@@ -21,37 +21,32 @@ proto = @names clp64le {
 		Tread,
 		Rread,
 
-		Abrk,
-		Aobit,
 		Aack,
 		Tcleave,
 		Rcleave,
-
 		Twrite,
 		Rwrite,
+
 		Tsetregs,
 		Rsetregs,
 		Tsetsnap,
-
 		Rsetsnap,
-		Asnap,
 		Tattach,
+
 		Rattach,
 		Ttest,
-
 		Rtest,
 		Tstep,
 		Rstep,
-		Aclone,
+
 		Tfread,
-	
 		Rfread,
 		Tfwrite,
 		Rfwrite,
 		Ttrace,
-		Rtrace,
 
-		Asyscall,
+		Rtrace,
+		Aevent,
 	};
 
 	enum State {
@@ -65,10 +60,18 @@ proto = @names clp64le {
 		Fstdin   = 1,		  /* redirect stdin */
 		Fstdout  = (Fstdin<<1),   /* redirect stdout */
 		Fstderr  = (Fstdout<<1),  /* redirect stderr */
-
-		/* trace flags */
-		Fsyscall = (Fstderr<<1),  /* trace syscalls */
 	};
+
+	typedef
+	enum Event {
+		Esyscall = 1,
+		Eexec	 = (Esyscall<<1),
+		Efork    = (Eexec<<1),
+		Eclone   = (Efork<<1),
+		Esignal  = (Eclone<<1),
+		Eexit    = (Esignal<<1),
+		Etrap    = (Eexit<<1),
+	} Event;
 
 	typedef
 	struct Reg {
@@ -150,13 +153,12 @@ proto = @names clp64le {
 	typedef struct Rcont Rclrbrk;
 	typedef struct Rcont Rkill;
 	typedef struct Rcont Rsetregs;
-	typedef struct Rcont Aobit;
-	typedef struct Rcont Aack;
 	typedef struct Rcont Rtrace;
 	typedef struct Rcont Tcleave;
 	typedef struct Rcont Rtest;
 	typedef struct Rcont Tstep;
 	typedef struct Rcont Rstep;
+	typedef struct Rcont Aack;
 
 	struct Tsetbrk{
 		@0	uint8 op;
@@ -173,7 +175,7 @@ proto = @names clp64le {
 	typedef struct Tsetbrk Rsetbrk;
 	typedef struct Tsetbrk Rsetsnap;
 
-	struct Abrk{
+	struct Rcleave{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
@@ -182,29 +184,19 @@ proto = @names clp64le {
 		@21	Reg reg;
 		@173;
 	};
-	typedef struct Abrk Abrk;
-	typedef struct Abrk Aclone;
-	typedef struct Abrk Rcleave;
+	typedef struct Rcleave Rcleave;
 
-	struct Asnap{
+	struct Aevent{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13	uint64 bp;
-		@21	uint64 cid;
-		@29	Reg reg;
-		@181;
+		@13	uint64 flags;
+		@21	uint64 bp;
+		@29	uint64 cid;
+		@37	Reg reg;
+		@189;
 	};
-	typedef struct Asnap Asnap;
-
-	struct Asyscall{
-		@0	uint8 op;
-		@1	uint32 tag;
-		@5	uint64 id;
-		@13	Reg reg;
-		@165;
-	};
-	typedef struct Asyscall Asyscall;
+	typedef struct Aevent Aevent;
 
 	struct Tread{
 		@0	uint8 op;
@@ -307,13 +299,17 @@ define mkctlmux()
 
 	define trapset(id, addr, fn, snap)
 	{
-		@local t, tid, bp;
+		@local t, tid, bp, kind;
 		t = targs[id];
-		if(snap)
+		if(snap){
 			bp = setsnap(id, addr);
-		else
+			kind = "snap";
+		}else{
 			bp = setbrk(id, addr);
-		tid = t.traps.add(bp, fn, [addr], lambda(){ clrbrk(id, bp); });
+			kind = "brk";
+		}
+		tid = t.traps.add(bp, fn, [kind, addr],
+				  lambda(){ clrbrk(id, bp); });
 		return tid;
 	}
 
@@ -424,6 +420,8 @@ define mkctlmux()
 		@local op;
 		op = (enum proto`Mkind)*(proto`uint8*)p;
 		switch(op){
+		case proto`Aevent:
+			return (proto`Aevent*)p;
 		case proto`Rerror:
 			return (proto`Rerror*)p;
 		case proto`Tlaunch:
@@ -454,12 +452,6 @@ define mkctlmux()
 			return (proto`Tread*)p;
 		case proto`Rread:
 			return (proto`Rread*)p;
-		case proto`Abrk:
-			return (proto`Abrk*)p;
-		case proto`Aobit:
-			return (proto`Aobit*)p;
-		case proto`Aack:
-			return (proto`Aack*)p;
 		case proto`Tcleave:
 			return (proto`Tcleave*)p;
 		case proto`Rcleave:
@@ -476,8 +468,6 @@ define mkctlmux()
 			return (proto`Tsetsnap*)p;
 		case proto`Rsetsnap:
 			return (proto`Rsetsnap*)p;
-		case proto`Asnap:
-			return (proto`Asnap*)p;
 		case proto`Tattach:
 			return (proto`Tattach*)p;
 		case proto`Rattach:
@@ -490,8 +480,6 @@ define mkctlmux()
 			return (proto`Tstep*)p;
 		case proto`Rstep:
 			return (proto`Rstep*)p;
-		case proto`Aclone:
-			return (proto`Aclone*)p;
 		case proto`Tfread:
 			return (proto`Tfread*)p;
 		case proto`Rfread:
@@ -504,8 +492,6 @@ define mkctlmux()
 			return (proto`Ttrace*)p;
 		case proto`Rtrace:
 			return (proto`Rtrace*)p;
-		case proto`Asyscall:
-			return (proto`Asyscall*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -514,11 +500,7 @@ define mkctlmux()
 	define isasync(msg)
 	{
 		switch((enum proto`Mkind)msg->op){
-		case proto`Abrk:
-		case proto`Aobit:
-		case proto`Asnap:
-		case proto`Aclone:
-		case proto`Asyscall:
+		case proto`Aevent:
 			return 1;
 		default:
 			return 0;
@@ -561,37 +543,40 @@ define mkctlmux()
 			error("%e for unknown task: %d",
 			      (enum proto`Mkind)msg->op,
 			      msg->id);
-		switch((enum proto`Mkind)msg->op){
-		case proto`Aobit:
+		if((enum proto`Mkind)msg->op != proto`Aevent)
+			error("cltmux: unhandled message %e",
+			      (enum proto`Mkind)msg->op);
+		switch((proto`Event)msg->flags){
+		case proto`Eexit:
 			ack(msg);
 			log("task %d has died", msg->id);
 			tabdelete(targs, msg->id);
 			break;
-		case proto`Abrk:
+		case proto`Etrap:
 			ack(msg);
-			t.state = proto`Stopped;
 			trap = t.traps.look(msg->bp);
 			t.reg = cop(&msg->reg);
-			rv = trap.fn(trap.uid, msg->id); /* FIXME: args */
-			if(rv == 0 || rv == nil)
-				cont(msg->id);
-			else if(rv != 1)
-				error("trap handler returned bad value (%a)",
-				      rv);
+			if(trap.desc[0] == "brk"){
+				t.state = proto`Stopped;
+				rv = trap.fn(trap.uid, msg->id);
+				if(rv == 0 || rv == nil)
+					cont(msg->id);
+				else if(rv != 1)
+					error("bad brk handler return (%a)",
+					      rv);
+			}else if(trap.desc[0] == "snap"){
+				c = targ(msg->cid,
+					 proto`Stopped,
+					 cop(&msg->reg),
+					 t.traps,
+					 nil);
+//				c.as = mktargas(c);
+//				targs[msg->cid] = c;
+				trap.fn(trap.uid, msg->id, msg->cid);
+			}else
+				error("unhandled trap %a", trap.desc);
 			break;
-		case proto`Asnap:
-			ack(msg);
-			c = targ(msg->cid,
-				 proto`Stopped,
-				 cop(&msg->reg),
-				 t.traps,
-				 nil);
-//			c.as = mktargas(c);
-//			targs[msg->cid] = c;
-			trap = t.traps.look(msg->bp);
-			trap.fn(trap.uid, msg->id, msg->cid);
-			break;
-		case proto`Aclone:
+		case proto`Eclone:
 			ack(msg);
 			log("task %d has cloned %d", msg->id, msg->cid);
 			c = targ(msg->cid,
@@ -602,7 +587,24 @@ define mkctlmux()
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
 			return cont(msg->cid); /* tail call */
-		case proto`Asyscall:
+		case proto`Efork:
+			ack(msg);
+			log("task %d has forked %d", msg->id, msg->cid);
+			c = targ(msg->cid,
+				 proto`Stopped,
+				 cop(&msg->reg),
+				 t.traps,
+				 nil);
+			c.as = mktargas(c);
+			targs[msg->cid] = c;
+			return cont(msg->cid); /* tail call */
+		case proto`Eexec:
+			ack(msg);
+			t.state = proto`Stopped;
+			t.reg = cop(&msg->reg);
+			log("task %d has called exe", msg->id);
+			return cont(msg->id); /* tail call */
+		case proto`Esyscall:
 			ack(msg);
 			t.state = proto`Stopped;
 			t.reg = cop(&msg->reg);
@@ -611,8 +613,8 @@ define mkctlmux()
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
 			return cont(msg->id); /* tail call */
 		default:
-			error("unhandled async message: %e",
-			      (enum proto`Mkind)msg->op);
+			error("unhandled event message: %e",
+			      (proto`Event)msg->flags);
  		}
 	}
 
@@ -851,6 +853,6 @@ define mkctlmux()
 	fds = popen("prctl", "-c", 2|4|8);
 	fd = fds[0];
 	mux = ctlmux(launch, attach, run);
-	finalize(mux, lambda(x) { close(fd); });
+	finalize(fd, lambda(fd) { close(fd); });
 	return mux;
 }

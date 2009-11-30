@@ -1,0 +1,41 @@
+@include <ctlmux.cqct>
+
+define test1(n)
+{
+	@local mux, ns, as, dom;
+
+	ns = @names clp64le { @include "./clones.names" };
+	mux = mkctlmux();
+	as = mux.launch(0, "./clones", sprintfa("%d", n));
+	dom = mkdom(ns, as);
+	dom.xcont();
+	mux.run();
+}
+
+define test2(n)
+{
+	@local mux, ns, as, dom;
+
+	ns = @names clp64le { @include "./forks.names" };
+	mux = mkctlmux();
+	as = mux.launch(0, "./forks", sprintfa("%d", n));
+	dom = mkdom(ns, as);
+	dom.xcont();
+	mux.run();
+}
+
+if(length(args) == 1)
+	test1(2);
+else if(length(args) == 2)
+	test1(strton(args[1]));
+else if(length(args) == 3){
+	switch(args[1]){
+	case "1":
+		return test1(strton(args[2]));
+	case "2":
+		return test2(strton(args[2]));
+	default:
+		error("no such test %a", args[1]);
+	}
+}else
+	error("usage: %s [<cnt>] | %s <testno> <cnt>");

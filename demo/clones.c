@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-int nt;
+long depth;
 
 static void*
 doit(void *p)
@@ -11,11 +11,10 @@ doit(void *p)
 	pthread_t t1, t2;
 	long n;
 
-	nt++;
 	n = (long)p;
 	printf("level %d\n", n);
 	if(n == 0)
-		execl("/bin/ls", "/bin/ls", 0);
+		return;
 	pthread_create(&t1, 0, doit, (void*)(n-1));
 	pthread_create(&t2, 0, doit, (void*)(n-1));
 	pthread_join(t1, 0);
@@ -28,8 +27,9 @@ int
 main(int argc, char *argv[])
 {
 	if(argc > 1)
-		doit((void*)(long)atoi(argv[1]));
+		depth = (long)atoi(argv[1]);
 	else
-		doit((void*)2);
+		depth = 2;
+	doit((void*)depth);
 	return 0;
 }

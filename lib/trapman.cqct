@@ -1,6 +1,6 @@
 @record Trapman { look, add, clr, reset, list };
-rdsetfmt(@record Trap { uid, mid, fn, arg, clr },
-	 lambda(t) { sprintfa("[ %u %u %a %a ]", t.uid, t.mid, t.fn, t.arg); });
+rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
+	 lambda(t) { sprintfa("[ %u %u %a %a ]", t.uid, t.mid, t.fn, t.desc);});
 
 define mktrapman()
 {
@@ -16,11 +16,11 @@ define mktrapman()
 		return midmap[mid];
 	}
 
-	define add(mid, fn, arg, clr)
+	define add(mid, fn, desc, clr)
 	{
 		@local t, uid;
 		uid = nextid++;
-		t = Trap(uid, mid, fn, arg, clr);
+		t = Trap(uid, mid, fn, desc, clr);
 		uidmap[uid] = t;
 		midmap[mid] = t;
 		return t;
