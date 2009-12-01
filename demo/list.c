@@ -37,4 +37,5 @@ main(int argc, char *argv[])
 	for(i = 0; i < m; i++)
 		insert(i);
 	printf("list is done\n");
+	return 0;
 }

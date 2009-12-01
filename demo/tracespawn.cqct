@@ -42,12 +42,12 @@ define test3(n)
 			  nc++;
 			  return nil;
 		  });
-	dom.xtrap(&dom`doit,
-		  lambda(tid, task){
-			  printf("task %d has entered doit\n", task);
-			  nd++;
-			  return nil;
-		  });
+//	dom.xtrap(&dom`doit,
+//		  lambda(tid, task){
+//			  printf("task %d has entered doit\n", task);
+//			  nd++;
+//			  return nil;
+//		  });
 	dom.xtrap(&dom`work,
 		  lambda(tid, task){
 			  printf("task %d has entered work\n", task);
@@ -56,7 +56,7 @@ define test3(n)
 		  });
 	dom.xcont();
 	mux.run();
-	printf("nclone = %d; ndoit = %d\n", nc, nd);
+	printf("nclone = %d; nwork = %d\n", nc, nw);
 }
 
 if(length(args) == 1)

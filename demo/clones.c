@@ -9,7 +9,7 @@ static void
 work()
 {
 	int i;
-	for(i = 0; i < 100000; i++)
+	for(i = 0; i < 10000000; i++)
 		i++;
 }
 
@@ -17,16 +17,15 @@ static void*
 doit(void *p)
 {
 	pthread_t t1, t2;
-	long n, i;
+	long n;
 
 	n = (long)p;
-	printf("clone level %d\n", n);
+	printf("clone level %ld\n", n);
+	work();
 	if(n == 0)
-		return;
+		return 0;
 	pthread_create(&t1, 0, doit, (void*)(n-1));
 	pthread_create(&t2, 0, doit, (void*)(n-1));
-	for(i = 0; i < 100; i++)
-		work();
 	pthread_join(t1, 0);
 	pthread_join(t2, 0);
 
@@ -36,10 +35,12 @@ doit(void *p)
 int
 main(int argc, char *argv[])
 {
+	pthread_t t;
 	if(argc > 1)
 		depth = (long)atoi(argv[1]);
 	else
 		depth = 2;
-	doit((void*)depth);
+	pthread_create(&t, 0, doit, (void*)depth);
+	pthread_join(t, 0);
 	return 0;
 }

@@ -562,7 +562,7 @@ define mkctlmux()
 				t.state = proto`Stopped;
 				rv = trap.fn(trap.uid, msg->id);
 				if(rv == 0 || rv == nil)
-					cont(msg->id);
+					contasync(msg->id);
 				else if(rv != 1)
 					error("bad brk handler return (%a)",
 					      rv);
@@ -593,7 +593,8 @@ define mkctlmux()
 				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
-			return cont(msg->cid); /* tail call */
+			contasync(msg->cid);
+			break;
 		case proto`Efork:
 			ack(msg);
 			log("task %d has forked %d", msg->id, msg->cid);
@@ -608,7 +609,8 @@ define mkctlmux()
 				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
-			return cont(msg->cid); /* tail call */
+			contasync(msg->cid);
+			break;
 		case proto`Eexec:
 			ack(msg);
 			t.state = proto`Stopped;
@@ -617,7 +619,8 @@ define mkctlmux()
 			fn = t.callbacks[ev];
 			if(fn != nil)
 				fn(t.id);
-			return cont(msg->id); /* tail call */
+			contasync(msg->id);
+			break;
 		case proto`Esyscall:
 			ack(msg);
 			t.state = proto`Stopped;
@@ -628,7 +631,8 @@ define mkctlmux()
 			fn = t.callbacks[ev];
 			if(fn != nil)
 				fn(t.id);
-			return cont(msg->id); /* tail call */
+			contasync(msg->id);
+			break;
 		default:
 			error("unhandled event message: %e",
 			      (proto`Event)msg->flags);
@@ -781,6 +785,25 @@ define mkctlmux()
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rwrite);
 		return nil;
+	}
+
+	define contasync(id)
+	{
+		@local t, p;
+
+		t = targs[id];
+		if(t.state != proto`Stopped)
+			return;
+		p = (proto`Tcont*)malloc(sizeof(proto`Tcont));
+		p->op = proto`Tcont;
+		p->tag = freshtag();
+		p->id = id;
+		sendmsg(fd, p);
+
+		taghandler[p->tag] = lambda(rep){
+			checkreply(rep, proto`Rcont);
+			t.state = proto`Running;
+		};
 	}
 
 	define cont(id)

@@ -3,6 +3,8 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 long depth;
 
@@ -10,7 +12,7 @@ static void
 doit(long n)
 {
 	int p0, p1;
-	printf("fork level %d\n", n);
+	printf("fork level %ld\n", n);
 	if(n == 0)
 		return;
 
