@@ -248,7 +248,7 @@ searchpath(char *name)
 	while(*p){
 		q = strchr(p, ':');
 		if(q == 0){
-			q = p+strlen(q); /* last element */
+			q = p+strlen(p); /* last element */
 			np = q;
 		}else
 			np = q+1;
@@ -258,7 +258,6 @@ searchpath(char *name)
 		if(w[-1] != '/')
 			*w++ = '/';
 		memcpy(w, name, nl);
-//		printf("try: %s\n", try);
 		if(access(try, X_OK) == 0)
 			return try;
 		free(try);
@@ -277,9 +276,11 @@ readlinkf(char *path)
 	buf = 0;
 	tmp = 0;
 	if(path[0] != '/' && path[0] != '.'){
-		path = searchpath(path);
-		if(path == 0)
-			goto fail;
+		p = searchpath(path);
+		if(p)
+			path = p;
+		else
+			path = xstrdup(path);
 	}else
 		path = xstrdup(path);
 
