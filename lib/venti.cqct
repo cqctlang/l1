@@ -1,0 +1,104 @@
+venti = @names c32be {
+
+	/* plan9port/src/libventi/dtype.c */
+	typedef
+	enum Type {
+		OVtErrType,			/* illegal */
+		OVtRootType,
+		OVtDirType,
+		OVtPointerType0,
+		OVtPointerType1,
+		OVtPointerType2,
+		OVtPointerType3,
+		OVtPointerType4,
+		OVtPointerType5,
+		OVtPointerType6,
+		OVtPointerType7,		/* not used */
+		OVtPointerType8,		/* not used */
+		OVtPointerType9,		/* not used */
+		OVtDataType,
+		OVtMaxType
+	} Type;
+
+	typedef
+	enum Op {
+		VtRerror	= 1,
+		VtTping		= 2,
+		VtRping,
+		VtThello	= 4,
+		VtRhello,
+		VtTgoodbye	= 6,
+		VtRgoodbye,	/* not used */
+		VtTauth0	= 8,
+		VtRauth0,
+		VtTauth1	= 10,
+		VtRauth1,
+		VtTread		= 12,
+		VtRread,
+		VtTwrite	= 14,
+		VtRwrite,
+		VtTsync		= 16,
+		VtRsync,
+
+		VtTmax
+	} Op;
+	
+	/* no structs for VtThello or VtRhello: they have variable width fields */
+
+	struct VtTping {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2;
+	};
+	typedef struct VtTping VtTping;
+	typedef struct VtTping VtRping;
+	typedef struct VtTping VtTsync;
+	typedef struct VtTping VtRsync;
+	typedef struct VtTping VtTgoodbye;
+
+	struct VtTread {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 score[20];
+		@22	uint8 type;
+		@23	uint8 pad;
+		@24	uint8 count;
+		@26;
+	};
+	typedef struct VtTread VtTread;
+
+	struct VtRread {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 data[];
+		@2;
+	};
+	typedef struct VtRread VtRread;
+
+	struct VtTwrite {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 type;
+		@3	uint8 pad;
+		@6	uint8 data[];
+		@6;
+	};
+	typedef struct VtTwrite VtTwrite;
+
+	struct VtRwrite {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 score[20];
+		@22;
+	};
+	typedef struct VtRwrite VtRwrite;
+
+	struct VtRerror {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint16 errlen;
+		@4;
+	};
+	typedef struct VtRerror VtRerror;
+};
+
