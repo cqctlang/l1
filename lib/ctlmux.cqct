@@ -297,6 +297,45 @@ proto = @names clp64le {
 		}
 	}
 
+	@define trapset(id, addr, fn, snap)
+	{
+		@local t, tid, bp, kind;
+		t = targs[id];
+		if(snap){
+			bp = setsnap(id, addr);
+			kind = "snap";
+		}else{
+			bp = setbrk(id, addr);
+			kind = "brk";
+		}
+		tid = t.traps.add(bp, fn, [kind, addr],
+				  @lambda(){ clrbrk(id, bp); });
+		return tid;
+	}
+
+	@define trapdel(id, tid)
+	{
+		@local t;
+		t = targs[id];
+		t.traps.clr(tid);
+		return @nil;
+	}
+
+	@define trapreset(id)
+	{
+		@local t;
+		t = targs[id];
+		t.traps.reset();
+		return @nil;
+	}
+
+	@define traplist(id)
+	{
+		@local t;
+		t = targs[id];
+		return t.traps.list();
+	}
+
 	@define mktargas(t)
 	{
 		@local mcont, mget, mput, mmap;
