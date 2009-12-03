@@ -1,4 +1,4 @@
-define align(l, sz)
+@define align(l, sz)
 {
 	@local res;
 
@@ -10,7 +10,7 @@ define align(l, sz)
 }
 
 // returns [regptr, address_ranges]
-define parse_core(elfdom, fname)
+@define parse_core(elfdom, fname)
 {
 	@local ehdr;
 	@local pharray, p, i, is32;
@@ -34,7 +34,7 @@ define parse_core(elfdom, fname)
 
 	// format: [[lower1, upper1, fptr], [lower2, upper2, fptr], ...]
 	addr_ranges = []; 
-	regptr = nil;
+	regptr = @nil;
 	start_paddr = 0;
 	start_vaddr = 0;
 	reg_size = 0;
@@ -94,7 +94,7 @@ define parse_core(elfdom, fname)
 	return [regptr, addr_ranges];
 }
 
-define mkcoreas(fname)
+@define mkcoreas(fname)
 {
 	@local elfdom;
 	@local addr_ranges, regptr, parseout;
@@ -111,7 +111,7 @@ define mkcoreas(fname)
 		// printf("%x: %x - %x\n", listref(l, 2), listref(l, 0), listref(l, 1));
 	}
 	
-	define dispatch (args ...) {
+	@define dispatch (args ...) {
 		@local arg, r, beg, len;
 
 		arg = listref(args, 1);

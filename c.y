@@ -31,6 +31,7 @@ extern char *yytext;
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
+%token OCONTAINEROF ODEFINE OLAMBDA ONIL OTYPEOF
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -94,10 +95,16 @@ tickid
 
 tag:	id;
 
+lambda
+	: LAMBDA
+	| OLAMBDA
+	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @lambda"); }
+	;
+
 lambda_expression
-	: LAMBDA '(' arg_id_list ')' compound_statement
+	: lambda '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
-	| LAMBDA '(' ')' compound_statement
+	| lambda '(' ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
 	;
 
@@ -133,10 +140,16 @@ table_init_list
 	;
 
 
+nil
+	: NIL
+	| ONIL
+	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @nil"); }
+	;
+
 primary_expression
 	: id
 	| tickid
-	| NIL
+	| nil
 	{ $$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); }
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
@@ -180,6 +193,10 @@ postfix_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Epostdec, $1, 0, 0, 0); }
 	| CONTAINEROF '(' expression ',' type_name ',' id ')'
         { $$ = newexprsrc(&ctx->inp->src, Econtainer, $3, $5, $7, 0); }
+	| OCONTAINEROF '(' expression ',' type_name ',' id ')'
+        { cwarnln(ctx, $$ = newexprsrc(&ctx->inp->src, Econtainer, $3, $5, $7, 0),
+		  "deprecated syntax; use @containerof");
+	}
 	;
 
 argument_expression_list
@@ -187,6 +204,12 @@ argument_expression_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
 	| argument_expression_list ',' root_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
+	;
+
+typeof
+	: TYPEOF
+	| OTYPEOF
+	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @typeof"); }
 	;
 
 unary_expression
@@ -201,9 +224,9 @@ unary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Esizeofe, $2, 0, 0, 0); }
 	| SIZEOF '(' type_name ')'			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Esizeoft, $3, 0, 0, 0); }
-	| TYPEOF unary_expression			%merge <ofmerge>
+	| typeof unary_expression			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeofe, $2, 0, 0, 0); }
-	| TYPEOF '(' type_name ')'			%merge <ofmerge>
+	| typeof '(' type_name ')'			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $3, 0, 0, 0); }
 	| '#' type_name '#'
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $2, 0, 0, 0); }
@@ -984,14 +1007,20 @@ jump_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Eret, $2, 0, 0, 0); }
 	;
 
+define
+	: DEFINE
+	| ODEFINE
+	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @define"); }
+	;
+
 define_statement
-	: DEFINE id '(' arg_id_list ')' compound_statement
+	: define id '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
-	| DEFINE id '('  ')' compound_statement
+	| define id '('  ')' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
-	| DEFINE id '(' arg_id_list ')' '[' expression ']' compound_statement
+	| define id '(' arg_id_list ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
-	| DEFINE id '('  ')' '[' expression ']' compound_statement
+	| define id '('  ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
 	;
 

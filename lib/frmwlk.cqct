@@ -2,7 +2,7 @@
 // given a domain that defines geteip and getebp, 
 // walk the stack starting at fp. 
 // certainly could use some generalizing and cleanup.
-define frmwlk_pclist(tgtdom)
+@define frmwlk_pclist(tgtdom)
 {
 	@local fp, lst, i;
 	

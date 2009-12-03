@@ -1,9 +1,9 @@
 ns = @names c32le { @0x0 enum x { a = 1, b = 2 } x, y; };
 dom = mkdom(ns,mknas());
-printf("%a\n", enumconsts(typeof(dom`x)));
-printf("%a\n", enumconsts(typeof(dom`y)));
+printf("%a\n", enumconsts(@typeof(dom`x)));
+printf("%a\n", enumconsts(@typeof(dom`y)));
 
 ns = @names c32le { @0x0 enum x {  } x, y; };
 dom = mkdom(ns,mknas());
-printf("%a\n", enumconsts(typeof(dom`x)));
-printf("%a\n", enumconsts(typeof(dom`y)));
+printf("%a\n", enumconsts(@typeof(dom`x)));
+printf("%a\n", enumconsts(@typeof(dom`y)));

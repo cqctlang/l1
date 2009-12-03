@@ -1,17 +1,17 @@
 // search cqct source for syntactic patterns
-// example usage:  ./l1 lib/cqctmatch.l1 mylib/*.l1
+// example usage:  ./l1 -e checktabinit lib/cqctmatch.l1 mylib/*.l1
 
-define parsefile(filename)
+@define parsefile(filename)
 {
 	return parse(sprintfa("@include \"%s\"", filename));
 }
 
-define cqctmatch(filename, pred)
+@define cqctmatch(filename, pred)
 {
 	@local loop;
-	define loop(p){
+	@define loop(p){
 		@local kind, file, line;
-		if(p == nil)
+		if(p == @nil)
 			return;
 		if(!islist(p))
 			return;
@@ -26,33 +26,79 @@ define cqctmatch(filename, pred)
 			loop(pop(p));
 	}
 	loop(parsefile(filename));
-	return tabkeys(hit);
 }
 
-hit = mktab();
-printf("{ key : val, ... } -> [ key : val, ... ]\n");
-foreach(lambda(f){
-		cqctmatch(f, lambda(p) {
-				if(p[0] != "Etab")
-					return 0;
-				if(hit[[p[1],p[2]]] != nil)
-					return 0;
-				hit[[p[1],p[2]]] = 1;
-				return 1;
-			});
-}, args);
+@define checktabinit(args ...)
+{
+	@local hit;
+	hit = mktab();
+	printf("{ key : val, ... } -> [ key : val, ... ]\n");
+	foreach(@lambda(f){
+			cqctmatch(f, @lambda(p) {
+					if(p[0] != "Etab")
+						return 0;
+					if(hit[[p[1],p[2]]] != @nil)
+						return 0;
+					hit[[p[1],p[2]]] = 1;
+					return 1;
+				});
+		}, tail(args));
+}
 
-hit = mktab();
-printf("lambda arg body -> lambda (arg ...) body\n");
-printf("define id arg body -> define id (arg ...) body\n");
-foreach(lambda(f){
-		cqctmatch(f, lambda(p) {
-				if(!((p[0] == "Elambda" && p[3][0] == "Eid")
-				     || (p[0] == "Edefine" && p[4][0] == "Eid")))
-					return 0;
-				if(hit[[p[1],p[2]]] != nil)
-					return 0;
-				hit[[p[1],p[2]]] = 1;
-				return 1;
-			});
-}, args);
+@define checkvarg(args ...)
+{
+	@local hit;
+	hit = mktab();
+	printf("lambda arg body -> lambda (arg ...) body\n");
+	printf("define id arg body -> define id (arg ...) body\n");
+	foreach(@lambda(f){
+			cqctmatch(f, @lambda(p) {
+					if(!((p[0] == "Elambda" && p[3][0] == "Eid")
+					     || (p[0] == "Edefine"
+						 && p[4][0] == "Eid")))
+						return 0;
+					if(hit[[p[1],p[2]]] != @nil)
+						return 0;
+					hit[[p[1],p[2]]] = 1;
+					return 1;
+				});
+		}, tail(args));
+}
+
+@define member(s, l)
+{
+	@local i, m;
+	m = length(l);
+	for(i = 0; i < m; i++)
+		if(l[i] == s)
+			return 1;
+	return 0;
+}
+
+@define checknoamper(args ...)
+{
+	@local hit;
+	hit = mktab();
+	printf("containerof -> @containerof\n");
+	printf("define -> @define\n");
+	printf("lambda -> @lambda\n");
+	printf("nil -> @nil\n");
+	printf("typeof -> @typeof\n");
+
+	foreach(@lambda(f){
+			cqctmatch(f, @lambda(p) {
+					@local r;
+					r = (member("Econtainerof", p)
+					     || member("Edefine", p)
+					     || member("Elambda", p)
+					     || member("Enil", p)
+					     || member("Etypeof", p));
+					if(!r)
+						return 0;
+					if(hit[[p[1],p[2]]] != @nil)
+						return 0;
+					hit[[p[1],p[2]]] = 1;
+					return 1;
+				});
+		}, tail(args));
+}

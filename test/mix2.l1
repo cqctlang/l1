@@ -14,7 +14,7 @@ dom2 = mkdom(ns2, as);
 
 p = (struct foo*){dom1}0;
 p->x = 5;
-t = typeof(p);
+t = @typeof(p);
 q = {t}{dom2}0;
 printf("%d\n", q->x);
 

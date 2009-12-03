@@ -1,4 +1,4 @@
-doit = lambda(a,b){
+doit = @lambda(a,b){
 	return a < b;
 };
 

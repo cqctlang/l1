@@ -1,7 +1,7 @@
-define mkzas(len){
+@define mkzas(len){
 	@local dispatch, str;
 	str = mkstr(len);
-	define dispatch(args ...) {
+	@define dispatch(args ...) {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 1);
 
@@ -70,7 +70,7 @@ ns = @names c32le {
 
 fn = nsenumtype(ns);
 vec = tabvals(fn(ns));
-s = nil;
+s = @nil;
 for(i = 0; i < veclen(vec); i++){
 	s = vecref(vec, i);
 	if(isstruct(s))

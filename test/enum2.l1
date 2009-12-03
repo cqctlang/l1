@@ -1,14 +1,14 @@
-define listref(l, i){
+@define listref(l, i){
 	if(i == 0)
 		return car(l);
 	else
 		return listref(cdr(l), i-1);
 }
 
-define mkzas(len){
+@define mkzas(len){
 	@local dispatch, str;
 	str = mkstr(len);
-	define dispatch(args ...) {
+	@define dispatch(args ...) {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 1);
 

@@ -1,4 +1,4 @@
-define dumptab(tab, fn)
+@define dumptab(tab, fn)
 {
 	@local ks, vs, i;
 	ks = tabkeys(tab);
@@ -7,7 +7,7 @@ define dumptab(tab, fn)
 		fn(ks[i], vs[i]);
 }
 
-define dumpcode(hp)
+@define dumpcode(hp)
 {
 	@local p, dom, mf, ml, n, nl, tab;
 	dom = domof(hp);
@@ -36,10 +36,10 @@ define dumpcode(hp)
 	printf("%d code objects (%d live)\n", n, nl);
 	printf("%d live code bytes\n", ml);
 	printf("%d free code bytes\n", mf);
-	dumptab(tab, lambda(k,v) { printf("%10s = %10d bytes\n", k, v); });
+	dumptab(tab, @lambda(k,v) { printf("%10s = %10d bytes\n", k, v); });
 }
 
-define szcode(cp, tab)
+@define szcode(cp, tab)
 {
 	@local m, x, dom, p;
 	m = 0;
@@ -74,7 +74,7 @@ define szcode(cp, tab)
 	return m;
 }
 
-define szexpr(e)
+@define szexpr(e)
 {
 	@local m, dom;
 
@@ -111,7 +111,7 @@ define szexpr(e)
 	return m;
 }
 
-define szexprx(e)
+@define szexprx(e)
 {
 	@local m, dom, v;
 
@@ -141,7 +141,7 @@ define szexprx(e)
 	return m;
 }
 
-define szlambda(l)
+@define szlambda(l)
 {
 	@local m;
 	m = 0;
@@ -152,7 +152,7 @@ define szlambda(l)
 	return m;
 }
 
-define szblock(b)
+@define szblock(b)
 {
 	@local m;
 	m = 0;
@@ -161,7 +161,7 @@ define szblock(b)
 	return m;
 }
 
-define szdecl(d)
+@define szdecl(d)
 {
 	@local m;
 	m = 0;
@@ -175,7 +175,7 @@ define szdecl(d)
 	return m;
 }
 
-define sztype(t)
+@define sztype(t)
 {
 	@local m;
 
@@ -196,7 +196,7 @@ define sztype(t)
 	return m;
 }
 
-define szenum(en)
+@define szenum(en)
 {
 	@local m, dom;
 	m = 0;
@@ -211,7 +211,7 @@ define szenum(en)
 	return m;
 }
 
-define hforeach(ht, fn)
+@define hforeach(ht, fn)
 {
 	@local i, hp;
 	for(i = 0; i < ht->sz; i++){
@@ -223,7 +223,7 @@ define hforeach(ht, fn)
 	}
 }
 
-define hsz(ht)
+@define hsz(ht)
 {
 	@local m, i, hp;
 	m = 0;
@@ -240,7 +240,7 @@ define hsz(ht)
 	return m;
 }
 
-define esize(p)[domof(p)]
+@define esize(p)[domof(p)]
 {
 	@local dom, x;
 	dom = domof(p);
@@ -253,7 +253,7 @@ define esize(p)[domof(p)]
 	return sizeof(dom`size_t)+x;
 }
 
-define time(fn)
+@define time(fn)
 {
 	@local s, e;
 	s = gettimeofday();
@@ -263,9 +263,9 @@ define time(fn)
 	printf("%d seconds %d useconds\n", (e-s)/1000000, (e-s)%1000000);
 }
 
-define codestat(dom)
+@define codestat(dom)
 {
 	@local hp;
 	hp = &dom`heap[dom`Qcode];
-	time(lambda(){dumpcode(hp);});
+	time(@lambda(){dumpcode(hp);});
 }

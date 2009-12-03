@@ -1,7 +1,7 @@
-x = lambda(a, b){
+x = @lambda(a, b){
 	@local c, y, z;
 	c = a;
-	y = lambda(c){
+	y = @lambda(c){
 		z = c;
 	};
 };

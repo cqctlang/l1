@@ -106,3 +106,16 @@ sep 04 2009
 sep 05 2009
 
 	The C goto statement is now supported.
+
+dec 02 2009
+
+    	The keywords "containerof", "define", "lambda",
+    	"nil", and "typeof" will soon go away.
+
+	The new keywords "@containerof", "@define",
+    	"@lambda", "@nil", and "@typeof" are their
+    	replacements.
+
+	With this change, the remaining keywords that
+	do not begin with @ all have the property that
+	they are keywords of C.

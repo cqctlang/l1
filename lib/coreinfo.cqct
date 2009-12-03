@@ -4,7 +4,7 @@
 
 @include <elf.cqct>
 
-define align(l, sz)
+@define align(l, sz)
 {
 	@local res;
 
@@ -15,7 +15,7 @@ define align(l, sz)
 	return res;
 }
 
-define ntype2str(elfdom, ntype)
+@define ntype2str(elfdom, ntype)
 {
 	@local s;
 	
@@ -85,7 +85,7 @@ define ntype2str(elfdom, ntype)
 }
 
 
-define main(args)
+@define main(args)
 {
 	@local elfdom, infile;
 	@local ehdr;
@@ -140,7 +140,7 @@ define main(args)
 				if (nhdr->n_type == elfdom`NT_PRPSINFO) {
 					@local prpsinfo;
 
-					prpsinfo = nil;
+					prpsinfo = @nil;
 					if (nhdr->n_descsz == sizeof(struct elfdom`elf_prpsinfo_32)) {
 						printf("32-bit PRPSINFO:\n");
 						prpsinfo = (struct elfdom`elf_prpsinfo_32 *)cur;
@@ -176,7 +176,7 @@ define main(args)
 				else if (nhdr->n_type == elfdom`NT_PRSTATUS) {
 					@local prstatus;
 					
-					prstatus = nil;
+					prstatus = @nil;
 					
 					if (nhdr->n_descsz == sizeof(struct elfdom`elf_prstatus_32)) {
 						printf("32-bit PRSTATUS:\n");

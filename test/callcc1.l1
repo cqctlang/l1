@@ -1,6 +1,6 @@
-foo = lambda(){
+foo = @lambda(){
     @local x, z;
-    x = callcc(lambda(k){
+    x = callcc(@lambda(k){
       z = k;
       k(2);
       return 1;

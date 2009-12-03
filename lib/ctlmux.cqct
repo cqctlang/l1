@@ -199,7 +199,7 @@ proto = @names c32le {
 @record ctlmux { launch, run };
 @record targ { id, state, reg, as };
 
-define mkctlmux()
+@define mkctlmux()
 {
 	@local tab, launch, run, fds, fd;
 	@local logsend, logrecv, log, verbose;
@@ -208,15 +208,15 @@ define mkctlmux()
 	targs = [:];
 
 	verbose = 1;
-	define logsend(s){
+	@define logsend(s){
 		if(verbose)
 			printf("<-- %s\n", s);
 	}
-	define logrecv(s){
+	@define logrecv(s){
 		if(verbose)
 			printf("--> %s\n", s);
 	}
-	define log(s){
+	@define log(s){
 		if(verbose)
 			printf("%s\n", s);
 	}
@@ -224,11 +224,11 @@ define mkctlmux()
 	fds = popen("prctl", "-c", 2|4|8);
 	fd = fds[0];
 
-	define cop(p){
-		return {typeof(p)}getbytes(p);
+	@define cop(p){
+		return {@typeof(p)}getbytes(p);
 	}
 
-	define checkreply(rep, op)
+	@define checkreply(rep, op)
 	{
 		switch(rep->op){
 		case op:
@@ -242,12 +242,12 @@ define mkctlmux()
 		}
 	}
 
-	define mktargas(t)
+	@define mktargas(t)
 	{
-		return nil;
+		return @nil;
 	}
 
-	define runtiltag(tag)
+	@define runtiltag(tag)
 	{
 		@local sz, op, s;
 
@@ -257,20 +257,20 @@ define mkctlmux()
 		s = read(fd, sizeof(proto`uint64));
 		if(!isstring(s))
 			error("s is %a", s);
-		sz = *{typeof(proto`uint64*)}s;
+		sz = *{@typeof(proto`uint64*)}s;
 		p = read(fd, sz);
-		op = *{typeof(enum proto`Mkind*)}p;
+		op = *{@typeof(enum proto`Mkind*)}p;
 		switch(op){
 		case proto`Rlaunch:
-			return {typeof(proto`Rlaunch*)}p;
+			return {@typeof(proto`Rlaunch*)}p;
 		case proto`Rerror:
-			return {typeof(proto`Rerror*)}p;
+			return {@typeof(proto`Rerror*)}p;
 		default:
 			error("unexpected op %e", op);
 		}
 	}
 
-	define launch(flags, arg ...)
+	@define launch(flags, arg ...)
 	{
 		@local narg, s, sz, i, p, q, t;
 
@@ -299,7 +299,7 @@ define mkctlmux()
 		/* wait for reply */
 		rep = runtiltag(0);
 		checkreply(rep, proto`Tlaunch);
-		t = targ(reply->id, proto`Stopped, cop(&reply->reg), nil);
+		t = targ(reply->id, proto`Stopped, cop(&reply->reg), @nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
 		return t.as;

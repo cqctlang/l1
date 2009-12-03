@@ -1,5 +1,5 @@
-mkadd = lambda(n){
-      return lambda(m){ return m+n; };
+mkadd = @lambda(n){
+      return @lambda(m){ return m+n; };
 };
 
 add10 = mkadd(10);

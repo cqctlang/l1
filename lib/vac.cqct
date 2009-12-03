@@ -1,6 +1,6 @@
 venti = "localhost";
 
-define chomp(s)
+@define chomp(s)
 {
 	@local m;
 	m = length(s);
@@ -9,7 +9,7 @@ define chomp(s)
 	return s;
 }
 
-define newvac(name)
+@define newvac(name)
 {
 	@local fd, vac;
 	// empty string lets us create an empty vac
@@ -17,10 +17,10 @@ define newvac(name)
 	close(fd[0]);
 	vac = read(fd[1], 100);
 	close(fd[1]);
-	if(vac == nil){
+	if(vac == @nil){
 		@local err;
 		err = read(fd[2], 128);
-		if(err != nil)
+		if(err != @nil)
 			error("newvac: %s", err);
 		else
 			error("newvac: failed");
@@ -40,7 +40,7 @@ define newvac(name)
 // cd $old
 // rm -rf $dir
 
-define vaccons(vac, name, bytes)
+@define vaccons(vac, name, bytes)
 {
 	@local fd;
 	fd = popen("vaccons", vac, name);
@@ -48,10 +48,10 @@ define vaccons(vac, name, bytes)
 	close(fd[0]);
 	vac = read(fd[1], 100);
 	close(fd[1]);
-	if(vac == nil){
+	if(vac == @nil){
 		@local err;
 		err = read(fd[2], 128);
-		if(err != nil)
+		if(err != @nil)
 			error("vaccons: %s", err);
 		else
 			error("vaccons: failed");
@@ -60,7 +60,7 @@ define vaccons(vac, name, bytes)
 	return chomp(vac);
 }
 
-define mountvac(vac)
+@define mountvac(vac)
 {
 	@local fd;
 	fd = popen("vacfs", "-d", "-h", venti, "-i", vac, 2);
@@ -71,7 +71,7 @@ define mountvac(vac)
 	close(fd[0]);
 }
 
-define test()
+@define test()
 {
 	@local v;
 	v = newvac("name");

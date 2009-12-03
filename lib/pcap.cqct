@@ -146,7 +146,7 @@ eth_names = @names c32be {
 };
 
 
-define mkpcapdom(fname)
+@define mkpcapdom(fname)
 {
 	@local myas;
 
@@ -155,14 +155,14 @@ define mkpcapdom(fname)
 	return mkdom(pcap_names, myas);
 }
 
-define pcap_domlen(pdom){
+@define pcap_domlen(pdom){
 	return rangelen(vecref(pdom.map(),0)); 
 }
 
 
 // pdom: pcap domain from mkpcapdom()
 // fn(hdrptr, pktnum): called for each packet with ptr to header and pktnum
-define pcap_iter(pdom, fn)
+@define pcap_iter(pdom, fn)
 {
 	@local cur, cnt, sz;
 
@@ -180,16 +180,16 @@ define pcap_iter(pdom, fn)
 	}	
 }
 
-define pcap_numpkts(pdom)
+@define pcap_numpkts(pdom)
 {
 	@local cnt;
 	
 	cnt = 0;
-	pcap_iter(pdom, lambda(hdr, i) { cnt++; });
+	pcap_iter(pdom, @lambda(hdr, i) { cnt++; });
 	return cnt;
 }
 
-define pcap_info(pdom)
+@define pcap_info(pdom)
 {
 	@local hdr;
 	@local fsz;
@@ -211,20 +211,20 @@ define pcap_info(pdom)
 	printf("Packets:         %d\n", pcap_numpkts(pdom));
 }
 
-define ethaddr2str(addr)
+@define ethaddr2str(addr)
 {
 	return sprintfa("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x", 
 			addr[0], addr[1], addr[2], 
 			addr[3], addr[4], addr[5]);
 }
 
-define ipv42str(a)
+@define ipv42str(a)
 {
 	return sprintfa("%d.%d.%d.%d", 
 			a >> 24, (a & 0xff0000)>>16, (a & 0xff00)>>8, (a & 0xff));
 }
 
-define pcap_dump_tcp(tpkt)
+@define pcap_dump_tcp(tpkt)
 {
 	printf("source: %u\n", tpkt->source);
 	printf("dest:   %u\n", tpkt->dest);
@@ -242,14 +242,14 @@ define pcap_dump_tcp(tpkt)
 	printf("Window: %d\n", tpkt->window);
 }
 
-define pcap_dump_udp(upkt)
+@define pcap_dump_udp(upkt)
 {
 	printf("source: %u\n", upkt->source);
 	printf("dest:   %u\n", upkt->dest);
 	printf("length: %u\n", upkt->len);
 }
 
-define pcap_dump_ip(ipkt)
+@define pcap_dump_ip(ipkt)
 {
 	@local ipdom;
 
@@ -277,9 +277,9 @@ define pcap_dump_ip(ipkt)
 	}
 }
 
-define pcap_dump(pdom)
+@define pcap_dump(pdom)
 {
-	pcap_iter(pdom, lambda(hdr, n) {
+	pcap_iter(pdom, @lambda(hdr, n) {
 			@local edom, ehdr;
 
 			printf("\nPacket %d\n", n);

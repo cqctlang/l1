@@ -1,8 +1,8 @@
-mkadd = lambda(n){
-      return lambda(m){ return m+n; };
+mkadd = @lambda(n){
+      return @lambda(m){ return m+n; };
 };
 
-callit = lambda(fn,m){
+callit = @lambda(fn,m){
        return fn(m);
 };
 

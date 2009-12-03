@@ -1,4 +1,4 @@
-define foo(x)
+@define foo(x)
 {
 	printf("foo(%d)\n", x);
 	switch(x){

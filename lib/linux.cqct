@@ -2,21 +2,21 @@
 @include <dwarf.cqct>
 @include <pras.cqct>
 
-define mklinuxdom(ns, as)
+@define mklinuxdom(ns, as)
 {
 	@local xtrap, dispatch;
 
-	define xtrap(this, addr, fn)
+	@define xtrap(this, addr, fn)
 	{
 		@local x;
 		if(isdom(this))
 			x = mkdom(this.ns, as);
 		else
 			x = as;
-		x.xtrap(addr, lambda(id, addr) { fn(this); return 0; });
+		x.xtrap(addr, @lambda(id, addr) { fn(this); return 0; });
 	}
 
-	define dispatch(this, id, arg ...)
+	@define dispatch(this, id, arg ...)
 	{
 		@local x;
 		if(isdom(this))
@@ -30,7 +30,7 @@ define mklinuxdom(ns, as)
 	return mkdom(ns, xas);
 }
 
-define launch(arg ...)
+@define launch(arg ...)
 {
 	@local as, ns;
 	as = apply(launchlocalproc, arg);
@@ -39,7 +39,7 @@ define launch(arg ...)
 	return mklinuxdom(ns, as);
 }
 
-define launchwithnames(names, arg ...)
+@define launchwithnames(names, arg ...)
 {
 	@local xas, as, xtrap, xsnap, dispatch;
 	as = apply(launchlocalproc, arg);

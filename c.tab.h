@@ -105,7 +105,12 @@
      BREAK = 322,
      RETURN = 323,
      CASE = 324,
-     DEFAULT = 325
+     DEFAULT = 325,
+     OCONTAINEROF = 326,
+     ODEFINE = 327,
+     OLAMBDA = 328,
+     ONIL = 329,
+     OTYPEOF = 330
    };
 #endif
 
@@ -137,8 +142,8 @@ typedef union YYSTYPE
 	} chars;
 	int kind;
 }
-/* Line 2604 of glr.c.  */
-#line 142 "c.tab.h"
+/* Line 2616 of glr.c.  */
+#line 147 "c.tab.h"
 	YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1

@@ -1,4 +1,4 @@
-randvec = lambda(len){
+randvec = @lambda(len){
 	@local v, i, t;
 
 	v = mkvec(len);
@@ -16,7 +16,7 @@ randvec = lambda(len){
 };
 
 
-mycmp = lambda(a, b){
+mycmp = @lambda(a, b){
 	@local xa, xb;
 	xa = car(a);
 	xb = car(b);
@@ -27,7 +27,7 @@ mycmp = lambda(a, b){
 	return 0;
 };
 
-testsort = lambda(len){
+testsort = @lambda(len){
 	@local tod, v, i;
 	tod = gettimeofday();
 	randseed(0);

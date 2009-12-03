@@ -1,4 +1,4 @@
-define x() {
+@define x() {
        @local y;
        y = ((enum x*){dom}0)[0];
 }

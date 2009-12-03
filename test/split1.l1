@@ -1,4 +1,4 @@
-define dosplit(args ...){
+@define dosplit(args ...){
 	printf("\"%s\" %a -> %a\n", listref(args, 0), tail(args), apply(split, args));
 }
 
@@ -8,11 +8,11 @@ dosplit("ab c");
 dosplit("a b c");
 dosplit(" a b c");
 dosplit(" a   b  c ");
-dosplit(" a   b  c ", nil, 0);
-dosplit(" a   b  c ", nil, 1);
-dosplit(" a   b  c ", nil, 2);
-dosplit(" a   b  c ", nil, 3);
-dosplit(" a   b  c ", nil, 4);
+dosplit(" a   b  c ", @nil, 0);
+dosplit(" a   b  c ", @nil, 1);
+dosplit(" a   b  c ", @nil, 2);
+dosplit(" a   b  c ", @nil, 3);
+dosplit(" a   b  c ", @nil, 4);
 dosplit("abc", "#");
 dosplit("#abc#", "#");
 dosplit("#ab#c#d", "#");

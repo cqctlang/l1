@@ -1,4 +1,4 @@
-define issorted(v){
+@define issorted(v){
 	@local i, m;
 	m = length(v);
 	if(islist(v)){
@@ -14,7 +14,7 @@ define issorted(v){
 	}
 }
 
-define printit(v){
+@define printit(v){
 	@local i, m;
 	m = length(v);
 	printf("{ ");
@@ -28,8 +28,8 @@ define printit(v){
 	printf("}\n");
 }
 
-define cmp(x,y) { return x-y; }
-define tst(v){
+@define cmp(x,y) { return x-y; }
+@define tst(v){
 	@local i, m;
 	sort(v, cmp);
 	printf("%d ", issorted(v));

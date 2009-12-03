@@ -1,4 +1,4 @@
 // no output: the point of this test is not to crash or mishandle memory
 for(i = 0; i < 20000; i++){
-	finalize(i, lambda(val) { return 1; });
+	finalize(i, @lambda(val) { return 1; });
 }

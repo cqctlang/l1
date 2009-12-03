@@ -1,7 +1,7 @@
 #!/usr/bin/env l1
 @include <pcap.cqct>
 
-define main(args)
+@define main(args)
 {
 	if (length(args) != 1) {
 		printf("usage: pcapinfo <pcapfile>\n");

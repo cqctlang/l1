@@ -18,7 +18,7 @@ as = mkzas(1024);
 
 dom = mkdom(ns, as);
 
-define pr(x)
+@define pr(x)
 {
 	printf("%d\n", x);
 }

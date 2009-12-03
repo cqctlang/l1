@@ -1,9 +1,9 @@
-xget = lambda(dom){
+xget = @lambda(dom){
 	printf("get(%a)\n", dom);
 	return 1;
 };
 
-xput = lambda(dom, val){
+xput = @lambda(dom, val){
 	printf("put(%a,%a)\n", dom, val);
 };
 

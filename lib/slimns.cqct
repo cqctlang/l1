@@ -1,4 +1,4 @@
-define member(k, l)
+@define member(k, l)
 {
 	@local i;
 	for(i = 0; i < length(l); i++)
@@ -8,14 +8,14 @@ define member(k, l)
 }
 
 
-define chasetype(t)
+@define chasetype(t)
 {
 	if(istypedef(t))
 		return chasetype(typedeftype(t));
 	return t;
 }
 
-define addwork(work, t)
+@define addwork(work, t)
 {
 	@local u;
 
@@ -30,26 +30,26 @@ define addwork(work, t)
 	work[t] = 1;
 }
 
-define dumpslim(fd, work, tt, et)
+@define dumpslim(fd, work, tt, et)
 {
 	@local done, t, checktt, checket;
 	@local ens, i, en;
 	@local flds, fld, off, ft, id, sz;
 
-	define checktt(t, id){
+	@define checktt(t, id){
 		@local x;
 		x = tt[chasetype(t)];
-		if(x == nil)
+		if(x == @nil)
 			return 0;
 		if(member(id, x))
 			return 1;
 		return 0;
 	}
 
-	define checket(t, id){
+	@define checket(t, id){
 		@local x;
 		x = et[t];
-		if(x == nil)
+		if(x == @nil)
 			return 0;
 		if(member(id, x))
 			return 1;
@@ -59,7 +59,7 @@ define dumpslim(fd, work, tt, et)
 	done = mktab();
 	while(!isnil(t = pop(work))){
 		t = t[0];
-		if(done[t] != nil)
+		if(done[t] != @nil)
 			continue;
 		done[t] = 1;
 
@@ -89,7 +89,7 @@ define dumpslim(fd, work, tt, et)
 				if(!checktt(t, id))
 					continue;
 				addwork(work, ft);
-				if(off == nil){
+				if(off == @nil){
 					fprintf(fd, "\t");
 					fprintf(fd, "\t%t;\n", fld);
 				}else if(isbitfield(ft)){
@@ -104,14 +104,14 @@ define dumpslim(fd, work, tt, et)
 				}
 			}
 			sz = susize(t);
-			if(sz != nil)
+			if(sz != @nil)
 				fprintf(fd, "\t@0x%x;\n", sz);
 			fprintf(fd, "};\n");
 		}
 	}
 }
 
-define mktracens(ns)
+@define mktracens(ns)
 {
 	@local stab, ttab, ftab, _lookfield;
 	@local looksym, looktype, enumsym, enumtype, lookaddr;
@@ -121,66 +121,66 @@ define mktracens(ns)
 	ttab = [:];
 	ftab = [:];
 
-	define looksym(this, id){
-		if(stab[id] == nil)
+	@define looksym(this, id){
+		if(stab[id] == @nil)
 			stab[id] = 1;
 		else
 			stab[id]++;
 		return ns.looksym(id);
 	}
 
-	define looktype(this, t){
+	@define looktype(this, t){
 		t = ns.looktype(t);
-		if(t == nil)
+		if(t == @nil)
 			return t;
-		if(ttab[t] == nil)
+		if(ttab[t] == @nil)
 			ttab[t] = 1;
 		else
 			ttab[t]++;
 		return t;
 	}
 
-	define enumsym(this){
+	@define enumsym(this){
 		return ns.enumsym();
 	}
 
-	define enumtype(this){
+	@define enumtype(this){
 		return ns.enumtype();
 	}
 
-	define lookaddr(this, addr){
+	@define lookaddr(this, addr){
 		return ns.lookaddr(addr);
 	}
 
-	define dump(this, fd){
+	@define dump(this, fd){
 		@local tt, et, work, done;
 //		printf("symbols:\n");
-//		dumptab(stab, lambda(k, v) { printf("%8d\t%t\n",
+//		dumptab(stab, @lambda(k, v) { printf("%8d\t%t\n",
 //						    v, ns.looksym(k));});
 //		printf("types:\n");
-//		dumptab(ttab, lambda(k, v) { printf("%8d\t%t\n", v, k); });
+//		dumptab(ttab, @lambda(k, v) { printf("%8d\t%t\n", v, k); });
 //		printf("fields:\n");
-//		dumptab(ftab, lambda(k, v) { printf("%8d\t%a\n", v, k); });
+//		dumptab(ftab, @lambda(k, v) { printf("%8d\t%a\n", v, k); });
 
 		et = mktab();
 		tt = mktab();
-		foreach(lambda(k,v){
+		foreach(@lambda(k,v){
 				@local t, f;
 				t = chasetype(k[0]);
 				f = k[1];
-				if(tt[t] == nil)
+				if(tt[t] == @nil)
 					tt[t] = [ f ];
 				else if(!member(f, tt[t]))
 					append(tt[t], f);
 			}, ftab);
 
 		work = mktab();
-		foreach(lambda(k,v){
-				if(k == nil)
+		foreach(@lambda(k,v){
+				if(k == @nil)
 					error("wtf?");
 				addwork(work, k);
 			}, ttab);
-		foreach(lambda(k,v){
+		foreach(@lambda(k,v){
 				@local t, off, sym;
 				sym = ns.looksym(k);
 				t = symtype(sym);
@@ -189,7 +189,7 @@ define mktracens(ns)
 					id = symid(sym);
 					t = subtype(t);
 					addwork(work, t);
-					if(et[t] == nil)
+					if(et[t] == @nil)
 						et[t] = [ id ];
 					else
 						append(et[t], id);
@@ -197,7 +197,7 @@ define mktracens(ns)
 				}
 				addwork(work, t);
 				off = symoff(sym);
-				if(off != nil)
+				if(off != @nil)
 					fprintf(fd, "@0x%x", off);
 				fprintf(fd, "\t%t;\n", sym);
 			}, stab);
@@ -205,10 +205,10 @@ define mktracens(ns)
 	}
 
 	_lookfield = lookfield;
-	define lookfield(type, field){
+	@define lookfield(type, field){
 		@local l;
 		l = [ type, field ];
-		if(ftab[l] == nil)
+		if(ftab[l] == @nil)
 			ftab[l] = 1;
 		else
 			ftab[l]++;

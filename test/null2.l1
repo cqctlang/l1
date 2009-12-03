@@ -1,2 +1,2 @@
-x = lambda(){ };
+x = @lambda(){ };
 x();

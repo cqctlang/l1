@@ -1,4 +1,4 @@
-define foo(args ...)
+@define foo(args ...)
 {
 	while(length(args))
 		printf("%a ", pop(args)());
@@ -8,6 +8,6 @@ define foo(args ...)
 printf("\n");
 @lazyapply(foo);
 printf("\n");
-@lazyapply(foo, lambda() { printf("not called\n"); });
+@lazyapply(foo, @lambda() { printf("not called\n"); });
 printf("\n");
 

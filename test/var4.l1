@@ -1,16 +1,16 @@
-x = lambda(a, b){
+x = @lambda(a, b){
 	@local c, y;
 	c = 3;
 	b = b+1;		/* 3 */
 	print(a);
 	print(b);
 	print(c);
-	y = lambda(a){
+	y = @lambda(a){
 		@local z;
 		a = 4;
 		b = b+1;	/* 4 */
 		c = 6;
-		z = lambda(){
+		z = @lambda(){
 			b = b+1; /* 5 */
 		};
 		z();

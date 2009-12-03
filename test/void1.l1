@@ -1,4 +1,4 @@
-define printtype(t){
+@define printtype(t){
 	@local ct, i, fld, flds, sz, off;
 
 	if(issu(t)){
@@ -43,7 +43,7 @@ define printtype(t){
 	}
 };
 
-define dumpns(dn){
+@define dumpns(dn){
 	@local ns, fn, vec, i;
 	if(isdomain(dn))
 		ns = domns(dn);
@@ -61,7 +61,7 @@ define dumpns(dn){
 		printf("%t;\n", vecref(vec, i));
 }
 
-define foo(){
+@define foo(){
 	@local ns, fn, tab, vec, i, dom, p;
 
  	ns = @names c32le {
@@ -81,10 +81,10 @@ define foo(){
 	dom = mkdom(ns, mknas());
 	p = &dom`x;
 	printf("sizeof(p->x) = %d\n", sizeof(p->x));
-	printf("typeof(p->x) = %t\n", typeof(p->x));
+	printf("typeof(p->x) = %t\n", @typeof(p->x));
 	p = &dom`p;
 	printf("sizeof(p) = %d\n", sizeof(p));
-	printf("typeof(p) = %t\n", typeof(p));
-	printf("typeof(*p) = %t\n", typeof(*p));
+	printf("typeof(p) = %t\n", @typeof(p));
+	printf("typeof(*p) = %t\n", @typeof(*p));
 };
 foo();

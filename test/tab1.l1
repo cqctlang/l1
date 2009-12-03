@@ -1,4 +1,4 @@
-test = lambda(){
+test = @lambda(){
 	@local t, x;
 	t = mktab();
 	tabinsert(t, 3, "abc");

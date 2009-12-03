@@ -16,12 +16,12 @@ as = mknas();
 dom = mkdom(ns, as);
 
 p = &dom`foo;
-printf("%x %x %t\n", p, sizeof(*p), typeof(*p));
+printf("%x %x %t\n", p, sizeof(*p), @typeof(*p));
 
 p = &dom`bar;
-printf("%x %x %t\n", p, sizeof(*p), typeof(*p));
+printf("%x %x %t\n", p, sizeof(*p), @typeof(*p));
 
 // FIXME: type of baz reverts to void to tolerate
 // undefinedness of baz
 p = &dom`baz;
-printf("%x %x %t\n", p, sizeof(*p), typeof(*p));
+printf("%x %x %t\n", p, sizeof(*p), @typeof(*p));
