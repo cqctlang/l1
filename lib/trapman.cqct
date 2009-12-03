@@ -1,0 +1,58 @@
+@record Trapman { look, add, clr, reset, list };
+rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
+	 @lambda(t) { sprintfa("[ %u %u %a %a ]", t.uid, t.mid, t.fn, t.desc);});
+
+@define mktrapman()
+{
+	@local trapman, nextid;
+	@local uidmap, midmap, look, add, clr, list, reset;
+	
+	nextid = 0;
+	uidmap = [:];
+	midmap = [:];
+
+	@define look(mid)
+	{
+		return midmap[mid];
+	}
+
+	@define add(mid, fn, desc, clr)
+	{
+		@local t, uid;
+		uid = nextid++;
+		t = Trap(uid, mid, fn, desc, clr);
+		uidmap[uid] = t;
+		midmap[mid] = t;
+		return t;
+	}
+
+	@define clr(uid)
+	{
+		@local t;
+		t = uidmap[uid];
+		if(t == @nil)
+			error("no such trap: %a", uid);
+		tabdelete(uidmap, t.uid);
+		tabdelete(midmap, t.mid);
+		t.clr();
+	}
+
+	@define list()
+	{
+		@local k, rv;
+		k = tabkeys(uidmap);
+		sort(k, @lambda(a,b){ return a-b; });
+		return map(@lambda(uid){ uidmap[uid]; }, k);
+	}
+
+	@define reset()
+	{
+		@local k, rv;
+		k = tabkeys(uidmap);
+		sort(k, @lambda(a,b){ return a-b; });
+		foreach(clr, k);
+		nextid = 0;
+	}
+
+	return Trapman(look, add, clr, reset, list);
+}

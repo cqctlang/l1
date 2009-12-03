@@ -1,4 +1,7 @@
-proto = @names c32le {
+@include <linux-x86_64.cqct>
+@include <trapman.cqct>
+
+proto = @names clp64le {
 	enum Mkind {
 		Rerror = 0,
 		Tlaunch,
@@ -18,33 +21,32 @@ proto = @names c32le {
 		Tread,
 		Rread,
 
-		Abrk,
-		Aobit,
 		Aack,
 		Tcleave,
 		Rcleave,
-
 		Twrite,
 		Rwrite,
+
 		Tsetregs,
 		Rsetregs,
 		Tsetsnap,
-
 		Rsetsnap,
-		Asnap,
 		Tattach,
+
 		Rattach,
 		Ttest,
-
 		Rtest,
 		Tstep,
 		Rstep,
-		Aclone,
+
 		Tfread,
-	
 		Rfread,
 		Tfwrite,
 		Rfwrite,
+		Ttrace,
+
+		Rtrace,
+		Aevent,
 	};
 
 	enum State {
@@ -52,6 +54,24 @@ proto = @names c32le {
 		Stopped,
 		Dead,
 	};
+
+	enum Flags {
+		/* launch flags */
+		Fstdin   = 1,		  /* redirect stdin */
+		Fstdout  = (Fstdin<<1),   /* redirect stdout */
+		Fstderr  = (Fstdout<<1),  /* redirect stderr */
+	};
+
+	typedef
+	enum Event {
+		Esyscall = 1,
+		Eexec	 = (Esyscall<<1),
+		Efork    = (Eexec<<1),
+		Eclone   = (Efork<<1),
+		Esignal  = (Eclone<<1),
+		Eexit    = (Esignal<<1),
+		Etrap    = (Eexit<<1),
+	} Event;
 
 	typedef
 	struct Reg {
@@ -73,7 +93,8 @@ proto = @names c32le {
 		@120	uint64 r13;
 		@128	uint64 r14;
 		@136	uint64 r15;
-		@144;
+		@144	uint64 orig_rax;
+		@152;
 	} Reg;
 
 	struct Rerror{
@@ -96,12 +117,21 @@ proto = @names c32le {
 	};
 	typedef struct Tlaunch Tlaunch;
 
+	struct Ttrace{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 flags;
+		@21;
+	};
+	typedef struct Ttrace Ttrace;
+
 	struct Rlaunch{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
 		@13	Reg reg;
-		@157;
+		@165;
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rstop;
@@ -123,12 +153,12 @@ proto = @names c32le {
 	typedef struct Rcont Rclrbrk;
 	typedef struct Rcont Rkill;
 	typedef struct Rcont Rsetregs;
-	typedef struct Rcont Aobit;
-	typedef struct Rcont Aack;
+	typedef struct Rcont Rtrace;
 	typedef struct Rcont Tcleave;
 	typedef struct Rcont Rtest;
 	typedef struct Rcont Tstep;
 	typedef struct Rcont Rstep;
+	typedef struct Rcont Aack;
 
 	struct Tsetbrk{
 		@0	uint8 op;
@@ -140,24 +170,35 @@ proto = @names c32le {
 		@21;
 	};
 	typedef struct Tsetbrk Tsetbrk;
+	typedef struct Tsetbrk Tsetsnap;
 	typedef struct Tsetbrk Tclrbrk;
 	typedef struct Tsetbrk Rsetbrk;
 	typedef struct Tsetbrk Rsetsnap;
-	typedef struct Tsetbrk Rcleave;
 
-	struct Abrk{
+	struct Rcleave{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
 		@13	uint64 bp;
 		@13	uint64 cid;
 		@21	Reg reg;
-		@165;
+		@173;
 	};
-	typedef struct Abrk Abrk;
-	typedef struct Abrk Aclone;
+	typedef struct Rcleave Rcleave;
 
-	struct Asnap{
+	struct Aevent{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 flags;
+		@21	uint64 bp;
+		@29	uint64 cid;
+		@37	Reg reg;
+		@189;
+	};
+	typedef struct Aevent Aevent;
+
+	struct Tread{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
@@ -168,9 +209,8 @@ proto = @names c32le {
 		@29	char bytes[0];
 		@29;
 	};
-	typedef struct Asnap Asnap;
-	typedef struct Asnap Tread;
-	typedef struct Asnap Twrite;
+	typedef struct Tread Tread;
+	typedef struct Tread Twrite;
 
 	struct Tfread{
 		@0	uint8 op;
@@ -196,17 +236,33 @@ proto = @names c32le {
 	typedef struct Rfread Rfwrite;
 };
 
-@record ctlmux { launch, run };
-@record targ { id, state, reg, as };
+@record ctlmux { launch, attach, run };
+@record targ { id, state, reg, traps, callbacks, as };
 
 @define mkctlmux()
 {
-	@local tab, launch, run, fds, fd;
+	@local tab, launch, attach, run, fds, fd;
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, cop, targs;
-
+	@local freetags, nexttag, taghandler, mux;
+	
+	nexttag = 0;
+	freetags = [ ];
 	targs = [:];
+	taghandler = [:];
 
+	@define freshtag()
+	{
+		if(isempty(freetags))
+			return nexttag++;
+		return pop(freetags);
+	}
+
+	@define reusetag(tag)
+	{
+		push(freetags, tag);
+	}
+	
 	verbose = 1;
 	@define logsend(s){
 		if(verbose)
@@ -216,13 +272,12 @@ proto = @names c32le {
 		if(verbose)
 			printf("--> %s\n", s);
 	}
-	@define log(s){
-		if(verbose)
-			printf("%s\n", s);
+	@define log(arg ...){
+		if(verbose){
+			apply(printf, arg);
+			printf("\n");
+		}
 	}
-
-	fds = popen("prctl", "-c", 2|4|8);
-	fd = fds[0];
 
 	@define cop(p){
 		return {@typeof(p)}getbytes(p);
@@ -238,41 +293,501 @@ proto = @names c32le {
 			      op, rep->bytes);
 		default:
 			error("ctlmux: while waiting for %e: received %e",
-			      op, rep->op);
+			      op, (enum proto`Mkind)rep->op);
 		}
 	}
 
 	@define mktargas(t)
 	{
-		return @nil;
+		@local mcont, mget, mput, mmap;
+		@local mxtrap, mxsnap, mtrapdel, mtraplist, mtrapreset;
+		
+		@define mcont(this)
+		{
+			return cont(t.id);
+		}
+
+		@define mget(this, r)
+		{
+			return pread(t.id, rangebeg(r), rangelen(r));
+		}
+
+		@define mput(this, r, s)
+		{
+			return pwrite(t.id, rangebeg(r), rangelen(r), s);
+		}
+
+		@define mmap(this)
+		{
+			return vector(mkrange(0, (`uint64)-1));
+		}
+
+		@define mxtrap(this, addr, fn)
+		{
+			return trapset(t.id, addr, fn, 0);
+		}
+
+		@define mxsnap(this, addr, fn)
+		{
+			return trapset(t.id, addr, fn, 1);
+		}
+
+		@define mtrapdel(this, tid)
+		{
+			trapdel(t.id, tid);
+		}
+
+		@define mtraplist(this)
+		{
+			return traplist(t.id);
+		}
+
+		@define mtrapreset(this)
+		{
+			trapreset(t.id);
+		}
+
+		@define mtrace(this, flags, fn)
+		{
+			trace(t.id, flags);
+			t.callbacks[(proto`Event)flags] = fn;
+		}
+
+		@define mreg(this)
+		{
+			return t.reg;
+		}
+
+		return mkas([ "get"       : mget,
+			      "put"       : mput,
+			      "map"       : mmap,
+			      "xcont"     : mcont,
+			      "xtrap"     : mxtrap,
+			      "xsnap"     : mxsnap,
+			      "trapdel"   : mtrapdel,
+			      "traplist"  : mtraplist,
+			      "trapreset" : mtrapreset,
+			      "trace"	  : mtrace,
+			      "reg"	  : mreg,
+			    ]);
+	}
+
+	@define fmtmsg(msg)
+	{
+		return sprintfa("%e %d", (enum proto`Mkind)msg->op, msg->id);
+	}
+
+	@define buf2msg(p)
+	{
+		@local op;
+		op = (enum proto`Mkind)*(proto`uint8*)p;
+		switch(op){
+		case proto`Aevent:
+			return (proto`Aevent*)p;
+		case proto`Rerror:
+			return (proto`Rerror*)p;
+		case proto`Tlaunch:
+			return (proto`Tlaunch*)p;
+		case proto`Rlaunch:
+			return (proto`Rlaunch*)p;
+		case proto`Tcont:
+			return (proto`Tcont*)p;
+		case proto`Rcont:
+			return (proto`Rcont*)p;
+		case proto`Tstop:
+			return (proto`Tstop*)p;
+		case proto`Rstop:
+			return (proto`Rstop*)p;
+		case proto`Tkill:
+			return (proto`Tkill*)p;
+		case proto`Rkill:
+			return (proto`Rkill*)p;
+		case proto`Tsetbrk:
+			return (proto`Tsetbrk*)p;
+		case proto`Rsetbrk:
+			return (proto`Rsetbrk*)p;
+		case proto`Tclrbrk:
+			return (proto`Tclrbrk*)p;
+		case proto`Rclrbrk:
+			return (proto`Rclrbrk*)p;
+		case proto`Tread:
+			return (proto`Tread*)p;
+		case proto`Rread:
+			return (proto`Rread*)p;
+		case proto`Tcleave:
+			return (proto`Tcleave*)p;
+		case proto`Rcleave:
+			return (proto`Rcleave*)p;
+		case proto`Twrite:
+			return (proto`Twrite*)p;
+		case proto`Rwrite:
+			return (proto`Rwrite*)p;
+		case proto`Tsetregs:
+			return (proto`Tsetregs*)p;
+		case proto`Rsetregs:
+			return (proto`Rsetregs*)p;
+		case proto`Tsetsnap:
+			return (proto`Tsetsnap*)p;
+		case proto`Rsetsnap:
+			return (proto`Rsetsnap*)p;
+		case proto`Tattach:
+			return (proto`Tattach*)p;
+		case proto`Rattach:
+			return (proto`Rattach*)p;
+		case proto`Ttest:
+			return (proto`Ttest*)p;
+		case proto`Rtest:
+			return (proto`Rtest*)p;
+		case proto`Tstep:
+			return (proto`Tstep*)p;
+		case proto`Rstep:
+			return (proto`Rstep*)p;
+		case proto`Tfread:
+			return (proto`Tfread*)p;
+		case proto`Rfread:
+			return (proto`Rfread*)p;
+		case proto`Tfwrite:
+			return (proto`Tfwrite*)p;
+		case proto`Rfwrite:
+			return (proto`Rfwrite*)p;
+		case proto`Ttrace:
+			return (proto`Ttrace*)p;
+		case proto`Rtrace:
+			return (proto`Rtrace*)p;
+		default:
+			error("unknown op %e", op);
+		}
+	}
+
+	@define isasync(msg)
+	{
+		switch((enum proto`Mkind)msg->op){
+		case proto`Aevent:
+			return 1;
+		default:
+			return 0;
+		}
+	}
+
+	@define sendmsg(fd, arg ...)
+	{
+		@local p, sz;
+		p = arg[0];
+		switch(length(arg)){
+		case 1:
+			sz = sizeof(*p);
+			break;
+		case 2:
+			sz = arg[1];
+			break;
+		default:
+			error("bad sendmsg");
+		}
+		write(fd, cval2str((proto`uint64)sz));
+		write(fd, getbytes(p, sz));
+	}
+
+	@define ack(msg)
+	{
+		@local p;
+		p = (proto`Aack*)malloc(sizeof(proto`Aack));
+		p->op = proto`Aack;
+		p->tag = msg->tag;
+		p->id = msg->id;
+		sendmsg(fd, p);
+	}
+
+	@define handleasync(msg)
+	{
+		@local t, c, trap, ev, fn;
+		t = targs[msg->id];
+		if(t == @nil)
+			error("%e for unknown task: %d",
+			      (enum proto`Mkind)msg->op,
+			      msg->id);
+		if((enum proto`Mkind)msg->op != proto`Aevent)
+			error("cltmux: unhandled message %e",
+			      (enum proto`Mkind)msg->op);
+		ev = (proto`Event)msg->flags;
+		switch(ev){
+		case proto`Eexit:
+			ack(msg);
+			log("task %d has died", msg->id);
+			tabdelete(targs, msg->id);
+			break;
+		case proto`Etrap:
+			ack(msg);
+			trap = t.traps.look(msg->bp);
+			t.reg = cop(&msg->reg);
+			if(trap.desc[0] == "brk"){
+				t.state = proto`Stopped;
+				rv = trap.fn(trap.uid, msg->id);
+				if(rv == 0 || rv == @nil)
+					contasync(msg->id);
+				else if(rv != 1)
+					error("bad brk handler return (%a)",
+					      rv);
+			}else if(trap.desc[0] == "snap"){
+				c = targ(msg->cid,
+					 proto`Stopped,
+					 cop(&msg->reg),
+					 t.traps,
+					 t.callbacks,
+					 @nil);
+//				c.as = mktargas(c);
+//				targs[msg->cid] = c;
+				trap.fn(trap.uid, msg->id, msg->cid);
+			}else
+				error("unhandled trap %a", trap.desc);
+			break;
+		case proto`Eclone:
+			ack(msg);
+			log("task %d has cloned %d", msg->id, msg->cid);
+			fn = t.callbacks[ev];
+			if(fn != @nil)
+				fn(t.id);
+			c = targ(msg->cid,
+				 proto`Stopped,
+				 cop(&msg->reg),
+				 t.traps,
+				 t.callbacks,
+				 @nil);
+			c.as = mktargas(c);
+			targs[msg->cid] = c;
+			contasync(msg->cid);
+			break;
+		case proto`Efork:
+			ack(msg);
+			log("task %d has forked %d", msg->id, msg->cid);
+			fn = t.callbacks[ev];
+			if(fn != @nil)
+				fn(t.id);
+			c = targ(msg->cid,
+				 proto`Stopped,
+				 cop(&msg->reg),
+				 t.traps,
+				 t.callbacks,
+				 @nil);
+			c.as = mktargas(c);
+			targs[msg->cid] = c;
+			contasync(msg->cid);
+			break;
+		case proto`Eexec:
+			ack(msg);
+			t.state = proto`Stopped;
+			t.reg = cop(&msg->reg);
+			log("task %d has called exec", msg->id);
+			fn = t.callbacks[ev];
+			if(fn != @nil)
+				fn(t.id);
+			contasync(msg->id);
+			break;
+		case proto`Esyscall:
+			ack(msg);
+			t.state = proto`Stopped;
+			t.reg = cop(&msg->reg);
+			log("task %d has hit a system call trap (%e)",
+			    msg->id,
+			    (enum linuxnames`syscall)msg->reg.orig_rax);
+			fn = t.callbacks[ev];
+			if(fn != @nil)
+				fn(t.id);
+			contasync(msg->id);
+			break;
+		default:
+			error("unhandled event message: %e",
+			      (proto`Event)msg->flags);
+ 		}
+	}
+
+	@define noprocs()
+	{
+		return length(targs) == 0;
+	}
+
+	@define noinflight()
+	{
+		return length(taghandler) == 0;
+	}
+
+	@define runtil(pred)
+	{
+		@local s, sz, p, op, msg, h, tag;
+
+		while(!pred()){
+			if(noinflight() && noprocs())
+				error("runtil: nothing to do");
+			s = read(fd, sizeof(proto`uint64));
+			if(s == @nil)
+				error("remote prctl hung up");
+			sz = *(proto`uint64*)s;
+			p = read(fd, sz);
+			msg = buf2msg(p);
+
+			if(isasync(msg)){
+				handleasync(msg);
+				continue;
+			}
+
+			tag = msg->tag;
+			h = taghandler[tag];
+			tabdelete(taghandler, tag);
+			reusetag(tag);
+			if(h == @nil){
+				log("unhandled tag %d: %s", tag, fmtmsg(msg));
+				continue;
+			}
+			h(msg);
+		}
 	}
 
 	@define runtiltag(tag)
 	{
-		@local sz, op, s;
+		@local done, msg;
+		msg = @nil;
+		done = 0;
+		taghandler[tag] = @lambda(m) { msg = m; done = 1; };
+		runtil(@lambda(){ done; });
+		return msg;
+	}
 
-		// FIXME: would be nicer to say
-		//    *(proto`uint64*)read(fd, sizeof(proto`uint64));
-		// but throws error: operand 1 to domof must be a cvalue
-		s = read(fd, sizeof(proto`uint64));
-		if(!isstring(s))
-			error("s is %a", s);
-		sz = *{@typeof(proto`uint64*)}s;
-		p = read(fd, sz);
-		op = *{@typeof(enum proto`Mkind*)}p;
-		switch(op){
-		case proto`Rlaunch:
-			return {@typeof(proto`Rlaunch*)}p;
-		case proto`Rerror:
-			return {@typeof(proto`Rerror*)}p;
-		default:
-			error("unexpected op %e", op);
-		}
+	@define clearbrk(id, bp)
+	{
+		@local t, p, rep;
+		t = targs[id];
+		p = (proto`Tclrbrk*)malloc(sizeof(proto`Tclrbrk));
+		p->op = proto`Tclrbrk;
+		p->tag = freshtag();
+		p->id = id;
+		p->bp = bp;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rclrbrk);
+		return @nil;
+	}
+
+	@define setbrk(id, addr)
+	{
+		@local t, p, rep, clear;
+		t = targs[id];
+		p = (proto`Tsetbrk*)malloc(sizeof(proto`Tsetbrk));
+		p->op = proto`Tsetbrk;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rsetbrk);
+		return rep->bp;
+	}
+
+	@define setsnap(id, addr)
+	{
+		@local t, p, rep, clear;
+		t = targs[id];
+		p = (proto`Tsetsnap*)malloc(sizeof(proto`Tsetsnap));
+		p->op = proto`Tsetsnap;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rsetsnap);
+		return rep->bp;
+	}
+
+	@define trace(id, flags)
+	{
+		@local t, p, rep;
+		t = targs[id];
+		p = (proto`Ttrace*)malloc(sizeof(proto`Ttrace));
+		p->op = proto`Ttrace;
+		p->tag = freshtag();
+		p->id = id;
+		p->flags = flags;
+		sendmsg(fd, p);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rtrace);
+	}
+
+	@define pread(id, addr, cnt)
+	{
+		@local t, p, rep;
+
+		t = targs[id];
+		p = (proto`Tread*)malloc(sizeof(proto`Tread));
+		p->op = proto`Tread;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		p->cnt = cnt;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rread);
+		return getbytes(rep+1, cnt);
+	}
+
+	@define pwrite(id, addr, cnt, bytes)
+	{
+		@local sz, t, p, rep;
+
+		t = targs[id];
+		sz = sizeof(proto`Twrite)+cnt;
+		p = (proto`Twrite*)malloc(sz);
+		p->op = proto`Twrite;
+		p->tag = freshtag();
+		p->id = id;
+		p->addr = addr;
+		p->cnt = cnt;
+		putbytes(p+1, bytes);
+		sendmsg(fd, p, sz);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rwrite);
+		return @nil;
+	}
+
+	@define contasync(id)
+	{
+		@local t, p;
+
+		t = targs[id];
+		if(t.state != proto`Stopped)
+			return;
+		p = (proto`Tcont*)malloc(sizeof(proto`Tcont));
+		p->op = proto`Tcont;
+		p->tag = freshtag();
+		p->id = id;
+		sendmsg(fd, p);
+
+		taghandler[p->tag] = @lambda(rep){
+			checkreply(rep, proto`Rcont);
+			t.state = proto`Running;
+		};
+	}
+
+	@define cont(id)
+	{
+		@local t, p, rep;
+
+		t = targs[id];
+		if(t.state != proto`Stopped)
+			return;
+		p = (proto`Tcont*)malloc(sizeof(proto`Tcont));
+		p->op = proto`Tcont;
+		p->tag = freshtag();
+		p->id = id;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rcont);
+		t.state = proto`Running;
 	}
 
 	@define launch(flags, arg ...)
 	{
-		@local narg, s, sz, i, p, q, t;
+		@local narg, s, sz, i, p, q, t, rep;
 
 		narg = length(arg);
 		if(narg == 0)
@@ -280,30 +795,67 @@ proto = @names c32le {
 
 		/* format and send Tlaunch */
 		sz = sizeof(proto`Tlaunch);
-		write(fd, cval2str((proto`uint64)sz));
 		for(i = 0; i < narg; i++)
 			sz += strlen(listref(arg, i))+1;
 		p = (proto`Tlaunch*)malloc(sz);
 		p->op = proto`Tlaunch;
-		p->tag = 0;
+		p->tag = freshtag();
 		p->flags = flags;
 		p->narg = narg;
-		q = (char*)p;
+		q = (char*)(p+1);
 		for(i = 0; i < narg; i++){
 			s = listref(arg, i);
 			putbytes(q, s);
 			q += strlen(s)+1;
 		}
-		write(fd, getbytes(p));
+		sendmsg(fd, p, sz);
 		
 		/* wait for reply */
-		rep = runtiltag(0);
-		checkreply(rep, proto`Tlaunch);
-		t = targ(reply->id, proto`Stopped, cop(&reply->reg), @nil);
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rlaunch);
+		t = targ(rep->id,
+			 proto`Stopped,
+			 cop(&rep->reg),
+			 mktrapman(),
+			 [ : ],
+			 @nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
 		return t.as;
 	}
 
-	return ctlmux(launch, run);
+	@define attach(pid)
+	{
+		@local p, rep, t;
+
+		p = (proto`Tattach*)malloc(sizeof(proto`Tattach));
+		p->op = proto`Tattach;
+		p->tag = freshtag();
+		p->id = pid;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rattach);
+		// attach leaves the target running
+		t = targ(rep->id,
+			 proto`Running,
+			 (proto`Reg*)malloc(sizeof(proto`Reg)),
+			 mktrapman(),
+			 [ : ],
+			 @nil);
+		t.as = mktargas(t);
+		targs[rep->id] = t;
+		return t.as;
+	}
+
+	@define run()
+	{
+		runtil(noprocs);
+	}
+
+	fds = popen("prctl", "-c", 2|4|8);
+	fd = fds[0];
+	mux = ctlmux(launch, attach, run);
+	finalize(fd, @lambda(fd) { close(fd); });
+	return mux;
 }
