@@ -151,6 +151,17 @@ dom9p = mkdom(ns9p, mknas());
 	return p+8;
 }
 
+@define pushn1(p, s)
+{
+	@local m;
+	if(s == nil)
+		return push1(p, 0);
+	m = length(s);
+	p = push1(p, m);
+	putbytes(p, s);
+	return p+m;
+}
+
 @define pushn2(p, s)
 {
 	@local m;
@@ -171,6 +182,16 @@ dom9p = mkdom(ns9p, mknas());
 	p = push4(p, m);
 	putbytes(p, s);
 	return p+m;
+}
+
+@define lenn1(s)
+{
+	@local sz;
+	sz = 1;
+	if(s == @nil)
+		return sz;
+	else
+		return sz+length(s);
 }
 
 @define lenn2(s)
