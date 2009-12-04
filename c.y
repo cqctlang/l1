@@ -143,7 +143,6 @@ table_init_list
 nil
 	: NIL
 	| ONIL
-	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @nil"); }
 	;
 
 primary_expression
