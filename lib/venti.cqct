@@ -1,4 +1,4 @@
-venti = @names c32be {
+venti = @names clp64be {
 
 	/* plan9port/src/libventi/dtype.c */
 	typedef
@@ -227,20 +227,13 @@ venti = @names c32be {
 	default:
 		error("bad sendmsg");
 	}
-	printf("size is %d bytes\n", (venti`uint32)sz);
 	write(fd, cval2str((venti`uint32)sz));
 	write(fd, getbytes(p, sz));
 }
 
-@define vtrecvmsg(fd)
+@define buf2msg(p)
 {
-	@local sz, p, op;
-
-	sz = read(fd, sizeof(venti`uint32));
-	if(sz == nil)
-		error("venti hung up");
-	sz = *(venti`uint32*)sz;
-	p = read(fd, sz);
+	@local op;
 
 	op = (venti`Op)*(venti`uint8*)p;
 	switch(op){
@@ -268,6 +261,19 @@ venti = @names c32be {
 	default:
 		error("venti sent unsupported operation: %e", op);
 	}
+	
+}
+
+@define vtrecvmsg(fd)
+{
+	@local sz, p, op;
+
+	sz = read(fd, sizeof(venti`uint32));
+	if(sz == nil)
+		error("venti hung up");
+	sz = *(venti`uint32*)sz;
+	p = read(fd, sz);
+	return buf2msg(p);
 }
 
 @define checkreply(rep, op)
@@ -337,6 +343,72 @@ venti = @names c32be {
 	printf("venti: ping\n");
 }
 
+@define score2txt(score)
+{
+	@local i, s;
+	s = "";
+	for(i = 0; i < 20; i++)
+		s += sprintfa("%02x", score[i]);
+	return s;
+}
+
+@define ctoi(c)
+{
+	if(isdigit(c))
+		return c-'0';
+	if(islower(c))
+		return c-'a'+10;
+	if(isupper(c))
+		return c-'A'+10;
+	error("ctoi: bad character: %c\n", c);
+}
+
+@define txt2score(s)
+{
+	@local i, p, score;
+
+	score = (`uint8*)malloc(20);
+	for(i = 0; i < 20; i++)
+		score[i] = (ctoi(s[2*i])<<4)|ctoi(s[2*i+1]);
+	return getbytes(score, 20);
+}
+
+@define vtwrite(fd, buf)
+{
+	@local sz, t, r;
+
+	sz = sizeof(venti`VtTwrite)+length(buf);
+	t = (venti`VtTwrite*)malloc(sz);
+	t->op = venti`VtTwrite;
+	t->tag = 0;
+	t->type = venti`OVtDataType;
+	putbytes(t+1, buf);
+	vtsendmsg(fd, t, sz);
+	r = vtrecvmsg(fd);
+	checkreply(r, venti`VtRwrite);
+	return getbytes(r->score, sizeof(r->score));
+}
+
+@define vtread(fd, score)
+{
+	@local sz, t, r;
+	sz = sizeof(venti`VtTread);
+	t = (venti`VtTread*)malloc(sz);
+	t->op = venti`VtTread;
+	t->tag = 0;
+	putbytes(&t->score, score);
+	t->type = venti`OVtDataType;
+	t->count = 1024;
+	vtsendmsg(fd, t);
+	sz = read(fd, sizeof(venti`uint32));
+	if(sz == nil)
+		error("venti hung up");
+	sz = *(venti`uint32*)sz;
+	p = read(fd, sz);
+	p = buf2msg(p);
+	return getbytes(p+1, (int)sz-sizeof(*p));
+}
+
 @define test()
 {
 	@local fd;
@@ -344,7 +416,14 @@ venti = @names c32be {
 	vtversion(fd);
 
 	vthello(fd);
-	vtping(fd);
+
+	score = vtwrite(fd, "hello!\n");
+	txt = score2txt(score);
+	printf("score.1 is %s\n", txt);
+	score = txt2score(txt);
+	printf("score.2 is %s\n", score2txt(txt2score(txt)));
+	s = vtread(fd, score);
+	printf("venti: read %s\n", s);
 
 	close(fd);
 }
