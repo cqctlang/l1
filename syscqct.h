@@ -926,6 +926,7 @@ Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 List*		mklist();
 Cval*		mklitcval(Cbase base, Imm val);
+Ns*		mknstab(Tab *mtab, Str *name);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
 Str*		mkstr(char *s, Imm len);

@@ -5965,7 +5965,7 @@ nscachemethod(Ns *ns)
 	nscache1method(ns, "lookaddr", &ns->lookaddr);
 }
 
-static Ns*
+Ns*
 mknstab(Tab *mtab, Str *name)
 {
 	Ns *ns;
