@@ -157,8 +157,8 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 			size += (c&0x7f)<<shift;
 			shift += 7;
 		}
-		ref = @nil;
-		roff = @nil;
+		ref = nil;
+		roff = nil;
 		if(type == pack`OBJ_REF_DELTA){
 			ref = getbytes(q, 20);
 			q += 20; /* skip base sha1 */
@@ -191,15 +191,15 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 		       size,
 		       zsize,
 		       off);
-		if(ref != @nil){
+		if(ref != nil){
 			ref = decodesha(ref);
 			printf(" ref: %s", ref);
 			append(deltaq, ref);
-		}else if(roff != @nil){
+		}else if(roff != nil){
 			@local fd;
 			printf(" %d", off-roff);
 			dep = offtab[off-roff];
-			if(dep == @nil)
+			if(dep == nil)
 				error("no dep for %d\n", off-roff);
 			obj = patchdelta(dep.bytes, obj);
 			s1 = sha1(sprintfa("%s %u\0%s",
@@ -220,7 +220,7 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 		printf("\n");
 	}
 
-	foreach(@lambda(ref){ if(sha1tab[ref] == @nil) printf("don't have %s\n", ref); }, deltaq);
+	foreach(@lambda(ref){ if(sha1tab[ref] == nil) printf("don't have %s\n", ref); }, deltaq);
 }
 
 

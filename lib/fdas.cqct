@@ -41,10 +41,10 @@
 					grow(beg, len);
 				need = beg+len-peek;
 				s = read(fd, need);
-				if(s == @nil || strlen(s) < need){
+				if(s == nil || strlen(s) < need){
 					eof = 1;
-					if(eofk != @nil)
-						eofk(@nil);
+					if(eofk != nil)
+						eofk(nil);
 					error("end of file on fdas");
 				}
 				strput(buf, peek, s);
@@ -69,10 +69,10 @@
 			}
 			off += hi;
 			hi = 0;
-			return @nil;
+			return nil;
 		}else if(method == "seteofk"){
 			eofk = listref(args, 2);
-			return @nil;
+			return nil;
 		}else if(method == "iseof"){
 			if(eof)
 				return 1;
@@ -81,7 +81,7 @@
 			if(hi+1 > max)
 				grow(beg, len);
 			s = read(fd, 1);
-			if(s == @nil){
+			if(s == nil){
 				eof = 1;
 				return 1;
 			}
@@ -141,10 +141,10 @@
 //			buf = mkstr(max);
 			off += hi;
 			hi = 0;
-			return @nil;
+			return nil;
 		}else if(method == "seteofk"){
 			eofk = listref(args, 2);
-			return @nil;
+			return nil;
 		}else
 			error("bad command to fdas: %a", method);
 	}

@@ -39,7 +39,7 @@
 		for(i = 0; i < nmap; i++)
 			if(idx[i][0] <= a && a < idx[i][1])
 				return idx[i];
-		return @nil;
+		return nil;
 	}
 
 	@define get(this, r){
@@ -47,7 +47,7 @@
 		b = rangebeg(r);
 		l = rangelen(r);
 		m = lookmap(b);
-		if(m == @nil)
+		if(m == nil)
 			error("snapas: memory access out of bounds (%x)", b);
 		if(b+l > m[1])
 			error("snapas: memory access spans boundary (%x-%x)",
@@ -61,7 +61,7 @@
 	}
 
 	@define ismapped(this, a){
-		if(lookmap((`uintptr)a) == @nil)
+		if(lookmap((`uintptr)a) == nil)
 			return 0;
 		else
 			return 1;

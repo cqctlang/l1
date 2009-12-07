@@ -318,7 +318,7 @@ proto = @names clp64le {
 		@local t;
 		t = targs[id];
 		t.traps.clr(tid);
-		return @nil;
+		return nil;
 	}
 
 	@define trapreset(id)
@@ -326,7 +326,7 @@ proto = @names clp64le {
 		@local t;
 		t = targs[id];
 		t.traps.reset();
-		return @nil;
+		return nil;
 	}
 
 	@define traplist(id)
@@ -540,7 +540,7 @@ proto = @names clp64le {
 	{
 		@local t, c, trap, ev, fn;
 		t = targs[msg->id];
-		if(t == @nil)
+		if(t == nil)
 			error("%e for unknown task: %d",
 			      (enum proto`Mkind)msg->op,
 			      msg->id);
@@ -561,7 +561,7 @@ proto = @names clp64le {
 			if(trap.desc[0] == "brk"){
 				t.state = proto`Stopped;
 				rv = trap.fn(trap.uid, msg->id);
-				if(rv == 0 || rv == @nil)
+				if(rv == 0 || rv == nil)
 					contasync(msg->id);
 				else if(rv != 1)
 					error("bad brk handler return (%a)",
@@ -572,7 +572,7 @@ proto = @names clp64le {
 					 cop(&msg->reg),
 					 t.traps,
 					 t.callbacks,
-					 @nil);
+					 nil);
 //				c.as = mktargas(c);
 //				targs[msg->cid] = c;
 				trap.fn(trap.uid, msg->id, msg->cid);
@@ -583,14 +583,14 @@ proto = @names clp64le {
 			ack(msg);
 			log("task %d has cloned %d", msg->id, msg->cid);
 			fn = t.callbacks[ev];
-			if(fn != @nil)
+			if(fn != nil)
 				fn(t.id);
 			c = targ(msg->cid,
 				 proto`Stopped,
 				 cop(&msg->reg),
 				 t.traps,
 				 t.callbacks,
-				 @nil);
+				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
 			contasync(msg->cid);
@@ -599,14 +599,14 @@ proto = @names clp64le {
 			ack(msg);
 			log("task %d has forked %d", msg->id, msg->cid);
 			fn = t.callbacks[ev];
-			if(fn != @nil)
+			if(fn != nil)
 				fn(t.id);
 			c = targ(msg->cid,
 				 proto`Stopped,
 				 cop(&msg->reg),
 				 t.traps,
 				 t.callbacks,
-				 @nil);
+				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
 			contasync(msg->cid);
@@ -617,7 +617,7 @@ proto = @names clp64le {
 			t.reg = cop(&msg->reg);
 			log("task %d has called exec", msg->id);
 			fn = t.callbacks[ev];
-			if(fn != @nil)
+			if(fn != nil)
 				fn(t.id);
 			contasync(msg->id);
 			break;
@@ -629,7 +629,7 @@ proto = @names clp64le {
 			    msg->id,
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
 			fn = t.callbacks[ev];
-			if(fn != @nil)
+			if(fn != nil)
 				fn(t.id);
 			contasync(msg->id);
 			break;
@@ -657,7 +657,7 @@ proto = @names clp64le {
 			if(noinflight() && noprocs())
 				error("runtil: nothing to do");
 			s = read(fd, sizeof(proto`uint64));
-			if(s == @nil)
+			if(s == nil)
 				error("remote prctl hung up");
 			sz = *(proto`uint64*)s;
 			p = read(fd, sz);
@@ -672,7 +672,7 @@ proto = @names clp64le {
 			h = taghandler[tag];
 			tabdelete(taghandler, tag);
 			reusetag(tag);
-			if(h == @nil){
+			if(h == nil){
 				log("unhandled tag %d: %s", tag, fmtmsg(msg));
 				continue;
 			}
@@ -683,7 +683,7 @@ proto = @names clp64le {
 	@define runtiltag(tag)
 	{
 		@local done, msg;
-		msg = @nil;
+		msg = nil;
 		done = 0;
 		taghandler[tag] = @lambda(m) { msg = m; done = 1; };
 		runtil(@lambda(){ done; });
@@ -702,7 +702,7 @@ proto = @names clp64le {
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rclrbrk);
-		return @nil;
+		return nil;
 	}
 
 	@define setbrk(id, addr)
@@ -784,7 +784,7 @@ proto = @names clp64le {
 
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rwrite);
-		return @nil;
+		return nil;
 	}
 
 	@define contasync(id)
@@ -857,7 +857,7 @@ proto = @names clp64le {
 			 cop(&rep->reg),
 			 mktrapman(),
 			 [ : ],
-			 @nil);
+			 nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
 		return t.as;
@@ -881,7 +881,7 @@ proto = @names clp64le {
 			 (proto`Reg*)malloc(sizeof(proto`Reg)),
 			 mktrapman(),
 			 [ : ],
-			 @nil);
+			 nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
 		return t.as;

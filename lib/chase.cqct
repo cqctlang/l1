@@ -5,7 +5,7 @@
 	return @lambda(p){
 		if(p)
 			work(domof(p), [p], fn, seen);
-		return @nil;
+		return nil;
 	};
 }
 
@@ -31,7 +31,7 @@
 	@local x, y, m, ls, i;
 	while(length(wk) > 0){
 		x = pop(wk);
-		if(seen[x] != @nil)
+		if(seen[x] != nil)
 			continue;
 		ls = links(x);
 		seen[x] = 1;
@@ -114,5 +114,5 @@
 		p++;
 	}
 	chase(q+1, chasecb);
-	return @nil;
+	return nil;
 }

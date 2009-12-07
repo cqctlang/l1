@@ -39,7 +39,7 @@
 	@define checktt(t, id){
 		@local x;
 		x = tt[chasetype(t)];
-		if(x == @nil)
+		if(x == nil)
 			return 0;
 		if(member(id, x))
 			return 1;
@@ -49,7 +49,7 @@
 	@define checket(t, id){
 		@local x;
 		x = et[t];
-		if(x == @nil)
+		if(x == nil)
 			return 0;
 		if(member(id, x))
 			return 1;
@@ -59,7 +59,7 @@
 	done = mktab();
 	while(!isnil(t = pop(work))){
 		t = t[0];
-		if(done[t] != @nil)
+		if(done[t] != nil)
 			continue;
 		done[t] = 1;
 
@@ -89,7 +89,7 @@
 				if(!checktt(t, id))
 					continue;
 				addwork(work, ft);
-				if(off == @nil){
+				if(off == nil){
 					fprintf(fd, "\t");
 					fprintf(fd, "\t%t;\n", fld);
 				}else if(isbitfield(ft)){
@@ -104,7 +104,7 @@
 				}
 			}
 			sz = susize(t);
-			if(sz != @nil)
+			if(sz != nil)
 				fprintf(fd, "\t@0x%x;\n", sz);
 			fprintf(fd, "};\n");
 		}
@@ -122,7 +122,7 @@
 	ftab = [:];
 
 	@define looksym(this, id){
-		if(stab[id] == @nil)
+		if(stab[id] == nil)
 			stab[id] = 1;
 		else
 			stab[id]++;
@@ -131,9 +131,9 @@
 
 	@define looktype(this, t){
 		t = ns.looktype(t);
-		if(t == @nil)
+		if(t == nil)
 			return t;
-		if(ttab[t] == @nil)
+		if(ttab[t] == nil)
 			ttab[t] = 1;
 		else
 			ttab[t]++;
@@ -168,7 +168,7 @@
 				@local t, f;
 				t = chasetype(k[0]);
 				f = k[1];
-				if(tt[t] == @nil)
+				if(tt[t] == nil)
 					tt[t] = [ f ];
 				else if(!member(f, tt[t]))
 					append(tt[t], f);
@@ -176,7 +176,7 @@
 
 		work = mktab();
 		foreach(@lambda(k,v){
-				if(k == @nil)
+				if(k == nil)
 					error("wtf?");
 				addwork(work, k);
 			}, ttab);
@@ -189,7 +189,7 @@
 					id = symid(sym);
 					t = subtype(t);
 					addwork(work, t);
-					if(et[t] == @nil)
+					if(et[t] == nil)
 						et[t] = [ id ];
 					else
 						append(et[t], id);
@@ -197,7 +197,7 @@
 				}
 				addwork(work, t);
 				off = symoff(sym);
-				if(off != @nil)
+				if(off != nil)
 					fprintf(fd, "@0x%x", off);
 				fprintf(fd, "\t%t;\n", sym);
 			}, stab);
@@ -208,7 +208,7 @@
 	@define lookfield(type, field){
 		@local l;
 		l = [ type, field ];
-		if(ftab[l] == @nil)
+		if(ftab[l] == nil)
 			ftab[l] = 1;
 		else
 			ftab[l]++;

@@ -22,7 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER CONSTANT STRING_LITERAL CONST VOLATILE
-%token SIZEOF TYPEOF TYPEDEF NIL DEFINE DEFLOCAL DEFREC CONTAINEROF
+%token SIZEOF TYPEOF TYPEDEF DEFINE DEFLOCAL DEFREC CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -31,7 +31,7 @@ extern char *yytext;
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
-%token OCONTAINEROF ODEFINE OLAMBDA ONIL OTYPEOF
+%token OCONTAINEROF ODEFINE OLAMBDA OTYPEOF
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -139,17 +139,9 @@ table_init_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
-
-nil
-	: NIL
-	| ONIL
-	;
-
 primary_expression
 	: id
 	| tickid
-	| nil
-	{ $$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); }
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
 	| STRING_LITERAL

@@ -60,8 +60,8 @@
 			return 0;
 		tag1 = suetag(t1);
 		tag2 = suetag(t2);
-		if(strstr(tag1, "anon_") != @nil
-		   && strstr(tag2, "anon_") != @nil){
+		if(strstr(tag1, "anon_") != nil
+		   && strstr(tag2, "anon_") != nil){
 			return 1;
 		}
 		return tag1 == tag2;
@@ -70,8 +70,8 @@
 	if(isenum(t1) && isenum(t2)){
 		tag1 = suetag(t1);
 		tag2 = suetag(t2);
-		if(strstr(tag1, "anon_") != @nil
-		   && strstr(tag2, "anon_") != @nil)
+		if(strstr(tag1, "anon_") != nil
+		   && strstr(tag2, "anon_") != nil)
 			return 1;
 		return tag1 == tag2;
 	}
@@ -141,8 +141,8 @@
 			return 0;
 		tag1 = suetag(t1);
 		tag2 = suetag(t2);
-		if(strstr(tag1, "anon_") != @nil
-		   && strstr(tag2, "anon_") != @nil){
+		if(strstr(tag1, "anon_") != nil
+		   && strstr(tag2, "anon_") != nil){
 			printf("skipping %t %t\n", t1, t2);
 			return 1;
 		}
@@ -168,8 +168,8 @@
 	if(isenum(t1) && isenum(t2)){
 		tag1 = suetag(t1);
 		tag2 = suetag(t2);
-		if(strstr(tag1, "anon_") != @nil
-		   && strstr(tag2, "anon_") != @nil)
+		if(strstr(tag1, "anon_") != nil
+		   && strstr(tag2, "anon_") != nil)
 			return 1;
 		cs1 = enumconsts(t1);
 		cs2 = enumconsts(t2);
@@ -197,9 +197,9 @@
 
 	name1 = nameof(ns1);
 	name2 = nameof(ns2);
-	if(name1 == @nil)
+	if(name1 == nil)
 		name1 = "ns1";
-	if(name2 == @nil)
+	if(name2 == nil)
 		name2 = "ns2";
 
 	@define nsdiff0(ns1, ns2){
@@ -209,10 +209,10 @@
 		foreach(@lambda(k, t1){
 				/* skip anonymous types */
 				if((issu(t1) || isenum(t1))
-				   && strstr(suetag(t1), "anon_") != @nil)
+				   && strstr(suetag(t1), "anon_") != nil)
 					return;
 				t2 = ns2.looktype(t1);
-				if(t2 == @nil)
+				if(t2 == nil)
 					tabinsert(undef, t1, t1);
 				else if(!typeequal(t1, t2))
 					tabinsert(diff, t1, t1);
@@ -256,7 +256,7 @@
 			off = fieldoff(fld);
 			ft = fieldtype(fld);
 			id = fieldid(fld);
-			if(off == @nil){
+			if(off == nil){
 				printf("\t");
 				printf("\t%t;\n", fld);
 			}else if(isbitfield(ft)){
@@ -271,7 +271,7 @@
 			}
 		}
 		sz = susize(t);
-		if(sz != @nil)
+		if(sz != nil)
 			printf("\t/*@0x%x;*/\n", sz);
 		printf("};\n");
 	}else if(istypedef(t)){
@@ -300,7 +300,7 @@
 		if(isenumconst(type))
 			continue;
 		off = symoff(sym);
-		if(off != @nil)
+		if(off != nil)
 			printf("/*@0x%x*/", off);
 		printf("\t%t;\n", sym);
 	}

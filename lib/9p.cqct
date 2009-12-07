@@ -165,7 +165,7 @@ dom9p = mkdom(ns9p, mknas());
 @define pushn2(p, s)
 {
 	@local m;
-	if(s == @nil)
+	if(s == nil)
 		return push2(p, 0);
 	m = length(s);
 	p = push2(p, m);
@@ -176,7 +176,7 @@ dom9p = mkdom(ns9p, mknas());
 @define pushn4(p, s)
 {
 	@local m;
-	if(s == @nil)
+	if(s == nil)
 		return push4(p, 0);
 	m = length(s);
 	p = push4(p, m);
@@ -188,7 +188,7 @@ dom9p = mkdom(ns9p, mknas());
 {
 	@local sz;
 	sz = 1;
-	if(s == @nil)
+	if(s == nil)
 		return sz;
 	else
 		return sz+length(s);
@@ -198,7 +198,7 @@ dom9p = mkdom(ns9p, mknas());
 {
 	@local sz;
 	sz = 2;
-	if(s == @nil)
+	if(s == nil)
 		return sz;
 	else
 		return sz+length(s);
@@ -208,7 +208,7 @@ dom9p = mkdom(ns9p, mknas());
 {
 	@local sz;
 	sz = 4;
-	if(s == @nil)
+	if(s == nil)
 		return sz;
 	else
 		return sz+length(s);
@@ -218,8 +218,8 @@ dom9p = mkdom(ns9p, mknas());
 {
 	@local s, p, n;
 	s = read(fd, 4);
-	if(s == @nil)
-		return @nil;
+	if(s == nil)
+		return nil;
 	if(length(s) != 4)
 		error("bad 9P2000 message");
 	p = charstar(ns9p, s);
@@ -227,8 +227,8 @@ dom9p = mkdom(ns9p, mknas());
 	if(n <= 4)
 		error("bad length in 9P2000 message header");
 	s = read(fd, n-4);
-	if(s == @nil || length(s) < n-4)
-		return @nil;
+	if(s == nil || length(s) < n-4)
+		return nil;
 	return s;
 }
 
@@ -697,7 +697,7 @@ dom9p = mkdom(ns9p, mknas());
 	op = *(`uint8*)(p+4);
 	write(fd, t);
 	r = read9pmsg(fd);
-	if(r == @nil)
+	if(r == nil)
 		error("remote 9P hung up");
 	sz = length(r);
 	p = charstar(ns9p, r);
@@ -742,7 +742,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tversion(NOTAG, 8192, "9P2000.u"));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -759,7 +759,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tattach(0, 0, NOFID, uname, ""));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -776,7 +776,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tstat(0, fid));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -811,7 +811,7 @@ dom9p = mkdom(ns9p, mknas());
 	wname = path2walk(path);
 	write(fd, twalk(0, fid, newfid, wname));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -828,7 +828,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, topen(0, fid, mode));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -845,7 +845,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tcreate(0, fid, name, perm, mode));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -862,7 +862,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tremove(0, fid));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -879,7 +879,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tread(0, fid, offset, count));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -896,7 +896,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, twrite(0, fid, offset, data));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -913,7 +913,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tclunk(0, fid));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -930,7 +930,7 @@ dom9p = mkdom(ns9p, mknas());
 	@local m, p, sz;
 	write(fd, tflush(0, oldtag));
 	m = read9pmsg(fd);
-	if(m == @nil)
+	if(m == nil)
 		error("unexpected end-of-file");
 	sz = length(m);
 	p = charstar(ns9p, m);
@@ -984,7 +984,7 @@ dom9p = mkdom(ns9p, mknas());
 	{
 		@local i;
 		for(i = 0; i < maxfd; i++)
-			if(ftab[i] == @nil)
+			if(ftab[i] == nil)
 				return i;
 		error("out of file descriptors");
 	}
@@ -1013,8 +1013,8 @@ dom9p = mkdom(ns9p, mknas());
 	@define xfstat(xfd)
 	{
 		@local rv;
-		if(ftab[xfd] == @nil)
-			return @nil;
+		if(ftab[xfd] == nil)
+			return nil;
 		rv = do9p(fd, tstat(tag, ftab[xfd].fid));
 		if(isstring(rv))
 			error(rv);
@@ -1044,13 +1044,13 @@ dom9p = mkdom(ns9p, mknas());
 	@define xclose(xfd)
 	{
 		@local rv;
-		if(ftab[xfd] == @nil)
-			return @nil;
+		if(ftab[xfd] == nil)
+			return nil;
 		rv = do9p(fd, tclunk(tag, ftab[xfd].fid));
 		if(isstring(rv))
 			error(rv);
-		ftab[xfd] = @nil;
-		return @nil;
+		ftab[xfd] = nil;
+		return nil;
 	}
 
 	@define doread(fid, len, off)
@@ -1067,7 +1067,7 @@ dom9p = mkdom(ns9p, mknas());
 	{
 		@local of, rv;
 		of = ftab[xfd];
-		if(of == @nil)
+		if(of == nil)
 			error("bad file descriptor: %a", xfd);
 		if(of.iounit && len > of.iounit)
 			error("read exceeds iounit");
@@ -1080,7 +1080,7 @@ dom9p = mkdom(ns9p, mknas());
 	{
 		@local of, rv;
 		of = ftab[xfd];
-		if(of == @nil)
+		if(of == nil)
 			error("bad file descriptor: %a", xfd);
 		if(of.iounit && len > of.iounit)
 			error("read exceeds iounit");
@@ -1093,7 +1093,7 @@ dom9p = mkdom(ns9p, mknas());
 	{
 		@local of, unit, st, cache, as, get, put, map, ma, ml;
 		of = ftab[xfd];
-		if(of == @nil)
+		if(of == nil)
 			error("bad file descriptor: %a", xfd);
 		unit = 4096;
 		if(of.iounit && of.iounit < unit)
@@ -1115,7 +1115,7 @@ dom9p = mkdom(ns9p, mknas());
 					error("access out of bounds");
 				if((b&CNMASK)+l > ml)
 					error("access out of bounds");
-				if(cache[a] == @nil)
+				if(cache[a] == nil)
 					cache[a] = doread(of.fid,
 							  ml, a<<CNBITS);
 				return substr(cache[a], b-(a<<CNBITS),
@@ -1125,7 +1125,7 @@ dom9p = mkdom(ns9p, mknas());
 			if((b+l-1)>>CNBITS > a)
 				/* spans block boundary; read directly */
 				return doread(of.fid, l, b);
-			if(cache[a] == @nil)
+			if(cache[a] == nil)
 				cache[a] = doread(of.fid, unit, a<<CNBITS);
 			return substr(cache[a], b-(a<<CNBITS), b-(a<<CNBITS)+l);
 		}
@@ -1148,7 +1148,7 @@ dom9p = mkdom(ns9p, mknas());
 	{
 		@local of, rv, unit, buf, p, len, ss;
 		of = ftab[xfd];
-		if(of == @nil)
+		if(of == nil)
 			error("bad file descriptor: %a", xfd);
 		unit = msize-IOHDRSZ;
 		if(of.iounit && of.iounit < unit)
@@ -1176,7 +1176,7 @@ dom9p = mkdom(ns9p, mknas());
 		return ss;
 	}
 
-	mnt = mnt9p(xopen, xclose, xread, @nil, xstat, xfstat, xdirread, xmmap);
+	mnt = mnt9p(xopen, xclose, xread, nil, xstat, xfstat, xdirread, xmmap);
 //	finalize(mnt, lambda(mnt) { close(fd); });
 	return mnt;
 }

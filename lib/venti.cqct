@@ -142,7 +142,7 @@ venti = @names clp64be {
 @define pushn2(p, s)
 {
 	@local m;
-	if(s == @nil)
+	if(s == nil)
 		return push2(p, 0);
 	m = length(s);
 	p = push2(p, m);
@@ -153,7 +153,7 @@ venti = @names clp64be {
 @define pushn4(p, s)
 {
 	@local m;
-	if(s == @nil)
+	if(s == nil)
 		return push4(p, 0);
 	m = length(s);
 	p = push4(p, m);
@@ -165,7 +165,7 @@ venti = @names clp64be {
 {
 	@local sz;
 	sz = 1;
-	if(s == @nil)
+	if(s == nil)
 		return sz;
 	else
 		return sz+length(s);
@@ -175,7 +175,7 @@ venti = @names clp64be {
 {
 	@local sz;
 	sz = 2;
-	if(s == @nil)
+	if(s == nil)
 		return sz;
 	else
 		return sz+length(s);
@@ -185,7 +185,7 @@ venti = @names clp64be {
 {
 	@local sz;
 	sz = 4;
-	if(s == @nil)
+	if(s == nil)
 		return sz;
 	else
 		return sz+length(s);

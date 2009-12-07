@@ -35,7 +35,7 @@ esp = (struct stab*)((unsigned char*)sp + stablim);
      @local x;
      if(strref(s, 0) == '('){
 	  x = strstr(s, ")");
-	  if(x == @nil)
+	  if(x == nil)
 	       error("bad typenum");
 	  x++;
 	  return substr(s, 0, x);
@@ -44,7 +44,7 @@ esp = (struct stab*)((unsigned char*)sp + stablim);
 	  while(isdigit(strref(s, x)))
 	       x++;
 	  if(x == 0)
-	       return @nil;
+	       return nil;
 	  return substr(s, 0, x);
      }
 }
@@ -57,7 +57,7 @@ esp = (struct stab*)((unsigned char*)sp + stablim);
 	  s += strlen(tid);
 	  printf("%s", tid);
 	  if(strlen(s) == 0)
-	       return @nil;	/* lookup tid in table */
+	       return nil;	/* lookup tid in table */
 	  if(strref(s, 0) == '='){
 	       printf("=\t");
 	       s++;
@@ -70,7 +70,7 @@ esp = (struct stab*)((unsigned char*)sp + stablim);
 	  case 'r':
 	       return cbasetoctype(sym);
 	  default:
-	       return @nil;
+	       return nil;
 	  }
      }
 }
@@ -79,11 +79,11 @@ esp = (struct stab*)((unsigned char*)sp + stablim);
      @local c, x, rv;
      rv = Lsym();
      x = strstr(stab, ":");
-     if(x == @nil)
+     if(x == nil)
 	  error("bad lsym");
      rv.id = substr(stab, 0, x);
      if(rv.id == "" || rv.id == " ")
-	  rv.id = @nil;		/* anonymous */
+	  rv.id = nil;		/* anonymous */
      printf("%30s\t", rv.id);
      x++;
      stab += x;

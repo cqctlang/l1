@@ -43,7 +43,6 @@ static int chars(YYSTYPE *lvalp, int);
 "@let"			{ count(ctx); return(LET); }
 "@local"		{ count(ctx); return(LOCAL); }
 "@names"		{ count(ctx); return(NAMES); }
-"@nil"			{ count(ctx); return(NIL); }
 "@record"		{ count(ctx); return(DEFREC); }
 "@typeof"		{ count(ctx); return(TYPEOF); }
 "break"			{ count(ctx); return(BREAK); }
@@ -65,7 +64,6 @@ static int chars(YYSTYPE *lvalp, int);
 "int"			{ count(ctx); return(INT); }
 "lambda"		{ count(ctx); return(OLAMBDA); }
 "long"			{ count(ctx); return(LONG); }
-"nil"			{ count(ctx); return(ONIL); }
 "return"		{ count(ctx); return(RETURN); }
 "short"			{ count(ctx); return(SHORT); }
 "signed"		{ count(ctx); return(SIGNED); }

@@ -10,7 +10,7 @@ ns = @names c32le {
 for(i = 0; i < 0x20; i++){
 	@local v;
 	v = nslookaddr(ns)(ns, i);
-	if(v == @nil)
+	if(v == nil)
 		printf("0x%x: ???\n", i);
 	else
 		printf("0x%x: %t\n", i, v);

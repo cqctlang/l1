@@ -819,7 +819,7 @@
 	@local elfdom, infile;
 	@local do_secheaders, do_fileheader, do_progheaders, do_syms;
 
-	infile = @nil;
+	infile = nil;
 	do_secheaders = 0;
 	do_fileheader = 0;
 	do_progheaders = 0;
@@ -890,7 +890,7 @@
 		}
 		cur++;
 	}
-	if (infile == @nil) {
+	if (infile == nil) {
 		printf("readelf: Warning: Nothing to do.\n");
 		usage();
 		return 0;

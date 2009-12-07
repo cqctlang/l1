@@ -41,7 +41,7 @@ ns = @names c32le {
 
 dom = mkdom(ns,mkzas(1024));
 
-x = @nil;
+x = nil;
 printf("typeof(x = dom`a) = %t\n",
        @typeof(x = dom`a));
 

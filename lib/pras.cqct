@@ -278,7 +278,7 @@ protns = @names c32le {
 		@local sz;
 
 		if(indom.iseof())
-			return @nil;
+			return nil;
 
 		sz = *ipress(#indom`uint64*#);
 		ifetch(sz);
@@ -328,7 +328,7 @@ protns = @names c32le {
 	}
 
 	@define checkreply(op, reply){
-		if(reply == @nil)
+		if(reply == nil)
 			error("unexpected end of file from prctl");
 		if(reply->op == indom`Rerror)
 			error("pras: while waiting for %e: %s",
@@ -672,12 +672,12 @@ protns = @names c32le {
 
 	@define trapdel(domas, tid){
 		trapman.clr(tid);
-		return @nil;
+		return nil;
 	}
 
 	@define trapreset(domas){
 		trapman.reset();
-		return @nil;
+		return nil;
 	}
 
 	@define traplist(domas){
@@ -1044,7 +1044,7 @@ protns = @names c32le {
 	else
 		error("operand 1 to mkpras must be an address or an fd");
 
-	l = mkfdas(fd, @nil);
+	l = mkfdas(fd, nil);
 	indom = mkdom(protns, l[0]);
 	outdom = mkdom(protns, l[1]);
 	ip = {indom}0;

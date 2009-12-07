@@ -34,7 +34,7 @@
 
 	// format: [[lower1, upper1, fptr], [lower2, upper2, fptr], ...]
 	addr_ranges = []; 
-	regptr = @nil;
+	regptr = nil;
 	start_paddr = 0;
 	start_vaddr = 0;
 	reg_size = 0;

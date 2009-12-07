@@ -16,7 +16,7 @@ _dwstack = [];
   @local rv;
   if (length (_dwstack) < 1) {
     printf ("tried to pop empty stack\n");
-    return @nil;
+    return nil;
   }
   rv = pop (_dwstack);
   return rv;
@@ -30,10 +30,10 @@ _dwcqct_reg_type = 3;
 @define _dw_eval (dom, cptr, pceval)
 {
   @local op, lptr, val, rv, rvtype;
-  rv = @nil; /* for most ops, rv stays @nil, but we need a uniform way to
+  rv = nil; /* for most ops, rv stays nil, but we need a uniform way to
 	       return values when necessary as well as any updates to
 	       cptr. The return value is [rv, rvtype, lptr] */
-  rvtype = @nil;
+  rvtype = nil;
   lptr = (`uint8 *) cptr;
   op = *lptr;
   lptr++;
@@ -581,7 +581,7 @@ _dwcqct_reg_type = 3;
   asize = bdrec.addrsize;
   cptr = {dom} ptr;
   l = [];
-  fn = @nil;
+  fn = nil;
   isdone = 0;
   cnt = 0;
   if (!isnil (current_compilation_unit)
@@ -599,7 +599,7 @@ _dwcqct_reg_type = 3;
     baseaddrflag = 0xffffffffffffffff;
   else {
     printf ("Don't know what to do with location list at addr 0x%x\n", ptr);
-    return [@nil, ptr];
+    return [nil, ptr];
   }
   while (!isdone /* && cnt < 10 */) {
     cnt++;
@@ -635,7 +635,7 @@ _dwcqct_reg_type = 3;
   if (isempty (l)) {
     /* then this is an empty location list indicating that the variable
        is present in the source code but not in the binary. */
-    return [@nil, cptr];
+    return [nil, cptr];
   }
   /* At this point cubaseaddr should be correct so that we can construct
      a location function whose address ranges have been adjusted to those

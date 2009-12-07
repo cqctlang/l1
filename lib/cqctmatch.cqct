@@ -11,7 +11,7 @@
 	@local loop;
 	@define loop(p){
 		@local kind, file, line;
-		if(p == @nil)
+		if(p == nil)
 			return;
 		if(!islist(p))
 			return;
@@ -37,7 +37,7 @@
 			cqctmatch(f, @lambda(p) {
 					if(p[0] != "Etab")
 						return 0;
-					if(hit[[p[1],p[2]]] != @nil)
+					if(hit[[p[1],p[2]]] != nil)
 						return 0;
 					hit[[p[1],p[2]]] = 1;
 					return 1;
@@ -57,7 +57,7 @@
 					     || (p[0] == "Edefine"
 						 && p[4][0] == "Eid")))
 						return 0;
-					if(hit[[p[1],p[2]]] != @nil)
+					if(hit[[p[1],p[2]]] != nil)
 						return 0;
 					hit[[p[1],p[2]]] = 1;
 					return 1;
@@ -82,7 +82,7 @@
 	printf("containerof -> @containerof\n");
 	printf("define -> @define\n");
 	printf("lambda -> @lambda\n");
-	printf("nil -> @nil\n");
+	printf("nil -> nil\n");
 	printf("typeof -> @typeof\n");
 
 	foreach(@lambda(f){
@@ -95,7 +95,7 @@
 					     || member("Etypeof", p));
 					if(!r)
 						return 0;
-					if(hit[[p[1],p[2]]] != @nil)
+					if(hit[[p[1],p[2]]] != nil)
 						return 0;
 					hit[[p[1],p[2]]] = 1;
 					return 1;

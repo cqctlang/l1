@@ -60,8 +60,8 @@ _dwcqct_addrsize = 13;
 _dwcqct_rootns = 14;
 _dwcqct_vectorsize = 15;
 
-_dw_current_frame_base = @nil;
-current_compilation_unit = @nil;
+_dw_current_frame_base = nil;
+current_compilation_unit = nil;
 
 @record curec {ttab, stab, ftabs, ns, fblist, abtable};
 
@@ -149,7 +149,7 @@ current_compilation_unit = @nil;
     artuple = (struct arange64 *)curaddr;
   else {
     printf ("unsupported address size: %d\n", asize);
-    return @nil;
+    return nil;
   }
   m = ardom.map();
   r = m[0];
@@ -157,7 +157,7 @@ current_compilation_unit = @nil;
   rend = rbeg + rangelen (r);
   inrange = @lambda (v) {return rbeg <= v && v < rend;};
   if (!inrange (artuple))
-    return @nil;
+    return nil;
   while (artuple->ar_start || artuple->ar_len) {
     while (artuple->ar_start || artuple->ar_len) {
       append (rv, [artuple->ar_start, artuple->ar_start + artuple->ar_len,
@@ -210,14 +210,14 @@ current_compilation_unit = @nil;
   pc = {ardom}addr;
   entry = binsrch_interval (ardom, bdrec.artab, pc);
   if (!islist (entry))
-    return @nil;
+    return nil;
   entry = entry[0];
   off = entry[2];
   if (entry[0] <= addr && addr < entry[1]) {
     return off;
   }
   else
-    return @nil;
+    return nil;
 }
 
 @define dw_get_lineoff_for_cu (bdrec, addr)
@@ -230,7 +230,7 @@ current_compilation_unit = @nil;
   ardom = bdrec.debug_aranges;
   cptr = dw_get_dieoff_for_cu (bdrec, addr);
   if (isnil (cptr))
-    return @nil;
+    return nil;
   else
     cptr = {indom} cptr;
   cubase = cptr;
@@ -244,8 +244,8 @@ current_compilation_unit = @nil;
     abtab = dw_get_cu_abbrev_table (abdom, abptr);
   }
   cptr = (unsigned int) cptr + sizeof (*cu);
-  cul = dw_process_die (bdrec, abtab, @nil,
-			@nil, [], cptr, cubase, 1);
+  cul = dw_process_die (bdrec, abtab, nil,
+			nil, [], cptr, cubase, 1);
   lineoff = listref (listref (cul, 0), 5);
   return lineoff;
 }
@@ -849,7 +849,7 @@ current_compilation_unit = @nil;
       break;
     case fdom`DW_CFA_def_cfa_register: {
       @local reg, off, r, oldoff;
-      oldoff = @nil;
+      oldoff = nil;
       reg = decodeuleb128 (cptr);
       cptr = listref (reg, 1);
       reg = head (reg);
@@ -874,7 +874,7 @@ current_compilation_unit = @nil;
       break;
     case fdom`DW_CFA_def_cfa_offset: {
       @local reg, off, r, oldreg;
-      oldreg = @nil;
+      oldreg = nil;
       off = decodeuleb128 (cptr);
       cptr = listref (off, 1);
       off = head (off);
@@ -931,7 +931,7 @@ current_compilation_unit = @nil;
   default:
     break;
   }
-  return @nil;
+  return nil;
 }
 
 @define dw_cie_afs (dwdom, cie)
@@ -1015,7 +1015,7 @@ current_compilation_unit = @nil;
   rbeg = rangebeg (r);
   rend = rbeg + rangelen (r);
   inrange = @lambda (v) {return rbeg <= v && v < rend;};
-  f = @nil;
+  f = nil;
   asize = bdrec.addrsize;
   result = [];
   cptr = {fdom} 0;
@@ -1834,7 +1834,7 @@ current_compilation_unit = @nil;
   cptr = listref (abcode, 1);
   abcode = head (abcode);
   cnt1 = 0;
-  tag = @nil;
+  tag = nil;
   while (abcode && cnt1 < 500) {
     cnt1++;
     cnt2 = 0;
@@ -1889,7 +1889,7 @@ current_compilation_unit = @nil;
     artuple = (struct arange64 *)curaddr;
   else {
     printf ("unsupported address size: %d\n", asize);
-    return @nil;
+    return nil;
   }
   m = ardom.map();
   r = m[0];
@@ -1897,7 +1897,7 @@ current_compilation_unit = @nil;
   rend = rbeg + rangelen (r);
   inrange = @lambda (v) {return rbeg <= v && v < rend;};
   if (!inrange (artuple))
-    return @nil;
+    return nil;
   while (artuple->ar_start || artuple->ar_len) {
     while (artuple->ar_start || artuple->ar_len) {
       printf ("ar_start = 0x%x:\tar_len = 0x%x:\n",
@@ -2000,7 +2000,7 @@ current_compilation_unit = @nil;
   return result;
 }
 
-lastlocfun = @nil;
+lastlocfun = nil;
 @define dw_get_attr_val (bdrec, form, ptr)
 {
   @local cptr, val, len, end;
@@ -2008,7 +2008,7 @@ lastlocfun = @nil;
   indom = bdrec.debug_info;
   abdom = bdrec.debug_abbrev;
   cptr = {indom} ptr;
-  val = @nil;
+  val = nil;
   asize = bdrec.addrsize;
   switch (form) {
   case indom`DW_FORM_data1:
@@ -2225,7 +2225,7 @@ lastlocfun = @nil;
   @local cuoff;
   @local linedom;
   linedom = bdrec.debug_line;
-  cuinfo = @nil;
+  cuinfo = nil;
   ardom = bdrec.debug_aranges;
   cuoff = dw_get_lineoff_for_cu (bdrec, addr);
   if (isnil (cuoff))
@@ -2261,9 +2261,9 @@ lastlocfun = @nil;
   cptr = listref (acode, 1);
   acode = head (acode);
   if (!acode || acode > length (abtab)) {
-    return [ @nil, cptr ];
+    return [ nil, cptr ];
   }
-  ab = @nil;
+  ab = nil;
   if (acode == head (listref (abtab, acode - 1)))
     ab = listref (abtab, acode - 1);
   else {
@@ -2278,7 +2278,7 @@ lastlocfun = @nil;
 
   if (isnil (ab)) {
     printf ("ab is %a\n", ab);
-    return [ @nil, cptr ];
+    return [ nil, cptr ];
   }
   tag = listref (ab, 1);
   speclist = listref (ab, 2); /* 0 is code, 1 is tag, 2 is list of name-form
@@ -2287,9 +2287,9 @@ lastlocfun = @nil;
   case abdom`DW_TAG_formal_parameter: {
     @local name, type, location, fparam, abstorigin;
     abstorigin = 0;
-    name = @nil;
-    type = @nil;
-    location = @nil;
+    name = nil;
+    type = nil;
+    location = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -2366,9 +2366,9 @@ lastlocfun = @nil;
   }
   case abdom`DW_TAG_variable: {
     @local name, type, location, var, stataddr, abstorigin, retaddr;
-    name = @nil;
-    type = @nil;
-    location = @nil;
+    name = nil;
+    type = nil;
+    location = nil;
     stataddr = 0;
     abstorigin = 0;
     retaddr = 0;
@@ -2452,8 +2452,8 @@ lastlocfun = @nil;
   }
   case abdom`DW_TAG_enumerator: {
     @local name, eval, en;
-    name = @nil;
-    eval = @nil;
+    name = nil;
+    eval = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -2479,12 +2479,12 @@ lastlocfun = @nil;
     @local mend, msize, bitfield, mtype, bitsize;
     @local mem, mloc, bitoff, tname;
     bitfield = 0;
-    bitoff = @nil;
-    bitsize = @nil;
-    msize = @nil;
-    mtype = @nil;
-    mend = @nil;
-    tname = @nil;
+    bitoff = nil;
+    bitsize = nil;
+    msize = nil;
+    mtype = nil;
+    mend = nil;
+    tname = nil;
     mloc = 0; /* should remain unmodified for members of unions */
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
@@ -2525,7 +2525,7 @@ lastlocfun = @nil;
     if (bitfield && !isnil (bitsize) && !isnil (bitoff))
       mem = [ mloc, {indom} head (tag), tname, mtype, bitsize, bitoff, msize ];
     else
-      mem = [ mloc, {indom} head (tag), tname, mtype, @nil ];
+      mem = [ mloc, {indom} head (tag), tname, mtype, nil ];
     return [ mem, cptr ];
     break;
   }
@@ -2539,16 +2539,16 @@ lastlocfun = @nil;
     paramlist = [];
     symlist = [];
     typelist = [];
-    lopc = @nil;
-    hipc = @nil;
-    rlv = @nil;
-    rl = @nil;
+    lopc = nil;
+    hipc = nil;
+    rlv = nil;
+    rl = nil;
     paramsdone = 0;
     locals = [];
     subscopes = [];
     progend = 0;
-    progtype = @nil;
-    name = @nil;
+    progtype = nil;
+    name = nil;
     abstorigin = 0;
     inline = 0;
     contextset = 0;
@@ -2771,15 +2771,15 @@ lastlocfun = @nil;
 		 typelist, subscopes ];
     }
     else
-      lscope = @nil;
+      lscope = nil;
     return [ prog, cptr, lscope ];
   }
     break;
   case abdom`DW_TAG_typedef: {
     @local tdname, ttype, tsize, td, mend;
-    tdname = @nil;
-    ttype = @nil;
-    tsize = @nil; /* probably should delete this here and not put it in type */
+    tdname = nil;
+    ttype = nil;
+    tsize = nil; /* probably should delete this here and not put it in type */
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -2813,7 +2813,7 @@ lastlocfun = @nil;
     @local name, tdname, ttype, tsize, td;
     tdname = "void"; /* If it's not there will be a type attribute */
     tsize = sizeof (indom`uintptr);
-    ttype = @nil;
+    ttype = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -2847,9 +2847,9 @@ lastlocfun = @nil;
     @local isnotdone, declonly, savedstackind, i;
     memlist = [];
     declonly = 0;
-    tname = @nil;
+    tname = nil;
     stend = 0;
-    stsize = @nil;
+    stsize = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -2901,8 +2901,8 @@ lastlocfun = @nil;
   }
   case abdom`DW_TAG_base_type: {
     @local tname, size;
-    tname = @nil;
-    size = @nil;
+    tname = nil;
+    size = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -2928,19 +2928,19 @@ lastlocfun = @nil;
 		 cqcttype);
     }
     else
-      cqcttype = @nil;
+      cqcttype = nil;
     return [ cqcttype, cptr];
     break;
   }
   case abdom`DW_TAG_array_type: {
     @local a, aname, asize, eltype, elsize, elcnt, aend, dimlist, isnotdone;
     dimlist = [];
-    eltype = @nil;
-    aname = @nil;
+    eltype = nil;
+    aname = nil;
     elcnt = 1;
     elsize = 0;
-    asize = @nil;
-    aend = @nil;
+    asize = nil;
+    aend = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -2998,10 +2998,10 @@ lastlocfun = @nil;
   }
   case abdom`DW_TAG_subrange_type: {
     @local sname, stype, size, ub, lb, ecnt, cqcttype;
-    sname = @nil;
-    stype = @nil;
-    ecnt = @nil;
-    ub = @nil;
+    sname = nil;
+    stype = nil;
+    ecnt = nil;
+    ub = nil;
     lb = {indom} 0;
     size = 0;
     for (i = 0; i < length (speclist); i++) {
@@ -3044,8 +3044,8 @@ lastlocfun = @nil;
   }
   case abdom`DW_TAG_const_type: {
     @local ttype, tsize;
-    ttype = @nil;
-    tsize = @nil;
+    ttype = nil;
+    tsize = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -3067,8 +3067,8 @@ lastlocfun = @nil;
   }
   case abdom`DW_TAG_volatile_type: {
     @local ttype, tsize;
-    ttype = @nil;
-    tsize = @nil;
+    ttype = nil;
+    tsize = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -3090,8 +3090,8 @@ lastlocfun = @nil;
   }
   case abdom`DW_TAG_enumeration_type: {
     @local name, elist, enumend, esize, en, isnotdone;
-    name = @nil;
-    esize = @nil;
+    name = nil;
+    esize = nil;
     enumend = 0;
     elist = [];
     for (i = 0; i < length (speclist); i++) {
@@ -3136,10 +3136,10 @@ lastlocfun = @nil;
     break;
   case abdom`DW_TAG_compile_unit: {
     @local lopc, hipc, name, cu, lineoff;
-    lopc = @nil;
-    hipc = @nil;
-    name = @nil;
-    lineoff = @nil;
+    lopc = nil;
+    hipc = nil;
+    name = nil;
+    lineoff = nil;
     if (!isempty (local_scope_stack)) {
       printf ("at beginning of cu local_scope_stack is %a\n", local_scope_stack);
       local_scope_stack = [];
@@ -3183,9 +3183,9 @@ lastlocfun = @nil;
     @local isnotdone, declonly;
     memlist = [];
     declonly = 0;
-    tname = @nil;
+    tname = nil;
     stend = 0;
-    stsize = @nil;
+    stsize = nil;
     for (i = 0; i < length (speclist); i++) {
       spec = listref (speclist, i);
       atname = head (spec);
@@ -3246,9 +3246,9 @@ lastlocfun = @nil;
       val = head (val);
     }
     if (head (tag) == indom`DW_TAG_unspecified_parameters)
-      return [ [ptr, head (tag), @nil, @nil, @nil], cptr ];
+      return [ [ptr, head (tag), nil, nil, nil], cptr ];
     else
-      return [ @nil, cptr ];
+      return [ nil, cptr ];
     break;
   }
   printf ("Wouldn't expect to reach this; cptr = 0x%x (%d).\n", cptr, cptr);
@@ -3276,7 +3276,7 @@ lastlocfun = @nil;
     abtab = dw_get_cu_abbrev_table (abdom, abptr);
   }
   cptr = (unsigned int) cptr + sizeof (*cu);
-  di = dw_process_die (bdrec, indom, abtable, @nil, @nil, fblist, cptr, (unsigned int){indom}ptr, 1);
+  di = dw_process_die (bdrec, indom, abtable, nil, nil, fblist, cptr, (unsigned int){indom}ptr, 1);
   return head (di);;
 }
     
@@ -3497,7 +3497,7 @@ lastlocfun = @nil;
   case dom`DW_TAG_subprogram:
   case dom`DW_TAG_subroutine_type: {
     @local rtype, plist, firstiter, rtname, pliststring, i;
-    pliststring = @nil;
+    pliststring = nil;
     if (isnil (listref (t, 3)))
       rtname = "void";
     else {
@@ -3760,7 +3760,7 @@ lastlocfun = @nil;
   rl = [];
   isdone = 0;
   cnt = 0;
-  cubaseaddr = @nil;
+  cubaseaddr = nil;
   asize = bdrec.addrsize;
   if (asize == 4)
     baseaddrflag = 0xffffffff;
@@ -3769,7 +3769,7 @@ lastlocfun = @nil;
   else {
     printf ("Don't know what to do with range list with addr form %a\n",
 	    form);
-    return [@nil, ptr];
+    return [nil, ptr];
   }
   while (!isdone /*&& cnt < 56*/) {
     cnt++;
@@ -3889,13 +3889,13 @@ lastlocfun = @nil;
     cukey = dw_get_dieoff_for_cu (bdrec, pc);
     if (isnil (cukey)) {
       printf ("pc 0x%x not in any arange.\n", pc);
-      return @nil;
+      return nil;
     }
     cu = tablook (etab, cukey);
     if (isnil (cu)) {
       printf ("In get_frame_base_from_pc need to build cu at %d for pc %a\n",
 	      cukey, pc);
-      return @nil;
+      return nil;
     }
     else
       fbl = cu.fblist;
@@ -4101,7 +4101,7 @@ lastlocfun = @nil;
   }
     break;
   case ddom`DW_TAG_subrange_type:
-    return @nil;
+    return nil;
     break;
   case ddom`DW_TAG_enumeration_type: {
     @local epair, etag, elist, i, evec, vel, etype;
@@ -4185,22 +4185,22 @@ lastlocfun = @nil;
   tag = listref (dsym, 1);
   sloc = listref (dsym, 4);
   if (isnil (sloc)) {
-    return @nil;
+    return nil;
   }
   if (islist (sloc)) {
     if (isnil (listref (listref (sloc, 0), 1))
 	|| islist (listref (listref (sloc, 0), 1))) {
-      return @nil;
+      return nil;
     }
     else
       sloc = listref (listref (sloc, 0), 1);
   }
   else if (!iscvalue (sloc))
-    return @nil;
+    return nil;
   if (listref (dsym, 1) == ddom`DW_TAG_inlined_subroutine)
-    return @nil;
+    return nil;
   if (isnil (dsym[3]))
-    return @nil;
+    return nil;
   sname = listref (dsym, 2);
   if (isnil (tablook (ttab, listref (dsym, 3))))
     printf ("type is nil for dsym %a on lookup of %a\n", dsym, listref (dsym, 3));
@@ -4540,7 +4540,7 @@ lastlocfun = @nil;
     sname = listref (sym, 2);
     stype = listref (sym, 3);
     if (isnil (stype))
-      return @nil;
+      return nil;
     stype = tablook (cutypetab, stype);
     stype = dwtype2ctype (rns, dom, stype, cusymtab, cutypetab, cttab, 1);
     sloc = listref (sym, 4);
@@ -4655,7 +4655,7 @@ lastlocfun = @nil;
   pc = {ardom} addr;
   cukey = dw_get_dieoff_for_cu (bdrec, pc);
   if (isnil (cukey))
-    return @nil;
+    return nil;
   cukey = {indom}cukey;
   cu = tablook (etab, cukey);
   if (isnil (cu)) {
@@ -4687,12 +4687,12 @@ lastlocfun = @nil;
 @define symloc (symtab, sym, exas, pc, bdrec)
 {
   @local syment, scope, rv, scl, slplist, slpent, i, j, loc;
-  scope = @nil;
-  loc = @nil;
+  scope = nil;
+  loc = nil;
   syment = tablook (symtab, sym);
   if (isnil (syment)) {
     printf ("returning nil because tablook (%a, %a) is nil\n", symtab, sym);
-    return @nil;
+    return nil;
   }
   /* A symbol location is actually a list of [scope, locationinfo] pairs.
      Each scope is a list of [lopc, hipc] pairs. In the case of a function
@@ -4722,7 +4722,7 @@ lastlocfun = @nil;
       break;
   }
   if (isnil (loc)) {
-    return @nil;
+    return nil;
   }
   if (isprocedure (loc)) {
     printf ("in symloc about to run location closure.\n");
@@ -4774,7 +4774,7 @@ lastlocfun = @nil;
     }
   }
   /* if we got here, we just return nil. */
-  return @nil;
+  return nil;
 }
 
 @define make_local_ns (bdrec, exas, pc)
@@ -4787,7 +4787,7 @@ lastlocfun = @nil;
   nstab = mktab ();
   cu = find_fn_and_cu (bdrec, pc);
   if (isnil (cu))
-    return @nil;
+    return nil;
   cuns = cu.ns;
   rns = bdrec.rootns;
   f = find_fn (bdrec, pc, cu);
@@ -4886,7 +4886,7 @@ lastlocfun = @nil;
     @local asize, rlist, rvec, retaddrloc, raregno, cfa;
     if (!isdom (this))
       error ("getretaddr must be called through a domain.\n");
-    retaddrloc = @nil;
+    retaddrloc = nil;
     asize = bdrec.addrsize;
     /* at some point we should get this from the DWARF information in
        the CIE */
@@ -4965,7 +4965,7 @@ lastlocfun = @nil;
   @local bdrec;
   sym = dom.looksym (name);
   if (isnil (sym))
-    return @nil;
+    return nil;
   if (!isfunc (symtype (sym)))
     return symoff (sym);
   saddr = symoff (sym);
@@ -5091,7 +5091,7 @@ lastlocfun = @nil;
      the address. */
   lns = bdrec.nstab[0].nscon (las, lpc);
   if (isnil (lns))
-    return @nil;
+    return nil;
   ldom = mkdom (lns, las, sprintfa ("ldom%s", sprintfa ("%a", lns)));
   return ldom;
 }
@@ -5218,7 +5218,7 @@ lastlocfun = @nil;
 	   cfa so that further unwinds work. */
 	if (isnil (listref (rvec, sp))) {
 	  listset (newregs, sp, cfa);
-	  listset (reglocs, sp, @nil);
+	  listset (reglocs, sp, nil);
 	}
       }
       else {
@@ -5247,7 +5247,7 @@ lastlocfun = @nil;
 @define getretaddrloc (addr)
 {
   @local bdrec, exdom, i, ip, asize, rlist, rvec, retaddrloc, raregno, cfa, fdom;
-  retaddrloc = @nil;
+  retaddrloc = nil;
   bdrec = get_context (addr);
   exdom = domof (addr);
   fdom = bdrec.debug_frame;
@@ -5299,7 +5299,7 @@ lastlocfun = @nil;
 {
   @local ldis, mtab, dom, lpc, pcregno, spregno;
   @local i;
-  dom = @nil;
+  dom = nil;
   for (i = 0; i < length (regset); i++)
     if (!isnil (regset [i])) {
       dom = domof (regset[i]);
@@ -5440,7 +5440,7 @@ lastlocfun = @nil;
 @define buildclosure (fscope, cudwtypetab, cudwsymtab, ns, dom)
 {
   @local ttab;
-  ttab = @nil;
+  ttab = nil;
   return @lambda () {
     @local rv;
     rv = make_function_tables (fscope, cudwtypetab, cudwsymtab, ns, dom, ttab);
@@ -5466,7 +5466,7 @@ lastlocfun = @nil;
   @local m, r, rbeg, rend, inrange;
   @local cutab, binfile, lazy;
   if (isempty (args))
-    return @nil;
+    return nil;
   binfile = args[0];
   if (length (args) > 1)
     lazy = args[1];
@@ -5476,7 +5476,7 @@ lastlocfun = @nil;
   rns = bdrec.rootns;
   dom = bdrec.elf;
   if (isnil (dom))
-    return @nil;
+    return nil;
   bdrec.debug_aranges = mkdwdom (dom, getelfsection (dom, ".debug_aranges"),
 			     ".debug_aranges");
   bdrec.debug_pubnames = mkdwdom (dom, getelfsection (dom, ".debug_pubnames"),
@@ -5495,7 +5495,7 @@ lastlocfun = @nil;
 			     ".debug_ranges");
   bdrec.debug_loc = mkdwdom (dom, getelfsection (dom, ".debug_loc"),
 			     ".debug_loc");
-  bdrec.frametable = @nil;
+  bdrec.frametable = nil;
   bdrec.linetable = mktab (); /* a hash table keyed by cu offset and getting
 				 cu linenumber information computed when needed
 				 and stored. */
@@ -5531,7 +5531,7 @@ lastlocfun = @nil;
   newlooksym = @lambda (this, sym)
     {
       @local i, rv, ns, dom;
-      rv = @nil;
+      rv = nil;
       dom = bdrec.debug_info;
       for (i = 0; i < length (result); i++) {
 	if (isnil (cutab[{dom}result[i]]))
@@ -5546,7 +5546,7 @@ lastlocfun = @nil;
   newlooktype = @lambda (this, type)
     {
       @local i, rv, ns, dom;
-      rv = @nil;
+      rv = nil;
       dom = bdrec.debug_info;
       for (i = 0; i < length (result); i++) {
 	if (isnil (cutab[(unsigned int){dom}result[i]]))
@@ -5606,7 +5606,7 @@ lastlocfun = @nil;
        and take the maximum entry. */
     {
       @local i, rv, ns, s, slist, dom;
-      rv = @nil;
+      rv = nil;
       dom = bdrec.debug_info;
       slist = [];
       for (i = 0; i < length (result); i++) {
@@ -5618,7 +5618,7 @@ lastlocfun = @nil;
 	  append (slist, s);
       }
       if (isempty (slist))
-	return @nil;
+	return nil;
       printf ("for addr 0x%x (%d) slist is %a\n", addr, addr, slist);
       rv = listref (slist, 0);
       for (i = 1; i < length (slist); i++) {
@@ -5672,7 +5672,7 @@ lastlocfun = @nil;
       ardom = bdrec.debug_aranges;
       cuoff = dw_get_dieoff_for_cu (bdrec, {ardom}addr);
       if (isnil (cuoff))
-	return @nil;
+	return nil;
       else
 	printf ("cuoff for 0x%x (%d) is %a\n", addr, addr, cuoff);
       cu = get_cu_info (bdrec, cuoff);

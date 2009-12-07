@@ -30,7 +30,7 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 	{
 		@local t;
 		t = uidmap[uid];
-		if(t == @nil)
+		if(t == nil)
 			error("no such trap: %a", uid);
 		tabdelete(uidmap, t.uid);
 		tabdelete(midmap, t.mid);
