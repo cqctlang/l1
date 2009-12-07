@@ -103,9 +103,11 @@ sep 04 2009
 
 		tab = [ <key> : <val>, ... ];  // new
 
+
 sep 05 2009
 
 	The C goto statement is now supported.
+
 
 dec 02 2009
 
@@ -119,3 +121,18 @@ dec 02 2009
 	With this change, the remaining keywords that
 	do not begin with @ all have the property that
 	they are keywords of C.
+
+
+dec 07 2009
+
+	@nil is no longer a keyword.  Instead, the
+	built-in top-level variable nil is bound to the
+	nil value.
+
+	Currently, this binding variable is mutable:
+	like an other built-in binding, programs can
+	change what is bound to nil.
+
+	We plan to make nil and other bindings
+	immutable.
+
