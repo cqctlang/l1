@@ -4805,9 +4805,9 @@ xbox0(VM *vm, Operand *op)
 }
 
 static void
-xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
+xref(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 {
-	Val domv, typev, cvalv, rv;
+	Val xv, typev, cvalv, rv;
 	Xtypename *t, *b, *pt;
 	Dom *d;
 	Cval *cv;
@@ -4815,11 +4815,12 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 
 	typev = getvalrand(vm, type);
 	cvalv = getvalrand(vm, cval);
-	domv = getvalrand(vm, dom);
-	d = valdom(domv);
+	xv = getvalrand(vm, x);
+	if(xv->qkind != Qdom)
+		vmerr(vm, "attempt to derive location from non-domain");
+	d = valdom(xv);
 	t = valxtn(typev);
 	cv = valcval(cvalv);
-
 	b = chasetype(t);
 	switch(b->tkind){
 	case Tvoid:
@@ -4870,9 +4871,9 @@ dobitfieldgeom(Xtypename *b, BFgeom *bfg)
 }
 
 static void
-xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
+xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 {
-	Val domv, typev, cvalv, rv, p, argv[2];
+	Val xv, typev, cvalv, rv, p, argv[2];
 	Imm imm;
 	Dom *d;
 	Xtypename *t, *b, *pt;
@@ -4880,14 +4881,33 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	Str *s, *es;
 	BFgeom bfg;
 
-	domv = getvalrand(vm, dom);
+	xv = getvalrand(vm, x);
 	typev = getvalrand(vm, type);
 	cvalv = getvalrand(vm, cval);
-	d = valdom(domv);
+
 	t = valxtn(typev);
 	cv = valcval(cvalv);
-
 	b = chasetype(t);
+
+	/* special case: enum constants can be referenced through namespace */
+	if(b->tkind == Tconst){
+		switch(xv->qkind){
+		case Qdom:
+			d = valdom(xv);
+			rv = mkvalcval(d, b->link, cv->val);
+			goto out;
+		case Qns:
+			d = mkdom(valns(xv), vm->litdom->as, 0);
+			rv = mkvalcval(d, b->link, cv->val);
+			goto out;
+		default:
+			fatal("bug");
+		}
+	}
+
+	if(xv->qkind != Qdom)
+		fatal("bug");
+	d = valdom(xv);
 	switch(b->tkind){
 	case Tbitfield:
 		if(b->link->tkind == Tundef){
@@ -4901,9 +4921,6 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		s = callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
 		imm = bitfieldget(s->s, &bfg);
 		rv = mkvalcval(d, b->link, imm);
-		break;
-	case Tconst:
-		rv = mkvalcval(d, b->link, cv->val);
 		break;
 	case Tbase:
 	case Tptr:
@@ -4919,7 +4936,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		rv = mkvalcval(d, pt, imm);
 		break;
 	case Txaccess:
-		argv[0] = domv;
+		argv[0] = xv;
 		p = dovm(vm, t->get, 1, argv);
 		if(p->qkind != Qcval)
 			vmerr(vm,
@@ -4940,8 +4957,10 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		      (int)es->len, es->s);
 	case Tenum:
 	case Ttypedef:
+	case Tconst:
 		fatal("bug");
 	}
+out:
 	putvalrand(vm, rv, dst);
 }
 

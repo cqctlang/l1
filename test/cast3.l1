@@ -1,0 +1,5 @@
+ns = @names c32le {
+   enum X { x1=1 };
+};
+printf("%a %a\n", ns == nsof(ns`x1), 3&ns`x1);
+
