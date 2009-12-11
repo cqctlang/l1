@@ -1442,6 +1442,15 @@ associated with the symbol, the evaluator implicitly calls
 <!-- of the domain is called. -->
 <!-- </p> -->
 
+<p>
+Normally the left operand to backtick must be a domain.
+However, if the right operand is the name of an enumeration
+constant, the right operand may be a name space.  The
+resulting cvalue has type and value of the constant
+as defined in the name space, and a freshly allocated
+domain with the same name space and the address space
+of the literal domain.
+</p>
 
 
 <p>
