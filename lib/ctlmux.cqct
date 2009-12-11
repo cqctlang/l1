@@ -541,8 +541,9 @@ proto = @names clp64le {
 		@local t, c, trap, ev, fn;
 		t = targs[msg->id];
 		if(t == nil)
-			error("%e for unknown task: %d",
+			error("%e:%e for unknown task: %d",
 			      (enum proto`Mkind)msg->op,
+			      (proto`Event)msg->flags,
 			      msg->id);
 		if((enum proto`Mkind)msg->op != proto`Aevent)
 			error("cltmux: unhandled message %e",
