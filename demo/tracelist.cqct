@@ -1,6 +1,6 @@
 @include <ctlmux.cqct>
 
-define printlist(dom)
+@define printlist(dom)
 {
 	p = dom`head;
 	while(p){
@@ -10,7 +10,7 @@ define printlist(dom)
 	printf("\n");
 }
 
-define manglelist(dom)
+@define manglelist(dom)
 {
 	p = dom`head;
 	while(p){
@@ -21,7 +21,7 @@ define manglelist(dom)
 }
 
 // test printlist
-define test1(n)
+@define test1(n)
 {
 	@local mux, ns, as, dom;
 
@@ -30,7 +30,7 @@ define test1(n)
 	as = mux.launch(0, "./list", sprintfa("%d", n));
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
-		  lambda(tid, task){
+		  @lambda(tid, task){
 			  printlist(dom);
 			  return nil;
 		  });
@@ -40,7 +40,7 @@ define test1(n)
 
 
 // test manglelist
-define test2(n)
+@define test2(n)
 {
 	@local mux, ns, as, dom;
 
@@ -49,7 +49,7 @@ define test2(n)
 	as = mux.launch(0, "./list", sprintfa("%d", n));
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
-		  lambda(tid, task){
+		  @lambda(tid, task){
 			  manglelist(dom);
 			  return nil;
 		  });
@@ -58,7 +58,7 @@ define test2(n)
 }
 
 // test syscall tracing
-define test3(n)
+@define test3(n)
 {
 	@local mux, ns, as, dom;
 
@@ -67,7 +67,7 @@ define test3(n)
 	as = mux.launch(0, "./list", sprintfa("%d", n));
 	dom = mkdom(ns, as);
 	dom.trace(proto`Esyscall,
-		  lambda(id) {
+		  @lambda(id) {
 			  printf("-> %d hit syscall\n", id);
 		  });
 	dom.xcont();
@@ -75,7 +75,7 @@ define test3(n)
 }
 
 // test snaps
-define test4(n)
+@define test4(n)
 {
 	@local mux, ns, as, dom;
 
@@ -84,7 +84,7 @@ define test4(n)
 	as = mux.launch(0, "./list", sprintfa("%d", n));
 	dom = mkdom(ns, as);
 	dom.xsnap(&dom`insert,
-		  lambda(tid, task, newtask){
+		  @lambda(tid, task, newtask){
 			  printf("snap %d -> %d\n", task, newtask);
 			  return nil;
 		  });
