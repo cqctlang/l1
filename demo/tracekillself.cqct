@@ -1,0 +1,19 @@
+@include <ctlmux.cqct>
+
+// test printlist
+@define test1()
+{
+	@local mux, ns, as, dom;
+
+	ns = @names clp64le { @include "./killself.names" };
+	mux = mkctlmux();
+	as = mux.launch(0, "./killself");
+	dom = mkdom(ns, as);
+	dom.xcont();
+	mux.run();
+}
+
+if(length(args) == 1)
+	test1();
+else
+	error("usage: %s [<cnt>] | %s <testno> <cnt>");
