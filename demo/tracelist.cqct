@@ -132,4 +132,4 @@ else if(length(args) == 3){
 		error("no such test %a", args[1]);
 	}
 }else
-	error("usage: %s [<cnt>] | %s <testno> <cnt>");
+	error("usage: %s [<cnt>] | %s <testno> <cnt>", args[0]);

@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/ptrace.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
+
+#define WSTOPEVENT(STATUS) (((STATUS) & 0xff0000) >> 16)
 
 static char *sig2str[] = {
 	0,
@@ -79,17 +85,22 @@ main(int argc, char *argv[])
 
 	pid = fork();
 	if(pid == 0){
-		printf("about to SIGSTOP myself (%d)\n", getpid());
-		kill(getpid(), SIGSTOP);
-		printf("resumed from SIGSTOP (%d)\n", getpid());
+//		printf("about to SIGSTOP myself (%d)\n", getpid());
+//		kill(getpid(), SIGTSTP);
+//		printf("resumed from SIGSTOP (%d)\n", getpid());
+		printf("about to exit (%d)\n", getpid());
 		exit(0);
 	}else if(pid == -1){
 		printf("fork: %s\n", strerror(errno));
 		exit(1);
 	}else{
-		waitpid(pid, &st, WUNTRACED);
-		printf("waited on %d: ");
-		printstatus(st);
+		st = -1;
+		while(!WIFEXITED(st)){
+			waitpid(pid, &st, WUNTRACED);
+			printf("waited on %d: ", pid);
+			printstatus(st);
+			printf("\n");
+		}
 	}
 
 	return 0;
