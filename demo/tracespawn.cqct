@@ -1,7 +1,7 @@
 @include <ctlmux.cqct>
 
 // trace thread creation/termination
-define test1(n)
+@define test1(n)
 {
 	@local mux, ns, as, dom;
 
@@ -14,7 +14,7 @@ define test1(n)
 }
 
 // trace child creation/termination
-define test2(n)
+@define test2(n)
 {
 	@local mux, ns, as, dom;
 
@@ -27,7 +27,7 @@ define test2(n)
 }
 
 // trace multi-threaded breakpoints
-define test3(n)
+@define test3(n)
 {
 	@local mux, ns, as, dom, nc, nd, nw;
 
@@ -37,19 +37,19 @@ define test3(n)
 	as = mux.launch(0, "./clones", sprintfa("%d", n));
 	dom = mkdom(ns, as);
 	dom.trace(proto`Eclone,
-		  lambda(tid){
+		  @lambda(tid){
 			  printf("task %d has called clone\n", tid);
 			  nc++;
 			  return nil;
 		  });
 //	dom.xtrap(&dom`doit,
-//		  lambda(tid, task){
+//		  @lambda(tid, task){
 //			  printf("task %d has entered doit\n", task);
 //			  nd++;
 //			  return nil;
 //		  });
 	dom.xtrap(&dom`work,
-		  lambda(tid, task){
+		  @lambda(tid, task){
 			  printf("task %d has entered work\n", task);
 			  nw++;
 			  return nil;
