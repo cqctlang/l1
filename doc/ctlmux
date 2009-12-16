@@ -1,0 +1,28 @@
+ctlmux is a Cinquecento library for controlling
+processes and threads.
+
+ctlmux defines two abstractions:
+
+* A ctl represents a thread of execution.  There is one
+  ctl for each thread or process under control.
+
+  Events in the execution represented by a ctl ---
+  death, signals, system calls, creation of a new
+  thread or process, execution of a new program,
+  arrival at a breakpoint --- are reflected as ctl
+  events.
+
+  Behind every ctl are a pair of Cinquecento address
+  spaces reflecting the current contents of its memory
+  and registers.
+
+* A mux is a ctl multiplexor that matches ctl events
+  over a set of concurrently executing ctls with calls
+  to user-defined Cinquecento handlers.
+
+Begin with a fresh mux:
+
+	mux = ctlmux();
+
+For now, this mux can only control threads and
+processes on the local machine.
