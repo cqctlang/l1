@@ -119,7 +119,7 @@ else if(length(args) == 2)
 else if(length(args) == 3){
 	switch(args[1]){
 	case "0":
-		return test0(10);
+		return test0(strton(args[2]));
 	case "1":
 		return test1(strton(args[2]));
 	case "2":
