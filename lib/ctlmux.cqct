@@ -47,6 +47,8 @@ proto = @names clp64le {
 
 		Rtrace,
 		Aevent,
+		Tdetach,
+		Rdetach,
 	};
 
 	enum State {
@@ -151,10 +153,13 @@ proto = @names clp64le {
 	typedef struct Rcont Tattach;
 	typedef struct Rcont Rattach;
 	typedef struct Rcont Rclrbrk;
+	typedef struct Rcont Tkill;
 	typedef struct Rcont Rkill;
 	typedef struct Rcont Rsetregs;
 	typedef struct Rcont Rtrace;
 	typedef struct Rcont Tcleave;
+	typedef struct Rcont Tdetach;
+	typedef struct Rcont Rdetach;
 	typedef struct Rcont Rtest;
 	typedef struct Rcont Tstep;
 	typedef struct Rcont Rstep;
@@ -397,6 +402,16 @@ proto = @names clp64le {
 			return t.reg;
 		}
 
+		@define mdetach(this)
+		{
+			return detach(t.id);
+		}
+
+		@define mid(this)
+		{
+			return t.id;
+		}
+
 		return mkas([ "get"       : mget,
 			      "put"       : mput,
 			      "map"       : mmap,
@@ -408,6 +423,8 @@ proto = @names clp64le {
 			      "trapreset" : mtrapreset,
 			      "trace"	  : mtrace,
 			      "reg"	  : mreg,
+			      "detach"	  : mdetach,
+			      "id"	  : mid,
 			    ]);
 	}
 
@@ -441,6 +458,10 @@ proto = @names clp64le {
 			return (proto`Tkill*)p;
 		case proto`Rkill:
 			return (proto`Rkill*)p;
+		case proto`Tdetach:
+			return (proto`Tdetach*)p;
+		case proto`Rdetach:
+			return (proto`Rdetach*)p;
 		case proto`Tsetbrk:
 			return (proto`Tsetbrk*)p;
 		case proto`Rsetbrk:
@@ -619,7 +640,7 @@ proto = @names clp64le {
 			log("task %d has called exec", msg->id);
 			fn = t.callbacks[ev];
 			if(fn != nil)
-				fn(t.id);
+				fn(t.as);
 			contasync(msg->id);
 			break;
 		case proto`Esyscall:
@@ -793,7 +814,7 @@ proto = @names clp64le {
 		@local t, p;
 
 		t = targs[id];
-		if(t.state != proto`Stopped)
+		if(t == nil || t.state != proto`Stopped)
 			return;
 		p = (proto`Tcont*)malloc(sizeof(proto`Tcont));
 		p->op = proto`Tcont;
@@ -823,6 +844,24 @@ proto = @names clp64le {
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rcont);
 		t.state = proto`Running;
+	}
+
+	@define detach(id)
+	{
+		@local t, p, rep;
+
+		t = targs[id];
+		p = (proto`Tdetach*)malloc(sizeof(proto`Tdetach));
+		p->op = proto`Tdetach;
+		p->tag = freshtag();
+		p->id = id;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rdetach);
+		t.state = proto`Dead;
+		log("task %d has detached", rep->id);
+		tabdelete(targs, rep->id);
 	}
 
 	@define launch(flags, arg ...)
