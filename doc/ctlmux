@@ -1,28 +1,45 @@
-ctlmux is a Cinquecento library for controlling
-processes and threads.
+ctlmux is a Cinquecento library for tracing
+the execution of running programs.
 
 ctlmux defines two abstractions:
 
-* A ctl represents a thread of execution.  There is one
-  ctl for each thread or process under control.
+* A ctl represents a traced execution.  An execution
+  corresponds to a single-threaded process or one 
+  thread of a multi-threaded process.
 
-  Events in the execution represented by a ctl ---
-  death, signals, system calls, creation of a new
-  thread or process, execution of a new program,
-  arrival at a breakpoint --- are reflected as ctl
-  events.
+  Events in the traced execution --- death, signals,
+  system calls, creation of a new thread, execution of
+  a new program, arrival at a breakpoint --- are
+  reflected as ctl events.  Users register handler
+  functions to be called in response to ctl events.
 
-  Behind every ctl are a pair of Cinquecento address
-  spaces reflecting the current contents of its memory
-  and registers.
+  Behind every ctl are two Cinquecento address spaces
+  reflecting the current contents of the execution's
+  memory and registers.  Ctls for a multi-threaded
+  process may share memory, but each ctl has its own
+  registers.
 
-* A mux is a ctl multiplexor that matches ctl events
-  over a set of concurrently executing ctls with calls
-  to user-defined Cinquecento handlers.
+* A mux is a multiplexor of ctl events over a set of
+  concurrently executing ctls.
 
-Begin with a fresh mux:
+
+
+Begin with a fresh mux.
 
 	mux = ctlmux();
 
-For now, this mux can only control threads and
-processes on the local machine.
+This mux can control threads and processes on the local
+machine, but not (for now) those on other machines.
+
+Tell the mux to launch a new program ...
+
+	ctl = mux.launch(flags, cmd, arg, ...);
+
+... or to attach to an existing thread.
+
+	ctl = mux.attach(pid);
+
+The flags passed to launch are being developed.
+Pass 0.
+
+
