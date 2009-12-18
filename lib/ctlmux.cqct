@@ -582,7 +582,7 @@ proto = @names clp64le {
 			t.reg = cop(&msg->reg);
 			if(trap.desc[0] == "brk"){
 				t.state = proto`Stopped;
-				rv = trap.fn(trap.uid, msg->id);
+				rv = trap.fn(t);
 				if(rv == 0 || rv == nil)
 					contasync(msg->id);
 				else if(rv != 1)
@@ -595,18 +595,15 @@ proto = @names clp64le {
 					 t.traps,
 					 t.callbacks,
 					 nil);
-//				c.as = mktargas(c);
-//				targs[msg->cid] = c;
-				trap.fn(trap.uid, msg->id, msg->cid);
+				c.as = mktargas(c);
+				targs[msg->cid] = c;
+				trap.fn(t, c);
 			}else
 				error("unhandled trap %a", trap.desc);
 			break;
 		case proto`Eclone:
 			ack(msg);
 			log("task %d has cloned %d", msg->id, msg->cid);
-			fn = t.callbacks[ev];
-			if(fn != nil)
-				fn(t.id);
 			c = targ(msg->cid,
 				 proto`Stopped,
 				 cop(&msg->reg),
@@ -615,14 +612,14 @@ proto = @names clp64le {
 				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
+			fn = t.callbacks[ev];
+			if(fn != nil)
+				fn(t, c);
 			contasync(msg->cid);
 			break;
 		case proto`Efork:
 			ack(msg);
 			log("task %d has forked %d", msg->id, msg->cid);
-			fn = t.callbacks[ev];
-			if(fn != nil)
-				fn(t.id);
 			c = targ(msg->cid,
 				 proto`Stopped,
 				 cop(&msg->reg),
@@ -631,6 +628,9 @@ proto = @names clp64le {
 				 nil);
 			c.as = mktargas(c);
 			targs[msg->cid] = c;
+			fn = t.callbacks[ev];
+			if(fn != nil)
+				fn(t, c);
 			contasync(msg->cid);
 			break;
 		case proto`Eexec:
@@ -640,7 +640,7 @@ proto = @names clp64le {
 			log("task %d has called exec", msg->id);
 			fn = t.callbacks[ev];
 			if(fn != nil)
-				fn(t.as);
+				fn(t);
 			contasync(msg->id);
 			break;
 		case proto`Esyscall:
@@ -652,7 +652,7 @@ proto = @names clp64le {
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
 			fn = t.callbacks[ev];
 			if(fn != nil)
-				fn(t.id);
+				fn(t);
 			contasync(msg->id);
 			break;
 		default:
@@ -900,7 +900,7 @@ proto = @names clp64le {
 			 nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
-		return t.as;
+		return t;
 	}
 
 	@define attach(pid)
@@ -924,7 +924,7 @@ proto = @names clp64le {
 			 nil);
 		t.as = mktargas(t);
 		targs[rep->id] = t;
-		return t.as;
+		return t;
 	}
 
 	@define run()

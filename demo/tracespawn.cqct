@@ -3,11 +3,12 @@
 // trace thread creation/termination
 @define test1(n)
 {
-	@local mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./clones.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./clones", sprintfa("%d", n));
+	ctl = mux.launch(0, "./clones", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xcont();
 	mux.run();
@@ -16,11 +17,12 @@
 // trace child creation/termination
 @define test2(n)
 {
-	@local mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./forks.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./forks", sprintfa("%d", n));
+	ctl = mux.launch(0, "./forks", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xcont();
 	mux.run();
@@ -29,28 +31,23 @@
 // trace multi-threaded breakpoints
 @define test3(n)
 {
-	@local mux, ns, as, dom, nc, nd, nw;
+	@local ctl, mux, ns, as, dom, nc, nd, nw;
 
 	nc = nd = nw = 0;
 	ns = @names clp64le { @include "./clones.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./clones", sprintfa("%d", n));
+	ctl = mux.launch(0, "./clones", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.trace(proto`Eclone,
-		  @lambda(tid){
-			  printf("task %d has called clone\n", tid);
+		  @lambda(ctl, cctl){
+			  printf("task %d has cloned %d\n", ctl.id, cctl.id);
 			  nc++;
 			  return nil;
 		  });
-//	dom.xtrap(&dom`doit,
-//		  @lambda(tid, task){
-//			  printf("task %d has entered doit\n", task);
-//			  nd++;
-//			  return nil;
-//		  });
 	dom.xtrap(&dom`work,
-		  @lambda(tid, task){
-			  printf("task %d has entered work\n", task);
+		  @lambda(ctl){
+			  printf("task %d has entered work\n", ctl.id);
 			  nw++;
 			  return nil;
 		  });

@@ -23,14 +23,15 @@
 // test printlist
 @define test0(n)
 {
-	@local mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./demo/list", sprintfa("%d", n));
+	ctl = mux.launch(0, "./demo/list", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
-		  @lambda(tid, task){
+		  @lambda(ctl){
 			  printlist(dom);
 			  return nil;
 		  });
@@ -42,14 +43,15 @@
 // test printlist
 @define test1(n)
 {
-	@local mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./list", sprintfa("%d", n));
+	ctl = mux.launch(0, "./list", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
-		  @lambda(tid, task){
+		  @lambda(ctl){
 			  printlist(dom);
 			  return nil;
 		  });
@@ -61,14 +63,15 @@
 // test manglelist
 @define test2(n)
 {
-	@local mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./list", sprintfa("%d", n));
+	ctl = mux.launch(0, "./list", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
-		  @lambda(tid, task){
+		  @lambda(ctl){
 			  manglelist(dom);
 			  return nil;
 		  });
@@ -79,15 +82,16 @@
 // test syscall tracing
 @define test3(n)
 {
-	@local mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./list", sprintfa("%d", n));
+	ctl = mux.launch(0, "./list", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.trace(proto`Esyscall,
-		  @lambda(id) {
-			  printf("-> %d hit syscall\n", id);
+		  @lambda(ctl) {
+			  printf("-> %d hit syscall\n", ctl.id);
 		  });
 	dom.xcont();
 	mux.run();
@@ -96,15 +100,16 @@
 // test snaps
 @define test4(n)
 {
-	@local mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./list", sprintfa("%d", n));
+	ctl = mux.launch(0, "./list", sprintfa("%d", n));
+	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xsnap(&dom`insert,
-		  @lambda(tid, task, newtask){
-			  printf("snap %d -> %d\n", task, newtask);
+		  @lambda(ctl, cctl){
+			  printf("snap %d -> %d\n", ctl.id, cctl.id);
 			  return nil;
 		  });
 	dom.xcont();
