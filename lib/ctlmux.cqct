@@ -49,6 +49,9 @@ proto = @names clp64le {
 		Aevent,
 		Tdetach,
 		Rdetach,
+		Tmap,
+
+		Rmap,
 	};
 
 	enum State {
@@ -76,6 +79,13 @@ proto = @names clp64le {
 	} Event;
 
 	typedef
+	enum Prot {
+		PROT_READ	= 0x1,		/* Page can be read.  */
+		PROT_WRITE	= 0x2,		/* Page can be written.  */
+		PROT_EXEC	= 0x4,		/* Page can be executed.  */
+	} Prot;
+
+	typedef
 	struct Reg {
 		@0	uint64 eflags;
 		@8	uint64 rbx;
@@ -98,6 +108,15 @@ proto = @names clp64le {
 		@144	uint64 orig_rax;
 		@152;
 	} Reg;
+
+	typedef
+	struct Region {
+		@0x0	char file[0x100];
+		@0x100	uint64 addr;
+		@0x108	uint64 len;
+		@0x110	uint32 flags;
+		@0x118;
+	} Region;
 
 	struct Rerror{
 		@0	uint8 op;
@@ -164,6 +183,7 @@ proto = @names clp64le {
 	typedef struct Rcont Tstep;
 	typedef struct Rcont Rstep;
 	typedef struct Rcont Aack;
+	typedef struct Rcont Tmap;
 
 	struct Tsetbrk{
 		@0	uint8 op;
@@ -239,6 +259,15 @@ proto = @names clp64le {
 	};
 	typedef struct Rfread Rfread;
 	typedef struct Rfread Rfwrite;
+
+	struct Rmap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 cnt;
+		@13	char bytes[0];
+		@13;
+	};	
+	typedef struct Rmap Rmap;
 };
 
 @record ctlmux { launch, attach, run };
@@ -361,8 +390,42 @@ proto = @names clp64le {
 			return pwrite(t.id, rangebeg(r), rangelen(r), s);
 		}
 
+		@define prot2str(prot)
+		{
+			@local s;
+			prot = (proto`Prot)prot;
+			s = "";
+			if(prot&proto`PROT_READ)
+				s += "r";
+			else
+				s += "-";
+			if(prot&proto`PROT_WRITE)
+				s += "w";
+			else
+				s += "-";
+			if(prot&proto`PROT_EXEC)
+				s += "x";
+			else
+				s += "-";
+			return s;
+		}
+
+		@define mxmap(this)
+		{
+			@local n, rs, i;
+			[n, rs] = pmap(t.id);
+			for(i = 0; i < n; i++){
+				printf("%016x %016x %s %s\n",
+				       rs[i].addr,
+				       rs[i].addr+rs[i].len,
+				       prot2str(rs[i].flags),
+				       rs[i].file);
+			}
+		}
+
 		@define mmap(this)
 		{
+			mxmap(this);
 			return vector(mkrange(0, (`uint64)-1));
 		}
 
@@ -415,6 +478,7 @@ proto = @names clp64le {
 		return mkas([ "get"       : mget,
 			      "put"       : mput,
 			      "map"       : mmap,
+			      "xmap"	  : mxmap,
 			      "xcont"     : mcont,
 			      "xtrap"     : mxtrap,
 			      "xsnap"     : mxsnap,
@@ -514,6 +578,10 @@ proto = @names clp64le {
 			return (proto`Ttrace*)p;
 		case proto`Rtrace:
 			return (proto`Rtrace*)p;
+		case proto`Tmap:
+			return (proto`Tmap*)p;
+		case proto`Rmap:
+			return (proto`Rmap*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -807,6 +875,23 @@ proto = @names clp64le {
 		rep = runtiltag(p->tag);
 		checkreply(rep, proto`Rwrite);
 		return nil;
+	}
+
+	@define pmap(id)
+	{
+		@local t, p, rep;
+
+		t = targs[id];
+		p = (proto`Tmap*)malloc(sizeof(proto`Tmap));
+		p->op = proto`Tmap;
+		p->tag = freshtag();
+		p->id = id;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, proto`Rmap);
+		return [rep->cnt/sizeof(proto`Region),
+			(proto`Region*)getbytes(rep+1, rep->cnt)];
 	}
 
 	@define contasync(id)
