@@ -268,7 +268,7 @@ proto = @names clp64le {
 		push(freetags, tag);
 	}
 	
-	verbose = 1;
+	verbose = 0;
 	@define logsend(s){
 		if(verbose)
 			printf("<-- %s\n", s);
