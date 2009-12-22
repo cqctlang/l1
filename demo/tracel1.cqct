@@ -1,7 +1,7 @@
 @include <ctlmux.cqct>
 
-//l1 = "../l1";
-l1 = "../l1.x";
+l1 = "../l1";
+//l1 = "../l1.x";
 l1names = l1+".names";
 
 @define dumpcvals(dom)
@@ -44,7 +44,7 @@ l1names = l1+".names";
 				  ctl.as.detach();
 
 		  });
-	dom.xtrap(&dom`vmpop,
+if(0)	dom.xtrap(&dom`vmpop,
 		  @lambda(ctl){
 			  npop++;
 			  return nil;
