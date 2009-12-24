@@ -30,4 +30,4 @@ killself2: killself2.o
 	dwarf2cqct < $@ > $@.names
 
 clean:
-	rm -rf *~ .gdbhistory core core.* *.o *.names $(TARG) *.so *.dylib depend
+	$(V)rm -rf *~ .gdbhistory core core.* *.o *.names $(TARG) *.so *.dylib depend
