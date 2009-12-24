@@ -44,11 +44,6 @@ l1names = l1+".names";
 				  ctl.as.detach();
 
 		  });
-if(0)	dom.xtrap(&dom`vmpop,
-		  @lambda(ctl){
-			  npop++;
-			  return nil;
-		  });
 	dom.xtrap(&dom`finivm,
 		  @lambda(ctl){
 			  printf("vm is exiting\n");
@@ -57,7 +52,6 @@ if(0)	dom.xtrap(&dom`vmpop,
 		  });
 	dom.xcont();
 	mux.run();
-	printf("%d pops\n", npop);
 }
 
 tests = [
