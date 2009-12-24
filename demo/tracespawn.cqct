@@ -7,7 +7,7 @@
 
 	ns = @names clp64le { @include "./clones.names" };
 	mux = mkctlmux();
-	ctl = mux.launch(0, "./clones", sprintfa("%d", n));
+	ctl = mux.launch(["./clones", sprintfa("%d", n)], 0);
 	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xcont();
@@ -21,7 +21,7 @@
 
 	ns = @names clp64le { @include "./forks.names" };
 	mux = mkctlmux();
-	ctl = mux.launch(0, "./forks", sprintfa("%d", n));
+	ctl = mux.launch(["./forks", sprintfa("%d", n)], 0);
 	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.xcont();
@@ -36,7 +36,7 @@
 	nc = nd = nw = 0;
 	ns = @names clp64le { @include "./clones.names" };
 	mux = mkctlmux();
-	ctl = mux.launch(0, "./clones", sprintfa("%d", n));
+	ctl = mux.launch([ "./clones", sprintfa("%d", n)], 0);
 	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.trace(proto`Eclone,

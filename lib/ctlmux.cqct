@@ -949,18 +949,18 @@ proto = @names clp64le {
 		tabdelete(targs, rep->id);
 	}
 
-	@define launch(flags, arg ...)
+	@define launch(args, flags)
 	{
 		@local narg, s, sz, i, p, q, t, rep;
 
-		narg = length(arg);
+		narg = length(args);
 		if(narg == 0)
 			error("mkpras: launch: empty command");
 
 		/* format and send Tlaunch */
 		sz = sizeof(proto`Tlaunch);
 		for(i = 0; i < narg; i++)
-			sz += strlen(listref(arg, i))+1;
+			sz += strlen(listref(args, i))+1;
 		p = (proto`Tlaunch*)malloc(sz);
 		p->op = proto`Tlaunch;
 		p->tag = freshtag();
@@ -968,7 +968,7 @@ proto = @names clp64le {
 		p->narg = narg;
 		q = (char*)(p+1);
 		for(i = 0; i < narg; i++){
-			s = listref(arg, i);
+			s = listref(args, i);
 			putbytes(q, s);
 			q += strlen(s)+1;
 		}

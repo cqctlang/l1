@@ -6,7 +6,7 @@
 
 	ns = @names clp64le { @include "./killself.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./killself");
+	as = mux.launch(["./killself"], 0);
 	dom = mkdom(ns, as);
 	dom.xcont();
 	mux.run();
@@ -18,7 +18,7 @@
 
 	ns = @names clp64le { @include "./killself2.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./killself2");
+	as = mux.launch(["./killself2"], 0);
 	dom = mkdom(ns, as);
 	dom.xcont();
 	mux.run();

@@ -14,15 +14,17 @@ ctlmux defines two abstractions:
   functions to be called in response to ctl events.
 
   Behind every ctl are two Cinquecento address spaces
-  reflecting the current contents of the execution's
-  memory and registers.  Ctls for a multi-threaded
-  process may share memory, but each ctl has its own
-  registers.
+  that reflect the current state of the execution's
+  memory and its registers.  Ctls for a multi-threaded
+  process usually share a memory address space, while
+  each ctl has its own register address space.
 
 * A mux is a multiplexor of ctl events over a set of
   concurrently executing ctls.
 
+Include the cltmux library:
 
+	@include <ctlmux.cqct>
 
 Begin with a fresh mux.
 
@@ -33,13 +35,12 @@ machine, but not (for now) those on other machines.
 
 Tell the mux to launch a new program ...
 
-	ctl = mux.launch(flags, cmd, arg, ...);
+	ctl = mux.launch([cmd, arg, ...], flags);
+
+	[cmd, arg, ...] is the list of arguments used
+	to exec the program; i.e., argv[0] = cmd,
+	argv[1] = arg, ...
 
 ... or to attach to an existing thread.
 
 	ctl = mux.attach(pid);
-
-The flags passed to launch are being developed.
-Pass 0.
-
-

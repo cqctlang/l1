@@ -34,7 +34,8 @@ l1names = l1+".names";
 	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
 	ns = eval(e);
 	mux = mkctlmux();
-	ctl = apply(mux.launch, 0, l1, args);
+	push(args, l1);
+	ctl = mux.launch(args, 0);
 	as = ctl.as;
 	dom = mkdom(ns, as);
 	dom.trace(proto`Eexec,
@@ -64,9 +65,10 @@ tests = [
 	[ "tracespawn.cqct", "3", "3" ],
 	];
 
-if(length(args) == 1)
-	doit(tests[0]);
-else if(length(args) == 2){
+if(length(args) == 1){
+	for(i = 0; i < length(tests); i++)
+		doit(tests[i]);
+}else if(length(args) == 2){
 	@local i;
 	i = strton(args[1]);
 	if(i < 0 || i >= length(tests))

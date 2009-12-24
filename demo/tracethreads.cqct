@@ -7,7 +7,7 @@ define test1(n)
 	tab = [:];
 	ns = @names clp64le { @include "./threads.names" };
 	mux = mkctlmux();
-	as = mux.launch(0, "./threads", sprintfa("%d", n));
+	as = mux.launch(["./threads", sprintfa("%d", n)], 0);
 	dom = mkdom(ns, as);
 	dom.xcont();
 	mux.run();
