@@ -5,7 +5,7 @@ define test1(pid)
 	@local mux, as;
 	mux = mkctlmux();
 	as = mux.attach(pid);
-	as.trace(proto`Fsyscall);
+	as.trace(ctlmux`Fsyscall);
 	mux.run();
 	return nil;
 }

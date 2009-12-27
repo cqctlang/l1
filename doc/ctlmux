@@ -4,8 +4,10 @@ the execution of running programs.
 ctlmux defines two abstractions:
 
 * A ctl represents a traced execution.  An execution
-  corresponds to a single-threaded process or one 
-  thread of a multi-threaded process.
+  corresponds to a single-threaded process or one
+  thread of a multi-threaded process.  In this manual
+  the term "process" generally refers to either form of
+  execution.
 
   Events in the traced execution --- death, signals,
   system calls, creation of a new thread, execution of
@@ -22,25 +24,83 @@ ctlmux defines two abstractions:
 * A mux is a multiplexor of ctl events over a set of
   concurrently executing ctls.
 
+
 Include the cltmux library:
 
 	@include <ctlmux.cqct>
 
-Begin with a fresh mux.
+
+Create a fresh mux:
 
 	mux = ctlmux();
 
 This mux can control threads and processes on the local
 machine, but not (for now) those on other machines.
 
-Tell the mux to launch a new program ...
+
+Instantiate a ctl, in one of two ways:
+
+1. Launch a new process:
 
 	ctl = mux.launch([cmd, arg, ...], flags);
 
 	[cmd, arg, ...] is the list of arguments used
 	to exec the program; i.e., argv[0] = cmd,
-	argv[1] = arg, ...
+	argv[1] = arg, etc.
 
-... or to attach to an existing thread.
+	flags is any combination of the following flags.
+
+		ctlmux`Fstdin		- redirect target stdin
+		ctlmux`Fstdout		- redirect target stdout
+		ctlmux`Fstderr		- redirect target stderr
+
+	These redirections allow the stdio of the
+	target to be read or written through the ctl.
+	If flags is 0 or nil, the target process inherits the
+	stdio of the calling process.
+
+	The resulting process is stopped at the return of the
+  	(successful) call to exec.
+
+
+2. Attach to an existing process:
 
 	ctl = mux.attach(pid);
+
+	pid is the process id of the target thread.
+
+	The target process is left running.
+
+
+Ctls define several methods
+
+	ctl.id()	return process identifier
+
+	ctl.xstop()	pause execution
+	ctl.xcont()	resume execution
+	ctl.xstep()	single step
+
+	ctl.detach()	discontinue tracing
+	ctl.kill()	terminate target
+
+	ctl.mem()	return memory address space
+	ctl.reg()	return register address space
+
+	ctl.trace(event, handler)
+	
+		register a handler to be called when
+		events occurs on the ctl.
+
+		the signature of the handler depends on
+		the type of the event.
+
+		ctlmux`Esyscall		(ctl)		enter/exit system call
+		ctlmux`Eexec		(ctl)		successful exec return 
+		ctlmux`Esignal		(ctl)		signal
+		ctlmux`Eexit		(ctl)		exit
+		
+		ctlmux`Efork		(ctl, newctl)	successful fork return
+		ctlmux`Eclone		(ctl, newctl)	successful clone return
+
+
+

@@ -69,7 +69,7 @@
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
 	as = ctl.as;
 	dom = mkdom(ns, as);
-	dom.trace(proto`Esyscall,
+	dom.trace(ctlmux`Esyscall,
 		  @lambda(ctl) {
 			  printf("-> %d hit syscall\n", ctl.id);
 		  });

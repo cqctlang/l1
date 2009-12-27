@@ -38,7 +38,7 @@ l1names = l1+".names";
 	ctl = mux.launch(args, 0);
 	as = ctl.as;
 	dom = mkdom(ns, as);
-	dom.trace(proto`Eexec,
+	dom.trace(ctlmux`Eexec,
 		  @lambda(ctl){
 			  nexec++;
 			  if(nexec >= 1)

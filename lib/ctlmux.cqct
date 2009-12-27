@@ -1,7 +1,7 @@
 @include <linux-x86_64.cqct>
 @include <trapman.cqct>
 
-proto = @names clp64le {
+ctlmux = @names clp64le {
 	enum Mkind {
 		Rerror = 0,
 		Tlaunch,
@@ -270,7 +270,7 @@ proto = @names clp64le {
 	typedef struct Rmap Rmap;
 };
 
-@record ctlmux { launch, attach, run };
+@record ctlmuxrec { launch, attach, run };
 @record targ { id, state, reg, traps, callbacks, as };
 
 @define mkctlmux()
@@ -322,12 +322,12 @@ proto = @names clp64le {
 		switch(rep->op){
 		case op:
 			break;
-		case proto`Rerror:
+		case ctlmux`Rerror:
 			error("ctlmux: while waiting for %e: %s",
 			      op, rep->bytes);
 		default:
 			error("ctlmux: while waiting for %e: received %e",
-			      op, (enum proto`Mkind)rep->op);
+			      op, (enum ctlmux`Mkind)rep->op);
 		}
 	}
 
@@ -393,17 +393,17 @@ proto = @names clp64le {
 		@define prot2str(prot)
 		{
 			@local s;
-			prot = (proto`Prot)prot;
+			prot = (ctlmux`Prot)prot;
 			s = "";
-			if(prot&proto`PROT_READ)
+			if(prot&ctlmux`PROT_READ)
 				s += "r";
 			else
 				s += "-";
-			if(prot&proto`PROT_WRITE)
+			if(prot&ctlmux`PROT_WRITE)
 				s += "w";
 			else
 				s += "-";
-			if(prot&proto`PROT_EXEC)
+			if(prot&ctlmux`PROT_EXEC)
 				s += "x";
 			else
 				s += "-";
@@ -457,7 +457,7 @@ proto = @names clp64le {
 		@define mtrace(this, flags, fn)
 		{
 			trace(t.id, flags);
-			t.callbacks[(proto`Event)flags] = fn;
+			t.callbacks[(ctlmux`Event)flags] = fn;
 		}
 
 		@define mreg(this)
@@ -494,94 +494,94 @@ proto = @names clp64le {
 
 	@define fmtmsg(msg)
 	{
-		return sprintfa("%e %d", (enum proto`Mkind)msg->op, msg->id);
+		return sprintfa("%e %d", (enum ctlmux`Mkind)msg->op, msg->id);
 	}
 
 	@define buf2msg(p)
 	{
 		@local op;
-		op = (enum proto`Mkind)*(proto`uint8*)p;
+		op = (enum ctlmux`Mkind)*(ctlmux`uint8*)p;
 		switch(op){
-		case proto`Aevent:
-			return (proto`Aevent*)p;
-		case proto`Rerror:
-			return (proto`Rerror*)p;
-		case proto`Tlaunch:
-			return (proto`Tlaunch*)p;
-		case proto`Rlaunch:
-			return (proto`Rlaunch*)p;
-		case proto`Tcont:
-			return (proto`Tcont*)p;
-		case proto`Rcont:
-			return (proto`Rcont*)p;
-		case proto`Tstop:
-			return (proto`Tstop*)p;
-		case proto`Rstop:
-			return (proto`Rstop*)p;
-		case proto`Tkill:
-			return (proto`Tkill*)p;
-		case proto`Rkill:
-			return (proto`Rkill*)p;
-		case proto`Tdetach:
-			return (proto`Tdetach*)p;
-		case proto`Rdetach:
-			return (proto`Rdetach*)p;
-		case proto`Tsetbrk:
-			return (proto`Tsetbrk*)p;
-		case proto`Rsetbrk:
-			return (proto`Rsetbrk*)p;
-		case proto`Tclrbrk:
-			return (proto`Tclrbrk*)p;
-		case proto`Rclrbrk:
-			return (proto`Rclrbrk*)p;
-		case proto`Tread:
-			return (proto`Tread*)p;
-		case proto`Rread:
-			return (proto`Rread*)p;
-		case proto`Tcleave:
-			return (proto`Tcleave*)p;
-		case proto`Rcleave:
-			return (proto`Rcleave*)p;
-		case proto`Twrite:
-			return (proto`Twrite*)p;
-		case proto`Rwrite:
-			return (proto`Rwrite*)p;
-		case proto`Tsetregs:
-			return (proto`Tsetregs*)p;
-		case proto`Rsetregs:
-			return (proto`Rsetregs*)p;
-		case proto`Tsetsnap:
-			return (proto`Tsetsnap*)p;
-		case proto`Rsetsnap:
-			return (proto`Rsetsnap*)p;
-		case proto`Tattach:
-			return (proto`Tattach*)p;
-		case proto`Rattach:
-			return (proto`Rattach*)p;
-		case proto`Ttest:
-			return (proto`Ttest*)p;
-		case proto`Rtest:
-			return (proto`Rtest*)p;
-		case proto`Tstep:
-			return (proto`Tstep*)p;
-		case proto`Rstep:
-			return (proto`Rstep*)p;
-		case proto`Tfread:
-			return (proto`Tfread*)p;
-		case proto`Rfread:
-			return (proto`Rfread*)p;
-		case proto`Tfwrite:
-			return (proto`Tfwrite*)p;
-		case proto`Rfwrite:
-			return (proto`Rfwrite*)p;
-		case proto`Ttrace:
-			return (proto`Ttrace*)p;
-		case proto`Rtrace:
-			return (proto`Rtrace*)p;
-		case proto`Tmap:
-			return (proto`Tmap*)p;
-		case proto`Rmap:
-			return (proto`Rmap*)p;
+		case ctlmux`Aevent:
+			return (ctlmux`Aevent*)p;
+		case ctlmux`Rerror:
+			return (ctlmux`Rerror*)p;
+		case ctlmux`Tlaunch:
+			return (ctlmux`Tlaunch*)p;
+		case ctlmux`Rlaunch:
+			return (ctlmux`Rlaunch*)p;
+		case ctlmux`Tcont:
+			return (ctlmux`Tcont*)p;
+		case ctlmux`Rcont:
+			return (ctlmux`Rcont*)p;
+		case ctlmux`Tstop:
+			return (ctlmux`Tstop*)p;
+		case ctlmux`Rstop:
+			return (ctlmux`Rstop*)p;
+		case ctlmux`Tkill:
+			return (ctlmux`Tkill*)p;
+		case ctlmux`Rkill:
+			return (ctlmux`Rkill*)p;
+		case ctlmux`Tdetach:
+			return (ctlmux`Tdetach*)p;
+		case ctlmux`Rdetach:
+			return (ctlmux`Rdetach*)p;
+		case ctlmux`Tsetbrk:
+			return (ctlmux`Tsetbrk*)p;
+		case ctlmux`Rsetbrk:
+			return (ctlmux`Rsetbrk*)p;
+		case ctlmux`Tclrbrk:
+			return (ctlmux`Tclrbrk*)p;
+		case ctlmux`Rclrbrk:
+			return (ctlmux`Rclrbrk*)p;
+		case ctlmux`Tread:
+			return (ctlmux`Tread*)p;
+		case ctlmux`Rread:
+			return (ctlmux`Rread*)p;
+		case ctlmux`Tcleave:
+			return (ctlmux`Tcleave*)p;
+		case ctlmux`Rcleave:
+			return (ctlmux`Rcleave*)p;
+		case ctlmux`Twrite:
+			return (ctlmux`Twrite*)p;
+		case ctlmux`Rwrite:
+			return (ctlmux`Rwrite*)p;
+		case ctlmux`Tsetregs:
+			return (ctlmux`Tsetregs*)p;
+		case ctlmux`Rsetregs:
+			return (ctlmux`Rsetregs*)p;
+		case ctlmux`Tsetsnap:
+			return (ctlmux`Tsetsnap*)p;
+		case ctlmux`Rsetsnap:
+			return (ctlmux`Rsetsnap*)p;
+		case ctlmux`Tattach:
+			return (ctlmux`Tattach*)p;
+		case ctlmux`Rattach:
+			return (ctlmux`Rattach*)p;
+		case ctlmux`Ttest:
+			return (ctlmux`Ttest*)p;
+		case ctlmux`Rtest:
+			return (ctlmux`Rtest*)p;
+		case ctlmux`Tstep:
+			return (ctlmux`Tstep*)p;
+		case ctlmux`Rstep:
+			return (ctlmux`Rstep*)p;
+		case ctlmux`Tfread:
+			return (ctlmux`Tfread*)p;
+		case ctlmux`Rfread:
+			return (ctlmux`Rfread*)p;
+		case ctlmux`Tfwrite:
+			return (ctlmux`Tfwrite*)p;
+		case ctlmux`Rfwrite:
+			return (ctlmux`Rfwrite*)p;
+		case ctlmux`Ttrace:
+			return (ctlmux`Ttrace*)p;
+		case ctlmux`Rtrace:
+			return (ctlmux`Rtrace*)p;
+		case ctlmux`Tmap:
+			return (ctlmux`Tmap*)p;
+		case ctlmux`Rmap:
+			return (ctlmux`Rmap*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -589,8 +589,8 @@ proto = @names clp64le {
 
 	@define isasync(msg)
 	{
-		switch((enum proto`Mkind)msg->op){
-		case proto`Aevent:
+		switch((enum ctlmux`Mkind)msg->op){
+		case ctlmux`Aevent:
 			return 1;
 		default:
 			return 0;
@@ -611,15 +611,15 @@ proto = @names clp64le {
 		default:
 			error("bad sendmsg");
 		}
-		write(fd, cval2str((proto`uint64)sz));
+		write(fd, cval2str((ctlmux`uint64)sz));
 		write(fd, getbytes(p, sz));
 	}
 
 	@define ack(msg)
 	{
 		@local p;
-		p = (proto`Aack*)malloc(sizeof(proto`Aack));
-		p->op = proto`Aack;
+		p = (ctlmux`Aack*)malloc(sizeof(ctlmux`Aack));
+		p->op = ctlmux`Aack;
 		p->tag = msg->tag;
 		p->id = msg->id;
 		sendmsg(fd, p);
@@ -631,25 +631,25 @@ proto = @names clp64le {
 		t = targs[msg->id];
 		if(t == nil)
 			error("%e:%e for unknown task: %d",
-			      (enum proto`Mkind)msg->op,
-			      (proto`Event)msg->flags,
+			      (enum ctlmux`Mkind)msg->op,
+			      (ctlmux`Event)msg->flags,
 			      msg->id);
-		if((enum proto`Mkind)msg->op != proto`Aevent)
+		if((enum ctlmux`Mkind)msg->op != ctlmux`Aevent)
 			error("cltmux: unhandled message %e",
-			      (enum proto`Mkind)msg->op);
-		ev = (proto`Event)msg->flags;
+			      (enum ctlmux`Mkind)msg->op);
+		ev = (ctlmux`Event)msg->flags;
 		switch(ev){
-		case proto`Eexit:
+		case ctlmux`Eexit:
 			ack(msg);
 			log("task %d has died", msg->id);
 			tabdelete(targs, msg->id);
 			break;
-		case proto`Etrap:
+		case ctlmux`Etrap:
 			ack(msg);
 			trap = t.traps.look(msg->bp);
 			t.reg = cop(&msg->reg);
 			if(trap.desc[0] == "brk"){
-				t.state = proto`Stopped;
+				t.state = ctlmux`Stopped;
 				rv = trap.fn(t);
 				if(rv == 0 || rv == nil)
 					contasync(msg->id);
@@ -658,7 +658,7 @@ proto = @names clp64le {
 					      rv);
 			}else if(trap.desc[0] == "snap"){
 				c = targ(msg->cid,
-					 proto`Stopped,
+					 ctlmux`Stopped,
 					 cop(&msg->reg),
 					 t.traps,
 					 t.callbacks,
@@ -669,11 +669,11 @@ proto = @names clp64le {
 			}else
 				error("unhandled trap %a", trap.desc);
 			break;
-		case proto`Eclone:
+		case ctlmux`Eclone:
 			ack(msg);
 			log("task %d has cloned %d", msg->id, msg->cid);
 			c = targ(msg->cid,
-				 proto`Stopped,
+				 ctlmux`Stopped,
 				 cop(&msg->reg),
 				 t.traps,
 				 t.callbacks,
@@ -685,11 +685,11 @@ proto = @names clp64le {
 				fn(t, c);
 			contasync(msg->cid);
 			break;
-		case proto`Efork:
+		case ctlmux`Efork:
 			ack(msg);
 			log("task %d has forked %d", msg->id, msg->cid);
 			c = targ(msg->cid,
-				 proto`Stopped,
+				 ctlmux`Stopped,
 				 cop(&msg->reg),
 				 t.traps,
 				 t.callbacks,
@@ -701,9 +701,9 @@ proto = @names clp64le {
 				fn(t, c);
 			contasync(msg->cid);
 			break;
-		case proto`Eexec:
+		case ctlmux`Eexec:
 			ack(msg);
-			t.state = proto`Stopped;
+			t.state = ctlmux`Stopped;
 			t.reg = cop(&msg->reg);
 			log("task %d has called exec", msg->id);
 			fn = t.callbacks[ev];
@@ -711,9 +711,9 @@ proto = @names clp64le {
 				fn(t);
 			contasync(msg->id);
 			break;
-		case proto`Esyscall:
+		case ctlmux`Esyscall:
 			ack(msg);
-			t.state = proto`Stopped;
+			t.state = ctlmux`Stopped;
 			t.reg = cop(&msg->reg);
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
@@ -725,7 +725,7 @@ proto = @names clp64le {
 			break;
 		default:
 			error("unhandled event message: %e",
-			      (proto`Event)msg->flags);
+			      (ctlmux`Event)msg->flags);
  		}
 	}
 
@@ -746,10 +746,10 @@ proto = @names clp64le {
 		while(!pred()){
 			if(noinflight() && noprocs())
 				error("runtil: nothing to do");
-			s = read(fd, sizeof(proto`uint64));
+			s = read(fd, sizeof(ctlmux`uint64));
 			if(s == nil)
 				error("remote prctl hung up");
-			sz = *(proto`uint64*)s;
+			sz = *(ctlmux`uint64*)s;
 			p = read(fd, sz);
 			msg = buf2msg(p);
 
@@ -784,14 +784,14 @@ proto = @names clp64le {
 	{
 		@local t, p, rep;
 		t = targs[id];
-		p = (proto`Tclrbrk*)malloc(sizeof(proto`Tclrbrk));
-		p->op = proto`Tclrbrk;
+		p = (ctlmux`Tclrbrk*)malloc(sizeof(ctlmux`Tclrbrk));
+		p->op = ctlmux`Tclrbrk;
 		p->tag = freshtag();
 		p->id = id;
 		p->bp = bp;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rclrbrk);
+		checkreply(rep, ctlmux`Rclrbrk);
 		return nil;
 	}
 
@@ -799,14 +799,14 @@ proto = @names clp64le {
 	{
 		@local t, p, rep, clear;
 		t = targs[id];
-		p = (proto`Tsetbrk*)malloc(sizeof(proto`Tsetbrk));
-		p->op = proto`Tsetbrk;
+		p = (ctlmux`Tsetbrk*)malloc(sizeof(ctlmux`Tsetbrk));
+		p->op = ctlmux`Tsetbrk;
 		p->tag = freshtag();
 		p->id = id;
 		p->addr = addr;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rsetbrk);
+		checkreply(rep, ctlmux`Rsetbrk);
 		return rep->bp;
 	}
 
@@ -814,14 +814,14 @@ proto = @names clp64le {
 	{
 		@local t, p, rep, clear;
 		t = targs[id];
-		p = (proto`Tsetsnap*)malloc(sizeof(proto`Tsetsnap));
-		p->op = proto`Tsetsnap;
+		p = (ctlmux`Tsetsnap*)malloc(sizeof(ctlmux`Tsetsnap));
+		p->op = ctlmux`Tsetsnap;
 		p->tag = freshtag();
 		p->id = id;
 		p->addr = addr;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rsetsnap);
+		checkreply(rep, ctlmux`Rsetsnap);
 		return rep->bp;
 	}
 
@@ -829,14 +829,14 @@ proto = @names clp64le {
 	{
 		@local t, p, rep;
 		t = targs[id];
-		p = (proto`Ttrace*)malloc(sizeof(proto`Ttrace));
-		p->op = proto`Ttrace;
+		p = (ctlmux`Ttrace*)malloc(sizeof(ctlmux`Ttrace));
+		p->op = ctlmux`Ttrace;
 		p->tag = freshtag();
 		p->id = id;
 		p->flags = flags;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rtrace);
+		checkreply(rep, ctlmux`Rtrace);
 	}
 
 	@define pread(id, addr, cnt)
@@ -844,8 +844,8 @@ proto = @names clp64le {
 		@local t, p, rep;
 
 		t = targs[id];
-		p = (proto`Tread*)malloc(sizeof(proto`Tread));
-		p->op = proto`Tread;
+		p = (ctlmux`Tread*)malloc(sizeof(ctlmux`Tread));
+		p->op = ctlmux`Tread;
 		p->tag = freshtag();
 		p->id = id;
 		p->addr = addr;
@@ -853,7 +853,7 @@ proto = @names clp64le {
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rread);
+		checkreply(rep, ctlmux`Rread);
 		return getbytes(rep+1, cnt);
 	}
 
@@ -862,9 +862,9 @@ proto = @names clp64le {
 		@local sz, t, p, rep;
 
 		t = targs[id];
-		sz = sizeof(proto`Twrite)+cnt;
-		p = (proto`Twrite*)malloc(sz);
-		p->op = proto`Twrite;
+		sz = sizeof(ctlmux`Twrite)+cnt;
+		p = (ctlmux`Twrite*)malloc(sz);
+		p->op = ctlmux`Twrite;
 		p->tag = freshtag();
 		p->id = id;
 		p->addr = addr;
@@ -873,7 +873,7 @@ proto = @names clp64le {
 		sendmsg(fd, p, sz);
 
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rwrite);
+		checkreply(rep, ctlmux`Rwrite);
 		return nil;
 	}
 
@@ -882,16 +882,16 @@ proto = @names clp64le {
 		@local t, p, rep;
 
 		t = targs[id];
-		p = (proto`Tmap*)malloc(sizeof(proto`Tmap));
-		p->op = proto`Tmap;
+		p = (ctlmux`Tmap*)malloc(sizeof(ctlmux`Tmap));
+		p->op = ctlmux`Tmap;
 		p->tag = freshtag();
 		p->id = id;
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rmap);
-		return [rep->cnt/sizeof(proto`Region),
-			(proto`Region*)getbytes(rep+1, rep->cnt)];
+		checkreply(rep, ctlmux`Rmap);
+		return [rep->cnt/sizeof(ctlmux`Region),
+			(ctlmux`Region*)getbytes(rep+1, rep->cnt)];
 	}
 
 	@define contasync(id)
@@ -899,17 +899,17 @@ proto = @names clp64le {
 		@local t, p;
 
 		t = targs[id];
-		if(t == nil || t.state != proto`Stopped)
+		if(t == nil || t.state != ctlmux`Stopped)
 			return;
-		p = (proto`Tcont*)malloc(sizeof(proto`Tcont));
-		p->op = proto`Tcont;
+		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tcont));
+		p->op = ctlmux`Tcont;
 		p->tag = freshtag();
 		p->id = id;
 		sendmsg(fd, p);
 
 		taghandler[p->tag] = @lambda(rep){
-			checkreply(rep, proto`Rcont);
-			t.state = proto`Running;
+			checkreply(rep, ctlmux`Rcont);
+			t.state = ctlmux`Running;
 		};
 	}
 
@@ -918,17 +918,17 @@ proto = @names clp64le {
 		@local t, p, rep;
 
 		t = targs[id];
-		if(t.state != proto`Stopped)
+		if(t.state != ctlmux`Stopped)
 			return;
-		p = (proto`Tcont*)malloc(sizeof(proto`Tcont));
-		p->op = proto`Tcont;
+		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tcont));
+		p->op = ctlmux`Tcont;
 		p->tag = freshtag();
 		p->id = id;
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rcont);
-		t.state = proto`Running;
+		checkreply(rep, ctlmux`Rcont);
+		t.state = ctlmux`Running;
 	}
 
 	@define detach(id)
@@ -936,15 +936,15 @@ proto = @names clp64le {
 		@local t, p, rep;
 
 		t = targs[id];
-		p = (proto`Tdetach*)malloc(sizeof(proto`Tdetach));
-		p->op = proto`Tdetach;
+		p = (ctlmux`Tdetach*)malloc(sizeof(ctlmux`Tdetach));
+		p->op = ctlmux`Tdetach;
 		p->tag = freshtag();
 		p->id = id;
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rdetach);
-		t.state = proto`Dead;
+		checkreply(rep, ctlmux`Rdetach);
+		t.state = ctlmux`Dead;
 		log("task %d has detached", rep->id);
 		tabdelete(targs, rep->id);
 	}
@@ -956,13 +956,15 @@ proto = @names clp64le {
 		narg = length(args);
 		if(narg == 0)
 			error("mkpras: launch: empty command");
+		if(flags == nil)
+			flags = 0;
 
 		/* format and send Tlaunch */
-		sz = sizeof(proto`Tlaunch);
+		sz = sizeof(ctlmux`Tlaunch);
 		for(i = 0; i < narg; i++)
 			sz += strlen(listref(args, i))+1;
-		p = (proto`Tlaunch*)malloc(sz);
-		p->op = proto`Tlaunch;
+		p = (ctlmux`Tlaunch*)malloc(sz);
+		p->op = ctlmux`Tlaunch;
 		p->tag = freshtag();
 		p->flags = flags;
 		p->narg = narg;
@@ -976,9 +978,9 @@ proto = @names clp64le {
 		
 		/* wait for reply */
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rlaunch);
+		checkreply(rep, ctlmux`Rlaunch);
 		t = targ(rep->id,
-			 proto`Stopped,
+			 ctlmux`Stopped,
 			 cop(&rep->reg),
 			 mktrapman(),
 			 [ : ],
@@ -992,18 +994,18 @@ proto = @names clp64le {
 	{
 		@local p, rep, t;
 
-		p = (proto`Tattach*)malloc(sizeof(proto`Tattach));
-		p->op = proto`Tattach;
+		p = (ctlmux`Tattach*)malloc(sizeof(ctlmux`Tattach));
+		p->op = ctlmux`Tattach;
 		p->tag = freshtag();
 		p->id = pid;
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
-		checkreply(rep, proto`Rattach);
+		checkreply(rep, ctlmux`Rattach);
 		// attach leaves the target running
 		t = targ(rep->id,
-			 proto`Running,
-			 (proto`Reg*)malloc(sizeof(proto`Reg)),
+			 ctlmux`Running,
+			 (ctlmux`Reg*)malloc(sizeof(ctlmux`Reg)),
 			 mktrapman(),
 			 [ : ],
 			 nil);
@@ -1019,7 +1021,7 @@ proto = @names clp64le {
 
 	fds = popen("prctl", "-c", 2|4|8);
 	fd = fds[0];
-	mux = ctlmux(launch, attach, run);
+	mux = ctlmuxrec(launch, attach, run);
 	finalize(fd, @lambda(fd) { close(fd); });
 	return mux;
 }

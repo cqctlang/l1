@@ -39,7 +39,7 @@
 	ctl = mux.launch([ "./clones", sprintfa("%d", n)], 0);
 	as = ctl.as;
 	dom = mkdom(ns, as);
-	dom.trace(proto`Eclone,
+	dom.trace(ctlmux`Eclone,
 		  @lambda(ctl, cctl){
 			  printf("task %d has cloned %d\n", ctl.id, cctl.id);
 			  nc++;
