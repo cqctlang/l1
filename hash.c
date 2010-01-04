@@ -248,7 +248,7 @@ heq(HT *ha, HT *hb)
 			hp = hp->next;
 		}
 	}
-	for(i = 0; i < ha->sz; ++i){
+	for(i = 0; i < hb->sz; ++i){
 		hp = hb->ht[i];
 		while(hp) {
 			v = hget(ha,hp->key,hp->keylen);
