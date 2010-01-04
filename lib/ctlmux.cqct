@@ -270,19 +270,84 @@ ctlmux = @names clp64le {
 	typedef struct Rmap Rmap;
 };
 
-@record ctlmuxrec { launch, attach, run };
-@record targ { id, state, reg, traps, callbacks, as };
+@record ctlrec {
+	id,
+	xstop,
+	xcont,
+	xstep,
+	detach,
+	kill,
+	mem,
+	reg,
+	trace,
+	traces,
+	xtrap,
+	xtraps,
+	// private
+	state,
+	reg,
+	traps,
+	callbacks,
+};
+
+@define mkctl(mux, id, state, reg, traps, callbacks)
+{
+	@local xstop, xcont, xstep, detach, kill;
+	@local mem, reg, trace, traces, xtrap, xtraps;
+	@local this;
+
+	@define xstop()  { return mux.stop(this); }
+	@define xcont()  { return mux.cont(this); }
+	@define xstep()  { return mux.step(this); }
+	@define detach() { return mux.detach(this); }
+	@define kill()   { return mux.kill(this); }
+	@define mem()    { return mux.mem(this); }
+	@define reg()	 { return mux.reg(this); }
+	@define traces() { return mux.traces(this); }
+	@define xtraps() { return mux.xtraps(this); }
+
+	@define trace(event, handler)
+	{
+		return mux.trace(this, event);
+	}
+
+	@define xtrap(addr, handler)
+	{
+		return mux.xtrap(this, addr);
+	}
+
+	this = ctlrec(id, xstop, xcont, xstep, detach, kill,
+		      mem, reg, trace, traces, xtrap, xtraps,
+		      state, reg, traps, callbacks);
+	return this;
+}
+
+@record muxrec {
+	launch,
+	attach,
+	run,
+	// private
+	stop,
+	cont,
+	step,
+	detach,
+	kill,
+	xtrap,
+	trace,
+};
 
 @define mkctlmux()
 {
 	@local tab, launch, attach, run, fds, fd;
 	@local logsend, logrecv, log, verbose;
-	@local checkreply, cop, targs;
+	@local checkreply, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
-	
+	@local stop, step, detach, kill;
+	@local trace, xtrap;
+
 	nexttag = 0;
 	freetags = [ ];
-	targs = [:];
+	ctls = [:];
 	taghandler = [:];
 
 	@define freshtag()
@@ -627,79 +692,67 @@ ctlmux = @names clp64le {
 
 	@define handleasync(msg)
 	{
-		@local t, c, trap, ev, fn;
-		t = targs[msg->id];
-		if(t == nil)
-			error("%e:%e for unknown task: %d",
+		@local ctl, newctl, trap, ev, fn, docall;
+		ctl = ctls[msg->id];
+		if(ctl == nil)
+			error("%e:%e for unknown process id: %d",
 			      (enum ctlmux`Mkind)msg->op,
 			      (ctlmux`Event)msg->flags,
 			      msg->id);
 		if((enum ctlmux`Mkind)msg->op != ctlmux`Aevent)
 			error("cltmux: unhandled message %e",
 			      (enum ctlmux`Mkind)msg->op);
+
+		@define docall(thunk)
+		{
+			if(thunk() == nil)
+				contasync(ctl);
+		}
+
 		ev = (ctlmux`Event)msg->flags;
 		switch(ev){
 		case ctlmux`Eexit:
 			ack(msg);
 			log("task %d has died", msg->id);
-			tabdelete(targs, msg->id);
+			tabdelete(ctls, msg->id);
 			break;
 		case ctlmux`Etrap:
 			ack(msg);
-			trap = t.traps.look(msg->bp);
-			t.reg = cop(&msg->reg);
+			trap = ctl.traps.look(msg->bp);
+			ctl.reg = cop(&msg->reg);
 			if(trap.desc[0] == "brk"){
-				t.state = ctlmux`Stopped;
-				rv = trap.fn(t);
-				if(rv == 0 || rv == nil)
-					contasync(msg->id);
-				else if(rv != 1)
-					error("bad brk handler return (%a)",
-					      rv);
+				ctl.state = ctlmux`Stopped;
+				docall(@lambda() { trap.fn(ctl) });
 			}else if(trap.desc[0] == "snap"){
-				c = targ(msg->cid,
-					 ctlmux`Stopped,
-					 cop(&msg->reg),
-					 t.traps,
-					 t.callbacks,
-					 nil);
-				c.as = mktargas(c);
-				targs[msg->cid] = c;
-				trap.fn(t, c);
+				newctl = mkctl(this,
+					       msg->cid,
+					       ctlmux`Stopped,
+					       cop(&msg->reg),
+					       ctl.traps,
+					       ctl.callbacks);
+				ctls[msg->cid] = newctl;
+				docall(@lambda() { trap.fn(ctl, newctl); });
 			}else
 				error("unhandled trap %a", trap.desc);
 			break;
 		case ctlmux`Eclone:
-			ack(msg);
-			log("task %d has cloned %d", msg->id, msg->cid);
-			c = targ(msg->cid,
-				 ctlmux`Stopped,
-				 cop(&msg->reg),
-				 t.traps,
-				 t.callbacks,
-				 nil);
-			c.as = mktargas(c);
-			targs[msg->cid] = c;
-			fn = t.callbacks[ev];
-			if(fn != nil)
-				fn(t, c);
-			contasync(msg->cid);
-			break;
 		case ctlmux`Efork:
 			ack(msg);
-			log("task %d has forked %d", msg->id, msg->cid);
-			c = targ(msg->cid,
-				 ctlmux`Stopped,
-				 cop(&msg->reg),
-				 t.traps,
-				 t.callbacks,
-				 nil);
-			c.as = mktargas(c);
-			targs[msg->cid] = c;
-			fn = t.callbacks[ev];
+			log("task %d has %s %d",
+			    msg->id,
+			    ev == ctlmux`Eclone ? "cloned" : "forked",
+			    msg->cid);
+			newctl = mkctl(this,
+				       msg->cid,
+				       ctlmux`Stopped,
+				       cop(&msg->reg),
+				       ctl.traps,
+				       ctl.callbacks);
+			ctls[msg->cid] = newctl;
+			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				fn(t, c);
-			contasync(msg->cid);
+				docall(@lambda() { fn(ctl, newctl); });
+			contasync(newctl);
 			break;
 		case ctlmux`Eexec:
 			ack(msg);
@@ -729,9 +782,9 @@ ctlmux = @names clp64le {
  		}
 	}
 
-	@define noprocs()
+	@define noctls()
 	{
-		return length(targs) == 0;
+		return length(ctls) == 0;
 	}
 
 	@define noinflight()
@@ -744,7 +797,7 @@ ctlmux = @names clp64le {
 		@local s, sz, p, op, msg, h, tag;
 
 		while(!pred()){
-			if(noinflight() && noprocs())
+			if(noinflight() && noctls())
 				error("runtil: nothing to do");
 			s = read(fd, sizeof(ctlmux`uint64));
 			if(s == nil)
@@ -894,64 +947,123 @@ ctlmux = @names clp64le {
 			(ctlmux`Region*)getbytes(rep+1, rep->cnt)];
 	}
 
-	@define contasync(id)
+	@define contasync(ctl)
 	{
-		@local t, p;
+		@local p;
 
-		t = targs[id];
-		if(t == nil || t.state != ctlmux`Stopped)
+		if(ctl.state != ctlmux`Stopped)
 			return;
 		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tcont));
 		p->op = ctlmux`Tcont;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		sendmsg(fd, p);
 
 		taghandler[p->tag] = @lambda(rep){
 			checkreply(rep, ctlmux`Rcont);
-			t.state = ctlmux`Running;
+			ctl.state = ctlmux`Running;
 		};
 	}
 
-	@define cont(id)
+	@define cont(ctl)
 	{
-		@local t, p, rep;
+		@local p, rep;
 
-		t = targs[id];
-		if(t.state != ctlmux`Stopped)
+		if(ctl.state != ctlmux`Stopped)
 			return;
 		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tcont));
 		p->op = ctlmux`Tcont;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rcont);
-		t.state = ctlmux`Running;
+		ctl.state = ctlmux`Running;
+		return nil;
 	}
 
-	@define detach(id)
+	@define stop(ctl)
 	{
-		@local t, p, rep;
+		@local p, rep;
 
-		t = targs[id];
+		if(ctl.state != ctlmux`Running)
+			return;
+		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tstop));
+		p->op = ctlmux`Tstop;
+		p->tag = freshtag();
+		p->id = ctl.id;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rstop);
+		ctl.state = ctlmux`Running;
+		return nil;
+	}
+
+	@define step(ctl)
+	{
+		@local p, rep;
+
+		if(ctl.state != ctlmux`Stopped)
+			error("attempt to step running ctl");
+		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tstep));
+		p->op = ctlmux`Tstep;
+		p->tag = freshtag();
+		p->id = ctl.id;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rstep);
+		return nil;
+	}
+
+	@define detach(ctl)
+	{
+		@local p, rep;
+
 		p = (ctlmux`Tdetach*)malloc(sizeof(ctlmux`Tdetach));
 		p->op = ctlmux`Tdetach;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rdetach);
-		t.state = ctlmux`Dead;
+		ctl.state = ctlmux`Dead;
 		log("task %d has detached", rep->id);
-		tabdelete(targs, rep->id);
+		tabdelete(ctls, ctl.id);
+	}
+
+	@define kill(ctl)
+	{
+		@local p, rep;
+
+		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tkill));
+		p->op = ctlmux`Tkill;
+		p->tag = freshtag();
+		p->id = ctl.id;
+		sendmsg(fd, p);
+
+		rep = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rkill);
+		tabdelete(ctls, ctl.id);
+		return nil;
+	}
+
+	@define xtrap(ctl, addr)
+	{
+		return nil;
+	}
+
+	@define trace(ctl, event)
+	{
+		return nil;
 	}
 
 	@define launch(args, flags)
 	{
-		@local narg, s, sz, i, p, q, t, rep;
+		@local narg, s, sz, i, p, q, ctl, rep;
 
 		narg = length(args);
 		if(narg == 0)
@@ -979,20 +1091,19 @@ ctlmux = @names clp64le {
 		/* wait for reply */
 		rep = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rlaunch);
-		t = targ(rep->id,
-			 ctlmux`Stopped,
-			 cop(&rep->reg),
-			 mktrapman(),
-			 [ : ],
-			 nil);
-		t.as = mktargas(t);
-		targs[rep->id] = t;
-		return t;
+		ctl = mkctl(mux,
+			    rep->id,
+			    ctlmux`Stopped,
+			    cop(&rep->reg),
+			    mktrapman(),
+			    [ : ]);
+		ctls[rep->id] = ctl;
+		return ctl;
 	}
 
 	@define attach(pid)
 	{
-		@local p, rep, t;
+		@local p, rep, ctl;
 
 		p = (ctlmux`Tattach*)malloc(sizeof(ctlmux`Tattach));
 		p->op = ctlmux`Tattach;
@@ -1003,25 +1114,27 @@ ctlmux = @names clp64le {
 		rep = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rattach);
 		// attach leaves the target running
-		t = targ(rep->id,
-			 ctlmux`Running,
-			 (ctlmux`Reg*)malloc(sizeof(ctlmux`Reg)),
-			 mktrapman(),
-			 [ : ],
-			 nil);
-		t.as = mktargas(t);
-		targs[rep->id] = t;
-		return t;
+		ctl = mkctl(mux,
+			    rep->id,
+			    ctlmux`Running,
+			    (ctlmux`Reg*)malloc(sizeof(ctlmux`Reg)),
+			    mktrapman(),
+			    [ : ]);
+		ctls[rep->id] = ctl;
+		return ctl;
 	}
 
 	@define run()
 	{
-		runtil(noprocs);
+		runtil(noctls);
 	}
 
 	fds = popen("prctl", "-c", 2|4|8);
 	fd = fds[0];
-	mux = ctlmuxrec(launch, attach, run);
 	finalize(fd, @lambda(fd) { close(fd); });
+	mux = muxrec(launch, attach, run,
+		     stop, cont, step,
+		     detach, kill,
+		     xtrap, trace);
 	return mux;
 }
