@@ -135,12 +135,12 @@ ctl.trace(event, handler)
 	---------------------------------------------------------------
 	ctlmux`Esyscall		(ctl)		enter/exit system call
 	ctlmux`Eexec		(ctl)		successful exec return 
-	ctlmux`Esignal		(ctl)		signal
+	ctlmux`Esignal		(ctl)		signal (UNIMPLEMENTED)
 	ctlmux`Eexit		(ctl)		exit
 	ctlmux`Efork		(ctl, newctl)	successful fork return
 	ctlmux`Eclone		(ctl, newctl)	successful clone return
 
-ctl.traces()
+ctl.traces() (UNIMPLEMENTED)
 
 	traces returns a list of active (non-nil)
 	traces on the ctl.  Each element of the list is
@@ -163,7 +163,7 @@ ctl.xtrap(addr, handler)
 	Passing a nil handler ends the trapping of the
 	specified address.
 
-ctl.xtraps()
+ctl.xtraps() (UNIMPLEMENTED)
 
 	xtraps returns a list of active traps on the ctl.
 	Each element of the list is a list of two elements:
