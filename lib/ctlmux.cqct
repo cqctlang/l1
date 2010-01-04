@@ -282,7 +282,9 @@ ctlmux = @names clp64le {
 	trace,
 	traces,
 	xtrap,
+	xsnap,
 	xtraps,
+	trapreset,
 	// private
 	state,
 	reg,
@@ -293,7 +295,7 @@ ctlmux = @names clp64le {
 @define mkctl(mux, id, state, reg, traps, callbacks)
 {
 	@local xstop, xcont, xstep, detach, kill;
-	@local mem, reg, trace, traces, xtrap, xtraps;
+	@local mem, reg, trace, traces, xtrap, xsnap, xtraps, trapreset;
 	@local this;
 
 	@define xstop()  { return mux.stop(this); }
@@ -301,158 +303,75 @@ ctlmux = @names clp64le {
 	@define xstep()  { return mux.step(this); }
 	@define detach() { return mux.detach(this); }
 	@define kill()   { return mux.kill(this); }
-	@define mem()    { return mux.mem(this); }
-	@define reg()	 { return mux.reg(this); }
-	@define traces() { return mux.traces(this); }
-	@define xtraps() { return mux.xtraps(this); }
 
-	@define trace(event, handler)
+//	@define traces() { return mux.traces(this); }
+//	@define xtraps() { return mux.xtraps(this); }
+
+	@define trace(event, fn)
 	{
+		callbacks[(ctlmux`Event)event] = fn;
 		return mux.trace(this, event);
 	}
 
-	@define xtrap(addr, handler)
+	@define trapset(addr, fn, snap)
 	{
-		return mux.xtrap(this, addr);
-	}
-
-	this = ctlrec(id, xstop, xcont, xstep, detach, kill,
-		      mem, reg, trace, traces, xtrap, xtraps,
-		      state, reg, traps, callbacks);
-	return this;
-}
-
-@record muxrec {
-	launch,
-	attach,
-	run,
-	// private
-	stop,
-	cont,
-	step,
-	detach,
-	kill,
-	xtrap,
-	trace,
-};
-
-@define mkctlmux()
-{
-	@local tab, launch, attach, run, fds, fd;
-	@local logsend, logrecv, log, verbose;
-	@local checkreply, cop, ctls;
-	@local freetags, nexttag, taghandler, mux;
-	@local stop, step, detach, kill;
-	@local trace, xtrap;
-
-	nexttag = 0;
-	freetags = [ ];
-	ctls = [:];
-	taghandler = [:];
-
-	@define freshtag()
-	{
-		if(isempty(freetags))
-			return nexttag++;
-		return pop(freetags);
-	}
-
-	@define reusetag(tag)
-	{
-		push(freetags, tag);
-	}
-	
-	verbose = 0;
-	@define logsend(s){
-		if(verbose)
-			printf("<-- %s\n", s);
-	}
-	@define logrecv(s){
-		if(verbose)
-			printf("--> %s\n", s);
-	}
-	@define log(arg ...){
-		if(verbose){
-			apply(printf, arg);
-			printf("\n");
-		}
-	}
-
-	@define cop(p){
-		return {@typeof(p)}getbytes(p);
-	}
-
-	@define checkreply(rep, op)
-	{
-		switch(rep->op){
-		case op:
-			break;
-		case ctlmux`Rerror:
-			error("ctlmux: while waiting for %e: %s",
-			      op, rep->bytes);
-		default:
-			error("ctlmux: while waiting for %e: received %e",
-			      op, (enum ctlmux`Mkind)rep->op);
-		}
-	}
-
-	@define trapset(id, addr, fn, snap)
-	{
-		@local t, tid, bp, kind;
-		t = targs[id];
+		@local tid, bp, kind;
 		if(snap){
-			bp = setsnap(id, addr);
+			bp = mux.setsnap(this, addr);
 			kind = "snap";
 		}else{
-			bp = setbrk(id, addr);
+			bp = mux.setbrk(this, addr);
 			kind = "brk";
 		}
-		tid = t.traps.add(bp, fn, [kind, addr],
-				  @lambda(){ clrbrk(id, bp); });
+		tid = traps.add(bp, fn, [kind, addr],
+				@lambda(){ mux.clrbrk(this, id, bp); });
 		return tid;
 	}
 
-	@define trapdel(id, tid)
+	@define trapdel(tid)
 	{
-		@local t;
-		t = targs[id];
-		t.traps.clr(tid);
+		traps.clr(tid);
 		return nil;
 	}
 
-	@define trapreset(id)
+	@define xtrap(addr, fn)
 	{
-		@local t;
-		t = targs[id];
-		t.traps.reset();
+		return trapset(addr, fn, 0);
+	}
+
+	@define xsnap(addr, fn)
+	{
+		return trapset(addr, fn, 1);
+	}
+
+	@define xtraps()
+	{
+		return traps.list();
+	}
+
+	@define trapreset()
+	{
+		traps.reset();
 		return nil;
 	}
 
-	@define traplist(id)
+	@define reg()
 	{
-		@local t;
-		t = targs[id];
-		return t.traps.list();
+		return reg;
 	}
 
-	@define mktargas(t)
+	@define mem()
 	{
-		@local mcont, mget, mput, mmap;
-		@local mxtrap, mxsnap, mtrapdel, mtraplist, mtrapreset;
-		
-		@define mcont(this)
+		@local map, get, put, prot2str;
+
+		@define get(as, r)
 		{
-			return cont(t.id);
+			return mux.pread(this, rangebeg(r), rangelen(r));
 		}
 
-		@define mget(this, r)
+		@define put(as, r, s)
 		{
-			return pread(t.id, rangebeg(r), rangelen(r));
-		}
-
-		@define mput(this, r, s)
-		{
-			return pwrite(t.id, rangebeg(r), rangelen(r), s);
+			return mux.pwrite(this,  rangebeg(r), rangelen(r), s);
 		}
 
 		@define prot2str(prot)
@@ -475,10 +394,12 @@ ctlmux = @names clp64le {
 			return s;
 		}
 
-		@define mxmap(this)
+		@define map(as)
 		{
+			@local prot2str;
 			@local n, rs, i;
-			[n, rs] = pmap(t.id);
+
+			[n, rs] = mux.pmap(ctl);
 			for(i = 0; i < n; i++){
 				printf("%016x %016x %s %s\n",
 				       rs[i].addr,
@@ -486,75 +407,131 @@ ctlmux = @names clp64le {
 				       prot2str(rs[i].flags),
 				       rs[i].file);
 			}
-		}
-
-		@define mmap(this)
-		{
-			mxmap(this);
 			return vector(mkrange(0, (`uint64)-1));
 		}
 
-		@define mxtrap(this, addr, fn)
+		@define ctl(as)
 		{
-			return trapset(t.id, addr, fn, 0);
+			return this;
 		}
 
-		@define mxsnap(this, addr, fn)
+
+		@define id(as)
 		{
-			return trapset(t.id, addr, fn, 1);
+			return ctl.id;
 		}
 
-		@define mtrapdel(this, tid)
+		// redirect unknown calls to ctl
+		@define dispatch(arg ...)
 		{
-			trapdel(t.id, tid);
+			@local name, f, rv;
+			pop(arg);
+			name = pop(arg);
+
+			// this is not cool.
+			f = rdgettab(rdof(this))[name](this);
+
+			rv = apply(f, arg);
+			return rv;
 		}
 
-		@define mtraplist(this)
-		{
-			return traplist(t.id);
-		}
-
-		@define mtrapreset(this)
-		{
-			trapreset(t.id);
-		}
-
-		@define mtrace(this, flags, fn)
-		{
-			trace(t.id, flags);
-			t.callbacks[(ctlmux`Event)flags] = fn;
-		}
-
-		@define mreg(this)
-		{
-			return t.reg;
-		}
-
-		@define mdetach(this)
-		{
-			return detach(t.id);
-		}
-
-		@define mid(this)
-		{
-			return t.id;
-		}
-
-		return mkas([ "get"       : mget,
-			      "put"       : mput,
-			      "map"       : mmap,
-			      "xmap"	  : mxmap,
-			      "xcont"     : mcont,
-			      "xtrap"     : mxtrap,
-			      "xsnap"     : mxsnap,
-			      "trapdel"   : mtrapdel,
-			      "traplist"  : mtraplist,
-			      "trapreset" : mtrapreset,
-			      "trace"	  : mtrace,
-			      "reg"	  : mreg,
-			      "detach"	  : mdetach,
-			      "id"	  : mid,
+		return mkas([ "get"       : get,
+			      "put"       : put,
+			      "map"       : map,
+			      "ctl"       : ctl,
+			      "dispatch"  : dispatch,
 			    ]);
+	}
+
+	this = ctlrec(id, xstop, xcont, xstep, detach, kill,
+		      mem, reg, trace, traces, xtrap, xsnap, xtraps, trapreset,
+		      state, reg, traps, callbacks);
+	return this;
+}
+
+@record muxrec {
+	launch,
+	attach,
+	run,
+	// private
+	stop,
+	cont,
+	step,
+	detach,
+	kill,
+	pread,
+	pwrite,
+	pmap,
+	trace,
+	setbrk,
+	setsnap,
+	clrbrk,
+};
+
+@define mkctlmux()
+{
+	@local tab, launch, attach, run, fds, fd;
+	@local logsend, logrecv, log, verbose;
+	@local checkreply, cop, ctls;
+	@local freetags, nexttag, taghandler, mux;
+	@local stop, step, detach, kill;
+	@local pread, pwrite, pmap;
+	@local trace, xtrap, fmtmsg, buf2msg;
+	@local setbrk, setsnap, clrbrk;
+
+	nexttag = 0;
+	freetags = [ ];
+	ctls = [:];
+	taghandler = [:];
+
+	@define freshtag()
+	{
+		if(isempty(freetags))
+			return nexttag++;
+		return pop(freetags);
+	}
+
+	@define reusetag(tag)
+	{
+		push(freetags, tag);
+	}
+	
+	verbose = 0;
+	@define logsend(s)
+	{
+		if(verbose)
+			printf("<-- %s\n", s);
+	}
+	@define logrecv(s)
+	{
+		if(verbose)
+			printf("--> %s\n", s);
+	}
+	@define log(arg ...)
+	{
+		if(verbose){
+			apply(printf, arg);
+			printf("\n");
+		}
+	}
+
+	@define cop(p)
+	{
+		return {@typeof(p)}getbytes(p);
+	}
+
+	@define checkreply(rep, op)
+	{
+		switch(rep->op){
+		case op:
+			break;
+		case ctlmux`Rerror:
+			error("ctlmux: while waiting for %e: %s",
+			      op, rep->bytes);
+		default:
+			error("ctlmux: while waiting for %e: received %e",
+			      op, (enum ctlmux`Mkind)rep->op);
+		}
 	}
 
 	@define fmtmsg(msg)
@@ -722,9 +699,9 @@ ctlmux = @names clp64le {
 			ctl.reg = cop(&msg->reg);
 			if(trap.desc[0] == "brk"){
 				ctl.state = ctlmux`Stopped;
-				docall(@lambda() { trap.fn(ctl) });
+				docall(@lambda() { trap.fn(ctl); });
 			}else if(trap.desc[0] == "snap"){
-				newctl = mkctl(this,
+				newctl = mkctl(mux,
 					       msg->cid,
 					       ctlmux`Stopped,
 					       cop(&msg->reg),
@@ -742,7 +719,7 @@ ctlmux = @names clp64le {
 			    msg->id,
 			    ev == ctlmux`Eclone ? "cloned" : "forked",
 			    msg->cid);
-			newctl = mkctl(this,
+			newctl = mkctl(mux,
 				       msg->cid,
 				       ctlmux`Stopped,
 				       cop(&msg->reg),
@@ -752,29 +729,33 @@ ctlmux = @names clp64le {
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall(@lambda() { fn(ctl, newctl); });
+			else
+				contasync(ctl);
 			contasync(newctl);
 			break;
 		case ctlmux`Eexec:
 			ack(msg);
-			t.state = ctlmux`Stopped;
-			t.reg = cop(&msg->reg);
+			ctl.state = ctlmux`Stopped;
+			ctl.reg = cop(&msg->reg);
 			log("task %d has called exec", msg->id);
-			fn = t.callbacks[ev];
+			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				fn(t);
-			contasync(msg->id);
+				docall(@lambda() { fn(ctl); });
+			else
+				contasync(newctl);
 			break;
 		case ctlmux`Esyscall:
 			ack(msg);
-			t.state = ctlmux`Stopped;
-			t.reg = cop(&msg->reg);
+			ctl.state = ctlmux`Stopped;
+			ctl.reg = cop(&msg->reg);
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
-			fn = t.callbacks[ev];
+			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				fn(t);
-			contasync(msg->id);
+				docall(@lambda() { fn(ctl); });
+			else
+				contasync(newctl);
 			break;
 		default:
 			error("unhandled event message: %e",
@@ -833,14 +814,13 @@ ctlmux = @names clp64le {
 		return msg;
 	}
 
-	@define clearbrk(id, bp)
+	@define clrbrk(ctl, bp)
 	{
-		@local t, p, rep;
-		t = targs[id];
+		@local p, rep;
 		p = (ctlmux`Tclrbrk*)malloc(sizeof(ctlmux`Tclrbrk));
 		p->op = ctlmux`Tclrbrk;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		p->bp = bp;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
@@ -848,14 +828,13 @@ ctlmux = @names clp64le {
 		return nil;
 	}
 
-	@define setbrk(id, addr)
+	@define setbrk(ctl, addr)
 	{
-		@local t, p, rep, clear;
-		t = targs[id];
+		@local p, rep, clear;
 		p = (ctlmux`Tsetbrk*)malloc(sizeof(ctlmux`Tsetbrk));
 		p->op = ctlmux`Tsetbrk;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		p->addr = addr;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
@@ -863,14 +842,13 @@ ctlmux = @names clp64le {
 		return rep->bp;
 	}
 
-	@define setsnap(id, addr)
+	@define setsnap(ctl, addr)
 	{
-		@local t, p, rep, clear;
-		t = targs[id];
+		@local p, rep, clear;
 		p = (ctlmux`Tsetsnap*)malloc(sizeof(ctlmux`Tsetsnap));
 		p->op = ctlmux`Tsetsnap;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		p->addr = addr;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
@@ -878,29 +856,28 @@ ctlmux = @names clp64le {
 		return rep->bp;
 	}
 
-	@define trace(id, flags)
+	@define trace(ctl, flags)
 	{
-		@local t, p, rep;
-		t = targs[id];
+		@local p, rep;
+
 		p = (ctlmux`Ttrace*)malloc(sizeof(ctlmux`Ttrace));
 		p->op = ctlmux`Ttrace;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		p->flags = flags;
 		sendmsg(fd, p);
 		rep = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rtrace);
 	}
 
-	@define pread(id, addr, cnt)
+	@define pread(ctl, addr, cnt)
 	{
-		@local t, p, rep;
+		@local p, rep;
 
-		t = targs[id];
 		p = (ctlmux`Tread*)malloc(sizeof(ctlmux`Tread));
 		p->op = ctlmux`Tread;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		p->addr = addr;
 		p->cnt = cnt;
 		sendmsg(fd, p);
@@ -910,16 +887,15 @@ ctlmux = @names clp64le {
 		return getbytes(rep+1, cnt);
 	}
 
-	@define pwrite(id, addr, cnt, bytes)
+	@define pwrite(ctl, addr, cnt, bytes)
 	{
-		@local sz, t, p, rep;
+		@local sz, p, rep;
 
-		t = targs[id];
 		sz = sizeof(ctlmux`Twrite)+cnt;
 		p = (ctlmux`Twrite*)malloc(sz);
 		p->op = ctlmux`Twrite;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		p->addr = addr;
 		p->cnt = cnt;
 		putbytes(p+1, bytes);
@@ -930,15 +906,14 @@ ctlmux = @names clp64le {
 		return nil;
 	}
 
-	@define pmap(id)
+	@define pmap(ctl)
 	{
-		@local t, p, rep;
+		@local p, rep;
 
-		t = targs[id];
 		p = (ctlmux`Tmap*)malloc(sizeof(ctlmux`Tmap));
 		p->op = ctlmux`Tmap;
 		p->tag = freshtag();
-		p->id = id;
+		p->id = ctl.id;
 		sendmsg(fd, p);
 
 		rep = runtiltag(p->tag);
@@ -1051,16 +1026,6 @@ ctlmux = @names clp64le {
 		return nil;
 	}
 
-	@define xtrap(ctl, addr)
-	{
-		return nil;
-	}
-
-	@define trace(ctl, event)
-	{
-		return nil;
-	}
-
 	@define launch(args, flags)
 	{
 		@local narg, s, sz, i, p, q, ctl, rep;
@@ -1132,9 +1097,20 @@ ctlmux = @names clp64le {
 	fds = popen("prctl", "-c", 2|4|8);
 	fd = fds[0];
 	finalize(fd, @lambda(fd) { close(fd); });
-	mux = muxrec(launch, attach, run,
-		     stop, cont, step,
-		     detach, kill,
-		     xtrap, trace);
+	mux = muxrec(launch,
+		     attach,
+		     run,
+		     stop,
+		     cont,
+		     step,
+		     detach,
+		     kill,
+		     pread,
+		     pwrite,
+		     pmap,
+		     trace,
+		     setbrk,
+		     setsnap,
+		     clrbrk);
 	return mux;
 }
