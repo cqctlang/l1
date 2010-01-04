@@ -224,11 +224,6 @@ hrefval(HT *ht, unsigned long idx)
 	return ht->hent[idx]->val;
 }
 
-struct arg{
-	HT *ht;
-	unsigned long n;
-};
-
 int
 heq(HT *ha, HT *hb)
 {
