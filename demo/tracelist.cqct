@@ -28,7 +28,7 @@
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
-	as = ctl.as;
+	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
@@ -48,7 +48,7 @@
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
-	as = ctl.as;
+	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
@@ -67,7 +67,7 @@
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
-	as = ctl.as;
+	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.trace(ctlmux`Esyscall,
 		  @lambda(ctl) {
@@ -85,7 +85,7 @@
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
-	as = ctl.as;
+	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.xsnap(&dom`insert,
 		  @lambda(ctl, cctl){

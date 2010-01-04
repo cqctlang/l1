@@ -36,13 +36,13 @@ l1names = l1+".names";
 	mux = mkctlmux();
 	push(args, l1);
 	ctl = mux.launch(args, 0);
-	as = ctl.as;
+	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.trace(ctlmux`Eexec,
 		  @lambda(ctl){
 			  nexec++;
 			  if(nexec >= 1)
-				  ctl.as.detach();
+				  ctl.detach();
 
 		  });
 	dom.xtrap(&dom`finivm,
