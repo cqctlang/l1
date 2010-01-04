@@ -229,32 +229,33 @@ struct arg{
 	unsigned long n;
 };
 
-static void
-cmp1(void *u, char *id, void *v)
-{
-	struct arg *a;
-	a = u;
-	if(hget(a->ht, id, strlen(id)) != v)
-		a->n++;		/* not found */
-}
-
 int
 heq(HT *ha, HT *hb)
 {
-	struct arg a;
+	Hent *hp;
+	unsigned long i;
+	void* v;
 
 	if(hnent(ha) != hnent(hb))
 		return 0;
-
-	a.ht = hb;
-	a.n = 0;
-	hforeach(ha, cmp1, &a);
-	if(a.n)
-		return 0;
-	a.ht = ha;
-	a.n = 0;
-	hforeach(hb, cmp1, &a);
-	if(a.n)
-		return 0;
+	
+	for(i = 0; i < ha->sz; ++i){
+		hp = ha->ht[i];
+		while(hp){
+			v = hget(hb,hp->key,hp->keylen);
+			if (v != hp->val) 
+				return 0;
+			hp = hp->next;
+		}
+	}
+	for(i = 0; i < ha->sz; ++i){
+		hp = hb->ht[i];
+		while(hp) {
+			v = hget(ha,hp->key,hp->keylen);
+			if (v != hp->val)
+				return 0;
+			hp = hp->next;
+		}
+	}
 	return 1;
 }
