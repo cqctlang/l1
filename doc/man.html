@@ -482,7 +482,7 @@ are initially bound to the undefined value.
 </p>
 
 <p>
-The parameters of a <span class="id">lambda</span> form
+The parameters of a <span class="id">@lambda</span> form
 establish local bindings in the block that forms the
 body of the function definition, just as if they had
 been declared with <span class="id">@local</span>.
@@ -660,13 +660,13 @@ environment.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@local">lambda</span>
+The <span class="fnindex" id="syn:@lambda">@lambda</span>
 expression defines new function values.  The syntax
 is:
 
 <div class="code">
 <pre>
-lambda <span class="arg">formals</span> { <span class="arg">statement</span>; ... }
+@lambda <span class="arg">formals</span> { <span class="arg">statement</span>; ... }
 </pre>
 </div>
 
@@ -764,13 +764,13 @@ if the function returns without reaching a
 </p>
 
 <p>
-The <span class="fnindex" id="syn:define">define</span> form
+The <span class="fnindex" id="syn:@define">@define</span> form
 is syntactic sugar for naming a function definition.
 For example
 
 <div class="code">
 <pre>
-define <span class="arg">name</span>(<span class="arg">var</span>, ...)
+@define <span class="arg">name</span>(<span class="arg">var</span>, ...)
 {
 	<span class="arg">statement</span>;
 	...
@@ -781,7 +781,7 @@ is equivalent to
 
 <div class="code">
 <pre>
-<span class="arg">name</span> = lambda(<span class="arg">var</span>, ...)
+<span class="arg">name</span> = @lambda(<span class="arg">var</span>, ...)
 {
 	<span class="arg">statement</span>;
 	...
@@ -1060,7 +1060,7 @@ For example:
 
 <div class="code">
 <pre>
-x = myrec("abc", 1, lambda(x){ printf("hi\n")});
+x = myrec("abc", 1, @lambda(x){ printf("hi\n")});
 </pre>
 </div>
 
@@ -1456,7 +1456,7 @@ Type resolution occurs when the backtick expression
 appears where a type name would be expected or accepted in C:
 the operand to <span class="id">sizeof</span>,
 and the type operand of the cast operator.
-The Cinquecento <span class="id">typeof</span> operator,
+The Cinquecento <span class="id">@typeof</span> operator,
 which is syntactically similar to <span class="id">sizeof</span>,
 also accepts a type name.
 </p>
@@ -1551,7 +1551,7 @@ defined with <span class="id">typedef</span>.
 The <span class="arg">domain</span> may be omitted for this variant.
 The meaning of this abbreviated form depends on the context.
 When used in the operand to <span class="id">sizeof</span>
-or <span class="id">typeof</span>, the type name is resolved
+or <span class="id">@typeof</span>, the type name is resolved
 in the literal domain (see next section).
 When used in the type operand to the cast operator,
 the meaning is the same as if the domain has been specified,
@@ -2492,7 +2492,9 @@ time.
 </p>
 
 <p>
-Every address space implements four methods:
+Every address space implements four methods
+(this interface is tentatively planned for future version,
+but not currently supported):
 <div id="table-short">
 <table>
 
@@ -2686,18 +2688,18 @@ function for setting breakpoints with an address space.
 defined in C programs.  The predicate
 <span class="id" id="fn:isctype">isctype</span> tests whether a value is
 a ctype.
-The <span class="fnindex"><a href="#syn:typeof">typeof</a></span>
+The <span class="fnindex"><a href="#syn:@typeof">@typeof</a></span>
 operator can be used to obtain a ctype representing the
 type of a cvalue or the type denoted by a type name.
 </p>
 
-<div class="docitem" id="syn:typeof">
+<div class="docitem" id="syn:@typeof">
 <div class="proto">
 <div class="function">
-<span class="id">typeof(<span class="arg">typename</span>)</span>
+<span class="id">@typeof(<span class="arg">typename</span>)</span>
 </div>
 <div class="function">
-<span class="id">typeof(<span class="arg">value</span>)</span>
+<span class="id">@typeof(<span class="arg">value</span>)</span>
 </div>
 <div class="param">
 <span class="arg">typename</span>: <span class="type">type name expression</span>
@@ -2710,7 +2712,7 @@ type of a cvalue or the type denoted by a type name.
 </div>
 </div>
 <div class="desc">
-The <span class="id">typeof</span> operator is similar
+The <span class="id">@typeof</span> operator is similar
 to the <span class="id">sizeof</span> operator in that
 it is applied to either a type name or to an expression
 that yields a cvalue.  In both cases it returns a ctype
@@ -6624,10 +6626,10 @@ machines sharing the environment have been freed.
 <a href="#syn:@local">@local</a><br />
 <a href="#syn:@names">@names</a><br />
 <a href="#syn:@record">@record</a><br />
-<a href="#syn:define">define</a><br />
-<a href="#syn:lambda">lambda</a><br />
+<a href="#syn:@define">@define</a><br />
+<a href="#syn:@lambda">@lambda</a><br />
 <a href="#syn:return">return</a><br />
-<a href="#syn:typeof">typeof</a><br />
+<a href="#syn:@typeof">@typeof</a><br />
 </td>
 </tr>
 </table>
