@@ -1,3 +1,5 @@
+****
+
 running this program shows the error on the wrong line.
 
 if(1)
@@ -37,4 +39,23 @@ that follows the call instruction (as it usually the case).
 
 the stackwalk code assumes that the pc for a call is
 the insn following the call.
+
+*****
+
+# None of this is good (f26547b585a2bcfe58701e54191247d3e67233d3)
+% ./l1
+; { @local x; x; } 
+error: reference to undefined variable: $$
+               entry    (no source information)
+; { @local x; y = x; }
+error: reference to undefined variable: $$
+               entry    (<stdin>:1)
+; { @local x; printf("%d\n", x); }
+error: wrong type to %d conversion
+              printf    (builtin function)
+               entry    (no source information)
+; { @local x; printf("%a\n", x); }
+
+; 
+
 

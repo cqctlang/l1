@@ -82,27 +82,23 @@ of the L1 implementation of Cinquecento.
 Cinquecento is a programming language designed for
 examining programs in execution.  Its distinguishing
 feature is an extensible abstraction, called
-a <em>domain</em>, that represents a remotely executing
-program.
+a <em>domain</em>, that represents a 
+target program in execution.
 </p>
 
 <p>
-
-Domains present the state of
-a remotely executing programs through
+Domains present the state of a target program through
 an interface based on the syntax and semantics of C.
-
-Program memory can be read or modified using
-ordinary C expressions.  Cinquecento
-supports all C operators, the C type system,
-and all C control flow statements.
-Complex C data structure traversal idioms, such as pointer-chasing loops,
-generally work in Cinquecento with any modifications.
-Names and types of
-target program data can be specified in C declaration
-syntax.  Minor extensions to the syntax admit
-machine-level specification of location, layout, and
-encoding of data in memory.
+Target program memory can be read or modified using
+ordinary C expressions.  Conventional C idioms for
+traversing data structures, such as pointer-chasing
+loops, generally work in Cinquecento without any
+modifications: Cinquecento supports all C operators,
+the C type system, and all C control flow statements.
+Names and types of target program data can be specified
+in C declaration syntax.  Minor extensions to C's
+declaration syntax allow machine-level specification of
+location, layout, and encoding of data in memory.
 </p>
 
 <p>
@@ -116,18 +112,18 @@ execute on a different machine, possibly with a
 different architecture and operating system.
 
 Example applications include comparing executions of
-different versions of a program, or verifying that a
-particular version has comparable executions on
-different machine types or operating systems.  More
-generally, Cinquecento can be used to validate dynamic
-state spanning the constitutent programs of a
-distributed system.
+different versions of a program, verifying that a
+particular version behaves comparably on different
+machine types or operating systems, and validating
+global state across a distributed, multi-process
+program.
 </p>
 
 <p>
-Each domain encapsulates a way to symbolically examine
-a remotely executing program: definitions of its types
-and symbols, and access to its memory and other
+Every domain encapsulates functions to access a
+particular target program.  These include functions
+that define the types and symbols of the target, and
+functions that read and write its memory and other
 run-time state.  Rather than favor the idiosyncrasies
 of one operating system, architecture, compiler, or
 debugging information format, Cinquecento specifies a
@@ -4382,7 +4378,7 @@ Returns a new list containing the elements of <span class="arg">list</span> in r
 <div class="desc">
 Returns a new list containing the elements
 of <span class="arg">list</span> starting at
-index <span class="arg">beg</span> up, but no
+index <span class="arg">beg</span> up, but not
 including, index <span class="arg">end</span>.
 </div>
 </div>
