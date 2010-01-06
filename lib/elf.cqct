@@ -34,7 +34,7 @@
   elfheader = (unsigned char *) {hdom}0;
 
   if (getbytes(elfheader, 4) != "\x7f""ELF")
-    error ("argument to mkelfdom must be a string containing an elf binary");
+    error ("argument to mkelfrec must be a string containing an elf binary");
 
   if (elfheader[hdom`EI_CLASS] == hdom`ELFCLASS32) {
     if (elfheader[hdom`EI_DATA] == hdom`ELFDATA2LSB)
