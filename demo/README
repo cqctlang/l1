@@ -2,11 +2,10 @@ in this resulting directory
 are some cinquecento programs that
 demonstrate simple debugging activities.
 
-to use them, you also need prctl,
-a linux process control service
-available from cqctworld.org.
+to use them, you also need prctl and dwarf2cqct.  these
+are available from cqctworld.org.
 
-build prctl and install it somewhere
+build dwarf2cqct and prctl and install them somewhere
 in your path.
 
 then,
