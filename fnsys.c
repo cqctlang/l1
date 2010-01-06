@@ -27,6 +27,21 @@ static Profiler *prof;
 static void	finiprof();
 
 static void
+l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	int code;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to getenv");
+	code = 0;
+	if(argv[0]->qkind == Qcval){
+		cv = valcval(argv[0]);
+		code = (int)cv->val;
+	}
+	exit(code);
+}
+
+static void
 l1_getenv(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	char *s, *t;
@@ -448,6 +463,7 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnsys(Env *env)
 {
+	FN(exit);
 	FN(getenv);
 	FN(getpid);
 	FN(gettimeofday);

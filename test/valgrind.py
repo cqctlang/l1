@@ -30,7 +30,7 @@ for m in glob.glob('[A-Za-z0-9]*.l1'):
     sys.stdout.flush()
     p = popen2.Popen4(cmd+m)
     rv = p.wait()
-    if rv != 0:
+    if os.WIFSIGNALED(rv):
         print 'fault'
         fault.append(m);
         continue

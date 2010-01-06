@@ -16,7 +16,7 @@ for m in glob.glob('[A-Za-z0-9]*.l1'):
     cmd = '../l1 -b -w '+m
     p = popen2.Popen4(cmd);
     rv = p.wait()
-    if rv != 0:
+    if os.WIFSIGNALED(rv):
         print 'fault'
         fault.append(m);
         continue

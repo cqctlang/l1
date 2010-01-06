@@ -402,6 +402,7 @@ main(int argc, char *argv[])
 	uint64_t usec;
 	int rv;
 	Xfd *xfd, devnull;
+	int code;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -501,6 +502,7 @@ main(int argc, char *argv[])
 			fatal("cannot clear stdin buffering");
 	}
 
+	code = 0;
 	valc = 0;
 	valv = 0;
 	argsid = 0;
@@ -576,6 +578,8 @@ main(int argc, char *argv[])
 			printf("%s\n", s);
 			cqctfreecstr(s);
 		}
+		if(v->qkind == Qcval)
+			code = cqctvalint32(v);
 	}while(dorepl);
 
 	free(valv);
@@ -593,5 +597,5 @@ main(int argc, char *argv[])
 		printf("\n");
 	}
 
-	return 0;
+	return code;
 }
