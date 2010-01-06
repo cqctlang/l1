@@ -31,7 +31,6 @@ extern char *yytext;
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
-%token OCONTAINEROF ODEFINE OLAMBDA OTYPEOF
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -97,8 +96,6 @@ tag:	id;
 
 lambda
 	: LAMBDA
-	| OLAMBDA
-	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @lambda"); }
 	;
 
 lambda_expression
@@ -184,10 +181,6 @@ postfix_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Epostdec, $1, 0, 0, 0); }
 	| CONTAINEROF '(' expression ',' type_name ',' id ')'
         { $$ = newexprsrc(&ctx->inp->src, Econtainer, $3, $5, $7, 0); }
-	| OCONTAINEROF '(' expression ',' type_name ',' id ')'
-        { cwarnln(ctx, $$ = newexprsrc(&ctx->inp->src, Econtainer, $3, $5, $7, 0),
-		  "deprecated syntax; use @containerof");
-	}
 	;
 
 argument_expression_list
@@ -199,8 +192,6 @@ argument_expression_list
 
 typeof
 	: TYPEOF
-	| OTYPEOF
-	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @typeof"); }
 	;
 
 unary_expression
@@ -1000,8 +991,6 @@ jump_statement
 
 define
 	: DEFINE
-	| ODEFINE
-	{ cwarnsrcln(ctx, &ctx->inp->src, "deprecated syntax; use @define"); }
 	;
 
 define_statement

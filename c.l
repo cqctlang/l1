@@ -49,10 +49,8 @@ static int chars(YYSTYPE *lvalp, int);
 "case"			{ count(ctx); return(CASE); }
 "char"			{ count(ctx); return(CHAR); }
 "const"			{ count(ctx); return(CONST); }
-"containerof"		{ count(ctx); return(OCONTAINEROF); }
 "continue"		{ count(ctx); return(CONTINUE); }
 "default"		{ count(ctx); return(DEFAULT); }
-"define"		{ count(ctx); return(ODEFINE); }
 "do"			{ count(ctx); return(DO); }
 "double"		{ count(ctx); return(DOUBLE); }
 "else"			{ count(ctx); return(ELSE); }
@@ -62,7 +60,6 @@ static int chars(YYSTYPE *lvalp, int);
 "goto"			{ count(ctx); return(GOTO); }
 "if"			{ count(ctx); return(IF); }
 "int"			{ count(ctx); return(INT); }
-"lambda"		{ count(ctx); return(OLAMBDA); }
 "long"			{ count(ctx); return(LONG); }
 "return"		{ count(ctx); return(RETURN); }
 "short"			{ count(ctx); return(SHORT); }
@@ -71,7 +68,6 @@ static int chars(YYSTYPE *lvalp, int);
 "struct"		{ count(ctx); return(STRUCT); }
 "switch"		{ count(ctx); return(SWITCH); }
 "typedef"		{ count(ctx); return(TYPEDEF); }
-"typeof"		{ count(ctx); return(OTYPEOF); }
 "union"			{ count(ctx); return(UNION); }
 "unsigned"		{ count(ctx); return(UNSIGNED); }
 "void"			{ count(ctx); return(VOID); }
