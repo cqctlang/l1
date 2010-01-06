@@ -18,8 +18,8 @@
    ".debug_frame", ".debug_str", ".debug_ranges", ".debug_loc",
    "frametable", and "linetable". The "execdomain" will be the domain
    from which we can extract register and memory values to perform
-   stack unwinds. An "elfdomain" is the domain created by mkelfdom
-   with a binary ELF file as an argument.  Each of the
+   stack unwinds. An "elfdomain" is the elf field of a record created by
+   mkelfrec with a binary ELF file as an argument.  Each of the
    "_dwcqct_debug_<name>" elements is a DWARF domain based on the ELF
    section with a similar name in the ELF binary. "frametable" is a
    vector of DWARF Frame Descriptor Entries (FDEs) sorted by address
@@ -37,7 +37,7 @@
    number information. _dwcqct_addrsize is the size of addresses
    on the target machine as specified in the compilation unit header that
    begins the .debug_info section. _dwcqct_rootns is the root namespace
-   for the binary. mkelfdom (in elf.cqct) chooses a root namespace based
+   for the binary. mkelfrec (in elf.cqct) chooses a root namespace based
    on the word size and endianness of the elf binary, but that choice
    is not propagated. It can be recovered from the elf domain and
    associated with the other values when necessary--e.g., when computing

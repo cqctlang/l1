@@ -896,7 +896,7 @@
 		return 0;
 	}
 
-	elfdom = mkelfdom(mapfile(infile));
+	elfdom = mkelfrec(mapfile(infile)).elf;
 
 	if (do_fileheader)
 		print_fileheader(elfdom);

@@ -1,6 +1,6 @@
 @include <elf.cqct>
 
-edom = mkelfdom(mapfile(listref(args, 0)));
+edom = mkelfrec(mapfile(listref(args, 0))).elf;
 //showallelfsectionheaders(edom);
 stab = getelfsection(edom, ".stab");
 
