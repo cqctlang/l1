@@ -2733,6 +2733,18 @@ listconcat(VM *vm, List *l1, List *l2)
 	return rv;
 }
 
+static List*
+listslice(VM *vm, List *l, Imm b, Imm e)
+{
+	List *rv;
+	Imm m;
+
+	rv = mklistn(e-b);
+	for(m = b; m < e; m++)
+		listappend(vm, rv, listref(vm, l, m));
+	return rv;
+}
+
 static Head*
 iterlist(Head *hd, Ictx *ictx)
 {
@@ -10284,6 +10296,31 @@ l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_slice(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	Cval *b, *e;
+	u32 len;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to slice");
+	checkarg(vm, "slice", argv, 0, Qlist);
+	checkarg(vm, "slice", argv, 1, Qcval);
+	checkarg(vm, "slice", argv, 2, Qcval);
+	l = vallist(argv[0]);
+	b = valcval(argv[1]);
+	e = valcval(argv[2]);
+	len = listxlen(l->x);
+	if(b->val > len)
+		vmerr(vm, "slice out of bounds");
+	if(e->val > len)
+		vmerr(vm, "slice out of bounds");
+	if(b->val > e->val)
+		vmerr(vm, "slice out of bounds");
+	*rv = mkvallist(listslice(vm, l, b->val, e->val));
+}
+
+static void
 l1_rdof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rec *r;
@@ -11501,6 +11538,7 @@ mktopenv()
 	FN(rettype);
 	FN(reverse);
 	FN(setloadpath);
+	FN(slice);
 	FN(sort);
 	FN(split);
 	FN(sprintfa);

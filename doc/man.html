@@ -4363,6 +4363,30 @@ Returns a new list containing the elements of <span class="arg">list</span> in r
 </div>
 </div>
 
+<div class="docitem" id="fn:slice">
+<div class="proto">
+<div class="function">
+<span class="id">slice(<span class="arg">list</span>,
+  <span class="arg">beg</span>)</span>,
+  <span class="arg">end</span>)</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+<span class="arg">beg</span>: <span class="type">cvalue</span>
+<span class="arg">end</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns a new list containing the elements
+of <span class="arg">list</span> starting at
+index <span class="arg">beg</span> up, but no
+including, index <span class="arg">end</span>.
+</div>
+</div>
+
 <h4 id="sec:vectors">Vectors</h4>
 
 <p>
@@ -6838,6 +6862,7 @@ machines sharing the environment have been freed.
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
+<a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
 <a href="#fn:sprintfa">sprintfa</a><br />
