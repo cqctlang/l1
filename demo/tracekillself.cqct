@@ -1,0 +1,42 @@
+@include <ctlmux.cqct>
+
+@define test1()
+{
+	@local mux, ns, as, dom;
+
+	ns = @names clp64le { @include "./killself.names" };
+	mux = mkctlmux();
+	as = mux.launch(["./killself"], 0);
+	dom = mkdom(ns, as);
+	dom.xcont();
+	mux.run();
+}
+
+@define test2()
+{
+	@local mux, ns, as, dom;
+
+	ns = @names clp64le { @include "./killself2.names" };
+	mux = mkctlmux();
+	as = mux.launch(["./killself2"], 0);
+	dom = mkdom(ns, as);
+	dom.xcont();
+	mux.run();
+}
+
+printf("%a\n", args);
+if(length(args) == 1)
+	test1();
+else if(length(args) == 2){
+	switch(args[1]){
+	case "1": 
+		test1();
+		break;
+	case "2":
+		test2();
+		break;
+	default:
+		error("no such test %a", args[1]);
+	}
+}else
+	error("usage: %s [<cnt>] | %s <testno> <cnt>");

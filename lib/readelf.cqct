@@ -3,7 +3,7 @@
 
 @include <elf.cqct>
 
-define align(l, sz)
+@define align(l, sz)
 {
 	@local res;
 
@@ -14,7 +14,7 @@ define align(l, sz)
 	return res;
 }
 
-define abi2str(elfdom, abinum)
+@define abi2str(elfdom, abinum)
 {
 	@local s;
 
@@ -63,7 +63,7 @@ define abi2str(elfdom, abinum)
 	return s;
 }
 
-define type2str(elfdom, etype)
+@define type2str(elfdom, etype)
 {
 	@local t;
 
@@ -76,7 +76,7 @@ define type2str(elfdom, etype)
 	
 }
 
-define sectype2str(elfdom, stype)
+@define sectype2str(elfdom, stype)
 {
 	@local s;
 	s = "UNKNOWN";
@@ -190,7 +190,7 @@ define sectype2str(elfdom, stype)
 	return s;
 }
 
-define ptype2str(elfdom, p)
+@define ptype2str(elfdom, p)
 {
 	@local s;
 	
@@ -261,7 +261,7 @@ define ptype2str(elfdom, p)
 	return s;
 }
 
-define machine2str(elfdom, emachine)
+@define machine2str(elfdom, emachine)
 {
 	@local s;
 
@@ -279,7 +279,7 @@ define machine2str(elfdom, emachine)
 	return s;
 }
 
-define flags2str(elfdom, shflags)
+@define flags2str(elfdom, shflags)
 {
 	@local s, cur;
 
@@ -299,7 +299,7 @@ define flags2str(elfdom, shflags)
 	return s;
 }
 
-define pflags2str(elfdom, pflags)
+@define pflags2str(elfdom, pflags)
 {
 	@local s;
 
@@ -318,7 +318,7 @@ define pflags2str(elfdom, pflags)
 	return s;	
 }
 
-define symtype2str(elfdom, v)
+@define symtype2str(elfdom, v)
 {
 	@local s;
 	
@@ -365,7 +365,7 @@ define symtype2str(elfdom, v)
 	return s;
 }
 
-define symvis2str(elfdom, v)
+@define symvis2str(elfdom, v)
 {
 	@local l;
 	l = ["DEFAULT", "INTERNAL", "HIDDEN", "PROTECTED"];
@@ -373,7 +373,7 @@ define symvis2str(elfdom, v)
 	return listref(l, v);
 }
 
-define symidx2str(elfdom, v)
+@define symidx2str(elfdom, v)
 {
 	@local s;
 
@@ -422,7 +422,7 @@ define symidx2str(elfdom, v)
 	return s;
 }
 
-define symbind2str(elfdom, symbind)
+@define symbind2str(elfdom, symbind)
 {
 	@local s;
 	
@@ -457,7 +457,7 @@ define symbind2str(elfdom, symbind)
 	return s;
 }
 
-define ntype2str(elfdom, ntype)
+@define ntype2str(elfdom, ntype)
 {
 	@local s;
 	
@@ -526,7 +526,7 @@ define ntype2str(elfdom, ntype)
 	return s;
 }
 
-define print_fileheader(elfdom)
+@define print_fileheader(elfdom)
 {
 	@local e, i, elftype;
 	if (sizeof (nsptr (elfdom.ns)) == 4) {
@@ -570,7 +570,7 @@ define print_fileheader(elfdom)
 	printf("  Section header string table index: %d\n", e->e_shstrndx);
 }
 
-define print_secheaders32(elfdom, e, sarray)
+@define print_secheaders32(elfdom, e, sarray)
 {
 	@local st, i;
 
@@ -591,7 +591,7 @@ define print_secheaders32(elfdom, e, sarray)
 	}	
 }
 
-define print_secheaders64(elfdom, e, sarray)
+@define print_secheaders64(elfdom, e, sarray)
 {
 	@local st, i;
 
@@ -612,7 +612,7 @@ define print_secheaders64(elfdom, e, sarray)
 	}	
 }
 
-define print_secheaders(elfdom)
+@define print_secheaders(elfdom)
 {
 	@local e, sarray;
 	if (sizeof (nsptr (elfdom.ns)) == 4) {
@@ -631,7 +631,7 @@ define print_secheaders(elfdom)
 	printf("  O (extra OS processing required) o (OS specific), p (processor specific)\n");
 }
 
-define print_progheaders(elfdom)
+@define print_progheaders(elfdom)
 {
 	@local e, pharray, p, i, is32;
 
@@ -681,7 +681,7 @@ define print_progheaders(elfdom)
 
 }
 
-define print_symbols(elfdom)
+@define print_symbols(elfdom)
 {
 	@local e, shbase, strbase, symbase, sec, sym, i, st, is32;
 	if (sizeof (nsptr (elfdom.ns)) == 4) {
@@ -746,7 +746,7 @@ define print_symbols(elfdom)
 }
 
 // prints first PT_NOTES section it finds
-define print_notes(elfdom)
+@define print_notes(elfdom)
 {
 	@local e, pharray, p, i, is32;
 
@@ -795,7 +795,7 @@ define print_notes(elfdom)
 	}
 }
 
-define usage()
+@define usage()
 {
 	printf("Usage: l1 -e readelf.cqct <option(s)> elf-file(s)\n"
 	       "Display information about the contents of ELF format files\n"
@@ -813,7 +813,7 @@ define usage()
 		);
 }
 
-define main(args)
+@define main(args)
 {
 	@local cur;
 	@local elfdom, infile;

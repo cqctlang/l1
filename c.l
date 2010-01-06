@@ -34,21 +34,23 @@ static int chars(YYSTYPE *lvalp, int);
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
 ^#!.*			{ /* treat as comment */ ctx->inp->src.col = 0; }
 "/*"			{ comment(ctx); }
+"@const"		{ count(ctx); return(DEFCONST); }
+"@containerof"		{ count(ctx); return(CONTAINEROF); }
+"@define"		{ count(ctx); return(DEFINE); }
+"@global"		{ count(ctx); return(GLOBAL); }
+"@lambda"		{ count(ctx); return(LAMBDA); }
 "@lazyapply"		{ count(ctx); return(LAPPLY); }
 "@let"			{ count(ctx); return(LET); }
 "@local"		{ count(ctx); return(LOCAL); }
-"@global"		{ count(ctx); return(GLOBAL); }
 "@names"		{ count(ctx); return(NAMES); }
-"@const"		{ count(ctx); return(DEFCONST); }
+"@record"		{ count(ctx); return(DEFREC); }
+"@typeof"		{ count(ctx); return(TYPEOF); }
 "break"			{ count(ctx); return(BREAK); }
 "case"			{ count(ctx); return(CASE); }
 "char"			{ count(ctx); return(CHAR); }
 "const"			{ count(ctx); return(CONST); }
-"containerof"		{ count(ctx); return(CONTAINEROF); }
 "continue"		{ count(ctx); return(CONTINUE); }
 "default"		{ count(ctx); return(DEFAULT); }
-"define"		{ count(ctx); return(DEFINE); }
-"@record"		{ count(ctx); return(DEFREC); }
 "do"			{ count(ctx); return(DO); }
 "double"		{ count(ctx); return(DOUBLE); }
 "else"			{ count(ctx); return(ELSE); }
@@ -58,9 +60,7 @@ static int chars(YYSTYPE *lvalp, int);
 "goto"			{ count(ctx); return(GOTO); }
 "if"			{ count(ctx); return(IF); }
 "int"			{ count(ctx); return(INT); }
-"lambda"		{ count(ctx); return(LAMBDA); }
 "long"			{ count(ctx); return(LONG); }
-"nil"			{ count(ctx); return(NIL); }
 "return"		{ count(ctx); return(RETURN); }
 "short"			{ count(ctx); return(SHORT); }
 "signed"		{ count(ctx); return(SIGNED); }
@@ -68,7 +68,6 @@ static int chars(YYSTYPE *lvalp, int);
 "struct"		{ count(ctx); return(STRUCT); }
 "switch"		{ count(ctx); return(SWITCH); }
 "typedef"		{ count(ctx); return(TYPEDEF); }
-"typeof"		{ count(ctx); return(TYPEOF); }
 "union"			{ count(ctx); return(UNION); }
 "unsigned"		{ count(ctx); return(UNSIGNED); }
 "void"			{ count(ctx); return(VOID); }

@@ -8,7 +8,7 @@
 // without accessing bytes, so that maps knows it is there.
 // would replace ifetch mechanism in pras.l1
 
-define mkindispatch(fd, eofk){
+@define mkindispatch(fd, eofk){
 	@local buf, lo, hi, peek, off, max, grow, dispatch;
 	lo = 0;
 	hi = 0;
@@ -18,7 +18,7 @@ define mkindispatch(fd, eofk){
 	max = 1024*1024;
 	buf = mkstr(max);
 
-	define grow(beg, oldlen){
+	@define grow(beg, oldlen){
 		@local nbuf;
 		max = 2*(beg+oldlen);
 		nbuf = mkstr(max);
@@ -26,7 +26,7 @@ define mkindispatch(fd, eofk){
 		buf = nbuf;
 	}
 
-	define dispatch(args ...) {
+	@define dispatch(args ...) {
 		@local method, r, s, beg, len, need;
 		method = listref(args, 1);
 		if(method == "get"){
@@ -94,14 +94,14 @@ define mkindispatch(fd, eofk){
 	return dispatch;
 }
 
-define mkoutdispatch(fd, eofk){
+@define mkoutdispatch(fd, eofk){
 	@local buf, lo, hi, off, max, dispatch;
 	lo = 0;
 	hi = 0;
 	off = 0;
 	max = 1024*1024;
 	buf = mkstr(max);
-	define dispatch(args ...) {
+	@define dispatch(args ...) {
 		@local method, r, s, beg, len, need;
 		method = listref(args, 1);
 		if(method == "get"){
@@ -151,7 +151,7 @@ define mkoutdispatch(fd, eofk){
 	return dispatch;
 }
 
-define mkfdas(fd, eofk){
+@define mkfdas(fd, eofk){
 	return [ mkas([ "dispatch" : mkindispatch(fd, eofk) ]),
 		 mkas([ "dispatch" : mkoutdispatch(fd, eofk) ]) ];
 }

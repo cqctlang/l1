@@ -2733,6 +2733,18 @@ listconcat(VM *vm, List *l1, List *l2)
 	return rv;
 }
 
+static List*
+listslice(VM *vm, List *l, Imm b, Imm e)
+{
+	List *rv;
+	Imm m;
+
+	rv = mklistn(e-b);
+	for(m = b; m < e; m++)
+		listappend(vm, rv, listref(vm, l, m));
+	return rv;
+}
+
 static Head*
 iterlist(Head *hd, Ictx *ictx)
 {
@@ -4805,9 +4817,9 @@ xbox0(VM *vm, Operand *op)
 }
 
 static void
-xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
+xref(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 {
-	Val domv, typev, cvalv, rv;
+	Val xv, typev, cvalv, rv;
 	Xtypename *t, *b, *pt;
 	Dom *d;
 	Cval *cv;
@@ -4815,11 +4827,12 @@ xref(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 
 	typev = getvalrand(vm, type);
 	cvalv = getvalrand(vm, cval);
-	domv = getvalrand(vm, dom);
-	d = valdom(domv);
+	xv = getvalrand(vm, x);
+	if(xv->qkind != Qdom)
+		vmerr(vm, "attempt to derive location from non-domain");
+	d = valdom(xv);
 	t = valxtn(typev);
 	cv = valcval(cvalv);
-
 	b = chasetype(t);
 	switch(b->tkind){
 	case Tvoid:
@@ -4870,9 +4883,9 @@ dobitfieldgeom(Xtypename *b, BFgeom *bfg)
 }
 
 static void
-xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
+xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 {
-	Val domv, typev, cvalv, rv, p, argv[2];
+	Val xv, typev, cvalv, rv, p, argv[2];
 	Imm imm;
 	Dom *d;
 	Xtypename *t, *b, *pt;
@@ -4880,14 +4893,33 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 	Str *s, *es;
 	BFgeom bfg;
 
-	domv = getvalrand(vm, dom);
+	xv = getvalrand(vm, x);
 	typev = getvalrand(vm, type);
 	cvalv = getvalrand(vm, cval);
-	d = valdom(domv);
+
 	t = valxtn(typev);
 	cv = valcval(cvalv);
-
 	b = chasetype(t);
+
+	/* special case: enum constants can be referenced through namespace */
+	if(b->tkind == Tconst){
+		switch(xv->qkind){
+		case Qdom:
+			d = valdom(xv);
+			rv = mkvalcval(d, b->link, cv->val);
+			goto out;
+		case Qns:
+			d = mkdom(valns(xv), vm->litdom->as, 0);
+			rv = mkvalcval(d, b->link, cv->val);
+			goto out;
+		default:
+			fatal("bug");
+		}
+	}
+
+	if(xv->qkind != Qdom)
+		fatal("bug");
+	d = valdom(xv);
 	switch(b->tkind){
 	case Tbitfield:
 		if(b->link->tkind == Tundef){
@@ -4901,9 +4933,6 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		s = callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
 		imm = bitfieldget(s->s, &bfg);
 		rv = mkvalcval(d, b->link, imm);
-		break;
-	case Tconst:
-		rv = mkvalcval(d, b->link, cv->val);
 		break;
 	case Tbase:
 	case Tptr:
@@ -4919,7 +4948,7 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		rv = mkvalcval(d, pt, imm);
 		break;
 	case Txaccess:
-		argv[0] = domv;
+		argv[0] = xv;
 		p = dovm(vm, t->get, 1, argv);
 		if(p->qkind != Qcval)
 			vmerr(vm,
@@ -4940,8 +4969,10 @@ xcval(VM *vm, Operand *dom, Operand *type, Operand *cval, Operand *dst)
 		      (int)es->len, es->s);
 	case Tenum:
 	case Ttypedef:
+	case Tconst:
 		fatal("bug");
 	}
+out:
 	putvalrand(vm, rv, dst);
 }
 
@@ -4989,7 +5020,7 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 
 	ov = getvalrand(vm, o);
 	if(ov->qkind != Qcval && ov->qkind != Qstr)
-		vmerr(vm, "operand 2 to extended cast operator must a"
+		vmerr(vm, "operand 2 to extended cast operator must be a"
 		      " cvalue or string");
 	tv = getvalrand(vm, typeordom);
 	if(tv->qkind != Qxtn && ov->qkind == Qstr)
@@ -5965,7 +5996,7 @@ nscachemethod(Ns *ns)
 	nscache1method(ns, "lookaddr", &ns->lookaddr);
 }
 
-static Ns*
+Ns*
 mknstab(Tab *mtab, Str *name)
 {
 	Ns *ns;
@@ -6481,6 +6512,12 @@ builtincval(Env *env, char *name, Cval *cv)
 {
 	Val val;
 	val = mkvalcval2(cv);
+	envbind(env, name, val);
+}
+
+static void
+builtinval(Env *env, char *name, Val val)
+{
 	envbind(env, name, val);
 }
 
@@ -10259,6 +10296,31 @@ l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_slice(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	Cval *b, *e;
+	u32 len;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to slice");
+	checkarg(vm, "slice", argv, 0, Qlist);
+	checkarg(vm, "slice", argv, 1, Qcval);
+	checkarg(vm, "slice", argv, 2, Qcval);
+	l = vallist(argv[0]);
+	b = valcval(argv[1]);
+	e = valcval(argv[2]);
+	len = listxlen(l->x);
+	if(b->val > len)
+		vmerr(vm, "slice out of bounds");
+	if(e->val > len)
+		vmerr(vm, "slice out of bounds");
+	if(b->val > e->val)
+		vmerr(vm, "slice out of bounds");
+	*rv = mkvallist(listslice(vm, l, b->val, e->val));
+}
+
+static void
 l1_rdof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rec *r;
@@ -10783,7 +10845,7 @@ static void
 l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *str;
-	Closure *cl;
+	Val cl;
 
 	char *s;
 	checkarg(vm, "eval", argv, 0, Qstr);
@@ -10793,7 +10855,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(s);
 	if(cl == 0)
 		return;
-	*rv = dovm(vm, cl, 0, 0);
+	*rv = dovm(vm, valcl(cl), 0, 0);
 }
 
 static void
@@ -11476,6 +11538,7 @@ mktopenv()
 	FN(rettype);
 	FN(reverse);
 	FN(setloadpath);
+	FN(slice);
 	FN(sort);
 	FN(split);
 	FN(sprintfa);
@@ -11516,6 +11579,7 @@ mktopenv()
 
 	/* FIXME: these bindings should be immutable */
 	litdom = mklitdom();
+	builtinval(env, "nil", Xnil);
 	builtindom(env, "litdom", litdom);
 	builtinns(env, "c32le", mkrootns(&c32le));
 	builtinns(env, "c32be", mkrootns(&c32be));
@@ -11712,23 +11776,27 @@ finivm()
 }
 
 int
-cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv)
+cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
+	if(cl->qkind != Qcl)
+		return -1;
 	vm->flags &= ~VMirq;
-	*rv = dovm(vm, cl, argc, argv);
+	*rv = dovm(vm, valcl(cl), argc, argv);
 	poperror(vm);
 	return 0;
 }
 
 int
-cqctcallthunk(VM *vm, Closure *cl, Val *rv)
+cqctcallthunk(VM *vm, Val cl, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
+	if(cl->qkind != Qcl)
+		return -1;
 	vm->flags &= ~VMirq;
-	*rv = dovm(vm, cl, 0, 0);
+	*rv = dovm(vm, valcl(cl), 0, 0);
 	poperror(vm);
 	return 0;
 }

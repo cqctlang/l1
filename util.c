@@ -191,7 +191,7 @@ xisblank(int c)
 int
 xisspace(int c)
 {
-	return c == ' ' || ('\t' <= c && c <= 'r');
+	return c == ' ' || ('\t' <= c && c <= '\r');
 }
 
 int

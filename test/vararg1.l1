@@ -1,10 +1,10 @@
-printlist = lambda(l) {
+printlist = @lambda(l) {
 	@local i;
 	for(i = 0; i < length(l); i++)
 		print(listref(l, i));
 };
 
-fn = lambda(arg ...) {
+fn = @lambda(arg ...) {
 	@local x;
 	x = arg;
 	print(length(x));

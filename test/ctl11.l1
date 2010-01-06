@@ -1,4 +1,4 @@
-define foo(x)
+@define foo(x)
 {
 	if(x){
 		while(0){
@@ -8,7 +8,7 @@ define foo(x)
 	}
 }
 
-define bar(x)
+@define bar(x)
 {
 	if(x){
 		do{
@@ -18,7 +18,7 @@ define bar(x)
 	}
 }
 
-define baz(x)
+@define baz(x)
 {
 	if(x){
 		for(; 0; )
@@ -28,7 +28,7 @@ define baz(x)
 	}
 }
 
-define bax(x)
+@define bax(x)
 {
 	if(x){
 		if(0)

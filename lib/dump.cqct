@@ -1,4 +1,4 @@
-define printtype(t){
+@define printtype(t){
 	@local ct, i, fld, flds, sz, off;
 
 	if(issu(t)){
@@ -40,7 +40,7 @@ define printtype(t){
 	}
 };
 
-define dumpns(dn){
+@define dumpns(dn){
 	@local ns, fn;
 	if(isdom(dn))
 		ns = dn.ns;
@@ -58,7 +58,7 @@ define dumpns(dn){
 		printf("%t;\n", vecref(vec, i));
 }
 
-define foo(){
+@define foo(){
 	@local ns, fn, tab, vec, i;
 
  	ns = @names c32le {

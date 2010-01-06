@@ -22,7 +22,7 @@ esp = (struct stab*)((unsigned char*)sp + stablim);
 
 @record Lsym { id, desc };
 
-define istypenum(s){
+@define istypenum(s){
      @local c;
      c = strref(s, 0);
      if(c == '(' || isdigit(c))
@@ -31,7 +31,7 @@ define istypenum(s){
 	  return 0;
 }
 
-define typenum(s){
+@define typenum(s){
      @local x;
      if(strref(s, 0) == '('){
 	  x = strstr(s, ")");
@@ -49,7 +49,7 @@ define typenum(s){
      }
 }
 
-define dotypeinfo(sym, s){
+@define dotypeinfo(sym, s){
      @local tid, st;
 
      if(istypenum(s)){
@@ -75,7 +75,7 @@ define dotypeinfo(sym, s){
      }
 }
 
-define dolsym(stab){
+@define dolsym(stab){
      @local c, x, rv;
      rv = Lsym();
      x = strstr(stab, ":");

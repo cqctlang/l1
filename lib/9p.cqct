@@ -122,36 +122,47 @@ typedef struct Dir {
 
 dom9p = mkdom(ns9p, mknas());
 
-define charstar(ns, s)
+@define charstar(ns, s)
 {
 	return (unsigned char*){mkdom(ns,mksas(s))}0;
 }
 
-define push1(p, v)
+@define push1(p, v)
 {
 	*(`uint8*)p = v;
 	return p+1;
 }
 
-define push2(p, v)
+@define push2(p, v)
 {
 	*(`uint16*)p = v;
 	return p+2;
 }
 
-define push4(p, v)
+@define push4(p, v)
 {
 	*(`uint32*)p = v;
 	return p+4;
 }
 
-define push8(p, v)
+@define push8(p, v)
 {
 	*(`uint64*)p = v;
 	return p+8;
 }
 
-define pushn2(p, s)
+@define pushn1(p, s)
+{
+	@local m;
+	if(s == nil)
+		return push1(p, 0);
+	m = length(s);
+	p = push1(p, m);
+	putbytes(p, s);
+	return p+m;
+}
+
+@define pushn2(p, s)
 {
 	@local m;
 	if(s == nil)
@@ -162,7 +173,7 @@ define pushn2(p, s)
 	return p+m;
 }
 
-define pushn4(p, s)
+@define pushn4(p, s)
 {
 	@local m;
 	if(s == nil)
@@ -173,7 +184,17 @@ define pushn4(p, s)
 	return p+m;
 }
 
-define lenn2(s)
+@define lenn1(s)
+{
+	@local sz;
+	sz = 1;
+	if(s == nil)
+		return sz;
+	else
+		return sz+length(s);
+}
+
+@define lenn2(s)
 {
 	@local sz;
 	sz = 2;
@@ -183,7 +204,7 @@ define lenn2(s)
 		return sz+length(s);
 }
 
-define lenn4(s)
+@define lenn4(s)
 {
 	@local sz;
 	sz = 4;
@@ -193,7 +214,7 @@ define lenn4(s)
 		return sz+length(s);
 }
 
-define read9pmsg(fd)
+@define read9pmsg(fd)
 {
 	@local s, p, n;
 	s = read(fd, 4);
@@ -211,7 +232,7 @@ define read9pmsg(fd)
 	return s;
 }
 
-define tversion(tag, msize, version)
+@define tversion(tag, msize, version)
 {
 	@local sz, s, p;
 	// size[4] Tversion tag[2] msize[4] version[s]
@@ -226,7 +247,7 @@ define tversion(tag, msize, version)
 	return s;
 }
 
-define tattach(tag, fid, afid, uname, aname)
+@define tattach(tag, fid, afid, uname, aname)
 {
 	@local sz, s, p;
 	// size[4] Tattach tag[2] fid[4] afid[4] uname[s] aname[s]
@@ -243,7 +264,7 @@ define tattach(tag, fid, afid, uname, aname)
 	return s;
 }
 
-define tstat(tag, fid)
+@define tstat(tag, fid)
 {
 	@local sz, s, p;
 	// size[4] Tstat tag[2] fid[4]
@@ -257,7 +278,7 @@ define tstat(tag, fid)
 	return s;
 }
 
-define twstat(tag, fid, stat)
+@define twstat(tag, fid, stat)
 {
 	@local sz, s, p;
 	// size[4] Tstat tag[2] fid[4] stat[n]
@@ -272,7 +293,7 @@ define twstat(tag, fid, stat)
 	return s;
 }
 
-define tclunk(tag, fid)
+@define tclunk(tag, fid)
 {
 	@local sz, s, p;
 	// size[4] Tclunk tag[2] fid[4]
@@ -286,7 +307,7 @@ define tclunk(tag, fid)
 	return s;
 }
 
-define twalk(tag, fid, newfid, wname)
+@define twalk(tag, fid, newfid, wname)
 {
 	@local nwname, sz, i, s, p;
 	// size[4] Twalk tag[2] fid[4] newfid[4] nwname[2] nwname*(wname[s])
@@ -309,7 +330,7 @@ define twalk(tag, fid, newfid, wname)
 	return s;
 }
 
-define topen(tag, fid, mode)
+@define topen(tag, fid, mode)
 {
 	@local sz, s, p;
 	// size[4] Topen tag[2] fid[4] mode[1]
@@ -324,7 +345,7 @@ define topen(tag, fid, mode)
 	return s;
 }
 
-define tcreate(tag, fid, name, perm, mode)
+@define tcreate(tag, fid, name, perm, mode)
 {
 	@local sz, s, p;
 	// size[4] Tcreate tag[2] fid[4] name[s] perm[4] mode[1]
@@ -341,7 +362,7 @@ define tcreate(tag, fid, name, perm, mode)
 	return s;
 }
 
-define tremove(tag, fid)
+@define tremove(tag, fid)
 {
 	@local sz, s, p;
 	// size[4] Tremove tag[2] fid[4]
@@ -355,7 +376,7 @@ define tremove(tag, fid)
 	return s;
 }
 
-define tread(tag, fid, offset, count)
+@define tread(tag, fid, offset, count)
 {
 	@local sz, s, p;
 	// size[4] Tread tag[2] fid[4] offset[8] count[4]
@@ -371,7 +392,7 @@ define tread(tag, fid, offset, count)
 	return s;
 }
 
-define twrite(tag, fid, offset, data)
+@define twrite(tag, fid, offset, data)
 {
 	@local sz, s, p;
 	// size[4] Twrite tag[2] fid[4] offset[8] count[4] data[count]
@@ -387,7 +408,7 @@ define twrite(tag, fid, offset, data)
 	return s;
 }
 
-define tflush(tag, oldtag)
+@define tflush(tag, oldtag)
 {
 	@local sz, s, p;
 	// size[4] Tflush tag[2] oldtag[2]
@@ -401,12 +422,12 @@ define tflush(tag, oldtag)
 	return s;
 }
 
-define fmtqid(qid)
+@define fmtqid(qid)
 {
 	return sprintfa("(%016x %u %x)", qid->path, qid->vers, qid->type);
 }
 
-define rversion(sz, p)
+@define rversion(sz, p)
 {
 	@local tag, msize, len, version;
 	// (size[4]) Rversion tag[2] msize[4] version[s]
@@ -426,7 +447,7 @@ define rversion(sz, p)
 	return [ msize, version ];
 }
 
-define rattach(sz, p)
+@define rattach(sz, p)
 {
 	@local tag, qid;
 	// (size[4]) Rattach tag[2] qid[13]
@@ -440,7 +461,7 @@ define rattach(sz, p)
 	return [ qid ];
 }
 
-define convM2D(p)
+@define convM2D(p)
 {
 	@local s, q, r, slen;
 	sz = *(`uint16*)p;
@@ -487,7 +508,7 @@ define convM2D(p)
 	return q;
 }
 
-define dumpstat(stat)
+@define dumpstat(stat)
 {
 	printf("\t name=%s len=%u mode=%o at=%u mt=%u "
 	       "uid=%s gid=%s muid=%s\n",
@@ -496,7 +517,7 @@ define dumpstat(stat)
 	       stat->uid, stat->gid, stat->muid);
 }
 
-define rstat(sz, p)
+@define rstat(sz, p)
 {
 	@local tag, stat;
 	// (size[4]) Rstat tag[2] stat[n]
@@ -515,7 +536,7 @@ define rstat(sz, p)
 	return [ stat ];
 }
 
-define rwstat(sz, p)
+@define rwstat(sz, p)
 {
 	@local tag;
 	// (size[4]) Rwstat tag[2]
@@ -527,7 +548,7 @@ define rwstat(sz, p)
 	return [];
 }
 
-define rclunk(sz, p)
+@define rclunk(sz, p)
 {
 	@local tag;
 	// (size[4]) Rclunk tag[2]
@@ -539,7 +560,7 @@ define rclunk(sz, p)
 	return [];
 }
 
-define rflush(sz, p)
+@define rflush(sz, p)
 {
 	@local tag;
 	// (size[4]) Rflush tag[2]
@@ -551,7 +572,7 @@ define rflush(sz, p)
 	return [];
 }
 
-define rwalk(sz, p)
+@define rwalk(sz, p)
 {
 	@local tag, nwqid, qid, i, rv;
 	// (size[4]) Rwalk tag[2] nwqid[2] nwqid*(qid[13])
@@ -574,7 +595,7 @@ define rwalk(sz, p)
 	return rv;
 }
 
-define ropen(sz, p)
+@define ropen(sz, p)
 {
 	@local tag, qid, iounit;
 	// (size[4]) Ropen tag[2] qid[13] iounit[4]
@@ -590,7 +611,7 @@ define ropen(sz, p)
 	return [ qid, iounit ];
 }
 
-define rcreate(sz, p)
+@define rcreate(sz, p)
 {
 	@local tag, qid, iounit;
 	// (size[4]) Rcreate tag[2] qid[13] iounit[4]
@@ -606,7 +627,7 @@ define rcreate(sz, p)
 	return [ qid, iounit ];
 }
 
-define rremove(sz, p)
+@define rremove(sz, p)
 {
 	@local tag;
 	// (size[4]) Rremove tag[2]
@@ -618,7 +639,7 @@ define rremove(sz, p)
 	return [];
 }
 
-define rread(sz, p)
+@define rread(sz, p)
 {
 	@local tag, count, data;
 	// (size[4]) Rread tag[2] count[4] data[count]
@@ -636,7 +657,7 @@ define rread(sz, p)
 	return [ data ];
 }
 
-define rwrite(sz, p)
+@define rwrite(sz, p)
 {
 	@local tag, count;
 	// (size[4]) Rwrite tag[2] count[4]
@@ -651,7 +672,7 @@ define rwrite(sz, p)
 	return [ count ];
 }
 
-define rerror(sz, p)
+@define rerror(sz, p)
 {
 	@local tag, len, ename;
 	// (size[4]) Rerror tag[2] ename[s]
@@ -669,7 +690,7 @@ define rerror(sz, p)
 	return ename;
 }
 
-define do9p(fd, t)
+@define do9p(fd, t)
 {
 	@local r, p, sz, op;
 	p = charstar(ns9p, t);
@@ -716,7 +737,7 @@ define do9p(fd, t)
 	}
 }
 
-define session9p(fd)
+@define session9p(fd)
 {
 	@local m, p, sz;
 	write(fd, tversion(NOTAG, 8192, "9P2000.u"));
@@ -733,7 +754,7 @@ define session9p(fd)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define attach9p(fd, uname)
+@define attach9p(fd, uname)
 {
 	@local m, p, sz;
 	write(fd, tattach(0, 0, NOFID, uname, ""));
@@ -750,7 +771,7 @@ define attach9p(fd, uname)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define stat9p(fd, fid)
+@define stat9p(fd, fid)
 {
 	@local m, p, sz;
 	write(fd, tstat(0, fid));
@@ -767,7 +788,7 @@ define stat9p(fd, fid)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define path2walk(path)
+@define path2walk(path)
 {
 	@local l, i, m, s, w;
 	w = split(path, "/");
@@ -784,7 +805,7 @@ define path2walk(path)
 	return l;
 }
 
-define walk9p(fd, fid, newfid, path)
+@define walk9p(fd, fid, newfid, path)
 {
 	@local m, p, sz, wname;
 	wname = path2walk(path);
@@ -802,7 +823,7 @@ define walk9p(fd, fid, newfid, path)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define open9p(fd, fid, mode)
+@define open9p(fd, fid, mode)
 {
 	@local m, p, sz;
 	write(fd, topen(0, fid, mode));
@@ -819,7 +840,7 @@ define open9p(fd, fid, mode)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define create9p(fd, fid, name, perm, mode)
+@define create9p(fd, fid, name, perm, mode)
 {
 	@local m, p, sz;
 	write(fd, tcreate(0, fid, name, perm, mode));
@@ -836,7 +857,7 @@ define create9p(fd, fid, name, perm, mode)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define remove9p(fd, fid)
+@define remove9p(fd, fid)
 {
 	@local m, p, sz;
 	write(fd, tremove(0, fid));
@@ -853,7 +874,7 @@ define remove9p(fd, fid)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define read9p(fd, fid, offset, count)
+@define read9p(fd, fid, offset, count)
 {
 	@local m, p, sz;
 	write(fd, tread(0, fid, offset, count));
@@ -870,7 +891,7 @@ define read9p(fd, fid, offset, count)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define write9p(fd, fid, offset, data)
+@define write9p(fd, fid, offset, data)
 {
 	@local m, p, sz;
 	write(fd, twrite(0, fid, offset, data));
@@ -887,7 +908,7 @@ define write9p(fd, fid, offset, data)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define clunk9p(fd, fid)
+@define clunk9p(fd, fid)
 {
 	@local m, p, sz;
 	write(fd, tclunk(0, fid));
@@ -904,7 +925,7 @@ define clunk9p(fd, fid)
 		error("i got %e", (enum dom9p`P9Pmsg)*p);
 }
 
-define flush9p(fd, oldtag)
+@define flush9p(fd, oldtag)
 {
 	@local m, p, sz;
 	write(fd, tflush(0, oldtag));
@@ -933,7 +954,7 @@ define flush9p(fd, oldtag)
 
 @const maxfd = 128;
 
-define mount9p(fd)
+@define mount9p(fd)
 {
 	@local msize, version;
 	@local rfid, rqid;
@@ -959,7 +980,7 @@ define mount9p(fd)
 	rqid = rv[0];
 	nextfid = rfid+1;
 
-	define allocfd()
+	@define allocfd()
 	{
 		@local i;
 		for(i = 0; i < maxfd; i++)
@@ -968,7 +989,7 @@ define mount9p(fd)
 		error("out of file descriptors");
 	}
 
-	define xopen(path, mode)
+	@define xopen(path, mode)
 	{
 		@local fid, rv, xfd, wname;
 
@@ -989,7 +1010,7 @@ define mount9p(fd)
 		return xfd;
 	}
 
-	define xfstat(xfd)
+	@define xfstat(xfd)
 	{
 		@local rv;
 		if(ftab[xfd] == nil)
@@ -1000,7 +1021,7 @@ define mount9p(fd)
 		return rv[0];
 	}
 
-	define xstat(path)
+	@define xstat(path)
 	{
 		@local fid, rv, wname;
 
@@ -1020,7 +1041,7 @@ define mount9p(fd)
 		return rv[0];
 	}
 
-	define xclose(xfd)
+	@define xclose(xfd)
 	{
 		@local rv;
 		if(ftab[xfd] == nil)
@@ -1032,7 +1053,7 @@ define mount9p(fd)
 		return nil;
 	}
 
-	define doread(fid, len, off)
+	@define doread(fid, len, off)
 	{
 		@local rv;
 		rv = do9p(fd, tread(tag, fid, off, len));
@@ -1042,7 +1063,7 @@ define mount9p(fd)
 	}
 			
 
-	define xread(xfd, len)
+	@define xread(xfd, len)
 	{
 		@local of, rv;
 		of = ftab[xfd];
@@ -1055,7 +1076,7 @@ define mount9p(fd)
 		return rv;
 	}
 
-	define xpread(xfd, len, off)
+	@define xpread(xfd, len, off)
 	{
 		@local of, rv;
 		of = ftab[xfd];
@@ -1068,7 +1089,7 @@ define mount9p(fd)
 		return rv;
 	}
 
-	define xmmap(xfd)
+	@define xmmap(xfd)
 	{
 		@local of, unit, st, cache, as, get, put, map, ma, ml;
 		of = ftab[xfd];
@@ -1083,7 +1104,7 @@ define mount9p(fd)
 		ma = st->length>>CNBITS;
 		ml = st->length&CMASK;
 
-		define get(this, r)
+		@define get(this, r)
 		{
 			@local b, l, a;
 			b = rangebeg(r);
@@ -1109,12 +1130,12 @@ define mount9p(fd)
 			return substr(cache[a], b-(a<<CNBITS), b-(a<<CNBITS)+l);
 		}
 
-		define put(this, r, s)
+		@define put(this, r, s)
 		{
 			error("writing mmapped files is unsupported");
 		}
 
-		define map(this)
+		@define map(this)
 		{
 			return vector(mkrange(0, st->length));
 		}
@@ -1123,7 +1144,7 @@ define mount9p(fd)
 		
 	}
 
-	define xdirread(xfd)
+	@define xdirread(xfd)
 	{
 		@local of, rv, unit, buf, p, len, ss;
 		of = ftab[xfd];
@@ -1160,7 +1181,7 @@ define mount9p(fd)
 	return mnt;
 }
 
-define test()
+@define test()
 {
 	@local fds;
 	fds = popen(getenv("HOME")+"/src/u9fs/u9fs",
@@ -1190,7 +1211,7 @@ define test()
 	close(fd);
 }
 
-define test2()
+@define test2()
 {
 	@local fds, mnt, fd, st, p, as, i;
 	fds = popen(getenv("HOME")+"/src/u9fs/u9fs",
@@ -1205,7 +1226,7 @@ define test2()
 	mnt.close(fd);
 	fd = mnt.open("/etc", dom9p`OREAD);
 //	map(dumpstat, mnt.dirread(fd));
-	map(lambda(st) { printf("\t%s\n", st->name); }, mnt.dirread(fd));
+	map(@lambda(st) { printf("\t%s\n", st->name); }, mnt.dirread(fd));
 	mnt.close(fd);
 	dumpstat(mnt.stat(getenv("HOME")));
 	fd = mnt.open(getenv("HOME"), dom9p`OREAD);

@@ -1,5 +1,5 @@
-define cmp(x,y) { return x - listref(y,0); }
-define tst(k,v){
+@define cmp(x,y) { return x - listref(y,0); }
+@define tst(k,v){
 	@local rv;
 	rv = bsearch(k, v, cmp);
 	printf("%a  => %a\n", k, rv);

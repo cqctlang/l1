@@ -1,4 +1,4 @@
-define main(){
+@define main(){
 	printf("%d\n", sizeof(char));
 	printf("%d\n", sizeof(unsigned char));
 	printf("%d\n", sizeof(short));

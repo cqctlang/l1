@@ -257,7 +257,7 @@ cfeval(VM *vm, Expr *e)
 	cl = codegen(e);
 	if(cl == 0)
 		fatal("cannot compile constant expression");
-	if(cqctcallfn(vm, cl, 0, 0, &rv))
+	if(cqctcallfn(vm, mkvalcl(cl), 0, 0, &rv))
 		fatal("cannot eval constant expression");
 	return Zkon(rv);
 }

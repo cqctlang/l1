@@ -1,4 +1,4 @@
-define member(k, l)
+@define member(k, l)
 {
 	@local i;
 	for(i = 0; i < length(l); i++)
@@ -8,14 +8,14 @@ define member(k, l)
 }
 
 
-define chasetype(t)
+@define chasetype(t)
 {
 	if(istypedef(t))
 		return chasetype(typedeftype(t));
 	return t;
 }
 
-define addwork(work, t)
+@define addwork(work, t)
 {
 	@local u;
 
@@ -30,13 +30,13 @@ define addwork(work, t)
 	work[t] = 1;
 }
 
-define dumpslim(fd, work, tt, et)
+@define dumpslim(fd, work, tt, et)
 {
 	@local done, t, checktt, checket;
 	@local ens, i, en;
 	@local flds, fld, off, ft, id, sz;
 
-	define checktt(t, id){
+	@define checktt(t, id){
 		@local x;
 		x = tt[chasetype(t)];
 		if(x == nil)
@@ -46,7 +46,7 @@ define dumpslim(fd, work, tt, et)
 		return 0;
 	}
 
-	define checket(t, id){
+	@define checket(t, id){
 		@local x;
 		x = et[t];
 		if(x == nil)
@@ -111,7 +111,7 @@ define dumpslim(fd, work, tt, et)
 	}
 }
 
-define mktracens(ns)
+@define mktracens(ns)
 {
 	@local stab, ttab, ftab, _lookfield;
 	@local looksym, looktype, enumsym, enumtype, lookaddr;
@@ -121,7 +121,7 @@ define mktracens(ns)
 	ttab = [:];
 	ftab = [:];
 
-	define looksym(this, id){
+	@define looksym(this, id){
 		if(stab[id] == nil)
 			stab[id] = 1;
 		else
@@ -129,7 +129,7 @@ define mktracens(ns)
 		return ns.looksym(id);
 	}
 
-	define looktype(this, t){
+	@define looktype(this, t){
 		t = ns.looktype(t);
 		if(t == nil)
 			return t;
@@ -140,31 +140,31 @@ define mktracens(ns)
 		return t;
 	}
 
-	define enumsym(this){
+	@define enumsym(this){
 		return ns.enumsym();
 	}
 
-	define enumtype(this){
+	@define enumtype(this){
 		return ns.enumtype();
 	}
 
-	define lookaddr(this, addr){
+	@define lookaddr(this, addr){
 		return ns.lookaddr(addr);
 	}
 
-	define dump(this, fd){
+	@define dump(this, fd){
 		@local tt, et, work, done;
 //		printf("symbols:\n");
-//		dumptab(stab, lambda(k, v) { printf("%8d\t%t\n",
+//		dumptab(stab, @lambda(k, v) { printf("%8d\t%t\n",
 //						    v, ns.looksym(k));});
 //		printf("types:\n");
-//		dumptab(ttab, lambda(k, v) { printf("%8d\t%t\n", v, k); });
+//		dumptab(ttab, @lambda(k, v) { printf("%8d\t%t\n", v, k); });
 //		printf("fields:\n");
-//		dumptab(ftab, lambda(k, v) { printf("%8d\t%a\n", v, k); });
+//		dumptab(ftab, @lambda(k, v) { printf("%8d\t%a\n", v, k); });
 
 		et = mktab();
 		tt = mktab();
-		foreach(lambda(k,v){
+		foreach(@lambda(k,v){
 				@local t, f;
 				t = chasetype(k[0]);
 				f = k[1];
@@ -175,12 +175,12 @@ define mktracens(ns)
 			}, ftab);
 
 		work = mktab();
-		foreach(lambda(k,v){
+		foreach(@lambda(k,v){
 				if(k == nil)
 					error("wtf?");
 				addwork(work, k);
 			}, ttab);
-		foreach(lambda(k,v){
+		foreach(@lambda(k,v){
 				@local t, off, sym;
 				sym = ns.looksym(k);
 				t = symtype(sym);
@@ -205,7 +205,7 @@ define mktracens(ns)
 	}
 
 	_lookfield = lookfield;
-	define lookfield(type, field){
+	@define lookfield(type, field){
 		@local l;
 		l = [ type, field ];
 		if(ftab[l] == nil)

@@ -1,4 +1,4 @@
-define _dw_get_regval (domoras, regno)
+@define _dw_get_regval (domoras, regno)
 {
   @local exas;
   if (isas (domoras))
@@ -51,22 +51,22 @@ define _dw_get_regval (domoras, regno)
   return 0;
 }
 
-define _dw_fpregnum (exdom)
+@define _dw_fpregnum (exdom)
 {
   return 6;
 }
 
-define _dw_spregnum (exdom)
+@define _dw_spregnum (exdom)
 {
   return 7;
 }
 
-define _dw_pcregnum (exdom)
+@define _dw_pcregnum (exdom)
 {
   return 16;
 }
 
-define dumpregs (exdom)
+@define dumpregs (exdom)
 {
   printf ("reg 0 (rax) = 0x%x (%u)\n", exdom.getrax(), exdom.getrax());
   printf ("reg 1 (rdx) = 0x%x (%u)\n", exdom.getrdx(), exdom.getrdx());

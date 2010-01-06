@@ -1,0 +1,429 @@
+venti = @names clp64be {
+
+	/* plan9port/src/libventi/dtype.c */
+	typedef
+	enum Type {
+		OVtErrType,			/* illegal */
+		OVtRootType,
+		OVtDirType,
+		OVtPointerType0,
+		OVtPointerType1,
+		OVtPointerType2,
+		OVtPointerType3,
+		OVtPointerType4,
+		OVtPointerType5,
+		OVtPointerType6,
+		OVtPointerType7,		/* not used */
+		OVtPointerType8,		/* not used */
+		OVtPointerType9,		/* not used */
+		OVtDataType,
+		OVtMaxType
+	} Type;
+
+	typedef
+	enum Op {
+		VtRerror	= 1,
+		VtTping		= 2,
+		VtRping,
+		VtThello	= 4,
+		VtRhello,
+		VtTgoodbye	= 6,
+		VtRgoodbye,	/* not used */
+		VtTauth0	= 8,
+		VtRauth0,
+		VtTauth1	= 10,
+		VtRauth1,
+		VtTread		= 12,
+		VtRread,
+		VtTwrite	= 14,
+		VtRwrite,
+		VtTsync		= 16,
+		VtRsync,
+
+		VtTmax
+	} Op;
+	
+	/* no structs for VtThello or VtRhello:
+	   they have variable width fields */
+
+	struct VtTping {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2;
+	};
+	typedef struct VtTping VtTping;
+	typedef struct VtTping VtRping;
+	typedef struct VtTping VtTsync;
+	typedef struct VtTping VtRsync;
+	typedef struct VtTping VtTgoodbye;
+
+	struct VtTread {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 score[20];
+		@22	uint8 type;
+		@23	uint8 pad;
+		@24	uint32 count;    /* version 04 allows 2 or 4 byte */
+		@28;
+	};
+	typedef struct VtTread VtTread;
+
+	struct VtRread {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 data[];
+		@2;
+	};
+	typedef struct VtRread VtRread;
+
+	struct VtTwrite {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 type;
+		@3	uint8 pad;
+		@6	uint8 data[];
+		@6;
+	};
+	typedef struct VtTwrite VtTwrite;
+
+	struct VtRwrite {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint8 score[20];
+		@22;
+	};
+	typedef struct VtRwrite VtRwrite;
+
+	struct VtRerror {
+		@0	uint8 op;
+		@1	uint8 tag;
+		@2	uint16 errlen;
+		@4	char bytes[0];
+		@4;
+	};
+	typedef struct VtRerror VtRerror;
+};
+
+@define push1(p, v)
+{
+	*(venti`uint8*)p = v;
+	return p+1;
+}
+
+@define push2(p, v)
+{
+	*(venti`uint16*)p = v;
+	return p+2;
+}
+
+@define push4(p, v)
+{
+	*(venti`uint32*)p = v;
+	return p+4;
+}
+
+@define push8(p, v)
+{
+	*(venti`uint64*)p = v;
+	return p+8;
+}
+
+@define pushn1(p, s)
+{
+	@local m;
+	if(s == nil)
+		return push1(p, 0);
+	m = length(s);
+	p = push1(p, m);
+	putbytes(p, s);
+	return p+m;
+}
+
+@define pushn2(p, s)
+{
+	@local m;
+	if(s == nil)
+		return push2(p, 0);
+	m = length(s);
+	p = push2(p, m);
+	putbytes(p, s);
+	return p+m;
+}
+
+@define pushn4(p, s)
+{
+	@local m;
+	if(s == nil)
+		return push4(p, 0);
+	m = length(s);
+	p = push4(p, m);
+	putbytes(p, s);
+	return p+m;
+}
+
+@define lenn1(s)
+{
+	@local sz;
+	sz = 1;
+	if(s == nil)
+		return sz;
+	else
+		return sz+length(s);
+}
+
+@define lenn2(s)
+{
+	@local sz;
+	sz = 2;
+	if(s == nil)
+		return sz;
+	else
+		return sz+length(s);
+}
+
+@define lenn4(s)
+{
+	@local sz;
+	sz = 4;
+	if(s == nil)
+		return sz;
+	else
+		return sz+length(s);
+}
+
+@define vtversion(fd)
+{
+	@local v, s, sp;
+	write(fd, "venti-04-cqct\n");
+	v = "";
+	while(1){
+		s = read(fd, 1);
+		if(s == nil)
+			error("1 venti announced bad version: %s", v);
+		v += s;
+		if(s == "\n")
+			break;
+		
+	}
+	sp = split(v, "-");
+	if(length(sp) != 3)
+		error("2 venti announced bad version: %s", v);
+	if(strstr(sp[1], "04") == nil)
+		error("venti announced unsupported version: %s", v);
+	printf("version is %s", v);
+}
+
+@define vtsendmsg(fd, arg ...)
+{
+	@local p, sz;
+	p = arg[0];
+	switch(length(arg)){
+	case 1:
+		sz = sizeof(*p);
+		break;
+	case 2:
+		sz = arg[1];
+		break;
+	default:
+		error("bad sendmsg");
+	}
+	write(fd, cval2str((venti`uint32)sz));
+	write(fd, getbytes(p, sz));
+}
+
+@define buf2msg(p)
+{
+	@local op;
+
+	op = (venti`Op)*(venti`uint8*)p;
+	switch(op){
+	case venti`VtRerror:
+		return (venti`VtRerror*)p;
+	case venti`VtRping:
+		return (venti`VtRping*)p;
+	case venti`VtRhello:
+		return (venti`VtRhello*)p;
+	case venti`VtRread:
+		return (venti`VtRread*)p;
+	case venti`VtRwrite:
+		return (venti`VtRwrite*)p;
+	case venti`VtRsync:
+		return (venti`VtRsync*)p;
+	case venti`VtRauth0:
+	case venti`VtThello:
+	case venti`VtTgoodbye:
+	case venti`VtTauth0:
+	case venti`VtTauth1:
+	case venti`VtRauth1:
+	case venti`VtTread:
+	case venti`VtTwrite:
+	case venti`VtTsync:
+	default:
+		error("venti sent unsupported operation: %e", op);
+	}
+	
+}
+
+@define vtrecvmsg(fd)
+{
+	@local sz, p, op;
+
+	sz = read(fd, sizeof(venti`uint32));
+	if(sz == nil)
+		error("venti hung up");
+	sz = *(venti`uint32*)sz;
+	p = read(fd, sz);
+	return buf2msg(p);
+}
+
+@define checkreply(rep, op)
+{
+	switch(rep->op){
+	case op:
+		break;
+	case venti`VtRerror:
+		error("venti: while waiting for %e: %s",
+		      op, rep->bytes);
+	default:
+		error("venti: while waiting for %e: received %e",
+		      op, (venti`Op)rep->op);
+	}
+}
+
+@define vthello(fd)
+{
+	@local sz, s, p, r, op;
+
+	// VtThello tag[1] version[s] uid[s] str[1] crypto[n] codec[n]
+	sz = 1+1+lenn2("04")+lenn2(nil)+1+lenn1(nil)+lenn1(nil);
+	s = p = (venti`char*)malloc(sz);
+	p = push1(p, venti`VtThello);
+	p = push1(p, 0);
+	p = pushn2(p, "04");
+	p = pushn2(p, nil);
+	p = push1(p, 0);
+	p = pushn1(p, nil);
+	p = pushn1(p, nil);
+
+	printf("sz is %d\n", sz);
+
+	vtsendmsg(fd, s, sz);
+
+	sz = read(fd, sizeof(venti`uint32));
+	if(sz == nil)
+		error("venti hung up");
+	sz = *(venti`uint32*)sz;
+	p = read(fd, sz);
+	op = (venti`Op)*(venti`uint8*)p;
+	switch(op){
+	case venti`VtRhello:
+		break;
+	case venti`VtRerror:
+		error("venti: while waiting for %e: %s",
+		      op, rep->bytes);
+	default:
+		error("venti: while waiting for %e: received %e",
+		      op, (venti`Op)rep->op);
+	}
+	printf("venti: hello\n");
+}
+
+@define vtping(fd)
+{
+	@local t, r;
+
+	t = (venti`VtTping*)malloc(sizeof(venti`VtTping));
+	t->op = venti`VtTping;
+	t->tag = 0;
+
+	vtsendmsg(fd, t);
+	r = vtrecvmsg(fd);
+	checkreply(r, venti`VtRping);
+
+	printf("venti: ping\n");
+}
+
+@define score2txt(score)
+{
+	@local i, s;
+	s = "";
+	for(i = 0; i < 20; i++)
+		s += sprintfa("%02x", score[i]);
+	return s;
+}
+
+@define ctoi(c)
+{
+	if(isdigit(c))
+		return c-'0';
+	if(islower(c))
+		return c-'a'+10;
+	if(isupper(c))
+		return c-'A'+10;
+	error("ctoi: bad character: %c\n", c);
+}
+
+@define txt2score(s)
+{
+	@local i, p, score;
+
+	score = (`uint8*)malloc(20);
+	for(i = 0; i < 20; i++)
+		score[i] = (ctoi(s[2*i])<<4)|ctoi(s[2*i+1]);
+	return getbytes(score, 20);
+}
+
+@define vtwrite(fd, buf)
+{
+	@local sz, t, r;
+
+	sz = sizeof(venti`VtTwrite)+length(buf);
+	t = (venti`VtTwrite*)malloc(sz);
+	t->op = venti`VtTwrite;
+	t->tag = 0;
+	t->type = venti`OVtDataType;
+	putbytes(t+1, buf);
+	vtsendmsg(fd, t, sz);
+	r = vtrecvmsg(fd);
+	checkreply(r, venti`VtRwrite);
+	return getbytes(r->score, sizeof(r->score));
+}
+
+@define vtread(fd, score)
+{
+	@local sz, t, r;
+	sz = sizeof(venti`VtTread);
+	t = (venti`VtTread*)malloc(sz);
+	t->op = venti`VtTread;
+	t->tag = 0;
+	putbytes(&t->score, score);
+	t->type = venti`OVtDataType;
+	t->count = 1024;
+	vtsendmsg(fd, t);
+	sz = read(fd, sizeof(venti`uint32));
+	if(sz == nil)
+		error("venti hung up");
+	sz = *(venti`uint32*)sz;
+	p = read(fd, sz);
+	p = buf2msg(p);
+	return getbytes(p+1, (int)sz-sizeof(*p));
+}
+
+@define test()
+{
+	@local fd;
+	fd = tcpopen("localhost:17034");
+	vtversion(fd);
+
+	vthello(fd);
+
+	score = vtwrite(fd, "hello!\n");
+	txt = score2txt(score);
+	printf("score.1 is %s\n", txt);
+	score = txt2score(txt);
+	printf("score.2 is %s\n", score2txt(txt2score(txt)));
+	s = vtread(fd, score);
+	printf("venti: read %s\n", s);
+
+	close(fd);
+}

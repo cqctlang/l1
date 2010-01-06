@@ -1,4 +1,4 @@
-define mksnapas(file)
+@define mksnapas(file)
 {
 	@local ns, as, dom, nmap, mp, idx, ip, i;
 	@local get, put, map, lookmap;
@@ -29,11 +29,11 @@ define mksnapas(file)
 		mp++;
 	}
 
-	define map(this){
+	@define map(this){
 		return vector(mkrange(0, (`uint64)-1));
 	}
 
-	define lookmap(a)
+	@define lookmap(a)
 	{
 		@local i;
 		for(i = 0; i < nmap; i++)
@@ -42,7 +42,7 @@ define mksnapas(file)
 		return nil;
 	}
 
-	define get(this, r){
+	@define get(this, r){
 		@local b, l, i, m;
 		b = rangebeg(r);
 		l = rangelen(r);
@@ -56,11 +56,11 @@ define mksnapas(file)
 		return getbytes(m[2]+b, l);
 	}
 
-	define put(this, r, bytes){
+	@define put(this, r, bytes){
 		error("attempt to put on snapas");
 	}
 
-	define ismapped(this, a){
+	@define ismapped(this, a){
 		if(lookmap((`uintptr)a) == nil)
 			return 0;
 		else

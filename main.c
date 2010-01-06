@@ -248,7 +248,7 @@ searchpath(char *name)
 	while(*p){
 		q = strchr(p, ':');
 		if(q == 0){
-			q = p+strlen(q); /* last element */
+			q = p+strlen(p); /* last element */
 			np = q;
 		}else
 			np = q+1;
@@ -258,7 +258,6 @@ searchpath(char *name)
 		if(w[-1] != '/')
 			*w++ = '/';
 		memcpy(w, name, nl);
-//		printf("try: %s\n", try);
 		if(access(try, X_OK) == 0)
 			return try;
 		free(try);
@@ -277,9 +276,11 @@ readlinkf(char *path)
 	buf = 0;
 	tmp = 0;
 	if(path[0] != '/' && path[0] != '.'){
-		path = searchpath(path);
-		if(path == 0)
-			goto fail;
+		p = searchpath(path);
+		if(p)
+			path = p;
+		else
+			path = xstrdup(path);
 	}else
 		path = xstrdup(path);
 
@@ -381,8 +382,7 @@ rdtsc()
 int
 main(int argc, char *argv[])
 {
-	Closure *entry;
-	Val v;
+	Val entry, fn, v;
 	char *filename;
 	int c;
 	struct timeval beg, end;
@@ -397,11 +397,12 @@ main(int argc, char *argv[])
 	unsigned n, nlp;
 	char *lp[Maxloadpath+1];	/* extra one is final null */
 	Toplevel *top;
-	char *argsid;
+	char *ename, *argsid;
 	struct memusage mu;
 	uint64_t usec;
 	int rv;
 	Xfd *xfd, devnull;
+	int status;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -409,10 +410,11 @@ main(int argc, char *argv[])
 	opt['g'] = 1;		/* gc in separate thread */
 	opt['s'] = 1;		/* include default load path */
 	dorepl = 1;
+	ename = 0;
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "a+bghkl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "a+be:ghkl:m:opqrstTwxz"))){
 		switch(c){
 		case 'a':
 		case 'b':
@@ -433,6 +435,9 @@ main(int argc, char *argv[])
 		case 's':
 		case 'x':
 			opt[c] = 0;
+			break;
+		case 'e':
+			ename = optarg;
 			break;
 		case 'm':
 			heapmax = atoi(optarg);
@@ -456,6 +461,8 @@ main(int argc, char *argv[])
 		filename = argv[optind++];
 		dorepl = 0;
 	}
+	if(ename && dorepl)
+		fatal("-e requires a script");
 
 	argv0 = readlinkf(argv0);
 	if(argv0 == 0)
@@ -495,14 +502,16 @@ main(int argc, char *argv[])
 			fatal("cannot clear stdin buffering");
 	}
 
+	status = 0;
 	valc = 0;
 	valv = 0;
 	argsid = 0;
 	if(!dorepl){
-		valc = argc-optind;
+		valc = argc-optind+1;
 		valv = emalloc(valc*sizeof(Val));
-		for(i = 0; i < valc; i++)
-			valv[i] = cqctcstrval(argv[optind+i]);
+		valv[0] = cqctcstrval(argv[0]);
+		for(i = 1; i < valc; i++)
+			valv[i] = cqctcstrval(argv[optind+i-1]);
 		argsid = "args";
 	}
 
@@ -530,13 +539,23 @@ main(int argc, char *argv[])
 			gettimeofday(&beg, 0);
 			bt = rdtsc();
 		}
-		entry = cqctcompile(inbuf, filename, top, argsid);
+		entry = cqctcompile(inbuf, filename, top, ename ? 0 : argsid);
 		free(inbuf);
 		if(entry == 0)
 			continue;
 		if(opt['x'] == 0)
 			continue; /* just compiling */
-		rv = cqctcallfn(vm, entry, valc, valv, &v);
+		if(!ename)
+			rv = cqctcallfn(vm, entry, valc, valv, &v);
+		else{
+			rv = cqctcallfn(vm, entry, 0, 0, &v);
+			if(rv)
+				continue; /* error */
+			fn = cqctenvlook(top, ename);
+			if(fn == 0)
+				fatal("entry %s is undefined");
+			rv = cqctcallfn(vm, fn, valc, valv, &v);
+		}
 		if(opt['t']){
 			et = rdtsc();
 			gettimeofday(&end, 0);
@@ -559,6 +578,10 @@ main(int argc, char *argv[])
 			printf("%s\n", s);
 			cqctfreecstr(s);
 		}
+		status = 0;
+		if(v->qkind == Qcval)
+			status = cqctvalint32(v);
+		
 	}while(dorepl);
 
 	free(valv);
@@ -576,5 +599,5 @@ main(int argc, char *argv[])
 		printf("\n");
 	}
 
-	return 0;
+	return status;
 }

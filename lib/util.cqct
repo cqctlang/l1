@@ -1,4 +1,4 @@
-define time(fn)
+@define time(fn)
 {
 	@local s, e;
 	s = gettimeofday();

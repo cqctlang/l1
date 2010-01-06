@@ -4,7 +4,7 @@
 
 @include <elf.cqct>
 
-define align(l, sz)
+@define align(l, sz)
 {
 	@local res;
 
@@ -15,7 +15,7 @@ define align(l, sz)
 	return res;
 }
 
-define ntype2str(elfdom, ntype)
+@define ntype2str(elfdom, ntype)
 {
 	@local s;
 	
@@ -85,7 +85,7 @@ define ntype2str(elfdom, ntype)
 }
 
 
-define main(args)
+@define main(args)
 {
 	@local elfdom, infile;
 	@local ehdr;

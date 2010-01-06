@@ -1,18 +1,18 @@
-define do1type(t){
+@define do1type(t){
 	printf("%s:\t\t%t\t\t%d\n", typedefid(t), typedeftype(t), sizeof(t));
 }
 
-define do1dom(s, dom){
+@define do1dom(s, dom){
 	printf("%s\n", s);
-	do1type(typeof(dom`uintptr));
-	do1type(typeof(dom`int8));
-	do1type(typeof(dom`int16));
-	do1type(typeof(dom`int32));
-	do1type(typeof(dom`int64));
-	do1type(typeof(dom`uint8));
-	do1type(typeof(dom`uint16));
-	do1type(typeof(dom`uint32));
-	do1type(typeof(dom`uint64));
+	do1type(@typeof(dom`uintptr));
+	do1type(@typeof(dom`int8));
+	do1type(@typeof(dom`int16));
+	do1type(@typeof(dom`int32));
+	do1type(@typeof(dom`int64));
+	do1type(@typeof(dom`uint8));
+	do1type(@typeof(dom`uint16));
+	do1type(@typeof(dom`uint32));
+	do1type(@typeof(dom`uint64));
 	printf("\n");
 }
 

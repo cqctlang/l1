@@ -30,14 +30,14 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 
 @record gitobj { offset, bytes, sha1, type };
 
-define mkstrdom(str)
+@define mkstrdom(str)
 {
 	@local dom;
 	dom = mkdom(c32le, mksas(str));
 	return (unsigned char*){dom}0;
 }
 
-define decodesha(md)
+@define decodesha(md)
 {
 	@local i, x, rv;
 	x = "0123456780abcdef";
@@ -49,7 +49,7 @@ define decodesha(md)
 	return rv;
 }
 
-define patchdelta(src, delta)
+@define patchdelta(src, delta)
 {
 	@local data, cmd, size, out, i, cp_off, src_size, cp_size;
 	@local src_buf, dst_buf, dst_size, fd;
@@ -126,7 +126,7 @@ define patchdelta(src, delta)
 	return getbytes(dst_buf, dst_size);
 }
 
-define dumppack(pack)
+@define dumppack(pack)
 {
 	@local p, q, i, c, b, type, size, zsize, infl, obj, off, ref, roff;
 	@local sha1tab, offtab, deltaq, s1, go, dep;
@@ -220,24 +220,24 @@ define dumppack(pack)
 		printf("\n");
 	}
 
-	foreach(lambda(ref){ if(sha1tab[ref] == nil) printf("don't have %s\n", ref); }, deltaq);
+	foreach(@lambda(ref){ if(sha1tab[ref] == nil) printf("don't have %s\n", ref); }, deltaq);
 }
 
 
-define packdom(packfilename)
+@define packdom(packfilename)
 {
 	@local as;
 	as = mksas(mapfile(packfilename));
 	return mkdom(packns, as);
 }
 
-define doit()
+@define doit()
 {
 	dumppack(".git/objects/pack/pack-69e85119a854fd6a2ee39492c89badfbcea253c1.pack");
 	dumppack(".git/objects/pack/pack-6fbc3dd6ef5081869f060178a99a8ed07f41eec1.pack");
 }
 
-define ispack(name)
+@define ispack(name)
 {
 	@local l;
 	l = strlen(name);
@@ -249,12 +249,12 @@ define ispack(name)
 		return 0;
 }
 
-define findpacks(repo)
+@define findpacks(repo)
 {
 	@local gitobjdir, pdom, fn;
 	gitobjdir = sprintfa("%s/.git/objects/pack", repo);
 	foreachfile(gitobjdir,
-		    lambda(file){
+		    @lambda(file){
 			    if(!ispack(file))
 				    return;
 			    fn = sprintfa("%s/%s", gitobjdir, file);

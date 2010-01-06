@@ -4,7 +4,7 @@
 	for(i = 0; i < 10; i++){
 		@local x;
 		x = i;
-		append(l, lambda() { printf("%d\n", x); });
+		append(l, @lambda() { printf("%d\n", x); });
 	};
-	foreach(lambda(e) { e(); }, l);
+	foreach(@lambda(e) { e(); }, l);
 }

@@ -926,6 +926,7 @@ Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 List*		mklist();
 Cval*		mklitcval(Cbase base, Imm val);
+Ns*		mknstab(Tab *mtab, Str *name);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
 Str*		mkstr(char *s, Imm len);
@@ -1021,7 +1022,8 @@ Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
 void		cposterror(U *ctx, Expr *e, char *fmt, ...);
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
-void		cwarnl(U *ctx, Expr *e, char *fmt, ...);
+void		cwarnsrcln(U *ctx, Src *src, char *fmt, ...);
+void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 void		putsrc(Expr *e, Src *src);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);

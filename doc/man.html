@@ -82,25 +82,23 @@ of the L1 implementation of Cinquecento.
 Cinquecento is a programming language designed for
 examining programs in execution.  Its distinguishing
 feature is an extensible abstraction, called
-a <em>domain</em>, that represents a remotely executing
-program.
+a <em>domain</em>, that represents a 
+target program in execution.
 </p>
 
 <p>
-The main interface to Cinquecento domains is the syntax
-of the C programming language.  The state of a target
-program can be read or modified with C expressions;
-Cinquecento understands C operators and the C type
-system.  Cinquecento provides C control flow
-statements; most C data traversal idioms, such as
-pointer-chasing loops, work unmodified in Cinquecento.
+Domains present the state of a target program through
+an interface based on the syntax and semantics of C.
+Target program memory can be read or modified using
+ordinary C expressions.  Conventional C idioms for
+traversing data structures, such as pointer-chasing
+loops, generally work in Cinquecento without any
+modifications: Cinquecento supports all C operators,
+the C type system, and all C control flow statements.
 Names and types of target program data can be specified
-in C declaration syntax; minor extensions to the syntax
-admit machine-level specification of location, layout,
-and encoding of data in memory.  In essence,
-Cinquecento makes the state of remotely executing
-programs accessible through ordinary, arbitrary, local
-fragments of C.
+in C declaration syntax.  Minor extensions to C's
+declaration syntax allow machine-level specification of
+location, layout, and encoding of data in memory.
 </p>
 
 <p>
@@ -114,18 +112,18 @@ execute on a different machine, possibly with a
 different architecture and operating system.
 
 Example applications include comparing executions of
-different versions of a program, or verifying that a
-particular version has comparable executions on
-different machine types or operating systems.  More
-generally, Cinquecento can be used to validate dynamic
-state spanning the constitutent programs of a
-distributed system.
+different versions of a program, verifying that a
+particular version behaves comparably on different
+machine types or operating systems, and validating
+global state across a distributed, multi-process
+program.
 </p>
 
 <p>
-Each domain encapsulates a way to symbolically examine
-a remotely executing program: definitions of its types
-and symbols, and access to its memory and other
+Every domain encapsulates functions to access a
+particular target program.  These include functions
+that define the types and symbols of the target, and
+functions that read and write its memory and other
 run-time state.  Rather than favor the idiosyncrasies
 of one operating system, architecture, compiler, or
 debugging information format, Cinquecento specifies a
@@ -228,19 +226,21 @@ The following are the keywords of Cinquecento.
 <div class="code">
 <!-- pipe through mc -60
 @const 
+@containerof
+@define
+@lambda 
 @let
 @local
 @global 
 @names 
 @record 
+@typeof
 break 
 case 
 char 
 const
-containerof 
 continue 
 default 
-define
 do 
 double 
 else 
@@ -249,9 +249,7 @@ float
 for 
 if 
 int 
-lambda 
 long 
-nil 
 return 
 short 
 signed 
@@ -259,7 +257,6 @@ sizeof
 struct 
 switch 
 typedef 
-typeof 
 union 
 unsigned 
 void 
@@ -267,16 +264,16 @@ volatile
 while 
 -->
 <pre>
-@const       containerof  if           switch 
-@let         continue     int          typedef 
-@local       default      lambda       typeof 
-@global      define       long         union 
-@names       do           nil          unsigned 
-@record      double       return       void 
-break        else         short        volatile
-case         enum         signed       while 
-char         float        sizeof 
-const        for          struct 
+@const       break        float        switch 
+@containerof case         for          typedef 
+@define      char         if           union 
+@lambda      const        int          unsigned 
+@let         continue     long         void 
+@local       default      return       volatile
+@global      do           short        while 
+@names       double       signed 
+@record      else         sizeof 
+@typeof      enum         struct 
 </pre>
 </div>
 
@@ -485,7 +482,7 @@ are initially bound to the undefined value.
 </p>
 
 <p>
-The parameters of a <span class="id">lambda</span> form
+The parameters of a <span class="id">@lambda</span> form
 establish local bindings in the block that forms the
 body of the function definition, just as if they had
 been declared with <span class="id">@local</span>.
@@ -663,13 +660,13 @@ environment.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@local">lambda</span>
+The <span class="fnindex" id="syn:@lambda">@lambda</span>
 expression defines new function values.  The syntax
 is:
 
 <div class="code">
 <pre>
-lambda <span class="arg">formals</span> { <span class="arg">statement</span>; ... }
+@lambda <span class="arg">formals</span> { <span class="arg">statement</span>; ... }
 </pre>
 </div>
 
@@ -767,13 +764,13 @@ if the function returns without reaching a
 </p>
 
 <p>
-The <span class="fnindex" id="syn:define">define</span> form
+The <span class="fnindex" id="syn:@define">@define</span> form
 is syntactic sugar for naming a function definition.
 For example
 
 <div class="code">
 <pre>
-define <span class="arg">name</span>(<span class="arg">var</span>, ...)
+@define <span class="arg">name</span>(<span class="arg">var</span>, ...)
 {
 	<span class="arg">statement</span>;
 	...
@@ -784,7 +781,7 @@ is equivalent to
 
 <div class="code">
 <pre>
-<span class="arg">name</span> = lambda(<span class="arg">var</span>, ...)
+<span class="arg">name</span> = @lambda(<span class="arg">var</span>, ...)
 {
 	<span class="arg">statement</span>;
 	...
@@ -1063,7 +1060,7 @@ For example:
 
 <div class="code">
 <pre>
-x = myrec("abc", 1, lambda(x){ printf("hi\n")});
+x = myrec("abc", 1, @lambda(x){ printf("hi\n")});
 </pre>
 </div>
 
@@ -1443,6 +1440,15 @@ associated with the symbol, the evaluator implicitly calls
 <!-- of the domain is called. -->
 <!-- </p> -->
 
+<p>
+Normally the left operand to backtick must be a domain.
+However, if the right operand is the name of an enumeration
+constant, the right operand may be a name space.  The
+resulting cvalue has type and value of the constant
+as defined in the name space, and a freshly allocated
+domain with the same name space and the address space
+of the literal domain.
+</p>
 
 
 <p>
@@ -1450,7 +1456,7 @@ Type resolution occurs when the backtick expression
 appears where a type name would be expected or accepted in C:
 the operand to <span class="id">sizeof</span>,
 and the type operand of the cast operator.
-The Cinquecento <span class="id">typeof</span> operator,
+The Cinquecento <span class="id">@typeof</span> operator,
 which is syntactically similar to <span class="id">sizeof</span>,
 also accepts a type name.
 </p>
@@ -1545,7 +1551,7 @@ defined with <span class="id">typedef</span>.
 The <span class="arg">domain</span> may be omitted for this variant.
 The meaning of this abbreviated form depends on the context.
 When used in the operand to <span class="id">sizeof</span>
-or <span class="id">typeof</span>, the type name is resolved
+or <span class="id">@typeof</span>, the type name is resolved
 in the literal domain (see next section).
 When used in the type operand to the cast operator,
 the meaning is the same as if the domain has been specified,
@@ -2486,7 +2492,9 @@ time.
 </p>
 
 <p>
-Every address space implements four methods:
+Every address space implements four methods
+(this interface is tentatively planned for future version,
+but not currently supported):
 <div id="table-short">
 <table>
 
@@ -2680,18 +2688,18 @@ function for setting breakpoints with an address space.
 defined in C programs.  The predicate
 <span class="id" id="fn:isctype">isctype</span> tests whether a value is
 a ctype.
-The <span class="fnindex"><a href="#syn:typeof">typeof</a></span>
+The <span class="fnindex"><a href="#syn:@typeof">@typeof</a></span>
 operator can be used to obtain a ctype representing the
 type of a cvalue or the type denoted by a type name.
 </p>
 
-<div class="docitem" id="syn:typeof">
+<div class="docitem" id="syn:@typeof">
 <div class="proto">
 <div class="function">
-<span class="id">typeof(<span class="arg">typename</span>)</span>
+<span class="id">@typeof(<span class="arg">typename</span>)</span>
 </div>
 <div class="function">
-<span class="id">typeof(<span class="arg">value</span>)</span>
+<span class="id">@typeof(<span class="arg">value</span>)</span>
 </div>
 <div class="param">
 <span class="arg">typename</span>: <span class="type">type name expression</span>
@@ -2704,7 +2712,7 @@ type of a cvalue or the type denoted by a type name.
 </div>
 </div>
 <div class="desc">
-The <span class="id">typeof</span> operator is similar
+The <span class="id">@typeof</span> operator is similar
 to the <span class="id">sizeof</span> operator in that
 it is applied to either a type name or to an expression
 that yields a cvalue.  In both cases it returns a ctype
@@ -4353,6 +4361,30 @@ Returns a new list containing the elements of <span class="arg">list</span> in r
 </div>
 </div>
 
+<div class="docitem" id="fn:slice">
+<div class="proto">
+<div class="function">
+<span class="id">slice(<span class="arg">list</span>,
+  <span class="arg">beg</span>)</span>,
+  <span class="arg">end</span>)</span>)</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+<span class="arg">beg</span>: <span class="type">cvalue</span>
+<span class="arg">end</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns a new list containing the elements
+of <span class="arg">list</span> starting at
+index <span class="arg">beg</span> up, but not
+including, index <span class="arg">end</span>.
+</div>
+</div>
+
 <h4 id="sec:vectors">Vectors</h4>
 
 <p>
@@ -5687,6 +5719,25 @@ Returns a new string containing formatted output.
 This section documents various system-level functions.
 </p>
 
+
+<div class="docitem" id="fn:exit">
+<div class="proto">
+<div class="function">
+<span class="id">exit(<span class="arg">status</span>)</span>
+</div>
+<div class="param">
+<span class="arg">status</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">does not return</span>
+</div>
+</div>
+<div class="desc">
+Causes the Cinquecento evaluator to exit with status <span class="arg">status</span>.
+</div>
+</div>
+
+
 <div class="docitem" id="fn:getpid">
 <div class="proto">
 <div class="function">
@@ -5863,10 +5914,6 @@ types.
 
 <div id="table">
 <table>
-<tr>
-<td><span class="id">Closure</span><td>
-<td>Closure<td>
-</tr>
 <tr>
 <td><span class="id">Toplevel</span><td>
 <td>Toplevel environment<td>
@@ -6060,7 +6107,7 @@ to <span class="arg">top</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcompile">Closure* cqctcompile(char *<span class="arg">expr</span>,
+<span class="id" id="fn:cqctcompile">Val cqctcompile(char *<span class="arg">expr</span>,
 char *<span class="arg">src</span>,
 Toplevel *<span class="arg">top</span>,
 char *<span class="arg">argsid</span>)</span>
@@ -6083,10 +6130,10 @@ identifier for <span class="arg">str</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctcallfn">int cqctcallfn(VM *<span class="arg">vm</span>, Closure *<span class="arg">fn</span>, int <span class="arg">argc</span>, Val *<span class="arg">argv</span>, Val *<span class="arg">rv</span>)</span>
+<span class="id" id="fn:cqctcallfn">int cqctcallfn(VM *<span class="arg">vm</span>, Val <span class="arg">fn</span>, int <span class="arg">argc</span>, Val *<span class="arg">argv</span>, Val *<span class="arg">rv</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Closure *<span class="arg">thunk</span>, Val *<span class="arg">rv</span>)</span>
+<span class="id" id="fn:cqctcallthunk">int cqctcallthunk(VM *<span class="arg">vm</span>, Val <span class="arg">thunk</span>, Val *<span class="arg">rv</span>)</span>
 </div>
 </div>
 
@@ -6579,10 +6626,10 @@ machines sharing the environment have been freed.
 <a href="#syn:@local">@local</a><br />
 <a href="#syn:@names">@names</a><br />
 <a href="#syn:@record">@record</a><br />
-<a href="#syn:define">define</a><br />
-<a href="#syn:lambda">lambda</a><br />
+<a href="#syn:@define">@define</a><br />
+<a href="#syn:@lambda">@lambda</a><br />
 <a href="#syn:return">return</a><br />
-<a href="#syn:typeof">typeof</a><br />
+<a href="#syn:@typeof">@typeof</a><br />
 </td>
 </tr>
 </table>
@@ -6683,6 +6730,7 @@ machines sharing the environment have been freed.
 <a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:error">error</a><br />
+<a href="#fn:exit">exit</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
 <a href="#fn:fieldid">fieldid</a><br />
@@ -6812,6 +6860,7 @@ machines sharing the environment have been freed.
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
+<a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
 <a href="#fn:sprintfa">sprintfa</a><br />

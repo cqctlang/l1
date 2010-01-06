@@ -1,4 +1,4 @@
-define typenameequal(t1, t2){
+@define typenameequal(t1, t2){
 	@local i, j, flds1, flds2, ps1, ps2, p1, p2,
                f1, f2, c1, c2, tag1, tag2, n1, n2;
 
@@ -80,7 +80,7 @@ define typenameequal(t1, t2){
 }
 
 
-define typeequal(t1, t2){
+@define typeequal(t1, t2){
 	@local i, j, flds1, flds2, ps1, ps2, p1, p2,
                f1, f2, c1, c2, tag1, tag2, n1, n2;
 
@@ -192,7 +192,7 @@ define typeequal(t1, t2){
 	return 0;
 }
 
-define nsdiff(ns1, ns2){
+@define nsdiff(ns1, ns2){
 	@local u1, u2, diff, nsdiff0, name1, name2;
 
 	name1 = nameof(ns1);
@@ -202,11 +202,11 @@ define nsdiff(ns1, ns2){
 	if(name2 == nil)
 		name2 = "ns2";
 
-	define nsdiff0(ns1, ns2){
+	@define nsdiff0(ns1, ns2){
 		@local t2, undef;
 
 		undef = mktab();
-		foreach(lambda(k, t1){
+		foreach(@lambda(k, t1){
 				/* skip anonymous types */
 				if((issu(t1) || isenum(t1))
 				   && strstr(suetag(t1), "anon_") != nil)
@@ -227,25 +227,25 @@ define nsdiff(ns1, ns2){
 
 	if(length(u2) > 0){
 		printf("in %s but not %s:\n", name1, name2);
-		foreach(lambda(t,ignore){
+		foreach(@lambda(t,ignore){
 				printf("\t%t\n", t);
 			}, u2);
 	}
 	if(length(u1) > 0){
 		printf("in %s but not %s:\n", name2, name1);
-		foreach(lambda(t,ignore){
+		foreach(@lambda(t,ignore){
 				printf("\t%t\n", t);
 			}, u1);
 	}
 	if(length(diff)){
 		printf("differences between %s and %s:\n", name1, name2);
-		foreach(lambda(t,ignore){
+		foreach(@lambda(t,ignore){
 				printf("\t%t\n", t);
 			}, diff);
 	}
 }
 
-define printtype(t){
+@define printtype(t){
 	@local ct, i, fld, flds, sz, off;
 
 	if(issu(t)){
@@ -287,7 +287,7 @@ define printtype(t){
 	}
 }
 
-define printns(ns){
+@define printns(ns){
 	@local i, vec;
 	vec = tabvals(ns.enumtype());
 	for(i = 0; i < veclen(vec); i++)

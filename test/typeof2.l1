@@ -1,7 +1,7 @@
-define mkzas(len){
+@define mkzas(len){
 	@local dispatch, str;
 	str = mkstr(len);
-	define dispatch(args ...) {
+	@define dispatch(args ...) {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 1);
 
@@ -43,27 +43,27 @@ dom = mkdom(ns,mkzas(1024));
 
 x = nil;
 printf("typeof(x = dom`a) = %t\n",
-       typeof(x = dom`a));
+       @typeof(x = dom`a));
 
 x = (struct s*){dom}0;
 printf("typeof(x = x->foo) = %t\n",
-       typeof(x = x->foo));
+       @typeof(x = x->foo));
 
 printf("typeof(dom`a) = %t\n",
-       typeof(dom`a));
+       @typeof(dom`a));
 
 printf("sizeof(dom`a) = %d\n",
        sizeof(dom`a));
 
 printf("sizeof(typeof(dom`a)) = %d\n",
-       sizeof(typeof(dom`a)));
+       sizeof(@typeof(dom`a)));
 
 x = (struct s*){dom}0;
 printf("typeof(x->foo) = %t\n",
-       typeof(x->foo));
+       @typeof(x->foo));
 x = (struct s*){dom}0;
 printf("sizeof(x->foo) = %d\n",
        sizeof(x->foo));
 x = (struct s*){dom}0;
 printf("sizeof(typeof(x->foo)) = %d\n",
-       sizeof(typeof(x->foo)));
+       sizeof(@typeof(x->foo)));

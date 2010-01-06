@@ -1,7 +1,7 @@
-x = lambda(a, b, c, d){
-     lambda(b, c){
+x = @lambda(a, b, c, d){
+     @lambda(b, c){
 	  d = 1;
-	  lambda(c){
+	  @lambda(c){
 	       a = 2;
 	       b = 3;
 	       c = 4;

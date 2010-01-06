@@ -131,9 +131,9 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 		else if(inner){
 			/* create binding in inner-most lexical scope */
 			if(cqctflags['w'])
-				cwarnl(ctx,
-				       e, "assignment to unbound variable: %s",
-				       id);
+				cwarnln(ctx,
+					e, "assignment to unbound variable: %s",
+					id);
 			newlocal(inner, id);
 			bindids(lex, e->e1, e);
 		}else

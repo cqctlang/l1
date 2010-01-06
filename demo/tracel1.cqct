@@ -1,0 +1,77 @@
+@include <ctlmux.cqct>
+
+l1 = "../l1";
+//l1 = "../l1.x";
+l1names = l1+".names";
+
+@define dumpcvals(dom)
+{
+	@local hp, p, q, w, n;
+
+	hp = &dom`heap[dom`Qcval];
+	q = hp->alloc;
+	printf("begin search\n");
+	n = 0;
+	while(q){
+		p = q;
+		q = q->alink;
+		n++;
+		if(p->color == dom`GCfree || p->color == dom`GCfinal)
+			continue;
+		p = (dom`Cval*)p;
+		w = (dom`Head*)p->dom;
+		printf("%p: %e\n", p, w->qkind);
+	}
+	printf("%d Qcvals\n", n);
+}
+
+@define doit(args)
+{
+	@local mux, ns, as, dom, e, nexec;
+
+	nexec = 0;
+	npop = 0;
+	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
+	ns = eval(e);
+	mux = mkctlmux();
+	push(args, l1);
+	ctl = mux.launch(args, 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.trace(ctlmux`Eexec,
+		  @lambda(ctl){
+			  nexec++;
+			  if(nexec >= 1)
+				  ctl.detach();
+
+		  });
+	dom.xtrap(&dom`finivm,
+		  @lambda(ctl){
+			  printf("vm is exiting\n");
+//			  dumpcvals(dom);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+tests = [
+	[ "tracelist.cqct", "1", "10" ],
+	[ "tracelist.cqct", "2", "10" ],
+	[ "tracelist.cqct", "3", "10" ],
+	/* tracelist 4 does not exit */
+	[ "tracespawn.cqct", "1", "3" ],
+	[ "tracespawn.cqct", "2", "3" ],
+	[ "tracespawn.cqct", "3", "3" ],
+	];
+
+if(length(args) == 1){
+	for(i = 0; i < length(tests); i++)
+		doit(tests[i]);
+}else if(length(args) == 2){
+	@local i;
+	i = strton(args[1]);
+	if(i < 0 || i >= length(tests))
+		error("bad test selector: %d", i);
+	return doit(tests[i]);
+}

@@ -20,9 +20,9 @@ ns = @names c32le {
 
 fn = nsenumtype(ns);
 vec = tabvals(fn(ns));
-foreach(lambda(t){
+foreach(@lambda(t){
 		if(isenum(t))
-			foreach(lambda(en){
+			foreach(@lambda(en){
 					printf("%s = %x\n",
 					       vecref(en, 0), vecref(en, 1));
 				}, enumconsts(t));

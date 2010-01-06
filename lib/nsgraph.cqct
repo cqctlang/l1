@@ -1,7 +1,7 @@
 type_debug = 0;
 
 // remove typedefs
-define canonical(t)
+@define canonical(t)
 {
 	if (istypedef(t))
 		return canonical(typedeftype(t));
@@ -9,7 +9,7 @@ define canonical(t)
 }
 
 // pointers to structures
-define isstructptr(t)
+@define isstructptr(t)
 {
 	if (isptr(t) && issu(canonical(subtype(t))))
 		return 1;
@@ -18,7 +18,7 @@ define isstructptr(t)
 
 
 // matches pointers to structures or structures with pointers
-define hasstructptr(t)
+@define hasstructptr(t)
 {
 	if (isstructptr(t)) {
 		return 1;
@@ -42,7 +42,7 @@ define hasstructptr(t)
 		  
 
 // calls fn(type) for each type in namespace
-define nsiter(ns, fn)
+@define nsiter(ns, fn)
 {
 	@local ttable, tlist, numtypes, i;
 	
@@ -58,7 +58,7 @@ define nsiter(ns, fn)
 
 
 // handle struct members, sometimes recursively
-define cachehelper(t, cache)
+@define cachehelper(t, cache)
 {
 	// embedded structures
 	if (issu(t)) {
@@ -84,7 +84,7 @@ define cachehelper(t, cache)
 // t must be an su type
 // go through all members of a struct,
 // look for pointers to other structs
-define cacheptrlist(t, cache)
+@define cacheptrlist(t, cache)
 {
 	@local ptrtab, vals, cachedval;
 	ptrtab = mktab();
@@ -126,11 +126,11 @@ define cacheptrlist(t, cache)
 
 // a type graph is a representation of struct->struct 
 // points-to relationships encoded in C struct types. 
-define gentypegraph(ns)
+@define gentypegraph(ns)
 {
 	tg = mktab();
 	nsiter(ns,
-		 lambda(t) {
+		 @lambda(t) {
 			 if (issu(t)) {
 				 cacheptrlist(t, tg);
 			 }
@@ -139,7 +139,7 @@ define gentypegraph(ns)
 }
 
 // call fn(from_node, to_nodes) for all nodes in type graph
-define typegraph_node_iter(tg, fn)
+@define typegraph_node_iter(tg, fn)
 {
 	@local entries, numentries, i;	
 	entries = tabenum(tg);
@@ -151,11 +151,11 @@ define typegraph_node_iter(tg, fn)
 }
 
 // call fn(from_node, to_node) for all edges in type graph
-define typegraph_edge_iter(tg, fn)
+@define typegraph_edge_iter(tg, fn)
 {
 	@local edgefn;
 	
-	edgefn = lambda(from, tolist) {
+	edgefn = @lambda(from, tolist) {
 		@local j;
 		for (j = 0; j < length(tolist); j++) {
 			fn(from, vecref(tolist, j));
@@ -165,12 +165,12 @@ define typegraph_edge_iter(tg, fn)
 	typegraph_node_iter(tg, edgefn);
 }
 
-define printtypegraph(ns)
+@define printtypegraph(ns)
 {
 	@local tg, printfn;
 	tg = gentypegraph(ns);
 
-	printfn = lambda(from, tolist) {
+	printfn = @lambda(from, tolist) {
 		if (0 == length(tolist))
 			return;
 
@@ -183,12 +183,12 @@ define printtypegraph(ns)
 	typegraph_node_iter(tg, printfn);
 }
 
-define printtypegraph_dot(ns)
+@define printtypegraph_dot(ns)
 {
 	@local tg, printfn;
 	tg = gentypegraph(ns);
 
-	printfn = lambda(from,to) {
+	printfn = @lambda(from,to) {
 		printf("\t%s -> %s;\n", suetag(from), suetag(to));
 	};
 
@@ -197,16 +197,16 @@ define printtypegraph_dot(ns)
 	printf("}\n");
 }
 
-define types_with_ptrs(ns)
+@define types_with_ptrs(ns)
 {
 	printf("The following types contain struct pointers:\n");
-	nsiter(ns, lambda(x) { 
+	nsiter(ns, @lambda(x) { 
 			if (hasstructptr(x))
 				printf("\t%t\n", x); 
 		});
 }
 
-define all_types(ns)
+@define all_types(ns)
 {
-	nsiter(ns, lambda(x) { printf("%t\n", x); });
+	nsiter(ns, @lambda(x) { printf("%t\n", x); });
 } 

@@ -1,4 +1,4 @@
-define foo(a, b ...)
+@define foo(a, b ...)
 {
 	printf("foo %a %a\n", a, b);
 }
@@ -8,7 +8,7 @@ foo(1, 2);
 foo(1, 2, 3);
 
 
-bar = lambda(a ...)
+bar = @lambda(a ...)
 {
 	printf("bar %a\n", a);
 };

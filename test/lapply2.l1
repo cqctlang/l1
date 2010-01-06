@@ -1,4 +1,4 @@
-define foo(args ...)
+@define foo(args ...)
 {
 	@local f;
 	while(length(args) > 1){

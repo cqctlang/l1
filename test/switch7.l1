@@ -1,4 +1,4 @@
-define switchblade(arg){
+@define switchblade(arg){
    switch(arg){
        case "kapow":
            myvar="boom";

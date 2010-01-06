@@ -1,5 +1,5 @@
 
-define profile(thunk)
+@define profile(thunk)
 {
 	@local ptab, l, m, i;
 
@@ -8,10 +8,10 @@ define profile(thunk)
 	ptab = profoff();
 
 	l = [];
-	foreach(lambda(k, v){
+	foreach(@lambda(k, v){
 			append(l, [v,k]);
 		}, ptab);
-	sort(l, lambda(la, lb) {
+	sort(l, @lambda(la, lb) {
 		     @local a, b;
 		     a = listref(la, 0);
 		     b = listref(lb, 0);
@@ -34,8 +34,8 @@ define profile(thunk)
 	}
 }
 
-//define profinsn()
-profinsn = lambda()
+//@define profinsn()
+profinsn = @lambda()
 {
 	@local tab, l, key, vals, i, lim;
 
@@ -45,7 +45,7 @@ profinsn = lambda()
 	vals = tabvals(tab);
 	for(i = 0; i < length(keys); i++)
 		append(l, [ keys[i], vals[i] ]);
-	sort(l, lambda(a,b) {
+	sort(l, @lambda(a,b) {
 			if(a[1] < b[1])
 				return 1;
 			else if(a[1]>b[1])

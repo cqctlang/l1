@@ -22,7 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER CONSTANT STRING_LITERAL CONST VOLATILE
-%token SIZEOF TYPEOF TYPEDEF NIL DEFINE DEFLOCAL DEFREC CONTAINEROF
+%token SIZEOF TYPEOF TYPEDEF DEFINE DEFLOCAL DEFREC CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -94,10 +94,14 @@ tickid
 
 tag:	id;
 
+lambda
+	: LAMBDA
+	;
+
 lambda_expression
-	: LAMBDA '(' arg_id_list ')' compound_statement
+	: lambda '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
-	| LAMBDA '(' ')' compound_statement
+	| lambda '(' ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
 	;
 
@@ -132,12 +136,9 @@ table_init_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
-
 primary_expression
 	: id
 	| tickid
-	| NIL
-	{ $$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); }
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
 	| STRING_LITERAL
@@ -189,6 +190,10 @@ argument_expression_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
+typeof
+	: TYPEOF
+	;
+
 unary_expression
 	: postfix_expression
 	| INC_OP unary_expression
@@ -201,9 +206,9 @@ unary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Esizeofe, $2, 0, 0, 0); }
 	| SIZEOF '(' type_name ')'			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Esizeoft, $3, 0, 0, 0); }
-	| TYPEOF unary_expression			%merge <ofmerge>
+	| typeof unary_expression			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeofe, $2, 0, 0, 0); }
-	| TYPEOF '(' type_name ')'			%merge <ofmerge>
+	| typeof '(' type_name ')'			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $3, 0, 0, 0); }
 	| '#' type_name '#'
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $2, 0, 0, 0); }
@@ -984,14 +989,18 @@ jump_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Eret, $2, 0, 0, 0); }
 	;
 
+define
+	: DEFINE
+	;
+
 define_statement
-	: DEFINE id '(' arg_id_list ')' compound_statement
+	: define id '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
-	| DEFINE id '('  ')' compound_statement
+	| define id '('  ')' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
-	| DEFINE id '(' arg_id_list ')' '[' expression ']' compound_statement
+	| define id '(' arg_id_list ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
-	| DEFINE id '('  ')' '[' expression ']' compound_statement
+	| define id '('  ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
 	;
 

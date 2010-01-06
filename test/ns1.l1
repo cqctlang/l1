@@ -1,4 +1,4 @@
-define printtype(t){
+@define printtype(t){
 	@local ct, i, fld, flds, sz, off;
 
 	if(issu(t)){
@@ -21,7 +21,7 @@ define printtype(t){
 		printf("typedef %t %s;\n", typedeftype(t), typedefid(t));
 };
 
-define foo(){
+@define foo(){
 	@local ns, fn, tab, vec, i;
 
  	ns = @names c32le {

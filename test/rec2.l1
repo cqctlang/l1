@@ -2,6 +2,6 @@ rd = @record r { f1, f2};
 
 rec = r(1,2);
 
-rdsetfmt(rd, lambda(rec){ return sprintfa("<f1=%d,f2=%d>", rec.f1, rec.f2); });
+rdsetfmt(rd, @lambda(rec){ return sprintfa("<f1=%d,f2=%d>", rec.f1, rec.f2); });
 
 printf("%a\n", rec);

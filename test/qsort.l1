@@ -1,4 +1,4 @@
-randvec = lambda(len){
+randvec = @lambda(len){
 	@local v, i, t;
 
 	v = mkvec(len);
@@ -15,7 +15,7 @@ randvec = lambda(len){
 	return v;
 };
 
-vecpartition = lambda(v, lo, hi, cmp){
+vecpartition = @lambda(v, lo, hi, cmp){
 	@local nl, i, el, p, temp, x;
 
 	if(hi > veclen(v) || hi < lo)
@@ -42,7 +42,7 @@ vecpartition = lambda(v, lo, hi, cmp){
 	}
 };
 
-vqs = lambda(v, lo, hi, cmp){
+vqs = @lambda(v, lo, hi, cmp){
 	@local i;
 	if(lo < hi){
 		i = vecpartition(v, lo, hi, cmp);
@@ -53,7 +53,7 @@ vqs = lambda(v, lo, hi, cmp){
 	}
 };
 
-mycmp = lambda(a, b){
+mycmp = @lambda(a, b){
 	@local xa, xb;
 	xa = car(a);
 	xb = car(b);
@@ -64,7 +64,7 @@ mycmp = lambda(a, b){
 	return 0;
 };
 
-testsort = lambda(len){
+testsort = @lambda(len){
 	@local tod, v, i;
 	tod = gettimeofday();
 	randseed(tod);

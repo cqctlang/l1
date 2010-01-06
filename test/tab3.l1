@@ -1,4 +1,4 @@
-checkenum = lambda(vec, len){
+checkenum = @lambda(vec, len){
 	@local i, k, v;
 	for(i = 0; i < len/2; i++){
 		k = vecref(vec, i);
@@ -10,7 +10,7 @@ checkenum = lambda(vec, len){
 	}
 };
 
-test = lambda(){
+test = @lambda(){
 	@local t, n, i, v;
 	t = mktab();
 	n = 10000;

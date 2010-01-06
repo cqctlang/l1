@@ -1,0 +1,4 @@
+printf("%a\n", slice([1,2,3], 0, 0));
+printf("%a\n", slice([1,2,3], 0, 1));
+printf("%a\n", slice([1,2,3], 1, 2));
+printf("%a\n", slice([1,2,3], 0, 3));

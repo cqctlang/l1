@@ -1,4 +1,4 @@
-define test(x,y){
+@define test(x,y){
 	printf("\t%d,%d\n", x, y);
 	switch(x){
 	case 1:

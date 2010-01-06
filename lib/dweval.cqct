@@ -6,12 +6,12 @@
 
 _dwstack = [];
 
-define _dw_push (val)
+@define _dw_push (val)
 {
   push (_dwstack, val);
 }
 
-define _dw_pop ()
+@define _dw_pop ()
 {
   @local rv;
   if (length (_dwstack) < 1) {
@@ -27,7 +27,7 @@ _dwcqct_func_type = 2;
 _dwcqct_reg_type = 3;
 
 
-define _dw_eval (dom, cptr, pceval)
+@define _dw_eval (dom, cptr, pceval)
 {
   @local op, lptr, val, rv, rvtype;
   rv = nil; /* for most ops, rv stays nil, but we need a uniform way to
@@ -51,7 +51,7 @@ define _dw_eval (dom, cptr, pceval)
   case dom`DW_OP_addr:{
     val = * (`uintptr *) lptr;
     lptr += sizeof (`uintptr);
-    rv = (lambda (as) {return val;});
+    rv = (@lambda (as) {return val;});
     _dw_push (rv);
     break;
   }
@@ -90,7 +90,7 @@ define _dw_eval (dom, cptr, pceval)
     @local regno;
     regno = op - dom`DW_OP_reg0;
     rvtype = _dwcqct_reg_type;
-    rv = lambda (as) {return regno;};
+    rv = @lambda (as) {return regno;};
     _dw_push (rv);
   }
     break;
@@ -132,7 +132,7 @@ define _dw_eval (dom, cptr, pceval)
     offset = head (offset);
     basereg = op - dom`DW_OP_breg0;
     rvtype = _dwcqct_addr_type;
-    rv = lambda (as) {
+    rv = @lambda (as) {
       return (_dw_get_regval (as, basereg) + offset);
     };
     _dw_push (rv);
@@ -143,7 +143,7 @@ define _dw_eval (dom, cptr, pceval)
     offset = decodesleb128 (lptr);
     lptr = listref (offset, 1);
     offset = head (offset);
-    rv = lambda (as) {
+    rv = @lambda (as) {
       @local ret;
       if (isprocedure (pceval)) {
 	fbaddr = pceval(as);
@@ -465,7 +465,7 @@ define _dw_eval (dom, cptr, pceval)
     lptr = listref (basereg, 1);
     basereg = head (basereg);
     rvtype = _dwcqct_addr_type;
-    rv = lambda (as) {
+    rv = @lambda (as) {
       return (_dw_get_regval (as, basereg) + offset);
     };
     _dw_push (rv);
@@ -574,7 +574,7 @@ define _dw_eval (dom, cptr, pceval)
   return [rv, rvtype, lptr];
 }
 
-define dw_process_location_list (bdrec, ptr, cubase, fb)
+@define dw_process_location_list (bdrec, ptr, cubase, fb)
 {
   @local op, cptr, asize, rv, l, fn, sloc, eloc, baseaddrflag, cubaseaddr;
   @local isdone, cnt, len, end;

@@ -1,4 +1,4 @@
-foo = lambda(x,rv){
+foo = @lambda(x,rv){
 	if(x == 0)
 		return rv;
 	else{

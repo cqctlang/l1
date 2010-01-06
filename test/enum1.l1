@@ -1,7 +1,7 @@
-define mkzas(len){
+@define mkzas(len){
 	@local dispatch, str;
 	str = mkstr(len);
-	define dispatch(args ...) {
+	@define dispatch(args ...) {
 		@local arg, range, s, new, beg, end;
 		arg = listref(args, 1);
 
@@ -40,7 +40,7 @@ ns = @names c32le {
 dom = mkdom(ns, mkzas(1024));
 printf("%d\n", dom`i);
 x = dom`x;
-x = typeof(x);
+x = @typeof(x);
 printf("typeof(x) = %t\n", x);
-printf("x is %t %d\n", typeof(dom`x), dom`x);
-printf("y is %t %d\n", typeof(dom`y), dom`y);
+printf("x is %t %d\n", @typeof(dom`x), dom`x);
+printf("y is %t %d\n", @typeof(dom`y), dom`y);

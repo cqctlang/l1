@@ -1,4 +1,4 @@
-x = lambda(a, b){
+x = @lambda(a, b){
   return a+b;
 };
 print(x(1,2));

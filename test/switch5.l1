@@ -1,4 +1,4 @@
-define test0(x){
+@define test0(x){
 	switch(x){
 	case 1:
 		printf("1\n");

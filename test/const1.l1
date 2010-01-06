@@ -2,7 +2,7 @@
 @const y = x+3;
 @const s = "yo";
 
-fn = lambda(x) {
+fn = @lambda(x) {
 	@const z = y;
 	printf("%s: %d %d %d\n", s, x, y+1, z);
 };

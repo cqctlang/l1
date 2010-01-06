@@ -1,8 +1,8 @@
-mkstr = lambda(){
+mkstr = @lambda(){
 	return substr("foobar", 0, 3);
 };
 
-test = lambda(){
+test = @lambda(){
 	@local t, i, v;
 	t = mktab();
 	for(i = 0; i < 1024*2*2*2+5; i++)

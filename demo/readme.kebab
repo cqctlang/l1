@@ -19,7 +19,7 @@ how to run the kebab demo
 4. build the demo kebab target
 
    % cd l1/demo
-   % gcc -g -o list list
+   % gcc -g -o list list.c
 
 5. run the demo
 

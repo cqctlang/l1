@@ -11,7 +11,7 @@ linux64 = @names clp64le {
 	};
 };
 
-define ls(dir)
+@define ls(dir)
 {
 	@local das, dom, p, e, len;
 	das = _readdir(dir);
@@ -27,7 +27,7 @@ define ls(dir)
 }
 
 
-define foreachfile(dir,fn)
+@define foreachfile(dir,fn)
 {
 	@local das, dom, p, e, len;
 	das = _readdir(dir);

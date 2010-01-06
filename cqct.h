@@ -98,9 +98,9 @@ struct Xfd {
 	int fd;
 };
 
-int		cqctcallfn(VM *vm, Closure *cl, int argc, Val *argv, Val *rv);
-int		cqctcallthunk(VM *vm, Closure *cl, Val *rv);
-Closure*	cqctcompile(char *s, char *src, Toplevel *top, char *argsid);
+int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
+int		cqctcallthunk(VM *vm, Val cl, Val *rv);
+Val		cqctcompile(char *s, char *src, Toplevel *top, char *argsid);
 Val		cqctcstrnval(char *s, uint64_t len);
 Val		cqctcstrnvalshared(char *s, uint64_t len);
 Val		cqctcstrval(char *s);
