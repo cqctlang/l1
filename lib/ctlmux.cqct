@@ -279,23 +279,25 @@ ctlmux = @names clp64le {
 	kill,
 	mem,
 	reg,
+	setreg,
 	trace,
 	traces,
 	xtrap,
 	xsnap,
 	xtraps,
+	trapdel,
 	trapreset,
 	// private
 	state,
-	reg,
 	traps,
 	callbacks,
 };
 
-@define mkctl(mux, id, state, reg, traps, callbacks)
+@define mkctl(mux, id, state, _reg, traps, callbacks)
 {
 	@local xstop, xcont, xstep, detach, kill;
-	@local mem, reg, trace, traces, xtrap, xsnap, xtraps, trapreset;
+	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
+	@local trapdel, trapreset;
 	@local this;
 
 	@define xstop()  { return mux.stop(this); }
@@ -324,14 +326,8 @@ ctlmux = @names clp64le {
 			kind = "brk";
 		}
 		tid = traps.add(bp, fn, [kind, addr],
-				@lambda(){ mux.clrbrk(this, id, bp); });
+				@lambda(){ mux.clrbrk(this, bp); });
 		return tid;
-	}
-
-	@define trapdel(tid)
-	{
-		traps.clr(tid);
-		return nil;
 	}
 
 	@define xtrap(addr, fn)
@@ -349,15 +345,26 @@ ctlmux = @names clp64le {
 		return traps.list();
 	}
 
+	@define trapdel(tid)
+	{
+		traps.clr(tid);
+		return nil;
+	}
+
 	@define trapreset()
 	{
 		traps.reset();
 		return nil;
 	}
 
+	@define setreg(r)
+	{
+		_reg = r;
+	}
+
 	@define reg()
 	{
-		return reg;
+		return _reg;
 	}
 
 	@define mem()
@@ -444,8 +451,9 @@ ctlmux = @names clp64le {
 	}
 
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill,
-		      mem, reg, trace, traces, xtrap, xsnap, xtraps, trapreset,
-		      state, reg, traps, callbacks);
+		      mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps,
+		      trapdel, trapreset,
+		      state, traps, callbacks);
 	return this;
 }
 
@@ -696,7 +704,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Etrap:
 			ack(msg);
 			trap = ctl.traps.look(msg->bp);
-			ctl.reg = cop(&msg->reg);
+			ctl.setreg(cop(&msg->reg));
 			if(trap.desc[0] == "brk"){
 				ctl.state = ctlmux`Stopped;
 				docall(@lambda() { trap.fn(ctl); });
@@ -736,7 +744,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Eexec:
 			ack(msg);
 			ctl.state = ctlmux`Stopped;
-			ctl.reg = cop(&msg->reg);
+			ctl.setreg(cop(&msg->reg));
 			log("task %d has called exec", msg->id);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -747,7 +755,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Esyscall:
 			ack(msg);
 			ctl.state = ctlmux`Stopped;
-			ctl.reg = cop(&msg->reg);
+			ctl.setreg(cop(&msg->reg));
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
