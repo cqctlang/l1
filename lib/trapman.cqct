@@ -23,7 +23,7 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 		t = Trap(uid, mid, fn, desc, clr);
 		uidmap[uid] = t;
 		midmap[mid] = t;
-		return t;
+		return uid;
 	}
 
 	@define clr(uid)

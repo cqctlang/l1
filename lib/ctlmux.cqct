@@ -503,7 +503,7 @@ ctlmux = @names clp64le {
 	{
 		push(freetags, tag);
 	}
-	
+
 	verbose = 0;
 	@define logsend(s)
 	{
