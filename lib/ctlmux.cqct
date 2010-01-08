@@ -297,7 +297,7 @@ ctlmux = @names clp64le {
 {
 	@local xstop, xcont, xstep, detach, kill;
 	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
-	@local trapdel, trapreset;
+	@local trapset, trapdel, trapreset;
 	@local this;
 
 	@define xstop()  { return mux.stop(this); }
@@ -425,7 +425,7 @@ ctlmux = @names clp64le {
 
 		@define id(as)
 		{
-			return ctl.id;
+			return this.id;
 		}
 
 		// redirect unknown calls to ctl
@@ -446,6 +446,7 @@ ctlmux = @names clp64le {
 			      "put"       : put,
 			      "map"       : map,
 			      "ctl"       : ctl,
+			      "id"	  : id,
 			      "dispatch"  : dispatch,
 			    ]);
 	}
@@ -484,7 +485,7 @@ ctlmux = @names clp64le {
 	@local freetags, nexttag, taghandler, mux;
 	@local stop, step, detach, kill;
 	@local pread, pwrite, pmap;
-	@local trace, xtrap, fmtmsg, buf2msg;
+	@local trace, fmtmsg, buf2msg;
 	@local setbrk, setsnap, clrbrk;
 
 	nexttag = 0;
