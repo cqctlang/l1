@@ -4,7 +4,7 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 
 @define _mktrapman(uidmap, midmap, nextid)
 {
-	@local look, add, clr, list, reset, copy;
+	@local look, add, clr, list, reset, _copy;
 	
 	@define look(mid)
 	{
@@ -49,12 +49,12 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 		nextid = 0;
 	}
 
-	@define copy
+	@define _copy()
 	{
 		return _mktrapman(copy(uidmap), copy(midmap), nextid);
 	}
 
-	return Trapman(look, add, clr, reset, list, copy);
+	return Trapman(look, add, clr, reset, list, _copy);
 }
 
 @define mktrapman()
