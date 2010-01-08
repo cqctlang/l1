@@ -4918,7 +4918,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	}
 
 	if(xv->qkind != Qdom)
-		fatal("bug");
+		vmerr(vm, "attempt to access address space through non-domain");
 	d = valdom(xv);
 	switch(b->tkind){
 	case Tbitfield:
