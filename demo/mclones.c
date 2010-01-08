@@ -5,8 +5,8 @@
 
 enum
 {
-	N = 5,
-	M = 100,
+	N = 2,
+	M = 10,
 };
 long depth;
 
@@ -43,11 +43,11 @@ doit(void *p)
 
 	n = (long)p;
 	printf("clone level %ld\n", n);
-	work();
 	if(n == 0)
 		return 0;
 	for(i = 0; i < N; i++)
 		pthread_create(&t[i], 0, doit, (void*)(n-1));
+	work();
 	for(i = 0; i < N; i++)
 		pthread_join(t[i], 0);
 	return 0;
@@ -60,7 +60,7 @@ main(int argc, char *argv[])
 	if(argc > 1)
 		depth = (long)atoi(argv[1]);
 	else
-		depth = 1;
+		depth = 2;
 	pthread_create(&t, 0, doit, (void*)depth);
 	pthread_join(t, 0);
 	return 0;
