@@ -23,8 +23,8 @@
 					  @lambda(ctl){
 						  @local regs;
 						  regs = ctl.reg();
-						  printf("xmalloc %d\t%x\t%d ->\n",
-							 ctl.id, ra, regs->rax);
+						  printf("xmalloc %d\t%x\t%d -> %x\n",
+							 ctl.id, ra, arg, regs->rax);
 						  dom.trapdel(tid);
 						  return nil;
 					  });

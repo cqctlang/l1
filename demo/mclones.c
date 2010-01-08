@@ -5,8 +5,9 @@
 
 enum
 {
+	D = 2,
 	N = 2,
-	M = 10,
+	M = 100,
 };
 long depth;
 
@@ -60,7 +61,7 @@ main(int argc, char *argv[])
 	if(argc > 1)
 		depth = (long)atoi(argv[1]);
 	else
-		depth = 2;
+		depth = D;
 	pthread_create(&t, 0, doit, (void*)depth);
 	pthread_join(t, 0);
 	return 0;
