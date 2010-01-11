@@ -1,0 +1,52 @@
+@include <ctlmux.cqct>
+
+@define test1()
+{
+	@local ctl, mux, ns, as, dom;
+
+	ns = @names c32le { @include "./mclones32.names" };
+	mux = mkctlmux();
+	ctl = mux.launch(["./mclones32"], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+
+	dom.xtrap(&dom`xmalloc,
+		  @lambda(ctl){
+			  @local ra, regs, mem, arg, tid;
+			  mem = mkdom(ns, ctl.mem());
+			  regs = ctl.reg();
+			  ra = *((unsigned*){mem}regs->rsp);
+			  arg = *((unsigned*){mem}(regs->rsp+4));
+			  printf("xmalloc %d\t%x\t%d ...\n", ctl.id, ra, arg);
+
+			  tid = mem.xtrap(ra,
+					  @lambda(ctl){
+						  @local regs;
+						  regs = ctl.reg();
+						  printf("xmalloc %d\t%x\t%d -> %x\n",
+							 ctl.id, ra, arg, regs->rax);
+						  dom.trapdel(tid);
+						  return nil;
+					  });
+			  printf("set trap\n");
+			  return nil;
+		  });
+
+	dom.xtrap(&dom`xfree,
+		  @lambda(ctl){
+			  @local dom, ra, regs, mem, arg;
+			  mem = mkdom(ns, ctl.mem());
+			  regs = ctl.reg();
+			  ra = *((unsigned*){mem}regs->rsp);
+			  arg = *((unsigned*){mem}(regs->rsp+4));
+			  printf("xfree %d\t%x\t%x\n", ctl.id, ra, arg);
+			  return nil;
+		  });
+
+	read(stdin, 1);
+
+	dom.xcont();
+	mux.run();
+}
+
+test1();

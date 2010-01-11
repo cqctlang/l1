@@ -1,12 +1,10 @@
-in this resulting directory
-are some cinquecento programs that
+in this directory are some cinquecento programs that
 demonstrate simple debugging activities.
 
-to use them, you also need prctl,
-a linux process control service
-available from cqctworld.org.
+to use them, you also need prctl and dwarf2cqct.  these
+are available from cqctworld.org.
 
-build prctl and install it somewhere
+build prctl and dwarf2cqct and install them somewhere
 in your path.
 
 then,
@@ -22,8 +20,8 @@ then,
     # run the multi-threaded demo
     % ../l1 ./tracespawn.cqct
 
-note that optional arguments to these demos show
-off other features, e.g., system call tracing:
+optional arguments to these demos show other features,
+e.g., system call tracing:
 
     % ../l1 tracelist.cqct 3 100
 

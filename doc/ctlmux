@@ -45,9 +45,12 @@ This mux can control threads and processes on the local
 machine, but not (for now) those on other machines.
 
 
-Instantiate a ctl, in one of two ways:
+Operations on muxes
+-------------------
 
-1. Launch a new process:
+mux.launch(args, flags)
+
+	Launch a new process.  Returns a ctl.
 
 	ctl = mux.launch([cmd, arg, ...], flags);
 
@@ -70,13 +73,29 @@ Instantiate a ctl, in one of two ways:
   	(successful) call to exec.
 
 
-2. Attach to an existing process:
+mux.attach(pid)
+
+	Attach to an existing process.  Returns a ctl.
 
 	ctl = mux.attach(pid);
 
 	pid is the process id of the target thread.
 
 	The target process is left running.
+
+
+mux.run()
+
+	Run the mux until all ctls under its control
+	have exited.  Returns nil.
+
+
+mux.abort()
+
+	Abort the execution of the mux.  Valid only
+	while a call to mux.run is active.  All ctls
+	until the control of mux are terminated, and
+	the mux is no longer usable.
 
 
 Operations on Ctls

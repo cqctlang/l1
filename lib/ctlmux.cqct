@@ -279,23 +279,25 @@ ctlmux = @names clp64le {
 	kill,
 	mem,
 	reg,
+	setreg,
 	trace,
 	traces,
 	xtrap,
 	xsnap,
 	xtraps,
+	trapdel,
 	trapreset,
 	// private
 	state,
-	reg,
 	traps,
 	callbacks,
 };
 
-@define mkctl(mux, id, state, reg, traps, callbacks)
+@define mkctl(mux, id, state, _reg, traps, callbacks)
 {
 	@local xstop, xcont, xstep, detach, kill;
-	@local mem, reg, trace, traces, xtrap, xsnap, xtraps, trapreset;
+	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
+	@local trapset, trapdel, trapreset;
 	@local this;
 
 	@define xstop()  { return mux.stop(this); }
@@ -324,14 +326,19 @@ ctlmux = @names clp64le {
 			kind = "brk";
 		}
 		tid = traps.add(bp, fn, [kind, addr],
-				@lambda(){ mux.clrbrk(this, id, bp); });
-		return tid;
-	}
+				@lambda(){ 
+					printf("trapclr for ctl %d bpid=%d tid=%d\n",
+					       this.id,
+					       bp,
+					       tid);
+					mux.clrbrk(this, bp);
+				});
+		printf("trapset for ctl %d bpid=%d tid=%d\n",
+		       this.id,
+		       bp,
+		       tid);
 
-	@define trapdel(tid)
-	{
-		traps.clr(tid);
-		return nil;
+		return tid;
 	}
 
 	@define xtrap(addr, fn)
@@ -349,15 +356,26 @@ ctlmux = @names clp64le {
 		return traps.list();
 	}
 
+	@define trapdel(tid)
+	{
+		traps.clr(tid);
+		return nil;
+	}
+
 	@define trapreset()
 	{
 		traps.reset();
 		return nil;
 	}
 
+	@define setreg(r)
+	{
+		_reg = r;
+	}
+
 	@define reg()
 	{
-		return reg;
+		return _reg;
 	}
 
 	@define mem()
@@ -418,7 +436,7 @@ ctlmux = @names clp64le {
 
 		@define id(as)
 		{
-			return ctl.id;
+			return this.id;
 		}
 
 		// redirect unknown calls to ctl
@@ -439,13 +457,15 @@ ctlmux = @names clp64le {
 			      "put"       : put,
 			      "map"       : map,
 			      "ctl"       : ctl,
+			      "id"	  : id,
 			      "dispatch"  : dispatch,
 			    ]);
 	}
 
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill,
-		      mem, reg, trace, traces, xtrap, xsnap, xtraps, trapreset,
-		      state, reg, traps, callbacks);
+		      mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps,
+		      trapdel, trapreset,
+		      state, traps, callbacks);
 	return this;
 }
 
@@ -453,6 +473,7 @@ ctlmux = @names clp64le {
 	launch,
 	attach,
 	run,
+	abort,
 	// private
 	stop,
 	cont,
@@ -470,15 +491,17 @@ ctlmux = @names clp64le {
 
 @define mkctlmux()
 {
-	@local tab, launch, attach, run, fds, fd;
+	@local tab, launch, attach, run, abort, fds, fd;
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
 	@local stop, step, detach, kill;
 	@local pread, pwrite, pmap;
-	@local trace, xtrap, fmtmsg, buf2msg;
+	@local trace, fmtmsg, buf2msg;
 	@local setbrk, setsnap, clrbrk;
+	@local aborted;
 
+	aborted = 0;
 	nexttag = 0;
 	freetags = [ ];
 	ctls = [:];
@@ -495,7 +518,7 @@ ctlmux = @names clp64le {
 	{
 		push(freetags, tag);
 	}
-	
+
 	verbose = 0;
 	@define logsend(s)
 	{
@@ -696,7 +719,10 @@ ctlmux = @names clp64le {
 		case ctlmux`Etrap:
 			ack(msg);
 			trap = ctl.traps.look(msg->bp);
-			ctl.reg = cop(&msg->reg);
+			if(trap == nil)
+				error("ctl %d has no trap for bpid %d",
+				      ctl.id, msg->bp);
+			ctl.setreg(cop(&msg->reg));
 			if(trap.desc[0] == "brk"){
 				ctl.state = ctlmux`Stopped;
 				docall(@lambda() { trap.fn(ctl); });
@@ -705,7 +731,7 @@ ctlmux = @names clp64le {
 					       msg->cid,
 					       ctlmux`Stopped,
 					       cop(&msg->reg),
-					       ctl.traps,
+					       ctl.traps.copy(),
 					       ctl.callbacks);
 				ctls[msg->cid] = newctl;
 				docall(@lambda() { trap.fn(ctl, newctl); });
@@ -723,7 +749,7 @@ ctlmux = @names clp64le {
 				       msg->cid,
 				       ctlmux`Stopped,
 				       cop(&msg->reg),
-				       ctl.traps,
+				       ctl.traps.copy(),
 				       ctl.callbacks);
 			ctls[msg->cid] = newctl;
 			fn = ctl.callbacks[ev];
@@ -736,7 +762,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Eexec:
 			ack(msg);
 			ctl.state = ctlmux`Stopped;
-			ctl.reg = cop(&msg->reg);
+			ctl.setreg(cop(&msg->reg));
 			log("task %d has called exec", msg->id);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -747,7 +773,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Esyscall:
 			ack(msg);
 			ctl.state = ctlmux`Stopped;
-			ctl.reg = cop(&msg->reg);
+			ctl.setreg(cop(&msg->reg));
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
@@ -777,7 +803,7 @@ ctlmux = @names clp64le {
 	{
 		@local s, sz, p, op, msg, h, tag;
 
-		while(!pred()){
+		while(!aborted && !pred()){
 			if(noinflight() && noctls())
 				error("runtil: nothing to do");
 			s = read(fd, sizeof(ctlmux`uint64));
@@ -1089,9 +1115,19 @@ ctlmux = @names clp64le {
 		return ctl;
 	}
 
+	@define abort()
+	{
+		close(fd);
+		aborted = 1;
+		return nil;
+	}
+
 	@define run()
 	{
+		if(aborted)
+			error("attempt to resume aborted mux");
 		runtil(noctls);
+		return nil;
 	}
 
 	fds = popen("prctl", "-c", 2|4|8);
@@ -1100,6 +1136,7 @@ ctlmux = @names clp64le {
 	mux = muxrec(launch,
 		     attach,
 		     run,
+		     abort,
 		     stop,
 		     cont,
 		     step,

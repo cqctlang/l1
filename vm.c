@@ -1816,7 +1816,7 @@ mkstrn(VM *vm, Imm len)
 	if(len >= PAGESZ){
 		str->len = len;
 		str->s = mmap(0, PAGEUP(len), PROT_READ|PROT_WRITE,
-			      MAP_NORESERVE|MAP_PRIVATE|MAP_ANON, 0, 0);
+			      MAP_NORESERVE|MAP_PRIVATE|MAP_ANON, -1, 0);
 		if(str->s == (void*)(-1))
 			vmerr(vm, "out of memory");
 		str->mlen = PAGEUP(len);
@@ -4918,7 +4918,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	}
 
 	if(xv->qkind != Qdom)
-		fatal("bug");
+		vmerr(vm, "attempt to access address space through non-domain");
 	d = valdom(xv);
 	switch(b->tkind){
 	case Tbitfield:
