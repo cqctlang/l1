@@ -43,8 +43,9 @@
 // test manglelist
 @define test2(n)
 {
-	@local ctl, mux, ns, as, dom;
+	@local ctl, mux, ns, as, dom, m;
 
+	m = 0;
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
@@ -53,6 +54,8 @@
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
 			  manglelist(dom);
+			  if(m++ == 5)
+			  	mux.abort();
 			  return nil;
 		  });
 	dom.xcont();

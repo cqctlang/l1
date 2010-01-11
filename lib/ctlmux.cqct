@@ -473,6 +473,7 @@ ctlmux = @names clp64le {
 	launch,
 	attach,
 	run,
+	abort,
 	// private
 	stop,
 	cont,
@@ -490,7 +491,7 @@ ctlmux = @names clp64le {
 
 @define mkctlmux()
 {
-	@local tab, launch, attach, run, fds, fd;
+	@local tab, launch, attach, run, abort, fds, fd;
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
@@ -498,7 +499,9 @@ ctlmux = @names clp64le {
 	@local pread, pwrite, pmap;
 	@local trace, fmtmsg, buf2msg;
 	@local setbrk, setsnap, clrbrk;
+	@local aborted;
 
+	aborted = 0;
 	nexttag = 0;
 	freetags = [ ];
 	ctls = [:];
@@ -800,7 +803,7 @@ ctlmux = @names clp64le {
 	{
 		@local s, sz, p, op, msg, h, tag;
 
-		while(!pred()){
+		while(!aborted && !pred()){
 			if(noinflight() && noctls())
 				error("runtil: nothing to do");
 			s = read(fd, sizeof(ctlmux`uint64));
@@ -1112,9 +1115,19 @@ ctlmux = @names clp64le {
 		return ctl;
 	}
 
+	@define abort()
+	{
+		close(fd);
+		aborted = 1;
+		return nil;
+	}
+
 	@define run()
 	{
+		if(aborted)
+			error("attempt to resume aborted mux");
 		runtil(noctls);
+		return nil;
 	}
 
 	fds = popen("prctl", "-c", 2|4|8);
@@ -1123,6 +1136,7 @@ ctlmux = @names clp64le {
 	mux = muxrec(launch,
 		     attach,
 		     run,
+		     abort,
 		     stop,
 		     cont,
 		     step,
