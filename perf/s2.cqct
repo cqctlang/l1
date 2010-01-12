@@ -1,7 +1,7 @@
 @include "dostat.cqct"
 @include <profile.cqct>
 
-define s2(snapfile)
+@define s2(snapfile)
 {
 	@local ns, as;
 
