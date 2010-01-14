@@ -85,11 +85,15 @@ dl.bolddt-indentdd {
 }
 
 #table-short {
-       margin-left:50px;
+       margin-left: 50px;
 }
 
 #table-short td {
-padding: 0px;
+	border-style: solid;
+	padding-top: 0px;
+	padding-bottom: 0px;
+	padding-left: 10px;
+	padding-right: 10px;
 }
 
 #table td {
