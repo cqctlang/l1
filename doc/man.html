@@ -55,6 +55,7 @@
 <a href="#sec:fs">Filesystem Functions</a><br />
 <a href="#sec:fmt">Formatted Output</a><br />
 <a href="#sec:system">System Functions</a><br />
+<a href="#sec:other">Other Functions</a><br />
 <br />
 <br />
 <a href="#sec:cinterface">C Interface</a><br />
@@ -5893,6 +5894,40 @@ at shutdown may not be called.
 </div>
 </div>
 
+<h4 id="sec:other">Other Functions</h4>
+
+<p>
+This section documents various other functions.
+</p>
+
+<div class="docitem" id="fn:inflate">
+<div class="proto">
+<div class="function">
+<span class="id">inflate(<span class="arg">buf</span>)</span>
+</div>
+<div class="function">
+<span class="id">inflatezlib(<span class="arg">buf</span>)</span>
+</div>
+<div class="param">
+<span class="arg">buf</span>: <span class="type">string</span> or <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">inflate</span> decompresses the
+contents of the string represented
+by <span class="arg">buf</span> using the deflate
+compression algorithm (which is used for gzip, zip, and
+zlib files).  <span class="id">inflatezlib</span> is
+like <span class="id">inflate</span>, but operates on
+strings with a zlib header and trailer.
+</div>
+</div>
+
+
+
 <h4 id="sec:cinterface">C Interface</h4>
 
 <p>
@@ -6745,6 +6780,8 @@ machines sharing the environment have been freed.
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />
+<a href="#fn:inflate">inflate</a><br />
+<a href="#fn:inflate">inflatezlib</a><br />
 <a href="#fn:isalnum">isalnum</a><br />
 <a href="#fn:isalpha">isalpha</a><br />
 <a href="#fn:isarray">isarray</a><br />

@@ -77,26 +77,11 @@ wfn(void *p, void *buf, int cnt)
 }
 
 static Vec*
-cvinflate(VM *vm, Cval *p, Cval *omaxcv)
+doinflate(VM *vm, struct getr *getr, Cval *omaxcv, int zlib)
 {
-	Vec *v;
-	Range *r;
-	struct getr getr;
 	struct wr wr;
-	int err;
 	Vec *rvec;
-
-	/* effectively r = unit(vm, p->dom->as, p->val) */
-	v = callmap(vm, p->dom->as);
-	r = mapstab(vm, v, p->val, 0);	/* FIXME: type sanity */
-	if(r == 0)
-		vmerr(vm, "out-of-bounds address space access");
-
-	memset(&getr, 0, sizeof(getr));
-	getr.vm = vm;
-	getr.p = p;
-	getr.off = p->val;
-	getr.lim = r->beg->val+r->len->val-p->val;
+	int err;
 
 	memset(&wr, 0, sizeof(wr));
 	wr.vm = vm;
@@ -110,18 +95,59 @@ cvinflate(VM *vm, Cval *p, Cval *omaxcv)
 		wr.avail = Unit;
 	}
 
-	err = inflatezlib(&wr, wfn, &getr, rfn);
+	if(zlib)
+		err = inflatezlib(&wr, wfn, getr, rfn);
+	else
+		err = inflate(&wr, wfn, getr, rfn);
 	if(err < 0)
 		vmerr(vm, flateerr(err));
 
 	rvec = mkvec(2);
 	_vecset(rvec, 0, mkvalstr(mkstrk((char*)wr.out, wr.len, Smalloc)));
-	_vecset(rvec, 1, mkvallitcval(Vulong, getr.used));
+	_vecset(rvec, 1, mkvallitcval(Vulong, getr->used));
 	return rvec;
+
+}
+
+static Vec*
+cvinflate(VM *vm, Cval *p, Cval *omaxcv, int zlib)
+{
+	Range *r;
+	struct getr getr;
+	Vec *v;
+
+	/* effectively r = unit(vm, p->dom->as, p->val) */
+	v = callmap(vm, p->dom->as);
+	r = mapstab(vm, v, p->val, 0);	/* FIXME: type sanity */
+	if(r == 0)
+		vmerr(vm, "out-of-bounds address space access");
+
+	memset(&getr, 0, sizeof(getr));
+	getr.vm = vm;
+	getr.p = p;
+	getr.off = p->val;
+	getr.lim = r->beg->val+r->len->val-p->val;
+
+	return doinflate(vm, &getr, omaxcv, zlib);
+}
+
+static Vec*
+strinflate(VM *vm, Str *s, Cval *omaxcv, int zlib)
+{
+	struct getr getr;
+
+	memset(&getr, 0, sizeof(getr));
+	getr.vm = vm;
+	getr.p = 0;
+	getr.off = 0;
+	getr.lim = getr.avail = s->len;
+	getr.buf = (unsigned char*)s->s;
+
+	return doinflate(vm, &getr, omaxcv, zlib);
 }
 
 static void
-l1_inflate(VM *vm, Imm argc, Val *argv, Val *rv)
+_inflate(VM *vm, Imm argc, Val *argv, Val *rv, int zlib)
 {
 	Cval *p, *omax;
 	Str *ss;
@@ -149,10 +175,24 @@ l1_inflate(VM *vm, Imm argc, Val *argv, Val *rv)
 		omax = valcval(argv[1]);
 	}
 	if(p)
-		rvec = cvinflate(vm, p, omax);
+		rvec = cvinflate(vm, p, omax, zlib);
+	else if(ss)
+		rvec = strinflate(vm, ss, omax, zlib);
 	else
-		vmerr(vm, "implemented inflate mode");
+		vmerr(vm, "unimplemented inflate mode");
 	*rv = mkvalvec(rvec);
+}
+
+static void
+l1_inflatezlib(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	_inflate(vm, argc, argv, rv, 1);
+}
+
+static void
+l1_inflate(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	_inflate(vm, argc, argv, rv, 0);
 }
 
 void
@@ -161,4 +201,5 @@ fnflate(Env *env)
 	deflateinit();
 	inflateinit();
 	FN(inflate);
+	FN(inflatezlib);
 }
