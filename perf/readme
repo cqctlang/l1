@@ -22,7 +22,8 @@ l1.names, which substantially reduces its code
 allocation (5.7MB vs 76.9MB), and thus the size of its
 snapshot and the time required to traverse it.
 
-s2 re-runs either of the heap analyses of s0 or s1.
+s2 re-runs either of the heap analyses of s0 or s1
+on previously computed snap0 or snap1 snapshots.
 by default it re-runs s1.  in both cases it uses
 the stat.names namespace.
 
@@ -37,8 +38,10 @@ they occupy.
 usage:
 
 % cd <this directory>
-% ../l1 -r ./s0.l1
-% ../l1 ./s1.l1
-% ../l1 ./s2.l1
-% ../l1 ./s2.l1 snap0
+% ../l1 -r ./s0.cqct
+% ../l1 ./s1.cqct
+
+% ../l1 ./s2.cqct            # quick experiment
+% ../l1 ./s2.cqct snap0      # longer one
+
 

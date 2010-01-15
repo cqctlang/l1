@@ -13,10 +13,10 @@
 
 {
 	@local file;
-	if(length(args) == 0)
+	if(length(args) == 1)
 		file = "./snap1";
 	else
-		file = args[0];
+		file = args[1];
 	s2(file);
 	profinsn();
 }
