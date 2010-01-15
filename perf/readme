@@ -37,7 +37,10 @@ they occupy.
 
 usage:
 
-% cd <this directory>
+% cd <l1 source directory>
+% make
+% dwarf2cqct < l1 > l1.names
+% cd perf
 % ../l1 -r ./s0.cqct
 % ../l1 ./s1.cqct
 
