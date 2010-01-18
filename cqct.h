@@ -91,11 +91,11 @@ enum
 };
 
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
-#define Vsetkind(p, v)	  ((p)->bits |= (((v)&Vkindmask)<<Vkindoff))
+#define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
-#if 0
+#if 1
 #define Vcolor(p)         ((((p)->bits)>>Vcoloroff)&Vcolormask)
-#define Vsetcolor(p, v)	  ((p)->bits |= (((v)&Vcolormask)<<Vcoloroff))
+#define Vsetcolor(p, v)	  ((p)->bits = ((p)->bits&~(Vcolormask<<Vcoloroff))|(((v)&Vcolormask)<<Vcoloroff))
 #else
 #define Vcolor(p)         ((p)->color)
 #define Vsetcolor(p, v)	  ((p)->color = (v))
@@ -104,7 +104,7 @@ enum
 struct Head {
 	uint32_t bits;
 //	Qkind qkind;
-	unsigned color;
+//	unsigned color;
 	unsigned inrootset;	/* gc: limit (racily) duplicates on rootsets */
 	Heap *heap;
 	Head *alink;
