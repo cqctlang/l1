@@ -79,8 +79,31 @@ typedef struct Head Head;
 typedef struct Head* Val;
 typedef struct Heap Heap;
 
+enum
+{
+	Vkindoff  = 0,
+	Vkindbits = 5,
+	Vkindmask = (1<<Vkindbits)-1,
+
+	Vcoloroff = 5,
+	Vcolorbits = 3,
+	Vcolormask = (1<<Vcolorbits)-1,
+};
+
+#define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
+#define Vsetkind(p, v)	  ((p)->bits |= (((v)&Vkindmask)<<Vkindoff))
+
+#if 0
+#define Vcolor(p)         ((((p)->bits)>>Vcoloroff)&Vcolormask)
+#define Vsetcolor(p, v)	  ((p)->bits |= (((v)&Vcolormask)<<Vcoloroff))
+#else
+#define Vcolor(p)         ((p)->color)
+#define Vsetcolor(p, v)	  ((p)->color = (v))
+#endif
+
 struct Head {
-	Qkind qkind;
+	uint32_t bits;
+//	Qkind qkind;
 	unsigned color;
 	unsigned inrootset;	/* gc: limit (racily) duplicates on rootsets */
 	Heap *heap;

@@ -282,7 +282,7 @@ Imm
 valimm(Val v)
 {
 	Cval *cv;
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		fatal("valimm on non-cval");
 	cv = (Cval*)v;
 	return cv->val;
@@ -292,7 +292,7 @@ Val
 valboxed(Val v)
 {
 	Box *b;
-	if(v->qkind != Qbox)
+	if(Vkind(v) != Qbox)
 		fatal("valboxed on non-box");
 	b = (Box*)v;
 	return b->v;
@@ -365,7 +365,7 @@ szlivehead(Head *h)
 	u64 m;
 
 	m = 0;
-	switch(h->qkind){
+	switch(Vkind(h)){
 	case Qcode:
 		m += szcode((Code*)h);
 		break;
@@ -444,7 +444,7 @@ tabstat()
 	hp = &heap[Qtab];
 	p = hp->alloc;
 	while(p){
-		if(p->color == GCfree)
+		if(Vcolor(p) == GCfree)
 			goto next;
 		t = (Tab*)p;
 		snprint(buf, sizeof(buf), "%u", t->x->sz);
@@ -476,7 +476,7 @@ heapstatmem(Heap *hp, u64 *mlp, u64 *mfp)
 	mf = 0;
 	p = hp->alloc;
 	while(p){
-		if(p->color == GCfree)
+		if(Vcolor(p) == GCfree)
 			mf += esize(p);
 		else
 			ml += esize(p)+szlivehead(p);
@@ -561,10 +561,10 @@ retry:
 			o = emalloc(heap->sz);
 //			VALGRIND_MAKE_MEM_NOACCESS(o+1, heap->sz-sizeof(Head));
 			o->heap = heap;
-			o->qkind = heap->qkind;
+			Vsetkind(o, heap->qkind);
 			o->alink = ap;
 			o->link = fp;
-			o->color = GCfree;
+			Vsetcolor(o, GCfree);
 			o->state = -1;
 			ap = o;
 			fp = o;
@@ -576,7 +576,7 @@ retry:
 		goto retry;
 	}
 	
-	o->color = GCCOLOR(gcepoch);
+	Vsetcolor(o, GCCOLOR(gcepoch));
 	if(HEAPPROF) heap->nha++;
 	if(HEAPDEBUG)
 		xprintf("alloc %p (%s)\n", o, heap->id);
@@ -601,7 +601,7 @@ heapfree(Head *p)
 	p->link = p->heap->sweep;
 	p->heap->sweep = p;
 	p->state = -1;
-	p->color = GCfree;
+	Vsetcolor(p, GCfree);
 	p->final = 0;
 //	VALGRIND_MAKE_MEM_NOACCESS(p+1, p->heap->sz-sizeof(Head));
 }
@@ -612,13 +612,13 @@ sweepheap(GC *gc, Heap *heap, unsigned color)
 	Head *p;
 	p = heap->alloc;
 	while(p){
-		if(p->color == color){
+		if(Vcolor(p) == color){
 			if(p->final && !(gc->state&GCshutdown)){
-				p->color = GCfinal;
+				Vsetcolor(p, GCfinal);
 				addroot(&thegc->finals, p);
 				goto next;
 			}
-			p->color = GCfree;
+			Vsetcolor(p, GCfree);
 			if(heap->free1 && heap->free1(p) == 0)
 				goto next; /* deferred free */
 			heapfree(p);
@@ -693,7 +693,7 @@ valhead(Val v)
 		/* stack immediate */
 		return 0;
 
-	switch(v->qkind){
+	switch(Vkind(v)){
 	case Qundef:
 	case Qnil:
 	case Qnull:
@@ -774,7 +774,7 @@ addroot(Rootset *rs, Head *h)
 	if(h == 0)
 		return;
 
-	if(h->color == GCfree)
+	if(Vcolor(h) == GCfree)
 		/* stale value on stack already collected */
 		return;
 	if(h->inrootset)
@@ -836,10 +836,10 @@ markhead(GC *gc, Head *hd, unsigned color)
 	if(hd == 0)
 		return;
 
-	if(hd->color == color)
+	if(Vcolor(hd) == color)
 		return;
 
-	hd->color = color;
+	Vsetcolor(hd, color);
 	addroot(&gc->roots, (Head*)hd->final);
 	if(hd->heap->iter == 0)
 		return;
@@ -848,7 +848,7 @@ markhead(GC *gc, Head *hd, unsigned color)
 		c = hd->heap->iter(hd, &ictx);
 		if(c == GCiterdone)
 			break;
-		if(c && c->color != color)
+		if(c && Vcolor(c) != color)
 			addroot(&gc->roots, c);
 	}
 }
@@ -1055,7 +1055,7 @@ gcclearfinal(GC *gc)
 		hd = removeroot(&gc->finals);
 		if(hd == 0)
 			break;
-		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
+		Vsetcolor(hd, GCCOLOR(gcepoch)); /* reintroduce object */
 		hd->final = 0;
 	}
 }
@@ -1076,7 +1076,7 @@ gcfinal(GC *gc, VM *vm)
 		cl = hd->final;
 		hd->final = 0;
 		gcunpersist(vm, cl);
-		hd->color = GCCOLOR(gcepoch); /* reintroduce object */
+		Vsetcolor(hd, GCCOLOR(gcepoch)); /* reintroduce object */
 		arg = hd;
 		dovm(vm, cl, 1, &arg);
 	}
@@ -1228,7 +1228,7 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tptr:
 		return repsize[xtn->rep];
 	case Tarr:
-		if(xtn->cnt->qkind != Qcval)
+		if(Vkind(xtn->cnt) != Qcval)
 			vmerr(vm,
 			      "attempt to compute size of unspecified array");
 		cv = valcval(xtn->cnt);
@@ -1487,15 +1487,15 @@ iterfd(Head *hd, Ictx *ictx)
 int
 eqval(Val v1, Val v2)
 {
-	if(v1->qkind != v2->qkind)
+	if(Vkind(v1) != Vkind(v2))
 		return 0;
-	return hashop[v1->qkind].eq(v1, v2);
+	return hashop[Vkind(v1)].eq(v1, v2);
 }
 
 static u32
 hashval(Val v)
 {
-	return hashop[v->qkind].hash(v);
+	return hashop[Vkind(v)].hash(v);
 }
 
 /* http://www.cris.com/~Ttwang/tech/inthash.htm */
@@ -1549,7 +1549,7 @@ shash(char *s, Imm len)
 static u32
 nohash(Val val)
 {
-	fatal("bad type of key (%d) to table operation", val->qkind);
+	fatal("bad type of key (%d) to table operation", Vkind(val));
 }
 
 static u32
@@ -1567,7 +1567,7 @@ eqptr(Val a, Val b)
 static u32
 hashconst(Val val)
 {
-	switch(val->qkind){
+	switch(Vkind(val)){
 	case Qnil:
 		return hashptr32shift(Xnil);
 	case Qnull:
@@ -1683,7 +1683,7 @@ hashxtn(Val val)
 		return xtn->rep^hashxtn((Val)xtn->link)>>xtn->tkind;
 	case Tarr:
 		x = hashxtn((Val)xtn->link)>>xtn->tkind;
-		if(xtn->cnt->qkind == Qcval)
+		if(Vkind(xtn->cnt) == Qcval)
 			x ^= hashcval(xtn->cnt);
 		return x;
 	case Tfun:
@@ -1732,9 +1732,9 @@ equalxtn(Xtypename *a, Xtypename *b)
 	case Tptr:
 		return (a->rep == b->rep) && equalxtn(a->link, b->link);
 	case Tarr:
-		if(a->cnt->qkind != b->cnt->qkind)
+		if(Vkind(a->cnt) != Vkind(b->cnt))
 			return 0;
-		if(a->cnt->qkind == Qcval){
+		if(Vkind(a->cnt) == Qcval){
 			if(!equalcval(a->cnt, b->cnt))
 				return 0;
 		}
@@ -1891,12 +1891,12 @@ listlenpair(Val v, Imm *rv)
 	Pair *p;
 
 	m = 0;
-	while(v->qkind == Qpair){
+	while(Vkind(v) == Qpair){
 		m++;
 		p = valpair(v);
 		v = p->cdr;
 	}
-	if(v->qkind != Qnull)
+	if(Vkind(v) != Qnull)
 		return 0;
 	*rv = m;
 	return 1;
@@ -1906,9 +1906,9 @@ static int
 listlen(Val v, Imm *rv)
 {
 	List *lst;
-	if(v->qkind == Qpair || v->qkind == Qnull)
+	if(Vkind(v) == Qpair || Vkind(v) == Qnull)
 		return listlenpair(v, rv);
-	if(v->qkind == Qlist){
+	if(Vkind(v) == Qlist){
 		lst = vallist(v);
 		*rv = listxlen(lst->x);
 		return 1;
@@ -1964,7 +1964,7 @@ hashvec(Val v)
 	Vec *a;
 	u32 i, len, m;
 	a = valvec(v);
-	m = v->qkind;
+	m = Vkind(v);
 	len = a->len;
 	for(i = 0; i < len; i++)
 		m ^= hashval(a->vec[i]);
@@ -2114,14 +2114,14 @@ _tabget(Tab *tab, Val keyv, Tabidx ***prev)
 	Hashop *op;
 
 	x = tab->x;
-	kind = keyv->qkind;
+	kind = Vkind(keyv);
 	op = &hashop[kind];
 	idx = op->hash(keyv)&(x->sz-1);
 	p = &x->idx[idx];
 	tk = *p;
 	while(tk){
 		kv = x->key[tk->idx];
-		if(kv->qkind == kind && op->eq(keyv, kv)){
+		if(Vkind(kv) == kind && op->eq(keyv, kv)){
 			if(prev)
 				*prev = p;
 			return tk;
@@ -2159,7 +2159,7 @@ tabexpand(Tab *tab)
 		while(tk){
 			nxt = tk->link;
 			kv = x->key[tk->idx];
-			idx = hashop[kv->qkind].hash(kv)&(nx->sz-1);
+			idx = hashop[Vkind(kv)].hash(kv)&(nx->sz-1);
 			tk->link = nx->idx[idx];
 			nx->idx[idx] = tk;
 			nx->key[m] = x->key[tk->idx];
@@ -2213,7 +2213,7 @@ dotabput(VM *vm, Tab *tab, Val keyv, Val val)
 	tk->idx = x->nxt;
 	x->key[tk->idx] = keyv;
 	x->val[tk->idx] = val;
-	idx = hashop[keyv->qkind].hash(keyv)&(x->sz-1);
+	idx = hashop[Vkind(keyv)].hash(keyv)&(x->sz-1);
 	tk->link = x->idx[idx];
 	x->idx[idx] = tk;
 	x->nxt++;
@@ -2547,7 +2547,7 @@ hashlist(Val v)
 	u32 i, len, m;
 	l = vallist(v);
 	x = l->x;
-	m = v->qkind;
+	m = Vkind(v);
 	len = listxlen(x);
 	for(i = 0; i < len; i++)
 		m ^= hashval(x->val[x->hd+i]);
@@ -2812,7 +2812,7 @@ recis(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, mn->s);
-	if(argv[0]->qkind != Qrec){
+	if(Vkind(argv[0]) != Qrec){
 		*rv = mkvalcval2(cval0);
 		return;
 	}
@@ -2857,7 +2857,7 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, mn->s);
-	if(argv[0]->qkind != Qrec)
+	if(Vkind(argv[0]) != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
 		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
 	r = valrec(argv[0]);
@@ -2883,7 +2883,7 @@ recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, mn->s);
-	if(argv[0]->qkind != Qrec)
+	if(Vkind(argv[0]) != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
 		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
 	r = valrec(argv[0]);
@@ -2914,7 +2914,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, mn->s);
-	if(argv[0]->qkind != Qrec)
+	if(Vkind(argv[0]) != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
 		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
 	r = valrec(argv[0]);
@@ -3276,7 +3276,7 @@ envlookup(Env *env, char *id, Val *val)
 	Val *v;
 
 	v = envgetbind(env, id);
-	if((*v)->qkind == Qundef)
+	if(Vkind(*v) == Qundef)
 		return 0;
 	*val = *v;
 	return 1;
@@ -3418,9 +3418,9 @@ static void
 putbox(VM *vm, Val box, Val boxed)
 {
 	Box *b;
-//	if(box->qkind != Qbox)
+//	if(Vkind(box != Qbox)
 //		fatal("putbox on non-box");
-//	if(boxed->qkind == Qbox)
+//	if(Vkind(boxed) == Qbox)
 //		fatal("boxing boxes is insane");
 	b = (Box*)box;
 	gcwb(thegc, b->v);
@@ -3494,7 +3494,7 @@ doinsncnt(VM *vm)
 	t = mktab();
 	p = heap[Qcode].alloc;
 	while(p){
-		if(p->color == GCfree)
+		if(Vcolor(p) == GCfree)
 			goto next;
 		c = (Code*)p;
 		in = &c->insn[0];		
@@ -3678,7 +3678,7 @@ getcval(VM *vm, Location *loc)
 		return valcval(p);
 	case Ltopl:
 		p = *(loc->var->val);
-		if(p->qkind == Qundef)
+		if(Vkind(p) == Qundef)
 			vmerr(vm, "reference to unbound variable: %s",
 			      loc->var->id);
 		return valcval(p);
@@ -3697,7 +3697,7 @@ getvalrand(VM *vm, Operand *r)
 	case Okon:
 		v = r->u.kon;
 		/* any mutable vals must be copied */
-		switch(v->qkind){
+		switch(Vkind(v)){
 		case Qstr:
 			v = mkvalstr(strcopy(valstr(v)));
 			break;
@@ -4275,7 +4275,7 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 	Imm imm, nv;
 	
 	v = getvalrand(vm, op1);
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		vmerr(vm, "incompatible operand for unary %s", opstr[op]);
 	cv = intpromote(vm, valcval(v));
 	imm = cv->val;
@@ -4578,7 +4578,7 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 	v1 = getvalrand(vm, op1);
 	v2 = getvalrand(vm, op2);
 
-	if(v1->qkind == Qcval && v2->qkind == Qcval){
+	if(Vkind(v1) == Qcval && Vkind(v2) == Qcval){
 		cv1 = valcval(v1);
 		cv2 = valcval(v2);
 		switch(op){
@@ -4611,7 +4611,7 @@ xbinop(VM *vm, ikind op, Operand *op1, Operand *op2, Operand *dst)
 		return;
 	}
 
-	if(v1->qkind == Qstr && v2->qkind == Qstr){
+	if(Vkind(v1) == Qstr && Vkind(v2) == Qstr){
 		s1 = valstr(v1);
 		s2 = valstr(v2);
 dostr:
@@ -4627,7 +4627,7 @@ dostr:
 		return;
 	}
 
-	if(v1->qkind == Qstr && v2->qkind == Qcval){
+	if(Vkind(v1) == Qstr && Vkind(v2) == Qcval){
 		cv2 = valcval(v2);
 		if(isstrcval(cv2)){
 			gcprotect(vm, v1);
@@ -4639,7 +4639,7 @@ dostr:
 		/* fall through */
 	}
 
-	if(v2->qkind == Qstr && v1->qkind == Qcval){
+	if(Vkind(v2) == Qstr && Vkind(v1) == Qcval){
 		cv1 = valcval(v1);
 		if(isstrcval(cv1)){
 			gcprotect(vm, v2);
@@ -4724,7 +4724,7 @@ zeroval(Val v)
 {
 	Cval *cv;
 
-	switch(v->qkind){
+	switch(Vkind(v)){
 	case Qcval:
 		cv = valcval(v);
 		return cv->val == 0;
@@ -4805,7 +4805,7 @@ xbox(VM *vm, Operand *op)
 	v = getvalrand(vm, op);
 	// specializer can trigger redundant boxing of parameters
 	// when jumping from original to new function
-	if(v->qkind == Qbox)
+	if(Vkind(v) == Qbox)
 		return;
 	putvalrand(vm, mkvalbox(v), op);
 }
@@ -4828,7 +4828,7 @@ xref(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	typev = getvalrand(vm, type);
 	cvalv = getvalrand(vm, cval);
 	xv = getvalrand(vm, x);
-	if(xv->qkind != Qdom)
+	if(Vkind(xv) != Qdom)
 		vmerr(vm, "attempt to derive location from non-domain");
 	d = valdom(xv);
 	t = valxtn(typev);
@@ -4903,7 +4903,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 
 	/* special case: enum constants can be referenced through namespace */
 	if(b->tkind == Tconst){
-		switch(xv->qkind){
+		switch(Vkind(xv)){
 		case Qdom:
 			d = valdom(xv);
 			rv = mkvalcval(d, b->link, cv->val);
@@ -4917,7 +4917,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 		}
 	}
 
-	if(xv->qkind != Qdom)
+	if(Vkind(xv) != Qdom)
 		vmerr(vm, "attempt to access address space through non-domain");
 	d = valdom(xv);
 	switch(b->tkind){
@@ -4950,7 +4950,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	case Txaccess:
 		argv[0] = xv;
 		p = dovm(vm, t->get, 1, argv);
-		if(p->qkind != Qcval)
+		if(Vkind(p) != Qcval)
 			vmerr(vm,
 			      "get method of extended access type returned "
 			      "non-cval");
@@ -5019,31 +5019,31 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 	Xtypename *t;
 
 	ov = getvalrand(vm, o);
-	if(ov->qkind != Qcval && ov->qkind != Qstr)
+	if(Vkind(ov) != Qcval && Vkind(ov) != Qstr)
 		vmerr(vm, "operand 2 to extended cast operator must be a"
 		      " cvalue or string");
 	tv = getvalrand(vm, typeordom);
-	if(tv->qkind != Qxtn && ov->qkind == Qstr)
+	if(Vkind(tv) != Qxtn && Vkind(ov) == Qstr)
 		vmerr(vm, "illegal conversion");
-	if(tv->qkind == Qxtn){
+	if(Vkind(tv) == Qxtn){
 		t = valxtn(tv);
 		if(!iscvaltype(t))
 			vmerr(vm, "illegal type conversion");
-		if(ov->qkind == Qstr){
+		if(Vkind(ov) == Qstr){
 			if(!isptrtype(t))
 				vmerr(vm, "illegal type conversion");
 			cv = str2voidstar(vm->litns, valstr(ov));
 		}else
 			cv = valcval(ov);
 		rv = mkvalcval2(typecast(vm, t, cv));
-	}else if(tv->qkind == Qdom){
+	}else if(Vkind(tv) == Qdom){
 		d = valdom(tv);
 		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
-	}else if(tv->qkind == Qns){
+	}else if(Vkind(tv) == Qns){
 		cv = valcval(ov);
 		d = mkdom(valns(tv), cv->dom->as, 0);
 		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
-	}else if(tv->qkind == Qas){
+	}else if(Vkind(tv) == Qas){
 		cv = valcval(ov);
 		d = mkdom(cv->dom->ns, valas(tv), 0);
 		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
@@ -5082,10 +5082,10 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	Cval *cv;
 
 	v = getvalrand(vm, op);
-	if(v->qkind == Qcval){
+	if(Vkind(v) == Qcval){
 		cv = valcval(v);
 		xtn = cv->type;
-	}else if(v->qkind == Qxtn)
+	}else if(Vkind(v) == Qxtn)
 		xtn = valxtn(v);
 	else
 		vmerr(vm, "operand 1 to sizeof must be a type or cvalue");
@@ -5326,9 +5326,9 @@ mkattr(Val o)
 {
 	Tab *tab;
 
-	if(o->qkind != Qtab && o->qkind != Qcval)
+	if(Vkind(o) != Qtab && Vkind(o) != Qcval)
 		fatal("bug");
-	if(o->qkind == Qtab)
+	if(Vkind(o) == Qtab)
 		tab = tabcopy(valtab(o));
 	else{
 		tab = mktab();
@@ -5343,7 +5343,7 @@ attroff(Val o)
 	Tab *tab;
 	Val vp;
 
-	if(o->qkind != Qtab)
+	if(Vkind(o) != Qtab)
 		fatal("bug");
 	tab = valtab(o);
 	vp = tabget(tab, mkvalstr(mkstr0("offset")));
@@ -5359,13 +5359,13 @@ copyattr(VM *vm, Val attr, Val newoff)
 	Val off;
 	Val key;
 #if 0
-	if(attr->qkind == Qcval)
+	if(Vkind(attr) == Qcval)
 		if(newoff)
 			return mkvalcval2(newoff);
 		else
 			return attr;
 #endif
-	if(attr->qkind != Qtab)
+	if(Vkind(attr) != Qtab)
 		fatal("bug");
 	t = tabcopy(valtab(attr));
 	key = mkvalstr(mkstr0("offset"));
@@ -5411,7 +5411,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		if(ns->looktype == 0)
 			return 0;
 		rv = dovm(vm, ns->looktype, 2, argv);
-		if(rv->qkind == Qnil)
+		if(Vkind(rv) == Qnil)
 			return 0;
 		return valxtn(rv);
 	case Tptr:
@@ -5496,7 +5496,7 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	xtn->basename = cb;
 	argv[1] = mkvalxtn(xtn);
 	rv = dovm(vm, ns->looktype, 2, argv);
-	if(rv->qkind == Qnil)
+	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
 	ns->base[cb] = valxtn(rv);
 }
@@ -5633,7 +5633,7 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, xtnv);
 	if(rv){
-		if(rv->qkind != Qxtn)
+		if(Vkind(rv) != Qxtn)
 			vmerr(vm, "invalid raw type table");
 		xtn = valxtn(xtnv);
 		new = mktypedefxtn(xtn->tid, 0);
@@ -5718,7 +5718,7 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, xtnv);
 	if(rv){
-		if(rv->qkind != Qxtn)
+		if(Vkind(rv) != Qxtn)
 			vmerr(vm, "invalid raw type table");
 		xtn = valxtn(rv);
 		switch(xtn->tkind){
@@ -5726,7 +5726,7 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 		case Tunion:
 			fld = xtn->field;
 			sz = xtn->sz;
-			if(fld == 0 || sz->qkind == Qnil)
+			if(fld == 0 || Vkind(sz) == Qnil)
 				goto error;
 			new = mkxtn();
 			new->tkind = xtn->tkind;
@@ -6071,7 +6071,7 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 		vp = vecref(vec, len+m);	/* symbol #m */
 		s = valvec(vp);
 		op = vecref(s, Attrpos);
-		if(op->qkind == Qnil)
+		if(Vkind(op) == Qnil)
 			continue;
 		_listappend(ls, vp);
 	}
@@ -6149,7 +6149,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		tk = x->idx[i];
 		while(tk){
 			v = x->key[tk->idx];
-			if(v->qkind != Qxtn)
+			if(Vkind(v) != Qxtn)
 				vmerr(vm, "invalid raw type table");
 			xtn = valxtn(v);
 			resolvetypename(vm, xtn, &ctx);
@@ -6164,9 +6164,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			/* id -> [ xtn, id, attr ] */
 			idv = x->key[tk->idx];
 			vecv = x->val[tk->idx];
-			if(idv->qkind != Qstr)
+			if(Vkind(idv) != Qstr)
 				vmerr(vm, "invalid raw symbol table");
-			if(vecv->qkind != Qvec)
+			if(Vkind(vecv) != Qvec)
 				vmerr(vm, "invalid raw symbol table");
 			vec = valvec(vecv);
 			if(!issym(vec))
@@ -6314,7 +6314,7 @@ vmsetcl(VM *vm, Val val)
 {
 	Closure *cl;
 
-	if(val->qkind != Qcl)
+	if(Vkind(val) != Qcl)
 		vmerr(vm, "attempt to apply non-procedure");
 	cl = valcl(val);
 	vm->clx = cl;
@@ -6554,7 +6554,7 @@ vmstdout(VM *vm)
 	Val v;
 	if(!envlookup(vm->top->env, "stdout", &v))
 		vmerr(vm, "stdout is undefined");
-	if(v->qkind != Qfd)
+	if(Vkind(v) != Qfd)
 		vmerr(vm, "stdout not bound to a file descriptor");
 	return valfd(v);
 }
@@ -6821,7 +6821,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 void
 checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 {
-	if(argv[arg]->qkind != qkind)
+	if(Vkind(argv[arg]) != qkind)
 		vmerr(vm, "operand %d to %s must be a %s",
 		      arg+1, fn, qname[qkind]);
 }
@@ -6875,7 +6875,7 @@ docmp(VM *vm, Val a, Val b, Closure *cmp)
 	argv[0] = a;
 	argv[1] = b;
 	rv = dovm(vm, cmp, 2, argv);
-	if(rv->qkind != Qcval)
+	if(Vkind(rv) != Qcval)
 		vmerr(vm, "comparison function must return an integer cvalue");
 	cv = valcval(rv);
 	if(!isbasecval(cv))
@@ -6939,11 +6939,11 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to sort");
-	if(argv[0]->qkind != Qlist && argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qlist && Vkind(argv[0]) != Qvec)
 		vmerr(vm, "operand 1 to sort must a list or vector");
 	checkarg(vm, "sort", argv, 1, Qcl);
 	cmp = valcl(argv[1]);
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	case Qlist:
 		l = vallist(argv[0]);
 		x = l->x;
@@ -7001,11 +7001,11 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 	
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to bsearch");
-	if(argv[1]->qkind != Qlist && argv[1]->qkind != Qvec)
+	if(Vkind(argv[1]) != Qlist && Vkind(argv[1]) != Qvec)
 		vmerr(vm, "operand 2 to bsearch must a list or vector");
 	checkarg(vm, "bsearch", argv, 2, Qcl);
 	cmp = valcl(argv[2]);
-	switch(argv[1]->qkind){
+	switch(Vkind(argv[1])){
 	case Qlist:
 		l = vallist(argv[1]);
 		x = l->x;
@@ -7033,16 +7033,16 @@ l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to looktype");
 
-	if(argv[0]->qkind == Qns)
+	if(Vkind(argv[0]) == Qns)
 		ns = valns(argv[0]);
-	else if(argv[0]->qkind == Qdom){
+	else if(Vkind(argv[0]) == Qdom){
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
 		vmerr(vm,
 		      "operand 1 to looktype must be a namespace or domain");
 		      
-	if(argv[1]->qkind != Qxtn)
+	if(Vkind(argv[1]) != Qxtn)
 		vmerr(vm, "operand 2 to looktype must be a typename");
 	xtn = valxtn(argv[1]);
 
@@ -7060,16 +7060,16 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to looksym");
 
-	if(argv[0]->qkind == Qns)
+	if(Vkind(argv[0]) == Qns)
 		ns = valns(argv[0]);
-	else if(argv[0]->qkind == Qdom){
+	else if(Vkind(argv[0]) == Qdom){
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
 		vmerr(vm,
 		      "operand 1 to looksym must be a namespace or domain");
 		      
-	if(argv[1]->qkind != Qstr)
+	if(Vkind(argv[1]) != Qstr)
 		vmerr(vm, "operand 2 to looksym must be a string");
 	*rv = dovm(vm, ns->looksym, argc, argv);
 }
@@ -7083,7 +7083,7 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to domof");
 	arg0 = argv[0];
-	if(arg0->qkind != Qcval)
+	if(Vkind(arg0) != Qcval)
 		vmerr(vm,
 		      "operand 1 to domof must be a cvalue");
 	cv = valcval(arg0);
@@ -7109,9 +7109,9 @@ static Str*
 valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg)
 {
 	Cval *cv;
-	if(argv[arg]->qkind == Qstr)
+	if(Vkind(argv[arg]) == Qstr)
 		return valstr(argv[arg]);
-	else if(argv[arg]->qkind == Qcval){
+	else if(Vkind(argv[arg]) == Qcval){
 		cv = valcval(argv[arg]);
 		if(isstrcval(cv))
 			return stringof(vm, cv);
@@ -7125,13 +7125,13 @@ static Str*
 valstrorcvalornil(VM *vm, char *fn, Val *argv, unsigned arg)
 {
 	Cval *cv;
-	if(argv[arg]->qkind == Qstr)
+	if(Vkind(argv[arg]) == Qstr)
 		return valstr(argv[arg]);
-	else if(argv[arg]->qkind == Qcval){
+	else if(Vkind(argv[arg]) == Qcval){
 		cv = valcval(argv[arg]);
 		if(isstrcval(cv))
 			return stringof(vm, cv);
-	}else if(argv[arg]->qkind == Qnil)
+	}else if(Vkind(argv[arg]) == Qnil)
 		return 0;
 	vmerr(vm, "operand %d to %s must be a string, char* cvalue, "
 	      "uchar* cvalue, or nil",
@@ -7162,7 +7162,7 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr], off),
 			     mkcval(vm->litdom, vm->litns->base[Vptr], len));
 	rv = dovm(vm, as->get, 2, argv);
-	if(rv->qkind != Qstr)
+	if(Vkind(rv) != Qstr)
 		vmerr(vm, "address space get method returned non-string");
 	s = valstr(rv);
 	if(s->len != len)
@@ -7183,7 +7183,7 @@ callmap(VM *vm, As *as)
 	Val argv[1], rv;
 	argv[0] = mkvalas(as);
 	rv = dovm(vm, as->map, 1, argv);
-	if(rv->qkind != Qvec)
+	if(Vkind(rv) != Qvec)
 		vmerr(vm, "address space map returned invalid value");
 	return valvec(rv);
 }
@@ -7197,7 +7197,7 @@ mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 
 	for(m = 0; m < map->len; m++){
 		rp = vecref(map, m);
-		if(rp->qkind != Qrange)
+		if(Vkind(rp) != Qrange)
 			vmerr(vm, "address space map returned invalid value");
 		r = valrange(rp);
 		if(r->beg->val > addr)
@@ -7283,7 +7283,7 @@ l1_tabkeys(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tabkeys");
 	arg0 = argv[0];
-	if(arg0->qkind != Qtab)
+	if(Vkind(arg0) != Qtab)
 		vmerr(vm, "operand 1 to tabkeys must be a table");
 	*rv = mkvalvec(tabenumkeys(valtab(arg0)));
 }
@@ -7296,7 +7296,7 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tabvals");
 	arg0 = argv[0];
-	if(arg0->qkind != Qtab)
+	if(Vkind(arg0) != Qtab)
 		vmerr(vm, "operand 1 to tabvals must be a table");
 	*rv = mkvalvec(tabenumvals(valtab(arg0)));
 }
@@ -7317,7 +7317,7 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", id);
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to %s must be a ctype", id);
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind == kind)
@@ -7368,7 +7368,7 @@ l1_issu(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xtypename *xtn;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to issu");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to issu must be a ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind == Tstruct || xtn->tkind == Tunion)
@@ -7426,7 +7426,7 @@ l1_baseid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to baseid");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to baseid must be a base ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tbase)
@@ -7444,7 +7444,7 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to subtype");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, err);
 		      
 	xtn = valxtn(argv[0]);
@@ -7466,7 +7466,7 @@ l1_rettype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to retttype");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to rettype must be a function ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tfun)
@@ -7481,7 +7481,7 @@ l1_suekind(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to suekind");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to suekind must be a tagged ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tstruct && xtn->tkind != Tunion
@@ -7497,7 +7497,7 @@ l1_suetag(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to suetag");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to suetag must be a tagged ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tstruct && xtn->tkind != Tunion
@@ -7513,7 +7513,7 @@ l1_susize(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to susize");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm,
 		      "operand 1 to susize must be a struct or union ctype");
 	xtn = valxtn(argv[0]);
@@ -7530,7 +7530,7 @@ l1_bitfieldwidth(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to bitfieldwidth");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to bitfieldwidth "
 		      "must be a bitfield ctype");
 		      
@@ -7548,7 +7548,7 @@ l1_bitfieldcontainer(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to bitfieldcontainer");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to bitfieldcontainer "
 		      "must be a bitfield ctype");
 		      
@@ -7567,7 +7567,7 @@ l1_bitfieldpos(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to bitfieldpos");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to bitfieldpos must be a bitfield ctype");
 		      
 	xtn = valxtn(argv[0]);
@@ -7582,7 +7582,7 @@ l1_xaccessget(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xtypename *xtn;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to xaccessget");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to xaccessget must be an "
 		      "extended access bitfield ctype");
 	xtn = valxtn(argv[0]);
@@ -7598,7 +7598,7 @@ l1_xaccessput(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xtypename *xtn;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to xaccessput");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to xaccessput must be an "
 		      "extended access bitfield ctype");
 	xtn = valxtn(argv[0]);
@@ -7615,7 +7615,7 @@ l1_arraynelm(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to arraynelm");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to arraynelm must be an array ctype");
 		      
 	xtn = valxtn(argv[0]);
@@ -7631,7 +7631,7 @@ l1_typedefid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to typedefid");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to typedefid must be a typedef ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Ttypedef)
@@ -7646,7 +7646,7 @@ l1_typedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to typedeftype");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm,
 		      "operand 1 to typedeftype must be a typedef ctype");
 	xtn = valxtn(argv[0]);
@@ -7664,7 +7664,7 @@ l1_params(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to params");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to params must be a function ctype");
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tfun)
@@ -7682,13 +7682,13 @@ l1_paramtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramtype");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 2)
 		vmerr(vm, err);
 	vp = v->vec[Typepos];
-	if(vp->qkind != Qxtn)
+	if(Vkind(vp) != Qxtn)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -7703,13 +7703,13 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramid");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 2)
 		vmerr(vm, err);
 	vp = v->vec[Idpos];
-	if(vp->qkind != Qstr && vp->qkind != Qnil)
+	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -7721,7 +7721,7 @@ l1_fields(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fields");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm,
 		      "operand 1 to fields must be a struct or union ctype");
 	xtn = valxtn(argv[0]);
@@ -7745,7 +7745,7 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 		vp = vecref(su->field, i);
 		f = valvec(vp);
 		id = vecref(f, Idpos);
-		if(id->qkind == Qstr){
+		if(Vkind(id) == Qstr){
 			if(equalstrv(tag, id))
 				return vp;
 			else
@@ -7784,13 +7784,13 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to lookfield");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, err1);
 	xtn = valxtn(argv[0]);
 	xtn = chasetype(xtn);
 	if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
 		vmerr(vm, err1);
-	if(argv[1]->qkind != Qstr)
+	if(Vkind(argv[1]) != Qstr)
 		vmerr(vm, err2);
 	vp = rlookfield(vm, xtn, argv[1]);
 	if(vp)
@@ -7807,13 +7807,13 @@ l1_fieldtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldtype");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = v->vec[Typepos];
-	if(vp->qkind != Qxtn)
+	if(Vkind(vp) != Qxtn)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -7828,13 +7828,13 @@ l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldid");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = v->vec[Idpos];
-	if(vp->qkind != Qstr && vp->qkind != Qnil)
+	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -7848,7 +7848,7 @@ l1_fieldattr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldattr");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
@@ -7866,13 +7866,13 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldoff");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecref(v, Attrpos);
-	if(vp->qkind == Qnil)
+	if(Vkind(vp) == Qnil)
 		return;		/* nil */
 	vp = attroff(vp);
 	*rv  = vp;
@@ -7886,7 +7886,7 @@ l1_enumconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 		= "operand 1 to enumconsts must be a defined enum ctype";
 	if(argc != 1)
 		vmerr(vm, err);
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, err);
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tenum)
@@ -7906,13 +7906,13 @@ l1_symtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symtype");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = v->vec[Typepos];
-	if(vp->qkind != Qxtn)
+	if(Vkind(vp) != Qxtn)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -7927,13 +7927,13 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symid");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = v->vec[Idpos];
-	if(vp->qkind != Qstr && vp->qkind != Qnil)
+	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -7947,7 +7947,7 @@ l1_symattr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symattr");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
@@ -7965,13 +7965,13 @@ l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symoff");
-	if(argv[0]->qkind != Qvec)
+	if(Vkind(argv[0]) != Qvec)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecref(v, Attrpos);
-	if(vp->qkind == Qnil)
+	if(Vkind(vp) == Qnil)
 		return;		/* nil */
 	*rv = attroff(vp);
 }
@@ -8000,10 +8000,10 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xtypename *t;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to $typeof");
-	if(argv[0]->qkind == Qcval){
+	if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
 		t = cv->type;
-	}else if(argv[0]->qkind == Qxtn){
+	}else if(Vkind(argv[0]) == Qxtn){
 		t = valxtn(argv[0]);
 		if(t->tkind == Tbitfield || t->tkind == Tconst
 		   || t->tkind == Txaccess)
@@ -8139,13 +8139,13 @@ l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xtypename *xtn, *pxtn;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_ptr");
-	if(argv[0]->qkind != Qxtn)
+	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to mkctype_ptr must be a pointer ctype");
 	xtn = valxtn(argv[0]);
 	if(argc == 1)
 		xtn = mkptrxtn(xtn, Rundef);
 	else{
-		if(argv[1]->qkind != Qxtn)
+		if(Vkind(argv[1]) != Qxtn)
 			vmerr(vm, "operand 2 to mkctype_ptr "
 			      "must define a pointer type");
 		checkarg(vm, "mkctype_ptr", argv, 1, Qxtn);
@@ -8198,15 +8198,15 @@ issym(Vec *sym)
 	if(sym->len != 2 && sym->len != 3)
 		return 0;
 	x = vecref(sym, Typepos);
-	if(x->qkind != Qxtn)
+	if(Vkind(x) != Qxtn)
 		return 0;
 	x = vecref(sym, Idpos);
-	if(x->qkind != Qstr && x->qkind != Qnil)
+	if(Vkind(x) != Qstr && Vkind(x) != Qnil)
 		return 0;
 	if(sym->len < 3)
 		return 1;
 	x = vecref(sym, Attrpos);
-	if(x->qkind != Qtab && x->qkind != Qnil)
+	if(Vkind(x) != Qtab && Vkind(x) != Qnil)
 		return 0;
 	return 1;
 }
@@ -8219,7 +8219,7 @@ issymvec(Vec *v)
 	Vec *sym;
 	for(m = 0; m < v->len; m++){
 		e = vecref(v, m);
-		if(e->qkind != Qvec)
+		if(Vkind(e) != Qvec)
 			return 0;
 		sym = valvec(e);
 		if(!issym(sym))
@@ -8438,13 +8438,13 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 
 	checkarg(vm, what, argv, 0, Qxtn);
 	if(argc > 1)
-		if(argv[1]->qkind != Qstr && argv[1]->qkind != Qnil)
+		if(Vkind(argv[1]) != Qstr && Vkind(argv[1]) != Qnil)
 			vmerr(vm, "operand 2 to %s must be a string or nil",
 			      what);
 	if(argc == 3)
-		if(argv[2]->qkind != Qcval
-		   && argv[2]->qkind != Qtab
-		   && argv[2]->qkind != Qnil)
+		if(Vkind(argv[2]) != Qcval
+		   && Vkind(argv[2]) != Qtab
+		   && Vkind(argv[2]) != Qnil)
 			vmerr(vm,
 			      "operand 3 to %s must be a table, cvalue, or nil",
 			      what);
@@ -8454,7 +8454,7 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 		_vecset(vec, 1, argv[1]);
 	else
 		_vecset(vec, 1, Xnil);
-	if(argc > 2 && argv[2]->qkind == Qcval)
+	if(argc > 2 && Vkind(argv[2]) == Qcval)
 		attr = mkattr(argv[2]);
 	else if(argc > 2)
 		attr = argv[2];
@@ -8493,7 +8493,7 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isnil");
-	if(argv[0]->qkind == Qnil)
+	if(Vkind(argv[0]) == Qnil)
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
@@ -8523,18 +8523,18 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to strput");
-	if(argv[0]->qkind != Qstr)
+	if(Vkind(argv[0]) != Qstr)
 		vmerr(vm, "operand 1 to strput must be a string");
-	if(argv[1]->qkind != Qcval)
+	if(Vkind(argv[1]) != Qcval)
 		vmerr(vm, "operand 2 to strput must be an offset");
-	if(argv[2]->qkind != Qstr && argv[2]->qkind != Qcval)
+	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
 		vmerr(vm, "operand 3 to strput must be a string or character");
 	s = valstr(argv[0]);
 	off = valcval(argv[1]);
 	o = off->val;		/* FIXME: use type */
 	if(o >= s->len)
 		vmerr(vm, "strput out of bounds");
-	if(argv[2]->qkind == Qstr){
+	if(Vkind(argv[2]) == Qstr){
 		t = valstr(argv[2]);
 		if(o+t->len > s->len)
 			vmerr(vm, "strput out of bounds");
@@ -8647,7 +8647,7 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 	checkarg(vm, "foreach", iargv, 0, Qcl);
 
 	// tables: only one container operand
-	if(iargv[1]->qkind == Qtab){
+	if(Vkind(iargv[1]) == Qtab){
 		if(argc > 2) 
 			vmerr(vm, "bad combination of containers");
 		cl = valcl(iargv[0]);
@@ -8671,7 +8671,7 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 	// list and vector: any number, but must have equal length
 	len = 0;
 	for(m = 1; m < argc; m++){
-		switch(iargv[m]->qkind){
+		switch(Vkind(iargv[m])){
 		case Qlist:
 			l = vallist(iargv[m]);
 			len2 = listxlen(l->x);
@@ -8695,7 +8695,7 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 	argv = emalloc((argc-1)*sizeof(Val));
 	for(i = 0; i < len; i++){
 		for(m = 1; m < argc; m++){
-			switch(iargv[m]->qkind){
+			switch(Vkind(iargv[m])){
 			case Qlist:
 				l = vallist(iargv[m]);
 				argv[m-1] = listref(vm, l, i);
@@ -8728,7 +8728,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 	checkarg(vm, "map", iargv, 0, Qcl);
 
 	// tables: only one container operand
-	if(iargv[1]->qkind == Qtab){
+	if(Vkind(iargv[1]) == Qtab){
 		if(argc > 2) 
 			vmerr(vm, "bad combination of containers");
 		r = mklist();
@@ -8756,7 +8756,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 	// list and vector: any number, but must have equal length
 	len = 0;
 	for(m = 1; m < argc; m++){
-		switch(iargv[m]->qkind){
+		switch(Vkind(iargv[m])){
 		case Qlist:
 			l = vallist(iargv[m]);
 			len2 = listxlen(l->x);
@@ -8783,7 +8783,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 	argv = emalloc((argc-1)*sizeof(Val));
 	for(i = 0; i < len; i++){
 		for(m = 1; m < argc; m++){
-			switch(iargv[m]->qkind){
+			switch(Vkind(iargv[m])){
 			case Qlist:
 				l = vallist(iargv[m]);
 				argv[m-1] = listref(vm, l, i);
@@ -8843,19 +8843,19 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3 && argc != 4)
 		vmerr(vm, "wrong number of arguments to mkfd");
-	if(argv[0]->qkind != Qcl && argv[0]->qkind != Qnil)
+	if(Vkind(argv[0]) != Qcl && Vkind(argv[0]) != Qnil)
 		vmerr(vm, "argument 1 to mkfd must be a function or nil");
-	if(argv[1]->qkind != Qcl && argv[1]->qkind != Qnil)
+	if(Vkind(argv[1]) != Qcl && Vkind(argv[1]) != Qnil)
 		vmerr(vm, "argument 2 to mkfd must be a function or nil");
-	if(argv[2]->qkind != Qcl && argv[2]->qkind != Qnil)
+	if(Vkind(argv[2]) != Qcl && Vkind(argv[2]) != Qnil)
 		vmerr(vm, "argument 3 to mkfd must be a function or nil");
 
 	r = w = c = 0;
-	if(argv[0]->qkind == Qcl)
+	if(Vkind(argv[0]) == Qcl)
 		r = valcl(argv[0]);
-	if(argv[1]->qkind == Qcl)
+	if(Vkind(argv[1]) == Qcl)
 		w = valcl(argv[1]);
-	if(argv[2]->qkind == Qcl)
+	if(Vkind(argv[2]) == Qcl)
 		c = valcl(argv[2]);
 	if(argc == 4){
 		checkarg(vm, "mkfd", argv, 3, Qstr);
@@ -8956,7 +8956,7 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkattr");
-	if(argv[0]->qkind != Qcval && argv[0]->qkind != Qtab)
+	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qtab)
 		vmerr(vm, "argument 1 to mkattr must be a table or cvalue");
 	*rv = mkattr(argv[0]);
 }
@@ -9047,13 +9047,13 @@ l1_nameof(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nameof");
-	if(argv[0]->qkind == Qdom){
+	if(Vkind(argv[0]) == Qdom){
 		dom = valdom(argv[0]);
 		name = dom->name;
-	}else if(argv[0]->qkind == Qns){
+	}else if(Vkind(argv[0]) == Qns){
 		ns = valns(argv[0]);
 		name = ns->name;
-	}else if(argv[0]->qkind == Qas){
+	}else if(Vkind(argv[0]) == Qas){
 		as = valas(argv[0]);
 		name = as->name;
 	}else
@@ -9071,9 +9071,9 @@ l1_asof(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to asof");
-	if(argv[0]->qkind == Qdom)
+	if(Vkind(argv[0]) == Qdom)
 		dom = valdom(argv[0]);
-	else if(argv[0]->qkind == Qcval){
+	else if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
 		dom = cv->dom;
 	}else
@@ -9089,9 +9089,9 @@ l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nsof");
-	if(argv[0]->qkind == Qdom)
+	if(Vkind(argv[0]) == Qdom)
 		dom = valdom(argv[0]);
-	else if(argv[0]->qkind == Qcval){
+	else if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
 		dom = cv->dom;
 	}else
@@ -9118,17 +9118,17 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 	id = argv[1];
 	args = argv[2];
 	dcl = 0;
-	if(this->qkind == Qas){
+	if(Vkind(this) == Qas){
 		as = valas(this);
 		v = tabget(as->mtab, id);
 		if(v == 0)
 			dcl = as->dispatch;
-	}else if(this->qkind == Qns){
+	}else if(Vkind(this) == Qns){
 		ns = valns(this);
 		v = tabget(ns->mtab, id);
 		if(v == 0)
 			dcl = ns->dispatch;
-	}else if(this->qkind == Qdom){
+	}else if(Vkind(this) == Qdom){
 		dom = valdom(this);
 		/* search as, then ns */
 		v = tabget(dom->as->mtab, id);
@@ -9183,10 +9183,10 @@ l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nslookaddr");
 	arg0 = argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
 		vmerr(vm,
 		      "operand 1 to nslookaddr must be a namespace or domain");
-	if(arg0->qkind == Qns)
+	if(Vkind(arg0) == Qns)
 		ns = valns(arg0);
 	else{
 		dom = valdom(arg0);
@@ -9206,10 +9206,10 @@ l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nsenumsym");
 	arg0 = argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
 		vmerr(vm,
 		      "operand 1 to nsenumsym must be a namespace or domain");
-	if(arg0->qkind == Qns)
+	if(Vkind(arg0) == Qns)
 		ns = valns(arg0);
 	else{
 		dom = valdom(arg0);
@@ -9229,10 +9229,10 @@ l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nsenumtype");
 	arg0 = argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
 		vmerr(vm,
 		      "operand 1 to nsenumtype must be a namespace or domain");
-	if(arg0->qkind == Qns)
+	if(Vkind(arg0) == Qns)
 		ns = valns(arg0);
 	else{
 		dom = valdom(arg0);
@@ -9252,10 +9252,10 @@ l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nsptr");
 	arg0 = argv[0];
-	if(arg0->qkind != Qns && arg0->qkind != Qdom)
+	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
 		vmerr(vm,
 		      "operand 1 to nsptr must be a namespace or domain");
-	if(arg0->qkind == Qns)
+	if(Vkind(arg0) == Qns)
 		ns = valns(arg0);
 	else{
 		dom = valdom(arg0);
@@ -9656,7 +9656,7 @@ l1_tabdelete(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to tabdelete");
 	checkarg(vm, "tabdelete", argv, 0, Qtab);
-	if(argv[1]->qkind == Qundef)
+	if(Vkind(argv[1]) == Qundef)
 		vmerr(vm, "attempt to access table with undefined key value");
 	t = valtab(argv[0]);
 	tabdel(vm, t, argv[1]);
@@ -9670,7 +9670,7 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to tablook");
 	checkarg(vm, "tablook", argv, 0, Qtab);
-	if(argv[1]->qkind == Qundef)
+	if(Vkind(argv[1]) == Qundef)
 		vmerr(vm, "attempt to access table with undefined key value");
 	t = valtab(argv[0]);
 	vp = tabget(t, argv[1]);
@@ -9686,7 +9686,7 @@ l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to tabinsert");
 	checkarg(vm, "tabinsert", argv, 0, Qtab);
-	if(argv[1]->qkind == Qundef)
+	if(Vkind(argv[1]) == Qundef)
 		vmerr(vm, "attempt to access table with undefined key value");
 	t = valtab(argv[0]);
 	tabput(vm, t, argv[1], argv[2]);
@@ -9811,7 +9811,7 @@ l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *lst;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isempty");
-	if(argv[0]->qkind == Qlist){
+	if(Vkind(argv[0]) == Qlist){
 		lst = vallist(argv[0]);
 		if(listxlen(lst->x) != 0)
 			*rv = mkvalcval2(cval0);
@@ -9832,7 +9832,7 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to length");
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	default:
 		vmerr(vm, "operand 1 to length must be a container");
 	case Qlist:
@@ -9871,7 +9871,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to count");
 	v = argv[1];
 	m = 0;
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	default:
 		vmerr(vm, "operand 1 to count must be a list, string, "
 		      "or vector");
@@ -9884,7 +9884,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 				m++;
 		break;
 	case Qstr:
-		if(v->qkind != Qcval)
+		if(Vkind(v) != Qcval)
 			vmerr(vm, "operand 2 to count must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
@@ -9921,7 +9921,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to index");
 	v = argv[1];
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	default:
 		vmerr(vm, "operand 1 to index must be a list, string, "
 		      "or vector");
@@ -9934,7 +9934,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 				goto gotit;
 		break;
 	case Qstr:
-		if(v->qkind != Qcval)
+		if(Vkind(v) != Qcval)
 			vmerr(vm, "operand 2 to index must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
@@ -9975,7 +9975,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to ismember");
 	*rv = mkvalcval2(cval0);
 	v = argv[1];
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	default:
 		vmerr(vm, "operand 1 to ismember must be a list, string, "
 		      "table, or vector");
@@ -9988,7 +9988,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 				goto gotit;
 		break;
 	case Qstr:
-		if(v->qkind != Qcval)
+		if(Vkind(v) != Qcval)
 			vmerr(vm, "operand 2 to ismember must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
@@ -10029,7 +10029,7 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to delete");
 	v = argv[1];
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	default:
 		vmerr(vm, "operand 1 to delete must be a list or table");
 	case Qlist:
@@ -10198,9 +10198,9 @@ l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to pop");
 	arg = argv[0];
-	if(arg->qkind == Qlist)
+	if(Vkind(arg) == Qlist)
 		listpop(vm, vallist(argv[0]), rv);
-	else if(arg->qkind == Qtab)
+	else if(Vkind(arg) == Qtab)
 		tabpop(vm, valtab(argv[0]), rv);
 	else
 		vmerr(vm, "operand 1 to pop must be a list or table");
@@ -10255,7 +10255,7 @@ l1_reverse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to reverse");
-	if(argv[0]->qkind == Qlist)
+	if(Vkind(argv[0]) == Qlist)
 		*rv = mkvallist(listreverse(vallist(argv[0])));
 	else
 		vmerr(vm, "operand 1 to reverse must be a list");
@@ -10266,13 +10266,13 @@ l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to append");
-	if(argv[0]->qkind == Qlist)
+	if(Vkind(argv[0]) == Qlist)
 		*rv = mkvallist(listcopy(vallist(argv[0])));
-	else if(argv[0]->qkind == Qvec)
+	else if(Vkind(argv[0]) == Qvec)
 		*rv = mkvalvec(veccopy(valvec(argv[0])));
-	else if(argv[0]->qkind == Qtab)
+	else if(Vkind(argv[0]) == Qtab)
 		*rv = mkvaltab(tabcopy(valtab(argv[0])));
-	else if(argv[0]->qkind == Qstr)
+	else if(Vkind(argv[0]) == Qstr)
 		*rv = mkvalstr(strcopy(valstr(argv[0])));
 	else
 		vmerr(vm, "operand 1 to copy must be a container");
@@ -10285,10 +10285,10 @@ l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *str;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to concat");
-	if(argv[0]->qkind == Qlist && argv[1]->qkind == Qlist){
+	if(Vkind(argv[0]) == Qlist && Vkind(argv[1]) == Qlist){
 		lst = listconcat(vm, vallist(argv[0]), vallist(argv[1]));
 		*rv = mkvallist(lst);
-	}else if(argv[0]->qkind == Qstr && argv[1]->qkind == Qstr){
+	}else if(Vkind(argv[0]) == Qstr && Vkind(argv[1]) == Qstr){
 		str = strconcat(vm, valstr(argv[0]), valstr(argv[1]));
 		*rv = mkvalstr(str);
 	}else
@@ -10354,7 +10354,7 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 	lst = vallist(argv[1]);
 	for(n = 0; n < nf; n++){
 		v = listref(vm, lst, n);
-		if(v->qkind != Qstr)
+		if(Vkind(v) != Qstr)
 			vmerr(vm, "operand 2 to mkrd must be a "
 			      "list of field names");
 	}
@@ -10458,7 +10458,7 @@ l1_cntrget(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cntrget");
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	default:
 		vmerr(vm, "operand 1 to cntrget must be a container");
 	case Qlist:
@@ -10482,7 +10482,7 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to cntrput");
-	switch(argv[0]->qkind){
+	switch(Vkind(argv[0])){
 	default:
 		vmerr(vm, "operand 1 to cntrput must be a container");
 	case Qlist:
@@ -10491,7 +10491,7 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 		break;
 	case Qstr:
 		l1_strput(vm, argc, argv, rv);
-		if(argv[2]->qkind == Qcval){
+		if(Vkind(argv[2]) == Qcval){
 			cv = valcval(argv[2]);
 			cv = typecast(vm, cv->dom->ns->base[Vchar], cv);
 			*rv = mkvalcval2(cv);
@@ -10515,8 +10515,8 @@ l1_equal(VM *vm, Imm argc, Val *argv, Val *rv)
 	Qkind kind;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to equal");
-	kind = argv[0]->qkind;
-	if(kind != argv[1]->qkind)
+	kind = Vkind(argv[0]);
+	if(kind != Vkind(argv[1]))
 		*rv = mkvalcval2(cval0);
 	else if(kind == Qlist){
 		if(equallistv(argv[0], argv[1]))
@@ -10656,7 +10656,7 @@ l1_isx(VM *vm, Imm argc, Val *argv, Val *rv, char *name, Qkind kind)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", name);
-	if(argv[0]->qkind == kind)
+	if(Vkind(argv[0]) == kind)
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
@@ -10798,7 +10798,7 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to finalize");
 	hd = (Head*)argv[0];
-	if(argv[1]->qkind == Qcl){
+	if(Vkind(argv[1]) == Qcl){
 		cl = valcl(argv[1]);
 		if(hd->final){
 			gcunpersist(vm, hd->final);
@@ -10806,7 +10806,7 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 		}
 		gcpersist(vm, cl);
 		hd->final = cl;
-	}else if(argv[1]->qkind == Qnil){
+	}else if(Vkind(argv[1]) == Qnil){
 		if(hd->final)
 			gcwb(thegc, mkvalcl(hd->final));
 		hd->final = 0;
@@ -10901,7 +10901,7 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	m = listxlen(l->x);
 	for(i = 0; i < m; i++){
 		v = listref(vm, l, i);
-		if(v->qkind != Qstr)
+		if(Vkind(v) != Qstr)
 			vmerr(vm, "argument 1 to setloadpath "
 			      "must be a list of strings");
 	}
@@ -11720,15 +11720,15 @@ initvm(int gcthread, u64 heapmax)
 	thegc->gcinit(thegc);
 
 	hd = emalloc(sizeof(Head));
-	hd->qkind = Qundef;
+	Vsetkind(hd, Qundef);
 	Xundef = hd;
 
 	hd = emalloc(sizeof(Head));
-	hd->qkind = Qnil;
+	Vsetkind(hd, Qnil);
 	Xnil = hd;
 
 	hd = emalloc(sizeof(Head));
-	hd->qkind = Qnull;
+	Vsetkind(hd, Qnull);
 	Xnulllist = hd;
 
 	kcode = contcode();
@@ -11780,7 +11780,7 @@ cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
-	if(cl->qkind != Qcl)
+	if(Vkind(cl) != Qcl)
 		return -1;
 	vm->flags &= ~VMirq;
 	*rv = dovm(vm, valcl(cl), argc, argv);
@@ -11793,7 +11793,7 @@ cqctcallthunk(VM *vm, Val cl, Val *rv)
 {
 	if(waserror(vm))
 		return -1;
-	if(cl->qkind != Qcl)
+	if(Vkind(cl) != Qcl)
 		return -1;
 	vm->flags &= ~VMirq;
 	*rv = dovm(vm, valcl(cl), 0, 0);
@@ -11806,7 +11806,7 @@ cqctvalcbase(Val v)
 {
 	Cval *cv;
 	Xtypename *t;
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return (Cbase)-1;
 	cv = valcval(v);
 	t = chasetype(cv->type);
@@ -11843,7 +11843,7 @@ cqctvalint8(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint8];
@@ -11857,7 +11857,7 @@ cqctvalint16(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
@@ -11871,7 +11871,7 @@ cqctvalint32(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint32];
@@ -11885,7 +11885,7 @@ cqctvalint64(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint64];
@@ -11899,7 +11899,7 @@ cqctvaluint8(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint8];
@@ -11913,7 +11913,7 @@ cqctvaluint16(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
@@ -11927,7 +11927,7 @@ cqctvaluint32(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint32];
@@ -11941,7 +11941,7 @@ cqctvaluint64(Val v)
 	Cval *cv, *rv;
 	Xtypename *t;
 
-	if(v->qkind != Qcval)
+	if(Vkind(v) != Qcval)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint64];
@@ -11952,7 +11952,7 @@ cqctvaluint64(Val v)
 char*
 cqctvalcstr(Val v)
 {
-	if(v->qkind != Qstr)
+	if(Vkind(v) != Qstr)
 		return 0;
 	return str2cstr(valstr(v));
 }
@@ -11961,7 +11961,7 @@ char*
 cqctvalcstrshared(Val v)
 {
 	Str *s;
-	if(v->qkind != Qstr)
+	if(Vkind(v) != Qstr)
 		return 0;
 	s = valstr(v);
 	return s->s;
@@ -11971,7 +11971,7 @@ uint64_t
 cqctvalcstrlen(Val v)
 {
 	Str *s;
-	if(v->qkind != Qstr)
+	if(Vkind(v) != Qstr)
 		return 0;
 	s = valstr(v);
 	return (uint64_t)s->len;
@@ -12083,7 +12083,7 @@ cqctlength(Val v)
 	Str *str;
 	Tab *tab;
 
-	switch(v->qkind){
+	switch(Vkind(v)){
 	default:
 		return (uint64_t)-1;
 	case Qlist:
@@ -12106,7 +12106,7 @@ cqctlistvals(Val v)
 {
 	List *lst;
 	Listx *x;
-	if(v->qkind != Qlist)
+	if(Vkind(v) != Qlist)
 		return 0;
 	lst = vallist(v);
 	x = lst->x;
@@ -12117,7 +12117,7 @@ Val*
 cqctvecvals(Val v)
 {
 	Vec *vec;
-	if(v->qkind != Qvec)
+	if(Vkind(v) != Qvec)
 		return 0;
 	vec = valvec(v);
 	return vec->vec;

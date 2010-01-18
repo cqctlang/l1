@@ -125,7 +125,7 @@ specsubst(Expr *e, Xenv *xe, Val *rdom)
 		fatal("bug");
 	case Ekon:
 		v = (Val)e->xp;
-		if(v->qkind == Qdom)
+		if(Vkind(v) == Qdom)
 			*rdom = e->xp;
 		else
 			*rdom = UNKNOWN;
@@ -321,7 +321,7 @@ cf(VM *vm, Expr *e, Xenv *xe)
 		if(!isconst(e->e1))
 			return e;
 		v = e->e1->xp;
-		if(v->qkind == Qcval && iszerocval(valcval(v))){
+		if(Vkind(v) == Qcval && iszerocval(valcval(v))){
 			p = e->e3;
 			e->e3 = 0;
 			freeexpr(e);

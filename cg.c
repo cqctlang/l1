@@ -289,7 +289,7 @@ printkon(Val v)
 	char c, *p;
 	Imm i, m;
 
-	switch(v->qkind){
+	switch(Vkind(v)){
 	case Qcval:
 		cv = valcval(v);
 		xprintf("%" PRIu64, cv->val);
@@ -326,7 +326,7 @@ printkon(Val v)
 		efree(p);
 		break;
 	default:
-		xprintf("<%s %p>", qname[v->qkind], v);
+		xprintf("<%s %p>", qname[Vkind(v)], v);
 		break;
 	}
 }

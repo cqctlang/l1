@@ -95,11 +95,11 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to ioctl");
 	checkarg(vm, "ioctl", argv, 0, Qfd);
 	checkarg(vm, "ioctl", argv, 1, Qcval);
-	if(argv[2]->qkind != Qstr && argv[2]->qkind != Qcval)
+	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
 		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
 	fd = valfd(argv[0]);
 	req = valcval(argv[1]);
-	if(argv[2]->qkind == Qstr){
+	if(Vkind(argv[2]) == Qstr){
 		bufs = valstr(argv[2]);
 		p = bufs->s;
 	}else{
@@ -224,7 +224,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "write error: %s", strerror(errno));
 	}else{
 		x = dovm(vm, fd->u.cl.write, argc-1, argv+1);
-		if(x->qkind != Qnil)
+		if(Vkind(x) != Qnil)
 			vmerr(vm, "write error");
 	}
 	/* return nil */
@@ -246,13 +246,13 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 0)
 		vmerr(vm, "wrong number of arguments to popen");
 	flags = 0;
-	if(argv[argc-1]->qkind == Qcval){
+	if(Vkind(argv[argc-1]) == Qcval){
 		cv = valcval(argv[argc-1]);
 		flags = cv->val;
 		argc--;
 		if(argc == 0)
 			vmerr(vm, "wrong number of arguments to popen");
-	}else if(argv[argc-1]->qkind != Qstr)
+	}else if(Vkind(argv[argc-1]) != Qstr)
 		vmerr(vm, "final argument to popen must be a string or cvalue");
 
 	for(m = 0; m < argc; m++)
