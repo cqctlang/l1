@@ -88,28 +88,38 @@ enum
 	Vcoloroff = 5,
 	Vcolorbits = 3,
 	Vcolormask = (1<<Vcolorbits)-1,
+
+	Vinrsoff = 8,
+	Vinrsbits = 1,
+	Vinrsmask = (1<<Vinrsbits)-1,
+
+	Vfinaloff = 9,
+	Vfinalbits = 1,
+	Vfinalmask = (1<<Vfinalbits)-1,
 };
 
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
-#if 1
 #define Vcolor(p)         ((((p)->bits)>>Vcoloroff)&Vcolormask)
 #define Vsetcolor(p, v)	  ((p)->bits = ((p)->bits&~(Vcolormask<<Vcoloroff))|(((v)&Vcolormask)<<Vcoloroff))
-#else
-#define Vcolor(p)         ((p)->color)
-#define Vsetcolor(p, v)	  ((p)->color = (v))
-#endif
+
+#define Vinrs(p)         ((((p)->bits)>>Vinrsoff)&Vinrsmask)
+#define Vsetinrs(p, v)	  ((p)->bits = ((p)->bits&~(Vinrsmask<<Vinrsoff))|(((v)&Vinrsmask)<<Vinrsoff))
+
+#define Vfinal(p)         ((((p)->bits)>>Vfinaloff)&Vfinalmask)
+#define Vsetfinal(p, v)	  ((p)->bits = ((p)->bits&~(Vfinalmask<<Vfinaloff))|(((v)&Vfinalmask)<<Vfinaloff))
+
 
 struct Head {
 	uint32_t bits;
 //	Qkind qkind;
 //	unsigned color;
-	unsigned inrootset;	/* gc: limit (racily) duplicates on rootsets */
-	Heap *heap;
+//	unsigned inrootset;	/* gc: limit (racily) duplicates on rootsets */
+//	Heap *heap;
 	Head *alink;
 	Head *link;
-	int state;		/* debugging */
+//	int state;		/* debugging */
 	Closure *final;
 };
 

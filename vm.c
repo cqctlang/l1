@@ -2,7 +2,7 @@
 #include "util.h"
 #include "syscqct.h"
 
-#define HEAPPROF 1
+#define HEAPPROF 0
 #define HEAPDEBUG 0
 
 char *qname[Qnkind] = {
@@ -544,9 +544,9 @@ retry:
 		o = heap->free;
 		heap->free = o->link;
 		o->link = 0;
-		if(o->state != -1)
-			fatal("halloc bad state %d", o->state);
-		o->state = 0;
+//		if(o->state != -1)
+//			fatal("halloc bad state %d", o->state);
+//		o->state = 0;
 		if(HEAPPROF) heap->nfree--;
 	}else if(heap->swept){
 		heap->free = (Head*)read_and_clear(&heap->swept);
@@ -560,12 +560,12 @@ retry:
 		for(m = 0; m < AllocBatch; m++){
 			o = emalloc(heap->sz);
 //			VALGRIND_MAKE_MEM_NOACCESS(o+1, heap->sz-sizeof(Head));
-			o->heap = heap;
+//			o->heap = heap;
 			Vsetkind(o, heap->qkind);
 			o->alink = ap;
 			o->link = fp;
 			Vsetcolor(o, GCfree);
-			o->state = -1;
+//			o->state = -1;
 			ap = o;
 			fp = o;
 		}
@@ -593,14 +593,16 @@ retry:
 void
 heapfree(Head *p)
 {
+	Head **sp;
 	if(HEAPDEBUG)
-		xprintf("collect %s %p\n", p->heap->id, p); 
-	if(p->state != 0 || p->inrootset)
-		fatal("sweep heap (%s) %p bad state %d",
-		      p->heap->id, p, p->state);
-	p->link = p->heap->sweep;
-	p->heap->sweep = p;
-	p->state = -1;
+		xprintf("collect %s %p\n", heap[Vkind(p)].id, p); 
+//	if(p->state != 0 || Vinrs(p))
+//		fatal("sweep heap (%s) %p bad state %d",
+//		      heap[Vkind(p)].id, p, p->state);
+	sp = &heap[Vkind(p)].sweep;
+	p->link = *sp;
+	*sp = p;
+//	p->state = -1;
 	Vsetcolor(p, GCfree);
 	p->final = 0;
 //	VALGRIND_MAKE_MEM_NOACCESS(p+1, p->heap->sz-sizeof(Head));
@@ -751,16 +753,15 @@ static void
 doaddroot(Rootset *rs, Head *h)
 {
 	Root *r;
-	int x;
 
 	/* test if already on a rootlist */
-	x = h->state;
-	if(x > 2 || x < 0)
-		fatal("addroot %p (%s) bad state %d", h, h->heap->id, x);
-	atomic_inc(&h->state);
+//	x = h->state;
+//	if(x > 2 || x < 0)
+//		fatal("addroot %p (%s) bad state %d", h, heap[Vkind(h)].id, x);
+//	atomic_inc(&h->state);
 
 	r = newroot(rs);
-	h->inrootset = 1;
+	Vsetinrs(h, 1);
 	r->hd = h;
 	r->link = rs->roots;
 	writebarrier();
@@ -777,7 +778,7 @@ addroot(Rootset *rs, Head *h)
 	if(Vcolor(h) == GCfree)
 		/* stale value on stack already collected */
 		return;
-	if(h->inrootset)
+	if(Vinrs(h))
 		return;
 
 	doaddroot(rs, h);
@@ -800,7 +801,6 @@ removeroot(Rootset *rs)
 {
 	Head *h;
 	Root *r;
-	int x;
 
 	if(rs->this == rs->before_last){
 		rs->before_last = rs->last;
@@ -811,13 +811,14 @@ removeroot(Rootset *rs)
 	r = rs->this;
 	rs->this = r->link;
 	h = r->hd;
-	if(HEAPDEBUG)
-		xprintf("rmroot %p %d %d\n", h, h->inrootset, h->state);
-	h->inrootset = 0;
-	x = h->state;
-	if(x > 2 || x <= 0)
-		fatal("remove root %p (%s) bad state %d", h, h->heap->id, x);
-	atomic_dec(&h->state);
+//	if(HEAPDEBUG)
+//		xprintf("rmroot %p %d %d\n", h, Vinrs(h), h->state);
+	Vsetinrs(h, 0);
+//	x = h->state;
+//	if(x > 2 || x <= 0)
+//		fatal("remove root %p (%s) bad state %d", h, heap[Vkind(h)].id,
+//		      x);
+//	atomic_dec(&h->state);
 	return h;
 }
 
@@ -841,11 +842,11 @@ markhead(GC *gc, Head *hd, unsigned color)
 
 	Vsetcolor(hd, color);
 	addroot(&gc->roots, (Head*)hd->final);
-	if(hd->heap->iter == 0)
+	if(heap[Vkind(hd)].iter == 0)
 		return;
 	memset(&ictx, 0, sizeof(ictx));
 	while(1){
-		c = hd->heap->iter(hd, &ictx);
+		c = heap[Vkind(hd)].iter(hd, &ictx);
 		if(c == GCiterdone)
 			break;
 		if(c && Vcolor(c) != color)
