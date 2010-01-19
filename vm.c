@@ -142,6 +142,7 @@ static Val Xnulllist;
 static Dom *litdom;
 static Ns *litns;
 static Xtypename **litbase;
+static Tab *finals;
 
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 VM *vms[Maxvms];
@@ -604,7 +605,8 @@ heapfree(Head *p)
 	*sp = p;
 //	p->state = -1;
 	Vsetcolor(p, GCfree);
-	p->final = 0;
+	Vsetfinal(p, 0);
+//	p->final = 0;
 //	VALGRIND_MAKE_MEM_NOACCESS(p+1, p->heap->sz-sizeof(Head));
 }
 
@@ -615,8 +617,10 @@ sweepheap(GC *gc, Heap *heap, unsigned color)
 	p = heap->alloc;
 	while(p){
 		if(Vcolor(p) == color){
-			if(p->final && !(gc->state&GCshutdown)){
+//			xprintf("collecting %p\n", p);
+			if(Vfinal(p) && !(gc->state&GCshutdown)){
 				Vsetcolor(p, GCfinal);
+//xprintf("adding final %p\n", p);
 				addroot(&thegc->finals, p);
 				goto next;
 			}
@@ -841,7 +845,7 @@ markhead(GC *gc, Head *hd, unsigned color)
 		return;
 
 	Vsetcolor(hd, color);
-	addroot(&gc->roots, (Head*)hd->final);
+//	addroot(&gc->roots, (Head*)hd->final);
 	if(heap[Vkind(hd)].iter == 0)
 		return;
 	memset(&ictx, 0, sizeof(ictx));
@@ -900,6 +904,7 @@ rootset(GC *gc)
 	/* never collect these things */
 	addroot(&gc->roots, (Head*)kcode); 
 	addroot(&gc->roots, (Head*)cccode); 
+	addroot(&gc->roots, (Head*)finals);
 
 	vmp = vms;
 	while(vmp < vms+Maxvms){
@@ -930,7 +935,7 @@ rootset(GC *gc)
 	/* pending finalizers */
 	r = firstroot(&gc->finals);
 	while(r){
-		addroot(&gc->roots, (Head*)r->hd->final);
+//		addroot(&gc->roots, (Head*)r->hd->final);
 		r = r->link;
 	}
 }
@@ -1057,7 +1062,7 @@ gcclearfinal(GC *gc)
 		if(hd == 0)
 			break;
 		Vsetcolor(hd, GCCOLOR(gcepoch)); /* reintroduce object */
-		hd->final = 0;
+//		hd->final = 0;
 	}
 }
 
@@ -1074,9 +1079,12 @@ gcfinal(GC *gc, VM *vm)
 		hd = removeroot(&gc->finals);
 		if(hd == 0)
 			break;
-		cl = hd->final;
-		hd->final = 0;
+		cl = valcl(tabget(finals, hd));
+		tabdel(vm, finals, hd);
+//		hd->final = 0;
 		gcunpersist(vm, cl);
+//xprintf("clearing final on %p\n", hd);
+		Vsetfinal(hd, 0);
 		Vsetcolor(hd, GCCOLOR(gcepoch)); /* reintroduce object */
 		arg = hd;
 		dovm(vm, cl, 1, &arg);
@@ -2047,6 +2055,7 @@ _mktab(Tabx *x)
 	Tab *tab;
 	tab = (Tab*)halloc(&heap[Qtab]);
 	tab->x = x;
+	tab->weak = 0;
 	return tab;
 }
 
@@ -2077,6 +2086,11 @@ itertab(Head *hd, Ictx *ictx)
 		idx = ictx->n-nxt;
 		ictx->n++;
 		return valhead(x->val[idx]);
+	}
+	if(tab->weak){
+		/* skip ahead */
+		ictx->n = nxt;
+		return 0;
 	}
 	idx = ictx->n++;
 	return valhead(x->key[idx]);
@@ -2233,7 +2247,7 @@ tabput(VM *vm, Tab *tab, Val keyv, Val val)
 	dotabput(vm, tab, keyv, val);
 }
 
-static void
+void
 tabdel(VM *vm, Tab *tab, Val keyv)
 {
 	Tabidx *tk, **ptk;
@@ -10795,22 +10809,25 @@ static void
 l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Head *hd;
-	Closure *cl;
+	Closure *cl, *ocl;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to finalize");
 	hd = (Head*)argv[0];
 	if(Vkind(argv[1]) == Qcl){
 		cl = valcl(argv[1]);
-		if(hd->final){
-			gcunpersist(vm, hd->final);
-			gcwb(thegc, mkvalcl(hd->final));
+		ocl = valcl(tabget(finals, hd));
+		if(ocl){
+			gcunpersist(vm, ocl);
+			// gcwb is done by tabput
+ 			// gcwb(thegc, mkvalcl(ocl));
 		}
 		gcpersist(vm, cl);
-		hd->final = cl;
+		tabput(vm, finals, hd, mkvalcl(cl));
+		Vsetfinal(hd, 1);
+//	        xprintf("set final on %p (%d)\n", hd, Vfinal(hd));
 	}else if(Vkind(argv[1]) == Qnil){
-		if(hd->final)
-			gcwb(thegc, mkvalcl(hd->final));
-		hd->final = 0;
+		tabdel(vm, finals, hd);
+		Vsetfinal(hd, 0);
 	}else
 		vmerr(vm, "argument 1 to finalize must be a function or nil");
 }
@@ -11592,6 +11609,8 @@ mktopenv()
 	builtincval(env, "NULL", cvalnull);
 	builtinnil(env, "$$");
 
+	finals = mktab();
+	finals->weak = 1;
 	cval0 = mkcval(litdom, litdom->ns->base[Vint], 0);
 	cval1 = mkcval(litdom, litdom->ns->base[Vint], 1);
 	cvalminus1 = mkcval(litdom, litdom->ns->base[Vint], -1);

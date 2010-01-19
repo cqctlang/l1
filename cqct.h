@@ -120,7 +120,7 @@ struct Head {
 	Head *alink;
 	Head *link;
 //	int state;		/* debugging */
-	Closure *final;
+//	Closure *final;
 };
 
 typedef struct Xfd Xfd;

@@ -302,6 +302,7 @@ struct Tab {
 	Head hd;
 	u32 cnt;		/* key/val pairs stored */
 	Tabx *x;		/* current storage, atomically swappable */
+	char weak;
 };
 
 typedef
@@ -954,6 +955,7 @@ char*		str2cstr(Str *str);
 Str*		stringof(VM *vm, Cval *cv);
 Str*		strslice(Str *str, Imm beg, Imm end);
 u64		szcode(Code *code);
+void		tabdel(VM *vm, Tab *tab, Val keyv);
 Val		tabget(Tab *tab, Val keyv);
 void		_tabput(Tab *tab, Val keyv, Val val);
 void		tabput(VM *vm, Tab *tab, Val keyv, Val val);
