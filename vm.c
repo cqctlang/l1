@@ -904,7 +904,6 @@ rootset(GC *gc)
 	/* never collect these things */
 	addroot(&gc->roots, (Head*)kcode); 
 	addroot(&gc->roots, (Head*)cccode); 
-	addroot(&gc->roots, (Head*)finals);
 
 	vmp = vms;
 	while(vmp < vms+Maxvms){
@@ -6523,6 +6522,14 @@ builtindom(Env *env, char *name, Dom *dom)
 }
 
 static void
+builtintab(Env *env, char *name, Tab *tab)
+{
+	Val val;
+	val = mkvaltab(tab);
+	envbind(env, name, val);
+}
+
+static void
 builtincval(Env *env, char *name, Cval *cv)
 {
 	Val val;
@@ -11616,6 +11623,7 @@ mktopenv()
 	cvalminus1 = mkcval(litdom, litdom->ns->base[Vint], -1);
 
 	/* stashed in env only to protect them from gc */
+	builtintab(env, "$finals", finals);
 	builtincval(env, "$0", cval0);
 	builtincval(env, "$1", cval1);
 	builtincval(env, "$-1", cvalminus1);
