@@ -291,20 +291,57 @@ ctlmux = @names clp64le {
 	state,
 	traps,
 	callbacks,
+	pending,
 };
 
 @define mkctl(mux, id, state, _reg, traps, callbacks)
 {
 	@local xstop, xcont, xstep, detach, kill;
 	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
-	@local trapset, trapdel, trapreset;
+	@local trapset, trapdel, trapreset, pending;
 	@local this;
 
-	@define xstop()  { return mux.stop(this); }
-	@define xcont()  { return mux.cont(this); }
-	@define xstep()  { return mux.step(this); }
-	@define detach() { return mux.detach(this); }
-	@define kill()   { return mux.kill(this); }
+	pending = nil;
+
+	@define xstop()
+	{
+		if(pending == nil)
+			return mux.stop(this);
+		pending = "stop";
+		return nil;
+	}
+
+	@define xcont()
+	{
+		if(pending == nil)
+			return mux.cont(this);
+		pending = "run";
+		return nil;
+	}
+
+	@define xstep()
+	{
+		if(pending == nil)
+			return mux.step(this);
+		pending = "step";
+		return nil;
+	}
+	
+	@define detach()
+	{
+		if(pending == nil)
+			mux.detach(this);
+		pending = "detach";
+		return nil;
+	}
+
+	@define kill()
+	{
+		if(pending == nil)
+			mux.kill(this);
+		pending = "kill";
+		return nil;
+	}
 
 //	@define traces() { return mux.traces(this); }
 //	@define xtraps() { return mux.xtraps(this); }
@@ -380,7 +417,7 @@ ctlmux = @names clp64le {
 
 	@define mem()
 	{
-		@local map, get, put, prot2str;
+		@local map, get, put, prot2str, dispatch, ctl, id;
 
 		@define get(as, r)
 		{
@@ -465,7 +502,7 @@ ctlmux = @names clp64le {
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill,
 		      mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps,
 		      trapdel, trapreset,
-		      state, traps, callbacks);
+		      state, traps, callbacks, nil);
 	return this;
 }
 
@@ -703,10 +740,34 @@ ctlmux = @names clp64le {
 			error("cltmux: unhandled message %e",
 			      (enum ctlmux`Mkind)msg->op);
 
-		@define docall(thunk)
+		@define docall(ctls, thunk)
 		{
-			if(thunk() == nil)
-				contasync(ctl);
+			foreach(@lambda(ctl){
+					ctl.pending = "run";
+				}, ctls);
+			thunk();
+			foreach(@lambda(ctl){
+					@local p;
+					p = ctl.pending;
+					ctl.pending = nil;
+					switch(p){
+					case "run":
+						mux.cont(ctl);
+						break;
+					case "stop":
+						/* already stopped */
+						break;
+					case "kill":
+						mux.kill(ctl);
+						break;
+					case "step":
+						mux.step(ctl);
+						break;
+					default:
+						error("unexpected pending %a",
+						      p);
+					}
+				}, ctls);
 		}
 
 		ev = (ctlmux`Event)msg->flags;
@@ -725,7 +786,7 @@ ctlmux = @names clp64le {
 			ctl.setreg(cop(&msg->reg));
 			if(trap.desc[0] == "brk"){
 				ctl.state = ctlmux`Stopped;
-				docall(@lambda() { trap.fn(ctl); });
+				docall([ctl], @lambda() { trap.fn(ctl); });
 			}else if(trap.desc[0] == "snap"){
 				newctl = mkctl(mux,
 					       msg->cid,
@@ -734,7 +795,8 @@ ctlmux = @names clp64le {
 					       ctl.traps.copy(),
 					       ctl.callbacks);
 				ctls[msg->cid] = newctl;
-				docall(@lambda() { trap.fn(ctl, newctl); });
+				docall([ctl], /* no control of newctl */
+				       @lambda() { trap.fn(ctl, newctl); });
 			}else
 				error("unhandled trap %a", trap.desc);
 			break;
@@ -754,10 +816,12 @@ ctlmux = @names clp64le {
 			ctls[msg->cid] = newctl;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				docall(@lambda() { fn(ctl, newctl); });
-			else
+				docall([ctl, newctl],
+				       @lambda() { fn(ctl, newctl); });
+			else{
 				contasync(ctl);
-			contasync(newctl);
+				contasync(newctl);
+			}
 			break;
 		case ctlmux`Eexec:
 			ack(msg);
@@ -766,9 +830,9 @@ ctlmux = @names clp64le {
 			log("task %d has called exec", msg->id);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				docall(@lambda() { fn(ctl); });
+				docall([ctl], @lambda() { fn(ctl); });
 			else
-				contasync(newctl);
+				contasync(ctl);
 			break;
 		case ctlmux`Esyscall:
 			ack(msg);
@@ -779,9 +843,9 @@ ctlmux = @names clp64le {
 			    (enum linuxnames`syscall)msg->reg.orig_rax);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				docall(@lambda() { fn(ctl); });
+				docall([ctl], @lambda() { fn(ctl); });
 			else
-				contasync(newctl);
+				contasync(ctl);
 			break;
 		default:
 			error("unhandled event message: %e",
