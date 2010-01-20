@@ -174,7 +174,7 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 				roff = (roff<<7)+(b&127);
 			}
 		}
-		infl = inflate(q);
+		infl = inflatezlib(q);
 		obj = infl[0];
 		if(strlen(obj) != size)
 			error("deflated object is %d bytes, expected %d",

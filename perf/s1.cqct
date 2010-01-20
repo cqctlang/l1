@@ -1,6 +1,6 @@
 @include "dostat.cqct"
 
-define s1()
+@define s1()
 {
 	@local fd, ns, as;
 

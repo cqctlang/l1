@@ -1,7 +1,7 @@
 @include "dostat.cqct"
 @include <profile.cqct>
 
-define s2(snapfile)
+@define s2(snapfile)
 {
 	@local ns, as;
 
@@ -13,10 +13,10 @@ define s2(snapfile)
 
 {
 	@local file;
-	if(length(args) == 0)
+	if(length(args) == 1)
 		file = "./snap1";
 	else
-		file = args[0];
+		file = args[1];
 	s2(file);
 	profinsn();
 }

@@ -2,7 +2,7 @@
 @include <snapas.cqct>
 @include <heapstat.cqct>
 
-define dostat(ns, as)
+@define dostat(ns, as)
 {
 	@local dom, s;
 	as = mkcas(as);

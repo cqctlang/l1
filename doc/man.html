@@ -55,6 +55,7 @@
 <a href="#sec:fs">Filesystem Functions</a><br />
 <a href="#sec:fmt">Formatted Output</a><br />
 <a href="#sec:system">System Functions</a><br />
+<a href="#sec:other">Other Functions</a><br />
 <br />
 <br />
 <a href="#sec:cinterface">C Interface</a><br />
@@ -93,11 +94,11 @@ Target program memory can be read or modified using
 ordinary C expressions.  Conventional C idioms for
 traversing data structures, such as pointer-chasing
 loops, generally work in Cinquecento without any
-modifications: Cinquecento supports all C operators,
-the C type system, and all C control flow statements.
-Names and types of target program data can be specified
-in C declaration syntax.  Minor extensions to C's
-declaration syntax allow machine-level specification of
+modifications.  In particular, Cinquecento supports all
+C operators, the C type system, and all C control flow
+statements.  Names and types of target program data can
+be specified in C declaration syntax.  Minor extensions
+to C syntax allow machine-level specification of
 location, layout, and encoding of data in memory.
 </p>
 
@@ -113,26 +114,26 @@ different architecture and operating system.
 
 Example applications include comparing executions of
 different versions of a program, verifying that a
-particular version behaves comparably on different
+particular version behaves similarly on different
 machine types or operating systems, and validating
 global state across a distributed, multi-process
 program.
 </p>
 
 <p>
-Every domain encapsulates functions to access a
-particular target program.  These include functions
-that define the types and symbols of the target, and
-functions that read and write its memory and other
-run-time state.  Rather than favor the idiosyncrasies
-of one operating system, architecture, compiler, or
-debugging information format, Cinquecento specifies a
-small, extensible interface that allows users to easily
-tailor domains for their system.  New domain
-implementations can be written entirely in Cinquecento;
-built-in library functions and accompanying programs
-simplify construction of domains for common
-environments, such as x86 Linux systems.
+A domain encapsulates user-defined functions that
+implement access to the associated target.  These
+include functions that define the types and symbols of
+the target, and functions that read and write its
+memory and other run-time state.  Rather than favor the
+idiosyncrasies of one operating system, architecture,
+compiler, or debugging information format, Cinquecento
+specifies a small, extensible interface that allows
+users to easily tailor domains for their target
+environment.  New domain implementations can be written
+entirely in Cinquecento; built-in library functions and
+accompanying programs simplify construction of domains
+for common environments, such as x86 Linux systems.
 </p>
 
 <p>
@@ -540,74 +541,227 @@ values of type cvalue.
 </p>
 
 <p>
-The following functions are predicates on the type of a value.
-(The tested type is given in parentheses.)
+The following functions are predicates on the type of a
+value.  They each test their
+argument <span class="arg">val</span> for membership in
+a particular type and return
+the cvalue <span class="arg">1</span> if
+the value belongs to the type,   
+or <span class="arg">0</span> otherwise.
 </p>
 
-<div class="docitem">
+<div id="table-short">
+<table>
+
+<tr>
+<td>
+Address space
+</td>
+<td>
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:isas">isas(<span class="arg">val</span>)</span>  (address space)
+<span class="id" id="fn:isas">isas(<span class="arg">val</span>)</span>
 </div>
-<div class="function">
-<span class="id" id="fn:isctype">isctype(<span class="arg">val</span>)</span> (C type)
 </div>
-<div class="function">
-<span class="id" id="fn:iscvalue">iscvalue(<span class="arg">val</span>)</span> (C value)
-</div>
-<div class="function">
-<span class="id" id="fn:isdom">isdom(<span class="arg">val</span>)</span> (domain)
-</div>
-<div class="function">
-<span class="id" id="fn:isfd">isfd(<span class="arg">val</span>)</span> (file descriptor)
-</div>
-<div class="function">
-<span class="id" id="fn:islist">islist(<span class="arg">val</span>)</span> (list)
-</div>
-<div class="function">
-<span class="id" id="fn:isnil">isnil(<span class="arg">val</span>)</span> (nil)
-</div>
-<div class="function">
-<span class="id" id="fn:isns">isns(<span class="arg">val</span>)</span> (name space)
-</div>
-<div class="function">
-<span class="id" id="fn:isprocedure">isprocedure(<span class="arg">val</span>)</span> (function)
-</div>
-<div class="function">
-<span class="id" id="fn:isrange">isrange(<span class="arg">val</span>)</span> (range)
-</div>
-<div class="function">
-<span class="id" id="fn:isrec">isrec(<span class="arg">val</span>)</span> (record)
-</div>
-<div class="function">
-<span class="id" id="fn:isrd">isrd(<span class="arg">val</span>)</span> (record descriptor)
-</div>
-<div class="function">
-<span class="id" id="fn:isstring">isstring(<span class="arg">val</span>)</span> (string)
-</div>
-<div class="function">
-<span class="id" id="fn:istable">istable(<span class="arg">val</span>)</span> (table)
-</div>
+</td>
+</tr>
 
+<tr>
+<td>
+C type
+</td>
+<td>
+<div class="proto">
 <div class="function">
-<span class="id" id="fn:isundefined">isundefined(<span class="arg">val</span>)</span> (undefined value)
+<span class="id" id="fn:isctype">isctype(<span class="arg">val</span>)</span>
 </div>
+</div>
+</td>
+</tr>
 
+<tr>
+<td>
+C value
+</td>
+<td>
+<div class="proto">
 <div class="function">
-<span class="id" id="fn:isvector">isvector(<span class="arg">val</span>)</span> (vector)
+<span class="id" id="fn:iscvalue">iscvalue(<span class="arg">val</span>)</span>
 </div>
+</div>
+</td>
+</tr>
 
-<div class="returns">
-<span class="type">cvalue (1 or 0)</span>
+<tr>
+<td>
+Domain
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isdom">isdom(<span class="arg">val</span>)</span>
 </div>
 </div>
-<div class="desc">
-These functions test <span class="arg">val</span> for membership
-in a particular type.  They return
-<span class="arg">1</span> if
-the value belongs to the type,   
-<span class="arg">0</span> otherwise.
+</td>
+</tr>
+
+<tr>
+<td>
+File descriptor
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isfd">isfd(<span class="arg">val</span>)</span>
 </div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+List
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:islist">islist(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Nil
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isnil">isnil(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Name space
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isns">isns(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Procedure
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isprocedure">isprocedure(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Range
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isrange">isrange(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Record
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isrec">isrec(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Record descriptor
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isrd">isrd(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+String
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isstring">isstring(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Table
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:istable">istable(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Undefined
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isundefined">isundefined(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Vector
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:isvector">isvector(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+</table>
 </div>
 
 <!-- this is wrong: equal is like scheme equal,
@@ -689,26 +843,18 @@ defining a function of zero parameters.
 </li>
 
 <li>
-If <span class="arg">formals</span> is a single identifier
-<span class="arg">v</span>, then the
-function is a variable arity function that accepts any number of actual parameters.
-The parameters are passed in a freshly allocated
-list that is bound to <span class="arg">v</span>.
-</li>
-
-<li>
 If <span class="arg">formals</span> is a list of identifiers of the form
 <span class="id">(<span class="arg">v1</span>, <span class="arg">v2</span>, ...,
-<span class="arg">vn</span>, <span class="arg">vn+1</span> ...)</span>,
+<span class="arg">vn</span>, <span class="arg">varg</span> ...)</span> (where the
+final <span class="id">...</span> is concrete syntax),
 then the function is a variable arity function of at
 least
-<span class="arg"><em>n</em></span> parameters (the
-final <span class="id">...</span> is concrete syntax).
+<span class="arg"><em>n</em></span> parameters .
 The first <span class="arg"><em>n</em></span> actual parameters
 are bound to the first <span class="arg"><em>n</em></span> variables;
 <span class="arg"><em>n</em></span> may be zero.
 The remaining parameters, possibly zero, are passed in a freshly allocated
-list that is bound to <span class="arg">vn+1</span>.
+list that is bound to <span class="arg">varg</span>.
 </li>
 
 </ul>
@@ -838,9 +984,9 @@ Like <span class="id">apply</span>,
 <span class="id">@lazyapply</span>
 calls the function <span class="arg">fn</span>, but
 the arguments are evaluated lazily.  This is
-implemented by passing each argument <span class="arg">arg ... </span>
+implemented by passing each argument expression <span class="arg">arg ... </span>
 as a procedure that, when called, 
-evaluate the argument expression.
+evaluates the argument expression.
 <span class="id">@lazyapply</span> returns the value returned by the call.
 </div>
 </div>
@@ -2155,7 +2301,7 @@ common machine models, and vary in the size of
 pointers and <span class="id">long</span> integers.
 </p>
 
-<div id="table">
+<div id="table-short">
 <table>
 
 <tr>
@@ -5893,6 +6039,40 @@ at shutdown may not be called.
 </div>
 </div>
 
+<h4 id="sec:other">Other Functions</h4>
+
+<p>
+This section documents various other functions.
+</p>
+
+<div class="docitem" id="fn:inflate">
+<div class="proto">
+<div class="function">
+<span class="id">inflate(<span class="arg">buf</span>)</span>
+</div>
+<div class="function">
+<span class="id">inflatezlib(<span class="arg">buf</span>)</span>
+</div>
+<div class="param">
+<span class="arg">buf</span>: <span class="type">string</span> or <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">inflate</span> decompresses the
+contents of the string represented
+by <span class="arg">buf</span> using the deflate
+compression algorithm (which is used for gzip, zip, and
+zlib files).  <span class="id">inflatezlib</span> is
+like <span class="id">inflate</span>, but operates on
+strings with a zlib header and trailer.
+</div>
+</div>
+
+
+
 <h4 id="sec:cinterface">C Interface</h4>
 
 <p>
@@ -6745,6 +6925,8 @@ machines sharing the environment have been freed.
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />
+<a href="#fn:inflate">inflate</a><br />
+<a href="#fn:inflate">inflatezlib</a><br />
 <a href="#fn:isalnum">isalnum</a><br />
 <a href="#fn:isalpha">isalpha</a><br />
 <a href="#fn:isarray">isarray</a><br />
