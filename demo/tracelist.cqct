@@ -54,8 +54,6 @@
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
 			  manglelist(dom);
-			  if(m++ == 5)
-			  	mux.abort();
 			  return nil;
 		  });
 	dom.xcont();
