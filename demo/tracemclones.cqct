@@ -25,16 +25,16 @@
 						  regs = ctl.reg();
 						  printf("xmalloc %d\t%x\t%d -> %x\n",
 							 ctl.id, ra, arg, regs->rax);
-						  dom.trapdel(tid);
+						  ctl.trapdel(tid);
 						  return nil;
 					  });
-			  printf("set trap\n");
+			  printf("set trap %d\n", tid);
 			  return nil;
 		  });
 
 	dom.xtrap(&dom`xfree,
 		  @lambda(ctl){
-			  @local dom, ra, regs, mem, arg;
+			  @local ra, regs, mem, arg;
 			  mem = mkdom(ns, ctl.mem());
 			  regs = ctl.reg();
 			  ra = *((unsigned*){mem}regs->rsp);
