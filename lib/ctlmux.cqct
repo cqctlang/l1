@@ -364,17 +364,8 @@ ctlmux = @names clp64le {
 		}
 		tid = traps.add(bp, fn, [kind, addr],
 				@lambda(){ 
-					printf("trapclr for ctl %d bpid=%d tid=%d\n",
-					       this.id,
-					       bp,
-					       tid);
 					mux.clrbrk(this, bp);
 				});
-		printf("trapset for ctl %d bpid=%d tid=%d\n",
-		       this.id,
-		       bp,
-		       tid);
-
 		return tid;
 	}
 
@@ -750,9 +741,11 @@ ctlmux = @names clp64le {
 					@local p;
 					p = ctl.pending;
 					ctl.pending = nil;
+					// FIXME: do all of these async
+					// to avoid stack explosion
 					switch(p){
 					case "run":
-						mux.cont(ctl);
+						contasync(ctl);
 						break;
 					case "stop":
 						/* already stopped */
