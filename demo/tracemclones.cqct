@@ -43,8 +43,6 @@
 			  return nil;
 		  });
 
-	read(stdin, 1);
-
 	dom.xcont();
 	mux.run();
 }
