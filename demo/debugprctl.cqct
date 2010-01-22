@@ -1,44 +1,45 @@
 @include <ctlmux.cqct>
 
 l1 = "../l1";
+prctl = "../../prctl/prctl";
+
 //l1 = "../l1.x";
 l1names = l1+".names";
-
-@define dumpcvals(dom)
-{
-	@local hp, p, q, w, n;
-
-	hp = &dom`heap[dom`Qcval];
-	q = hp->alloc;
-	printf("begin search\n");
-	n = 0;
-	while(q){
-		p = q;
-		q = q->alink;
-		n++;
-		if(p->color == dom`GCfree || p->color == dom`GCfinal)
-			continue;
-		p = (dom`Cval*)p;
-		w = (dom`Head*)p->dom;
-		printf("%p: %e\n", p, w->qkind);
-	}
-	printf("%d Qcvals\n", n);
-}
+prnames = prctl+".names";
 
 @define doit(args)
 {
-	@local mux, ns, as, dom, e, nexec, prctlpid;
+	@local mux, l1ns, prns, as, dom, e, nexec, prctlpid, tracepr;
+
+	@define tracepr(ctl)
+	{
+		@local dom;
+		dom = mkdom(prns, ctl.mem());
+		dom.xtrap(&dom`note_settrap0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xaddr;
+				  printf("%d enter settrap\n", ctl.id);
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  xctl = regs->rdi;
+				  xaddr = regs->rsi;
+				  printf("%y (ctl = %x, addr = %x)\n",
+					 sp[0], xctl, xaddr);
+			  });
+	}
 
 	prctlpid = nil;
 	nexec = 0;
 	npop = 0;
 	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
-	ns = eval(e);
+	l1ns = eval(e);
+	e = sprintfa("@names clp64le { @include \"%s\" };", prnames);
+	prns = eval(e);
 	mux = mkctlmux();
 	push(args, l1);
 	ctl = mux.launch(args, 0);
 	as = ctl.mem();
-	dom = mkdom(ns, as);
+	dom = mkdom(l1ns, as);
 	dom.trace(ctlmux`Efork,
 		  @lambda(ctl, newctl){
 			  printf("fork %d -> %d\n", ctl.id, newctl.id);
@@ -54,6 +55,7 @@ l1names = l1+".names";
 			  if(nexec == 1){
 				  prctlpid = ctl.id;
 				  printf("prctl is %d\n", ctl.id);
+				  tracepr(ctl);
 			  }
 			  if(nexec > 1)
 				  ctl.detach();
