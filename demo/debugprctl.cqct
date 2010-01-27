@@ -7,6 +7,62 @@ prctl = "../../prctl/prctl";
 l1names = l1+".names";
 prnames = prctl+".names";
 
+traps = [:];
+
+@define dumptraps()
+{
+	foreach(@lambda(k,v)
+		{
+			printf("%a: %a\n", k, v);
+		}, traps);
+}
+
+@define add1(ctl, br)
+{
+	@local addr;
+	addr = br->bp->addr;
+	if(traps[(void*)addr] == nil)
+		traps[(void*)addr] = [ ctl->pid ];
+	else
+		append(traps[(void*)addr], ctl->pid);
+	dumptraps();
+}
+
+@define xdel(l, x)
+{
+	@local i, m;
+	m = length(l);
+	for(i = 0; i < m; i++)
+		if(l[i] == x)
+			break;
+	if(i == m)
+		error("could not find %d in a list\n", x);
+	listdel(l, i);
+}
+
+@define sub1(ctl, br)
+{
+	@local addr;
+	addr = br->bp->addr;
+	if(traps[(void*)addr] == nil)
+		error("invalid trap clear addr=%x state=%a\n",
+		      addr, traps[(void*)addr]);
+	else
+		xdel(traps[(void*)addr], ctl->pid);
+	dumptraps();
+}
+
+@define clr(ctl, bp)
+{
+	@local addr;
+	addr = bp->addr;
+	if(traps[(void*)addr] == nil || length(traps[(void*)addr]) > 0)
+		printf("invalid bp removal addr=%x state=%d!\n",
+		       addr, traps[(void*)addr]);
+	else
+		traps[(void*)addr] = nil;
+}
+
 @define doit(args)
 {
 	@local mux, l1ns, prns, as, dom, e, nexec, prctlpid, tracepr;
@@ -15,17 +71,70 @@ prnames = prctl+".names";
 	{
 		@local dom;
 		dom = mkdom(prns, ctl.mem());
+
 		dom.xtrap(&dom`note_settrap0,
 			  @lambda(ctl){
-				  @local sp, i, regs, xctl, xaddr;
-				  printf("%d enter settrap\n", ctl.id);
+				  @local sp, i, regs, xctl, xaddr, pd;
 				  regs = ctl.reg();
 				  sp = (void**){dom}regs->rsp;
-				  xctl = regs->rdi;
-				  xaddr = regs->rsi;
-				  printf("%y (ctl = %x, addr = %x)\n",
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xaddr = (`u64){pd}regs->rsi;
+				  printf("%y (ctl = %p, addr = %p)\n",
 					 sp[0], xctl, xaddr);
 			  });
+
+		dom.xtrap(&dom`note_settrap1,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbr, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbr = (`Brkref*){pd}regs->rsi;
+				  printf("%y (ctl = %p, br = %p)\n",
+					 sp[0], xctl, xbr);
+				  add1(xctl, xbr);
+			  });
+
+		dom.xtrap(&dom`note_clrtrap0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbr, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbr = (`Brkref*){pd}regs->rsi;
+				  printf("%y (ctl = %p, br = %p)\n",
+					 sp[0], xctl, xbr);
+				  sub1(xctl, xbr);
+			  });
+
+		dom.xtrap(&dom`note_clrbrk0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbp, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbp = (`Brk*){pd}regs->rsi;
+				  printf("%y (ctl = %p, bp = %p)\n",
+					 sp[0], xctl, xbp);
+				  clr(xctl, xbp);
+			  });
+
+		dom.xtrap(&dom`note_atbrk0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xaddr;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xaddr = (`u64){pd}regs->rsi;
+				  printf("%y (ctl = %p, addr = %x)\n",
+					 sp[0], xctl, xaddr);
+			  });
+
 	}
 
 	prctlpid = nil;
@@ -63,9 +172,10 @@ prnames = prctl+".names";
 	dom.xtrap(&dom`finivm,
 		  @lambda(ctl){
 			  printf("vm is exiting\n");
-//			  dumpcvals(dom);
+			  dumptraps();
 			  return nil;
 		  });
+
 	dom.xcont();
 	mux.run();
 }

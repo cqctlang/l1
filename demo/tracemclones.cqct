@@ -10,6 +10,9 @@
 	as = ctl.mem();
 	dom = mkdom(ns, as);
 
+	printf("&dom`xmalloc = %p\n", &dom`xmalloc);
+	printf("&dom`xfree = %p\n", &dom`xfree);
+
 	dom.xtrap(&dom`xmalloc,
 		  @lambda(ctl){
 			  @local ra, regs, mem, arg, tid;
