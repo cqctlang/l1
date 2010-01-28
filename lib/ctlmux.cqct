@@ -489,9 +489,26 @@ ctlmux = @names clp64le {
 	clrbrk,
 };
 
-@define mkctlmux()
+@define mkctlmux_local()
 {
-	@local tab, launch, attach, run, abort, fds, fd;
+	@local fds, fd;
+	fds = popen("prctl", "-c", 2|4|8);
+	fd = fds[0];
+	finalize(fd, @lambda(fd) { close(fd); });
+	return mkctlmux(fds[0]);
+}
+
+@define mkctlmux_remote(address)
+{
+	@local fd;
+    fd = tcpopen(address);
+	finalize(fd, @lambda(fd) { close(fd); });
+	return mkctlmux(fd);
+}
+
+@define mkctlmux(fd)
+{ 
+	@local tab, launch, attach, run, abort;
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
@@ -1130,9 +1147,6 @@ ctlmux = @names clp64le {
 		return nil;
 	}
 
-	fds = popen("prctl", "-c", 2|4|8);
-	fd = fds[0];
-	finalize(fd, @lambda(fd) { close(fd); });
 	mux = muxrec(launch,
 		     attach,
 		     run,

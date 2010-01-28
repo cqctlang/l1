@@ -1,0 +1,129 @@
+@include <ctlmux.cqct>
+@global address;
+
+ns = @names c32le { 
+	struct Node{
+		@0x0 int v;
+		@0x4 struct Node *next;
+		@0x8;
+	};
+	@0x401000 void insert(int v); 
+	@0x40D978 struct Node *head; 
+};
+
+@define printlist(dom)
+{
+	p = dom`head;
+	while(p){
+		printf("%d ", p->v);
+		p = p->next;
+	}
+	printf("\n");
+}
+
+@define manglelist(dom)
+{
+	p = dom`head;
+	while(p){
+		printf("%d ", p->v++);
+		p = p->next;
+	}
+	printf("\n");
+}
+
+// test printlist
+@define test1(n)
+{
+	@local ctl, mux, as, dom;
+	mux = mkctlmux_remote(address);
+	ctl = mux.launch(["test\\list", sprintfa("%d", n)], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.xtrap(&dom`insert,
+		  @lambda(ctl){
+			  printlist(dom);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+// test manglelist
+@define test2(n)
+{
+	@local ctl, mux, as, dom, m;
+
+	m = 0;
+	mux = mkctlmux_remote(address);
+	ctl = mux.launch(["test\\list", sprintfa("%d", n)], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.xtrap(&dom`insert,
+		  @lambda(ctl){
+			  manglelist(dom);
+			  if(m++ == 5)
+			  	mux.abort();
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+// test syscall tracing
+@define test3(n)
+{
+	@local ctl, mux, as, dom;
+
+	mux = mkctlmux_remote(address);
+	ctl = mux.launch(["test\\list", sprintfa("%d", n)], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.trace(ctlmux`Esyscall,
+		  @lambda(ctl) {
+			  printf("-> %d hit syscall\n", ctl.id);
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+// test snaps
+@define test4(n)
+{
+	@local ctl, mux, as, dom;
+
+	mux = mkctlmux_remote(address);
+	ctl = mux.launch(["test\\list", sprintfa("%d", n)], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.xsnap(&dom`insert,
+		  @lambda(ctl, cctl){
+			  printf("snap %d -> %d\n", ctl.id, cctl.id);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+	while(1);
+}
+
+if(length(args) > 1)
+	address = args[1];
+
+if(length(args) == 2)
+	test1(100);
+else if(length(args) == 3)
+	test1(strton(args[2]));
+else if(length(args) == 4){
+	switch(args[2]){
+	case "1":
+		return test1(strton(args[3]));
+	case "2":
+		return test2(strton(args[3]));
+	case "3":
+		return test3(strton(args[3]));
+	case "4":
+		return test4(strton(args[3]));
+	default:
+		error("no such test %a", args[2]);
+	}
+}else
+	error("usage: %s <address> [<cnt>] | %s <address> <testno> <cnt>", args[0]);
