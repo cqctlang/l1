@@ -63,6 +63,18 @@ traps = [:];
 		traps[(void*)addr] = nil;
 }
 
+@define walkstack(pc, fp)
+{
+	@local sp;
+
+	printf("\t%y\n", pc);
+	while(fp){
+		pc = fp[1];
+		printf("\t%y\n", pc);
+		fp = (`u64*)*fp;
+	}
+}
+
 @define doit(args)
 {
 	@local mux, l1ns, prns, as, dom, e, nexec, prctlpid, tracepr;
@@ -80,8 +92,8 @@ traps = [:];
 				  pd = mkdom(prns, ctl.mem());
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xaddr = (`u64){pd}regs->rsi;
-				  printf("%y (ctl = %p, addr = %p)\n",
-					 sp[0], xctl, xaddr);
+				  printf("%y (ctl = %d (%p), addr = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xaddr);
 			  });
 
 		dom.xtrap(&dom`note_settrap1,
@@ -92,8 +104,8 @@ traps = [:];
 				  pd = mkdom(prns, ctl.mem());
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xbr = (`Brkref*){pd}regs->rsi;
-				  printf("%y (ctl = %p, br = %p)\n",
-					 sp[0], xctl, xbr);
+				  printf("%y (ctl = %d (%p), br = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbr);
 				  add1(xctl, xbr);
 			  });
 
@@ -105,8 +117,8 @@ traps = [:];
 				  pd = mkdom(prns, ctl.mem());
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xbr = (`Brkref*){pd}regs->rsi;
-				  printf("%y (ctl = %p, br = %p)\n",
-					 sp[0], xctl, xbr);
+				  printf("%y (ctl = %d (%p), br = %p, addr = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbr, xbr->bp->addr);
 				  sub1(xctl, xbr);
 			  });
 
@@ -118,8 +130,8 @@ traps = [:];
 				  pd = mkdom(prns, ctl.mem());
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xbp = (`Brk*){pd}regs->rsi;
-				  printf("%y (ctl = %p, bp = %p)\n",
-					 sp[0], xctl, xbp);
+				  printf("%y (ctl = %d (%p), bp = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbp);
 				  clr(xctl, xbp);
 			  });
 
@@ -131,8 +143,27 @@ traps = [:];
 				  pd = mkdom(prns, ctl.mem());
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xaddr = (`u64){pd}regs->rsi;
-				  printf("%y (ctl = %p, addr = %x)\n",
-					 sp[0], xctl, xaddr);
+				  printf("%y (ctl = %d (%p), addr = %x)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xaddr);
+				  walkstack((`u64*)sp[0],
+					    (`u64*){pd}regs->rbp);
+			  });
+
+		dom.xtrap(&dom`editbrk,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbp, xset;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbp = (`Brk*){pd}regs->rsi;
+				  xset = (int){pd}regs->rdx;
+				  printf("%y (ctl = %d (%p), bp = %p, set = %d",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbp, xset);
+				  if(xset == 0)
+					  printf(" text = %x)\n", xbp->text);
+				  else
+					  printf(" text = %x)\n", 0xcc);
 			  });
 
 	}
