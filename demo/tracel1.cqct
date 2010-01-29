@@ -33,7 +33,7 @@ l1names = l1+".names";
 	npop = 0;
 	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
 	ns = eval(e);
-	mux = mkctlmux();
+	mux = mkctlmux_local();
 	push(args, l1);
 	ctl = mux.launch(args, 0);
 	as = ctl.mem();

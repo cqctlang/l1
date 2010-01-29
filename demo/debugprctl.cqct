@@ -57,7 +57,7 @@ traps = [:];
 	@local addr;
 	addr = bp->addr;
 	if(traps[(void*)addr] == nil || length(traps[(void*)addr]) > 0)
-		printf("invalid bp removal addr=%x state=%d!\n",
+		printf("invalid bp removal addr=%x state=%a!\n",
 		       addr, traps[(void*)addr]);
 	else
 		traps[(void*)addr] = nil;
@@ -137,7 +137,7 @@ traps = [:];
 
 		dom.xtrap(&dom`note_atbrk0,
 			  @lambda(ctl){
-				  @local sp, i, regs, xctl, xaddr;
+				  @local sp, i, regs, xctl, xaddr, pd;
 				  regs = ctl.reg();
 				  sp = (void**){dom}regs->rsp;
 				  pd = mkdom(prns, ctl.mem());
@@ -151,7 +151,7 @@ traps = [:];
 
 		dom.xtrap(&dom`editbrk,
 			  @lambda(ctl){
-				  @local sp, i, regs, xctl, xbp, xset;
+				  @local sp, i, regs, xctl, xbp, xset, pd;
 				  regs = ctl.reg();
 				  sp = (void**){dom}regs->rsp;
 				  pd = mkdom(prns, ctl.mem());
@@ -166,6 +166,25 @@ traps = [:];
 					  printf(" text = %x)\n", 0xcc);
 			  });
 
+		dom.xtrap(&dom`xfatal,
+			  @lambda(ctl){
+				  @local sp, regs, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  walkstack((`u64*)sp[0],
+					    (`u64*){pd}regs->rbp);
+			  });
+
+		dom.xtrap(&dom`xfatalno,
+			  @lambda(ctl){
+				  @local sp, regs, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  walkstack((`u64*)sp[0],
+					    (`u64*){pd}regs->rbp);
+			  });
 	}
 
 	prctlpid = nil;
@@ -175,7 +194,7 @@ traps = [:];
 	l1ns = eval(e);
 	e = sprintfa("@names clp64le { @include \"%s\" };", prnames);
 	prns = eval(e);
-	mux = mkctlmux();
+	mux = mkctlmux_local();
 	push(args, l1);
 	ctl = mux.launch(args, 0);
 	as = ctl.mem();
