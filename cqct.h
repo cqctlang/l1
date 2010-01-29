@@ -113,14 +113,8 @@ enum
 
 struct Head {
 	uint32_t bits;
-//	Qkind qkind;
-//	unsigned color;
-//	unsigned inrootset;	/* gc: limit (racily) duplicates on rootsets */
-//	Heap *heap;
 	Head *alink;
 	Head *link;
-//	int state;		/* debugging */
-//	Closure *final;
 };
 
 typedef struct Xfd Xfd;
