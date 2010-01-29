@@ -1,6 +1,7 @@
 l1 is an implementation of the Cinquecento programming language.
 
-It runs on 64-bit and 32-bit x86 versions of Linux or OS X.
+It runs on 64-bit and 32-bit x86 versions of Linux, OS X,
+FreeBSD, and Solaris.
 
 doc/man.html is a manual for the language.
 The directory lib is a loosely organized collection of library code.
@@ -18,9 +19,10 @@ To run:
 
 	% ./l1
 
-The executable l1 is an interactive cinquecento evaluator.
-If run out of the directory in which it was built,
-it will find the library.
+The executable l1 is an interactive cinquecento
+evaluator.  When run out of the directory in which it
+was built, it will find the library code in the lib
+directory.
 
 The object l1.o can be linked into other programs (see
 cqct.h and the manual).

@@ -1,0 +1,214 @@
+@include <ctlmux.cqct>
+
+l1 = "../l1";
+prctl = "../../prctl/prctl";
+
+//l1 = "../l1.x";
+l1names = l1+".names";
+prnames = prctl+".names";
+
+traps = [:];
+
+@define dumptraps()
+{
+	foreach(@lambda(k,v)
+		{
+			printf("%a: %a\n", k, v);
+		}, traps);
+}
+
+@define add1(ctl, br)
+{
+	@local addr;
+	addr = br->bp->addr;
+	if(traps[(void*)addr] == nil)
+		traps[(void*)addr] = [ ctl->pid ];
+	else
+		append(traps[(void*)addr], ctl->pid);
+	dumptraps();
+}
+
+@define xdel(l, x)
+{
+	@local i, m;
+	m = length(l);
+	for(i = 0; i < m; i++)
+		if(l[i] == x)
+			break;
+	if(i == m)
+		error("could not find %d in a list\n", x);
+	listdel(l, i);
+}
+
+@define sub1(ctl, br)
+{
+	@local addr;
+	addr = br->bp->addr;
+	if(traps[(void*)addr] == nil)
+		error("invalid trap clear addr=%x state=%a\n",
+		      addr, traps[(void*)addr]);
+	else
+		xdel(traps[(void*)addr], ctl->pid);
+	dumptraps();
+}
+
+@define clr(ctl, bp)
+{
+	@local addr;
+	addr = bp->addr;
+	if(traps[(void*)addr] == nil || length(traps[(void*)addr]) > 0)
+		printf("invalid bp removal addr=%x state=%d!\n",
+		       addr, traps[(void*)addr]);
+	else
+		traps[(void*)addr] = nil;
+}
+
+@define walkstack(pc, fp)
+{
+	@local sp;
+
+	printf("\t%y\n", pc);
+	while(fp){
+		pc = fp[1];
+		printf("\t%y\n", pc);
+		fp = (`u64*)*fp;
+	}
+}
+
+@define doit(args)
+{
+	@local mux, l1ns, prns, as, dom, e, nexec, prctlpid, tracepr;
+
+	@define tracepr(ctl)
+	{
+		@local dom;
+		dom = mkdom(prns, ctl.mem());
+
+		dom.xtrap(&dom`note_settrap0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xaddr, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xaddr = (`u64){pd}regs->rsi;
+				  printf("%y (ctl = %d (%p), addr = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xaddr);
+			  });
+
+		dom.xtrap(&dom`note_settrap1,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbr, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbr = (`Brkref*){pd}regs->rsi;
+				  printf("%y (ctl = %d (%p), br = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbr);
+				  add1(xctl, xbr);
+			  });
+
+		dom.xtrap(&dom`note_clrtrap0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbr, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbr = (`Brkref*){pd}regs->rsi;
+				  printf("%y (ctl = %d (%p), br = %p, addr = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbr, xbr->bp->addr);
+				  sub1(xctl, xbr);
+			  });
+
+		dom.xtrap(&dom`note_clrbrk0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbp, pd;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbp = (`Brk*){pd}regs->rsi;
+				  printf("%y (ctl = %d (%p), bp = %p)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbp);
+				  clr(xctl, xbp);
+			  });
+
+		dom.xtrap(&dom`note_atbrk0,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xaddr;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xaddr = (`u64){pd}regs->rsi;
+				  printf("%y (ctl = %d (%p), addr = %x)\n",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xaddr);
+				  walkstack((`u64*)sp[0],
+					    (`u64*){pd}regs->rbp);
+			  });
+
+		dom.xtrap(&dom`editbrk,
+			  @lambda(ctl){
+				  @local sp, i, regs, xctl, xbp, xset;
+				  regs = ctl.reg();
+				  sp = (void**){dom}regs->rsp;
+				  pd = mkdom(prns, ctl.mem());
+				  xctl = (`Ctl*){pd}regs->rdi;
+				  xbp = (`Brk*){pd}regs->rsi;
+				  xset = (int){pd}regs->rdx;
+				  printf("%y (ctl = %d (%p), bp = %p, set = %d",
+					 (void*){pd}regs->rip, xctl->pid, xctl, xbp, xset);
+				  if(xset == 0)
+					  printf(" text = %x)\n", xbp->text);
+				  else
+					  printf(" text = %x)\n", 0xcc);
+			  });
+
+	}
+
+	prctlpid = nil;
+	nexec = 0;
+	npop = 0;
+	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
+	l1ns = eval(e);
+	e = sprintfa("@names clp64le { @include \"%s\" };", prnames);
+	prns = eval(e);
+	mux = mkctlmux();
+	push(args, l1);
+	ctl = mux.launch(args, 0);
+	as = ctl.mem();
+	dom = mkdom(l1ns, as);
+	dom.trace(ctlmux`Efork,
+		  @lambda(ctl, newctl){
+			  printf("fork %d -> %d\n", ctl.id, newctl.id);
+			  if(ctl.id == prctlpid){
+				  printf("releasing %d\n", newctl.id);
+				  newctl.detach();
+			  }
+		  });
+	dom.trace(ctlmux`Eexec,
+		  @lambda(ctl){
+			  nexec++;
+			  printf("exec -> %d\n", ctl.id);
+			  if(nexec == 1){
+				  prctlpid = ctl.id;
+				  printf("prctl is %d\n", ctl.id);
+				  tracepr(ctl);
+			  }
+			  if(nexec > 1)
+				  ctl.detach();
+		  });
+	dom.xtrap(&dom`finivm,
+		  @lambda(ctl){
+			  printf("vm is exiting\n");
+			  dumptraps();
+			  return nil;
+		  });
+
+	dom.xcont();
+	mux.run();
+}
+
+doit([ "tracemclones.cqct" ]);

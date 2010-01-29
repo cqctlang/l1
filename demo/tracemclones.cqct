@@ -10,6 +10,9 @@
 	as = ctl.mem();
 	dom = mkdom(ns, as);
 
+	printf("&dom`xmalloc = %p\n", &dom`xmalloc);
+	printf("&dom`xfree = %p\n", &dom`xfree);
+
 	dom.xtrap(&dom`xmalloc,
 		  @lambda(ctl){
 			  @local ra, regs, mem, arg, tid;
@@ -25,16 +28,16 @@
 						  regs = ctl.reg();
 						  printf("xmalloc %d\t%x\t%d -> %x\n",
 							 ctl.id, ra, arg, regs->rax);
-						  dom.trapdel(tid);
+						  ctl.trapdel(tid);
 						  return nil;
 					  });
-			  printf("set trap\n");
+			  printf("set trap %d\n", tid);
 			  return nil;
 		  });
 
 	dom.xtrap(&dom`xfree,
 		  @lambda(ctl){
-			  @local dom, ra, regs, mem, arg;
+			  @local ra, regs, mem, arg;
 			  mem = mkdom(ns, ctl.mem());
 			  regs = ctl.reg();
 			  ra = *((unsigned*){mem}regs->rsp);
@@ -42,8 +45,6 @@
 			  printf("xfree %d\t%x\t%x\n", ctl.id, ra, arg);
 			  return nil;
 		  });
-
-	read(stdin, 1);
 
 	dom.xcont();
 	mux.run();
