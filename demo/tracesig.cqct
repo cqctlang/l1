@@ -1,0 +1,55 @@
+@include <ctlmux.cqct>
+
+@define test1()
+{
+	@local ctl, mux, ns, as, dom;
+
+	ns = @names clp64le { @include "./sig.names" };
+	mux = mkctlmux_local();
+	ctl = mux.launch(["./sig" ], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.trace(ctlmux`Esignal,
+		  @lambda(ctl, sig){
+			  printf("task %d received signal %d\n", ctl.id, sig);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+@define test2()
+{
+	@local ctl, mux, ns, as, dom, n;
+
+	ns = @names clp64le { @include "./sig.names" };
+	mux = mkctlmux_local();
+	ctl = mux.launch(["./sig" ], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	n = 0;
+	dom.trace(ctlmux`Esignal,
+		  @lambda(ctl, sig){
+			  printf("task %d received signal %d\n", ctl.id, sig);
+			  n++;
+			  if(n > 5)
+				  dom.trace(ctlmux`Esignal, nil);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+if(length(args) == 1)
+	test1();
+else if(length(args) == 2){
+	switch(args[1]){
+	case "1":
+		return test1();
+	case "2":
+		return test2();
+	default:
+		error("no such test %a", args[1]);
+	}
+}else
+	error("usage: %s [<cnt>] | %s <testno> <cnt>", args[0]);

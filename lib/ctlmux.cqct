@@ -351,7 +351,10 @@ ctlmux = @names clp64le {
 	@define trace(event, fn)
 	{
 		callbacks[(ctlmux`Event)event] = fn;
-		return mux.trace(this, event|ctlmux`Eset);
+		if(fn == nil)
+			return mux.trace(this, event|ctlmux`Eclear);
+		else
+			return mux.trace(this, event|ctlmux`Eset);
 	}
 
 	@define trapset(addr, fn, snap)
@@ -857,6 +860,15 @@ ctlmux = @names clp64le {
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl], @lambda() { fn(ctl); });
+			else
+				contasync(ctl);
+			break;
+		case ctlmux`Esignal:
+			ack(msg);
+			ctl.state = ctlmux`Stopped;
+			fn = ctl.callbacks[ev];
+			if(fn != nil)
+				docall([ctl], @lambda() { fn(ctl, msg->cid); });
 			else
 				contasync(ctl);
 			break;
