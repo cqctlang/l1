@@ -130,7 +130,7 @@ newthread(void* (*fn)(void*), void *arg)
 }
 
 void
-threadinit()
+threadinit(void)
 {
 	sigset_t mask;
 	sigfillset(&mask);
@@ -271,4 +271,22 @@ int
 xioctl(int fd, unsigned long req, char *buf)
 {
 	return ioctl(fd, req, buf);
+}
+
+int
+xmunmap(void *p, Imm len)
+{
+	return munmap(p, (size_t)len);
+}
+
+Imm
+usec(void)
+{
+	Imm u;
+	struct timeval tv;
+	gettimeofday(&tv, 0);
+	u = tv.tv_sec;
+	u *= 1000000;
+	u += tv.tv_usec;
+	return u;
 }

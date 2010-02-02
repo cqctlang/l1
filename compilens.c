@@ -17,6 +17,7 @@ do1tag(void *u, char *k, void *v)
 	Decl *d;
 	struct Arg *up;
 
+	USED(k);
 	up = u;
 	e = up->e;
 	d = v;
@@ -36,6 +37,7 @@ do1sym(void *u, char *k, void *v)
 	Decl *d;
 	struct Arg *up;
 
+	USED(k);
 	up = u;
 	e = up->e;
 	d = v;
@@ -61,6 +63,7 @@ do1tid(void *u, char *k, void *v)
 	Decl *d;
 	struct Arg *up;
 
+	USED(k);
 	up = u;
 	e = up->e;
 	d = v;

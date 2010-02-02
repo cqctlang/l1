@@ -32,7 +32,7 @@ mkhtsz(unsigned long sz)
 }
 
 HT*
-mkht()
+mkht(void)
 {
 	return mkhtsz(INITSZ);
 }
@@ -82,7 +82,7 @@ static unsigned long
 shash(char *s, unsigned len)
 {
 	unsigned char *p = (unsigned char*)s;
-	uint32_t h;
+	u32 h;
 
 	h = 0;
 	while(len != 0){
@@ -98,23 +98,6 @@ shash(char *s, unsigned len)
 	return (unsigned long)h;
 }
 
-#if 0
-static unsigned long
-shash(char* s)
-{
-	unsigned char *p = (unsigned char*)s;
-	unsigned long h = 0;
-	unsigned long m = 1;
-
-	while(*p){
-		h += *p * m;
-		m *= 256;
-		p++;
-	}
-	return h%SZ;
-}
-#endif
-
 static Hent*
 _hget(HT *ht, char *k, unsigned len)
 {
@@ -126,7 +109,7 @@ _hget(HT *ht, char *k, unsigned len)
 			return hp;
 		hp = hp->next;
 	}
-	return NULL;
+	return 0;
 }
 
 void*
@@ -137,7 +120,7 @@ hget(HT *ht, char *k, unsigned len)
 	hp = _hget(ht, k, len);
 	if(hp)
 		return hp->val;
-	return NULL;
+	return 0;
 }
 
 /* double hash table size and re-hash entries */

@@ -223,6 +223,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 	default:
 		cerror(ctx, e, "expression is not an lvalue");
 	}
+	return 0; /* not reached */
 }
 
 static Expr*
@@ -636,6 +637,7 @@ static void
 check1label(void *u, char *k, void *q)
 {
 	Expr *p;
+	USED(k);
 	p = q;
 	if(p->attr == Unusedlabel)
 		cposterror((U*)u, p, "unused label: %s", p->id);

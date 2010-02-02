@@ -155,7 +155,7 @@ freelits(Lits *lits)
 }
 
 static Type*
-newtype()
+newtype(void)
 {
 	Type *t;
 	t = emalloc(sizeof(Type));
@@ -163,7 +163,7 @@ newtype()
 }
 
 static Decl*
-newdecl()
+newdecl(void)
 {
 	Decl *d;
 	d = emalloc(sizeof(Decl));
@@ -390,7 +390,7 @@ flatten(Expr *e)
 	nl = invert(nl);
 	freeexpr(e);
 	if(nl->src.line == 0)
-		printf("no src for flatten!\n");
+		xprintf("no src for flatten!\n");
 	return nl;
 }
 
@@ -401,7 +401,7 @@ nullelistsrc(Src *src)
 }
 
 Expr*
-nullelist()
+nullelist(void)
 {
 	return newexpr(Enull, 0, 0, 0, 0);
 }
@@ -637,7 +637,8 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 		}
 		p++;
 	}
-		
+
+	base = Vundef;
 	if((radix == Roct || radix == Rhex) && suf == Snone){
 		if(n <= Vintmax)
 			base = Vint;
@@ -908,17 +909,17 @@ recenums(Type *t, Expr *e, Expr *val)
 
 	if(e->kind == Enull){
 		freeexpr(val);
-		return NULL;
+		return 0;
 	}
 
 	el = e->e1;
 	en = emalloc(sizeof(Enum));
 	en->id = el->e1->id; /* steal */
-	el->e1->id = NULL;
+	el->e1->id = 0;
 	if(el->e2){
 		freeexpr(val);
 		en->val = el->e2; /* steal */
-		el->e2 = NULL;
+		el->e2 = 0;
 	}else
 		en->val = val;
 	en->link = recenums(t, e->e2, exprinc(en->val));
@@ -938,8 +939,8 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 {
 	Decl *hd, *p;
 
-	if(e == NULL)
-		return NULL;
+	if(e == 0)
+		return 0;
 	if(e->kind == Enull){
 		/* ascribe size 0 to `struct tag {}' */
 		/* if we make aggregate size optional,
@@ -947,31 +948,32 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 		   was passed an empty list */
 		if(*sz == 0)
 			*sz = mkconst(Vint, 0);
-		return NULL;
+		return 0;
 	}
+	hd = 0;
 	switch(e->e1->kind){
 	case Ebitfield:
 		hd = dodecl(ctx, e->e1);
 		hd->attr = e->e1->e3; /* steal */
-		e->e1->e3 = NULL;
+		e->e1->e3 = 0;
 		hd->type->bitw = e->e1->e4; /* steal */
-		e->e1->e4 = NULL;
+		e->e1->e4 = 0;
 		hd->link = sufields(ctx, su, e->e2, sz);
 		break;
 	case Efields:
 		hd = dodecls(ctx, e->e1);
 		if(e->e1->e3){
 			hd->attr = e->e1->e3; /* steal */
-			e->e1->e3 = NULL;
+			e->e1->e3 = 0;
 		}
 		p = hd;
-		while(p->link != NULL)
+		while(p->link != 0)
 			p = p->link;
 		p->link = sufields(ctx, su, e->e2, sz);
 		break;
 	case Efieldoff:
 		*sz = e->e1->e1; /* steal */
-		e->e1->e1 = NULL;
+		e->e1->e1 = 0;
 		return sufields(ctx, su, e->e2, sz);
 		break;
 	case Enop:
@@ -988,7 +990,7 @@ params(U *ctx, Expr *e)
 	Decl *hd;
 
 	if(e->kind == Enull)
-		return NULL;
+		return 0;
 
 	if(e->kind != Eelist)
 		fatal("params expects an expression list");
@@ -1033,11 +1035,11 @@ baselist(U *ctx, Expr *e)
 }
 
 static char*
-mkanontag()
+mkanontag(void)
 {
 	static uint64_t cnt = 0;
 	char buf[32];
-	snprint(buf, sizeof(buf), "$anon%llu", cnt++);
+	snprint(buf, sizeof(buf), "$anon%" PRIu64, cnt++);
 	return xstrdup(buf);
 }
 
@@ -1048,6 +1050,7 @@ specifier(U *ctx, Expr *e)
 	Expr *dom, *id;
 	Cbase cb;
 
+	dom = 0;
 	t = newtype();
 	switch(e->kind){
 	case Ebase:
@@ -1118,7 +1121,7 @@ declarator(U *ctx, Type *bt, Expr *e)
 	Type *t;
 	Decl *d;
 
-	if(e == NULL){
+	if(e == 0){
 		d = newdecl();
 		d->type = bt;
 		return d;
@@ -1129,7 +1132,7 @@ declarator(U *ctx, Type *bt, Expr *e)
 		d = newdecl();
 		d->type = bt;
 		d->id = e->id;	/* steal */
-		e->id = NULL;
+		e->id = 0;
 		return d;
 	case Eptr:
 		t = newtype();
@@ -1143,7 +1146,7 @@ declarator(U *ctx, Type *bt, Expr *e)
 		t->link = bt;
 		t->cnt = e->e2;	/* steal */
 		t->dom = xstrdup(bt->dom);
-		e->e2 = NULL;
+		e->e2 = 0;
 		return declarator(ctx, t, e->e1);
 	case Efun:
 		t = newtype();
@@ -1156,7 +1159,7 @@ declarator(U *ctx, Type *bt, Expr *e)
 		fatal("bug");
 		break;
 	}
-	return NULL;
+	return 0;
 }
 
 static Decl*
@@ -1242,17 +1245,17 @@ dodecls(U *ctx, Expr *e)
 			lp = &p->link;
 			dl = dl->e2;
 		}
-		*lp = NULL;
+		*lp = 0;
 	}else{
 		rv = newdecl();
 		rv->type = t;
 	}
 
 	if(e->e3){
-		if(rv == NULL)
+		if(rv == 0)
 			fatal("bug");
 		rv->attr = e->e3; /* steal */
-		e->e3 = NULL;
+		e->e3 = 0;
 	}
 
 	return rv;
@@ -1378,10 +1381,9 @@ tryinclude(U *ctx, char *raw)
 {
 	char *p, *q, *path, *buf, *full, **lp;
 	unsigned len;
-	int c, f;
+	int f;
 
 	f = '"';
-	len = strlen(raw);
 	p = strchr(raw, '"');
 	if(!p){
 		p = strchr(raw, '<');
@@ -1390,13 +1392,14 @@ tryinclude(U *ctx, char *raw)
 	if(!p)
 		fatal("bug");
 
-	c = *p++;
+	p++;
 	q = strchr(p, f);
 	if(!q)
 		fatal("bug");
 	*q = 0;
 
 	buf = 0;
+	full = 0;
 	if(f == '>' && p[0] != '/' && p[0] != '.'){
 		/* use load path */
 		lp = cqctloadpath;
@@ -1455,7 +1458,7 @@ doparse(U *ctx, char *buf, char *whence)
 }
 
 void
-initparse()
+initparse(void)
 {
 	filenames = mkht();
 }
@@ -1463,11 +1466,13 @@ initparse()
 static void
 freefilename(void *u, char *k, void *v)
 {
+	USED(u);
+	USED(v);
 	efree(k);
 }
 
 void
-finiparse()
+finiparse(void)
 {
 	hforeach(filenames, freefilename, 0);
 	freeht(filenames);

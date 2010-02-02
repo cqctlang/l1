@@ -186,6 +186,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 			  Zapply(G("vector"), invert(te)));
 		break;
 	default:
+		e = 0;
 		fatal("bug");
 	}
 	return e;

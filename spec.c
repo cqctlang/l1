@@ -10,7 +10,7 @@ struct Svar {
 #define UNKNOWN ((void*)~0)
 #define LIT     ((void*)~1)
 #define NIL     ((void*)~2)
-#define USED    ((void*)~3)
+#define USE     ((void*)~3)
 
 static char*
 isdomof(Expr *e)
@@ -337,15 +337,13 @@ cf(VM *vm, Expr *e, Xenv *xe)
 			p = cf(vm, p, xe);
 			return p;
 		}
-#if 0
-	case Epreinc:
-	case Epredec:
-	case Epostinc:
-	case Epostdec:
-		return e;
-	case Egop:
-		return e;
-#endif
+//	case Epreinc:
+//	case Epredec:
+//	case Epostinc:
+//	case Epostdec:
+//		return e;
+//	case Egop:
+//		return e;
 	case Ebinop:
 		e->e1 = cf(vm, e->e1, xe);
 		e->e2 = cf(vm, e->e2, xe);
@@ -396,7 +394,7 @@ uv0(Expr *e, Xenv *xe)
 		if(v == 0)
 			/* it must be toplevel */
 			return e;
-		xenvupdate(xe, e->id, USED);
+		xenvupdate(xe, e->id, USE);
 		return e;
 	case Eg:
 		e->e2 = uv0(e->e2, xe);
@@ -453,7 +451,7 @@ uvfilter(Expr *l, Xenv *xe)
 	if(l->e1->kind != Eid)
 		fatal("bug");
 	v = xenvlook(xe, l->e1->id);
-	if(v == USED){
+	if(v == USE){
 		l->e2 = n;
 		return l;
 	}else{
@@ -485,7 +483,7 @@ uv1(Expr *e, Xenv *xe)
 			e->e2 = uv1(e->e2, xe);
 			return e;
 		}
-		if(v == USED){
+		if(v == USE){
 			e->e2 = uv1(e->e2, xe);
 			return e;
 		}
@@ -567,13 +565,13 @@ residue(VM *vm, Expr *e, Expr *pat, Val v)
 		freexenv(xe);
 	}
 
-#if 0
+if(0){
 	xe = mkxenv(0);
 	bindids(xe, e->e1, UNKNOWN);
 	xenvupdate(xe, id, v);
 	e->e2 = specsubst(e->e2, xe, &rdom);
 	freexenv(xe);
-#endif
+}
 
 	return e;
 }

@@ -94,7 +94,7 @@ xstrdup(char *s)
 {
 	void *p;
 	if(s == 0)
-		return NULL;
+		return 0;
 	p = emalloc(strlen(s)+1);
 	memcpy(p, s, strlen(s));
 	return p;

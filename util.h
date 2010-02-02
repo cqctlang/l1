@@ -1,7 +1,7 @@
 #ifndef _BISONFLAW_UTIL_H_
 #define _BISONFLAW_UTIL_H_
 typedef struct HT HT;
-HT *mkht();
+HT *mkht(void);
 void freeht(HT *ht);
 void hput(HT *ht, char *k, unsigned len, void *v);
 void *hget(HT *ht, char *k, unsigned len);
@@ -69,10 +69,12 @@ void		newchan(int *left, int *right);
 Thread		newthread(void* (*fn)(void*), void *arg);
 void		setproftimer(u32 usec, void(*fn)());
 void		threadexit(void *vp);
-void		threadinit();
+void		threadinit(void);
 void		threadwait(Thread t);
 int		xioctl(int fd, unsigned long req, char *buf);
 int		xpopen(Imm argc, char **argv, unsigned flags, int *rfd);
+int		xmunmap(void *p, Imm len);
+Imm		usec(void);
 
 extern u64 cqctmeminuse;
 extern u64 cqctmemtotal;

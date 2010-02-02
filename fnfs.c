@@ -19,7 +19,7 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	name = str2cstr(names);
 	dir = opendir(name);
 	efree(name);
-	if(dir == NULL)
+	if(dir == 0)
 		vmerr(vm, "opendir: %s", strerror(errno));
 
 	lim = 128;

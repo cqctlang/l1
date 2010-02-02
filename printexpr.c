@@ -535,7 +535,7 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e1, ni+1);
-			printf("\n");
+			xprintf("\n");
 			indent(ni);
 		}else
 			printcqct0(e->e1, ni);
@@ -758,7 +758,7 @@ fmttype(Type *t, char *o)
 	default:
 		fatal("bug");
 	}
-	return NULL;
+	return 0;
 }
 
 static char*
@@ -766,8 +766,8 @@ fmtdecl(Decl *d)
 {
 	char *o;
 
-	if(d->type == NULL)
-		return NULL;
+	if(d->type == 0)
+		return 0;
 
 	if(d->id)
 		o = xstrdup(d->id);

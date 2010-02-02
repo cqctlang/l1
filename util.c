@@ -4,7 +4,7 @@
 enum {
 	Maxfaulthook = 5,
 };
-typedef void(Faulthook)();
+typedef void(Faulthook)(void);
 static Faulthook *faulthook[Maxfaulthook];
 static unsigned nfh;
 u64 cqctmeminuse;
@@ -73,7 +73,7 @@ xstrdup(char *s)
 {
 	void *p;
 	if(s == 0)
-		return NULL;
+		return 0;
 //	s = strdup(s);
 //	if(s == 0)
 	p = emalloc(strlen(s)+1);
@@ -88,7 +88,7 @@ xstrndup(char *s, unsigned long len)
 {
 	char *t;
 	if(s == 0)
-		return NULL;
+		return 0;
 	t = emalloc(len+1);
 	memcpy(t, s, len);
 	return t;
@@ -97,7 +97,7 @@ xstrndup(char *s, unsigned long len)
 void*
 emalloc(size_t size)
 {
-	void *p;
+	char *p;
 	p = malloc(size+sizeof(size_t));
 	if(p == 0)
 		fatal("out of memory");
@@ -110,8 +110,10 @@ emalloc(size_t size)
 }
 
 size_t
-esize(void *p)
+esize(void *vp)
 {
+	char *p;
+	p = vp;
 	if(p == 0)
 		return 0;
 	p -= sizeof(size_t);
@@ -119,8 +121,10 @@ esize(void *p)
 }
 
 void
-efree(void *p)
+efree(void *vp)
 {
+	char *p;
+	p = vp;
 	if(p == 0)
 		return;
 	p -= sizeof(size_t);
@@ -129,9 +133,11 @@ efree(void *p)
 }
 
 void*
-erealloc(void *p, size_t old, size_t new)
+erealloc(void *vp, size_t old, size_t new)
 {
 	size_t d;
+	char *p;
+	p = vp;
 	p -= sizeof(size_t);
 	/* assert(*(size_t*)p == old); */
 	p = realloc(p, new+sizeof(size_t));
@@ -157,9 +163,11 @@ tvdiff(struct timeval *a, struct timeval *b, struct timeval *c)
 {
         c->tv_sec = a->tv_sec - b->tv_sec;
         c->tv_usec = a->tv_usec - b->tv_usec;
-        if (c->tv_usec < 0) {
+	if(a->tv_usec >= b->tv_usec)
+		c->tv_usec = a->tv_usec - b->tv_usec;
+	else{
                 c->tv_sec -= 1;
-                c->tv_usec += 1000000;
+                c->tv_usec = a->tv_usec+1000000 - b->tv_usec;
         }
 }
 

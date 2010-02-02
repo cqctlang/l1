@@ -173,7 +173,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		   representation of these objects, especially bitfields */
 		return _fmtxtn(xtn->link, o);
 	}
-	return NULL;
+	return 0;
 
 }
 
@@ -928,7 +928,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(cv->val != 0){
 				snprint(buf, sizeof(buf),
 					"+0x%" PRIx64, cv->val);
-				ys = mkstrn(vm, as->len+strlen(buf));
+				ys = mkstrn(as->len+strlen(buf));
 				memcpy(ys->s, as->s, as->len);
 				memcpy(ys->s+as->len, buf, strlen(buf));
 			}else

@@ -64,14 +64,7 @@ l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Imm tod;
-	struct timeval tv;
-
-	gettimeofday(&tv, 0);
-	tod = tv.tv_sec;
-	tod *= 1000000;
-	tod += tv.tv_usec;
-	*rv = mkvallitcval(Vulong, tod);
+	*rv = mkvallitcval(Vulong, usec());
 }
 
 static void
@@ -185,7 +178,7 @@ dotrs(VM *vm)
 			v = mkvallitcval(Vuvlong, 1+cv->val);
 		}else
 			v = mkvallitcval(Vuvlong, 1);
-		tabput(vm, tab, k, v);
+		tabput(tab, k, v);
 	}
 	xprintf("profile: %d samples\n", prof->ntrace);
 	return tab;
@@ -287,7 +280,7 @@ l1_insncnt(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to insncnt");
-	*rv = mkvaltab(doinsncnt(vm));
+	*rv = mkvaltab(doinsncnt());
 }
 
 static void
