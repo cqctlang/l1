@@ -63,6 +63,8 @@ tests = [
 	[ "tracespawn.cqct", "1", "3" ],
 	[ "tracespawn.cqct", "2", "3" ],
 	[ "tracespawn.cqct", "3", "3" ],
+	[ "tracesig.cqct", "1" ],
+	[ "tracesig.cqct", "2" ],
 	];
 
 if(length(args) == 1){
