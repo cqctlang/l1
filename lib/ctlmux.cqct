@@ -69,7 +69,9 @@ ctlmux = @names clp64le {
 
 	typedef
 	enum Event {
-		Esyscall = 1,
+		Eclear	 = 0,
+		Eset	 = 1,
+		Esyscall = (Eset<<1),
 		Eexec	 = (Esyscall<<1),
 		Efork    = (Eexec<<1),
 		Eclone   = (Efork<<1),
@@ -349,7 +351,7 @@ ctlmux = @names clp64le {
 	@define trace(event, fn)
 	{
 		callbacks[(ctlmux`Event)event] = fn;
-		return mux.trace(this, event);
+		return mux.trace(this, event|ctlmux`Eset);
 	}
 
 	@define trapset(addr, fn, snap)
