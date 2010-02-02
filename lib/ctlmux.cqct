@@ -819,6 +819,7 @@ ctlmux = @names clp64le {
 			    msg->id,
 			    ev == ctlmux`Eclone ? "cloned" : "forked",
 			    msg->cid);
+			ctl.state = ctlmux`Stopped;
 			newctl = mkctl(mux,
 				       msg->cid,
 				       ctlmux`Stopped,
