@@ -229,15 +229,21 @@ ctlmux = @names clp64le {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13	uint64 bp;
 		@13     uint64 addr;
-		@21	uint64 cid;
 		@21	uint64 cnt;
-		@29	char bytes[0];
 		@29;
 	};
 	typedef struct Tread Tread;
-	typedef struct Tread Twrite;
+
+	struct Twrite{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13     uint64 addr;
+		@21	char bytes[0];
+		@21;
+	};
+	typedef struct Twrite Twrite;
 
 	struct Tfread{
 		@0	uint8 op;
@@ -249,27 +255,43 @@ ctlmux = @names clp64le {
 		@29;
 	};
 	typedef struct Tfread Tfread;
-	typedef struct Tfread Tfwrite;
+
+	struct Tfwrite{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 fd;
+		@21	char bytes[0];
+		@21;
+	};
+	typedef struct Tfwrite Tfwrite;
 
 	struct Rfread{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13	uint64 cnt;
-		@21	char bytes[0];
-		@21;
+		@13	char bytes[0];
+		@13;
 	};
 	typedef struct Rfread Rfread;
-	typedef struct Rfread Rfwrite;
+
+	struct Rfwrite{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 cnt;
+		@21;
+	};
+	typedef struct Rfwrite Rfwrite;
 
 	struct Rmap{
 		@0	uint8 op;
 		@1	uint32 tag;
-		@5	uint64 cnt;
-		@13	char bytes[0];
-		@13;
+		@5	char bytes[0];
+		@5;
 	};	
 	typedef struct Rmap Rmap;
+	typedef struct Rmap Ttest;
 };
 
 @record ctlrec {
@@ -915,65 +937,65 @@ ctlmux = @names clp64le {
 				log("unhandled tag %d: %s", tag, fmtmsg(msg));
 				continue;
 			}
-			h(msg);
+			h(msg, sz);
 		}
 	}
 
 	@define runtiltag(tag)
 	{
-		@local done, msg;
+		@local done, msg, sz;
 		msg = nil;
 		done = 0;
-		taghandler[tag] = @lambda(m) { msg = m; done = 1; };
+		taghandler[tag] = @lambda(m, s) { msg = m; sz = s; done = 1; };
 		runtil(@lambda(){ done; });
-		return msg;
+		return [msg, sz];
 	}
 
 	@define clrbrk(ctl, bp)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 		p = (ctlmux`Tclrbrk*)malloc(sizeof(ctlmux`Tclrbrk));
 		p->op = ctlmux`Tclrbrk;
 		p->tag = freshtag();
 		p->id = ctl.id;
 		p->bp = bp;
 		sendmsg(fd, p);
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rclrbrk);
 		return nil;
 	}
 
 	@define setbrk(ctl, addr)
 	{
-		@local p, rep, clear;
+		@local p, rep, sz, clear;
 		p = (ctlmux`Tsetbrk*)malloc(sizeof(ctlmux`Tsetbrk));
 		p->op = ctlmux`Tsetbrk;
 		p->tag = freshtag();
 		p->id = ctl.id;
 		p->addr = addr;
 		sendmsg(fd, p);
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rsetbrk);
 		return rep->bp;
 	}
 
 	@define setsnap(ctl, addr)
 	{
-		@local p, rep, clear;
+		@local p, rep, sz, clear;
 		p = (ctlmux`Tsetsnap*)malloc(sizeof(ctlmux`Tsetsnap));
 		p->op = ctlmux`Tsetsnap;
 		p->tag = freshtag();
 		p->id = ctl.id;
 		p->addr = addr;
 		sendmsg(fd, p);
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rsetsnap);
 		return rep->bp;
 	}
 
 	@define trace(ctl, flags)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		p = (ctlmux`Ttrace*)malloc(sizeof(ctlmux`Ttrace));
 		p->op = ctlmux`Ttrace;
@@ -981,13 +1003,13 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		p->flags = flags;
 		sendmsg(fd, p);
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rtrace);
 	}
 
 	@define pread(ctl, addr, cnt)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		p = (ctlmux`Tread*)malloc(sizeof(ctlmux`Tread));
 		p->op = ctlmux`Tread;
@@ -997,14 +1019,14 @@ ctlmux = @names clp64le {
 		p->cnt = cnt;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rread);
 		return getbytes(rep+1, cnt);
 	}
 
 	@define pwrite(ctl, addr, cnt, bytes)
 	{
-		@local sz, p, rep;
+		@local sz, p, rep, sz;
 
 		sz = sizeof(ctlmux`Twrite)+cnt;
 		p = (ctlmux`Twrite*)malloc(sz);
@@ -1012,18 +1034,17 @@ ctlmux = @names clp64le {
 		p->tag = freshtag();
 		p->id = ctl.id;
 		p->addr = addr;
-		p->cnt = cnt;
 		putbytes(p+1, bytes);
 		sendmsg(fd, p, sz);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rwrite);
 		return nil;
 	}
 
 	@define pmap(ctl)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		p = (ctlmux`Tmap*)malloc(sizeof(ctlmux`Tmap));
 		p->op = ctlmux`Tmap;
@@ -1031,10 +1052,11 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rmap);
-		return [rep->cnt/sizeof(ctlmux`Region),
-			(ctlmux`Region*)getbytes(rep+1, rep->cnt)];
+		sz -= sizeof(@typeof(ctlmux`Rmap));
+		return [sz/sizeof(ctlmux`Region),
+			(ctlmux`Region*)getbytes(rep+1, sz)];
 	}
 
 	@define contasync(ctl)
@@ -1049,7 +1071,7 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
-		taghandler[p->tag] = @lambda(rep){
+		taghandler[p->tag] = @lambda(rep, sz){
 			checkreply(rep, ctlmux`Rcont);
 			ctl.state = ctlmux`Running;
 		};
@@ -1057,7 +1079,7 @@ ctlmux = @names clp64le {
 
 	@define cont(ctl)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		if(ctl.state != ctlmux`Stopped)
 			return;
@@ -1067,7 +1089,7 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rcont);
 		ctl.state = ctlmux`Running;
 		return nil;
@@ -1075,7 +1097,7 @@ ctlmux = @names clp64le {
 
 	@define stop(ctl)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		if(ctl.state != ctlmux`Running)
 			return;
@@ -1085,7 +1107,7 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rstop);
 		ctl.state = ctlmux`Running;
 		return nil;
@@ -1093,7 +1115,7 @@ ctlmux = @names clp64le {
 
 	@define step(ctl)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		if(ctl.state != ctlmux`Stopped)
 			error("attempt to step running ctl");
@@ -1103,14 +1125,14 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rstep);
 		return nil;
 	}
 
 	@define detach(ctl)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		p = (ctlmux`Tdetach*)malloc(sizeof(ctlmux`Tdetach));
 		p->op = ctlmux`Tdetach;
@@ -1118,7 +1140,7 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rdetach);
 		ctl.state = ctlmux`Dead;
 		log("task %d has detached", rep->id);
@@ -1127,7 +1149,7 @@ ctlmux = @names clp64le {
 
 	@define kill(ctl)
 	{
-		@local p, rep;
+		@local p, rep, sz;
 
 		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tkill));
 		p->op = ctlmux`Tkill;
@@ -1135,7 +1157,7 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rkill);
 		tabdelete(ctls, ctl.id);
 		return nil;
@@ -1143,7 +1165,7 @@ ctlmux = @names clp64le {
 
 	@define launch(args, flags)
 	{
-		@local narg, s, sz, i, p, q, ctl, rep;
+		@local narg, s, sz, i, p, q, ctl, rep, sz;
 
 		narg = length(args);
 		if(narg == 0)
@@ -1169,7 +1191,7 @@ ctlmux = @names clp64le {
 		sendmsg(fd, p, sz);
 		
 		/* wait for reply */
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rlaunch);
 		ctl = mkctl(mux,
 			    rep->id,
@@ -1183,7 +1205,7 @@ ctlmux = @names clp64le {
 
 	@define attach(pid)
 	{
-		@local p, rep, ctl;
+		@local p, rep, sz, ctl;
 
 		p = (ctlmux`Tattach*)malloc(sizeof(ctlmux`Tattach));
 		p->op = ctlmux`Tattach;
@@ -1191,7 +1213,7 @@ ctlmux = @names clp64le {
 		p->id = pid;
 		sendmsg(fd, p);
 
-		rep = runtiltag(p->tag);
+		[rep, sz] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rattach);
 		// attach leaves the target running
 		ctl = mkctl(mux,
