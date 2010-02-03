@@ -233,7 +233,7 @@ struct Type {
 	char *dom;		/* optional domain qualifier for any Type */
 	Decl *field;		/* struct, union */
 	Enum *en;		/* enum */
-	Expr *sz;		/* struct, union */
+	Expr *attr;		/* struct, union size and attrs */
 	Expr *bitw;		/* bitfield width */
 	Decl *param;		/* func */
 	Expr *cnt;		/* arr */
@@ -442,7 +442,7 @@ struct Xtypename {
 	Str *tid;		/* typedef */
 	Str *tag;		/* struct, union, enum */
 	Val cnt;		/* arr */
-	Val sz;			/* struct, union, bitfield */
+	Val attr;		/* struct, union, bitfield size and attrs */
 	Val bit0;		/* bitfield */
 	Xtypename *link;	/* ptr, arr, func, bitfield, enum,
 				   const, xaccess */

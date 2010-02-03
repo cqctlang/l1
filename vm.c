@@ -1191,7 +1191,7 @@ typesize(VM *vm, Xtypename *xtn)
 		return typesize(vm, xtn->link);
 	case Tstruct:
 	case Tunion:
-		cv = valcval(xtn->sz);
+		cv = valcval(attroff(xtn->attr));
 		return cv->val;
 	case Tenum:
 		return typesize(vm, xtn->link);
@@ -1671,7 +1671,7 @@ hashxtn(Val val)
 		return x;
 	case Tbitfield:
 		x = hashxtn((Val)xtn->link)>>xtn->tkind;
-		x ^= hashcval(xtn->sz);
+		x ^= hashcval(xtn->cnt);
 		return x;
 	case Tconst:
 		return hashxtn((Val)xtn->link)>>xtn->tkind;
@@ -1728,7 +1728,7 @@ equalxtn(Xtypename *a, Xtypename *b)
 				return 0;
 		return 1;
 	case Tbitfield:
-		if(!equalcval(a->sz, b->sz))
+		if(!equalcval(a->cnt, b->cnt))
 			return 0;
 		return equalxtn(a->link, b->link);
 	case Tconst:
@@ -3019,7 +3019,7 @@ iterxtn(Head *hd, Ictx *ictx)
 		case 1:
 			return (Head*)xtn->field;
 		case 2:
-			return valhead(xtn->sz);
+			return valhead(xtn->attr);
 		default:
 			return GCiterdone;
 		}
@@ -3071,7 +3071,7 @@ iterxtn(Head *hd, Ictx *ictx)
 	case Tbitfield:
 		switch(ictx->n++){
 		case 0:
-			return valhead(xtn->sz);
+			return valhead(xtn->cnt);
 		case 1:
 			return valhead(xtn->bit0);
 		case 2:
@@ -4876,7 +4876,7 @@ dobitfieldgeom(Xtypename *b, BFgeom *bfg)
 	Xtypename *bb;
 		
 	bit0 = valcval(b->bit0);
-	bs = valcval(b->sz);
+	bs = valcval(b->cnt);
 	bfg->bp = bit0->val;
 	bfg->bs = bs->val;
 	bb = chasetype(b->link);
@@ -5356,6 +5356,8 @@ attroff(Val o)
 	Tab *tab;
 	Val vp;
 
+	if(Vkind(o) == Qcval)
+		return o;
 	if(Vkind(o) != Qtab)
 		fatal("bug");
 	tab = valtab(o);
@@ -5464,7 +5466,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tbitfield:
 		new = gcprotect(vm, mkxtn());
 		new->tkind = Tbitfield;
-		new->sz = xtn->sz;
+		new->cnt = xtn->cnt;
 		new->bit0 = xtn->bit0;
 		new->link = _dolooktype(vm, xtn->link, ns);
 		gcunprotect(vm, new);
@@ -5713,7 +5715,7 @@ doenconsts(VM *vm, Vec *v, Ns *ns)
 static Xtypename*
 resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 {
-	Val rv, v, vp, sz;
+	Val rv, v, vp, attr;
 	Xtypename *xtn, *new, *tmp;
 	Vec *vec, *fld, *fv;
 	Imm i;
@@ -5734,14 +5736,14 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 		case Tstruct:
 		case Tunion:
 			fld = xtn->field;
-			sz = xtn->sz;
-			if(fld == 0 || Vkind(sz) == Qnil)
+			attr = xtn->attr;
+			if(fld == 0 || Vkind(attr) == Qnil)
 				goto error;
 			new = mkxtn();
 			new->tkind = xtn->tkind;
 			new->tag = xtn->tag;
 			new->field = mkvec(fld->len);
-			new->sz = sz;
+			new->attr = attr;
 
 			/* bind before recursive resolve call to stop cycles */
 			tabput(ctx->type, xtnv, mkvalxtn(new));
@@ -5854,7 +5856,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->bit0 = xtn->bit0;
-		new->sz = xtn->sz;
+		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		return new;
 	case Tconst:
@@ -7546,7 +7548,24 @@ l1_susize(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
 		vmerr(vm,
 		      "operand 1 to susize must be a struct or union ctype");
-	*rv = xtn->sz;
+	*rv = attroff(xtn->attr);
+}
+
+static void
+l1_suattr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to suattr");
+	if(Vkind(argv[0]) != Qxtn)
+		vmerr(vm,
+		      "operand 1 to suattr must be a struct or union ctype");
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Tstruct && xtn->tkind != Tunion)
+		vmerr(vm,
+		      "operand 1 to suattr must be a struct or union ctype");
+	*rv = xtn->attr;
 }
 
 static void
@@ -7564,7 +7583,7 @@ l1_bitfieldwidth(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(xtn->tkind != Tbitfield)
 		vmerr(vm, "operand 1 to bitfieldwidth "
 		      "must be a bitfield ctype");
-	*rv = xtn->sz;
+	*rv = xtn->cnt;
 }
 
 static void
@@ -8286,13 +8305,15 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn = mkxtn();
 		xtn->tkind = tkind;
 		xtn->tag = s;
-		xtn->sz = Xnil;
+		xtn->attr = Xnil;
 		break;
 	case 3:
 		/* TAG FIELDS SIZE */
 		checkarg(vm, fn, argv, 0, Qstr);
 		checkarg(vm, fn, argv, 1, Qvec);
-		checkarg(vm, fn, argv, 2, Qcval);
+		if(Vkind(argv[2]) != Qcval && Vkind(argv[2]) != Qtab)
+			vmerr(vm, "operand 3 to %s must be a cvalue or table",
+			      fn);
 		s = valstr(argv[0]);
 		f = valvec(argv[1]);
 		if(!issymvec(f))
@@ -8301,7 +8322,7 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = tkind;
 		xtn->tag = s;
 		xtn->field = f;
-		xtn->sz = argv[2];
+		xtn->attr = argv[2];
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to %s", fn);
@@ -8388,7 +8409,7 @@ l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = mkxtn();
 	xtn->tkind = Tbitfield;
 	xtn->link = sub;
-	xtn->sz = argv[1];
+	xtn->cnt = argv[1];
 	xtn->bit0 = argv[2];
 	*rv = mkvalxtn(xtn);
 }
@@ -11646,6 +11667,7 @@ mktopenv(void)
 	FN(subtype);
 	FN(suekind);
 	FN(suetag);
+	FN(suattr);
 	FN(susize);
 	FN(symattr);
 	FN(symid);

@@ -169,7 +169,7 @@ freetype(Type *t)
 	freeenum(t->en);
 	freedecl(t->param);
 	freeexpr(t->bitw);
-	freeexpr(t->sz);
+	freeexpr(t->attr);
 	freeexpr(t->cnt);
 	efree(t);
 }
@@ -190,7 +190,7 @@ sztype(Type *t)
 	m += szenum(t->en);
 	m += szdecl(t->param);
 	m += szexpr(t->bitw);
-	m += szexpr(t->sz);
+	m += szexpr(t->attr);
 	m += szexpr(t->cnt);
 	m += esize(t);
 

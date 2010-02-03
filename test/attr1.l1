@@ -1,0 +1,12 @@
+ns = @names c32le {
+	struct foo {
+		@[ "offset" : 10,
+		   "other"   : [ 1, 2, 3]];
+	};
+};
+
+t = @typeof(struct ns`foo);
+printf("sizeof(%t) = %d == %d\n", t, sizeof(struct ns`foo), susize(t));
+x = suattr(t);
+printf("%a\n", x["other"]);
+

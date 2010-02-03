@@ -935,7 +935,7 @@ enums(Type *t, Expr *e)
 }
 
 static Decl*
-sufields(U *ctx, Type *su, Expr *e, Expr **sz)
+sufields(U *ctx, Type *su, Expr *e, Expr **attr)
 {
 	Decl *hd, *p;
 
@@ -946,8 +946,8 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 		/* if we make aggregate size optional,
 		   then (FIXME) do this only if sufields
 		   was passed an empty list */
-		if(*sz == 0)
-			*sz = mkconst(Vint, 0);
+		if(*attr == 0)
+			*attr = mkconst(Vint, 0);
 		return 0;
 	}
 	hd = 0;
@@ -958,7 +958,7 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 		e->e1->e3 = 0;
 		hd->type->bitw = e->e1->e4; /* steal */
 		e->e1->e4 = 0;
-		hd->link = sufields(ctx, su, e->e2, sz);
+		hd->link = sufields(ctx, su, e->e2, attr);
 		break;
 	case Efields:
 		hd = dodecls(ctx, e->e1);
@@ -969,15 +969,15 @@ sufields(U *ctx, Type *su, Expr *e, Expr **sz)
 		p = hd;
 		while(p->link != 0)
 			p = p->link;
-		p->link = sufields(ctx, su, e->e2, sz);
+		p->link = sufields(ctx, su, e->e2, attr);
 		break;
 	case Efieldoff:
-		*sz = e->e1->e1; /* steal */
+		*attr = e->e1->e1; /* steal */
 		e->e1->e1 = 0;
-		return sufields(ctx, su, e->e2, sz);
+		return sufields(ctx, su, e->e2, attr);
 		break;
 	case Enop:
-		return sufields(ctx, su, e->e2, sz);
+		return sufields(ctx, su, e->e2, attr);
 	default:
 		fatal("unrecognized su declaration %d", e->e1->kind);
 	}
@@ -1100,7 +1100,7 @@ specifier(U *ctx, Expr *e)
 			if(t->kind == Tenum)
 				t->en = enums(t, e->e2);
 			else
-				t->field = sufields(ctx, t, e->e2, &t->sz);
+				t->field = sufields(ctx, t, e->e2, &t->attr);
 		}
 		break;
 	default:
@@ -1202,7 +1202,7 @@ copytype(Type *t)
 	case Tunion:
 		nt->tag = xstrdup(t->tag);
 		nt->field = copydecls(t->field);
-		nt->sz = copyexpr(t->sz);
+		nt->attr = copyexpr(t->attr);
 		break;
 	case Tenum:
 		nt->tag = xstrdup(t->tag);
