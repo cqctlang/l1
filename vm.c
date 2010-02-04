@@ -4483,18 +4483,33 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 	   - (<<)   if op1 is signed and op1*2^op2 is not representable in
 	            typeof(op1), the result is undefined;
 	   - (>>)   if op1 is signed and negative, the result is
-                    implementation-defined; gcc's >> performs sign extension
+                    implementation-defined.
+		    here, "implementation-defined" means whatever
+		    your compiler says.  gcc and microsoft
+		    performs sign extension.
 	*/
-	switch(op){
-	case Ishl:
-		rv = i1<<i2;
-		break;
-	case Ishr:
-		rv = i1>>i2;
-		break;
-	default:
-		fatal("bug");
-	}
+	if(isunsigned[op1->type->basename])
+		switch(op){
+		case Ishl:
+			rv = i1<<i2;
+			break;
+		case Ishr:
+			rv = i1>>i2;
+			break;
+		default:
+			fatal("bug");
+		}
+	else
+		switch(op){
+		case Ishl:
+			rv = (s64)i1<<i2;
+			break;
+		case Ishr:
+			rv = (s64)i1>>i2;
+			break;
+		default:
+			fatal("bug");
+		}
 	return mkcval(op1->dom, op1->type, rv);
 }
 
