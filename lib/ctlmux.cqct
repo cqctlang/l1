@@ -229,7 +229,6 @@ ctlmux = @names clp64le {
 	struct Eexit {
 		@0;
 	};	
-	typedef struct Esyscall Esyscall;
 	typedef struct Esyscall Eexit;
 	typedef struct Esyscall Eexec;
 
@@ -903,7 +902,7 @@ ctlmux = @names clp64le {
 			ack(msg);
 			dat = (ctlmux`Eexec*)dat;
 			ctl.state = ctlmux`Stopped;
-			ctl.setreg(cop(&dat->reg));
+//			ctl.setreg(cop(&dat->reg));
 			log("task %d has called exec", msg->id);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -967,7 +966,7 @@ ctlmux = @names clp64le {
 			if(sz > sizeof(*msg))
 				dat = getbytes(msg+1, sz-sizeof(*msg));
 			else
-				dat = nil;
+				dat = "";
 
 			if(isasync(msg)){
 				handleasync(msg, dat);
