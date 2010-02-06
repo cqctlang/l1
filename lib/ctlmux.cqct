@@ -216,12 +216,48 @@ ctlmux = @names clp64le {
 		@1	uint32 tag;
 		@5	uint64 id;
 		@13	uint64 flags;
-		@21	uint64 bp;
-		@29	uint64 cid;
-		@37	Reg reg;
-		@189;
+		@21;
 	};
 	typedef struct Aevent Aevent;
+
+	struct Esyscall {
+		@0	Reg reg;
+		@152;
+	};	
+	typedef struct Esyscall Esyscall;
+
+	struct Eexit {
+		@0;
+	};	
+	typedef struct Esyscall Esyscall;
+	typedef struct Esyscall Eexit;
+	typedef struct Esyscall Eexec;
+
+	struct Etrap {
+		@0	uint64 bp;
+		@0	uint64 sig;
+		@8	Reg reg;
+		@160;
+	};	
+	typedef struct Etrap Etrap;
+	typedef struct Etrap Esignal;
+
+	struct Esnap {
+		@0	uint64 bp;
+		@8	uint64 cid;
+		@16	Reg reg;
+		@168;
+	};	
+	typedef struct Esnap Esnap;
+
+	struct Efork {
+		@0	uint64 cid;
+		@8	Reg reg;
+		@160	Reg creg;
+		@312;
+	};	
+	typedef struct Efork Efork;
+	typedef struct Efork Eclone;
 
 	struct Tread{
 		@0	uint8 op;
@@ -760,7 +796,7 @@ ctlmux = @names clp64le {
 		sendmsg(fd, p);
 	}
 
-	@define handleasync(msg)
+	@define handleasync(msg, dat)
 	{
 		@local ctl, newctl, trap, ev, fn, docall;
 		ctl = ctls[msg->id];
@@ -814,22 +850,24 @@ ctlmux = @names clp64le {
 			break;
 		case ctlmux`Etrap:
 			ack(msg);
-			trap = ctl.traps.look(msg->bp);
+			dat = (ctlmux`Etrap*)dat;
+			trap = ctl.traps.look(dat->bp);
 			if(trap == nil)
 				error("ctl %d has no trap for bpid %d",
-				      ctl.id, msg->bp);
-			ctl.setreg(cop(&msg->reg));
+				      ctl.id, dat->bp);
 			if(trap.desc[0] == "brk"){
 				ctl.state = ctlmux`Stopped;
+				ctl.setreg(cop(&dat->reg));
 				docall([ctl], @lambda() { trap.fn(ctl); });
 			}else if(trap.desc[0] == "snap"){
+				dat = (ctlmux`Esnap*)dat;
 				newctl = mkctl(mux,
-					       msg->cid,
+					       dat->cid,
 					       ctlmux`Stopped,
-					       cop(&msg->reg),
+					       cop(&dat->reg),
 					       ctl.traps.copy(),
 					       ctl.callbacks);
-				ctls[msg->cid] = newctl;
+				ctls[dat->cid] = newctl;
 				docall([ctl], /* no control of newctl */
 				       @lambda() { trap.fn(ctl, newctl); });
 			}else
@@ -838,18 +876,20 @@ ctlmux = @names clp64le {
 		case ctlmux`Eclone:
 		case ctlmux`Efork:
 			ack(msg);
+			dat = (ctlmux`Efork*)dat;
 			log("task %d has %s %d",
 			    msg->id,
 			    ev == ctlmux`Eclone ? "cloned" : "forked",
-			    msg->cid);
+			    dat->cid);
 			ctl.state = ctlmux`Stopped;
+			ctl.setreg(cop(&dat->reg));
 			newctl = mkctl(mux,
-				       msg->cid,
+				       dat->cid,
 				       ctlmux`Stopped,
-				       cop(&msg->reg),
+				       cop(&dat->creg),
 				       ctl.traps.copy(),
 				       ctl.callbacks);
-			ctls[msg->cid] = newctl;
+			ctls[dat->cid] = newctl;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl, newctl],
@@ -861,8 +901,9 @@ ctlmux = @names clp64le {
 			break;
 		case ctlmux`Eexec:
 			ack(msg);
+			dat = (ctlmux`Eexec*)dat;
 			ctl.state = ctlmux`Stopped;
-			ctl.setreg(cop(&msg->reg));
+			ctl.setreg(cop(&dat->reg));
 			log("task %d has called exec", msg->id);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -872,11 +913,12 @@ ctlmux = @names clp64le {
 			break;
 		case ctlmux`Esyscall:
 			ack(msg);
+			dat = (ctlmux`Esyscall*)dat;
 			ctl.state = ctlmux`Stopped;
-			ctl.setreg(cop(&msg->reg));
+			ctl.setreg(cop(&dat->reg));
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
-			    (enum linuxnames`syscall)msg->reg.orig_rax);
+			    (enum linuxnames`syscall)dat->reg.orig_rax);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl], @lambda() { fn(ctl); });
@@ -885,10 +927,11 @@ ctlmux = @names clp64le {
 			break;
 		case ctlmux`Esignal:
 			ack(msg);
+			dat = (ctlmux`Esignal*)dat;
 			ctl.state = ctlmux`Stopped;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				docall([ctl], @lambda() { fn(ctl, msg->cid); });
+				docall([ctl], @lambda() { fn(ctl, dat->sig); });
 			else
 				contasync(ctl);
 			break;
@@ -927,7 +970,7 @@ ctlmux = @names clp64le {
 				dat = nil;
 
 			if(isasync(msg)){
-				handleasync(msg);
+				handleasync(msg, dat);
 				continue;
 			}
 
