@@ -123,10 +123,9 @@ ctlmux = @names clp64le {
 	struct Rerror{
 		@0	uint8 op;
 		@1	uint32 tag;
-		@5	uint64 id;
-		@13	char err[0];
-		@13	char bytes[0];
-		@13;
+		@5	char err[0];
+		@5	char bytes[0];
+		@5;
 	};
 	typedef struct Rerror Rerror;
 	typedef struct Rerror Rread;
