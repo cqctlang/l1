@@ -155,6 +155,7 @@ ctlmux = @names clp64le {
 		@13;
 	};
 	typedef struct Rlaunch Rlaunch;
+	typedef struct Rlaunch Rattach;
 	typedef struct Rlaunch Rstop;
 	typedef struct Rlaunch Tsetregs;
 
@@ -170,7 +171,6 @@ ctlmux = @names clp64le {
 	typedef struct Rcont Rcont;
 	typedef struct Rcont Rwrite;
 	typedef struct Rcont Tattach;
-	typedef struct Rcont Rattach;
 	typedef struct Rcont Rclrbrk;
 	typedef struct Rcont Tkill;
 	typedef struct Rcont Rkill;
@@ -1207,7 +1207,7 @@ ctlmux = @names clp64le {
 
 	@define launch(args, flags)
 	{
-		@local narg, s, sz, i, p, q, ctl, rep;
+		@local narg, s, sz, i, p, q, ctl, rep, dat;
 
 		narg = length(args);
 		if(narg == 0)
@@ -1233,12 +1233,12 @@ ctlmux = @names clp64le {
 		sendmsg(fd, p, sz);
 		
 		/* wait for reply */
-		[rep, st] = runtiltag(p->tag);
+		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rlaunch);
 		ctl = mkctl(mux,
 			    rep->id,
 			    ctlmux`Stopped,
-			    (ctlmux`Reg*)st,
+			    (ctlmux`Reg*)dat,
 			    mktrapman(),
 			    [ : ]);
 		ctls[rep->id] = ctl;
@@ -1260,8 +1260,8 @@ ctlmux = @names clp64le {
 		// attach leaves the target running
 		ctl = mkctl(mux,
 			    rep->id,
-			    ctlmux`Running,
-			    (ctlmux`Reg*)malloc(sizeof(ctlmux`Reg)),
+			    ctlmux`Stopped,
+			    (ctlmux`Reg*)dat,
 			    mktrapman(),
 			    [ : ]);
 		ctls[rep->id] = ctl;
