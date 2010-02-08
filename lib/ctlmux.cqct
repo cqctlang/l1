@@ -129,7 +129,21 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rerror Rerror;
 	typedef struct Rerror Rread;
-	typedef struct Rerror Rstop;
+
+	struct Rstop {
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5;
+	};
+	typedef struct Rstop Rstop;
+	typedef struct Rstop Rcont;
+	typedef struct Rstop Rwrite;
+	typedef struct Rstop Rclrbrk;
+	typedef struct Rstop Rdetach;
+	typedef struct Rstop Rkill;
+	typedef struct Rstop Rsetregs;
+	typedef struct Rstop Rstep;
+	typedef struct Rstop Rtrace;
 
 	struct Tlaunch{
 		@0	uint8 op;
@@ -159,31 +173,23 @@ ctlmux = @names clp64le {
 	typedef struct Rlaunch Rattach;
 	typedef struct Rlaunch Tsetregs;
 
-	struct Rcont{
+	struct Tcont{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
 		@5	uint64 cnt;
 		@13;
 	};
-	typedef struct Rcont Tcont;
-	typedef struct Rcont Tstop;
-	typedef struct Rcont Rcont;
-	typedef struct Rcont Rwrite;
-	typedef struct Rcont Tattach;
-	typedef struct Rcont Rclrbrk;
-	typedef struct Rcont Tkill;
-	typedef struct Rcont Rkill;
-	typedef struct Rcont Rsetregs;
-	typedef struct Rcont Rtrace;
-	typedef struct Rcont Tcleave;
-	typedef struct Rcont Tdetach;
-	typedef struct Rcont Rdetach;
-	typedef struct Rcont Rtest;
-	typedef struct Rcont Tstep;
-	typedef struct Rcont Rstep;
-	typedef struct Rcont Aack;
-	typedef struct Rcont Tmap;
+	typedef struct Tcont Tcont;
+	typedef struct Tcont Tstop;
+	typedef struct Tcont Tattach;
+	typedef struct Tcont Tkill;
+	typedef struct Tcont Tcleave;
+	typedef struct Tcont Tdetach;
+	typedef struct Tcont Tstep;
+	typedef struct Tcont Tmap;
+	typedef struct Tcont Rtest;
+	typedef struct Tcont Aack;
 
 	struct Tsetbrk{
 		@0	uint8 op;
@@ -1190,7 +1196,7 @@ ctlmux = @names clp64le {
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rdetach);
 		ctl.state = ctlmux`Dead;
-		log("task %d has detached", rep->id);
+		log("task %d has detached", ctl.id);
 		tabdelete(ctls, ctl.id);
 	}
 
