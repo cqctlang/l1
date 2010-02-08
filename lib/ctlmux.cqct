@@ -129,6 +129,7 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rerror Rerror;
 	typedef struct Rerror Rread;
+	typedef struct Rerror Rstop;
 
 	struct Tlaunch{
 		@0	uint8 op;
@@ -156,7 +157,6 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rattach;
-	typedef struct Rlaunch Rstop;
 	typedef struct Rlaunch Tsetregs;
 
 	struct Rcont{
@@ -354,48 +354,46 @@ ctlmux = @names clp64le {
 {
 	@local xstop, xcont, xstep, detach, kill;
 	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
-	@local trapset, trapdel, trapreset, pending;
+	@local trapset, trapdel, trapreset;
 	@local this;
-
-	pending = nil;
 
 	@define xstop()
 	{
-		if(pending == nil)
+		if(this.pending == nil)
 			return mux.stop(this);
-		pending = "stop";
+		this.pending = "stop";
 		return nil;
 	}
 
 	@define xcont()
 	{
-		if(pending == nil)
+		if(this.pending == nil)
 			return mux.cont(this);
-		pending = "run";
+		this.pending = "run";
 		return nil;
 	}
 
 	@define xstep()
 	{
-		if(pending == nil)
+		if(this.pending == nil)
 			return mux.step(this);
-		pending = "step";
+		this.pending = "step";
 		return nil;
 	}
 	
 	@define detach()
 	{
-		if(pending == nil)
+		if(this.pending == nil)
 			mux.detach(this);
-		pending = "detach";
+		this.pending = "detach";
 		return nil;
 	}
 
 	@define kill()
 	{
-		if(pending == nil)
+		if(this.pending == nil)
 			mux.kill(this);
-		pending = "kill";
+		this.pending = "kill";
 		return nil;
 	}
 
@@ -844,11 +842,6 @@ ctlmux = @names clp64le {
 
 		ev = (ctlmux`Event)msg->flags;
 		switch(ev){
-		case ctlmux`Eexit:
-			ack(msg);
-			log("task %d has died", msg->id);
-			tabdelete(ctls, msg->id);
-			break;
 		case ctlmux`Etrap:
 			ack(msg);
 			dat = (ctlmux`Etrap*)dat;
@@ -889,7 +882,7 @@ ctlmux = @names clp64le {
 				       ctlmux`Stopped,
 				       cop(&dat->creg),
 				       ctl.traps.copy(),
-				       ctl.callbacks);
+				       copy(ctl.callbacks));
 			ctls[dat->cid] = newctl;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -899,6 +892,15 @@ ctlmux = @names clp64le {
 				contasync(ctl);
 				contasync(newctl);
 			}
+			break;
+		case ctlmux`Eexit:
+			ack(msg);
+			log("task %d has died", msg->id);
+			fn = ctl.callbacks[ev];
+			if(fn != nil)
+				// it's dead: nothing to control with docall 
+				fn(ctl);
+			tabdelete(ctls, msg->id);
 			break;
 		case ctlmux`Eexec:
 			ack(msg);
