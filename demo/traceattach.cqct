@@ -1,0 +1,37 @@
+@include <ctlmux.cqct>
+
+// test printlist
+@define test1()
+{
+	@local ctl, mux, ns, as, dom, ids;
+
+	ids = [];
+
+	ns = @names clp64le { @include "./attach.names" };
+	mux = mkctlmux_local();
+	ctl = mux.launch(["./attach"], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.trace(ctlmux`Efork,
+		  @lambda(ctl, spwn){
+			  append(ids, spwn.id);
+			  spwn.detach();
+		  });
+
+	dom.xtrap(&dom`dowait,
+		  @lambda(ctl){
+			  foreach(@lambda(id){
+					  @local ctl, dom;
+					  ctl = mux.attach(id);
+					  dom = mkdom(ns, ctl.mem());
+					  dom`f = 0;
+					  dom.detach();
+					  printf("cleared %d\n", id);
+				  }, ids);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+test1();

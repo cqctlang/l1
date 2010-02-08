@@ -2,7 +2,7 @@ CC        = gcc
 LD        = ld
 CFLAGS    = -Wall -g
 
-TARG = mclones32 clones forks list sig
+TARG = mclones32 clones forks list sig attach
 
 all: $(TARG)
 
@@ -29,6 +29,10 @@ list: list.o
 	dwarf2cqct < $@ > $@.names
 
 sig: sig.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+attach: attach.o
 	$(CC) $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 

@@ -8,10 +8,29 @@
 
 enum
 {
-	N = 5,
+	N = 10,
 };
 
-int
+static int f = 1;
+
+static void
+child(int i)
+{
+	while(f)
+		;
+	printf("%d released\n", getpid());
+	exit(0);
+}
+
+static void
+dowait()
+{
+	int i;
+	for(i = 0; i < N; i++)
+		waitpid(-1, 0, 0);
+}
+
+static void
 doit()
 {
 	int i, np;
@@ -20,13 +39,16 @@ doit()
 	for(i = 0; i < N; i++){
 		switch(fork()){
 		case 0:
-			return child(i);
+			child(i);
+			exit(-1);
 		case -1:
 			fprintf(stderr, "fork: %s\n", strerror(errno));
 			exit(1);
 		}
 		np++;
 	}
+	dowait();
+	printf("done!\n");
 }
 
 int
