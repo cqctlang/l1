@@ -203,8 +203,15 @@ ctlmux = @names clp64le {
 	typedef struct Tsetbrk Tsetbrk;
 	typedef struct Tsetbrk Tsetsnap;
 	typedef struct Tsetbrk Tclrbrk;
-	typedef struct Tsetbrk Rsetbrk;
-	typedef struct Tsetbrk Rsetsnap;
+
+	struct Rsetbrk{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 bp;
+		@13;
+	};
+	typedef struct Rsetbrk Rsetbrk;
+	typedef struct Rsetbrk Rclrbrk;
 
 	struct Rcleave{
 		@0	uint8 op;
