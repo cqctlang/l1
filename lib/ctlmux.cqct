@@ -832,6 +832,9 @@ ctlmux = @names clp64le {
 					case "step":
 						mux.step(ctl);
 						break;
+					case "detach":
+						mux.detach(ctl);
+						break;
 					default:
 						error("unexpected pending %a",
 						      p);
