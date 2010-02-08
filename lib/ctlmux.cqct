@@ -216,10 +216,8 @@ ctlmux = @names clp64le {
 	struct Rcleave{
 		@0	uint8 op;
 		@1	uint32 tag;
-		@5	uint64 id;
-		@13	uint64 bp;
-		@13	uint64 cid;
-		@21;
+		@5	uint64 cid;
+		@8;
 	};
 	typedef struct Rcleave Rcleave;
 
