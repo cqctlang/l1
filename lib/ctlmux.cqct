@@ -14,10 +14,10 @@ ctlmux = @names clp64le {
 		Rstop,
 		Tkill,
 		Rkill,
-		Tsetbrk,
-		Rsetbrk,
-		Tclrbrk,
-		Rclrbrk,
+		Tsettrap,
+		Rsettrap,
+		Tclrtrap,
+		Rclrtrap,
 		Tread,
 		Rread,
 		Tcleave,
@@ -26,8 +26,6 @@ ctlmux = @names clp64le {
 		Rwrite,
 		Tsetregs,
 		Rsetregs,
-		Tsetsnap,
-		Rsetsnap,
 		Tattach,
 		Rattach,
 		Ttest,
@@ -50,6 +48,12 @@ ctlmux = @names clp64le {
 		Running,
 		Stopped,
 		Dead,
+	};
+
+	enum Mode {
+		/* trap modes */
+		Mbrk	= 0,
+		Msnap	= 1,
 	};
 
 	enum Flags {
@@ -130,7 +134,7 @@ ctlmux = @names clp64le {
 	typedef struct Rstop Rstop;
 	typedef struct Rstop Rcont;
 	typedef struct Rstop Rwrite;
-	typedef struct Rstop Rclrbrk;
+	typedef struct Rstop Rclrtrap;
 	typedef struct Rstop Rdetach;
 	typedef struct Rstop Rkill;
 	typedef struct Rstop Rsetregs;
@@ -182,27 +186,30 @@ ctlmux = @names clp64le {
 	typedef struct Tcont Tmap;
 	typedef struct Tcont Rtest;
 
-	struct Tsetbrk{
+	struct Tsettrap{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13	uint64 bp;
-		@13     uint64 addr;
-		@13	uint64 cid;
-		@21;
-	};
-	typedef struct Tsetbrk Tsetbrk;
-	typedef struct Tsetbrk Tsetsnap;
-	typedef struct Tsetbrk Tclrbrk;
-
-	struct Rsetbrk{
-		@0	uint8 op;
-		@1	uint32 tag;
-		@5	uint64 bp;
 		@13;
 	};
-	typedef struct Rsetbrk Rsetbrk;
-	typedef struct Rsetbrk Rsetsnap;
+	typedef struct Tsettrap Tsettrap;
+
+	struct Tclrtrap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 tid;
+		@21;
+	};
+	typedef struct Tclrtrap Tclrtrap;
+
+	struct Rsettrap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 tid;
+		@13;
+	};
+	typedef struct Rsettrap Rsettrap;
 
 	struct Rcleave{
 		@0	uint8 op;
@@ -234,7 +241,7 @@ ctlmux = @names clp64le {
 	typedef struct Esyscall Eexec;
 
 	struct Etrap {
-		@0	uint64 bp;
+		@0	uint64 tid;
 		@0	uint64 sig;
 		@8	Reg reg;
 		@160;
@@ -243,7 +250,7 @@ ctlmux = @names clp64le {
 	typedef struct Etrap Esignal;
 
 	struct Esnap {
-		@0	uint64 bp;
+		@0	uint64 tid;
 		@8	uint64 cid;
 		@16	Reg reg;
 		@168;
@@ -411,31 +418,35 @@ ctlmux = @names clp64le {
 			return mux.trace(this, event|ctlmux`Eset);
 	}
 
-	@define trapset(addr, fn, snap)
+	@define trapset(addr, fn, mode)
 	{
 		@local tid, bp, kind;
-		if(snap){
-			bp = mux.setsnap(this, addr);
-			kind = "snap";
-		}else{
-			bp = mux.setbrk(this, addr);
+		bp = mux.settrap(this, mode, addr);
+		switch(mode){
+		case ctlmux`Mbrk:
 			kind = "brk";
+			break;
+		case ctlmux`Msnap:
+			kind = "snap";
+			break;
+		default:
+			error("unknown trap mode: %e", mode);
 		}
 		tid = traps.add(bp, fn, [kind, addr],
 				@lambda(){ 
-					mux.clrbrk(this, bp);
+					mux.clrtrap(this, bp);
 				});
 		return tid;
 	}
 
 	@define xtrap(addr, fn)
 	{
-		return trapset(addr, fn, 0);
+		return trapset(addr, fn, ctlmux`Mbrk);
 	}
 
 	@define xsnap(addr, fn)
 	{
-		return trapset(addr, fn, 1);
+		return trapset(addr, fn, ctlmux`Msnap);
 	}
 
 	@define xtraps()
@@ -571,9 +582,8 @@ ctlmux = @names clp64le {
 	pwrite,
 	pmap,
 	trace,
-	setbrk,
-	setsnap,
-	clrbrk,
+	settrap,
+	clrtrap,
 };
 
 @define mkctlmux_local()
@@ -602,7 +612,7 @@ ctlmux = @names clp64le {
 	@local stop, step, detach, kill;
 	@local pread, pwrite, pmap;
 	@local trace, fmtmsg, buf2msg;
-	@local setbrk, setsnap, clrbrk;
+	@local settrap, clrtrap;
 	@local aborted;
 
 	aborted = 0;
@@ -695,14 +705,14 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tdetach*)p;
 		case ctlmux`Rdetach:
 			return (ctlmux`Rdetach*)p;
-		case ctlmux`Tsetbrk:
-			return (ctlmux`Tsetbrk*)p;
-		case ctlmux`Rsetbrk:
-			return (ctlmux`Rsetbrk*)p;
-		case ctlmux`Tclrbrk:
-			return (ctlmux`Tclrbrk*)p;
-		case ctlmux`Rclrbrk:
-			return (ctlmux`Rclrbrk*)p;
+		case ctlmux`Tsettrap:
+			return (ctlmux`Tsettrap*)p;
+		case ctlmux`Rsettrap:
+			return (ctlmux`Rsettrap*)p;
+		case ctlmux`Tclrtrap:
+			return (ctlmux`Tclrtrap*)p;
+		case ctlmux`Rclrtrap:
+			return (ctlmux`Rclrtrap*)p;
 		case ctlmux`Tread:
 			return (ctlmux`Tread*)p;
 		case ctlmux`Rread:
@@ -719,10 +729,6 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tsetregs*)p;
 		case ctlmux`Rsetregs:
 			return (ctlmux`Rsetregs*)p;
-		case ctlmux`Tsetsnap:
-			return (ctlmux`Tsetsnap*)p;
-		case ctlmux`Rsetsnap:
-			return (ctlmux`Rsetsnap*)p;
 		case ctlmux`Tattach:
 			return (ctlmux`Tattach*)p;
 		case ctlmux`Rattach:
@@ -836,10 +842,10 @@ ctlmux = @names clp64le {
 		switch(ev){
 		case ctlmux`Etrap:
 			dat = (ctlmux`Etrap*)dat;
-			trap = ctl.traps.look(dat->bp);
+			trap = ctl.traps.look(dat->tid);
 			if(trap == nil)
-				error("ctl %d has no trap for bpid %d",
-				      ctl.id, dat->bp);
+				error("ctl %d has no trap for tid %d",
+				      ctl.id, dat->tid);
 			if(trap.desc[0] == "brk"){
 				ctl.state = ctlmux`Stopped;
 				ctl.setreg(cop(&dat->reg));
@@ -985,46 +991,35 @@ ctlmux = @names clp64le {
 		return [msg, dat];
 	}
 
-	@define clrbrk(ctl, bp)
+	@define clrtrap(ctl, tid)
 	{
 		@local p, rep, dat;
-		p = (ctlmux`Tclrbrk*)malloc(sizeof(ctlmux`Tclrbrk));
-		p->op = ctlmux`Tclrbrk;
+		p = (ctlmux`Tclrtrap*)malloc(sizeof(ctlmux`Tclrtrap));
+		p->op = ctlmux`Tclrtrap;
 		p->tag = freshtag();
 		p->id = ctl.id;
-		p->bp = bp;
+		p->tid = tid;
 		sendmsg(fd, p);
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rclrbrk);
+		checkreply(rep, ctlmux`Rclrtrap);
 		return nil;
 	}
 
-	@define setbrk(ctl, addr)
+	@define settrap(ctl, mode, addr)
 	{
-		@local p, rep, dat, clear;
-		p = (ctlmux`Tsetbrk*)malloc(sizeof(ctlmux`Tsetbrk));
-		p->op = ctlmux`Tsetbrk;
+		@local p, rep, dat, clear, sz, q;
+		sz = sizeof(ctlmux`Tsettrap)+2*sizeof(ctlmux`uint64);
+		p = (ctlmux`Tsettrap*)malloc(sz);
+		p->op = ctlmux`Tsettrap;
 		p->tag = freshtag();
 		p->id = ctl.id;
-		p->addr = addr;
-		sendmsg(fd, p);
+		q = (ctlmux`uint64*)(p+1);
+		*q++ = mode;
+		*q++ = addr;
+		sendmsg(fd, p, sz);
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rsetbrk);
-		return rep->bp;
-	}
-
-	@define setsnap(ctl, addr)
-	{
-		@local p, rep, dat, clear;
-		p = (ctlmux`Tsetsnap*)malloc(sizeof(ctlmux`Tsetsnap));
-		p->op = ctlmux`Tsetsnap;
-		p->tag = freshtag();
-		p->id = ctl.id;
-		p->addr = addr;
-		sendmsg(fd, p);
-		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rsetsnap);
-		return rep->bp;
+		checkreply(rep, ctlmux`Rsettrap);
+		return rep->tid;
 	}
 
 	@define trace(ctl, flags)
@@ -1287,8 +1282,7 @@ ctlmux = @names clp64le {
 		     pwrite,
 		     pmap,
 		     trace,
-		     setbrk,
-		     setsnap,
-		     clrbrk);
+		     settrap,
+		     clrtrap);
 	return mux;
 }
