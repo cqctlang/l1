@@ -4,45 +4,43 @@
 ctlmux = @names clp64le {
 	enum Mkind {
 		Reserved0 = 0,
-		Rerror,
+		Rerror, 
 		Reserved2,
 		Aevent,
+		Tversion,
+		Rversion,
+		Tping,
+		Rping,
 		Tlaunch,
 		Rlaunch,
+		Tattach,
+		Rattach,
+		Tstat,
+		Rstat,
 		Tcont,
 		Rcont,
 		Tstop,
 		Rstop,
+		Tstep,
+		Rstep,
+		Tsnap,
+		Rsnap,
 		Tkill,
 		Rkill,
+		Tdetach,
+		Rdetach,
+		Ttrace,
+		Rtrace,
 		Tsettrap,
 		Rsettrap,
 		Tclrtrap,
 		Rclrtrap,
-		Tread,
-		Rread,
-		Tcleave,
-		Rcleave,
-		Twrite,
-		Rwrite,
 		Tsetregs,
 		Rsetregs,
-		Tattach,
-		Rattach,
-		Ttest,
-		Rtest,
-		Tstep,
-		Rstep,
-		Tfread,
-		Rfread,
-		Tfwrite,
-		Rfwrite,
-		Ttrace,
-		Rtrace,
-		Tdetach,
-		Rdetach,
-		Tmap,
-		Rmap,
+		Tread,
+		Rread,
+		Twrite,
+		Rwrite,
 	};
 
 	enum State {
@@ -124,6 +122,8 @@ ctlmux = @names clp64le {
 		@5	char bytes[0];
 		@5;
 	};
+	typedef struct Rerror Tversion;
+	typedef struct Rerror Rversion;
 	typedef struct Rerror Rerror;
 	typedef struct Rerror Rread;
 
@@ -134,7 +134,6 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rstop Rstop;
 	typedef struct Rstop Rcont;
-	typedef struct Rstop Rwrite;
 	typedef struct Rstop Rclrtrap;
 	typedef struct Rstop Rdetach;
 	typedef struct Rstop Rkill;
@@ -181,12 +180,13 @@ ctlmux = @names clp64le {
 	typedef struct Tcont Tstop;
 	typedef struct Tcont Tattach;
 	typedef struct Tcont Tkill;
-	typedef struct Tcont Tcleave;
+	typedef struct Tcont Tsnap;
 	typedef struct Tcont Tdetach;
 	typedef struct Tcont Tstep;
-	typedef struct Tcont Tmap;
-	typedef struct Tcont Rtest;
-
+	typedef struct Tcont Tstat;
+	typedef struct Tcont Rwrite;
+	typedef struct Tcont Rping;
+	
 	struct Tsettrap{
 		@0	uint8 op;
 		@1	uint32 tag;
@@ -212,13 +212,13 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rsettrap Rsettrap;
 
-	struct Rcleave{
+	struct Rsnap{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 cid;
 		@8;
 	};
-	typedef struct Rcleave Rcleave;
+	typedef struct Rsnap Rsnap;
 
 	struct Aevent{
 		@0	uint8 op;
@@ -271,9 +271,10 @@ ctlmux = @names clp64le {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13     uint64 addr;
-		@21	uint64 cnt;
-		@29;
+		@13	uint64 fd;
+		@21     uint64 addr;
+		@29	uint64 cnt;
+		@37;
 	};
 	typedef struct Tread Tread;
 
@@ -281,59 +282,21 @@ ctlmux = @names clp64le {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13     uint64 addr;
-		@21	char bytes[0];
-		@21;
-	};
-	typedef struct Twrite Twrite;
-
-	struct Tfread{
-		@0	uint8 op;
-		@1	uint32 tag;
-		@5	uint64 id;
 		@13	uint64 fd;
-		@21	uint64 cnt;
+		@21     uint64 addr;
 		@29	char bytes[0];
 		@29;
 	};
-	typedef struct Tfread Tfread;
+	typedef struct Twrite Twrite;
 
-	struct Tfwrite{
-		@0	uint8 op;
-		@1	uint32 tag;
-		@5	uint64 id;
-		@13	uint64 fd;
-		@21	char bytes[0];
-		@21;
-	};
-	typedef struct Tfwrite Tfwrite;
-
-	struct Rfread{
-		@0	uint8 op;
-		@1	uint32 tag;
-		@5	uint64 id;
-		@13	char bytes[0];
-		@13;
-	};
-	typedef struct Rfread Rfread;
-
-	struct Rfwrite{
-		@0	uint8 op;
-		@1	uint32 tag;
-		@5	uint64 id;
-		@13	uint64 cnt;
-		@21;
-	};
-	typedef struct Rfwrite Rfwrite;
-
-	struct Rmap{
+	struct Rstat{
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	char bytes[0];
 		@5;
 	};	
-	typedef struct Rmap Rmap;
-	typedef struct Rmap Ttest;
+	typedef struct Rstat Rmap;
+	typedef struct Rstat Tping;
 };
 
 @record ctlrec {
@@ -614,8 +577,9 @@ ctlmux = @names clp64le {
 	@local pread, pwrite, pmap;
 	@local trace, fmtmsg, buf2msg;
 	@local settrap, clrtrap;
-	@local aborted;
+	@local aborted, version, ping;
 
+	verbose = 0;
 	aborted = 0;
 	nexttag = 0;
 	freetags = [ ];
@@ -634,7 +598,6 @@ ctlmux = @names clp64le {
 		push(freetags, tag);
 	}
 
-	verbose = 0;
 	@define logsend(s)
 	{
 		if(verbose)
@@ -686,6 +649,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Aevent*)p;
 		case ctlmux`Rerror:
 			return (ctlmux`Rerror*)p;
+		case ctlmux`Tversion:
+			return (ctlmux`Tversion*)p;
+		case ctlmux`Rversion:
+			return (ctlmux`Rversion*)p;
 		case ctlmux`Tlaunch:
 			return (ctlmux`Tlaunch*)p;
 		case ctlmux`Rlaunch:
@@ -718,10 +685,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tread*)p;
 		case ctlmux`Rread:
 			return (ctlmux`Rread*)p;
-		case ctlmux`Tcleave:
-			return (ctlmux`Tcleave*)p;
-		case ctlmux`Rcleave:
-			return (ctlmux`Rcleave*)p;
+		case ctlmux`Tsnap:
+			return (ctlmux`Tsnap*)p;
+		case ctlmux`Rsnap:
+			return (ctlmux`Rsnap*)p;
 		case ctlmux`Twrite:
 			return (ctlmux`Twrite*)p;
 		case ctlmux`Rwrite:
@@ -734,30 +701,22 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tattach*)p;
 		case ctlmux`Rattach:
 			return (ctlmux`Rattach*)p;
-		case ctlmux`Ttest:
-			return (ctlmux`Ttest*)p;
-		case ctlmux`Rtest:
-			return (ctlmux`Rtest*)p;
+		case ctlmux`Tping:
+			return (ctlmux`Tping*)p;
+		case ctlmux`Rping:
+			return (ctlmux`Rping*)p;
 		case ctlmux`Tstep:
 			return (ctlmux`Tstep*)p;
 		case ctlmux`Rstep:
 			return (ctlmux`Rstep*)p;
-		case ctlmux`Tfread:
-			return (ctlmux`Tfread*)p;
-		case ctlmux`Rfread:
-			return (ctlmux`Rfread*)p;
-		case ctlmux`Tfwrite:
-			return (ctlmux`Tfwrite*)p;
-		case ctlmux`Rfwrite:
-			return (ctlmux`Rfwrite*)p;
 		case ctlmux`Ttrace:
 			return (ctlmux`Ttrace*)p;
 		case ctlmux`Rtrace:
 			return (ctlmux`Rtrace*)p;
-		case ctlmux`Tmap:
-			return (ctlmux`Tmap*)p;
-		case ctlmux`Rmap:
-			return (ctlmux`Rmap*)p;
+		case ctlmux`Tstat:
+			return (ctlmux`Tstat*)p;
+		case ctlmux`Rstat:
+			return (ctlmux`Rstat*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -801,7 +760,7 @@ ctlmux = @names clp64le {
 			      (ctlmux`Event)msg->flags,
 			      msg->id);
 		if((enum ctlmux`Mkind)msg->op != ctlmux`Aevent)
-			error("cltmux: unhandled message %e",
+			error("ctlmux: unhandled message %e",
 			      (enum ctlmux`Mkind)msg->op);
 
 		@define docall(ctls, thunk)
@@ -1045,6 +1004,7 @@ ctlmux = @names clp64le {
 		p->op = ctlmux`Tread;
 		p->tag = freshtag();
 		p->id = ctl.id;
+		p->fd = -1;
 		p->addr = addr;
 		p->cnt = cnt;
 		sendmsg(fd, p);
@@ -1063,6 +1023,7 @@ ctlmux = @names clp64le {
 		p->op = ctlmux`Twrite;
 		p->tag = freshtag();
 		p->id = ctl.id;
+		p->fd = -1;
 		p->addr = addr;
 		putbytes(p+1, bytes);
 		sendmsg(fd, p, sz);
@@ -1076,14 +1037,14 @@ ctlmux = @names clp64le {
 	{
 		@local p, rep, dat;
 
-		p = (ctlmux`Tmap*)malloc(sizeof(ctlmux`Tmap));
-		p->op = ctlmux`Tmap;
+		p = (ctlmux`Tstat*)malloc(sizeof(ctlmux`Tstat));
+		p->op = ctlmux`Tstat;
 		p->tag = freshtag();
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rmap);
+		checkreply(rep, ctlmux`Rstat);
 		return [length(dat)/sizeof(ctlmux`Region), (ctlmux`Region*)dat];
 	}
 
@@ -1244,7 +1205,6 @@ ctlmux = @names clp64le {
 
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rattach);
-		// attach leaves the target running
 		ctl = mkctl(mux,
 			    rep->id,
 			    ctlmux`Stopped,
@@ -1253,6 +1213,46 @@ ctlmux = @names clp64le {
 			    [ : ]);
 		ctls[rep->id] = ctl;
 		return ctl;
+	}
+
+	@define version()
+	{
+		@local p, rep, dat, sz, version, os, s;
+		
+		version = "prctl-2010:x86-linux-2010,x86-win-2010";
+
+		sz = sizeof(ctlmux`Tversion)+strlen(version)+1;
+		p = (ctlmux`Tversion*)malloc(sz);
+		p->op = ctlmux`Tversion;
+		p->tag = freshtag();
+		putbytes(p+1, version);
+		sendmsg(fd, p, sz);
+
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rversion);
+		s = split(dat, ":");
+		if(length(s) != 2)
+			error("unknown remote prctl version: %s", dat);
+		os = s[1];
+		os = substr(os, 0, strlen(os)); /* chop NUL */
+	}
+
+	@define ping(cnt)
+	{
+		@local p, rep, dat, sz;
+		
+		sz = sizeof(ctlmux`Tping)+cnt;
+		p = (ctlmux`Tversion*)malloc(sz);
+		p->op = ctlmux`Tping;
+		p->tag = freshtag();
+		sendmsg(fd, p, sz);
+
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rping);
+		if(rep->cnt != cnt)
+			error("ping reply acknowledged %d bytes, not %d",
+			      rep->cnt, cnt);
+		printf("prctl ping: %d bytes\n", cnt);
 	}
 
 	@define abort()
@@ -1270,6 +1270,7 @@ ctlmux = @names clp64le {
 		return nil;
 	}
 
+	version();
 	mux = muxrec(launch,
 		     attach,
 		     run,
