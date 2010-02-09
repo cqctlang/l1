@@ -3,9 +3,10 @@
 
 ctlmux = @names clp64le {
 	enum Mkind {
-		Rerror = 0,
+		Reserved0 = 0,
+		Rerror,
+		Reserved2,
 		Aevent,
-		Reserved,
 		Tlaunch,
 		Rlaunch,
 		Tcont,
