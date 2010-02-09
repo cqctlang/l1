@@ -6,12 +6,14 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-enum
+enum X
 {
 	N = 5,
 	M = 10000000,
 };
 
+
+enum X dummy; /* so dwarf2cqct sees the enum */
 int p[N];
 
 static void
