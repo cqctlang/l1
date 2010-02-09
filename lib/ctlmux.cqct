@@ -4,53 +4,45 @@
 ctlmux = @names clp64le {
 	enum Mkind {
 		Rerror = 0,
+		Aevent,
+		Reserved,
 		Tlaunch,
 		Rlaunch,
 		Tcont,
 		Rcont,
-
 		Tstop,
 		Rstop,
 		Tkill,
 		Rkill,
 		Tsetbrk,
-
 		Rsetbrk,
 		Tclrbrk,
 		Rclrbrk,
 		Tread,
 		Rread,
-
-		Aack,
 		Tcleave,
 		Rcleave,
 		Twrite,
 		Rwrite,
-
 		Tsetregs,
 		Rsetregs,
 		Tsetsnap,
 		Rsetsnap,
 		Tattach,
-
 		Rattach,
 		Ttest,
 		Rtest,
 		Tstep,
 		Rstep,
-
 		Tfread,
 		Rfread,
 		Tfwrite,
 		Rfwrite,
 		Ttrace,
-
 		Rtrace,
-		Aevent,
 		Tdetach,
 		Rdetach,
 		Tmap,
-
 		Rmap,
 	};
 
@@ -189,7 +181,6 @@ ctlmux = @names clp64le {
 	typedef struct Tcont Tstep;
 	typedef struct Tcont Tmap;
 	typedef struct Tcont Rtest;
-	typedef struct Tcont Aack;
 
 	struct Tsetbrk{
 		@0	uint8 op;
@@ -793,16 +784,6 @@ ctlmux = @names clp64le {
 		write(fd, getbytes(p, sz));
 	}
 
-	@define ack(msg)
-	{
-		@local p;
-		p = (ctlmux`Aack*)malloc(sizeof(ctlmux`Aack));
-		p->op = ctlmux`Aack;
-		p->tag = msg->tag;
-		p->id = msg->id;
-		sendmsg(fd, p);
-	}
-
 	@define handleasync(msg, dat)
 	{
 		@local ctl, newctl, trap, ev, fn, docall;
@@ -854,7 +835,6 @@ ctlmux = @names clp64le {
 		ev = (ctlmux`Event)msg->flags;
 		switch(ev){
 		case ctlmux`Etrap:
-			ack(msg);
 			dat = (ctlmux`Etrap*)dat;
 			trap = ctl.traps.look(dat->bp);
 			if(trap == nil)
@@ -880,7 +860,6 @@ ctlmux = @names clp64le {
 			break;
 		case ctlmux`Eclone:
 		case ctlmux`Efork:
-			ack(msg);
 			dat = (ctlmux`Efork*)dat;
 			log("task %d has %s %d",
 			    msg->id,
@@ -905,7 +884,6 @@ ctlmux = @names clp64le {
 			}
 			break;
 		case ctlmux`Eexit:
-			ack(msg);
 			log("task %d has died", msg->id);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -914,7 +892,6 @@ ctlmux = @names clp64le {
 			tabdelete(ctls, msg->id);
 			break;
 		case ctlmux`Eexec:
-			ack(msg);
 			dat = (ctlmux`Eexec*)dat;
 			ctl.state = ctlmux`Stopped;
 //			ctl.setreg(cop(&dat->reg));
@@ -926,7 +903,6 @@ ctlmux = @names clp64le {
 				contasync(ctl);
 			break;
 		case ctlmux`Esyscall:
-			ack(msg);
 			dat = (ctlmux`Esyscall*)dat;
 			ctl.state = ctlmux`Stopped;
 			ctl.setreg(cop(&dat->reg));
@@ -940,7 +916,6 @@ ctlmux = @names clp64le {
 				contasync(ctl);
 			break;
 		case ctlmux`Esignal:
-			ack(msg);
 			dat = (ctlmux`Esignal*)dat;
 			ctl.state = ctlmux`Stopped;
 			fn = ctl.callbacks[ev];
