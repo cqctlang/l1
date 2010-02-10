@@ -307,7 +307,7 @@ ctlmux = @names clp64le {
 		@5	char bytes[0];
 		@5;
 	};	
-	typedef struct Rstat Rmap;
+	typedef struct Rstat Rstat;
 	typedef struct Rstat Tping;
 };
 
@@ -488,10 +488,9 @@ ctlmux = @names clp64le {
 
 		@define map(as)
 		{
-			@local prot2str;
 			@local n, rs, i;
 
-			[n, rs] = mux.pmap(ctl);
+			[n, rs] = mux.pmap(this);
 			for(i = 0; i < n; i++){
 				printf("%016x %016x %s %s\n",
 				       rs[i].addr,
