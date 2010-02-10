@@ -35,8 +35,10 @@ ctlmux = @names clp64le {
 		Rsettrap,
 		Tclrtrap,
 		Rclrtrap,
-		Tsetregs,
-		Rsetregs,
+		Tgetctx,
+		Rgetctx,
+		Tsetctx,
+		Rsetctx,
 		Tread,
 		Rread,
 		Twrite,
@@ -145,9 +147,10 @@ ctlmux = @names clp64le {
 	typedef struct Rstop Rclrtrap;
 	typedef struct Rstop Rdetach;
 	typedef struct Rstop Rkill;
-	typedef struct Rstop Rsetregs;
+	typedef struct Rstop Rsetctx;
 	typedef struct Rstop Rstep;
 	typedef struct Rstop Rtrace;
+	typedef struct Rstop Rgetctx;
 
 	struct Tlaunch{
 		@0	uint8 op;
@@ -175,7 +178,7 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rattach;
-	typedef struct Rlaunch Tsetregs;
+	typedef struct Rlaunch Tsetctx;
 
 	struct Tcont{
 		@0	uint8 op;
@@ -194,6 +197,7 @@ ctlmux = @names clp64le {
 	typedef struct Tcont Tstat;
 	typedef struct Tcont Rwrite;
 	typedef struct Tcont Rping;
+	typedef struct Tcont Tgetctx;
 	
 	struct Tsettrap{
 		@0	uint8 op;
@@ -701,10 +705,14 @@ ctlmux = @names clp64le {
 			return (ctlmux`Twrite*)p;
 		case ctlmux`Rwrite:
 			return (ctlmux`Rwrite*)p;
-		case ctlmux`Tsetregs:
-			return (ctlmux`Tsetregs*)p;
-		case ctlmux`Rsetregs:
-			return (ctlmux`Rsetregs*)p;
+		case ctlmux`Tgetctx:
+			return (ctlmux`Tgetctx*)p;
+		case ctlmux`Rgetctx:
+			return (ctlmux`Rgetctx*)p;
+		case ctlmux`Tsetctx:
+			return (ctlmux`Tsetctx*)p;
+		case ctlmux`Rsetctx:
+			return (ctlmux`Rsetctx*)p;
 		case ctlmux`Tattach:
 			return (ctlmux`Tattach*)p;
 		case ctlmux`Rattach:
@@ -1244,7 +1252,6 @@ ctlmux = @names clp64le {
 			error("unknown remote prctl version: %s", dat);
 		os = s[1];
 		os = substr(os, 0, strlen(os)); /* chop NUL */
-		printf("version: msize=%d\n", rep->msize);
 	}
 
 	@define ping(cnt)
