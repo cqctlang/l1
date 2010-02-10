@@ -115,6 +115,16 @@ ctlmux = @names clp64le {
 		@0x118;
 	} Region;
 
+	struct Tversion{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 msize;
+		@13	char bytes[0];
+		@13;
+	};
+	typedef struct Tversion Tversion;
+	typedef struct Tversion Rversion;
+
 	struct Rerror{
 		@0	uint8 op;
 		@1	uint32 tag;
@@ -122,8 +132,6 @@ ctlmux = @names clp64le {
 		@5	char bytes[0];
 		@5;
 	};
-	typedef struct Rerror Tversion;
-	typedef struct Rerror Rversion;
 	typedef struct Rerror Rerror;
 	typedef struct Rerror Rread;
 
@@ -1225,6 +1233,7 @@ ctlmux = @names clp64le {
 		p = (ctlmux`Tversion*)malloc(sz);
 		p->op = ctlmux`Tversion;
 		p->tag = freshtag();
+		p->msize = 32000; /* arbitrary */
 		putbytes(p+1, version);
 		sendmsg(fd, p, sz);
 
@@ -1235,6 +1244,7 @@ ctlmux = @names clp64le {
 			error("unknown remote prctl version: %s", dat);
 		os = s[1];
 		os = substr(os, 0, strlen(os)); /* chop NUL */
+		printf("version: msize=%d\n", rep->msize);
 	}
 
 	@define ping(cnt)
