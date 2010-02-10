@@ -155,10 +155,8 @@ ctlmux = @names clp64le {
 	struct Tlaunch{
 		@0	uint8 op;
 		@1	uint32 tag;
-		@5	uint64 flags;
-		@13	uint64 narg;
-		@21;
-	};
+		@5;
+	}; 
 	typedef struct Tlaunch Tlaunch;
 
 	struct Ttrace{
@@ -1180,16 +1178,19 @@ ctlmux = @names clp64le {
 
 		/* format and send Tlaunch */
 		sz = sizeof(ctlmux`Tlaunch);
+		sz += sizeof(ctlmux`uint64); /* flags */
+		sz += sizeof(ctlmux`uint64); /* narg */
 		for(i = 0; i < narg; i++)
-			sz += strlen(listref(args, i))+1;
+			sz += strlen(args[i])+1; /* argv[i] */
 		p = (ctlmux`Tlaunch*)malloc(sz);
 		p->op = ctlmux`Tlaunch;
 		p->tag = freshtag();
-		p->flags = flags;
-		p->narg = narg;
-		q = (char*)(p+1);
+		q = (ctlmux`uint64*)(p+1);
+		*q++ = flags;
+		*q = narg;
+		q = (char*)(q+1);
 		for(i = 0; i < narg; i++){
-			s = listref(args, i);
+			s = args[i];
 			putbytes(q, s);
 			q += strlen(s)+1;
 		}
