@@ -313,6 +313,13 @@ ctlmux = @names clp64le {
 	typedef struct Rstat Tping;
 };
 
+@record region {
+	file,
+	addr,
+	len,
+	flags,
+};
+
 @record ctlrec {
 	id,
 	xstop,
@@ -492,7 +499,8 @@ ctlmux = @names clp64le {
 		{
 			@local n, rs, i;
 
-			[n, rs] = mux.pmap(this);
+			rs = mux.pmap(this);
+			n = length(rs);
 			for(i = 0; i < n; i++){
 				printf("%016x %016x %s %s\n",
 				       rs[i].addr,
@@ -1057,7 +1065,7 @@ ctlmux = @names clp64le {
 
 	@define pmap(ctl)
 	{
-		@local p, rep, dat;
+		@local p, rep, dat, q, i, m, sz, rs, file, addr, len, flags;
 
 		p = (ctlmux`Tstat*)malloc(sizeof(ctlmux`Tstat));
 		p->op = ctlmux`Tstat;
@@ -1067,7 +1075,20 @@ ctlmux = @names clp64le {
 
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rstat);
-		return [length(dat)/sizeof(ctlmux`Region), (ctlmux`Region*)dat];
+
+		rs = [];
+		q = (ctlmux`uint64*)dat;
+		m = *q++;
+		for(i = 0; i < m; i++){
+			sz = *q++;
+			file = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			addr = *q++;
+			len = *q++;
+			flags = *q++;
+			append(rs, region(file, addr, len, flags));
+		}
+		return rs;
 	}
 
 	@define contasync(ctl)
