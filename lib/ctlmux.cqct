@@ -1237,7 +1237,7 @@ ctlmux = @names clp64le {
 		
 		version = "prctl-2010:x86-linux-2010,x86-win-2010";
 
-		sz = sizeof(ctlmux`Tversion)+strlen(version)+1;
+		sz = sizeof(ctlmux`Tversion)+strlen(version);
 		p = (ctlmux`Tversion*)malloc(sz);
 		p->op = ctlmux`Tversion;
 		p->tag = freshtag();
