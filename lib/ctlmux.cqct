@@ -11,6 +11,8 @@ ctlmux = @names clp64le {
 		Rversion,
 		Tping,
 		Rping,
+		Tps,
+		Rps,
 		Tlaunch,
 		Rlaunch,
 		Tattach,
@@ -158,6 +160,8 @@ ctlmux = @names clp64le {
 		@5;
 	}; 
 	typedef struct Tlaunch Tlaunch;
+	typedef struct Tlaunch Tps;
+	typedef struct Tlaunch Rps;
 
 	struct Ttrace{
 		@0	uint8 op;
@@ -541,6 +545,7 @@ ctlmux = @names clp64le {
 }
 
 @record muxrec {
+	ps,
 	launch,
 	attach,
 	run,
@@ -586,7 +591,7 @@ ctlmux = @names clp64le {
 	@local pread, pwrite, pmap;
 	@local trace, fmtmsg, buf2msg;
 	@local settrap, clrtrap;
-	@local aborted, version, ping;
+	@local aborted, version, ping, ps;
 
 	verbose = 0;
 	aborted = 0;
@@ -662,6 +667,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tversion*)p;
 		case ctlmux`Rversion:
 			return (ctlmux`Rversion*)p;
+		case ctlmux`Tps:
+			return (ctlmux`Tps*)p;
+		case ctlmux`Rps:
+			return (ctlmux`Rps*)p;
 		case ctlmux`Tlaunch:
 			return (ctlmux`Tlaunch*)p;
 		case ctlmux`Rlaunch:
@@ -1259,7 +1268,7 @@ ctlmux = @names clp64le {
 		@local p, rep, dat, sz;
 		
 		sz = sizeof(ctlmux`Tping)+cnt;
-		p = (ctlmux`Tversion*)malloc(sz);
+		p = (ctlmux`Tping*)malloc(sz);
 		p->op = ctlmux`Tping;
 		p->tag = freshtag();
 		sendmsg(fd, p, sz);
@@ -1270,6 +1279,35 @@ ctlmux = @names clp64le {
 			error("ping reply acknowledged %d bytes, not %d",
 			      rep->cnt, cnt);
 		printf("prctl ping: %d bytes\n", cnt);
+	}
+
+	@define ps()
+	{
+		@local p, rep, dat, sz, i, j, np, nt, q, pid, tid, cmd;
+		
+		sz = sizeof(ctlmux`Tps);
+		p = (ctlmux`Tps*)malloc(sz);
+		p->op = ctlmux`Tps;
+		p->tag = freshtag();
+		sendmsg(fd, p, sz);
+
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rps);
+		q = (ctlmux`uint64*)dat;
+		np = *q++;
+		for(i = 0; i < np; i++){
+			pid = *q++;
+			sz = *q++;
+			cmd = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			printf("\t%5d\t%s", pid, cmd);
+			nt = *q++;
+			for(j = 0; j < nt; j++){
+				tid = *q++;
+				printf(" %5d", tid);
+			}
+			printf("\n");
+		}
 	}
 
 	@define abort()
@@ -1288,7 +1326,8 @@ ctlmux = @names clp64le {
 	}
 
 	version();
-	mux = muxrec(launch,
+	mux = muxrec(ps,
+		     launch,
 		     attach,
 		     run,
 		     abort,
