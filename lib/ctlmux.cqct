@@ -1076,6 +1076,7 @@ ctlmux = @names clp64le {
 
 		rs = [];
 		q = (ctlmux`uint64*)dat;
+		q++; /* skip pid */
 		m = *q++;
 		for(i = 0; i < m; i++){
 			sz = *q++;
