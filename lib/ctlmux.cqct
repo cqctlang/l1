@@ -122,9 +122,7 @@ ctlmux = @names clp64le {
 	struct Tversion{
 		@0	uint8 op;
 		@1	uint32 tag;
-		@5	uint64 msize;
-		@13	char bytes[0];
-		@13;
+		@5;
 	};
 	typedef struct Tversion Tversion;
 	typedef struct Tversion Rversion;
@@ -1271,7 +1269,6 @@ ctlmux = @names clp64le {
 		p = (ctlmux`Tversion*)malloc(sz);
 		p->op = ctlmux`Tversion;
 		p->tag = freshtag();
-		p->msize = 32000; /* arbitrary */
 		putbytes(p+1, version);
 		sendmsg(fd, p, sz);
 
