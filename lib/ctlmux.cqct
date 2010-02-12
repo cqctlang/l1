@@ -1302,7 +1302,8 @@ ctlmux = @names clp64le {
 	@define ps()
 	{
 		@local p, rep, dat, sz, i, j, np, nt, q, pid, tid, cmd;
-		
+		@local proc, rv;
+
 		sz = sizeof(ctlmux`Tps);
 		p = (ctlmux`Tps*)malloc(sz);
 		p->op = ctlmux`Tps;
@@ -1313,19 +1314,26 @@ ctlmux = @names clp64le {
 		checkreply(rep, ctlmux`Rps);
 		q = (ctlmux`uint64*)dat;
 		np = *q++;
+		rv = [];
 		for(i = 0; i < np; i++){
+			proc = [];
 			pid = *q++;
+			append(proc, pid);
 			sz = *q++;
 			cmd = getbytes(q, sz);
+			append(proc, cmd);
 			q = (ctlmux`uint64*)((char*)q+sz);
 			printf("\t%5d\t%s", pid, cmd);
 			nt = *q++;
 			for(j = 0; j < nt; j++){
 				tid = *q++;
+				append(proc, tid);
 				printf(" %5d", tid);
 			}
+			append(rv, proc);
 			printf("\n");
 		}
+		return rv;
 	}
 
 	@define abort()
