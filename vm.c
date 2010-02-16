@@ -7262,7 +7262,7 @@ stringof(VM *vm, Cval *cv)
 	v = callmap(vm, cv->dom->as);
 	r = mapstab(vm, v, cv->val, 0);	/* FIXME: type sanity */
 	if(r == 0)
-		vmerr(vm, "out-of-bounds address space access");
+		vmerr(vm, "address space access out of bounds");
 
 	l = 0;
 	m = r->beg->val+r->len->val-cv->val;
