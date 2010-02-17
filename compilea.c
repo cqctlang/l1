@@ -266,7 +266,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
 					 Zcall(G("cntrget"), 2,
 					       doid("$a"), doid("$i")),
-					 Zuint(1))),
+					 Zint(1))),
 			    NULL);
 		putsrc(te, &e->src);
 		e->e1->e1 = 0;
@@ -294,7 +294,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 				  doid("$a"),
 				  doid("$i"),
 				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
-					 doid("$l"), Zuint(1))),
+					 doid("$l"), Zint(1))),
 			    doid("$l"),
 			    NULL);
 		putsrc(te, &e->src);
@@ -474,7 +474,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 							   1, doid("$rd")),
 						     Zconsts(id)), 1,
 					       doid("$o")),
-					 Zuint(1))),
+					 Zint(1))),
 			    NULL);
 		putsrc(te, &e->src);
 		e->e1->e1 = 0;
@@ -514,7 +514,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					Zconsts(id)), 2,
 				  doid("$o"),
 				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
-					 doid("$l"), Zuint(1))),
+					 doid("$l"), Zint(1))),
 			    doid("$l"),
 			    NULL);
 		putsrc(te, &e->src);

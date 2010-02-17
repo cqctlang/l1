@@ -342,8 +342,8 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		se = Zcall(doid("$put"), 4,
 			   doid("$dom"), doid("$addr"), doid("$type"),
 			   (e->kind == Epostinc
-			    ? Zadd(doid("$val"), Zuint(1))
-			    : Zsub(doid("$val"), Zuint(1))));
+			    ? Zadd(doid("$val"), Zint(1))
+			    : Zsub(doid("$val"), Zint(1))));
 		te = Zcons(se, te);
 
 		se = doid("$val");
@@ -373,9 +373,9 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		te = Zcons(se, te);
 
 		if(e->kind == Epreinc)
-			se = Zadd(doid("$val"), Zuint(1));
+			se = Zadd(doid("$val"), Zint(1));
 		else
-			se = Zsub(doid("$val"), Zuint(1));
+			se = Zsub(doid("$val"), Zint(1));
 		se = Zset(doid("$val"), se);
 		te = Zcons(se, te);
 
