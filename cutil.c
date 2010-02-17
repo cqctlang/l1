@@ -213,7 +213,7 @@ Zint(Imm val)
 }
 
 Expr*
-Znil()
+Znil(void)
 {
 	return Z0(Enil);
 }
@@ -299,7 +299,7 @@ Zblock(Expr *locs, ...)
 	va_start(args, locs);
 	while(1){
 		se = va_arg(args, Expr*);
-		if(se == NULL)
+		if(se == 0)
 			break;
 		te = Zcons(se, te);
 	}

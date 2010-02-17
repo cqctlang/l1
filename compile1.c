@@ -280,7 +280,7 @@ compilecontainer(U *ctx, Expr *e)
 	//        (typename*)((void*)p - fieldoff(looktype(typename)))
 	//        but note that above draws final pointer type definition
 	//        from typename domain, whereas here we always draw from
-	//        P's domain.
+	//        Ps domain.
 	// {mkctype_ptr($type,$ptype)} ({$ptype}$tmp - fieldoff($fld))
 	se = Zxcast(Zcall(G("mkctype_ptr"), 2,
 			  doid("$type"), doid("$ptype")),
@@ -371,7 +371,7 @@ compile1(U *ctx, Expr *e)
 {
 	Expr *se, *q;
 
-	if(e == NULL)
+	if(e == 0)
 		return e;
 
 	switch(e->kind){
@@ -430,14 +430,6 @@ compile1(U *ctx, Expr *e)
 		e->e2 = 0;
 		freeexpr(e);
 		return se;
-#if 0
-	case Ens:
-		se = compilens(ctx, e);
-		e->e1 = 0;
-		e->e3 = 0;
-		freeexpr(e);
-		return se;
-#endif
 	case Eelist:
 		q = e;
 		while(q->kind == Eelist){

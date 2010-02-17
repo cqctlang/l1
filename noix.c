@@ -101,7 +101,7 @@ newthread(void* (*fn)(void*), void *arg)
 }
 
 void
-threadinit()
+threadinit(void)
 {
 	notimpl("threadinit");
 }
@@ -192,4 +192,16 @@ char*
 dirname(char *path)
 {
 	xabort();
+}
+
+int
+xmunmap(void *p, Imm len)
+{
+	notimpl("xmunmap");
+}
+
+Imm
+usec(void)
+{
+	notimpl("usec");
 }

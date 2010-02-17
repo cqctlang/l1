@@ -105,6 +105,26 @@ typedef struct Dir {
 	@0x37;
 } Dir;
 
+// fields through length are in wire format
+typedef struct Diru {
+	@0x00	uint16	type;
+	@0x02	uint32	dev;
+	@0x06	Qid	qid;
+	@0x13	uint32	mode;
+	@0x17	uint32	atime;
+	@0x1b	uint32	mtime;
+	@0x1f	uint64	length;
+	@0x27	uint32	nuid;
+	@0x2b	uint32	ngid;
+	@0x2f	uint32	nmuid;
+	@0x33	char	*name;
+	@0x37	char	*uid;
+	@0x3b	char	*gid;
+	@0x3f	char	*muid;
+	@0x43	char	*extension;
+	@0x47;
+} Diru;
+
 };
 
 @const NOTAG    = (`uint16)~0;

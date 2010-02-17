@@ -8,6 +8,266 @@
    E.g., on osx O_TRUNC == 0x400, on 32-bit linux == 0x200
 */
 
+enum
+{
+	// these 9P and 9P2000.u definitions come from plan9port
+	OREAD	 	= 0,		// open for read
+	OWRITE	 	= 1,		// write
+	ORDWR	 	= 2,		// read and write
+	OEXEC	 	= 3,		// execute, == read but check execute
+				   	//   permission
+	OTRUNC	 	= 16,		// or'ed in (except for exec),
+				   	//   truncate file first
+	OCEXEC	 	= 32,		// or'ed in, close on exec
+	ORCLOSE	 	= 64,		// or'ed in, remove on close
+	ODIRECT	 	= 128,		// or'ed in, direct access
+	ONONBLOCK	= 256,		// or'ed in, non-blocking call
+	OEXCL	 	= 0x1000,	// or'ed in, exclusive use (create only)
+	OLOCK	 	= 0x2000,	// or'ed in, lock after opening
+	OAPPEND	 	= 0x4000,	// or'ed in, append only
+	
+	// bits in Qid.type
+	QTDIR		= 0x80,		// type bit for directories
+	QTAPPEND	= 0x40,		// type bit for append only files
+	QTEXCL		= 0x20,		// type bit for exclusive use files
+	QTMOUNT		= 0x10,		// type bit for mounted channel
+	QTAUTH		= 0x08,		// type bit for authentication file
+	QTTMP		= 0x04,		// type bit for non-backed-up file
+	QTSYMLINK	= 0x02,		// type bit for symbolic link
+	QTFILE		= 0x00,		// type bits for plain file
+
+	// 9P mode bits
+	DMDIR		= 0x80000000,	// mode bit for directories
+	DMAPPEND	= 0x40000000,	// mode bit for append only files
+	DMEXCL		= 0x20000000,	// mode bit for exclusive use files
+	DMMOUNT		= 0x10000000,	// mode bit for mounted channel
+	DMAUTH		= 0x08000000,	// mode bit for authentication file
+	DMTMP		= 0x04000000,	// mode bit for non-backed-up file
+
+	// 9P2000.u mode bits
+	DMSYMLINK	= 0x02000000,	// mode bit for symbolic link
+	DMDEVICE	= 0x00800000,	// mode bit for device file
+	DMNAMEDPIPE	= 0x00200000,	// mode bit for named pipe
+	DMSOCKET	= 0x00100000,	// mode bit for socket
+	DMSETUID	= 0x00080000,	// mode bit for setuid
+	DMSETGID	= 0x00040000,	// mode bit for setgid
+
+	DMREAD		= 0x4,		// mode bit for read permission
+	DMWRITE		= 0x2,		// mode bit for write permission
+	DMEXEC		= 0x1,		// mode bit for execute permission
+};
+
+typedef
+struct Qid {
+	u8	type;
+	u32	vers;
+	u64	path;
+} Qid;
+
+typedef
+struct Dir
+{
+	u16	type;
+	u32	dev;
+	Qid	qid;
+	u32	mode;
+	u32	atime;
+	u32	mtime;
+	u64	length;
+	u32	nuid;
+	u32	ngid;
+	u32	nmuid;
+	char	*name;
+	char	*uid;
+	char	*gid;
+	char	*muid;
+	char	*extension;
+} Dir;
+
+// this is derived from plan9port/src/lib9/_p9dir.c,
+// but not as sophisticated.
+static Dir*
+stat2dir(char *name, struct stat *st)
+{
+	Dir *d;
+	char *s;
+	char tmp[32];
+
+	d = emalloc(sizeof(Dir));
+
+	s = strrchr(name, '/');
+	if(s)
+		s++;
+	if(!s || !*s)
+		s = name;
+	if(*s == '/')
+		s++;
+	if(*s == 0)
+		s = "/";
+	d->name = xstrdup(s);
+
+	d->type = 0;
+	d->dev = 0;
+	d->qid.path = ((u64)st->st_dev<<32)|st->st_ino;
+	d->mode = st->st_mode&0777;
+	d->atime = st->st_atime;
+	d->mtime = st->st_mtime;
+	d->length = st->st_size;
+	d->nuid = st->st_uid;
+	d->nuid = st->st_gid;
+	d->nmuid = -1;
+	snprintf(tmp, sizeof(tmp), "%d", st->st_uid);
+	d->uid = xstrdup(tmp);
+	snprintf(tmp, sizeof(tmp), "%d", st->st_gid);
+	d->gid = xstrdup(tmp);
+	d->muid = xstrdup("");
+	d->extension = xstrdup("");
+
+	switch(st->st_mode&S_IFMT){
+	case S_IFSOCK:
+		d->qid.type = QTFILE; 
+		d->mode |= DMSOCKET;
+		break;
+	case S_IFLNK:
+		d->qid.type = QTSYMLINK;
+		d->mode |= DMSYMLINK;
+		break;
+	case S_IFREG:
+		d->qid.type = QTFILE;
+		break;
+	case S_IFBLK:
+		d->qid.type = QTFILE;
+		d->qid.path = ('b'<<16)|st->st_rdev;
+		d->mode |= DMDEVICE;
+		break;
+	case S_IFCHR:
+		d->qid.type = QTFILE;
+		d->qid.path = ('c'<<16)|st->st_rdev;
+		d->mode |= DMDEVICE;
+		break;
+	case S_IFDIR:
+		d->qid.type = QTDIR; 
+		d->mode |= DMDIR;
+		break;
+	case S_IFIFO:
+		d->qid.type = QTFILE;
+		d->mode |= DMNAMEDPIPE;
+		break;
+	default:
+		fatal("stat: unrecognized file mode 0x%x\n", st->st_mode);
+	}
+
+	return d;
+}
+
+static void
+freedir(Dir *d)
+{
+	efree(d->name);
+	efree(d->uid);
+	efree(d->gid);
+	efree(d->muid);
+	efree(d->extension);
+	efree(d);
+}
+
+#define XWR(u,v,k) {memcpy((u),(v),(k)); (u) += (k);}
+
+static char*
+dir2buf(Dir *d, u64 *psz)
+{
+	unsigned len;
+	u32 o;
+	char *buf, *p;
+
+	len = (sizeof(d->type)
+	       +sizeof(d->dev)
+	       +sizeof(d->qid.type)
+	       +sizeof(d->qid.vers)
+	       +sizeof(d->qid.path)
+	       +sizeof(d->mode)
+	       +sizeof(d->atime)
+	       +sizeof(d->mtime)
+	       +sizeof(d->length)
+	       +sizeof(d->nuid)
+	       +sizeof(d->ngid)
+	       +sizeof(d->nmuid)
+	       +sizeof(u32)		// 32-bit name pointer
+	       +sizeof(u32)		// 32-bit uid pointer
+	       +sizeof(u32)		// 32-bit gid pointer
+	       +sizeof(u32)		// 32-bit muid pointer
+	       +sizeof(u32)		// 32-bit extension pointer
+	       +strlen(d->name)+1
+	       +strlen(d->uid)+1
+	       +strlen(d->gid)+1
+	       +strlen(d->muid)+1
+	       +strlen(d->extension)+1);
+
+	buf = emalloc(len);
+	p = buf;
+	XWR(p, &d->type, sizeof(d->type));
+	XWR(p, &d->dev, sizeof(d->dev));
+	XWR(p, &d->qid.type, sizeof(d->qid.type));
+	XWR(p, &d->qid.vers, sizeof(d->qid.vers));
+	XWR(p, &d->qid.path, sizeof(d->qid.path));
+	XWR(p, &d->mode, sizeof(d->mode));
+	XWR(p, &d->atime, sizeof(d->atime));
+	XWR(p, &d->mtime, sizeof(d->mtime));
+	XWR(p, &d->length, sizeof(d->length));
+	XWR(p, &d->nuid, sizeof(d->nuid));
+	XWR(p, &d->ngid, sizeof(d->ngid));
+	XWR(p, &d->nmuid, sizeof(d->nmuid));
+
+	// pointers
+	o = p-buf+5*sizeof(o);
+	XWR(p, &o, sizeof(o));
+	o += strlen(d->name)+1;
+	XWR(p, &o, sizeof(o));
+	o += strlen(d->uid)+1;
+	XWR(p, &o, sizeof(o));
+	o += strlen(d->gid)+1;
+	XWR(p, &o, sizeof(o));
+	o += strlen(d->muid)+1;
+	XWR(p, &o, sizeof(o));
+
+	// pointed-to strings
+	XWR(p, d->name, strlen(d->name)+1);
+	XWR(p, d->uid, strlen(d->uid)+1);
+	XWR(p, d->gid, strlen(d->gid)+1);
+	XWR(p, d->muid, strlen(d->muid)+1);
+	XWR(p, d->extension, strlen(d->extension)+1);
+
+	*psz = p-buf;
+	return buf;
+}
+
+static void
+l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	struct stat st;
+	Str *names;
+	char *name, *buf;
+	Dir *d;
+	u64 len;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stat");
+	checkarg(vm, "mapfile", argv, 0, Qstr);
+	names = valstr(argv[0]);
+	name = str2cstr(names);
+	if(0 > stat(name, &st)){
+		efree(name);
+		vmerr(vm, "cannot stat %.*s: %s", (int)names->len, names->s,
+		      strerror(errno));
+	}
+	d = stat2dir(name, &st);
+	buf = dir2buf(d, &len);
+	efree(name);
+	freedir(d);
+	
+	*rv = mkvalstr(mkstrk(buf, len, Smalloc));
+}
+
 static void
 l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -95,11 +355,11 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to ioctl");
 	checkarg(vm, "ioctl", argv, 0, Qfd);
 	checkarg(vm, "ioctl", argv, 1, Qcval);
-	if(argv[2]->qkind != Qstr && argv[2]->qkind != Qcval)
+	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
 		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
 	fd = valfd(argv[0]);
 	req = valcval(argv[1]);
-	if(argv[2]->qkind == Qstr){
+	if(Vkind(argv[2]) == Qstr){
 		bufs = valstr(argv[2]);
 		p = bufs->s;
 	}else{
@@ -224,7 +484,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "write error: %s", strerror(errno));
 	}else{
 		x = dovm(vm, fd->u.cl.write, argc-1, argv+1);
-		if(x->qkind != Qnil)
+		if(Vkind(x) != Qnil)
 			vmerr(vm, "write error");
 	}
 	/* return nil */
@@ -246,13 +506,13 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 0)
 		vmerr(vm, "wrong number of arguments to popen");
 	flags = 0;
-	if(argv[argc-1]->qkind == Qcval){
+	if(Vkind(argv[argc-1]) == Qcval){
 		cv = valcval(argv[argc-1]);
 		flags = cv->val;
 		argc--;
 		if(argc == 0)
 			vmerr(vm, "wrong number of arguments to popen");
-	}else if(argv[argc-1]->qkind != Qstr)
+	}else if(Vkind(argv[argc-1]) != Qstr)
 		vmerr(vm, "final argument to popen must be a string or cvalue");
 
 	for(m = 0; m < argc; m++)
@@ -312,5 +572,6 @@ fnio(Env *env)
 	FN(open);
 	FN(popen);
 	FN(read);
+	FN(stat);
 	FN(write);
 }

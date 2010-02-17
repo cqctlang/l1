@@ -34,7 +34,7 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getenv");
 	code = 0;
-	if(argv[0]->qkind == Qcval){
+	if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
 		code = (int)cv->val;
 	}
@@ -64,14 +64,7 @@ l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Imm tod;
-	struct timeval tv;
-
-	gettimeofday(&tv, 0);
-	tod = tv.tv_sec;
-	tod *= 1000000;
-	tod += tv.tv_usec;
-	*rv = mkvallitcval(Vulong, tod);
+	*rv = mkvallitcval(Vulong, usec());
 }
 
 static void
@@ -83,7 +76,7 @@ l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to randseed");
 	arg0 = argv[0];
-	if(arg0->qkind != Qcval)
+	if(Vkind(arg0) != Qcval)
 		vmerr(vm, "operand 1 to randseed must be an integer");
 
 	cv = valcval(arg0);
@@ -100,7 +93,7 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rand");
 	arg0 = argv[0];
-	if(arg0->qkind != Qcval)
+	if(Vkind(arg0) != Qcval)
 		vmerr(vm, "operand 1 to randseed must be an integer");
 
 	cv = valcval(arg0);
@@ -185,7 +178,7 @@ dotrs(VM *vm)
 			v = mkvallitcval(Vuvlong, 1+cv->val);
 		}else
 			v = mkvallitcval(Vuvlong, 1);
-		tabput(vm, tab, k, v);
+		tabput(tab, k, v);
 	}
 	xprintf("profile: %d samples\n", prof->ntrace);
 	return tab;
@@ -239,7 +232,7 @@ finiprof()
 
 	while(prof->ndefer-- > 0){
 		hd = prof->defer[prof->ndefer];
-		switch(hd->qkind){
+		switch(Vkind(hd)){
 		case Qcl:
 			prof->freecl(hd);
 			break;
@@ -287,7 +280,7 @@ l1_insncnt(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to insncnt");
-	*rv = mkvaltab(doinsncnt(vm));
+	*rv = mkvaltab(doinsncnt());
 }
 
 static void

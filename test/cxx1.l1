@@ -1,0 +1,13 @@
+ns = @names c32le {
+	struct X {
+		void foo::foo();
+		void foo::~foo();
+	public:
+		int foo();
+		char bar();
+	private:
+		int x;
+		@0x0;
+	};
+};
+

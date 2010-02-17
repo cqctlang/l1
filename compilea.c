@@ -114,7 +114,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 	unsigned w;
 
 	w = 0;
-	snprint(t, sizeof(t), "$t%u", d);
+	snprint(t, sizeof(t), "$t%d", d);
 	p = expanda(ctx, Zap(a, t), d+1, 0);
 	a->attr = Aptr;
 	xe = copyexpr(e);
@@ -150,7 +150,7 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 	unsigned w;
 
 	w = 0;
-	snprint(t, sizeof(t), "$t%u", d);
+	snprint(t, sizeof(t), "$t%d", d);
 	p = expanda(ctx, Zap(a, t), d+1, 0);
 	a->attr = Aptr;
 	xe = copyexpr(e);
@@ -305,6 +305,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 	default:
 		fatal("bug");
 	}
+	return 0; /* not reached */
 }
 
 static Expr*
@@ -523,6 +524,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 	default:
 		fatal("bug");
 	}
+	return 0; /* not reached */
 }
 
 static Expr*

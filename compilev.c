@@ -87,7 +87,7 @@ locpass(Expr *e)
 	unsigned m;
 	Expr *p;
 
-	if(e == NULL)
+	if(e == 0)
 		return 0;
 
 	switch(e->kind){
@@ -120,7 +120,7 @@ tmppass(Expr *e)
 	Expr *p;
 	unsigned m;
 
-	if(e == NULL)
+	if(e == 0)
 		return 0;
 
 	switch(e->kind){
@@ -169,7 +169,7 @@ freetype(Type *t)
 	freeenum(t->en);
 	freedecl(t->param);
 	freeexpr(t->bitw);
-	freeexpr(t->sz);
+	freeexpr(t->attr);
 	freeexpr(t->cnt);
 	efree(t);
 }
@@ -190,7 +190,7 @@ sztype(Type *t)
 	m += szenum(t->en);
 	m += szdecl(t->param);
 	m += szexpr(t->bitw);
-	m += szexpr(t->sz);
+	m += szexpr(t->attr);
 	m += szexpr(t->cnt);
 	m += esize(t);
 
@@ -417,7 +417,6 @@ pass0(Expr *e)
 		break;
 	case Eblock:
 		e->xp = b = emalloc(sizeof(Block));
-		m = 0;
 		p = e->e1;
 		m = 0;
 		while(p->kind == Eelist){
@@ -582,6 +581,7 @@ cap1(void *u, char *id, void *v)
 {
 	struct capctl *ctl;
 	Var *w;
+	USED(id);
 	ctl = u;
 	w = v;
 	*ctl->cap++ = w;
@@ -626,7 +626,7 @@ pass1(Expr *e, Xenv *lex)
 			xenvforeach(free, cap1, &ctl);
 
 			/* allocate display environment */
-			w = l->disp = emalloc(l->ncap*sizeof(Var));
+			l->disp = emalloc(l->ncap*sizeof(Var));
 			l->ndisp = l->ncap;
 			for(m = 0, w = l->disp;
 			    m < l->ncap;
@@ -787,6 +787,7 @@ countunused(void *u, char *k, void *v)
 {
 	unsigned *x;
 	Var *var;
+	USED(k);
 	x = u;
 	if(v == (void*)Vref)
 		return;
@@ -801,6 +802,7 @@ warn1unused(void *u, char *k, void *v)
 {
 	U *ctx;
 	Var *var;
+	USED(k);
 	ctx = u;
 	if(v == (void*)Vref)
 		return;
@@ -881,7 +883,7 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 }
 
 static Boxset*
-newboxset()
+newboxset(void)
 {
 	Boxset *bxst;
 	bxst = emalloc(sizeof(Boxset));
@@ -1033,6 +1035,8 @@ gotos(Expr *e, HT *ls, Exprs *ges)
 static void
 free1ls(void *u, char *k, void *v)
 {
+	USED(k);
+	USED(u);
 	freeexprs((Exprs*)v);
 }
 

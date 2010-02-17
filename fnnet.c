@@ -53,7 +53,7 @@ parseport(const char *s, unsigned short *port)
 static int
 parseip(char *s, struct sockaddr_in *addr)
 {
-	char *buf = NULL;
+	char *buf = 0;
 	char *p;
 	int ret = -1;
 

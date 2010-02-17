@@ -23,7 +23,8 @@
 		"expr"	 : 0,
 	];
 	while(p){
-		if(p->color == dom`GCfree)
+//		if(p->color == dom`GCfree)
+		if(((p->bits>>5)&7) == 3)
 			mf += esize(p);
 		else{
 			@local a, b;

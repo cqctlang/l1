@@ -17,6 +17,7 @@ do1tag(void *u, char *k, void *v)
 	Decl *d;
 	struct Arg *up;
 
+	USED(k);
 	up = u;
 	e = up->e;
 	d = v;
@@ -36,6 +37,7 @@ do1sym(void *u, char *k, void *v)
 	Decl *d;
 	struct Arg *up;
 
+	USED(k);
 	up = u;
 	e = up->e;
 	d = v;
@@ -61,6 +63,7 @@ do1tid(void *u, char *k, void *v)
 	Decl *d;
 	struct Arg *up;
 
+	USED(k);
 	up = u;
 	e = up->e;
 	d = v;
@@ -87,7 +90,7 @@ hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 		else{
 			t = d->type;
 			if((t->kind == Tstruct || t->kind == Tunion)
-			   && (t->field != 0 || t->sz != 0))
+			   && (t->field != 0 || t->attr != 0))
 				hput(tag, t->tag, strlen(t->tag), d);
 			if(t->kind == Tenum && t->en != 0)
 				hput(tag, t->tag, strlen(t->tag), d);

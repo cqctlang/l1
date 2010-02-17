@@ -33,7 +33,7 @@ l1names = l1+".names";
 	npop = 0;
 	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
 	ns = eval(e);
-	mux = mkctlmux();
+	mux = mkctlmux_local();
 	push(args, l1);
 	ctl = mux.launch(args, 0);
 	as = ctl.mem();
@@ -63,6 +63,10 @@ tests = [
 	[ "tracespawn.cqct", "1", "3" ],
 	[ "tracespawn.cqct", "2", "3" ],
 	[ "tracespawn.cqct", "3", "3" ],
+	[ "tracesig.cqct", "1" ],
+	[ "tracesig.cqct", "2" ],
+	[ "traceattach.cqct" ],
+	[ "tracepar1.cqct" ],
 	];
 
 if(length(args) == 1){

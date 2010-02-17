@@ -21,7 +21,7 @@ static char* cbasector[Vnbase] = {
 Expr*
 gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 {
-	Expr *e, *se, *te, *id, *tn, *sz;
+	Expr *e, *se, *te, *id, *tn, *attr;
 	Enum *en;
 	Decl *dl;
 	char *mk;
@@ -39,7 +39,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 	case Tstruct:
 	case Tunion:
 		mk = t->kind == Tstruct ? "mkctype_struct" : "mkctype_union";
-		if(t->field == 0 && t->sz == 0){
+		if(t->field == 0 && t->attr == 0){
 			e = Zcall(G(mk), 1, Zstr(t->tag));
 			break;
 		}
@@ -93,25 +93,25 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 			dl = dl->link;
 		}
 		se = Zapply(G("vector"), invert(se));
-		if(t->sz){
-			t->sz = recpass(ctx, t->sz);
-			sz = t->sz; /* steal */
-			t->sz = 0;
+		if(t->attr){
+			t->attr = recpass(ctx, t->attr);
+			attr = t->attr; /* steal */
+			t->attr = 0;
 		}else
-			sz = Znil();
+			attr = Znil();
 
 		if(effect){
 			e = Zcall(G("tabinsert"), 3,
 				  doid("$typetab"),
 				  Zcall(G(mk), 1, Zstr(t->tag)),
-				  Zcall(G(mk), 3, Zstr(t->tag), se, sz));
+				  Zcall(G(mk), 3, Zstr(t->tag), se, attr));
 			break;
 		}
 		e = Zblock(Zlocals(1, "$tmp"),
 			   Zset(doid("$tmp"), Zcall(G(mk), 1, Zstr(t->tag))),
 			   Zcall(G("tabinsert"), 3,
 				 doid("$typetab"), doid("$tmp"),
-				 Zcall(G(mk), 3, Zstr(t->tag), se, sz)),
+				 Zcall(G(mk), 3, Zstr(t->tag), se, attr)),
 			   doid("$tmp"),
 			   NULL);
 		break;
@@ -186,6 +186,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 			  Zapply(G("vector"), invert(te)));
 		break;
 	default:
+		e = 0;
 		fatal("bug");
 	}
 	return e;

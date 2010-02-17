@@ -126,19 +126,19 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 		if(e->e1->kind != Eid)
 			fatal("bug");
 		id = e->e1->id;
-		if(xenvlook(lex, id) || envbinds(top, id))
-			; /* no binding required */
-		else if(inner){
-			/* create binding in inner-most lexical scope */
-			if(cqctflags['w'])
-				cwarnln(ctx,
-					e, "assignment to unbound variable: %s",
-					id);
-			newlocal(inner, id);
-			bindids(lex, e->e1, e);
-		}else
-			/* create top-level binding */
-			envgetbind(top, id);
+		if(!xenvlook(lex, id) && !envbinds(top, id)){
+			if(inner){
+				/* create binding in inner-most lexical scope */
+				if(cqctflags['w'])
+					cwarnln(ctx,
+						e, "assignment to unbound variable: %s",
+						id);
+				newlocal(inner, id);
+				bindids(lex, e->e1, e);
+			}else
+				/* create top-level binding */
+				envgetbind(top, id);
+		}
 		if(e->kind == Eg || e->kind == Egop)
 			topresolve(ctx, e->e2, top, lex, inner);
 		break;
@@ -175,6 +175,7 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 void
 freeconst(void *u, char *id, void *v)
 {
+	USED(u);
 	efree(id);
 	freeexpr((Expr*)v);
 }

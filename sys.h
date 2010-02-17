@@ -1,3 +1,4 @@
+#ifdef __GNUC__
 #ifndef _BISONFLAW_SYS_H_
 #define _BISONFLAW_SYS_H_
 #define _GNU_SOURCE
@@ -48,4 +49,56 @@ typedef u64 Imm;
 #define PAGESZ 4096
 #define PAGEUP(sz)   (((sz)+PAGESZ-1)&~(PAGESZ-1))
 
+#define	SET(x)	((x)=0)
+#define	USED(x)	if(x){}else{}
+
+#define THREADED
+#define NEXTLABEL(i) goto *i->go;
+#define LABEL
+
 #endif /* _BISONFLAW_SYS_H_ */
+
+#else /* PLAN 9 */
+
+#define NULL ((void*)0)
+#include <u.h>
+#include <libc.h>
+
+typedef char			s8;
+typedef short			s16;
+typedef int			s32;
+typedef long long		s64;
+typedef unsigned char		u8;
+typedef unsigned short		u16;
+typedef unsigned int		u32;
+typedef unsigned long long	u64;
+
+typedef char			int8_t;
+typedef short			int16_t;
+typedef int			int32_t;
+typedef long long		int64_t;
+typedef unsigned char		uint8_t;
+typedef unsigned short		uint16_t;
+typedef unsigned int		uint32_t;
+typedef unsigned long long	uint64_t;
+
+typedef u64 Imm;
+
+typedef unsigned long size_t;
+typedef uintptr uintptr_t;
+
+#define NORETURN
+
+struct timeval
+{
+	u32 tv_sec, tv_usec;
+};
+char *dirname(char *path);
+typedef void FILE;
+
+#define NEXTLABEL(i) switch(i->kind)
+#define LABEL case
+
+#define PRIu64 "llud"
+
+#endif /* __GNUC__ */

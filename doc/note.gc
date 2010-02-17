@@ -1,0 +1,120 @@
+garbage collection
+------------------
+
+the gc is based on the concurrent gc described in
+
+	l. huelsbergen and p. winterbottom.  very concurrent
+	mark-&-sweep garbage collection without fine-grained
+	synchronization.  ismm'98.
+
+we want an efficent, simple incremental gc that can
+(optionally) run concurrently with low synchronization
+overhead.
+
+a key property is how references to objects stored in
+mutable data structures (boxes, vecs, dicts) are safely
+tracked:
+
+	- new objects (halloc'd) are marked upon creation;
+	  they will not be swept until two epochs
+          without a reference;
+	- clobbered objects are marked upon clobber;
+	  they will not be swept;
+	- new inserted objects either recently halloc'd
+	  or are referenced elsewhere -- even in missed, they will
+	  survive to next round.
+
+our implementation differs from the paper in several
+ways.
+
+the rootset structure records objects to be marked.
+the rootset implementation is based on the non-blocking
+set data structure given in the appendix.
+
+there are two rootsets:
+
+   roots - root set calculated at beginning of gc epoch by gc;
+   stores - objects dynamically replaced during gc by mutator.
+
+the paper defines only the stores root set.  the
+function of our roots root set is mantaining the state
+of the marker as it traverses reachable heap objects.
+in the paper, the inferno implementation instead uses
+an additional propagator color to avoid recursion,
+implementing marking by repeatedly scanning the heap
+until no new propagators are added.  this approach of
+requiring many heap scans per gc epoch seems wrong --
+it seems we should enable gc epochs to complete as soon
+as possible -- but we have not measured.  the sml/nj
+implementation uses a fixed size stack; we wish to
+avoid arbitrary limits.
+
+the reason the two rootsets cannot be collapsed into a
+single one is the semantics of the non-blocking
+operators insert and remove.  insert and remove can be
+called by different threads without synchronization,
+but insert and remove are not reentrant, so two threads
+cannot both call insert or remove.  gc calls remove for
+both roots and stores; mutator calls insert for stores,
+while gc calls insert for roots.
+
+in addition, it is necessary to maintain two link
+fields in the heap objects (Heads) because insertion is
+not atomic.  insert first checks whether the heap
+object is already on a rootset before adding it.
+this is a racey check, but it seems the worst case an object
+shows up more than once in the same rootset
+(however, we have not yet reasoned carefully about the race.)
+we could use locked cmpxchg, but that would add global
+synchronization on each write barrier.
+
+it is possible for a heap object to be on both root
+sets simulataneously.  this is inefficient but not
+incorrect (the marker will update its color the first
+time it encounters the object, then harmlessly do so
+again -- to the same color value -- the second time).
+similarly, the same heap object may be inserted in a
+root set multiple times within an epoch.  the argument
+in the paper (section 2.3) for epoch termination still
+holds in our implementation.
+
+explict synchronization between gc and mutator occurs
+at (1) the start of epoch, (2) checking for termination
+of epoch, and (3) mutator-directed termination of gc.
+synchronization is implemented by atomic r/w memory
+operations on two shared boolean variables and r/w i/o
+operation on a bi-directional pipe.
+
+	  gcpause - set by mutator, read by gc
+	  gcrun - set by gc, read by mutator
+
+when not collecting, gc thread blocks on read of its
+end of pipe.  mutator is responsible for deciding when
+gc should occur.  it signals gc by writing byte GCrun
+to its end of pipe, then does blocking read on its end.
+gc sets variable gcrun to non-zero, then writes
+GCrunning to its end of pipe.
+
+after sweeping gc pauses mutator to allow gc consistent
+view of stores root set by setting gcpause non-zero and
+then blocking on pipe read.  mutator polls gcpause on
+each tick; when it sees it non-zero, mutator writes
+GCpaused to pipe, then blocks on pipe read.  after gc
+read unblocks, gc checks root set then resumes mutator
+by clearing gcpause and writing GCresume to pipe.
+
+after epoch gc clears gcrun and blocks on pipe read.
+
+to signal termination, mutator writes GCdie to pipe
+then blocks on read.  gc receives GCdie either at start
+of epoch or when pausing to check store set.  at start
+of epoch, gc terminates.  at store check pause, gc
+schedules termination at end of epoch but finishes
+epoch without blocking for subsequent pauses (which is
+correct, since mutator is paused waiting for GCdie).
+
+it seems possible to abort gc before end of epoch.
+before resuming, rootsets should be flushed.
+seems like gcepoch should be kept at value of aborted
+gc epoch; what would happen if it were incremented?
+

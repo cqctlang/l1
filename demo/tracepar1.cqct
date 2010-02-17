@@ -1,0 +1,86 @@
+@include <ctlmux.cqct>
+
+@record rec { id, goal, dom };
+
+// serialize (in reverse order) execution of
+// par1's children.  dosync is not necessary;
+// we could do its work in the Efork handler.
+// it would be nice to have a separate context
+// to drive the serialization that blocks on
+// the predicate (length(ids) < ns`N)
+
+@define test1()
+{
+	@local ctl, mux, ns, as, dom, ids, dosync, serialize;
+
+	ids = [];
+
+	@define serialize()
+	{
+		@local r, dom;
+
+		r = pop(ids);
+		if(r == nil){
+			return;
+		}
+
+		dom = r.dom;
+
+		dom.xtrap(&dom`checkpoint,
+			  @lambda(ctl){
+				  @local regs, i;
+				  regs = ctl.reg();
+				  i = (int){dom}regs->rdi;
+				  printf("%5d: %8d\n", ctl.id, dom`p[i]);
+			  });
+
+		dom.trace(ctlmux`Eexit,
+			    @lambda(ctl){
+				    serialize();
+			    });
+		dom.xcont();
+	}
+
+	@define dosync(ctl)
+	{
+		@local r;
+
+		ctl.xstop();
+
+		r = rec(ctl.id, 0, mkdom(ns, ctl.mem()));
+		append(ids, r);
+
+		if(length(ids) < ns`N)
+			return;
+
+		sort(ids, @lambda(a, b){
+				if(a.id > b.id)
+					return -1;
+				else if(a.id < b.id)
+					return 1;
+				else
+					return 0;
+			});
+		printf("targets:\n");
+		foreach(@lambda(r) { printf("\t%d\n", r.id); }, ids);
+		serialize();
+	}
+		       
+	ns = @names clp64le { @include "./par1.names" };
+	mux = mkctlmux_local();
+	ctl = mux.launch(["./par1"], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+
+	dom.trace(ctlmux`Efork,
+		  @lambda(ctl, spwn){
+			  @local d;
+			  d = mkdom(ns, spwn.mem());
+			  d.xtrap(&d`xsync, dosync);
+		  });
+
+	dom.xcont();
+	mux.run();
+}
+
+test1();

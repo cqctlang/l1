@@ -32,7 +32,7 @@ konval(Tab *kon, Val v)
 	hv = tabget(kon, v);
 	if(hv)
 		return hv;
-	_tabput(kon, v, v);
+	tabput(kon, v, v);
 	return v;
 }
 
@@ -164,7 +164,7 @@ emitlabel(Ctl *ctl, Expr *e)
 }
 
 static Code*
-mkcode()
+mkcode(void)
 {
 	Code *code;
 	
@@ -289,7 +289,7 @@ printkon(Val v)
 	char c, *p;
 	Imm i, m;
 
-	switch(v->qkind){
+	switch(Vkind(v)){
 	case Qcval:
 		cv = valcval(v);
 		xprintf("%" PRIu64, cv->val);
@@ -326,13 +326,13 @@ printkon(Val v)
 		efree(p);
 		break;
 	default:
-		xprintf("<%s %p>", qname[v->qkind], v);
+		xprintf("<%s %p>", qname[Vkind(v)], v);
 		break;
 	}
 }
 
 static void
-printrand(Code *code, Operand *r)
+printrand(Operand *r)
 {
 	Location *loc;
 
@@ -380,22 +380,22 @@ printrand(Code *code, Operand *r)
 	}
 }
 
-void
-printinsn(Code *code, Insn *i)
+static void
+printinsn(Insn *i)
 {
 	xprintf("\t");
 	switch(i->kind){
 	case Ispec:
 		xprintf("spec ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Iargc:
 		xprintf("argc ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Ivargc:
 		xprintf("vargc ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Icallc:
 		xprintf("callc");
@@ -404,9 +404,9 @@ printinsn(Code *code, Insn *i)
 	case Ineg:
 	case Inot:
 		xprintf("%s ", itos(i->kind));
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Iadd:
 	case Iand:
@@ -425,67 +425,67 @@ printinsn(Code *code, Insn *i)
 	case Icmpeq:
 	case Icmpneq:
 		xprintf("%s ", itos(i->kind));
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->op2);
+		printrand(&i->op2);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Isubsp:
 		xprintf("subsp ", itos(i->kind));
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Imov:
 		xprintf("mov ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Ipush:
 		xprintf("push ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Ipushi:
 		xprintf("pushi ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Icall:
 		xprintf("call ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Icallt:
 		xprintf("callt ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Icval:
 		xprintf("cval ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->op2);
+		printrand(&i->op2);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Ixcast:
 		xprintf("xcast ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->op2);
+		printrand(&i->op2);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Ilist:
 		xprintf("list ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->op2);
+		printrand(&i->op2);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Isizeof:
 		xprintf("sizeof ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Iframe:
 		xprintf("frame %s", i->dstlabel->label);
@@ -501,13 +501,13 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Iclo:
 		xprintf("clo %s ", i->dstlabel->label);
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Ikg:
 		xprintf("kg ");
-		printrand(code, &i->dst);
+		printrand(&i->dst);
 		break;
 	case Ikp:
 		xprintf("kp");
@@ -517,28 +517,28 @@ printinsn(Code *code, Insn *i)
 		break;
 	case Ijnz:
 		xprintf("jnz ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" %s", i->dstlabel->label);
 		break;
 	case Ijz:
 		xprintf("jz ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		xprintf(" %s", i->dstlabel->label);
 		break;
 	case Ibox:
 		xprintf("box ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Ibox0:
 		xprintf("box0 ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	case Inop:
 		xprintf("nop");
 		break;
 	case Iref:
 		xprintf("ref ");
-		printrand(code, &i->op1);
+		printrand(&i->op1);
 		break;
 	default:
 		fatal("printinsn: unrecognized insn %d", i->kind);
@@ -563,7 +563,7 @@ printcode(Code *code)
 		xprintf("\t%4d\t", i);
 		if(code->labels[i] && code->labels[i]->used)
 			xprintf("%s", code->labels[i]->label);
-		printinsn(code, &code->insn[i]);
+		printinsn(&code->insn[i]);
 		xprintf("\n");
 	}
 }
@@ -744,7 +744,7 @@ randstkloc(Operand *rand, unsigned kind, unsigned idx)
 }
 
 static void
-cgrand(Operand *rand, Expr *e, CGEnv *p)
+cgrand(Operand *rand, Expr *e)
 {
 	switch(e->kind){
 	case Eid:
@@ -772,10 +772,7 @@ cgjmp(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src *src)
 	if(ctl == p->Return){
 		i = nextinsn(code, src);
 		i->kind = Iret;
-	}else if(ctl == nxt)
-		/* do nothing */
-		;
-	else{
+	}else if(ctl != nxt){
 		i = nextinsn(code, src);
 		i->kind = Ijmp;
 		i->dstlabel = ctl;
@@ -826,6 +823,7 @@ escapectl(Expr *e, CGEnv *p)
 	Ctl *rv;
 	Expr *kind;
 
+	rv = 0;
 	kind = escaping(e);
 	if(kind == 0)
 		fatal("not an escaping expression");
@@ -852,23 +850,6 @@ cgbranch(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src *src)
 	/* this condition is ambiguous in dybvig's report.  either
 	   grouping seems correct if we assume l1 and l2 both cannot
 	   be return; otherwise, i'm not sure that it matters. */
-#if 0
-	if(returnlabel(p, l2) || (l2 == nxt && !returnlabel(p, l1))){
-		i = nextinsn(code, src);
-		i->kind = Ijz;
-		randloc(&i->op1, AC);
-		i->dstlabel = l2;
-		l2->used = 1;
-		cgjmp(code, p, l1, nxt, src);
-	}else{
-		i = nextinsn(code, src);
-		i->kind = Ijnz;
-		randloc(&i->op1, AC);
-		i->dstlabel = l1;
-		l1->used = 1;
-		cgjmp(code, p, l2, nxt, src);
-	}
-#else
 	if(returnlabel(p, l2) || (l2 == nxt && !returnlabel(p, l1))){
 		i = nextinsn(code, src);
 		i->kind = Ijnz;
@@ -884,7 +865,6 @@ cgbranch(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src *src)
 		l2->used = 1;
 		cgjmp(code, p, l1, nxt, src);
 	}
-#endif
 }
 
 static void
@@ -1112,7 +1092,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Eunot:
 	case E_sizeof:
 		if(issimple(e->e1))
-			cgrand(&r1, e->e1, p);
+			cgrand(&r1, e->e1);
 		else{
 			L = genlabel(code, 0);
 			cg(e->e1, code, p, AC, L, prv, L, tmp);
@@ -1130,18 +1110,18 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			fatal("%s with non-simple operands", EtoVM[e->kind]);
 		i = nextinsn(code, &e->src);
 		i->kind = EtoVM[e->kind];
-		cgrand(&i->op1, e->e1, p);
-		cgrand(&i->op2, e->e2, p);
-		cgrand(&i->op3, e->e3, p);
+		cgrand(&i->op1, e->e1);
+		cgrand(&i->op2, e->e2);
+		cgrand(&i->op3, e->e3);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2)){
-			cgrand(&r1, e->e1, p);
-			cgrand(&r2, e->e2, p);
+			cgrand(&r1, e->e1);
+			cgrand(&r2, e->e2);
 		}else if(issimple(e->e1)){
-			cgrand(&r1, e->e1, p);
+			cgrand(&r1, e->e1);
 			L = genlabel(code, 0);
 			cg(e->e2, code, p, AC, L, prv, L, tmp);
 			emitlabel(L, e);
@@ -1151,7 +1131,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cg(e->e1, code, p, AC, L, prv, L, tmp);
 			emitlabel(L, e);
 			randloc(&r1, AC);
-			cgrand(&r2, e->e2, p);
+			cgrand(&r2, e->e2);
 		}else{
 			L0 = genlabel(code, 0);
 			randstkloc(&r1, Llocal, tmp);
@@ -1165,6 +1145,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgbinop(code, p, e->op, &r1, &r2, loc, ctl, nxt, &e->src);
 		break;
 	case Ecall:
+		R = 0;
 		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
 		if(!istail){
 			if(loc != Effect)
@@ -1185,7 +1166,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			// the operand directly? (and likewise for the call?)
 			if(issimple(q->e1)){
 				L = L0;
-				cgrand(&r1, q->e1, p);
+				cgrand(&r1, q->e1);
 				i = nextinsn(code, &q->e1->src);
 				i->kind = Ipush;
 				i->op1 = r1;
@@ -1208,7 +1189,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		randkon(&i->op1, konimm(code->konst, Vint, narg));
 
 		if(issimple(e->e1)){
-			cgrand(&r1, e->e1, p);
+			cgrand(&r1, e->e1);
 		}else {
 			L0 = genlabel(code, 0);
 			emitlabel(L0, e->e1);
@@ -1635,14 +1616,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	}
 }
 
-void
+static void
 cglambda(Ctl *name, Code *code, Expr *e)
 {
-	unsigned entry;
 	Lambda *l;
 	Insn *i;
 	CGEnv p;
-	unsigned m, needtop = 0;
+	unsigned m, needtop;
 	unsigned long ns;
 	Ctl *top;
 	Src *src;
@@ -1661,7 +1641,6 @@ cglambda(Ctl *name, Code *code, Expr *e)
 			       name->label, l->nparam, l->nloc, l->ntmp);
 	}
 
-	entry = code->ninsn;
 	src = &e->e1->src; /* argument list */
 	if(l->isvarg){
 		i = nextinsn(code, src);
@@ -1807,7 +1786,7 @@ cgspec(VM *vm, Closure *cl, Imm idx, Val ac)
 }
 
 Closure*
-haltthunk()
+haltthunk(void)
 {
 	Ctl *L;
 	Insn *i;
@@ -1825,7 +1804,7 @@ haltthunk()
 }
 
 Closure*
-callcc()
+callcc(void)
 {
 	Ctl *L;
 	Insn *i;
@@ -1852,7 +1831,7 @@ callcc()
 }
 
 Code*
-callccode()
+callccode(void)
 {
 	Insn *i;
 	Code *code;
@@ -1867,7 +1846,7 @@ callccode()
 }
 
 Code*
-contcode()
+contcode(void)
 {
 	Insn *i;
 	Code *code;
@@ -1886,7 +1865,7 @@ contcode()
 }
 
 Closure*
-panicthunk()
+panicthunk(void)
 {
 	Ctl *L;
 	Insn *i;
@@ -1905,7 +1884,7 @@ panicthunk()
 }
 
 void
-initcg()
+initcg(void)
 {
 	Effect = &toploc[0];
 	newloc(Effect, Lreg, Rac, 0);
@@ -1926,6 +1905,6 @@ initcg()
 }
 
 void
-finicg()
+finicg(void)
 {
 }

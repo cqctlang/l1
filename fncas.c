@@ -80,14 +80,14 @@ mkcas(As *tas)
 {
 	Tab *mtab;
 	mtab = mktab();
-	_tabput(mtab, mkvalstr(mkstr0("get")),
-		mkvalcl(mkccl("casget", casget, 1, mkvalas(tas))));
-	_tabput(mtab, mkvalstr(mkstr0("put")),
-		mkvalcl(mkccl("casget", casput, 1, mkvalas(tas))));
-	_tabput(mtab, mkvalstr(mkstr0("map")),
-		mkvalcl(mkccl("casget", casmap, 1, mkvalas(tas))));
-	_tabput(mtab, mkvalstr(mkstr0("dispatch")),
-		mkvalcl(mkccl("casget", casdispatch, 1, mkvalas(tas))));
+	tabput(mtab, mkvalstr(mkstr0("get")),
+	       mkvalcl(mkccl("casget", casget, 1, mkvalas(tas))));
+	tabput(mtab, mkvalstr(mkstr0("put")),
+	       mkvalcl(mkccl("casget", casput, 1, mkvalas(tas))));
+	tabput(mtab, mkvalstr(mkstr0("map")),
+	       mkvalcl(mkccl("casget", casmap, 1, mkvalas(tas))));
+	tabput(mtab, mkvalstr(mkstr0("dispatch")),
+	       mkvalcl(mkccl("casget", casdispatch, 1, mkvalas(tas))));
 	return mkastab(mtab, 0);
 }
 

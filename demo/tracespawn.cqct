@@ -6,7 +6,7 @@
 	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./clones.names" };
-	mux = mkctlmux();
+	mux = mkctlmux_local();
 	ctl = mux.launch(["./clones", sprintfa("%d", n)], 0);
 	as = ctl.mem();
 	dom = mkdom(ns, as);
@@ -20,7 +20,7 @@
 	@local ctl, mux, ns, as, dom;
 
 	ns = @names clp64le { @include "./forks.names" };
-	mux = mkctlmux();
+	mux = mkctlmux_local();
 	ctl = mux.launch(["./forks", sprintfa("%d", n)], 0);
 	as = ctl.mem();
 	dom = mkdom(ns, as);
@@ -35,7 +35,7 @@
 
 	nc = nd = nw = 0;
 	ns = @names clp64le { @include "./clones.names" };
-	mux = mkctlmux();
+	mux = mkctlmux_local();
 	ctl = mux.launch([ "./clones", sprintfa("%d", n)], 0);
 	as = ctl.mem();
 	dom = mkdom(ns, as);

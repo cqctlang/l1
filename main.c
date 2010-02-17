@@ -94,7 +94,7 @@ xstrdup(char *s)
 {
 	void *p;
 	if(s == 0)
-		return NULL;
+		return 0;
 	p = emalloc(strlen(s)+1);
 	memcpy(p, s, strlen(s));
 	return p;
@@ -573,13 +573,13 @@ main(int argc, char *argv[])
 		}
 		if(rv)
 			continue; /* error */
-		if(dorepl && v->qkind != Qnil){
+		if(dorepl && Vkind(v) != Qnil){
 			s = cqctsprintval(vm, v);
 			printf("%s\n", s);
 			cqctfreecstr(s);
 		}
 		status = 0;
-		if(v->qkind == Qcval)
+		if(Vkind(v) == Qcval)
 			status = cqctvalint32(v);
 		
 	}while(dorepl);

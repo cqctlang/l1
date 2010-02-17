@@ -18,6 +18,7 @@ export V
 
 all: $(TARG)
 
+MACH = gcc.x86.c
 HDR = sys.h util.h cqct.h syscqct.h 
 L1C =\
 	lex.yy.c\
@@ -41,6 +42,7 @@ L1C =\
 	vm.c\
 	cqct.c\
 	xfd.c\
+	$(MACH)\
 	fns.$(CONF).c\
 	$(L1EXTRAS)
 
