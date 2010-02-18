@@ -67,6 +67,7 @@ tests = [
 	[ "tracesig.cqct", "2" ],
 	[ "traceattach.cqct" ],
 	[ "tracepar1.cqct" ],
+	[ "tracestep.cqct" ],
 	];
 
 if(length(args) == 1){
