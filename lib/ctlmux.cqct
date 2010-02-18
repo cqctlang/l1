@@ -77,6 +77,7 @@ ctlmux = @names clp64le {
 		Esignal  = (Eclone<<1),
 		Eexit    = (Esignal<<1),
 		Etrap    = (Eexit<<1),
+		Estepctx = (Etrap<<1),
 	} Event;
 
 	typedef
@@ -159,8 +160,15 @@ ctlmux = @names clp64le {
 		@229;
 	};
 	typedef struct Rstop Rstop;
-	typedef struct Rstop Rstep;
 	typedef struct Rstop Rgetctx;
+
+	struct Rstep {
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	Ctx ctx;
+		@229;
+	};
+	typedef struct Rstep Rstep;
 
 	struct Tlaunch{
 		@0	uint8 op;
@@ -1159,6 +1167,7 @@ ctlmux = @names clp64le {
 
 		/* FIXME: consume registers */
 		[rep, dat] = runtiltag(p->tag);
+		ctl.setreg(cop(&rep->ctx));
 		checkreply(rep, ctlmux`Rstop);
 		ctl.state = ctlmux`Stopped;
 		return nil;
@@ -1178,6 +1187,7 @@ ctlmux = @names clp64le {
 
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rstep);
+		ctl.setreg(cop(&rep->ctx));
 		return nil;
 	}
 
@@ -1250,7 +1260,7 @@ ctlmux = @names clp64le {
 		ctl = mkctl(mux,
 			    rep->id,
 			    ctlmux`Stopped,
-			    (ctlmux`Ctx*)dat,
+			    (ctlmux`Ctx*)cop(&rep->ctx),
 			    mktrapman(),
 			    [ : ]);
 		ctls[rep->id] = ctl;
@@ -1272,7 +1282,7 @@ ctlmux = @names clp64le {
 		ctl = mkctl(mux,
 			    rep->id,
 			    ctlmux`Stopped,
-			    (ctlmux`Ctx*)dat,
+			    (ctlmux`Ctx*)cop(&rep->ctx),
 			    mktrapman(),
 			    [ : ]);
 		ctls[rep->id] = ctl;
