@@ -3746,7 +3746,7 @@ getbeint(char *s, unsigned nb)
 }
 
 static Imm
-str2imm(Xtypename *xtn, Str *str)
+str2imm(VM *vm, Xtypename *xtn, Str *str)
 {
 	char *s;
 
@@ -3789,8 +3789,8 @@ str2imm(Xtypename *xtn, Str *str)
 	case Rs64be:
 		return (s64)getbeint(s, 8);
 	default:
-		fatal("bug");
-	}	
+		vmerr(vm, "attempt to access memory with incomplete type");
+	} 
 	return 0; /* not reached */
 }
 
@@ -4956,7 +4956,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	case Tptr:
 		/* FIXME: check type of cv */
 		s = callget(vm, d->as, cv->val, typesize(vm, t));
-		imm = str2imm(t, s);
+		imm = str2imm(vm, t, s);
 		rv = mkvalcval(d, t, imm);
 		break;
 	case Tarr:
