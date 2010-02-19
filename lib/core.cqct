@@ -120,6 +120,8 @@
 			r = listref(args, 2);
 			beg = rangebeg(r);
 			len = rangelen(r);
+			//check for overflow
+			if (beg + len < beg) fault();
 			for (i = 0; i < length(addr_ranges); i++) {
 				@local l, vbeg, vend;
 				l = listref(addr_ranges, i); 
@@ -132,7 +134,12 @@
 			fault();
 		}
 		else if (arg == "map") {
-			return vector(mkrange(0, (`uint64)-1));
+			@local ranges;
+			ranges = map(@lambda(x) { 
+				return mkrange(x[0],x[1]-x[0]); 
+			},addr_ranges);
+			//make it into a vector.
+			return apply(vector,ranges);
 		}
 		else if (arg == "put") {
 			error("put() unimplemented for core address spaces.");
