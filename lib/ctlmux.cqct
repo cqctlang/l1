@@ -77,6 +77,7 @@ ctlmux = @names clp64le {
 		Esignal  = (Eclone<<1),
 		Eexit    = (Esignal<<1),
 		Etrap    = (Eexit<<1),
+		Estepctx = (Etrap<<1),
 	} Event;
 
 	typedef
@@ -87,37 +88,40 @@ ctlmux = @names clp64le {
 	} Prot;
 
 	typedef
-	struct Reg {
-		@0	uint64 eflags;
-		@8	uint64 rbx;
-		@16	uint64 rcx;
-		@24	uint64 rdx;
-		@32	uint64 rsi;
-		@40	uint64 rdi;
-		@48	uint64 rbp;
-		@56	uint64 rax;
-		@64	uint64 rip;
-		@72	uint64 rsp;
-		@80	uint64 r8;
-		@88	uint64 r9;
-		@96	uint64 r10;
-		@104	uint64 r11;
-		@112	uint64 r12;
-		@120	uint64 r13;
-		@128	uint64 r14;
-		@136	uint64 r15;
-		@144	uint64 orig_rax;
-		@152;
-	} Reg;
+	struct Ctx {
+		/* kernel's register set */
+		@0x0	uint64 r15;
+		@0x8	uint64 r14;
+		@0x10	uint64 r13;
+		@0x18	uint64 r12;
+		@0x20	uint64 rbp;
+		@0x28	uint64 rbx;
+		@0x30	uint64 r11;
+		@0x38	uint64 r10;
+		@0x40	uint64 r9;
+		@0x48	uint64 r8;
+		@0x50	uint64 rax;
+		@0x58	uint64 rcx;
+		@0x60	uint64 rdx;
+		@0x68	uint64 rsi;
+		@0x70	uint64 rdi;
+		@0x78	uint64 orig_rax;
+		@0x80	uint64 rip;
+		@0x88	uint64 cs;
+		@0x90	uint64 eflags;
+		@0x98	uint64 rsp;
+		@0xa0	uint64 ss;
+		@0xa8	uint64 fs_base;
+		@0xb0	uint64 gs_base;
+		@0xb8	uint64 ds;
+		@0xc0	uint64 es;
+		@0xc8	uint64 fs;
+		@0xd0	uint64 gs;
 
-	typedef
-	struct Region {
-		@0x0	char file[0x100];
-		@0x100	uint64 addr;
-		@0x108	uint64 len;
-		@0x110	uint32 flags;
-		@0x118;
-	} Region;
+		/* current signal number */
+		@0xd8	uint64 sig;
+		@0xe0; /* 224 */
+	} Ctx;
 
 	struct Tversion{
 		@0	uint8 op;
@@ -137,20 +141,34 @@ ctlmux = @names clp64le {
 	typedef struct Rerror Rerror;
 	typedef struct Rerror Rread;
 
-	struct Rstop {
+	struct Rcont {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5;
 	};
+	typedef struct Rcont Rcont;
+	typedef struct Rcont Rclrtrap;
+	typedef struct Rcont Rdetach;
+	typedef struct Rcont Rkill;
+	typedef struct Rcont Rsetctx;
+	typedef struct Rcont Rtrace;
+
+	struct Rstop {
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	Ctx ctx;
+		@229;
+	};
 	typedef struct Rstop Rstop;
-	typedef struct Rstop Rcont;
-	typedef struct Rstop Rclrtrap;
-	typedef struct Rstop Rdetach;
-	typedef struct Rstop Rkill;
-	typedef struct Rstop Rsetctx;
-	typedef struct Rstop Rstep;
-	typedef struct Rstop Rtrace;
 	typedef struct Rstop Rgetctx;
+
+	struct Rstep {
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	Ctx ctx;
+		@229;
+	};
+	typedef struct Rstep Rstep;
 
 	struct Tlaunch{
 		@0	uint8 op;
@@ -174,7 +192,8 @@ ctlmux = @names clp64le {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13;
+		@13	Ctx ctx;
+		@237;
 	};
 	typedef struct Rlaunch Rlaunch;
 	typedef struct Rlaunch Rattach;
@@ -228,7 +247,8 @@ ctlmux = @names clp64le {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 cid;
-		@8;
+		@13	Ctx ctx;
+		@237;
 	};
 	typedef struct Rsnap Rsnap;
 
@@ -242,39 +262,43 @@ ctlmux = @names clp64le {
 	typedef struct Aevent Aevent;
 
 	struct Esyscall {
-		@0	Reg reg;
-		@152;
+		@0	Ctx ctx;
+		@224;
 	};	
 	typedef struct Esyscall Esyscall;
 
 	struct Eexit {
 		@0;
 	};	
-	typedef struct Esyscall Eexit;
-	typedef struct Esyscall Eexec;
+	typedef struct Eexit Eexit;
 
 	struct Etrap {
 		@0	uint64 tid;
-		@0	uint64 sig;
-		@8	Reg reg;
-		@160;
+		@8	Ctx ctx;
+		@232;
 	};	
 	typedef struct Etrap Etrap;
-	typedef struct Etrap Esignal;
+	typedef struct Etrap Eexec;
 
 	struct Esnap {
 		@0	uint64 tid;
 		@8	uint64 cid;
-		@16	Reg reg;
-		@168;
+		@16	Ctx ctx;
+		@240;
 	};	
 	typedef struct Esnap Esnap;
 
+	struct Esignal {
+		@0	Ctx ctx;
+		@224;
+	};	
+	typedef struct Esignal Esignal;
+
 	struct Efork {
 		@0	uint64 cid;
-		@8	Reg reg;
-		@160	Reg creg;
-		@312;
+		@8	Ctx ctx;
+		@232	Ctx cctx;
+		@456;
 	};	
 	typedef struct Efork Efork;
 	typedef struct Efork Eclone;
@@ -836,14 +860,14 @@ ctlmux = @names clp64le {
 				      ctl.id, dat->tid);
 			if(trap.desc[0] == "brk"){
 				ctl.state = ctlmux`Stopped;
-				ctl.setreg(cop(&dat->reg));
+				ctl.setreg(cop(&dat->ctx));
 				docall([ctl], @lambda() { trap.fn(ctl); });
 			}else if(trap.desc[0] == "snap"){
 				dat = (ctlmux`Esnap*)dat;
 				newctl = mkctl(mux,
 					       dat->cid,
 					       ctlmux`Stopped,
-					       cop(&dat->reg),
+					       cop(&dat->ctx),
 					       ctl.traps.copy(),
 					       ctl.callbacks);
 				ctls[dat->cid] = newctl;
@@ -860,11 +884,11 @@ ctlmux = @names clp64le {
 			    ev == ctlmux`Eclone ? "cloned" : "forked",
 			    dat->cid);
 			ctl.state = ctlmux`Stopped;
-			ctl.setreg(cop(&dat->reg));
+			ctl.setreg(cop(&dat->ctx));
 			newctl = mkctl(mux,
 				       dat->cid,
 				       ctlmux`Stopped,
-				       cop(&dat->creg),
+				       cop(&dat->cctx),
 				       ctl.traps.copy(),
 				       copy(ctl.callbacks));
 			ctls[dat->cid] = newctl;
@@ -888,7 +912,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Eexec:
 			dat = (ctlmux`Eexec*)dat;
 			ctl.state = ctlmux`Stopped;
-//			ctl.setreg(cop(&dat->reg));
+//			ctl.setreg(cop(&dat->ctx));
 			log("task %d has called exec", msg->id);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -899,10 +923,10 @@ ctlmux = @names clp64le {
 		case ctlmux`Esyscall:
 			dat = (ctlmux`Esyscall*)dat;
 			ctl.state = ctlmux`Stopped;
-			ctl.setreg(cop(&dat->reg));
+			ctl.setreg(cop(&dat->ctx));
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
-			    (enum linuxnames`syscall)dat->reg.orig_rax);
+			    (enum linuxnames`syscall)dat->ctx.orig_rax);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl], @lambda() { fn(ctl); });
@@ -914,7 +938,10 @@ ctlmux = @names clp64le {
 			ctl.state = ctlmux`Stopped;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
-				docall([ctl], @lambda() { fn(ctl, dat->sig); });
+				docall([ctl],
+				       @lambda() {
+					       fn(ctl, dat->ctx.sig);
+				       });
 			else
 				contasync(ctl);
 			break;
@@ -1140,6 +1167,7 @@ ctlmux = @names clp64le {
 
 		/* FIXME: consume registers */
 		[rep, dat] = runtiltag(p->tag);
+		ctl.setreg(cop(&rep->ctx));
 		checkreply(rep, ctlmux`Rstop);
 		ctl.state = ctlmux`Stopped;
 		return nil;
@@ -1159,6 +1187,7 @@ ctlmux = @names clp64le {
 
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rstep);
+		ctl.setreg(cop(&rep->ctx));
 		return nil;
 	}
 
@@ -1231,7 +1260,7 @@ ctlmux = @names clp64le {
 		ctl = mkctl(mux,
 			    rep->id,
 			    ctlmux`Stopped,
-			    (ctlmux`Reg*)dat,
+			    (ctlmux`Ctx*)cop(&rep->ctx),
 			    mktrapman(),
 			    [ : ]);
 		ctls[rep->id] = ctl;
@@ -1253,7 +1282,7 @@ ctlmux = @names clp64le {
 		ctl = mkctl(mux,
 			    rep->id,
 			    ctlmux`Stopped,
-			    (ctlmux`Reg*)dat,
+			    (ctlmux`Ctx*)cop(&rep->ctx),
 			    mktrapman(),
 			    [ : ]);
 		ctls[rep->id] = ctl;

@@ -2,7 +2,7 @@ CC        = gcc
 LD        = ld
 CFLAGS    = -Wall -g
 
-TARG = mclones32 clones forks list sig attach par1
+TARG = mclones32 clones forks list sig attach par1 exit
 
 all: $(TARG)
 
@@ -37,6 +37,10 @@ attach: attach.o
 	dwarf2cqct < $@ > $@.names
 
 par1: par1.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+exit: exit.o
 	$(CC) $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 

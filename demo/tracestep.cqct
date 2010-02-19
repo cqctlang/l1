@@ -1,0 +1,26 @@
+@include <ctlmux.cqct>
+@include <util.cqct>
+
+// test printlist
+@define test1()
+{
+	@local ctl, mux, ns, as, dom, i, regs;
+
+	ns = @names clp64le { @include "./exit.names" };
+	mux = mkctlmux_local();
+	ctl = mux.launch(["./exit"], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.map();
+	dom.trace(ctlmux`Estepctx, @lambda () { error("never called"); });
+	time(@lambda(){
+			for(i = 0; i < 100; i++){
+				regs = ctl.reg();
+				printf("step %5d: rip = %p\n", i, regs->rip);
+				dom.xstep();
+			}
+		});
+	dom.kill();
+}
+
+test1();
