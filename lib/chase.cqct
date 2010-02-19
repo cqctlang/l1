@@ -39,7 +39,7 @@
 		m = length(ls);
 		for(i = 0; i < m; i++){
 			y = pop(ls);
-			if(y && dom.ismapped(y))
+			if(y && ismapped(y))
 				append(wk, y);
 		}
 	}
@@ -113,6 +113,7 @@
 			p->x[j] = &q[j];
 		p++;
 	}
-	chase(q+1, chasecb);
+	chase = mkchaser(chasecb);
+	chase(q+1);
 	return nil;
 }
