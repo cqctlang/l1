@@ -20,24 +20,6 @@ cwarn(U *ctx, Expr *e, char *fmt, ...)
 }
 
 void
-cwarnsrcln(U *ctx, Src *src, char *fmt, ...)
-{
-	va_list args;
-	if(src->line)
-		cprintf(ctx->out,
-			"%s:%u: warning: ",
-			src->filename ? src->filename : "<stdin>",
-			src->line);
-	else
-		cprintf(ctx->out,
-			"<lost-location!>: warning: ");
-	va_start(args, fmt);
-	cvprintf(ctx->out, fmt, args);
-	cprintf(ctx->out, "\n");
-	va_end(args);
-}
-
-void
 cwarnln(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
@@ -240,29 +222,7 @@ Zref(Expr *dom, Expr *type, Expr *val)
 }
 
 Expr*
-Zrange(Expr *addr, Expr *sz)
-{
-	return Zcall(G("mkrange"), 2, addr, sz);
-}
-
-Expr*
 Zlocals(unsigned n, ...)
-{
-	unsigned m;
-	va_list args;
-	Expr *l;
-
-	l = nullelist();
-	va_start(args, n);
-	for(m = 0; m < n; m++)
-		l = Zcons(doid(va_arg(args, char*)), l);
-	va_end(args);
-
-	return invert(l);
-}
-
-Expr*
-Zargs(unsigned n, ...)
 {
 	unsigned m;
 	va_list args;

@@ -1812,12 +1812,6 @@ mkstrn(Imm len)
 	return str;
 }
 
-Str*
-mkstrlits(Lits *lits)
-{
-	return mkstr(lits->s, lits->len);
-}
-
 static Str*
 strcopy(Str *s)
 {
@@ -2207,12 +2201,6 @@ dotabput(Tab *tab, Val keyv, Val val)
 	x->idx[idx] = tk;
 	x->nxt++;
 	tab->cnt++;
-}
-
-void
-_tabput(Tab *tab, Val keyv, Val val)
-{
-	dotabput(tab, keyv, val);
 }
 
 void
@@ -3395,12 +3383,6 @@ mkvalrange(Cval *beg, Cval *len)
 {
 	Range *r;
 	r = mkrange(beg, len);
-	return (Val)r;
-}
-
-Val
-mkvalrange2(Range *r)
-{
 	return (Val)r;
 }
 

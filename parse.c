@@ -216,12 +216,6 @@ newgopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
 	return e;
 }
 
-Expr*
-newgop(unsigned kind, Expr *e1, Expr *e2)
-{
-	return newgopsrc(0, kind, e1, e2);
-}
-
 void
 freeexpr(Expr *e)
 {
@@ -448,12 +442,6 @@ doidnsrc(Src *src, char *s, unsigned long len)
 	e = newexprsrc(src, Eid, 0, 0, 0, 0);
 	e->id = xstrndup(s, len);
 	return e;
-}
-
-Expr*
-doidn(char *s, unsigned long len)
-{
-	return doidnsrc(0, s, len);
 }
 
 Expr*
@@ -820,12 +808,6 @@ doconstssrc(Src *src, char *s, unsigned long len)
 	e = newexprsrc(src, Econsts, 0, 0, 0, 0);
 	e->lits = mklits(s, w-s);
 	return e;
-}
-
-Expr*
-doconsts(char *s, unsigned long len)
-{
-	return doconstssrc(0, s, len);
 }
 
 Expr*

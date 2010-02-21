@@ -787,22 +787,3 @@ printdecl(Decl *d)
 	efree(o);
 }
 
-void
-printvars(Expr *e)
-{
-	int first = 1;
-
-	Expr *q;
-	while(e->kind != Enull){
-		q = e->e1;
-		while(q->kind != Enull){
-			if(!first)
-				xprintf(", ");
-			xprintf("%s", q->e1->id);
-			first = 0;
-			q = q->e2;
-		}
-		e = e->e2;
-	}
-}
-
