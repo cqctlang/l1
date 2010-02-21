@@ -317,5 +317,5 @@ putsrc(Expr *e, Src *src)
 		putsrc(e->e3, src);
 		putsrc(e->e4, src);
 		break;
-	} 
+	}
 }

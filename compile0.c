@@ -64,7 +64,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = compile_lval(ctx, e->e2, needaddr);
 		te = Zcons(se, te);
 
-		// clobber type with cast operand 
+		// clobber type with cast operand
 		d = e->e1->xp;
 		t = d->type;
 		if(t->dom)
@@ -99,7 +99,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			  Zcall(G("looksym"), 2,
 				doid("$dom"), Zconsts(e->e2->id)));
 		te = Zcons(se, te);
-		
+
 		// if(isnil($tmp)) error("undefined symbol: %s", sym);
 		se = newexpr(Eif,
 			     Zcall(G("isnil"), 1, doid("$tmp")),
@@ -186,7 +186,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		// using dom, type, addr bindings.
 		se = compile_lval(ctx, e->e1, needaddr);
 		te = Zcons(se, te);
-		
+
 		// $tmp = lookfield(type, field);
 		se = Zset(doid("$tmp"),
 			  Zcall(G("lookfield"), 2,
@@ -206,7 +206,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = Zset(doid("$type"),
 			  Zcall(G("fieldtype"), 1, doid("$tmp")));
 		te = Zcons(se, te);
-				     
+
 		// $addr = $addr + fieldoff($tmp)
 		if(needaddr){
 			se = Zset(doid("$addr"),
@@ -215,7 +215,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 					     doid("$tmp"))));
 			te = Zcons(se, te);
 		}
-		
+
 		putsrc(te, &e->src);
 		e->e1 = 0;
 		freeexpr(e);
@@ -311,7 +311,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		te = Zcons(se, te);
 
 		se = Zcall(doid("$put"), 4,
-			   doid("$dom"), doid("$addr"), doid("$type"), 
+			   doid("$dom"), doid("$addr"), doid("$type"),
 			   doid("$val"));
 		te = Zcons(se, te);
 
@@ -405,7 +405,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		se = Zsizeof(Zcall(doid("$typeof"), 1, doid("$type")));
 		te = Zcons(se, te);
-		
+
 		te = invert(te);
 		putsrc(te, &src);
 		e->e1 = 0;
@@ -428,7 +428,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		se = Zcall(doid("$typeof"), 1, doid("$type"));
 		te = Zcons(se, te);
-		
+
 		te = invert(te);
 		putsrc(te, &src);
 		e->e1 = 0;
@@ -490,7 +490,7 @@ groomc(U *ctx, Expr *e)
 		   }                      ...
                                       }
                                     }
-		*/ 
+		*/
 		se = Zblock(Zlocals(1, "$tmp"),
 			   newexpr(Eswitch,
 				   Zset(doid("$tmp"), groomc(ctx, e->e1)),

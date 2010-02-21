@@ -98,7 +98,7 @@ hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 		break;
 	case Etypedef:
 		hput(tid, d->id, strlen(d->id), d);
-		break;	
+		break;
 	default:
 		fatal("bug");
 	}

@@ -44,7 +44,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-r allow redefinition of implicitly called builtins\n");
 	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
 	fprintf(stderr, "\t-t report timing statistics\n");
-	fprintf(stderr, "\t-w print warnings about dodgy code\n"); 
+	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
@@ -484,7 +484,7 @@ main(int argc, char *argv[])
 		memset(&devnull, 0, sizeof(devnull));
 		xfd = &devnull;
 	}
-	
+
 	top = cqctinit(opt['g'], heapmax, lp, 0, xfd, 0);
 	while(nlp > 0)
 		free(lp[--nlp]);
@@ -563,7 +563,7 @@ main(int argc, char *argv[])
 			usec = 1000000*end.tv_sec+end.tv_usec;
 			if(dorepl){
 				printf("%" PRIu64 " usec", usec);
-				printf("\t%" PRIu64 " cycles", et-bt); 
+				printf("\t%" PRIu64 " cycles", et-bt);
 				if(0 == memusage(&mu))
 					printf("\t%10" PRIu64 "K vm  "
 					       "%10" PRIu64 "K rss",
@@ -581,7 +581,7 @@ main(int argc, char *argv[])
 		status = 0;
 		if(Vkind(v) == Qcval)
 			status = cqctvalint32(v);
-		
+
 	}while(dorepl);
 
 	free(valv);
@@ -591,7 +591,7 @@ main(int argc, char *argv[])
 
 	if(opt['t'] && !dorepl){
 		printf("%" PRIu64 " usec", usec);
-		printf("\t%" PRIu64 " cycles", et-bt); 
+		printf("\t%" PRIu64 " cycles", et-bt);
 		if(0 == memusage(&mu))
 			printf("\t%10" PRIu64 "K vm  "
 			       "%10" PRIu64 "K rss",

@@ -455,7 +455,7 @@ heapstat(char *s)
 	Heap *hp;
 	unsigned long sz, nf, na, ns0, ns1;
 	u64 ml, mf;
-	
+
 	if(s)
 		xprintf("%s ", s);
 	xprintf("gc epoch: %lu\n", gcepoch);
@@ -536,7 +536,7 @@ retry:
 		if(HEAPPROF) heap->nfree += AllocBatch;
 		goto retry;
 	}
-	
+
 	Vsetcolor(o, GCCOLOR(gcepoch));
 	if(HEAPPROF) heap->nha++;
 	if(HEAPDEBUG)
@@ -556,7 +556,7 @@ heapfree(Head *p)
 {
 	Head **sp;
 	if(HEAPDEBUG)
-		xprintf("collect %s %p\n", heap[Vkind(p)].id, p); 
+		xprintf("collect %s %p\n", heap[Vkind(p)].id, p);
 //	if(p->state != 0 || Vinrs(p))
 //		fatal("sweep heap (%s) %p bad state %d",
 //		      heap[Vkind(p)].id, p, p->state);
@@ -864,8 +864,8 @@ rootset(GC *gc)
 	VM **vmp, *vm;
 
 	/* never collect these things */
-	addroot(&gc->roots, (Head*)kcode); 
-	addroot(&gc->roots, (Head*)cccode); 
+	addroot(&gc->roots, (Head*)kcode);
+	addroot(&gc->roots, (Head*)cccode);
 
 	vmp = vms;
 	while(vmp < vms+Maxvms){
@@ -879,7 +879,7 @@ rootset(GC *gc)
 		hforeach(vm->top->env->rd, rdroot, gc);
 		addroot(&gc->roots, valhead(vm->ac));
 		addroot(&gc->roots, valhead(vm->cl));
-	
+
 		addroot(&gc->roots, (Head*)vm->litdom);
 		addroot(&gc->roots, (Head*)vm->prof);
 
@@ -934,10 +934,10 @@ static int
 waitmutator(GC *gc)
 {
 	char b;
-	
+
 	gc->gcpause = 1;
 	if(0 > chanreadb(gc->cgc, &b))
-		fatal("gc synchronization failure"); 
+		fatal("gc synchronization failure");
 	if(b == GCdie)
 		return 1;
 	if(b != GCpaused)
@@ -960,9 +960,9 @@ static void
 waitgcrun(GC *gc)
 {
 	char b;
-	
+
 	if(0 > chanreadb(gc->cgc, &b))
-		fatal("gc synchronization failure"); 
+		fatal("gc synchronization failure");
 	if(b == GCdie){
 		b = GCdied;
 		if(0 > chanwriteb(gc->cgc, &b))
@@ -1206,7 +1206,7 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tfun:
 		vmerr(vm, "attempt to compute size of function type");
 	case Tbitfield:
-		vmerr(vm, "attempt to compute size of bitfield"); 
+		vmerr(vm, "attempt to compute size of bitfield");
 	case Tundef:
 		es = fmtxtn(xtn->link);
 		vmerr(vm, "attempt to compute size of undefined type: %.*s",
@@ -1640,7 +1640,7 @@ hashxtn(Val val)
 	Xtypename *xtn;
 	Vec *vec;
 	Imm m;
-	
+
 	xtn = valxtn(val);
 	switch(xtn->tkind){
 	case Tvoid:
@@ -2046,7 +2046,7 @@ itertab(Head *hd, Ictx *ictx)
 		ictx->x = x = tab->x;
 	else
 		x = ictx->x;
-		
+
 	nxt = x->nxt;		/* mutator may update nxt */
 	if(ictx->n >= 2*nxt)
 		return GCiterdone;
@@ -2214,7 +2214,7 @@ tabdel(Tab *tab, Val keyv)
 {
 	Tabidx *tk, **ptk;
 	Tabx *x;
-	
+
 	x = tab->x;
 	tk = _tabget(tab, keyv, &ptk);
 	if(tk == 0)
@@ -2318,7 +2318,7 @@ tabpop(Tab *tab, Val *rv)
 		tab->cnt--;
 		break;
 	}
-	
+
 	vec = mkvec(2);
 	_vecset(vec, 0, x->key[tk->idx]);
 	_vecset(vec, 1, x->val[tk->idx]);
@@ -2398,7 +2398,7 @@ mklistinit(Imm len, Val v)
 
 	l = mklistn(len);
 	for(m = 0; m < len; m++)
-		_listappend(l, v); 
+		_listappend(l, v);
 	return l;
 }
 
@@ -2612,7 +2612,7 @@ slide(Listx *x, u32 idx, int op)
 	m = listxlen(x)-idx;
 	if(m <= 1 && op == SlideDel)
 		/* deleting last element; nothing to do */
-		return;		
+		return;
 	if(x->oval == 0)
 		x->oval = emalloc(x->sz*sizeof(Val));
 	memcpy(&x->oval[x->hd], &x->val[x->hd], idx*sizeof(Val));
@@ -2850,7 +2850,7 @@ recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Rec *r;
 	Cval *ndx;
 	Str *mn;
-	
+
 	rd = valrd(disp[0]);
 	mn = valstr(disp[1]);
 	ndx = valcval(disp[2]);
@@ -2881,7 +2881,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Rd *rd;
 	Cval *ndx;
 	Str *mn;
-	
+
 	rd = valrd(disp[0]);
 	mn = valstr(disp[1]);
 	ndx = valcval(disp[2]);
@@ -3465,7 +3465,7 @@ doinsncnt(void)
 		if(Vcolor(p) == GCfree)
 			goto next;
 		c = (Code*)p;
-		in = &c->insn[0];		
+		in = &c->insn[0];
 		for(pc = 0; pc < c->ninsn; pc++, in++){
 			src = addr2line(c, pc);
 			if(src == 0)
@@ -3501,7 +3501,7 @@ printsrc(Xfd *xfd, Closure *cl, Imm pc)
 	Code *code;
 	Src *src;
 	char *fn;
-	
+
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
 		cprintf(xfd, "%20s\t(builtin %s)\n", cl->id,
@@ -3772,7 +3772,7 @@ str2imm(VM *vm, Xtypename *xtn, Str *str)
 		return (s64)getbeint(s, 8);
 	default:
 		vmerr(vm, "attempt to access memory with incomplete type");
-	} 
+	}
 	return 0; /* not reached */
 }
 
@@ -3879,7 +3879,7 @@ imm2str(Xtypename *xtn, Imm imm)
 		return str;
 	default:
 		fatal("bug");
-	}	
+	}
 	return 0; /* not reached */
 }
 
@@ -3985,7 +3985,7 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 {
 	Xtypename *b1, *b2;
 	static char *domerr
-		= "attempt to combine cvalues of incompatible domains"; 
+		= "attempt to combine cvalues of incompatible domains";
 
 	if(op1->dom == op2->dom)
 		goto out;
@@ -4249,7 +4249,7 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 	Val v;
 	Cval *cv, *cvr;
 	Imm imm, nv;
-	
+
 	v = getvalrand(vm, op1);
 	if(Vkind(v) != Qcval)
 		vmerr(vm, "incompatible operand for unary %s", opstr[op]);
@@ -4396,7 +4396,7 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 
 	i1 = op1->val;
 	i2 = op2->val;
-	
+
 	switch(op){
 	case Iadd:
 		rv = i1+i2;
@@ -4435,7 +4435,7 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 		break;
 	default:
 		fatal("bug");
-	}		
+	}
 
 	rv = truncimm(rv, t1->rep);
 	return mkcval(op1->dom, op1->type, rv);
@@ -4871,7 +4871,7 @@ dobitfieldgeom(Xtypename *b, BFgeom *bfg)
 {
 	Cval *bit0, *bs;
 	Xtypename *bb;
-		
+
 	bit0 = valcval(b->bit0);
 	bs = valcval(b->cnt);
 	bfg->bp = bit0->val;
@@ -5451,7 +5451,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			tmp = _dolooktype(vm, valxtn(vecref(vec, Typepos)), ns);
 			if(tmp == 0)
 				return 0;
-			vecset(vec, Typepos, mkvalxtn(tmp)); 
+			vecset(vec, Typepos, mkvalxtn(tmp));
 		}
 		gcunprotect(vm, new);
 		return new;
@@ -5809,7 +5809,7 @@ resolvebase(VM *vm, Val xtnv, NSctx *ctx)
 		tabput(ctx->type, xtnv, rv);
 		return valxtn(rv);
 	}
-	
+
 	xtn = valxtn(xtnv);
 	vmerr(vm, "undefined base type %s", cbasename[xtn->basename]);
 	return 0; /* not reached */
@@ -6016,7 +6016,7 @@ mknstab(Tab *mtab, Str *name)
 	nscachemethod(ns);
 	return ns;
 }
-       
+
 static Ns*
 mknsfn(Closure *looktype, Closure *enumtype,
        Closure *looksym, Closure *enumsym,
@@ -6402,7 +6402,7 @@ static void
 _gcunprotect(VM *vm, Val v, unsigned depth)
 {
 	Root *r, **pr;
-	
+
 	pr = &vm->prot[depth];
 	r = *pr;
 	while(r){
@@ -6426,7 +6426,7 @@ _gcprotect(VM *vm, void *obj, unsigned depth)
 	r = newroot(&vm->rs);
 	r->hd = obj;
 	r->link = vm->prot[depth];
-	vm->prot[depth] = r;	
+	vm->prot[depth] = r;
 	return obj;
 }
 
@@ -6499,7 +6499,7 @@ builtinfn(Env *env, char *name, Closure *cl)
 	val = mkvalcl(cl);
 	envbind(env, name, val);
 	if(name[0] == '%')
-		envbind(env, name+1, val);		
+		envbind(env, name+1, val);
 }
 
 static void
@@ -6556,7 +6556,7 @@ static void
 vmresettop(VM *vm)
 {
 	Val val;
-	
+
 	if(!envlookup(vm->top->env, "halt", &val))
 		fatal("bad vm environment");
 	vm->halt = valcl(val);
@@ -6639,7 +6639,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
 	}
-#endif	
+#endif
 	gcprotpush(vm);
 
 	/* for recursive entry, store current context */
@@ -6800,7 +6800,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			thegc->gcpoll(thegc, vm);
 			continue;
 		LABEL Iclo:
-			xclo(vm, &i->op1, i->dstlabel, &i->dst); 
+			xclo(vm, &i->op1, i->dstlabel, &i->dst);
 			/* vm->sp has been updated */
 			continue;
 		LABEL Ikg:
@@ -6953,7 +6953,7 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	Val *vs;
 	Closure *cmp;
 	Imm n;
-	
+
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to sort");
 	if(Vkind(argv[0]) != Qlist && Vkind(argv[0]) != Qvec)
@@ -7015,7 +7015,7 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 	Val *vs;
 	Closure *cmp;
 	Imm n;
-	
+
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to bsearch");
 	if(Vkind(argv[1]) != Qlist && Vkind(argv[1]) != Qvec)
@@ -7059,7 +7059,7 @@ l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
 	}else
 		vmerr(vm,
 		      "operand 1 to looktype must be a namespace or domain");
-		      
+
 	if(Vkind(argv[1]) != Qxtn)
 		vmerr(vm, "operand 2 to looktype must be a typename");
 	xtn = valxtn(argv[1]);
@@ -7087,7 +7087,7 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 	}else
 		vmerr(vm,
 		      "operand 1 to looksym must be a namespace or domain");
-		      
+
 	if(Vkind(argv[1]) != Qstr)
 		vmerr(vm, "operand 2 to looksym must be a string");
 	*rv = dovm(vm, ns->looksym, argc, argv);
@@ -7239,7 +7239,7 @@ stringof(VM *vm, Cval *cv)
 	Range *r;
 	Imm l, m, n, o;
 	static unsigned unit = 128;
-	
+
 	/* effectively a call to unit */
 	v = callmap(vm, cv->dom->as);
 	r = mapstab(vm, v, cv->val, 0);	/* FIXME: type sanity */
@@ -7282,7 +7282,7 @@ ismapped(VM *vm, As *as, Imm addr, Imm len)
 		return 0;
 	if(addr+len < len)
 		/* bogus length */
-		return 0;	
+		return 0;
 	v = callmap(vm, as);
 	r = mapstab(vm, v, addr, len);	/* FIXME: type sanity */
 	return r != 0;
@@ -7463,7 +7463,7 @@ static void
 l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Xtypename *xtn;
-	static char *err = 
+	static char *err =
 		"operand 1 to subtype must be an "
 		"array, pointer, enum, or enum constant";
 
@@ -7471,7 +7471,7 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to subtype");
 	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, err);
-		      
+
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind == Ttypedef)
 		xtn = chasetype(xtn);
@@ -7575,7 +7575,7 @@ l1_bitfieldwidth(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to bitfieldwidth "
 		      "must be a bitfield ctype");
-		      
+
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tbitfield)
 		vmerr(vm, "operand 1 to bitfieldwidth "
@@ -7593,7 +7593,7 @@ l1_bitfieldcontainer(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to bitfieldcontainer "
 		      "must be a bitfield ctype");
-		      
+
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tbitfield)
 		vmerr(vm, "operand 1 to bitfieldcontainer "
@@ -7611,7 +7611,7 @@ l1_bitfieldpos(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to bitfieldpos");
 	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to bitfieldpos must be a bitfield ctype");
-		      
+
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tbitfield)
 		vmerr(vm, "operand 1 to bitfieldpos must be a bitfield ctype");
@@ -7659,7 +7659,7 @@ l1_arraynelm(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to arraynelm");
 	if(Vkind(argv[0]) != Qxtn)
 		vmerr(vm, "operand 1 to arraynelm must be an array ctype");
-		      
+
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Tarr)
 		vmerr(vm, "operand 1 to arraynelm must be an array ctype");
@@ -8540,7 +8540,7 @@ l1_mkfield(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to mkfield");
-	mksymorfieldorparam("mkfield", vm, argc, argv, rv);	
+	mksymorfieldorparam("mkfield", vm, argc, argv, rv);
 }
 
 static void
@@ -8548,7 +8548,7 @@ l1_mkparam(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc < 1 || argc > 2)
 		vmerr(vm, "wrong number of arguments to mkparam");
-	mksymorfieldorparam("mkparam", vm, argc, argv, rv);	
+	mksymorfieldorparam("mkparam", vm, argc, argv, rv);
 }
 
 static void
@@ -8708,14 +8708,14 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 	Closure *cl;
 	Imm m, i, len, len2;
 	Val* argv;
-	
+
 	if(argc < 2)
 		vmerr(vm, "wrong number of arguments to foreach");
 	checkarg(vm, "foreach", iargv, 0, Qcl);
 
 	// tables: only one container operand
 	if(Vkind(iargv[1]) == Qtab){
-		if(argc > 2) 
+		if(argc > 2)
 			vmerr(vm, "bad combination of containers");
 		cl = valcl(iargv[0]);
 		t = valtab(iargv[1]);
@@ -8797,7 +8797,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 
 	// tables: only one container operand
 	if(Vkind(iargv[1]) == Qtab){
-		if(argc > 2) 
+		if(argc > 2)
 			vmerr(vm, "bad combination of containers");
 		r = mklist();
 		gcprotect(vm, mkvallist(r));
@@ -9543,7 +9543,7 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 			      "non-negative");
 		radix = cv->val;
 	}
-		
+
 	s = valstrorcval(vm, "strton", argv, 0);
 	if(0 != parseliti(s->s, s->len, &liti, radix, &err))
 		vmerr(vm, err);
@@ -10428,7 +10428,7 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkrd");
 	checkarg(vm, "mkrd", argv, 0, Qstr);
 	checkarg(vm, "mkrd", argv, 1, Qlist);
-	
+
 	fmt = 0;
 	if(argc == 3){
 		checkarg(vm, "mkrd", argv, 1, Qcl);
@@ -11465,7 +11465,7 @@ mktopenv(void)
 	Dom *litdom;
 
 	env = mkenv();
-	
+
 	builtinfn(env, "halt", haltthunk());
 	builtinfn(env, "callcc", callcc());
 
@@ -11734,7 +11734,7 @@ cqctmkvm(Toplevel *top)
 	vm->prot = emalloc(vm->pmax*sizeof(Root*));
 	vm->emax = Errinitdepth;
 	vm->err = emalloc(vm->emax*sizeof(Err));
-	
+
 	gcprotpush(vm);		/* persistent references */
 	vmresetctl(vm);
 
@@ -11943,7 +11943,7 @@ cqctmkfd(Xfd *xfd, char *name)
 {
 	Fd *fd;
 	Str *n;
-	
+
 	if(name)
 		n = mkstr0(name);
 	else

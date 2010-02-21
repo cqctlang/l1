@@ -179,7 +179,7 @@ l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > parseip(s, &saddr))
 		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
 	efree(s);
-	
+
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd.fd)
 		vmerr(vm, "tcpopen: %s", strerror(errno));

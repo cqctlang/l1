@@ -112,7 +112,7 @@ compilesizeof(U *ctx, Decl *d, Src *src)
 	// sizeof($tmp);
 	se = Zsizeof(doid("$tmp"));
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0); 
+	te = newexpr(Eblock, loc, invert(te), 0, 0);
 	putsrc(te, src);
 	return te;
 }
@@ -142,7 +142,7 @@ compiletypeof(U *ctx, Decl *d, Src *src)
 	se = Zset(doid("$tmp"),
 		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
 	te = Zcons(se, te);
-	
+
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
@@ -171,7 +171,7 @@ compilecast(U *ctx, Expr *e)
 	loc = Zlocals(3, "$tmp", "$tn", "$type");
 
 	te = nullelist();
-	
+
 	// $tmp = e->e2;
 	e->e2 = compile1(ctx, e->e2);
 	se = Zset(doid("$tmp"), e->e2);
@@ -192,7 +192,7 @@ compilecast(U *ctx, Expr *e)
 	se = Zset(doid("$type"),
 		  Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
-	
+
 	// if(isnil($type)) error("undefined type: %t", $tn);
 	// FIXME: this is a redundant test under Eambig
 	se = newexpr(Eif,
@@ -244,7 +244,7 @@ compilecontainer(U *ctx, Expr *e)
 	se = Zset(doid("$type"),
 		  Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
-	
+
 	// if(isnil($type)) error("undefined type: %t", $tn);
 	se = newexpr(Eif,
 		     Zcall(G("isnil"), 1, doid("$type")),
@@ -314,7 +314,7 @@ compileambig(U *ctx, Expr *e)
 	char *dom;
 	Decl *d;
 	Type *t;
-		
+
 	/* exactly one of the two parses is a form that operates on a
 	   type name */
 	tf = of = 0;

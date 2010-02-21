@@ -101,7 +101,7 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand to rand exceeds RAND_MAX (%d)", RAND_MAX);
 	if(cv->val == 0)
 		vmerr(vm, "operand to rand must be positive");
-	
+
 	r = rand();
 	r %= cv->val;
 	*rv = mkvallitcval(Vulong, r);
@@ -140,7 +140,7 @@ dotrs(VM *vm)
 	Ctl **ls;
 	Tab *tab;
 	char *fn;
-	
+
 	tab = mktab();
 	tr = prof->trace;
 	while(tr < prof->trace+prof->ntrace){

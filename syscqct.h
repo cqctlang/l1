@@ -19,7 +19,7 @@ enum{
 	Echar=0,
 	Edouble,
 	Efloat,
-	Eint,	
+	Eint,
 	Elong,
 	Eshort,
 	Esigned,
@@ -526,7 +526,7 @@ enum {
 	Ivargc,
 	Ixcast,
 	Ixor,
-	Iopmax=Ixor         
+	Iopmax=Ixor
 } ikind;
 
 typedef
@@ -550,7 +550,7 @@ struct Ictx {
 	void *x;
 } Ictx;
 
-typedef 
+typedef
 enum
 {
 	Vparam,
@@ -836,7 +836,7 @@ Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
 void		freeconst(void *u, char *id, void *v);
 void		freeexprx(Expr *e);
 int		issimple(Expr *e);
-u64		szexprx(Expr *e); 
+u64		szexprx(Expr *e);
 
 /* cg.c */
 Closure*	callcc(void);

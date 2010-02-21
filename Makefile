@@ -19,7 +19,7 @@ export V
 all: $(TARG)
 
 MACH = gcc.x86.c
-HDR = sys.h util.h cqct.h syscqct.h 
+HDR = sys.h util.h cqct.h syscqct.h
 L1C =\
 	lex.yy.c\
 	c.tab.c\
@@ -97,7 +97,7 @@ libl1.so: l1.o
 	@echo + ld $@
 	$(V)$(CC) -shared -Xlinker -Bsymbolic -o $@ $^
 
-libl1.dylib: l1.o 
+libl1.dylib: l1.o
 	@echo + ld $@
 	if [ ! -f libgcc_s.dylib ] ; then ln -s /usr/lib/libgcc_s.1.dylib libgcc_s.dylib ; fi
 	libtool -dynamic -lc -L. -lgcc_s -o $@ $^

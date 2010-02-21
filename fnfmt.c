@@ -36,7 +36,7 @@ fmtplist(Vec *param)
 	Xtypename *xtn;
 	Vec *pvec;
 	Val id;
-	
+
 	n = param->len;
 	if(n == 0)
 		return xstrdup("");
@@ -526,27 +526,27 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	Xtypename *t;
 	char *fp;
 	static char* fmttab[Rnrep][256] = {
-	[Ru08le]['d'] = PRId8,	[Ru08le]['i'] = PRIi8,   
-	[Ru08be]['d'] = PRId8,	[Ru08be]['i'] = PRIi8,   
-	[Rs08le]['d'] = PRId8,	[Rs08le]['i'] = PRIi8,   
-	[Rs08be]['d'] = PRId8,	[Rs08be]['i'] = PRIi8,   
-	[Ru16le]['d'] = PRId16,	[Ru16le]['i'] = PRIi16,  
-	[Ru16be]['d'] = PRId16,	[Ru16be]['i'] = PRIi16,  
-	[Rs16le]['d'] = PRId16,	[Rs16le]['i'] = PRIi16,  
-	[Rs16be]['d'] = PRId16,	[Rs16be]['i'] = PRIi16,  
-	[Ru32le]['d'] = PRId32,	[Ru32le]['i'] = PRIi32,  
-	[Ru32be]['d'] = PRId32,	[Ru32be]['i'] = PRIi32,  
-	[Rs32le]['d'] = PRId32,	[Rs32le]['i'] = PRIi32,  
-	[Rs32be]['d'] = PRId32,	[Rs32be]['i'] = PRIi32,  
-	[Ru64le]['d'] = PRId64,	[Ru64le]['i'] = PRIi64,  
-	[Ru64be]['d'] = PRId64,	[Ru64be]['i'] = PRIi64,  
-	[Rs64le]['d'] = PRId64,	[Rs64le]['i'] = PRIi64,  
-	[Rs64be]['d'] = PRId64,	[Rs64be]['i'] = PRIi64,  
+	[Ru08le]['d'] = PRId8,	[Ru08le]['i'] = PRIi8,
+	[Ru08be]['d'] = PRId8,	[Ru08be]['i'] = PRIi8,
+	[Rs08le]['d'] = PRId8,	[Rs08le]['i'] = PRIi8,
+	[Rs08be]['d'] = PRId8,	[Rs08be]['i'] = PRIi8,
+	[Ru16le]['d'] = PRId16,	[Ru16le]['i'] = PRIi16,
+	[Ru16be]['d'] = PRId16,	[Ru16be]['i'] = PRIi16,
+	[Rs16le]['d'] = PRId16,	[Rs16le]['i'] = PRIi16,
+	[Rs16be]['d'] = PRId16,	[Rs16be]['i'] = PRIi16,
+	[Ru32le]['d'] = PRId32,	[Ru32le]['i'] = PRIi32,
+	[Ru32be]['d'] = PRId32,	[Ru32be]['i'] = PRIi32,
+	[Rs32le]['d'] = PRId32,	[Rs32le]['i'] = PRIi32,
+	[Rs32be]['d'] = PRId32,	[Rs32be]['i'] = PRIi32,
+	[Ru64le]['d'] = PRId64,	[Ru64le]['i'] = PRIi64,
+	[Ru64be]['d'] = PRId64,	[Ru64be]['i'] = PRIi64,
+	[Rs64le]['d'] = PRId64,	[Rs64le]['i'] = PRIi64,
+	[Rs64be]['d'] = PRId64,	[Rs64be]['i'] = PRIi64,
 
-	[Ru08le]['o'] = PRIo8,	[Ru08le]['u'] = PRIu8, 
-	[Ru08be]['o'] = PRIo8,	[Ru08be]['u'] = PRIu8, 
-	[Rs08le]['o'] = PRIo8,	[Rs08le]['u'] = PRIu8, 
-	[Rs08be]['o'] = PRIo8,	[Rs08be]['u'] = PRIu8, 
+	[Ru08le]['o'] = PRIo8,	[Ru08le]['u'] = PRIu8,
+	[Ru08be]['o'] = PRIo8,	[Ru08be]['u'] = PRIu8,
+	[Rs08le]['o'] = PRIo8,	[Rs08le]['u'] = PRIu8,
+	[Rs08be]['o'] = PRIo8,	[Rs08be]['u'] = PRIu8,
 	[Ru16le]['o'] = PRIo16,	[Ru16le]['u'] = PRIu16,
 	[Ru16be]['o'] = PRIo16,	[Ru16be]['u'] = PRIu16,
 	[Rs16le]['o'] = PRIo16,	[Rs16le]['u'] = PRIu16,
@@ -560,10 +560,10 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	[Rs64le]['o'] = PRIo64,	[Rs64le]['u'] = PRIu64,
 	[Rs64be]['o'] = PRIo64,	[Rs64be]['u'] = PRIu64,
 
-	[Ru08le]['x'] = PRIx8,	[Ru08le]['X'] = PRIX8, 
-	[Ru08be]['x'] = PRIx8,	[Ru08be]['X'] = PRIX8, 
-	[Rs08le]['x'] = PRIx8,	[Rs08le]['X'] = PRIX8, 
-	[Rs08be]['x'] = PRIx8,	[Rs08be]['X'] = PRIX8, 
+	[Ru08le]['x'] = PRIx8,	[Ru08le]['X'] = PRIX8,
+	[Ru08be]['x'] = PRIx8,	[Ru08be]['X'] = PRIX8,
+	[Rs08le]['x'] = PRIx8,	[Rs08le]['X'] = PRIX8,
+	[Rs08be]['x'] = PRIx8,	[Rs08be]['X'] = PRIX8,
 	[Ru16le]['x'] = PRIx16,	[Ru16le]['X'] = PRIX16,
 	[Ru16be]['x'] = PRIx16,	[Ru16be]['X'] = PRIX16,
 	[Rs16le]['x'] = PRIx16,	[Rs16le]['X'] = PRIX16,
@@ -602,7 +602,7 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 		snprint(fmt, sizeof(fmt), "%%%s%d%s", mod, f->width, fp);
 	else
 		snprint(fmt, sizeof(fmt), "%%%s%s", mod, fp);
-	
+
 	switch(t->rep){
 	case Ru08le:
 	case Ru08be:
@@ -687,7 +687,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	int i;
 	Imm len;
 	Val xargv[2];
-	
+
 	vpp = &argv[0];
 	efmt = fmt+fmtlen;
 	while(1){

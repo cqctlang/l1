@@ -28,7 +28,7 @@ static void cglambda(Ctl *name, Code *code, Expr *el);
 static Val
 konval(Tab *kon, Val v)
 {
-	Val hv;	
+	Val hv;
 	hv = tabget(kon, v);
 	if(hv)
 		return hv;
@@ -167,7 +167,7 @@ static Code*
 mkcode(void)
 {
 	Code *code;
-	
+
 	code = newcode();
 	code->maxinsn = InsnAlloc;
 	code->insn = emalloc(code->maxinsn*sizeof(Insn));
@@ -1157,7 +1157,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->dstlabel = R;
 			R->used = 1;
 		}
-		
+
 		q = e->e2;
 		narg = 0;
 		L0 = prv;
@@ -1183,7 +1183,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			narg++;
 			L0 = L;
 		}
-		
+
 		i = nextinsn(code, &e->src);
 		i->kind = Ipushi;
 		randkon(&i->op1, konimm(code->konst, Vint, narg));
@@ -1432,10 +1432,10 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		np = *p;
 		np.Continue = Linc;
 		np.Break = L;
-		
+
 		if(e->e1){
 			cg(e->e1, code, p, Effect, Ltest, prv, Ltest, tmp);
-			emitlabel(Ltest, e->e2);			
+			emitlabel(Ltest, e->e2);
 		}else
 			Ltest = prv;
 
@@ -1462,7 +1462,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
-		}			
+		}
 		break;
 	case Ewhile:
 		if(ctl->ckind != Clabel)
@@ -1486,7 +1486,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
-		} 
+		}
 		break;
 	case Edo:
 		if(ctl->ckind != Clabel)
@@ -1513,7 +1513,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
-		}			
+		}
 		break;
 	case Eswitch:
 		L = ctl;
@@ -1527,7 +1527,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		L0 = genlabel(code, 0);
 		cg(e->e1, code, &np, Effect, L0, prv, L0, tmp);
 		emitlabel(L0, e->e2);
-		
+
 		/* bit of a hack: guarantee that locals in the switch
 		   block are initialized, replicating the Eblock prologue */
 		if(e->e2->kind == Eblock){
@@ -1565,7 +1565,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
-		}			
+		}
 		break;
 	case Ecase:
 		if(p->cases == 0)

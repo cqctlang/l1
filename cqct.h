@@ -49,7 +49,7 @@ enum Cbase {
 	Vnallbase,
 } Cbase;
 
-/* type representations */ 
+/* type representations */
 typedef
 enum Rkind {
 	Rundef,
@@ -69,7 +69,7 @@ enum Rkind {
 	Rs16be,
 	Rs32be,
 	Rs64be,
-	Rnrep, 
+	Rnrep,
 } Rkind;
 
 typedef struct Closure Closure;
@@ -169,7 +169,7 @@ int64_t		cqctvalint64(Val);
 char*		cqctvalcstr(Val);
 uint64_t	cqctvalcstrlen(Val);
 char*		cqctvalcstrshared(Val);
-uint8_t		cqctvaluint8(Val);	
+uint8_t		cqctvaluint8(Val);
 uint16_t	cqctvaluint16(Val);
 uint32_t	cqctvaluint32(Val);
 uint64_t	cqctvaluint64(Val);

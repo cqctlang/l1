@@ -51,7 +51,7 @@ static unsigned basemod[Vnbase][Enbase] = {
 	[Vuint][Elong]         = Vulong,
 	[Vint][Eshort]         = Vshort,
 	[Vuint][Eshort]        = Vushort,
-	
+
 	[Vlong][Eunsigned]     = Vulong,
 	[Vlong][Esigned]       = Vlong,
 	[Vlong][Elong]         = Vvlong,
@@ -178,7 +178,7 @@ newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 	e = emalloc(sizeof(Expr));
 	e->kind = kind;
 	e->e1 = e1;
-	e->e2 = e2;	
+	e->e2 = e2;
 	e->e3 = e3;
 	e->e4 = e4;
 	if(src)
@@ -482,7 +482,7 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 		*err = "excessively long integer literal";
 		return -1;
 	}
-		
+
 	memcpy(buf, s, len);
 	buf[len] = 0;
 	s = buf;
@@ -988,7 +988,7 @@ baselist(U *ctx, Expr *e)
 {
 	Expr *s;
 	Cbase base;
-	
+
 	base = Vundef;
 	while(e->kind != Enull){
 		s = e->e1;
@@ -997,7 +997,7 @@ baselist(U *ctx, Expr *e)
 		case Echar:
 		case Edouble:
 		case Efloat:
-		case Eint:	
+		case Eint:
 		case Elong:
 		case Eshort:
 		case Esigned:
@@ -1088,7 +1088,7 @@ specifier(U *ctx, Expr *e)
 	default:
 		fatal("bug");
 	}
-	
+
 	if(dom){
 		t->dom = dom->id; /* steal */
 		dom->id = 0;

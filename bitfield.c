@@ -57,7 +57,7 @@ bitfieldgeom(BFgeom *bfg)
 	mls = 1<<logceil(bc);
 	als = mls;
 
-	if(als > MAX_ADDRESSABLE_UNIT) 
+	if(als > MAX_ADDRESSABLE_UNIT)
 		return -1;
 
 	while(als < MAX_ADDRESSABLE_UNIT){

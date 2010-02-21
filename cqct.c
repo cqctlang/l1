@@ -180,7 +180,6 @@ cqctinterrupt(VM *vm)
 
 Toplevel*
 cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
-	 
 {
 	Xfd xfd[3];
 

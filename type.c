@@ -8,10 +8,10 @@ static char* cbasector[Vnbase] = {
 	[Vint]		      = "%mkctype_int",
 	[Vlong]		      = "%mkctype_long",
 	[Vvlong]	      = "%mkctype_vlong",
-	[Vuchar]	      = "%mkctype_uchar", 
+	[Vuchar]	      = "%mkctype_uchar",
 	[Vushort]	      = "%mkctype_ushort",
-	[Vuint]		      = "%mkctype_uint", 
-	[Vulong]	      = "%mkctype_ulong", 
+	[Vuint]		      = "%mkctype_uint",
+	[Vulong]	      = "%mkctype_ulong",
 	[Vuvlong]	      = "%mkctype_uvlong",
 	[Vfloat]	      = "%mkctype_float",
 	[Vdouble]	      = "%mkctype_double",
@@ -29,7 +29,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 	switch(t->kind){
 	case Tvoid:
 		e = Zcall(G("mkctype_void"), 0);
-		break;	
+		break;
 	case Tbase:
 		e = Zcall(doid(cbasector[t->base]), 0);
 		break;
@@ -81,14 +81,14 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 				dl->type->bitw = 0;
 			}else if(dl->attr){
 				te = Zcall(G("mkfield"), 3,
-					   tn, 
+					   tn,
 					   id,
 					   Zcall(G("mkattr"), 1,
 						 recpass(ctx, dl->attr)));
 				dl->attr = 0;
 			}else
 				te = Zcall(G("mkfield"), 3,
-					   tn, id, Znil()); 
+					   tn, id, Znil());
 			se = Zcons(te, se);
 			dl = dl->link;
 		}
@@ -166,7 +166,7 @@ gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 				  gentypename(t->link, recpass, ctx, 0), se);
 		}else
 			e = Zcall(G("mkctype_array"), 1,
-				  gentypename(t->link, recpass, ctx, 0)); 
+				  gentypename(t->link, recpass, ctx, 0));
 		break;
 	case Tfun:
 		te = nullelist();

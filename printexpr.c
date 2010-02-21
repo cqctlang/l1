@@ -13,7 +13,7 @@ char* S[] = {
 	[Echar] =	"Echar",
 	[Edouble] =	"Edouble",
 	[Efloat] =	"Efloat",
-	[Eint] =	"Eint",	
+	[Eint] =	"Eint",
 	[Elong] =	"Elong",
 	[Eshort] =	"Eshort",
 	[Esigned] =	"Esigned",
@@ -112,7 +112,7 @@ char* S[] = {
 	[Eunot] =	"Eunot",
 	[Euplus] =	"Euplus",
 	[Eutwiddle] =	"Eutwiddle",
-	[Ewhile] =	"Ewhile",      
+	[Ewhile] =	"Ewhile",
 	[Excast] =	"Excast",
 
 	[E_cval] =	"E_cval",
@@ -433,7 +433,7 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf(")");
 		}else{
 			xprintf("%s", opstr(e->kind));
-			printcqct0(e->e1, ni);			
+			printcqct0(e->e1, ni);
 		}
 		break;
 	case Epostinc:
@@ -615,7 +615,7 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("[%d]???", e->kind);
 		break;
 	}
-	
+
 }
 
 void

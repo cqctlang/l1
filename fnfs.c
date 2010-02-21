@@ -47,7 +47,7 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *names;
 	char *name;
 	int r;
-	
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkdir");
 	checkarg(vm, "mkdir", argv, 0, Qstr);
@@ -59,14 +59,14 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "mkdir: %s", strerror(errno));
 	/* return nil */
 }
-       
+
 static void
 l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *names;
 	char *name;
 	int r;
-	
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to unlink");
 	checkarg(vm, "unlink", argv, 0, Qstr);
@@ -85,7 +85,7 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *names;
 	char *name;
 	int r;
-	
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rmdir");
 	checkarg(vm, "rmdir", argv, 0, Qstr);

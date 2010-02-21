@@ -41,7 +41,7 @@ rfn(void *p)
 		n = MIN(getr->lim, Unit);
 		is = callget(getr->vm, getr->p->dom->as, getr->off, n);
 		if(is->len == 0)
-			vmerr(getr->vm, "inflate: not enough input"); 
+			vmerr(getr->vm, "inflate: not enough input");
 		getr->off += is->len;
 		getr->avail = is->len;
 		getr->buf = (unsigned char*)is->s; /* safe ref until next get */

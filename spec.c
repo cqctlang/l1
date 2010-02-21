@@ -555,10 +555,10 @@ residue(VM *vm, Expr *e, Expr *pat, Val v)
 		freexenv(xe);
 
 		xe = mkxenv(0);
-		bindids(xe, e->e1, UNKNOWN);	
+		bindids(xe, e->e1, UNKNOWN);
 		e->e2 = cf(vm, e->e2, xe);
 		freexenv(xe);
-	
+
 		xe = mkxenv(0);
 		bindids(xe, e->e1, NIL);
 		e->e2 = uv(e->e2, xe);

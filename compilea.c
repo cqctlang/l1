@@ -11,7 +11,7 @@ enum Attr {
 
 static Expr* expanda(U *ctx, Expr *e, unsigned d, unsigned *w);
 
-static Attr 
+static Attr
 islval(Expr *e, Expr **a)
 {
 	int x;
@@ -129,7 +129,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 	ne = expanda(ctx, xe, d+1, 0);
 	if(ne == 0)
 		fatal("bug");
-	
+
 	te = Zblock(Zlocals(1, t),
 		    Zset(doid(t), p),
 		    Zifelse(Zcall(G("iscvalue"), 1,
@@ -179,7 +179,7 @@ static Expr*
 expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 {
 	Expr *a, *te;
-	
+
 	/* recognize:
 	   e1[e2]
 	   e1[e2] = e3
@@ -340,7 +340,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		if(a)
 			return disambig(ctx, a, e, d);
 
-		id = e->e2->id; 
+		id = e->e2->id;
 		o = Zset(doid("$o"), expanda(ctx, e->e1, d, w));
 
 		/* record accessor case */
@@ -600,7 +600,7 @@ expandc(U *ctx, Expr *e)
 	switch(e->kind){
 	case Earef: /* for compile_rval */
 		/* rewrite: E1[E2] => *(E1+E2) */
-		se = newexpr(Ederef, 
+		se = newexpr(Ederef,
 			     Zadd(expandc(ctx, e->e1), expandc(ctx, e->e2)),
 			     0, 0, 0);
 		putsrc(se, &e->src);

@@ -137,7 +137,7 @@ hexpand(HT *ht)
 	for(i = 0; i < ht->sz; i++){
 		hp = ht->ht[i];
 		while(hp){
-			nxt = hp->next;			
+			nxt = hp->next;
 			idx = shash(hp->key, hp->keylen)%nsz;
 			hp->next = nht[idx];
 			nht[idx] = hp;
@@ -216,12 +216,12 @@ heq(HT *ha, HT *hb)
 
 	if(hnent(ha) != hnent(hb))
 		return 0;
-	
+
 	for(i = 0; i < ha->sz; ++i){
 		hp = ha->ht[i];
 		while(hp){
 			v = hget(hb,hp->key,hp->keylen);
-			if (v != hp->val) 
+			if (v != hp->val)
 				return 0;
 			hp = hp->next;
 		}

@@ -6,7 +6,7 @@ xread(int fd, char *p, Imm len)
 {
 	Imm nr;
 	ssize_t rv;
-	
+
 	nr = 0;
 	while(nr < len){
 		rv = read(fd, p, len-nr);
@@ -234,7 +234,7 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 			exit(1);
 		case -1:
 			eno = errno;
-			xwrite(ctl[1], (char*)&eno, sizeof(eno)); 
+			xwrite(ctl[1], (char*)&eno, sizeof(eno));
 			exit(1);
 		default:
 			exit(0);

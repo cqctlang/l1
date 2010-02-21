@@ -252,7 +252,7 @@ Expr*
 docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 {
 	Expr *te;
-	/* 
+	/*
 	 * enclose expression in block to reduce
 	 * top-level pollution.
 	 * disabled: breaks too many existing programs
@@ -275,7 +275,7 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 	/* expand @const references */
 	el = expandconst(el, top->env, 0, top->env->con);
 
-	/* 
+	/*
 	 * convert expression into callable lambda.
 	 * errors occurring in toplevel tail calls lack
 	 * top-level source line information.  prevent

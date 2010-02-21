@@ -25,7 +25,7 @@ enum
 	OEXCL	 	= 0x1000,	// or'ed in, exclusive use (create only)
 	OLOCK	 	= 0x2000,	// or'ed in, lock after opening
 	OAPPEND	 	= 0x4000,	// or'ed in, append only
-	
+
 	// bits in Qid.type
 	QTDIR		= 0x80,		// type bit for directories
 	QTAPPEND	= 0x40,		// type bit for append only files
@@ -125,7 +125,7 @@ stat2dir(char *name, struct stat *st)
 
 	switch(st->st_mode&S_IFMT){
 	case S_IFSOCK:
-		d->qid.type = QTFILE; 
+		d->qid.type = QTFILE;
 		d->mode |= DMSOCKET;
 		break;
 	case S_IFLNK:
@@ -146,7 +146,7 @@ stat2dir(char *name, struct stat *st)
 		d->mode |= DMDEVICE;
 		break;
 	case S_IFDIR:
-		d->qid.type = QTDIR; 
+		d->qid.type = QTDIR;
 		d->mode |= DMDIR;
 		break;
 	case S_IFIFO:
@@ -264,7 +264,7 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 	buf = dir2buf(d, &len);
 	efree(name);
 	freedir(d);
-	
+
 	*rv = mkvalstr(mkstrk(buf, len, Smalloc));
 }
 
