@@ -1,14 +1,19 @@
-@record Trapman { look, add, clr, reset, list, copy };
+@record Trapman { look, lookuid, add, clr, reset, list, copy };
 rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 	 @lambda(t) { sprintfa("[ %u %u %a %a ]", t.uid, t.mid, t.fn, t.desc);});
 
 @define _mktrapman(uidmap, midmap, nextid)
 {
-	@local look, add, clr, list, reset, _copy;
-	
+	@local look, lookuid, add, clr, list, reset, _copy;
+
 	@define look(mid)
 	{
 		return midmap[mid];
+	}
+
+	@define lookuid(uid)
+	{
+		return uidmap[uid];
 	}
 
 	@define add(mid, fn, desc, clr)
@@ -29,7 +34,8 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 			error("no such trap: %a", uid);
 		tabdelete(uidmap, t.uid);
 		tabdelete(midmap, t.mid);
-		t.clr();
+		if(t.clr != nil)
+			t.clr();
 	}
 
 	@define list()
@@ -54,13 +60,13 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 		return _mktrapman(copy(uidmap), copy(midmap), nextid);
 	}
 
-	return Trapman(look, add, clr, reset, list, _copy);
+	return Trapman(look, lookuid, add, clr, reset, list, _copy);
 }
 
 @define mktrapman()
 {
 	@local nextid, uidmap, midmap;
-	
+
 	nextid = 0;
 	uidmap = [:];
 	midmap = [:];
