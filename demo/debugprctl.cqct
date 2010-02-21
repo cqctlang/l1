@@ -75,6 +75,100 @@ traps = [:];
 	}
 }
 
+@define htforeach(f, ht)
+{
+	@local hp, i, sz;
+	sz = ht->sz;
+	for(i = 0; i < sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			f(hp->key, hp->val);
+			hp = hp->next;
+		}
+	}
+}
+
+@define enumctls(dom)
+{
+	@local fn, l;
+	l = [];
+	@define fn(k, v)
+	{
+		append(l, (`Ctl*)v);
+	}
+	htforeach(fn, dom`ctltab);
+	return l;
+}
+
+@define checkctls(dom)
+{
+	@local notebp, ctls, as, bps;
+
+	ctls = enumctls(dom);
+	as = [:];
+	bps = [:];
+
+	@define notebp(bp)
+	{
+		if(bps[bp] == nil)
+			bps[bp] = 1;
+		else
+			bps[bp]++;
+	}
+
+	foreach(@lambda(ctl){
+			printf("ctl %d %p\n", ctl->id, ctl);
+			as[ctl->as] = ctl->as;
+			printf("braddr:\n");
+			htforeach(@lambda(k,v)
+				  {
+					  @local addr, br;
+					  addr = (`u64)k;
+					  br = (`Brkref*)v;
+					  printf("\t%x -> %d %p %x %d\n",
+						 addr,
+						 br->id,
+						 br->bp,
+						 br->bp->addr,
+						 br->bp->cnt);
+					  notebp(br->bp);
+				  }, ctl->braddr);
+			printf("brid:\n");
+			htforeach(@lambda(k,v)
+				  {
+					  @local id, br;
+					  id = (`u64)k;
+					  br = (`Brkref*)v;
+					  printf("\t%d -> %d %p %x %d\n",
+						 id,
+						 br->id,
+						 br->bp,
+						 br->bp->addr,
+						 br->bp->cnt);
+					  notebp(br->bp);
+				  }, ctl->brid);
+		}, ctls);
+	foreach(@lambda(a,v)
+		{
+			printf("as %p\n", a);
+			printf("bpaddr:\n");
+			htforeach(@lambda(k,v)
+				  {
+					  @local addr, bp;
+					  addr = (`u64)k;
+					  bp = (`Brk*)v;
+					  printf("\t%x -> %p %x %d\n",
+						 addr,
+						 bp,
+						 bp->addr,
+						 bp->cnt);
+					  if(2*bp->cnt != bps[bp])
+						  error("ref count! 2*%d != %d\n",
+							bp->cnt, bps[bp]);
+				  }, a->bpaddr);
+		}, as);
+}
+
 @define doit(args)
 {
 	@local mux, l1ns, prns, as, dom, e, nexec, prctlpid, tracepr;
@@ -84,6 +178,16 @@ traps = [:];
 		@local dom;
 		dom = mkdom(prns, ctl.mem());
 
+//		dom.xtrap(&dom`writemsg,
+//			  @lambda(ctl){
+//				  @local pd, xmsg, regs;
+//				  regs = ctl.reg();
+//				  pd = mkdom(prns, ctl.mem());
+//				  xmsg = (`Msg*){pd}regs->rsi;
+//				  printf("writemsg %e:\n",
+//					 (enum Mkind)xmsg->op);
+//				  checkctls(pd);
+//			  });
 		dom.xtrap(&dom`note_settrap0,
 			  @lambda(ctl){
 				  @local sp, i, regs, xctl, xaddr, pd;
