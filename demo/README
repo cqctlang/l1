@@ -25,3 +25,12 @@ e.g., system call tracing:
 
     % ../l1 tracelist.cqct 3 100
 
+the closest things to a test are the following:
+
+    % ../l1 tracel1.cqct
+    % ../l1 debugprctl.cqct
+
+these run a series of other demos.  some give
+non-deterministic results, so do not yet have a way to
+validiate a test run.  at the very least, nothing
+should crash or error.
