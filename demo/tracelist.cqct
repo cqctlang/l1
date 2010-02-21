@@ -98,6 +98,42 @@
 	while(1);
 }
 
+@define test5(n)
+{
+	@local ctl, mux, ns, as, dom, s, tid;
+
+	ns = @names clp64le { @include "./list.names" };
+	mux = mkctlmux_local();
+	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	s = [];
+	tid = dom.xtrap(&dom`insert,
+			@lambda(ctl){
+				if(length(s) < 10)
+					append(s, mkdom(ns, ctl.snap().mem()));
+			});
+	printf("tid is %d\n", tid);
+	dom.trace(ctlmux`Eexit,
+		  @lambda(ctl){
+			  foreach(@lambda(d) {
+					  printf("snap %d: ", d.id());
+					  printlist(d);
+					  d.trace(ctlmux`Eexit,
+						  @lambda(ctl)
+						  {
+							  printf("snap %d exit\n",
+								 ctl.id);
+						  });
+					  d.trapdel(tid);
+//					  d.kill();
+					  d.xcont();
+				  }, s);
+		  });
+	dom.xcont();
+	mux.run();
+}
+
 if(length(args) == 1)
 	test1(100);
 else if(length(args) == 2)
@@ -112,6 +148,8 @@ else if(length(args) == 3){
 		return test3(strton(args[2]));
 	case "4":
 		return test4(strton(args[2]));
+	case "5":
+		return test5(strton(args[2]));
 	default:
 		error("no such test %a", args[1]);
 	}
