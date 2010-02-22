@@ -22,9 +22,9 @@ traps = [:];
 	@local addr;
 	addr = br->bp->addr;
 	if(traps[(void*)addr] == nil)
-		traps[(void*)addr] = [ ctl->pid ];
+		traps[(void*)addr] = [ ctl->id ];
 	else
-		append(traps[(void*)addr], ctl->pid);
+		append(traps[(void*)addr], ctl->id);
 	dumptraps();
 }
 
@@ -48,7 +48,7 @@ traps = [:];
 		error("invalid trap clear addr=%x state=%a\n",
 		      addr, traps[(void*)addr]);
 	else
-		xdel(traps[(void*)addr], ctl->pid);
+		xdel(traps[(void*)addr], ctl->id);
 	dumptraps();
 }
 
@@ -197,7 +197,7 @@ traps = [:];
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xaddr = (`u64){pd}regs->rsi;
 				  printf("%y (ctl = %d (%p), addr = %p)\n",
-					 (void*){pd}regs->rip, xctl->pid, xctl, xaddr);
+					 (void*){pd}regs->rip, xctl->id, xctl, xaddr);
 			  });
 
 		dom.xtrap(&dom`note_settrap1,
@@ -209,7 +209,7 @@ traps = [:];
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xbr = (`Brkref*){pd}regs->rsi;
 				  printf("%y (ctl = %d (%p), br = %p)\n",
-					 (void*){pd}regs->rip, xctl->pid, xctl, xbr);
+					 (void*){pd}regs->rip, xctl->id, xctl, xbr);
 				  add1(xctl, xbr);
 			  });
 
@@ -222,7 +222,7 @@ traps = [:];
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xbr = (`Brkref*){pd}regs->rsi;
 				  printf("%y (ctl = %d (%p), br = %p, addr = %p)\n",
-					 (void*){pd}regs->rip, xctl->pid, xctl, xbr, xbr->bp->addr);
+					 (void*){pd}regs->rip, xctl->id, xctl, xbr, xbr->bp->addr);
 				  sub1(xctl, xbr);
 			  });
 
@@ -235,22 +235,8 @@ traps = [:];
 				  xctl = (`Ctl*){pd}regs->rdi;
 				  xbp = (`Brk*){pd}regs->rsi;
 				  printf("%y (ctl = %d (%p), bp = %p)\n",
-					 (void*){pd}regs->rip, xctl->pid, xctl, xbp);
+					 (void*){pd}regs->rip, xctl->id, xctl, xbp);
 				  clr(xctl, xbp);
-			  });
-
-		dom.xtrap(&dom`note_atbrk0,
-			  @lambda(ctl){
-				  @local sp, i, regs, xctl, xaddr, pd;
-				  regs = ctl.reg();
-				  sp = (void**){dom}regs->rsp;
-				  pd = mkdom(prns, ctl.mem());
-				  xctl = (`Ctl*){pd}regs->rdi;
-				  xaddr = (`u64){pd}regs->rsi;
-				  printf("%y (ctl = %d (%p), addr = %x)\n",
-					 (void*){pd}regs->rip, xctl->pid, xctl, xaddr);
-				  walkstack((`u64*)sp[0],
-					    (`u64*){pd}regs->rbp);
 			  });
 
 		dom.xtrap(&dom`editbrk,
@@ -263,7 +249,7 @@ traps = [:];
 				  xbp = (`Brk*){pd}regs->rsi;
 				  xset = (int){pd}regs->rdx;
 				  printf("%y (ctl = %d (%p), bp = %p, set = %d",
-					 (void*){pd}regs->rip, xctl->pid, xctl, xbp, xset);
+					 (void*){pd}regs->rip, xctl->id, xctl, xbp, xset);
 				  if(xset == 0)
 					  printf(" text = %x)\n", xbp->text);
 				  else
