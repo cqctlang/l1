@@ -113,7 +113,6 @@
 				if(length(s) < 10)
 					append(s, mkdom(ns, ctl.snap().mem()));
 			});
-	printf("tid is %d\n", tid);
 	dom.trace(ctlmux`Eexit,
 		  @lambda(ctl){
 			  foreach(@lambda(d) {
