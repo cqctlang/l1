@@ -1,0 +1,25 @@
+@include <ctlmux.cqct>
+
+@define test1()
+{
+	@local ctl, mux, ns, as, dom;
+
+	mux = mkctlmux_local();
+	foreach(@lambda(p){
+			@local pid;
+			pid = p[0];
+			cmd = p[1];
+			printf("%5d %s\n", pid, cmd);
+			if(cmd == "prctl")
+				return;
+			if(cmd == "emacs")
+				return;
+			if(pid == getpid())
+				return;
+			ctl = mux.attach(pid);
+			ctl.mem().map();
+			ctl.xcont();
+		}, mux.ps());
+}
+
+test1();
