@@ -6072,6 +6072,82 @@ strings with a zlib header and trailer.
 </div>
 
 
+<h4 id="sec:stdlib">Standard Libraries</h4>
+
+<p>
+The L1 implementation of Cinquecento comes with several 
+standard libraries stored
+in the lib/ subdirectory. Since they are included in
+l1's load path, These libraries are loaded via the command:
+<div class="code">
+@include &lt;<span class="arg">library</span>&gt;<br />
+</div>
+</p>
+
+<p>
+This section gives non-exhaustive describions 
+for several of the provided libraries.
+</p>
+
+<h5 id="lib:dump.cqct">dump.cqct</h5>
+
+<div class="id">dump.cqct</div> provides code for printing
+out namespaces and the values associated with typed pointers.
+
+<div class="docitem" id="fn:printtype">
+<div class="proto">
+<div class="function">
+<span class="id">printtype(<span class="arg">t</span>)</span>
+</div>
+<div class="param">
+<span class="arg">t</span>: <span class="type">ctype</span> 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string representation
+of the provided ctype that can be included inside a @names directive. 
+</div>
+</div>
+
+<div class="docitem" id="fn:dumpns">
+<div class="proto">
+<div class="function">
+<span class="id">dumpns(<span class="arg">dn</span>)</span>
+</div>
+<div class="param">
+<span class="arg">dn</span>: 
+Domain or name space to be printed.
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Prints all types in the given domain or name space to standard out.
+</div>
+</div>
+
+<div class="docitem" id="fn:objectStr">
+<div class="proto">
+<div class="function">
+<span class="id">objectStr(<span class="arg">x</span>)</span>
+</div>
+<div class="param">
+<span class="arg">x</span>: 
+Pointer to a cvalue. 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Pretty-prints the object pointed to by x based on x's ctype to
+a string, and returns that string.
+</div>
+</div>
 
 <h4 id="sec:cinterface">C Interface</h4>
 

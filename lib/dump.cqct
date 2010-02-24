@@ -151,9 +151,8 @@
 			return stringof(p);
 		} else if (isbase(t2)) {
 			if (baseid(t2)=="int") 
-			{
-				return sprintfa("%d (0x%x)",*p,p);
-			} else if (baseid(t2)=="unsigned int") 
+				return sprintfa("%d",*p);
+			else if (baseid(t2)=="unsigned int") 
 				return sprintfa("%u",*p);
 			else if (baseid(t2)=="char")
 				return sprintfa("%c",*p);
