@@ -1,0 +1,150 @@
+
+
+/*
+This file provides the ability to create dynamic types, or types
+that change based on their content. For example, consider the following
+vector type:
+struct Vector {
+	unsigned int size;
+	int* data;
+};
+The data pointer is actually an array of length specified by size.
+With dynamic typing, one can specify types where objects of the above
+type can be translated into the appropriate:
+stuct Vector {
+	unsigned int size;
+	int data[size];
+};
+
+The basic idea is to include an extra mapping in fields for the 
+keyword "refine", which specifies a function for performing the
+transformation. Then for a pointer to an object p, one can call
+refine(p) to create a pointer that points to the refined version 
+of the type of p. 
+*/ 
+
+@const REFINE_KEY = "refine";
+
+@define unrollTypedef(t)
+{
+	if (istypedef(t)) return subtype(t);
+	return t;
+}
+
+@define refine(p)
+{
+	@local t, flds, new_flds, i, new_sz, new_t;
+	t = unrollTypedef(@typeof(p));
+	if (!isptr(t)) return p;
+	t = unrollTypedef(subtype(t));
+	if (!isstruct(t)) return p;
+	if (!ismapped(p,sizeof(t))) return p;
+	flds = fields(t);
+	new_flds = mkvec(length(flds));
+	new_sz = sizeof(t);
+	for(i=0; i<length(flds); ++i)
+	{
+		@local refiner;
+		refiner = flds[i][2][REFINE_KEY];
+		if (refiner == nil) {
+			//maybe we should copy so that a change
+			//to the original struct doesn't change 
+			//the new type. But maybe we shouldn't...
+			new_flds[i] = flds[i]; 
+		} else {
+			@local new_off, new_t;
+			[new_off,new_t] = refiner(p);
+			new_flds[i] = 
+				mkfield(new_t,fieldid(flds[i]),new_off);
+			new_flds[i][2] = copy(flds[i][2]);
+			new_flds[i][2]["offset"] = new_off;
+			if (new_off + sizeof(new_t) > new_sz) {
+				new_sz = new_off+sizeof(new_t);
+				if (!ismapped(p,new_sz)) return p;
+			}
+		}
+	}
+	new_t = mkctype_struct(suetag(t),new_flds,new_sz);
+	return {mkctype_ptr(new_t,nsptr(domof(p)))}p;
+}
+
+
+inttype = @typeof(int);
+intptrtype = @typeof(int*);
+
+@include <dump.cqct>
+@define example() {
+	ns = @names c64le {
+		
+		struct Vector {
+			@0 int size;
+			@["offset" : 4,
+			  REFINE_KEY : @lambda(p) {
+				return [4,mkctype_array(inttype,p->size)];
+			  }] int* data;
+			@0x8;
+		};
+
+		enum TYPE {
+			T_INT = 0,
+			T_VEC = 1
+		};
+
+		struct EnumPtr {
+			@0x0 int type;
+			@["offset" : 0x4,
+			  REFINE_KEY : @lambda(p) {
+				@local dom;
+				dom = domof(p);
+				switch (p->type) {
+				case dom`T_INT: return [4,intptrtype];
+				case dom`T_VEC: 
+					return [4,
+						subtype(
+					 @typeof(struct dom`Vector*))];
+				}
+				return [4,@typeof(int)];
+			  }
+			] void* contents;
+			@0x8;
+		};
+
+	};
+
+	dom = mkdom(ns,mkzas(256));
+	
+	//initialize the dom
+	q = (struct dom`Vector*){dom}8;
+	q->size = 5;
+	q = refine(q);
+	p = q;
+	for(i=0; i<q->size; ++i)
+		q->data[i] = i*i;
+	q++;
+	q->size = 3;
+	q = refine(q);
+	for(i=0; i<q->size; ++i)
+		q->data[i] = i*i;
+	q++;
+	q = (struct dom`EnumPtr*)q;
+	q->type = dom`T_INT;
+	q = refine(q);
+	q->contents = &(p->data[3]); 
+		
+
+	//traversing the data struct
+	q = p;
+	q = refine(q);
+	printf("%s\n",objectStr(q));
+	q = refine(q+1);
+	printf("%s\n",objectStr(q));
+	q = (struct dom`EnumPtr*)(q+1);
+	printf("Pre-refinement:\n");
+	printf("%s\n",objectStr(q));
+	q = refine(q);
+	printf("Post-refinement:\n");
+	printf("%s\n",objectStr(q));
+	
+}
+
+example();
