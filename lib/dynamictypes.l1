@@ -69,8 +69,6 @@ of the type of p.
 }
 
 
-inttype = @typeof(int);
-intptrtype = @typeof(int*);
 
 @include <dump.cqct>
 @define example() {
@@ -80,7 +78,7 @@ intptrtype = @typeof(int*);
 			@0 int size;
 			@["offset" : 4,
 			  REFINE_KEY : @lambda(p) {
-				return [4,mkctype_array(inttype,p->size)];
+				return [4,mkctype_array(@typeof(int),p->size)];
 			  }] int* data;
 			@0x8;
 		};
@@ -97,7 +95,7 @@ intptrtype = @typeof(int*);
 				@local dom;
 				dom = domof(p);
 				switch (p->type) {
-				case dom`T_INT: return [4,intptrtype];
+				case dom`T_INT: return [4,@typeof(int*)];
 				case dom`T_VEC: 
 					return [4,
 						subtype(
@@ -109,32 +107,39 @@ intptrtype = @typeof(int*);
 			@0x8;
 		};
 
+		@0x8	struct Vector	vector;
+
 	};
 
-	dom = mkdom(ns,mkzas(256));
-	
+	dom = mkdom(ns,mkzas(1024));
+
 	//initialize the dom
-	q = (struct dom`Vector*){dom}8;
+	q = &dom`vector;
 	q->size = 5;
 	q = refine(q);
-	p = q;
 	for(i=0; i<q->size; ++i)
 		q->data[i] = i*i;
 	q++;
 	q->size = 3;
 	q = refine(q);
 	for(i=0; i<q->size; ++i)
-		q->data[i] = i*i;
+	{
+		q->data[i] = i*i*i;
+	}
+	printf("%s\n",objectStr(q));
 	q++;
 	q = (struct dom`EnumPtr*)q;
 	q->type = dom`T_INT;
 	q = refine(q);
-	q->contents = &(p->data[3]); 
+	q->contents = &(dom`vector.data[3]); 
 		
 
 	//traversing the data struct
-	q = p;
+	q = &dom`vector;
+	printf("Pre-refinement:\n");
+	printf("%s\n",objectStr(q));
 	q = refine(q);
+	printf("Post-refinement:\n");
 	printf("%s\n",objectStr(q));
 	q = refine(q+1);
 	printf("%s\n",objectStr(q));
@@ -144,7 +149,7 @@ intptrtype = @typeof(int*);
 	q = refine(q);
 	printf("Post-refinement:\n");
 	printf("%s\n",objectStr(q));
-	
+
 }
 
-example();
+//example();

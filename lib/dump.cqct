@@ -141,18 +141,19 @@
 				ret += buf + objectStr(
 					{mkctype_ptr(fieldtype(flds[i]),
 						nsptr(domof(p).ns))}
-					  (((unsigned long)p) +
-					  fieldoff(flds[i])),
+					  (({nsptr(domof(p))}p) +
+					   fieldoff(flds[i])),
 						nxt_indent);
 			}
 			ret += sprintfa("\n%s};",indent);
 			return ret;
 		} else if (isbase(t2) && baseid(t2)=="char") {
-			return indent+stringof(p);
+			return stringof(p);
 		} else if (isbase(t2)) {
 			if (baseid(t2)=="int") 
-				return sprintfa("%d",*p);
-			else if (baseid(t2)=="unsigned int") 
+			{
+				return sprintfa("%d (0x%x)",*p,p);
+			} else if (baseid(t2)=="unsigned int") 
 				return sprintfa("%u",*p);
 			else if (baseid(t2)=="char")
 				return sprintfa("%c",*p);
@@ -170,12 +171,12 @@
 			ret = "[";
 			for(i=0; i<len; ++i) {
 				if (i != 0) ret += ",\n"+nxt_indent;
-				ret += objectStr(p[i],nxt_indent);
+				ret += objectStr((*p)[i],nxt_indent);
 			}
 			ret += "]";
 			return ret;
 		} else if (isptr(t2)) {
-			return sprintfa("0x%x",p);
+			return sprintfa("0x%x",*p);
 		}
 		return "UNKNOWN TYPE";
 	} else {
