@@ -2,6 +2,8 @@
 #include "util.h"
 #include "syscqct.h"
 
+static Expr*	rdotypes(U *ctx, Expr *e);
+
 char* cbasename[Vnbase+1] = {
 	[Vundef]              = "error!",
 	[Vchar]               = "char",
@@ -936,16 +938,16 @@ sufields(U *ctx, Type *su, Expr *e, Expr **attr)
 	switch(e->e1->kind){
 	case Ebitfield:
 		hd = dodecl(ctx, e->e1);
-		hd->attr = e->e1->e3; /* steal */
+		hd->attr = rdotypes(ctx, e->e1->e3); /* steal */
 		e->e1->e3 = 0;
-		hd->type->bitw = e->e1->e4; /* steal */
+		hd->type->bitw = rdotypes(ctx, e->e1->e4); /* steal */
 		e->e1->e4 = 0;
 		hd->link = sufields(ctx, su, e->e2, attr);
 		break;
 	case Efields:
 		hd = dodecls(ctx, e->e1);
 		if(e->e1->e3){
-			hd->attr = e->e1->e3; /* steal */
+			hd->attr = rdotypes(ctx, e->e1->e3); /* steal */
 			e->e1->e3 = 0;
 		}
 		p = hd;
@@ -954,7 +956,7 @@ sufields(U *ctx, Type *su, Expr *e, Expr **attr)
 		p->link = sufields(ctx, su, e->e2, attr);
 		break;
 	case Efieldoff:
-		*attr = e->e1->e1; /* steal */
+		*attr = rdotypes(ctx, e->e1->e1); /* steal */
 		e->e1->e1 = 0;
 		return sufields(ctx, su, e->e2, attr);
 		break;
@@ -1236,7 +1238,7 @@ dodecls(U *ctx, Expr *e)
 	if(e->e3){
 		if(rv == 0)
 			fatal("bug");
-		rv->attr = e->e3; /* steal */
+		rv->attr = rdotypes(ctx, e->e3); /* steal */
 		e->e3 = 0;
 	}
 
