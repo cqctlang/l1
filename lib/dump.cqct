@@ -103,4 +103,84 @@
 		printtype(vecref(vec, i));
 };
 
+//usage: objectStr(x) returns a string representation of the 
+//object pointed to by x (including its values in memory).
+@define objectStr(argv ...)
+{
+	@local p, t, indent;
+	if (length(argv) == 0) fault();
+	p = argv[0]; 
+	//indent is the amount to indent all except the first line
+	if (length(argv) > 1) indent = argv[1];
+	else indent = "";
+	t = @typeof(p); 
+	if (isptr(t)) {
+		@local t2;
+		t2 = subtype(t);
+		if (!ismapped(p)) return "UNMAPPED";
+		else if (issu(t2)) {
+			@local flds, i, nxt_indent, ret;
+			@local adr;
+			if (strlen(indent)>70 ) return sprintfa("...",p);
+			flds = fields(t2);
+			if (isstruct(t2)) ret = "struct ";
+			else if (isunion(t2)) ret = "union ";
+			else ret = "aggregate ";
+			ret += sprintfa("%s at 0x%x {", suetag(t2), p);
+			for(i=0; i<length(flds); ++i)
+			{
+				@local buf;
+				buf = sprintfa("\n%s%t %s = ",
+					indent + "   ",
+					fieldtype(flds[i]),
+					fieldid(flds[i]));
+				nxt_indent = "";
+				foreach(@lambda(x) {
+					nxt_indent += " "; 
+				}, mkvec(strlen(buf)-1));
+				ret += buf + objectStr(
+					{mkctype_ptr(fieldtype(flds[i]),
+						nsptr(domof(p).ns))}
+					  (((unsigned long)p) +
+					  fieldoff(flds[i])),
+						nxt_indent);
+			}
+			ret += sprintfa("\n%s};",indent);
+			return ret;
+		} else if (isbase(t2) && baseid(t2)=="char") {
+			return indent+stringof(p);
+		} else if (isbase(t2)) {
+			if (baseid(t2)=="int") 
+				return sprintfa("%d",*p);
+			else if (baseid(t2)=="unsigned int") 
+				return sprintfa("%u",*p);
+			else if (baseid(t2)=="char")
+				return sprintfa("%c",*p);
+			else if (baseid(t2)=="long")
+				return sprintfa("%l",*p);
+			else return sprintfa("%d",*p);
+		} else if (isenumconst(t2)) {
+			return sprintfa("%d",*p);
+		} else if (isfunc(t2)) {
+			return sprintfa("<function:0x%x>",p);
+		} else if (isarray(t2)) {
+			@local len, i, nxt_indent, ret;
+			nxt_indent = indent+" ";
+			len = arraynelm(t2);
+			ret = "[";
+			for(i=0; i<len; ++i) {
+				if (i != 0) ret += ",\n"+nxt_indent;
+				ret += objectStr(p[i],nxt_indent);
+			}
+			ret += "]";
+			return ret;
+		} else if (isptr(t2)) {
+			return sprintfa("0x%x",p);
+		}
+		return "UNKNOWN TYPE";
+	} else {
+		return sprintfa("%d",p);
+	}
+}
+
 //foo();
