@@ -1269,18 +1269,20 @@ ctlmux = @names clp64le {
 		sz += sizeof(ctlmux`uint64); /* flags */
 		sz += sizeof(ctlmux`uint64); /* narg */
 		for(i = 0; i < narg; i++)
-			sz += strlen(args[i])+1; /* argv[i] */
+			sz += sizeof(ctlmux`uint64)+strlen(args[i]);
 		p = (ctlmux`Tlaunch*)malloc(sz);
 		p->op = ctlmux`Tlaunch;
 		p->tag = freshtag();
 		q = (ctlmux`uint64*)(p+1);
 		*q++ = flags;
-		*q = narg;
-		q = (char*)(q+1);
+		*q++ = narg;
 		for(i = 0; i < narg; i++){
 			s = args[i];
+			q = (ctlmux`uint64*)q;
+			*q++ = strlen(s);
+			q = (char*)q;
 			putbytes(q, s);
-			q += strlen(s)+1;
+			q += strlen(s);
 		}
 		sendmsg(fd, p, sz);
 
