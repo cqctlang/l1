@@ -6149,6 +6149,71 @@ a string, and returns that string.
 </div>
 </div>
 
+<h5 id="lib:dynamictypes.cqct">dynamictypes.cqct</h5>
+
+This file provides the ability to create dynamic types, or types
+that change based on their content. For example, consider the following
+vector type:
+<div class="code">
+<pre>
+struct Vector {
+        unsigned int size;
+        int* data;
+};
+</pre>
+</div>
+The data pointer is actually an array of length size.
+With dynamic typing, one can specify types such that a pointer
+<span class="id">p</span> pointing to an object of type 
+<span class="id">Vector</span> can be translated into the appropriate
+type using the <span class="id">refine</span> function. In this case,
+that type will be:
+<div class="code">
+<pre>
+stuct Vector {
+        unsigned int size;
+	int data[p->size];
+};
+</pre>
+</div>
+
+The basic idea is for the person defining the type to include an 
+extra mapping in fields for the
+keyword "refine", which specifies a function for performing the
+transformation. Then for a pointer to an object p, one can call
+refine(p) to create a pointer that points to the refined version
+of the type of p.
+
+For a complete example, see the <span class="function">example</span>
+function in the file <span class="id">dynamictypes.cqct</span>.
+
+<div class="docitem" id="fn:refine">
+<div class="proto">
+<div class="function">
+<span class="id">refine(<span class="arg">p</span>)</span>
+</div>
+<div class="param">
+<span class="arg">p</span>: 
+A cvalue pointer. 
+</div>
+<div class="returns">
+<span class="type">A cvalue pointer.</span>
+</div>
+</div>
+<div class="desc">
+Returns a pointer to the same address as is pointed to by 
+<span class="arg">p</span>, but points to a refined version of
+<span class="arg">p</span>'s type. The newly refined type inherits
+any refinement properties from the old type so that further calls
+to refine will behave as expected. If 
+any part of the object <span class="arg">p</span> points to is
+unmapped, or if any part of the refined structure <span class="arg">p</span>
+would have pointed to on return is unmapped, then no changes are made.
+</div>
+</div>
+
+
+
 <h4 id="sec:cinterface">C Interface</h4>
 
 <p>
