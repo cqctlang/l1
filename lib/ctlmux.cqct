@@ -77,7 +77,8 @@ ctlmux = @names clp64le {
 		Esignal  = (Eclone<<1),
 		Eexit    = (Esignal<<1),
 		Etrap    = (Eexit<<1),
-		Estepctx = (Etrap<<1),
+		Esnap	 = (Etrap<<1),
+		Estepctx = (Esnap<<1),
 	} Event;
 
 	typedef
@@ -183,8 +184,7 @@ ctlmux = @names clp64le {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5	uint64 id;
-		@13	uint64 flags;
-		@21;
+		@13;
 	};
 	typedef struct Ttrace Ttrace;
 
@@ -866,23 +866,25 @@ ctlmux = @names clp64le {
 			if(trap == nil)
 				error("ctl %d has no trap for tid %d",
 				      ctl.id, dat->tid);
-			if(trap.desc[0] == "brk"){
-				ctl.state = ctlmux`Stopped;
-				ctl.setreg(cop(&dat->ctx));
-				docall([ctl], @lambda() { trap.fn(ctl); });
-			}else if(trap.desc[0] == "snap"){
-				dat = (ctlmux`Esnap*)dat;
-				newctl = mkctl(mux,
-					       dat->cid,
-					       ctlmux`Stopped,
-					       cop(&dat->ctx),
-					       ctl.traps.copy(),
-					       ctl.callbacks);
-				ctls[dat->cid] = newctl;
-				docall([ctl], /* no control of newctl */
-				       @lambda() { trap.fn(ctl, newctl); });
-			}else
-				error("unhandled trap %a", trap.desc);
+			ctl.state = ctlmux`Stopped;
+			ctl.setreg(cop(&dat->ctx));
+			docall([ctl], @lambda() { trap.fn(ctl); });
+			break;
+		case ctlmux`Esnap:
+			dat = (ctlmux`Esnap*)dat;
+			trap = ctl.traps.look(dat->tid);
+			if(trap == nil)
+				error("ctl %d has no trap for tid %d",
+				      ctl.id, dat->tid);
+			newctl = mkctl(mux,
+				       dat->cid,
+				       ctlmux`Stopped,
+				       cop(&dat->ctx),
+				       ctl.traps.copy(),
+				       ctl.callbacks);
+			ctls[dat->cid] = newctl;
+			docall([ctl], /* no control of newctl */
+			       @lambda() { trap.fn(ctl, newctl); });
 			break;
 		case ctlmux`Eclone:
 		case ctlmux`Efork:
@@ -1047,14 +1049,16 @@ ctlmux = @names clp64le {
 
 	@define trace(ctl, flags)
 	{
-		@local p, rep, dat;
+		@local p, rep, dat, sz, q;
 
-		p = (ctlmux`Ttrace*)malloc(sizeof(ctlmux`Ttrace));
+		sz = sizeof(ctlmux`Ttrace)+sizeof(ctlmux`uint64);
+		p = (ctlmux`Ttrace*)malloc(sz);
 		p->op = ctlmux`Ttrace;
 		p->tag = freshtag();
 		p->id = ctl.id;
-		p->flags = flags;
-		sendmsg(fd, p);
+		q = (ctlmux`uint64*)(p+1);
+		*q++ = flags;
+		sendmsg(fd, p, sz);
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rtrace);
 	}
