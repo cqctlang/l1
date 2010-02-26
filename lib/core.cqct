@@ -138,7 +138,7 @@
 		else if (arg == "map") {
 			@local ranges;
 			ranges = map(@lambda(x) { 
-				return mkrange(x[0],x[1]-x[0]); 
+				return mkrange(x[0],x[1]-x[0]-1); 
 			},addr_ranges);
 			//make it into a vector.
 			return apply(vector,ranges);
