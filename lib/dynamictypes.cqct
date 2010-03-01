@@ -79,7 +79,7 @@ of the type of p.
 			@["offset" : 4,
 			  REFINE_KEY : @lambda(p) {
 				return [4,mkctype_array(@typeof(int),p->size)];
-			  }] int* data;
+			  }] int data[];
 			@0x8;
 		};
 
