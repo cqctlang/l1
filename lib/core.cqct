@@ -100,6 +100,7 @@
 {
 	@local elfdom;
 	@local addr_ranges, regptr, parseout;
+	@local mapped_ranges;
 
 	elfdom = mkelfrec(mapfile(fname)).elf;
 	
@@ -112,7 +113,13 @@
 		l = listref(addr_ranges, i);
 		// printf("%x: %x - %x\n", listref(l, 2), listref(l, 0), listref(l, 1));
 	}
-	
+
+	//precompute ranges for .map().
+	mapped_ranges = map(@lambda(x) { 
+				return mkrange(x[0],x[1]-x[0]-1); 
+			},addr_ranges);
+	mapped_ranges = apply(vector,mapped_ranges);
+
 	@define dispatch (args ...) {
 		@local arg, r, beg, len;
 
@@ -136,12 +143,7 @@
 			fault();
 		}
 		else if (arg == "map") {
-			@local ranges;
-			ranges = map(@lambda(x) { 
-				return mkrange(x[0],x[1]-x[0]-1); 
-			},addr_ranges);
-			//make it into a vector.
-			return apply(vector,ranges);
+			return mapped_ranges;
 		}
 		else if (arg == "put") {
 			error("put() unimplemented for core address spaces.");
