@@ -1,0 +1,217 @@
+
+
+//Utility functions for address spaces.
+
+//contents: 
+// asload: loads an as from a file
+// assave: writes an address space to a file
+// asload_str: loads an as from a string
+// assave_str: writes an address space to a string
+// ascopy: returns a copy of a given address space.
+//
+//NOTE: when saving an AS, any addresses returned by map()
+//that are not actually mapped will be mapped with a value 
+//of 0 in the loaded version of the AS. 
+
+@include <dynamictypes.cqct>
+@include <dump.cqct>
+//the address space to be associated with the names files.
+@define svasns()
+{
+	return @names clp64le {
+		typedef long long unsigned int uint64_t;
+		struct adr_range {
+			@0x0 uint64_t beg;
+			@0x8 uint64_t len;
+			@0x10;
+		};
+		typedef struct adr_range adr_range;
+		struct adr_ranges {
+			@0x0 unsigned int num_ranges;
+			@["offset" : 0x4,
+			  "refine" : @lambda (p) {
+					return [0x4,
+					mkctype_array(
+						subtype(@typeof(p->ranges)),
+						p->num_ranges)];
+				}]      adr_range ranges[];
+			@0x8;
+			
+		};
+	};
+}
+
+//returns a copy of the address space as.
+@define ascopy(as)
+{
+	@local str;
+	str = assave_str(as);
+	return asload_str(str);
+}
+
+
+@define asload_str(as_str)
+{
+	@local asdom, ranges, offsets, i, q;
+	asdom = mkdom(svasns(),mksas(as_str));
+	p = (struct asdom`adr_ranges*){asdom}0;
+	p = refine(p);
+	q = (char*)(p+1);
+	ranges = mkvec(p->num_ranges);
+	offsets = mkvec(p->num_ranges);
+	for(i=0; i<p->num_ranges; ++i)
+	{
+		ranges[i] = mkrange(p->ranges[i].beg,p->ranges[i].len);
+		offsets[i] = (unsigned long)q;
+		q += p->ranges[i].len;
+	}
+	@define dispatch(args ...) {
+		@local ftn;
+		ftn = listref(args,1);
+		if (ftn == "get")
+		{
+			@local r, beg, len;
+			r = listref(args,2);
+			beg = rangebeg(r);
+                        len = rangelen(r);
+			if (beg + len < beg) fault();
+                        for (i = 0; i < p->num_ranges; i++) {
+                                vbeg = p->ranges[i].beg;
+                                vlen = p->ranges[i].len;
+                                if (vbeg <= beg && vlen > len) {
+                                        return asdom.get(mkrange(
+					  (beg - vbeg) + offsets[i], len));
+                                }
+                        }
+                        fault();
+		} else if (ftn == "map") {
+			return ranges;
+		} else if (ftn == "put") {
+			@local r, beg, len;
+			r = listref(args,2);
+			beg = rangebeg(r);
+                        len = rangelen(r);
+			if (beg + len < beg) fault();
+                        for (i = 0; i < p->num_ranges; i++) {
+                                vbeg = p->ranges[i].beg;
+                                vlen = p->ranges[i].len;
+                                if (vbeg <= beg && vlen > len) {
+                                        return asdom.put(mkrange(
+					  (beg - vbeg) + offsets[i], len),
+					  listref(args,3)
+					);
+                                }
+                        }
+                        fault();
+		}
+
+	}
+	return mkas(["dispatch":dispatch]);
+}
+
+//translates the given address space to a string
+//relies on as.map() to provide a list of mapped
+//regions. 
+@define assave_str(as)
+{
+	@local range, ranges, i, backing, svas;
+	@local size, svdom, ns, tmpdom, p;
+	//general strategy: create a new address space
+	//backed by a string. Then write that string to
+	//disk. 
+
+	//first calculate the necessary size for the as.
+	ranges = as.map();
+	size = 0;
+	for(i=0; i<length(ranges); ++i)
+	{
+		size += rangelen(ranges[i]);
+	}
+	//now calculate the size of the meta data.
+	ns = svasns();
+	tmpdom = mkdom(ns,mkzas(sizeof(@typeof(struct ns`adr_range))*
+				length(ranges) + 
+				sizeof(@typeof(struct ns`adr_ranges))));
+	p = (struct tmpdom`adr_ranges*){tmpdom}0;
+	p->num_ranges = length(ranges);
+	p = refine(p);
+
+	backing = mkstr(size+(unsigned int)(p+1));
+	svdom = mkdom(ns,mksas(backing));
+	p = (struct svdom`adr_ranges*){svdom}0;
+	p->num_ranges = length(ranges);
+	p = refine(p);
+	q = (unsigned char*)(p+1); //next free address.
+	for(i=0; i<length(ranges); ++i)
+	{
+		@local j, r, len;
+		p->ranges[i].beg = rangebeg(ranges[i]);
+		r = (unsigned char*) {as}p->ranges[i].beg;
+		len = rangelen(ranges[i]);
+		p->ranges[i].len = len;
+		if (ismapped(r,len)) {
+			memcpy(q,r,len);
+		} else {
+			for(j=0; j<len; ++j)
+			{
+				if (ismapped(r+j)) *(q+j) = *(r+j);
+				else printf("Error: 0x%x in source AS "
+					    "unmapped.\n",r+j);
+					    
+			}
+		}
+		q += len;
+	}
+	return backing;
+}
+
+//saves the given as in the given file.
+@define assave(as,filename)
+{
+	@local fout,str,i,delta;
+	fout = open(filename,"w");
+	str = assave_str(as);
+	delta = 4096;
+	for(i=0; i+delta<length(str); i += delta)
+	{
+		write(fout,substr(str,i,i+delta));
+	}
+	write(fout,substr(str,i,length(str)));
+	close(fout);
+}
+
+//loads an as from the given file.
+@define asload(filename)
+{
+	@local fin, str, tmp;
+	fin = open(filename,"r");
+	str = "";
+	tmp = read(fin,1024); //maybe a different length would be better.
+	while(tmp != nil)
+	{
+		str += tmp;
+		tmp = read(fin,1024);
+	}
+	close(fin);
+	return asload_str(str);
+}
+
+
+@include <core.cqct>
+@define test()
+{
+	coredom = mkcoreas("core.29360");
+	assave(coredom,"file.as");
+	//svstr = assave_str(coredom);
+	loaded = asload("file.as");
+	//loaded = asload_str(svstr);
+	print(coredom.map());
+	print(loaded.map());
+	p = (int*){coredom}0x698050;
+	q = (int*){loaded}0x698050;
+	print(*p);
+	print(*q);
+	print([*p,*q]);
+}
+
+test();
