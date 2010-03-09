@@ -605,6 +605,7 @@ ctlmux = @names clp64le {
 @define mkctlmux_local()
 {
 	@local fds, fd;
+//	fds = popen("mygrind", "prctl", "-c", 2|4|8);
 	fds = popen("prctl", "-c", 2|4|8);
 	fd = fds[0];
 	finalize(fd, @lambda(fd) { close(fd); });
