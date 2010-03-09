@@ -14,7 +14,7 @@
 //of 0 in the loaded version of the AS. 
 
 @include <dynamictypes.cqct>
-@include <dump.cqct>
+
 //the address space to be associated with the names files.
 @define svasns()
 {
@@ -78,7 +78,7 @@
                         for (i = 0; i < p->num_ranges; i++) {
                                 vbeg = p->ranges[i].beg;
                                 vlen = p->ranges[i].len;
-                                if (vbeg <= beg && vlen > len) {
+                                if (vbeg <= beg && vbeg + vlen >= beg+len) {
                                         return asdom.get(mkrange(
 					  (beg - vbeg) + offsets[i], len));
                                 }
@@ -95,7 +95,7 @@
                         for (i = 0; i < p->num_ranges; i++) {
                                 vbeg = p->ranges[i].beg;
                                 vlen = p->ranges[i].len;
-                                if (vbeg <= beg && vlen > len) {
+                                if (vbeg <= beg && vbeg + vlen >= beg+len) {
                                         return asdom.put(mkrange(
 					  (beg - vbeg) + offsets[i], len),
 					  listref(args,3)
@@ -183,9 +183,9 @@
 }
 
 
-@include <core.cqct>
 @define test()
 {
+	@include <core.cqct>
 	coredom = mkcoreas("core.29360");
 	assave(coredom,"file.as");
 	//svstr = assave_str(coredom);
@@ -197,7 +197,14 @@
 	q = (int*){loaded}0x698050;
 	print(*p);
 	print(*q);
-	print([*p,*q]);
+	p = (int*){coredom}0x7fff8f738088;
+	q = (int*){loaded}0x7fff8f738088;
+	print(*p);
+	print(*q);
+	p = (int*){coredom}140735600918518;
+	q = (int*){loaded}140735600918518;
+	print(*p);
+	print(*q);
 }
 
 //test();
