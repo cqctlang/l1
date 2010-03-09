@@ -168,15 +168,10 @@
 //saves the given as in the given file.
 @define assave(as,filename)
 {
-	@local fout,str,i,delta;
+	@local fout,str;
 	fout = open(filename,"w");
 	str = assave_str(as);
-	delta = 4096;
-	for(i=0; i+delta<length(str); i += delta)
-	{
-		write(fout,substr(str,i,i+delta));
-	}
-	write(fout,substr(str,i,length(str)));
+	write(fout,str);
 	close(fout);
 }
 
@@ -184,16 +179,7 @@
 @define asload(filename)
 {
 	@local fin, str, tmp;
-	fin = open(filename,"r");
-	str = "";
-	tmp = read(fin,1024); //maybe a different length would be better.
-	while(tmp != nil)
-	{
-		str += tmp;
-		tmp = read(fin,1024);
-	}
-	close(fin);
-	return asload_str(str);
+	return asload_str(mapfile(filename));
 }
 
 
@@ -214,4 +200,4 @@
 	print([*p,*q]);
 }
 
-test();
+//test();
