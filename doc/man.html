@@ -6089,9 +6089,108 @@ This section gives non-exhaustive describions
 for several of the provided libraries.
 </p>
 
+<h5 id="lib:asutil.cqct">asutil.cqct</h5>
+
+<span class="id">asutil.cqct</span> provides code for 
+loading, saving, and copying address spaces. 
+
+<div class="docitem" id="fn:asload">
+<div class="proto">
+<div class="function">
+<span class="id">asload(<span class="arg">filename</span>)</span>
+</div>
+<div class="param">
+<span class="arg">filename</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Loads the address space saved to the file 
+in <span class="arg">filename</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:asload_str">
+<div class="proto">
+<div class="function">
+<span class="id">asload_str(<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Loads the address space saved in the string
+<span class="arg">str</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:assave">
+<div class="proto">
+<div class="function">
+<span class="id">assave(<span class="arg">as</span>,
+			<span class="arg">filename</span>)</span>
+</div>
+<div class="param">
+<span class="arg">as</span>: <span class="type">address space</span> 
+<span class="arg">filename</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">undefined</span>
+</div>
+</div>
+<div class="desc">
+Saves the address space 
+<span class="arg">as</span>
+to the file <span class="arg">filename</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:assave">
+<div class="proto">
+<div class="function">
+<span class="id">assave_str(<span class="arg">as</span>)</span>
+</div>
+<div class="param">
+<span class="arg">as</span>: <span class="type">address space</span> 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Saves the address space 
+<span class="arg">as</span> to a string, and returns that string.
+</div>
+</div>
+
+<div class="docitem" id="fn:asload">
+<div class="proto">
+<div class="function">
+<span class="id">ascopy(<span class="arg">as</span>)</span>
+</div>
+<div class="param">
+<span class="arg">as</span>: <span class="type">address space</span> 
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Creates a copy of the address space <span class="arg">as</span>, 
+and returns the copy. No changes to the returned address space
+affect the passed address space.
+</div>
+</div>
+
 <h5 id="lib:dump.cqct">dump.cqct</h5>
 
-<div class="id">dump.cqct</div> provides code for printing
+<span class="id">dump.cqct</span> provides code for printing
 out namespaces and the values associated with typed pointers.
 
 <div class="docitem" id="fn:printtype">
