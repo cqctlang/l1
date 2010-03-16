@@ -501,7 +501,7 @@ ctlmux = @names clp64le {
 
 		@define put(as, r, s)
 		{
-			return mux.pwrite(this,  rangebeg(r), rangelen(r), s);
+			return mux.pwrite(this, rangebeg(r), rangelen(r), s);
 		}
 
 		@define prot2str(prot)
@@ -526,18 +526,15 @@ ctlmux = @names clp64le {
 
 		@define map(as)
 		{
-			@local n, rs, i;
+			@local n, rs, i, rv;
 
 			rs = mux.pmap(this);
 			n = length(rs);
-			for(i = 0; i < n; i++){
-				printf("%016x %016x %s %s\n",
-				       rs[i].addr,
-				       rs[i].addr+rs[i].len,
-				       prot2str(rs[i].flags),
-				       rs[i].file);
-			}
-			return vector(mkrange(0, (`uint64)-1));
+			rv = mkvec(n);
+			for(i = 0; i < n; i++)
+				rv[i] = mkrange(rs[i].addr,
+						rs[i].addr+rs[i].len);
+			return rv;
 		}
 
 		@define ctl(as)
