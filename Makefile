@@ -117,4 +117,4 @@ clean:
 	@$(MAKE) -C x/libflate clean
 	@$(MAKE) -C x/libsec clean
 	@$(MAKE) -C demo clean
-	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed test/aqsort c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
+	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
