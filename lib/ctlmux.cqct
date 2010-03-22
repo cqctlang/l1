@@ -898,7 +898,6 @@ ctlmux = @names clp64le {
 			    msg->id,
 			    ev == ctlmux`Eclone ? "cloned" : "forked",
 			    dat->cid);
-			ctl.state = ctlmux`Stopped;
 			ctl.setreg(cop(&dat->ctx));
 			newctl = mkctl(mux,
 				       dat->cid,
@@ -912,7 +911,9 @@ ctlmux = @names clp64le {
 				docall([ctl, newctl],
 				       @lambda() { fn(ctl, newctl); });
 			else{
-				contasync(ctl);
+				// FIXME: On windows the spawning thread
+				// does not stop.
+//				contasync(ctl);
 				contasync(newctl);
 			}
 			break;
