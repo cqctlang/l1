@@ -1,0 +1,27 @@
+@include <ctlmux.cqct>
+
+ns = c32le;
+
+@define test1(addr, pid)
+{
+	@local ctl, mux, as, dom, ts;
+	mux = mkctlmux_remote(addr);
+	foreach(@lambda(p){
+			@local pid;
+			pid = p[0];
+			cmd = p[1];
+			printf("%5d %s\n", pid, cmd);
+		}, mux.ps());
+	printf("attaching to %d\n", pid);
+	ctl = mux.attach(pid);
+	ts = ctl.stat();
+	foreach(@lambda(t){
+			printf("%x\n", t.id);
+		}, ts);
+	ctl.xcont();
+	mux.run();
+}
+
+if(length(args) != 3)
+	error("usage: %s <address> <pid>", args[0]);
+test1(args[1], strton(args[2]));

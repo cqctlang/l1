@@ -1438,15 +1438,12 @@ ctlmux = @names clp64le {
 			cmd = getbytes(q, sz);
 			append(proc, cmd);
 			q = (ctlmux`uint64*)((char*)q+sz);
-			printf("\t%5d\t%s", pid, cmd);
 			nt = *q++;
 			for(j = 0; j < nt; j++){
 				tid = *q++;
 				append(proc, tid);
-				printf(" %5d", tid);
 			}
 			append(rv, proc);
-			printf("\n");
 		}
 		return rv;
 	}
