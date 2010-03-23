@@ -658,6 +658,7 @@ struct Insn {
 	Ctl *dstlabel;
 	u64 cnt;
 	Src *src;
+	unsigned long ox;
 } Insn;
 
 struct Code {
@@ -671,6 +672,9 @@ struct Code {
 	Expr *src;
 	Tab *konst;
 	Expr *spec[Maxspec];
+	char *x;
+	unsigned long nx;
+	unsigned long maxx;
 };
 
 typedef
@@ -848,7 +852,11 @@ void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
 Closure*	panicthunk(void);
+void		printinsn(Insn *i);
 void		printkon(Val v);
+
+/* cgx.c */
+void		cg6(Code *c);
 
 /* spec.c */
 Expr*		residue(VM *vm, Expr *e, Expr *pat, Val v);

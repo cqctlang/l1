@@ -380,7 +380,7 @@ printrand(Operand *r)
 	}
 }
 
-static void
+void
 printinsn(Insn *i)
 {
 	xprintf("\t");
@@ -1740,10 +1740,12 @@ codegen(Expr *e)
 	e = konsts(e, code);
 	code->src = e;
 	cglambda(L, code, e);
-	l = (Lambda*)e->xp;
-	cl = mkcl(code, 0, l->ncap, L->label);
 	if(cqctflags['o'])
 		printcode(code);
+	if(cqctflags['6'])
+		cg6(code);
+	l = (Lambda*)e->xp;
+	cl = mkcl(code, 0, l->ncap, L->label);	
 	return cl;
 }
 

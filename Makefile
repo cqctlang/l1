@@ -39,6 +39,7 @@ L1C =\
 	spec.c\
 	type.c\
 	cg.c\
+	cg6.c\
 	vm.c\
 	cqct.c\
 	xfd.c\
