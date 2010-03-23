@@ -79,6 +79,8 @@ ctlmux = @names clp64le {
 		Etrap    = (Eexit<<1),
 		Esnap	 = (Etrap<<1),
 		Estepctx = (Esnap<<1),
+		Eload	 = (Estepctx<<1),
+		Eunload	 = (Eload<<1),
 	} Event;
 
 	typedef
@@ -302,6 +304,16 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Efork Efork;
 	typedef struct Efork Eclone;
+
+	struct Eload {
+		@0;
+	};
+	typedef struct Eload Eload;
+
+	struct Eunload {
+		@0;
+	};
+	typedef struct Eunload Eunload;
 
 	struct Tread{
 		@0	uint8 op;
@@ -957,6 +969,30 @@ ctlmux = @names clp64le {
 				docall([ctl],
 				       @lambda() {
 					       fn(ctl, dat->ctx.sig);
+				       });
+			else
+				contasync(ctl);
+			break;
+		case ctlmux`Eload:
+			dat = (ctlmux`Eload*)dat;
+			ctl.state = ctlmux`Stopped;
+			fn = ctl.callbacks[ev];
+			if(fn != nil)
+				docall([ctl],
+				       @lambda() {
+					       fn(ctl);
+				       });
+			else
+				contasync(ctl);
+			break;
+		case ctlmux`Eunload:
+			dat = (ctlmux`Eunload*)dat;
+			ctl.state = ctlmux`Stopped;
+			fn = ctl.callbacks[ev];
+			if(fn != nil)
+				docall([ctl],
+				       @lambda() {
+					       fn(ctl);
 				       });
 			else
 				contasync(ctl);
