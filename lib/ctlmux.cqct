@@ -306,6 +306,7 @@ ctlmux = @names clp64le {
 	typedef struct Efork Eclone;
 
 	struct Eload {
+		/* parse by hand */
 		@0;
 	};
 	typedef struct Eload Eload;
@@ -352,6 +353,11 @@ ctlmux = @names clp64le {
 	addr,
 	len,
 	flags,
+};
+
+@record dll {
+	path,
+	base,
 };
 
 @record ctlrec {
@@ -830,6 +836,7 @@ ctlmux = @names clp64le {
 	@define handleasync(msg, dat)
 	{
 		@local ctl, newctl, trap, ev, fn, docall;
+		@local p, sz, base, path;
 		ctl = ctls[msg->id];
 		if(ctl == nil)
 			error("%e:%e for unknown process id: %d",
@@ -974,13 +981,18 @@ ctlmux = @names clp64le {
 				contasync(ctl);
 			break;
 		case ctlmux`Eload:
-			dat = (ctlmux`Eload*)dat;
+			p = (ctlmux`uint64*)dat;
+			sz = *p++;
+			path = getbytes(p, sz);
+			p = (ctlmux`char*)p+sz;
+			p = (ctlmux`uint64*)p;
+			base = *p;
 			ctl.state = ctlmux`Stopped;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl],
 				       @lambda() {
-					       fn(ctl);
+					       fn(ctl, path, base);
 				       });
 			else
 				contasync(ctl);
@@ -1146,7 +1158,7 @@ ctlmux = @names clp64le {
 	@define stat(ctl)
 	{
 		@local p, rep, dat, q, i, m, sz, rs, file, addr, len, flags;
-		@local id, pid, tid, st, rv;
+		@local id, pid, tid, st, threads, libs;
 
 		p = (ctlmux`Tstat*)malloc(sizeof(ctlmux`Tstat));
 		p->op = ctlmux`Tstat;
@@ -1157,9 +1169,21 @@ ctlmux = @names clp64le {
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rstat);
 
-		rv = [];
 		q = (ctlmux`uint32*)dat;
 		st = *q++;
+
+		libs = [];
+		q = (ctlmux`uint64*)q;
+		m = *q++;
+		for(i = 0; i < m; i++){
+			sz = *q++;
+			path = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			base = *q++;
+			append(libs, dll(path, base));
+		}
+
+		threads = [];
 		q = (ctlmux`uint64*)q;
 		m = *q++;
 		for(i = 0; i < m; i++){
@@ -1169,9 +1193,6 @@ ctlmux = @names clp64le {
 			st = *q++;
 			pid = id>>32;
 			tid = (id<<32)>>32;
-			printf("id %16x\tpid %8d\ttid %8d\tst %e\n",
-			       id, pid, tid,
-			       (enum ctlmux`State)st);
 			if(ctls[id] == nil)
 				ctls[id] = mkctl(mux,
 						 id,
@@ -1180,9 +1201,10 @@ ctlmux = @names clp64le {
 						  malloc(sizeof(ctlmux`Ctx))),
 						 ctl.traps.copy(),
 						 copy(ctl.callbacks));
-			append(rv, ctls[id]);
+			append(threads, ctls[id]);
 		}
-		return rv;
+
+		return [libs,threads];
 	}
 
 	// LINUX ONLY
@@ -1448,7 +1470,6 @@ ctlmux = @names clp64le {
 		if(rep->cnt != cnt)
 			error("ping reply acknowledged %d bytes, not %d",
 			      rep->cnt, cnt);
-		printf("prctl ping: %d bytes\n", cnt);
 	}
 
 	@define ps()
