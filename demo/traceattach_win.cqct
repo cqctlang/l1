@@ -2,9 +2,18 @@
 
 ns = c32le;
 
+@define decodeid(id)
+{
+	@local pid, tid;
+	pid = id>>32;
+	tid = (id<<32)>>32;
+	return [pid,tid];
+}
+
+
 @define test1(addr, pid)
 {
-	@local ctl, mux, as, dom, ts;
+	@local ctl, mux, as, dom, libs, threads, tid;
 	mux = mkctlmux_remote(addr);
 	foreach(@lambda(p){
 			@local pid;
@@ -12,12 +21,35 @@ ns = c32le;
 			cmd = p[1];
 			printf("%5d %s\n", pid, cmd);
 		}, mux.ps());
-	printf("attaching to %d\n", pid);
 	ctl = mux.attach(pid);
-	ts = ctl.stat();
+	[pid,tid] = decodeid(ctl.id);
+	printf("attached to [ %d, %d ]\n", pid, tid);
+	ctl.trace(ctlmux`Eload,
+		  @lambda(ctl, path, base){
+			  printf("%a -> load %p\t%s\n",
+				 decodeid(ctl.id),
+				 base, path);
+		  });
+	ctl.trace(ctlmux`Eclone,
+		  @lambda(ctl, spwn){
+			  printf("%a -> spawn %a\n",
+				 decodeid(ctl.id), decodeid(spwn.id));
+		  });
+	ctl.trace(ctlmux`Eexit,
+		  @lambda(ctl){
+			  @local p, t;
+			  [p,t] = decodeid(ctl.id);
+			  printf("%a -> exit\n", decodeid(ctl.id));
+		  });
+	[libs, threads] = ctl.stat();
+	printf("libs for %d:\n", pid);
+	foreach(@lambda(l){
+			printf("\t%08p\t%s\n", l.base, l.path);
+		}, libs);
+	printf("threads for %d:\n", pid);
 	foreach(@lambda(t){
-			printf("%x\n", t.id);
-		}, ts);
+			printf("\t%a\n", decodeid(t.id));
+		}, threads);
 	ctl.xcont();
 	mux.run();
 }
