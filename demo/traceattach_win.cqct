@@ -26,9 +26,13 @@ ns = c32le;
 	printf("attached to [ %d, %d ]\n", pid, tid);
 	ctl.trace(ctlmux`Eload,
 		  @lambda(ctl, path, base){
-			  printf("%a -> load %p\t%s\n",
-				 decodeid(ctl.id),
-				 base, path);
+			  printf("%a -> load %s @%08x\n",
+				 decodeid(ctl.id), path, base);
+		  });
+	ctl.trace(ctlmux`Eunload,
+		  @lambda(ctl, path, base){
+			  printf("%a -> unload %s @%08x\n",
+				 decodeid(ctl.id), path, base);
 		  });
 	ctl.trace(ctlmux`Eclone,
 		  @lambda(ctl, spwn){
@@ -44,7 +48,7 @@ ns = c32le;
 	[libs, threads] = ctl.stat();
 	printf("libs for %d:\n", pid);
 	foreach(@lambda(l){
-			printf("\t%08p\t%s\n", l.base, l.path);
+			printf("\t%08x\t%s\n", l.base, l.path);
 		}, libs);
 	printf("threads for %d:\n", pid);
 	foreach(@lambda(t){

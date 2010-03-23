@@ -312,6 +312,7 @@ ctlmux = @names clp64le {
 	typedef struct Eload Eload;
 
 	struct Eunload {
+		/* parse by hand */
 		@0;
 	};
 	typedef struct Eunload Eunload;
@@ -653,6 +654,7 @@ ctlmux = @names clp64le {
 	@local trace, fmtmsg, buf2msg;
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
+	@local osversion;
 
 	verbose = 0;
 	aborted = 0;
@@ -917,6 +919,9 @@ ctlmux = @names clp64le {
 			    msg->id,
 			    ev == ctlmux`Eclone ? "cloned" : "forked",
 			    dat->cid);
+			if(osversion != "x86-win-2010")
+				// Windows does not stop the spawning thread
+				ctl.state = ctlmux`Stopped;
 			ctl.setreg(cop(&dat->ctx));
 			newctl = mkctl(mux,
 				       dat->cid,
@@ -930,9 +935,7 @@ ctlmux = @names clp64le {
 				docall([ctl, newctl],
 				       @lambda() { fn(ctl, newctl); });
 			else{
-				// FIXME: On windows the spawning thread
-				// does not stop.
-//				contasync(ctl);
+				contasync(ctl);
 				contasync(newctl);
 			}
 			break;
@@ -981,6 +984,7 @@ ctlmux = @names clp64le {
 				contasync(ctl);
 			break;
 		case ctlmux`Eload:
+		case ctlmux`Eunload:
 			p = (ctlmux`uint64*)dat;
 			sz = *p++;
 			path = getbytes(p, sz);
@@ -997,18 +1001,6 @@ ctlmux = @names clp64le {
 			else
 				contasync(ctl);
 			break;
-		case ctlmux`Eunload:
-			dat = (ctlmux`Eunload*)dat;
-			ctl.state = ctlmux`Stopped;
-			fn = ctl.callbacks[ev];
-			if(fn != nil)
-				docall([ctl],
-				       @lambda() {
-					       fn(ctl);
-				       });
-			else
-				contasync(ctl);
-			break;
 		default:
 			error("unhandled event message: %e",
 			      (ctlmux`Event)msg->flags);
@@ -1017,6 +1009,7 @@ ctlmux = @names clp64le {
 
 	@define noctls()
 	{
+//		printf("noctls %a\n", map(@lambda(c,v){ decodeid(v.id); }, ctls));
 		return length(ctls) == 0;
 	}
 
@@ -1453,6 +1446,7 @@ ctlmux = @names clp64le {
 			error("unknown remote prctl version: %s", dat);
 		os = s[1];
 		os = substr(os, 0, strlen(os)); /* chop NUL */
+		osversion = os;
 	}
 
 	@define ping(cnt)
