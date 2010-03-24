@@ -672,7 +672,7 @@ struct Code {
 	Expr *src;
 	Tab *konst;
 	Expr *spec[Maxspec];
-	char *x;
+	unsigned char *x;
 	unsigned long nx;
 	unsigned long maxx;
 };
