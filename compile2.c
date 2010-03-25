@@ -19,7 +19,9 @@ globals(Expr *e, Env *env)
 				 globals(e->e3, env),
 				 copyexpr(e->e1),
 				 e->e4));
+#if 0
 		envgetbind(env, e->e1->id);
+#endif
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
