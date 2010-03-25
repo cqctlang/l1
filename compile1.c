@@ -4,10 +4,51 @@
 
 static Expr* compile1(U *ctx, Expr *e);
 
-struct Arg {
-	Expr **e;
-	U *ctx;
-};
+static Expr*
+compiledef(U *ctx, Expr *e)
+{
+	Expr *p;
+
+	p = Zset(e->e1,
+		 Zlambdn(e->e2,
+			 compile1(ctx, e->e3),
+			 copyexpr(e->e1)));
+	e->e1 = 0;
+	e->e2 = 0;
+	e->e3 = 0;
+	e->e4 = 0;
+	putsrc(p, &e->src);
+	freeexpr(e);
+	return p;
+}
+
+static Expr*
+compilerec(U *ctx, Expr *e)
+{
+	char *id, *is;
+	unsigned len;
+	Expr *p;
+
+	id = e->e1->id;
+	len = 2+strlen(id)+1;
+	is = emalloc(len);
+	snprint(is, len, "is%s", id);
+	p = Zblock(Zlocals(1, "$rd"),
+		   Zset(doid("$rd"),
+			Zcall(G("mkrd"), 2,
+			      Zconsts(id),
+			      Zids2strs(e->e2))),
+		   Zset(doid(id), Zcall(G("rdmk"),
+					1, doid("$rd"))),
+		   Zset(doid(is), Zcall(G("rdis"),
+					1, doid("$rd"))),
+		   doid("$rd"),
+		   NULL);
+	efree(is);
+	putsrc(p, &e->src);
+	freeexpr(e);
+	return p;
+}
 
 static Expr*
 compiletab(U *ctx, Expr *e)
@@ -366,6 +407,7 @@ compileambig(U *ctx, Expr *e)
 	return te;
 }
 
+/* expand various independent syntactic forms */
 static Expr*
 compile1(U *ctx, Expr *e)
 {
@@ -375,8 +417,12 @@ compile1(U *ctx, Expr *e)
 		return e;
 
 	switch(e->kind){
-	case Eglobal:
-		return e;
+	case Edefine:
+		se = compiledef(ctx, e);
+		return se;
+	case Edefrec:
+		se = compilerec(ctx, e);
+		return se;
 	case Elambda:
 	case Eblock:
 		e->e2 = compile1(ctx, e->e2);

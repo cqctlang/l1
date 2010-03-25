@@ -13,38 +13,6 @@ globals(Expr *e, Env *env)
 		return e;
 
 	switch(e->kind){
-	case Edefine:
-		p = Zset(e->e1,
-			 Zlambdn(e->e2,
-				 globals(e->e3, env),
-				 copyexpr(e->e1)));
-		e->e1 = 0;
-		e->e2 = 0;
-		e->e3 = 0;
-		e->e4 = 0;
-		putsrc(p, &e->src);
-		freeexpr(e);
-		return p;
-	case Edefrec:
-		id = e->e1->id;
-		len = 2+strlen(id)+1;
-		is = emalloc(len);
-		snprint(is, len, "is%s", id);
-		p = Zblock(Zlocals(1, "$rd"),
-			   Zset(doid("$rd"),
-				Zcall(G("mkrd"), 2,
-				      Zconsts(id),
-				      Zids2strs(e->e2))),
-			   Zset(doid(id), Zcall(G("rdmk"),
-						1, doid("$rd"))),
-			   Zset(doid(is), Zcall(G("rdis"),
-						1, doid("$rd"))),
-			   doid("$rd"),
-			   NULL);
-		efree(is);
-		putsrc(p, &e->src);
-		freeexpr(e);
-		return p;
 	case Eglobal:
 		p = e->e1;
 		while(p->kind == Eelist){
