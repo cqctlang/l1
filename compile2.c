@@ -171,33 +171,12 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 	}
 }
 
-void
-freeconst(void *u, char *id, void *v)
-{
-	USED(u);
-	efree(id);
-	freeexpr((Expr*)v);
-}
-
 Expr*
 docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 {
 	Expr *te;
-	/*
-	 * enclose expression in block to reduce
-	 * top-level pollution.
-	 * disabled: breaks too many existing programs
-	 */
-	// el = Zblock(nullelist(), el, 0);
 
-	/* FIXME: test/null1.l1 fails on multiple labels;
-	   this is a workaround. */
-	if(el->kind == Enull)
-		el = newexpr(Eelist,
-			     newexpr(Enil, 0, 0, 0, 0),
-			     el, 0, 0);
-
-	/* add @global and implicit @global bindings to env */
+	/* add @global bindings to toplevel */
 	el = globals(el, top->env);
 
 	/* resolve top-level bindings */
