@@ -413,7 +413,6 @@ pass0(Expr *e)
 			}
 		}
 		pass0(e->e2);
-		pass0(e->e4);
 		break;
 	case Eblock:
 		e->xp = b = emalloc(sizeof(Block));
@@ -475,7 +474,6 @@ pass0_5(Expr *e, Xenv *lex)
 		rib = mkxenv(lex);
 		bindvars(rib, l->param, l->nparam);
 		pass0_5(e->e2, rib);
-		pass0_5(e->e4, rib);
 		freexenv(rib);
 		break;
 	case Eblock:
@@ -541,7 +539,6 @@ fv(Expr *e, Xenv *lex, Xenv *loc, Xenv *free)
 		rib = mkxenv(loc);
 		bindvars(rib, l->param, l->nparam);
 		fv(e->e2, lex, rib, free);
-		fv(e->e4, lex, rib, free);
 		freexenv(rib);
 		break;
 	case Eblock:
@@ -615,7 +612,6 @@ pass1(Expr *e, Xenv *lex)
 		/* find free variables (loc ends at this lambda) */
 		free = mkxenv(0);
 		fv(e->e2, lex, loc, free);
-		fv(e->e4, lex, loc, free);
 		freexenv(loc);
 
 		l->ncap = xenvsize(free);
@@ -644,7 +640,6 @@ pass1(Expr *e, Xenv *lex)
 		bindvars(loc, l->disp, l->ndisp);
 		bindvars(loc, l->param, l->nparam);
 		pass1(e->e2, loc);
-		pass1(e->e4, loc);
 		freexenv(loc);
 		freexenv(free);
 		break;
@@ -703,7 +698,6 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		bindvars(rib, l->disp, l->ndisp);
 		bindvars(rib, l->param, l->nparam);
 		pass2(e->e2, rib, top);
-		pass2(e->e4, rib, top);
 		freexenv(rib);
 		break;
 	case Eblock:
@@ -755,10 +749,9 @@ pass3(Expr *e, unsigned ln)
 	switch(e->kind){
 	case Elambda:
 		l = (Lambda*)e->xp;
-		l->ntmp = max(tmppass(e->e2), tmppass(e->e4));
-		l->nloc = l->isvarg+max(locpass(e->e2), locpass(e->e4));
+		l->ntmp = tmppass(e->e2);
+		l->nloc = l->isvarg+locpass(e->e2);
 		pass3(e->e2, l->isvarg);
-		pass3(e->e4, l->isvarg);
 		break;
 	case Eblock:
 		b = (Block*)e->xp;
@@ -847,7 +840,6 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 		bindvars(rib, l->disp, l->ndisp);
 		bindvars(rib, l->param, l->nparam);
 		pass4(ctx, e->e2, rib);
-		pass4(ctx, e->e4, rib);
 //		warnunused(ctx, e->e1, rib);
 		freexenv(rib);
 		break;
@@ -1055,9 +1047,7 @@ pass5(Expr *e, HT *ls, Exprs *les)
 		les = newexprs(e, 0);
 		ls = mkht();
 		pass5(e->e2, ls, les);
-		pass5(e->e4, ls, les);
 		gotos(e->e2, ls, les);
-		gotos(e->e4, ls, les);
 		free1exprs(les);
 		hforeach(ls, free1ls, 0);
 		freeht(ls);

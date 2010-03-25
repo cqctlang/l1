@@ -385,10 +385,6 @@ printinsn(Insn *i)
 {
 	xprintf("\t");
 	switch(i->kind){
-	case Ispec:
-		xprintf("spec ");
-		printrand(&i->op1);
-		break;
 	case Iargc:
 		xprintf("argc ");
 		printrand(&i->op1);
@@ -1623,7 +1619,6 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	Insn *i;
 	CGEnv p;
 	unsigned m, needtop;
-	unsigned long ns;
 	Ctl *top;
 	Src *src;
 
@@ -1701,23 +1696,6 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	p.Continue = 0;
 	p.labels = labels(e->e2, code);
 
-	if(e->e4){
-		Ctl *L;
-		if(code->nspec >= Maxspec){
-			xprintf("specialization queue filled\n");
-			goto body;
-		}
-
-		L = genlabel(code, 0);
-		cg(e->e4, code, &p, AC, L, top, L, l->nloc);
-		ns = code->nspec++;
-		code->spec[ns] = e;
-		i = nextinsn(code, src);
-		i->kind = Ispec;
-		randkon(&i->op1, konimm(code->konst, Vint, ns));
-		top = genlabel(code, 0);
-	}
-body:
 	cg(e->e2, code, &p, AC, p.Return, top, p.Return, l->nloc);
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code, &e->src);
@@ -1747,44 +1725,6 @@ codegen(Expr *e)
 	l = (Lambda*)e->xp;
 	cl = mkcl(code, 0, l->ncap, L->label);	
 	return cl;
-}
-
-void
-cgspec(VM *vm, Closure *cl, Imm idx, Val ac)
-{
-	Code *ocode, *code;
-	Expr *oe, *e4, *e;
-	Ctl *L;
-	Lambda *l;
-
-	ocode = cl->code;
-	oe = ocode->spec[idx];
-	if(oe->kind != Elambda)
-		fatal("bug");
-	e4 = oe->e4;
-	oe->e4 = 0;
-	e = copyexpr(oe);
-	oe->e4 = e4;
-	l = (Lambda*)oe->xp;
-	if(l->ncap)
-		fatal("unimplemented specialization mode");
-	e = residue(vm, e, e4, ac);
-	e = docompilev(0, e, vm->top);
-	if(cqctflags['q']){
-		printcqct(e);
-		xprintf("\n");
-	}
-	code = mkcode();
-	L = genlabel(code, "special");
-	L->used = 1;
-	emitlabel(L, e);
-	konsts(e, code);
-	code->src = e;
-	cglambda(L, code, e);
-	cl->code = code;
-	cl->entry = 0;
-	if(cqctflags['o'])
-		printcode(code);
 }
 
 Closure*

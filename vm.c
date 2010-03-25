@@ -4165,25 +4165,6 @@ xcallc(VM *vm)
 	vm->ac = rv;
 }
 
-static void
-xspec(VM *vm, Operand *op)
-{
-	Val v;
-	Cval *cv;
-	Imm idx;
-
-	v = getvalrand(vm, op);
-	cv = valcval(v);
-	idx = cv->val;
-	xprintf("spec %d\n", idx);
-	cgspec(vm, vm->clx, idx, vm->ac);
-	vmsetcl(vm, vm->cl);
-	vm->sp = vm->fp;
-	vm->pc = vm->clx->entry;
-//	vm->ibuf = vm->clx->code->insn;
-//	setgo(&vm->ibuf[vm->pc], vm->clx->code->ninsn-vm->pc);
-}
-
 static int
 Strcmp(Str *s1, Str *s2)
 {
@@ -6629,7 +6610,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isizeof]	= &&Isizeof;
-		gotab[Ispec] 	= &&Ispec;
 		gotab[Isub] 	= &&Isub;
 		gotab[Isubsp] 	= &&Isubsp;
 		gotab[Ivargc]	= &&Ivargc;
@@ -6673,9 +6653,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		tick++;
 		NEXTLABEL(i){
 		LABEL Inop:
-			continue;
-		LABEL Ispec:
-			xspec(vm, &i->op1);
 			continue;
 		LABEL Icallc:
 			xcallc(vm);

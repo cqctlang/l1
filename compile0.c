@@ -689,7 +689,6 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 		break;
 	case Edefine:
 		checkctl(ctx, e->e3, 0, 0);
-		checkctl(ctx, e->e4, 0, 0);
 		break;
 	case Econtinue:
 		if(inloop == 0)

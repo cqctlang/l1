@@ -17,8 +17,7 @@ globals(Expr *e, Env *env)
 		p = Zset(e->e1,
 			 Zlambdn(e->e2,
 				 globals(e->e3, env),
-				 copyexpr(e->e1),
-				 e->e4));
+				 copyexpr(e->e1)));
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
@@ -144,7 +143,6 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 		bindids(rib, e->e1, e);
 		/* assume e->e2 is Eblock */
 		topresolve(ctx, e->e2, top, rib, inner);
-		topresolve(ctx, e->e4, top, rib, inner);    /* FIXME: okay? */
 		freexenv(rib);
 		break;
 	case Escope:

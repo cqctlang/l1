@@ -211,7 +211,6 @@ insn6(Code *c, Insn *i)
 		break;
 	case Iret:
 		break;
-	case Ispec:
 	case Icallc:
 	case Iinv:
 	case Ineg:

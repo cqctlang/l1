@@ -1025,10 +1025,6 @@ define_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
 	| define id '('  ')' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
-	| define id '(' arg_id_list ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
-	| define id '('  ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
 	;
 
 translation_unit_seq

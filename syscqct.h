@@ -521,7 +521,6 @@ enum {
 	Ishl,
 	Ishr,
 	Isizeof,
-	Ispec,
 	Isub,
 	Isubsp,
 	Ivargc,
@@ -666,13 +665,11 @@ struct Code {
 	Head hd;
 	unsigned long ninsn;
 	unsigned long maxinsn;
-	unsigned long nspec;
 	Insn *insn;
 	Ctl **labels;
 	Ctl *clist;
 	Expr *src;
 	Tab *konst;
-	Expr *spec[Maxspec];
 	unsigned char *x;
 	unsigned long nx;
 	unsigned long maxx;
@@ -845,7 +842,6 @@ u64		szexprx(Expr *e);
 /* cg.c */
 Closure*	callcc(void);
 Code*		callccode(void);
-void		cgspec(VM *vm, Closure *orig, Imm idx, Val ac);
 Closure*	codegen(Expr *e);
 Code*		contcode(void);
 void		finicg(void);
@@ -857,9 +853,6 @@ void		printkon(Val v);
 
 /* cgx.c */
 void		cg6(Code *c);
-
-/* spec.c */
-Expr*		residue(VM *vm, Expr *e, Expr *pat, Val v);
 
 /* xenv.c */
 void		freexenv(Xenv *xe);
@@ -1038,7 +1031,7 @@ Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
 Expr*		Zint(Imm val);
 Expr*		Zkon(Val v);
 Expr*		Zlambda(Expr *args, Expr *body);
-Expr*		Zlambdn(Expr *args, Expr *body, Expr *name, Expr *spec);
+Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
 Expr*		Zlocals(unsigned n, ...);
 Expr*		Znil(void);
 Expr*		Zref(Expr *dom, Expr *type, Expr *val);

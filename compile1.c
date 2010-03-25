@@ -378,8 +378,6 @@ compile1(U *ctx, Expr *e)
 	case Eglobal:
 		return e;
 	case Elambda:
-		e->e4 = compile1(ctx, e->e4);
-		/* fall through */
 	case Eblock:
 		e->e2 = compile1(ctx, e->e2);
 		return e;

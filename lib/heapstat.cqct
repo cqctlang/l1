@@ -241,7 +241,7 @@
 	return m;
 }
 
-@define esize(p)[domof(p)]
+@define esize(p)
 {
 	@local dom, x;
 	dom = domof(p);

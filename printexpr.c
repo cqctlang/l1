@@ -311,7 +311,7 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Edefine:
-		xprintf("define ");
+		xprintf("@define ");
 		printcqct0(e->e1, ni);
 		if(e->e2->kind == Eid){
 			xprintf(" ");
@@ -350,7 +350,7 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("...");
 		break;
 	case Elambda:
-		xprintf("lambda");
+		xprintf("@lambda");
 		if(e->e1->kind == Eid){
 			xprintf(" ");
 			printcqct0(e->e1, ni);
@@ -359,11 +359,6 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf("(");
 			printargs(e->e1, ni, 0);
 			xprintf(")");
-		}
-		if(e->e4){
-			xprintf("[");
-			printcqct0(e->e4, ni);
-			xprintf("]");
 		}
 		printcqct0(e->e2, ni);
 		break;

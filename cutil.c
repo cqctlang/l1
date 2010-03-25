@@ -244,9 +244,9 @@ Zlambda(Expr *args, Expr *body)
 }
 
 Expr*
-Zlambdn(Expr *args, Expr *body, Expr *name, Expr *spec)
+Zlambdn(Expr *args, Expr *body, Expr *name)
 {
-	return newexpr(Elambda, args, body, name, spec);
+	return newexpr(Elambda, args, body, name, 0);
 }
 
 Expr*
