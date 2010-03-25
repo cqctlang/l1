@@ -718,7 +718,6 @@ typedef
 struct Env {
 	HT *var;		/* variable bindings */
 	HT *rd;			/* record descriptors */
-	Xenv *con;		/* @const constants */
 } Env;
 
 struct Toplevel {

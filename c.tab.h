@@ -93,18 +93,17 @@
      UNION = 310,
      ENUM = 311,
      ELLIPSIS = 312,
-     DEFCONST = 313,
-     IF = 314,
-     ELSE = 315,
-     SWITCH = 316,
-     WHILE = 317,
-     DO = 318,
-     FOR = 319,
-     CONTINUE = 320,
-     BREAK = 321,
-     RETURN = 322,
-     CASE = 323,
-     DEFAULT = 324
+     IF = 313,
+     ELSE = 314,
+     SWITCH = 315,
+     WHILE = 316,
+     DO = 317,
+     FOR = 318,
+     CONTINUE = 319,
+     BREAK = 320,
+     RETURN = 321,
+     CASE = 322,
+     DEFAULT = 323
    };
 #endif
 
@@ -136,8 +135,8 @@ typedef union YYSTYPE
 	} chars;
 	int kind;
 }
-/* Line 2604 of glr.c.  */
-#line 141 "c.tab.h"
+/* Line 2616 of glr.c.  */
+#line 140 "c.tab.h"
 	YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1

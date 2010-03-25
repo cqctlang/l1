@@ -3203,7 +3203,6 @@ mkenv(void)
 	env = emalloc(sizeof(Env));
 	env->var = mkht();
 	env->rd = mkht();
-	env->con = mkxenv(0);
 	return env;
 }
 
@@ -3278,10 +3277,8 @@ freeenv(Env *env)
 {
 	hforeach(env->var, freebinding, 0);
 	hforeach(env->rd, freerd, 0);
-	xenvforeach(env->con, freeconst, 0);
 	freeht(env->var);
 	freeht(env->rd);
-	freexenv(env->con);
 	efree(env);
 }
 

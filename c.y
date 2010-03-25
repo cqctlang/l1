@@ -29,7 +29,7 @@ extern char *yytext;
 %token CAST_ASSIGN XCAST_ASSIGN GOTO
 %token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
-%token STRUCT UNION ENUM ELLIPSIS DEFCONST
+%token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
 
 %type <expr> base base_list
@@ -44,13 +44,13 @@ extern char *yytext;
 %type <expr> names_expression names_declaration_list names_declaration
 %type <expr> lapply_expression
 %type <expr> arg_id_list identifier_list local_list local type_specifier
-%type <expr> id tag tickid struct_or_union_specifier 
+%type <expr> id tag tickid struct_or_union_specifier
 %type <expr> struct_declaration_list struct_declaration struct_size
 %type <expr> struct_declarator_list struct_declarator enum_specifier
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
 %type <expr> parameter_type_list parameter_list parameter_declaration
 %type <expr> abstract_declarator direct_abstract_declarator statement
-%type <expr> defconst_statement compound_statement statement_list
+%type <expr> compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
 %type <expr> global_statement defrec_expression let_expression
@@ -884,7 +884,6 @@ statement
 	| jump_statement
 	| define_statement
 	| labeled_statement
-	| defconst_statement
 	| global_statement
 	;
 
@@ -1002,11 +1001,6 @@ define_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
 	| define id '('  ')' '[' expression ']' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
-	;
-
-defconst_statement
-	: DEFCONST id '=' expression ';'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefconst, $2, $4, 0, 0); }
 	;
 
 translation_unit_seq

@@ -19,9 +19,6 @@ globals(Expr *e, Env *env)
 				 globals(e->e3, env),
 				 copyexpr(e->e1),
 				 e->e4));
-#if 0
-		envgetbind(env, e->e1->id);
-#endif
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
@@ -182,74 +179,6 @@ freeconst(void *u, char *id, void *v)
 	freeexpr((Expr*)v);
 }
 
-static Expr*
-expandconst(Expr *e, Env *top, Xenv *lex, Xenv *con)
-{
-	Expr *p;
-	Xenv *lexrib, *conrib;
-
-	if(e == 0)
-		return 0;
-
-	switch(e->kind){
-	case Edefconst:
-		e->e2 = expandconst(e->e2, top, lex, con);
-		xenvbind(con, xstrdup(e->e1->id), e->e2);
-		e->e2 = 0;
-		freeexpr(e);
-		return newexpr(Enil, 0, 0, 0, 0);
-	case Eid:
-		if(xenvlook(lex, e->id) || envbinds(top, e->id))
-			return e;
-		p = xenvlook(con, e->id);
-		if(p){
-			freeexpr(e);
-			return copyexpr(p);
-		}
-		return e;
-	case Elambda:
-		lexrib = mkxenv(lex);
-		bindids(lexrib, e->e1, e);
-		e->e2 = expandconst(e->e2, top, lexrib, con);
-		e->e4 = expandconst(e->e4, top, lexrib, con);
-		freexenv(lexrib);
-		return e;
-	case Eblock:
-		conrib = mkxenv(con);
-		lexrib = mkxenv(lex);
-		bindids(lexrib, e->e1, e);
-		e->e2 = expandconst(e->e2, top, lexrib, conrib);
-		freexenv(lexrib);
-		xenvforeach(conrib, freeconst, 0);
-		freexenv(conrib);
-		return e;
-	case Epreinc:
-	case Epostinc:
-	case Epredec:
-	case Epostdec:
-		/* don't expand assigned identifiers */
-		return e;
-	case Eg:
-	case Egop:
-		/* don't expand assigned identifiers */
-		e->e2 = expandconst(e->e2, top, lex, con);
-		return e;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			p->e1 = expandconst(p->e1, top, lex, con);
-			p = p->e2;
-		}
-		return e;
-	default:
-		e->e1 = expandconst(e->e1, top, lex, con);
-		e->e2 = expandconst(e->e2, top, lex, con);
-		e->e3 = expandconst(e->e3, top, lex, con);
-		e->e4 = expandconst(e->e4, top, lex, con);
-		return e;
-	}
-}
-
 Expr*
 docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 {
@@ -273,9 +202,6 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 
 	/* resolve top-level bindings */
 	topresolve(ctx, el, top->env, 0, 0);
-
-	/* expand @const references */
-	el = expandconst(el, top->env, 0, top->env->con);
 
 	/*
 	 * convert expression into callable lambda.
