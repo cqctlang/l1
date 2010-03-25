@@ -223,7 +223,7 @@ compilens(U *ctx, Expr *e)
 		se = Zcall(G("mknsraw"), 3,
 			   doid("$ns"), doid("$typetab"), doid("$symtab"));
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, &e->src);
 	return te;
 }

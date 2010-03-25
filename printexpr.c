@@ -94,6 +94,7 @@ char* S[] = {
 	[Eptr] =	"Eptr",
 	[Eref] =	"Eref",
 	[Eret] =	"Eret",
+	[Escope] =	"Escope",
 	[Eshl] =	"Eshl",
 	[Eshr] =	"Eshr",
 	[Esizeofe] =	"Esizeofe",
@@ -277,6 +278,12 @@ opstr(unsigned op)
 	return Opstr[op] ? Opstr[op] : "";
 }
 
+static int
+iscompound(Expr *e)
+{
+	return e->kind == Eblock || e->kind == Escope;
+}
+
 static void
 printcqct0(Expr *e, unsigned ni)
 {
@@ -366,10 +373,13 @@ printcqct0(Expr *e, unsigned ni)
 		printargs(e->e2, ni, 0);
 		xprintf(")");
 		break;
+	case Escope:
+		printcqct0(e->e1, ni);
+		break;
 	case Eblock:
 		xprintf("\n");
 		indent(ni); xprintf("{\n");
-		if(printlocals(e->e1, ni+1) && e->e2->e1->kind != Eblock)
+		if(printlocals(e->e1, ni+1) && !iscompound(e->e2->e1))
 			xprintf("\n");
 		printcqct0(e->e2, ni+1);
 		indent(ni); xprintf("}");
@@ -522,7 +532,7 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("while(");
 		printcqct0(e->e1, ni);
 		xprintf(")");
-		if(e->e2->kind != Eblock){
+		if(!iscompound(e->e2)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e2, ni+1);
@@ -531,7 +541,7 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Edo:
 		xprintf("do");
-		if(e->e1->kind != Eblock){
+		if(!iscompound(e->e1)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e1, ni+1);
@@ -555,7 +565,7 @@ printcqct0(Expr *e, unsigned ni)
 		if(e->e3)
 			printcqct0(e->e3, ni);
 		xprintf(")");
-		if(e->e4->kind != Eblock){
+		if(!iscompound(e->e4)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e4, ni+1);
@@ -566,7 +576,7 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("if(");
 		printcqct0(e->e1, ni);
 		xprintf(")");
-		if(e->e2->kind != Eblock){
+		if(!iscompound(e->e2)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e2, ni+1);
@@ -578,7 +588,7 @@ printcqct0(Expr *e, unsigned ni)
 				xprintf(";");
 			xprintf("\n");
 			indent(ni); xprintf("else");
-			if(e->e3->kind != Eblock){
+			if(!iscompound(e->e3)){
 				xprintf("\n");
 				indent(ni+1);
 				printcqct0(e->e3, ni+1);

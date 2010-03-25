@@ -149,10 +149,13 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 		topresolve(ctx, e->e4, top, rib, inner);    /* FIXME: okay? */
 		freexenv(rib);
 		break;
+	case Escope:
+		topresolve(ctx, e->e1, top, lex, e->e1);
+		break;
 	case Eblock:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		topresolve(ctx, e->e2, top, rib, e);
+		topresolve(ctx, e->e2, top, rib, inner);
 		freexenv(rib);
 		break;
 	case Eelist:
@@ -171,6 +174,37 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 	}
 }
 
+static Expr*
+removescope(Expr *e)
+{
+	Expr *p;
+
+	if(e == 0)
+		return e;
+
+	switch(e->kind){
+	case Escope:
+		p = removescope(e->e1);
+		e->e1 = 0;
+		freeexpr(e);
+		return p;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = removescope(p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = removescope(e->e1);
+		e->e2 = removescope(e->e2);
+		e->e3 = removescope(e->e3);
+		e->e4 = removescope(e->e4);
+		return e;
+	}
+}
+
+
 Expr*
 docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 {
@@ -181,6 +215,7 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 
 	/* resolve top-level bindings */
 	topresolve(ctx, el, top->env, 0, 0);
+	el = removescope(el);
 
 	/*
 	 * convert expression into callable lambda.
@@ -190,12 +225,8 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 	 * continuation; as a bonus, we get a binding
 	 * for the most recent toplevel evaluation.
 	 */
-	te = newexpr(Elambda, argsid ? doid(argsid) : nullelist(),
-		     newexpr(Eret,
-			     Zset(doid("$$"),
-				  newexpr(Eblock, nullelist(), el, 0, 0)),
-			     0, 0, 0),
-		     0, 0);
+	te = Zlambda(argsid ? doid(argsid) : nullelist(),
+		     Zret(Zset(doid("$$"), Zblock(nullelist(), el, NULL))));
 	putsrc(te, &el->src);
 	return te;
 }

@@ -706,7 +706,7 @@ expandm(U *ctx, Expr *e)
 		}
 		se = invert(se);
 		se = Zcons(Zset(doid("$tmp"), expandm(ctx, e->e2)), se);
-		se = newexpr(Eblock, Zlocals(1, "$tmp"), se, 0, 0);
+		se = Zblock(Zlocals(1, "$tmp"), se, NULL);
 
 		/* update target vars outside of new
 		   block so that they remain in scope

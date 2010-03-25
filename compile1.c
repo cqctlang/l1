@@ -36,7 +36,7 @@ compiletab(U *ctx, Expr *e)
 	}
 	se = doid("$tab");
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -68,7 +68,7 @@ compilelist(U *ctx, Expr *e)
 	}
 	se = doid("$lst");
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -112,7 +112,7 @@ compilesizeof(U *ctx, Decl *d, Src *src)
 	// sizeof($tmp);
 	se = Zsizeof(doid("$tmp"));
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -156,7 +156,7 @@ compiletypeof(U *ctx, Decl *d, Src *src)
 	// $tmp;
 	se = doid("$tmp");
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -207,7 +207,7 @@ compilecast(U *ctx, Expr *e)
 	se = Zxcast(doid("$type"), doid("$tmp"));
 	te = Zcons(se, te);
 
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, &e->src);
 	return te;
 }
@@ -288,7 +288,7 @@ compilecontainer(U *ctx, Expr *e)
 			 Zcall(G("fieldoff"), 1, doid("$fld"))));
 	te = Zcons(se, te);
 
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, &e->src);
 	return te;
 }
@@ -361,7 +361,7 @@ compileambig(U *ctx, Expr *e)
 	se = newexpr(Eif, Zcall(G("isnil"), 1, doid("$tmp")), of, tf, 0);
 	te = Zcons(se, te);
 
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, &e->src);
 	return te;
 }

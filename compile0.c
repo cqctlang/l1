@@ -30,7 +30,7 @@ rvalblock(Expr *body, unsigned lfree)
 		e = Zlocals(1, "$val");
 	else
 		e = Zlocals(4, "$val", "$dom", "$type", "$addr");
-	te = newexpr(Eblock, e, body, 0, 0);
+	te = Zblock(e, body, NULL);
 	putsrc(te, &body->src);
 	return te;
 }
@@ -38,9 +38,8 @@ rvalblock(Expr *body, unsigned lfree)
 static Expr*
 lvalblock(Expr *body)
 {
-	Expr *e, *te;
-	e = Zlocals(1, "$tmp");
-	te = newexpr(Eblock, e, body, 0, 0);
+	Expr *te;
+	te = Zblock(Zlocals(1, "$tmp"), body, NULL);
 	putsrc(te, &body->src);
 	return te;
 }
@@ -453,7 +452,9 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 static int
 isemptyblock(Expr *e)
 {
-	if(e->kind == Eblock && e->e2->kind == Enull)
+	if(e->kind == Escope && e->e1->e2->kind == Enull)
+		return 1;
+	else if(e->kind == Eblock && e->e2->kind == Enull)
 		return 1;
 	else
 		return 0;

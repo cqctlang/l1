@@ -100,6 +100,7 @@ enum{
 	Eptr,
 	Eref,
 	Eret,
+	Escope,
 	Eshl,
 	Eshr,
 	Esizeofe,

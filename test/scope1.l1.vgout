@@ -1,0 +1,10 @@
+scope1.l1:3: warning: assignment to unbound variable: x
+scope1.l1:3: warning: assignment to unbound variable: y
+scope1.l1:11: warning: assignment to unbound variable: y
+entry: var params, 1 locals, 0 temps
+lose1: 0 params, 3 locals, 0 temps
+lose2: 0 params, 2 locals, 0 temps
+[ 1, 2 ]
+1
+1
+1

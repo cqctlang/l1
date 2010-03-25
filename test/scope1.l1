@@ -1,0 +1,17 @@
+@define lose1()
+{
+	x = [ y = 1, 2, ];
+	printf("%a\n", x);
+	printf("%a\n", y);
+}
+
+@define lose2()
+{
+	@local x;
+	x = 1, y = x;
+	printf("%a\n", x);
+	printf("%a\n", y);
+}
+
+lose1();
+lose2();
