@@ -37,3 +37,38 @@ v - box analysis
     non-local frame initialize (goto plan)
 
 cg - code generator
+
+
+---
+
+
+rewrite
+
+start with output of pass 2; discard v and cg.
+
+- (maybe) expand loop and switch to intra-lambda labels+goto
+  - all control flow is call to lambda/label and return
+  - but some control transfers span binding sites
+- alpha-convert (uniquify variable names)
+- expose assignment
+  - for all assigned variables
+     create box at binding site
+     replace access and set with explicit box access
+
+- closure conversion
+  - collect lambdas to letrecs
+  - free var analysis
+  - convert closures
+  - lift letrecs
+
+- normalize control
+  - rewrite all lambdas so that non-local transfers
+    are tail calls to other labels
+  - thread gotos through binding sites by
+    abstracting binding code
+
+- normalize expression context
+- specify primitive reps
+- remove lets
+
+- uil -> x86
