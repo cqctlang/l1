@@ -288,9 +288,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		return rvalblock(te, lfree);
 	case Egop:
 		if(!islval(e->e1)){
-			/* FIXME: if we translate ordinary cval Egop here
-			   into equivalent source, do we generate same
-			   or similar code as compile.c on Egop? */
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
 			e->e1 = compile_rval(ctx, e->e1, 0);
@@ -323,9 +320,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 	case Epostinc:
 	case Epostdec:
 		if(!islval(e->e1)){
-			/* FIXME: if we translate ordinary cval ++ here
-			   into equivalent source, do we generate same
-			   or similar code as compile.c on ++? */
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
 			e->e1 = compile_rval(ctx, e->e1, 0);
@@ -356,9 +350,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 	case Epreinc:
 	case Epredec:
 		if(!islval(e->e1)){
-			/* FIXME: if we translate ordinary cval ++ here
-			   into equivalent source, do we generate same
-			   or similar code as compile.c on ++? */
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
 			e->e1 = compile_rval(ctx, e->e1, 0);
