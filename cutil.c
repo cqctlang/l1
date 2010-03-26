@@ -151,6 +151,12 @@ Zsub(Expr *x, Expr *y)
 	return Zbinop(Esub, x, y);
 }
 
+Expr*
+Znot(Expr *e)
+{
+	return Z1(Eunot, e);
+}
+
 /* arguments in usual order */
 Expr*
 Zcall(Expr *fn, unsigned narg, ...)
@@ -287,6 +293,18 @@ Zkon(Val v)
 		fatal("bug");
 	e->xp = v;
 	return e;
+}
+
+Expr*
+Zlabel(char *l)
+{
+	return Z2(Elabel, doid(l), Z0(Enop));
+}
+
+Expr*
+Zgoto(char *l)
+{
+	return Z1(Egoto, doid(l));
 }
 
 void

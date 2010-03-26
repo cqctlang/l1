@@ -832,6 +832,9 @@ int		docompileg(U *ctx, Expr *e);
 /* compilel.c */
 int		docompilel(U *ctx, Expr *e);
 
+/* compilei.c */
+int		docompilei(U *ctx, Expr *e);
+
 /* compile1.c */
 int		docompile1(U *ctx, Expr *e);
 
@@ -1035,11 +1038,14 @@ Expr*		Zids2strs(Expr *l);
 Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
 Expr*		Zint(Imm val);
+Expr*		Zgoto(char *l);
 Expr*		Zkon(Val v);
+Expr*		Zlabel(char *l);
 Expr*		Zlambda(Expr *args, Expr *body);
 Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
 Expr*		Zlocals(unsigned n, ...);
 Expr*		Znil(void);
+Expr*		Znot(Expr *e);
 Expr*		Zref(Expr *dom, Expr *type, Expr *val);
 Expr*		Zret(Expr *e);
 Expr*		Zset(Expr *l, Expr *r);

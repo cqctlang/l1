@@ -35,6 +35,7 @@ L1C =\
 	compile0.c\
 	compileg.c\
 	compilel.c\
+	compilei.c\
 	compile1.c\
 	compile2.c\
 	compilev.c\

@@ -1325,6 +1325,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}
 		break;
 	case Ewhile:
+		fatal("bug");
 		if(ctl->ckind != Clabel)
 			fatal("branch on statement");
 		L = ctl;
