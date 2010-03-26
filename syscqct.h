@@ -826,6 +826,9 @@ int		docompilea(U *ctx, Expr *e);
 /* compile0.c */
 int		docompile0(U *ctx, Expr *e);
 
+/* compileg.c */
+int		docompileg(U *ctx, Expr *e);
+
 /* compile1.c */
 int		docompile1(U *ctx, Expr *e);
 

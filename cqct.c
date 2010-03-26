@@ -94,6 +94,14 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		phase[ntv] = "0";
 		tv[ntv++] = usec();
 	}
+	if(docompileg(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(cqctflags['T']){
+		phase[ntv] = "g";
+		tv[ntv++] = usec();
+	}
 	if(docompile1(&ctx, e) != 0)
 		return 0;
 	if(cqctflags['p']){

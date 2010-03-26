@@ -1,2 +1,4 @@
 @define no longer implicitly binds into the top-level.
 @const no longer exists
+the functions defined by @record are bound to the innermost scope,
+  unless there are already bindings

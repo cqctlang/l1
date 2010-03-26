@@ -6,8 +6,6 @@ static Expr*
 globals(Expr *e, Env *env)
 {
 	Expr *p;
-	char *id, *is;
-	unsigned len;
 
 	if(e == 0)
 		return e;
@@ -81,12 +79,7 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 		return;
 
 	switch(e->kind){
-	case Epreinc:
-	case Epostinc:
-	case Epredec:
-	case Epostdec:
 	case Eg:
-	case Egop:
 		if(e->e1->kind != Eid)
 			fatal("bug");
 		id = e->e1->id;
@@ -103,8 +96,7 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 				/* create top-level binding */
 				envgetbind(top, id);
 		}
-		if(e->kind == Eg || e->kind == Egop)
-			topresolve(ctx, e->e2, top, lex, inner);
+		topresolve(ctx, e->e2, top, lex, inner);
 		break;
 	case Elambda:
 		rib = mkxenv(lex);

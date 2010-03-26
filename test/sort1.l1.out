@@ -1,6 +1,6 @@
 entry: var params, 2 locals, 0 temps
-issorted: 1 params, 2 locals, 1 temps
-printit: 1 params, 2 locals, 0 temps
+issorted: 1 params, 3 locals, 1 temps
+printit: 1 params, 3 locals, 0 temps
 cmp: 2 params, 0 locals, 0 temps
 tst: 1 params, 2 locals, 0 temps
 1 { 1 2 3 }

@@ -488,11 +488,6 @@ pass0_5(Expr *e, Xenv *lex)
 		freexenv(rib);
 		break;
 	case Eg:
-	case Egop:
-	case Epreinc:
-	case Epredec:
-	case Epostinc:
-	case Epostdec:
 		/* Box all variables that are assigned */
 		v = xenvlook(lex, e->e1->id);
 		if(v)

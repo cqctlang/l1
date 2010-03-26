@@ -1024,64 +1024,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}else
 			cg(e->e2, code, p, &dst, ctl, prv, nxt, tmp);
 		break;
-	case Egop:
-		if(e->e1->kind != Eid)
-			fatal("bug");
-		varloc(&dst, e->e1->xp, 1);
-		randloc(&r1, &dst);
-		L0 = genlabel(code, 0);
-		cg(e->e2, code, p, AC, L0, prv, L0, tmp);
-		emitlabel(L0, e);
-		randloc(&r2, AC);
-		if(loc != Effect){
-			L = genlabel(code, 0);
-			cgbinop(code, p, e->op, &r1, &r2, &dst, L, L, &e->src);
-			emitlabel(L, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			i->op1 = r1;
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, nxt, &e->src);
-		}else
-			cgbinop(code, p, e->op, &r1, &r2, &dst, ctl, nxt,
-				&e->src);
-		break;
-	case Epreinc:
-	case Epredec:
-		if(e->e1->kind != Eid)
-			fatal("bug");
-		varloc(&dst, e->e1->xp, 1);
-		randloc(&r1, &dst);
-		randkon(&r2, konimm(code->konst, Vint, 1));
-		if(loc != Effect){
-			L = genlabel(code, 0);
-			cgbinop(code, p, e->kind, &r1, &r2, &dst, L, L,
-				&e->src);
-			emitlabel(L, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			i->op1 = r1;
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, nxt, &e->src);
-		}else
-			cgbinop(code, p, e->kind, &r1, &r2, &dst, ctl, nxt,
-				&e->src);
-		break;
-	case Epostinc:
-	case Epostdec:
-		if(e->e1->kind != Eid)
-			fatal("bug");
-		varloc(&dst, e->e1->xp, 1);
-		randloc(&r1, &dst);
-		randkon(&r2, konimm(code->konst, Vint, 1));
-		if(loc != Effect){
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			i->op1 = r1;
-			randloc(&i->dst, loc);
-		}
-		cgbinop(code, p, e->kind, &r1, &r2, &dst, ctl, nxt, &e->src);
-		break;
 	case Euplus:
 	case Euminus:
 	case Eutwiddle:
