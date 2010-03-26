@@ -1176,9 +1176,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
-	case Econst:
-	case Econsts:
-		fatal("residual Econst");
 	case Ekon:
 		i = nextinsn(code, &e->src);
 		i->kind = Imov;
@@ -1222,81 +1219,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		emitlabel(L, e);
 		cglambda(L, code, e);
 
-		break;
-	case Eland:
-		if(loc == Effect){
-			L = genlabel(code, 0);
-			if(ctl->ckind == Clabelpair)
-				lpair = genlabelpair(code, L, ctl->l2);
-			else
-				lpair = genlabelpair(code, L, ctl);
-			cg(e->e1, code, p, AC, lpair, prv, L, tmp);
-			emitlabel(L, e->e2);
-			if(ctl->ckind == Clabelpair)
-				cg(e->e2, code, p, AC, ctl, L, nxt, tmp);
-			else
-				cg(e->e2, code, p, Effect, ctl, L, nxt, tmp);
-		}else{
-			Lthen = genlabel(code, 0);
-			Lelse = genlabel(code, 0);
-			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
-			emitlabel(Lthen, e->e2);
-			L0 = Lthen;
-			Lthen = genlabel(code, 0);
-			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e2, code, p, AC, lpair, L0, Lthen, tmp);
-			emitlabel(Lthen, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			randkon(&i->op1, konimm(code->konst, Vint, 1));
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, Lelse, &e->src);
-			emitlabel(Lelse, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			randkon(&i->op1, konimm(code->konst, Vint, 0));
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, nxt, &e->src);
-		}
-		break;
-	case Elor:
-		if(loc == Effect){
-			L = genlabel(code, 0);
-			if(ctl->ckind == Clabelpair)
-				lpair = genlabelpair(code, ctl->l1, L);
-			else
-				lpair = genlabelpair(code, ctl, L);
-			cg(e->e1, code, p, AC, lpair, prv, L, tmp);
-			emitlabel(L, e->e2);
-			L0 = L;
-			if(ctl->ckind == Clabelpair)
-				cg(e->e2, code, p, AC, ctl, L0, nxt, tmp);
-			else
-				cg(e->e2, code, p, Effect, ctl, L0, nxt, tmp);
-		}else{
-			Lthen = genlabel(code, 0);
-			Lelse = genlabel(code, 0);
-			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e1, code, p, AC, lpair, prv, Lelse, tmp);
-			emitlabel(Lelse, e->e2);
-			L0 = Lelse;
-			Lelse = genlabel(code, 0);
-			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e2, code, p, AC, lpair, L0, Lthen, tmp);
-			emitlabel(Lthen, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			randkon(&i->op1, konimm(code->konst, Vint, 1));
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, Lelse, &e->src);
-			emitlabel(Lelse, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			randkon(&i->op1, konimm(code->konst, Vint, 0));
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, nxt, &e->src);
-		}
 		break;
 	case Eif:
 		if(e->e3){
