@@ -16,7 +16,7 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 {
 	Expr *p;
 	Expr *se;
-	char *nlb, *nlc;
+	char *nlb, *nlc, *h;
 
 	if(e == 0)
 		return 0;
@@ -44,9 +44,21 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 		e->e4 = compilei(ctx, e->e4, 0, 0);
 		return e;
 	case Edo:
-		e->e1 = compilei(ctx, e->e1, 0, 0);
-		e->e2 = compilei(ctx, e->e2, lb, lc);
-		return e;
+		h = genlabel();
+		nlb = genlabel();
+		nlc = genlabel();
+		se = Zblock(nullelist(),
+			    Zlabel(h),
+			    compilei(ctx, e->e1, nlb, nlc),
+			    Zlabel(nlc),
+			    Zif(compilei(ctx, e->e2, lb, lc), Zgoto(h)),
+			    Zlabel(nlb),
+			    Znil(),
+			    NULL);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
 	case Ewhile:
 		nlb = genlabel();
 		nlc = genlabel();

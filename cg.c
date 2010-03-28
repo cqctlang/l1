@@ -1324,33 +1324,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgctl(code, p, ctl, nxt, &e->src);
 		}
 		break;
-	case Edo:
-		if(ctl->ckind != Clabel)
-			fatal("branch on statement");
-		L = ctl;
-		if(loc != Effect)
-			L = genlabel(code, 0);
-		Lbody = prv;
-		Ltest = genlabel(code, 0);
-		lpair = genlabelpair(code, Lbody, L);
-		np = *p;
-		np.Continue = Ltest;
-		np.Break = L;
-		cg(e->e1, code, &np, Effect, Ltest, Lbody, Ltest, tmp);
-		if(code->ninsn > Lbody->insn){
-			emitlabel(Ltest, e->e2);
-			cg(e->e2, code, p, AC, lpair, Ltest, nxt, tmp);
-		}else
-			cg(e->e2, code, p, AC, lpair, Lbody, nxt, tmp);
-		if(loc != Effect){
-			emitlabel(L, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			randnil(&i->op1);
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, nxt, &e->src);
-		}
-		break;
 	case Eswitch:
 		L = ctl;
 		if(loc != Effect)
