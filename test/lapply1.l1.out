@@ -1,10 +1,10 @@
 entry: var params, 1 locals, 0 temps
 foo: var params, 1 locals, 0 temps
-L20: 0 params, 0 locals, 0 temps
-L24: 0 params, 0 locals, 0 temps
-L28: 0 params, 0 locals, 0 temps
-L36: 0 params, 0 locals, 0 temps
-L39: 0 params, 0 locals, 0 temps
+L21: 0 params, 0 locals, 0 temps
+L25: 0 params, 0 locals, 0 temps
+L29: 0 params, 0 locals, 0 temps
+L37: 0 params, 0 locals, 0 temps
+L40: 0 params, 0 locals, 0 temps
 1 2 3 
 
-<procedure L39> 
+<procedure L40> 

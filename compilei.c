@@ -56,6 +56,7 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 			    compilei(ctx, e->e2, nlb, nlc),
 			    Zgoto(nlc),
 			    Zlabel(nlb),
+			    Znil(),
 			    NULL);
 		e->e1 = 0;
 		e->e2 = 0;
