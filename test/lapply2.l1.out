@@ -1,7 +1,7 @@
 entry: var params, 2 locals, 0 temps
 foo: var params, 2 locals, 0 temps
-L18: 0 params, 1 locals, 0 temps
-L24: 0 params, 1 locals, 0 temps
-L30: 0 params, 1 locals, 0 temps
+L22: 0 params, 1 locals, 0 temps
+L28: 0 params, 1 locals, 0 temps
+L34: 0 params, 1 locals, 0 temps
 1 3 
 i: 4
