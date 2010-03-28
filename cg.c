@@ -944,7 +944,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
    unsigned tmp)
 {
 	Ctl *L0, *L, *R, *Lthen, *Lelse, *lpair;
-	Ctl *Ltest, *Lbody, *Linc;
 	Operand r1, r2;
 	Expr *q, *ep;
 	Insn *i;
@@ -1278,52 +1277,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		if(p->Continue == 0)
 			fatal("continue not within loop");
 		cgctl(code, p, p->Continue, nxt, &e->src);
-		break;
-	case Efor:
-		fatal("bug");
-		if(ctl->ckind != Clabel)
-			fatal("branch on statement");
-		L = ctl;
-		if(loc != Effect)
-			L = genlabel(code, 0);
-		Ltest = genlabel(code, 0);
-		Lbody = genlabel(code, 0);
-		Linc = genlabel(code, 0);
-		lpair = genlabelpair(code, Lbody, L);
-		np = *p;
-		np.Continue = Linc;
-		np.Break = L;
-
-		if(e->e1){
-			cg(e->e1, code, p, Effect, Ltest, prv, Ltest, tmp);
-			emitlabel(Ltest, e->e2);
-		}else
-			Ltest = prv;
-
-		if(e->e2){
-			cg(e->e2, code, p, AC, lpair, Ltest, Lbody, tmp);
-			emitlabel(Lbody, e->e4);
-		}else
-			Lbody = Ltest;
-
-		cg(e->e4, code, &np, Effect, Linc, Lbody, Linc, tmp);
-		if(code->ninsn == Lbody->insn)
-			Linc = Lbody;
-		else
-			emitlabel(Linc, e->e3);
-
-		if(e->e3)
-			cg(e->e3, code, p, Effect, Ltest, Linc, nxt, tmp);
-		else
-			cgctl(code, p, Ltest, nxt, &e->src);
-		if(loc != Effect){
-			emitlabel(L, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			randnil(&i->op1);
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, nxt, &e->src);
-		}
 		break;
 	case Eswitch:
 		L = ctl;
