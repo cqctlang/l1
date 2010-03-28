@@ -38,11 +38,28 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 		e->e2 = compilei(ctx, e->e2, 0, lc);
 		return e;
 	case Efor:
-		e->e1 = compilei(ctx, e->e1, lb, lc);
-		e->e2 = compilei(ctx, e->e2, lb, lc);
-		e->e3 = compilei(ctx, e->e3, lb, lc);
-		e->e4 = compilei(ctx, e->e4, 0, 0);
-		return e;
+		h = genlabel();
+		nlb = genlabel();
+		nlc = genlabel();
+		se = Zblock(nullelist(),
+			    e->e1 ? compilei(ctx, e->e1, lb, lc) : nullelist(),
+			    Zlabel(h),
+			    (e->e2 ? Zif(Znot(compilei(ctx, e->e2, lb, lc)),
+					 Zgoto(nlb))
+			           : nullelist()),
+			    compilei(ctx, e->e4, nlb, nlc),
+			    Zlabel(nlc),
+			    e->e3 ? compilei(ctx, e->e3, lb, lc) : nullelist(),
+			    Zgoto(h),
+			    Zlabel(nlb),
+			    Znil(),
+			    NULL);
+		e->e1 = 0;
+		e->e2 = 0;
+		e->e3 = 0;
+		e->e4 = 0;
+		freeexpr(e);
+		return se;
 	case Edo:
 		h = genlabel();
 		nlb = genlabel();

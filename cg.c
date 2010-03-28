@@ -1280,6 +1280,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, p->Continue, nxt, &e->src);
 		break;
 	case Efor:
+		fatal("bug");
 		if(ctl->ckind != Clabel)
 			fatal("branch on statement");
 		L = ctl;
