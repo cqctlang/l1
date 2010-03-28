@@ -474,34 +474,6 @@ groomc(U *ctx, Expr *e)
 			e->e3 = groomc(ctx, e->e3);
 		putsrc(e, &e->src);
 		return e;
-	case Eswitch: /* for cg */
-		/*
-		   switch(E){       { @local $tmp;
-		   case V1:     =>    switch($tmp = E){
-		      ...             case $tmp==V1:
-		   }                      ...
-                                      }
-                                    }
-		*/
-		se = Zblock(Zlocals(1, "$tmp"),
-			   newexpr(Eswitch,
-				   Zset(doid("$tmp"), groomc(ctx, e->e1)),
-				   groomc(ctx, e->e2), 0, 0),
-			   NULL);
-		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
-	case Ecase:
-		se = newexpr(Ecase,
-			     Zbinop(Eeq, doid("$tmp"), groomc(ctx, e->e1)),
-			     groomc(ctx, e->e2), 0, 0);
-		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
 	case Ecomma:
 		se = Zblock(nullelist(),
 			    groomc(ctx, e->e1),
@@ -688,6 +660,10 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 	case Ebreak:
 		if(inloop == 0 && inswitch == 0)
 			cerror(ctx, e, "break not within loop or switch");
+		break;
+	case Edefault:
+		if(inswitch == 0)
+			cerror(ctx, e, "default label not within switch");
 		break;
 	case Eelist:
 		p = e;

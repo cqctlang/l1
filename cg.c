@@ -3,20 +3,10 @@
 #include "syscqct.h"
 
 typedef
-struct Cases {
-	unsigned n, max;
-	Expr **cmp;
-	Ctl **ctl;
-	Ctl *dflt;
-	Expr *dflte;
-} Cases;
-
-typedef
 struct CGEnv {
 	Ctl *Return;
 	Ctl *Break;
 	Ctl *Continue;
-	Cases *cases;
 	HT *labels;
 } CGEnv;
 
@@ -565,66 +555,6 @@ printcode(Code *code)
 }
 
 static void
-recswitchctl(Expr *e, Code *code, Cases *cs)
-{
-	if(e == 0)
-		return;
-	switch(e->kind){
-	case Elambda:
-	case Eswitch:
-		return;
-	case Ecase:
-		if(cs->n >= cs->max){
-			cs->cmp = erealloc(cs->cmp,
-					   cs->max*sizeof(Expr),
-					   2*cs->max*sizeof(Expr));
-			cs->ctl = erealloc(cs->ctl,
-					   cs->max*sizeof(Ctl*),
-					   2*cs->max*sizeof(Ctl*));
-			cs->max *= 2;
-		}
-		cs->cmp[cs->n] = e;
-		cs->ctl[cs->n] = genlabel(code, 0);
-		cs->n++;
-		recswitchctl(e->e2, code, cs);
-		break;
-	case Edefault:
-		if(cs->dflt)
-			fatal("too many default cases in switch");
-		cs->dflt = genlabel(code, 0);
-		cs->dflte = e;
-		recswitchctl(e->e1, code, cs);
-		break;
-	default:
-		recswitchctl(e->e1, code, cs);
-		recswitchctl(e->e2, code, cs);
-		recswitchctl(e->e3, code, cs);
-		recswitchctl(e->e4, code, cs);
-		break;
-	}
-}
-
-static Cases*
-switchctl(Expr *e, Code *code)
-{
-	Cases *cs;
-	cs = emalloc(sizeof(Cases));
-	cs->max = 128;
-	cs->cmp = emalloc(cs->max*sizeof(Expr*));
-	cs->ctl = emalloc(cs->max*sizeof(Ctl*));
-	recswitchctl(e, code, cs);
-	return cs;
-}
-
-static void
-freeswitchctl(Cases *cs)
-{
-	efree(cs->cmp);
-	efree(cs->ctl);
-	efree(cs);
-}
-
-static void
 reclabels(Expr *e, Code *code, HT *ls)
 {
 	char *id;
@@ -953,8 +883,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	Boxset *bxst;
 	Location dst;
 	int m;
-	CGEnv np;
-	unsigned genl;
 	Src *src;
 
 	switch(e->kind){
@@ -970,26 +898,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				cg(ep->e1, code, p, loc, ctl, prv, nxt, tmp);
 				break;
 			}
-			L = 0;
-			genl = 0;
-			if(p->cases){
-				q = nextstmt(ep->e2);
-				if(p->cases->dflte == q)
-					L = p->cases->dflt;
-				else
-					for(m = 0; m < p->cases->n; m++)
-						if(p->cases->cmp[m] == q){
-							L = p->cases->ctl[m];
-							break;
-						}
-			}
-			if(L == 0){
-				L = genlabel(code, 0);
-				genl = 1;
-			}
+			L = genlabel(code, 0);
 			cg(ep->e1, code, p, Effect, L, prv, L, tmp);
-			if(genl)
-				emitlabel(L, ep->e2);
+			emitlabel(L, ep->e2);
 			prv = L;
 			ep = ep->e2;
 		}
@@ -1277,82 +1188,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		if(p->Continue == 0)
 			fatal("continue not within loop");
 		cgctl(code, p, p->Continue, nxt, &e->src);
-		break;
-	case Eswitch:
-		L = ctl;
-		if(loc != Effect)
-			L = genlabel(code, 0);
-		np = *p;
-		np.Break = L;
-		np.cases = switchctl(e->e2, code);
-
-		/* operand expression (expect form $tmp = e) */
-		L0 = genlabel(code, 0);
-		cg(e->e1, code, &np, Effect, L0, prv, L0, tmp);
-		emitlabel(L0, e->e2);
-
-		/* bit of a hack: guarantee that locals in the switch
-		   block are initialized, replicating the Eblock prologue */
-		if(e->e2->kind == Eblock){
-			b = (Block*)e->e2->xp;
-			for(m = 0; m < b->nloc; m++)
-				if(b->loc[m].box){
-					i = nextinsn(code, &e->e2->src);
-					i->kind = Ibox0;
-					randvarloc(&i->op1, &b->loc[m], 0);
-				}
-		}
-
-		/* case comparisons (expect form $tmp == v) */
-		for(m = 0; m < np.cases->n; m++){
-			Lthen = np.cases->ctl[m];
-			Lelse = genlabel(code, 0);
-			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(np.cases->cmp[m]->e1, code, &np, AC,
-			   lpair, L0, Lelse, tmp);
-			emitlabel(Lelse, e->e2);
-			L0 = Lelse;
-		}
-		if(np.cases->dflt)
-			cgjmp(code, &np, np.cases->dflt, np.cases->ctl[0],
-			      &e->src);
-		else
-			cgjmp(code, &np, L, np.cases->ctl[0], &e->src);
-		cg(e->e2, code, &np, Effect, L, np.cases->ctl[0], nxt, tmp);
-		freeswitchctl(np.cases);
-		np.cases = 0;
-		if(loc != Effect){
-			emitlabel(L, e);
-			i = nextinsn(code, &e->src);
-			i->kind = Imov;
-			randnil(&i->op1);
-			randloc(&i->dst, loc);
-			cgctl(code, p, ctl, nxt, &e->src);
-		}
-		break;
-	case Ecase:
-		if(p->cases == 0)
-			fatal("case label with no switch");
-		for(m = 0; m < p->cases->n; m++)
-			if(p->cases->cmp[m] == e){
-				emitlabel(p->cases->ctl[m], e);
-				cg(e->e2, code, p, Effect, ctl,
-				   p->cases->ctl[m],
-				   nxt, tmp);
-				break;
-			}
-		cgctl(code, p, ctl, nxt, &e->src);
-		break;
-	case Edefault:
-		if(p->cases == 0)
-			fatal("default label with no switch");
-		if(p->cases->dflt){
-			emitlabel(p->cases->dflt, e);
-			cg(e->e1, code, p, Effect, ctl,
-			   p->cases->dflt,
-			   nxt, tmp);
-		}
-		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Egoto:
 		bxst = e->xp;

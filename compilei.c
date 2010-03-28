@@ -2,6 +2,21 @@
 #include "util.h"
 #include "syscqct.h"
 
+typedef
+struct Case
+{
+	char *l;
+	Expr *e;
+} Case;
+
+typedef
+struct Cases
+{
+	u32 nc, max;
+	char *dflt;
+	Case *cases;
+} Cases;
+
 static char*
 genlabel()
 {
@@ -11,8 +26,159 @@ genlabel()
 	return xstrdup(buf);
 }
 
+static char*
+addcase(Expr *e, Cases *cs)
+{
+	char *rv;
+	if(cs->nc >= cs->max){
+		cs->cases = erealloc(cs->cases,
+				     cs->max*sizeof(Case),
+				     2*cs->max*sizeof(Case));
+		cs->max *= 2;
+	}
+	cs->cases[cs->nc].l = genlabel();
+	cs->cases[cs->nc].e = e;
+	rv = cs->cases[cs->nc].l;
+	cs->nc++;
+	return rv;
+}
+
+static Cases*
+mkcases()
+{
+	Cases *cs;
+	cs = emalloc(sizeof(Cases));
+	cs->max = 128;
+	cs->cases = emalloc(cs->max*sizeof(Case));
+	return cs;
+}
+
+static void
+freecases(Cases *cs)
+{
+	u32 i;
+	for(i = 0; i < cs->nc; i++)
+		efree(cs->cases[i].l);
+	efree(cs->dflt);
+	efree(cs->cases);
+	efree(cs);
+}
+
 static Expr*
-compilei(U *ctx, Expr* e, char *lb, char *lc)
+cases(U *ctx, Expr* e, Cases *cs)
+{
+	Expr *p;
+	Expr *se;
+	char *l;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Eswitch:
+		e->e1 = cases(ctx, e->e1, cs);
+		e->xp = mkcases();
+		e->e2 = cases(ctx, e->e2, e->xp);
+		return e;
+	case Ecase:
+		l = addcase(cases(ctx, e->e1, cs), cs);
+		se = Zblock(nullelist(),
+			    Zlabel(l),
+			    cases(ctx, e->e2, cs),
+			    NULL);
+		putsrc(se, &e->src);
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Edefault:
+		cs->dflt = genlabel();
+		se = Zblock(nullelist(),
+			    Zlabel(cs->dflt),
+			    cases(ctx, e->e1, cs),
+			    NULL);
+		putsrc(se, &e->src);
+		e->e1 = 0;
+		freeexpr(e);
+		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = cases(ctx, p->e1, cs);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = cases(ctx, e->e1, cs);
+		e->e2 = cases(ctx, e->e2, cs);
+		e->e3 = cases(ctx, e->e3, cs);
+		e->e4 = cases(ctx, e->e4, cs);
+		return e;
+	}
+}
+
+/* assume all break statments are for switch */
+static Expr*
+swtch(U *ctx, Expr *e, char *lb)
+{
+	Expr *p;
+	Expr *se;
+	Cases *cs;
+	u32 i;
+	char *nlb;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Ebreak:
+		if(!lb)
+			fatal("bug");
+		se = Zgoto(lb);
+		putsrc(se, &e->src);
+		freeexpr(e);
+		return se;
+	case Eswitch:
+		cs = e->xp;
+		nlb = genlabel();
+		se = nullelist();
+		for(i = 0; i < cs->nc; i++)
+			se = Zcons(Zif(Zbinop(Eeq,
+					      doid("$t"),
+					      swtch(ctx, cs->cases[i].e, lb)),
+				       Zgoto(cs->cases[i].l)),
+				   se);
+		se = Zblock(Zlocals(1, "$t"),
+			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
+			    invert(se),
+			    cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb),
+			    swtch(ctx, e->e2, nlb),
+			    Zlabel(nlb),
+			    NULL);
+		efree(nlb);
+		freecases(cs);
+		putsrc(se, &e->src);
+		e->xp = 0;
+		e->e1 = 0;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = swtch(ctx, p->e1, lb);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = swtch(ctx, e->e1, lb);
+		e->e2 = swtch(ctx, e->e2, lb);
+		e->e3 = swtch(ctx, e->e3, lb);
+		e->e4 = swtch(ctx, e->e4, lb);
+		return e;
+	}
+}
+
+static Expr*
+loops(U *ctx, Expr* e, char *lb, char *lc)
 {
 	Expr *p;
 	Expr *se;
@@ -25,35 +191,41 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 		if(!lb)
 			return e;
 		se = Zgoto(lb);
+		putsrc(se, &e->src);
 		freeexpr(e);
 		return se;
 	case Econtinue:
 		if(!lc)
 			return e;
 		se = Zgoto(lc);
+		putsrc(se, &e->src);
 		freeexpr(e);
 		return se;
 	case Eswitch:
-		e->e1 = compilei(ctx, e->e1, lb, lc);
-		e->e2 = compilei(ctx, e->e2, 0, lc);
+		e->e1 = loops(ctx, e->e1, lb, lc);
+		e->e2 = loops(ctx, e->e2, 0, lc);
 		return e;
 	case Efor:
 		h = genlabel();
 		nlb = genlabel();
 		nlc = genlabel();
 		se = Zblock(nullelist(),
-			    e->e1 ? compilei(ctx, e->e1, lb, lc) : nullelist(),
+			    e->e1 ? loops(ctx, e->e1, lb, lc) : nullelist(),
 			    Zlabel(h),
-			    (e->e2 ? Zif(Znot(compilei(ctx, e->e2, lb, lc)),
+			    (e->e2 ? Zif(Znot(loops(ctx, e->e2, lb, lc)),
 					 Zgoto(nlb))
 			           : nullelist()),
-			    compilei(ctx, e->e4, nlb, nlc),
+			    loops(ctx, e->e4, nlb, nlc),
 			    Zlabel(nlc),
-			    e->e3 ? compilei(ctx, e->e3, lb, lc) : nullelist(),
+			    e->e3 ? loops(ctx, e->e3, lb, lc) : nullelist(),
 			    Zgoto(h),
 			    Zlabel(nlb),
 			    Znil(),
 			    NULL);
+		efree(h);
+		efree(nlb);
+		efree(nlc);
+		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
@@ -66,12 +238,16 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 		nlc = genlabel();
 		se = Zblock(nullelist(),
 			    Zlabel(h),
-			    compilei(ctx, e->e1, nlb, nlc),
+			    loops(ctx, e->e1, nlb, nlc),
 			    Zlabel(nlc),
-			    Zif(compilei(ctx, e->e2, lb, lc), Zgoto(h)),
+			    Zif(loops(ctx, e->e2, lb, lc), Zgoto(h)),
 			    Zlabel(nlb),
 			    Znil(),
 			    NULL);
+		efree(h);
+		efree(nlb);
+		efree(nlc);
+		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
@@ -81,12 +257,15 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 		nlc = genlabel();
 		se = Zblock(nullelist(),
 			    Zlabel(nlc),
-			    Zif(Znot(compilei(ctx, e->e1, lb, lc)), Zgoto(nlb)),
-			    compilei(ctx, e->e2, nlb, nlc),
+			    Zif(Znot(loops(ctx, e->e1, lb, lc)), Zgoto(nlb)),
+			    loops(ctx, e->e2, nlb, nlc),
 			    Zgoto(nlc),
 			    Zlabel(nlb),
 			    Znil(),
 			    NULL);
+		efree(nlb);
+		efree(nlc);
+		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
 		freeexpr(e);
@@ -94,15 +273,15 @@ compilei(U *ctx, Expr* e, char *lb, char *lc)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = compilei(ctx, p->e1, lb, lc);
+			p->e1 = loops(ctx, p->e1, lb, lc);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = compilei(ctx, e->e1, lb, lc);
-		e->e2 = compilei(ctx, e->e2, lb, lc);
-		e->e3 = compilei(ctx, e->e3, lb, lc);
-		e->e4 = compilei(ctx, e->e4, lb, lc);
+		e->e1 = loops(ctx, e->e1, lb, lc);
+		e->e2 = loops(ctx, e->e2, lb, lc);
+		e->e3 = loops(ctx, e->e3, lb, lc);
+		e->e4 = loops(ctx, e->e4, lb, lc);
 		return e;
 	}
 }
@@ -115,6 +294,8 @@ docompilei(U *ctx, Expr *e)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
 		return -1;	/* error */
-	compilei(ctx, e, 0, 0);
+	loops(ctx, e, 0, 0);
+	cases(ctx, e, 0);
+	swtch(ctx, e, 0);
 	return ctx->errors;
 }
