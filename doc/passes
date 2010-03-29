@@ -15,13 +15,14 @@ a
    groom - various expansion and canonicalization
            ?: -> if
            ,  -> sequence
-           first switch expansion
            canonicalize if with empty consequent or alternate bodies
    rval/lval  - expand C type and memory access syntax into calls
 
 g - expand ++, +=, etc, into primitive binops
 
 l - expand && and || into if
+
+i - expand loops and switch into labels+goto
 
 1 - various expansions
     - table and list initializers into mktabl and mklist calls
