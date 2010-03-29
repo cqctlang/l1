@@ -5,8 +5,6 @@
 typedef
 struct CGEnv {
 	Ctl *Return;
-	Ctl *Break;
-	Ctl *Continue;
 	HT *labels;
 } CGEnv;
 
@@ -716,9 +714,8 @@ static Expr*
 escaping(Expr *e)
 {
 	switch(e->kind){
-	case Ebreak:
-	case Econtinue:
-		return e;
+//	case Egoto:
+//		return e;
 	case Eblock:
 		return escaping(e->e2);
 	case Eelist:
@@ -753,14 +750,13 @@ escapectl(Expr *e, CGEnv *p)
 	kind = escaping(e);
 	if(kind == 0)
 		fatal("not an escaping expression");
-	else if(kind->kind == Ebreak)
-		rv = p->Break;
-	else if(kind->kind == Econtinue)
-		rv = p->Continue;
+	// FIXME: need to emit box init prologue; then enable goto in escaping
+	else if(kind->kind == Egoto)
+		rv = hget(p->labels, kind->e1->id, strlen(kind->e1->id));
 	else
 		fatal("not an escaping expression");
 	if(rv == 0)
-		fatal("escaping expression outside loop");
+		fatal("escaping expression has undefined target");
 	return rv;
 }
 
@@ -1179,16 +1175,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			}
 		}
 		break;
-	case Ebreak:
-		if(p->Break == 0)
-			fatal("break not within loop or switch");
-		cgctl(code, p, p->Break, nxt, &e->src);
-		break;
-	case Econtinue:
-		if(p->Continue == 0)
-			fatal("continue not within loop");
-		cgctl(code, p, p->Continue, nxt, &e->src);
-		break;
 	case Egoto:
 		bxst = e->xp;
 		for(m = 0; m < bxst->n; m++){
@@ -1294,8 +1280,6 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		top = name;
 
 	p.Return = genlabel(code, 0);
-	p.Break = 0;
-	p.Continue = 0;
 	p.labels = labels(e->e2, code);
 
 	cg(e->e2, code, &p, AC, p.Return, top, p.Return, l->nloc);

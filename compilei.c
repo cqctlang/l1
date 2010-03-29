@@ -152,6 +152,7 @@ swtch(U *ctx, Expr *e, char *lb)
 			    cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb),
 			    swtch(ctx, e->e2, nlb),
 			    Zlabel(nlb),
+			    Znil(),
 			    NULL);
 		efree(nlb);
 		freecases(cs);
