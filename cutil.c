@@ -228,6 +228,18 @@ Zref(Expr *dom, Expr *type, Expr *val)
 }
 
 Expr*
+Ztg(char *id, Expr *e)
+{
+	return Z2(E_tg, doid(id), e);
+}
+
+Expr*
+Ztid(char *id)
+{
+	return Z1(E_tid, doid(id));
+}
+
+Expr*
 Zlocals(unsigned n, ...)
 {
 	unsigned m;

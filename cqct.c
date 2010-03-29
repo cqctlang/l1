@@ -36,7 +36,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	U ctx;
 	Expr *e;
 	Closure *cl;
-	enum { Maxphase = 12 };
+	enum { Maxphase = 128 };
 	char *phase[Maxphase];
 	Imm tv[Maxphase];
 	unsigned i, ntv;
@@ -129,36 +129,49 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		phase[ntv] = "1";
 		tv[ntv++] = usec();
 	}
-	e = docompile2(&ctx, e, top, argsid);
-	if(e == 0)
-		return 0;
-	checkxp(e);
-	if(cqctflags['T']){
-		phase[ntv] = "2";
-		tv[ntv++] = usec();
-	}
-	e = docompilev(&ctx, e, top);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "v";
-		tv[ntv++] = usec();
-	}
-	if(cqctflags['q']){
-		xprintf("transformed source:\n");
-		printcqct(e);
-		xprintf("\n");
-	}
 
-	cl = codegen(e);
-	if(cqctflags['T']){
-		phase[ntv] = "codegen";
-		tv[ntv++] = usec();
-		for(i = 0; i < ntv-1; i++)
-			xprintf("%-40s\t%16" PRIu64 " usec\n",
-			       phase[i+1], tv[i+1]-tv[i]);
+	if(cqctflags['6']){
+		e = docompileb(&ctx, e, top, argsid);
+		if(e == 0)
+			return 0;
+		checkxp(e);
+		if(cqctflags['T']){
+			phase[ntv] = "6";
+			tv[ntv++] = usec();
+		}
+		return 0;
+	}else{
+		e = docompile2(&ctx, e, top, argsid);
+		if(e == 0)
+			return 0;
+		checkxp(e);
+		if(cqctflags['T']){
+			phase[ntv] = "2";
+			tv[ntv++] = usec();
+		}
+		e = docompilev(&ctx, e, top);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "v";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			xprintf("transformed source:\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+
+		cl = codegen(e);
+		if(cqctflags['T']){
+			phase[ntv] = "codegen";
+			tv[ntv++] = usec();
+			for(i = 0; i < ntv-1; i++)
+				xprintf("%-40s\t%16" PRIu64 " usec\n",
+					phase[i+1], tv[i+1]-tv[i]);
+		}
+		return mkvalcl(cl);
 	}
-	return mkvalcl(cl);
 }
 
 int

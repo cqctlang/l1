@@ -126,6 +126,8 @@ enum{
 	E_cval,
 	E_ref,
 	E_sizeof,
+	E_tid,
+	E_tg,
 	Emax,
 } Kind;
 
@@ -841,6 +843,9 @@ int		docompile1(U *ctx, Expr *e);
 /* compile2.c */
 Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);
 
+/* compileb.c */
+Expr*		docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid);
+
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
 void		freeconst(void *u, char *id, void *v);
@@ -1052,6 +1057,8 @@ Expr*		Zset(Expr *l, Expr *r);
 Expr*		Zsizeof(Expr *e);
 Expr*		Zstr(char *s);
 Expr*		Zsub(Expr *x, Expr *y);
+Expr*		Ztg(char *id, Expr *e);
+Expr*		Ztid(char *id);
 Expr*		Zuint(Imm val);
 Expr*		Zxcast(Expr *type, Expr *cval);
 

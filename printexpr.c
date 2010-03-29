@@ -119,6 +119,8 @@ char* S[] = {
 	[E_cval] =	"E_cval",
 	[E_ref] =	"E_ref",
 	[E_sizeof] =	"E_sizeof",
+	[E_tg] =	"E_tg",
+	[E_tid] =	"E_tid",
 };
 
 static void
@@ -602,8 +604,16 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		break;
 	case E_sizeof:
+	case E_tid:
 		xprintf("%s(", S[e->kind]);
 		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
+	case E_tg:
+		xprintf("%s(", S[e->kind]);
+		printcqct0(e->e1, ni);
+		xprintf(", ");
+		printcqct0(e->e2, ni);
 		xprintf(")");
 		break;
 	case E_ref:

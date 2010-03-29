@@ -46,9 +46,14 @@ cg - code generator
 
 rewrite
 
-start with output of pass 2; discard v and cg.
 
-- alpha-convert
+b - new version of 2
+    - uncover and bind new top-level variables
+    - uncover and bind implicit local variables, removing Escope
+    - covert all usage of toplevel variables to Etid, Etg forms
+
+u - alpha-convert locals
+
 
 - assignment conversion
   - for all assigned variables
