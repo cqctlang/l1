@@ -23,6 +23,8 @@ g - expand ++, +=, etc, into primitive binops
 l - expand && and || into if
 
 i - expand loops and switch into labels+goto
+  - all control flow is call to lambda/label and return
+  - some (goto,switch) control transfers may span binding sites
 
 1 - various expansions
     - table and list initializers into mktabl and mklist calls
@@ -38,20 +40,17 @@ v - box analysis
     non-local frame initialize (goto plan)
 
 cg - code generator
-
+    - patch control transfers that span binding sites
 
 ---
-
 
 rewrite
 
 start with output of pass 2; discard v and cg.
 
-- (maybe) expand loop and switch to intra-lambda labels+goto
-  - all control flow is call to lambda/label and return
-  - but some control transfers span binding sites
-- alpha-convert (uniquify variable names)
-- expose assignment
+- alpha-convert
+
+- assignment conversion
   - for all assigned variables
      create box at binding site
      replace access and set with explicit box access
