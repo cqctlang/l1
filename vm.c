@@ -9432,7 +9432,7 @@ l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
 	str = valstrorcval(vm, "strref", argv, 0);
 	if(cv->val >= str->len)
 		vmerr(vm, "strref out of bounds");
-	*rv = mkvallitcval(Vuchar, str->s[cv->val]);
+	*rv = mkvallitcval(Vuchar, (u8)str->s[cv->val]);
 }
 
 static char*
