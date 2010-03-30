@@ -362,14 +362,15 @@ Zgoto(char *l)
 	return e;
 }
 
-// FIXME: fix interface: pass string, not Eid
+// FIXME: fix interface: pass string, not Eid; rationalize with Zlabel
 Expr*
 Zlabelsrc(Src *src, Expr *id, Expr *s)
 {
 	Expr *e;
-	e = Zlabel(id->id);
-	freeexpr(id);
+	e = Z1(Elabel, s);
+	e->id = xstrdup(id->id);
 	putsrc(e, src);
+	freeexpr(id);
 	return e;
 }
 
