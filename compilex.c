@@ -68,17 +68,6 @@ visempty(Expr *a)
 	return a->kind == Enull;
 }
 
-static void
-dump(char *pre, Expr *p)
-{
-	xprintf("%s:", pre);
-	while(p->kind == Eelist){
-		xprintf(" %s", p->e1->id);
-		p = p->e2;
-	}
-	printf("\n");
-}
-
 static Expr*
 uncover(U *ctx, Expr *e)
 {
@@ -92,9 +81,6 @@ uncover(U *ctx, Expr *e)
 	case Eblock:
 		vs = uncover(ctx, e->e2);
 		e->xp = vintersect(vs, e->e1);
-		dump("VS", vs);
-		dump("E1", e->e1);
-		dump("XP", e->xp);
 		r = vdiff(vs, e->e1);
 		freeexpr(vs);
 		return r;
@@ -169,6 +155,8 @@ convert(U *ctx, Expr *e, Expr *vs)
 				       invert(se),
 				       convert(ctx, e->e2, nvs),
 				       NULL);
+			putsrc(e->e2, &e->src);
+			e->e2 = flatten(e->e2);
 			freeexpr(nvs);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
@@ -190,19 +178,27 @@ convert(U *ctx, Expr *e, Expr *vs)
 				       invert(se),
 				       convert(ctx, e->e2, nvs),
 				       NULL);
+			putsrc(e->e2, &e->src);
+			e->e2 = flatten(e->e2);
 			freeexpr(nvs);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
+//		freeexpr(e->e1);
+//		e->e1 = nullelist();
 		freeexpr(e->xp);
 		e->xp = 0;
 		return e;
 	case Eid:
-		if(vmember(e, vs))
-			e = Zcall(Ztid("%unbox"), 1, e);
+		if(vmember(e, vs)){
+			se = Zcall(Ztid("%unbox"), 1, e);
+			putsrc(se, &e->src);
+			return se;
+		}
 		return e;
 	case Eg:
-		e = Zcall(Ztid("%setbox"), 2, e->e1, convert(ctx, e->e2, vs));
-		return e;
+		se = Zcall(Ztid("%setbox"), 2, e->e1, convert(ctx, e->e2, vs));
+		putsrc(se, &e->src);
+		return se;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
