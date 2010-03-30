@@ -106,7 +106,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 				cwarnln(ctx,
 					e, "assignment to unbound variable: %s",
 					id);
-			newlocal(scope, id);
+			newlocal(scope->e1, id);
 			bindids(slex, e->e1, e);
 			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
 			return e;
@@ -128,12 +128,13 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		freexenv(rib);
 		return e;
 	case Escope:
-		return resolve(ctx, e->e1, top, lex, e->e1, slex);
+		return resolve(ctx, e->e1, top, lex, e, slex);
 	case Eblock:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
 		// slex always points to rib of innermost Escope's block
-		if(scope->e1 == e)
+		// FIXME: why might scope be 0? (ctlmux.cqct)
+		if(scope && scope->e1 == e)
 			slex = rib;
 		e->e2 = resolve(ctx, e->e2, top, rib, scope, slex);
 		freexenv(rib);

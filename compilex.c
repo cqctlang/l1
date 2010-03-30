@@ -71,7 +71,7 @@ visempty(Expr *a)
 static Expr*
 uncover(U *ctx, Expr *e)
 {
-	Expr *vs, *r, *p;
+	Expr *vs, *r, *s, *p;
 
 	if(e == 0)
 		fatal("bug");
@@ -85,14 +85,21 @@ uncover(U *ctx, Expr *e)
 		freeexpr(vs);
 		return r;
 	case Eg:
-		return Zcons(copyexpr(e->e1), nullelist());
+		r = uncover(ctx, e->e2);
+		s = Zcons(copyexpr(e->e1), nullelist());
+		vs = vunion(r, s);
+		freeexpr(r);
+		freeexpr(s);
+		return vs;
 	case Eelist:
 		p = e;
 		vs = nullelist();
 		while(p->kind == Eelist){
 			r = uncover(ctx, p->e1);
-			vs = vunion(vs, r);
+			s = vs;
+			vs = vunion(r, s);
 			freeexpr(r);
+			freeexpr(s);
 			p = p->e2;
 		}
 		return vs;
