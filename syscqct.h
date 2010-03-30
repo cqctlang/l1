@@ -772,8 +772,6 @@ Expr*		copyexpr(Expr *e);
 Lits*		copylits(Lits *lits);
 Expr*		doconst(U *ctx, char*, unsigned long len);
 Expr*		doconstssrc(Src*, char*, unsigned long len);
-Expr*		doid(char*);
-Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
@@ -845,6 +843,9 @@ Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);
 
 /* compileb.c */
 Expr*		docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid);
+
+/* compileu.c */
+Expr*		docompileu(U *ctx, Expr *e);
 
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
@@ -1030,6 +1031,8 @@ void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
 void		cposterror(U *ctx, Expr *e, char *fmt, ...);
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
 void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
+Expr*		doid(char*);
+Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 void		putsrc(Expr *e, Src *src);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);
@@ -1046,6 +1049,7 @@ Expr*		Zint(Imm val);
 Expr*		Zgoto(char *l);
 Expr*		Zkon(Val v);
 Expr*		Zlabel(char *l);
+Expr*		Zlabelsrc(Src *src, char *l, Expr *s);
 Expr*		Zlambda(Expr *args, Expr *body);
 Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
 Expr*		Zlocals(unsigned n, ...);

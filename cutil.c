@@ -228,15 +228,52 @@ Zref(Expr *dom, Expr *type, Expr *val)
 }
 
 Expr*
-Ztg(char *id, Expr *e)
+doid(char *s)
 {
-	return Z2(E_tg, doid(id), e);
+	Expr *e;
+	e = newexpr(Eid, 0, 0, 0, 0);
+	e->id = xstrdup(s);
+	return e;
+}
+
+Expr*
+G(char *s)
+{
+	Expr *e;
+	if(cqctflags['r'])
+		return doid(s);
+	e = newexpr(Eid, 0, 0, 0, 0);
+	e->id = emalloc(strlen(s)+2);
+	memcpy(e->id+1, s, strlen(s));
+	e->id[0] = '%';
+	return e;
+}
+
+Expr*
+doidnsrc(Src *src, char *s, unsigned long len)
+{
+	Expr *e;
+	e = newexprsrc(src, Eid, 0, 0, 0, 0);
+	e->id = xstrndup(s, len);
+	return e;
+}
+
+Expr*
+Ztg(char *id, Expr *v)
+{
+	Expr *e;
+	e = Z1(E_tg, v);
+	e->id = xstrdup(id);
+	return e;
 }
 
 Expr*
 Ztid(char *id)
 {
-	return Z1(E_tid, doid(id));
+	Expr *e;
+	e = Z0(E_tid);
+	e->id = xstrdup(id);
+	return e;
 }
 
 Expr*
@@ -310,7 +347,20 @@ Zkon(Val v)
 Expr*
 Zlabel(char *l)
 {
-	return Z2(Elabel, doid(l), Z0(Enop));
+	Expr *e;
+	e = Z1(Elabel, Z0(Enop));
+	e->id = xstrdup(l);
+	return e;
+}
+
+Expr*
+Zlabelsrc(Src *src, char *l, Expr *s)
+{
+	Expr *e;
+	e = Z1(Elabel, s);
+	e->id = xstrdup(l);
+	putsrc(e, src);
+	return e;
 }
 
 Expr*

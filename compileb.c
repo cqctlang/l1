@@ -124,7 +124,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 	case Elambda:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		e = resolve(ctx, e->e2, top, rib, scope, slex);
+		e->e2 = resolve(ctx, e->e2, top, rib, scope, slex);
 		freexenv(rib);
 		return e;
 	case Escope:
@@ -135,7 +135,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		// slex always points to rib of innermost Escope's block
 		if(scope->e1 == e)
 			slex = rib;
-		e = resolve(ctx, e->e2, top, rib, scope, slex);
+		e->e2 = resolve(ctx, e->e2, top, rib, scope, slex);
 		freexenv(rib);
 		return e;
 	case Eelist:
@@ -191,7 +191,7 @@ docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
-	
+
 	e = globals(ctx, e, top->env);
 	e = resolve(ctx, e, top->env, 0, 0, 0);
 	e = rmscope(ctx, e);
@@ -203,8 +203,9 @@ docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 	 * top-level source line info in errors.
 	 */
 	s = &e->src;
+	envgetbind(top->env, "$$");
 	e = Zlambda(argsid ? doid(argsid) : nullelist(),
-		     Zret(Zset(doid("$$"), Zblock(nullelist(), e, NULL))));
+		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
 	putsrc(e, s);
 	return e;
 }

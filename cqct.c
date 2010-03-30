@@ -131,13 +131,32 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	}
 
 	if(cqctflags['6']){
+		if(cqctflags['q']){
+			printcqct(e);
+			xprintf("\n");
+		}
 		e = docompileb(&ctx, e, top, argsid);
 		if(e == 0)
 			return 0;
 		checkxp(e);
 		if(cqctflags['T']){
-			phase[ntv] = "6";
+			phase[ntv] = "b";
 			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			printcqct(e);
+			xprintf("\n");
+		}
+		e = docompileu(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "u";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			printcqct(e);
+			xprintf("\n");
 		}
 		return 0;
 	}else{

@@ -348,6 +348,13 @@ printcqct0(Expr *e, unsigned ni)
 	case Eid:
 		xprintf("%s", e->id);
 		break;
+	case E_tid:
+		xprintf("#%s", e->id);
+		break;
+	case E_tg:
+		xprintf("#%s = ", e->id);
+		printcqct0(e->e1, ni);
+		break;
 	case Eellipsis:
 		xprintf("...");
 		break;
@@ -604,16 +611,8 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		break;
 	case E_sizeof:
-	case E_tid:
 		xprintf("%s(", S[e->kind]);
 		printcqct0(e->e1, ni);
-		xprintf(")");
-		break;
-	case E_tg:
-		xprintf("%s(", S[e->kind]);
-		printcqct0(e->e1, ni);
-		xprintf(", ");
-		printcqct0(e->e2, ni);
 		xprintf(")");
 		break;
 	case E_ref:

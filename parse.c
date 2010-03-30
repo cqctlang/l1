@@ -240,6 +240,9 @@ freeexpr(Expr *e)
 
 	switch(e->kind){
 	case Eid:
+	case Elabel:
+	case Etg:
+	case Etid;
 		efree(e->id);
 		break;
 	case Econsts:
@@ -413,37 +416,6 @@ ptrto(Expr *ptre, Expr *e)
 	p->e1 = e;
 
 	return ptre;
-}
-
-Expr*
-doid(char *s)
-{
-	Expr *e;
-	e = newexpr(Eid, 0, 0, 0, 0);
-	e->id = xstrdup(s);
-	return e;
-}
-
-Expr*
-G(char *s)
-{
-	Expr *e;
-	if(cqctflags['r'])
-		return doid(s);
-	e = newexpr(Eid, 0, 0, 0, 0);
-	e->id = emalloc(strlen(s)+2);
-	memcpy(e->id+1, s, strlen(s));
-	e->id[0] = '%';
-	return e;
-}
-
-Expr*
-doidnsrc(Src *src, char *s, unsigned long len)
-{
-	Expr *e;
-	e = newexprsrc(src, Eid, 0, 0, 0, 0);
-	e->id = xstrndup(s, len);
-	return e;
 }
 
 Expr*

@@ -564,9 +564,9 @@ reclabels(Expr *e, Code *code, HT *ls)
 	case Elambda:
 		break;
 	case Elabel:
-		id = e->e1->id;
+		id = e->id;
 		hput(ls, id, strlen(id), genlabel(code, id));
-		reclabels(e->e2, code, ls);
+		reclabels(e->e1, code, ls);
 		break;
 	case Eelist:
 		p = e;
@@ -1188,11 +1188,11 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgjmp(code, p, L, nxt, &e->src);
 		break;
 	case Elabel:
-		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		L = hget(p->labels, e->id, strlen(e->id));
 		if(L == 0)
 			fatal("goto bug");
 		emitlabel(L, e);
-		cg(e->e2, code, p, loc, ctl, prv, nxt, tmp);
+		cg(e->e1, code, p, loc, ctl, prv, nxt, tmp);
 		break;
 	default:
 		fatal("cg undefined for expression %d", e->kind);
