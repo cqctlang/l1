@@ -752,7 +752,7 @@ escapectl(Expr *e, CGEnv *p)
 		fatal("not an escaping expression");
 	// FIXME: need to emit box init prologue; then enable goto in escaping
 	else if(kind->kind == Egoto)
-		rv = hget(p->labels, kind->e1->id, strlen(kind->e1->id));
+		rv = hget(p->labels, kind->id, strlen(kind->id));
 	else
 		fatal("not an escaping expression");
 	if(rv == 0)
@@ -1182,7 +1182,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Ibox0;
 			randvarloc(&i->op1, bxst->var[m], 0);
 		}
-		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		L = hget(p->labels, e->id, strlen(e->id));
 		if(L == 0)
 			fatal("goto bug");
 		cgjmp(code, p, L, nxt, &e->src);

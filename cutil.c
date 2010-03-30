@@ -354,19 +354,34 @@ Zlabel(char *l)
 }
 
 Expr*
-Zlabelsrc(Src *src, char *l, Expr *s)
+Zgoto(char *l)
 {
 	Expr *e;
-	e = Z1(Elabel, s);
+	e = Z0(Egoto);
 	e->id = xstrdup(l);
+	return e;
+}
+
+// FIXME: fix interface: pass string, not Eid
+Expr*
+Zlabelsrc(Src *src, Expr *id, Expr *s)
+{
+	Expr *e;
+	e = Zlabel(id->id);
+	freeexpr(id);
 	putsrc(e, src);
 	return e;
 }
 
+// FIXME: fix interface: pass string, not Eid
 Expr*
-Zgoto(char *l)
+Zgotosrc(Src *src, Expr *id)
 {
-	return Z1(Egoto, doid(l));
+	Expr *e;
+	e = Zgoto(id->id);
+	freeexpr(id);
+	putsrc(e, src);
+	return e;
 }
 
 void

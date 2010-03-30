@@ -241,8 +241,9 @@ freeexpr(Expr *e)
 	switch(e->kind){
 	case Eid:
 	case Elabel:
-	case Etg:
-	case Etid;
+	case Egoto:
+	case E_tg:
+	case E_tid:
 		efree(e->id);
 		break;
 	case Econsts:

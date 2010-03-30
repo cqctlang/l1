@@ -511,8 +511,8 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Elabel:
-		xprintf("%s:\n", e->e1->id);
-		indent(ni); printcqct0(e->e2, ni);
+		xprintf("%s:\n", e->id);
+		indent(ni); printcqct0(e->e1, ni);
 		break;
 	case Edefault:
 		xprintf("default:\n");
@@ -601,7 +601,7 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		break;
 	case Egoto:
-		xprintf("goto %s", e->e1->id);
+		xprintf("goto %s", e->id);
 		break;
 	case Eret:
 		xprintf("return");

@@ -529,12 +529,12 @@ labels(U *ctx, Expr *e, HT *ls)
 	case Edefine:
 		return;
 	case Elabel:
-		id = e->e1->id;
+		id = e->id;
 		if(hget(ls, id, strlen(id)))
 			cposterror(ctx, e, "duplicate label: %s", id);
 		else{
-			e->e1->attr = Unusedlabel;
-			hput(ls, id, strlen(id), e->e1);
+			e->attr = Unusedlabel;
+			hput(ls, id, strlen(id), e);
 		}
 		labels(ctx, e->e2, ls);
 		break;
@@ -571,7 +571,7 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		checkgoto(ctx, e->e3);
 		break;
 	case Egoto:
-		id = e->e1->id;
+		id = e->id;
 		q = hget(ls, id, strlen(id));
 		if(q == 0)
 			cposterror(ctx, e, "undefined label: %s", id);
@@ -579,7 +579,6 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 			p = q;
 			p->attr = Usedlabel;
 		}
-		reccheckgoto(ctx, e->e2, ls);
 		break;
 	case Eelist:
 		p = e;

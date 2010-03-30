@@ -1005,7 +1005,7 @@ iteration_statement
 
 jump_statement
 	: GOTO id ';'
-	{ $$ = newexprsrc(&ctx->inp->src, Egoto, $2, 0, 0, 0); }
+	{ $$ = Zgotosrc(&ctx->inp->src, $2); }
 	| CONTINUE ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Econtinue, 0, 0, 0, 0); }
 	| BREAK ';'
