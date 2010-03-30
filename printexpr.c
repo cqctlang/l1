@@ -369,6 +369,7 @@ printcqct0(Expr *e, unsigned ni)
 			printargs(e->e1, ni, 0);
 			xprintf(")");
 		}
+		xprintf("\n");
 		printcqct0(e->e2, ni);
 		break;
 	case Ecall:
@@ -381,7 +382,6 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e1, ni);
 		break;
 	case Eblock:
-		xprintf("\n");
 		indent(ni); xprintf("{\n");
 		if(printlocals(e->e1, ni+1) && !iscompound(e->e2->e1))
 			xprintf("\n");
@@ -493,12 +493,16 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("@names ...");
 		break;
 	case Eelist:
-		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
+		if(e->e1->kind == Edefault
+		   || e->e1->kind == Ecase
+		   || e->e1->kind == Elabel)
 			indent(ni-1);
-		else
+		else if(e->e1->kind != Eblock)
 			indent(ni);
 		printcqct0(e->e1, ni);
-		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
+		if(e->e1->kind == Edefault
+		   || e->e1->kind == Ecase
+		   || e->e1->kind == Elabel)
 			xprintf("\n");
 		else
 			xprintf(";\n");
@@ -511,8 +515,12 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Elabel:
-		xprintf("%s:\n", e->id);
-		indent(ni); printcqct0(e->e1, ni);
+		xprintf("%s:", e->id);
+		if(e->e1->kind != Enop){
+			xprintf("\n");
+			indent(ni);
+			printcqct0(e->e1, ni);
+		}
 		break;
 	case Edefault:
 		xprintf("default:\n");
@@ -540,8 +548,10 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e2, ni+1);
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e2, ni);
+		}
 		break;
 	case Edo:
 		xprintf("do");
@@ -551,8 +561,10 @@ printcqct0(Expr *e, unsigned ni)
 			printcqct0(e->e1, ni+1);
 			xprintf("\n");
 			indent(ni);
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e1, ni);
+		}
 
 		xprintf("while(");
 		printcqct0(e->e2, ni);
@@ -573,8 +585,10 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e4, ni+1);
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e4, ni);
+		}
 		break;
 	case Eif:
 		xprintf("if(");
@@ -585,8 +599,10 @@ printcqct0(Expr *e, unsigned ni)
 			indent(ni+1);
 			printcqct0(e->e2, ni+1);
 			wasstmt = 1;
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e2, ni);
+		}
 		if(e->e3){
 			if(wasstmt)
 				xprintf(";");
@@ -596,8 +612,10 @@ printcqct0(Expr *e, unsigned ni)
 				xprintf("\n");
 				indent(ni+1);
 				printcqct0(e->e3, ni+1);
-			}else
+			}else{
+				xprintf("\n");
 				printcqct0(e->e3, ni);
+			}
 		}
 		break;
 	case Egoto:
