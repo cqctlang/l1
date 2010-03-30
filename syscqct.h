@@ -847,6 +847,9 @@ Expr*		docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid);
 /* compileu.c */
 Expr*		docompileu(U *ctx, Expr *e);
 
+/* compilex.c */
+Expr*		docompilex(U *ctx, Expr *e);
+
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
 void		freeconst(void *u, char *id, void *v);
@@ -1034,6 +1037,8 @@ void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 Expr*		doid(char*);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 void		putsrc(Expr *e, Src *src);
+void		resetuniqid();
+Expr*		uniqid(char *id);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);
 Expr*		Zbinop(unsigned op, Expr *x, Expr *y);

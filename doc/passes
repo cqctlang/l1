@@ -54,10 +54,9 @@ b - new version of 2
 
 u - alpha-convert locals
 
-
-- assignment conversion
-  - for all assigned variables
-     create box at binding site
+x - assignment conversion
+    for all assigned variables
+     create box at @local site
      replace access and set with explicit box access
 
 - closure conversion

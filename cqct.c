@@ -131,6 +131,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	}
 
 	if(cqctflags['6']){
+		resetuniqid();
 		if(cqctflags['q']){
 			printcqct(e);
 			xprintf("\n");
@@ -152,6 +153,17 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			return 0;
 		if(cqctflags['T']){
 			phase[ntv] = "u";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			printcqct(e);
+			xprintf("\n");
+		}
+		e = docompilex(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "x";
 			tv[ntv++] = usec();
 		}
 		if(cqctflags['q']){

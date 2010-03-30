@@ -41,6 +41,7 @@ L1C =\
 	compilev.c\
 	compileb.c\
 	compileu.c\
+	compilex.c\
 	type.c\
 	cg.c\
 	cg6.c\

@@ -2,6 +2,8 @@
 #include "util.h"
 #include "syscqct.h"
 
+static u32 cnt;
+
 void
 cwarn(U *ctx, Expr *e, char *fmt, ...)
 {
@@ -414,4 +416,26 @@ putsrc(Expr *e, Src *src)
 		putsrc(e->e4, src);
 		break;
 	}
+}
+
+void
+resetuniqid()
+{
+	cnt = 0;
+}
+
+/* FIXME:  we don't actually need to compute the name
+   unless we want to see it. */
+Expr*
+uniqid(char *id)
+{
+	unsigned len;
+	char *p;
+	len = strlen(id)+1+10+1;
+	p = emalloc(len);
+	snprint(p, len, "%s.%u", id, cnt);
+	if(cnt+1 < cnt)
+		fatal("too many identifiers");
+	cnt++;
+	return doid(p);
 }
