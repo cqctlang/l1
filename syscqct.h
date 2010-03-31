@@ -83,6 +83,7 @@ enum{
 	Elapply,
 	Eland,
 	Ele,
+	Eletrec,
 	Elist,
 	Elor,
 	Elt,
@@ -849,6 +850,9 @@ Expr*		docompileu(U *ctx, Expr *e);
 
 /* compilex.c */
 Expr*		docompilex(U *ctx, Expr *e);
+
+/* compilec.c */
+Expr*		docompilec(U *ctx, Expr *e);
 
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);

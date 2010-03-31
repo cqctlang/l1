@@ -1002,7 +1002,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			R->used = 1;
 		}
 
-		q = e->e2;
+		q = invert(e->e2); /* push arguments in reverse order */
 		narg = 0;
 		L0 = prv;
 		while(q->kind != Enull){

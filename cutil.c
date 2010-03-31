@@ -159,7 +159,6 @@ Znot(Expr *e)
 	return Z1(Eunot, e);
 }
 
-/* arguments in usual order */
 Expr*
 Zcall(Expr *fn, unsigned narg, ...)
 {
@@ -171,14 +170,13 @@ Zcall(Expr *fn, unsigned narg, ...)
 	while(narg-- > 0)
 		e = Zcons(va_arg(args, Expr*), e);
 	va_end(args);
-	return Z2(Ecall, fn, e);
+	return Z2(Ecall, fn, invert(e));
 }
 
-/* arguments in usual order */
 Expr*
 Zapply(Expr *fn, Expr *args)
 {
-	return Z2(Ecall, fn, invert(args));
+	return Z2(Ecall, fn, args);
 }
 
 Expr*

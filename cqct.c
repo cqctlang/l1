@@ -170,6 +170,17 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			printcqct(e);
 			xprintf("\n");
 		}
+		e = docompilec(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "c";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			printcqct(e);
+			xprintf("\n");
+		}
 		return 0;
 	}else{
 		e = docompile2(&ctx, e, top, argsid);
@@ -285,4 +296,3 @@ cqctfini(Toplevel *top)
 	finicg();
 	finiparse();
 }
-

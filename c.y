@@ -169,8 +169,7 @@ postfix_expression
 	| postfix_expression '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, nullelist(), 0, 0); }
 	| postfix_expression '(' argument_expression_list ')'
-	  /* don't invert -- compiler evaluates arguments in reverse order */
-	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, invert($3), 0, 0); }
 	| postfix_expression '.' id
 	{ $$ = newexprsrc(&ctx->inp->src, Edot, $1, $3, 0, 0); }
 	| postfix_expression PTR_OP id
@@ -1082,7 +1081,7 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 	}else
 		yyerror(0, "unresolved ambiguity");
 
-	/* what else could it be? */ 
+	/* what else could it be? */
 	if(other->kind != Ecall)
 		yyerror(0, "unresolved ambiguity");
 	if(other->e1->kind != Etick)

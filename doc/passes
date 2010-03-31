@@ -49,6 +49,8 @@ rewrite
 
 b - new version of 2
     - uncover and bind new top-level variables
+      - any identifier appearing at toplevel (outside of Escope)
+        is bound into toplevel, if not already
     - uncover and bind implicit local variables, removing Escope
     - covert all usage of toplevel variables to Etid, Etg forms
 
@@ -59,11 +61,11 @@ x - assignment conversion
      create box at @local site
      replace access and set with explicit box access
 
-- closure conversion
-  - collect lambdas to letrecs
-  - free var analysis
-  - convert closures
-  - lift letrecs
+c - closure conversion
+    - collect lambdas to letrecs
+    - free var analysis
+    - convert closures
+    - lift letrecs
 
 - normalize control
   - rewrite all lambdas so that non-local transfers
