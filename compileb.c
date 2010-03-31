@@ -185,7 +185,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
 		// slex always points to rib of innermost Escope's block
-		// FIXME: why might scope be 0? (ctlmux.cqct)
+		// scope is 0 where we've introduced blocks at toplevel
 		if(scope && scope->e1 == e)
 			slex = rib;
 		e->e2 = resolve(ctx, e->e2, top, rib, scope, slex);
