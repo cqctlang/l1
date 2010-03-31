@@ -35,6 +35,8 @@ globals(U *ctx, Expr *e, Env *env)
 	}
 }
 
+/* FIXME: the side-effect of binding ids into toplevel may be
+   undesirable when they occur erroneously */
 static Expr*
 toplevel(U *ctx, Expr *e, Env *env)
 {
@@ -46,8 +48,19 @@ toplevel(U *ctx, Expr *e, Env *env)
 
 	switch(e->kind){
 	case Eblock:
+		e->e2 = toplevel(ctx, e->e2, env);
+		return e;
+	case Escope:
 	case Elambda:
 		return e;
+	case Eid:
+		id = e->id;
+		if(!envbinds(env, id))
+			envgetbind(env, id);
+		se = Ztid(id);
+		putsrc(se, &e->src);
+		freeexpr(e);
+		return se;
 	case Eg:
 		id = e->e1->id;
 		if(!envbinds(env, id))
@@ -119,12 +132,21 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 	switch(e->kind){
 	case Eid:
 		id = e->id;
-		if(envbinds(top, id)){
+		if(xenvlook(lex, id))
+			return e;
+		else if(envbinds(top, id)){
 			se = Ztid(id);
 			putsrc(se, &e->src);
 			freeexpr(e);
 			return se;
-		}
+		}else if(scope){
+			/* bind to innermost lexical scope */
+			newlocal(scope->e1, id);
+			xenvbind(slex, id, e);
+			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
+			return e;
+		}else
+			fatal("bug");
 		return e;
 	case Eg:
 		id = e->e1->id;
@@ -145,7 +167,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 					e, "assignment to unbound variable: %s",
 					id);
 			newlocal(scope->e1, id);
-			bindids(slex, e->e1, e);
+			xenvbind(slex, id, e);
 			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
 			return e;
 		}else

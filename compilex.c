@@ -9,7 +9,7 @@ vmember(Expr *e, Expr *l)
 
 	p = l;
 	while(p->kind == Eelist){
-		if(!strcmp(e->id, p->e1->id))
+		if(p->e1->kind == Eid && !strcmp(e->id, p->e1->id))
 			return 1;
 		p = p->e2;
 	}
@@ -24,7 +24,7 @@ vunion(Expr *a, Expr *b)
 	rv = copyexpr(b);
 	p = a;
 	while(p->kind == Eelist){
-		if(!vmember(p->e1, rv))
+		if(p->e1->kind == Eid && !vmember(p->e1, rv))
 			rv = Zcons(copyexpr(p->e1), rv);
 		p = p->e2;
 	}
@@ -39,7 +39,7 @@ vintersect(Expr *a, Expr *b)
 	rv = nullelist();
 	p = a;
 	while(p->kind == Eelist){
-		if(vmember(p->e1, b))
+		if(p->e1->kind == Eid && vmember(p->e1, b))
 			rv = Zcons(copyexpr(p->e1), rv);
 		p = p->e2;
 	}
@@ -55,7 +55,7 @@ vdiff(Expr *a, Expr *b)
 	rv = nullelist();
 	p = a;
 	while(p->kind == Eelist){
-		if(!vmember(p->e1, b))
+		if(p->e1->kind == Eid && !vmember(p->e1, b))
 			rv = Zcons(copyexpr(p->e1), rv);
 		p = p->e2;
 	}
@@ -143,7 +143,8 @@ convert(U *ctx, Expr *e, Expr *vs)
 			se = nullelist();
 			p = e->e1;
 			while(p->kind == Eelist){
-				if(!vmember(p->e1, e->xp)){
+				if(p->e1->kind != Eid
+				   || !vmember(p->e1, e->xp)){
 					nas = Zcons(copyexpr(p->e1), nas);
 					p = p->e2;
 					continue;
