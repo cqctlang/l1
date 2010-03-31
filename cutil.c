@@ -324,6 +324,14 @@ Zblock(Expr *locs, ...)
 }
 
 Expr*
+Zscope(Expr *block)
+{
+	if(block->kind != Eblock)
+		fatal("bug");
+	return Z1(Escope, block);
+}
+
+Expr*
 Zids2strs(Expr *l)
 {
 	Expr *te;

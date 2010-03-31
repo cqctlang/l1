@@ -1063,6 +1063,7 @@ Expr*		Znil(void);
 Expr*		Znot(Expr *e);
 Expr*		Zref(Expr *dom, Expr *type, Expr *val);
 Expr*		Zret(Expr *e);
+Expr*		Zscope(Expr *block);
 Expr*		Zset(Expr *l, Expr *r);
 Expr*		Zsizeof(Expr *e);
 Expr*		Zstr(char *s);
