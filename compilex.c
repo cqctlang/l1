@@ -191,8 +191,6 @@ convert(U *ctx, Expr *e, Expr *vs)
 			freeexpr(nvs);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
-//		freeexpr(e->e1);
-//		e->e1 = nullelist();
 		freeexpr(e->xp);
 		e->xp = 0;
 		return e;
