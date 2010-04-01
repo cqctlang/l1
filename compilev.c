@@ -375,15 +375,7 @@ pass0(Expr *e)
 		p = e->e1;
 		if(p == 0)
 			fatal("bug");
-		if(p->kind == Eid){
-			fatal("retro lambda bug");
-			l->isvarg = 1;
-			l->nparam = 1;
-			v = l->param = emalloc(sizeof(Var));
-			v->id = p->id;
-			v->where = Vlocal;
-			v->idx = 0;
-		}else if(hasvarg(p)){
+		if(hasvarg(p)){
 			l->isvarg = 1;
 			l->nparam = elistlen(p)-1; /* don't count ellipsis */
 			v = l->param = emalloc(l->nparam*sizeof(Var));

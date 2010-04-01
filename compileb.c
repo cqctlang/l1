@@ -98,24 +98,11 @@ static void
 bindids(Xenv *xe, Expr *e, void *v)
 {
 	Expr *p;
-	switch(e->kind){
-	case Eid:
-		xenvbind(xe, e->id, v);
-		break;
-	case Eellipsis:
-		break;
-	case Enull:
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			if(p->e1->kind != Eellipsis)
-				xenvbind(xe, p->e1->id, v);
-			p = p->e2;
-		}
-		break;
-	default:
-		fatal("bug");
+	p = e;
+	while(p->kind == Eelist){
+		if(p->e1->kind != Eellipsis)
+			xenvbind(xe, p->e1->id, v);
+		p = p->e2;
 	}
 }
 

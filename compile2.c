@@ -47,24 +47,11 @@ static void
 bindids(Xenv *xe, Expr *e, void *v)
 {
 	Expr *p;
-	switch(e->kind){
-	case Eid:
-		xenvbind(xe, e->id, v);
-		break;
-	case Eellipsis:
-		break;
-	case Enull:
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			if(p->e1->kind != Eellipsis)
-				xenvbind(xe, p->e1->id, v);
-			p = p->e2;
-		}
-		break;
-	default:
-		fatal("bug");
+	p = e;
+	while(p->kind == Eelist){
+		if(p->e1->kind != Eellipsis)
+			xenvbind(xe, p->e1->id, v);
+		p = p->e2;
 	}
 }
 
@@ -91,7 +78,7 @@ topresolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *inner)
 						e, "assignment to unbound variable: %s",
 						id);
 				newlocal(inner, id);
-				bindids(lex, e->e1, e);
+				xenvbind(lex, e->e1->id, e);
 			}else
 				/* create top-level binding */
 				envgetbind(top, id);
