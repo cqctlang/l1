@@ -235,6 +235,22 @@ printlocals(Expr *e, unsigned ni)
 	return cnt;
 }
 
+/* E must be an Eelist of Eids or Eellipsis */
+void
+printids(Expr *e)
+{
+	Expr *p;
+	if(e->kind == Enull)
+		return;
+	printcqct0(e->e1, 0);
+	p = e->e2;
+	while(p->kind != Enull){
+		xprintf(", ");
+		printcqct0(p->e1, 0);
+		p = p->e2;
+	}
+}
+
 static void
 printargs(Expr *e, unsigned ni)
 {

@@ -64,7 +64,7 @@ uncover(U *ctx, Expr *e)
 static Expr*
 convert(U *ctx, Expr *e, Expr *vs)
 {
-	Expr *nvs, *se, *p, *nas, *t;
+	Expr *nvs, *se, *p, *nas, *nl, *t;
 
 	if(e == 0)
 		return 0;
@@ -74,6 +74,7 @@ convert(U *ctx, Expr *e, Expr *vs)
 		if(!visempty(e->xp)){
 			nvs = vunion(vs, e->xp);
 			nas = nullelist();
+			nl = nullelist();
 			se = nullelist();
 			p = e->e1;
 			while(p->kind == Eelist){
@@ -85,6 +86,7 @@ convert(U *ctx, Expr *e, Expr *vs)
 				}
 				t = uniqid("t");
 				nas = Zcons(t, nas);
+				nl = Zcons(copyexpr(p->e1), nl);
 				se = Zcons(Zset(copyexpr(p->e1),
 						Zcall(Ztid("%box"),
 						      1, copyexpr(t))),
@@ -93,12 +95,12 @@ convert(U *ctx, Expr *e, Expr *vs)
 			}
 			freeexpr(e->e1);
 			e->e1 = invert(nas);
-			e->e2 = Zblock(nullelist(),
+			e->e2 = Zblock(nl,
 				       invert(se),
 				       convert(ctx, e->e2, nvs),
 				       NULL);
 			putsrc(e->e2, &e->src);
-			e->e2 = flatten(e->e2);
+//			e->e2 = flatten(e->e2);
 			freeexpr(nvs);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
@@ -121,7 +123,7 @@ convert(U *ctx, Expr *e, Expr *vs)
 				       convert(ctx, e->e2, nvs),
 				       NULL);
 			putsrc(e->e2, &e->src);
-			e->e2 = flatten(e->e2);
+//			e->e2 = flatten(e->e2);
 			freeexpr(nvs);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);

@@ -317,6 +317,12 @@ Zlambdn(Expr *args, Expr *body, Expr *name)
 }
 
 Expr*
+Zvararg(Expr *id)
+{
+	return Zcons(id, Zcons(Z0(Eellipsis), nullelist()));
+}
+
+Expr*
 Zblock(Expr *locs, ...)
 {
 	Expr *se, *te;

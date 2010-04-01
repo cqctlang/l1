@@ -15,6 +15,24 @@ vsinsert(Expr *e, Vs *vs)
 }
 
 static void
+vsunion(Vs *from, Vs *to)
+{
+	Expr *r;
+	r = vunion(from->vs, to->vs);
+	freeexpr(to->vs);
+	to->vs = r;
+}
+
+static void
+vsdiff(Vs *a, Expr *b)
+{
+	Expr *r;
+	r = vdiff(a->vs, b);
+	freeexpr(a->vs);
+	a->vs = r;
+}
+
+static void
 vsinit(Vs *vs)
 {
 	vs->vs = nullelist();
@@ -59,38 +77,52 @@ letrec(U *ctx, Expr *e)
 }
 
 static Expr*
-free(U *ctx, Expr *e, Xenv env, Vs *fs)
+uncoverfree(U *ctx, Expr *e, Vs *fs)
 {
-	Expr *p, *r, *s;
+	Expr *p;
 	Vs nfs;
-
-	char *id;
 
 	if(e == 0)
 		return 0;
 
 	switch(e->kind){
 	case Eid:
-		if(!xenvlook(lex, id))
-			vsinsert(e, fs);
+		vsinsert(e, fs);
+		return e;
+	case Eblock:
+		vsinit(&nfs);
+		e->e2 = uncoverfree(ctx, e->e2, &nfs);
+		vsdiff(&nfs, e->e1);
+		vsunion(&nfs, fs);
+		vsfree(&nfs);
 		return e;
 	case Elambda:
 		vsinit(&nfs);
-		e->e2 = free(ctx, e, xenv, &nfs);
-		e->xp = vdiff(nfs.vs, 
-		return 0;
+		e->e2 = uncoverfree(ctx, e->e2, &nfs);
+		vsdiff(&nfs, e->e1);
+		e->xp = copyexpr(nfs.vs);
+		vsunion(&nfs, fs);
+		vsfree(&nfs);
+
+		xprintf("%s:%d @lambda(", e->src.filename, e->src.line);
+		printids(e->e1);
+		xprintf(") -> ");
+		printids(e->xp);
+		xprintf("\n");
+
+		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = free(ctx, p->e1, env, fs);
+			p->e1 = uncoverfree(ctx, p->e1, fs);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = free(ctx, e->e1, env, fs);
-		e->e2 = free(ctx, e->e2, env, fs);
-		e->e3 = free(ctx, e->e3, env, fs);
-		e->e4 = free(ctx, e->e4, env, fs);
+		e->e1 = uncoverfree(ctx, e->e1, fs);
+		e->e2 = uncoverfree(ctx, e->e2, fs);
+		e->e3 = uncoverfree(ctx, e->e3, fs);
+		e->e4 = uncoverfree(ctx, e->e4, fs);
 		return e;
 	}
 
@@ -99,8 +131,14 @@ free(U *ctx, Expr *e, Xenv env, Vs *fs)
 Expr*
 docompilec(U *ctx, Expr *e)
 {
+	Vs fs;
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
+	vsinit(&fs);
+	e = uncoverfree(ctx, e, &fs);
+	if(fs.vs->kind != Enull)
+		fatal("free bug");
+	vsfree(&fs);
 	e = letrec(ctx, e);
 	return e;
 }

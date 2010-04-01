@@ -807,8 +807,9 @@ int		yyparse(U *ctx);
 
 /* printexpr.c */
 void		printcqct(Expr*);
-void		printexpr(Expr*);
 void		printdecl(Decl *d);
+void		printexpr(Expr*);
+void		printids(Expr *e);
 
 /* bitfield.c */
 int		bitfieldgeom(BFgeom *bfg);
@@ -1083,6 +1084,7 @@ Expr*		Zsub(Expr *x, Expr *y);
 Expr*		Ztg(char *id, Expr *e);
 Expr*		Ztid(char *id);
 Expr*		Zuint(Imm val);
+Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);
 
 extern		void fns(Env*);

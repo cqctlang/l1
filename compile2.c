@@ -181,7 +181,7 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 	 * continuation; as a bonus, we get a binding
 	 * for the most recent toplevel evaluation.
 	 */
-	te = Zlambda(argsid ? doid(argsid) : nullelist(),
+	te = Zlambda(argsid ? Zvararg(doid(argsid)) : nullelist(),
 		     Zret(Zset(doid("$$"), Zblock(nullelist(), el, NULL))));
 	putsrc(te, &el->src);
 	return te;

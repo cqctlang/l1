@@ -258,7 +258,7 @@ docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 	 */
 	s = &e->src;
 	envgetbind(top->env, "$$");
-	e = Zlambda(argsid ? doid(argsid) : nullelist(),
+	e = Zlambda(argsid ? Zvararg(doid(argsid)) : nullelist(),
 		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
 	putsrc(e, s);
 	return e;

@@ -376,6 +376,7 @@ pass0(Expr *e)
 		if(p == 0)
 			fatal("bug");
 		if(p->kind == Eid){
+			fatal("retro lambda bug");
 			l->isvarg = 1;
 			l->nparam = 1;
 			v = l->param = emalloc(sizeof(Var));

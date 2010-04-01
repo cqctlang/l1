@@ -356,7 +356,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		else if(!strcmp(id, "as"))
 			te = Zcall(G("asof"), 1, doid("$o"));
 		else
-			te = Zlambdn(doid("$args"),
+			te = Zlambdn(Zvararg(doid("$args")),
 				     Zret(Zcall(G("callmethod"),
 						3,
 						doid("$o"),
