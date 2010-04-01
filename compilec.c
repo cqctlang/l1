@@ -75,6 +75,9 @@ free(U *ctx, Expr *e, Xenv env, Vs *fs)
 			vsinsert(e, fs);
 		return e;
 	case Elambda:
+		vsinit(&nfs);
+		e->e2 = free(ctx, e, xenv, &nfs);
+		e->xp = vdiff(nfs.vs, 
 		return 0;
 	case Eelist:
 		p = e;
