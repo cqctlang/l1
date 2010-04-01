@@ -180,6 +180,18 @@ Zapply(Expr *fn, Expr *args)
 }
 
 Expr*
+Zbind(Expr *id, Expr *e)
+{
+	return Zcons(id, Zcons(e, nullelist()));
+}
+
+Expr*
+Zletrec(Expr *binds, Expr *body)
+{
+	return Z2(Eletrec, binds, body);
+}
+
+Expr*
 Zconsts(char *s)
 {
 	Expr *e;
@@ -445,3 +457,79 @@ uniqid(char *id)
 	cnt++;
 	return doid(p);
 }
+
+int
+vmember(Expr *e, Expr *l)
+{
+	Expr *p;
+
+	p = l;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eid && !strcmp(e->id, p->e1->id))
+			return 1;
+		p = p->e2;
+	}
+	return 0;
+}
+
+Expr*
+vinsert(Expr *e, Expr *vs)
+{
+	if(vmember(e, vs))
+		return vs;
+	else
+		return Zcons(copyexpr(e), vs);
+}
+
+Expr*
+vunion(Expr *a, Expr *b)
+{
+	Expr *p, *rv;
+
+	rv = copyexpr(b);
+	p = a;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eid && !vmember(p->e1, rv))
+			rv = Zcons(copyexpr(p->e1), rv);
+		p = p->e2;
+	}
+	return rv;
+}
+
+Expr*
+vintersect(Expr *a, Expr *b)
+{
+	Expr *p, *rv;
+
+	rv = nullelist();
+	p = a;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eid && vmember(p->e1, b))
+			rv = Zcons(copyexpr(p->e1), rv);
+		p = p->e2;
+	}
+	return rv;
+}
+
+/* a - b */
+Expr*
+vdiff(Expr *a, Expr *b)
+{
+	Expr *p, *rv;
+
+	rv = nullelist();
+	p = a;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eid && !vmember(p->e1, b))
+			rv = Zcons(copyexpr(p->e1), rv);
+		p = p->e2;
+	}
+	return rv;
+}
+
+int
+visempty(Expr *a)
+{
+	return a->kind == Enull;
+}
+
