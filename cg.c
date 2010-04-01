@@ -674,9 +674,6 @@ cgrand(Operand *rand, Expr *e)
 	case Eid:
 		randvarloc(rand, e->xp, 1);
 		break;
-	case Econst:
-	case Econsts:
-		fatal("residual Econst");
 	case Ekon:
 		randkon(rand, e->xp);
 		break;
@@ -1002,7 +999,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			R->used = 1;
 		}
 
-		q = invert(e->e2); /* push arguments in reverse order */
+		q = e->e2 = invert(e->e2); /* push arguments in reverse order */
 		narg = 0;
 		L0 = prv;
 		while(q->kind != Enull){
