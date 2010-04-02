@@ -68,18 +68,6 @@ issimple(Expr *e)
 		|| e->kind == Enil);
 }
 
-static unsigned
-elistlen(Expr *l)
-{
-	unsigned n;
-	n = 0;
-	while(l->kind != Enull){
-		l = l->e2;
-		n++;
-	}
-	return n;
-}
-
 /* determine # of locals for lambda body E */
 static unsigned
 locpass(Expr *e)

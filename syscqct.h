@@ -1041,6 +1041,7 @@ void		cwarn(U *ctx, Expr *e, char *fmt, ...);
 void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 Expr*		doid(char*);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
+unsigned	elistlen(Expr *l);
 void		putsrc(Expr *e, Src *src);
 void		resetuniqid();
 Expr*		uniqid(char *id);

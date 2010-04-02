@@ -128,6 +128,176 @@ uncoverfree(U *ctx, Expr *e, Vs *fs)
 
 }
 
+static Expr*
+convert0(U *ctx, Expr *e)
+{
+	Expr *p, *u, *c, *cp, *se;
+	unsigned i, nf;
+
+	if(e == 0)
+		return 0;
+
+	switch(e->kind){
+	case Elambda:
+		u = uniqid("f");
+		c = uniqid("c");
+		cp = uniqid("cp");
+		nf = elistlen(e->xp);
+		e->e1 = Zcons(cp, e->e1);
+		e->e2 = convert0(ctx, e->e2);
+		se = nullelist();
+		p = e->xp;
+		for(i = 0; i < nf; i++){
+			se = Zcons(Zcall(Ztid("%clset"), 2,
+					 Zuint(i), copyexpr(p->e1)),
+				   se);
+			p = p->e2;
+		}
+		se = Zblock(Zlocals(1, c->id),
+			    Zset(copyexpr(c),
+				 Zcall(Ztid("%mkcl"),
+				       2, copyexpr(u), Zuint(nf))),
+			    invert(se),
+			    c,
+			    NULL);
+		se = Zletrec(Zcons(Zbind(u, e), nullelist()), se);
+		putsrc(se, &e->src);
+		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = convert0(ctx, p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = convert0(ctx, e->e1);
+		e->e2 = convert0(ctx, e->e2);
+		e->e3 = convert0(ctx, e->e3);
+		e->e4 = convert0(ctx, e->e4);
+		return e;
+	}
+}
+
+static int
+isprim(Expr *e)
+{
+	return e->kind == E_tid && e->id[0] == '%';
+}
+
+static Expr*
+convert1(U *ctx, Expr *e)
+{
+	Expr *p, *se, *t;
+
+	if(e == 0)
+		return 0;
+
+	switch(e->kind){
+	case Ecall:
+		e->e2 = convert1(ctx, e->e2);
+		switch(e->e1->kind){
+		case Eid:
+			e->e1 = Zcall(Ztid("%clcode"), 1, e->e1);
+			e->e2 = Zcons(copyexpr(e->e1), e->e2);
+			putsrc(e->e1, &e->src);
+			putsrc(e->e2, &e->src);
+			return e;
+		case E_tid:
+			if(isprim(e->e1))
+				return e;
+			e->e1 = Zcall(Ztid("%clcode"), 1, e->e1);
+			e->e2 = Zcons(copyexpr(e->e1), e->e2);
+			putsrc(e->e1, &e->src);
+			putsrc(e->e2, &e->src);
+			return e;
+		default:
+			t = uniqid("t");
+			se = Zblock(Zlocals(1, t->id),
+				    Zset(copyexpr(t), convert1(ctx, e->e1)),
+				    Zapply(Zcall(Ztid("%clcode"),
+						 1, copyexpr(t)),
+					   Zcons(t, e->e2)),
+				    NULL);
+			e->e1 = 0;
+			e->e2 = 0;
+			putsrc(se, &e->src);
+			freeexpr(e);
+			return se;
+		}
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = convert1(ctx, p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = convert1(ctx, e->e1);
+		e->e2 = convert1(ctx, e->e2);
+		e->e3 = convert1(ctx, e->e3);
+		e->e4 = convert1(ctx, e->e4);
+		return e;
+	}
+}
+
+static int
+findex(Expr *id, Expr *fs)
+{
+	Expr *p;
+	int i;
+	i = 0; 
+	p = fs;
+	while(p->kind != Enull){
+		if(!strcmp(id->id, p->e1->id))
+			return i;
+		i++;
+		p = p->e2;
+	}
+	return -1;
+}
+
+static Expr*
+convert2(U *ctx, Expr *e, Expr *cp, Expr *fs)
+{
+	Expr *p, *se;
+	int i;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Eid:
+		if(fs == 0)
+			/* letrec label */
+			return e;
+		i = findex(e, fs);
+		if(i < 0)
+			return e;
+		se = Zcall(Ztid("%clref"), 2, copyexpr(cp), Zuint(i));
+		putsrc(se, &e->src);
+		freeexpr(e);
+		return se;
+	case Elambda:
+		e->e2 = convert2(ctx, e->e2, e->e1->e1, e->xp);
+		freeexpr(e->xp);
+		e->xp = 0;
+		return e;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = convert2(ctx, p->e1, cp, fs);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = convert2(ctx, e->e1, cp, fs);
+		e->e2 = convert2(ctx, e->e2, cp, fs);
+		e->e3 = convert2(ctx, e->e3, cp, fs);
+		e->e4 = convert2(ctx, e->e4, cp, fs);
+		return e;
+	}
+}
+
 Expr*
 docompilec(U *ctx, Expr *e)
 {
@@ -139,6 +309,8 @@ docompilec(U *ctx, Expr *e)
 	if(fs.vs->kind != Enull)
 		fatal("free bug");
 	vsfree(&fs);
-	e = letrec(ctx, e);
+	e = convert0(ctx, e);
+	e = convert1(ctx, e);
+	e = convert2(ctx, e, 0, 0);
 	return e;
 }

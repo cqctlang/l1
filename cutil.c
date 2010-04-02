@@ -105,6 +105,18 @@ Zifelse(Expr *cond, Expr *true, Expr *false)
 	return newexpr(Eif, cond, true, false, 0);
 }
 
+unsigned
+elistlen(Expr *l)
+{
+	unsigned n;
+	n = 0;
+	while(l->kind != Enull){
+		l = l->e2;
+		n++;
+	}
+	return n;
+}
+
 Expr*
 Zcons(Expr *hd, Expr *tl)
 {
