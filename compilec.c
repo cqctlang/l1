@@ -298,10 +298,71 @@ convert2(U *ctx, Expr *e, Expr *cp, Expr *fs)
 	}
 }
 
+static Expr*
+lift(U *ctx, Expr *e, Expr **bs)
+{
+	Expr *p, *q, *se;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Eletrec:
+		e->e2 = lift(ctx, e->e2, bs);
+		p = e->e1;
+		while(p->kind != Enull){
+			q = p->e1;
+			q->e2->e1 = lift(ctx, q->e2->e1, bs);
+			p = p->e2;
+		}
+		p = e->e1;
+		while(p->kind != Enull){
+			*bs = Zcons(p->e1, *bs);
+			p->e1 = 0;
+			p = p->e2;
+		}
+		se = e->e2;
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = lift(ctx, p->e1, bs);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = lift(ctx, e->e1, bs);
+		e->e2 = lift(ctx, e->e2, bs);
+		e->e3 = lift(ctx, e->e3, bs);
+		e->e4 = lift(ctx, e->e4, bs);
+		return e;
+	}
+}
+
+static Expr*
+lift0(U *ctx, Expr *e)
+{
+	Expr *p, *q, **bs;
+
+	if(e->kind != Eletrec)
+		fatal("bug");
+	bs = &e->e1;
+	p = e->e1;
+	while(p->kind == Eelist){
+		q = p->e1;
+		q->e2->e1 = lift(ctx, q->e2->e1, bs);
+		p = p->e2;
+	}
+	e->e2 = lift(ctx, e->e2, bs);
+	return e;
+}
+
 Expr*
 docompilec(U *ctx, Expr *e)
 {
 	Vs fs;
+
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	vsinit(&fs);
@@ -312,5 +373,6 @@ docompilec(U *ctx, Expr *e)
 	e = convert0(ctx, e);
 	e = convert1(ctx, e);
 	e = convert2(ctx, e, 0, 0);
+	e = lift0(ctx, e);
 	return e;
 }
