@@ -337,7 +337,7 @@ Zvararg(Expr *id)
 Expr*
 Zblock(Expr *locs, ...)
 {
-	Expr *se, *te;
+	Expr *se, *te, *p;
 	va_list args;
 
 	te = nullelist();
@@ -346,7 +346,20 @@ Zblock(Expr *locs, ...)
 		se = va_arg(args, Expr*);
 		if(se == 0)
 			break;
-		te = Zcons(se, te);
+		if(se->kind == Enull){
+			freeexpr(se);
+			continue;
+		}else if(se->kind != Eelist)
+			te = Zcons(se, te);
+		else{
+			p = se;
+			while(p->kind == Eelist){
+				te = Zcons(p->e1, te);
+				p->e1 = 0;
+				p = p->e2;
+			}
+			freeexpr(se);
+		}
 	}
 	return newexpr(Eblock, locs, invert(te), 0, 0);
 }

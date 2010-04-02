@@ -152,6 +152,7 @@ Expr*
 docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 {
 	Expr *te;
+	Src src;
 
 	/* add @global bindings to toplevel */
 	el = globals(el, top->env);
@@ -168,8 +169,9 @@ docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid)
 	 * continuation; as a bonus, we get a binding
 	 * for the most recent toplevel evaluation.
 	 */
+	src = el->src;
 	te = Zlambda(argsid ? Zvararg(doid(argsid)) : nullelist(),
 		     Zret(Zset(doid("$$"), Zblock(nullelist(), el, NULL))));
-	putsrc(te, &el->src);
+	putsrc(te, &src);
 	return te;
 }

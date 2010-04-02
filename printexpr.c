@@ -286,7 +286,7 @@ printbinds(Expr *e, unsigned ni)
 	printbind(p, ni);
 	p = p->e2;
 	while(p->kind != Enull){
-		xprintf(", ");
+		xprintf(",\n");
 		printbind(p, ni);
 		p = p->e2;
 	}

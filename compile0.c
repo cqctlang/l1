@@ -26,12 +26,14 @@ static Expr*
 rvalblock(Expr *body, unsigned lfree)
 {
 	Expr *e, *te;
+	Src src;
 	if(lfree)
 		e = Zlocals(1, "$val");
 	else
 		e = Zlocals(4, "$val", "$dom", "$type", "$addr");
+	src = body->src;
 	te = Zblock(e, body, NULL);
-	putsrc(te, &body->src);
+	putsrc(te, &src);
 	return te;
 }
 
@@ -39,8 +41,10 @@ static Expr*
 lvalblock(Expr *body)
 {
 	Expr *te;
+	Src src;
+	src = body->src;
 	te = Zblock(Zlocals(1, "$tmp"), body, NULL);
-	putsrc(te, &body->src);
+	putsrc(te, &src);
 	return te;
 }
 
