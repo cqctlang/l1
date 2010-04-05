@@ -301,6 +301,8 @@ szexpr(Expr *e)
 }
 
 /* intentionally does not copy e->xp except Ekon */
+/* FIXME: since we're using id in many nodes,
+   check e->id rather than switch on type */
 Expr*
 copyexpr(Expr *e)
 {
@@ -315,6 +317,10 @@ copyexpr(Expr *e)
 	ne->src = e->src;
 	switch(e->kind){
 	case Eid:
+	case Elabel:
+	case Egoto:
+	case E_tid:
+	case E_tg:
 		ne->id = xstrdup(e->id);
 		break;
 	case Econsts:
