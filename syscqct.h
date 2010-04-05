@@ -855,6 +855,9 @@ Expr*		docompilex(U *ctx, Expr *e);
 /* compilec.c */
 Expr*		docompilec(U *ctx, Expr *e);
 
+/* compilef.c */
+Expr*		docompilef(U *ctx, Expr *e);
+
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
 void		freeconst(void *u, char *id, void *v);
