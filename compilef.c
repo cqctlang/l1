@@ -33,7 +33,7 @@ targets(U *ctx, Expr *e, HT *ls)
 }
 
 static Expr*
-rm(U *ctx, Expr *e, HT *ls)
+rmunused(U *ctx, Expr *e, HT *ls)
 {
 	char *id;
 	Expr *p, *se;
@@ -43,7 +43,7 @@ rm(U *ctx, Expr *e, HT *ls)
 	switch(e->kind){
 	case Elabel:
 		id = e->id;
-		e->e1 = rm(ctx, e->e1, ls);
+		e->e1 = rmunused(ctx, e->e1, ls);
 		if(hget(ls, id, strlen(id)))
 			return e;
 		se = e->e1;
@@ -53,66 +53,41 @@ rm(U *ctx, Expr *e, HT *ls)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = rm(ctx, p->e1, ls);
+			p->e1 = rmunused(ctx, p->e1, ls);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = rm(ctx, e->e1, ls);
-		e->e2 = rm(ctx, e->e2, ls);
-		e->e3 = rm(ctx, e->e3, ls);
-		e->e4 = rm(ctx, e->e4, ls);
+		e->e1 = rmunused(ctx, e->e1, ls);
+		e->e2 = rmunused(ctx, e->e2, ls);
+		e->e3 = rmunused(ctx, e->e3, ls);
+		e->e4 = rmunused(ctx, e->e4, ls);
 		return e;
 	}
 }
 
 static Expr*
-rmuseless(U *ctx, Expr *e)
+rmunused0(U *ctx, Expr *e)
 {
 	HT *ls;
 	ls = mkht();
 	targets(ctx, e, ls);
-	e = rm(ctx, e, ls);
+	e = rmunused(ctx, e, ls);
 	freeht(ls);
 	return e;
 }
 
 static Expr*
-rmgoto(U *ctx, Expr *e, Expr **bs)
+unlabel(U *ctx, Expr *e, Expr **bs, Expr *nxt, unsigned *nl)
 {
-	if(e == 0)
-		return 0;
-	switch(e->kind){
-	case Elabel:
-		id = e->id;
-		e->e1 = rm(ctx, e->e1, ls);
-		if(hget(ls, id, strlen(id)))
-			return e;
-		se = e->e1;
-		e->e1 = 0;
-		freeexpr(e);
-		return se;
-	case Egoto:
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			p->e1 = rmgoto(ctx, p->e1, ls);
-			p = p->e2;
-		}
-		return e;
-	default:
-		e->e1 = rmgoto(ctx, e->e1, ls);
-		e->e2 = rmgoto(ctx, e->e2, ls);
-		e->e3 = rmgoto(ctx, e->e3, ls);
-		e->e4 = rmgoto(ctx, e->e4, ls);
-		return e;
-	}
+	return 0;
 }
 
 static Expr*
-rmgoto0(U *ctx, Expr *e)
+unlabel0(U *ctx, Expr *e)
 {
 	Expr *p, *q, **bs;
+	unsigned nl;
 
 	if(e->kind != Eletrec)
 		fatal("bug");
@@ -120,10 +95,12 @@ rmgoto0(U *ctx, Expr *e)
 	p = e->e1;
 	while(p->kind == Eelist){
 		q = p->e1;
-		q->e2->e1 = rmgoto(ctx, q->e2->e1, bs);
+		nl = 0;
+		q->e2->e1 = unlabel(ctx, q->e2->e1, bs, 0, &nl);
 		p = p->e2;
 	}
-	e->e2 = rmgoto(ctx, e->e2, bs);
+	nl = 0;
+	e->e2 = unlabel(ctx, e->e2, bs, 0, &nl);
 	return e;
 }
 
@@ -132,7 +109,7 @@ docompilef(U *ctx, Expr *e)
 {
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
-	e = rmuseless(ctx, e);
-	e = rmgoto0(ctx, e);
+	e = rmunused0(ctx, e);
+	e = unlabel0(ctx, e);
 	return e;
 }
