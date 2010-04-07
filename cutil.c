@@ -231,6 +231,12 @@ Znil(void)
 }
 
 Expr*
+Znop(void)
+{
+	return Z0(Enop);
+}
+
+Expr*
 Zstr(char *s)
 {
 	Expr *e;
@@ -399,7 +405,7 @@ Expr*
 Zlabel(char *l)
 {
 	Expr *e;
-	e = Z1(Elabel, Z0(Enop));
+	e = Z0(Elabel);
 	e->id = xstrdup(l);
 	return e;
 }
@@ -418,8 +424,7 @@ Expr*
 Zlabelsrc(Src *src, Expr *id, Expr *s)
 {
 	Expr *e;
-	e = Z1(Elabel, s);
-	e->id = xstrdup(id->id);
+	e = Zcons(Zlabel(id->id), Zcons(s, nullelist()));
 	putsrc(e, src);
 	freeexpr(id);
 	return e;

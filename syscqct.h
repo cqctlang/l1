@@ -1077,6 +1077,7 @@ Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
 Expr*		Zletrec(Expr *binds, Expr *body);
 Expr*		Zlocals(unsigned n, ...);
 Expr*		Znil(void);
+Expr*		Znop(void);
 Expr*		Znot(Expr *e);
 Expr*		Zref(Expr *dom, Expr *type, Expr *val);
 Expr*		Zret(Expr *e);

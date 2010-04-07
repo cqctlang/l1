@@ -104,12 +104,13 @@ uncoverfree(U *ctx, Expr *e, Vs *fs)
 		vsunion(&nfs, fs);
 		vsfree(&nfs);
 
+if(0){
 		xprintf("%s:%d @lambda(", e->src.filename, e->src.line);
 		printids(e->e1);
 		xprintf(") -> ");
 		printids(e->xp);
 		xprintf("\n");
-
+}
 		return e;
 	case Eelist:
 		p = e;

@@ -548,9 +548,10 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("@names ...");
 		break;
 	case Eelist:
-		if(e->e1->kind == Edefault
-		   || e->e1->kind == Ecase
-		   || e->e1->kind == Elabel)
+		if(ni > 0 &&
+		   (e->e1->kind == Edefault
+		    || e->e1->kind == Ecase
+		    || e->e1->kind == Elabel))
 			indent(ni-1);
 		else if(e->e1->kind != Eblock)
 			indent(ni);
@@ -571,11 +572,6 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Elabel:
 		xprintf("%s:", e->id);
-		if(e->e1->kind != Enop){
-			xprintf("\n");
-			indent(ni);
-			printcqct0(e->e1, ni);
-		}
 		break;
 	case Edefault:
 		xprintf("default:\n");

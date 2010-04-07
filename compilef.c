@@ -43,11 +43,9 @@ rmunused(U *ctx, Expr *e, HT *ls)
 	switch(e->kind){
 	case Elabel:
 		id = e->id;
-		e->e1 = rmunused(ctx, e->e1, ls);
 		if(hget(ls, id, strlen(id)))
 			return e;
-		se = e->e1;
-		e->e1 = 0;
+		se = Znop();
 		freeexpr(e);
 		return se;
 	case Eelist:
@@ -78,16 +76,77 @@ rmunused0(U *ctx, Expr *e)
 }
 
 static Expr*
-unlabel(U *ctx, Expr *e, Expr **bs, Expr *nxt, unsigned *nl)
+append(Expr *e1, Expr *e2)
 {
-	return 0;
+	if(e1->kind == Eelist || e1->kind == Enull)
+		return invert(Zcons(e2, invert(e1)));
+	else
+		return Zcons(e1, Zcons(e2, nullelist()));
 }
 
 static Expr*
-unlabel0(U *ctx, Expr *e)
+delabel(U *ctx, Expr *e, Expr **bs, Expr **nl)
+{
+	Expr *se, *u;
+	Expr *xl, *cl, *al;
+
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Elabel:
+		se = Zlambda(nullelist(), Zcons(Znop(), nullelist()));
+		e->kind = Eid;
+		*bs = Zcons(Zbind(e, se), *bs);
+		*nl = se;
+		se = Zcall(copyexpr(e), 0);
+		return se;
+	case Eif:
+		xl = cl = al = 0;
+		e->e1 = delabel(ctx, e->e1, bs, &xl); /* ignore xl */
+		e->e2 = delabel(ctx, e->e2, bs, &cl);
+		e->e3 = delabel(ctx, e->e3, bs, &al);
+		if(cl == 0 && al == 0)
+			return e;
+		u = uniqid("ff");
+		se = Zlambda(nullelist(), Zcons(Znop(), nullelist()));
+		*bs = Zcons(Zbind(u, se), *bs);
+		*nl = se;
+		if(cl)
+			cl->e2 = append(cl->e2, Zcall(copyexpr(u), 0));
+		else
+			e->e2 = append(e->e2, Zcall(copyexpr(u), 0));
+		if(al)
+			al->e2 = append(al->e2, Zcall(copyexpr(u), 0));
+		else
+			e->e3 = append(e->e3, Zcall(copyexpr(u), 0));
+		return e;
+	case Eelist:
+		xl = 0;
+		*nl = 0;
+		e->e1 = delabel(ctx, e->e1, bs, &xl);
+		e->e2 = delabel(ctx, e->e2, bs, nl);
+		if(xl == 0)
+			return e;
+		xl->e2 = append(xl->e2, e->e2);
+		e->e2 = nullelist();
+		if(*nl == 0)
+			*nl = xl;
+		return e;
+	default:
+		e->e1 = delabel(ctx, e->e1, bs, nl);
+		e->e2 = delabel(ctx, e->e2, bs, nl);
+		e->e3 = delabel(ctx, e->e3, bs, nl);
+		e->e4 = delabel(ctx, e->e4, bs, nl);
+		return e;
+	}
+}
+
+static Expr*
+delabel0(U *ctx, Expr *e)
 {
 	Expr *p, *q, **bs;
-	unsigned nl;
+	Expr *nl;
 
 	if(e->kind != Eletrec)
 		fatal("bug");
@@ -96,11 +155,11 @@ unlabel0(U *ctx, Expr *e)
 	while(p->kind == Eelist){
 		q = p->e1;
 		nl = 0;
-		q->e2->e1 = unlabel(ctx, q->e2->e1, bs, 0, &nl);
+		q->e2->e1 = delabel(ctx, q->e2->e1, bs, &nl);
 		p = p->e2;
 	}
 	nl = 0;
-	e->e2 = unlabel(ctx, e->e2, bs, 0, &nl);
+	e->e2 = delabel(ctx, e->e2, bs, &nl);
 	return e;
 }
 
@@ -110,6 +169,6 @@ docompilef(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	e = rmunused0(ctx, e);
-	e = unlabel0(ctx, e);
+	e = delabel0(ctx, e);
 	return e;
 }

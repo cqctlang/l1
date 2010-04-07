@@ -133,6 +133,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	if(cqctflags['6']){
 		resetuniqid();
 		if(cqctflags['q']){
+			xprintf("*** 1 ***\n");
 			printcqct(e);
 			xprintf("\n");
 		}
@@ -145,6 +146,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			tv[ntv++] = usec();
 		}
 		if(cqctflags['q']){
+			xprintf("*** b ***\n");
 			printcqct(e);
 			xprintf("\n");
 		}
@@ -156,6 +158,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			tv[ntv++] = usec();
 		}
 		if(cqctflags['q']){
+			xprintf("*** u ***\n");
 			printcqct(e);
 			xprintf("\n");
 		}
@@ -167,6 +170,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			tv[ntv++] = usec();
 		}
 		if(cqctflags['q']){
+			xprintf("*** x ***\n");
 			printcqct(e);
 			xprintf("\n");
 		}
@@ -178,6 +182,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			tv[ntv++] = usec();
 		}
 		if(cqctflags['q']){
+			xprintf("*** c ****\n");
 			printcqct(e);
 			xprintf("\n");
 		}
@@ -189,6 +194,7 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			tv[ntv++] = usec();
 		}
 		if(cqctflags['q']){
+			xprintf("*** f ***\n");
 			printcqct(e);
 			xprintf("\n");
 		}

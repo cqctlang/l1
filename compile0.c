@@ -540,7 +540,6 @@ labels(U *ctx, Expr *e, HT *ls)
 			e->attr = Unusedlabel;
 			hput(ls, id, strlen(id), e);
 		}
-		labels(ctx, e->e1, ls);
 		break;
 	case Eelist:
 		p = e;
