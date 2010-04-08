@@ -90,7 +90,6 @@ delabel(U *ctx, Expr *e, Expr **bs, Expr **nl)
 	Expr *se, *u;
 	Expr *xl, *cl, *al;
 
-
 	if(e == 0)
 		return 0;
 	switch(e->kind){
@@ -103,7 +102,7 @@ delabel(U *ctx, Expr *e, Expr **bs, Expr **nl)
 		return se;
 	case Eif:
 		xl = cl = al = 0;
-		e->e1 = delabel(ctx, e->e1, bs, &xl); /* ignore xl */
+		e->e1 = delabel(ctx, e->e1, bs, &xl); // FIXME: consider xl
 		e->e2 = delabel(ctx, e->e2, bs, &cl);
 		e->e3 = delabel(ctx, e->e3, bs, &al);
 		if(cl == 0 && al == 0)
@@ -162,6 +161,49 @@ delabel0(U *ctx, Expr *e)
 	e->e2 = delabel(ctx, e->e2, bs, &nl);
 	return e;
 }
+
+#if 0
+static Expr*
+degoto(U *ctx, Expr *e, unsigned *wt)
+{
+	Expr *p, *se;
+	unsigned wt, c, a;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Egoto:
+		se = Zcall(doid(e->id), 0);
+		putsrc(se, &e->src);
+		freeexpr(e);
+		*wt = 1;
+		return se;
+	case Eif:
+		*wt = 0;
+		e->e1 = degoto(ctx, e->e1, wt); // FIXME: consider wt
+		c = a = 0;
+		e->e2 = degoto(ctx, e->e2, &c);
+		e->e3 = degoto(ctx, e->e3, &a);
+		
+	case Eelist:
+		*wt = 0;
+		e->e1 = degoto(ctx, e->e1, wt);
+		if(*wt){
+			freeexpr(e->e2);
+			e->e2 = nullelist();
+			return e;
+		}
+		e->e2 = degoto(ctx, e->e2, wt);
+		return e;
+	default:
+		e->e1 = degoto(ctx, e->e1, wastail);
+		e->e2 = degoto(ctx, e->e2, wastail);
+		e->e3 = degoto(ctx, e->e3, wastail);
+		e->e4 = degoto(ctx, e->e4, wastail);
+		return e;
+	}
+}
+#endif
 
 Expr*
 docompilef(U *ctx, Expr *e)
