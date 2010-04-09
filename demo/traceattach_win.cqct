@@ -13,7 +13,7 @@ ns = c32le;
 
 @define test1(addr, pid)
 {
-	@local ctl, mux, as, dom, libs, threads, tid;
+	@local ctl, mux, as, dom, libs, threads, tid, octl;
 	mux = mkctlmux_remote(addr);
 	foreach(@lambda(p){
 			@local pid;
@@ -22,6 +22,7 @@ ns = c32le;
 			printf("%5d %s\n", pid, cmd);
 		}, mux.ps());
 	ctl = mux.attach(pid);
+	octl = ctl;
 	[pid,tid] = decodeid(ctl.id);
 	printf("attached to [ %d, %d ]\n", pid, tid);
 	ctl.trace(ctlmux`Eload,
@@ -45,14 +46,24 @@ ns = c32le;
 			  [p,t] = decodeid(ctl.id);
 			  printf("%a -> exit\n", decodeid(ctl.id));
 		  });
+	ctl.xtrap(0x00400000+2*4096,
+		  @lambda(ctl){
+			  printf("trap!\n");
+		  });
 	[libs, threads] = ctl.stat();
 	printf("libs for %d:\n", pid);
 	foreach(@lambda(l){
 			printf("\t%08x\t%s\n", l.base, l.path);
 		}, libs);
 	printf("threads for %d:\n", pid);
-	foreach(@lambda(t){
+	if(1)foreach(@lambda(t){
 			printf("\t%a\n", decodeid(t.id));
+			if(t.id != ctl.id)
+				t.xtrap(0x00400000+2*4096,
+					@lambda(ctl){
+						printf("trap!\n");
+					});
+			printf("\t%a (trapped)\n", decodeid(t.id));
 		}, threads);
 	ctl.xcont();
 	mux.run();
