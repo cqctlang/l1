@@ -394,8 +394,15 @@ ctlmux = @names clp64le {
 	@local trapset, trapdel, trapreset;
 	@local this;
 
+	@define checkdead()
+	{
+		if(state == ctlmux`Dead)
+			error("ctl is dead");
+	}
+
 	@define xstop()
 	{
+		checkdead();
 		if(this.pending == nil)
 			return mux.stop(this);
 		this.pending = "stop";
@@ -404,6 +411,7 @@ ctlmux = @names clp64le {
 
 	@define xcont()
 	{
+		checkdead();
 		if(this.pending == nil)
 			return mux.cont(this);
 		this.pending = "run";
@@ -412,6 +420,7 @@ ctlmux = @names clp64le {
 
 	@define xstep()
 	{
+		checkdead();
 		if(this.pending == nil)
 			return mux.step(this);
 		this.pending = "step";
@@ -420,6 +429,7 @@ ctlmux = @names clp64le {
 
 	@define detach()
 	{
+		checkdead();
 		if(this.pending == nil)
 			mux.detach(this);
 		this.pending = "detach";
@@ -428,6 +438,7 @@ ctlmux = @names clp64le {
 
 	@define kill()
 	{
+		checkdead();
 		if(this.pending == nil)
 			mux.kill(this);
 		this.pending = "kill";
@@ -436,11 +447,13 @@ ctlmux = @names clp64le {
 
 	@define stat()
 	{
+		checkdead();
 		return mux.stat(this);
 	}
 
 	@define snap()
 	{
+		checkdead();
 		return mux.snap(this);
 	}
 
@@ -449,6 +462,7 @@ ctlmux = @names clp64le {
 
 	@define trace(event, fn)
 	{
+		checkdead();
 		callbacks[(ctlmux`Event)event] = fn;
 		if(fn == nil)
 			return mux.trace(this, event|ctlmux`Eclear);
@@ -459,6 +473,7 @@ ctlmux = @names clp64le {
 	@define trapset(addr, fn, mode)
 	{
 		@local tid, bp, kind;
+		checkdead();
 		bp = mux.settrap(this, mode, addr);
 		switch(mode){
 		case ctlmux`Mbrk:
@@ -476,16 +491,19 @@ ctlmux = @names clp64le {
 
 	@define xtrap(addr, fn)
 	{
+		checkdead();
 		return trapset(addr, fn, ctlmux`Mbrk);
 	}
 
 	@define xsnap(addr, fn)
 	{
+		checkdead();
 		return trapset(addr, fn, ctlmux`Msnap);
 	}
 
 	@define xtraps()
 	{
+		checkdead();
 		return traps.list();
 	}
 
@@ -493,6 +511,7 @@ ctlmux = @names clp64le {
 	{
 		@local trap;
 		/* FIXME: this api sucks */
+		checkdead();
 		trap = traps.lookuid(tid);
 		traps.clr(tid);
 		mux.clrtrap(this, trap.mid);
@@ -501,6 +520,7 @@ ctlmux = @names clp64le {
 
 	@define trapreset()
 	{
+		checkdead();
 		traps.reset();
 		return nil;
 	}
@@ -512,6 +532,7 @@ ctlmux = @names clp64le {
 
 	@define reg()
 	{
+		checkdead();
 		return _reg;
 	}
 
@@ -587,6 +608,7 @@ ctlmux = @names clp64le {
 			return rv;
 		}
 
+		checkdead();
 		return mkas([ "get"       : get,
 			      "put"       : put,
 			      "map"       : map,
@@ -945,6 +967,7 @@ ctlmux = @names clp64le {
 			if(fn != nil)
 				// it's dead: nothing to control with docall
 				fn(ctl);
+// ADDME		ctl.state = ctlmux`Dead;
 			tabdelete(ctls, msg->id);
 			break;
 		case ctlmux`Eexec:
@@ -1035,12 +1058,10 @@ ctlmux = @names clp64le {
 				dat = getbytes(msg+1, sz-sizeof(*msg));
 			else
 				dat = "";
-
 			if(isasync(msg)){
 				handleasync(msg, dat);
 				continue;
 			}
-
 			tag = msg->tag;
 			h = taghandler[tag];
 			tabdelete(taghandler, tag);
