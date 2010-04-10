@@ -46,6 +46,12 @@ ns = c32le;
 			  [p,t] = decodeid(ctl.id);
 			  printf("%a -> exit\n", decodeid(ctl.id));
 		  });
+	if(0)ctl.trace(ctlmux`Esignal,
+		  @lambda(ctl, sig){
+			  @local p, t, r;
+			  [p,t] = decodeid(ctl.id);
+			  printf("%a -> exception %d\n", decodeid(ctl.id), sig);
+		  });
 	ctl.xtrap(0x00400000+2*4096,
 		  @lambda(ctl){
 			  printf("trap!\n");
