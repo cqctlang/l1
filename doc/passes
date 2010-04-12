@@ -46,6 +46,7 @@ cg - code generator
 
 rewrite
 
+* introduce let form?
 
 b - new version of 2
     - uncover and bind new top-level variables
@@ -61,11 +62,21 @@ x - assignment conversion
      create box at @local site
      replace access and set with explicit box access
 
-c - closure conversion
+f0 - delabel
     - collect lambdas to letrecs
+    - move labels to new letrec labels; join control as appropriate
+
+c - closure conversion
     - free var analysis
     - convert closures
     - lift letrecs
+
+- per-lambda locals (remove blocks)
+
+- simplify expressions
+  - trivial call operands
+  - flatten set
+  - add new temporaries to locals
 
 - normalize control
   - rewrite all lambdas so that non-local transfers

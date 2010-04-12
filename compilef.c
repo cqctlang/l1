@@ -162,6 +162,126 @@ delabel0(U *ctx, Expr *e)
 	return e;
 }
 
+static int
+markescape(U *ctx, Expr *e)
+{
+	Expr *p;
+	int rv;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Egoto:
+		return 1;
+	case Eret:
+		markescape(ctx, e->e1);
+		return 1;
+	case Eif:
+		if(markescape(ctx, e->e1)
+		   || markescape(ctx, e->e2)
+		   || markescape(ctx, e->e3))
+			return 1;
+		else
+			return 0;
+	case Eelist:
+		p = e;
+		rv = 0;
+		while(p->kind == Eelist){
+			if(markescape(ctx, p->e1)){
+				p->xp = (void*)1;
+				rv = 1;
+			}
+			p = p->e2;
+		}
+		return rv;
+	default:
+		rv = 0;
+		rv |= markescape(ctx, e->e1);
+		rv |= markescape(ctx, e->e2);
+		rv |= markescape(ctx, e->e3);
+		rv |= markescape(ctx, e->e4);
+		return rv;
+	}
+}
+
+static Expr*
+tailify(U *ctx, Expr *e, Expr *nxt, Expr **bs)
+{
+	Expr *p, *q, *se;
+	Expr *u;
+
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Econst:
+		if(nxt)
+			return Zcons(e, Zcons(nxt, nullelist()));
+		else
+			return e;
+	case Eblock:
+	case Elambda:
+		e->e2 = tailify(ctx, e->e2, nxt, bs);
+		return e;
+	case Ecall:
+		e->e1 = tailify(ctx, e->e1, 0, bs);
+		p = e->e2;
+		while(p->kind == Eelist){
+			p->e1 = tailify(ctx, p->e1, 0, bs);
+			p = p->e2;
+		}
+		return e;
+	case Eelist:
+		q = invert(e);
+		p = q;
+		if(nxt && nxt->kind != Eelist)
+			nxt = Zcons(nxt, nullelist());
+		while(p->kind == Eelist){
+			if(p->xp){
+				p->xp = 0;
+				u = uniqid("ff");
+				se = Zlambda(nullelist(), nxt);
+				*bs = Zcons(Zbind(u, se), *bs);
+				nxt = tailify(ctx, p->e1,
+					      Zcall(copyexpr(u), 0), bs);
+			}else{
+				nxt = Zcons(tailify(ctx, p->e1, 0, bs), nxt);
+			}
+			p = p->e2;
+		}
+		return nxt;
+	case Eif:
+		/* FIXME: it cannot be right to ignore this form */
+	default:
+		e->e1 = tailify(ctx, e->e1, nxt, bs);
+		e->e2 = tailify(ctx, e->e2, nxt, bs);
+		e->e3 = tailify(ctx, e->e3, nxt, bs);
+		e->e4 = tailify(ctx, e->e4, nxt, bs);
+		return e;
+	}
+	return 0;
+}
+
+static Expr*
+tailify0(U *ctx, Expr *e)
+{
+	Expr *p, *q, **bs;
+	Expr *nl;
+
+	if(e->kind != Eletrec)
+		fatal("bug");
+	bs = &e->e1;
+	p = e->e1;
+	while(p->kind == Eelist){
+		q = p->e1;
+		nl = 0;
+		q->e2->e1 = tailify(ctx, q->e2->e1, 0, bs);
+		p = p->e2;
+	}
+	nl = 0;
+	e->e2 = tailify(ctx, e->e2, 0, bs);
+	return e;
+}
+
 #if 0
 static Expr*
 degoto(U *ctx, Expr *e, unsigned *wt)
@@ -212,5 +332,7 @@ docompilef(U *ctx, Expr *e)
 		return 0;	/* error */
 	e = rmunused0(ctx, e);
 	e = delabel0(ctx, e);
+	markescape(ctx, e);
+	e = tailify0(ctx, e);
 	return e;
 }
