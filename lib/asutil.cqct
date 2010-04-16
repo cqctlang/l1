@@ -146,7 +146,7 @@
 	{
 		@local j, r, len;
 		p->ranges[i].beg = rangebeg(ranges[i]);
-		r = (unsigned char*) {as}p->ranges[i].beg;
+		r = {as}(unsigned char*)p->ranges[i].beg;
 		len = rangelen(ranges[i]);
 		p->ranges[i].len = len;
 		if (ismapped(r,len)) {
