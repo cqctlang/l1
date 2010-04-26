@@ -28,8 +28,10 @@
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
+	regs = ctl.reg();
 	as = ctl.mem();
 	dom = mkdom(ns, as);
+	printf("argc = %d\n", *(`uint64*){dom}(regs->rsp+8));
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
 			  printlist(dom);
