@@ -357,6 +357,7 @@ ctlmux = @names clp64le {
 };
 
 @record dll {
+	id,
 	path,
 	base,
 };
@@ -372,6 +373,7 @@ ctlmux = @names clp64le {
 	mem,
 	reg,
 	stat,
+	statbsd,
 	setreg,
 	trace,
 	traces,
@@ -392,6 +394,7 @@ ctlmux = @names clp64le {
 	@local xstop, xcont, xstep, detach, kill, stat, snap;
 	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
 	@local trapset, trapdel, trapreset;
+	@local statbsd;
 	@local this;
 
 	@define checkdead()
@@ -449,6 +452,12 @@ ctlmux = @names clp64le {
 	{
 		checkdead();
 		return mux.stat(this);
+	}
+
+	@define statbsd()
+	{
+		checkdead();
+		return mux.statbsd(this);
 	}
 
 	@define snap()
@@ -619,7 +628,8 @@ ctlmux = @names clp64le {
 	}
 
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill, snap,
-		      mem, reg, stat, setreg, trace, traces, xtrap, xsnap,
+		      mem, reg, stat, statbsd,
+		      setreg, trace, traces, xtrap, xsnap,
 		      xtraps, trapdel, trapreset,
 		      state, traps, callbacks, nil);
 	return this;
@@ -638,6 +648,7 @@ ctlmux = @names clp64le {
 	detach,
 	kill,
 	stat,		
+	statbsd,
 	snap,
 	pread,
 	pwrite,
@@ -1194,7 +1205,7 @@ ctlmux = @names clp64le {
 			path = getbytes(q, sz);
 			q = (ctlmux`uint64*)((char*)q+sz);
 			base = *q++;
-			append(libs, dll(path, base));
+			append(libs, dll(-1, path, base));
 		}
 
 		threads = [];
@@ -1249,6 +1260,52 @@ ctlmux = @names clp64le {
 			append(rs, region(file, addr, len, flags));
 		}
 		return rs;
+	}
+
+	// BSD ONLY
+	@define statbsd(ctl)
+	{
+		@local p, rep, dat, q, i, m, sz, rs, file, addr, len, flags;
+		@local nb, bs, base, id;
+
+		p = (ctlmux`Tstat*)malloc(sizeof(ctlmux`Tstat));
+		p->op = ctlmux`Tstat;
+		p->tag = freshtag();
+		p->id = ctl.id;
+		sendmsg(fd, p);
+
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rstat);
+
+		q = (ctlmux`uint64*)dat;
+		q++; /* skip pid */
+
+		// regions (unused)
+		rs = [];
+		m = *q++;
+		for(i = 0; i < m; i++){
+			sz = *q++;
+			file = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			addr = *q++;
+			len = *q++;
+			flags = *q++;
+			append(rs, region(file, addr, len, flags));
+		}
+
+		// bins
+		bs = [];
+		m = *q++;
+		for(i = 0; i < m; i++){
+			id = *q++;
+			base = *q++;
+			sz = *q++;
+			file = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			append(bs, dll(id, file, base));
+		}
+
+		return bs;
 	}
 
 	@define contasync(ctl)
@@ -1548,6 +1605,7 @@ ctlmux = @names clp64le {
 		     detach,
 		     kill,
 		     stat,
+		     statbsd,
 		     snap,
 		     pread,
 		     pwrite,

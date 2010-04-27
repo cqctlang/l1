@@ -1,6 +1,6 @@
 @include <ctlmux.cqct>
 
-@define dumpmap(mux, ctl)
+@define dumpmap(ctl)
 {
 	@local prot2str;
 
@@ -25,13 +25,12 @@
 	}
 
 	printf("dumpmap\n");
-	foreach(@lambda(r){
-			printf("%16x %16x %s %s\n",
-			       r.addr,
-			       r.addr+r.len,
-			       prot2str(r.flags),
-			       r.file);
-	}, mux.pmap(ctl));
+	foreach(@lambda(dll){
+			printf("%16x %16x %s\n",
+			       dll.id,
+			       dll.base,
+			       dll.path);
+	}, ctl.statbsd());
 }
 
 @define printlist(dom)
@@ -86,12 +85,15 @@
 	regs = ctl.reg();
 	as = ctl.mem();
 	dom = mkdom(ns, as);
-	dumpmap(mux, ctl);
+	
+	dom.trace(ctlmux`Eload,
+		  @lambda(ctl, path, base){
+			  printf("%a %x\n", path, base);
+			  dumpmap(ctl);
+		  });
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
 			  printlist(dom);
-//			  dumpmap(mux, ctl);
-			  return nil;
 		  });
 	dom.xcont();
 	mux.run();
