@@ -45,6 +45,8 @@ ctlmux = @names clp64le {
 		Rread,
 		Twrite,
 		Rwrite,
+		Tns,
+		Rns,
 	};
 
 	enum State {
@@ -89,6 +91,18 @@ ctlmux = @names clp64le {
 		PROT_WRITE	= 0x2,		/* Page can be written.  */
 		PROT_EXEC	= 0x4,		/* Page can be executed.  */
 	} Prot;
+
+	enum {
+		NRerror,
+		NTlooksym,
+		NRlooksym,
+		NTlookaddr,
+		NRlookaddr,
+		NTlocal,
+		NRlocal,
+		NTunwind,
+		NRunwind,
+	};
 
 	typedef
 	struct Ctx {
@@ -347,6 +361,15 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rstat Rstat;
 	typedef struct Rstat Tping;
+
+	struct Tns{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	char bytes[0];
+		@5;
+	};
+	typedef struct Tns Tns;
+	typedef struct Tns Rns;
 };
 
 @record region {
@@ -641,6 +664,7 @@ ctlmux = @names clp64le {
 	attach,
 	run,
 	abort,
+	looksym,
 	// private
 	stop,
 	cont,
@@ -688,6 +712,7 @@ ctlmux = @names clp64le {
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
+	@local muxlooksym;
 
 	verbose = 0;
 	aborted = 0;
@@ -835,6 +860,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tstat*)p;
 		case ctlmux`Rstat:
 			return (ctlmux`Rstat*)p;
+		case ctlmux`Tns:
+			return (ctlmux`Tns*)p;
+		case ctlmux`Rns:
+			return (ctlmux`Rns*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -1504,6 +1533,54 @@ ctlmux = @names clp64le {
 		return ctl;
 	}
 
+	@define muxlooksym(id, sym)
+	{
+		@local p, rep, dat, sz, addr;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8); /* op */
+		sz += sizeof(ctlmux`uint64);
+		sz += sizeof(ctlmux`uint64)+strlen(sym);
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTlooksym;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		*q++ = strlen(sym);
+		q = (char*)q;
+		putbytes(q, sym);
+		q += strlen(sym);
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		printf("dat len = %d", length(dat));
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRlooksym:
+			q = (ctlmux`uint64*)q;
+			addr = *q++;
+			return addr;
+		case ctlmux`NRlookaddr:
+			error("unexpected NRlookaddr");
+			break;
+		case ctlmux`NRlocal:
+			error("unexpected NRlocal");
+			break;
+		case ctlmux`NRunwind:
+			error("unexpected NRunwind");
+			break;
+		case ctlmux`NRerror:
+			error("ns error");
+			break;
+		}
+	}
+
 	@define version()
 	{
 		@local p, rep, dat, sz, version, os, s;
@@ -1599,6 +1676,7 @@ ctlmux = @names clp64le {
 		     attach,
 		     run,
 		     abort,
+		     muxlooksym,
 		     stop,
 		     cont,
 		     step,

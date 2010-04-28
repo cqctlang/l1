@@ -77,7 +77,7 @@
 // test printlist
 @define test1(mode, n)
 {
-	@local ctl, mux, ns, cmd, as, dom;
+	@local ctl, mux, ns, cmd, as, dom, bs, ms;
 
 	[ns,cmd] = mode();
 	mux = mkctlmux_local();
@@ -85,11 +85,35 @@
 	regs = ctl.reg();
 	as = ctl.mem();
 	dom = mkdom(ns, as);
-	
 	dom.trace(ctlmux`Eload,
 		  @lambda(ctl, path, base){
+			  ms = [];
 			  printf("%a %x\n", path, base);
-			  dumpmap(ctl);
+			  bs = ctl.statbsd();
+			  foreach(@lambda(dll){
+					  printf("%16x %16x %s\n",
+						 dll.id,
+						 dll.base,
+						 dll.path);
+					  if(strstr(dll.path, "libc") != nil){
+						  off = mux.looksym(dll.id, "malloc");
+						  printf("\tmalloc: %x\n", off);
+						  if(off)
+							  append(ms, off);
+					  }
+					  if(strstr(dll.path, "list") != nil){
+						  off = mux.looksym(dll.id, "malloc");
+						  printf("\tmalloc: %x\n", off);
+						  if(off)
+							  append(ms, off);
+					  }
+				  }, bs);
+			  foreach(@lambda(off){
+					  dom.xtrap(off,
+						    @lambda(ctl){
+							    printf("called malloc @ %x\n", off);
+						    });
+				  }, ms);
 		  });
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
