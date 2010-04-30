@@ -77,9 +77,12 @@
 @define dumpsym(ss)
 {
 	foreach(@lambda(sym){
-			printf("%016x %016x %s %x %x %x\n",
-			       sym.val, sym.sz, sym.id,
-			       sym.bind, sym.type, sym.ndx);
+			printf("%016x %016x %10e %10e %10e\t%s\n",
+			       sym.val, sym.sz,
+			       (enum ctlmux`ELF_ST_BIND)sym.bind,
+			       (enum ctlmux`ELF_ST_TYPE)sym.type,
+			       (enum ctlmux`ELF_SHN)sym.ndx,
+			       sym.id);
 		}, ss);
 }
 
@@ -109,6 +112,7 @@
 						  printf("\tmalloc: %x\n", off);
 						  if(off)
 							  append(ms, off);
+//						  dumpsym(mux.enumsym(dll.id));
 					  }
 					  if(strstr(dll.path, "list") != nil){
 						  off = mux.looksym(dll.id, "malloc");

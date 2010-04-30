@@ -106,6 +106,27 @@ ctlmux = @names clp64le {
 		NRunwind,
 	};
 
+	enum ELF_ST_BIND {
+		STB_LOCAL	= 0,
+		STB_GLOBAL,
+		STB_WEAK,
+	};
+	enum ELF_ST_TYPE {
+		STT_NOTYPE	= 0,
+		STT_OBJECT,
+		STT_FUNC,
+		STT_SECTION,	
+		STT_FILE,
+		STT_COMMON,
+		STT_TLS,
+	};
+	
+	enum ELF_SHN {
+		SHN_UNDEF	= 0,
+		SHN_ABS		= 0xfff1,
+		SHN_COMMON	= 0xfff2,
+	};
+
 	typedef
 	struct Ctx {
 		/* kernel's register set */
@@ -395,6 +416,8 @@ ctlmux = @names clp64le {
 	sz,
 	ndx,
 };
+
+
 
 @record ctlrec {
 	id,
