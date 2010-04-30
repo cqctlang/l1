@@ -8,6 +8,8 @@ struct Node {
 };
 Node *head;
 
+Node node;
+
 void
 insert(int v)
 {

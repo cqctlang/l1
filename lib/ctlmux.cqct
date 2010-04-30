@@ -98,6 +98,8 @@ ctlmux = @names clp64le {
 		NRlooksym,
 		NTlookaddr,
 		NRlookaddr,
+		NTenumsym,
+		NRenumsym,
 		NTlocal,
 		NRlocal,
 		NTunwind,
@@ -385,6 +387,15 @@ ctlmux = @names clp64le {
 	base,
 };
 
+@record elfsym {
+	id,
+	bind,
+	type,
+	val,
+	sz,
+	ndx,
+};
+
 @record ctlrec {
 	id,
 	xstop,
@@ -665,6 +676,7 @@ ctlmux = @names clp64le {
 	run,
 	abort,
 	looksym,
+	enumsym,
 	// private
 	stop,
 	cont,
@@ -712,7 +724,7 @@ ctlmux = @names clp64le {
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
-	@local muxlooksym;
+	@local muxlooksym, muxenumsym;
 
 	verbose = 0;
 	aborted = 0;
@@ -1558,25 +1570,67 @@ ctlmux = @names clp64le {
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rns);
 
-		printf("dat len = %d", length(dat));
-
 		q = (ctlmux`uint8*)dat;
 		switch(*q++){
 		case ctlmux`NRlooksym:
 			q = (ctlmux`uint64*)q;
 			addr = *q++;
 			return addr;
-		case ctlmux`NRlookaddr:
-			error("unexpected NRlookaddr");
-			break;
-		case ctlmux`NRlocal:
-			error("unexpected NRlocal");
-			break;
-		case ctlmux`NRunwind:
-			error("unexpected NRunwind");
-			break;
 		case ctlmux`NRerror:
 			error("ns error");
+			break;
+		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
+	@define muxenumsym(id)
+	{
+		@local p, rep, dat, sz, addr, ss;
+		@local m, i, xid, xsz, bind, type, val, ndx;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTenumsym;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRenumsym:
+			ss = [];
+			q = (ctlmux`uint64*)q;
+			m = *q++;
+			for(i = 0; i < m; i++){
+				sz = *q++;
+				xid = getbytes(q, sz);
+				q = (ctlmux`uint8*)((char*)q+sz);
+				bind = *q++;
+				type = *q++;
+				q = (ctlmux`uint64*)q;
+				val = *q++;
+				xsz = *q++;
+				ndx = *q++;
+				append(ss,
+				       elfsym(xid, bind, type, val, xsz, ndx));
+			}
+			return ss;
+		case ctlmux`NRerror:
+			error("ns error");
+			break;
+		default: 
+			error("unexpected ns response");
 			break;
 		}
 	}
@@ -1677,6 +1731,7 @@ ctlmux = @names clp64le {
 		     run,
 		     abort,
 		     muxlooksym,
+		     muxenumsym,
 		     stop,
 		     cont,
 		     step,

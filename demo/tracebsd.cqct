@@ -74,6 +74,15 @@
 	return [ns,"./list"];
 }
 
+@define dumpsym(ss)
+{
+	foreach(@lambda(sym){
+			printf("%016x %016x %s %x %x %x\n",
+			       sym.val, sym.sz, sym.id,
+			       sym.bind, sym.type, sym.ndx);
+		}, ss);
+}
+
 // test printlist
 @define test1(mode, n)
 {
@@ -106,6 +115,7 @@
 						  printf("\tmalloc: %x\n", off);
 						  if(off)
 							  append(ms, off);
+						  dumpsym(mux.enumsym(dll.id));
 					  }
 				  }, bs);
 			  foreach(@lambda(off){
