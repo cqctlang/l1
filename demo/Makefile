@@ -49,7 +49,11 @@ list64: list.c
 	dwarf2cqct < $@ > $@.names
 
 list32: list.c
-	$(CC) -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+list32stat: list.c
+	$(CC) -static -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 
 clean:

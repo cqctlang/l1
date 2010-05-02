@@ -60,6 +60,13 @@
 	return [ns,"./list32"];
 }
 
+@define mode32s()
+{
+	@local ns;
+	ns = @names c32le { @include "./list32stat.names" };
+	return [ns,"./list32stat"];
+}
+
 @define mode64()
 {
 	@local ns;
@@ -77,11 +84,10 @@
 @define dumpsym(ss)
 {
 	foreach(@lambda(sym){
-			printf("%016x %016x %10e %10e %10e\t%s\n",
+			printf("%016x %016x %10e %10e\t%s\n",
 			       sym.val, sym.sz,
 			       (enum ctlmux`ELF_ST_BIND)sym.bind,
-			       (enum ctlmux`ELF_ST_TYPE)sym.type,
-			       (enum ctlmux`ELF_SHN)sym.ndx,
+			       (enum ctlmux`Stype)sym.type,
 			       sym.id);
 		}, ss);
 }
@@ -166,6 +172,8 @@ if(length(args) != 3)
 	error("usage: %s <mode> <testno>", args[0]);
 if(args[1] == "32")
 	mode = mode32;
+else if(args[1] == "32s")
+	mode = mode32s;
 else if(args[1] == "64")
 	mode = mode64;
 else if(args[1] == "0")
