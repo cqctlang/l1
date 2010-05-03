@@ -31,7 +31,6 @@
 	regs = ctl.reg();
 	as = ctl.mem();
 	dom = mkdom(ns, as);
-	printf("argc = %d\n", *(`uint64*){dom}(regs->rsp+8));
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
 			  printlist(dom);

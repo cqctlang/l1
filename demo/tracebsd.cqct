@@ -30,7 +30,7 @@
 			       dll.id,
 			       dll.base,
 			       dll.path);
-	}, ctl.statbsd());
+	}, ctl.statunix());
 }
 
 @define printlist(dom)
@@ -101,7 +101,7 @@
 		  @lambda(ctl, path, base){
 			  ms = [];
 			  printf("%a %x\n", path, base);
-			  bs = ctl.statbsd();
+			  bs = ctl.statunix();
 			  foreach(@lambda(dll){
 					  printf("%16x %16x %s\n",
 						 dll.id,
