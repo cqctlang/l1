@@ -115,12 +115,12 @@ ctlmux = @names clp64le {
 		STT_NOTYPE	= 0,
 		STT_OBJECT,
 		STT_FUNC,
-		STT_SECTION,	
+		STT_SECTION,
 		STT_FILE,
 		STT_COMMON,
 		STT_TLS,
 	};
-	
+
 	enum ELF_SHN {
 		SHN_UNDEF	= 0,
 		SHN_ABS		= 0xfff1,
@@ -1540,6 +1540,7 @@ ctlmux = @names clp64le {
 	@define muxlooksym(id, sym)
 	{
 		@local p, rep, dat, sz, addr;
+		@local xid, bind, type, val, xsz, ndx;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8); /* op */
@@ -1566,12 +1567,20 @@ ctlmux = @names clp64le {
 		switch(*q++){
 		case ctlmux`NRlooksym:
 			q = (ctlmux`uint64*)q;
-			addr = *q++;
-			return addr;
+			sz = *q++;
+			xid = getbytes(q, sz);
+			q = (ctlmux`uint8*)((char*)q+sz);
+			bind = *q++;
+			type = *q++;
+			q = (ctlmux`uint64*)q;
+			val = *q++;
+			xsz = *q++;
+			ndx = *q++;
+			return elfsym(xid, bind, type, val, xsz, ndx);
 		case ctlmux`NRerror:
 			error("ns error");
 			break;
-		default: 
+		default:
 			error("unexpected ns response");
 			break;
 		}

@@ -53,6 +53,13 @@
 	printf("\n");
 }
 
+@define mode32()
+{
+	@local ns;
+	ns = @names c32le { @include "./list32.names" };
+	return [ns,"./list32"];
+}
+
 @define modenat()
 {
 	@local ns;
@@ -75,7 +82,7 @@
 // test printlist
 @define test1(mode, n)
 {
-	@local ctl, mux, ns, cmd, as, dom, bs, ms;
+	@local ctl, mux, ns, cmd, as, dom, bs, ms, sym;
 
 	[ns,cmd] = mode();
 	mux = mkctlmux_local();
@@ -94,17 +101,20 @@
 						 dll.base,
 						 dll.path);
 					  if(strstr(dll.path, "libc") != nil){
-						  off = mux.looksym(dll.id, "malloc");
-						  printf("\tmalloc: %x\n", off);
-						  if(off)
-							  append(ms, off);
+						  sym = mux.looksym(dll.id, "malloc");
+						  printf("\tmalloc: %x\n",
+							 sym.val);
+						  if(sym.val)
+							  append(ms, sym.val);
 //						  dumpsym(mux.enumsym(dll.id));
 					  }
 					  if(strstr(dll.path, "list") != nil){
-						  off = mux.looksym(dll.id, "malloc");
-						  printf("\tmalloc: %x\n", off);
-						  if(off)
-							  append(ms, off);
+						  sym = mux.looksym(dll.id,
+								    "malloc");
+						  printf("\tmalloc: %x\n",
+							 sym.val);
+						  if(sym.val)
+							  append(ms, sym.val);
 						  dumpsym(mux.enumsym(dll.id));
 					  }
 				  }, bs);
@@ -147,8 +157,7 @@ mode = nil;
 if(length(args) != 3)
 	error("usage: %s <mode> <testno>", args[0]);
 if(args[1] == "32")
-//	mode = mode32;
-	error("usage: %s <mode> <testno>", args[0]);
+	mode = mode32;
 else if(args[1] == "64")
 //	mode = mode64;
 	error("usage: %s <mode> <testno>", args[0]);

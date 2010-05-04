@@ -89,7 +89,7 @@
 // test printlist
 @define test1(mode, n)
 {
-	@local ctl, mux, ns, cmd, as, dom, bs, ms;
+	@local ctl, mux, ns, cmd, as, dom, bs, ms, sym;
 
 	[ns,cmd] = mode();
 	mux = mkctlmux_local();
@@ -108,17 +108,21 @@
 						 dll.base,
 						 dll.path);
 					  if(strstr(dll.path, "libc") != nil){
-						  off = mux.looksym(dll.id, "malloc");
-						  printf("\tmalloc: %x\n", off);
-						  if(off)
-							  append(ms, off);
+						  sym = mux.looksym(dll.id,
+								    "malloc");
+						  printf("\tmalloc: %x\n",
+							 sym.val);
+						  if(sym.val)
+							  append(ms, sym.val);
 //						  dumpsym(mux.enumsym(dll.id));
 					  }
 					  if(strstr(dll.path, "list") != nil){
-						  off = mux.looksym(dll.id, "malloc");
-						  printf("\tmalloc: %x\n", off);
-						  if(off)
-							  append(ms, off);
+						  sym = mux.looksym(dll.id,
+								    "malloc");
+						  printf("\tmalloc: %x\n",
+							 sym.val);
+						  if(sym.val)
+							  append(ms, sym.val);
 						  dumpsym(mux.enumsym(dll.id));
 					  }
 				  }, bs);
