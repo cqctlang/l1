@@ -111,14 +111,13 @@ ctlmux = @names clp64le {
 		STB_GLOBAL,
 		STB_WEAK,
 	};
-	enum ELF_ST_TYPE {
-		STT_NOTYPE	= 0,
-		STT_OBJECT,
-		STT_FUNC,
-		STT_SECTION,
-		STT_FILE,
-		STT_COMMON,
-		STT_TLS,
+	enum Stype {
+		Sfunc = 0,
+		Sdata = 1,
+		Srodata = 2,
+	};
+	enum {
+		Sundef = 1,
 	};
 
 	enum ELF_SHN {
@@ -414,10 +413,7 @@ ctlmux = @names clp64le {
 	type,
 	val,
 	sz,
-	ndx,
 };
-
-
 
 @record ctlrec {
 	id,
@@ -1543,7 +1539,7 @@ ctlmux = @names clp64le {
 	@define muxlooksym(id, sym)
 	{
 		@local p, rep, dat, sz, addr;
-		@local xid, bind, type, val, xsz, ndx;
+		@local xid, bind, type, val, xsz;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8); /* op */
@@ -1578,8 +1574,7 @@ ctlmux = @names clp64le {
 			q = (ctlmux`uint64*)q;
 			val = *q++;
 			xsz = *q++;
-			ndx = *q++;
-			return elfsym(xid, bind, type, val, xsz, ndx);
+			return elfsym(xid, bind, type, val, xsz);
 		case ctlmux`NRerror:
 			error("ns error");
 			break;
@@ -1592,7 +1587,7 @@ ctlmux = @names clp64le {
 	@define muxenumsym(id)
 	{
 		@local p, rep, dat, sz, addr, ss;
-		@local m, i, xid, xsz, bind, type, val, ndx;
+		@local m, i, xid, xsz, bind, type, val;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -1625,9 +1620,8 @@ ctlmux = @names clp64le {
 				q = (ctlmux`uint64*)q;
 				val = *q++;
 				xsz = *q++;
-				ndx = *q++;
 				append(ss,
-				       elfsym(xid, bind, type, val, xsz, ndx));
+				       elfsym(xid, bind, type, val, xsz));
 			}
 			return ss;
 		case ctlmux`NRerror:

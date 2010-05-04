@@ -53,12 +53,12 @@
 	printf("\n");
 }
 
-//@define mode32()
-//{
-//	@local ns;
-//	ns = @names c32le { @include "./list32.names" };
-//	return [ns,"./list32"];
-//}
+@define mode32()
+{
+	@local ns;
+	ns = @names c32le { @include "./list32.names" };
+	return [ns,"./list32"];
+}
 
 @define modenat()
 {
@@ -70,11 +70,10 @@
 @define dumpsym(ss)
 {
 	foreach(@lambda(sym){
-			printf("%016x %016x %10e %10e %10e\t%s\n",
+			printf("%016x %016x %10e %10e\t%s\n",
 			       sym.val, sym.sz,
 			       (enum ctlmux`ELF_ST_BIND)sym.bind,
-			       (enum ctlmux`ELF_ST_TYPE)sym.type,
-			       (enum ctlmux`ELF_SHN)sym.ndx,
+			       (enum ctlmux`Stype)(sym.type>>1),
 			       sym.id);
 		}, ss);
 }

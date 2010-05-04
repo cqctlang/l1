@@ -10,7 +10,7 @@ Node *head;
 
 Node node;
 
-void
+static void
 insert(int v)
 {
 	Node *p, *q;
