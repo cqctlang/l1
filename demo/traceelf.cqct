@@ -53,12 +53,12 @@
 	printf("\n");
 }
 
-@define mode32()
-{
-	@local ns;
-	ns = @names c32le { @include "./list32.names" };
-	return [ns,"./list32"];
-}
+//@define mode32()
+//{
+//	@local ns;
+//	ns = @names c32le { @include "./list32.names" };
+//	return [ns,"./list32"];
+//}
 
 @define modenat()
 {
