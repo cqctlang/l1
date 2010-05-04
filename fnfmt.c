@@ -750,6 +750,8 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			}
 			goto morespec;
 		case '*':
+			if(Vkind(vp) != Qcval)
+				goto badarg;
 			cv = valcval(vp);
 			if(argc == 0)
 				vmerr(vm,
