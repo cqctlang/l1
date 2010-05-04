@@ -708,7 +708,7 @@ ctlmux = @names clp64le {
 	detach,
 	kill,
 	statunix,
-	statwin, 
+	statwin,
 	snap,
 	pread,
 	pwrite,
