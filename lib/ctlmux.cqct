@@ -1088,7 +1088,10 @@ ctlmux = @names clp64le {
 			path = getbytes(p, sz);
 			p = (ctlmux`char*)p+sz;
 			p = (ctlmux`uint64*)p;
-			base = *p;
+			base = *p++;
+			p = (ctlmux`Ctx*)p;
+			ctl.setreg(cop(p));
+			p++;
 			ctl.state = ctlmux`Stopped;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
