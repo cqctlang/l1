@@ -107,32 +107,22 @@
 	dom.trace(ctlmux`Eload,
 		  @lambda(ctl, path, base){
 			  ms = [];
-			  printf("%a %x\n", path, base);
 			  bs = ctl.statunix()[1];
-			  printf("bs is %a\n", bs);
 			  foreach(@lambda(dll){
-					  printf("%16x %16x %s\n",
-						 dll.id,
-						 dll.base,
-						 dll.path);
 					  if(strstr(dll.path, "libc") != nil){
 						  sym = mux.looksym(dll.id, "malloc");
-						  printf("\tmalloc: %x\n",
-							 sym.val);
 						  if(sym.val)
 							  append(ms, sym.val);
-						  dumpseg(mux.enumseg(dll.id));
+//						  dumpseg(mux.enumseg(dll.id));
 //						  dumpsym(mux.enumsym(dll.id));
 					  }
 					  if(strstr(dll.path, "list") != nil){
 						  sym = mux.looksym(dll.id,
 								    "malloc");
-						  printf("\tmalloc: %x\n",
-							 sym.val);
 						  if(sym.val)
 							  append(ms, sym.val);
-						  dumpseg(mux.enumseg(dll.id));
-						  dumpsym(mux.enumsym(dll.id));
+//						  dumpseg(mux.enumseg(dll.id));
+//						  dumpsym(mux.enumsym(dll.id));
 					  }
 				  }, bs);
 			  foreach(@lambda(off){
