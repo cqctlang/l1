@@ -32,13 +32,30 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	int code;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to getenv");
+		vmerr(vm, "wrong number of arguments to exit");
 	code = 0;
 	if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
 		code = (int)cv->val;
 	}
 	exit(code);
+}
+
+static void
+l1_environ(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	char **p;
+
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to environ");
+	p = environ;
+	l = mklist();
+	while(*p){
+		_listappend(l, mkvalstr(mkstr0(*p)));
+		p++;
+	}
+	*rv = mkvallist(l);
 }
 
 static void
@@ -456,6 +473,7 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnsys(Env *env)
 {
+	FN(environ);
 	FN(exit);
 	FN(getenv);
 	FN(getpid);
