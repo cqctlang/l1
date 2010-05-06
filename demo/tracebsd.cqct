@@ -92,6 +92,14 @@
 		}, ss);
 }
 
+@define dumpseg(gs)
+{
+	foreach(@lambda(seg){
+			printf("%016x %016x %s\n",
+			       seg.addr, seg.len, seg.name);
+		}, gs);
+}
+
 // test printlist
 @define test1(mode, n)
 {
@@ -120,6 +128,7 @@
 							 sym.val);
 						  if(sym.val)
 							  append(ms, sym.val);
+						  dumpseg(mux.enumseg(dll.id));
 //						  dumpsym(mux.enumsym(dll.id));
 					  }
 					  if(strstr(dll.path, "list") != nil){
@@ -129,6 +138,7 @@
 							 sym.val);
 						  if(sym.val)
 							  append(ms, sym.val);
+						  dumpseg(mux.enumseg(dll.id));
 						  dumpsym(mux.enumsym(dll.id));
 					  }
 				  }, bs);

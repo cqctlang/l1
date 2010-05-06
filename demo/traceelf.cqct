@@ -60,6 +60,13 @@
 	return [ns,"./list32"];
 }
 
+@define mode32s()
+{
+	@local ns;
+	ns = @names c32le { @include "./list32stat.names" };
+	return [ns,"./list32stat"];
+}
+
 @define modenat()
 {
 	@local ns;
@@ -78,6 +85,14 @@
 		}, ss);
 }
 
+@define dumpseg(gs)
+{
+	foreach(@lambda(seg){
+			printf("%016x %016x %s\n",
+			       seg.addr, seg.len, seg.name);
+		}, gs);
+}
+
 // test printlist
 @define test1(mode, n)
 {
@@ -94,6 +109,7 @@
 			  ms = [];
 			  printf("%a %x\n", path, base);
 			  bs = ctl.statunix()[1];
+			  printf("bs is %a\n", bs);
 			  foreach(@lambda(dll){
 					  printf("%16x %16x %s\n",
 						 dll.id,
@@ -105,6 +121,7 @@
 							 sym.val);
 						  if(sym.val)
 							  append(ms, sym.val);
+						  dumpseg(mux.enumseg(dll.id));
 //						  dumpsym(mux.enumsym(dll.id));
 					  }
 					  if(strstr(dll.path, "list") != nil){
@@ -114,6 +131,7 @@
 							 sym.val);
 						  if(sym.val)
 							  append(ms, sym.val);
+						  dumpseg(mux.enumseg(dll.id));
 						  dumpsym(mux.enumsym(dll.id));
 					  }
 				  }, bs);
@@ -157,6 +175,8 @@ if(length(args) != 3)
 	error("usage: %s <mode> <testno>", args[0]);
 if(args[1] == "32")
 	mode = mode32;
+else if(args[1] == "32s")
+	mode = mode32s;
 else if(args[1] == "64")
 //	mode = mode64;
 	error("usage: %s <mode> <testno>", args[0]);

@@ -104,6 +104,8 @@ ctlmux = @names clp64le {
 		NRlocal,
 		NTunwind,
 		NRunwind,
+		NTenumseg,
+		NRenumseg,
 	};
 
 	enum ELF_ST_BIND {
@@ -415,6 +417,12 @@ ctlmux = @names clp64le {
 	sz,
 };
 
+@record seg {
+	addr,
+	len,
+	name,
+};
+
 @record ctlrec {
 	id,
 	xstop,
@@ -697,6 +705,7 @@ ctlmux = @names clp64le {
 	abort,
 	looksym,
 	enumsym,
+	enumseg,
 	// private
 	stop,
 	cont,
@@ -743,7 +752,7 @@ ctlmux = @names clp64le {
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
-	@local muxlooksym, muxenumsym;
+	@local muxlooksym, muxenumsym, muxenumseg;
 
 	verbose = 0;
 	aborted = 0;
@@ -1633,6 +1642,51 @@ ctlmux = @names clp64le {
 		}
 	}
 
+	@define muxenumseg(id)
+	{
+		@local p, rep, dat, sz, addr, len, gs;
+		@local m, i, xid, xsz, bind, type, val;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTenumseg;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRenumseg:
+			gs = [];
+			q = (ctlmux`uint64*)q;
+			m = *q++;
+			for(i = 0; i < m; i++){
+				addr = *q++;
+				len = *q++;
+				sz = *q++;
+				xid = getbytes(q, sz);
+				q = (ctlmux`uint64*)((char*)q+sz);
+				append(gs, seg(addr, len, xid));
+			}
+			return gs;
+		case ctlmux`NRerror:
+			error("ns error");
+			break;
+		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
 	@define version()
 	{
 		@local p, rep, dat, sz, version, os, s;
@@ -1730,6 +1784,7 @@ ctlmux = @names clp64le {
 		     abort,
 		     muxlooksym,
 		     muxenumsym,
+		     muxenumseg,
 		     stop,
 		     cont,
 		     step,
