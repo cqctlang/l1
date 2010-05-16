@@ -41,6 +41,8 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	exit(code);
 }
 
+extern char **environ;
+
 static void
 l1_environ(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -51,10 +53,11 @@ l1_environ(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to environ");
 	p = environ;
 	l = mklist();
-	while(*p){
-		_listappend(l, mkvalstr(mkstr0(*p)));
-		p++;
-	}
+	if(p)
+		while(*p){
+			_listappend(l, mkvalstr(mkstr0(*p)));
+			p++;
+		}
 	*rv = mkvallist(l);
 }
 
