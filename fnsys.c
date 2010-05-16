@@ -100,7 +100,7 @@ l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to randseed must be an integer");
 
 	cv = valcval(arg0);
-	srand((unsigned int)cv->val);
+	srandom((unsigned int)cv->val);
 }
 
 static void
@@ -122,7 +122,7 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(cv->val == 0)
 		vmerr(vm, "operand to rand must be positive");
 
-	r = rand();
+	r = random();
 	r %= cv->val;
 	*rv = mkvallitcval(Vulong, r);
 }
