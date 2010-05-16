@@ -450,6 +450,7 @@ main(int argc, char *argv[])
 			lp[nlp] = emalloc(n+1);
 			memcpy(lp[nlp++], optarg, n);
 			break;
+		case '+':
 		case 'h':
 		case '?':
 			usage(argv0);
