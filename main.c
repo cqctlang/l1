@@ -416,9 +416,8 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "a+be:ghkl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+be:ghkl:m:opqrstTwxz"))){
 		switch(c){
-		case 'a':
 		case 'b':
 		case 'k':
 		case 'o':
@@ -453,6 +452,7 @@ main(int argc, char *argv[])
 			lp[nlp] = emalloc(n+1);
 			memcpy(lp[nlp++], optarg, n);
 			break;
+		case '+':
 		case 'h':
 		case '?':
 			usage(argv0);
