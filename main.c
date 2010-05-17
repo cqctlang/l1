@@ -62,9 +62,11 @@ static void
 fatal(char *fmt, ...)
 {
 	va_list args;
+	va_start(args, fmt);
 	vprintf(fmt, args);
+	va_end(args);
 	printf("\n");
-	abort();
+	exit(1);
 }
 
 static void*
@@ -553,7 +555,7 @@ main(int argc, char *argv[])
 				continue; /* error */
 			fn = cqctenvlook(top, ename);
 			if(fn == 0)
-				fatal("entry %s is undefined");
+				fatal("entry point \"%s\" is undefined", ename);
 			rv = cqctcallfn(vm, fn, valc, valv, &v);
 		}
 		if(opt['t']){
