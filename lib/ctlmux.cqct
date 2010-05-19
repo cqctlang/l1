@@ -45,6 +45,8 @@ ctlmux = @names clp64le {
 		Rread,
 		Twrite,
 		Rwrite,
+		Tns,
+		Rns,
 	};
 
 	enum State {
@@ -89,6 +91,42 @@ ctlmux = @names clp64le {
 		PROT_WRITE	= 0x2,		/* Page can be written.  */
 		PROT_EXEC	= 0x4,		/* Page can be executed.  */
 	} Prot;
+
+	enum {
+		NRerror,
+		NTlooksym,
+		NRlooksym,
+		NTlookaddr,
+		NRlookaddr,
+		NTenumsym,
+		NRenumsym,
+		NTlocal,
+		NRlocal,
+		NTunwind,
+		NRunwind,
+		NTenumseg,
+		NRenumseg,
+	};
+
+	enum ELF_ST_BIND {
+		STB_LOCAL	= 0,
+		STB_GLOBAL,
+		STB_WEAK,
+	};
+	enum Stype {
+		Sfunc = 0,
+		Sdata = 1,
+		Srodata = 2,
+	};
+	enum {
+		Sundef = 1,
+	};
+
+	enum ELF_SHN {
+		SHN_UNDEF	= 0,
+		SHN_ABS		= 0xfff1,
+		SHN_COMMON	= 0xfff2,
+	};
 
 	typedef
 	struct Ctx {
@@ -347,6 +385,15 @@ ctlmux = @names clp64le {
 	};
 	typedef struct Rstat Rstat;
 	typedef struct Rstat Tping;
+
+	struct Tns{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	char bytes[0];
+		@5;
+	};
+	typedef struct Tns Tns;
+	typedef struct Tns Rns;
 };
 
 @record region {
@@ -357,8 +404,23 @@ ctlmux = @names clp64le {
 };
 
 @record dll {
+	id,
 	path,
 	base,
+};
+
+@record elfsym {
+	id,
+	bind,
+	type,
+	val,
+	sz,
+};
+
+@record seg {
+	addr,
+	len,
+	name,
 };
 
 @record ctlrec {
@@ -371,7 +433,8 @@ ctlmux = @names clp64le {
 	snap,
 	mem,
 	reg,
-	stat,
+	statunix,
+	statwin,
 	setreg,
 	trace,
 	traces,
@@ -389,9 +452,10 @@ ctlmux = @names clp64le {
 
 @define mkctl(mux, id, state, _reg, traps, callbacks)
 {
-	@local xstop, xcont, xstep, detach, kill, stat, snap;
+	@local xstop, xcont, xstep, detach, kill, snap;
 	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
 	@local trapset, trapdel, trapreset;
+	@local statunix, statwin;
 	@local this;
 
 	@define checkdead()
@@ -445,10 +509,16 @@ ctlmux = @names clp64le {
 		return nil;
 	}
 
-	@define stat()
+	@define statunix()
 	{
 		checkdead();
-		return mux.stat(this);
+		return mux.statunix(this);
+	}
+
+	@define statwin()
+	{
+		checkdead();
+		return mux.statwin(this);
 	}
 
 	@define snap()
@@ -570,11 +640,12 @@ ctlmux = @names clp64le {
 			return s;
 		}
 
+		// FIXME: WORKS ONLY FOR UNIX
 		@define map(as)
 		{
 			@local n, rs, i, rv;
 
-			rs = mux.pmap(this);
+			rs = mux.statunix(this)[0];
 			n = length(rs);
 			rv = mkvec(n);
 			for(i = 0; i < n; i++)
@@ -619,7 +690,8 @@ ctlmux = @names clp64le {
 	}
 
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill, snap,
-		      mem, reg, stat, setreg, trace, traces, xtrap, xsnap,
+		      mem, reg, statunix, statwin,
+		      setreg, trace, traces, xtrap, xsnap,
 		      xtraps, trapdel, trapreset,
 		      state, traps, callbacks, nil);
 	return this;
@@ -631,17 +703,20 @@ ctlmux = @names clp64le {
 	attach,
 	run,
 	abort,
+	looksym,
+	enumsym,
+	enumseg,
 	// private
 	stop,
 	cont,
 	step,
 	detach,
 	kill,
-	stat,		
+	statunix,
+	statwin,
 	snap,
 	pread,
 	pwrite,
-	pmap,
 	trace,
 	settrap,
 	clrtrap,
@@ -671,12 +746,13 @@ ctlmux = @names clp64le {
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
-	@local stop, step, detach, kill, stat, snap;
-	@local pread, pwrite, pmap;
+	@local stop, step, detach, kill, statwin, statunix, snap;
+	@local pread, pwrite;
 	@local trace, fmtmsg, buf2msg;
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
+	@local muxlooksym, muxenumsym, muxenumseg;
 
 	verbose = 0;
 	aborted = 0;
@@ -824,6 +900,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tstat*)p;
 		case ctlmux`Rstat:
 			return (ctlmux`Rstat*)p;
+		case ctlmux`Tns:
+			return (ctlmux`Tns*)p;
+		case ctlmux`Rns:
+			return (ctlmux`Rns*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -1013,7 +1093,10 @@ ctlmux = @names clp64le {
 			path = getbytes(p, sz);
 			p = (ctlmux`char*)p+sz;
 			p = (ctlmux`uint64*)p;
-			base = *p;
+			base = *p++;
+			p = (ctlmux`Ctx*)p;
+			ctl.setreg(cop(p));
+			p++;
 			ctl.state = ctlmux`Stopped;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
@@ -1169,7 +1252,7 @@ ctlmux = @names clp64le {
 	}
 
 	// WINDOWS ONLY
-	@define stat(ctl)
+	@define statwin(ctl)
 	{
 		@local p, rep, dat, q, i, m, sz, rs, file, addr, len, flags;
 		@local id, pid, tid, st, threads, libs;
@@ -1194,7 +1277,7 @@ ctlmux = @names clp64le {
 			path = getbytes(q, sz);
 			q = (ctlmux`uint64*)((char*)q+sz);
 			base = *q++;
-			append(libs, dll(path, base));
+			append(libs, dll(-1, path, base));
 		}
 
 		threads = [];
@@ -1221,10 +1304,10 @@ ctlmux = @names clp64le {
 		return [libs,threads];
 	}
 
-	// LINUX ONLY
-	@define pmap(ctl)
+	@define statunix(ctl)
 	{
 		@local p, rep, dat, q, i, m, sz, rs, file, addr, len, flags;
+		@local nb, bs, base, id;
 
 		p = (ctlmux`Tstat*)malloc(sizeof(ctlmux`Tstat));
 		p->op = ctlmux`Tstat;
@@ -1235,9 +1318,11 @@ ctlmux = @names clp64le {
 		[rep, dat] = runtiltag(p->tag);
 		checkreply(rep, ctlmux`Rstat);
 
-		rs = [];
 		q = (ctlmux`uint64*)dat;
 		q++; /* skip pid */
+
+		// regions (unused)
+		rs = [];
 		m = *q++;
 		for(i = 0; i < m; i++){
 			sz = *q++;
@@ -1248,7 +1333,20 @@ ctlmux = @names clp64le {
 			flags = *q++;
 			append(rs, region(file, addr, len, flags));
 		}
-		return rs;
+
+		// bins
+		bs = [];
+		m = *q++;
+		for(i = 0; i < m; i++){
+			id = *q++;
+			base = *q++;
+			sz = *q++;
+			file = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			append(bs, dll(id, file, base));
+		}
+
+		return [rs,bs];
 	}
 
 	@define contasync(ctl)
@@ -1447,6 +1545,148 @@ ctlmux = @names clp64le {
 		return ctl;
 	}
 
+	@define muxlooksym(id, sym)
+	{
+		@local p, rep, dat, sz, addr;
+		@local xid, bind, type, val, xsz;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8); /* op */
+		sz += sizeof(ctlmux`uint64);
+		sz += sizeof(ctlmux`uint64)+strlen(sym);
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTlooksym;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		*q++ = strlen(sym);
+		q = (char*)q;
+		putbytes(q, sym);
+		q += strlen(sym);
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRlooksym:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xid = getbytes(q, sz);
+			q = (ctlmux`uint8*)((char*)q+sz);
+			bind = *q++;
+			type = *q++;
+			q = (ctlmux`uint64*)q;
+			val = *q++;
+			xsz = *q++;
+			return elfsym(xid, bind, type, val, xsz);
+		case ctlmux`NRerror:
+			error("ns error");
+			break;
+		default:
+			error("unexpected ns response");
+			break;
+		}
+	}
+
+	@define muxenumsym(id)
+	{
+		@local p, rep, dat, sz, addr, ss;
+		@local m, i, xid, xsz, bind, type, val;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTenumsym;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRenumsym:
+			ss = [];
+			q = (ctlmux`uint64*)q;
+			m = *q++;
+			for(i = 0; i < m; i++){
+				sz = *q++;
+				xid = getbytes(q, sz);
+				q = (ctlmux`uint8*)((char*)q+sz);
+				bind = *q++;
+				type = *q++;
+				q = (ctlmux`uint64*)q;
+				val = *q++;
+				xsz = *q++;
+				append(ss,
+				       elfsym(xid, bind, type, val, xsz));
+			}
+			return ss;
+		case ctlmux`NRerror:
+			error("ns error");
+			break;
+		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
+	@define muxenumseg(id)
+	{
+		@local p, rep, dat, sz, addr, len, gs;
+		@local m, i, xid, xsz, bind, type, val;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTenumseg;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRenumseg:
+			gs = [];
+			q = (ctlmux`uint64*)q;
+			m = *q++;
+			for(i = 0; i < m; i++){
+				addr = *q++;
+				len = *q++;
+				sz = *q++;
+				xid = getbytes(q, sz);
+				q = (ctlmux`uint64*)((char*)q+sz);
+				append(gs, seg(addr, len, xid));
+			}
+			return gs;
+		case ctlmux`NRerror:
+			error("ns error");
+			break;
+		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
 	@define version()
 	{
 		@local p, rep, dat, sz, version, os, s;
@@ -1542,16 +1782,19 @@ ctlmux = @names clp64le {
 		     attach,
 		     run,
 		     abort,
+		     muxlooksym,
+		     muxenumsym,
+		     muxenumseg,
 		     stop,
 		     cont,
 		     step,
 		     detach,
 		     kill,
-		     stat,
+		     statunix,
+		     statwin,
 		     snap,
 		     pread,
 		     pwrite,
-		     pmap,
 		     trace,
 		     settrap,
 		     clrtrap);

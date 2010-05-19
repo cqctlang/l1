@@ -28,6 +28,7 @@
 	ns = @names clp64le { @include "./list.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
+	regs = ctl.reg();
 	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,

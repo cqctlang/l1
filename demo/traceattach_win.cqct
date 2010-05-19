@@ -56,7 +56,7 @@ ns = c32le;
 		  @lambda(ctl){
 			  printf("trap!\n");
 		  });
-	[libs, threads] = ctl.stat();
+	[libs, threads] = ctl.statwin();
 	printf("libs for %d:\n", pid);
 	foreach(@lambda(l){
 			printf("\t%08x\t%s\n", l.base, l.path);

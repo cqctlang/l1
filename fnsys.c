@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
+#include "x/include/lib9.h"
 
 enum {
 	Maxtrace = 1000000,	/* Trace records while profiler engaged  */
@@ -32,13 +33,33 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	int code;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to getenv");
+		vmerr(vm, "wrong number of arguments to exit");
 	code = 0;
 	if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
 		code = (int)cv->val;
 	}
 	exit(code);
+}
+
+extern char **environ;
+
+static void
+l1_environ(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	char **p;
+
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to environ");
+	p = environ;
+	l = mklist();
+	if(p)
+		while(*p){
+			_listappend(l, mkvalstr(mkstr0(*p)));
+			p++;
+		}
+	*rv = mkvallist(l);
 }
 
 static void
@@ -80,7 +101,7 @@ l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to randseed must be an integer");
 
 	cv = valcval(arg0);
-	srand((unsigned int)cv->val);
+	xsrand((long)cv->val);
 }
 
 static void
@@ -97,13 +118,10 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to randseed must be an integer");
 
 	cv = valcval(arg0);
-	if(cv->val > RAND_MAX)
-		vmerr(vm, "operand to rand exceeds RAND_MAX (%d)", RAND_MAX);
 	if(cv->val == 0)
 		vmerr(vm, "operand to rand must be positive");
 
-	r = rand();
-	r %= cv->val;
+	r = nrand((int)cv->val);
 	*rv = mkvallitcval(Vulong, r);
 }
 
@@ -456,6 +474,7 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnsys(Env *env)
 {
+	FN(environ);
 	FN(exit);
 	FN(getenv);
 	FN(getpid);
