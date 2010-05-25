@@ -1302,7 +1302,7 @@ codegen(Expr *e)
 	if(cqctflags['o'])
 		printcode(code);
 	if(cqctflags['6'])
-		cg6(code);
+		cg6(code, e);
 	l = (Lambda*)e->xp;
 	cl = mkcl(code, 0, l->ncap, L->label);
 	return cl;

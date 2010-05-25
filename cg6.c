@@ -29,6 +29,13 @@ enum Reg6
 	Rr15,
 } Reg6;
 
+typedef
+struct i6
+{
+	i6kind kind;
+	unsigned char rex;
+} i6;
+
 static unsigned char*
 nextx(Code *c)
 {
@@ -198,81 +205,18 @@ putvalrand(Code *c, Reg6 reg, Operand *r)
 }
 
 static void
-insn6(Code *c, Insn *i)
+cg6fn(Code *c, Expr *e)
 {
-	switch(i->kind){
-	case Inop:
-		break;
-	case Iargc:
-		break;
-	case Imov:
-		getvalrand(c, &i->op1, Rrax);
-		putvalrand(c, Rrax, &i->dst);
-		break;
-	case Iret:
-		break;
-	case Icallc:
-	case Iinv:
-	case Ineg:
-	case Inot:
-	case Iadd:
-	case Iand:
-	case Idiv:
-	case Imod:
-	case Imul:
-	case Ior:
-	case Ishl:
-	case Ishr:
-	case Isub:
-	case Ixor:
-	case Icmplt:
-	case Icmple:
-	case Icmpgt:
-	case Icmpge:
-	case Icmpeq:
-	case Icmpneq:
-	case Isubsp:
-	case Ipush:
-	case Ipushi:
-	case Ivargc:
-	case Icall:
-	case Icallt:
-	case Iframe:
-	case Ipanic:
-	case Ihalt:
-	case Ijmp:
-	case Ijnz:
-	case Ijz:
-	case Iclo:
-	case Ikg:
-	case Ikp:
-	case Ibox:
-	case Ibox0:
-	case Icval:
-	case Iref:
-	case Ixcast:
-	case Ilist:
-	case Isizeof:
-		printinsn(i);
-		fatal("insn6: unimplemented instruction");
-	default:
-		fatal("insn6: unrecognized insn %d", i->kind);
-	}
-
+	
 }
 
 void
-cg6(Code *c)
+cg6(Code *c, Expr *e)
 {
 	unsigned i;
 
 	c->maxx = 100*c->ninsn;    /* guess what we'll need */
 	c->x = emalloc(c->maxx);
 	c->nx = 0;
-	for(i = 0; i < c->ninsn; i++){
-		printinsn(&c->insn[i]);
-		xprintf("\n");
-		insn6(c, &c->insn[i]);
-	}
-	xprintf("disassem %p %p\n", c->x, c->x+c->nx);
+	cg6fn(
 }

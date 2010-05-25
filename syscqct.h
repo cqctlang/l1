@@ -878,7 +878,7 @@ void		printinsn(Insn *i);
 void		printkon(Val v);
 
 /* cgx.c */
-void		cg6(Code *c);
+void		cg6(Code *c, Expr *e);
 
 /* xenv.c */
 void		freexenv(Xenv *xe);
