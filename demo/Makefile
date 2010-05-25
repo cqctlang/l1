@@ -2,7 +2,7 @@ CC        = gcc
 LD        = ld
 CFLAGS    = -Wall -g
 
-TARG = mclones32 clones forks list sig attach par1 exit
+TARG = clones forks list sig attach par1 exit
 
 all: $(TARG)
 
@@ -42,6 +42,18 @@ par1: par1.o
 
 exit: exit.o
 	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+list64: list.c
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+list32: list.c
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+list32stat: list.c
+	$(CC) -static -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 
 clean:

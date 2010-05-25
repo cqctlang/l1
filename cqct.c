@@ -77,11 +77,6 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 	}
 	if(docompilea(&ctx, e) != 0)
 		return 0;
-	if(cqctflags['a']){
-		xprintf("compilea:\n");
-		printcqct(e);
-		xprintf("\n");
-	}
 	if(cqctflags['T']){
 		phase[ntv] = "a";
 		tv[ntv++] = usec();

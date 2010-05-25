@@ -9406,21 +9406,41 @@ l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
 	str = valstrorcval(vm, "strref", argv, 0);
 	if(cv->val >= str->len)
 		vmerr(vm, "strref out of bounds");
-	*rv = mkvallitcval(Vuchar, str->s[cv->val]);
+	*rv = mkvallitcval(Vuchar, (u8)str->s[cv->val]);
 }
 
+static char*
+xmemmem(char *s1, Imm l1, char *s2, Imm l2)
+{
+	char *p, *e;
+	if(l2 > l1)
+		return 0;
+	p = s1;
+	e = s1+(l1-l2+1);
+	while(p < e){
+		if(!memcmp(p, s2, l2))
+			return p;
+		p++;
+	}
+	return 0;
+}
+
+// FIXME: the interface and implementation are broken
 static void
 l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	char *s1, *s2, *p;
-	Str *s;
+	Str *str1, *str2;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to strstr");
-	s = valstrorcval(vm, "strstr", argv, 0);
-	s1 = str2cstr(s);
-	s = valstrorcval(vm, "strstr", argv, 1);
-	s2 = str2cstr(s);
-	p = strstr(s1, s2);
+	str1 = valstrorcval(vm, "strstr", argv, 0);
+	s1 = str2cstr(str1);
+	str2 = valstrorcval(vm, "strstr", argv, 1);
+	s2 = str2cstr(str2);
+	if(Vkind(argv[0]) == Qcval && Vkind(argv[1]) == Qcval)
+		p = strstr(s1, s2);
+	else
+		p = xmemmem(s1, str1->len, s2, str2->len);
 	if(p)
 		*rv = mkvallitcval(Vuvlong, p-s1);
 	efree(s1);

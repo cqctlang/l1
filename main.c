@@ -62,9 +62,11 @@ static void
 fatal(char *fmt, ...)
 {
 	va_list args;
+	va_start(args, fmt);
 	vprintf(fmt, args);
+	va_end(args);
 	printf("\n");
-	abort();
+	exit(1);
 }
 
 static void*
@@ -414,10 +416,9 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "6a+be:ghkl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6be:ghkl:m:opqrstTwxz"))){
 		switch(c){
 		case '6':
-		case 'a':
 		case 'b':
 		case 'k':
 		case 'o':
@@ -452,6 +453,7 @@ main(int argc, char *argv[])
 			lp[nlp] = emalloc(n+1);
 			memcpy(lp[nlp++], optarg, n);
 			break;
+		case '+':
 		case 'h':
 		case '?':
 			usage(argv0);
@@ -554,7 +556,7 @@ main(int argc, char *argv[])
 				continue; /* error */
 			fn = cqctenvlook(top, ename);
 			if(fn == 0)
-				fatal("entry %s is undefined");
+				fatal("entry point \"%s\" is undefined", ename);
 			rv = cqctcallfn(vm, fn, valc, valv, &v);
 		}
 		if(opt['t']){

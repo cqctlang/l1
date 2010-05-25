@@ -1,0 +1,192 @@
+@include <ctlmux.cqct>
+
+@define dumpmap(ctl)
+{
+	@local prot2str;
+
+	@define prot2str(prot)
+	{
+		@local s;
+		prot = (ctlmux`Prot)prot;
+		s = "";
+		if(prot&ctlmux`PROT_READ)
+			s += "r";
+		else
+			s += "-";
+		if(prot&ctlmux`PROT_WRITE)
+			s += "w";
+		else
+			s += "-";
+		if(prot&ctlmux`PROT_EXEC)
+			s += "x";
+		else
+			s += "-";
+		return s;
+	}
+
+	printf("dumpmap\n");
+	foreach(@lambda(dll){
+			printf("%16x %16x %s\n",
+			       dll.id,
+			       dll.base,
+			       dll.path);
+	}, ctl.statunix()[1]);
+}
+
+@define printlist(dom)
+{
+	p = dom`head;
+	while(p){
+		printf("%d ", p->v);
+		p = p->next;
+	}
+	printf("\n");
+}
+
+@define manglelist(dom)
+{
+	p = dom`head;
+	while(p){
+		printf("%d ", p->v++);
+		p = p->next;
+	}
+	printf("\n");
+}
+
+@define mode32()
+{
+	@local ns;
+	ns = @names c32le { @include "./list32.names" };
+	return [ns,"./list32"];
+}
+
+@define mode32s()
+{
+	@local ns;
+	ns = @names c32le { @include "./list32stat.names" };
+	return [ns,"./list32stat"];
+}
+
+@define mode64()
+{
+	@local ns;
+	ns = @names clp64le { @include "./list64.names" };
+	return [ns,"./list64"];
+}
+
+@define modenat()
+{
+	@local ns;
+	ns = @names clp64le { @include "./list.names" };
+	return [ns,"./list"];
+}
+
+@define dumpsym(ss)
+{
+	foreach(@lambda(sym){
+			printf("%016x %016x %10e %10e\t%s\n",
+			       sym.val, sym.sz,
+			       (enum ctlmux`ELF_ST_BIND)sym.bind,
+			       (enum ctlmux`Stype)sym.type,
+			       sym.id);
+		}, ss);
+}
+
+@define dumpseg(gs)
+{
+	foreach(@lambda(seg){
+			printf("%016x %016x %s\n",
+			       seg.addr, seg.len, seg.name);
+		}, gs);
+}
+
+// test printlist
+@define test1(mode, n)
+{
+	@local ctl, mux, ns, cmd, as, dom, bs, ms, sym;
+
+	[ns,cmd] = mode();
+	mux = mkctlmux_local();
+	ctl = mux.launch([cmd, sprintfa("%d", n)], 0);
+	regs = ctl.reg();
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.trace(ctlmux`Eload,
+		  @lambda(ctl, path, base){
+			  ms = [];
+			  bs = ctl.statunix()[1];
+			  foreach(@lambda(dll){
+					  if(strstr(dll.path, "libc") != nil){
+						  sym = mux.looksym(dll.id,
+								    "malloc");
+						  if(sym.val)
+							  append(ms, sym.val);
+//						  dumpseg(mux.enumseg(dll.id));
+//						  dumpsym(mux.enumsym(dll.id));
+					  }
+					  if(strstr(dll.path, "list") != nil){
+						  sym = mux.looksym(dll.id,
+								    "malloc");
+						  if(sym.val)
+							  append(ms, sym.val);
+//						  dumpseg(mux.enumseg(dll.id));
+//						  dumpsym(mux.enumsym(dll.id));
+					  }
+				  }, bs);
+			  foreach(@lambda(off){
+					  dom.xtrap(off,
+						    @lambda(ctl){
+							    printf("called malloc @ %x\n", off);
+						    });
+				  }, ms);
+		  });
+	dom.xtrap(&dom`insert,
+		  @lambda(ctl){
+			  printlist(dom);
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+
+// test manglelist
+@define test2(mode, n)
+{
+	@local ctl, mux, ns, cmd, as, dom, m;
+
+	[ns,cmd] = mode();
+	mux = mkctlmux_local();
+	ctl = mux.launch([cmd, sprintfa("%d", n)], 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.xtrap(&dom`insert,
+		  @lambda(ctl){
+			  manglelist(dom);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+mode = nil;
+if(length(args) != 3)
+	error("usage: %s <mode> <testno>", args[0]);
+if(args[1] == "32")
+	mode = mode32;
+else if(args[1] == "32s")
+	mode = mode32s;
+else if(args[1] == "64")
+	mode = mode64;
+else if(args[1] == "0")
+	mode = modenat;
+else
+	error("bad mode %s", args[1]);
+switch(args[2]){
+case "1":
+	return test1(mode, 10);
+case "2":
+	return test2(mode, 10);
+default:
+	error("no such test %a", args[1]);
+}
+

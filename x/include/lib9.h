@@ -5,7 +5,7 @@
 #define _LIBC_H_ 1
 #if defined(__cplusplus)
 extern "C" {
-#endif                                                                
+#endif 
 
 #ifndef nil
 #define	nil	((void*)0)
@@ -33,6 +33,9 @@ extern	int	dec32(uchar*, int, char*, int);
 extern	int	enc32(char*, int, uchar*, int);
 extern	int	dec16(uchar*, int, char*, int);
 extern	int	enc16(char*, int, uchar*, int);
+extern  long	lrand(void);
+extern	void	xsrand(long seed);
+extern	int	nrand(int n);
 
 #if defined(__cplusplus)
 }

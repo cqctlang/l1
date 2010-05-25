@@ -8,7 +8,9 @@ struct Node {
 };
 Node *head;
 
-void
+Node node;
+
+static void
 insert(int v)
 {
 	Node *p, *q;

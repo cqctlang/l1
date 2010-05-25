@@ -11,7 +11,6 @@
 	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.map();
-	dom.trace(ctlmux`Estepctx, @lambda () { error("never called"); });
 	time(@lambda(){
 			for(i = 0; i < 100; i++){
 				regs = ctl.reg();
@@ -33,7 +32,6 @@
 	as = ctl.mem();
 	dom = mkdom(ns, as);
 	dom.map();
-	dom.trace(ctlmux`Estepctx, @lambda () { error("never called"); });
 	time(@lambda(){
 			for(i = 0; i < 100; i++){
 				regs = ctl.reg();
