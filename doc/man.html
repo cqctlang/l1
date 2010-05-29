@@ -172,7 +172,7 @@ expressions to be evaluated in order by the Cinquecento
 evaluator.
 </p>
 
-<p id="syn:@include">
+<p id="syn:_at_include">
 The Cinquecento evaluator reads code from its current
 <em>input file</em>.
 During parsing of an input file, an occurrence (not
@@ -422,7 +422,7 @@ The other assignment operators
 <span class="id">*=</span>,
 <span class="id">/=</span>,
 <span class="id">%=</span>,
-<span class="id">&=</span>,
+<span class="id">&amp;=</span>,
 <span class="id">|=</span>,
 <span class="id">^=</span>,
 <span class="id">&lt;&lt;=</span>,
@@ -434,7 +434,7 @@ create new ones.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@local">@local</span> statement
+The <span class="fnindex" id="syn:_at_local">@local</span> statement
 explicitly declares new variable bindings for the block
 in which it appears:
 
@@ -463,7 +463,7 @@ before any other statements.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@global">@global</span>
+The <span class="fnindex" id="syn:_at_global">@global</span>
 statement declares new variable bindings in the
 top-level environment:
 
@@ -550,7 +550,7 @@ the value belongs to the type,
 or <span class="arg">0</span> otherwise.
 </p>
 
-<div id="table-short">
+<div class="table-short">
 <table>
 
 <tr>
@@ -814,7 +814,7 @@ environment.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@lambda">@lambda</span>
+The <span class="fnindex" id="syn:_at_lambda">@lambda</span>
 expression defines new function values.  The syntax
 is:
 
@@ -870,7 +870,7 @@ A function call is an expression of the form
 <div class="code">
 <pre>
 <span class="arg">fn</span>(<span class="arg">expr</span>, ...)
-<pre>
+</pre>
 </div>
 
 where <span class="arg">fn</span> is an expression
@@ -910,7 +910,7 @@ if the function returns without reaching a
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@define">@define</span> form
+The <span class="fnindex" id="syn:_at_define">@define</span> form
 is syntactic sugar for naming a function definition.
 For example
 
@@ -921,6 +921,7 @@ For example
 	<span class="arg">statement</span>;
 	...
 }
+</pre>
 </div>
 
 is equivalent to 
@@ -964,7 +965,7 @@ and returns the value returned by the call.
 </div>
 </div>
 
-<div class="docitem" id="syn:@lazyapply">
+<div class="docitem" id="syn:_at_lazyapply">
 <div class="proto">
 <div class="function">
 <span class="id">@lazyapply(<span class="arg">fn</span>, <span class="arg">arg</span>, ...)</span>
@@ -1119,7 +1120,7 @@ or enter the body of a function.
 
 <h4 id="sec:constants">Constants</h4>
 
-<p id="syn:@const">
+<p id="syn:_at_const">
 The <span class="id">@const</span> form defines constant expressions.
 The syntax is:
 <div class="code">
@@ -1150,7 +1151,7 @@ and a variable has undefined behavior.  (This feature needs more work.)
 
 <h4 id="sec:records">Records</h4>
 
-<p id="syn:@record">
+<p id="syn:_at_record">
 The Cinquecento record system allows the creation of new
 aggregate types with named fields.  A <em>record descriptor</em>
 is a Cinquecento value that define a particular record type;
@@ -1493,7 +1494,7 @@ first-class values in Cinquecento.
 Name spaces and address spaces can be constructed from
 Cinquecento functions that implement their interfaces.
 In addition, a syntax form, <span class="id"><a
-href="#syn:@names">@names</a></span>, defines new name spaces
+href="#syn:_at_names">@names</a></span>, defines new name spaces
 using an extended form of C declaration syntax.  
 </p>
 
@@ -1569,7 +1570,7 @@ variable bound to a domain (not an expression that evaluates to a domain), and
 
 To obtain the type and location
 associated with the symbol, the evaluator implicitly calls
-<span class="val"><span class="arg">domain</span>.looksym(<span class="arg">identifier</span>)</span></span>
+<span class="val"><span class="arg">domain</span>.looksym(<span class="arg">identifier</span>)</span>
 </p>
 
 
@@ -1610,7 +1611,7 @@ also accepts a type name.
 <p>
 Variants of the type resolution form express the different forms of C type names:
 
-<div id="table-short">
+<div class="table-short">
 <table>
 
 <tr>
@@ -1838,7 +1839,7 @@ The binary arithmetic and bitwise operators
 <span class="id">*</span>,
 <span class="id">/</span>,
 <span class="id">%</span>,
-<span class="id">&</span>,
+<span class="id">&amp;</span>,
 <span class="id">|</span>,
 <span class="id">^</span>,
 <span class="id">&lt;&lt;</span>,
@@ -1884,7 +1885,7 @@ in the literal domain.
 
 <p>
 The logical operators
-(<span class="id">&&</span> and 
+(<span class="id">&amp;&amp;</span> and 
 <span class="id">||</span>)
 compute logical and and over integers, treated as boolean values,
 as in C.  Evaluation is short circuited, as in C.
@@ -1904,7 +1905,7 @@ reference operator.  For example, the statement
 </p>
 
 <div class="code">
-	p = &dom`x;
+	p = &amp;dom`x;
 </div>
 
 <p>
@@ -1939,7 +1940,7 @@ sequence of expressions:
 
 <div class="code">
 <pre>
-p = &dom`x;
+p = &amp;dom`x;
 p = p+1;
 </pre>
 </div>
@@ -1962,7 +1963,7 @@ following sequence of expressions:
 
 <div class="code">
 <pre>
-p = &dom`t;
+p = &amp;dom`t;
 p->next = p+1;
 </pre>
 </div>
@@ -1984,7 +1985,7 @@ to the preceding one:
 
 <div class="code">
 <pre>
-p = &dom`t;
+p = &amp;dom`t;
 p[0].next = p+1;
 </pre>
 </div>
@@ -1997,7 +1998,7 @@ of expressions:
 
 <div class="code">
 <pre>
-p = &dom`x;
+p = &amp;dom`x;
 p = p+256;
 </pre>
 </div>
@@ -2034,7 +2035,7 @@ environment, control, and other execution state of the
 Cinquecento system are not represented by a domain, and
 thus are not addressable data that a Cinquecento
 program can mutate.  (For example, you cannot apply the
-<span class="val">&</span> operator to a Cinquecento variable in hope of
+<span class="val">&amp;</span> operator to a Cinquecento variable in hope of
 discovering its address.)  As with other safe
 functional language runtimes, misbehavior or failure of
 the Cinquecento runtime is an implementation bug, never
@@ -2301,7 +2302,7 @@ common machine models, and vary in the size of
 pointers and <span class="id">long</span> integers.
 </p>
 
-<div id="table-short">
+<div class="table-short">
 <table>
 
 <tr>
@@ -2414,7 +2415,7 @@ new name space.  The <span class="id"><a
 href="#fn:mknsraw">mknsraw</a></span> function accepts
 two tables that define the symbols and types in the
 namespace.  Finally, the <span class="id"><a
-href="#syn:@names">@names</a></span> syntactic form
+href="#syn:_at_names">@names</a></span> syntactic form
 accepts symbol and type definitions in C declaration
 syntax.  Each of these mechanisms also accepts an
 optional human-readable name to be associated with
@@ -2501,7 +2502,7 @@ associated with the name space.
 </div>
 </div>
 
-<div class="docitem" id="syn:@names">
+<div class="docitem" id="syn:_at_names">
 <div class="proto">
 <div class="syntax">
 <span class="id">@names <span class="arg">parent</span> [ $ <span class="arg">name</span> ] {
@@ -2584,8 +2585,8 @@ The syntax for typedef declarations is the same as their syntax in C.
 <p>
 Cinquecento address spaces represent byte-addressed
 storage by providing methods to reflect the set
-of <em>mapped</em> locations &mdash the set of
-addresses backed by storage &mdash and methods to read
+of <em>mapped</em> locations &mdash; the set of
+addresses backed by storage &mdash; and methods to read
 and write the contents of mapped locations.  The
 prototypical address space represents the live memory
 of a running programs, but address spaces can also
@@ -2641,15 +2642,15 @@ time.
 Every address space implements four methods
 (this interface is tentatively planned for future version,
 but not currently supported):
-<div id="table-short">
+<div class="table-short">
 <table>
 
 <tr>
 <td align="right">
-<span class="arg">unit</span>&emsp:&emsp
+<span class="arg">unit</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">cvalue</span>&emsp&rarr&emsp
+<span class="type">cvalue</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <span class="type">range</span> <em>or</em> <span class="type">nil</span>
@@ -2658,10 +2659,10 @@ but not currently supported):
 
 <tr>
 <td align="right">
-<span class="arg">limit</span>&emsp:&emsp
+<span class="arg">limit</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">void</span>&emsp&rarr&emsp
+<span class="type">void</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <em>list of</em> <span class="type">cvalue</span>
@@ -2670,10 +2671,10 @@ but not currently supported):
 
 <tr>
 <td align="right">
-<span class="arg">get</span>&emsp:&emsp
+<span class="arg">get</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">range</span>&emsp&rarr&emsp
+<span class="type">range</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <span class="type">string</span> <em>or</em> <span class="type">nil</span>
@@ -2682,10 +2683,10 @@ but not currently supported):
 
 <tr>
 <td align="right">
-<span class="arg">put</span>&emsp:&emsp
+<span class="arg">put</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">range</span> &times <span class="type">string</span>&emsp&rarr&emsp
+<span class="type">range</span> &times; <span class="type">string</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <span class="type">cvalue</span> <em>or</em> <span class="type">nil</span>
@@ -2832,14 +2833,14 @@ function for setting breakpoints with an address space.
 
 <p>The Cinquecento type <em>ctype</em> represents types
 defined in C programs.  The predicate
-<span class="id" id="fn:isctype">isctype</span> tests whether a value is
+<a href="#fn:isctype"><span class="id">isctype</span></a> tests whether a value is
 a ctype.
-The <span class="fnindex"><a href="#syn:@typeof">@typeof</a></span>
+The <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
 operator can be used to obtain a ctype representing the
 type of a cvalue or the type denoted by a type name.
 </p>
 
-<div class="docitem" id="syn:@typeof">
+<div class="docitem" id="syn:_at_typeof">
 <div class="proto">
 <div class="function">
 <span class="id">@typeof(<span class="arg">typename</span>)</span>
@@ -7039,17 +7040,17 @@ machines sharing the environment have been freed.
 <td>
 <a href="#syn:[]">[<span class="arg">value</span>, ... ]</a><br />
 <a href="#syn:[:]">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
-<a href="#syn:@const">@const</a><br />
-<a href="#syn:@global">@global</a><br />
-<a href="#syn:@include">@include</a><br />
-<a href="#syn:@lazyapply">@lazyapply</a><br />
-<a href="#syn:@local">@local</a><br />
-<a href="#syn:@names">@names</a><br />
-<a href="#syn:@record">@record</a><br />
-<a href="#syn:@define">@define</a><br />
-<a href="#syn:@lambda">@lambda</a><br />
+<a href="#syn:_at_const">@const</a><br />
+<a href="#syn:_at_global">@global</a><br />
+<a href="#syn:_at_include">@include</a><br />
+<a href="#syn:_at_lazyapply">@lazyapply</a><br />
+<a href="#syn:_at_local">@local</a><br />
+<a href="#syn:_at_names">@names</a><br />
+<a href="#syn:_at_record">@record</a><br />
+<a href="#syn:_at_define">@define</a><br />
+<a href="#syn:_at_lambda">@lambda</a><br />
 <a href="#syn:return">return</a><br />
-<a href="#syn:@typeof">@typeof</a><br />
+<a href="#syn:_at_typeof">@typeof</a><br />
 </td>
 </tr>
 </table>

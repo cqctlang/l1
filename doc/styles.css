@@ -84,11 +84,11 @@ dl.bolddt-indentdd {
 	margin-bottom: 10px;
 }
 
-#table-short {
+.table-short {
        margin-left: 50px;
 }
 
-#table-short td {
+.table-short td {
 	border-style: solid;
 	padding-top: 0px;
 	padding-bottom: 0px;
