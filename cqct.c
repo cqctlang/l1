@@ -181,15 +181,15 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 			printcqct(e);
 			xprintf("\n");
 		}
-		e = docompilef(&ctx, e);
+		e = docompiles(&ctx, e);
 		if(e == 0)
 			return 0;
 		if(cqctflags['T']){
-			phase[ntv] = "c";
+			phase[ntv] = "s";
 			tv[ntv++] = usec();
 		}
 		if(cqctflags['q']){
-			xprintf("*** f ***\n");
+			xprintf("*** s ***\n");
 			printcqct(e);
 			xprintf("\n");
 		}

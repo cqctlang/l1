@@ -32,7 +32,6 @@ enum Reg6
 typedef
 struct i6
 {
-	i6kind kind;
 	unsigned char rex;
 } i6;
 
@@ -207,7 +206,7 @@ putvalrand(Code *c, Reg6 reg, Operand *r)
 static void
 cg6fn(Code *c, Expr *e)
 {
-	
+
 }
 
 void
@@ -218,5 +217,4 @@ cg6(Code *c, Expr *e)
 	c->maxx = 100*c->ninsn;    /* guess what we'll need */
 	c->x = emalloc(c->maxx);
 	c->nx = 0;
-	cg6fn(
 }

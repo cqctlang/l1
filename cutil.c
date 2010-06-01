@@ -569,3 +569,52 @@ visempty(Expr *a)
 	return a->kind == Enull;
 }
 
+void
+vsinsert(Expr *e, Vs *vs)
+{
+	vs->vs = vinsert(e, vs->vs);
+}
+
+// to = union(from,to)
+void
+vsunion(Vs *from, Vs *to)
+{
+	Expr *r;
+	r = vunion(from->vs, to->vs);
+	freeexpr(to->vs);
+	to->vs = r;
+}
+
+void
+vsappend(Expr *e, Vs *vs)
+{
+	Expr *p;
+	p = e;
+	while(p->kind == Eelist){
+		vs->vs = Zcons(copyexpr(p->e1), vs->vs);
+		p = p->e2;
+	}
+}
+
+// a = diff(a,b)
+void
+vsdiff(Vs *a, Expr *b)
+{
+	Expr *r;
+	r = vdiff(a->vs, b);
+	freeexpr(a->vs);
+	a->vs = r;
+}
+
+void
+vsinit(Vs *vs)
+{
+	vs->vs = nullelist();
+}
+
+void
+vsfree(Vs *vs)
+{
+	freeexpr(vs->vs);
+	vs->vs = 0;
+}

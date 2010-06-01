@@ -2,49 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-typedef
-struct Vs
-{
-	Expr *vs;
-} Vs;
-
-static void
-vsinsert(Expr *e, Vs *vs)
-{
-	vs->vs = vinsert(e, vs->vs);
-}
-
-static void
-vsunion(Vs *from, Vs *to)
-{
-	Expr *r;
-	r = vunion(from->vs, to->vs);
-	freeexpr(to->vs);
-	to->vs = r;
-}
-
-static void
-vsdiff(Vs *a, Expr *b)
-{
-	Expr *r;
-	r = vdiff(a->vs, b);
-	freeexpr(a->vs);
-	a->vs = r;
-}
-
-static void
-vsinit(Vs *vs)
-{
-	vs->vs = nullelist();
-}
-
-static void
-vsfree(Vs *vs)
-{
-	freeexpr(vs->vs);
-	vs->vs = 0;
-}
-
 static Expr*
 letrec(U *ctx, Expr *e)
 {
@@ -247,7 +204,7 @@ findex(Expr *id, Expr *fs)
 {
 	Expr *p;
 	int i;
-	i = 0; 
+	i = 0;
 	p = fs;
 	while(p->kind != Enull){
 		if(!strcmp(id->id, p->e1->id))

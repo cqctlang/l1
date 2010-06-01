@@ -554,6 +554,12 @@ struct Ictx {
 } Ictx;
 
 typedef
+struct Vs
+{
+	Expr *vs;
+} Vs;
+
+typedef
 enum
 {
 	Vparam,
@@ -855,8 +861,8 @@ Expr*		docompilex(U *ctx, Expr *e);
 /* compilec.c */
 Expr*		docompilec(U *ctx, Expr *e);
 
-/* compilef.c */
-Expr*		docompilef(U *ctx, Expr *e);
+/* compiles.c */
+Expr*		docompiles(U *ctx, Expr *e);
 
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
@@ -1053,6 +1059,12 @@ Expr*		vinsert(Expr *e, Expr *vs);
 Expr*		vintersect(Expr *a, Expr *b);
 int		visempty(Expr *a);
 int		vmember(Expr *e, Expr *l);
+void		vsappend(Expr *e, Vs *vs);
+void		vsdiff(Vs *a, Expr *b);
+void		vsfree(Vs *vs);
+void		vsinit(Vs *vs);
+void		vsinsert(Expr *e, Vs *vs);
+void		vsunion(Vs *from, Vs *to);
 Expr*		vunion(Expr *a, Expr *b);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);
