@@ -44,14 +44,14 @@ locals0(U *ctx, Expr *e)
 	while(p->kind == Eelist){
 		q = p->e1;
 		vsinit(&vs);
-		b = locals(ctx, q->e2->e1, &vs);
-		q->e2->e1 = Zblock(copyexpr(vs.vs), b);
+		b = locals(ctx, q->e2->e1->e2, &vs); // body of lambda
+		q->e2->e1->e2 = Zblock(copyexpr(vs.vs), b);
 		vsfree(&vs);
 		p = p->e2;
 	}
 	vsinit(&vs);
-	b = locals(ctx, e->e2, &vs);
-	e->e2 = Zblock(copyexpr(vs.vs), b);
+	b = locals(ctx, e->e2->e2, &vs); // body of lambda
+	e->e2->e2 = Zblock(copyexpr(vs.vs), b);
 	vsfree(&vs);
 	return e;
 }
