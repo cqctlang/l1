@@ -5916,6 +5916,57 @@ Returns the current time in microseconds.
 </div>
 </div>
 
+<div class="docitem" id="fn:getenv">
+<div class="proto">
+<div class="function">
+<span class="id">getenv(var)</span>
+</div>
+<div class="param">
+<span class="arg">var</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">string or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the value associated with the variable <span class="arg">var</span>
+in the environment of the calling process, or <span class="val">nil</span>
+if the variable is undefined.
+</div>
+</div>
+
+<div class="docitem" id="fn:loadpath">
+<div class="proto">
+<div class="function">
+<span class="id">loadpath()</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns the current load path as a list of strings.
+</div>
+</div>
+
+<div class="docitem" id="fn:setloadpath">
+<div class="proto">
+<div class="function">
+<span class="id">setloadpath(l)</span>
+</div>
+<div class="param">
+<span class="arg">l</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the current load path to the list of strings <span class="arg">l</span>.
+</div>
+</div>
+
+
 <div class="docitem" id="fn:backtrace">
 <div class="proto">
 <div class="function">
@@ -6081,7 +6132,7 @@ strings with a zlib header and trailer.
 The L1 implementation of Cinquecento comes with several 
 standard libraries stored
 in the lib/ subdirectory. Since they are included in
-l1's load path, These libraries are loaded via the command:
+l1's load path, these libraries are loaded via the command:
 </p>
 <div class="code">
 @include &lt;<span class="arg">library</span>&gt;<br />
@@ -7164,6 +7215,7 @@ machines sharing the environment have been freed.
 <a href="#fn:foreach">foreach</a><br />
 <a href="#fn:fprintf">fprintf</a><br />
 <a href="#fn:getbytes">getbytes</a><br />
+<a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
@@ -7285,6 +7337,7 @@ machines sharing the environment have been freed.
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
+<a href="#fn:setloadpath">setloadpath</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
