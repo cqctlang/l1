@@ -13,9 +13,9 @@
 				printf("\t");
 				printf("\t%t;\n", fld);
 			}else if(isbitfield(ft)){
-				printf("\t@@(8*0x%x+%x)",
+				printf("\t@@(8*0x%x+0x%x)",
 				       off, bitfieldpos(ft));
-				printf("\t%t %s : %d\n",
+				printf("\t%t %s : %d;\n",
 				       bitfieldcontainer(ft), id,
 				       bitfieldwidth(ft));
 			}else{
@@ -55,7 +55,8 @@
 	fn = nsenumsym(ns);
 	vec = tabvals(fn(ns));
 	for(i = 0; i < veclen(vec); i++)
-		printf("%t;\n", vecref(vec, i));
+		if(!isenumconst(symtype(vecref(vec, i))))
+			printf("%t;\n", vecref(vec, i));
 }
 
 @define foo(){
