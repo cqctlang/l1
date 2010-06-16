@@ -273,6 +273,12 @@ xioctl(int fd, unsigned long req, char *buf)
 	return ioctl(fd, req, buf);
 }
 
+long
+xlseek(int fd, long off, int whence)
+{
+	return lseek(fd, off, whence);
+}
+
 int
 xmunmap(void *p, Imm len)
 {

@@ -5328,6 +5328,37 @@ an existing file for reading and writing).
 </div>
 </div>
 
+<div class="docitem" id="fn:fdopen">
+<div class="proto">
+<div class="function">
+<span class="id">fdopen(<span class="arg">fd</span>,<span class="arg">mode</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">mode</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">file descriptor</span>
+</div>
+</div>
+<div class="desc">
+Creates and returns a Cinquecento file descriptor that
+is bound to the system-level file
+descriptor <span class="arg">fd</span> of the calling
+process.
+<span class="arg">Mode</span> specifies whether the
+file descriptor can be read, written, or both; see
+(<span class="fnindex"><a href="#fn:open">open</a></span>).
+The native file descriptor is closed if and when the
+Cinquecento file descriptor is closed, including the
+implicit close that occurs when a file descriptor is
+garbage collected.
+</div>
+</div>
+
+
 <div class="docitem" id="fn:tcpopen">
 <div class="proto">
 <div class="function">
@@ -5464,6 +5495,64 @@ already closed descriptor has no effect.  A call to
 <span class="id">read</span> or <span
 class="id">write</span> on a closed descriptor draws an
 error.
+</div>
+</div>
+
+<div class="docitem" id="fn:seek">
+<div class="proto">
+<div class="function">
+<span class="id">seek(<span class="arg">fd</span>, <span class="arg">offset</span>, <span class="arg">whence</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">offset</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">whence</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Invokes a system-level file seek operation (<span class="id">lseek</span>) on
+the I/O resource associated
+with <span class="arg">fd</span>.  The integer values
+of <span class="arg">offset</span>
+and <span class="arg">whence</span> are passed
+unmodified to the seek; the caller is expected to know
+how to use them.  Returns the value returned by the seek.
+</div>
+</div>
+
+<div class="docitem" id="fn:ioctl">
+<div class="proto">
+<div class="function">
+<span class="id">ioctl(<span class="arg">fd</span>, <span class="arg">offset</span>, <span class="arg">whence</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">req</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">dat</span>: <span class="type">cvalue or string</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Invokes a system-level <span class="id">ioctl</span> operation
+on the I/O resource associated
+with <span class="arg">fd</span>.  The integer value
+of <span class="arg">req</span> is passed unmodified.
+If <span class="arg">dat</span> is a cvalue, its integer value is passed unmodified; otherwise a pointer to the contents of the string is passed.
+The caller is expected to know how to use these arguments.
+Returns the value returned by <span class="id">ioctl</span>.
 </div>
 </div>
 
@@ -7207,6 +7296,7 @@ machines sharing the environment have been freed.
 <a href="#fn:exit">exit</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
+<a href="#fn:fdopen">fdopen</a><br />
 <a href="#fn:fieldid">fieldid</a><br />
 <a href="#fn:fieldoff">fieldoff</a><br />
 <a href="#fn:fields">fields</a><br />
@@ -7222,6 +7312,7 @@ machines sharing the environment have been freed.
 <a href="#fn:index">index</a><br />
 <a href="#fn:inflate">inflate</a><br />
 <a href="#fn:inflate">inflatezlib</a><br />
+<a href="#fn:ioctl">ioctl</a><br />
 <a href="#fn:isalnum">isalnum</a><br />
 <a href="#fn:isalpha">isalpha</a><br />
 <a href="#fn:isarray">isarray</a><br />
@@ -7337,6 +7428,7 @@ machines sharing the environment have been freed.
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
+<a href="#fn:seek">seek</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />

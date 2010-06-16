@@ -72,6 +72,7 @@ void		threadexit(void *vp);
 void		threadinit(void);
 void		threadwait(Thread t);
 int		xioctl(int fd, unsigned long req, char *buf);
+long		xlseek(int fd, long off, int whence);
 int		xpopen(Imm argc, char **argv, unsigned flags, int *rfd);
 int		xmunmap(void *p, Imm len);
 Imm		usec(void);
