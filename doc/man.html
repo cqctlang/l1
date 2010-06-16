@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -139,15 +140,14 @@ for common environments, such as x86 Linux systems.
 <p>
 Apart from domains and the C-based syntax, Cinquecento
 is a simple dynamic language with conventional
-functional semantics.  At heart it is a dialect of
-Scheme: Cinquecento is lexically scoped, dynamically
-typed, properly tail recursive, and has first-class
-functions and automatic memory management.  Faithful
-Schemers will notice departure in Cinquecento's model of
-integers (which rigorously emulates C's fixed precision
-semantics), the more imperative flavor of its built-in
-list data type, and the absence (today) of a compelling
-macro system.
+functional semantics.  A dialect of Scheme at heart,
+Cinquecento is lexically scoped, dynamically typed,
+properly tail recursive, and has first-class functions
+and automatic memory management.  Schemers will note
+departure in Cinquecento's model of integers (which
+rigorously emulates C's fixed precision semantics), the
+more imperative flavor of its built-in list data type,
+and the absence (today) of a compelling macro system.
 </p>
 
 <p>
@@ -172,23 +172,27 @@ expressions to be evaluated in order by the Cinquecento
 evaluator.
 </p>
 
-<p id="syn:@include">
+<p id="syn:_at_include">
 The Cinquecento evaluator reads code from its current
 <em>input file</em>.
 During parsing of an input file, an occurrence (not
 within a string literal or comment) of either of the
 forms
+</p>
 <div class="code">
 @include &lt;<span class="arg">filename</span>&gt;<br />
 @include "<span class="arg">filename</span>"
 </div>
+<p>
 is replaced with the contents of the named file.
 The first form searches for
 <span class="arg">filename</span>
 in the Cinquecento system load path.
 The second form searches the directory that contains the
 current input file.
+</p>
 
+<p>
 The current input file is temporarily switched to 
 <span class="arg">filename</span> during the substitution.
 </p>
@@ -371,7 +375,7 @@ Cinquecento is lexically scoped and dynamically typed.
 
 <p>
 The block statement:
-
+</p>
 <div class="code">
 <pre>
 {
@@ -380,7 +384,7 @@ The block statement:
 }
 </pre>
 </div>
-
+<p>
 introduces a new level of lexical scope.
 </p>
 
@@ -395,11 +399,11 @@ functions and other values.
 
 <p>
 Bindings are mutable.  The assignment form
-
+</p>
 <div class="code">
 <span class="arg">var</span> = <span class="arg">expr</span>;
 </div>
-
+<p>
 updates the value bound to the variable <span class="arg">var</span>
 to the value of <span class="arg">expr</span>.
 </p>
@@ -422,7 +426,7 @@ The other assignment operators
 <span class="id">*=</span>,
 <span class="id">/=</span>,
 <span class="id">%=</span>,
-<span class="id">&=</span>,
+<span class="id">&amp;=</span>,
 <span class="id">|=</span>,
 <span class="id">^=</span>,
 <span class="id">&lt;&lt;=</span>,
@@ -434,10 +438,10 @@ create new ones.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@local">@local</span> statement
+The <span class="fnindex" id="syn:_at_local">@local</span> statement
 explicitly declares new variable bindings for the block
 in which it appears:
-
+</p>
 <div class="code">
 <pre>
 {
@@ -448,7 +452,7 @@ in which it appears:
 }
 </pre>
 </div>
-
+<p>
 establishes new bindings for the
 variables <span class="arg">var ... </span> within the
 enclosing block.
@@ -463,16 +467,15 @@ before any other statements.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@global">@global</span>
+The <span class="fnindex" id="syn:_at_global">@global</span>
 statement declares new variable bindings in the
 top-level environment:
-
+</p>
 <div class="code">
 <pre>
 @global <span class="arg">var</span>, ... ;
 </pre>
 </div>
-</p>
 
 <p>
 Variables declared with
@@ -550,7 +553,7 @@ the value belongs to the type,
 or <span class="arg">0</span> otherwise.
 </p>
 
-<div id="table-short">
+<div class="table-short">
 <table>
 
 <tr>
@@ -814,9 +817,10 @@ environment.
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@lambda">@lambda</span>
+The <span class="fnindex" id="syn:_at_lambda">@lambda</span>
 expression defines new function values.  The syntax
 is:
+</p>
 
 <div class="code">
 <pre>
@@ -866,13 +870,13 @@ to be evaluated when the function is called.
 
 <p>
 A function call is an expression of the form
-
+</p>
 <div class="code">
 <pre>
 <span class="arg">fn</span>(<span class="arg">expr</span>, ...)
-<pre>
+</pre>
 </div>
-
+<p>
 where <span class="arg">fn</span> is an expression
 that evaluates to a function.
 
@@ -887,14 +891,14 @@ A <span class="fnindex" id="syn:return">return</span>
 statement in the body of a function returns control to
 the expression that called the function.  The syntax
 variants are:
-
+</p>
 <div class="code">
 <pre>
 return;
 return <span class="arg">expr</span>;
 </pre>
 </div>
-
+<p>
 The first form returns the value <span class="val">nil</span>.
 The second form returns the value of <span class="arg">expr</span>. 
 </p>
@@ -910,10 +914,10 @@ if the function returns without reaching a
 </p>
 
 <p>
-The <span class="fnindex" id="syn:@define">@define</span> form
+The <span class="fnindex" id="syn:_at_define">@define</span> form
 is syntactic sugar for naming a function definition.
 For example
-
+</p>
 <div class="code">
 <pre>
 @define <span class="arg">name</span>(<span class="arg">var</span>, ...)
@@ -921,10 +925,12 @@ For example
 	<span class="arg">statement</span>;
 	...
 }
+</pre>
 </div>
+<p>
 
 is equivalent to 
-
+</p>
 <div class="code">
 <pre>
 <span class="arg">name</span> = @lambda(<span class="arg">var</span>, ...)
@@ -934,7 +940,6 @@ is equivalent to
 }
 </pre>
 </div>
-</p>
 
 <p>
 The built-in function <span class="id">apply</span>
@@ -964,7 +969,7 @@ and returns the value returned by the call.
 </div>
 </div>
 
-<div class="docitem" id="syn:@lazyapply">
+<div class="docitem" id="syn:_at_lazyapply">
 <div class="proto">
 <div class="function">
 <span class="id">@lazyapply(<span class="arg">fn</span>, <span class="arg">arg</span>, ...)</span>
@@ -997,7 +1002,7 @@ evaluates the argument expression.
 <p>
 Several built-in functions support non-local control
 flow.
-<p>
+</p>
 
 <div class="docitem" id="fn:error">
 <div class="proto">
@@ -1119,15 +1124,15 @@ or enter the body of a function.
 
 <h4 id="sec:constants">Constants</h4>
 
-<p id="syn:@const">
+<p id="syn:_at_const">
 The <span class="id">@const</span> form defines constant expressions.
 The syntax is:
+</p>
 <div class="code">
 <pre>
 @const <span class="arg">id</span> = <span class="arg">expr</span>;
 </pre>
 </div>
-</p>
 
 <p>
 The identifier <span class="arg">id</span> is bound to
@@ -1150,7 +1155,7 @@ and a variable has undefined behavior.  (This feature needs more work.)
 
 <h4 id="sec:records">Records</h4>
 
-<p id="syn:@record">
+<p id="syn:_at_record">
 The Cinquecento record system allows the creation of new
 aggregate types with named fields.  A <em>record descriptor</em>
 is a Cinquecento value that define a particular record type;
@@ -1163,13 +1168,13 @@ the fields defined by the record descriptor.
 
 <p>
 For example, the expression:
-
+</p>
 <div class="code">
 <pre>
 @record myrec { field1, field2, field3 };
 </pre>
 </div>
-
+<p>
 defines a new record type, named <span class="id">myrec</span>.
 
 The record type has three fields, named
@@ -1203,12 +1208,13 @@ The function <span class="id">myrec</span> is the
 constructor for instances of the <span class="id">myrec</span> type.
 
 For example:
-
+</p>
 <div class="code">
 <pre>
 x = myrec("abc", 1, @lambda(x){ printf("hi\n")});
 </pre>
 </div>
+<p>
 
 binds <span class="id">x</span> to a new instance of the
 <span class="id">myrec</span> type.
@@ -1225,7 +1231,7 @@ they were given in the <span class="id">@record</span> definition.
 
 <p>
 The dot operator provides access to the fields of a record instance:
-
+</p>
 <div class="code">
 <pre>
 printf("%a", x.field1);   // print x's field1
@@ -1237,7 +1243,6 @@ x.field2 += 5;		  // update x's field2
 x.field3("blah");	  // call the value of x's field3
 </pre>
 </div>
-</p>
 
 <p>
 The following routines operate on records and record descriptors.
@@ -1493,7 +1498,7 @@ first-class values in Cinquecento.
 Name spaces and address spaces can be constructed from
 Cinquecento functions that implement their interfaces.
 In addition, a syntax form, <span class="id"><a
-href="#syn:@names">@names</a></span>, defines new name spaces
+href="#syn:_at_names">@names</a></span>, defines new name spaces
 using an extended form of C declaration syntax.  
 </p>
 
@@ -1516,13 +1521,13 @@ Symbols and types in a domain are referenced with the backtick operator.
 
 <p>
 An expression of the form
-
+</p>
 <div class="code">
 <pre>
 dom`x
 </pre>
 </div>
-
+<p>
 resolves <span class="val">x</span> 
 as either a symbol or type name in the domain 
 <span class="val">dom</span>, depending on the context
@@ -1533,13 +1538,13 @@ of the expression.
 Symbol resolution occurs when the backtick expression
 appears where an lvalue or rvalue would be expected in C.
 For example, in the expression
-
+</p>
 <div class="code">
 <pre>
 dom`x = dom`y;
 </pre>
 </div>
-
+<p>
 the names
 <span class="val">x</span>
 and
@@ -1551,25 +1556,25 @@ in the domain
 
 <p>
 In general, the syntax for symbol resolution is:
-
+</p>
 <div class="code">
 <pre>
 <span class="arg">domain</span>`<span class="arg">identifier</span>
 </pre>
 </div>
 
-</p>
-
 <p>
 where <span class="arg">domain</span> is a
 variable bound to a domain (not an expression that evaluates to a domain), and
 <span class="arg">identifier</span> is a symbol defined in the domain.
 
+</p>
+
 <p>
 
 To obtain the type and location
 associated with the symbol, the evaluator implicitly calls
-<span class="val"><span class="arg">domain</span>.looksym(<span class="arg">identifier</span>)</span></span>
+<span class="val"><span class="arg">domain</span>.looksym(<span class="arg">identifier</span>)</span>
 </p>
 
 
@@ -1609,8 +1614,8 @@ also accepts a type name.
 
 <p>
 Variants of the type resolution form express the different forms of C type names:
-
-<div id="table-short">
+</p>
+<div class="table-short">
 <table>
 
 <tr>
@@ -1671,12 +1676,12 @@ enum <span class="arg">domain</span>`<span class="arg">identifier</span>
 
 </table>
 </div>
-</p>
 
 <p>
 The first variant references base C type specifiers,
 which comprise one or more type specifier tokens.
 For example, these expressions
+</p>
 <div class="code">
 <pre>
 dom`int
@@ -1684,7 +1689,7 @@ dom`unsigned long
 dom`signed short int
 </pre>
 </div>
-
+<p>
 reference the base C types
 <span class="id">int</span>, 
 <span class="id">unsigned long</span>, 
@@ -1838,7 +1843,7 @@ The binary arithmetic and bitwise operators
 <span class="id">*</span>,
 <span class="id">/</span>,
 <span class="id">%</span>,
-<span class="id">&</span>,
+<span class="id">&amp;</span>,
 <span class="id">|</span>,
 <span class="id">^</span>,
 <span class="id">&lt;&lt;</span>,
@@ -1884,7 +1889,7 @@ in the literal domain.
 
 <p>
 The logical operators
-(<span class="id">&&</span> and 
+(<span class="id">&amp;&amp;</span> and 
 <span class="id">||</span>)
 compute logical and and over integers, treated as boolean values,
 as in C.  Evaluation is short circuited, as in C.
@@ -1904,7 +1909,7 @@ reference operator.  For example, the statement
 </p>
 
 <div class="code">
-	p = &dom`x;
+	p = &amp;dom`x;
 </div>
 
 <p>
@@ -1939,7 +1944,7 @@ sequence of expressions:
 
 <div class="code">
 <pre>
-p = &dom`x;
+p = &amp;dom`x;
 p = p+1;
 </pre>
 </div>
@@ -1962,7 +1967,7 @@ following sequence of expressions:
 
 <div class="code">
 <pre>
-p = &dom`t;
+p = &amp;dom`t;
 p->next = p+1;
 </pre>
 </div>
@@ -1984,7 +1989,7 @@ to the preceding one:
 
 <div class="code">
 <pre>
-p = &dom`t;
+p = &amp;dom`t;
 p[0].next = p+1;
 </pre>
 </div>
@@ -1997,7 +2002,7 @@ of expressions:
 
 <div class="code">
 <pre>
-p = &dom`x;
+p = &amp;dom`x;
 p = p+256;
 </pre>
 </div>
@@ -2034,7 +2039,7 @@ environment, control, and other execution state of the
 Cinquecento system are not represented by a domain, and
 thus are not addressable data that a Cinquecento
 program can mutate.  (For example, you cannot apply the
-<span class="val">&</span> operator to a Cinquecento variable in hope of
+<span class="val">&amp;</span> operator to a Cinquecento variable in hope of
 discovering its address.)  As with other safe
 functional language runtimes, misbehavior or failure of
 the Cinquecento runtime is an implementation bug, never
@@ -2301,7 +2306,7 @@ common machine models, and vary in the size of
 pointers and <span class="id">long</span> integers.
 </p>
 
-<div id="table-short">
+<div class="table-short">
 <table>
 
 <tr>
@@ -2414,7 +2419,7 @@ new name space.  The <span class="id"><a
 href="#fn:mknsraw">mknsraw</a></span> function accepts
 two tables that define the symbols and types in the
 namespace.  Finally, the <span class="id"><a
-href="#syn:@names">@names</a></span> syntactic form
+href="#syn:_at_names">@names</a></span> syntactic form
 accepts symbol and type definitions in C declaration
 syntax.  Each of these mechanisms also accepts an
 optional human-readable name to be associated with
@@ -2501,7 +2506,7 @@ associated with the name space.
 </div>
 </div>
 
-<div class="docitem" id="syn:@names">
+<div class="docitem" id="syn:_at_names">
 <div class="proto">
 <div class="syntax">
 <span class="id">@names <span class="arg">parent</span> [ $ <span class="arg">name</span> ] {
@@ -2584,8 +2589,8 @@ The syntax for typedef declarations is the same as their syntax in C.
 <p>
 Cinquecento address spaces represent byte-addressed
 storage by providing methods to reflect the set
-of <em>mapped</em> locations &mdash the set of
-addresses backed by storage &mdash and methods to read
+of <em>mapped</em> locations &mdash; the set of
+addresses backed by storage &mdash; and methods to read
 and write the contents of mapped locations.  The
 prototypical address space represents the live memory
 of a running programs, but address spaces can also
@@ -2641,15 +2646,16 @@ time.
 Every address space implements four methods
 (this interface is tentatively planned for future version,
 but not currently supported):
-<div id="table-short">
+</p>
+<div class="table-short">
 <table>
 
 <tr>
 <td align="right">
-<span class="arg">unit</span>&emsp:&emsp
+<span class="arg">unit</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">cvalue</span>&emsp&rarr&emsp
+<span class="type">cvalue</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <span class="type">range</span> <em>or</em> <span class="type">nil</span>
@@ -2658,10 +2664,10 @@ but not currently supported):
 
 <tr>
 <td align="right">
-<span class="arg">limit</span>&emsp:&emsp
+<span class="arg">limit</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">void</span>&emsp&rarr&emsp
+<span class="type">void</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <em>list of</em> <span class="type">cvalue</span>
@@ -2670,10 +2676,10 @@ but not currently supported):
 
 <tr>
 <td align="right">
-<span class="arg">get</span>&emsp:&emsp
+<span class="arg">get</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">range</span>&emsp&rarr&emsp
+<span class="type">range</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <span class="type">string</span> <em>or</em> <span class="type">nil</span>
@@ -2682,10 +2688,10 @@ but not currently supported):
 
 <tr>
 <td align="right">
-<span class="arg">put</span>&emsp:&emsp
+<span class="arg">put</span>&emsp;:&emsp;
 </td>
 <td align="right">
-<span class="type">range</span> &times <span class="type">string</span>&emsp&rarr&emsp
+<span class="type">range</span> &times; <span class="type">string</span>&emsp;&rarr;&emsp;
 </td>
 <td>
 <span class="type">cvalue</span> <em>or</em> <span class="type">nil</span>
@@ -2694,8 +2700,6 @@ but not currently supported):
 
 </table>
 </div>
-
-</p>
 
 <p>
 The range type represents a contiguous span of
@@ -2774,12 +2778,12 @@ expressions that involve storage access operations
 (such as dereferencing a pointer).  However, programs
 may directly invoked these functions by name using an
 overloaded form of the C binary dot operator:
+</p>
 <div class="code">
 <pre>
 ; as.get(mkrange(0,1024));
 </pre>
 </div>
-</p>
 
 <p>
 When the left operand of a dot expression is an address
@@ -2797,12 +2801,12 @@ In addition, if the right operand is the identifier
 simply the dispatch function of the address space,
 instead of the curried version described above.
 For example, the above call to <tt>get</tt> is equivalent to:
+</p>
 <div class="code">
 <pre>
 ; as.dispatch("get",mkrange(0,1024));
 </pre>
 </div>
-</p>
 
 <p>
 As a syntactic convenience, the left operand to the dot
@@ -2832,14 +2836,14 @@ function for setting breakpoints with an address space.
 
 <p>The Cinquecento type <em>ctype</em> represents types
 defined in C programs.  The predicate
-<span class="id" id="fn:isctype">isctype</span> tests whether a value is
+<a href="#fn:isctype"><span class="id">isctype</span></a> tests whether a value is
 a ctype.
-The <span class="fnindex"><a href="#syn:@typeof">@typeof</a></span>
+The <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
 operator can be used to obtain a ctype representing the
 type of a cvalue or the type denoted by a type name.
 </p>
 
-<div class="docitem" id="syn:@typeof">
+<div class="docitem" id="syn:_at_typeof">
 <div class="proto">
 <div class="function">
 <span class="id">@typeof(<span class="arg">typename</span>)</span>
@@ -2905,7 +2909,7 @@ construct new instances of each category.  Descriptions of
 the accessors and constructors follow the table.
 </p>
 
-<div id="table">
+<div class="table">
 <table>
 
 <tr>
@@ -2980,12 +2984,12 @@ Bitfield
 </td>
 <td><span class="fnindex" id="fn:isbitfield">isbitfield</span></td>
 <td>
-<span class="fnindex"><a href="#fn:bitfieldcontainer"><a href="#fn:bitfieldcontainer">bitfieldcontainer</a></a></span><br />
-<span class="fnindex"><a href="#fn:bitfieldpos"><a href="#fn:bitfieldpos">bitfieldpos</a></a></span><br />
-<span class="fnindex"><a href="#fn:bitfieldwidth"><a href="#fn:bitfieldwidth">bitfieldwidth</a></a></span><br />
+<span class="fnindex"><a href="#fn:bitfieldcontainer">bitfieldcontainer</a></span><br />
+<span class="fnindex"><a href="#fn:bitfieldpos">bitfieldpos</a></span><br />
+<span class="fnindex"><a href="#fn:bitfieldwidth">bitfieldwidth</a></span><br />
 </td>
 <td>
-<span class="fnindex"><a href="#fn:mkctype_bitfield"><a href="#fn:mkctype">mkctype</a>_bitfield</a></span>
+<span class="fnindex"><a href="#fn:mkctype_bitfield">mkctype_bitfield</a></span>
 </td>
 </tr>
 
@@ -2995,12 +2999,12 @@ Enumeration
 </td>
 <td><span class="fnindex" id="fn:isenum">isenum</span></td>
 <td>
-<span class="fnindex"><a href="#fn:enumconsts"><a href="#fn:enumconsts">enumconsts</a></a></span><br />
-<span class="fnindex"><a href="#fn:suetag"><a href="#fn:suetag">suetag</a></a></span><br />
-<span class="fnindex"><a href="#fn:subtype"><a href="#fn:subtype">subtype</a></a></span>
+<span class="fnindex"><a href="#fn:enumconsts">enumconsts</a></span><br />
+<span class="fnindex"><a href="#fn:suetag">suetag</a></span><br />
+<span class="fnindex"><a href="#fn:subtype">subtype</a></span>
 </td>
 <td>
-<span class="fnindex"><a href="#fn:mkctype_enum"><a href="#fn:mkctype_enum">mkctype_enum</a></a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_enum">mkctype_enum</a></span><br />
 </td>
 </tr>
 
@@ -3950,7 +3954,7 @@ and the containers must have the same length.
 </div>
 
 <div>
-If <span class="arg"</span>container</span> is a table,
+If <span class="arg">container</span> is a table,
 then no other containers may be provided, and 
 <span class="id">foreach</span> visits each key/value pair in
 unspecified order, calling <span class="arg">fn</span>
@@ -4177,32 +4181,32 @@ Returns <span class="arg">container</span> following the update.
 <p>
 Containers can be indexed with C array reference
 operator (<span class="id">[]</span>).  The statement
-
+</p>
 <div class="code">
 <pre>
 	x = C[i];
 </pre>
 </div>
-
+<p>
 reads the <span class="id">i</span>th element from
 container <span class="id">C</span>.  Likewise,
-
+</p>
 <div class="code">
 <pre>
 	C[i] = x;
 </pre>
 </div>
-
+<p>
 assigns the <span class="id">i</span>th element to
 the value bound to <span class="id">x</span>, and the
 statements
-
+</p>
 <div class="code">
 <pre>
 	C[i] += 1;	C[i]++;
 </pre>
 </div>
-
+<p>
 both increment the <span class="id">i</span>th element.
 </p>
 
@@ -4223,7 +4227,7 @@ Lists are variable-length ordered collections, possibly
 empty.  Lists are mutable, allowing items to be added
 or deleted from any position, and contiguously indexed
 from position 0.  The predicate
-<span class="id" id="fn:islist">islist</span> tests whether a value is
+<a href="#fn:islist"><span class="id">islist</span></a> tests whether a value is
 a list.
 </p>
 
@@ -4267,7 +4271,7 @@ otherwise to <span class="val">nil</span>.
 </div>
 </div>
 
-<div class="docitem" id="syn:[]">
+<div class="docitem" id="syn:_emptylist_">
 <div class="proto">
 <div class="syntax">
 <span class="id">[ <span class="arg">value</span>, ... ]</span>
@@ -4511,8 +4515,8 @@ Returns a new list containing the elements of <span class="arg">list</span> in r
 <div class="proto">
 <div class="function">
 <span class="id">slice(<span class="arg">list</span>,
-  <span class="arg">beg</span>)</span>,
-  <span class="arg">end</span>)</span>)</span>
+  <span class="arg">beg</span>,
+  <span class="arg">end</span>)</span>
 </div>
 <div class="param">
 <span class="arg">list</span>: <span class="type">list</span>
@@ -4675,7 +4679,7 @@ Creates and returns a new, empty table.
 </div>
 
 
-<div class="docitem"  id="syn:[:]">
+<div class="docitem"  id="syn:_emptytable_">
 <div class="proto">
 <div class="syntax">
 <span class="id">[ <span class="arg">key</span> : <span class="arg">value</span>, ... ]</span>
@@ -4772,7 +4776,7 @@ from <span class="arg">tab</span>, if it exists.
 <div class="docitem" id="fn:tabkeys">
 <div class="proto">
 <div class="function">
-<span class="id">tabkeys(<span class="arg">tab</span>)
+<span class="id">tabkeys(<span class="arg">tab</span>)</span>
 </div>
 <div class="param">
 <span class="arg">tab</span>: <span class="type">table</span>
@@ -4790,7 +4794,7 @@ Returns a vector containing all keys in
 <div class="docitem" id="fn:tabvals">
 <div class="proto">
 <div class="function">
-<span class="id">tabvals(<span class="arg">tab</span>)
+<span class="id">tabvals(<span class="arg">tab</span>)</span>
 </div>
 <div class="param">
 <span class="arg">tab</span>: <span class="type">table</span>
@@ -4807,7 +4811,7 @@ Returns a vector containing all values in
 <div class="docitem" id="fn:tabenum">
 <div class="proto">
 <div class="function">
-<span class="id">tabenum(<span class="arg">tab</span>)
+<span class="id">tabenum(<span class="arg">tab</span>)</span>
 </div>
 <div class="param">
 <span class="arg">tab</span>: <span class="type">table</span>
@@ -4931,13 +4935,13 @@ zero), are indexed from position 0, and are not null
 terminated.  Strings are mutable, but do not share
 storage with other strings.  The maximum string length
 is 2^64-1.  The predicate
-<span class="id" id="fn:isstring">isstring</span> tests whether a value is
+<a href="#fn:isstring"><span class="id">isstring</span></a> tests whether a value is
 a string.
 </p>
 
 <p>
 The C relational operators (<tt>==</tt>, <tt>!=</tt>,
-<tt><</tt>, <tt>></tt>, <tt><=</tt>, <tt>>=</tt>) are
+<tt>&lt;&lt;</tt>, <tt>></tt>, <tt>&lt;=</tt>, <tt>>=</tt>) are
 defined over strings.  They compare the contents of the
 strings.  There is no way to test whether two string
 instances are the same object.
@@ -5023,7 +5027,6 @@ Returns the character at index <span class="arg">idx</span> in
 </div>
 <div class="returns">
 <span class="type">cvalue or nil</span>
-</span>
 </div>
 </div>
 <div class="desc">
@@ -5079,7 +5082,7 @@ class="arg">from</span> starting at position
 </div>
 <div class="desc">
 Copies the contents of string <span
-class="arg">from</span> into <span of
+class="arg">from</span> into <span 
 class="arg">to</span>.  The copy begins at position
 <span class="arg">offset</span> within <span
 class="arg">to</span>.  It is an error if <span class="arg">to</span> is too short for <span
@@ -5283,7 +5286,7 @@ class="arg">ptr</span>.
 Cinquecento supports I/O backed by regular files, network
 connections, or user-defined functions.  Such I/O resources
 are represented by an instance of the file descriptor type.
-The predicate <span class="id" id="fn:isfd">isfd</span>
+The predicate <a href="#fn:isfd"><span class="id">isfd</span></a>
 tests whether a value is a file descriptor.
 </p>
 
@@ -5324,6 +5327,37 @@ for writing), and <span class="val">"rw"</span> (truncate
 an existing file for reading and writing).
 </div>
 </div>
+
+<div class="docitem" id="fn:fdopen">
+<div class="proto">
+<div class="function">
+<span class="id">fdopen(<span class="arg">fd</span>,<span class="arg">mode</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">mode</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">file descriptor</span>
+</div>
+</div>
+<div class="desc">
+Creates and returns a Cinquecento file descriptor that
+is bound to the system-level file
+descriptor <span class="arg">fd</span> of the calling
+process.
+<span class="arg">Mode</span> specifies whether the
+file descriptor can be read, written, or both; see
+<span class="fnindex"><a href="#fn:open">open</a></span>.
+The native file descriptor is closed if and when the
+Cinquecento file descriptor is closed, including the
+implicit close that occurs when a file descriptor is
+garbage collected.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:tcpopen">
 <div class="proto">
@@ -5461,6 +5495,64 @@ already closed descriptor has no effect.  A call to
 <span class="id">read</span> or <span
 class="id">write</span> on a closed descriptor draws an
 error.
+</div>
+</div>
+
+<div class="docitem" id="fn:seek">
+<div class="proto">
+<div class="function">
+<span class="id">seek(<span class="arg">fd</span>, <span class="arg">offset</span>, <span class="arg">whence</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">offset</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">whence</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Invokes a system-level file seek operation (<span class="id">lseek</span>) on
+the I/O resource associated
+with <span class="arg">fd</span>.  The integer values
+of <span class="arg">offset</span>
+and <span class="arg">whence</span> are passed
+unmodified to the seek; the caller is expected to know
+how to use them.  Returns the value returned by the seek.
+</div>
+</div>
+
+<div class="docitem" id="fn:ioctl">
+<div class="proto">
+<div class="function">
+<span class="id">ioctl(<span class="arg">fd</span>, <span class="arg">offset</span>, <span class="arg">whence</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">req</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">dat</span>: <span class="type">cvalue or string</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Invokes a system-level <span class="id">ioctl</span> operation
+on the I/O resource associated
+with <span class="arg">fd</span>.  The integer value
+of <span class="arg">req</span> is passed unmodified.
+If <span class="arg">dat</span> is a cvalue, its integer value is passed unmodified; otherwise a pointer to the contents of the string is passed.
+The caller is expected to know how to use these arguments.
+Returns the value returned by <span class="id">ioctl</span>.
 </div>
 </div>
 
@@ -5692,7 +5784,7 @@ format function.
 The recognized verb characters are:
 </p>
 
-<div id="table">
+<div class="table">
 <table>
 
 <tr>
@@ -5755,7 +5847,7 @@ string is printed, including null bytes.
 </div>
 <div>
 <span class="val">B</span> is like <span class="val">b</span>, except unprintable
-characters are formatted as octal literals.
+characters are formatted as octal literals and " and \ are escaped.
 </div>
 </td>
 </tr>
@@ -5912,6 +6004,57 @@ the Cinquecento system is running.
 Returns the current time in microseconds.
 </div>
 </div>
+
+<div class="docitem" id="fn:getenv">
+<div class="proto">
+<div class="function">
+<span class="id">getenv(var)</span>
+</div>
+<div class="param">
+<span class="arg">var</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">string or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the value associated with the variable <span class="arg">var</span>
+in the environment of the calling process, or <span class="val">nil</span>
+if the variable is undefined.
+</div>
+</div>
+
+<div class="docitem" id="fn:loadpath">
+<div class="proto">
+<div class="function">
+<span class="id">loadpath()</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns the current load path as a list of strings.
+</div>
+</div>
+
+<div class="docitem" id="fn:setloadpath">
+<div class="proto">
+<div class="function">
+<span class="id">setloadpath(l)</span>
+</div>
+<div class="param">
+<span class="arg">l</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the current load path to the list of strings <span class="arg">l</span>.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:backtrace">
 <div class="proto">
@@ -6078,11 +6221,11 @@ strings with a zlib header and trailer.
 The L1 implementation of Cinquecento comes with several 
 standard libraries stored
 in the lib/ subdirectory. Since they are included in
-l1's load path, These libraries are loaded via the command:
+l1's load path, these libraries are loaded via the command:
+</p>
 <div class="code">
 @include &lt;<span class="arg">library</span>&gt;<br />
 </div>
-</p>
 
 <p>
 This section gives non-exhaustive describions 
@@ -6151,7 +6294,7 @@ to the file <span class="arg">filename</span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:assave">
+<div class="docitem" id="fn:assave_str">
 <div class="proto">
 <div class="function">
 <span class="id">assave_str(<span class="arg">as</span>)</span>
@@ -6169,7 +6312,7 @@ Saves the address space
 </div>
 </div>
 
-<div class="docitem" id="fn:asload">
+<div class="docitem" id="fn:ascopy">
 <div class="proto">
 <div class="function">
 <span class="id">ascopy(<span class="arg">as</span>)</span>
@@ -6332,23 +6475,23 @@ The interface operates on values of several opaque
 types.
 </p>
 
-<div id="table">
+<div class="table">
 <table>
 <tr>
-<td><span class="id">Toplevel</span><td>
-<td>Toplevel environment<td>
+<td><span class="id">Toplevel</span></td>
+<td>Toplevel environment</td>
 </tr>
 <tr>
-<td><span class="id">Val</span><td>
-<td>Cinquecento value<td>
+<td><span class="id">Val</span></td>
+<td>Cinquecento value</td>
 </tr>
 <tr>
-<td><span class="id">VM</span><td>
-<td>Virtual machine for evaluating compiled Cinquecento expression<td>
+<td><span class="id">VM</span></td>
+<td>Virtual machine for evaluating compiled Cinquecento expression</td>
 </tr>
 <tr>
-<td><span class="id">Xfd</span><td>
-<td>File descriptor interface<td>
+<td><span class="id">Xfd</span></td>
+<td>File descriptor interface</td>
 </tr>
 </table>
 </div>
@@ -6393,7 +6536,7 @@ struct Head {
 };
 
 typedef struct Head* Val;
-<pre>
+</pre>
 </div>
 
 
@@ -6470,7 +6613,7 @@ non-zero, the memory allocator restricts the heap size
 to <span class="arg">heapmax</span> megabytes.
 If <span class="arg">loadpath</span> is non-NULL,
 it is the vector of directories in which the
-the @include <<span class="arg">filename</span>>
+the @include &lt;<span class="arg">filename</span>>
 form searches for <span class="arg">filename</span>; its final element must be NULL.
 If <span class="arg">in</span> is non-NULL,
 it specifies the input file to which the
@@ -6866,7 +7009,7 @@ The result is undefined if <span class="arg">v</span> is not a vector.
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:cqctmkfd">Val cqctmkfd(Xfd *<span class="arg">Xfd</span>,
-char *<span class="arg">name</span>);
+char *<span class="arg">name</span>);</span>
 </div>
 </div>
 <div class="desc">
@@ -6884,7 +7027,7 @@ the file descriptor is unnamed.
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:cqctenvbind">void cqctenvbind(Toplevel *<span class="arg">top</span>, char *<span class="arg">name</span>,
-Val <span class="arg">val</span>);
+Val <span class="arg">val</span>);</span>
 </div>
 </div>
 <div class="desc">
@@ -6897,7 +7040,7 @@ to <span class="arg">val</span>.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctenvlook">Val cqctenvlook(Toplevel *<span class="arg">top</span>, char *<span class="arg">name</span>);
+<span class="id" id="fn:cqctenvlook">Val cqctenvlook(Toplevel *<span class="arg">top</span>, char *<span class="arg">name</span>);</span>
 </div>
 </div>
 <div class="desc">
@@ -6947,7 +7090,7 @@ of <span class="arg">vm</span>.
 Protects the value <span class="arg">v</span> from
 garbage collection.  
 Unlike
-values protected by <a href="#fn:cqctgcprotect">cqctgcprotect</a></span>,
+values protected by <span class="id"><a href="#fn:cqctgcprotect">cqctgcprotect</a></span>,
 the protection persists beyond return from the current GC protection
 frame.
 References to the value will be valid until
@@ -6963,7 +7106,7 @@ References to the value will be valid until
 </div>
 <div class="desc">
 Remove the protection of <span class="arg">v</span>
-established by a previous call to <a href="#fn:cqctgcprotect">cqctgcprotect</a></span>.
+established by a previous call to <span class="id"><a href="#fn:cqctgcprotect">cqctgcprotect</a></span>.
 </div>
 </div>
 
@@ -7037,19 +7180,19 @@ machines sharing the environment have been freed.
 <table>
 <tr>
 <td>
-<a href="#syn:[]">[<span class="arg">value</span>, ... ]</a><br />
-<a href="#syn:[:]">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
-<a href="#syn:@const">@const</a><br />
-<a href="#syn:@global">@global</a><br />
-<a href="#syn:@include">@include</a><br />
-<a href="#syn:@lazyapply">@lazyapply</a><br />
-<a href="#syn:@local">@local</a><br />
-<a href="#syn:@names">@names</a><br />
-<a href="#syn:@record">@record</a><br />
-<a href="#syn:@define">@define</a><br />
-<a href="#syn:@lambda">@lambda</a><br />
+<a href="#syn:_emptylist_">[<span class="arg">value</span>, ... ]</a><br />
+<a href="#syn:_emptytable_">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
+<a href="#syn:_at_const">@const</a><br />
+<a href="#syn:_at_global">@global</a><br />
+<a href="#syn:_at_include">@include</a><br />
+<a href="#syn:_at_lazyapply">@lazyapply</a><br />
+<a href="#syn:_at_local">@local</a><br />
+<a href="#syn:_at_names">@names</a><br />
+<a href="#syn:_at_record">@record</a><br />
+<a href="#syn:_at_define">@define</a><br />
+<a href="#syn:_at_lambda">@lambda</a><br />
 <a href="#syn:return">return</a><br />
-<a href="#syn:@typeof">@typeof</a><br />
+<a href="#syn:_at_typeof">@typeof</a><br />
 </td>
 </tr>
 </table>
@@ -7153,6 +7296,7 @@ machines sharing the environment have been freed.
 <a href="#fn:exit">exit</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
+<a href="#fn:fdopen">fdopen</a><br />
 <a href="#fn:fieldid">fieldid</a><br />
 <a href="#fn:fieldoff">fieldoff</a><br />
 <a href="#fn:fields">fields</a><br />
@@ -7161,12 +7305,14 @@ machines sharing the environment have been freed.
 <a href="#fn:foreach">foreach</a><br />
 <a href="#fn:fprintf">fprintf</a><br />
 <a href="#fn:getbytes">getbytes</a><br />
+<a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />
 <a href="#fn:inflate">inflate</a><br />
 <a href="#fn:inflate">inflatezlib</a><br />
+<a href="#fn:ioctl">ioctl</a><br />
 <a href="#fn:isalnum">isalnum</a><br />
 <a href="#fn:isalpha">isalpha</a><br />
 <a href="#fn:isarray">isarray</a><br />
@@ -7282,6 +7428,8 @@ machines sharing the environment have been freed.
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
+<a href="#fn:seek">seek</a><br />
+<a href="#fn:setloadpath">setloadpath</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
