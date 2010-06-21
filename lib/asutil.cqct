@@ -16,7 +16,7 @@
 @include <dynamictypes.cqct>
 
 @global asfile_identifier;
-asfile_identifier="CCS/AS1";
+asfile_identifier="AS1";
 
 //the address space to be associated with the names files.
 @define svasns()
