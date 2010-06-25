@@ -397,13 +397,10 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	oflags = 0;
 	if(strchr(mode, 'r'))
 		flags |= Fread;
-	if(strchr(mode, 'w')){
+	if(strchr(mode, 'w') || strchr(mode, 'a'))
 		flags |= Fwrite;
-		oflags |= O_CREAT;
-	}
-	if((flags&Fwrite) && !strchr(mode, 'a'))
-		oflags |= O_TRUNC;
-
+	if(strchr(mode, 'w'))
+		oflags |= O_CREAT|O_TRUNC;
 	if((flags&Fread) && (flags&Fwrite))
 		oflags |= O_RDWR;
 	else if(flags&Fread)
@@ -417,6 +414,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > xfd.fd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
+	if(strchr(mode, 'a'))
+		lseek(xfd.fd, 0, SEEK_END);
 	xfd.read = xfdread;
 	xfd.write = xfdwrite;
 	xfd.close = xfdclose;
