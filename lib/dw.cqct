@@ -5465,6 +5465,7 @@ lastlocfun = nil;
   @local drec, dbeg, dend, dr;
   @local m, r, rbeg, rend, inrange;
   @local cutab, binfile, lazy;
+  @local aranges;
   if (isempty (args))
     return nil;
   binfile = args[0];
@@ -5476,6 +5477,9 @@ lastlocfun = nil;
   rns = bdrec.rootns;
   dom = bdrec.elf;
   if (isnil (dom))
+    return nil;
+  aranges = getelfsection (dom, ".debug_aranges");
+  if (length (aranges) == 0)
     return nil;
   bdrec.debug_aranges = mkdwdom (dom, getelfsection (dom, ".debug_aranges"),
 			     ".debug_aranges");
