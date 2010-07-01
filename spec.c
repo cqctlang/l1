@@ -104,7 +104,7 @@ specsubst(Expr *e, Xenv *xe, Val *rdom)
 			e->e3 = specsubst(e->e3, xf, &rf);
 			df = xenvdiff(xe, xf);
 			freexenvall(xf);
-			if(!heq(dt, df))
+			if(!heqs(dt, df))
 				fatal("ifelse merge failed");
 			xenvapply(xe, dt);
 			freeht(df);

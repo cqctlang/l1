@@ -77,7 +77,7 @@ typedef struct Toplevel Toplevel;
 typedef struct VM VM;
 typedef struct Head Head;
 typedef struct Head* Val;
-typedef struct Heap Heap;
+typedef struct xHeap xHeap;
 
 enum
 {

@@ -1,15 +1,20 @@
 #ifndef _BISONFLAW_UTIL_H_
 #define _BISONFLAW_UTIL_H_
 typedef struct HT HT;
-HT *mkht(void);
-void freeht(HT *ht);
-void hput(HT *ht, char *k, unsigned len, void *v);
-void *hget(HT *ht, char *k, unsigned len);
-void hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
-unsigned long hnent(HT *ht);
-void* hrefval(HT *ht, unsigned long idx);
-u64 hsz(HT *ht);
-int heq(HT *ha, HT *hb);
+void		freeht(HT *ht);
+HT*		mkhtp(void);
+HT*		mkhts(void);
+int		heqs(HT *ha, HT *hb);
+void		hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
+void		hdelp(HT *ht, void *k);
+void		hdels(HT *ht, char *k, u32 len);
+void*		hgetp(HT *ht, void *k);
+void*		hgets(HT *ht, char *k, u32 len);
+u32		hnent(HT *ht);
+void		hputp(HT *ht, void *k, void *v);
+void		hputs(HT *ht, char *k, u32 len, void *v);
+u64		hsz(HT *ht);
+
 
 char** copystrv(char **lp);
 void fatal(char *fmt, ...) NORETURN;

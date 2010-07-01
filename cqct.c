@@ -197,6 +197,7 @@ cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
 		err->fd = 2;
 	}
 	cqctloadpath = copystrv(lp);
+	initmem();
 	initparse();
 	initcg();
 	initvm(gcthread, heapmax);
@@ -211,5 +212,5 @@ cqctfini(Toplevel *top)
 	finivm();
 	finicg();
 	finiparse();
+	finimem();
 }
-

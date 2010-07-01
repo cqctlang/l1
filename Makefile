@@ -37,8 +37,10 @@ L1C =\
 	compile2.c\
 	compilev.c\
 	spec.c\
+	list.c\
 	type.c\
 	cg.c\
+	mem.c\
 	vm.c\
 	cqct.c\
 	xfd.c\

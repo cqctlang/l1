@@ -7,7 +7,7 @@ mkxenv(Xenv *link)
 {
 	Xenv *xe;
 	xe = emalloc(sizeof(Xenv));
-	xe->ht = mkht();
+	xe->ht = mkhts();
 	xe->link = link;
 	return xe;
 }
@@ -37,7 +37,7 @@ xenvlook(Xenv *xe, char *id)
 
 	if(xe == 0)
 		return 0;
-	v = hget(xe->ht, id, strlen(id));
+	v = hgets(xe->ht, id, strlen(id));
 	if(v)
 		return v;
 	return xenvlook(xe->link, id);
@@ -46,7 +46,7 @@ xenvlook(Xenv *xe, char *id)
 void
 xenvbind(Xenv *xe, char *id, void *v)
 {
-	hput(xe->ht, id, strlen(id), v);
+	hputs(xe->ht, id, strlen(id), v);
 }
 
 void
@@ -54,8 +54,8 @@ xenvupdate(Xenv *xe, char *id, void *v)
 {
 	if(xe == 0)
 		fatal("xenvupdate on unbound identifier: %s", id);
-	if(hget(xe->ht, id, strlen(id))){
-		hput(xe->ht, id, strlen(id), v);
+	if(hgets(xe->ht, id, strlen(id))){
+		hputs(xe->ht, id, strlen(id), v);
 		return;
 	}
 	xenvupdate(xe->link, id, v);
@@ -101,7 +101,7 @@ diff1(void *u, char *id, void *v)
 	struct arg *a;
 	a = u;
 	if(xenvlook(a->fr, id) != v)
-		hput(a->ht, id, strlen(id), v);
+		hputs(a->ht, id, strlen(id), v);
 }
 
 /* assume TO and FR bind the same identifiers;
@@ -112,7 +112,7 @@ HT*
 xenvdiff(Xenv *fr, Xenv *to)
 {
 	struct arg a;
-	a.ht = mkht();
+	a.ht = mkhts();
 	a.fr = fr;
 	xenvforeach(to, diff1, &a);
 	return a.ht;

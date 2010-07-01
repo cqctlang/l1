@@ -86,18 +86,18 @@ hashdecl(unsigned kind, Decl *d, HT *sym, HT *tag, HT *tid)
 	switch(kind){
 	case Edecls:
 		if(d->id)
-			hput(sym, d->id, strlen(d->id), d);
+			hputs(sym, d->id, strlen(d->id), d);
 		else{
 			t = d->type;
 			if((t->kind == Tstruct || t->kind == Tunion)
 			   && (t->field != 0 || t->attr != 0))
-				hput(tag, t->tag, strlen(t->tag), d);
+				hputs(tag, t->tag, strlen(t->tag), d);
 			if(t->kind == Tenum && t->en != 0)
-				hput(tag, t->tag, strlen(t->tag), d);
+				hputs(tag, t->tag, strlen(t->tag), d);
 		}
 		break;
 	case Etypedef:
-		hput(tid, d->id, strlen(d->id), d);
+		hputs(tid, d->id, strlen(d->id), d);
 		break;
 	default:
 		fatal("bug");
@@ -114,7 +114,7 @@ rmenid(Expr *e, HT *enid)
 
 	switch(e->kind){
 	case Eid:
-		v = hget(enid, e->id, strlen(e->id));
+		v = hgets(enid, e->id, strlen(e->id));
 		if(v == 0)
 			/* FIXME: undefined identifier in enum const;
 			   tell user about it now (instead of when ns
@@ -142,7 +142,7 @@ rmenids(Type *t, HT *enid)
 		en = t->en;
 		while(en && en != (Enum*)EmptyDecl){
 			en->val = rmenid(en->val, enid);
-			hput(enid, en->id, strlen(en->id), en->val);
+			hputs(enid, en->id, strlen(en->id), en->val);
 			en = en->link;
 		}
 		break;
@@ -191,10 +191,10 @@ compilens(U *ctx, Expr *e)
 	ex = e->e2;
 	if(ex->kind != Eelist && ex->kind != Enull)
 		fatal("broken");
-	sym = mkht();
-	tag = mkht();
-	tid = mkht();
-	enid = mkht();
+	sym = mkhts();
+	tag = mkhts();
+	tid = mkhts();
+	enid = mkhts();
 	while(ex->kind == Eelist){
 		dl = ex->e1->xp;
 		while(dl){

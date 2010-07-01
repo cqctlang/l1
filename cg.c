@@ -641,7 +641,7 @@ reclabels(Expr *e, Code *code, HT *ls)
 		break;
 	case Elabel:
 		id = e->e1->id;
-		hput(ls, id, strlen(id), genlabel(code, id));
+		hputs(ls, id, strlen(id), genlabel(code, id));
 		reclabels(e->e2, code, ls);
 		break;
 	case Eelist:
@@ -664,7 +664,7 @@ static HT*
 labels(Expr *e, Code *code)
 {
 	HT *ls;
-	ls = mkht();
+	ls = mkhts();
 	reclabels(e, code, ls);
 	return ls;
 }
@@ -1598,13 +1598,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Ibox0;
 			randvarloc(&i->op1, bxst->var[m], 0);
 		}
-		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		L = hgets(p->labels, e->e1->id, strlen(e->e1->id));
 		if(L == 0)
 			fatal("goto bug");
 		cgjmp(code, p, L, nxt, &e->src);
 		break;
 	case Elabel:
-		L = hget(p->labels, e->e1->id, strlen(e->e1->id));
+		L = hgets(p->labels, e->e1->id, strlen(e->e1->id));
 		if(L == 0)
 			fatal("goto bug");
 		emitlabel(L, e);

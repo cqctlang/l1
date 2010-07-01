@@ -1013,7 +1013,7 @@ gotos(Expr *e, HT *ls, Exprs *ges)
 		break;
 	case Egoto:
 		id = e->e1->id;
-		les = hget(ls, id, strlen(id));
+		les = hgets(ls, id, strlen(id));
 		e->xp = gotoplan(les, ges);
 		break;
 	case Eelist:
@@ -1053,7 +1053,7 @@ pass5(Expr *e, HT *ls, Exprs *les)
 	switch(e->kind){
 	case Elambda:
 		les = newexprs(e, 0);
-		ls = mkht();
+		ls = mkhts();
 		pass5(e->e2, ls, les);
 		pass5(e->e4, ls, les);
 		gotos(e->e2, ls, les);
@@ -1069,7 +1069,7 @@ pass5(Expr *e, HT *ls, Exprs *les)
 		break;
 	case Elabel:
 		id = e->e1->id;
-		hput(ls, id, strlen(id), copyexprs(les));
+		hputs(ls, id, strlen(id), copyexprs(les));
 		break;
 	case Eelist:
 		p = e;

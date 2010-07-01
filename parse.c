@@ -1318,10 +1318,10 @@ pushyy(U *ctx, char *filename, char *buf, int dofree)
 		fatal("maximum include depth exceeded");
 	keyed = 0;
 	if(filename){
-		keyed = hget(filenames, filename, strlen(filename));
+		keyed = hgets(filenames, filename, strlen(filename));
 		if(!keyed){
 			keyed = xstrdup(filename);
-			hput(filenames, keyed, strlen(keyed), keyed);
+			hputs(filenames, keyed, strlen(keyed), keyed);
 		}
 	}
 	ctx->inp->src.filename = keyed;
@@ -1444,7 +1444,7 @@ doparse(U *ctx, char *buf, char *whence)
 void
 initparse(void)
 {
-	filenames = mkht();
+	filenames = mkhts();
 }
 
 static void
