@@ -588,19 +588,42 @@ gcwb(Val v)
 {
 }
 
-static void
+static Head*
 copy(Head *h)
 {
 	Seg *s;
 	s = lookseg(h);
 	if(s->kind == Mpersist)
-		return;
+		return s;
 }
 
 void
-gc(VM *vm)
+doroot(Val *v)
 {
+	Head *h;
+	h = valhead(*v);
+	if(h == 0)
+		return;
+	*v = copy(h);
+}
 
+void
+gc()
+{
+	u32 m;
+	Head *h;
+	VM **vmp, *vm;
+
+	vmp = vms;
+	while(vmp < vms+Maxvms){
+		vm = *vmp++;
+		if(vm == 0)
+			continue;
+		for(m = vm->sp; m < Maxstk; m++)
+			doroot(&vm->stack[m]);
+		doroot(&vm->ac);
+		doroot(&vm->cl);
+	}
 }
 
 Head*
