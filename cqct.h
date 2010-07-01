@@ -85,15 +85,15 @@ enum
 	Vkindbits = 5,
 	Vkindmask = (1<<Vkindbits)-1,
 
-	Vcoloroff = 5,
+	Vcoloroff = Vkindoff+Vkindbits,
 	Vcolorbits = 3,
 	Vcolormask = (1<<Vcolorbits)-1,
 
-	Vinrsoff = 8,
+	Vinrsoff = Vcoloroff+Vcolorbits,
 	Vinrsbits = 1,
 	Vinrsmask = (1<<Vinrsbits)-1,
 
-	Vfinaloff = 9,
+	Vfinaloff = Vinrsoff+Vinrsbits,
 	Vfinalbits = 1,
 	Vfinalmask = (1<<Vfinalbits)-1,
 };
