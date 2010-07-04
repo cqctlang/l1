@@ -81,7 +81,11 @@ typedef struct xHeap xHeap;
 
 enum
 {
-	Vkindoff  = 0,
+	Vfwdoff  = 0,
+	Vfwdbits = 1,
+	Vfwdmask = (1<<Vfwdbits)-1,
+
+	Vkindoff  = Vfwdoff+Vfwdbits,
 	Vkindbits = 5,
 	Vkindmask = (1<<Vkindbits)-1,
 
@@ -98,6 +102,10 @@ enum
 	Vfinalmask = (1<<Vfinalbits)-1,
 };
 
+#define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
+#define Vsetfwd(p, a)     ((p)->bits = a|(Vfwdmask<<Vfwdoff))
+#define Vfwdaddr(p)	  ((p)->bits & ~(Vfwdmask<<Vfwdoff))
+
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
@@ -112,9 +120,7 @@ enum
 
 
 struct Head {
-	uint32_t bits;
-	Head *alink;
-	Head *link;
+	uintptr_t bits;
 };
 
 typedef struct Xfd Xfd;
@@ -141,10 +147,8 @@ void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);
 void		cqctgcdisable(VM *vm);
 void		cqctgcenable(VM *vm);
-void		cqctgcprotect(VM *vm, Val v);
-void		cqctgcunprotect(VM *vm, Val v);
-void		cqctgcpersist(VM *vm, Val v);
-void		cqctgcunpersist(VM *vm, Val v);
+Val		cqctgcprotect(VM *vm, Val v);
+Val		cqctgcunprotect(VM *vm, Val v);
 Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp,
 			 Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);

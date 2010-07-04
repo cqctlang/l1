@@ -82,11 +82,10 @@ Val Xundef;
 Val Xnil;
 Val Xnulllist;
 static Dom *litdom;
-static Ns *litns;
-static Xtypename **litbase;
 static Tab *finals;
-
+static Closure *halt;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
+
 VM *vms[Maxvms];
 static unsigned nvms;
 static unsigned long long tick;
@@ -1547,7 +1546,7 @@ mkcval(Dom *dom, Xtypename *type, Imm val)
 Cval*
 mklitcval(Cbase base, Imm val)
 {
-	return mkcval(litdom, litbase[base], val);
+	return mkcval(litdom, litdom->ns->base[base], val);
 }
 
 Val
@@ -2110,7 +2109,7 @@ domcastbase(VM *vm, Dom *dom, Cval *cv)
 	Str *es;
 
 	xtn = cv->type;
-	if(dom == vm->litdom)
+	if(dom == litdom)
 		xtn = chasetype(xtn);
 	if(xtn->tkind != Tbase)
 		vmerr(vm, "operand must be of base type");
@@ -2137,7 +2136,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	Str *es;
 
 	/* FIXME: do we really want to lookup the type in the new domain? */
-	if(dom == vm->litdom)
+	if(dom == litdom)
 		xtn = dolooktype(vm, chasetype(cv->type), dom->ns);
 	else
 		xtn = dolooktype(vm, cv->type, dom->ns);
@@ -2164,16 +2163,16 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	if(op1->dom == op2->dom)
 		goto out;
 
-	if(op1->dom == vm->litdom)
+	if(op1->dom == litdom)
 		op1 = domcast(vm, op2->dom, op1);
-	else if(op2->dom == vm->litdom)
+	else if(op2->dom == litdom)
 		op2 = domcast(vm, op1->dom, op2);
 	else{
 		b1 = chasetype(op1->type);
 		b2 = chasetype(op2->type);
 		if(b1->tkind != Tptr && b2->tkind != Tptr){
-			op1 = domcastbase(vm, vm->litdom, op1);
-			op2 = domcastbase(vm, vm->litdom, op2);
+			op1 = domcastbase(vm, litdom, op1);
+			op2 = domcastbase(vm, litdom, op2);
 		}else if(b1->tkind == Tptr && b2->tkind == Tptr)
 			vmerr(vm, domerr);
 		else if(b1->tkind == Tptr){
@@ -2521,7 +2520,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		n = (op1->val-op2->val)/sz;
 		n = truncimm(n, t1->rep);
 		/* FIXME: define ptrdiff_t? */
-		return mkcval(vm->litdom, vm->litbase[Vlong], n);
+		return mkcval(litdom, litdom->ns->base[Vlong], n);
 	}
 
 	/* exactly one operand is a pointer */
@@ -2799,10 +2798,10 @@ dostr:
 	if(Vkind(v1) == Qstr && Vkind(v2) == Qcval){
 		cv2 = valcval(v2);
 		if(isstrcval(cv2)){
-			gcprotect(vm, v1);
-			s1 = valstr(v1);
+			v1 = gcprotect(v1);
 			s2 = stringof(vm, cv2);
-			gcunprotect(vm, v1);
+			v1 = gcunprotect(v1);
+			s1 = valstr(v1);
 			goto dostr;
 		}
 		/* fall through */
@@ -2811,10 +2810,10 @@ dostr:
 	if(Vkind(v2) == Qstr && Vkind(v1) == Qcval){
 		cv1 = valcval(v1);
 		if(isstrcval(cv1)){
-			gcprotect(vm, v2);
+			v2 = gcprotect(v2);
 			s1 = stringof(vm, cv1);
+			v2 = gcunprotect(v2);
 			s2 = valstr(v2);
-			gcunprotect(vm, v2);
 			goto dostr;
 		}
 		/* fall through */
@@ -3083,7 +3082,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 			rv = mkvalcval(d, b->link, cv->val);
 			goto out;
 		case Qns:
-			d = mkdom(valns(xv), vm->litdom->as, 0);
+			d = mkdom(valns(xv), litdom->as, 0);
 			rv = mkvalcval(d, b->link, cv->val);
 			goto out;
 		default:
@@ -3207,7 +3206,7 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 		if(Vkind(ov) == Qstr){
 			if(!isptrtype(t))
 				vmerr(vm, "illegal type conversion");
-			cv = str2voidstar(vm->litns, valstr(ov));
+			cv = str2voidstar(litdom->ns, valstr(ov));
 		}else
 			cv = valcval(ov);
 		rv = mkvalcval2(typecast(vm, t, cv));
@@ -3266,7 +3265,7 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	else
 		vmerr(vm, "operand 1 to sizeof must be a type or cvalue");
 	imm = typesize(vm, xtn);
-	rv = mkvalcval(vm->litdom, vm->litbase[Vuint], imm);
+	rv = mkvalcval(litdom, litdom->ns->base[Vuint], imm);
 	putvalrand(vm, rv, dst);
 }
 
@@ -3381,8 +3380,8 @@ sasmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	s = valstr(disp[0]);
 	v = mkvec(1);
 	val = mkvalrange(cvalnull,
-			 mkcval(vm->litdom,
-				vm->litbase[Vptr], s->len));
+			 mkcval(litdom,
+				litdom->ns->base[Vptr], s->len));
 	_vecset(v, 0, val);
 	*rv = mkvalvec(v);
 }
@@ -3479,8 +3478,8 @@ masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	s = valstr(disp[0]);
 	v = mkvec(1);
 	o = (Imm)s->s;
-	val = mkvalrange(mkcval(vm->litdom, vm->litbase[Vptr], o),
-			 mkcval(vm->litdom, vm->litbase[Vptr], o+s->len));
+	val = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], o),
+			 mkcval(litdom, litdom->ns->base[Vptr], o+s->len));
 	_vecset(v, 0, val);
 	*rv = mkvalvec(v);
 }
@@ -3594,26 +3593,26 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			return 0;
 		return valxtn(rv);
 	case Tptr:
-		new = gcprotect(vm, mkxtn());
+		new = gcprotect(mkxtn());
 		new->tkind = Tptr;
 		new->link = _dolooktype(vm, xtn->link, ns);
-		gcunprotect(vm, new);
+		new = gcunprotect(new);
 		if(new->link == 0)
 			return 0;
 		tmp = ns->base[Vptr];
 		new->rep = tmp->rep;
 		return new;
 	case Tarr:
-		new = gcprotect(vm, mkxtn());
+		new = gcprotect(mkxtn());
 		new->tkind = Tarr;
 		new->link = _dolooktype(vm, xtn->link, ns);
-		gcunprotect(vm, new);
+		new = gcunprotect(new);
 		if(new->link == 0)
 			return 0;
 		new->cnt = xtn->cnt;
 		return new;
 	case Tfun:
-		new = gcprotect(vm, mkxtn());
+		new = gcprotect(mkxtn());
 		new->tkind = Tfun;
 		new->link = _dolooktype(vm, xtn->link, ns);
 		if(new->link == 0)
@@ -3627,7 +3626,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 				return 0;
 			vecset(vec, Typepos, mkvalxtn(tmp));
 		}
-		gcunprotect(vm, new);
+		new = gcunprotect(new);
 		return new;
 	case Tundef:
 		/* FIXME: do we want this? */
@@ -3635,12 +3634,12 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	case Tconst:
 		vmerr(vm, "looktype is undefined on enumeration constants");
 	case Tbitfield:
-		new = gcprotect(vm, mkxtn());
+		new = gcprotect(mkxtn());
 		new->tkind = Tbitfield;
 		new->cnt = xtn->cnt;
 		new->bit0 = xtn->bit0;
 		new->link = _dolooktype(vm, xtn->link, ns);
-		gcunprotect(vm, new);
+		gcunprotect(new);
 		if(new->link == 0)
 			return 0;
 		return new;
@@ -4245,9 +4244,9 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	Imm m, len;
 	Val argv[2];
 
-	gcprotect(vm, type);
-	gcprotect(vm, sym);
-	gcprotect(vm, name);
+	type = gcprotect(type);
+	sym = gcprotect(sym);
+	name = gcprotect(name);
 
 	/* create sorted list of symbols with offsets for lookaddr*/
 	vec = tabenum(sym);
@@ -4261,18 +4260,16 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 			continue;
 		_listappend(ls, vp);
 	}
-	argv[0] = mkvallist(ls);
-	argv[1] = mkvalcl(mkcfn("symcmp", symcmp));
-	gcprotect(vm, argv[0]);
-	gcprotect(vm, argv[1]);
+	argv[0] = gcprotect(mkvallist(ls));
+	argv[1] = gcprotect(mkvalcl(mkcfn("symcmp", symcmp)));
 
 	l1_sort(vm, 2, argv, &rv);
 
-	gcunprotect(vm, argv[1]);
-	gcunprotect(vm, argv[0]);
-	gcunprotect(vm, name);
-	gcunprotect(vm, sym);
-	gcunprotect(vm, type);
+	argv[1] = gcunprotect(argv[1]);
+	argv[0] = gcunprotect(argv[0]);
+	name = gcunprotect(name);
+	sym = gcunprotect(sym);
+	type = gcunprotect(type);
 
 	return mknsfn(mkccl("looktype", stdlooktype, 1, mkvaltab(type)),
 		      mkccl("enumtype", stdenumtype, 1, mkvaltab(type)),
@@ -4300,12 +4297,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	ctx.rawtype = rawtype;
 	ctx.rawsym = rawsym;
 
-	ctx.type = mktab();
-	ctx.sym = mktab();
-	ctx.undef = mktab();
-	gcprotect(vm, ctx.type);
-	gcprotect(vm, ctx.sym);
-	gcprotect(vm, ctx.undef);
+	ctx.type = gcprotect(mktab());
+	ctx.sym = gcprotect(mktab());
+	ctx.undef = gcprotect(mktab());
 
 	ctx.ons = ons;
 	xargv[0] = mkvalns(ons);
@@ -4313,10 +4307,8 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		vmerr(vm, "parent name space does not define enumtype");
 	if(ons->enumsym == 0)
 		vmerr(vm, "parent name space does not define enumsym");
-	ctx.otype = valtab(dovm(vm, ons->enumtype, 1, xargv));
-	gcprotect(vm, ctx.otype);
-	ctx.osym = valtab(dovm(vm, ons->enumsym, 1, xargv));
-	gcprotect(vm, ctx.osym);
+	ctx.otype = gcprotect(valtab(dovm(vm, ons->enumtype, 1, xargv)));
+	ctx.osym = gcprotect(valtab(dovm(vm, ons->enumsym, 1, xargv)));
 
 	/* get pointer representation from parent name space */
 	xtn = mkxtn();		/* will be garbage */
@@ -4428,15 +4420,15 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	}
 
 	ns = mknstypesym(vm, ctx.type, ctx.sym, name);
-	gcprotect(vm, ns);
+	ns = gcprotect(ns);
 	nscachebase(vm, ns);
-	gcunprotect(vm, ns);
+	ns = gcunprotect(ns);
 
-	gcunprotect(vm, ctx.osym);
-	gcunprotect(vm, ctx.otype);
-	gcunprotect(vm, ctx.undef);
-	gcunprotect(vm, ctx.sym);
-	gcunprotect(vm, ctx.type);
+	gcunprotect(ctx.osym);
+	gcunprotect(ctx.otype);
+	gcunprotect(ctx.undef);
+	gcunprotect(ctx.sym);
+	gcunprotect(ctx.type);
 
 	return ns;
 }
@@ -4549,64 +4541,16 @@ poperror(VM *vm)
 	vm->edepth--;
 }
 
-static void*
-_gcunprotect(VM *vm, void *obj, unsigned depth)
-{
-	return obj;
-}
-
-static void*
-_gcprotect(VM *vm, void *obj, unsigned depth)
-{
-	return obj;
-}
-
-void*
-gcunprotect(VM *vm, void *v)
-{
-	return _gcunprotect(vm, v, 0);
-}
-
-void*
-gcprotect(VM *vm, void *v)
-{
-  	return _gcprotect(vm, v, 0);
-}
-
-void
-gcunpersist(VM *vm, void *v)
-{
-	_gcunprotect(vm, v, 0);
-}
-
-void*
-gcpersist(VM *vm, void *v)
-{
-	return _gcprotect(vm, v, 0);
-}
-
-void
+Val
 cqctgcprotect(VM *vm, Val v)
 {
-	gcprotect(vm, v);
+	return gcprotect(v);
 }
 
-void
+Val
 cqctgcunprotect(VM *vm, Val v)
 {
-	gcunprotect(vm, v);
-}
-
-void
-cqctgcpersist(VM *vm, Val v)
-{
-	gcpersist(vm, v);
-}
-
-void
-cqctgcunpersist(VM *vm, Val v)
-{
-	gcunpersist(vm, v);
+	return gcunprotect(v);
 }
 
 void
@@ -4649,6 +4593,7 @@ builtindom(Env *env, char *name, Dom *dom)
 	envbind(env, name, val);
 }
 
+#if 0
 static void
 builtintab(Env *env, char *name, Tab *tab)
 {
@@ -4656,6 +4601,7 @@ builtintab(Env *env, char *name, Tab *tab)
 	val = mkvaltab(tab);
 	envbind(env, name, val);
 }
+#endif
 
 static void
 builtincval(Env *env, char *name, Cval *cv)
@@ -4679,21 +4625,6 @@ vmresetctl(VM *vm)
 	vm->sp = Maxstk;
 	vm->ac = Xnil;
 	vm->cl = mkvalcl(panicthunk());
-}
-
-static void
-vmresettop(VM *vm)
-{
-	Val val;
-
-	if(!envlookup(vm->top->env, "halt", &val))
-		fatal("bad vm environment");
-	vm->halt = valcl(val);
-	if(!envlookup(vm->top->env, "litdom", &val))
-		fatal("bad vm environment");
-	vm->litdom = valdom(val);
-	vm->litns = vm->litdom->ns;
-	vm->litbase = vm->litns->base;
 }
 
 Fd*
@@ -4779,8 +4710,8 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 
 	/* push frame for halt thunk */
 	vmpushi(vm, vm->fp);		/* fp */
-	vmpush(vm, mkvalcl(vm->halt));	/* cl */
-	vmpushi(vm, vm->halt->entry);	/* pc */
+	vmpush(vm, mkvalcl(halt));	/* cl */
+	vmpushi(vm, halt->entry);	/* pc */
 	for(m = argc; m > 0; m--)
 		vmpush(vm, argv[m-1]);
 	vmpushi(vm, argc);		/* narg */
@@ -5292,8 +5223,8 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	Val argv[3];
 
 	argv[0] = mkvalas(as);
-	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr], off),
-			     mkcval(vm->litdom, vm->litns->base[Vptr], len));
+	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
+			     mkcval(litdom, litdom->ns->base[Vptr], len));
 	argv[2] = mkvalstr(s);
 	if(s->len < len)
 		vmerr(vm, "attempt to put short string into longer range");
@@ -5307,8 +5238,8 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	Str *s;
 
 	argv[0] = mkvalas(as);
-	argv[1] = mkvalrange(mkcval(vm->litdom, vm->litns->base[Vptr], off),
-			     mkcval(vm->litdom, vm->litns->base[Vptr], len));
+	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
+			     mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = dovm(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
 		vmerr(vm, "address space get method returned non-string");
@@ -5928,12 +5859,11 @@ rlookfield(VM *vm, Xtypename *su, Val tag)
 		rp = rlookfield(vm, t, tag);
 		if(rp == 0)
 			continue;
-		r = valvec(rp);
-		gcprotect(vm, r);
+		r = gcprotect(valvec(rp));
 		o = mkvalcval2(xcvalalu(vm, Iadd,
 					valcval(attroff(vecref(f, Attrpos))),
 					valcval(attroff(vecref(r, Attrpos)))));
-		gcunprotect(vm, r);
+		r = gcunprotect(r);
 		r = veccopy(r);
 		_vecset(r, Attrpos, copyattr(vecref(r, Attrpos), o));
 		return mkvalvec(r);
@@ -6766,10 +6696,10 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	case Tbase:
 	case Tptr:
 		cv = typecast(vm, t, cv);
-		gcprotect(vm, cv);
+		cv = gcprotect(cv);
 		bytes = imm2str(t, cv->val);
 		callput(vm, d->as, addr->val, typesize(vm, t), bytes);
-		gcunprotect(vm, cv);
+		cv = gcunprotect(cv);
 		*rv = mkvalcval2(cv);
 		break;
 	case Tbitfield:
@@ -6849,15 +6779,15 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 		k = tabenumkeys(t);
 		v = tabenumvals(t);
 		argv = emalloc(2*sizeof(Val));
-		gcprotect(vm, k);
-		gcprotect(vm, v);
+		k = gcprotect(k);
+		v = gcprotect(v);
 		for(m = 0; m < v->len; m++){
 			argv[0] = vecref(k, m);
 			argv[1] = vecref(v, m);
 			dovm(vm, cl, 2, argv);
 		}
-		gcunprotect(vm, v);
-		gcunprotect(vm, k);
+		v = gcunprotect(v);
+		k = gcunprotect(k);
 		efree(argv);
 		return;
 	}
@@ -6926,25 +6856,24 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 	if(Vkind(iargv[1]) == Qtab){
 		if(argc > 2)
 			vmerr(vm, "bad combination of containers");
-		r = mklist();
-		gcprotect(vm, mkvallist(r));
+		r = gcprotect(mklist());
 		cl = valcl(iargv[0]);
 		t = valtab(iargv[1]);
 		k = tabenumkeys(t);
 		v = tabenumvals(t);
 		argv = emalloc(2*sizeof(Val));
-		gcprotect(vm, k);
-		gcprotect(vm, v);
+		k = gcprotect(k);
+		v = gcprotect(v);
 		for(m = 0; m < v->len; m++) {
 			argv[0] = vecref(k, m);
 			argv[1] = vecref(v, m);
 			x = dovm(vm, cl, 2, argv);
 			listins(vm, r, m, x);
 		}
-		gcunprotect(vm, v);
-		gcunprotect(vm, k);
+		v = gcunprotect(v);
+		k = gcunprotect(k);
 		efree(argv);
-		*rv = mkvallist(r);
+		*rv = gcunprotect(mkvallist(r));
 		return;
 	}
 
@@ -6973,8 +6902,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 	}
 
 	cl = valcl(iargv[0]);
-	r = mklist();
-	gcprotect(vm, mkvallist(r));
+	r = gcprotect(mklist());
 	argv = emalloc((argc-1)*sizeof(Val));
 	for(i = 0; i < len; i++){
 		for(m = 1; m < argc; m++){
@@ -6995,7 +6923,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 		listins(vm, r, i, x);
 	}
 	efree(argv);
-	*rv = mkvallist(r);
+	*rv = gcunprotect(mkvallist(r));
 }
 
 static void
@@ -7173,9 +7101,9 @@ l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "malloc expects a non-negative length");
 	s = mkstrn(len->val);
 	as = mkmas(s);
-	*rv = mkvalcval(mkdom(vm->litns, as, mkstr0("malloc")),
-			mkptrxtn(vm->litbase[Vchar],
-				 vm->litbase[Vptr]->rep),
+	*rv = mkvalcval(mkdom(litdom->ns, as, mkstr0("malloc")),
+			mkptrxtn(litdom->ns->base[Vchar],
+				 litdom->ns->base[Vptr]->rep),
 			(Imm)s->s);
 }
 
@@ -7205,9 +7133,9 @@ l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	mtab = valtab(argv[0]);
 	ns = mknstab(mtab, name);
-	gcprotect(vm, ns);
+	ns = gcprotect(ns);
 	nscachebase(vm, ns);
-	gcunprotect(vm, ns);
+	ns = gcunprotect(ns);
 	*rv = mkvalns(ns);
 }
 
@@ -7520,7 +7448,7 @@ l1_strlen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to strlen");
 	s = valstrorcval(vm, "strlen", argv, 0);
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], s->len);
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], s->len);
 }
 
 static void
@@ -7694,7 +7622,7 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	s = valstrorcval(vm, "strton", argv, 0);
 	if(0 != parseliti(s->s, s->len, &liti, radix, &err))
 		vmerr(vm, err);
-	*rv = mkvalcval(vm->litdom, vm->litbase[liti.base], liti.val);
+	*rv = mkvalcval(litdom, litdom->ns->base[liti.base], liti.val);
 }
 
 static void
@@ -7707,8 +7635,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *r;
 	int intok, mflag;
 
-	r = mklist();
-	r = gcprotect(vm, r); /* valstrorcval(ornil) */
+	r = gcprotect(mklist()); /* valstrorcval(ornil) */
 
 	/* subject string */
 	if(argc != 1 && argc != 2 && argc != 3)
@@ -7777,8 +7704,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 			listins(vm, r, n, mkvalstr(mkstr(p, e-p)));
 	}
 	efree(set);
-	gcunprotect(vm, r);
-	*rv = mkvallist(r);
+	*rv = gcunprotect(r);
 }
 
 static void
@@ -7821,7 +7747,7 @@ l1_veclen(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to veclen");
 	checkarg(vm, "veclen", argv, 0, Qvec);
 	v = valvec(argv[0]);
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], v->len);
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], v->len);
 }
 
 static void
@@ -8082,7 +8008,7 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = tab->cnt;
 		break;
 	}
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], len);
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], len);
 }
 
 static void
@@ -8133,7 +8059,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 				m++;
 		break;
 	}
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], m);
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], m);
 }
 
 static void
@@ -8185,7 +8111,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	return;   /* nil */
 gotit:
-	*rv = mkvalcval(vm->litdom, vm->litbase[Vuvlong], i);
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], i);
 }
 
 static void
@@ -8824,12 +8750,9 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[1]) == Qcl){
 		cl = valcl(argv[1]);
 		ocl = valcl(tabget(finals, hd));
-		if(ocl){
-			gcunpersist(vm, ocl);
-			// gcwb is done by tabput
- 			// gcwb(mkvalcl(ocl));
-		}
-		gcpersist(vm, cl);
+		if(ocl)
+			ocl = gcunprotect(ocl);
+		cl = gcprotect(cl);
 		tabput(finals, hd, mkvalcl(cl));
 		Vsetfinal(hd, 1);
 //	        xprintf("set final on %p (%d)\n", hd, Vfinal(hd));
@@ -8860,6 +8783,12 @@ l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	gc();
+}
+
+static void
 l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *str;
@@ -8885,7 +8814,6 @@ l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(argv);
 	freeenv(vm->top->env);
 	vm->top->env = mktopenv();
-	vmresettop(vm);
 	USED(rv);
 }
 
@@ -9357,25 +9285,17 @@ mkrootns(NSroot *def)
 static Dom*
 mklitdom(void)
 {
-	Dom *dom;
-	dom = mkdom(mkrootns(&clp64le), mknas(), mkstr0("litdom"));
-
-	litdom = dom;
-	litns = dom->ns;
-	litbase = litns->base;
-
-	return dom;
+	return mkdom(mkrootns(&clp64le), mknas(), mkstr0("litdom"));
 }
 
 static Env*
 mktopenv(void)
 {
 	Env *env;
-	Dom *litdom;
 
 	env = mkenv();
 
-	builtinfn(env, "halt", haltthunk());
+	builtinfn(env, "halt", halt);
 	builtinfn(env, "callcc", callcc());
 
 	FN(apply);
@@ -9414,6 +9334,7 @@ mktopenv(void)
 	FN(fieldtype);
 	FN(finalize);
 	FN(foreach);
+	FN(gc);
 	FN(getbytes);
 	FN(index);
 	FN(isalnum);
@@ -9585,7 +9506,6 @@ mktopenv(void)
 	fns(env);		/* configuration-specific functions */
 
 	/* FIXME: these bindings should be immutable */
-	litdom = mklitdom();
 	builtinval(env, "nil", Xnil);
 	builtindom(env, "litdom", litdom);
 	builtinns(env, "c32le", mkrootns(&c32le));
@@ -9594,21 +9514,8 @@ mktopenv(void)
 	builtinns(env, "c64be", mkrootns(&c64be));
 	builtinns(env, "clp64le", mkrootns(&clp64le));
 	builtinns(env, "clp64be", mkrootns(&clp64be));
-	cvalnull = mkcval(litdom, litdom->ns->base[Vptr], 0);
 	builtincval(env, "NULL", cvalnull);
 	builtinnil(env, "$$");
-
-	finals = mktab();
-	finals->weak = 1;
-	cval0 = mkcval(litdom, litdom->ns->base[Vint], 0);
-	cval1 = mkcval(litdom, litdom->ns->base[Vint], 1);
-	cvalminus1 = mkcval(litdom, litdom->ns->base[Vint], -1);
-
-	/* stashed in env only to protect them from gc */
-	builtintab(env, "$finals", finals);
-	builtincval(env, "$0", cval0);
-	builtincval(env, "$1", cval1);
-	builtincval(env, "$-1", cvalminus1);
 
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
@@ -9640,7 +9547,6 @@ cqctmkvm(Toplevel *top)
 	nvms++;
 
 	/* vm is now callable */
-	vmresettop(vm);		/* populate toplevel */
 	return vm;
 }
 
@@ -9679,44 +9585,40 @@ vmfaulthook()
 void
 initvm(int gcthread, u64 heapmax)
 {
-	Head *hd;
-
-	GCiterdone = emalloc(1); /* unique pointer */
-
-	hd = emalloc(sizeof(Head));
-	Vsetkind(hd, Qundef);
-	Xundef = hd;
-
-	hd = emalloc(sizeof(Head));
-	Vsetkind(hd, Qnil);
-	Xnil = hd;
-
-	hd = emalloc(sizeof(Head));
-	Vsetkind(hd, Qnull);
-	Xnulllist = hd;
-
-	kcode = contcode();
-	cccode = callccode();
-
+	Xundef = gcprotect(mal(Qundef));
+	Xnil = gcprotect(mal(Qnil));
+	Xnulllist = gcprotect(mal(Qnull));
+	cccode = gcprotect(callccode());
+	kcode = gcprotect(contcode());
+	litdom = gcprotect(mklitdom());
+	cvalnull = gcprotect(mkcval(litdom, litdom->ns->base[Vptr], 0));
+	finals = gcprotect(mktab());
+	finals->weak = 1;
+	cval0 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], 0));
+	cval1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], 1));
+	cvalminus1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], -1));
+	halt = gcprotect(haltthunk());
 	cqctfaulthook(vmfaulthook, 1);
+	GCiterdone = emalloc(1); /* unique pointer */
 }
 
 void
 finivm(void)
 {
-	/* concurrent gc should be off (cqctfreevm) */
-
-	/* drop persistent refs (FIXME: these should go into gc persist) */
-	kcode = 0;
-	cccode = 0;
-
-	/* run two epochs without mutator to collect all objects;
-	   then gcreset to free rootsets */
-	efree(GCiterdone);
-	efree(Xundef);
-	efree(Xnil);
-	efree(Xnulllist);
+	gcunprotect(Xnulllist);
+	gcunprotect(Xnil);
+	gcunprotect(Xundef);
+	gcunprotect(cccode);
+	gcunprotect(kcode);
+	gcunprotect(litdom);
+	gcunprotect(cvalnull);
+	gcunprotect(finals);
+	gcunprotect(cval0);
+	gcunprotect(cval1);
+	gcunprotect(cvalminus1);
+	gcunprotect(halt);
 	cqctfaulthook(vmfaulthook, 0);
+	efree(GCiterdone);
 }
 
 int

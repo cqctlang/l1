@@ -926,13 +926,13 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(Vkind(vq) != Qcval)
 				goto bady;
 			/* FIXME: too complicated */
-			cv0 = gcprotect(vm, cv);
-			cv1 = gcprotect(vm, typecast(vm,
-						     cv0->dom->ns->base[Vptr],
-						     valcval(vq)));
+			cv0 = gcprotect(cv);
+			cv1 = gcprotect(typecast(vm,
+						 cv0->dom->ns->base[Vptr],
+						 valcval(vq)));
 			cv = xcvalalu(vm, Isub, cv0, cv1);
-			gcunprotect(vm, cv1);
-			gcunprotect(vm, cv0);
+			cv1 = gcunprotect(cv1);
+			cv0 = gcunprotect(cv0);
 			if(cv->val != 0){
 				snprint(buf, sizeof(buf),
 					"+0x%" PRIx64, cv->val);
@@ -1003,11 +1003,10 @@ fmtfdflush(VM *vm, Fmt *f)
 		if(rv == -1)
 			return -1;
 	}else{
-		s = mkstrk(f->start, f->to-f->start, Sperm);
-		gcprotect(vm, s);
+		s = gcprotect(mkstrk(f->start, f->to-f->start, Sperm));
 		argv[0] = mkvalstr(s);
 		r = dovm(vm, fd->u.cl.write, 1, argv);
-		gcunprotect(vm, s);
+		gcunprotect(s);
 		if(Vkind(r) != Qnil)
 			return -1;
 	}

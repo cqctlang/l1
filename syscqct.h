@@ -736,10 +736,9 @@ struct VM {
 	Toplevel *top;
 	Insn *ibuf;
 	Val stack[Maxstk];
-	Dom *litdom;
-	Ns *litns;
-	Xtypename **litbase;	/* always points to litns->base */
-	Closure *halt;
+	//Dom *litdom;
+	//Ns *litns;
+	//Xtypename **litbase;	/* always points to litns->base */
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
 };
@@ -887,12 +886,8 @@ Val*		envget(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
 int		eqval(Val v1, Val v2);
 void		freeenv(Env *env);
-void*		gcpersist(VM *vm, void *hd);
-void*		gcprotect(VM *vm, void *hd);
 void		gcenable(VM *vm);
 void		gcdisable(VM *vm);
-void		gcunpersist(VM *vm, void *hd);
-void*		gcunprotect(VM *vm, void *hd);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
 u32		hashval(Val v);
 void		initvm(int gcthread, u64 heapmax);
@@ -1045,7 +1040,7 @@ int		equallist(List *a, List *b);
 void		fnlist(Env *env);
 int		freelist(Head *hd);
 u32		hashlist(Val);
-Head*		iterlist(Head *hd, Ictx *ictx);
+Val*		iterlist(Head *hd, Ictx *ictx);
 void		l1_listref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_listset(VM *vm, Imm argc, Val *argv, Val *rv);
 void		_listappend(List *lst, Val v);
@@ -1063,8 +1058,11 @@ List*		mklistn(u32 sz);
 
 /* mem.c */
 void		finimem();
-void		gcwb(Val v);
+void		gc();
 void		gcpoll();
+void*		gcprotect(void *v);
+void*		gcunprotect(void *v);
+void		gcwb(Val v);
 void		initmem();
 Head*		mal(Qkind kind);
 

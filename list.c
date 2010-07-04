@@ -2,7 +2,7 @@
 #include "util.h"
 #include "syscqct.h"
 
-Head*
+Val*
 iterlist(Head *hd, Ictx *ictx)
 {
 	List *lst;
@@ -15,7 +15,7 @@ iterlist(Head *hd, Ictx *ictx)
 		return GCiterdone;
 	// x->val may change from call to call because of slide,
 	// but will always point to buffer of markable Vals
-	return valhead(x->val[ictx->n++]);
+	return &x->val[ictx->n++];
 }
 
 static void
