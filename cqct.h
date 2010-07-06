@@ -89,17 +89,9 @@ enum
 	Vkindbits = 5,
 	Vkindmask = (1<<Vkindbits)-1,
 
-	Vcoloroff = Vkindoff+Vkindbits,
-	Vcolorbits = 3,
-	Vcolormask = (1<<Vcolorbits)-1,
-
-	Vinrsoff = Vcoloroff+Vcolorbits,
-	Vinrsbits = 1,
-	Vinrsmask = (1<<Vinrsbits)-1,
-
-	Vfinaloff = Vinrsoff+Vinrsbits,
-	Vfinalbits = 1,
-	Vfinalmask = (1<<Vfinalbits)-1,
+	Vnoscanoff = Vkindoff+Vkindbits,
+	Vnoscanbits = 1,
+	Vnoscanmask = (1<<Vnoscanbits)-1,
 };
 
 #define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
@@ -109,18 +101,12 @@ enum
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
-#define Vcolor(p)         ((((p)->bits)>>Vcoloroff)&Vcolormask)
-#define Vsetcolor(p, v)	  ((p)->bits = ((p)->bits&~(Vcolormask<<Vcoloroff))|(((v)&Vcolormask)<<Vcoloroff))
+#define Vnoscan(p)        ((((p)->bits)>>Vnoscanoff)&Vnoscanmask)
+#define Vsetnoscan(p, v)  ((p)->bits = ((p)->bits&~(Vnoscanmask<<Vnoscanoff))|(((v)&Vnoscanmask)<<Vnoscanoff))
 
-#define Vinrs(p)         ((((p)->bits)>>Vinrsoff)&Vinrsmask)
-#define Vsetinrs(p, v)	  ((p)->bits = ((p)->bits&~(Vinrsmask<<Vinrsoff))|(((v)&Vinrsmask)<<Vinrsoff))
-
-#define Vfinal(p)         ((((p)->bits)>>Vfinaloff)&Vfinalmask)
-#define Vsetfinal(p, v)	  ((p)->bits = ((p)->bits&~(Vfinalmask<<Vfinaloff))|(((v)&Vfinalmask)<<Vfinaloff))
-
-
-struct Head {
-	uintptr_t bits;
+struct Head
+{
+	uintptr_t bits; // must be able to store a forwarding pointing
 };
 
 typedef struct Xfd Xfd;

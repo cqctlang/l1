@@ -289,6 +289,7 @@ mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 	cl->dlen = len;
 	cl->display = emalloc(cl->dlen*sizeof(Val));
 	cl->id = xstrdup(id);
+	quard((Val)cl);
 	return cl;
 }
 
@@ -332,6 +333,7 @@ mkfdfn(Str *name, int flags, Xfd *xfd)
 	fd->name = name;
 	fd->u.fn = *xfd;
 	fd->flags = flags|Ffn;
+	quard((Val)fd);
 	return fd;
 }
 
@@ -352,6 +354,7 @@ mkfdcl(Str *name, int flags,
 	fd->u.cl.write = write;
 	fd->u.cl.close = close;
 	fd->flags = flags&~Ffn;
+	quard((Val)fd);
 	return fd;
 }
 
@@ -657,6 +660,7 @@ mkstr0(char *s)
 	str->s = emalloc(str->len);
 	memcpy(str->s, s, str->len);
 	str->skind = Smalloc;
+	quard((Val)str);
 	return str;
 }
 
@@ -669,6 +673,7 @@ mkstr(char *s, Imm len)
 	str->s = emalloc(str->len);
 	memcpy(str->s, s, str->len);
 	str->skind = Smalloc;
+	quard((Val)str);
 	return str;
 }
 
@@ -682,6 +687,7 @@ mkstrk(char *s, Imm len, Skind skind)
 	str->skind = skind;
 	if(skind == Smmap)
 		str->mlen = len;
+	quard((Val)str);
 	return str;
 }
 
@@ -709,6 +715,7 @@ mkstrn(Imm len)
 	str->s = emalloc(str->len);
 	str->skind = Smalloc;
 #endif
+	quard((Val)str);
 	return str;
 }
 
@@ -785,10 +792,10 @@ Vec*
 mkvec(Imm len)
 {
 	Vec *vec;
-
 	vec = (Vec*)mal(Qvec);
 	vec->len = len;
 	vec->vec = emalloc(len*sizeof(Val));
+	quard((Val)vec);
 	return vec;
 }
 
@@ -884,6 +891,7 @@ _mktab(Tabx *x)
 	tab = (Tab*)mal(Qtab);
 	tab->x = x;
 	tab->weak = 0;
+	quard((Val)tab);
 	return tab;
 }
 
@@ -1170,6 +1178,7 @@ mkrec(Rd *rd)
 	r->field = emalloc(r->nf*sizeof(Val));
 	for(m = 0; m < r->nf; m++)
 		r->field[m] = Xnil;
+	quard((Val)r);
 	return r;
 }
 
@@ -4244,8 +4253,6 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	Imm m, len;
 	Val argv[2];
 
-	type = gcprotect(type);
-	sym = gcprotect(sym);
 	name = gcprotect(name);
 
 	/* create sorted list of symbols with offsets for lookaddr*/
@@ -4268,8 +4275,6 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	argv[1] = gcunprotect(argv[1]);
 	argv[0] = gcunprotect(argv[0]);
 	name = gcunprotect(name);
-	sym = gcunprotect(sym);
-	type = gcunprotect(type);
 
 	return mknsfn(mkccl("looktype", stdlooktype, 1, mkvaltab(type)),
 		      mkccl("enumtype", stdenumtype, 1, mkvaltab(type)),
@@ -8754,11 +8759,11 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 			ocl = gcunprotect(ocl);
 		cl = gcprotect(cl);
 		tabput(finals, hd, mkvalcl(cl));
-		Vsetfinal(hd, 1);
+//		Vsetfinal(hd, 1);
 //	        xprintf("set final on %p (%d)\n", hd, Vfinal(hd));
 	}else if(Vkind(argv[1]) == Qnil){
 		tabdel(finals, hd);
-		Vsetfinal(hd, 0);
+//		Vsetfinal(hd, 0);
 	}else
 		vmerr(vm, "argument 1 to finalize must be a function or nil");
 	USED(rv);

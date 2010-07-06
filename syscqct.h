@@ -1065,6 +1065,7 @@ void*		gcunprotect(void *v);
 void		gcwb(Val v);
 void		initmem();
 Head*		mal(Qkind kind);
+void		quard(Val o);
 
 extern		void fns(Env*);
 

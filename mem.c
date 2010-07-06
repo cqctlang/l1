@@ -41,9 +41,12 @@ struct Heap
 	Seg *p;			/* current persist segment */
 
 	Seg *t;			/* head of to segments */
-	Seg *m;			/* current mal segment */
+	Seg *m;			/* current to segment */
 
 	Seg *f;			/* head of from segments */
+
+	Pair *g;		/* protected list */
+	Pair *guards[Qnkind];
 } Heap;
 
 static int freecl(Head*);
@@ -132,6 +135,7 @@ freestr(Head *hd)
 {
 	Str *str;
 	str = (Str*)hd;
+	// printf("freestr(%.*s)\n", (int)str->len, str->s);
 	switch(str->skind){
 	case Smmap:
 		xmunmap(str->s, str->mlen);
@@ -583,7 +587,6 @@ freeseg(Seg *s)
 {
 	hdelp(segtab, s);
 	munmap(s->addr, Segsize);
-	printf("freeseg %p %p\n", s->addr, s->addr+Segsize);
 	efree(s);
 }
 
@@ -634,21 +637,12 @@ again:
 		h = m->a;
 		m->a += sz;
 		Vsetkind(h, kind);
+		printf("mal %s %p\n", qs[kind].id, h);
 		return h;
 	}
 	H.m = mkseg(Mmal);
 	m->link = H.m;
 	goto again;
-}
-
-void
-gcpoll()
-{
-}
-
-void
-gcwb(Val v)
-{
 }
 
 static void
@@ -666,13 +660,13 @@ copy(Val *v)
 		/* pointer tag: stack immediate */
 		return;
 	if(Vfwd(h)){
-		printf("read fwd %p -> %p\n", h, (void*)Vfwdaddr(h));
+		// printf("read fwd %p -> %p\n", h, (void*)Vfwdaddr(h));
 		*v = (Val)Vfwdaddr(h);
 		return;
 	}
 	s = lookseg(h);
 	if(s->kind == Mpersist){
-		printf("persist %p\n", h);
+		// printf("persist %p\n", h);
 		return;
 	}
 	sz = qs[Vkind(h)].sz;
@@ -695,6 +689,8 @@ scan(Seg *s)
 	while(s->scan < s->a){
 		h = s->scan;
 		s->scan += qs[Vkind(h)].sz;
+		if(Vnoscan(h))
+			continue;
 		memset(&ictx, 0, sizeof(ictx));
 		if(qs[Vkind(h)].iter == 0)
 			continue;
@@ -705,8 +701,170 @@ scan(Seg *s)
 			copy(c);
 		}
 	}
-	s->scan = s->addr;   // reset for persistent segments
 	scan(s->link);
+}
+
+static int
+isfwd(Head *h)
+{
+	Seg *s;
+	if(Vfwd(h))
+		return 1;
+	s = lookseg(h);
+	if(s->kind == Mpersist)
+		return 1;
+	return 0;
+}
+
+static Head*
+fwdaddr(Head *h)
+{
+	if(Vfwd(h))
+		return (Head*)Vfwdaddr(h);
+	else
+		return h; // assume it is persist
+}
+
+static Pair*
+cons(void *a, void *d)
+{
+	Pair *p;
+	p = (Pair*)mal(Qpair);
+	p->car = a;
+	p->cdr = d;
+	return p;
+}
+
+static Pair*
+lastpair()
+{
+	return cons(0, 0);
+}
+
+Pair*
+mkguard()
+{
+	Pair *p;
+	p = lastpair();
+	return cons(p, p);
+}
+
+void
+instguard(Val o, Pair *t)
+{
+	H.g = cons(cons(o, t), H.g);
+}
+
+Head*
+pop1guard(Pair *t)
+{
+	Pair *x;
+	Head *y;
+	if(t->car == t->cdr)
+		return 0;
+	x = (Pair*)t->car;
+	y = x->car;
+	t->car = x->cdr;
+	x->car = 0;
+	x->cdr = 0;
+	return y;
+}
+
+void
+push1guard(Val o, Pair *t)
+{
+	Pair *p;
+	p = lastpair();
+	((Pair*)t->cdr)->car = o;
+	((Pair*)t->cdr)->cdr = (Head*)p;
+	t->cdr = (Head*)p;
+}
+
+void
+quard(Val o)
+{
+	Pair *t;
+	t = H.guards[Vkind(o)];
+	if(t == 0)
+		fatal("bug");
+	instguard(o, t);
+}
+
+static void
+updateguards()
+{
+	Pair *phold, *pfinal, *final, *p, *q, **r, *w;
+	Seg *b;
+
+	// move protected objects/guards (and their containing cons) to
+	// either pending hold or pending final list
+	phold = 0;
+	pfinal = 0;
+	p = H.g;
+	while(p){
+		q = (Pair*)p->cdr;
+		if(isfwd(((Pair*)p->car)->car)){
+			// object is accessible
+			// printf("accessible: %p\n", ((Pair*)p->car)->car);
+			p->cdr = (Head*)phold;
+			phold = p;
+		}else{
+			// object is inaccessible
+			// printf("inaccessible: %p\n", ((Pair*)p->car)->car);
+			p->cdr = (Head*)pfinal;
+			pfinal = p;
+		}
+		p = q;
+	}
+	H.g = 0;
+
+	// move each pending final to final if guard is accessible
+	while(1){
+		final = 0;
+		r = &pfinal;
+		p = pfinal;
+		if(p == 0)
+			break;
+		q = (Pair*)p->cdr;
+		if(isfwd(((Pair*)p->car)->cdr)){
+			// guard is accessible
+			*r = q;
+			p->cdr = (Head*)final;
+			final = p;
+		}
+		if(final == 0)
+			break;
+		b = H.m;
+		w = final;
+		while(w){
+			copy(&((Pair*)w->car)->car);
+			push1guard(((Pair*)w->car)->car,
+				   (Pair*)fwdaddr(((Pair*)w->car)->cdr));
+			w = (Pair*)w->cdr;
+		}
+		scan(b);
+		r = (Pair**)&p->cdr;
+		p = q;
+	}
+
+	// forward pending hold to new protected list
+	p = phold;
+	while(p){
+		if(isfwd(((Pair*)p->car)->cdr))
+			instguard(fwdaddr(((Pair*)p->car)->car),
+				  (Pair*)fwdaddr(((Pair*)p->car)->cdr));
+		p = (Pair*)p->cdr;
+	}
+}
+
+void
+gcpoll()
+{
+}
+
+void
+gcwb(Val v)
+{
 }
 
 static void
@@ -714,16 +872,17 @@ toproot(void *u, char *k, void *v)
 {
 	Val *p;
 	p = v;
-	printf("toproot %20s %p %p\n", k, p, *p);
+	// printf("toproot %20s %p %p\n", k, p, *p);
 	copy(v);
 }
 
 void
 gc()
 {
-	u32 m;
+	u32 i, m;
 	VM **vmp, *vm;
 	Seg *s;
+	Head *h;
 
 	H.f = H.t;
 	H.t = H.m = mkseg(Mmal);
@@ -740,9 +899,31 @@ gc()
 		copy(&vm->ac);
 		copy(&vm->cl);
 	}
+	for(i = 0; i < Qnkind; i++)
+		copy((Val*)&H.guards[i]);
 
 	scan(H.r);
 	scan(H.t);
+	updateguards();
+
+	// reset persist scan pointers
+	s = H.r;
+	while(s){
+		s->scan = s->addr;
+		s = s->link;
+	}
+
+	for(i = 0; i < Qnkind; i++){
+		if(H.guards[i] == 0)
+			continue;
+		while(1){
+			h = pop1guard(H.guards[i]);
+			if(h == 0)
+				break;
+			// printf("finalizing %s %p\n", qs[i].id, h);
+			qs[i].free1(h);
+		}
+	}
 
 	s = H.f;
 	while(s){
@@ -759,6 +940,8 @@ gcprotect(void *v)
 	Head *h, *nh;
 	u32 sz;
 
+	if(v == 0)
+		return v;
 	h = v;
 	s = lookseg(h);
 	if(s->kind == Mpersist)
@@ -767,9 +950,9 @@ gcprotect(void *v)
 		fatal("bug");
 	sz = qs[Vkind(h)].sz;
 	nh = persist(Vkind(h));
-	printf("gcprotect %s\n", qs[Vkind(nh)].id);
 	memcpy(nh, h, sz);
-	Vsetfwd(h, (uintptr_t)nh);
+	Vsetnoscan(h, 1);
+	printf("gcprotect %s %p -> %p\n", qs[Vkind(nh)].id, h, nh);
 	return nh;
 }
 
@@ -780,6 +963,9 @@ gcunprotect(void *v)
 	Head *h, *nh;
 	u32 sz;
 
+	if(v == 0)
+		return v;
+
 	h = v;
 	s = lookseg(h);
 	if(s->kind != Mpersist)
@@ -789,16 +975,22 @@ gcunprotect(void *v)
 	sz = qs[Vkind(h)].sz;
 	nh = mal(Vkind(h));
 	memcpy(nh, h, sz);
-	Vsetfwd(h, (uintptr_t)nh);
+	Vsetnoscan(h, 1);
+	printf("gcunprotect %s %p -> %p\n", qs[Vkind(nh)].id, h, nh);
 	return nh;
 }
 
 void
 initmem()
 {
+	u32 i;
 	segtab = mkhtp();
 	H.t = H.m = mkseg(Mmal);
 	H.r = H.p = mkseg(Mpersist);
+	H.g = 0;
+	for(i = 0; i < Qnkind; i++)
+		if(qs[i].free1)
+			H.guards[i] = mkguard();
 }
 
 void
