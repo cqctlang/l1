@@ -152,6 +152,7 @@ freestr(Head *hd)
 static void
 freetabx(Tabx *x)
 {
+	printf("freetabx x %p x->val %p\n", x, x->val);
 	efree(x->val);
 	efree(x->key);
 	efree(x->idx);
@@ -176,6 +177,7 @@ freetab(Head *hd)
 			efree(pk);
 		}
 	}
+	printf("freetab %p\n", hd);
 	freetabx(x);
 	return 1;
 }
