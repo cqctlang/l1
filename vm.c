@@ -8929,6 +8929,7 @@ l1_fuck(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = gcprotect(mktab());
 	tabput(t, (Val)cval0, (Val)cval1);
 	gcunprotect(t);
+	gc();
 }
 
 static void
