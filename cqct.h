@@ -89,20 +89,20 @@ enum
 	Vkindbits = 5,
 	Vkindmask = (1<<Vkindbits)-1,
 
-	Vnoscanoff = Vkindoff+Vkindbits,
-	Vnoscanbits = 1,
-	Vnoscanmask = (1<<Vnoscanbits)-1,
+	Vprotoff = Vkindoff+Vkindbits,
+	Vprotbits = 1,
+	Vprotmask = (1<<Vprotbits)-1,
 };
 
 #define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
 #define Vsetfwd(p, a)     ((p)->bits = a|(Vfwdmask<<Vfwdoff))
-#define Vfwdaddr(p)	  ((p)->bits & ~(Vfwdmask<<Vfwdoff))
+#define Vfwdaddr(p)	  ((void*)((p)->bits & ~(Vfwdmask<<Vfwdoff)))
 
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
-#define Vnoscan(p)        ((((p)->bits)>>Vnoscanoff)&Vnoscanmask)
-#define Vsetnoscan(p, v)  ((p)->bits = ((p)->bits&~(Vnoscanmask<<Vnoscanoff))|(((v)&Vnoscanmask)<<Vnoscanoff))
+#define Vprot(p)        ((((p)->bits)>>Vprotoff)&Vprotmask)
+#define Vsetprot(p, v)  ((p)->bits = ((p)->bits&~(Vprotmask<<Vprotoff))|(((v)&Vprotmask)<<Vprotoff))
 
 struct Head
 {
