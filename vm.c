@@ -881,7 +881,6 @@ mktabx(u32 sz)
 	x->val = emalloc(x->lim*sizeof(Val)); /* must be 0 or Xundef */
 	x->key = emalloc(x->lim*sizeof(Val)); /* must be 0 or Xundef */
 	x->idx = emalloc(x->sz*sizeof(Tabidx*));
-	printf("mktabx x %p x->val %p\n", x, x->val);
 	return x;
 }
 
@@ -4268,13 +4267,15 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 			continue;
 		_listappend(ls, vp);
 	}
-	argv[0] = gcprotect(mkvallist(ls));
-	argv[1] = gcprotect(mkvalcl(mkcfn("symcmp", symcmp)));
+//	argv[0] = gcprotect(mkvallist(ls));
+//	argv[1] = gcprotect(mkvalcl(mkcfn("symcmp", symcmp)));
+	argv[0] = mkvallist(ls);
+	argv[1] = mkvalcl(mkcfn("symcmp", symcmp));
 
 	l1_sort(vm, 2, argv, &rv);
 
-	argv[1] = gcunprotect(argv[1]);
-	argv[0] = gcunprotect(argv[0]);
+//	argv[1] = gcunprotect(argv[1]);
+//	argv[0] = gcunprotect(argv[0]);
 	name = gcunprotect(name);
 
 	return mknsfn(mkccl("looktype", stdlooktype, 1, mkvaltab(type)),
@@ -4990,8 +4991,8 @@ dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
 	lo = 0;
 	hi = n;
 	p = n>>1;		/* weak pivot */
-	pv = vs[p];
 	doswap(vs, p, lo);
+	pv = gcprotect(vs[lo]);
 	while(1){
 		do
 			lo++;
@@ -5003,6 +5004,7 @@ dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
 			break;
 		doswap(vs, lo, hi);
 	}
+	vs[0] = gcunprotect(vs[0]);
 	doswap(vs, 0, hi);
 	dosort(vm, vs, hi, cmp);
 	dosort(vm, vs+hi+1, n-hi-1, cmp);
@@ -5014,7 +5016,7 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *l;
 	Listx *x;
 	Vec *v;
-	Val *vs;
+	Val *vs, o;
 	Closure *cmp;
 	Imm n;
 
@@ -5023,26 +5025,31 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qlist && Vkind(argv[0]) != Qvec)
 		vmerr(vm, "operand 1 to sort must a list or vector");
 	checkarg(vm, "sort", argv, 1, Qcl);
-	cmp = valcl(argv[1]);
-	switch(Vkind(argv[0])){
+	cmp = gcprotect(valcl(argv[1]));
+	o = gcprotect(argv[0]);
+	switch(Vkind(o)){
 	case Qlist:
-		l = vallist(argv[0]);
+		l = vallist(o);
 		x = l->x;
 		n = x->tl-x->hd;
 		vs = &x->val[x->hd];
 		break;
 	case Qvec:
-		v = valvec(argv[0]);
+		v = valvec(o);
 		n = v->len;
 		vs = v->vec;
 		break;
 	default:
 		return;
 	}
-	*rv = argv[0];
-	if(n < 2)
+	if(n < 2){
+		gcunprotect(cmp);
+		*rv = gcunprotect(o);
 		return;
+	}
 	dosort(vm, vs, n, cmp);
+	gcunprotect(cmp);
+	*rv = gcunprotect(o);
 }
 
 static Val
@@ -8776,7 +8783,7 @@ l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(vm);
 	USED(argc);
 	USED(argv);
-	*rv = mkvallitcval(Vuvlong, cqctmeminuse);
+	*rv = mkvallitcval(Vuvlong, cqctmeminuse+meminuse());
 }
 
 static void

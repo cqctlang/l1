@@ -174,7 +174,8 @@ cqctinterrupt(VM *vm)
 }
 
 Toplevel*
-cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
+cqctinit(int gcthread, u64 heapmax, u64 gcrate, char **lp,
+	 Xfd *in, Xfd *out, Xfd *err)
 {
 	Xfd xfd[3];
 
@@ -197,7 +198,7 @@ cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
 		err->fd = 2;
 	}
 	cqctloadpath = copystrv(lp);
-	initmem();
+	initmem(gcrate);
 	initparse();
 	initcg();
 	initvm(gcthread, heapmax);

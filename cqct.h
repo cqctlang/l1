@@ -135,7 +135,7 @@ void		cqctgcdisable(VM *vm);
 void		cqctgcenable(VM *vm);
 Val		cqctgcprotect(VM *vm, Val v);
 Val		cqctgcunprotect(VM *vm, Val v);
-Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp,
+Toplevel*	cqctinit(int gct, uint64_t hmax, uint64_t gcrate, char **lp,
 			 Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);

@@ -6,13 +6,15 @@ typedef
 enum
 {
 	Mmal,
+	Mcode,
 	Mmax,
 } Mkind;
 
 enum
 {
 	Segsize = 4096,
-	Segmask = ~(Segsize-1)
+	Segmask = ~(Segsize-1),
+	GCthresh = 1024*Segsize,
 };
 
 typedef struct Seg Seg;
@@ -38,9 +40,14 @@ struct Qtype
 typedef
 struct Heap
 {
-	Seg *t;			/* head of alloc segments */
 	Seg *m;			/* current alloc segment */
+	u64 na;			/* allocated bytes since last gc */
+	u64 ta;			/* allocated bytes since beginning */
+	u64 inuse;		/* currently allocated bytes */
+	u64 ma;			/* allocated bytes threshold */
+	Seg *t;			/* head of alloc segments */
 	Seg *p;			/* head of protect segments */
+	Seg *c, *cc;		/* head and current code segments */
 	Pair *g;		/* guarded objects */
 	Pair *guards[Qnkind];
 } Heap;
@@ -575,6 +582,9 @@ mkseg(Mkind kind)
 	s->e = s->addr+Segsize;
 	s->kind = kind;
 	hputp(segtab, s->addr, s);
+	H.na += Segsize;
+	H.ta += Segsize;
+	H.inuse += Segsize;
 	return s;
 }
 
@@ -584,6 +594,7 @@ freeseg(Seg *s)
 	hdelp(segtab, s);
 	munmap(s->addr, Segsize);
 	efree(s);
+	H.inuse -= Segsize;
 }
 
 static Seg*
@@ -598,6 +609,32 @@ lookseg(void *a)
 	if(s == 0)
 		fatal("lookseg bug");
 	return s;
+}
+
+u64
+meminuse()
+{
+	return H.inuse;
+}
+
+Head*
+malcode()
+{
+	Seg *m;
+	Head *h;
+	u32 sz;
+	sz = qs[Qcode].sz;
+again:
+	m = H.cc;
+	if(m->a+sz <= m->e){
+		h = m->a;
+		m->a += sz;
+		Vsetkind(h, Qcode);
+		return h;
+	}
+	H.cc = mkseg(Mcode);
+	m->link = H.cc;
+	goto again;
 }
 
 Head*
@@ -651,7 +688,10 @@ copy(Val *v)
 		return;
 	s = lookseg(h);
 	sz = qs[Vkind(h)].sz;
-	nh = mal(Vkind(h));
+	if(Vkind(h) == Qcode)
+		nh = malcode();
+	else
+		nh = mal(Vkind(h));
 	memcpy(nh, h, sz);
 	Vsetfwd(h, (uintptr_t)nh);
 //	printf("set fwd %p -> %p %p (%d)\n", h, Vfwdaddr(h), nh, (int)Vfwd(h));
@@ -837,6 +877,8 @@ updateguards()
 void
 gcpoll()
 {
+	if(H.na >= H.ma)
+		gc();
 }
 
 void
@@ -853,17 +895,65 @@ toproot(void *u, char *k, void *v)
 	copy(v);
 }
 
+static void
+reloc1(Code *c)
+{
+	u32 i;
+	u64 b;
+	u64 *p;
+	void **a;
+	p = c->reloc;
+	b = (u64)c->insn;
+	for(i = 0; i < c->nreloc; i++){
+		a = (void**)(b+p[i]);
+		*a = curaddr(*a);
+	}
+}
+
+static void
+reloc()
+{
+	Seg *s;
+	Head *h;
+	Pair *g;
+	Code *p;
+
+	s = H.c;
+	while(s){
+		p = s->addr;
+		while((void*)p < s->e){
+			reloc1(p);
+			p++;
+		}
+		s = s->link;
+	}
+
+	s = H.p;
+	while(s){
+		g = s->g;
+		while(g){
+			h = g->car;
+			if(Vkind(h) == Qcode)
+				reloc1((Code*)h);
+			g = (Pair*)g->cdr;
+		}
+		s = s->link;
+	}
+}
+
 void
 gc()
 {
 	u32 i, m;
 	VM **vmp, *vm;
-	Seg *s, *t, *f, *b, **r;
+	Seg *s, *t, *f, *c, *b, **r;
 	Head *h;
 	Pair *g;
 
 	f = H.t;
+	c = H.c;
 	H.t = H.m = mkseg(Mmal);
+	H.c = H.cc = mkseg(Mcode);
 
 	vmp = vms;
 	while(vmp < vms+Maxvms){
@@ -876,11 +966,13 @@ gc()
 		// FIXME: vm->top->env->rd
 		copy(&vm->ac);
 		copy(&vm->cl);
+		copy((Val*)&vm->clx);
 	}
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
 
 	scan(H.t);
+	scan(H.c);
 
 	// reserve segments with newly protected objects
 	r = &f;
@@ -912,6 +1004,8 @@ gc()
 
 	updateguards();
 
+	reloc();
+
 	// call built-in finalizers
 	for(i = 0; i < Qnkind; i++){
 		if(H.guards[i] == 0)
@@ -925,13 +1019,20 @@ gc()
 		}
 	}
 
-	// free remaining from segments
+	// free remaining from and code segments
 	s = f;
 	while(s){
 		f = s->link;
 		freeseg(s);
 		s = f;
 	}
+	s = c;
+	while(s){
+		c = s->link;
+		freeseg(s);
+		s = c;
+	}
+
 
 	// free unused protected segments
 	r = &H.p;
@@ -945,6 +1046,8 @@ gc()
 			r = &s->link;
 		s = t;
 	}
+
+	H.na = 0;
 }
 
 void*
@@ -1000,12 +1103,18 @@ gcunprotect(void *v)
 }
 
 void
-initmem()
+initmem(u64 gcrate)
 {
 	u32 i;
 	segtab = mkhtp();
 	H.t = H.m = mkseg(Mmal);
+	H.c = H.cc = mkseg(Mcode);
 	H.p = 0;
+	H.na = H.ta = 0;
+	if(gcrate)
+		H.ma = gcrate;
+	else
+		H.ma = GCthresh;
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)
 			H.guards[i] = mkguard();
@@ -1015,4 +1124,5 @@ void
 finimem()
 {
 	freeht(segtab);
+	// FIXME: release all segments
 }

@@ -665,12 +665,14 @@ struct Code {
 	unsigned long ninsn;
 	unsigned long maxinsn;
 	unsigned long nspec;
+	unsigned long nreloc, maxreloc;
 	Insn *insn;
 	Ctl **labels;
 	Ctl *clist;
 	Expr *src;
 	Tab *konst;
 	Expr *spec[Maxspec];
+	u64 *reloc;
 };
 
 typedef
@@ -1063,8 +1065,9 @@ void		gcpoll();
 void*		gcprotect(void *v);
 void*		gcunprotect(void *v);
 void		gcwb(Val v);
-void		initmem();
+void		initmem(u64 rate);
 Head*		mal(Qkind kind);
+u64		meminuse();
 void		quard(Val o);
 
 extern		void fns(Env*);
