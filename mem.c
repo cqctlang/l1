@@ -988,11 +988,25 @@ gc()
 		s = t;
 	}
 
+	r = &c;
+	s = *r;
+	while(s){
+		t = s->link;
+		if(s->nprotect){
+			*r = s->link;
+			s->link = H.p;
+			H.p = s;
+		}else
+			r = &s->link;
+		s = t;
+	}
+
+
 	// scan protected objects
 	b = H.m;
 	s = H.p;
 	while(s){
-		copy((Val*)&s->g);      // retain list of projected objects!
+		copy((Val*)&s->g);      // retain list of protected objects!
 		g = s->g;
 		while(g){
 			scan1(g->car);  // manual scan of protected object
