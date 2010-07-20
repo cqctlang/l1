@@ -276,7 +276,7 @@ typesize(VM *vm, Xtypename *xtn)
 Code*
 newcode()
 {
-	return (Code*)mal(Qcode);
+	return (Code*)malcode();
 }
 
 Closure*

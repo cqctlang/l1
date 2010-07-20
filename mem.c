@@ -921,7 +921,7 @@ reloc()
 	s = H.c;
 	while(s){
 		p = s->addr;
-		while((void*)p < s->e){
+		while((void*)p < s->a){
 			reloc1(p);
 			p++;
 		}

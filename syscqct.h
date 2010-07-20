@@ -1067,6 +1067,7 @@ void*		gcunprotect(void *v);
 void		gcwb(Val v);
 void		initmem(u64 rate);
 Head*		mal(Qkind kind);
+Head*		malcode();
 u64		meminuse();
 void		quard(Val o);
 
