@@ -3583,6 +3583,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	Xtypename *tmp, *new;
 	Vec *vec;
 	Imm i;
+	Rkind rep;
 
 	switch(xtn->tkind){
 	case Tvoid:
@@ -3602,14 +3603,14 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			return 0;
 		return valxtn(rv);
 	case Tptr:
+		rep = ns->base[Vptr]->rep;
 		new = gcprotect(mkxtn());
 		new->tkind = Tptr;
 		new->link = _dolooktype(vm, xtn->link, ns);
 		new = gcunprotect(new);
 		if(new->link == 0)
 			return 0;
-		tmp = ns->base[Vptr];
-		new->rep = tmp->rep;
+		new->rep = rep;
 		return new;
 	case Tarr:
 		new = gcprotect(mkxtn());
@@ -3663,14 +3664,21 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 static Xtypename*
 dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 {
+	Xtypename *rv;
 	switch(xtn->tkind){
 	case Tvoid:
-		return mkvoidxtn();
+		rv = mkvoidxtn();
+		break;
 	case Tbase:
-		return ns->base[xtn->basename];
+		rv = ns->base[xtn->basename];
+		break;
 	default:
-		return _dolooktype(vm, xtn, ns);
+		ns = gcprotect(ns);
+		rv = _dolooktype(vm, xtn, ns);
+		ns = gcunprotect(ns);
+		break;
 	}
+	return rv;
 }
 
 static void
