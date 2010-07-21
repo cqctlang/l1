@@ -962,6 +962,8 @@ gc()
 			continue;
 		for(m = vm->sp; m < Maxstk; m++)
 			copy(&vm->stack[m]);
+		for(m = 0; m < vm->edepth; m++)
+			copy(&vm->err[m].cl);
 		hforeach(vm->top->env->var, toproot, 0);
 		// FIXME: vm->top->env->rd
 		copy(&vm->ac);
