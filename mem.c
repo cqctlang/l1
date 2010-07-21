@@ -339,7 +339,7 @@ iterns(Head *hd, Ictx *ictx)
 		return (Val*)&ns->mtab;
 	}
 	n -= lastfield;
-	if(n >= Vnbase) /* assume elements at+above nbase are aliases */
+	if(n >= Vnallbase)
 		return GCiterdone;
 	return (Val*)&ns->base[n];
 }
