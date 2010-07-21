@@ -972,7 +972,11 @@ gc()
 		copy((Val*)&H.guards[i]);
 
 	scan(H.t);
+
+	// scan code (FIXME: why can't this simply be done before scan(H.t)?
+	b = H.m;
 	scan(H.c);
+	scan(b);
 
 	// reserve segments with newly protected objects
 	r = &f;
