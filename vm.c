@@ -218,16 +218,6 @@ valhead(Val v)
 	}
 }
 
-void
-gcenable(VM *vm)
-{
-}
-
-void
-gcdisable(VM *vm)
-{
-}
-
 static Imm
 typesize(VM *vm, Xtypename *xtn)
 {
@@ -3131,7 +3121,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 		break;
 	case Txaccess:
 		argv[0] = xv;
-		p = dovm(vm, t->get, 1, argv);
+		p = safedovm(vm, t->get, 1, argv);
 		if(Vkind(p) != Qcval)
 			vmerr(vm,
 			      "get method of extended access type returned "
@@ -3598,7 +3588,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		argv[1] = mkvalxtn(xtn);
 		if(ns->looktype == 0)
 			return 0;
-		rv = dovm(vm, ns->looktype, 2, argv);
+		rv = safedovm(vm, ns->looktype, 2, argv);
 		if(Vkind(rv) == Qnil)
 			return 0;
 		return valxtn(rv);
@@ -3691,7 +3681,7 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	xtn->tkind = Tbase;
 	xtn->basename = cb;
 	argv[1] = mkvalxtn(xtn);
-	rv = dovm(vm, ns->looktype, 2, argv);
+	rv = safedovm(vm, ns->looktype, 2, argv);
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
 	ns->base[cb] = valxtn(rv);
@@ -4106,7 +4096,7 @@ calldispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		efree(xargv);
 		nexterror(vm);
 	}
-	*rv = dovm(vm, dcl, argc+1, xargv);
+	*rv = safedovm(vm, dcl, argc+1, xargv);
 	efree(xargv);
 	poperror(vm);
 }
@@ -4322,8 +4312,8 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		vmerr(vm, "parent name space does not define enumtype");
 	if(ons->enumsym == 0)
 		vmerr(vm, "parent name space does not define enumsym");
-	ctx.otype = gcprotect(valtab(dovm(vm, ons->enumtype, 1, xargv)));
-	ctx.osym = gcprotect(valtab(dovm(vm, ons->enumsym, 1, xargv)));
+	ctx.otype = gcprotect(valtab(safedovm(vm, ons->enumtype, 1, xargv)));
+	ctx.osym = gcprotect(valtab(safedovm(vm, ons->enumsym, 1, xargv)));
 
 	/* get pointer representation from parent name space */
 	xtn = mkxtn();		/* will be garbage */
@@ -4654,6 +4644,16 @@ vmstdout(VM *vm)
 }
 
 Val
+safedovm(VM *vm, Closure *cl, Imm argc, Val *argv)
+{
+	Val rv;
+	gcdisable();
+	rv = dovm(vm, cl, argc, argv);
+	gcenable();
+	return rv;
+}
+
+Val
 dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	Insn *i;
@@ -4964,7 +4964,7 @@ docmp(VM *vm, Val a, Val b, Closure *cmp)
 
 	argv[0] = a;
 	argv[1] = b;
-	rv = dovm(vm, cmp, 2, argv);
+	rv = safedovm(vm, cmp, 2, argv);
 	if(Vkind(rv) != Qcval)
 		vmerr(vm, "comparison function must return an integer cvalue");
 	cv = valcval(rv);
@@ -5169,7 +5169,7 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(Vkind(argv[1]) != Qstr)
 		vmerr(vm, "operand 2 to looksym must be a string");
-	*rv = dovm(vm, ns->looksym, argc, argv);
+	*rv = safedovm(vm, ns->looksym, argc, argv);
 }
 
 static void
@@ -5249,7 +5249,7 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	argv[2] = mkvalstr(s);
 	if(s->len < len)
 		vmerr(vm, "attempt to put short string into longer range");
-	dovm(vm, as->put, 3, argv);
+	safedovm(vm, as->put, 3, argv);
 }
 
 Str*
@@ -5261,7 +5261,7 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
 			     mkcval(litdom, litdom->ns->base[Vptr], len));
-	rv = dovm(vm, as->get, 2, argv);
+	rv = safedovm(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
 		vmerr(vm, "address space get method returned non-string");
 	s = valstr(rv);
@@ -5282,7 +5282,7 @@ callmap(VM *vm, As *as)
 {
 	Val argv[1], rv;
 	argv[0] = mkvalas(as);
-	rv = dovm(vm, as->map, 1, argv);
+	rv = safedovm(vm, as->map, 1, argv);
 	if(Vkind(rv) != Qvec)
 		vmerr(vm, "address space map returned invalid value");
 	return valvec(rv);
@@ -6753,7 +6753,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		cv = typecast(vm, b->link, cv);
 		argv[0] = mkvaldom(d);
 		argv[1] = mkvalcval2(cv);
-		dovm(vm, b->put, 2, argv);
+		safedovm(vm, b->put, 2, argv);
 		*rv = mkvalcval2(cv);
 		break;
 	case Tconst:
@@ -6805,7 +6805,7 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 		for(m = 0; m < v->len; m++){
 			argv[0] = vecref(k, m);
 			argv[1] = vecref(v, m);
-			dovm(vm, cl, 2, argv);
+			safedovm(vm, cl, 2, argv);
 		}
 		v = gcunprotect(v);
 		k = gcunprotect(k);
@@ -6853,7 +6853,7 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 				fatal("bug");
 			}
 		}
-		dovm(vm, cl, argc-1, argv);
+		safedovm(vm, cl, argc-1, argv);
 	}
 	efree(argv);
 	USED(rv);
@@ -6888,7 +6888,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 		for(m = 0; m < v->len; m++) {
 			argv[0] = vecref(k, m);
 			argv[1] = vecref(v, m);
-			x = dovm(vm, cl, 2, argv);
+			x = safedovm(vm, cl, 2, argv);
 			listins(vm, r, m, x);
 		}
 		v = gcunprotect(v);
@@ -6940,7 +6940,7 @@ l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
 				fatal("bug");
 			}
 		}
-		x = dovm(vm, cl, m-1, argv);
+		x = safedovm(vm, cl, m-1, argv);
 		listins(vm, r, i, x);
 	}
 	efree(argv);
@@ -6964,7 +6964,7 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 			fd->u.fn.close(&fd->u.fn);
 	}else
 		if(fd->u.cl.close)
-			dovm(vm, fd->u.cl.close, 0, 0);
+			safedovm(vm, fd->u.cl.close, 0, 0);
 	USED(rv);
 }
 
@@ -7319,7 +7319,7 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 		efree(xargv);
 		nexterror(vm);
 	}
-	*rv = dovm(vm, cl, xargc, xargv);
+	*rv = safedovm(vm, cl, xargc, xargv);
 	poperror(vm);
 	efree(xargv);
 }
@@ -7976,7 +7976,7 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 		efree(argv);
 		nexterror(vm);
 	}
-	vp = dovm(vm, cl, argc, argv);
+	vp = safedovm(vm, cl, argc, argv);
 	*rv = vp;
 	efree(argv);
 	poperror(vm);

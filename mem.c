@@ -50,6 +50,7 @@ struct Heap
 	Seg *c, *cc;		/* head and current code segments */
 	Pair *g;		/* guarded objects */
 	Pair *guards[Qnkind];
+	unsigned disable;
 } Heap;
 
 static int freecl(Head*);
@@ -875,9 +876,21 @@ updateguards()
 }
 
 void
+gcenable()
+{
+	H.disable--;
+}
+
+void
+gcdisable()
+{
+	H.disable++;
+}
+
+void
 gcpoll()
 {
-	if(H.na >= H.ma)
+	if(!H.disable && H.na >= H.ma)
 		gc();
 }
 
@@ -1138,6 +1151,7 @@ initmem(u64 gcrate)
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)
 			H.guards[i] = mkguard();
+	H.disable = 0;
 }
 
 void
