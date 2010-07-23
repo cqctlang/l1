@@ -120,6 +120,21 @@ hexpand(HT *ht)
 }
 
 void
+hforeachp(HT *ht, void (*f)(void *u, void *k, void *v), void *u)
+{
+	Hent *hp;
+	unsigned long i;
+
+	for(i = 0; i < ht->sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			f(u, &hp->key, &hp->val);
+			hp = hp->next;
+		}
+	}
+}
+
+void
 hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u)
 {
 	Hent *hp;

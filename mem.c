@@ -904,7 +904,14 @@ toproot(void *u, char *k, void *v)
 {
 	Val *p;
 	p = v;
-	// printf("toproot %20s %p %p\n", k, p, *p);
+	copy(v);
+}
+
+static void
+toprd(void *u, void *k, void *v)
+{
+	Val *p;
+	p = v;
 	copy(v);
 }
 
@@ -978,7 +985,7 @@ gc()
 		for(m = 0; m < vm->edepth; m++)
 			copy(&vm->err[m].cl);
 		hforeach(vm->top->env->var, toproot, 0);
-		// FIXME: vm->top->env->rd
+		hforeachp(vm->top->env->rd, toprd, 0);
 		copy(&vm->ac);
 		copy(&vm->cl);
 		copy((Val*)&vm->clx);

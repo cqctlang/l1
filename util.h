@@ -6,6 +6,7 @@ HT*		mkhtp(void);
 HT*		mkhts(void);
 int		heqs(HT *ha, HT *hb);
 void		hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
+void		hforeachp(HT *ht, void (*f)(void *u, void *k, void *v), void *u);
 void		hdelp(HT *ht, void *k);
 void		hdels(HT *ht, char *k, u32 len);
 void*		hgetp(HT *ht, void *k);
