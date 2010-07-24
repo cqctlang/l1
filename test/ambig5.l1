@@ -1,0 +1,17 @@
+ns = @names c32le {
+   struct X {
+	   @0x0 int x;
+	   @0x4;
+   };
+   typedef int t2;
+   @0x4 int t1;
+};
+
+dom = mkdom(ns, mkzas(1024));
+p = (struct X*){dom}0;
+p->x = 0x11;
+dom`t1 = 0x10;
+x1 = (dom`t1)&p->x;
+x2 = (dom`t2)&p->x;
+printf("%x %t\n", x1, x1);
+printf("%x %t\n", x2, x2);
