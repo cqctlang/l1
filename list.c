@@ -58,6 +58,7 @@ _mklist(Listx *x)
 	List *lst;
 	lst = (List*)mal(Qlist);
 	lst->x = x;
+	quard((Val)lst);
 	return lst;
 }
 
