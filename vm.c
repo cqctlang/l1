@@ -3615,15 +3615,19 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new = gcprotect(mkxtn());
 		new->tkind = Tfun;
 		new->link = _dolooktype(vm, xtn->link, ns);
-		if(new->link == 0)
+		if(new->link == 0){
+			gcunprotect(new);
 			return 0;
+		}
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = veccopy(valvec(vecref(xtn->param, i)));
 			vecset(new->param, i, mkvalvec(vec));
 			tmp = _dolooktype(vm, valxtn(vecref(vec, Typepos)), ns);
-			if(tmp == 0)
+			if(tmp == 0){
+				gcunprotect(new);
 				return 0;
+			}
 			vecset(vec, Typepos, mkvalxtn(tmp));
 		}
 		new = gcunprotect(new);
@@ -5000,7 +5004,7 @@ dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
 	hi = n;
 	p = n>>1;		/* weak pivot */
 	doswap(vs, p, lo);
-	pv = gcprotect(vs[lo]);
+	pv = gcprotect(vs[0]);
 	while(1){
 		do
 			lo++;
@@ -5048,6 +5052,8 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 		vs = v->vec;
 		break;
 	default:
+		gcunprotect(cmp);
+		gcunprotect(o);
 		return;
 	}
 	if(n < 2){
@@ -8786,6 +8792,15 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gcstat(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	USED(vm);
+	USED(argc);
+	USED(argv);
+	*rv = mkvalstr(gcstat());
+}
+
+static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(vm);
@@ -9374,6 +9389,7 @@ mktopenv(void)
 	FN(finalize);
 	FN(foreach);
 	FN(gc);
+	FN(gcstat);
 	FN(getbytes);
 	FN(index);
 	FN(isalnum);

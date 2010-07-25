@@ -1064,12 +1064,15 @@ void		gcdisable();
 void		gcenable();
 void		gcpoll();
 void*		gcprotect(void *v);
+Str*		gcstat();
 void*		gcunprotect(void *v);
 void		gcwb(Val v);
+u64		guarded();
 void		initmem(u64 rate);
 Head*		mal(Qkind kind);
 Head*		malcode();
 u64		meminuse();
+u64		protected();
 void		quard(Val o);
 
 extern		void fns(Env*);

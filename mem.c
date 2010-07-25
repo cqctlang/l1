@@ -38,6 +38,18 @@ struct Qtype
 } Qtype;
 
 typedef
+struct GCstat
+{
+	u64 na;
+	u64 ta;
+	u64 inuse;
+	u64 ngc;
+	u64 guards;
+	u64 nprotect;
+	u64 nseg;
+} GCstat;
+
+typedef
 struct Heap
 {
 	Seg *m;			/* current alloc segment */
@@ -50,6 +62,8 @@ struct Heap
 	Seg *c, *cc;		/* head and current code segments */
 	Pair *g;		/* guarded objects */
 	Pair *guards[Qnkind];
+	u64 ngc;		/* number of gcs */
+	u64 nseg;		/* number of segments */
 	unsigned disable;
 } Heap;
 
@@ -586,6 +600,7 @@ mkseg(Mkind kind)
 	H.na += Segsize;
 	H.ta += Segsize;
 	H.inuse += Segsize;
+	H.nseg++;
 	return s;
 }
 
@@ -596,6 +611,7 @@ freeseg(Seg *s)
 	munmap(s->addr, Segsize);
 	efree(s);
 	H.inuse -= Segsize;
+	H.nseg--;
 }
 
 static Seg*
@@ -610,6 +626,56 @@ lookseg(void *a)
 	if(s == 0)
 		fatal("lookseg bug");
 	return s;
+}
+
+u64
+protected()
+{
+	Seg *p;
+	u64 m;
+
+	m = 0;
+	p = H.t;
+	while(p){
+		m += p->nprotect;
+		p = p->link;
+	}
+	p = H.p;
+	while(p){
+		m += p->nprotect;
+		p = p->link;
+	}
+	return m;
+}
+
+u64
+guarded()
+{
+	u64 m;
+	Pair *p;
+	m = 0;
+	p = H.g;
+	while(p){
+		m++;
+		p = (Pair*)p->cdr;
+	}
+	return m;
+}
+
+Str*
+gcstat()
+{
+	GCstat s;
+
+	memset(&s, 0, sizeof(s));
+	s.na = H.na;
+	s.ta = H.ta;
+	s.inuse = H.inuse;
+	s.ngc = H.ngc;
+	s.guards = guarded();
+	s.nprotect = protected();
+	s.nseg = H.nseg;
+	return mkstr((char*)&s, sizeof(s));
 }
 
 u64
@@ -1088,6 +1154,7 @@ gc()
 	}
 
 	H.na = 0;
+	H.ngc++;
 }
 
 void*

@@ -1,0 +1,53 @@
+@include "dostat.cqct"
+@include <profile.cqct>
+
+l1names = @names c64le {
+	typedef uint64 u64;
+	struct GCstat {
+		@0x0	u64 na;
+		@0x8	u64 ta;
+		@0x10	u64 inuse;
+		@0x18	u64 ngc;
+		@0x20	u64 guards;
+		@0x28	u64 nprotect;
+		@0x30	u64 nseg;
+		@0x38;
+	};
+};
+
+@define s2(snapfile)
+{
+	@local ns, as;
+
+	ns = @names clp64le {};
+//	as = mksnapas(snapfile);
+//	ns = @names clp64le { @include "./stat.names" };
+//	dostat(ns, as);
+//	heapstat();
+}
+
+{
+	@local file, i, p;
+	if(length(args) == 1)
+		file = "./snap1";
+	else
+		file = args[1];
+	for(i = 0; i < 10; i++){
+		s2(file);
+		p = (struct l1names`GCstat*)gcstat();
+		gc();
+		gc();
+		gc();
+		printf("meminuse=%d\nna=%d\nta=%d\ninuse=%d\nngc=%d"
+ 	               "\nguards=%d\nnprotect=%d\nnseg=%d\n",
+		       meminuse(),
+		       p->na,
+		       p->ta,
+		       p->inuse,
+		       p->ngc,
+		       p->guards,
+		       p->nprotect,
+		       p->nseg);
+		printf("\n");
+	}
+}
