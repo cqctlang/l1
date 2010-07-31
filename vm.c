@@ -4652,7 +4652,12 @@ safedovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	Val rv;
 	gcdisable();
+	if(waserror(vm)){
+		gcenable();
+		nexterror(vm);
+	}
 	rv = dovm(vm, cl, argc, argv);
+	poperror(vm);
 	gcenable();
 	return rv;
 }
