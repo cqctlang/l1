@@ -1,0 +1,33 @@
+@define mkit()
+{
+	{
+		@local x, y, i;
+		x = 0+0;
+		y = 1+1;
+		i = x+y;
+//		for(i = 0; i < 100000; i++){
+//			y = x;
+//			x = y+i;
+//		}
+	}
+}
+
+@define doit(x)
+{
+	@local i;
+	if(x == 0){
+		@local x, y, i, j;
+		printf("hello\n");
+	}
+
+//	for(i = 0; i < 1000000; i++)
+//		;
+	gc();
+	gc();
+}
+
+gc();
+mkit();
+gc();
+gc();
+doit(1);
