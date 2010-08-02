@@ -421,6 +421,7 @@ setreloc(Code *c)
 		case Ikg:
 		case Ikp:
 		case Ijmp:
+		case Ilive:
 		case Inop:
 			// none case
 			break;
@@ -494,6 +495,9 @@ printinsn(Insn *i)
 		break;
 	case Icallc:
 		xprintf("callc");
+		break;
+	case Ilive:
+		xprintf("-live-");
 		break;
 	case Iinv:
 	case Ineg:
@@ -1300,6 +1304,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->op1 = r1;
 			else
 				randloc(&i->op1, AC);
+			i = nextinsn(code, &e->src);
+			i->kind = Ilive;
 			if(loc != Effect){
 				emitlabel(R, e);
 				if(loc != AC){

@@ -1036,6 +1036,7 @@ gc()
 	Head *h;
 	Pair *g;
 
+//	printf("\ngc\n");
 	f = H.t;
 	c = H.c;
 	H.t = H.m = mkseg(Mmal);
@@ -1046,8 +1047,10 @@ gc()
 		vm = *vmp++;
 		if(vm == 0)
 			continue;
-		for(m = vm->sp; m < Maxstk; m++)
+		for(m = vm->sp; m < Maxstk; m++){
+//			printf("copying stack[%d] = %p\n", m, vm->stack[m]);
 			copy(&vm->stack[m]);
+		}
 		for(m = 0; m < vm->edepth; m++)
 			copy(&vm->err[m].cl);
 		hforeach(vm->top->env->var, toproot, 0);

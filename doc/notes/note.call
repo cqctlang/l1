@@ -47,3 +47,28 @@ call sequence looks like:
 why there is both a frame and call insn
      - simplifies stack fixup on tail calls
 	- we just slide the arguments up
+
+stack may have calls in progress -- argument evaluations
+in frame all stack locations are live except potentially
+those local and temp slots not being currently used.
+
+
+
+live mask:
+
+  which of fp[-1] ... fp[-(l+t)] is "live"
+    l = #locs
+    t = #tmps
+
+  live really means defined
+
+  all other locations through sp are live
+  assume tail calls just work (just argument shift)
+
+store frame size and live mask at return point
+to record which stack locations are live
+
+need to understand unwind procedure used by gc
+including in presence of tail calls
+
+
