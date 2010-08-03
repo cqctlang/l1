@@ -497,7 +497,7 @@ printinsn(Insn *i)
 		xprintf("callc");
 		break;
 	case Ilive:
-		xprintf("-live-");
+		xprintf("-live- 0x%x", i->cnt);
 		break;
 	case Iinv:
 	case Ineg:
@@ -531,7 +531,7 @@ printinsn(Insn *i)
 		printrand(&i->dst);
 		break;
 	case Isubsp:
-		xprintf("subsp ", itos(i->kind));
+		xprintf("subsp ");
 		printrand(&i->op1);
 		break;
 	case Imov:
@@ -1042,9 +1042,18 @@ cgbinop(Code *code, CGEnv *p, unsigned kind, Operand *r1, Operand *r2,
 	cgctl(code, p, ctl, nxt, src);
 }
 
+typedef
+struct Frame
+{
+	u32 nloc;
+	u32 ntmp;
+	u64 live;
+	u32 tmp;
+} Frame;
+
 static void
 cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
-   unsigned tmp)
+   Frame *f)
 {
 	Ctl *L0, *L, *R, *Lthen, *Lelse, *lpair;
 	Ctl *Ltest, *Lbody, *Linc;
@@ -1060,6 +1069,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	CGEnv np;
 	unsigned genl;
 	Src *src;
+	u64 olive;
 
 	switch(e->kind){
 	case Enop:
@@ -1071,7 +1081,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		ep = e;
 		while(ep->kind == Eelist){
 			if(ep->e2->kind == Enull){
-				cg(ep->e1, code, p, loc, ctl, prv, nxt, tmp);
+				cg(ep->e1, code, p, loc, ctl, prv, nxt, f);
 				break;
 			}
 			L = 0;
@@ -1091,7 +1101,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				L = genlabel(code, 0);
 				genl = 1;
 			}
-			cg(ep->e1, code, p, Effect, L, prv, L, tmp);
+			cg(ep->e1, code, p, Effect, L, prv, L, f);
 			if(genl)
 				emitlabel(L, ep->e2);
 			prv = L;
@@ -1103,13 +1113,17 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Eblock:
 		b = (Block*)e->xp;
-		for(m = 0; m < b->nloc; m++)
+		olive = f->live;
+		for(m = 0; m < b->nloc; m++){
+			f->live |= (1<<b->loc[m].idx);
 			if(b->loc[m].box){
 				i = nextinsn(code, &e->src);
 				i->kind = Ibox0;
 				randvarloc(&i->op1, &b->loc[m], 0);
 			}
-		cg(e->e2, code, p, loc, ctl, prv, nxt, tmp);
+		}
+		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
+		f->live = olive;
 		break;
 	case Eg:
 		if(e->e1->kind != Eid)
@@ -1117,7 +1131,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		varloc(&dst, e->e1->xp, 1);
 		if(loc != Effect){
 			L = genlabel(code, 0);
-			cg(e->e2, code, p, &dst, L, prv, L, tmp);
+			cg(e->e2, code, p, &dst, L, prv, L, f);
 			emitlabel(L, e);
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
@@ -1125,7 +1139,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
 		}else
-			cg(e->e2, code, p, &dst, ctl, prv, nxt, tmp);
+			cg(e->e2, code, p, &dst, ctl, prv, nxt, f);
 		break;
 	case Egop:
 		if(e->e1->kind != Eid)
@@ -1133,7 +1147,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		varloc(&dst, e->e1->xp, 1);
 		randloc(&r1, &dst);
 		L0 = genlabel(code, 0);
-		cg(e->e2, code, p, AC, L0, prv, L0, tmp);
+		cg(e->e2, code, p, AC, L0, prv, L0, f);
 		emitlabel(L0, e);
 		randloc(&r2, AC);
 		if(loc != Effect){
@@ -1194,7 +1208,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgrand(code, &r1, e->e1);
 		else{
 			L = genlabel(code, 0);
-			cg(e->e1, code, p, AC, L, prv, L, tmp);
+			cg(e->e1, code, p, AC, L, prv, L, f);
 			emitlabel(L, e);
 			randloc(&r1, AC);
 		}
@@ -1222,22 +1236,27 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}else if(issimple(e->e1)){
 			cgrand(code, &r1, e->e1);
 			L = genlabel(code, 0);
-			cg(e->e2, code, p, AC, L, prv, L, tmp);
+			cg(e->e2, code, p, AC, L, prv, L, f);
 			emitlabel(L, e);
 			randloc(&r2, AC);
 		}else if(issimple(e->e2)){
 			L = genlabel(code, 0);
-			cg(e->e1, code, p, AC, L, prv, L, tmp);
+			cg(e->e1, code, p, AC, L, prv, L, f);
 			emitlabel(L, e);
 			randloc(&r1, AC);
 			cgrand(code, &r2, e->e2);
 		}else{
 			L0 = genlabel(code, 0);
-			randstkloc(&r1, Llocal, tmp);
-			cg(e->e1, code, p, &r1.u.loc, L0, prv, L0, tmp);
+			randstkloc(&r1, Llocal, f->tmp);
+			cg(e->e1, code, p, &r1.u.loc, L0, prv, L0, f);
 			emitlabel(L0, e->e2);
 			L = genlabel(code, 0);
-			cg(e->e2, code, p, AC, L, L0, L, tmp+1);
+			olive = f->live;
+			f->live |= (1<<f->tmp);
+			f->tmp++;
+			cg(e->e2, code, p, AC, L, L0, L, f);
+			f->live = olive;
+			f->tmp--;
 			emitlabel(L, e);
 			randloc(&r2, AC);
 		}
@@ -1272,7 +1291,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			}else{
 				L = genlabel(code, 0);
 // we may be able to track frame state here.
-				cg(q->e1, code, p, AC, L, L0, L, tmp);
+				cg(q->e1, code, p, AC, L, L0, L, f);
 				emitlabel(L, q->e2);
 				i = nextinsn(code, &q->e1->src);
 				i->kind = Ipush;
@@ -1293,7 +1312,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			L0 = genlabel(code, 0);
 			emitlabel(L0, e->e1);
 			L = genlabel(code, 0);
-			cg(e->e1, code, p, AC, L, L0, L, tmp);
+			cg(e->e1, code, p, AC, L, L0, L, f);
 			emitlabel(L, e);
 		}
 
@@ -1305,7 +1324,11 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			else
 				randloc(&i->op1, AC);
 			i = nextinsn(code, &e->src);
-			i->kind = Ilive;
+			i->kind = Ilive;  // live mask
+			i->cnt = f->live;
+			i = nextinsn(code, &e->src);
+			i->kind = Ilive;  // frame size
+			i->cnt = f->nloc+f->ntmp;
 			if(loc != Effect){
 				emitlabel(R, e);
 				if(loc != AC){
@@ -1327,7 +1350,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Eret:
 		if(e->e1)
-			cg(e->e1, code, p, AC, p->Return, prv, nxt, tmp);
+			cg(e->e1, code, p, AC, p->Return, prv, nxt, f);
 		else
 			cgctl(code, p, p->Return, nxt, &e->src);
 		break;
@@ -1393,22 +1416,22 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				lpair = genlabelpair(code, L, ctl->l2);
 			else
 				lpair = genlabelpair(code, L, ctl);
-			cg(e->e1, code, p, AC, lpair, prv, L, tmp);
+			cg(e->e1, code, p, AC, lpair, prv, L, f);
 			emitlabel(L, e->e2);
 			if(ctl->ckind == Clabelpair)
-				cg(e->e2, code, p, AC, ctl, L, nxt, tmp);
+				cg(e->e2, code, p, AC, ctl, L, nxt, f);
 			else
-				cg(e->e2, code, p, Effect, ctl, L, nxt, tmp);
+				cg(e->e2, code, p, Effect, ctl, L, nxt, f);
 		}else{
 			Lthen = genlabel(code, 0);
 			Lelse = genlabel(code, 0);
 			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
+			cg(e->e1, code, p, AC, lpair, prv, Lthen, f);
 			emitlabel(Lthen, e->e2);
 			L0 = Lthen;
 			Lthen = genlabel(code, 0);
 			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e2, code, p, AC, lpair, L0, Lthen, tmp);
+			cg(e->e2, code, p, AC, lpair, L0, Lthen, f);
 			emitlabel(Lthen, e);
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
@@ -1430,23 +1453,23 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				lpair = genlabelpair(code, ctl->l1, L);
 			else
 				lpair = genlabelpair(code, ctl, L);
-			cg(e->e1, code, p, AC, lpair, prv, L, tmp);
+			cg(e->e1, code, p, AC, lpair, prv, L, f);
 			emitlabel(L, e->e2);
 			L0 = L;
 			if(ctl->ckind == Clabelpair)
-				cg(e->e2, code, p, AC, ctl, L0, nxt, tmp);
+				cg(e->e2, code, p, AC, ctl, L0, nxt, f);
 			else
-				cg(e->e2, code, p, Effect, ctl, L0, nxt, tmp);
+				cg(e->e2, code, p, Effect, ctl, L0, nxt, f);
 		}else{
 			Lthen = genlabel(code, 0);
 			Lelse = genlabel(code, 0);
 			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e1, code, p, AC, lpair, prv, Lelse, tmp);
+			cg(e->e1, code, p, AC, lpair, prv, Lelse, f);
 			emitlabel(Lelse, e->e2);
 			L0 = Lelse;
 			Lelse = genlabel(code, 0);
 			lpair = genlabelpair(code, Lthen, Lelse);
-			cg(e->e2, code, p, AC, lpair, L0, Lthen, tmp);
+			cg(e->e2, code, p, AC, lpair, L0, Lthen, f);
 			emitlabel(Lthen, e);
 			i = nextinsn(code, &e->src);
 			i->kind = Imov;
@@ -1467,46 +1490,46 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				Lelse = genlabel(code, 0);
 				lpair = genlabelpair(code, escapectl(e->e2, p),
 						     Lelse);
-				cg(e->e1, code, p, AC, lpair, prv, Lelse, tmp);
+				cg(e->e1, code, p, AC, lpair, prv, Lelse, f);
 				emitlabel(Lelse, e->e3);
 				cg(e->e3, code, p, loc, ctl,
-				   Lelse, nxt, tmp);
+				   Lelse, nxt, f);
 			}else if(!escaping(e->e2) && escaping(e->e3)){
 				Lthen = genlabel(code, 0);
 				lpair = genlabelpair(code, Lthen,
 						     escapectl(e->e3, p));
-				cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
+				cg(e->e1, code, p, AC, lpair, prv, Lthen, f);
 				emitlabel(Lthen, e->e2);
 				cg(e->e2, code, p, loc, ctl,
-				   Lthen, nxt, tmp);
+				   Lthen, nxt, f);
 			}else if(escaping(e->e2) && escaping(e->e3)){
 				lpair = genlabelpair(code, escapectl(e->e2, p),
 						     escapectl(e->e3, p));
-				cg(e->e1, code, p, AC, lpair, prv, nxt, tmp);
+				cg(e->e1, code, p, AC, lpair, prv, nxt, f);
 			}else{
 				Lthen = genlabel(code, 0);
 				Lelse = genlabel(code, 0);
 				lpair = genlabelpair(code, Lthen, Lelse);
-				cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
+				cg(e->e1, code, p, AC, lpair, prv, Lthen, f);
 				emitlabel(Lthen, e->e2);
 				cg(e->e2, code, p, loc, ctl,
-				   Lthen, Lelse, tmp);
+				   Lthen, Lelse, f);
 				emitlabel(Lelse, e->e3);
 				cg(e->e3, code, p, loc, ctl,
-				   Lelse, nxt, tmp);
+				   Lelse, nxt, f);
 			}
 		}else{
 			if(escaping(e->e2)){
 				lpair = genlabelpair(code, escapectl(e->e2, p),
 						     ctl);
-				cg(e->e1, code, p, AC, lpair, prv, nxt, tmp);
+				cg(e->e1, code, p, AC, lpair, prv, nxt, f);
 			}else{
 				Lthen = genlabel(code, 0);
 				lpair = genlabelpair(code, Lthen, ctl);
-				cg(e->e1, code, p, AC, lpair, prv, Lthen, tmp);
+				cg(e->e1, code, p, AC, lpair, prv, Lthen, f);
 				emitlabel(Lthen, e->e2);
 				cg(e->e2, code, p, loc, ctl,
-				   Lthen, nxt, tmp);
+				   Lthen, nxt, f);
 			}
 		}
 		break;
@@ -1535,25 +1558,25 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		np.Break = L;
 
 		if(e->e1){
-			cg(e->e1, code, p, Effect, Ltest, prv, Ltest, tmp);
+			cg(e->e1, code, p, Effect, Ltest, prv, Ltest, f);
 			emitlabel(Ltest, e->e2);
 		}else
 			Ltest = prv;
 
 		if(e->e2){
-			cg(e->e2, code, p, AC, lpair, Ltest, Lbody, tmp);
+			cg(e->e2, code, p, AC, lpair, Ltest, Lbody, f);
 			emitlabel(Lbody, e->e4);
 		}else
 			Lbody = Ltest;
 
-		cg(e->e4, code, &np, Effect, Linc, Lbody, Linc, tmp);
+		cg(e->e4, code, &np, Effect, Linc, Lbody, Linc, f);
 		if(code->ninsn == Lbody->insn)
 			Linc = Lbody;
 		else
 			emitlabel(Linc, e->e3);
 
 		if(e->e3)
-			cg(e->e3, code, p, Effect, Ltest, Linc, nxt, tmp);
+			cg(e->e3, code, p, Effect, Ltest, Linc, nxt, f);
 		else
 			cgctl(code, p, Ltest, nxt, &e->src);
 		if(loc != Effect){
@@ -1577,9 +1600,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		np = *p;
 		np.Continue = Ltest;
 		np.Break = L;
-		cg(e->e1, code, p, AC, lpair, Ltest, Lbody, tmp);
+		cg(e->e1, code, p, AC, lpair, Ltest, Lbody, f);
 		emitlabel(Lbody, e->e2);
-		cg(e->e2, code, &np, Effect, Ltest, Lbody, nxt, tmp);
+		cg(e->e2, code, &np, Effect, Ltest, Lbody, nxt, f);
 		if(loc != Effect){
 			emitlabel(L, e);
 			i = nextinsn(code, &e->src);
@@ -1601,12 +1624,12 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		np = *p;
 		np.Continue = Ltest;
 		np.Break = L;
-		cg(e->e1, code, &np, Effect, Ltest, Lbody, Ltest, tmp);
+		cg(e->e1, code, &np, Effect, Ltest, Lbody, Ltest, f);
 		if(code->ninsn > Lbody->insn){
 			emitlabel(Ltest, e->e2);
-			cg(e->e2, code, p, AC, lpair, Ltest, nxt, tmp);
+			cg(e->e2, code, p, AC, lpair, Ltest, nxt, f);
 		}else
-			cg(e->e2, code, p, AC, lpair, Lbody, nxt, tmp);
+			cg(e->e2, code, p, AC, lpair, Lbody, nxt, f);
 		if(loc != Effect){
 			emitlabel(L, e);
 			i = nextinsn(code, &e->src);
@@ -1626,19 +1649,22 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 		/* operand expression (expect form $tmp = e) */
 		L0 = genlabel(code, 0);
-		cg(e->e1, code, &np, Effect, L0, prv, L0, tmp);
+		cg(e->e1, code, &np, Effect, L0, prv, L0, f);
 		emitlabel(L0, e->e2);
 
 		/* bit of a hack: guarantee that locals in the switch
 		   block are initialized, replicating the Eblock prologue */
+		olive = f->live;
 		if(e->e2->kind == Eblock){
 			b = (Block*)e->e2->xp;
-			for(m = 0; m < b->nloc; m++)
+			for(m = 0; m < b->nloc; m++){
+				f->live |= (1<<b->loc[m].idx);
 				if(b->loc[m].box){
 					i = nextinsn(code, &e->e2->src);
 					i->kind = Ibox0;
 					randvarloc(&i->op1, &b->loc[m], 0);
 				}
+			}
 		}
 
 		/* case comparisons (expect form $tmp == v) */
@@ -1647,7 +1673,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			Lelse = genlabel(code, 0);
 			lpair = genlabelpair(code, Lthen, Lelse);
 			cg(np.cases->cmp[m]->e1, code, &np, AC,
-			   lpair, L0, Lelse, tmp);
+			   lpair, L0, Lelse, f);
 			emitlabel(Lelse, e->e2);
 			L0 = Lelse;
 		}
@@ -1656,7 +1682,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			      &e->src);
 		else
 			cgjmp(code, &np, L, np.cases->ctl[0], &e->src);
-		cg(e->e2, code, &np, Effect, L, np.cases->ctl[0], nxt, tmp);
+		cg(e->e2, code, &np, Effect, L, np.cases->ctl[0], nxt, f);
 		freeswitchctl(np.cases);
 		np.cases = 0;
 		if(loc != Effect){
@@ -1667,6 +1693,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randloc(&i->dst, loc);
 			cgctl(code, p, ctl, nxt, &e->src);
 		}
+		f->live = olive;
 		break;
 	case Ecase:
 		if(p->cases == 0)
@@ -1676,7 +1703,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				emitlabel(p->cases->ctl[m], e);
 				cg(e->e2, code, p, Effect, ctl,
 				   p->cases->ctl[m],
-				   nxt, tmp);
+				   nxt, f);
 				break;
 			}
 		cgctl(code, p, ctl, nxt, &e->src);
@@ -1688,7 +1715,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(p->cases->dflt, e);
 			cg(e->e1, code, p, Effect, ctl,
 			   p->cases->dflt,
-			   nxt, tmp);
+			   nxt, f);
 		}
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
@@ -1709,7 +1736,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		if(L == 0)
 			fatal("goto bug");
 		emitlabel(L, e);
-		cg(e->e2, code, p, loc, ctl, prv, nxt, tmp);
+		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
 		break;
 	default:
 		fatal("cg undefined for expression %d", e->kind);
@@ -1727,6 +1754,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	unsigned long ns;
 	Ctl *top;
 	Src *src;
+	Frame f;
 
 	if(e->kind != Elambda)
 		fatal("cglambda on non-lambda");
@@ -1754,6 +1782,12 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		randkon(code, &i->op1, konimm(code->konst, Vuint, l->nparam));
 		needtop = 1;
 	}
+	f.nloc = l->nloc;
+	f.ntmp = l->ntmp;
+	if(f.nloc+f.ntmp > sizeof(f.live)*8)
+		fatal("function has too many live variables");
+	f.tmp = l->nloc;
+	f.live = 0;
 	if(l->nloc+l->ntmp > 0){
 		i = nextinsn(code, src);
 		i->kind = Isubsp;
@@ -1811,7 +1845,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		}
 
 		L = genlabel(code, 0);
-		cg(e->e4, code, &p, AC, L, top, L, l->nloc);
+		cg(e->e4, code, &p, AC, L, top, L, &f);
 		ns = code->nspec++;
 		code->spec[ns] = e;
 		i = nextinsn(code, src);
@@ -1820,7 +1854,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		top = genlabel(code, 0);
 	}
 body:
-	cg(e->e2, code, &p, AC, p.Return, top, p.Return, l->nloc);
+	cg(e->e2, code, &p, AC, p.Return, top, p.Return, &f);
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code, &e->src);
 	i->kind = Iret;
