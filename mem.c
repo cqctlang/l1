@@ -1027,6 +1027,31 @@ reloc()
 	}
 }
 
+static void
+walkstack(VM *vm)
+{
+	Imm pc, fp, narg;
+	Closure *cl;
+	Xfd *xfd;
+
+	xfd = &vm->top->out;
+
+	pc = vm->pc-1;		/* vm loop increments pc after fetch */
+	fp = vm->fp;
+	cl = vm->clx;
+	while(fp != 0){
+		if(strcmp(cl->id, "$halt")){
+//			cprintf(xfd, "fp=%05lld pc=%08lld ", fp, pc);
+			printsrc(xfd, cl, pc);
+		}
+		narg = stkimm(vm->stack[fp]);
+		pc = stkimm(vm->stack[fp+narg+1]);
+		pc--; /* pc was insn following call */
+		cl = valcl(vm->stack[fp+narg+2]);
+		fp = stkimm(vm->stack[fp+narg+3]);
+	}
+}
+
 void
 gc()
 {
@@ -1047,6 +1072,7 @@ gc()
 		vm = *vmp++;
 		if(vm == 0)
 			continue;
+		walkstack(vm);
 		for(m = vm->sp; m < Maxstk; m++){
 //			printf("copying stack[%d] = %p\n", m, vm->stack[m]);
 			copy(&vm->stack[m]);
