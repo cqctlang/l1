@@ -1030,24 +1030,46 @@ reloc()
 static void
 walkstack(VM *vm)
 {
-	Imm pc, fp, narg;
+	Imm pc, fp, sp, narg, m, i;
+	u64 sz, mask;
 	Closure *cl;
-	Xfd *xfd;
 
-	xfd = &vm->top->out;
-
-	pc = vm->pc-1;		/* vm loop increments pc after fetch */
+//	fvmbacktrace(vm);
+	pc = vm->pc;
 	fp = vm->fp;
+	sp = vm->sp;
 	cl = vm->clx;
 	while(fp != 0){
-		if(strcmp(cl->id, "$halt")){
-//			cprintf(xfd, "fp=%05lld pc=%08lld ", fp, pc);
-			printsrc(xfd, cl, pc);
+		if(pc < 2)
+			fatal("no way to find livemask pc %llu", pc);
+		if(cl->code->insn[pc-1].kind != Ilive
+		   || cl->code->insn[pc-2].kind != Ilive)
+			fatal("no live mask for pc %d cl %p", pc, cl);
+		sz = cl->code->insn[pc-1].cnt;
+		mask = cl->code->insn[pc-2].cnt;
+		if(1)printf("%llu %p sz %llx mask %llx\n", pc, cl, sz, mask);
+		if(fp-sp < sz)
+			fatal("frame size is too large fp %llu sp %llu",
+			      fp, sp);
+		m = fp-1;
+		for(i = 0; i < sz; i++){
+			printf("\t");
+			if((mask>>i)&1)
+				printf("*");
+			else
+				printf("-");
+			printf("st stack[%llu] %p\n", m, vm->stack[m]);
+			m--;
+		}
+		for(i = 0; i < fp-sp-sz; i++){
+			printf("\tdyn stack[%llu] %p\n", m, vm->stack[m]);
+			m--;
 		}
 		narg = stkimm(vm->stack[fp]);
 		pc = stkimm(vm->stack[fp+narg+1]);
-		pc--; /* pc was insn following call */
+//		pc--; /* pc was insn following call */
 		cl = valcl(vm->stack[fp+narg+2]);
+		sp = fp;
 		fp = stkimm(vm->stack[fp+narg+3]);
 	}
 }

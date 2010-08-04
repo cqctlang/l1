@@ -162,7 +162,7 @@ static Hashop hashop[Qnkind] = {
 
 static Code *kcode, *cccode;
 
-static Imm
+Imm
 stkimm(Val v)
 {
 	Imm imm;
@@ -1692,7 +1692,7 @@ printsrc(Xfd *xfd, Closure *cl, Imm pc)
 	cprintf(xfd, "%20s\t(%s:%u)\n", cl->id, fn, src->line);
 }
 
-static void
+void
 fvmbacktrace(VM *vm)
 {
 	Imm pc, fp, narg;
@@ -2333,6 +2333,7 @@ xcallc(VM *vm)
 	rv = Xnil;
 	argc = stkimm(vm->stack[vm->fp]);
 	argv = &vm->stack[vm->fp+1];
+	vm->pc += 2; // skip livemask
 	if(vm->clx->cfn)
 		vm->clx->cfn(vm, argc, argv, &rv);
 	else
@@ -4867,19 +4868,16 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			vm->pc = i->dstlabel->insn;
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
-			gcpoll();
 			continue;
 		LABEL Ijnz:
 			xjnz(vm, &i->op1, i->dstlabel);
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
-			gcpoll();
 			continue;
 		LABEL Ijz:
 			xjz(vm, &i->op1, i->dstlabel);
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
-			gcpoll();
 			continue;
 		LABEL Iclo:
 			xclo(vm, &i->op1, i->dstlabel, &i->dst);

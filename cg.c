@@ -1932,6 +1932,12 @@ haltthunk(void)
 	Closure *cl;
 
 	code = mkcode();
+	i = nextinsn(code, 0);
+	i->kind = Ilive;
+	i->cnt = 0;
+	i = nextinsn(code, 0);
+	i->kind = Ilive;
+	i->cnt = 0;
 	L = genlabel(code, "$halt");
 	cl = mkcl(code, code->ninsn, 0, L->label);
 	L->used = 1;
@@ -1980,6 +1986,12 @@ callccode(void)
 	code = mkcode();
 	i = nextinsn(code, 0);
 	i->kind = Icallc;
+	i = nextinsn(code, 0);
+	i->kind = Ilive;
+	i->cnt = 0;
+	i = nextinsn(code, 0);
+	i->kind = Ilive;
+	i->cnt = 0;
 	i = nextinsn(code, 0);
 	i->kind = Iret;
 	setreloc(code);
