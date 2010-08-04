@@ -5421,6 +5421,45 @@ If no connection is waiting, the call blocks until one arrives.
 </div>
 </div>
 
+<div class="docitem" id="fn:getpeername">
+<div class="proto">
+<div class="function">
+<span class="id">getpeername(<span class="arg">fd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the result of calling the
+system <span class="id">getpeername</span> call on the
+TCP connection associated with <span class="arg">fd</span>.
+The return value is the string of raw bytes of the system socket address. 
+</div>
+</div>
+
+<div class="docitem" id="fn:getsockname">
+<div class="proto">
+<div class="function">
+<span class="id">getsockname(<span class="arg">fd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the result of calling the
+system <span class="id">getsockname</span> call on the
+TCP connection associated with <span class="arg">fd</span>.
+The return value is the string of raw bytes of the system socket address. 
+</div>
+</div>
 
 
 <div class="docitem" id="fn:read">
@@ -7302,6 +7341,8 @@ machines sharing the environment have been freed.
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
+<a href="#fn:getpeername">getpeername</a><br />
+<a href="#fn:getsockname">getsockname</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />
