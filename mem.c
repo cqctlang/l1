@@ -761,7 +761,8 @@ copy(Val *v)
 		nh = mal(Vkind(h));
 	memcpy(nh, h, sz);
 	Vsetfwd(h, (uintptr_t)nh);
-//	printf("set fwd %p -> %p %p (%d)\n", h, Vfwdaddr(h), nh, (int)Vfwd(h));
+	if(0)printf("set fwd %p -> %p %p (%d)\n",
+		    h, Vfwdaddr(h), nh, (int)Vfwd(h));
 	*v = nh;
 }
 
@@ -1028,17 +1029,19 @@ reloc()
 }
 
 static void
-walkstack(VM *vm)
+copystack(VM *vm)
 {
-	Imm pc, fp, sp, narg, m, i;
+	Imm pc, fp, sp, narg, m, i, clx;
 	u64 sz, mask;
 	Closure *cl;
+	static int vb = 0;
 
 //	fvmbacktrace(vm);
 	pc = vm->pc;
 	fp = vm->fp;
 	sp = vm->sp;
 	cl = vm->clx;
+	clx = 0;
 	while(fp != 0){
 		if(pc < 2)
 			fatal("no way to find livemask pc %llu", pc);
@@ -1047,31 +1050,40 @@ walkstack(VM *vm)
 			fatal("no live mask for pc %d cl %p", pc, cl);
 		sz = cl->code->insn[pc-1].cnt;
 		mask = cl->code->insn[pc-2].cnt;
-		if(1)printf("%llu %p sz %llx mask %llx\n", pc, cl, sz, mask);
+		if(vb)printf("%lu %p sz %lx mask %lx\n", pc, cl, sz, mask);
 		if(fp-sp < sz)
 			fatal("frame size is too large fp %llu sp %llu",
 			      fp, sp);
 		m = fp-1;
 		for(i = 0; i < sz; i++){
-			printf("\t");
+			if(vb){
+				printf("\t");
+				if((mask>>i)&1)
+					printf("*");
+				else
+					printf("-");
+			}
+			if(vb)printf("st stack[%lu] %p\n", m, vm->stack[m]);
 			if((mask>>i)&1)
-				printf("*");
-			else
-				printf("-");
-			printf("st stack[%llu] %p\n", m, vm->stack[m]);
+				copy(&vm->stack[m]);
 			m--;
 		}
 		for(i = 0; i < fp-sp-sz; i++){
-			printf("\tdyn stack[%llu] %p\n", m, vm->stack[m]);
+			if(vb)printf("\tdyn stack[%lu] %p\n", m, vm->stack[m]);
+			copy(&vm->stack[m]);
 			m--;
 		}
 		narg = stkimm(vm->stack[fp]);
 		pc = stkimm(vm->stack[fp+narg+1]);
 //		pc--; /* pc was insn following call */
+		clx = fp+narg+2;
 		cl = valcl(vm->stack[fp+narg+2]);
 		sp = fp;
 		fp = stkimm(vm->stack[fp+narg+3]);
 	}
+	if(clx)
+		// closure at base of stack missed by loop
+		copy(&vm->stack[clx]);
 }
 
 void
@@ -1083,7 +1095,7 @@ gc()
 	Head *h;
 	Pair *g;
 
-//	printf("\ngc\n");
+	if(0)printf("\ngc\n");
 	f = H.t;
 	c = H.c;
 	H.t = H.m = mkseg(Mmal);
@@ -1094,11 +1106,11 @@ gc()
 		vm = *vmp++;
 		if(vm == 0)
 			continue;
-		walkstack(vm);
-		for(m = vm->sp; m < Maxstk; m++){
-//			printf("copying stack[%d] = %p\n", m, vm->stack[m]);
-			copy(&vm->stack[m]);
-		}
+		if(1)
+			copystack(vm);
+		else
+			for(m = vm->sp; m < Maxstk; m++)
+				copy(&vm->stack[m]);
 		for(m = 0; m < vm->edepth; m++)
 			copy(&vm->err[m].cl);
 		hforeach(vm->top->env->var, toproot, 0);
