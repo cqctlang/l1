@@ -4702,6 +4702,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ikg] 	= &&Ikg;
 		gotab[Ikp] 	= &&Ikp;
 		gotab[Ilist]	= &&Ilist;
+		gotab[Ilive]	= &&Ilive;
 		gotab[Imod] 	= &&Imod;
 		gotab[Imov] 	= &&Imov;
 		gotab[Imul] 	= &&Imul;
@@ -4911,6 +4912,8 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		LABEL Isizeof:
 			xsizeof(vm, &i->op1, &i->dst);
 			continue;
+		LABEL Ilive:
+			fatal("attempt to execute live mask");
 		}
 	}
 }
