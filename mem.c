@@ -1034,7 +1034,6 @@ copystack(VM *vm)
 	Imm pc, fp, sp, narg, m, i, clx;
 	u64 sz, mask;
 	Closure *cl;
-	static int vb = 0;
 
 //	fvmbacktrace(vm);
 	pc = vm->pc;
@@ -1050,26 +1049,16 @@ copystack(VM *vm)
 			fatal("no live mask for pc %d cl %p", pc, cl);
 		sz = cl->code->insn[pc-1].cnt;
 		mask = cl->code->insn[pc-2].cnt;
-		if(vb)printf("%lu %p sz %lx mask %lx\n", pc, cl, sz, mask);
 		if(fp-sp < sz)
 			fatal("frame size is too large fp %llu sp %llu",
 			      fp, sp);
 		m = fp-1;
 		for(i = 0; i < sz; i++){
-			if(vb){
-				printf("\t");
-				if((mask>>i)&1)
-					printf("*");
-				else
-					printf("-");
-			}
-			if(vb)printf("st stack[%lu] %p\n", m, vm->stack[m]);
 			if((mask>>i)&1)
 				copy(&vm->stack[m]);
 			m--;
 		}
 		for(i = 0; i < fp-sp-sz; i++){
-			if(vb)printf("\tdyn stack[%lu] %p\n", m, vm->stack[m]);
 			copy(&vm->stack[m]);
 			m--;
 		}
