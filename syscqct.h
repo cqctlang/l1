@@ -656,8 +656,10 @@ struct Insn {
 	ikind kind;
 	void *go;
 	Operand op1, op2, op3, dst;
-	Ctl *dstlabel;
-	u64 cnt;
+	union{
+		Ctl *dstlabel;
+		u64 cnt;
+	};
 	Src *src;
 } Insn;
 

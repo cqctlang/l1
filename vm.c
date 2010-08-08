@@ -4670,7 +4670,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Cval *cv;
 	Val val;
 	Imm m, narg, onarg;
-	u64 s0, s1;
 
 #ifdef THREADED
 	static int once;
@@ -4749,14 +4748,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	vm->pc = vm->clx->entry;
 
 	// this per-instruction tick count business can add 30% to run time
-	s0 = 0;
-	s1 = rdtsc();
-	goto enter;
 	while(1){
-		s1 = rdtsc();
-		i->cnt += s1-s0;
-	enter:
-		s0 = s1;
 		i = &vm->ibuf[vm->pc++];
 		tick++;
 		NEXTLABEL(i){
