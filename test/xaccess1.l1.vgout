@@ -1,6 +1,6 @@
 entry: var params, 6 locals, 0 temps
 L4: 1 params, 0 locals, 0 temps
-L9: 2 params, 0 locals, 0 temps
+L10: 2 params, 0 locals, 0 temps
 get(<domain xdom>)
 x = 1
 put(<domain xdom>,5)

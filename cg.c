@@ -1266,7 +1266,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		R = 0;
 		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
 		if(!istail){
-			if(loc != Effect)
+			if(1 || loc != Effect)
 				R = genlabel(code, 0);
 			else
 				R = ctl;
@@ -1329,9 +1329,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i = nextinsn(code, &e->src);
 			i->kind = Ilive;  // frame size
 			i->cnt = f->nloc+f->ntmp;
-			if(loc != Effect){
+			if(1 || loc != Effect){
 				emitlabel(R, e);
-				if(loc != AC){
+				if(loc != Effect && loc != AC){
 					i = nextinsn(code, &e->src);
 					i->kind = Imov;
 					randloc(&i->op1, AC);
