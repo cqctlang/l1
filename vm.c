@@ -4747,7 +4747,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	vmsetcl(vm, vm->cl);
 	vm->pc = vm->clx->entry;
 
-	// this per-instruction tick count business can add 30% to run time
 	while(1){
 		i = &vm->ibuf[vm->pc++];
 		tick++;
