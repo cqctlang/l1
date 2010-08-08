@@ -1036,11 +1036,12 @@ copystack(VM *vm)
 	Closure *cl;
 
 //	fvmbacktrace(vm);
-	pc = vm->pc;
 	fp = vm->fp;
+	if(fp == 0)
+		return;
+	pc = vm->pc;
 	sp = vm->sp;
 	cl = vm->clx;
-	clx = 0;
 	while(fp != 0){
 		if(pc < 2)
 			fatal("no way to find livemask pc %llu", pc);
@@ -1070,9 +1071,10 @@ copystack(VM *vm)
 		sp = fp;
 		fp = stkimm(vm->stack[fp+narg+3]);
 	}
-	if(clx)
-		// closure at base of stack missed by loop
-		copy(&vm->stack[clx]);
+	// initial frame of stack
+	for(i = 0; i < narg; i++)
+		copy(&vm->stack[sp+1+i]);
+	copy(&vm->stack[clx]);
 }
 
 void
