@@ -1818,6 +1818,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		randkon(code, &i->op1, konimm(code->konst, Vuint, 0));
 		randkon(code, &i->op2, konimm(code->konst, Vuint, m));
 		randvarloc(&i->dst, &l->param[m], 1);
+		f.live |= (1<<l->param[m].idx);
 	}else
 		for(m = 0; m < l->nparam; m++)
 			if(l->param[m].box){
