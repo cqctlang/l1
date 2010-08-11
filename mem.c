@@ -52,14 +52,13 @@ struct GCstat
 typedef
 struct Heap
 {
-	Seg *m;			/* current alloc segment */
+	Seg *t, *m;		/* head alloc segment */
+	Seg *c, *cc;		/* head and current code segments */
 	u64 na;			/* allocated bytes since last gc */
+	u64 ma;			/* allocated bytes threshold */
 	u64 ta;			/* allocated bytes since beginning */
 	u64 inuse;		/* currently allocated bytes */
-	u64 ma;			/* allocated bytes threshold */
-	Seg *t;			/* head of alloc segments */
 	Seg *p;			/* head of protect segments */
-	Seg *c, *cc;		/* head and current code segments */
 	Pair *g;		/* guarded objects */
 	Pair *guards[Qnkind];
 	u64 ngc;		/* number of gcs */
