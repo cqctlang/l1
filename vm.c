@@ -8942,23 +8942,6 @@ expr2list(Expr *e)
 	return mkvallist(l);
 }
 
-// mktab(): alloc T0, put on protect list
-// gcprotect(T0): copy T0 -> T1 onto persist; T0 becomes "free"; T0.x = T1.x
-// tabput(T1): alloc T2, protect; T2.x = T1.x; T1.x = nx; T2 "free"
-// gcunprotect(T1): copy T1 -> T3, protect
-// gc(): finalize T0, T2
-
-// what is protocol for protecting object with guardians?
-static void
-l1_fuck(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Tab *t;
-	t = gcprotect(mktab());
-	tabput(t, (Val)cval0, (Val)cval1);
-	gcunprotect(t);
-	gc();
-}
-
 static void
 l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -9348,7 +9331,6 @@ mktopenv(void)
 	builtinfn(env, "halt", halt);
 	builtinfn(env, "callcc", callcc());
 
-	FN(fuck);
 	FN(apply);
 	FN(arraynelm);
 	FN(asof);
