@@ -15,6 +15,7 @@ enum
 	Segsize = 4096,
 	Segmask = ~(Segsize-1),
 	GCthresh = 1024*Segsize,
+	Ngen = 3,
 };
 
 typedef struct Seg Seg;
@@ -24,6 +25,7 @@ struct Seg
 	Mkind kind;
 	Pair *g;		/* protected objects */
 	u32 nprotect;
+	u32 gen;
 	Seg *link;
 };
 
@@ -50,15 +52,25 @@ struct GCstat
 } GCstat;
 
 typedef
+struct M
+{
+	Seg *h, *t;		/* segment list head and tail */
+} M;
+
+typedef
 struct Heap
 {
-	Seg *t, *m;		/* head alloc segment */
-	Seg *c, *cc;		/* head and current code segments */
+	M m[Ngen];		/* default allocation segments */
+	Seg *t;			/* current allocation segment */
+	M code[Ngen];		/* code segments */
+	M p;			/* protected segments */
+//	Seg *t, *m;		/* head alloc segment */
+//	Seg *c, *cc;		/* head and current code segments */
 	u64 na;			/* allocated bytes since last gc */
 	u64 ma;			/* allocated bytes threshold */
 	u64 ta;			/* allocated bytes since beginning */
 	u64 inuse;		/* currently allocated bytes */
-	Seg *p;			/* head of protect segments */
+//	Seg *p;			/* head of protect segments */
 	Pair *g;		/* guarded objects */
 	Pair *guards[Qnkind];
 	u64 ngc;		/* number of gcs */
@@ -627,6 +639,26 @@ lookseg(void *a)
 	return s;
 }
 
+static void
+minit(M *m, Seg *s)
+{
+	m->h = s;
+	m->t = s;
+}
+
+static void
+mappend(M *m, Seg *s)
+{
+	s->link = 0; // s may be coming from some other list
+	if(m->h == 0)
+		minit(m, s);
+	else{
+		m->t->link = s;
+		m->t = s;
+		s->link = 0;
+	}
+}
+
 u64
 protected()
 {
@@ -634,16 +666,22 @@ protected()
 	u64 m;
 
 	m = 0;
-	p = H.t;
+	p = H.m[0].h;
 	while(p){
 		m += p->nprotect;
 		p = p->link;
 	}
-	p = H.p;
+	p = H.code[0].h;
 	while(p){
 		m += p->nprotect;
 		p = p->link;
 	}
+	p = H.p.h;
+	while(p){
+		m += p->nprotect;
+		p = p->link;
+	}
+
 	return m;
 }
 
@@ -691,15 +729,14 @@ malcode()
 	u32 sz;
 	sz = qs[Qcode].sz;
 again:
-	m = H.cc;
+	m = H.code[0].t;
 	if(m->a+sz <= m->e){
 		h = m->a;
 		m->a += sz;
 		Vsetkind(h, Qcode);
 		return h;
 	}
-	H.cc = mkseg(Mcode);
-	m->link = H.cc;
+	mappend(&H.code[0], mkseg(Mcode));
 	goto again;
 }
 
@@ -711,15 +748,16 @@ mal(Qkind kind)
 	u32 sz;
 	sz = qs[kind].sz;
 again:
-	m = H.m;
+//	m = H.m[0].t;
+	m = H.t;
 	if(m->a+sz <= m->e){
 		h = m->a;
 		m->a += sz;
 		Vsetkind(h, kind);
 		return h;
 	}
-	H.m = mkseg(Mmal);
-	m->link = H.m;
+	mappend(&H.m[0], mkseg(Mmal));
+	H.t = H.m[0].t;
 	goto again;
 }
 
@@ -751,7 +789,7 @@ copy(Val *v)
 		return;
 	}
 	if(Vprot(h))
-		return;
+		return; // protected objects do not move
 	s = lookseg(h);
 	sz = qs[Vkind(h)].sz;
 	if(Vkind(h) == Qcode)
@@ -916,7 +954,7 @@ updateguards()
 		}
 		if(final == 0)
 			break;
-		b = H.m;
+		b = H.m[0].h;
 		w = final;
 		while(w){
 			copy(&((Pair*)w->car)->car);
@@ -1004,7 +1042,7 @@ reloc()
 	Pair *g;
 	Code *p;
 
-	s = H.c;
+	s = H.code[0].h;
 	while(s){
 		p = s->addr;
 		while((void*)p < s->a){
@@ -1014,7 +1052,7 @@ reloc()
 		s = s->link;
 	}
 
-	s = H.p;
+	s = H.p.h;
 	while(s){
 		g = s->g;
 		while(g){
@@ -1081,15 +1119,23 @@ gc()
 {
 	u32 i, m;
 	VM **vmp, *vm;
-	Seg *s, *t, *f, *c, *b, **r;
+	Seg *s, *t, *f, *c, *b;
 	Head *h;
 	Pair *g;
+	M junk, np;
 
 	if(0)printf("\ngc\n");
-	f = H.t;
-	c = H.c;
-	H.t = H.m = mkseg(Mmal);
-	H.c = H.cc = mkseg(Mcode);
+//	f = H.t;
+//	c = H.c;
+//	H.t = H.m = mkseg(Mmal);
+//	H.c = H.cc = mkseg(Mcode);
+	f = H.m[0].h;
+	c = H.code[0].h;
+	minit(&H.m[0], mkseg(Mmal));
+	H.t = H.m[0].t;
+	minit(&H.code[0], mkseg(Mcode));
+	minit(&junk, 0);
+	minit(&np, 0);
 
 	vmp = vms;
 	while(vmp < vms+Maxvms){
@@ -1112,14 +1158,34 @@ gc()
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
 
-	scan(H.t);
+	scan(H.m[0].h);
 
-	// scan code (FIXME: why can't this simply be done before scan(H.t)?
-	b = H.m;
-	scan(H.c);
+	// scan code (FIXME: why can't this simply be done before scan(H.m)?
+	b = H.m[0].t;
+	scan(H.code[0].h);
 	scan(b);
 
 	// reserve segments with newly protected objects
+	s = f;
+	while(s){
+		t = s->link;
+		if(s->nprotect)
+			mappend(&H.p, s);
+		else
+			mappend(&junk, s);
+		s = t;
+	}
+	s = c;
+	while(s){
+		t = s->link;
+		if(s->nprotect)
+			mappend(&H.p, s);
+		else
+			mappend(&junk, s);
+		s = t;
+	}
+
+#if 0
 	r = &f;
 	s = *r;
 	while(s){
@@ -1145,11 +1211,11 @@ gc()
 			r = &s->link;
 		s = t;
 	}
-
+#endif
 
 	// scan protected objects
-	b = H.m;
-	s = H.p;
+	b = H.m[0].t;
+	s = H.p.h;
 	while(s){
 		copy((Val*)&s->g);      // retain list of protected objects!
 		g = s->g;
@@ -1178,31 +1244,25 @@ gc()
 		}
 	}
 
-	// free remaining from and code segments
-	s = f;
-	while(s){
-		f = s->link;
-		freeseg(s);
-		s = f;
-	}
-	s = c;
-	while(s){
-		c = s->link;
-		freeseg(s);
-		s = c;
-	}
-
-
-	// free unused protected segments
-	r = &H.p;
-	s = *r;
+	// stage unused protected segments for recycling
+	// FIXME: maybe we should do this sooner, before we append
+	// newly protected segments?
+	s = H.p.h;
 	while(s){
 		t = s->link;
-		if(s->nprotect == 0){
-			*r = s->link;
-			freeseg(s);
-		}else
-			r = &s->link;
+		if(s->nprotect == 0)
+			mappend(&junk, s);
+		else
+			mappend(&np, s);
+		s = t;
+	}
+	H.p = np;
+
+	// recycle segments
+	s = junk.h;
+	while(s){
+		t = s->link;
+		freeseg(s);
 		s = t;
 	}
 
@@ -1267,9 +1327,10 @@ initmem(u64 gcrate)
 {
 	u32 i;
 	segtab = mkhtp();
-	H.t = H.m = mkseg(Mmal);
-	H.c = H.cc = mkseg(Mcode);
-	H.p = 0;
+	minit(&H.m[0], mkseg(Mmal));
+	H.t = H.m[0].t;
+	minit(&H.code[0], mkseg(Mcode));
+	minit(&H.p, 0);
 	H.na = H.ta = 0;
 	if(gcrate)
 		H.ma = gcrate;
