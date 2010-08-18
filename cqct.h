@@ -77,44 +77,36 @@ typedef struct Toplevel Toplevel;
 typedef struct VM VM;
 typedef struct Head Head;
 typedef struct Head* Val;
-typedef struct Heap Heap;
+typedef struct xHeap xHeap;
 
 enum
 {
-	Vkindoff  = 0,
+	Vfwdoff  = 0,
+	Vfwdbits = 1,
+	Vfwdmask = (1<<Vfwdbits)-1,
+
+	Vkindoff  = Vfwdoff+Vfwdbits,
 	Vkindbits = 5,
 	Vkindmask = (1<<Vkindbits)-1,
 
-	Vcoloroff = 5,
-	Vcolorbits = 3,
-	Vcolormask = (1<<Vcolorbits)-1,
-
-	Vinrsoff = 8,
-	Vinrsbits = 1,
-	Vinrsmask = (1<<Vinrsbits)-1,
-
-	Vfinaloff = 9,
-	Vfinalbits = 1,
-	Vfinalmask = (1<<Vfinalbits)-1,
+	Vprotoff = Vkindoff+Vkindbits,
+	Vprotbits = 1,
+	Vprotmask = (1<<Vprotbits)-1,
 };
+
+#define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
+#define Vsetfwd(p, a)     ((p)->bits = a|(Vfwdmask<<Vfwdoff))
+#define Vfwdaddr(p)	  ((void*)((p)->bits & ~(Vfwdmask<<Vfwdoff)))
 
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
-#define Vcolor(p)         ((((p)->bits)>>Vcoloroff)&Vcolormask)
-#define Vsetcolor(p, v)	  ((p)->bits = ((p)->bits&~(Vcolormask<<Vcoloroff))|(((v)&Vcolormask)<<Vcoloroff))
+#define Vprot(p)        ((((p)->bits)>>Vprotoff)&Vprotmask)
+#define Vsetprot(p, v)  ((p)->bits = ((p)->bits&~(Vprotmask<<Vprotoff))|(((v)&Vprotmask)<<Vprotoff))
 
-#define Vinrs(p)         ((((p)->bits)>>Vinrsoff)&Vinrsmask)
-#define Vsetinrs(p, v)	  ((p)->bits = ((p)->bits&~(Vinrsmask<<Vinrsoff))|(((v)&Vinrsmask)<<Vinrsoff))
-
-#define Vfinal(p)         ((((p)->bits)>>Vfinaloff)&Vfinalmask)
-#define Vsetfinal(p, v)	  ((p)->bits = ((p)->bits&~(Vfinalmask<<Vfinaloff))|(((v)&Vfinalmask)<<Vfinaloff))
-
-
-struct Head {
-	uint32_t bits;
-	Head *alink;
-	Head *link;
+struct Head
+{
+	uintptr_t bits; // must be able to store a forwarding pointing
 };
 
 typedef struct Xfd Xfd;
@@ -141,11 +133,9 @@ void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);
 void		cqctgcdisable(VM *vm);
 void		cqctgcenable(VM *vm);
-void		cqctgcprotect(VM *vm, Val v);
-void		cqctgcunprotect(VM *vm, Val v);
-void		cqctgcpersist(VM *vm, Val v);
-void		cqctgcunpersist(VM *vm, Val v);
-Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp,
+Val		cqctgcprotect(VM *vm, Val v);
+Val		cqctgcunprotect(VM *vm, Val v);
+Toplevel*	cqctinit(int gct, uint64_t hmax, uint64_t gcrate, char **lp,
 			 Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);

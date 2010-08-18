@@ -509,6 +509,7 @@ enum {
 	Ikg,
 	Ikp,
 	Ilist,
+	Ilive,
 	Imod,
 	Imov,
 	Imul,
@@ -664,8 +665,10 @@ struct Insn {
 	ikind kind;
 	void *go;
 	Operand op1, op2, op3, dst;
-	Ctl *dstlabel;
-	u64 cnt;
+	union{
+		Ctl *dstlabel;
+		u64 cnt;
+	};
 	Src *src;
 	unsigned long ox;
 } Insn;
@@ -674,6 +677,7 @@ struct Code {
 	Head hd;
 	unsigned long ninsn;
 	unsigned long maxinsn;
+	unsigned long nreloc, maxreloc;
 	Insn *insn;
 	Ctl **labels;
 	Ctl *clist;
@@ -682,6 +686,7 @@ struct Code {
 	unsigned char *x;
 	unsigned long nx;
 	unsigned long maxx;
+	u64 *reloc;
 };
 
 typedef
@@ -746,16 +751,11 @@ struct VM {
 	Toplevel *top;
 	Insn *ibuf;
 	Val stack[Maxstk];
-	Dom *litdom;
-	Ns *litns;
-	Xtypename **litbase;	/* always points to litns->base */
-	Root **prot;		/* stack of lists of GC-protected objects */
-	Rootset rs;		/* Root free list for prot */
-	unsigned pdepth, pmax;	/* # live and max prot lists  */
-	Closure *halt;
+	//Dom *litdom;
+	//Ns *litns;
+	//Xtypename **litbase;	/* always points to litns->base */
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
-	Tab *prof;
 };
 
 extern char* S[];
@@ -766,6 +766,11 @@ extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
 extern char  **cqctloadpath;
 extern char *qname[];
+extern void *GCiterdone;
+extern Val Xundef;
+extern Val Xnil;
+extern Val Xnulllist;
+
 
 /* c.l */
 void		freeyystate(YYstate *yy);
@@ -919,13 +924,9 @@ Val*		envget(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
 int		eqval(Val v1, Val v2);
 void		freeenv(Env *env);
-void*		gcpersist(VM *vm, void *hd);
-void*		gcprotect(VM *vm, void *hd);
-void		gcenable(VM *vm);
-void		gcdisable(VM *vm);
-void		gcunpersist(VM *vm, void *hd);
-void		gcunprotect(VM *vm, void *hd);
+void		fvmbacktrace(VM *vm);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
+u32		hashval(Val v);
 void		initvm(int gcthread, u64 heapmax);
 int		isbasecval(Cval *cv);
 int		isnatcval(Cval *cv);
@@ -937,10 +938,6 @@ void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
 int		ismapped(VM *vm, As *as, Imm addr, Imm len);
 int		isstrcval(Cval *cv);
-List*		listappend(VM *vm, List *lst, Val v);
-void		_listappend(List *lst, Val v);
-List*		listpush(VM *vm, List *lst, Val v);
-u32		listxlen(Listx *x);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
 Val		mkattr(Val o);
@@ -975,6 +972,8 @@ void		nexterror(VM *vm) NORETURN;
 void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
+Val		safedovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+Imm		stkimm(Val v);
 char*		str2cstr(Str *str);
 Str*		stringof(VM *vm, Cval *cv);
 Str*		strslice(Str *str, Imm beg, Imm end);
@@ -1103,6 +1102,45 @@ Expr*		Ztid(char *id);
 Expr*		Zuint(Imm val);
 Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);
+
+/* list.c */
+int		equallist(List *a, List *b);
+void		fnlist(Env *env);
+int		freelist(Head *hd);
+u32		hashlist(Val);
+Val*		iterlist(Head *hd, Ictx *ictx);
+void		l1_listref(VM *vm, Imm argc, Val *argv, Val *rv);
+void		l1_listset(VM *vm, Imm argc, Val *argv, Val *rv);
+void		_listappend(List *lst, Val v);
+List*		listappend(VM *vm, List *lst, Val v);
+List*		listconcat(VM *vm, List *l1, List *l2);
+List*		listcopy(List *lst);
+void		listcopyv(List *lst, Imm ndx, Imm n, Val *v);
+List*		listdel(VM *vm, List *lst, Imm idx);
+List*		listins(VM *vm, List *lst, Imm idx, Val v);
+void		listpop(List *lst, Val *vp);
+Val		listref(VM *vm, List *lst, Imm idx);
+List*		listset(VM *vm, List *lst, Imm idx, Val v);
+u32		listxlen(Listx *x);
+List*		mklistn(u32 sz);
+
+/* mem.c */
+void		finimem();
+void		gc();
+void		gcdisable();
+void		gcenable();
+void		gcpoll();
+void*		gcprotect(void *v);
+Str*		gcstat();
+void*		gcunprotect(void *v);
+void		gcwb(Val v);
+u64		guarded();
+void		initmem(u64 rate);
+Head*		mal(Qkind kind);
+Head*		malcode();
+u64		meminuse();
+u64		protected();
+void		quard(Val o);
 
 extern		void fns(Env*);
 

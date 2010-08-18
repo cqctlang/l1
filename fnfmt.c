@@ -509,7 +509,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(vm, f, ">");
 	case Qrec:
 		rec = valrec(val);
-		rv = dovm(vm, rec->rd->fmt, 1, &val);
+		rv = safedovm(vm, rec->rd->fmt, 1, &val);
 		if(Vkind(rv) != Qstr)
 			vmerr(vm, "formatter for record type %.*s must "
 			      "return a string",
@@ -683,7 +683,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	static char buf[3+Maxprintint];
 	Val *vpp, vp, vq;
-	Cval *cv, *cv0, *cv1;
+	Cval *cv, *cv1;
 	Str *as, *ys;
 	char *efmt;
 	char ch;
@@ -904,7 +904,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(cv->dom->ns->lookaddr == 0)
 				vmerr(vm, "name space does not"
 				      " define lookaddr");
-			vq = dovm(vm, cv->dom->ns->lookaddr, 2, xargv);
+			vq = safedovm(vm, cv->dom->ns->lookaddr, 2, xargv);
 			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			if(Vkind(vq) == Qnil){
 				snprint(buf, sizeof(buf),
@@ -926,13 +926,10 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(Vkind(vq) != Qcval)
 				goto bady;
 			/* FIXME: too complicated */
-			cv0 = gcprotect(vm, cv);
-			cv1 = gcprotect(vm, typecast(vm,
-						     cv0->dom->ns->base[Vptr],
-						     valcval(vq)));
-			cv = xcvalalu(vm, Isub, cv0, cv1);
-			gcunprotect(vm, cv1);
-			gcunprotect(vm, cv0);
+			cv1 = typecast(vm,
+				       cv->dom->ns->base[Vptr],
+				       valcval(vq));
+			cv = xcvalalu(vm, Isub, cv, cv1);
 			if(cv->val != 0){
 				snprint(buf, sizeof(buf),
 					"+0x%" PRIx64, cv->val);
@@ -1004,10 +1001,8 @@ fmtfdflush(VM *vm, Fmt *f)
 			return -1;
 	}else{
 		s = mkstrk(f->start, f->to-f->start, Sperm);
-		gcprotect(vm, s);
 		argv[0] = mkvalstr(s);
-		r = dovm(vm, fd->u.cl.write, 1, argv);
-		gcunprotect(vm, s);
+		r = safedovm(vm, fd->u.cl.write, 1, argv);
 		if(Vkind(r) != Qnil)
 			return -1;
 	}

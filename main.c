@@ -44,6 +44,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-r allow redefinition of implicitly called builtins\n");
 	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
 	fprintf(stderr, "\t-t report timing statistics\n");
+	fprintf(stderr, "\t-u <N> trigger GC after allocating <N> megabytes\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
@@ -392,7 +393,7 @@ main(int argc, char *argv[])
 	int dorepl;
 	char opt[256];
 	char *inbuf, *s;
-	uint64_t heapmax;
+	uint64_t heapmax, gcrate;
 	int i, valc;
 	Val *valv;
 	char *argv0, *root;
@@ -414,9 +415,10 @@ main(int argc, char *argv[])
 	dorepl = 1;
 	ename = 0;
 	heapmax = 0;
+	gcrate = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6be:ghkl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6be:ghkl:m:opqrstTu:wxz"))){
 		switch(c){
 		case '6':
 		case 'b':
@@ -440,6 +442,9 @@ main(int argc, char *argv[])
 			break;
 		case 'e':
 			ename = optarg;
+			break;
+		case 'u':
+			gcrate = 1024*1024*atoi(optarg);
 			break;
 		case 'm':
 			heapmax = atoi(optarg);
@@ -488,7 +493,7 @@ main(int argc, char *argv[])
 		xfd = &devnull;
 	}
 
-	top = cqctinit(opt['g'], heapmax, lp, 0, xfd, 0);
+	top = cqctinit(opt['g'], heapmax, gcrate, lp, 0, xfd, 0);
 	while(nlp > 0)
 		free(lp[--nlp]);
 	if(opt['x']){

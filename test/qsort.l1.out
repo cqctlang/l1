@@ -1,6 +1,6 @@
 entry: var params, 1 locals, 0 temps
 L4: 1 params, 5 locals, 0 temps
-L49: 4 params, 7 locals, 0 temps
-L104: 4 params, 1 locals, 0 temps
-L114: 2 params, 2 locals, 0 temps
-L126: 1 params, 4 locals, 0 temps
+L52: 4 params, 7 locals, 0 temps
+L109: 4 params, 1 locals, 0 temps
+L120: 2 params, 2 locals, 0 temps
+L132: 1 params, 4 locals, 0 temps

@@ -1,7 +1,7 @@
 entry: var params, 2 locals, 0 temps
-L23: 2 params, 0 locals, 0 temps
-L30: 1 params, 0 locals, 0 temps
-L37: 1 params, 0 locals, 0 temps
+L32: 2 params, 0 locals, 0 temps
+L40: 1 params, 0 locals, 0 temps
+L47: 1 params, 0 locals, 0 temps
 [ "3,three", "1,one", "2,two" ]
 [ 2, 2, 2, 2, 2 ]
 [ 2, 3, 4, 5, 6 ]
