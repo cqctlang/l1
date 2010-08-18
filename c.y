@@ -79,6 +79,7 @@ extern char *yytext;
 	static void yyerror(U *ctx, const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* mulmerge(YYSTYPE e1, YYSTYPE e2);
+	static Expr* andmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* ofmerge(YYSTYPE e1, YYSTYPE e2);
 %}
 %%
@@ -107,11 +108,11 @@ lambda_expression
 
 defrec_expression
 	: DEFREC id '{' identifier_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }
 	| DEFREC id '{' identifier_list ',' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }	
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }
 	| DEFREC id '{' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }	
+	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }
 	;
 
 let_expression
@@ -283,8 +284,8 @@ equality_expression
 	;
 
 and_expression
-	: equality_expression
-	| and_expression '&' equality_expression
+	: equality_expression                       %merge <andmerge>
+	| and_expression '&' equality_expression    %merge <andmerge>
 	{ $$ = newbinopsrc(&ctx->inp->src, Eband, $1, $3); }
 	;
 
@@ -502,9 +503,9 @@ type_specifier
 
 struct_or_union_specifier
 	: struct_or_union tag '{' struct_declaration_list struct_size '}'
-	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, invert(newexprsrc(&ctx->inp->src, Eelist, $5, $4, 0, 0)), 0, 0); } 
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, invert(newexprsrc(&ctx->inp->src, Eelist, $5, $4, 0, 0)), 0, 0); }
 	| struct_or_union '{' struct_declaration_list struct_size '}'
-	{ $$ = newexprsrc(&ctx->inp->src, $1, 0, invert(newexprsrc(&ctx->inp->src, Eelist, $4, $3, 0, 0)), 0, 0); } 
+	{ $$ = newexprsrc(&ctx->inp->src, $1, 0, invert(newexprsrc(&ctx->inp->src, Eelist, $4, $3, 0, 0)), 0, 0); }
 	| struct_or_union tag '{' struct_size '}'
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, newexprsrc(&ctx->inp->src, Eelist, $4, nullelist(), 0, 0), 0, 0); }
 	| struct_or_union '{' struct_size '}'
@@ -664,7 +665,6 @@ parameter_type_list
 /*
 	{ $$ = invert(newexprsrc(&ctx->inp->src, Eelist,
 	                      newexprsrc(&ctx->inp->src, Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
-			      
 */
 	{ $$ = invert($1); }
 	;
@@ -780,7 +780,6 @@ tn_parameter_type_list
 /*
 	{ $$ = invert(newexprsrc(&ctx->inp->src, Eelist,
 	                      newexprsrc(&ctx->inp->src, Edotdot, 0, 0, 0, 0), $1, 0, 0)); }
-			      
 */
 	{ $$ = invert($1); }
 	;
@@ -938,7 +937,7 @@ compound_statement
 				0, 0, 0);
 	}
 	| '{' local_list statement_list '}'
-	{ 
+	{
 		/* use src of first statement */
 		Expr *sl;
 		sl = invert($3);
@@ -1092,6 +1091,27 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 	duptickid(other->e1);
 	freeexpr(other);
 	return cast;
+}
+
+static Expr*
+andmerge(YYSTYPE ye1, YYSTYPE ye2)
+{
+	Expr *cast, *other;
+
+	// (dom`T)&p  cast expression or and
+
+	if(ye1.expr->kind == Ecast){
+		cast = ye1.expr;
+		other = ye2.expr;
+	}else if(ye2.expr->kind == Ecast){
+		cast = ye2.expr;
+		other = ye1.expr;
+	}else
+		yyerror(0, "unresolved ambiguity");
+
+	duptickid(other->e1);
+
+	return newexprsrc(&cast->src, Eambig, cast, other, NULL, NULL);
 }
 
 static Expr*

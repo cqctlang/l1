@@ -222,9 +222,53 @@ l1_tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalfd(fd1);
 }
 
+static void
+l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Xfd *xfd;
+	struct sockaddr_in sa;
+	int r;
+	socklen_t len;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to getpeername");
+	checkarg(vm, "getpeername", argv, 0, Qfd);
+	fd = valfd(argv[0]);
+	xfd = &fd->u.fn;
+	len = sizeof(sa);
+	r = getpeername(xfd->fd, (struct sockaddr*)&sa, &len);
+	if(0 > r)
+		vmerr(vm, "getpeername: %s", strerror(errno));
+	*rv = mkvalstr(mkstr((char*)&sa, len));
+}
+
+static void
+l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Xfd *xfd;
+	struct sockaddr_in sa;
+	int r;
+	socklen_t len;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to getsockname");
+	checkarg(vm, "getsockname", argv, 0, Qfd);
+	fd = valfd(argv[0]);
+	xfd = &fd->u.fn;
+	len = sizeof(sa);
+	r = getsockname(xfd->fd, (struct sockaddr*)&sa, &len);
+	if(0 > r)
+		vmerr(vm, "getsockname: %s", strerror(errno));
+	*rv = mkvalstr(mkstr((char*)&sa, len));
+}
+
 void
 fnnet(Env *env)
 {
+	FN(getpeername);
+	FN(getsockname);
 	FN(socket);
 	FN(tcpaccept);
 	FN(tcplisten);

@@ -15,6 +15,9 @@
 
 @include <dynamictypes.cqct>
 
+@global asfile_identifier;
+asfile_identifier="AS1";
+
 //the address space to be associated with the names files.
 @define svasns()
 {
@@ -27,15 +30,16 @@
 		};
 		typedef struct adr_range adr_range;
 		struct adr_ranges {
-			@0x0 unsigned int num_ranges;
-			@["offset" : 0x4,
+			@0x0 char identifier[8];
+			@0x8 unsigned int num_ranges;
+			@["offset" : 0xb,
 			  "refine" : @lambda (p) {
-					return [0x4,
+					return [0xb,
 					mkctype_array(
 						subtype(@typeof(p->ranges)),
 						p->num_ranges)];
 				}]      adr_range ranges[];
-			@0x8;
+			@0xb;
 			
 		};
 	};
@@ -139,6 +143,7 @@
 	backing = mkstr(size+(unsigned int)(p+1));
 	svdom = mkdom(ns,mksas(backing));
 	p = (struct svdom`adr_ranges*){svdom}0;
+	putbytes(p->identifier,asfile_identifier);
 	p->num_ranges = length(ranges);
 	p = refine(p);
 	q = (unsigned char*)(p+1); //next free address.
@@ -146,7 +151,7 @@
 	{
 		@local j, r, len;
 		p->ranges[i].beg = rangebeg(ranges[i]);
-		r = (unsigned char*) {as}p->ranges[i].beg;
+		r = {as}(unsigned char*)p->ranges[i].beg;
 		len = rangelen(ranges[i]);
 		p->ranges[i].len = len;
 		if (ismapped(r,len)) {

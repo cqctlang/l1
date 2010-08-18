@@ -397,13 +397,10 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	oflags = 0;
 	if(strchr(mode, 'r'))
 		flags |= Fread;
-	if(strchr(mode, 'w')){
+	if(strchr(mode, 'w') || strchr(mode, 'a'))
 		flags |= Fwrite;
-		oflags |= O_CREAT;
-	}
-	if((flags&Fwrite) && !strchr(mode, 'a'))
-		oflags |= O_TRUNC;
-
+	if(strchr(mode, 'w'))
+		oflags |= O_CREAT|O_TRUNC;
 	if((flags&Fread) && (flags&Fwrite))
 		oflags |= O_RDWR;
 	else if(flags&Fread)
@@ -417,10 +414,42 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > xfd.fd)
 		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
 		      strerror(errno));
+	if(strchr(mode, 'a'))
+		lseek(xfd.fd, 0, SEEK_END);
 	xfd.read = xfdread;
 	xfd.write = xfdwrite;
 	xfd.close = xfdclose;
 	fd = mkfdfn(names, flags, &xfd);
+	*rv = mkvalfd(fd);
+}
+
+static void
+l1_fdopen(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Xfd xfd;
+	Cval *cfd;
+	char *mode;
+	int flags;
+	char buf[32];
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to fdopen");
+	checkarg(vm, "fdopen", argv, 0, Qcval);
+	checkarg(vm, "fdopen", argv, 1, Qstr);
+	cfd = valcval(argv[0]);
+	mode = str2cstr(valstr(argv[1]));
+	flags = 0;
+	if(strchr(mode, 'r'))
+		flags |= Fread;
+	if(strchr(mode, 'w'))
+		flags |= Fwrite;
+	xfd.fd = cfd->val;
+	snprintf(buf, sizeof(buf), "fd%d", xfd.fd);
+	xfd.read = xfdread;
+	xfd.write = xfdwrite;
+	xfd.close = xfdclose;  // FIXME: close on gc should be optional
+	fd = mkfdfn(mkstr0(buf), flags, &xfd);
 	*rv = mkvalfd(fd);
 }
 
@@ -488,6 +517,31 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "write error");
 	}
 	/* return nil */
+}
+
+static void
+l1_seek(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+	Cval *off, *wh;
+	long r;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to seek");
+	checkarg(vm, "seek", argv, 0, Qfd);
+	checkarg(vm, "seek", argv, 1, Qcval);
+	checkarg(vm, "seek", argv, 2, Qcval);
+	fd = valfd(argv[0]);
+	if(fd->flags&Fclosed)
+		vmerr(vm, "attempt to seek on closed file descriptor");
+	if((fd->flags&Ffn) == 0)
+		vmerr(vm, "file descriptor does not support seek");
+	off = valcval(argv[1]);
+	wh = valcval(argv[2]);
+	r = xlseek(fd->u.fn.fd, (long)off->val, (int)wh->val);
+	if(r == -1)
+		r = -errno;
+	*rv = mkvallitcval(Vlong, r);
 }
 
 static void
@@ -567,11 +621,13 @@ void
 fnio(Env *env)
 {
 	FN(access);
+	FN(fdopen);
 	FN(ioctl);
 	FN(mapfile);
 	FN(open);
 	FN(popen);
 	FN(read);
+	FN(seek);
 	FN(stat);
 	FN(write);
 }

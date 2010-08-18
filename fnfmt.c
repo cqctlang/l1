@@ -323,7 +323,13 @@ fmtputB(VM *vm, Fmt *f, char *p, Imm m)
 	}
 	while(l-- > 0){
 		c = *p++;
-		if(xisgraph(c) || xisspace(c))
+		if(c == '\\'){
+			fmtputc(vm, f, '\\');
+			fmtputc(vm, f, '\\');
+		}else if(c == '\"'){
+			fmtputc(vm, f, '\\');
+			fmtputc(vm, f, '\"');
+		}else if(xisgraph(c) || xisspace(c))
 			fmtputc(vm, f, c);
 		else{
 			fmtputc(vm, f, '\\');
