@@ -141,7 +141,7 @@ getval(Code *c, Location *l, Reg6 reg)
 	}
 }
 
-static void
+void
 getvalrand(Code *c, Operand *r, Reg6 reg)
 {
 	Val v;
@@ -195,7 +195,7 @@ putval(Code *c, Reg6 reg, Location *l)
 	}
 }
 
-static void
+void
 putvalrand(Code *c, Reg6 reg, Operand *r)
 {
 	if(r->okind != Oloc)
@@ -203,17 +203,9 @@ putvalrand(Code *c, Reg6 reg, Operand *r)
 	putval(c, reg, &r->u.loc);
 }
 
-static void
-cg6fn(Code *c, Expr *e)
-{
-
-}
-
 void
 cg6(Code *c, Expr *e)
 {
-	unsigned i;
-
 	c->maxx = 100*c->ninsn;    /* guess what we'll need */
 	c->x = emalloc(c->maxx);
 	c->nx = 0;
