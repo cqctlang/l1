@@ -25,13 +25,15 @@ l1names = @names c64le {
 }
 
 {
-	@local file, i, p, prev, iu;
+	@local file, i, p, prev, iu, xns;
+	xns = @names c32le { @include "../emacs.names" };
+	printf("loaded names\n");
 	if(length(args) == 1)
 		file = "./snap1";
 	else
 		file = args[1];
 	prev = 0;
-	for(i = 0; i < 10; i++){
+	for(i = 0; i < 3; i++){
 		s2(file);
 		p = (struct l1names`GCstat*)gcstat();
 		gc();
