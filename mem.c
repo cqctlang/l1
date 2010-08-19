@@ -954,7 +954,7 @@ updateguards()
 		}
 		if(final == 0)
 			break;
-		b = H.m[0].h;
+		b = H.m[0].t;
 		w = final;
 		while(w){
 			copy(&((Pair*)w->car)->car);
