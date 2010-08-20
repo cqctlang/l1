@@ -64,13 +64,10 @@ struct Heap
 	Seg *t;			/* current allocation segment */
 	M code[Ngen];		/* code segments */
 	M p;			/* protected segments */
-//	Seg *t, *m;		/* head alloc segment */
-//	Seg *c, *cc;		/* head and current code segments */
 	u64 na;			/* allocated bytes since last gc */
 	u64 ma;			/* allocated bytes threshold */
 	u64 ta;			/* allocated bytes since beginning */
 	u64 inuse;		/* currently allocated bytes */
-//	Seg *p;			/* head of protect segments */
 	Pair *g;		/* guarded objects */
 	Pair *guards[Qnkind];
 	u64 ngc;		/* number of gcs */
@@ -748,7 +745,6 @@ mal(Qkind kind)
 	u32 sz;
 	sz = qs[kind].sz;
 again:
-//	m = H.m[0].t;
 	m = H.t;
 	if(m->a+sz <= m->e){
 		h = m->a;
@@ -1102,7 +1098,6 @@ copystack(VM *vm)
 		}
 		narg = stkimm(vm->stack[fp]);
 		pc = stkimm(vm->stack[fp+narg+1]);
-//		pc--; /* pc was insn following call */
 		clx = fp+narg+2;
 		cl = valcl(vm->stack[fp+narg+2]);
 		sp = fp;
@@ -1125,10 +1120,6 @@ gc()
 	M junk, np;
 
 	if(0)printf("\ngc\n");
-//	f = H.t;
-//	c = H.c;
-//	H.t = H.m = mkseg(Mmal);
-//	H.c = H.cc = mkseg(Mcode);
 	f = H.m[0].h;
 	c = H.code[0].h;
 	minit(&H.m[0], mkseg(Mmal));
@@ -1184,34 +1175,6 @@ gc()
 			mappend(&junk, s);
 		s = t;
 	}
-
-#if 0
-	r = &f;
-	s = *r;
-	while(s){
-		t = s->link;
-		if(s->nprotect){
-			*r = s->link;
-			s->link = H.p;
-			H.p = s;
-		}else
-			r = &s->link;
-		s = t;
-	}
-
-	r = &c;
-	s = *r;
-	while(s){
-		t = s->link;
-		if(s->nprotect){
-			*r = s->link;
-			s->link = H.p;
-			H.p = s;
-		}else
-			r = &s->link;
-		s = t;
-	}
-#endif
 
 	// scan protected objects
 	b = H.m[0].t;
