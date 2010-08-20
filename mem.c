@@ -1149,11 +1149,7 @@ gc(u32 g, u32 tg)
 		vm = *vmp++;
 		if(vm == 0)
 			continue;
-		if(1)
-			copystack(vm);
-		else
-			for(m = vm->sp; m < Maxstk; m++)
-				copy(&vm->stack[m]);
+		copystack(vm);
 		for(m = 0; m < vm->edepth; m++)
 			copy(&vm->err[m].cl);
 		hforeach(vm->top->env->var, toproot, 0);
@@ -1192,6 +1188,8 @@ gc(u32 g, u32 tg)
 	}
 
 	// scan protected objects
+	// FIXME: isn't this broken if any protected object is code,
+	// since we don't scan the code segments again?
 	b = H.d;
 	s = H.prot.h;
 	while(s){
