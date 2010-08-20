@@ -638,25 +638,25 @@ lookseg(void *a)
 	return s;
 }
 
-static void
+static Seg*
 minit(M *m, Seg *s)
 {
 	m->h = s;
 	m->t = s;
+	return s;
 }
 
-static void
+static Seg*
 mappend(M *m, Seg *s)
 {
 	s->gen = m->gen;
 	s->link = 0;
 	if(m->h == 0)
-		minit(m, s);
-	else{
-		m->t->link = s;
-		m->t = s;
-		s->link = 0;
-	}
+		return minit(m, s);
+	m->t->link = s;
+	m->t = s;
+	s->link = 0;
+	return s;
 }
 
 u64
@@ -736,8 +736,7 @@ again:
 		Vsetkind(h, Qcode);
 		return h;
 	}
-	mappend(&H.code[s->gen], mkseg(Mcode));
-	H.c = H.code[s->gen].t;
+	H.c = mappend(&H.code[s->gen], mkseg(Mcode));
 	goto again;
 }
 
@@ -756,8 +755,7 @@ again:
 		Vsetkind(h, kind);
 		return h;
 	}
-	mappend(&H.data[s->gen], mkseg(Mmal));
-	H.d = H.data[s->gen].t;
+	H.d = mappend(&H.data[s->gen], mkseg(Mmal));
 	goto again;
 }
 
@@ -962,7 +960,7 @@ updateguards()
 		}
 		if(final == 0)
 			break;
-		b = H.data[0].t;
+		b = H.d;
 		w = final;
 		while(w){
 			copy(&caar(w));
@@ -1141,10 +1139,8 @@ gc(u32 g, u32 tg)
 	if(0)printf("\ngc\n");
 	f = H.data[0].h;
 	c = H.code[0].h;
-	minit(&H.data[0], mkseg(Mmal));
-	H.d = H.data[0].t;
-	minit(&H.code[0], mkseg(Mcode));
-	H.c = H.code[0].t;
+	H.d = minit(&H.data[0], mkseg(Mmal));
+	H.c = minit(&H.code[0], mkseg(Mcode));
 	minit(&junk, 0);
 	minit(&np, 0);
 
@@ -1171,7 +1167,7 @@ gc(u32 g, u32 tg)
 
 	scan(H.data[0].h);
 	// scan code (FIXME: why can't this be done before above scan?)
-	b = H.data[0].t;
+	b = H.d;
 	scan(H.code[0].h);
 	scan(b);
 
@@ -1196,7 +1192,7 @@ gc(u32 g, u32 tg)
 	}
 
 	// scan protected objects
-	b = H.data[0].t;
+	b = H.d;
 	s = H.prot.h;
 	while(s){
 		copy((Val*)&s->p);      // retain list of protected objects!
@@ -1314,10 +1310,8 @@ initmem(u64 gcrate)
 		H.code[i].gen = i;
 		H.data[i].gen = i;
 	}
-	minit(&H.data[0], mkseg(Mmal));
-	H.d = H.data[0].t;
-	minit(&H.code[0], mkseg(Mcode));
-	H.c = H.code[0].t;
+	H.d = minit(&H.data[0], mkseg(Mmal));
+	H.c = minit(&H.code[0], mkseg(Mcode));
 	minit(&H.prot, 0);
 	H.prot.gen = Gprot;
 	H.na = H.ta = 0;
