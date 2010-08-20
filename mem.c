@@ -62,10 +62,10 @@ struct M
 typedef
 struct Heap
 {
-	M m[Ngen];		/* default allocation segments */
-	Seg *t;			/* current allocation segment */
+	Seg *d, *c;		/* current data and code segment */
+	M data[Ngen];		/* data segments */
 	M code[Ngen];		/* code segments */
-	M p;			/* protected segments */
+	M prot;			/* protected segments */
 	u64 na;			/* allocated bytes since last gc */
 	u64 ma;			/* allocated bytes threshold */
 	u64 ta;			/* allocated bytes since beginning */
@@ -666,7 +666,7 @@ protected()
 	u64 m;
 
 	m = 0;
-	p = H.m[0].h;
+	p = H.data[0].h;
 	while(p){
 		m += p->nprotect;
 		p = p->link;
@@ -676,7 +676,7 @@ protected()
 		m += p->nprotect;
 		p = p->link;
 	}
-	p = H.p.h;
+	p = H.prot.h;
 	while(p){
 		m += p->nprotect;
 		p = p->link;
@@ -724,39 +724,40 @@ meminuse()
 Head*
 malcode()
 {
-	Seg *m;
+	Seg *s;
 	Head *h;
 	u32 sz;
 	sz = qs[Qcode].sz;
 again:
-	m = H.code[0].t;
-	if(m->a+sz <= m->e){
-		h = m->a;
-		m->a += sz;
+	s = H.c;
+	if(s->a+sz <= s->e){
+		h = s->a;
+		s->a += sz;
 		Vsetkind(h, Qcode);
 		return h;
 	}
-	mappend(&H.code[0], mkseg(Mcode));
+	mappend(&H.code[s->gen], mkseg(Mcode));
+	H.c = H.code[s->gen].t;
 	goto again;
 }
 
 Head*
 mal(Qkind kind)
 {
-	Seg *m;
+	Seg *s;
 	Head *h;
 	u32 sz;
 	sz = qs[kind].sz;
 again:
-	m = H.t;
-	if(m->a+sz <= m->e){
-		h = m->a;
-		m->a += sz;
+	s = H.d;
+	if(s->a+sz <= s->e){
+		h = s->a;
+		s->a += sz;
 		Vsetkind(h, kind);
 		return h;
 	}
-	mappend(&H.m[0], mkseg(Mmal));
-	H.t = H.m[0].t;
+	mappend(&H.data[s->gen], mkseg(Mmal));
+	H.d = H.data[s->gen].t;
 	goto again;
 }
 
@@ -961,7 +962,7 @@ updateguards()
 		}
 		if(final == 0)
 			break;
-		b = H.m[0].t;
+		b = H.data[0].t;
 		w = final;
 		while(w){
 			copy(&caar(w));
@@ -1058,7 +1059,7 @@ reloc()
 		s = s->link;
 	}
 
-	s = H.p.h;
+	s = H.prot.h;
 	while(s){
 		p = (Head*)s->p;
 		while(p){
@@ -1119,6 +1120,12 @@ copystack(VM *vm)
 	copy(&vm->stack[clx]);
 }
 
+/*
+	for generations 0...g copy live data to space for generation tg.
+	if tg is g then create a new target space;
+        else if tg is g+1 then use existing target space tg;
+	else error.
+*/
 void
 gc(u32 g, u32 tg)
 {
@@ -1128,12 +1135,16 @@ gc(u32 g, u32 tg)
 	Head *h, *p;
 	M junk, np;
 
+	if(g != tg && g != tg-1)
+		fatal("bug");
+
 	if(0)printf("\ngc\n");
-	f = H.m[0].h;
+	f = H.data[0].h;
 	c = H.code[0].h;
-	minit(&H.m[0], mkseg(Mmal));
-	H.t = H.m[0].t;
+	minit(&H.data[0], mkseg(Mmal));
+	H.d = H.data[0].t;
 	minit(&H.code[0], mkseg(Mcode));
+	H.c = H.code[0].t;
 	minit(&junk, 0);
 	minit(&np, 0);
 
@@ -1158,10 +1169,9 @@ gc(u32 g, u32 tg)
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
 
-	scan(H.m[0].h);
-
-	// scan code (FIXME: why can't this simply be done before scan(H.m)?
-	b = H.m[0].t;
+	scan(H.data[0].h);
+	// scan code (FIXME: why can't this be done before above scan?)
+	b = H.data[0].t;
 	scan(H.code[0].h);
 	scan(b);
 
@@ -1170,7 +1180,7 @@ gc(u32 g, u32 tg)
 	while(s){
 		t = s->link;
 		if(s->nprotect)
-			mappend(&H.p, s);
+			mappend(&H.prot, s);
 		else
 			mappend(&junk, s);
 		s = t;
@@ -1179,15 +1189,15 @@ gc(u32 g, u32 tg)
 	while(s){
 		t = s->link;
 		if(s->nprotect)
-			mappend(&H.p, s);
+			mappend(&H.prot, s);
 		else
 			mappend(&junk, s);
 		s = t;
 	}
 
 	// scan protected objects
-	b = H.m[0].t;
-	s = H.p.h;
+	b = H.data[0].t;
+	s = H.prot.h;
 	while(s){
 		copy((Val*)&s->p);      // retain list of protected objects!
 		p = (Head*)s->p;
@@ -1219,7 +1229,7 @@ gc(u32 g, u32 tg)
 	// stage unused protected segments for recycling
 	// FIXME: maybe we should do this sooner, before we append
 	// newly protected segments?
-	s = H.p.h;
+	s = H.prot.h;
 	while(s){
 		t = s->link;
 		if(s->nprotect == 0)
@@ -1228,7 +1238,7 @@ gc(u32 g, u32 tg)
 			mappend(&np, s);
 		s = t;
 	}
-	H.p = np;
+	H.prot = np;
 
 	// recycle segments
 	s = junk.h;
@@ -1302,13 +1312,14 @@ initmem(u64 gcrate)
 	segtab = mkhtp();
 	for(i = 0; i < Ngen; i++){
 		H.code[i].gen = i;
-		H.m[i].gen = i;
+		H.data[i].gen = i;
 	}
-	H.p.gen = Gprot;
-	minit(&H.m[0], mkseg(Mmal));
-	H.t = H.m[0].t;
+	minit(&H.data[0], mkseg(Mmal));
+	H.d = H.data[0].t;
 	minit(&H.code[0], mkseg(Mcode));
-	minit(&H.p, 0);
+	H.c = H.code[0].t;
+	minit(&H.prot, 0);
+	H.prot.gen = Gprot;
 	H.na = H.ta = 0;
 	if(gcrate)
 		H.ma = gcrate;
