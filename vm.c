@@ -8740,7 +8740,7 @@ l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	gc();
+	gc(0, 1);
 }
 
 static void

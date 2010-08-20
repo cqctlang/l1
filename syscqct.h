@@ -1126,7 +1126,7 @@ List*		mklistn(u32 sz);
 
 /* mem.c */
 void		finimem();
-void		gc();
+void		gc(u32 g, u32 tg);
 void		gcdisable();
 void		gcenable();
 void		gcpoll();

@@ -16,6 +16,7 @@ enum
 	Segmask = ~(Segsize-1),
 	GCthresh = 1024*Segsize,
 	Ngen = 3,
+	Gprot,
 };
 
 typedef struct Seg Seg;
@@ -23,7 +24,7 @@ struct Seg
 {
 	void *addr, *scan, *a, *e;
 	Mkind kind;
-	Pair *g;		/* protected objects */
+	Pair *p;		/* protected objects */
 	u32 nprotect;
 	u32 gen;
 	Seg *link;
@@ -55,6 +56,7 @@ typedef
 struct M
 {
 	Seg *h, *t;		/* segment list head and tail */
+	u32 gen;
 } M;
 
 typedef
@@ -646,7 +648,8 @@ minit(M *m, Seg *s)
 static void
 mappend(M *m, Seg *s)
 {
-	s->link = 0; // s may be coming from some other list
+	s->gen = m->gen;
+	s->link = 0;
 	if(m->h == 0)
 		minit(m, s);
 	else{
@@ -839,13 +842,22 @@ scan(Seg *s)
 	scan(s->link);
 }
 
+#define car(p)  (((Pair*)p)->car)
+#define cdr(p)  (((Pair*)p)->cdr)
+#define caar(p) (car(car(p)))
+#define cadr(p) (car(cdr(p)))
+#define cdar(p) (cdr(car(p)))
+#define cddr(p) (cdr(cdr(p)))
+#define setcar(p,x) { car(p) = (Head*)(x); }
+#define setcdr(p,x) { cdr(p) = (Head*)(x); }
+
 static Pair*
 cons(void *a, void *d)
 {
 	Pair *p;
 	p = (Pair*)mal(Qpair);
-	p->car = a;
-	p->cdr = d;
+	setcar(p, a);
+	setcdr(p, d);
 	return p;
 }
 
@@ -872,15 +884,14 @@ instguard(Val o, Pair *t)
 Head*
 pop1guard(Pair *t)
 {
-	Pair *x;
-	Head *y;
-	if(t->car == t->cdr)
+	Head *x, *y;
+	if(car(t) == cdr(t))
 		return 0;
-	x = (Pair*)t->car;
-	y = x->car;
-	t->car = x->cdr;
-	x->car = 0;
-	x->cdr = 0;
+	x = car(t);
+	y = car(x);
+	setcar(t, cdr(x));
+	setcar(x, 0);
+	setcdr(x, 0);
 	return y;
 }
 
@@ -889,9 +900,9 @@ push1guard(Val o, Pair *t)
 {
 	Pair *p;
 	p = lastpair();
-	((Pair*)t->cdr)->car = o;
-	((Pair*)t->cdr)->cdr = (Head*)p;
-	t->cdr = (Head*)p;
+	setcar(cdr(t), o);
+	setcdr(cdr(t), p);
+	setcdr(t, p);
 }
 
 void
@@ -907,26 +918,25 @@ quard(Val o)
 static void
 updateguards()
 {
-	Pair *phold, *pfinal, *final, *p, *q, **r, *w;
-	Head *o;
+	Head *phold, *pfinal, *final, *p, *q, *o, **r, *w;
 	Seg *b;
 
 	// move guarded objects and guards (and their containing cons) to
 	// either pending hold or pending final list
 	phold = 0;
 	pfinal = 0;
-	p = H.g;
+	p = (Head*)H.g;
 	while(p){
-		q = (Pair*)p->cdr;
-		o = ((Pair*)p->car)->car;
+		q = cdr(p);
+		o = caar(p);
 		if(Vfwd(o) || Vprot(o)){
 			// object is accessible
-			p->cdr = (Head*)phold;
+			setcdr(p, phold);
 			phold = p;
 		}else{
 			// object is inaccessible
 			// printf("inaccessible: %p\n", ((Pair*)p->car)->car);
-			p->cdr = (Head*)pfinal;
+			setcdr(p, pfinal);
 			pfinal = p;
 		}
 		p = q;
@@ -936,16 +946,17 @@ updateguards()
 	// move each pending final to final if guard is accessible
 	while(1){
 		final = 0;
+		// FIXME: generation safe?
 		r = &pfinal;
 		p = pfinal;
 		if(p == 0)
 			break;
-		q = (Pair*)p->cdr;
-		o = ((Pair*)p->car)->cdr;
+		q = cdr(p);
+		o = cdar(p);
 		if(Vfwd(o) || Vprot(o)){
 			// guard is accessible
 			*r = q;
-			p->cdr = (Head*)final;
+			setcdr(p, final);
 			final = p;
 		}
 		if(final == 0)
@@ -953,25 +964,25 @@ updateguards()
 		b = H.m[0].t;
 		w = final;
 		while(w){
-			copy(&((Pair*)w->car)->car);
-			push1guard(((Pair*)w->car)->car,
-				   curaddr(((Pair*)w->car)->cdr));
-			w = (Pair*)w->cdr;
+			copy(&caar(w));
+			push1guard(caar(w), curaddr(cdar(w)));
+			w = cdr(w);
+
 		}
 		scan(b);
-		r = (Pair**)&p->cdr;
+		// FIXME: generation safe?
+		r = &cdr(p);
 		p = q;
 	}
 
 	// forward pending hold to fresh guarded list
 	p = phold;
 	while(p){
-		o = ((Pair*)p->car)->cdr;
+		o = cdar(p);
 		if(Vfwd(o) || Vprot(o))
 			// ...
-			instguard(curaddr(((Pair*)p->car)->car),
-				  curaddr(((Pair*)p->car)->cdr));
-		p = (Pair*)p->cdr;
+			instguard(curaddr(caar(p)), curaddr(cdar(p)));
+		p = cdr(p);
 	}
 }
 
@@ -991,7 +1002,7 @@ void
 gcpoll()
 {
 	if(!H.disable && H.na >= H.ma)
-		gc();
+		gc(0, 1);
 }
 
 void
@@ -1034,28 +1045,27 @@ static void
 reloc()
 {
 	Seg *s;
-	Head *h;
-	Pair *g;
-	Code *p;
+	Head *h, *p;
+	Code *c;
 
 	s = H.code[0].h;
 	while(s){
-		p = s->addr;
-		while((void*)p < s->a){
-			reloc1(p);
-			p++;
+		c = s->addr;
+		while((void*)c < s->a){
+			reloc1(c);
+			c++;
 		}
 		s = s->link;
 	}
 
 	s = H.p.h;
 	while(s){
-		g = s->g;
-		while(g){
-			h = g->car;
+		p = (Head*)s->p;
+		while(p){
+			h = car(p);
 			if(Vkind(h) == Qcode)
 				reloc1((Code*)h);
-			g = (Pair*)g->cdr;
+			p = cdr(p);
 		}
 		s = s->link;
 	}
@@ -1110,13 +1120,12 @@ copystack(VM *vm)
 }
 
 void
-gc()
+gc(u32 g, u32 tg)
 {
 	u32 i, m;
 	VM **vmp, *vm;
 	Seg *s, *t, *f, *c, *b;
-	Head *h;
-	Pair *g;
+	Head *h, *p;
 	M junk, np;
 
 	if(0)printf("\ngc\n");
@@ -1180,11 +1189,11 @@ gc()
 	b = H.m[0].t;
 	s = H.p.h;
 	while(s){
-		copy((Val*)&s->g);      // retain list of protected objects!
-		g = s->g;
-		while(g){
-			scan1(g->car);  // manual scan of protected object
-			g = (Pair*)g->cdr;
+		copy((Val*)&s->p);      // retain list of protected objects!
+		p = (Head*)s->p;
+		while(p){
+			scan1(car(p));  // manual scan of protected object
+			p = cdr(p);
 		}
 		s = s->link;
 	}
@@ -1249,7 +1258,7 @@ gcprotect(void *v)
 		// allow this.
 		fatal("gcprotect on already protected object %p", h);
 	s = lookseg(h);
-	s->g = cons(h, s->g);
+	s->p = cons(h, s->p);
 	s->nprotect++;
 	Vsetprot(h, 1);
 	return h;
@@ -1259,8 +1268,7 @@ void*
 gcunprotect(void *v)
 {
 	Seg *s;
-	Head *h;
-	Pair *p, **r;
+	Head *h, *p, **r;
 
 	if(v == 0)
 		return v;
@@ -1270,14 +1278,15 @@ gcunprotect(void *v)
 	if(!Vprot(h))
 		fatal("gcunprotect on already unprotected object %p", h);
 	s = lookseg(h);
-	r = &s->g;
+	// FIXME: generation safe?
+	r = (Head**)&s->p;
 	p = *r;
 	while(p){
-		if(p->car == h){
-			*r = (Pair*)p->cdr;
+		if(car(p) == h){
+			*r = cdr(p);
 			break;
 		}
-		r = (Pair**)&p->cdr;
+		r = &cdr(p);
 		p = *r;
 	}
 	s->nprotect--;
@@ -1289,7 +1298,13 @@ void
 initmem(u64 gcrate)
 {
 	u32 i;
+
 	segtab = mkhtp();
+	for(i = 0; i < Ngen; i++){
+		H.code[i].gen = i;
+		H.m[i].gen = i;
+	}
+	H.p.gen = Gprot;
 	minit(&H.m[0], mkseg(Mmal));
 	H.t = H.m[0].t;
 	minit(&H.code[0], mkseg(Mcode));
