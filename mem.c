@@ -1208,17 +1208,10 @@ gc(u32 g, u32 tg)
 	reloc();
 
 	// call built-in finalizers
-	for(i = 0; i < Qnkind; i++){
-		if(H.guards[i] == 0)
-			continue;
-		while(1){
-			h = pop1guard(H.guards[i]);
-			if(h == 0)
-				break;
-			// printf("finalizing %s %p\n", qs[i].id, h);
-			qs[i].free1(h);
-		}
-	}
+	for(i = 0; i < Qnkind; i++)
+		if(H.guards[i])
+			while((h = pop1guard(H.guards[i])))
+				qs[i].free1(h);
 
 	// stage unused protected segments for recycling
 	// FIXME: maybe we should do this sooner, before we append
