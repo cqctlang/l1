@@ -666,10 +666,11 @@ mmove(M *a, M *b)
 	if(a->h == 0){
 		a->h = b->h;
 		a->t = b->t;
-		return;
+	}else{
+		a->t->link = b->h;
+		a->t = b->t;
 	}
-	a->t->link = b->h;
-	a->t = b->t;
+	b->h = b->t = 0;
 }
 
 u64
@@ -1178,8 +1179,14 @@ gc(u32 g, u32 tg)
 		H.d = minit(&H.data[tg], mkseg(Mdata));
 		H.c = minit(&H.code[tg], mkseg(Mcode));
 	}else{
-		H.d = H.data[tg].t;
-		H.c = H.code[tg].t;
+		if(H.data[tg].h)
+			H.d = H.data[tg].t;
+		else
+			H.d = minit(&H.data[tg], mkseg(Mdata));
+		if(H.code[tg].h)
+			H.c = H.code[tg].t;
+		else
+			H.c = minit(&H.code[tg], mkseg(Mcode));
 	}
 
 	vmp = vms;
