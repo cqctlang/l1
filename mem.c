@@ -639,9 +639,18 @@ lookseg(void *a)
 	return s;
 }
 
+static void
+mclr(M *m)
+{
+	m->h = 0;
+	m->t = 0;
+}
+
 static Seg*
 minit(M *m, Seg *s)
 {
+	s->gen = m->gen;
+	s->link = 0;
 	m->h = s;
 	m->t = s;
 	return s;
@@ -650,13 +659,12 @@ minit(M *m, Seg *s)
 static Seg*
 minsert(M *m, Seg *s)
 {
-	s->gen = m->gen;
-	s->link = 0;
 	if(m->h == 0)
 		return minit(m, s);
+	s->gen = m->gen;
+	s->link = 0;
 	m->t->link = s;
 	m->t = s;
-	s->link = 0;
 	return s;
 }
 
@@ -862,8 +870,8 @@ scan(Seg *s)
 #define cadr(p) (car(cdr(p)))
 #define cdar(p) (cdr(car(p)))
 #define cddr(p) (cdr(cdr(p)))
-#define setcar(p,x) { car(p) = (Head*)(x); }
-#define setcdr(p,x) { cdr(p) = (Head*)(x); }
+#define setcar(p,x) { gcwb((Val)p); car(p) = (Head*)(x); }
+#define setcdr(p,x) { gcwb((Val)p); cdr(p) = (Head*)(x); }
 
 static Pair*
 cons(void *a, void *d)
@@ -955,7 +963,7 @@ updateguards()
 		}
 		p = q;
 	}
-	H.g = 0;
+	H.gd = 0;
 
 	// move each pending final to final if guard is accessible
 	while(1){
@@ -1168,13 +1176,13 @@ gc(u32 g, u32 tg)
 	H.tg = tg;
 
 	if(0)printf("\ngc\n");
-	minit(&fr, 0);
+	mclr(&fr);
 	for(i = 0; i <= g; i++){
 		mmove(&fr, &H.data[i]);
 		mmove(&fr, &H.code[i]);
 	}
-	minit(&junk, 0);
-	minit(&np, 0);
+	mclr(&junk);
+	mclr(&np);
 	if(g == tg){
 		H.d = minit(&H.data[tg], mkseg(Mdata));
 		H.c = minit(&H.code[tg], mkseg(Mcode));
@@ -1289,6 +1297,11 @@ gc(u32 g, u32 tg)
 		s = t;
 	}
 
+	if(H.data[0].h)
+		fatal("i'm confused");
+	H.d = minit(&H.data[0], mkseg(Mdata));
+	H.c = minit(&H.code[0], mkseg(Mcode));
+
 	H.na = 0;
 	H.ngc++;
 }
@@ -1357,7 +1370,7 @@ initmem(u64 gcrate)
 	}
 	H.d = minit(&H.data[0], mkseg(Mdata));
 	H.c = minit(&H.code[0], mkseg(Mcode));
-	minit(&H.prot, 0);
+	mclr(&H.prot);
 	H.prot.gen = Gprot;
 	H.na = H.ta = 0;
 	if(gcrate)
