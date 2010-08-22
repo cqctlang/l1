@@ -816,7 +816,7 @@ _vecset(Vec *vec, Imm idx, Val v)
 void
 vecset(Vec *vec, Imm idx, Val v)
 {
-	gcwb(vec->vec[idx]);
+	gcwb(mkvalvec(vec));
 	_vecset(vec, idx, v);
 }
 
@@ -981,9 +981,9 @@ dotabput(Tab *tab, Val keyv, Val val)
 	Tabx *x;
 
 	x = tab->x;
+	gcwb(mkvaltab(tab));
 	tk = _tabget(tab, keyv, 0);
 	if(tk){
-		gcwb(x->val[tk->idx]);
 		x->val[tk->idx] = val;
 		return;
 	}
@@ -1024,8 +1024,6 @@ tabdel(Tab *tab, Val keyv)
 	tk = _tabget(tab, keyv, &ptk);
 	if(tk == 0)
 		return;
-	gcwb(x->key[tk->idx]);
-	gcwb(x->val[tk->idx]);
 	x->key[tk->idx] = Xundef;
 	x->val[tk->idx] = Xundef;
 	*ptk = tk->link;
@@ -1127,8 +1125,6 @@ tabpop(Tab *tab, Val *rv)
 	vec = mkvec(2);
 	_vecset(vec, 0, x->key[tk->idx]);
 	_vecset(vec, 1, x->val[tk->idx]);
-	gcwb(x->key[tk->idx]);
-	gcwb(x->val[tk->idx]);
 	x->key[tk->idx] = Xundef;
 	x->val[tk->idx] = Xundef;
 	efree(tk);
@@ -1299,7 +1295,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
 		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
 
-	gcwb(r->field[ndx->val]);
+	gcwb(mkvalrec(r));
 	r->field[ndx->val] = argv[1];
 	*rv = argv[1];
 }
@@ -1321,15 +1317,8 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 		hputs(vm->top->env->rd,
 		      xstrndup(name->s, (unsigned)name->len),
 		      (unsigned)name->len, rd);
-	}else{
-		gcwb(mkvalstr(rd->name));
-		gcwb(mkvallist(rd->fname));
-		gcwb(mkvalcl(rd->is));
-		gcwb(mkvalcl(rd->mk));
-		gcwb(mkvalcl(rd->fmt));
-		gcwb(mkvaltab(rd->get));
-		gcwb(mkvaltab(rd->set));
-	}
+	}else
+		gcwb(mkvalrd(rd));
 
 	listlen(mkvallist(fname), &rd->nf);
 	rd->name = name;
@@ -1604,8 +1593,8 @@ static void
 putbox(Val box, Val boxed)
 {
 	Box *b;
+	gcwb(box);
 	b = (Box*)box;
-	gcwb(b->v);
 	b->v = boxed;
 }
 
@@ -4922,8 +4911,6 @@ static void
 doswap(Val *vs, Imm i, Imm j)
 {
 	Val t;
-	gcwb(vs[i]);
-	gcwb(vs[j]);
 	t = vs[i];
 	vs[i] = vs[j];
 	vs[j] = t;
@@ -9861,10 +9848,6 @@ cqctfreecstr(char *s)
 void
 cqctenvbind(Toplevel *top, char *name, Val v)
 {
-	Val *vp;
-	vp = envget(top->env, name);
-	if(vp)
-		gcwb(*vp);
 	envbind(top->env, name, v);
 }
 

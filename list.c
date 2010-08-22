@@ -86,13 +86,6 @@ mklistinit(Imm len, Val v)
 	return l;
 }
 
-static void
-listxaddroots(Listx *x, u32 idx, u32 n)
-{
-	while(n-- > 0)
-		gcwb(x->val[x->hd+idx+n]);
-}
-
 Val
 listref(VM *vm, List *lst, Imm idx)
 {
@@ -110,7 +103,7 @@ listset(VM *vm, List *lst, Imm idx, Val v)
 	x = lst->x;
 	if(idx >= listxlen(x))
 		vmerr(vm, "listset out of bounds");
-	listxaddroots(x, idx, 1);
+	gcwb(mkvallist(lst));
 	x->val[x->hd+idx] = v;
 	return lst;
 }
@@ -168,7 +161,6 @@ listpop(List *lst, Val *vp)
 	if(listxlen(x) == 0)
 		return; 	/* nil */
 	*vp = x->val[x->hd];
-	listxaddroots(x, 0, 1);
 	x->val[x->hd] = Xundef;
 	x->hd++;
 }
@@ -302,9 +294,7 @@ listdel(VM *vm, List *lst, Imm idx)
 	if(idx >= len)
 		vmerr(vm, "listdel out of bounds");
 	m = len-idx;
-	listxaddroots(x, idx, m);
 	slide(x, idx, SlideDel);
-	x->val[x->tl-1] = Xundef;
 	x->tl--;
 	return lst;
 }
@@ -319,13 +309,13 @@ listins(VM *vm, List *lst, Imm idx, Val v)
 	if(idx > len)
 		vmerr(vm, "listins out of bounds");
 	x = maybelistexpand(lst);
+	gcwb(mkvallist(lst));
 	if(idx == 0)
 		x->val[--x->hd] = v;
 	else if(idx == len)
 		x->val[x->tl++] = v;
 	else{
 		m = len-idx;
-		listxaddroots(x, idx, m);
 		slide(x, idx, SlideIns);
 		x->tl++;
 		x->val[x->hd+idx] = v;
@@ -338,6 +328,7 @@ _listappend(List *lst, Val v)
 {
 	Listx *x;
 	x = maybelistexpand(lst);
+	gcwb(mkvallist(lst));
 	x->val[x->tl++] = v;
 }
 
