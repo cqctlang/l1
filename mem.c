@@ -5,9 +5,8 @@
 typedef
 enum
 {
-	Mmal,
+	Mdata,
 	Mcode,
-	Mmax,
 } Mkind;
 
 enum
@@ -23,6 +22,7 @@ typedef struct Seg Seg;
 struct Seg
 {
 	void *addr, *scan, *a, *e;
+	u8 card;
 	Mkind kind;
 	Pair *p;		/* protected objects */
 	u32 nprotect;
@@ -66,11 +66,12 @@ struct Heap
 	M data[Ngen];		/* data segments */
 	M code[Ngen];		/* code segments */
 	M prot;			/* protected segments */
-	u64 na;			/* allocated bytes since last gc */
-	u64 ma;			/* allocated bytes threshold */
-	u64 ta;			/* allocated bytes since beginning */
-	u64 inuse;		/* currently allocated bytes */
-	Pair *g;		/* guarded objects */
+	u32 g, tg;		/* collect generation and target generation */
+	u64 na;			/* bytes allocated since last gc */
+	u64 ta;			/* bytes allocated since beginning */
+	u64 ma;			/* bytes allocated to trigger collect */
+	u64 inuse;		/* bytes currently allocated */
+	Pair *gd;		/* guarded objects */
 	Pair *guards[Qnkind];
 	u64 ngc;		/* number of gcs */
 	u64 nseg;		/* number of segments */
@@ -647,7 +648,7 @@ minit(M *m, Seg *s)
 }
 
 static Seg*
-mappend(M *m, Seg *s)
+minsert(M *m, Seg *s)
 {
 	s->gen = m->gen;
 	s->link = 0;
@@ -657,6 +658,18 @@ mappend(M *m, Seg *s)
 	m->t = s;
 	s->link = 0;
 	return s;
+}
+
+static void
+mmove(M *a, M *b)
+{
+	if(a->h == 0){
+		a->h = b->h;
+		a->t = b->t;
+		return;
+	}
+	a->t->link = b->h;
+	a->t = b->t;
 }
 
 u64
@@ -691,7 +704,7 @@ guarded()
 	u64 m;
 	Pair *p;
 	m = 0;
-	p = H.g;
+	p = H.gd;
 	while(p){
 		m++;
 		p = (Pair*)p->cdr;
@@ -736,7 +749,7 @@ again:
 		Vsetkind(h, Qcode);
 		return h;
 	}
-	H.c = mappend(&H.code[s->gen], mkseg(Mcode));
+	H.c = minsert(&H.code[s->gen], mkseg(Mcode));
 	goto again;
 }
 
@@ -755,7 +768,7 @@ again:
 		Vsetkind(h, kind);
 		return h;
 	}
-	H.d = mappend(&H.data[s->gen], mkseg(Mmal));
+	H.d = minsert(&H.data[s->gen], mkseg(Mdata));
 	goto again;
 }
 
@@ -779,8 +792,7 @@ copy(Val *v)
 	if(h == 0)
 		return;
 	if((uintptr_t)h&1)
-		/* pointer tag: stack immediate */
-		return;
+		return; // stack immediate
 	if(Vfwd(h)){
 		// printf("read fwd %p -> %p\n", h, (void*)Vfwdaddr(h));
 		*v = Vfwdaddr(h);
@@ -789,6 +801,8 @@ copy(Val *v)
 	if(Vprot(h))
 		return; // protected objects do not move
 	s = lookseg(h);
+	if(s->gen > H.g)
+		return; // objects in older generations do not move
 	sz = qs[Vkind(h)].sz;
 	if(Vkind(h) == Qcode)
 		nh = malcode();
@@ -877,7 +891,7 @@ mkguard()
 void
 instguard(Val o, Pair *t)
 {
-	H.g = cons(cons(o, t), H.g);
+	H.gd = cons(cons(o, t), H.gd);
 }
 
 Head*
@@ -924,7 +938,7 @@ updateguards()
 	// either pending hold or pending final list
 	phold = 0;
 	pfinal = 0;
-	p = (Head*)H.g;
+	p = (Head*)H.gd;
 	while(p){
 		q = cdr(p);
 		o = caar(p);
@@ -1007,6 +1021,9 @@ gcpoll()
 void
 gcwb(Val v)
 {
+	Seg *s;
+	s = lookseg((Head*)v);
+	s->card = 1;
 }
 
 static void
@@ -1047,7 +1064,7 @@ reloc()
 	Head *h, *p;
 	Code *c;
 
-	s = H.code[0].h;
+	s = H.code[H.tg].h;
 	while(s){
 		c = s->addr;
 		while((void*)c < s->a){
@@ -1118,6 +1135,17 @@ copystack(VM *vm)
 	copy(&vm->stack[clx]);
 }
 
+static void
+scancard(Seg *s)
+{
+	void *p;
+	p = s->addr;
+	while(p < s->a){
+		scan1(p);
+		p += qs[Vkind((Head*)p)].sz;
+	}
+}
+
 /*
 	for generations 0...g copy live data to space for generation tg.
 	if tg is g then create a new target space;
@@ -1129,20 +1157,30 @@ gc(u32 g, u32 tg)
 {
 	u32 i, m;
 	VM **vmp, *vm;
-	Seg *s, *t, *f, *c, *b;
+	Seg *s, *t, *b;
 	Head *h, *p;
-	M junk, np;
+	M junk, np, fr;
 
 	if(g != tg && g != tg-1)
 		fatal("bug");
+	H.g = g;
+	H.tg = tg;
 
 	if(0)printf("\ngc\n");
-	f = H.data[0].h;
-	c = H.code[0].h;
-	H.d = minit(&H.data[0], mkseg(Mmal));
-	H.c = minit(&H.code[0], mkseg(Mcode));
+	minit(&fr, 0);
+	for(i = 0; i <= g; i++){
+		mmove(&fr, &H.data[i]);
+		mmove(&fr, &H.code[i]);
+	}
 	minit(&junk, 0);
 	minit(&np, 0);
+	if(g == tg){
+		H.d = minit(&H.data[tg], mkseg(Mdata));
+		H.c = minit(&H.code[tg], mkseg(Mcode));
+	}else{
+		H.d = H.data[tg].t;
+		H.c = H.code[tg].t;
+	}
 
 	vmp = vms;
 	while(vmp < vms+Maxvms){
@@ -1160,30 +1198,39 @@ gc(u32 g, u32 tg)
 	}
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
+	for(i = g+1; i <= tg; i++){
+		s = H.data[i].h;
+		while(s){
+			if(s->card){
+				s->card = 0;
+				scancard(s);
+			}
+			s = s->link;
+		}
+		s = H.code[i].h;
+		while(s){
+			if(s->card){
+				s->card = 0;
+				scancard(s);
+			}
+			s = s->link;
+		}
+	}
 
-	scan(H.data[0].h);
+	scan(H.data[tg].h);
 	// scan code (FIXME: why can't this be done before above scan?)
 	b = H.d;
-	scan(H.code[0].h);
+	scan(H.code[tg].h);
 	scan(b);
 
-	// reserve segments with newly protected objects
-	s = f;
+	// reserve segments with newly protected objects.
+	s = fr.h;
 	while(s){
 		t = s->link;
 		if(s->nprotect)
-			mappend(&H.prot, s);
+			minsert(&H.prot, s);
 		else
-			mappend(&junk, s);
-		s = t;
-	}
-	s = c;
-	while(s){
-		t = s->link;
-		if(s->nprotect)
-			mappend(&H.prot, s);
-		else
-			mappend(&junk, s);
+			minsert(&junk, s);
 		s = t;
 	}
 
@@ -1220,9 +1267,9 @@ gc(u32 g, u32 tg)
 	while(s){
 		t = s->link;
 		if(s->nprotect == 0)
-			mappend(&junk, s);
+			minsert(&junk, s);
 		else
-			mappend(&np, s);
+			minsert(&np, s);
 		s = t;
 	}
 	H.prot = np;
@@ -1301,7 +1348,7 @@ initmem(u64 gcrate)
 		H.code[i].gen = i;
 		H.data[i].gen = i;
 	}
-	H.d = minit(&H.data[0], mkseg(Mmal));
+	H.d = minit(&H.data[0], mkseg(Mdata));
 	H.c = minit(&H.code[0], mkseg(Mcode));
 	minit(&H.prot, 0);
 	H.prot.gen = Gprot;
