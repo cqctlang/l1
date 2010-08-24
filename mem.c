@@ -71,7 +71,7 @@ struct Heap
 	u64 ta;			/* bytes allocated since beginning */
 	u64 ma;			/* bytes allocated to trigger collect */
 	u64 inuse;		/* bytes currently allocated */
-	Pair *gd;		/* guarded objects */
+	Pair *gd[Ngen];		/* guarded objects */
 	Pair *guards[Qnkind];
 	u64 ngc;		/* number of gcs */
 	u64 nseg;		/* number of segments */
@@ -710,13 +710,16 @@ protected()
 u64
 guarded()
 {
+	u32 i;
 	u64 m;
 	Pair *p;
 	m = 0;
-	p = H.gd;
-	while(p){
-		m++;
-		p = (Pair*)p->cdr;
+	for(i = 0; i < Ngen; i++){
+		p = H.gd[i];
+		while(p){
+			m++;
+			p = (Pair*)p->cdr;
+		}
 	}
 	return m;
 }
@@ -901,7 +904,7 @@ mkguard()
 void
 instguard(Val o, Pair *t)
 {
-	H.gd = cons(cons(o, t), H.gd);
+	H.gd[H.tg] = cons(cons(o, t), H.gd[H.tg]);
 }
 
 Head*
@@ -944,27 +947,30 @@ updateguards()
 	Head *phold, *pfinal, *p, *q, *o;
 	Head *final, *w;
 	Seg *b;
+	u32 i;
 
 	// move guarded objects and guards (and their containing cons) to
 	// either pending hold or pending final list
 	phold = 0;
 	pfinal = 0;
-	p = (Head*)H.gd;
-	while(p){
-		q = cdr(p);
-		o = caar(p);
-		if(Vfwd(o) || Vprot(o)){
-			// object is accessible
-			setcdr(p, phold);
-			phold = p;
-		}else{
-			// object is inaccessible
-			setcdr(p, pfinal);
-			pfinal = p;
+	for(i = 0; i <= H.g; i++){
+		p = (Head*)H.gd[i];
+		H.gd[i] = 0;
+		while(p){
+			q = cdr(p);
+			o = caar(p);
+			if(Vfwd(o) || Vprot(o)){
+				// object is accessible
+				setcdr(p, phold);
+				phold = p;
+			}else{
+				// object is inaccessible
+				setcdr(p, pfinal);
+				pfinal = p;
+			}
+			p = q;
 		}
-		p = q;
 	}
-	H.gd = 0;
 
 	// move each pending final to final if guard is accessible
 	while(1){
@@ -1297,8 +1303,9 @@ gc(u32 g, u32 tg)
 
 	if(H.data[0].h)
 		fatal("i'm confused");
-	H.d = minit(&H.data[0], mkseg(Mdata));
-	H.c = minit(&H.code[0], mkseg(Mcode));
+	H.tg = 0;
+	H.d = minit(&H.data[H.tg], mkseg(Mdata));
+	H.c = minit(&H.code[H.tg], mkseg(Mcode));
 
 	H.na = 0;
 	H.ngc++;
