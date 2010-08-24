@@ -941,7 +941,8 @@ quard(Val o)
 static void
 updateguards()
 {
-	Head *phold, *pfinal, *final, *p, *q, *o, **r, *w;
+	Head *phold, *pfinal, *p, *q, *o;
+	Head *final, *w;
 	Seg *b;
 
 	// move guarded objects and guards (and their containing cons) to
@@ -958,7 +959,6 @@ updateguards()
 			phold = p;
 		}else{
 			// object is inaccessible
-			// printf("inaccessible: %p\n", ((Pair*)p->car)->car);
 			setcdr(p, pfinal);
 			pfinal = p;
 		}
@@ -969,33 +969,31 @@ updateguards()
 	// move each pending final to final if guard is accessible
 	while(1){
 		final = 0;
-		// FIXME: generation safe?
-		r = &pfinal;
 		p = pfinal;
-		if(p == 0)
-			break;
-		q = cdr(p);
-		o = cdar(p);
-		if(Vfwd(o) || Vprot(o)){
-			// guard is accessible
-			*r = q;
-			setcdr(p, final);
-			final = p;
+		pfinal = 0;
+		while(p){
+			q = cdr(p);
+			o = cdar(p);
+			if(Vfwd(o) || Vprot(o)){
+				// guard is accessible
+				setcdr(p, final);
+				final = p;
+			}else{
+				setcdr(p, pfinal);
+				pfinal = p;
+			}
+			p = q;
 		}
 		if(final == 0)
 			break;
-		b = H.d;
 		w = final;
+		b = H.d;
 		while(w){
 			copy(&caar(w));
 			push1guard(caar(w), curaddr(cdar(w)));
 			w = cdr(w);
-
 		}
 		scan(b);
-		// FIXME: generation safe?
-		r = &cdr(p);
-		p = q;
 	}
 
 	// forward pending hold to fresh guarded list
@@ -1003,7 +1001,6 @@ updateguards()
 	while(p){
 		o = cdar(p);
 		if(Vfwd(o) || Vprot(o))
-			// ...
 			instguard(curaddr(caar(p)), curaddr(cdar(p)));
 		p = cdr(p);
 	}
