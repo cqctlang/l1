@@ -846,22 +846,22 @@ scan(Seg *s)
 	Head *h, **c;
 	Ictx ictx;
 
-	if(s == 0)
-		return;
-	while(s->scan < s->a){
-		h = s->scan;
-		s->scan += qs[Vkind(h)].sz;
-		if(qs[Vkind(h)].iter == 0)
-			continue;
-		memset(&ictx, 0, sizeof(ictx));
-		while(1){
-			c = qs[Vkind(h)].iter(h, &ictx);
-			if(c == (Val*)GCiterdone)
-				break;
-			copy(c);
+	while(s){
+		while(s->scan < s->a){
+			h = s->scan;
+			s->scan += qs[Vkind(h)].sz;
+			if(qs[Vkind(h)].iter == 0)
+				continue;
+			memset(&ictx, 0, sizeof(ictx));
+			while(1){
+				c = qs[Vkind(h)].iter(h, &ictx);
+				if(c == (Val*)GCiterdone)
+					break;
+				copy(c);
+			}
 		}
+		s = s->link;
 	}
-	scan(s->link);
 }
 
 #define car(p)  (((Pair*)p)->car)
