@@ -1154,7 +1154,8 @@ scancard(Seg *s)
 	void *p;
 	p = s->addr;
 	while(p < s->a){
-		scan1(p);
+		if(!Vdead((Head*)p))
+			scan1(p);
 		p += qs[Vkind((Head*)p)].sz;
 	}
 }
@@ -1276,8 +1277,10 @@ gc(u32 g, u32 tg)
 	// call built-in finalizers
 	for(i = 0; i < Qnkind; i++)
 		if(H.guards[i])
-			while((h = pop1guard(H.guards[i])))
+			while((h = pop1guard(H.guards[i]))){
+				Vsetdead(h, 1);
 				qs[i].free1(h);
+			}
 
 	// stage unused protected segments for recycling
 	// FIXME: maybe we should do this sooner, before we append

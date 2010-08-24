@@ -92,6 +92,10 @@ enum
 	Vprotoff = Vkindoff+Vkindbits,
 	Vprotbits = 1,
 	Vprotmask = (1<<Vprotbits)-1,
+
+	Vdeadoff = Vprotoff+Vprotbits,
+	Vdeadbits = 1,
+	Vdeadmask = (1<<Vdeadbits)-1,
 };
 
 #define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
@@ -103,6 +107,9 @@ enum
 
 #define Vprot(p)        ((((p)->bits)>>Vprotoff)&Vprotmask)
 #define Vsetprot(p, v)  ((p)->bits = ((p)->bits&~(Vprotmask<<Vprotoff))|(((v)&Vprotmask)<<Vprotoff))
+
+#define Vdead(p)        ((((p)->bits)>>Vdeadoff)&Vdeadmask)
+#define Vsetdead(p, v)  ((p)->bits = ((p)->bits&~(Vdeadmask<<Vdeadoff))|(((v)&Vdeadmask)<<Vdeadoff))
 
 struct Head
 {
