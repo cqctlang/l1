@@ -878,8 +878,9 @@ cons(void *a, void *d)
 {
 	Pair *p;
 	p = (Pair*)mal(Qpair);
-	setcar(p, a);
-	setcdr(p, d);
+	// setc*r would invoke write barrier
+	p->car = a;
+	p->cdr = d;
 	return p;
 }
 
