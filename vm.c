@@ -8727,7 +8727,23 @@ l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	gc(0, 1);
+	Cval *g, *tg;
+	if(argc == 0)
+		gc(0, 1);
+	else if(argc == 1){
+		checkarg(vm, "gc", argv, 0, Qcval);
+		g = valcval(argv[0]);
+		gc((u32)g->val, (u32)g->val+1);
+	}else if(argc == 2){
+		checkarg(vm, "gc", argv, 0, Qcval);
+		checkarg(vm, "gc", argv, 1, Qcval);
+		g = valcval(argv[0]);
+		tg = valcval(argv[1]);
+		if(g->val != tg->val && g->val != tg->val-1)
+			vmerr(vm, "invalid arguments to gc");
+		gc((u32)g->val, (u32)tg->val);
+	}else
+		vmerr(vm, "wrong number of arguments to gc");
 }
 
 static void
