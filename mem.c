@@ -818,8 +818,12 @@ copy(Val *v)
 	sz = qs[Vkind(h)].sz;
 	if(Vkind(h) == Qcode)
 		nh = malcode();
-	else
+	else{
 		nh = mal(Vkind(h));
+		printf("copy %s %p to %p\n",
+		       qs[Vkind(h)].id,
+		       h, nh);
+	}
 	memcpy(nh, h, sz);
 	Vsetfwd(h, (uintptr_t)nh);
 	if(0)printf("set fwd %p -> %p %p (%d)\n",
@@ -1174,13 +1178,16 @@ gc(u32 g, u32 tg)
 	Seg *s, *t, *b;
 	Head *h, *p;
 	M junk, np, fr;
+	unsigned dbg = 1;
 
 	if(g != tg && g != tg-1)
 		fatal("bug");
+	if(tg >= Ngen)
+		return; // FIXME: silently do nothing...caller should know
 	H.g = g;
 	H.tg = tg;
 
-	if(0)printf("\ngc\n");
+	if(dbg)printf("\ngc\n");
 	mclr(&fr);
 	for(i = 0; i <= g; i++){
 		mmove(&fr, &H.data[i]);
@@ -1216,8 +1223,10 @@ gc(u32 g, u32 tg)
 		copy(&vm->cl);
 		copy((Val*)&vm->clx);
 	}
+	if(dbg)printf("copied vm roots\n");
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
+	if(dbg)printf("copied guard roots\n");
 	for(i = g+1; i <= tg; i++){
 		s = H.data[i].h;
 		while(s){
@@ -1236,12 +1245,16 @@ gc(u32 g, u32 tg)
 			s = s->link;
 		}
 	}
+	if(dbg)printf("scanned cards\n");
 
 	scan(H.data[tg].h);
+	if(dbg)printf("scanned tg data\n");
 	// scan code (FIXME: why can't this be done before above scan?)
 	b = H.d;
 	scan(H.code[tg].h);
+	if(dbg)printf("scanned tg code\n");
 	scan(b);
+	if(dbg)printf("re-scanned tg data (after code)\n");
 
 	// reserve segments with newly protected objects.
 	s = fr.h;
@@ -1263,16 +1276,21 @@ gc(u32 g, u32 tg)
 		copy((Val*)&s->p);      // retain list of protected objects!
 		p = (Head*)s->p;
 		while(p){
+			if(dbg)printf("scanning protected object %s %p\n",
+				      qs[Vkind(car(p))].id, car(p));
 			scan1(car(p));  // manual scan of protected object
 			p = cdr(p);
 		}
 		s = s->link;
 	}
 	scan(b);
+	if(dbg)printf("re-scanned tg data (after prot)\n");
 
 	updateguards();
+	if(dbg)printf("did updateguards\n");
 
 	reloc();
+	if(dbg)printf("did reloc\n");
 
 	// call built-in finalizers
 	for(i = 0; i < Qnkind; i++)
