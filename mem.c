@@ -671,10 +671,13 @@ minsert(M *m, Seg *s)
 static void
 mmove(M *a, M *b)
 {
+	printf("mmove %p (%p,%p) %p (%p,%p)\n",
+	       a, a->h, a->t,
+	       b, b->h, b->t);
 	if(a->h == 0){
 		a->h = b->h;
 		a->t = b->t;
-	}else{
+	}else if(b->h){
 		a->t->link = b->h;
 		a->t = b->t;
 	}
@@ -1322,8 +1325,6 @@ gc(u32 g, u32 tg)
 		s = t;
 	}
 
-	if(H.data[0].h)
-		fatal("i'm confused");
 	H.tg = 0;
 	H.d = minit(&H.data[H.tg], mkseg(Mdata));
 	H.c = minit(&H.code[H.tg], mkseg(Mcode));
