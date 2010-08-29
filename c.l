@@ -79,7 +79,7 @@ static int chars(YYSTYPE *lvalp, int);
 0[xX]{H}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 0{D}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 {D}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
-L?\'{CHARC}\'  		{ count(ctx); return(chars(lvalp, CONSTANT)); }
+L?\'{CHARC}({CHARC})*\'	{ count(ctx); return(chars(lvalp, CONSTANT)); }
 \'{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, SYMBOL)); }
 {D}+{E}{FS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 {D}*"."{D}+({E})?{FS}?	{ count(ctx); return(chars(lvalp, CONSTANT)); }
