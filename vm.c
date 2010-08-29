@@ -10125,7 +10125,7 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val v;
 	List *lst;
-	Imm len, i;
+	Imm i;
 	Listx *x;
 	Tab *tab;
 
@@ -10138,10 +10138,13 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Qlist:
 		lst = vallist(argv[0]);
 		x = lst->x;
-		len = listxlen(x);
-		for(i = 0; i < len; i++)
-			if(eqval(v, x->val[x->hd+i]))
+		i = 0;
+		while(i < listxlen(x)){
+			if(!eqval(v, x->val[x->hd+i]))
+				i++;
+			else
 				listdel(vm, lst, i);
+		}
 		break;
 	case Qtab:
 		tab = valtab(argv[0]);
