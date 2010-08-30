@@ -816,7 +816,7 @@ copy(Val *v)
 	if(Vprot(h))
 		return; // protected objects do not move
 	s = lookseg(h);
-	if(s->gen > H.g)
+	if(s->gen >= H.tg)
 		return; // objects in older generations do not move
 	sz = qs[Vkind(h)].sz;
 	if(Vkind(h) == Qcode)
