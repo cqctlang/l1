@@ -826,7 +826,8 @@ copy(Val *v)
 	}
 	s = lookseg(h);
 	if(s->gen != Gfrom){
-		if(dbg)printf("copy: object %p not in from space\n", h);
+		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
+			      h, s->gen);
 		return; // objects in older generations do not move
 	}
 	sz = qs[Vkind(h)].sz;
@@ -857,7 +858,7 @@ scan1(Head *h)
 		c = qs[Vkind(h)].iter(h, &ictx);
 		if(c == (Val*)GCiterdone)
 			break;
-		if(0)printf("scan1 %p (%s) iter %p %p\n",
+		if(1)printf("scan1 %p (%s) iter %p %p\n",
 			    h, qs[Vkind(h)].id,
 			    c, *c);
 		copy(c);
@@ -873,7 +874,7 @@ scan(Seg *s)
 	while(s){
 		while(s->scan < s->a){
 			h = s->scan;
-			if(0)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
+			if(1)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			s->scan += qs[Vkind(h)].sz;
 			if(qs[Vkind(h)].iter == 0)
 				continue;
@@ -882,9 +883,9 @@ scan(Seg *s)
 				c = qs[Vkind(h)].iter(h, &ictx);
 				if(c == (Val*)GCiterdone)
 					break;
-				if(0)printf("iter %p (%s) -> %p\n",
+				if(1)printf("iter %p (%s) -> %p %p\n",
 					    h, qs[Vkind(h)].id,
-					    c);
+					    c, *c);
 				copy(c);
 			}
 		}
@@ -1281,6 +1282,7 @@ gc(u32 g, u32 tg)
 	scan(b);
 	if(dbg)printf("re-scanned tg data (after code)\n");
 
+#if 0
 	// reserve segments with newly protected objects.
 	s = fr.h;
 	while(s){
@@ -1291,6 +1293,7 @@ gc(u32 g, u32 tg)
 			minsert(&junk, s);
 		s = t;
 	}
+#endif
 
 	// scan protected objects
 	// FIXME: isn't this broken if any protected object is code,
@@ -1307,6 +1310,25 @@ gc(u32 g, u32 tg)
 			p = cdr(p);
 		}
 		s = s->link;
+	}
+	// reserve segments with newly protected objects.
+	s = fr.h;
+	while(s){
+		t = s->link;
+		if(s->nprotect){
+			
+			copy((Val*)&s->p);      // retain list of protected objects!
+			p = (Head*)s->p;
+			while(p){
+				if(dbg)printf("scanning protected object %s %p\n",
+					      qs[Vkind(car(p))].id, car(p));
+				scan1(car(p));  // manual scan of protected object
+				p = cdr(p);
+			}
+			minsert(&H.prot, s);
+		}else
+			minsert(&junk, s);
+		s = t;
 	}
 	scan(b);
 	if(dbg)printf("re-scanned tg data (after prot)\n");
