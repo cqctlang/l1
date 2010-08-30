@@ -16,6 +16,8 @@ enum
 	GCthresh = 1024*Segsize,
 	Ngen = 3,
 	Gprot,
+	Gfrom,
+	Gjunk,
 };
 
 typedef struct Seg Seg;
@@ -671,9 +673,12 @@ minsert(M *m, Seg *s)
 static void
 mmove(M *a, M *b)
 {
-	printf("mmove %p (%p,%p) %p (%p,%p)\n",
-	       a, a->h, a->t,
-	       b, b->h, b->t);
+	Seg *s;
+	s = b->h;
+	while(s){
+		s->gen = a->gen;
+		s = s->link;
+	}
 	if(a->h == 0){
 		a->h = b->h;
 		a->t = b->t;
@@ -802,6 +807,7 @@ copy(Val *v)
 	Seg *s;
 	u32 sz;
 	Head *nh;
+	static unsigned dbg = 1;
 
 	h = *v;
 	if(h == 0)
@@ -809,16 +815,18 @@ copy(Val *v)
 	if((uintptr_t)h&1)
 		return; // stack immediate
 	if(Vfwd(h)){
-		// printf("read fwd %p -> %p\n", h, (void*)Vfwdaddr(h));
+		if(dbg)printf("copy: read fwd %p -> %p\n",
+			      h, (void*)Vfwdaddr(h));
 		*v = Vfwdaddr(h);
 		return;
 	}
-	if(Vprot(h))
+	if(Vprot(h)){
+		if(dbg)printf("copy: object %p is protected\n", h);
 		return; // protected objects do not move
+	}
 	s = lookseg(h);
-	if(s->gen >= H.tg && s->gen != Gprot){
-		printf("copy: object %p in older generation %d (seg %p)\n",
-		       h, s->gen, s);
+	if(s->gen != Gfrom){
+		if(dbg)printf("copy: object %p not in from space\n", h);
 		return; // objects in older generations do not move
 	}
 	sz = qs[Vkind(h)].sz;
@@ -826,13 +834,13 @@ copy(Val *v)
 		nh = malcode();
 	else{
 		nh = mal(Vkind(h));
-		printf("copy %s %p to %p\n",
-		       qs[Vkind(h)].id,
-		       h, nh);
+		if(dbg)printf("copy %s %p to %p\n",
+			      qs[Vkind(h)].id,
+			      h, nh);
 	}
 	memcpy(nh, h, sz);
 	Vsetfwd(h, (uintptr_t)nh);
-	if(0)printf("set fwd %p -> %p %p (%d)\n",
+	if(dbg)printf("set fwd %p -> %p %p (%d)\n",
 		    h, Vfwdaddr(h), nh, (int)Vfwd(h));
 	*v = nh;
 }
@@ -849,6 +857,9 @@ scan1(Head *h)
 		c = qs[Vkind(h)].iter(h, &ictx);
 		if(c == (Val*)GCiterdone)
 			break;
+		if(0)printf("scan1 %p (%s) iter %p %p\n",
+			    h, qs[Vkind(h)].id,
+			    c, *c);
 		copy(c);
 	}
 }
@@ -862,6 +873,7 @@ scan(Seg *s)
 	while(s){
 		while(s->scan < s->a){
 			h = s->scan;
+			if(0)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			s->scan += qs[Vkind(h)].sz;
 			if(qs[Vkind(h)].iter == 0)
 				continue;
@@ -870,6 +882,9 @@ scan(Seg *s)
 				c = qs[Vkind(h)].iter(h, &ictx);
 				if(c == (Val*)GCiterdone)
 					break;
+				if(0)printf("iter %p (%s) -> %p\n",
+					    h, qs[Vkind(h)].id,
+					    c);
 				copy(c);
 			}
 		}
@@ -1195,11 +1210,15 @@ gc(u32 g, u32 tg)
 
 	if(dbg)printf("\ngc\n");
 	mclr(&fr);
+	fr.gen = Gfrom;
 	for(i = 0; i <= g; i++){
 		mmove(&fr, &H.data[i]);
 		mmove(&fr, &H.code[i]);
 	}
+	
+	np.gen = Gjunk;
 	mclr(&junk);
+	np.gen = Gprot;
 	mclr(&np);
 	if(g == tg){
 		H.d = minit(&H.data[tg], mkseg(Mdata));
@@ -1302,6 +1321,8 @@ gc(u32 g, u32 tg)
 	for(i = 0; i < Qnkind; i++)
 		if(H.guards[i])
 			while((h = pop1guard(H.guards[i]))){
+				if(dbg)printf("freeing object %p (%s)\n",
+					      h, qs[Vkind(h)].id);
 				Vsetdead(h, 1);
 				qs[i].free1(h);
 			}

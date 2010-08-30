@@ -79,6 +79,10 @@ typedef struct Head Head;
 typedef struct Head* Val;
 typedef struct xHeap xHeap;
 
+/*
+         7 6 5 4 3 2 1 0
+        |D|P|K K K K K|F|
+ */              
 enum
 {
 	Vfwdoff  = 0,
