@@ -816,8 +816,11 @@ copy(Val *v)
 	if(Vprot(h))
 		return; // protected objects do not move
 	s = lookseg(h);
-	if(s->gen >= H.tg)
+	if(s->gen >= H.tg && s->gen != Gprot){
+		printf("copy: object %p in older generation %d (seg %p)\n",
+		       h, s->gen, s);
 		return; // objects in older generations do not move
+	}
 	sz = qs[Vkind(h)].sz;
 	if(Vkind(h) == Qcode)
 		nh = malcode();
