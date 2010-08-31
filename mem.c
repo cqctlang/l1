@@ -128,6 +128,7 @@ static Qtype qs[Qnkind] = {
 
 static HT	*segtab;
 static Heap	H;
+static unsigned	alldbg = 0;
 
 static int
 freecl(Head *hd)
@@ -819,7 +820,7 @@ copy(Val *v)
 	Seg *s;
 	u32 sz;
 	Head *nh;
-	static unsigned dbg = 0;
+	unsigned dbg = alldbg;
 
 	h = *v;
 	if(h == 0)
@@ -863,6 +864,8 @@ scan1(Head *h)
 {
 	Ictx ictx;
 	Head **c;
+	unsigned dbg = alldbg;
+
 	if(qs[Vkind(h)].iter == 0)
 		return;
 	memset(&ictx, 0, sizeof(ictx));
@@ -870,7 +873,7 @@ scan1(Head *h)
 		c = qs[Vkind(h)].iter(h, &ictx);
 		if(c == (Val*)GCiterdone)
 			break;
-		if(0)printf("scan1 %p (%s) iter %p %p\n",
+		if(dbg)printf("scan1 %p (%s) iter %p %p\n",
 			    h, qs[Vkind(h)].id,
 			    c, *c);
 		copy(c);
@@ -882,7 +885,7 @@ scan(Seg *s)
 {
 	Head *h, **c;
 	Ictx ictx;
-	static unsigned dbg = 0;
+	unsigned dbg = alldbg;
 
 	while(s){
 		while(s->scan < s->a){
@@ -1213,7 +1216,7 @@ gc(u32 g, u32 tg)
 	Seg *s, *t, *b;
 	Head *h, *p;
 	M junk, np, fr;
-	unsigned dbg = 0;
+	unsigned dbg = alldbg;
 
 	if(g != tg && g != tg-1)
 		fatal("bug");
