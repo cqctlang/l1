@@ -165,6 +165,7 @@ mkcode(void)
 	code->maxreloc = code->maxinsn;
 	code->reloc = emalloc(code->maxreloc*sizeof(u64));
 	code->nreloc = 0;
+	quard((Val)code);
 	return code;
 }
 
