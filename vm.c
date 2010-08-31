@@ -964,8 +964,9 @@ tabexpand(Tab *tab)
 	   (tab->x) in case gc (via itertab) is concurrently (i.e., in
 	   this epoch) marking it.  we exploit the property that
 	   objects always survive the epoch of their creation. */
-	x->sz = 0;		/* so freetab does not free nx's Tabkeys */
-	_mktab(x);
+//	x->sz = 0;		/* so freetab does not free nx's Tabkeys */
+//	_mktab(x);
+	freetabx(x);
 
 	/* FIXME: it seems snapshot-at-beginning property, plus above
 	   referenced property of objects, together ensure that any

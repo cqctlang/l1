@@ -180,7 +180,7 @@ freestr(Head *hd)
 	return 1;
 }
 
-static void
+void
 freetabx(Tabx *x)
 {
 	efree(x->val);
