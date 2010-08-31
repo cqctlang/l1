@@ -819,7 +819,7 @@ copy(Val *v)
 	Seg *s;
 	u32 sz;
 	Head *nh;
-	static unsigned dbg = 1;
+	static unsigned dbg = 0;
 
 	h = *v;
 	if(h == 0)
@@ -870,7 +870,7 @@ scan1(Head *h)
 		c = qs[Vkind(h)].iter(h, &ictx);
 		if(c == (Val*)GCiterdone)
 			break;
-		if(1)printf("scan1 %p (%s) iter %p %p\n",
+		if(0)printf("scan1 %p (%s) iter %p %p\n",
 			    h, qs[Vkind(h)].id,
 			    c, *c);
 		copy(c);
@@ -882,11 +882,12 @@ scan(Seg *s)
 {
 	Head *h, **c;
 	Ictx ictx;
+	static unsigned dbg = 0;
 
 	while(s){
 		while(s->scan < s->a){
 			h = s->scan;
-			if(1)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
+			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			s->scan += qs[Vkind(h)].sz;
 			if(qs[Vkind(h)].iter == 0)
 				continue;
@@ -895,7 +896,7 @@ scan(Seg *s)
 				c = qs[Vkind(h)].iter(h, &ictx);
 				if(c == (Val*)GCiterdone)
 					break;
-				if(1)printf("iter %p (%s) -> %p %p\n",
+				if(dbg)printf("iter %p (%s) -> %p %p\n",
 					    h, qs[Vkind(h)].id,
 					    c, *c);
 				copy(c);
@@ -1212,7 +1213,7 @@ gc(u32 g, u32 tg)
 	Seg *s, *t, *b;
 	Head *h, *p;
 	M junk, np, fr;
-	unsigned dbg = 1;
+	unsigned dbg = 0;
 
 	if(g != tg && g != tg-1)
 		fatal("bug");
@@ -1328,13 +1329,14 @@ gc(u32 g, u32 tg)
 	while(s){
 		t = s->link;
 		if(s->nprotect){
-			
-			copy((Val*)&s->p);      // retain list of protected objects!
+			// retain list of protected objects!
+			copy((Val*)&s->p);      
 			p = (Head*)s->p;
 			while(p){
-				if(dbg)printf("scanning protected object %s %p\n",
+				if(dbg)printf("scan protected object %s %p\n",
 					      qs[Vkind(car(p))].id, car(p));
-				scan1(car(p));  // manual scan of protected object
+				// manual scan of protected object
+				scan1(car(p));
 				p = cdr(p);
 			}
 			minsert(&H.prot, s);
