@@ -1213,7 +1213,7 @@ gc(u32 g, u32 tg)
 {
 	u32 i, m;
 	VM **vmp, *vm;
-	Seg *s, *t, *b;
+	Seg *s, *t, *b, *tmp;
 	Head *h, *p;
 	M junk, np, fr;
 	unsigned dbg = alldbg;
@@ -1329,6 +1329,7 @@ gc(u32 g, u32 tg)
 	}
 	// reserve segments with newly protected objects.
 	s = fr.h;
+	tmp = 0;
 	while(s){
 		t = s->link;
 		if(s->nprotect){
@@ -1343,11 +1344,19 @@ gc(u32 g, u32 tg)
 				p = cdr(p);
 			}
 			minsert(&H.prot, s);
-		}else
-			minsert(&junk, s);
+		}else{
+			// queue for transfer to junk segment list
+			s->link = tmp;
+			tmp = s;
+		}
 		s = t;
 	}
 	scan(b);
+	while(tmp){
+		t = tmp->link;
+		minsert(&junk, tmp);
+		tmp = t;
+	}
 	if(dbg)printf("re-scanned tg data (after prot)\n");
 
 	updateguards();
