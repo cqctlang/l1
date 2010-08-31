@@ -1229,7 +1229,7 @@ gc(u32 g, u32 tg)
 		mmove(&fr, &H.code[i]);
 	}
 	
-	np.gen = Gjunk;
+	junk.gen = Gjunk;
 	mclr(&junk);
 	np.gen = Gprot;
 	mclr(&np);
