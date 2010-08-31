@@ -9565,9 +9565,9 @@ initvm(int gcthread, u64 heapmax)
 void
 finivm(void)
 {
-	gcunprotect(Xnulllist);
-	gcunprotect(Xnil);
 	gcunprotect(Xundef);
+	gcunprotect(Xnil);
+	gcunprotect(Xnulllist);
 	gcunprotect(cccode);
 	gcunprotect(kcode);
 	gcunprotect(litdom);

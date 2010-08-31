@@ -689,6 +689,18 @@ mmove(M *a, M *b)
 	b->h = b->t = 0;
 }
 
+static void
+mfree(M *a)
+{
+	Seg *s, *t;
+	s = a->h;
+	while(s){
+		t = s->link;
+		freeseg(s);
+		s = t;
+	}
+}
+
 u64
 protected()
 {
@@ -1459,6 +1471,22 @@ initmem(u64 gcrate)
 void
 finimem()
 {
+	u32 i;
+	Seg *s;
+	gc(Ngen-1, Ngen-1);  // hopefully free all outstanding objects
+	for(i = 0; i < Qnkind; i++)
+		H.guards[i] = 0;
+	gc(Ngen-1, Ngen-1);  // hopefully free the guardians
+	s = H.prot.h;
+	while(s){
+		if(s->nprotect)
+			printf("segment %p has %u protected objects!\n",
+			       s, s->nprotect);
+		s = s->link;
+	}
+	for(i = 0; i < Ngen; i++){
+		mfree(&H.code[i]);
+		mfree(&H.data[i]);
+	}
 	freeht(segtab);
-	// FIXME: release all segments
 }
