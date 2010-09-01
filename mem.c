@@ -1213,7 +1213,7 @@ gc(u32 g, u32 tg)
 {
 	u32 i, m;
 	VM **vmp, *vm;
-	Seg *s, *t, *b, *tmp;
+	Seg *s, *t, *b, *tj, *tp;
 	Head *h, *p;
 	M junk, np, fr;
 	unsigned dbg = alldbg;
@@ -1329,7 +1329,7 @@ gc(u32 g, u32 tg)
 	}
 	// reserve segments with newly protected objects.
 	s = fr.h;
-	tmp = 0;
+	tj = tp = 0;
 	while(s){
 		t = s->link;
 		if(s->nprotect){
@@ -1343,20 +1343,16 @@ gc(u32 g, u32 tg)
 				scan1(car(p));
 				p = cdr(p);
 			}
-			minsert(&H.prot, s);
+			s->link = tp;
+			tp = s;
 		}else{
 			// queue for transfer to junk segment list
-			s->link = tmp;
-			tmp = s;
+			s->link = tj;
+			tj = s;
 		}
 		s = t;
 	}
 	scan(b);
-	while(tmp){
-		t = tmp->link;
-		minsert(&junk, tmp);
-		tmp = t;
-	}
 	if(dbg)printf("re-scanned tg data (after prot)\n");
 
 	updateguards();
@@ -1375,9 +1371,17 @@ gc(u32 g, u32 tg)
 				qs[i].free1(h);
 			}
 
-	// stage unused protected segments for recycling
-	// FIXME: maybe we should do this sooner, before we append
-	// newly protected segments?
+	// stage unused segments for recycling and preserve protected ones
+	while(tj){
+		t = tj->link;
+		minsert(&junk, tj);
+		tj = t;
+	}
+	while(tp){
+		t = tp->link;
+		minsert(&np, tp);
+		tp = t;
+	}
 	s = H.prot.h;
 	while(s){
 		t = s->link;
