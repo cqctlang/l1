@@ -13,7 +13,8 @@ enum
 {
 	Segsize = 4096,
 	Segmask = ~(Segsize-1),
-	GCthresh = 1024*Segsize,
+//	GCthresh = 1024*Segsize,
+	GCthresh = Segsize,
 	Ngen = 3,
 	Gprot,
 	Gfrom,
