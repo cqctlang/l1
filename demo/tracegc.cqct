@@ -1,0 +1,108 @@
+@include <ctlmux.cqct>
+
+l1 = "../../l1/l1";
+l1names = l1+".names";
+dom = nil;
+
+@define car(p)  { (((`Pair*)p)->car); }
+@define cdr(p)  { (((`Pair*)p)->cdr); }
+@define caar(p) { (car(car(p))); }
+@define cadr(p) { (car(cdr(p))); }
+@define cdar(p) { (cdr(car(p))); }
+@define cddr(p) { (cdr(cdr(p))); }
+
+@define phash(p)
+{
+	@local key;
+	key = (`uint64)p;
+	printf("key = %x %t\n", key, key);
+	key = (~key) + (key << 18);
+	printf("key = %x %t\n", key, key);
+	printf("(key >> 31) = %lx\n", (key >> 31));
+	key = key ^ (key >> 31);
+	printf("key = %x\n", key);
+	key = key * 21;
+	printf("key = %x\n", key);
+	key = key ^ (key >> 11);
+	printf("key = %x\n", key);
+	key = key + (key << 6);
+	printf("key = %x\n", key);
+	key = key ^ (key >> 22);
+	printf("key = %x\n", key);
+	return (`uint32)key;
+}
+
+@define hgetp(ht, k)
+{
+	@local hp;
+	printf("phash(%p) == %x\n", k, phash(k));
+	hp = ht->ht[phash(k)%ht->sz];
+	while(hp){
+		printf("hp->key == %p\n", hp->key);
+		if(hp->key == k)
+			return hp;
+		hp = hp->next;
+	}
+	return 0;
+}
+
+@define lookseg(a)
+{
+	v = (dom`uintptr_t)a;
+	v &= dom`Segmask;
+	s = hgetp(dom`segtab, (void*)v);
+	if(s == 0)
+		error("lookseg bug");
+	return s;
+}
+
+@define trace0(dom)
+{
+	@local H, o, s, p, i, m, qs;
+	H = &dom`H;
+	qs = dom`qs;
+	for(i = 0; i < dom`Ngen; i++){
+		p = (`Head*)H->gd[i];
+		m = 0;
+		while(p){
+			m++;
+			p = cdr(p);
+		}
+		printf("gd[%d]: %d guarded objects\n", i, m);
+	}
+	p = (`Head*)H->gd[2];
+	if(!p)
+		return;
+	printf("guarded at generation 2:\n");
+	while(p){
+		o = caar(p);
+		s = lookseg(o);
+		printf("\t%p (%d)\n", o, s->gen);
+		p = cdr(p);
+	}
+}
+
+@define doit(args)
+{
+	@local mux, ns, as, e, nexec;
+
+	nexec = 0;
+	npop = 0;
+	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
+	ns = eval(e);
+	mux = mkctlmux_local();
+	push(args, l1);
+	ctl = mux.launch(args, 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.xtrap(&dom`gc,
+		  @lambda(ctl){
+			  printf("enter gc\n");
+			  trace0(dom);
+			  return nil;
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+//doit([ "/tmp/x" ]);
