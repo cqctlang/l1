@@ -96,7 +96,7 @@ parser:
 l1: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
-#	dwarf2cqct < l1 > l1.names
+	dwarf2cqct < l1 > l1.names
 
 l1.o: $(L1O) $(L1DEPS)
 	@echo + ld $@
