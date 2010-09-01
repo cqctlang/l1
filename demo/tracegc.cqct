@@ -15,32 +15,22 @@ dom = nil;
 {
 	@local key;
 	key = (`uint64)p;
-	printf("key = %x %t\n", key, key);
 	key = (~key) + (key << 18);
-	printf("key = %x %t\n", key, key);
-	printf("(key >> 31) = %lx\n", (key >> 31));
 	key = key ^ (key >> 31);
-	printf("key = %x\n", key);
 	key = key * 21;
-	printf("key = %x\n", key);
 	key = key ^ (key >> 11);
-	printf("key = %x\n", key);
 	key = key + (key << 6);
-	printf("key = %x\n", key);
 	key = key ^ (key >> 22);
-	printf("key = %x\n", key);
 	return (`uint32)key;
 }
 
 @define hgetp(ht, k)
 {
 	@local hp;
-	printf("phash(%p) == %x\n", k, phash(k));
 	hp = ht->ht[phash(k)%ht->sz];
 	while(hp){
-		printf("hp->key == %p\n", hp->key);
 		if(hp->key == k)
-			return hp;
+			return hp->val;
 		hp = hp->next;
 	}
 	return 0;
@@ -53,9 +43,14 @@ dom = nil;
 	s = hgetp(dom`segtab, (void*)v);
 	if(s == 0)
 		error("lookseg bug");
-	return s;
+	return (`Seg*)s;
 }
 
+@define fmtseg(s)
+{
+	return sprintfa("seg %p %e gen %d %p-%p",
+		       s, s->kind, s->gen, s->addr, s->e);
+}
 @define trace0(dom)
 {
 	@local H, o, s, p, i, m, qs;
@@ -66,6 +61,9 @@ dom = nil;
 		m = 0;
 		while(p){
 			m++;
+//			o = caar(p);
+//			s = lookseg(o);
+//			printf("\t%s\n", fmtseg(s));
 			p = cdr(p);
 		}
 		printf("gd[%d]: %d guarded objects\n", i, m);
@@ -77,8 +75,19 @@ dom = nil;
 	while(p){
 		o = caar(p);
 		s = lookseg(o);
-		printf("\t%p (%d)\n", o, s->gen);
+		printf("\t%p in %s\n", o, fmtseg(s));
 		p = cdr(p);
+	}
+}
+
+@define trace1(dom)
+{
+	@local H, o, s, p, i, m, qs;
+	H = &dom`H;
+	s = H->data[0].h;
+	while(s){
+		printf("\t%s\n", fmtseg(s));		
+		s = s->link;
 	}
 }
 
@@ -105,4 +114,4 @@ dom = nil;
 	mux.run();
 }
 
-//doit([ "/tmp/x" ]);
+doit([ "/tmp/x" ]);
