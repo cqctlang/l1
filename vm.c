@@ -4452,12 +4452,14 @@ static Cval*
 xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
+	Xtypename *t;
 
 	/* no need to rationalize domains */
 	op1 = intpromote(vm, op1);
 	op2 = intpromote(vm, op2);
 	i1 = op1->val;
 	i2 = op2->val;
+	t = chasetype(op1->type);
 
 	/* following C99:
 	   - (both) if op2 is negative or >= width of op1,
@@ -4470,7 +4472,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		    your compiler says.  gcc and microsoft
 		    performs sign extension.
 	*/
-	if(isunsigned[op1->type->basename])
+	if(isunsigned[t->basename])
 		switch(op){
 		case Ishl:
 			rv = i1<<i2;
@@ -4499,17 +4501,19 @@ static Cval*
 xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
+	Xtypename *t;
 
 	dompromote(vm, op, op1, op2, &op1, &op2);
 	usualconvs(vm, op1, op2, &op1, &op2);
 	i1 = op1->val;
 	i2 = op2->val;
+	t = chasetype(op1->type);
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
 	   written without cast clutter. */
 
-	if(isunsigned[op1->type->basename])
+	if(isunsigned[t->basename])
 		switch(op){
 		case Icmpeq:
 			rv = i1==i2;
