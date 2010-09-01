@@ -983,6 +983,18 @@ quard(Val o)
 	instguard(o, t);
 }
 
+static int
+isfwd(Head *o)
+{
+	Seg *s;
+	if(Vfwd(o))
+		return 1;
+	s = lookseg(o);
+	if(s->gen != Gfrom)  // should this also exclude Gjunk, Gprot, etc.?
+		return 1;
+	return 0;
+}
+
 static void
 updateguards()
 {
@@ -1001,7 +1013,7 @@ updateguards()
 		while(p){
 			q = cdr(p);
 			o = caar(p);
-			if(Vfwd(o) || Vprot(o)){
+			if(isfwd(o) || Vprot(o)){
 				// object is accessible
 				setcdr(p, phold);
 				phold = p;
@@ -1022,7 +1034,7 @@ updateguards()
 		while(p){
 			q = cdr(p);
 			o = cdar(p);
-			if(Vfwd(o) || Vprot(o)){
+			if(isfwd(o) || Vprot(o)){
 				// guard is accessible
 				setcdr(p, final);
 				final = p;
@@ -1048,7 +1060,7 @@ updateguards()
 	p = phold;
 	while(p){
 		o = cdar(p);
-		if(Vfwd(o) || Vprot(o))
+		if(isfwd(o) || Vprot(o))
 			instguard(curaddr(caar(p)), curaddr(cdar(p)));
 		p = cdr(p);
 	}
