@@ -15,11 +15,19 @@ enum
 	Segmask = ~(Segsize-1),
 //	GCthresh = 1024*Segsize,
 	GCthresh = Segsize,
-	Ngen = 3,
+};
+
+typedef
+enum
+{
+	G0,
+	G1,
+	G2,
+	Ngen,
 	Gprot,
 	Gfrom,
 	Gjunk,
-};
+} Gen;
 
 typedef struct Seg Seg;
 struct Seg
@@ -29,7 +37,7 @@ struct Seg
 	Mkind kind;
 	Pair *p;		/* protected objects */
 	u32 nprotect;
-	u32 gen;
+	Gen gen;
 	Seg *link;
 };
 
@@ -59,7 +67,7 @@ typedef
 struct M
 {
 	Seg *h, *t;		/* segment list head and tail */
-	u32 gen;
+	Gen gen;
 } M;
 
 typedef
