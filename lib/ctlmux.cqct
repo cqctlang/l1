@@ -744,7 +744,7 @@ ctlmux = @names clp64le {
 {
 	@local tab, launch, attach, run, abort;
 	@local logsend, logrecv, log, verbose;
-	@local checkreply, cop, ctls;
+	@local checkreply, checkreplyio, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
 	@local stop, step, detach, kill, statwin, statunix, snap;
 	@local pread, pwrite;
@@ -804,6 +804,20 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			error("ctlmux: while waiting for %e: %s",
 			      op, rep->bytes);
+		default:
+			error("ctlmux: while waiting for %e: received %e",
+			      op, (enum ctlmux`Mkind)rep->op);
+		}
+	}
+
+	@define checkreplyio(rep, op, x)
+	{
+		switch(rep->op){
+		case op:
+			break;
+		case ctlmux`Rerror:
+			return x(rep->bytes);
+			break;
 		default:
 			error("ctlmux: while waiting for %e: received %e",
 			      op, (enum ctlmux`Mkind)rep->op);
@@ -1228,7 +1242,11 @@ ctlmux = @names clp64le {
 		sendmsg(fd, p);
 
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rread);
+		checkreplyio(rep, ctlmux`Rread,
+			     @lambda(err){
+				     error("read fault 0x%p-0x%p",
+					   (void*)addr, (void*)addr+cnt);
+			     });
 		return dat;
 	}
 
@@ -1247,7 +1265,11 @@ ctlmux = @names clp64le {
 		sendmsg(fd, p, sz);
 
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rwrite);
+		checkreplyio(rep, ctlmux`Rwrite,
+			     @lambda(err){
+				     error("write fault 0x%p - 0x%p",
+					   (void*)addr, (void*)addr+cnt);
+			     });
 		return nil;
 	}
 

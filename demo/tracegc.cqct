@@ -11,6 +11,12 @@ dom = nil;
 @define cdar(p) { (cdr(car(p))); }
 @define cddr(p) { (cdr(cdr(p))); }
 
+@define Vfwd(p)		{ ((((p)->bits)>>dom`Vfwdoff)&dom`Vfwdmask); }
+@define Vfwdaddr(p)	{ ((void*)((p)->bits & ~(dom`Vfwdmask<<dom`Vfwdoff))); }
+@define Vkind(p)        { ((((p)->bits)>>dom`Vkindoff)&dom`Vkindmask); }
+@define Vprot(p)        { ((((p)->bits)>>dom`Vprotoff)&dom`Vprotmask); }
+@define Vdead(p)        { ((((p)->bits)>>dom`Vdeadoff)&dom`Vdeadmask); }
+
 @define phash(p)
 {
 	@local key;
@@ -36,37 +42,93 @@ dom = nil;
 	return 0;
 }
 
+@define dumpht(ht)
+{
+	@local i, hp;
+	for(i = 0; i < ht->sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			printf("\thash %5x key %p val %s\n", i, hp->key,
+			       fmtseg((`Seg*)hp->val));
+			hp = hp->next;
+		}
+	}
+}
+
 @define lookseg(a)
 {
 	v = (dom`uintptr_t)a;
 	v &= dom`Segmask;
 	s = hgetp(dom`segtab, (void*)v);
 	if(s == 0)
-		error("lookseg bug");
+		return 0;
 	return (`Seg*)s;
 }
 
 @define fmtseg(s)
 {
-	return sprintfa("seg %p %e gen %d %p-%p",
-		       s, s->kind, s->gen, s->addr, s->e);
+	if(s == 0)
+		return "no segment!";
+	sprintfa("seg %p %e gen %d %p-%p",
+		 s, s->kind, s->gen, s->addr, s->e);
 }
+
+@define fmthd(h)
+{
+	@local s;
+	if(h == 0)
+		return "(null)";
+	h = (`Head*)h;
+	if(Vfwd(h))
+		return sprintfa("obj %p -> %s", h, fmthd(Vfwdaddr(h)));
+	if(Vdead(h))
+		return sprintfa("obj %p [dead]", h);
+	s = sprintfa("obj %p (%s)", h, dom`qs[Vkind(h)].id);
+	if(Vprot(h))
+		s += "prot";
+	return s;
+}
+
+@define config(dom)
+{
+if(0)	dom.xtrap(&dom`hputp,
+		  @lambda(ctl){
+			  @local pd, tab, k, v, regs;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  tab = (`HT*){pd}regs->rdi;
+			  k = (void*){pd}regs->rsi;
+			  v = (`Seg*){pd}regs->rdx;
+			  if(tab != pd`segtab)
+				  return;
+			  printf("hputp %p -> %s\n", k, fmtseg(v));
+		  });
+if(0)	dom.xtrap(&dom`freeseg,
+		  @lambda(ctl){
+			  @local pd, regs, s;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  s = (`Seg*){pd}regs->rdi;
+			  printf("freeseg %s\n", fmtseg(s));
+		  });
+}
+
 @define trace0(dom)
 {
-	@local H, o, s, p, i, m, qs;
+	@local H, o, s, p, i, m, qs, o, g;
 	H = &dom`H;
 	qs = dom`qs;
 	for(i = 0; i < dom`Ngen; i++){
 		p = (`Head*)H->gd[i];
+		printf("gen %d guarded objects:\n", i);
 		m = 0;
 		while(p){
 			m++;
-//			o = caar(p);
-//			s = lookseg(o);
-//			printf("\t%s\n", fmtseg(s));
+			o = caar(p);
+			g = cdar(p);
+			printf("%s\n", fmthd(o));
 			p = cdr(p);
 		}
-		printf("gd[%d]: %d guarded objects\n", i, m);
 	}
 	p = (`Head*)H->gd[2];
 	if(!p)
@@ -104,6 +166,7 @@ dom = nil;
 	ctl = mux.launch(args, 0);
 	as = ctl.mem();
 	dom = mkdom(ns, as);
+	config(dom);
 	dom.xtrap(&dom`gc,
 		  @lambda(ctl){
 			  printf("enter gc\n");
