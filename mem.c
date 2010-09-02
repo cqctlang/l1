@@ -622,7 +622,7 @@ mkseg(Mkind kind)
 static void
 freeseg(Seg *s)
 {
-	hdelp(segtab, s);
+	hdelp(segtab, s->addr);
 	munmap(s->addr, Segsize);
 	efree(s);
 	H.inuse -= Segsize;
