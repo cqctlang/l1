@@ -55,6 +55,19 @@ dom = nil;
 	}
 }
 
+@define dumpprot(dom)
+{
+	@local H, s;
+	H = &dom`H;
+	s = H->prot.h;
+	printf("protected segments:\n");
+	while(s){
+		printf("\t%s\n", fmtseg(s));
+		s = s->link;
+	}
+}
+
+
 @define lookseg(a)
 {
 	v = (dom`uintptr_t)a;
@@ -67,10 +80,13 @@ dom = nil;
 
 @define fmtseg(s)
 {
+	@local r;
 	if(s == 0)
 		return "no segment!";
-	sprintfa("seg %p %e gen %d %p-%p",
-		 s, s->kind, s->gen, s->addr, s->e);
+	r = sprintfa("seg %p %e %e", s, s->kind, s->gen);
+	if(s->gen == dom`Gprot)
+		r += sprintfa("(%u)", s->nprotect);
+	r += sprintfa(" %p-%p", s->addr, s->e);
 }
 
 @define fmthd(h)
@@ -85,8 +101,40 @@ dom = nil;
 		return sprintfa("obj %p [dead]", h);
 	s = sprintfa("obj %p (%s)", h, dom`qs[Vkind(h)].id);
 	if(Vprot(h))
-		s += "prot";
+		s += " protected";
 	return s;
+}
+
+@define trace0(dom)
+{
+	@local H, o, s, p, i, m, qs, o, g;
+	H = &dom`H;
+	qs = dom`qs;
+	for(i = 0; i < dom`Ngen; i++){
+		p = (`Head*)H->gd[i];
+		printf("%e guarded objects:\n", (dom`Gen)i);
+		m = 0;
+		while(p){
+			m++;
+			o = caar(p);
+			g = cdar(p);
+			if(o == 0x7ffff7ff4940){
+				printf("%s", fmthd(o));
+				printf(" in %s\n", fmtseg(lookseg(o)));
+			}
+			p = cdr(p);
+		}
+	}
+	p = (`Head*)H->gd[2];
+	if(!p)
+		return;
+	printf("guarded at generation 2:\n");
+	while(p){
+		o = caar(p);
+		s = lookseg(o);
+		printf("\t%p in %s\n", o, fmtseg(s));
+		p = cdr(p);
+	}
 }
 
 @define config(dom)
@@ -111,35 +159,29 @@ if(0)	dom.xtrap(&dom`freeseg,
 			  s = (`Seg*){pd}regs->rdi;
 			  printf("freeseg %s\n", fmtseg(s));
 		  });
-}
-
-@define trace0(dom)
-{
-	@local H, o, s, p, i, m, qs, o, g;
-	H = &dom`H;
-	qs = dom`qs;
-	for(i = 0; i < dom`Ngen; i++){
-		p = (`Head*)H->gd[i];
-		printf("gen %d guarded objects:\n", i);
-		m = 0;
-		while(p){
-			m++;
-			o = caar(p);
-			g = cdar(p);
-			printf("%s\n", fmthd(o));
-			p = cdr(p);
-		}
-	}
-	p = (`Head*)H->gd[2];
-	if(!p)
-		return;
-	printf("guarded at generation 2:\n");
-	while(p){
-		o = caar(p);
-		s = lookseg(o);
-		printf("\t%p in %s\n", o, fmtseg(s));
-		p = cdr(p);
-	}
+	dom.xtrap(&dom`minsert,
+		  @lambda(ctl){
+			  @local pd, regs, m, s;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  m = (`M*){pd}regs->rdi;
+			  s = (`Seg*){pd}regs->rsi;
+			  printf("minsert into %e %s\n", m->gen, fmtseg(s));
+		  });
+	dom.xtrap(&dom`gc,
+		  @lambda(ctl){
+			  @local pd, regs, g, tg;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  g = (`u32){pd}regs->rdi;
+			  tg = (`u32){pd}regs->rsi;
+			  printf("gc(%d,%d)\n", g, tg);
+			  dumpprot(dom);
+		  });
+	dom.xtrap(&dom`updateguards,
+		  @lambda(ctl){
+			  trace0(dom);
+		  });
 }
 
 @define trace1(dom)
@@ -167,12 +209,6 @@ if(0)	dom.xtrap(&dom`freeseg,
 	as = ctl.mem();
 	dom = mkdom(ns, as);
 	config(dom);
-	dom.xtrap(&dom`gc,
-		  @lambda(ctl){
-			  printf("enter gc\n");
-			  trace0(dom);
-			  return nil;
-		  });
 	dom.xcont();
 	mux.run();
 }
