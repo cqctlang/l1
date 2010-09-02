@@ -1234,9 +1234,9 @@ gc(u32 g, u32 tg)
 {
 	u32 i, m;
 	VM **vmp, *vm;
-	Seg *s, *t, *b, *tj, *tp;
+	Seg *s, *t, *b, *tj, *tp, **r;
 	Head *h, *p;
-	M junk, np, fr;
+	M junk, fr;
 	unsigned dbg = alldbg;
 
 	if(g != tg && g != tg-1)
@@ -1253,11 +1253,23 @@ gc(u32 g, u32 tg)
 		mmove(&fr, &H.data[i]);
 		mmove(&fr, &H.code[i]);
 	}
-	
+
+	// move inactive protected segments to Gfrom.
+	// do this before we scan pointers to objects on these segments.
+	r = &H.prot.h;
+	s = *r;
+	while(s){
+		t = s->link;
+		if(s->nprotect == 0){
+			minsert(&fr, s);
+			*r = t;
+		}else
+			r = &s->link;
+		s = t;
+	}
+
 	junk.gen = Gjunk;
 	mclr(&junk);
-	np.gen = Gprot;
-	mclr(&np);
 	if(g == tg){
 		H.d = minit(&H.data[tg], mkseg(Mdata));
 		H.c = minit(&H.code[tg], mkseg(Mcode));
@@ -1400,19 +1412,9 @@ gc(u32 g, u32 tg)
 	}
 	while(tp){
 		t = tp->link;
-		minsert(&np, tp);
+		minsert(&H.prot, tp);
 		tp = t;
 	}
-	s = H.prot.h;
-	while(s){
-		t = s->link;
-		if(s->nprotect == 0)
-			minsert(&junk, s);
-		else
-			minsert(&np, s);
-		s = t;
-	}
-	H.prot = np;
 
 	// recycle segments
 	s = junk.h;
