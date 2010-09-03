@@ -1,0 +1,90 @@
+@record frame { pc, fp };
+
+@define isfnentry(pc)
+{
+	@local a;
+	a = getbytes((char*)pc, 4);
+	if(a == "\x55\x48\x89\xe5") // push %rbp; mov %rsp,%rbp
+		return 1;
+	else
+		return 0;
+}
+
+@define frameat(pc, sp, fp)
+{
+	if(isfnentry(pc))
+		return frame(((void**)sp)[0], (void*)fp);
+	else
+		return frame(((void**)fp)[1], ((void**)fp)[0]);
+}
+
+@define frameprev(f)
+{
+	@local fp;
+	fp = f.fp;
+	return frame(*((void**)fp+1), *((void**)fp+0));
+}
+
+@define frameargs(f)
+{
+	@local args, sym, fp, fn, ns, i, m, o, rv, t, p;
+	fp = (void**)f.fp;
+	ns = nsof(f.pc);
+	sym = ns.lookaddr(f.pc);
+	rv = [];
+	if(sym == nil)
+		return rv;
+	fn = symtype(sym);
+	if(!isfunc(fn))
+		return rv;
+	args = params(fn);
+	m = length(args);
+	if(m == 1 && isvoid(paramtype(args[0])))
+		return rv;
+	o = 2;
+	for(i = 0; i < m; i++){
+		t = paramtype(args[i]);
+		if(issu(t))
+			error("frameargs unimplemented for aggregates");
+		p = {mkctype_ptr(t, nsptr(ns))}(fp+o);
+		o += sizeof(t)/sizeof(p);
+		append(rv, *p);
+	}
+	return rv;
+}
+
+@define foreachframe(ctl, ns, fn)
+{
+	@local as, regs, dom, pc, fp, sp, f;
+
+	as = ctl.mem();
+	regs = ctl.reg();
+	dom = mkdom(ns, as);
+	pc = (void*){dom}regs->rip;
+	fp = (void*){dom}regs->rbp;
+	sp = (void*){dom}regs->rsp;
+	f = frame(pc, fp);
+	fn(f);
+	f = frameat(pc, sp, fp);
+	while(f.fp != 0 && f.pc != 0){
+		fn(f);
+		f = frameprev(f);
+	}
+	return nil;
+}
+
+@define fmtframe(f)
+{
+	return sprintfa("%016x\t%y", f.pc, f.pc);
+}
+
+@define fmtstack(ctl, ns)
+{
+	@local rv;
+	rv = "";
+	foreachframe(ctl, ns,
+		     @lambda(f){
+			     rv += sprintfa("\t%s\n", fmtframe(f));
+		     });
+	return rv;
+}

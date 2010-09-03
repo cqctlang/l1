@@ -2,6 +2,7 @@
 
 l1 = "../../l1/l1";
 l1names = l1+".names";
+ns = nil;
 dom = nil;
 
 @define car(p)  { (((`Pair*)p)->car); }
@@ -12,7 +13,10 @@ dom = nil;
 @define cddr(p) { (cdr(cdr(p))); }
 
 @define Vfwd(p)		{ ((((p)->bits)>>dom`Vfwdoff)&dom`Vfwdmask); }
-@define Vfwdaddr(p)	{ ((void*)((p)->bits & ~(dom`Vfwdmask<<dom`Vfwdoff))); }
+@define Vfwdaddr(p)
+{
+	return {domof(p)}((void*)((p)->bits & ~(dom`Vfwdmask<<dom`Vfwdoff)));
+}
 @define Vkind(p)        { ((((p)->bits)>>dom`Vkindoff)&dom`Vkindmask); }
 @define Vprot(p)        { ((((p)->bits)>>dom`Vprotoff)&dom`Vprotmask); }
 @define Vdead(p)        { ((((p)->bits)>>dom`Vdeadoff)&dom`Vdeadmask); }
@@ -159,7 +163,7 @@ if(0)	dom.xtrap(&dom`freeseg,
 			  s = (`Seg*){pd}regs->rdi;
 			  printf("freeseg %s\n", fmtseg(s));
 		  });
-	dom.xtrap(&dom`minsert,
+if(0)	dom.xtrap(&dom`minsert,
 		  @lambda(ctl){
 			  @local pd, regs, m, s;
 			  regs = ctl.reg();
@@ -168,7 +172,7 @@ if(0)	dom.xtrap(&dom`freeseg,
 			  s = (`Seg*){pd}regs->rsi;
 			  printf("minsert into %e %s\n", m->gen, fmtseg(s));
 		  });
-	dom.xtrap(&dom`gc,
+if(0)	dom.xtrap(&dom`gc,
 		  @lambda(ctl){
 			  @local pd, regs, g, tg;
 			  regs = ctl.reg();
@@ -178,9 +182,59 @@ if(0)	dom.xtrap(&dom`freeseg,
 			  printf("gc(%d,%d)\n", g, tg);
 			  dumpprot(dom);
 		  });
-	dom.xtrap(&dom`updateguards,
+if(0)	dom.xtrap(&dom`updateguards,
 		  @lambda(ctl){
 			  trace0(dom);
+		  });
+
+if(1)	dom.xtrap(&dom`gcprotect,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head*){pd}regs->rdi;
+			  if(Vkind(v) == dom`Qcl){
+				  v = (`Closure*)v;
+				  printf("gcprotect %s (code %p)\n",
+					 fmthd(v), v->code);
+			  }else if(Vkind(v) == dom`Qcode){
+				  v = (`Code*)v;
+				  printf("gcprotect %s\n", fmthd(v));
+			  }
+		  });
+
+if(1)	dom.xtrap(&dom`freecode,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head*){pd}regs->rdi;
+			  printf("freecode %s\n", fmthd(v));
+		  });
+
+if(0)	dom.xtrap(&dom`copy,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head**){pd}regs->rdi;
+			  v = *v;
+			  if(v == 0)
+				  return;
+			  if((`uint64)v&1)
+				  return;
+			  if(Vkind(v) == dom`Qcode && !Vfwd(v))
+				  printf("maybe copy %s\n", fmthd(v));
+		  });
+
+if(1)	dom.xtrap(&dom`mkcl,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head*){pd}regs->rdi;
+			  printf("mkcl %s\n", fmthd(v));
+			  printf("%s\n", fmtstack(ctl, ns));
 		  });
 }
 
@@ -197,7 +251,7 @@ if(0)	dom.xtrap(&dom`freeseg,
 
 @define doit(args)
 {
-	@local mux, ns, as, e, nexec;
+	@local mux, as, e, nexec;
 
 	nexec = 0;
 	npop = 0;
@@ -209,8 +263,13 @@ if(0)	dom.xtrap(&dom`freeseg,
 	as = ctl.mem();
 	dom = mkdom(ns, as);
 	config(dom);
+	dom.trace(ctlmux`Esignal,
+		  @lambda(ctl, sig){
+			  printf("task %d received signal %d\n", ctl.id, sig);
+			  ctl.kill();
+		  });
 	dom.xcont();
 	mux.run();
 }
 
-doit([ "/tmp/x" ]);
+doit([ "/tmp/z" ]);
