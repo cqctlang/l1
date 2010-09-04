@@ -1092,6 +1092,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Esignal:
 			dat = (ctlmux`Esignal*)dat;
 			ctl.state = ctlmux`Stopped;
+			ctl.setreg(cop(&dat->ctx));
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl],
