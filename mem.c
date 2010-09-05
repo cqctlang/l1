@@ -1144,7 +1144,8 @@ reloc()
 	while(s){
 		c = s->addr;
 		while((void*)c < s->a){
-			reloc1(c);
+			if(!Vdead((Head*)c))
+				reloc1(c);
 			c++;
 		}
 		s = s->link;
@@ -1155,7 +1156,7 @@ reloc()
 		p = (Head*)s->p;
 		while(p){
 			h = car(p);
-			if(Vkind(h) == Qcode)
+			if(Vkind(h) == Qcode && !Vdead(h))
 				reloc1((Code*)h);
 			p = cdr(p);
 		}
