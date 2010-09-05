@@ -1246,8 +1246,8 @@ ctlmux = @names clp64le {
 		[rep, dat] = runtiltag(p->tag);
 		checkreplyio(rep, ctlmux`Rread,
 			     @lambda(err){
-				     error("read fault 0x%p-0x%p",
-					   (void*)addr, (void*)addr+cnt);
+				     error("read fault 0x%p-0x%p (%s)",
+					   (void*)addr, (void*)addr+cnt, err);
 			     });
 		return dat;
 	}
@@ -1269,8 +1269,8 @@ ctlmux = @names clp64le {
 		[rep, dat] = runtiltag(p->tag);
 		checkreplyio(rep, ctlmux`Rwrite,
 			     @lambda(err){
-				     error("write fault 0x%p - 0x%p",
-					   (void*)addr, (void*)addr+cnt);
+				     error("write fault 0x%p - 0x%p (%s)",
+					   (void*)addr, (void*)addr+cnt, err);
 			     });
 		return nil;
 	}
