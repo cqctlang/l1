@@ -187,7 +187,7 @@ if(0)	dom.xtrap(&dom`updateguards,
 			  trace0(dom);
 		  });
 
-if(1)	dom.xtrap(&dom`gcprotect,
+if(0)	dom.xtrap(&dom`gcprotect,
 		  @lambda(ctl){
 			  @local pd, regs, v;
 			  regs = ctl.reg();
@@ -203,7 +203,7 @@ if(1)	dom.xtrap(&dom`gcprotect,
 			  }
 		  });
 
-if(1)	dom.xtrap(&dom`freecode,
+if(0)	dom.xtrap(&dom`freecode,
 		  @lambda(ctl){
 			  @local pd, regs, v;
 			  regs = ctl.reg();
@@ -227,7 +227,7 @@ if(0)	dom.xtrap(&dom`copy,
 				  printf("maybe copy %s\n", fmthd(v));
 		  });
 
-if(1)	dom.xtrap(&dom`mkcl,
+if(0)	dom.xtrap(&dom`mkcl,
 		  @lambda(ctl){
 			  @local pd, regs, v;
 			  regs = ctl.reg();
@@ -236,6 +236,40 @@ if(1)	dom.xtrap(&dom`mkcl,
 			  printf("mkcl %s\n", fmthd(v));
 			  printf("%s\n", fmtstack(ctl, ns));
 		  });
+if(0)	brk(&dom`mkcl,
+	    @lambda(ctl, code, entry, len, id){
+		    printf("mkcl %s\n", fmthd(code));
+		    printf("%s\n", fmtstack(ctl, nsof(code)));
+	    });
+
+if(1)	brk(&dom`freecode,
+	    @lambda(ctl, code){
+		    printf("freecode %s\n", fmthd(code));
+	    });
+
+if(0)	brk(&dom`gc,
+	    @lambda(ctl, g, tg){
+		    printf("gc(%d,%d) entered\n", g, tg);
+		    printf("%s\n", fmtstack(ctl, nsof(g)));
+	    });
+
+if(1)	rbrk(&dom`gc,
+	     @lambda(ctl, g, tg){
+		     printf("gc(%d,%d) returned\n", g, tg);
+		     printf("%s\n", fmtstack(ctl, nsof(g)));
+	     });
+if(1)	brk(&dom`reloc1,
+	    @lambda(ctl, c){
+		    printf("reloc1 %s\n", fmthd(c));
+	    });
+
+if(1)	rbrk(&dom`malcode,
+	     @lambda(ctl, h){
+		     if(h == 0x7ffff7fdd3f0){
+			     printf("malcode %p\n", h);
+			     printf("%s\n", fmtstack(ctl, nsof(h)));
+		     }
+	     });
 }
 
 @define trace1(dom)
@@ -265,7 +299,10 @@ if(1)	dom.xtrap(&dom`mkcl,
 	config(dom);
 	dom.trace(ctlmux`Esignal,
 		  @lambda(ctl, sig){
-			  printf("task %d received signal %d\n", ctl.id, sig);
+			  @local regs;
+			  printf("proc %d received signal %d\n", ctl.id, sig);
+			  regs = ctl.reg();
+			  printf("%s\n", fmtstack(ctl, ns));
 			  ctl.kill();
 		  });
 	dom.xcont();
