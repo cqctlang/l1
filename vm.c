@@ -8748,6 +8748,22 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gcprotect(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to gcprotect");
+	gcprotect(argv[0]);
+}
+
+static void
+l1_gcunprotect(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to gcunprotect");
+	gcunprotect(argv[0]);
+}
+
+static void
 l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *str;
@@ -9294,7 +9310,9 @@ mktopenv(void)
 	FN(finalize);
 	FN(foreach);
 	FN(gc);
+	FN(gcprotect);
 	FN(gcstat);
+	FN(gcunprotect);
 	FN(getbytes);
 	FN(index);
 	FN(isalnum);
