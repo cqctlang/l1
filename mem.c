@@ -909,8 +909,6 @@ scan(M *m)
 			h = s->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			s->scan += qs[Vkind(h)].sz;
-			if(Vdead(h))  // FIXME: necessary?!?!
-				continue;
 			if(qs[Vkind(h)].iter == 0)
 				continue;
 			memset(&ictx, 0, sizeof(ictx));
