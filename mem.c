@@ -67,6 +67,7 @@ typedef
 struct M
 {
 	Seg *h, *t;		/* segment list head and tail */
+	Seg *s;			/* first segment needing scan */
 	Gen gen;
 } M;
 
@@ -656,6 +657,7 @@ mclr(M *m)
 {
 	m->h = 0;
 	m->t = 0;
+	m->s = 0;
 }
 
 static Seg*
@@ -665,6 +667,7 @@ minit(M *m, Seg *s)
 	s->link = 0;
 	m->h = s;
 	m->t = s;
+	m->s = s;
 	return s;
 }
 
@@ -697,6 +700,7 @@ mmove(M *a, M *b)
 		a->t = b->t;
 	}
 	b->h = b->t = 0;
+	a->s = b->s = 0; // mmoved Ms are never scanned
 }
 
 static void
@@ -889,19 +893,23 @@ scan1(Head *h)
 	}
 }
 
-static void
-scan(Seg *s)
+static unsigned
+scan(M *m)
 {
 	Head *h, **c;
+	Seg *s;
 	Ictx ictx;
 	unsigned dbg = alldbg;
 
+	s = m->s;
+	c = 0;
 	while(s){
+		m->s = s;
 		while(s->scan < s->a){
 			h = s->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			s->scan += qs[Vkind(h)].sz;
-			if(Vdead(h))
+			if(Vdead(h))  // FIXME: necessary?!?!
 				continue;
 			if(qs[Vkind(h)].iter == 0)
 				continue;
@@ -918,6 +926,22 @@ scan(Seg *s)
 		}
 		s = s->link;
 	}
+
+	// approximate indication of whether a copy occurred in this call:
+	//    1: maybe
+	//    0: definitely not
+	return (c != 0); // approximate 
+}
+
+static void
+kleenescan(u32 tg)
+{
+	unsigned again;
+	do{
+		again = 0;
+		again |= scan(&H.data[tg]);
+		again |= scan(&H.code[tg]);
+	}while(again);
 }
 
 #define car(p)  (((Pair*)p)->car)
@@ -1011,7 +1035,6 @@ updateguards()
 {
 	Head *phold, *pfinal, *p, *q, *o;
 	Head *final, *w;
-	Seg *b;
 	u32 i;
 
 	// move guarded objects and guards (and their containing cons) to
@@ -1058,13 +1081,12 @@ updateguards()
 		if(final == 0)
 			break;
 		w = final;
-		b = H.d;
 		while(w){
 			copy(&caar(w));
 			push1guard(caar(w), curaddr(cdar(w)));
 			w = cdr(w);
 		}
-		scan(b);
+		kleenescan(H.tg);
 	}
 
 	// forward pending hold to fresh guarded list
@@ -1237,7 +1259,7 @@ gc(u32 g, u32 tg)
 {
 	u32 i, m;
 	VM **vmp, *vm;
-	Seg *s, *t, *b, *tj, *tp, **r;
+	Seg *s, *t, *tj, *tp, **r;
 	Head *h, *p;
 	M junk, fr;
 	unsigned dbg = alldbg;
@@ -1325,32 +1347,9 @@ gc(u32 g, u32 tg)
 	}
 	if(dbg)printf("scanned cards\n");
 
-	scan(H.data[tg].h);
-	if(dbg)printf("scanned tg data\n");
-	// scan code (FIXME: why can't this be done before above scan?)
-	b = H.d;
-	scan(H.code[tg].h);
-	if(dbg)printf("scanned tg code\n");
-	scan(b);
-	if(dbg)printf("re-scanned tg data (after code)\n");
-
-#if 0
-	// reserve segments with newly protected objects.
-	s = fr.h;
-	while(s){
-		t = s->link;
-		if(s->nprotect)
-			minsert(&H.prot, s);
-		else
-			minsert(&junk, s);
-		s = t;
-	}
-#endif
+	kleenescan(tg);
 
 	// scan protected objects
-	// FIXME: isn't this broken if any protected object is code,
-	// since we don't scan the code segments again?
-	b = H.d;
 	s = H.prot.h;
 	while(s){
 		copy((Val*)&s->p);      // retain list of protected objects!
@@ -1388,7 +1387,7 @@ gc(u32 g, u32 tg)
 		}
 		s = t;
 	}
-	scan(b);
+	kleenescan(tg);
 	if(dbg)printf("re-scanned tg data (after prot)\n");
 
 	updateguards();
