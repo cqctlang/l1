@@ -134,6 +134,7 @@
 		  });
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
+			  mux.enumloc(ctl.id, ctl.reg());
 			  printlist(dom);
 		  });
 	dom.xcont();
