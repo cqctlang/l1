@@ -418,6 +418,13 @@ ctlmux = @names clp64le {
 	sz,
 };
 
+@record loc {
+	id,
+	sz,
+	ltype,
+	loc,
+};
+
 @record seg {
 	addr,
 	len,
@@ -1671,6 +1678,7 @@ ctlmux = @names clp64le {
 	{
 		@local p, rep, dat, sz, addr, ss;
 		@local m, i, xid, xsz, bind, type, val;
+		@local nsid, ltype, xloc;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -1694,7 +1702,22 @@ ctlmux = @names clp64le {
 		switch(*q++){
 		case ctlmux`NRenumlocA:
 			printf("got NRenumlocA reply\n");
-			return nil;
+			ss = [];
+			q = (ctlmux`uint64*)q;
+			nsid = *q++;
+			m = *q++;
+			for(i = 0; i < m; i++){
+				sz = *q++;
+				xid = getbytes(q, sz);
+				q = (ctlmux`uint64*)((char*)q+sz);
+				xsz = *q++;
+				q = (ctlmux`uint8*)q;
+				ltype = *q++;
+				q = (ctlmux`uint64*)q;
+				xloc = *q++;
+				append(ss, loc(xid, xsz, ltype, xloc));
+			}
+			return ss;
 		case ctlmux`NRerror:
 			error("ns error");
 			break;
