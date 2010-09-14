@@ -1711,7 +1711,6 @@ ctlmux = @names clp64le {
 		q = (ctlmux`uint8*)dat;
 		switch(*q++){
 		case ctlmux`NRenumlocA:
-			printf("got NRenumlocA reply\n");
 			ss = [];
 			q = (ctlmux`uint64*)q;
 			nsid = *q++;

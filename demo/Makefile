@@ -2,7 +2,7 @@ CC        = gcc
 LD        = ld
 CFLAGS    = -Wall -g
 
-TARG = clones forks list sig attach par1 exit
+TARG = clones forks list sig attach par1 exit locals1 locals1.32
 
 all: $(TARG)
 
@@ -38,6 +38,14 @@ attach: attach.o
 
 par1: par1.o
 	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+locals1: locals1.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+locals1.32: locals1.c
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 
 exit: exit.o
