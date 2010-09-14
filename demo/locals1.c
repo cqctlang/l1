@@ -39,6 +39,7 @@ locals(char *argv0)
 	Node l;
 	int m[100][100];
 	Node n[100][100];
+	static char *o;
 
 	printf("%s locals (actual):\n", argv0);
 	P(a);
@@ -55,6 +56,7 @@ locals(char *argv0)
 	P(l);
 	P(m);
 	P(n);
+	P(o);
 }
 
 int
