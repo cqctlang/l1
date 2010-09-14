@@ -1580,7 +1580,7 @@ ctlmux = @names clp64le {
 	@define muxlooksym(id, sym)
 	{
 		@local p, rep, dat, sz, addr;
-		@local xid, bind, type, val, xsz;
+		@local xid, xerr, bind, type, val, xsz;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8); /* op */
@@ -1617,7 +1617,12 @@ ctlmux = @names clp64le {
 			xsz = *q++;
 			return elfsym(xid, bind, type, val, xsz);
 		case ctlmux`NRerror:
-			error("ns error");
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
 			break;
 		default:
 			error("unexpected ns response");
@@ -1628,7 +1633,7 @@ ctlmux = @names clp64le {
 	@define muxenumsym(id)
 	{
 		@local p, rep, dat, sz, addr, ss;
-		@local m, i, xid, xsz, bind, type, val;
+		@local m, i, xid, xerr, xsz, bind, type, val;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -1666,7 +1671,12 @@ ctlmux = @names clp64le {
 			}
 			return ss;
 		case ctlmux`NRerror:
-			error("ns error");
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
 			break;
 		default: 
 			error("unexpected ns response");
@@ -1677,7 +1687,7 @@ ctlmux = @names clp64le {
 	@define muxenumloc(id, ctx)
 	{
 		@local p, rep, dat, sz, addr, ss;
-		@local m, i, xid, xsz, bind, type, val;
+		@local m, i, xid, xerr, xsz, bind, type, val;
 		@local nsid, ltype, xloc;
 
 		sz = sizeof(ctlmux`Tns);
@@ -1719,7 +1729,12 @@ ctlmux = @names clp64le {
 			}
 			return ss;
 		case ctlmux`NRerror:
-			error("ns error");
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
 			break;
 		default: 
 			error("unexpected ns response");
@@ -1730,7 +1745,7 @@ ctlmux = @names clp64le {
 	@define muxenumseg(id)
 	{
 		@local p, rep, dat, sz, addr, len, gs;
-		@local m, i, xid, xsz, bind, type, val;
+		@local m, i, xid, xerr, xsz, bind, type, val;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -1764,7 +1779,12 @@ ctlmux = @names clp64le {
 			}
 			return gs;
 		case ctlmux`NRerror:
-			error("ns error");
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
 			break;
 		default: 
 			error("unexpected ns response");
