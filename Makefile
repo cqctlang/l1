@@ -18,6 +18,9 @@ export V
 
 all: $(TARG)
 
+# phony target to ensure libraries get remade.
+FORCE: 
+
 MACH = gcc.x86.c
 HDR = sys.h util.h cqct.h syscqct.h
 L1C =\
@@ -69,7 +72,7 @@ fns.$(CONF).c: $(L1EXTRAS)
 	@echo $(FNSCALLS) >> $@
 	@echo '}' >> $@
 
-x/lib9/lib9.a:
+x/lib9/lib9.a: FORCE
 	$(MAKE) -s -C x/lib9
 
 parser:
