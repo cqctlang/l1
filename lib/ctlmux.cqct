@@ -101,8 +101,8 @@ ctlmux = @names clp64le {
 		NRlookaddr,
 		NTenumsym,
 		NRenumsym,
-		NTenumlocA,
-		NRenumlocA,
+		NTenumloc,
+		NRenumloc,
 		NTunwind,
 		NRunwind,
 		NTenumseg,
@@ -1698,7 +1698,7 @@ ctlmux = @names clp64le {
 		p->op = ctlmux`Tns;
 		p->tag = freshtag();
 		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTenumlocA;
+		*q++ = ctlmux`NTenumloc;
 		q = (ctlmux`uint64*)q;
 		*q++ = id;
 		putbytes(q, getbytes(ctx));
@@ -1710,7 +1710,7 @@ ctlmux = @names clp64le {
 
 		q = (ctlmux`uint8*)dat;
 		switch(*q++){
-		case ctlmux`NRenumlocA:
+		case ctlmux`NRenumloc:
 			ss = [];
 			q = (ctlmux`uint64*)q;
 			nsid = *q++;
