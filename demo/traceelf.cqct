@@ -132,7 +132,7 @@
 						    });
 				  }, ms);
 		  });
-	dom.xtrap((void*)&dom`insert+11,
+	dom.xtrap((void*)&dom`insert,
 		  @lambda(ctl){
 			  @local ss, regs;
 			  regs = ctl.reg();

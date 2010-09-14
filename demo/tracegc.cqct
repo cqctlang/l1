@@ -242,7 +242,7 @@ if(0)	brk(&dom`mkcl,
 		    printf("%s\n", fmtstack(ctl, nsof(code)));
 	    });
 
-if(0)	brk(&dom`freecode,
+if(1)	brk(&dom`freecode,
 	    @lambda(ctl, code){
 		    printf("freecode %s\n", fmthd(code));
 	    });
@@ -264,13 +264,12 @@ if(1)	brk(&dom`reloc1,
 			    printf("relocating dead code %s!\n", fmthd(c));
 	    });
 
-if(0)	rbrk(&dom`malcode,
+if(1)	rbrk(&dom`malcode,
 	     @lambda(ctl, h){
-		     if(h == 0x7ffff7fdd3f0){
-			     printf("malcode %p\n", h);
-			     printf("%s\n", fmtstack(ctl, nsof(h)));
-		     }
+		     printf("malcode %p\n", h);
+		     printf("%s\n", fmtstack(ctl, nsof(h)));
 	     });
+
 }
 
 @define trace1(dom)
