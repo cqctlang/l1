@@ -132,9 +132,32 @@
 						    });
 				  }, ms);
 		  });
-	dom.xtrap(&dom`insert,
+	dom.xtrap((void*)&dom`insert,
 		  @lambda(ctl){
+			  @local ss, regs;
+			  regs = ctl.reg();
+			  ss = mux.enumloc(ctl.id, regs);
+			  printf("insert rsp=%p rbp=%p rip=%p\n",
+				 regs->rsp,
+				 regs->rbp,
+				 regs->rip);
+			  foreach(@lambda(l){
+					  printf("\t%s\t%d\t%d\t%x\n",
+						 l.id,
+						 l.sz,
+						 l.ltype,
+						 l.loc);
+				  }, ss);
 			  printlist(dom);
+		  });
+	dom.xtrap(&dom`main,
+		  @lambda(ctl){
+			  @local regs;
+			  regs = ctl.reg();
+			  printf("main: rsp=%p rbp=%p rip=%p\n",
+				 regs->rsp,
+				 regs->rbp,
+				 regs->rip);
 		  });
 	dom.xcont();
 	mux.run();

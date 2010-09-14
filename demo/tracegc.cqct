@@ -1,0 +1,312 @@
+@include <ctlmux.cqct>
+
+l1 = "../../l1/l1";
+l1names = l1+".names";
+ns = nil;
+dom = nil;
+
+@define car(p)  { (((`Pair*)p)->car); }
+@define cdr(p)  { (((`Pair*)p)->cdr); }
+@define caar(p) { (car(car(p))); }
+@define cadr(p) { (car(cdr(p))); }
+@define cdar(p) { (cdr(car(p))); }
+@define cddr(p) { (cdr(cdr(p))); }
+
+@define Vfwd(p)		{ ((((p)->bits)>>dom`Vfwdoff)&dom`Vfwdmask); }
+@define Vfwdaddr(p)
+{
+	return {domof(p)}((void*)((p)->bits & ~(dom`Vfwdmask<<dom`Vfwdoff)));
+}
+@define Vkind(p)        { ((((p)->bits)>>dom`Vkindoff)&dom`Vkindmask); }
+@define Vprot(p)        { ((((p)->bits)>>dom`Vprotoff)&dom`Vprotmask); }
+@define Vdead(p)        { ((((p)->bits)>>dom`Vdeadoff)&dom`Vdeadmask); }
+
+@define phash(p)
+{
+	@local key;
+	key = (`uint64)p;
+	key = (~key) + (key << 18);
+	key = key ^ (key >> 31);
+	key = key * 21;
+	key = key ^ (key >> 11);
+	key = key + (key << 6);
+	key = key ^ (key >> 22);
+	return (`uint32)key;
+}
+
+@define hgetp(ht, k)
+{
+	@local hp;
+	hp = ht->ht[phash(k)%ht->sz];
+	while(hp){
+		if(hp->key == k)
+			return hp->val;
+		hp = hp->next;
+	}
+	return 0;
+}
+
+@define dumpht(ht)
+{
+	@local i, hp;
+	for(i = 0; i < ht->sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			printf("\thash %5x key %p val %s\n", i, hp->key,
+			       fmtseg((`Seg*)hp->val));
+			hp = hp->next;
+		}
+	}
+}
+
+@define dumpprot(dom)
+{
+	@local H, s;
+	H = &dom`H;
+	s = H->prot.h;
+	printf("protected segments:\n");
+	while(s){
+		printf("\t%s\n", fmtseg(s));
+		s = s->link;
+	}
+}
+
+
+@define lookseg(a)
+{
+	v = (dom`uintptr_t)a;
+	v &= dom`Segmask;
+	s = hgetp(dom`segtab, (void*)v);
+	if(s == 0)
+		return 0;
+	return (`Seg*)s;
+}
+
+@define fmtseg(s)
+{
+	@local r;
+	if(s == 0)
+		return "no segment!";
+	r = sprintfa("seg %p %e %e", s, s->kind, s->gen);
+	if(s->gen == dom`Gprot)
+		r += sprintfa("(%u)", s->nprotect);
+	r += sprintfa(" %p-%p", s->addr, s->e);
+}
+
+@define fmthd(h)
+{
+	@local s;
+	if(h == 0)
+		return "(null)";
+	h = (`Head*)h;
+	if(Vfwd(h))
+		return sprintfa("obj %p -> %s", h, fmthd(Vfwdaddr(h)));
+	if(Vdead(h))
+		return sprintfa("obj %p [dead]", h);
+	s = sprintfa("obj %p (%s)", h, dom`qs[Vkind(h)].id);
+	if(Vprot(h))
+		s += " protected";
+	return s;
+}
+
+@define trace0(dom)
+{
+	@local H, o, s, p, i, m, qs, o, g;
+	H = &dom`H;
+	qs = dom`qs;
+	for(i = 0; i < dom`Ngen; i++){
+		p = (`Head*)H->gd[i];
+		printf("%e guarded objects:\n", (dom`Gen)i);
+		m = 0;
+		while(p){
+			m++;
+			o = caar(p);
+			g = cdar(p);
+			if(o == 0x7ffff7ff4940){
+				printf("%s", fmthd(o));
+				printf(" in %s\n", fmtseg(lookseg(o)));
+			}
+			p = cdr(p);
+		}
+	}
+	p = (`Head*)H->gd[2];
+	if(!p)
+		return;
+	printf("guarded at generation 2:\n");
+	while(p){
+		o = caar(p);
+		s = lookseg(o);
+		printf("\t%p in %s\n", o, fmtseg(s));
+		p = cdr(p);
+	}
+}
+
+@define config(dom)
+{
+if(0)	dom.xtrap(&dom`hputp,
+		  @lambda(ctl){
+			  @local pd, tab, k, v, regs;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  tab = (`HT*){pd}regs->rdi;
+			  k = (void*){pd}regs->rsi;
+			  v = (`Seg*){pd}regs->rdx;
+			  if(tab != pd`segtab)
+				  return;
+			  printf("hputp %p -> %s\n", k, fmtseg(v));
+		  });
+if(0)	dom.xtrap(&dom`freeseg,
+		  @lambda(ctl){
+			  @local pd, regs, s;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  s = (`Seg*){pd}regs->rdi;
+			  printf("freeseg %s\n", fmtseg(s));
+		  });
+if(0)	dom.xtrap(&dom`minsert,
+		  @lambda(ctl){
+			  @local pd, regs, m, s;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  m = (`M*){pd}regs->rdi;
+			  s = (`Seg*){pd}regs->rsi;
+			  printf("minsert into %e %s\n", m->gen, fmtseg(s));
+		  });
+if(0)	dom.xtrap(&dom`gc,
+		  @lambda(ctl){
+			  @local pd, regs, g, tg;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  g = (`u32){pd}regs->rdi;
+			  tg = (`u32){pd}regs->rsi;
+			  printf("gc(%d,%d)\n", g, tg);
+			  dumpprot(dom);
+		  });
+if(0)	dom.xtrap(&dom`updateguards,
+		  @lambda(ctl){
+			  trace0(dom);
+		  });
+
+if(0)	dom.xtrap(&dom`gcprotect,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head*){pd}regs->rdi;
+			  if(Vkind(v) == dom`Qcl){
+				  v = (`Closure*)v;
+				  printf("gcprotect %s (code %p)\n",
+					 fmthd(v), v->code);
+			  }else if(Vkind(v) == dom`Qcode){
+				  v = (`Code*)v;
+				  printf("gcprotect %s\n", fmthd(v));
+			  }
+		  });
+
+if(0)	dom.xtrap(&dom`freecode,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head*){pd}regs->rdi;
+			  printf("freecode %s\n", fmthd(v));
+		  });
+
+if(0)	dom.xtrap(&dom`copy,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head**){pd}regs->rdi;
+			  v = *v;
+			  if(v == 0)
+				  return;
+			  if((`uint64)v&1)
+				  return;
+			  if(Vkind(v) == dom`Qcode && !Vfwd(v))
+				  printf("maybe copy %s\n", fmthd(v));
+		  });
+
+if(0)	dom.xtrap(&dom`mkcl,
+		  @lambda(ctl){
+			  @local pd, regs, v;
+			  regs = ctl.reg();
+			  pd = mkdom(dom.ns, ctl.mem());
+			  v = (`Head*){pd}regs->rdi;
+			  printf("mkcl %s\n", fmthd(v));
+			  printf("%s\n", fmtstack(ctl, ns));
+		  });
+if(0)	brk(&dom`mkcl,
+	    @lambda(ctl, code, entry, len, id){
+		    printf("mkcl %s\n", fmthd(code));
+		    printf("%s\n", fmtstack(ctl, nsof(code)));
+	    });
+
+if(1)	brk(&dom`freecode,
+	    @lambda(ctl, code){
+		    printf("freecode %s\n", fmthd(code));
+	    });
+
+if(0)	brk(&dom`gc,
+	    @lambda(ctl, g, tg){
+		    printf("gc(%d,%d) entered\n", g, tg);
+		    printf("%s\n", fmtstack(ctl, nsof(g)));
+	    });
+
+if(1)	rbrk(&dom`gc,
+	     @lambda(ctl, g, tg){
+		     printf("gc(%d,%d) returned\n", g, tg);
+		     printf("%s\n", fmtstack(ctl, nsof(g)));
+	     });
+if(1)	brk(&dom`reloc1,
+	    @lambda(ctl, c){
+		    if(Vdead((`Head*)c))
+			    printf("relocating dead code %s!\n", fmthd(c));
+	    });
+
+if(1)	rbrk(&dom`malcode,
+	     @lambda(ctl, h){
+		     printf("malcode %p\n", h);
+		     printf("%s\n", fmtstack(ctl, nsof(h)));
+	     });
+
+}
+
+@define trace1(dom)
+{
+	@local H, o, s, p, i, m, qs;
+	H = &dom`H;
+	s = H->data[0].h;
+	while(s){
+		printf("\t%s\n", fmtseg(s));		
+		s = s->link;
+	}
+}
+
+@define doit(args)
+{
+	@local mux, as, e, nexec;
+
+	nexec = 0;
+	npop = 0;
+	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
+	ns = eval(e);
+	mux = mkctlmux_local();
+	push(args, l1);
+	ctl = mux.launch(args, 0);
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	config(dom);
+	dom.trace(ctlmux`Esignal,
+		  @lambda(ctl, sig){
+			  @local regs;
+			  printf("proc %d received signal %d\n", ctl.id, sig);
+			  regs = ctl.reg();
+			  printf("%s\n", fmtstack(ctl, ns));
+			  ctl.kill();
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+doit([ "/tmp/z" ]);

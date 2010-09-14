@@ -1,4 +1,5 @@
 @include <linux-x86_64.cqct>
+@include <stack.x86_64.cqct>
 @include <trapman.cqct>
 
 ctlmux = @names clp64le {
@@ -100,8 +101,8 @@ ctlmux = @names clp64le {
 		NRlookaddr,
 		NTenumsym,
 		NRenumsym,
-		NTlocal,
-		NRlocal,
+		NTenumlocA,
+		NRenumlocA,
 		NTunwind,
 		NRunwind,
 		NTenumseg,
@@ -417,6 +418,13 @@ ctlmux = @names clp64le {
 	sz,
 };
 
+@record loc {
+	id,
+	sz,
+	ltype,
+	loc,
+};
+
 @record seg {
 	addr,
 	len,
@@ -706,6 +714,7 @@ ctlmux = @names clp64le {
 	looksym,
 	enumsym,
 	enumseg,
+	enumloc,
 	// private
 	stop,
 	cont,
@@ -744,7 +753,7 @@ ctlmux = @names clp64le {
 {
 	@local tab, launch, attach, run, abort;
 	@local logsend, logrecv, log, verbose;
-	@local checkreply, cop, ctls;
+	@local checkreply, checkreplyio, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
 	@local stop, step, detach, kill, statwin, statunix, snap;
 	@local pread, pwrite;
@@ -752,7 +761,7 @@ ctlmux = @names clp64le {
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
-	@local muxlooksym, muxenumsym, muxenumseg;
+	@local muxlooksym, muxenumsym, muxenumseg, muxenumloc;
 
 	verbose = 0;
 	aborted = 0;
@@ -804,6 +813,20 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			error("ctlmux: while waiting for %e: %s",
 			      op, rep->bytes);
+		default:
+			error("ctlmux: while waiting for %e: received %e",
+			      op, (enum ctlmux`Mkind)rep->op);
+		}
+	}
+
+	@define checkreplyio(rep, op, x)
+	{
+		switch(rep->op){
+		case op:
+			break;
+		case ctlmux`Rerror:
+			return x(rep->bytes);
+			break;
 		default:
 			error("ctlmux: while waiting for %e: received %e",
 			      op, (enum ctlmux`Mkind)rep->op);
@@ -1077,6 +1100,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Esignal:
 			dat = (ctlmux`Esignal*)dat;
 			ctl.state = ctlmux`Stopped;
+			ctl.setreg(cop(&dat->ctx));
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl],
@@ -1228,7 +1252,11 @@ ctlmux = @names clp64le {
 		sendmsg(fd, p);
 
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rread);
+		checkreplyio(rep, ctlmux`Rread,
+			     @lambda(err){
+				     error("read fault 0x%p-0x%p (%s)",
+					   (void*)addr, (void*)addr+cnt, err);
+			     });
 		return dat;
 	}
 
@@ -1247,7 +1275,11 @@ ctlmux = @names clp64le {
 		sendmsg(fd, p, sz);
 
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rwrite);
+		checkreplyio(rep, ctlmux`Rwrite,
+			     @lambda(err){
+				     error("write fault 0x%p - 0x%p (%s)",
+					   (void*)addr, (void*)addr+cnt, err);
+			     });
 		return nil;
 	}
 
@@ -1548,7 +1580,7 @@ ctlmux = @names clp64le {
 	@define muxlooksym(id, sym)
 	{
 		@local p, rep, dat, sz, addr;
-		@local xid, bind, type, val, xsz;
+		@local xid, xerr, bind, type, val, xsz;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8); /* op */
@@ -1585,7 +1617,12 @@ ctlmux = @names clp64le {
 			xsz = *q++;
 			return elfsym(xid, bind, type, val, xsz);
 		case ctlmux`NRerror:
-			error("ns error");
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
 			break;
 		default:
 			error("unexpected ns response");
@@ -1596,7 +1633,7 @@ ctlmux = @names clp64le {
 	@define muxenumsym(id)
 	{
 		@local p, rep, dat, sz, addr, ss;
-		@local m, i, xid, xsz, bind, type, val;
+		@local m, i, xid, xerr, xsz, bind, type, val;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -1634,7 +1671,70 @@ ctlmux = @names clp64le {
 			}
 			return ss;
 		case ctlmux`NRerror:
-			error("ns error");
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
+			break;
+		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
+	@define muxenumloc(id, ctx)
+	{
+		@local p, rep, dat, sz, addr, ss;
+		@local m, i, xid, xerr, xsz, bind, type, val;
+		@local nsid, ltype, xloc;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		sz += sizeof(ctlmux`Ctx);    /* ctx */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTenumlocA;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		putbytes(q, getbytes(ctx));
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRenumlocA:
+			printf("got NRenumlocA reply\n");
+			ss = [];
+			q = (ctlmux`uint64*)q;
+			nsid = *q++;
+			m = *q++;
+			for(i = 0; i < m; i++){
+				sz = *q++;
+				xid = getbytes(q, sz);
+				q = (ctlmux`uint64*)((char*)q+sz);
+				xsz = *q++;
+				q = (ctlmux`uint8*)q;
+				ltype = *q++;
+				q = (ctlmux`uint64*)q;
+				xloc = *q++;
+				append(ss, loc(xid, xsz, ltype, xloc));
+			}
+			return ss;
+		case ctlmux`NRerror:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
 			break;
 		default: 
 			error("unexpected ns response");
@@ -1645,7 +1745,7 @@ ctlmux = @names clp64le {
 	@define muxenumseg(id)
 	{
 		@local p, rep, dat, sz, addr, len, gs;
-		@local m, i, xid, xsz, bind, type, val;
+		@local m, i, xid, xerr, xsz, bind, type, val;
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -1679,7 +1779,12 @@ ctlmux = @names clp64le {
 			}
 			return gs;
 		case ctlmux`NRerror:
-			error("ns error");
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
 			break;
 		default: 
 			error("unexpected ns response");
@@ -1785,6 +1890,7 @@ ctlmux = @names clp64le {
 		     muxlooksym,
 		     muxenumsym,
 		     muxenumseg,
+		     muxenumloc,
 		     stop,
 		     cont,
 		     step,

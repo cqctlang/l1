@@ -104,21 +104,19 @@ location, layout, and encoding of data in memory.
 </p>
 
 <p>
-A Cinquecento program can simultaneously manipulate
-multiple target programs.
+A Cinquecento program can manipulate multiple simultaneously
+active target programs.
 
-Heterogeneity among the programs and their environments
-is expected: each target may have different types,
+Heterogeneity is expected: each target may have different types,
 symbols, and executable format; and each target may
 execute on a different machine, possibly with a
 different architecture and operating system.
 
 Example applications include comparing executions of
-different versions of a program, verifying that a
-particular version behaves similarly on different
-machine types or operating systems, and validating
-global state across a distributed, multi-process
-program.
+different versions of a program, comparing executions
+of a program across several machine types or operating
+systems, and validating global state in a
+distributed, multi-process program.
 </p>
 
 <p>
@@ -5316,15 +5314,12 @@ user-defined functions.)
 <div class="desc">
 Opens the file named <span class="arg">filename</span> and
 returns the associated file descriptor.  <span
-class="arg">Mode</span> specifies whether the file is to
-be opened for reading, writing, or both, and whether
-the file is to be created or truncated.  The syntax of
-<span class="arg">mode</span> follows that of the C
-library stdio <tt>fopen</tt> function.  Common modes
-are <span class="val">"r"</span> (read an existing file)
-<span class="val">"w"</span> (truncate an existing file
-for writing), and <span class="val">"rw"</span> (truncate
-an existing file for reading and writing).
+class="arg">Mode</span> specifies the mode of access:
+<span class="val">"r"</span> (read),
+<span class="val">"w"</span> (create or truncate for writing),
+<span class="val">"rw"</span> (create or truncate for reading and writing),
+<span class="val">"a"</span> (append), or
+<span class="val">"ra"</span> (append and read).
 </div>
 </div>
 
@@ -5426,6 +5421,45 @@ If no connection is waiting, the call blocks until one arrives.
 </div>
 </div>
 
+<div class="docitem" id="fn:getpeername">
+<div class="proto">
+<div class="function">
+<span class="id">getpeername(<span class="arg">fd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the result of calling the
+system <span class="id">getpeername</span> call on the
+TCP connection associated with <span class="arg">fd</span>.
+The return value is the string of raw bytes of the system socket address. 
+</div>
+</div>
+
+<div class="docitem" id="fn:getsockname">
+<div class="proto">
+<div class="function">
+<span class="id">getsockname(<span class="arg">fd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the result of calling the
+system <span class="id">getsockname</span> call on the
+TCP connection associated with <span class="arg">fd</span>.
+The return value is the string of raw bytes of the system socket address. 
+</div>
+</div>
 
 
 <div class="docitem" id="fn:read">
@@ -7307,6 +7341,8 @@ machines sharing the environment have been freed.
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
+<a href="#fn:getpeername">getpeername</a><br />
+<a href="#fn:getsockname">getsockname</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />

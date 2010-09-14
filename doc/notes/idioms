@@ -1,0 +1,18 @@
+## computing pointers to fields in a struct
+
+define links(p)
+{
+	@local t, fs, f, ft, m, i, ls;
+	t = chasetype(subtype(chasetype(typeof(p))));
+	if(!issu(t))
+		error("chased wrong type: %t", t);
+	fs = fields(t);
+	m = length(fs);
+	ls = [];
+	p = (void*)p;
+	for(i = 0; i < m; i++){
+		f = fs[i];
+		ft = chasetype(fieldtype(f));
+		if(chaseable(ft))
+			append(ls, {ft}*(`uintptr*)(p+fieldoff(f)));
+		

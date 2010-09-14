@@ -772,6 +772,7 @@ Expr*		doconstssrc(Src*, char*, unsigned long len);
 Expr*		doid(char*);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
+Expr*		dosymsrc(Src *src, char *s, unsigned long len);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 int		dotypes(U*, Expr*);
