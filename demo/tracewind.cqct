@@ -1,0 +1,40 @@
+@include <ctlmux.cqct>
+
+@define test1(cmd, ns)
+{
+	@local ctl, mux, as, dom, bs, ss, sym;
+
+	printf("%s:\n", cmd);
+	mux = mkctlmux_local();
+	ctl = mux.launch([cmd], 0);
+	regs = ctl.reg();
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.xtrap(&dom`f,
+		  @lambda(ctl){
+			  @local xs;
+			  regs = ctl.reg();
+			  printf("%y rip=%p rsp=%p rbp=%p\n",
+				 {dom}regs->rip,
+				 regs->rip,
+				 regs->rsp,
+				 regs->rbp);
+			  xs = ctl.unwind();
+			  if(xs == nil){
+				  printf("cannot unwind\n");
+				  return;
+			  }
+			  foreach(@lambda(x){
+					  printf("\t%p\t%y\t%p\t%p\n",
+						 x->rip,
+						 {dom}x->rip,
+						 x->rsp,
+						 x->rbp);
+				  }, xs);
+		  });
+	dom.xcont();
+	mux.run();
+}
+
+test1("./wind1",    @names clp64le { @include "./wind1.names" });
+test1("./wind1.32", @names c32le   { @include "./wind1.32.names" });
