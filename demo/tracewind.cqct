@@ -13,6 +13,10 @@
 	dom.xtrap(&dom`f,
 		  @lambda(ctl){
 			  @local xs;
+			  if(0)foreach(@lambda(dll){
+					  printf("\t%p\t%s\n",
+						 dll.base, dll.path);
+				  }, ctl.statunix()[1]);
 			  regs = ctl.reg();
 			  printf("%y rip=%p rsp=%p rbp=%p\n",
 				 {dom}regs->rip,
