@@ -9,6 +9,6 @@ f(int x)
 int
 main(int argc, char *argv[])
 {
-	f(10);
+	f(0);
 	return 0;
 }

@@ -40,5 +40,7 @@
 	mux.run();
 }
 
-test1("./wind1",    @names clp64le { @include "./wind1.names" });
-test1("./wind1.32", @names c32le   { @include "./wind1.32.names" });
+//test1("./wind1",    @names clp64le { @include "./wind1.names" });
+//test1("./wind1.32", @names c32le   { @include "./wind1.32.names" });
+//test1("./wind2",    @names clp64le { @include "./wind2.names" });
+test1("./wind2.32", @names c32le   { @include "./wind2.32.names" });
