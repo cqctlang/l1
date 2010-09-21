@@ -12,6 +12,7 @@ TARG = clones\
 	locals1 locals1.32\
 	wind1 wind1.32\
 	wind2 wind2.32\
+	types1 types1.32\
 
 
 all: $(TARG)
@@ -71,6 +72,14 @@ wind2: wind2.o
 	dwarf2cqct < $@ > $@.names
 
 wind2.32: wind2.c
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+types1: types1.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+types1.32: types1.c
 	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 

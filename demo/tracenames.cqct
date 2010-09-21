@@ -1,0 +1,18 @@
+@include <ctlmux.cqct>
+
+@define fmtsym(s)
+{
+	return sprintfa("@0x%p\t%s", s.val, s.id);
+}
+
+
+@define test1(path, sym)
+{
+	@local mux, id;
+	mux = mkctlmux_local();
+	id = mux.names(path);
+	printf("nsid: %a\n", id);
+	printf("looksym(%a) -> %s\n", sym, fmtsym(mux.looksym(id, sym)));
+}
+
+test1("../l1", "dovm");

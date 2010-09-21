@@ -107,6 +107,8 @@ ctlmux = @names clp64le {
 		NRunwind,
 		NTenumseg,
 		NRenumseg,
+		NTnames,
+		NRnames,
 	};
 
 	enum ELF_ST_BIND {
@@ -724,6 +726,7 @@ ctlmux = @names clp64le {
 	enumseg,
 	enumloc,
 	unwind,
+	names,
 	// private
 	stop,
 	cont,
@@ -771,6 +774,7 @@ ctlmux = @names clp64le {
 	@local aborted, version, ping, ps;
 	@local osversion;
 	@local muxlooksym, muxenumsym, muxenumseg, muxenumloc, muxunwind;
+	@local muxnames;
 
 	verbose = 0;
 	aborted = 0;
@@ -1592,8 +1596,8 @@ ctlmux = @names clp64le {
 		@local xid, xerr, bind, type, val, xsz;
 
 		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8); /* op */
-		sz += sizeof(ctlmux`uint64);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
 		sz += sizeof(ctlmux`uint64)+strlen(sym);
 		p = (ctlmux`Tns*)malloc(sz);
 		p->op = ctlmux`Tns;
@@ -1848,6 +1852,49 @@ ctlmux = @names clp64le {
 		}
 	}
 
+	@define muxnames(path)
+	{
+		@local p, rep, dat, sz, addr, ss;
+		@local m, i, xid, xerr, xsz, bind, type, val;
+		@local nsid, ltype, xloc;
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);		  /* op */
+		sz += sizeof(ctlmux`uint64)+strlen(path); /* path */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTnames;
+		q = (ctlmux`uint64*)q;
+		*q++ = strlen(path);
+		q = (char*)q;
+		putbytes(q, path);
+		q += strlen(path);
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRnames:
+			q = (ctlmux`uint64*)q;
+			xid = *q++;
+			return xid;
+		case ctlmux`NRerror:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			error("ns error: %s", xerr);
+			break;
+		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
 	@define version()
 	{
 		@local p, rep, dat, sz, version, os, s;
@@ -1948,6 +1995,7 @@ ctlmux = @names clp64le {
 		     muxenumseg,
 		     muxenumloc,
 		     muxunwind,
+		     muxnames,
 		     stop,
 		     cont,
 		     step,
