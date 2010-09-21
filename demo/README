@@ -41,3 +41,8 @@ other tests...
   * local variable locations and sizes
 
     % ../l1 ./tracelocals.cqct
+
+  * stack unwinding
+
+    % ../l1 ./tracewind.cqct
+
