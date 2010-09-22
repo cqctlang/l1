@@ -12,6 +12,8 @@
 			printf("%5d %s\n", pid, cmd);
 			if(cmd == "prctl")
 				return;
+			if(cmd == "memcheck")
+				return;
 			if(cmd == "emacs")
 				return;
 			if(pid == getpid())
