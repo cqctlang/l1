@@ -29,6 +29,7 @@
 		  });
 	dom.xcont();
 	mux.run();
+	mux.close();
 }
 
 test1("./locals1", @names clp64le { @include "./locals1.names" });
