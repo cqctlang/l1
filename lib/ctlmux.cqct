@@ -720,6 +720,7 @@ ctlmux = @names clp64le {
 	launch,
 	attach,
 	run,
+	close,
 	abort,
 	looksym,
 	enumsym,
@@ -763,7 +764,7 @@ ctlmux = @names clp64le {
 
 @define mkctlmux(fd)
 {
-	@local tab, launch, attach, run, abort;
+	@local tab, launch, attach, run, muxclose, abort;
 	@local logsend, logrecv, log, verbose;
 	@local checkreply, checkreplyio, cop, ctls;
 	@local freetags, nexttag, taghandler, mux;
@@ -1976,6 +1977,12 @@ ctlmux = @names clp64le {
 		return nil;
 	}
 
+	@define muxclose()
+	{
+		// FIXME: not safe to call when run is active
+		close(fd);
+	}
+
 	@define run()
 	{
 		if(aborted)
@@ -1989,6 +1996,7 @@ ctlmux = @names clp64le {
 		     launch,
 		     attach,
 		     run,
+		     muxclose,
 		     abort,
 		     muxlooksym,
 		     muxenumsym,
