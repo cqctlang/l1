@@ -115,6 +115,72 @@ ctlmux = @names clp64le {
 		NRnames,
 	};
 
+	typedef
+	enum Cbase
+	{
+		Vundef=0,
+		Vbool,
+		Vchar,
+		Vshort,
+		Vint,
+		Vlong,
+		Vvlong,
+		Vuchar,
+		Vushort,
+		Vuint,
+		Vulong,
+		Vuvlong,
+		Vfloat,
+		Vdouble,
+		Vlongdouble,
+		Vnbase,
+		Vptr = Vnbase,		/* alias for some other base type */
+		Vvoid,
+		Vnallbase,
+	} Cbase;
+
+	/* base type representations */
+	typedef
+	enum Rkind
+	{
+		Rundef,
+		Ru08le,
+		Ru16le,
+		Ru32le,
+		Ru64le,
+		Rs08le,
+		Rs16le,
+		Rs32le,
+		Rs64le,
+		Ru08be,
+		Ru16be,
+		Ru32be,
+		Ru64be,
+		Rs08be,
+		Rs16be,
+		Rs32be,
+		Rs64be,
+		Rf32,
+		Rf64,
+		Rf128,
+		Rnrep,
+	} Rkind;
+	
+	// types on the wire.  sync with Tkind.
+	enum
+	{
+		CTunused0,
+		CTbase,
+		CTstruct,
+		CTunion,
+		CTenum,
+		CTptr,
+		CTarray,
+		CTfunc,
+		CTtypedef,
+		CTmax,
+	};
+
 	enum ELF_ST_BIND {
 		STB_LOCAL	= 0,
 		STB_GLOBAL,
@@ -728,6 +794,7 @@ ctlmux = @names clp64le {
 	abort,
 	looksym,
 	enumsym,
+	looktype,
 	enumseg,
 	enumloc,
 	unwind,
@@ -778,7 +845,8 @@ ctlmux = @names clp64le {
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
-	@local muxlooksym, muxenumsym, muxenumseg, muxenumloc, muxunwind;
+	@local muxlooksym, muxenumsym, muxlooktype, muxenumseg;
+	@local muxenumloc, muxunwind;
 	@local muxnames;
 
 	verbose = 0;
@@ -1648,9 +1716,138 @@ ctlmux = @names clp64le {
 		}
 	}
 
+	@define encodetype(t)
+	{
+		@local sz, s, q, id;
+
+		sz = sizeof(ctlmux`uint8); /* op */
+		if(isbase(t)){
+			sz += sizeof(ctlmux`uint8); /* base */
+			s = malloc(sz);
+			s[0] = ctlmux`CTbase;
+			// baseid returns the cbasename strings.
+			// FIXME: this conversion is unfortunate.
+			switch(baseid(t)){
+			case "bool":
+				s[1] = ctlmux`Vbool;
+				break;
+			case "char":
+				s[1] = ctlmux`Vchar;
+				break;
+			case "short":
+				s[1] = ctlmux`Vshort;
+				break;
+			case "int":
+				s[1] = ctlmux`Vint;
+				break;
+			case "long":
+				s[1] = ctlmux`Vlong;
+				break;
+			case "long long":
+				s[1] = ctlmux`Vvlong;
+				break;
+			case "unsigned char":
+				s[1] = ctlmux`Vuchar;
+				break;
+			case "unsigned short":
+				s[1] = ctlmux`Vushort;
+				break;
+			case "unsigned int":
+				s[1] = ctlmux`Vuint;
+				break;
+			case "unsigned long":
+				s[1] = ctlmux`Vulong;
+				break;
+			case "unsigned long long":
+				s[1] = ctlmux`Vuvlong;
+				break;
+			case "float":
+				s[1] = ctlmux`Vfloat;
+				break;
+			case "double":
+				s[1] = ctlmux`Vdouble;
+				break;
+			case "long double":
+				s[1] = ctlmux`Vlongdouble;
+				break;
+			default:
+				error("bug");
+			}
+		}else if(issu(t) || isenum(t)){
+			id = suetag(t);
+			sz += sizeof(ctlmux`uint64)+strlen(id); /* tag */
+			s = malloc(sz);
+			if(isstruct(t))
+				s[0] = ctlmux`CTstruct;
+			else if(isunion(t))
+				s[0] = ctlmux`CTunion;
+			else if(isenum(t))
+				s[0] = ctlmux`CTenum;
+			else
+				error("bug");
+			q = (ctlmux`uint64*)(s+1);
+			*q++ = strlen(id);
+			q = (char*)q;
+			putbytes(q, id);
+		}else if(istypedef(t)){
+			id = typedefid(t);
+			sz += sizeof(ctlmux`uint64)+strlen(id); /* tid */
+			s = malloc(sz);
+			s[0] = ctlmux`CTtypedef;
+			q = (ctlmux`uint64*)(s+1);
+			*q++ = strlen(id);
+			q = (char*)q;
+			putbytes(q, id);
+		}else
+			error("encodetype: unsupported type: %t", t);
+		return getbytes(s, sz);
+	}
+
+	@define muxlooktype(id, type)
+	{
+		@local s, p, q, rep, dat, sz, xerr;
+
+		s = encodetype(type);
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		sz += sizeof(ctlmux`uint64)+strlen(s);
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTlooktype;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		putbytes(q, s);
+		q += strlen(s);
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRlooktype:
+			return mkctype_void();
+		case ctlmux`NRerror:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
+			break;
+		default:
+			error("unexpected ns response");
+			break;
+		}
+	}
+
 	@define muxenumsym(id)
 	{
-		@local p, rep, dat, sz, addr, ss;
+		@local p, q, rep, dat, sz, addr, ss;
 		@local m, i, xid, xerr, xsz, bind, type, val;
 
 		sz = sizeof(ctlmux`Tns);
@@ -2004,6 +2201,7 @@ ctlmux = @names clp64le {
 		     abort,
 		     muxlooksym,
 		     muxenumsym,
+		     muxlooktype,
 		     muxenumseg,
 		     muxenumloc,
 		     muxunwind,

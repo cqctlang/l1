@@ -8,11 +8,19 @@
 
 @define test1(path, sym)
 {
-	@local mux, id;
+	@local mux, id, rv, t;
 	mux = mkctlmux_local();
 	id = mux.names(path);
 	printf("nsid: %a\n", id);
 	printf("looksym(%a) -> %s\n", sym, fmtsym(mux.looksym(id, sym)));
+	foreach(@lambda(t){
+			rv = mux.looktype(id, @typeof(int));
+			printf("looktype(%t) -> %a\n", t, rv);
+		}, [
+			#int#,
+			#struct foo#,
+		]);
 }
 
 test1("../l1", "dovm");
+//test1("/home/vczandy/vmlinux", "zlib_inflate");
