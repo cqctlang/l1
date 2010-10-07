@@ -122,36 +122,32 @@ compiletypeof(U *ctx, Decl *d, Src *src)
 {
 	Type *t;
 	Expr *se, *te, *loc;
-	char *dom;
 
 	t = d->type;
-	if(t->dom)
-		dom = t->dom;
-	else
-		dom = "litdom";
 
-	loc = Zlocals(2, "$tn", "$tmp");
-
+	loc = Zlocals(1, "$tmp");
 	te = nullelist();
 
-	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
+	// $tmp = gentypename(t);
+	se = Zset(doid("$tmp"), gentypename(t, compile1, ctx, 0));
 	te = Zcons(se, te);
 
-	// $tmp = looktype(dom, $tn);
-	se = Zset(doid("$tmp"),
-		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
-	te = Zcons(se, te);
+	if(t->dom){
+		// $tmp = looktype(t->dom, $tmp);
+		se = Zset(doid("$tmp"),
+			  Zcall(G("looktype"), 2, doid(t->dom), doid("$tmp")));
+		te = Zcons(se, te);
 
-	// if(isnil($tmp)) error("undefined type: %t", $tmp);
-	// FIXME: this is a redundant test under Eambig
-	se = newexpr(Eif,
-		     Zcall(G("isnil"), 1, doid("$tmp")),
-		     Zcall(G("error"), 2,
-			   Zconsts("undefined type: %t"),
-			   doid("$tn")),
-		     0, 0);
-	te = Zcons(se, te);
+		// if(isnil($tmp)) error("undefined type: %t", $tmp);
+		// FIXME: this is a redundant test under Eambig
+		se = newexpr(Eif,
+			     Zcall(G("isnil"), 1, doid("$tmp")),
+			     Zcall(G("error"), 2,
+				   Zconsts("undefined type: %t"),
+				   doid("$tmp")),
+			     0, 0);
+		te = Zcons(se, te);
+	}
 
 	// $tmp;
 	se = doid("$tmp");
