@@ -146,6 +146,9 @@ enum Tkind {
 	Tundef,			/* xtn only */
 } Tkind;
 enum {
+	Tincomplete=0,
+	Tcomplete,
+
 	Tntkind=Tundef+1,	/* keep outside of Tkind */
 };
 
@@ -436,6 +439,7 @@ struct Vec {
 
 struct Xtypename {
 	Head hd;
+	unsigned char flag;	/* Tincomplete/Tcomplete */
 	Tkind tkind;		/* = Tbase, Tstruct, ... */
 	Cbase basename;		/* base (FIXME: rename cbase) */
 	Rkind rep;		/* base, ptr, enum; = Ru08le ... */

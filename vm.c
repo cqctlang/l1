@@ -5405,6 +5405,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	Xtypename *tmp, *new;
 	Vec *vec;
 	Imm i;
+	unsigned char f;
 
 	switch(xtn->tkind){
 	case Tvoid:
@@ -5432,6 +5433,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			return 0;
 		tmp = ns->base[Vptr];
 		new->rep = tmp->rep;
+		new->flag = Tcomplete;
 		return new;
 	case Tarr:
 		new = gcprotect(vm, mkxtn());
@@ -5441,6 +5443,10 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		if(new->link == 0)
 			return 0;
 		new->cnt = xtn->cnt;
+		if(new->cnt && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Tfun:
 		new = gcprotect(vm, mkxtn());
@@ -5448,6 +5454,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new->link = _dolooktype(vm, xtn->link, ns);
 		if(new->link == 0)
 			return 0;
+		f = new->link->flag;
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = veccopy(valvec(vecref(xtn->param, i)));
@@ -5456,7 +5463,10 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			if(tmp == 0)
 				return 0;
 			vecset(vec, Typepos, mkvalxtn(tmp));
+			if(tmp->flag == Tincomplete)
+				f = Tincomplete;
 		}
+		new->flag = f;
 		gcunprotect(vm, new);
 		return new;
 	case Tundef:
@@ -5473,9 +5483,13 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		gcunprotect(vm, new);
 		if(new->link == 0)
 			return 0;
+		if(new->cnt && new->bit0 && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Txaccess:
-		vmerr(vm, "looktype is undefined on extend access types");
+		vmerr(vm, "looktype is undefined on extended access types");
 	}
 	fatal("bug");
 	return 0; /* not reached */
@@ -5508,6 +5522,11 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	rv = dovm(vm, ns->looktype, 2, argv);
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
+	xtn = valxtn(rv);
+	if(xtn->rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
 	ns->base[cb] = valxtn(rv);
 }
 
@@ -5721,6 +5740,7 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 	Vec *vec, *fld, *fv;
 	Imm i;
 	Str *es;
+	unsigned char f;
 
 	/* have we already defined this type in the new namespace? */
 	rv = tabget(ctx->type, xtnv);
@@ -5745,6 +5765,10 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 			new->tag = xtn->tag;
 			new->field = mkvec(fld->len);
 			new->attr = attr;
+			if(new->attr)
+				f = Tcomplete;
+			else
+				f = Tincomplete;
 
 			/* bind before recursive resolve call to stop cycles */
 			tabput(ctx->type, xtnv, mkvalxtn(new));
@@ -5761,7 +5785,10 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 				_vecset(fv, Attrpos, vecref(vec, Attrpos));
 				v = mkvalvec(fv);
 				_vecset(new->field, i, v);
+				if(tmp->flag == Tincomplete)
+					f = Tincomplete;
 			}
+			new->flag = f;
 			return new;
 		case Tenum:
 			if(xtn->konst == 0)
@@ -5774,6 +5801,10 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 
 			tabput(ctx->type, xtnv, mkvalxtn(new));
 			new->link = resolvetypename(vm, tmp, ctx);
+			if(new->link && new->link->flag == Tcomplete)
+				new->flag = Tcomplete;
+			else
+				new->flag = Tincomplete;
 			return new;
 		default:
 		error:
@@ -5836,6 +5867,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 			new = mkxtn();
 			new->tkind = Tbase;
 			new->basename = xtn->basename;
+			new->flag = xtn->flag;
 			xtn = new;
 		}
 		return resolvebase(vm, mkvalxtn(xtn), ctx);
