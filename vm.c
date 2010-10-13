@@ -3090,6 +3090,12 @@ iterxtn(Head *hd, Ictx *ictx)
 	return 0;
 }
 
+int
+iscomplete(Xtypename *t)
+{
+	return t->flag == Tcomplete;
+}
+
 static As*
 mkas(void)
 {
@@ -5032,6 +5038,8 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 		vmerr(vm, "illegal conversion");
 	if(Vkind(tv) == Qxtn){
 		t = valxtn(tv);
+		if(!iscomplete(t))
+			vmerr(vm, "attempt to cast to incomplete type");
 		if(!iscvaltype(t))
 			vmerr(vm, "illegal type conversion");
 		if(Vkind(ov) == Qstr){
@@ -5682,6 +5690,10 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 			vmerr(vm, "circular definition in name space: "
 			      "typedef %.*s",
 			      (int)def->tid->len, def->tid->s);
+		if(new->link && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	}
 
@@ -5858,6 +5870,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	Xtypename *tmp;
 	Imm i;
 	Xtypename *new;
+	unsigned char f;
 
 	switch(xtn->tkind){
 	case Tvoid:
@@ -5876,6 +5889,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->tkind = xtn->tkind;
 		new->rep = ctx->ptrrep;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		new->flag = Tcomplete;
 		return new;
 	case Ttypedef:
 		new = resolvetid(vm, mkvalxtn(xtn), ctx);
@@ -5891,11 +5905,17 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->bit0 = xtn->bit0;
 		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->bit0 && new->cnt
+		   && new->link && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Tconst:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		new->flag = Tincomplete;
 		return new;
 	case Txaccess:
 		new = mkxtn();
@@ -5903,18 +5923,24 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		new->get = xtn->get;
 		new->put = xtn->put;
+		new->flag = new->link->flag;
 		return new;
 	case Tarr:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->cnt && new->link && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Tfun:
 		new = mkxtn();
 		new->tkind = Tfun;
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		new->param = mkvec(xtn->param->len);
+		f = new->link->flag;
 		for(i = 0; i < xtn->param->len; i++){
 			vec = valvec(vecref(xtn->param, i));
 			tmp = valxtn(vecref(vec, Typepos));
@@ -5925,12 +5951,16 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 			_vecset(pv, Idpos, vecref(vec, Idpos));
 			v = mkvalvec(pv);
 			_vecset(new->param, i, v);
+			if(tmp->flag == Tincomplete)
+				f = Tincomplete;
 		}
+		new->flag = Tincomplete;
 		return new;
 	case Tundef:
 		new = mkxtn();
 		new->tkind = Tundef;
 		new->link = xtn->link;
+		new->flag = Tincomplete;
 		return new;
 	}
 	fatal("bug");
@@ -8267,6 +8297,7 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn = mkxtn();
 		xtn->tkind = Ttypedef;
 		xtn->tid = s;
+		xtn->flag = Tincomplete;
 		break;
 	case 2:
 		checkarg(vm, "mkctype_typedef", argv, 0, Qstr);
@@ -8277,6 +8308,7 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Ttypedef;
 		xtn->tid = s;
 		xtn->link = sub;
+		xtn->flag = sub->flag;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_typedef");
@@ -8325,9 +8357,11 @@ issymvec(Vec *v)
 static void
 domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn;
+	Xtypename *xtn, *t;
 	Str *s;
 	Vec *f;
+	Imm i;
+	unsigned char fl;
 
 	xtn = 0;
 	switch((unsigned)argc){
@@ -8339,6 +8373,7 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = tkind;
 		xtn->tag = s;
 		xtn->attr = Xnil;
+		xtn->flag = Tincomplete;
 		break;
 	case 3:
 		/* TAG FIELDS SIZE */
@@ -8356,6 +8391,15 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn->tag = s;
 		xtn->field = f;
 		xtn->attr = argv[2];
+		fl = Tcomplete;
+		for(i = 0; i < f->len; i++){
+			t = valxtn(vecref(valvec(vecref(f, i)), Typepos));
+			if(t->flag == Tincomplete){
+				fl = Tincomplete;
+				break;
+			}
+		}
+		xtn->flag = fl;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to %s", fn);
@@ -8390,6 +8434,7 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tarr;
 		xtn->link = sub;
 		xtn->cnt = Xnil;
+		xtn->flag = Tincomplete;
 		break;
 	case 2:
 		/* TYPE CNT */
@@ -8400,6 +8445,7 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tarr;
 		xtn->link = sub;
 		xtn->cnt = argv[1];
+		xtn->flag = sub->flag;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_array");
@@ -8410,8 +8456,10 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn, *sub;
+	Xtypename *xtn, *sub, *t;
 	Vec *p;
+	Imm i;
+	unsigned char f;
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_fn");
@@ -8425,6 +8473,17 @@ l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn->tkind = Tfun;
 	xtn->link = sub;
 	xtn->param = p;
+	f = sub->flag;
+	if(f == Tcomplete){
+		for(i = 0; i < p->len; i++){
+			t = valxtn(vecref(valvec(vecref(p, i)), Typepos));
+			if(t->flag == Tincomplete){
+				f = Tincomplete;
+				break;
+			}
+		}
+	}
+	xtn->flag = f;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -8444,6 +8503,7 @@ l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn->link = sub;
 	xtn->cnt = argv[1];
 	xtn->bit0 = argv[2];
+	xtn->flag = sub->flag;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -8464,6 +8524,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tenum;
 		xtn->tag = s;
 		xtn->konst = 0;
+		xtn->flag = Tincomplete;
 		break;
 	case 2:
 		/* TAG CONSTS */
@@ -8475,6 +8536,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tenum;
 		xtn->tag = s;
 		xtn->konst = c;
+		xtn->flag = Tincomplete;
 		break;
 	case 3:
 		/* TAG CONSTS TYPE */
@@ -8489,6 +8551,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tag = s;
 		xtn->link = t;
 		xtn->konst = c;
+		xtn->flag = t->flag;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_enum");
@@ -8508,6 +8571,7 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = mkxtn();
 	xtn->tkind = Tconst;
 	xtn->link = t;
+	xtn->flag = Tincomplete;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -8526,6 +8590,7 @@ l1_mkctype_xaccess(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn->link = valxtn(argv[0]);
 	xtn->get = valcl(argv[1]);
 	xtn->put = valcl(argv[2]);
+	xtn->flag = xtn->link->flag;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -11366,6 +11431,7 @@ mkvoidxtn(void)
 	Xtypename *xtn;
 	xtn = mkxtn();
 	xtn->tkind = Tvoid;
+	xtn->flag = Tcomplete;
 	return xtn;
 }
 
@@ -11376,6 +11442,7 @@ mkundefxtn(Xtypename *t)
 	xtn = mkxtn();
 	xtn->tkind = Tundef;
 	xtn->link = t;
+	xtn->flag = Tincomplete;
 	return xtn;
 }
 
@@ -11387,6 +11454,10 @@ mkbasextn(Cbase name, Rkind rep)
 	xtn->tkind = Tbase;
 	xtn->basename = name;
 	xtn->rep = rep;
+	if(rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
 	return xtn;
 }
 
@@ -11398,6 +11469,10 @@ mkptrxtn(Xtypename *t, Rkind rep)
 	xtn->tkind = Tptr;
 	xtn->link = t;
 	xtn->rep = rep;
+	if(rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
 	return xtn;
 }
 
@@ -11408,6 +11483,7 @@ mkconstxtn(Xtypename *t)
 	xtn = mkxtn();
 	xtn->tkind = Tconst;
 	xtn->link = t;
+	xtn->flag = Tincomplete;
 	return xtn;
 }
 
@@ -11419,6 +11495,10 @@ mktypedefxtn(Str *tid, Xtypename *t)
 	xtn->tkind = Ttypedef;
 	xtn->tid = tid;
 	xtn->link = t;
+	if(xtn->link)
+		xtn->flag = t->flag;
+	else
+		xtn->flag = Tincomplete;
 	return xtn;
 }
 

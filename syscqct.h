@@ -907,6 +907,7 @@ void		finivm(void);
 int		freecode(Head *hd);
 void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
+int		iscomplete(Xtypename *t);
 int		ismapped(VM *vm, As *as, Imm addr, Imm len);
 int		isstrcval(Cval *cv);
 List*		listappend(VM *vm, List *lst, Val v);
