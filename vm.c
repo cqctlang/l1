@@ -1182,6 +1182,11 @@ typesize(VM *vm, Xtypename *xtn)
 	Str *es;
 	if(xtn == 0)
 		vmerr(vm, "attempt to compute size of undefined type");
+	if(!iscomplete(xtn)){
+		es = fmtxtn(xtn);
+		vmerr(vm, "attempt to compute size of undefined type: %.*s",
+		      (int)es->len, es->s);
+	}
 	switch(xtn->tkind){
 	case Tvoid:
 		vmerr(vm, "attempt to compute size of void type");
@@ -4911,6 +4916,12 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	cv = valcval(cvalv);
 	b = chasetype(t);
 
+	if(!iscomplete(t)){
+		es = fmtxtn(t);
+		vmerr(vm, "attempt to read object of undefined type: "
+		      "%.*s", (int)es->len, es->s);
+	}
+
 	/* special case: enum constants can be referenced through namespace */
 	if(b->tkind == Tconst){
 		switch(Vkind(xv)){
@@ -5915,7 +5926,10 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->link = resolvetypename(vm, xtn->link, ctx);
-		new->flag = Tincomplete;
+		if(new->link)
+			new->flag = new->link->flag;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Txaccess:
 		new = mkxtn();
@@ -8571,7 +8585,7 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = mkxtn();
 	xtn->tkind = Tconst;
 	xtn->link = t;
-	xtn->flag = Tincomplete;
+	xtn->flag = t->flag;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -8734,7 +8748,11 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	addr = valcval(iargv[1]);
 	t = valxtn(iargv[2]);
 	cv = valcval(iargv[3]);
-
+	if(!iscomplete(t)){
+		es = fmtxtn(t);
+		vmerr(vm, "attempt to write object of undefined type: "
+		      "%.*s", (int)es->len, es->s);
+	}
 	b = chasetype(t);
 	switch(b->tkind){
 	case Tbase:
@@ -11483,7 +11501,7 @@ mkconstxtn(Xtypename *t)
 	xtn = mkxtn();
 	xtn->tkind = Tconst;
 	xtn->link = t;
-	xtn->flag = Tincomplete;
+	xtn->flag = t->flag;
 	return xtn;
 }
 
