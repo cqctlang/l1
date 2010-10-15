@@ -14,11 +14,11 @@
 	printf("nsid: %a\n", id);
 	printf("looksym(%a) -> %s\n", sym, fmtsym(mux.looksym(id, sym)));
 	foreach(@lambda(t){
-			rv = mux.looktype(id, @typeof(int));
+			rv = mux.looktype(id, t);
 			printf("looktype(%t) -> %a\n", t, rv);
 		}, [
 			#int#,
-			#struct foo#,
+			#struct VM#,
 		]);
 }
 

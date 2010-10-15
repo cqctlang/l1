@@ -1720,8 +1720,10 @@ ctlmux = @names clp64le {
 	{
 		@local sz, s, q, id;
 
+		printf("encodetype %t\n", t);
 		sz = sizeof(ctlmux`uint8); /* op */
 		if(isbase(t)){
+			printf("encoding base type\n");
 			sz += sizeof(ctlmux`uint8); /* base */
 			s = malloc(sz);
 			s[0] = ctlmux`CTbase;
@@ -1774,6 +1776,7 @@ ctlmux = @names clp64le {
 				error("bug");
 			}
 		}else if(issu(t) || isenum(t)){
+			printf("encoding tagged type\n");
 			id = suetag(t);
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tag */
 			s = malloc(sz);
@@ -1790,6 +1793,7 @@ ctlmux = @names clp64le {
 			q = (char*)q;
 			putbytes(q, id);
 		}else if(istypedef(t)){
+			printf("encoding typedef type\n");
 			id = typedefid(t);
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tid */
 			s = malloc(sz);
