@@ -6,21 +6,29 @@
 }
 
 
-@define test1(path, sym)
+@define test1(path, syms, types)
 {
 	@local mux, id, rv, t;
 	mux = mkctlmux_local();
 	id = mux.names(path);
 	printf("nsid: %a\n", id);
-	printf("looksym(%a) -> %s\n", sym, fmtsym(mux.looksym(id, sym)));
+	foreach(@lambda(s){
+			rv = mux.looksym(id, s);
+			printf("looksym(%a) -> %s\n", s, fmtsym(rv));
+		}, syms);
 	foreach(@lambda(t){
 			rv = mux.looktype(id, t);
 			printf("looktype(%t) -> %a\n", t, rv);
-		}, [
-			#int#,
-			#struct VM#,
-		]);
+		}, types);
 }
 
-test1("../l1", "dovm");
+//test1("../l1", "dovm");
 //test1("/home/vczandy/vmlinux", "zlib_inflate");
+test1("./locals1",
+      [ "locals" ],
+      [
+	#int#,
+	#`Node#,
+	#struct Node#,
+	#`X#,
+      ]);
