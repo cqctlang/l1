@@ -49,6 +49,7 @@ static Imm repsize[Rnrep] = {
 };
 
 unsigned isunsigned[Vnbase] = {
+	[Vbool] = 1,
 	[Vuchar] = 1,
 	[Vushort] = 1,
 	[Vuint] = 1,
@@ -4039,6 +4040,7 @@ intpromote(VM *vm, Cval *cv)
 	if(base->tkind != Tbase)
 		return cv;
 	switch(base->basename){
+	case Vbool: // FIXME: is this case right?
 	case Vuchar:
 	case Vushort:
 	case Vchar:
@@ -4077,16 +4079,17 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 {
 	/* FIXME: why assign ranks to types below int promotion? */
 	static unsigned rank[Vnbase] = {
-		[Vchar] = 0,
-		[Vuchar] = 0,
-		[Vshort] = 1,
-		[Vushort] = 1,
-		[Vint] = 2,
-		[Vuint] = 2,
-		[Vlong] = 3,
-		[Vulong] = 3,
-		[Vvlong] = 4,
-		[Vuvlong] = 4,
+		[Vbool] = 0,
+		[Vchar] = 1,
+		[Vuchar] = 1,
+		[Vshort] = 2,
+		[Vushort] = 2,
+		[Vint] = 3,
+		[Vuint] = 3,
+		[Vlong] = 4,
+		[Vulong] = 4,
+		[Vvlong] = 5,
+		[Vuvlong] = 5,
 	};
 	static unsigned uvariant[Vnbase] = {
 		[Vchar] = Vuchar,
@@ -5553,7 +5556,7 @@ static void
 nscachebase(VM *vm, Ns *ns)
 {
 	Cbase cb;
-	for(cb = Vchar; cb < Vnbase; cb++)
+	for(cb = Vlo; cb < Vnbase; cb++)
 		nscache1base(vm, ns, cb);
 	nscache1base(vm, ns, Vptr);
 }
@@ -8146,128 +8149,279 @@ l1_mkctype_void(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-domkctype_base(Cbase name, Val *rv)
+domkctype_base(Cbase name, Rkind rep, Val *rv)
 {
 	Xtypename *xtn;
-	xtn = mkbasextn(name, Rundef);
+	xtn = mkbasextn(name, rep);
 	*rv = mkvalxtn(xtn);
+}
+
+static void
+l1_mkctype_base(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	Cbase cb;
+	Rkind rep;
+
+	if(argc == 1){
+		checkarg(vm, "mkctype_base", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		cb = cv->val;
+		rep = Rundef;
+	}else if(argc == 2){
+		checkarg(vm, "mkctype_base", argv, 0, Qcval);
+		checkarg(vm, "mkctype_base", argv, 1, Qcval);
+		cv = valcval(argv[0]);
+		cb = cv->val;
+		cv = valcval(argv[1]);
+		rep = cv->val;
+	}else
+		vmerr(vm, "wrong number of arguments to mkctype_base");
+	
+	if(cb < Vlo || cb > Vptr)
+		// FIXME: beware of changes to Cbase
+		vmerr(vm, "invalid base type identifier");
+	if(rep >= Rnrep)
+		vmerr(vm, "invalid representation identifier");
+	domkctype_base(cb, rep, rv);
+}
+
+static void
+l1_mkctype_bool(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_bool", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_bool");
+	domkctype_base(Vbool, rep, rv);
 }
 
 static void
 l1_mkctype_char(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_char", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_char");
-	USED(argv);
-	domkctype_base(Vchar, rv);
+	domkctype_base(Vchar, rep, rv);
 }
 
 static void
 l1_mkctype_short(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_short", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_short");
-	USED(argv);
-	domkctype_base(Vshort, rv);
+	domkctype_base(Vshort, rep, rv);
 }
 
 static void
 l1_mkctype_int(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_int", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_int");
-	USED(argv);
-	domkctype_base(Vint, rv);
+	domkctype_base(Vint, rep, rv);
 }
 
 static void
 l1_mkctype_long(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_long", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_long");
-	USED(argv);
-	domkctype_base(Vlong, rv);
+	domkctype_base(Vlong, rep, rv);
 }
 
 static void
 l1_mkctype_vlong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_vlong", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_vlong");
-	USED(argv);
-	domkctype_base(Vvlong, rv);
+	domkctype_base(Vvlong, rep, rv);
 }
 
 static void
 l1_mkctype_uchar(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_uchar", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uchar");
-	USED(argv);
-	domkctype_base(Vuchar, rv);
+	domkctype_base(Vuchar, rep, rv);
 }
 
 static void
 l1_mkctype_ushort(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_ushort", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ushort");
-	USED(argv);
-	domkctype_base(Vushort, rv);
+	domkctype_base(Vushort, rep, rv);
 }
 
 static void
 l1_mkctype_uint(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_uint", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uint");
-	USED(argv);
-	domkctype_base(Vuint, rv);
+	domkctype_base(Vuint, rep, rv);
 }
 
 static void
 l1_mkctype_ulong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_ulong", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ulong");
-	USED(argv);
-	domkctype_base(Vulong, rv);
+	domkctype_base(Vulong, rep, rv);
 }
 
 static void
 l1_mkctype_uvlong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_uvlong", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uvlong");
-	USED(argv);
-	domkctype_base(Vuvlong, rv);
+	domkctype_base(Vuvlong, rep, rv);
 }
 
 static void
 l1_mkctype_float(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_float", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_float");
-	USED(argv);
-	domkctype_base(Vfloat, rv);
+	domkctype_base(Vfloat, rep, rv);
 }
 
 static void
 l1_mkctype_double(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_double", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_double");
-	USED(argv);
-	domkctype_base(Vdouble, rv);
+	domkctype_base(Vdouble, rep, rv);
 }
 
 static void
 l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_ldouble", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ldouble");
-	USED(argv);
-	domkctype_base(Vlongdouble, rv);
+	domkctype_base(Vlongdouble, rep, rv);
 }
 
 static void
@@ -11277,6 +11431,7 @@ struct NSroot {
 
 static NSroot c32le = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -11305,6 +11460,7 @@ static NSroot c32le = {
 
 static NSroot c32be = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -11333,6 +11489,7 @@ static NSroot c32be = {
 
 static NSroot c64le = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -11361,6 +11518,7 @@ static NSroot c64le = {
 
 static NSroot c64be = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -11389,6 +11547,7 @@ static NSroot c64be = {
 
 static NSroot clp64le = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -11417,6 +11576,7 @@ static NSroot clp64le = {
 
 static NSroot clp64be = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -11528,12 +11688,12 @@ basetab(NSroot *def, Xtypename **base)
 	Tab *type;
 	Str *tn;
 
-	for(cb = Vchar; cb < Vnbase; cb++)
+	for(cb = Vlo; cb < Vnbase; cb++)
 		base[cb] = mkbasextn(cb, def->base[cb]);
 	base[Vptr] = base[def->ptr];
 
 	type = mktab();
-	for(cb = Vchar; cb < Vnbase; cb++){
+	for(cb = Vlo; cb < Vnbase; cb++){
 		kv = mkvalxtn(mkbasextn(cb, Rundef));
 		vv = mkvalxtn(base[cb]);
 		tabput(type, kv, vv);
@@ -11738,7 +11898,9 @@ mktopenv(void)
 	FN(mkas);
 	FN(mkattr);
 	FN(mkctype_array);
+	FN(mkctype_base);
 	FN(mkctype_bitfield);
+	FN(mkctype_bool);
 	FN(mkctype_char);
 	FN(mkctype_const);
 	FN(mkctype_double);

@@ -1,23 +1,22 @@
-/* A Bison parser, made by GNU Bison 2.3.  */
+
+/* A Bison parser, made by GNU Bison 2.4.1.  */
 
 /* Skeleton interface for Bison GLR parsers in C
-
-   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or modify
+   
+      Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-
+   
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -28,9 +27,10 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-
+   
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
+
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -81,51 +81,43 @@
      NAMES = 298,
      LET = 299,
      LAPPLY = 300,
-     CHAR = 301,
-     SHORT = 302,
-     INT = 303,
-     LONG = 304,
-     SIGNED = 305,
-     UNSIGNED = 306,
-     FLOAT = 307,
-     DOUBLE = 308,
-     VOID = 309,
-     STRUCT = 310,
-     UNION = 311,
-     ENUM = 312,
-     ELLIPSIS = 313,
-     DEFCONST = 314,
-     IF = 315,
-     ELSE = 316,
-     SWITCH = 317,
-     WHILE = 318,
-     DO = 319,
-     FOR = 320,
-     CONTINUE = 321,
-     BREAK = 322,
-     RETURN = 323,
-     CASE = 324,
-     DEFAULT = 325
+     BOOL = 301,
+     CHAR = 302,
+     SHORT = 303,
+     INT = 304,
+     LONG = 305,
+     SIGNED = 306,
+     UNSIGNED = 307,
+     FLOAT = 308,
+     DOUBLE = 309,
+     VOID = 310,
+     STRUCT = 311,
+     UNION = 312,
+     ENUM = 313,
+     ELLIPSIS = 314,
+     DEFCONST = 315,
+     IF = 316,
+     ELSE = 317,
+     SWITCH = 318,
+     WHILE = 319,
+     DO = 320,
+     FOR = 321,
+     CONTINUE = 322,
+     BREAK = 323,
+     RETURN = 324,
+     CASE = 325,
+     DEFAULT = 326
    };
 #endif
 
 
-/* Copy the first part of user declarations.  */
-#line 1 "c.y"
-
-#include "sys.h"
-#include "util.h"
-#include "syscqct.h"
-
-extern int yylex();
-extern char *yytext;
-
-
-
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE 
-#line 11 "c.y"
+#ifndef YYSTYPE
+typedef union YYSTYPE
 {
+
+/* Line 2638 of glr.c  */
+#line 11 "c.y"
+
 	Expr *expr;
 	struct {
 		/* GLR may pick tokens from input stream more than
@@ -136,11 +128,12 @@ typedef union YYSTYPE
 		unsigned long len;
 	} chars;
 	int kind;
-}
-/* Line 2616 of glr.c.  */
-#line 142 "c.tab.h"
-	YYSTYPE;
-# define YYSTYPE_IS_DECLARED 1
+
+
+
+/* Line 2638 of glr.c  */
+#line 136 "c.tab.h"
+} YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 #endif
 
@@ -156,7 +149,8 @@ typedef struct YYLTYPE
 #endif
 
 
-extern YYSTYPE yylval;
+
+
 
 
 

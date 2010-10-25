@@ -28,7 +28,7 @@ extern char *yytext;
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
 %token CAST_ASSIGN XCAST_ASSIGN GOTO
 %token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
-%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
+%token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS DEFCONST
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
 
@@ -471,6 +471,8 @@ declarator_list
 base
 	: VOID
 	{ $$ = newexprsrc(&ctx->inp->src, Evoid, 0, 0, 0, 0); }
+	| BOOL
+	{ $$ = newexprsrc(&ctx->inp->src, Ebool, 0, 0, 0, 0); }
 	| CHAR
 	{ $$ = newexprsrc(&ctx->inp->src, Echar, 0, 0, 0, 0); }
 	| SHORT

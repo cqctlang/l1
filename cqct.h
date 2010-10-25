@@ -30,6 +30,8 @@ enum {
 typedef
 enum Cbase {
 	Vundef=0,
+	Vlo,
+	Vbool=Vlo,
 	Vchar,
 	Vshort,
 	Vint,
