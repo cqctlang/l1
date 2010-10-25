@@ -167,7 +167,7 @@ ctlmux = @names clp64le {
 	} Rkind;
 	
 	// types on the wire.  sync with Tkind.
-	enum
+	enum CT
 	{
 		CTunused0,
 		CTbase,
@@ -531,6 +531,14 @@ ctlmux = @names clp64le {
 	pending,
 };
 
+@record ctlnsrec {
+	id,
+	ns,
+	tag,
+	typ,
+	sym,
+};
+
 @define mkctl(mux, id, state, _reg, traps, callbacks)
 {
 	@local xstop, xcont, xstep, detach, kill, snap;
@@ -855,6 +863,7 @@ ctlmux = @names clp64le {
 	freetags = [ ];
 	ctls = [:];
 	taghandler = [:];
+	nss = [:];
 
 	@define freshtag()
 	{
@@ -1807,10 +1816,204 @@ ctlmux = @names clp64le {
 		return getbytes(s, sz);
 	}
 
+	@define decodetname(q)
+	{
+		@local k, cb, id, gets;
+
+		@define gets()
+		{
+			@local sz, s;
+			q = (ctlmux`uint64*);
+			sz = *q++;
+			s = getbytes(q, sz);
+			q = (ctlmux`uint8*)((char*)q+sz);
+			return s;
+		}
+
+		q = (ctlmux`uint8*)q;
+		k = *q++;
+		switch(k){
+		case ctlmux`CTbase:
+			printf("got base type\n");
+			cb = *q++;
+			return [mkctype_base(cb), q];
+		case ctlmux`CTstruct:
+			printf("got struct type\n");
+			id = gets();
+			return [mkctype_struct(id), q];
+		case ctlmux`CTunion:
+			printf("got union type\n");
+			id = gets();
+			return [mkctype_union(id), q];
+		case ctlmux`CTenum:
+			printf("got enum type\n");
+			id = gets();
+			return [mkctype_enum(id), q];
+		case ctlmux`CTtypedef:
+			printf("got typedef\n");
+			id = gets();
+			return [mkctype_typedef(id), q];
+		case ctlmux`CTptr:
+			printf("got ptr\n");
+			[st,q] = decodetname(q);
+			return [mkctype_ptr(st), q];
+		case ctlmux`CTarray:
+			printf("got array\n");
+			q = (ctlmux`uint64*)q;
+			n = *q++;
+			[st,q] = decodetname(q);
+			return [mkctype_array(st, n), q];
+		case ctlmux`CTfunc:
+			printf("got function\n");
+			[st,q] = decodetname(q);
+			q = (ctlmux`uint64*)q;
+			n = *q++;
+			v = mkvec(n);
+			for(i = 0; i < n; i++){
+				sid = gets();
+				[pt,q] = decodetname(q);
+				v[i] = mkparam(pt, strlen(sid) > 0 ? sid : nil);
+			}
+			return [mkctype_fn(st, v), q];
+		default:
+			error("decodetname: unhandled case %d", k);
+		}
+	}
+
+	@define decodetdef(ns, q)
+	{
+		@local t, k, cb, rep, sz, n, i, v, id, sid, off, mk, st, pt;
+		@local w, pos;
+		@local gets;
+
+		@define gets()
+		{
+			@local sz, s;
+			q = (ctlmux`uint64*);
+			sz = *q++;
+			s = getbytes(q, sz);
+			q = (ctlmux`uint8*)((char*)q+sz);
+			return s;
+		}
+
+		q = (ctlmux`uint8*)q;
+		k = *q++;
+		switch(k){
+		case ctlmux`CTbase:
+			printf("got base type\n");
+			cb = *q++;
+			rep = *q++;
+			return [mkctype_base(cb, rep), q];
+		case ctlmux`CTstruct:
+		case ctlmux`CTunion:
+			printf("got struct/union type\n");
+			if(k == ctlmux`CTstruct)
+				mk = mkctype_struct;
+			else
+				mk = mkctype_union;
+			id = gets();
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			n = *q++;
+			v = mkvec(n);
+			for(i = 0; i < n; i++){
+				q = (ctlumx`uint8*)q;
+				k = *q++;
+				switch(k){
+				case ctlmux`CTfield:
+					q = (ctlmux`uint64*)q;
+					off = *q++;
+					sid = gets();
+					[st,q] = decodetname(q);
+					v[i] = mkfield(st, sid, off);
+					break;
+				case ctlmux`CTbitfield:
+					q = (ctlmux`uint64*)q;
+					off = *q++;
+					w = *q++;
+					pos = *q++;
+					sid = gets();
+					[st,q] = decodetname(q);
+					st = mkctype_bitfield(st, w, pos);
+					v[i] = mkfield(st, sid, off);
+					break;
+				default:
+					error("unsupported field type %e",
+					      (enum ctlmux`CT)k);
+				}
+			}
+			return [mk(id, v, sz), q];
+		case ctlmux`CTenum:
+			printf("got enum\n");
+			id = gets();
+			q = (ctlmux`uint8*)q;
+			rep = *q++;
+			q = (ctlmux`uint64*)q;
+			n = *q++;
+			st = nsrep2base(ns, rep);
+			v = mkvec(n);
+			for(i = 0; i < n; i++){
+				sid = gets();
+				q = (ctlmux`uint64*)q;
+				v[i] = vector(sid, {st}q);
+			}
+			return [mkctype_enum(id, v, rep), q];
+		case ctlmux`CTptr:
+			printf("got ptr\n");
+			[st,q] = decodetname(q);
+			return [mkctype_ptr(st, nsptr(ns)), q];
+		case ctlmux`CTarray:
+			printf("got array\n");
+			q = (ctlmux`uint64*)q;
+			n = *q++;
+			[st,q] = decodetname(q);
+			return [mkctype_array(st, n), q];
+		case ctlmux`CTfunc:
+			printf("got function\n");
+			[st,q] = decodetname(q);
+			q = (ctlmux`uint64*)q;
+			n = *q++;
+			v = mkvec(n);
+			for(i = 0; i < n; i++){
+				sid = gets();
+				[pt,q] = decodetname(q);
+				v[i] = mkparam(pt, strlen(sid) > 0 ? sid : nil);
+			}
+			return [mkctype_fn(st, v), q];
+		case ctlmux`CTtypedef:
+			printf("got typedef\n");
+			id = gets();
+			[st,q] = decodetname(q);
+			return [mkctype_typedef(id, st), q];
+		default:
+			error("decodetdef: unhandled case %d", k);
+		}
+	}
+
+	@define nsinit(id)
+	{
+		@local base, tag, typ, sym, rec, i, t;
+
+		base = [:];
+		tag = [:];
+		typ = [:];
+		sym = [:];
+		rec = ctlnsrec(id, base, tag, typ, sym);
+		nss[id] = rec;  // allow recursive looktype calls for bases
+
+		for(i = 0; i < ctlmux`Vnbase; i++)
+			muxlooktype(id, mkctype_base(i));
+		// FIXME: initialize rec.ptrrep to Vptr's rep
+		return rec;
+	}
+
 	@define muxlooktype(id, type)
 	{
-		@local s, p, q, rep, dat, sz, xerr;
+		@local s, p, q, rep, dat, sz, xerr, ctlns;
 
+		ctlns = nss[id];
+		if(ctlns == nil)
+			ctlns = nsinit(id);
 		s = encodetype(type);
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
