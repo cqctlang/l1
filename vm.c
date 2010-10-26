@@ -9591,6 +9591,37 @@ l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+	Ns *ns;
+	Cval *cv;
+	Rkind rep;
+	Cbase cb;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to nsreptype");
+	checkarg(vm, "nsreptype", argv, 1, Qcval);
+	if(Vkind(argv[0]) == Qns)
+		ns = valns(argv[0]);
+	else if(Vkind(argv[0]) == Qdom){
+		dom = valdom(argv[0]);
+		ns = dom->ns;
+	}else
+		vmerr(vm,
+		      "operand 1 to nsreptype must be a namespace or domain");
+	cv = valcval(argv[1]);
+	rep = cv->val;
+	if(rep >= Rnrep)
+		vmerr(vm, "invalid representation identifier");
+	for(cb = Vlo; cb < Vnallbase; cb++)
+		if(ns->base[cb]->rep == rep){
+			*rv = mkvalxtn(ns->base[cb]);
+			return;
+		}
+}
+
+static void
 l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg0;
@@ -11946,6 +11977,7 @@ mktopenv(void)
 	FN(nsenumtype);
 	FN(nslookaddr);
 	FN(nsptr);
+	FN(nsreptype);
 	FN(null);
 	FN(paramid);
 	FN(params);

@@ -1950,14 +1950,16 @@ ctlmux = @names clp64le {
 			rep = *q++;
 			q = (ctlmux`uint64*)q;
 			n = *q++;
-			st = nsrep2base(ns, rep);
+			st = nsreptype(ns, rep);
+			if(st == nil)
+				error("no base type for rep %d", rep);
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
 				sid = gets();
 				q = (ctlmux`uint64*)q;
 				v[i] = vector(sid, {st}q);
 			}
-			return [mkctype_enum(id, v, rep), q];
+			return [mkctype_enum(id, v, st), q];
 		case ctlmux`CTptr:
 			printf("got ptr\n");
 			[st,q] = decodetname(q);
