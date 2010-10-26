@@ -153,7 +153,7 @@ readfd(int fd)
 		}
 		rv = read(fd, p, m);
 		if(0 > rv){
-			if(errno == EINTR || EAGAIN)
+			if(errno == EINTR || errno == EAGAIN)
 				continue;
 			free(buf);
 			return 0;
