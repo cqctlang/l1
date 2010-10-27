@@ -119,7 +119,8 @@ ctlmux = @names clp64le {
 	enum Cbase
 	{
 		Vundef=0,
-		Vbool,
+		Vlo,
+		Vbool=Vlo,
 		Vchar,
 		Vshort,
 		Vint,
@@ -1739,7 +1740,7 @@ ctlmux = @names clp64le {
 			// baseid returns the cbasename strings.
 			// FIXME: this conversion is unfortunate.
 			switch(baseid(t)){
-			case "bool":
+			case "_Bool":
 				s[1] = ctlmux`Vbool;
 				break;
 			case "char":
@@ -1823,7 +1824,7 @@ ctlmux = @names clp64le {
 		@define gets()
 		{
 			@local sz, s;
-			q = (ctlmux`uint64*);
+			q = (ctlmux`uint64*)q;
 			sz = *q++;
 			s = getbytes(q, sz);
 			q = (ctlmux`uint8*)((char*)q+sz);
@@ -1889,7 +1890,7 @@ ctlmux = @names clp64le {
 		@define gets()
 		{
 			@local sz, s;
-			q = (ctlmux`uint64*);
+			q = (ctlmux`uint64*)q;
 			sz = *q++;
 			s = getbytes(q, sz);
 			q = (ctlmux`uint8*)((char*)q+sz);
@@ -2003,15 +2004,17 @@ ctlmux = @names clp64le {
 		rec = ctlnsrec(id, base, tag, typ, sym);
 		nss[id] = rec;  // allow recursive looktype calls for bases
 
-		for(i = 0; i < ctlmux`Vnbase; i++)
+		for(i = ctlmux`Vlo; i < ctlmux`Vnbase; i++){
+			printf("mkctype_base(%d)\n", i);
 			muxlooktype(id, mkctype_base(i));
+		}
 		// FIXME: initialize rec.ptrrep to Vptr's rep
 		return rec;
 	}
 
 	@define muxlooktype(id, type)
 	{
-		@local s, p, q, rep, dat, sz, xerr, ctlns;
+		@local s, p, q, rep, dat, sz, t, xerr, ctlns;
 
 		ctlns = nss[id];
 		if(ctlns == nil)
@@ -2039,7 +2042,8 @@ ctlmux = @names clp64le {
 		q = (ctlmux`uint8*)dat;
 		switch(*q++){
 		case ctlmux`NRlooktype:
-			return mkctype_void();
+			[t,q] = decodetdef(c64le, q);
+			return t;
 		case ctlmux`NRerror:
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
