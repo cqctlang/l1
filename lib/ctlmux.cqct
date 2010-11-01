@@ -1932,7 +1932,8 @@ ctlmux = @names clp64le {
 					q = (ctlmux`uint64*)q;
 					off = *q++;
 					sid = gets();
-					[st,q] = decodetname(q);
+					[st,tq] = decodetname(q);
+					q = tq;
 					v[i] = mkfield(st, sid, off);
 					break;
 				case ctlmux`CTbitfield:
