@@ -7797,6 +7797,24 @@ l1_typedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvalxtn(xtn->link);
 }
 
+/* this sleazy operation provides a way to terminate
+   type resolution cycles */
+static void
+l1_settypedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to settypedeftype");
+	checkarg(vm, "settypedeftype", argv, 0, Qxtn);
+	checkarg(vm, "settypedeftype", argv, 1, Qxtn);
+	
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Ttypedef)
+		vmerr(vm, "attempt to settypedeftype on non-typedef");
+	xtn->link = valxtn(argv[1]);
+}
+
 static void
 l1_params(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -8193,6 +8211,10 @@ l1_mkctype_base(VM *vm, Imm argc, Val *argv, Val *rv)
 	}else
 		vmerr(vm, "wrong number of arguments to mkctype_base");
 	
+	if(cb == Vvoid){
+		*rv = mkvalxtn(mkvoidxtn());
+		return;
+	}
 	if(cb < Vlo || cb > Vptr)
 		// FIXME: beware of changes to Cbase
 		vmerr(vm, "invalid base type identifier");
@@ -8497,6 +8519,15 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkctype_typedef");
 	}
 	*rv = mkvalxtn(xtn);
+}
+
+static void
+l1_mkctype_undef(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkctype_undef");
+	checkarg(vm, "mkctype_undef", argv, 0, Qxtn);
+	*rv = mkvalxtn(mkundefxtn(valxtn(argv[0])));
 }
 
 static int
@@ -11964,6 +11995,7 @@ mktopenv(void)
 	FN(mkctype_uchar);
 	FN(mkctype_uint);
 	FN(mkctype_ulong);
+	FN(mkctype_undef);
 	FN(mkctype_union);
 	FN(mkctype_ushort);
 	FN(mkctype_uvlong);
@@ -12017,6 +12049,7 @@ mktopenv(void)
 	FN(rettype);
 	FN(reverse);
 	FN(setloadpath);
+	FN(settypedeftype);
 	FN(slice);
 	FN(sort);
 	FN(split);

@@ -89,23 +89,23 @@ target program in execution.
 </p>
 
 <p>
-Domains present the state of a target program through
-an interface based on the syntax and semantics of C.
+A domain present an interface to the state of a target
+program that is based on the syntax and semantics of C.
 Target program memory can be read or modified using
 ordinary C expressions.  Conventional C idioms for
 traversing data structures, such as pointer-chasing
-loops, generally work in Cinquecento without
-modification.  In particular, Cinquecento supports C
-operators, the C type system, and C control flow
-statements.  Names and types of target program data can
-be specified in C declaration syntax, with minor
-extensions to allow machine-level specification of
+loops, generally work without modification.  All C
+types, operators, and control flow statements work as
+expected.  Names and types of target program data can
+be specified in C declaration syntax, using minor
+extensions to provide machine-level specification of
 location, layout, and encoding of data in memory.
 </p>
 
 <p>
-A Cinquecento program can manipulate multiple simultaneously
-active target programs.
+A Cinquecento program can instantiate multiple domains
+to manipulate multiple simultaneously active target
+programs.
 
 Heterogeneity is expected: each target may have different types,
 symbols, and executable format; and each target may
@@ -120,7 +120,7 @@ distributed, multi-process program.
 </p>
 
 <p>
-A domain encapsulates user-defined functions that
+Each domain encapsulates user-defined functions that
 implement access to the associated target.  These
 include functions that define the types and symbols of
 the target, and functions that read and write its
@@ -3136,7 +3136,7 @@ Undefined
 <span class="fnindex"><a href="#fn:subtype">subtype</a></span>
 </td>
 <td>
-<em>n/a</em>
+<span class="fnindex"><a href="#fn:mkctype_undef">mkctype_undef</a></span>
 </td>
 </tr>
 
@@ -3527,6 +3527,27 @@ Returns the type aliased defined by the typedef type represented by
 </div>
 </div>
 
+<div class="docitem" id="fn:settypedeftype">
+<div class="proto">
+<div class="function">
+<span class="id">settypedeftype(<span class="arg">typedef</span>, <span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">typedef</span>: <span class="type">typedef ctype</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Modifies the typedef ctype <span class="arg">typedef</span> to be
+an alias for <span class="arg">type</span>.
+</div>
+</div>
+
 <div class="docitem" id="fn:xaccessget">
 <div class="proto">
 <div class="function">
@@ -3894,6 +3915,24 @@ Returns a new ctype representing a typedef.
 <span class="arg">Id</span> is the name of typedef.
 If specified, <span class="arg">type</span> is a ctype representing
 the aliased type.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_undef">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_undef(<span class="arg">id</span>[,<span class="arg">type</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing an undefined type whose name is
+<span class="arg">type</span>.
 </div>
 </div>
 
@@ -7509,6 +7548,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mkctype_uchar">mkctype_uchar</a><br />
 <a href="#fn:mkctype_uint">mkctype_uint</a><br />
 <a href="#fn:mkctype_ulong">mkctype_ulong</a><br />
+<a href="#fn:mkctype_undef">mkctype_undef</a><br />
 <a href="#fn:mkctype_union">mkctype_union</a><br />
 <a href="#fn:mkctype_ushort">mkctype_ushort</a><br />
 <a href="#fn:mkctype_uvlong">mkctype_uvlong</a><br />
@@ -7553,6 +7593,7 @@ machines sharing the environment have been freed.
 <a href="#fn:reverse">reverse</a><br />
 <a href="#fn:seek">seek</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
+<a href="#fn:settypedeftype">settypedeftype</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
