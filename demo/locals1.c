@@ -20,6 +20,18 @@ enum Y
 	y4 = 18446744073709551615ULL, 
 } Y;
 
+typedef struct Z
+{
+	int bitfield1 : 1;
+	int bitfield2 : 2;
+	int bitfield3 : 3;
+	int (*fn)(void *arg1, char *arg2);
+	struct Node f[100];
+	struct Node g[10][20][30];
+} Z;
+
+Z z;
+
 #define P(a) printf("\t"#a"\t%6d\t%p\n", (int)sizeof(a), &a);
 
 static void

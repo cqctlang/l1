@@ -1,4 +1,5 @@
 @include <ctlmux.cqct>
+@include <nsutil.cqct>
 
 @define fmtsym(s)
 {
@@ -8,17 +9,17 @@
 
 @define test1(path, syms, types)
 {
-	@local mux, id, rv, t;
+	@local mux, ns, rv, t;
 	mux = mkctlmux_local();
-	id = mux.names(path);
-	printf("nsid: %a\n", id);
-	foreach(@lambda(s){
-			rv = mux.looksym(id, s);
-			printf("looksym(%a) -> %s\n", s, fmtsym(rv));
-		}, syms);
+	ns = mux.names(path);
+//	foreach(@lambda(s){
+//			rv = mux.looksym(id, s);
+//			printf("looksym(%a) -> %s\n", s, fmtsym(rv));
+//		}, syms);
 	foreach(@lambda(t){
-			rv = mux.looktype(id, t);
+			rv = looktype(ns, t);
 			printf("looktype(%t) -> %a\n", t, rv);
+			printtype(rv);
 		}, types);
 }
 
@@ -31,4 +32,6 @@ test1("./locals1",
 	#`Node#,
 	#struct Node#,
 	#`X#,
+	#`Z#,
+	#struct Z#,
       ]);

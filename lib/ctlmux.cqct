@@ -534,13 +534,94 @@ ctlmux = @names clp64le {
 	pending,
 };
 
-@record ctlnsrec {
-	id,
-	ns,
-	tag,
-	typ,
-	sym,
-};
+@define mkresolve(lt)
+{
+	@local seen, resolve, undefined, ptr;
+	@local typepos;
+
+	typepos = 0;   // FIXME: should be opaque
+	seen = [:];
+
+	ptr = lt(mkctype_base(ctlmux`Vptr));
+	if(ptr == nil)
+		error("no pointer type");
+
+	@define undefined(tn)
+	{
+		@local td;
+		td = mkctype_undef(tn);
+		seen[tn] = td;
+		return td;
+	}
+
+	@define resolve(tn)
+	{
+		@local td, i, m, s, v, st;
+
+		td = seen[tn];
+		if(td != nil)
+			return td;
+
+		if(isbase(tn)){
+			td = lt(tn);
+			if(td == nil)
+				error("name space does not define %t", tn);
+			seen[tn] = td;
+			return td;
+		}else if(issu(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			seen[tn] = td; // terminate cycles
+			s = fields(td);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			return td;
+		}else if(isenum(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			seen[tn] = td;
+			return td;
+		}else if(istypedef(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			seen[tn] = td; // terminate cycles
+			settypedeftype(td, resolve(typedeftype(td)));
+			return td;
+		}else if(isptr(tn)){
+			td = mkctype_ptr(resolve(subtype(tn)), ptr);
+			seen[tn] = td; // why not?
+			return td;
+		}else if(isfunc(tn)){
+			s = params(tn);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			td = mkctype_fn(resolve(rettype(tn)), s);
+			return td;
+		}else if(isarray(tn)){
+			return mkctype_array(resolve(subtype(tn)),
+					     arraynelm(tn));
+		}else if(isvoid(tn)){
+			return mkctype_void();
+		}else if(isbitfield(tn)){
+			st = resolve(bitfieldcontainer(tn));
+			return mkctype_bitfield(st,
+						bitfieldwidth(tn),
+						bitfieldpos(tn));
+		}else
+			error("type resolution on unexpected type: %t", tn);
+	}
+	
+	return resolve;
+}
 
 @define mkctl(mux, id, state, _reg, traps, callbacks)
 {
@@ -1741,52 +1822,7 @@ ctlmux = @names clp64le {
 			s[0] = ctlmux`CTbase;
 			// baseid returns the cbasename strings.
 			// FIXME: this conversion is unfortunate.
-			switch(baseid(t)){
-			case "_Bool":
-				s[1] = ctlmux`Vbool;
-				break;
-			case "char":
-				s[1] = ctlmux`Vchar;
-				break;
-			case "short":
-				s[1] = ctlmux`Vshort;
-				break;
-			case "int":
-				s[1] = ctlmux`Vint;
-				break;
-			case "long":
-				s[1] = ctlmux`Vlong;
-				break;
-			case "long long":
-				s[1] = ctlmux`Vvlong;
-				break;
-			case "unsigned char":
-				s[1] = ctlmux`Vuchar;
-				break;
-			case "unsigned short":
-				s[1] = ctlmux`Vushort;
-				break;
-			case "unsigned int":
-				s[1] = ctlmux`Vuint;
-				break;
-			case "unsigned long":
-				s[1] = ctlmux`Vulong;
-				break;
-			case "unsigned long long":
-				s[1] = ctlmux`Vuvlong;
-				break;
-			case "float":
-				s[1] = ctlmux`Vfloat;
-				break;
-			case "double":
-				s[1] = ctlmux`Vdouble;
-				break;
-			case "long double":
-				s[1] = ctlmux`Vlongdouble;
-				break;
-			default:
-				error("bug");
-			}
+			s[1] = (ctlmux`uint8)basebase(t);
 		}else if(issu(t) || isenum(t)){
 			printf("encoding tagged type\n");
 			id = suetag(t);
@@ -1871,7 +1907,8 @@ ctlmux = @names clp64le {
 			return [mkctype_array(st, n), q];
 		case ctlmux`CTfunc:
 			printf("got function\n");
-			[st,q] = decodetname(q);
+			[st,tq] = decodetname(q);
+			q = tq;
 			q = (ctlmux`uint64*)q;
 			n = *q++;
 			v = mkvec(n);
@@ -2009,31 +2046,61 @@ ctlmux = @names clp64le {
 
 	@define nsinit(id)
 	{
-		@local base, tag, typ, sym, rec, i, t;
+		@local type, sym;
+		@local lt, ls, et, es, la, ns, resolve;
 
-		base = [:];
-		tag = [:];
-		typ = [:];
+		type = [:];
 		sym = [:];
-		rec = ctlnsrec(id, base, tag, typ, sym);
-		nss[id] = rec;  // allow recursive looktype calls for bases
 
-		for(i = ctlmux`Vlo; i < ctlmux`Vnbase; i++){
-			printf("mkctype_base(%d)\n", i);
-			muxlooktype(id, mkctype_base(i));
+		// stop cycles
+		nss[id] = "not nil";
+
+		resolve = mkresolve(@lambda(tn){
+				printf("resolving %t\n", tn);
+				muxlooktype(id, tn);
+			});
+
+		@define lt(this, tn)
+		{
+			return resolve(tn);
 		}
-		// FIXME: initialize rec.ptrrep to Vptr's rep
-		return rec;
+
+		@define et(this)
+		{
+			error("ctlmux enumtype unimplemented");
+		}
+		
+		@define ls(this, name)
+		{
+			error("ctlmux looksym unimplemented");
+		}
+
+		@define es(this)
+		{
+			error("ctlmux enumsym unimplemented");
+		}
+
+
+		@define la(this, addr)
+		{
+			error("ctlmux lookaddr unimplemented");
+		}
+
+		ns = mkns([ "looktype" : lt,
+			    "enumtype" : et,
+			    "looksym"  : ls,
+			    "enumsym"  : es,
+			    "lookaddr" : la ]);
+		nss[id] = ns;
 	}
 
 	@define muxlooktype(id, type)
 	{
-		@local s, p, q, rep, dat, sz, t, xerr, ctlns;
+		@local s, p, q, rep, dat, sz, t, xerr;
 		@local tq; /* FIXME: unnecessary in bleed */
 
-		ctlns = nss[id];
-		if(ctlns == nil)
-			ctlns = nsinit(id);
+		if(nss[id] == nil)
+			nsinit(id);
 		s = encodetype(type);
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -2313,7 +2380,9 @@ ctlmux = @names clp64le {
 		case ctlmux`NRnames:
 			q = (ctlmux`uint64*)q;
 			xid = *q++;
-			return xid;
+			if(nss[xid] == nil)
+				nsinit(xid);
+			return nss[xid];
 		case ctlmux`NRerror:
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
