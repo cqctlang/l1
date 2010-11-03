@@ -7543,6 +7543,21 @@ l1_baseid(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_basebase(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to basebase");
+	if(Vkind(argv[0]) != Qxtn)
+		vmerr(vm, "operand 1 to basebase must be a base ctype");
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Tbase)
+		vmerr(vm, "operand 1 to basebase must be a base ctype");
+	*rv = mkvallitcval(Vuchar, xtn->basename);
+}
+
+static void
 l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Xtypename *xtn;
@@ -11824,6 +11839,7 @@ mktopenv(void)
 	FN(attroff);
 	FN(backtrace);
 	FN(baseid);
+	FN(basebase);
 	FN(bitfieldcontainer);
 	FN(bitfieldpos);
 	FN(bitfieldwidth);
