@@ -887,6 +887,7 @@ ctlmux = @names clp64le {
 	looksym,
 	enumsym,
 	looktype,
+	enumtype,
 	enumseg,
 	enumloc,
 	unwind,
@@ -937,7 +938,7 @@ ctlmux = @names clp64le {
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
-	@local muxlooksym, muxenumsym, muxlooktype, muxenumseg;
+	@local muxlooksym, muxenumsym, muxlooktype, muxenumtype, muxenumseg;
 	@local muxenumloc, muxunwind;
 	@local muxnames;
 
@@ -1926,7 +1927,7 @@ ctlmux = @names clp64le {
 
 	@define decodetdef(ns, q)
 	{
-		@local t, k, cb, rep, sz, n, i, v, id, sid, off, mk, st, pt;
+		@local t, k, cb, rep, sz, n, i, v, id, sid, c, off, mk, st, pt;
 		@local w, pos;
 		@local gets;
 		@local tq; 	/* FIXME: unnecessary in bleed */
@@ -1938,6 +1939,7 @@ ctlmux = @names clp64le {
 			sz = *q++;
 			s = getbytes(q, sz);
 			q = (ctlmux`uint8*)((char*)q+sz);
+			printf("gets: %s\n", s);
 			return s;
 		}
 
@@ -1945,13 +1947,13 @@ ctlmux = @names clp64le {
 		k = *q++;
 		switch(k){
 		case ctlmux`CTbase:
-			printf("got base type\n");
 			cb = *q++;
 			rep = *q++;
+			printf("got base type %e %e\n",
+			       (ctlmux`Cbase)cb, (ctlmux`Rkind)rep);
 			return [mkctype_base(cb, rep), q];
 		case ctlmux`CTstruct:
 		case ctlmux`CTunion:
-			printf("got struct/union type\n");
 			if(k == ctlmux`CTstruct)
 				mk = mkctype_struct;
 			else
@@ -1961,6 +1963,7 @@ ctlmux = @names clp64le {
 			sz = *q++;
 			n = *q++;
 			v = mkvec(n);
+			printf("got struct/union %s (%d fields)\n", id, n);
 			for(i = 0; i < n; i++){
 				q = (ctlmux`uint8*)q;
 				k = *q++;
@@ -1988,7 +1991,9 @@ ctlmux = @names clp64le {
 					error("unsupported field type %e",
 					      (enum ctlmux`CT)k);
 				}
+				printf("got field %s\n", sid);
 			}
+			printf("returning from su %s %d\n", id, n);
 			return [mk(id, v, sz), q];
 		case ctlmux`CTenum:
 			printf("got enum\n");
@@ -2004,7 +2009,8 @@ ctlmux = @names clp64le {
 			for(i = 0; i < n; i++){
 				sid = gets();
 				q = (ctlmux`uint64*)q;
-				v[i] = vector(sid, {st}q);
+				c = *q++;
+				v[i] = vector(sid, {st}c);
 			}
 			return [mkctype_enum(id, v, st), q];
 		case ctlmux`CTptr:
@@ -2052,9 +2058,6 @@ ctlmux = @names clp64le {
 		type = [:];
 		sym = [:];
 
-		// stop cycles
-		nss[id] = "not nil";
-
 		resolve = mkresolve(@lambda(tn){
 				printf("resolving %t\n", tn);
 				muxlooktype(id, tn);
@@ -2067,7 +2070,7 @@ ctlmux = @names clp64le {
 
 		@define et(this)
 		{
-			error("ctlmux enumtype unimplemented");
+			muxenumtype(id);
 		}
 		
 		@define ls(this, name)
@@ -2099,8 +2102,6 @@ ctlmux = @names clp64le {
 		@local s, p, q, rep, dat, sz, t, xerr;
 		@local tq; /* FIXME: unnecessary in bleed */
 
-		if(nss[id] == nil)
-			nsinit(id);
 		s = encodetype(type);
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -2181,6 +2182,54 @@ ctlmux = @names clp64le {
 				       elfsym(xid, bind, type, val, xsz));
 			}
 			return ss;
+		case ctlmux`NRerror:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
+			break;
+		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
+	@define muxenumtype(id)
+	{
+		@local p, q, rep, dat, sz, addr, ss;
+		@local m, i, xerr, t;
+		@local tq; /* FIXME: unnecessary in bleed */
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTenumtype;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRenumtype:
+			ss = [];
+			q = (ctlmux`uint64*)q;
+			m = *q++;
+			for(i = 0; i < m; i++){
+				[t,tq] = decodetdef(c64le, q);
+				q = tq;
+				printf("\t%t\n", t);
+			}
+			return nil;
 		case ctlmux`NRerror:
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
@@ -2500,6 +2549,7 @@ ctlmux = @names clp64le {
 		     muxlooksym,
 		     muxenumsym,
 		     muxlooktype,
+		     muxenumtype,
 		     muxenumseg,
 		     muxenumloc,
 		     muxunwind,

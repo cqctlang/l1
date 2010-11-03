@@ -23,15 +23,27 @@
 		}, types);
 }
 
+@define test2(path)
+{
+	@local mux, ns, rv, t;
+	mux = mkctlmux_local();
+	ns = mux.names(path);
+	ns.enumtype();
+}
+
 //test1("../l1", "dovm");
 //test1("/home/vczandy/vmlinux", "zlib_inflate");
-test1("./locals1",
+if(0)test1("./locals1",
       [ "locals" ],
       [
 	#int#,
 	#`Node#,
 	#struct Node#,
 	#`X#,
+	#enum X#,
+	#enum Y#,
 	#`Z#,
 	#struct Z#,
       ]);
+
+if(1)test2("./locals1");
