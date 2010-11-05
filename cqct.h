@@ -71,6 +71,9 @@ enum Rkind {
 	Rs16be,
 	Rs32be,
 	Rs64be,
+	Rf32,
+	Rf64,
+	Rf128,
 	Rnrep,
 } Rkind;
 
