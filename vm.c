@@ -11757,6 +11757,89 @@ mktypedefxtn(Str *tid, Xtypename *t)
 	return xtn;
 }
 
+static Xtypename*
+typename(Xtypename *td)
+{
+	Xtypename *tn;
+	Vec *o, *p;
+	Imm i;
+
+	switch(td->tkind){
+	case Tvoid:
+		return td;
+	case Tbase:
+		return mkbasextn(td->basename, Rundef);
+	case Tptr:
+		return mkptrxtn(typename(td->link), Rundef);
+	case Tconst:
+		return mkconstxtn(typename(td->link));
+	case Ttypedef:
+		return mktypedefxtn(td->tid, 0);
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		/* FIXME: there should be a constructor in common with
+		   domkctype_su and the like */
+		tn = mkxtn();
+		tn->tkind = td->tkind;
+		tn->tag = td->tag;
+		tn->flag = Tincomplete;
+		return tn;
+	case Tarr:
+		/* FIXME: there should be a constructor in common with
+		   l1_mkctype_array */
+		tn = mkxtn();
+		tn->tkind = Tarr;
+		tn->link = typename(td->link);
+		tn->cnt = td->cnt;
+		tn->flag = Tincomplete;
+		return tn;
+	case Tfun:
+		/* FIXME: there should be a constructor in common with
+		   l1_mkctype_fn */
+		tn = mkxtn();
+		tn->tkind = Tfun;
+		tn->link = typename(td->link);
+		tn->param = mkvec(td->param->len);
+		for(i = 0; i < td->param->len; i++){
+			o = valvec(vecref(td->param, i));
+			p = mkvec(3);
+			_vecset(p, Typepos,
+				mkvalxtn(typename(valxtn(vecref(o, Typepos)))));
+			_vecset(p, Idpos, vecref(o, Idpos));
+			_vecset(p, Attrpos, vecref(o, Attrpos));
+			_vecset(tn->param, i, mkvalvec(p));
+		}
+		tn->flag = Tincomplete;
+		return tn;
+	case Tbitfield:
+		/* FIXME: there should be a constructor in common with
+		   l1_mkctype_bitfield */
+		tn = mkxtn();
+		tn->tkind = Tbitfield;
+		tn->link = typename(td->link);
+		tn->cnt = td->cnt;
+		tn->bit0 = td->bit0;
+		tn->flag = Tincomplete;
+		return tn;
+	case Tundef:
+	case Txaccess:
+		/* FIXME: this is made-up */
+		return td;
+	}
+	fatal("bug");
+	return 0; /* not reached */
+}
+
+static void
+l1_typename(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to typename");
+	checkarg(vm, "typename", argv, 0, Qxtn);
+	*rv = mkvalxtn(typename(valxtn(argv[0])));
+}
+
 static Tab*
 basetab(NSroot *def, Xtypename **base)
 {
@@ -12081,6 +12164,7 @@ mktopenv(void)
 	FN(toupper);
 	FN(typedefid);
 	FN(typedeftype);
+	FN(typename);
 	FN(veclen);
 	FN(vecref);
 	FN(vecset);

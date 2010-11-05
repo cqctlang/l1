@@ -534,13 +534,12 @@ ctlmux = @names clp64le {
 	pending,
 };
 
-@define mkresolve(lt)
+@define mkresolve(cache, lt)
 {
-	@local seen, resolve, undefined, ptr;
+	@local resolve, undefined, ptr;
 	@local typepos;
 
 	typepos = 0;   // FIXME: should be opaque
-	seen = [:];
 
 	ptr = lt(mkctype_base(ctlmux`Vptr));
 	if(ptr == nil)
@@ -550,7 +549,7 @@ ctlmux = @names clp64le {
 	{
 		@local td;
 		td = mkctype_undef(tn);
-		seen[tn] = td;
+		cache[typename(tn)] = td;
 		return td;
 	}
 
@@ -558,7 +557,7 @@ ctlmux = @names clp64le {
 	{
 		@local td, i, m, s, v, st;
 
-		td = seen[tn];
+		td = cache[typename(tn)];
 		if(td != nil)
 			return td;
 
@@ -566,13 +565,13 @@ ctlmux = @names clp64le {
 			td = lt(tn);
 			if(td == nil)
 				error("name space does not define %t", tn);
-			seen[tn] = td;
+			cache[typename(tn)] = td;
 			return td;
 		}else if(issu(tn)){
 			td = lt(tn);
 			if(td == nil)
 				return undefined(tn);
-			seen[tn] = td; // terminate cycles
+			cache[typename(tn)] = td; // terminate cycles
 			s = fields(td);
 			m = length(s);
 			for(i = 0; i < m; i++){
@@ -584,18 +583,18 @@ ctlmux = @names clp64le {
 			td = lt(tn);
 			if(td == nil)
 				return undefined(tn);
-			seen[tn] = td;
+			cache[typename(tn)] = td;
 			return td;
 		}else if(istypedef(tn)){
 			td = lt(tn);
 			if(td == nil)
 				return undefined(tn);
-			seen[tn] = td; // terminate cycles
+			cache[typename(tn)] = td; // terminate cycles
 			settypedeftype(td, resolve(typedeftype(td)));
 			return td;
 		}else if(isptr(tn)){
 			td = mkctype_ptr(resolve(subtype(tn)), ptr);
-			seen[tn] = td; // why not?
+			cache[typename(tn)] = td; // why not?
 			return td;
 		}else if(isfunc(tn)){
 			s = params(tn);
@@ -610,7 +609,7 @@ ctlmux = @names clp64le {
 			return mkctype_array(resolve(subtype(tn)),
 					     arraynelm(tn));
 		}else if(isvoid(tn)){
-			return mkctype_void();
+			cache[typename(tn)] = mkctype_void();
 		}else if(isbitfield(tn)){
 			st = resolve(bitfieldcontainer(tn));
 			return mkctype_bitfield(st,
@@ -1814,10 +1813,8 @@ ctlmux = @names clp64le {
 	{
 		@local sz, s, q, id;
 
-		printf("encodetype %t\n", t);
 		sz = sizeof(ctlmux`uint8); /* op */
 		if(isbase(t)){
-			printf("encoding base type\n");
 			sz += sizeof(ctlmux`uint8); /* base */
 			s = malloc(sz);
 			s[0] = ctlmux`CTbase;
@@ -1825,7 +1822,6 @@ ctlmux = @names clp64le {
 			// FIXME: this conversion is unfortunate.
 			s[1] = (ctlmux`uint8)basebase(t);
 		}else if(issu(t) || isenum(t)){
-			printf("encoding tagged type\n");
 			id = suetag(t);
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tag */
 			s = malloc(sz);
@@ -1842,7 +1838,6 @@ ctlmux = @names clp64le {
 			q = (char*)q;
 			putbytes(q, id);
 		}else if(istypedef(t)){
-			printf("encoding typedef type\n");
 			id = typedefid(t);
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tid */
 			s = malloc(sz);
@@ -1875,39 +1870,31 @@ ctlmux = @names clp64le {
 		k = *q++;
 		switch(k){
 		case ctlmux`CTbase:
-			printf("got base type\n");
 			cb = *q++;
 			return [mkctype_base(cb), q];
 		case ctlmux`CTstruct:
-			printf("got struct type\n");
 			id = gets();
 			return [mkctype_struct(id), q];
 		case ctlmux`CTunion:
-			printf("got union type\n");
 			id = gets();
 			return [mkctype_union(id), q];
 		case ctlmux`CTenum:
-			printf("got enum type\n");
 			id = gets();
 			return [mkctype_enum(id), q];
 		case ctlmux`CTtypedef:
-			printf("got typedef\n");
 			id = gets();
 			return [mkctype_typedef(id), q];
 		case ctlmux`CTptr:
-			printf("got ptr\n");
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_ptr(st), q];
 		case ctlmux`CTarray:
-			printf("got array\n");
 			q = (ctlmux`uint64*)q;
 			n = *q++;
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_array(st, n), q];
 		case ctlmux`CTfunc:
-			printf("got function\n");
 			[st,tq] = decodetname(q);
 			q = tq;
 			q = (ctlmux`uint64*)q;
@@ -1939,7 +1926,6 @@ ctlmux = @names clp64le {
 			sz = *q++;
 			s = getbytes(q, sz);
 			q = (ctlmux`uint8*)((char*)q+sz);
-			printf("gets: %s\n", s);
 			return s;
 		}
 
@@ -1949,8 +1935,6 @@ ctlmux = @names clp64le {
 		case ctlmux`CTbase:
 			cb = *q++;
 			rep = *q++;
-			printf("got base type %e %e\n",
-			       (ctlmux`Cbase)cb, (ctlmux`Rkind)rep);
 			return [mkctype_base(cb, rep), q];
 		case ctlmux`CTstruct:
 		case ctlmux`CTunion:
@@ -1963,7 +1947,6 @@ ctlmux = @names clp64le {
 			sz = *q++;
 			n = *q++;
 			v = mkvec(n);
-			printf("got struct/union %s (%d fields)\n", id, n);
 			for(i = 0; i < n; i++){
 				q = (ctlmux`uint8*)q;
 				k = *q++;
@@ -1991,12 +1974,9 @@ ctlmux = @names clp64le {
 					error("unsupported field type %e",
 					      (enum ctlmux`CT)k);
 				}
-				printf("got field %s\n", sid);
 			}
-			printf("returning from su %s %d\n", id, n);
 			return [mk(id, v, sz), q];
 		case ctlmux`CTenum:
-			printf("got enum\n");
 			id = gets();
 			q = (ctlmux`uint8*)q;
 			rep = *q++;
@@ -2014,19 +1994,16 @@ ctlmux = @names clp64le {
 			}
 			return [mkctype_enum(id, v, st), q];
 		case ctlmux`CTptr:
-			printf("got ptr\n");
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_ptr(st, nsptr(ns)), q];
 		case ctlmux`CTarray:
-			printf("got array\n");
 			q = (ctlmux`uint64*)q;
 			n = *q++;
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_array(st, n), q];
 		case ctlmux`CTfunc:
-			printf("got function\n");
 			[st,tq] = decodetname(q);
 			q = tq;
 			q = (ctlmux`uint64*)q;
@@ -2040,7 +2017,6 @@ ctlmux = @names clp64le {
 			}
 			return [mkctype_fn(st, v), q];
 		case ctlmux`CTtypedef:
-			printf("got typedef\n");
 			id = gets();
 			[st,tq] = decodetname(q);
 			q = tq;
@@ -2053,24 +2029,38 @@ ctlmux = @names clp64le {
 	@define nsinit(id)
 	{
 		@local type, sym;
-		@local lt, ls, et, es, la, ns, resolve;
+		@local lt, ls, et, es, la, ns;
 
 		type = [:];
 		sym = [:];
 
-		resolve = mkresolve(@lambda(tn){
-				printf("resolving %t\n", tn);
-				muxlooktype(id, tn);
-			});
-
-		@define lt(this, tn)
 		{
-			return resolve(tn);
+			@local resolve;
+
+			resolve = mkresolve(type,
+					    @lambda(tn){
+						    muxlooktype(id, tn);
+					    });
+
+			@define lt(this, tn)
+			{
+				return resolve(tn);
+			}
 		}
 
 		@define et(this)
 		{
-			muxenumtype(id);
+			@local resolve, ts;
+
+			type = [:]; /* reset cache */
+			ts = muxenumtype(id);
+			resolve = mkresolve(type,
+					    @lambda(tn){
+						    return ts[typename(tn)];
+					    });
+			foreach(@lambda(k, v){
+					resolve(k);
+				}, ts);
 		}
 		
 		@define ls(this, name)
@@ -2221,15 +2211,15 @@ ctlmux = @names clp64le {
 		q = (ctlmux`uint8*)dat;
 		switch(*q++){
 		case ctlmux`NRenumtype:
-			ss = [];
+			ss = [:];
 			q = (ctlmux`uint64*)q;
 			m = *q++;
 			for(i = 0; i < m; i++){
 				[t,tq] = decodetdef(c64le, q);
 				q = tq;
-				printf("\t%t\n", t);
+				ss[typename(t)] = t;
 			}
-			return nil;
+			return ss;
 		case ctlmux`NRerror:
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
