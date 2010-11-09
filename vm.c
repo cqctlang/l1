@@ -9068,8 +9068,9 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 			break;
 		default:
 			vmerr(vm,
-			      "operand %u to foreach must be a list or vector",
-			      (unsigned)m);
+			      "operand %u to foreach must be a list, "
+			      "vector, or table",
+			      (unsigned)m+1);
 		}
 		if(m == 1)
 			len = len2;
