@@ -20,6 +20,21 @@ enum Y
 	y4 = 18446744073709551615ULL, 
 } Y;
 
+struct Q
+{
+	union
+	{
+		struct
+		{
+			int x1;
+			int y1;
+		};
+	};
+	int x;
+};
+
+struct Q q;
+
 typedef struct Z
 {
 	int bitfield1 : 1;

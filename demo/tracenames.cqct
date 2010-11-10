@@ -25,10 +25,18 @@
 
 @define test2(path)
 {
-	@local mux, ns, rv, t;
+	@local mux, ns, rv, t, ts;
 	mux = mkctlmux_local();
 	ns = mux.names(path);
-	ns.enumtype();
+	ts = ns.enumtype();
+	foreach(@lambda(k,v){
+			if(!issu(v))
+				return;
+			if(length(suetag(v)) >= 7
+			   && substr(suetag(v), 0, 7) == "anontag")
+				printtype(v);
+			
+		}, ts);
 }
 
 //test1("../l1", "dovm");
@@ -46,4 +54,5 @@ if(0)test1("./locals1",
 	#struct Z#,
       ]);
 
-if(1)test2("./locals1");
+//if(1)test2("./locals1");
+if(1)test2("/home/vczandy/vmlinux");
