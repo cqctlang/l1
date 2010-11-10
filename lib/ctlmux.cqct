@@ -534,7 +534,7 @@ ctlmux = @names clp64le {
 	pending,
 };
 
-@define mkresolve(cache, lt)
+@define mkresolve(cache, undef, lt)
 {
 	@local resolve, undefined, ptr;
 	@local typepos;
@@ -550,6 +550,7 @@ ctlmux = @names clp64le {
 		@local td;
 		td = mkctype_undef(tn);
 		cache[typename(tn)] = td;
+		undef[typename(tn)] = td;
 		return td;
 	}
 
@@ -2028,16 +2029,17 @@ ctlmux = @names clp64le {
 
 	@define nsinit(id)
 	{
-		@local type, sym;
+		@local type, sym, undef;
 		@local lt, ls, et, es, la, ns;
 
 		type = [:];
 		sym = [:];
+		undef = [:];
 
 		{
 			@local resolve;
 
-			resolve = mkresolve(type,
+			resolve = mkresolve(type, undef,
 					    @lambda(tn){
 						    muxlooktype(id, tn);
 					    });
@@ -2052,15 +2054,27 @@ ctlmux = @names clp64le {
 		{
 			@local resolve, ts;
 
-			type = [:]; /* reset cache */
+			// FIXME: maybe only muxenumtype if we haven't before
+
+			/* reset cache */
+			type = [:];
+			undef = [:];
+
 			ts = muxenumtype(id);
-			resolve = mkresolve(type,
+			resolve = mkresolve(type, undef,
 					    @lambda(tn){
 						    return ts[typename(tn)];
 					    });
 			foreach(@lambda(k, v){
 					resolve(k);
 				}, ts);
+			if(length(undef) > 0){
+				printf("%d unresolved\n", length(undef));
+				foreach(@lambda(k, v){
+						printf("\t%t\n", k);
+					}, undef);
+			}
+			return type;
 		}
 		
 		@define ls(this, name)
@@ -2214,6 +2228,7 @@ ctlmux = @names clp64le {
 			ss = [:];
 			q = (ctlmux`uint64*)q;
 			m = *q++;
+			printf("decoding %d types\n", m);
 			for(i = 0; i < m; i++){
 				[t,tq] = decodetdef(c64le, q);
 				q = tq;
