@@ -595,7 +595,10 @@ ctlmux = @names clp64le {
 			return td;
 		}else if(isptr(tn)){
 			td = mkctype_ptr(resolve(subtype(tn)), ptr);
-			cache[typename(tn)] = td; // why not?
+			/* FIXME: cannot cache into cache because
+			   we return that as enumtype.  but we could
+		           create a separate ptrcache. */
+			// cache[typename(tn)] = td; // why not?
 			return td;
 		}else if(isfunc(tn)){
 			s = params(tn);
