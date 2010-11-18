@@ -2034,23 +2034,28 @@ ctlmux = @names clp64le {
 	{
 		@local type, sym, undef;
 		@local lt, ls, et, es, la, ns;
+		@local ltresolve;
+
+		@define resetltr()
+		{
+			ltresolve = mkresolve(type, undef,
+					      @lambda(tn){
+						      muxlooktype(id, tn);
+					      });
+		}
 
 		type = [:];
 		sym = [:];
 		undef = [:];
+		resetltr();
 
+		@define lt(this, tn)
 		{
-			@local resolve;
-
-			resolve = mkresolve(type, undef,
-					    @lambda(tn){
-						    muxlooktype(id, tn);
-					    });
-
-			@define lt(this, tn)
-			{
-				return resolve(tn);
-			}
+			@local t;
+			t = ltresolve(tn);
+			if(isundeftype(t))
+				return nil;
+			return t;
 		}
 
 		@define et(this)
@@ -2062,6 +2067,7 @@ ctlmux = @names clp64le {
 			/* reset cache */
 			type = [:];
 			undef = [:];
+			resetltr();
 
 			ts = muxenumtype(id);
 			resolve = mkresolve(type, undef,
