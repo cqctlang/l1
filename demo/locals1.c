@@ -1,51 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "locals1.h"
 
-typedef struct Node Node;
-struct Node {
-	int v;
-	Node *next;
-};
-
-typedef
-enum X
-{
-	x0, x1, x2, x3,
-} X;
-
-typedef
-enum Y
-{
-	y0, y1, y2, y3,
-	y4 = 18446744073709551615ULL, 
-} Y;
-
-struct Q
-{
-	union
-	{
-		struct
-		{
-			int x1;
-			int y1;
-		};
-	};
-	int x;
-};
-
-struct Q q;
-
-typedef struct Z
-{
-	int bitfield1 : 1;
-	int bitfield2 : 2;
-	int bitfield3 : 3;
-	int (*fn)(void *arg1, char *arg2);
-	struct Node f[100];
-	struct Node g[10][20][30];
-} Z;
-
-Z z;
+static struct Q q;
+static Z z;
 
 #define P(a) printf("\t"#a"\t%6d\t%p\n", (int)sizeof(a), &a);
 
@@ -67,6 +25,9 @@ locals(char *argv0)
 	int m[100][100];
 	Node n[100][100];
 	static char *o;
+	Node p[0];
+	V q;
+	W r;
 
 	printf("%s locals (actual):\n", argv0);
 	P(a);
@@ -84,11 +45,16 @@ locals(char *argv0)
 	P(m);
 	P(n);
 	P(o);
+	P(p);
+	P(q);
+	P(r);
 }
 
 int
 main(int argc, char *argv[])
 {
+	z.bitfield1 = 0;
+	q.x = 0;
 	locals(argv[0]);
 	return 0;
 }

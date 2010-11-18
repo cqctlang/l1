@@ -52,12 +52,14 @@ par1: par1.o
 	$(CC) $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 
-locals1: locals1.o
+locals1.o: locals1.c locals1.h
+
+locals1: locals1.o  locals1.xtra.o
 	$(CC) $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 
-locals1.32: locals1.c
-	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+locals1.32: locals1.c locals1.xtra.c locals1.h
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ locals1.c locals1.xtra.c
 	dwarf2cqct < $@ > $@.names
 
 wind1: wind1.o
