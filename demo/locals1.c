@@ -28,6 +28,7 @@ locals(char *argv0)
 	Node p[0];
 	V q;
 	W r;
+	U s;
 
 	printf("%s locals (actual):\n", argv0);
 	P(a);
@@ -48,6 +49,7 @@ locals(char *argv0)
 	P(p);
 	P(q);
 	P(r);
+	P(s);
 }
 
 int

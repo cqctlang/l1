@@ -5,6 +5,15 @@ struct Node {
 };
 
 typedef
+enum
+{
+	u0 = 0,
+	u1,
+	u2,
+} U;
+
+
+typedef
 enum V
 {
 	v0 = 0x00000000,
