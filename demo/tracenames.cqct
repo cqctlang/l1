@@ -3,7 +3,9 @@
 
 @define fmtsym(s)
 {
-	return sprintfa("@0x%p\t%s", s.val, s.id);
+	if(s == nil)
+		return("<undefined>");
+	return sprintfa("@0x%p\t%t", symoff(s), s);
 }
 
 
@@ -12,14 +14,15 @@
 	@local mux, ns, rv, t;
 	mux = mkctlmux_local();
 	ns = mux.names(path);
-//	foreach(@lambda(s){
-//			rv = mux.looksym(id, s);
-//			printf("looksym(%a) -> %s\n", s, fmtsym(rv));
-//		}, syms);
+	foreach(@lambda(s){
+			rv = looksym(ns, s);
+			printf("looksym(%a) -> %s\n", s, fmtsym(rv));
+		}, syms);
 	foreach(@lambda(t){
 			rv = looktype(ns, t);
 			printf("looktype(%t) -> %a\n", t, rv);
-			printtype(rv);
+			if(isctype(rv))
+				printtype(rv);
 		}, types);
 }
 
@@ -30,18 +33,25 @@
 	ns = mux.names(path);
 	ts = ns.enumtype();
 	foreach(@lambda(k,v){
+			printtype(v);
 			if(!issu(v))
 				return;
-			if(length(suetag(v)) >= 7
-			   && substr(suetag(v), 0, 7) == "anontag")
+			if(0)if(length(suetag(v)) >= 7
+			   && substr(suetag(v), 0, 7) == "anon")
 				printtype(v);
-			
 		}, ts);
 }
 
+@define test3(path)
+{
+	@local mux, ns, rv, t, ts;
+	mux = mkctlmux_local();
+	ns = mux.names(path);
+	printf("parsed names\n");
+}
+
 //test1("../l1", "dovm");
-//test1("/home/vczandy/vmlinux", "zlib_inflate");
-if(0)test1("./locals1",
+if(1)test1("./locals1",
       [ "locals" ],
       [
 	#int#,
@@ -54,5 +64,4 @@ if(0)test1("./locals1",
 	#struct Z#,
       ]);
 
-//if(1)test2("./locals1");
-if(1)test2("/home/vczandy/vmlinux");
+if(0)test2("./locals1");

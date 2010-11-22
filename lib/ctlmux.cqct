@@ -485,12 +485,12 @@ ctlmux = @names clp64le {
 	base,
 };
 
-@record elfsym {
+@record symrec {
 	id,
-	bind,
-	type,
+	flags,
 	val,
 	sz,
+	type,
 };
 
 @record loc {
@@ -1760,59 +1760,6 @@ ctlmux = @names clp64le {
 		return ctl;
 	}
 
-	@define muxlooksym(id, sym)
-	{
-		@local p, rep, dat, sz, addr;
-		@local xid, xerr, bind, type, val, xsz;
-
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
-		sz += sizeof(ctlmux`uint64); /* id */
-		sz += sizeof(ctlmux`uint64)+strlen(sym);
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
-		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTlooksym;
-		q = (ctlmux`uint64*)q;
-		*q++ = id;
-		*q++ = strlen(sym);
-		q = (char*)q;
-		putbytes(q, sym);
-		q += strlen(sym);
-		sendmsg(fd, p, sz);
-
-		/* wait for reply */
-		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRlooksym:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xid = getbytes(q, sz);
-			q = (ctlmux`uint8*)((char*)q+sz);
-			bind = *q++;
-			type = *q++;
-			q = (ctlmux`uint64*)q;
-			val = *q++;
-			xsz = *q++;
-			return elfsym(xid, bind, type, val, xsz);
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
-				return nil;
-			error("ns error: %s", xerr);
-			break;
-		default:
-			error("unexpected ns response");
-			break;
-		}
-	}
-
 	@define encodetype(t)
 	{
 		@local sz, s, q, id;
@@ -2088,7 +2035,17 @@ ctlmux = @names clp64le {
 		
 		@define ls(this, name)
 		{
-			error("ctlmux looksym unimplemented");
+			@local psym, s;
+			s = sym[name];
+			if(s != nil)
+				return s;
+			psym = muxlooksym(id, name);
+			if(psym == nil)
+				return nil;
+			t = lt(this, psym.type);
+			s = mksym(t, psym.id, psym.val);
+			sym[name] = s;
+			return s;
 		}
 
 		@define es(this)
@@ -2155,10 +2112,66 @@ ctlmux = @names clp64le {
 		}
 	}
 
+	@define muxlooksym(id, sym)
+	{
+		@local p, rep, dat, sz, addr;
+		@local xid, xerr, flags, t, val, xsz;
+		@local tq; /* FIXME: unnecessary in bleed */
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		sz += sizeof(ctlmux`uint64)+strlen(sym);
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTlooksym;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		*q++ = strlen(sym);
+		q = (char*)q;
+		putbytes(q, sym);
+		q += strlen(sym);
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRlooksym:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xid = getbytes(q, sz);
+			q = (ctlmux`uint8*)((char*)q+sz);
+			flags = *q++;
+			q = (ctlmux`uint64*)q;
+			val = *q++;
+			xsz = *q++;
+			[t,tq] = decodetname(q);
+			q = tq;
+			return symrec(xid, flags, val, xsz, t);
+		case ctlmux`NRerror:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
+			break;
+		default:
+			error("unexpected ns response");
+			break;
+		}
+	}
+
 	@define muxenumsym(id)
 	{
 		@local p, q, rep, dat, sz, addr, ss;
 		@local m, i, xid, xerr, xsz, bind, type, val;
+		@local tq; /* FIXME: unnecessary in bleed */
 
 		sz = sizeof(ctlmux`Tns);
 		sz += sizeof(ctlmux`uint8);  /* op */
@@ -2186,13 +2199,13 @@ ctlmux = @names clp64le {
 				sz = *q++;
 				xid = getbytes(q, sz);
 				q = (ctlmux`uint8*)((char*)q+sz);
-				bind = *q++;
-				type = *q++;
+				flags = *q++;
 				q = (ctlmux`uint64*)q;
 				val = *q++;
 				xsz = *q++;
-				append(ss,
-				       elfsym(xid, bind, type, val, xsz));
+				[t,tq] = decodetname(q);
+				q = tq;
+				append(ss, symrec(xid, flags, val, xsz, t));
 			}
 			return ss;
 		case ctlmux`NRerror:
