@@ -69,4 +69,3 @@ if(0)test1("./locals1",
 	   ]);
 
 if(0)test2("./locals1");
-if(1)test2("/home/vczandy/vmlinux");
