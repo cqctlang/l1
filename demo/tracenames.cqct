@@ -52,16 +52,16 @@
 
 //test1("../l1", "dovm");
 if(1)test1("./locals1",
-      [ "locals" ],
-      [
-	#int#,
-	#`Node#,
-	#struct Node#,
-	#`X#,
-	#enum X#,
-	#enum Y#,
-	#`Z#,
-	#struct Z#,
-      ]);
+	   [ "locals", "foo", "main",  ],
+	   [
+		#int#,
+		#`Node#,
+		#struct Node#,
+		#`X#,
+		#enum X#,
+		#enum Y#,
+		#`Z#,
+		#struct Z#,
+	   ]);
 
 if(0)test2("./locals1");
