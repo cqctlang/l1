@@ -2043,16 +2043,32 @@ ctlmux = @names clp64le {
 			if(psym == nil)
 				return nil;
 			t = lt(this, psym.type);
-			s = mksym(t, psym.id, psym.val);
+			v = psym.val;
+			if(isenumconst(t))
+				v = {subtype(t)}v;
+			s = mksym(t, psym.id, v);
 			sym[name] = s;
 			return s;
 		}
 
 		@define es(this)
 		{
-			error("ctlmux enumsym unimplemented");
-		}
+			@local ss, t, v;
 
+			/* reset cache */
+			sym = [:];
+
+			ss = muxenumsym(id);
+			foreach(@lambda(psym){
+					t = lt(this, psym.type);
+					v = psym.val;
+					if(isenumconst(t))
+						v = {subtype(t)}v;
+					s = mksym(t, psym.id, v);
+					sym[psym.id] = s;
+				}, ss);
+			return sym;
+		}
 
 		@define la(this, addr)
 		{
@@ -2196,6 +2212,7 @@ ctlmux = @names clp64le {
 			q = (ctlmux`uint64*)q;
 			m = *q++;
 			for(i = 0; i < m; i++){
+				q = (ctlmux`uint64*)q;
 				sz = *q++;
 				xid = getbytes(q, sz);
 				q = (ctlmux`uint8*)((char*)q+sz);
