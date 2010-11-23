@@ -190,13 +190,15 @@ ctlmux = @names clp64le {
 		STB_GLOBAL,
 		STB_WEAK,
 	};
-	enum Stype {
-		Sfunc = 0,
-		Sdata = 1,
-		Srodata = 2,
-	};
-	enum {
+
+	enum Stype
+	{
 		Sundef = 1,
+		Sdata = Sundef<<1,
+		Stext = Sdata<<1,
+		Sro = Stext<<1,
+		Senum = Sro<<1,
+		Sinline = Senum<<1,
 	};
 
 	enum ELF_SHN {
@@ -1993,7 +1995,9 @@ ctlmux = @names clp64le {
 	{
 		@local type, sym, undef;
 		@local lt, ls, et, es, la, ns;
+		@local psym2sym;
 		@local ltresolve;
+		
 
 		@define resetltr()
 		{
@@ -2044,6 +2048,21 @@ ctlmux = @names clp64le {
 			}
 			return type;
 		}
+
+		@define psym2sym(psym)
+		{
+			@local v, t;
+			
+			if(psym.flags&ctlmux`Sundef)
+				return nil;
+			if(psym.flags&ctlmux`Sinline)
+				return nil;
+			t = ltresolve(psym.type);
+			v = psym.val;
+			if(psym.flags&ctlmux`Senum)
+				v = {subtype(t)}v;
+			s = mksym(t, psym.id, v);
+		}
 		
 		@define ls(this, name)
 		{
@@ -2054,12 +2073,9 @@ ctlmux = @names clp64le {
 			psym = muxlooksym(id, name);
 			if(psym == nil)
 				return nil;
-			t = lt(this, psym.type);
-			v = psym.val;
-			if(isenumconst(t))
-				v = {subtype(t)}v;
-			s = mksym(t, psym.id, v);
-			sym[name] = s;
+			s = psym2sym(psym);
+			if(s != nil)
+				sym[name] = s;
 			return s;
 		}
 
@@ -2072,12 +2088,9 @@ ctlmux = @names clp64le {
 
 			ss = muxenumsym(id);
 			foreach(@lambda(psym){
-					t = lt(this, psym.type);
-					v = psym.val;
-					if(isenumconst(t))
-						v = {subtype(t)}v;
-					s = mksym(t, psym.id, v);
-					sym[psym.id] = s;
+					s = psym2sym(psym);
+					if(s != nil)
+						sym[psym.id] = s;
 				}, ss);
 			return sym;
 		}
