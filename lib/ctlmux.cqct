@@ -181,6 +181,7 @@ ctlmux = @names clp64le {
 		CTtypedef,
 		CTfield,
 		CTbitfield,
+		CTconst,
 		CTmax,
 	};
 
@@ -599,6 +600,9 @@ ctlmux = @names clp64le {
 			   we return that as enumtype.  but we could
 		           create a separate ptrcache. */
 			// cache[typename(tn)] = td; // why not?
+			return td;
+		}else if(isenumconst(tn)){
+			td = mkctype_const(resolve(subtype(tn)));
 			return td;
 		}else if(isfunc(tn)){
 			s = params(tn);
@@ -1839,6 +1843,10 @@ ctlmux = @names clp64le {
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_ptr(st), q];
+		case ctlmux`CTconst:
+			[st,tq] = decodetname(q);
+			q = tq;
+			return [mkctype_const(st), q];
 		case ctlmux`CTarray:
 			q = (ctlmux`uint64*)q;
 			n = *q++;
@@ -1948,6 +1956,10 @@ ctlmux = @names clp64le {
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_ptr(st, nsptr(ns)), q];
+		case ctlmux`CTconst:
+			[st,tq] = decodetname(q);
+			q = tq;
+			return [mkctype_const(st), q];
 		case ctlmux`CTarray:
 			q = (ctlmux`uint64*)q;
 			n = *q++;
@@ -2035,7 +2047,7 @@ ctlmux = @names clp64le {
 		
 		@define ls(this, name)
 		{
-			@local psym, s;
+			@local psym, s, v;
 			s = sym[name];
 			if(s != nil)
 				return s;
