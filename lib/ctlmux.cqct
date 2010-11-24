@@ -518,6 +518,7 @@ ctlmux = @names clp64le {
 	kill,
 	snap,
 	mem,
+	ns,
 	reg,
 	statunix,
 	statwin,
@@ -635,7 +636,7 @@ ctlmux = @names clp64le {
 @define mkctl(mux, id, state, _reg, traps, callbacks)
 {
 	@local xstop, xcont, xstep, detach, kill, snap;
-	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps;
+	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps, xns;
 	@local trapset, trapdel, trapreset;
 	@local statunix, statwin, unwind;
 	@local this;
@@ -794,6 +795,20 @@ ctlmux = @names clp64le {
 		return _reg;
 	}
 
+	@define xns()
+	{
+		@local st, id;
+		st = mux.statunix(this);
+		id = nil;
+		foreach(@lambda(dll){
+				if(dll.base == 0)
+					id = dll.id;
+			}, st[1]);
+		if(id != nil)
+			return mux.nsinit(id);
+		return nil;
+	}
+
 	@define mem()
 	{
 		@local map, get, put, prot2str, dispatch, ctl, id;
@@ -878,7 +893,7 @@ ctlmux = @names clp64le {
 	}
 
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill, snap,
-		      mem, reg, statunix, statwin,
+		      mem, xns, reg, statunix, statwin,
 		      setreg, trace, traces, xtrap, xsnap,
 		      xtraps, trapdel, trapreset, unwind,
 		      // begin private
@@ -902,6 +917,7 @@ ctlmux = @names clp64le {
 	enumloc,
 	unwind,
 	names,
+	nsinit,
 	// private
 	stop,
 	cont,
@@ -951,7 +967,7 @@ ctlmux = @names clp64le {
 	@local muxlooksym, muxenumsym, muxlookaddr;
 	@local muxlooktype, muxenumtype, muxenumseg;
 	@local muxenumloc, muxunwind;
-	@local muxnames;
+	@local muxnames, nsinit;
 
 	verbose = 0;
 	aborted = 0;
@@ -2000,7 +2016,6 @@ ctlmux = @names clp64le {
 		@local psym2sym;
 		@local ltresolve;
 		
-
 		@define resetltr()
 		{
 			ltresolve = mkresolve(type, undef,
@@ -2691,6 +2706,7 @@ ctlmux = @names clp64le {
 		     muxenumloc,
 		     muxunwind,
 		     muxnames,
+		     nsinit,
 		     stop,
 		     cont,
 		     step,
