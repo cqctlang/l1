@@ -895,6 +895,7 @@ ctlmux = @names clp64le {
 	abort,
 	looksym,
 	enumsym,
+	lookaddr,
 	looktype,
 	enumtype,
 	enumseg,
@@ -947,7 +948,8 @@ ctlmux = @names clp64le {
 	@local settrap, clrtrap;
 	@local aborted, version, ping, ps;
 	@local osversion;
-	@local muxlooksym, muxenumsym, muxlooktype, muxenumtype, muxenumseg;
+	@local muxlooksym, muxenumsym, muxlookaddr;
+	@local muxlooktype, muxenumtype, muxenumseg;
 	@local muxenumloc, muxunwind;
 	@local muxnames;
 
@@ -1993,7 +1995,7 @@ ctlmux = @names clp64le {
 
 	@define nsinit(id)
 	{
-		@local type, sym, undef;
+		@local type, sym, addr, undef;
 		@local lt, ls, et, es, la, ns;
 		@local psym2sym;
 		@local ltresolve;
@@ -2009,6 +2011,7 @@ ctlmux = @names clp64le {
 
 		type = [:];
 		sym = [:];
+		addr = [:];
 		undef = [:];
 		resetltr();
 
@@ -2074,8 +2077,10 @@ ctlmux = @names clp64le {
 			if(psym == nil)
 				return nil;
 			s = psym2sym(psym);
-			if(s != nil)
-				sym[name] = s;
+			if(s != nil){
+				sym[symid(s)] = s;
+				addr[symoff(s)] = s;
+			}
 			return s;
 		}
 
@@ -2095,9 +2100,19 @@ ctlmux = @names clp64le {
 			return sym;
 		}
 
-		@define la(this, addr)
+		@define la(this, a)
 		{
-			error("ctlmux lookaddr unimplemented");
+			@local psym, s, v;
+			s = addr[a];
+			if(s != nil)
+				return s;
+			psym = muxlookaddr(id, a);
+			if(psym == nil)
+				return nil;
+			s = psym2sym(psym);
+			if(s != nil)
+				addr[a] = s;
+			return s;
 		}
 
 		ns = mkns([ "looktype" : lt,
@@ -2259,6 +2274,58 @@ ctlmux = @names clp64le {
 			error("ns error: %s", xerr);
 			break;
 		default: 
+			error("unexpected ns response");
+			break;
+		}
+	}
+
+	@define muxlookaddr(id, addr)
+	{
+		@local p, rep, dat, sz;
+		@local xid, xerr, flags, t, val, xsz;
+		@local tq; /* FIXME: unnecessary in bleed */
+
+		sz = sizeof(ctlmux`Tns);
+		sz += sizeof(ctlmux`uint8);  /* op */
+		sz += sizeof(ctlmux`uint64); /* id */
+		sz += sizeof(ctlmux`uint64); /* addr */
+		p = (ctlmux`Tns*)malloc(sz);
+		p->op = ctlmux`Tns;
+		p->tag = freshtag();
+		q = (ctlmux`uint8*)(p+1);
+		*q++ = ctlmux`NTlookaddr;
+		q = (ctlmux`uint64*)q;
+		*q++ = id;
+		*q++ = addr;
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		checkreply(rep, ctlmux`Rns);
+
+		q = (ctlmux`uint8*)dat;
+		switch(*q++){
+		case ctlmux`NRlookaddr:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xid = getbytes(q, sz);
+			q = (ctlmux`uint8*)((char*)q+sz);
+			flags = *q++;
+			q = (ctlmux`uint64*)q;
+			val = *q++;
+			xsz = *q++;
+			[t,tq] = decodetname(q);
+			q = tq;
+			return symrec(xid, flags, val, xsz, t);
+		case ctlmux`NRerror:
+			q = (ctlmux`uint64*)q;
+			sz = *q++;
+			xerr = getbytes(q, sz);
+			if(xerr == "no such thing")
+				return nil;
+			error("ns error: %s", xerr);
+			break;
+		default:
 			error("unexpected ns response");
 			break;
 		}
@@ -2617,6 +2684,7 @@ ctlmux = @names clp64le {
 		     abort,
 		     muxlooksym,
 		     muxenumsym,
+		     muxlookaddr,
 		     muxlooktype,
 		     muxenumtype,
 		     muxenumseg,
