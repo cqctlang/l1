@@ -285,17 +285,23 @@ if(1)	rbrk(&dom`malcode,
 
 @define doit(args)
 {
-	@local mux, as, e, nexec;
+	@local mux, as, e, nexec, xns;
 
 	nexec = 0;
 	npop = 0;
-	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
-	ns = eval(e);
+//	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
+//	ns = eval(e);
 	mux = mkctlmux_local();
 	push(args, l1);
 	ctl = mux.launch(args, 0);
 	as = ctl.mem();
+	ns = ctl.ns();
+	if(isns(ns))
+		printf("got namespace %a!\n", ns);
+	else
+		error("hmmf.  no namespace! (got %a)\n", ns);
 	dom = mkdom(ns, as);
+	
 	config(dom);
 	dom.trace(ctlmux`Esignal,
 		  @lambda(ctl, sig){
