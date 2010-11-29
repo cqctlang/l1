@@ -7185,11 +7185,14 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to domof");
 	arg0 = argv[0];
-	if(Vkind(arg0) != Qcval)
+	if(Vkind(arg0) == Qcval){
+		cv = valcval(arg0);
+		*rv = mkvaldom(cv->dom);
+	}else if(Vkind(arg0) == Qstr)
+		*rv = mkvaldom(litdom);
+	else
 		vmerr(vm,
-		      "operand 1 to domof must be a cvalue");
-	cv = valcval(arg0);
-	*rv = mkvaldom(cv->dom);
+		      "operand 1 to domof must be a cvalue or string");
 }
 
 int
