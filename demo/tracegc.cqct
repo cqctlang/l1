@@ -242,7 +242,7 @@ if(0)	brk(&dom`mkcl,
 		    printf("%s\n", fmtstack(ctl, nsof(code)));
 	    });
 
-if(1)	brk(&dom`freecode,
+if(0)	brk(&dom`freecode,
 	    @lambda(ctl, code){
 		    printf("freecode %s\n", fmthd(code));
 	    });
@@ -253,23 +253,43 @@ if(0)	brk(&dom`gc,
 		    printf("%s\n", fmtstack(ctl, nsof(g)));
 	    });
 
-if(1)	rbrk(&dom`gc,
+if(0)	rbrk(&dom`gc,
 	     @lambda(ctl, g, tg){
 		     printf("gc(%d,%d) returned\n", g, tg);
 		     printf("%s\n", fmtstack(ctl, nsof(g)));
 	     });
-if(1)	brk(&dom`reloc1,
+if(0)	brk(&dom`reloc1,
 	    @lambda(ctl, c){
 		    if(Vdead((`Head*)c))
 			    printf("relocating dead code %s!\n", fmthd(c));
 	    });
 
-if(1)	rbrk(&dom`malcode,
+if(0)	rbrk(&dom`malcode,
 	     @lambda(ctl, h){
 		     printf("malcode %p\n", h);
 		     printf("%s\n", fmtstack(ctl, nsof(h)));
 	     });
 
+{
+	@local tid;
+	brk(&dom`gc,
+	    @lambda(ctl, g, tg){
+		    printf("gc(%d,%d) entered!\n", g, tg);
+		    printf("%s\n", fmtstack(ctl, nsof(g)));
+		    tid = brk(&dom`emalloc,
+			      @lambda(ctl, sz){
+				      printf("%s\n", fmtstack(ctl, nsof(sz)));
+			      });
+		    printf("set %a\n", tid);
+	    });
+	if(0)rbrk(&dom`gc,
+	     @lambda(ctl, g, tg){
+		     printf("gc(%d,%d) returned\n", g, tg);
+		     printf("deleting %a\n", tid);
+		     ctl.trapdel(tid);
+		     printf("did delete\n");
+	     });
+}
 }
 
 @define trace1(dom)
@@ -315,4 +335,4 @@ if(1)	rbrk(&dom`malcode,
 	mux.run();
 }
 
-doit([ "/tmp/z" ]);
+doit([ args[1] ]);
