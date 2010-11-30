@@ -478,11 +478,6 @@ itertab(Head *hd, Ictx *ictx)
 		ictx->n++;
 		return &x->val[idx];
 	}
-	if(tab->weak){
-		/* skip ahead */
-		ictx->n = nxt;
-		return 0;
-	}
 	idx = ictx->n++;
 	return &x->key[idx];
 }

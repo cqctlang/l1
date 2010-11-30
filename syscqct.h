@@ -306,7 +306,6 @@ struct Tab {
 	Head hd;
 	u32 cnt;		/* key/val pairs stored */
 	Tabx *x;		/* current storage, atomically swappable */
-	char weak;
 };
 
 typedef

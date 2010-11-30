@@ -880,7 +880,6 @@ _mktab(Tabx *x)
 	Tab *tab;
 	tab = (Tab*)mal(Qtab);
 	tab->x = x;
-	tab->weak = 0;
 	quard((Val)tab);
 	return tab;
 }
@@ -9571,7 +9570,6 @@ initvm(int gcthread, u64 heapmax)
 	litdom = gcprotect(mklitdom());
 	cvalnull = gcprotect(mkcval(litdom, litdom->ns->base[Vptr], 0));
 	finals = gcprotect(mktab());
-	finals->weak = 1;
 	cval0 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], 0));
 	cval1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], 1));
 	cvalminus1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], -1));
