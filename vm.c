@@ -3739,6 +3739,7 @@ getbeint(char *s, unsigned nb)
 	return w;
 }
 
+// FIXME: don't assume little-endian
 static Imm
 str2imm(VM *vm, Xtypename *xtn, Str *str)
 {
