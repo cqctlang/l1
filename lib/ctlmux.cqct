@@ -46,8 +46,24 @@ ctlmux = @names clp64le {
 		Rread,
 		Twrite,
 		Rwrite,
-		Tns,
-		Rns,
+		Tlooksym,
+		Rlooksym,
+		Tenumsym,
+		Renumsym,
+		Tlooktype,
+		Rlooktype,
+		Tenumtype,
+		Renumtype,
+		Tlookaddr,
+		Rlookaddr,
+		Tenumloc,
+		Renumloc,
+		Tunwind,
+		Runwind,
+		Tenumseg,
+		Renumseg,
+		Tnames,
+		Rnames,
 	};
 
 	enum State {
@@ -167,29 +183,23 @@ ctlmux = @names clp64le {
 		Rnrep,
 	} Rkind;
 	
-	// types on the wire.  sync with Tkind.
-	enum CT
+	typedef
+	enum Tkind
 	{
-		CTunused0,
-		CTbase,
-		CTstruct,
-		CTunion,
-		CTenum,
-		CTptr,
-		CTarray,
-		CTfunc,
-		CTtypedef,
-		CTfield,
-		CTbitfield,
-		CTconst,
-		CTmax,
-	};
-
-	enum ELF_ST_BIND {
-		STB_LOCAL	= 0,
-		STB_GLOBAL,
-		STB_WEAK,
-	};
+		Tvoid = 0,
+		Tbase = 1,
+		Tstruct = 2,
+		Tunion = 3,
+		Tenum = 4,
+		Tptr = 5,
+		Tarr = 6,
+		Tfun = 7,
+		Ttypedef = 8,
+		Tbitfield = 9,
+		Tconst = 10,
+		Txaccess = 11,		/* unused */
+		Tundef = 12,
+	} Tkind;
 
 	enum Stype
 	{
@@ -471,8 +481,24 @@ ctlmux = @names clp64le {
 		@5	char bytes[0];
 		@5;
 	};
-	typedef struct Tns Tns;
-	typedef struct Tns Rns;
+	typedef struct Tns Tlooksym;
+	typedef struct Tns Tenumsym;
+	typedef struct Tns Tlooktype;
+	typedef struct Tns Tenumtype;
+	typedef struct Tns Tlookaddr;
+	typedef struct Tns Tenumloc;
+	typedef struct Tns Tunwind;
+	typedef struct Tns Tenumseg;
+	typedef struct Tns Tnames;
+	typedef struct Tns Rlooksym;
+	typedef struct Tns Renumsym;
+	typedef struct Tns Rlooktype;
+	typedef struct Tns Renumtype;
+	typedef struct Tns Rlookaddr;
+	typedef struct Tns Renumloc;
+	typedef struct Tns Runwind;
+	typedef struct Tns Renumseg;
+	typedef struct Tns Rnames;
 };
 
 @record region {
@@ -975,7 +1001,6 @@ ctlmux = @names clp64le {
 	freetags = [ ];
 	ctls = [:];
 	taghandler = [:];
-	nss = [:];
 
 	@define freshtag()
 	{
@@ -1130,10 +1155,42 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tstat*)p;
 		case ctlmux`Rstat:
 			return (ctlmux`Rstat*)p;
-		case ctlmux`Tns:
-			return (ctlmux`Tns*)p;
-		case ctlmux`Rns:
-			return (ctlmux`Rns*)p;
+		case ctlmux`Tlooksym:
+			return (ctlmux`Tlooksym*)p;
+		case ctlmux`Rlooksym:
+			return (ctlmux`Rlooksym*)p;
+		case ctlmux`Tenumsym:
+			return (ctlmux`Tenumsym*)p;
+		case ctlmux`Renumsym:
+			return (ctlmux`Renumsym*)p;
+		case ctlmux`Tenumtype:
+			return (ctlmux`Tenumtype*)p;
+		case ctlmux`Renumtype:
+			return (ctlmux`Renumtype*)p;
+		case ctlmux`Tunwind:
+			return (ctlmux`Tunwind*)p;
+		case ctlmux`Runwind:
+			return (ctlmux`Runwind*)p;
+		case ctlmux`Tnames:
+			return (ctlmux`Tnames*)p;
+		case ctlmux`Rnames:
+			return (ctlmux`Rnames*)p;
+		case ctlmux`Tlooktype:
+			return (ctlmux`Tlooktype*)p;
+		case ctlmux`Rlooktype:
+			return (ctlmux`Rlooktype*)p;
+		case ctlmux`Tlookaddr:
+			return (ctlmux`Tlookaddr*)p;
+		case ctlmux`Rlookaddr:
+			return (ctlmux`Rlookaddr*)p;
+		case ctlmux`Tenumloc:
+			return (ctlmux`Tenumloc*)p;
+		case ctlmux`Renumloc:
+			return (ctlmux`Renumloc*)p;
+		case ctlmux`Tenumseg:
+			return (ctlmux`Tenumseg*)p;
+		case ctlmux`Renumseg:
+			return (ctlmux`Renumseg*)p;
 		default:
 			error("unknown op %e", op);
 		}
@@ -1792,7 +1849,7 @@ ctlmux = @names clp64le {
 		if(isbase(t)){
 			sz += sizeof(ctlmux`uint8); /* base */
 			s = malloc(sz);
-			s[0] = ctlmux`CTbase;
+			s[0] = ctlmux`Tbase;
 			// baseid returns the cbasename strings.
 			// FIXME: this conversion is unfortunate.
 			s[1] = (ctlmux`uint8)basebase(t);
@@ -1801,11 +1858,11 @@ ctlmux = @names clp64le {
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tag */
 			s = malloc(sz);
 			if(isstruct(t))
-				s[0] = ctlmux`CTstruct;
+				s[0] = ctlmux`Tstruct;
 			else if(isunion(t))
-				s[0] = ctlmux`CTunion;
+				s[0] = ctlmux`Tunion;
 			else if(isenum(t))
-				s[0] = ctlmux`CTenum;
+				s[0] = ctlmux`Tenum;
 			else
 				error("bug");
 			q = (ctlmux`uint64*)(s+1);
@@ -1816,7 +1873,7 @@ ctlmux = @names clp64le {
 			id = typedefid(t);
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tid */
 			s = malloc(sz);
-			s[0] = ctlmux`CTtypedef;
+			s[0] = ctlmux`Ttypedef;
 			q = (ctlmux`uint64*)(s+1);
 			*q++ = strlen(id);
 			q = (char*)q;
@@ -1828,7 +1885,7 @@ ctlmux = @names clp64le {
 
 	@define decodetname(q)
 	{
-		@local k, cb, id, gets;
+		@local k, cb, id, gets, w, pos;
 		@local tq; 	/* FIXME: unnecessary in bleed */
 
 		@define gets()
@@ -1844,36 +1901,36 @@ ctlmux = @names clp64le {
 		q = (ctlmux`uint8*)q;
 		k = *q++;
 		switch(k){
-		case ctlmux`CTbase:
+		case ctlmux`Tbase:
 			cb = *q++;
 			return [mkctype_base(cb), q];
-		case ctlmux`CTstruct:
+		case ctlmux`Tstruct:
 			id = gets();
 			return [mkctype_struct(id), q];
-		case ctlmux`CTunion:
+		case ctlmux`Tunion:
 			id = gets();
 			return [mkctype_union(id), q];
-		case ctlmux`CTenum:
+		case ctlmux`Tenum:
 			id = gets();
 			return [mkctype_enum(id), q];
-		case ctlmux`CTtypedef:
+		case ctlmux`Ttypedef:
 			id = gets();
 			return [mkctype_typedef(id), q];
-		case ctlmux`CTptr:
+		case ctlmux`Tptr:
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_ptr(st), q];
-		case ctlmux`CTconst:
+		case ctlmux`Tconst:
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_const(st), q];
-		case ctlmux`CTarray:
+		case ctlmux`Tarr:
 			q = (ctlmux`uint64*)q;
 			n = *q++;
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_array(st, n), q];
-		case ctlmux`CTfunc:
+		case ctlmux`Tfun:
 			[st,tq] = decodetname(q);
 			q = tq;
 			q = (ctlmux`uint64*)q;
@@ -1886,6 +1943,13 @@ ctlmux = @names clp64le {
 				v[i] = mkparam(pt, strlen(sid) > 0 ? sid : nil);
 			}
 			return [mkctype_fn(st, v), q];
+		case ctlmux`Tbitfield:
+			q = (ctlmux`uint64*)q;
+			w = *q++;
+			pos = *q++;
+			[st,tq] = decodetname(q);
+			q = tq;
+			return [mkctype_bitfield(st, w, pos), q];
 		default:
 			error("decodetname: unhandled case %d", k);
 		}
@@ -1911,13 +1975,13 @@ ctlmux = @names clp64le {
 		q = (ctlmux`uint8*)q;
 		k = *q++;
 		switch(k){
-		case ctlmux`CTbase:
+		case ctlmux`Tbase:
 			cb = *q++;
 			rep = *q++;
 			return [mkctype_base(cb, rep), q];
-		case ctlmux`CTstruct:
-		case ctlmux`CTunion:
-			if(k == ctlmux`CTstruct)
+		case ctlmux`Tstruct:
+		case ctlmux`Tunion:
+			if(k == ctlmux`Tstruct)
 				mk = mkctype_struct;
 			else
 				mk = mkctype_union;
@@ -1927,35 +1991,15 @@ ctlmux = @names clp64le {
 			n = *q++;
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
-				q = (ctlmux`uint8*)q;
-				k = *q++;
-				switch(k){
-				case ctlmux`CTfield:
-					q = (ctlmux`uint64*)q;
-					off = *q++;
-					sid = gets();
-					[st,tq] = decodetname(q);
-					q = tq;
-					v[i] = mkfield(st, sid, off);
-					break;
-				case ctlmux`CTbitfield:
-					q = (ctlmux`uint64*)q;
-					off = *q++;
-					w = *q++;
-					pos = *q++;
-					sid = gets();
-					[st,tq] = decodetname(q);
-					q = tq;
-					st = mkctype_bitfield(st, w, pos);
-					v[i] = mkfield(st, sid, off);
-					break;
-				default:
-					error("unsupported field type %e",
-					      (enum ctlmux`CT)k);
-				}
+				q = (ctlmux`uint64*)q;
+				off = *q++;
+				sid = gets();
+				[st,tq] = decodetname(q);
+				q = tq;
+				v[i] = mkfield(st, sid, off);
 			}
 			return [mk(id, v, sz), q];
-		case ctlmux`CTenum:
+		case ctlmux`Tenum:
 			id = gets();
 			q = (ctlmux`uint8*)q;
 			rep = *q++;
@@ -1972,21 +2016,21 @@ ctlmux = @names clp64le {
 				v[i] = vector(sid, {st}c);
 			}
 			return [mkctype_enum(id, v, st), q];
-		case ctlmux`CTptr:
+		case ctlmux`Tptr:
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_ptr(st, nsptr(ns)), q];
-		case ctlmux`CTconst:
+		case ctlmux`Tconst:
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_const(st), q];
-		case ctlmux`CTarray:
+		case ctlmux`Tarr:
 			q = (ctlmux`uint64*)q;
 			n = *q++;
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_array(st, n), q];
-		case ctlmux`CTfunc:
+		case ctlmux`Tfun:
 			[st,tq] = decodetname(q);
 			q = tq;
 			q = (ctlmux`uint64*)q;
@@ -1999,11 +2043,18 @@ ctlmux = @names clp64le {
 				v[i] = mkparam(pt, strlen(sid) > 0 ? sid : nil);
 			}
 			return [mkctype_fn(st, v), q];
-		case ctlmux`CTtypedef:
+		case ctlmux`Ttypedef:
 			id = gets();
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_typedef(id, st), q];
+		case ctlmux`Tbitfield:
+			q = (ctlmux`uint64*)q;
+			w = *q++;
+			pos = *q++;
+			[st,tq] = decodetname(q);
+			q = tq;
+			return [mkctype_bitfield(st, w, pos), q];
 		default:
 			error("decodetdef: unhandled case %d", k);
 		}
@@ -2135,52 +2186,43 @@ ctlmux = @names clp64le {
 			    "looksym"  : ls,
 			    "enumsym"  : es,
 			    "lookaddr" : la ]);
-		nss[id] = ns;
 	}
 
 	@define muxlooktype(id, type)
 	{
-		@local s, p, q, rep, dat, sz, t, xerr;
+		@local s, p, q, rep, dat, sz, t;
 		@local tq; /* FIXME: unnecessary in bleed */
 
 		s = encodetype(type);
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
+		sz = sizeof(ctlmux`Tlooktype);
 		sz += sizeof(ctlmux`uint64); /* id */
 		sz += sizeof(ctlmux`uint64)+strlen(s);
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p = (ctlmux`Tlooktype*)malloc(sz);
+		p->op = ctlmux`Tlooktype;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTlooktype;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = id;
 		putbytes(q, s);
-		q += strlen(s);
 		sendmsg(fd, p, sz);
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
+		switch(rep->op){
+		case ctlmux`Rlooktype:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
+				return nil;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Rlooktype, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
+		}
 
 		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRlooktype:
-			[t,tq] = decodetdef(c64le, q);
-			q = tq;
-			return t;
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
-				return nil;
-			error("ns error: %s", xerr);
-			break;
-		default:
-			error("unexpected ns response");
-			break;
-		}
+		[t,tq] = decodetdef(c64le, q);
+		q = tq;
+		return t;
 	}
 
 	@define muxlooksym(id, sym)
@@ -2189,16 +2231,13 @@ ctlmux = @names clp64le {
 		@local xid, xerr, flags, t, val, xsz;
 		@local tq; /* FIXME: unnecessary in bleed */
 
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
+		sz = sizeof(ctlmux`Tlooksym);
 		sz += sizeof(ctlmux`uint64); /* id */
 		sz += sizeof(ctlmux`uint64)+strlen(sym);
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p = (ctlmux`Tlooksym*)malloc(sz);
+		p->op = ctlmux`Tlooksym;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTlooksym;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = id;
 		*q++ = strlen(sym);
 		q = (char*)q;
@@ -2208,34 +2247,29 @@ ctlmux = @names clp64le {
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRlooksym:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xid = getbytes(q, sz);
-			q = (ctlmux`uint8*)((char*)q+sz);
-			flags = *q++;
-			q = (ctlmux`uint64*)q;
-			val = *q++;
-			xsz = *q++;
-			[t,tq] = decodetname(q);
-			q = tq;
-			return symrec(xid, flags, val, xsz, t);
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
+		switch(rep->op){
+		case ctlmux`Rlooksym:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
 				return nil;
-			error("ns error: %s", xerr);
-			break;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Rlooksym, rep->bytes);
 		default:
-			error("unexpected ns response");
-			break;
+			error("unexpected response: %e", rep->op);
 		}
+
+		q = (ctlmux`uint64*)dat;
+		sz = *q++;
+		xid = getbytes(q, sz);
+		q = (ctlmux`uint8*)((char*)q+sz);
+		flags = *q++;
+		q = (ctlmux`uint64*)q;
+		val = *q++;
+		xsz = *q++;
+		[t,tq] = decodetname(q);
+		q = tq;
+		return symrec(xid, flags, val, xsz, t);
 	}
 
 	@define muxenumsym(id)
@@ -2244,83 +2278,33 @@ ctlmux = @names clp64le {
 		@local m, i, xid, xerr, xsz, bind, type, val;
 		@local tq; /* FIXME: unnecessary in bleed */
 
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
+		sz = sizeof(ctlmux`Tenumsym);
 		sz += sizeof(ctlmux`uint64); /* id */
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p = (ctlmux`Tenumsym*)malloc(sz);
+		p->op = ctlmux`Tenumsym;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTenumsym;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = id;
 		sendmsg(fd, p, sz);
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRenumsym:
-			ss = [];
-			q = (ctlmux`uint64*)q;
-			m = *q++;
-			for(i = 0; i < m; i++){
-				q = (ctlmux`uint64*)q;
-				sz = *q++;
-				xid = getbytes(q, sz);
-				q = (ctlmux`uint8*)((char*)q+sz);
-				flags = *q++;
-				q = (ctlmux`uint64*)q;
-				val = *q++;
-				xsz = *q++;
-				[t,tq] = decodetname(q);
-				q = tq;
-				append(ss, symrec(xid, flags, val, xsz, t));
-			}
-			return ss;
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
+		switch(rep->op){
+		case ctlmux`Renumsym:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
 				return nil;
-			error("ns error: %s", xerr);
-			break;
-		default: 
-			error("unexpected ns response");
-			break;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Renumsym, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
 		}
-	}
 
-	@define muxlookaddr(id, addr)
-	{
-		@local p, rep, dat, sz;
-		@local xid, xerr, flags, t, val, xsz;
-		@local tq; /* FIXME: unnecessary in bleed */
-
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
-		sz += sizeof(ctlmux`uint64); /* id */
-		sz += sizeof(ctlmux`uint64); /* addr */
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
-		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTlookaddr;
-		q = (ctlmux`uint64*)q;
-		*q++ = id;
-		*q++ = addr;
-		sendmsg(fd, p, sz);
-
-		/* wait for reply */
-		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRlookaddr:
+		ss = [];
+		q = (ctlmux`uint64*)dat;
+		m = *q++;
+		for(i = 0; i < m; i++){
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
 			xid = getbytes(q, sz);
@@ -2331,19 +2315,53 @@ ctlmux = @names clp64le {
 			xsz = *q++;
 			[t,tq] = decodetname(q);
 			q = tq;
-			return symrec(xid, flags, val, xsz, t);
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
-				return nil;
-			error("ns error: %s", xerr);
-			break;
-		default:
-			error("unexpected ns response");
-			break;
+			append(ss, symrec(xid, flags, val, xsz, t));
 		}
+		return ss;
+	}
+
+	@define muxlookaddr(id, addr)
+	{
+		@local p, rep, dat, sz;
+		@local xid, xerr, flags, t, val, xsz;
+		@local tq; /* FIXME: unnecessary in bleed */
+
+		sz = sizeof(ctlmux`Tlookaddr);
+		sz += sizeof(ctlmux`uint64); /* id */
+		sz += sizeof(ctlmux`uint64); /* addr */
+		p = (ctlmux`Tlookaddr*)malloc(sz);
+		p->op = ctlmux`Tlookaddr;
+		p->tag = freshtag();
+		q = (ctlmux`uint64*)(p+1);
+		*q++ = id;
+		*q++ = addr;
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		switch(rep->op){
+		case ctlmux`Rlookaddr:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
+				return nil;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Rlookaddr, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
+		}
+
+		q = (ctlmux`uint64*)dat;
+		sz = *q++;
+		xid = getbytes(q, sz);
+		q = (ctlmux`uint8*)((char*)q+sz);
+		flags = *q++;
+		q = (ctlmux`uint64*)q;
+		val = *q++;
+		xsz = *q++;
+		[t,tq] = decodetname(q);
+		q = tq;
+		return symrec(xid, flags, val, xsz, t);
 	}
 
 	@define muxenumtype(id)
@@ -2352,47 +2370,38 @@ ctlmux = @names clp64le {
 		@local m, i, xerr, t;
 		@local tq; /* FIXME: unnecessary in bleed */
 
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
+		sz = sizeof(ctlmux`Tenumtype);
 		sz += sizeof(ctlmux`uint64); /* id */
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p = (ctlmux`Tenumtype*)malloc(sz);
+		p->op = ctlmux`Tenumtype;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTenumtype;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = id;
 		sendmsg(fd, p, sz);
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRenumtype:
-			ss = [:];
-			q = (ctlmux`uint64*)q;
-			m = *q++;
-			printf("decoding %d types\n", m);
-			for(i = 0; i < m; i++){
-				[t,tq] = decodetdef(c64le, q);
-				q = tq;
-				ss[typename(t)] = t;
-			}
-			return ss;
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
+		switch(rep->op){
+		case ctlmux`Renumtype:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
 				return nil;
-			error("ns error: %s", xerr);
-			break;
-		default: 
-			error("unexpected ns response");
-			break;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Renumtype, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
 		}
+
+		ss = [:];
+		q = (ctlmux`uint64*)dat;
+		m = *q++;
+		for(i = 0; i < m; i++){
+			[t,tq] = decodetdef(c64le, q);
+			q = tq;
+			ss[typename(t)] = t;
+		}
+		return ss;
 	}
 
 	@define muxenumloc(id, ctx)
@@ -2401,55 +2410,47 @@ ctlmux = @names clp64le {
 		@local m, i, xid, xerr, xsz, bind, type, val;
 		@local nsid, ltype, xloc;
 
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
+		sz = sizeof(ctlmux`Tenumloc);
 		sz += sizeof(ctlmux`uint64); /* id */
 		sz += sizeof(ctlmux`Ctx);    /* ctx */
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p = (ctlmux`Tenumloc*)malloc(sz);
+		p->op = ctlmux`Tenumloc;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTenumloc;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = id;
 		putbytes(q, getbytes(ctx));
 		sendmsg(fd, p, sz);
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRenumloc:
-			ss = [];
-			q = (ctlmux`uint64*)q;
-			nsid = *q++;
-			m = *q++;
-			for(i = 0; i < m; i++){
-				sz = *q++;
-				xid = getbytes(q, sz);
-				q = (ctlmux`uint64*)((char*)q+sz);
-				xsz = *q++;
-				q = (ctlmux`uint8*)q;
-				ltype = *q++;
-				q = (ctlmux`uint64*)q;
-				xloc = *q++;
-				append(ss, loc(xid, xsz, ltype, xloc));
-			}
-			return ss;
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
+		switch(rep->op){
+		case ctlmux`Renumloc:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
 				return nil;
-			error("ns error: %s", xerr);
-			break;
-		default: 
-			error("unexpected ns response");
-			break;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Renumloc, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
 		}
+
+		ss = [];
+		q = (ctlmux`uint64*)dat;
+		nsid = *q++;
+		m = *q++;
+		for(i = 0; i < m; i++){
+			sz = *q++;
+			xid = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			xsz = *q++;
+			q = (ctlmux`uint8*)q;
+			ltype = *q++;
+			q = (ctlmux`uint64*)q;
+			xloc = *q++;
+			append(ss, loc(xid, xsz, ltype, xloc));
+		}
+		return ss;
 	}
 
 	@define muxenumseg(id)
@@ -2457,49 +2458,41 @@ ctlmux = @names clp64le {
 		@local p, rep, dat, sz, addr, len, gs;
 		@local m, i, xid, xerr, xsz, bind, type, val;
 
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
+		sz = sizeof(ctlmux`Tenumseg);
 		sz += sizeof(ctlmux`uint64); /* id */
 		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p->op = ctlmux`Tenumseg;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTenumseg;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = id;
 		sendmsg(fd, p, sz);
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRenumseg:
-			gs = [];
-			q = (ctlmux`uint64*)q;
-			m = *q++;
-			for(i = 0; i < m; i++){
-				addr = *q++;
-				len = *q++;
-				sz = *q++;
-				xid = getbytes(q, sz);
-				q = (ctlmux`uint64*)((char*)q+sz);
-				append(gs, seg(addr, len, xid));
-			}
-			return gs;
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			if(xerr == "no such thing")
+		switch(rep->op){
+		case ctlmux`Renumseg:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
 				return nil;
-			error("ns error: %s", xerr);
-			break;
-		default: 
-			error("unexpected ns response");
-			break;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Renumseg, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
 		}
+
+		gs = [];
+		q = (ctlmux`uint64*)dat;
+		m = *q++;
+		for(i = 0; i < m; i++){
+			addr = *q++;
+			len = *q++;
+			sz = *q++;
+			xid = getbytes(q, sz);
+			q = (ctlmux`uint64*)((char*)q+sz);
+			append(gs, seg(addr, len, xid));
+		}
+		return gs;
 	}
 
 	@define muxunwind(id, ctx)
@@ -2508,46 +2501,40 @@ ctlmux = @names clp64le {
 		@local m, i, xid, xerr, xsz, bind, type, val;
 		@local nsid, ltype, xloc;
 
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);  /* op */
+		sz = sizeof(ctlmux`Tunwind);
 		sz += sizeof(ctlmux`uint64); /* id */
 		sz += sizeof(ctlmux`Ctx);    /* ctx */
 		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p->op = ctlmux`Tunwind;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTunwind;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = id;
 		putbytes(q, getbytes(ctx));
 		sendmsg(fd, p, sz);
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRunwind:
-			ss = [];
-			q = (ctlmux`uint64*)q;
-			m = *q++;
-			q = (ctlmux`Ctx*)q;
-			for(i = 0; i < m; i++){
-				append(ss, cop(q));
-				q++;
-			}
-			return ss;
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			error("ns error: %s", xerr);
+		switch(rep->op){
+		case ctlmux`Runwind:
 			break;
-		default: 
-			error("unexpected ns response");
-			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
+				return nil;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Runwind, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
 		}
+
+		ss = [];
+		q = (ctlmux`uint64*)dat;
+		m = *q++;
+		q = (ctlmux`Ctx*)q;
+		for(i = 0; i < m; i++){
+			append(ss, cop(q));
+			q++;
+		}
+		return ss;
 	}
 
 	@define muxnames(path)
@@ -2556,15 +2543,12 @@ ctlmux = @names clp64le {
 		@local m, i, xid, xerr, xsz, bind, type, val;
 		@local nsid, ltype, xloc;
 
-		sz = sizeof(ctlmux`Tns);
-		sz += sizeof(ctlmux`uint8);		  /* op */
+		sz = sizeof(ctlmux`Tnames);
 		sz += sizeof(ctlmux`uint64)+strlen(path); /* path */
-		p = (ctlmux`Tns*)malloc(sz);
-		p->op = ctlmux`Tns;
+		p = (ctlmux`Tnames*)malloc(sz);
+		p->op = ctlmux`Tnames;
 		p->tag = freshtag();
-		q = (ctlmux`uint8*)(p+1);
-		*q++ = ctlmux`NTnames;
-		q = (ctlmux`uint64*)q;
+		q = (ctlmux`uint64*)(p+1);
 		*q++ = strlen(path);
 		q = (char*)q;
 		putbytes(q, path);
@@ -2573,26 +2557,21 @@ ctlmux = @names clp64le {
 
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
-		checkreply(rep, ctlmux`Rns);
-
-		q = (ctlmux`uint8*)dat;
-		switch(*q++){
-		case ctlmux`NRnames:
-			q = (ctlmux`uint64*)q;
-			xid = *q++;
-			if(nss[xid] == nil)
-				nsinit(xid);
-			return nss[xid];
-		case ctlmux`NRerror:
-			q = (ctlmux`uint64*)q;
-			sz = *q++;
-			xerr = getbytes(q, sz);
-			error("ns error: %s", xerr);
+		switch(rep->op){
+		case ctlmux`Rnames:
 			break;
-		default: 
-			error("unexpected ns response");
-			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
+				return nil;
+			error("ctlmux: error while waiting for %e: %e",
+			      ctlmux`Rnames, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
 		}
+
+		q = (ctlmux`uint64*)dat;
+		xid = *q++;
+		return nsinit(xid);
 	}
 
 	@define version()
