@@ -2345,7 +2345,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Rlookaddr, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2460,7 +2460,7 @@ ctlmux = @names clp64le {
 
 		sz = sizeof(ctlmux`Tenumseg);
 		sz += sizeof(ctlmux`uint64); /* id */
-		p = (ctlmux`Tns*)malloc(sz);
+		p = (ctlmux`Tenumseg*)malloc(sz);
 		p->op = ctlmux`Tenumseg;
 		p->tag = freshtag();
 		q = (ctlmux`uint64*)(p+1);
@@ -2504,7 +2504,7 @@ ctlmux = @names clp64le {
 		sz = sizeof(ctlmux`Tunwind);
 		sz += sizeof(ctlmux`uint64); /* id */
 		sz += sizeof(ctlmux`Ctx);    /* ctx */
-		p = (ctlmux`Tns*)malloc(sz);
+		p = (ctlmux`Tunwind*)malloc(sz);
 		p->op = ctlmux`Tunwind;
 		p->tag = freshtag();
 		q = (ctlmux`uint64*)(p+1);
