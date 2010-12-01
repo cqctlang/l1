@@ -271,16 +271,120 @@ if(0)	rbrk(&dom`malcode,
 	     });
 
 {
-	@local tid;
-	brk(&dom`gc,
+	@local tid, once, setmalloc, dumpstack;
+	@local tab, segs;
+	@local nmk, nfr;
+
+	@define reset()
+	{
+		nmk = nfr = 0;
+		tab = [:];
+		segs = [:];
+	}
+
+	reset();
+
+	@define getstack(ctl)
+	{
+		@local xs, pcs;
+		xs = ctl.unwind();
+		if(xs == nil){
+			printf("cannot unwind\n");
+			return;
+		}
+		pcs = map(@lambda(x){ x->rip; }, xs);
+		return pcs;
+	}
+
+	@define printstack(pcs)
+	{
+		foreach(@lambda(pc){
+				printf("\t%016p\t\t%y\n",
+				       pc, {dom}pc);
+			}, pcs);
+		printf("\n");
+	}
+
+	@define dumpstack(ctl)
+	{
+		@local pcs;
+		pcs = getstack(ctl);
+		if(tab[pcs] == nil)
+			tab[pcs] = 1;
+		else
+			tab[pcs] += 1;
+		return;
+		foreach(@lambda(x){
+				printf("\t%016p\t\t%y\n",
+				       x->rip,
+				       {dom}x->rip);
+			}, xs);
+		printf("\n");
+	}
+
+	@define summarize()
+	{
+		    foreach(@lambda(pcs, n) {
+				    printf("\t%d times:\n", n);
+				    printstack(pcs);
+			    }, tab);
+		    printf("#mkseg = %u\n", nmk);
+		    printf("#freeseg = %u\n", nfr);
+		    printf("nseg = %u\n", dom`H.nseg);
+
+		    foreach(@lambda(seg, pcs){
+				    printf("\tsegment %p leftover\n", seg);
+				    printstack(pcs);
+			    }, segs);
+		    reset();
+	}
+
+	brk(&dom`l1_meminuse, @lambda(args ...){ summarize(); });
+
+	once = 0;
+	@define setmalloc()
+	{
+		tid = brk(&dom`emalloc,
+			  @lambda(ctl, sz){
+//				  printf("emalloc %p\n", sz);
+				  dumpstack(ctl);
+			  });
+	}
+
+	@define setfree()
+	{
+		tid = brk(&dom`efree,
+			  @lambda(ctl, p){
+//				  printf("efree %p\n", p);
+				  dumpstack(ctl);
+			  });
+	}
+
+	rbrk(&dom`mkseg,
+	     @lambda(ctl, s, type){
+		     nmk++;
+		     segs[s] = getstack(ctl);
+	     });
+
+	brk(&dom`freeseg,
+	    @lambda(ctl, s){
+		    nfr++;
+		    if(segs[s] != nil)
+			    tabdelete(segs, s);
+		    else{
+			    printf("unregistered segment %p\n", s);
+			    printstack(getstack(ctl));
+		    }
+	    });
+			    
+	if(1)brk(&dom`gc,
 	    @lambda(ctl, g, tg){
-		    printf("gc(%d,%d) entered!\n", g, tg);
-		    printf("%s\n", fmtstack(ctl, nsof(g)));
-		    tid = brk(&dom`emalloc,
-			      @lambda(ctl, sz){
-				      printf("%s\n", fmtstack(ctl, nsof(sz)));
-			      });
-		    printf("set %a\n", tid);
+//			 printf("gc(%d,%d) entered!\n", g, tg);
+			 if(!once){
+				 setmalloc();
+				 setfree();
+				 once = 1;
+			 }
 	    });
 	if(0)rbrk(&dom`gc,
 	     @lambda(ctl, g, tg){
