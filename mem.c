@@ -1419,10 +1419,11 @@ gc(u32 g, u32 tg)
 		s = t;
 	}
 
-	H.tg = 0;
-	H.d = minit(&H.data[H.tg], mkseg(Mdata));
-	H.c = minit(&H.code[H.tg], mkseg(Mcode));
-
+	if(H.tg != 0){
+		H.tg = 0;
+		H.d = minit(&H.data[H.tg], mkseg(Mdata));
+		H.c = minit(&H.code[H.tg], mkseg(Mcode));
+	}
 	H.na = 0;
 	H.ngc++;
 }
