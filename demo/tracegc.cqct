@@ -274,14 +274,19 @@ if(0)	rbrk(&dom`malcode,
 	@local tid, once, setmalloc, dumpstack;
 	@local tab, segs;
 	@local nmk, nfr;
+	@local oops;
+	@local live, adj;
 
 	@define reset()
 	{
 		nmk = nfr = 0;
 		tab = [:];
 		segs = [:];
+		oops = [:];
+		adj = 0;
 	}
 
+	live = [:];
 	reset();
 
 	@define getstack(ctl)
@@ -324,49 +329,158 @@ if(0)	rbrk(&dom`malcode,
 
 	@define summarize()
 	{
-		    foreach(@lambda(pcs, n) {
-				    printf("\t%d times:\n", n);
-				    printstack(pcs);
-			    }, tab);
-		    printf("#mkseg = %u\n", nmk);
-		    printf("#freeseg = %u\n", nfr);
-		    printf("nseg = %u\n", dom`H.nseg);
+		@local i, q, cnt, lo;
 
-		    foreach(@lambda(seg, pcs){
-				    printf("\tsegment %p leftover\n", seg);
-				    printstack(pcs);
-			    }, segs);
-		    reset();
+		printf("\n**********\n");
+		if(0)foreach(@lambda(pcs, n) {
+				printf("\t%d times:\n", n);
+				printstack(pcs);
+			}, tab);
+		printf("#mkseg = %u\n", nmk);
+		printf("#freeseg = %u\n", nfr);
+		printf("H.nseg = %u\n", dom`H.nseg);
+		printf("#leftover = %u\n", length(segs));
+		printf("cqctmeminuse = %u\n", dom`cqctmeminuse);
+		printf("segtag->sz = %u\n", dom`segtab->sz);
+		printf("segtag->nent = %u\n", dom`segtab->nent);
+		if(0)foreach(@lambda(seg, pcs){
+				printf("\tsegment %p leftover\n", seg);
+				printstack(pcs);
+			}, segs);
+
+
+		@define checklost(q)
+		{
+			while(q){
+				tabdelete(segs, q);
+				q = q->link;
+			}
+		}
+
+		@define invert(t)
+		{
+			@local inv;
+			inv = [:];
+			foreach(@lambda(k, v){
+					if(inv[v] == nil)
+						inv[v] = 1;
+					else
+						inv[v]++;
+				}, t);
+			return inv;
+		}
+
+		@define dumpstackhist(pref, t)
+		{
+			foreach(@lambda(pcs, n){
+					printf("%u %s\n", n, pref);
+					printstack(pcs);
+				}, t);
+		}
+
+		dumpstackhist("unfreed allocations made from:",
+			      invert(live));
+		printf("%d bytes of realloc adjustments\n", adj);
+
+		if(0){
+			for(i = 0; i < dom`Ngen; i++){
+				checklost(dom`H.data[i].h);
+				checklost(dom`H.code[i].h);
+			}
+
+			lo = [:];
+			foreach(@lambda(seg, pcs){
+					if(lo[pcs] == nil)
+						lo[pcs] = 1;
+					else
+						lo[pcs]++;
+				}, segs);
+			foreach(@lambda(pcs, n){
+					printf("\t%d segments lost from:\n", n);
+					printstack(pcs);
+				}, lo);
+		}
+
+		@define cnt(q)
+		{
+			@local n;
+			n = 0;
+			while(q){
+				n++;
+				q = q->link;
+			}
+			return n;
+		}
+
+		for(i = 0; i < dom`Ngen; i++){
+			printf("length(H.data[%u]) = %u\n", i,
+			       cnt(dom`H.data[i].h));
+			printf("length(H.code[%u]) = %u\n", i,
+			       cnt(dom`H.code[i].h));
+		}
+
+		if(0){
+			printf("oops:\n");
+			foreach(@lambda(pcs, n){
+					printf("\t%d oops\n", n);
+					printstack(pcs);
+				}, oops);
+		}
+		reset();
 	}
 
 	brk(&dom`l1_meminuse, @lambda(args ...){ summarize(); });
+	if(0)brk(&dom`minit,
+	    @lambda(ctl, m, s){
+		    if(m->h != 0){
+			    @local pcs;
+			    pcs = getstack(ctl);
+			    if(oops[pcs] == nil)
+				    oops[pcs] = 1;
+			    else
+				    oops[pcs]++;
+		    }
+	    });
 
 	once = 0;
 	@define setmalloc()
 	{
-		tid = brk(&dom`emalloc,
-			  @lambda(ctl, sz){
-//				  printf("emalloc %p\n", sz);
-				  dumpstack(ctl);
-			  });
+		rbrk(&dom`emalloc,
+		     @lambda(ctl, p, sz){
+			     live[p] = slice(getstack(ctl), 0, 2);
+		     });
 	}
 
 	@define setfree()
 	{
-		tid = brk(&dom`efree,
-			  @lambda(ctl, p){
-//				  printf("efree %p\n", p);
-				  dumpstack(ctl);
-			  });
+		brk(&dom`efree,
+		    @lambda(ctl, p){
+			    tabdelete(live, p);
+		    });
 	}
 
-	rbrk(&dom`mkseg,
+	@define setrealloc()
+	{
+		rbrk(&dom`erealloc,
+		     @lambda(ctl, newp, oldp, oldsz, newsz){
+			     @local s;
+			     s = live[oldp];
+			     if(s != nil){
+				     tabdelete(live, oldp);
+				     live[newp] = s;
+			     }
+			     adj += newsz-oldsz;
+			     printstack(getstack(ctl));
+		     });
+	}
+
+	if(0)rbrk(&dom`mkseg,
 	     @lambda(ctl, s, type){
 		     nmk++;
 		     segs[s] = getstack(ctl);
 	     });
 
-	brk(&dom`freeseg,
+	if(0)brk(&dom`freeseg,
 	    @lambda(ctl, s){
 		    nfr++;
 		    if(segs[s] != nil)
@@ -383,6 +497,7 @@ if(0)	rbrk(&dom`malcode,
 			 if(!once){
 				 setmalloc();
 				 setfree();
+				 setrealloc();
 				 once = 1;
 			 }
 	    });
