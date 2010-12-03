@@ -236,6 +236,7 @@ hdelp(HT *ht, void *k)
 		if(hp->key == k){
 			*q = hp->next;
 			efree(hp);
+			ht->nent--;
 			break;
 		}
 		q = &hp->next;
@@ -332,6 +333,7 @@ hdels(HT *ht, char *k, u32 len)
 		if(hp->keylen == len && memcmp(k, hp->key, len) == 0){
 			*q = hp->next;
 			efree(hp);
+			ht->nent--;
 			break;
 		}
 		q = &hp->next;
