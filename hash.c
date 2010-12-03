@@ -100,7 +100,7 @@ hexpand(HT *ht)
 	u32 nsz, i, idx;
 
 	nsz = ht->sz*2;
-	nht = emalloc(nsz*sizeof(sizeof(Hent*)));
+	nht = emalloc(nsz*sizeof(Hent*));
 	for(i = 0; i < ht->sz; i++){
 		hp = ht->ht[i];
 		while(hp){
@@ -114,8 +114,8 @@ hexpand(HT *ht)
 	efree(ht->ht);
 	ht->ht = nht;
 	ht->hent = erealloc(ht->hent,
-			    ht->sz*sizeof(sizeof(Hent*)),
-			    nsz*sizeof(sizeof(Hent*)));
+			    ht->sz*sizeof(Hent*),
+			    nsz*sizeof(Hent*));
 	ht->sz = nsz;
 }
 
