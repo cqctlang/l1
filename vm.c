@@ -1192,6 +1192,8 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tvoid:
 		vmerr(vm, "attempt to compute size of void type");
 	case Tbase:
+		if(xtn->rep == Rundef)
+			vmerr(vm, "attempt to compute size of incomplete type");
 		return repsize[xtn->rep];
 	case Ttypedef:
 		return typesize(vm, xtn->link);
@@ -1202,6 +1204,8 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tenum:
 		return typesize(vm, xtn->link);
 	case Tptr:
+		if(xtn->rep == Rundef)
+			vmerr(vm, "attempt to compute size of incomplete type");
 		return repsize[xtn->rep];
 	case Tarr:
 		if(Vkind(xtn->cnt) != Qcval)
@@ -3099,6 +3103,7 @@ iterxtn(Head *hd, Ictx *ictx)
 int
 iscomplete(Xtypename *t)
 {
+	return 1;
 	return t->flag == Tcomplete;
 }
 
@@ -3800,7 +3805,7 @@ putbeint(char *p, Imm w, unsigned nb)
 }
 
 static Str*
-imm2str(Xtypename *xtn, Imm imm)
+imm2str(VM *vm, Xtypename *xtn, Imm imm)
 {
 	Str *str;
 	char *s;
@@ -3890,6 +3895,8 @@ imm2str(Xtypename *xtn, Imm imm)
 		s = str->s;
 		putbeint(s, imm, 8);
 		return str;
+	case Rundef:
+		vmerr(vm, "attempt to access memory with incomplete type");
 	default:
 		fatal("bug");
 	}
@@ -8979,7 +8986,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	case Tptr:
 		cv = typecast(vm, t, cv);
 		gcprotect(vm, cv);
-		bytes = imm2str(t, cv->val);
+		bytes = imm2str(vm, t, cv->val);
 		callput(vm, d->as, addr->val, typesize(vm, t), bytes);
 		gcunprotect(vm, cv);
 		*rv = mkvalcval2(cv);
@@ -11501,7 +11508,7 @@ l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to cval2str");
 	checkarg(vm, "cval2str", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	s = imm2str(cv->type, cv->val);
+	s = imm2str(vm, cv->type, cv->val);
 	*rv = mkvalstr(s);
 }
 
