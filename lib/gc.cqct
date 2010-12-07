@@ -1,0 +1,41 @@
+/* guardians in cinquecento are fashioned after:
+
+	R. Kent Dybvig, David Eby, and Carl Bruggeman.
+	Guardians in a generation-based collector.  ACM
+	SIGPLAN 1993 Conference on Programming Language
+	Design and Implementation, 207-216, June 1993.
+	http://www.cs.indiana.edu/~dyb/pubs/guardians-pldi93.pdf
+*/
+
+@define mkguardian()
+{
+	@local tc, g;
+
+	{
+		@local x;
+		x = cons(nil, nil);
+		tc = cons(x, x);
+	}
+
+	@define g(arg ...)
+	{
+		if(length(arg) == 0){
+			if(car(tc) == cdr(tc))
+				return nil;
+			else{
+				@local x, y;
+				x = car(tc);
+				y = car(x);
+				setcar(tc, cdr(x));
+				setcar(x, nil);
+				setcdr(x, nil);
+				return y;
+			}
+		}else if(length(arg) == 1)
+			instguard(cons(arg[0], tc));
+		else
+			error("wrong number of arguments to guardian");
+	}
+
+	return g;
+}
