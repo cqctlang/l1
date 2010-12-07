@@ -1320,7 +1320,7 @@ gc(u32 g, u32 tg)
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
 	if(dbg)printf("copied guard roots\n");
-	for(i = g+1; i <= tg; i++){
+	for(i = g+1; i < Ngen; i++){
 		s = H.data[i].h;
 		while(s){
 			if(s->card){
