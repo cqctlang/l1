@@ -141,7 +141,7 @@ dom = nil;
 	}
 }
 
-@define config(dom)
+@define oldconfig(dom)
 {
 if(0)	dom.xtrap(&dom`hputp,
 		  @lambda(ctl){
@@ -343,6 +343,28 @@ if(0)	rbrk(&dom`malcode,
 		printf("cqctmeminuse = %u\n", dom`cqctmeminuse);
 		printf("segtag->sz = %u\n", dom`segtab->sz);
 		printf("segtag->nent = %u\n", dom`segtab->nent);
+
+		@define cnt(q)
+		{
+			@local n;
+			n = 0;
+			while(q){
+				n++;
+				q = q->link;
+			}
+			return n;
+		}
+
+		for(i = 0; i < dom`Ngen; i++){
+			printf("length(H.data[%u]) = %u\n", i,
+			       cnt(dom`H.data[i].h));
+			printf("length(H.code[%u]) = %u\n", i,
+			       cnt(dom`H.code[i].h));
+		}
+		printf("**********\n");
+		return;
+
+
 		if(0)foreach(@lambda(seg, pcs){
 				printf("\tsegment %p leftover\n", seg);
 				printstack(pcs);
@@ -400,25 +422,6 @@ if(0)	rbrk(&dom`malcode,
 					printstack(pcs);
 				}, lo);
 		}
-
-		@define cnt(q)
-		{
-			@local n;
-			n = 0;
-			while(q){
-				n++;
-				q = q->link;
-			}
-			return n;
-		}
-
-		for(i = 0; i < dom`Ngen; i++){
-			printf("length(H.data[%u]) = %u\n", i,
-			       cnt(dom`H.data[i].h));
-			printf("length(H.code[%u]) = %u\n", i,
-			       cnt(dom`H.code[i].h));
-		}
-
 		if(0){
 			printf("oops:\n");
 			foreach(@lambda(pcs, n){
@@ -491,7 +494,7 @@ if(0)	rbrk(&dom`malcode,
 		    }
 	    });
 			    
-	if(1)brk(&dom`gc,
+	if(0)brk(&dom`gc,
 	    @lambda(ctl, g, tg){
 //			 printf("gc(%d,%d) entered!\n", g, tg);
 			 if(!once){
@@ -509,6 +512,183 @@ if(0)	rbrk(&dom`malcode,
 		     printf("did delete\n");
 	     });
 }
+}
+
+@define getstack(ctl)
+{
+	@local xs, pcs;
+	xs = ctl.unwind();
+	if(xs == nil){
+		printf("cannot unwind\n");
+		return;
+	}
+	pcs = map(@lambda(x){ x->rip; }, xs);
+	return pcs;
+}
+
+@define printstack(pcs)
+{
+	foreach(@lambda(pc){
+			printf("\t%016p\t\t%y\n",
+			       pc, {dom}pc);
+		}, pcs);
+	printf("\n");
+}
+
+@define config(dom)
+{
+	@local dumpcl, watch, rwatch;
+
+	watch = [:];
+	rwatch = [:];
+
+	@define setwatch(id, a)
+	{
+		watch[id] = (`Head*){dom}a;
+		rwatch[(`Head*){dom}a] = id;
+	}
+
+	@define clrwatch(id)
+	{
+		tabdelete(rwatch, watch[id]);
+		tabdelete(watch, id);
+	}
+
+	@define upwatch(id, a)
+	{
+		clrwatch(id);
+		setwatch(id, a);
+	}
+
+	@define lookwatch(id)
+	{
+		return watch[id];
+	}
+
+	@define lookrwatch(a)
+	{
+		return rwatch[(`Head*){dom}a];
+	}
+
+
+	@define dumpcl(cl)
+	{
+		@local i, p;
+		cl = (`Closure*)cl;
+		printf("\tcl->dlen = %d\n", cl->dlen);
+		for(i = 0; i < cl->dlen; i++){
+			p = cl->display[i];
+			if(Vkind(p) == dom`Qbox){
+				p = (`Box*)p;
+//				printf("\t[%u] = %s -> %s\n",
+//				       i,
+//				       fmthd(p),
+//				       fmthd(p->v));
+				printf("\t[%u] = %s\n", i, fmthd(p));
+			}else{
+				printf("\t[%u] = %s\n",
+				       i,
+				       fmthd(p));
+			}
+		}
+		printf("\n");
+	}
+
+	@define watchcl(cl)
+	{
+		@local i, p;
+		cl = (`Closure*)cl;
+		printf("\tcl->dlen = %d\n", cl->dlen);
+		for(i = 0; i < cl->dlen; i++){
+			p = cl->display[i];
+			if(Vkind(p) == dom`Qbox){
+				p = (`Box*)p;
+				setwatch(sprintfa("cl-disp-%u", i), p);
+//				printf("\t[%u] = %s -> %s\n",
+//				       i,
+//				       fmthd(p),
+//				       fmthd(p->v));
+				printf("\t[%u] = %s\n", i, fmthd(p));
+			}else{
+				printf("\t[%u] = %s\n",
+				       i,
+				       fmthd(p));
+			}
+		}
+		printf("\n");
+	}
+
+	brk(&dom`freeseg,
+	    @lambda(ctl, s){
+		    printf("freeseg %p - %p\n", s->addr, s->e);
+		    foreach(@lambda(id, a){
+				    if(a >= {dom}s->addr & a < {dom}s->e)
+					    printf("freeing live object %s!\n",
+						   id);
+			    }, watch);
+	    });
+
+	rbrk(&dom`mkseg,
+	     @lambda(ctl, s, kind){
+		     printf("mkseg %p - %p\n", s->addr, s->e);
+	     });
+
+	brbrk(&dom`gc,
+	     @lambda(ctl, g, tg){
+		     if(dom`vms[0] == 0)
+			     return nil;
+		     if(lookwatch("thecl") == nil)
+			     return nil;
+		     printf("enter gc(%u,%u)\n", g, tg);
+		     return @lambda(ctl, t, gc){
+			     printf("after gc(%u,%u):\n", g, tg);
+			     printf("\tthecl = %s\n",
+				    fmthd(lookwatch("thecl")));
+		     };
+	     });
+
+	rbrk(&dom`l1_cons,
+	     @lambda(ctl, vm, argc, argv, rv){
+		     setwatch("thecons", *rv);
+		     printf("l1_cons returned -> %s\n",
+			    fmthd(lookwatch("thecons")));
+		     rbrk(&dom`mkcl,
+			  @lambda(ctl, cl, code, insn, len, label){
+				  setwatch("thecl", cl);
+				  printf("\n leave mkcl (len = %u, cl = %s)\n",
+					 len, fmthd(cl));
+				  printstack(getstack(ctl));
+				  rbrk(&dom`itercl,
+				       @lambda(ctl, v, hd, ictx){
+					       if({dom}hd != lookwatch("thecl"))
+						       return;
+					       printf("itercl on thecl -> %s\n",
+						      fmthd(*v));
+				      });
+			 });
+
+		     rbrk(&dom`xclo,
+			 @lambda(ctl, vm, dl, label, dst){
+				 printf("leave xclo\n");
+				 watchcl(lookwatch("thecl"));
+			 });
+	     });
+
+	brbrk(&dom`copy,
+	      @lambda(ctl, v){
+		      @local id, s;
+		      id = lookrwatch(*v);
+		      if(id == nil)
+			      return nil;
+		      printf(" enter copy on %s: %s\n", id, fmthd(*v));
+		      if(!Vfwd(*v) || !Vprot(*v))
+			      printf("  object is in %s\n",
+				     fmtseg(lookseg(*v)));
+		      return @lambda(ctl, v){
+			      printf("return copy on %s: %s\n", id, fmthd(*v));
+			      upwatch(id, *v);
+		      };
+	      });
 }
 
 @define trace1(dom)
@@ -554,4 +734,4 @@ if(0)	rbrk(&dom`malcode,
 	mux.run();
 }
 
-doit([ args[1] ]);
+doit([ "-o", args[1] ]);
