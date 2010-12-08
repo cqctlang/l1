@@ -770,7 +770,6 @@ extern Val Xundef;
 extern Val Xnil;
 extern Val Xnulllist;
 
-
 /* c.l */
 void		freeyystate(YYstate *yy);
 YYstate*	mkyystate(FILE *fp);
@@ -883,9 +882,11 @@ Code*		contcode(void);
 void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
+Closure*	nopthunk(void);
 Closure*	panicthunk(void);
 void		printinsn(Insn *i);
 void		printkon(Val v);
+void		resetlabels();
 
 /* cgx.c */
 void		cg6(Code *c, Expr *e);
@@ -917,6 +918,7 @@ void		checkarg(VM *vm, char *f, Val *argv,
 			 unsigned arg, Qkind qkind);
 Tab*		doinsncnt(void);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
+void		dogc(VM *vm, u32 g, u32 tg);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 int		envbinds(Env *env, char *id);
 Val*		envget(Env *env, char *id);
@@ -1126,16 +1128,17 @@ List*		mklistn(u32 sz);
 /* mem.c */
 void		finimem();
 void		freetabx(Tabx *x); /* FIXME */
-void		gc(u32 g, u32 tg);
+void		_gc(u32 g, u32 tg);
+void		gc(VM *vm);
 void		gcdisable();
 void		gcenable();
-void		gcpoll();
+void		gcpoll(VM *vm);
 void*		gcprotect(void *v);
 Str*		gcstat();
 void*		gcunprotect(void *v);
 void		gcwb(Val v);
-u64		guarded();
 void		initmem(u64 rate);
+void		instguard(Pair *p);
 Head*		mal(Qkind kind);
 Head*		malcode();
 u64		meminuse();

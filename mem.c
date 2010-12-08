@@ -13,8 +13,8 @@ enum
 {
 	Segsize = 4096,
 	Segmask = ~(Segsize-1),
-//	GCthresh = 1024*Segsize,
-	GCthresh = Segsize,
+	GCthresh = 10*1024*Segsize,
+//	GCthresh = Segsize,
 };
 
 typedef
@@ -72,6 +72,12 @@ struct M
 } M;
 
 typedef
+struct Guard
+{
+	Pair *gd[Ngen];		/* guarded objects: (obj . guardian) pairs  */
+} Guard;
+
+typedef
 struct Heap
 {
 	Seg *d, *c;		/* current data and code segment */
@@ -83,8 +89,9 @@ struct Heap
 	u64 ta;			/* bytes allocated since beginning */
 	u64 ma;			/* bytes allocated to trigger collect */
 	u64 inuse;		/* bytes currently allocated */
-	Pair *gd[Ngen];		/* guarded objects */
-	Pair *guards[Qnkind];
+	Guard ug;		/* user guard list */
+	Guard sg;		/* system guard list */
+	Pair *guards[Qnkind];	/* system per-type guardians */
 	u64 ngc;		/* number of gcs */
 	u64 nseg;		/* number of segments */
 	unsigned disable;
@@ -736,7 +743,7 @@ protected()
 	return m;
 }
 
-u64
+static u64
 guarded()
 {
 	u32 i;
@@ -744,8 +751,15 @@ guarded()
 	Pair *p;
 	m = 0;
 	for(i = 0; i < Ngen; i++){
-		p = H.gd[i];
-		while(p){
+		p = H.sg.gd[i];
+		while(p != (Pair*)Xnil){
+			m++;
+			p = (Pair*)p->cdr;
+		}
+	}
+	for(i = 0; i < Ngen; i++){
+		p = H.ug.gd[i];
+		while(p != (Pair*)Xnil){
 			m++;
 			p = (Pair*)p->cdr;
 		}
@@ -960,7 +974,7 @@ cons(void *a, void *d)
 static Pair*
 lastpair()
 {
-	return cons(0, 0);
+	return cons(Xnil, Xnil);
 }
 
 Pair*
@@ -971,10 +985,16 @@ mkguard()
 	return cons(p, p);
 }
 
-void
-instguard(Val o, Pair *t)
+static void
+_instguard(Guard *g, Pair *p)
 {
-	H.gd[H.tg] = cons(cons(o, t), H.gd[H.tg]);
+	g->gd[H.tg] = cons(p, g->gd[H.tg]);
+}
+
+void
+instguard(Pair *p)
+{
+	_instguard(&H.ug, p);
 }
 
 Head*
@@ -986,8 +1006,8 @@ pop1guard(Pair *t)
 	x = car(t);
 	y = car(x);
 	setcar(t, cdr(x));
-	setcar(x, 0);
-	setcdr(x, 0);
+	setcar(x, Xnil);
+	setcdr(x, Xnil);
 	return y;
 }
 
@@ -1008,7 +1028,7 @@ quard(Val o)
 	t = H.guards[Vkind(o)];
 	if(t == 0)
 		fatal("bug");
-	instguard(o, t);
+	_instguard(&H.sg, cons(o, t));
 }
 
 static int
@@ -1024,7 +1044,7 @@ isfwd(Head *o)
 }
 
 static void
-updateguards()
+updateguards(Guard *g)
 {
 	Head *phold, *pfinal, *p, *q, *o;
 	Head *final, *w;
@@ -1032,12 +1052,12 @@ updateguards()
 
 	// move guarded objects and guards (and their containing cons) to
 	// either pending hold or pending final list
-	phold = 0;
-	pfinal = 0;
+	phold = Xnil;
+	pfinal = Xnil;
 	for(i = 0; i <= H.g; i++){
-		p = (Head*)H.gd[i];
-		H.gd[i] = 0;
-		while(p){
+		p = (Head*)g->gd[i];
+		g->gd[i] = (Pair*)Xnil;
+		while(p != Xnil){
 			q = cdr(p);
 			o = caar(p);
 			if(isfwd(o) || Vprot(o)){
@@ -1055,10 +1075,10 @@ updateguards()
 
 	// move each pending final to final if guard is accessible
 	while(1){
-		final = 0;
+		final = Xnil;
 		p = pfinal;
-		pfinal = 0;
-		while(p){
+		pfinal = Xnil;
+		while(p != Xnil){
 			q = cdr(p);
 			o = cdar(p);
 			if(isfwd(o) || Vprot(o)){
@@ -1071,10 +1091,10 @@ updateguards()
 			}
 			p = q;
 		}
-		if(final == 0)
+		if(final == Xnil)
 			break;
 		w = final;
-		while(w){
+		while(w != Xnil){
 			copy(&caar(w));
 			push1guard(caar(w), curaddr(cdar(w)));
 			w = cdr(w);
@@ -1084,10 +1104,10 @@ updateguards()
 
 	// forward pending hold to fresh guarded list
 	p = phold;
-	while(p){
+	while(p != Xnil){
 		o = cdar(p);
 		if(isfwd(o) || Vprot(o))
-			instguard(curaddr(caar(p)), curaddr(cdar(p)));
+			_instguard(g, cons(curaddr(caar(p)), curaddr(cdar(p))));
 		p = cdr(p);
 	}
 }
@@ -1105,10 +1125,14 @@ gcdisable()
 }
 
 void
-gcpoll()
+gcpoll(VM *vm)
 {
-	if(!H.disable && H.na >= H.ma)
-		gc(0, 1);
+	static int ingc;
+	if(!H.disable && !ingc && H.na >= H.ma){
+		ingc++;
+		gc(vm);
+		ingc--;
+	}
 }
 
 void
@@ -1248,7 +1272,7 @@ scancard(Seg *s)
 	else error.
 */
 void
-gc(u32 g, u32 tg)
+_gc(u32 g, u32 tg)
 {
 	u32 i, m;
 	VM **vmp, *vm;
@@ -1383,7 +1407,8 @@ gc(u32 g, u32 tg)
 	kleenescan(tg);
 	if(dbg)printf("re-scanned tg data (after prot)\n");
 
-	updateguards();
+	updateguards(&H.ug);
+	updateguards(&H.sg);
 	if(dbg)printf("did updateguards\n");
 
 	reloc();
@@ -1426,6 +1451,12 @@ gc(u32 g, u32 tg)
 	}
 	H.na = 0;
 	H.ngc++;
+}
+
+void
+gc(VM *vm)
+{
+	dogc(vm, 0, 1);
 }
 
 void*
@@ -1499,31 +1530,43 @@ initmem(u64 gcrate)
 		H.ma = gcrate;
 	else
 		H.ma = GCthresh;
+
+	/* we need nil now to initialize the guarded object lists */
+	Xnil = gcprotect(mal(Qnil));
+
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)
 			H.guards[i] = mkguard();
+	for(i = 0; i < Ngen; i++)
+		H.ug.gd[i] = H.sg.gd[i] = (Pair*)Xnil;
 	H.disable = 0;
 }
 
 void
 finimem()
 {
-	u32 i;
+	u32 i, n;
 	Seg *s;
-	gc(Ngen-1, Ngen-1);  // hopefully free all outstanding objects
+
+	_gc(Ngen-1, Ngen-1);  // hopefully free all outstanding objects
 	for(i = 0; i < Qnkind; i++)
 		H.guards[i] = 0;
-	gc(Ngen-1, Ngen-1);  // hopefully free the guardians
+	_gc(Ngen-1, Ngen-1);  // hopefully free the guardians
 	s = H.prot.h;
+	n = 0;
 	while(s){
-		if(s->nprotect)
-			printf("segment %p has %u protected objects!\n",
-			       s, s->nprotect);
+		n += s->nprotect;
 		s = s->link;
 	}
+	
+	/* FIXME: we have not freed or unprotected Xnil */
+	if(n != 1)
+		printf("finimem: %u protected objects (expected 1)!\n", n);
+
 	for(i = 0; i < Ngen; i++){
 		mfree(&H.code[i]);
 		mfree(&H.data[i]);
 	}
+	mfree(&H.prot);
 	freeht(segtab);
 }

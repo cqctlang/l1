@@ -83,7 +83,7 @@ Val Xnil;
 Val Xnulllist;
 static Dom *litdom;
 static Tab *finals;
-static Closure *halt;
+static Closure *halt, *nop;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
 VM *vms[Maxvms];
@@ -1450,16 +1450,15 @@ envbind(Env *env, char *id, Val val)
 	*v = val;
 }
 
-static int
-envlookup(Env *env, char *id, Val *val)
+static Val
+envlookup(Env *env, char *id)
 {
 	Val *v;
 
 	v = envgetbind(env, id);
 	if(Vkind(*v) == Qundef)
 		return 0;
-	*val = *v;
-	return 1;
+	return *v;
 }
 
 static void
@@ -4574,7 +4573,8 @@ Fd*
 vmstdout(VM *vm)
 {
 	Val v;
-	if(!envlookup(vm->top->env, "stdout", &v))
+	v = envlookup(vm->top->env, "stdout");
+	if(v == 0)
 		vmerr(vm, "stdout is undefined");
 	if(Vkind(v) != Qfd)
 		vmerr(vm, "stdout not bound to a file descriptor");
@@ -4594,6 +4594,25 @@ safedovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	poperror(vm);
 	gcenable();
 	return rv;
+}
+
+static void
+vmwatch(VM *vm)
+{
+}
+
+void
+dogc(VM *vm, u32 g, u32 tg)
+{
+	Val v;
+	_gc(g, tg);
+	v = cqctenvlook(vm->top, "postgc");
+	if(v && Vkind(v) == Qcl){
+		vmpush(vm, vm->ac);
+		dovm(vm, valcl(v), 0, 0);
+		vm->ac = vm->stack[vm->sp];
+		vmpop(vm, 1);
+	}
 }
 
 Val
@@ -4681,6 +4700,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 
 	while(1){
 		i = &vm->ibuf[vm->pc++];
+		vmwatch(vm);
 		tick++;
 		NEXTLABEL(i){
 		LABEL Inop:
@@ -4783,7 +4803,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			vmpop(vm, 3);
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
-			gcpoll();
+			gcpoll(vm);
 			continue;
 		LABEL Ijmp:
 			vm->pc = i->dstlabel->insn;
@@ -5335,7 +5355,8 @@ l1_myrootns(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(argc);
 	USED(argv);
 	r = myroot();
-	if(!envlookup(vm->top->env, r, rv))
+	*rv = envlookup(vm->top->env, r);
+	if(*rv == 0)
 		vmerr(vm, "my root name space is undefined: %s", r);
 }
 
@@ -8147,6 +8168,32 @@ l1_null(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_setcar(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Pair *p;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to setcar");
+	checkarg(vm, "setcar", argv, 0, Qpair);
+	gcwb(argv[0]);
+	p = valpair(argv[0]);
+	p->car = argv[1];
+}
+
+static void
+l1_setcdr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Pair *p;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to setcdr");
+	checkarg(vm, "setcar", argv, 0, Qpair);
+	gcwb(argv[0]);
+	p = valpair(argv[0]);
+	p->cdr = argv[1];
+}
+
+static void
 l1_car(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Pair *p;
@@ -8729,11 +8776,11 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *g, *tg;
 	if(argc == 0)
-		gc(0, 1);
+		gc(vm);
 	else if(argc == 1){
 		checkarg(vm, "gc", argv, 0, Qcval);
 		g = valcval(argv[0]);
-		gc((u32)g->val, (u32)g->val+1);
+		dogc(vm, (u32)g->val, (u32)g->val+1);
 	}else if(argc == 2){
 		checkarg(vm, "gc", argv, 0, Qcval);
 		checkarg(vm, "gc", argv, 1, Qcval);
@@ -8741,7 +8788,7 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 		tg = valcval(argv[1]);
 		if(g->val != tg->val && g->val != tg->val-1)
 			vmerr(vm, "invalid arguments to gc");
-		gc((u32)g->val, (u32)tg->val);
+		dogc(vm, (u32)g->val, (u32)tg->val);
 	}else
 		vmerr(vm, "wrong number of arguments to gc");
 }
@@ -8760,6 +8807,18 @@ l1_gcunprotect(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to gcunprotect");
 	gcunprotect(argv[0]);
+}
+
+static void
+l1_instguard(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Pair *p;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to instguard");
+	checkarg(vm, "instguard", argv, 0, Qpair);
+	p = valpair(argv[0]);
+	/* FIXME: we trust that cdr(p) is a valid guardian tconc */
+	instguard(p);
 }
 
 static void
@@ -9270,6 +9329,7 @@ mktopenv(void)
 	env = mkenv();
 
 	builtinfn(env, "halt", halt);
+	builtinfn(env, "nop", nop);
 	builtinfn(env, "callcc", callcc());
 
 	FN(apply);
@@ -9314,6 +9374,7 @@ mktopenv(void)
 	FN(gcunprotect);
 	FN(getbytes);
 	FN(index);
+	FN(instguard);  // FIXME: make system routine
 	FN(isalnum);
 	FN(isalpha);
 	FN(isarray);
@@ -9442,6 +9503,8 @@ mktopenv(void)
 	FN(rdsettab);
 	FN(resettop);
 	FN(rettype);
+	FN(setcar);
+	FN(setcdr);
 	FN(setloadpath);
 	FN(sort);
 	FN(split);
@@ -9493,6 +9556,7 @@ mktopenv(void)
 	builtinns(env, "clp64be", mkrootns(&clp64be));
 	builtincval(env, "NULL", cvalnull);
 	builtinnil(env, "$$");
+	builtinval(env, "postgc", envlookup(env, "nop"));
 
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
@@ -9505,6 +9569,8 @@ VM*
 cqctmkvm(Toplevel *top)
 {
 	VM *vm, **vmp;
+	Val rv;
+	int ob;
 
 	vm = emalloc(sizeof(VM));
 	vm->top = top;
@@ -9522,6 +9588,13 @@ cqctmkvm(Toplevel *top)
 	}
 	*vmp = vm;
 	nvms++;
+
+	/* call prelude without -b (to avoid cluttering tests) */
+	ob = cqctflags['b'];
+	cqctflags['b'] = 0;
+	cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
+	cqctflags['b'] = ob;
+	resetlabels();
 
 	/* vm is now callable */
 	return vm;
@@ -9563,7 +9636,6 @@ void
 initvm(int gcthread, u64 heapmax)
 {
 	Xundef = gcprotect(mal(Qundef));
-	Xnil = gcprotect(mal(Qnil));
 	Xnulllist = gcprotect(mal(Qnull));
 	cccode = gcprotect(callccode());
 	kcode = gcprotect(contcode());
@@ -9574,6 +9646,7 @@ initvm(int gcthread, u64 heapmax)
 	cval1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], 1));
 	cvalminus1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], -1));
 	halt = gcprotect(haltthunk());
+	nop = gcprotect(nopthunk());
 	cqctfaulthook(vmfaulthook, 1);
 	GCiterdone = emalloc(1); /* unique pointer */
 }
@@ -9582,7 +9655,6 @@ void
 finivm(void)
 {
 	gcunprotect(Xundef);
-	gcunprotect(Xnil);
 	gcunprotect(Xnulllist);
 	gcunprotect(cccode);
 	gcunprotect(kcode);
@@ -9593,6 +9665,7 @@ finivm(void)
 	gcunprotect(cval1);
 	gcunprotect(cvalminus1);
 	gcunprotect(halt);
+	gcunprotect(nop);
 	cqctfaulthook(vmfaulthook, 0);
 	efree(GCiterdone);
 }

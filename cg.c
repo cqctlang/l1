@@ -100,12 +100,19 @@ freelabel(Ctl *ctl)
 	efree(ctl);
 }
 
+static unsigned labelseed = 0;
+
+void
+resetlabels()
+{
+	labelseed = 0;
+}
+
 static Ctl*
 genlabel(Code *code, char *s)
 {
 	Ctl *ctl;
 	static char buf[32];
-	static unsigned labelseed = 0;
 
 	ctl = mklabel(code);
 	ctl->ckind = Clabel;
@@ -1465,6 +1472,30 @@ haltthunk(void)
 	emitlabel(L, 0);
 	i = nextinsn(code, 0);
 	i->kind = Ihalt;
+	setreloc(code);
+
+	return cl;
+}
+
+Closure*
+nopthunk(void)
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+	Closure *cl;
+
+	code = mkcode();
+	L = genlabel(code, "$nop");
+	cl = mkcl(code, code->ninsn, 0, L->label);
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code, 0);
+	i->kind = Imov;
+	randnil(&i->op1);
+	randloc(&i->dst, AC);
+	i = nextinsn(code, 0);
+	i->kind = Iret;
 	setreloc(code);
 
 	return cl;
