@@ -15,6 +15,7 @@ enum
 	Segmask = ~(Segsize-1),
 	GCthresh = 10*1024*Segsize,
 //	GCthresh = Segsize,
+	GCradix = 4,
 };
 
 typedef
@@ -23,6 +24,7 @@ enum
 	G0,
 	G1,
 	G2,
+	G3,
 	Ngen,
 	Gprot,
 	Gfrom,
@@ -95,6 +97,7 @@ struct Heap
 	u64 ngc;		/* number of gcs */
 	u64 nseg;		/* number of segments */
 	unsigned disable;
+	u32 gctrip, gcsched[Ngen];
 } Heap;
 
 static int freecl(Head*);
@@ -1288,7 +1291,7 @@ _gc(u32 g, u32 tg)
 	H.g = g;
 	H.tg = tg;
 
-	if(dbg)printf("\ngc\n");
+	if(dbg)printf("gc(%u,%u)\n", g, tg);
 	mclr(&fr);
 	fr.gen = Gfrom;
 	for(i = 0; i <= g; i++){
@@ -1456,7 +1459,21 @@ _gc(u32 g, u32 tg)
 void
 gc(VM *vm)
 {
-	dogc(vm, 0, 1);
+	int i;
+	u32 g, tg;
+
+	H.gctrip++;
+	for(i = Ngen-1; i >= 0; i--)
+		if(H.gctrip%H.gcsched[i] == 0){
+			g = i;
+			break;
+		}
+	if(g == Ngen-1)
+		tg = g;
+	else
+		tg = g+1;
+	
+	dogc(vm, g, tg);
 }
 
 void*
@@ -1515,11 +1532,15 @@ void
 initmem(u64 gcrate)
 {
 	u32 i;
+	u32 gr;
 
 	segtab = mkhtp();
+	gr = 1;
 	for(i = 0; i < Ngen; i++){
 		H.code[i].gen = i;
 		H.data[i].gen = i;
+		H.gcsched[i] = gr;
+		gr *= GCradix;
 	}
 	H.d = minit(&H.data[0], mkseg(Mdata));
 	H.c = minit(&H.code[0], mkseg(Mcode));
