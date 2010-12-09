@@ -557,6 +557,7 @@ ctlmux = @names clp64le {
 	trapdel,
 	trapreset,
 	unwind,
+	locals,
 	// private
 	state,
 	traps,
@@ -664,7 +665,7 @@ ctlmux = @names clp64le {
 	@local xstop, xcont, xstep, detach, kill, snap;
 	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps, xns;
 	@local trapset, trapdel, trapreset;
-	@local statunix, statwin, unwind;
+	@local statunix, statwin, unwind, locals;
 	@local this;
 
 	@define checkdead()
@@ -810,6 +811,11 @@ ctlmux = @names clp64le {
 		mux.unwind(id, _reg);
 	}
 
+	@define locals(ctx)
+	{
+		return mux.enumloc(id, ctx);
+	}
+
 	@define setreg(r)
 	{
 		_reg = r;
@@ -921,7 +927,7 @@ ctlmux = @names clp64le {
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill, snap,
 		      mem, xns, reg, statunix, statwin,
 		      setreg, trace, traces, xtrap, xsnap,
-		      xtraps, trapdel, trapreset, unwind,
+		      xtraps, trapdel, trapreset, unwind, locals,
 		      // begin private
 		      state, traps, callbacks, nil);
 	return this;
