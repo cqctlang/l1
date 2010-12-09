@@ -527,6 +527,7 @@ ctlmux = @names clp64le {
 	sz,
 	ltype,
 	loc,
+	type,
 };
 
 @record seg {
@@ -2413,8 +2414,9 @@ ctlmux = @names clp64le {
 	@define muxenumloc(id, ctx)
 	{
 		@local p, rep, dat, sz, addr, ss;
-		@local m, i, xid, xerr, xsz, bind, type, val;
+		@local m, i, xid, xerr, xsz, bind, t, val;
 		@local nsid, ltype, xloc;
+		@local tq; /* FIXME: unnecessary in bleed */
 
 		sz = sizeof(ctlmux`Tenumloc);
 		sz += sizeof(ctlmux`uint64); /* id */
@@ -2446,6 +2448,7 @@ ctlmux = @names clp64le {
 		nsid = *q++;
 		m = *q++;
 		for(i = 0; i < m; i++){
+			q = (ctlmux`uint64*)q;
 			sz = *q++;
 			xid = getbytes(q, sz);
 			q = (ctlmux`uint64*)((char*)q+sz);
@@ -2454,7 +2457,10 @@ ctlmux = @names clp64le {
 			ltype = *q++;
 			q = (ctlmux`uint64*)q;
 			xloc = *q++;
-			append(ss, loc(xid, xsz, ltype, xloc));
+			[t,tq] = decodetname(q);
+			q = tq;
+			printf("decoding %d %s %t\n", i, xid, t);
+			append(ss, loc(xid, xsz, ltype, xloc, t));
 		}
 		return ss;
 	}
