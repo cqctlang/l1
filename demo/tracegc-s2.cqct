@@ -1,0 +1,84 @@
+@include "tracegc.cqct"
+
+@define config(dom)
+{
+	@local w, n;
+
+	n = 0;
+
+	rbrk(&dom`mkas,
+	     @lambda(ctl, as){
+		     printf("mkas: %p\n", as);
+		     printstack(getstack(ctl));
+		     w.set(sprintfa("as-%d", n++), as);
+	     });
+
+	if(0)rbrk(&dom`l1_mkas,
+	     @lambda(ctl, vm, argc, argv, rv){
+		     printf("l1_mkas: %p\n", *rv);
+		     printstack(getstack(ctl));
+
+	     });
+
+	brk(&dom`kleenescan,
+	    @lambda(ctl, tg){
+		    if(tg == 3)
+			    printstack(getstack(ctl));
+	    });
+
+	brk(&dom`iteras,
+	    @lambda(ctl, hd, ictx){
+		    @local id, xs, i, lns, ldom, m, s, t;
+		    id = w.rlook(hd);
+		    if(id == nil){
+			    id = "<unknown>";
+			    printf("iteras: %p %s %d\n", hd, id, ictx->n);
+			    printstack(getstack(ctl));
+			    xs = getctxs(ctl);
+			    if(xs == nil)
+				    error("cannot unwind");
+			    lns = ctl.localns(xs[1]);
+			    ldom = mkdom(lns, dom.as);
+			    m = ldom`m;
+			    t = ldom`s;
+			    s = m->h;
+			    i = 0;
+			    while(s){
+				    if(s == t)
+					    break;
+				    i++;
+				    s = s->link;
+			    }
+			    if(s){
+				    printf("found trash in segment %d of %p: %s\n", i, m, fmtseg(s));
+				    printf("s->addr = %p\n", s->addr);
+				    printf("s->scan = %p\n", s->scan);
+				    printf("s->a = %p\n", s->a);
+			    }else
+				    printf("cannot figure out the segment\n");
+		    }else
+			    printf("iteras: %p %s %d\n", hd, id, ictx->n);
+	    });
+
+	w = mkwatch(dom);
+
+	brk(&dom`copyas,
+	    @lambda(ctl, n, o){
+		    @local id;
+		    id = w.rlook(o);
+		    if(id == nil)
+			    return;
+		    printf("copyas %s %s -> %s %s\n",
+			   id,
+			   fmthd(o),
+			   fmthd(n),
+			   fmtseg(lookseg(n)));
+		    w.up(id, n);
+	    });
+
+//	docopywatch(dom, w);
+}
+
+doit(config,
+     [ "/home/vczandy/src/l1/perf/s2.cqct",
+       "/home/vczandy/src/l1/perf/snap0" ]);

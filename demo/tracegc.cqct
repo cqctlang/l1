@@ -109,409 +109,21 @@ dom = nil;
 	return s;
 }
 
-@define trace0(dom)
+@define getlocs(ctl, ctx)
 {
-	@local H, o, s, p, i, m, qs, o, g;
-	H = &dom`H;
-	qs = dom`qs;
-	for(i = 0; i < dom`Ngen; i++){
-		p = (`Head*)H->gd[i];
-		printf("%e guarded objects:\n", (dom`Gen)i);
-		m = 0;
-		while(p){
-			m++;
-			o = caar(p);
-			g = cdar(p);
-			if(o == 0x7ffff7ff4940){
-				printf("%s", fmthd(o));
-				printf(" in %s\n", fmtseg(lookseg(o)));
-			}
-			p = cdr(p);
-		}
-	}
-	p = (`Head*)H->gd[2];
-	if(!p)
-		return;
-	printf("guarded at generation 2:\n");
-	while(p){
-		o = caar(p);
-		s = lookseg(o);
-		printf("\t%p in %s\n", o, fmtseg(s));
-		p = cdr(p);
-	}
+	@local ss;
+	ss = ctl.locals(ctx);
+	if(ss == nil)
+		error("no location information");
+	else
+		foreach(@lambda(id, s){
+				printf("\t%p\t%t\n", symoff(s), s);
+			}, ss);
 }
 
-@define oldconfig(dom)
+@define getctxs(ctl)
 {
-if(0)	dom.xtrap(&dom`hputp,
-		  @lambda(ctl){
-			  @local pd, tab, k, v, regs;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  tab = (`HT*){pd}regs->rdi;
-			  k = (void*){pd}regs->rsi;
-			  v = (`Seg*){pd}regs->rdx;
-			  if(tab != pd`segtab)
-				  return;
-			  printf("hputp %p -> %s\n", k, fmtseg(v));
-		  });
-if(0)	dom.xtrap(&dom`freeseg,
-		  @lambda(ctl){
-			  @local pd, regs, s;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  s = (`Seg*){pd}regs->rdi;
-			  printf("freeseg %s\n", fmtseg(s));
-		  });
-if(0)	dom.xtrap(&dom`minsert,
-		  @lambda(ctl){
-			  @local pd, regs, m, s;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  m = (`M*){pd}regs->rdi;
-			  s = (`Seg*){pd}regs->rsi;
-			  printf("minsert into %e %s\n", m->gen, fmtseg(s));
-		  });
-if(0)	dom.xtrap(&dom`gc,
-		  @lambda(ctl){
-			  @local pd, regs, g, tg;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  g = (`u32){pd}regs->rdi;
-			  tg = (`u32){pd}regs->rsi;
-			  printf("gc(%d,%d)\n", g, tg);
-			  dumpprot(dom);
-		  });
-if(0)	dom.xtrap(&dom`updateguards,
-		  @lambda(ctl){
-			  trace0(dom);
-		  });
-
-if(0)	dom.xtrap(&dom`gcprotect,
-		  @lambda(ctl){
-			  @local pd, regs, v;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  v = (`Head*){pd}regs->rdi;
-			  if(Vkind(v) == dom`Qcl){
-				  v = (`Closure*)v;
-				  printf("gcprotect %s (code %p)\n",
-					 fmthd(v), v->code);
-			  }else if(Vkind(v) == dom`Qcode){
-				  v = (`Code*)v;
-				  printf("gcprotect %s\n", fmthd(v));
-			  }
-		  });
-
-if(0)	dom.xtrap(&dom`freecode,
-		  @lambda(ctl){
-			  @local pd, regs, v;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  v = (`Head*){pd}regs->rdi;
-			  printf("freecode %s\n", fmthd(v));
-		  });
-
-if(0)	dom.xtrap(&dom`copy,
-		  @lambda(ctl){
-			  @local pd, regs, v;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  v = (`Head**){pd}regs->rdi;
-			  v = *v;
-			  if(v == 0)
-				  return;
-			  if((`uint64)v&1)
-				  return;
-			  if(Vkind(v) == dom`Qcode && !Vfwd(v))
-				  printf("maybe copy %s\n", fmthd(v));
-		  });
-
-if(0)	dom.xtrap(&dom`mkcl,
-		  @lambda(ctl){
-			  @local pd, regs, v;
-			  regs = ctl.reg();
-			  pd = mkdom(dom.ns, ctl.mem());
-			  v = (`Head*){pd}regs->rdi;
-			  printf("mkcl %s\n", fmthd(v));
-			  printf("%s\n", fmtstack(ctl, ns));
-		  });
-if(0)	brk(&dom`mkcl,
-	    @lambda(ctl, code, entry, len, id){
-		    printf("mkcl %s\n", fmthd(code));
-		    printf("%s\n", fmtstack(ctl, nsof(code)));
-	    });
-
-if(0)	brk(&dom`freecode,
-	    @lambda(ctl, code){
-		    printf("freecode %s\n", fmthd(code));
-	    });
-
-if(0)	brk(&dom`gc,
-	    @lambda(ctl, g, tg){
-		    printf("gc(%d,%d) entered\n", g, tg);
-		    printf("%s\n", fmtstack(ctl, nsof(g)));
-	    });
-
-if(0)	rbrk(&dom`gc,
-	     @lambda(ctl, g, tg){
-		     printf("gc(%d,%d) returned\n", g, tg);
-		     printf("%s\n", fmtstack(ctl, nsof(g)));
-	     });
-if(0)	brk(&dom`reloc1,
-	    @lambda(ctl, c){
-		    if(Vdead((`Head*)c))
-			    printf("relocating dead code %s!\n", fmthd(c));
-	    });
-
-if(0)	rbrk(&dom`malcode,
-	     @lambda(ctl, h){
-		     printf("malcode %p\n", h);
-		     printf("%s\n", fmtstack(ctl, nsof(h)));
-	     });
-
-{
-	@local tid, once, setmalloc, dumpstack;
-	@local tab, segs;
-	@local nmk, nfr;
-	@local oops;
-	@local live, adj;
-
-	@define reset()
-	{
-		nmk = nfr = 0;
-		tab = [:];
-		segs = [:];
-		oops = [:];
-		adj = 0;
-	}
-
-	live = [:];
-	reset();
-
-	@define getstack(ctl)
-	{
-		@local xs, pcs;
-		xs = ctl.unwind();
-		if(xs == nil){
-			printf("cannot unwind\n");
-			return;
-		}
-		pcs = map(@lambda(x){ x->rip; }, xs);
-		return pcs;
-	}
-
-	@define printstack(pcs)
-	{
-		foreach(@lambda(pc){
-				printf("\t%016p\t\t%y\n",
-				       pc, {dom}pc);
-			}, pcs);
-		printf("\n");
-	}
-
-	@define dumpstack(ctl)
-	{
-		@local pcs;
-		pcs = getstack(ctl);
-		if(tab[pcs] == nil)
-			tab[pcs] = 1;
-		else
-			tab[pcs] += 1;
-		return;
-		foreach(@lambda(x){
-				printf("\t%016p\t\t%y\n",
-				       x->rip,
-				       {dom}x->rip);
-			}, xs);
-		printf("\n");
-	}
-
-	@define summarize()
-	{
-		@local i, q, cnt, lo;
-
-		printf("\n**********\n");
-		if(0)foreach(@lambda(pcs, n) {
-				printf("\t%d times:\n", n);
-				printstack(pcs);
-			}, tab);
-		printf("#mkseg = %u\n", nmk);
-		printf("#freeseg = %u\n", nfr);
-		printf("H.nseg = %u\n", dom`H.nseg);
-		printf("#leftover = %u\n", length(segs));
-		printf("cqctmeminuse = %u\n", dom`cqctmeminuse);
-		printf("segtag->sz = %u\n", dom`segtab->sz);
-		printf("segtag->nent = %u\n", dom`segtab->nent);
-
-		@define cnt(q)
-		{
-			@local n;
-			n = 0;
-			while(q){
-				n++;
-				q = q->link;
-			}
-			return n;
-		}
-
-		for(i = 0; i < dom`Ngen; i++){
-			printf("length(H.data[%u]) = %u\n", i,
-			       cnt(dom`H.data[i].h));
-			printf("length(H.code[%u]) = %u\n", i,
-			       cnt(dom`H.code[i].h));
-		}
-		printf("**********\n");
-		return;
-
-
-		if(0)foreach(@lambda(seg, pcs){
-				printf("\tsegment %p leftover\n", seg);
-				printstack(pcs);
-			}, segs);
-
-
-		@define checklost(q)
-		{
-			while(q){
-				tabdelete(segs, q);
-				q = q->link;
-			}
-		}
-
-		@define invert(t)
-		{
-			@local inv;
-			inv = [:];
-			foreach(@lambda(k, v){
-					if(inv[v] == nil)
-						inv[v] = 1;
-					else
-						inv[v]++;
-				}, t);
-			return inv;
-		}
-
-		@define dumpstackhist(pref, t)
-		{
-			foreach(@lambda(pcs, n){
-					printf("%u %s\n", n, pref);
-					printstack(pcs);
-				}, t);
-		}
-
-		dumpstackhist("unfreed allocations made from:",
-			      invert(live));
-		printf("%d bytes of realloc adjustments\n", adj);
-
-		if(0){
-			for(i = 0; i < dom`Ngen; i++){
-				checklost(dom`H.data[i].h);
-				checklost(dom`H.code[i].h);
-			}
-
-			lo = [:];
-			foreach(@lambda(seg, pcs){
-					if(lo[pcs] == nil)
-						lo[pcs] = 1;
-					else
-						lo[pcs]++;
-				}, segs);
-			foreach(@lambda(pcs, n){
-					printf("\t%d segments lost from:\n", n);
-					printstack(pcs);
-				}, lo);
-		}
-		if(0){
-			printf("oops:\n");
-			foreach(@lambda(pcs, n){
-					printf("\t%d oops\n", n);
-					printstack(pcs);
-				}, oops);
-		}
-		reset();
-	}
-
-	brk(&dom`l1_meminuse, @lambda(args ...){ summarize(); });
-	if(0)brk(&dom`minit,
-	    @lambda(ctl, m, s){
-		    if(m->h != 0){
-			    @local pcs;
-			    pcs = getstack(ctl);
-			    if(oops[pcs] == nil)
-				    oops[pcs] = 1;
-			    else
-				    oops[pcs]++;
-		    }
-	    });
-
-	once = 0;
-	@define setmalloc()
-	{
-		rbrk(&dom`emalloc,
-		     @lambda(ctl, p, sz){
-			     live[p] = slice(getstack(ctl), 0, 2);
-		     });
-	}
-
-	@define setfree()
-	{
-		brk(&dom`efree,
-		    @lambda(ctl, p){
-			    tabdelete(live, p);
-		    });
-	}
-
-	@define setrealloc()
-	{
-		rbrk(&dom`erealloc,
-		     @lambda(ctl, newp, oldp, oldsz, newsz){
-			     @local s;
-			     s = live[oldp];
-			     if(s != nil){
-				     tabdelete(live, oldp);
-				     live[newp] = s;
-			     }
-			     adj += newsz-oldsz;
-			     printstack(getstack(ctl));
-		     });
-	}
-
-	if(0)rbrk(&dom`mkseg,
-	     @lambda(ctl, s, type){
-		     nmk++;
-		     segs[s] = getstack(ctl);
-	     });
-
-	if(0)brk(&dom`freeseg,
-	    @lambda(ctl, s){
-		    nfr++;
-		    if(segs[s] != nil)
-			    tabdelete(segs, s);
-		    else{
-			    printf("unregistered segment %p\n", s);
-			    printstack(getstack(ctl));
-		    }
-	    });
-			    
-	if(0)brk(&dom`gc,
-	    @lambda(ctl, g, tg){
-//			 printf("gc(%d,%d) entered!\n", g, tg);
-			 if(!once){
-				 setmalloc();
-				 setfree();
-				 setrealloc();
-				 once = 1;
-			 }
-	    });
-	if(0)rbrk(&dom`gc,
-	     @lambda(ctl, g, tg){
-		     printf("gc(%d,%d) returned\n", g, tg);
-		     printf("deleting %a\n", tid);
-		     ctl.trapdel(tid);
-		     printf("did delete\n");
-	     });
-}
+	return ctl.unwind();
 }
 
 @define getstack(ctl)
@@ -535,149 +147,152 @@ if(0)	rbrk(&dom`malcode,
 	printf("\n");
 }
 
-@define config(dom)
+@define addr2line(code, pc)
 {
-	@local dumpcl, watch, rwatch;
+	if(pc >= code->ninsn)
+		error("bad pc %d", pc);
+	return code->insn[pc].src;
+}
 
-	watch = [:];
-	rwatch = [:];
+@define printsrc(cl, pc)
+{
+	@local code, src, fn;
 
-	@define setwatch(id, a)
-	{
-		watch[id] = (`Head*){dom}a;
-		rwatch[(`Head*){dom}a] = id;
+	code = cl->code;
+	if(cl->cfn || cl->ccl){
+		printf("%20s\t(builtin %s)\n", cl->id,
+		       cl->cfn ? "function" : "closure");
+		return;
 	}
 
-	@define clrwatch(id)
-	{
-		tabdelete(rwatch, watch[id]);
-		tabdelete(watch, id);
+	src = addr2line(code, pc);
+	if(src == 0){
+		printf("%20s\t(no source information)\n", cl->id);
+		return;
 	}
+	fn = src->filename;
+	if(fn == 0)
+		fn = "<stdin>";
+	printf("%20s\t(%s:%u)\n", cl->id, fn, src->line);
+}
 
-	@define upwatch(id, a)
-	{
-		clrwatch(id);
-		setwatch(id, a);
-	}
+@define stkimm(v)
+{
+	@local imm;
+	imm = (`Imm)(`uintptr_t)v;
+	if((imm&1) != 1)
+		error("stkimm on non-imm");
+	imm >>= 1;
+	return imm;
+}
 
-	@define lookwatch(id)
-	{
-		return watch[id];
-	}
+@define vmbacktrace(vm)
+{
+	@local pc, fp, narg, cl;
 
-	@define lookrwatch(a)
-	{
-		return rwatch[(`Head*){dom}a];
-	}
-
-
-	@define dumpcl(cl)
-	{
-		@local i, p;
-		cl = (`Closure*)cl;
-		printf("\tcl->dlen = %d\n", cl->dlen);
-		for(i = 0; i < cl->dlen; i++){
-			p = cl->display[i];
-			if(Vkind(p) == dom`Qbox){
-				p = (`Box*)p;
-//				printf("\t[%u] = %s -> %s\n",
-//				       i,
-//				       fmthd(p),
-//				       fmthd(p->v));
-				printf("\t[%u] = %s\n", i, fmthd(p));
-			}else{
-				printf("\t[%u] = %s\n",
-				       i,
-				       fmthd(p));
-			}
+	pc = vm->pc-1;		/* vm loop increments pc after fetch */
+	fp = vm->fp;
+	cl = vm->clx;
+	while(fp != 0){
+		if(cl->id != "$halt"){
+			printf("fp=%05lld pc=%08lld ", fp, pc);
+			printsrc(cl, pc);
 		}
-		printf("\n");
+		narg = stkimm(vm->stack[fp]);
+		pc = stkimm(vm->stack[fp+narg+1]);
+		pc--; /* pc was insn following call */
+		cl = (`Closure*)(vm->stack[fp+narg+2]);
+		fp = stkimm(vm->stack[fp+narg+3]);
 	}
+}
 
-	@define watchcl(cl)
+@define fmtsrc(cl, pc)
+{
+	@local code, src, fn;
+
+	code = cl->code;
+	if(cl->cfn || cl->ccl)
+		return sprintfa("%20s\t(builtin %s)\n", cl->id,
+				cl->cfn ? "function" : "closure");
+
+	src = addr2line(code, pc);
+	if(src == 0)
+		return sprintfa("%20s\t(no source information)\n", cl->id);
+	
+	fn = src->filename;
+	if(fn == 0)
+		fn = "<stdin>";
+	return sprintfa("%20s\t(%s:%u)\n", cl->id, fn, src->line);
+}
+
+@define vmstack(vm)
+{
+	@local pc, fp, narg, cl, s;
+
+	s = "";
+	pc = vm->pc-1;		/* vm loop increments pc after fetch */
+	fp = vm->fp;
+	cl = vm->clx;
+	while(fp != 0){
+		if(cl->id != "$halt")
+			s += sprintfa("fp=%05lld pc=%08lld%s",
+				      fp, pc, fmtsrc(cl, pc));
+		narg = stkimm(vm->stack[fp]);
+		pc = stkimm(vm->stack[fp+narg+1]);
+		pc--; /* pc was insn following call */
+		cl = (`Closure*)(vm->stack[fp+narg+2]);
+		fp = stkimm(vm->stack[fp+narg+3]);
+	}
+	return s;
+}
+
+@record watch { set, clr, up, look, rlook };
+
+@define mkwatch(dom)
+{
+	@local w, rw, set, clr, up, look, rlook;
+
+	w = [:];
+	rw = [:];
+
+	@define set(id, a)
 	{
-		@local i, p;
-		cl = (`Closure*)cl;
-		printf("\tcl->dlen = %d\n", cl->dlen);
-		for(i = 0; i < cl->dlen; i++){
-			p = cl->display[i];
-			if(Vkind(p) == dom`Qbox){
-				p = (`Box*)p;
-				setwatch(sprintfa("cl-disp-%u", i), p);
-//				printf("\t[%u] = %s -> %s\n",
-//				       i,
-//				       fmthd(p),
-//				       fmthd(p->v));
-				printf("\t[%u] = %s\n", i, fmthd(p));
-			}else{
-				printf("\t[%u] = %s\n",
-				       i,
-				       fmthd(p));
-			}
-		}
-		printf("\n");
+		w[id] = (`Head*){dom}a;
+		rw[(`Head*){dom}a] = id;
 	}
 
-	brk(&dom`freeseg,
-	    @lambda(ctl, s){
-		    printf("freeseg %p - %p\n", s->addr, s->e);
-		    foreach(@lambda(id, a){
-				    if(a >= {dom}s->addr & a < {dom}s->e)
-					    printf("freeing live object %s!\n",
-						   id);
-			    }, watch);
-	    });
+	@define clr(id)
+	{
+		tabdelete(rw, w[id]);
+		tabdelete(w, id);
+	}
 
-	rbrk(&dom`mkseg,
-	     @lambda(ctl, s, kind){
-		     printf("mkseg %p - %p\n", s->addr, s->e);
-	     });
+	@define up(id, a)
+	{
+		clr(id);
+		set(id, a);
+	}
 
-	brbrk(&dom`gc,
-	     @lambda(ctl, g, tg){
-		     if(dom`vms[0] == 0)
-			     return nil;
-		     if(lookwatch("thecl") == nil)
-			     return nil;
-		     printf("enter gc(%u,%u)\n", g, tg);
-		     return @lambda(ctl, t, gc){
-			     printf("after gc(%u,%u):\n", g, tg);
-			     printf("\tthecl = %s\n",
-				    fmthd(lookwatch("thecl")));
-		     };
-	     });
+	@define look(id)
+	{
+		return w[id];
+	}
 
-	rbrk(&dom`l1_cons,
-	     @lambda(ctl, vm, argc, argv, rv){
-		     setwatch("thecons", *rv);
-		     printf("l1_cons returned -> %s\n",
-			    fmthd(lookwatch("thecons")));
-		     rbrk(&dom`mkcl,
-			  @lambda(ctl, cl, code, insn, len, label){
-				  setwatch("thecl", cl);
-				  printf("\n leave mkcl (len = %u, cl = %s)\n",
-					 len, fmthd(cl));
-				  printstack(getstack(ctl));
-				  rbrk(&dom`itercl,
-				       @lambda(ctl, v, hd, ictx){
-					       if({dom}hd != lookwatch("thecl"))
-						       return;
-					       printf("itercl on thecl -> %s\n",
-						      fmthd(*v));
-				      });
-			 });
+	@define rlook(a)
+	{
+		return rw[(`Head*){dom}a];
+	}
 
-		     rbrk(&dom`xclo,
-			 @lambda(ctl, vm, dl, label, dst){
-				 printf("leave xclo\n");
-				 watchcl(lookwatch("thecl"));
-			 });
-	     });
+	return watch(set, clr, up, look, rlook);
+}
 
-	brbrk(&dom`copy,
+@define docopywatch(dom, w)
+{
+	return brbrk(&dom`copy,
 	      @lambda(ctl, v){
 		      @local id, s;
-		      id = lookrwatch(*v);
+		      id = w.rlook(*v);
+		      printf("copy %p\n", *v);
 		      if(id == nil)
 			      return nil;
 		      printf(" enter copy on %s: %s\n", id, fmthd(*v));
@@ -685,42 +300,27 @@ if(0)	rbrk(&dom`malcode,
 			      printf("  object is in %s\n",
 				     fmtseg(lookseg(*v)));
 		      return @lambda(ctl, v){
-			      printf("return copy on %s: %s\n", id, fmthd(*v));
-			      upwatch(id, *v);
+			      printf("return copy on %s: %s %s\n",
+				     id, fmthd(*v), fmtseg(lookseg(*v)));
+			      w.up(id, *v);
 		      };
 	      });
 }
 
-@define trace1(dom)
-{
-	@local H, o, s, p, i, m, qs;
-	H = &dom`H;
-	s = H->data[0].h;
-	while(s){
-		printf("\t%s\n", fmtseg(s));		
-		s = s->link;
-	}
-}
-
-@define doit(args)
+@define doit(config, args)
 {
 	@local mux, as, e, nexec, xns;
 
 	nexec = 0;
 	npop = 0;
-//	e = sprintfa("@names clp64le { @include \"%s\" };", l1names);
-//	ns = eval(e);
 	mux = mkctlmux_local();
 	push(args, l1);
 	ctl = mux.launch(args, 0);
 	as = ctl.mem();
 	ns = ctl.ns();
-	if(isns(ns))
-		printf("got namespace %a!\n", ns);
-	else
-		error("hmmf.  no namespace! (got %a)\n", ns);
+	if(!isns(ns))
+		error("no namespace (got %a)\n", ns);
 	dom = mkdom(ns, as);
-	
 	config(dom);
 	dom.trace(ctlmux`Esignal,
 		  @lambda(ctl, sig){
@@ -733,5 +333,3 @@ if(0)	rbrk(&dom`malcode,
 	dom.xcont();
 	mux.run();
 }
-
-doit([ "-o", args[1] ]);
