@@ -558,6 +558,7 @@ ctlmux = @names clp64le {
 	trapdel,
 	trapreset,
 	unwind,
+	localns,
 	locals,
 	// private
 	state,
@@ -666,8 +667,8 @@ ctlmux = @names clp64le {
 	@local xstop, xcont, xstep, detach, kill, snap;
 	@local mem, reg, setreg, trace, traces, xtrap, xsnap, xtraps, xns;
 	@local trapset, trapdel, trapreset;
-	@local statunix, statwin, unwind, locals;
-	@local this;
+	@local statunix, statwin, unwind, localns, locals;
+	@local this, thisns;
 
 	@define checkdead()
 	{
@@ -812,9 +813,70 @@ ctlmux = @names clp64le {
 		mux.unwind(id, _reg);
 	}
 
+	@define localns(ctx)
+	{
+		@local lt, ls, et, es, la, ns;
+		@local sym;
+
+		sym = locals(ctx);
+		if(sym == nil)
+			return nil;
+		ns = xns();
+
+		@define lt(this, tn)
+		{
+			return ns.looktype(tn);
+		}
+
+		@define et(this)
+		{
+			return ns.enumtype();
+		}
+
+		@define ls(this, name)
+		{
+			@local s;
+			s = sym[name];
+			if(s != nil)
+				return s;
+			return ns.looksym(name);
+		}
+		
+		@define es(this)
+		{
+			@local ss;
+			ss = ns.enumsym();
+			foreach(@lambda(id, s){
+					ss[id] = s;
+				}, sym);
+			return ss;
+		}
+
+		@define la(this, a)
+		{
+			/* locals are not code, so just go to ns */
+			return ns.la(a);
+		}
+
+		return mkns([ "looktype" : lt,
+			      "enumtype" : et,
+			      "looksym"  : ls,
+			      "enumsym"  : es,
+			      "lookaddr" : la ]);
+	}
+
 	@define locals(ctx)
 	{
-		return mux.enumloc(id, ctx);
+		@local ns, sym;
+
+		sym = [:];
+		ns = xns();
+		foreach(@lambda(s){
+				sym[s.id] = mksym(looktype(ns, s.type),
+						  s.id,
+						  s.loc);
+			}, mux.enumloc(id, ctx));
+		return sym;
 	}
 
 	@define setreg(r)
@@ -831,14 +893,18 @@ ctlmux = @names clp64le {
 	@define xns()
 	{
 		@local st, id;
+		if(thisns != nil)
+			return thisns;
 		st = mux.statunix(this);
 		id = nil;
 		foreach(@lambda(dll){
 				if(dll.base == 0)
 					id = dll.id;
 			}, st[1]);
-		if(id != nil)
-			return mux.nsinit(id);
+		if(id != nil){
+			thisns = mux.nsinit(id);
+			return thisns;
+		}
 		return nil;
 	}
 
@@ -925,10 +991,11 @@ ctlmux = @names clp64le {
 			    ]);
 	}
 
+	thisns = nil;
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill, snap,
 		      mem, xns, reg, statunix, statwin,
 		      setreg, trace, traces, xtrap, xsnap,
-		      xtraps, trapdel, trapreset, unwind, locals,
+		      xtraps, trapdel, trapreset, unwind, localns, locals,
 		      // begin private
 		      state, traps, callbacks, nil);
 	return this;
@@ -2459,7 +2526,6 @@ ctlmux = @names clp64le {
 			xloc = *q++;
 			[t,tq] = decodetname(q);
 			q = tq;
-			printf("decoding %d %s %t\n", i, xid, t);
 			append(ss, loc(xid, xsz, ltype, xloc, t));
 		}
 		return ss;

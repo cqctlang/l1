@@ -20,11 +20,17 @@
 					 {dom}regs->rip);
 				  return;
 			  }
+			  printf("mux.enumloc():\n");
 			  foreach(@lambda(l){
 					  printf("\t%s\t%6d\t0x%p\n",
 						 l.id,
 						 l.sz,
 						 l.loc);
+				  }, ss);
+			  ss = ctl.locals(ctl.reg());
+			  printf("ctl.locals():\n");
+			  foreach(@lambda(id, s){
+					  printf("\t%p\t%t\n", symoff(s), s);
 				  }, ss);
 		  });
 	dom.xcont();

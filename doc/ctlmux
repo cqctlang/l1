@@ -214,6 +214,22 @@ ctl.xtraps() (UNIMPLEMENTED)
 	the address of the trap, followed by the handler.
 
 
+ctl.ns()
+
+	return a name space for the executable
+	associated with ctl.
+
+ctl.locals(ctx)
+
+	return a list of symbols that are local variables
+	at the execution context CTX.
+
+ctl.localns(ctx)
+
+	return a new name space that shadows the name space
+	returned by NS with the symbols returned by LOCALS.
+
+
 Inheritance
 -----------
 
