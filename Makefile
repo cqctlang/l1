@@ -18,7 +18,7 @@ export V
 
 all: $(TARG)
 
-MACH = gcc.x86.c
+MACH =
 HDR = sys.h util.h cqct.h syscqct.h
 L1C =\
 	lex.yy.c\

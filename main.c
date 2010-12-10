@@ -373,15 +373,6 @@ memusage(struct memusage *mu)
 	return 0;
 }
 
-static uint64_t
-rdtsc()
-{
-	uint32_t hi, lo;
-	asm("rdtsc" : "=a"(lo), "=d"(hi));
-	return (uint64_t)lo|((uint64_t)hi<<32);
-}
-
-
 int
 main(int argc, char *argv[])
 {
@@ -389,7 +380,6 @@ main(int argc, char *argv[])
 	char *filename;
 	int c;
 	struct timeval beg, end;
-	uint64_t bt, et;
 	int dorepl;
 	char opt[256];
 	char *inbuf, *s;
@@ -543,10 +533,8 @@ main(int argc, char *argv[])
 			}
 		}
 
-		if(opt['t']){
+		if(opt['t'])
 			gettimeofday(&beg, 0);
-			bt = rdtsc();
-		}
 		entry = cqctcompile(inbuf, filename, top, ename ? 0 : argsid);
 		free(inbuf);
 		if(entry == 0)
@@ -565,13 +553,11 @@ main(int argc, char *argv[])
 			rv = cqctcallfn(vm, fn, valc, valv, &v);
 		}
 		if(opt['t']){
-			et = rdtsc();
 			gettimeofday(&end, 0);
 			tvdiff(&end, &beg, &end);
 			usec = 1000000*end.tv_sec+end.tv_usec;
 			if(dorepl){
 				printf("%" PRIu64 " usec", usec);
-				printf("\t%" PRIu64 " cycles", et-bt);
 				if(0 == memusage(&mu))
 					printf("\t%10" PRIu64 "K vm  "
 					       "%10" PRIu64 "K rss",
@@ -599,7 +585,6 @@ main(int argc, char *argv[])
 
 	if(opt['t'] && !dorepl){
 		printf("%" PRIu64 " usec", usec);
-		printf("\t%" PRIu64 " cycles", et-bt);
 		if(0 == memusage(&mu))
 			printf("\t%10" PRIu64 "K vm  "
 			       "%10" PRIu64 "K rss",

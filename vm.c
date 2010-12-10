@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
-#include "x86.h"
 
 char *qname[Qnkind] = {
 	[Qundef]=	"undefined",
