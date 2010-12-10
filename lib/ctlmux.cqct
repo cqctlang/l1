@@ -1037,8 +1037,8 @@ ctlmux = @names clp64le {
 @define mkctlmux_local()
 {
 	@local fds, fd;
-//	fds = popen("mygrind", "prctl", "-c", 2|4|8);
-	fds = popen("prctl", "-c", 2|4|8);
+//	fds = popen("mygrind", "sctl", "-c", 2|4|8);
+	fds = popen("sctl", "-c", 2|4|8);
 	fd = fds[0];
 	finalize(fd, @lambda(fd) { close(fd); });
 	return mkctlmux(fds[0]);
@@ -1495,7 +1495,7 @@ ctlmux = @names clp64le {
 				error("runtil: nothing to do");
 			s = read(fd, sizeof(ctlmux`uint64));
 			if(s == nil)
-				error("remote prctl hung up");
+				error("remote sctl hung up");
 			sz = *(ctlmux`uint64*)s;
 			p = read(fd, sz);
 			msg = buf2msg(p);
@@ -2656,7 +2656,7 @@ ctlmux = @names clp64le {
 	{
 		@local p, rep, dat, sz, version, os, s;
 
-		version = "prctl-2010:x86-linux-2010,x86-win-2010";
+		version = "sctl-2010:x86-linux-2010,x86-win-2010";
 
 		sz = sizeof(ctlmux`Tversion)+strlen(version);
 		p = (ctlmux`Tversion*)malloc(sz);
@@ -2669,7 +2669,7 @@ ctlmux = @names clp64le {
 		checkreply(rep, ctlmux`Rversion);
 		s = split(dat, ":");
 		if(length(s) != 2)
-			error("unknown remote prctl version: %s", dat);
+			error("unknown remote sctl version: %s", dat);
 		os = s[1];
 		os = substr(os, 0, strlen(os)); /* chop NUL */
 		osversion = os;
