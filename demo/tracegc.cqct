@@ -1,7 +1,6 @@
 @include <ctlmux.cqct>
 
 l1 = "../../l1/l1";
-l1names = l1+".names";
 ns = nil;
 dom = nil;
 
@@ -91,6 +90,9 @@ dom = nil;
 	if(s->gen == dom`Gprot)
 		r += sprintfa("(%u)", s->nprotect);
 	r += sprintfa(" %p-%p", s->addr, s->e);
+	if(s->card != dom`Clean)
+		r += sprintfa(" [%e]", (dom`Gen)s->card);
+	return r;
 }
 
 @define fmthd(h)
