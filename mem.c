@@ -29,6 +29,8 @@ enum
 	Gprot,
 	Gfrom,
 	Gjunk,
+	Clean=0xff,
+	Dirty=0x00,
 } Gen;
 
 typedef struct Seg Seg;
@@ -625,6 +627,7 @@ mkseg(Mkind kind)
 	s->a = s->scan = s->addr;
 	s->e = s->addr+Segsize;
 	s->kind = kind;
+	s->card = Clean;
 	hputp(segtab, s->addr, s);
 	H.na += Segsize;
 	H.ta += Segsize;
@@ -838,7 +841,7 @@ curaddr(Val v)
 	return v;
 }
 
-static void
+static u8
 copy(Val *v)
 {
 	Head *h;
@@ -849,24 +852,33 @@ copy(Val *v)
 
 	h = *v;
 	if(h == 0)
-		return;
+		return Clean;
 	if((uintptr_t)h&1)
-		return; // stack immediate
+		return Clean; // stack immediate
 	if(Vfwd(h)){
 		if(dbg)printf("copy: read fwd %p -> %p\n",
 			      h, (void*)Vfwdaddr(h));
 		*v = Vfwdaddr(h);
-		return;
+		/* it may have been moved to an older
+		   generation.  so we check, in order
+		   that we might get a more accurate
+		   dirty card for the segment
+		   containing V (and thus maybe fewer
+		   scans later).  but (FIXME) it might
+		   cost more to look up the
+		   generation. */
+		s = lookseg(*v);
+		return s->gen;
 	}
 	if(Vprot(h)){
 		if(dbg)printf("copy: object %p is protected\n", h);
-		return; // protected objects do not move
+		return Gprot; // protected objects do not move
 	}
 	s = lookseg(h);
 	if(s->gen != Gfrom){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
-		return; // objects in older generations do not move
+		return s->gen; // objects in older generations do not move
 	}
 	sz = qs[Vkind(h)].sz;
 	if(Vkind(h) == Qcode)
@@ -882,17 +894,20 @@ copy(Val *v)
 	if(dbg)printf("set fwd %p -> %p %p (%d)\n",
 		    h, Vfwdaddr(h), nh, (int)Vfwd(h));
 	*v = nh;
+	return H.tg;
 }
 
-static void
+static u8
 scan1(Head *h)
 {
 	Ictx ictx;
 	Head **c;
+	u8 min, g;
 	unsigned dbg = alldbg;
 
+	min = Clean;
 	if(qs[Vkind(h)].iter == 0)
-		return;
+		return min;
 	memset(&ictx, 0, sizeof(ictx));
 	while(1){
 		c = qs[Vkind(h)].iter(h, &ictx);
@@ -901,8 +916,11 @@ scan1(Head *h)
 		if(dbg)printf("scan1 %p (%s) iter %p %p\n",
 			    h, qs[Vkind(h)].id,
 			    c, *c);
-		copy(c);
+		g = copy(c);
+		if(g < min)
+			min = g;
 	}
+	return min;
 }
 
 static unsigned
@@ -1143,7 +1161,7 @@ gcwb(Val v)
 {
 	Seg *s;
 	s = lookseg((Head*)v);
-	s->card = 1;
+	s->card = Dirty;
 }
 
 static void
@@ -1256,16 +1274,23 @@ copystack(VM *vm)
 	copy(&vm->stack[clx]);
 }
 
-static void
+static u8
 scancard(Seg *s)
 {
 	void *p;
+	u8 min, g;
+
+	min = Clean;
 	p = s->addr;
 	while(p < s->a){
-		if(!Vdead((Head*)p))
-			scan1(p);
+		if(!Vdead((Head*)p)){
+			g = scan1(p);
+			if(g < min)
+				min = g;
+		}
 		p += qs[Vkind((Head*)p)].sz;
 	}
+	return min;
 }
 
 /*
@@ -1282,6 +1307,7 @@ _gc(u32 g, u32 tg)
 	Seg *s, *t, *tj, *tp, **r;
 	Head *h, *p;
 	M junk, fr;
+	u8 sg;
 	unsigned dbg = alldbg;
 
 	if(g != tg && g != tg-1)
@@ -1350,17 +1376,23 @@ _gc(u32 g, u32 tg)
 	for(i = g+1; i < Ngen; i++){
 		s = H.data[i].h;
 		while(s){
-			if(s->card){
-				s->card = 0;
-				scancard(s);
+			if(s->card <= g){
+				sg = scancard(s);
+				if(sg < i)
+					s->card = sg;
+				else
+					s->card = Clean;
 			}
 			s = s->link;
 		}
 		s = H.code[i].h;
 		while(s){
-			if(s->card){
-				s->card = 0;
-				scancard(s);
+			if(s->card <= g){
+				sg = scancard(s);
+				if(sg < i)
+					s->card = sg;
+				else
+					s->card = Clean;
 			}
 			s = s->link;
 		}
