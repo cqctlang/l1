@@ -2,7 +2,7 @@
 
 @define config(dom)
 {
-	@local w, n;
+	@local w, n, ks;
 
 	n = 0;
 
@@ -20,10 +20,156 @@
 
 	     });
 
+	@define findsegidx(m, t)
+	{
+		@local i, s;
+		s = m->s;
+		i = 0;
+		while(s){
+			if(s == t)
+				return i;
+			i++;
+			s = s->link;
+		}
+		return nil;
+	}
+
+	@define dumpsegs(m)
+	{
+		@local i, s;
+		s = m->s;
+		i = 0;
+		while(s){
+			printf("%5d\t%s\n", i, fmtseg(s));
+			i++;
+			s = s->link;
+		}
+	}
+
+	// box found during copy stack containing reference to
+	// corrupt as
+	wtf = (void*)0x7fffeffcf730;
+
+	@define dumpwtf()
+	{
+		@local p;
+		p = (`Head*){dom}wtf;
+		printf("dumpwtf: %s\n", fmthd(p));
+		p = (`Box*)p;
+		printf("\tbox->v = %s %s\n",
+		       fmthd(p->v),
+		       fmtseg(lookseg(p->v)));
+	}
+
+	@define dumpg3()
+	{
+		dom`alldbg = 1;
+		printf("H.data[3].s = %d %s\n",
+		       findsegidx(&dom`H.data[3], dom`H.data[3].s),
+		       fmtseg(dom`H.data[3].s));
+		printf("H.data[3].t = %d %s\n",
+		       findsegidx(&dom`H.data[3], dom`H.data[3].t),
+		       fmtseg(dom`H.data[3].t));
+		printf("H.data[3].t->a = %p\n", dom`H.data[3].t->a);
+		dumpsegs(&dom`H.data[3]);
+		vmbacktrace(dom`vms[0]);
+	}
+
+	@define watchshit()
+	{
+		@local xs, lns, ldom;
+		rbrk(&dom`minsert,
+		     @lambda(ctl, rv, m, s){
+			     if({dom}m == &dom`H.data[3]){
+				     printf("minsert H.data[3] %s\n", fmtseg(s));
+				     printstack(getstack(ctl));
+				     xs = getctxs(ctl);
+				     if(xs == nil)
+					     error("cannot unwind");
+				     lns = ctl.localns(xs[2]);
+				     ldom = mkdom(lns, dom.as);
+				     ldom`dbg = 1;
+				     ldom`alldbg = 1;
+			     }
+		     });
+	}
+
+
+	@define watchshit2()
+	{
+		brbrk(&dom`copystack,
+		      @lambda(ctl, vm){
+			      @local id, lns, ldom;
+			      printf("enter copystack\n");
+			      id = brk(&dom`copy,
+				       @lambda(ctl, v){
+					       @local xs;
+					       if({dom}*v != (`Head*){dom}wtf)
+						       return;
+					       xs = getctxs(ctl);
+					       if(xs == nil)
+						       error("cannot unwind");
+					       lns = ctl.localns(xs[1]);  // copystack
+					       ldom = mkdom(lns, dom.as);
+					       printf("***fp=%05lld pc=%08lld%s",
+						      ldom`fp,
+						      ldom`pc,
+						      fmtsrc(ldom`cl, ldom`pc));
+					       printf("***m=%u i=%u sz=%u sp=%u\n",
+						      ldom`m,
+						      ldom`i,
+						      ldom`sz,
+						      ldom`sp);
+					       printstack(getstack(ctl));
+				       });
+			      return @lambda(ctl, vm){
+				      ctl.trapdel(id);
+				      printf("leave copystack\n");
+			      };
+		      });
+
+		brbrk(&dom`hforeach,
+		      @lambda(ctl, ht, fn, u){
+			      printf("enter hforeach for %y\n", fn);
+			      return @lambda(ctl, ht, fn, u){
+				      printf("leave hforeach for %y\n", fn);
+			      };
+		      });
+
+		brbrk(&dom`hforeachp,
+		      @lambda(ctl, ht, fn, u){
+			      printf("enter hforeachp for %y\n", fn);
+			      return @lambda(ctl, ht, fn, u){
+				      printf("leave hforeachp for %y\n", fn);
+			      };
+		      });
+
+	}
+
+	brk(&dom`_gc,
+	    @lambda(ctl, g, tg){
+		    if(g == 2 && tg == 3 && dom`H.data[3].h){
+			    dumpg3();
+			    watchshit2();
+			    dumpwtf();
+		    }
+	    });
+
+	ks = 0;
 	brk(&dom`kleenescan,
 	    @lambda(ctl, tg){
-		    if(tg == 3)
+		    if(tg == 3){
+			    ks++;
+			    if(ks < 3)
+				    return;
 			    printstack(getstack(ctl));
+			    printf("ks %d &H.data[3] = %p\n",
+				   ks, &dom`H.data[3]);
+			    if(ks == 4){
+				    watchshit();
+				    dumpg3();
+			    }
+		    }
 	    });
 
 	brk(&dom`iteras,
@@ -40,22 +186,16 @@
 			    lns = ctl.localns(xs[1]);
 			    ldom = mkdom(lns, dom.as);
 			    m = ldom`m;
-			    t = ldom`s;
-			    s = m->h;
-			    i = 0;
-			    while(s){
-				    if(s == t)
-					    break;
-				    i++;
-				    s = s->link;
-			    }
-			    if(s){
+			    s = ldom`s;
+			    i = findsegidx(m, s);
+			    if(i == nil)
+				    printf("cannot find the segment\n");
+			    else{
 				    printf("found trash in segment %d of %p: %s\n", i, m, fmtseg(s));
 				    printf("s->addr = %p\n", s->addr);
 				    printf("s->scan = %p\n", s->scan);
 				    printf("s->a = %p\n", s->a);
-			    }else
-				    printf("cannot figure out the segment\n");
+			    }
 		    }else
 			    printf("iteras: %p %s %d\n", hd, id, ictx->n);
 	    });
