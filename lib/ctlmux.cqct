@@ -867,15 +867,18 @@ ctlmux = @names clp64le {
 
 	@define locals(ctx)
 	{
-		@local ns, sym;
+		@local ns, sym, ls;
 
 		sym = [:];
+		ls = mux.enumloc(id, ctx);
+		if(ls == nil)
+			return sym;
 		ns = xns();
 		foreach(@lambda(s){
 				sym[s.id] = mksym(looktype(ns, s.type),
 						  s.id,
 						  s.loc);
-			}, mux.enumloc(id, ctx));
+			}, ls);
 		return sym;
 	}
 
