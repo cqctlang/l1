@@ -144,7 +144,7 @@
 	return ctl.xtrap(a,
 		  @lambda(ctl){
 			  regs = ctl.reg();
-			  dom = mkdom(ns, ctl.mem());
+			  dom = mkdom(dom.ns, ctl.mem());
 			  args = [ctl];
 			  // first six args in rdi, rsi, rdx, rcx, r8, r9 
 			  // float args in xmm*
