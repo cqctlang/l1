@@ -1,0 +1,337 @@
+@include <ctlmux.cqct>
+
+l1 = "../../l1/l1";
+ns = nil;
+dom = nil;
+
+@define car(p)  { (((`Pair*)p)->car); }
+@define cdr(p)  { (((`Pair*)p)->cdr); }
+@define caar(p) { (car(car(p))); }
+@define cadr(p) { (car(cdr(p))); }
+@define cdar(p) { (cdr(car(p))); }
+@define cddr(p) { (cdr(cdr(p))); }
+
+@define Vfwd(p)		{ ((((p)->bits)>>dom`Vfwdoff)&dom`Vfwdmask); }
+@define Vfwdaddr(p)
+{
+	return {domof(p)}((void*)((p)->bits & ~(dom`Vfwdmask<<dom`Vfwdoff)));
+}
+@define Vkind(p)        { ((((p)->bits)>>dom`Vkindoff)&dom`Vkindmask); }
+@define Vprot(p)        { ((((p)->bits)>>dom`Vprotoff)&dom`Vprotmask); }
+@define Vdead(p)        { ((((p)->bits)>>dom`Vdeadoff)&dom`Vdeadmask); }
+
+@define phash(p)
+{
+	@local key;
+	key = (`uint64)p;
+	key = (~key) + (key << 18);
+	key = key ^ (key >> 31);
+	key = key * 21;
+	key = key ^ (key >> 11);
+	key = key + (key << 6);
+	key = key ^ (key >> 22);
+	return (`uint32)key;
+}
+
+@define hgetp(ht, k)
+{
+	@local hp;
+	hp = ht->ht[phash(k)%ht->sz];
+	while(hp){
+		if(hp->key == k)
+			return hp->val;
+		hp = hp->next;
+	}
+	return 0;
+}
+
+@define dumpht(ht)
+{
+	@local i, hp;
+	for(i = 0; i < ht->sz; i++){
+		hp = ht->ht[i];
+		while(hp){
+			printf("\thash %5x key %p val %s\n", i, hp->key,
+			       fmtseg((`Seg*)hp->val));
+			hp = hp->next;
+		}
+	}
+}
+
+@define dumpprot(dom)
+{
+	@local H, s;
+	H = &dom`H;
+	s = H->prot.h;
+	printf("protected segments:\n");
+	while(s){
+		printf("\t%s\n", fmtseg(s));
+		s = s->link;
+	}
+}
+
+
+@define lookseg(a)
+{
+	v = (dom`uintptr_t)a;
+	v &= dom`Segmask;
+	s = hgetp(dom`segtab, (void*)v);
+	if(s == 0)
+		return 0;
+	return (`Seg*)s;
+}
+
+@define fmtseg(s)
+{
+	@local r;
+	if(s == 0)
+		return "no segment!";
+	r = sprintfa("seg %p %e %e", s, s->kind, s->gen);
+	if(s->gen == dom`Gprot)
+		r += sprintfa("(%u)", s->nprotect);
+	r += sprintfa(" %p-%p", s->addr, s->e);
+	if(s->card != dom`Clean)
+		r += sprintfa(" [%e]", (dom`Gen)s->card);
+	return r;
+}
+
+@define fmthd(h)
+{
+	@local s;
+	if(h == 0)
+		return "(null)";
+	h = (`Head*)h;
+	if(Vfwd(h))
+		return sprintfa("obj %p -> %s", h, fmthd(Vfwdaddr(h)));
+	if(Vdead(h))
+		return sprintfa("obj %p [dead]", h);
+	s = sprintfa("obj %p (%s)", h, dom`qs[Vkind(h)].id);
+	if(Vprot(h))
+		s += " protected";
+	return s;
+}
+
+@define getlocs(ctl, ctx)
+{
+	@local ss;
+	ss = ctl.locals(ctx);
+	if(ss == nil)
+		error("no location information");
+	else
+		foreach(@lambda(id, s){
+				printf("\t%p\t%t\n", symoff(s), s);
+			}, ss);
+}
+
+@define getctxs(ctl)
+{
+	return ctl.unwind();
+}
+
+@define getstack(ctl)
+{
+	@local xs, pcs;
+	xs = ctl.unwind();
+	if(xs == nil){
+		printf("cannot unwind\n");
+		return;
+	}
+	pcs = map(@lambda(x){ x->rip; }, xs);
+	return pcs;
+}
+
+@define printstack(pcs)
+{
+	foreach(@lambda(pc){
+			printf("\t%016p\t\t%y\n",
+			       pc, {dom}pc);
+		}, pcs);
+	printf("\n");
+}
+
+@define addr2line(code, pc)
+{
+	if(pc >= code->ninsn)
+		error("bad pc %d", pc);
+	return code->insn[pc].src;
+}
+
+@define printsrc(cl, pc)
+{
+	@local code, src, fn;
+
+	code = cl->code;
+	if(cl->cfn || cl->ccl){
+		printf("%20s\t(builtin %s)\n", cl->id,
+		       cl->cfn ? "function" : "closure");
+		return;
+	}
+
+	src = addr2line(code, pc);
+	if(src == 0){
+		printf("%20s\t(no source information)\n", cl->id);
+		return;
+	}
+	fn = src->filename;
+	if(fn == 0)
+		fn = "<stdin>";
+	printf("%20s\t(%s:%u)\n", cl->id, fn, src->line);
+}
+
+@define stkimm(v)
+{
+	@local imm;
+	imm = (`Imm)(`uintptr_t)v;
+	if((imm&1) != 1)
+		error("stkimm on non-imm");
+	imm >>= 1;
+	return imm;
+}
+
+@define vmbacktrace(vm)
+{
+	@local pc, fp, narg, cl;
+
+	pc = vm->pc-1;		/* vm loop increments pc after fetch */
+	fp = vm->fp;
+	cl = vm->clx;
+	while(fp != 0){
+		if(cl->id != "$halt"){
+			printf("fp=%05lld pc=%08lld ", fp, pc);
+			printsrc(cl, pc);
+		}
+		narg = stkimm(vm->stack[fp]);
+		pc = stkimm(vm->stack[fp+narg+1]);
+		pc--; /* pc was insn following call */
+		cl = (`Closure*)(vm->stack[fp+narg+2]);
+		fp = stkimm(vm->stack[fp+narg+3]);
+	}
+}
+
+@define fmtsrc(cl, pc)
+{
+	@local code, src, fn;
+
+	code = cl->code;
+	if(cl->cfn || cl->ccl)
+		return sprintfa("%20s\t(builtin %s)\n", cl->id,
+				cl->cfn ? "function" : "closure");
+
+	src = addr2line(code, pc);
+	if(src == 0)
+		return sprintfa("%20s\t(no source information)\n", cl->id);
+	
+	fn = src->filename;
+	if(fn == 0)
+		fn = "<stdin>";
+	return sprintfa("%20s\t(%s:%u)\n", cl->id, fn, src->line);
+}
+
+@define vmstack(vm)
+{
+	@local pc, fp, narg, cl, s;
+
+	s = "";
+	pc = vm->pc-1;		/* vm loop increments pc after fetch */
+	fp = vm->fp;
+	cl = vm->clx;
+	while(fp != 0){
+		if(cl->id != "$halt")
+			s += sprintfa("fp=%05lld pc=%08lld%s",
+				      fp, pc, fmtsrc(cl, pc));
+		narg = stkimm(vm->stack[fp]);
+		pc = stkimm(vm->stack[fp+narg+1]);
+		pc--; /* pc was insn following call */
+		cl = (`Closure*)(vm->stack[fp+narg+2]);
+		fp = stkimm(vm->stack[fp+narg+3]);
+	}
+	return s;
+}
+
+@record watch { set, clr, up, look, rlook };
+
+@define mkwatch(dom)
+{
+	@local w, rw, set, clr, up, look, rlook;
+
+	w = [:];
+	rw = [:];
+
+	@define set(id, a)
+	{
+		w[id] = (`Head*){dom}a;
+		rw[(`Head*){dom}a] = id;
+	}
+
+	@define clr(id)
+	{
+		tabdelete(rw, w[id]);
+		tabdelete(w, id);
+	}
+
+	@define up(id, a)
+	{
+		clr(id);
+		set(id, a);
+	}
+
+	@define look(id)
+	{
+		return w[id];
+	}
+
+	@define rlook(a)
+	{
+		return rw[(`Head*){dom}a];
+	}
+
+	return watch(set, clr, up, look, rlook);
+}
+
+@define docopywatch(dom, w)
+{
+	return brbrk(&dom`copy,
+	      @lambda(ctl, v){
+		      @local id, s;
+		      id = w.rlook(*v);
+		      printf("copy %p\n", *v);
+		      if(id == nil)
+			      return nil;
+		      printf(" enter copy on %s: %s\n", id, fmthd(*v));
+		      if(!Vfwd(*v) || !Vprot(*v))
+			      printf("  object is in %s\n",
+				     fmtseg(lookseg(*v)));
+		      return @lambda(ctl, v){
+			      printf("return copy on %s: %s %s\n",
+				     id, fmthd(*v), fmtseg(lookseg(*v)));
+			      w.up(id, *v);
+		      };
+	      });
+}
+
+@define doit(config, args)
+{
+	@local mux, as, e, nexec, xns;
+
+	nexec = 0;
+	npop = 0;
+	mux = mkctlmux_local();
+	push(args, l1);
+	ctl = mux.launch(args, 0);
+	as = ctl.mem();
+	ns = ctl.ns();
+	if(!isns(ns))
+		error("no namespace (got %a)\n", ns);
+	dom = mkdom(ns, as);
+	config(dom);
+	dom.trace(ctlmux`Esignal,
+		  @lambda(ctl, sig){
+			  @local regs;
+			  printf("proc %d received signal %d\n", ctl.id, sig);
+			  regs = ctl.reg();
+			  printf("%s\n", fmtstack(ctl, ns));
+			  ctl.kill();
+		  });
+	dom.xcont();
+	mux.run();
+}

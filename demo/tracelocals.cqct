@@ -1,0 +1,42 @@
+@include <ctlmux.cqct>
+
+@define test1(cmd, ns)
+{
+	@local ctl, mux, as, dom, bs, ss, sym;
+
+	mux = mkctlmux_local();
+	ctl = mux.launch([cmd], 0);
+	regs = ctl.reg();
+	as = ctl.mem();
+	dom = mkdom(ns, as);
+	dom.xtrap((void*)&dom`locals,
+		  @lambda(ctl){
+			  @local ss, regs;
+			  regs = ctl.reg();
+			  printf("%s locals (prctl):\n", cmd);
+			  ss = mux.enumloc(ctl.id, regs);
+			  if(ss == nil){
+				  printf("no location information for %p\n",
+					 {dom}regs->rip);
+				  return;
+			  }
+			  printf("mux.enumloc():\n");
+			  foreach(@lambda(l){
+					  printf("\t%s\t%6d\t0x%p\n",
+						 l.id,
+						 l.sz,
+						 l.loc);
+				  }, ss);
+			  ss = ctl.locals(ctl.reg());
+			  printf("ctl.locals():\n");
+			  foreach(@lambda(id, s){
+					  printf("\t%p\t%t\n", symoff(s), s);
+				  }, ss);
+		  });
+	dom.xcont();
+	mux.run();
+	mux.close();
+}
+
+test1("./locals1", @names clp64le { @include "./locals1.names" });
+test1("./locals1.32", @names c32le { @include "./locals1.32.names" });

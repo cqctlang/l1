@@ -6,6 +6,7 @@ static Expr*	rdotypes(U *ctx, Expr *e);
 
 char* cbasename[Vnbase+1] = {
 	[Vundef]              = "error!",
+	[Vbool]		      = "_Bool",
 	[Vchar]               = "char",
 	[Vshort]	      = "short",
 	[Vint]		      = "int",
@@ -40,6 +41,7 @@ char* tkindstr[Tntkind] = {
 
 static unsigned basemod[Vnbase][Enbase] = {
 	[Vchar][Eunsigned]     = Vuchar,
+
 	[Vchar][Esigned]       = Vchar,
 
 	[Vshort][Eunsigned]    = Vushort,
@@ -64,6 +66,7 @@ static unsigned basemod[Vnbase][Enbase] = {
 
 	[Vdouble][Elong]       = Vlongdouble,
 
+	[Vundef][Ebool]	       = Vbool,
 	[Vundef][Echar]        = Vchar,
 	[Vundef][Edouble]      = Vdouble,
 	[Vundef][Efloat]       = Vfloat,
@@ -682,6 +685,15 @@ doconst(U *ctx, char *s, unsigned long len)
 }
 
 Expr*
+dosymsrc(Src *src, char *s, unsigned long len)
+{
+	Expr *e;
+	e = newexprsrc(src, Econsts, 0, 0, 0, 0);
+	e->lits = mklits(s+1, len-1);
+	return e;
+}
+
+Expr*
 doconstssrc(Src *src, char *s, unsigned long len)
 {
 	Expr *e;
@@ -975,6 +987,7 @@ baselist(U *ctx, Expr *e)
 		s = e->e1;
 		e = e->e2;
 		switch(s->kind){
+		case Ebool:
 		case Echar:
 		case Edouble:
 		case Efloat:

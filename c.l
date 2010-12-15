@@ -44,6 +44,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@names"		{ count(ctx); return(NAMES); }
 "@record"		{ count(ctx); return(DEFREC); }
 "@typeof"		{ count(ctx); return(TYPEOF); }
+"_Bool"			{ count(ctx); return(BOOL); }
 "break"			{ count(ctx); return(BREAK); }
 "case"			{ count(ctx); return(CASE); }
 "char"			{ count(ctx); return(CHAR); }
@@ -78,8 +79,8 @@ static int chars(YYSTYPE *lvalp, int);
 0[xX]{H}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 0{D}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 {D}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
-L?'{CHARC}'  		{ count(ctx); return(chars(lvalp, CONSTANT)); }
-
+L?\'{CHARC}\'		{ count(ctx); return(chars(lvalp, CONSTANT)); }
+\'{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, SYMBOL)); }
 {D}+{E}{FS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 {D}*"."{D}+({E})?{FS}?	{ count(ctx); return(chars(lvalp, CONSTANT)); }
 {D}+"."{D}*({E})?{FS}?	{ count(ctx); return(chars(lvalp, CONSTANT)); }
@@ -137,8 +138,7 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+ { count(ctx); return(chars(lvalp, STRING_LITERAL));
 "#"			{ count(ctx); return('#'); }
 
 [ \t\v\n\f]		{ count(ctx); }
-.			{ /* ignore bad characters */ }
-
+.			{ cerror(ctx, 0, "unexpected token: '%c'", yytext[0]); }
 %%
 
 /* Adapted from patch on bison-patches mailing list:
@@ -240,4 +240,3 @@ setyystate(YYstate *yy)
 {
 	yy_switch_to_buffer(yy->yy);
 }
-

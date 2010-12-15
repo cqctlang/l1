@@ -89,23 +89,23 @@ target program in execution.
 </p>
 
 <p>
-Domains present the state of a target program through
-an interface based on the syntax and semantics of C.
+A domain present an interface to the state of a target
+program that is based on the syntax and semantics of C.
 Target program memory can be read or modified using
 ordinary C expressions.  Conventional C idioms for
 traversing data structures, such as pointer-chasing
-loops, generally work in Cinquecento without
-modification.  In particular, Cinquecento supports C
-operators, the C type system, and C control flow
-statements.  Names and types of target program data can
-be specified in C declaration syntax, with minor
-extensions to allow machine-level specification of
+loops, generally work without modification.  All C
+types, operators, and control flow statements work as
+expected.  Names and types of target program data can
+be specified in C declaration syntax, using minor
+extensions to provide machine-level specification of
 location, layout, and encoding of data in memory.
 </p>
 
 <p>
-A Cinquecento program can manipulate multiple simultaneously
-active target programs.
+A Cinquecento program can instantiate multiple domains
+to manipulate multiple simultaneously active target
+programs.
 
 Heterogeneity is expected: each target may have different types,
 symbols, and executable format; and each target may
@@ -120,7 +120,7 @@ distributed, multi-process program.
 </p>
 
 <p>
-A domain encapsulates user-defined functions that
+Each domain encapsulates user-defined functions that
 implement access to the associated target.  These
 include functions that define the types and symbols of
 the target, and functions that read and write its
@@ -2077,12 +2077,13 @@ and address space are
 
 <h4 id="sec:domobj">Domains as objects</h4>
 
+<p>
 Cinquecento address spaces and name spaces encapsulate
 functions that implement the behavior of these
 abstractions.  The structure of this encapsulation is
 similar to that of simple objects in a conventional
 object-oriented language.
-
+</p>
 
 <h4 id="sec:namespaces">Name spaces</h4>
 
@@ -2151,6 +2152,54 @@ section <a href="#sec:ctypes">Ctypes</a>.
 </p>
 
 <p>
+Several
+functions retrieve type information from a name space.
+</p>
+
+<div class="docitem" id="fn:nsptr">
+<div class="proto">
+<div class="function">
+<span class="id">nsptr(<span class="arg">ns</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a base type defined in <span class="arg">ns</span>
+that can represent the pointer type defined in <span class="arg">ns</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:nsrepbase">
+<div class="proto">
+<div class="function">
+<span class="id">nsrepbase(<span class="arg">ns</span>,<span class="arg">rep</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">rep</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a base type defined
+in <span class="arg">ns</span> whose representation
+is <span class="arg">rep</span>,
+or <span class="val">nil</span> if there is no such
+type.
+</div>
+</div>
+
+
+<p>
 C symbols have three components: the type of the symbol
 (represented as a ctype),
 the name of the symbol (string),
@@ -2167,6 +2216,7 @@ interface to create and access symbols.  (The notation
 <span class="arg">symbol</span> denotes the representation
 of symbols.)
 </p>
+
 
 <div class="docitem" id="fn:mksym">
 <div class="proto">
@@ -2961,6 +3011,7 @@ Base C type
 <span class="fnindex">baseid</span>
 </td>
 <td>
+<span class="fnindex"><a href="#fn:mkctype_base">mkctype_base</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_char">mkctype_char</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_short">mkctype_short</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_int">mkctype_int</a></span><br />
@@ -3086,7 +3137,7 @@ Undefined
 <span class="fnindex"><a href="#fn:subtype">subtype</a></span>
 </td>
 <td>
-<em>n/a</em>
+<span class="fnindex"><a href="#fn:mkctype_undef">mkctype_undef</a></span>
 </td>
 </tr>
 
@@ -3267,6 +3318,44 @@ class="arg">type</span>.  Returns <span class="val">nil</span> if the type does 
 <div class="desc">
 Returns the name of the base C type represented
 by <span class="arg">type</span> as a string.
+</div>
+</div>
+
+<div class="docitem" id="fn:basebase">
+<div class="proto">
+<div class="function">
+<span class="id">basebase(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">base ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the integer representation (with FIXME
+unspecified semantics) of the base C type represented
+by <span class="arg">type</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:baserep">
+<div class="proto">
+<div class="function">
+<span class="id">baserep(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">base ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the integer representation (with FIXME
+unspecified semantics) of the representation of the base C type represented
+by <span class="arg">type</span> (indeed!).
 </div>
 </div>
 
@@ -3458,6 +3547,27 @@ Returns the type aliased defined by the typedef type represented by
 </div>
 </div>
 
+<div class="docitem" id="fn:settypedeftype">
+<div class="proto">
+<div class="function">
+<span class="id">settypedeftype(<span class="arg">typedef</span>, <span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">typedef</span>: <span class="type">typedef ctype</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Modifies the typedef ctype <span class="arg">typedef</span> to be
+an alias for <span class="arg">type</span>.
+</div>
+</div>
+
 <div class="docitem" id="fn:xaccessget">
 <div class="proto">
 <div class="function">
@@ -3593,51 +3703,63 @@ in arrays represented by the type.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:mkctype_char">mkctype_char()</span>
+<span class="id" id="fn:mkctype_base">mkctype_base(<span class="arg">base</span>[,<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_short">mkctype_short()</span>
+<span class="id" id="fn:mkctype_char">mkctype_char([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_int">mkctype_int()</span>
+<span class="id" id="fn:mkctype_short">mkctype_short([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_long">mkctype_long()</span>
+<span class="id" id="fn:mkctype_int">mkctype_int([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_vlong">mkctype_vlong()</span>
+<span class="id" id="fn:mkctype_long">mkctype_long([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_uchar">mkctype_uchar()</span>
+<span class="id" id="fn:mkctype_vlong">mkctype_vlong([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_ushort">mkctype_ushort()</span>
+<span class="id" id="fn:mkctype_uchar">mkctype_uchar([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_uint">mkctype_uint()</span>
+<span class="id" id="fn:mkctype_ushort">mkctype_ushort([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_ulong">mkctype_ulong()</span>
+<span class="id" id="fn:mkctype_uint">mkctype_uint([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_uvlong">mkctype_uvlong()</span>
+<span class="id" id="fn:mkctype_ulong">mkctype_ulong([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_float">mkctype_float()</span>
+<span class="id" id="fn:mkctype_uvlong">mkctype_uvlong([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_double">mkctype_double()</span>
+<span class="id" id="fn:mkctype_float">mkctype_float([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_longdouble">mkctype_longdouble()</span>
+<span class="id" id="fn:mkctype_double">mkctype_double([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_longdouble">mkctype_longdouble([<span class="arg">rep</span>])</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
 </div>
 </div>
 <div class="desc">
-Returns a new ctype representing the base C type corresponding
-to the suffix of the constructor name.
+
+<span class="id">mkctype_base</span> returns a new
+ctype representing the base C type corresponding to the
+base type specified by <span class="arg">base</span>,
+an integer (with FIXME unspecifed semantics).
+The remaining functions each return a new ctype
+representing the base C type corresponding to the
+suffix of the function name.  The returned type is
+incomplete unless the <span class="arg">rep</span>
+argument, which specifies the representation of the
+type (with FIXME unspecifed semantics), is provided.
 </div>
 </div>
 
@@ -3765,7 +3887,8 @@ element of the <span class="arg">params</span>
 argument
 of <span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>.
 <span class="arg">Type</span> is the type of the parameter and
-<span class="arg">id</span>, if specified, is the name of the parameter.
+<span class="arg">id</span>, if specified and non-nil,
+is the name of the parameter.
 </div>
 </div>
 
@@ -3812,6 +3935,24 @@ Returns a new ctype representing a typedef.
 <span class="arg">Id</span> is the name of typedef.
 If specified, <span class="arg">type</span> is a ctype representing
 the aliased type.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_undef">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_undef(<span class="arg">id</span>[,<span class="arg">type</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing an undefined type whose name is
+<span class="arg">type</span>.
 </div>
 </div>
 
@@ -3867,6 +4008,23 @@ class="arg">put</span> on the domain of the pointer and
 the new value to be written.  The new value is cast to
 <span class="arg">type</span> before the call.  The
 return value is ignored.
+</div>
+</div>
+
+<div class="docitem" id="fn:typename">
+<div class="proto">
+<div class="function">
+<span class="id">typename(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a ctype representing the type name of <span class="arg">type</span>.
 </div>
 </div>
 
@@ -6435,7 +6593,7 @@ vector type:
 <pre>
 struct Vector {
         unsigned int size;
-        int* data;
+        int data[];
 };
 </pre>
 </div>
@@ -7316,7 +7474,9 @@ machines sharing the environment have been freed.
 <a href="#fn:apply">apply</a><br />
 <a href="#fn:arraynelm">arraynelm</a><br />
 <a href="#fn:backtrace">backtrace</a><br />
+<a href="#fn:basebase">basebase</a><br />
 <a href="#fn:baseid">baseid</a><br />
+<a href="#fn:baserep">baserep</a><br />
 <a href="#fn:bitfieldcontainer">bitfieldcontainer</a><br />
 <a href="#fn:bitfieldpos">bitfieldpos</a><br />
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
@@ -7406,6 +7566,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
+<a href="#fn:mkctype_base">mkctype_base</a><br />
 <a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
 <a href="#fn:mkctype_char">mkctype_char</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
@@ -7425,6 +7586,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mkctype_uchar">mkctype_uchar</a><br />
 <a href="#fn:mkctype_uint">mkctype_uint</a><br />
 <a href="#fn:mkctype_ulong">mkctype_ulong</a><br />
+<a href="#fn:mkctype_undef">mkctype_undef</a><br />
 <a href="#fn:mkctype_union">mkctype_union</a><br />
 <a href="#fn:mkctype_ushort">mkctype_ushort</a><br />
 <a href="#fn:mkctype_uvlong">mkctype_uvlong</a><br />
@@ -7443,6 +7605,8 @@ machines sharing the environment have been freed.
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
+<a href="#fn:nsptr">nsptr</a><br />
+<a href="#fn:nsrepbase">nsrepbase</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />
@@ -7467,6 +7631,7 @@ machines sharing the environment have been freed.
 <a href="#fn:reverse">reverse</a><br />
 <a href="#fn:seek">seek</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
+<a href="#fn:settypedeftype">settypedeftype</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
@@ -7499,6 +7664,7 @@ machines sharing the environment have been freed.
 <a href="#fn:toupper">toupper</a><br />
 <a href="#fn:typedefid">typedefid</a><br />
 <a href="#fn:typedeftype">typedeftype</a><br />
+<a href="#fn:typename">typename</a><br />
 <a href="#fn:unlink">unlink</a><br />
 <a href="#fn:veclen">veclen</a><br />
 <a href="#fn:vecref">vecref</a><br />

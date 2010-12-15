@@ -107,7 +107,12 @@ chanclose(int c)
 int
 chanreadb(int c, char *b)
 {
-	if(0 > read(c, b, 1))
+	ssize_t rv;
+again:
+	rv = read(c, b, 1);
+	if(0 > rv && errno == EINTR)
+		goto again;
+	if(0 > rv)
 		return -1;
 	return 0;
 }
@@ -115,7 +120,12 @@ chanreadb(int c, char *b)
 int
 chanwriteb(int c, char *b)
 {
-	if(0 > write(c, b, 1))
+	ssize_t rv;
+again:
+	rv = write(c, b, 1);
+	if(0 > rv && errno == EINTR)
+		goto again;
+	if(0 > rv)
 		return -1;
 	return 0;
 }

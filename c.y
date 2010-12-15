@@ -21,14 +21,14 @@ extern char *yytext;
 	int kind;
 }
 
-%token <chars> IDENTIFIER CONSTANT STRING_LITERAL CONST VOLATILE
+%token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE
 %token SIZEOF TYPEOF TYPEDEF DEFINE DEFLOCAL DEFREC CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
 %token CAST_ASSIGN XCAST_ASSIGN GOTO
 %token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
-%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
+%token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
 
@@ -140,6 +140,8 @@ table_init_list
 primary_expression
 	: id
 	| tickid
+	| SYMBOL
+	{ $$ = dosymsrc(&ctx->inp->src, $1.p, $1.len); }
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
 	| STRING_LITERAL
@@ -468,6 +470,8 @@ declarator_list
 base
 	: VOID
 	{ $$ = newexprsrc(&ctx->inp->src, Evoid, 0, 0, 0, 0); }
+	| BOOL
+	{ $$ = newexprsrc(&ctx->inp->src, Ebool, 0, 0, 0, 0); }
 	| CHAR
 	{ $$ = newexprsrc(&ctx->inp->src, Echar, 0, 0, 0, 0); }
 	| SHORT
