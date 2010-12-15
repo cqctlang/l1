@@ -4,12 +4,12 @@ l1 = "../../l1/l1";
 ns = nil;
 dom = nil;
 
-@define car(p)  { (((`Pair*)p)->car); }
-@define cdr(p)  { (((`Pair*)p)->cdr); }
-@define caar(p) { (car(car(p))); }
-@define cadr(p) { (car(cdr(p))); }
-@define cdar(p) { (cdr(car(p))); }
-@define cddr(p) { (cdr(cdr(p))); }
+@define xcar(p)  { (((`Pair*)p)->xcar); }
+@define xcdr(p)  { (((`Pair*)p)->xcdr); }
+@define xcaar(p) { (xcar(xcar(p))); }
+@define xcadr(p) { (xcar(xcdr(p))); }
+@define xcdar(p) { (xcdr(xcar(p))); }
+@define xcddr(p) { (xcdr(xcdr(p))); }
 
 @define Vfwd(p)		{ ((((p)->bits)>>dom`Vfwdoff)&dom`Vfwdmask); }
 @define Vfwdaddr(p)
