@@ -120,6 +120,7 @@ static void dogc(GC*);
 static void vmsetcl(VM *vm, Val val);
 static void gcprotpush(VM *vm);
 static void gcprotpop(VM *vm);
+static Xtypename* safechasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn(void);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
@@ -5017,8 +5018,8 @@ iscvaltype(Xtypename *t)
 		[Tbitfield] = 1,
 	};
 
-	t = chasetype(t);
-	return okay[t->tkind];
+	t = safechasetype(t);
+	return t && okay[t->tkind];
 }
 
 static int
@@ -5063,10 +5064,10 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 		if(!iscomplete(t))
 			vmerr(vm, "attempt to cast to incomplete type");
 		if(!iscvaltype(t))
-			vmerr(vm, "illegal type conversion");
+			vmerr(vm, "bad type conversion");
 		if(Vkind(ov) == Qstr){
 			if(!isptrtype(t))
-				vmerr(vm, "illegal type conversion");
+				vmerr(vm, "bad type conversion");
 			cv = str2voidstar(vm->litns, valstr(ov));
 		}else
 			cv = valcval(ov);
@@ -5421,6 +5422,16 @@ chasetype(Xtypename *xtn)
 {
 	if(xtn->tkind == Ttypedef || xtn->tkind == Tenum)
 		return chasetype(xtn->link);
+	return xtn;
+}
+
+static Xtypename*
+safechasetype(Xtypename *xtn)
+{
+	if(xtn == 0)
+		return 0;
+	if(xtn->tkind == Ttypedef || xtn->tkind == Tenum)
+		return safechasetype(xtn->link);
 	return xtn;
 }
 
