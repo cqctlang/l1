@@ -958,7 +958,7 @@ scan(M *m)
 	// approximate indication of whether a copy occurred in this call:
 	//    1: maybe
 	//    0: definitely not
-	return (c != 0); // approximate 
+	return (c != 0); // approximate
 }
 
 static void
@@ -1421,7 +1421,7 @@ _gc(u32 g, u32 tg)
 		t = s->link;
 		if(s->nprotect){
 			// retain list of protected objects!
-			copy((Val*)&s->p);      
+			copy((Val*)&s->p);
 			p = (Head*)s->p;
 			while(p){
 				if(dbg)printf("scan protected object %s %p\n",
@@ -1504,7 +1504,6 @@ gc(VM *vm)
 		tg = g;
 	else
 		tg = g+1;
-	
 	dogc(vm, g, tg);
 }
 
@@ -1611,7 +1610,7 @@ finimem()
 		n += s->nprotect;
 		s = s->link;
 	}
-	
+
 	/* FIXME: we have not freed or unprotected Xnil */
 	if(n != 1)
 		printf("finimem: %u protected objects (expected 1)!\n", n);
