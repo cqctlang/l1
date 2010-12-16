@@ -855,7 +855,7 @@ ctlmux = @names clp64le {
 		@define la(this, a)
 		{
 			/* locals are not code, so just go to ns */
-			return ns.la(a);
+			return ns.lookaddr(a);
 		}
 
 		return mkns([ "looktype" : lt,
