@@ -7,6 +7,7 @@ enum
 {
 	Mdata,
 	Mcode,
+	Nm,
 } Mkind;
 
 enum
@@ -85,8 +86,7 @@ typedef
 struct Heap
 {
 	Seg *d, *c;		/* current data and code segment */
-	M data[Ngen];		/* data segments */
-	M code[Ngen];		/* code segments */
+	M m[Nm][Ngen];		/* metatypes */
 	M prot;			/* protected segments */
 	u32 g, tg;		/* collect generation and target generation */
 	u64 na;			/* bytes allocated since last gc */
@@ -727,18 +727,16 @@ u64
 protected()
 {
 	Seg *p;
+	u32 i;
 	u64 m;
 
 	m = 0;
-	p = H.data[0].h;
-	while(p){
-		m += p->nprotect;
-		p = p->link;
-	}
-	p = H.code[0].h;
-	while(p){
-		m += p->nprotect;
-		p = p->link;
+	for(i = 0; i < Nm; i++){
+		p = H.m[i][G0].h;
+		while(p){
+			m += p->nprotect;
+			p = p->link;
+		}
 	}
 	p = H.prot.h;
 	while(p){
@@ -810,7 +808,7 @@ again:
 		Vsetkind(h, Qcode);
 		return h;
 	}
-	H.c = minsert(&H.code[s->gen], mkseg(Mcode));
+	H.c = minsert(&H.m[Mcode][s->gen], mkseg(Mcode));
 	goto again;
 }
 
@@ -829,7 +827,7 @@ again:
 		Vsetkind(h, kind);
 		return h;
 	}
-	H.d = minsert(&H.data[s->gen], mkseg(Mdata));
+	H.d = minsert(&H.m[Mdata][s->gen], mkseg(Mdata));
 	goto again;
 }
 
@@ -964,11 +962,11 @@ scan(M *m)
 static void
 kleenescan(u32 tg)
 {
-	unsigned again;
+	unsigned again, i;
 	do{
 		again = 0;
-		again |= scan(&H.data[tg]);
-		again |= scan(&H.code[tg]);
+		for(i = 0; i < Nm; i++)
+			again |= scan(&H.m[i][tg]);
 	}while(again);
 }
 
@@ -1202,7 +1200,7 @@ reloc()
 	Head *h, *p;
 	Code *c;
 
-	s = H.code[H.tg].h;
+	s = H.m[Mcode][H.tg].h;
 	while(s){
 		c = s->addr;
 		while((void*)c < s->a){
@@ -1302,7 +1300,7 @@ scancard(Seg *s)
 void
 _gc(u32 g, u32 tg)
 {
-	u32 i, m;
+	u32 i, mt, m;
 	VM **vmp, *vm;
 	Seg *s, *t, *tj, *tp, **r;
 	Head *h, *p;
@@ -1320,10 +1318,9 @@ _gc(u32 g, u32 tg)
 	if(dbg)printf("gc(%u,%u)\n", g, tg);
 	mclr(&fr);
 	fr.gen = Gfrom;
-	for(i = 0; i <= g; i++){
-		mmove(&fr, &H.data[i]);
-		mmove(&fr, &H.code[i]);
-	}
+	for(i = 0; i <= g; i++)
+		for(mt = 0; mt < Nm; mt++)
+			mmove(&fr, &H.m[mt][i]);
 
 	// move inactive protected segments to Gfrom.
 	// do this before we scan pointers to objects on these segments.
@@ -1342,17 +1339,17 @@ _gc(u32 g, u32 tg)
 	junk.gen = Gjunk;
 	mclr(&junk);
 	if(g == tg){
-		H.d = minit(&H.data[tg], mkseg(Mdata));
-		H.c = minit(&H.code[tg], mkseg(Mcode));
+		H.d = minit(&H.m[Mdata][tg], mkseg(Mdata));
+		H.c = minit(&H.m[Mcode][tg], mkseg(Mcode));
 	}else{
-		if(H.data[tg].h)
-			H.d = H.data[tg].t;
+		if(H.m[Mdata][tg].h)
+			H.d = H.m[Mdata][tg].t;
 		else
-			H.d = minit(&H.data[tg], mkseg(Mdata));
-		if(H.code[tg].h)
-			H.c = H.code[tg].t;
+			H.d = minit(&H.m[Mdata][tg], mkseg(Mdata));
+		if(H.m[Mcode][tg].h)
+			H.c = H.m[Mcode][tg].t;
 		else
-			H.c = minit(&H.code[tg], mkseg(Mcode));
+			H.c = minit(&H.m[Mcode][tg], mkseg(Mcode));
 	}
 
 	vmp = vms;
@@ -1370,35 +1367,30 @@ _gc(u32 g, u32 tg)
 		copy((Val*)&vm->clx);
 	}
 	if(dbg)printf("copied vm roots\n");
+
+	// add per-type guards as roots
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
 	if(dbg)printf("copied guard roots\n");
-	for(i = g+1; i < Ngen; i++){
-		s = H.data[i].h;
-		while(s){
-			if(s->card <= g){
-				sg = scancard(s);
-				if(sg < i)
-					s->card = sg;
-				else
-					s->card = Clean;
+
+	// add pointers to collected generations in dirty cards
+	for(i = g+1; i < Ngen; i++)
+		for(mt = 0; mt < Nm; mt++){
+			s = H.m[mt][i].h;
+			while(s){
+				if(s->card <= g){
+					sg = scancard(s);
+					if(sg < i)
+						s->card = sg;
+					else
+						s->card = Clean;
+				}
+				s = s->link;
 			}
-			s = s->link;
 		}
-		s = H.code[i].h;
-		while(s){
-			if(s->card <= g){
-				sg = scancard(s);
-				if(sg < i)
-					s->card = sg;
-				else
-					s->card = Clean;
-			}
-			s = s->link;
-		}
-	}
 	if(dbg)printf("scanned cards\n");
 
+	// sweep through roots
 	kleenescan(tg);
 
 	// scan protected objects
@@ -1481,8 +1473,8 @@ _gc(u32 g, u32 tg)
 
 	if(H.tg != 0){
 		H.tg = 0;
-		H.d = minit(&H.data[H.tg], mkseg(Mdata));
-		H.c = minit(&H.code[H.tg], mkseg(Mcode));
+		H.d = minit(&H.m[Mdata][H.tg], mkseg(Mdata));
+		H.c = minit(&H.m[Mcode][H.tg], mkseg(Mcode));
 	}
 	H.na = 0;
 	H.ngc++;
@@ -1562,19 +1554,18 @@ gcunprotect(void *v)
 void
 initmem(u64 gcrate)
 {
-	u32 i;
-	u32 gr;
+	u32 i, mt, gr;
 
 	segtab = mkhtp();
 	gr = 1;
 	for(i = 0; i < Ngen; i++){
-		H.code[i].gen = i;
-		H.data[i].gen = i;
+		for(mt = 0; mt < Nm; mt++)
+			H.m[mt][i].gen = i;
 		H.gcsched[i] = gr;
 		gr *= GCradix;
 	}
-	H.d = minit(&H.data[0], mkseg(Mdata));
-	H.c = minit(&H.code[0], mkseg(Mcode));
+	H.d = minit(&H.m[Mdata][0], mkseg(Mdata));
+	H.c = minit(&H.m[Mcode][0], mkseg(Mcode));
 	mclr(&H.prot);
 	H.prot.gen = Gprot;
 	H.na = H.ta = 0;
@@ -1597,7 +1588,7 @@ initmem(u64 gcrate)
 void
 finimem()
 {
-	u32 i, n;
+	u32 i, mt, n;
 	Seg *s;
 
 	_gc(Ngen-1, Ngen-1);  // hopefully free all outstanding objects
@@ -1615,10 +1606,9 @@ finimem()
 	if(n != 1)
 		printf("finimem: %u protected objects (expected 1)!\n", n);
 
-	for(i = 0; i < Ngen; i++){
-		mfree(&H.code[i]);
-		mfree(&H.data[i]);
-	}
+	for(i = 0; i < Ngen; i++)
+		for(mt = 0; mt < Nm; mt++)
+			mfree(&H.m[mt][i]);
 	mfree(&H.prot);
 	freeht(segtab);
 }
