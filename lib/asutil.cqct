@@ -32,14 +32,14 @@ asfile_identifier="AS1";
 		struct adr_ranges {
 			@0x0 char identifier[8];
 			@0x8 unsigned int num_ranges;
-			@["offset" : 0xb,
+			@["offset" : 0xc,
 			  "refine" : @lambda (p) {
-					return [0xb,
+					return [0xc,
 					mkctype_array(
 						subtype(@typeof(p->ranges)),
 						p->num_ranges)];
 				}]      adr_range ranges[];
-			@0xb;
+			@0xc;
 			
 		};
 	};

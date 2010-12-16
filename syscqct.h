@@ -16,7 +16,8 @@ enum{
 
 typedef
 enum{
-	Echar=0,
+	Ebool=0,
+	Echar,
 	Edouble,
 	Efloat,
 	Eint,
@@ -150,6 +151,9 @@ enum Tkind {
 	Tundef,			/* xtn only */
 } Tkind;
 enum {
+	Tincomplete=0,
+	Tcomplete,
+
 	Tntkind=Tundef+1,	/* keep outside of Tkind */
 };
 
@@ -439,6 +443,7 @@ struct Vec {
 
 struct Xtypename {
 	Head hd;
+	unsigned char flag;	/* Tincomplete/Tcomplete */
 	Tkind tkind;		/* = Tbase, Tstruct, ... */
 	Cbase basename;		/* base (FIXME: rename cbase) */
 	Rkind rep;		/* base, ptr, enum; = Ru08le ... */
@@ -783,6 +788,7 @@ Lits*		copylits(Lits *lits);
 Expr*		doconst(U *ctx, char*, unsigned long len);
 Expr*		doconstssrc(Src*, char*, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
+Expr*		dosymsrc(Src *src, char *s, unsigned long len);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 int		dotypes(U*, Expr*);
@@ -937,6 +943,7 @@ void		finivm(void);
 int		freecode(Head *hd);
 void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
+int		iscomplete(Xtypename *t);
 int		ismapped(VM *vm, As *as, Imm addr, Imm len);
 int		isstrcval(Cval *cv);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);

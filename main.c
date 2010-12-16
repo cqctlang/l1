@@ -47,6 +47,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-u <N> trigger GC after allocating <N> megabytes\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
+	fprintf(stderr, "\t-lDIR add DIR to the load path\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
 	fprintf(stderr, "\t-p dump IR at various stages\n");
@@ -153,7 +154,7 @@ readfd(int fd)
 		}
 		rv = read(fd, p, m);
 		if(0 > rv){
-			if(errno == EINTR || EAGAIN)
+			if(errno == EINTR || errno == EAGAIN)
 				continue;
 			free(buf);
 			return 0;
@@ -442,6 +443,8 @@ main(int argc, char *argv[])
 		case 'l':
 			if(nlp >= Maxloadpath)
 				fatal("too many directories in load path");
+			//eliminate leading whitespace
+			while(*optarg == ' ') ++optarg;
 			n = strlen(optarg);
 			while(n > 0 && optarg[n-1] == '/')
 				n--;

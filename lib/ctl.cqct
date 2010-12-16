@@ -1,0 +1,436 @@
+ctlmemcheck = 0;
+
+ctlns = @names clp64le {
+
+	typedef
+	enum Mkind {
+		Reserved0 = 0,
+		Rerror,
+		Reserved2,
+		Aevent,
+		Tversion,
+		Rversion,
+		Tping,
+		Rping,
+		Tps,
+		Rps,
+		Tlaunch,
+		Rlaunch,
+		Tattach,
+		Rattach,
+		Tstat,
+		Rstat,
+		Tcont,
+		Rcont,
+		Tstop,
+		Rstop,
+		Tstep,
+		Rstep,
+		Tsnap,
+		Rsnap,
+		Tkill,
+		Rkill,
+		Tdetach,
+		Rdetach,
+		Ttrace,
+		Rtrace,
+		Tsettrap,
+		Rsettrap,
+		Tclrtrap,
+		Rclrtrap,
+		Tgetctx,
+		Rgetctx,
+		Tsetctx,
+		Rsetctx,
+		Tread,
+		Rread,
+		Twrite,
+		Rwrite,
+		Tlooksym,
+		Rlooksym,
+		Tenumsym,
+		Renumsym,
+		Tlooktype,
+		Rlooktype,
+		Tenumtype,
+		Renumtype,
+		Tlookaddr,
+		Rlookaddr,
+		Tenumloc,
+		Renumloc,
+		Tunwind,
+		Runwind,
+		Tenumseg,
+		Renumseg,
+		Tnames,
+		Rnames,
+	} Mkind;
+
+	typedef
+	enum Event {
+		Eclear	 = 0,
+		Eset	 = 1,
+		Esyscall = (Eset<<1),
+		Eexec	 = (Esyscall<<1),
+		Efork    = (Eexec<<1),
+		Eclone   = (Efork<<1),
+		Esignal  = (Eclone<<1),
+		Eexit    = (Esignal<<1),
+		Etrap    = (Eexit<<1),
+		Esnap	 = (Etrap<<1),
+		Estepctx = (Esnap<<1),
+		Eload	 = (Estepctx<<1),
+		Eunload	 = (Eload<<1),
+	} Event;
+
+	typedef
+	enum Cbase
+	{
+		Vundef=0,
+		Vlo,
+		Vbool=Vlo,
+		Vchar,
+		Vshort,
+		Vint,
+		Vlong,
+		Vvlong,
+		Vuchar,
+		Vushort,
+		Vuint,
+		Vulong,
+		Vuvlong,
+		Vfloat,
+		Vdouble,
+		Vlongdouble,
+		Vnbase,
+		Vptr = Vnbase,		/* alias for some other base type */
+		Vvoid,
+		Vnallbase,
+	} Cbase;
+
+	/* base type representations */
+	typedef
+	enum Rkind
+	{
+		Rundef,
+		Ru08le,
+		Ru16le,
+		Ru32le,
+		Ru64le,
+		Rs08le,
+		Rs16le,
+		Rs32le,
+		Rs64le,
+		Ru08be,
+		Ru16be,
+		Ru32be,
+		Ru64be,
+		Rs08be,
+		Rs16be,
+		Rs32be,
+		Rs64be,
+
+		Rf32,
+		Rf64,
+		Rf128,
+		Rnrep,
+	} Rkind;
+	
+	typedef
+	enum Tkind
+	{
+		Tvoid = 0,
+		Tbase = 1,
+		Tstruct = 2,
+		Tunion = 3,
+		Tenum = 4,
+		Tptr = 5,
+		Tarr = 6,
+		Tfun = 7,
+		Ttypedef = 8,
+		Tbitfield = 9,
+		Tconst = 10,
+		Txaccess = 11,		/* unused */
+		Tundef = 12,
+	} Tkind;
+
+	typedef
+	enum Stype
+	{
+		Sundef = 1,
+		Sdata = Sundef<<1,
+		Stext = Sdata<<1,
+		Sro = Stext<<1,
+		Senum = Sro<<1,
+		Sinline = Senum<<1,
+	} Stype;
+};
+
+@define _ctlmux(fd)
+{
+	@local verbose, nexttag, freetags;
+	@local osversion;
+	@local outreset, outu8, outu16, outu32, outu64, outbuf, outs, flush;
+	@local inreset, insnarf, inu8, inu16, inu32, inu64, inbuf, ins;
+	@local botch, freshtag;
+	@local queue;
+	@local readmsg;
+
+	verbose = 0;
+	freetags = [];
+	nexttag = 0;
+	queue = [];
+
+	/* input buffer */
+	{
+		@local p, sz;
+
+		@define inreset(buf)
+		{
+			sz = strlen(buf);
+			p = (char*)buf;
+		}
+
+		@define insnarf()
+		{
+			@local rv;
+			rv = getbytes(p, sz);
+			p = nil;
+			return rv;
+		}
+
+		@define inu8()
+		{
+			p = (`uint8*)p;
+			sz -= 1;
+			return *p++;
+		}
+
+		@define inu16()
+		{
+			p = (`uint16*)p;
+			sz -= 2;
+			return *p++;
+		}
+
+		@define inu32()
+		{
+			p = (`uint32*)p;
+			sz -= 4;
+			return *p++;
+		}
+
+		@define inu64()
+		{
+			p = (`uint64*)p;
+			sz -= 8;
+			return *p++;
+		}
+
+		@define inbuf(n)
+		{
+			@local s;
+			p = (char*)p;
+			s = getbytes(p, n);
+			p += n;
+			sz -= n;
+			return s;
+		}
+
+		@define ins()
+		{
+			return inbuf(inu32());
+		}
+	}
+
+	@define readmsg()
+	{
+		@local s, sz;
+		s = read(fd, sizeof(`uint64));
+		if(s == nil)
+			error("sctl hung up");
+		sz = *(`uint64*)s;
+		if(sz < 1+4) /* op+tag */
+			botch();
+		return read(fd, sz);
+	}
+
+	@define botch()
+	{
+		error("protocol botch");
+	}
+
+	@define waittag(intag)
+	{
+		@local s, sz, p, op, tag;
+
+		inreset(readmsg());
+		op = inu8();
+		tag = inu32();
+		if(tag != intag){
+			append(queue, [op, tag, insnarf()]);
+			return waittag(intag);
+		}
+		return op;
+	}
+
+	/* output buffer */
+	{
+		@local bufs, buf, p;
+		@local lens, avail, tot, max, len;
+		@local check;
+
+		max = 4096;
+
+		@define outreset()
+		{
+			bufs = [];
+			lens = [];
+
+			p = buf = malloc(max);
+			avail = len = max;
+			tot = 0;
+		}
+
+		@define check(k)
+		{
+			if(k > avail){
+				@local m;
+				m = len-avail;
+				tot += m;
+				append(bufs, buf);
+				append(lens, m);
+				if(k > max)
+					m = k;
+				else
+					m = max;
+				p = buf = malloc(m);
+				avail = len = m;
+			}
+		}
+
+
+		@define flush()
+		{
+			tot += len-avail;
+			write(fd, cval2str((`uint64)tot));
+			foreach(@lambda(b, l){
+					write(fd, getbytes(b, l));
+				}, bufs, lens);
+			write(fd, getbytes(buf, len-avail));
+			outreset();
+		}
+
+		@define outu8(x)
+		{
+			check(1);
+			p = (`uint8*)p;
+			*p++ = x;
+			avail -= 1;
+		}
+
+		@define outu16(x)
+		{
+			check(2);
+			p = (`uint16*)p;
+			*p++ = x;
+			avail -= 2;
+		}
+
+		@define outu32(x)
+		{
+			check(4);
+			p = (`uint32*)p;
+			*p++ = x;
+			avail -= 4;
+		}
+
+		@define outu64(x)
+		{
+			check(8);
+			p = (`uint64*)p;
+			*p++ = x;
+			avail -= 8;
+		}
+
+		@define outbuf(x)
+		{
+			@local m;
+			m = strlen(x);
+			check(m);
+			p = (char*)p;
+			putbytes(p, x);
+			p += m;
+			avail -= m;
+		}
+
+		@define outs(x)
+		{
+			@local m;
+			m = strlen(x);
+			outu64(m);
+			check(m);
+			p = (char*)p;
+			putbytes(p, x);
+			p += m;
+			avail -= m;
+		}
+	}
+
+	@define freshtag()
+	{
+		if(isempty(freetags))
+			return nexttag++;
+		return pop(freetags);
+	}
+
+	@define version()
+	{
+		@local op, dat, v, tag, s, os;
+
+		v = "prctl-2010:x86-linux-2010,x86-win-2010";
+
+		tag = freshtag();
+
+		outu8(ctlns`Tversion);
+		outu32(tag);
+		outbuf(v);
+		flush();
+
+		op = waittag(tag);
+		switch(op){
+		case ctlns`Rversion:
+			break;
+		case ctlns`Rerror:
+			error("ctlmux: version: %s", dat);
+		default:
+			error("ctlmux: protocol botch");
+		}
+
+		s = insnarf();
+		s = split(s, ":");
+		if(length(s) != 2)
+			error("unknown remote prctl version: %s", dat);
+		os = s[1];
+		os = substr(os, 0, strlen(os)); /* chop NUL */
+		osversion = os;
+	}
+
+	outreset();
+	version();
+	printf("version: %s\n", osversion);
+}
+
+@define ctlmux(args ...)
+{
+	@local fd;
+	if(length(args) > 0)
+		fd = tcpopen(args[0]);
+	else{
+		@local fds;
+		fds = popen("prctl", "-c", 2|4|8);
+		fd = fds[0];
+	}
+	finalize(fd, close);
+	return _ctlmux(fd);
+}

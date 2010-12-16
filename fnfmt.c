@@ -134,10 +134,7 @@ _fmtxtn(Xtypename *xtn, char *o)
 		efree(o);
 		return buf;
 	case Tundef:
-		m = leno+1+strlen("/*UNDEFINED*/")+1;
-		buf = emalloc(m);
-		snprint(buf, m, "%s /*UNDEFINED*/", o);
-		return _fmtxtn(xtn->link, buf);
+		return _fmtxtn(xtn->link, o);
 	case Tptr:
 		m = 2+leno+1+1;
 		buf = emalloc(m);

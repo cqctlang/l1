@@ -45,6 +45,7 @@ static Imm repsize[Rnrep] = {
 };
 
 unsigned isunsigned[Vnbase] = {
+	[Vbool] = 1,
 	[Vuchar] = 1,
 	[Vushort] = 1,
 	[Vuint] = 1,
@@ -64,6 +65,7 @@ static unsigned isbigendian[Rnrep] = {
 };
 
 static void vmsetcl(VM *vm, Val val);
+static Xtypename* safechasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn(void);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
@@ -1374,6 +1376,13 @@ mkxtn(void)
 	return xtn;
 }
 
+int
+iscomplete(Xtypename *t)
+{
+	return 1;
+	return t->flag == Tcomplete;
+}
+
 static As*
 mkas(void)
 {
@@ -1883,6 +1892,7 @@ getbeint(char *s, unsigned nb)
 	return w;
 }
 
+// FIXME: don't assume little-endian
 static Imm
 str2imm(VM *vm, Xtypename *xtn, Str *str)
 {
@@ -1943,7 +1953,7 @@ putbeint(char *p, Imm w, unsigned nb)
 }
 
 static Str*
-imm2str(Xtypename *xtn, Imm imm)
+imm2str(VM *vm, Xtypename *xtn, Imm imm)
 {
 	Str *str;
 	char *s;
@@ -2033,6 +2043,8 @@ imm2str(Xtypename *xtn, Imm imm)
 		s = str->s;
 		putbeint(s, imm, 8);
 		return str;
+	case Rundef:
+		vmerr(vm, "attempt to access memory with incomplete type");
 	default:
 		fatal("bug");
 	}
@@ -2184,6 +2196,7 @@ intpromote(VM *vm, Cval *cv)
 	if(base->tkind != Tbase)
 		return cv;
 	switch(base->basename){
+	case Vbool: // FIXME: is this case right?
 	case Vuchar:
 	case Vushort:
 	case Vchar:
@@ -2222,16 +2235,17 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 {
 	/* FIXME: why assign ranks to types below int promotion? */
 	static unsigned rank[Vnbase] = {
-		[Vchar] = 0,
-		[Vuchar] = 0,
-		[Vshort] = 1,
-		[Vushort] = 1,
-		[Vint] = 2,
-		[Vuint] = 2,
-		[Vlong] = 3,
-		[Vulong] = 3,
-		[Vvlong] = 4,
-		[Vuvlong] = 4,
+		[Vbool] = 0,
+		[Vchar] = 1,
+		[Vuchar] = 1,
+		[Vshort] = 2,
+		[Vushort] = 2,
+		[Vint] = 3,
+		[Vuint] = 3,
+		[Vlong] = 4,
+		[Vulong] = 4,
+		[Vvlong] = 5,
+		[Vuvlong] = 5,
 	};
 	static unsigned uvariant[Vnbase] = {
 		[Vchar] = Vuchar,
@@ -2590,12 +2604,14 @@ static Cval*
 xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
+	Xtypename *t;
 
 	/* no need to rationalize domains */
 	op1 = intpromote(vm, op1);
 	op2 = intpromote(vm, op2);
 	i1 = op1->val;
 	i2 = op2->val;
+	t = chasetype(op1->type);
 
 	/* following C99:
 	   - (both) if op2 is negative or >= width of op1,
@@ -2608,7 +2624,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		    your compiler says.  gcc and microsoft
 		    performs sign extension.
 	*/
-	if(isunsigned[op1->type->basename])
+	if(isunsigned[t->basename])
 		switch(op){
 		case Ishl:
 			rv = i1<<i2;
@@ -2637,17 +2653,19 @@ static Cval*
 xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
+	Xtypename *t;
 
 	dompromote(vm, op, op1, op2, &op1, &op2);
 	usualconvs(vm, op1, op2, &op1, &op2);
 	i1 = op1->val;
 	i2 = op2->val;
+	t = chasetype(op1->type);
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
 	   written without cast clutter. */
 
-	if(isunsigned[op1->type->basename])
+	if(isunsigned[t->basename])
 		switch(op){
 		case Icmpeq:
 			rv = i1==i2;
@@ -3035,6 +3053,12 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	cv = valcval(cvalv);
 	b = chasetype(t);
 
+	if(!iscomplete(t)){
+		es = fmtxtn(t);
+		vmerr(vm, "attempt to read object of undefined type: "
+		      "%.*s", (int)es->len, es->s);
+	}
+
 	/* special case: enum constants can be referenced through namespace */
 	if(b->tkind == Tconst){
 		switch(Vkind(xv)){
@@ -3119,8 +3143,8 @@ iscvaltype(Xtypename *t)
 		[Tbitfield] = 1,
 	};
 
-	t = chasetype(t);
-	return okay[t->tkind];
+	t = safechasetype(t);
+	return t && okay[t->tkind];
 }
 
 static int
@@ -3162,11 +3186,13 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 		vmerr(vm, "illegal conversion");
 	if(Vkind(tv) == Qxtn){
 		t = valxtn(tv);
+		if(!iscomplete(t))
+			vmerr(vm, "attempt to cast to incomplete type");
 		if(!iscvaltype(t))
-			vmerr(vm, "illegal type conversion");
+			vmerr(vm, "bad type conversion");
 		if(Vkind(ov) == Qstr){
 			if(!isptrtype(t))
-				vmerr(vm, "illegal type conversion");
+				vmerr(vm, "bad type conversion");
 			cv = str2voidstar(litdom->ns, valstr(ov));
 		}else
 			cv = valcval(ov);
@@ -3524,6 +3550,16 @@ chasetype(Xtypename *xtn)
 	return xtn;
 }
 
+static Xtypename*
+safechasetype(Xtypename *xtn)
+{
+	if(xtn == 0)
+		return 0;
+	if(xtn->tkind == Ttypedef || xtn->tkind == Tenum)
+		return safechasetype(xtn->link);
+	return xtn;
+}
+
 /* call looktype operator of NS on typename XTN.
    NB: on failure, we throw away valuable information: which part
    of the type was undefined.  consider adding a new return
@@ -3536,6 +3572,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 	Vec *vec;
 	Imm i;
 	Rkind rep;
+	unsigned char f;
 
 	switch(xtn->tkind){
 	case Tvoid:
@@ -3562,6 +3599,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		if(new->link == 0)
 			return 0;
 		new->rep = rep;
+		new->flag = Tcomplete;
 		return new;
 	case Tarr:
 		new = mkxtn();
@@ -3570,6 +3608,10 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		if(new->link == 0)
 			return 0;
 		new->cnt = xtn->cnt;
+		if(new->cnt && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Tfun:
 		new = mkxtn();
@@ -3577,6 +3619,7 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new->link = _dolooktype(vm, xtn->link, ns);
 		if(new->link == 0)
 			return 0;
+		f = new->link->flag;
 		new->param = mkvec(xtn->param->len);
 		for(i = 0; i < xtn->param->len; i++){
 			vec = veccopy(valvec(vecref(xtn->param, i)));
@@ -3585,7 +3628,10 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 			if(tmp == 0)
 				return 0;
 			vecset(vec, Typepos, mkvalxtn(tmp));
+			if(tmp->flag == Tincomplete)
+				f = Tincomplete;
 		}
+		new->flag = f;
 		return new;
 	case Tundef:
 		/* FIXME: do we want this? */
@@ -3600,9 +3646,13 @@ _dolooktype(VM *vm, Xtypename *xtn, Ns *ns)
 		new->link = _dolooktype(vm, xtn->link, ns);
 		if(new->link == 0)
 			return 0;
+		if(new->cnt && new->bit0 && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Txaccess:
-		vmerr(vm, "looktype is undefined on extend access types");
+		vmerr(vm, "looktype is undefined on extended access types");
 	}
 	fatal("bug");
 	return 0; /* not reached */
@@ -3640,6 +3690,11 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	rv = safedovm(vm, ns->looktype, 2, argv);
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
+	xtn = valxtn(rv);
+	if(xtn->rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
 	ns->base[cb] = valxtn(rv);
 }
 
@@ -3647,7 +3702,7 @@ static void
 nscachebase(VM *vm, Ns *ns)
 {
 	Cbase cb;
-	for(cb = Vchar; cb < Vnbase; cb++)
+	for(cb = Vlo; cb < Vnbase; cb++)
 		nscache1base(vm, ns, cb);
 	nscache1base(vm, ns, Vptr);
 }
@@ -3795,6 +3850,10 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 			vmerr(vm, "circular definition in name space: "
 			      "typedef %.*s",
 			      (int)def->tid->len, def->tid->s);
+		if(new->link && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	}
 
@@ -3853,6 +3912,7 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 	Vec *vec, *fld, *fv;
 	Imm i;
 	Str *es;
+	unsigned char f;
 
 	/* have we already defined this type in the new namespace? */
 	rv = tabget(ctx->type, xtnv);
@@ -3877,6 +3937,10 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 			new->tag = xtn->tag;
 			new->field = mkvec(fld->len);
 			new->attr = attr;
+			if(new->attr)
+				f = Tcomplete;
+			else
+				f = Tincomplete;
 
 			/* bind before recursive resolve call to stop cycles */
 			tabput(ctx->type, xtnv, mkvalxtn(new));
@@ -3893,7 +3957,10 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 				_vecset(fv, Attrpos, vecref(vec, Attrpos));
 				v = mkvalvec(fv);
 				_vecset(new->field, i, v);
+				if(tmp->flag == Tincomplete)
+					f = Tincomplete;
 			}
+			new->flag = f;
 			return new;
 		case Tenum:
 			if(xtn->konst == 0)
@@ -3906,6 +3973,10 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 
 			tabput(ctx->type, xtnv, mkvalxtn(new));
 			new->link = resolvetypename(vm, tmp, ctx);
+			if(new->link && new->link->flag == Tcomplete)
+				new->flag = Tcomplete;
+			else
+				new->flag = Tincomplete;
 			return new;
 		default:
 		error:
@@ -3959,6 +4030,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 	Xtypename *tmp;
 	Imm i;
 	Xtypename *new;
+	unsigned char f;
 
 	switch(xtn->tkind){
 	case Tvoid:
@@ -3968,6 +4040,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 			new = mkxtn();
 			new->tkind = Tbase;
 			new->basename = xtn->basename;
+			new->flag = xtn->flag;
 			xtn = new;
 		}
 		return resolvebase(vm, mkvalxtn(xtn), ctx);
@@ -3976,6 +4049,7 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->tkind = xtn->tkind;
 		new->rep = ctx->ptrrep;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		new->flag = Tcomplete;
 		return new;
 	case Ttypedef:
 		new = resolvetid(vm, mkvalxtn(xtn), ctx);
@@ -3991,11 +4065,20 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->bit0 = xtn->bit0;
 		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->bit0 && new->cnt
+		   && new->link && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Tconst:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->link)
+			new->flag = new->link->flag;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Txaccess:
 		new = mkxtn();
@@ -4003,18 +4086,24 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		new->get = xtn->get;
 		new->put = xtn->put;
+		new->flag = new->link->flag;
 		return new;
 	case Tarr:
 		new = mkxtn();
 		new->tkind = xtn->tkind;
 		new->cnt = xtn->cnt;
 		new->link = resolvetypename(vm, xtn->link, ctx);
+		if(new->cnt && new->link && new->link->flag == Tcomplete)
+			new->flag = Tcomplete;
+		else
+			new->flag = Tincomplete;
 		return new;
 	case Tfun:
 		new = mkxtn();
 		new->tkind = Tfun;
 		new->link = resolvetypename(vm, xtn->link, ctx);
 		new->param = mkvec(xtn->param->len);
+		f = new->link->flag;
 		for(i = 0; i < xtn->param->len; i++){
 			vec = valvec(vecref(xtn->param, i));
 			tmp = valxtn(vecref(vec, Typepos));
@@ -4025,12 +4114,16 @@ resolvetypename(VM *vm, Xtypename *xtn, NSctx *ctx)
 			_vecset(pv, Idpos, vecref(vec, Idpos));
 			v = mkvalvec(pv);
 			_vecset(new->param, i, v);
+			if(tmp->flag == Tincomplete)
+				f = Tincomplete;
 		}
+		new->flag = Tincomplete;
 		return new;
 	case Tundef:
 		new = mkxtn();
 		new->tkind = Tundef;
 		new->link = xtn->link;
+		new->flag = Tincomplete;
 		return new;
 	}
 	fatal("bug");
@@ -5130,11 +5223,14 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to domof");
 	arg0 = argv[0];
-	if(Vkind(arg0) != Qcval)
+	if(Vkind(arg0) == Qcval){
+		cv = valcval(arg0);
+		*rv = mkvaldom(cv->dom);
+	}else if(Vkind(arg0) == Qstr)
+		*rv = mkvaldom(litdom);
+	else
 		vmerr(vm,
-		      "operand 1 to domof must be a cvalue");
-	cv = valcval(arg0);
-	*rv = mkvaldom(cv->dom);
+		      "operand 1 to domof must be a cvalue or string");
 }
 
 int
@@ -5489,6 +5585,36 @@ l1_baseid(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_basebase(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to basebase");
+	if(Vkind(argv[0]) != Qxtn)
+		vmerr(vm, "operand 1 to basebase must be a base ctype");
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Tbase)
+		vmerr(vm, "operand 1 to basebase must be a base ctype");
+	*rv = mkvallitcval(Vuchar, xtn->basename);
+}
+
+static void
+l1_baserep(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to baserep");
+	if(Vkind(argv[0]) != Qxtn)
+		vmerr(vm, "operand 1 to baserep must be a base ctype");
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Tbase)
+		vmerr(vm, "operand 1 to baserep must be a base ctype");
+	*rv = mkvallitcval(Vuchar, xtn->rep);
+}
+
+static void
 l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Xtypename *xtn;
@@ -5726,6 +5852,25 @@ l1_typedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 		      "operand 1 to typedeftype must be a typedef ctype");
 	if(xtn->link)
 		*rv = mkvalxtn(xtn->link);
+}
+
+/* this sleazy operation provides a way to terminate
+   type resolution cycles */
+static void
+l1_settypedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Xtypename *xtn;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to settypedeftype");
+	checkarg(vm, "settypedeftype", argv, 0, Qxtn);
+	checkarg(vm, "settypedeftype", argv, 1, Qxtn);
+	
+	xtn = valxtn(argv[0]);
+	if(xtn->tkind != Ttypedef)
+		vmerr(vm, "attempt to settypedeftype on non-typedef");
+	xtn->link = valxtn(argv[1]);
+	xtn->flag = xtn->link->flag;
 }
 
 static void
@@ -6093,128 +6238,283 @@ l1_mkctype_void(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-domkctype_base(Cbase name, Val *rv)
+domkctype_base(Cbase name, Rkind rep, Val *rv)
 {
 	Xtypename *xtn;
-	xtn = mkbasextn(name, Rundef);
+	xtn = mkbasextn(name, rep);
 	*rv = mkvalxtn(xtn);
+}
+
+static void
+l1_mkctype_base(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	Cbase cb;
+	Rkind rep;
+
+	if(argc == 1){
+		checkarg(vm, "mkctype_base", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		cb = cv->val;
+		rep = Rundef;
+	}else if(argc == 2){
+		checkarg(vm, "mkctype_base", argv, 0, Qcval);
+		checkarg(vm, "mkctype_base", argv, 1, Qcval);
+		cv = valcval(argv[0]);
+		cb = cv->val;
+		cv = valcval(argv[1]);
+		rep = cv->val;
+	}else
+		vmerr(vm, "wrong number of arguments to mkctype_base");
+	
+	if(cb == Vvoid){
+		*rv = mkvalxtn(mkvoidxtn());
+		return;
+	}
+	if(cb < Vlo || cb > Vptr)
+		// FIXME: beware of changes to Cbase
+		vmerr(vm, "invalid base type identifier");
+	if(rep >= Rnrep)
+		vmerr(vm, "invalid representation identifier");
+	domkctype_base(cb, rep, rv);
+}
+
+static void
+l1_mkctype_bool(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_bool", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_bool");
+	domkctype_base(Vbool, rep, rv);
 }
 
 static void
 l1_mkctype_char(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_char", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_char");
-	USED(argv);
-	domkctype_base(Vchar, rv);
+	domkctype_base(Vchar, rep, rv);
 }
 
 static void
 l1_mkctype_short(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_short", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_short");
-	USED(argv);
-	domkctype_base(Vshort, rv);
+	domkctype_base(Vshort, rep, rv);
 }
 
 static void
 l1_mkctype_int(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_int", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_int");
-	USED(argv);
-	domkctype_base(Vint, rv);
+	domkctype_base(Vint, rep, rv);
 }
 
 static void
 l1_mkctype_long(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_long", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_long");
-	USED(argv);
-	domkctype_base(Vlong, rv);
+	domkctype_base(Vlong, rep, rv);
 }
 
 static void
 l1_mkctype_vlong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_vlong", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_vlong");
-	USED(argv);
-	domkctype_base(Vvlong, rv);
+	domkctype_base(Vvlong, rep, rv);
 }
 
 static void
 l1_mkctype_uchar(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_uchar", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uchar");
-	USED(argv);
-	domkctype_base(Vuchar, rv);
+	domkctype_base(Vuchar, rep, rv);
 }
 
 static void
 l1_mkctype_ushort(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_ushort", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ushort");
-	USED(argv);
-	domkctype_base(Vushort, rv);
+	domkctype_base(Vushort, rep, rv);
 }
 
 static void
 l1_mkctype_uint(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_uint", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uint");
-	USED(argv);
-	domkctype_base(Vuint, rv);
+	domkctype_base(Vuint, rep, rv);
 }
 
 static void
 l1_mkctype_ulong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_ulong", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ulong");
-	USED(argv);
-	domkctype_base(Vulong, rv);
+	domkctype_base(Vulong, rep, rv);
 }
 
 static void
 l1_mkctype_uvlong(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_uvlong", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_uvlong");
-	USED(argv);
-	domkctype_base(Vuvlong, rv);
+	domkctype_base(Vuvlong, rep, rv);
 }
 
 static void
 l1_mkctype_float(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_float", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_float");
-	USED(argv);
-	domkctype_base(Vfloat, rv);
+	domkctype_base(Vfloat, rep, rv);
 }
 
 static void
 l1_mkctype_double(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_double", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_double");
-	USED(argv);
-	domkctype_base(Vdouble, rv);
+	domkctype_base(Vdouble, rep, rv);
 }
 
 static void
 l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_ldouble", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cv->val;
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkctype_ldouble");
-	USED(argv);
-	domkctype_base(Vlongdouble, rv);
+	domkctype_base(Vlongdouble, rep, rv);
 }
 
 static void
@@ -6258,6 +6558,7 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn = mkxtn();
 		xtn->tkind = Ttypedef;
 		xtn->tid = s;
+		xtn->flag = Tincomplete;
 		break;
 	case 2:
 		checkarg(vm, "mkctype_typedef", argv, 0, Qstr);
@@ -6268,11 +6569,21 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Ttypedef;
 		xtn->tid = s;
 		xtn->link = sub;
+		xtn->flag = sub->flag;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_typedef");
 	}
 	*rv = mkvalxtn(xtn);
+}
+
+static void
+l1_mkctype_undef(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkctype_undef");
+	checkarg(vm, "mkctype_undef", argv, 0, Qxtn);
+	*rv = mkvalxtn(mkundefxtn(valxtn(argv[0])));
 }
 
 static int
@@ -6316,9 +6627,11 @@ issymvec(Vec *v)
 static void
 domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn;
+	Xtypename *xtn, *t;
 	Str *s;
 	Vec *f;
+	Imm i;
+	unsigned char fl;
 
 	xtn = 0;
 	switch((unsigned)argc){
@@ -6330,6 +6643,7 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = tkind;
 		xtn->tag = s;
 		xtn->attr = Xnil;
+		xtn->flag = Tincomplete;
 		break;
 	case 3:
 		/* TAG FIELDS SIZE */
@@ -6347,6 +6661,15 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn->tag = s;
 		xtn->field = f;
 		xtn->attr = argv[2];
+		fl = Tcomplete;
+		for(i = 0; i < f->len; i++){
+			t = valxtn(vecref(valvec(vecref(f, i)), Typepos));
+			if(t->flag == Tincomplete){
+				fl = Tincomplete;
+				break;
+			}
+		}
+		xtn->flag = fl;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to %s", fn);
@@ -6381,6 +6704,7 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tarr;
 		xtn->link = sub;
 		xtn->cnt = Xnil;
+		xtn->flag = Tincomplete;
 		break;
 	case 2:
 		/* TYPE CNT */
@@ -6391,6 +6715,7 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tarr;
 		xtn->link = sub;
 		xtn->cnt = argv[1];
+		xtn->flag = sub->flag;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_array");
@@ -6401,8 +6726,10 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn, *sub;
+	Xtypename *xtn, *sub, *t;
 	Vec *p;
+	Imm i;
+	unsigned char f;
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_fn");
@@ -6416,6 +6743,17 @@ l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn->tkind = Tfun;
 	xtn->link = sub;
 	xtn->param = p;
+	f = sub->flag;
+	if(f == Tcomplete){
+		for(i = 0; i < p->len; i++){
+			t = valxtn(vecref(valvec(vecref(p, i)), Typepos));
+			if(t->flag == Tincomplete){
+				f = Tincomplete;
+				break;
+			}
+		}
+	}
+	xtn->flag = f;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -6435,6 +6773,7 @@ l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn->link = sub;
 	xtn->cnt = argv[1];
 	xtn->bit0 = argv[2];
+	xtn->flag = sub->flag;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -6455,6 +6794,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tenum;
 		xtn->tag = s;
 		xtn->konst = 0;
+		xtn->flag = Tincomplete;
 		break;
 	case 2:
 		/* TAG CONSTS */
@@ -6466,6 +6806,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = Tenum;
 		xtn->tag = s;
 		xtn->konst = c;
+		xtn->flag = Tincomplete;
 		break;
 	case 3:
 		/* TAG CONSTS TYPE */
@@ -6480,6 +6821,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn->tag = s;
 		xtn->link = t;
 		xtn->konst = c;
+		xtn->flag = t->flag;
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_enum");
@@ -6499,6 +6841,7 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = mkxtn();
 	xtn->tkind = Tconst;
 	xtn->link = t;
+	xtn->flag = t->flag;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -6517,6 +6860,7 @@ l1_mkctype_xaccess(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn->link = valxtn(argv[0]);
 	xtn->get = valcl(argv[1]);
 	xtn->put = valcl(argv[2]);
+	xtn->flag = xtn->link->flag;
 	*rv = mkvalxtn(xtn);
 }
 
@@ -6660,13 +7004,17 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	addr = valcval(iargv[1]);
 	t = valxtn(iargv[2]);
 	cv = valcval(iargv[3]);
-
+	if(!iscomplete(t)){
+		es = fmtxtn(t);
+		vmerr(vm, "attempt to write object of undefined type: "
+		      "%.*s", (int)es->len, es->s);
+	}
 	b = chasetype(t);
 	switch(b->tkind){
 	case Tbase:
 	case Tptr:
 		cv = typecast(vm, t, cv);
-		bytes = imm2str(t, cv->val);
+		bytes = imm2str(vm, t, cv->val);
 		callput(vm, d->as, addr->val, typesize(vm, t), bytes);
 		*rv = mkvalcval2(cv);
 		break;
@@ -6770,8 +7118,9 @@ l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
 			break;
 		default:
 			vmerr(vm,
-			      "operand %u to foreach must be a list or vector",
-			      (unsigned)m);
+			      "operand %u to foreach must be a list, "
+			      "vector, or table",
+			      (unsigned)m+1);
 		}
 		if(m == 1)
 			len = len2;
@@ -7328,6 +7677,37 @@ l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	if(ns->enumtype)
 		*rv = mkvalcl(ns->enumtype);
+}
+
+static void
+l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+	Ns *ns;
+	Cval *cv;
+	Rkind rep;
+	Cbase cb;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to nsreptype");
+	checkarg(vm, "nsreptype", argv, 1, Qcval);
+	if(Vkind(argv[0]) == Qns)
+		ns = valns(argv[0]);
+	else if(Vkind(argv[0]) == Qdom){
+		dom = valdom(argv[0]);
+		ns = dom->ns;
+	}else
+		vmerr(vm,
+		      "operand 1 to nsreptype must be a namespace or domain");
+	cv = valcval(argv[1]);
+	rep = cv->val;
+	if(rep >= Rnrep)
+		vmerr(vm, "invalid representation identifier");
+	for(cb = Vlo; cb < Vnallbase; cb++)
+		if(ns->base[cb]->rep == rep){
+			*rv = mkvalxtn(ns->base[cb]);
+			return;
+		}
 }
 
 static void
@@ -8136,7 +8516,7 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val v;
 	List *lst;
-	Imm len, i;
+	Imm i;
 	Listx *x;
 	Tab *tab;
 
@@ -8149,10 +8529,13 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Qlist:
 		lst = vallist(argv[0]);
 		x = lst->x;
-		len = listxlen(x);
-		for(i = 0; i < len; i++)
-			if(eqval(v, x->val[x->hd+i]))
+		i = 0;
+		while(i < listxlen(x)){
+			if(!eqval(v, x->val[x->hd+i]))
+				i++;
+			else
 				listdel(vm, lst, i);
+		}
 		break;
 	case Qtab:
 		tab = valtab(argv[0]);
@@ -8981,7 +9364,7 @@ l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to cval2str");
 	checkarg(vm, "cval2str", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	s = imm2str(cv->type, cv->val);
+	s = imm2str(vm, cv->type, cv->val);
 	*rv = mkvalstr(s);
 }
 
@@ -9009,6 +9392,7 @@ struct NSroot {
 
 static NSroot c32le = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -9037,6 +9421,7 @@ static NSroot c32le = {
 
 static NSroot c32be = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -9065,6 +9450,7 @@ static NSroot c32be = {
 
 static NSroot c64le = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -9093,6 +9479,7 @@ static NSroot c64le = {
 
 static NSroot c64be = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -9121,6 +9508,7 @@ static NSroot c64be = {
 
 static NSroot clp64le = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08le,
 	[Vshort]=	Rs16le,
 	[Vint]=		Rs32le,
@@ -9149,6 +9537,7 @@ static NSroot clp64le = {
 
 static NSroot clp64be = {
 .base = {
+	[Vbool]=	Ru08le,
 	[Vchar]=	Rs08be,
 	[Vshort]=	Rs16be,
 	[Vint]=		Rs32be,
@@ -9181,6 +9570,7 @@ mkvoidxtn(void)
 	Xtypename *xtn;
 	xtn = mkxtn();
 	xtn->tkind = Tvoid;
+	xtn->flag = Tcomplete;
 	return xtn;
 }
 
@@ -9191,6 +9581,7 @@ mkundefxtn(Xtypename *t)
 	xtn = mkxtn();
 	xtn->tkind = Tundef;
 	xtn->link = t;
+	xtn->flag = Tincomplete;
 	return xtn;
 }
 
@@ -9202,6 +9593,10 @@ mkbasextn(Cbase name, Rkind rep)
 	xtn->tkind = Tbase;
 	xtn->basename = name;
 	xtn->rep = rep;
+	if(rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
 	return xtn;
 }
 
@@ -9213,6 +9608,10 @@ mkptrxtn(Xtypename *t, Rkind rep)
 	xtn->tkind = Tptr;
 	xtn->link = t;
 	xtn->rep = rep;
+	if(rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
 	return xtn;
 }
 
@@ -9223,6 +9622,7 @@ mkconstxtn(Xtypename *t)
 	xtn = mkxtn();
 	xtn->tkind = Tconst;
 	xtn->link = t;
+	xtn->flag = t->flag;
 	return xtn;
 }
 
@@ -9234,7 +9634,94 @@ mktypedefxtn(Str *tid, Xtypename *t)
 	xtn->tkind = Ttypedef;
 	xtn->tid = tid;
 	xtn->link = t;
+	if(xtn->link)
+		xtn->flag = t->flag;
+	else
+		xtn->flag = Tincomplete;
 	return xtn;
+}
+
+static Xtypename*
+typename(Xtypename *td)
+{
+	Xtypename *tn;
+	Vec *o, *p;
+	Imm i;
+
+	switch(td->tkind){
+	case Tvoid:
+		return td;
+	case Tbase:
+		return mkbasextn(td->basename, Rundef);
+	case Tptr:
+		return mkptrxtn(typename(td->link), Rundef);
+	case Tconst:
+		return mkconstxtn(typename(td->link));
+	case Ttypedef:
+		return mktypedefxtn(td->tid, 0);
+	case Tstruct:
+	case Tunion:
+	case Tenum:
+		/* FIXME: there should be a constructor in common with
+		   domkctype_su and the like */
+		tn = mkxtn();
+		tn->tkind = td->tkind;
+		tn->tag = td->tag;
+		tn->flag = Tincomplete;
+		return tn;
+	case Tarr:
+		/* FIXME: there should be a constructor in common with
+		   l1_mkctype_array */
+		tn = mkxtn();
+		tn->tkind = Tarr;
+		tn->link = typename(td->link);
+		tn->cnt = td->cnt;
+		tn->flag = Tincomplete;
+		return tn;
+	case Tfun:
+		/* FIXME: there should be a constructor in common with
+		   l1_mkctype_fn */
+		tn = mkxtn();
+		tn->tkind = Tfun;
+		tn->link = typename(td->link);
+		tn->param = mkvec(td->param->len);
+		for(i = 0; i < td->param->len; i++){
+			o = valvec(vecref(td->param, i));
+			p = mkvec(3);
+			_vecset(p, Typepos,
+				mkvalxtn(typename(valxtn(vecref(o, Typepos)))));
+			_vecset(p, Idpos, vecref(o, Idpos));
+			_vecset(p, Attrpos, vecref(o, Attrpos));
+			_vecset(tn->param, i, mkvalvec(p));
+		}
+		tn->flag = Tincomplete;
+		return tn;
+	case Tbitfield:
+		/* FIXME: there should be a constructor in common with
+		   l1_mkctype_bitfield */
+		tn = mkxtn();
+		tn->tkind = Tbitfield;
+		tn->link = typename(td->link);
+		tn->cnt = td->cnt;
+		tn->bit0 = td->bit0;
+		tn->flag = Tincomplete;
+		return tn;
+	case Tundef:
+	case Txaccess:
+		/* FIXME: this is made-up */
+		return td;
+	}
+	fatal("bug");
+	return 0; /* not reached */
+}
+
+static void
+l1_typename(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to typename");
+	checkarg(vm, "typename", argv, 0, Qxtn);
+	*rv = mkvalxtn(typename(valxtn(argv[0])));
 }
 
 static Tab*
@@ -9245,12 +9732,12 @@ basetab(NSroot *def, Xtypename **base)
 	Tab *type;
 	Str *tn;
 
-	for(cb = Vchar; cb < Vnbase; cb++)
+	for(cb = Vlo; cb < Vnbase; cb++)
 		base[cb] = mkbasextn(cb, def->base[cb]);
 	base[Vptr] = base[def->ptr];
 
 	type = mktab();
-	for(cb = Vchar; cb < Vnbase; cb++){
+	for(cb = Vlo; cb < Vnbase; cb++){
 		kv = mkvalxtn(mkbasextn(cb, Rundef));
 		vv = mkvalxtn(base[cb]);
 		tabput(type, kv, vv);
@@ -9342,6 +9829,8 @@ mktopenv(void)
 	FN(attroff);
 	FN(backtrace);
 	FN(baseid);
+	FN(basebase);
+	FN(baserep);
 	FN(bitfieldcontainer);
 	FN(bitfieldpos);
 	FN(bitfieldwidth);
@@ -9442,7 +9931,9 @@ mktopenv(void)
 	FN(mkas);
 	FN(mkattr);
 	FN(mkctype_array);
+	FN(mkctype_base);
 	FN(mkctype_bitfield);
+	FN(mkctype_bool);
 	FN(mkctype_char);
 	FN(mkctype_const);
 	FN(mkctype_double);
@@ -9459,6 +9950,7 @@ mktopenv(void)
 	FN(mkctype_uchar);
 	FN(mkctype_uint);
 	FN(mkctype_ulong);
+	FN(mkctype_undef);
 	FN(mkctype_union);
 	FN(mkctype_ushort);
 	FN(mkctype_uvlong);
@@ -9487,6 +9979,7 @@ mktopenv(void)
 	FN(nsenumtype);
 	FN(nslookaddr);
 	FN(nsptr);
+	FN(nsreptype);
 	FN(null);
 	FN(paramid);
 	FN(params);
@@ -9510,6 +10003,7 @@ mktopenv(void)
 	FN(setcar);
 	FN(setcdr);
 	FN(setloadpath);
+	FN(settypedeftype);
 	FN(sort);
 	FN(split);
 	FN(sprintfa);
@@ -9539,6 +10033,7 @@ mktopenv(void)
 	FN(toupper);
 	FN(typedefid);
 	FN(typedeftype);
+	FN(typename);
 	FN(veclen);
 	FN(vecref);
 	FN(vecset);

@@ -10,6 +10,7 @@ enum {
 };
 
 char* S[] = {
+	[Ebool] =	"Ebool",
 	[Echar] =	"Echar",
 	[Edouble] =	"Edouble",
 	[Efloat] =	"Efloat",
