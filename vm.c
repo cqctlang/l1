@@ -8114,7 +8114,7 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	checkarg(vm, "apply", iargv, 0, Qcl);
 	cl = valcl(iargv[0]);
 	if(listlen(iargv[iargc-1], &ll) == 0)
-		vmerr(vm, "final operand to apply must be a proper list");
+		vmerr(vm, "final operand to apply must be a list");
 	argc = iargc-2+ll;
 	argv = emalloc(argc*sizeof(Val));
 	ap = argv;
@@ -8130,7 +8130,7 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 		efree(argv);
 		nexterror(vm);
 	}
-	vp = safedovm(vm, cl, argc, argv);
+	vp = dovm(vm, cl, argc, argv);
 	*rv = vp;
 	efree(argv);
 	poperror(vm);
