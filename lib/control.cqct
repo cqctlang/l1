@@ -1,0 +1,102 @@
+/* common control functions */
+
+@define map(fn, arg ...)
+{
+	@local a, i, j, m, n, rv;
+
+	if(!isprocedure(fn))
+		error("argument 1 to map must be a procedure");
+	if(length(arg) == 0)
+		error("wrong number of arguments to map");
+
+	// tables: exactly one, only
+	if(istable(arg[0])){
+		@local k, v;
+		if(length(arg) != 1)
+			error("bad combination of arguments to map");
+		rv = [];
+		k = tabkeys(arg[0]);
+		v = tabvals(arg[0]);
+		m = length(k);
+		for(i = 0; i < m; i++)
+			append(rv, fn(k[i], v[i]));
+		return rv;
+	}
+
+	// list or vector: exactly one
+	if(length(arg) == 1){
+		a = arg[0];
+		if(!islist(a) && !isvector(a))
+			error("wrong type of container argument to map");
+		rv = [];
+		m = length(a);
+		for(i = 0; i < m; i++)
+			append(rv, fn(a[i]));
+		return rv;
+	}
+
+	// list or vector: more than one
+	m = length(arg);
+	for(i = 0; i < m; i++)
+		if(!islist(arg[i]) && !isvector(arg[i]))
+			error("argument %d to map must be a list or vector",
+			      i+2);
+	rv = [];
+	n = length(arg[0]);
+	a = mklist(m);
+	for(j = 0; j < n; j++){
+		for(i = 0; i < m; i++)
+			a[i] = arg[i][j];
+		append(rv, apply(fn, a));
+	}
+	return rv;
+}
+
+@define foreach(fn, arg ...)
+{
+	@local a, i, j, m, n;
+
+	if(!isprocedure(fn))
+		error("argument 1 to foreach must be a procedure");
+	if(length(arg) == 0)
+		error("wrong number of arguments to foreach");
+
+	// tables: exactly one, only
+	if(istable(arg[0])){
+		@local k, v;
+		if(length(arg) != 1)
+			error("bad combination of arguments to foreach");
+		k = tabkeys(arg[0]);
+		v = tabvals(arg[0]);
+		m = length(k);
+		for(i = 0; i < m; i++)
+			fn(k[i], v[i]);
+		return nil;
+	}
+
+	// list or vector: exactly one
+	if(length(arg) == 1){
+		a = arg[0];
+		if(!islist(a) && !isvector(a))
+			error("wrong type of container argument to foreach");
+		m = length(a);
+		for(i = 0; i < m; i++)
+			fn(a[i]);
+		return nil;
+	}
+
+	// list or vector: more than one
+	m = length(arg);
+	for(i = 0; i < m; i++)
+		if(!islist(arg[i]) && !isvector(arg[i]))
+			error("argument %d to foreach must be a list or vector",
+			      i+2);
+	n = length(arg[0]);
+	a = mklist(m);
+	for(j = 0; j < n; j++){
+		for(i = 0; i < m; i++)
+			a[i] = arg[i][j];
+		apply(fn, a);
+	}
+	return nil;
+}

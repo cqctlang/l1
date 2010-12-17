@@ -7073,169 +7073,6 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
-l1_foreach(VM *vm, Imm argc, Val *iargv, Val *rv)
-{
-	List *l;
-	Vec *k, *v;
-	Tab *t;
-	Closure *cl;
-	Imm m, i, len, len2;
-	Val* argv;
-
-	if(argc < 2)
-		vmerr(vm, "wrong number of arguments to foreach");
-	checkarg(vm, "foreach", iargv, 0, Qcl);
-
-	// tables: only one container operand
-	if(Vkind(iargv[1]) == Qtab){
-		if(argc > 2)
-			vmerr(vm, "bad combination of containers");
-		cl = valcl(iargv[0]);
-		t = valtab(iargv[1]);
-		k = tabenumkeys(t);
-		v = tabenumvals(t);
-		argv = emalloc(2*sizeof(Val));
-		for(m = 0; m < v->len; m++){
-			argv[0] = vecref(k, m);
-			argv[1] = vecref(v, m);
-			safedovm(vm, cl, 2, argv);
-		}
-		efree(argv);
-		return;
-	}
-
-	// list and vector: any number, but must have equal length
-	len = 0;
-	for(m = 1; m < argc; m++){
-		switch(Vkind(iargv[m])){
-		case Qlist:
-			l = vallist(iargv[m]);
-			len2 = listxlen(l->x);
-			break;
-		case Qvec:
-			v = valvec(iargv[m]);
-			len2 = v->len;
-			break;
-		default:
-			vmerr(vm,
-			      "operand %u to foreach must be a list, "
-			      "vector, or table",
-			      (unsigned)m+1);
-		}
-		if(m == 1)
-			len = len2;
-		else if(len != len2)
-			vmerr(vm,
-			      "container operands must be of the same length");
-	}
-	cl = valcl(iargv[0]);
-	argv = emalloc((argc-1)*sizeof(Val));
-	for(i = 0; i < len; i++){
-		for(m = 1; m < argc; m++){
-			switch(Vkind(iargv[m])){
-			case Qlist:
-				l = vallist(iargv[m]);
-				argv[m-1] = listref(vm, l, i);
-				break;
-			case Qvec:
-				v = valvec(iargv[m]);
-				argv[m-1] = vecref(v, i);
-				break;
-			default:
-				fatal("bug");
-			}
-		}
-		safedovm(vm, cl, argc-1, argv);
-	}
-	efree(argv);
-	USED(rv);
-}
-
-static void
-l1_map(VM *vm, Imm argc, Val *iargv, Val *rv)
-{
-	List *l, *r;
-	Vec *k, *v;
-	Tab *t;
-	Closure *cl;
-	Imm m, i, len, len2;
-	Val x, *argv;
-
-	if(argc < 2)
-		vmerr(vm, "wrong number of arguments to map");
-	checkarg(vm, "map", iargv, 0, Qcl);
-
-	// tables: only one container operand
-	if(Vkind(iargv[1]) == Qtab){
-		if(argc > 2)
-			vmerr(vm, "bad combination of containers");
-		r = mklist();
-		cl = valcl(iargv[0]);
-		t = valtab(iargv[1]);
-		k = tabenumkeys(t);
-		v = tabenumvals(t);
-		argv = emalloc(2*sizeof(Val));
-		for(m = 0; m < v->len; m++) {
-			argv[0] = vecref(k, m);
-			argv[1] = vecref(v, m);
-			x = safedovm(vm, cl, 2, argv);
-			listins(vm, r, m, x);
-		}
-		efree(argv);
-		*rv = mkvallist(r);
-		return;
-	}
-
-	// list and vector: any number, but must have equal length
-	len = 0;
-	for(m = 1; m < argc; m++){
-		switch(Vkind(iargv[m])){
-		case Qlist:
-			l = vallist(iargv[m]);
-			len2 = listxlen(l->x);
-			break;
-		case Qvec:
-			v = valvec(iargv[m]);
-			len2 = v->len;
-			break;
-		default:
-			vmerr(vm,
-			      "operand %u to map must be a list or vector",
-			      (unsigned)m);
-		}
-		if(m == 1)
-			len = len2;
-		else if(len != len2)
-			vmerr(vm,
-			      "container operands must be of the same length");
-	}
-
-	cl = valcl(iargv[0]);
-	r = mklist();
-	argv = emalloc((argc-1)*sizeof(Val));
-	for(i = 0; i < len; i++){
-		for(m = 1; m < argc; m++){
-			switch(Vkind(iargv[m])){
-			case Qlist:
-				l = vallist(iargv[m]);
-				argv[m-1] = listref(vm, l, i);
-				break;
-			case Qvec:
-				v = valvec(iargv[m]);
-				argv[m-1] = vecref(v, i);
-				break;
-			default:
-				fatal("bug");
-			}
-		}
-		x = safedovm(vm, cl, m-1, argv);
-		listins(vm, r, i, x);
-	}
-	efree(argv);
-	*rv = mkvallist(r);
-}
-
-static void
 l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -9860,7 +9697,6 @@ mktopenv(void)
 	FN(fields);
 	FN(fieldtype);
 	FN(finalize);
-	FN(foreach);
 	FN(gc);
 	FN(gcprotect);
 	FN(gcstat);
@@ -9923,7 +9759,6 @@ mktopenv(void)
 	FN(looksym);
 	FN(looktype);
 	FN(malloc);
-	FN(map);
 	FN(memcpy);
 	FN(meminuse);
 	FN(memset);
