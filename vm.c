@@ -4145,7 +4145,7 @@ calldispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		efree(xargv);
 		nexterror(vm);
 	}
-	*rv = safedovm(vm, dcl, argc+1, xargv);
+	*rv = dovm(vm, dcl, argc+1, xargv);
 	efree(xargv);
 	poperror(vm);
 }
@@ -5211,7 +5211,7 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(Vkind(argv[1]) != Qstr)
 		vmerr(vm, "operand 2 to looksym must be a string");
-	*rv = safedovm(vm, ns->looksym, argc, argv);
+	*rv = dovm(vm, ns->looksym, argc, argv);
 }
 
 static void
@@ -7089,7 +7089,7 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 			fd->u.fn.close(&fd->u.fn);
 	}else
 		if(fd->u.cl.close)
-			safedovm(vm, fd->u.cl.close, 0, 0);
+			dovm(vm, fd->u.cl.close, 0, 0);
 	USED(rv);
 }
 
@@ -7442,7 +7442,7 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 		efree(xargv);
 		nexterror(vm);
 	}
-	*rv = safedovm(vm, cl, xargc, xargv);
+	*rv = dovm(vm, cl, xargc, xargv);
 	poperror(vm);
 	efree(xargv);
 }
