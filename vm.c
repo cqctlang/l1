@@ -5869,6 +5869,7 @@ l1_settypedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 	xtn = valxtn(argv[0]);
 	if(xtn->tkind != Ttypedef)
 		vmerr(vm, "attempt to settypedeftype on non-typedef");
+	gcwb(argv[0]);
 	xtn->link = valxtn(argv[1]);
 	xtn->flag = xtn->link->flag;
 }
