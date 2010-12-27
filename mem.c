@@ -39,7 +39,6 @@ struct Seg
 {
 	void *addr, *scan, *a, *e;
 	u8 card;
-	Mkind kind;
 	Pair *p;		/* protected objects */
 	u32 nprotect;
 	Gen gen;
@@ -626,7 +625,6 @@ mkseg(Mkind kind)
 	s->addr = mapseg();
 	s->a = s->scan = s->addr;
 	s->e = s->addr+Segsize;
-	s->kind = kind;
 	s->card = Clean;
 	hputp(segtab, s->addr, s);
 	H.na += Segsize;
