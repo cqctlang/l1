@@ -1849,6 +1849,7 @@ ctlmux = @names clp64le {
 			       ctl.traps.copy(),
 			       copy(ctl.callbacks));
 		ctls[rep->cid] = newctl;
+		finalize(newctl, @lambda(ctl) { ctl.kill(); });
 		return newctl;
 	}
 
