@@ -37,7 +37,7 @@ enum
 typedef struct Seg Seg;
 struct Seg
 {
-	void *addr, *scan, *a, *e;
+	void *addr, *a, *e;
 	u8 card;
 	Pair *p;		/* protected objects */
 	u32 nprotect;
@@ -72,6 +72,7 @@ struct M
 {
 	Seg *h, *t;		/* segment list head and tail */
 	Seg *s;			/* first segment needing scan */
+	void *scan;
 	Gen gen;
 } M;
 
@@ -623,8 +624,8 @@ mkseg(Mkind kind)
 	Seg *s;
 	s = emalloc(sizeof(Seg));
 	s->addr = mapseg();
-	s->a = s->scan = s->addr;
-	s->e = s->addr+Segsize;
+	s->a = s->addr;
+	s->e = s->addr+Segsize-sizeof(void*);
 	s->card = Clean;
 	hputp(segtab, s->addr, s);
 	H.na += Segsize;
@@ -663,7 +664,7 @@ mclr(M *m)
 {
 	m->h = 0;
 	m->t = 0;
-	m->s = 0;
+	m->scan = 0;
 }
 
 static Seg*
@@ -673,7 +674,7 @@ minit(M *m, Seg *s)
 	s->link = 0;
 	m->h = s;
 	m->t = s;
-	m->s = s;
+	m->scan = s->addr;
 	return s;
 }
 
@@ -706,7 +707,7 @@ mmove(M *a, M *b)
 		a->t = b->t;
 	}
 	b->h = b->t = 0;
-	a->s = b->s = 0; // mmoved Ms are never scanned
+	a->scan = b->scan = 0; // mmoved Ms are never scanned
 }
 
 static void
@@ -919,6 +920,8 @@ scan1(Head *h)
 	return min;
 }
 
+/* m->scan must always point to a location within the
+   current segment to be scanned. */
 static unsigned
 scan(M *m)
 {
@@ -927,14 +930,15 @@ scan(M *m)
 	Ictx ictx;
 	unsigned dbg = alldbg;
 
-	s = m->s;
+	if(m->scan == 0)
+		return 0;
+	s = lookseg(m->scan);
 	c = 0;
 	while(s){
-		m->s = s;
-		while(s->scan < s->a){
-			h = s->scan;
+		while(m->scan < s->a){
+			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
-			s->scan += qs[Vkind(h)].sz;
+			m->scan += qs[Vkind(h)].sz;
 			if(qs[Vkind(h)].iter == 0)
 				continue;
 			memset(&ictx, 0, sizeof(ictx));
@@ -949,6 +953,8 @@ scan(M *m)
 			}
 		}
 		s = s->link;
+		if(s)
+			m->scan = s->addr;
 	}
 
 	// approximate indication of whether a copy occurred in this call:
