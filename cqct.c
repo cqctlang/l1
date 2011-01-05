@@ -246,13 +246,13 @@ cqcteval(VM *vm, char *s, char *src, Val *rv)
 void
 cqctgcenable(VM *vm)
 {
-	gcenable(vm);
+	gcenable();
 }
 
 void
 cqctgcdisable(VM *vm)
 {
-	gcdisable(vm);
+	gcdisable();
 }
 
 void
