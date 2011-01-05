@@ -12,7 +12,7 @@ enum
 
 enum
 {
-	Segsize = 4096,
+	Segsize = 4096ULL,
 	Segmask = ~(Segsize-1),
 	GCthresh = 10*1024*Segsize,
 //	GCthresh = Segsize,
