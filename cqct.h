@@ -88,24 +88,19 @@ typedef struct xHeap xHeap;
          7 6 5 4 3 2 1 0
         |D|P|K K K K K|F|
  */              
-enum
-{
-	Vfwdoff  = 0,
-	Vfwdbits = 1,
-	Vfwdmask = (1<<Vfwdbits)-1,
 
-	Vkindoff  = Vfwdoff+Vfwdbits,
-	Vkindbits = 5,
-	Vkindmask = (1<<Vkindbits)-1,
-
-	Vprotoff = Vkindoff+Vkindbits,
-	Vprotbits = 1,
-	Vprotmask = (1<<Vprotbits)-1,
-
-	Vdeadoff = Vprotoff+Vprotbits,
-	Vdeadbits = 1,
-	Vdeadmask = (1<<Vdeadbits)-1,
-};
+#define	Vfwdoff       0
+#define	Vfwdbits      1
+#define	Vfwdmask      ((1<<Vfwdbits)-1)
+#define	Vkindoff      (Vfwdoff+Vfwdbits)
+#define	Vkindbits     5
+#define	Vkindmask     ((1<<Vkindbits)-1)
+#define	Vprotoff      (Vkindoff+Vkindbits)
+#define	Vprotbits     1
+#define	Vprotmask     ((1<<Vprotbits)-1)
+#define	Vdeadoff      (Vprotoff+Vprotbits)
+#define	Vdeadbits     1
+#define	Vdeadmask     ((1<<Vdeadbits)-1)
 
 #define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
 #define Vsetfwd(p, a)     ((p)->bits = a|(Vfwdmask<<Vfwdoff))

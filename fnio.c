@@ -35,27 +35,27 @@ enum
 	QTTMP		= 0x04,		// type bit for non-backed-up file
 	QTSYMLINK	= 0x02,		// type bit for symbolic link
 	QTFILE		= 0x00,		// type bits for plain file
+};
 
-	// 9P mode bits
-	DMDIR		= 0x80000000,	// mode bit for directories
-	DMAPPEND	= 0x40000000,	// mode bit for append only files
-	DMEXCL		= 0x20000000,	// mode bit for exclusive use files
-	DMMOUNT		= 0x10000000,	// mode bit for mounted channel
-	DMAUTH		= 0x08000000,	// mode bit for authentication file
-	DMTMP		= 0x04000000,	// mode bit for non-backed-up file
+/* #define since not all are int-sized */
+#define DMDIR		0x80000000	// mode bit for directories
+#define DMAPPEND	0x40000000	// mode bit for append only files
+#define DMEXCL		0x20000000	// mode bit for exclusive use files
+#define DMMOUNT		0x10000000	// mode bit for mounted channel
+#define DMAUTH		0x08000000	// mode bit for authentication file
+#define DMTMP		0x04000000	// mode bit for non-backed-up file
 
 	// 9P2000.u mode bits
-	DMSYMLINK	= 0x02000000,	// mode bit for symbolic link
-	DMDEVICE	= 0x00800000,	// mode bit for device file
-	DMNAMEDPIPE	= 0x00200000,	// mode bit for named pipe
-	DMSOCKET	= 0x00100000,	// mode bit for socket
-	DMSETUID	= 0x00080000,	// mode bit for setuid
-	DMSETGID	= 0x00040000,	// mode bit for setgid
+#define DMSYMLINK	0x02000000	// mode bit for symbolic link
+#define DMDEVICE	0x00800000	// mode bit for device file
+#define DMNAMEDPIPE	0x00200000	// mode bit for named pipe
+#define DMSOCKET	0x00100000	// mode bit for socket
+#define DMSETUID	0x00080000	// mode bit for setuid
+#define DMSETGID	0x00040000	// mode bit for setgid
 
-	DMREAD		= 0x4,		// mode bit for read permission
-	DMWRITE		= 0x2,		// mode bit for write permission
-	DMEXEC		= 0x1,		// mode bit for execute permission
-};
+#define DMREAD		0x4		// mode bit for read permission
+#define DMWRITE		0x2		// mode bit for write permission
+#define DMEXEC		0x1		// mode bit for execute permission
 
 typedef
 struct Qid {

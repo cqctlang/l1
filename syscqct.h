@@ -4,15 +4,17 @@
 #include "cqct.h"
 
 enum{
-	Vintmax		= 2147483647ULL,
-	Vuintmax	= 4294967295ULL,
-	Vlongmax	= 2147483647ULL,
-	Vulongmax	= 4294967295ULL,
-	Vvlongmax	= 9223372036854775807ULL,
-	Vuvlongmax	= 18446744073709551615ULL,
 	Maxliti		= 24,	/* longest integer literal plus null */
 	Maxspec		= 32,
 };
+
+/* #define since these are not all int-sized */
+#define	Vintmax		2147483647ULL
+#define	Vuintmax	4294967295ULL
+#define	Vlongmax	2147483647ULL
+#define Vulongmax	4294967295ULL
+#define	Vvlongmax	9223372036854775807ULL
+#define	Vuvlongmax	18446744073709551615ULL
 
 typedef
 enum{
