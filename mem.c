@@ -975,26 +975,6 @@ kleenescan(u32 tg)
 	}while(again);
 }
 
-#define car(p)  (((Pair*)p)->car)
-#define cdr(p)  (((Pair*)p)->cdr)
-#define caar(p) (car(car(p)))
-#define cadr(p) (car(cdr(p)))
-#define cdar(p) (cdr(car(p)))
-#define cddr(p) (cdr(cdr(p)))
-#define setcar(p,x) { gcwb((Val)p); car(p) = (Head*)(x); }
-#define setcdr(p,x) { gcwb((Val)p); cdr(p) = (Head*)(x); }
-
-static Pair*
-cons(void *a, void *d)
-{
-	Pair *p;
-	p = (Pair*)mal(Qpair);
-	// setc*r would invoke write barrier
-	p->car = a;
-	p->cdr = d;
-	return p;
-}
-
 static Pair*
 lastpair()
 {

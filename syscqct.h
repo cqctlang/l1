@@ -979,7 +979,6 @@ Val		mkvalbox(Val boxed);
 Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
-Val		mkvalpair(Val car, Val cdr);
 Val		mkvalrange(Cval *beg, Cval *len);
 Vec*		mkvec(Imm len);
 As*		mkzas(Imm len);
@@ -1007,18 +1006,19 @@ void		vecset(Vec *vec, Imm idx, Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
-#define mkvalas(x)	((Val)x)
-#define mkvalcl(x)	((Val)x)
-#define mkvaldom(x)	((Val)x)
-#define mkvalfd(x)	((Val)x)
-#define mkvallist(x)	((Val)x)
-#define mkvalns(x)	((Val)x)
-#define mkvalrd(x)	((Val)x)
-#define mkvalrec(x)	((Val)x)
-#define mkvalstr(x)	((Val)x)
-#define mkvaltab(x)	((Val)x)
-#define mkvalvec(x)	((Val)x)
-#define mkvalxtn(x)	((Val)x)
+#define mkvalas(x)	((Val)(x))
+#define mkvalcl(x)	((Val)(x))
+#define mkvaldom(x)	((Val)(x))
+#define mkvalfd(x)	((Val)(x))
+#define mkvallist(x)	((Val)(x))
+#define mkvalns(x)	((Val)(x))
+#define mkvalpair(x)	((Val)(x))
+#define mkvalrd(x)	((Val)(x))
+#define mkvalrec(x)	((Val)(x))
+#define mkvalstr(x)	((Val)(x))
+#define mkvaltab(x)	((Val)(x))
+#define mkvalvec(x)	((Val)(x))
+#define mkvalxtn(x)	((Val)(x))
 
 #define valas(v)	((As*)(v))
 #define valcval(v)	((Cval*)(v))
@@ -1119,6 +1119,25 @@ Expr*		Zuint(Imm val);
 Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);
 
+/* mem.c */
+void		finimem();
+void		_gc(u32 g, u32 tg);
+void		gc(VM *vm);
+void		gcdisable();
+void		gcenable();
+void		gcpoll(VM *vm);
+void*		gcprotect(void *v);
+Str*		gcstat();
+void*		gcunprotect(void *v);
+void		gcwb(Val v);
+void		initmem(u64 rate);
+void		instguard(Pair *p);
+Head*		mal(Qkind kind);
+Head*		malcode();
+u64		meminuse();
+u64		protected();
+void		quard(Val o);
+
 /* list.c */
 int		equallist(List *a, List *b);
 void		fnlist(Env *env);
@@ -1154,26 +1173,18 @@ Val		tabget(Tab *tab, Val keyv);
 void		tabpop(Tab *tab, Val *rv);
 void		tabput(Tab *tab, Val keyv, Val val);
 
+/* pair.c */
+#define 	car(p)  (((Pair*)(p))->car)
+#define 	cdr(p)  (((Pair*)(p))->cdr)
+#define 	caar(p) (car(car(p)))
+#define 	cadr(p) (car(cdr(p)))
+#define 	cdar(p) (cdr(car(p)))
+#define 	cddr(p) (cdr(cdr(p)))
+#define 	setcar(p,x) do{ gcwb((Val)(p)); car(p) = (Val)(x); }while(0)
+#define 	setcdr(p,x) do{ gcwb((Val)(p)); cdr(p) = (Val)(x); }while(0)
+#define		cons(a,d)  (mkpair((Val)(a), (Val)(d)))
+Pair*		mkpair(Val a, Val d);
 
-/* mem.c */
-void		finimem();
-void		freetabx(Tabx *x); /* FIXME */
-void		_gc(u32 g, u32 tg);
-void		gc(VM *vm);
-void		gcdisable();
-void		gcenable();
-void		gcpoll(VM *vm);
-void*		gcprotect(void *v);
-Str*		gcstat();
-void*		gcunprotect(void *v);
-void		gcwb(Val v);
-void		initmem(u64 rate);
-void		instguard(Pair *p);
-Head*		mal(Qkind kind);
-Head*		malcode();
-u64		meminuse();
-u64		protected();
-void		quard(Val o);
 
 extern		void fns(Env*);
 

@@ -1271,16 +1271,6 @@ mkvalbox(Val boxed)
 	return (Val)box;
 }
 
-Val
-mkvalpair(Val car, Val cdr)
-{
-	Pair *pair;
-	pair = (Pair*)mal(Qpair);
-	pair->car = car;
-	pair->cdr = cdr;
-	return (Val)pair;
-}
-
 Range*
 mkrange(Cval *beg, Cval *len)
 {
@@ -8059,7 +8049,7 @@ l1_cons(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cons");
-	*rv = mkvalpair(argv[0], argv[1]);
+	*rv = mkvalpair(cons(argv[0], argv[1]));
 }
 
 static void
