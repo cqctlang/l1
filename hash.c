@@ -16,7 +16,6 @@ struct HT {
 	u32 sz;
 	u32 nent;
 	Hent **ht;		/* table */
-	Hent **hent;		/* vector of allocated Hents */
 	u32 (*hash)(Hent *hp);
 };
 
@@ -30,7 +29,6 @@ mkhtsz(u32 sz)
 	ht = emalloc(sizeof(HT));
 	ht->sz = sz;
 	ht->ht = emalloc(ht->sz*sizeof(Hent*));
-	ht->hent = emalloc(ht->sz*sizeof(Hent*));
 	return ht;
 }
 
@@ -67,7 +65,6 @@ freeht(HT* ht)
 		}
 	}
 	efree(ht->ht);
-	efree(ht->hent);
 	efree(ht);
 }
 
@@ -81,7 +78,6 @@ hsz(HT *ht)
 	m = 0;
 	m += esize(ht);
 	m += esize(ht->ht);
-	m += esize(ht->hent);
 	for(i = 0; i < ht->sz; i++){
 		hp = ht->ht[i];
 		while(hp){
@@ -113,9 +109,6 @@ hexpand(HT *ht)
 	}
 	efree(ht->ht);
 	ht->ht = nht;
-	ht->hent = erealloc(ht->hent,
-			    ht->sz*sizeof(Hent*),
-			    nsz*sizeof(Hent*));
 	ht->sz = nsz;
 }
 
@@ -221,7 +214,6 @@ hputp(HT *ht, void *k, void *v)
 	idx = phash(k)%ht->sz;
 	hp->next = ht->ht[idx];
 	ht->ht[idx] = hp;
-	ht->hent[ht->nent] = hp;
 	ht->nent++;
 }
 
@@ -318,7 +310,6 @@ hputs(HT *ht, char *k, u32 len, void *v)
 	idx = shash(k, len)%ht->sz;
 	hp->next = ht->ht[idx];
 	ht->ht[idx] = hp;
-	ht->hent[ht->nent] = hp;
 	ht->nent++;
 }
 
