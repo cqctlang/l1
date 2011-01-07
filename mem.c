@@ -10,7 +10,7 @@ enum
 	Nm,
 } Mkind;
 
-/* need 64-bit constants */
+/* #define to ensure 64-bit constants */
 #define Segsize   4096ULL
 #define Segmask   ~(Segsize-1)
 #define	GCthresh  10*1024*Segsize
