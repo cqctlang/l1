@@ -785,7 +785,7 @@ mkvec(Imm len)
 	return vec;
 }
 
-static Vec*
+Vec*
 mkvecinit(Imm len, Val v)
 {
 	Vec *vec;
@@ -4019,6 +4019,14 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 static Ns*
 mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 {
+	vmerr(vm, "mknsraw is broken");
+	return 0;
+}
+
+#if 0
+static Ns*
+mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
+{
 	Val v, idv, vecv, vp;
 	Vec *vec, *kvec, *nvec;
 	Tabx *x;
@@ -4159,6 +4167,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 
 	return ns;
 }
+#endif
 
 static char*
 myroot(void)
@@ -7783,7 +7792,7 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 		break;
 	case Qtab:
 		tab = valtab(argv[0]);
-		len = tab->cnt;
+		len = tab->nent;
 		break;
 	}
 	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], len);
@@ -9920,7 +9929,7 @@ cqctlength(Val v)
 		return vec->len;
 	case Qtab:
 		tab = valtab(v);
-		return tab->cnt;
+		return tab->nent;
 	}
 }
 

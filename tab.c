@@ -2,6 +2,248 @@
 #include "util.h"
 #include "syscqct.h"
 
+static Tab*
+_mktab(u32 sz)
+{
+	Tab *t;
+
+	t = (Tab*)mal(Qtab);
+	t->sz = sz;
+	t->nent = 0;
+	t->ht = mkvecinit(sz, Xnil);
+	return t;
+}
+
+Tab*
+mktab()
+{
+	return _mktab(Tabinitsize);
+}
+
+static Pair*
+get(Tab *t, Val k, u32 *hp)
+{
+	Val x;
+	Pair *p;
+	Qkind kind;
+	Hashop *op;
+	u32 h;
+
+	kind = Vkind(k);
+	op = &hashop[kind];
+	h = op->hash(k);
+	*hp = h;
+	x = vecref(t->ht, h&(t->sz-1));
+	while(x != Xnil){
+		p = (Pair*)car(x);
+		x = cdr(x);
+		if(Vkind(car(p)) == kind && op->eq(car(p), k))
+			return p;
+	}
+	return 0;
+}
+
+Val
+tabget(Tab *t, Val k)
+{
+	Pair *p;
+	u32 h;
+	p = get(t, k, &h);
+	if(p)
+		return cdr(p);
+	return 0;
+}
+
+static void
+put(Vec *ht, u32 h, Val x)
+{
+	vecset(ht, h, mkvalpair(cons(x, vecref(ht, h))));
+}
+
+static void
+expand(Tab *t)
+{
+	Vec *nht;
+	Val x;
+	Pair *p;
+	u32 i, m, h, nsz;
+
+	nsz = t->sz*2;
+	nht = mkvecinit(nsz, Xnil);
+	for(i = m = 0; i < t->sz && m < t->nent; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			p = (Pair*)car(x);
+			x = cdr(x);
+			h = hashop[Vkind(car(p))].hash(car(p));
+			put(nht, h&(nsz-1), mkvalpair(p));
+			m++;
+		}
+	}
+	gcwb(mkvaltab(t));
+	t->ht = nht;
+	t->sz = nsz;
+}
+
+void
+tabput(Tab *t, Val k, Val v)
+{
+	Pair *p;
+	u32 h;
+	
+	p = get(t, k, &h);
+	if(p){
+		setcdr(p, v);
+		return;
+	}
+
+	if(3*t->nent > 2*t->sz)
+		expand(t);
+
+	put(t->ht, h&(t->sz-1), mkvalpair(cons(k, v)));
+	t->nent++;
+}
+
+void
+tabdel(Tab *t, Val k)
+{
+	Val x;
+	Pair *p, *q;
+	Qkind kind;
+	Hashop *op;
+	u32 h;
+
+	kind = Vkind(k);
+	op = &hashop[kind];
+	h = op->hash(k);
+	x = vecref(t->ht, h&(t->sz-1));
+	q = 0;
+	while(x != Xnil){
+		p = (Pair*)car(x);
+		if(Vkind(car(p)) == kind && op->eq(car(p), k)){
+			if(q)
+				setcdr(q, cdr(p));
+			else
+				put(t->ht, h&(t->sz-1), cdr(p));
+			return;
+		}
+		q = (Pair*)x;
+		x = cdr(x);
+	}
+}
+
+Vec*
+tabenum(Tab *t)
+{
+	Vec *v;
+	Val x;
+	Pair *p;
+	u32 i, m;
+
+	v = mkvec(2*t->nent);
+	for(i = m = 0; i < t->sz && m < t->nent; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			p = (Pair*)car(x);
+			x = cdr(x);
+			_vecset(v, m, car(p));
+			_vecset(v, m+t->nent, cdr(p));
+			m++;
+		}
+	}
+	return v;
+}
+
+Vec*
+tabenumkeys(Tab *t)
+{
+	Vec *v;
+	Val x;
+	Pair *p;
+	u32 i, m;
+
+	v = mkvec(t->nent);
+	for(i = m = 0; i < t->sz && m < t->nent; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			p = (Pair*)car(x);
+			x = cdr(x);
+			_vecset(v, m, car(p));
+			m++;
+		}
+	}
+	return v;
+}
+
+Vec*
+tabenumvals(Tab *t)
+{
+	Vec *v;
+	Val x;
+	Pair *p;
+	u32 i, m;
+
+	v = mkvec(t->nent);
+	for(i = m = 0; i < t->sz && m < t->nent; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			p = (Pair*)car(x);
+			x = cdr(x);
+			_vecset(v, m, cdr(p));
+			m++;
+		}
+	}
+	return v;
+}
+
+void
+tabpop(Tab *t, Val *rv)
+{
+	Vec *v;
+	Val x;
+	Pair *p;
+	u32 i;
+
+	if(t->nent == 0)
+		return;		/* nil */
+
+	for(i = 0; i < t->sz; i++){
+		x = vecref(t->ht, i);
+		if(x != Xnil)
+			break;
+	}
+	p = (Pair*)car(x);
+	put(t->ht, i, cdr(x));
+	t->nent--;
+	v = mkvec(2);
+	_vecset(v, 0, car(p));
+	_vecset(v, 1, cdr(p));
+	*rv = mkvalvec(v);
+}
+
+Tab*
+tabcopy(Tab *t)
+{
+	Tab *rv;
+	Val x;
+	Pair *p;
+	u32 i, m;
+
+	rv = mktab();
+	for(i = m = 0; i < t->sz && m < t->nent; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			p = (Pair*)car(x);
+			x = cdr(x);
+			tabput(rv, car(p), cdr(p));
+			m++;
+		}
+	}
+	return rv;
+}
+
+
+#if 0
 static Tabx*
 mktabx(u32 sz)
 {
@@ -82,7 +324,7 @@ tabexpand(Tab *tab)
 	x = tab->x;
 	nx = mktabx(x->sz*2);
 	m = 0;
-	for(i = 0; i < x->sz && m < tab->cnt; i++){
+	for(i = 0; i < x->sz && m < tab->nent; i++){
 		tk = x->idx[i];
 		while(tk){
 			nxt = tk->link;
@@ -97,7 +339,7 @@ tabexpand(Tab *tab)
 			tk = nxt;
 		}
 	}
-	nx->nxt = tab->cnt;
+	nx->nxt = tab->nent;
 
 	/* fresh garbage reference to pre-expanded state of table.
 	   this preserves a reference to the pre-expand storage
@@ -294,6 +536,8 @@ tabcopy(Tab *tab)
 	return rv;
 }
 
+#endif
+
 static void
 l1_mktab(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -384,6 +628,9 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to tabvals must be a table");
 	*rv = mkvalvec(tabenumvals(valtab(arg0)));
 }
+
+
+
 
 void
 fntab(Env *env)

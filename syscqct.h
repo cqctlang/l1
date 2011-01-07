@@ -293,25 +293,10 @@ struct Box {
 	Val v;
 };
 
-typedef struct Tabidx Tabidx;
-struct Tabidx {
-	u32 idx;
-	Tabidx *link;
-};
-
-typedef
-struct Tabx {
-	u32 nxt, lim;
-	u32 sz;
-	Val *key;
-	Val *val;
-	Tabidx **idx;
-} Tabx;
-
 struct Tab {
 	Head hd;
-	u32 cnt;		/* key/val pairs stored */
-	Tabx *x;		/* current storage, atomically swappable */
+	u32 sz, nent;
+	Vec *ht;
 };
 
 typedef
@@ -981,6 +966,7 @@ Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvalrange(Cval *beg, Cval *len);
 Vec*		mkvec(Imm len);
+Vec*		mkvecinit(Imm len, Val v);
 As*		mkzas(Imm len);
 Code*		newcode(void);
 void		nexterror(VM *vm) NORETURN;

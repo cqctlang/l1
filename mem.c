@@ -107,7 +107,6 @@ static int freecl(Head*);
 static int freefd(Head*);
 static int freerec(Head*);
 static int freestr(Head*);
-static int freetab(Head*);
 static int freevec(Head*);
 
 static Val* iteras(Head*, Ictx*);
@@ -143,7 +142,7 @@ static Qtype qs[Qnkind] = {
 	[Qrd]    = { "rd", sizeof(Rd), 0, 0, iterrd },
 	[Qrec]	 = { "record", sizeof(Rec), 0, freerec, iterrec },
 	[Qstr]	 = { "string", sizeof(Str), 1, freestr, 0 },
-	[Qtab]	 = { "table",  sizeof(Tab), 1, freetab, itertab },
+	[Qtab]	 = { "table",  sizeof(Tab), 1, 0, itertab },
 	[Qundef] = { "undef", sizeof(Head), 0, 0, 0 },
 	[Qvec]	 = { "vector", sizeof(Vec), 0, freevec, itervec },
 	[Qxtn]	 = { "typename", sizeof(Xtypename), 1, 0, iterxtn },
@@ -201,37 +200,6 @@ freestr(Head *hd)
 	case Sperm:
 		break;
 	}
-	return 1;
-}
-
-void
-freetabx(Tabx *x)
-{
-	efree(x->val);
-	efree(x->key);
-	efree(x->idx);
-	efree(x);
-}
-
-static int
-freetab(Head *hd)
-{
-	u32 i;
-	Tab *tab;
-	Tabx *x;
-	Tabidx *tk, *pk;
-
-	tab = (Tab*)hd;
-	x = tab->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
-			pk = tk;
-			tk = tk->link;
-			efree(pk);
-		}
-	}
-	freetabx(x);
 	return 1;
 }
 
@@ -472,27 +440,14 @@ iterrec(Head *hd, Ictx *ictx)
 static Val*
 itertab(Head *hd, Ictx *ictx)
 {
-	Tab *tab;
-	u32 idx, nxt;
-	Tabx *x;
-
-	tab = (Tab*)hd;
-
-	if(ictx->n == 0)
-		ictx->x = x = tab->x;
-	else
-		x = ictx->x;
-
-	nxt = x->nxt;		/* mutator may update nxt */
-	if(ictx->n >= 2*nxt)
+	Tab *t;
+	t = (Tab*)hd;
+	switch(ictx->n++){
+	case 0:
+		return (Val*)&t->ht;
+	default:
 		return GCiterdone;
-	if(ictx->n >= nxt){
-		idx = ictx->n-nxt;
-		ictx->n++;
-		return &x->val[idx];
 	}
-	idx = ictx->n++;
-	return &x->key[idx];
 }
 
 static Val*
