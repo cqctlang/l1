@@ -51,6 +51,7 @@ L1C =\
 	cg.c\
 	cg6.c\
 	list.c\
+	tab.c\
 	type.c\
 	mem.c\
 	vm.c\

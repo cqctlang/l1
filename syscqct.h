@@ -749,6 +749,11 @@ enum {
 	VMirq = 1,
 };
 
+typedef struct Hashop {
+	u32 (*hash)(Val);
+	int (*eq)(Val, Val);
+} Hashop;
+
 struct VM {
 	Imm sp, fp, pc;
 	Val ac, cl;
@@ -767,6 +772,7 @@ struct VM {
 extern char* S[];
 extern char* cbasename[];
 extern unsigned isunsigned[Vnbase];
+extern Hashop hashop[];
 extern char* tkindstr[];
 extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
@@ -1133,6 +1139,21 @@ Val		listref(VM *vm, List *lst, Imm idx);
 List*		listset(VM *vm, List *lst, Imm idx, Val v);
 u32		listxlen(Listx *x);
 List*		mklistn(u32 sz);
+
+/* tab.c */
+void		fntab(Env *env);
+Tab*		mktab(void);
+void		l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv);
+void		l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv);
+Tab*		tabcopy(Tab *tab);
+void		tabdel(Tab *tab, Val keyv);
+Vec*		tabenum(Tab *tab);
+Vec*		tabenumkeys(Tab *tab);
+Vec*		tabenumvals(Tab *tab);
+Val		tabget(Tab *tab, Val keyv);
+void		tabpop(Tab *tab, Val *rv);
+void		tabput(Tab *tab, Val keyv, Val val);
+
 
 /* mem.c */
 void		finimem();
