@@ -4019,18 +4019,9 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 static Ns*
 mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 {
-	vmerr(vm, "mknsraw is broken");
-	return 0;
-}
-
-#if 0
-static Ns*
-mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
-{
-	Val v, idv, vecv, vp;
+	Val v, idv, vecv, vp, x;
 	Vec *vec, *kvec, *nvec;
-	Tabx *x;
-	Tabidx *tk;
+	Tab *t;
 	Xtypename *xtn, *tmp;
 	NSctx ctx;
 	u32 i, j;
@@ -4064,26 +4055,27 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	xtn = valxtn(vp);
 	ctx.ptrrep = xtn->rep;
 
-	x = ctx.rawtype->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
-			v = x->key[tk->idx];
+	t = ctx.rawtype;
+	for(i = 0; i < t->sz; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			v = caar(x);
+			x = cdr(x);
 			if(Vkind(v) != Qxtn)
 				vmerr(vm, "invalid raw type table");
 			xtn = valxtn(v);
 			resolvetypename(vm, xtn, &ctx);
-			tk = tk->link;
 		}
 	}
 
-	x = ctx.rawsym->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
+	t = ctx.rawsym;
+	for(i = 0; i < t->sz; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
 			/* id -> [ xtn, id, attr ] */
-			idv = x->key[tk->idx];
-			vecv = x->val[tk->idx];
+			idv = caar(x);
+			vecv = cdar(x);
+			x = cdr(x);
 			if(Vkind(idv) != Qstr)
 				vmerr(vm, "invalid raw symbol table");
 			if(Vkind(vecv) != Qvec)
@@ -4098,38 +4090,37 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 				vecset(vec, Typepos, v); /* reuse vec */
 				tabput(ctx.sym, idv, vecv);
 			}
-			tk = tk->link;
 		}
 	}
 
 	/* inherit sym and type definitions not shadowed by @names */
-	x = ctx.otype->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
-			vp = x->key[tk->idx];
+	t = ctx.otype;
+	for(i = 0; i < t->sz; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			vp = caar(x);
 			if(!tabget(ctx.type, vp))
-				tabput(ctx.type, vp, x->val[tk->idx]);
-			tk = tk->link;
+				tabput(ctx.type, vp, cdar(x));
+			x = cdr(x);
 		}
 	}
-	x = ctx.osym->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
-			vp = x->key[tk->idx];
+	t = ctx.osym;
+	for(i = 0; i < t->sz; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			vp = caar(x);
 			if(!tabget(ctx.sym, vp))
-				tabput(ctx.sym, vp, x->val[tk->idx]);
-			tk = tk->link;
+				tabput(ctx.sym, vp, cdar(x));
+			x = cdr(x);
 		}
 	}
 
 	/* add enumeration constants to symtab */
-	x = ctx.type->x;
-	for(i = 0; i < x->sz; i++){
-		tk = x->idx[i];
-		while(tk){
-			xtn = valxtn(x->val[tk->idx]);
+	t = ctx.type;
+	for(i = 0; i < t->sz; i++){
+		x = vecref(t->ht, i);
+		while(x != Xnil){
+			xtn = valxtn(cdar(x));
 			if(xtn->tkind != Tenum)
 				goto next;
 			tmp = mkconstxtn(xtn);
@@ -4144,7 +4135,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 				       vecref(kvec, 0), mkvalvec(nvec));
 			}
 		next:
-			tk = tk->link;
+			x = cdr(x);
 		}
 	}
 
@@ -4167,7 +4158,6 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 
 	return ns;
 }
-#endif
 
 static char*
 myroot(void)

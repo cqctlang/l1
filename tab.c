@@ -90,7 +90,7 @@ tabput(Tab *t, Val k, Val v)
 {
 	Pair *p;
 	u32 h;
-	
+
 	p = get(t, k, &h);
 	if(p){
 		setcdr(p, v);
@@ -107,8 +107,7 @@ tabput(Tab *t, Val k, Val v)
 void
 tabdel(Tab *t, Val k)
 {
-	Val x;
-	Pair *p, *q;
+	Val x, p, q;
 	Qkind kind;
 	Hashop *op;
 	u32 h;
@@ -119,15 +118,16 @@ tabdel(Tab *t, Val k)
 	x = vecref(t->ht, h&(t->sz-1));
 	q = 0;
 	while(x != Xnil){
-		p = (Pair*)car(x);
+		p = car(x);
 		if(Vkind(car(p)) == kind && op->eq(car(p), k)){
 			if(q)
-				setcdr(q, cdr(p));
+				setcdr(q, cdr(x));
 			else
-				put(t->ht, h&(t->sz-1), cdr(p));
+				vecset(t->ht, h&(t->sz-1), cdr(x));
+			t->nent--;
 			return;
 		}
-		q = (Pair*)x;
+		q = x;
 		x = cdr(x);
 	}
 }
@@ -213,7 +213,7 @@ tabpop(Tab *t, Val *rv)
 			break;
 	}
 	p = (Pair*)car(x);
-	put(t->ht, i, cdr(x));
+	vecset(t->ht, i, cdr(x));
 	t->nent--;
 	v = mkvec(2);
 	_vecset(v, 0, car(p));
