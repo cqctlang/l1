@@ -14,6 +14,7 @@ enum
 #define Segsize   4096ULL
 #define Segmask   ~(Segsize-1)
 #define	GCthresh  10*1024*Segsize
+#define Seghunk	  4*1024*Segsize
 
 enum
 {
@@ -148,6 +149,7 @@ static Qtype qs[Qnkind] = {
 	[Qxtn]	 = { "typename", sizeof(Xtypename), 1, 0, iterxtn },
 };
 
+static void	*segfree;
 static HT	*segtab;
 static Heap	H;
 static unsigned	alldbg = 0;
@@ -561,17 +563,53 @@ iterxtn(Head *hd, Ictx *ictx)
 }
 
 static void*
-mapseg()
+mapseg(u32 sz)
 {
-	uintptr_t a;
 	void *p;
-	p = mmap(0, Segsize, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+	p = mmap(0, sz, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
 	if(p == MAP_FAILED)
 		fatal("out of memory");
-	a = (uintptr_t)p;
-	if(a&~Segmask)
-		fatal("unaligned segment");
 	return p;
+}
+
+static void
+moresegs()
+{
+	void *p, *e, **q;
+
+	segfree = mapseg(Seghunk);
+	e = segfree+Seghunk-Segsize;
+	p = segfree;
+	while(p < e){
+		q = (void**)p;
+		p += Segsize;
+		*q = p;
+	}
+	q = (void**)p;
+	*q = 0;
+}
+
+static void*
+nextseg()
+{
+	void *p, **q;
+	if(segfree == 0)
+		moresegs();
+	if(segfree == 0)
+		fatal("bug");
+	p = segfree;
+	q = (void**)segfree;
+	segfree = *q;
+	return p;
+}
+
+static void
+reclseg(void *a)
+{
+	void **q;
+	q = (void**)a;
+	*q = segfree;
+	segfree = a;
 }
 
 static Seg*
@@ -579,7 +617,7 @@ mkseg(Mkind kind)
 {
 	Seg *s;
 	s = emalloc(sizeof(Seg));
-	s->addr = mapseg();
+	s->addr = nextseg();
 	s->a = s->addr;
 	s->e = s->addr+Segsize-sizeof(void*);
 	s->card = Clean;
@@ -595,7 +633,7 @@ static void
 freeseg(Seg *s)
 {
 	hdelp(segtab, s->addr);
-	munmap(s->addr, Segsize);
+	reclseg(s->addr);
 	efree(s);
 	H.inuse -= Segsize;
 	H.nseg--;
@@ -611,7 +649,7 @@ lookseg(void *a)
 	v &= Segmask;
 	s = hgetp(segtab, (void*)v);
 	if(s == 0)
-		fatal("lookseg bug");
+		fatal("no segment for %p", v);
 	return s;
 }
 
@@ -760,6 +798,7 @@ again:
 	if(s->a+sz <= s->e){
 		h = s->a;
 		s->a += sz;
+		memset(h, 0, sz);
 		Vsetkind(h, Qcode);
 		return h;
 	}
@@ -779,6 +818,7 @@ again:
 	if(s->a+sz <= s->e){
 		h = s->a;
 		s->a += sz;
+		memset(h, 0, sz);
 		Vsetkind(h, kind);
 		return h;
 	}
@@ -1496,6 +1536,7 @@ initmem(u64 gcrate)
 {
 	u32 i, mt, gr;
 
+	moresegs();
 	segtab = mkhtp();
 	gr = 1;
 	for(i = 0; i < Ngen; i++){
