@@ -875,6 +875,17 @@ curaddr(Val v)
 	return v;
 }
 
+static u32
+qsz(Head *h)
+{
+	Str *s;
+	switch(Vkind(h)){
+	case Qstr:
+	default:
+		return qs[Vkind(h)].sz;
+	}
+}
+
 static u8
 copy(Val *v)
 {
