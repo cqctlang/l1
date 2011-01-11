@@ -104,9 +104,9 @@ _fmtxtn(Xtypename *xtn, char *o)
 		m = s->len+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprint(buf, m, "%.*s %s", (int)s->len, s->s, o);
+			snprint(buf, m, "%.*s %s", (int)s->len, strdata(s), o);
 		else
-			snprint(buf, m, "%.*s", (int)s->len, s->s);
+			snprint(buf, m, "%.*s", (int)s->len, strdata(s));
 		efree(o);
 		return buf;
 	case Tstruct:
@@ -119,10 +119,10 @@ _fmtxtn(Xtypename *xtn, char *o)
 			buf = emalloc(m);
 			if(leno)
 				snprint(buf, m, "%s %.*s %s",
-					 w, (int)s->len, s->s, o);
+					w, (int)s->len, strdata(s), o);
 			else
 				snprint(buf, m, "%s %.*s", w,
-					 (int)s->len, s->s);
+					(int)s->len, strdata(s));
 		}else{
 			m = strlen(w)+1+leno+1;
 			buf = emalloc(m);
@@ -179,7 +179,7 @@ _fmtdecl(Xtypename *xtn, Str *id)
 {
 	char *o;
 	o = emalloc(id->len+1);
-	memcpy(o, id->s, id->len);
+	memcpy(o, strdata(id), id->len);
 	return _fmtxtn(xtn, o);
 }
 
@@ -422,7 +422,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		ns = valns(val);
 		if(ns->name)
 			snprint(buf, sizeof(buf), "<ns %.*s>",
-				 (int)ns->name->len, ns->name->s);
+				(int)ns->name->len, strdata(ns->name));
 		else
 			snprint(buf, sizeof(buf), "<ns %p>", ns);
 		return fmtputs0(vm, f, buf);
@@ -430,7 +430,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		as = valas(val);
 		if(as->name)
 			snprint(buf, sizeof(buf), "<as %.*s>",
-				 (int)as->name->len, as->name->s);
+				(int)as->name->len, strdata(as->name));
 		else
 			snprint(buf, sizeof(buf), "<as %p>", as);
 		return fmtputs0(vm, f, buf);
@@ -438,7 +438,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		d = valdom(val);
 		if(d->name)
 			snprint(buf, sizeof(buf), "<domain %.*s>",
-				 (int)d->name->len, d->name->s);
+				(int)d->name->len, strdata(d->name));
 		else
 			snprint(buf, sizeof(buf), "<domain %p>", d);
 		return fmtputs0(vm, f, buf);
@@ -450,7 +450,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(vm, f, buf);
 	case Qxtn:
 		str = fmtxtn(valxtn(val));
-		return fmtputB(vm, f, str->s, str->len);
+		return fmtputB(vm, f, strdata(str), str->len);
 	case Qvec:
 		v = valvec(val);
 		if(fmtputs0(vm, f, "vector("))
@@ -494,14 +494,14 @@ fmtval(VM *vm, Fmt *f, Val val)
 		str = valstr(val);
 		if(fmtputs0(vm, f, "\""))
 			return -1;
-		if(fmtputB(vm, f, str->s, str->len))
+		if(fmtputB(vm, f, strdata(str), str->len))
 			return -1;
 		return fmtputs0(vm, f, "\"");
 	case Qrd:
 		rd = valrd(val);
 		if(fmtputs0(vm, f, "<rd "))
 			return -1;
-		if(fmtputs(vm, f, rd->name->s, rd->name->len))
+		if(fmtputs(vm, f, strdata(rd->name), rd->name->len))
 			return -1;
 		return fmtputs0(vm, f, ">");
 	case Qrec:
@@ -510,9 +510,9 @@ fmtval(VM *vm, Fmt *f, Val val)
 		if(Vkind(rv) != Qstr)
 			vmerr(vm, "formatter for record type %.*s must "
 			      "return a string",
-			      (int)rec->rd->name->len, rec->rd->name->s);
+			      (int)rec->rd->name->len, strdata(rec->rd->name));
 		str = valstr(rv);
-		return fmtputs(vm, f, str->s, str->len);
+		return fmtputs(vm, f, strdata(str), str->len);
 	default:
 		snprint(buf, sizeof(buf), "<unhandled type %d>", Vkind(val));
 		return fmtputs0(vm, f, buf);
@@ -667,7 +667,7 @@ fmtenconst(VM *vm, Fmt *f, Cval *cv)
 		 * type */
 		if(cv->val == k->val){
 			s = valstr(vecref(v, 0));
-			return fmtputs(vm, f, s->s, s->len);
+			return fmtputs(vm, f, strdata(s), s->len);
 		}
 	}
 	return fmticval(vm, f, 'd', cv);
@@ -839,7 +839,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(Vkind(vp) == Qstr){
 				as = valstr(vp);
 				if(ch == 's')
-					len = xstrnlen(as->s, as->len);
+					len = xstrnlen(strdata(as), as->len);
 				else
 					len = as->len;
 			}
@@ -859,10 +859,10 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			}else
 				goto badarg;
 			if(ch == 'B'){
-				if(fmtputB(vm, f, as->s, len))
+				if(fmtputB(vm, f, strdata(as), len))
 					return;
 			}else{
-				if(fmtputs(vm, f, as->s, len))
+				if(fmtputs(vm, f, strdata(as), len))
 					return;
 			}
 			break;
@@ -889,7 +889,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				as = fmtxtn(cv->type);
 			}else
 				vmerr(vm, "bad operand to %%t");
-			if(fmtputs(vm, f, as->s, as->len))
+			if(fmtputs(vm, f, strdata(as), as->len))
 				return;
 			break;
 		case 'y':
@@ -931,11 +931,11 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				snprint(buf, sizeof(buf),
 					"+0x%" PRIx64, cv->val);
 				ys = mkstrn(as->len+strlen(buf));
-				memcpy(ys->s, as->s, as->len);
-				memcpy(ys->s+as->len, buf, strlen(buf));
+				memcpy(strdata(ys), strdata(as), as->len);
+				memcpy(strdata(ys)+as->len, buf, strlen(buf));
 			}else
 				ys = as;
-			if(fmtputs(vm, f, ys->s, ys->len))
+			if(fmtputs(vm, f, strdata(ys), ys->len))
 				return;
 			break;
 		default:
@@ -1032,7 +1032,7 @@ l1_printf(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qstr)
 		vmerr(vm, "operand 1 to printf must be a format string");
 	fmts = valstr(argv[0]);
-	dofdprint(vm, vmstdout(vm), fmts->s, fmts->len, argc-1, argv+1);
+	dofdprint(vm, vmstdout(vm), strdata(fmts), fmts->len, argc-1, argv+1);
 }
 
 static void
@@ -1055,7 +1055,7 @@ l1_fprintf(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 2 to fprintf must be a format string");
 	fd = valfd(argv[0]);
 	fmts = valstr(argv[1]);
-	dofdprint(vm, fd, fmts->s, fmts->len, argc-2, argv+2);
+	dofdprint(vm, fd, strdata(fmts), fmts->len, argc-2, argv+2);
 }
 
 void
@@ -1067,7 +1067,7 @@ l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qstr)
 		vmerr(vm, "operand 1 to sprintfa must be a format string");
 	fmts = valstr(argv[0]);
-	rs = dovsprinta(vm, fmts->s, fmts->len, argc-1, argv+1);
+	rs = dovsprinta(vm, strdata(fmts), fmts->len, argc-1, argv+1);
 	*rv = mkvalstr(rs);
 }
 

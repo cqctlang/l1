@@ -257,7 +257,8 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 	name = str2cstr(names);
 	if(0 > stat(name, &st)){
 		efree(name);
-		vmerr(vm, "cannot stat %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot stat %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	}
 	d = stat2dir(name, &st);
@@ -284,18 +285,21 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = open(name, O_RDONLY);
 	efree(name);
 	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	if(0 > fstat(fd, &st)){
 		close(fd);
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	}
 	p = mmap(0, st.st_size, PROT_READ|PROT_WRITE,
 		 MAP_NORESERVE|MAP_PRIVATE, fd, 0);
 	close(fd);
 	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	map = mkstrk(p, st.st_size, Smmap);
 	*rv = mkvalstr(map);
@@ -338,7 +342,8 @@ l1_access(VM *vm, Imm argc, Val *argv, Val *rv)
 		|| errno == ETXTBSY)
 		*rv = mkvalcval2(cval0);
 	else
-		vmerr(vm, "access %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "access %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 }
 
@@ -361,7 +366,7 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 	req = valcval(argv[1]);
 	if(Vkind(argv[2]) == Qstr){
 		bufs = valstr(argv[2]);
-		p = bufs->s;
+		p = strdata(bufs);
 	}else{
 		bufp = valcval(argv[2]);
 		p = (char*)(uintptr_t)bufp->val;
@@ -412,7 +417,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(name);
 	efree(mode);
 	if(0 > xfd.fd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	if(strchr(mode, 'a'))
 		lseek(xfd.fd, 0, SEEK_END);
@@ -508,7 +514,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 		s = valstr(argv[1]);
 		if(!fd->u.fn.write)
 			return;	/* nil */
-		r = fd->u.fn.write(&fd->u.fn, s->s, s->len);
+		r = fd->u.fn.write(&fd->u.fn, strdata(s), s->len);
 		if(r == -1)
 			vmerr(vm, "write error: %s", strerror(errno));
 	}else{

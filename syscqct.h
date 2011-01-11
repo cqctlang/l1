@@ -416,11 +416,28 @@ enum {
 
 struct Str {
 	Head hd;
-	Skind skind;
+	u8 skind;
 	u64 len;
-	size_t mlen;		/* Smmap size */
-	char *s;
 };
+
+typedef
+struct Strmmap {
+	Str str;
+	size_t mlen;		/* Smmap size */
+	char *s;		/* data */
+} Strmmap;
+
+typedef
+struct Strperm {
+	Str str;
+	char *s;		/* data */
+} Strperm;
+
+#define strdata(x) (((x)->skind == Smalloc)	\
+		    ? (char*)((x)+1)	        \
+	            : (((x)->skind == Smmap)    \
+	               ? (((Strmmap*)(x))->s)   \
+		       : (((Strperm*)(x))->s)))
 
 struct Vec {
 	Head hd;
@@ -1120,6 +1137,7 @@ void		initmem(u64 rate);
 void		instguard(Pair *p);
 Head*		mal(Qkind kind);
 Head*		malcode();
+Head*		mals(u64 len);
 u64		meminuse();
 u64		protected();
 void		quard(Val o);

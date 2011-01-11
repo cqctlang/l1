@@ -307,7 +307,7 @@ printkon(Val v)
 		break;
 	case Qstr:
 		str = valstr(v);
-		p = str->s;
+		p = strdata(str);
 		m = str->len;
 		if(m > 15)
 			m = 15;

@@ -51,7 +51,7 @@ typedef
 struct Qtype
 {
 	char *id;
-	u32 sz;
+	u32 xsz;
 	u32 clearit;
 	Freeheadfn free1;
 	Val* (*iter)(Head *hd, Ictx *ictx);
@@ -191,14 +191,15 @@ static int
 freestr(Head *hd)
 {
 	Str *str;
+	Strmmap *m;
 	str = (Str*)hd;
 	// printf("freestr(%.*s)\n", (int)str->len, str->s);
 	switch(str->skind){
 	case Smmap:
-		xmunmap(str->s, str->mlen);
+		m = (Strmmap*)str;
+		xmunmap(m->s, m->mlen);
 		break;
 	case Smalloc:
-		efree(str->s);
 		break;
 	case Sperm:
 		break;
@@ -831,24 +832,39 @@ again:
 	goto again;
 }
 
-Head*
-mal(Qkind kind)
+static void*
+_mal(u64 sz)
 {
 	Seg *s;
-	Head *h;
-	u32 sz;
-	sz = qs[kind].sz;
+	void *h;
 again:
 	s = H.d;
 	if(s->a+sz <= s->e){
 		h = s->a;
 		s->a += sz;
 		memset(h, 0, sz);
-		Vsetkind(h, kind);
 		return h;
 	}
 	H.d = minsert(&H.m[Mdata][s->gen], mkseg(Mdata));
 	goto again;
+}
+
+Head*
+mals(u64 len)
+{
+	Head *h;
+	h = _mal(qs[Qstr].sz+len);
+	Vsetkind(h, Qstr);
+	return h;
+}
+
+Head*
+mal(Qkind kind)
+{
+	Head *h;
+	h = _mal(qs[kind].sz);
+	Vsetkind(h, kind);
+	return h;
 }
 
 static void*
@@ -898,7 +914,7 @@ copy(Val *v)
 			      h, s->gen);
 		return s->gen; // objects in older generations do not move
 	}
-	sz = qs[Vkind(h)].sz;
+	sz = qsz(h);
 	if(Vkind(h) == Qcode)
 		nh = malcode();
 	else{
@@ -959,7 +975,7 @@ scan(M *m)
 		while(m->scan < s->a){
 			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
-			m->scan += qs[Vkind(h)].sz;
+			m->scan += qsz(h);
 			if(qs[Vkind(h)].iter == 0)
 				continue;
 			memset(&ictx, 0, sizeof(ictx));
@@ -1291,7 +1307,7 @@ scancard(Seg *s)
 			if(g < min)
 				min = g;
 		}
-		p += qs[Vkind((Head*)p)].sz;
+		p += qsz(p);
 	}
 	return min;
 }

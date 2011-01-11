@@ -82,7 +82,6 @@ typedef struct Toplevel Toplevel;
 typedef struct VM VM;
 typedef struct Head Head;
 typedef struct Head* Val;
-typedef struct xHeap xHeap;
 
 /*
          7 6 5 4 3 2 1 0

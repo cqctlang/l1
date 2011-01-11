@@ -249,7 +249,7 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tundef:
 		es = fmtxtn(xtn->link);
 		vmerr(vm, "attempt to compute size of undefined type: %.*s",
-		      (int)es->len, es->s);
+		      (int)es->len, strdata(es));
 	case Tconst:
 		vmerr(vm, "shouldn't this be impossible?");
 	case Txaccess:
@@ -497,7 +497,7 @@ hashstr(Val val)
 {
 	Str *s;
 	s = valstr(val);
-	return shash(s->s, s->len);
+	return shash(strdata(s), s->len);
 }
 
 static int
@@ -505,7 +505,7 @@ equalstrc(Str *a, char *b)
 {
 	if(a->len != strlen(b))
 		return 0;
-	return memcmp(a->s, b, a->len) ? 0 : 1;
+	return memcmp(strdata(a), b, a->len) ? 0 : 1;
 }
 
 static int
@@ -513,7 +513,7 @@ equalstr(Str *a, Str *b)
 {
 	if(a->len != b->len)
 		return 0;
-	return memcmp(a->s, b->s, a->len) ? 0 : 1;
+	return memcmp(strdata(a), strdata(b), a->len) ? 0 : 1;
 }
 
 static int
@@ -638,15 +638,12 @@ equalxtnv(Val a, Val b)
 }
 
 Str*
-mkstr0(char *s)
+mkstrn(Imm len)
 {
 	Str *str;
-	str = (Str*)mal(Qstr);
-	str->len = strlen(s);
-	str->s = emalloc(str->len);
-	memcpy(str->s, s, str->len);
+	str = (Str*)mals(len);
+	str->len = len;
 	str->skind = Smalloc;
-	quard((Val)str);
 	return str;
 }
 
@@ -654,61 +651,51 @@ Str*
 mkstr(char *s, Imm len)
 {
 	Str *str;
-	str = (Str*)mal(Qstr);
-	str->len = len;
-	str->s = emalloc(str->len);
-	memcpy(str->s, s, str->len);
-	str->skind = Smalloc;
-	quard((Val)str);
+	str = mkstrn(len);
+	memcpy(strdata(str), s, len);
+	return str;
+}
+
+Str*
+mkstr0(char *s)
+{
+	Str *str;
+	Imm len;
+	len = strlen(s);
+	str = mkstrn(len);
+	memcpy(strdata(str), s, len);
 	return str;
 }
 
 Str*
 mkstrk(char *s, Imm len, Skind skind)
 {
-	Str *str;
-	str = (Str*)mal(Qstr);
-	str->s = s;
-	str->len = len;
-	str->skind = skind;
-	if(skind == Smmap)
-		str->mlen = len;
-	quard((Val)str);
-	return str;
-}
+	Strmmap *sm;
+	Strperm *sp;
 
-Str*
-mkstrn(Imm len)
-{
-	Str *str;
-	str = (Str*)mal(Qstr);
-#if 0
-	if(len >= PAGESZ){
-		str->len = len;
-		str->s = mmap(0, PAGEUP(len), PROT_READ|PROT_WRITE,
-			      MAP_NORESERVE|MAP_PRIVATE|MAP_ANON, -1, 0);
-		if(str->s == (void*)(-1))
-			vmerr(vm, "out of memory");
-		str->mlen = PAGEUP(len);
-		str->skind = Smmap;
-	}else{
-		str->len = len;
-		str->s = emalloc(str->len);
-		str->skind = Smalloc;
+	switch(skind){
+	case Smalloc:
+		return mkstr(s, len);
+	case Smmap:
+		sm = (Strmmap*)mals(sizeof(Strmmap));
+		sm->mlen = len;
+		sm->s = s;
+		sm->str.skind = Smmap;
+		quard((Val)sm);
+		return (Str*)sm;
+	case Sperm:
+		sp = (Strperm*)mals(sizeof(Strperm));
+		sp->s = s;
+		sp->str.skind = Sperm;
+		return (Str*)sp;
 	}
-#else
-	str->len = len;
-	str->s = emalloc(str->len);
-	str->skind = Smalloc;
-#endif
-	quard((Val)str);
-	return str;
+	fatal("bug");
 }
 
 static Str*
 strcopy(Str *s)
 {
-	return mkstr(s->s, s->len);
+	return mkstr(strdata(s), s->len);
 }
 
 char*
@@ -716,14 +703,14 @@ str2cstr(Str *str)
 {
 	char *s;
 	s = emalloc(str->len+1);
-	memcpy(s, str->s, str->len);
+	memcpy(s, strdata(str), str->len);
 	return s;
 }
 
 Str*
 strslice(Str *str, Imm beg, Imm end)
 {
-	return mkstr(str->s+beg, end-beg);
+	return mkstr(strdata(str)+beg, end-beg);
 }
 
 static Str*
@@ -731,8 +718,8 @@ strconcat(Str *s1, Str *s2)
 {
 	Str *s;
 	s = mkstrn(s1->len+s2->len);
-	memcpy(s->s, s1->s, s1->len);
-	memcpy(s->s+s1->len, s2->s, s2->len);
+	memcpy(strdata(s), strdata(s1), s1->len);
+	memcpy(strdata(s)+s1->len, strdata(s2), s2->len);
 	return s;
 }
 
@@ -883,7 +870,7 @@ recis(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	mn = valstr(disp[1]);
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
-		      (int)mn->len, mn->s);
+		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec){
 		*rv = mkvalcval2(cval0);
 		return;
@@ -907,7 +894,7 @@ recmk(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	mn = valstr(disp[1]);
 	if(argc != 0 && argc != rd->nf)
 		vmerr(vm, "wrong number of arguments to %.*s",
-		      (int)mn->len, mn->s);
+		      (int)mn->len, strdata(mn));
 	r = mkrec(rd);
 	for(m = 0; m < argc; m++)
 		r->field[m] = argv[m];
@@ -928,14 +915,17 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
-		      (int)mn->len, mn->s);
+		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+		      (int)mn->len, strdata(mn), 
+		      (int)rd->name->len, strdata(rd->name));
 	r = valrec(argv[0]);
 	len = 1+rd->name->len+1+16+1+1;
 	buf = emalloc(len);
-	snprint(buf, len, "<%.*s %p>", (int)rd->name->len, rd->name->s, r);
+	snprint(buf, len, "<%.*s %p>",
+		(int)rd->name->len,
+		strdata(rd->name), r);
 	*rv = mkvalstr(mkstr0(buf));
 	efree(buf);
 }
@@ -954,19 +944,22 @@ recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
-		      (int)mn->len, mn->s);
+		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+		      (int)mn->len, strdata(mn),
+		      (int)rd->name->len, strdata(rd->name));
 	r = valrec(argv[0]);
 	if(r->rd != rd)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+		      (int)mn->len, strdata(mn),
+		      (int)rd->name->len, strdata(rd->name));
 
 	/* weak test for compatible record descriptor */
 	if(r->nf <= ndx->val)
 		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
-		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+		      (int)mn->len, strdata(mn),
+		      (int)rd->name->len, strdata(rd->name));
 
 	*rv = r->field[ndx->val];
 }
@@ -985,19 +978,22 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to %.*s",
-		      (int)mn->len, mn->s);
+		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+		      (int)mn->len, strdata(mn),
+		      (int)rd->name->len, strdata(rd->name));
 	r = valrec(argv[0]);
 	if(r->rd != rd)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+		      (int)mn->len, strdata(mn),
+		      (int)rd->name->len, strdata(rd->name));
 
 	/* weak test for compatible record descriptor */
 	if(r->nf <= ndx->val)
 		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
-		      (int)mn->len, mn->s, (int)rd->name->len, rd->name->s);
+		      (int)mn->len, strdata(mn),
+		      (int)rd->name->len, strdata(rd->name));
 
 	gcwb(mkvalrec(r));
 	r->field[ndx->val] = argv[1];
@@ -1015,11 +1011,11 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	Val mn;
 	char *buf;
 
-	rd = hgets(vm->top->env->rd, name->s, (unsigned)name->len);
+	rd = hgets(vm->top->env->rd, strdata(name), (unsigned)name->len);
 	if(rd == 0){
 		rd = (Rd*)mal(Qrd);
 		hputs(vm->top->env->rd,
-		      xstrndup(name->s, (unsigned)name->len),
+		      xstrndup(strdata(name), (unsigned)name->len),
 		      (unsigned)name->len, rd);
 	}else
 		gcwb(mkvalrd(rd));
@@ -1031,12 +1027,12 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	len = 3+name->len+1;
 	buf = emalloc(len);
 
-	snprint(buf, len, "is%.*s", (int)name->len, name->s);
+	snprint(buf, len, "is%.*s", (int)name->len, strdata(name));
 	rd->is = mkccl(buf, recis, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
-	snprint(buf, len, "%.*s", (int)name->len, name->s);
+	snprint(buf, len, "%.*s", (int)name->len, strdata(name));
 	rd->mk = mkccl(buf, recmk, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
 	if(fmt == 0){
-		snprint(buf, len, "fmt%.*s", (int)name->len, name->s);
+		snprint(buf, len, "fmt%.*s", (int)name->len, strdata(name));
 		rd->fmt = mkccl(buf, recfmt, 2,
 				mkvalrd(rd), mkvalstr(mkstr0(buf)));
 	}else
@@ -1052,7 +1048,8 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 
 		/* get method */
 		snprint(buf, len, "%.*s%.*s",
-			 (int)name->len, name->s, (int)f->len, f->s);
+			(int)name->len, strdata(name),
+			(int)f->len, strdata(f));
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recget, 3,
 			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
@@ -1060,7 +1057,8 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 
 		/* set method */
 		snprint(buf, len, "%.*sset%.*s",
-			 (int)name->len, name->s, (int)f->len, f->s);
+			(int)name->len, strdata(name),
+			(int)f->len, strdata(f));
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recset, 3,
 			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
@@ -1595,7 +1593,7 @@ str2imm(VM *vm, Xtypename *xtn, Str *str)
 	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
 		fatal("str2imm on non-scalar type");
 
-	s = str->s;
+	s = strdata(str);
 	switch(xtn->rep){
 	case Rs08le:
 		return *(s8*)s;
@@ -1658,82 +1656,82 @@ imm2str(VM *vm, Xtypename *xtn, Imm imm)
 	switch(xtn->rep){
 	case Rs08le:
 		str = mkstrn(sizeof(s8));
-		s = str->s;
+		s = strdata(str);
 		*(s8*)s = (s8)imm;
 		return str;
 	case Rs16le:
 		str = mkstrn(sizeof(s16));
-		s = str->s;
+		s = strdata(str);
 		*(s16*)s = (s16)imm;
 		return str;
 	case Rs32le:
 		str = mkstrn(sizeof(s32));
-		s = str->s;
+		s = strdata(str);
 		*(s32*)s = (s32)imm;
 		return str;
 	case Rs64le:
 		str = mkstrn(sizeof(s64));
-		s = str->s;
+		s = strdata(str);
 		*(s64*)s = (s64)imm;
 		return str;
 	case Ru08le:
 		str = mkstrn(sizeof(u8));
-		s = str->s;
+		s = strdata(str);
 		*(u8*)s = (u8)imm;
 		return str;
 	case Ru16le:
 		str = mkstrn(sizeof(u16));
-		s = str->s;
+		s = strdata(str);
 		*(u16*)s = (u16)imm;
 		return str;
 	case Ru32le:
 		str = mkstrn(sizeof(u32));
-		s = str->s;
+		s = strdata(str);
 		*(u32*)s = (u32)imm;
 		return str;
 	case Ru64le:
 		str = mkstrn(sizeof(u64));
-		s = str->s;
+		s = strdata(str);
 		*(u64*)s = (u64)imm;
 		return str;
 	case Rs08be:
 		str = mkstrn(sizeof(s8));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 1);
 		return str;
 	case Rs16be:
 		str = mkstrn(sizeof(s16));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 2);
 		return str;
 	case Rs32be:
 		str = mkstrn(sizeof(s32));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 4);
 		return str;
 	case Rs64be:
 		str = mkstrn(sizeof(s64));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 8);
 		return str;
 	case Ru08be:
 		str = mkstrn(sizeof(u8));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 1);
 		return str;
 	case Ru16be:
 		str = mkstrn(sizeof(u16));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 2);
 		return str;
 	case Ru32be:
 		str = mkstrn(sizeof(u32));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 4);
 		return str;
 	case Ru64be:
 		str = mkstrn(sizeof(u64));
-		s = str->s;
+		s = strdata(str);
 		putbeint(s, imm, 8);
 		return str;
 	case Rundef:
@@ -1807,7 +1805,7 @@ domcastbase(VM *vm, Dom *dom, Cval *cv)
 	if(xtn == 0){
 		es = fmtxtn(cv->type);
 		vmerr(vm, "cast to domain that does not define %.*s",
-		      (int)es->len, es->s);
+		      (int)es->len, strdata(es));
 	}
 	old = chasetype(cv->type);
 	new = chasetype(xtn);
@@ -1831,7 +1829,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	if(xtn == 0){
 		es = fmtxtn(cv->type);
 		vmerr(vm, "cast to domain that does not define %.*s",
-		      (int)es->len, es->s);
+		      (int)es->len, strdata(es));
 	}
 	old = chasetype(cv->type);
 	new = chasetype(xtn);
@@ -2038,8 +2036,8 @@ Strcmp(Str *s1, Str *s2)
 	unsigned char *p1, *p2;
 	Imm l1, l2;
 
-	p1 = (unsigned char*)s1->s;
-	p2 = (unsigned char*)s2->s;
+	p1 = (unsigned char*)strdata(s1);
+	p2 = (unsigned char*)strdata(s2);
 	l1 = s1->len;
 	l2 = s2->len;
 	while(l1 && l2){
@@ -2749,7 +2747,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	if(!iscomplete(t)){
 		es = fmtxtn(t);
 		vmerr(vm, "attempt to read object of undefined type: "
-		      "%.*s", (int)es->len, es->s);
+		      "%.*s", (int)es->len, strdata(es));
 	}
 
 	/* special case: enum constants can be referenced through namespace */
@@ -2776,13 +2774,13 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 		if(b->link->tkind == Tundef){
 			es = fmtxtn(b->link->link);
 			vmerr(vm, "attempt to read object of undefined type: "
-			      "%.*s", (int)es->len, es->s);
+			      "%.*s", (int)es->len, strdata(es));
 		}
 		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
 //		xprintf("get %lld %lld\n", cv->val+bfg.addr, bfg.cnt);
 		s = callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
-		imm = bitfieldget(s->s, &bfg);
+		imm = bitfieldget(strdata(s), &bfg);
 		rv = mkvalcval(d, b->link, imm);
 		break;
 	case Tbase:
@@ -2817,7 +2815,7 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	case Tundef:
 		es = fmtxtn(b->link);
 		vmerr(vm, "attempt to read object of undefined type: %.*s",
-		      (int)es->len, es->s);
+		      (int)es->len, strdata(es));
 	case Tenum:
 	case Ttypedef:
 	case Tconst:
@@ -3043,7 +3041,7 @@ sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(dat->len < r->len->val)
 		vmerr(vm, "short put");
 	/* FIXME: rationalize with l1_strput */
-	memcpy(s->s+beg->val, dat->s, dat->len);
+	memcpy(strdata(s)+beg->val, strdata(dat), dat->len);
 	USED(rv);
 }
 
@@ -3095,7 +3093,7 @@ masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	r = valrange(argv[1]);
 	beg = r->beg;
 	end = xcvalalu(vm, Iadd, beg, r->len);
-	o = (Imm)s->s;
+	o = (Imm)strdata(s);
 	if(beg->val < o)
 		vmerr(vm, "address space access out of bounds");
 	if(beg->val > o+s->len)	/* FIXME: >=? */
@@ -3124,7 +3122,7 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	r = valrange(argv[1]);
 	dat = valstr(argv[2]);
 	beg = r->beg;
-	o = (Imm)s->s;
+	o = (Imm)strdata(s);
 	if(r->len->val == 0 && beg->val <= o+s->len)
 		/* special case: empty string */
 		return;
@@ -3140,7 +3138,7 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(dat->len < r->len->val)
 		vmerr(vm, "short put");
 	/* FIXME: rationalize with l1_strput */
-	memcpy((char*)beg->val, dat->s, dat->len);
+	memcpy((char*)beg->val, strdata(dat), dat->len);
 	USED(rv);
 }
 
@@ -3157,7 +3155,7 @@ masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	USED(argv);
 	s = valstr(disp[0]);
 	v = mkvec(1);
-	o = (Imm)s->s;
+	o = (Imm)strdata(s);
 	val = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], o),
 			 mkcval(litdom, litdom->ns->base[Vptr], o+s->len));
 	_vecset(v, 0, val);
@@ -3542,7 +3540,7 @@ resolvetid(VM *vm, Val xtnv, NSctx *ctx)
 		if(new->link == new)
 			vmerr(vm, "circular definition in name space: "
 			      "typedef %.*s",
-			      (int)def->tid->len, def->tid->s);
+			      (int)def->tid->len, strdata(def->tid));
 		if(new->link && new->link->flag == Tcomplete)
 			new->flag = Tcomplete;
 		else
@@ -3675,7 +3673,7 @@ resolvetag(VM *vm, Val xtnv, NSctx *ctx)
 		error:
 			es = fmtxtn(xtn);
 			vmerr(vm, "bad definition for tagged type: %.*s",
-			      (int)es->len, es->s);
+			      (int)es->len, strdata(es));
 		}
 
 	}
@@ -4149,7 +4147,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			vp = vecref(vec, m);
 			xtn = valxtn(vp);
 			as = fmtxtn(xtn);
-			xprintf("\t%.*s\n", (int)as->len, as->s);
+			xprintf("\t%.*s\n", (int)as->len, strdata(as));
 		}
 	}
 
@@ -5073,7 +5071,7 @@ stringof(VM *vm, Cval *cv)
 		else
 			buf = erealloc(buf, l, l+n);
 		s = callget(vm, cv->dom->as, o, n);
-		memcpy(buf+l, s->s, s->len);
+		memcpy(buf+l, strdata(s), s->len);
 		q = strnchr(buf+l, '\0', s->len);
 		if(q){
 			l += q-(buf+l);
@@ -6606,7 +6604,7 @@ l1_error(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	l1_sprintfa(vm, argc, argv, rv);
 	s = valstr(*rv);
-	vmerr(vm, "%.*s", (int)s->len, s->s);
+	vmerr(vm, "%.*s", (int)s->len, strdata(s));
 }
 
 static void
@@ -6642,10 +6640,10 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 		t = valstr(argv[2]);
 		if(o+t->len > s->len)
 			vmerr(vm, "strput out of bounds");
-		memcpy(s->s+o, t->s, t->len);
+		memcpy(strdata(s)+o, strdata(t), t->len);
 	}else{
 		cv = valcval(argv[2]);
-		s->s[o] = (char)cv->val;
+		strdata(s)[o] = (char)cv->val;
 	}
 	USED(rv);
 }
@@ -6674,7 +6672,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	if(!iscomplete(t)){
 		es = fmtxtn(t);
 		vmerr(vm, "attempt to write object of undefined type: "
-		      "%.*s", (int)es->len, es->s);
+		      "%.*s", (int)es->len, strdata(es));
 	}
 	b = chasetype(t);
 	switch(b->tkind){
@@ -6689,7 +6687,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		if(b->link->tkind == Tundef){
 			es = fmtxtn(b->link->link);
 			vmerr(vm, "attempt to write object of undefined type: "
-			      "%.*s", (int)es->len, es->s);
+			      "%.*s", (int)es->len, strdata(es));
 		}
 		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
@@ -6698,7 +6696,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		bytes = callget(vm, d->as, addr->val+bfg.addr, bfg.cnt);
 
 		/* update bitfield container */
-		imm = bitfieldput(bytes->s, &bfg, cv->val);
+		imm = bitfieldput(strdata(bytes), &bfg, cv->val);
 
 		/* put updated bitfield container */
 		callput(vm, d->as, addr->val+bfg.addr, bfg.cnt, bytes);
@@ -6710,7 +6708,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		if(b->link->tkind == Tundef){
 			es = fmtxtn(b->link->link);
 			vmerr(vm, "attempt to write object of undefined type: "
-			      "%.*s", (int)es->len, es->s);
+			      "%.*s", (int)es->len, strdata(es));
 		}
 		cv = typecast(vm, b->link, cv);
 		argv[0] = mkvaldom(d);
@@ -6725,7 +6723,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		es = fmtxtn(b->link);
 		vmerr(vm,
 		      "attempt to write object of undefined type: %.*s",
-		      (int)es->len, es->s);
+		      (int)es->len, strdata(es));
 	case Tenum:
 	case Ttypedef:
 	case Tvoid:
@@ -6917,7 +6915,7 @@ l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalcval(mkdom(litdom->ns, as, mkstr0("malloc")),
 			mkptrxtn(litdom->ns->base[Vchar],
 				 litdom->ns->base[Vptr]->rep),
-			(Imm)s->s);
+			(Imm)strdata(s));
 }
 
 static void
@@ -7087,7 +7085,7 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(v == 0 && dcl == 0){
 		s = valstr(id);
 		vmerr(vm, "callmethod target must define %.*s or dispatch",
-		      (int)s->len, s->s);
+		      (int)s->len, strdata(s));
 	}
 
 	listlen(args, &ll);
@@ -7329,7 +7327,7 @@ l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
 	str = valstrorcval(vm, "strref", argv, 0);
 	if(cv->val >= str->len)
 		vmerr(vm, "strref out of bounds");
-	*rv = mkvallitcval(Vuchar, (u8)str->s[cv->val]);
+	*rv = mkvallitcval(Vuchar, (u8)strdata(str)[cv->val]);
 }
 
 static char*
@@ -7390,7 +7388,7 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 		lim = lcv->val;
 	}else
 		lim = s->len;
-	memset(s->s, b, lim);
+	memset(strdata(s), b, lim);
 	USED(rv);
 }
 
@@ -7462,7 +7460,7 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 
 	s = valstrorcval(vm, "strton", argv, 0);
-	if(0 != parseliti(s->s, s->len, &liti, radix, &err))
+	if(0 != parseliti(strdata(s), s->len, &liti, radix, &err))
 		vmerr(vm, err);
 	*rv = mkvalcval(litdom, litdom->ns->base[liti.base], liti.val);
 }
@@ -7483,8 +7481,8 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1 && argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to split");
 	s = valstrorcval(vm, "split", argv, 0);
-	p = s->s;
-	e = s->s+s->len;
+	p = strdata(s);
+	e = strdata(s)+s->len;
 
 	/* split limit */
 	lim = 0;
@@ -7825,7 +7823,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		str = valstr(argv[0]);
 		len = str->len;
 		for(i = 0; i < len; i++)
-			if(c == str->s[i])
+			if(c == strdata(str)[i])
 				m++;
 		break;
 	case Qvec:
@@ -7875,7 +7873,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		str = valstr(argv[0]);
 		len = str->len;
 		for(i = 0; i < len; i++)
-			if(c == str->s[i])
+			if(c == strdata(str)[i])
 				goto gotit;
 		break;
 	case Qvec:
@@ -7929,7 +7927,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		str = valstr(argv[0]);
 		len = str->len;
 		for(i = 0; i < len; i++)
-			if(c == str->s[i])
+			if(c == strdata(str)[i])
 				goto gotit;
 		break;
 	case Qvec:
@@ -9790,7 +9788,7 @@ cqctvalcstrshared(Val v)
 	if(Vkind(v) != Qstr)
 		return 0;
 	s = valstr(v);
-	return s->s;
+	return strdata(s);
 }
 
 uint64_t
