@@ -641,9 +641,10 @@ Str*
 mkstrn(Imm len)
 {
 	Str *str;
-	str = (Str*)mals(len);
+	str = (Str*)mals(sizeof(Str)+len);
 	str->len = len;
 	str->skind = Smalloc;
+	printf("mkstr %lld\n -> %p\n", len, str);
 	return str;
 }
 
@@ -680,6 +681,7 @@ mkstrk(char *s, Imm len, Skind skind)
 		sm = (Strmmap*)mals(sizeof(Strmmap));
 		sm->mlen = len;
 		sm->s = s;
+		sm->str.len = len;
 		sm->str.skind = Smmap;
 		quard((Val)sm);
 		return (Str*)sm;
@@ -687,6 +689,7 @@ mkstrk(char *s, Imm len, Skind skind)
 		sp = (Strperm*)mals(sizeof(Strperm));
 		sp->s = s;
 		sp->str.skind = Sperm;
+		sp->str.len = len;
 		return (Str*)sp;
 	}
 	fatal("bug");
@@ -918,7 +921,7 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec)
 		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, strdata(mn), 
+		      (int)mn->len, strdata(mn),
 		      (int)rd->name->len, strdata(rd->name));
 	r = valrec(argv[0]);
 	len = 1+rd->name->len+1+16+1+1;

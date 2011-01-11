@@ -51,7 +51,7 @@ typedef
 struct Qtype
 {
 	char *id;
-	u32 xsz;
+	u32 sz;
 	u32 clearit;
 	Freeheadfn free1;
 	Val* (*iter)(Head *hd, Ictx *ictx);
@@ -153,7 +153,7 @@ static Qtype qs[Qnkind] = {
 static void	*segfree;
 static HT	*segtab;
 static Heap	H;
-static unsigned	alldbg = 0;
+static unsigned	alldbg = 1;
 
 static int
 freecl(Head *hd)
@@ -200,9 +200,8 @@ freestr(Head *hd)
 		xmunmap(m->s, m->mlen);
 		break;
 	case Smalloc:
-		break;
 	case Sperm:
-		break;
+		fatal("bug");
 	}
 	return 1;
 }
@@ -853,7 +852,7 @@ Head*
 mals(u64 len)
 {
 	Head *h;
-	h = _mal(qs[Qstr].sz+len);
+	h = _mal(len);
 	Vsetkind(h, Qstr);
 	return h;
 }
@@ -881,9 +880,19 @@ qsz(Head *h)
 	Str *s;
 	switch(Vkind(h)){
 	case Qstr:
+		s = (Str*)h;
+		switch(s->skind){
+		case Smalloc:
+			return sizeof(Str)+s->len;
+		case Smmap:
+			return sizeof(Strmmap);
+		case Sperm:
+			return sizeof(Strperm);
+		}
 	default:
 		return qs[Vkind(h)].sz;
 	}
+	fatal("bug");
 }
 
 static u8
@@ -928,6 +937,18 @@ copy(Val *v)
 	sz = qsz(h);
 	if(Vkind(h) == Qcode)
 		nh = malcode();
+	else if(Vkind(h) == Qstr){
+		Str *str;
+		str = (Str*)h;
+		switch(str->skind){
+		case Smalloc:
+			break;
+		case Smmap:
+			break;
+		case Sperm:
+			break;
+		}
+	}
 	else{
 		nh = mal(Vkind(h));
 		if(dbg)printf("copy %s %p to %p\n",
@@ -986,6 +1007,15 @@ scan(M *m)
 		while(m->scan < s->a){
 			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
+			if(Vkind(h) == Qstr){
+				Str *str;
+				str = (Str*)h;
+				printf("\t string %d %lld %.*s\n",
+				       str->skind,
+				       str->len,
+				       (int)str->len,
+				       strdata(str));
+			}
 			m->scan += qsz(h);
 			if(qs[Vkind(h)].iter == 0)
 				continue;

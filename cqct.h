@@ -86,7 +86,7 @@ typedef struct Head* Val;
 /*
          7 6 5 4 3 2 1 0
         |D|P|K K K K K|F|
- */              
+ */
 
 #define	Vfwdoff       0
 #define	Vfwdbits      1
