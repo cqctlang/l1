@@ -94,7 +94,8 @@ struct Heap
 	u64 na;			/* bytes allocated since last gc */
 	u64 ta;			/* bytes allocated since beginning */
 	u64 ma;			/* bytes allocated to trigger collect */
-	u64 inuse;		/* bytes currently allocated */
+	u64 inuse;		/* bytes currently allocated to active segs */
+	u64 notinuse;		/* bytes currently allocated to free segs */
 	Guard ug;		/* user guard list */
 	Guard sg;		/* system guard list */
 	Pair *guards[Qnkind];	/* system per-type guardians */
@@ -573,11 +574,19 @@ mapseg(u32 sz)
 }
 
 static void
+unmapseg(void *a, u32 sz)
+{
+	if(0 > munmap(a, sz))
+		fatal("munmap: %s", strerror(errno));
+}
+
+static void
 moresegs()
 {
 	void *p, *e, **q;
 
 	segfree = mapseg(Seghunk);
+	H.notinuse += Seghunk;
 	e = segfree+Seghunk-Segsize;
 	p = segfree;
 	while(p < e){
@@ -600,6 +609,7 @@ nextseg()
 	p = segfree;
 	q = (void**)segfree;
 	segfree = *q;
+	H.notinuse -= Segsize;
 	return p;
 }
 
@@ -610,6 +620,21 @@ reclseg(void *a)
 	q = (void**)a;
 	*q = segfree;
 	segfree = a;
+	H.notinuse += Segsize;
+}
+
+static void
+returnsegs()
+{
+	void *q;
+	while(H.notinuse > H.inuse){
+		if(segfree == 0)
+			fatal("bug");
+		q = *(void**)segfree;
+		unmapseg(segfree, Segsize);
+		H.notinuse -= Segsize;
+		segfree = q;
+	}
 }
 
 static Seg*
@@ -1458,6 +1483,8 @@ _gc(u32 g, u32 tg)
 	}
 	H.na = 0;
 	H.ngc++;
+	if(tg == g && tg == Ngen-1)
+		returnsegs();
 }
 
 void
