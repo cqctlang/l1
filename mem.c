@@ -73,7 +73,6 @@ typedef
 struct M
 {
 	Seg *h, *t;		/* segment list head and tail */
-	Seg *s;			/* first segment needing scan */
 	void *scan;
 	Gen gen;
 } M;
