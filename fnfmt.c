@@ -950,31 +950,36 @@ badarg:
 static int
 fmtstrflush(VM *vm, Fmt *f)
 {
-	u32 len;
-	char *s;
-	len = (u32)(uintptr_t)f->farg;
-	s = f->start;
-	f->start = erealloc(f->start, len, len*2);
-	len *= 2;
-	f->farg = (void*)(uintptr_t)len;
-	f->to = f->start+(f->to-s);
-	f->stop = f->start+len;
+	Str *s, *t;
+	Imm m;
+	s = f->farg;
+	t = mkstrn(s->len*2);
+	f->farg = t;
+	f->start = strdata(t);
+	m = f->to-strdata(s);
+	memcpy(f->start, strdata(s), m);
+	f->to = f->start+m;
+	f->stop = f->start+t->len;
 	return 0;
 }
 
+/* FIXME: we assume gc does not move f->farg during dofmt */
 static Str*
 dovsprinta(VM *vm, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 {
 	Fmt f;
+	Str *s;
 	static u32 initlen = 128;
 	memset(&f, 0, sizeof(f));
-	f.start = emalloc(initlen);
-	f.farg = (void*)(uintptr_t)initlen;
+	s = mkstrn(initlen);
+	f.farg = s;
+	f.start = strdata(s);
 	f.to = f.start;
-	f.stop = f.start+initlen;
+	f.stop = f.start+s->len;
 	f.flush = fmtstrflush;
 	dofmt(vm, &f, fmt, fmtlen, argc, argv);
-	return mkstrk(f.start, f.to-f.start, Smalloc);
+	/* FIXME: it would nice not to have to copy ... string slice? */
+	return mkstr(f.start, f.to-f.start);
 }
 
 static int
