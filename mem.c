@@ -903,7 +903,7 @@ copy(Val *v)
 {
 	Head *h;
 	Seg *s;
-	u32 sz;
+	Imm sz;
 	Head *nh;
 	unsigned dbg = alldbg;
 
@@ -940,18 +940,8 @@ copy(Val *v)
 	sz = qsz(h);
 	if(Vkind(h) == Qcode)
 		nh = malcode();
-	else if(Vkind(h) == Qstr){
-		Str *str;
-		str = (Str*)h;
-		switch(str->skind){
-		case Smalloc:
-			break;
-		case Smmap:
-			break;
-		case Sperm:
-			break;
-		}
-	}
+	else if(Vkind(h) == Qstr)
+		nh = mals(sz);
 	else{
 		nh = mal(Vkind(h));
 		if(dbg)printf("copy %s %p to %p\n",
