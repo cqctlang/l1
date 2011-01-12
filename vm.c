@@ -644,7 +644,6 @@ mkstrn(Imm len)
 	str = (Str*)mals(sizeof(Str)+len);
 	str->len = len;
 	str->skind = Smalloc;
-	printf("mkstr %lld\n -> %p\n", len, str);
 	return str;
 }
 
@@ -688,8 +687,8 @@ mkstrk(char *s, Imm len, Skind skind)
 	case Sperm:
 		sp = (Strperm*)mals(sizeof(Strperm));
 		sp->s = s;
-		sp->str.skind = Sperm;
 		sp->str.len = len;
+		sp->str.skind = Sperm;
 		return (Str*)sp;
 	}
 	fatal("bug");
