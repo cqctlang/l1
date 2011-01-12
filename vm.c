@@ -9163,6 +9163,14 @@ l1_typename(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalxtn(typename(valxtn(argv[0])));
 }
 
+static void
+l1_hash(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to hash");
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], hashval(argv[0]));
+}
+
 static Tab*
 basetab(NSroot *def, Xtypename **base)
 {
@@ -9304,6 +9312,7 @@ mktopenv(void)
 	FN(gcstat);
 	FN(gcunprotect);
 	FN(getbytes);
+	FN(hash);
 	FN(index);
 	FN(instguard);  // FIXME: make system routine
 	FN(isalnum);
