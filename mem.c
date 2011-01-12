@@ -153,7 +153,7 @@ static Qtype qs[Qnkind] = {
 static void	*segfree;
 static HT	*segtab;
 static Heap	H;
-static unsigned	alldbg = 1;
+static unsigned	alldbg = 0;
 
 static int
 freecl(Head *hd)
@@ -848,11 +848,13 @@ again:
 	goto again;
 }
 
+#define roundup(l) (((l)+3)&~3)
+
 Head*
-mals(u64 len)
+mals(Imm len)
 {
 	Head *h;
-	h = _mal(len);
+	h = _mal(roundup(len));
 	Vsetkind(h, Qstr);
 	return h;
 }
@@ -883,12 +885,13 @@ qsz(Head *h)
 		s = (Str*)h;
 		switch(s->skind){
 		case Smalloc:
-			return sizeof(Str)+s->len;
+			return sizeof(Str)+roundup(s->len);
 		case Smmap:
 			return sizeof(Strmmap);
 		case Sperm:
 			return sizeof(Strperm);
 		}
+		fatal("bug");
 	default:
 		return qs[Vkind(h)].sz;
 	}
