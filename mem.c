@@ -1003,11 +1003,6 @@ scan(M *m)
 			if(Vkind(h) == Qstr){
 				Str *str;
 				str = (Str*)h;
-				printf("\t string %d %lld %.*s\n",
-				       str->skind,
-				       str->len,
-				       (int)str->len,
-				       strdata(str));
 			}
 			m->scan += qsz(h);
 			if(qs[Vkind(h)].iter == 0)
