@@ -12,6 +12,7 @@ enum
 
 /* #define to ensure 64-bit constants */
 #define Segsize   4096ULL
+#define Seguse    (Segsize-sizeof(void*))
 #define Segmask   ~(Segsize-1)
 #define	GCthresh  10*1024*Segsize
 #define Seghunk	  4*1024*Segsize
@@ -29,12 +30,19 @@ enum
 	G2,
 	G3,
 	Ngen,
-	Gprot,
-	Gfrom,
-	Gjunk,
+	Glock,
+	Gstatic,
 	Clean=0xff,
 	Dirty=0x00,
 } Gen;
+
+typedef
+enum
+{
+	Fold = 1,
+	Fbig = Fold<<1,
+	Foul = Fbig<<1,
+} Flag;
 
 typedef struct Seg Seg;
 struct Seg
@@ -43,7 +51,9 @@ struct Seg
 	u8 card;
 	Pair *p;		/* protected objects */
 	u32 nprotect;
+	Mkind mt;
 	Gen gen;
+	Flag flags;
 	Seg *link;
 };
 
@@ -88,7 +98,6 @@ struct Heap
 {
 	Seg *d, *c;		/* current data and code segment */
 	M m[Nm][Ngen];		/* metatypes */
-	M prot;			/* protected segments */
 	u32 g, tg;		/* collect generation and target generation */
 	u64 na;			/* bytes allocated since last gc */
 	u64 ta;			/* bytes allocated since beginning */
@@ -643,8 +652,9 @@ mkseg(Mkind kind)
 	s = emalloc(sizeof(Seg));
 	s->addr = nextseg();
 	s->a = s->addr;
-	s->e = s->addr+Segsize-sizeof(void*);
+	s->e = s->addr+Seguse;
 	s->card = Clean;
+	s->mt = kind;
 	hputp(segtab, s->addr, s);
 	H.na += Segsize;
 	H.ta += Segsize;
@@ -708,62 +718,6 @@ minsert(M *m, Seg *s)
 	return s;
 }
 
-static void
-mmove(M *a, M *b)
-{
-	Seg *s;
-	s = b->h;
-	while(s){
-		s->gen = a->gen;
-		s = s->link;
-	}
-	if(a->h == 0){
-		a->h = b->h;
-		a->t = b->t;
-	}else if(b->h){
-		a->t->link = b->h;
-		a->t = b->t;
-	}
-	b->h = b->t = 0;
-	a->scan = b->scan = 0; // mmoved Ms are never scanned
-}
-
-static void
-mfree(M *a)
-{
-	Seg *s, *t;
-	s = a->h;
-	while(s){
-		t = s->link;
-		freeseg(s);
-		s = t;
-	}
-}
-
-u64
-protected()
-{
-	Seg *p;
-	u32 i;
-	u64 m;
-
-	m = 0;
-	for(i = 0; i < Nm; i++){
-		p = H.m[i][G0].h;
-		while(p){
-			m += p->nprotect;
-			p = p->link;
-		}
-	}
-	p = H.prot.h;
-	while(p){
-		m += p->nprotect;
-		p = p->link;
-	}
-
-	return m;
-}
-
 static u64
 guarded()
 {
@@ -799,7 +753,7 @@ gcstat()
 	s.inuse = H.inuse;
 	s.ngc = H.ngc;
 	s.guards = guarded();
-	s.nprotect = protected();
+	s.nprotect = -1;
 	s.nseg = H.nseg;
 	return mkstr((char*)&s, sizeof(s));
 }
@@ -924,14 +878,18 @@ copy(Val *v)
 		   cost more to look up the
 		   generation. */
 		s = lookseg(*v);
+		if(s->flags&Foul)
+			fatal("wtf2");
 		return s->gen;
 	}
 	if(Vprot(h)){
 		if(dbg)printf("copy: object %p is protected\n", h);
-		return Gprot; // protected objects do not move
+		return Glock; // protected objects do not move
 	}
 	s = lookseg(h);
-	if(s->gen != Gfrom){
+	if(s->flags&Foul)
+		fatal("wtf3");
+	if((s->flags&Fold) == 0){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
 		return s->gen; // objects in older generations do not move
@@ -1100,13 +1058,15 @@ quard(Val o)
 }
 
 static int
-isfwd(Head *o)
+islive(Head *o)
 {
 	Seg *s;
 	if(Vfwd(o))
 		return 1;
+	if(Vprot(o))
+		return 1;
 	s = lookseg(o);
-	if(s->gen != Gfrom)  // should this also exclude Gjunk, Gprot, etc.?
+	if((s->flags&Fold) == 0)
 		return 1;
 	return 0;
 }
@@ -1128,7 +1088,7 @@ updateguards(Guard *g)
 		while(p != Xnil){
 			q = cdr(p);
 			o = caar(p);
-			if(isfwd(o) || Vprot(o)){
+			if(islive(o)){
 				// object is accessible
 				setcdr(p, phold);
 				phold = p;
@@ -1149,7 +1109,7 @@ updateguards(Guard *g)
 		while(p != Xnil){
 			q = cdr(p);
 			o = cdar(p);
-			if(isfwd(o) || Vprot(o)){
+			if(islive(o)){
 				// guard is accessible
 				setcdr(p, final);
 				final = p;
@@ -1174,7 +1134,7 @@ updateguards(Guard *g)
 	p = phold;
 	while(p != Xnil){
 		o = cdar(p);
-		if(isfwd(o) || Vprot(o))
+		if(islive(o))
 			_instguard(g, cons(curaddr(caar(p)), curaddr(cdar(p))));
 		p = cdr(p);
 	}
@@ -1228,59 +1188,12 @@ toprd(void *u, void *k, void *v)
 }
 
 static void
-reloc1(Code *c)
-{
-	u32 i;
-	u64 b;
-	u64 *p;
-	void **a;
-	p = c->reloc;
-	b = (u64)c->insn;
-	for(i = 0; i < c->nreloc; i++){
-		a = (void**)(b+p[i]);
-		*a = curaddr(*a);
-	}
-}
-
-static void
-reloc()
-{
-	Seg *s;
-	Head *h, *p;
-	Code *c;
-
-	s = H.m[Mcode][H.tg].h;
-	while(s){
-		c = s->addr;
-		while((void*)c < s->a){
-			if(!Vdead((Head*)c))
-				reloc1(c);
-			c++;
-		}
-		s = s->link;
-	}
-
-	s = H.prot.h;
-	while(s){
-		p = (Head*)s->p;
-		while(p){
-			h = car(p);
-			if(Vkind(h) == Qcode && !Vdead(h))
-				reloc1((Code*)h);
-			p = cdr(p);
-		}
-		s = s->link;
-	}
-}
-
-static void
 copystack(VM *vm)
 {
 	Imm pc, fp, sp, narg, m, i, clx;
 	u64 sz, mask;
 	Closure *cl;
 
-//	fvmbacktrace(vm);
 	fp = vm->fp;
 	if(fp == 0)
 		return;
@@ -1321,12 +1234,35 @@ copystack(VM *vm)
 	copy(&vm->stack[clx]);
 }
 
+static void
+mark1old(void *u, char *k, void *v)
+{
+	Seg *s;
+	u32 g;
+	g = (u32)(uintptr_t)u;
+	s = v;
+	if(s->flags&Foul)
+		return;
+	if(s->gen <= g)
+		s->flags |= Fold;
+	else if(s->gen == Glock && s->nprotect == 0)
+		s->flags |= Fold;
+}
+
+static void
+markold(u32 g)
+{
+	hforeach(segtab, mark1old, (void*)(uintptr_t)g);
+}
+
 static u8
 scancard(Seg *s)
 {
 	void *p;
 	u8 min, g;
 
+	if(s->flags&Fold)
+		fatal("wtf?");
 	min = Clean;
 	p = s->addr;
 	while(p < s->a){
@@ -1340,6 +1276,154 @@ scancard(Seg *s)
 	return min;
 }
 
+/* FIXME: is the real predicate here that the segment is not old? */
+static void
+scan1card(void *u, char *k, void *v)
+{
+	Seg *s;
+	u32 g;
+	u8 sg;
+	g = (u32)(uintptr_t)u;
+	s = v;
+	if(s->flags&Foul)
+		return;
+	if(s->gen <= g || (s->gen != Glock && s->gen >= Ngen))
+		return;
+	if(s->gen == Glock)
+		return; /* FIXME: for now...need different scan for these */
+	if(s->card > g)
+		return;
+	sg = scancard(s);
+	if(sg < s->gen)
+		s->card = sg;
+	else
+		s->card = Clean;
+}
+
+static void
+scancards(u32 g)
+{
+	hforeach(segtab, scan1card, (void*)(uintptr_t)g);
+}
+
+static void
+scan1locked(void *u, char *k, void *v)
+{
+	Seg *s;
+	Head *p;
+
+	s = v;
+	if(s->flags&Foul)
+		return;
+	if(s->nprotect == 0)
+		return;
+	copy((Val*)&s->p); /* retain list of locked objects! */
+	p = (Head*)s->p;
+	while(p){
+		scan1(car(p));
+		p = cdr(p);
+	}
+}
+
+static void
+scanlocked()
+{
+	hforeach(segtab, scan1locked, 0);
+}
+
+static void
+promote1locked(void *u, char *k, void *v)
+{
+	Seg *s;
+	s = v;
+	if(s->flags&Foul)
+		return;
+	if(s->nprotect == 0)
+		return;
+	s->gen = Glock;
+	s->flags &= ~Fold;
+}
+
+static void
+promotelocked()
+{
+	hforeach(segtab, promote1locked, 0);
+}
+
+static void
+reloccode(Code *c)
+{
+	u32 i;
+	u64 b;
+	u64 *p;
+	void **a;
+	p = c->reloc;
+	b = (u64)c->insn;
+	for(i = 0; i < c->nreloc; i++){
+		a = (void**)(b+p[i]);
+		*a = curaddr(*a);
+	}
+}
+
+static void
+reloc1(void *u, char *k, void *v)
+{
+	u32 tg;
+	Code *c;
+	Head *h, *p;
+	Seg *s;
+
+	tg = (u32)(uintptr_t)u;
+	s = v;
+	if(s->flags&Foul)
+		return;
+	if(s->mt != Mcode)
+		return;
+	if(s->gen == tg){
+		c = s->addr;
+		while((void*)c < s->a){
+			if(!Vdead((Head*)c))
+				reloccode(c);
+			c++;
+		}
+		return;
+	}
+	if(s->gen == Glock){
+		p = (Head*)s->p;
+		while(p){
+			h = car(p);
+			if(!Vdead(h))
+				reloccode((Code*)h);
+			p = cdr(p);
+		}
+		return;
+	}
+}
+
+static void
+reloc(u32 tg)
+{
+	hforeach(segtab, reloc1, (void*)(uintptr_t)tg);
+}
+
+static void
+recycle1(void *u, char *k, void *v)
+{
+	Seg *s;
+
+	s = v;
+	if((s->flags&Fold) == 0)
+		return;
+	s->flags = Foul;
+//	freeseg(s);  /* won't work vs segtab iteration */
+}
+
+static void
+recycle()
+{
+	hforeach(segtab, recycle1, 0);
+}
+
 /*
 	for generations 0...g copy live data to space for generation tg.
 	if tg is g then create a new target space;
@@ -1349,12 +1433,9 @@ scancard(Seg *s)
 void
 _gc(u32 g, u32 tg)
 {
-	u32 i, mt, m;
+	u32 i, m, mt;
 	VM **vmp, *vm;
-	Seg *s, *t, *tj, *tp, **r;
-	Head *h, *p;
-	M junk, fr;
-	u8 sg;
+	Head *h;
 	unsigned dbg = alldbg;
 
 	if(g != tg && g != tg-1)
@@ -1363,30 +1444,13 @@ _gc(u32 g, u32 tg)
 		return; // FIXME: silently do nothing...caller should know
 	H.g = g;
 	H.tg = tg;
-
 	if(dbg)printf("gc(%u,%u)\n", g, tg);
-	mclr(&fr);
-	fr.gen = Gfrom;
+
+	markold(g);
 	for(i = 0; i <= g; i++)
 		for(mt = 0; mt < Nm; mt++)
-			mmove(&fr, &H.m[mt][i]);
+			mclr(&H.m[mt][i]);
 
-	// move inactive protected segments to Gfrom.
-	// do this before we scan pointers to objects on these segments.
-	r = &H.prot.h;
-	s = *r;
-	while(s){
-		t = s->link;
-		if(s->nprotect == 0){
-			minsert(&fr, s);
-			*r = t;
-		}else
-			r = &s->link;
-		s = t;
-	}
-
-	junk.gen = Gjunk;
-	mclr(&junk);
 	if(g == tg){
 		H.d = minit(&H.m[Mdata][tg], mkseg(Mdata));
 		H.c = minit(&H.m[Mcode][tg], mkseg(Mcode));
@@ -1422,64 +1486,9 @@ _gc(u32 g, u32 tg)
 		copy((Val*)&H.guards[i]);
 	if(dbg)printf("copied guard roots\n");
 
-	// add pointers to collected generations in dirty cards
-	for(i = g+1; i < Ngen; i++)
-		for(mt = 0; mt < Nm; mt++){
-			s = H.m[mt][i].h;
-			while(s){
-				if(s->card <= g){
-					sg = scancard(s);
-					if(sg < i)
-						s->card = sg;
-					else
-						s->card = Clean;
-				}
-				s = s->link;
-			}
-		}
+	scancards(g);
 	if(dbg)printf("scanned cards\n");
-
-	// sweep through roots
-	kleenescan(tg);
-
-	// scan protected objects
-	s = H.prot.h;
-	while(s){
-		copy((Val*)&s->p);      // retain list of protected objects!
-		p = (Head*)s->p;
-		while(p){
-			if(dbg)printf("scanning protected object %s %p\n",
-				      qs[Vkind(car(p))].id, car(p));
-			scan1(car(p));  // manual scan of protected object
-			p = cdr(p);
-		}
-		s = s->link;
-	}
-	// reserve segments with newly protected objects.
-	s = fr.h;
-	tj = tp = 0;
-	while(s){
-		t = s->link;
-		if(s->nprotect){
-			// retain list of protected objects!
-			copy((Val*)&s->p);
-			p = (Head*)s->p;
-			while(p){
-				if(dbg)printf("scan protected object %s %p\n",
-					      qs[Vkind(car(p))].id, car(p));
-				// manual scan of protected object
-				scan1(car(p));
-				p = cdr(p);
-			}
-			s->link = tp;
-			tp = s;
-		}else{
-			// queue for transfer to junk segment list
-			s->link = tj;
-			tj = s;
-		}
-		s = t;
-	}
+	scanlocked();
 	kleenescan(tg);
 	if(dbg)printf("re-scanned tg data (after prot)\n");
 
@@ -1487,7 +1496,8 @@ _gc(u32 g, u32 tg)
 	updateguards(&H.sg);
 	if(dbg)printf("did updateguards\n");
 
-	reloc();
+	promotelocked();
+	reloc(tg);
 	if(dbg)printf("did reloc\n");
 
 	// call built-in finalizers
@@ -1499,26 +1509,8 @@ _gc(u32 g, u32 tg)
 				Vsetdead(h, 1);
 				qs[i].free1(h);
 			}
-
-	// stage unused segments for recycling and preserve protected ones
-	while(tj){
-		t = tj->link;
-		minsert(&junk, tj);
-		tj = t;
-	}
-	while(tp){
-		t = tp->link;
-		minsert(&H.prot, tp);
-		tp = t;
-	}
-
-	// recycle segments
-	s = junk.h;
-	while(s){
-		t = s->link;
-		freeseg(s);
-		s = t;
-	}
+	recycle();
+	if(dbg)printf("did recycle\n");
 
 	if(H.tg != 0){
 		H.tg = 0;
@@ -1529,6 +1521,7 @@ _gc(u32 g, u32 tg)
 	H.ngc++;
 	if(tg == g && tg == Ngen-1)
 		returnsegs();
+	if(dbg)printf("returning\n");
 }
 
 void
@@ -1618,8 +1611,6 @@ initmem(u64 gcrate)
 	}
 	H.d = minit(&H.m[Mdata][0], mkseg(Mdata));
 	H.c = minit(&H.m[Mcode][0], mkseg(Mcode));
-	mclr(&H.prot);
-	H.prot.gen = Gprot;
 	H.na = H.ta = 0;
 	if(gcrate)
 		H.ma = gcrate;
@@ -1640,27 +1631,12 @@ initmem(u64 gcrate)
 void
 finimem()
 {
-	u32 i, mt, n;
-	Seg *s;
+	u32 i;
 
 	_gc(Ngen-1, Ngen-1);  // hopefully free all outstanding objects
 	for(i = 0; i < Qnkind; i++)
 		H.guards[i] = 0;
 	_gc(Ngen-1, Ngen-1);  // hopefully free the guardians
-	s = H.prot.h;
-	n = 0;
-	while(s){
-		n += s->nprotect;
-		s = s->link;
-	}
-
-	/* FIXME: we have not freed or unprotected Xnil */
-	if(n != 1)
-		printf("finimem: %u protected objects (expected 1)!\n", n);
-
-	for(i = 0; i < Ngen; i++)
-		for(mt = 0; mt < Nm; mt++)
-			mfree(&H.m[mt][i]);
-	mfree(&H.prot);
+	/* FIXME: free all segments */
 	freeht(segtab);
 }
