@@ -16,6 +16,7 @@ enum
 #define Segmask   ~(Segsize-1)
 #define	GCthresh  10*1024*Segsize
 #define Seghunk	  4*1024*Segsize
+#define Align     4
 
 enum
 {
@@ -56,6 +57,13 @@ struct Seg
 	Flag flags;
 	Seg *link;
 };
+
+typedef
+struct Segmap
+{
+	void *lo, *hi;
+	Seg *map;
+} Segmap;
 
 typedef
 struct Qtype
@@ -158,10 +166,12 @@ static Qtype qs[Qnkind] = {
 	[Qxtn]	 = { "typename", sizeof(Xtypename), 1, 0, iterxtn },
 };
 
+static Segmap	segmap;
 static void	*segfree;
 static HT	*segtab;
 static Heap	H;
 static unsigned	alldbg = 0;
+static void *lo, *hi;
 
 static int
 freecl(Head *hd)
@@ -572,12 +582,23 @@ iterxtn(Head *hd, Ictx *ictx)
 }
 
 static void*
-mapseg(u32 sz)
+mapseg(u64 sz)
 {
 	void *p;
 	p = mmap(0, sz, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
 	if(p == MAP_FAILED)
 		fatal("out of memory");
+	if(lo == 0){
+		lo = p;
+		hi = p+sz;
+	}else{
+		if(lo > p){
+			lo = p;
+			printf("lo updated!\n");
+		}
+		if(hi < p+sz)
+			hi = p+sz;
+	}
 	return p;
 }
 
@@ -801,13 +822,13 @@ again:
 	goto again;
 }
 
-#define roundup(l) (((l)+3)&~3)
+#define roundup(l,n) (((l)+((n)-1))&~((n)-1))
 
 Head*
 mals(Imm len)
 {
 	Head *h;
-	h = _mal(roundup(len));
+	h = _mal(roundup(len),Align);
 	Vsetkind(h, Qstr);
 	return h;
 }
@@ -838,7 +859,7 @@ qsz(Head *h)
 		s = (Str*)h;
 		switch(s->skind){
 		case Smalloc:
-			return sizeof(Str)+roundup(s->len);
+			return sizeof(Str)+roundup(s->len,Align);
 		case Smmap:
 			return sizeof(Strmmap);
 		case Sperm:
@@ -1596,10 +1617,38 @@ gcunprotect(void *v)
 }
 
 void
+initsegmap()
+{
+	u64 sz;
+	void *p, *e;
+	Seg *s;
+		
+	sz = Seghunk;
+
+	/* segment map must fit in some segments */
+	if((sz/Segsize*sizeof(Seg)) <= sz)
+		fatal("bad segment configuration");
+
+	p = mapseg(sz);
+	e = p+sz;
+	segmap.lo = p;
+	segmap.hi = e;
+	segmap.map = lo;
+
+	s = segmap.map;
+	while(p < e){
+		s->addr = p;
+		s++;
+		p += Segsize;
+	}
+}
+
+void
 initmem(u64 gcrate)
 {
 	u32 i, mt, gr;
 
+	initsegmap();
 	moresegs();
 	segtab = mkhtp();
 	gr = 1;
@@ -1639,4 +1688,7 @@ finimem()
 	_gc(Ngen-1, Ngen-1);  // hopefully free the guardians
 	/* FIXME: free all segments */
 	freeht(segtab);
+	printf("   lo = %p\n", lo);
+	printf("   hi = %p\n", hi);
+	printf("#segs = %lld\n", (Imm)(hi-lo)/Segsize);
 }
