@@ -1130,7 +1130,6 @@ void		gcdisable();
 void		gcenable();
 void		gcpoll(VM *vm);
 void*		gcprotect(void *v);
-Str*		gcstat();
 void*		gcunprotect(void *v);
 void		gcwb(Val v);
 void		initmem(u64 rate);

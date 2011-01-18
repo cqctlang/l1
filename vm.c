@@ -8571,15 +8571,6 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_gcstat(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	USED(vm);
-	USED(argc);
-	USED(argv);
-	*rv = mkvalstr(gcstat());
-}
-
-static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(vm);
@@ -9309,7 +9300,6 @@ mktopenv(void)
 	FN(finalize);
 	FN(gc);
 	FN(gcprotect);
-	FN(gcstat);
 	FN(gcunprotect);
 	FN(getbytes);
 	FN(hash);
