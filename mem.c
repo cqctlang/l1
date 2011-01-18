@@ -5,6 +5,8 @@
 typedef
 enum
 {
+	Msys,
+	Mfree,
 	Mdata,
 	Mcode,
 	Nm,
@@ -61,8 +63,9 @@ struct Seg
 typedef
 struct Segmap
 {
-	void *lo, *hi;
+	void *lo, *hi, *u;
 	Seg *map;
+	Seg *free;
 } Segmap;
 
 typedef
@@ -167,8 +170,6 @@ static Qtype qs[Qnkind] = {
 };
 
 static Segmap	segmap;
-static void	*segfree;
-static HT	*segtab;
 static Heap	H;
 static unsigned	alldbg = 0;
 static void *lo, *hi;
@@ -670,6 +671,7 @@ static Seg*
 mkseg(Mkind kind)
 {
 	Seg *s;
+
 	s = emalloc(sizeof(Seg));
 	s->addr = nextseg();
 	s->a = s->addr;
@@ -1619,14 +1621,15 @@ gcunprotect(void *v)
 void
 initsegmap()
 {
-	u64 sz;
-	void *p, *e;
+	u64 sz, nseg;
+	void *p, *e, *es;
 	Seg *s;
 		
 	sz = Seghunk;
 
-	/* segment map must fit in some segments */
-	if((sz/Segsize*sizeof(Seg)) <= sz)
+	/* segment map must fit within some segments */
+	nseg = sz/Segsize;
+	if((nseg*sizeof(Seg)) <= sz)
 		fatal("bad segment configuration");
 
 	p = mapseg(sz);
@@ -1636,8 +1639,13 @@ initsegmap()
 	segmap.map = lo;
 
 	s = segmap.map;
+	segmap.u = es = roundup((void*)(s+nseg), Segsize);
 	while(p < e){
 		s->addr = p;
+		if(p < es)
+			s->mt = Msys;
+		else
+			s->mt = Mfree;
 		s++;
 		p += Segsize;
 	}
