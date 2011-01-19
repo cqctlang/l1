@@ -594,6 +594,9 @@ mapmem(u64 sz)
 	p = mmap(0, sz, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
 	if(p == MAP_FAILED)
 		fatal("out of memory");
+	if((uintptr_t)p%Segsize)
+		fatal("unaligned segment");
+	printf("map %p - %p\n", p, p+sz);
 	return p;
 }
 
@@ -629,6 +632,8 @@ segmark(void *p, void *e, Mkind mt)
 	p = (void*)rounddown(p, Segsize);
 	e = (void*)roundup(e, Segsize);
 	
+	printf("marking %p - %p (%d)\n", p, e, mt);
+
 	n = (e-p)/Segsize;
 	s = a2s(p);
 	es = s+n;
@@ -666,6 +671,7 @@ resizesegmap(void *p, void *e)
 	Seg *s, *es, *os;
 	void *olo, *ohi;
 
+	printf("resize %p - %p\n", p, e);
 	olo = segmap.lo;
 	ohi = segmap.hi;
 	onseg = (ohi-olo)/Segsize;
@@ -675,7 +681,7 @@ resizesegmap(void *p, void *e)
 	if(p >= ohi)
 		segmap.hi = e;
 	nseg = (segmap.hi-segmap.lo)/Segsize;
-	if(nseg*sizeof(Seg) > e-p)
+	if(nseg*sizeof(Seg) >= e-p)
 		fatal("resizesegmap: segment table overflow");
 	s = p;
 	es = (void*)roundup(s+nseg, Segsize);
@@ -1557,7 +1563,7 @@ _gc(u32 g, u32 tg)
 		return; // FIXME: silently do nothing...caller should know
 	H.g = g;
 	H.tg = tg;
-	if(dbg)printf("gc(%u,%u)\n", g, tg);
+	if(1)printf("gc(%u,%u)\n", g, tg);
 
 	markold(g);
 	for(i = 0; i <= g; i++)
