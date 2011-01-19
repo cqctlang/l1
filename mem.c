@@ -71,7 +71,7 @@ struct Seg
 	Mkind mt;
 	Gen gen;
 	Flag flags;
-	Seg *link;
+	void *link;
 };
 
 typedef
@@ -95,7 +95,7 @@ struct Qtype
 typedef
 struct M
 {
-	Seg *h, *t;		/* segment list head and tail */
+	void *h, *t;		/* head and tail of segment list */
 	void *scan;
 	Gen gen;
 } M;
@@ -109,7 +109,7 @@ struct Guard
 typedef
 struct Heap
 {
-	Seg *d, *c;		/* current data and code segment */
+	void *d, *c;		/* current data and code segment */
 	M m[Nm][Ngen];		/* metatypes */
 	u32 g, tg;		/* collect generation and target generation */
 	u64 na;			/* bytes allocated since last gc */
@@ -840,7 +840,7 @@ mclr(M *m)
 	m->scan = 0;
 }
 
-static Seg*
+static void*
 minit(M *m, Seg *s)
 {
 	s->gen = m->gen;
@@ -848,19 +848,24 @@ minit(M *m, Seg *s)
 	m->h = s;
 	m->t = s;
 	m->scan = s2a(s);
-	return s;
+	return s2a(s);
 }
 
-static Seg*
+static void*
 minsert(M *m, Seg *s)
 {
+	Seg *t;
+	void *p;
+
 	if(m->h == 0)
 		return minit(m, s);
 	s->gen = m->gen;
 	s->link = 0;
-	m->t->link = s;
-	m->t = s;
-	return s;
+	t = a2s(m->t);
+	p = s2a(s);
+	t->link = p;
+	m->t = p;
+	return p;
 }
 
 #if 0
@@ -903,7 +908,7 @@ malcode()
 	u32 sz;
 	sz = qs[Qcode].sz;
 again:
-	s = H.c;
+	s = a2s(H.c);
 	if(s->a+sz <= s->e){
 		h = s->a;
 		s->a += sz;
@@ -921,7 +926,7 @@ _mal(u64 sz)
 	Seg *s;
 	void *h;
 again:
-	s = H.d;
+	s = a2s(H.d);
 	if(s->a+sz <= s->e){
 		h = s->a;
 		s->a += sz;
@@ -1082,7 +1087,9 @@ scan(M *m)
 		return 0;
 	s = lookseg(m->scan);
 	c = 0;
-	while(s){
+	while(1){
+		if(s->mt != Mdata && s->mt != Mcode)
+			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->mt);
 		while(m->scan < s->a){
 			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
@@ -1104,9 +1111,10 @@ scan(M *m)
 				copy(c);
 			}
 		}
-		s = s->link;
-		if(s)
-			m->scan = s2a(s);
+		if(s->link == 0)
+			break;
+		m->scan = s->link;
+		s = a2s(s->link);
 	}
 
 	// approximate indication of whether a copy occurred in this call:
