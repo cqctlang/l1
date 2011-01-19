@@ -13,6 +13,15 @@ enum
 	Nm,
 } Mkind;
 
+char *mkindname[] = {
+	"hole",
+	"sys",
+	"free",
+	"data",
+	"code",
+	"BAD",
+};
+
 /* #define to ensure 64-bit constants */
 #define Segsize   4096ULL
 #define Seguse    (Segsize-sizeof(void*))
@@ -575,6 +584,8 @@ static void*
 s2a(Seg *s)
 {
 	u64 o;
+	if(s < segmap.map)
+		fatal("bug");
 	o = s-segmap.map;
 	return segmap.lo+o*Segsize;
 }
@@ -596,7 +607,6 @@ mapmem(u64 sz)
 		fatal("out of memory");
 	if((uintptr_t)p%Segsize)
 		fatal("unaligned segment");
-	printf("map %p - %p\n", p, p+sz);
 	return p;
 }
 
@@ -627,17 +637,18 @@ static void
 segmark(void *p, void *e, Mkind mt)
 {
 	u64 n;
-	Seg *s, *es;
+	Seg *s, *ms, *es;
 
 	p = (void*)rounddown(p, Segsize);
 	e = (void*)roundup(e, Segsize);
 	
-	printf("marking %p - %p (%d)\n", p, e, mt);
-
 	n = (e-p)/Segsize;
 	s = a2s(p);
 	es = s+n;
 	while(s < es){
+		ms = a2s(s);
+		if(mt != Msys && ms->mt != Msys)
+			fatal("bug");
 		s->mt = mt;
 		s++;
 	}
@@ -661,7 +672,7 @@ freerange(void *p, void *e)
 		p += Segsize;
 	}
 	segmap.free = f;
-	H.notinuse += (e-p)/Segsize;
+	H.notinuse += (e-p)/Segsize;  // FIXME!
 }
 
 static void
@@ -671,7 +682,8 @@ resizesegmap(void *p, void *e)
 	Seg *s, *es, *os;
 	void *olo, *ohi;
 
-	printf("resize %p - %p\n", p, e);
+	printf("resize\n");
+
 	olo = segmap.lo;
 	ohi = segmap.hi;
 	onseg = (ohi-olo)/Segsize;
@@ -684,21 +696,21 @@ resizesegmap(void *p, void *e)
 	if(nseg*sizeof(Seg) >= e-p)
 		fatal("resizesegmap: segment table overflow");
 	s = p;
-	es = (void*)roundup(s+nseg, Segsize);
+	es = (Seg*)roundup(s+nseg, Segsize);
 
 	/* copy old segment table to its offset in new table */
-	memcpy(s+((olo-segmap.lo)/Segsize), segmap.map, onseg*sizeof(Seg));
+	memcpy(s+(olo-segmap.lo)/Segsize, segmap.map, onseg*sizeof(Seg));
 
 	/* switch maps */
 	os = segmap.map;
 	segmap.map = s;
 
+	/* mark segment table segments */
+	segmark(s, es, Msys);
+
 	/* return segments of old segment table to free list */
 	freerange(os, os+onseg);
 
-	/* mark segment table segments */
-	segmark(s, es, Msys);
-	
 	/* mark new hole (if any) */
 	if(p > ohi)
 		segmark(ohi, p, Mhole);
@@ -755,7 +767,7 @@ growsegmap()
 static Seg*
 allocseg(Mkind kind)
 {
-	Seg *s;
+	Seg *s, *ms;
 	void *p, **q;
 
 	if(segmap.free == 0){
@@ -768,12 +780,18 @@ allocseg(Mkind kind)
 	q = (void**)p;
 	segmap.free = *q;
 	s = a2s(p);
+	ms = a2s(s);
+	if(ms->mt != Msys)
+		fatal("bug");
 	s->a = p;
 	s->e = p+Seguse;
 	s->card = Clean;
+	memset(s->a, 0, Segsize);
+	if(s->mt != Mfree)
+		fatal("bug");
 	s->mt = kind;
 
-	/* this should be unnecessary */
+	/* FIXME: this should be unnecessary */
 	s->p = 0;
 	s->nprotect = 0;
 	s->gen = 0;
@@ -783,6 +801,7 @@ allocseg(Mkind kind)
 	H.na += Segsize;
 	H.notinuse -= Segsize;
 	H.inuse += Segsize;
+
 	return s;
 }
 
@@ -797,6 +816,7 @@ freeseg(Seg *s)
 {
 	void *a, **q;
 
+	printf("freeseg seg=%p a=%p (%s)\n", s, s2a(s), mkindname[s->mt]);
 	s->mt = Mfree;
 	a = s2a(s);
 	q = (void**)a;
@@ -997,7 +1017,7 @@ copy(Val *v)
 	}
 	s = lookseg(h);
 	if(s->flags&Foul)
-		fatal("wtf3");
+		fatal("wtf3 seg=%p a=%p (%s)", s, h, mkindname[s->mt]);
 	if((s->flags&Fold) == 0){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
@@ -1010,7 +1030,7 @@ copy(Val *v)
 		nh = mals(sz);
 	else{
 		nh = mal(Vkind(h));
-		if(dbg)printf("copy %s %p to %p\n",
+		if(1)printf("copy %s %p to %p\n",
 			      qs[Vkind(h)].id,
 			      h, nh);
 	}
@@ -1278,6 +1298,7 @@ gcwb(Val v)
 	Seg *s;
 	s = lookseg((Head*)v);
 	s->card = Dirty;
+	printf("gcwb seg=%p a=%p (%s)\n", s, v, mkindname[s->mt]);
 }
 
 static void
@@ -1377,6 +1398,7 @@ scancard(Seg *s)
 	p = s2a(s);
 	while(p < s->a){
 		if(!Vdead((Head*)p)){
+			printf("in seg=%p scanning %p (%s)\n", s, p, mkindname[s->mt]);
 			g = scan1(p);
 			if(g < min)
 				min = g;
