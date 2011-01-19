@@ -120,7 +120,7 @@ struct Heap
 	Guard sg;		/* system guard list */
 	Pair *guards[Qnkind];	/* system per-type guardians */
 	unsigned disable;
-	u32 gctrip, gcsched[Ngen];
+	u32 gctrip, gcsched[Ngen], ingc;
 } Heap;
 
 static int freecl(Head*);
@@ -754,7 +754,8 @@ growsegmap()
 	u64 sz;
 	void *p, *e;
 		
-	printf("growing\n");
+	if(H.ingc)
+		fatal("segmap update within gc");
 	sz = Seghunk;
 	p = mapmem(sz);
 	e = p+sz;
@@ -1595,6 +1596,8 @@ _gc(u32 g, u32 tg)
 	Head *h;
 	unsigned dbg = alldbg;
 
+	H.ingc++;
+
 	if(g != tg && g != tg-1)
 		fatal("bug");
 	if(tg >= Ngen)
@@ -1678,6 +1681,7 @@ _gc(u32 g, u32 tg)
 	if(tg == g && tg == Ngen-1)
 		returnsegs();
 	if(dbg)printf("returning\n");
+	H.ingc--;
 }
 
 void
