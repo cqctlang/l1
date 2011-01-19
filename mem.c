@@ -1200,6 +1200,12 @@ islive(Head *o)
 	return 0;
 }
 
+static int
+isliveseg(Seg *s)
+{
+	return (s->mt == Mdata || s->mt == Mcode);
+}
+
 static void
 updateguards(Guard *g)
 {
@@ -1382,7 +1388,7 @@ markold(u32 g)
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	for( ; s < es; s++)
-		if(s->mt != Mhole)
+		if(isliveseg(s))
 			mark1old(s, g);
 }
 
@@ -1435,7 +1441,7 @@ scancards(u32 g)
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	for( ; s < es; s++)
-		if(s->mt != Mhole)
+		if(isliveseg(s))
 			scan1card(s, g);
 }
 
@@ -1462,7 +1468,7 @@ scanlocked()
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	for( ; s < es; s++)
-		if(s->mt != Mhole)
+		if(isliveseg(s))
 			scan1locked(s);
 }
 
@@ -1484,7 +1490,7 @@ promotelocked()
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	for( ; s < es; s++)
-		if(s->mt != Mhole)
+		if(isliveseg(s))
 			promote1locked(s);
 }
 
@@ -1541,13 +1547,15 @@ reloc(u32 tg)
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	for( ; s < es; s++)
-		if(s->mt != Mhole)
+		if(isliveseg(s))
 			reloc1(s, tg);
 }
 
 static void
 recycle1(Seg *s)
 {
+	if(s->mt != Mdata && s->mt != Mcode)
+		return;
 	if((s->flags&Fold) == 0)
 		return;
 	s->flags = Foul;
@@ -1561,7 +1569,7 @@ recycle()
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	for( ; s < es; s++)
-		if(s->mt != Mhole)
+		if(isliveseg(s))
 			recycle1(s);
 }
 
