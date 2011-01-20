@@ -6,7 +6,8 @@ typedef
 enum
 {
 	Mhole,
-	Msys,
+	Msys,   /* unused */
+	Mnix,
 	Mfree,
 	Mdata,
 	Mcode,
@@ -26,8 +27,9 @@ char *mkindname[] = {
 #define Segsize   4096ULL
 #define Seguse    (Segsize-sizeof(void*))
 #define Segmask   ~(Segsize-1)
-#define	GCthresh  10*1024*Segsize
+#define	GCthresh  2*1024*Segsize
 #define Seghunk	  4*1024*Segsize
+#define Minheap   Seghunk
 #define Align     4
 
 /* n must be a power-of-2 */
@@ -115,7 +117,8 @@ struct Heap
 	u64 na;			/* bytes allocated since last gc */
 	u64 ma;			/* bytes allocated to trigger collect */
 	u64 inuse;		/* bytes currently allocated to active segs */
-	u64 notinuse;		/* bytes currently allocated to free segs */
+	u64 free;		/* bytes currently allocated to free segs */
+	u64 heapsz;		/* total bytes currently allocated to heap */
 	Guard ug;		/* user guard list */
 	Guard sg;		/* system guard list */
 	Pair *guards[Qnkind];	/* system per-type guardians */
@@ -611,33 +614,17 @@ mapmem(u64 sz)
 }
 
 static void
-unmapseg(void *a, u32 sz)
+unmapmem(void *a, u32 sz)
 {
 	if(0 > munmap(a, sz))
 		fatal("munmap: %s", strerror(errno));
 }
 
 static void
-returnsegs()
-{
-#if 0
-	void *q;
-	while(H.notinuse > H.inuse){
-		if(segfree == 0)
-			fatal("bug");
-		q = *(void**)segfree;
-		unmapseg(segfree, Segsize);
-		H.notinuse -= Segsize;
-		segfree = q;
-	}
-#endif
-}
-
-static void
 segmark(void *p, void *e, Mkind mt)
 {
 	u64 n;
-	Seg *s, *ms, *es;
+	Seg *s, *es;
 
 	p = (void*)rounddown(p, Segsize);
 	e = (void*)roundup(e, Segsize);
@@ -646,9 +633,6 @@ segmark(void *p, void *e, Mkind mt)
 	s = a2s(p);
 	es = s+n;
 	while(s < es){
-		ms = a2s(s);
-		if(mt != Msys && ms->mt != Msys)
-			fatal("bug");
 		s->mt = mt;
 		s++;
 	}
@@ -664,6 +648,7 @@ freerange(void *p, void *e)
 	e = (void*)roundup(e, Segsize);
 
 	segmark(p, e, Mfree);
+	H.free += e-p;
 	f = segmap.free;
 	while(p < e){
 		q = (void**)p;
@@ -672,116 +657,218 @@ freerange(void *p, void *e)
 		p += Segsize;
 	}
 	segmap.free = f;
-	H.notinuse += (e-p)/Segsize;  // FIXME!
+}
+
+static void*
+nextfree()
+{
+	void *p, **q;	
+	if(segmap.free == 0)
+		fatal("bug");
+	p = segmap.free;
+	q = (void**)p;
+	segmap.free = *q;
+	H.free -= Segsize;
+	return p;
 }
 
 static void
-resizesegmap(void *p, void *e)
+freeseg(Seg *s)
+{
+	void *a, **q;
+
+	s->mt = Mfree;
+	a = s2a(s);
+	q = (void**)a;
+	*q = segmap.free;
+	segmap.free = a;
+	H.free += Segsize;
+	H.inuse -= Segsize;
+}
+
+static void*
+allocsegmap(u64 nseg)
+{
+	return mapmem(roundup(nseg*sizeof(Seg), Segsize));
+}
+
+static void
+freesegmap(void *m, u64 nseg)
+{
+	unmapmem(m, roundup(nseg*sizeof(Seg), Segsize));
+}
+
+static void
+remapsegmap(void *p, void *e)
 {
 	u64 nseg, onseg;
-	Seg *s, *es, *os;
+	Seg *m, *om;
 	void *olo, *ohi;
 
 	olo = segmap.lo;
 	ohi = segmap.hi;
 	onseg = (ohi-olo)/Segsize;
 
-	if(e <= olo)
+	if(p <= olo)
 		segmap.lo = p;
-	if(p >= ohi)
+	if(e >= ohi)
 		segmap.hi = e;
 	nseg = (segmap.hi-segmap.lo)/Segsize;
-	if(nseg*sizeof(Seg) >= e-p)
-		fatal("resizesegmap: segment table overflow");
-	s = p;
-	es = (Seg*)roundup(s+nseg, Segsize);
 
-	/* copy old segment table to its offset in new table */
-	memcpy(s+(olo-segmap.lo)/Segsize, segmap.map, onseg*sizeof(Seg));
-
-	/* switch maps */
-	os = segmap.map;
-	segmap.map = s;
-
-	/* mark segment table segments */
-	segmark(s, es, Msys);
-
-	/* return segments of old segment table to free list */
-	freerange(os, os+onseg);
-
+	om = segmap.map;
+	m = allocsegmap(nseg);
+	memcpy(m+(olo-segmap.lo)/Segsize, om, onseg*sizeof(Seg));
+	segmap.map = m;
+	freesegmap(om, onseg);
+	
 	/* mark new hole (if any) */
 	if(p > ohi)
 		segmark(ohi, p, Mhole);
 	else if(e < olo)
 		segmark(e, olo, Mhole);
+}
 
-	/* add remaining segments of new table to free list */
-	freerange(es, e);
+static void
+grow(u64 sz)
+{
+	void *p, *e;
+
+	if(H.ingc)
+		fatal("segmap update within gc");
+	sz = roundup(sz, Segsize);
+	p = mapmem(sz);
+	e = p+sz;
+	H.heapsz += sz;
+	if(p <= segmap.lo || e >= segmap.hi)
+		remapsegmap(p, e);
+	freerange(p, e);
 }
 
 static void
 initsegmap()
 {
 	u64 sz, nseg;
-	void *p, *e, *es;
-	Seg *s;
+	void *p, *e;
 		
 	sz = Seghunk;
-
-	/* segment map must fit within some segments */
 	nseg = sz/Segsize;
-	if(nseg*sizeof(Seg) >= sz)
-		fatal("bad segment configuration");
-
 	p = mapmem(sz);
 	e = p+sz;
+	H.heapsz += sz;
 	segmap.lo = p;
 	segmap.hi = e;
-	segmap.map = segmap.lo;
+	segmap.map = allocsegmap(nseg);
 	segmap.free = 0;
+	freerange(p, e);
+}
 
-	s = segmap.map;
-	es = (void*)roundup(s+nseg, Segsize);
-	segmark(s, es, Msys);
-	freerange(es, e);
+enum 
+{
+	LORES = 1,  /* low reserve; triggers growth */
+	HIRES = 10,  /* high reserve; triggers shrink */
+	TARGRES = LORES+(HIRES-LORES)/2,
+	/* HIRES-LORES must be > 1 */
+};
+
+static void
+shrink(u64 targ)
+{
+	void *p, *m;
+	Seg *s, *es;
+	u64 sz, n;
+
+	n = 0;
+	m = segmap.hi;
+	while(H.heapsz > Minheap && H.free > targ){
+		p = nextfree();
+		s = a2s(p);
+		s->mt = Mnix;
+		if(p < m)
+			m = p;
+		H.heapsz -= Segsize;
+		n++;
+	}
+
+	s = a2s(m);
+	es = a2s(segmap.hi);
+	sz = 0;
+	p = 0;
+	while(n > 0 && s < es){
+		if(s->mt == Mnix){
+			if(p == 0)
+				p = s2a(s);
+			sz += Segsize;
+			s->mt = Mhole;
+			n--;
+		}else if(p){
+			unmapmem(p, sz);
+			p = 0;
+			sz = 0;
+		}
+		s++;
+	}
+	if(p)
+		unmapmem(p, sz);
 }
 
 static void
-growsegmap()
+dumpstats()
 {
-	u64 sz;
-	void *p, *e;
-		
+	printf(" inuse = %10ld\n", H.inuse);
+	printf("  free = %10ld\n", H.free);
+	printf("heapsz = %10ld\n", H.heapsz);
+}
+
+#define max(a,b) ((a)>(b)?(a):(b))
+
+static void
+maintain()
+{
+	u64 sz1, sz2;
+
+	/* reserve no less than LORES*inuse and no more than HIRES*inuse */
+	/* when balancing, aim for (HIRES-LORES)/2 */
+
 	if(H.ingc)
-		fatal("segmap update within gc");
-	sz = Seghunk;
-	p = mapmem(sz);
-	e = p+sz;
-	if(e <= segmap.lo || p >= segmap.hi)
-		resizesegmap(p, e);
-	else
-		freerange(p, e);
+		/* reserves must be sufficient to do a
+		   gc.  it would be complicated to
+		   adjust (increase) reserves during
+		   gc. */
+		return;
+
+	if(H.free < LORES*H.inuse || H.heapsz < Minheap){
+//		dumpstats();
+//		printf("growing free area from %ld to ... ", H.free);
+		sz1 = LORES*H.inuse > H.free ? (TARGRES-1)*H.inuse : 0;
+		sz2 = H.heapsz < Minheap ? Minheap-H.heapsz : 0;
+		grow(max(sz1, sz2));
+//		printf("%ld\n", H.free); 
+//		dumpstats();
+//		printf("\n");
+	}else if(H.heapsz > Minheap && H.free > HIRES*H.inuse){
+//		dumpstats();
+//		printf("shrinking free area from %ld to ... ", H.free);
+		shrink(TARGRES*H.inuse);
+//		printf("%ld\n", H.free);
+		if(H.heapsz > Minheap && H.free > HIRES*H.inuse)
+			fatal("bug");
+//		dumpstats();
+//		printf("\n");
+	}
 }
 
 static Seg*
 allocseg(Mkind kind)
 {
-	Seg *s, *ms;
-	void *p, **q;
+	Seg *s;
+	void *p;
 
-	if(segmap.free == 0){
-		growsegmap();
-		if(segmap.free == 0)
-			fatal("bug");
-	}
+	maintain();
 
-	p = segmap.free;
-	q = (void**)p;
-	segmap.free = *q;
+	p = nextfree();
+	H.na += Segsize;
+	H.inuse += Segsize;
 	s = a2s(p);
-	ms = a2s(s);
-	if(ms->mt != Msys)
-		fatal("bug");
 	s->a = p;
 	s->e = p+Seguse;
 	s->card = Clean;
@@ -797,10 +884,6 @@ allocseg(Mkind kind)
 	s->flags = 0;
 	s->link = 0;
 
-	H.na += Segsize;
-	H.notinuse -= Segsize;
-	H.inuse += Segsize;
-
 	return s;
 }
 
@@ -808,20 +891,6 @@ static Seg*
 mkseg(Mkind kind)
 {
 	return allocseg(kind);
-}
-
-static void
-freeseg(Seg *s)
-{
-	void *a, **q;
-
-	s->mt = Mfree;
-	a = s2a(s);
-	q = (void**)a;
-	*q = segmap.free;
-	segmap.free = a;
-	H.notinuse += Segsize;
-	H.inuse -= Segsize;
 }
 
 static Seg*
@@ -1595,6 +1664,7 @@ _gc(u32 g, u32 tg)
 	Head *h;
 	unsigned dbg = alldbg;
 
+	maintain();
 	H.ingc++;
 
 	if(g != tg && g != tg-1)
@@ -1677,10 +1747,9 @@ _gc(u32 g, u32 tg)
 		H.c = minit(&H.m[Mcode][H.tg], mkseg(Mcode));
 	}
 	H.na = 0;
-	if(tg == g && tg == Ngen-1)
-		returnsegs();
 	if(dbg)printf("returning\n");
 	H.ingc--;
+	maintain();
 }
 
 void
