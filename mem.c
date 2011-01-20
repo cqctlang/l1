@@ -682,8 +682,6 @@ resizesegmap(void *p, void *e)
 	Seg *s, *es, *os;
 	void *olo, *ohi;
 
-	printf("resize\n");
-
 	olo = segmap.lo;
 	ohi = segmap.hi;
 	onseg = (ohi-olo)/Segsize;
@@ -817,7 +815,6 @@ freeseg(Seg *s)
 {
 	void *a, **q;
 
-	printf("freeseg seg=%p a=%p (%s)\n", s, s2a(s), mkindname[s->mt]);
 	s->mt = Mfree;
 	a = s2a(s);
 	q = (void**)a;
@@ -1036,7 +1033,7 @@ copy(Val *v)
 		nh = mals(sz);
 	else{
 		nh = mal(Vkind(h));
-		if(1)printf("copy %s %p to %p\n",
+		if(dbg)printf("copy %s %p to %p\n",
 			      qs[Vkind(h)].id,
 			      h, nh);
 	}
@@ -1313,7 +1310,6 @@ gcwb(Val v)
 	Seg *s;
 	s = lookseg((Head*)v);
 	s->card = Dirty;
-	printf("gcwb seg=%p a=%p (%s)\n", s, v, mkindname[s->mt]);
 }
 
 static void
@@ -1413,7 +1409,6 @@ scancard(Seg *s)
 	p = s2a(s);
 	while(p < s->a){
 		if(!Vdead((Head*)p)){
-			printf("in seg=%p scanning %p (%s)\n", s, p, mkindname[s->mt]);
 			g = scan1(p);
 			if(g < min)
 				min = g;
@@ -1604,7 +1599,7 @@ _gc(u32 g, u32 tg)
 		return; // FIXME: silently do nothing...caller should know
 	H.g = g;
 	H.tg = tg;
-	if(1)printf("gc(%u,%u)\n", g, tg);
+	if(dbg)printf("gc(%u,%u)\n", g, tg);
 
 	markold(g);
 	for(i = 0; i <= g; i++)
