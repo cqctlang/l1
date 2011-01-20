@@ -846,8 +846,8 @@ minit(M *m, Seg *s)
 {
 	s->gen = m->gen;
 	s->link = 0;
-	m->h = s;
-	m->t = s;
+	m->h = s2a(s);
+	m->t = s2a(s);
 	m->scan = s2a(s);
 	return s2a(s);
 }
