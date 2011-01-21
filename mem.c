@@ -2,17 +2,54 @@
 #include "util.h"
 #include "syscqct.h"
 
+/* metatype:  T|L|O
+   T: metatype tag
+   L: large segment big
+   O: old space bit
+*/
+
 typedef
 enum
 {
-	Mhole,
-	Msys,   /* unused */
-	Mnix,
-	Mfree,
-	Mdata,
-	Mcode,
-	Nm,
-} Mkind;
+	xMhole,
+	xMsys,   /* unused */
+	xMnix,
+	xMfree,
+	xMdata,
+	xMcode,
+	xNm,
+} Mtag;
+
+typedef
+enum
+{
+	/* bit positions */
+	xFold = 0,
+	xFbig,
+	xFtag,
+} Flags;
+
+typedef
+enum
+{
+	MThole    = (xMhole<<2),
+	MTnix     = (xMnix<<2),
+	MTfree    = (xMfree<<2),
+	MTdata    = (xMdata<<2),
+	MTcode    = (xMcode<<2),
+	MTbigdata = (xMdata<<2)|(1<<xFbig),
+	MTbigcode = (xMcode<<2)|(1<<xFbig),
+	Nmt,
+} MT;
+
+#define MTtag(mt)       ((mt)>>2)
+#define MTold(mt)       (((mt)>>xFold)&1)
+#define MTbig(mt)       (((mt)>>xFbig)&1)
+#define MTsettag(mt,t)  ((mt) = ((t)<<2)|((mt)&0x3))
+#define MTsetold(mt)    ((mt) |= 1<<xFold)
+#define MTsetbig(mt)    ((mt) |= 1<<xFbig)
+#define MTclrold(mt)    ((mt) &= ~(1<<xFold))
+#define MTclrbig(mt)    ((mt) &= ~(1<<xFbig))
 
 char *mkindname[] = {
 	"hole",
@@ -56,23 +93,15 @@ enum
 	Dirty=0x00,
 } Gen;
 
-typedef
-enum
-{
-	Fold = 1,
-	Fbig = Fold<<1,
-} Flag;
-
 typedef struct Seg Seg;
 struct Seg
 {
 	void *a, *e;
 	u8 card;
+	u8 xmt;
 	Pair *p;		/* protected objects */
 	u32 nprotect;
-	Mkind mt;
 	Gen gen;
-	Flag flags;
 	void *link;
 };
 
@@ -112,7 +141,7 @@ typedef
 struct Heap
 {
 	void *d, *c;		/* current data and code segment */
-	M m[Nm][Ngen];		/* metatypes */
+	M m[Nmt][Ngen];		/* metatypes */
 	u32 g, tg;		/* collect generation and target generation */
 	u64 na;			/* bytes allocated since last gc */
 	u64 ma;			/* bytes allocated to trigger collect */
@@ -621,7 +650,7 @@ unmapmem(void *a, u32 sz)
 }
 
 static void
-segmark(void *p, void *e, Mkind mt)
+setrangetype(void *p, void *e, MT t)
 {
 	u64 n;
 	Seg *s, *es;
@@ -633,7 +662,7 @@ segmark(void *p, void *e, Mkind mt)
 	s = a2s(p);
 	es = s+n;
 	while(s < es){
-		s->mt = mt;
+		s->xmt = t;
 		s++;
 	}
 }
@@ -647,7 +676,7 @@ freerange(void *p, void *e)
 	p = (void*)rounddown(p, Segsize);
 	e = (void*)roundup(e, Segsize);
 
-	segmark(p, e, Mfree);
+	setrangetype(p, e, MTfree);
 	H.free += e-p;
 	f = segmap.free;
 	while(p < e){
@@ -677,7 +706,7 @@ freeseg(Seg *s)
 {
 	void *a, **q;
 
-	s->mt = Mfree;
+	s->xmt = MTfree;
 	a = s2a(s);
 	q = (void**)a;
 	*q = segmap.free;
@@ -723,9 +752,9 @@ remapsegmap(void *p, void *e)
 	
 	/* mark new hole (if any) */
 	if(p > ohi)
-		segmark(ohi, p, Mhole);
+		setrangetype(ohi, p, MThole);
 	else if(e < olo)
-		segmark(e, olo, Mhole);
+		setrangetype(e, olo, MThole);
 }
 
 static void
@@ -782,7 +811,7 @@ shrink(u64 targ)
 	while(H.heapsz > Minheap && H.free > targ){
 		p = nextfree();
 		s = a2s(p);
-		s->mt = Mnix;
+		s->xmt = MTnix;
 		if(p < m)
 			m = p;
 		H.heapsz -= Segsize;
@@ -794,11 +823,11 @@ shrink(u64 targ)
 	sz = 0;
 	p = 0;
 	while(n > 0 && s < es){
-		if(s->mt == Mnix){
+		if(s->xmt == MTnix){
 			if(p == 0)
 				p = s2a(s);
 			sz += Segsize;
-			s->mt = Mhole;
+			s->xmt = MThole;
 			n--;
 		}else if(p){
 			unmapmem(p, sz);
@@ -858,7 +887,7 @@ maintain()
 }
 
 static Seg*
-allocseg(Mkind kind)
+allocseg(MT mt, Gen g)
 {
 	Seg *s;
 	void *p;
@@ -873,22 +902,21 @@ allocseg(Mkind kind)
 	s->e = p+Seguse;
 	s->card = Clean;
 	memset(s->a, 0, Segsize);
-	if(s->mt != Mfree)
+	if(s->xmt != MTfree)
 		fatal("bug");
-	s->mt = kind;
+	s->xmt = mt;
+	s->gen = g;
 
 	/* FIXME: this should be unnecessary */
 	s->p = 0;
 	s->nprotect = 0;
-	s->gen = 0;
-	s->flags = 0;
 	s->link = 0;
 
 	return s;
 }
 
 static Seg*
-allocbigseg(Mkind kind, u64 sz)
+allocbigseg(MT mt, Gen g, u64 sz)
 {
 	Seg *s, *es;
 	void *p;
@@ -904,24 +932,18 @@ allocbigseg(Mkind kind, u64 sz)
 	es = a2s(p+sz);
 	while(s < es){
 		s->card = Clean;
-		s->flags = Fbig;
+		s->xmt = mt;
+		s->gen = g;
 		
 		/* FIXME: this should be unnecessary */
 		s->p = 0;
 		s->nprotect = 0;
-		s->gen = 0;
 		s->link = 0;
 
 		s++;
 	}
 
 	return a2s(p);
-}
-
-static Seg*
-mkseg(Mkind kind)
-{
-	return allocseg(kind);
 }
 
 static Seg*
@@ -941,7 +963,6 @@ mclr(M *m)
 static void*
 minit(M *m, Seg *s)
 {
-	s->gen = m->gen;
 	s->link = 0;
 	m->h = s2a(s);
 	m->t = s2a(s);
@@ -957,7 +978,6 @@ minsert(M *m, Seg *s)
 
 	if(m->h == 0)
 		return minit(m, s);
-	s->gen = m->gen;
 	s->link = 0;
 	t = a2s(m->t);
 	p = s2a(s);
@@ -965,32 +985,6 @@ minsert(M *m, Seg *s)
 	m->t = p;
 	return p;
 }
-
-#if 0
-static u64
-guarded()
-{
-	u32 i;
-	u64 m;
-	Pair *p;
-	m = 0;
-	for(i = 0; i < Ngen; i++){
-		p = H.sg.gd[i];
-		while(p != (Pair*)Xnil){
-			m++;
-			p = (Pair*)p->cdr;
-		}
-	}
-	for(i = 0; i < Ngen; i++){
-		p = H.ug.gd[i];
-		while(p != (Pair*)Xnil){
-			m++;
-			p = (Pair*)p->cdr;
-		}
-	}
-	return m;
-}
-#endif
 
 u64
 meminuse()
@@ -1008,7 +1002,6 @@ malcode()
 	sz = qs[Qcode].sz;
 again:
 	s = a2s(H.c);
-	g = s->gen;
 	if(s->a+sz <= s->e){
 		h = s->a;
 		s->a += sz;
@@ -1016,16 +1009,16 @@ again:
 		Vsetkind(h, Qcode);
 		return h;
 	}
-	H.c = minsert(&H.m[Mcode][g], mkseg(Mcode));
+	g = s->gen;
+	H.c = minsert(&H.m[MTcode][g], allocseg(MTcode, g));
 	goto again;
 }
 
 static void*
-_malbig(Mkind kind, u64 sz)
+_malbig(MT mt, u64 sz)
 {
 	Seg *s;
-	s = allocbigseg(kind, sz);
-	s->gen = H.tg;
+	s = allocbigseg(mt, sz, H.tg);
 	return s2a(s);
 }
 
@@ -1037,14 +1030,14 @@ _mal(u64 sz)
 	u32 g;
 again:
 	s = a2s(H.d);
-	g = s->gen;
 	if(s->a+sz <= s->e){
 		h = s->a;
 		s->a += sz;
 		memset(h, 0, sz);
 		return h;
 	}
-	H.d = minsert(&H.m[Mdata][g], mkseg(Mdata));
+	g = s->gen;
+	H.d = minsert(&H.m[MTdata][g], allocseg(MTdata, g));
 	goto again;
 }
 
@@ -1053,7 +1046,7 @@ mals(Imm len)
 {
 	Head *h;
 	if(len > Seguse)
-		h = _malbig(Mdata, len);
+		h = _malbig(MTdata, len);
 	else
 		h = _mal(roundup(len,Align));
 	Vsetkind(h, Qstr);
@@ -1133,7 +1126,7 @@ copy(Val *v)
 		return Glock; // protected objects do not move
 	}
 	s = lookseg(h);
-	if((s->flags&Fold) == 0){
+	if(!MTold(s->xmt)){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
 		return s->gen; // objects in older generations do not move
@@ -1198,8 +1191,8 @@ scan(M *m)
 	s = lookseg(m->scan);
 	c = 0;
 	while(1){
-		if(s->mt != Mdata && s->mt != Mcode)
-			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->mt);
+		if(MTtag(s->xmt) != xMdata && MTtag(s->xmt) != xMcode)
+			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->xmt);
 		while(m->scan < s->a){
 			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
@@ -1239,7 +1232,7 @@ kleenescan(u32 tg)
 	unsigned again, i;
 	do{
 		again = 0;
-		for(i = 0; i < Nm; i++)
+		for(i = 0; i < Nmt; i++)
 			again |= scan(&H.m[i][tg]);
 	}while(again);
 }
@@ -1313,7 +1306,7 @@ islive(Head *o)
 	if(Vprot(o))
 		return 1;
 	s = lookseg(o);
-	if((s->flags&Fold) == 0)
+	if(!MTold(s->xmt))
 		return 1;
 	return 0;
 }
@@ -1321,7 +1314,7 @@ islive(Head *o)
 static int
 isliveseg(Seg *s)
 {
-	return (s->mt == Mdata || s->mt == Mcode);
+	return (MTtag(s->xmt) == xMdata || MTtag(s->xmt) == xMcode);
 }
 
 static void
@@ -1491,9 +1484,9 @@ static void
 mark1old(Seg *s, u32 g)
 {
 	if(s->gen <= g)
-		s->flags |= Fold;
+		MTsetold(s->xmt);
 	else if(s->gen == Glock && s->nprotect == 0)
-		s->flags |= Fold;
+		MTsetold(s->xmt);
 }
 
 static void
@@ -1513,7 +1506,7 @@ scancard(Seg *s)
 	void *p;
 	u8 min, g;
 
-	if(s->flags&Fold)
+	if(MTold(s->xmt))
 		fatal("wtf?");
 	min = Clean;
 	p = s2a(s);
@@ -1588,7 +1581,7 @@ promote1locked(Seg *s)
 	if(s->nprotect == 0)
 		return;
 	s->gen = Glock;
-	s->flags &= ~Fold;
+	MTclrold(s->xmt);
 }
 
 static void
@@ -1623,7 +1616,9 @@ reloc1(Seg *s, u32 tg)
 	Code *c;
 	Head *h, *p;
 
-	if(s->mt != Mcode)
+	if(s->xmt == MTbigcode)
+		fatal("unimplemented");
+	if(s->xmt != MTcode)
 		return;
 	if(s->gen == tg){
 		c = s2a(s);
@@ -1660,9 +1655,7 @@ reloc(u32 tg)
 static void
 recycle1(Seg *s)
 {
-	if(s->mt != Mdata && s->mt != Mcode)
-		return;
-	if((s->flags&Fold) == 0)
+	if(!MTold(s->xmt))
 		return;
 	freeseg(s);
 }
@@ -1705,21 +1698,21 @@ _gc(u32 g, u32 tg)
 
 	markold(g);
 	for(i = 0; i <= g; i++)
-		for(mt = 0; mt < Nm; mt++)
+		for(mt = 0; mt < Nmt; mt++)
 			mclr(&H.m[mt][i]);
 
 	if(g == tg){
-		H.d = minit(&H.m[Mdata][tg], mkseg(Mdata));
-		H.c = minit(&H.m[Mcode][tg], mkseg(Mcode));
+		H.d = minit(&H.m[MTdata][tg], allocseg(MTdata, tg));
+		H.c = minit(&H.m[MTcode][tg], allocseg(MTcode, tg));
 	}else{
-		if(H.m[Mdata][tg].h)
-			H.d = H.m[Mdata][tg].t;
+		if(H.m[MTdata][tg].h)
+			H.d = H.m[MTdata][tg].t;
 		else
-			H.d = minit(&H.m[Mdata][tg], mkseg(Mdata));
-		if(H.m[Mcode][tg].h)
-			H.c = H.m[Mcode][tg].t;
+			H.d = minit(&H.m[MTdata][tg], allocseg(MTdata, tg));
+		if(H.m[MTcode][tg].h)
+			H.c = H.m[MTcode][tg].t;
 		else
-			H.c = minit(&H.m[Mcode][tg], mkseg(Mcode));
+			H.c = minit(&H.m[MTcode][tg], allocseg(MTcode, tg));
 	}
 
 	vmp = vms;
@@ -1771,8 +1764,8 @@ _gc(u32 g, u32 tg)
 
 	if(H.tg != 0){
 		H.tg = 0;
-		H.d = minit(&H.m[Mdata][H.tg], mkseg(Mdata));
-		H.c = minit(&H.m[Mcode][H.tg], mkseg(Mcode));
+		H.d = minit(&H.m[MTdata][H.tg], allocseg(MTdata, H.tg));
+		H.c = minit(&H.m[MTcode][H.tg], allocseg(MTcode, H.tg));
 	}
 	H.na = 0;
 	if(dbg)printf("returning\n");
@@ -1859,13 +1852,13 @@ initmem(u64 gcrate)
 	initsegmap();
 	gr = 1;
 	for(i = 0; i < Ngen; i++){
-		for(mt = 0; mt < Nm; mt++)
+		for(mt = 0; mt < Nmt; mt++)
 			H.m[mt][i].gen = i;
 		H.gcsched[i] = gr;
 		gr *= GCradix;
 	}
-	H.d = minit(&H.m[Mdata][0], mkseg(Mdata));
-	H.c = minit(&H.m[Mcode][0], mkseg(Mcode));
+	H.d = minit(&H.m[MTdata][0], allocseg(MTdata, 0));
+	H.c = minit(&H.m[MTcode][0], allocseg(MTcode, 0));
 	H.na = 0;
 	if(gcrate)
 		H.ma = gcrate;
