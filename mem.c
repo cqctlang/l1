@@ -887,6 +887,37 @@ allocseg(Mkind kind)
 }
 
 static Seg*
+allocbigseg(Mkind kind, u64 sz)
+{
+	Seg *s, *es;
+	void *p;
+
+	sz = roundup(sz, Segsize);
+	p = mapmem(sz);
+	remapsegmap(p, p+sz);
+	H.na += sz;
+	H.inuse += sz;
+	s = a2s(p);
+	s->a = p;
+	s->e = p+sz;
+	es = a2s(p+sz);
+	while(s < es){
+		s->card = Clean;
+		s->flags = Fbig;
+		
+		/* FIXME: this should be unnecessary */
+		s->p = 0;
+		s->nprotect = 0;
+		s->gen = 0;
+		s->link = 0;
+
+		s++;
+	}
+
+	return a2s(p);
+}
+
+static Seg*
 mkseg(Mkind kind)
 {
 	return allocseg(kind);
@@ -989,6 +1020,15 @@ again:
 }
 
 static void*
+_malbig(Mkind kind, u64 sz)
+{
+	Seg *s;
+	s = allocbigseg(kind, sz);
+	s->gen = H.tg;
+	return s2a(s);
+}
+
+static void*
 _mal(u64 sz)
 {
 	Seg *s;
@@ -1011,7 +1051,10 @@ Head*
 mals(Imm len)
 {
 	Head *h;
-	h = _mal(roundup(len,Align));
+	if(len > Seguse)
+		h = _malbig(Mdata, len);
+	else
+		h = _mal(roundup(len,Align));
 	Vsetkind(h, Qstr);
 	return h;
 }
