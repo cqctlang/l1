@@ -60,7 +60,6 @@ enum
 {
 	Fold = 1,
 	Fbig = Fold<<1,
-	Foul = Fbig<<1,
 } Flag;
 
 typedef struct Seg Seg;
@@ -1083,8 +1082,6 @@ copy(Val *v)
 		   cost more to look up the
 		   generation. */
 		s = lookseg(*v);
-		if(s->flags&Foul)
-			fatal("wtf2");
 		return s->gen;
 	}
 	if(Vprot(h)){
@@ -1092,8 +1089,6 @@ copy(Val *v)
 		return Glock; // protected objects do not move
 	}
 	s = lookseg(h);
-	if(s->flags&Foul)
-		fatal("wtf3 seg=%p a=%p (%s)", s, h, mkindname[s->mt]);
 	if((s->flags&Fold) == 0){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
@@ -1451,8 +1446,6 @@ copystack(VM *vm)
 static void
 mark1old(Seg *s, u32 g)
 {
-	if(s->flags&Foul)
-		return;
 	if(s->gen <= g)
 		s->flags |= Fold;
 	else if(s->gen == Glock && s->nprotect == 0)
@@ -1496,8 +1489,6 @@ static void
 scan1card(Seg *s, u32 g)
 {
 	u8 sg;
-	if(s->flags&Foul)
-		return;
 	if(s->gen <= g || (s->gen != Glock && s->gen >= Ngen))
 		return;
 	if(s->gen == Glock)
@@ -1526,8 +1517,6 @@ static void
 scan1locked(Seg *s)
 {
 	Head *p;
-	if(s->flags&Foul)
-		return;
 	if(s->nprotect == 0)
 		return;
 	copy((Val*)&s->p); /* retain list of locked objects! */
@@ -1552,8 +1541,6 @@ scanlocked()
 static void
 promote1locked(Seg *s)
 {
-	if(s->flags&Foul)
-		return;
 	if(s->nprotect == 0)
 		return;
 	s->gen = Glock;
@@ -1592,8 +1579,6 @@ reloc1(Seg *s, u32 tg)
 	Code *c;
 	Head *h, *p;
 
-	if(s->flags&Foul)
-		return;
 	if(s->mt != Mcode)
 		return;
 	if(s->gen == tg){
@@ -1635,7 +1620,6 @@ recycle1(Seg *s)
 		return;
 	if((s->flags&Fold) == 0)
 		return;
-	s->flags = Foul;
 	freeseg(s);
 }
 
