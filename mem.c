@@ -17,6 +17,7 @@ enum
 char *mkindname[] = {
 	"hole",
 	"sys",
+	"nix",
 	"free",
 	"data",
 	"code",
