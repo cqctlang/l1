@@ -1016,7 +1016,9 @@ static void*
 _malbig(MT mt, u64 sz)
 {
 	Seg *s;
-	s = allocbigseg(mt, sz, H.tg);
+	s = allocbigseg(mt, H.tg, sz);
+	minsert(&H.m[MTbigdata][H.tg], s);
+	s->a += sz;
 	return s2a(s);
 }
 
@@ -1042,9 +1044,9 @@ mals(Imm len)
 {
 	Head *h;
 	if(len > Seguse)
-		h = _malbig(MTdata, len);
+		h = _malbig(MTdata, roundup(len, Align));
 	else
-		h = _mal(roundup(len,Align));
+		h = _mal(roundup(len, Align));
 	Vsetkind(h, Qstr);
 	return h;
 }
@@ -1092,7 +1094,7 @@ static u8
 copy(Val *v)
 {
 	Head *h;
-	Seg *s;
+	Seg *s, *es;
 	Imm sz;
 	Head *nh;
 	unsigned dbg = alldbg;
@@ -1126,6 +1128,16 @@ copy(Val *v)
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
 		return s->gen; // objects in older generations do not move
+	}
+	if(MTbig(s->xmt)){
+		minsert(&H.m[s->xmt][H.tg], s);
+		es = a2s(s->e);
+		while(s <= es){
+			MTclrold(s->xmt);
+			s->gen = H.tg;
+			s++;
+		}
+		return H.tg;
 	}
 	sz = qsz(h);
 	if(Vkind(h) == Qcode)
