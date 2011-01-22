@@ -998,7 +998,6 @@ malcode()
 	Seg *s;
 	Head *h;
 	u32 sz;
-	u32 g;
 	sz = qs[Qcode].sz;
 again:
 	s = a2s(H.c);
@@ -1009,8 +1008,7 @@ again:
 		Vsetkind(h, Qcode);
 		return h;
 	}
-	g = s->gen;
-	H.c = minsert(&H.m[MTcode][g], allocseg(MTcode, g));
+	H.c = minsert(&H.m[MTcode][H.tg], allocseg(MTcode, H.tg));
 	goto again;
 }
 
@@ -1027,7 +1025,6 @@ _mal(u64 sz)
 {
 	Seg *s;
 	void *h;
-	u32 g;
 again:
 	s = a2s(H.d);
 	if(s->a+sz <= s->e){
@@ -1036,8 +1033,7 @@ again:
 		memset(h, 0, sz);
 		return h;
 	}
-	g = s->gen;
-	H.d = minsert(&H.m[MTdata][g], allocseg(MTdata, g));
+	H.d = minsert(&H.m[MTdata][H.tg], allocseg(MTdata, H.tg));
 	goto again;
 }
 
