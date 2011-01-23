@@ -42,10 +42,10 @@ enum
 	Nmt,
 } MT;
 
-#define MTtag(mt)       ((mt)>>2)
+#define MTtag(mt)       ((mt)>>xFtag)
 #define MTold(mt)       (((mt)>>xFold)&1)
 #define MTbig(mt)       (((mt)>>xFbig)&1)
-#define MTsettag(mt,t)  ((mt) = ((t)<<2)|((mt)&0x3))
+#define MTsettag(mt,t)  ((mt) = ((t)<<xFtag)|((mt)&~(xFtag-1)))
 #define MTsetold(mt)    ((mt) |= 1<<xFold)
 #define MTsetbig(mt)    ((mt) |= 1<<xFbig)
 #define MTclrold(mt)    ((mt) &= ~(1<<xFold))
@@ -96,7 +96,8 @@ enum
 typedef struct Seg Seg;
 struct Seg
 {
-	void *a, *e;
+	void *a;		/* allocation pointer */
+	void *e;		/* pointer to last byte in segment */
 	u8 card;
 	u8 xmt;
 	Pair *p;		/* protected objects */
@@ -706,6 +707,8 @@ freeseg(Seg *s)
 {
 	void *a, **q;
 
+	if(MTbig(s->xmt))
+		fatal("bug");
 	s->xmt = MTfree;
 	a = s2a(s);
 	q = (void**)a;
@@ -713,6 +716,24 @@ freeseg(Seg *s)
 	segmap.free = a;
 	H.free += Segsize;
 	H.inuse -= Segsize;
+}
+
+static void
+freebigseg(Seg *s)
+{
+	void *p;
+	u64 sz;
+	Seg *es;
+
+	p = s2a(s);
+	sz = 0;
+	es = a2s(s->e);
+	while(s <= es){
+		s->xmt = MThole;
+		sz += Segsize;
+		s++;
+	}
+	unmapmem(p, sz);
 }
 
 static void*
@@ -755,6 +776,14 @@ remapsegmap(void *p, void *e)
 		setrangetype(ohi, p, MThole);
 	else if(e < olo)
 		setrangetype(e, olo, MThole);
+}
+
+static Seg*
+nextseg(Seg *s)
+{
+	if(MTbig(s->xmt))
+		return a2s(s->e)+1;
+	return s+1;
 }
 
 static void
@@ -834,7 +863,7 @@ shrink(u64 targ)
 			p = 0;
 			sz = 0;
 		}
-		s++;
+		s = nextseg(s);
 	}
 	if(p)
 		unmapmem(p, sz);
@@ -899,7 +928,7 @@ allocseg(MT mt, Gen g)
 	H.inuse += Segsize;
 	s = a2s(p);
 	s->a = p;
-	s->e = p+Seguse;
+	s->e = p+Seguse-1;
 	s->card = Clean;
 	memset(s->a, 0, Segsize);
 	if(s->xmt != MTfree)
@@ -928,7 +957,7 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	H.inuse += sz;
 	s = a2s(p);
 	s->a = p;
-	s->e = p+sz;
+	s->e = p+sz-1;
 	es = a2s(p+sz);
 	while(s < es){
 		s->card = Clean;
@@ -940,6 +969,8 @@ allocbigseg(MT mt, Gen g, u64 sz)
 		s->nprotect = 0;
 		s->link = 0;
 
+		if(!MTbig(s->xmt))
+			fatal("bug");
 		s++;
 	}
 
@@ -1001,7 +1032,7 @@ malcode()
 	sz = qs[Qcode].sz;
 again:
 	s = a2s(H.c);
-	if(s->a+sz <= s->e){
+	if(s->a+sz <= s->e-1){
 		h = s->a;
 		s->a += sz;
 		memset(h, 0, sz);
@@ -1029,7 +1060,7 @@ _mal(u64 sz)
 	void *h;
 again:
 	s = a2s(H.d);
-	if(s->a+sz <= s->e){
+	if(s->a+sz <= s->e-1){
 		h = s->a;
 		s->a += sz;
 		memset(h, 0, sz);
@@ -1044,7 +1075,7 @@ mals(Imm len)
 {
 	Head *h;
 	if(len > Seguse)
-		h = _malbig(MTdata, roundup(len, Align));
+		h = _malbig(MTbigdata, roundup(len, Align));
 	else
 		h = _mal(roundup(len, Align));
 	Vsetkind(h, Qstr);
@@ -1503,9 +1534,11 @@ markold(u32 g)
 	Seg *s, *es;
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
-	for( ; s < es; s++)
+	while(s < es){
 		if(isliveseg(s))
 			mark1old(s, g);
+		s = nextseg(s);
+	}
 }
 
 static u8
@@ -1553,9 +1586,11 @@ scancards(u32 g)
 	Seg *s, *es;
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
-	for( ; s < es; s++)
+	while(s < es){
 		if(isliveseg(s))
 			scan1card(s, g);
+		s = nextseg(s);
+	}
 }
 
 static void
@@ -1578,9 +1613,11 @@ scanlocked()
 	Seg *s, *es;
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
-	for( ; s < es; s++)
+	while(s < es){
 		if(isliveseg(s))
 			scan1locked(s);
+		s = nextseg(s);
+	}
 }
 
 static void
@@ -1598,9 +1635,11 @@ promotelocked()
 	Seg *s, *es;
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
-	for( ; s < es; s++)
+	while(s < es){
 		if(isliveseg(s))
 			promote1locked(s);
+		s = nextseg(s);
+	}
 }
 
 static void
@@ -1655,9 +1694,11 @@ reloc(u32 tg)
 	Seg *s, *es;
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
-	for( ; s < es; s++)
+	while(s < es){
 		if(isliveseg(s))
 			reloc1(s, tg);
+		s = nextseg(s);
+	}
 }
 
 static void
@@ -1665,18 +1706,24 @@ recycle1(Seg *s)
 {
 	if(!MTold(s->xmt))
 		return;
-	freeseg(s);
+	if(MTbig(s->xmt))
+		freebigseg(s);
+	else
+		freeseg(s);
 }
 
 static void
 recycle()
 {
-	Seg *s, *es;
+	Seg *s, *t, *es;
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
-	for( ; s < es; s++)
+	while(s < es){
+		t = nextseg(s);
 		if(isliveseg(s))
 			recycle1(s);
+		s = t;
+	}
 }
 
 /*
@@ -1776,9 +1823,10 @@ _gc(u32 g, u32 tg)
 		H.c = minit(&H.m[MTcode][H.tg], allocseg(MTcode, H.tg));
 	}
 	H.na = 0;
-	if(dbg)printf("returning\n");
+	if(dbg)printf("end of collection\n");
 	H.ingc--;
 	maintain();
+	if(dbg)printf("gc returning\n");
 }
 
 void

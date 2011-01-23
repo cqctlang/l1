@@ -1,0 +1,3 @@
+big1.l1:4: warning: assignment to unbound variable: s
+entry: var params, 3 locals, 0 temps
+809600
