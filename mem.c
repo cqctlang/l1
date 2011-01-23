@@ -1228,10 +1228,6 @@ scan(M *m)
 		while(m->scan < s->a){
 			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
-			if(Vkind(h) == Qstr){
-				Str *str;
-				str = (Str*)h;
-			}
 			m->scan += qsz(h);
 			if(qs[Vkind(h)].iter == 0)
 				continue;
