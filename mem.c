@@ -29,7 +29,7 @@ enum
 	xFtag,
 } Flags;
 
-typedef
+/* meta type values */
 enum
 {
 	MThole    = (xMhole<<2),
@@ -40,7 +40,7 @@ enum
 	MTbigdata = (xMdata<<2)|(1<<xFbig),
 	MTbigcode = (xMcode<<2)|(1<<xFbig),
 	Nmt,
-} MT;
+};
 
 #define MTtag(mt)       ((mt)>>xFtag)
 #define MTold(mt)       (((mt)>>xFold)&1)
@@ -50,16 +50,6 @@ enum
 #define MTsetbig(mt)    ((mt) |= 1<<xFbig)
 #define MTclrold(mt)    ((mt) &= ~(1<<xFold))
 #define MTclrbig(mt)    ((mt) &= ~(1<<xFbig))
-
-char *mkindname[] = {
-	"hole",
-	"sys",
-	"nix",
-	"free",
-	"data",
-	"code",
-	"BAD",
-};
 
 /* #define to ensure 64-bit constants */
 #define Segsize   4096ULL
@@ -79,7 +69,7 @@ enum
 	GCradix = 4,
 };
 
-typedef
+/* Gen values */
 enum
 {
 	G0,
@@ -91,18 +81,21 @@ enum
 	Gstatic,
 	Clean=0xff,
 	Dirty=0x00,
-} Gen;
+};
+
+typedef u8 Gen;
+typedef u8 MT;
 
 typedef struct Seg Seg;
 struct Seg
 {
+	MT mt;
+	Gen gen;
 	void *a;		/* allocation pointer */
 	void *e;		/* pointer to last byte in segment */
 	u8 card;
-	u8 xmt;
 	Pair *p;		/* protected objects */
 	u32 nprotect;
-	Gen gen;
 	void *link;
 };
 
@@ -663,7 +656,7 @@ setrangetype(void *p, void *e, MT t)
 	s = a2s(p);
 	es = s+n;
 	while(s < es){
-		s->xmt = t;
+		s->mt = t;
 		s++;
 	}
 }
@@ -707,9 +700,9 @@ freeseg(Seg *s)
 {
 	void *a, **q;
 
-	if(MTbig(s->xmt))
+	if(MTbig(s->mt))
 		fatal("bug");
-	s->xmt = MTfree;
+	s->mt = MTfree;
 	a = s2a(s);
 	q = (void**)a;
 	*q = segmap.free;
@@ -729,7 +722,7 @@ freebigseg(Seg *s)
 	sz = 0;
 	es = a2s(s->e);
 	while(s <= es){
-		s->xmt = MThole;
+		s->mt = MThole;
 		sz += Segsize;
 		s++;
 	}
@@ -781,7 +774,7 @@ remapsegmap(void *p, void *e)
 static Seg*
 nextseg(Seg *s)
 {
-	if(MTbig(s->xmt))
+	if(MTbig(s->mt))
 		return a2s(s->e)+1;
 	return s+1;
 }
@@ -840,7 +833,7 @@ shrink(u64 targ)
 	while(H.heapsz > Minheap && H.free > targ){
 		p = nextfree();
 		s = a2s(p);
-		s->xmt = MTnix;
+		s->mt = MTnix;
 		if(p < m)
 			m = p;
 		H.heapsz -= Segsize;
@@ -852,11 +845,11 @@ shrink(u64 targ)
 	sz = 0;
 	p = 0;
 	while(n > 0 && s < es){
-		if(s->xmt == MTnix){
+		if(s->mt == MTnix){
 			if(p == 0)
 				p = s2a(s);
 			sz += Segsize;
-			s->xmt = MThole;
+			s->mt = MThole;
 			n--;
 		}else if(p){
 			unmapmem(p, sz);
@@ -931,9 +924,9 @@ allocseg(MT mt, Gen g)
 	s->e = p+Seguse-1;
 	s->card = Clean;
 	memset(s->a, 0, Segsize);
-	if(s->xmt != MTfree)
+	if(s->mt != MTfree)
 		fatal("bug");
-	s->xmt = mt;
+	s->mt = mt;
 	s->gen = g;
 
 	/* FIXME: this should be unnecessary */
@@ -961,7 +954,7 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	es = a2s(p+sz);
 	while(s < es){
 		s->card = Clean;
-		s->xmt = mt;
+		s->mt = mt;
 		s->gen = g;
 		
 		/* FIXME: this should be unnecessary */
@@ -969,7 +962,7 @@ allocbigseg(MT mt, Gen g, u64 sz)
 		s->nprotect = 0;
 		s->link = 0;
 
-		if(!MTbig(s->xmt))
+		if(!MTbig(s->mt))
 			fatal("bug");
 		s++;
 	}
@@ -1155,16 +1148,16 @@ copy(Val *v)
 		return Glock; // protected objects do not move
 	}
 	s = lookseg(h);
-	if(!MTold(s->xmt)){
+	if(!MTold(s->mt)){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
 		return s->gen; // objects in older generations do not move
 	}
-	if(MTbig(s->xmt)){
-		minsert(&H.m[s->xmt][H.tg], s);
+	if(MTbig(s->mt)){
+		minsert(&H.m[s->mt][H.tg], s);
 		es = a2s(s->e);
 		while(s <= es){
-			MTclrold(s->xmt);
+			MTclrold(s->mt);
 			s->gen = H.tg;
 			s++;
 		}
@@ -1230,8 +1223,8 @@ scan(M *m)
 	s = lookseg(m->scan);
 	c = 0;
 	while(1){
-		if(MTtag(s->xmt) != xMdata && MTtag(s->xmt) != xMcode)
-			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->xmt);
+		if(MTtag(s->mt) != xMdata && MTtag(s->mt) != xMcode)
+			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->mt);
 		while(m->scan < s->a){
 			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
@@ -1345,7 +1338,7 @@ islive(Head *o)
 	if(Vprot(o))
 		return 1;
 	s = lookseg(o);
-	if(!MTold(s->xmt))
+	if(!MTold(s->mt))
 		return 1;
 	return 0;
 }
@@ -1353,7 +1346,7 @@ islive(Head *o)
 static int
 isliveseg(Seg *s)
 {
-	return (MTtag(s->xmt) == xMdata || MTtag(s->xmt) == xMcode);
+	return (MTtag(s->mt) == xMdata || MTtag(s->mt) == xMcode);
 }
 
 static void
@@ -1523,9 +1516,9 @@ static void
 mark1old(Seg *s, u32 g)
 {
 	if(s->gen <= g)
-		MTsetold(s->xmt);
+		MTsetold(s->mt);
 	else if(s->gen == Glock && s->nprotect == 0)
-		MTsetold(s->xmt);
+		MTsetold(s->mt);
 }
 
 static void
@@ -1547,7 +1540,7 @@ scancard(Seg *s)
 	void *p;
 	u8 min, g;
 
-	if(MTold(s->xmt))
+	if(MTold(s->mt))
 		fatal("wtf?");
 	min = Clean;
 	p = s2a(s);
@@ -1626,7 +1619,7 @@ promote1locked(Seg *s)
 	if(s->nprotect == 0)
 		return;
 	s->gen = Glock;
-	MTclrold(s->xmt);
+	MTclrold(s->mt);
 }
 
 static void
@@ -1663,9 +1656,9 @@ reloc1(Seg *s, u32 tg)
 	Code *c;
 	Head *h, *p;
 
-	if(s->xmt == MTbigcode)
+	if(s->mt == MTbigcode)
 		fatal("unimplemented");
-	if(s->xmt != MTcode)
+	if(s->mt != MTcode)
 		return;
 	if(s->gen == tg){
 		c = s2a(s);
@@ -1704,9 +1697,9 @@ reloc(u32 tg)
 static void
 recycle1(Seg *s)
 {
-	if(!MTold(s->xmt))
+	if(!MTold(s->mt))
 		return;
-	if(MTbig(s->xmt))
+	if(MTbig(s->mt))
 		freebigseg(s);
 	else
 		freeseg(s);
