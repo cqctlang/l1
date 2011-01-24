@@ -438,14 +438,16 @@ struct Strperm {
 	            : (((x)->skind == Smmap)    \
 	               ? (((Strmmap*)(x))->s)   \
 		       : (((Strperm*)(x))->s)))
+/* size of Smalloc strings */
+#define strsize(n) (sizeof(Str)+(n)*sizeof(char))
 
 struct Vec {
 	Head hd;
 	Imm len;
-	Val *xvec;
 };
 
 #define vecdata(x) ((Val*)((Vec*)(x)+1))
+#define vecsize(n) (sizeof(Vec)+(n)*sizeof(Val))
 
 struct Xtypename {
 	Head hd;

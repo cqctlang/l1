@@ -1092,7 +1092,7 @@ qsz(Head *h)
 		s = (Str*)h;
 		switch(s->skind){
 		case Smalloc:
-			return roundup(sizeof(Str)+s->len*sizeof(char), Align);
+			return roundup(strsize(s->len), Align);
 		case Smmap:
 			return sizeof(Strmmap);
 		case Sperm:
@@ -1101,7 +1101,7 @@ qsz(Head *h)
 		fatal("bug");
 	case Qvec:
 		v = (Vec*)h;
-		return roundup(sizeof(Vec)+v->len*sizeof(Vec*), Align);
+		return roundup(vecsize(v->len), Align);
 	default:
 		return qs[Vkind(h)].sz;
 	}
