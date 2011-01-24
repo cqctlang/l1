@@ -8732,7 +8732,7 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 	ctx.out = &vm->top->out;
 	e = doparse(&ctx, buf, whence);
 	if(e == 0)
-		vmerr(vm, "could not parse expression");
+		return;
 	*rv = expr2list(e);
 	freeexpr(e);
 }
