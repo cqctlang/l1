@@ -153,7 +153,6 @@ static int freecl(Head*);
 static int freefd(Head*);
 static int freerec(Head*);
 static int freestr(Head*);
-static int freevec(Head*);
 
 static Val* iteras(Head*, Ictx*);
 static Val* iterbox(Head*, Ictx*);
@@ -190,7 +189,7 @@ static Qtype qs[Qnkind] = {
 	[Qstr]	 = { "string", sizeof(Str), 1, freestr, 0 },
 	[Qtab]	 = { "table",  sizeof(Tab), 1, 0, itertab },
 	[Qundef] = { "undef", sizeof(Head), 0, 0, 0 },
-	[Qvec]	 = { "vector", sizeof(Vec), 0, freevec, itervec },
+	[Qvec]	 = { "vector", sizeof(Vec), 0, 0, itervec },
 	[Qxtn]	 = { "typename", sizeof(Xtypename), 1, 0, iterxtn },
 };
 
@@ -246,15 +245,6 @@ freestr(Head *hd)
 	case Sperm:
 		fatal("bug");
 	}
-	return 1;
-}
-
-static int
-freevec(Head *hd)
-{
-	Vec *vec;
-	vec = (Vec*)hd;
-	efree(vec->vec);
 	return 1;
 }
 
@@ -503,7 +493,7 @@ itervec(Head *hd, Ictx *ictx)
 	vec = (Vec*)hd;
 	if(ictx->n >= vec->len)
 		return GCiterdone;
-	return &vec->vec[ictx->n++];
+	return &vecdata(vec)[ictx->n++];
 }
 
 static Val*
@@ -1064,18 +1054,6 @@ again:
 }
 
 Head*
-xmals(Imm len)
-{
-	Head *h;
-	if(len > Seguse)
-		h = _malbig(MTbigdata, roundup(len, Align));
-	else
-		h = _mal(roundup(len, Align));
-	Vsetkind(h, Qstr);
-	return h;
-}
-
-Head*
 malv(Qkind kind, Imm len)
 {
 	Head *h;
@@ -1083,7 +1061,7 @@ malv(Qkind kind, Imm len)
 		h = _malbig(MTbigdata, roundup(len, Align));
 	else
 		h = _mal(roundup(len, Align));
-	Vsetkind(h, Qstr);
+	Vsetkind(h, kind);
 	return h;
 }
 
@@ -1108,18 +1086,22 @@ static u32
 qsz(Head *h)
 {
 	Str *s;
+	Vec *v;
 	switch(Vkind(h)){
 	case Qstr:
 		s = (Str*)h;
 		switch(s->skind){
 		case Smalloc:
-			return sizeof(Str)+roundup(s->len,Align);
+			return roundup(sizeof(Str)+s->len*sizeof(char), Align);
 		case Smmap:
 			return sizeof(Strmmap);
 		case Sperm:
 			return sizeof(Strperm);
 		}
 		fatal("bug");
+	case Qvec:
+		v = (Vec*)h;
+		return roundup(sizeof(Vec)+v->len*sizeof(Vec*), Align);
 	default:
 		return qs[Vkind(h)].sz;
 	}
@@ -1176,16 +1158,21 @@ copy(Val *v)
 		return H.tg;
 	}
 	sz = qsz(h);
-	if(Vkind(h) == Qcode)
+	switch(Vkind(h)){
+	case Qcode:
 		nh = malcode();
-	else if(Vkind(h) == Qstr)
-		nh = malv(Qstr, sz);
-	else{
+		break;
+	case Qstr:
+	case Qvec:
+		nh = malv(Vkind(h), sz);
+		break;
+	default:
 		nh = malq(Vkind(h));
-		if(dbg)printf("copy %s %p to %p\n",
-			      qs[Vkind(h)].id,
-			      h, nh);
+		break;
 	}
+	if(dbg)printf("copy %s %p to %p\n",
+		      qs[Vkind(h)].id,
+		      h, nh);
 	memcpy(nh, h, sz);
 	Vsetfwd(h, (uintptr_t)nh);
 	if(dbg)printf("set fwd %p -> %p %p (%d)\n",

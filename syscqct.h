@@ -442,8 +442,10 @@ struct Strperm {
 struct Vec {
 	Head hd;
 	Imm len;
-	Val *vec;
+	Val *xvec;
 };
+
+#define vecdata(x) ((Val*)((Vec*)(x)+1))
 
 struct Xtypename {
 	Head hd;

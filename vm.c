@@ -641,7 +641,7 @@ Str*
 mkstrn(Imm len)
 {
 	Str *str;
-	str = (Str*)malv(Qstr, sizeof(Str)+len);
+	str = (Str*)malv(Qstr, sizeof(Str)+len*sizeof(char));
 	str->len = len;
 	str->skind = Smalloc;
 	return str;
@@ -767,10 +767,8 @@ Vec*
 mkvec(Imm len)
 {
 	Vec *vec;
-	vec = (Vec*)malq(Qvec);
+	vec = (Vec*)malv(Qvec, sizeof(Vec)+len*sizeof(Val*));
 	vec->len = len;
-	vec->vec = emalloc(len*sizeof(Val));
-	quard((Val)vec);
 	return vec;
 }
 
@@ -782,20 +780,20 @@ mkvecinit(Imm len, Val v)
 
 	vec = mkvec(len);
 	for(i = 0; i < len; i++)
-		vec->vec[i] = v;
+		vecdata(vec)[i] = v;
 	return vec;
 }
 
 Val
 vecref(Vec *vec, Imm idx)
 {
-	return vec->vec[idx];
+	return vecdata(vec)[idx];
 }
 
 void
 _vecset(Vec *vec, Imm idx, Val v)
 {
-	vec->vec[idx] = v;
+	vecdata(vec)[idx] = v;
 }
 
 void
@@ -814,7 +812,7 @@ hashvec(Val v)
 	m = Vkind(v);
 	len = a->len;
 	for(i = 0; i < len; i++)
-		m ^= hashval(a->vec[i]);
+		m ^= hashval(vecdata(a)[i]);
 	return m;
 }
 
@@ -826,7 +824,7 @@ equalvec(Vec *a, Vec *b)
 	if(len != b->len)
 		return 0;
 	for(m = 0; m < len; m++)
-		if(!eqval(a->vec[m], b->vec[m]))
+		if(!eqval(vecdata(a)[m], vecdata(b)[m]))
 			return 0;
 	return 1;
 }
@@ -842,7 +840,7 @@ veccopy(Vec *old)
 {
 	Vec *new;
 	new = mkvec(old->len);
-	memcpy(new->vec, old->vec, old->len*sizeof(Val));
+	memcpy(vecdata(new), vecdata(old), new->len*sizeof(Val));
 	return new;
 }
 
@@ -4781,7 +4779,7 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Qvec:
 		v = valvec(o);
 		n = v->len;
-		vs = v->vec;
+		vs = vecdata(v);
 		break;
 	default:
 		return;
@@ -4845,7 +4843,7 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Qvec:
 		v = valvec(argv[1]);
 		n = v->len;
-		vs = v->vec;
+		vs = vecdata(v);
 		break;
 	default:
 		return;
@@ -5570,7 +5568,7 @@ l1_paramtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 2)
 		vmerr(vm, err);
-	vp = v->vec[Typepos];
+	vp = vecdata(v)[Typepos];
 	if(Vkind(vp) != Qxtn)
 		vmerr(vm, err);
 	*rv = vp;
@@ -5591,7 +5589,7 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 2)
 		vmerr(vm, err);
-	vp = v->vec[Idpos];
+	vp = vecdata(v)[Idpos];
 	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
@@ -5693,7 +5691,7 @@ l1_fieldtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
-	vp = v->vec[Typepos];
+	vp = vecdata(v)[Typepos];
 	if(Vkind(vp) != Qxtn)
 		vmerr(vm, err);
 	*rv = vp;
@@ -5714,7 +5712,7 @@ l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
-	vp = v->vec[Idpos];
+	vp = vecdata(v)[Idpos];
 	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
@@ -5792,7 +5790,7 @@ l1_symtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
-	vp = v->vec[Typepos];
+	vp = vecdata(v)[Typepos];
 	if(Vkind(vp) != Qxtn)
 		vmerr(vm, err);
 	*rv = vp;
@@ -5813,7 +5811,7 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
-	vp = v->vec[Idpos];
+	vp = vecdata(v)[Idpos];
 	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
@@ -7832,7 +7830,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		vec = valvec(argv[0]);
 		len = vec->len;
 		for(i = 0; i < len; i++)
-			if(eqval(v, vec->vec[i]))
+			if(eqval(v, vecdata(vec)[i]))
 				m++;
 		break;
 	}
@@ -7882,7 +7880,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		vec = valvec(argv[0]);
 		len = vec->len;
 		for(i = 0; i < len; i++)
-			if(eqval(v, vec->vec[i]))
+			if(eqval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	}
@@ -7936,7 +7934,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		vec = valvec(argv[0]);
 		len = vec->len;
 		for(i = 0; i < len; i++)
-			if(eqval(v, vec->vec[i]))
+			if(eqval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	case Qtab:
@@ -9941,5 +9939,5 @@ cqctvecvals(Val v)
 	if(Vkind(v) != Qvec)
 		return 0;
 	vec = valvec(v);
-	return vec->vec;
+	return vecdata(vec);
 }
