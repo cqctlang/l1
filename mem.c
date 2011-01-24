@@ -26,30 +26,34 @@ enum
 	/* bit positions */
 	xFold = 0,
 	xFbig,
+	xFbigcont,
 	xFtag,
 } Flags;
 
 /* meta type values */
 enum
 {
-	MThole    = (xMhole<<2),
-	MTnix     = (xMnix<<2),
-	MTfree    = (xMfree<<2),
-	MTdata    = (xMdata<<2),
-	MTcode    = (xMcode<<2),
-	MTbigdata = (xMdata<<2)|(1<<xFbig),
-	MTbigcode = (xMcode<<2)|(1<<xFbig),
+	MThole    = (xMhole<<xFtag),
+	MTnix     = (xMnix<<xFtag),
+	MTfree    = (xMfree<<xFtag),
+	MTdata    = (xMdata<<xFtag),
+	MTcode    = (xMcode<<xFtag),
+	MTbigdata = (xMdata<<xFtag)|(1<<xFbig),
+	MTbigcode = (xMcode<<xFtag)|(1<<xFbig),
 	Nmt,
 };
 
-#define MTtag(mt)       ((mt)>>xFtag)
-#define MTold(mt)       (((mt)>>xFold)&1)
-#define MTbig(mt)       (((mt)>>xFbig)&1)
-#define MTsettag(mt,t)  ((mt) = ((t)<<xFtag)|((mt)&~(xFtag-1)))
-#define MTsetold(mt)    ((mt) |= 1<<xFold)
-#define MTsetbig(mt)    ((mt) |= 1<<xFbig)
-#define MTclrold(mt)    ((mt) &= ~(1<<xFold))
-#define MTclrbig(mt)    ((mt) &= ~(1<<xFbig))
+#define MTtag(mt)        ((mt)>>xFtag)
+#define MTold(mt)        (((mt)>>xFold)&1)
+#define MTbig(mt)        (((mt)>>xFbig)&1)
+#define MTbigcont(mt)    (((mt)>>xFbigcont)&1)
+#define MTsettag(mt,t)   ((mt) = ((t)<<xFtag)|((mt)&~(xFtag-1)))
+#define MTsetold(mt)     ((mt) |= 1<<xFold)
+#define MTsetbig(mt)     ((mt) |= 1<<xFbig)
+#define MTsetbigcont(mt) ((mt) |= 1<<xFbigcont)
+#define MTclrold(mt)     ((mt) &= ~(1<<xFold))
+#define MTclrbig(mt)     ((mt) &= ~(1<<xFbig))
+#define MTclrbigcont(mt) ((mt) &= ~(1<<xFbigcont))
 
 /* #define to ensure 64-bit constants */
 #define Segsize   4096ULL
@@ -941,10 +945,23 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	s = a2s(p);
 	s->a = p;
 	s->e = p+sz-1;
+
+	/* beginning Seg of big segment */
+	s->card = Clean;
+	s->mt = mt;
+	s->gen = g;
+	/* FIXME: this should be unnecessary */
+	s->p = 0;
+	s->nprotect = 0;
+	s->link = 0;
+
+	s++;
 	es = a2s(p+sz);
+	/* remaining Segs */
 	while(s < es){
 		s->card = Clean;
 		s->mt = mt;
+		MTsetbigcont(s->mt);
 		s->gen = g;
 		
 		/* FIXME: this should be unnecessary */
@@ -960,10 +977,16 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	return a2s(p);
 }
 
+/* like a2s, but if A is in interior of big segment,
+   find its beginning segment */
 static Seg*
 lookseg(void *a)
 {
-	return a2s(a);
+	Seg *s;
+	s = a2s(a);
+	while(MTbigcont(s->mt))
+		s--;
+	return s;
 }
 
 static void
@@ -1031,7 +1054,7 @@ _malbig(MT mt, u64 sz)
 {
 	Seg *s;
 	s = allocbigseg(mt, H.tg, sz);
-	minsert(&H.m[MTbigdata][H.tg], s);
+	minsert(&H.m[mt][H.tg], s);
 	s->a += sz;
 	return s2a(s);
 }
@@ -1134,14 +1157,14 @@ copy(Val *v)
 		   scans later).  but (FIXME) it might
 		   cost more to look up the
 		   generation. */
-		s = lookseg(*v);
+		s = a2s(*v);
 		return s->gen;
 	}
 	if(Vprot(h)){
 		if(dbg)printf("copy: object %p is protected\n", h);
 		return Glock; // protected objects do not move
 	}
-	s = lookseg(h);
+	s = a2s(h);
 	if(!MTold(s->mt)){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
@@ -1332,7 +1355,7 @@ islive(Head *o)
 		return 1;
 	if(Vprot(o))
 		return 1;
-	s = lookseg(o);
+	s = a2s(o);
 	if(!MTold(s->mt))
 		return 1;
 	return 0;
@@ -1440,7 +1463,7 @@ void
 gcwb(Val v)
 {
 	Seg *s;
-	s = lookseg((Head*)v);
+	s = a2s((Head*)v);
 	s->card = Dirty;
 }
 
@@ -1851,7 +1874,7 @@ gcprotect(void *v)
 		// FIXME: with a counter rather than a bit, we could
 		// allow this.
 		fatal("gcprotect on already protected object %p", h);
-	s = lookseg(h);
+	s = a2s(h);
 	s->p = cons(h, s->p);
 	s->nprotect++;
 	Vsetprot(h, 1);
@@ -1871,7 +1894,7 @@ gcunprotect(void *v)
 		fatal("bug");
 	if(!Vprot(h))
 		fatal("gcunprotect on already unprotected object %p", h);
-	s = lookseg(h);
+	s = a2s(h);
 	// FIXME: generation safe?
 	r = (Head**)&s->p;
 	p = *r;
