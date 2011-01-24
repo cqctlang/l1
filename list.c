@@ -10,7 +10,7 @@ iterlist(Head *hd, Ictx *ictx)
 	if(ictx->n > 0)
 		return GCiterdone;
 	ictx->n++;
-	return &l->v;
+	return (Val*)&l->v;
 }
 
 Imm
@@ -68,8 +68,8 @@ listset(VM *vm, List *l, Imm idx, Val v)
 {
 	if(idx >= listlen(l))
 		vmerr(vm, "listset out of bounds");
-	gcwb(l->v);
-	listdata(l)[l->hd+idx] = v;
+	gcwb((Val)l->v);
+	listdata(l)[l->h+idx] = v;
 	return l;
 }
 
@@ -77,7 +77,7 @@ List*
 listcopy(List *l)
 {
 	List *n;
-	n = mklistn(l->sz);
+	n = mklistn(listcap(l));
 	n->h = l->h;
 	n->t = l->t;
 	memcpy(&listdata(n)[n->h], &listdata(l)[l->h], (l->t-l->h)*sizeof(Val));
@@ -96,7 +96,7 @@ listreverse(List *l)
 {
 	List *n;
 	Imm h, t, len, m;
-	n = mklistn(l->sz);
+	n = mklistn(listcap(l));
 	n->h = h = l->h;
 	n->t = t = l->t;
 	len = t-h;
@@ -163,44 +163,42 @@ equallist(List *a, List *b)
 }
 
 static void
-listexpand(List *lst)
+listexpand(List *l)
 {
-	Listx *x, *nx;
-	u32 len, newsz;
+	Vec *nv;	
+	Imm len, cap, nh, nt;
 
-	x = lst->x;
-	if(x->sz)
-		newsz = x->sz*2;
+	if(listcap(l))
+		cap = listcap(l)*2;
 	else
-		newsz = 1;
-	nx = mklistx(newsz);
-	len = listxlen(x);
-	if(x->hd == 0){
+		cap = 1;
+	nv = mkvec(cap);
+	len = listlen(l);
+	if(l->h == 0){
 		/* expanding to the left */
-		nx->hd = x->sz;
-		nx->tl = x->tl+x->sz;
+		nh = listcap(l);
+		nt = l->t+listcap(l);
 	}else{
 		/* expanding to the right */
-		nx->hd = x->hd;
-		nx->tl = x->tl;
+		nh = l->h;
+		nt = l->t;
 	}
-	memcpy(&nx->val[nx->hd], &x->val[x->hd], len*sizeof(Val));
-	_mklist(x);		/* preserve potential concurrent iterlist's
-				   view; same strategy as tabexpand. */
-	lst->x = nx;
+
+	memcpy(&vecdata(nv)[nh], &listdata(l)[l->h], len*sizeof(Val));
+	gcwb((Val)l);
+	l->v = nv;
+	l->h = nh;
+	l->t = nt;
 }
 
-static Listx*
-maybelistexpand(List *lst)
+static void
+maybeexpand(List *l)
 {
-	Listx *x;
 again:
-	x = lst->x;
-	if(x->hd == 0 || x->tl == x->sz){
-		listexpand(lst);
-		goto again;	/* at most twice iff full on both ends */
+	if(l->h == 0 || l->t == listcap(l)){
+		listexpand(l);
+		goto again; /* once more if original was full on both ends */
 	}
-	return lst->x;
 }
 
 /* maybe listdel and listins should slide whichever half is shorter */
@@ -213,100 +211,90 @@ enum {
 /* if op==SlideIns, expect room to slide by 1 in either direction;
    however, currently we always slide to right */
 static void
-slide(Listx *x, u32 idx, int op)
+slide(List *l, Imm idx, int op)
 {
-	Val *t;
-	u32 m;
-	m = listxlen(x)-idx;
+	Imm m;
+	m = listlen(l)-idx;
 	if(m <= 1 && op == SlideDel)
 		/* deleting last element; nothing to do */
 		return;
-	if(x->oval == 0)
-		x->oval = emalloc(x->sz*sizeof(Val));
-	memcpy(&x->oval[x->hd], &x->val[x->hd], idx*sizeof(Val));
 	switch(op){
 	case SlideIns:
-		memcpy(&x->oval[x->hd+idx+1], &x->val[x->hd+idx],
-		       m*sizeof(Val));
+		memmove(&listdata(l)[l->h+idx+1],
+			&listdata(l)[l->h+idx],
+			m*sizeof(Val));
 		break;
 	case SlideDel:
-		memcpy(&x->oval[x->hd+idx], &x->val[x->hd+idx+1],
-		       (m-1)*sizeof(Val));
+		memmove(&listdata(l)[l->h+idx],
+			&listdata(l)[l->h+idx+1],
+			(m-1)*sizeof(Val));
 		break;
 	}
-	t = x->val;
-	x->val = x->oval;
-	x->oval = t;
 }
 
 List*
-listdel(VM *vm, List *lst, Imm idx)
+listdel(VM *vm, List *l, Imm idx)
 {
-	Listx *x;
-	u32 m, len;
-	x = lst->x;
-	len = listxlen(x);
+	Imm m, len;
+	len = listlen(l);
 	if(idx >= len)
 		vmerr(vm, "listdel out of bounds");
 	m = len-idx;
-	slide(x, idx, SlideDel);
-	x->tl--;
-	return lst;
+	slide(l, idx, SlideDel);
+	l->t--;
+	return l;
 }
 
 List*
-listins(VM *vm, List *lst, Imm idx, Val v)
+listins(VM *vm, List *l, Imm idx, Val v)
 {
-	Listx *x;
-	u32 m, len;
-	x = lst->x;
-	len = listxlen(x);
+	Imm m, len;
+	len = listlen(l);
 	if(idx > len)
 		vmerr(vm, "listins out of bounds");
-	x = maybelistexpand(lst);
-	gcwb(mkvallist(lst));
+	maybeexpand(l);
+	gcwb((Val)l->v);
 	if(idx == 0)
-		x->val[--x->hd] = v;
+		listdata(l)[--l->h] = v;
 	else if(idx == len)
-		x->val[x->tl++] = v;
+		listdata(l)[l->t++] = v;
 	else{
 		m = len-idx;
-		slide(x, idx, SlideIns);
-		x->tl++;
-		x->val[x->hd+idx] = v;
+		slide(l, idx, SlideIns);
+		l->t++;
+		listdata(l)[l->h+idx] = v;
 	}
-	return lst;
+	return l;
 }
 
 void
-_listappend(List *lst, Val v)
+_listappend(List *l, Val v)
 {
-	Listx *x;
-	x = maybelistexpand(lst);
-	gcwb(mkvallist(lst));
-	x->val[x->tl++] = v;
+	maybeexpand(l);
+	gcwb((Val)l->v);
+	listdata(l)[l->t++] = v;
 }
 
 static List*
-listpush(VM *vm, List *lst, Val v)
+listpush(VM *vm, List *l, Val v)
 {
-	return listins(vm, lst, 0, v);
+	return listins(vm, l, 0, v);
 }
 
 List*
-listappend(VM *vm, List *lst, Val v)
+listappend(VM *vm, List *l, Val v)
 {
-	return listins(vm, lst, listxlen(lst->x), v);
+	return listins(vm, l, listlen(l), v);
 }
 
 List*
 listconcat(VM *vm, List *l1, List *l2)
 {
 	List *rv;
-	u32 m, len1, len2;
+	Imm m, len1, len2;
 
-	len1 = listxlen(l1->x);
-	len2 = listxlen(l2->x);
+	len1 = listlen(l1);
+	len2 = listlen(l2);
 	rv = mklistn(len1+len2);
 	for(m = 0; m < len1; m++)
 		listappend(vm, rv, listref(vm, l1, m));
@@ -445,7 +433,7 @@ l1_slice(VM *vm, Imm argc, Val *argv, Val *rv)
 	l = vallist(argv[0]);
 	b = valcval(argv[1]);
 	e = valcval(argv[2]);
-	len = listxlen(l->x);
+	len = listlen(l);
 	if(b->val > len)
 		vmerr(vm, "slice out of bounds");
 	if(e->val > len)

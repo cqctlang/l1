@@ -356,7 +356,6 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Cval *cv;
 	Closure *cl;
 	List *l;
-	Listx *lx;
 	Vec *v;
 	Range *r;
 	Rd *rd;
@@ -469,10 +468,9 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(vm, f, " )");
 	case Qlist:
 		l = vallist(val);
-		lx = l->x;
 		if(fmtputs0(vm, f, "["))
 			return -1;
-		for(m = 0; m < listxlen(lx); m++){
+		for(m = 0; m < listlen(l); m++){
 			if(m > 0){
 				if(fmtputs0(vm, f, ", "))
 					return -1;
@@ -480,7 +478,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 				if(fmtputs0(vm, f, " "))
 					return -1;
 			}
-			if(fmtval(vm, f, lx->val[lx->hd+m]))
+			if(fmtval(vm, f, listref(vm, l, m)))
 				return -1;
 		}
 		return fmtputs0(vm, f, " ]");

@@ -726,24 +726,6 @@ strconcat(Str *s1, Str *s2)
 }
 
 static int
-listlenpair(Val v, Imm *rv)
-{
-	Imm m;
-	Pair *p;
-
-	m = 0;
-	while(Vkind(v) == Qpair){
-		m++;
-		p = valpair(v);
-		v = p->cdr;
-	}
-	if(Vkind(v) != Qnull)
-		return 0;
-	*rv = m;
-	return 1;
-}
-
-static int
 equallistv(Val a, Val b)
 {
 	return equallist(vallist(a), vallist(b));
@@ -1006,7 +988,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	}else
 		gcwb(mkvalrd(rd));
 
-	rd->nf = listlen(mkvallist(fname));
+	rd->nf = listlen(fname);
 	rd->name = name;
 	rd->fname = fname;
 
@@ -4742,7 +4724,6 @@ static void
 l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	List *l;
-	Listx *x;
 	Vec *v;
 	Val *vs, o;
 	Closure *cmp;
@@ -4758,9 +4739,8 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	switch(Vkind(o)){
 	case Qlist:
 		l = vallist(o);
-		x = l->x;
-		n = x->tl-x->hd;
-		vs = &x->val[x->hd];
+		n = l->t-l->h;
+		vs = &listdata(l)[l->h];
 		break;
 	case Qvec:
 		v = valvec(o);
@@ -4807,7 +4787,6 @@ static void
 l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	List *l;
-	Listx *x;
 	Vec *v;
 	Val *vs;
 	Closure *cmp;
@@ -4822,9 +4801,8 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 	switch(Vkind(argv[1])){
 	case Qlist:
 		l = vallist(argv[1]);
-		x = l->x;
-		n = x->tl-x->hd;
-		vs = &x->val[x->hd];
+		n = l->t-l->h;
+		vs = &listdata(l)[l->h];
 		break;
 	case Qvec:
 		v = valvec(argv[1]);
@@ -7700,7 +7678,7 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	checkarg(vm, "apply", iargv, 0, Qcl);
 	cl = valcl(iargv[0]);
 	checkarg(vm, "apply", iargv, iargc-1, Qlist);
-	ll = listlen(iargv[iargc-1]);
+	ll = listlen(vallist(iargv[iargc-1]));
 	argc = iargc-2+ll;
 	argv = emalloc(argc*sizeof(Val));
 	ap = argv;
@@ -7725,7 +7703,6 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 static void
 l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	List *lst;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isempty");
 	if(Vkind(argv[0]) == Qlist){
@@ -7779,7 +7756,6 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *vec;
 	Str *str;
 	Imm len, i, m;
-	Listx *x;
 	char c;
 	Cval *cv;
 
@@ -7829,7 +7805,6 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *vec;
 	Str *str;
 	Imm len, i;
-	Listx *x;
 	char c;
 	Cval *cv;
 
@@ -9902,13 +9877,11 @@ cqctlength(Val v)
 Val*
 cqctlistvals(Val v)
 {
-	List *lst;
-	Listx *x;
+	List *l;
 	if(Vkind(v) != Qlist)
 		return 0;
-	lst = vallist(v);
-	x = lst->x;
-	return &x->val[x->hd];
+	l = vallist(v);
+	return &listdata(l)[l->h];
 }
 
 Val*

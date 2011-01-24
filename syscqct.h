@@ -299,21 +299,6 @@ struct Tab {
 	Vec *ht;
 };
 
-typedef
-struct xListx {
-	/* invariants:
-	 *  if(hd == tl)
-	 *  	list is empty.
-	 *  else
-	 *  	tl>hd and list has tl-hd elements,
-	 *      hd points to first element in list, and
-	 *	tl-1 points to last.
-	 */
-	u32 hd, tl, sz;
-	Val *val;		/* atomically swappable */
-	Val *oval;		/* buffer for gc-safe sliding */
-} Listx;
-
 struct List {
 	/* invariants:
 	 *  h <= t <= v->len
@@ -329,8 +314,7 @@ struct List {
 	Vec *v;
 };
 
-#define listdata(x) (vecdata((List*)(x)))
-#define listsize(n) (sizeof(List))
+#define listdata(x) (vecdata(((List*)(x))->v))
 #define listcap(l)  ((l)->v->len)
 
 struct As {
@@ -1162,7 +1146,6 @@ void		quard(Val o);
 /* list.c */
 int		equallist(List *a, List *b);
 void		fnlist(Env *env);
-int		freelist(Head *hd);
 u32		hashlist(Val);
 Val*		iterlist(Head *hd, Ictx *ictx);
 void		l1_listref(VM *vm, Imm argc, Val *argv, Val *rv);
@@ -1174,11 +1157,11 @@ List*		listcopy(List *lst);
 void		listcopyv(List *lst, Imm ndx, Imm n, Val *v);
 List*		listdel(VM *vm, List *lst, Imm idx);
 List*		listins(VM *vm, List *lst, Imm idx, Val v);
+Imm		listlen(List *x);
 void		listpop(List *lst, Val *vp);
 Val		listref(VM *vm, List *lst, Imm idx);
 List*		listset(VM *vm, List *lst, Imm idx, Val v);
-u32		listxlen(Listx *x);
-List*		mklistn(u32 sz);
+List*		mklistn(Imm sz);
 
 /* tab.c */
 void		fntab(Env *env);
