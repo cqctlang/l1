@@ -5,67 +5,34 @@
 Val*
 iterlist(Head *hd, Ictx *ictx)
 {
-	List *lst;
-	Listx *x;
-	lst = (List*)hd;
-	if(ictx->n == 0)
-		ictx->x = lst->x;
-	x = ictx->x;
-	if(ictx->n >= x->sz)
+	List *l;
+	l = (List*)hd;
+	if(ictx->n > 0)
 		return GCiterdone;
-	// x->val may change from call to call because of slide,
-	// but will always point to buffer of markable Vals
-	return &x->val[ictx->n++];
+	ictx->n++;
+	return &l->v;
 }
 
-static void
-freelistx(Listx *x)
+Imm
+listlen(List *x)
 {
-	efree(x->val);
-	efree(x->oval);
-	efree(x);
-}
-
-int
-freelist(Head *hd)
-{
-	List *lst;
-	lst = (List*)hd;
-	freelistx(lst->x);
-	return 1;
-}
-
-u32
-listxlen(Listx *x)
-{
-	return x->tl-x->hd;
-}
-
-static Listx*
-mklistx(u32 sz)
-{
-	Listx *x;
-	x = emalloc(sizeof(Listx));
-	x->hd = x->tl = sz/2;
-	x->sz = sz;
-	x->val = emalloc(x->sz*sizeof(Val)); /* must be 0 or Xundef */
-	return x;
+	return x->t-x->h;
 }
 
 static List*
-_mklist(Listx *x)
+_mklist(Imm cap)
 {
-	List *lst;
-	lst = (List*)malq(Qlist);
-	lst->x = x;
-	quard((Val)lst);
-	return lst;
+	List *l;
+	l = (List*)malq(Qlist);
+	l->v = mkvec(cap);
+	l->h = l->t = cap/2;
+	return l;
 }
 
 List*
-mklistn(u32 sz)
+mklistn(Imm cap)
 {
-	return _mklist(mklistx(sz));
+	return _mklist(cap);
 }
 
 List*
@@ -86,123 +53,111 @@ mklistinit(Imm len, Val v)
 	return l;
 }
 
+/* FIXME: maybe just call vec* routines instead? */
+
 Val
-listref(VM *vm, List *lst, Imm idx)
+listref(VM *vm, List *l, Imm idx)
 {
-	Listx *x;
-	x = lst->x;
-	if(idx >= listxlen(x))
+	if(idx >= listlen(l))
 		vmerr(vm, "listref out of bounds");
-	return x->val[x->hd+idx];
+	return listdata(l)[l->h+idx];
 }
 
 List*
-listset(VM *vm, List *lst, Imm idx, Val v)
+listset(VM *vm, List *l, Imm idx, Val v)
 {
-	Listx *x;
-	x = lst->x;
-	if(idx >= listxlen(x))
+	if(idx >= listlen(l))
 		vmerr(vm, "listset out of bounds");
-	gcwb(mkvallist(lst));
-	x->val[x->hd+idx] = v;
-	return lst;
+	gcwb(l->v);
+	listdata(l)[l->hd+idx] = v;
+	return l;
 }
 
 List*
-listcopy(List *lst)
+listcopy(List *l)
 {
-	List *new;
-	u32 hd, tl, len;
-	new = mklistn(lst->x->sz);
-	new->x->hd = hd = lst->x->hd;
-	new->x->tl = tl = lst->x->tl;
-	len = tl-hd;
-	memcpy(&new->x->val[hd], &lst->x->val[hd], len*sizeof(Val));
-	return new;
+	List *n;
+	n = mklistn(l->sz);
+	n->h = l->h;
+	n->t = l->t;
+	memcpy(&listdata(n)[n->h], &listdata(l)[l->h], (l->t-l->h)*sizeof(Val));
+	return n;
 }
 
+/* FIXME: used only by callmethod, this and its need should go */
 void
-listcopyv(List *lst, Imm ndx, Imm n, Val *v)
+listcopyv(List *l, Imm ndx, Imm n, Val *v)
 {
-	Listx *x;
-	x = lst->x;
-	memcpy(v, x->val+x->hd+ndx, n*sizeof(Val));
+	memcpy(v, &listdata(l)[l->h+ndx], n*sizeof(Val));
 }
 
 static List*
-listreverse(List *lst)
+listreverse(List *l)
 {
-	List *new;
-	u32 hd, tl, len, m;
-	new = mklistn(lst->x->sz);
-	new->x->hd = hd = lst->x->hd;
-	new->x->tl = tl = lst->x->tl;
-	len = tl-hd;
+	List *n;
+	Imm h, t, len, m;
+	n = mklistn(l->sz);
+	n->h = h = l->h;
+	n->t = t = l->t;
+	len = t-h;
 	for(m = 0; m < len; m++)
-		new->x->val[hd++] = lst->x->val[--tl];
-	return new;
+		listdata(n)[h++] = listdata(l)[--t];
+	return n;
 }
 
 static Val
-listhead(VM *vm, List *lst)
+listhead(VM *vm, List *l)
 {
-	Listx *x;
-	x = lst->x;
-	if(listxlen(x) == 0)
+	if(listlen(l) == 0)
 		vmerr(vm, "head on empty list");
-	return x->val[x->hd];
+	return listdata(l)[l->h];
 }
 
 void
-listpop(List *lst, Val *vp)
+listpop(List *l, Val *vp)
 {
-	Listx *x;
-	x = lst->x;
-	if(listxlen(x) == 0)
+	if(listlen(l) == 0)
 		return; 	/* nil */
-	*vp = x->val[x->hd];
-	x->val[x->hd] = Xundef;
-	x->hd++;
+	*vp = listdata(l)[l->h];
+	listdata(l)[l->h] = Xundef;
+	l->h++;
 }
 
 static List*
-listtail(VM *vm, List *lst)
+listtail(VM *vm, List *l)
 {
-	List *new;
-	if(listxlen(lst->x) == 0)
+	List *n;
+	if(listlen(l) == 0)
 		vmerr(vm, "tail on empty list");
-	new = listcopy(lst);
-	new->x->hd++;
-	return new;
+	n = listcopy(l);
+	listdata(n)[n->h] = Xundef;
+	n->h++;
+	return n;
 }
 
 u32
 hashlist(Val v)
 {
 	List *l;
-	Listx *x;
-	u32 i, len, m;
+	u32 m;
+	Imm i, len;
 	l = vallist(v);
-	x = l->x;
 	m = Vkind(v);
-	len = listxlen(x);
+	len = listlen(l);
 	for(i = 0; i < len; i++)
-		m ^= hashval(x->val[x->hd+i]);
+		m ^= hashval(listdata(l)[l->h+i]);
 	return m;
 }
 
 int
 equallist(List *a, List *b)
 {
-	Listx *xa, *xb;
-	u32 len, m;
-	xa = a->x;
-	xb = b->x;
-	len = listxlen(xa);
-	if(len != listxlen(xb))
+	Imm len, m;
+	len = listlen(a);
+	if(len != listlen(b))
 		return 0;
 	for(m = 0; m < len; m++)
-		if(!eqval(xa->val[xa->hd+m], xb->val[xb->hd+m]))
+		if(!eqval(listdata(a)[a->h+m], listdata(b)[b->h+m]))
 			return 0;
 	return 1;
 }

@@ -300,7 +300,7 @@ struct Tab {
 };
 
 typedef
-struct Listx {
+struct xListx {
 	/* invariants:
 	 *  if(hd == tl)
 	 *  	list is empty.
@@ -315,9 +315,23 @@ struct Listx {
 } Listx;
 
 struct List {
+	/* invariants:
+	 *  h <= t <= v->len
+	 *  if(h == t)
+	 *  	list is empty.
+	 *  else
+	 *  	t>h and list has t-h elements,
+	 *      hd points to first element in list, and
+	 *	t-1 points to last.
+	 */
 	Head hd;
-	Listx *x;		/* current storage, atomically swappable */
+	Imm h, t;
+	Vec *v;
 };
+
+#define listdata(x) (vecdata((List*)(x)))
+#define listsize(n) (sizeof(List))
+#define listcap(l)  ((l)->v->len)
 
 struct As {
 	Head hd;

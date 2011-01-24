@@ -744,20 +744,6 @@ listlenpair(Val v, Imm *rv)
 }
 
 static int
-listlen(Val v, Imm *rv)
-{
-	List *lst;
-	if(Vkind(v) == Qpair || Vkind(v) == Qnull)
-		return listlenpair(v, rv);
-	if(Vkind(v) == Qlist){
-		lst = vallist(v);
-		*rv = listxlen(lst->x);
-		return 1;
-	}
-	return 0;
-}
-
-static int
 equallistv(Val a, Val b)
 {
 	return equallist(vallist(a), vallist(b));
@@ -767,7 +753,7 @@ Vec*
 mkvec(Imm len)
 {
 	Vec *vec;
-	vec = (Vec*)malv(Qvec, sizeof(Vec)+len*sizeof(Val*));
+	vec = (Vec*)malv(Qvec, vecsize(len));
 	vec->len = len;
 	return vec;
 }
@@ -1020,7 +1006,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	}else
 		gcwb(mkvalrd(rd));
 
-	listlen(mkvallist(fname), &rd->nf);
+	rd->nf = listlen(mkvallist(fname));
 	rd->name = name;
 	rd->fname = fname;
 
@@ -3465,7 +3451,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	l = vallist(disp[0]);
 	cv = valcval(argv[1]);
 	addr = cv->val;
-	listlen(disp[0], &n);
+	n = listlen(l);
 	if(n == 0){
 		*rv = Xnil;
 		return;
@@ -7088,7 +7074,7 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 		      (int)s->len, strdata(s));
 	}
 
-	listlen(args, &ll);
+	ll = listlen(vallist(args));
 	if(v){
 		cl = valcl(v);
 		xargc = ll+1;
@@ -7713,8 +7699,8 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 		vmerr(vm, "wrong number of arguments to apply");
 	checkarg(vm, "apply", iargv, 0, Qcl);
 	cl = valcl(iargv[0]);
-	if(listlen(iargv[iargc-1], &ll) == 0)
-		vmerr(vm, "final operand to apply must be a list");
+	checkarg(vm, "apply", iargv, iargc-1, Qlist);
+	ll = listlen(iargv[iargc-1]);
 	argc = iargc-2+ll;
 	argv = emalloc(argc*sizeof(Val));
 	ap = argv;
@@ -7743,8 +7729,7 @@ l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isempty");
 	if(Vkind(argv[0]) == Qlist){
-		lst = vallist(argv[0]);
-		if(listxlen(lst->x) != 0)
+		if(listlen(vallist(argv[0])) != 0)
 			*rv = mkvalcval2(cval0);
 		else
 			*rv = mkvalcval2(cval1);
@@ -7768,7 +7753,7 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to length must be a container");
 	case Qlist:
 		lst = vallist(argv[0]);
-		len = listxlen(lst->x);
+		len = listlen(lst);
 		break;
 	case Qstr:
 		str = valstr(argv[0]);
@@ -7808,10 +7793,9 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		      "or vector");
 	case Qlist:
 		lst = vallist(argv[0]);
-		x = lst->x;
-		len = listxlen(x);
+		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, x->val[x->hd+i]))
+			if(eqval(v, listref(vm, lst, i)))
 				m++;
 		break;
 	case Qstr:
@@ -7858,10 +7842,9 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		      "or vector");
 	case Qlist:
 		lst = vallist(argv[0]);
-		x = lst->x;
-		len = listxlen(x);
+		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, x->val[x->hd+i]))
+			if(eqval(v, listref(vm, lst, i)))
 				goto gotit;
 		break;
 	case Qstr:
@@ -7897,7 +7880,6 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *vec;
 	Str *str;
 	Imm len, i;
-	Listx *x;
 	char c;
 	Cval *cv;
 	Tab *tab;
@@ -7912,10 +7894,9 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		      "table, or vector");
 	case Qlist:
 		lst = vallist(argv[0]);
-		x = lst->x;
-		len = listxlen(x);
+		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, x->val[x->hd+i]))
+			if(eqval(v, listref(vm, lst, i)))
 				goto gotit;
 		break;
 	case Qstr:
@@ -7954,7 +7935,6 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 	Val v;
 	List *lst;
 	Imm i;
-	Listx *x;
 	Tab *tab;
 
 	if(argc != 2)
@@ -7965,10 +7945,9 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to delete must be a list or table");
 	case Qlist:
 		lst = vallist(argv[0]);
-		x = lst->x;
 		i = 0;
-		while(i < listxlen(x)){
-			if(!eqval(v, x->val[x->hd+i]))
+		while(i < listlen(lst)){
+			if(!eqval(v, listref(vm, lst, i)))
 				i++;
 			else
 				listdel(vm, lst, i);
@@ -8125,11 +8104,11 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	fmt = 0;
 	if(argc == 3){
-		checkarg(vm, "mkrd", argv, 1, Qcl);
+		checkarg(vm, "mkrd", argv, 2, Qcl);
 		fmt = valcl(argv[2]);
 	}
-	listlen(argv[1], &nf);
 	lst = vallist(argv[1]);
+	nf = listlen(lst);
 	for(n = 0; n < nf; n++){
 		v = listref(vm, lst, n);
 		if(Vkind(v) != Qstr)
@@ -8694,7 +8673,7 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to loadpath");
 	checkarg(vm, "setloadpath", argv, 0, Qlist);
 	l = vallist(argv[0]);
-	m = listxlen(l->x);
+	m = listlen(l);
 	for(i = 0; i < m; i++){
 		v = listref(vm, l, i);
 		if(Vkind(v) != Qstr)
@@ -9907,7 +9886,7 @@ cqctlength(Val v)
 		return (uint64_t)-1;
 	case Qlist:
 		lst = vallist(v);
-		return listxlen(lst->x);
+		return listlen(lst);
 	case Qstr:
 		str = valstr(v);
 		return str->len;
