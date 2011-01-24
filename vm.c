@@ -7424,9 +7424,8 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 
 	s = valstrorcval(vm, "strton", argv, 0);
-	if(0 != parseliti(strdata(s), s->len, &liti, radix, &err))
-		vmerr(vm, err);
-	*rv = mkvalcval(litdom, litdom->ns->base[liti.base], liti.val);
+	if(!parseliti(strdata(s), s->len, &liti, radix, &err))
+		*rv = mkvalcval(litdom, litdom->ns->base[liti.base], liti.val);
 }
 
 static void
