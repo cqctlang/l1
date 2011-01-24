@@ -7,7 +7,7 @@ _mktab(u32 sz)
 {
 	Tab *t;
 
-	t = (Tab*)mal(Qtab);
+	t = (Tab*)malq(Qtab);
 	t->sz = sz;
 	t->nent = 0;
 	t->ht = mkvecinit(sz, Xnil);

@@ -56,7 +56,7 @@ static List*
 _mklist(Listx *x)
 {
 	List *lst;
-	lst = (List*)mal(Qlist);
+	lst = (List*)malq(Qlist);
 	lst->x = x;
 	quard((Val)lst);
 	return lst;

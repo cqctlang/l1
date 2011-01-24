@@ -269,7 +269,7 @@ Closure*
 mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 {
 	Closure *cl;
-	cl = (Closure*)mal(Qcl);
+	cl = (Closure*)malq(Qcl);
 	cl->code = code;
 	cl->entry = entry;
 	cl->dlen = len;
@@ -315,7 +315,7 @@ mkfdfn(Str *name, int flags, Xfd *xfd)
 //		flags &= ~Fread;
 //	if(write == 0)
 //		flags &= ~Fwrite;
-	fd = (Fd*)mal(Qfd);
+	fd = (Fd*)malq(Qfd);
 	fd->name = name;
 	fd->u.fn = *xfd;
 	fd->flags = flags|Ffn;
@@ -334,7 +334,7 @@ mkfdcl(Str *name, int flags,
 		flags &= ~Fread;
 	if(write == 0)
 		flags &= ~Fwrite;
-	fd = (Fd*)mal(Qfd);
+	fd = (Fd*)malq(Qfd);
 	fd->name = name;
 	fd->u.cl.read = read;
 	fd->u.cl.write = write;
@@ -641,7 +641,7 @@ Str*
 mkstrn(Imm len)
 {
 	Str *str;
-	str = (Str*)mals(sizeof(Str)+len);
+	str = (Str*)malv(Qstr, sizeof(Str)+len);
 	str->len = len;
 	str->skind = Smalloc;
 	return str;
@@ -677,7 +677,7 @@ mkstrk(char *s, Imm len, Skind skind)
 	case Smalloc:
 		return mkstr(s, len);
 	case Smmap:
-		sm = (Strmmap*)mals(sizeof(Strmmap));
+		sm = (Strmmap*)malv(Qstr, sizeof(Strmmap));
 		sm->mlen = len;
 		sm->s = s;
 		sm->str.len = len;
@@ -685,7 +685,7 @@ mkstrk(char *s, Imm len, Skind skind)
 		quard((Val)sm);
 		return (Str*)sm;
 	case Sperm:
-		sp = (Strperm*)mals(sizeof(Strperm));
+		sp = (Strperm*)malv(Qstr, sizeof(Strperm));
 		sp->s = s;
 		sp->str.len = len;
 		sp->str.skind = Sperm;
@@ -767,7 +767,7 @@ Vec*
 mkvec(Imm len)
 {
 	Vec *vec;
-	vec = (Vec*)mal(Qvec);
+	vec = (Vec*)malq(Qvec);
 	vec->len = len;
 	vec->vec = emalloc(len*sizeof(Val));
 	quard((Val)vec);
@@ -851,7 +851,7 @@ mkrec(Rd *rd)
 {
 	Imm m;
 	Rec *r;
-	r = (Rec*)mal(Qrec);
+	r = (Rec*)malq(Qrec);
 	r->rd = rd;
 	r->nf = rd->nf;
 	r->field = emalloc(r->nf*sizeof(Val));
@@ -1015,7 +1015,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 
 	rd = hgets(vm->top->env->rd, strdata(name), (unsigned)name->len);
 	if(rd == 0){
-		rd = (Rd*)mal(Qrd);
+		rd = (Rd*)malq(Qrd);
 		hputs(vm->top->env->rd,
 		      xstrndup(strdata(name), (unsigned)name->len),
 		      (unsigned)name->len, rd);
@@ -1075,7 +1075,7 @@ static Xtypename*
 mkxtn(void)
 {
 	Xtypename *xtn;
-	xtn = (Xtypename*)mal(Qxtn);
+	xtn = (Xtypename*)malq(Qxtn);
 	return xtn;
 }
 
@@ -1090,7 +1090,7 @@ static As*
 mkas(void)
 {
 	As *as;
-	as = (As*)mal(Qas);
+	as = (As*)malq(Qas);
 	return as;
 }
 
@@ -1098,7 +1098,7 @@ static Dom*
 mkdom(Ns *ns, As *as, Str *name)
 {
 	Dom *dom;
-	dom = (Dom*)mal(Qdom);
+	dom = (Dom*)malq(Qdom);
 	dom->ns = ns;
 	dom->as = as;
 	dom->name = name;
@@ -1109,7 +1109,7 @@ static Ns*
 mkns(void)
 {
 	Ns *ns;
-	ns = (Ns*)mal(Qns);
+	ns = (Ns*)malq(Qns);
 	return ns;
 }
 
@@ -1231,7 +1231,7 @@ Cval*
 mkcval(Dom *dom, Xtypename *type, Imm val)
 {
 	Cval *cv;
-	cv = (Cval*)mal(Qcval);
+	cv = (Cval*)malq(Qcval);
 	cv->dom = dom;
 	cv->type = type;
 	cv->val = val;
@@ -1266,7 +1266,7 @@ Val
 mkvalbox(Val boxed)
 {
 	Box *box;
-	box = (Box*)mal(Qbox);
+	box = (Box*)malq(Qbox);
 	box->v = boxed;
 	return (Val)box;
 }
@@ -1275,7 +1275,7 @@ Range*
 mkrange(Cval *beg, Cval *len)
 {
 	Range *r;
-	r = (Range*)mal(Qrange);
+	r = (Range*)malq(Qrange);
 	r->beg = beg;
 	r->len = len;
 	return r;
@@ -9564,8 +9564,8 @@ vmfaulthook()
 void
 initvm(int gcthread, u64 heapmax)
 {
-	Xundef = gcprotect(mal(Qundef));
-	Xnulllist = gcprotect(mal(Qnull));
+	Xundef = gcprotect(malq(Qundef));
+	Xnulllist = gcprotect(malq(Qnull));
 	cccode = gcprotect(callccode());
 	kcode = gcprotect(contcode());
 	litdom = gcprotect(mklitdom());

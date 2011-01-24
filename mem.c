@@ -1064,7 +1064,7 @@ again:
 }
 
 Head*
-mals(Imm len)
+xmals(Imm len)
 {
 	Head *h;
 	if(len > Seguse)
@@ -1076,7 +1076,19 @@ mals(Imm len)
 }
 
 Head*
-mal(Qkind kind)
+malv(Qkind kind, Imm len)
+{
+	Head *h;
+	if(len > Seguse)
+		h = _malbig(MTbigdata, roundup(len, Align));
+	else
+		h = _mal(roundup(len, Align));
+	Vsetkind(h, Qstr);
+	return h;
+}
+
+Head*
+malq(Qkind kind)
 {
 	Head *h;
 	h = _mal(qs[kind].sz);
@@ -1167,9 +1179,9 @@ copy(Val *v)
 	if(Vkind(h) == Qcode)
 		nh = malcode();
 	else if(Vkind(h) == Qstr)
-		nh = mals(sz);
+		nh = malv(Qstr, sz);
 	else{
-		nh = mal(Vkind(h));
+		nh = malq(Vkind(h));
 		if(dbg)printf("copy %s %p to %p\n",
 			      qs[Vkind(h)].id,
 			      h, nh);
@@ -1911,7 +1923,7 @@ initmem(u64 gcrate)
 		H.ma = GCthresh;
 
 	/* we need nil now to initialize the guarded object lists */
-	Xnil = gcprotect(mal(Qnil));
+	Xnil = gcprotect(malq(Qnil));
 
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)
