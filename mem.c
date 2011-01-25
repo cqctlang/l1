@@ -2,58 +2,51 @@
 #include "util.h"
 #include "syscqct.h"
 
-/* metatype:  T|L|O
-   T: metatype tag
-   L: large segment big
-   O: old space bit
-*/
-
 typedef
 enum
 {
-	xMhole,
-	xMsys,   /* unused */
-	xMnix,
-	xMfree,
-	xMdata,
-	xMcode,
-	xNm,
+	Mhole,
+	Mnix,
+	Mfree,
+	Mdata,
+	Mcode,
+	Nm,
 } Mtag;
 
 typedef
 enum
 {
 	/* bit positions */
-	xFold = 0,
-	xFbig,
-	xFbigcont,
-	xFtag,
+	Fold = 0,
+	Fbig,
+	Fbigcont,
+	Ftag,
 } Flags;
 
 /* meta type values */
 enum
 {
-	MThole    = (xMhole<<xFtag),
-	MTnix     = (xMnix<<xFtag),
-	MTfree    = (xMfree<<xFtag),
-	MTdata    = (xMdata<<xFtag),
-	MTcode    = (xMcode<<xFtag),
-	MTbigdata = (xMdata<<xFtag)|(1<<xFbig),
-	MTbigcode = (xMcode<<xFtag)|(1<<xFbig),
+	MThole    = (Mhole<<Ftag),
+	MTnix     = (Mnix<<Ftag),
+	MTfree    = (Mfree<<Ftag),
+	MTdata    = (Mdata<<Ftag),
+	MTcode    = (Mcode<<Ftag),
+	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
+	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
 	Nmt,
 };
 
-#define MTtag(mt)        ((mt)>>xFtag)
-#define MTold(mt)        (((mt)>>xFold)&1)
-#define MTbig(mt)        (((mt)>>xFbig)&1)
-#define MTbigcont(mt)    (((mt)>>xFbigcont)&1)
-#define MTsettag(mt,t)   ((mt) = ((t)<<xFtag)|((mt)&~(xFtag-1)))
-#define MTsetold(mt)     ((mt) |= 1<<xFold)
-#define MTsetbig(mt)     ((mt) |= 1<<xFbig)
-#define MTsetbigcont(mt) ((mt) |= 1<<xFbigcont)
-#define MTclrold(mt)     ((mt) &= ~(1<<xFold))
-#define MTclrbig(mt)     ((mt) &= ~(1<<xFbig))
-#define MTclrbigcont(mt) ((mt) &= ~(1<<xFbigcont))
+#define MTtag(mt)        ((mt)>>Ftag)
+#define MTold(mt)        (((mt)>>Fold)&1)
+#define MTbig(mt)        (((mt)>>Fbig)&1)
+#define MTbigcont(mt)    (((mt)>>Fbigcont)&1)
+#define MTsettag(mt,t)   ((mt) = ((t)<<Ftag)|((mt)&~(Ftag-1)))
+#define MTsetold(mt)     ((mt) |= 1<<Fold)
+#define MTsetbig(mt)     ((mt) |= 1<<Fbig)
+#define MTsetbigcont(mt) ((mt) |= 1<<Fbigcont)
+#define MTclrold(mt)     ((mt) &= ~(1<<Fold))
+#define MTclrbig(mt)     ((mt) &= ~(1<<Fbig))
+#define MTclrbigcont(mt) ((mt) &= ~(1<<Fbigcont))
 
 /* #define to ensure 64-bit constants */
 #define Segsize   4096ULL
@@ -1244,7 +1237,7 @@ scan(M *m)
 	s = lookseg(m->scan);
 	c = 0;
 	while(1){
-		if(MTtag(s->mt) != xMdata && MTtag(s->mt) != xMcode)
+		if(MTtag(s->mt) != Mdata && MTtag(s->mt) != Mcode)
 			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->mt);
 		while(m->scan < s->a){
 			h = m->scan;
@@ -1363,7 +1356,7 @@ islive(Head *o)
 static int
 isliveseg(Seg *s)
 {
-	return (MTtag(s->mt) == xMdata || MTtag(s->mt) == xMcode);
+	return (MTtag(s->mt) == Mdata || MTtag(s->mt) == Mcode);
 }
 
 static void
