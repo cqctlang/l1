@@ -311,7 +311,7 @@ struct List {
 	 */
 	Head hd;
 	Imm h, t;
-	Vec *v;
+	Vec *v;  /* indirect to allow re-size */
 };
 
 #define listdata(x) (vecdata(((List*)(x))->v))
