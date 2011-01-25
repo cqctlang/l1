@@ -126,7 +126,6 @@ struct M
 {
 	void *h, *t;		/* head and tail of segment list */
 	void *scan;
-	Gen gen;
 } M;
 
 typedef
@@ -1914,13 +1913,11 @@ gcunprotect(void *v)
 void
 initmem(u64 gcrate)
 {
-	u32 i, mt, gr;
+	u32 i, gr;
 
 	initsegmap();
 	gr = 1;
 	for(i = 0; i < Ngen; i++){
-		for(mt = 0; mt < Nmt; mt++)
-			H.m[mt][i].gen = i;
 		H.gcsched[i] = gr;
 		gr *= GCradix;
 	}
