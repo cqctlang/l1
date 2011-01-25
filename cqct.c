@@ -30,38 +30,40 @@ checkxp(Expr *e)
 	}
 }
 
-Val
-cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
+Expr*
+cqctparse(char *s, Toplevel *top, char *src)
 {
 	U ctx;
-	Expr *e;
+
+	if(src == 0)
+		src = "<stdin>";
+	
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.out = &top->out;
+	return doparse(&ctx, s, src);
+}
+
+Val
+cqctcompile0(Expr *e, Toplevel *top, char *argsid)
+{
+	U ctx;
 	Closure *cl;
 	enum { Maxphase = 128 };
 	char *phase[Maxphase];
 	Imm tv[Maxphase];
 	unsigned i, ntv;
 
-	if(src == 0)
-		src = "<stdin>";
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = &top->out;
-
-	ntv = 0;
-	if(cqctflags['T']){
-		phase[ntv] = "init";
-		tv[ntv++] = usec();
-	}
-	e = doparse(&ctx, s, src);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "parse";
-		tv[ntv++] = usec();
-	}
 	if(cqctflags['p']){
 		xprintf("input:\n");
 		printexpr(e);
 		xprintf("\n");
+	}
+	ntv = 0;
+	if(cqctflags['T']){
+		phase[ntv] = "init";
+		tv[ntv++] = usec();
 	}
 	if(dotypes(&ctx, e) != 0)
 		return 0;
@@ -226,6 +228,16 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		}
 		return mkvalcl(cl);
 	}
+}
+
+Val
+cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
+{
+	Expr *e;
+	e = cqctparse(s, top, src);
+	if(e == 0)
+		return 0;
+	return cqctcompile0(e, top, argsid);
 }
 
 int

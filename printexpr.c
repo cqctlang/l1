@@ -871,3 +871,16 @@ printdecl(Decl *d)
 	efree(o);
 }
 
+Kind
+s2kind(Str *s)
+{
+	Kind k;
+	
+	for(k = 0; k < Emax; k++){
+		if(S[k] == 0)
+			continue;
+		if(!strncmp(S[k], strdata(s), s->len))
+			return k;
+	}
+	return Ebad;
+}

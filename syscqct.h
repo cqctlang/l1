@@ -133,6 +133,7 @@ enum{
 	E_tid,
 	E_tg,
 	Emax,
+	Ebad,
 } Kind;
 
 /* ctypes */
@@ -839,6 +840,7 @@ void		printcqct(Expr*);
 void		printdecl(Decl *d);
 void		printexpr(Expr*);
 void		printids(Expr *e);
+Kind		s2kind(Str *s);
 
 /* bitfield.c */
 int		bitfieldgeom(BFgeom *bfg);
@@ -1088,6 +1090,11 @@ void		vsinit(Vs *vs);
 void		vsinsert(Expr *e, Vs *vs);
 void		vsunion(Vs *from, Vs *to);
 Expr*		vunion(Expr *a, Expr *b);
+Expr*		Z0(unsigned kind);
+Expr*		Z1(unsigned kind, Expr *e1);
+Expr*		Z2(unsigned kind, Expr *e1, Expr *e2);
+Expr*		Z3(unsigned kind, Expr *e1, Expr *e2, Expr *e3);
+Expr*		Z4(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4);
 Expr*		Zadd(Expr *x, Expr *y);
 Expr*		Zapply(Expr *fn, Expr *args);
 Expr*		Zbind(Expr *id, Expr *e);
@@ -1119,6 +1126,7 @@ Expr*		Zscope(Expr *block);
 Expr*		Zset(Expr *l, Expr *r);
 Expr*		Zsizeof(Expr *e);
 Expr*		Zstr(char *s);
+Expr*		Zstrn(char *s, unsigned long len);
 Expr*		Zsub(Expr *x, Expr *y);
 Expr*		Ztg(char *id, Expr *e);
 Expr*		Ztid(char *id);
@@ -1191,6 +1199,9 @@ void		tabput(Tab *tab, Val keyv, Val val);
 #define		cons(a,d)  (mkpair((Val)(a), (Val)(d)))
 Pair*		mkpair(Val a, Val d);
 
+/* cqct.c */
+Val		cqctcompile0(Expr *e, Toplevel *top, char *argsid);
+Expr*		cqctparse(char *s, Toplevel *top, char *src);
 
 extern		void fns(Env*);
 

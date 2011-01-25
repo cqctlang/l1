@@ -75,22 +75,34 @@ cposterror(U *ctx, Expr *e, char *fmt, ...)
 	ctx->errors++;
 }
 
-static Expr*
+Expr*
 Z0(unsigned kind)
 {
 	return newexpr(kind, 0, 0, 0, 0);
 }
 
-static Expr*
+Expr*
 Z1(unsigned kind, Expr *e1)
 {
 	return newexpr(kind, e1, 0, 0, 0);
 }
 
-static Expr*
+Expr*
 Z2(unsigned kind, Expr *e1, Expr *e2)
 {
 	return newexpr(kind, e1, e2, 0, 0);
+}
+
+Expr*
+Z3(unsigned kind, Expr *e1, Expr *e2, Expr *e3)
+{
+	return newexpr(kind, e1, e2, e3, 0);
+}
+
+Expr*
+Z4(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
+{
+	return newexpr(kind, e1, e2, e3, e4);
 }
 
 Expr*
@@ -242,6 +254,15 @@ Zstr(char *s)
 	Expr *e;
 	e = newexpr(Econsts, 0, 0, 0, 0);
 	e->lits = mklits(s, strlen(s));
+	return e;
+}
+
+Expr*
+Zstrn(char *s, unsigned long len)
+{
+	Expr *e;
+	e = newexpr(Econsts, 0, 0, 0, 0);
+	e->lits = mklits(s, len);
 	return e;
 }
 
