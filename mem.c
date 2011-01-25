@@ -147,7 +147,6 @@ struct Heap
 
 static int freecl(Head*);
 static int freefd(Head*);
-static int freerec(Head*);
 static int freestr(Head*);
 
 static Val* iteras(Head*, Ictx*);
@@ -181,7 +180,7 @@ static Qtype qs[Qnkind] = {
 	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", sizeof(Range), 0, 0, iterrange },
 	[Qrd]    = { "rd", sizeof(Rd), 0, 0, iterrd },
-	[Qrec]	 = { "record", sizeof(Rec), 0, freerec, iterrec },
+	[Qrec]	 = { "record", sizeof(Rec), 0, 0, iterrec },
 	[Qstr]	 = { "string", sizeof(Str), 1, freestr, 0 },
 	[Qtab]	 = { "table",  sizeof(Tab), 1, 0, itertab },
 	[Qundef] = { "undef", sizeof(Head), 0, 0, 0 },
@@ -213,15 +212,6 @@ freefd(Head *hd)
 	   && fd->flags&Ffn
 	   && fd->u.fn.close)
 		fd->u.fn.close(&fd->u.fn);
-	return 1;
-}
-
-static int
-freerec(Head *hd)
-{
-	Rec *r;
-	r = (Rec*)hd;
-	efree(r->field);
 	return 1;
 }
 
@@ -459,7 +449,7 @@ iterrec(Head *hd, Ictx *ictx)
 	Rec *r;
 	r = (Rec*)hd;
 	if(ictx->n < r->nf)
-		return &r->field[ictx->n++];
+		return &recdata(r)[ictx->n++];
 	switch(ictx->n-r->nf){
 	case 0:
 		ictx->n++;
@@ -1101,6 +1091,7 @@ static u32
 qsz(Head *h)
 {
 	Str *s;
+	Rec *r;
 	Vec *v;
 	switch(Vkind(h)){
 	case Qstr:
@@ -1117,6 +1108,9 @@ qsz(Head *h)
 	case Qvec:
 		v = (Vec*)h;
 		return roundup(vecsize(v->len), Align);
+	case Qrec:
+		r = (Rec*)h;
+		return roundup(recsize(r->nf), Align);
 	default:
 		return qs[Vkind(h)].sz;
 	}

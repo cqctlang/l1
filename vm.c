@@ -817,13 +817,11 @@ mkrec(Rd *rd)
 {
 	Imm m;
 	Rec *r;
-	r = (Rec*)malq(Qrec);
+	r = (Rec*)malv(Qrec, recsize(rd->nf));
 	r->rd = rd;
 	r->nf = rd->nf;
-	r->field = emalloc(r->nf*sizeof(Val));
 	for(m = 0; m < r->nf; m++)
-		r->field[m] = Xnil;
-	quard((Val)r);
+		recdata(r)[m] = Xnil;
 	return r;
 }
 
@@ -865,7 +863,7 @@ recmk(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      (int)mn->len, strdata(mn));
 	r = mkrec(rd);
 	for(m = 0; m < argc; m++)
-		r->field[m] = argv[m];
+		recdata(r)[m] = argv[m];
 	*rv = mkvalrec(r);
 }
 
@@ -929,7 +927,7 @@ recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      (int)mn->len, strdata(mn),
 		      (int)rd->name->len, strdata(rd->name));
 
-	*rv = r->field[ndx->val];
+	*rv = recdata(r)[ndx->val];
 }
 
 static void
@@ -964,7 +962,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      (int)rd->name->len, strdata(rd->name));
 
 	gcwb(mkvalrec(r));
-	r->field[ndx->val] = argv[1];
+	recdata(r)[ndx->val] = argv[1];
 	*rv = argv[1];
 }
 

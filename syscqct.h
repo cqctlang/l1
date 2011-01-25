@@ -390,8 +390,10 @@ struct Rec {
 	Head hd;
 	u32 nf;
 	Rd *rd;
-	Val *field;
 };
+
+#define recdata(x) ((Val*)((Rec*)(x)+1))
+#define recsize(n) (sizeof(Rec)+(n)*sizeof(Val))
 
 struct Rd {
 	Head hd;
