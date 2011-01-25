@@ -8663,7 +8663,7 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(rv);
 }
 
-static Val
+Val
 expr2syntax(Expr *e)
 {
 	List *l;

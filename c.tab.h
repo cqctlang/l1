@@ -105,7 +105,8 @@
      BREAK = 322,
      RETURN = 323,
      CASE = 324,
-     DEFAULT = 325
+     DEFAULT = 325,
+     QUOTE = 326
    };
 #endif
 
@@ -131,7 +132,7 @@ typedef union YYSTYPE
 
 
 /* Line 2638 of glr.c  */
-#line 135 "c.tab.h"
+#line 136 "c.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 #endif

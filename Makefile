@@ -33,6 +33,7 @@ L1C =\
 	parse.c\
 	xenv.c\
 	cutil.c\
+	compileq.c\
 	compilens.c\
 	compilea.c\
 	compile0.c\

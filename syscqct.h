@@ -102,6 +102,7 @@ enum{
 	Epredec,
 	Epreinc,
 	Eptr,
+	Equote,
 	Eref,
 	Eret,
 	Escope,
@@ -850,6 +851,9 @@ Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 /* type.c */
 Expr*		gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect);
 
+/* compileq.c */
+Expr*		docompileq(U *ctx, Expr *e);
+
 /* compilens.c */
 int		docompilens(U *ctx, Expr *e);
 
@@ -946,6 +950,7 @@ int		envbinds(Env *env, char *id);
 Val*		envget(Env *env, char *id);
 Val*		envgetbind(Env *env, char *id);
 int		eqval(Val v1, Val v2);
+Val		expr2syntax(Expr *e);
 void		freeenv(Env *env);
 void		fvmbacktrace(VM *vm);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);

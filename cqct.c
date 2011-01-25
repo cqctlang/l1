@@ -11,7 +11,7 @@ checkxp(Expr *e)
 	Expr *p;
 	if(e == 0)
 		return;
-	if(e->xp)
+	if(e->xp && e->kind != Ekon)
 		fatal("compiler was untidy");
 	switch(e->kind){
 	case Eelist:
@@ -63,6 +63,13 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 	ntv = 0;
 	if(cqctflags['T']){
 		phase[ntv] = "init";
+		tv[ntv++] = usec();
+	}
+	e = docompileq(&ctx, e);
+	if(e == 0)
+		return 0;
+	if(cqctflags['T']){
+		phase[ntv] = "q";
 		tv[ntv++] = usec();
 	}
 	if(dotypes(&ctx, e) != 0)

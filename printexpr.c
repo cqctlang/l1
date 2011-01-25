@@ -94,6 +94,7 @@ char* S[] = {
 	[Epredec] =	"Epredec",
 	[Epreinc] =	"Epreinc",
 	[Eptr] =	"Eptr",
+	[Equote] =	"Equote",
 	[Eref] =	"Eref",
 	[Eret] =	"Eret",
 	[Escope] =	"Escope",

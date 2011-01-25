@@ -30,7 +30,7 @@ extern char *yytext;
 %token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
 %token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
-%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
+%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -53,7 +53,7 @@ extern char *yytext;
 %type <expr> compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
-%type <expr> global_statement defrec_expression let_expression
+%type <expr> global_statement defrec_expression let_expression quote_expression
 %type <expr> type_name tn_type_specifier tn_type_qual_specifier
 %type <expr> tn_struct_or_union_specifier
 %type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
@@ -120,6 +120,11 @@ let_expression
 	{ $$ = $2; }
 	;
 
+quote_expression
+	: QUOTE '{' expression_statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
+	;
+
 table_init
 	: root_expression ':' root_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
@@ -163,6 +168,7 @@ primary_expression
 	| lambda_expression
 	| defrec_expression
 	| let_expression
+	| quote_expression
 	;
 
 postfix_expression
