@@ -31,6 +31,7 @@ extern char *yytext;
 %token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
+%token SYNTAXQUOTE SYNTAXUNQUOTE SYNTAXSPLICE
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -53,7 +54,7 @@ extern char *yytext;
 %type <expr> compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
-%type <expr> global_statement defrec_expression let_expression quote_expression
+%type <expr> global_statement defrec_expression let_expression
 %type <expr> type_name tn_type_specifier tn_type_qual_specifier
 %type <expr> tn_struct_or_union_specifier
 %type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
@@ -64,6 +65,7 @@ extern char *yytext;
 %type <expr> tn_param_enum_specifier
 %type <expr> table_init table_init_list
 %type <expr> maybe_attr
+%type <expr> quote_expression
 
 %type <kind> unary_operator assignment_operator struct_or_union
 
@@ -121,7 +123,21 @@ let_expression
 	;
 
 quote_expression
-	: QUOTE '{' expression_statement '}'
+	: SYNTAXQUOTE statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXQUOTE expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXSPLICE statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXSPLICE expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| QUOTE '{' statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
+	| QUOTE '{' expression '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
 	;
 
