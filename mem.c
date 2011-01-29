@@ -276,8 +276,15 @@ itercl(Head *hd, Ictx *ictx)
 {
 	Closure *cl;
 	cl = (Closure*)hd;
-	if(ictx->n > cl->dlen)
+	if(ictx->n > cl->dlen+1)
 		return GCiterdone;
+	if(ictx->n == cl->dlen+1){
+		ictx->n++;
+		if(cl->xfn)
+			return (Val*)&cl->xfn;
+		else
+			return GCiterdone;
+	}
 	if(ictx->n == cl->dlen){
 		ictx->n++;
 		return (Val*)&cl->code;
@@ -604,7 +611,8 @@ static void*
 mapmem(u64 sz)
 {
 	void *p;
-	p = mmap(0, sz, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+	p = mmap(0, sz, PROT_READ|PROT_WRITE|PROT_EXEC,
+		 MAP_ANON|MAP_PRIVATE, -1, 0);
 	if(p == MAP_FAILED)
 		fatal("out of memory");
 	if((uintptr_t)p%Segsize)
@@ -627,7 +635,7 @@ setrangetype(void *p, void *e, MT t)
 
 	p = (void*)rounddown(p, Segsize);
 	e = (void*)roundup(e, Segsize);
-	
+
 	n = (e-p)/Segsize;
 	s = a2s(p);
 	es = s+n;
@@ -841,9 +849,9 @@ shrink(u64 targ)
 static void
 dumpstats()
 {
-	printf(" inuse = %10ld\n", H.inuse);
-	printf("  free = %10ld\n", H.free);
-	printf("heapsz = %10ld\n", H.heapsz);
+	printf(" inuse = %10llu\n", H.inuse);
+	printf("  free = %10llu\n", H.free);
+	printf("heapsz = %10llu\n", H.heapsz);
 }
 
 #define max(a,b) ((a)>(b)?(a):(b))

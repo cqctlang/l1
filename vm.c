@@ -280,6 +280,15 @@ mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 }
 
 Closure*
+mkxfn(Str *code)
+{
+	Closure *cl;
+	cl = mkcl(cccode, 0, 0, "*asm*");
+	cl->xfn = code;
+	return cl;
+}
+
+Closure*
 mkcfn(char *id, Cfn *cfn)
 {
 	Closure *cl;
@@ -1330,6 +1339,10 @@ printsrc(Xfd *xfd, Closure *cl, Imm pc)
 			cl->cfn ? "function" : "closure");
 		return;
 	}
+	if(cl->xfn){
+		cprintf(xfd, "%20s\t(code)\n", cl->id);
+		return;
+	}
 
 	src = addr2line(code, pc);
 	if(src == 0){
@@ -1981,8 +1994,9 @@ xcallc(VM *vm)
 	Imm argc;
 	Val *argv;
 	Val rv;
+	Cfn *x;
 
-	if(vm->clx->cfn == 0 && vm->clx->ccl == 0)
+	if(vm->clx->cfn == 0 && vm->clx->ccl == 0 && vm->clx->xfn == 0)
 		vmerr(vm, "bad closure for builtin call");
 
 	rv = Xnil;
@@ -1991,8 +2005,12 @@ xcallc(VM *vm)
 	vm->pc += 2; // skip livemask
 	if(vm->clx->cfn)
 		vm->clx->cfn(vm, argc, argv, &rv);
-	else
+	else if(vm->clx->ccl)
 		vm->clx->ccl(vm, argc, argv, vm->clx->display, &rv);
+	else{
+		x = (Cfn*)strdata(vm->clx->xfn);
+		x(vm, argc, argv, &rv);
+	}
 	vm->ac = rv;
 }
 
@@ -8850,6 +8868,17 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Closure *cl;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkcl");
+	checkarg(vm, "mkcl", argv, 0, Qstr);
+	cl = mkxfn(valstr(argv[0]));
+	*rv = mkvalcl(cl);
+}
+
+static void
 l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -9431,6 +9460,7 @@ mktopenv(void)
 	FN(memtotal);
 	FN(mkas);
 	FN(mkattr);
+	FN(mkcl);
 	FN(mkctype_array);
 	FN(mkctype_base);
 	FN(mkctype_bitfield);

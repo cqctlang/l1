@@ -288,6 +288,7 @@ struct Closure {
 	Imm fp;			/* of continuation, always >0 */
 	Cfn *cfn;
 	Ccl *ccl;
+	Str *xfn;
 };
 
 struct Box {
@@ -972,6 +973,7 @@ As*		mkastab(Tab *mtab, Str *name);
 Val		mkattr(Val o);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
+Closure*	mkxfn(Str *code);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
