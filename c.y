@@ -31,7 +31,7 @@ extern char *yytext;
 %token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
-%token SYNTAXQUOTE SYNTAXUNQUOTE SYNTAXSPLICE
+%token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -126,6 +126,10 @@ quote_expression
 	: SYNTAXQUOTE statement '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
 	| SYNTAXQUOTE expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXQUASI statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXQUASI expression '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
 	| SYNTAXUNQUOTE statement '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }

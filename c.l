@@ -75,6 +75,7 @@ static int chars(YYSTYPE *lvalp, int);
 "volatile"		{ count(ctx); return(VOLATILE); }
 "while"			{ count(ctx); return(WHILE); }
 \'\{			{ count(ctx); return(SYNTAXQUOTE); }
+`\{			{ count(ctx); return(SYNTAXQUASI); }
 ,\{			{ count(ctx); return(SYNTAXUNQUOTE); }
 ,@\{			{ count(ctx); return(SYNTAXSPLICE); }
 
