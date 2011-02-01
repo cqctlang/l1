@@ -732,6 +732,9 @@ remapsegmap(void *p, void *e)
 	Seg *m, *om;
 	void *olo, *ohi;
 
+	if(p >= segmap.lo && e <= segmap.hi)
+		return;
+
 	olo = segmap.lo;
 	ohi = segmap.hi;
 	onseg = (ohi-olo)/Segsize;
@@ -774,8 +777,7 @@ grow(u64 sz)
 	p = mapmem(sz);
 	e = p+sz;
 	H.heapsz += sz;
-	if(p <= segmap.lo || e >= segmap.hi)
-		remapsegmap(p, e);
+	remapsegmap(p, e);
 	freerange(p, e);
 }
 
