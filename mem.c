@@ -802,8 +802,8 @@ initsegmap()
 enum 
 {
 	LORES = 1,  /* low reserve; triggers growth */
-	HIRES = 10,  /* high reserve; triggers shrink */
-	TARGRES = LORES+(HIRES-LORES)/2,
+	HIRES = 4,  /* high reserve; triggers shrink */
+	TARGRES = 2,
 	/* HIRES-LORES must be > 1 */
 };
 
@@ -876,7 +876,7 @@ maintain()
 	if(H.free < LORES*H.inuse || H.heapsz < Minheap){
 //		dumpstats();
 //		printf("growing free area from %ld to ... ", H.free);
-		sz1 = LORES*H.inuse > H.free ? (TARGRES-1)*H.inuse : 0;
+		sz1 = H.free < LORES*H.inuse ? (TARGRES-1)*H.inuse : 0;
 		sz2 = H.heapsz < Minheap ? Minheap-H.heapsz : 0;
 		grow(max(sz1, sz2));
 //		printf("%ld\n", H.free); 
@@ -900,7 +900,7 @@ allocseg(MT mt, Gen g)
 	Seg *s;
 	void *p;
 
-	maintain();
+//	maintain();
 
 	p = nextfree();
 	H.na += Segsize;
@@ -1447,7 +1447,8 @@ void
 gcpoll(VM *vm)
 {
 	static int ingc;
-	if(!H.disable && !ingc && H.na >= H.ma){
+	if(!H.disable && !ingc
+	   && (H.na >= H.ma || H.free < LORES*H.inuse)){
 		ingc++;
 		gc(vm);
 		ingc--;
@@ -1831,7 +1832,8 @@ _gc(u32 g, u32 tg)
 	H.na = 0;
 	if(dbg)printf("end of collection\n");
 	H.ingc--;
-	maintain();
+	if(g == tg && tg == Ngen-1)
+		maintain();
 	if(dbg)printf("gc returning\n");
 }
 
