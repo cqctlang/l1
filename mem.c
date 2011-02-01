@@ -933,7 +933,6 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	p = mapmem(sz);
 	remapsegmap(p, p+sz);
 	H.na += sz;
-	H.inuse += sz;
 	s = a2s(p);
 	s->a = p;
 	s->e = p+sz-1;
