@@ -900,7 +900,7 @@ allocseg(MT mt, Gen g)
 	Seg *s;
 	void *p;
 
-//	maintain();
+	maintain();
 
 	p = nextfree();
 	H.na += Segsize;
