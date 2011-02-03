@@ -138,6 +138,8 @@ struct Heap
 	u64 inuse;		/* bytes currently allocated to active segs */
 	u64 free;		/* bytes currently allocated to free segs */
 	u64 heapsz;		/* total bytes currently allocated to heap */
+	u64 bigsz;		/* bytes currently allocated to big segs */
+	u64 smapsz;		/* bytes currently allocated to segment map */
 	Guard ug;		/* user guard list */
 	Guard sg;		/* system guard list */
 	Pair *guards[Qnkind];	/* system per-type guardians */
@@ -711,17 +713,20 @@ freebigseg(Seg *s)
 		s++;
 	}
 	unmapmem(p, sz);
+	H.bigsz -= sz;
 }
 
 static void*
 allocsegmap(u64 nseg)
 {
+	H.smapsz += roundup(nseg*sizeof(Seg), Segsize);
 	return mapmem(roundup(nseg*sizeof(Seg), Segsize));
 }
 
 static void
 freesegmap(void *m, u64 nseg)
 {
+	H.smapsz -= roundup(nseg*sizeof(Seg), Segsize);
 	unmapmem(m, roundup(nseg*sizeof(Seg), Segsize));
 }
 
@@ -812,10 +817,11 @@ shrink(u64 targ)
 {
 	void *p, *m;
 	Seg *s, *es;
-	u64 sz, n;
+	u64 sz, tsz, n;
 
 	n = 0;
 	m = segmap.hi;
+	tsz = 0;
 	while(H.heapsz > Minheap && H.free > targ){
 		p = nextfree();
 		s = a2s(p);
@@ -823,6 +829,7 @@ shrink(u64 targ)
 		if(p < m)
 			m = p;
 		H.heapsz -= Segsize;
+		tsz += Segsize;
 		n++;
 	}
 
@@ -839,21 +846,29 @@ shrink(u64 targ)
 			n--;
 		}else if(p){
 			unmapmem(p, sz);
+			tsz -= sz;
 			p = 0;
 			sz = 0;
 		}
 		s = nextseg(s);
 	}
-	if(p)
+	if(p){
 		unmapmem(p, sz);
+		tsz -= sz;
+	}
+	if(tsz || n)
+		fatal("bug");
 }
 
 static void
 dumpstats()
 {
-	printf(" inuse = %10llu\n", H.inuse);
-	printf("  free = %10llu\n", H.free);
-	printf("heapsz = %10llu\n", H.heapsz);
+	printf(" inuse = %10lu\n", H.inuse);
+	printf("  free = %10lu\n", H.free);
+	printf("heapsz = %10lu\n", H.heapsz);
+	printf(" bigsz = %10lu\n", H.bigsz);
+	printf("smapsz = %10lu\n", H.smapsz);
+	printf("segmap = %10llu\n", (segmap.hi-segmap.lo)/Segsize*sizeof(Seg));
 }
 
 #define max(a,b) ((a)>(b)?(a):(b))
@@ -933,6 +948,7 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	p = mapmem(sz);
 	remapsegmap(p, p+sz);
 	H.na += sz;
+	H.bigsz += sz;
 	s = a2s(p);
 	s->a = p;
 	s->e = p+sz-1;
