@@ -73,9 +73,10 @@ enum
 	G1,
 	G2,
 	G3,
-	Ngen,
-	Glock,
 	Gstatic,
+	Ngen=Gstatic,
+	Nsgen=Gstatic+1,
+	Glock,
 	Clean=0xff,
 	Dirty=0x00,
 };
@@ -124,14 +125,14 @@ struct M
 typedef
 struct Guard
 {
-	Pair *gd[Ngen];		/* guarded objects: (obj . guardian) pairs  */
+	Pair *gd[Nsgen];	/* guarded objects: (obj . guardian) pairs  */
 } Guard;
 
 typedef
 struct Heap
 {
 	void *d, *c;		/* current data and code segment */
-	M m[Nmt][Ngen];		/* metatypes */
+	M m[Nmt][Nsgen];	/* metatypes */
 	u32 g, tg;		/* collect generation and target generation */
 	u64 na;			/* bytes allocated since last gc */
 	u64 ma;			/* bytes allocated to trigger collect */
@@ -1590,7 +1591,7 @@ static void
 scan1card(Seg *s, u32 g)
 {
 	u8 sg;
-	if(s->gen <= g || (s->gen != Glock && s->gen >= Ngen))
+	if(s->gen <= g)
 		return;
 	if(s->gen == Glock)
 		return; /* FIXME: for now...need different scan for these */
@@ -1768,7 +1769,7 @@ _gc(u32 g, u32 tg)
 
 	if(g != tg && g != tg-1)
 		fatal("bug");
-	if(tg >= Ngen)
+	if(tg >= Nsgen)
 		return; // FIXME: silently do nothing...caller should know
 	H.g = g;
 	H.tg = tg;
@@ -1871,6 +1872,12 @@ gc(VM *vm)
 	dogc(vm, g, tg);
 }
 
+void
+compact(VM *vm)
+{
+	dogc(vm, Ngen-1, Gstatic);
+}
+
 void*
 gcprotect(void *v)
 {
@@ -1948,7 +1955,7 @@ initmem(u64 gcrate)
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)
 			H.guards[i] = mkguard();
-	for(i = 0; i < Ngen; i++)
+	for(i = 0; i < Nsgen; i++)
 		H.ug.gd[i] = H.sg.gd[i] = (Pair*)Xnil;
 	H.disable = 0;
 }
@@ -1963,4 +1970,5 @@ finimem()
 		H.guards[i] = 0;
 	_gc(Ngen-1, Ngen-1);  // hopefully free the guardians
 	/* FIXME: free all segments */
+	/* FIXME: free static generation */
 }

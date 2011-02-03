@@ -8578,6 +8578,14 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_compact(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to compact");
+	compact(vm);
+}
+
+static void
 l1_gcprotect(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
@@ -9370,6 +9378,7 @@ mktopenv(void)
 	FN(car);
 	FN(cdr);
 	FN(close);
+	FN(compact);
 	FN(cntrget);
 	FN(cntrput);
 	FN(compile);

@@ -1142,6 +1142,7 @@ Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);
 
 /* mem.c */
+void		compact(VM *vm);
 void		finimem();
 void		_gc(u32 g, u32 tg);
 void		gc(VM *vm);
