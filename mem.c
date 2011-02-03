@@ -623,7 +623,7 @@ mapmem(u64 sz)
 }
 
 static void
-unmapmem(void *a, u32 sz)
+unmapmem(void *a, u64 sz)
 {
 	if(0 > munmap(a, sz))
 		fatal("munmap: %s", strerror(errno));
