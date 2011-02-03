@@ -1848,8 +1848,7 @@ _gc(u32 g, u32 tg)
 	H.na = 0;
 	if(dbg)printf("end of collection\n");
 	H.ingc--;
-	if(g == tg && tg == Ngen-1)
-		maintain();
+	maintain();
 	if(dbg)printf("gc returning\n");
 }
 
