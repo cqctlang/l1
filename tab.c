@@ -94,6 +94,7 @@ tabget(Tab *t, Val k)
 static void
 put(Vec *ht, u32 h, Pair *lnk)
 {
+	setlinknext(lnk, vecref(ht, h));
 	vecset(ht, h, mkvalpair(lnk));
 }
 
@@ -162,6 +163,7 @@ dellink(Tab *t, Pair *lnk)
 			c = (Pair*)linknext(c);
 		setlinknext(c, linknext(lnk));
 	}
+	t->nent--;
 }
 
 void
