@@ -6,11 +6,14 @@ static Tab*
 _mktab(u32 sz)
 {
 	Tab *t;
+	u32 i;
 
 	t = (Tab*)malq(Qtab);
 	t->sz = sz;
 	t->nent = 0;
-	t->ht = mkvecinit(sz, Xnil);
+	t->ht = mkvec(sz);
+	for(i = 0; i < sz; i++)
+		_vecset(t->ht, i, mkvalcval(0, 0, i));
 	t->tg = mkguard();
 	return t;
 }
@@ -39,22 +42,28 @@ setlinkval(Pair *lnk, Val v)
 	setcdr(car(lnk), v);
 }
 
-static Val
+Val
 linkkey(Pair *lnk)
 {
 	return caar(lnk);
 }
 
-static Val
+Val
 linkval(Pair *lnk)
 {
 	return cdar(lnk);
 }
 
-static Val
+Val
 linknext(Pair *lnk)
 {
 	return cdr(lnk);
+}
+
+int
+islink(Val v)
+{
+	return Vkind(v) == Qpair;
 }
 
 static Pair*
@@ -71,7 +80,7 @@ get(Tab *t, Val k, u32 *hp)
 	h = op->hash(k);
 	*hp = h;
 	x = vecref(t->ht, h&(t->sz-1));
-	while(x != Xnil){
+	while(islink(x)){
 		lnk = (Pair*)x;
 		x = linknext(lnk);
 		if(Vkind(linkkey(lnk)) == kind && op->eq(linkkey(lnk), k))
@@ -107,10 +116,12 @@ expand(Tab *t)
 	u32 i, m, h, nsz;
 
 	nsz = t->sz*2;
-	nht = mkvecinit(nsz, Xnil);
+	nht = mkvec(nsz);
+	for(i = 0; i < nsz; i++)
+		_vecset(nht, i, mkvalcval(0, 0, i));
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
+		while(islink(x)){
 			lnk = (Pair*)x;
 			x = linknext(lnk);
 			h = hashop[Vkind(linkkey(lnk))].hash(linkkey(lnk));
@@ -188,7 +199,7 @@ tabenum(Tab *t)
 	v = mkvec(2*t->nent);
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
+		while(islink(x)){
 			lnk = (Pair*)x;
 			x = linknext(lnk);
 			_vecset(v, m, linkkey(lnk));
@@ -210,7 +221,7 @@ tabenumkeys(Tab *t)
 	v = mkvec(t->nent);
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
+		while(islink(x)){
 			lnk = (Pair*)x;
 			x = linknext(lnk);
 			_vecset(v, m, linkkey(lnk));
@@ -231,7 +242,7 @@ tabenumvals(Tab *t)
 	v = mkvec(t->nent);
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
+		while(islink(x)){
 			lnk = (Pair*)x;
 			x = linknext(lnk);
 			_vecset(v, m, linkval(lnk));
@@ -254,7 +265,7 @@ tabpop(Tab *t, Val *rv)
 
 	for(i = 0; i < t->sz; i++){
 		x = vecref(t->ht, i);
-		if(x != Xnil)
+		if(islink(x))
 			break;
 	}
 	lnk = (Pair*)x;
@@ -277,7 +288,7 @@ tabcopy(Tab *t)
 	rv = mktab();
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
+		while(islink(x)){
 			lnk = (Pair*)x;
 			x = linknext(lnk);
 			tabput(rv, linkkey(lnk), linkval(lnk));

@@ -1188,8 +1188,12 @@ List*		mklistn(Imm sz);
 /* tab.c */
 void		fntab(Env *env);
 Tab*		mktab(void);
+int		islink(Val v);
 void		l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv);
+Val		linkkey(Pair *lnk);
+Val		linkval(Pair *lnk);
+Val		linknext(Pair *lnk);
 Tab*		tabcopy(Tab *tab);
 void		tabdel(Tab *tab, Val keyv);
 Vec*		tabenum(Tab *tab);

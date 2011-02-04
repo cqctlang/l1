@@ -4011,6 +4011,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	Imm m;
 	Str *as;
 	Val xargv[1];
+	Pair *lnk;
 
 	ctx.rawtype = rawtype;
 	ctx.rawsym = rawsym;
@@ -4040,9 +4041,10 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	t = ctx.rawtype;
 	for(i = 0; i < t->sz; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
-			v = caar(x);
-			x = cdr(x);
+		while(islink(x)){
+			lnk = (Pair*)x;
+			v = linkkey(lnk);
+			x = linknext(lnk);
 			if(Vkind(v) != Qxtn)
 				vmerr(vm, "invalid raw type table");
 			xtn = valxtn(v);
@@ -4053,11 +4055,12 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	t = ctx.rawsym;
 	for(i = 0; i < t->sz; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
+		while(islink(x)){
 			/* id -> [ xtn, id, attr ] */
-			idv = caar(x);
-			vecv = cdar(x);
-			x = cdr(x);
+			lnk = (Pair*)x;
+			idv = linkkey(lnk);
+			vecv = linkval(lnk);
+			x = linknext(lnk);
 			if(Vkind(idv) != Qstr)
 				vmerr(vm, "invalid raw symbol table");
 			if(Vkind(vecv) != Qvec)
@@ -4079,21 +4082,23 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	t = ctx.otype;
 	for(i = 0; i < t->sz; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
-			vp = caar(x);
+		while(islink(x)){
+			lnk = (Pair*)x;
+			vp = linkkey(lnk);
 			if(!tabget(ctx.type, vp))
-				tabput(ctx.type, vp, cdar(x));
-			x = cdr(x);
+				tabput(ctx.type, vp, linkval(lnk));
+			x = linknext(lnk);
 		}
 	}
 	t = ctx.osym;
 	for(i = 0; i < t->sz; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
-			vp = caar(x);
+		while(islink(x)){
+			lnk = (Pair*)x;
+			vp = linkkey(lnk);
 			if(!tabget(ctx.sym, vp))
-				tabput(ctx.sym, vp, cdar(x));
-			x = cdr(x);
+				tabput(ctx.sym, vp, linkval(lnk));
+			x = linknext(lnk);
 		}
 	}
 
@@ -4101,8 +4106,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	t = ctx.type;
 	for(i = 0; i < t->sz; i++){
 		x = vecref(t->ht, i);
-		while(x != Xnil){
-			xtn = valxtn(cdar(x));
+		while(islink(x)){
+			lnk = (Pair*)x;
+			xtn = valxtn(linkval(lnk));
 			if(xtn->tkind != Tenum)
 				goto next;
 			tmp = mkconstxtn(xtn);
@@ -4117,7 +4123,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 				       vecref(kvec, 0), mkvalvec(nvec));
 			}
 		next:
-			x = cdr(x);
+			x = linknext(lnk);
 		}
 	}
 
