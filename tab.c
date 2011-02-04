@@ -11,6 +11,7 @@ _mktab(u32 sz)
 	t->sz = sz;
 	t->nent = 0;
 	t->ht = mkvecinit(sz, Xnil);
+	t->tg = mkguard();
 	return t;
 }
 
@@ -21,10 +22,46 @@ mktab()
 }
 
 static Pair*
+mklink(Val k, Val v)
+{
+	return cons(cons(k, v), Xnil);
+}
+
+static void
+setlinknext(Pair *lnk, Val v)
+{
+	setcdr(lnk, v);
+}
+
+static void
+setlinkval(Pair *lnk, Val v)
+{
+	setcdr(car(lnk), v);
+}
+
+static Val
+linkkey(Pair *lnk)
+{
+	return caar(lnk);
+}
+
+static Val
+linkval(Pair *lnk)
+{
+	return cdar(lnk);
+}
+
+static Val
+linknext(Pair *lnk)
+{
+	return cdr(lnk);
+}
+
+static Pair*
 get(Tab *t, Val k, u32 *hp)
 {
 	Val x;
-	Pair *p;
+	Pair *lnk;
 	Qkind kind;
 	Hashop *op;
 	u32 h;
@@ -35,10 +72,10 @@ get(Tab *t, Val k, u32 *hp)
 	*hp = h;
 	x = vecref(t->ht, h&(t->sz-1));
 	while(x != Xnil){
-		p = (Pair*)car(x);
-		x = cdr(x);
-		if(Vkind(car(p)) == kind && op->eq(car(p), k))
-			return p;
+		lnk = (Pair*)x;
+		x = linknext(lnk);
+		if(Vkind(linkkey(lnk)) == kind && op->eq(linkkey(lnk), k))
+			return lnk;
 	}
 	return 0;
 }
@@ -46,18 +83,18 @@ get(Tab *t, Val k, u32 *hp)
 Val
 tabget(Tab *t, Val k)
 {
-	Pair *p;
+	Pair *lnk;
 	u32 h;
-	p = get(t, k, &h);
-	if(p)
-		return cdr(p);
+	lnk = get(t, k, &h);
+	if(lnk)
+		return linkval(lnk);
 	return 0;
 }
 
 static void
-put(Vec *ht, u32 h, Val x)
+put(Vec *ht, u32 h, Pair *lnk)
 {
-	vecset(ht, h, mkvalpair(cons(x, vecref(ht, h))));
+	vecset(ht, h, mkvalpair(lnk));
 }
 
 static void
@@ -65,7 +102,7 @@ expand(Tab *t)
 {
 	Vec *nht;
 	Val x;
-	Pair *p;
+	Pair *lnk;
 	u32 i, m, h, nsz;
 
 	nsz = t->sz*2;
@@ -73,10 +110,10 @@ expand(Tab *t)
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
 		while(x != Xnil){
-			p = (Pair*)car(x);
-			x = cdr(x);
-			h = hashop[Vkind(car(p))].hash(car(p));
-			put(nht, h&(nsz-1), mkvalpair(p));
+			lnk = (Pair*)x;
+			x = linknext(lnk);
+			h = hashop[Vkind(linkkey(lnk))].hash(linkkey(lnk));
+			put(nht, h&(nsz-1), lnk);
 			m++;
 		}
 	}
@@ -88,48 +125,54 @@ expand(Tab *t)
 void
 tabput(Tab *t, Val k, Val v)
 {
-	Pair *p;
+	Pair *lnk;
 	u32 h;
 
-	p = get(t, k, &h);
-	if(p){
-		setcdr(p, v);
+	lnk = get(t, k, &h);
+	if(lnk){
+		setlinkval(lnk, v);
 		return;
 	}
 
 	if(3*t->nent > 2*t->sz)
 		expand(t);
 
-	put(t->ht, h&(t->sz-1), mkvalpair(cons(k, v)));
+	put(t->ht, h&(t->sz-1), mklink(k, v));
 	t->nent++;
+}
+
+static void
+dellink(Tab *t, Pair *lnk)
+{
+	Val x;
+	Qkind kind;
+	Hashop *op;
+	Pair *c;
+	u32 h;
+
+	kind = Vkind(linkkey(lnk));
+	op = &hashop[kind];
+	h = op->hash(linkkey(lnk));
+	x = vecref(t->ht, h&(t->sz-1));
+	if(x == (Val)lnk)
+		vecset(t->ht, h&(t->sz-1), linknext(lnk));
+	else{
+		c = (Pair*)x;
+		while(lnk != (Pair*)linknext(c))
+			c = (Pair*)linknext(c);
+		setlinknext(c, linknext(lnk));
+	}
 }
 
 void
 tabdel(Tab *t, Val k)
 {
-	Val x, p, q;
-	Qkind kind;
-	Hashop *op;
+	Pair *lnk;
 	u32 h;
 
-	kind = Vkind(k);
-	op = &hashop[kind];
-	h = op->hash(k);
-	x = vecref(t->ht, h&(t->sz-1));
-	q = 0;
-	while(x != Xnil){
-		p = car(x);
-		if(Vkind(car(p)) == kind && op->eq(car(p), k)){
-			if(q)
-				setcdr(q, cdr(x));
-			else
-				vecset(t->ht, h&(t->sz-1), cdr(x));
-			t->nent--;
-			return;
-		}
-		q = x;
-		x = cdr(x);
-	}
+	lnk = get(t, k, &h);
+	if(lnk)
+		dellink(t, lnk);
 }
 
 Vec*
@@ -137,17 +180,17 @@ tabenum(Tab *t)
 {
 	Vec *v;
 	Val x;
-	Pair *p;
+	Pair *lnk;
 	u32 i, m;
 
 	v = mkvec(2*t->nent);
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
 		while(x != Xnil){
-			p = (Pair*)car(x);
-			x = cdr(x);
-			_vecset(v, m, car(p));
-			_vecset(v, m+t->nent, cdr(p));
+			lnk = (Pair*)x;
+			x = linknext(lnk);
+			_vecset(v, m, linkkey(lnk));
+			_vecset(v, m+t->nent, linkval(lnk));
 			m++;
 		}
 	}
@@ -159,16 +202,16 @@ tabenumkeys(Tab *t)
 {
 	Vec *v;
 	Val x;
-	Pair *p;
+	Pair *lnk;
 	u32 i, m;
 
 	v = mkvec(t->nent);
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
 		while(x != Xnil){
-			p = (Pair*)car(x);
-			x = cdr(x);
-			_vecset(v, m, car(p));
+			lnk = (Pair*)x;
+			x = linknext(lnk);
+			_vecset(v, m, linkkey(lnk));
 			m++;
 		}
 	}
@@ -180,16 +223,16 @@ tabenumvals(Tab *t)
 {
 	Vec *v;
 	Val x;
-	Pair *p;
+	Pair *lnk;
 	u32 i, m;
 
 	v = mkvec(t->nent);
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
 		while(x != Xnil){
-			p = (Pair*)car(x);
-			x = cdr(x);
-			_vecset(v, m, cdr(p));
+			lnk = (Pair*)x;
+			x = linknext(lnk);
+			_vecset(v, m, linkval(lnk));
 			m++;
 		}
 	}
@@ -201,7 +244,7 @@ tabpop(Tab *t, Val *rv)
 {
 	Vec *v;
 	Val x;
-	Pair *p;
+	Pair *lnk;
 	u32 i;
 
 	if(t->nent == 0)
@@ -212,12 +255,12 @@ tabpop(Tab *t, Val *rv)
 		if(x != Xnil)
 			break;
 	}
-	p = (Pair*)car(x);
-	vecset(t->ht, i, cdr(x));
+	lnk = (Pair*)x;
+	vecset(t->ht, i, linknext(lnk));
 	t->nent--;
 	v = mkvec(2);
-	_vecset(v, 0, car(p));
-	_vecset(v, 1, cdr(p));
+	_vecset(v, 0, linkkey(lnk));
+	_vecset(v, 1, linkval(lnk));
 	*rv = mkvalvec(v);
 }
 
@@ -226,16 +269,16 @@ tabcopy(Tab *t)
 {
 	Tab *rv;
 	Val x;
-	Pair *p;
+	Pair *lnk;
 	u32 i, m;
 
 	rv = mktab();
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
 		while(x != Xnil){
-			p = (Pair*)car(x);
-			x = cdr(x);
-			tabput(rv, car(p), cdr(p));
+			lnk = (Pair*)x;
+			x = linknext(lnk);
+			tabput(rv, linkkey(lnk), linkval(lnk));
 			m++;
 		}
 	}
@@ -332,9 +375,6 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to tabvals must be a table");
 	*rv = mkvalvec(tabenumvals(valtab(arg0)));
 }
-
-
-
 
 void
 fntab(Env *env)

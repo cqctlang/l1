@@ -300,6 +300,7 @@ struct Tab {
 	Head hd;
 	u32 sz, nent;
 	Vec *ht;
+	Pair *tg;		/* transport guardian */
 };
 
 struct List {

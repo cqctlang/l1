@@ -477,6 +477,8 @@ itertab(Head *hd, Ictx *ictx)
 	switch(ictx->n++){
 	case 0:
 		return (Val*)&t->ht;
+	case 1:
+		return (Val*)&t->tg;
 	default:
 		return GCiterdone;
 	}
