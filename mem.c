@@ -1326,20 +1326,20 @@ instguard(Pair *p)
 }
 
 Head*
-pop1guard(Pair *t)
+pop1guard(Pair *g)
 {
 	Head *x, *y;
-	if(car(t) == cdr(t))
+	if(car(g) == cdr(g))
 		return 0;
-	x = car(t);
+	x = car(g);
 	y = car(x);
-	setcar(t, cdr(x));
+	setcar(g, cdr(x));
 	setcar(x, Xnil);
 	setcdr(x, Xnil);
 	return y;
 }
 
-void
+static void
 push1guard(Val o, Pair *t)
 {
 	Pair *p;
@@ -1357,6 +1357,12 @@ quard(Val o)
 	if(t == 0)
 		fatal("bug");
 	_instguard(&H.sg, cons(o, t));
+}
+
+void
+guard(Val o, Pair *g)
+{
+	instguard(cons(o, g));
 }
 
 static int

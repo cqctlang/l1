@@ -1152,12 +1152,15 @@ void		gcpoll(VM *vm);
 void*		gcprotect(void *v);
 void*		gcunprotect(void *v);
 void		gcwb(Val v);
+void		guard(Val o, Pair *g);
 void		initmem(u64 rate);
 void		instguard(Pair *p);
 Head*		malq(Qkind kind);
 Head*		malv(Qkind kind, Imm len);
 Head*		malcode();
 u64		meminuse();
+Pair*		mkguard();
+Head*		pop1guard(Pair *t);
 u64		protected();
 void		quard(Val o);
 
