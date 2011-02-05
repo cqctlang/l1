@@ -674,7 +674,7 @@ freerange(void *p, void *e)
 static void*
 nextfree()
 {
-	void *p, **q;	
+	void *p, **q;
 	if(segmap.free == 0)
 		fatal("bug");
 	p = segmap.free;
@@ -758,7 +758,7 @@ remapsegmap(void *p, void *e)
 	memcpy(m+(olo-segmap.lo)/Segsize, om, onseg*sizeof(Seg));
 	segmap.map = m;
 	freesegmap(om, onseg);
-	
+
 	/* mark new hole (if any) */
 	if(p > ohi)
 		setrangetype(ohi, p, MThole);
@@ -794,7 +794,7 @@ initsegmap()
 {
 	u64 sz, nseg;
 	void *p, *e;
-		
+
 	sz = Seghunk;
 	nseg = sz/Segsize;
 	p = mapmem(sz);
@@ -807,7 +807,7 @@ initsegmap()
 	freerange(p, e);
 }
 
-enum 
+enum
 {
 	LORES = 1,  /* low reserve; triggers growth */
 	HIRES = 4,  /* high reserve; triggers shrink */
@@ -897,7 +897,7 @@ maintain()
 		sz1 = H.free < LORES*H.inuse ? (TARGRES-1)*H.inuse : 0;
 		sz2 = H.heapsz < Minheap ? Minheap-H.heapsz : 0;
 		grow(max(sz1, sz2));
-//		printf("%ld\n", H.free); 
+//		printf("%ld\n", H.free);
 //		dumpstats();
 //		printf("\n");
 	}else if(H.heapsz > Minheap && H.free > HIRES*H.inuse){
@@ -973,7 +973,7 @@ allocbigseg(MT mt, Gen g, u64 sz)
 		s->mt = mt;
 		MTsetbigcont(s->mt);
 		s->gen = g;
-		
+
 		/* FIXME: this should be unnecessary */
 		s->p = 0;
 		s->nprotect = 0;
