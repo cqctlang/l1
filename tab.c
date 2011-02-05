@@ -66,8 +66,69 @@ islink(Val v)
 	return Vkind(v) == Qpair;
 }
 
+
+static Imm
+linkidx(Pair *lnk)
+{
+	Cval *cv;
+	while(islink(linknext(lnk)))
+		lnk = (Pair*)linknext(lnk);
+	cv = valcval(linknext(lnk));
+	return cv->val;
+}
+
+static void
+dellink(Tab *t, Pair *lnk)
+{
+	Val x;
+	Pair *c;
+	u32 h;
+
+	h = linkidx(lnk);
+	x = vecref(t->ht, h&(t->sz-1));
+	if(x == (Val)lnk)
+		vecset(t->ht, h&(t->sz-1), linknext(lnk));
+	else{
+		c = (Pair*)x;
+		while(lnk != (Pair*)linknext(c))
+			c = (Pair*)linknext(c);
+		setlinknext(c, linknext(lnk));
+	}
+}
+
+static void
+put(Tab *t, Pair *lnk)
+{
+	u32 h;
+	Val k;
+	k = linkkey(lnk);
+	h = hashop[Vkind(k)].hash(k);
+	h &= t->sz-1;
+	setlinknext(lnk, vecref(t->ht, h));
+	vecset(t->ht, h, mkvalpair(lnk));
+}
+
 static Pair*
-get(Tab *t, Val k, u32 *hp)
+getrehash(Tab *t, Val k)
+{
+	Pair *lnk;
+	Qkind kind;
+	Hashop *op;
+	kind = Vkind(k);
+	op = &hashop[kind];
+	while(1){
+		lnk = (Pair*)pop1guard(t->tg);
+		if(lnk == 0)
+			return 0;
+		dellink(t, lnk);
+		put(t, lnk);
+		if(Vkind(linkkey(lnk)) == kind && op->eq(linkkey(lnk), k))
+			return lnk;
+	}
+}
+
+static Pair*
+get(Tab *t, Val k)
 {
 	Val x;
 	Pair *lnk;
@@ -78,7 +139,6 @@ get(Tab *t, Val k, u32 *hp)
 	kind = Vkind(k);
 	op = &hashop[kind];
 	h = op->hash(k);
-	*hp = h;
 	x = vecref(t->ht, h&(t->sz-1));
 	while(islink(x)){
 		lnk = (Pair*)x;
@@ -86,61 +146,51 @@ get(Tab *t, Val k, u32 *hp)
 		if(Vkind(linkkey(lnk)) == kind && op->eq(linkkey(lnk), k))
 			return lnk;
 	}
-	return 0;
+	return getrehash(t, k);
 }
 
 Val
 tabget(Tab *t, Val k)
 {
 	Pair *lnk;
-	u32 h;
-	lnk = get(t, k, &h);
+	lnk = get(t, k);
 	if(lnk)
 		return linkval(lnk);
 	return 0;
 }
 
 static void
-put(Vec *ht, u32 h, Pair *lnk)
-{
-	setlinknext(lnk, vecref(ht, h));
-	vecset(ht, h, mkvalpair(lnk));
-}
-
-static void
 expand(Tab *t)
 {
-	Vec *nht;
+	Vec *oht;
 	Val x;
 	Pair *lnk;
-	u32 i, m, h, nsz;
+	u32 i, m, osz;
 
-	nsz = t->sz*2;
-	nht = mkvec(nsz);
-	for(i = 0; i < nsz; i++)
-		_vecset(nht, i, mkvalcval(0, 0, i));
-	for(i = m = 0; i < t->sz && m < t->nent; i++){
-		x = vecref(t->ht, i);
+	osz = t->sz;
+	oht = t->ht;
+	gcwb(mkvaltab(t));
+	t->sz *= 2;
+	t->ht = mkvec(t->sz);
+	for(i = 0; i < t->sz; i++)
+		_vecset(t->ht, i, mkvalcval(0, 0, i));
+	for(i = m = 0; i < osz && m < t->nent; i++){
+		x = vecref(oht, i);
 		while(islink(x)){
 			lnk = (Pair*)x;
 			x = linknext(lnk);
-			h = hashop[Vkind(linkkey(lnk))].hash(linkkey(lnk));
-			put(nht, h&(nsz-1), lnk);
+			put(t, lnk);
 			m++;
 		}
 	}
-	gcwb(mkvaltab(t));
-	t->ht = nht;
-	t->sz = nsz;
 }
 
 void
 tabput(Tab *t, Val k, Val v)
 {
 	Pair *lnk;
-	u32 h;
 
-	lnk = get(t, k, &h);
+	lnk = get(t, k);
 	if(lnk){
 		setlinkval(lnk, v);
 		return;
@@ -149,43 +199,21 @@ tabput(Tab *t, Val k, Val v)
 	if(3*t->nent > 2*t->sz)
 		expand(t);
 
-	put(t->ht, h&(t->sz-1), mklink(k, v));
+	lnk = mklink(k, v);
+	guard(mkvalpair(lnk), t->tg);
+	put(t, lnk);
 	t->nent++;
-}
-
-static void
-dellink(Tab *t, Pair *lnk)
-{
-	Val x;
-	Qkind kind;
-	Hashop *op;
-	Pair *c;
-	u32 h;
-
-	kind = Vkind(linkkey(lnk));
-	op = &hashop[kind];
-	h = op->hash(linkkey(lnk));
-	x = vecref(t->ht, h&(t->sz-1));
-	if(x == (Val)lnk)
-		vecset(t->ht, h&(t->sz-1), linknext(lnk));
-	else{
-		c = (Pair*)x;
-		while(lnk != (Pair*)linknext(c))
-			c = (Pair*)linknext(c);
-		setlinknext(c, linknext(lnk));
-	}
-	t->nent--;
 }
 
 void
 tabdel(Tab *t, Val k)
 {
 	Pair *lnk;
-	u32 h;
-
-	lnk = get(t, k, &h);
-	if(lnk)
+	lnk = get(t, k);
+	if(lnk){
 		dellink(t, lnk);
+		t->nent--;
+	}
 }
 
 Vec*
