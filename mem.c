@@ -7,9 +7,10 @@ enum
 {
 	Mhole,
 	Mnix,
+	Mweak,
 	Mfree,
 	Mdata,
-	Mcode,
+	Mcode, /* FIXME: Nmt definition depends on this being last */
 	Nm,
 } Mtag;
 
@@ -31,6 +32,7 @@ enum
 	MTfree    = (Mfree<<Ftag),
 	MTdata    = (Mdata<<Ftag),
 	MTcode    = (Mcode<<Ftag),
+	MTweak    = (Mweak<<Ftag),
 	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
 	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
 	Nmt,
@@ -131,7 +133,7 @@ struct Guard
 typedef
 struct Heap
 {
-	void *d, *c;		/* current data and code segment */
+	void *d, *c, *w;	/* data, code, weak allocation segments */
 	M m[Nmt][Nsgen];	/* metatypes */
 	u32 g, tg;		/* collect generation and target generation */
 	u64 na;			/* bytes allocated since last gc */
@@ -404,9 +406,12 @@ iterpair(Head *hd, Ictx *ictx)
 
 	switch(ictx->n++){
 	case 0:
-		return &pair->car;
-	case 1:
 		return &pair->cdr;
+	case 1:
+		if(isweak(hd))
+			return GCiterdone;
+		else
+			return &pair->car;
 	default:
 		return GCiterdone;
 	}
@@ -999,6 +1004,19 @@ lookseg(void *a)
 	return s;
 }
 
+static int
+isliveseg(Seg *s)
+{
+	switch(MTtag(s->mt)){
+	case Mdata:
+	case Mcode:
+	case Mweak:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static void
 mclr(M *m)
 {
@@ -1037,6 +1055,34 @@ u64
 meminuse()
 {
 	return H.inuse;
+}
+
+int
+isweak(Head *h)
+{
+	Seg *s;
+	s = a2s(h);
+	return MTtag(s->mt) == Mweak;
+}
+
+Head*
+malweak()
+{
+	Seg *s;
+	Head *h;
+	u32 sz;
+	sz = qs[Qpair].sz;
+again:
+	s = a2s(H.w);
+	if(s->a+sz <= s->e-1){
+		h = s->a;
+		s->a += sz;
+		memset(h, 0, sz);
+		Vsetkind(h, Qpair);
+		return h;
+	}
+	H.w = minsert(&H.m[MTweak][H.tg], allocseg(MTweak, H.tg));
+	goto again;
 }
 
 Head*
@@ -1199,6 +1245,12 @@ copy(Val *v)
 	case Qcode:
 		nh = malcode();
 		break;
+	case Qpair:
+		if(isweak(h))
+			nh = malweak();
+		else
+			nh = malq(Qpair);
+		break;
 	case Qstr:
 	case Qvec:
 		nh = malv(Vkind(h), sz);
@@ -1259,7 +1311,7 @@ scan(M *m)
 	s = lookseg(m->scan);
 	c = 0;
 	while(1){
-		if(MTtag(s->mt) != Mdata && MTtag(s->mt) != Mcode)
+		if(!isliveseg(s))
 			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->mt);
 		while(m->scan < s->a){
 			h = m->scan;
@@ -1379,12 +1431,6 @@ islive(Head *o)
 	if(!MTold(s->mt))
 		return 1;
 	return 0;
-}
-
-static int
-isliveseg(Seg *s)
-{
-	return (MTtag(s->mt) == Mdata || MTtag(s->mt) == Mcode);
 }
 
 static void
@@ -1653,6 +1699,30 @@ scanlocked()
 }
 
 static void
+scanweak(u32 tg)
+{
+	M *m;
+	Seg *s;
+	Pair *p;
+
+	m = &H.m[MTweak][tg];
+	s = lookseg(m->h);
+	while(1){
+		p = s2a(s);
+		while((void*)p < s->a){
+			if(Vfwd(car(p)))
+				_setcar(p, Vfwdaddr(car(p)));
+			else
+				_setcar(p, Xnil);
+			p += sizeof(Pair);
+		}
+		if(s->link == 0)
+			break;
+		s = a2s(s->link);
+	}
+}
+
+static void
 promote1locked(Seg *s)
 {
 	if(s->nprotect == 0)
@@ -1758,6 +1828,21 @@ recycle()
 	}
 }
 
+static void*
+resetalloc(MT mt, Gen g)
+{
+	return minit(&H.m[mt][g], allocseg(mt, g));
+}
+
+static void*
+getalloc(MT mt, Gen g)
+{
+	if(H.m[mt][g].h)
+		return H.m[mt][g].t;
+	else
+		return resetalloc(mt, g);
+}
+
 /*
 	for generations 0...g copy live data to space for generation tg.
 	if tg is g then create a new target space;
@@ -1774,7 +1859,6 @@ _gc(u32 g, u32 tg)
 
 	maintain();
 	H.ingc++;
-
 	if(g != tg && g != tg-1)
 		fatal("bug");
 	if(tg >= Nsgen)
@@ -1789,17 +1873,13 @@ _gc(u32 g, u32 tg)
 			mclr(&H.m[mt][i]);
 
 	if(g == tg){
-		H.d = minit(&H.m[MTdata][tg], allocseg(MTdata, tg));
-		H.c = minit(&H.m[MTcode][tg], allocseg(MTcode, tg));
+		H.d = resetalloc(MTdata, tg);
+		H.c = resetalloc(MTcode, tg);
+		H.w = resetalloc(MTweak, tg);
 	}else{
-		if(H.m[MTdata][tg].h)
-			H.d = H.m[MTdata][tg].t;
-		else
-			H.d = minit(&H.m[MTdata][tg], allocseg(MTdata, tg));
-		if(H.m[MTcode][tg].h)
-			H.c = H.m[MTcode][tg].t;
-		else
-			H.c = minit(&H.m[MTcode][tg], allocseg(MTcode, tg));
+		H.d = getalloc(MTdata, tg);
+		H.c = getalloc(MTcode, tg);
+		H.w = getalloc(MTweak, tg);
 	}
 
 	vmp = vms;
@@ -1832,6 +1912,7 @@ _gc(u32 g, u32 tg)
 	updateguards(&H.ug);
 	updateguards(&H.sg);
 	if(dbg)printf("did updateguards\n");
+	scanweak(tg);
 
 	promotelocked();
 	reloc(tg);
@@ -1851,8 +1932,9 @@ _gc(u32 g, u32 tg)
 
 	if(H.tg != 0){
 		H.tg = 0;
-		H.d = minit(&H.m[MTdata][H.tg], allocseg(MTdata, H.tg));
-		H.c = minit(&H.m[MTcode][H.tg], allocseg(MTcode, H.tg));
+		H.d = resetalloc(MTdata, H.tg);
+		H.c = resetalloc(MTcode, H.tg);
+		H.w = resetalloc(MTweak, H.tg);
 	}
 	H.na = 0;
 	if(dbg)printf("end of collection\n");
@@ -1949,8 +2031,9 @@ initmem(u64 gcrate)
 		H.gcsched[i] = gr;
 		gr *= GCradix;
 	}
-	H.d = minit(&H.m[MTdata][0], allocseg(MTdata, 0));
-	H.c = minit(&H.m[MTcode][0], allocseg(MTcode, 0));
+	H.d = resetalloc(MTdata, 0);
+	H.c = resetalloc(MTcode, 0);
+	H.w = resetalloc(MTweak, 0);
 	H.na = 0;
 	if(gcrate)
 		H.ma = gcrate;

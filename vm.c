@@ -8025,6 +8025,14 @@ l1_cons(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_weakcons(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to weakcons");
+	*rv = mkvalpair(weakcons(argv[0], argv[1]));
+}
+
+static void
 l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg;
@@ -8468,6 +8476,17 @@ static void
 l1_ispair(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "ispair", Qpair);
+}
+
+static void
+l1_isweakpair(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to isweakpair");
+	if(Vkind(argv[0]) == Qpair && isweak(argv[0]))
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -9461,6 +9480,7 @@ mktopenv(void)
 	FN(isupper);
 	FN(isvector);
 	FN(isvoid);
+	FN(isweakpair);
 	FN(isxaccess);
 	FN(isxdigit);
 	FN(length);
@@ -9577,6 +9597,7 @@ mktopenv(void)
 	FN(vecref);
 	FN(vecset);
 	FN(vector);
+	FN(weakcons);
 	FN(xaccessget);
 	FN(xaccessput);
 

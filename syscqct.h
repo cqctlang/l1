@@ -1156,9 +1156,11 @@ void		gcwb(Val v);
 void		guard(Val o, Pair *g);
 void		initmem(u64 rate);
 void		instguard(Pair *p);
+int		isweak(Head *h);
 Head*		malq(Qkind kind);
 Head*		malv(Qkind kind, Imm len);
 Head*		malcode();
+Head*		malweak();
 u64		meminuse();
 Pair*		mkguard();
 Head*		pop1guard(Pair *t);
@@ -1211,9 +1213,13 @@ void		tabput(Tab *tab, Val keyv, Val val);
 #define 	cdar(p) (cdr(car(p)))
 #define 	cddr(p) (cdr(cdr(p)))
 #define 	setcar(p,x) do{ gcwb((Val)(p)); car(p) = (Val)(x); }while(0)
+#define 	_setcar(p,x) do{ car(p) = (Val)(x); }while(0)
 #define 	setcdr(p,x) do{ gcwb((Val)(p)); cdr(p) = (Val)(x); }while(0)
+#define 	_setcdr(p,x) do{ cdr(p) = (Val)(x); }while(0)
 #define		cons(a,d)  (mkpair((Val)(a), (Val)(d)))
+#define		weakcons(a,d)  (mkweakpair((Val)(a), (Val)(d)))
 Pair*		mkpair(Val a, Val d);
+Pair*		mkweakpair(Val a, Val d);
 
 /* cqct.c */
 Val		cqctcompile0(Expr *e, Toplevel *top, char *argsid);
