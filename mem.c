@@ -1393,6 +1393,21 @@ pop1guard(Pair *g)
 	return y;
 }
 
+Head*
+pop1tguard(Pair *g)
+{
+	Head *m;
+	while(1){
+		m = pop1guard(g);
+		if(m == 0)
+			return 0;
+		if(Vkind(car(m)) != Qnil){
+			guard(m, g);
+			return car(m);
+		}
+	}
+}
+
 static void
 push1guard(Val o, Pair *t)
 {
@@ -1417,6 +1432,12 @@ void
 guard(Val o, Pair *g)
 {
 	instguard(cons(o, g));
+}
+
+void
+tguard(Val o, Pair *g)
+{
+	guard((Val)weakcons(o, Xnil), g);
 }
 
 static int

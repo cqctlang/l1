@@ -1164,8 +1164,10 @@ Head*		malweak();
 u64		meminuse();
 Pair*		mkguard();
 Head*		pop1guard(Pair *t);
+Head*		pop1tguard(Pair *t);
 u64		protected();
 void		quard(Val o);
+void		tguard(Val o, Pair *g);
 
 /* list.c */
 int		equallist(List *a, List *b);

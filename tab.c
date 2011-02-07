@@ -117,7 +117,7 @@ getrehash(Tab *t, Val k)
 	kind = Vkind(k);
 	op = &hashop[kind];
 	while(1){
-		lnk = (Pair*)pop1guard(t->tg);
+		lnk = (Pair*)pop1tguard(t->tg);
 		if(lnk == 0)
 			return 0;
 		dellink(t, lnk);
@@ -200,7 +200,7 @@ tabput(Tab *t, Val k, Val v)
 		expand(t);
 
 	lnk = mklink(k, v);
-	guard(mkvalpair(lnk), t->tg);
+	tguard(mkvalpair(lnk), t->tg);
 	put(t, lnk);
 	t->nent++;
 }
