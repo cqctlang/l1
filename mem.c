@@ -1710,7 +1710,7 @@ scanlocked()
 }
 
 static void
-scanweak(u32 tg)
+updateweak(u32 tg)
 {
 	M *m;
 	Seg *s;
@@ -1923,7 +1923,7 @@ _gc(u32 g, u32 tg)
 	updateguards(&H.ug);
 	updateguards(&H.sg);
 	if(dbg)printf("did updateguards\n");
-	scanweak(tg);
+	updateweak(tg);
 
 	promotelocked();
 	reloc(tg);
