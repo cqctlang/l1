@@ -567,7 +567,6 @@ enum {
 typedef
 struct Ictx {
 	u32 n;
-	void *x;
 } Ictx;
 
 typedef
