@@ -1714,7 +1714,7 @@ scanweak(u32 tg)
 				_setcar(p, Vfwdaddr(car(p)));
 			else
 				_setcar(p, Xnil);
-			p += sizeof(Pair);
+			p++;
 		}
 		if(s->link == 0)
 			break;
