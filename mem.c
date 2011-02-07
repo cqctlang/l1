@@ -1301,34 +1301,24 @@ scan1(Head *h)
 static unsigned
 scan(M *m)
 {
-	Head *h, **c;
+	Head *h;
+	unsigned rv;
 	Seg *s;
-	Ictx ictx;
 	unsigned dbg = alldbg;
 
 	if(m->scan == 0)
 		return 0;
 	s = lookseg(m->scan);
-	c = 0;
+	rv = 0;
 	while(1){
 		if(!isliveseg(s))
 			fatal("bug: mt of seg %p (%p) is %d", s, s2a(s), s->mt);
 		while(m->scan < s->a){
+			rv = 1;
 			h = m->scan;
 			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			m->scan += qsz(h);
-			if(qs[Vkind(h)].iter == 0)
-				continue;
-			memset(&ictx, 0, sizeof(ictx));
-			while(1){
-				c = qs[Vkind(h)].iter(h, &ictx);
-				if(c == (Val*)GCiterdone)
-					break;
-				if(dbg)printf("iter %p (%s) -> %p %p\n",
-					    h, qs[Vkind(h)].id,
-					    c, *c);
-				copy(c);
-			}
+			scan1(h);
 		}
 		if(s->link == 0)
 			break;
@@ -1339,7 +1329,7 @@ scan(M *m)
 	// approximate indication of whether a copy occurred in this call:
 	//    1: maybe
 	//    0: definitely not
-	return (c != 0); // approximate
+	return rv;
 }
 
 static void
