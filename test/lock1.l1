@@ -1,0 +1,15 @@
+//gc(3,3);
+x = cons(10101,0);
+y = cons(x,x);
+printf("1\n");
+gcprotect(x);
+x = nil;
+printf("2\n");
+gc(3,3);
+printf("3\n");
+gcunprotect(car(y));
+printf("4\n");
+printf("%a %a\n", car(car(y)), cdr(cdr(y)));
+gc(2,2);
+printf("5\n");
+printf("%a %a\n", car(car(y)), cdr(cdr(y)));

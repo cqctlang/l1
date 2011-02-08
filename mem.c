@@ -75,6 +75,7 @@ enum
 	G1,
 	G2,
 	G3,
+	Gfull=G3,
 	Gstatic,
 	Ngen=Gstatic,
 	Nsgen=Gstatic+1,
@@ -146,6 +147,7 @@ struct Heap
 	Guard ug;		/* user guard list */
 	Guard sg;		/* system guard list */
 	Pair *guards[Qnkind];	/* system per-type guardians */
+	Pair *unlocked;		/* objects unlocked since last collection */
 	unsigned disable;
 	u32 gctrip, gcsched[Ngen], ingc;
 } Heap;
@@ -1221,8 +1223,9 @@ copy(Val *v)
 		return s->gen;
 	}
 	if(Vprot(h)){
+		// protected objects do not move.
 		if(dbg)printf("copy: object %p is protected\n", h);
-		return Glock; // protected objects do not move
+		return Glock;
 	}
 	s = a2s(h);
 	if(!MTold(s->mt)){
@@ -1659,7 +1662,8 @@ scan1card(Seg *s, u32 g)
 	if(s->gen <= g)
 		return;
 	if(s->gen == Glock)
-		return; /* FIXME: for now...need different scan for these */
+		/* no need to scan: scanlocked will do it */
+		return;
 	if(s->card > g)
 		return;
 	sg = scancard(s);
@@ -1680,6 +1684,18 @@ scancards(u32 g)
 			scan1card(s, g);
 		s = nextseg(s);
 	}
+}
+
+static void
+scanunlocked()
+{
+	Pair *p;
+	p = H.unlocked;
+	while(p != (Pair*)Xnil){
+		scan1(car(p));
+		p = (Pair*)cdr(p);
+	}
+	H.unlocked = (Pair*)Xnil;
 }
 
 static void
@@ -1874,6 +1890,13 @@ _gc(u32 g, u32 tg)
 		fatal("bug");
 	if(tg >= Nsgen)
 		return; // FIXME: silently do nothing...caller should know
+
+	/* force full collection when there are newly unlocked objects.
+	   the problem is ensuring that live references to the unlocked
+	   objects in older generations remain valid. */
+	if(H.unlocked != (Pair*)Xnil)
+		g = tg = Gfull;
+
 	H.g = g;
 	H.tg = tg;
 	if(dbg)printf("gc(%u,%u)\n", g, tg);
@@ -1913,7 +1936,7 @@ _gc(u32 g, u32 tg)
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
 	if(dbg)printf("copied guard roots\n");
-
+	scanunlocked();
 	scancards(g);
 	if(dbg)printf("scanned cards\n");
 	scanlocked();
@@ -2028,6 +2051,7 @@ gcunprotect(void *v)
 	}
 	s->nprotect--;
 	Vsetprot(h, 0);
+	H.unlocked = cons(h, H.unlocked);
 	return h;
 }
 
@@ -2060,6 +2084,7 @@ initmem(u64 gcrate)
 	for(i = 0; i < Nsgen; i++)
 		H.ug.gd[i] = H.sg.gd[i] = (Pair*)Xnil;
 	H.disable = 0;
+	H.unlocked = (Pair*)Xnil;
 }
 
 void
