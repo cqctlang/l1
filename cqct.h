@@ -143,7 +143,9 @@ void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);
 void		cqctgcdisable(VM *vm);
 void		cqctgcenable(VM *vm);
+Val		cqctgcpersist(VM *vm, Val v);
 Val		cqctgcprotect(VM *vm, Val v);
+Val		cqctgcunpersist(VM *vm, Val v);
 Val		cqctgcunprotect(VM *vm, Val v);
 Toplevel*	cqctinit(int gct, uint64_t hmax, uint64_t gcrate, char **lp,
 			 Xfd *in, Xfd *out, Xfd *err);

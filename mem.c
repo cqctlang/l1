@@ -2004,7 +2004,7 @@ compact(VM *vm)
 }
 
 void*
-gcprotect(void *v)
+gclock(void *v)
 {
 	Seg *s;
 	Head *h;
@@ -2038,7 +2038,7 @@ gcprotect(void *v)
 }
 
 void*
-gcunprotect(void *v)
+gcunlock(void *v)
 {
 	Seg *s;
 	Head *h, *p, **r;
@@ -2095,7 +2095,7 @@ initmem(u64 gcrate)
 		H.ma = GCthresh;
 
 	/* we need nil now to initialize the guarded object lists */
-	Xnil = gcprotect(malq(Qnil));
+	Xnil = gclock(malq(Qnil));
 
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)

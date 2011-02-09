@@ -4258,13 +4258,25 @@ poperror(VM *vm)
 Val
 cqctgcprotect(VM *vm, Val v)
 {
-	return gcprotect(v);
+	return gclock(v);
 }
 
 Val
 cqctgcunprotect(VM *vm, Val v)
 {
-	return gcunprotect(v);
+	return gcunlock(v);
+}
+
+Val
+cqctgcpersist(VM *vm, Val v)
+{
+	return gclock(v);
+}
+
+Val
+cqctgcunpersist(VM *vm, Val v)
+{
+	return gcunlock(v);
 }
 
 void
@@ -8549,8 +8561,8 @@ l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
 		cl = valcl(argv[1]);
 		ocl = valcl(tabget(finals, hd));
 		if(ocl)
-			ocl = gcunprotect(ocl);
-		cl = gcprotect(cl);
+			ocl = gcunlock(ocl);
+		cl = gclock(cl);
 		tabput(finals, hd, mkvalcl(cl));
 //		Vsetfinal(hd, 1);
 //	        xprintf("set final on %p (%d)\n", hd, Vfinal(hd));
@@ -8611,19 +8623,19 @@ l1_compact(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_gcprotect(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_gclock(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to gcprotect");
-	gcprotect(argv[0]);
+		vmerr(vm, "wrong number of arguments to gclock");
+	gclock(argv[0]);
 }
 
 static void
-l1_gcunprotect(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_gcunlock(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to gcunprotect");
-	gcunprotect(argv[0]);
+		vmerr(vm, "wrong number of arguments to gcunlock");
+	gcunlock(argv[0]);
 }
 
 static void
@@ -9427,8 +9439,8 @@ mktopenv(void)
 	FN(fieldtype);
 	FN(finalize);
 	FN(gc);
-	FN(gcprotect);
-	FN(gcunprotect);
+	FN(gclock);
+	FN(gcunlock);
 	FN(getbytes);
 	FN(hash);
 	FN(index);
@@ -9695,18 +9707,18 @@ vmfaulthook()
 void
 initvm(int gcthread, u64 heapmax)
 {
-	Xundef = gcprotect(malq(Qundef));
-	Xnulllist = gcprotect(malq(Qnull));
-	cccode = gcprotect(callccode());
-	kcode = gcprotect(contcode());
-	litdom = gcprotect(mklitdom());
-	cvalnull = gcprotect(mkcval(litdom, litdom->ns->base[Vptr], 0));
-	finals = gcprotect(mktab());
-	cval0 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], 0));
-	cval1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], 1));
-	cvalminus1 = gcprotect(mkcval(litdom, litdom->ns->base[Vint], -1));
-	halt = gcprotect(haltthunk());
-	nop = gcprotect(nopthunk());
+	Xundef = gclock(malq(Qundef));
+	Xnulllist = gclock(malq(Qnull));
+	cccode = gclock(callccode());
+	kcode = gclock(contcode());
+	litdom = gclock(mklitdom());
+	cvalnull = gclock(mkcval(litdom, litdom->ns->base[Vptr], 0));
+	finals = gclock(mktab());
+	cval0 = gclock(mkcval(litdom, litdom->ns->base[Vint], 0));
+	cval1 = gclock(mkcval(litdom, litdom->ns->base[Vint], 1));
+	cvalminus1 = gclock(mkcval(litdom, litdom->ns->base[Vint], -1));
+	halt = gclock(haltthunk());
+	nop = gclock(nopthunk());
 	cqctfaulthook(vmfaulthook, 1);
 	GCiterdone = emalloc(1); /* unique pointer */
 }
@@ -9714,18 +9726,18 @@ initvm(int gcthread, u64 heapmax)
 void
 finivm(void)
 {
-	gcunprotect(Xundef);
-	gcunprotect(Xnulllist);
-	gcunprotect(cccode);
-	gcunprotect(kcode);
-	gcunprotect(litdom);
-	gcunprotect(cvalnull);
-	gcunprotect(finals);
-	gcunprotect(cval0);
-	gcunprotect(cval1);
-	gcunprotect(cvalminus1);
-	gcunprotect(halt);
-	gcunprotect(nop);
+	gcunlock(Xundef);
+	gcunlock(Xnulllist);
+	gcunlock(cccode);
+	gcunlock(kcode);
+	gcunlock(litdom);
+	gcunlock(cvalnull);
+	gcunlock(finals);
+	gcunlock(cval0);
+	gcunlock(cval1);
+	gcunlock(cvalminus1);
+	gcunlock(halt);
+	gcunlock(nop);
 	cqctfaulthook(vmfaulthook, 0);
 	efree(GCiterdone);
 }
