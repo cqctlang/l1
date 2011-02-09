@@ -83,7 +83,6 @@ Val Xundef;
 Val Xnil;
 Val Xnulllist;
 static Dom *litdom;
-static Tab *finals;
 static Closure *halt, *nop;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
@@ -8550,31 +8549,6 @@ l1_isundefined(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_finalize(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Head *hd;
-	Closure *cl, *ocl;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to finalize");
-	hd = (Head*)argv[0];
-	if(Vkind(argv[1]) == Qcl){
-		cl = valcl(argv[1]);
-		ocl = valcl(tabget(finals, hd));
-		if(ocl)
-			ocl = gcunlock(ocl);
-		cl = gclock(cl);
-		tabput(finals, hd, mkvalcl(cl));
-//		Vsetfinal(hd, 1);
-//	        xprintf("set final on %p (%d)\n", hd, Vfinal(hd));
-	}else if(Vkind(argv[1]) == Qnil){
-		tabdel(finals, hd);
-//		Vsetfinal(hd, 0);
-	}else
-		vmerr(vm, "argument 1 to finalize must be a function or nil");
-	USED(rv);
-}
-
-static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(vm);
@@ -9445,7 +9419,6 @@ mktopenv(void)
 	FN(fieldoff);
 	FN(fields);
 	FN(fieldtype);
-	FN(finalize);
 	FN(gc);
 	FN(gclock);
 	FN(gcstats);
@@ -9722,7 +9695,6 @@ initvm(int gcthread, u64 heapmax)
 	kcode = gclock(contcode());
 	litdom = gclock(mklitdom());
 	cvalnull = gclock(mkcval(litdom, litdom->ns->base[Vptr], 0));
-	finals = gclock(mktab());
 	cval0 = gclock(mkcval(litdom, litdom->ns->base[Vint], 0));
 	cval1 = gclock(mkcval(litdom, litdom->ns->base[Vint], 1));
 	cvalminus1 = gclock(mkcval(litdom, litdom->ns->base[Vint], -1));
@@ -9741,7 +9713,6 @@ finivm(void)
 	gcunlock(kcode);
 	gcunlock(litdom);
 	gcunlock(cvalnull);
-	gcunlock(finals);
 	gcunlock(cval0);
 	gcunlock(cval1);
 	gcunlock(cvalminus1);
