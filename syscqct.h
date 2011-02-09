@@ -1150,6 +1150,7 @@ void		gcdisable();
 void		gcenable();
 void		gcpoll(VM *vm);
 void*		gclock(void *v);
+void		gcstats();
 void*		gcunlock(void *v);
 void		gcwb(Val v);
 void		guard(Val o, Pair *g);

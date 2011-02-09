@@ -8639,6 +8639,14 @@ l1_gcunlock(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gcstats(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to gcstats");
+	gcstats();
+}
+
+static void
 l1_instguard(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Pair *p;
@@ -9440,6 +9448,7 @@ mktopenv(void)
 	FN(finalize);
 	FN(gc);
 	FN(gclock);
+	FN(gcstats);
 	FN(gcunlock);
 	FN(getbytes);
 	FN(hash);

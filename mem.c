@@ -152,6 +152,14 @@ struct Heap
 	u32 gctrip, gcsched[Ngen], ingc;
 } Heap;
 
+typedef
+struct Stats
+{
+	u32 ncard;
+	u32 nlock;
+	u32 nseg[Nmt][Nsgen];
+} Stats;
+
 static int freecl(Head*);
 static int freefd(Head*);
 static int freestr(Head*);
@@ -198,6 +206,7 @@ static Qtype qs[Qnkind] = {
 static Segmap	segmap;
 static Heap	H;
 static unsigned	alldbg = 0;
+static Stats	stats;
 
 static int
 freecl(Head *hd)
@@ -870,8 +879,8 @@ shrink(u64 targ)
 		fatal("bug");
 }
 
-static void
-dumpstats()
+void
+gcstats()
 {
 	printf(" inuse = %10lu\n", H.inuse);
 	printf("  free = %10lu\n", H.free);
@@ -879,6 +888,9 @@ dumpstats()
 	printf(" bigsz = %10lu\n", H.bigsz);
 	printf("smapsz = %10lu\n", H.smapsz);
 	printf("segmap = %10llu\n", (segmap.hi-segmap.lo)/Segsize*sizeof(Seg));
+
+	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
+	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
 }
 
 #define max(a,b) ((a)>(b)?(a):(b))
@@ -899,22 +911,18 @@ maintain()
 		return;
 
 	if(H.free < LORES*H.inuse || H.heapsz < Minheap){
-//		dumpstats();
 //		printf("growing free area from %ld to ... ", H.free);
 		sz1 = H.free < LORES*H.inuse ? (TARGRES-1)*H.inuse : 0;
 		sz2 = H.heapsz < Minheap ? Minheap-H.heapsz : 0;
 		grow(max(sz1, sz2));
 //		printf("%ld\n", H.free);
-//		dumpstats();
 //		printf("\n");
 	}else if(H.heapsz > Minheap && H.free > HIRES*H.inuse){
-//		dumpstats();
 //		printf("shrinking free area from %ld to ... ", H.free);
 		shrink(TARGRES*H.inuse);
 //		printf("%ld\n", H.free);
 		if(H.heapsz > Minheap && H.free > HIRES*H.inuse)
 			fatal("bug");
-//		dumpstats();
 //		printf("\n");
 	}
 }
@@ -1642,6 +1650,7 @@ scancard(Seg *s)
 
 	if(MTold(s->mt))
 		fatal("wtf?");
+	stats.ncard++;
 	min = Clean;
 	p = s2a(s);
 	while(p < s->a){
@@ -1709,6 +1718,7 @@ scan1locked(Seg *s)
 	copy((Val*)&s->p); /* retain list of locked objects! */
 	p = (Head*)s->p;
 	while(p){
+		stats.nlock++;
 		scan1(cdar(p));
 		p = cdr(p);
 	}
@@ -1886,6 +1896,7 @@ _gc(u32 g, u32 tg)
 	Head *h;
 	unsigned dbg = alldbg;
 
+	memset(&stats, 0, sizeof(stats));
 	maintain();
 	H.ingc++;
 	if(g != tg && g != tg-1)
