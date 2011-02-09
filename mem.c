@@ -1692,7 +1692,8 @@ scanunlocked()
 	Pair *p;
 	p = H.unlocked;
 	while(p != (Pair*)Xnil){
-		scan1(car(p));
+		if(!Vfwd(car(p)))
+			scan1(car(p));
 		p = (Pair*)cdr(p);
 	}
 	H.unlocked = (Pair*)Xnil;
