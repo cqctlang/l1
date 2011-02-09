@@ -1222,7 +1222,7 @@ copy(Val *v)
 		s = a2s(*v);
 		return s->gen;
 	}
-	if(Vprot(h)){
+	if(Vlock(h)){
 		// protected objects do not move.
 		if(dbg)printf("copy: object %p is protected\n", h);
 		return Glock;
@@ -1439,7 +1439,7 @@ islive(Head *o)
 	Seg *s;
 	if(Vfwd(o))
 		return 1;
-	if(Vprot(o))
+	if(Vlock(o))
 		return 1;
 	s = a2s(o);
 	if(!MTold(s->mt))
@@ -1707,7 +1707,7 @@ scan1locked(Seg *s)
 	copy((Val*)&s->p); /* retain list of locked objects! */
 	p = (Head*)s->p;
 	while(p){
-		scan1(car(p));
+		scan1(cdar(p));
 		p = cdr(p);
 	}
 }
@@ -1808,7 +1808,7 @@ reloc1(Seg *s, u32 tg)
 	if(s->gen == Glock){
 		p = (Head*)s->p;
 		while(p){
-			h = car(p);
+			h = cdar(p);
 			if(!Vdead(h))
 				reloccode((Code*)h);
 			p = cdr(p);
@@ -2007,21 +2007,33 @@ gcprotect(void *v)
 {
 	Seg *s;
 	Head *h;
+	Pair *p;
+	Cval *cv;
 
 	if(v == 0)
 		return v;
 	h = v;
 	if(Vfwd(h))
 		fatal("bug");
-	if(Vprot(h))
-		// FIXME: with a counter rather than a bit, we could
-		// allow this.
-		fatal("gcprotect on already protected object %p", h);
 	s = a2s(h);
-	s->p = cons(h, s->p);
-	s->nprotect++;
-	Vsetprot(h, 1);
-	return h;
+	if(Vlock(h)){
+		/* find locked object record and bump count */
+		p = s->p;
+		while(p){
+			if(cdar(p) == h){
+				cv = (Cval*)caar(p);
+				cv->val++;
+				return h;
+			}
+			p = (Pair*)cdr(p);
+		}
+		fatal("lost track of locked object");
+	}else{
+		s->p = cons(cons(mkvalcval(0, 0, 1), h), s->p);
+		s->nprotect++;
+		Vsetlock(h, 1);
+		return h;
+	}
 }
 
 void*
@@ -2029,30 +2041,36 @@ gcunprotect(void *v)
 {
 	Seg *s;
 	Head *h, *p, **r;
+	Cval *cv;
 
 	if(v == 0)
 		return v;
 	h = v;
 	if(Vfwd(h))
 		fatal("bug");
-	if(!Vprot(h))
-		fatal("gcunprotect on already unprotected object %p", h);
+	if(!Vlock(h))
+		return h;
 	s = a2s(h);
-	// FIXME: generation safe?
 	r = (Head**)&s->p;
 	p = *r;
 	while(p){
-		if(car(p) == h){
-			*r = cdr(p);
-			break;
+		if(cdar(p) == h){
+			cv = (Cval*)caar(p);
+			cv->val--;
+			if(cv->val == 0){
+				*r = cdr(p);
+				s->nprotect--;
+				Vsetlock(h, 0);
+				H.unlocked = cons(h, H.unlocked);
+				return h;
+			}else
+				return h;
 		}
 		r = &cdr(p);
 		p = *r;
 	}
-	s->nprotect--;
-	Vsetprot(h, 0);
-	H.unlocked = cons(h, H.unlocked);
-	return h;
+	fatal("lost track of locked object");
+	return 0;
 }
 
 void

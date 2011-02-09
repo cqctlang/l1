@@ -94,10 +94,10 @@ typedef struct Head* Val;
 #define	Vkindoff      (Vfwdoff+Vfwdbits)
 #define	Vkindbits     5
 #define	Vkindmask     ((1<<Vkindbits)-1)
-#define	Vprotoff      (Vkindoff+Vkindbits)
-#define	Vprotbits     1
-#define	Vprotmask     ((1<<Vprotbits)-1)
-#define	Vdeadoff      (Vprotoff+Vprotbits)
+#define	Vlockoff      (Vkindoff+Vkindbits)
+#define	Vlockbits     1
+#define	Vlockmask     ((1<<Vlockbits)-1)
+#define	Vdeadoff      (Vlockoff+Vlockbits)
 #define	Vdeadbits     1
 #define	Vdeadmask     ((1<<Vdeadbits)-1)
 
@@ -108,11 +108,11 @@ typedef struct Head* Val;
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
-#define Vprot(p)        ((((p)->bits)>>Vprotoff)&Vprotmask)
-#define Vsetprot(p, v)  ((p)->bits = ((p)->bits&~(Vprotmask<<Vprotoff))|(((v)&Vprotmask)<<Vprotoff))
+#define Vlock(p)          ((((p)->bits)>>Vlockoff)&Vlockmask)
+#define Vsetlock(p, v)    ((p)->bits = ((p)->bits&~(Vlockmask<<Vlockoff))|(((v)&Vlockmask)<<Vlockoff))
 
-#define Vdead(p)        ((((p)->bits)>>Vdeadoff)&Vdeadmask)
-#define Vsetdead(p, v)  ((p)->bits = ((p)->bits&~(Vdeadmask<<Vdeadoff))|(((v)&Vdeadmask)<<Vdeadoff))
+#define Vdead(p)          ((((p)->bits)>>Vdeadoff)&Vdeadmask)
+#define Vsetdead(p, v)    ((p)->bits = ((p)->bits&~(Vdeadmask<<Vdeadoff))|(((v)&Vdeadmask)<<Vdeadoff))
 
 struct Head
 {
