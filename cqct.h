@@ -85,7 +85,7 @@ typedef struct Head* Val;
 
 /*
          7 6 5 4 3 2 1 0
-        |D|P|K K K K K|F|
+        |D|L|K K K K K|F|
  */
 
 #define	Vfwdoff       0
