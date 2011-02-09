@@ -1256,6 +1256,7 @@ copy(Val *v)
 		break;
 	case Qstr:
 	case Qvec:
+	case Qrec:
 		nh = malv(Vkind(h), sz);
 		break;
 	default:
