@@ -1153,7 +1153,7 @@ void*		gclock(void *v);
 void*		gcunlock(void *v);
 void		gcwb(Val v);
 void		guard(Val o, Pair *g);
-void		initmem(u64 rate);
+void		initmem();
 void		instguard(Pair *p);
 int		isweak(Head *h);
 Head*		malq(Qkind kind);

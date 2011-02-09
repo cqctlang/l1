@@ -2076,7 +2076,7 @@ gcunlock(void *v)
 }
 
 void
-initmem(u64 gcrate)
+initmem()
 {
 	u32 i, gr;
 
@@ -2090,10 +2090,7 @@ initmem(u64 gcrate)
 	H.c = resetalloc(MTcode, 0);
 	H.w = resetalloc(MTweak, 0);
 	H.na = 0;
-	if(gcrate)
-		H.ma = gcrate;
-	else
-		H.ma = GCthresh;
+	H.ma = GCthresh;
 
 	/* we need nil now to initialize the guarded object lists */
 	Xnil = gclock(malq(Qnil));
