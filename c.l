@@ -34,6 +34,7 @@ static int chars(YYSTYPE *lvalp, int);
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
 ^#!.*			{ /* treat as comment */ ctx->inp->src.col = 0; }
 "/*"			{ comment(ctx); }
+"@const"		{ count(ctx); }
 "@containerof"		{ count(ctx); return(CONTAINEROF); }
 "@define"		{ count(ctx); return(DEFINE); }
 "@global"		{ count(ctx); return(GLOBAL); }
