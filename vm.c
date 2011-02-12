@@ -690,7 +690,7 @@ mkstrk(char *s, Imm len, Skind skind)
 		sa->s = s;
 		sa->str.len = len;
 		sa->str.skind = Smalloc;
-		quard((Val)sm);
+		quard((Val)sa);
 		return (Str*)sa;
 	case Smmap:
 		sm = (Strmmap*)malv(Qstr, sizeof(Strmmap));
