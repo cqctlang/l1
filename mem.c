@@ -236,6 +236,7 @@ freestr(Head *hd)
 {
 	Str *str;
 	Strmmap *m;
+	Strmalloc *a;
 	str = (Str*)hd;
 	// printf("freestr(%.*s)\n", (int)str->len, str->s);
 	switch(str->skind){
@@ -244,6 +245,10 @@ freestr(Head *hd)
 		xmunmap(m->s, m->mlen);
 		break;
 	case Smalloc:
+		a = (Strmalloc*)str;
+		efree(a->s);
+		break;
+	case Sheap:
 	case Sperm:
 		fatal("bug");
 	}
@@ -1196,8 +1201,10 @@ qsz(Head *h)
 	case Qstr:
 		s = (Str*)h;
 		switch(s->skind){
-		case Smalloc:
+		case Sheap:
 			return roundup(strsize(s->len), Align);
+		case Smalloc:
+			return sizeof(Strmalloc);
 		case Smmap:
 			return sizeof(Strmmap);
 		case Sperm:

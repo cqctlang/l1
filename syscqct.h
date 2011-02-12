@@ -414,7 +414,8 @@ struct Rd {
 typedef
 enum {
 	Sperm,			/* don't free */
-	Smalloc,		/* free with free() */
+	Sheap,			/* managed by gc */
+	Smalloc,		/* free with efree() */
 	Smmap,			/* free with munmap() */
 } Skind;
 
@@ -437,12 +438,20 @@ struct Strperm {
 	char *s;		/* data */
 } Strperm;
 
-#define strdata(x) (((x)->skind == Smalloc)	\
-		    ? (char*)((x)+1)	        \
-	            : (((x)->skind == Smmap)    \
-	               ? (((Strmmap*)(x))->s)   \
-		       : (((Strperm*)(x))->s)))
-/* size of Smalloc strings */
+typedef
+struct Strmalloc {
+	Str str;
+	char *s;		/* data */
+} Strmalloc;
+
+#define strdata(x) (((x)->skind == Sheap)	   \
+		    ? (char*)((x)+1)	           \
+	            : (((x)->skind == Smmap)       \
+	               ? (((Strmmap*)(x))->s)      \
+		       : (((x)->skind == Smalloc)  \
+                          ? (((Strmalloc*)(x))->s) \
+			  : (((Strperm*)(x))->s))))
+/* size of Sheap strings */
 #define strsize(n) (sizeof(Str)+(n)*sizeof(char))
 
 struct Vec {

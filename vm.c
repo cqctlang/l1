@@ -651,7 +651,7 @@ mkstrn(Imm len)
 	Str *str;
 	str = (Str*)malv(Qstr, sizeof(Str)+len*sizeof(char));
 	str->len = len;
-	str->skind = Smalloc;
+	str->skind = Sheap;
 	return str;
 }
 
@@ -680,10 +680,18 @@ mkstrk(char *s, Imm len, Skind skind)
 {
 	Strmmap *sm;
 	Strperm *sp;
+	Strmalloc *sa;
 
 	switch(skind){
-	case Smalloc:
+	case Sheap:
 		return mkstr(s, len);
+	case Smalloc:
+		sa = (Strmalloc*)malv(Qstr, sizeof(Strmalloc));
+		sa->s = s;
+		sa->str.len = len;
+		sa->str.skind = Smalloc;
+		quard((Val)sm);
+		return (Str*)sa;
 	case Smmap:
 		sm = (Strmmap*)malv(Qstr, sizeof(Strmmap));
 		sm->mlen = len;
@@ -700,6 +708,17 @@ mkstrk(char *s, Imm len, Skind skind)
 		return (Str*)sp;
 	}
 	fatal("bug");
+}
+
+Str*
+mkstrmalloc(Imm len)
+{
+	Strmalloc *sa;
+	sa = (Strmalloc*)malv(Qstr, sizeof(Strmalloc));
+	sa->s = emalloc(len);
+	sa->str.len = len;
+	sa->str.skind = Smalloc;
+	return (Str*)sa;
 }
 
 static Str*
@@ -6907,7 +6926,7 @@ l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 	len = valcval(argv[0]);
 	if(!isnatcval(len))
 		vmerr(vm, "malloc expects a non-negative length");
-	s = mkstrn(len->val);
+	s = mkstrmalloc(len->val);
 	as = mkmas(s);
 	*rv = mkvalcval(mkdom(litdom->ns, as, mkstr0("malloc")),
 			mkptrxtn(litdom->ns->base[Vchar],
