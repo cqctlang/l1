@@ -8671,6 +8671,33 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_evalk(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *str;
+	Val cl;
+	char *s;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to evalk");
+	checkarg(vm, "evalk", argv, 0, Qstr);
+	checkarg(vm, "evalk", argv, 1, Qcl);
+	checkarg(vm, "evalk", argv, 2, Qcl);
+	str = valstr(argv[0]);
+	s = str2cstr(str);
+	cl = cqctcompile(s, "<eval-input>", vm->top, 0);
+	efree(s);
+	if(cl == 0)
+		return;
+	if(waserror(vm)){
+		*rv = dovm(vm, valcl(argv[2]), 0, 0);
+		return;
+	}
+	*rv = dovm(vm, valcl(cl), 0, 0);
+	poperror(vm);
+	dovm(vm, valcl(argv[1]), 1, rv);
+}
+
+static void
 l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(argc);
@@ -9430,6 +9457,7 @@ mktopenv(void)
 	FN(enumconsts);
 	FN(equal);
 	FN(eval);
+	FN(evalk);
 	FN(error);
 	FN(fault);
 	FN(fdname);
