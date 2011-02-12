@@ -85,7 +85,7 @@ typedef struct Head* Val;
 
 /*
          7 6 5 4 3 2 1 0
-        |D|L|K K K K K|F|
+        |0|D|K K K K K|F|
  */
 
 #define	Vfwdoff       0
@@ -94,10 +94,7 @@ typedef struct Head* Val;
 #define	Vkindoff      (Vfwdoff+Vfwdbits)
 #define	Vkindbits     5
 #define	Vkindmask     ((1<<Vkindbits)-1)
-#define	Vlockoff      (Vkindoff+Vkindbits)
-#define	Vlockbits     1
-#define	Vlockmask     ((1<<Vlockbits)-1)
-#define	Vdeadoff      (Vlockoff+Vlockbits)
+#define	Vdeadoff      (Vkindoff+Vkindbits)
 #define	Vdeadbits     1
 #define	Vdeadmask     ((1<<Vdeadbits)-1)
 
@@ -107,9 +104,6 @@ typedef struct Head* Val;
 
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
-
-#define Vlock(p)          ((((p)->bits)>>Vlockoff)&Vlockmask)
-#define Vsetlock(p, v)    ((p)->bits = ((p)->bits&~(Vlockmask<<Vlockoff))|(((v)&Vlockmask)<<Vlockoff))
 
 #define Vdead(p)          ((((p)->bits)>>Vdeadoff)&Vdeadmask)
 #define Vsetdead(p, v)    ((p)->bits = ((p)->bits&~(Vdeadmask<<Vdeadoff))|(((v)&Vdeadmask)<<Vdeadoff))

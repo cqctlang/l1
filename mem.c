@@ -1067,6 +1067,21 @@ meminuse()
 	return H.inuse;
 }
 
+static int
+islocked(Seg *s, Head *h)
+{
+	Head *p;
+	if(s->nprotect == 0)
+		return 0;
+	p = (Head*)s->p;
+	while(p){
+		if(cdar(p) == h)
+			return 1;
+		p = cdr(p);
+	}
+	return 0;
+}
+
 int
 isweak(Head *h)
 {
@@ -1230,12 +1245,12 @@ copy(Val *v)
 		s = a2s(*v);
 		return s->gen;
 	}
-	if(Vlock(h)){
+	s = a2s(h);
+	if(islocked(s, h)){
 		// protected objects do not move.
 		if(dbg)printf("copy: object %p is protected\n", h);
 		return Glock;
 	}
-	s = a2s(h);
 	if(!MTold(s->mt)){
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
@@ -1448,9 +1463,9 @@ islive(Head *o)
 	Seg *s;
 	if(Vfwd(o))
 		return 1;
-	if(Vlock(o))
-		return 1;
 	s = a2s(o);
+	if(islocked(s, o))
+		return 1;
 	if(!MTold(s->mt))
 		return 1;
 	return 0;
@@ -2029,7 +2044,7 @@ gclock(void *v)
 	if(Vfwd(h))
 		fatal("bug");
 	s = a2s(h);
-	if(Vlock(h)){
+	if(islocked(s, h)){
 		/* find locked object record and bump count */
 		p = s->p;
 		while(p){
@@ -2044,7 +2059,6 @@ gclock(void *v)
 	}else{
 		s->p = cons(cons(mkvalcval(0, 0, 1), h), s->p);
 		s->nprotect++;
-		Vsetlock(h, 1);
 		return h;
 	}
 }
@@ -2061,9 +2075,9 @@ gcunlock(void *v)
 	h = v;
 	if(Vfwd(h))
 		fatal("bug");
-	if(!Vlock(h))
-		return h;
 	s = a2s(h);
+	if(!islocked(s, h))
+		return h;
 	r = (Head**)&s->p;
 	p = *r;
 	while(p){
@@ -2073,7 +2087,6 @@ gcunlock(void *v)
 			if(cv->val == 0){
 				*r = cdr(p);
 				s->nprotect--;
-				Vsetlock(h, 0);
 				H.unlocked = cons(h, H.unlocked);
 				return h;
 			}else
