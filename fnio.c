@@ -623,6 +623,111 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	listappend(vm, ls, mkvalfd(fd));
 }
 
+static int
+setfdsin(VM *vm, List *l, fd_set *f)
+{
+	Val v;
+	Imm i;
+	int n, m;
+	Fd *fd;
+
+	printf("enter setfdsin\n");
+	m = listlen(l);
+	n = -1;
+	for(i = 0; i < m; i++){
+		v = listref(vm, l, i);
+		if(Vkind(v) != Qfd)
+			vmerr(vm, "select on non file descriptor");
+		fd = valfd(v);
+		if((fd->flags&Ffn) == 0)
+			vmerr(vm, "select on unselectable file descriptor");
+		printf("adding %d\n", fd->u.fn.fd);
+		FD_SET(fd->u.fn.fd, f);
+		if(fd->u.fn.fd > n)
+			n = fd->u.fn.fd;
+	}
+	printf("returning %d\n", n);
+	return n;
+}
+
+static void
+setfdsout(VM *vm, List *il, fd_set *f, List *ol)
+{
+	Val v;
+	Imm i;
+	int m;
+	Fd *fd;
+
+	m = listlen(il);
+	for(i = 0; i < m; i++){
+		v = listref(vm, il, i);
+		fd = valfd(v);
+		if(FD_ISSET(fd->u.fn.fd, f))
+			listappend(vm, ol, v);
+	}
+}
+
+static void
+l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	fd_set rfds, wfds, efds;
+	int n, s;
+	List *r, *w, *e, *rl, *t;
+	Cval *cv;
+	Val v;
+	struct timeval tv, *tvp;
+
+	if(argc != 3 && argc != 4)
+		vmerr(vm, "wrong number of arguments to select");
+	checkarg(vm, "select", argv, 0, Qlist);
+	checkarg(vm, "select", argv, 1, Qlist);
+	checkarg(vm, "select", argv, 2, Qlist);
+	tvp = 0;
+	if(argc == 4){
+		checkarg(vm, "select", argv, 3, Qlist);
+		tvp = &tv;
+		t = vallist(argv[3]);
+		if(listlen(t) != 2)
+			vmerr(vm, "bad timeout specifier");
+		v = listref(vm, t, 0);
+		if(Vkind(v) != Qcval)
+			vmerr(vm, "bad timeout specifier");
+		cv = valcval(v);
+		tv.tv_sec = cv->val;
+		v = listref(vm, t, 1);
+		if(Vkind(v) != Qcval)
+			vmerr(vm, "bad timeout specifier");
+		cv = valcval(v);
+		tv.tv_usec = cv->val;
+	}
+
+	FD_ZERO(&rfds);
+	FD_ZERO(&wfds);
+	FD_ZERO(&efds);
+	n = 0;
+	s = setfdsin(vm, vallist(argv[0]), &rfds);
+	n = MAX(n, s);
+	s = setfdsin(vm, vallist(argv[1]), &wfds);
+	n = MAX(n, s);
+	s = setfdsin(vm, vallist(argv[2]), &efds);
+	n = MAX(n, s);
+	printf("select %d\n", n);
+	n = select(n, &rfds, &wfds, &efds, tvp);
+	if(0 > n)
+		vmerr(vm, "select: %s", strerror(errno));
+	r = mklist();
+	w = mklist();
+	e = mklist();
+	setfdsout(vm, vallist(argv[0]), &rfds, r);
+	setfdsout(vm, vallist(argv[1]), &wfds, w);
+	setfdsout(vm, vallist(argv[2]), &efds, e);
+	rl = mklist();
+	listappend(vm, rl, mkvallist(r));
+	listappend(vm, rl, mkvallist(w));
+	listappend(vm, rl, mkvallist(e));
+	*rv = mkvallist(rl);
+}
+
 void
 fnio(Env *env)
 {
@@ -634,6 +739,7 @@ fnio(Env *env)
 	FN(popen);
 	FN(read);
 	FN(seek);
+	FN(select);
 	FN(stat);
 	FN(write);
 }
