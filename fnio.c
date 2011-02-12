@@ -704,7 +704,7 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 	FD_ZERO(&rfds);
 	FD_ZERO(&wfds);
 	FD_ZERO(&efds);
-	n = 0;
+	n = -1;
 	s = setfdsin(vm, vallist(argv[0]), &rfds);
 	n = MAX(n, s);
 	s = setfdsin(vm, vallist(argv[1]), &wfds);
@@ -712,7 +712,7 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 	s = setfdsin(vm, vallist(argv[2]), &efds);
 	n = MAX(n, s);
 	printf("select %d\n", n);
-	n = select(n, &rfds, &wfds, &efds, tvp);
+	n = select(n+1, &rfds, &wfds, &efds, tvp);
 	if(0 > n)
 		vmerr(vm, "select: %s", strerror(errno));
 	r = mklist();
