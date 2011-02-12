@@ -627,8 +627,8 @@ static int
 setfdsin(VM *vm, List *l, fd_set *f)
 {
 	Val v;
-	Imm i;
-	int n, m;
+	Imm i, m;
+	int n;
 	Fd *fd;
 
 	m = listlen(l);
@@ -651,8 +651,7 @@ static void
 setfdsout(VM *vm, List *il, fd_set *f, List *ol)
 {
 	Val v;
-	Imm i;
-	int m;
+	Imm i, m;
 	Fd *fd;
 
 	m = listlen(il);
