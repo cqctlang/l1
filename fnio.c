@@ -631,7 +631,6 @@ setfdsin(VM *vm, List *l, fd_set *f)
 	int n, m;
 	Fd *fd;
 
-	printf("enter setfdsin\n");
 	m = listlen(l);
 	n = -1;
 	for(i = 0; i < m; i++){
@@ -641,12 +640,10 @@ setfdsin(VM *vm, List *l, fd_set *f)
 		fd = valfd(v);
 		if((fd->flags&Ffn) == 0)
 			vmerr(vm, "select on unselectable file descriptor");
-		printf("adding %d\n", fd->u.fn.fd);
 		FD_SET(fd->u.fn.fd, f);
 		if(fd->u.fn.fd > n)
 			n = fd->u.fn.fd;
 	}
-	printf("returning %d\n", n);
 	return n;
 }
 
@@ -711,7 +708,6 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 	n = MAX(n, s);
 	s = setfdsin(vm, vallist(argv[2]), &efds);
 	n = MAX(n, s);
-	printf("select %d\n", n);
 	n = select(n+1, &rfds, &wfds, &efds, tvp);
 	if(0 > n)
 		vmerr(vm, "select: %s", strerror(errno));
