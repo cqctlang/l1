@@ -2,6 +2,7 @@
 #include "util.h"
 #include "syscqct.h"
 
+#if 0
 static Expr*
 letrec(U *ctx, Expr *e)
 {
@@ -32,6 +33,7 @@ letrec(U *ctx, Expr *e)
 		return e;
 	}
 }
+#endif
 
 static Expr*
 uncoverfree(U *ctx, Expr *e, Vs *fs)

@@ -827,6 +827,7 @@ escaping(Expr *e)
 	}
 }
 
+#if 0
 static Expr*
 nextstmt(Expr *e)
 {
@@ -841,6 +842,7 @@ nextstmt(Expr *e)
 		return e;
 	}
 }
+#endif
 
 static Ctl*
 escapectl(Expr *e, CGEnv *p)
