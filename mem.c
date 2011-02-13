@@ -887,13 +887,13 @@ shrink(u64 targ)
 void
 gcstats()
 {
-	printf(" inuse = %10lu\n", H.inuse);
-	printf("  free = %10lu\n", H.free);
-	printf("heapsz = %10lu\n", H.heapsz);
-	printf(" bigsz = %10lu\n", H.bigsz);
-	printf("smapsz = %10lu\n", H.smapsz);
-	printf("segmap = %10llu\n", (segmap.hi-segmap.lo)/Segsize*sizeof(Seg));
-
+	printf(" inuse = %10" PRIu64 "\n", H.inuse);
+	printf("  free = %10" PRIu64 "\n", H.free);
+	printf("heapsz = %10" PRIu64 "\n", H.heapsz);
+	printf(" bigsz = %10" PRIu64 "\n", H.bigsz);
+	printf("smapsz = %10" PRIu64 "\n", H.smapsz);
+	printf("segmap = %10" PRIu64 "\n",
+	       (segmap.hi-segmap.lo)/Segsize*sizeof(Seg));
 	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
 	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
 }
