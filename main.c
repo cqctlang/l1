@@ -46,8 +46,12 @@ usage(char *argv0)
 	fprintf(stderr, "\t-t report timing statistics\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
+	fprintf(stderr, "\t-s don't look for library code in same"
+	    "directory as the l1 executable\n");
 	fprintf(stderr, "\t-lDIR add DIR to the load path\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
+	fprintf(stderr, "\t-a dump expressions as they are compiled\n");
+	fprintf(stderr, "\t-k print both line and column for parse errors\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
 	fprintf(stderr, "\t-p dump IR at various stages\n");
 	fprintf(stderr, "\t-q dump expanded cinquecento source\n");
@@ -55,6 +59,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-c do not compile expanded source\n");
 	fprintf(stderr, "\t-x do not execute object code\n");
 	fprintf(stderr, "\t-g do not run gc in separate thread\n");
+	fprintf(stderr, "\t-T report timing statistics for the compiler\n");
 
 	exit(0);
 }
