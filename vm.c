@@ -7389,7 +7389,7 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
 	unsigned char b;
-	Cval *bcv, *lcv;
+	Cval *tcv, *bcv, *lcv;
 	Imm lim;
 
 	if(argc != 2 && argc != 3)
@@ -7404,8 +7404,17 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 		lim = lcv->val;
 	}else
 		lim = s->len;
-	memset(strdata(s), b, lim);
-	USED(rv);
+	if(Vkind(argv[0]) == Qstr)
+		memset(strdata(s), b, lim);
+	else if(Vkind(argv[0]) == Qcval){
+		/* FIXME: we shouldn't call valstrorcval just
+		   to get lim in 2-arg case */
+		s = mkstrmalloc(lim);
+		memset(strdata(s), b, lim);
+		tcv = valcval(argv[0]);
+		callput(vm, tcv->dom->as, tcv->val, lim, s);
+	}else
+		fatal("bug");
 }
 
 static void
