@@ -7726,41 +7726,6 @@ l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 }
 
 static void
-l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
-{
-	Imm ll, argc, m;
-	Val *argv, *ap, *ip, vp;
-	Closure *cl;
-	List *lst;
-
-	if(iargc < 2)
-		vmerr(vm, "wrong number of arguments to apply");
-	checkarg(vm, "apply", iargv, 0, Qcl);
-	cl = valcl(iargv[0]);
-	checkarg(vm, "apply", iargv, iargc-1, Qlist);
-	ll = listlen(vallist(iargv[iargc-1]));
-	argc = iargc-2+ll;
-	argv = emalloc(argc*sizeof(Val));
-	ap = argv;
-	ip = &iargv[1];
-	for(m = 0; m < iargc-2; m++)
-		*ap++ = *ip++;
-	lst = vallist(*ip);
-	for(m = 0; m < ll; m++){
-		vp = listref(vm, lst, m);
-		*ap++ = vp;
-	}
-	if(waserror(vm)){
-		efree(argv);
-		nexterror(vm);
-	}
-	vp = dovm(vm, cl, argc, argv);
-	*rv = vp;
-	efree(argv);
-	poperror(vm);
-}
-
-static void
 l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
@@ -8680,6 +8645,18 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+applyk(VM *vm, Val cl, Val succ, Val fail, Imm argc, Val *argv, Val *rv)
+{
+	if(waserror(vm)){
+		*rv = dovm(vm, valcl(fail), 0, 0);
+		return;
+	}
+	*rv = dovm(vm, valcl(cl), argc, argv);
+	poperror(vm);
+	*rv = dovm(vm, valcl(succ), 1, rv);
+}
+
+static void
 l1_evalk(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *str;
@@ -8697,13 +8674,76 @@ l1_evalk(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(s);
 	if(cl == 0)
 		return;
-	if(waserror(vm)){
-		*rv = dovm(vm, valcl(argv[2]), 0, 0);
-		return;
+	applyk(vm, cl, argv[1], argv[2], 0, 0, rv);
+}
+
+static void
+l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
+{
+	Imm ll, argc, m;
+	Val *argv, *ap, *ip, vp;
+	Closure *cl;
+	List *lst;
+
+	if(iargc < 2)
+		vmerr(vm, "wrong number of arguments to apply");
+	checkarg(vm, "apply", iargv, 0, Qcl);
+	cl = valcl(iargv[0]);
+	checkarg(vm, "apply", iargv, iargc-1, Qlist);
+	ll = listlen(vallist(iargv[iargc-1]));
+	argc = iargc-2+ll;
+	argv = emalloc(argc*sizeof(Val));
+	ap = argv;
+	ip = &iargv[1];
+	for(m = 0; m < iargc-2; m++)
+		*ap++ = *ip++;
+	lst = vallist(*ip);
+	for(m = 0; m < ll; m++){
+		vp = listref(vm, lst, m);
+		*ap++ = vp;
 	}
-	*rv = dovm(vm, valcl(cl), 0, 0);
+	if(waserror(vm)){
+		efree(argv);
+		nexterror(vm);
+	}
+	vp = dovm(vm, cl, argc, argv);
+	*rv = vp;
+	efree(argv);
 	poperror(vm);
-	dovm(vm, valcl(argv[1]), 1, rv);
+}
+
+static void
+l1_applyk(VM *vm, Imm iargc, Val *iargv, Val *rv)
+{
+	Imm ll, argc, m;
+	Val *argv, *ap, *ip, vp;
+	List *lst;
+
+	if(iargc < 4)
+		vmerr(vm, "wrong number of arguments to applyk");
+	checkarg(vm, "apply", iargv, 0, Qcl);
+	checkarg(vm, "apply", iargv, 1, Qcl);
+	checkarg(vm, "apply", iargv, 2, Qcl);
+	checkarg(vm, "apply", iargv, iargc-1, Qlist);
+	ll = listlen(vallist(iargv[iargc-1]));
+	argc = iargc-4+ll;
+	argv = emalloc(argc*sizeof(Val));
+	ap = argv;
+	ip = &iargv[3];
+	for(m = 0; m < iargc-4; m++)
+		*ap++ = *ip++;
+	lst = vallist(*ip);
+	for(m = 0; m < ll; m++){
+		vp = listref(vm, lst, m);
+		*ap++ = vp;
+	}
+	if(waserror(vm)){
+		efree(argv);
+		nexterror(vm);
+	}
+	applyk(vm, iargv[0], iargv[1], iargv[2], argc, argv, rv);
+	efree(argv);
+	poperror(vm);
 }
 
 static void
@@ -9437,6 +9477,7 @@ mktopenv(void)
 	builtinfn(env, "callcc", callcc());
 
 	FN(apply);
+	FN(applyk);
 	FN(arraynelm);
 	FN(asof);
 	FN(attroff);
