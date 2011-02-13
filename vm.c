@@ -3159,7 +3159,7 @@ masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	v = mkvec(1);
 	o = (Imm)strdata(s);
 	val = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], o),
-			 mkcval(litdom, litdom->ns->base[Vptr], o+s->len));
+			 mkcval(litdom, litdom->ns->base[Vptr], s->len));
 	_vecset(v, 0, val);
 	*rv = mkvalvec(v);
 }
