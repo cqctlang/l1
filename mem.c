@@ -1107,7 +1107,6 @@ again:
 	if(s->a+sz <= s->e-1){
 		h = s->a;
 		s->a += sz;
-		memset(h, 0, sz);
 		Vsetkind(h, Qpair);
 		return h;
 	}
@@ -1127,7 +1126,6 @@ again:
 	if(s->a+sz <= s->e-1){
 		h = s->a;
 		s->a += sz;
-		memset(h, 0, sz);
 		Vsetkind(h, Qcode);
 		return h;
 	}
@@ -1155,7 +1153,6 @@ again:
 	if(s->a+sz <= s->e-1){
 		h = s->a;
 		s->a += sz;
-		memset(h, 0, sz);
 		return h;
 	}
 	H.d = minsert(&H.m[MTdata][H.tg], allocseg(MTdata, H.tg));
