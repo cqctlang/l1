@@ -1222,7 +1222,7 @@ static u8
 copy(Val *v)
 {
 	Head *h;
-	Seg *s, *es;
+	Seg *t, *s, *es;
 	Imm sz;
 	Head *nh;
 	unsigned dbg = alldbg;
@@ -1259,13 +1259,14 @@ copy(Val *v)
 		return s->gen; // objects in older generations do not move
 	}
 	if(MTbig(s->mt)){
-		minsert(&H.m[s->mt][H.tg], s);
+		t = s;
 		es = a2s(s->e);
-		while(s <= es){
-			MTclrold(s->mt);
-			s->gen = H.tg;
-			s++;
+		while(t <= es){
+			MTclrold(t->mt);
+			t->gen = H.tg;
+			t++;
 		}
+		minsert(&H.m[s->mt][H.tg], s);
 		return H.tg;
 	}
 	sz = qsz(h);
