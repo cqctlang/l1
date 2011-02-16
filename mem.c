@@ -1031,30 +1031,30 @@ mclr(M *m)
 	m->scan = 0;
 }
 
-static void*
+static void
 minit(M *m, Seg *s)
 {
 	s->link = 0;
 	m->h = s2a(s);
 	m->t = s2a(s);
 	m->scan = s2a(s);
-	return s2a(s);
 }
 
-static void*
+static void
 minsert(M *m, Seg *s)
 {
 	Seg *t;
 	void *p;
 
-	if(m->h == 0)
-		return minit(m, s);
+	if(m->h == 0){
+		minit(m, s);
+		return;
+	}
 	s->link = 0;
 	t = a2s(m->t);
 	p = s2a(s);
 	t->link = p;
 	m->t = p;
-	return p;
 }
 
 u64
@@ -1866,19 +1866,17 @@ recycle()
 	}
 }
 
-static void*
+static void
 resetalloc(MT mt, Gen g)
 {
-	return minit(&H.m[mt][g], allocseg(mt, g));
+	minit(&H.m[mt][g], allocseg(mt, g));
 }
 
-static void*
+static void
 getalloc(MT mt, Gen g)
 {
-	if(H.m[mt][g].h)
-		return H.m[mt][g].t;
-	else
-		return resetalloc(mt, g);
+	if(H.m[mt][g].h == 0)
+		resetalloc(mt, g);
 }
 
 /*
