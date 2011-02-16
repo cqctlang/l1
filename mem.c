@@ -892,8 +892,6 @@ gcstats()
 	printf("heapsz = %10" PRIu64 "\n", H.heapsz);
 	printf(" bigsz = %10" PRIu64 "\n", H.bigsz);
 	printf("smapsz = %10" PRIu64 "\n", H.smapsz);
-	printf("segmap = %10" PRIu64 "\n",
-	       (segmap.hi-segmap.lo)/Segsize*sizeof(Seg));
 	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
 	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
 }
