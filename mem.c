@@ -1102,7 +1102,7 @@ malweak()
 	sz = qs[Qpair].sz;
 again:
 	s = a2s(H.w);
-	if(s->a+sz <= s->e-1){
+	if(s->a+sz <= s->e+1){
 		h = s->a;
 		s->a += sz;
 		Vsetkind(h, Qpair);
@@ -1121,7 +1121,7 @@ malcode()
 	sz = qs[Qcode].sz;
 again:
 	s = a2s(H.c);
-	if(s->a+sz <= s->e-1){
+	if(s->a+sz <= s->e+1){
 		h = s->a;
 		s->a += sz;
 		Vsetkind(h, Qcode);
@@ -1148,7 +1148,7 @@ _mal(u64 sz)
 	void *h;
 again:
 	s = a2s(H.d);
-	if(s->a+sz <= s->e-1){
+	if(s->a+sz <= s->e+1){
 		h = s->a;
 		s->a += sz;
 		return h;
