@@ -122,7 +122,7 @@ typedef
 struct M
 {
 	void *h, *t;		/* head and tail of segment list */
-	void *scan;
+	void *scan;		/* scan pointer */
 } M;
 
 typedef
@@ -134,7 +134,6 @@ struct Guard
 typedef
 struct Heap
 {
-	void *d, *c, *w;	/* data, code, weak allocation segments */
 	M m[Nmt][Nsgen];	/* metatypes */
 	u32 g, tg;		/* collect generation and target generation */
 	u64 na;			/* bytes allocated since last gc */
@@ -892,8 +891,6 @@ gcstats()
 	printf("heapsz = %10" PRIu64 "\n", H.heapsz);
 	printf(" bigsz = %10" PRIu64 "\n", H.bigsz);
 	printf("smapsz = %10" PRIu64 "\n", H.smapsz);
-	printf("segmap = %10" PRIu64 "\n",
-	       (segmap.hi-segmap.lo)/Segsize*sizeof(Seg));
 	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
 	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
 }
@@ -916,19 +913,13 @@ maintain()
 		return;
 
 	if(H.free < LORES*H.inuse || H.heapsz < Minheap){
-//		printf("growing free area from %ld to ... ", H.free);
 		sz1 = H.free < LORES*H.inuse ? (TARGRES-1)*H.inuse : 0;
 		sz2 = H.heapsz < Minheap ? Minheap-H.heapsz : 0;
 		grow(max(sz1, sz2));
-//		printf("%ld\n", H.free);
-//		printf("\n");
 	}else if(H.heapsz > Minheap && H.free > HIRES*H.inuse){
-//		printf("shrinking free area from %ld to ... ", H.free);
 		shrink(TARGRES*H.inuse);
-//		printf("%ld\n", H.free);
 		if(H.heapsz > Minheap && H.free > HIRES*H.inuse)
 			fatal("bug");
-//		printf("\n");
 	}
 }
 
@@ -1040,30 +1031,30 @@ mclr(M *m)
 	m->scan = 0;
 }
 
-static void*
+static void
 minit(M *m, Seg *s)
 {
 	s->link = 0;
 	m->h = s2a(s);
 	m->t = s2a(s);
 	m->scan = s2a(s);
-	return s2a(s);
 }
 
-static void*
+static void
 minsert(M *m, Seg *s)
 {
 	Seg *t;
 	void *p;
 
-	if(m->h == 0)
-		return minit(m, s);
+	if(m->h == 0){
+		minit(m, s);
+		return;
+	}
 	s->link = 0;
 	t = a2s(m->t);
 	p = s2a(s);
 	t->link = p;
 	m->t = p;
-	return p;
 }
 
 u64
@@ -1095,44 +1086,40 @@ isweak(Head *h)
 	return MTtag(s->mt) == Mweak;
 }
 
+static Head*
+__mal(MT mt, Gen g, u64 sz)
+{
+	M *m;
+	Seg *s;
+	Head *h;
+	m = &H.m[mt][g];
+again:
+	s = a2s(m->t);
+	if(s->a+sz <= s->e+1){
+		h = s->a;
+		s->a += sz;
+		return h;
+	}
+	minsert(m, allocseg(mt, g));
+	goto again;
+}
+
 Head*
 malweak()
 {
-	Seg *s;
 	Head *h;
-	u32 sz;
-	sz = qs[Qpair].sz;
-again:
-	s = a2s(H.w);
-	if(s->a+sz <= s->e-1){
-		h = s->a;
-		s->a += sz;
-		memset(h, 0, sz);
-		Vsetkind(h, Qpair);
-		return h;
-	}
-	H.w = minsert(&H.m[MTweak][H.tg], allocseg(MTweak, H.tg));
-	goto again;
+	h = __mal(MTweak, H.tg, qs[Qpair].sz);
+	Vsetkind(h, Qpair);
+	return h;
 }
 
 Head*
 malcode()
 {
-	Seg *s;
 	Head *h;
-	u32 sz;
-	sz = qs[Qcode].sz;
-again:
-	s = a2s(H.c);
-	if(s->a+sz <= s->e-1){
-		h = s->a;
-		s->a += sz;
-		memset(h, 0, sz);
-		Vsetkind(h, Qcode);
-		return h;
-	}
-	H.c = minsert(&H.m[MTcode][H.tg], allocseg(MTcode, H.tg));
-	goto again;
+	h = __mal(MTcode, H.tg, qs[Qcode].sz);
+	Vsetkind(h, Qcode);
+	return h;
 }
 
 static void*
@@ -1148,18 +1135,7 @@ _malbig(MT mt, u64 sz)
 static void*
 _mal(u64 sz)
 {
-	Seg *s;
-	void *h;
-again:
-	s = a2s(H.d);
-	if(s->a+sz <= s->e-1){
-		h = s->a;
-		s->a += sz;
-		memset(h, 0, sz);
-		return h;
-	}
-	H.d = minsert(&H.m[MTdata][H.tg], allocseg(MTdata, H.tg));
-	goto again;
+	return __mal(MTdata, H.tg, sz);
 }
 
 Head*
@@ -1227,7 +1203,7 @@ static u8
 copy(Val *v)
 {
 	Head *h;
-	Seg *s, *es;
+	Seg *t, *s, *es;
 	Imm sz;
 	Head *nh;
 	unsigned dbg = alldbg;
@@ -1264,13 +1240,14 @@ copy(Val *v)
 		return s->gen; // objects in older generations do not move
 	}
 	if(MTbig(s->mt)){
-		minsert(&H.m[s->mt][H.tg], s);
+		t = s;
 		es = a2s(s->e);
-		while(s <= es){
-			MTclrold(s->mt);
-			s->gen = H.tg;
-			s++;
+		while(t <= es){
+			MTclrold(t->mt);
+			t->gen = H.tg;
+			t++;
 		}
+		minsert(&H.m[s->mt][H.tg], s);
 		return H.tg;
 	}
 	sz = qsz(h);
@@ -1889,19 +1866,17 @@ recycle()
 	}
 }
 
-static void*
+static void
 resetalloc(MT mt, Gen g)
 {
-	return minit(&H.m[mt][g], allocseg(mt, g));
+	minit(&H.m[mt][g], allocseg(mt, g));
 }
 
-static void*
+static void
 getalloc(MT mt, Gen g)
 {
-	if(H.m[mt][g].h)
-		return H.m[mt][g].t;
-	else
-		return resetalloc(mt, g);
+	if(H.m[mt][g].h == 0)
+		resetalloc(mt, g);
 }
 
 /*
@@ -1942,13 +1917,13 @@ _gc(u32 g, u32 tg)
 			mclr(&H.m[mt][i]);
 
 	if(g == tg){
-		H.d = resetalloc(MTdata, tg);
-		H.c = resetalloc(MTcode, tg);
-		H.w = resetalloc(MTweak, tg);
+		resetalloc(MTdata, tg);
+		resetalloc(MTcode, tg);
+		resetalloc(MTweak, tg);
 	}else{
-		H.d = getalloc(MTdata, tg);
-		H.c = getalloc(MTcode, tg);
-		H.w = getalloc(MTweak, tg);
+		getalloc(MTdata, tg);
+		getalloc(MTcode, tg);
+		getalloc(MTweak, tg);
 	}
 
 	vmp = vms;
@@ -2001,9 +1976,9 @@ _gc(u32 g, u32 tg)
 
 	if(H.tg != 0){
 		H.tg = 0;
-		H.d = resetalloc(MTdata, H.tg);
-		H.c = resetalloc(MTcode, H.tg);
-		H.w = resetalloc(MTweak, H.tg);
+		resetalloc(MTdata, H.tg);
+		resetalloc(MTcode, H.tg);
+		resetalloc(MTweak, H.tg);
 	}
 	H.na = 0;
 	if(dbg)printf("end of collection\n");
@@ -2117,9 +2092,9 @@ initmem()
 		H.gcsched[i] = gr;
 		gr *= GCradix;
 	}
-	H.d = resetalloc(MTdata, 0);
-	H.c = resetalloc(MTcode, 0);
-	H.w = resetalloc(MTweak, 0);
+	resetalloc(MTdata, 0);
+	resetalloc(MTcode, 0);
+	resetalloc(MTweak, 0);
 	H.na = 0;
 	H.ma = GCthresh;
 
