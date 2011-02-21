@@ -449,6 +449,7 @@ mkconstliti(Liti *liti)
 
 enum{
 	Rany = 0,
+	Rbin = 2,
 	Roct = 8,
 	Rhex = 16,
 };
@@ -559,7 +560,10 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 	if(radix == Rany){
 		if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
 			radix = Rhex;
-		else if(s[0] == '0')
+		else if(s[0] == '0' && (s[1] == 'b' || s[1] == 'B')){
+			radix = Rbin;
+			s += 2;
+		}else if(s[0] == '0')
 			radix = Roct;
 	}
 	n = strtoull(s, &p, radix);
@@ -611,7 +615,7 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 	}
 
 	base = Vundef;
-	if((radix == Roct || radix == Rhex) && suf == Snone){
+	if((radix == Rbin || radix == Roct || radix == Rhex) && suf == Snone){
 		if(n <= Vintmax)
 			base = Vint;
 		else if(n <= Vuintmax)

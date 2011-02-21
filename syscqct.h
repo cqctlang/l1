@@ -4,7 +4,7 @@
 #include "cqct.h"
 
 enum{
-	Maxliti		= 24,	/* longest integer literal plus null */
+	Maxliti		= 70,	/* longest integer literal (binary) plus null */
 	Maxspec		= 32,
 };
 

@@ -1,3 +1,4 @@
+B			[0-1]
 D			[0-9]
 L			([a-zA-Z_$]|::|::~)
 H			[a-fA-F0-9]
@@ -82,6 +83,7 @@ static int chars(YYSTYPE *lvalp, int);
 
 {L}({L}|{D})*		{ count(ctx); return(chars(lvalp, IDENTIFIER)); }
 
+0[bB]{B}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 0[xX]{H}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 0{D}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 {D}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }

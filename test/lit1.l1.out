@@ -1,0 +1,9 @@
+entry: var params, 1 locals, 0 temps
+0 int
+1 int
+0 unsigned long long
+1 unsigned long long
+ffdfffffffffffff unsigned long long
+ffffffffffffffff unsigned long long
+ffdfffffffffffff unsigned long long
+ffffffffffffffff unsigned long long
