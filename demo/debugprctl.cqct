@@ -1,3 +1,9 @@
+// FIXME:  i think the logic here is wrong when the target
+// prctl handles a cloning proc...should we clone the ctls
+// in the traps list?  in any case, prctl 81ac0668e4
+// breaks this test.  i think it is because of the
+// introduced call to ctlclrtrap on ctl death.
+
 @include <ctlmux.cqct>
 
 l1 = "../l1";

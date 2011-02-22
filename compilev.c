@@ -68,18 +68,6 @@ issimple(Expr *e)
 		|| e->kind == Enil);
 }
 
-static unsigned
-elistlen(Expr *l)
-{
-	unsigned n;
-	n = 0;
-	while(l->kind != Enull){
-		l = l->e2;
-		n++;
-	}
-	return n;
-}
-
 /* determine # of locals for lambda body E */
 static unsigned
 locpass(Expr *e)
@@ -375,14 +363,7 @@ pass0(Expr *e)
 		p = e->e1;
 		if(p == 0)
 			fatal("bug");
-		if(p->kind == Eid){
-			l->isvarg = 1;
-			l->nparam = 1;
-			v = l->param = emalloc(sizeof(Var));
-			v->id = p->id;
-			v->where = Vlocal;
-			v->idx = 0;
-		}else if(hasvarg(p)){
+		if(hasvarg(p)){
 			l->isvarg = 1;
 			l->nparam = elistlen(p)-1; /* don't count ellipsis */
 			v = l->param = emalloc(l->nparam*sizeof(Var));
@@ -413,7 +394,6 @@ pass0(Expr *e)
 			}
 		}
 		pass0(e->e2);
-		pass0(e->e4);
 		break;
 	case Eblock:
 		e->xp = b = emalloc(sizeof(Block));
@@ -475,7 +455,6 @@ pass0_5(Expr *e, Xenv *lex)
 		rib = mkxenv(lex);
 		bindvars(rib, l->param, l->nparam);
 		pass0_5(e->e2, rib);
-		pass0_5(e->e4, rib);
 		freexenv(rib);
 		break;
 	case Eblock:
@@ -490,11 +469,6 @@ pass0_5(Expr *e, Xenv *lex)
 		freexenv(rib);
 		break;
 	case Eg:
-	case Egop:
-	case Epreinc:
-	case Epredec:
-	case Epostinc:
-	case Epostdec:
 		/* Box all variables that are assigned */
 		v = xenvlook(lex, e->e1->id);
 		if(v)
@@ -541,7 +515,6 @@ fv(Expr *e, Xenv *lex, Xenv *loc, Xenv *free)
 		rib = mkxenv(loc);
 		bindvars(rib, l->param, l->nparam);
 		fv(e->e2, lex, rib, free);
-		fv(e->e4, lex, rib, free);
 		freexenv(rib);
 		break;
 	case Eblock:
@@ -615,7 +588,6 @@ pass1(Expr *e, Xenv *lex)
 		/* find free variables (loc ends at this lambda) */
 		free = mkxenv(0);
 		fv(e->e2, lex, loc, free);
-		fv(e->e4, lex, loc, free);
 		freexenv(loc);
 
 		l->ncap = xenvsize(free);
@@ -644,7 +616,6 @@ pass1(Expr *e, Xenv *lex)
 		bindvars(loc, l->disp, l->ndisp);
 		bindvars(loc, l->param, l->nparam);
 		pass1(e->e2, loc);
-		pass1(e->e4, loc);
 		freexenv(loc);
 		freexenv(free);
 		break;
@@ -703,7 +674,6 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		bindvars(rib, l->disp, l->ndisp);
 		bindvars(rib, l->param, l->nparam);
 		pass2(e->e2, rib, top);
-		pass2(e->e4, rib, top);
 		freexenv(rib);
 		break;
 	case Eblock:
@@ -755,10 +725,9 @@ pass3(Expr *e, unsigned ln)
 	switch(e->kind){
 	case Elambda:
 		l = (Lambda*)e->xp;
-		l->ntmp = max(tmppass(e->e2), tmppass(e->e4));
-		l->nloc = l->isvarg+max(locpass(e->e2), locpass(e->e4));
+		l->ntmp = tmppass(e->e2);
+		l->nloc = l->isvarg+locpass(e->e2);
 		pass3(e->e2, l->isvarg);
-		pass3(e->e4, l->isvarg);
 		break;
 	case Eblock:
 		b = (Block*)e->xp;
@@ -847,7 +816,6 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 		bindvars(rib, l->disp, l->ndisp);
 		bindvars(rib, l->param, l->nparam);
 		pass4(ctx, e->e2, rib);
-		pass4(ctx, e->e4, rib);
 //		warnunused(ctx, e->e1, rib);
 		freexenv(rib);
 		break;
@@ -1012,8 +980,8 @@ gotos(Expr *e, HT *ls, Exprs *ges)
 		free1exprs(ges);
 		break;
 	case Egoto:
-		id = e->e1->id;
-		les = hget(ls, id, strlen(id));
+		id = e->id;
+		les = hgets(ls, id, strlen(id));
 		e->xp = gotoplan(les, ges);
 		break;
 	case Eelist:
@@ -1053,11 +1021,9 @@ pass5(Expr *e, HT *ls, Exprs *les)
 	switch(e->kind){
 	case Elambda:
 		les = newexprs(e, 0);
-		ls = mkht();
+		ls = mkhts();
 		pass5(e->e2, ls, les);
-		pass5(e->e4, ls, les);
 		gotos(e->e2, ls, les);
-		gotos(e->e4, ls, les);
 		free1exprs(les);
 		hforeach(ls, free1ls, 0);
 		freeht(ls);
@@ -1068,8 +1034,8 @@ pass5(Expr *e, HT *ls, Exprs *les)
 		free1exprs(les);
 		break;
 	case Elabel:
-		id = e->e1->id;
-		hput(ls, id, strlen(id), copyexprs(les));
+		id = e->id;
+		hputs(ls, id, strlen(id), copyexprs(les));
 		break;
 	case Eelist:
 		p = e;

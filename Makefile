@@ -1,6 +1,6 @@
 CC        = gcc
 LD        = ld
-CFLAGS    = -Wall -g
+CFLAGS    += -Wall -g
 LDFLAGS   = -r
 CONF     ?= unix
 L1LIBS	  = -lpthread
@@ -21,7 +21,7 @@ all: $(TARG)
 # phony target to ensure libraries get remade.
 FORCE: 
 
-MACH = gcc.x86.c
+MACH=
 HDR = sys.h util.h cqct.h syscqct.h
 L1C =\
 	lex.yy.c\
@@ -33,15 +33,29 @@ L1C =\
 	parse.c\
 	xenv.c\
 	cutil.c\
+	compileq.c\
 	compilens.c\
 	compilea.c\
 	compile0.c\
+	compileg.c\
+	compilel.c\
+	compilei.c\
 	compile1.c\
 	compile2.c\
 	compilev.c\
-	spec.c\
+	compileb.c\
+	compileu.c\
+	compilex.c\
+	compilec.c\
+	compiles.c\
 	type.c\
 	cg.c\
+	cg6.c\
+	list.c\
+	pair.c\
+	tab.c\
+	type.c\
+	mem.c\
 	vm.c\
 	cqct.c\
 	xfd.c\
@@ -88,7 +102,6 @@ parser:
 l1: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
-#	dwarf2cqct < l1 > l1.names
 
 l1.o: $(L1O) $(L1DEPS)
 	@echo + ld $@
@@ -110,7 +123,7 @@ depend: $(L1C) Makefile
 	$(V)gcc $(INC) -MM $(L1C) > depend
 
 archive:
-	git archive --format=tar --prefix=l1/ HEAD | gzip > ../l1.tar.gz
+	git archive --format=tar --prefix=l1/ HEAD > ../l1.tar
 
 git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz

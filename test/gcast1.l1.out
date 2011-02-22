@@ -2,4 +2,5 @@ entry: var params, 4 locals, 0 temps
 uint16
 uint32
 uint16
-uint32
+error: bad type conversion
+               entry	(gcast1.l1:8)

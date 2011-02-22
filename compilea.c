@@ -356,13 +356,13 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		else if(!strcmp(id, "as"))
 			te = Zcall(G("asof"), 1, doid("$o"));
 		else
-			te = Zlambdn(doid("$args"),
+			te = Zlambdn(Zvararg(doid("$args")),
 				     Zret(Zcall(G("callmethod"),
 						3,
 						doid("$o"),
 						Zconsts(id),
 						doid("$args"))),
-				     copyexpr(e->e2), 0);
+				     copyexpr(e->e2));
 
 		te = Zblock(Zlocals(1, "$o"),
 			    Zifelse(Zcall(G("isrec"), 1, o), se, te),
@@ -706,19 +706,7 @@ expandm(U *ctx, Expr *e)
 		}
 		se = invert(se);
 		se = Zcons(Zset(doid("$tmp"), expandm(ctx, e->e2)), se);
-		se = newexpr(Eblock, Zlocals(1, "$tmp"), se, 0, 0);
-
-		/* update target vars outside of new
-		   block so that they remain in scope
-		   of original expression.  FIXME:
-		   we need a statement sequence form
-		   without Eblock scope level */
-		se = Zcons(se, nullelist());
-		p = e->e1->e1;
-		while(p->kind == Eelist){
-			se = Zcons(Zset(doid(p->e1->id), Znil()), se);
-			p = p->e2;
-		}
+		se = Zblock(Zlocals(1, "$tmp"), se, NULL);
 		putsrc(se, &e->src);
 		e->e2 = 0;
 		freeexpr(e);

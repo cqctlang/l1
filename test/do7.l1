@@ -1,0 +1,10 @@
+@define f(x)
+{
+	do{
+		x--;
+	}while(x > 0);
+}
+
+a = f(5);
+printf("%a\n", a);
+

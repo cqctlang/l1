@@ -46,8 +46,12 @@ usage(char *argv0)
 	fprintf(stderr, "\t-t report timing statistics\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
+	fprintf(stderr, "\t-s don't look for library code in same"
+	    "directory as the l1 executable\n");
 	fprintf(stderr, "\t-lDIR add DIR to the load path\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
+	fprintf(stderr, "\t-a dump expressions as they are compiled\n");
+	fprintf(stderr, "\t-k print both line and column for parse errors\n");
 	fprintf(stderr, "\t-o dump disassembled object code\n");
 	fprintf(stderr, "\t-p dump IR at various stages\n");
 	fprintf(stderr, "\t-q dump expanded cinquecento source\n");
@@ -55,6 +59,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-c do not compile expanded source\n");
 	fprintf(stderr, "\t-x do not execute object code\n");
 	fprintf(stderr, "\t-g do not run gc in separate thread\n");
+	fprintf(stderr, "\t-T report timing statistics for the compiler\n");
 
 	exit(0);
 }
@@ -153,7 +158,7 @@ readfd(int fd)
 		}
 		rv = read(fd, p, m);
 		if(0 > rv){
-			if(errno == EINTR || EAGAIN)
+			if(errno == EINTR || errno == EAGAIN)
 				continue;
 			free(buf);
 			return 0;
@@ -373,15 +378,6 @@ memusage(struct memusage *mu)
 	return 0;
 }
 
-static uint64_t
-rdtsc()
-{
-	uint32_t hi, lo;
-	asm("rdtsc" : "=a"(lo), "=d"(hi));
-	return (uint64_t)lo|((uint64_t)hi<<32);
-}
-
-
 int
 main(int argc, char *argv[])
 {
@@ -389,7 +385,6 @@ main(int argc, char *argv[])
 	char *filename;
 	int c;
 	struct timeval beg, end;
-	uint64_t bt, et;
 	int dorepl;
 	char opt[256];
 	char *inbuf, *s;
@@ -417,8 +412,9 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+be:ghkl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6be:ghkl:m:opqrstTwxz"))){
 		switch(c){
+		case '6':
 		case 'b':
 		case 'k':
 		case 'o':
@@ -477,8 +473,12 @@ main(int argc, char *argv[])
 		if(nlp >= Maxloadpath)
 			fatal("too many directories in load path");
 		root = dirname(argv0);
+#ifndef LIBDIR
 		lp[nlp] = emalloc(strlen(root)+1+4+1);
 		sprintf(lp[nlp++], "%s/lib", root);
+#else
+		lp[nlp++] = xstrdup(LIBDIR);
+#endif
 	}
 	free(argv0);
 	lp[nlp] = 0;
@@ -540,10 +540,8 @@ main(int argc, char *argv[])
 			}
 		}
 
-		if(opt['t']){
+		if(opt['t'])
 			gettimeofday(&beg, 0);
-			bt = rdtsc();
-		}
 		entry = cqctcompile(inbuf, filename, top, ename ? 0 : argsid);
 		free(inbuf);
 		if(entry == 0)
@@ -562,13 +560,11 @@ main(int argc, char *argv[])
 			rv = cqctcallfn(vm, fn, valc, valv, &v);
 		}
 		if(opt['t']){
-			et = rdtsc();
 			gettimeofday(&end, 0);
 			tvdiff(&end, &beg, &end);
 			usec = 1000000*end.tv_sec+end.tv_usec;
 			if(dorepl){
 				printf("%" PRIu64 " usec", usec);
-				printf("\t%" PRIu64 " cycles", et-bt);
 				if(0 == memusage(&mu))
 					printf("\t%10" PRIu64 "K vm  "
 					       "%10" PRIu64 "K rss",
@@ -596,7 +592,6 @@ main(int argc, char *argv[])
 
 	if(opt['t'] && !dorepl){
 		printf("%" PRIu64 " usec", usec);
-		printf("\t%" PRIu64 " cycles", et-bt);
 		if(0 == memusage(&mu))
 			printf("\t%10" PRIu64 "K vm  "
 			       "%10" PRIu64 "K rss",

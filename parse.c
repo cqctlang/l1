@@ -6,6 +6,7 @@ static Expr*	rdotypes(U *ctx, Expr *e);
 
 char* cbasename[Vnbase+1] = {
 	[Vundef]              = "error!",
+	[Vbool]		      = "_Bool",
 	[Vchar]               = "char",
 	[Vshort]	      = "short",
 	[Vint]		      = "int",
@@ -40,6 +41,7 @@ char* tkindstr[Tntkind] = {
 
 static unsigned basemod[Vnbase][Enbase] = {
 	[Vchar][Eunsigned]     = Vuchar,
+
 	[Vchar][Esigned]       = Vchar,
 
 	[Vshort][Eunsigned]    = Vushort,
@@ -64,6 +66,7 @@ static unsigned basemod[Vnbase][Enbase] = {
 
 	[Vdouble][Elong]       = Vlongdouble,
 
+	[Vundef][Ebool]	       = Vbool,
 	[Vundef][Echar]        = Vchar,
 	[Vundef][Edouble]      = Vdouble,
 	[Vundef][Efloat]       = Vfloat,
@@ -240,6 +243,10 @@ freeexpr(Expr *e)
 
 	switch(e->kind){
 	case Eid:
+	case Elabel:
+	case Egoto:
+	case E_tg:
+	case E_tid:
 		efree(e->id);
 		break;
 	case Econsts:
@@ -297,6 +304,8 @@ szexpr(Expr *e)
 }
 
 /* intentionally does not copy e->xp except Ekon */
+/* FIXME: since we're using id in many nodes,
+   check e->id rather than switch on type */
 Expr*
 copyexpr(Expr *e)
 {
@@ -311,6 +320,10 @@ copyexpr(Expr *e)
 	ne->src = e->src;
 	switch(e->kind){
 	case Eid:
+	case Elabel:
+	case Egoto:
+	case E_tid:
+	case E_tg:
 		ne->id = xstrdup(e->id);
 		break;
 	case Econsts:
@@ -416,37 +429,6 @@ ptrto(Expr *ptre, Expr *e)
 }
 
 Expr*
-doid(char *s)
-{
-	Expr *e;
-	e = newexpr(Eid, 0, 0, 0, 0);
-	e->id = xstrdup(s);
-	return e;
-}
-
-Expr*
-G(char *s)
-{
-	Expr *e;
-	if(cqctflags['r'])
-		return doid(s);
-	e = newexpr(Eid, 0, 0, 0, 0);
-	e->id = emalloc(strlen(s)+2);
-	memcpy(e->id+1, s, strlen(s));
-	e->id[0] = '%';
-	return e;
-}
-
-Expr*
-doidnsrc(Src *src, char *s, unsigned long len)
-{
-	Expr *e;
-	e = newexprsrc(src, Eid, 0, 0, 0, 0);
-	e->id = xstrndup(s, len);
-	return e;
-}
-
-Expr*
 mkconst(Cbase type, Imm val)
 {
 	Expr *e;
@@ -467,6 +449,7 @@ mkconstliti(Liti *liti)
 
 enum{
 	Rany = 0,
+	Rbin = 2,
 	Roct = 8,
 	Rhex = 16,
 };
@@ -577,7 +560,10 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 	if(radix == Rany){
 		if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
 			radix = Rhex;
-		else if(s[0] == '0')
+		else if(s[0] == '0' && (s[1] == 'b' || s[1] == 'B')){
+			radix = Rbin;
+			s += 2;
+		}else if(s[0] == '0')
 			radix = Roct;
 	}
 	n = strtoull(s, &p, radix);
@@ -629,7 +615,7 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 	}
 
 	base = Vundef;
-	if((radix == Roct || radix == Rhex) && suf == Snone){
+	if((radix == Rbin || radix == Roct || radix == Rhex) && suf == Snone){
 		if(n <= Vintmax)
 			base = Vint;
 		else if(n <= Vuintmax)
@@ -1005,6 +991,7 @@ baselist(U *ctx, Expr *e)
 		s = e->e1;
 		e = e->e2;
 		switch(s->kind){
+		case Ebool:
 		case Echar:
 		case Edouble:
 		case Efloat:
@@ -1327,10 +1314,10 @@ pushyy(U *ctx, char *filename, char *buf, int dofree)
 		fatal("maximum include depth exceeded");
 	keyed = 0;
 	if(filename){
-		keyed = hget(filenames, filename, strlen(filename));
+		keyed = hgets(filenames, filename, strlen(filename));
 		if(!keyed){
 			keyed = xstrdup(filename);
-			hput(filenames, keyed, strlen(keyed), keyed);
+			hputs(filenames, keyed, strlen(keyed), keyed);
 		}
 	}
 	ctx->inp->src.filename = keyed;
@@ -1453,7 +1440,7 @@ doparse(U *ctx, char *buf, char *whence)
 void
 initparse(void)
 {
-	filenames = mkht();
+	filenames = mkhts();
 }
 
 static void

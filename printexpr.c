@@ -10,6 +10,7 @@ enum {
 };
 
 char* S[] = {
+	[Ebool] =	"Ebool",
 	[Echar] =	"Echar",
 	[Edouble] =	"Edouble",
 	[Efloat] =	"Efloat",
@@ -77,6 +78,7 @@ char* S[] = {
 	[Eland] =	"Eland",
 	[Elapply] =	"Elapply",
 	[Ele] =		"Ele",
+	[Eletrec] =	"Eletrec",
 	[Elist] =	"Elist",
 	[Elor] =	"Elor",
 	[Elt] =		"Elt",
@@ -92,8 +94,10 @@ char* S[] = {
 	[Epredec] =	"Epredec",
 	[Epreinc] =	"Epreinc",
 	[Eptr] =	"Eptr",
+	[Equote] =	"Equote",
 	[Eref] =	"Eref",
 	[Eret] =	"Eret",
+	[Escope] =	"Escope",
 	[Eshl] =	"Eshl",
 	[Eshr] =	"Eshr",
 	[Esizeofe] =	"Esizeofe",
@@ -118,6 +122,8 @@ char* S[] = {
 	[E_cval] =	"E_cval",
 	[E_ref] =	"E_ref",
 	[E_sizeof] =	"E_sizeof",
+	[E_tg] =	"E_tg",
+	[E_tid] =	"E_tid",
 };
 
 static void
@@ -231,15 +237,61 @@ printlocals(Expr *e, unsigned ni)
 	return cnt;
 }
 
-static void
-printargs(Expr *e, unsigned ni, int more)
+/* E must be an Eelist of Eids or Eellipsis */
+void
+printids(Expr *e)
 {
+	Expr *p;
 	if(e->kind == Enull)
 		return;
-	printargs(e->e2, ni, 1);
-	printcqct0(e->e1, ni);
-	if(more)
+	printcqct0(e->e1, 0);
+	p = e->e2;
+	while(p->kind != Enull){
 		xprintf(", ");
+		printcqct0(p->e1, 0);
+		p = p->e2;
+	}
+}
+
+static void
+printargs(Expr *e, unsigned ni)
+{
+	Expr *p;
+	if(e->kind == Enull)
+		return;
+	printcqct0(e->e1, ni);
+	p = e->e2;
+	while(p->kind != Enull){
+		xprintf(", ");
+		printcqct0(p->e1, ni);
+		p = p->e2;
+	}
+}
+
+static void
+printbind(Expr *e, unsigned ni)
+{
+	xprintf("[ ");
+	printcqct0(e->e1->e1, ni);
+	xprintf(" = ");
+	printcqct0(e->e1->e2->e1, ni);
+	xprintf(" ]");
+}
+
+static void
+printbinds(Expr *e, unsigned ni)
+{
+	Expr *p;
+	p = e;
+	if(p->kind == Enull)
+		return;
+	printbind(p, ni);
+	p = p->e2;
+	while(p->kind != Enull){
+		xprintf(",\n");
+		printbind(p, ni);
+		p = p->e2;
+	}
 }
 
 static char* Opstr[Emax] = {
@@ -277,6 +329,12 @@ opstr(unsigned op)
 	return Opstr[op] ? Opstr[op] : "";
 }
 
+static int
+iscompound(Expr *e)
+{
+	return e->kind == Eblock || e->kind == Escope;
+}
+
 static void
 printcqct0(Expr *e, unsigned ni)
 {
@@ -304,14 +362,14 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Edefine:
-		xprintf("define ");
+		xprintf("@define ");
 		printcqct0(e->e1, ni);
 		if(e->e2->kind == Eid){
 			xprintf(" ");
 			printcqct0(e->e2, ni);
 		}else{
 			xprintf("(");
-			printargs(e->e2, ni, 0);
+			printargs(e->e2, ni);
 			xprintf(")");
 		}
 		printcqct0(e->e3, ni);
@@ -320,7 +378,7 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("@record ");
 		printcqct0(e->e1, ni);
 		xprintf("{ ");
-		printargs(e->e2, ni, 0);
+		printargs(e->e2, ni);
 		xprintf(" }");
 		break;
 	case Enil:
@@ -339,44 +397,57 @@ printcqct0(Expr *e, unsigned ni)
 	case Eid:
 		xprintf("%s", e->id);
 		break;
+	case E_tid:
+		xprintf("#%s", e->id);
+		break;
+	case E_tg:
+		xprintf("#%s = ", e->id);
+		printcqct0(e->e1, ni);
+		break;
 	case Eellipsis:
 		xprintf("...");
 		break;
 	case Elambda:
-		xprintf("lambda");
+		xprintf("@lambda");
 		if(e->e1->kind == Eid){
 			xprintf(" ");
 			printcqct0(e->e1, ni);
 			xprintf(" ");
 		}else{
 			xprintf("(");
-			printargs(e->e1, ni, 0);
+			printargs(e->e1, ni);
 			xprintf(")");
 		}
-		if(e->e4){
-			xprintf("[");
-			printcqct0(e->e4, ni);
-			xprintf("]");
-		}
+		xprintf("\n");
 		printcqct0(e->e2, ni);
+		break;
+	case Eletrec:
+		xprintf("letrec(");
+		xprintf("[");
+		printbinds(e->e1, ni);
+		xprintf("], ");
+		printcqct0(e->e2, ni);
+		xprintf(")");
 		break;
 	case Ecall:
 		printcqct0(e->e1, ni);
 		xprintf("(");
-		printargs(e->e2, ni, 0);
+		printargs(e->e2, ni);
 		xprintf(")");
 		break;
+	case Escope:
+		printcqct0(e->e1, ni);
+		break;
 	case Eblock:
-		xprintf("\n");
 		indent(ni); xprintf("{\n");
-		if(printlocals(e->e1, ni+1) && e->e2->e1->kind != Eblock)
+		if(printlocals(e->e1, ni+1) && !iscompound(e->e2->e1))
 			xprintf("\n");
 		printcqct0(e->e2, ni+1);
 		indent(ni); xprintf("}");
 		break;
 	case Eglobal:
 		xprintf("@global ");
-		printargs(e->e1, ni, 0);
+		printargs(e->e1, ni);
 		xprintf(";");
 		break;
 	case Eg:
@@ -479,12 +550,17 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("@names ...");
 		break;
 	case Eelist:
-		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
+		if(ni > 0 &&
+		   (e->e1->kind == Edefault
+		    || e->e1->kind == Ecase
+		    || e->e1->kind == Elabel))
 			indent(ni-1);
-		else
+		else if(e->e1->kind != Eblock)
 			indent(ni);
 		printcqct0(e->e1, ni);
-		if(e->e1->kind == Edefault || e->e1->kind == Ecase)
+		if(e->e1->kind == Edefault
+		   || e->e1->kind == Ecase
+		   || e->e1->kind == Elabel)
 			xprintf("\n");
 		else
 			xprintf(";\n");
@@ -497,8 +573,7 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Elabel:
-		xprintf("%s:\n", e->e1->id);
-		indent(ni); printcqct0(e->e2, ni);
+		xprintf("%s:", e->id);
 		break;
 	case Edefault:
 		xprintf("default:\n");
@@ -522,23 +597,27 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("while(");
 		printcqct0(e->e1, ni);
 		xprintf(")");
-		if(e->e2->kind != Eblock){
+		if(!iscompound(e->e2)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e2, ni+1);
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e2, ni);
+		}
 		break;
 	case Edo:
 		xprintf("do");
-		if(e->e1->kind != Eblock){
+		if(!iscompound(e->e1)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e1, ni+1);
 			xprintf("\n");
 			indent(ni);
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e1, ni);
+		}
 
 		xprintf("while(");
 		printcqct0(e->e2, ni);
@@ -555,39 +634,45 @@ printcqct0(Expr *e, unsigned ni)
 		if(e->e3)
 			printcqct0(e->e3, ni);
 		xprintf(")");
-		if(e->e4->kind != Eblock){
+		if(!iscompound(e->e4)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e4, ni+1);
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e4, ni);
+		}
 		break;
 	case Eif:
 		xprintf("if(");
 		printcqct0(e->e1, ni);
 		xprintf(")");
-		if(e->e2->kind != Eblock){
+		if(!iscompound(e->e2)){
 			xprintf("\n");
 			indent(ni+1);
 			printcqct0(e->e2, ni+1);
 			wasstmt = 1;
-		}else
+		}else{
+			xprintf("\n");
 			printcqct0(e->e2, ni);
+		}
 		if(e->e3){
 			if(wasstmt)
 				xprintf(";");
 			xprintf("\n");
 			indent(ni); xprintf("else");
-			if(e->e3->kind != Eblock){
+			if(!iscompound(e->e3)){
 				xprintf("\n");
 				indent(ni+1);
 				printcqct0(e->e3, ni+1);
-			}else
+			}else{
+				xprintf("\n");
 				printcqct0(e->e3, ni);
+			}
 		}
 		break;
 	case Egoto:
-		xprintf("goto %s", e->e1->id);
+		xprintf("goto %s", e->id);
 		break;
 	case Eret:
 		xprintf("return");
@@ -787,3 +872,16 @@ printdecl(Decl *d)
 	efree(o);
 }
 
+Kind
+s2kind(Str *s)
+{
+	Kind k;
+	
+	for(k = 0; k < Emax; k++){
+		if(S[k] == 0)
+			continue;
+		if(!strncmp(S[k], strdata(s), s->len))
+			return k;
+	}
+	return Ebad;
+}

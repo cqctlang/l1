@@ -1,0 +1,10 @@
+/* test eq hash tables vs gc */
+tab = [:];
+for(i = 0; i < 100; i++)
+	tab[i] = i;
+as = mkas([ : ]);
+tab[as] = 1;
+printf("%a\n", tab[as]);  // 1
+gc();
+printf("%a\n", tab[as]);  // 1 (not nil)
+

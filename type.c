@@ -3,6 +3,7 @@
 #include "syscqct.h"
 
 static char* cbasector[Vnbase] = {
+	[Vbool]               = "%mkctype_bool",
 	[Vchar]               = "%mkctype_char",
 	[Vshort]	      = "%mkctype_short",
 	[Vint]		      = "%mkctype_int",

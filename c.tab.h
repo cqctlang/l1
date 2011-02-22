@@ -81,20 +81,20 @@
      NAMES = 298,
      LET = 299,
      LAPPLY = 300,
-     CHAR = 301,
-     SHORT = 302,
-     INT = 303,
-     LONG = 304,
-     SIGNED = 305,
-     UNSIGNED = 306,
-     FLOAT = 307,
-     DOUBLE = 308,
-     VOID = 309,
-     STRUCT = 310,
-     UNION = 311,
-     ENUM = 312,
-     ELLIPSIS = 313,
-     DEFCONST = 314,
+     BOOL = 301,
+     CHAR = 302,
+     SHORT = 303,
+     INT = 304,
+     LONG = 305,
+     SIGNED = 306,
+     UNSIGNED = 307,
+     FLOAT = 308,
+     DOUBLE = 309,
+     VOID = 310,
+     STRUCT = 311,
+     UNION = 312,
+     ENUM = 313,
+     ELLIPSIS = 314,
      IF = 315,
      ELSE = 316,
      SWITCH = 317,
@@ -105,7 +105,12 @@
      BREAK = 322,
      RETURN = 323,
      CASE = 324,
-     DEFAULT = 325
+     DEFAULT = 325,
+     QUOTE = 326,
+     SYNTAXQUOTE = 327,
+     SYNTAXQUASI = 328,
+     SYNTAXUNQUOTE = 329,
+     SYNTAXSPLICE = 330
    };
 #endif
 
@@ -138,7 +143,7 @@ typedef union YYSTYPE
 	int kind;
 }
 /* Line 2616 of glr.c.  */
-#line 142 "c.tab.h"
+#line 147 "c.tab.h"
 	YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1

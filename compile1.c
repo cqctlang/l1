@@ -4,10 +4,51 @@
 
 static Expr* compile1(U *ctx, Expr *e);
 
-struct Arg {
-	Expr **e;
-	U *ctx;
-};
+static Expr*
+compiledef(U *ctx, Expr *e)
+{
+	Expr *p;
+
+	p = Zset(e->e1,
+		 Zlambdn(e->e2,
+			 compile1(ctx, e->e3),
+			 copyexpr(e->e1)));
+	e->e1 = 0;
+	e->e2 = 0;
+	e->e3 = 0;
+	e->e4 = 0;
+	putsrc(p, &e->src);
+	freeexpr(e);
+	return p;
+}
+
+static Expr*
+compilerec(U *ctx, Expr *e)
+{
+	char *id, *is;
+	unsigned len;
+	Expr *p;
+
+	id = e->e1->id;
+	len = 2+strlen(id)+1;
+	is = emalloc(len);
+	snprint(is, len, "is%s", id);
+	p = Zblock(Zlocals(1, "$rd"),
+		   Zset(doid("$rd"),
+			Zcall(G("mkrd"), 2,
+			      Zconsts(id),
+			      Zids2strs(e->e2))),
+		   Zset(doid(id), Zcall(G("rdmk"),
+					1, doid("$rd"))),
+		   Zset(doid(is), Zcall(G("rdis"),
+					1, doid("$rd"))),
+		   doid("$rd"),
+		   NULL);
+	efree(is);
+	putsrc(p, &e->src);
+	freeexpr(e);
+	return p;
+}
 
 static Expr*
 compiletab(U *ctx, Expr *e)
@@ -36,7 +77,7 @@ compiletab(U *ctx, Expr *e)
 	}
 	se = doid("$tab");
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -68,7 +109,7 @@ compilelist(U *ctx, Expr *e)
 	}
 	se = doid("$lst");
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -112,7 +153,7 @@ compilesizeof(U *ctx, Decl *d, Src *src)
 	// sizeof($tmp);
 	se = Zsizeof(doid("$tmp"));
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -122,41 +163,37 @@ compiletypeof(U *ctx, Decl *d, Src *src)
 {
 	Type *t;
 	Expr *se, *te, *loc;
-	char *dom;
 
 	t = d->type;
-	if(t->dom)
-		dom = t->dom;
-	else
-		dom = "litdom";
 
-	loc = Zlocals(2, "$tn", "$tmp");
-
+	loc = Zlocals(1, "$tmp");
 	te = nullelist();
 
-	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
+	// $tmp = gentypename(t);
+	se = Zset(doid("$tmp"), gentypename(t, compile1, ctx, 0));
 	te = Zcons(se, te);
 
-	// $tmp = looktype(dom, $tn);
-	se = Zset(doid("$tmp"),
-		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
-	te = Zcons(se, te);
+	if(t->dom){
+		// $tmp = looktype(t->dom, $tmp);
+		se = Zset(doid("$tmp"),
+			  Zcall(G("looktype"), 2, doid(t->dom), doid("$tmp")));
+		te = Zcons(se, te);
 
-	// if(isnil($tmp)) error("undefined type: %t", $tmp);
-	// FIXME: this is a redundant test under Eambig
-	se = newexpr(Eif,
-		     Zcall(G("isnil"), 1, doid("$tmp")),
-		     Zcall(G("error"), 2,
-			   Zconsts("undefined type: %t"),
-			   doid("$tn")),
-		     0, 0);
-	te = Zcons(se, te);
+		// if(isnil($tmp)) error("undefined type: %t", $tmp);
+		// FIXME: this is a redundant test under Eambig
+		se = newexpr(Eif,
+			     Zcall(G("isnil"), 1, doid("$tmp")),
+			     Zcall(G("error"), 2,
+				   Zconsts("undefined type: %t"),
+				   doid("$tmp")),
+			     0, 0);
+		te = Zcons(se, te);
+	}
 
 	// $tmp;
 	se = doid("$tmp");
 	te = Zcons(se, te);
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, src);
 	return te;
 }
@@ -207,7 +244,7 @@ compilecast(U *ctx, Expr *e)
 	se = Zxcast(doid("$type"), doid("$tmp"));
 	te = Zcons(se, te);
 
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, &e->src);
 	return te;
 }
@@ -288,7 +325,7 @@ compilecontainer(U *ctx, Expr *e)
 			 Zcall(G("fieldoff"), 1, doid("$fld"))));
 	te = Zcons(se, te);
 
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, &e->src);
 	return te;
 }
@@ -361,11 +398,12 @@ compileambig(U *ctx, Expr *e)
 	se = newexpr(Eif, Zcall(G("isnil"), 1, doid("$tmp")), of, tf, 0);
 	te = Zcons(se, te);
 
-	te = newexpr(Eblock, loc, invert(te), 0, 0);
+	te = Zblock(loc, invert(te), NULL);
 	putsrc(te, &e->src);
 	return te;
 }
 
+/* expand various independent syntactic forms */
 static Expr*
 compile1(U *ctx, Expr *e)
 {
@@ -375,11 +413,13 @@ compile1(U *ctx, Expr *e)
 		return e;
 
 	switch(e->kind){
-	case Eglobal:
-		return e;
+	case Edefine:
+		se = compiledef(ctx, e);
+		return se;
+	case Edefrec:
+		se = compilerec(ctx, e);
+		return se;
 	case Elambda:
-		e->e4 = compile1(ctx, e->e4);
-		/* fall through */
 	case Eblock:
 		e->e2 = compile1(ctx, e->e2);
 		return e;

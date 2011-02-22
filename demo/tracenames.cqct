@@ -1,0 +1,71 @@
+@include <ctlmux.cqct>
+@include <nsutil.cqct>
+
+@define fmtsym(s)
+{
+	if(s == nil)
+		return("<undefined>");
+	return sprintfa("@0x%p\t%t", symoff(s), s);
+}
+
+
+@define test1(path, syms, types)
+{
+	@local mux, ns, rv, t;
+	mux = mkctlmux_local();
+	ns = mux.names(path);
+	foreach(@lambda(s){
+			rv = looksym(ns, s);
+			printf("looksym(%a) -> %s\n", s, fmtsym(rv));
+		}, syms);
+	foreach(@lambda(t){
+			rv = looktype(ns, t);
+			printf("looktype(%t) -> %a\n", t, rv);
+			if(isctype(rv))
+				printtype(rv);
+		}, types);
+}
+
+@define test2(path)
+{
+	@local mux, ns, rv, t, ts, s, ss;
+	mux = mkctlmux_local();
+	ns = mux.names(path);
+	ts = ns.enumtype();
+	foreach(@lambda(k,v){
+			printtype(v);
+			if(!issu(v))
+				return;
+			if(0)if(length(suetag(v)) >= 7
+			   && substr(suetag(v), 0, 7) == "anon")
+				printtype(v);
+		}, ts);
+	ss = ns.enumsym();
+	foreach(@lambda(k, v){
+			printf("%s\n", fmtsym(v));
+		}, ss);
+}
+
+@define test3(path)
+{
+	@local mux, ns, rv, t, ts;
+	mux = mkctlmux_local();
+	ns = mux.names(path);
+	printf("parsed names\n");
+}
+
+//test1("../l1", "dovm");
+if(0)test1("./locals1",
+	   [ "locals", "foo", "main", "v6" ],
+	   [
+		#int#,
+		#`Node#,
+		#struct Node#,
+		#`X#,
+		#enum X#,
+		#enum Y#,
+		#`Z#,
+		#struct Z#,
+	   ]);
+
+if(0)test2("./locals1");

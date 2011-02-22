@@ -1,0 +1,33 @@
+l = [];
+@define f()
+{
+	@local x;
+	x = 5;
+	while(x > 0){
+		switch(x) {
+			{
+				@local x;
+			case 1:
+				x = 1;
+				append(l, @lambda() { printf("1: %a\n", x); });
+				break;
+			case 2:
+				x = 2;
+				append(l, @lambda() { printf("2: %a\n", x); });
+				break;
+			{
+			default:
+				{
+					@local x;
+					x = 3;
+					append(l, @lambda() { printf("d: %a\n", x); });
+				}
+			}
+			}
+		}
+		x--;
+	}
+	foreach(@lambda(c) { c(); }, l);
+}
+
+f();

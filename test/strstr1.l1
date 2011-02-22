@@ -1,0 +1,4 @@
+s = "foo\000bar\000baz";
+printf("%u\n", strstr(s, "bar"));
+if (!isnil(strstr(s, "xyzzy")))
+	printf("strstr false hit\n");

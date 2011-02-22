@@ -10,7 +10,9 @@
 			pid = p[0];
 			cmd = p[1];
 			printf("%5d %s\n", pid, cmd);
-			if(cmd == "prctl")
+			if(cmd == "sctl")
+				return;
+			if(cmd == "memcheck")
 				return;
 			if(cmd == "emacs")
 				return;

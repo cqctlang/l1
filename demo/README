@@ -31,6 +31,18 @@ the closest things to a test are the following:
     % ../l1 debugprctl.cqct
 
 these run a series of other demos.  some give
-non-deterministic results, so do not yet have a way to
-validiate a test run.  at the very least, nothing
+non-deterministic results, so we do not yet have a way
+to validiate a test run.  at the very least, nothing
 should crash or error.
+
+
+other tests...
+ 
+  * local variable locations and sizes
+
+    % ../l1 ./tracelocals.cqct
+
+  * stack unwinding
+
+    % ../l1 ./tracewind.cqct
+

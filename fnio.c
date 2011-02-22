@@ -35,27 +35,27 @@ enum
 	QTTMP		= 0x04,		// type bit for non-backed-up file
 	QTSYMLINK	= 0x02,		// type bit for symbolic link
 	QTFILE		= 0x00,		// type bits for plain file
+};
 
-	// 9P mode bits
-	DMDIR		= 0x80000000,	// mode bit for directories
-	DMAPPEND	= 0x40000000,	// mode bit for append only files
-	DMEXCL		= 0x20000000,	// mode bit for exclusive use files
-	DMMOUNT		= 0x10000000,	// mode bit for mounted channel
-	DMAUTH		= 0x08000000,	// mode bit for authentication file
-	DMTMP		= 0x04000000,	// mode bit for non-backed-up file
+/* #define since not all are int-sized */
+#define DMDIR		0x80000000	// mode bit for directories
+#define DMAPPEND	0x40000000	// mode bit for append only files
+#define DMEXCL		0x20000000	// mode bit for exclusive use files
+#define DMMOUNT		0x10000000	// mode bit for mounted channel
+#define DMAUTH		0x08000000	// mode bit for authentication file
+#define DMTMP		0x04000000	// mode bit for non-backed-up file
 
 	// 9P2000.u mode bits
-	DMSYMLINK	= 0x02000000,	// mode bit for symbolic link
-	DMDEVICE	= 0x00800000,	// mode bit for device file
-	DMNAMEDPIPE	= 0x00200000,	// mode bit for named pipe
-	DMSOCKET	= 0x00100000,	// mode bit for socket
-	DMSETUID	= 0x00080000,	// mode bit for setuid
-	DMSETGID	= 0x00040000,	// mode bit for setgid
+#define DMSYMLINK	0x02000000	// mode bit for symbolic link
+#define DMDEVICE	0x00800000	// mode bit for device file
+#define DMNAMEDPIPE	0x00200000	// mode bit for named pipe
+#define DMSOCKET	0x00100000	// mode bit for socket
+#define DMSETUID	0x00080000	// mode bit for setuid
+#define DMSETGID	0x00040000	// mode bit for setgid
 
-	DMREAD		= 0x4,		// mode bit for read permission
-	DMWRITE		= 0x2,		// mode bit for write permission
-	DMEXEC		= 0x1,		// mode bit for execute permission
-};
+#define DMREAD		0x4		// mode bit for read permission
+#define DMWRITE		0x2		// mode bit for write permission
+#define DMEXEC		0x1		// mode bit for execute permission
 
 typedef
 struct Qid {
@@ -257,7 +257,8 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 	name = str2cstr(names);
 	if(0 > stat(name, &st)){
 		efree(name);
-		vmerr(vm, "cannot stat %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot stat %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	}
 	d = stat2dir(name, &st);
@@ -284,18 +285,21 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = open(name, O_RDONLY);
 	efree(name);
 	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	if(0 > fstat(fd, &st)){
 		close(fd);
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	}
 	p = mmap(0, st.st_size, PROT_READ|PROT_WRITE,
 		 MAP_NORESERVE|MAP_PRIVATE, fd, 0);
 	close(fd);
 	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	map = mkstrk(p, st.st_size, Smmap);
 	*rv = mkvalstr(map);
@@ -338,7 +342,8 @@ l1_access(VM *vm, Imm argc, Val *argv, Val *rv)
 		|| errno == ETXTBSY)
 		*rv = mkvalcval2(cval0);
 	else
-		vmerr(vm, "access %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "access %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 }
 
@@ -361,7 +366,7 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 	req = valcval(argv[1]);
 	if(Vkind(argv[2]) == Qstr){
 		bufs = valstr(argv[2]);
-		p = bufs->s;
+		p = strdata(bufs);
 	}else{
 		bufp = valcval(argv[2]);
 		p = (char*)(uintptr_t)bufp->val;
@@ -412,7 +417,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(name);
 	efree(mode);
 	if(0 > xfd.fd)
-		vmerr(vm, "cannot open %.*s: %s", (int)names->len, names->s,
+		vmerr(vm, "cannot open %.*s: %s",
+		      (int)names->len, strdata(names),
 		      strerror(errno));
 	if(strchr(mode, 'a'))
 		lseek(xfd.fd, 0, SEEK_END);
@@ -484,7 +490,7 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 		s = mkstrk(buf, r, Smalloc);
 		*rv = mkvalstr(s);
 	}else
-		*rv = dovm(vm, fd->u.cl.read, argc-1, argv+1);
+		*rv = safedovm(vm, fd->u.cl.read, argc-1, argv+1);
 }
 
 static void
@@ -508,11 +514,11 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 		s = valstr(argv[1]);
 		if(!fd->u.fn.write)
 			return;	/* nil */
-		r = fd->u.fn.write(&fd->u.fn, s->s, s->len);
+		r = fd->u.fn.write(&fd->u.fn, strdata(s), s->len);
 		if(r == -1)
 			vmerr(vm, "write error: %s", strerror(errno));
 	}else{
-		x = dovm(vm, fd->u.cl.write, argc-1, argv+1);
+		x = safedovm(vm, fd->u.cl.write, argc-1, argv+1);
 		if(Vkind(x) != Qnil)
 			vmerr(vm, "write error");
 	}
@@ -617,6 +623,106 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	listappend(vm, ls, mkvalfd(fd));
 }
 
+static int
+setfdsin(VM *vm, List *l, fd_set *f)
+{
+	Val v;
+	Imm i, m;
+	int n;
+	Fd *fd;
+
+	m = listlen(l);
+	n = -1;
+	for(i = 0; i < m; i++){
+		v = listref(vm, l, i);
+		if(Vkind(v) != Qfd)
+			vmerr(vm, "select on non file descriptor");
+		fd = valfd(v);
+		if((fd->flags&Ffn) == 0)
+			vmerr(vm, "select on unselectable file descriptor");
+		FD_SET(fd->u.fn.fd, f);
+		if(fd->u.fn.fd > n)
+			n = fd->u.fn.fd;
+	}
+	return n;
+}
+
+static void
+setfdsout(VM *vm, List *il, fd_set *f, List *ol)
+{
+	Val v;
+	Imm i, m;
+	Fd *fd;
+
+	m = listlen(il);
+	for(i = 0; i < m; i++){
+		v = listref(vm, il, i);
+		fd = valfd(v);
+		if(FD_ISSET(fd->u.fn.fd, f))
+			listappend(vm, ol, v);
+	}
+}
+
+static void
+l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	fd_set rfds, wfds, efds;
+	int n, s;
+	List *r, *w, *e, *rl, *t;
+	Cval *cv;
+	Val v;
+	struct timeval tv, *tvp;
+
+	if(argc != 3 && argc != 4)
+		vmerr(vm, "wrong number of arguments to select");
+	checkarg(vm, "select", argv, 0, Qlist);
+	checkarg(vm, "select", argv, 1, Qlist);
+	checkarg(vm, "select", argv, 2, Qlist);
+	tvp = 0;
+	if(argc == 4){
+		checkarg(vm, "select", argv, 3, Qlist);
+		tvp = &tv;
+		t = vallist(argv[3]);
+		if(listlen(t) != 2)
+			vmerr(vm, "bad timeout specifier");
+		v = listref(vm, t, 0);
+		if(Vkind(v) != Qcval)
+			vmerr(vm, "bad timeout specifier");
+		cv = valcval(v);
+		tv.tv_sec = cv->val;
+		v = listref(vm, t, 1);
+		if(Vkind(v) != Qcval)
+			vmerr(vm, "bad timeout specifier");
+		cv = valcval(v);
+		tv.tv_usec = cv->val;
+	}
+
+	FD_ZERO(&rfds);
+	FD_ZERO(&wfds);
+	FD_ZERO(&efds);
+	n = -1;
+	s = setfdsin(vm, vallist(argv[0]), &rfds);
+	n = MAX(n, s);
+	s = setfdsin(vm, vallist(argv[1]), &wfds);
+	n = MAX(n, s);
+	s = setfdsin(vm, vallist(argv[2]), &efds);
+	n = MAX(n, s);
+	n = select(n+1, &rfds, &wfds, &efds, tvp);
+	if(0 > n)
+		vmerr(vm, "select: %s", strerror(errno));
+	r = mklist();
+	w = mklist();
+	e = mklist();
+	setfdsout(vm, vallist(argv[0]), &rfds, r);
+	setfdsout(vm, vallist(argv[1]), &wfds, w);
+	setfdsout(vm, vallist(argv[2]), &efds, e);
+	rl = mklist();
+	listappend(vm, rl, mkvallist(r));
+	listappend(vm, rl, mkvallist(w));
+	listappend(vm, rl, mkvallist(e));
+	*rv = mkvallist(rl);
+}
+
 void
 fnio(Env *env)
 {
@@ -628,6 +734,7 @@ fnio(Env *env)
 	FN(popen);
 	FN(read);
 	FN(seek);
+	FN(select);
 	FN(stat);
 	FN(write);
 }

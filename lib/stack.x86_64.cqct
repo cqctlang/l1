@@ -144,7 +144,7 @@
 	return ctl.xtrap(a,
 		  @lambda(ctl){
 			  regs = ctl.reg();
-			  dom = mkdom(ns, ctl.mem());
+			  dom = mkdom(dom.ns, ctl.mem());
 			  args = [ctl];
 			  // first six args in rdi, rsi, rdx, rcx, r8, r9 
 			  // float args in xmm*
@@ -184,6 +184,39 @@
 							       {rt}{dom}rax);
 						  push(arg, rctl);
 						  return apply(fn, arg);
+					  });
+		 });
+}
+
+@define brbrk(a, in)
+{
+	@local dom, ns, ctl, id, rt;
+	dom = domof(a);
+	ns = dom.ns;
+	ctl = dom.ctl();
+	rt = fnret(a);
+	id = brk(a,
+		 @lambda(ectl, arg ...){
+			 @local dom, regs, sp, rid, rax, out;
+			 regs = ectl.reg();
+			 dom = mkdom(ns, ectl.mem());
+			 push(arg, ectl);
+			 out = apply(in, arg);
+			 if(out == nil)
+				 return;
+			 pop(arg);
+			 sp = (void**){dom}regs->rsp;
+			 rid = ectl.xtrap(*sp,
+					  @lambda(rctl){
+						  ectl.trapdel(rid);
+						  regs = rctl.reg();
+						  dom = mkdom(ns, rctl.mem());
+						  rax = regs->rax;
+						  if(rt != nil)
+							  push(arg,
+							       {rt}{dom}rax);
+						  push(arg, rctl);
+						  return apply(out, arg);
 					  });
 		 });
 }

@@ -1,3 +1,6 @@
+// Disabled because the output stack trace includes
+// varying and host-dependent source line information from lib/gc.cqct
+
 // no output: the point of this test is not to crash or mishandle memory
 ftab = mktab();
 @define fn(val) {

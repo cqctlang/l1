@@ -28,9 +28,10 @@ extern char *yytext;
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
 %token CAST_ASSIGN XCAST_ASSIGN GOTO
 %token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
-%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
-%token STRUCT UNION ENUM ELLIPSIS DEFCONST
-%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
+%token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
+%token STRUCT UNION ENUM ELLIPSIS
+%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
+%token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -50,7 +51,7 @@ extern char *yytext;
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
 %type <expr> parameter_type_list parameter_list parameter_declaration
 %type <expr> abstract_declarator direct_abstract_declarator statement
-%type <expr> defconst_statement compound_statement statement_list
+%type <expr> compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
 %type <expr> global_statement defrec_expression let_expression
@@ -64,6 +65,7 @@ extern char *yytext;
 %type <expr> tn_param_enum_specifier
 %type <expr> table_init table_init_list
 %type <expr> maybe_attr
+%type <expr> quote_expression
 
 %type <kind> unary_operator assignment_operator struct_or_union
 
@@ -120,6 +122,29 @@ let_expression
 	{ $$ = $2; }
 	;
 
+quote_expression
+	: SYNTAXQUOTE statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXQUOTE expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXQUASI statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXQUASI expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXSPLICE statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| SYNTAXSPLICE expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	| QUOTE '{' statement '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
+	| QUOTE '{' expression '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
+	;
+
 table_init
 	: root_expression ':' root_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
@@ -163,6 +188,7 @@ primary_expression
 	| lambda_expression
 	| defrec_expression
 	| let_expression
+	| quote_expression
 	;
 
 postfix_expression
@@ -172,8 +198,7 @@ postfix_expression
 	| postfix_expression '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, nullelist(), 0, 0); }
 	| postfix_expression '(' argument_expression_list ')'
-	  /* don't invert -- compiler evaluates arguments in reverse order */
-	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, $3, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, invert($3), 0, 0); }
 	| postfix_expression '.' id
 	{ $$ = newexprsrc(&ctx->inp->src, Edot, $1, $3, 0, 0); }
 	| postfix_expression PTR_OP id
@@ -471,6 +496,8 @@ declarator_list
 base
 	: VOID
 	{ $$ = newexprsrc(&ctx->inp->src, Evoid, 0, 0, 0, 0); }
+	| BOOL
+	{ $$ = newexprsrc(&ctx->inp->src, Ebool, 0, 0, 0, 0); }
 	| CHAR
 	{ $$ = newexprsrc(&ctx->inp->src, Echar, 0, 0, 0, 0); }
 	| SHORT
@@ -885,7 +912,6 @@ statement
 	| jump_statement
 	| define_statement
 	| labeled_statement
-	| defconst_statement
 	| global_statement
 	;
 
@@ -908,22 +934,50 @@ local_list
 
 compound_statement
 	: '{' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Eblock, nullelist(), nullelist(), 0, 0); }
+	{
+		$$ = newexprsrc(&ctx->inp->src,
+				Escope,
+				newexprsrc(&ctx->inp->src,
+					   Eblock,
+					   nullelist(),
+					   nullelist(), 0, 0),
+				0, 0, 0);
+	}
 	| '{' local_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Eblock, flatten($2), nullelist(), 0, 0); }
+	{
+		$$ = newexprsrc(&ctx->inp->src,
+				Escope,
+				newexprsrc(&ctx->inp->src,
+					   Eblock,
+					   flatten($2),
+					   nullelist(), 0, 0),
+				0, 0, 0);
+	}
 	| '{' statement_list '}'
 	{
 		/* use src of first statement */
 		Expr *sl;
 		sl = invert($2);
-		$$ = newexprsrc(&sl->src, Eblock, nullelist(), sl, 0, 0);
+		$$ = newexprsrc(&sl->src,
+				Escope,
+				newexprsrc(&sl->src,
+					   Eblock,
+					   nullelist(),
+					   sl, 0, 0),
+				0, 0, 0);
 	}
 	| '{' local_list statement_list '}'
 	{
 		/* use src of first statement */
 		Expr *sl;
 		sl = invert($3);
-		$$ = newexprsrc(&sl->src, Eblock, flatten($2), sl, 0, 0);
+		$$ = newexprsrc(&sl->src,
+				Escope,
+				newexprsrc(&sl->src,
+					   Eblock,
+					   flatten($2),
+					   sl, 0, 0),
+				0, 0, 0);
 	}
 	;
 
@@ -955,7 +1009,7 @@ selection_statement
 
 labeled_statement
 	: id ':' statement
-	  { $$ = newexprsrc(&$1->src, Elabel, $1, $3, NULL, NULL); }
+	  { $$ = Zlabelsrc(&$1->src, $1, $3); }
 	| CASE expression ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
 	| DEFAULT ':' statement
@@ -979,7 +1033,7 @@ iteration_statement
 
 jump_statement
 	: GOTO id ';'
-	{ $$ = newexprsrc(&ctx->inp->src, Egoto, $2, 0, 0, 0); }
+	{ $$ = Zgotosrc(&ctx->inp->src, $2); }
 	| CONTINUE ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Econtinue, 0, 0, 0, 0); }
 	| BREAK ';'
@@ -999,15 +1053,6 @@ define_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
 	| define id '('  ')' compound_statement
 	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
-	| define id '(' arg_id_list ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $9, $7); }
-	| define id '('  ')' '[' expression ']' compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $8, $6); }
-	;
-
-defconst_statement
-	: DEFCONST id '=' expression ';'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefconst, $2, $4, 0, 0); }
 	;
 
 translation_unit_seq

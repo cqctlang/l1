@@ -26,22 +26,25 @@ static Expr*
 rvalblock(Expr *body, unsigned lfree)
 {
 	Expr *e, *te;
+	Src src;
 	if(lfree)
 		e = Zlocals(1, "$val");
 	else
 		e = Zlocals(4, "$val", "$dom", "$type", "$addr");
-	te = newexpr(Eblock, e, body, 0, 0);
-	putsrc(te, &body->src);
+	src = body->src;
+	te = Zblock(e, body, NULL);
+	putsrc(te, &src);
 	return te;
 }
 
 static Expr*
 lvalblock(Expr *body)
 {
-	Expr *e, *te;
-	e = Zlocals(1, "$tmp");
-	te = newexpr(Eblock, e, body, 0, 0);
-	putsrc(te, &body->src);
+	Expr *te;
+	Src src;
+	src = body->src;
+	te = Zblock(Zlocals(1, "$tmp"), body, NULL);
+	putsrc(te, &src);
 	return te;
 }
 
@@ -289,9 +292,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		return rvalblock(te, lfree);
 	case Egop:
 		if(!islval(e->e1)){
-			/* FIXME: if we translate ordinary cval Egop here
-			   into equivalent source, do we generate same
-			   or similar code as compile.c on Egop? */
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
 			e->e1 = compile_rval(ctx, e->e1, 0);
@@ -324,9 +324,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 	case Epostinc:
 	case Epostdec:
 		if(!islval(e->e1)){
-			/* FIXME: if we translate ordinary cval ++ here
-			   into equivalent source, do we generate same
-			   or similar code as compile.c on ++? */
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
 			e->e1 = compile_rval(ctx, e->e1, 0);
@@ -357,9 +354,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 	case Epreinc:
 	case Epredec:
 		if(!islval(e->e1)){
-			/* FIXME: if we translate ordinary cval ++ here
-			   into equivalent source, do we generate same
-			   or similar code as compile.c on ++? */
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
 			e->e1 = compile_rval(ctx, e->e1, 0);
@@ -453,7 +447,9 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 static int
 isemptyblock(Expr *e)
 {
-	if(e->kind == Eblock && e->e2->kind == Enull)
+	if(e->kind == Escope && e->e1->e2->kind == Enull)
+		return 1;
+	else if(e->kind == Eblock && e->e2->kind == Enull)
 		return 1;
 	else
 		return 0;
@@ -482,34 +478,6 @@ groomc(U *ctx, Expr *e)
 			e->e3 = groomc(ctx, e->e3);
 		putsrc(e, &e->src);
 		return e;
-	case Eswitch: /* for cg */
-		/*
-		   switch(E){       { @local $tmp;
-		   case V1:     =>    switch($tmp = E){
-		      ...             case $tmp==V1:
-		   }                      ...
-                                      }
-                                    }
-		*/
-		se = Zblock(Zlocals(1, "$tmp"),
-			   newexpr(Eswitch,
-				   Zset(doid("$tmp"), groomc(ctx, e->e1)),
-				   groomc(ctx, e->e2), 0, 0),
-			   NULL);
-		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
-	case Ecase:
-		se = newexpr(Ecase,
-			     Zbinop(Eeq, doid("$tmp"), groomc(ctx, e->e1)),
-			     groomc(ctx, e->e2), 0, 0);
-		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
 	case Ecomma:
 		se = Zblock(nullelist(),
 			    groomc(ctx, e->e1),
@@ -565,14 +533,13 @@ labels(U *ctx, Expr *e, HT *ls)
 	case Edefine:
 		return;
 	case Elabel:
-		id = e->e1->id;
-		if(hget(ls, id, strlen(id)))
+		id = e->id;
+		if(hgets(ls, id, strlen(id)))
 			cposterror(ctx, e, "duplicate label: %s", id);
 		else{
-			e->e1->attr = Unusedlabel;
-			hput(ls, id, strlen(id), e->e1);
+			e->attr = Unusedlabel;
+			hputs(ls, id, strlen(id), e);
 		}
-		labels(ctx, e->e2, ls);
 		break;
 	case Eelist:
 		p = e;
@@ -607,15 +574,14 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		checkgoto(ctx, e->e3);
 		break;
 	case Egoto:
-		id = e->e1->id;
-		q = hget(ls, id, strlen(id));
+		id = e->id;
+		q = hgets(ls, id, strlen(id));
 		if(q == 0)
 			cposterror(ctx, e, "undefined label: %s", id);
 		else{
 			p = q;
 			p->attr = Usedlabel;
 		}
-		reccheckgoto(ctx, e->e2, ls);
 		break;
 	case Eelist:
 		p = e;
@@ -648,7 +614,7 @@ checkgoto(U *ctx, Expr *e)
 {
 	HT *ls;
 
-	ls = mkht();
+	ls = mkhts();
 	labels(ctx, e, ls);
 	reccheckgoto(ctx, e, ls);
 	hforeach(ls, check1label, ctx);
@@ -688,7 +654,6 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 		break;
 	case Edefine:
 		checkctl(ctx, e->e3, 0, 0);
-		checkctl(ctx, e->e4, 0, 0);
 		break;
 	case Econtinue:
 		if(inloop == 0)
@@ -697,6 +662,10 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 	case Ebreak:
 		if(inloop == 0 && inswitch == 0)
 			cerror(ctx, e, "break not within loop or switch");
+		break;
+	case Edefault:
+		if(inswitch == 0)
+			cerror(ctx, e, "default label not within switch");
 		break;
 	case Eelist:
 		p = e;

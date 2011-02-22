@@ -82,35 +82,36 @@ of the L1 implementation of Cinquecento.
 
 <p>
 Cinquecento is a programming language designed for
-examining programs in execution.  Its distinguishing
-feature is an extensible abstraction, called
-a <em>domain</em>, that represents a 
-target program in execution.
+examining programs in execution.  Its most
+distinguishing feature is an extensible abstraction,
+called a <em>domain</em>, that represents a target
+program in execution.
 </p>
 
 <p>
-Domains present the state of a target program through
+A domain presents the state of a target program through
 an interface based on the syntax and semantics of C.
-Target program memory can be read or modified using
-ordinary C expressions.  Conventional C idioms for
+Ordinary C expressions can be used to read or modify
+target program memory.  More complex C idioms for
 traversing data structures, such as pointer-chasing
-loops, generally work in Cinquecento without
-modification.  In particular, Cinquecento supports C
-operators, the C type system, and C control flow
-statements.  Names and types of target program data can
-be specified in C declaration syntax, with minor
-extensions to allow machine-level specification of
+loops, generally work without modification.  All C
+types, operators, and control flow statements work as
+expected.  The names and types of target program data
+can be specified in C declaration syntax; minor
+extensions allow machine-level specification of
 location, layout, and encoding of data in memory.
 </p>
 
 <p>
-A Cinquecento program can manipulate multiple simultaneously
-active target programs.
+A Cinquecento program can use multiple domains to
+manipulate multiple simultaneously active target
+programs.
 
-Heterogeneity is expected: each target may have different types,
-symbols, and executable format; and each target may
-execute on a different machine, possibly with a
-different architecture and operating system.
+Heterogeneity is expected: the targets may be different
+programs, or the same program with different types,
+symbols, or executable format; and the targets may
+execute on different machines, of possibly different
+architecture or operating system.
 
 Example applications include comparing executions of
 different versions of a program, comparing executions
@@ -120,7 +121,7 @@ distributed, multi-process program.
 </p>
 
 <p>
-A domain encapsulates user-defined functions that
+Each domain encapsulates user-defined functions that
 implement access to the associated target.  These
 include functions that define the types and symbols of
 the target, and functions that read and write its
@@ -138,14 +139,15 @@ for common environments, such as x86 Linux systems.
 <p>
 Apart from domains and the C-based syntax, Cinquecento
 is a simple dynamic language with conventional
-functional semantics.  A dialect of Scheme at heart,
-Cinquecento is lexically scoped, dynamically typed,
-properly tail recursive, and has first-class functions
-and automatic memory management.  Schemers will note
-departure in Cinquecento's model of integers (which
-rigorously emulates C's fixed precision semantics), the
-more imperative flavor of its built-in list data type,
-and the absence (today) of a compelling macro system.
+functional semantics.  A dialect of Scheme at its
+heart, Cinquecento is lexically scoped, dynamically
+typed, properly tail recursive, and has first-class
+functions and automatic memory management.  Schemers
+will note departure in Cinquecento's model of integers
+(which rigorously emulates C's fixed precision
+semantics), the more imperative flavor of its built-in
+list data type, and the absence (today) of a compelling
+macro system.
 </p>
 
 <p>
@@ -346,8 +348,9 @@ a single string.
 <p>
 An integer literal is a sequence of digit characters.
 With no prefix, integer literals are interpreted in decimal.
-The <span class="val">0x</span> prefix causes hexadecimal interpretation.
+The <span class="val">0x</span> prefix and <span class="val">0X</span> prefix causes hexadecimal interpretation.
 The <span class="val">0</span> prefix causes octal interpretation.
+The <span class="val">0b</span> prefix and <span class="val">0B</span> prefix causes hexadecimal interpretation.
 </p>
 
 <p>
@@ -1187,9 +1190,10 @@ is the resulting record descriptor.
 <p>
 In addition, evaluation of
 the <span class="id">@record</span> expression
-implicitly defines two top-level functions,
+implicitly defines two functions,
 named <span class="id">myrec</span>
-and <span class="id">ismyrec</span>.
+and <span class="id">ismyrec</span>,
+in the innermost level of lexical scope.
 </p>
 
 <p>
@@ -2076,12 +2080,13 @@ and address space are
 
 <h4 id="sec:domobj">Domains as objects</h4>
 
+<p>
 Cinquecento address spaces and name spaces encapsulate
 functions that implement the behavior of these
 abstractions.  The structure of this encapsulation is
 similar to that of simple objects in a conventional
 object-oriented language.
-
+</p>
 
 <h4 id="sec:namespaces">Name spaces</h4>
 
@@ -2150,6 +2155,54 @@ section <a href="#sec:ctypes">Ctypes</a>.
 </p>
 
 <p>
+Several
+functions retrieve type information from a name space.
+</p>
+
+<div class="docitem" id="fn:nsptr">
+<div class="proto">
+<div class="function">
+<span class="id">nsptr(<span class="arg">ns</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a base type defined in <span class="arg">ns</span>
+that can represent the pointer type defined in <span class="arg">ns</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:nsrepbase">
+<div class="proto">
+<div class="function">
+<span class="id">nsrepbase(<span class="arg">ns</span>,<span class="arg">rep</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">rep</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a base type defined
+in <span class="arg">ns</span> whose representation
+is <span class="arg">rep</span>,
+or <span class="val">nil</span> if there is no such
+type.
+</div>
+</div>
+
+
+<p>
 C symbols have three components: the type of the symbol
 (represented as a ctype),
 the name of the symbol (string),
@@ -2166,6 +2219,7 @@ interface to create and access symbols.  (The notation
 <span class="arg">symbol</span> denotes the representation
 of symbols.)
 </p>
+
 
 <div class="docitem" id="fn:mksym">
 <div class="proto">
@@ -2960,6 +3014,7 @@ Base C type
 <span class="fnindex">baseid</span>
 </td>
 <td>
+<span class="fnindex"><a href="#fn:mkctype_base">mkctype_base</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_char">mkctype_char</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_short">mkctype_short</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_int">mkctype_int</a></span><br />
@@ -3085,7 +3140,7 @@ Undefined
 <span class="fnindex"><a href="#fn:subtype">subtype</a></span>
 </td>
 <td>
-<em>n/a</em>
+<span class="fnindex"><a href="#fn:mkctype_undef">mkctype_undef</a></span>
 </td>
 </tr>
 
@@ -3266,6 +3321,44 @@ class="arg">type</span>.  Returns <span class="val">nil</span> if the type does 
 <div class="desc">
 Returns the name of the base C type represented
 by <span class="arg">type</span> as a string.
+</div>
+</div>
+
+<div class="docitem" id="fn:basebase">
+<div class="proto">
+<div class="function">
+<span class="id">basebase(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">base ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the integer representation (with FIXME
+unspecified semantics) of the base C type represented
+by <span class="arg">type</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:baserep">
+<div class="proto">
+<div class="function">
+<span class="id">baserep(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">base ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the integer representation (with FIXME
+unspecified semantics) of the representation of the base C type represented
+by <span class="arg">type</span> (indeed!).
 </div>
 </div>
 
@@ -3457,6 +3550,27 @@ Returns the type aliased defined by the typedef type represented by
 </div>
 </div>
 
+<div class="docitem" id="fn:settypedeftype">
+<div class="proto">
+<div class="function">
+<span class="id">settypedeftype(<span class="arg">typedef</span>, <span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">typedef</span>: <span class="type">typedef ctype</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Modifies the typedef ctype <span class="arg">typedef</span> to be
+an alias for <span class="arg">type</span>.
+</div>
+</div>
+
 <div class="docitem" id="fn:xaccessget">
 <div class="proto">
 <div class="function">
@@ -3592,51 +3706,63 @@ in arrays represented by the type.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:mkctype_char">mkctype_char()</span>
+<span class="id" id="fn:mkctype_base">mkctype_base(<span class="arg">base</span>[,<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_short">mkctype_short()</span>
+<span class="id" id="fn:mkctype_char">mkctype_char([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_int">mkctype_int()</span>
+<span class="id" id="fn:mkctype_short">mkctype_short([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_long">mkctype_long()</span>
+<span class="id" id="fn:mkctype_int">mkctype_int([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_vlong">mkctype_vlong()</span>
+<span class="id" id="fn:mkctype_long">mkctype_long([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_uchar">mkctype_uchar()</span>
+<span class="id" id="fn:mkctype_vlong">mkctype_vlong([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_ushort">mkctype_ushort()</span>
+<span class="id" id="fn:mkctype_uchar">mkctype_uchar([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_uint">mkctype_uint()</span>
+<span class="id" id="fn:mkctype_ushort">mkctype_ushort([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_ulong">mkctype_ulong()</span>
+<span class="id" id="fn:mkctype_uint">mkctype_uint([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_uvlong">mkctype_uvlong()</span>
+<span class="id" id="fn:mkctype_ulong">mkctype_ulong([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_float">mkctype_float()</span>
+<span class="id" id="fn:mkctype_uvlong">mkctype_uvlong([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_double">mkctype_double()</span>
+<span class="id" id="fn:mkctype_float">mkctype_float([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_longdouble">mkctype_longdouble()</span>
+<span class="id" id="fn:mkctype_double">mkctype_double([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_longdouble">mkctype_longdouble([<span class="arg">rep</span>])</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
 </div>
 </div>
 <div class="desc">
-Returns a new ctype representing the base C type corresponding
-to the suffix of the constructor name.
+
+<span class="id">mkctype_base</span> returns a new
+ctype representing the base C type corresponding to the
+base type specified by <span class="arg">base</span>,
+an integer (with FIXME unspecifed semantics).
+The remaining functions each return a new ctype
+representing the base C type corresponding to the
+suffix of the function name.  The returned type is
+incomplete unless the <span class="arg">rep</span>
+argument, which specifies the representation of the
+type (with FIXME unspecifed semantics), is provided.
 </div>
 </div>
 
@@ -3764,7 +3890,8 @@ element of the <span class="arg">params</span>
 argument
 of <span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>.
 <span class="arg">Type</span> is the type of the parameter and
-<span class="arg">id</span>, if specified, is the name of the parameter.
+<span class="arg">id</span>, if specified and non-nil,
+is the name of the parameter.
 </div>
 </div>
 
@@ -3811,6 +3938,24 @@ Returns a new ctype representing a typedef.
 <span class="arg">Id</span> is the name of typedef.
 If specified, <span class="arg">type</span> is a ctype representing
 the aliased type.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkctype_undef">
+<div class="proto">
+<div class="function">
+<span class="id">mkctype_undef(<span class="arg">id</span>[,<span class="arg">type</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a new ctype representing an undefined type whose name is
+<span class="arg">type</span>.
 </div>
 </div>
 
@@ -3866,6 +4011,23 @@ class="arg">put</span> on the domain of the pointer and
 the new value to be written.  The new value is cast to
 <span class="arg">type</span> before the call.  The
 return value is ignored.
+</div>
+</div>
+
+<div class="docitem" id="fn:typename">
+<div class="proto">
+<div class="function">
+<span class="id">typename(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a ctype representing the type name of <span class="arg">type</span>.
 </div>
 </div>
 
@@ -5590,6 +5752,50 @@ Returns the value returned by <span class="id">ioctl</span>.
 </div>
 </div>
 
+<div class="docitem" id="fn:select">
+<div class="proto">
+<div class="function">
+<span class="id">select(<span class="arg">rfds</span>, <span class="arg">wfds</span>, <span class="arg">efds</span>[, <span class="arg">timeout</span>])</span>
+</div>
+<div class="param">
+<span class="arg">rfds</span>: <span class="type">list of file descriptors</span>
+</div>
+<div class="param">
+<span class="arg">wfds</span>: <span class="type">list of file descriptors</span>
+</div>
+<div class="param">
+<span class="arg">efds</span>: <span class="type">list of file descriptors</span>
+</div>
+<div class="param">
+<span class="arg">timeout</span>: <span class="type">list of cvalues</span>
+</div>
+<div class="returns">
+<span class="type">list of lists of file descriptors</span>
+</div>
+</div>
+<div class="desc">
+Checks the status of the system-level file descriptors underlying the
+file descriptors in <span class="arg">rfds</span>,
+<span class="arg">wfds</span>, and
+<span class="arg">efds</span> for ready-to-read,
+ready-to-write, or pending exception, respectively.
+Returns three fresh lists each containing,
+respectively, the selected file descriptors
+from <span class="arg">rfds</span>,
+<span class="arg">wfds</span>, and
+<span class="arg">efds</span>.  If
+provided, <span class="arg">timeout</span> must be a
+list of two cvalues &mdash; time in seconds and additional time
+in microseconds &mdash;
+specifying a period of time after which, if no descriptors are
+otherwise ready, the call
+to <span class="id">select</span> returns.
+If <span class="arg">timeout</span> is not
+provided, the call blocks until at least one descriptor becomes ready.
+</div>
+</div>
+
+
 <div class="docitem" id="fn:fdname">
 <div class="proto">
 <div class="function">
@@ -6221,6 +6427,28 @@ at shutdown may not be called.
 <p>
 This section documents various other functions.
 </p>
+
+<div class="docitem" id="fn:eval">
+<div class="proto">
+<div class="function">
+<span class="id">eval(<span class="arg">expr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">eval</span> evaluates the Cinquecento
+expression contained in the
+string <span class="arg">expr</span> and returns the
+computed value.  The evaluation occurs in the top-level
+environment of the caller.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:inflate">
 <div class="proto">
@@ -7315,7 +7543,9 @@ machines sharing the environment have been freed.
 <a href="#fn:apply">apply</a><br />
 <a href="#fn:arraynelm">arraynelm</a><br />
 <a href="#fn:backtrace">backtrace</a><br />
+<a href="#fn:basebase">basebase</a><br />
 <a href="#fn:baseid">baseid</a><br />
+<a href="#fn:baserep">baserep</a><br />
 <a href="#fn:bitfieldcontainer">bitfieldcontainer</a><br />
 <a href="#fn:bitfieldpos">bitfieldpos</a><br />
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
@@ -7327,6 +7557,7 @@ machines sharing the environment have been freed.
 <a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:error">error</a><br />
+<a href="#fn:eval">eval</a><br />
 <a href="#fn:exit">exit</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
@@ -7405,6 +7636,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
+<a href="#fn:mkctype_base">mkctype_base</a><br />
 <a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
 <a href="#fn:mkctype_char">mkctype_char</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
@@ -7424,6 +7656,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mkctype_uchar">mkctype_uchar</a><br />
 <a href="#fn:mkctype_uint">mkctype_uint</a><br />
 <a href="#fn:mkctype_ulong">mkctype_ulong</a><br />
+<a href="#fn:mkctype_undef">mkctype_undef</a><br />
 <a href="#fn:mkctype_union">mkctype_union</a><br />
 <a href="#fn:mkctype_ushort">mkctype_ushort</a><br />
 <a href="#fn:mkctype_uvlong">mkctype_uvlong</a><br />
@@ -7442,6 +7675,8 @@ machines sharing the environment have been freed.
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
+<a href="#fn:nsptr">nsptr</a><br />
+<a href="#fn:nsrepbase">nsrepbase</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />
@@ -7465,7 +7700,9 @@ machines sharing the environment have been freed.
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
 <a href="#fn:seek">seek</a><br />
+<a href="#fn:select">select</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
+<a href="#fn:settypedeftype">settypedeftype</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
@@ -7498,6 +7735,7 @@ machines sharing the environment have been freed.
 <a href="#fn:toupper">toupper</a><br />
 <a href="#fn:typedefid">typedefid</a><br />
 <a href="#fn:typedeftype">typedeftype</a><br />
+<a href="#fn:typename">typename</a><br />
 <a href="#fn:unlink">unlink</a><br />
 <a href="#fn:veclen">veclen</a><br />
 <a href="#fn:vecref">vecref</a><br />

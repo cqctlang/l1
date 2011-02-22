@@ -147,7 +147,8 @@ l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	str = valstr(argv[0]);
 	s = str2cstr(str);
 	if(0 > parseip(s, &saddr))
-		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
+		vmerr(vm, "unrecognized address: %.*s",
+		      (int)str->len, strdata(str));
 	efree(s);
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd.fd)
@@ -177,7 +178,8 @@ l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 	str = valstr(argv[0]);
 	s = str2cstr(str);
 	if(0 > parseip(s, &saddr))
-		vmerr(vm, "unrecognized address: %.*s", (int)str->len, str->s);
+		vmerr(vm, "unrecognized address: %.*s",
+		      (int)str->len, strdata(str));
 	efree(s);
 
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);

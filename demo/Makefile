@@ -2,7 +2,19 @@ CC        = gcc
 LD        = ld
 CFLAGS    = -Wall -g
 
-TARG = clones forks list sig attach par1 exit
+TARG = clones\
+	forks\
+	list\
+	sig\
+	attach\
+	par1\
+	exit\
+	locals1 locals1.32\
+	wind1 wind1.32\
+	wind2 wind2.32\
+	float1 float1.32\
+#	types1 types1.32\
+
 
 all: $(TARG)
 
@@ -38,6 +50,48 @@ attach: attach.o
 
 par1: par1.o
 	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+locals1.o: locals1.c locals1.h
+
+locals1: locals1.o  locals1.xtra.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+locals1.32: locals1.c locals1.xtra.c locals1.h
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ locals1.c locals1.xtra.c
+	dwarf2cqct < $@ > $@.names
+
+wind1: wind1.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+wind1.32: wind1.c
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+wind2: wind2.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+wind2.32: wind2.c
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+types1: types1.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+types1.32: types1.c
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+float1: float1.o
+	$(CC) $(CFLAGS) -o $@ $^
+	dwarf2cqct < $@ > $@.names
+
+float1.32: float1.c
+	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 	dwarf2cqct < $@ > $@.names
 
 exit: exit.o

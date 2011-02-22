@@ -11,7 +11,7 @@ checkxp(Expr *e)
 	Expr *p;
 	if(e == 0)
 		return;
-	if(e->xp)
+	if(e->xp && e->kind != Ekon)
 		fatal("compiler was untidy");
 	switch(e->kind){
 	case Eelist:
@@ -30,38 +30,47 @@ checkxp(Expr *e)
 	}
 }
 
-Val
-cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
+Expr*
+cqctparse(char *s, Toplevel *top, char *src)
 {
 	U ctx;
-	Expr *e;
+
+	if(src == 0)
+		src = "<stdin>";
+	
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.out = &top->out;
+	return doparse(&ctx, s, src);
+}
+
+Val
+cqctcompile0(Expr *e, Toplevel *top, char *argsid)
+{
+	U ctx;
 	Closure *cl;
-	enum { Maxphase = 12 };
+	enum { Maxphase = 128 };
 	char *phase[Maxphase];
 	Imm tv[Maxphase];
 	unsigned i, ntv;
 
-	if(src == 0)
-		src = "<stdin>";
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = &top->out;
-
+	if(cqctflags['p']){
+		xprintf("input:\n");
+		printexpr(e);
+		xprintf("\n");
+	}
 	ntv = 0;
 	if(cqctflags['T']){
 		phase[ntv] = "init";
 		tv[ntv++] = usec();
 	}
-	e = doparse(&ctx, s, src);
+	e = docompileq(&ctx, e);
 	if(e == 0)
 		return 0;
 	if(cqctflags['T']){
-		phase[ntv] = "parse";
+		phase[ntv] = "q";
 		tv[ntv++] = usec();
-	}
-	if(cqctflags['p']){
-		xprintf("input:\n");
-		printexpr(e);
-		xprintf("\n");
 	}
 	if(dotypes(&ctx, e) != 0)
 		return 0;
@@ -89,6 +98,30 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		phase[ntv] = "0";
 		tv[ntv++] = usec();
 	}
+	if(docompileg(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(cqctflags['T']){
+		phase[ntv] = "g";
+		tv[ntv++] = usec();
+	}
+	if(docompilel(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(cqctflags['T']){
+		phase[ntv] = "l";
+		tv[ntv++] = usec();
+	}
+	if(docompilei(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(cqctflags['T']){
+		phase[ntv] = "i";
+		tv[ntv++] = usec();
+	}
 	if(docompile1(&ctx, e) != 0)
 		return 0;
 	if(cqctflags['p']){
@@ -100,36 +133,118 @@ cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
 		phase[ntv] = "1";
 		tv[ntv++] = usec();
 	}
-	e = docompile2(&ctx, e, top, argsid);
-	if(e == 0)
-		return 0;
-	checkxp(e);
-	if(cqctflags['T']){
-		phase[ntv] = "2";
-		tv[ntv++] = usec();
-	}
-	e = docompilev(&ctx, e, top);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "v";
-		tv[ntv++] = usec();
-	}
-	if(cqctflags['q']){
-		xprintf("transformed source:\n");
-		printcqct(e);
-		xprintf("\n");
-	}
 
-	cl = codegen(e);
-	if(cqctflags['T']){
-		phase[ntv] = "codegen";
-		tv[ntv++] = usec();
-		for(i = 0; i < ntv-1; i++)
-			xprintf("%-40s\t%16" PRIu64 " usec\n",
-			       phase[i+1], tv[i+1]-tv[i]);
+	if(cqctflags['6']){
+		resetuniqid();
+		if(cqctflags['q']){
+			xprintf("*** 1 ***\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+		e = docompileb(&ctx, e, top, argsid);
+		if(e == 0)
+			return 0;
+		checkxp(e);
+		if(cqctflags['T']){
+			phase[ntv] = "b";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			xprintf("*** b ***\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+		e = docompileu(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "u";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			xprintf("*** u ***\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+		e = docompilex(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "x";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			xprintf("*** x ***\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+		e = docompilec(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "c";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			xprintf("*** c ****\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+		e = docompiles(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "s";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			xprintf("*** s ***\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+		return 0;
+	}else{
+		e = docompile2(&ctx, e, top, argsid);
+		if(e == 0)
+			return 0;
+		checkxp(e);
+		if(cqctflags['T']){
+			phase[ntv] = "2";
+			tv[ntv++] = usec();
+		}
+		e = docompilev(&ctx, e, top);
+		if(e == 0)
+			return 0;
+		if(cqctflags['T']){
+			phase[ntv] = "v";
+			tv[ntv++] = usec();
+		}
+		if(cqctflags['q']){
+			xprintf("transformed source:\n");
+			printcqct(e);
+			xprintf("\n");
+		}
+
+		cl = codegen(e);
+		if(cqctflags['T']){
+			phase[ntv] = "codegen";
+			tv[ntv++] = usec();
+			for(i = 0; i < ntv-1; i++)
+				xprintf("%-40s\t%16" PRIu64 " usec\n",
+					phase[i+1], tv[i+1]-tv[i]);
+		}
+		return mkvalcl(cl);
 	}
-	return mkvalcl(cl);
+}
+
+Val
+cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
+{
+	Expr *e;
+	e = cqctparse(s, top, src);
+	if(e == 0)
+		return 0;
+	return cqctcompile0(e, top, argsid);
 }
 
 int
@@ -150,13 +265,13 @@ cqcteval(VM *vm, char *s, char *src, Val *rv)
 void
 cqctgcenable(VM *vm)
 {
-	gcenable(vm);
+	gcenable();
 }
 
 void
 cqctgcdisable(VM *vm)
 {
-	gcdisable(vm);
+	gcdisable();
 }
 
 void
@@ -174,7 +289,8 @@ cqctinterrupt(VM *vm)
 }
 
 Toplevel*
-cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
+cqctinit(int gcthread, u64 heapmax, char **lp,
+	 Xfd *in, Xfd *out, Xfd *err)
 {
 	Xfd xfd[3];
 
@@ -197,6 +313,7 @@ cqctinit(int gcthread, u64 heapmax, char **lp, Xfd *in, Xfd *out, Xfd *err)
 		err->fd = 2;
 	}
 	cqctloadpath = copystrv(lp);
+	initmem();
 	initparse();
 	initcg();
 	initvm(gcthread, heapmax);
@@ -211,5 +328,5 @@ cqctfini(Toplevel *top)
 	finivm();
 	finicg();
 	finiparse();
+	finimem();
 }
-

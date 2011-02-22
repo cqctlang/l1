@@ -118,6 +118,8 @@
 	if (isptr(t)) {
 		@local t2;
 		t2 = subtype(t);
+		while(istypedef(t2))
+			t2 = typedeftype(t2);
 		if (!ismapped(p)) return "UNMAPPED";
 		else if (issu(t2)) {
 			@local flds, i, nxt_indent, ret;
@@ -179,7 +181,7 @@
 		} else if (isptr(t2)) {
 			return sprintfa("0x%x",*p);
 		}
-		return "UNKNOWN TYPE";
+		return sprintfa("UNKNOWN TYPE: %t", t2);
 	} else {
 		return sprintfa("%d",p);
 	}

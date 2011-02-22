@@ -44,7 +44,8 @@ rfn(void *p)
 			vmerr(getr->vm, "inflate: not enough input");
 		getr->off += is->len;
 		getr->avail = is->len;
-		getr->buf = (unsigned char*)is->s; /* safe ref until next get */
+		/* safe ref until next get */
+		getr->buf = (unsigned char*)strdata(is);
 	}
 	rv = *getr->buf;
 	getr->buf++;
@@ -141,7 +142,7 @@ strinflate(VM *vm, Str *s, Cval *omaxcv, int zlib)
 	getr.p = 0;
 	getr.off = 0;
 	getr.lim = getr.avail = s->len;
-	getr.buf = (unsigned char*)s->s;
+	getr.buf = (unsigned char*)strdata(s);
 
 	return doinflate(vm, &getr, omaxcv, zlib);
 }

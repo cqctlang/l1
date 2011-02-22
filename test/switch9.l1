@@ -1,0 +1,11 @@
+@define f()
+{
+	switch(3){
+	case 3:
+		3;
+	}
+}
+
+a = f();
+printf("%a\n", a);
+

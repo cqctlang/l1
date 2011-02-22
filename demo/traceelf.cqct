@@ -136,11 +136,16 @@
 		  @lambda(ctl){
 			  @local ss, regs;
 			  regs = ctl.reg();
-			  ss = mux.enumloc(ctl.id, regs);
 			  printf("insert rsp=%p rbp=%p rip=%p\n",
 				 regs->rsp,
 				 regs->rbp,
 				 regs->rip);
+			  ss = mux.enumloc(ctl.id, regs);
+			  if(ss == nil){
+				  printf("no location information for %p\n",
+					 {dom}regs->rip);
+				  return;
+			  }
 			  foreach(@lambda(l){
 					  printf("\t%s\t%d\t%d\t%x\n",
 						 l.id,

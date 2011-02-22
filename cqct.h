@@ -30,6 +30,8 @@ enum {
 typedef
 enum Cbase {
 	Vundef=0,
+	Vlo,
+	Vbool=Vlo,
 	Vchar,
 	Vshort,
 	Vint,
@@ -69,6 +71,9 @@ enum Rkind {
 	Rs16be,
 	Rs32be,
 	Rs64be,
+	Rf32,
+	Rf64,
+	Rf128,
 	Rnrep,
 } Rkind;
 
@@ -77,44 +82,35 @@ typedef struct Toplevel Toplevel;
 typedef struct VM VM;
 typedef struct Head Head;
 typedef struct Head* Val;
-typedef struct Heap Heap;
 
-enum
-{
-	Vkindoff  = 0,
-	Vkindbits = 5,
-	Vkindmask = (1<<Vkindbits)-1,
+/*
+         7 6 5 4 3 2 1 0
+        |0|D|K K K K K|F|
+ */
 
-	Vcoloroff = 5,
-	Vcolorbits = 3,
-	Vcolormask = (1<<Vcolorbits)-1,
+#define	Vfwdoff       0
+#define	Vfwdbits      1
+#define	Vfwdmask      ((1<<Vfwdbits)-1)
+#define	Vkindoff      (Vfwdoff+Vfwdbits)
+#define	Vkindbits     5
+#define	Vkindmask     ((1<<Vkindbits)-1)
+#define	Vdeadoff      (Vkindoff+Vkindbits)
+#define	Vdeadbits     1
+#define	Vdeadmask     ((1<<Vdeadbits)-1)
 
-	Vinrsoff = 8,
-	Vinrsbits = 1,
-	Vinrsmask = (1<<Vinrsbits)-1,
-
-	Vfinaloff = 9,
-	Vfinalbits = 1,
-	Vfinalmask = (1<<Vfinalbits)-1,
-};
+#define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
+#define Vsetfwd(p, a)     ((p)->bits = a|(Vfwdmask<<Vfwdoff))
+#define Vfwdaddr(p)	  ((void*)((p)->bits & ~(Vfwdmask<<Vfwdoff)))
 
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
-#define Vcolor(p)         ((((p)->bits)>>Vcoloroff)&Vcolormask)
-#define Vsetcolor(p, v)	  ((p)->bits = ((p)->bits&~(Vcolormask<<Vcoloroff))|(((v)&Vcolormask)<<Vcoloroff))
+#define Vdead(p)          ((((p)->bits)>>Vdeadoff)&Vdeadmask)
+#define Vsetdead(p, v)    ((p)->bits = ((p)->bits&~(Vdeadmask<<Vdeadoff))|(((v)&Vdeadmask)<<Vdeadoff))
 
-#define Vinrs(p)         ((((p)->bits)>>Vinrsoff)&Vinrsmask)
-#define Vsetinrs(p, v)	  ((p)->bits = ((p)->bits&~(Vinrsmask<<Vinrsoff))|(((v)&Vinrsmask)<<Vinrsoff))
-
-#define Vfinal(p)         ((((p)->bits)>>Vfinaloff)&Vfinalmask)
-#define Vsetfinal(p, v)	  ((p)->bits = ((p)->bits&~(Vfinalmask<<Vfinaloff))|(((v)&Vfinalmask)<<Vfinaloff))
-
-
-struct Head {
-	uint32_t bits;
-	Head *alink;
-	Head *link;
+struct Head
+{
+	uintptr_t bits; // must be able to store a forwarding pointing
 };
 
 typedef struct Xfd Xfd;
@@ -141,10 +137,10 @@ void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);
 void		cqctgcdisable(VM *vm);
 void		cqctgcenable(VM *vm);
-void		cqctgcprotect(VM *vm, Val v);
-void		cqctgcunprotect(VM *vm, Val v);
-void		cqctgcpersist(VM *vm, Val v);
-void		cqctgcunpersist(VM *vm, Val v);
+Val		cqctgcpersist(VM *vm, Val v);
+Val		cqctgcprotect(VM *vm, Val v);
+Val		cqctgcunpersist(VM *vm, Val v);
+Val		cqctgcunprotect(VM *vm, Val v);
 Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp,
 			 Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);

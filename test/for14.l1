@@ -1,0 +1,10 @@
+@define f(x)
+{
+	@local s;
+	s = 0;
+	for(i = 0; i < x; i++)
+		s += i;
+}
+
+a = f(3);
+printf("%a\n", a);

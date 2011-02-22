@@ -1,49 +1,24 @@
-@include <elf.cqct>
-@include <dwarf.cqct>
-@include <pras.cqct>
-
-@define mklinuxdom(ns, as)
+linux = @names clp64le
 {
-	@local xtrap, dispatch;
-
-	@define xtrap(this, addr, fn)
+	enum
 	{
-		@local x;
-		if(isdom(this))
-			x = mkdom(this.ns, as);
-		else
-			x = as;
-		x.xtrap(addr, @lambda(id, addr) { fn(this); return 0; });
-	}
+		TFD_CLOEXEC = 02000000,
+		TFD_NONBLOCK = 04000,
+		CLOCK_REALTIME = 0,
+		CLOCK_MONOTONIC = 1,
+		TFD_TIMER_ABSTIME = 1 << 0,
+	};
 
-	@define dispatch(this, id, arg ...)
-	{
-		@local x;
-		if(isdom(this))
-			x = mkdom(this.ns, as);
-		else
-			x = as;
-		return callmethod(x, id, arg);
-	}
-
-	xas = mkas([ "xtrap" : xtrap, "dispatch" : dispatch ]);
-	return mkdom(ns, xas);
-}
-
-@define launch(arg ...)
-{
-	@local as, ns;
-	as = apply(launchlocalproc, arg);
-	as.launch(0, arg);
-	ns = init_debug_domain(arg[0]);
-	return mklinuxdom(ns, as);
-}
-
-@define launchwithnames(names, arg ...)
-{
-	@local xas, as, xtrap, xsnap, dispatch;
-	as = apply(launchlocalproc, arg);
-	as.launch(0, arg);
-	ns = eval(sprintfa("@names clp64le { @include \"%s\" };", names));
-	return mklinuxdom(ns, as);
-}
+	typedef long int __time_t;
+	struct timespec {
+		@0x0	__time_t tv_sec;
+		@0x8	long int tv_nsec;
+		@0x10;
+	};
+	
+	struct itimerspec {
+		@0x0	struct timespec it_interval;
+		@0x10	struct timespec it_value;
+		@0x20;
+	};
+};

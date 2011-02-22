@@ -8,7 +8,7 @@
 	snap(fd);
 	close(fd);
 
-	heapstat();
+//	heapstat();
 
 	as = mksnapas("./snap1");
 
