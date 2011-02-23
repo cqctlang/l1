@@ -23,11 +23,11 @@ refine(p) to create a pointer that points to the refined version
 of the type of p. 
 */ 
 
-@const REFINE_KEY = "refine";
+REFINE_KEY = "refine";
 
 @define unrollTypedef(t)
 {
-	if (istypedef(t)) return subtype(t);
+	while (istypedef(t)) t = subtype(t);
 	return t;
 }
 
@@ -41,7 +41,7 @@ of the type of p.
 	if (!ismapped(p,sizeof(t))) return p;
 	flds = fields(t);
 	new_flds = mkvec(length(flds));
-	new_sz = sizeof(t);
+	new_sz = 0;
 	for(i=0; i<length(flds); ++i)
 	{
 		@local refiner;
@@ -51,6 +51,7 @@ of the type of p.
 			//to the original struct doesn't change 
 			//the new type. But maybe we shouldn't...
 			new_flds[i] = flds[i]; 
+			new_sz += sizeof(symtype(new_flds[i]));
 		} else {
 			@local new_off, new_t;
 			[new_off,new_t] = refiner(p);
@@ -58,10 +59,7 @@ of the type of p.
 				mkfield(new_t,fieldid(flds[i]),new_off);
 			new_flds[i][2] = copy(flds[i][2]);
 			new_flds[i][2]["offset"] = new_off;
-			if (new_off + sizeof(new_t) > new_sz) {
-				new_sz = new_off+sizeof(new_t);
-				if (!ismapped(p,new_sz)) return p;
-			}
+			new_sz += sizeof(new_t);
 		}
 	}
 	new_t = mkctype_struct(suetag(t),new_flds,new_sz);
