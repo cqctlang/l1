@@ -22,7 +22,7 @@ struct YYstate {
 };
 
 static void count(U *ctx);
-static void comment(U *ctx);
+static void comment(U *ctx, char *end);
 static int chars(YYSTYPE *lvalp, int);
 
 %}
@@ -33,8 +33,8 @@ static int chars(YYSTYPE *lvalp, int);
 <<EOF>>                 { if(maybepopyy(ctx) == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
-^#!.*			{ /* treat as comment */ ctx->inp->src.col = 0; }
-"/*"			{ comment(ctx); }
+^#!			{ comment(ctx, "!#"); }
+"/*"			{ comment(ctx, "*/"); }
 "@const"		{ count(ctx); }
 "@containerof"		{ count(ctx); return(CONTAINEROF); }
 "@define"		{ count(ctx); return(DEFINE); }
@@ -174,12 +174,12 @@ yywrap()
 }
 
 static void
-comment(U *ctx)
+comment(U *ctx, char *end)
 {
 	char c;
 
 loop:
-	while((c = input()) != '*' && c != EOF && c != 0){
+	while((c = input()) != end[0] && c != EOF && c != 0){
 		if(c == '\n'){
 			ctx->inp->src.col = 0;
 			ctx->inp->src.line++;
@@ -188,8 +188,8 @@ loop:
 	}
 	if(c == EOF || c == 0)
 		parseerror(ctx, "end of input inside comment");
-	if((c = input()) != '/' && c != EOF && c != 0){
-		ctx->inp->src.col++;	/* '*' */
+	if((c = input()) != end[1] && c != EOF && c != 0){
+		ctx->inp->src.col++;	/* end[0] */
 		unput(c);
 		goto loop;
 	}
