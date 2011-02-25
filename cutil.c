@@ -450,11 +450,29 @@ Zlabel(char *l)
 }
 
 Expr*
+Zlabeln(char *l, unsigned long len)
+{
+	Expr *e;
+	e = Z0(Elabel);
+	e->id = xstrndup(l, len);
+	return e;
+}
+
+Expr*
 Zgoto(char *l)
 {
 	Expr *e;
 	e = Z0(Egoto);
 	e->id = xstrdup(l);
+	return e;
+}
+
+Expr*
+Zgoton(char *l, unsigned long len)
+{
+	Expr *e;
+	e = Z0(Egoto);
+	e->id = xstrndup(l, len);
 	return e;
 }
 

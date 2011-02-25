@@ -8818,6 +8818,8 @@ expr2syntax(Expr *e)
 	switch(e->kind){
 	case E_tid:
 	case Eid:
+	case Elabel:
+	case Egoto:
 		_listappend(l, mkvalstr(mkstr0(e->id)));
 		break;
 	case E_tg:
@@ -8885,6 +8887,18 @@ syntax2expr(VM *vm, Val a)
 			goto bad;
 		s = (Str*)v;
 		return Ztidn(strdata(s), s->len);
+	case Egoto:
+		v = listref(vm, l, skip+1);
+		if(Vkind(v) != Qstr)
+			goto bad;
+		s = (Str*)v;
+		return Zgoton(strdata(s), s->len);
+	case Elabel:
+		v = listref(vm, l, skip+1);
+		if(Vkind(v) != Qstr)
+			goto bad;
+		s = (Str*)v;
+		return Zlabeln(strdata(s), s->len);
 	case E_tg:
 		v = listref(vm, l, skip+1);
 		if(Vkind(v) != Qstr)
