@@ -8816,8 +8816,13 @@ expr2syntax(Expr *e)
 //	_listappend(l, mkvalstr(mkstr0(e->src.filename)));
 //	_listappend(l, mkvallitcval(Vuint, e->src.line));
 	switch(e->kind){
+	case E_tid:
 	case Eid:
 		_listappend(l, mkvalstr(mkstr0(e->id)));
+		break;
+	case E_tg:
+		_listappend(l, mkvalstr(mkstr0(e->id)));
+		_listappend(l, expr2syntax(e->e1));
 		break;
 	case Econst:
 		_listappend(l, mkvallitcval(e->liti.base, e->liti.val));
@@ -8874,6 +8879,19 @@ syntax2expr(VM *vm, Val a)
 	if(k == Ebad)
 		goto bad;
 	switch(k){
+	case E_tid:
+		v = listref(vm, l, skip+1);
+		if(Vkind(v) != Qstr)
+			goto bad;
+		s = (Str*)v;
+		return Ztidn(strdata(s), s->len);
+	case E_tg:
+		v = listref(vm, l, skip+1);
+		if(Vkind(v) != Qstr)
+			goto bad;
+		s = (Str*)v;
+		return Ztgn(strdata(s), s->len,
+			    syntax2expr(vm, listref(vm, l, skip+2)));
 	case Eid:
 		v = listref(vm, l, skip+1);
 		if(Vkind(v) != Qstr)
@@ -8987,6 +9005,35 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 	v = cqctcompile0(e, vm->top, 0);
 	if(v != 0)
 		*rv = v;
+}
+
+static void
+l1_front(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Expr *e;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to compile");
+	checkarg(vm, "front", argv, 0, Qlist);
+	e = syntax2expr(vm, argv[0]);
+	e = Zcons(e, nullelist()); /* wrap in "begin" just in case */
+	e = cqctcompilex(e, vm->top, 0);
+	if(e == 0)
+		vmerr(vm, "compilex error");
+	*rv = expr2syntax(e);
+	freeexpr(e);
+}
+
+static void
+l1_pp(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Expr *e;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to compile");
+	checkarg(vm, "front", argv, 0, Qlist);
+	e = syntax2expr(vm, argv[0]);
+	printcqct(e);
+	xprintf("\n");
+	freeexpr(e);
 }
 
 static void
@@ -9516,6 +9563,7 @@ mktopenv(void)
 	FN(fieldoff);
 	FN(fields);
 	FN(fieldtype);
+	FN(front);
 	FN(gc);
 	FN(gclock);
 	FN(gcstats);
@@ -9642,6 +9690,7 @@ mktopenv(void)
 	FN(paramtype);
 	FN(parse);
 	FN(pop);
+	FN(pp);
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);

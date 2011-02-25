@@ -1145,7 +1145,9 @@ Expr*		Zstr(char *s);
 Expr*		Zstrn(char *s, unsigned long len);
 Expr*		Zsub(Expr *x, Expr *y);
 Expr*		Ztg(char *id, Expr *e);
+Expr*		Ztgn(char *id, unsigned long len, Expr *e);
 Expr*		Ztid(char *id);
+Expr*		Ztidn(char *id, unsigned long len);
 Expr*		Zuint(Imm val);
 Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);
@@ -1234,6 +1236,7 @@ Pair*		mkweakpair(Val a, Val d);
 
 /* cqct.c */
 Val		cqctcompile0(Expr *e, Toplevel *top, char *argsid);
+Expr*		cqctcompilex(Expr *e, Toplevel *top, char *argsid);
 Expr*		cqctparse(char *s, Toplevel *top, char *src);
 
 extern		void fns(Env*);

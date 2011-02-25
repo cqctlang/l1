@@ -37,10 +37,64 @@ cqctparse(char *s, Toplevel *top, char *src)
 
 	if(src == 0)
 		src = "<stdin>";
-	
+
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = &top->out;
 	return doparse(&ctx, s, src);
+}
+
+Expr*
+cqctcompilex(Expr *e, Toplevel *top, char *argsid)
+{
+	U ctx;
+
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.out = &top->out;
+	e = docompileq(&ctx, e);
+	if(e == 0)
+		return 0;
+	if(dotypes(&ctx, e) != 0)
+		return 0;
+	if(docompilens(&ctx, e) != 0)
+		return 0;
+	if(docompilea(&ctx, e) != 0)
+		return 0;
+	if(docompile0(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(docompileg(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(docompilel(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(docompilei(&ctx, e) != 0){
+		freeexpr(e);
+		return 0;
+	}
+	if(docompile1(&ctx, e) != 0)
+		return 0;
+	resetuniqid();
+	e = docompileb(&ctx, e, top, argsid);
+	if(e == 0)
+		return 0;
+	checkxp(e);
+	e = docompileu(&ctx, e);
+	if(e == 0)
+		return 0;
+	e = docompilex(&ctx, e);
+	if(e == 0)
+		return 0;
+	e = docompilec(&ctx, e);
+	if(e == 0)
+		return 0;
+	e = docompiles(&ctx, e);
+	if(e == 0)
+		return 0;
+	return e;
 }
 
 Val
