@@ -227,7 +227,7 @@ rmscope(U *ctx, Expr *e)
 Expr*
 docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 {
-	Src *s;
+	Src s;
 
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
@@ -243,10 +243,10 @@ docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 	 * optimization, to preserve presentation of
 	 * top-level source line info in errors.
 	 */
-	s = &e->src;
+	s = e->src;
 	envgetbind(top->env, "$$");
 	e = Zlambda(argsid ? Zvararg(doid(argsid)) : nullelist(),
 		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
-	putsrc(e, s);
+	putsrc(e, &s);
 	return e;
 }
