@@ -77,6 +77,7 @@ cqctcompilex(Expr *e, Toplevel *top, char *argsid)
 	}
 	if(docompile1(&ctx, e) != 0)
 		return 0;
+	return e;
 	resetuniqid();
 	e = docompileb(&ctx, e, top, argsid);
 	if(e == 0)
