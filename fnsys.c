@@ -271,6 +271,24 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallitcval(Vint, (Imm)xrv);
 }
 
+static void
+l1_uname(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	struct utsname uts;
+	List *l;
+
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to uname");
+	if(0 > uname(&uts))
+		vmerr(vm, "uname: %s", strerror(errno));
+	l = mklist();
+	listappend(vm, l, mkvalstr(mkstr0(uts.sysname)));
+	listappend(vm, l, mkvalstr(mkstr0(uts.release)));
+	listappend(vm, l, mkvalstr(mkstr0(uts.version)));
+	listappend(vm, l, mkvalstr(mkstr0(uts.machine)));
+	*rv = mkvallist(l);
+}
+
 void
 fnsys(Env *env)
 {
@@ -283,4 +301,5 @@ fnsys(Env *env)
 	FN(rand);
 	FN(randseed);
 	FN(syscall);
+	FN(uname);
 }
