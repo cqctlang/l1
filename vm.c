@@ -6853,6 +6853,19 @@ l1_mksas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	As *as;
+	Str *s;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkmas");
+	checkarg(vm, "mksas", argv, 0, Qstr);
+	s = valstr(argv[0]);
+	as = mkmas(s);
+	*rv = mkvalas(as);
+}
+
+static void
 l1_mkzas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	As *as;
@@ -9715,6 +9728,7 @@ mktopenv(void)
 	FN(mkdom);
 	FN(mkfd);
 	FN(mkfield);
+	FN(mkmas);
 	FN(mknas);
 	FN(mkns);
 	FN(mknsraw);
