@@ -2081,6 +2081,33 @@ gcunlock(void *v)
 	return 0;
 }
 
+int
+ismanagedrange(void *p, Imm len)
+{
+	Seg *s;
+	void *e;
+
+	if(p+len <= p)
+		/* FIXME: bad output for bad input */
+		return 1;
+
+	e = (void*)roundup(p+len, Segsize);
+	p = (void*)rounddown(p, Segsize);
+	if(e <= segmap.lo)
+		return 0;
+	if(e >= segmap.hi)
+		return 0;
+	while(p < e){
+		if(p >= segmap.lo && p < segmap.hi){
+			s = a2s(p);
+			if(s->mt != MThole)
+				return 0;
+		}
+		p += Segsize;
+	}
+	return 1;
+}
+
 void
 initmem()
 {

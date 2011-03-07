@@ -721,6 +721,17 @@ mkstrmalloc(Imm len)
 	return (Str*)sa;
 }
 
+Str*
+mkstrext(void *p, Imm len)
+{
+	Strperm *sp;
+	sp = (Strperm*)malv(Qstr, sizeof(Strperm));
+	sp->s = p;
+	sp->str.len = len;
+	sp->str.skind = Sperm;
+	return (Str*)sp;
+}
+
 static Str*
 strcopy(Str *s)
 {
@@ -6842,6 +6853,19 @@ l1_mksas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	As *as;
+	Str *s;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to mkmas");
+	checkarg(vm, "mksas", argv, 0, Qstr);
+	s = valstr(argv[0]);
+	as = mkmas(s);
+	*rv = mkvalas(as);
+}
+
+static void
 l1_mkzas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	As *as;
@@ -7295,6 +7319,31 @@ l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 1 to mkstr must be a non-negative integer");
 	*rv = mkvalstr(mkstrn(cv->val));
+}
+
+static void
+l1_mkstrext(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *p, *l;
+	void *a;
+	Str *s;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mkstrext");
+	checkarg(vm, "mkstrext", argv, 0, Qcval);
+	checkarg(vm, "mkstrext", argv, 0, Qcval);
+	p = valcval(argv[0]);
+	l = valcval(argv[1]);
+	a = (void*)p->val;
+
+	/* allocate before checking, in case allocation
+	   modifies set of managed ranges */
+	s = mkstrext(a, l->val);
+
+	/* check for intersection with managed range */
+	if(ismanagedrange(a, l->val))
+		vmerr(vm, "range includes managed address space");
+
+	*rv = mkvalstr(s);
 }
 
 static void
@@ -9679,6 +9728,7 @@ mktopenv(void)
 	FN(mkdom);
 	FN(mkfd);
 	FN(mkfield);
+	FN(mkmas);
 	FN(mknas);
 	FN(mkns);
 	FN(mknsraw);
@@ -9687,6 +9737,7 @@ mktopenv(void)
 	FN(mkrd);
 	FN(mksas);
 	FN(mkstr);
+	FN(mkstrext);
 	FN(mksym);
 	FN(mkvec);
 	FN(mkzas);

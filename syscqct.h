@@ -1169,6 +1169,7 @@ void		gcwb(Val v);
 void		guard(Val o, Pair *g);
 void		initmem();
 void		instguard(Pair *p);
+int		ismanagedrange(void *p, Imm len);
 int		isweak(Head *h);
 Head*		malq(Qkind kind);
 Head*		malv(Qkind kind, Imm len);
