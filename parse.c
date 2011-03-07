@@ -881,7 +881,7 @@ copyenums(Enum *en)
 }
 
 static Enum*
-recenums(Type *t, Expr *e, Expr *val)
+recenums(U *ctx, Type *t, Expr *e, Expr *val)
 {
 	Expr *el;
 	Enum *en;
@@ -897,20 +897,20 @@ recenums(Type *t, Expr *e, Expr *val)
 	el->e1->id = 0;
 	if(el->e2){
 		freeexpr(val);
-		en->val = el->e2; /* steal */
+		en->val = rdotypes(ctx, el->e2); /* steal */
 		el->e2 = 0;
 	}else
 		en->val = val;
-	en->link = recenums(t, e->e2, exprinc(en->val));
+	en->link = recenums(ctx, t, e->e2, exprinc(en->val));
 	return en;
 }
 
 static Enum*
-enums(Type *t, Expr *e)
+enums(U *ctx, Type *t, Expr *e)
 {
 	if(e->kind == Enull)
 		return (Enum*)EmptyDecl;
-	return recenums(t, e, mkconst(Vuint, 0));
+	return recenums(ctx, t, e, mkconst(Vuint, 0));
 }
 
 static Decl*
@@ -1078,7 +1078,7 @@ specifier(U *ctx, Expr *e)
 		dom = e->e3;
 		if(e->e2){
 			if(t->kind == Tenum)
-				t->en = enums(t, e->e2);
+				t->en = enums(ctx, t, e->e2);
 			else
 				t->field = sufields(ctx, t, e->e2, &t->attr);
 		}

@@ -1,0 +1,9 @@
+ns = @names c32le 
+{
+	enum foo
+	{
+		i = (short)0,
+	};
+};
+
+printf("%t %d\n", ns`i, sizeof(ns`i));
