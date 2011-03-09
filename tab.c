@@ -120,6 +120,9 @@ getrehash(Tab *t, Val k)
 		lnk = (Pair*)pop1tguard(t->tg);
 		if(lnk == 0)
 			return 0;
+		if(linknext(lnk) == 0)
+			/* was deleted */
+			continue;
 		dellink(t, lnk);
 		put(t, lnk);
 		if(Vkind(linkkey(lnk)) == kind && op->eq(linkkey(lnk), k))
@@ -212,6 +215,7 @@ tabdel(Tab *t, Val k)
 	lnk = get(t, k);
 	if(lnk){
 		dellink(t, lnk);
+		setlinknext(lnk, 0);
 		t->nent--;
 	}
 }
