@@ -78,7 +78,6 @@ static int chars(YYSTYPE *lvalp, int);
 "while"			{ count(ctx); return(WHILE); }
 \'\{			{ count(ctx); return(SYNTAXQUOTE); }
 `\{			{ count(ctx); return(SYNTAXQUASI); }
-,\{			{ count(ctx); return(SYNTAXUNQUOTE); }
 ,@\{			{ count(ctx); return(SYNTAXSPLICE); }
 
 {L}({L}|{D})*		{ count(ctx); return(chars(lvalp, IDENTIFIER)); }
