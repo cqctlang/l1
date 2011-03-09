@@ -1,0 +1,11 @@
+N = 1000;
+t = [:];
+for(i = 0; i < N; i++)
+      t[i] = i;
+gc(3,3);
+for(i = 0; i < N; i++)
+      tabdelete(t, i);
+for(i = 0; i < N; i++)
+      if(t[i] != nil)
+      	      printf("%d %a\n", i, t[i]);
+
