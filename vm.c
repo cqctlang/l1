@@ -155,7 +155,7 @@ Hashop hashop[Qnkind] = {
 	[Qxtn]	 = { hashxtn, equalxtnv },
 };
 
-static Code *kcode, *cccode;
+Code *kcode, *cccode;
 
 Imm
 stkimm(Val v)

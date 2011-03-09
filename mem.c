@@ -179,6 +179,8 @@ static Val* itertab(Head*, Ictx*);
 static Val* itervec(Head*, Ictx*);
 static Val* iterxtn(Head*, Ictx*);
 
+static void copykstack(Val *stack, Imm len, Imm fp);
+
 static Qtype qs[Qnkind] = {
 	[Qas]	 = { "as", sizeof(As), 1, 0, iteras },
 	[Qbox]	 = { "box", sizeof(Box), 0, 0, iterbox },
@@ -307,6 +309,11 @@ itercl(Head *hd, Ictx *ictx)
 	}
 	if(ictx->n == cl->dlen){
 		ictx->n++;
+		return (Val*)&cl->code;
+	}
+	if(cl->code == kcode){
+		copykstack(cl->display, cl->dlen, cl->fp);
+		ictx->n = cl->dlen+1;
 		return (Val*)&cl->code;
 	}
 	return &cl->display[ictx->n++];
@@ -1570,6 +1577,63 @@ toprd(void *u, void *k, void *v)
 	Val *p;
 	p = v;
 	copy(v);
+}
+
+static void
+copykstack(Val *stack, Imm len, Imm fp)
+{
+	Imm pc, sp, narg, m, i, clx;
+	Imm shift;
+	u64 sz, mask;
+	Closure *cl;
+
+	/* fp is normally relative to Maxstk */
+	shift = Maxstk-len;
+	fp -= shift;
+
+	/* stack corresponds to Ikg op in call to callcc.
+	   nothing to do in this frame. */
+
+	narg = stkimm(stack[fp]);
+	pc = stkimm(stack[fp+narg+1]);
+	clx = fp+narg+2;
+	cl = valcl(stack[fp+narg+2]);
+	sp = fp;
+	fp = stkimm(stack[fp+narg+3]);
+
+	while(fp != 0){
+		fp -= shift;
+		if(pc < 2)
+			fatal("no way to find livemask pc %llu", pc);
+		if(cl->code->insn[pc-1].kind != Ilive
+		   || cl->code->insn[pc-2].kind != Ilive)
+			fatal("no live mask for pc %d cl %p", pc, cl);
+		sz = cl->code->insn[pc-1].cnt;
+		mask = cl->code->insn[pc-2].cnt;
+		if(fp-sp < sz)
+			fatal("frame size is too large fp %llu sp %llu",
+			      fp, sp);
+		m = fp-1;
+		for(i = 0; i < sz; i++){
+			if((mask>>i)&1)
+				copy(&stack[m]);
+			m--;
+		}
+		for(i = 0; i < fp-sp-sz; i++){
+			copy(&stack[m]);
+			m--;
+		}
+		narg = stkimm(stack[fp]);
+		pc = stkimm(stack[fp+narg+1]);
+		clx = fp+narg+2;
+		cl = valcl(stack[fp+narg+2]);
+		sp = fp;
+		fp = stkimm(stack[fp+narg+3]);
+	}
+	// initial frame of stack
+	for(i = 0; i < narg; i++)
+		copy(&stack[sp+1+i]);
+	copy(&stack[clx]);
 }
 
 static void

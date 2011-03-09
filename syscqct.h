@@ -800,6 +800,7 @@ extern void *GCiterdone;
 extern Val Xundef;
 extern Val Xnil;
 extern Val Xnulllist;
+extern Code *kcode, *cccode;
 
 /* c.l */
 void		freeyystate(YYstate *yy);
