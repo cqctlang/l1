@@ -1124,7 +1124,7 @@ declarator(U *ctx, Type *bt, Expr *e)
 		t = newtype();
 		t->kind = Tarr;
 		t->link = bt;
-		t->cnt = e->e2;	/* steal */
+		t->cnt = rdotypes(ctx, e->e2);	/* steal */
 		t->dom = xstrdup(bt->dom);
 		e->e2 = 0;
 		return declarator(ctx, t, e->e1);

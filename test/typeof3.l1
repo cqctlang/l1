@@ -1,0 +1,2 @@
+printf("%t\n", @typeof(int(*)[8/sizeof(int)]));
+
