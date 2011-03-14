@@ -60,8 +60,8 @@ enum
 #define Align     4
 
 /* n must be a power-of-2 */
-#define roundup(l,n)   (((uintptr_t)(l)+((n)-1))&~((n)-1))
-#define rounddown(l,n) (((uintptr_t)(l))&~((n)-1))
+#define roundup(l,n)   ((uptr)(((uptr)(l)+((n)-1))&~((n)-1)))
+#define rounddown(l,n) ((uptr)(((uptr)(l))&~((n)-1)))
 
 enum
 {
@@ -647,7 +647,7 @@ mapmem(u64 sz)
 		 MAP_ANON|MAP_PRIVATE, -1, 0);
 	if(p == MAP_FAILED)
 		fatal("out of memory");
-	if((uintptr_t)p%Segsize)
+	if((uptr)p%Segsize)
 		fatal("unaligned segment");
 	return p;
 }
@@ -1218,7 +1218,7 @@ copy(Val *v)
 	h = *v;
 	if(h == 0)
 		return Clean;
-	if((uintptr_t)h&1)
+	if((uptr)h&1)
 		return Clean; // stack immediate
 	if(Vfwd(h)){
 		if(dbg)printf("copy: read fwd %p -> %p\n",
@@ -1281,7 +1281,7 @@ copy(Val *v)
 		      qs[Vkind(h)].id,
 		      h, nh);
 	memcpy(nh, h, sz);
-	Vsetfwd(h, (uintptr_t)nh);
+	Vsetfwd(h, (uptr)nh);
 	if(dbg)printf("set fwd %p -> %p %p (%d)\n",
 		    h, Vfwdaddr(h), nh, (int)Vfwd(h));
 	*v = nh;
@@ -1850,11 +1850,11 @@ static void
 reloccode(Code *c)
 {
 	u32 i;
-	u64 b;
-	u64 *p;
+	uptr b;
+	uptr *p;
 	void **a;
 	p = c->reloc;
-	b = (u64)c->insn;
+	b = (uptr)c->insn;
 	for(i = 0; i < c->nreloc; i++){
 		a = (void**)(b+p[i]);
 		*a = curaddr(*a);

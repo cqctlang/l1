@@ -151,8 +151,8 @@ hnent(HT *ht)
 static u32
 phash(void *p)
 {
-	uintptr_t key;
-	key = (uintptr_t)p;
+	uptr key;
+	key = (uptr)p;
 	key = (~key) + (key << 18);
 	key = key ^ (key >> 31);
 	key = key * 21;

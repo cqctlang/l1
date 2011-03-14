@@ -369,7 +369,7 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 		p = strdata(bufs);
 	}else{
 		bufp = valcval(argv[2]);
-		p = (char*)(uintptr_t)bufp->val;
+		p = (char*)(uptr)bufp->val;
 	}
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to ioctl on closed file descriptor");

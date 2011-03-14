@@ -175,7 +175,7 @@ yywrap()
 static void
 comment(U *ctx, char *end)
 {
-	char c;
+	int c;
 
 loop:
 	while((c = input()) != end[0] && c != EOF && c != 0){

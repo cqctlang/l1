@@ -45,6 +45,7 @@ typedef uint32_t	u32;
 typedef uint64_t	u64;
 
 typedef u64 Imm;
+typedef uintptr_t uptr;
 
 #define NORETURN	__attribute__((noreturn))
 #define PAGESZ 4096
@@ -83,10 +84,11 @@ typedef unsigned short		uint16_t;
 typedef unsigned int		uint32_t;
 typedef unsigned long long	uint64_t;
 
-typedef u64 Imm;
-
 typedef unsigned long size_t;
 typedef uintptr uintptr_t;
+
+typedef u64 Imm;
+typedef uintptr_t uptr;
 
 #define NORETURN
 

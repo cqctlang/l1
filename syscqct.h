@@ -710,7 +710,7 @@ struct Code {
 	unsigned char *x;
 	unsigned long nx;
 	unsigned long maxx;
-	u64 *reloc;
+	uptr *reloc;
 };
 
 typedef

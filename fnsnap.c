@@ -82,18 +82,12 @@ snap(VM *vm, Fd *fd)
 	mp = map;
 	cnt = 0;
 	for(i = 0; i < nmap; i++){
-		if(-1 == dowrite(vm, fd, (void*)(uintptr_t)mp->lo,
+		if(-1 == dowrite(vm, fd, (void*)(uptr)mp->lo,
 				 mp->hi-mp->lo))
 			vmerr(vm, "write: %s", strerror(errno));
 		cnt += mp->hi-mp->lo;
 		mp++;
 	}
-	fprintf(stderr, "%lu+%u*%lu+%" PRIu64 "=%" PRIu64 "\n",
-		sizeof(nmap),
-		nmap,
-		sizeof(Map),
-		cnt,
-		sizeof(nmap)+nmap*sizeof(Map)+cnt);
 	return;
 }
 

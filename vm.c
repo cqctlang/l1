@@ -161,7 +161,7 @@ Imm
 stkimm(Val v)
 {
 	Imm imm;
-	imm = (Imm)(uintptr_t)v;
+	imm = (Imm)(uptr)v;
 	if((imm&1) != 1)
 		fatal("stkimm on non-imm");
 	imm >>= 1;
@@ -196,7 +196,7 @@ valhead(Val v)
 	if(v == 0)
 		return 0;
 
-	imm = (Imm)(uintptr_t)v;
+	imm = (Imm)(uptr)v;
 	if((imm&1) != 0)
 		/* stack immediate */
 		return 0;
@@ -382,8 +382,8 @@ hash6432shift(u64 key)
 static u32
 hashptr32shift(void *p)
 {
-	uintptr_t key;
-	key = (uintptr_t)p;
+	uptr key;
+	key = (uptr)p;
 	key = (~key) + (key << 18);
 	key = key ^ (key >> 31);
 	key = key * 21;
@@ -2621,7 +2621,7 @@ vmpushi(VM *vm, Imm imm)
 {
 	checkoverflow(vm, 1);
 	imm = (imm<<1)|1;
-	vm->stack[--vm->sp] = (Val)(uintptr_t)imm;
+	vm->stack[--vm->sp] = (Val)(uptr)imm;
 }
 
 static void
@@ -3097,7 +3097,7 @@ masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Str *s, *dat;
 	Range *r;
 	Cval *beg, *end;
-	Imm o;
+	uptr o;
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to get");
@@ -3106,7 +3106,7 @@ masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	r = valrange(argv[1]);
 	beg = r->beg;
 	end = xcvalalu(vm, Iadd, beg, r->len);
-	o = (Imm)strdata(s);
+	o = (uptr)strdata(s);
 	if(beg->val < o)
 		vmerr(vm, "address space access out of bounds");
 	if(beg->val > o+s->len)	/* FIXME: >=? */
@@ -3125,7 +3125,7 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Str *s, *dat;
 	Range *r;
 	Cval *beg, *end;
-	Imm o;
+	uptr o;
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to put");
@@ -3135,7 +3135,7 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	r = valrange(argv[1]);
 	dat = valstr(argv[2]);
 	beg = r->beg;
-	o = (Imm)strdata(s);
+	o = (uptr)strdata(s);
 	if(r->len->val == 0 && beg->val <= o+s->len)
 		/* special case: empty string */
 		return;
@@ -3151,7 +3151,7 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(dat->len < r->len->val)
 		vmerr(vm, "short put");
 	/* FIXME: rationalize with l1_strput */
-	memcpy((char*)beg->val, strdata(dat), dat->len);
+	memcpy((char*)(uptr)beg->val, strdata(dat), dat->len);
 	USED(rv);
 }
 
@@ -3161,14 +3161,14 @@ masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Val val;
 	Vec *v;
 	Str *s;
-	Imm o;
+	uptr o;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to map");
 	USED(argv);
 	s = valstr(disp[0]);
 	v = mkvec(1);
-	o = (Imm)strdata(s);
+	o = (uptr)strdata(s);
 	val = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], o),
 			 mkcval(litdom, litdom->ns->base[Vptr], s->len));
 	_vecset(v, 0, val);
@@ -6955,7 +6955,7 @@ l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalcval(mkdom(litdom->ns, as, mkstr0("malloc")),
 			mkptrxtn(litdom->ns->base[Vchar],
 				 litdom->ns->base[Vptr]->rep),
-			(Imm)strdata(s));
+			(uptr)strdata(s));
 }
 
 static void
@@ -7333,7 +7333,7 @@ l1_mkstrext(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "mkstrext", argv, 0, Qcval);
 	p = valcval(argv[0]);
 	l = valcval(argv[1]);
-	a = (void*)p->val;
+	a = (void*)(uptr)p->val;
 
 	/* allocate before checking, in case allocation
 	   modifies set of managed ranges */
