@@ -67,16 +67,7 @@ enum {
 	PopenFullDuplex	= 8,	/* popen flag -- put i/o on same channel */
 };
 
-typedef uintptr_t Thread;
-void		chanclose(int c);
-int		chanreadb(int c, char *b);
-int		chanwriteb(int c, char *b);
-void		newchan(int *left, int *right);
-Thread		newthread(void* (*fn)(void*), void *arg);
 void		setproftimer(u32 usec, void(*fn)());
-void		threadexit(void *vp);
-void		threadinit(void);
-void		threadwait(Thread t);
 int		xioctl(int fd, unsigned long req, char *buf);
 long		xlseek(int fd, long off, int whence);
 int		xpopen(Imm argc, char **argv, unsigned flags, int *rfd);

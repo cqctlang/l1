@@ -70,54 +70,6 @@ xabort(void)
 		;
 }
 
-void
-newchan(int *left, int *right)
-{
-	notimpl("newchan");
-}
-
-void
-chanclose(int c)
-{
-	notimpl("chanclose");
-}
-
-int
-chanreadb(int c, char *b)
-{
-	notimpl("chanreadb");
-}
-
-int
-chanwriteb(int c, char *b)
-{
-	notimpl("chanwriteb");
-}
-
-Thread
-newthread(void* (*fn)(void*), void *arg)
-{
-	notimpl("newthread");
-}
-
-void
-threadinit(void)
-{
-	notimpl("threadinit");
-}
-
-void
-threadexit(void *vp)
-{
-	notimpl("threadexit");
-}
-
-void
-threadwait(Thread t)
-{
-	notimpl("threadwait");
-}
-
 /* referenced only by lex.yy.o */
 FILE *stdin = 0;
 FILE *stdout = 0;

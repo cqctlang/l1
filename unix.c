@@ -87,7 +87,7 @@ xabort()
 	abort();
 }
 
-void
+static void
 newchan(int *left, int *right)
 {
 	int fd[2];
@@ -96,67 +96,6 @@ newchan(int *left, int *right)
 		fatal("cannot allocate channel");
 	*left = fd[0];
 	*right = fd[1];
-}
-
-void
-chanclose(int c)
-{
-	close(c);
-}
-
-int
-chanreadb(int c, char *b)
-{
-	ssize_t rv;
-again:
-	rv = read(c, b, 1);
-	if(0 > rv && errno == EINTR)
-		goto again;
-	if(0 > rv)
-		return -1;
-	return 0;
-}
-
-int
-chanwriteb(int c, char *b)
-{
-	ssize_t rv;
-again:
-	rv = write(c, b, 1);
-	if(0 > rv && errno == EINTR)
-		goto again;
-	if(0 > rv)
-		return -1;
-	return 0;
-}
-
-Thread
-newthread(void* (*fn)(void*), void *arg)
-{
-	Thread t;
-	if(0 > pthread_create((pthread_t*)&t, 0, fn, arg))
-		return 0;
-	return t;
-}
-
-void
-threadinit(void)
-{
-	sigset_t mask;
-	sigfillset(&mask);
-	pthread_sigmask(SIG_BLOCK, &mask, 0);
-}
-
-void
-threadexit(void *vp)
-{
-	pthread_exit(vp);
-}
-
-void
-threadwait(Thread t)
-{
-	pthread_join((pthread_t)t, 0);
 }
 
 void
