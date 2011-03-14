@@ -4049,7 +4049,7 @@ Several functions operate on any type of container.
 <span class="id">length(<span class="arg">container</span>)</span>
 </div>
 <div class="param">
-<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
+<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, <span class="type">string</span>, or <span class="type">table</span>
 </div>
 <div class="returns">
 <span class="type">cvalue</span>
@@ -4058,6 +4058,24 @@ Several functions operate on any type of container.
 <div class="desc">
 Returns the number of items stored in 
 <span class="arg">container</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:isempty">
+<div class="proto">
+<div class="function">
+<span class="id">isempty(<span class="arg">container</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, <span class="type">string</span>, or <span class="type">table</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns <span class="val">1</span> if <span
+class="arg">container</span> contains zero elements, <span class="val">0</span> otherwise.
 </div>
 </div>
 
@@ -4448,26 +4466,6 @@ The syntax <span class="id">[...]</span> constructs a
 new list containing the zero or more values enclosed in the
 braces.  It is equivalent to calling <span
 class="id">list</span> on the enclosed values.
-</div>
-</div>
-
-<div class="docitem" id="fn:isempty">
-<div class="proto">
-<div class="function">
-<span class="id">isempty(<span class="arg">list</span>)</span>
-</div>
-<div class="param">
-<span class="arg">list</span>: <span class="type">list</span>
-</div>
-<div class="returns">
-<span class="type">cvalue</span>
-</div>
-</div>
-<div class="desc">
-
-Returns <span class="val">1</span> if <span
-class="arg">list</span> is empty, <span class="val">0</span> otherwise.
-
 </div>
 </div>
 

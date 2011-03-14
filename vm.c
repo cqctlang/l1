@@ -7774,22 +7774,8 @@ l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	USED(rv);
 }
 
-static void
-l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to isempty");
-	if(Vkind(argv[0]) == Qlist){
-		if(listlen(vallist(argv[0])) != 0)
-			*rv = mkvalcval2(cval0);
-		else
-			*rv = mkvalcval2(cval1);
-	}else
-		vmerr(vm, "isempty defined only for lists");
-}
-
-static void
-l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
+static Imm
+cntrlen(VM *vm, char *name, Val v)
 {
 	List *lst;
 	Vec *vec;
@@ -7797,28 +7783,49 @@ l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
 	Tab *tab;
 	Imm len;
 
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to length");
-	switch(Vkind(argv[0])){
+	switch(Vkind(v)){
 	default:
-		vmerr(vm, "operand 1 to length must be a container");
+		vmerr(vm, "operand 1 to %s must be a container", name);
 	case Qlist:
-		lst = vallist(argv[0]);
+		lst = vallist(v);
 		len = listlen(lst);
 		break;
 	case Qstr:
-		str = valstr(argv[0]);
+		str = valstr(v);
 		len = str->len;
 		break;
 	case Qvec:
-		vec = valvec(argv[0]);
+		vec = valvec(v);
 		len = vec->len;
 		break;
 	case Qtab:
-		tab = valtab(argv[0]);
+		tab = valtab(v);
 		len = tab->nent;
 		break;
 	}
+	return len;
+}
+
+static void
+l1_isempty(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Imm len;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to isempty");
+	len = cntrlen(vm, "isempty", argv[0]);
+	if(len == 0)
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
+l1_length(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Imm len;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to length");
+	len = cntrlen(vm, "length", argv[0]);
 	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], len);
 }
 
