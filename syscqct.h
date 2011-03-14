@@ -925,9 +925,6 @@ void		printinsn(Insn *i);
 void		printkon(Val v);
 void		resetlabels();
 
-/* cgx.c */
-void		cg6(Code *c, Expr *e);
-
 /* xenv.c */
 void		freexenv(Xenv *xe);
 void		freexenvall(Xenv *xe);
