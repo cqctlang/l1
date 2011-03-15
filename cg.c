@@ -1200,8 +1200,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Eret:
 		if(e->e1)
 			cg(e->e1, code, p, AC, p->Return, prv, nxt, f);
-		else
+		else{
+			i = nextinsn(code, &e->src);
+			i->kind = Imov;
+			randnil(&i->op1);
+			randloc(&i->dst, AC);
 			cgctl(code, p, p->Return, nxt, &e->src);
+		}
 		break;
 	/* can Eid and Econst be rationalized with cgrand? */
 	case Eid:
