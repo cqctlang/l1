@@ -50,6 +50,7 @@ L1C =\
 	compiles.c\
 	type.c\
 	cg.c\
+	ch.c\
 	list.c\
 	pair.c\
 	tab.c\
