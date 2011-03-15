@@ -4,7 +4,7 @@
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
 		flds = fields(t);
-		for(i = 0; i < veclen(flds); i++){
+		for(i = 0; i < length(flds); i++){
 			@local ft, id;
 			fld = vecref(flds, i);
 			off = fieldoff(fld);
@@ -34,7 +34,7 @@
 		@local ens;
 		printf("%s %s {\n", suekind(t), suetag(t));
 		ens = enumconsts(t);
-		for(i = 0; i < veclen(ens); i++){
+		for(i = 0; i < length(ens); i++){
 			@local en;
 			en = vecref(ens, i);
 			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
@@ -52,12 +52,12 @@
 	
 	fn = nsenumtype(ns);
 	vec = tabvals(fn(ns));
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 
 	fn = nsenumsym(ns);
 	vec = tabvals(fn(ns));
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		printf("%t;\n", vecref(vec, i));
 }
 
@@ -75,7 +75,7 @@
 
 	fn = nsenumtype(ns);
 	vec = tabvals(fn(ns));
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 
 	dom = mkdom(ns, mknas());

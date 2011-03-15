@@ -17,7 +17,7 @@ define assize(as){
 	if(isdomain(as))
 		as = as.as;
 	map = as.map();
-	if(veclen(map) > 1)
+	if(length(map) > 1)
 		error("assize on discontiguous address space");
 	return rangelen(vecref(map, 0));
 }

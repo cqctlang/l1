@@ -165,7 +165,7 @@ equallist(List *a, List *b)
 static void
 listexpand(List *l)
 {
-	Vec *nv;	
+	Vec *nv;
 	Imm len, cap, nh, nt;
 
 	if(listcap(l))

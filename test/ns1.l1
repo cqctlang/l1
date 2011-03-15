@@ -4,7 +4,7 @@
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
 		flds = fields(t);
-		for(i = 0; i < veclen(flds); i++){
+		for(i = 0; i < length(flds); i++){
 			fld = vecref(flds, i);
 			off = fieldoff(fld);
 			if(!isnil(off))
@@ -57,7 +57,7 @@
 
 	fn = nsenumtype(ns);
 	vec = tabvals(fn(ns));
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 };
 

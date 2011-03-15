@@ -986,7 +986,6 @@ Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
-List*		mklist(void);
 Cval*		mklitcval(Cbase base, Imm val);
 Ns*		mknstab(Tab *mtab, Str *name);
 Range*		mkrange(Cval *beg, Cval *len);
@@ -1002,8 +1001,6 @@ Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvalrange(Cval *beg, Cval *len);
-Vec*		mkvec(Imm len);
-Vec*		mkvecinit(Imm len, Val v);
 As*		mkzas(Imm len);
 Code*		newcode(void);
 void		nexterror(VM *vm) NORETURN;
@@ -1023,9 +1020,6 @@ Cval*		typecast(VM *vm, Xtypename *xtn, Cval *cv);
 Val		valboxed(Val v);
 Head*		valhead(Val v);
 Imm		valimm(Val v);
-Val		vecref(Vec *vec, Imm idx);
-void		_vecset(Vec *vec, Imm idx, Val v);
-void		vecset(Vec *vec, Imm idx, Val v);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
@@ -1202,6 +1196,7 @@ Imm		listlen(List *x);
 void		listpop(List *lst, Val *vp);
 Val		listref(VM *vm, List *lst, Imm idx);
 List*		listset(VM *vm, List *lst, Imm idx, Val v);
+List*		mklist(void);
 List*		mklistn(Imm sz);
 
 /* tab.c */
@@ -1241,6 +1236,19 @@ Pair*		mkweakpair(Val a, Val d);
 
 /* rec.c */
 void		fnrec(Env *env);
+
+/* vec.c */
+int		equalvec(Vec *a, Vec *b);
+void		fnvec(Env *env);
+u32		hashvec(Val v);
+void		l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv);
+void		l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv);
+Vec*		mkvec(Imm len);
+Vec*		mkvecinit(Imm len, Val v);
+Vec*		veccopy(Vec *old);
+Val		vecref(Vec *vec, Imm idx);
+void		_vecset(Vec *vec, Imm idx, Val v);
+void		vecset(Vec *vec, Imm idx, Val v);
 
 /* cqct.c */
 Val		cqctcompile0(Expr *e, Toplevel *top, char *argsid);

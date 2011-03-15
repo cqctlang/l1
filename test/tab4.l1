@@ -9,9 +9,9 @@ test = @lambda(){
 		tabinsert(t, mkstr(), i);
 
 	v = tabenum(t);
-	if(veclen(v) != 2){
+	if(length(v) != 2){
 		print("failed");
-		print(veclen(v));
+		print(length(v));
 	}
 };
 

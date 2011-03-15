@@ -71,14 +71,14 @@ ns = @names c32le {
 fn = nsenumtype(ns);
 vec = tabvals(fn(ns));
 s = nil;
-for(i = 0; i < veclen(vec); i++){
+for(i = 0; i < length(vec); i++){
 	s = vecref(vec, i);
 	if(isstruct(s))
 		break;
 }
 
 fs = fields(s);
-for(i = 0; i < veclen(fs); i++){
+for(i = 0; i < length(fs); i++){
 	@local f, t;
 	f = vecref(fs, i);
 	t = fieldtype(f);

@@ -55,6 +55,7 @@ L1C =\
 	pair.c\
 	rec.c\
 	tab.c\
+	vec.c\
 	type.c\
 	mem.c\
 	vm.c\

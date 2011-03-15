@@ -117,7 +117,6 @@ static u32 hashptr(Val);
 static u32 hashconst(Val);
 static u32 hashrange(Val);
 static u32 hashstr(Val);
-static u32 hashvec(Val);
 static u32 hashxtn(Val);
 
 static int eqcval(Val, Val);
@@ -769,85 +768,10 @@ equallistv(Val a, Val b)
 	return equallist(vallist(a), vallist(b));
 }
 
-Vec*
-mkvec(Imm len)
-{
-	Vec *vec;
-	vec = (Vec*)malv(Qvec, vecsize(len));
-	vec->len = len;
-	return vec;
-}
-
-Vec*
-mkvecinit(Imm len, Val v)
-{
-	Vec *vec;
-	Imm i;
-
-	vec = mkvec(len);
-	for(i = 0; i < len; i++)
-		vecdata(vec)[i] = v;
-	return vec;
-}
-
-Val
-vecref(Vec *vec, Imm idx)
-{
-	return vecdata(vec)[idx];
-}
-
-void
-_vecset(Vec *vec, Imm idx, Val v)
-{
-	vecdata(vec)[idx] = v;
-}
-
-void
-vecset(Vec *vec, Imm idx, Val v)
-{
-	gcwb(mkvalvec(vec));
-	_vecset(vec, idx, v);
-}
-
-static u32
-hashvec(Val v)
-{
-	Vec *a;
-	u32 i, len, m;
-	a = valvec(v);
-	m = Vkind(v);
-	len = a->len;
-	for(i = 0; i < len; i++)
-		m ^= hashval(vecdata(a)[i]);
-	return m;
-}
-
-static int
-equalvec(Vec *a, Vec *b)
-{
-	u32 len, m;
-	len = a->len;
-	if(len != b->len)
-		return 0;
-	for(m = 0; m < len; m++)
-		if(!eqval(vecdata(a)[m], vecdata(b)[m]))
-			return 0;
-	return 1;
-}
-
 static int
 equalvecv(Val a, Val b)
 {
 	return equalvec(valvec(a), valvec(b));
-}
-
-static Vec*
-veccopy(Vec *old)
-{
-	Vec *new;
-	new = mkvec(old->len);
-	memcpy(vecdata(new), vecdata(old), new->len*sizeof(Val));
-	return new;
 }
 
 static Xtypename*
@@ -7417,73 +7341,6 @@ l1_mkvec(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_vector(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Imm i;
-
-	USED(vm);
-	v = mkvec(argc);
-	for(i = 0; i < argc; i++)
-		_vecset(v, i, argv[i]);
-	*rv = mkvalvec(v);
-}
-
-static void
-l1_veclen(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to veclen");
-	checkarg(vm, "veclen", argv, 0, Qvec);
-	v = valvec(argv[0]);
-	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], v->len);
-}
-
-static void
-l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Cval *cv;
-	Val vp;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to vecref");
-	checkarg(vm, "vecref", argv, 0, Qvec);
-	checkarg(vm, "vecref", argv, 1, Qcval);
-	v = valvec(argv[0]);
-	cv = valcval(argv[1]);
-	if(!isnatcval(cv))
-		vmerr(vm, "operand 2 to vecref must be "
-		      "a non-negative integer");
-	if(cv->val >= v->len)
-		vmerr(vm, "vecref out of bounds");
-	vp = vecref(v, cv->val);
-	*rv = vp;
-}
-
-static void
-l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Cval *cv;
-
-	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to vecset");
-	checkarg(vm, "vecset", argv, 0, Qvec);
-	checkarg(vm, "vecset", argv, 1, Qcval);
-	v = valvec(argv[0]);
-	cv = valcval(argv[1]);
-	if(!isnatcval(cv))
-		vmerr(vm, "operand 2 to vecset must be "
-		      "a non-negative integer");
-	if(cv->val >= v->len)
-		vmerr(vm, "vecset out of bounds");
-	vecset(v, cv->val, argv[2]);
-	USED(rv);
-}
-
-static void
 l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *addr, *len;
@@ -9215,10 +9072,6 @@ mktopenv(void)
 	FN(typedefid);
 	FN(typedeftype);
 	FN(typename);
-	FN(veclen);
-	FN(vecref);
-	FN(vecset);
-	FN(vector);
 	FN(xaccessget);
 	FN(xaccessput);
 
@@ -9227,6 +9080,7 @@ mktopenv(void)
 	fnpair(env);
 	fnrec(env);
 	fntab(env);
+	fnvec(env);
 	fns(env);		/* configuration-specific functions */
 
 	/* FIXME: these bindings should be immutable */

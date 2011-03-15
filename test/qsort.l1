@@ -18,7 +18,7 @@ randvec = @lambda(len){
 vecpartition = @lambda(v, lo, hi, cmp){
 	@local nl, i, el, p, temp, x;
 
-	if(hi > veclen(v) || hi < lo)
+	if(hi > length(v) || hi < lo)
 		return hi+1;	/* stop */
 
 	el = vecref(v, lo);
