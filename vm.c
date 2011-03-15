@@ -7804,72 +7804,6 @@ l1_null(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_setcar(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Pair *p;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to setcar");
-	checkarg(vm, "setcar", argv, 0, Qpair);
-	gcwb(argv[0]);
-	p = valpair(argv[0]);
-	p->car = argv[1];
-}
-
-static void
-l1_setcdr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Pair *p;
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to setcdr");
-	checkarg(vm, "setcar", argv, 0, Qpair);
-	gcwb(argv[0]);
-	p = valpair(argv[0]);
-	p->cdr = argv[1];
-}
-
-static void
-l1_car(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Pair *p;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to car");
-	checkarg(vm, "car", argv, 0, Qpair);
-	p = valpair(argv[0]);
-	*rv = p->car;
-}
-
-static void
-l1_cdr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Pair *p;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to cdr");
-	checkarg(vm, "cdr", argv, 0, Qpair);
-	p = valpair(argv[0]);
-	*rv = p->cdr;
-}
-
-static void
-l1_cons(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to cons");
-	*rv = mkvalpair(cons(argv[0], argv[1]));
-}
-
-static void
-l1_weakcons(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to weakcons");
-	*rv = mkvalpair(weakcons(argv[0], argv[1]));
-}
-
-static void
 l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg;
@@ -8055,17 +7989,6 @@ static void
 l1_ispair(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "ispair", Qpair);
-}
-
-static void
-l1_isweakpair(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to isweakpair");
-	if(Vkind(argv[0]) == Qpair && isweak(argv[0]))
-		*rv = mkvalcval2(cval1);
-	else
-		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -9126,15 +9049,12 @@ mktopenv(void)
 	FN(bitfieldwidth);
 	FN(bsearch);
 	FN(callmethod);
-	FN(car);
-	FN(cdr);
 	FN(close);
 	FN(compact);
 	FN(cntrget);
 	FN(cntrput);
 	FN(compile);
 	FN(concat);
-	FN(cons);
 	FN(copy);
 	FN(count);
 	FN(cval2str);
@@ -9195,7 +9115,6 @@ mktopenv(void)
 	FN(isunion);
 	FN(isvector);
 	FN(isvoid);
-	FN(isweakpair);
 	FN(isxaccess);
 	FN(length);
 	FN(loadpath);
@@ -9272,8 +9191,6 @@ mktopenv(void)
 	FN(rangelen);
 	FN(resettop);
 	FN(rettype);
-	FN(setcar);
-	FN(setcdr);
 	FN(setloadpath);
 	FN(settypedeftype);
 	FN(sort);
@@ -9302,12 +9219,12 @@ mktopenv(void)
 	FN(vecref);
 	FN(vecset);
 	FN(vector);
-	FN(weakcons);
 	FN(xaccessget);
 	FN(xaccessput);
 
 	fnch(env);
 	fnlist(env);
+	fnpair(env);
 	fnrec(env);
 	fntab(env);
 	fns(env);		/* configuration-specific functions */

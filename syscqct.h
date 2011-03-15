@@ -1235,6 +1235,7 @@ void		tabput(Tab *tab, Val keyv, Val val);
 #define 	_setcdr(p,x) do{ cdr(p) = (Val)(x); }while(0)
 #define		cons(a,d)  (mkpair((Val)(a), (Val)(d)))
 #define		weakcons(a,d)  (mkweakpair((Val)(a), (Val)(d)))
+void		fnpair(Env *env);
 Pair*		mkpair(Val a, Val d);
 Pair*		mkweakpair(Val a, Val d);
 
