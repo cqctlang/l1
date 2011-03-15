@@ -1238,6 +1238,9 @@ void		tabput(Tab *tab, Val keyv, Val val);
 Pair*		mkpair(Val a, Val d);
 Pair*		mkweakpair(Val a, Val d);
 
+/* rec.c */
+void		fnrec(Env *env);
+
 /* cqct.c */
 Val		cqctcompile0(Expr *e, Toplevel *top, char *argsid);
 Expr*		cqctcompilex(Expr *e, Toplevel *top, char *argsid);

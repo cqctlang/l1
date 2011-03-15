@@ -53,6 +53,7 @@ L1C =\
 	ch.c\
 	list.c\
 	pair.c\
+	rec.c\
 	tab.c\
 	type.c\
 	mem.c\
