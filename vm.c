@@ -6970,25 +6970,6 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkvec(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-	Val v;
-
-	if(argc != 1 && argc != 2)
-		vmerr(vm, "wrong number of arguments to mkvec");
-	checkarg(vm, "mkvec", argv, 0, Qcval);
-	cv = valcval(argv[0]);
-	if(argc == 2)
-		v = argv[1];
-	else
-		v = Xnil;
-	if(!isnatcval(cv))
-		vmerr(vm, "operand 1 to mkvec must be a non-negative integer");
-	*rv = mkvalvec(mkvecinit(cv->val, v));
-}
-
-static void
 l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *addr, *len;
@@ -8670,7 +8651,6 @@ mktopenv(void)
 	FN(mkrange);
 	FN(mksas);
 	FN(mksym);
-	FN(mkvec);
 	FN(mkzas);
 	FN(myrootns);
 	FN(nameof);
