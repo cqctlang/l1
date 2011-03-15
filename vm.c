@@ -1631,34 +1631,6 @@ xcallc(VM *vm)
 	vm->ac = rv;
 }
 
-static int
-Strcmp(Str *s1, Str *s2)
-{
-	unsigned char *p1, *p2;
-	Imm l1, l2;
-
-	p1 = (unsigned char*)strdata(s1);
-	p2 = (unsigned char*)strdata(s2);
-	l1 = s1->len;
-	l2 = s2->len;
-	while(l1 && l2){
-		if(*p1 < *p2)
-			return -1;
-		else if(*p1 > *p2)
-			return 1;
-		p1++;
-		p2++;
-		l1--;
-		l2--;
-	}
-	if(l1)
-		return 1;
-	else if(l2)
-		return -1;
-	else
-		return 0;
-}
-
 static Imm
 xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 {

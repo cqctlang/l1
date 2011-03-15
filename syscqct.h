@@ -1250,6 +1250,7 @@ Str*		mkstr(char *s, Imm len);
 Str*		mkstr0(char *s);
 Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(Imm len);
+int		Strcmp(Str *s1, Str *s2);
 
 /* vec.c */
 int		equalvec(Vec *a, Vec *b);
