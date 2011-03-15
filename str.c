@@ -55,6 +55,37 @@ equalstr(Str *a, Str *b)
 }
 
 Str*
+strcopy(Str *s)
+{
+	return mkstr(strdata(s), s->len);
+}
+
+char*
+str2cstr(Str *str)
+{
+	char *s;
+	s = emalloc(str->len+1);
+	memcpy(s, strdata(str), str->len);
+	return s;
+}
+
+Str*
+strslice(Str *str, Imm beg, Imm end)
+{
+	return mkstr(strdata(str)+beg, end-beg);
+}
+
+Str*
+strconcat(Str *s1, Str *s2)
+{
+	Str *s;
+	s = mkstrn(s1->len+s2->len);
+	memcpy(strdata(s), strdata(s1), s1->len);
+	memcpy(strdata(s)+s1->len, strdata(s2), s2->len);
+	return s;
+}
+
+Str*
 mkstr(char *s, Imm len)
 {
 	Str *str;
