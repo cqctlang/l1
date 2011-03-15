@@ -9673,6 +9673,7 @@ mktopenv(void)
 	FN(xaccessget);
 	FN(xaccessput);
 
+	fnch(env);
 	fnlist(env);
 	fntab(env);
 	fns(env);		/* configuration-specific functions */

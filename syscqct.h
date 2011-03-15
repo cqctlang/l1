@@ -1181,6 +1181,9 @@ u64		protected();
 void		quard(Val o);
 void		tguard(Val o, Pair *g);
 
+/* ch.c */
+void		fnch(Env *env);
+
 /* list.c */
 int		equallist(List *a, List *b);
 void		fnlist(Env *env);
