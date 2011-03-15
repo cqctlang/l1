@@ -54,6 +54,7 @@ L1C =\
 	list.c\
 	pair.c\
 	rec.c\
+	str.c\
 	tab.c\
 	vec.c\
 	type.c\

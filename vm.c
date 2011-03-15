@@ -69,7 +69,6 @@ static Xtypename* safechasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
 static Xtypename* mkvoidxtn(void);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
-static Xtypename* mkptrxtn(Xtypename *t, Rkind rep);
 static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
 static Xtypename* mkundefxtn(Xtypename *t);
@@ -82,7 +81,7 @@ void *GCiterdone;
 Val Xundef;
 Val Xnil;
 Val Xnulllist;
-static Dom *litdom;
+Dom *litdom;
 static Closure *halt, *nop;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
@@ -116,7 +115,6 @@ static u32 hashcval(Val);
 static u32 hashptr(Val);
 static u32 hashconst(Val);
 static u32 hashrange(Val);
-static u32 hashstr(Val);
 static u32 hashxtn(Val);
 
 static int eqcval(Val, Val);
@@ -393,7 +391,7 @@ hashptr32shift(void *p)
 }
 
 /* one-at-a-time by jenkins */
-static u32
+u32
 shash(char *s, Imm len)
 {
 	unsigned char *p = (unsigned char*)s;
@@ -497,30 +495,6 @@ equalrange(Val a, Val b)
 	ra = valrange(a);
 	rb = valrange(b);
 	return ra->beg->val==rb->beg->val && ra->len->val==rb->len->val;
-}
-
-static u32
-hashstr(Val val)
-{
-	Str *s;
-	s = valstr(val);
-	return shash(strdata(s), s->len);
-}
-
-static int
-equalstrc(Str *a, char *b)
-{
-	if(a->len != strlen(b))
-		return 0;
-	return memcmp(strdata(a), b, a->len) ? 0 : 1;
-}
-
-static int
-equalstr(Str *a, Str *b)
-{
-	if(a->len != b->len)
-		return 0;
-	return memcmp(strdata(a), strdata(b), a->len) ? 0 : 1;
 }
 
 static int
@@ -644,93 +618,6 @@ equalxtnv(Val a, Val b)
 	return equalxtn(valxtn(a), valxtn(b));
 }
 
-Str*
-mkstrn(Imm len)
-{
-	Str *str;
-	str = (Str*)malv(Qstr, sizeof(Str)+len*sizeof(char));
-	str->len = len;
-	str->skind = Sheap;
-	return str;
-}
-
-Str*
-mkstr(char *s, Imm len)
-{
-	Str *str;
-	str = mkstrn(len);
-	memcpy(strdata(str), s, len);
-	return str;
-}
-
-Str*
-mkstr0(char *s)
-{
-	Str *str;
-	Imm len;
-	len = strlen(s);
-	str = mkstrn(len);
-	memcpy(strdata(str), s, len);
-	return str;
-}
-
-Str*
-mkstrk(char *s, Imm len, Skind skind)
-{
-	Strmmap *sm;
-	Strperm *sp;
-	Strmalloc *sa;
-
-	switch(skind){
-	case Sheap:
-		return mkstr(s, len);
-	case Smalloc:
-		sa = (Strmalloc*)malv(Qstr, sizeof(Strmalloc));
-		sa->s = s;
-		sa->str.len = len;
-		sa->str.skind = Smalloc;
-		quard((Val)sa);
-		return (Str*)sa;
-	case Smmap:
-		sm = (Strmmap*)malv(Qstr, sizeof(Strmmap));
-		sm->mlen = len;
-		sm->s = s;
-		sm->str.len = len;
-		sm->str.skind = Smmap;
-		quard((Val)sm);
-		return (Str*)sm;
-	case Sperm:
-		sp = (Strperm*)malv(Qstr, sizeof(Strperm));
-		sp->s = s;
-		sp->str.len = len;
-		sp->str.skind = Sperm;
-		return (Str*)sp;
-	}
-	fatal("bug");
-}
-
-Str*
-mkstrmalloc(Imm len)
-{
-	Strmalloc *sa;
-	sa = (Strmalloc*)malv(Qstr, sizeof(Strmalloc));
-	sa->s = emalloc(len);
-	sa->str.len = len;
-	sa->str.skind = Smalloc;
-	return (Str*)sa;
-}
-
-Str*
-mkstrext(void *p, Imm len)
-{
-	Strperm *sp;
-	sp = (Strperm*)malv(Qstr, sizeof(Strperm));
-	sp->s = p;
-	sp->str.len = len;
-	sp->str.skind = Sperm;
-	return (Str*)sp;
-}
-
 static Str*
 strcopy(Str *s)
 {
@@ -797,7 +684,7 @@ mkas(void)
 	return as;
 }
 
-static Dom*
+Dom*
 mkdom(Ns *ns, As *as, Str *name)
 {
 	Dom *dom;
@@ -4666,7 +4553,7 @@ isstrcval(Cval *cv)
 	return 1;
 }
 
-static Str*
+Str*
 valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg)
 {
 	Cval *cv;
@@ -6345,38 +6232,6 @@ l1_fault(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *s, *t;
-	Cval *off, *cv;
-	Imm o;
-
-	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to strput");
-	if(Vkind(argv[0]) != Qstr)
-		vmerr(vm, "operand 1 to strput must be a string");
-	if(Vkind(argv[1]) != Qcval)
-		vmerr(vm, "operand 2 to strput must be an offset");
-	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
-		vmerr(vm, "operand 3 to strput must be a string or character");
-	s = valstr(argv[0]);
-	off = valcval(argv[1]);
-	o = off->val;		/* FIXME: use type */
-	if(o >= s->len)
-		vmerr(vm, "strput out of bounds");
-	if(Vkind(argv[2]) == Qstr){
-		t = valstr(argv[2]);
-		if(o+t->len > s->len)
-			vmerr(vm, "strput out of bounds");
-		memcpy(strdata(s)+o, strdata(t), t->len);
-	}else{
-		cv = valcval(argv[2]);
-		strdata(s)[o] = (char)cv->val;
-	}
-	USED(rv);
-}
-
-static void
 l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 {
 	Dom *d;
@@ -6636,27 +6491,6 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qtab)
 		vmerr(vm, "argument 1 to mkattr must be a table or cvalue");
 	*rv = mkattr(argv[0]);
-}
-
-static void
-l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *len;
-	Str *s;
-	As *as;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to malloc");
-	checkarg(vm, "malloc", argv, 0, Qcval);
-	len = valcval(argv[0]);
-	if(!isnatcval(len))
-		vmerr(vm, "malloc expects a non-negative length");
-	s = mkstrmalloc(len->val);
-	as = mkmas(s);
-	*rv = mkvalcval(mkdom(litdom->ns, as, mkstr0("malloc")),
-			mkptrxtn(litdom->ns->base[Vchar],
-				 litdom->ns->base[Vptr]->rep),
-			(uptr)strdata(s));
 }
 
 static void
@@ -7009,165 +6843,6 @@ l1_rangelen(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to mkstr");
-	checkarg(vm, "mkstr", argv, 0, Qcval);
-	cv = valcval(argv[0]);
-	if(!isnatcval(cv))
-		vmerr(vm, "operand 1 to mkstr must be a non-negative integer");
-	*rv = mkvalstr(mkstrn(cv->val));
-}
-
-static void
-l1_mkstrext(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *p, *l;
-	void *a;
-	Str *s;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to mkstrext");
-	checkarg(vm, "mkstrext", argv, 0, Qcval);
-	checkarg(vm, "mkstrext", argv, 0, Qcval);
-	p = valcval(argv[0]);
-	l = valcval(argv[1]);
-	a = (void*)(uptr)p->val;
-
-	/* allocate before checking, in case allocation
-	   modifies set of managed ranges */
-	s = mkstrext(a, l->val);
-
-	/* check for intersection with managed range */
-	if(ismanagedrange(a, l->val))
-		vmerr(vm, "range includes managed address space");
-
-	*rv = mkvalstr(s);
-}
-
-static void
-l1_strlen(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *s;
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to strlen");
-	s = valstrorcval(vm, "strlen", argv, 0);
-	*rv = mkvalcval(litdom, litdom->ns->base[Vuvlong], s->len);
-}
-
-static void
-l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *b, *e;
-	Str *s;
-	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to substr");
-	s = valstrorcval(vm, "substr", argv, 0);
-	checkarg(vm, "substr", argv, 1, Qcval);
-	checkarg(vm, "substr", argv, 2, Qcval);
-	b = valcval(argv[1]);
-	e = valcval(argv[2]);
-	if(b->val > s->len)
-		vmerr(vm, "substring out of bounds");
-	if(e->val > s->len)
-		vmerr(vm, "substring out of bounds");
-	if(b->val > e->val)
-		vmerr(vm, "substring out of bounds");
-	*rv = mkvalstr(strslice(s, b->val, e->val));
-}
-
-static void
-l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *str;
-	Cval *cv;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to strref");
-	checkarg(vm, "strref", argv, 1, Qcval);
-	cv = valcval(argv[1]);
-	if(!isnatcval(cv))
-		vmerr(vm, "operand 2 to strref must be "
-		      "a non-negative integer");
-	str = valstrorcval(vm, "strref", argv, 0);
-	if(cv->val >= str->len)
-		vmerr(vm, "strref out of bounds");
-	*rv = mkvallitcval(Vuchar, (u8)strdata(str)[cv->val]);
-}
-
-static char*
-xmemmem(char *s1, Imm l1, char *s2, Imm l2)
-{
-	char *p, *e;
-	if(l2 > l1)
-		return 0;
-	p = s1;
-	e = s1+(l1-l2+1);
-	while(p < e){
-		if(!memcmp(p, s2, l2))
-			return p;
-		p++;
-	}
-	return 0;
-}
-
-// FIXME: the interface and implementation are broken
-static void
-l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	char *s1, *s2, *p;
-	Str *str1, *str2;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to strstr");
-	str1 = valstrorcval(vm, "strstr", argv, 0);
-	s1 = str2cstr(str1);
-	str2 = valstrorcval(vm, "strstr", argv, 1);
-	s2 = str2cstr(str2);
-	if(Vkind(argv[0]) == Qcval && Vkind(argv[1]) == Qcval)
-		p = strstr(s1, s2);
-	else
-		p = xmemmem(s1, str1->len, s2, str2->len);
-	if(p)
-		*rv = mkvallitcval(Vuvlong, p-s1);
-	efree(s1);
-	efree(s2);
-}
-
-static void
-l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *s;
-	unsigned char b;
-	Cval *tcv, *bcv, *lcv;
-	Imm lim;
-
-	if(argc != 2 && argc != 3)
-		vmerr(vm, "wrong number of arguments to memset");
-	s = valstrorcval(vm, "memset", argv, 0);
-	checkarg(vm, "memset", argv, 1, Qcval);
-	bcv = valcval(argv[1]);
-	b = bcv->val&0xff;
-	if(argc == 3){
-		checkarg(vm, "memset", argv, 2, Qcval);
-		lcv = valcval(argv[2]);
-		lim = lcv->val;
-	}else
-		lim = s->len;
-	if(Vkind(argv[0]) == Qstr)
-		memset(strdata(s), b, lim);
-	else if(Vkind(argv[0]) == Qcval){
-		/* FIXME: we shouldn't call valstrorcval just
-		   to get lim in 2-arg case */
-		s = mkstrmalloc(lim);
-		memset(strdata(s), b, lim);
-		tcv = valcval(argv[0]);
-		callput(vm, tcv->dom->as, tcv->val, lim, s);
-	}else
-		fatal("bug");
-}
-
-static void
 l1_memcpy(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *ncv, *scv, *dcv;
@@ -7210,33 +6885,6 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, err);
 	s = stringof(vm, cv);
 	*rv = mkvalstr(s);
-}
-
-static void
-l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *s;
-	Liti liti;
-	Cval *cv;
-	char *err;
-	unsigned radix;
-
-	if(argc != 1 && argc != 2)
-		vmerr(vm, "wrong number of arguments to strton");
-	checkarg(vm, "strton", argv, 0, Qstr);
-	radix = 0;
-	if(argc == 2){
-		checkarg(vm, "strton", argv, 1, Qcval);
-		cv = valcval(argv[1]);
-		if(!isnatcval(cv))
-			vmerr(vm, "operand 2 to strton must be "
-			      "non-negative");
-		radix = cv->val;
-	}
-
-	s = valstrorcval(vm, "strton", argv, 0);
-	if(!parseliti(strdata(s), s->len, &liti, radix, &err))
-		*rv = mkvalcval(litdom, litdom->ns->base[liti.base], liti.val);
 }
 
 static void
@@ -8661,7 +8309,7 @@ mkbasextn(Cbase name, Rkind rep)
 	return xtn;
 }
 
-static Xtypename*
+Xtypename*
 mkptrxtn(Xtypename *t, Rkind rep)
 {
 	Xtypename *xtn;
@@ -8978,10 +8626,8 @@ mktopenv(void)
 	FN(lookfield);
 	FN(looksym);
 	FN(looktype);
-	FN(malloc);
 	FN(memcpy);
 	FN(meminuse);
-	FN(memset);
 	FN(memtotal);
 	FN(mkas);
 	FN(mkattr);
@@ -9023,8 +8669,6 @@ mktopenv(void)
 	FN(mkparam);
 	FN(mkrange);
 	FN(mksas);
-	FN(mkstr);
-	FN(mkstrext);
 	FN(mksym);
 	FN(mkvec);
 	FN(mkzas);
@@ -9054,12 +8698,6 @@ mktopenv(void)
 	FN(split);
 	FN(sprintfa);
 	FN(stringof);
-	FN(strlen);
-	FN(strput);
-	FN(strref);
-	FN(strstr);
-	FN(strton);
-	FN(substr);
 	FN(subtype);
 	FN(suekind);
 	FN(suetag);
@@ -9079,6 +8717,7 @@ mktopenv(void)
 	fnlist(env);
 	fnpair(env);
 	fnrec(env);
+	fnstr(env);
 	fntab(env);
 	fnvec(env);
 	fns(env);		/* configuration-specific functions */

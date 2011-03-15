@@ -797,6 +797,7 @@ extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
 extern char  **cqctloadpath;
 extern char *qname[];
 extern void *GCiterdone;
+extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
 extern Val Xnulllist;
@@ -983,17 +984,16 @@ Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkxfn(Str *code);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
+Dom*		mkdom(Ns *ns, As *as, Str *name);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);
+As*		mkmas(Str *s);
 Ns*		mknstab(Tab *mtab, Str *name);
+Xtypename*	mkptrxtn(Xtypename *t, Rkind rep);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
-Str*		mkstr(char *s, Imm len);
-Str*		mkstr0(char *s);
-Str*		mkstrk(char *s, Imm len, Skind skind);
-Str*		mkstrn(Imm len);
 Tab*		mktab(void);
 Toplevel*	mktoplevel(Xfd *in, Xfd *out, Xfd *err);
 Val		mkvalbox(Val boxed);
@@ -1008,6 +1008,7 @@ void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
 Val		safedovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+u32		shash(char *s, Imm len);
 Imm		stkimm(Val v);
 char*		str2cstr(Str *str);
 Str*		stringof(VM *vm, Cval *cv);
@@ -1020,6 +1021,7 @@ Cval*		typecast(VM *vm, Xtypename *xtn, Cval *cv);
 Val		valboxed(Val v);
 Head*		valhead(Val v);
 Imm		valimm(Val v);
+Str*		valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
@@ -1236,6 +1238,18 @@ Pair*		mkweakpair(Val a, Val d);
 
 /* rec.c */
 void		fnrec(Env *env);
+
+/* str.c */
+int		equalstr(Str *a, Str *b);
+int		equalstrc(Str *a, char *b);
+void		fnstr(Env *env);
+u32		hashstr(Val);
+void		l1_strref(VM *vm, Imm argc, Val *argv, Val *rv);
+void		l1_strput(VM *vm, Imm argc, Val *argv, Val *rv);
+Str*		mkstr(char *s, Imm len);
+Str*		mkstr0(char *s);
+Str*		mkstrk(char *s, Imm len, Skind skind);
+Str*		mkstrn(Imm len);
 
 /* vec.c */
 int		equalvec(Vec *a, Vec *b);
