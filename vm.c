@@ -1636,8 +1636,17 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 	Imm imm, nv;
 
 	v = getvalrand(vm, op1);
+	if(op == Inot){
+		if(Vkind(v) == Qcval)
+			goto cval;
+		if(Vkind(v) != Qnil)
+			vmerr(vm, "incompatible operand for unary %s", opstr[op]);
+		cvr = cval1;
+		goto out;
+	}
 	if(Vkind(v) != Qcval)
 		vmerr(vm, "incompatible operand for unary %s", opstr[op]);
+cval:
 	cv = intpromote(vm, valcval(v));
 	imm = cv->val;
 
@@ -1660,6 +1669,7 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 		fatal("unknown unary operator %d", op);
 		return; /* not reached */
 	}
+out:
 	putcvalrand(vm, cvr, dst);
 }
 
@@ -2100,7 +2110,7 @@ xmov(VM *vm, Operand *src, Operand *dst)
 }
 
 static int
-zeroval(Val v)
+falseval(Val v)
 {
 	Cval *cv;
 
@@ -2108,6 +2118,8 @@ zeroval(Val v)
 	case Qcval:
 		cv = valcval(v);
 		return cv->val == 0;
+	case Qnil:
+		return 1;
 	default:
 		return 0;
 	}
@@ -2118,7 +2130,7 @@ xjnz(VM *vm, Operand *src, Ctl *label)
 {
 	Val v;
 	v = getvalrand(vm, src);
-	if(!zeroval(v))
+	if(!falseval(v))
 		vm->pc = label->insn;
 }
 
@@ -2127,7 +2139,7 @@ xjz(VM *vm, Operand *src, Ctl *label)
 {
 	Val v;
 	v = getvalrand(vm, src);
-	if(zeroval(v))
+	if(falseval(v))
 		vm->pc = label->insn;
 }
 

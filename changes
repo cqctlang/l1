@@ -5,3 +5,4 @@ the functions defined by @record are bound to the innermost scope,
 veclen no longer exists (use always-equivalent length)
 variables declared with @global and @local are initialize bound to nil
   (previously they were bound to the undefined value)
+the value nil is now false in conditional context (previously true)

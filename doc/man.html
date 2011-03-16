@@ -1097,6 +1097,16 @@ and <span class="val">continue</span> as in C.
 </p>
 
 <p>
+As in C, the integer value <span class="val">0</span>
+is considered false in conditional evaluation.  Unlike
+C, the value <span class="id">nil</span> is also
+considered false.  (The value
+of <span class="id">!nil</span>
+is <span class="val">1</span>.)  All other values are
+considered true.
+</p>
+
+<p>
 Unlike C, the <span class="val">switch</span> statement
 dispatches values of any type, not just integers.
 The <span class="val">==</span> operator determines

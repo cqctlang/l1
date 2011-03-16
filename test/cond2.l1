@@ -8,3 +8,5 @@ if(mkdom)
 	printf("functions are not false\n");
 if(nil)
 	printf("nil is not false\n");
+else
+	printf("nil is false\n");
