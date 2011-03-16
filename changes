@@ -1,8 +1,8 @@
 @define no longer implicitly binds into the top-level.
-@const no longer exists
+@const no longer exists (it still accepted as whitespace character)
 the functions defined by @record are bound to the innermost scope,
   unless there are already bindings
 veclen no longer exists (use always-equivalent length)
-variables declared with @global and @local are initialize bound to nil
+variables declared with @global and @local are initially bound to nil
   (previously they were bound to the undefined value)
 the value nil is now false in conditional context (previously true)
