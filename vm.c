@@ -2193,7 +2193,7 @@ xbox(VM *vm, Operand *op)
 static void
 xbox0(VM *vm, Operand *op)
 {
-	putvalrand(vm, mkvalbox(Xundef), op);
+	putvalrand(vm, mkvalbox(Xnil), op);
 }
 
 static void

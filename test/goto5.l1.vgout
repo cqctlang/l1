@@ -3,10 +3,10 @@ foo: 1 params, 3 locals, 0 temps
 foo(0)
 default
 foo(1)
-got to label! (w = )
+got to label! (w = <nil>)
 kept going!
 got to label2!
 foo(2)
 got to label2!
 foo(3)
-got to label3 (x = , w = )!
+got to label3 (x = <nil>, w = <nil>)!

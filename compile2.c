@@ -6,6 +6,7 @@ static Expr*
 globals(Expr *e, Env *env)
 {
 	Expr *p;
+	Expr *se;
 
 	if(e == 0)
 		return e;
@@ -13,12 +14,15 @@ globals(Expr *e, Env *env)
 	switch(e->kind){
 	case Eglobal:
 		p = e->e1;
+		se = nullelist();
 		while(p->kind == Eelist){
 			envgetbind(env, p->e1->id);
+			se = Zcons(Zset(p->e1, Znil()), se);
+			p->e1 = 0; /* steal */
 			p = p->e2;
 		}
 		freeexpr(e);
-		return newexpr(Enil, 0, 0, 0, 0);
+		return invert(se);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
