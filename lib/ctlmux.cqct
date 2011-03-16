@@ -2785,3 +2785,10 @@ ctlmux = @names clp64le {
 		     clrtrap);
 	return mux;
 }
+
+@define atnames(path)
+{
+	@local mux;
+	mux = mkctlmux_local();
+	return mux.names(path);
+}
