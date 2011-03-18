@@ -410,6 +410,7 @@ setreloc(Code *c)
 	for(i = c->insn; i < e; i++){
 		switch(i->kind){
 		case Icallc:
+		case Icalltc:
 		case Iframe:
 		case Iret:
 		case Ihalt:
@@ -486,6 +487,9 @@ printinsn(Insn *i)
 		break;
 	case Icallc:
 		xprintf("callc");
+		break;
+	case Icalltc:
+		xprintf("calltc");
 		break;
 	case Ilive:
 		xprintf("-live- 0x%x", i->cnt);
@@ -1551,6 +1555,20 @@ callccode(void)
 	i->cnt = 0;
 	i = nextinsn(code, 0);
 	i->kind = Iret;
+	setreloc(code);
+
+	return code;
+}
+
+Code*
+calltccode(void)
+{
+	Insn *i;
+	Code *code;
+
+	code = mkcode();
+	i = nextinsn(code, 0);
+	i->kind = Icalltc;
 	setreloc(code);
 
 	return code;

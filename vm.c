@@ -152,7 +152,7 @@ Hashop hashop[Qnkind] = {
 	[Qxtn]	 = { hashxtn, equalxtnv },
 };
 
-Code *kcode, *cccode;
+Code *kcode, *cccode, *tcccode;
 
 Imm
 stkimm(Val v)
@@ -289,6 +289,15 @@ mkcfn(char *id, Cfn *cfn)
 {
 	Closure *cl;
 	cl = mkcl(cccode, 0, 0, id);
+	cl->cfn = cfn;
+	return cl;
+}
+
+Closure*
+mktcfn(char *id, Cfn *cfn)
+{
+	Closure *cl;
+	cl = mkcl(tcccode, 0, 0, id);
 	cl->cfn = cfn;
 	return cl;
 }
@@ -1598,6 +1607,39 @@ xcallc(VM *vm)
 		x(vm, argc, argv, &rv);
 	}
 	vm->ac = rv;
+}
+
+static void
+xcalltc(VM *vm)
+{
+	Imm argc;
+	Val *argv;
+	Closure *cl;
+	Cfn *x;
+
+	if(vm->clx->cfn == 0 && vm->clx->ccl == 0 && vm->clx->xfn == 0)
+		vmerr(vm, "bad closure for builtin call");
+	cl = vm->clx;
+
+	/* return from cinquecento frame ahead of call */
+	argc = stkimm(vm->stack[vm->fp]);
+	argv = &vm->stack[vm->fp+1];
+	vm->sp = vm->fp+stkimm(vm->stack[vm->fp])+1; /* narg+1 */
+	vm->fp = stkimm(vm->stack[vm->sp+2]);
+	vm->cl = vm->stack[vm->sp+1];
+	vmsetcl(vm, vm->cl);
+	vm->pc = stkimm(vm->stack[vm->sp]);
+	vm->sp += 3; /* should be vmpop(vm, 3), but only declared below */
+	
+	vm->ac = Xnil; /* FIXME: okay?  why doesn't callc do this? */
+	if(cl->cfn)
+		cl->cfn(vm, argc, argv, &vm->ac);
+	else if(cl->ccl)
+		cl->ccl(vm, argc, argv, cl->display, &vm->ac);
+	else{
+		x = (Cfn*)strdata(cl->xfn);
+		x(vm, argc, argv, &vm->ac);
+	}
 }
 
 static Imm
@@ -3994,6 +4036,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icall]	= &&Icall;
 		gotab[Icallc]	= &&Icallc;
 		gotab[Icallt]	= &&Icallt;
+		gotab[Icalltc]	= &&Icalltc;
 		gotab[Iclo]	= &&Iclo;
 		gotab[Icmpeq] 	= &&Icmpeq;
 		gotab[Icmpgt] 	= &&Icmpgt;
@@ -4064,9 +4107,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		NEXTLABEL(i){
 		LABEL Inop:
 			continue;
-		LABEL Icallc:
-			xcallc(vm);
-			continue;
 		LABEL Iinv:
 		LABEL Ineg:
 		LABEL Inot:
@@ -4134,6 +4174,12 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 				(narg+1)*sizeof(Val));
 			vm->sp = vm->fp;
 			vm->pc = vm->clx->entry;
+			continue;
+		LABEL Icalltc:
+			xcalltc(vm);
+			continue;
+		LABEL Icallc:
+			xcallc(vm);
 			continue;
 		LABEL Iframe:
 			vmpushi(vm, vm->fp);
@@ -8748,6 +8794,7 @@ initvm(int gcthread, u64 heapmax)
 	Xundef = gclock(malq(Qundef));
 	Xnulllist = gclock(malq(Qnull));
 	cccode = gclock(callccode());
+	tcccode = gclock(calltccode());
 	kcode = gclock(contcode());
 	litdom = gclock(mklitdom());
 	cvalnull = gclock(mkcval(litdom, litdom->ns->base[Vptr], 0));
@@ -8765,6 +8812,7 @@ finivm(void)
 {
 	gcunlock(Xundef);
 	gcunlock(Xnulllist);
+	gcunlock(tcccode);
 	gcunlock(cccode);
 	gcunlock(kcode);
 	gcunlock(litdom);

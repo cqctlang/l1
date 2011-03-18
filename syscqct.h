@@ -516,6 +516,7 @@ enum {
 	Icall,
 	Icallc,
 	Icallt,
+	Icalltc,
 	Iclo,
 	Icmpeq,
 	Icmpgt,
@@ -801,7 +802,7 @@ extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
 extern Val Xnulllist;
-extern Code *kcode, *cccode;
+extern Code *kcode, *cccode, *tcccode;
 
 /* c.l */
 void		freeyystate(YYstate *yy);
@@ -915,6 +916,7 @@ u64		szexprx(Expr *e);
 /* cg.c */
 Closure*	callcc(void);
 Code*		callccode(void);
+Code*		calltccode(void);
 Closure*	codegen(Expr *e);
 Code*		contcode(void);
 void		finicg(void);
@@ -980,6 +982,7 @@ Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
 Val		mkattr(Val o);
 Closure*	mkcfn(char *id, Cfn *cfn);
+Closure*	mktcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkxfn(Str *code);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
@@ -1051,6 +1054,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 #define FN(name) builtinfn(env, "%"#name, mkcfn(#name, l1_##name))
+#define FNT(name) builtinfn(env, "%"#name, mktcfn(#name, l1_##name))
 
 typedef int(*Freeheadfn)(Head*);
 Freeheadfn getfreeheadfn(Qkind qkind);
