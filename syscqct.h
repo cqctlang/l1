@@ -1130,6 +1130,7 @@ Expr*		Zlocals(unsigned n, ...);
 Expr*		Znil(void);
 Expr*		Znop(void);
 Expr*		Znot(Expr *e);
+Expr*		Znull();
 Expr*		Zref(Expr *dom, Expr *type, Expr *val);
 Expr*		Zret(Expr *e);
 Expr*		Zscope(Expr *block);

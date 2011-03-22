@@ -130,6 +130,12 @@ elistlen(Expr *l)
 }
 
 Expr*
+Znull()
+{
+	return nullelist();
+}
+
+Expr*
 Zcons(Expr *hd, Expr *tl)
 {
 	return Z2(Eelist, hd, tl);
