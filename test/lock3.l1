@@ -1,0 +1,19 @@
+N = 30000;
+M = 10000;
+t = [:];
+
+@define waste()
+{
+        @local i;
+        for(i = 0; i < 1000; i++)
+                mkstr(i);
+}
+
+for(i = 0; i < N; i++){
+        @local fn;
+        fn = @lambda() { printf("%d %d %d\n", N, M, i); };
+        t[i] = fn;
+        gclock(fn);
+        if(i%M == 0)
+                gcstats();
+}

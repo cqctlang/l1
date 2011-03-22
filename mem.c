@@ -1856,6 +1856,8 @@ updateweak(u32 tg)
 static void
 promote1locked(Seg *s)
 {
+	if(!MTold(s->mt))
+		return;
 	if(s->nprotect == 0)
 		return;
 	s->gen = Glock;

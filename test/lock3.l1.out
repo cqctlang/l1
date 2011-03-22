@@ -1,0 +1,138 @@
+entry: var params, 8 locals, 0 temps
+waste: 0 params, 2 locals, 0 temps
+L31: 0 params, 0 locals, 0 temps
+      TYPE GEN     #SEG  #LOCKED   #DIRTY
+      free   0       37        0        0
+      free   1        0        0        0
+      free   2        0        0        0
+      free   3        0        0        0
+      free   S        0        0        0
+      free   L        0        0        0
+      data   0        1       11        0
+      data   1        0        0        0
+      data   2        0        0        0
+      data   3        0        0        0
+      data   S        0        0        0
+      data   L        0        0        0
+      code   0        1        3        0
+      code   1        0        0        0
+      code   2        0        0        0
+      code   3        0        0        0
+      code   S        0        0        0
+      code   L        0        0        0
+      weak   0        1        0        0
+      weak   1        0        0        0
+      weak   2        0        0        0
+      weak   3        0        0        0
+      weak   S        0        0        0
+      weak   L        0        0        0
+   bigdata   0        0        0        0
+   bigdata   1        0        0        0
+   bigdata   2        0        0        0
+   bigdata   3        0        0        0
+   bigdata   S        0        0        0
+   bigdata   L        0        0        0
+   bigcode   0        0        0        0
+   bigcode   1        0        0        0
+   bigcode   2        0        0        0
+   bigcode   3        0        0        0
+   bigcode   S        0        0        0
+   bigcode   L        0        0        0
+ inuse =    3145728
+  free =   38797312
+heapsz =   41943040
+ bigsz =          0
+smapsz =    1048576
+ ncard =          0
+ nlock =          0
+   ngc =          0
+      TYPE GEN     #SEG  #LOCKED   #DIRTY
+      free   0       26        0        0
+      free   1        0        0        0
+      free   2        0        0        0
+      free   3        0        0        0
+      free   S        0        0        0
+      free   L        0        0        0
+      data   0        2     3593        0
+      data   1        3        1        2
+      data   2        0        0        0
+      data   3        0        0        0
+      data   S        0        0        0
+      data   L        4     6417        4
+      code   0        1        0        0
+      code   1        1        0        0
+      code   2        0        0        0
+      code   3        0        0        0
+      code   S        0        0        0
+      code   L        1        3        0
+      weak   0        1        0        0
+      weak   1        1        0        0
+      weak   2        0        0        0
+      weak   3        0        0        0
+      weak   S        0        0        0
+      weak   L        0        0        0
+   bigdata   0        0        0        0
+   bigdata   1        0        0        0
+   bigdata   2        0        0        0
+   bigdata   3        0        0        0
+   bigdata   S        0        0        0
+   bigdata   L        0        0        0
+   bigcode   0        0        0        0
+   bigcode   1        0        0        0
+   bigcode   2        0        0        0
+   bigcode   3        0        0        0
+   bigcode   S        0        0        0
+   bigcode   L        0        0        0
+ inuse =   14680064
+  free =   27262976
+heapsz =   41943040
+ bigsz =          0
+smapsz =    1048576
+ ncard =          0
+ nlock =       6420
+   ngc =          1
+      TYPE GEN     #SEG  #LOCKED   #DIRTY
+      free   0       38        0        0
+      free   1        0        0        0
+      free   2        0        0        0
+      free   3        0        0        0
+      free   S        0        0        0
+      free   L        0        0        0
+      data   0        3     5594        0
+      data   1        6        2        4
+      data   2        0        0        0
+      data   3        0        0        0
+      data   S        0        0        0
+      data   L        9    14415        9
+      code   0        1        0        0
+      code   1        1        0        0
+      code   2        0        0        0
+      code   3        0        0        0
+      code   S        0        0        0
+      code   L        1        3        0
+      weak   0        1        0        0
+      weak   1        1        0        0
+      weak   2        0        0        0
+      weak   3        0        0        0
+      weak   S        0        0        0
+      weak   L        0        0        0
+   bigdata   0        0        0        0
+   bigdata   1        0        0        0
+   bigdata   2        0        0        0
+   bigdata   3        0        0        0
+   bigdata   S        0        0        0
+   bigdata   L        0        0        0
+   bigcode   0        0        0        0
+   bigcode   1        0        0        0
+   bigcode   2        0        0        0
+   bigcode   3        0        0        0
+   bigcode   S        0        0        0
+   bigcode   L        0        0        0
+ inuse =   24117248
+  free =   39845888
+heapsz =   63963136
+ bigsz =          0
+smapsz =    1048576
+ ncard =          5
+ nlock =      14419
+   ngc =          3

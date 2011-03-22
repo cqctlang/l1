@@ -4005,10 +4005,14 @@ dogc(VM *vm, u32 g, u32 tg)
 	v = cqctenvlook(vm->top, "postgc");
 	if(v && Vkind(v) == Qcl){
 		/* FIXME: this is almost certainly
-		   broken, as least spirtually; the gc
+		   broken, at least spirtually; the gc
 		   does not know to scan this object
 		   since it does not appear in any
-		   mask. */
+		   mask.  but so far it has not given
+		   trouble.  a fix would be to add an
+		   extra gc-scanned vm register (oldac)
+		   into which ac gets stashed for the
+		   postgc call. */
 		vmpush(vm, vm->ac);
 		dovm(vm, valcl(v), 0, 0);
 		vm->ac = vm->stack[vm->sp];
