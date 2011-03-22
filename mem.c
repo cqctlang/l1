@@ -51,12 +51,19 @@ enum
 #define MTclrbigcont(mt) ((mt) &= ~(1<<Fbigcont))
 
 /* #define to ensure 64-bit constants */
-#define Segsize   4096ULL
-#define Seguse    (Segsize-sizeof(void*))
-#define Segmask   ~(Segsize-1)
+#if 0
+#define Segsize   (1ULL<<12)
 #define	GCthresh  2*1024*Segsize
 #define Seghunk	  4*1024*Segsize
-#define Minheap   Seghunk
+#else
+#define Segsize   (1ULL<<20)
+#define	GCthresh  4*Segsize
+#define Seghunk	  4*Segsize
+#endif
+
+#define Seguse    (Segsize-sizeof(void*))
+#define Segmask   ~(Segsize-1)
+#define Minheap   10*Seghunk
 #define Align     4
 
 /* n must be a power-of-2 */
@@ -639,24 +646,36 @@ a2s(void *a)
 	return segmap.map+o;
 }
 
+static void
+unmapmem(void *a, u64 sz)
+{
+	if(sz == 0)
+		return;
+	if(0 > munmap(a, sz))
+		fatal("munmap: %s", strerror(errno));
+}
+
 static void*
 mapmem(u64 sz)
 {
 	void *p;
-	p = mmap(0, sz, PROT_READ|PROT_WRITE|PROT_EXEC,
-		 MAP_ANON|MAP_PRIVATE, -1, 0);
+	uptr l, r;
+
+	/* sz must be Segsize-aligned.  pad by one
+	   Segsize to ensure we can return a
+	   Segsize-aligned allocation */
+	p = mmap(0, sz+Segsize, PROT_READ|PROT_WRITE|PROT_EXEC,
+		 MAP_ANON|MAP_PRIVATE,
+		 -1, 0);
 	if(p == MAP_FAILED)
 		fatal("out of memory");
-	if((uptr)p%Segsize)
-		fatal("unaligned segment");
-	return p;
-}
-
-static void
-unmapmem(void *a, u64 sz)
-{
-	if(0 > munmap(a, sz))
-		fatal("munmap: %s", strerror(errno));
+	
+	/* trim to Segsize-aligned */
+	l = (uptr)p&(Segsize-1);
+	r = Segsize-l;
+	unmapmem(p, r);
+	unmapmem(p+r+sz, l);
+	return p+r;
 }
 
 static void
