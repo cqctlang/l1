@@ -38,6 +38,17 @@ enum
 	Nmt,
 };
 
+static char *MTname[] = {
+	[MThole]    = "hole",
+	[MTnix]     = "nix",
+	[MTfree]    = "free",
+	[MTdata]    = "data",
+	[MTcode]    = "code",
+	[MTweak]    = "weak",
+	[MTbigdata] = "bigdata",
+	[MTbigcode] = "bigcode",
+};
+
 #define MTtag(mt)        ((mt)>>Ftag)
 #define MTold(mt)        (((mt)>>Fold)&1)
 #define MTbig(mt)        (((mt)>>Fbig)&1)
@@ -87,8 +98,19 @@ enum
 	Ngen=Gstatic,
 	Nsgen=Gstatic+1,
 	Glock,
+	Allgen,
 	Clean=0xff,
 	Dirty=0x00,
+};
+
+static char *genname[] = {
+	"0",
+	"1",
+	"2",
+	"3",
+	"S",
+	"?",
+	"L",
 };
 
 typedef u8 Gen;
@@ -669,7 +691,7 @@ mapmem(u64 sz)
 		 -1, 0);
 	if(p == MAP_FAILED)
 		fatal("out of memory");
-	
+
 	/* trim to Segsize-aligned */
 	l = (uptr)p&(Segsize-1);
 	r = Segsize-l;
@@ -907,18 +929,6 @@ shrink(u64 targ)
 	}
 	if(tsz || n)
 		fatal("bug");
-}
-
-void
-gcstats()
-{
-	printf(" inuse = %10" PRIu64 "\n", H.inuse);
-	printf("  free = %10" PRIu64 "\n", H.free);
-	printf("heapsz = %10" PRIu64 "\n", H.heapsz);
-	printf(" bigsz = %10" PRIu64 "\n", H.bigsz);
-	printf("smapsz = %10" PRIu64 "\n", H.smapsz);
-	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
-	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
 }
 
 #define max(a,b) ((a)>(b)?(a):(b))
@@ -2231,4 +2241,65 @@ finimem()
 	_gc(Ngen-1, Ngen-1);  // hopefully free the guardians
 	/* FIXME: free all segments */
 	/* FIXME: free static generation */
+}
+
+
+static void
+gcstat1(MT mt, u64 *ns, u64 *np, u64 *nd)
+{
+	Gen g;
+	for(g = G0; g <= Glock; g++){
+		if(g == Nsgen)
+			continue;
+		printf("%10s %3s %8" PRIu64 " %8" PRIu64 " %8" PRIu64 "\n",
+		       MTname[mt],
+		       genname[g],
+		       ns[g],
+		       np[g],
+		       nd[g]);
+	}
+}
+
+void
+gcstats()
+{
+	Seg *s, *es;
+	u64 ns[Nmt][Allgen];
+	u64 np[Nmt][Allgen];
+	u64 nd[Nmt][Allgen];
+
+	memset(ns, 0, sizeof(ns));
+	memset(np, 0, sizeof(ns));
+	memset(nd, 0, sizeof(ns));
+
+	s = a2s(segmap.lo);
+	es = a2s(segmap.hi);
+	while(s < es){
+		ns[s->mt][s->gen]++;
+		if(isliveseg(s)){
+			np[s->mt][s->gen] += s->nprotect;
+			if(s->card < s->gen)
+				nd[s->mt][s->gen]++;
+		}
+		s = nextseg(s);
+	}
+
+	printf("%10s %3s %8s %8s %8s\n",
+	       "TYPE", "GEN", "#SEG", "#LOCKED", "#DIRTY");
+
+	gcstat1(MTfree, ns[MTfree], np[MTfree], nd[MTfree]);
+	gcstat1(MTdata, ns[MTdata], np[MTdata], nd[MTdata]);
+	gcstat1(MTcode, ns[MTcode], np[MTcode], nd[MTcode]);
+	gcstat1(MTweak, ns[MTweak], np[MTweak], nd[MTweak]);
+	gcstat1(MTbigdata, ns[MTbigdata], np[MTbigdata], nd[MTbigdata]);
+	gcstat1(MTbigcode, ns[MTbigcode], np[MTbigcode], nd[MTbigcode]);
+
+	printf(" inuse = %10" PRIu64 "\n", H.inuse);
+	printf("  free = %10" PRIu64 "\n", H.free);
+	printf("heapsz = %10" PRIu64 "\n", H.heapsz);
+	printf(" bigsz = %10" PRIu64 "\n", H.bigsz);
+	printf("smapsz = %10" PRIu64 "\n", H.smapsz);
+	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
+	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
+	printf("   ngc = %10" PRIu32 "\n", H.gctrip);
 }
