@@ -2,13 +2,55 @@
 #include "util.h"
 #include "syscqct.h"
 
+static Expr* names(U *ctx, Expr *e);
+
+
+static void
+do1name(U *ctx, Expr *e)
+{
+	switch(e->kind){
+	case Etypedef:
+		
+	case Edecls:
+
+	default:
+		fatal("bug");
+	}
+}
+
+static Expr*
+donames(U *ctx, Expr *e)
+{
+	Expr *l, *te, *p;
+
+	l = Zlocals(2, "$typetab", "$symtab");
+	te = Znull();
+	te = Zcons(Zset(doid("$typetab"), Zcall(G("mktab"), 0)), te);
+	te = Zcons(Zset(doid("$symtab"), Zcall(G("mktab"), 0)), te);
+
+	p = e->e2;
+	while(!isnull(p)){
+		do1name(ctx, p->e1);
+		p = p->e2;
+	}
+
+	te = Zcons(Zcall(G("mknsraw"), 3,
+			 names(ctx, e->e1),
+			 doid("$typetab"),
+			 doid("$symtab")),
+		   te);
+	te = Zscope(Zblock(l, invert(te), NULL));
+	putsrc(te, &e->src);
+	return te;
+}
+
 static Expr*
 names(U *ctx, Expr *e)
 {
 	Expr *p;
 	switch(e->kind){
 	case Enames:
-		return e;
+		return donames(ctx, e);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
@@ -38,6 +80,7 @@ enumsub(U *ctx, HT *tab, Expr *e)
 {
 	Expr *v, *p, *en;
 	HT *nt;
+	char *s;
 
 	switch(e->kind){
 	case Enames:
@@ -66,7 +109,8 @@ enumsub(U *ctx, HT *tab, Expr *e)
 			en = p->e1;
 			p = p->e2;
 			en->e2 = enumsub(ctx, tab, en->e2);
-			hputs(tab, idsym(en->e1), strlen(idsym(en->e1)), en->e2);
+			s = idsym(en->e1);
+			hputs(tab, s, strlen(s), en->e2);
 		}
 		return e;
 	case Eelist:
