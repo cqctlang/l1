@@ -237,7 +237,7 @@ compile(U *ctx, Expr *e)
 		return e;
 
 	switch(e->kind){
-	case Ens:
+	case Enames:
 		p = compilens(ctx, e);
 		e->e1 = 0;
 		e->e3 = 0;

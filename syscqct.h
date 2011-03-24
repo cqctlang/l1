@@ -92,7 +92,7 @@ enum{
 	Elt,
 	Emod,
 	Emul,
-	Ens,
+	Enames,
 	Eneq,
 	Enop,
 	Enil,
@@ -116,6 +116,7 @@ enum{
 	Etab,
 	Etick,
 	Etid,
+	Etype,
 	Etypedef,
 	Etypeofe,
 	Etypeoft,
@@ -1083,6 +1084,8 @@ void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 Expr*		doid(char*);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 unsigned	elistlen(Expr *l);
+char*		idsym(Expr *e);
+int		isnull(Expr *e);
 void		putsrc(Expr *e, Src *src);
 void		resetuniqid();
 Expr*		uniqid(char *id);

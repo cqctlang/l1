@@ -84,7 +84,7 @@ char* S[] = {
 	[Elt] =		"Elt",
 	[Emod] =	"Emod",
 	[Emul] =	"Emul",
-	[Ens] =		"Ens",
+	[Enames] =	"Enames",
 	[Eneq] =	"Eneq",
 	[Enil] =	"Enil",
 	[Enop] =	"Enop",
@@ -108,6 +108,7 @@ char* S[] = {
 	[Etab] =	"Etab",
 	[Etick] = 	"Etick",
 	[Etid] = 	"Etid",
+	[Etype] =	"Etype",
 	[Etypedef] =	"Etypedef",
 	[Etypeofe] =	"Etypeofe",
 	[Etypeoft] =	"Etypeoft",
@@ -546,7 +547,7 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(")->");
 		printcqct0(e->e2, ni);
 		break;
-	case Ens:
+	case Enames:
 		xprintf("@names ...");
 		break;
 	case Eelist:

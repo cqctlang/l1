@@ -35,6 +35,7 @@ L1C =\
 	cutil.c\
 	compileq.c\
 	compilens.c\
+	compilen.c\
 	compilea.c\
 	compile0.c\
 	compileg.c\

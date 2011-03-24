@@ -56,9 +56,8 @@ extern char *yytext;
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
 %type <expr> global_statement defrec_expression let_expression
-%type <expr> type_name tn_type_specifier tn_type_qual_specifier
-%type <expr> tn_struct_or_union_specifier
-%type <expr> tn_enum_specifier tn_parameter_type_list tn_parameter_list
+%type <expr> type_name tn_type_specifier_tick tn_type_qual_specifier
+%type <expr> tn_parameter_type_list tn_parameter_list
 %type <expr> tn_parameter_declaration tn_abstract_declarator
 %type <expr> tn_direct_abstract_declarator tn_declarator tn_direct_declarator
 %type <expr> tn_param_type_specifier tn_param_struct_or_union_specifier
@@ -68,7 +67,7 @@ extern char *yytext;
 %type <expr> maybe_attr
 %type <expr> quote_expression
 
-%type <kind> unary_operator assignment_operator struct_or_union
+%type <kind> unary_operator assignment_operator struct_or_union struct_or_union_or_enum
 
 %start translation_unit_seq
 %debug
@@ -433,13 +432,9 @@ names_declaration
 names_expression
 	: assignment_expression
 	| NAMES expression '{' names_declaration_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, invert($4), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Enames, $2, invert($4), 0, 0); }
 	| NAMES expression '{' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, nullelist(), 0, 0); }
-	| NAMES expression '$' expression '{' names_declaration_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, invert($6), $4, 0); }
-	| NAMES expression '$' expression  '{' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Ens, $2, nullelist(), $4, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Enames, $2, Znull(), 0, 0); }
 	;
 
 lapply_expression
@@ -525,16 +520,15 @@ type_specifier
 	: base_list
 	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id
-	{ $$ = newexprsrc(&ctx->inp->src, Eid, $1, 0, 0, 0); }
 	| struct_or_union_specifier
 	| enum_specifier
 	;
 
 struct_or_union_specifier
 	: struct_or_union maybeid '{' struct_declaration_list struct_size '}'
-	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, invert($4), $5); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, invert($4), $5, 0); }
 	| struct_or_union maybeid '{' struct_size '}'
-	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, Znull(), $4); }
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, Znull(), $4, 0); }
 	| struct_or_union maybeid '{'  '}'
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, Znull(), 0, 0); }
 	| struct_or_union id
@@ -546,6 +540,15 @@ struct_or_union
 	{ $$ = Estruct; }
 	| UNION
 	{ $$ = Eunion; }
+	;
+
+struct_or_union_or_enum
+	: STRUCT
+	{ $$ = Estruct; }
+	| UNION
+	{ $$ = Eunion; }
+	| ENUM
+	{ $$ = Eenum; }
 	;
 
 struct_declaration_list
@@ -566,7 +569,7 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $4, $5, $3, $7); }
 	/* accept (but discard) c++ labels such as "public:" */
 	| id ':'
-	{ freeexpr($1); }
+	{ freeexpr($1); $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
 	| error ';'
 	{ $$ = 0; }
 	;
@@ -680,7 +683,7 @@ direct_abstract_declarator
 	| direct_abstract_declarator '[' constant_expression ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Earr, $1, $3, 0, 0); }
 	| '(' ')' maybe_type_qualifier
-	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, Zull(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Efun, 0, Znull(), 0, 0); }
 	| direct_abstract_declarator '(' ')' maybe_type_qualifier
 	{ $$ = newexprsrc(&ctx->inp->src, Efun, $1, Znull(), 0, 0); }
 	| direct_abstract_declarator '(' parameter_type_list ')' maybe_type_qualifier
@@ -723,45 +726,34 @@ parameter_declaration
 
 type_name
 	: tn_type_qual_specifier
-	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etype, $1, 0, 0, 0); }
         | tn_type_qual_specifier tn_abstract_declarator
-	{ $$ = newexprsrc(&ctx->inp->src, Edecl, $1, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etype, $1, $2, 0, 0); }
 	;
 
 tn_type_qual_specifier
-	: tn_type_specifier
-	| type_qualifier_list tn_type_specifier
+	: tn_type_specifier_tick
+	| type_qualifier_list tn_type_specifier_tick
 	{ $$ = $2; }
-	| tn_type_specifier type_qualifier_list
+	| tn_type_specifier_tick type_qualifier_list
 	{ $$ = $1; }
 	;
 
-tn_type_specifier
+tn_type_specifier_tick
 	: base_list
 	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id '`' base_list
-	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $3, $1, 0, 0); }
-	| '`' id
-	{ $$ = newexprsrc(&ctx->inp->src, Etid, $2, 0, 0, 0); }
+	{ $$ = doticksrc(&ctx->inp->src, $1,
+			 newexprsrc(&ctx->inp->src, Ebase, $3, 0, 0, 0)); }
 	| id '`' id
-	{ $$ = newexprsrc(&ctx->inp->src, Etid, $3, $1, 0, 0); }
-	| tn_struct_or_union_specifier
-	| tn_enum_specifier
-	;
-
-tn_struct_or_union_specifier
-	: struct_or_union id
+	{ $$ = doticksrc(&ctx->inp->src, $1, $3); }
+	| '`' id
+	{ $$ = doticksrc(&ctx->inp->src, 0, $2); }
+	| struct_or_union_or_enum id
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
-	| struct_or_union id '`' id
-	{ $$ = newexprsrc(&ctx->inp->src, $1, $4, 0, $2, 0); }
-	;
-
-tn_enum_specifier
-	: ENUM id
-	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $2, 0, 0, 0); }
-	| ENUM id '`' id
-	{ $$ = newexprsrc(&ctx->inp->src, Eenum, $4, 0, $2, 0); }
-	;
+	| struct_or_union_or_enum id '`' id
+	{ $$ = doticksrc(&ctx->inp->src, $2,
+			 newexprsrc(&ctx->inp->src, $1, $4, 0, 0, 0)); }
 
 tn_parameter_type_list
 	: tn_parameter_list
@@ -772,7 +764,7 @@ tn_parameter_type_list
 
 tn_parameter_list
 	: tn_parameter_declaration
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, Znull(), 0, 0); }
 	| tn_parameter_list ',' tn_parameter_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;

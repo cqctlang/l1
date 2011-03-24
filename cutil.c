@@ -129,6 +129,12 @@ elistlen(Expr *l)
 	return n;
 }
 
+int
+isnull(Expr *e)
+{
+	return e && e->kind == Enull;
+}
+
 Expr*
 Znull()
 {
@@ -282,6 +288,12 @@ Expr*
 Zref(Expr *dom, Expr *type, Expr *val)
 {
 	return newexpr(E_ref, dom, type, val, 0);
+}
+
+char*
+idsym(Expr *e)
+{
+	return e->id;
 }
 
 Expr*
