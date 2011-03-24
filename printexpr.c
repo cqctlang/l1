@@ -157,6 +157,7 @@ abbrevlits(char *buf, unsigned len, Lits *lits)
 void
 printexpr(Expr *e)
 {
+	Expr *p;
 	static char consts[Abbrevlen];
 
 	switch(e->kind){
@@ -186,6 +187,17 @@ printexpr(Expr *e)
 		printexpr(e->e1);
 		xprintf(" ");
 		printexpr(e->e2);
+		xprintf(")");
+		break;
+	case Eelist:
+		p = e;
+		xprintf("(");
+		while(!isnull(p)){
+			printexpr(p->e1);
+			p = p->e2;
+			if(!isnull(p))
+				xprintf(" ");
+		}
 		xprintf(")");
 		break;
 	default:

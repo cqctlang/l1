@@ -868,6 +868,9 @@ Expr*		gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect)
 /* compileq.c */
 Expr*		docompileq(U *ctx, Expr *e);
 
+/* compilen.c */
+Expr*		docompilen(U *ctx, Expr *e);
+
 /* compilens.c */
 int		docompilens(U *ctx, Expr *e);
 

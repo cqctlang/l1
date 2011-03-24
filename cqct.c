@@ -127,6 +127,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		phase[ntv] = "q";
 		tv[ntv++] = usec();
 	}
+#if 0
 	if(dotypes(&ctx, e) != 0)
 		return 0;
 	if(cqctflags['T']){
@@ -139,6 +140,15 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		phase[ntv] = "ns";
 		tv[ntv++] = usec();
 	}
+#endif
+	e = docompilen(&ctx, e);
+	if(e == 0){
+		printf("compilen failed\n");
+		return 0;
+	}
+	printexpr(e);
+	printf("\n");
+	return 0;
 	if(docompilea(&ctx, e) != 0)
 		return 0;
 	if(cqctflags['T']){

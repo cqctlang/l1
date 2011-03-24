@@ -293,6 +293,8 @@ Zref(Expr *dom, Expr *type, Expr *val)
 char*
 idsym(Expr *e)
 {
+	if(e->kind != Eid)
+		fatal("bug");
 	return e->id;
 }
 
