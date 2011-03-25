@@ -162,7 +162,7 @@ liftdtors(U *ctx, Seen *s, Expr *e, Expr **te)
 			p = p->e2;
 			a->e1 = liftspec(ctx, s, a->e1, te);
 			a->e2 = liftdtors(ctx, s, a->e2, te);
-			a->e3 = lift(ctx, a->e3); /* optional parameter attribute */
+			a->e3 = lift(ctx, a->e3); /* optional attribute */
 		}
 		return e;
 	case Eelist:
@@ -306,14 +306,26 @@ lift(U *ctx, Expr *e)
 	}
 }
 
+static Expr*
+tie(U *ctx, Expr *e)
+{
+	Expr *p;
+
+	if(e == 0)
+		return e;
+}
+
 static void
 do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 {
-#if 0
 	Expr *q;
 	char *s;
 
 	switch(e->kind){
+	case Estruct:
+	case Eunion:
+	case Eenum:
+		break;
 	case Etypedef:
 		s = idsym(e->e1);
 		if(hgets(s->tid, s, strlen(s)))
@@ -321,6 +333,8 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 		hputs(s->tid, s, strlen(s), s);
 		q = Zcall(G("tabinsert"), 3,
 			  doid("$typetab"),
+			  Z1(Etypedef, e->e1),
+			  
 			  Zcall(G("mkctype_typedef"), 1, Zstr(s)),
 			  Zcall(G("mkctype_typedef"), 2, Zstr(s),
 				typedefn(ctx, s, e->e2)));
@@ -331,7 +345,6 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 	default:
 		fatal("bug");
 	}
-#endif
 }
 
 static Expr*
