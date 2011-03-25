@@ -313,6 +313,23 @@ tie(U *ctx, Expr *e)
 
 	if(e == 0)
 		return e;
+	switch(e->kind){
+	case Estruct:
+	case Eunion:
+		/* replace list of list of field decls with field decls list */
+		return e;
+	case Etypedef:
+	case Edecls:
+		/* replace typedef or sym declaration list */
+		return e;
+	case Etypename:
+		/* collapse spec and decl */
+	default:
+		e->e1 = tie(ctx, e->e1);
+		e->e2 = tie(ctx, e->e2);
+		e->e3 = tie(ctx, e->e3);
+		e->e4 = tie(ctx, e->e4);
+	}
 }
 
 static void
