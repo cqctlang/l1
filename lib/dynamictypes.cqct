@@ -44,14 +44,16 @@ REFINE_KEY = "refine";
 	new_sz = 0;
 	for(i=0; i<length(flds); ++i)
 	{
-		@local refiner;
+		@local refiner,fld_sz;
 		refiner = flds[i][2][REFINE_KEY];
 		if (refiner == nil) {
 			//maybe we should copy so that a change
 			//to the original struct doesn't change 
 			//the new type. But maybe we shouldn't...
 			new_flds[i] = flds[i]; 
-			new_sz += sizeof(symtype(new_flds[i]));
+			fld_sz = sizeof(symtype(new_flds[i]))+symoff(flds[i]);
+			if (fld_sz > new_sz)
+				new_sz = fld_sz;
 		} else {
 			@local new_off, new_t;
 			[new_off,new_t] = refiner(p);
@@ -59,7 +61,9 @@ REFINE_KEY = "refine";
 				mkfield(new_t,fieldid(flds[i]),new_off);
 			new_flds[i][2] = copy(flds[i][2]);
 			new_flds[i][2]["offset"] = new_off;
-			new_sz += sizeof(new_t);
+			fld_sz = sizeof(symtype(new_flds[i]))+new_off;
+			if (fld_sz > new_sz)
+				new_sz = fld_sz;
 		}
 	}
 	new_t = mkctype_struct(suetag(t),new_flds,new_sz);
@@ -139,6 +143,7 @@ REFINE_KEY = "refine";
 	q = refine(q);
 	printf("Post-refinement:\n");
 	printf("%s\n",objectStr(q));
+	printf("Type size: %d bytes (dec)\n",sizeof(subtype(@typeof(q))));
 	q = refine(q+1);
 	printf("%s\n",objectStr(q));
 	q = (struct dom`EnumPtr*)(q+1);
