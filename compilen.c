@@ -2,8 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-static Expr* names(U *ctx, Expr *e);
-
 typedef
 struct Seen
 {
@@ -306,46 +304,95 @@ lift(U *ctx, Expr *e)
 	}
 }
 
-static void
-dotie(Expr *t, Expr *dtor, Expr **type, Expr **id)
+static Expr* tie(U *ctx, Expr *e);
+static void dotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id);
+
+static Expr*
+tieparams(U *ctx, Expr *e)
 {
-	Expr *t;
-	t = spec;
-	while(dtor){
-		switch(dtor->kind){
-		case Eid:
-			**type = t;
-			**id = dtor;
-			break;
-		case Earr:
-			break;
-		case Efun:
-			break;
-		case Eptr:
-			break;
-		default:
-			fatal("bug");
-		}
+	Expr *d, *p;
+	p = e;
+	while(!isnull(p)){
+		d = p->e1; /* Edecl */
+		p = p->e2;
+		d->e3 = tie(ctx, d->e3);
+		dotie(ctx, d->e1, d->e2, &d->e1, &d->e2);
+	}
+	return e;
+}
+
+/* t is specifier, dtor is declarator; upon return
+   *type is the combined type and *id is the identifier
+   or (for abstract declarators) 0 */
+static void
+dotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id)
+{
+	if(dtor == 0){
+		*id = 0;
+		*type = t;
+		return;
+	}
+	switch(dtor->kind){
+	case Eid:
+		*type = t;
+		*id = dtor;
+		break;
+	case Earr:
+		dotie(ctx,
+		      Z2(Earr, t, tie(ctx, dtor->e2)),
+		      dtor->e1,
+		      type, id);
+		break;
+	case Eptr:
+		dotie(ctx,
+		      Z1(Eptr, t),
+		      dtor->e1,
+		      type, id);
+		break;
+	case Efun:
+		dotie(ctx,
+		      Z2(Efun, t, tieparams(ctx, dtor->e2)),
+		      dtor->e1,
+		      type, id);
+		break;
+	default:
+		fatal("bug");
 	}
 }
 
 static void
 tie1sufield(U *ctx, Expr *e, Expr **fs)
 {
-	Expr *t;
-	if(e->kind == Ebitfield){
-		/* only one declarator */
-		t = e->e1;
-		
-	}
+	Expr *p, *t, *id, *a;
 
-	if(e->kind != E
+	switch(e->kind){
+	case Ebitfield:
+		/* only one declarator */
+		dotie(ctx, e->e1, e->e2, &e->e1, &e->e2);
+		e->e3 = tie(ctx, e->e3); /* attribute */
+		e->e4 = tie(ctx, e->e4); /* width */
+		*fs = Zcons(e, *fs);
+		break;
+	case Efields:
+		/* list of declarators */
+		p = e->e2;
+		a = tie(ctx, e->e3); /* associated with the first decl */
+		while(!isnull(p)){
+			p = p->e2;
+			dotie(ctx, e->e1, p->e1, &t, &id);
+			*fs = Zcons(Z3(Edecl, t, id, a), *fs);
+			a = 0;
+		}
+		break;
+	default:
+		fatal("bug");
+	}
 }
 
 static void
 tie1name(U *ctx, Expr *e, Expr **te)
 {
-	Expr *p, *fs;
+	Expr *p, *fs, *en, *t, *id;
 
 	switch(e->kind){
 	case Estruct:
@@ -357,16 +404,33 @@ tie1name(U *ctx, Expr *e, Expr **te)
 			tie1sufield(ctx, p->e1, &fs);
 		}
 		e->e2 = invert(fs);
+		e->e3 = tie(ctx, e->e3);
 		*te = Zcons(e, *te);
 		break;
 	case Eenum:
 		*te = Zcons(e, *te);
+		p = e->e2;
+		while(!isnull(p)){
+			en = p->e1;
+			p = p->e2;
+			en->e2 = tie(ctx, en->e2);
+		}
 		break;
 	case Etypedef:
-		
+		p = e->e2;
+		while(!isnull(p)){
+			p = p->e2;
+			dotie(ctx, e->e1, p->e1, &t, &id);
+			*te = Zcons(Z2(Etypedef, t, id), *te);
+		}
 		break;
 	case Edecls:
-		/* replace typedef or sym declaration list */
+		p = e->e2;
+		while(!isnull(p)){
+			p = p->e2;
+			dotie(ctx, e->e1, p->e1, &t, &id);
+			*te = Zcons(Z3(Edecl, t, id, tie(ctx, e->e3)), *te);
+		}
 		break;
 	default:
 		fatal("bug");
@@ -390,6 +454,16 @@ tienames(U *ctx, Expr *e)
 }
 
 static Expr*
+tietypename(U *ctx, Expr *e)
+{
+	Expr *t, *id;
+	dotie(ctx, e->e1, e->e2, &t, &id);
+	if(id != 0)
+		fatal("bug");
+	return Z1(Etype, t);
+}
+
+static Expr*
 tie(U *ctx, Expr *e)
 {
 	Expr *p;
@@ -401,7 +475,7 @@ tie(U *ctx, Expr *e)
 		e->e1 = tie(ctx, e->e1);
 		e->e2 = tienames(ctx, e->e2);
 		return e;
-	case Etypename:
+	case Etype:
 		return tietypename(ctx, e);
 	case Eelist:
 		p = e;
@@ -419,6 +493,7 @@ tie(U *ctx, Expr *e)
 	}
 }
 
+#if 0
 static void
 do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 {
@@ -503,6 +578,7 @@ names(U *ctx, Expr *e)
 	}
 	return 0;
 }
+#endif
 
 Expr*
 docompilen(U *ctx, Expr *e)
@@ -512,6 +588,7 @@ docompilen(U *ctx, Expr *e)
 	e = enumincs(ctx, e);
 	e = enumsub(ctx, 0, e);
 	e = lift(ctx, e);    /* lift sues from interior of names decls */
-	e = names(ctx, e);
+	e = tie(ctx, e);
+//	e = names(ctx, e);
 	return e;
 }
