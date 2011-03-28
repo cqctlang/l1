@@ -306,6 +306,89 @@ lift(U *ctx, Expr *e)
 	}
 }
 
+static void
+dotie(Expr *t, Expr *dtor, Expr **type, Expr **id)
+{
+	Expr *t;
+	t = spec;
+	while(dtor){
+		switch(dtor->kind){
+		case Eid:
+			**type = t;
+			**id = dtor;
+			break;
+		case Earr:
+			break;
+		case Efun:
+			break;
+		case Eptr:
+			break;
+		default:
+			fatal("bug");
+		}
+	}
+}
+
+static void
+tie1sufield(U *ctx, Expr *e, Expr **fs)
+{
+	Expr *t;
+	if(e->kind == Ebitfield){
+		/* only one declarator */
+		t = e->e1;
+		
+	}
+
+	if(e->kind != E
+}
+
+static void
+tie1name(U *ctx, Expr *e, Expr **te)
+{
+	Expr *p, *fs;
+
+	switch(e->kind){
+	case Estruct:
+	case Eunion:
+		fs = Znull();
+		p = e->e2;
+		while(!isnull(p)){
+			p = p->e2;
+			tie1sufield(ctx, p->e1, &fs);
+		}
+		e->e2 = invert(fs);
+		*te = Zcons(e, *te);
+		break;
+	case Eenum:
+		*te = Zcons(e, *te);
+		break;
+	case Etypedef:
+		
+		break;
+	case Edecls:
+		/* replace typedef or sym declaration list */
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
+static Expr*
+tienames(U *ctx, Expr *e)
+{
+	Expr *p, *te;
+
+	if(isnull(e))
+		return e;
+	te = Znull();
+	p = e;
+	while(!isnull(p)){
+		tie1name(ctx, p->e1, &te);
+		p = p->e2;
+	}
+	return invert(te);
+}
+
 static Expr*
 tie(U *ctx, Expr *e)
 {
@@ -314,21 +397,25 @@ tie(U *ctx, Expr *e)
 	if(e == 0)
 		return e;
 	switch(e->kind){
-	case Estruct:
-	case Eunion:
-		/* replace list of list of field decls with field decls list */
-		return e;
-	case Etypedef:
-	case Edecls:
-		/* replace typedef or sym declaration list */
+	case Enames:
+		e->e1 = tie(ctx, e->e1);
+		e->e2 = tienames(ctx, e->e2);
 		return e;
 	case Etypename:
-		/* collapse spec and decl */
+		return tietypename(ctx, e);
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = tie(ctx, p->e1);
+			p = p->e2;
+		}
+		return e;
 	default:
 		e->e1 = tie(ctx, e->e1);
 		e->e2 = tie(ctx, e->e2);
 		e->e3 = tie(ctx, e->e3);
 		e->e4 = tie(ctx, e->e4);
+		return e;
 	}
 }
 
