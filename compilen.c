@@ -495,33 +495,41 @@ tie(U *ctx, Expr *e)
 	}
 }
 
-#if 0
+static Expr* names(U *ctx, Expr *e);
+
 static void
 do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 {
 	Expr *q;
-	char *s;
+	char *id;
 
 	switch(e->kind){
 	case Estruct:
 	case Eunion:
 	case Eenum:
-		break;
-	case Etypedef:
-		s = idsym(e->e1);
-		if(hgets(s->tid, s, strlen(s)))
-			return;
-		hputs(s->tid, s, strlen(s), s);
 		q = Zcall(G("tabinsert"), 3,
 			  doid("$typetab"),
-			  Z1(Etypedef, e->e1),
-			  
-			  Zcall(G("mkctype_typedef"), 1, Zstr(s)),
-			  Zcall(G("mkctype_typedef"), 2, Zstr(s),
-				typedefn(ctx, s, e->e2)));
+			  Z1(e->kind, e->e1),
+			  names(ctx, e));
 		*te = Zcons(q, *te);
 		break;
-	case Edecls:
+	case Etypedef:
+		id = idsym(e->e2);
+		if(hgets(s->tid, id, strlen(id)))
+			return;
+		hputs(s->tid, id, strlen(id), id);
+		q = Zcall(G("tabinsert"), 3,
+			  doid("$typetab"),
+			  Z1(Etypedef, e->e2),
+			  names(ctx, e));
+		*te = Zcons(q, *te);
+		break;
+	case Edecl:
+		e->e3 = names(ctx, e->e3);
+		q = Zcall(G("tabinsert"), 3,
+			  doid("$symtab"),
+			  e->e2, names(ctx, e));
+		*te = Zcons(q, *te);
 		break;
 	default:
 		fatal("bug");
@@ -561,6 +569,9 @@ static Expr*
 names(U *ctx, Expr *e)
 {
 	Expr *p;
+
+	if(e == 0)
+		return 0;
 	switch(e->kind){
 	case Enames:
 		return donames(ctx, e);
@@ -580,7 +591,6 @@ names(U *ctx, Expr *e)
 	}
 	return 0;
 }
-#endif
 
 Expr*
 docompilen(U *ctx, Expr *e)
@@ -590,7 +600,7 @@ docompilen(U *ctx, Expr *e)
 	e = enumincs(ctx, e);
 	e = enumsub(ctx, 0, e);
 	e = lift(ctx, e);    /* lift sues from interior of names decls */
-	e = tie(ctx, e);
-//	e = names(ctx, e);
+	e = tie(ctx, e);     /* tie specifiers to declarators */
+	e = names(ctx, e);   /* load names tables */
 	return e;
 }
