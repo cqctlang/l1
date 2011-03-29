@@ -321,43 +321,53 @@ tieparams(U *ctx, Expr *e)
 	return e;
 }
 
+static void
+rdotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id)
+{
+	if(dtor == 0){
+		*id = 0;
+		*type = Z1(Etypename, t);
+		return;
+	}
+	switch(dtor->kind){
+	case Eid:
+		*id = dtor;
+		*type = Z1(Etypename, t);
+		break;
+	case Earr:
+		rdotie(ctx,
+		       Z2(Earr, t, tie(ctx, dtor->e2)),
+		       dtor->e1,
+		       type, id);
+		break;
+	case Eptr:
+		rdotie(ctx,
+		       Z1(Eptr, t),
+		       dtor->e1,
+		       type, id);
+		break;
+	case Efun:
+		rdotie(ctx,
+		       Z2(Efun, t, tieparams(ctx, dtor->e2)),
+		       dtor->e1,
+		       type, id);
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
 /* t is specifier, dtor is declarator; upon return
    *type is the combined type and *id is the identifier
    or (for abstract declarators) 0 */
 static void
 dotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id)
 {
-	if(dtor == 0){
-		*id = 0;
-		*type = t;
-		return;
-	}
-	switch(dtor->kind){
-	case Eid:
-		*type = t;
-		*id = dtor;
-		break;
-	case Earr:
-		dotie(ctx,
-		      Z2(Earr, t, tie(ctx, dtor->e2)),
-		      dtor->e1,
-		      type, id);
-		break;
-	case Eptr:
-		dotie(ctx,
-		      Z1(Eptr, t),
-		      dtor->e1,
-		      type, id);
-		break;
-	case Efun:
-		dotie(ctx,
-		      Z2(Efun, t, tieparams(ctx, dtor->e2)),
-		      dtor->e1,
-		      type, id);
-		break;
-	default:
-		fatal("bug");
-	}
+	if(t->kind == Etick){
+		rdotie(ctx, t->e2, dtor, type, id);
+		*type = Z2(Etick, t->e1, *type);
+	}else
+		rdotie(ctx, t, dtor, type, id);
 }
 
 static void
@@ -462,7 +472,7 @@ tietypename(U *ctx, Expr *e)
 	dotie(ctx, e->e1, e->e2, &t, &id);
 	if(id != 0)
 		fatal("bug");
-	return Z1(Etype, t);
+	return t;
 }
 
 static Expr*
@@ -477,7 +487,7 @@ tie(U *ctx, Expr *e)
 		e->e1 = tie(ctx, e->e1);
 		e->e2 = tienames(ctx, e->e2);
 		return e;
-	case Etype:
+	case Etypename:
 		return tietypename(ctx, e);
 	case Eelist:
 		p = e;
@@ -509,8 +519,8 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 	case Eenum:
 		q = Zcall(G("tabinsert"), 3,
 			  doid("$typetab"),
-			  Z1(e->kind, e->e1),
-			  names(ctx, e));
+			  Z1(Etypename, Z1(e->kind, e->e1)),
+			  Z1(Etypespec, names(ctx, e)));
 		*te = Zcons(q, *te);
 		break;
 	case Etypedef:
@@ -520,8 +530,8 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 		hputs(s->tid, id, strlen(id), id);
 		q = Zcall(G("tabinsert"), 3,
 			  doid("$typetab"),
-			  Z1(Etypedef, e->e2),
-			  names(ctx, e));
+			  Z1(Etypename, Z1(Etypedef, e->e2)),
+			  Z1(Etypespec, names(ctx, e)));
 		*te = Zcons(q, *te);
 		break;
 	case Edecl:

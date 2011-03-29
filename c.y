@@ -726,9 +726,9 @@ parameter_declaration
 
 type_name
 	: tn_type_qual_specifier
-	{ $$ = newexprsrc(&ctx->inp->src, Etype, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etypename, $1, 0, 0, 0); }
         | tn_type_qual_specifier tn_abstract_declarator
-	{ $$ = newexprsrc(&ctx->inp->src, Etype, $1, $2, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etypename, $1, $2, 0, 0); }
 	;
 
 tn_type_qual_specifier
