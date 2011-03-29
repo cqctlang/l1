@@ -378,10 +378,10 @@ tie1sufield(U *ctx, Expr *e, Expr **fs)
 		p = e->e2;
 		a = tie(ctx, e->e3); /* associated with the first decl */
 		while(!isnull(p)){
-			p = p->e2;
 			dotie(ctx, e->e1, p->e1, &t, &id);
 			*fs = Zcons(Z3(Edecl, t, id, a), *fs);
 			a = 0;
+			p = p->e2;
 		}
 		break;
 	default:
@@ -392,7 +392,7 @@ tie1sufield(U *ctx, Expr *e, Expr **fs)
 static void
 tie1name(U *ctx, Expr *e, Expr **te)
 {
-	Expr *p, *fs, *en, *t, *id;
+	Expr *p, *fs, *en, *t, *id, *a;
 
 	switch(e->kind){
 	case Estruct:
@@ -400,8 +400,8 @@ tie1name(U *ctx, Expr *e, Expr **te)
 		fs = Znull();
 		p = e->e2;
 		while(!isnull(p)){
-			p = p->e2;
 			tie1sufield(ctx, p->e1, &fs);
+			p = p->e2;
 		}
 		e->e2 = invert(fs);
 		e->e3 = tie(ctx, e->e3);
@@ -412,24 +412,26 @@ tie1name(U *ctx, Expr *e, Expr **te)
 		p = e->e2;
 		while(!isnull(p)){
 			en = p->e1;
-			p = p->e2;
 			en->e2 = tie(ctx, en->e2);
+			p = p->e2;
 		}
 		break;
 	case Etypedef:
 		p = e->e2;
 		while(!isnull(p)){
-			p = p->e2;
 			dotie(ctx, e->e1, p->e1, &t, &id);
 			*te = Zcons(Z2(Etypedef, t, id), *te);
+			p = p->e2;
 		}
 		break;
 	case Edecls:
 		p = e->e2;
+		a = tie(ctx, e->e3);
 		while(!isnull(p)){
-			p = p->e2;
 			dotie(ctx, e->e1, p->e1, &t, &id);
-			*te = Zcons(Z3(Edecl, t, id, tie(ctx, e->e3)), *te);
+			*te = Zcons(Z3(Edecl, t, id, a), *te);
+			a = 0;
+			p = p->e2;
 		}
 		break;
 	default:
