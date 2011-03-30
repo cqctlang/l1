@@ -602,6 +602,56 @@ names(U *ctx, Expr *e)
 	return 0;
 }
 
+static Expr*
+mkctypespec(U *ctx, Expr *e)
+{
+	if(e == 0)
+		fatal("bug");
+	switch(e->kind){
+	case Estruct:
+	case Eunion:
+		
+	case Eenum:
+
+	default:
+		fatal("bug");
+	}
+}
+
+static Expr*
+mkctypename(U *ctx, Expr *e)
+{
+
+}
+
+static Expr*
+mkctype(U *ctx, Expr *e)
+{
+	Expr *p;
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Etypespec:
+		return mkctypespec(ctx, e);
+	case Etypename:
+		return mkctypename(ctx, e);
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = mkctype(ctx, p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = mkctype(ctx, e->e1);
+		e->e2 = mkctype(ctx, e->e2);
+		e->e3 = mkctype(ctx, e->e3);
+		e->e4 = mkctype(ctx, e->e4);
+		return e;
+	}
+	return 0;
+}
+
 Expr*
 docompilen(U *ctx, Expr *e)
 {
@@ -612,5 +662,6 @@ docompilen(U *ctx, Expr *e)
 	e = lift(ctx, e);    /* lift sues from interior of names decls */
 	e = tie(ctx, e);     /* tie specifiers to declarators */
 	e = names(ctx, e);   /* load names tables */
+	e = mkctype(ctx, e); /* translate type names and specs to types */
 	return e;
 }
