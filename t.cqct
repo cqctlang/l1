@@ -1,0 +1,14 @@
+ns = @names c32le {
+	@0x0 int x;
+	typedef struct X X;
+	struct X {
+		@0x0 int x;
+		@0x4 int *p;
+		@0x8 struct Y { @0x0 int y1; @0x4 int y2; @0x8; } y, *yp;
+		@0xc int* (*fn) (struct Z *z, X *x);
+		@0x10;
+	};
+};
+
+x = sizeof(struct ns`X*);
+y = sizeof(int);

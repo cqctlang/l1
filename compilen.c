@@ -602,17 +602,161 @@ names(U *ctx, Expr *e)
 	return 0;
 }
 
+static Expr* mkctype(U *ctx, Expr *e);
+
+static unsigned basemod[Vnbase][Enbase] = {
+	[Vchar][Eunsigned]     = Vuchar,
+
+	[Vchar][Esigned]       = Vchar,
+
+	[Vshort][Eunsigned]    = Vushort,
+	[Vshort][Esigned]      = Vshort,
+	[Vshort][Eint]         = Vshort,
+	[Vushort][Eint]        = Vushort,
+
+	[Vint][Eunsigned]      = Vuint,
+	[Vint][Esigned]        = Vint,
+	[Vint][Elong]          = Vlong,
+	[Vuint][Elong]         = Vulong,
+	[Vint][Eshort]         = Vshort,
+	[Vuint][Eshort]        = Vushort,
+
+	[Vlong][Eunsigned]     = Vulong,
+	[Vlong][Esigned]       = Vlong,
+	[Vlong][Elong]         = Vvlong,
+	[Vlong][Edouble]       = Vlongdouble,
+	[Vulong][Elong]        = Vuvlong,
+
+	[Vvlong][Eunsigned]    = Vuvlong,
+	[Vvlong][Esigned]      = Vvlong,
+
+	[Vdouble][Elong]       = Vlongdouble,
+
+	[Vundef][Ebool]	       = Vbool,
+	[Vundef][Echar]        = Vchar,
+	[Vundef][Edouble]      = Vdouble,
+	[Vundef][Efloat]       = Vfloat,
+	[Vundef][Eint]         = Vint,
+	[Vundef][Elong]        = Vlong,
+	[Vundef][Eshort]       = Vshort,
+	[Vundef][Esigned]      = Vint,
+	[Vundef][Eunsigned]    = Vuint,
+	[Vundef][Evoid]        = Vvoid,
+	/* the rest are Vundef, which we assume to be 0 */
+};
+
+static char* cbasector[Vnallbase] = {
+	[Vbool]               = "mkctype_bool",
+	[Vchar]               = "mkctype_char",
+	[Vshort]	      = "mkctype_short",
+	[Vint]		      = "mkctype_int",
+	[Vlong]		      = "mkctype_long",
+	[Vvlong]	      = "mkctype_vlong",
+	[Vuchar]	      = "mkctype_uchar",
+	[Vushort]	      = "mkctype_ushort",
+	[Vuint]		      = "mkctype_uint",
+	[Vulong]	      = "mkctype_ulong",
+	[Vuvlong]	      = "mkctype_uvlong",
+	[Vfloat]	      = "mkctype_float",
+	[Vdouble]	      = "mkctype_double",
+	[Vlongdouble]	      = "mkctype_ldouble",
+	[Vvoid]		      = "mkctype_void", 
+};
+
+static Expr*
+mkctypebase(U *ctx, Expr *e)
+{
+	Expr *p;
+	Cbase b;
+	b = Vundef;
+	p = e->e1;
+	while(!isnull(p)){
+		switch(p->e1->kind){
+		case Ebool:
+		case Echar:
+		case Edouble:
+		case Efloat:
+		case Eint:
+		case Elong:
+		case Eshort:
+		case Esigned:
+		case Eunsigned:
+		case Evoid:
+			b = basemod[b][p->e1->kind];
+			if(b == Vundef)
+				cerror(ctx, e, "bad type specifier");
+			break;
+		default:
+			fatal("bug");
+		}
+		p = p->e2;
+	}
+	return Zcall(G(cbasector[b]), 0);
+}
+
+static Expr*
+mkfieldspec(U *ctx, Expr *f)
+{
+	Expr *tn, *id, *a;
+
+	tn = mkctype(ctx, f->e1);
+	id = f->e2;
+	a = mkctype(ctx, f->e3);
+	if(f->kind == Ebitfield)
+		return Zblock(Zlocals(1, "$o"),
+			      Zset(doid("$o"), a),
+			      Zcall(G("mkfield"), 3,
+				    Zcall(G("mkctype_bitfield"), 3,
+					  tn,
+					  mkctype(ctx, f->e4),
+					  Zbinop(Emod, doid("$o"), Zuint(32))),
+				    id,
+				    Zcall(G("mkattr"), 1,
+					  Zbinop(Ediv, doid("$o"), Zuint(8)))),
+			      NULL);
+	else
+		return Zcall(G("mkfield"), 3, tn, id,
+			     a ? Zcall(G("mkattr"), 1, a) : Znil());
+}
+
 static Expr*
 mkctypespec(U *ctx, Expr *e)
 {
+	Expr *se, *p, *f, *en;
+	
 	if(e == 0)
 		fatal("bug");
 	switch(e->kind){
 	case Estruct:
 	case Eunion:
-		
+		se = Znull();
+		p = e->e2;
+		while(!isnull(p)){
+			f = p->e1;
+			p = p->e2;
+			se = Zcons(mkfieldspec(ctx, f), se);
+		}
+		return Zcall(e->kind == Estruct ? G("mkstruct") : G("mkunion"),
+			     3,
+			     e->e1,
+			     Zapply(G("vector"), invert(se)),
+			     e->e3 ? mkctype(ctx, e->e3) : Znil());
 	case Eenum:
-
+		se = Znull();
+		p = e->e2;
+		while(!isnull(p)){
+			en = p->e1;
+			p = p->e2;
+			se = Zcons(Zcall(G("vector"), 2,
+					 en->e1, mkctype(ctx, en->e2)),
+				   se);
+		}
+		se = Zapply(G("vector"), invert(se));
+		return Zcall(G("mkenum"), 2, e->e1, se);
+	case Etypedef:
+		return Zcall(G("mkctype_typedef"), 2,
+			     e->e2,
+			     mkctype(ctx, e->e1));
 	default:
 		fatal("bug");
 	}
@@ -621,7 +765,42 @@ mkctypespec(U *ctx, Expr *e)
 static Expr*
 mkctypename(U *ctx, Expr *e)
 {
-
+	Expr *se, *p, *a;
+	if(e == 0)
+		fatal("bug");
+	switch(e->kind){
+	case Estruct:
+		return Zcall(G("mkctype_struct"), 1, e->e1);
+	case Eunion:
+		return Zcall(G("mkctype_union"), 1, e->e1);
+	case Eenum:
+		return Zcall(G("mkctype_enum"), 1, e->e1);
+	case Etypedef:
+		return Zcall(G("mkctype_typedef"), 1, e->e1);
+	case Ebase:
+		return mkctypebase(ctx, e);
+	case Eptr:
+		return Zcall(G("mkctype_ptr"), 1, mkctype(ctx, e->e1));
+	case Earr:
+		return Zcall(G("mkctype_array"), 2,
+			     mkctype(ctx, e->e1), mkctype(ctx, e->e2));
+	case Efun:
+		se = Znull();
+		p = e->e2;
+		while(!isnull(p)){
+			a = p->e1;
+			p = p->e2;
+			se = Zcons(Zcall(G("vector"), 2,
+					 mkctype(ctx, a->e1),
+					 a->e2 ? a->e2 : Znil()),
+				   se);
+		}
+		return Zcall(G("mkctype_fn"), 2,
+			     mkctype(ctx, e->e1),
+			     Zapply(G("vector"), invert(se)));
+	default:
+		fatal("bug");
+	}
 }
 
 static Expr*
@@ -632,9 +811,9 @@ mkctype(U *ctx, Expr *e)
 		return 0;
 	switch(e->kind){
 	case Etypespec:
-		return mkctypespec(ctx, e);
+		return mkctypespec(ctx, e->e1);
 	case Etypename:
-		return mkctypename(ctx, e);
+		return mkctypename(ctx, e->e1);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
