@@ -115,29 +115,28 @@ compilelist(U *ctx, Expr *e)
 }
 
 static Expr*
-compilesizeof(U *ctx, Decl *d, Src *src)
+compilesizeof(U *ctx, Expr *e, Src *src)
 {
-	Type *t;
-	Expr *se, *te, *loc;
-	char *dom;
+	Expr *se, *te, *loc, *t, *dom;
 
-	t = d->type;
-	if(t->dom)
-		dom = t->dom;
-	else
-		dom = "litdom";
-
+	if(e->kind == Etick){
+		dom = e->e1;
+		t = compile1(ctx, e->e2);
+	}else{
+		dom = doid("litdom");
+		t = compile1(ctx, e);
+	}
 	loc = Zlocals(2, "$tn", "$tmp");
 
 	te = nullelist();
 
-	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
+	// $tn = t;
+	se = Zset(doid("$tn"), t);
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
 	se = Zset(doid("$tmp"),
-		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
+		  Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
 
 	// if(isnil($tmp)) error("undefined type: %t", $tmp);
@@ -158,25 +157,35 @@ compilesizeof(U *ctx, Decl *d, Src *src)
 	return te;
 }
 
+/* FIXME: these historical semantics seems
+   poorly designed: look up the type if given a
+   domain name, otherwise just return the type
+   expression, whatever it may be. */
 static Expr*
-compiletypeof(U *ctx, Decl *d, Src *src)
+compiletypeof(U *ctx, Expr *e, Src *src)
 {
-	Type *t;
-	Expr *se, *te, *loc;
+	Expr *se, *te, *loc, *t, *dom;
 
 	t = d->type;
 
 	loc = Zlocals(1, "$tmp");
 	te = nullelist();
 
-	// $tmp = gentypename(t);
-	se = Zset(doid("$tmp"), gentypename(t, compile1, ctx, 0));
+	dom = 0;
+	if(e->kind == Etick && e->e1){
+		dom = e->e1;
+		t = compile(ctx, e->e2);
+	}else
+		t = compile(ctx, e);
+
+	// $tmp = t;
+	se = Zset(doid("$tmp"), t);
 	te = Zcons(se, te);
 
-	if(t->dom){
+	if(dom){
 		// $tmp = looktype(t->dom, $tmp);
 		se = Zset(doid("$tmp"),
-			  Zcall(G("looktype"), 2, doid(t->dom), doid("$tmp")));
+			  Zcall(G("looktype"), 2, dom, doid("$tmp")));
 		te = Zcons(se, te);
 
 		// if(isnil($tmp)) error("undefined type: %t", $tmp);
@@ -430,11 +439,11 @@ compile1(U *ctx, Expr *e)
 		freeexpr(e);
 		return se;
 	case Esizeoft:
-		se = compilesizeof(ctx, e->e1->xp, &e->src);
+		se = compilesizeof(ctx, e->e1, &e->src);
 		freeexpr(e);
 		return se;
 	case Etypeoft:
-		se = compiletypeof(ctx, e->e1->xp, &e->src);
+		se = compiletypeof(ctx, e->e1, &e->src);
 		freeexpr(e);
 		return se;
 	case Ecast:

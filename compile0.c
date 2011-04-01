@@ -51,9 +51,7 @@ lvalblock(Expr *body)
 static Expr*
 compile_lval(U *ctx, Expr *e, int needaddr)
 {
-	Expr *se, *te, *dom;
-	Type *t;
-	Decl *d;
+	Expr *se, *te, *dom, *t;
 
 	if(e == 0)
 		return 0;
@@ -67,16 +65,16 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = compile_lval(ctx, e->e2, needaddr);
 		te = Zcons(se, te);
 
-		// clobber type with cast operand
-		d = e->e1->xp;
-		t = d->type;
-		if(t->dom)
-			dom = doid(t->dom);
-		else
+		if(e->e1->kind == Etick){
+			dom = e->e1->e1;
+			t = e->e1->e2;
+		}else{
 			dom = doid("$dom");
-
+			t = e->e1;
+		}
+		t = compile0(ctx, t);
 		se = Zblock(Zlocals(1, "$tn"),
-			    Zset(doid("$tn"), gentypename(t, compile0, ctx, 0)),
+			    Zset(doid("$tn"), t),
 			    Zset(doid("$type"),
 				 Zcall(G("looktype"), 2,
 				       dom, doid("$tn"))),
