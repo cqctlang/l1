@@ -520,6 +520,7 @@ type_specifier
 	: base_list
 	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id
+	{ $$ = newexprsrc(&ctx->inp->src, Etypedef, $1, 0, 0, 0); }
 	| struct_or_union_specifier
 	| enum_specifier
 	;
@@ -746,9 +747,11 @@ tn_type_specifier_tick
 	{ $$ = doticksrc(&ctx->inp->src, $1,
 			 newexprsrc(&ctx->inp->src, Ebase, $3, 0, 0, 0)); }
 	| id '`' id
-	{ $$ = doticksrc(&ctx->inp->src, $1, $3); }
+	{ $$ = doticksrc(&ctx->inp->src, $1,
+			 newexprsrc(&ctx->inp->src, Etypedef, $3, 0, 0, 0)); }
 	| '`' id
-	{ $$ = doticksrc(&ctx->inp->src, 0, $2); }
+	{ $$ = doticksrc(&ctx->inp->src, 0,
+			 newexprsrc(&ctx->inp->src, Etypedef, $2, 0, 0, 0)); }
 	| struct_or_union_or_enum id
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	| struct_or_union_or_enum id '`' id

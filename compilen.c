@@ -780,10 +780,10 @@ mkctypename(U *ctx, Expr *e)
 	case Ebase:
 		return mkctypebase(ctx, e);
 	case Eptr:
-		return Zcall(G("mkctype_ptr"), 1, mkctype(ctx, e->e1));
+		return Zcall(G("mkctype_ptr"), 1, mkctypename(ctx, e->e1));
 	case Earr:
 		return Zcall(G("mkctype_array"), 2,
-			     mkctype(ctx, e->e1), mkctype(ctx, e->e2));
+			     mkctypename(ctx, e->e1), mkctype(ctx, e->e2));
 	case Efun:
 		se = Znull();
 		p = e->e2;
@@ -796,7 +796,7 @@ mkctypename(U *ctx, Expr *e)
 				   se);
 		}
 		return Zcall(G("mkctype_fn"), 2,
-			     mkctype(ctx, e->e1),
+			     mkctypename(ctx, e->e1),
 			     Zapply(G("vector"), invert(se)));
 	default:
 		fatal("bug");
