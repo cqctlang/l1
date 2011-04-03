@@ -53,9 +53,7 @@ cqctcompilex(Expr *e, Toplevel *top, char *argsid)
 	e = docompileq(&ctx, e);
 	if(e == 0)
 		return 0;
-	if(dotypes(&ctx, e) != 0)
-		return 0;
-	if(docompilens(&ctx, e) != 0)
+	if(docompilen(&ctx, e) != 0)
 		return 0;
 	if(docompilea(&ctx, e) != 0)
 		return 0;
@@ -146,9 +144,10 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		printf("compilen failed\n");
 		return 0;
 	}
-	printexpr(e);
-	printf("\n");
-	return 0;
+	if(cqctflags['p']){
+		printexpr(e);
+		printf("\n");
+	}
 	if(docompilea(&ctx, e) != 0)
 		return 0;
 	if(cqctflags['T']){

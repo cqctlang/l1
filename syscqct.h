@@ -175,12 +175,8 @@ enum {
 	Maxstk = 4096,
 	InsnAlloc = 10,
 	AllocBatch = 128,
-	EmptyDecl = ~0,
 };
 
-typedef struct Decl Decl;
-typedef struct Enum Enum;
-typedef struct Type Type;
 typedef struct Ctl Ctl;
 typedef struct Code Code;
 typedef struct Expr Expr;
@@ -224,34 +220,6 @@ struct Expr {
 
 	/* compiler-managed fields */
 	void *xp;
-};
-
-struct Enum {
-	char *id;
-	Expr *val;
-	Enum *link;
-};
-
-struct Decl {
-	Type *type;
-	char *id;
-	Expr *attr;		/* offset and other attributes */
-	Decl *link;
-};
-
-struct Type {
-	unsigned kind;
-	unsigned base;		/* base, enum? */
-	char *tid;		/* typedef */
-	char *tag;		/* struct, union, enum */
-	char *dom;		/* optional domain qualifier for any Type */
-	Decl *field;		/* struct, union */
-	Enum *en;		/* enum */
-	Expr *attr;		/* struct, union size and attrs */
-	Expr *bitw;		/* bitfield width */
-	Decl *param;		/* func */
-	Expr *cnt;		/* arr */
-	Type *link;		/* typedef, ptr, arr, func(return type) */
 };
 
 typedef struct As As;
@@ -822,11 +790,8 @@ Expr*		doparse(U*, char *buf, char *whence);
 Expr*		dosymsrc(Src *src, char *s, unsigned long len);
 Expr*		doticksrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
-int		dotypes(U*, Expr*);
 void		finiparse(void);
 Expr*		flatten(Expr *e);
-char*		fmttype(Type *t, char *o);
-void		freeenum(Enum *en);
 void		freeexpr(Expr*);
 void		freelits(Lits *lits);
 void		initparse(void);
@@ -846,14 +811,11 @@ int		parseliti(char *s, unsigned long len, Liti *liti,
 Expr*		ptrto(Expr*, Expr*);
 void		parseerror(U *ctx, char *fmt, ...);
 int		popyy(U *ctx);
-u64		szenum(Enum *en);
-u64		szexpr(Expr *e);
 void		tryinclude(U *ctx, char *raw);
 int		yyparse(U *ctx);
 
 /* printexpr.c */
 void		printcqct(Expr*);
-void		printdecl(Decl *d);
 void		printexpr(Expr*);
 void		printids(Expr *e);
 Kind		s2kind(Str *s);
@@ -863,17 +825,11 @@ int		bitfieldgeom(BFgeom *bfg);
 Imm		bitfieldget(char *s, BFgeom *bfg);
 Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
-/* type.c */
-Expr*		gentypename(Type *t, Expr *(recpass)(U*, Expr*), U *ctx, unsigned effect);
-
 /* compileq.c */
 Expr*		docompileq(U *ctx, Expr *e);
 
 /* compilen.c */
 Expr*		docompilen(U *ctx, Expr *e);
-
-/* compilens.c */
-int		docompilens(U *ctx, Expr *e);
 
 /* compilea.c */
 int		docompilea(U *ctx, Expr *e);
@@ -916,7 +872,6 @@ Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
 void		freeconst(void *u, char *id, void *v);
 void		freeexprx(Expr *e);
 int		issimple(Expr *e);
-u64		szexprx(Expr *e);
 
 /* cg.c */
 Closure*	callcc(void);
@@ -1018,7 +973,6 @@ Val		safedovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 u32		shash(char *s, Imm len);
 Imm		stkimm(Val v);
 Str*		stringof(VM *vm, Cval *cv);
-u64		szcode(Code *code);
 Cval*		typecast(VM *vm, Xtypename *xtn, Cval *cv);
 Val		valboxed(Val v);
 Head*		valhead(Val v);

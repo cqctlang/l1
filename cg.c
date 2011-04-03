@@ -196,27 +196,6 @@ freecode(Head *hd)
 	return 1;
 }
 
-u64
-szcode(Code *code)
-{
-	u64 m;
-	Ctl *p;
-
-	m = 0;
-
-	p = code->clist;
-	while(p){
-		if(p->ckind == Clabel)
-			m += esize(p->label);
-		m += esize(p);
-		p = p->link;
-	}
-	m += esize(code->labels);
-	m += esize(code->insn);
-	m += szexpr(code->src);
-	return m;
-}
-
 static void
 addreloc(Code *code, u64 a)
 {

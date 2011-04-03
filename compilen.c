@@ -205,7 +205,11 @@ liftspecsu(U *ctx, Seen *s, Expr *e, Expr **te)
 	}
 
 	/* optional su attribute */
-	e->e3 = lift(ctx, e->e3);
+	if(e->e3 == 0 && isnull(e->e2))
+		/* ascribe size 0 to definitions of form struct tag { } */
+		e->e3 = Zint(0);
+	else
+		e->e3 = lift(ctx, e->e3);
 }
 
 static Expr*
@@ -507,6 +511,15 @@ tie(U *ctx, Expr *e)
 
 static Expr* names(U *ctx, Expr *e);
 
+/* FIXME: this is here only to get ids for symbols */
+static Expr*
+id2sym(Expr *e)
+{
+	if(e->kind != Eid)
+		fatal("bug");
+	return Zstr(e->id);
+}
+
 static void
 do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 {
@@ -538,7 +551,7 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 		e->e3 = names(ctx, e->e3);
 		q = Zcall(G("tabinsert"), 3,
 			  doid("$symtab"),
-			  e->e2, names(ctx, e));
+			  id2sym(e->e2), names(ctx, e));
 		*te = Zcons(q, *te);
 		break;
 	default:
@@ -660,7 +673,7 @@ static char* cbasector[Vnallbase] = {
 	[Vfloat]	      = "mkctype_float",
 	[Vdouble]	      = "mkctype_double",
 	[Vlongdouble]	      = "mkctype_ldouble",
-	[Vvoid]		      = "mkctype_void", 
+	[Vvoid]		      = "mkctype_void",
 };
 
 static Expr*
@@ -700,7 +713,7 @@ mkfieldspec(U *ctx, Expr *f)
 	Expr *tn, *id, *a;
 
 	tn = mkctype(ctx, f->e1);
-	id = f->e2;
+	id = id2sym(f->e2);
 	a = mkctype(ctx, f->e3);
 	if(f->kind == Ebitfield)
 		return Zblock(Zlocals(1, "$o"),
@@ -712,7 +725,10 @@ mkfieldspec(U *ctx, Expr *f)
 					  Zbinop(Emod, doid("$o"), Zuint(32))),
 				    id,
 				    Zcall(G("mkattr"), 1,
-					  Zbinop(Ediv, doid("$o"), Zuint(8)))),
+					  Zbinop(Emul,
+						 Zbinop(Ediv, doid("$o"),
+							Zuint(32)),
+						 Zuint(4)))),
 			      NULL);
 	else
 		return Zcall(G("mkfield"), 3, tn, id,
@@ -723,7 +739,7 @@ static Expr*
 mkctypespec(U *ctx, Expr *e)
 {
 	Expr *se, *p, *f, *en;
-	
+
 	if(e == 0)
 		fatal("bug");
 	switch(e->kind){
@@ -736,9 +752,10 @@ mkctypespec(U *ctx, Expr *e)
 			p = p->e2;
 			se = Zcons(mkfieldspec(ctx, f), se);
 		}
-		return Zcall(e->kind == Estruct ? G("mkstruct") : G("mkunion"),
+		return Zcall(e->kind == Estruct ?
+			     G("mkctype_struct") : G("mkctype_union"),
 			     3,
-			     e->e1,
+			     id2sym(e->e1),
 			     Zapply(G("vector"), invert(se)),
 			     e->e3 ? mkctype(ctx, e->e3) : Znil());
 	case Eenum:
@@ -748,14 +765,14 @@ mkctypespec(U *ctx, Expr *e)
 			en = p->e1;
 			p = p->e2;
 			se = Zcons(Zcall(G("vector"), 2,
-					 en->e1, mkctype(ctx, en->e2)),
+					 id2sym(en->e1), mkctype(ctx, en->e2)),
 				   se);
 		}
 		se = Zapply(G("vector"), invert(se));
-		return Zcall(G("mkenum"), 2, e->e1, se);
+		return Zcall(G("mkctype_enum"), 2, id2sym(e->e1), se);
 	case Etypedef:
 		return Zcall(G("mkctype_typedef"), 2,
-			     e->e2,
+			     id2sym(e->e2),
 			     mkctype(ctx, e->e1));
 	default:
 		fatal("bug");
@@ -770,13 +787,13 @@ mkctypename(U *ctx, Expr *e)
 		fatal("bug");
 	switch(e->kind){
 	case Estruct:
-		return Zcall(G("mkctype_struct"), 1, e->e1);
+		return Zcall(G("mkctype_struct"), 1, id2sym(e->e1));
 	case Eunion:
-		return Zcall(G("mkctype_union"), 1, e->e1);
+		return Zcall(G("mkctype_union"), 1, id2sym(e->e1));
 	case Eenum:
-		return Zcall(G("mkctype_enum"), 1, e->e1);
+		return Zcall(G("mkctype_enum"), 1, id2sym(e->e1));
 	case Etypedef:
-		return Zcall(G("mkctype_typedef"), 1, e->e1);
+		return Zcall(G("mkctype_typedef"), 1, id2sym(e->e1));
 	case Ebase:
 		return mkctypebase(ctx, e);
 	case Eptr:
@@ -792,7 +809,7 @@ mkctypename(U *ctx, Expr *e)
 			p = p->e2;
 			se = Zcons(Zcall(G("vector"), 2,
 					 mkctype(ctx, a->e1),
-					 a->e2 ? a->e2 : Znil()),
+					 a->e2 ? id2sym(a->e2) : Znil()),
 				   se);
 		}
 		return Zcall(G("mkctype_fn"), 2,
@@ -801,6 +818,15 @@ mkctypename(U *ctx, Expr *e)
 	default:
 		fatal("bug");
 	}
+}
+
+static Expr*
+mkctypesym(U *ctx, Expr *e)
+{
+	return Zcall(G("mksym"), 3,
+		     mkctype(ctx, e->e1),
+		     id2sym(e->e2),
+		     mkctype(ctx, e->e3));
 }
 
 static Expr*
@@ -814,6 +840,8 @@ mkctype(U *ctx, Expr *e)
 		return mkctypespec(ctx, e->e1);
 	case Etypename:
 		return mkctypename(ctx, e->e1);
+	case Edecl:
+		return mkctypesym(ctx, e);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

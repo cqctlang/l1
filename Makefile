@@ -34,7 +34,6 @@ L1C =\
 	xenv.c\
 	cutil.c\
 	compileq.c\
-	compilens.c\
 	compilen.c\
 	compilea.c\
 	compile0.c\
@@ -49,7 +48,6 @@ L1C =\
 	compilex.c\
 	compilec.c\
 	compiles.c\
-	type.c\
 	cg.c\
 	ch.c\
 	list.c\
@@ -58,7 +56,6 @@ L1C =\
 	str.c\
 	tab.c\
 	vec.c\
-	type.c\
 	mem.c\
 	vm.c\
 	cqct.c\

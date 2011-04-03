@@ -8752,8 +8752,7 @@ cqctmkvm(Toplevel *top)
 	/* call prelude without -b (to avoid cluttering tests) */
 	ob = cqctflags['b'];
 	cqctflags['b'] = 0;
-// FIXME: make a flag for this
-//	cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
+	cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
 	cqctflags['b'] = ob;
 	resetlabels();
 

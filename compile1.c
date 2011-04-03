@@ -114,24 +114,35 @@ compilelist(U *ctx, Expr *e)
 	return te;
 }
 
+static void
+domandtype(Expr *e, Expr **dom, Expr **t)
+{
+	if(e->kind == Etick){
+		if(e->e1->e1)
+			*dom = e->e1;
+		else
+			*dom = 0;
+		*t = e->e2;
+	}else{
+		*dom = 0;
+		*t = e;
+	}
+}
+
 static Expr*
 compilesizeof(U *ctx, Expr *e, Src *src)
 {
 	Expr *se, *te, *loc, *t, *dom;
 
-	if(e->kind == Etick){
-		dom = e->e1;
-		t = compile1(ctx, e->e2);
-	}else{
+	domandtype(e, &dom, &t);
+	if(!dom)
 		dom = doid("litdom");
-		t = compile1(ctx, e);
-	}
 	loc = Zlocals(2, "$tn", "$tmp");
 
 	te = nullelist();
 
 	// $tn = t;
-	se = Zset(doid("$tn"), t);
+	se = Zset(doid("$tn"), compile1(ctx, t));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn);
@@ -166,20 +177,13 @@ compiletypeof(U *ctx, Expr *e, Src *src)
 {
 	Expr *se, *te, *loc, *t, *dom;
 
-	t = d->type;
-
 	loc = Zlocals(1, "$tmp");
 	te = nullelist();
 
-	dom = 0;
-	if(e->kind == Etick && e->e1){
-		dom = e->e1;
-		t = compile(ctx, e->e2);
-	}else
-		t = compile(ctx, e);
+	domandtype(e, &dom, &t);
 
 	// $tmp = t;
-	se = Zset(doid("$tmp"), t);
+	se = Zset(doid("$tmp"), compile1(ctx, t));
 	te = Zcons(se, te);
 
 	if(dom){
@@ -210,9 +214,7 @@ compiletypeof(U *ctx, Expr *e, Src *src)
 static Expr*
 compilecast(U *ctx, Expr *e)
 {
-	Type *t;
-	Expr *se, *te, *dom, *loc;
-	Decl *d;
+	Expr *se, *te, *dom, *loc, *t;
 
 	loc = Zlocals(3, "$tmp", "$tn", "$type");
 
@@ -223,20 +225,16 @@ compilecast(U *ctx, Expr *e)
 	se = Zset(doid("$tmp"), e->e2);
 	te = Zcons(se, te);
 
-	d = e->e1->xp;
-	t = d->type;
-	if(t->dom)
-		dom = doid(t->dom);
-	else
+	domandtype(e->e1, &dom, &t);
+	if(!dom)
 		dom = Zcall(G("domof"), 1, doid("$tmp"));
 
-	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
+	// $tn = t;
+	se = Zset(doid("$tn"), compile1(ctx, t));
 	te = Zcons(se, te);
 
 	// $type = looktype(dom, $tn);
-	se = Zset(doid("$type"),
-		  Zcall(G("looktype"), 2, dom, doid("$tn")));
+	se = Zset(doid("$type"), Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
 
 	// if(isnil($type)) error("undefined type: %t", $tn);
@@ -261,9 +259,7 @@ compilecast(U *ctx, Expr *e)
 static Expr*
 compilecontainer(U *ctx, Expr *e)
 {
-	Type *t;
-	Expr *se, *te, *dom, *loc;
-	Decl *d;
+	Expr *se, *te, *dom, *loc, *t;
 
 	te = nullelist();
 
@@ -275,20 +271,16 @@ compilecontainer(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	// pick domain in which to lookup type
-	d = e->e2->xp;
-	t = d->type;
-	if(t->dom)
-		dom = doid(t->dom);
-	else
+	domandtype(e->e2, &dom, &t);
+	if(!dom)
 		dom = Zcall(G("domof"), 1, doid("$tmp"));
 
-	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
+	// $tn = t;
+	se = Zset(doid("$tn"), compile1(ctx, t));
 	te = Zcons(se, te);
 
 	// $type = looktype(dom, $tn);
-	se = Zset(doid("$type"),
-		  Zcall(G("looktype"), 2, dom, doid("$tn")));
+	se = Zset(doid("$type"), Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
 
 	// if(isnil($type)) error("undefined type: %t", $tn);
@@ -356,10 +348,7 @@ static Expr*
 compileambig(U *ctx, Expr *e)
 {
 	Expr *tf, *of;
-	Expr *se, *te, *loc;
-	char *dom;
-	Decl *d;
-	Type *t;
+	Expr *se, *te, *loc, *dom, *t;
 
 	/* exactly one of the two parses is a form that operates on a
 	   type name */
@@ -377,30 +366,22 @@ compileambig(U *ctx, Expr *e)
 	if(tf == 0)
 		fatal("bug");
 
-	d = tf->e1->xp;
-	t = d->type;
-
-	if(t->dom)
-		dom = t->dom;
-	else
-		dom = "litdom";
+	domandtype(tf, &dom, &t);
+	if(!dom)
+		dom = doid("litdom");
 
 	loc = Zlocals(2, "$tmp", "$tn");
 
 	te = nullelist();
 
-	// $tn = gentypename(t);
-	se = Zset(doid("$tn"), gentypename(t, compile1, ctx, 0));
+	// $tn = t;
+	se = Zset(doid("$tn"), compile1(ctx, t));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn)
-	se = Zset(doid("$tmp"),
-		  Zcall(G("looktype"), 2, doid(dom), doid("$tn")));
+	se = Zset(doid("$tmp"), Zcall(G("looktype"), 2, dom, doid("$tn")));
 	te = Zcons(se, te);
 
-	/* must we compile TF only after using all references to TF->...->type?
-	   (including gentypename and dom?) */
-	tf = compile1(ctx, tf);
 	of = compile1(ctx, of);
 
 	// if(isnil($tmp)) <other form> else <type form>
@@ -444,7 +425,7 @@ compile1(U *ctx, Expr *e)
 		return se;
 	case Etypeoft:
 		se = compiletypeof(ctx, e->e1, &e->src);
-		freeexpr(e);
+//		freeexpr(e);
 		return se;
 	case Ecast:
 		se = compilecast(ctx, e);
