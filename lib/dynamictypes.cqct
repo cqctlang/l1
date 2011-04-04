@@ -86,6 +86,7 @@ REFINE_KEY = "refine";
 An example of how one might use dynamic types.
 */
 @define dynamictypes_example() {
+	@local ns,dom,q,i;
 	@include <dump.cqct>
 	ns = @names c64le {
 		
