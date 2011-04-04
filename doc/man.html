@@ -6803,6 +6803,164 @@ would have pointed to on return is unmapped, then no changes are made.
 </div>
 </div>
 
+<h5 id="lib:elf.cqct">elf.cqct</h5>
+
+<span class="id">elf.cqct</span> contains code for handling elf files.
+
+<div class="docitem" id="record:bd">
+Record <span class="id">bd</span>
+<div class="field">
+<span class="id">rootns</span>: namespace for the elf file</span>
+</div>
+<div class="field">
+<span class="id">elf</span>: domain for the elf file</span>
+</div>
+</div>
+
+<div class="docitem" id="fn:getelfsymtab">
+<div class="proto">
+<div class="function">
+<span class="id">getelfsymtab(<span class="arg">edom</span>)</span>
+</div>
+<div class="param">
+<span class="arg">edom</span>: <span class="type">domain</span> 
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+	Returns a vector of cqct symbols in the given elf domain
+</div>
+</div>
+
+<div class="docitem" id="fn:getsyms">
+<div class="proto">
+<div class="function">
+<span class="id">getsyms(<span class="arg">elfdom</span>)</span>
+</div>
+<div class="param">
+<span class="arg">elfdom</span>: <span class="type">domain</span> 
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+	prints the symbols in a given elf domain, returning a table
+	mapping strings to pointers to ElfXX_Sym objects.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkelfrec">
+<div class="proto">
+<div class="function">
+<span class="id">mkelfrec(<span class="arg">binfile</span>)</span>
+</div>
+<div class="param">
+<span class="arg">binfile</span>: <span class="type">binary string</span> 
+</div>
+<div class="returns">
+<span class="type">bd record</span>
+</div>
+</div>
+<div class="desc">
+	Returns a bd record describing an elf file.
+</div>
+</div>
+
+<div class="docitem" id="fn:showallelfsectionheaders">
+<div class="proto">
+<div class="function">
+<span class="id">showallelfsectionheaders(<span class="arg">elfdom</span>)</span>
+</div>
+<div class="param">
+<span class="arg">elfdom</span>: <span class="type">domain</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints all sections headers from the given elf domain.
+</div>
+</div>
+
+<div class="docitem" id="fn:showelfheader">
+<div class="proto">
+<div class="function">
+<span class="id">showelfheader(<span class="arg">elfdom</span>)</span>
+</div>
+<div class="param">
+<span class="arg">elfdom</span>: <span class="type">domain</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints the root header from the elf domain.
+</div>
+</div>
+
+<div class="docitem" id="fn:showsectionheader">
+<div class="proto">
+<div class="function">
+	<span class="id">showsectionheader(
+		<span class="arg">elfdom</span>,
+		<span class="arg">sbase</span>,
+		<span class="arg">index</span>
+		)</span>
+</div>
+<div class="param">
+<span class="arg">elfdom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+	<span class="arg">sbase</span>: 
+	<span class="type">elfdom`Elf64_Shdr*</span>  or
+	<span class="type">elfdom`Elf32_Shdr*</span> 
+</div>
+<div class="param">
+<span class="arg">index</span>: <span class="type">int</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints a section header at index for the given elf domain.
+</div>
+</div>
+
+<div class="docitem" id="fn:showelfsym">
+<div class="proto">
+<div class="function">
+	<span class="id">showelfsym(
+		<span class="arg">elfdom</span>,
+		<span class="arg">addr</span>,
+		<span class="arg">strind</span>
+		)</span>
+</div>
+<div class="param">
+<span class="arg">elfdom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+	<span class="arg">addr</span>: <span class="type">void*</span> 
+</div>
+<div class="param">
+	<span class="arg">strind</span>: <span class="type">int</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints a description of the elf symbol at the given addr with
+	the given offset into the e_shoff table.
+</div>
+</div>
+
+
 
 
 <h4 id="sec:cinterface">C Interface</h4>
