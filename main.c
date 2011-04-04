@@ -46,8 +46,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-t report timing statistics\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
-	fprintf(stderr, "\t-s don't look for library code in same"
-	    "directory as the l1 executable\n");
+	fprintf(stderr, "\t-s do not use default load path\n");
 	fprintf(stderr, "\t-lDIR add DIR to the load path\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
 	fprintf(stderr, "\t-a dump expressions as they are compiled\n");
@@ -281,6 +280,15 @@ readlinkf(char *path)
 	struct stat st;
 	ssize_t sz, psz;
 
+	/* on linux, let the system tell us where the executable is */
+	if(access("/proc/self/exe", R_OK) == 0){
+		buf = emalloc(MAXPATHLEN+1);
+		if(readlink("/proc/self/exe", buf, MAXPATHLEN))
+			return buf;
+		free(buf);
+	}
+
+	/* on non-linux, and on broken linux, attempt to find it */
 	buf = 0;
 	tmp = 0;
 	if(path[0] != '/' && path[0] != '.'){
@@ -388,7 +396,7 @@ main(int argc, char *argv[])
 	struct timeval beg, end;
 	int dorepl;
 	char opt[256];
-	char *inbuf, *s;
+	char *inbuf, *s, *p;
 	uint64_t heapmax;
 	int i, valc;
 	Val *valv;
@@ -466,22 +474,40 @@ main(int argc, char *argv[])
 	if(ename && dorepl)
 		fatal("-e requires a script");
 
-	argv0 = readlinkf(argv0);
-	if(argv0 == 0)
-		fatal("cannot locate l1 executable");
-
 	if(opt['s']){
-		if(nlp >= Maxloadpath)
-			fatal("too many directories in load path");
-		root = dirname(argv0);
-#ifndef LIBDIR
-		lp[nlp] = emalloc(strlen(root)+1+4+1);
-		sprintf(lp[nlp++], "%s/lib", root);
+#ifdef LIBDIR
+		s = xstrdup(LIBDIR);
+		p = strtok(p, ":");
+		while(p){
+			if(nlp >= Maxloadpath)
+				fatal("too many paths in load path");
+			lp[nlp++] = xstrdup(p);
+			p = strtok(NULL, ":");
+		}
+		free(s);
 #else
-		lp[nlp++] = xstrdup(LIBDIR);
+		p = getenv("L1LIBPATH");
+		if(p){
+			p = strtok(p, ":");
+			while(p){
+				if(nlp >= Maxloadpath)
+					fatal("too many paths in load path");
+				lp[nlp++] = xstrdup(p);
+				p = strtok(NULL, ":");
+			}
+		}else{
+			argv0 = readlinkf(argv0);
+			if(argv0 == 0)
+				fatal("cannot locate l1 executable");
+			if(nlp >= Maxloadpath)
+				fatal("too many paths in load path");
+			root = dirname(argv0);
+			lp[nlp] = emalloc(strlen(root)+1+4+1);
+			sprintf(lp[nlp++], "%s/lib", root);
+			free(argv0);
+		}
 #endif
 	}
-	free(argv0);
 	lp[nlp] = 0;
 
 	xfd = 0;

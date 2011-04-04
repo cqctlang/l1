@@ -58,8 +58,10 @@
 <a href="#sec:system">System Functions</a><br />
 <a href="#sec:other">Other Functions</a><br />
 <br />
-<br />
+<em>Implementation Details</em><br />
+<a href="#sec:runtime">L1 runtime</a><br />
 <a href="#sec:cinterface">C Interface</a><br />
+<br />
 <br />
 <a href="#sec:synindex">Syntax Index</a><br />
 <a href="#sec:cindex">C Interface Index</a><br />
@@ -6724,6 +6726,42 @@ would have pointed to on return is unmapped, then no changes are made.
 </div>
 </div>
 
+<h4 id="sec:runtime">L1 Executable</h4>
+
+<p>
+The L1 executable is a command-line program that
+provides an interactive read-eval-print-loop interface
+to Cinquecento.  It is built by default when the L1
+source distribution is compiled.
+</p>
+
+<p>
+The load path used by the L1 executable is
+determined in one of three ways:
+</p>
+
+<ol>
+<li>
+By default, the load path contains the single directory
+<span class="val"><span class="arg">L1PATH</span>/lib</span>,
+where <span class="arg">L1PATH</span> is the directory containing
+the L1 executable.
+</li>
+<li>
+If the environment
+variable <span class="val">L1LIBPATH</span> is defined,
+then its value must be a colon-separated list of
+directories.  The default load path is defined to be
+this list.
+</li>
+<li>
+If the preprocessor variable LIBDIR is defined when the
+l1 driver (main.c) is compiled, then its value must be
+a string containing colon-separated list of
+directories. The default load path is defined to be
+this list.
+</li>
+</ol>
 
 
 <h4 id="sec:cinterface">C Interface</h4>
