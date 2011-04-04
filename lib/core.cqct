@@ -1,3 +1,12 @@
+
+@global core_defined;
+
+
+if (core_defined == nil)
+{
+@local align,parse_core;
+@global mkcoreas;
+
 @include <elf.cqct>
 
 @define align(l, sz)
@@ -96,11 +105,15 @@
 	return [regptr, addr_ranges];
 }
 
+/**
+* param: fname - name of the core file
+* returns: address space for the provided core file.
+*/
 @define mkcoreas(fname)
 {
 	@local elfdom;
 	@local addr_ranges, regptr, parseout;
-	@local mapped_ranges;
+	@local mapped_ranges,dispatch;
 
 	elfdom = mkelfrec(mapfile(fname)).elf;
 	
@@ -121,7 +134,7 @@
 	mapped_ranges = apply(vector,mapped_ranges);
 
 	@define dispatch (args ...) {
-		@local arg, r, beg, len;
+		@local arg, r, beg, len, i;
 
 		arg = listref(args, 1);
 
@@ -181,4 +194,6 @@
 		error("bad argument to dispatch in core file %s\n", fname);
 	}
 	return mkas([ "dispatch" : dispatch ], fname);       
+}
+
 }
