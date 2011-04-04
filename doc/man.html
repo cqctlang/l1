@@ -6601,6 +6601,85 @@ affect the passed address space.
 </div>
 </div>
 
+<h5 id="lib:asutils.cqct">asutils.cqct</h5>
+
+<span class="id">asutils.cqct</span> provides functionality for saving
+and loading address spaces from files and strings.
+
+<div class="docitem" id="fn:asload">
+<div class="proto">
+<div class="function">
+<span class="id">asload(<span class="arg">filename</span>)</span>
+</div>
+<div class="param">
+<span class="arg">filename</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns a copy of the address space saved in the given file.
+</div>
+</div>
+
+<div class="docitem" id="fn:asload_str">
+<div class="proto">
+<div class="function">
+<span class="id">asload(<span class="arg">as_str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">as_str</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns a copy of the address space represented by the given string.
+</div>
+</div>
+
+<div class="docitem" id="fn:assave">
+<div class="proto">
+<div class="function">
+	<span class="id">assave(<span class="arg">as</span>,
+		<span class="arg">filename</span>)</span>
+</div>
+<div class="param">
+<span class="arg">as</span>: <span class="type">address space</span> 
+</div>
+<div class="param">
+<span class="arg">filename</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">int</span>
+</div>
+</div>
+<div class="desc">
+Saves a copy of the given address space saved to the given file.
+Overwrites the file if it already exists.
+</div>
+</div>
+
+<div class="docitem" id="fn:assave_str">
+<div class="proto">
+<div class="function">
+	<span class="id">assave_str(<span class="arg">as</span>)</span>
+</div>
+<div class="param">
+<span class="arg">as</span>: <span class="type">address space</span> 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string representation of the given address space saved.
+</div>
+</div>
+
+
 <h5 id="lib:dump.cqct">dump.cqct</h5>
 
 <span class="id">dump.cqct</span> provides code for printing
