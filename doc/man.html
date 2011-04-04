@@ -6806,9 +6806,17 @@ would have pointed to on return is unmapped, then no changes are made.
 <h5 id="lib:elf.cqct">elf.cqct</h5>
 
 <span class="id">elf.cqct</span> contains code for handling elf files.
+Much of this function provides machinery to keep the client code unaware
+of whether or not the elf file underconsideration contains a 32 or 64 bit
+address space. The recode bd
+type, which is instantiated through <a href=#fn:mkelfrec>mkelfrec</a>,
+is where the elf domain is contained. The elfsym types, which are 
+created via <a href=#fn:getcqctelfsym>getcqctelfsym</a> contain information
+about specific elf symbols. 
 
 <div class="docitem" id="record:bd">
-Record <span class="id">bd</span>
+Record <span class="id">bd</span> created by 
+	<a href=#fn:mkelfrec>mkelfrec</a>
 <div class="field">
 <span class="id">rootns</span>: namespace for the elf file</span>
 </div>
@@ -6817,10 +6825,178 @@ Record <span class="id">bd</span>
 </div>
 </div>
 
-<div class="docitem" id="fn:getelfsymtab">
+<div class="docitem" id="type:elfsym">
+Vector <span class="id">elfsym</span> is used to store information on elf 
+symbols. These are created by <a href=#fn:getcqctelfsym>getcqctelfsym</a>,
+and can be printed with <a href=#fn:showsym>showsym</a>.
+That information can be harvested directly by the following functions:
+<div class="field">
+<span class="id">elfname(esym)</span>: returns the name (field 0)</span>
+</div>
+<div class="field">
+<span class="id">elfaddr(esym)</span>: returns the address (field 1)</span>
+</div>
+<div class="field">
+<span class="id">elftype(esym)</span>: returns the type (field 2)</span>
+</div>
+<div class="field">
+<span class="id">elfvisibility(esym)</span>: returns the visibility (field 3)</span>
+</div>
+<div class="field">
+<span class="id">elfsize(esym)</span>: returns the size (field 4)</span>
+</div>
+<div class="field">
+<span class="id">elfinfo(esym)</span>: returns the info (field 5)</span>
+</div>
+<div class="field">
+<span class="id">elfother(esym)</span>: returns the other stuff (field 6)</span>
+</div>
+<div class="field">
+<span class="id">elfshndx(esym)</span>: returns the type (field 7)</span>
+</div>
+</div>
+
+<div class="docitem" id="fn:dumpsym">
 <div class="proto">
 <div class="function">
-<span class="id">getelfsymtab(<span class="arg">edom</span>)</span>
+<span class="id">dumpsym(<span class="arg">name</span>,
+	<span class="arg">esym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span> 
+</div>
+<div class="param">
+<span class="arg">esym</span>: <span class="type">struct ElfXX_Sym*</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	For an ElfXX_Sym* object with name name, print its contents.
+</div>
+</div>
+
+<div class="docitem" id="fn:getcqctelfsym">
+<div class="proto">
+<div class="function">
+	<span class="id">getcqctelfsym(
+		<span class="arg">edom</span>,
+		<span class="arg">esym</span>,
+		<span class="arg">name</span>)</span>
+</div>
+<div class="param">
+<span class="arg">edom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+<span class="arg">esym</span>: <span class="type">ElfXX_Sym*</span> 
+</div>
+<div class="returns">
+<span class="type">vector</span>
+</div>
+</div>
+<div class="desc">
+	Convert a raw ELF symbol from the binary into a Cinquecento list of
+	the processed field values of type <a href=#type:elfsym>elfsym</a>.
+</div>
+</div>
+
+<div class="docitem" id="fn:getelfsecname">
+<div class="proto">
+<div class="function">
+	<span class="id">getelfsecname(
+		<span class="arg">edom</span>,
+		<span class="arg">ind</span>)</span>
+</div>
+<div class="param">
+<span class="arg">edom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+<span class="arg">ind</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+	Get the name of an elf section. This function does not check that there
+	actually is a section at that index.
+</div>
+</div>
+
+<div class="docitem" id="fn:getelfsection">
+<div class="proto">
+<div class="function">
+	<span class="id">getelfsection(
+		<span class="arg">edom</span>,
+		<span class="arg">name</span>)</span>
+</div>
+<div class="param">
+<span class="arg">edom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+	Get a byte string containing the data of the named ELF section
+	from the provided elf domain (returns "" if no section with that
+	name exists).
+</div>
+</div>
+
+<div class="docitem" id="fn:getelfsegment">
+<div class="proto">
+<div class="function">
+	<span class="id">getelfsegment(
+		<span class="arg">edom</span>,
+		<span class="arg">n</span>)</span>
+</div>
+<div class="param">
+<span class="arg">edom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+<span class="arg">n</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">ElfXX_Phdr*</span>
+</div>
+</div>
+<div class="desc">
+	Return a byte string containing the data of ELF section number n.
+</div>
+</div>
+
+<div class="docitem" id="fn:getelfsegmenthdr">
+<div class="proto">
+<div class="function">
+	<span class="id">getelfsegmenthdr(
+		<span class="arg">edom</span>,
+		<span class="arg">n</span>)</span>
+</div>
+<div class="param">
+<span class="arg">edom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+<span class="arg">n</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">ElfXX_Phdr*</span>
+</div>
+</div>
+<div class="desc">
+	Gets header number n from the provided elf domain.
+	Returns null if there is no header n.
+</div>
+</div>
+
+<div class="docitem" id="fn:getelfsyms">
+<div class="proto">
+<div class="function">
+<span class="id">getelfsyms(<span class="arg">edom</span>)</span>
 </div>
 <div class="param">
 <span class="arg">edom</span>: <span class="type">domain</span> 
@@ -6903,6 +7079,34 @@ Record <span class="id">bd</span>
 </div>
 </div>
 
+<div class="docitem" id="fn:showelfsym">
+<div class="proto">
+<div class="function">
+	<span class="id">showelfsym(
+		<span class="arg">elfdom</span>,
+		<span class="arg">addr</span>,
+		<span class="arg">strind</span>
+		)</span>
+</div>
+<div class="param">
+<span class="arg">elfdom</span>: <span class="type">domain</span> 
+</div>
+<div class="param">
+	<span class="arg">addr</span>: <span class="type">void*</span> 
+</div>
+<div class="param">
+	<span class="arg">strind</span>: <span class="type">int</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints a description of the elf symbol at the given addr with
+	the given offset into the e_shoff table.
+</div>
+</div>
+
 <div class="docitem" id="fn:showsectionheader">
 <div class="proto">
 <div class="function">
@@ -6932,34 +7136,83 @@ Record <span class="id">bd</span>
 </div>
 </div>
 
-<div class="docitem" id="fn:showelfsym">
+<div class="docitem" id="fn:showsegmentheader">
 <div class="proto">
 <div class="function">
-	<span class="id">showelfsym(
-		<span class="arg">elfdom</span>,
-		<span class="arg">addr</span>,
-		<span class="arg">strind</span>
-		)</span>
+	<span class="id">showsegmentheader(
+		<span class="arg">eseg</span>)</span>
 </div>
 <div class="param">
 <span class="arg">elfdom</span>: <span class="type">domain</span> 
 </div>
 <div class="param">
-	<span class="arg">addr</span>: <span class="type">void*</span> 
-</div>
-<div class="param">
-	<span class="arg">strind</span>: <span class="type">int</span> 
+	<span class="arg">eseg</span>: 
+	<span class="type">elfdom`Elf64_Phdr*</span>  or
+	<span class="type">elfdom`Elf32_Phdr*</span> 
 </div>
 <div class="returns">
 <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
-	Prints a description of the elf symbol at the given addr with
-	the given offset into the e_shoff table.
+	Print informaiton in an ElfXX_Phdr* object.
 </div>
 </div>
 
+<div class="docitem" id="fn:showsym">
+<div class="proto">
+<div class="function">
+<span class="id">showsym(<span class="arg">esym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">esym</span>: <span class="type">elfsym</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Print information in the given 
+	<a href=#type:elfsym>elfsym</a>.
+</div>
+</div>
+
+
+
+
+<div class="docitem" id="fn:show_elf_addrs">
+<div class="proto">
+<div class="function">
+<span class="id">show_elf_addrs(<span class="arg">syms</span>)</span>
+</div>
+<div class="param">
+<span class="arg">syms</span>: <span class="type">vector</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints the address (in hex) for every vector in the list.
+</div>
+</div>
+
+<div class="docitem" id="fn:show_elf_syms">
+<div class="proto">
+<div class="function">
+<span class="id">show_elf_syms(<span class="arg">syms</span>)</span>
+</div>
+<div class="param">
+<span class="arg">syms</span>: <span class="type">vector</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Runs showsym over every entry in the given array.
+</div>
+</div>
 
 
 

@@ -3,8 +3,14 @@
 if (elf_defined == nil)
 {
 @local DT_VALTAGIDX,DT_ADDRTAGIDX,DT_VERSIONTAGIDX,EF_ARM_EABI_VERSION,ELF32_ST_BIND,ELF32_ST_TYPE,ELF32_ST_INFO,ELF64_ST_BIND,ELF64_ST_TYPE,ELF64_ST_INFO,ELF32_ST_VISIBILITY,ELF64_ST_VISIBILITY,ELF32_R_SYM,ELF32_R_TYPE,ELF32_R_INFO,ELF64_R_SYM,ELF64_R_TYPE,ELF64_R_INFO,ELF32_M_SYM,ELF32_M_SIZE,ELF32_M_INFO,ELF64_M_SYM,ELF64_M_SIZE,ELF64_M_INFO;
+@local elfsegtype,elfsegoffset,elfsegvaddr,elfsegpaddr,elfsegfilesz,elfsegmemsz,elfsegflags,elfsegalign;
 @global mkelfrec,showelfheader,showallelfsectionheaders,showsectionheader;
-@global showelfsym,getsyms,getelfsymtab;
+@global showelfsym,getsyms,getelfsyms,dumpsym,showsym,getelfsection;
+@global getelfsecname,getelfsegmenthdr,getelfsegment,showsegmentheader;
+@global getcqctelfsym,show_elf_syms,show_elf_addrs;
+@global elfshndx,elfother,elfinfo,elfsize,elfvisibility,elftype,elfaddr,elfname;
+@global bd,isbd;
+
 
 
 @record bd {exec, elf, debug_aranges, debug_pubnames, debug_info, debug_abbrev,
@@ -355,7 +361,7 @@ if (elf_defined == nil)
 * param: edom - an elf domain (gerneally mkelfrec(...).elf)
 * returns: A vector of cqct symbols contained in the given elf domain
 */
-@define getelfsymtab (edom)
+@define getelfsyms (edom)
 {
   @local e, shbase, strbase, symbase, sec, sym, symtab, symsize, i, symcount;
   @local syml, sl, asl, as, symind;
@@ -425,12 +431,23 @@ if (elf_defined == nil)
   return symtab;
 }
 
+/**
+* For an ElfXX_Sym* object with name name, print its contents.
+* param: name - the name of the symbol
+* prarm: esym - the ElfXX_Sym* pointer
+* returns: nil
+*/
 @define dumpsym (name, esym)
 {
   printf ("0x%x\t%d\t0x%x\t0x%x\t%d\t%s\n", esym->st_value, esym->st_size,
 	  esym->st_info, esym->st_other, esym->st_shndx, name);
 }
 
+/**
+* Print some information about the given ElfXX_Sym*
+* param: esym - the elfsym vector
+* returns: nil
+*/
 @define showsym (esym)
 {
   @local bind, type, dom, visibility;
@@ -450,7 +467,12 @@ if (elf_defined == nil)
 	  elfshndx (esym), elfname (esym));
 }
 
-/* return a byte string containing the data of an ELF section */
+/**
+* return a byte string containing the data of an ELF section 
+* param: edom - the elf domain
+* name: the name of the section
+* returns: a byte string containing the data of an ELF section
+*/
 @define getelfsection (edom, name)
 {
   @local e, sarray, st, sname, i;
@@ -484,6 +506,13 @@ if (elf_defined == nil)
   return "";
 }
   
+/**
+* Get the name of an elf section. This function does not check that there
+* actually is a section at that index.
+* param: edom - an elf domain
+* param: ind - the number of the section
+* returns: the string name of the given section
+*/
 @define getelfsecname (edom, ind)
 {
   @local e, sarray, st;
@@ -503,7 +532,11 @@ if (elf_defined == nil)
   return stringof (st + sarray[ind].sh_name);
 }
   
-/* return the header for an ELF segment */
+/** return the header for an ELF segment 
+* param: edom - an elf domain
+* param: n - an index for the given header.
+* returns: an ElfXX_Phdr* pointer
+*/
 @define getelfsegmenthdr (edom, n)
 {
   @local e, pharray, ph, cnt;
@@ -531,7 +564,12 @@ if (elf_defined == nil)
   }
 }
 
-/* return a byte string containing the data of an ELF section */
+/**
+* return a byte string containing the data of an ELF section 
+* param: edom - an elf domain
+* param: n - the index of the elf section
+* returns: a string containing the data in that section
+*/
 @define getelfsegment (edom, n)
 {
   @local e, pharray, ph, cnt;
@@ -563,6 +601,11 @@ if (elf_defined == nil)
   }
 }
 
+/**
+* Print the information in an ElfXX_Phdr* object.
+* param: eseg - an ElfXX_Phdr* object
+* returns: nil
+*/
 @define showsegmentheader (eseg)
 {
   printf ("p_type = 0x%x\tp_flags = 0x%x\tp_offset = 0x%x\n",
@@ -574,8 +617,13 @@ if (elf_defined == nil)
   printf ("p_align = 0x%x\n", eseg->p_align);
 }
 
-/* Convert a raw ELF symbol from the binary into a Cinquecento list of
-   the processed field values. */
+/** Convert a raw ELF symbol from the binary into a Cinquecento list of
+*   the processed field values. 
+* param: edom - an elf domain
+* param: esym - an ElfXX_Sym*
+* param: name - the symbol's name
+* returns: a cqct list of processed field values.
+*/
 @define getcqctelfsym (edom, esym, name)
 {
   @local result, i, typec, sarray, st, e, visibility;
@@ -640,16 +688,26 @@ if (elf_defined == nil)
   return result;
 }
 
-@define show_elf_symtab (tab)
+/**
+* Prints information in the table tab.
+* param: tab - a vector of symbols
+* returns: nil
+*/
+@define show_elf_syms (syms)
 {
   @local i, len;
-  len = veclen (tab);
+  len = veclen (syms);
   for (i = 0; i < len; i++)
-    //printf ("%a\n", vecref (tab, i));
-    showsym (vecref (tab, i));
+    //printf ("%a\n", vecref (syms, i));
+    showsym (vecref (syms, i));
 }
 
-@define show_elf_addrs (tab)
+/**
+* print the addresses in the given vector of symbols.
+* param: syms - a vector of symbols
+* returns: nil
+*/
+@define show_elf_addrs (syms)
 {
   @local i, len;
   len = veclen (tab);
