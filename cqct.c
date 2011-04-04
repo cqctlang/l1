@@ -108,7 +108,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = &top->out;
-	if(cqctflags['p']){
+	if(0 && cqctflags['p']){
 		xprintf("input:\n");
 		printexpr(e);
 		xprintf("\n");
@@ -188,7 +188,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 	}
 	if(docompile1(&ctx, e) != 0)
 		return 0;
-	if(cqctflags['p']){
+	if(0 && cqctflags['p']){
 		xprintf("compile1:\n");
 		printexpr(e);
 		xprintf("\n");
