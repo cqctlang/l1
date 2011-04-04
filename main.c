@@ -485,7 +485,7 @@ main(int argc, char *argv[])
 			p = strtok(NULL, ":");
 		}
 		free(s);
-#else
+#endif
 		p = getenv("L1LIBPATH");
 		if(p){
 			p = strtok(p, ":");
@@ -496,6 +496,7 @@ main(int argc, char *argv[])
 				p = strtok(NULL, ":");
 			}
 		}else{
+#ifndef LIBDIR
 			argv0 = readlinkf(argv0);
 			if(argv0 == 0)
 				fatal("cannot locate l1 executable");
@@ -505,8 +506,8 @@ main(int argc, char *argv[])
 			lp[nlp] = emalloc(strlen(root)+1+4+1);
 			sprintf(lp[nlp++], "%s/lib", root);
 			free(argv0);
-		}
 #endif
+		}
 	}
 	lp[nlp] = 0;
 
