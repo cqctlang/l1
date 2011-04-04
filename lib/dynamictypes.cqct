@@ -38,6 +38,11 @@ REFINE_KEY = "refine";
 	return t;
 }
 
+/**
+* Refines the type of the pointer p.
+* params: p is a pointer whose type is being refined
+* output: a pointer p', which has the same value as p but has a refined type (if the original type of p supported refinement).
+*/
 @define refine(p)
 {
 	@local t, flds, new_flds, i, new_sz, new_t;
@@ -77,6 +82,9 @@ REFINE_KEY = "refine";
 	return {mkctype_ptr(new_t,nsptr(domof(p)))}p;
 }
 
+/**
+An example of how one might use dynamic types.
+*/
 @define dynamictypes_example() {
 	@include <dump.cqct>
 	ns = @names c64le {
