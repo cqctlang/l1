@@ -1,4 +1,5 @@
 
+@global asutil_defined;
 
 //Utility functions for address spaces.
 
@@ -13,9 +14,14 @@
 //that are not actually mapped will be mapped with a value 
 //of 0 in the loaded version of the AS. 
 
+if (asutil_defined == nil)
+{
+@local svasns;
+@global asfile_identifier,ascopy,assave_str,asload_str,assave,asload;
+@global asutils_test;
+
 @include <dynamictypes.cqct>
 
-@global asfile_identifier;
 asfile_identifier="AS1";
 
 //the address space to be associated with the names files.
@@ -45,7 +51,11 @@ asfile_identifier="AS1";
 	};
 }
 
-//returns a copy of the address space as.
+/**
+* for creating a deep copy of an address space.
+* param: the address space to copy
+* returns: a copy of the provided address space
+*/
 @define ascopy(as)
 {
 	@local str;
@@ -54,9 +64,16 @@ asfile_identifier="AS1";
 }
 
 
+/**
+* for creating an address space out of the string representation of an address
+* space returned by assave_str.
+* param: as_str a string representation of an address space returned by 
+*        assave_str
+* returns: an address space
+*/
 @define asload_str(as_str)
 {
-	@local asdom, ranges, offsets, i, q;
+	@local asdom, ranges, offsets, i, q, p, dispatch;
 	asdom = mkdom(svasns(),mksas(as_str));
 	p = (struct asdom`adr_ranges*){asdom}0;
 	p = refine(p);
@@ -74,7 +91,7 @@ asfile_identifier="AS1";
 		ftn = listref(args,1);
 		if (ftn == "get")
 		{
-			@local r, beg, len;
+			@local r, beg, len, vbeg, vlen;
 			r = listref(args,2);
 			beg = rangebeg(r);
                         len = rangelen(r);
@@ -91,7 +108,7 @@ asfile_identifier="AS1";
 		} else if (ftn == "map") {
 			return ranges;
 		} else if (ftn == "put") {
-			@local r, beg, len;
+			@local r, beg, len, vbeg, vlen;
 			r = listref(args,2);
 			beg = rangebeg(r);
                         len = rangelen(r);
@@ -113,13 +130,16 @@ asfile_identifier="AS1";
 	return mkas(["dispatch":dispatch]);
 }
 
-//translates the given address space to a string
-//relies on as.map() to provide a list of mapped
-//regions. 
+/**
+* Translates the given address space to a string.
+* Relies on as.map() to provide a list of mapped regions. 
+* param: as is the address space to be converted
+* returns: a binary string representation of as
+*/
 @define assave_str(as)
 {
 	@local range, ranges, i, backing, svas;
-	@local size, svdom, ns, tmpdom, p;
+	@local size, svdom, ns, tmpdom, p, q;
 	//general strategy: create a new address space
 	//backed by a string. Then write that string to
 	//disk. 
@@ -170,7 +190,12 @@ asfile_identifier="AS1";
 	return backing;
 }
 
-//saves the given as in the given file.
+/**
+* Use this to save the given address space to a file
+* param: as - an address space to save
+* param: filename - a string representation of a file to save to.
+* returns: 1 on success, 0 otherwise.
+*/
 @define assave(as,filename)
 {
 	@local fout,str;
@@ -178,9 +203,16 @@ asfile_identifier="AS1";
 	str = assave_str(as);
 	write(fout,str);
 	close(fout);
+	return 1;
 }
 
-//loads an as from the given file.
+/**
+* Use this to load an address space from a file to which an address space was
+* previously saved via assave. Changes to the address space will NOT be 
+* reflected in the file.
+* param: filename - the file to load from.
+* returns: a copy of the address space saved in the file.
+*/
 @define asload(filename)
 {
 	@local fin, str, tmp;
@@ -188,8 +220,14 @@ asfile_identifier="AS1";
 }
 
 
-@define test()
+/**
+* use this to test address space saving and loading.
+* param: none
+* returns: void
+*/
+@define asutils_test()
 {
+	@local coredom, p, q, loaded;
 	@include <core.cqct>
 	coredom = mkcoreas("core.29360");
 	assave(coredom,"file.as");
@@ -212,4 +250,5 @@ asfile_identifier="AS1";
 	print(*q);
 }
 
-//test();
+//asutils_test();
+}

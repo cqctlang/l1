@@ -1,4 +1,5 @@
 
+@global dynamictypes_defined;
 
 /*
 This file provides the ability to create dynamic types, or types
@@ -23,6 +24,12 @@ refine(p) to create a pointer that points to the refined version
 of the type of p. 
 */ 
 
+
+if (dynamictypes_defined == nil) 
+{
+@local unrollTypedef;
+@global REFINE_KEY, refine, dynamictypes_example; 
+
 REFINE_KEY = "refine";
 
 @define unrollTypedef(t)
@@ -31,6 +38,11 @@ REFINE_KEY = "refine";
 	return t;
 }
 
+/**
+* Refines the type of the pointer p.
+* params: p is a pointer whose type is being refined
+* output: a pointer p', which has the same value as p but has a refined type (if the original type of p supported refinement).
+*/
 @define refine(p)
 {
 	@local t, flds, new_flds, i, new_sz, new_t;
@@ -70,17 +82,22 @@ REFINE_KEY = "refine";
 	return {mkctype_ptr(new_t,nsptr(domof(p)))}p;
 }
 
-
-
-@include <dump.cqct>
-@define example() {
+/**
+An example of how one might use dynamic types.
+*/
+@define dynamictypes_example() {
+	@local ns,dom,q,i;
+	@include <dump.cqct>
 	ns = @names c64le {
 		
 		struct Vector {
 			@0 int size;
 			@["offset" : 4,
 			  REFINE_KEY : @lambda(p) {
-				return [4,mkctype_array(@typeof(int),p->size)];
+				@local dom;
+				dom = domof(p);
+				return [4,mkctype_array(@typeof(dom`int),
+							p->size)];
 			  }] int data[];
 			@0x8;
 		};
@@ -97,13 +114,13 @@ REFINE_KEY = "refine";
 				@local dom;
 				dom = domof(p);
 				switch (p->type) {
-				case dom`T_INT: return [4,@typeof(int*)];
+				case dom`T_INT: return [4,@typeof(dom`int*)];
 				case dom`T_VEC: 
 					return [4,
 						subtype(
 					 @typeof(struct dom`Vector*))];
 				}
-				return [4,@typeof(int)];
+				return [4,@typeof(dom`int)];
 			  }
 			] void* contents;
 			@0x8;
@@ -155,4 +172,5 @@ REFINE_KEY = "refine";
 
 }
 
-//example();
+//dynamictypes_example();
+}
