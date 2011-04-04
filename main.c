@@ -336,7 +336,8 @@ readlinkf(char *path)
 	return p;
 fail:
 	free(path);
-	free(buf);
+	if(path != buf)
+		free(buf);
 	free(tmp);
 	return 0;
 }
