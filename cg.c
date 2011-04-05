@@ -780,6 +780,7 @@ static void
 cgrand(Code *c, Operand *rand, Expr *e)
 {
 	switch(e->kind){
+	case E_tid:
 	case Eid:
 		randvarloc(rand, e->xp, 1);
 		break;
@@ -1036,8 +1037,9 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
 		f->live = olive;
 		break;
+	case E_tg:
 	case Eg:
-		if(e->e1->kind != Eid)
+		if(e->e1->kind != Eid && e->e1->kind != E_tid)
 			fatal("bug");
 		varloc(&dst, e->e1->xp, 1);
 		if(loc != Effect){
@@ -1212,7 +1214,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgctl(code, p, p->Return, nxt, &e->src);
 		}
 		break;
-	/* can Eid and Econst be rationalized with cgrand? */
+	/* can Eid/E_tid and Econst be rationalized with cgrand? */
+	case E_tid:
 	case Eid:
 		i = nextinsn(code, &e->src);
 		i->kind = Imov;

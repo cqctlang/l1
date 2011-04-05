@@ -259,9 +259,12 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		}
 		return 0;
 	}else{
-		e = docompile2(&ctx, e, top, argsid);
+		e = docompileb(&ctx, e, top, argsid);
 		if(e == 0)
 			return 0;
+//		e = docompile2(&ctx, e, top, argsid);
+//		if(e == 0)
+//			return 0;
 		checkxp(e);
 		if(cqctflags['T']){
 			phase[ntv] = "2";

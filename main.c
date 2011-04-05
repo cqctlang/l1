@@ -48,6 +48,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-z send output to /dev/null\n");
 	fprintf(stderr, "\t-s do not use default load path\n");
 	fprintf(stderr, "\t-lDIR add DIR to the load path\n");
+	fprintf(stderr, "\t-d suppress prelude\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
 	fprintf(stderr, "\t-a dump expressions as they are compiled\n");
 	fprintf(stderr, "\t-k print both line and column for parse errors\n");
@@ -413,6 +414,7 @@ main(int argc, char *argv[])
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
+	opt['d'] = 1;		/* prelude */
 	opt['x'] = 1;		/* execute */
 	opt['g'] = 1;		/* gc in separate thread */
 	opt['s'] = 1;		/* include default load path */
@@ -421,7 +423,7 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6be:ghkl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6bde:ghkl:m:opqrstTwxz"))){
 		switch(c){
 		case '6':
 		case 'b':
@@ -438,6 +440,7 @@ main(int argc, char *argv[])
 		case 'z':
 			opt[c] = 1;
 			break;
+		case 'd':
 		case 'g':
 		case 's':
 		case 'x':

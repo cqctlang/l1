@@ -62,6 +62,7 @@ int
 issimple(Expr *e)
 {
 	return (e->kind == Eid
+		|| e->kind == E_tid
 		|| e->kind == Econst
 		|| e->kind == Econsts
 		|| e->kind == Ekon
@@ -222,11 +223,17 @@ freeexprx(Expr *e)
 	Var *v;
 
 	switch(e->kind){
+	case E_tid:
+		v = e->xp;
+		if(v->where != Vtop)
+			fatal("bug");
+		efree(v);
+		break;
 	case Eid:
+		/* these point to lambda/block vars freed elsewhere */
 		v = e->xp;
 		if(v->where == Vtop)
-			/* others types point to lambda/block vars */
-			efree(v);
+			fatal("bug");
 		break;
 	case Elambda:
 		freelambda(e->xp);
@@ -255,6 +262,7 @@ szexprx(Expr *e)
 
 	m = 0;
 	switch(e->kind){
+	case E_tid:
 	case Eid:
 		v = e->xp;
 		if(v->where == Vtop)
@@ -475,6 +483,9 @@ pass0_5(Expr *e, Xenv *lex)
 			v->box = 1;
 		pass0_5(e->e2, lex);
 		break;
+	case E_tg:
+		pass0_5(e->e2, lex);
+		break;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
@@ -523,6 +534,8 @@ fv(Expr *e, Xenv *lex, Xenv *loc, Xenv *free)
 		bindvars(rib, b->loc, b->nloc);
 		fv(e->e2, lex, rib, free);
 		freexenv(rib);
+		break;
+	case E_tid:
 		break;
 	case Eid:
 		v = xenvlook(lex, e->id);
@@ -683,11 +696,17 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		pass2(e->e2, rib, top);
 		freexenv(rib);
 		break;
+	case E_tid:
+		if(xenvlook(lex, id))
+			fatal("bug");
+		v = topvar(top, id);
+		e->xp = v;
+		break;
 	case Eid:
 		id = e->id;
 		v = xenvlook(lex, id);
 		if(!v)
-			v = topvar(top, id);
+			fatal("bug");
 		e->xp = v;
 		break;
 	case Eelist:
@@ -827,11 +846,17 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 		warnunused(ctx, e->e1, rib);
 		freexenv(rib);
 		break;
+	case E_tid:
+		id = e->id;
+		v = xenvlook(lex, id);
+		if(v)
+			fatal("bug");
+		break;
 	case Eid:
 		id = e->id;
 		v = xenvlook(lex, id);
 		if(!v)
-			return;	/* must be toplevel */
+			fatal("bug");
 		xenvupdate(lex, id, (void*)Vref);
 		break;
 	case Eelist:
