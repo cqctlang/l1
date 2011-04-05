@@ -7162,10 +7162,135 @@ That information can be harvested directly by the following functions:
 </div>
 </div>
 
+<h5 id="lib:nsgraph.cqct">nsgraph.cqct</h5>
+
+<span class="id">nsgraph.cqct</span> provides code for 
+creating and analyzing graphs of types inferred from a namespace.
+
+<div class="docitem" id="fn:gentypegraph">
+<div class="proto">
+<div class="function">
+	<span class="id">gentypegraph(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+	Returns a table representation of the graph implied by the 
+	structures and unions in the given namespace.
+</div>
+</div>
+
+<div class="docitem" id="fn:printtypegraph">
+<div class="proto">
+<div class="function">
+	<span class="id">printtypegraph(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints the typegraph associated with the given namespace.
+</div>
+</div>
+
+<div class="docitem" id="fn:printtypegraph_dot">
+<div class="proto">
+<div class="function">
+	<span class="id">printtypegraph_dot(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints a dot compatible representation of the typegraph 
+	associated with the given namespace.
+</div>
+</div>
+
+<div class="docitem" id="fn:typegraph_edge_iter">
+<div class="proto">
+<div class="function">
+	<span class="id">typegraph_edge_iter(<span class="arg">tg</span>,
+		<span class="arg">fn</span>)
+	</span>
+</div>
+<div class="param">
+	<span class="arg">tg</span>: <span class="type">table representation of
+	the typegraph</span> 
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Runs fn(from_node,to_node) for all edges in the typegraph.
+</div>
+</div>
+
+<div class="docitem" id="fn:typegraph_node_iter">
+<div class="proto">
+<div class="function">
+	<span class="id">typegraph_node_iter(<span class="arg">tg</span>,
+		<span class="arg">fn</span>)
+	</span>
+</div>
+<div class="param">
+	<span class="arg">tg</span>: <span class="type">table representation of
+	the typegraph</span> 
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Runs fn(from_node,to_nodes) for all nodes in the typegraph.
+	Note that the second parameter to fn will be a list.
+</div>
+</div>
+
 <h5 id="lib:nsutil.cqct">nsutil.cqct</h5>
 
 <span class="id">nsutil.cqct</span> provides code for 
-checking type equality ...
+checking type equality, printing namespaces, and iterating
+over types in namespaces.
+
+<div class="docitem" id="fn:all_types">
+<div class="proto">
+<div class="function">
+	<span class="id">all_types(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Print all the types in a namespace (not parsable by cqct).
+</div>
+</div>
 
 <div class="docitem" id="fn:nsdiff">
 <div class="proto">
@@ -7192,6 +7317,28 @@ checking type equality ...
 	in ns2, and tab2 contains types in ns2 that are not in ns1, and tab3
 	maps types in either ns to a type with the same name in the other ns
 	that is not the same type.
+</div>
+</div>
+
+<div class="docitem" id="fn:nsiter">
+<div class="proto">
+<div class="function">
+	<span class="id">nsiter(<span class="arg">ns</span>,
+		<span class="arg">fn</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span> 
+</div>
+<div class="returns">
+<span class="type">array</span>
+</div>
+</div>
+<div class="desc">
+	Runs fn(type) for every type in the namespace.
 </div>
 </div>
 
@@ -7276,6 +7423,24 @@ checking type equality ...
 	Does not recursivly check structures but instead checks that
 	they have the same name. Does check that arrays have the same length,
 	functions have the same parameter and return types.
+</div>
+</div>
+
+<div class="docitem" id="fn:types_with_ptrs">
+<div class="proto">
+<div class="function">
+	<span class="id">types_with_ptrs(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Print all the types containing pointers.
 </div>
 </div>
 

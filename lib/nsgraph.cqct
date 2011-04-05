@@ -1,3 +1,17 @@
+
+@global nsgraph_defined;
+
+
+if (nsgraph_defined == nil)
+{
+@local canonical, isstructptr, hasstructptr, cachehelper, cacheptrlist;
+@local type_debug;
+@global gentypegraph, printtypegraph_dot,typegraph_edge_iter;
+@global typegraph_node_iter,printtypegraph;
+
+nsgraph_defined = 1;
+@include <nsutil.cqct>
+
 type_debug = 0;
 
 // remove typedefs
@@ -30,6 +44,7 @@ type_debug = 0;
 		return hasstructptr(subtype(t));
 	}
 	else if (issu(t)) {
+		@local flds,i;
 		flds = fields(t);
 		for(i=0; i < length(flds); i++) {
 			if (hasstructptr(fieldtype(vecref(flds, i))))
@@ -40,23 +55,6 @@ type_debug = 0;
 	return 0;
 }
 		  
-
-// calls fn(type) for each type in namespace
-@define nsiter(ns, fn)
-{
-	@local ttable, tlist, numtypes, i;
-	
-	ttable = ns.enumtype();
-	tlist = tabenum(ttable);
-
-	numtypes = length(tlist) / 2;
-
-	for (i = 0; i < numtypes; i++) {
-		fn(vecref(tlist, i + numtypes));
-	}
-}
-
-
 // handle struct members, sometimes recursively
 @define cachehelper(t, cache)
 {
@@ -86,7 +84,7 @@ type_debug = 0;
 // look for pointers to other structs
 @define cacheptrlist(t, cache)
 {
-	@local ptrtab, vals, cachedval;
+	@local ptrtab, vals, cachedval,flds,i,ft,plist,j;
 	ptrtab = mktab();
 
 	if (type_debug) {
@@ -124,10 +122,16 @@ type_debug = 0;
 	return vals;
 }     
 
-// a type graph is a representation of struct->struct 
-// points-to relationships encoded in C struct types. 
+/*
+* a type graph is a representation of struct->struct 
+* points-to relationships encoded in C struct types. 
+* param: ns - the namespace
+* returns: a table representing the graph of structures and union 
+*   relationships in the given namespace
+*/
 @define gentypegraph(ns)
 {
+	@local tg;
 	tg = mktab();
 	nsiter(ns,
 		 @lambda(t) {
@@ -138,7 +142,12 @@ type_debug = 0;
 	return tg;
 }
 
-// call fn(from_node, to_nodes) for all nodes in type graph
+/** 
+* call fn(from_node, to_nodes) for all nodes in type graph
+* param: tg - the table representation of the type graph
+* param: fn - the function to run
+* returns: nil
+*/
 @define typegraph_node_iter(tg, fn)
 {
 	@local entries, numentries, i;	
@@ -150,7 +159,12 @@ type_debug = 0;
 	}
 }
 
-// call fn(from_node, to_node) for all edges in type graph
+/**
+* call fn(from_node, to_node) for all edges in type graph
+* param: tg - table representation of the type graph
+* param: fn - the function to be run
+* returns: nil
+*/
 @define typegraph_edge_iter(tg, fn)
 {
 	@local edgefn;
@@ -171,6 +185,7 @@ type_debug = 0;
 	tg = gentypegraph(ns);
 
 	printfn = @lambda(from, tolist) {
+		@local j;
 		if (0 == length(tolist))
 			return;
 
@@ -197,16 +212,5 @@ type_debug = 0;
 	printf("}\n");
 }
 
-@define types_with_ptrs(ns)
-{
-	printf("The following types contain struct pointers:\n");
-	nsiter(ns, @lambda(x) { 
-			if (hasstructptr(x))
-				printf("\t%t\n", x); 
-		});
-}
 
-@define all_types(ns)
-{
-	nsiter(ns, @lambda(x) { printf("%t\n", x); });
-} 
+}
