@@ -7455,8 +7455,16 @@ source distribution is compiled.
 </p>
 
 <p>
-The default load path used by the l1 executable is
-determined in the following way:
+During initialization, the l1 executable determines
+an initial load path.  The load path is initialized to the empty list.
+Then load paths specified on the command line by the <tt>-l</tt>
+flag are appended, in order, to the load path.
+Finally, unless it is suppressed with the <tt>-s</tt> flag,
+the default load path is appended to the load path.
+</p>
+
+<p>
+The default load path is determined in the following way:
 </p>
 
 <ul>
@@ -7479,14 +7487,21 @@ directories, is appended to the default load path.
 <li>
 If neither <span class="val">LIBDIR</span>  (at compile
 time) nor <span class="val">L1LIBPATH</span> (at run
-time) is defined, then at run time the default load path is set
-to the list containing the single directory
+time) is defined, then the default load path is
+set to the list containing the single directory
 <span class="val"><span class="arg">L1PATH</span>/lib</span>,
 where <span class="arg">L1PATH</span> is the directory containing
 the L1 executable.
 </li>
 
 </ul>
+
+<p>
+The load path may be inspected and changed from within
+Cinquecento through the built-in functions
+<a href="#fn:setloadpath">loadpath</a>
+and <a href="#fn:setloadpath">setloadpath</a>.
+</p>
 
 <h4 id="sec:cinterface">C Interface</h4>
 
