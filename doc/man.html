@@ -7160,6 +7160,123 @@ That information can be harvested directly by the following functions:
 </div>
 </div>
 
+<h5 id="lib:nsutil.cqct">nsutil.cqct</h5>
+
+<span class="id">nsutil.cqct</span> provides code for 
+checking type equality ...
+
+<div class="docitem" id="fn:nsdiff">
+<div class="proto">
+<div class="function">
+	<span class="id">nsdiff(<span class="arg">t1</span>,
+		<span class="arg">t2</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">n1</span>: <span class="type">type</span> 
+</div>
+<div class="param">
+<span class="arg">n2</span>: <span class="type">type</span> 
+</div>
+<div class="returns">
+<span class="type">array</span>
+</div>
+</div>
+<div class="desc">
+	Prints the types in each namespace that are not contained
+	in the other namespace or have a different definition in 
+	the other namespace. Returns [tab1, tab2, tab3] where tab1 
+	contains types in ns1 that are not
+	in ns2, and tab2 contains types in ns2 that are not in ns1, and tab3
+	maps types in either ns to a type with the same name in the other ns
+	that is not the same type.
+</div>
+</div>
+
+<div class="docitem" id="fn:printns">
+<div class="proto">
+<div class="function">
+	<span class="id">printns(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints the namespace in a format parsable by cqct in an @names
+	directive.
+</div>
+</div>
+
+<div class="docitem" id="fn:printtype">
+<div class="proto">
+<div class="function">
+	<span class="id">printtype(<span class="arg">t1</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">t1</span>: <span class="type">type</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Prints the type in a format parsable by cqct.
+</div>
+</div>
+
+<div class="docitem" id="fn:typeequal">
+<div class="proto">
+<div class="function">
+	<span class="id">typeequal(<span class="arg">t1</span>,
+		<span class="arg">t2</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">t1</span>: <span class="type">type</span> 
+</div>
+<div class="param">
+<span class="arg">t2</span>: <span class="type">type</span> 
+</div>
+<div class="returns">
+<span class="type">int</span>
+</div>
+</div>
+<div class="desc">
+	Recursivly checks that the two types are equal. 
+</div>
+</div>
+
+<div class="docitem" id="fn:typenameequal">
+<div class="proto">
+<div class="function">
+	<span class="id">typenameequal(<span class="arg">t1</span>,
+		<span class="arg">t2</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">t1</span>: <span class="type">type</span> 
+</div>
+<div class="param">
+<span class="arg">t2</span>: <span class="type">type</span> 
+</div>
+<div class="returns">
+<span class="type">int</span>
+</div>
+</div>
+<div class="desc">
+	Returns 0 if the type names are different, 1 if they are the same.
+	Does not recursivly check structures but instead checks that
+	they have the same name. Does check that arrays have the same length,
+	functions have the same parameter and return types.
+</div>
+</div>
+
 
 
 <h4 id="sec:cinterface">C Interface</h4>

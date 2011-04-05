@@ -1,3 +1,21 @@
+
+@global nsutil_defined;
+
+
+if (nsutil_defined == nil)
+{
+@global typenameequal, typeequal, nsdiff, printtype, printns;
+
+nsutil_defined = 1;
+
+
+/**
+* checks that the names of types t1 and t2 are equal.
+* param: t1 - the first type to check
+* param: t2 - the second type
+* returns: 1 if the two types have equal names (they would have the same
+*   form when used to declare a C variable), 0 otherwise.
+*/
 @define typenameequal(t1, t2){
 	@local i, j, flds1, flds2, ps1, ps2, p1, p2,
                f1, f2, c1, c2, tag1, tag2, n1, n2;
@@ -80,6 +98,12 @@
 }
 
 
+/**
+* Recursivly check that two types are equal.
+* param: t1 - the first type to check
+* param: t2 - the second type
+* returns: 1 if the two types are equal, 0 otherwise
+*/
 @define typeequal(t1, t2){
 	@local i, j, flds1, flds2, ps1, ps2, p1, p2,
                f1, f2, c1, c2, tag1, tag2, n1, n2;
@@ -166,6 +190,7 @@
 	}
 
 	if(isenum(t1) && isenum(t2)){
+		@local cs1, cs2;
 		tag1 = suetag(t1);
 		tag2 = suetag(t2);
 		if(strstr(tag1, "anon_") != nil
@@ -192,6 +217,16 @@
 	return 0;
 }
 
+/**
+* Calculates the differences between the two namespaces 
+* (ignoring annonomous types) 
+* param: ns1 - namespace
+* param: ns2 - namespace
+* returns: [tab1, tab2, tab3] where tab1 contains types in ns1 that are not
+*    in ns2, and tab2 contains types in ns2 that are not in ns1, and tab3
+*    maps types in either ns to a type with the same name in the other ns
+*    that is not the same type.
+*/
 @define nsdiff(ns1, ns2){
 	@local u1, u2, diff, nsdiff0, name1, name2;
 
@@ -237,16 +272,22 @@
 				printf("\t%t\n", t);
 			}, u1);
 	}
-	if(length(diff)){
+	if (length(diff)){
 		printf("differences between %s and %s:\n", name1, name2);
 		foreach(@lambda(t,ignore){
-				printf("\t%t\n", t);
-			}, diff);
+			printf("\t%t\n",t);
+		}, diff);
 	}
+	return [u2,u1,diff];
 }
 
+/**
+* Print the type t in a format parsable by cqct.
+* param: t - a type
+* returns: nil
+*/
 @define printtype(t){
-	@local ct, i, fld, flds, sz, off;
+	@local ct, i, fld, flds, sz, off, ft,id;
 
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
@@ -277,6 +318,7 @@
 	}else if(istypedef(t)){
 		printf("typedef %t %s\n", typedeftype(t), typedefid(t));
 	}else if(isenum(t)){
+		@local ens,en;
 		printf("%s %s {\n", suekind(t), suetag(t));
 		ens = enumconsts(t);
 		for(i = 0; i < veclen(ens); i++){
@@ -287,6 +329,11 @@
 	}
 }
 
+/**
+* prints a namespace in a format includable in an @names directive.
+* param: ns - a namespace
+* returns: nil
+*/
 @define printns(ns){
 	@local i, vec;
 	vec = tabvals(ns.enumtype());
@@ -305,3 +352,6 @@
 		printf("\t%t;\n", sym);
 	}
 }
+
+}
+
