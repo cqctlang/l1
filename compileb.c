@@ -57,6 +57,7 @@ toplevel(U *ctx, Expr *e, Env *env)
 		id = e->id;
 		if(!envbinds(env, id))
 			envgetbind(env, id);
+		printf("Zid %s toplevel\n", id);
 		se = Ztid(id);
 		putsrc(se, &e->src);
 		freeexpr(e);
@@ -65,6 +66,7 @@ toplevel(U *ctx, Expr *e, Env *env)
 		id = e->e1->id;
 		if(!envbinds(env, id))
 			envgetbind(env, id);
+		printf("Ztg %s toplevel\n", id);
 		se = Ztg(id, toplevel(ctx, e->e2, env));
 		putsrc(se, &e->src);
 		e->e2 = 0;
@@ -122,6 +124,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		if(xenvlook(lex, id))
 			return e;
 		else if(envbinds(top, id)){
+			printf("Ztid %s resolve\n", id);
 			se = Ztid(id);
 			putsrc(se, &e->src);
 			freeexpr(e);
@@ -142,6 +145,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 			return e;
 		}else if(envbinds(top, id)){
 			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
+			printf("Ztg %s resolve\n", id);
 			se = Ztg(id, e->e2);
 			e->e2 = 0;
 			putsrc(se, &e->src);

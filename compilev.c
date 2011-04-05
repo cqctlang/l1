@@ -697,6 +697,7 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		freexenv(rib);
 		break;
 	case E_tid:
+		id = e->id;
 		if(xenvlook(lex, id))
 			fatal("bug");
 		v = topvar(top, id);
