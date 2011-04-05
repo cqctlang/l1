@@ -30,6 +30,8 @@ if (dynamictypes_defined == nil)
 @local unrollTypedef;
 @global REFINE_KEY, refine, dynamictypes_example; 
 
+dynamictypes_defined = 1;
+
 REFINE_KEY = "refine";
 
 @define unrollTypedef(t)

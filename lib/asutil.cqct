@@ -20,6 +20,8 @@ if (asutil_defined == nil)
 @global asfile_identifier,ascopy,assave_str,asload_str,assave,asload;
 @global asutils_test;
 
+asutil_defined = 1;
+
 @include <dynamictypes.cqct>
 
 asfile_identifier="AS1";

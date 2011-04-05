@@ -218,4 +218,6 @@ Function for testing.
 }
 
 //foo();
+
+dump_defined = 1;
 }

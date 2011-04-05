@@ -797,4 +797,5 @@ if (elf_defined == nil)
   return head (tail (tail (tail (tail (tail (tail (tail (eseg))))))));
 }
 
+elf_defined = 1;
 }
