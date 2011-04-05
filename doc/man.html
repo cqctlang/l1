@@ -51,6 +51,10 @@
 <a href="#sec:characters">Characters</a><br />
 <a href="#sec:strings">Strings</a><br />
 <br />
+<em>System Operations</em><br />
+<a href="#sec:storage">Storage Management</a><br />
+<a href="#sec:compile">Compilation and Evaluation</a><br />
+<br />
 <em>Built-in Libraries</em><br />
 <a href="#sec:io">I/O</a><br />
 <a href="#sec:fs">Filesystem Functions</a><br />
@@ -63,6 +67,7 @@
 <a href="#sec:cinterface">C Interface</a><br />
 <br />
 <br />
+<a href="#sec:bib">Bibliography</a><br />
 <a href="#sec:synindex">Syntax Index</a><br />
 <a href="#sec:cindex">C Interface Index</a><br />
 <a href="#sec:fnindex">Built-in Function Index</a><br />
@@ -1401,11 +1406,20 @@ of Cinquecento domains.
 </p>
 
 <p>
-A domain is an interface to three features of a program
-in execution: its memory, symbols, and types.  This
-interface is defined procedurally; like an object in an
-object-oriented language, a domain encapsulates the
-implementation of a predefined set of operations.
+Domains are Cinquecento objects that are used to
+represent programs in execution.  This representation
+is based on the idea of providing an interface to
+program state that is based on the syntax of C
+programming language.  Domains represent three aspects
+of a program in execution: its memory, symbols, and
+types.
+</p>
+
+</p>
+The domain interface is defined procedurally: like an
+object in an object-oriented language, a domain
+encapsulates the implementation of a predefined set of
+operations.
 </p>
 
 <p>
@@ -1425,14 +1439,11 @@ These objects define complementary subsets of the domain interface.
 <p>
 An <span class="type">address space</span> represents the memory of a C program:
 a mapping of byte addresses to byte values.
-It encapsulates four functions.
+It encapsulates three functions.
 Two access functions,
 <span class="type">get</span>
 and <span class="type">put</span>,
 read and write memory.
-<span class="type">Ismapped</span>
-tests whether a contiguous
-address range is accessible.
 <span class="type">Map</span>
 returns the accessible address
 ranges.
@@ -6160,6 +6171,212 @@ Returns a new string containing formatted output.
 </div>
 
 
+<h4 id="sec:storage">Storage Management</h4>
+
+<p>
+Storage in the L1 implementation of Cinquecento is
+managed by a generational stop-the-world copying
+garbage collector.  Its design draws on published
+descriptions of storage management in <em>Chez Scheme</em>
+[<a href="#bib:chez">Chez</a>, <a href="#bib:bibop">BiBOP</a>,
+<a href="#bib:bibop">Guardians</a>];
+readers seeking details of its operation should begin with
+those publications.
+</p>
+
+<p>
+User functions related to storage management are:
+</p>
+
+
+<div class="docitem" id="fn:gc">
+<div class="proto">
+<div class="function">
+<span class="id">gc()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Runs the garbage collector.
+</div>
+</div>
+
+<div class="docitem" id="fn:postgc">
+<div class="proto">
+<div class="function">
+<span class="id">postgc()</span>
+</div>
+<div class="returns">
+<span class="type">ignored</span>
+</div>
+</div>
+<div class="desc">
+Following every collection, the system calls the
+function bound to the top-level variable
+<span class="id">postgc</span>.  By default the value
+of <span class="id">postgc</span> is a function that
+returns <span class="val">nil</span>.  Programs may
+modify <span class="id">postgc</span> to be a function
+that does additional work intended to be performed
+following a collection.  Since other code may
+independently modify
+<span class="id">postgc</span>, it recommended that the
+old value of <span class="id">postgc</span> be called
+during the evaluation of its replacement.  For example,
+the first call
+to <span class="fnindex"><a href="#fn:finalize">finalize</a></span>
+replaces <span class="id">postgc</span> with a function
+that first calls the previous value
+of <span class="id">postgc</span>, then services
+finalizers.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:compact">
+<div class="proto">
+<div class="function">
+<span class="id">compact()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This function moves all currently live objects to a
+region of memory that will never be collected again.
+Its effect is to spare the collector, usually,
+the overhead of scanning these objects ever again, at
+the expense of never reclaiming their storage.  Mutable
+objects preserved by <span class="id">compact</span>
+that later acquire references to objects in younger
+generations may still be scanned during collection.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:gclock">gclock(<span class="arg">val</span>)</span>
+</div>
+<div class="function">
+<span class="id" id="fn:gcunlock">gcunlock(<span class="arg">val</span>)</span>
+</div>
+<div class="param">
+<span class="arg">val</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Prevents the storage associated
+with <span class="arg">val</span> from being reclaimed
+or moved by the collector.  Locking incurs significant
+space and execution overhead; it should be done
+sparingly.  An object may be locked multiple times.
+A locked object
+may be later unlocked by an equal number of calls to <span class="id">gcunlock</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:gcstats">gcstats()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Prints information about the current state of the storage manager
+in an undefined format.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:mkguardian">mkguardian()</span>
+</div>
+<div class="returns">
+<span class="type">procedure</span>
+</div>
+</div>
+<div class="desc">
+Guardians protect objects from reclamation.  The
+semantics and interface of the guardians provided by L1
+are very similar to those in published descriptions of <em>Chez Scheme</em>
+[<a href="#bib:chez">Chez</a>].
+</div>
+</div>
+
+<div class="docitem" id="fn:finalize">
+<div class="proto">
+<div class="function">
+<span class="id">finalize(v, fn)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function or nil</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+
+Registers a finalizer function to be called before the
+garbage collector reclaims storage for the
+value <span class="arg">v</span>.  The collector schedules a
+call to the finalizer <span class="arg">fn</span> some
+time after determining that <span class="arg">v</span>
+is unreachable.  The sole argument passed
+to <span class="arg">fn</span>
+is <span class="arg">v</span>.
+
+<p>
+At the time it is passed to the finalizer, the
+value <span class="arg">v</span> is unreachable but
+otherwise has no special status.  In particular, the
+finalizer may reintroduce references to the value,
+e.g. by storing it in a hash table.  The finalizer will
+not be called again for such a reincarnated value;
+a new call to <span class="id">finalize</span>
+must be arranged.
+</p>
+
+<p>
+Only one finalizer can be associated with a value at
+a time; <span class="id">finalize</span> replaces
+the previously registered finalizer, if any.
+To disassociate a finalizer from a value <span class="arg">v</span>,
+call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
+</p>
+
+<p>
+When shutting down the last VM (via 
+<span class="fnindex"><a href="#fn:cqctfreevm">cqctfreevm</a></span>),
+the Cinquecento system performs a final garbage
+collection and calls finalizers for unreachable values.
+However, finalizers for objects that are still reachable
+at shutdown may not be called.
+</p>
+
+<p>
+Finalizers are implemented through <a href="#fn:mkguardian">guardians</a>
+and <span class="fnindex"><a href="#fn:postgc">postgc</a></span>.
+</p>
+
+</div>
+</div>
+
 
 <h4 id="sec:system">System Functions</h4>
 
@@ -6354,62 +6571,6 @@ started.  All user-defined bindings are destroyed.
 </div>
 
 
-<div class="docitem" id="fn:finalize">
-<div class="proto">
-<div class="function">
-<span class="id">finalize(v, fn)</span>
-</div>
-<div class="param">
-<span class="arg">v</span>: <span class="type">any value</span>
-</div>
-<div class="param">
-<span class="arg">fn</span>: <span class="type">function or nil</span>
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-
-Registers a finalizer function to be called before the
-garbage collector reclaims storage for the
-value <span class="arg">v</span>.  The GC schedules a
-call to the finalizer <span class="arg">fn</span> some
-time after determining that <span class="arg">v</span>
-is unreachable.  The sole argument passed
-to <span class="arg">fn</span>
-is <span class="arg">v</span>.
-
-<p>
-At the time it is passed to the finalizer, the
-value <span class="arg">v</span> is unreachable but
-otherwise has no special status.  In particular, the
-finalizer may reintroduce references to the value,
-e.g. by storing it in a hash table.  The finalizer will
-not be called again for such a reincarnated value;
-a new call to <span class="id">finalize</span>
-must be arranged.
-</p>
-
-<p>
-Only one finalizer can be associated with a value at
-a time; <span class="id">finalize</span> replaces
-the previously registered finalizer, if any.
-To disassociate a finalizer from a value <span class="arg">v</span>,
-call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
-</p>
-
-<p>
-When shutting down the last VM (via 
-<span class="fnindex"><a href="#fn:cqctfreevm">cqctfreevm</a></span>),
-the Cinquecento system performs a final garbage
-collection and calls finalizers for unreachable values.
-However, finalizers for objects that are still reachable
-at shutdown may not be called.
-</p>
-
-</div>
-</div>
 
 <h4 id="sec:other">Other Functions</h4>
 
@@ -6439,13 +6600,13 @@ environment of the caller.
 </div>
 
 
-<div class="docitem" id="fn:inflate">
+<div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id">inflate(<span class="arg">buf</span>)</span>
+<span class="id" id="fn:inflate">inflate(<span class="arg">buf</span>)</span>
 </div>
 <div class="function">
-<span class="id">inflatezlib(<span class="arg">buf</span>)</span>
+<span class="id" id="fn:inflatezlib">inflatezlib(<span class="arg">buf</span>)</span>
 </div>
 <div class="param">
 <span class="arg">buf</span>: <span class="type">string</span> or <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
@@ -7259,6 +7420,46 @@ machines sharing the environment have been freed.
 </div>
 </div>
 
+<h4 id="sec:bib">Bibliography</h4>
+
+<div>
+<table>
+
+<tr>
+<td>
+<span id="bib:chez">[Chez]</span>
+</td>
+<td>
+ R. Kent Dybvig. <em><a href="http://www.scheme.com/csug8">The Chez Scheme Version 8 User's Guide</a></em>.  Cadence Research Systems, 2009.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:bibop">[BiBOP]</span>
+</td>
+<td>
+R. Kent Dybvig, David Eby, and Carl Bruggeman.
+<em><a href="http://www.cs.indiana.edu/~dyb/pubs/bibop.pdf">Don't stop the BiBOP: Flexible and efficient storage management for dynamically typed languages.</a></em>  Indiana University technical report #400, March 1994. 
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:guardian">[Guardians]</span>
+</td>
+<td>
+R. Kent Dybvig, David Eby, and Carl Bruggeman.
+<em><a href="http://www.cs.indiana.edu/~dyb/pubs/guardians-pldi93.pdf">
+Guardians in a generation-based collector.</a></em>
+ACM SIGPLAN 1993 Conference on Programming Language
+Design and Implementation, 207-216, June 1993.
+</td>
+</tr>
+
+</table>
+
+
 <h4 id="sec:synindex">Syntax Index</h4>
 <div class="id">
 <div class="index">
@@ -7375,6 +7576,7 @@ machines sharing the environment have been freed.
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
 <a href="#fn:bsearch">bsearch</a><br />
 <a href="#fn:close">close</a><br />
+<a href="#fn:compact">compact</a><br />
 <a href="#fn:concat">concat</a><br />
 <a href="#fn:copy">copy</a><br />
 <a href="#fn:count">count</a><br />
@@ -7393,6 +7595,10 @@ machines sharing the environment have been freed.
 <a href="#fn:finalize">finalize</a><br />
 <a href="#fn:foreach">foreach</a><br />
 <a href="#fn:fprintf">fprintf</a><br />
+<a href="#fn:gc">gc</a><br />
+<a href="#fn:gclock">gclock</a><br />
+<a href="#fn:gcstats">gcstats</a><br />
+<a href="#fn:gcunlock">gcunlock</a><br />
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
@@ -7492,6 +7698,7 @@ machines sharing the environment have been freed.
 <a href="#fn:mkdom">mkdom</a><br />
 <a href="#fn:mkfd">mkfd</a><br />
 <a href="#fn:mkfield">mkfield</a><br />
+<a href="#fn:mkguardian">mkguardian</a><br />
 <a href="#fn:mklist">mklist</a><br />
 <a href="#fn:mkns">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />
@@ -7506,6 +7713,7 @@ machines sharing the environment have been freed.
 <a href="#fn:params">params</a><br />
 <a href="#fn:paramtype">paramtype</a><br />
 <a href="#fn:pop">pop</a><br />
+<a href="#fn:postgc">postgc</a><br />
 <a href="#fn:printf">printf</a><br />
 <a href="#fn:push">push</a><br />
 <a href="#fn:putbytes">putbytes</a><br />
