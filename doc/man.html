@@ -2189,31 +2189,6 @@ that can represent the pointer type defined in <span class="arg">ns</span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:nsrepbase">
-<div class="proto">
-<div class="function">
-<span class="id">nsrepbase(<span class="arg">ns</span>,<span class="arg">rep</span>)</span>
-</div>
-<div class="param">
-<span class="arg">ns</span>: <span class="type">name space</span>
-</div>
-<div class="param">
-<span class="arg">rep</span>: <span class="type">cvalue</span>
-</div>
-<div class="returns">
-<span class="type">ctype</span>
-</div>
-</div>
-<div class="desc">
-Returns a base type defined
-in <span class="arg">ns</span> whose representation
-is <span class="arg">rep</span>,
-or <span class="val">nil</span> if there is no such
-type.
-</div>
-</div>
-
-
 <p>
 C symbols have three components: the type of the symbol
 (represented as a ctype),
@@ -7521,7 +7496,6 @@ machines sharing the environment have been freed.
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
-<a href="#fn:nsrepbase">nsrepbase</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />
