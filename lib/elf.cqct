@@ -11,6 +11,8 @@ if (elf_defined == nil)
 @global elfshndx,elfother,elfinfo,elfsize,elfvisibility,elftype,elfaddr,elfname;
 @global bd,isbd;
 
+elf_defined = 1;
+
 
 
 @record bd {exec, elf, debug_aranges, debug_pubnames, debug_info, debug_abbrev,
@@ -797,5 +799,4 @@ if (elf_defined == nil)
   return head (tail (tail (tail (tail (tail (tail (tail (eseg))))))));
 }
 
-elf_defined = 1;
 }

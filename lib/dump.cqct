@@ -12,6 +12,8 @@ if (dump_defined == nil)
 @local foo;
 @global printtype, dumpns, objectStr;
 
+dump_defined = 1;
+
 
 /**
 Prints the type t in a way parsable in a .names file.
@@ -219,5 +221,4 @@ Function for testing.
 
 //foo();
 
-dump_defined = 1;
 }
