@@ -2,6 +2,55 @@
 #include "util.h"
 #include "syscqct.h"
 
+static void
+newlocal(Expr *e, char *id)
+{
+	if(e->kind != Eblock)
+		fatal("bug");
+	e->e1 = newexprsrc(&e->e1->src, Eelist, doid(id), e->e1, 0, 0);
+}
+
+static Expr*
+defloc(U *ctx, Expr *e, Expr *scope)
+{
+	Expr *p;
+	if(e == 0)
+		return e;
+	switch(e->kind){
+	case Edefloc:
+		if(scope == 0)
+			cerror(ctx, e, "@defloc without scope");
+		p = Zset(e->e1,
+			 Zlambdn(e->e2,
+				 defloc(ctx, e->e3, scope),
+				 copyexpr(e->e1)));
+		newlocal(scope->e1, e->e1->id);
+		e->e1 = 0;
+		e->e2 = 0;
+		e->e3 = 0;
+		e->e4 = 0;
+		putsrc(p, &e->src);
+		freeexpr(e);
+		return p;
+	case Escope:
+		e->e1 = defloc(ctx, e->e1, e);
+		return e;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = defloc(ctx, p->e1, scope);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = defloc(ctx, e->e1, scope);
+		e->e2 = defloc(ctx, e->e2, scope);
+		e->e3 = defloc(ctx, e->e3, scope);
+		e->e4 = defloc(ctx, e->e4, scope);
+		return e;
+	}
+}
+
 static Expr*
 globals(U *ctx, Expr *e, Env *env)
 {
@@ -105,14 +154,6 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 		e->e4 = toplevel(ctx, e->e4, env, lex);
 		return e;
 	}
-}
-
-static void
-newlocal(Expr *e, char *id)
-{
-	if(e->kind != Eblock)
-		fatal("bug");
-	e->e1 = newexprsrc(&e->e1->src, Eelist, doid(id), e->e1, 0, 0);
 }
 
 static Expr*
@@ -242,6 +283,7 @@ docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 
+	e = defloc(ctx, e, 0);
 	e = globals(ctx, e, top->env);
 	if(argsid){
 		lex = mkxenv(0);

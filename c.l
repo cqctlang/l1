@@ -38,6 +38,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@const"		{ count(ctx); }
 "@containerof"		{ count(ctx); return(CONTAINEROF); }
 "@define"		{ count(ctx); return(DEFINE); }
+"@defloc"		{ count(ctx); return(DEFLOC); }
 "@global"		{ count(ctx); return(GLOBAL); }
 "@lambda"		{ count(ctx); return(LAMBDA); }
 "@lazyapply"		{ count(ctx); return(LAPPLY); }

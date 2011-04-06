@@ -57,6 +57,7 @@ enum{
 	Edefault,
 	Edefconst,
 	Edefine,
+	Edefloc,
 	Edefrec,
 	Ederef,
 	Ediv,

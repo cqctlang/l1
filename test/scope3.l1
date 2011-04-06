@@ -1,0 +1,75 @@
+s = "@define f(x)
+{
+	if(x == 0)
+		return;
+	n = 0;
+	f(x-1);
+	n++;
+	return n;
+}
+
+//n = 0;
+
+@define g()
+{
+	printf(\"%d\n\", n);
+}
+
+if(f(5) == 1)
+	printf(\"n is local\n\");
+else
+	printf(\"n is global\n\");
+";
+eval(s);
+eval(s);
+
+
+s = "@define f(x)
+{
+	if(x == 0)
+		return;
+	n = 0;
+	f(x-1);
+	n++;
+	return n;
+}
+
+n = 0;
+
+@define g()
+{
+	printf(\"%d\n\", n);
+}
+
+if(f(5) == 1)
+	printf(\"n is local\n\");
+else
+	printf(\"n is global\n\");
+";
+eval(s);
+eval(s);
+
+s = "@define f(x)
+{
+	if(x == 0)
+		return;
+	n = 0;
+	f(x-1);
+	n++;
+	return n;
+}
+
+//n = 0;
+
+@define g()
+{
+	printf(\"%d\n\", n);
+}
+
+if(f(5) == 1)
+	printf(\"n is local\n\");
+else
+	printf(\"n is global\n\");
+";
+eval(s);
+eval(s);

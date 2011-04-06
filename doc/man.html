@@ -235,6 +235,7 @@ The following are the keywords of Cinquecento.
 @const 
 @containerof
 @define
+@defloc
 @lambda 
 @let
 @local
@@ -274,6 +275,7 @@ while
 @const       break        float        switch 
 @containerof case         for          typedef 
 @define      char         if           union 
+@defloc
 @lambda      const        int          unsigned 
 @let         continue     long         void 
 @local       default      return       volatile
@@ -943,6 +945,14 @@ is equivalent to
 }
 </pre>
 </div>
+
+<p>
+The <span class="fnindex" id="syn:_at_defloc">@defloc</span> form
+is like <span class="fnindex" id="syn:_at_defloc">@define</span>,
+except that it forces the binding to be local to the innermost
+level of lexical scope.
+</p>
+
 
 <p>
 The built-in function <span class="id">apply</span>
@@ -8072,6 +8082,7 @@ machines sharing the environment have been freed.
 <a href="#syn:_at_names">@names</a><br />
 <a href="#syn:_at_record">@record</a><br />
 <a href="#syn:_at_define">@define</a><br />
+<a href="#syn:_at_defloc">@defloc</a><br />
 <a href="#syn:_at_lambda">@lambda</a><br />
 <a href="#syn:return">return</a><br />
 <a href="#syn:_at_typeof">@typeof</a><br />
