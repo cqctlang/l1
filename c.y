@@ -22,7 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE
-%token SIZEOF TYPEOF TYPEDEF DEFINE DEFLOCAL DEFREC CONTAINEROF
+%token SIZEOF TYPEOF TYPEDEF DEFINE DEFLOC DEFREC CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -67,7 +67,7 @@ extern char *yytext;
 %type <expr> maybe_attr
 %type <expr> quote_expression
 
-%type <kind> unary_operator assignment_operator struct_or_union
+%type <kind> unary_operator assignment_operator struct_or_union define
 
 %start translation_unit_seq
 %debug
@@ -1046,13 +1046,16 @@ jump_statement
 
 define
 	: DEFINE
+	{ $$ = Edefine; }
+	| DEFLOC
+	{ $$ = Edefloc; }
 	;
 
 define_statement
 	: define id '(' arg_id_list ')' compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, invert($4), $6, 0); }
+	{ $$ = newexprsrc(&$2->src, $1, $2, invert($4), $6, 0); }
 	| define id '('  ')' compound_statement
-	{ $$ = newexprsrc(&$2->src, Edefine, $2, nullelist(), $5, 0); }
+	{ $$ = newexprsrc(&$2->src, $1, $2, nullelist(), $5, 0); }
 	;
 
 translation_unit_seq

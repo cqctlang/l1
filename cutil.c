@@ -313,8 +313,7 @@ Expr*
 Ztgn(char *id, unsigned long len, Expr *v)
 {
 	Expr *e;
-	e = Z1(E_tg, v);
-	e->id = xstrndup(id, len);
+	e = Z2(E_tg, Ztidn(id, len), v);
 	return e;
 }
 
@@ -331,8 +330,7 @@ Expr*
 Ztg(char *id, Expr *v)
 {
 	Expr *e;
-	e = Z1(E_tg, v);
-	e->id = xstrdup(id);
+	e = Z2(E_tg, Ztid(id), v);
 	return e;
 }
 
