@@ -802,7 +802,6 @@ extern void *GCiterdone;
 extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
-extern Val Xnulllist;
 extern Code *kcode, *cccode, *tcccode;
 
 /* c.l */

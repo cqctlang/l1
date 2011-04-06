@@ -1,4 +1,4 @@
-x = null();
+x = nil;
 x = cons(1, x);
 print(car(x));
 print(cdr(x));

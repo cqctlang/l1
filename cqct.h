@@ -4,7 +4,6 @@ typedef
 enum {
 	Qundef = 0,
 	Qnil,
-	Qnull,
 	Qas,
 	Qbox,
 	Qcl,

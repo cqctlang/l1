@@ -8,7 +8,7 @@ L31: 0 params, 0 locals, 0 temps
       free   3        0        0        0
       free   S        0        0        0
       free   L        0        0        0
-      data   0        1       11        0
+      data   0        1       10        0
       data   1        0        0        0
       data   2        0        0        0
       data   3        0        0        0
@@ -58,7 +58,7 @@ smapsz =    1048576
       data   2        0        0        0
       data   3        0        0        0
       data   S        0        0        0
-      data   L        4     6417        4
+      data   L        4     6416        4
       code   0        1        0        0
       code   1        1        0        0
       code   2        0        0        0
@@ -89,7 +89,7 @@ heapsz =   41943040
  bigsz =          0
 smapsz =    1048576
  ncard =          0
- nlock =       6420
+ nlock =       6419
    ngc =          1
       TYPE GEN     #SEG  #LOCKED   #DIRTY
       free   0       38        0        0
@@ -103,7 +103,7 @@ smapsz =    1048576
       data   2        0        0        0
       data   3        0        0        0
       data   S        0        0        0
-      data   L        9    14415        9
+      data   L        9    14414        9
       code   0        1        0        0
       code   1        1        0        0
       code   2        0        0        0
@@ -134,5 +134,5 @@ heapsz =   63963136
  bigsz =          0
 smapsz =    1048576
  ncard =          5
- nlock =      14419
+ nlock =      14418
    ngc =          3

@@ -8,5 +8,4 @@
 docmp("ns", @names c32le {}, @names c32le {});
 docmp("fn", @lambda(){}, @lambda(){});
 docmp("nil", nil, nil);
-docmp("null", null(), null());
 docmp("cons", cons(nil,nil), cons(nil,nil));

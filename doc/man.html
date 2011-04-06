@@ -50,6 +50,7 @@
 <a href="#sec:tables">Tables</a><br />
 <a href="#sec:characters">Characters</a><br />
 <a href="#sec:strings">Strings</a><br />
+<a href="#sec:pairs">Pairs</a><br />
 <br />
 <em>System Operations</em><br />
 <a href="#sec:storage">Storage Management</a><br />
@@ -277,17 +278,16 @@ volatile
 while 
 -->
 <pre>
-@const       break        float        switch 
-@containerof case         for          typedef 
-@define      char         if           union 
-@defloc
+@const       @typeof      enum         struct 
+@containerof break        float        switch 
+@define      case         for          typedef 
+@defloc      char         if           union 
 @lambda      const        int          unsigned 
 @let         continue     long         void 
 @local       default      return       volatile
 @global      do           short        while 
 @names       double       signed 
 @record      else         sizeof 
-@typeof      enum         struct 
 </pre>
 </div>
 
@@ -517,7 +517,7 @@ belongs to the type.
 
 <p>
 Types with standard semantics include <em>string</em>,
-<em>function</em>, <em>record</em>, <em>record descriptor</em>,
+<em>pair</em>, <em>function</em>, <em>record</em>, <em>record descriptor</em>,
 and <em>file descriptor</em>.
 </p>
 
@@ -665,6 +665,19 @@ Name space
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:isns">isns(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+Pair
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:ispair">ispair(<span class="arg">val</span>)</span>
 </div>
 </div>
 </td>
@@ -5431,6 +5444,188 @@ class="arg">ptr</span>.
 </div>
 </div>
 
+<h4 id="sec:pairs">Pairs</h4>
+
+<p>
+The Cinquecento pair is an object that holds references
+to two other Cinquecento values, called the <em>car</em>
+and <em>cdr</em> of the pair.  It is akin to the
+<em>cons cell</em> data structure that is
+fundamental to Scheme and other Lisp-based languages.
+</p>
+
+<p>
+Both pairs and the <a href="#sec:lists">list</a> type can be used to build
+lists.  The primary difference is that a list built from
+the list type is itself mutable, <em>i.e.</em>, it can
+be updated in place by imperative operations such
+as <a href="#fn:isstring"><span class="id">append</span></a>
+and <a href="#fn:isstring"><span class="id">delete</span></a>.
+Lists based on pairs, in constrast, are typically manipulated
+in functional style in a manner similar to Scheme lists.
+</p>
+
+<p>
+The conventional value for the empty list in
+Cinquecento is <span class="id">nil</span>.
+It is an error to call container and list functions
+such as
+<a href="#fn:isempty"><span class="id">isempty</span></a>,
+<a href="#fn:length"><span class="id">length</span></a>, and
+<a href="#fn:listref"><span class="id">listref</span></a>
+on a list built from pairs and <span class="id">nil</span>.
+</p>
+
+<p>
+Note that the list constructor syntax
+<a href="#syn:_emptylist_"><span class="id">[...]</span></a>
+is used to build instances of the list type, not lists
+based on pairs.
+</p>
+
+<p>
+The predicate
+<a href="#fn:ispair"><span class="id">ispair</span></a> tests whether a value is
+a pair.
+</p>
+
+<p>
+The functions that operate on pairs are:
+</p>
+
+<div class="docitem" id="fn:cons">
+<div class="proto">
+<div class="function">
+<span class="id">cons(<span class="arg">v1</span>,<span class="arg">v2</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v1,v2</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">pair</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new pair whose car is <span
+class="arg">v1</span> and whose cdr is
+<span
+class="arg">v2</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:car">
+<div class="proto">
+<div class="function">
+<span class="id">car(<span class="arg">p</span>)</span>
+</div>
+<div class="param">
+<span class="arg">p</span>: <span class="type">pair</span>
+</div>
+<div class="returns">
+<span class="type">depends on the contents of <span class="arg">p</span></span>
+</div>
+</div>
+<div class="desc">
+Returns the the car of <span class="arg">p</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:cdr">
+<div class="proto">
+<div class="function">
+<span class="id">cdr(<span class="arg">p</span>)</span>
+</div>
+<div class="param">
+<span class="arg">p</span>: <span class="type">pair</span>
+</div>
+<div class="returns">
+<span class="type">depends on the contents of <span class="arg">p</span></span>
+</div>
+</div>
+<div class="desc">
+Returns the cdr of <span class="arg">p</span>.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:setcar">
+<div class="proto">
+<div class="function">
+<span class="id">setcar(<span class="arg">p</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">p</span>: <span class="type">pair</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the car of <span class="arg">p</span> to <span class="arg">v</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:setcdr">
+<div class="proto">
+<div class="function">
+<span class="id">setcdr(<span class="arg">p</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">p</span>: <span class="type">pair</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the cdr of <span class="arg">p</span> to <span class="arg">v</span>.
+</div>
+</div>
+
+<p>
+A <em>weak pair</em> is a pair whose car is a <em>weak pointer</em>,
+a pointer that is not followed by the garbage collector.  An object
+that is reachable only through weak pointers will be eventually reclaimed
+by the garbage collector, at which time its references will be replaced
+with the value <span class="id">nil</span>.  A weak pair is otherwise
+indistinguishable from a pair.
+The predicate
+<span class="id" id="fn:isweakpair">isweakpair</span> tests whether a value is
+a pair.
+</p>
+
+<div class="docitem" id="fn:weakcons">
+<div class="proto">
+<div class="function">
+<span class="id">weakcons(<span class="arg">v1</span>,<span class="arg">v2</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v1,v2</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">weak pair</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new weak pair whose car is <span
+class="arg">v1</span> and whose cdr is
+<span
+class="arg">v2</span>.  The car is a weak pointer
+to <span class="arg">v1</span>.
+</div>
+</div>
+
+
+
+
+
+
 <h4 id="sec:io">I/O</h4>
 
 <p>
@@ -6766,7 +6961,6 @@ typedef
 enum {
 	Qundef = 0,	/* the undefined value */
 	Qnil,		/* the nil value */
-	Qnull,		/* the null value (unused) */
 	Qas,		/* address space */
 	Qbox,		/* box (private) */
 	Qcl,		/* closure */
@@ -7586,9 +7780,12 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:bitfieldpos">bitfieldpos</a><br />
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
 <a href="#fn:bsearch">bsearch</a><br />
+<a href="#fn:car">car</a><br />
+<a href="#fn:cdr">cdr</a><br />
 <a href="#fn:close">close</a><br />
 <a href="#fn:compact">compact</a><br />
 <a href="#fn:concat">concat</a><br />
+<a href="#fn:cons">cons</a><br />
 <a href="#fn:copy">copy</a><br />
 <a href="#fn:count">count</a><br />
 <a href="#fn:delete">delete</a><br />
@@ -7648,6 +7845,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isnil">isnil</a><br />
 <a href="#fn:isns">isns</a><br />
 <a href="#fn:isodigit">isodigit</a><br />
+<a href="#fn:ispair">ispair</a><br />
 <a href="#fn:isprint">isprint</a><br />
 <a href="#fn:isprocedure">isprocedure</a><br />
 <a href="#fn:isptr">isptr</a><br />
@@ -7666,6 +7864,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isupper">isupper</a><br />
 <a href="#fn:isvector">isvector</a><br />
 <a href="#fn:isvoid">isvoid</a><br />
+<a href="#fn:isweakpair">isweakpair</a><br />
 <a href="#fn:isxdigit">isxdigit</a><br />
 <a href="#fn:length">length</a><br />
 <a href="#fn:list">list</a><br />
@@ -7744,6 +7943,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:reverse">reverse</a><br />
 <a href="#fn:seek">seek</a><br />
 <a href="#fn:select">select</a><br />
+<a href="#fn:setcar">setcar</a><br />
+<a href="#fn:setcdr">setcdr</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
 <a href="#fn:settypedeftype">settypedeftype</a><br />
 <a href="#fn:slice">slice</a><br />
@@ -7784,6 +7985,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:vecref">vecref</a><br />
 <a href="#fn:vecset">vecset</a><br />
 <a href="#fn:vector">vector</a><br />
+<a href="#fn:weakcons">weakcons</a><br />
 <a href="#fn:write">write</a><br />
 <a href="#fn:xaccessget">xaccessget</a><br />
 <a href="#fn:xaccessput">xaccessput</a><br />

@@ -5,7 +5,6 @@
 char *qname[Qnkind] = {
 	[Qundef]=	"undefined",
 	[Qnil]=		"nil",
-	[Qnull]=	"null",
 	[Qas]=		"address space",
 	[Qbox]=		"box",
 	[Qcl]=		"closure",
@@ -80,7 +79,6 @@ static void setgo(Insn *i, Imm lim);
 void *GCiterdone;
 Val Xundef;
 Val Xnil;
-Val Xnulllist;
 Dom *litdom;
 static Closure *halt, *nop;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
@@ -132,7 +130,6 @@ static int equalxtnv(Val, Val);
 Hashop hashop[Qnkind] = {
 	[Qundef] = { nohash, 0 },
 	[Qnil]	 = { hashconst, eqtrue },
-	[Qnull]  = { hashconst, eqtrue },
 	[Qas]	 = { hashptr, eqptr },
 	[Qbox]	 = { nohash, 0 },
 	[Qcl]	 = { hashptr, eqptr },
@@ -201,7 +198,6 @@ valhead(Val v)
 	switch(Vkind(v)){
 	case Qundef:
 	case Qnil:
-	case Qnull:
 		return 0;
 		break;
 	default:
@@ -445,8 +441,6 @@ hashconst(Val val)
 	switch(Vkind(val)){
 	case Qnil:
 		return hashptr32shift(Xnil);
-	case Qnull:
-		return hashptr32shift(Xnulllist);
 	default:
 		fatal("bug");
 	}
@@ -7284,15 +7278,6 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_null(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to null");
-	USED(argv);
-	*rv = Xnulllist;
-}
-
-static void
 l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg;
@@ -7466,12 +7451,6 @@ static void
 l1_isns(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isns", Qns);
-}
-
-static void
-l1_isnull(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	l1_isx(vm, argc, argv, rv, "isnull", Qnull);
 }
 
 static void
@@ -8587,7 +8566,6 @@ mktopenv(void)
 	FN(ismember);
 	FN(isnil);
 	FN(isns);
-	FN(isnull);
 	FN(ispair);
 	FN(isprocedure);
 	FN(isptr);
@@ -8663,7 +8641,6 @@ mktopenv(void)
 	FN(nslookaddr);
 	FN(nsptr);
 	FN(nsreptype);
-	FN(null);
 	FN(paramid);
 	FN(params);
 	FN(paramtype);
@@ -8798,7 +8775,6 @@ void
 initvm(int gcthread, u64 heapmax)
 {
 	Xundef = gclock(malq(Qundef));
-	Xnulllist = gclock(malq(Qnull));
 	cccode = gclock(callccode());
 	tcccode = gclock(calltccode());
 	kcode = gclock(contcode());
@@ -8817,7 +8793,6 @@ void
 finivm(void)
 {
 	gcunlock(Xundef);
-	gcunlock(Xnulllist);
 	gcunlock(tcccode);
 	gcunlock(cccode);
 	gcunlock(kcode);

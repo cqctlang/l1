@@ -221,7 +221,6 @@ static Qtype qs[Qnkind] = {
 	[Qlist]	 = { "list", sizeof(List), 0, 0, iterlist },
 	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
 	[Qns]	 = { "ns", sizeof(Ns), 1, 0, iterns },
-	[Qnull]	 = { "null", sizeof(Head), 0, 0, 0 },
 	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", sizeof(Range), 0, 0, iterrange },
 	[Qrd]    = { "rd", sizeof(Rd), 0, 0, iterrd },
