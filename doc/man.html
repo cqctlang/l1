@@ -54,14 +54,14 @@
 <br />
 <em>System Operations</em><br />
 <a href="#sec:storage">Storage Management</a><br />
-<a href="#sec:compile">Compilation and Evaluation</a><br />
+<a href="#sec:compile">Quotation, Compilation, and Evaluation</a><br />
 <br />
 <em>Built-in Libraries</em><br />
 <a href="#sec:io">I/O</a><br />
 <a href="#sec:fs">Filesystem Functions</a><br />
 <a href="#sec:fmt">Formatted Output</a><br />
 <a href="#sec:system">System Functions</a><br />
-<a href="#sec:other">Other Functions</a><br />
+<a href="#sec:mash">Compression and Hashing</a><br />
 <br />
 <em>Implementation Details</em><br />
 <a href="#sec:runtime">L1 runtime</a><br />
@@ -981,7 +981,7 @@ are used to call functions.
 <div class="docitem" id="fn:apply">
 <div class="proto">
 <div class="function">
-<span class="id">apply(<span class="arg">fn</span>, <span class="arg">arg</span>, ...)</span>
+<span class="id">apply(<span class="arg">fn</span>, <span class="arg">arg</span>, ..., <span class="arg">list</span>)</span>
 </div>
 <div class="param">
 <span class="arg">fn</span>: <span class="type">function</span>
@@ -989,14 +989,20 @@ are used to call functions.
 <div class="param">
 <span class="arg">arg</span>: <span class="type">any value</span>
 </div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
 <div class="returns">
 <span class="type">see description</span>
 </div>
 </div>
 <div class="desc">
-Calls the function <span class="arg">fn</span>
-on the arguments <span class="arg">arg ... </span>
-and returns the value returned by the call.
+<span class="id">Apply</span> returns the result of
+applying the function <span class="arg">fn</span> to
+the remaining arguments.  The arguments
+<span class="arg">arg ... </span> comprise the leading
+arguments to <span class="arg">fn</span>; the elements
+of <span class="arg">list</span> comprise the remaining arguments.
 </div>
 </div>
 
@@ -1016,14 +1022,12 @@ and returns the value returned by the call.
 </div>
 </div>
 <div class="desc">
-Like <span class="id">apply</span>,
-<span class="id">@lazyapply</span>
-calls the function <span class="arg">fn</span>, but
-the arguments are evaluated lazily.  This is
-implemented by passing each argument expression <span class="arg">arg ... </span>
-as a procedure that, when called, 
-evaluates the argument expression.
-<span class="id">@lazyapply</span> returns the value returned by the call.
+<span class="id">@lazyapply</span> provides a lazy form of function application.
+Rather than evaluating the argument expressions,
+this form, when evaluated, constructs for each argument expression a separate procedure of
+no arguments that, when called, evaluates the expression.
+The function <span class="arg">fn</span> is applied to these thunks,
+and the resulting value is returned.
 </div>
 </div>
 
@@ -1102,6 +1106,50 @@ passed <span class="arg">fn</span> if the
 continuation returns to calls to built-in
 functions.
 </div>
+</div>
+</div>
+
+
+<div class="docitem" id="fn:applyk">
+<div class="proto">
+<div class="function">
+<span class="id">applyk(<span class="arg">fn</span>, <span class="arg">succ</span>, <span class="arg">fail</span>, <span class="arg">arg</span>, ..., <span class="arg">list</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">succ</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">fail</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: <span class="type">any value</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Applyk</span> is like
+<span class="id"><a href="#fn:apply">apply</a></span>,
+but provides control over the outcome of function
+applications that cause an error to be raised.
+The function <span class="arg">fn</span>
+is applied to the arguments <span class="arg">arg ... list</span>
+in the same manner as <span class="id"><a href="#fn:apply">apply</a></span>.
+If the application causes an error to be raised,
+the same error message and stack trace that normally would be printed
+are printed, 
+then evaluation continues by calling the function
+<span class="arg">fail</span> with no arguments.
+Otherwise, the function <span class="arg">succ</span>
+is called with the result of the application as its
+single argument.
 </div>
 </div>
 
@@ -2491,7 +2539,7 @@ function accepts predefined functions and returns a
 new name space.  The <span class="id"><a
 href="#fn:mknsraw">mknsraw</a></span> function accepts
 two tables that define the symbols and types in the
-namespace.  Finally, the <span class="id"><a
+name space.  Finally, the <span class="id"><a
 href="#syn:_at_names">@names</a></span> syntactic form
 accepts symbol and type definitions in C declaration
 syntax.  Each of these mechanisms also accepts an
@@ -2532,7 +2580,7 @@ associated with the name space.
 <span class="id">mknsraw(<span class="arg">parent</span>,<span class="arg">typetab</span>,<span class="arg">symtab</span>[,<span class="arg">name</span>])</span>
 </div>
 <div class="param">
-<span class="arg">parent</span>: <span class="type">namespace</span>
+<span class="arg">parent</span>: <span class="type">name space</span>
 </div>
 <div class="param">
 <span class="arg">typetab</span>: <span class="type">table</span>
@@ -6376,6 +6424,159 @@ Returns a new string containing formatted output.
 </div>
 
 
+<h4 id="sec:compile">Quotation, Compilation, and Evaluation</h4>
+
+<p>
+L1 provides access to some stages of
+Cinquecento expression evaluation.  The details of
+these interfaces are likely to change.
+</p>
+
+<div class="docitem" id="fn:eval">
+<div class="proto">
+<div class="function">
+<span class="id">eval(<span class="arg">expr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">eval</span> evaluates the Cinquecento
+expression contained in the
+string <span class="arg">expr</span> and returns the
+computed value.  The evaluation occurs in the top-level
+environment of the caller.
+</div>
+</div>
+
+<div class="docitem" id="fn:evalk">
+<div class="proto">
+<div class="function">
+<span class="id">evalk(<span class="arg">expr</span>, <span class="arg">succ</span>, <span class="arg">fail</span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">succ</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">fail</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Evalk</span> is like 
+<span class="id">eval</span>, but provides control over
+the outcome of evaluations that cause an error to be raised.
+<span class="id">Evalk</span> evaluates the Cinquecento
+expression contained in the
+string <span class="arg">expr</span>.
+If the application causes an error to be raised, the
+same error message and stack trace that normally would be
+be printed are printed, then evaluation continues by calling the function
+<span class="arg">fail</span> with no arguments.
+Otherwise, the function <span class="arg">succ</span>
+is called with the result of the application as its
+single argument.
+</div>
+</div>
+
+<div class="docitem" id="fn:parse">
+<div class="proto">
+<div class="function">
+<span class="id">parse(<span class="arg">expr<span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns the result of parsing the Cinquecento
+expression in the string <span class="arg">expr</span>.
+The parsed expression is an S-expression encoding of
+the parse tree.  Details are too volatile to document
+at present, but generally each node in the tree is a
+list whose first element is a string identifier for the
+syntax type of the tree node and whose remaining
+elements are the children of the node.
+</div>
+</div>
+
+<div class="docitem" id="syn:_at_quote">
+<div class="proto">
+<div class="function">
+<span class="id">@quote { <span class="arg">expr</span> }</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">see description</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+The <span class="id">@quote</span> form provides a syntactic interface
+to the functionality <span class="id"><a href="#fn:stringof">parse</a></span>.
+It returns the result of parsing the literal Cinquecento expression <span class="arg">expr</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:compile">
+<div class="proto">
+<div class="function">
+<span class="id">compile(<span class="arg">expr<span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+<span class="arg">Expr</span> must be a Cinquecento parse tree
+of the form returned by <span class="id"><a href="#fn:stringof">parse</a></span> or <span class="id"><a href="#syn:_at_quote">@quote</a></span>.
+<span class="id">Compile</span> returns a function
+that, when called, returns the result of evaluating the
+original expression.
+</div>
+</div>
+
+
+<p>
+If <span class="arg">e</span> is a literal
+Cinquecento expression, then the expressions
+<div class="code">
+<pre>
+	eval("<span class="arg">e</span>")
+</pre>
+</div>
+and
+<div class="code">
+<pre>
+	compile(parse("<span class="arg">e</span>"))()
+</pre>
+</div>
+and
+<div class="code">
+<pre>
+	compile(@quote { <span class="arg">e</span> })()
+</pre>
+</div>
+are equivalent.
+</p>
+
+
 <h4 id="sec:storage">Storage Management</h4>
 
 <p>
@@ -6452,22 +6653,22 @@ finalizers.
 <div class="desc">
 This function moves all currently live objects to a
 region of memory that will never be collected again.
-Its effect is to spare the collector, usually,
-the overhead of scanning these objects ever again, at
-the expense of never reclaiming their storage.  Mutable
-objects preserved by <span class="id">compact</span>
-that later acquire references to objects in younger
-generations may still be scanned during collection.
+Its effect is to spare the collector most of the
+overhead of ever scanning these objects again, at the
+cost of their perpetual storage.  Mutable objects
+preserved by <span class="id">compact</span> that later
+acquire references to objects in younger generations
+may still be scanned during future collections.
 </div>
 </div>
 
-<div class="docitem">
+<div class="docitem" id="fn:gclock">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:gclock">gclock(<span class="arg">val</span>)</span>
+<span class="id">gclock(<span class="arg">val</span>)</span>
 </div>
 <div class="function">
-<span class="id" id="fn:gcunlock">gcunlock(<span class="arg">val</span>)</span>
+<span class="id">gcunlock(<span class="arg">val</span>)</span>
 </div>
 <div class="param">
 <span class="arg">val</span>: <span class="type">any value</span>
@@ -6656,6 +6857,23 @@ if the variable is undefined.
 </div>
 </div>
 
+<div class="docitem" id="fn:environ">
+<div class="proto">
+<div class="function">
+<span class="id">environ()</span>
+</div>
+<div class="returns">
+<span class="type">list of string</span>
+</div>
+</div>
+<div class="desc">
+Returns the environment of the calling process as list each of whose elements
+is a string of the form <span class="val">"<span class="arg">VAR</span>=<span class="arg">VAL</span>"</span>, where <span class="arg">VAR</span>
+is the name of a defined environment variable  and 
+<span class="arg">VAL</span> is the corresponding value.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:uname">
 <div class="proto">
@@ -6777,33 +6995,11 @@ started.  All user-defined bindings are destroyed.
 
 
 
-<h4 id="sec:other">Other Functions</h4>
+<h4 id="sec:mash">Compression and Hashing</h4>
 
 <p>
-This section documents various other functions.
+This section documents functions related to compression and hashing.
 </p>
-
-<div class="docitem" id="fn:eval">
-<div class="proto">
-<div class="function">
-<span class="id">eval(<span class="arg">expr</span>)</span>
-</div>
-<div class="param">
-<span class="arg">expr</span>: <span class="type">string</span>
-</div>
-<div class="returns">
-<span class="type">see description</span>
-</div>
-</div>
-<div class="desc">
-<span class="id">eval</span> evaluates the Cinquecento
-expression contained in the
-string <span class="arg">expr</span> and returns the
-computed value.  The evaluation occurs in the top-level
-environment of the caller.
-</div>
-</div>
-
 
 <div class="docitem">
 <div class="proto">
@@ -6828,6 +7024,23 @@ compression algorithm (which is used for gzip, zip, and
 zlib files).  <span class="id">inflatezlib</span> is
 like <span class="id">inflate</span>, but operates on
 strings with a zlib header and trailer.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:sha1">sha1(<span class="arg">buf</span>)</span>
+</div>
+<div class="param">
+<span class="arg">buf</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the SHA-1 hash of <span class="arg">buf</span>.
 </div>
 </div>
 
@@ -7674,15 +7887,16 @@ Design and Implementation, 207-216, June 1993.
 <a href="#syn:_emptylist_">[<span class="arg">value</span>, ... ]</a><br />
 <a href="#syn:_emptytable_">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
 <a href="#syn:_at_const">@const</a><br />
+<a href="#syn:_at_define">@define</a><br />
+<a href="#syn:_at_defloc">@defloc</a><br />
 <a href="#syn:_at_global">@global</a><br />
 <a href="#syn:_at_include">@include</a><br />
+<a href="#syn:_at_lambda">@lambda</a><br />
 <a href="#syn:_at_lazyapply">@lazyapply</a><br />
 <a href="#syn:_at_local">@local</a><br />
 <a href="#syn:_at_names">@names</a><br />
+<a href="#syn:_at_quote">@quote</a><br />
 <a href="#syn:_at_record">@record</a><br />
-<a href="#syn:_at_define">@define</a><br />
-<a href="#syn:_at_defloc">@defloc</a><br />
-<a href="#syn:_at_lambda">@lambda</a><br />
 <a href="#syn:return">return</a><br />
 <a href="#syn:_at_typeof">@typeof</a><br />
 </td>
@@ -7771,6 +7985,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:access">access</a><br />
 <a href="#fn:append">append</a><br />
 <a href="#fn:apply">apply</a><br />
+<a href="#fn:applyk">applyk</a><br />
 <a href="#fn:arraynelm">arraynelm</a><br />
 <a href="#fn:backtrace">backtrace</a><br />
 <a href="#fn:basebase">basebase</a><br />
@@ -7784,14 +7999,17 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:cdr">cdr</a><br />
 <a href="#fn:close">close</a><br />
 <a href="#fn:compact">compact</a><br />
+<a href="#fn:compile">compile</a><br />
 <a href="#fn:concat">concat</a><br />
 <a href="#fn:cons">cons</a><br />
 <a href="#fn:copy">copy</a><br />
 <a href="#fn:count">count</a><br />
 <a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
+<a href="#fn:environ">environ</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
+<a href="#fn:evalk">evalk</a><br />
 <a href="#fn:exit">exit</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
@@ -7806,7 +8024,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:gc">gc</a><br />
 <a href="#fn:gclock">gclock</a><br />
 <a href="#fn:gcstats">gcstats</a><br />
-<a href="#fn:gcunlock">gcunlock</a><br />
+<a href="#fn:gclock">gcunlock</a><br />
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
@@ -7922,6 +8140,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />
 <a href="#fn:paramtype">paramtype</a><br />
+<a href="#fn:parse">parse</a><br />
 <a href="#fn:pop">pop</a><br />
 <a href="#fn:postgc">postgc</a><br />
 <a href="#fn:printf">printf</a><br />
@@ -7947,6 +8166,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:setcdr">setcdr</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
 <a href="#fn:settypedeftype">settypedeftype</a><br />
+<a href="#fn:sha1">sha1</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
