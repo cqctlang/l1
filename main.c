@@ -414,7 +414,6 @@ main(int argc, char *argv[])
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
-	opt['d'] = 1;		/* prelude */
 	opt['x'] = 1;		/* execute */
 	opt['g'] = 1;		/* gc in separate thread */
 	opt['s'] = 1;		/* include default load path */
@@ -427,6 +426,7 @@ main(int argc, char *argv[])
 		switch(c){
 		case '6':
 		case 'b':
+		case 'd':
 		case 'k':
 		case 'o':
 		case 'p':
@@ -440,7 +440,6 @@ main(int argc, char *argv[])
 		case 'z':
 			opt[c] = 1;
 			break;
-		case 'd':
 		case 'g':
 		case 's':
 		case 'x':

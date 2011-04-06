@@ -8750,7 +8750,7 @@ cqctmkvm(Toplevel *top)
 	nvms++;
 
 	/* call prelude without -b (to avoid cluttering tests) */
-	if(cqctflags['d']){
+	if(!cqctflags['d']){
 		ob = cqctflags['b'];
 		cqctflags['b'] = 0;
 		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);

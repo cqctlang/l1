@@ -35,67 +35,6 @@ globals(U *ctx, Expr *e, Env *env)
 	}
 }
 
-/* FIXME: the side-effect of binding ids into toplevel may be
-   undesirable when they occur erroneously */
-static Expr*
-toplevel(U *ctx, Expr *e, Env *env)
-{
-	Expr *p, *se;
-	char *id;
-
-	if(e == 0)
-		return e;
-
-	switch(e->kind){
-	case Eblock:
-		e->e2 = toplevel(ctx, e->e2, env);
-		return e;
-	case Escope:
-	case Elambda:
-		return e;
-	case Eid:
-		id = e->id;
-		if(!envbinds(env, id))
-			envgetbind(env, id);
-		printf("Zid %s toplevel\n", id);
-		se = Ztid(id);
-		putsrc(se, &e->src);
-		freeexpr(e);
-		return se;
-	case Eg:
-		id = e->e1->id;
-		if(!envbinds(env, id))
-			envgetbind(env, id);
-		printf("Ztg %s toplevel\n", id);
-		se = Ztg(id, toplevel(ctx, e->e2, env));
-		putsrc(se, &e->src);
-		e->e2 = 0;
-		freeexpr(e);
-		return se;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			p->e1 = toplevel(ctx, p->e1, env);
-			p = p->e2;
-		}
-		return e;
-	default:
-		e->e1 = toplevel(ctx, e->e1, env);
-		e->e2 = toplevel(ctx, e->e2, env);
-		e->e3 = toplevel(ctx, e->e3, env);
-		e->e4 = toplevel(ctx, e->e4, env);
-		return e;
-	}
-}
-
-static void
-newlocal(Expr *e, char *id)
-{
-	if(e->kind != Eblock)
-		fatal("bug");
-	e->e1 = newexprsrc(&e->e1->src, Eelist, doid(id), e->e1, 0, 0);
-}
-
 static void
 bindids(Xenv *xe, Expr *e, void *v)
 {
@@ -106,6 +45,74 @@ bindids(Xenv *xe, Expr *e, void *v)
 			xenvbind(xe, p->e1->id, v);
 		p = p->e2;
 	}
+}
+
+/* FIXME: the side-effect of binding ids into toplevel may be
+   undesirable when they occur erroneously */
+static Expr*
+toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
+{
+	Expr *p, *se;
+	Xenv *rib;
+	char *id;
+
+	if(e == 0)
+		return e;
+
+	switch(e->kind){
+	case Eblock:
+		rib = mkxenv(lex);
+		bindids(rib, e->e1, e);
+		e->e2 = toplevel(ctx, e->e2, env, rib);
+		freexenv(rib);
+		return e;
+	case Escope:
+	case Elambda:
+		return e;
+	case Eid:
+		id = e->id;
+		if(xenvlook(lex, id))
+			return e;
+		if(!envbinds(env, id))
+			envgetbind(env, id);
+		se = Ztid(id);
+		putsrc(se, &e->src);
+		freeexpr(e);
+		return se;
+	case Eg:
+		id = e->e1->id;
+		e->e2 = toplevel(ctx, e->e2, env, lex);
+		if(xenvlook(lex, id))
+			return e;
+		if(!envbinds(env, id))
+			envgetbind(env, id);
+		se = Ztg(id, e->e2);
+		putsrc(se, &e->src);
+		e->e2 = 0;
+		freeexpr(e);
+		return se;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = toplevel(ctx, p->e1, env, lex);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = toplevel(ctx, e->e1, env, lex);
+		e->e2 = toplevel(ctx, e->e2, env, lex);
+		e->e3 = toplevel(ctx, e->e3, env, lex);
+		e->e4 = toplevel(ctx, e->e4, env, lex);
+		return e;
+	}
+}
+
+static void
+newlocal(Expr *e, char *id)
+{
+	if(e->kind != Eblock)
+		fatal("bug");
+	e->e1 = newexprsrc(&e->e1->src, Eelist, doid(id), e->e1, 0, 0);
 }
 
 static Expr*
@@ -124,7 +131,6 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		if(xenvlook(lex, id))
 			return e;
 		else if(envbinds(top, id)){
-			printf("Ztid %s resolve\n", id);
 			se = Ztid(id);
 			putsrc(se, &e->src);
 			freeexpr(e);
@@ -145,7 +151,6 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 			return e;
 		}else if(envbinds(top, id)){
 			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
-			printf("Ztg %s resolve\n", id);
 			se = Ztg(id, e->e2);
 			e->e2 = 0;
 			putsrc(se, &e->src);
@@ -232,13 +237,21 @@ Expr*
 docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 {
 	Src s;
+	Xenv *lex;
 
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 
 	e = globals(ctx, e, top->env);
-	e = toplevel(ctx, e, top->env);
-	e = resolve(ctx, e, top->env, 0, 0, 0);
+	if(argsid){
+		lex = mkxenv(0);
+		xenvbind(lex, argsid, argsid);
+	}else
+		lex = 0;
+	e = toplevel(ctx, e, top->env, lex);
+	e = resolve(ctx, e, top->env, lex, 0, 0);
+	if(lex)
+		freexenv(lex);
 	e = rmscope(ctx, e);
 
 	/*
