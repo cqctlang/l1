@@ -2563,7 +2563,7 @@ nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvalvec(mkvec(0));
 		return;
 	}
-	vmerr(vm, "attempt to access abstract address space");
+	vmerr(vm, "attempt to access null address space");
 }
 
 static As*

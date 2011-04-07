@@ -2832,34 +2832,85 @@ manage a view of arbitrary synthetic storage.
 </p>
 
 <p>
-Several built-in functions create new address spaces
+Several functions create new address spaces
 with specific forms of backing storage.
 </p>
 
-<p>
-The function <tt>mknas()</tt> returns a null address
-space that has no backing storage.  Any attempt to read
-or write this address space fails.  This address space
-is used to construct domains that act solely as sources
-for types and symbols; for example, the literal domain
-is backed by a null address space.
-</p>
+<div class="docitem" id="fn:mknas">
+<div class="proto">
+<div class="function">
+<span class="id">mknas()</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns a null address space that has no backing
+storage.  It is an error to access (get or put) this
+address space.  Null address spaces are used to
+construct domains that act solely as sources for types
+and symbols; for example, the literal domain is backed
+by a null address space.
+</div>
+</div>
 
-<p>
-The function <tt>mksas(<em>str</em>)</tt> creates an
-address base backed by the string <em>str</em>.  The
-memory associated with the string is shared with the
-address space, so that an update made to either the
-string or the address space will be reflected in the
-other.
-</p>
+<div class="docitem" id="fn:mksas">
+<div class="proto">
+<div class="function">
+<span class="id">mksas(<span class="arg">s</span>)</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns an address space backed by the
+string <span class="arg">s</span> storage.  The memory
+associated with the string is shared with the address
+space, so that an update made to either the string or
+the address space will be reflected in the other.
+</div>
+</div>
 
-<p>
-The function <tt>mkzas(<em>len</em>)</tt> creates a
-zero-filled address space backed by
-<tt><em>len</em></tt> bytes of unshared, cleared
-memory supplied by the system.
-</p>
+<div class="docitem" id="fn:mkzas">
+<div class="proto">
+<div class="function">
+<span class="id">mkzas(<span class="arg">n</span>)</span>
+</div>
+<div class="param">
+<span class="arg">n</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns an address space backed by a freshly allocated
+zero-filled string.  The call
+ <span class="val"><span class="id">mkzas</span>(<span class="arg">n</span>)</span>
+is equivalent to 
+<span class="val"><span class="id">mksas</span>(<span class="id">mkstr</span>(<span class="arg">n</span>))</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkmas">
+<div class="proto">
+<div class="function">
+<span class="id">mkmas()</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns an address space backed by the address space of the calling process.
+Yep.  (The interface documented here currently does not match the implementation.)
+</div>
+</div>
 
 
 <p>
@@ -8289,15 +8340,19 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkfield">mkfield</a><br />
 <a href="#fn:mkguardian">mkguardian</a><br />
 <a href="#fn:mklist">mklist</a><br />
+<a href="#fn:mkmas">mkmas</a><br />
+<a href="#fn:mknas">mknas</a><br />
 <a href="#fn:mkns">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
 <a href="#fn:mkrange">mkrange</a><br />
 <a href="#fn:mkrd">mkrd</a><br />
+<a href="#fn:mksas">mksas</a><br />
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
+<a href="#fn:mkzas">mkzas</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
