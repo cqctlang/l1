@@ -302,8 +302,10 @@ iteras(Head *hd, Ictx *ictx)
 	case 3:
 		return (Val*)&as->put;
 	case 4:
-		return (Val*)&as->map;
+		return (Val*)&as->ismapped;
 	case 5:
+		return (Val*)&as->map;
+	case 6:
 		return (Val*)&as->dispatch;
 	default:
 		return GCiterdone;

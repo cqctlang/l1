@@ -3464,6 +3464,7 @@ ascachemethod(As *as)
 
 	ascache1method(as, "get", &as->get);
 	ascache1method(as, "put", &as->put);
+	ascache1method(as, "ismapped", &as->ismapped);
 	ascache1method(as, "map", &as->map);
 }
 

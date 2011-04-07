@@ -331,6 +331,7 @@ struct As {
 	/* cached methods */
 	Closure *get;
 	Closure *put;
+	Closure *ismapped;
 	Closure *map;
 	Closure *dispatch;
 };
