@@ -1335,10 +1335,35 @@ Returns the list of field names for the record descriptor
 </div>
 </div>
 <div class="desc">
-Returns a function that is a predicate for instances of
+Returns the predicate for instances of
 the record descriptor <span class="arg">rd</span>.  The
 function takes a single argument and returns non-zero
 if and only if the argument is an instance of <span class="arg">rd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdmk">
+<div class="proto">
+<div class="function">
+<span class="id">rdmk(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the constructor for instances of
+the record descriptor <span class="arg">rd</span>.  The
+function takes either zero arguments,
+in which case the fields of the new instance are bound to
+<span class="val">nil</span>, or exactly as many arguments
+as there are fields in the type,
+in which case the arguments are bound to the fields
+in the order they were given in the definition of
+the record descriptor.
 </div>
 </div>
 
@@ -1414,6 +1439,72 @@ Sets the format procedure of the record descriptor
 <span class="arg">rd</span> to <span class="arg">fmt</span>.
 </div>
 </div>
+
+<p>
+Several functions are used by the implementation of the
+record system.
+</p>
+
+<div class="docitem" id="fn:mkrd">
+<div class="proto">
+<div class="function">
+<span class="id">mkrd(<span class="arg">name</span>,<span class="arg">fields</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">fields</span>: <span class="type">list of string</span>
+</div>
+<div class="returns">
+<span class="type">record descriptor</span>
+</div>
+</div>
+<div class="desc">
+Creates or updates the record descriptor for the record
+type named <span class="arg">name</span>.  The names of
+the fields of the record type are set, in order, to the
+strings in the list <span class="arg">fields</span>.
+The record descriptor is returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdgettab">
+<div class="proto">
+<div class="function">
+<span class="id">rdgettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="function">
+<span class="id">rdsettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+The record system maintains for each record descriptor
+a pair of tables, one that maps the name of a field to
+a function that accesses the field in an instance of the
+record, and one that maps the name of a field to a function
+that updates the value of field.
+
+
+
+.  <span class="id">Rdgettab</span> returns the
+table of accessor functions.  An accessor function
+expects an instance of the record descriptor and
+returns the value of the corresponding
+field.  <span class="id">rdsettab</span> returns the
+table of update functions.  An update function expects
+an instance of the record descriptor and a new value
+and sets the field to the new value, returning the new
+value.
+</div>
+</div>
+
 
 
 <h4 id="sec:domainover">Overview of Domains</h4>
@@ -8073,6 +8164,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkns">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
+<a href="#fn:mkrd">mkrd</a><br />
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
@@ -8095,9 +8187,12 @@ Design and Implementation, 207-216, June 1993.
 </td>
 <td>
 <a href="#fn:rdfmt">rdfmt</a><br />
+<a href="#fn:rdgettab">rdgettab</a><br />
+<a href="#fn:rdmk">rdmk</a><br />
 <a href="#fn:rdname">rdname</a><br />
 <a href="#fn:rdof">rdof</a><br />
 <a href="#fn:rdsetfmt">rdsetfmt</a><br />
+<a href="#fn:rdgettab">rdsettab</a><br />
 <a href="#fn:read">read</a><br />
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
