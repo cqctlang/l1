@@ -29,6 +29,7 @@
 <br />
 <em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
+<a href="#sec:ranges">Ranges</a><br />
 <a href="#sec:backtick">Backtick Operator</a><br />
 <a href="#sec:litdom">The Literal Domain</a><br />
 <a href="#sec:casts">Type and Domain Casting</a><br />
@@ -1490,17 +1491,14 @@ a pair of tables, one that maps the name of a field to
 a function that accesses the field in an instance of the
 record, and one that maps the name of a field to a function
 that updates the value of field.
-
-
-
-.  <span class="id">Rdgettab</span> returns the
+<span class="id">Rdgettab</span> returns the
 table of accessor functions.  An accessor function
-expects an instance of the record descriptor and
+expects as argument an instance of the record descriptor and
 returns the value of the corresponding
-field.  <span class="id">rdsettab</span> returns the
+field in the record.  <span class="id">rdsettab</span> returns the
 table of update functions.  An update function expects
-an instance of the record descriptor and a new value
-and sets the field to the new value, returning the new
+as arguments an instance of the record descriptor and a new value.
+It sets the field in the record to the new value and returns the new
 value.
 </div>
 </div>
@@ -1646,6 +1644,80 @@ such as access to registers, process control,
 and breakpoint control.
 </p>
 
+<h4 id="sec:ranges">Ranges</h4>
+
+<p>
+A <em>range</em> is an object that represents a
+continguous span of locations in an address space as a
+pair of cvalues: the offset of the beginning of the
+span, and its length.
+</p>
+
+<p>
+The predicate
+<a href="#fn:isrange"><span class="id">isrange</span></a>
+tests whether a value is a range.
+</p>
+
+<p>
+The functions that operate on ranges are:
+</p>
+
+<div class="docitem" id="fn:mkrange">
+<div class="proto">
+<div class="function">
+<span class="id">mkrange(<span class="arg">beg</span>, <span class="arg">len</span>)</span>
+</div>
+<div class="param">
+<span class="arg">beg</span>:<span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">len</span>:<span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">range</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new range representing the span
+of <span class="arg">len</span> bytes beginning
+at <span class="arg">beg</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangebeg">
+<div class="proto">
+<div class="function">
+<span class="id">rangebeg(<span class="arg">r</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>:<span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the beginning of the range <span class="arg">r</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangelen">
+<div class="proto">
+<div class="function">
+<span class="id">rangelen(<span class="arg">r</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>:<span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the length of the range <span class="arg">r</span>.
+</div>
+</div>
 
 <h4 id="sec:backtick">Backtick Operator</h4>
 
@@ -4509,6 +4581,60 @@ expression
 a valid index for the container.  For tables, a valid index is a key.
 </p>
 
+<p>
+This and other syntax are supported by two generic functions on containers:
+</p>
+
+<div class="docitem" id="fn:cntrget">
+<div class="proto">
+<div class="function">
+<span class="id">cntrget(<span class="arg">cntr</span>, <span class="arg">idx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">cntr</span>: <span class="type">container</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">valid index for <span class="arg">cntr</span></span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Cntrget</span> is the generic access function for
+containers.  It returns the element of <span class="arg">cntr</span>
+corresponding to <span class="arg">idx</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:cntrput">
+<div class="proto">
+<div class="function">
+<span class="id">cntrput(<span class="arg">cntr</span>, <span class="arg">idx</span>, <span class="arg">val</span>)</span>
+</div>
+<div class="param">
+<span class="arg">cntr</span>: <span class="type">container</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type"><span class="type">valid index for <span class="arg">cntr</span></span>
+</div>
+<div class="param">
+<span class="arg">val</span>: <span class="type">see description</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Cntrput</span> is the generic update function for
+containers.  It updates the element
+of <span class="arg">cntr</span> corresponding
+to <span class="arg">idx</span> to
+<span class="arg">val</span>, and returns <span class="arg">val</span>.
+</div>
+</div>
+
+
 <h4 id="sec:lists">Lists</h4>
 
 <p>
@@ -5533,7 +5659,7 @@ class="arg">ptr</span>.
 <h4 id="sec:pairs">Pairs</h4>
 
 <p>
-The Cinquecento pair is an object that holds references
+A pair is an object that holds references
 to two other Cinquecento values, called the <em>car</em>
 and <em>cdr</em> of the pair.  It is akin to the
 <em>cons cell</em> data structure that is
@@ -8031,6 +8157,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:car">car</a><br />
 <a href="#fn:cdr">cdr</a><br />
 <a href="#fn:close">close</a><br />
+<a href="#fn:cntrget">cntrget</a><br />
+<a href="#fn:cntrput">cntrput</a><br />
 <a href="#fn:compact">compact</a><br />
 <a href="#fn:compile">compile</a><br />
 <a href="#fn:concat">concat</a><br />
@@ -8164,6 +8292,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkns">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
+<a href="#fn:mkrange">mkrange</a><br />
 <a href="#fn:mkrd">mkrd</a><br />
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mksym">mksym</a><br />
@@ -8180,6 +8309,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:printf">printf</a><br />
 <a href="#fn:push">push</a><br />
 <a href="#fn:putbytes">putbytes</a><br />
+<a href="#fn:rangebeg">rangebeg</a><br />
+<a href="#fn:rangelen">rangelen</a><br />
 <a href="#fn:rand">rand</a><br />
 <a href="#fn:rand">randseed</a><br />
 <a href="#fn:rdis">rdis</a><br />
