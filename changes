@@ -7,3 +7,5 @@ variables declared with @global and @local are initially bound to nil
   (previously they were bound to the undefined value)
 the value nil is now false in conditional context (previously true)
 the value and type null have been removed
+the value and type undefined have been removed
+@defloc is like @define but ensures the binding is @local

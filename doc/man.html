@@ -25,7 +25,6 @@
 <a href="#sec:functions">Functions</a><br />
 <a href="#sec:control">Control Operators</a><br />
 <a href="#sec:statements">Control Flow Statements</a><br />
-<a href="#sec:constants">Constants</a><br />
 <a href="#sec:records">Records</a><br />
 <br />
 <em>Using Domains</em><br />
@@ -238,7 +237,6 @@ The following are the keywords of Cinquecento.
 
 <div class="code">
 <!-- pipe through mc -60
-@const 
 @containerof
 @define
 @defloc
@@ -278,7 +276,7 @@ volatile
 while 
 -->
 <pre>
-@const       @typeof      enum         struct 
+             @typeof      enum         struct 
 @containerof break        float        switch 
 @define      case         for          typedef 
 @defloc      char         if           union 
@@ -503,7 +501,7 @@ been declared with <span class="id">@local</span>.
 </p>
 
 <p>
-A reference to an unbound variable is an error.
+A reference to an unbound global variable is an error.
 </p>
 
 <h4 id="sec:types">Types</h4>
@@ -542,15 +540,7 @@ other type or equal to any other value.
 </p>
 
 <p>
-The <em>undefined</em> value is the value of
-uninitialized variables.  There is no literal
-expression for this value.
-</p>
-
-<p>
-There are no explicit numeric types.  In Cinquecento,
-all arithmetic is performed using C operators over
-values of type cvalue.
+There are no numeric types other than cvalue.
 </p>
 
 <p>
@@ -756,19 +746,6 @@ Table
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:istable">istable(<span class="arg">val</span>)</span>
-</div>
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
-Undefined
-</td>
-<td>
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:isundefined">isundefined(<span class="arg">val</span>)</span>
 </div>
 </div>
 </td>
@@ -1209,36 +1186,6 @@ None of the non-local control transfer statements
 (<span class="val">break</span>, <span class="val">continue</span>,
 <span class="val">goto</span>) can be used to leave
 or enter the body of a function.
-</p>
-
-<h4 id="sec:constants">Constants</h4>
-
-<p id="syn:_at_const">
-The <span class="id">@const</span> form defines constant expressions.
-The syntax is:
-</p>
-<div class="code">
-<pre>
-@const <span class="arg">id</span> = <span class="arg">expr</span>;
-</pre>
-</div>
-
-<p>
-The identifier <span class="arg">id</span> is bound to
-<span class="arg">expr</span> in a global constant name space.
-</p>
-
-<p>
-Occurrences of <span class="arg">id</span> in the current
-and subsequent input files are lexically
-replaced with <span class="arg">expr</span>.
-</p>
-
-<p>
-The constant name space is distinct from the top level
-environment and local scopes occupied by Cinquecento
-variables.  The use of the same identifier as both a constant
-and a variable has undefined behavior.  (This feature needs more work.)
 </p>
 
 
@@ -5509,8 +5456,8 @@ the list type is itself mutable, <em>i.e.</em>, it can
 be updated in place by imperative operations such
 as <a href="#fn:isstring"><span class="id">append</span></a>
 and <a href="#fn:isstring"><span class="id">delete</span></a>.
-Lists based on pairs, in constrast, are typically manipulated
-in functional style in a manner similar to Scheme lists.
+Lists based on pairs, in contrast, are typically manipulated
+by functional operations in the style of Scheme lists.
 </p>
 
 <p>
@@ -5527,8 +5474,8 @@ on a list built from pairs and <span class="id">nil</span>.
 <p>
 Note that the list constructor syntax
 <a href="#syn:_emptylist_"><span class="id">[...]</span></a>
-is used to build instances of the list type, not lists
-based on pairs.
+is used to build instances of the list type, not
+pair-based lists.
 </p>
 
 <p>
@@ -6585,9 +6532,7 @@ managed by a generational stop-the-world copying
 garbage collector.  Its design draws on published
 descriptions of storage management in <em>Chez Scheme</em>
 [<a href="#bib:chez">Chez</a>, <a href="#bib:bibop">BiBOP</a>,
-<a href="#bib:bibop">Guardians</a>];
-readers seeking details of its operation should begin with
-those publications.
+<a href="#bib:bibop">Guardians</a>].
 </p>
 
 <p>
@@ -6698,8 +6643,7 @@ may be later unlocked by an equal number of calls to <span class="id">gcunlock</
 </div>
 </div>
 <div class="desc">
-Prints information about the current state of the storage manager
-in an undefined format.
+Prints information about the current state of the storage manager.
 </div>
 </div>
 
@@ -7018,8 +6962,7 @@ This section documents functions related to compression and hashing.
 </div>
 <div class="desc">
 <span class="id">inflate</span> decompresses the
-contents of the string represented
-by <span class="arg">buf</span> using the deflate
+contents of the string <span class="arg">buf</span> using the deflate
 compression algorithm (which is used for gzip, zip, and
 zlib files).  <span class="id">inflatezlib</span> is
 like <span class="id">inflate</span>, but operates on
@@ -7172,7 +7115,7 @@ Cinquecento type of the object:
 <pre>
 typedef
 enum {
-	Qundef = 0,	/* the undefined value */
+	Qundef = 0,	/* the undefined value (private) */
 	Qnil,		/* the nil value */
 	Qas,		/* address space */
 	Qbox,		/* box (private) */
@@ -7886,7 +7829,6 @@ Design and Implementation, 207-216, June 1993.
 <td>
 <a href="#syn:_emptylist_">[<span class="arg">value</span>, ... ]</a><br />
 <a href="#syn:_emptytable_">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
-<a href="#syn:_at_const">@const</a><br />
 <a href="#syn:_at_define">@define</a><br />
 <a href="#syn:_at_defloc">@defloc</a><br />
 <a href="#syn:_at_global">@global</a><br />
