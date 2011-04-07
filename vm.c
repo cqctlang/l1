@@ -7502,12 +7502,6 @@ l1_isvector(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_isundefined(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	l1_isx(vm, argc, argv, rv, "isundefined", Qundef);
-}
-
-static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(vm);
@@ -8577,7 +8571,6 @@ mktopenv(void)
 	FN(issu);
 	FN(istable);
 	FN(istypedef);
-	FN(isundefined);
 	FN(isundeftype);
 	FN(isunion);
 	FN(isvector);
