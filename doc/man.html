@@ -39,6 +39,7 @@
 <br />
 <em>Defining Domains</em><br />
 <a href="#sec:domobj">The object model</a><br />
+<a href="#sec:symbols">Symbols, Fields, Parameters</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
 <a href="#sec:ctypes">Ctypes</a><br />
@@ -2255,8 +2256,8 @@ a consequence of operating on erroneous user data.
 <h4 id="sec:domobj">The object model</h4>
 
 <p>
-Three types in Cinquecento --- names spaces, address
-spaces, and domains --- have object-oriented structure.
+Three types in Cinquecento &mdash names spaces, address
+spaces, and domains &mdash have object-oriented structure.
 This section describes the object model.
 </p>
 
@@ -2265,7 +2266,7 @@ Every object comprises a set of named functions,
 called its <em>methods</em>, and a name.
 </p>
 
-<p>
+<p id="syn:invoke">
 The primary operation on objects is method invocation.
 Given an object <span class="val">o</span>, the method
 named <span class="val">f</span> is invoked
@@ -2277,11 +2278,12 @@ named <span class="val">f</span> is invoked
 o.f(<span class="arg">arg</span>, ...)
 </pre>
 </div>
-<p>
+
+</p>
 
 <p>
 A method is an ordinary Cinquecento function, but
-method invocation is not a completely ordinary call.
+method invocation is not a completely ordinary function call.
 In method invocation, one additional argument, the
 object upon which the method is invoked, is prepended
 to the argument
@@ -2304,18 +2306,41 @@ of <span class="val">dispatch</span>:
 o.dispatch(<span class="val">"f"</span>, <span class="arg">arg</span>, ...)
 </pre>
 </div>
+
 <p>
-
-
+The value of a method invocation is the value returned
+by the resulting function call.
 </p>
 
 <p>
-The object name is a string that is typically used by
-programs to label an object.  Their use is optional.
-Aside from the functions described below, the system
-ignores names.  Two objects may have the same name.
-The default value of an object's name
-is <span class="val">nil</span>.
+An expression of the form
+</p>
+
+<div class="code">
+<pre>
+o.f
+</pre>
+</div>
+
+<p>
+evaluates to a function that, when called on
+arguments <span class="val"><span class="arg">arg</span>,
+...</span></span>, is equivalent to the method invocation
+</p>
+
+<div class="code">
+<pre>
+o.f(<span class="arg">arg</span>, ...)
+</pre>
+</div>
+
+<p>
+The name of an object is a string that is typically used by
+programs to label an object.  The system provides
+functions to access and update object names, but does
+not interpret names nor care whether they are used.
+Two objects may have the same name.  The default value
+of an object's name is <span class="val">nil</span>.
 </p>
 
 <p>
@@ -2383,8 +2408,8 @@ tables of methods:
 </div>
 <div class="desc">
 These functions construct a new address space or new
-names space, respectively, from the methods contained
-in <span class="arg">tab</span>.  Keys
+name space, respectively, from the method table
+<span class="arg">tab</span>.  Keys
 in <span class="arg">tab</span> are strings,
 identifying method names.  Values
 in <span class="arg">tab</span> are the
@@ -2395,27 +2420,22 @@ provided.
 </div>
 
 <p>
-Several method names must be defined in the
-construction of name spaces and address spaces.
-These names and semantics of these methods are
-discussed in the sections below.
-</p>
-
-<p>
+Name spaces and address spaces each require that
+certain method names be defined, either as explicit
+entries in the method table or as names recognized by
+a <span class="val">dispatch</span> method.  These
+names and their meaning are given below in the sections
+on
+<a href="#sec:namespaces">names spaces</a>
+and
+<a href="#sec:addressspaces">address spaces</a>.
 Name spaces and address spaces may define any number of
 additional methods.
 </p>
 
 <p>
 A domain object is constructed from a name space and
-address space object.  (In essence, domains are defined
-via multiple inheritance from name space and address
-space.)
-</p>
-
-<p>
-New domain instances are created with
-<span class="id">mkdom</span>.
+address space object.
 </p>
 
 <div class="docitem" id="fn:mkdom">
@@ -2446,13 +2466,451 @@ provided.
 </div>
 </div>
 
+<p>
+Any method defined by either the name space or address space
+used to construct a domain may be invoked on the domain.
+Names are resolved in the following order:
+</p>
+
+<ol>
+<li>Name space method table;</li>
+<li>Address space method table;</li>
+<li>Name space <span class="val">dispatch</span> method, if defined;</li>
+<li>Address space <span class="val">dispatch</span> method, if defined.</li>
+</ol>
 
 <p>
-The object model used in Cinquecento is designed to
-support the roles of these types in forming the domain
-abstraction, not for general-purpose object-oriented
-programming.
+If both the name space and the address space define
+a <span class="val">dispatch</span> method, only the
+name space <span class="val">dispatch</span> will ever
+be used to resolve method invocations through the
+domain.
 </p>
+
+<p id="syn:asof">
+The name space and address space used to construct a
+domain <span class="val">dom</span> can be accessed by
+the following syntax:
+</p>
+
+<div class="code">
+<pre>
+dom.ns  /* evaluates to the name space of dom */
+dom.as  /* evaluates to the address space of dom */
+</pre>
+</div>
+
+In addition, two functions provide equivalent access:
+
+<div class="docitem" id="fn:asof">
+<div class="proto">
+<div class="function">
+<span class="id">asof(<span class="arg">dom</span>)
+</div>
+<div class="function">
+<span class="id">nsof(<span class="arg">dom</span>)
+</div>
+<div class="param">
+<span class="arg">dom</span>: <span class="type">domain</span>
+</div>
+<div class="returns">
+<span class="type">address space or name space</span>
+</div>
+</div>
+<div class="desc">
+These functions return the address space or 
+name space, respectively, used to construct
+the domain <span class="arg">dom</span>.
+</div>
+</div>
+
+
+<p>
+The object model described here was designed to
+implement the domain abstraction, not for
+general-purpose object-oriented programming.
+Plans for future development of Cinquecento
+include support for a better object system.
+</p>
+
+<h4 id="sec:symbols">Symbols, Fields, Parameters</h4>
+
+<p>
+Cinquecento represents a C symbol as a triple of
+values: the type of the symbol (of type ctype), the
+name of the symbol (string), and an optional attribute
+table (table).
+</p>
+
+<p>
+The attribute table maps attributes names (strings) to
+values.  The only attribute consulted by the system
+itself is the
+attribute <span class="val">"offset"</span>, which maps
+to a cvalue representing the offset of the first byte of
+the object named by the symbol from the start of the
+address space in which it resides.  Otherwise,
+attribute tables are a convenience to allows programs
+to associate arbitrary data with a symbol.
+</p>
+
+<p>
+L1 implements symbols using vectors, rather than, say,
+as a record or a dedicated primitive type.  This
+representation is likely to change in future versions.
+To avoid incompatibility, programs should use the
+following functions to create and access symbols,
+rather than directly accessing the vector.  In
+particular, the result of modifying a symbol vector is
+undefined.  (In what
+follows, <span class="type">symbol</span> denotes the
+representation of symbols.)
+</p>
+
+
+<div class="docitem" id="fn:mksym">
+<div class="proto">
+<div class="function">
+<span class="id">mksym(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">attr</span>])
+</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">attr</span>: <span class="type">table or cvalue</span> or
+<span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new symbol from
+<span class="arg">type</span>,
+<span class="arg">id</span>, and
+<span class="arg">attr</span>.
+If <span class="arg">attr</span> is a cvalue, it is
+promoted to an attribute table that maps
+<span class="val">"offset"</span> to <span class="arg">attr</span>.
+If <span class="arg">attr</span> is <span class="arg">nil</span>
+or omitted, no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symtype">
+<span class="id">symtype(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns the type of <span class="arg">sym</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symid">
+<span class="id">symtype(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">sym</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symattr">
+<span class="id">symattr(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">sym</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symoff">
+<span class="id">symoff(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">cvalue or nil</span>
+</div>
+</div>
+<div class="desc">
+If <span class="arg">sym</span> does not have an attribute table,
+then this function returns <span class="val">nil</span>.
+Otherwise it returns the value of the attribute <span class="val">"offset"</span>.
+</div>
+</div>
+
+
+<p>
+The fields of an aggregate ctype
+(<span class="val">struct</span>
+or <span class="val">union</span>) and the parameters
+of a function type are structurally nearly analogous to
+a symbol.  Cinquecento uses symbols to represent these
+two abstractions.
+</p>
+
+<p>
+A difference between fields and symbols is that the offset
+attribute of a field represents the offset of the first
+by of the field from from the start of the aggregate in
+which it resides.  Parameters are different from symbols
+in that there is no notion of an offset.
+</p>
+
+<p>
+The following functions, based on the symbol functions,
+operation on fields and parameters (denoted <span class="type">field</span>
+and <span class="type">param</span> below).
+</p>
+
+<div class="docitem" id="fn:mkfield">
+<div class="proto">
+<div class="function">
+<span class="id">mkfield(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">attr</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">attr</span>: <span class="type">table or cvalue</span> or
+<span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">field</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new field
+from <span class="arg">type</span>,
+<span class="arg">id</span>, and
+<span class="arg">attr</span>.
+The resulting value is a suitable
+element for the <span class="arg">fields</span>
+argument
+to <span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span>
+or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
+If <span class="arg">attr</span> is a cvalue, it is
+promoted to an attribute table that maps
+<span class="val">"offset"</span> to <span class="arg">attr</span>.
+If <span class="arg">attr</span> is <span class="val">nil</span> or omitted,
+no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldtype">
+<span class="id">fieldtype(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns the type of <span class="arg">field</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldid">
+<span class="id">fieldtype(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">field</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldattr">
+<span class="id">fieldattr(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">field</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldoff">
+<span class="id">fieldoff(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">cvalue or nil</span>
+</div>
+</div>
+<div class="desc">
+If <span class="arg">field</span> does not have an attribute table,
+then this function returns <span class="val">nil</span>.
+Otherwise it returns the value of the attribute <span class="val">"offset"</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkparam">
+<div class="proto">
+<div class="function">
+<span class="id">mkparam(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">off</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">attr</span>: <span class="type">table or cvalue</span> or
+<span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">param</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new param
+from <span class="arg">type</span>,
+<span class="arg">id</span>, and
+<span class="arg">attr</span>.
+The resulting value is a suitable
+element for the <span class="arg">params</span>
+argument
+to <span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span>
+or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
+If <span class="arg">attr</span> is a cvalue, it is
+promoted to an attribute table that maps
+<span class="val">"offset"</span> to <span class="arg">attr</span>.
+If <span class="arg">attr</span> is <span class="arg">nil</span>,
+no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramtype">
+<span class="id">paramtype(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns the type of <span class="arg">param</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramid">
+<span class="id">paramtype(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">param</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramattr">
+<span class="id">paramattr(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">param</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramoff">
+<span class="id">paramoff(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">cvalue or nil</span>
+</div>
+</div>
+<div class="desc">
+If <span class="arg">param</span> does not have an attribute table,
+then this function returns <span class="val">nil</span>.
+Otherwise it returns the value of the attribute <span class="val">"offset"</span>.
+</div>
+</div>
+
+
+
 
 <h4 id="sec:namespaces">Name spaces</h4>
 
@@ -2540,87 +2998,6 @@ functions retrieve type information from a name space.
 <div class="desc">
 Returns a base type defined in <span class="arg">ns</span>
 that can represent the pointer type defined in <span class="arg">ns</span>.
-</div>
-</div>
-
-<p>
-C symbols have three components: the type of the symbol
-(represented as a ctype),
-the name of the symbol (string),
-and the location of the symbol (cvalue).
-C symbols are not represented by a distinct Cinquecento
-type; rather a symbol is represented by a vector
-containing the three components.
-</p>
-
-<p>
-The representation may change in a later version of Cinquecento.
-To avoid future incompatibility, programs should use the following
-interface to create and access symbols.  (The notation
-<span class="arg">symbol</span> denotes the representation
-of symbols.)
-</p>
-
-
-<div class="docitem" id="fn:mksym">
-<div class="proto">
-<div class="function">
-<span class="id">mksym(<span class="arg">type</span>,<span class="arg">id</span>,<span class="arg">loc</span>)
-</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">val</span>: <span class="type">cvalue</span> or
-<span class="type">nil</span>
-</div>
-
-<div class="returns">
-<span class="type">symbol</span>
-</div>
-</div>
-<div class="desc">
-Constructs a new symbol from
-<span class="arg">type</span>,
-<span class="arg">id</span>, and
-<span class="arg">val</span>.
-Usually <span class="arg">val</span>
-gives the offset in bytes of the object named
-by the symbol from the beginning of the
-address space in which it is located.
-<span class="arg">Val</span> may be <span class="val">nil</span>,
-in which case the symbol is used only to associate a type with a name.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function"  id="fn:symtype">
-<span class="id">symtype(<span class="arg">sym</span>)
-</span>
-</div>
-<div class="function"  id="fn:symid">
-<span class="id">symid(<span class="arg">sym</span>)
-</span>
-</div>
-<div class="function"  id="fn:symoff">
-<span class="id">symoff(<span class="arg">sym</span>)
-</span>
-</div>
-<div class="param">
-<span class="arg">sym</span>: <span class="type">symbol</span>
-</div>
-<div class="returns">
-see description
-</div>
-</div>
-<div class="desc">
-Each of these functions returns one of the components of 
-<span class="arg">symbol</span>.
 </div>
 </div>
 
@@ -2820,31 +3197,6 @@ resulting name space; this name is used only for
 presentation, and need not be unique.  The remainder of
 this section further describes these mechanisms.
 </p>
-
-<div class="docitem" id="fn:mkns">
-<div class="proto">
-<div class="function">
-<span class="id">mkns(<span class="arg">looktype</span>,<span class="arg">enumtype</span>,<span class="arg">looksym</span>,<span class="arg">enumsym</span>,<span class="arg">lookaddr</span>[,<span class="arg">name</span>])</span>
-</div>
-<div class="param">
-<span class="arg">looktype</span>, <span class="arg">enumtype</span>, <span class="arg">looksym</span>, <span class="arg">enumsym</span>, <span class="arg">lookaddr</span>: <span class="type">function</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
-</div>
-<div class="returns">
-<span class="type">name space</span>
-</div>
-</div>
-<div class="desc">
-The five function parameters implement the Cinquecento
-name space interface.  <span class="id">Mkns</span>
-constructs and returns a new name space corresponding
-to this implementation.  If specified, <span
-class="arg">name</span> is a human-readable name
-associated with the name space.
-</div>
-</div>
 
 <div class="docitem" id="fn:mknsraw">
 <div class="proto">
@@ -3588,54 +3940,14 @@ the ctype does not define its subordinate.
 <span class="arg">type</span>: <span class="type">aggregate ctype</span>
 </div>
 <div class="returns">
-<span class="type">vector</span>
+<span class="type">vector of fields</span>
 </div>
 </div>
 <div class="desc">
 Returns a vector containing the
 definitions of the fields in the aggregate <span
-class="arg">type</span>.  Each item in the vector defines a field 
-that can be examined with the functions
-<span class="fnindex"><a
-href="#fn:fieldid">fieldid</a></span>, <span
-class="fnindex"><a
-href="#fn:fieldoff">fieldoff</a></span>, and <span
-class="fnindex"><a
-href="#fn:fieldtype">fieldtype</a></span>.
+class="arg">type</span>
 Modifying the vector may cause undefined effects.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:fieldid">fieldid(<span class="arg">field</span>)</span>
-</div>
-<div class="function">
-<span class="id" id="fn:fieldoff">fieldoff(<span class="arg">field</span>)</span>
-</div>
-<div class="function">
-<span class="id" id="fn:fieldtype">fieldtype(<span class="arg">field</span>)</span>
-</div>
-<div class="param">
-<span class="arg">field</span>: <span class="type">item in the vector returned by <span
-class="fnindex"><a
-href="#fn:fields">fields</a></span></span>
-</div>
-<div class="returns">
-<span class="type">see description</span>
-</div>
-</div>
-<div class="desc">
-These functions examine an aggregate field definition returned by <span
-class="fnindex"><a href="#fn:fields">fields</a></span>.  <span
-class="id">Fieldid</span> returns the name of the field
-as a string.  <span class="id">Fieldoff</span> returns
-the offset in bytes of the field from the start of the
-aggregate as a cvalue, or <span class="val">nil</span>
-if the offset is undefined.  <span
-class="id">Fieldtype</span> returns the type of the
-field as a ctype.
 </div>
 </div>
 
@@ -3861,33 +4173,6 @@ Modifying the vector may cause undefined effects.
 </div>
 </div>
 
-<div class="docitem">
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:paramid">paramid(<span class="arg">param</span>)</span>
-</div>
-<div class="function">
-<span class="id" id="fn:paramtype">paramtype(<span class="arg">param</span>)</span>
-</div>
-<div class="param">
-<span class="arg">param</span>: <span class="type">item in the vector returned by <span
-class="fnindex"><a
-href="#fn:fieldtype">params</a></span></span>
-</div>
-<div class="returns">
-<span class="type">see description</span>
-</div>
-</div>
-<div class="desc">
-These functions examine a parameter definition returned by <span
-class="fnindex"><a href="#fn:params">params</a></span>.  <span
-class="id">Paramid</span> returns the name of the parameter
-as a string.  <span
-class="id">Paramtype</span> returns the type of the
-parameter as a ctype.
-</div>
-</div>
-
 <div class="docitem" id="fn:rettype">
 <div class="proto">
 <div class="function">
@@ -4041,36 +4326,6 @@ of the aggregate.
 </div>
 </div>
 
-<div class="docitem" id="fn:mkfield">
-<div class="proto">
-<div class="function">
-<span class="id">mkfield(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">off</span>])</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">off</span>: <span class="type">cvalue</span>
-</div>
-<div class="returns">
-<span class="type">vector</span>
-</div>
-</div>
-<div class="desc">
-
-Returns a new field definition that is a suitable
-element of the <span class="arg">fields</span>
-argument
-of <span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span>
-or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
-<span class="arg">Type</span> is the type of the field,
-<span class="arg">id</span> is the name of the field, and
-<span class="arg">off</span>, if specified, is the offset in bytes of the field from the beginning of the aggregate.
-</div>
-</div>
 
 
 <div class="docitem" id="fn:mkctype_array">
@@ -6855,7 +7110,7 @@ the outcome of evaluations that cause an error to be raised.
 <span class="id">Evalk</span> evaluates the Cinquecento
 expression contained in the
 string <span class="arg">expr</span>.
-If the application causes an error to be raised, the
+If the evaluation causes an error to be raised, the
 same error message and stack trace that normally would be
 be printed are printed, then evaluation continues by calling the function
 <span class="arg">fail</span> with no arguments.
@@ -8257,6 +8512,9 @@ Design and Implementation, 207-216, June 1993.
 <table>
 <tr>
 <td>
+<a href="#syn:invoke"><span class="val"><span class="arg">o</span>.<span class="arg">f</span> (method invocation)</a><br />
+<a href="#syn:asof"><span class="val"><span class="arg">dom</span>.as</span></a><br />
+<a href="#syn:asof"><span class="val"><span class="arg">dom</span>.ns</span></a><br />
 <a href="#syn:_emptylist_">[<span class="arg">value</span>, ... ]</a><br />
 <a href="#syn:_emptytable_">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
 <a href="#syn:_at_define">@define</a><br />
@@ -8354,6 +8612,7 @@ Design and Implementation, 207-216, June 1993.
 <table>
 <tr>
 <td>
+<a href="#fn:asof">asof</a><br />
 <a href="#fn:access">access</a><br />
 <a href="#fn:append">append</a><br />
 <a href="#fn:apply">apply</a><br />
@@ -8516,6 +8775,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:mkzas">mkzas</a><br />
 <a href="#fn:nameof">nameof</a><br />
+<a href="#fn:asof">nsof</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
