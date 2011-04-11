@@ -406,8 +406,8 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("#%s", e->id);
 		break;
 	case E_tg:
-		xprintf("#%s = ", e->id);
-		printcqct0(e->e1, ni);
+		xprintf("#%s = ", e->e1->id);
+		printcqct0(e->e2, ni);
 		break;
 	case Eellipsis:
 		xprintf("...");
