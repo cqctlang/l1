@@ -6161,18 +6161,18 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 			      "operand 3 to %s must be a table, cvalue, or nil",
 			      what);
 	vec = mkvec(3);
-	_vecset(vec, 0, argv[0]);
+	_vecset(vec, Typepos, argv[0]);
 	if(argc > 1)
-		_vecset(vec, 1, argv[1]);
+		_vecset(vec, Idpos, argv[1]);
 	else
-		_vecset(vec, 1, Xnil);
+		_vecset(vec, Idpos, Xnil);
 	if(argc > 2 && Vkind(argv[2]) == Qcval)
 		attr = mkattr(argv[2]);
 	else if(argc > 2)
 		attr = argv[2];
 	else
 		attr = Xnil;
-	_vecset(vec, 2, attr);
+	_vecset(vec, Attrpos, attr);
 	*rv = mkvalvec(vec);
 }
 
@@ -6489,15 +6489,6 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qtab)
 		vmerr(vm, "argument 1 to mkattr must be a table or cvalue");
 	*rv = mkattr(argv[0]);
-}
-
-static void
-l1_attroff(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to attroff");
-	checkarg(vm, "attroff", argv, 0, Qtab);
-	*rv = attroff(argv[0]);
 }
 
 static void
@@ -8533,7 +8524,6 @@ mktopenv(void)
 	FN(applyk);
 	FN(arraynelm);
 	FN(asof);
-	FN(attroff);
 	FN(backtrace);
 	FN(baseid);
 	FN(basebase);
