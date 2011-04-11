@@ -36,7 +36,7 @@ REFINE_KEY = "refine";
 
 @define unrollTypedef(t)
 {
-	while (istypedef(t)) t = subtype(t);
+	while (istypedef(t)) t = typedeftype(t);
 	return t;
 }
 

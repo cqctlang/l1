@@ -777,48 +777,51 @@ creating and analyzing graphs of types inferred from a namespace.
 </div>
 
 <div class="docitem" id="fn:typegraph_edge_iter">
-<div class="proto">
-<div class="function">
-	<span class="id">typegraph_edge_iter(<span class="arg">tg</span>,
-		<span class="arg">fn</span>)
-	</span>
-</div>
-<div class="param">
-	<span class="arg">tg</span>: <span class="type">table representation of
-	the typegraph</span> 
-</div>
-<div class="param">
-<span class="arg">fn</span>: <span class="type">function</span>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-	Runs fn(from_node,to_node) for all edges in the typegraph.
-</div>
+	<div class="proto">
+		<div class="function">
+			<span class="id">typegraph_edge_iter(<span class="arg">tg</span>,
+				<span class="arg">fn</span>)
+			</span>
+		</div>
+		<div class="param">
+			<span class="arg">tg</span>: <span class="type">table representation of
+				the typegraph</span> 
+		</div>
+		<div class="param">
+
+			<span class="arg">fn</span>: <span class="type">function</span>
+		</div>
+		<div class="returns">
+			<span class="type">nil</span>
+		</div>
+	</div>
+	<div class="desc">
+		Runs fn(from_node,to_node) for all edges in the typegraph.
+	</div>
 </div>
 
 <div class="docitem" id="fn:typegraph_node_iter">
-<div class="proto">
-<div class="function">
-	<span class="id">typegraph_node_iter(<span class="arg">tg</span>,
-		<span class="arg">fn</span>)
-	</span>
-</div>
-<div class="param">
-	<span class="arg">tg</span>: <span class="type">table representation of
-	the typegraph</span> 
-</div>
-<div class="param">
-<span class="arg">fn</span>: <span class="type">function</span>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-	Runs fn(from_node,to_nodes) for all nodes in the typegraph.
-	Note that the second parameter to fn will be a list.
-</div>
+	<div class="proto">
+		<div class="function">
+			<span class="id">typegraph_node_iter(<span class="arg">tg</span>,
+				<span class="arg">fn</span>)
+			</span>
+		</div>
+		<div class="param">
+			<span class="arg">tg</span>: <span class="type">table representation of
+				the typegraph</span> 
+		</div>
+		<div class="param">
+			<span class="arg">fn</span>: <span class="type">function</span>
+		</div>
+		<div class="returns">
+			<span class="type">nil</span>
+		</div>
+	</div>
+	<div class="desc">
+		Runs fn(from_node,to_nodes) for all nodes in the typegraph.
+		Note that the second parameter to fn will be a list.
+	</div>
 </div>
 
 <h5 id="lib:nsutil.cqct">nsutil.cqct</h5>
