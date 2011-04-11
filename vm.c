@@ -6572,6 +6572,37 @@ l1_nameof(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_setname(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+	Ns *ns;
+	As *as;
+	Str *name;
+
+	name = 0;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to setname");
+	if(Vkind(argv[1]) != Qnil && Vkind(argv[1]) != Qstr)
+		vmerr(vm, "argument 2 to setname must be a string or nil");
+	if(Vkind(argv[1]) == Qstr)
+		name = valstr(argv[1]);
+	else
+		name = 0;
+	if(Vkind(argv[0]) == Qdom){
+		dom = valdom(argv[0]);
+		dom->name = name;
+	}else if(Vkind(argv[0]) == Qns){
+		ns = valns(argv[0]);
+		ns->name = name;
+	}else if(Vkind(argv[0]) == Qas){
+		as = valas(argv[0]);
+		as->name = name;
+	}else
+		vmerr(vm, "operand 1 to nameof must be a domain, name space"
+		      " or address space");
+}
+
+static void
 l1_asof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
@@ -8646,6 +8677,7 @@ mktopenv(void)
 	FN(rangelen);
 	FN(resettop);
 	FN(rettype);
+	FN(setname);
 	FN(setloadpath);
 	FN(settypedeftype);
 	FN(sort);

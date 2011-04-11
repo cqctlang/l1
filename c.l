@@ -28,8 +28,8 @@ static int chars(YYSTYPE *lvalp, int);
 %}
 
 %%
-@include[ \t]*\"[^\"]+\"[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
-@include[ \t]*\<[^\<\>]+\>[ \t]* { count(ctx); tryinclude(ctx, yytext); }
+@include[ \t]*\"[^\<\>\"]+\"[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
+@include[ \t]*\<[^\<\>\"]+\>[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
 <<EOF>>                 { if(maybepopyy(ctx) == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }

@@ -38,7 +38,7 @@
 <a href="#sec:pointers">Pointers</a><br />
 <br />
 <em>Defining Domains</em><br />
-<a href="#sec:mkdom">Domain constructor</a><br />
+<a href="#sec:domobj">The object model</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
 <a href="#sec:ctypes">Ctypes</a><br />
@@ -2252,7 +2252,166 @@ the Cinquecento runtime is an implementation bug, never
 a consequence of operating on erroneous user data.
 </p>
 
-<h4 id="sec:mkdom">Domain constructor</h4>
+<h4 id="sec:domobj">The object model</h4>
+
+<p>
+Three types in Cinquecento --- names spaces, address
+spaces, and domains --- have object-oriented structure.
+This section describes the object model.
+</p>
+
+<p>
+Every object comprises a set of named functions,
+called its <em>methods</em>, and a name.
+</p>
+
+<p>
+The primary operation on objects is method invocation.
+Given an object <span class="val">o</span>, the method
+named <span class="val">f</span> is invoked
+(called) with arguments <span class="val"><span class="arg">arg</span>,
+...</span> by the following syntax:
+
+<div class="code">
+<pre>
+o.f(<span class="arg">arg</span>, ...)
+</pre>
+</div>
+<p>
+
+<p>
+A method is an ordinary Cinquecento function, but
+method invocation is not a completely ordinary call.
+In method invocation, one additional argument, the
+object upon which the method is invoked, is prepended
+to the argument
+list <span class="val"><span class="arg">arg</span>,
+...</span></span>.  This argument is conventionally
+named <span class="val">this</span> in method
+definitions.
+</p>
+
+<p>
+By default it is an error to invoke a method
+named <span class="val">f</span> on an object that does
+not define <span class="val">f</span>.  However,
+if the object defines a method named
+<span class="val">dispatch</span>, then such unresolved
+invocations are transformed into the following invocation
+of <span class="val">dispatch</span>:
+<div class="code">
+<pre>
+o.dispatch(<span class="val">"f"</span>, <span class="arg">arg</span>, ...)
+</pre>
+</div>
+<p>
+
+
+</p>
+
+<p>
+The object name is a string that is typically used by
+programs to label an object.  Their use is optional.
+Aside from the functions described below, the system
+ignores names.  Two objects may have the same name.
+The default value of an object's name
+is <span class="val">nil</span>.
+</p>
+
+<p>
+<div class="docitem" id="fn:nameof">
+<div class="proto">
+<div class="function">
+<span class="id">nameof(<span class="arg">o</span>)
+</div>
+<div class="param">
+<span class="arg">o</span>: <span class="type">name space</span>, <span class="type">address space</span>, or <span class="type">domain</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of the object <span class="arg">o</span>.
+</div>
+</div>
+
+<p>
+<div class="docitem" id="fn:setname">
+<div class="proto">
+<div class="function">
+<span class="id">setname(<span class="arg">o</span>, <span class="arg">s</span>)
+</div>
+<div class="param">
+<span class="arg">o</span>: <span class="type">name space</span>, <span class="type">address space</span>, or <span class="type">domain</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span> or <span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Updates the name of the object <span class="arg">o</span> to <span class="arg">s</span>.
+</div>
+</div>
+
+
+<p>
+Name spaces and address spaces are constructed from
+tables of methods:
+</p>
+
+<div class="docitem" id="fn:mkas">
+<div class="proto">
+<div class="function">
+<span class="id">mkas(<span class="arg">tab</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="function">
+<span class="id">mkns(<span class="arg">tab</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+These functions construct a new address space or new
+names space, respectively, from the methods contained
+in <span class="arg">tab</span>.  Keys
+in <span class="arg">tab</span> are strings,
+identifying method names.  Values
+in <span class="arg">tab</span> are the
+corresponding method functions.  The name of the object is
+initialized to <span class="arg">name</span>, if
+provided.
+</div>
+</div>
+
+<p>
+Several method names must be defined in the
+construction of name spaces and address spaces.
+These names and semantics of these methods are
+discussed in the sections below.
+</p>
+
+<p>
+Name spaces and address spaces may define any number of
+additional methods.
+</p>
+
+<p>
+A domain object is constructed from a name space and
+address space object.  (In essence, domains are defined
+via multiple inheritance from name space and address
+space.)
+</p>
 
 <p>
 New domain instances are created with
@@ -2262,7 +2421,7 @@ New domain instances are created with
 <div class="docitem" id="fn:mkdom">
 <div class="proto">
 <div class="function">
-<span class="id">mkdom(<span class="arg">ns</span>,<span class="arg">as</span>)</span>
+<span class="id">mkdom(<span class="arg">ns</span>,<span class="arg">as</span>[,<span class="arg">name</span>)</span>
 </div>
 <div class="param">
 <span class="arg">ns</span>: <span class="type">name space</span>
@@ -2270,26 +2429,29 @@ New domain instances are created with
 <div class="param">
 <span class="arg">as</span>: <span class="type">address space</span>
 </div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
 <div class="returns">
 <span class="type">domain</span>
 </div>
 </div>
 <div class="desc">
-Returns a new domain instance whose associated name space 
+Constructs a new domain whose associated name space 
 and address space are
 <span class="arg">ns</span> and
-<span class="arg">as</span>.
+<span class="arg">as</span>.  The name of the object is
+initialized to <span class="arg">name</span>, if
+provided.
 </div>
 </div>
 
-<h4 id="sec:domobj">Domains as objects</h4>
 
 <p>
-Cinquecento address spaces and name spaces encapsulate
-functions that implement the behavior of these
-abstractions.  The structure of this encapsulation is
-similar to that of simple objects in a conventional
-object-oriented language.
+The object model used in Cinquecento is designed to
+support the roles of these types in forming the domain
+abstraction, not for general-purpose object-oriented
+programming.
 </p>
 
 <h4 id="sec:namespaces">Name spaces</h4>
@@ -8353,6 +8515,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:mkzas">mkzas</a><br />
+<a href="#fn:nameof">nameof</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
@@ -8388,6 +8551,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:setcar">setcar</a><br />
 <a href="#fn:setcdr">setcdr</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
+<a href="#fn:setname">setname</a><br />
 <a href="#fn:settypedeftype">settypedeftype</a><br />
 <a href="#fn:sha1">sha1</a><br />
 <a href="#fn:slice">slice</a><br />
