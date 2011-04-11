@@ -2268,7 +2268,7 @@ called its <em>methods</em>, and a name.
 <p>
 The primary operation on objects is method invocation.
 Given an object <span class="val">o</span>, the method
-named <span class="val">f</span> can be invoked
+named <span class="val">f</span> is invoked
 (called) with arguments <span class="val"><span class="arg">arg</span>,
 ...</span> by the following syntax:
 
@@ -2280,40 +2280,41 @@ o.f(<span class="arg">arg</span>, ...)
 <p>
 
 <p>
-A method is an ordinary Cinquecento function.  The
-invocation syntax expands to an ordinary call to the
-method function associated with the
-name <span class="val">f</span>
-in <span class="val">o</span>.
-
-
-
-, except that one additional argument preceeds
-the other.  This argument, conventionally
-named <span class="val">this</span>, is the object upon
-which the method is invoked.
-
-passed precedes
-passed on additional argument 
-
-
-Every
-method accepts at least one argument.  The first
-argument of a method, conventionally
-named <span class="val">this</span>, is bound to the
-object upon which the method is invoked.  The remaining
-parameters are bound in order to the
-arguments <span class="val"><span class="arg">arg</span>,
-...</span> of the invocation.
+A method is an ordinary Cinquecento function, but
+method invocation is not a completely ordinary call.
+In method invocation, one additional argument, the
+object upon which the method is invoked, is prepended
+to the argument
+list <span class="val"><span class="arg">arg</span>,
+...</span></span>.  This argument is conventionally
+named <span class="val">this</span> in method
+definitions.
 </p>
 
 <p>
-In addition to the set of named methods, every object
-has a name.  Names are typically used by programs to
-label an object with a string, but their use is
-optional.  Aside from the functions described below,
-the system ignores names.  Two objects may have the
-same name.  The default value of an object's name
+By default it is an error to invoke a method
+named <span class="val">f</span> on an object that does
+not define <span class="val">f</span>.  However,
+if the object defines a method named
+<span class="val">dispatch</span>, then such unresolved
+invocations are transformed into the following invocation
+of <span class="val">dispatch</span>:
+<div class="code">
+<pre>
+o.dispatch(<span class="val">"f"</span>, <span class="arg">arg</span>, ...)
+</pre>
+</div>
+<p>
+
+
+</p>
+
+<p>
+The object name is a string that is typically used by
+programs to label an object.  Their use is optional.
+Aside from the functions described below, the system
+ignores names.  Two objects may have the same name.
+The default value of an object's name
 is <span class="val">nil</span>.
 </p>
 
