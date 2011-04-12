@@ -2537,30 +2537,31 @@ include support for a better object system.
 
 <p>
 Cinquecento represents a C symbol as a triple of
-values: the type of the symbol (of type ctype), the
-name of the symbol (string), and an optional attribute
-table (table).
+values:
+its name (of type string),
+its type (ctype),
+and an optional attribute table (table).
 </p>
 
 <p>
 The attribute table maps attributes names (strings) to
 values.  The only attribute consulted by the system
-itself is the
-attribute <span class="val">"offset"</span>, which maps
-to a cvalue representing the offset of the first byte of
+itself is the attribute
+named <span class="val">"offset"</span>.  Its value is
+a cvalue representing the offset of the first byte of
 the object named by the symbol from the start of the
-address space in which it resides.  Otherwise,
-attribute tables are a convenience to allows programs
-to associate arbitrary data with a symbol.
+address space in which it resides.  Attribute tables
+are otherwise a convenience to allow programs to
+associate arbitrary data with a symbol.
 </p>
 
 <p>
 L1 implements symbols using vectors, rather than, say,
-as a record or a dedicated primitive type.  This
+a record or a dedicated primitive type.  This
 representation is likely to change in future versions.
 To avoid incompatibility, programs should use the
 following functions to create and access symbols,
-rather than directly accessing the vector.  In
+instead of directly accessing the vector.  In
 particular, the result of modifying a symbol vector is
 undefined.  (In what
 follows, <span class="type">symbol</span> denotes the
@@ -2603,6 +2604,23 @@ or omitted, no attribute table is created.
 
 <div class="docitem">
 <div class="proto">
+<div class="function"  id="fn:symid">
+<span class="id">symid(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">sym</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
 <div class="function"  id="fn:symtype">
 <span class="id">symtype(<span class="arg">sym</span>)</span>
 </div>
@@ -2615,23 +2633,6 @@ or omitted, no attribute table is created.
 </div>
 <div class="desc">
 Returns the type of <span class="arg">sym</span>.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function"  id="fn:symid">
-<span class="id">symtype(<span class="arg">sym</span>)</span>
-</div>
-<div class="param">
-<span class="arg">sym</span>: <span class="type">symbol</span>
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns the name of <span class="arg">sym</span>.
 </div>
 </div>
 
@@ -2665,33 +2666,38 @@ Returns the attribute table of <span class="arg">sym</span>.
 </div>
 </div>
 <div class="desc">
-If <span class="arg">sym</span> does not have an attribute table,
+If <span class="arg">sym</span> does not have an
+attribute table, or if its attribute table does not define
+the attribute <span class="val">"offset"</span>,
 then this function returns <span class="val">nil</span>.
-Otherwise it returns the value of the attribute <span class="val">"offset"</span>.
+Otherwise it returns the value of the
+attribute <span class="val">"offset"</span >.
 </div>
 </div>
 
 
 <p>
-The fields of an aggregate ctype
-(<span class="val">struct</span>
-or <span class="val">union</span>) and the parameters
-of a function type are structurally nearly analogous to
-a symbol.  Cinquecento uses symbols to represent these
-two abstractions.
+Two additional C abstractions &mdash the fields of an
+aggregate ctype (<span class="val">struct</span>
+or <span class="val">union</span>), and the parameters
+of a function &mdash are structually analogous to a
+symbol.  Because of the similarity, Cinquecento uses
+its symbol representation for these two abstractions.
 </p>
 
 <p>
-A difference between fields and symbols is that the offset
-attribute of a field represents the offset of the first
-by of the field from from the start of the aggregate in
-which it resides.  Parameters are different from symbols
-in that there is no notion of an offset.
+A difference between fields and symbols is that the
+offset attribute of a field represents the offset of
+the first byte of the field from the start of the
+aggregate in which it resides.  Parameters are
+different from symbols in that there is no notion of an
+offset, and some parameters ("abstract declarators")
+omit an identifier. 
 </p>
 
 <p>
 The following functions, based on the symbol functions,
-operation on fields and parameters (denoted <span class="type">field</span>
+operate on fields and parameters (denoted <span class="type">field</span>
 and <span class="type">param</span> below).
 </p>
 
@@ -2727,8 +2733,25 @@ or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
 If <span class="arg">attr</span> is a cvalue, it is
 promoted to an attribute table that maps
 <span class="val">"offset"</span> to <span class="arg">attr</span>.
-If <span class="arg">attr</span> is <span class="val">nil</span> or omitted,
-no attribute table is created.
+If <span class="arg">attr</span> is <span class="arg">nil</span>
+or omitted, no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldid">
+<span class="id">fieldid(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">field</span>.
 </div>
 </div>
 
@@ -2746,23 +2769,6 @@ no attribute table is created.
 </div>
 <div class="desc">
 Returns the type of <span class="arg">field</span>.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function"  id="fn:fieldid">
-<span class="id">fieldtype(<span class="arg">field</span>)</span>
-</div>
-<div class="param">
-<span class="arg">field</span>: <span class="type">field</span>
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns the name of <span class="arg">field</span>.
 </div>
 </div>
 
@@ -2796,25 +2802,28 @@ Returns the attribute table of <span class="arg">field</span>.
 </div>
 </div>
 <div class="desc">
-If <span class="arg">field</span> does not have an attribute table,
+If <span class="arg">field</span> does not have an
+attribute table, or if its attribute table does not define
+the attribute <span class="val">"offset"</span>,
 then this function returns <span class="val">nil</span>.
-Otherwise it returns the value of the attribute <span class="val">"offset"</span>.
+Otherwise it returns the value of the
+attribute <span class="val">"offset"</span >.
 </div>
 </div>
 
 <div class="docitem" id="fn:mkparam">
 <div class="proto">
 <div class="function">
-<span class="id">mkparam(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">off</span>])</span>
+<span class="id">mkparam(<span class="arg">type</span>[,<span class="arg">id</span>[,<span class="arg">attr</span>]])</span>
 </div>
 <div class="param">
 <span class="arg">type</span>: <span class="type">ctype</span>
 </div>
 <div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
+<span class="arg">id</span>: <span class="type">string</span> or <span class="type">nil</span>
 </div>
 <div class="param">
-<span class="arg">attr</span>: <span class="type">table or cvalue</span> or
+<span class="arg">attr</span>: <span class="type">table</span> or
 <span class="type">nil</span>
 </div>
 <div class="returns">
@@ -2829,13 +2838,26 @@ from <span class="arg">type</span>,
 The resulting value is a suitable
 element for the <span class="arg">params</span>
 argument
-to <span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span>
-or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
-If <span class="arg">attr</span> is a cvalue, it is
-promoted to an attribute table that maps
-<span class="val">"offset"</span> to <span class="arg">attr</span>.
-If <span class="arg">attr</span> is <span class="arg">nil</span>,
+to <span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>.
+If <span class="arg">attr</span> is <span class="val">nil</span> or omitted,
 no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramid">
+<span class="id">paramid(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">param</span>.
 </div>
 </div>
 
@@ -2858,23 +2880,6 @@ Returns the type of <span class="arg">param</span>.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:paramid">
-<span class="id">paramtype(<span class="arg">param</span>)</span>
-</div>
-<div class="param">
-<span class="arg">param</span>: <span class="type">param</span>
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns the name of <span class="arg">param</span>.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
 <div class="function"  id="fn:paramattr">
 <span class="id">paramattr(<span class="arg">param</span>)</span>
 </div>
@@ -2889,26 +2894,6 @@ Returns the name of <span class="arg">param</span>.
 Returns the attribute table of <span class="arg">param</span>.
 </div>
 </div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function"  id="fn:paramoff">
-<span class="id">paramoff(<span class="arg">param</span>)</span>
-</div>
-<div class="param">
-<span class="arg">param</span>: <span class="type">param</span>
-</div>
-<div class="returns">
-<span class="type">cvalue or nil</span>
-</div>
-</div>
-<div class="desc">
-If <span class="arg">param</span> does not have an attribute table,
-then this function returns <span class="val">nil</span>.
-Otherwise it returns the value of the attribute <span class="val">"offset"</span>.
-</div>
-</div>
-
 
 
 
@@ -3946,7 +3931,14 @@ the ctype does not define its subordinate.
 <div class="desc">
 Returns a vector containing the
 definitions of the fields in the aggregate <span
-class="arg">type</span>
+class="arg">type</span>.  Each element of the vector is a
+<a href="#sec:symbols">field</a>
+that can be inspected with the functions
+<span class="fnindex"><a
+href="#fn:fieldid">fieldid</a></span>,
+<span class="fnindex"><a href="#fn:fieldtype">fieldtype</a></span>,
+<span class="fnindex"><a href="#fn:fieldattr">fieldattr</a></span>, and
+<span class="fnindex"><a href="#fn:fieldoff">fieldoff</a></span>.
 Modifying the vector may cause undefined effects.
 </div>
 </div>
@@ -3973,6 +3965,24 @@ anonymous aggregate or enumeration).
 </div>
 </div>
 
+<div class="docitem" id="fn:suattr">
+<div class="proto">
+<div class="function">
+<span class="id">suattr(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">aggregate ctype</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">type</span>.
+</div>
+</div>
+
+
 <div class="docitem" id="fn:susize">
 <div class="proto">
 <div class="function">
@@ -3986,10 +3996,12 @@ anonymous aggregate or enumeration).
 </div>
 </div>
 <div class="desc">
-Returns the size in bytes of the aggregate
-ctype <span class="arg">type</span> as a cvalue.
-Returns <span class="val">nil</span>
-if <span class="arg">type</span> does not define its size.
+If <span class="arg">type</span> does not have an
+attribute table, or if its attribute table does not define
+the attribute <span class="val">"offset"</span>,
+then this function returns <span class="val">nil</span>.
+Otherwise it returns the value of the
+attribute <span class="val">"offset"</span >.
 </div>
 </div>
 
@@ -4160,15 +4172,13 @@ constant as a cvalue.
 <div class="desc">
 Returns a vector containing the
 definitions of the parameters in the function type represented by <span
-class="arg">type</span>.  Each item in the vector defines a parameter
-that can be examined with the functions
-<span class="fnindex"><a
-href="#fn:paramid">paramid</a></span> and <span
-class="fnindex"><a
-href="#fn:paramtype">paramtype</a></span>.
-The parameters occur in the vector in the order they are 
-declared in the function type represented by <span
 class="arg">type</span>.
+Each element of the vector is a
+<a href="#sec:symbols">param</a>
+that can be inspected with the functions
+<span class="fnindex"><a href="#fn:paramid">paramid</a></span>,
+<span class="fnindex"><a href="#fn:paramtype">paramtype</a></span>, and
+<span class="fnindex"><a href="#fn:paramattr">paramattr</a></span>.
 Modifying the vector may cause undefined effects.
 </div>
 </div>
@@ -4293,21 +4303,23 @@ The following functions are the ctype constructors.
 <div class="proto">
 
 <div class="function">
-<span class="id" id="fn:mkctype_struct">mkctype_struct(<span class="arg">tag</span>[,<span class="arg">fields</span>,<span class="arg">size</span>])</span>
+<span class="id" id="fn:mkctype_struct">mkctype_struct(<span class="arg">tag</span>[,<span class="arg">fields</span>[,<span class="arg">size</span>]])</span>
 </div>
 
 <div class="function">
-<span class="id" id="fn:mkctype_union">mkctype_union(<span class="arg">tag</span>[,<span class="arg">fields</span>,<span class="arg">size</span>])</span>
+<span class="id" id="fn:mkctype_union">mkctype_union(<span class="arg">tag</span>[,<span class="arg">fields</span>[,<span class="arg">size</span>]])</span>
 </div>
 
 <div class="param">
 <span class="arg">tag</span>: <span class="type">string</span>
 </div>
 <div class="param">
-<span class="arg">fields</span>: <span class="type">vector</span>
+<span class="arg">fields</span>: <span class="type">vector of fields</span>
+or <span class="type">nil</span>
 </div>
 <div class="param">
-<span class="arg">size</span>: <span class="type">size</span>
+<span class="arg">attr</span>: <span class="type">table</span> or 
+<span class="type">ctype</span> or <span class="type">nil</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
@@ -4316,13 +4328,20 @@ The following functions are the ctype constructors.
 <div class="desc">
 Returns a new ctype representing a struct or union
 aggregate type.
-<span class="arg">Tag</span> is the type tag.  If
-specified, <span class="arg">fields</span> is a vector
+<span class="arg">Tag</span> is the type tag.  
+<span class="arg">Fields</span>, if specified, is a vector
 defining the fields of the aggregate, each element of
-which is constructed
-by <span class="fnindex"><a href="#fn:mkfield">mkfield</a></span>,
-and <span class="arg">size</span> is the size in bytes
-of the aggregate.
+which is a field constructed
+by <span class="fnindex"><a href="#fn:mkfield">mkfield</a></span>.
+<span class="arg">Attr</span> is an attribute table
+defined and used in the manner of the <a href="#sec:symbols">symbol attribute table</a>.
+The attribute named <span class="val">"offset"</span> determines
+the size in byte of the aggregate.
+If <span class="arg">attr</span> is a cvalue, it is
+promoted to an attribute table that maps
+<span class="val">"offset"</span> to <span class="arg">attr</span>.
+If <span class="arg">attr</span> is <span class="arg">nil</span>
+or omitted, no attribute table is created.
 </div>
 </div>
 
@@ -4515,34 +4534,8 @@ Returns a new ctype representing a function type.
 <span class="arg">Type</span> is the return type of the function.
 <span class="arg">Params</span> is a vector
 defining the parameters of the function, each element of which
-is constructed
+is a param constructed
 by <span class="fnindex"><a href="#fn:mkparam">mkparam</a></span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:mkparam">
-<div class="proto">
-<div class="function">
-<span class="id">mkparam(<span class="arg">type</span>[,<span class="arg">id</span>])</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
-</div>
-<div class="returns">
-<span class="type">vector</span>
-</div>
-</div>
-<div class="desc">
-Returns a new parameter definition that is a suitable
-element of the <span class="arg">params</span>
-argument
-of <span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>.
-<span class="arg">Type</span> is the type of the parameter and
-<span class="arg">id</span>, if specified and non-nil,
-is the name of the parameter.
 </div>
 </div>
 
@@ -6277,7 +6270,7 @@ with the value <span class="id">nil</span>.  A weak pair is otherwise
 indistinguishable from a pair.
 The predicate
 <span class="id" id="fn:isweakpair">isweakpair</span> tests whether a value is
-a pair.
+a weak pair.
 </p>
 
 <div class="docitem" id="fn:weakcons">
@@ -8647,6 +8640,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
 <a href="#fn:fdopen">fdopen</a><br />
+<a href="#fn:fieldattr">fieldattr</a><br />
 <a href="#fn:fieldid">fieldid</a><br />
 <a href="#fn:fieldoff">fieldoff</a><br />
 <a href="#fn:fields">fields</a><br />
@@ -8826,9 +8820,11 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:strton">strton</a><br />
 <a href="#fn:substr">substr</a><br />
 <a href="#fn:subtype">subtype</a><br />
+<a href="#fn:suattr">suattr</a><br />
 <a href="#fn:suekind">suekind</a><br />
 <a href="#fn:suetag">suetag</a><br />
 <a href="#fn:susize">susize</a><br />
+<a href="#fn:symattr">symattr</a><br />
 <a href="#fn:symid">symid</a><br />
 <a href="#fn:symoff">symoff</a><br />
 <a href="#fn:symtype">symtype</a><br />

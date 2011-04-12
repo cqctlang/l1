@@ -5172,7 +5172,7 @@ l1_paramtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to paramtype must be a vector returned by params";
+		= "operand 1 to paramtype must be a param";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramtype");
@@ -5193,7 +5193,7 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to paramid must be a vector returned by params";
+		= "operand 1 to paramid must be a param";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramid");
@@ -5206,6 +5206,23 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
+}
+
+static void
+l1_paramattr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	static char *err
+		= "operand 1 to paramattr must be a param";
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to paramattr");
+	if(Vkind(argv[0]) != Qvec)
+		vmerr(vm, err);
+	v = valvec(argv[0]);
+	if(v->len < 3)
+		vmerr(vm, err);
+	*rv = vecref(v, Attrpos);
 }
 
 static void
@@ -5295,7 +5312,7 @@ l1_fieldtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to fieldtype must be a vector returned by fields";
+		= "operand 1 to fieldtype must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldtype");
@@ -5316,7 +5333,7 @@ l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to fieldid must be a vector returned by fields";
+		= "operand 1 to fieldid must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldid");
@@ -5336,7 +5353,7 @@ l1_fieldattr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
 	static char *err
-		= "operand 1 to fieldattr must be a vector returned by fields";
+		= "operand 1 to fieldattr must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldattr");
@@ -5354,7 +5371,7 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to fieldoff must be a vector returned by fields";
+		= "operand 1 to fieldoff must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldoff");
@@ -5394,7 +5411,7 @@ l1_symtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to symtype must be a vector returned by looksym";
+		= "operand 1 to symtype must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symtype");
@@ -5415,7 +5432,7 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to symid must be a vector returned by looksym";
+		= "operand 1 to symid must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symid");
@@ -5435,7 +5452,7 @@ l1_symattr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
 	static char *err
-		= "operand 1 to symattr must be a vector returned by looksym";
+		= "operand 1 to symattr must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symattr");
@@ -5453,7 +5470,7 @@ l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to symoff must be a vector returned by looksym";
+		= "operand 1 to symoff must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symoff");
@@ -5938,7 +5955,7 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = tkind;
 		xtn->tag = s;
 		xtn->field = f;
-		xtn->attr = argv[2];
+		xtn->attr = mkattr(argv[2]);
 		fl = Tcomplete;
 		for(i = 0; i < f->len; i++){
 			t = valxtn(vecref(valvec(vecref(f, i)), Typepos));
@@ -6195,7 +6212,7 @@ l1_mkfield(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkparam(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc < 1 || argc > 2)
+	if(argc < 1 || argc > 3)
 		vmerr(vm, "wrong number of arguments to mkparam");
 	mksymorfieldorparam("mkparam", vm, argc, argv, rv);
 }
@@ -8656,6 +8673,7 @@ mktopenv(void)
 	FN(nslookaddr);
 	FN(nsptr);
 	FN(nsreptype);
+	FN(paramattr);
 	FN(paramid);
 	FN(params);
 	FN(paramtype);
