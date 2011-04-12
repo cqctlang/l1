@@ -44,25 +44,23 @@
 };
 
 @define dumpns(dn){
-	@local ns, fn, vec, i;
+	@local ns, vec, i;
 	if(isdomain(dn))
 		ns = domns(dn);
 	else
 		ns = dn;
 	
-	fn = nsenumtype(ns);
-	vec = tabvals(fn(ns));
+	vec = tabvals(ns.enumtype());
 	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 
-	fn = nsenumsym(ns);
-	vec = tabvals(fn(ns));
+	vec = tabvals(ns.enumsym());
 	for(i = 0; i < length(vec); i++)
 		printf("%t;\n", vecref(vec, i));
 }
 
 @define foo(){
-	@local ns, fn, tab, vec, i, dom, p;
+	@local ns, tab, vec, i, dom, p;
 
  	ns = @names c32le {
  		struct foo {
@@ -73,8 +71,7 @@
 		@0x200 void p;
  	};
 
-	fn = nsenumtype(ns);
-	vec = tabvals(fn(ns));
+	vec = tabvals(ns.enumtype());
 	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 

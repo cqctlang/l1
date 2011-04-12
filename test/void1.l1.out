@@ -1,7 +1,10 @@
 entry: var params, 1 locals, 0 temps
 printtype: 1 params, 8 locals, 0 temps
 dumpns: 1 params, 7 locals, 0 temps
-foo: 0 params, 13 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+foo: 0 params, 12 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
 typedef long long int64;
 typedef long int32;
 typedef unsigned char uint8;

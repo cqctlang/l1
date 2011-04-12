@@ -193,7 +193,7 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 		       off);
 		if(ref != nil){
 			ref = decodesha(ref);
-			printf(" ref: %s", ref);
+			printf(" ref (%d): %s", off, ref);
 			append(deltaq, ref);
 		}else if(roff != nil){
 			@local fd;
@@ -209,6 +209,7 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 			go = gitobj(off, obj, s1, dep.type);
 			sha1tab[s1] = go;
 			offtab[off] = go;
+			printf("added gitobj for %d\n", off);
 			fd = open(sprintfa("/tmp/deltas/%s", s1), "w");
 			write(fd, obj);
 			close(fd);
@@ -216,6 +217,7 @@ gittypename = [ "", "commit", "tree", "blob", "tag", "",
 			go = gitobj(off, obj, s1, type);
 			sha1tab[s1] = go;
 			offtab[off] = go;
+			printf("added gitobj for %d\n", off);
 		}
 		printf("\n");
 	}

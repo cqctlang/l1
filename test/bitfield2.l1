@@ -68,8 +68,7 @@ ns = @names c32le {
 	@0x0	unsigned i;
 };
 
-fn = nsenumtype(ns);
-vec = tabvals(fn(ns));
+vec = tabvals(ns.enumtype());
 s = nil;
 for(i = 0; i < length(vec); i++){
 	s = vecref(vec, i);
