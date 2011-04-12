@@ -38,7 +38,7 @@
 <a href="#sec:pointers">Pointers</a><br />
 <br />
 <em>Defining Domains</em><br />
-<a href="#sec:domobj">The object model</a><br />
+<a href="#sec:obj">The object model</a><br />
 <a href="#sec:symbols">Symbols, Fields, Parameters</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
@@ -2253,7 +2253,7 @@ the Cinquecento runtime is an implementation bug, never
 a consequence of operating on erroneous user data.
 </p>
 
-<h4 id="sec:domobj">The object model</h4>
+<h4 id="sec:objects">The object model</h4>
 
 <p>
 Three types in Cinquecento &mdash names spaces, address
@@ -2420,12 +2420,11 @@ provided.
 </div>
 
 <p>
-Name spaces and address spaces each require that
-certain method names be defined, either as explicit
-entries in the method table or as names recognized by
+Certain methods are required to be defined by name
+spaces and address spaces, either as explicit entries
+in their method tables or as names recognized by
 a <span class="val">dispatch</span> method.  These
-names and their meaning are given below in the sections
-on
+methods are discussed below in the sections on
 <a href="#sec:namespaces">names spaces</a>
 and
 <a href="#sec:addressspaces">address spaces</a>.
@@ -2900,72 +2899,154 @@ Returns the attribute table of <span class="arg">param</span>.
 <h4 id="sec:namespaces">Name spaces</h4>
 
 <p>
-Name spaces catalog information about C types and symbols.
+Name spaces are <a href="#sec:objects">objects</a> that
+catalog information about a set of C types and symbols.
 </p>
 
 <p>
-C types are represented by the Cinquecento type <em>ctype</em>.
-Ctypes represent two related but subtly different concepts:
-C type names and C type definitions.
+Every name space implements the following five methods:
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:looktype">
+<span class="id">looktype(<span class="arg">this</span>,<span class="arg">typename</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">typename</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns the definition of the type
+name <span class="arg">typename</span> in the name
+space, or <span class="val">nil</span> if the type is
+not defined.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:looksym">
+<span class="id">looksym(<span class="arg">this</span>,<span class="arg">id</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns the definition of the symbol
+named <span class="arg">id</span> in the name
+space, or <span class="val">nil</span> if the symbol is
+not defined.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:enumtype">
+<span class="id">enumtype(<span class="arg">this</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns a table containing the
+types defined by the name space.
+Keys are type names, values are corresponding type definitions.
+Modifying the table may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:enumsym">
+<span class="id">enumsym(<span class="arg">this</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+This name space returns a table containing the symbols
+defined by the name space.
+Keys are identifiers, values are corresponding symbols.
+Modifying the table may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:lookaddr">
+<span class="id">lookaddr(<span class="arg">this</span>,<span class="arg">addr</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns a symbol defined in the
+name space whose offset is closet to, but not greater
+than, the offset <span class="arg">addr</span>.
+If there is more than one such symbol, an arbitrary one is returned.
+If no such symbol exists, <span class="val">nil</span> is returned.
+</div>
+</div>
+
+<p>
+The type methods of every name space must define the
+following base C types:
+<div class="code">
+<pre>
+char         unsigned char          _Bool
+short	     unsigned short	    float
+int	     unsigned int	    double
+long	     unsigned long	    long double
+long long    unsigned long long    
+</pre>
+</div>
 </p>
 
 <p>
-C type names are the syntactic constructions, such
-as <tt>int*</tt>, that in C appear as type declarations
-and as type operands to operators such as
-<tt>sizeof</tt> and the cast operator.
+In addition, the following <span class="val">typedef</span>s
+should be defined:
+<div class="code">
+<pre>
+int8         uint8 	     uintptr
+int16	     uint16
+int32	     uint32
+int64	     uint64
+</pre>
+</div>
+
 </p>
 
 <p>
-C type definitions are the definition of types referenced
-by type names.  What a definition specifies depends on the type.  
-
-For base C types, the definition specifies the number of bytes
-used to represent values of the type and how the bytes are
-interpreted (<em>e.g.</em>, big- or little-endian order).
-
-For pointers, it specifies the size and representation
-of the pointer value in memory.
-
-For aggregates, it specifies the offset from the beginning
-of the aggregate to each field, 
-the name and type of each field,
-and the total size of the aggregate.
-
-For enums, it specifies the enumeration constant
-identifiers and their values, and the common type used to
-repesent all values of the enumeration.
-
-For typedefs, it specifies the binding of a name to another
-type.
-</p>
-
-<p>
-The distinction between type name and definition enables
-Cinquecento to represent multiple
-programs that have potentially conflicting meanings for
-the same type.
-
-For example, the type name <tt>int*</tt> always
-references the type pointer-to-<tt>int</tt>, but
-there are many possible definitions for this type.
-
-One domain can define it to be a 64-bit address of a
-64-bit integer encoded in big-endian order, while
-another may be define it be a 32-bit address of a
-32-bit integer encoded in little-endian order.  Given a
-ctype for <tt>int*</tt>, part of the role of a name space is to
-provide a ctype that defines its encoding.
-</p>
-
-<p>
-Functions that operate on ctypes are described in the
-section <a href="#sec:ctypes">Ctypes</a>.
-</p>
-
-<p>
-Several
-functions retrieve type information from a name space.
+Several functions operate on name spaces:
 </p>
 
 <div class="docitem" id="fn:nsptr">
@@ -2986,79 +3067,39 @@ that can represent the pointer type defined in <span class="arg">ns</span>.
 </div>
 </div>
 
-<p>
-Name spaces implement an interface of five functions:
-</p>
+<div class="docitem" id="fn:nsreptype">
+<div class="proto">
+<div class="function">
+<span class="id">nsreptype(<span class="arg">ns</span>,<span class="arg">rep</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">rep</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns a base type defined
+in <span class="arg">ns</span> whose representation
+is <span class="arg">rep</span>,
+or <span class="val">nil</span> if no base type has
+the representation.
+</div>
+</div>
 
-<ol>
-<li><span class="arg">looktype(ctype) -> ctype</span></li>
-<li><span class="arg">enumtype() -> table</span></li>
-<li><span class="arg">looksym(string) -> symbol</span></li>
-<li><span class="arg">enumsym() -> table</span></li>
-<li><span class="arg">lookaddr(cval) -> symbol</span></li>
-</ol>
 
-<p>
-Given a type name (as a ctype), <span
-class="arg">looktype</span> returns a ctype representing
-the definition of the type.  If the name space does not
-define the type, <span class="arg">looktype</span>
-returns <span class="val">nil</span>.
-</p>
 
-<p>
-Given a symbol name, <span class="arg">looksym</span>
-returns the corresponding symbol.
-If the name space does not
-define the symbol, <span class="arg">looksym</span>
-returns <span class="val">nil</span>.
-</p>
 
-<p>
-<span class="arg">Enumtype</span> and <span
-class="arg">enumsym</span> each return a table
-representing the mapping defined by <span
-class="arg">looktype</span> and
-<span class="arg">looksym</span>.  For <span
-class="arg">enumtype</span> the keys are type names (as
-ctypes) and the values are the corresponding definitions
-(also as ctypes).  For <span class="arg">enumsym</span>
-the keys are symbol names (as strings) and the values
-are the corresponding definitions (as vectors).
-</p>
+<h4 id="sec:rootnamespaces">Root Name Spaces</h4>
 
 <p>
-<span class="arg">Lookaddr</span> performs the inverse
-of <span class="arg">looksym</span>.  Given an address,
-<span class="arg">lookaddr</span> returns the symbol
-definition whose offset is the greatest value less than
-or equal to the address in the name space.  If more
-than one symbol qualifies, an arbitrary one is returned.
-</p>
-
-<p>
-Given a type name (as a ctype), <span
-class="arg">looktype</span> returns a ctype representing
-the definition of the type.  If the name space does not
-define the type, <span class="arg">looktype</span>
-returns <span class="val">nil</span>.
-</p>
-
-<p>
-Every name space created by a Cinquecento program
-inherits type and symbol definitions from an
-existing name space.
-
-This inheritance relation starts with
-a <em>root name space</em> that defines the
-representation of the C base types,
-including the size and encoding for each base type.
-</p>
-
-<p>
-The built-in root name spaces correspond to several
-common machine models, and vary in the size of
-pointers and <span class="id">long</span> integers.
+Cinquecento predefines several <em>root name
+spaces</em> that correspond to common machine models.
+They vary in the size and encoding of integers and pointers.
 </p>
 
 <div class="table-short">
@@ -3164,6 +3205,10 @@ big
 </table>
 </div>
  
+<p>
+The function
+<span class="fnindex><a href="#fn:myrootns">myrootns</a></span>
+returns the root name space of the 
 
 <p>To construct a new name space, you must supply an
 implementation of the name space interface.
@@ -3624,6 +3669,68 @@ operator can be used to obtain a ctype representing the
 type of a cvalue or the type denoted by a type name.
 </p>
 
+---
+<p>
+C types are represented by the Cinquecento type <em>ctype</em>.
+Ctypes represent two related but subtly different concepts:
+C type names and C type definitions.
+</p>
+
+<p>
+C type names are the syntactic constructions, such
+as <tt>int*</tt>, that in C appear as type declarations
+and as type operands to operators such as
+<tt>sizeof</tt> and the cast operator.
+</p>
+
+<p>
+C type definitions are the definition of types referenced
+by type names.  What a definition specifies depends on the type.  
+
+For base C types, the definition specifies the number of bytes
+used to represent values of the type and how the bytes are
+interpreted (<em>e.g.</em>, big- or little-endian order).
+
+For pointers, it specifies the size and representation
+of the pointer value in memory.
+
+For aggregates, it specifies the offset from the beginning
+of the aggregate to each field, 
+the name and type of each field,
+and the total size of the aggregate.
+
+For enums, it specifies the enumeration constant
+identifiers and their values, and the common type used to
+repesent all values of the enumeration.
+
+For typedefs, it specifies the binding of a name to another
+type.
+</p>
+
+<p>
+The distinction between type name and definition enables
+Cinquecento to represent multiple
+programs that have potentially conflicting meanings for
+the same type.
+
+For example, the type name <tt>int*</tt> always
+references the type pointer-to-<tt>int</tt>, but
+there are many possible definitions for this type.
+
+One domain can define it to be a 64-bit address of a
+64-bit integer encoded in big-endian order, while
+another may be define it be a 32-bit address of a
+32-bit integer encoded in little-endian order.  Given a
+ctype for <tt>int*</tt>, part of the role of a name space is to
+provide a ctype that defines its encoding.
+</p>
+
+<p>
+Functions that operate on ctypes are described in the
+section <a href="#sec:ctypes">Ctypes</a>.
+</p>
+
+---
 <div class="docitem" id="syn:_at_typeof">
 <div class="proto">
 <div class="function">
@@ -8632,6 +8739,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:count">count</a><br />
 <a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
+<a href="#fn:enumsym">enumsym</a><br />
+<a href="#fn:enumtype">enumtype</a><br />
 <a href="#fn:environ">environ</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
@@ -8717,6 +8826,9 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:listins">listins</a><br />
 <a href="#fn:listref">listref</a><br />
 <a href="#fn:listset">listset</a><br />
+<a href="#fn:lookaddr">lookaddr</a><br />
+<a href="#fn:looksym">looksym</a><br />
+<a href="#fn:looktype">looktype</a><br />
 <a href="#fn:map">map</a><br />
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
@@ -8771,6 +8883,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:nameof">nameof</a><br />
 <a href="#fn:asof">nsof</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
+<a href="#fn:nsreptype">nsreptype</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />

@@ -72,13 +72,11 @@ print a namespace in .names file format.
 	else
 		ns = dn;
 	
-	fn = nsenumtype(ns);
-	vec = tabvals(fn(ns));
+	vec = tabvals(ns.enumtype());
 	for(i = 0; i < veclen(vec); i++)
 		printtype(vecref(vec, i));
 
-	fn = nsenumsym(ns);
-	vec = tabvals(fn(ns));
+	vec = tabvals(ns.enumsym());
 	for(i = 0; i < veclen(vec); i++)
 		if(!isenumconst(symtype(vecref(vec, i))))
 			printf("%t;\n", vecref(vec, i));

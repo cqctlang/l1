@@ -9,3 +9,5 @@ the value nil is now false in conditional context (previously true)
 the value and type null have been removed
 the value and type undefined have been removed
 @defloc is like @define but ensures the binding is @local
+the functions nsenumsym, nsenumtype, nslookaddr have been removed;
+instead, reference the name space methods directly.

@@ -6725,75 +6725,6 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nslookaddr");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslookaddr must be a namespace or domain");
-	if(Vkind(arg0) == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->lookaddr)
-		*rv = mkvalcl(ns->lookaddr);
-}
-
-static void
-l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nsenumsym");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
-		vmerr(vm,
-		      "operand 1 to nsenumsym must be a namespace or domain");
-	if(Vkind(arg0) == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->enumsym)
-		*rv = mkvalcl(ns->enumsym);
-}
-
-static void
-l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nsenumtype");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
-		vmerr(vm,
-		      "operand 1 to nsenumtype must be a namespace or domain");
-	if(Vkind(arg0) == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->enumtype)
-		*rv = mkvalcl(ns->enumtype);
-}
-
-static void
 l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
@@ -8668,9 +8599,6 @@ mktopenv(void)
 	FN(myrootns);
 	FN(nameof);
 	FN(nsof);
-	FN(nsenumsym);
-	FN(nsenumtype);
-	FN(nslookaddr);
 	FN(nsptr);
 	FN(nsreptype);
 	FN(paramattr);
