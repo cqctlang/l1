@@ -3230,7 +3230,7 @@ occurring in symbols may be type references.
 <span class="id">Mknsraw</span> resolves all type
 references, then constructs and returns a new name
 space.
-If specified, <span
+If provided, <span
 class="arg">name</span> is a human-readable name
 associated with the name space.
 </div>
@@ -3261,7 +3261,7 @@ associated with the name space.
 This syntax constructs a new name space from a sequence
 of symbol and type declarations.  The declarations are
 written in an extension of the C variable and type
-declaration syntax.  If specified,
+declaration syntax.  If provided,
 <span
 class="arg">name</span> is a human-readable name
 associated with the name space.
@@ -4329,7 +4329,7 @@ or <span class="type">nil</span>
 Returns a new ctype representing a struct or union
 aggregate type.
 <span class="arg">Tag</span> is the type tag.  
-<span class="arg">Fields</span>, if specified, is a vector
+<span class="arg">Fields</span>, if provided, is a vector
 defining the fields of the aggregate, each element of
 which is a field constructed
 by <span class="fnindex"><a href="#fn:mkfield">mkfield</a></span>.
@@ -4365,7 +4365,7 @@ or omitted, no attribute table is created.
 <div class="desc">
 Returns a new ctype representing an array of 
 represented by <span class="arg">type</span>.
-<span class="arg">Nelm</span>, if specified, is the number of elements
+<span class="arg">Nelm</span>, if provided, is the number of elements
 in arrays represented by the type.
 </div>
 </div>
@@ -4485,12 +4485,12 @@ offset <span class="arg">pos</span> in the containing type.
 <div class="desc">
 Returns a new ctype representing an enumeration type.  
 <span class="arg">Tag</span> is the type tag.  
-If specified, <span class="arg">consts</span> is a vector defining
+If provided, <span class="arg">consts</span> is a vector defining
 the constants of the enumeration type.  Each element of 
 <span class="arg">consts</span> is a two-element vector.
 The first element is the name of the
 constant as a string, the second is the value of
-constant as a cvalue.  <span class="arg">Type</span>, if specified, is the
+constant as a cvalue.  <span class="arg">Type</span>, if provided, is the
 underlying (subordinate) type of the enumeration.
 </div>
 </div>
@@ -4580,7 +4580,7 @@ representing the pointer representation type.
 <div class="desc">
 Returns a new ctype representing a typedef.  
 <span class="arg">Id</span> is the name of typedef.
-If specified, <span class="arg">type</span> is a ctype representing
+If provided, <span class="arg">type</span> is a ctype representing
 the aliased type.
 </div>
 </div>
@@ -5142,7 +5142,7 @@ The values are stored in argument order.
 </div>
 <div class="desc">
 Constructs a new list of size <span class="arg">len</span>.
-Each element is initialized to <span class="arg">val</span>, if specified,
+Each element is initialized to <span class="arg">val</span>, if provided,
 otherwise to <span class="val">nil</span>.
 </div>
 </div>
@@ -5419,7 +5419,7 @@ a vector.
 </div>
 <div class="desc">
 Constructs a new vector of size <span class="arg">len</span>.
-Each element is initialized to <span class="arg">val</span>, if specified,
+Each element is initialized to <span class="arg">val</span>, if provided,
 otherwise to <span class="val">nil</span>.
 </div>
 </div>
@@ -6741,7 +6741,7 @@ attempts to close operations are silently ignored.
 </div>
 
 <div class="desc">
-If specified, <span class="arg">name</span> is the string
+If provided, <span class="arg">name</span> is the string
 returned by <span class="id">fdname</span>; otherwise 
 <span class="id">fdname</span> returns the empty string.
 </div>
