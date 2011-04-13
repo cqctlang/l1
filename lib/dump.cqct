@@ -24,7 +24,7 @@ Prints the type t in a way parsable in a .names file.
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
 		flds = fields(t);
-		for(i = 0; i < veclen(flds); i++){
+		for(i = 0; i < length(flds); i++){
 			@local ft,id;
 			fld = vecref(flds, i);
 			off = fieldoff(fld);
@@ -54,7 +54,7 @@ Prints the type t in a way parsable in a .names file.
 		@local ens,en;
 		printf("%s %s {\n", suekind(t), suetag(t));
 		ens = enumconsts(t);
-		for(i = 0; i < veclen(ens); i++){
+		for(i = 0; i < length(ens); i++){
 			en = vecref(ens, i);
 			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
 		}
@@ -73,11 +73,11 @@ print a namespace in .names file format.
 		ns = dn;
 	
 	vec = tabvals(ns.enumtype());
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 
 	vec = tabvals(ns.enumsym());
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		if(!isenumconst(symtype(vecref(vec, i))))
 			printf("%t;\n", vecref(vec, i));
 }
@@ -126,7 +126,7 @@ Function for testing.
 
 	fn = nsenumtype(ns);
 	vec = tabvals(fn(ns));
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 };
 

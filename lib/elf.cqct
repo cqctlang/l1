@@ -408,7 +408,7 @@ elf_defined = 1;
 	  sym = (edom`Elf64_Sym *)(&symbase[j]);
 	name = sprintfa ("%s", &strbase[sym->st_name]);
 	csym = getcqctelfsym (edom, sym, name);
-	if (veclen (csym) != 0) {
+	if (length (csym) != 0) {
 	  append (syml, csym);
 	  symcount++;
 	}
@@ -698,7 +698,7 @@ elf_defined = 1;
 @define show_elf_syms (syms)
 {
   @local i, len;
-  len = veclen (syms);
+  len = length (syms);
   for (i = 0; i < len; i++)
     //printf ("%a\n", vecref (syms, i));
     showsym (vecref (syms, i));
@@ -712,7 +712,7 @@ elf_defined = 1;
 @define show_elf_addrs (syms)
 {
   @local i, len;
-  len = veclen (tab);
+  len = length (tab);
   for (i = 0; i < len; i++)
     printf ("0x%x\n", listref (vecref (tab, i), 1));
 }

@@ -313,7 +313,7 @@ nsutil_defined = 1;
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
 		flds = fields(t);
-		for(i = 0; i < veclen(flds); i++){
+		for(i = 0; i < length(flds); i++){
 			fld = vecref(flds, i);
 			off = fieldoff(fld);
 			ft = fieldtype(fld);
@@ -342,7 +342,7 @@ nsutil_defined = 1;
 		@local ens,en;
 		printf("%s %s {\n", suekind(t), suetag(t));
 		ens = enumconsts(t);
-		for(i = 0; i < veclen(ens); i++){
+		for(i = 0; i < length(ens); i++){
 			en = vecref(ens, i);
 			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
 		}
@@ -358,10 +358,10 @@ nsutil_defined = 1;
 @define printns(ns){
 	@local i, vec;
 	vec = tabvals(ns.enumtype());
-	for(i = 0; i < veclen(vec); i++)
+	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 	vec = tabvals(ns.enumsym());
-	for(i = 0; i < veclen(vec); i++){
+	for(i = 0; i < length(vec); i++){
 		@local sym, off, type;
 		sym = vecref(vec, i);
 		type = symtype(sym);
