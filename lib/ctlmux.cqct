@@ -1072,6 +1072,7 @@ ctlmux = @names clp64le {
 	@local muxlooktype, muxenumtype, muxenumseg;
 	@local muxenumloc, muxunwind;
 	@local muxnames, nsinit;
+	@local contasync;
 
 	verbose = 0;
 	aborted = 0;
