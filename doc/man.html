@@ -3018,8 +3018,10 @@ If no such symbol exists, <span class="val">nil</span> is returned.
 </div>
 
 <p>
-The type methods of every name space must define the
-following base C types:
+The system expects the <span class="fnindex"><a href="#fn:looktype">looktype</a></span>
+and <span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
+methods of a name space to define 
+the following base C types:
 <div class="code">
 <pre>
 char         unsigned char          _Bool
@@ -3032,8 +3034,7 @@ long long    unsigned long long
 </p>
 
 <p>
-In addition, the following <span class="val">typedef</span>s
-should be defined:
+In addition, these methods should define the following <span class="val">typedef</span>s:
 <div class="code">
 <pre>
 int8         uint8 	     uintptr
