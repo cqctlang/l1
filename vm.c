@@ -2983,9 +2983,24 @@ static void
 nscachebase(VM *vm, Ns *ns)
 {
 	Cbase cb;
+	Val rv, argv[2];
+	Xtypename *xtn;
+
 	for(cb = Vlo; cb < Vnbase; cb++)
 		nscache1base(vm, ns, cb);
-	nscache1base(vm, ns, Vptr);
+
+	/* use result of looktype(void*) to define Vptr base */
+	argv[0] = mkvalns(ns);
+	argv[1] = mkvalxtn(mkptrxtn(mkvoidxtn(), Rundef));
+	rv = safedovm(vm, ns->looktype, 2, argv);
+	if(Vkind(rv) == Qnil)
+		vmerr(vm, "name space does not define void*");
+	xtn = valxtn(rv);
+	if(xtn->rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
+	ns->base[Vptr] = mkbasextn(Vptr, xtn->rep);
 }
 
 /* enumsym for namespaces constructed by @names */
@@ -5815,7 +5830,8 @@ l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn, *pxtn;
+	Xtypename *xtn;
+	Cval *cv;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_ptr");
 	if(Vkind(argv[0]) != Qxtn)
@@ -5825,16 +5841,11 @@ l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 		xtn = mkptrxtn(xtn, Rundef);
 	else{
 		if(Vkind(argv[1]) != Qxtn)
-			vmerr(vm, "operand 2 to mkctype_ptr "
-			      "must define a pointer type");
-		checkarg(vm, "mkctype_ptr", argv, 1, Qxtn);
-		pxtn = valxtn(argv[1]);
-		pxtn = chasetype(pxtn);
-		if((pxtn->tkind != Tptr && pxtn->tkind != Tbase)
-		   || pxtn->rep == Rundef)
-			vmerr(vm, "operand 2 to mkctype_ptr "
-			      "must define a pointer type");
-		xtn = mkptrxtn(xtn, pxtn->rep);
+			vmerr(vm, "invalid pointer representation");
+		cv = valcval(argv[1]);
+		if(cv->val <= Rundef || cv->val >= Rnrep)
+			vmerr(vm, "invalid pointer representation");
+		xtn = mkptrxtn(xtn, cv->val);
 	}
 	*rv = mkvalxtn(xtn);
 }
@@ -6774,7 +6785,7 @@ l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalxtn(ns->base[Vptr]);
+	*rv = mkvallitcval(Vuchar, ns->base[Vptr]->rep);
 }
 
 static void
@@ -8388,7 +8399,12 @@ basetab(NSroot *def, Xtypename **base)
 		tabput(type, kv, vv);
 	}
 
-	/* map pointer to integer representation */
+	/* map pointer to integer representation (void*) */
+	kv = mkvalxtn(mkptrxtn(mkvoidxtn(), Rundef));
+	vv = mkvalxtn(mkptrxtn(mkvoidxtn(), def->base[def->ptr]));
+	tabput(type, kv, vv);
+
+	/* map pointer to integer representation (base Vptr) */
 	kv = mkvalxtn(mkbasextn(Vptr, Rundef));
 	vv = mkvalxtn(base[Vptr]);
 	tabput(type, kv, vv);

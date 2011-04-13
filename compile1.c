@@ -306,8 +306,8 @@ compilecontainer(U *ctx, Expr *e)
 		     0, 0);
 	te = Zcons(se, te);
 
-	// $ptype = nsptr(domof($tmp));
-	se = Zset(doid("$ptype"),
+	// $prep = nsptr(domof($tmp));
+	se = Zset(doid("$prep"),
 		  Zcall(G("nsptr"), 1,
 			Zcall(G("domof"), 1, doid("$tmp"))));
 	te = Zcons(se, te);
@@ -318,10 +318,12 @@ compilecontainer(U *ctx, Expr *e)
 	//        but note that above draws final pointer type definition
 	//        from typename domain, whereas here we always draw from
 	//        Ps domain.
-	// {mkctype_ptr($type,$ptype)} ({$ptype}$tmp - fieldoff($fld))
-	se = Zxcast(Zcall(G("mkctype_ptr"), 2,
-			  doid("$type"), doid("$ptype")),
-		    Zsub(Zxcast(doid("$ptype"), doid("$tmp")),
+	// {mkctype_ptr($type,$prep)} ({mkctype_ptr(void,$prep)}$tmp - fieldoff($fld))
+	se = Zxcast(Zcall(G("mkctype_ptr"), 2, doid("$type"), doid("$ptype")),
+		    Zsub(Zxcast(Zcall(G("mkctype_ptr"), 2,
+				      Zcall(G("mkctype_void"), 0),
+				      doid("$ptype")),
+				doid("$tmp")),
 			 Zcall(G("fieldoff"), 1, doid("$fld"))));
 	te = Zcons(se, te);
 
