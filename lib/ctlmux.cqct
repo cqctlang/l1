@@ -1433,7 +1433,7 @@ ctlmux = @names clp64le {
 			ctl.setreg(cop(&dat->ctx));
 			log("task %d has hit a system call trap (%e)",
 			    msg->id,
-			    (enum linuxnames`syscall)dat->ctx.orig_rax);
+			    (linuxns`Syscall)dat->ctx.orig_rax);
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				docall([ctl], @lambda() { fn(ctl); });
