@@ -41,6 +41,8 @@
 <a href="#sec:obj">The object model</a><br />
 <a href="#sec:symbols">Symbols, Fields, Parameters</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
+<a href="#sec:rootnamespaces">Root name spaces</a><br />
+<a href="#sec:_at_names"><span class="val">@names</span></a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
 <a href="#sec:ctypes">Ctypes</a><br />
 <br />
@@ -2901,6 +2903,15 @@ Returns the attribute table of <span class="arg">param</span>.
 <p>
 Name spaces are <a href="#sec:objects">objects</a> that
 catalog information about a set of C types and symbols.
+The primitive constructor for a name space is
+<span class="fnindex"><a href="#fn:mkns">mkns</a></span>.
+Higher-level constructors are provided with the syntax <span class="fnindex"><a
+href="#syn:_at_names">@names</a></span> and the function
+<span class="fnindex"><a
+href="#fn:mknsraw">mknsraw</a></span>.
+The predicate
+<a href="#fn:isrange"><span class="fnindexid">isns</span></a>
+tests whether a value is a name space.
 </p>
 
 <p>
@@ -3017,34 +3028,22 @@ If no such symbol exists, <span class="val">nil</span> is returned.
 </div>
 </div>
 
-<p>
+<p id="para:nstypes">
 The system expects the <span class="fnindex"><a href="#fn:looktype">looktype</a></span>
 and <span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
 methods of a name space to define 
-the following base C types:
+the following C types:
 <div class="code">
 <pre>
 char         unsigned char          _Bool
 short	     unsigned short	    float
 int	     unsigned int	    double
 long	     unsigned long	    long double
-long long    unsigned long long    
+long long    unsigned long long     void*
 </pre>
 </div>
 </p>
 
-<p>
-In addition, these methods should define the following <span class="val">typedef</span>s:
-<div class="code">
-<pre>
-int8         uint8 	     uintptr
-int16	     uint16
-int32	     uint32
-int64	     uint64
-</pre>
-</div>
-
-</p>
 
 <p>
 Several functions operate on name spaces:
@@ -3098,9 +3097,9 @@ the representation.
 <h4 id="sec:rootnamespaces">Root Name Spaces</h4>
 
 <p>
-Cinquecento predefines several <em>root name
-spaces</em> that correspond to common machine models.
-They vary in the size and encoding of integers and pointers.
+Cinquecento defines several top-level <em>root name spaces</em> that
+correspond to common machine models.  They vary in the
+size and encoding of integers and pointers.
 </p>
 
 <div class="table-short">
@@ -3108,9 +3107,9 @@ They vary in the size and encoding of integers and pointers.
 
 <tr>
 <th>Root name space</th>
-<th>Endianness</th>
 <th><span class="id">sizeof(void*)</span></th>
 <th><span class="id">sizeof(long)</span></th>
+<th>Encoding</th>
 </tr>
 
 <tr>
@@ -3118,13 +3117,13 @@ They vary in the size and encoding of integers and pointers.
 <span class="id">c32le</span>
 </td>
 <td>
-little
-</td>
-<td>
 4
 </td>
 <td>
 4
+</td>
+<td>
+little-endian
 </td>
 </tr>
 
@@ -3133,13 +3132,13 @@ little
 <span class="id">c32be</span>
 </td>
 <td>
-big
-</td>
-<td>
 4
 </td>
 <td>
 4
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -3148,13 +3147,13 @@ big
 <span class="id">c64le</span>
 </td>
 <td>
-little
-</td>
-<td>
 4
 </td>
 <td>
 8
+</td>
+<td>
+little-endian
 </td>
 </tr>
 
@@ -3163,13 +3162,13 @@ little
 <span class="id">c64be</span>
 </td>
 <td>
-big
-</td>
-<td>
 4
 </td>
 <td>
 8
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -3178,28 +3177,28 @@ big
 <span class="id">clp64le</span>
 </td>
 <td>
-little
-</td>
-<td>
 8
 </td>
 <td>
 8
+</td>
+<td>
+little-endian
 </td>
 </tr>
+
 <tr>
 <td>
-
 <span class="id">clp64be</span>
 </td>
 <td>
-big
-</td>
-<td>
 8
 </td>
 <td>
 8
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -3207,26 +3206,142 @@ big
 </div>
  
 <p>
-The function
-<span class="fnindex><a href="#fn:myrootns">myrootns</a></span>
-returns the root name space of the 
+In addition to the <a href="#para:nstypes">types</a> defined by all name spaces,
+every root name spaces defines the following convenience
+<span class="val">typedef</span>s:
 
-<p>To construct a new name space, you must supply an
-implementation of the name space interface.
-Cinquecento provides three mechanisms for doing so.
-The <span class="id"><a href="#fn:mkns">mkns</a></span>
-function accepts predefined functions and returns a
-new name space.  The <span class="id"><a
-href="#fn:mknsraw">mknsraw</a></span> function accepts
-two tables that define the symbols and types in the
-name space.  Finally, the <span class="id"><a
-href="#syn:_at_names">@names</a></span> syntactic form
-accepts symbol and type definitions in C declaration
-syntax.  Each of these mechanisms also accepts an
-optional human-readable name to be associated with
-resulting name space; this name is used only for
-presentation, and need not be unique.  The remainder of
-this section further describes these mechanisms.
+<div class="code">
+<pre>
+int8         uint8 	     uintptr
+int16	     uint16
+int32	     uint32
+int64	     uint64
+</pre>
+</div>
+
+The types <span class="val">int</span><span class="arg">X</span>
+and <span class="val">uint</span><span class="arg">X</span>
+correspond, respectively, to signed and unsigned
+integers of <span class="arg">X</span> bytes.
+The type <span class="val">uintptr</span> represents
+is an unsigned integer large enough to hold pointers.
+</p>
+
+<p>
+One function operates on root name spaces.
+</p>
+
+<div class="docitem" id="fn:myrootns">
+<div class="proto">
+<div class="function">
+<span class="id">myrootns()</span>
+</div>
+<div class="returns">
+<span class="type">ns</span>
+</div>
+</div>
+<div class="desc">
+Returns the root name space corresponding to the machine
+model for which the currently running L1 executable was built.
+</div>
+</div>
+
+<h4 id="sec:_at_names"><span class="val">@names</span></h4>
+
+<p>
+The <span class="id"><a href="#syn:_at_names">@names</a></span>
+form allows a name space to be constructed from type and variable
+definitions written in an extension of C syntax.
+</p>
+
+<div class="docitem" id="syn:_at_names">
+<div class="proto">
+<div class="syntax">
+<span class="id">@names <span class="arg">parent</span> {
+	<span class="arg">decl</span> ...
+};
+</span>
+</div>
+<div class="param">
+<span class="arg">parent</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">decl</span>: <span class="type">see description</span>
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+This syntax constructs a new name space from a sequence
+of symbol and type declarations.  The declarations are
+written in an extension of the C variable and type
+declaration syntax.
+
+</div>
+<div class="desc">
+There are four forms of declaration: aggregates, symbols,
+enums, and typedefs.
+</div>
+
+<div class="desc">
+The syntax for an aggregate declaration is the same as C
+aggregate declaration except that:
+<ul>
+<li> each field declaration must includes an offset
+         expression that specifies the offset of the
+          field relative to the beginning of the
+          aggregate;</li>
+<li> the declaration must end with a final offset
+          expression (not associated with any field)
+          that specifies the size of the aggregate.</li>
+</ul>
+The offset expression has two variants: one (<span class="val">@<span class="arg">expr</span></span>)
+to specify the offset in <em>bytes</em>, and
+one (<span class="val">@@<span class="arg">expr</span></span>)
+to specify the offset in <em>
+bits</em>.  The bit offset variant must be used to
+define fields corresponding to C bitfields.
+</div>
+<div class="desc">
+The syntax for a symbol declaration is the same as C
+variable declarations (without initializers) except
+that: each symbol declaration may be preceded by an
+offset expression that specifies the offset of the
+first byte in the address space of the object named by
+the symbol.
+The offset expression syntax is the same as the byte offset expression
+used in aggregate fields.  There is no way to associate a bit offset
+with a symbol.
+</div>
+
+<div class="desc">
+The syntax for enum declarations is the same as their syntax in C,
+except that the terms in expressions used to define enumeration values
+must be literal values or preceding constant names within the same enumeration.
+</div>
+
+<div class="desc">
+The syntax for typedef declarations is the same as their syntax in C.
+</div>
+
+<div class="desc">
+A name can be associated with
+the resulting name space object with <span class="fnindex"><a href="#fn:setname">setname</a></span>.
+</div>
+
+</div>
+
+<p>
+The implementation of
+<span class="id"><a href="#syn:_at_names">@names</a></span>
+converts type and variable declarations into a pair of
+tables that map type and symbol names to their definitions.
+The following function provides low-level access to the
+mechanism that produces a name space from such tables.
 </p>
 
 <div class="docitem" id="fn:mknsraw">
@@ -3276,87 +3391,13 @@ occurring in symbols may be type references.
 <span class="id">Mknsraw</span> resolves all type
 references, then constructs and returns a new name
 space.
-If provided, <span
-class="arg">name</span> is a human-readable name
-associated with the name space.
-</div>
 </div>
 
-<div class="docitem" id="syn:_at_names">
-<div class="proto">
-<div class="syntax">
-<span class="id">@names <span class="arg">parent</span> [ $ <span class="arg">name</span> ] {
-	<span class="arg">decl</span> ...
-};
-</span>
-</div>
-<div class="param">
-<span class="arg">parent</span>: <span class="type">name space</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">decl</span>: <span class="type">see description</span>
-</div>
-<div class="returns">
-<span class="type">name space</span>
-</div>
-</div>
-<div class="desc">
-This syntax constructs a new name space from a sequence
-of symbol and type declarations.  The declarations are
-written in an extension of the C variable and type
-declaration syntax.  If provided,
-<span
-class="arg">name</span> is a human-readable name
-associated with the name space.
-
-</div>
-<div class="desc">
-There are four forms of declaration: aggregates, symbols,
-enums, and typedefs.
-</div>
 
 <div class="desc">
-The syntax for an aggregate declaration is the same as C
-aggregate declaration except that:
-<ul>
-<li> each field declaration must includes an offset
-         expression that specifies the offset of the
-          field relative to the beginning of the
-          aggregate;</li>
-<li> the declaration must end with a final offset
-          expression (not associated with any field)
-          that specifies the size of the aggregate.</li>
-</ul>
-The offset expression has two variants: one (<span class="val">@<span class="arg">expr</span></span>)
-to specify the offset in <em>bytes</em>, and
-one (<span class="val">@@<span class="arg">expr</span></span>)
-to specify the offset in <em>
-bits</em>.  The bit offset variant must be used to
-define fields corresponding to C bitfields.
-</div>
-<div class="desc">
-The syntax for a symbol declaration is the same as C
-variable declarations (without initializers) except
-that: each symbol declaration may be preceded by an
-offset expression that specifies the offset of the
-first byte in the address space of the object named by
-the symbol.
-The offset expression syntax is the same as the byte offset expression
-used in aggregate fields.  There is no way to associate a bit offset
-with a symbol.
-</div>
-
-<div class="desc">
-The syntax for enum declarations is the same as their syntax in C,
-except that the terms in expressions used to define enumeration values
-must be literal values or preceding constant names within the same enumeration.
-</div>
-
-<div class="desc">
-The syntax for typedef declarations is the same as their syntax in C.
+The name of the resulting name space object is
+initialized to <span class="arg">name</span>, if
+provided.
 </div>
 </div>
 
@@ -8881,6 +8922,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:mkzas">mkzas</a><br />
+<a href="#fn:myrootns">myrootns</a><br />
 <a href="#fn:nameof">nameof</a><br />
 <a href="#fn:asof">nsof</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
