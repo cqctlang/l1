@@ -1560,6 +1560,16 @@ ranges.
 </p>
 
 <p>
+The
+prototypical address space represents the live memory
+of a running programs, but address spaces can also
+represent less dynamic content, such as the content of
+files or strings.  More generally, address spaces can
+be composed of ordinary Cinquecento functions that
+manage a view of arbitrary synthetic storage.
+</p>
+
+<p>
 A <span class="type">name space</span>
 catalogs the symbols and types of a C program.
 It encapsulates five functions.
@@ -1684,7 +1694,8 @@ The functions that operate on ranges are:
 <div class="desc">
 Constructs a new range representing the span
 of <span class="arg">len</span> bytes beginning
-at <span class="arg">beg</span>.
+at <span class="arg">beg</span>.  <span class="arg">Len</span>
+must be greater than zero.
 </div>
 </div>
 
@@ -2905,12 +2916,12 @@ Name spaces are <a href="#sec:objects">objects</a> that
 catalog information about a set of C types and symbols.
 The primitive constructor for a name space is
 <span class="fnindex"><a href="#fn:mkns">mkns</a></span>.
-Higher-level constructors are provided with the syntax <span class="fnindex"><a
+Higher-level constructors are the syntax <span class="fnindex"><a
 href="#syn:_at_names">@names</a></span> and the function
 <span class="fnindex"><a
 href="#fn:mknsraw">mknsraw</a></span>.
 The predicate
-<a href="#fn:isrange"><span class="fnindexid">isns</span></a>
+<a href="#fn:isns"><span class="fnindexid">isns</span></a>
 tests whether a value is a name space.
 </p>
 
@@ -3266,9 +3277,6 @@ definitions written in an extension of C syntax.
 <span class="arg">parent</span>: <span class="type">name space</span>
 </div>
 <div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
-</div>
-<div class="param">
 <span class="arg">decl</span>: <span class="type">see description</span>
 </div>
 <div class="returns">
@@ -3339,9 +3347,10 @@ the resulting name space object with <span class="fnindex"><a href="#fn:setname"
 The implementation of
 <span class="id"><a href="#syn:_at_names">@names</a></span>
 converts type and variable declarations into a pair of
-tables that map type and symbol names to their definitions.
-The following function provides low-level access to the
-mechanism that produces a name space from such tables.
+tables that map type and symbol names to their
+definitions.  The following function is the low-level
+constructor that produces a name space from such
+tables.
 </p>
 
 <div class="docitem" id="fn:mknsraw">
@@ -3404,18 +3413,116 @@ provided.
 <h4 id="sec:addressspaces">Address spaces</h4>
 
 <p>
-Cinquecento address spaces represent byte-addressed
-storage by providing methods to reflect the set
-of <em>mapped</em> locations &mdash; the set of
-addresses backed by storage &mdash; and methods to read
-and write the contents of mapped locations.  The
-prototypical address space represents the live memory
-of a running programs, but address spaces can also
-represent less dynamic content, such as the content of
-files or strings.  More generally, address spaces can
-be composed of ordinary Cinquecento functions that
-manage a view of arbitrary synthetic storage.
+Address spaces are <a href="#sec:objects">objects</a>
+that represent sparse byte-addressed storage.
+The primitive constructor for an address space is
+<span class="fnindex"><a href="#fn:mkas">mkas</a></span>.
+The predicate
+<a href="#fn:isas"><span class="fnindexid">isas</span></a>
+tests whether a value is an address space.
 </p>
+
+<p>
+Every address space implements the following four methods:
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asget">
+<span class="id">get(<span class="arg">this</span>,<span class="arg">r</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+This address space method returns a string containing
+the bytes located in the
+range <span class="arg">r</span> of the address space.
+It is an error (<span class="fnindex"><a href="#fn:fault">fault</a></span>)
+if the range is out of bounds.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asput">
+<span class="id">put(<span class="arg">this</span>,<span class="arg">r</span>,<span class="arg">s</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This address space method replace the bytes
+located in the range <span class="arg">r</span> of the address space
+with those in <span class="arg">s</span>.
+It is an error (<span class="fnindex"><a href="#fn:fault">fault</a></span>)
+if the range is out of bounds or if <span class="arg">s</span>
+is shorter than the range.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asmap">
+<span class="id">map(<span class="arg">this</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">vector of ranges</span>
+</div>
+</div>
+<div class="desc">
+This address space method returns a vector
+of non-overlapping ranges in order of increasing offset
+corresponding to the ranges of the address space
+that may be accessed by 
+<span class="fnindex"><a href="#fn:asget">get</a></span>
+or <span class="fnindex"><a href="#fn:asput">put</a></span>
+method invocations.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asismapped">
+<span class="id">ismapped(<span class="arg">this</span>,<span class="arg">r</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This address space method is a predicate that returns
+non-zero if <span class="arg">r</span> is contained in
+the set of ranges mapped by the address space.
+</div>
+</div>
+
 
 <p>
 Several functions create new address spaces
@@ -3497,207 +3604,6 @@ Returns an address space backed by the address space of the calling process.
 Yep.  (The interface documented here currently does not match the implementation.)
 </div>
 </div>
-
-
-<p>
-Mapped locations in an address space are subdivided
-into disjoint <em>units</em>.  Each unit spans a
-contiguous range of the address space.  Units are
-commonly used to represent the sparse page-based
-virtual address spaces of running programs.  The units
-of an address space need not be of equal size, and the
-number of units and their dimensions may change over
-time.
-</p>
-
-<p>
-Every address space implements four methods
-(this interface is tentatively planned for future version,
-but not currently supported):
-</p>
-<div class="table-short">
-<table>
-
-<tr>
-<td align="right">
-<span class="arg">unit</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">cvalue</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">range</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">limit</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">void</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<em>list of</em> <span class="type">cvalue</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">get</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">range</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">string</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">put</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">range</span> &times; <span class="type">string</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">cvalue</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-</table>
-</div>
-
-<p>
-The range type represents a contiguous span of
-locations in an address space.
-A range is constructed by the function
-<tt>mkrange(<em>beg</em>,<em>len</em>)</tt>, where
-<tt><em>beg</em></tt> is the non-negative start address
-of the range and <tt><em>len</em></tt> is the positive
-number of bytes in the range; both are cvalues.  Empty
-ranges are invalid.  The functions
-<tt>rangebeg(<em>range</em>)</tt> and
-<tt>rangelen(<em>range</em>)</tt> return the start
-address and byte count from a range as cvalues.
-</p>
-
-<p>
-The <span class="arg">unit</span> method queries the
-units of an address space.  Its argument is an address.
-If the address is mapped,
-<span class="arg">unit</span> returns a range that specifies
-the boundaries of the containing unit.  Otherwise it returns
-<span class="type">nil</span>.
-</p>
-
-<p>
-The <span class="arg">limit</span> method queries the
-overall address boundaries of an address space.  It
-returns a list containing two addresses (as cvalues).
-The first is the smallest address defined by the
-address space; the second is the highest.  These values
-need not be mapped, but are merely the minimum and
-maximum address values handled by the address space.
-</p>
-
-<p>
-The <span class="arg">get</span> method reads from a range of the
-address space, returning the stored bytes as a string.
-<span class="arg">Get</span> fails (returns <span class="type">nil</span>)
-if the access includes unmapped locations.
-<span class="arg">Get</span> may also fail
-if the access spans
-the boundary of a unit of the address space.
-</p>
-
-<p>
-The <span class="arg">put</span> method writes to a
-range of the address space.  The string argument
-contains the bytes to be written; its length be of
-equal to that of the range argument.  If the write
-succeeds, the number of bytes written (always the
-length of the string) is returned.  
-<span class="arg">Put</span> fails (returns <span class="type">nil</span>)
-if the access includes unmapped locations.
-<span class="arg">Put</span> may also fail
-if the access spans
-the boundary of a unit of the address space.
-</p>
-
-<p>
-The function <tt>mkas(<em>dispatch</em>)</tt>
-constructs a custom address space.  Dispatch is a
-program-defined variable arity function that
-encapsulates the <tt><em>map</em></tt>,
-<tt><em>get</em></tt>, and <tt><em>put</em></tt>
-functions.  The first argument to dispatch is a string
-whose value is the name of the function to be called;
-dispatch must apply the corresponding function to the
-remaining arguments.
-</p>
-
-<p>
-Ordinarily the functions represented by
-<em>dispatch</em> are implicitly invoked by the
-Cinquecento implementation during evaluation of C
-expressions that involve storage access operations
-(such as dereferencing a pointer).  However, programs
-may directly invoked these functions by name using an
-overloaded form of the C binary dot operator:
-</p>
-<div class="code">
-<pre>
-; as.get(mkrange(0,1024));
-</pre>
-</div>
-
-<p>
-When the left operand of a dot expression is an address
-space, the result of the expression is a variable arity
-function that, when called, calls the dispatch function
-of the address space.  The arguments it passes to
-dispatch are, first, the identifier appearing as the
-right operand to the dot expression as a string,
-followed by the arguments to the call.
-</p>
-
-<p>
-In addition, if the right operand is the identifier
-<tt>dispatch</tt>, then the result of the expression is
-simply the dispatch function of the address space,
-instead of the curried version described above.
-For example, the above call to <tt>get</tt> is equivalent to:
-</p>
-<div class="code">
-<pre>
-; as.dispatch("get",mkrange(0,1024));
-</pre>
-</div>
-
-<p>
-As a syntactic convenience, the left operand to the dot
-operator can also be a domain, in which case the same
-operation is performed on the underlying address space.
-</p>
-
-<p>
-The address spaces returned by the standard address
-space constructors all implement a dispatch function
-that can be accessed with the dot operator in the same
-way as a custom address space.
-</p>
-
-<p>
-The dot operator on address spaces will accept any
-valid identifier (not just <tt>map</tt>, <tt>get</tt>,
-<tt>put</tt>, and <tt>dispatch</tt>), providing a way
-for programs to extend the standard address space
-interface with additional custom functions.  This
-feature can be used, for example, to associate a
-function for setting breakpoints with an address space.
-</p>
 
 
 <h4 id="sec:ctypes">Ctypes</h4>
