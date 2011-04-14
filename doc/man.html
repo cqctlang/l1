@@ -1661,7 +1661,7 @@ and breakpoint control.
 
 <p>
 A <em>range</em> is an object that represents a
-continguous span of locations in an address space as a
+contiguous span of locations in an address space as a
 pair of cvalues: the offset of the beginning of the
 span, and its length.
 </p>
@@ -1730,6 +1730,31 @@ Returns the beginning of the range <span class="arg">r</span>.
 </div>
 <div class="desc">
 Returns the length of the range <span class="arg">r</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:isrinrs">
+<div class="proto">
+<div class="function">
+<span class="id">isrinrs(<span class="arg">r</span>,<span class="arg">rs</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>:<span class="type">range</span>
+</div>
+<div class="param">
+<span class="arg">rs</span>:<span class="type">vector or list of ranges</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This predicate returns non-zero if the
+range <span class="arg">r</span> is contained in the
+set of ranges <span class="arg">rs</span>, possibly by
+spanning one or more adjoined ranges.  The elements
+of <span class="arg">rs</span> are assumed to be
+non-overlapping and sorted by increasing offset.
 </div>
 </div>
 
@@ -8755,6 +8780,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isrange">isrange</a><br />
 <a href="#fn:isrd">isrd</a><br />
 <a href="#fn:isrec">isrec</a><br />
+<a href="#fn:isrinr">isrinr</a><br />
 <a href="#fn:isspace">isspace</a><br />
 <a href="#fn:isstring">isstring</a><br />
 <a href="#fn:isstruct">isstruct</a><br />
