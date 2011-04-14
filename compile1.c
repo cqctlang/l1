@@ -258,7 +258,7 @@ compilecontainer(U *ctx, Expr *e)
 
 	te = nullelist();
 
-	loc = Zlocals(5, "$tn", "$fld", "$ptype", "$type", "$tmp");
+	loc = Zlocals(5, "$tn", "$fld", "$prep", "$type", "$tmp");
 
 	// $tmp = e->e1;
 	e->e1 = compile1(ctx, e->e1);
@@ -319,10 +319,10 @@ compilecontainer(U *ctx, Expr *e)
 	//        from typename domain, whereas here we always draw from
 	//        Ps domain.
 	// {mkctype_ptr($type,$prep)} ({mkctype_ptr(void,$prep)}$tmp - fieldoff($fld))
-	se = Zxcast(Zcall(G("mkctype_ptr"), 2, doid("$type"), doid("$ptype")),
+	se = Zxcast(Zcall(G("mkctype_ptr"), 2, doid("$type"), doid("$prep")),
 		    Zsub(Zxcast(Zcall(G("mkctype_ptr"), 2,
 				      Zcall(G("mkctype_void"), 0),
-				      doid("$ptype")),
+				      doid("$prep")),
 				doid("$tmp")),
 			 Zcall(G("fieldoff"), 1, doid("$fld"))));
 	te = Zcons(se, te);

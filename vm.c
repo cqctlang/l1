@@ -5840,7 +5840,7 @@ l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1)
 		xtn = mkptrxtn(xtn, Rundef);
 	else{
-		if(Vkind(argv[1]) != Qxtn)
+		if(Vkind(argv[1]) != Qcval)
 			vmerr(vm, "invalid pointer representation");
 		cv = valcval(argv[1]);
 		if(cv->val <= Rundef || cv->val >= Rnrep)
