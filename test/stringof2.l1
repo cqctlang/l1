@@ -27,6 +27,17 @@
 		if(arg == "map")
 			return map;
 
+		if(arg == "ismapped"){
+		        range = listref(args, 2);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			/* this logic is less than correct */
+			if(end <= len)
+			       return 1;
+			else
+			       return 0;
+		}
+
 		printf("bad argument to dispatch!\n");
 	}
 	return mkas([ "dispatch" : dispatch ]);
