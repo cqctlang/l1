@@ -160,6 +160,9 @@ core_defined = 1;
 		else if (arg == "map") {
 			return mapped_ranges;
 		}
+		else if (arg == "ismapped") {
+			return isrinr(args[2], mapped_ranges);
+		}
 		else if (arg == "put") {
 			error("put() unimplemented for core address spaces.");
 		}

@@ -960,6 +960,12 @@ ctlmux = @names clp64le {
 			return rv;
 		}
 
+		/* FIXME: this and map should not call stat every time */
+		@define ismapped(as, r)
+		{
+			return isrinr(r, map(as));
+		}
+
 		@define ctl(as)
 		{
 			return this;

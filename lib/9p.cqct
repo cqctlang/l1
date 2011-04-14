@@ -1160,8 +1160,16 @@ dom9p = mkdom(ns9p, mknas());
 			return vector(mkrange(0, st->length));
 		}
 
-		return mkas([ "get" : get, "put" : put, "map" : map ]);
-		
+		@define ismapped(this, r)
+		{
+			return isrinr(r, map(this));
+		}
+
+		return mkas([ "get" : get,
+			      "put" : put,
+			      "map" : map,
+			      "ismapped" : ismapped
+			    ]);
 	}
 
 	@define xdirread(xfd)

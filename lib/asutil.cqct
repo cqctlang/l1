@@ -126,8 +126,10 @@ asfile_identifier="AS1";
                                 }
                         }
                         fault();
-		}
-
+		} else if (ftn == "ismapped") {
+			return isrinr(args[2], ranges);
+		} else
+			error("call to unimplemented method: %s", ftn);
 	}
 	return mkas(["dispatch":dispatch]);
 }
