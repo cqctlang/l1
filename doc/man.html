@@ -2573,18 +2573,16 @@ include support for a better object system.
 <h4 id="sec:symbols">Symbols, Fields, Parameters</h4>
 
 <p>
-Cinquecento represents a C symbol as a triple of
-values:
-its name (of type string),
-its type (ctype),
-and an optional attribute table (table).
+A C <em>symbol</em> &mdash a named, typed location
+&mdash is represented in Cinquecento as a triple
+comprising name (of type string), type (ctype), and
+optional attribute table (table).
 </p>
 
 <p>
 The attribute table maps attributes names (strings) to
 values.  The only attribute consulted by the system
-itself is the attribute
-named <span class="val">"offset"</span>.  Its value is
+itself is the one named <span class="val">"offset"</span>.  Its value is
 a cvalue representing the offset of the first byte of
 the object named by the symbol from the start of the
 address space in which it resides.  Attribute tables
@@ -2595,12 +2593,11 @@ associate arbitrary data with a symbol.
 <p>
 L1 implements symbols using vectors, rather than, say,
 a record or a dedicated primitive type.  This
-representation is likely to change in future versions.
-To avoid incompatibility, programs should use the
-following functions to create and access symbols,
-instead of directly accessing the vector.  In
-particular, the result of modifying a symbol vector is
-undefined.  (In what
+representation is likely to change.
+To avoid breaking, programs should use the following
+functions to create and access symbols, and not
+directly access the vector.  In particular, the effect
+of modifying a symbol vector is undefined.  (In what
 follows, <span class="type">symbol</span> denotes the
 representation of symbols.)
 </p>
@@ -3133,9 +3130,10 @@ the representation.
 <h4 id="sec:rootnamespaces">Root Name Spaces</h4>
 
 <p>
-Cinquecento defines several top-level <em>root name spaces</em> that
-correspond to common machine models.  They vary in the
-size and encoding of integers and pointers.
+Cinquecento defines several top-level <em>root name
+spaces</em> that correspond to common C compiler
+choices.  They vary in the size and encoding of
+integers and pointers.
 </p>
 
 <div class="table-short">
