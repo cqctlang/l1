@@ -150,15 +150,14 @@ for common environments, such as x86 Linux systems.
 <p>
 Apart from domains and the C-based syntax, Cinquecento
 is a simple dynamic language with conventional
-functional semantics.  A dialect of Scheme at its
-heart, Cinquecento is lexically scoped, dynamically
-typed, properly tail recursive, and has first-class
-functions and automatic memory management.  Schemers
-will note departure in Cinquecento's model of integers
-(which rigorously emulates C's fixed precision
-semantics), the more imperative flavor of its built-in
-list data type, and the absence (today) of a compelling
-macro system.
+functional semantics.  A dialect of Scheme at heart,
+Cinquecento is lexically scoped, dynamically typed,
+properly tail recursive, and has first-class functions
+and automatic memory management.  Schemers will note
+departure in Cinquecento's model of integers (which
+rigorously emulates C's fixed precision semantics), the
+more imperative flavor of its built-in list data type,
+and the absence (today) of a compelling macro system.
 </p>
 
 <p>
@@ -2953,7 +2952,7 @@ Every name space implements the following five methods:
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:looktype">
+<div class="function"  id="fn:nslooktype">
 <span class="id">looktype(<span class="arg">this</span>,<span class="arg">typename</span>)
 </div>
 <div class="param">
@@ -2976,7 +2975,7 @@ not defined.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:looksym">
+<div class="function"  id="fn:nslooksym">
 <span class="id">looksym(<span class="arg">this</span>,<span class="arg">id</span>)
 </div>
 <div class="param">
@@ -2999,7 +2998,7 @@ not defined.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:enumtype">
+<div class="function"  id="fn:nsenumtype">
 <span class="id">enumtype(<span class="arg">this</span>)
 </div>
 <div class="param">
@@ -3019,7 +3018,7 @@ Modifying the table may cause undefined effects.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:enumsym">
+<div class="function"  id="fn:nsenumsym">
 <span class="id">enumsym(<span class="arg">this</span>)
 </div>
 <div class="param">
@@ -3039,7 +3038,7 @@ Modifying the table may cause undefined effects.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:lookaddr">
+<div class="function"  id="fn:nslookaddr">
 <span class="id">lookaddr(<span class="arg">this</span>,<span class="arg">addr</span>)
 </div>
 <div class="param">
@@ -3677,7 +3676,7 @@ Yep.  (The interface documented here currently does not match the implementation
 Several functions operate on address spaces.
 </p>
 
-<div class="docitem" id="fn:getbytes">
+<div class="docitem" id="fn:ismapped">
 <div class="proto">
 <div class="function">
 <span class="id">ismapped(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
@@ -4170,6 +4169,28 @@ href="#fn:fieldid">fieldid</a></span>,
 <span class="fnindex"><a href="#fn:fieldattr">fieldattr</a></span>, and
 <span class="fnindex"><a href="#fn:fieldoff">fieldoff</a></span>.
 Modifying the vector may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem" id="fn:lookfield">
+<div class="proto">
+<div class="function">
+<span class="id">lookfield(<span class="arg">type</span>,<span class="arg">id</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">aggregate ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">field</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the <a href="#sec:symbols">field</a> named <span class="arg">id</span> 
+in the aggregate <span class="arg">type</span>, or <span class="val">nil</span>
+if no field has that name.
 </div>
 </div>
 
@@ -5983,7 +6004,7 @@ evaluator.
 <span class="arg">char</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
-<span class="type">cvalue (1 or 0)</span>
+<span class="type">cvalue</span>
 </div>
 </div>
 <div class="desc">
@@ -8774,8 +8795,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:count">count</a><br />
 <a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
-<a href="#fn:enumsym">enumsym</a><br />
-<a href="#fn:enumtype">enumtype</a><br />
+<a href="#fn:nsenumsym">enumsym</a> (ns method)<br />
+<a href="#fn:nsenumtype">enumtype</a> (ns method)<br />
 <a href="#fn:environ">environ</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
@@ -8796,6 +8817,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:gclock">gclock</a><br />
 <a href="#fn:gcstats">gcstats</a><br />
 <a href="#fn:gclock">gcunlock</a><br />
+<a href="#fn:asget">get</a> (as method)<br />
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
@@ -8830,6 +8852,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isgraph">isgraph</a><br />
 <a href="#fn:islist">islist</a><br />
 <a href="#fn:islower">islower</a><br />
+<a href="#fn:ismapped">ismapped</a> (function)<br />
+<a href="#fn:asismapped">ismapped</a> (as method)<br />
 <a href="#fn:ismember">ismember</a><br />
 <a href="#fn:isnil">isnil</a><br />
 <a href="#fn:isns">isns</a><br />
@@ -8862,10 +8886,14 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:listins">listins</a><br />
 <a href="#fn:listref">listref</a><br />
 <a href="#fn:listset">listset</a><br />
-<a href="#fn:lookaddr">lookaddr</a><br />
-<a href="#fn:looksym">looksym</a><br />
-<a href="#fn:looktype">looktype</a><br />
-<a href="#fn:map">map</a><br />
+<a href="#fn:nslookaddr">lookaddr</a> (ns method)<br />
+<a href="#fn:lookfield">lookfield</a><br />
+<a href="#fn:nslooksym">looksym</a> (ns method)<br />
+<a href="#fn:looksym">looksym</a> (function)<br />
+<a href="#fn:nslooktype">looktype</a> (ns method)<br />
+<a href="#fn:looktype">looktype</a> (function)<br />
+<a href="#fn:map">map</a> (function)<br />
+<a href="#fn:asmap">map</a> (as method)<br />
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
@@ -8927,6 +8955,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:parse">parse</a><br />
 <a href="#fn:pop">pop</a><br />
 <a href="#fn:postgc">postgc</a><br />
+<a href="#fn:asput">put</a> (as method)<br />
 <a href="#fn:printf">printf</a><br />
 <a href="#fn:push">push</a><br />
 <a href="#fn:putbytes">putbytes</a><br />
