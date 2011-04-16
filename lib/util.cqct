@@ -1,3 +1,27 @@
+/* is range-in-range? */
+@define isrinr(r, rs)
+{
+	@local n, b, e, i, x, xb, xe;
+
+	n = length(rs);
+	b = rangebeg(r);
+	e = b+rangelen(r);
+	for(i = 0; i < n; i++){
+		x = rs[i];
+		xb = rangebeg(x);
+		if(xb > b)
+			return 0;
+		xe = xb+rangelen(x);
+		if(b >= xb && b <= xe){
+			if(e <= xe)
+				return 1;
+			else
+				b = xe;
+		}
+	}
+	return 0;
+}
+
 @define time(fn)
 {
 	@local s, e;

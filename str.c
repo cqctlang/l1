@@ -235,7 +235,7 @@ l1_mkstrext(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to mkstrext");
 	checkarg(vm, "mkstrext", argv, 0, Qcval);
-	checkarg(vm, "mkstrext", argv, 0, Qcval);
+	checkarg(vm, "mkstrext", argv, 1, Qcval);
 	p = valcval(argv[0]);
 	l = valcval(argv[1]);
 	a = (void*)(uptr)p->val;

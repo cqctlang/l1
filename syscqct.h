@@ -949,6 +949,7 @@ Val		attroff(Val o);
 void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
+Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
 void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
 Xtypename*	chasetype(Xtypename *xtn);

@@ -2558,9 +2558,15 @@ nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "nasdispatch", argv, 1, Qstr);
 	cmd = valstr(argv[1]);
 	if(equalstrc(cmd, "map")){
-		if(argc != 2)
-			vmerr(vm, "wrong number of arguments to map");
+		if(argc != 1)
+			vmerr(vm, "wrong number of arguments to map method");
 		*rv = mkvalvec(mkvec(0));
+		return;
+	}
+	if(equalstrc(cmd, "ismapped")){
+		if(argc != 2)
+			vmerr(vm, "wrong number of arguments to ismapped method");
+		*rv = mkvalcval2(cval0);
 		return;
 	}
 	vmerr(vm, "attempt to access null address space");
@@ -2579,59 +2585,64 @@ mknas(void)
 	return as;
 }
 
+static int
+checkrange(Imm b, Imm l, Imm rb, Imm rl)
+{
+	Imm e, re;
+	e = b+l;
+	if(e < b)
+		fatal("bug");
+	if(rb < b || rb > e)
+		return 0;
+	re = rb+rl;
+	if(re < rb || re > e)
+		/* FIXME: depending on whether ranges can be empty,
+		   also check re==rb */
+		return 0;
+	return 1;
+}
+
 static void
 sasget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Str *s, *dat;
+	Str *s;
 	Range *r;
-	Cval *beg, *end;
+	Imm rb, rl;
 
 	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to get");
+		vmerr(vm, "wrong number of arguments to get method");
 	checkarg(vm, "sasget", argv, 1, Qrange);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
-	beg = r->beg;
-	end = xcvalalu(vm, Iadd, beg, r->len);
-	if(beg->val > s->len)	/* FIXME: >=? */
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(0, s->len, rb, rl))
 		vmerr(vm, "address space access out of bounds");
-	if(end->val > s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	dat = strslice(s, beg->val, end->val);
-	*rv = mkvalstr(dat);
-}
+	*rv = mkvalstr(strslice(s, rb, rb+rl));
+}	
 
 static void
 sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Str *s, *dat;
 	Range *r;
-	Cval *beg, *end;
+	Imm rb, rl;
 
 	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to put");
+		vmerr(vm, "wrong number of arguments to put method");
 	checkarg(vm, "sasput", argv, 1, Qrange);
 	checkarg(vm, "sasput", argv, 2, Qstr);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(0, s->len, rb, rl))
+		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
-	beg = r->beg;
-	if(r->len->val == 0 && beg->val <= s->len)
-		/* special case: empty string */
-		return;
-	end = xcvalalu(vm, Iadd, beg, r->len);
-	if(beg->val >= s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(end->val > s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	if(dat->len < r->len->val)
-		vmerr(vm, "short put");
+	if(dat->len < rl)
+		vmerr(vm, "not enough bytes to address space update");
 	/* FIXME: rationalize with l1_strput */
-	memcpy(strdata(s)+beg->val, strdata(dat), dat->len);
+	memcpy(strdata(s)+rb, strdata(dat), rl);
 	USED(rv);
 }
 
@@ -2643,7 +2654,7 @@ sasmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Str *s;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to map");
+		vmerr(vm, "wrong number of arguments to map method");
 	USED(argv);
 	s = valstr(disp[0]);
 	v = mkvec(1);
@@ -2652,6 +2663,25 @@ sasmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 				litdom->ns->base[Vptr], s->len));
 	_vecset(v, 0, val);
 	*rv = mkvalvec(v);
+}
+
+static void
+sasismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Range *r;
+	Imm rb, rl;
+	Str *s;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to ismapped method");
+	s = valstr(disp[0]);
+	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(0, s->len, rb, rl))
+		*rv = mkvalcval2(cval0);
+	else
+		*rv = mkvalcval2(cval1);
 }
 
 As*
@@ -2665,6 +2695,8 @@ mksas(Str *s)
 		mkvalcl(mkccl("sasput", sasput, 1, mkvalstr(s))));
 	tabput(mtab, mkvalstr(mkstr0("map")),
 		mkvalcl(mkccl("sasmap", sasmap, 1, mkvalstr(s))));
+	tabput(mtab, mkvalstr(mkstr0("ismapped")),
+		mkvalcl(mkccl("sasismapped", sasismapped, 1, mkvalstr(s))));
 	return mkastab(mtab, 0);
 }
 
@@ -2983,9 +3015,24 @@ static void
 nscachebase(VM *vm, Ns *ns)
 {
 	Cbase cb;
+	Val rv, argv[2];
+	Xtypename *xtn;
+
 	for(cb = Vlo; cb < Vnbase; cb++)
 		nscache1base(vm, ns, cb);
-	nscache1base(vm, ns, Vptr);
+
+	/* use result of looktype(void*) to define Vptr base */
+	argv[0] = mkvalns(ns);
+	argv[1] = mkvalxtn(mkptrxtn(mkvoidxtn(), Rundef));
+	rv = safedovm(vm, ns->looktype, 2, argv);
+	if(Vkind(rv) == Qnil)
+		vmerr(vm, "name space does not define void*");
+	xtn = valxtn(rv);
+	if(xtn->rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
+	ns->base[Vptr] = mkbasextn(Vptr, xtn->rep);
 }
 
 /* enumsym for namespaces constructed by @names */
@@ -4611,11 +4658,10 @@ callget(VM *vm, As *as, Imm off, Imm len)
 			     mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = safedovm(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
-		vmerr(vm, "address space get method returned non-string");
+		vmerr(vm, "get method returned non-string");
 	s = valstr(rv);
 	if(s->len != len)
-		vmerr(vm, "address space get method returned wrong number of "
-		      "bytes");
+		vmerr(vm, "get method returned wrong number of bytes");
 	return s;
 }
 
@@ -4632,8 +4678,21 @@ callmap(VM *vm, As *as)
 	argv[0] = mkvalas(as);
 	rv = safedovm(vm, as->map, 1, argv);
 	if(Vkind(rv) != Qvec)
-		vmerr(vm, "address space map returned invalid value");
+		vmerr(vm, "map method returned invalid value");
 	return valvec(rv);
+}
+
+Cval*
+callismapped(VM *vm, As *as, Imm off, Imm len)
+{
+	Val argv[2], rv;
+	argv[0] = mkvalas(as);
+	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
+			     mkcval(litdom, litdom->ns->base[Vptr], len));
+	rv = safedovm(vm, as->ismapped, 2, argv);
+	if(Vkind(rv) != Qcval)
+		vmerr(vm, "ismapped method returned invalid value");
+	return valcval(rv);
 }
 
 Range*
@@ -4702,17 +4761,9 @@ stringof(VM *vm, Cval *cv)
 int
 ismapped(VM *vm, As *as, Imm addr, Imm len)
 {
-	Vec *v;
-	Range *r;
-
-	if(len == 0)
-		return 0;
-	if(addr+len < len)
-		/* bogus length */
-		return 0;
-	v = callmap(vm, as);
-	r = mapstab(vm, v, addr, len);	/* FIXME: type sanity */
-	return r != 0;
+	Cval *cv;
+	cv = callismapped(vm, as, addr, len);
+	return cv->val != 0;
 }
 
 static void
@@ -5815,7 +5866,8 @@ l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn, *pxtn;
+	Xtypename *xtn;
+	Cval *cv;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_ptr");
 	if(Vkind(argv[0]) != Qxtn)
@@ -5824,17 +5876,12 @@ l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1)
 		xtn = mkptrxtn(xtn, Rundef);
 	else{
-		if(Vkind(argv[1]) != Qxtn)
-			vmerr(vm, "operand 2 to mkctype_ptr "
-			      "must define a pointer type");
-		checkarg(vm, "mkctype_ptr", argv, 1, Qxtn);
-		pxtn = valxtn(argv[1]);
-		pxtn = chasetype(pxtn);
-		if((pxtn->tkind != Tptr && pxtn->tkind != Tbase)
-		   || pxtn->rep == Rundef)
-			vmerr(vm, "operand 2 to mkctype_ptr "
-			      "must define a pointer type");
-		xtn = mkptrxtn(xtn, pxtn->rep);
+		if(Vkind(argv[1]) != Qcval)
+			vmerr(vm, "invalid pointer representation");
+		cv = valcval(argv[1]);
+		if(cv->val <= Rundef || cv->val >= Rnrep)
+			vmerr(vm, "invalid pointer representation");
+		xtn = mkptrxtn(xtn, cv->val);
 	}
 	*rv = mkvalxtn(xtn);
 }
@@ -6774,7 +6821,7 @@ l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalxtn(ns->base[Vptr]);
+	*rv = mkvallitcval(Vuchar, ns->base[Vptr]->rep);
 }
 
 static void
@@ -8388,7 +8435,12 @@ basetab(NSroot *def, Xtypename **base)
 		tabput(type, kv, vv);
 	}
 
-	/* map pointer to integer representation */
+	/* map pointer to integer representation (void*) */
+	kv = mkvalxtn(mkptrxtn(mkvoidxtn(), Rundef));
+	vv = mkvalxtn(mkptrxtn(mkvoidxtn(), def->base[def->ptr]));
+	tabput(type, kv, vv);
+
+	/* map pointer to integer representation (base Vptr) */
 	kv = mkvalxtn(mkbasextn(Vptr, Rundef));
 	vv = mkvalxtn(base[Vptr]);
 	tabput(type, kv, vv);

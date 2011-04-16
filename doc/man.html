@@ -41,6 +41,8 @@
 <a href="#sec:obj">The object model</a><br />
 <a href="#sec:symbols">Symbols, Fields, Parameters</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
+<a href="#sec:rootnamespaces">Root name spaces</a><br />
+<a href="#sec:_at_names"><span class="val">@names</span></a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
 <a href="#sec:ctypes">Ctypes</a><br />
 <br />
@@ -148,15 +150,14 @@ for common environments, such as x86 Linux systems.
 <p>
 Apart from domains and the C-based syntax, Cinquecento
 is a simple dynamic language with conventional
-functional semantics.  A dialect of Scheme at its
-heart, Cinquecento is lexically scoped, dynamically
-typed, properly tail recursive, and has first-class
-functions and automatic memory management.  Schemers
-will note departure in Cinquecento's model of integers
-(which rigorously emulates C's fixed precision
-semantics), the more imperative flavor of its built-in
-list data type, and the absence (today) of a compelling
-macro system.
+functional semantics.  A dialect of Scheme at heart,
+Cinquecento is lexically scoped, dynamically typed,
+properly tail recursive, and has first-class functions
+and automatic memory management.  Schemers will note
+departure in Cinquecento's model of integers (which
+rigorously emulates C's fixed precision semantics), the
+more imperative flavor of its built-in list data type,
+and the absence (today) of a compelling macro system.
 </p>
 
 <p>
@@ -1558,6 +1559,16 @@ ranges.
 </p>
 
 <p>
+The
+prototypical address space represents the live memory
+of a running programs, but address spaces can also
+represent less dynamic content, such as the content of
+files or strings.  More generally, address spaces can
+be composed of ordinary Cinquecento functions that
+manage a view of arbitrary synthetic storage.
+</p>
+
+<p>
 A <span class="type">name space</span>
 catalogs the symbols and types of a C program.
 It encapsulates five functions.
@@ -1649,7 +1660,7 @@ and breakpoint control.
 
 <p>
 A <em>range</em> is an object that represents a
-continguous span of locations in an address space as a
+contiguous span of locations in an address space as a
 pair of cvalues: the offset of the beginning of the
 span, and its length.
 </p>
@@ -1682,7 +1693,8 @@ The functions that operate on ranges are:
 <div class="desc">
 Constructs a new range representing the span
 of <span class="arg">len</span> bytes beginning
-at <span class="arg">beg</span>.
+at <span class="arg">beg</span>.  <span class="arg">Len</span>
+must be greater than zero.
 </div>
 </div>
 
@@ -1717,6 +1729,31 @@ Returns the beginning of the range <span class="arg">r</span>.
 </div>
 <div class="desc">
 Returns the length of the range <span class="arg">r</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:isrinrs">
+<div class="proto">
+<div class="function">
+<span class="id">isrinrs(<span class="arg">r</span>,<span class="arg">rs</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>:<span class="type">range</span>
+</div>
+<div class="param">
+<span class="arg">rs</span>:<span class="type">vector or list of ranges</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This predicate returns non-zero if the
+range <span class="arg">r</span> is contained in the
+set of ranges <span class="arg">rs</span>, possibly by
+spanning one or more adjoined ranges.  The elements
+of <span class="arg">rs</span> are assumed to be
+non-overlapping and sorted by increasing offset.
 </div>
 </div>
 
@@ -2535,18 +2572,16 @@ include support for a better object system.
 <h4 id="sec:symbols">Symbols, Fields, Parameters</h4>
 
 <p>
-Cinquecento represents a C symbol as a triple of
-values:
-its name (of type string),
-its type (ctype),
-and an optional attribute table (table).
+A C <em>symbol</em> &mdash a named, typed location
+&mdash is represented in Cinquecento as a triple
+comprising name (of type string), type (ctype), and
+optional attribute table (table).
 </p>
 
 <p>
 The attribute table maps attributes names (strings) to
 values.  The only attribute consulted by the system
-itself is the attribute
-named <span class="val">"offset"</span>.  Its value is
+itself is the one named <span class="val">"offset"</span>.  Its value is
 a cvalue representing the offset of the first byte of
 the object named by the symbol from the start of the
 address space in which it resides.  Attribute tables
@@ -2557,12 +2592,11 @@ associate arbitrary data with a symbol.
 <p>
 L1 implements symbols using vectors, rather than, say,
 a record or a dedicated primitive type.  This
-representation is likely to change in future versions.
-To avoid incompatibility, programs should use the
-following functions to create and access symbols,
-instead of directly accessing the vector.  In
-particular, the result of modifying a symbol vector is
-undefined.  (In what
+representation is likely to change.
+To avoid breaking, programs should use the following
+functions to create and access symbols, and not
+directly access the vector.  In particular, the effect
+of modifying a symbol vector is undefined.  (In what
 follows, <span class="type">symbol</span> denotes the
 representation of symbols.)
 </p>
@@ -2901,6 +2935,15 @@ Returns the attribute table of <span class="arg">param</span>.
 <p>
 Name spaces are <a href="#sec:objects">objects</a> that
 catalog information about a set of C types and symbols.
+The primitive constructor for a name space is
+<span class="fnindex"><a href="#fn:mkns">mkns</a></span>.
+Higher-level constructors are the syntax <span class="fnindex"><a
+href="#syn:_at_names">@names</a></span> and the function
+<span class="fnindex"><a
+href="#fn:mknsraw">mknsraw</a></span>.
+The predicate
+<a href="#fn:isns"><span class="fnindexid">isns</span></a>
+tests whether a value is a name space.
 </p>
 
 <p>
@@ -2909,7 +2952,7 @@ Every name space implements the following five methods:
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:looktype">
+<div class="function"  id="fn:nslooktype">
 <span class="id">looktype(<span class="arg">this</span>,<span class="arg">typename</span>)
 </div>
 <div class="param">
@@ -2932,7 +2975,7 @@ not defined.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:looksym">
+<div class="function"  id="fn:nslooksym">
 <span class="id">looksym(<span class="arg">this</span>,<span class="arg">id</span>)
 </div>
 <div class="param">
@@ -2955,7 +2998,7 @@ not defined.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:enumtype">
+<div class="function"  id="fn:nsenumtype">
 <span class="id">enumtype(<span class="arg">this</span>)
 </div>
 <div class="param">
@@ -2975,7 +3018,7 @@ Modifying the table may cause undefined effects.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:enumsym">
+<div class="function"  id="fn:nsenumsym">
 <span class="id">enumsym(<span class="arg">this</span>)
 </div>
 <div class="param">
@@ -2995,7 +3038,7 @@ Modifying the table may cause undefined effects.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:lookaddr">
+<div class="function"  id="fn:nslookaddr">
 <span class="id">lookaddr(<span class="arg">this</span>,<span class="arg">addr</span>)
 </div>
 <div class="param">
@@ -3017,34 +3060,48 @@ If no such symbol exists, <span class="val">nil</span> is returned.
 </div>
 </div>
 
-<p>
-The system expects the <span class="fnindex"><a href="#fn:looktype">looktype</a></span>
-and <span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
-methods of a name space to define 
-the following base C types:
+<p id="para:nstypes">
+The <span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
+and
+<span class="fnindex"><a href="#fn:looktype">looktype</a></span>
+methods of every name space must provide definitions
+for the following types:
 <div class="code">
 <pre>
 char         unsigned char          _Bool
 short	     unsigned short	    float
 int	     unsigned int	    double
 long	     unsigned long	    long double
-long long    unsigned long long    
+long long    unsigned long long     void*
 </pre>
 </div>
 </p>
 
 <p>
-In addition, these methods should define the following <span class="val">typedef</span>s:
-<div class="code">
-<pre>
-int8         uint8 	     uintptr
-int16	     uint16
-int32	     uint32
-int64	     uint64
-</pre>
-</div>
-
+The definition for <span class="val">void*</span>
+establishes the pointer representation for the name
+space.  The other definitions establish mandatory C base types.
 </p>
+
+<p>
+In addition, these methods may define any number of additional
+tagged aggregated types,
+tagged enumeration types,
+and <span class="val">typedef</span>s.
+</p>
+
+<p>
+A composite type &mdash a pointer to, an array of, or a
+function of an already defined type &mdash need not be
+explicitly defined by
+<span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
+and
+<span class="fnindex"><a href="#fn:enumtype">looktype</a></span>.
+Other than the
+special case of <span class="val">void*</span>, the system will never
+consult either method for a composite type definition.
+</p>
+
 
 <p>
 Several functions operate on name spaces:
@@ -3059,48 +3116,68 @@ Several functions operate on name spaces:
 <span class="arg">ns</span>: <span class="type">name space</span>
 </div>
 <div class="returns">
-<span class="type">ctype</span>
+<span class="type">value</span>
 </div>
 </div>
 <div class="desc">
-Returns a base type defined in <span class="arg">ns</span>
-that can represent the pointer type defined in <span class="arg">ns</span>.
+Returns the representation of the pointer type defined
+in <span class="arg">ns</ span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:nsreptype">
+<div class="docitem" id="fn:looktype">
 <div class="proto">
 <div class="function">
-<span class="id">nsreptype(<span class="arg">ns</span>,<span class="arg">rep</span>)</span>
+<span class="id">looktype(<span class="arg">obj</span>,<span class="arg">type</span>)</span>
 </div>
 <div class="param">
-<span class="arg">ns</span>: <span class="type">name space</span>
+<span class="arg">obj</span>: <span class="type">domain</span> or <span class="type">name space</span>
 </div>
 <div class="param">
-<span class="arg">rep</span>: <span class="type">cvalue</span>
+<span class="arg">typename</span>: <span class="type">ctype</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span> or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
-Returns a base type defined
-in <span class="arg">ns</span> whose representation
-is <span class="arg">rep</span>,
-or <span class="val">nil</span> if no base type has
-the representation.
+Returns the definition of the type
+name <span class="arg">typename</span>
+in the name space or domain <span class="arg">obj</span>.
 </div>
 </div>
 
+<div class="docitem" id="fn:looksym">
+<div class="proto">
+<div class="function">
+<span class="id">looksym(<span class="arg">obj</span>,<span class="arg">id</span>)</span>
+</div>
+<div class="param">
+<span class="arg">obj</span>: <span class="type">domain</span> or <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the definition of the symbol
+named <span class="arg">id</span>
+in the name space or domain <span class="arg">obj</span>.
+</div>
+</div>
 
 
 
 <h4 id="sec:rootnamespaces">Root Name Spaces</h4>
 
 <p>
-Cinquecento predefines several <em>root name
-spaces</em> that correspond to common machine models.
-They vary in the size and encoding of integers and pointers.
+Cinquecento defines several top-level <em>root name
+spaces</em> that correspond to common C compiler
+choices.  They vary in the size and encoding of
+integers and pointers.
 </p>
 
 <div class="table-short">
@@ -3108,9 +3185,9 @@ They vary in the size and encoding of integers and pointers.
 
 <tr>
 <th>Root name space</th>
-<th>Endianness</th>
 <th><span class="id">sizeof(void*)</span></th>
 <th><span class="id">sizeof(long)</span></th>
+<th>Encoding</th>
 </tr>
 
 <tr>
@@ -3118,13 +3195,13 @@ They vary in the size and encoding of integers and pointers.
 <span class="id">c32le</span>
 </td>
 <td>
-little
-</td>
-<td>
 4
 </td>
 <td>
 4
+</td>
+<td>
+little-endian
 </td>
 </tr>
 
@@ -3133,13 +3210,13 @@ little
 <span class="id">c32be</span>
 </td>
 <td>
-big
-</td>
-<td>
 4
 </td>
 <td>
 4
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -3148,13 +3225,13 @@ big
 <span class="id">c64le</span>
 </td>
 <td>
-little
-</td>
-<td>
 4
 </td>
 <td>
 8
+</td>
+<td>
+little-endian
 </td>
 </tr>
 
@@ -3163,13 +3240,13 @@ little
 <span class="id">c64be</span>
 </td>
 <td>
-big
-</td>
-<td>
 4
 </td>
 <td>
 8
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -3178,28 +3255,28 @@ big
 <span class="id">clp64le</span>
 </td>
 <td>
-little
-</td>
-<td>
 8
 </td>
 <td>
 8
+</td>
+<td>
+little-endian
 </td>
 </tr>
+
 <tr>
 <td>
-
 <span class="id">clp64be</span>
 </td>
 <td>
-big
-</td>
-<td>
 8
 </td>
 <td>
 8
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -3207,26 +3284,140 @@ big
 </div>
  
 <p>
-The function
-<span class="fnindex><a href="#fn:myrootns">myrootns</a></span>
-returns the root name space of the 
+In addition to the <a href="#para:nstypes">types</a> defined by all name spaces,
+every root name spaces defines the following convenience
+<span class="val">typedef</span>s:
 
-<p>To construct a new name space, you must supply an
-implementation of the name space interface.
-Cinquecento provides three mechanisms for doing so.
-The <span class="id"><a href="#fn:mkns">mkns</a></span>
-function accepts predefined functions and returns a
-new name space.  The <span class="id"><a
-href="#fn:mknsraw">mknsraw</a></span> function accepts
-two tables that define the symbols and types in the
-name space.  Finally, the <span class="id"><a
-href="#syn:_at_names">@names</a></span> syntactic form
-accepts symbol and type definitions in C declaration
-syntax.  Each of these mechanisms also accepts an
-optional human-readable name to be associated with
-resulting name space; this name is used only for
-presentation, and need not be unique.  The remainder of
-this section further describes these mechanisms.
+<div class="code">
+<pre>
+int8         uint8 	     uintptr
+int16	     uint16
+int32	     uint32
+int64	     uint64
+</pre>
+</div>
+
+The types <span class="val">int</span><span class="arg">X</span>
+and <span class="val">uint</span><span class="arg">X</span>
+correspond, respectively, to signed and unsigned
+integers of <span class="arg">X</span> bytes.
+The type <span class="val">uintptr</span> represents
+is an unsigned integer large enough to hold pointers.
+</p>
+
+<p>
+One function operates on root name spaces.
+</p>
+
+<div class="docitem" id="fn:myrootns">
+<div class="proto">
+<div class="function">
+<span class="id">myrootns()</span>
+</div>
+<div class="returns">
+<span class="type">ns</span>
+</div>
+</div>
+<div class="desc">
+Returns the root name space corresponding to the machine
+model for which the currently running L1 executable was built.
+</div>
+</div>
+
+<h4 id="sec:_at_names"><span class="val">@names</span></h4>
+
+<p>
+The <span class="id"><a href="#syn:_at_names">@names</a></span>
+form allows a name space to be constructed from type and variable
+definitions written in an extension of C syntax.
+</p>
+
+<div class="docitem" id="syn:_at_names">
+<div class="proto">
+<div class="syntax">
+<span class="id">@names <span class="arg">parent</span> {
+	<span class="arg">decl</span> ...
+};
+</span>
+</div>
+<div class="param">
+<span class="arg">parent</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">decl</span>: <span class="type">see description</span>
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+This syntax constructs a new name space from a sequence
+of symbol and type declarations.  The declarations are
+written in an extension of the C variable and type
+declaration syntax.
+
+</div>
+<div class="desc">
+There are four forms of declaration: aggregates, symbols,
+enums, and typedefs.
+</div>
+
+<div class="desc">
+The syntax for an aggregate declaration is the same as C
+aggregate declaration except that:
+<ul>
+<li> each field declaration must includes an offset
+         expression that specifies the offset of the
+          field relative to the beginning of the
+          aggregate;</li>
+<li> the declaration must end with a final offset
+          expression (not associated with any field)
+          that specifies the size of the aggregate.</li>
+</ul>
+The offset expression has two variants: one (<span class="val">@<span class="arg">expr</span></span>)
+to specify the offset in <em>bytes</em>, and
+one (<span class="val">@@<span class="arg">expr</span></span>)
+to specify the offset in <em>
+bits</em>.  The bit offset variant must be used to
+define fields corresponding to C bitfields.
+</div>
+<div class="desc">
+The syntax for a symbol declaration is the same as C
+variable declarations (without initializers) except
+that: each symbol declaration may be preceded by an
+offset expression that specifies the offset of the
+first byte in the address space of the object named by
+the symbol.
+The offset expression syntax is the same as the byte offset expression
+used in aggregate fields.  There is no way to associate a bit offset
+with a symbol.
+</div>
+
+<div class="desc">
+The syntax for enum declarations is the same as their syntax in C,
+except that the terms in expressions used to define enumeration values
+must be literal values or preceding constant names within the same enumeration.
+</div>
+
+<div class="desc">
+The syntax for typedef declarations is the same as their syntax in C.
+</div>
+
+<div class="desc">
+A name can be associated with
+the resulting name space object with <span class="fnindex"><a href="#fn:setname">setname</a></span>.
+</div>
+
+</div>
+
+<p>
+The implementation of
+<span class="id"><a href="#syn:_at_names">@names</a></span>
+converts type and variable declarations into a pair of
+tables that map type and symbol names to their
+definitions.  The following function is the low-level
+constructor that produces a name space from such
+tables.
 </p>
 
 <div class="docitem" id="fn:mknsraw">
@@ -3276,105 +3467,129 @@ occurring in symbols may be type references.
 <span class="id">Mknsraw</span> resolves all type
 references, then constructs and returns a new name
 space.
-If provided, <span
-class="arg">name</span> is a human-readable name
-associated with the name space.
-</div>
 </div>
 
-<div class="docitem" id="syn:_at_names">
-<div class="proto">
-<div class="syntax">
-<span class="id">@names <span class="arg">parent</span> [ $ <span class="arg">name</span> ] {
-	<span class="arg">decl</span> ...
-};
-</span>
-</div>
-<div class="param">
-<span class="arg">parent</span>: <span class="type">name space</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">decl</span>: <span class="type">see description</span>
-</div>
-<div class="returns">
-<span class="type">name space</span>
-</div>
-</div>
-<div class="desc">
-This syntax constructs a new name space from a sequence
-of symbol and type declarations.  The declarations are
-written in an extension of the C variable and type
-declaration syntax.  If provided,
-<span
-class="arg">name</span> is a human-readable name
-associated with the name space.
-
-</div>
-<div class="desc">
-There are four forms of declaration: aggregates, symbols,
-enums, and typedefs.
-</div>
 
 <div class="desc">
-The syntax for an aggregate declaration is the same as C
-aggregate declaration except that:
-<ul>
-<li> each field declaration must includes an offset
-         expression that specifies the offset of the
-          field relative to the beginning of the
-          aggregate;</li>
-<li> the declaration must end with a final offset
-          expression (not associated with any field)
-          that specifies the size of the aggregate.</li>
-</ul>
-The offset expression has two variants: one (<span class="val">@<span class="arg">expr</span></span>)
-to specify the offset in <em>bytes</em>, and
-one (<span class="val">@@<span class="arg">expr</span></span>)
-to specify the offset in <em>
-bits</em>.  The bit offset variant must be used to
-define fields corresponding to C bitfields.
-</div>
-<div class="desc">
-The syntax for a symbol declaration is the same as C
-variable declarations (without initializers) except
-that: each symbol declaration may be preceded by an
-offset expression that specifies the offset of the
-first byte in the address space of the object named by
-the symbol.
-The offset expression syntax is the same as the byte offset expression
-used in aggregate fields.  There is no way to associate a bit offset
-with a symbol.
-</div>
-
-<div class="desc">
-The syntax for enum declarations is the same as their syntax in C,
-except that the terms in expressions used to define enumeration values
-must be literal values or preceding constant names within the same enumeration.
-</div>
-
-<div class="desc">
-The syntax for typedef declarations is the same as their syntax in C.
+The name of the resulting name space object is
+initialized to <span class="arg">name</span>, if
+provided.
 </div>
 </div>
 
 <h4 id="sec:addressspaces">Address spaces</h4>
 
 <p>
-Cinquecento address spaces represent byte-addressed
-storage by providing methods to reflect the set
-of <em>mapped</em> locations &mdash; the set of
-addresses backed by storage &mdash; and methods to read
-and write the contents of mapped locations.  The
-prototypical address space represents the live memory
-of a running programs, but address spaces can also
-represent less dynamic content, such as the content of
-files or strings.  More generally, address spaces can
-be composed of ordinary Cinquecento functions that
-manage a view of arbitrary synthetic storage.
+Address spaces are <a href="#sec:objects">objects</a>
+that represent sparse byte-addressed storage.
+The primitive constructor for an address space is
+<span class="fnindex"><a href="#fn:mkas">mkas</a></span>.
+The predicate
+<a href="#fn:isas"><span class="fnindexid">isas</span></a>
+tests whether a value is an address space.
 </p>
+
+<p>
+Every address space implements the following four methods:
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asget">
+<span class="id">get(<span class="arg">this</span>,<span class="arg">r</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+This address space method returns a string containing
+the bytes located in the
+range <span class="arg">r</span> of the address space.
+It is an error (<span class="fnindex"><a href="#fn:fault">fault</a></span>)
+if the range is out of bounds.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asput">
+<span class="id">put(<span class="arg">this</span>,<span class="arg">r</span>,<span class="arg">s</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This address space method replace the bytes
+located in the range <span class="arg">r</span> of the address space
+with those in <span class="arg">s</span>.
+It is an error (<span class="fnindex"><a href="#fn:fault">fault</a></span>)
+if the range is out of bounds or if <span class="arg">s</span>
+is shorter than the range.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asmap">
+<span class="id">map(<span class="arg">this</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">vector of ranges</span>
+</div>
+</div>
+<div class="desc">
+This address space method returns a vector
+of non-overlapping ranges in order of increasing offset
+corresponding to the ranges of the address space
+that may be accessed by 
+<span class="fnindex"><a href="#fn:asget">get</a></span>
+or <span class="fnindex"><a href="#fn:asput">put</a></span>
+method invocations.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asismapped">
+<span class="id">ismapped(<span class="arg">this</span>,<span class="arg">r</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This address space method is a predicate that returns
+non-zero if <span class="arg">r</span> is contained in
+the set of ranges mapped by the address space.
+</div>
+</div>
+
 
 <p>
 Several functions create new address spaces
@@ -3457,206 +3672,112 @@ Yep.  (The interface documented here currently does not match the implementation
 </div>
 </div>
 
-
 <p>
-Mapped locations in an address space are subdivided
-into disjoint <em>units</em>.  Each unit spans a
-contiguous range of the address space.  Units are
-commonly used to represent the sparse page-based
-virtual address spaces of running programs.  The units
-of an address space need not be of equal size, and the
-number of units and their dimensions may change over
-time.
+Several functions operate on address spaces.
 </p>
 
-<p>
-Every address space implements four methods
-(this interface is tentatively planned for future version,
-but not currently supported):
-</p>
-<div class="table-short">
-<table>
-
-<tr>
-<td align="right">
-<span class="arg">unit</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">cvalue</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">range</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">limit</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">void</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<em>list of</em> <span class="type">cvalue</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">get</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">range</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">string</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">put</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">range</span> &times; <span class="type">string</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">cvalue</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-</table>
+<div class="docitem" id="fn:ismapped">
+<div class="proto">
+<div class="function">
+<span class="id">ismapped(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This predicate returns non-zero if a range of bytes is
+mapped in the address space associated
+with <span class="arg">ptr</span>.
+The range begins at the address <span class="arg">ptr</span>.
+If provided,  <span class="arg">len</span> is the length in
+bytes of the range; otherwise the length is
+<span class="val">sizeof(*<span class="arg">ptr</span>)</span>.
+</div>
 </div>
 
-<p>
-The range type represents a contiguous span of
-locations in an address space.
-A range is constructed by the function
-<tt>mkrange(<em>beg</em>,<em>len</em>)</tt>, where
-<tt><em>beg</em></tt> is the non-negative start address
-of the range and <tt><em>len</em></tt> is the positive
-number of bytes in the range; both are cvalues.  Empty
-ranges are invalid.  The functions
-<tt>rangebeg(<em>range</em>)</tt> and
-<tt>rangelen(<em>range</em>)</tt> return the start
-address and byte count from a range as cvalues.
-</p>
-
-<p>
-The <span class="arg">unit</span> method queries the
-units of an address space.  Its argument is an address.
-If the address is mapped,
-<span class="arg">unit</span> returns a range that specifies
-the boundaries of the containing unit.  Otherwise it returns
-<span class="type">nil</span>.
-</p>
-
-<p>
-The <span class="arg">limit</span> method queries the
-overall address boundaries of an address space.  It
-returns a list containing two addresses (as cvalues).
-The first is the smallest address defined by the
-address space; the second is the highest.  These values
-need not be mapped, but are merely the minimum and
-maximum address values handled by the address space.
-</p>
-
-<p>
-The <span class="arg">get</span> method reads from a range of the
-address space, returning the stored bytes as a string.
-<span class="arg">Get</span> fails (returns <span class="type">nil</span>)
-if the access includes unmapped locations.
-<span class="arg">Get</span> may also fail
-if the access spans
-the boundary of a unit of the address space.
-</p>
-
-<p>
-The <span class="arg">put</span> method writes to a
-range of the address space.  The string argument
-contains the bytes to be written; its length be of
-equal to that of the range argument.  If the write
-succeeds, the number of bytes written (always the
-length of the string) is returned.  
-<span class="arg">Put</span> fails (returns <span class="type">nil</span>)
-if the access includes unmapped locations.
-<span class="arg">Put</span> may also fail
-if the access spans
-the boundary of a unit of the address space.
-</p>
-
-<p>
-The function <tt>mkas(<em>dispatch</em>)</tt>
-constructs a custom address space.  Dispatch is a
-program-defined variable arity function that
-encapsulates the <tt><em>map</em></tt>,
-<tt><em>get</em></tt>, and <tt><em>put</em></tt>
-functions.  The first argument to dispatch is a string
-whose value is the name of the function to be called;
-dispatch must apply the corresponding function to the
-remaining arguments.
-</p>
-
-<p>
-Ordinarily the functions represented by
-<em>dispatch</em> are implicitly invoked by the
-Cinquecento implementation during evaluation of C
-expressions that involve storage access operations
-(such as dereferencing a pointer).  However, programs
-may directly invoked these functions by name using an
-overloaded form of the C binary dot operator:
-</p>
-<div class="code">
-<pre>
-; as.get(mkrange(0,1024));
-</pre>
+<div class="docitem" id="fn:stringof">
+<div class="proto">
+<div class="function">
+<span class="id">stringof(<span class="arg">ptr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the bytes
+beginning at <span class="arg">ptr</span> from the
+address space associated with <span
+class="arg">ptr</span>.  The string extends to, but
+does not include, the first null byte at or beyond
+<span class="arg">ptr</span>.  <span
+class="id">Stringof</span> does not span address space
+mapping boundaries: if the boundary of the address
+space mapping containing <span class="arg">ptr</span>
+is reached before a null byte is encountered, then the
+search ends and the string of bytes seen so far is
+returned.
+</div>
 </div>
 
-<p>
-When the left operand of a dot expression is an address
-space, the result of the expression is a variable arity
-function that, when called, calls the dispatch function
-of the address space.  The arguments it passes to
-dispatch are, first, the identifier appearing as the
-right operand to the dot expression as a string,
-followed by the arguments to the call.
-</p>
-
-<p>
-In addition, if the right operand is the identifier
-<tt>dispatch</tt>, then the result of the expression is
-simply the dispatch function of the address space,
-instead of the curried version described above.
-For example, the above call to <tt>get</tt> is equivalent to:
-</p>
-<div class="code">
-<pre>
-; as.dispatch("get",mkrange(0,1024));
-</pre>
+<div class="docitem" id="fn:getbytes">
+<div class="proto">
+<div class="function">
+<span class="id">getbytes(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the bytes
+beginning at <span class="arg">ptr</span> from the
+address space associated with <span
+class="arg">ptr</span>.  If provided, <span
+class="arg">len</span> is a non-negative count of bytes
+to read; otherwise, <tt>sizeof(*<span
+class="arg">ptr</span>)</tt> bytes are read.
+</div>
 </div>
 
-<p>
-As a syntactic convenience, the left operand to the dot
-operator can also be a domain, in which case the same
-operation is performed on the underlying address space.
-</p>
-
-<p>
-The address spaces returned by the standard address
-space constructors all implement a dispatch function
-that can be accessed with the dot operator in the same
-way as a custom address space.
-</p>
-
-<p>
-The dot operator on address spaces will accept any
-valid identifier (not just <tt>map</tt>, <tt>get</tt>,
-<tt>put</tt>, and <tt>dispatch</tt>), providing a way
-for programs to extend the standard address space
-interface with additional custom functions.  This
-feature can be used, for example, to associate a
-function for setting breakpoints with an address space.
-</p>
+<div class="docitem" id="fn:putbytes">
+<div class="proto">
+<div class="function">
+<span class="id">putbytes(<span class="arg">ptr</span>,<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Copies the bytes in <span class="arg">str</span> into
+the address space associated with <span
+class="arg">ptr</span>, starting at the location
+pointed to by <span class="arg">ptr</span>.
+</div>
+</div>
 
 
 <h4 id="sec:ctypes">Ctypes</h4>
@@ -4048,6 +4169,28 @@ href="#fn:fieldid">fieldid</a></span>,
 <span class="fnindex"><a href="#fn:fieldattr">fieldattr</a></span>, and
 <span class="fnindex"><a href="#fn:fieldoff">fieldoff</a></span>.
 Modifying the vector may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem" id="fn:lookfield">
+<div class="proto">
+<div class="function">
+<span class="id">lookfield(<span class="arg">type</span>,<span class="arg">id</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">aggregate ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">field</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the <a href="#sec:symbols">field</a> named <span class="arg">id</span> 
+in the aggregate <span class="arg">type</span>, or <span class="val">nil</span>
+if no field has that name.
 </div>
 </div>
 
@@ -5861,7 +6004,7 @@ evaluator.
 <span class="arg">char</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
-<span class="type">cvalue (1 or 0)</span>
+<span class="type">cvalue</span>
 </div>
 </div>
 <div class="desc">
@@ -6134,94 +6277,6 @@ it is returned as the final element of the returned list.
 <div class="desc">
 Returns a string containing a copy of the contents of
 the file named <span class="arg">filename</span>.
-</div>
-</div>
-
-<p>
-Several functions move strings to and
-from address spaces.
-</p>
-
-<div class="docitem" id="fn:stringof">
-<div class="proto">
-<div class="function">
-<span class="id">stringof(<span class="arg">ptr</span>)</span>
-</div>
-<div class="param">
-<span class="arg">ptr</span>: <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns a string containing a copy of the bytes
-beginning at <span class="arg">ptr</span> from the
-address space associated with <span
-class="arg">ptr</span>.  The string extends to, but
-does not include, the first null byte at or beyond
-<span class="arg">ptr</span>.  <span
-class="id">Stringof</span> does not span address space
-mapping boundaries: if the boundary of the address
-space mapping containing <span class="arg">ptr</span>
-is reached before a null byte is encountered, then the
-search ends and the string of bytes seen so far is
-returned.
-</div>
-</div>
-
-<div class="docitem" id="fn:getbytes">
-<div class="proto">
-<div class="function">
-<span class="id">getbytes(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
-</div>
-<div class="param">
-<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
-</div>
-<div class="param">
-<span class="arg">len</span>: <span class="type">cvalue</span>
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns a string containing a copy of the bytes
-beginning at <span class="arg">ptr</span> from the
-address space associated with <span
-class="arg">ptr</span>.  If provided, <span
-class="arg">len</span> is a non-negative count of bytes
-to read; otherwise, <tt>sizeof(*<span
-class="arg">ptr</span>)</tt> bytes are read.  It is an
-error for the read to cross the boundary of the address
-space mapping containing <span
-class="arg">ptr</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:putbytes">
-<div class="proto">
-<div class="function">
-<span class="id">putbytes(<span class="arg">ptr</span>,<span class="arg">str</span>)</span>
-</div>
-<div class="param">
-<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
-</div>
-<div class="param">
-<span class="arg">str</span>: <span class="type">string</span>
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-Copies the bytes in <span class="arg">str</span> into
-address space associated with <span
-class="arg">ptr</span>, starting at the location
-pointed to by <span class="arg">ptr</span>.  It is an
-error for the write to cross the boundary of the
-address space mapping containing <span
-class="arg">ptr</span>.
 </div>
 </div>
 
@@ -8740,8 +8795,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:count">count</a><br />
 <a href="#fn:delete">delete</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
-<a href="#fn:enumsym">enumsym</a><br />
-<a href="#fn:enumtype">enumtype</a><br />
+<a href="#fn:nsenumsym">enumsym</a> (ns method)<br />
+<a href="#fn:nsenumtype">enumtype</a> (ns method)<br />
 <a href="#fn:environ">environ</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
@@ -8762,6 +8817,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:gclock">gclock</a><br />
 <a href="#fn:gcstats">gcstats</a><br />
 <a href="#fn:gclock">gcunlock</a><br />
+<a href="#fn:asget">get</a> (as method)<br />
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
@@ -8796,6 +8852,8 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isgraph">isgraph</a><br />
 <a href="#fn:islist">islist</a><br />
 <a href="#fn:islower">islower</a><br />
+<a href="#fn:ismapped">ismapped</a> (function)<br />
+<a href="#fn:asismapped">ismapped</a> (as method)<br />
 <a href="#fn:ismember">ismember</a><br />
 <a href="#fn:isnil">isnil</a><br />
 <a href="#fn:isns">isns</a><br />
@@ -8808,6 +8866,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isrange">isrange</a><br />
 <a href="#fn:isrd">isrd</a><br />
 <a href="#fn:isrec">isrec</a><br />
+<a href="#fn:isrinr">isrinr</a><br />
 <a href="#fn:isspace">isspace</a><br />
 <a href="#fn:isstring">isstring</a><br />
 <a href="#fn:isstruct">isstruct</a><br />
@@ -8827,10 +8886,14 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:listins">listins</a><br />
 <a href="#fn:listref">listref</a><br />
 <a href="#fn:listset">listset</a><br />
-<a href="#fn:lookaddr">lookaddr</a><br />
-<a href="#fn:looksym">looksym</a><br />
-<a href="#fn:looktype">looktype</a><br />
-<a href="#fn:map">map</a><br />
+<a href="#fn:nslookaddr">lookaddr</a> (ns method)<br />
+<a href="#fn:lookfield">lookfield</a><br />
+<a href="#fn:nslooksym">looksym</a> (ns method)<br />
+<a href="#fn:looksym">looksym</a> (function)<br />
+<a href="#fn:nslooktype">looktype</a> (ns method)<br />
+<a href="#fn:looktype">looktype</a> (function)<br />
+<a href="#fn:map">map</a> (function)<br />
+<a href="#fn:asmap">map</a> (as method)<br />
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
@@ -8881,10 +8944,10 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:mkzas">mkzas</a><br />
+<a href="#fn:myrootns">myrootns</a><br />
 <a href="#fn:nameof">nameof</a><br />
 <a href="#fn:asof">nsof</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
-<a href="#fn:nsreptype">nsreptype</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />
@@ -8892,6 +8955,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:parse">parse</a><br />
 <a href="#fn:pop">pop</a><br />
 <a href="#fn:postgc">postgc</a><br />
+<a href="#fn:asput">put</a> (as method)<br />
 <a href="#fn:printf">printf</a><br />
 <a href="#fn:push">push</a><br />
 <a href="#fn:putbytes">putbytes</a><br />

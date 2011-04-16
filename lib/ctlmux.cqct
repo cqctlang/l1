@@ -569,7 +569,7 @@ ctlmux = @names clp64le {
 
 @define mkresolve(cache, undef, lt)
 {
-	@local resolve, undefined, ptr;
+	@local resolve, undefined, ptr, ptrrep;
 	@local typepos;
 
 	typepos = 0;   // FIXME: should be opaque
@@ -577,6 +577,7 @@ ctlmux = @names clp64le {
 	ptr = lt(mkctype_base(ctlmux`Vptr));
 	if(ptr == nil)
 		error("no pointer type");
+	ptrrep = baserep(ptr);
 
 	@define undefined(tn)
 	{
@@ -627,7 +628,7 @@ ctlmux = @names clp64le {
 			settypedeftype(td, resolve(typedeftype(td)));
 			return td;
 		}else if(isptr(tn)){
-			td = mkctype_ptr(resolve(subtype(tn)), ptr);
+			td = mkctype_ptr(resolve(subtype(tn)), ptrrep);
 			/* FIXME: cannot cache into cache because
 			   we return that as enumtype.  but we could
 		           create a separate ptrcache. */
@@ -957,6 +958,12 @@ ctlmux = @names clp64le {
 				rv[i] = mkrange(rs[i].addr,
 						rs[i].addr+rs[i].len);
 			return rv;
+		}
+
+		/* FIXME: this and map should not call stat every time */
+		@define ismapped(as, r)
+		{
+			return isrinr(r, map(as));
 		}
 
 		@define ctl(as)

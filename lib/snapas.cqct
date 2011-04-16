@@ -1,7 +1,7 @@
 @define mksnapas(file)
 {
 	@local ns, as, dom, nmap, mp, idx, ip, i;
-	@local get, put, map, lookmap;
+	@local get, put, map, lookmap, rs;
 	
 	// this needs to match the conventions in l1/fnsnap.c
 	ns = @names clp64le {
@@ -20,17 +20,24 @@
 
 	nmap = dom`nmap;
 	mp = dom`map;
+	rs = [];
 	idx = [];
 	ip = (void*)(mp+nmap);
 	for(i = 0; i < nmap; i++){
 //		printf("%016x-%016x\n", mp->lo, mp->hi);
 		append(idx, [ mp->lo, mp->hi, ip ]);
+		append(rs, mkrange(mp->lo, mp->hi-mp->lo));
 		ip += mp->hi-mp->lo;
 		mp++;
 	}
+	rs = apply(vector, rs);
 
 	@define map(this){
-		return vector(mkrange(0, (`uint64)-1));
+		return rs;
+	}
+
+	@define ismapped(this, r){
+		return isrinrs(r, rs);
 	}
 
 	@define lookmap(a)
@@ -58,13 +65,6 @@
 
 	@define put(this, r, bytes){
 		error("attempt to put on snapas");
-	}
-
-	@define ismapped(this, a){
-		if(lookmap((`uintptr)a) == nil)
-			return 0;
-		else
-			return 1;
 	}
 
 	return mkas([ "map" : map, "get" : get,
