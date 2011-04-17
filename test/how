@@ -6,5 +6,5 @@ foreach i ($*)
 	set i=`echo $i | sed s/\\.vgout//g`
 	set i=`echo $i | sed s/\\.failed//g`
 	set i=`echo $i | sed s/\\.vgfailed//g`
-	diff -u $i.l1.out $i.l1.failed
+	diff -u $i.l1.out $i.l1.*failed
 end

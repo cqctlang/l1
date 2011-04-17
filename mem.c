@@ -2236,12 +2236,8 @@ initmem()
 void
 finimem()
 {
-	u32 i;
-
-	_gc(Ngen-1, Ngen-1);  // hopefully free all outstanding objects
-	for(i = 0; i < Qnkind; i++)
-		H.guards[i] = 0;
-	_gc(Ngen-1, Ngen-1);  // hopefully free the guardians
+	_gc(Ngen-1, Ngen-1); /* collect non-quarded objects */
+	_gc(Ngen-1, Ngen-1); /* collect quarded objects */
 	/* FIXME: free all segments */
 	/* FIXME: free static generation */
 }
