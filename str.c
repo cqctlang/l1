@@ -153,23 +153,13 @@ mkstrn(Imm len)
 static Str*
 mkstrmalloc(Imm len)
 {
-	Strmalloc *sa;
-	sa = (Strmalloc*)malv(Qstr, sizeof(Strmalloc));
-	sa->s = emalloc(len);
-	sa->str.len = len;
-	sa->str.skind = Smalloc;
-	return (Str*)sa;
+	return mkstrk(emalloc(len), len, Smalloc);
 }
 
 static Str*
 mkstrext(void *p, Imm len)
 {
-	Strperm *sp;
-	sp = (Strperm*)malv(Qstr, sizeof(Strperm));
-	sp->s = p;
-	sp->str.len = len;
-	sp->str.skind = Sperm;
-	return (Str*)sp;
+	return mkstrk(p, len, Sperm);
 }
 
 static void
