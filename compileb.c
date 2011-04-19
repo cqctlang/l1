@@ -220,7 +220,8 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		freexenv(rib);
 		return e;
 	case Escope:
-		return resolve(ctx, e->e1, top, lex, e, slex);
+		e->e1 = resolve(ctx, e->e1, top, lex, e, slex);
+		return e;
 	case Eblock:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
