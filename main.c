@@ -89,12 +89,14 @@ emalloc(size_t size)
 static void*
 erealloc(void *p, size_t old, size_t new)
 {
-	p = realloc(p, new);
-	if(p == 0)
-		fatal("out of memory");
+	char *q;
+	q = emalloc(new);
 	if(new > old)
-		memset(p+old, 0, new-old);
-	return p;
+		memcpy(q, p, old);
+	else
+		memcpy(q, p, new);
+	free(p);
+	return q;
 }
 
 static char*
