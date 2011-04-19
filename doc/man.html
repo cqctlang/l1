@@ -38,7 +38,7 @@
 <a href="#sec:pointers">Pointers</a><br />
 <br />
 <em>Defining Domains</em><br />
-<a href="#sec:obj">The object model</a><br />
+<a href="#sec:objects">The object model</a><br />
 <a href="#sec:symbols">Symbols, Fields, Parameters</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
 <a href="#sec:rootnamespaces">Root name spaces</a><br />
@@ -220,15 +220,17 @@ The following are comments:
 
 <ul>
 <li>
-Input enclosed in <span class="val">/*</span>
-<span class="val">*/</span>;
+Input enclosed by <span class="val">/*</span>
+and <span class="val">*/</span>;
 </li>
 <li>
 Input between <span class="val">//</span>
 and the beginning of the next line;
 </li>
 <li>
-Lines beginning with <span class="val">#!</span>.
+Input enclosed by <span class="val">#!</span>
+and <span class="val">!#</span>.  (This syntax
+is intended for executable scripts on Unix.)
 </li>
 </ul>
 
@@ -250,6 +252,7 @@ The following are the keywords of Cinquecento.
 @names 
 @record 
 @typeof
+_Bool
 break 
 case 
 char 
@@ -279,16 +282,16 @@ volatile
 while 
 -->
 <pre>
-             @typeof      enum         struct 
-@containerof break        float        switch 
-@define      case         for          typedef 
-@defloc      char         if           union 
-@lambda      const        int          unsigned 
-@let         continue     long         void 
-@local       default      return       volatile
-@global      do           short        while 
-@names       double       signed 
-@record      else         sizeof 
+@containerof _Bool        enum         struct 
+@define      break        float        switch 
+@defloc      case         for          typedef 
+@lambda      char         if           union 
+@let         const        int          unsigned 
+@local       continue     long         void 
+@global      default      return       volatile
+@names       do           short        while 
+@record      double       signed 
+@typeof      else         sizeof 
 </pre>
 </div>
 
@@ -2580,12 +2583,12 @@ optional attribute table (table).
 
 <p>
 The attribute table maps attributes names (strings) to
-values.  The only attribute consulted by the system
-itself is the one named <span class="val">"offset"</span>.  Its value is
-a cvalue representing the offset of the first byte of
-the object named by the symbol from the start of the
-address space in which it resides.  Attribute tables
-are otherwise a convenience to allow programs to
+values.  The only attribute consulted by the system is
+the one named <span class="val">"offset"</span>.  Its
+value is a cvalue representing the offset of the first
+byte of the object named by the symbol from the start
+of the address space in which it resides.  Attribute
+tables are otherwise a convenience to allow programs to
 associate arbitrary data with a symbol.
 </p>
 
