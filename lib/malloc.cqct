@@ -1,0 +1,11 @@
+@define malloc(len)
+{
+	@local p, s, dom;
+	p = _malloc(len);
+	if(p == 0)
+		return p;
+	s = mkstrm(p, len);
+	finalize(s, @lambda(s) { _free(p); });
+	dom = mkdom(litdom.ns, mkmas(s));
+	return {dom}p;
+}

@@ -1,4 +1,4 @@
-foo = malloc(100);
+foo = (char*)malloc(100);
 memset(foo, 0x2, 100);
 printf("%x\n", foo[0]);
 printf("%x\n", foo[2]);
@@ -7,7 +7,7 @@ putbytes(foo, "\x05");
 printf("%x\n", foo[0]);
 printf("%x\n", foo[2]);
 printf("%x\n", foo[99]);
-foo = malloc(1000000);
+foo = (char*)malloc(1000000);
 memset(foo, 0x3, 1000000);
 printf("%x\n", foo[0]);
 printf("%x\n", foo[2]);

@@ -1005,6 +1005,7 @@ Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvalrange(Cval *beg, Cval *len);
+Xtypename*	mkvoidxtn(void);
 As*		mkzas(Imm len);
 Code*		newcode(void);
 void		nexterror(VM *vm) NORETURN;

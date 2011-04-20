@@ -66,7 +66,6 @@ static unsigned isbigendian[Rnrep] = {
 static void vmsetcl(VM *vm, Val val);
 static Xtypename* safechasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
-static Xtypename* mkvoidxtn(void);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
 static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
@@ -5612,7 +5611,7 @@ l1_mkctype_base(VM *vm, Imm argc, Val *argv, Val *rv)
 		rep = cv->val;
 	}else
 		vmerr(vm, "wrong number of arguments to mkctype_base");
-	
+
 	if(cb == Vvoid){
 		*rv = mkvalxtn(mkvoidxtn());
 		return;
@@ -8248,7 +8247,7 @@ static NSroot clp64be = {
 .name = "clp64be",
 };
 
-static Xtypename*
+Xtypename*
 mkvoidxtn(void)
 {
 	Xtypename *xtn;

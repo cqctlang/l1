@@ -157,17 +157,16 @@ mkstrmalloc(Imm len)
 }
 
 static Str*
-mkstrext(void *p, Imm len)
+mkstrm(void *p, Imm len)
 {
 	return mkstrk(p, len, Sperm);
 }
 
 static void
-l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *len;
-	Str *s;
-	As *as;
+	void *p;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to malloc");
@@ -175,12 +174,24 @@ l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 	len = valcval(argv[0]);
 	if(!isnatcval(len))
 		vmerr(vm, "malloc expects a non-negative length");
-	s = mkstrmalloc(len->val);
-	as = mkmas(s);
-	*rv = mkvalcval(mkdom(litdom->ns, as, mkstr0("malloc")),
-			mkptrxtn(litdom->ns->base[Vchar],
+	p = malloc(len->val);
+
+	/* FIXME: might be nice for ns to have cached void* */
+	*rv = mkvalcval(litdom,
+			mkptrxtn(mkvoidxtn(),
 				 litdom->ns->base[Vptr]->rep),
-			(uptr)strdata(s));
+			(uptr)p);
+}
+
+static void
+l1__free(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *p;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to malloc");
+	checkarg(vm, "malloc", argv, 0, Qcval);
+	p = valcval(argv[0]);
+	free((void*)(uptr)p->val);
 }
 
 static void
@@ -217,7 +228,7 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkstrext(VM *vm, Imm argc, Val *argv, Val *rv)
+domkstrm(VM *vm, Imm argc, Val *argv, Val *rv, unsigned x)
 {
 	Cval *p, *l;
 	void *a;
@@ -232,13 +243,25 @@ l1_mkstrext(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	/* allocate before checking, in case allocation
 	   modifies set of managed ranges */
-	s = mkstrext(a, l->val);
+	s = mkstrm(a, l->val);
 
 	/* check for intersection with managed range */
-	if(ismanagedrange(a, l->val))
+	if(x && ismanagedrange(a, l->val))
 		vmerr(vm, "range includes managed address space");
 
 	*rv = mkvalstr(s);
+}
+
+static void
+l1_mkstrmx(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkstrm(vm, argc, argv, rv, 1);
+}
+
+static void
+l1_mkstrm(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkstrm(vm, argc, argv, rv, 0);
 }
 
 static void
@@ -404,10 +427,12 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnstr(Env *env)
 {
-	FN(malloc);
+	FN(_free);
+	FN(_malloc);
 	FN(memset);
 	FN(mkstr);
-	FN(mkstrext);
+	FN(mkstrm);
+	FN(mkstrmx);
 	FN(strput);
 	FN(strlen);
 	FN(strref);

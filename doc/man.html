@@ -3663,15 +3663,21 @@ is equivalent to
 <div class="docitem" id="fn:mkmas">
 <div class="proto">
 <div class="function">
-<span class="id">mkmas()</span>
+<span class="id">mkmas([<span class="arg">s</span>])</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span>
 </div>
 <div class="returns">
 <span class="type">address space</span>
 </div>
 </div>
 <div class="desc">
-Returns an address space backed by the address space of the calling process.
-Yep.  (The interface documented here currently does not match the implementation.)
+Returns an address space backed by the address space of
+the calling process.  Yep.
+If <span class="arg">s</span> is provided, access is
+restricted to the range of the address space occupied
+by <span class="arg">s</span> at the time of the call.
 </div>
 </div>
 
