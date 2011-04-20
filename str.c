@@ -156,12 +156,6 @@ mkstrmalloc(Imm len)
 	return mkstrk(emalloc(len), len, Smalloc);
 }
 
-static Str*
-mkstrm(void *p, Imm len)
-{
-	return mkstrk(p, len, Sperm);
-}
-
 static void
 l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -225,43 +219,6 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 		callput(vm, tcv->dom->as, tcv->val, lim, s);
 	}else
 		fatal("bug");
-}
-
-static void
-domkstrm(VM *vm, Imm argc, Val *argv, Val *rv, unsigned x)
-{
-	Cval *p, *l;
-	void *a;
-	Str *s;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to mkstrext");
-	checkarg(vm, "mkstrext", argv, 0, Qcval);
-	checkarg(vm, "mkstrext", argv, 1, Qcval);
-	p = valcval(argv[0]);
-	l = valcval(argv[1]);
-	a = (void*)(uptr)p->val;
-
-	/* allocate before checking, in case allocation
-	   modifies set of managed ranges */
-	s = mkstrm(a, l->val);
-
-	/* check for intersection with managed range */
-	if(x && ismanagedrange(a, l->val))
-		vmerr(vm, "range includes managed address space");
-
-	*rv = mkvalstr(s);
-}
-
-static void
-l1_mkstrmx(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	domkstrm(vm, argc, argv, rv, 1);
-}
-
-static void
-l1_mkstrm(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	domkstrm(vm, argc, argv, rv, 0);
 }
 
 static void
@@ -431,8 +388,6 @@ fnstr(Env *env)
 	FN(_malloc);
 	FN(memset);
 	FN(mkstr);
-	FN(mkstrm);
-	FN(mkstrmx);
 	FN(strput);
 	FN(strlen);
 	FN(strref);

@@ -3663,21 +3663,32 @@ is equivalent to
 <div class="docitem" id="fn:mkmas">
 <div class="proto">
 <div class="function">
-<span class="id">mkmas([<span class="arg">s</span>])</span>
+<span class="id">mkmas([<span class="arg">ptr</span>,<span class="arg">len</span>])</span>
+</div>
+<div class="function">
+<span class="id">mkmasx([<span class="arg">ptr</span>,<span class="arg">len</span>])</span>
 </div>
 <div class="param">
-<span class="arg">s</span>: <span class="type">string</span>
+<span class="arg">ptr</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
 <span class="type">address space</span>
 </div>
 </div>
 <div class="desc">
-Returns an address space backed by the address space of
+<span class="id">Mkmas</span> returns an address space backed by the address space of
 the calling process.  Yep.
-If <span class="arg">s</span> is provided, access is
-restricted to the range of the address space occupied
-by <span class="arg">s</span> at the time of the call.
+If <span class="arg">ptr</span> and <span class="arg">len</span> are provided, access is
+restricted to the <span class="arg">len</span> byte range of the address space
+beginning at address <span class="arg">ptr</span>.
+<span class="id">Mkmasx</span> is
+like <span class="id">mkmas</span>, except that it is
+an error if the requested range intersects with any
+range of the address space currently managed by the
+Cinquecento evaluator.
 </div>
 </div>
 
@@ -3785,6 +3796,28 @@ Copies the bytes in <span class="arg">str</span> into
 the address space associated with <span
 class="arg">ptr</span>, starting at the location
 pointed to by <span class="arg">ptr</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:malloc">
+<div class="proto">
+<div class="function">
+<span class="id">malloc(<span class="arg">len</span>)
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns a pointer to <span class="arg">len</span> bytes
+of non-moving storage in the calling process backed by
+a freshly
+allocated <a href="#fn:isctype"><span class="id">mkmas</span></a>
+address space.  The lifespan of the storage is tied to
+the lifespan of the backing address space.
 </div>
 </div>
 
@@ -8901,6 +8934,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:looksym">looksym</a> (function)<br />
 <a href="#fn:nslooktype">looktype</a> (ns method)<br />
 <a href="#fn:looktype">looktype</a> (function)<br />
+<a href="#fn:malloc">malloc</a><br />
 <a href="#fn:map">map</a> (function)<br />
 <a href="#fn:asmap">map</a> (as method)<br />
 <a href="#fn:mapfile">mapfile</a><br />
@@ -8941,6 +8975,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkguardian">mkguardian</a><br />
 <a href="#fn:mklist">mklist</a><br />
 <a href="#fn:mkmas">mkmas</a><br />
+<a href="#fn:mkmas">mkmasx</a><br />
 <a href="#fn:mknas">mknas</a><br />
 <a href="#fn:mkns">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />

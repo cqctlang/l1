@@ -994,7 +994,6 @@ Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);
-As*		mkmas(Str *s);
 Ns*		mknstab(Tab *mtab, Str *name);
 Xtypename*	mkptrxtn(Xtypename *t, Rkind rep);
 Range*		mkrange(Cval *beg, Cval *len);
@@ -1004,7 +1003,6 @@ Val		mkvalbox(Val boxed);
 Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
-Val		mkvalrange(Cval *beg, Cval *len);
 Xtypename*	mkvoidxtn(void);
 As*		mkzas(Imm len);
 Code*		newcode(void);
@@ -1032,6 +1030,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvallist(x)	((Val)(x))
 #define mkvalns(x)	((Val)(x))
 #define mkvalpair(x)	((Val)(x))
+#define mkvalrange(x)	((Val)(x))
 #define mkvalrd(x)	((Val)(x))
 #define mkvalrec(x)	((Val)(x))
 #define mkvalstr(x)	((Val)(x))

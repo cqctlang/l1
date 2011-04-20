@@ -842,8 +842,8 @@ mkrange(Cval *beg, Cval *len)
 	return r;
 }
 
-Val
-mkvalrange(Cval *beg, Cval *len)
+static Val
+mkvalrange2(Cval *beg, Cval *len)
 {
 	Range *r;
 	r = mkrange(beg, len);
@@ -2658,9 +2658,9 @@ sasmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	USED(argv);
 	s = valstr(disp[0]);
 	v = mkvec(1);
-	val = mkvalrange(cvalnull,
-			 mkcval(litdom,
-				litdom->ns->base[Vptr], s->len));
+	val = mkvalrange2(cvalnull,
+			  mkcval(litdom,
+				 litdom->ns->base[Vptr], s->len));
 	_vecset(v, 0, val);
 	*rv = mkvalvec(v);
 }
@@ -2703,50 +2703,47 @@ mksas(Str *s)
 static void
 masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Str *s, *dat;
-	Range *r;
-	Imm rb, rl;
-	Cval *beg, *end;
-	uptr o;
+	Str *dat;
+	Range *r, *mr;
+	Imm rb, rl, mb, ml;
 
 	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to get");
+		vmerr(vm, "wrong number of arguments to get method");
 	checkarg(vm, "masget", argv, 1, Qrange);
-	s = valstr(disp[0]);
+	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
 	rb = r->beg->val;
 	rl = r->len->val;
-	o = (uptr)strdata(s);
-	if(!checkrange(o, o+s->len, rb, rl))
+	mb = mr->beg->val;
+	ml = mr->len->val;
+	if(!checkrange(mb, ml, rb, rl))
 		vmerr(vm, "address space access out of bounds");
-	dat = strslice(s, rb-o, rb+rl-o);
+	dat = mkstr((char*)(uptr)rb, rl);
 	*rv = mkvalstr(dat);
 }
 
 static void
 masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Str *s, *dat;
-	Range *r;
-	Imm rb, rl;
-	uptr o;
+	Str *dat;
+	Range *r, *mr;
+	Imm rb, rl, mb, ml;
 
 	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to put");
+		vmerr(vm, "wrong number of arguments to put method");
 	checkarg(vm, "masput", argv, 1, Qrange);
 	checkarg(vm, "masput", argv, 2, Qstr);
-	s = valstr(disp[0]);
+	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
 	rb = r->beg->val;
 	rl = r->len->val;
-	if(!checkrange(o, o+s->len, rb, rl))
+	mb = mr->beg->val;
+	ml = mr->len->val;
+	if(!checkrange(mb, ml, rb, rl))
 		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
 	if(dat->len < rl)
 		vmerr(vm, "not enough bytes for address space update");
-	o = (uptr)strdata(s);
-	/* FIXME: rationalize with l1_strput */
-	/* FIXME: capture a range, not a string */
 	memcpy((char*)(uptr)rb, strdata(dat), rl);
 	USED(rv);
 }
@@ -2754,56 +2751,59 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 static void
 masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Val val;
 	Vec *v;
-	Str *s;
-	uptr o;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to map");
+		vmerr(vm, "wrong number of arguments to map method");
 	USED(argv);
-	s = valstr(disp[0]);
 	v = mkvec(1);
-	o = (uptr)strdata(s);
-	val = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], o),
-			 mkcval(litdom, litdom->ns->base[Vptr], s->len));
-	_vecset(v, 0, val);
+	_vecset(v, 0, disp[0]);
 	*rv = mkvalvec(v);
 }
 
 static void
 masismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Range *r;
-	Imm rb, rl;
-	Str *s;
+	Range *r, *mr;
+	Imm rb, rl, mb, ml;
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to ismapped method");
-	s = valstr(disp[0]);
+	checkarg(vm, "ismapped", argv, 1, Qrange);
+	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
 	rb = r->beg->val;
 	rl = r->len->val;
-	if(!checkrange(0, s->len, rb, rl))
+	mb = mr->beg->val;
+	ml = mr->len->val;
+	if(!checkrange(mb, ml, rb, rl))
 		*rv = mkvalcval2(cval0);
 	else
 		*rv = mkvalcval2(cval1);
 }
 
-As*
-mkmas(Str *s)
+static As*
+mkmas(VM *vm, Range *r, unsigned x)
 {
 	Tab *mtab;
+	As *as;
+
 	mtab = mktab();
 	tabput(mtab, mkvalstr(mkstr0("get")),
-		mkvalcl(mkccl("masget", masget, 1, mkvalstr(s))));
+		mkvalcl(mkccl("masget", masget, 1, mkvalrange(r))));
 	tabput(mtab, mkvalstr(mkstr0("put")),
-		mkvalcl(mkccl("masput", masput, 1, mkvalstr(s))));
+		mkvalcl(mkccl("masput", masput, 1, mkvalrange(r))));
 	tabput(mtab, mkvalstr(mkstr0("map")),
-		mkvalcl(mkccl("masmap", masmap, 1, mkvalstr(s))));
+		mkvalcl(mkccl("masmap", masmap, 1, mkvalrange(r))));
 	tabput(mtab, mkvalstr(mkstr0("ismapped")),
-		mkvalcl(mkccl("masmap", masismapped, 1, mkvalstr(s))));
-	return mkastab(mtab, 0);
+		mkvalcl(mkccl("masmap", masismapped, 1, mkvalrange(r))));
+	as = mkastab(mtab, 0);
+	/* check if asked for intersection with managed
+	   range, but *after* any potential heap churn
+	   of this call. */
+	if(x && ismanagedrange((void*)(uptr)r->beg->val, r->len->val))
+		vmerr(vm, "range includes managed address space");
+	return as;
 }
 
 As*
@@ -4647,8 +4647,8 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	Val argv[3];
 
 	argv[0] = mkvalas(as);
-	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
-			     mkcval(litdom, litdom->ns->base[Vptr], len));
+	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
+			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	argv[2] = mkvalstr(s);
 	if(s->len < len)
 		vmerr(vm, "attempt to put short string into longer range");
@@ -4662,8 +4662,8 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	Str *s;
 
 	argv[0] = mkvalas(as);
-	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
-			     mkcval(litdom, litdom->ns->base[Vptr], len));
+	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
+			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = safedovm(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
 		vmerr(vm, "get method returned non-string");
@@ -4695,8 +4695,8 @@ callismapped(VM *vm, As *as, Imm off, Imm len)
 {
 	Val argv[2], rv;
 	argv[0] = mkvalas(as);
-	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
-			     mkcval(litdom, litdom->ns->base[Vptr], len));
+	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
+			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = safedovm(vm, as->ismapped, 2, argv);
 	if(Vkind(rv) != Qcval)
 		vmerr(vm, "ismapped method returned invalid value");
@@ -6479,16 +6479,41 @@ l1_mksas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+domkmas(VM *vm, Imm argc, Val *argv, Val *rv, unsigned x)
 {
 	As *as;
-	Str *s;
-	if(argc != 1)
+	Cval *p, *l;
+	Range *r;
+	switch(argc){
+	case 0:
+		r = mkrange(mklitcval(Vptr, 0), mklitcval(Vptr, (uptr)-1));
+		break;
+	case 2:
+		checkarg(vm, "mksas", argv, 0, Qcval);
+		checkarg(vm, "mksas", argv, 1, Qcval);
+		p = valcval(argv[0]);
+		l = valcval(argv[1]);
+		if(l->val && p->val+l->val <= p->val)
+			vmerr(vm, "bad range for mkmas");
+		r = mkrange(p, l);
+		break;
+	default:
 		vmerr(vm, "wrong number of arguments to mkmas");
-	checkarg(vm, "mksas", argv, 0, Qstr);
-	s = valstr(argv[0]);
-	as = mkmas(s);
+	}
+	as = mkmas(vm, r, x);
 	*rv = mkvalas(as);
+}
+
+static void
+l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkmas(vm, argc, argv, rv, 0);
+}
+
+static void
+l1_mkmasx(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkmas(vm, argc, argv, rv, 1);
 }
 
 static void
@@ -6840,7 +6865,7 @@ l1_mkrange(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "mkrange", argv, 0, Qcval);
 	checkarg(vm, "mkrange", argv, 1, Qcval);
 	/* FIXME: check sanity */
-	*rv = mkvalrange(valcval(argv[0]), valcval(argv[1]));
+	*rv = mkvalrange2(valcval(argv[0]), valcval(argv[1]));
 }
 
 static void
@@ -8648,6 +8673,7 @@ mktopenv(void)
 	FN(mkfd);
 	FN(mkfield);
 	FN(mkmas);
+	FN(mkmasx);
 	FN(mknas);
 	FN(mkns);
 	FN(mknsraw);
