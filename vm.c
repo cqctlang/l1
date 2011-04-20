@@ -2584,6 +2584,7 @@ mknas(void)
 	return as;
 }
 
+/* is [rb,rl) in [b,l)? */
 static int
 checkrange(Imm b, Imm l, Imm rb, Imm rl)
 {
@@ -2618,7 +2619,7 @@ sasget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(!checkrange(0, s->len, rb, rl))
 		vmerr(vm, "address space access out of bounds");
 	*rv = mkvalstr(strslice(s, rb, rb+rl));
-}	
+}
 
 static void
 sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
@@ -2639,7 +2640,7 @@ sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
 	if(dat->len < rl)
-		vmerr(vm, "not enough bytes to address space update");
+		vmerr(vm, "not enough bytes for address space update");
 	/* FIXME: rationalize with l1_strput */
 	memcpy(strdata(s)+rb, strdata(dat), rl);
 	USED(rv);
@@ -2704,6 +2705,7 @@ masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Str *s, *dat;
 	Range *r;
+	Imm rb, rl;
 	Cval *beg, *end;
 	uptr o;
 
@@ -2712,18 +2714,12 @@ masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "masget", argv, 1, Qrange);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
-	beg = r->beg;
-	end = xcvalalu(vm, Iadd, beg, r->len);
+	rb = r->beg->val;
+	rl = r->len->val;
 	o = (uptr)strdata(s);
-	if(beg->val < o)
+	if(!checkrange(o, o+s->len, rb, rl))
 		vmerr(vm, "address space access out of bounds");
-	if(beg->val > o+s->len)	/* FIXME: >=? */
-		vmerr(vm, "address space access out of bounds");
-	if(end->val > o+s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	dat = strslice(s, beg->val-o, end->val-o); /* yee-haw! */
+	dat = strslice(s, rb-o, rb+rl-o);
 	*rv = mkvalstr(dat);
 }
 
@@ -2732,7 +2728,7 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Str *s, *dat;
 	Range *r;
-	Cval *beg, *end;
+	Imm rb, rl;
 	uptr o;
 
 	if(argc != 3)
@@ -2741,25 +2737,17 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "masput", argv, 2, Qstr);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(o, o+s->len, rb, rl))
+		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
-	beg = r->beg;
+	if(dat->len < rl)
+		vmerr(vm, "not enough bytes for address space update");
 	o = (uptr)strdata(s);
-	if(r->len->val == 0 && beg->val <= o+s->len)
-		/* special case: empty string */
-		return;
-	end = xcvalalu(vm, Iadd, beg, r->len);
-	if(beg->val < o)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val >= o+s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(end->val > o+s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	if(dat->len < r->len->val)
-		vmerr(vm, "short put");
 	/* FIXME: rationalize with l1_strput */
-	memcpy((char*)(uptr)beg->val, strdata(dat), dat->len);
+	/* FIXME: capture a range, not a string */
+	memcpy((char*)(uptr)rb, strdata(dat), rl);
 	USED(rv);
 }
 
@@ -2783,6 +2771,25 @@ masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	*rv = mkvalvec(v);
 }
 
+static void
+masismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Range *r;
+	Imm rb, rl;
+	Str *s;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to ismapped method");
+	s = valstr(disp[0]);
+	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(0, s->len, rb, rl))
+		*rv = mkvalcval2(cval0);
+	else
+		*rv = mkvalcval2(cval1);
+}
+
 As*
 mkmas(Str *s)
 {
@@ -2794,6 +2801,8 @@ mkmas(Str *s)
 		mkvalcl(mkccl("masput", masput, 1, mkvalstr(s))));
 	tabput(mtab, mkvalstr(mkstr0("map")),
 		mkvalcl(mkccl("masmap", masmap, 1, mkvalstr(s))));
+	tabput(mtab, mkvalstr(mkstr0("ismapped")),
+		mkvalcl(mkccl("masmap", masismapped, 1, mkvalstr(s))));
 	return mkastab(mtab, 0);
 }
 
