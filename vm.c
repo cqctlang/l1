@@ -1927,72 +1927,87 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 	return mkcval(op1->dom, op1->type, rv);
 }
 
-static Cval*
-xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
+static int
+cvalcmp(VM *vm, Cval *op1, Cval *op2)
 {
-	Imm i1, i2, rv;
+	Imm i1, i2;
 	Xtypename *t;
-
-	dompromote(vm, op, op1, op2, &op1, &op2);
-	usualconvs(vm, op1, op2, &op1, &op2);
-	i1 = op1->val;
-	i2 = op2->val;
-	t = chasetype(op1->type);
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
 	   written without cast clutter. */
 
-	if(isunsigned[t->basename])
+	/* op to dompromote does not matter as long as it is
+	   not Iadd or Isub */
+
+	dompromote(vm, Icmpeq, op1, op2, &op1, &op2);
+	usualconvs(vm, op1, op2, &op1, &op2);
+	i1 = op1->val;
+	i2 = op2->val;
+	t = chasetype(op1->type);
+	if(isunsigned[t->basename]){
+		if(i1<i2)
+			return -1;
+		else if(i1>i2)
+			return 1;
+		else
+			return 0;
+	}else{
+		if((s64)i1<(s64)i2)
+			return -1;
+		else if((s64)i1>(s64)i2)
+			return 1;
+		else
+			return 0;
+	}
+}
+
+static Cval*
+xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
+{
+	switch(cvalcmp(vm, op1, op2)){
+	case -1:
 		switch(op){
 		case Icmpeq:
-			rv = i1==i2;
-			break;
-		case Icmpneq:
-			rv = i1!=i2;
-			break;
-		case Icmpgt:
-			rv = i1>i2;
-			break;
 		case Icmpge:
-			rv = i1>=i2;
-			break;
-		case Icmplt:
-			rv = i1<i2;
-			break;
+		case Icmpgt:
+			return cval0;
 		case Icmple:
-			rv = i1<=i2;
-			break;
+		case Icmplt:
+		case Icmpneq:
+			return cval1;
 		default:
 			fatal("bug");
 		}
-	else
+	case 0:
 		switch(op){
 		case Icmpeq:
-			rv = (s64)i1==(s64)i2;
-			break;
-		case Icmpneq:
-			rv = (s64)i1!=(s64)i2;
-			break;
-		case Icmpgt:
-			rv = (s64)i1>(s64)i2;
-			break;
 		case Icmpge:
-			rv = (s64)i1>=(s64)i2;
-			break;
-		case Icmplt:
-			rv = (s64)i1<(s64)i2;
-			break;
 		case Icmple:
-			rv = (s64)i1<=(s64)i2;
-			break;
+			return cval1;
+		case Icmpgt:
+		case Icmplt:
+		case Icmpneq:
+			return cval0;
 		default:
 			fatal("bug");
 		}
-	if(rv)
-		return cval1;
-	else
-		return cval0;
+	case 1:
+		switch(op){
+		case Icmpeq:
+		case Icmple:
+		case Icmplt:
+			return cval0;
+		case Icmpge:
+		case Icmpgt:
+		case Icmpneq:
+			return cval1;
+		default:
+			fatal("bug");
+		}
+	default:
+		fatal("bug");
+	}
 }
 
 static void
@@ -8077,6 +8092,30 @@ l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_cvalcmp(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int r;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cvalcmp");
+	checkarg(vm, "cvalcmp", argv, 0, Qcval);
+	checkarg(vm, "cvalcmp", argv, 1, Qcval);
+	r = cvalcmp(vm, valcval(argv[0]), valcval(argv[1]));
+	switch(r){
+	case -1:
+		*rv = mkvalcval2(cvalminus1);
+		break;
+	case 0:
+		*rv = mkvalcval2(cval0);
+		break;
+	case 1:
+		*rv = mkvalcval2(cval1);
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
+static void
 l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -8578,6 +8617,7 @@ mktopenv(void)
 	FN(concat);
 	FN(copy);
 	FN(count);
+	FN(cvalcmp);
 	FN(cval2str);
 	FN(delete);
 	FN(domof);
