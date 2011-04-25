@@ -1241,7 +1241,6 @@ void		fnrec(Env *env);
 
 /* str.c */
 int		equalstr(Str *a, Str *b);
-int		equalstrc(Str *a, char *b);
 void		fnstr(Env *env);
 u32		hashstr(Val);
 void		l1_strref(VM *vm, Imm argc, Val *argv, Val *rv);

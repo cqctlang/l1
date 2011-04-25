@@ -39,14 +39,6 @@ Strcmp(Str *s1, Str *s2)
 }
 
 int
-equalstrc(Str *a, char *b)
-{
-	if(a->len != strlen(b))
-		return 0;
-	return memcmp(strdata(a), b, a->len) ? 0 : 1;
-}
-
-int
 equalstr(Str *a, Str *b)
 {
 	if(a->len != b->len)
