@@ -29,6 +29,7 @@
 <br />
 <em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
+<a href="#sec:cvalues">Cvalues</a><br />
 <a href="#sec:ranges">Ranges</a><br />
 <a href="#sec:backtick">Backtick Operator</a><br />
 <a href="#sec:litdom">The Literal Domain</a><br />
@@ -1660,6 +1661,75 @@ such as access to registers, process control,
 and breakpoint control.
 </p>
 
+<h4 id="sec:cvalues">Cvalues</h4>
+
+<p>
+Cvalues represent typed values of domains.  Cvalues are
+limited to values of scalar types, including integers
+and pointers to arbitrary types (and, someday,
+floating-point values).  Through the use of the literal
+domain, cvalues are the type by which ordinary
+arithmetic is provided in Cinquecento.
+</p>
+
+<p>
+The
+predicate <a href="#fn:iscvalue"><span class="fnindex">iscvalue</span></a>
+tests whether a value is a cvalue.
+</p>
+
+<p>
+The type of a cvalue may be obtained by <a href="#syn:_at_typeof"><span class="fnindex">@typeof</span></a>.
+</p>
+
+<p>
+Functions that operate on cvalues include:
+</p>
+
+<div class="docitem" id="fn:domof">
+<div class="proto">
+<div class="function">
+<span class="id">domof(<span class="arg">v</span>))</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">domain</span>
+</div>
+</div>
+<div class="desc">
+Returns the domain of <span class="arg">v</span>.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:cvalcmp">
+<div class="proto">
+<div class="function">
+<span class="id">cvalcmp(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">cvalue</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (-1, 0, or 1)
+</div>
+</div>
+<div class="desc">
+Returns the result of comparing
+cvalues <span class="arg">u</span>
+and <span class="arg">v</span> in the following way.
+Domain promotion and the usual conversions are
+performed on the operands, and the underlying values of
+the resulting cvalues are compared.  Returns
+-1, 0, or 1 if <span class="arg">u</span> is,
+respectively,
+less than, equal to, or greater than <span class="arg">v</span>.
+</div>
+</div>
+
+
 <h4 id="sec:ranges">Ranges</h4>
 
 <p>
@@ -1682,13 +1752,13 @@ The functions that operate on ranges are:
 <div class="docitem" id="fn:mkrange">
 <div class="proto">
 <div class="function">
-<span class="id">mkrange(<span class="arg">beg</span>, <span class="arg">len</span>)</span>
+<span class="id">mkrange(<span class="arg">beg</span>,<span class="arg">len</span>)</span>
 </div>
 <div class="param">
-<span class="arg">beg</span>:<span class="type">cvalue</span>
+<span class="arg">beg</span>: <span class="type">cvalue</span>
 </div>
 <div class="param">
-<span class="arg">len</span>:<span class="type">cvalue</span>
+<span class="arg">len</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
 <span class="type">range</span>
@@ -1708,7 +1778,7 @@ must be greater than zero.
 <span class="id">rangebeg(<span class="arg">r</span>)</span>
 </div>
 <div class="param">
-<span class="arg">r</span>:<span class="type">range</span>
+<span class="arg">r</span>: <span class="type">range</span>
 </div>
 <div class="returns">
 <span class="type">cvalue</span>
@@ -1725,7 +1795,7 @@ Returns the beginning of the range <span class="arg">r</span>.
 <span class="id">rangelen(<span class="arg">r</span>)</span>
 </div>
 <div class="param">
-<span class="arg">r</span>:<span class="type">range</span>
+<span class="arg">r</span>: <span class="type">range</span>
 </div>
 <div class="returns">
 <span class="type">cvalue</span>
@@ -1742,10 +1812,10 @@ Returns the length of the range <span class="arg">r</span>.
 <span class="id">isrinrs(<span class="arg">r</span>,<span class="arg">rs</span>)</span>
 </div>
 <div class="param">
-<span class="arg">r</span>:<span class="type">range</span>
+<span class="arg">r</span>: <span class="type">range</span>
 </div>
 <div class="param">
-<span class="arg">rs</span>:<span class="type">vector or list of ranges</span>
+<span class="arg">rs</span>: <span class="type">vector or list of ranges</span>
 </div>
 <div class="returns">
 <span class="type">cvalue</span>
@@ -6225,7 +6295,10 @@ The binary C operator <tt>+</tt> concatenates strings.
 
 <p>
 The following functions comprise the basic string
-operations.
+operations. Note that while some of these functions
+share names with C standard library functions, they are
+not equivalent to these functions, because they do
+not terminate on NUL bytes.
 </p>
 
 <div class="docitem" id="fn:mkstr">
@@ -6261,8 +6334,42 @@ class="arg">len</span> null bytes.
 <div class="desc">
 Returns the number of bytes in <span class="arg">str</span>.
 Equivalent to <tt>length(<span class="arg">str</span>)</tt>.
+
+(This function is equivalent to C standard library
+to <span class="id">strlen</span> only when no NUL bytes appear in
+<span class="arg">str</span>.)
+
 </div>
 </div>
+
+<div class="docitem" id="fn:strcmp">
+<div class="proto">
+<div class="function">
+<span class="id">strcmp(<span class="arg">s1</span>,<span class="arg">s2</span>)</span>
+</div>
+<div class="param">
+<span class="arg">s1</span>,<span class="arg">s2</span>: <span class="type">string</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (-1, 0, or 1)
+</div>
+</div>
+<div class="desc">
+Returns the result of comparing
+strings <span class="arg">s1</span>
+and <span class="arg">s2</span> byte-by-byte.
+Returns -1, 0, or 1 if <span class="arg">s1</span>
+is, respectively,
+less than, equal to, or greater than <span class="arg">v</span>.
+Returns the number of bytes in <span class="arg">str</span>.
+
+(This function is equivalent to C standard library
+to <span class="id">strcmp</span> only when no NUL bytes appear in
+<span class="arg">str</span>.)
+
+</div>
+</div>
+
 
 <div class="docitem" id="fn:strref">
 <div class="proto">
@@ -6283,6 +6390,11 @@ Equivalent to <tt>length(<span class="arg">str</span>)</tt>.
 <div class="desc">
 Returns the character at index <span class="arg">idx</span> in
 <span class="arg">str</span>.
+
+(This function is equivalent to C standard library
+to <span class="id">strref</span> only when no NUL bytes appear in
+<span class="arg">str</span>.)
+
 </div>
 </div>
 
@@ -6305,6 +6417,11 @@ Returns the character at index <span class="arg">idx</span> in
 Returns the index in <span class="arg">s1</span> of the first occurrence
 of the string <span class="arg">s2</span>, or nil if <span class="arg">s2</span>
 does not match.
+
+(This function is equivalent to C standard library
+to <span class="id">strstr</span> only when no NUL bytes appear in
+either <span class="arg">s1</span> or <span class="arg">s2</span>.)
+
 </div>
 </div>
 
@@ -8975,7 +9092,9 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:cons">cons</a><br />
 <a href="#fn:copy">copy</a><br />
 <a href="#fn:count">count</a><br />
+<a href="#fn:cvalcmp">cvalcmp</a><br />
 <a href="#fn:delete">delete</a><br />
+<a href="#fn:domof">domof</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:nsenumsym">enumsym</a> (ns method)<br />
 <a href="#fn:nsenumtype">enumtype</a> (ns method)<br />
@@ -9176,6 +9295,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:split">split</a><br />
 <a href="#fn:sprintfa">sprintfa</a><br />
 <a href="#fn:stringof">stringof</a><br />
+<a href="#fn:strcmp">strcmp</a><br />
 <a href="#fn:strlen">strlen</a><br />
 <a href="#fn:strput">strput</a><br />
 <a href="#fn:strref">strref</a><br />
