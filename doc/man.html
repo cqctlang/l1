@@ -35,6 +35,7 @@
 <a href="#sec:casts">Type and Domain Casting</a><br />
 <a href="#sec:mixeddom">Mixed-domain Expressions</a><br />
 <a href="#sec:cvalueops">C Operators</a><br />
+<a href="#sec:equivalence">Equivalence and other relations</a><br />
 <a href="#sec:pointers">Pointers</a><br />
 <br />
 <em>Defining Domains</em><br />
@@ -1806,46 +1807,26 @@ In general, the syntax for symbol resolution is:
 </p>
 <div class="code">
 <pre>
-<span class="arg">domain</span>`<span class="arg">identifier</span>
+<span class="arg">dom</span>`<span class="arg">id</span>
 </pre>
 </div>
 
 <p>
-where <span class="arg">domain</span> is a
-variable bound to a domain (not an expression that evaluates to a domain), and
-<span class="arg">identifier</span> is a symbol defined in the domain.
-
+where <span class="arg">dom</span> is a variable bound
+to a domain (<em>not</em> an expression that evaluates
+to a domain), and <span class="arg">id</span> is an identifier.
+The evaluator implicitly calls
+<span class="val"><a href="#fn:looksym">looksym</a>(<span class="arg">dom</span>,<span class="arg">id</span>)</span> to resolve the symbol.
 </p>
 
 <p>
-
-To obtain the type and location
-associated with the symbol, the evaluator implicitly calls
-<span class="val"><span class="arg">domain</span>.looksym(<span class="arg">identifier</span>)</span>
-</p>
-
-
-<!-- <p> -->
-<!-- The resulting reference may be used -->
-<!-- to examine or modify the value stored at the location.  When the -->
-<!-- location is read, such as in the reference -->
-<!-- to <span class="val">dom`y</span> above, -->
-<!-- the <span class="type">get</span> function -->
-<!-- of the domain is called. -->
-<!-- When the location is written, such as in the -->
-<!-- reference to <span class="val">dom`x</span> -->
-<!-- above, the <span class="type">put</span> function -->
-<!-- of the domain is called. -->
-<!-- </p> -->
-
-<p>
-Normally the left operand to backtick must be a domain.
-However, if the right operand is the name of an enumeration
-constant, the right operand may be a name space.  The
-resulting cvalue has type and value of the constant
-as defined in the name space, and a freshly allocated
-domain with the same name space and the address space
-of the literal domain.
+Normally the left operand to backtick is a domain.
+However, if the right operand is the name of an
+enumeration constant, the right operand may be a name
+space.  The resulting cvalue has type and value of the
+constant as defined in the name space, and a freshly
+allocated domain with the same name space and the
+address space of the literal domain.
 </p>
 
 
@@ -2140,6 +2121,165 @@ The logical operators
 <span class="id">||</span>)
 compute logical and and over integers, treated as boolean values,
 as in C.  Evaluation is short circuited, as in C.
+</p>
+
+<h4 id="sec:equivalence">Equivalence and other relations</h4>
+
+<p>
+Equivalence is determined by the <span class="id" id="fn:equal">equal</span>
+function and the <span class="id" id="syn:equal">==</span> operator.
+</p>
+
+<p>
+<div class="docitem" id="fn:equal">
+<div class="proto">
+<div class="function">
+<span class="id">equal(<span class="arg">u</span>,<span class="arg">v</span>)
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: any values
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (1 or 0)
+</div>
+</div>
+<div class="desc">
+Determines the equality of <span class="arg">u</span>
+and <span class="arg">v</span> according to the
+following rules.
+<ul>
+<li>
+If <span class="arg">u</span>
+and <span class="arg">v</span> are of different types,
+they are not <span class="id">equal</span>;
+</li>
+<li>
+If <span class="arg">u</span> is <span class="id">nil</span>
+and <span class="arg">v</span>  is <span class="id">nil</span>,
+they are <span class="id">equal</span>;
+</li>
+<li>
+If <span class="arg">u</span>
+and <span class="arg">v</span> are both address spaces,
+procedures, domains, file descriptors, name spaces,
+pairs, record descriptors, records, or tables, they
+are <span class="id">equal</span> if and only if they
+are the same object (pointer equality);
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both cvalues, they are <span class="id">equal</span>
+if and only if they have <span class="id">equal</span> types
+and equal underlying values (<em>q.v.</em>);
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both lists or vectors, they are <span class="id">equal</span>
+if and only if they have the same length and each of their
+corresponding elements are <span class="id">equal</span>;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both ranges, they are <span class="id">equal</span>
+if and only if the underlying values of their offset and length
+cvalues are equal;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both strings, they are <span class="id">equal</span>
+if and only if they have the same length and contain the same sequence of bytes;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both ctypes, they are <span class="id">equal</span>
+if and only if they are of the same category of ctype and any of the following is true:
+<ul>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">void</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both base types and have the same representation;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both typedefs whose identifiers are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">typedef</span>s whose identifiers are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both either 
+<span class="id">struct</span>s,
+<span class="id">union</span>s, or
+<span class="id">enum</span>s whose tag identifiers are
+are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both either pointer
+or undefined types whose subtypes are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both array
+types whose element counts are either both unspecified or <span class="id">equal</span>
+and whose subtypes are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both function
+types with <span class="id">equal</span> subtypes (return types),
+parameter lists of equal length,
+and <span class="id">equal</span>ity across each of the types of corresponding elements of the parameter lists;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both
+bitfield types whose widths are <span class="id">equal</span>
+and whose subtypes are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both
+enumeration constant types whose
+subtypes are <span class="id">equal</span>.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<p>
+The above definition depends on the definition of
+equality of the "underlying values" of two cvalues.
+This is (unfortunately) implementation-dependent.
+In L1, the underlying value of a cvalue is represented
+as a 64-bit unsigned integer, and their equality is
+is that determined by the C <span class="id">==</span>
+operator.
+</p>
+
+<p>
+The <span class="id">==</span> operator is a weaker
+form of equality, defined as follows.  If the operands
+are both cvalues, then domain promotion and the usual
+conversions are performed on the operands, and the
+underlying values of the resulting cvalues are
+compared.  If the operands are strings, then the
+operands are compared
+with <a href="#fn:equal><span class="id">equal</span></a>.
+If one operand is a string cvalue (q.v.) and the other
+operand is a string, then the cvalue operand is
+promoted to a string via stringof, and the result
+is compared with other operand with 
+<a href="#fn:equal><span class="id">equal</span></a>.
+Otherwise, the operands are compared
+with <a href="#fn:equal><span class="id">equal</span></a>.
+</p>
+
+<p>
+The other relational operators
+(<span class="id">&lt;</span>,
+<span class="id">&lt;=</span>,
+<span class="id">&gt;</span>,
+<span class="id">&gt;=</span>,
+<span class="id">!=</span>) will be mapped to string
+and cvalue comparison functions (cmp?).
 </p>
 
 <h4 id="sec:pointers">Pointers</h4>
@@ -2456,8 +2596,6 @@ in <span class="arg">tab</span> are the
 corresponding method functions.  The name of the object is
 initialized to <span class="arg">name</span>, if
 provided.
-</div>
-</div>
 
 <p>
 Certain methods are required to be defined by name
@@ -2471,6 +2609,10 @@ and
 Name spaces and address spaces may define any number of
 additional methods.
 </p>
+
+</div>
+</div>
+
 
 <p>
 A domain object is constructed from a name space and
@@ -6064,7 +6206,7 @@ bytes.  Cinquecento strings have fixed length (possibly
 zero), are indexed from position 0, and are not null
 terminated.  Strings are mutable, but do not share
 storage with other strings.  The maximum string length
-is 2^64-1.  The predicate
+is 2<sup>64</sup>-1.  The predicate
 <a href="#fn:isstring"><span class="id">isstring</span></a> tests whether a value is
 a string.
 </p>
@@ -6468,9 +6610,9 @@ Sets the cdr of <span class="arg">p</span> to <span class="arg">v</span>.
 
 <p>
 A <em>weak pair</em> is a pair whose car is a <em>weak pointer</em>,
-a pointer that is not followed by the garbage collector.  An object
+a pointer that is not followed by the collector.  An object
 that is reachable only through weak pointers will be eventually reclaimed
-by the garbage collector, at which time its references will be replaced
+by the collector, at which time its references will be replaced
 with the value <span class="id">nil</span>.  A weak pair is otherwise
 indistinguishable from a pair.
 The predicate
@@ -6575,7 +6717,7 @@ file descriptor can be read, written, or both; see
 The native file descriptor is closed if and when the
 Cinquecento file descriptor is closed, including the
 implicit close that occurs when a file descriptor is
-garbage collected.
+collected.
 </div>
 </div>
 
@@ -7412,7 +7554,7 @@ are equivalent.
 <p>
 Storage in the L1 implementation of Cinquecento is
 managed by a generational stop-the-world copying
-garbage collector.  Its design draws on published
+collector.  Its design draws on published
 descriptions of storage management in <em>Chez Scheme</em>
 [<a href="#bib:chez">Chez</a>, <a href="#bib:bibop">BiBOP</a>,
 <a href="#bib:bibop">Guardians</a>].
@@ -7433,7 +7575,7 @@ User functions related to storage management are:
 </div>
 </div>
 <div class="desc">
-Runs the garbage collector.
+Runs the collector.
 </div>
 </div>
 
@@ -7453,12 +7595,11 @@ function bound to the top-level variable
 of <span class="id">postgc</span> is a function that
 returns <span class="val">nil</span>.  Programs may
 modify <span class="id">postgc</span> to be a function
-that does additional work intended to be performed
-following a collection.  Since other code may
-independently modify
-<span class="id">postgc</span>, it recommended that the
-old value of <span class="id">postgc</span> be called
-during the evaluation of its replacement.  For example,
+that performs work intended to be coordinated with
+collection.  Since other code may independently modify
+<span class="id">postgc</span>, the
+old value of <span class="id">postgc</span> should be called
+at some time during the evaluation of its replacement.  For example,
 the first call
 to <span class="fnindex"><a href="#fn:finalize">finalize</a></span>
 replaces <span class="id">postgc</span> with a function
@@ -7566,7 +7707,7 @@ are very similar to those in published descriptions of <em>Chez Scheme</em>
 <div class="desc">
 
 Registers a finalizer function to be called before the
-garbage collector reclaims storage for the
+collector reclaims storage for the
 value <span class="arg">v</span>.  The collector schedules a
 call to the finalizer <span class="arg">fn</span> some
 time after determining that <span class="arg">v</span>
@@ -7596,8 +7737,7 @@ call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
 <p>
 When shutting down the last VM (via 
 <span class="fnindex"><a href="#fn:cqctfreevm">cqctfreevm</a></span>),
-the Cinquecento system performs a final garbage
-collection and calls finalizers for unreachable values.
+the Cinquecento system performs a final collection and calls finalizers for unreachable values.
 However, finalizers for objects that are still reachable
 at shutdown may not be called.
 </p>
@@ -8840,6 +8980,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:nsenumsym">enumsym</a> (ns method)<br />
 <a href="#fn:nsenumtype">enumtype</a> (ns method)<br />
 <a href="#fn:environ">environ</a><br />
+<a href="#fn:equal">equal</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
 <a href="#fn:evalk">evalk</a><br />
@@ -8977,7 +9118,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkmas">mkmas</a><br />
 <a href="#fn:mkmas">mkmasx</a><br />
 <a href="#fn:mknas">mknas</a><br />
-<a href="#fn:mkns">mkns</a><br />
+<a href="#fn:mkas">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
 <a href="#fn:mkrange">mkrange</a><br />
