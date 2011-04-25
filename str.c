@@ -14,28 +14,22 @@ int
 Strcmp(Str *s1, Str *s2)
 {
 	unsigned char *p1, *p2;
+	int cmp;
 	Imm l1, l2;
 
 	p1 = (unsigned char*)strdata(s1);
 	p2 = (unsigned char*)strdata(s2);
 	l1 = s1->len;
 	l2 = s2->len;
-	while(l1 && l2){
-		if(*p1 < *p2)
-			return -1;
-		else if(*p1 > *p2)
-			return 1;
-		p1++;
-		p2++;
-		l1--;
-		l2--;
-	}
-	if(l1)
-		return 1;
-	else if(l2)
+	cmp = memcmp(p1, p2, MIN(l1, l2));
+	if(cmp != 0)
+		return cmp;
+	if(l1 == l2)
+		return 0;
+	else if(l1 < l2)
 		return -1;
 	else
-		return 0;
+		return 1;
 }
 
 int
@@ -43,7 +37,7 @@ equalstr(Str *a, Str *b)
 {
 	if(a->len != b->len)
 		return 0;
-	return memcmp(strdata(a), strdata(b), a->len) ? 0 : 1;
+	return Strcmp(a, b) ? 0 : 1;
 }
 
 Str*
