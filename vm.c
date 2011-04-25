@@ -2536,6 +2536,7 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	putvalrand(vm, rv, dst);
 }
 
+/* function from any arguments to nil */
 static void
 nilfn(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -2545,43 +2546,43 @@ nilfn(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(rv);
 }
 
-/* dispatch for abstract address spaces */
 static void
-nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
+nasbad(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Str *cmd;
-
-	if(argc < 2)
-		vmerr(vm,
-		      "wrong number of arguments to address space dispatch");
-	checkarg(vm, "nasdispatch", argv, 1, Qstr);
-	cmd = valstr(argv[1]);
-	if(equalstrc(cmd, "map")){
-		if(argc != 1)
-			vmerr(vm, "wrong number of arguments to map method");
-		*rv = mkvalvec(mkvec(0));
-		return;
-	}
-	if(equalstrc(cmd, "ismapped")){
-		if(argc != 2)
-			vmerr(vm, "wrong number of arguments to ismapped method");
-		*rv = mkvalcval2(cval0);
-		return;
-	}
 	vmerr(vm, "attempt to access null address space");
 }
+
+static void
+nasmap(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to map method");
+	*rv = mkvalvec(mkvec(0));
+}
+
+static void
+nasismapped(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to ismapped method");
+	*rv = mkvalcval2(cval0);
+}
+
 
 static As*
 mknas(void)
 {
-	As *as;
 	Tab *mtab;
 	mtab = mktab();
-	tabput(mtab,
-		mkvalstr(mkstr0("dispatch")),
-		mkvalcl(mkcfn("nasdispatch", nasdispatch)));
-	as = mkastab(mtab, mkstr0("nullas"));
-	return as;
+	tabput(mtab, mkvalstr(mkstr0("get")),
+	       mkvalcl(mkcfn("nasget", nasbad)));
+	tabput(mtab, mkvalstr(mkstr0("put")),
+	       mkvalcl(mkcfn("nasput", nasbad)));
+	tabput(mtab, mkvalstr(mkstr0("map")),
+	       mkvalcl(mkcfn("nasmap", nasmap)));
+	tabput(mtab, mkvalstr(mkstr0("ismapped")),
+	       mkvalcl(mkcfn("nasismapped", nasismapped)));
+	return mkastab(mtab, mkstr0("nullas"));
 }
 
 /* is [rb,rl) in [b,l)? */
