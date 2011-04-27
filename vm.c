@@ -211,11 +211,13 @@ typesize(VM *vm, Xtypename *xtn)
 	Cval *cv;
 	Str *es;
 	if(xtn == 0)
-		vmerr(vm, "attempt to compute size of undefined type");
+		vmerr(vm, "attempt to determine size of undefined type");
 	switch(xtn->tkind){
 	case Tvoid:
-		vmerr(vm, "attempt to compute size of void type");
+		vmerr(vm, "attempt to determine size of void type");
 	case Tbase:
+		if(xtn->rep == Rundef)
+			vmerr(vm, "attempt to determine size of undefined type");
 		return repsize[xtn->rep];
 	case Ttypedef:
 		return typesize(vm, xtn->link);
@@ -226,20 +228,22 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tenum:
 		return typesize(vm, xtn->link);
 	case Tptr:
+		if(xtn->rep == Rundef)
+			vmerr(vm, "attempt to determine size of undefined type");
 		return repsize[xtn->rep];
 	case Tarr:
 		if(Vkind(xtn->cnt) != Qcval)
 			vmerr(vm,
-			      "attempt to compute size of unspecified array");
+			      "attempt to determine size of unspecified array");
 		cv = valcval(xtn->cnt);
 		return cv->val*typesize(vm, xtn->link);
 	case Tfun:
-		vmerr(vm, "attempt to compute size of function type");
+		vmerr(vm, "attempt to determine size of function type");
 	case Tbitfield:
-		vmerr(vm, "attempt to compute size of bitfield");
+		vmerr(vm, "attempt to determine size of bitfield");
 	case Tundef:
 		es = fmtxtn(xtn->link);
-		vmerr(vm, "attempt to compute size of undefined type: %.*s",
+		vmerr(vm, "attempt to determine size of undefined type: %.*s",
 		      (int)es->len, strdata(es));
 	case Tconst:
 		vmerr(vm, "shouldn't this be impossible?");
