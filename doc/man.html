@@ -775,37 +775,6 @@ Vector
 </table>
 </div>
 
-<!-- this is wrong: equal is like scheme equal,
-     but implemented only on lists for now -->
-
-<!-- <div class="docitem" id="fn:equal"> -->
-<!-- <div class="proto"> -->
-<!-- <div class="function"> -->
-<!-- <span class="id">equal(<span class="arg">v1</span>,<span class="arg">v2</span>)</span> -->
-<!-- </div> -->
-<!-- <div class="param"> -->
-<!-- <span class="arg">v1</span>: <span class="type">any value</span> -->
-<!-- </div> -->
-<!-- <div class="param"> -->
-<!-- <span class="arg">v2</span>: <span class="type">any value</span> -->
-<!-- </div> -->
-<!-- <div class="returns"> -->
-<!-- <span class="type">cvalue (1 or 0)</span> -->
-<!-- </div> -->
-<!-- </div> -->
-<!-- <div class="desc"> -->
-<!-- Compares <span class="arg">v1</span> -->
-<!-- and <span class="arg">v2</span> for equality. -->
-<!-- Generally two values are <span class="id">equal</span> -->
-<!-- if they are the same instance of an object (pointer equality). -->
-<!-- Several types define equality based on their value: -->
-<!-- <span class="type">ctype</span>, -->
-<!-- <span class="type">cvalue</span>, -->
-<!-- <span class="type">range</span>, and -->
-<!-- <span class="type">string</span>. -->
-<!-- </div> -->
-<!-- </div> -->
-
 
 <h4 id="sec:functions">Functions</h4>
 
@@ -2196,7 +2165,14 @@ as in C.  Evaluation is short circuited, as in C.
 <h4 id="sec:equivalence">Equivalence and other relations</h4>
 
 <p>
-Equivalence is determined by the <span class="id" id="fn:equal">equal</span>
+Equivalence is determined by the
+functions
+<span class="id" id="fn:eq">eq</span>,
+<span class="id" id="fn:eq">eqv</span>,
+and <span class="id" id="fn:eq">equal</span>.
+
+
+ <span class="id" id="fn:equal">equal</span>
 function and the <span class="id" id="syn:equal">==</span> operator.
 </p>
 
@@ -4036,77 +4012,238 @@ the lifespan of the backing address space.
 
 <h4 id="sec:ctypes">Ctypes</h4>
 
-<p>The Cinquecento type <em>ctype</em> represents types
-defined in C programs.  The predicate
-<a href="#fn:isctype"><span class="id">isctype</span></a> tests whether a value is
-a ctype.
-The <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
-operator can be used to obtain a ctype representing the
-type of a cvalue or the type denoted by a type name.
-</p>
-
----
 <p>
-C types are represented by the Cinquecento type <em>ctype</em>.
-Ctypes represent two related but subtly different concepts:
-C type names and C type definitions.
+<em>Ctypes</em> represent types that can be named or
+defined in the type system of C.  The
+predicate <a href="#fn:isctype"><span class="id">isctype</span></a>
+tests whether a value is a ctype.
 </p>
 
 <p>
-C type names are the syntactic constructions, such
-as <tt>int*</tt>, that in C appear as type declarations
-and as type operands to operators such as
-<tt>sizeof</tt> and the cast operator.
+Ctypes are subdivided into 12 <em>variants</em>:
+</p>
+
+<div id="inset">
+<p>
+void base pointer function array struct union enum typedef<br />
+bitfield enumconst<br />
+undefined<br />
+</p>
+</div>
+	
+<p>
+The variants in the first row correspond directly to
+the types that appear in C programs.
 </p>
 
 <p>
-C type definitions are the definition of types referenced
-by type names.  What a definition specifies depends on the type.  
-
-For base C types, the definition specifies the number of bytes
-used to represent values of the type and how the bytes are
-interpreted (<em>e.g.</em>, big- or little-endian order).
-
-For pointers, it specifies the size and representation
-of the pointer value in memory.
-
-For aggregates, it specifies the offset from the beginning
-of the aggregate to each field, 
-the name and type of each field,
-and the total size of the aggregate.
-
-For enums, it specifies the enumeration constant
-identifiers and their values, and the common type used to
-repesent all values of the enumeration.
-
-For typedefs, it specifies the binding of a name to another
-type.
+The variants in the second row are Cinquecento
+inventions used to represent, respectively, the types
+of bitfields of structure and unions types, and the
+constants of enumeration types.
 </p>
 
 <p>
-The distinction between type name and definition enables
-Cinquecento to represent multiple
-programs that have potentially conflicting meanings for
-the same type.
-
-For example, the type name <tt>int*</tt> always
-references the type pointer-to-<tt>int</tt>, but
-there are many possible definitions for this type.
-
-One domain can define it to be a 64-bit address of a
-64-bit integer encoded in big-endian order, while
-another may be define it be a 32-bit address of a
-32-bit integer encoded in little-endian order.  Given a
-ctype for <tt>int*</tt>, part of the role of a name space is to
-provide a ctype that defines its encoding.
+The undefined variant is another invention used to
+represent types whose names but not definitions occur
+in a name space.
 </p>
 
 <p>
-Functions that operate on ctypes are described in the
-section <a href="#sec:ctypes">Ctypes</a>.
+Details follow.
 </p>
 
----
+<p>
+In the context of Cinquecento ctypes, a <em>type
+name</em> is the abstract structure denoted by type
+syntax in C.  To begin a running example, the
+syntax <span class="val">int*</span> denotes the type
+name pointer-to-<span class="val">int</span>.  Such
+names are first-class ctype values in Cinquecento:
+</p>
+
+<div class="code">
+<pre>
+; t = @typeof(int*);
+<span class="arg">int *</span>
+; isctype(t);
+<span class="arg">1</span>
+; printf("%t\n", t);
+<span class="arg">int *</span>
+; isptr(t);
+<span class="arg">1</span>
+; printf("%t\n", subtype(t));
+<span class="arg">int</span>
+</pre>
+</div>
+
+<p>
+
+This shows a use
+of <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
+to construct a ctype from the the C
+syntax <span class="val">int*</span>.
+The <span class="val">%t</span> <a href="#sec:fmt">format</a>
+verb returns a printed representation of a ctype in C
+syntax.  (This verb is also used by the
+L1 repl to print ctype values.)  Associated with each
+ctype variant is a predicate (<em>e.g.,</em>
+<a href="#fn:isptr"><span class="fnindex">isptr</span></a>)
+that tests whether a value is an instance of the
+variant, and a set of functions (<em>e.g.,</em>
+<a href="#fn:subtype"><span class="fnindex">subtype</span></a>)
+to deconstruct and inspect the type.
+</p>
+
+<p>
+The ctype constructor functions, one for each ctype
+variant, provide an alternative to the special syntax
+of <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>.
+Continuing the example:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int());
+<span class="arg">int *</span>
+; t == u;
+<span class="arg">1</span>
+</pre>
+</div>
+
+<p>
+A type name determines the abstract structure of a
+type, but not the concrete encoding of a value of the
+type in an address space.  Here, the
+name <span class="val">int*</span> alone could very
+well describe a 64-bit pointer to a 64-bit integer
+encoded in big-endian order, or a 32-bit pointer to a
+32-bit integer encoded in little-endian order, or some
+other variation.  Such ctypes are said to
+be <em>undefined</em>:
+</p>
+
+<div class="code">
+<pre>
+; sizeof(t);
+<span class="arg">error: attempt to determine size of undefined type</span>
+; sizeof(subtype(t));
+<span class="arg">error: attempt to determine size of undefined type</span>
+</pre>
+</div>
+
+<p>
+<em>Type definitions</em> are ctypes that extend the
+abstract structure of type names with concrete
+information about encoding and substructure.
+Optional arguments to the ctype constructors facilitate
+their creation:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int(), cqct`Ru64le);
+<span class="arg">int *</span>
+; sizeof(u);
+<span class="arg">8</span>
+</pre>
+</div>
+
+<p>
+The optional second argument to
+<a href="#fn:mkctype_ptr"><span class="id">mkctype_ptr</span></a>
+gives the <em>representation</em> of the type.  The
+value <span class="val">cqct`Ru64le</span> is one of
+several constants defined for the built-in enumeration
+type <span class="val">cqct`Rkind</span>.  In this
+example, we have specified that the pointer value is
+represented as an unsigned 64-bit little-endian
+integer, a specification sufficient to read or write the
+value of such a pointer.  Constants are defined
+in <span class="val">cqct`Rkind</span> for all common
+integer encodings.
+</p>
+
+<p>
+Although type names and type definitions may be related,
+they are not equivalent ctypes:
+<p>
+
+<div class="code">
+<pre>
+; t == u;
+<span class="arg">0</span>
+</pre>
+</div>
+
+<p>
+The function <a href="#fn:typename"><span class="id">typename</span></a>
+maps a type definition to its name, essentially stripping
+it of all defining information.
+</p>
+
+<div class="code">
+<pre>
+; t == typename(u);
+<span class="arg">1</span>
+</pre>
+</div>
+
+<p>
+In the previous definition
+of <span class="val">u</span>, we created a type
+definition for the pointer type, but left its subtype
+undefined:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int(), cqct`Ru64le);
+<span class="arg">int *</span>
+; sizeof(u);
+<span class="arg">8</span>
+; sizeof(subtype(u));
+<span class="arg">error: attempt to determine size of undefined type</span>
+</pre>
+</div>
+
+<p>
+This is not a particularly useful type definition.
+While it provides sufficient information to access the
+pointer value, it provides no information about how to
+dereference this pointer, because the type does not
+define the concrete encoding of the
+pointed-to <span class="id">int</span> value.  We can
+fix this by adding a representation argument
+to <a href="#fn:mkctype_int"><span class="id">mkctype_int</span></a>:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int(cqct`Rs64le), cqct`Ru64le);
+<span class="arg">int *</span>
+; sizeof(u);
+<span class="arg">8</span>
+; sizeof(subtype(u));
+<span class="arg">8</span>
+</pre>
+</div>
+
+<p>
+A ctype is <em>fully defined</em> if it is a type
+definition whose constituent subtypes, if any, are also
+fully defined.  Of all the preceding definitions
+of <span class="val">u</span>, only the final one is
+fully defined.  We will return to the role of fully
+defined after a detour into name spaces.
+</p>
+
+<p>
+A type name may be used to look up a type definition in
+a name space...
+</p>
+
+
 <div class="docitem" id="syn:_at_typeof">
 <div class="proto">
 <div class="function">
@@ -4139,17 +4276,20 @@ is resolved in the literal domain.
 </div>
 
 <p>
-In Cinquecento, the set of types that can be defined in
-a C program are divided into several categories.  The
-main categories are: the <tt>void</tt> type, the base
-arithmetic types (<tt>char</tt>, <tt>int</tt>,
+Cinquecento subdivides the set of ctypes into several
+<em>kind</em>s of ctypes.  Most kinds of ctypes
+correspond to types that occur in C programs.  These
+includes the <tt>void</tt> type, the base arithmetic types
+(<tt>char</tt>, <tt>int</tt>,
 <tt>unsigned long</tt>, <em>etc</em>), pointers,
 arrays, aggregates (<tt>struct</tt> and
 <tt>union</tt>), functions, enumerations, and
-<tt>typedef</tt>s.  In addition, Cinquecento also has
-separate categories for bitfields, enumeration
-constants, undefined types, and a special extended
-accessor type.
+<tt>typedef</tt>s.
+
+
+Other kinds of  also has kinds categories for bitfields,
+enumeration constants, undefined types, and a special
+extended accessor type.
 </p>
 
 <p>

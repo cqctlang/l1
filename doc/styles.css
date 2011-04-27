@@ -109,7 +109,6 @@ dl.bolddt-indentdd {
 	padding: 5px;
 }
 
-
 /* typography */
 
 #side1 {
@@ -245,7 +244,7 @@ dl.bolddt-indentdd {
 .code pre {
       font-family: monospace;
       font-size: 12px;
-      line-height: 13px;
+      line-height: 15px;
       color: black;
 }
 

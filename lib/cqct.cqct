@@ -1,0 +1,53 @@
+cqct = @names c32le {
+	typedef
+	enum Rkind
+	{
+		Rundef,
+		Ru08le,
+		Ru16le,
+		Ru32le,
+		Ru64le,
+		Rs08le,
+		Rs16le,
+		Rs32le,
+		Rs64le,
+		Ru08be,
+		Ru16be,
+		Ru32be,
+		Ru64be,
+		Rs08be,
+		Rs16be,
+		Rs32be,
+		Rs64be,
+		Rf32,
+		Rf64,
+		Rf128,
+		Rnrep,
+	} Rkind;
+
+	typedef
+	enum Cbase
+	{
+		Vundef=0,
+		Vlo,
+		Vbool=Vlo,
+		Vchar,
+		Vshort,
+		Vint,
+		Vlong,
+		Vvlong,
+		Vuchar,
+		Vushort,
+		Vuint,
+		Vulong,
+		Vuvlong,
+		Vfloat,
+		Vdouble,
+		Vlongdouble,
+		Vnbase,
+		Vptr = Vnbase,		/* alias for some other base type */
+		Vvoid,
+		Vnallbase,
+	} Cbase;
+
+};
