@@ -554,9 +554,22 @@ struct_or_union_or_enum
 
 struct_declaration_list
 	: struct_declaration
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, Znull(), 0, 0); }
+	{
+		/* labels yield null struct_declarations */
+		if($1)
+			$$ = newexprsrc(&ctx->inp->src, Eelist,
+					$1, Znull(), 0, 0);
+		else
+			$$ = Znull();
+	}
 	| struct_declaration_list struct_declaration
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0); }
+	{ 
+		/* labels yield null struct_declarations */
+	 	if($2)
+			$$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0);
+		else
+			$$ = Znull();
+	}
 	;
 
 struct_declaration
@@ -570,7 +583,7 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $4, $5, $3, $7); }
 	/* accept (but discard) c++ labels such as "public:" */
 	| id ':'
-	{ freeexpr($1); $$ = newexprsrc(&ctx->inp->src, Enop, 0, 0, 0, 0); }
+	{ freeexpr($1); $$ = 0; }
 	| error ';'
 	{ $$ = 0; }
 	;
