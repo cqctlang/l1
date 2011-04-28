@@ -98,7 +98,7 @@ maybeid
 
 tickid
 	: id '`' id
-	{ $$ = doticksrc(&ctx->inp->src, $1, $3); }
+	{ $$ = dotickesrc(&ctx->inp->src, $1, $3); }
 	;
 
 lambda
@@ -744,19 +744,19 @@ tn_type_specifier_tick
 	: base_list
 	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id '`' base_list
-	{ $$ = doticksrc(&ctx->inp->src, $1,
-			 newexprsrc(&ctx->inp->src, Ebase, $3, 0, 0, 0)); }
+	{ $$ = doticktsrc(&ctx->inp->src, $1,
+			  newexprsrc(&ctx->inp->src, Ebase, $3, 0, 0, 0)); }
 	| id '`' id
-	{ $$ = doticksrc(&ctx->inp->src, $1,
-			 newexprsrc(&ctx->inp->src, Etypedef, $3, 0, 0, 0)); }
+	{ $$ = doticktsrc(&ctx->inp->src, $1,
+			  newexprsrc(&ctx->inp->src, Etypedef, $3, 0, 0, 0)); }
 	| '`' id
-	{ $$ = doticksrc(&ctx->inp->src, 0,
-			 newexprsrc(&ctx->inp->src, Etypedef, $2, 0, 0, 0)); }
+	{ $$ = doticktsrc(&ctx->inp->src, 0,
+			  newexprsrc(&ctx->inp->src, Etypedef, $2, 0, 0, 0)); }
 	| struct_or_union_or_enum id
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	| struct_or_union_or_enum id '`' id
-	{ $$ = doticksrc(&ctx->inp->src, $2,
-			 newexprsrc(&ctx->inp->src, $1, $4, 0, 0, 0)); }
+	{ $$ = doticktsrc(&ctx->inp->src, $2,
+			  newexprsrc(&ctx->inp->src, $1, $4, 0, 0, 0)); }
 
 tn_parameter_type_list
 	: tn_parameter_list
@@ -1030,7 +1030,7 @@ duptickid(Expr *e)
 {
 	if(e == 0)
 		return;
-	if(e->kind == Etick){
+	if(e->kind == Eticke || e->kind == Etickt){
 		e->e1 = copyexpr(e->e1);
 		e->e2 = copyexpr(e->e2);
 		return;
@@ -1060,7 +1060,7 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 	/* what else could it be? */
 	if(other->kind != Ecall)
 		yyerror(0, "unresolved ambiguity");
-	if(other->e1->kind != Etick)
+	if(other->e1->kind != Eticke && other->e1->kind != Etickt)
 		yyerror(0, "unresolved ambiguity");
 
 	/* it's not possible to call through a domain reference,

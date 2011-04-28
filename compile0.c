@@ -9,7 +9,7 @@ static int
 islval(Expr *e)
 {
 	switch(e->kind){
-	case Etick:
+	case Eticke:
 		return 1;
 	case Ederef:
 		return 1;
@@ -65,7 +65,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = compile_lval(ctx, e->e2, needaddr);
 		te = Zcons(se, te);
 
-		if(e->e1->kind == Etick){
+		if(e->e1->kind == Eticke){
 			dom = e->e1->e1;
 			t = e->e1->e2;
 		}else{
@@ -88,7 +88,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		e->e2 = 0;
 		freeexpr(e);
 		return lvalblock(invert(te));
-	case Etick:
+	case Eticke:
 		te = nullelist();
 
 		// $dom = dom;
@@ -238,7 +238,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 	src = e->src;
 	switch(e->kind){
-	case Etick:
+	case Eticke:
 	case Edot:
 	case Ederef:
 		te = nullelist();

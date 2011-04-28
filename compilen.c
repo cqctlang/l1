@@ -367,9 +367,9 @@ rdotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id)
 static void
 dotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id)
 {
-	if(t->kind == Etick){
+	if(t->kind == Etickt){
 		rdotie(ctx, t->e2, dtor, type, id);
-		*type = Z2(Etick, t->e1, *type);
+		*type = Z2(Etickt, t->e1, *type);
 	}else
 		rdotie(ctx, t, dtor, type, id);
 }

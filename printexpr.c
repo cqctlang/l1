@@ -105,7 +105,8 @@ char* S[] = {
 	[Esub] =	"Esub",
 	[Eswitch] =	"Eswitch",
 	[Etab] =	"Etab",
-	[Etick] = 	"Etick",
+	[Eticke] = 	"Eticke",
+	[Etickt] = 	"Etickt",
 	[Etid] = 	"Etid",
 	[Etypedef] =	"Etypedef",
 	[Etypename] =	"Etypename",
@@ -364,7 +365,8 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(")");
 		printcqct0(e->e2, ni);
 		break;
-	case Etick:
+	case Eticke:
+	case Etickt:
 		printcqct0(e->e1, ni);
 		xprintf("`");
 		printcqct0(e->e2, ni);

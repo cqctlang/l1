@@ -702,10 +702,18 @@ doconstssrc(Src *src, char *s, unsigned long len)
 }
 
 Expr*
-doticksrc(Src *src, Expr *dom, Expr *id)
+dotickesrc(Src *src, Expr *dom, Expr *id)
 {
 	Expr *e;
-	e = newexprsrc(src, Etick, dom, id, 0, 0);
+	e = newexprsrc(src, Eticke, dom, id, 0, 0);
+	return e;
+}
+
+Expr*
+doticktsrc(Src *src, Expr *dom, Expr *id)
+{
+	Expr *e;
+	e = newexprsrc(src, Etickt, dom, id, 0, 0);
 	return e;
 }
 

@@ -114,7 +114,8 @@ enum{
 	Esub,
 	Eswitch,
 	Etab,
-	Etick,
+	Eticke,
+	Etickt,
 	Etid,
 	Etypedef,
 	Etypename,
@@ -207,7 +208,7 @@ struct Expr {
 	Expr *e4;
 
 	union{
-		char *id;		/* Eid, Etick */
+		char *id;		/* Eid, Etick, Etickt */
 		Lits *lits;		/* Econsts */
 		Liti liti;		/* Econst */
 		Kind op;		/* Ebinop, Egop */
@@ -788,7 +789,8 @@ Expr*		doconst(U *ctx, char*, unsigned long len);
 Expr*		doconstssrc(Src*, char*, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
 Expr*		dosymsrc(Src *src, char *s, unsigned long len);
-Expr*		doticksrc(Src *src, Expr*, Expr*);
+Expr*		dotickesrc(Src *src, Expr*, Expr*);
+Expr*		doticktsrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 void		finiparse(void);
 Expr*		flatten(Expr *e);

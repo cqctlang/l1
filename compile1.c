@@ -117,8 +117,8 @@ compilelist(U *ctx, Expr *e)
 static void
 domandtype(Expr *e, Expr **dom, Expr **t)
 {
-	if(e->kind == Etick){
-		if(e->e1->e1)
+	if(e->kind == Etickt){
+		if(e->e1)
 			*dom = e->e1;
 		else
 			*dom = 0;

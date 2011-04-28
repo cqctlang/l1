@@ -16,7 +16,7 @@ islval(Expr *e, Expr **a)
 {
 	int x;
 	switch(e->kind){
-	case Etick:
+	case Eticke:
 		return Alval;
 	case Ederef:
 		return Alval;
