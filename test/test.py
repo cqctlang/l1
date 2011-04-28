@@ -10,7 +10,13 @@ new = []
 fail = []
 fault = []
 
-for m in glob.glob('[A-Za-z0-9]*.l1'):
+if len(sys.argv) > 1:
+    sys.argv.pop(0)
+    run = sys.argv
+else:
+    run = glob.glob('[A-Za-z0-9]*.l1')
+
+for m in run:
     print m,
     sys.stdout.flush()
     cmd = '../l1 -b -w '+m
