@@ -1383,7 +1383,7 @@ domcastbase(VM *vm, Dom *dom, Cval *cv)
 	if(old->rep == Rundef || new->rep == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, xtn, rerep(cv->val, old, new));
+	return mkcval(dom, xtn, _rerep(cv->val, old, new));
 }
 
 Cval*
@@ -1407,7 +1407,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	if(old->rep == Rundef || new->rep == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, xtn, rerep(cv->val, old, new));
+	return mkcval(dom, xtn, _rerep(cv->val, old, new));
 }
 
 static void
