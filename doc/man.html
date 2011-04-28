@@ -4050,13 +4050,14 @@ in a name space.
 </p>
 
 <p>
+Ctypes are one of the most complicated features of Cinquecento.
 Details follow.
 </p>
 
 <p>
 In the context of Cinquecento ctypes, a <em>type
 name</em> is the abstract structure denoted by type
-syntax in C.  To begin a running example, the
+syntax in C.  For example, the
 syntax <span class="val">int*</span> denotes the type
 name pointer-to-<span class="val">int</span>.  Such
 names are first-class ctype values in Cinquecento:
@@ -4079,15 +4080,15 @@ names are first-class ctype values in Cinquecento:
 
 <p>
 
-This shows a use
+This shows the use
 of <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
 to construct a ctype from the the C
 syntax <span class="val">int*</span>.
 The <span class="val">%t</span> <a href="#sec:fmt">format</a>
 verb returns a printed representation of a ctype in C
-syntax.  (This verb is also used by the
-L1 repl to print ctype values.)  Associated with each
-ctype variant is a predicate (<em>e.g.,</em>
+syntax.  (This verb is also used by the L1 repl to
+print ctype values.)  Associated with each ctype
+variant is a predicate (<em>e.g.,</em>
 <a href="#fn:isptr"><span class="fnindex">isptr</span></a>)
 that tests whether a value is an instance of the
 variant, and a set of functions (<em>e.g.,</em>
@@ -4136,8 +4137,8 @@ be <em>undefined</em>:
 <em>Type definitions</em> are ctypes that extend the
 abstract structure of type names with concrete
 information about encoding and substructure.
-Optional arguments to the ctype constructors facilitate
-their creation:
+They are created through the use of optional arguments
+to the ctype constructors:
 </p>
 
 <div class="code">
@@ -4240,9 +4241,26 @@ defined after a detour into name spaces.
 
 <p>
 A type name may be used to look up a type definition in
-a name space...
+a name space.
 </p>
 
+<p>
+Fortunately, most Cinquecento programs do not directly
+work with these details.  Name spaces provide
+definitions of types, and most types come along
+for the ride when symbols are referenced.
+</p>
+
+<p>
+Need to combine this with backtick.  It is confusing
+that @typeof(dom`T) performs a lookup, while @typeof(`T)
+does not.  Should we have @type?
+</p>
+
+<p>
+Maybe need a discussion of C syntax and how domain
+references fit into it.
+</p>
 
 <div class="docitem" id="syn:_at_typeof">
 <div class="proto">
