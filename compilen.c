@@ -134,6 +134,15 @@ enumincs(U *ctx, Expr *e)
 static Expr* lift(U *ctx, Expr *e);
 static Expr* liftspec(U *ctx, Seen *s, Expr *e, Expr **te);
 
+static char*
+mkanontag(void)
+{
+	static uint64_t cnt = 0;
+	char buf[32];
+	snprint(buf, sizeof(buf), "$anon%" PRIu64, cnt++);
+	return xstrdup(buf);
+}
+
 static Expr*
 liftdtors(U *ctx, Seen *s, Expr *e, Expr **te)
 {
@@ -164,8 +173,9 @@ liftdtors(U *ctx, Seen *s, Expr *e, Expr **te)
 		}
 		return e;
 	case Eelist:
+	case Enull:
 		p = e;
-		while(isnull(p)){
+		while(!isnull(p)){
 			p->e1 = liftdtors(ctx, s, p->e1, te);
 			p = p->e2;
 		}
@@ -227,7 +237,14 @@ liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 	case Eenum:
 		if(e->e2 == 0)
 			return e; /* not a definition */
-		id = idsym(e->e1);
+
+		/* generate tag if anonymous */
+		if(e->e1 == 0){
+			id = mkanontag();
+			e->e1 = doidnsrc(&e->src, id, strlen(id));
+		}else
+			id = idsym(e->e1);
+
 		q = Z1(e->kind, e->e1);
 		putsrc(q, &e->src);
 		if(hgets(s->tag, id, strlen(id)))
@@ -391,12 +408,18 @@ tie1sufield(U *ctx, Expr *e, Expr **fs)
 		/* list of declarators */
 		p = e->e2;
 		a = tie(ctx, e->e3); /* associated with the first decl */
-		while(!isnull(p)){
-			dotie(ctx, e->e1, p->e1, &t, &id);
+		if(isnull(p)){
+			/* no declarator.   assume specifier is struct/union
+			   to be accessed anonymously */
+			dotie(ctx, e->e1, 0, &t, &id);
 			*fs = Zcons(Z3(Edecl, t, id, a), *fs);
-			a = 0;
-			p = p->e2;
-		}
+		}else
+			while(!isnull(p)){
+				dotie(ctx, e->e1, p->e1, &t, &id);
+				*fs = Zcons(Z3(Edecl, t, id, a), *fs);
+				a = 0;
+				p = p->e2;
+			}
 		break;
 	default:
 		fatal("bug");
@@ -713,7 +736,10 @@ mkfieldspec(U *ctx, Expr *f)
 	Expr *tn, *id, *a;
 
 	tn = mkctype(ctx, f->e1);
-	id = id2sym(f->e2);
+	if(f->e2)
+		id = id2sym(f->e2);
+	else
+		id = Znil(); /* anonymous field */
 	a = mkctype(ctx, f->e3);
 	if(f->kind == Ebitfield)
 		return Zblock(Zlocals(1, "$o"),
