@@ -366,7 +366,7 @@ compileambig(U *ctx, Expr *e)
 	if(tf == 0)
 		fatal("bug");
 
-	domandtype(tf, &dom, &t);
+	domandtype(tf->e1, &dom, &t);
 	if(!dom)
 		dom = doid("litdom");
 
@@ -383,6 +383,7 @@ compileambig(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	of = compile1(ctx, of);
+	tf = compile1(ctx, tf);
 
 	// if(isnil($tmp)) <other form> else <type form>
 	se = newexpr(Eif, Zcall(G("isnil"), 1, doid("$tmp")), of, tf, 0);
