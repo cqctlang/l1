@@ -82,6 +82,8 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		te = Zcons(se, te);
 
 		domandtype(e->e1, &dom, &t);
+		if(!dom)
+			dom = doid("$dom");
 		t = compile0(ctx, t);
 		se = Zblock(Zlocals(1, "$tn"),
 			    Zset(doid("$tn"), t),
