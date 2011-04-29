@@ -1,6 +1,6 @@
 entry: var params, 1 locals, 0 temps
 printtype: 1 params, 7 locals, 0 temps
-foo: 0 params, 9 locals, 0 temps
+foo: 0 params, 7 locals, 0 temps
 struct bar {
 	@0x0	int x;
 		int y;
@@ -22,7 +22,7 @@ struct blah {
 	@0x8;
 };
 struct t2 {
-		int z;
+		int x;
 	@0x4;
 };
 typedef unsigned long uint32;
