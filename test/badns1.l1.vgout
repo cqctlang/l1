@@ -1,4 +1,4 @@
-entry: var params, 4 locals, 0 temps
+entry: var params, 3 locals, 0 temps
 warning: name space references undefined types:
 	struct foo
 	struct blah
