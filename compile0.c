@@ -75,7 +75,6 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 	switch(e->kind){
 	case Ecast:
 		te = nullelist();
-		printf("yo\n");
 
 		// compile lvalue reference to expression,
 		// using dom, type bindings
