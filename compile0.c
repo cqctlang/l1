@@ -48,6 +48,22 @@ lvalblock(Expr *body)
 	return te;
 }
 
+/* FIXME: rationalize with compile1 */
+static void
+domandtype(Expr *e, Expr **dom, Expr **t)
+{
+	if(e->kind == Etickt){
+		if(e->e1)
+			*dom = e->e1;
+		else
+			*dom = 0;
+		*t = e->e2;
+	}else{
+		*dom = 0;
+		*t = e;
+	}
+}
+
 static Expr*
 compile_lval(U *ctx, Expr *e, int needaddr)
 {
@@ -59,19 +75,14 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 	switch(e->kind){
 	case Ecast:
 		te = nullelist();
+		printf("yo\n");
 
 		// compile lvalue reference to expression,
 		// using dom, type bindings
 		se = compile_lval(ctx, e->e2, needaddr);
 		te = Zcons(se, te);
 
-		if(e->e1->kind == Eticke){
-			dom = e->e1->e1;
-			t = e->e1->e2;
-		}else{
-			dom = doid("$dom");
-			t = e->e1;
-		}
+		domandtype(e->e1, &dom, &t);
 		t = compile0(ctx, t);
 		se = Zblock(Zlocals(1, "$tn"),
 			    Zset(doid("$tn"), t),
