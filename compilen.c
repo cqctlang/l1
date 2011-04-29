@@ -230,7 +230,9 @@ liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 
 	switch(e->kind){
 	case Ebase:
-	case Eid:
+		return e;
+	case Etypedef:
+		/* FIXME: we probably want to typedef definitions as well */
 		return e;
 	case Estruct:
 	case Eunion:
