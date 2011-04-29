@@ -854,7 +854,7 @@ mkctypesym(U *ctx, Expr *e)
 	return Zcall(G("mksym"), 3,
 		     mkctype(ctx, e->e1),
 		     id2sym(e->e2),
-		     mkctype(ctx, e->e3));
+		     e->e3 ? mkctype(ctx, e->e3) : Znil());
 }
 
 static Expr*
