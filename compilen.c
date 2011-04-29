@@ -827,8 +827,13 @@ mkctypename(U *ctx, Expr *e)
 	case Eptr:
 		return Zcall(G("mkctype_ptr"), 1, mkctypename(ctx, e->e1));
 	case Earr:
-		return Zcall(G("mkctype_array"), 2,
-			     mkctypename(ctx, e->e1), mkctype(ctx, e->e2));
+		if(e->e2)
+			return Zcall(G("mkctype_array"), 2,
+				     mkctypename(ctx, e->e1),
+				     mkctype(ctx, e->e2));
+		else
+			return Zcall(G("mkctype_array"), 1,
+				     mkctypename(ctx, e->e1));
 	case Efun:
 		se = Znull();
 		p = e->e2;

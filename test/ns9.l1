@@ -1,0 +1,25 @@
+ns = @names c32le { 
+	struct X {
+		@0x0	int A[];
+		@0x0	int B[10];
+		@0x4;
+	};
+	@0x0 int C[];
+	@0x0 int D[20];
+};
+
+@define F(t)
+{
+	printf("%t\n", t);
+	printf("isarray(%t) -> %d\n", t, isarray(t));
+	printf("arraynelm(%t) -> %a\n", t, arraynelm(t));
+	printf("subtype(%t) -> %t\n", t, subtype(t));
+}
+
+t = @typeof(struct ns`X);
+F(fieldtype(fields(t)[0]));
+F(fieldtype(fields(t)[1]));
+       
+F(fieldtype(looksym(ns, "C")));
+F(fieldtype(looksym(ns, "D")));
+
