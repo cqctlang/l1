@@ -145,6 +145,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		return 0;
 	}
 	if(cqctflags['p']){
+		printf("*** compilen ***\n");
 		printexpr(e);
 		printf("\n");
 	}
@@ -154,6 +155,11 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		phase[ntv] = "a";
 		tv[ntv++] = usec();
 	}
+	if(cqctflags['p']){
+		printf("*** compilea ***\n");
+		printexpr(e);
+		printf("\n");
+	}
 	if(docompile0(&ctx, e) != 0){
 		freeexpr(e);
 		return 0;
@@ -161,6 +167,11 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 	if(cqctflags['T']){
 		phase[ntv] = "0";
 		tv[ntv++] = usec();
+	}
+	if(cqctflags['p']){
+		printf("*** compile0 ***\n");
+		printexpr(e);
+		printf("\n");
 	}
 	if(docompileg(&ctx, e) != 0){
 		freeexpr(e);
@@ -188,14 +199,14 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 	}
 	if(docompile1(&ctx, e) != 0)
 		return 0;
-	if(0 && cqctflags['p']){
-		xprintf("compile1:\n");
-		printexpr(e);
-		xprintf("\n");
-	}
 	if(cqctflags['T']){
 		phase[ntv] = "1";
 		tv[ntv++] = usec();
+	}
+	if(cqctflags['p']){
+		printf("*** compile1 ***\n");
+		printexpr(e);
+		printf("\n");
 	}
 
 	if(cqctflags['6']){

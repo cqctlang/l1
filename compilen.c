@@ -894,8 +894,23 @@ docompilen(U *ctx, Expr *e)
 		return 0;
 	e = enumincs(ctx, e);
 	e = enumsub(ctx, 0, e);
+	if(cqctflags['p']){
+		printf("*** enumincs+enumsub ***\n");
+		printexpr(e);
+		printf("\n");
+	}
 	e = lift(ctx, e);    /* lift sues from interior of names decls */
+	if(cqctflags['p']){
+		printf("*** lift ***\n");
+		printexpr(e);
+		printf("\n");
+	}
 	e = tie(ctx, e);     /* tie specifiers to declarators */
+	if(cqctflags['p']){
+		printf("*** tie ***\n");
+		printexpr(e);
+		printf("\n");
+	}
 	e = names(ctx, e);   /* load names tables */
 	e = mkctype(ctx, e); /* translate type names and specs to types */
 	return e;
