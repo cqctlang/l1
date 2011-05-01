@@ -113,11 +113,20 @@ freelits(Lits *lits)
 }
 
 Expr*
+mkexpr()
+{
+	Val v;
+	v = malq(Qexpr);
+	quard(v);
+	return (Expr*)v;
+}
+
+Expr*
 newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 {
 	Expr *e;
 
-	e = emalloc(sizeof(Expr));
+	e = mkexpr();
 	e->kind = kind;
 	e->e1 = e1;
 	e->e2 = e2;
@@ -158,50 +167,6 @@ newgopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
 	return e;
 }
 
-void
-freeexpr(Expr *e)
-{
-	Expr *p;
-
-	return;
-	if(e == 0)
-		return;
-
-	if(e->kind == Eelist){
-		p = e;
-		while(p->kind == Eelist){
-			freeexpr(p->e1);
-			e = p->e2;
-			efree(p);
-			p = e;
-		}
-		freeexpr(p);
-		return;
-	}
-
-	switch(e->kind){
-	case Eid:
-	case Elabel:
-	case Egoto:
-	case E_tg:
-	case E_tid:
-		efree(e->id);
-		break;
-	case Econsts:
-		freelits(e->lits);
-		break;
-	default:
-		break;
-	}
-	freeexpr(e->e1);
-	freeexpr(e->e2);
-	freeexpr(e->e3);
-	freeexpr(e->e4);
-	if(e->xp)
-		freeexprx(e);
-	efree(e);
-}
-
 /* intentionally does not copy e->xp except Ekon */
 /* FIXME: since we're using id in many nodes,
    check e->id rather than switch on type */
@@ -213,7 +178,7 @@ copyexpr(Expr *e)
 	if(e == 0)
 		return 0;
 
-	ne = emalloc(sizeof(Expr));
+	ne = mkexpr();
 	ne->kind = e->kind;
 	ne->attr = e->attr;
 	ne->src = e->src;

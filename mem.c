@@ -189,6 +189,7 @@ struct Stats
 } Stats;
 
 static int freecl(Head*);
+static int xfreeexpr(Head*);
 static int freefd(Head*);
 static int freestr(Head*);
 
@@ -198,6 +199,7 @@ static Val* itercl(Head*, Ictx*);
 static Val* itercode(Head*, Ictx*);
 static Val* itercval(Head*, Ictx*);
 static Val* iterdom(Head*, Ictx*);
+static Val* iterexpr(Head*, Ictx*);
 static Val* iterfd(Head*, Ictx*);
 static Val* iterns(Head*, Ictx*);
 static Val* iterpair(Head*, Ictx*);
@@ -217,6 +219,7 @@ static Qtype qs[Qnkind] = {
 	[Qcl]	 = { "closure", sizeof(Closure), 1, freecl, itercl },
 	[Qcode]	 = { "code", sizeof(Code), 1, freecode, itercode },
 	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, iterdom },
+	[Qexpr]	 = { "expr", sizeof(Expr), 1, xfreeexpr, iterexpr },
 	[Qfd]	 = { "fd", sizeof(Fd), 0, freefd, iterfd },
 	[Qlist]	 = { "list", sizeof(List), 0, 0, iterlist },
 	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
@@ -245,6 +248,30 @@ freecl(Head *hd)
 	cl = (Closure*)hd;
 	efree(cl->display);
 	efree(cl->id);
+	return 1;
+}
+
+static int
+xfreeexpr(Head *hd)
+{
+	Expr *e;
+	e = (Expr*)hd;
+	switch(e->kind){
+	case Eid:
+	case Elabel:
+	case Egoto:
+	case E_tg:
+	case E_tid:
+		efree(e->id);
+		break;
+	case Econsts:
+		freelits(e->lits);
+		break;
+	default:
+		break;
+	}
+	if(e->xp)
+		freeexprx(e);
 	return 1;
 }
 
@@ -353,10 +380,14 @@ itercode(Head *hd, Ictx *ictx)
 {
 	Code *code;
 	code = (Code*)hd;
-	if(ictx->n > 0)
+	switch(ictx->n++){
+	case 0:
+		return (Val*)&code->konst;
+	case 1:
+		return (Val*)&code->src;
+	default:
 		return GCiterdone;
-	ictx->n++;
-	return (Val*)&code->konst;
+	}
 }
 
 static Val*
@@ -387,6 +418,25 @@ iterdom(Head *hd, Ictx *ictx)
 		return (Val*)&dom->ns;
 	case 2:
 		return (Val*)&dom->name;
+	default:
+		return GCiterdone;
+	}
+}
+
+static Val*
+iterexpr(Head *hd, Ictx *ictx)
+{
+	Expr *e;
+	e = (Expr*)hd;
+	switch(ictx->n++){
+	case 0:
+		return (Val*)&e->e1;
+	case 1:
+		return (Val*)&e->e2;
+	case 2:
+		return (Val*)&e->e3;
+	case 3:
+		return (Val*)&e->e4;
 	default:
 		return GCiterdone;
 	}

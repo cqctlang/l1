@@ -201,6 +201,7 @@ struct Liti {
 } Liti;
 
 struct Expr {
+	Head hd;
 	Kind kind;
 	Expr *e1;
 	Expr *e2;
@@ -794,8 +795,8 @@ Expr*		doticktsrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 void		finiparse(void);
 Expr*		flatten(Expr *e);
-void		freeexpr(Expr*);
 void		freelits(Lits *lits);
+#define		freeexpr(e)
 void		initparse(void);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);
