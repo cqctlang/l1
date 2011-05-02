@@ -546,7 +546,7 @@ labels(U *ctx, Expr *e, HT *ls)
 	case Elabel:
 		id = e->id;
 		if(hgets(ls, id, strlen(id)))
-			cposterror(ctx, e, "duplicate label: %s", id);
+			cerror(ctx, e, "duplicate label: %s", id);
 		else{
 			e->attr = Unusedlabel;
 			hputs(ls, id, strlen(id), e);
@@ -588,7 +588,7 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		id = e->id;
 		q = hgets(ls, id, strlen(id));
 		if(q == 0)
-			cposterror(ctx, e, "undefined label: %s", id);
+			cerror(ctx, e, "undefined label: %s", id);
 		else{
 			p = q;
 			p->attr = Usedlabel;
@@ -617,7 +617,7 @@ check1label(void *u, char *k, void *q)
 	USED(k);
 	p = q;
 	if(p->attr == Unusedlabel)
-		cposterror((U*)u, p, "unused label: %s", p->id);
+		cerror((U*)u, p, "unused label: %s", p->id);
 }
 
 static void
@@ -704,14 +704,14 @@ compile0(U *ctx, Expr* e)
 	return e;
 }
 
-int
+Expr*
 docompile0(U *ctx, Expr *e)
 {
  	/* expr lists ensure we do not have to return a new root Expr */
 	if(e->kind != Eelist && e->kind != Enull)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
-		return -1;	/* error */
+		return 0;
 	compile0(ctx, e);
-	return ctx->errors;
+	return e;
 }

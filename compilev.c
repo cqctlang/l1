@@ -944,12 +944,12 @@ pass5(Expr *e, HT *ls, Exprs *les)
 }
 
 Expr*
-docompilev(U *ctx, Expr *e, Toplevel *top)
+docompilev(U *ctx, Expr *e)
 {
 	pass0(e);
 	pass0_5(e, 0);
 	pass1(e, 0);
-	pass2(e, 0, top->env);
+	pass2(e, 0, ctx->top->env);
 	pass3(e, 0);
 	if(0 && ctx)
 		pass4(ctx, e, 0);

@@ -478,6 +478,8 @@ struct U {
 	Expr *el;		/* parser accumulator */
 	unsigned errors;
 	Xfd *out;
+	Toplevel *top;		/* toplevel (compiler) */
+	char *argsid;		/* toplevel arguments identifier (compiler) */
 } U;
 
 typedef
@@ -836,25 +838,25 @@ Expr*		docompileq(U *ctx, Expr *e);
 Expr*		docompilen(U *ctx, Expr *e);
 
 /* compilea.c */
-int		docompilea(U *ctx, Expr *e);
+Expr*		docompilea(U *ctx, Expr *e);
 
 /* compile0.c */
-int		docompile0(U *ctx, Expr *e);
+Expr*		docompile0(U *ctx, Expr *e);
 
 /* compileg.c */
-int		docompileg(U *ctx, Expr *e);
+Expr*		docompileg(U *ctx, Expr *e);
 
 /* compilel.c */
-int		docompilel(U *ctx, Expr *e);
+Expr*		docompilel(U *ctx, Expr *e);
 
 /* compilei.c */
-int		docompilei(U *ctx, Expr *e);
+Expr*		docompilei(U *ctx, Expr *e);
 
 /* compile1.c */
-int		docompile1(U *ctx, Expr *e);
+Expr*		docompile1(U *ctx, Expr *e);
 
 /* compileb.c */
-Expr*		docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid);
+Expr*		docompileb(U *ctx, Expr *e);
 
 /* compileu.c */
 Expr*		docompileu(U *ctx, Expr *e);
@@ -869,7 +871,7 @@ Expr*		docompilec(U *ctx, Expr *e);
 Expr*		docompiles(U *ctx, Expr *e);
 
 /* compilev.c */
-Expr*		docompilev(U *ctx, Expr *el, Toplevel *top);
+Expr*		docompilev(U *ctx, Expr *el);
 void		freeconst(void *u, char *id, void *v);
 void		freeexprx(Expr *e);
 int		issimple(Expr *e);
@@ -1038,7 +1040,6 @@ Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
 
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
-void		cposterror(U *ctx, Expr *e, char *fmt, ...);
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
 void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 Expr*		doid(char*);

@@ -279,7 +279,7 @@ rmscope(U *ctx, Expr *e)
 }
 
 Expr*
-docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
+docompileb(U *ctx, Expr *e)
 {
 	Src s;
 	Xenv *lex;
@@ -288,14 +288,14 @@ docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 		return 0;	/* error */
 
 	e = defloc(ctx, e, 0);
-	e = globals(ctx, e, top->env);
-	if(argsid){
+	e = globals(ctx, e, ctx->top->env);
+	if(ctx->argsid){
 		lex = mkxenv(0);
-		xenvbind(lex, argsid, argsid);
+		xenvbind(lex, ctx->argsid, ctx->argsid);
 	}else
 		lex = 0;
-	e = toplevel(ctx, e, top->env, lex);
-	e = resolve(ctx, e, top->env, lex, 0, 0);
+	e = toplevel(ctx, e, ctx->top->env, lex);
+	e = resolve(ctx, e, ctx->top->env, lex, 0, 0);
 	if(lex)
 		freexenv(lex);
 	e = rmscope(ctx, e);
@@ -307,8 +307,8 @@ docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid)
 	 * top-level source line info in errors.
 	 */
 	s = e->src;
-	envgetbind(top->env, "$$");
-	e = Zlambda(argsid ? Zvararg(doid(argsid)) : nullelist(),
+	envgetbind(ctx->top->env, "$$");
+	e = Zlambda(ctx->argsid ? Zvararg(doid(ctx->argsid)) : nullelist(),
 		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
 	putsrc(e, &s);
 	return e;

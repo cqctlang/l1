@@ -479,14 +479,14 @@ compile1(U *ctx, Expr *e)
 	}
 }
 
-int
+Expr*
 docompile1(U *ctx, Expr *e)
 {
  	/* expr lists ensure we do not have to return a new root Expr */
 	if(e->kind != Eelist && e->kind != Enull)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
-		return -1;	/* error */
+		return 0;	/* error */
 	compile1(ctx, e);
-	return 0;
+	return e;
 }

@@ -737,14 +737,14 @@ compilea(U *ctx, Expr* e)
 	return e;
 }
 
-int
+Expr*
 docompilea(U *ctx, Expr *e)
 {
  	/* expr lists ensure we do not have to return a new root Expr */
 	if(e->kind != Eelist && e->kind != Enull)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
-		return -1;	/* error */
+		return 0;
 	compilea(ctx, e);
-	return 0;
+	return e;
 }

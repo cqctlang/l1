@@ -287,16 +287,16 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 	}
 }
 
-int
+Expr*
 docompilei(U *ctx, Expr *e)
 {
  	/* expr lists ensure we do not have to return a new root Expr */
 	if(e->kind != Eelist && e->kind != Enull)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
-		return -1;	/* error */
+		return 0;	/* error */
 	loops(ctx, e, 0, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);
-	return ctx->errors;
+	return e;
 }

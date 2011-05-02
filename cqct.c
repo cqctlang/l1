@@ -49,35 +49,36 @@ cqctcompilex(Expr *e, Toplevel *top, char *argsid)
 	U ctx;
 
 	memset(&ctx, 0, sizeof(ctx));
+	ctx.top = top;
+	ctx.argsid = argsid;
 	ctx.out = &top->out;
 	e = docompileq(&ctx, e);
 	if(e == 0)
 		return 0;
-	if(docompilen(&ctx, e) != 0)
+	e = docompilen(&ctx, e);
+	if(e == 0)
 		return 0;
-	if(docompilea(&ctx, e) != 0)
+	e = docompilea(&ctx, e);
+	if(e == 0)
 		return 0;
-	if(docompile0(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompile0(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
-	if(docompileg(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompileg(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
-	if(docompilel(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompilel(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
-	if(docompilei(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompilei(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
-	if(docompile1(&ctx, e) != 0)
+	e = docompile1(&ctx, e);
+	if(e == 0)
 		return 0;
 	return e;
 	resetuniqid();
-	e = docompileb(&ctx, e, top, argsid);
+	e = docompileb(&ctx, e);
 	if(e == 0)
 		return 0;
 	checkxp(e);
@@ -107,6 +108,8 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 	unsigned i, ntv;
 
 	memset(&ctx, 0, sizeof(ctx));
+	ctx.top = top;
+	ctx.argsid = argsid;
 	ctx.out = &top->out;
 	if(0 && cqctflags['p']){
 		xprintf("input:\n");
@@ -125,20 +128,6 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		phase[ntv] = "q";
 		tv[ntv++] = usec();
 	}
-#if 0
-	if(dotypes(&ctx, e) != 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "types";
-		tv[ntv++] = usec();
-	}
-	if(docompilens(&ctx, e) != 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "ns";
-		tv[ntv++] = usec();
-	}
-#endif
 	e = docompilen(&ctx, e);
 	if(e == 0){
 		printf("compilen failed\n");
@@ -149,7 +138,8 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		printexpr(e);
 		printf("\n");
 	}
-	if(docompilea(&ctx, e) != 0)
+	e = docompilea(&ctx, e);
+	if(e == 0)
 		return 0;
 	if(cqctflags['T']){
 		phase[ntv] = "a";
@@ -160,10 +150,9 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		printexpr(e);
 		printf("\n");
 	}
-	if(docompile0(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompile0(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
 	if(cqctflags['T']){
 		phase[ntv] = "0";
 		tv[ntv++] = usec();
@@ -173,31 +162,29 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		printexpr(e);
 		printf("\n");
 	}
-	if(docompileg(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompileg(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
 	if(cqctflags['T']){
 		phase[ntv] = "g";
 		tv[ntv++] = usec();
 	}
-	if(docompilel(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompilel(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
 	if(cqctflags['T']){
 		phase[ntv] = "l";
 		tv[ntv++] = usec();
 	}
-	if(docompilei(&ctx, e) != 0){
-		freeexpr(e);
+	e = docompilei(&ctx, e);
+	if(e == 0)
 		return 0;
-	}
 	if(cqctflags['T']){
 		phase[ntv] = "i";
 		tv[ntv++] = usec();
 	}
-	if(docompile1(&ctx, e) != 0)
+	e = docompile1(&ctx, e);
+	if(e == 0)
 		return 0;
 	if(cqctflags['T']){
 		phase[ntv] = "1";
@@ -209,6 +196,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		printf("\n");
 	}
 
+#if 0
 	if(cqctflags['6']){
 		resetuniqid();
 		if(cqctflags['q']){
@@ -216,7 +204,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 			printcqct(e);
 			xprintf("\n");
 		}
-		e = docompileb(&ctx, e, top, argsid);
+		e = docompileb(&ctx, e);
 		if(e == 0)
 			return 0;
 		checkxp(e);
@@ -279,7 +267,8 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		}
 		return 0;
 	}else{
-		e = docompileb(&ctx, e, top, argsid);
+#endif
+		e = docompileb(&ctx, e);
 		if(e == 0)
 			return 0;
 		checkxp(e);
@@ -287,7 +276,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 			phase[ntv] = "2";
 			tv[ntv++] = usec();
 		}
-		e = docompilev(&ctx, e, top);
+		e = docompilev(&ctx, e);
 		if(e == 0)
 			return 0;
 		if(cqctflags['T']){
@@ -309,7 +298,6 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 					phase[i+1], tv[i+1]-tv[i]);
 		}
 		return mkvalcl(cl);
-	}
 }
 
 Val
