@@ -48,6 +48,7 @@ char* S[] = {
 	[Edefault] =	"Edefault",
 	[Edefconst] =	"Edefconst",
 	[Edefine] =	"Edefine",
+	[Edefloc] =	"Edefloc",
 	[Edefrec] =	"Edefrec",
 	[Ederef] =	"Ederef",
 	[Ediv] =	"Ediv",
@@ -377,7 +378,11 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Edefine:
-		xprintf("@define ");
+	case Edefloc:
+		if(e->kind == Edefine)
+			xprintf("@define ");
+		else
+			xprintf("@defloc ");
 		printcqct0(e->e1, ni);
 		if(e->e2->kind == Eid){
 			xprintf(" ");
@@ -416,8 +421,8 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("#%s", e->id);
 		break;
 	case E_tg:
-		xprintf("#%s = ", e->id);
-		printcqct0(e->e1, ni);
+		xprintf("#%s = ", e->e1->id);
+		printcqct0(e->e2, ni);
 		break;
 	case Eellipsis:
 		xprintf("...");

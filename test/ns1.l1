@@ -22,7 +22,7 @@
 };
 
 @define foo(){
-	@local ns, fn, tab, vec, i;
+	@local ns, tab, vec, i;
 
  	ns = @names c32le {
  		typedef struct foo foo_t;
@@ -55,8 +55,7 @@
 		@0x100 struct t2 { int z; @0x4; } x;
  	};
 
-	fn = nsenumtype(ns);
-	vec = tabvals(fn(ns));
+	vec = tabvals(ns.enumtype());
 	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
 };

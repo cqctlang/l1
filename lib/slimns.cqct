@@ -70,7 +70,7 @@
 		}else if(isenum(t)){
 			fprintf(fd, "%s %s {\n", suekind(t), suetag(t));
 			ens = enumconsts(t);
-			for(i = 0; i < veclen(ens); i++){
+			for(i = 0; i < length(ens); i++){
 				en = ens[i];
 				id = en[0]; /* FIXME: accessor? */
 				if(!checket(t, id))
@@ -81,7 +81,7 @@
 		}else if(issu(t)){
 			fprintf(fd, "%s %s {\n", suekind(t), suetag(t));
 			flds = fields(t);
-			for(i = 0; i < veclen(flds); i++){
+			for(i = 0; i < length(flds); i++){
 				fld = vecref(flds, i);
 				off = fieldoff(fld);
 				ft = fieldtype(fld);

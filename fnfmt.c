@@ -408,8 +408,6 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return 0;
 	case Qnil:
 		return fmtputs0(vm, f, "<nil>");
-	case Qnull:
-		return fmtputs0(vm, f, "<null>");
 	case Qbox:
 		if(fmtputs0(vm, f, "<box >"))
 			return -1;

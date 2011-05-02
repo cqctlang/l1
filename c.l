@@ -28,8 +28,8 @@ static int chars(YYSTYPE *lvalp, int);
 %}
 
 %%
-@include[ \t]*\"[^\"]+\"[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
-@include[ \t]*\<[^\<\>]+\>[ \t]* { count(ctx); tryinclude(ctx, yytext); }
+@include[ \t]*\"[^\<\>\"]+\"[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
+@include[ \t]*\<[^\<\>\"]+\>[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
 <<EOF>>                 { if(maybepopyy(ctx) == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
@@ -38,6 +38,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@const"		{ count(ctx); }
 "@containerof"		{ count(ctx); return(CONTAINEROF); }
 "@define"		{ count(ctx); return(DEFINE); }
+"@defloc"		{ count(ctx); return(DEFLOC); }
 "@global"		{ count(ctx); return(GLOBAL); }
 "@lambda"		{ count(ctx); return(LAMBDA); }
 "@lazyapply"		{ count(ctx); return(LAPPLY); }
@@ -144,7 +145,7 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+ { count(ctx); return(chars(lvalp, STRING_LITERAL));
 "`"			{ count(ctx); return('`'); }
 "#"			{ count(ctx); return('#'); }
 
-[ \t\v\n\f]		{ count(ctx); }
+[ \t\v\n\f\r]		{ count(ctx); }
 .			{ cerror(ctx, 0, "unexpected token: '%c'", yytext[0]); }
 %%
 

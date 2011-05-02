@@ -38,7 +38,6 @@ forks: forks.o
 
 list: list.o
 	$(CC) $(CFLAGS) -o $@ $^
-	dwarf2cqct < $@ > $@.names
 
 sig: sig.o
 	$(CC) $(CFLAGS) -o $@ $^

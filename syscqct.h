@@ -57,6 +57,7 @@ enum{
 	Edefault,
 	Edefconst,
 	Edefine,
+	Edefloc,
 	Edefrec,
 	Ederef,
 	Ediv,
@@ -302,6 +303,7 @@ struct As {
 	/* cached methods */
 	Closure *get;
 	Closure *put;
+	Closure *ismapped;
 	Closure *map;
 	Closure *dispatch;
 };
@@ -773,7 +775,6 @@ extern void *GCiterdone;
 extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
-extern Val Xnulllist;
 extern Code *kcode, *cccode, *tcccode;
 
 /* c.l */
@@ -911,6 +912,7 @@ Val		attroff(Val o);
 void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
+Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
 void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
 Xtypename*	chasetype(Xtypename *xtn);
@@ -955,7 +957,6 @@ Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);
-As*		mkmas(Str *s);
 Ns*		mknstab(Tab *mtab, Str *name);
 Xtypename*	mkptrxtn(Xtypename *t, Rkind rep);
 Range*		mkrange(Cval *beg, Cval *len);
@@ -965,7 +966,7 @@ Val		mkvalbox(Val boxed);
 Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
-Val		mkvalrange(Cval *beg, Cval *len);
+Xtypename*	mkvoidxtn(void);
 As*		mkzas(Imm len);
 Code*		newcode(void);
 void		nexterror(VM *vm) NORETURN;
@@ -991,6 +992,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvallist(x)	((Val)(x))
 #define mkvalns(x)	((Val)(x))
 #define mkvalpair(x)	((Val)(x))
+#define mkvalrange(x)	((Val)(x))
 #define mkvalrd(x)	((Val)(x))
 #define mkvalrec(x)	((Val)(x))
 #define mkvalstr(x)	((Val)(x))
@@ -1204,7 +1206,6 @@ void		fnrec(Env *env);
 
 /* str.c */
 int		equalstr(Str *a, Str *b);
-int		equalstrc(Str *a, char *b);
 void		fnstr(Env *env);
 u32		hashstr(Val);
 void		l1_strref(VM *vm, Imm argc, Val *argv, Val *rv);

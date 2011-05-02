@@ -14,36 +14,22 @@ int
 Strcmp(Str *s1, Str *s2)
 {
 	unsigned char *p1, *p2;
+	int cmp;
 	Imm l1, l2;
 
 	p1 = (unsigned char*)strdata(s1);
 	p2 = (unsigned char*)strdata(s2);
 	l1 = s1->len;
 	l2 = s2->len;
-	while(l1 && l2){
-		if(*p1 < *p2)
-			return -1;
-		else if(*p1 > *p2)
-			return 1;
-		p1++;
-		p2++;
-		l1--;
-		l2--;
-	}
-	if(l1)
-		return 1;
-	else if(l2)
+	cmp = memcmp(p1, p2, MIN(l1, l2));
+	if(cmp != 0)
+		return cmp;
+	if(l1 == l2)
+		return 0;
+	else if(l1 < l2)
 		return -1;
 	else
-		return 0;
-}
-
-int
-equalstrc(Str *a, char *b)
-{
-	if(a->len != strlen(b))
-		return 0;
-	return memcmp(strdata(a), b, a->len) ? 0 : 1;
+		return 1;
 }
 
 int
@@ -51,7 +37,7 @@ equalstr(Str *a, Str *b)
 {
 	if(a->len != b->len)
 		return 0;
-	return memcmp(strdata(a), strdata(b), a->len) ? 0 : 1;
+	return Strcmp(a, b) ? 0 : 1;
 }
 
 Str*
@@ -153,31 +139,14 @@ mkstrn(Imm len)
 static Str*
 mkstrmalloc(Imm len)
 {
-	Strmalloc *sa;
-	sa = (Strmalloc*)malv(Qstr, sizeof(Strmalloc));
-	sa->s = emalloc(len);
-	sa->str.len = len;
-	sa->str.skind = Smalloc;
-	return (Str*)sa;
-}
-
-static Str*
-mkstrext(void *p, Imm len)
-{
-	Strperm *sp;
-	sp = (Strperm*)malv(Qstr, sizeof(Strperm));
-	sp->s = p;
-	sp->str.len = len;
-	sp->str.skind = Sperm;
-	return (Str*)sp;
+	return mkstrk(emalloc(len), len, Smalloc);
 }
 
 static void
-l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *len;
-	Str *s;
-	As *as;
+	void *p;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to malloc");
@@ -185,12 +154,24 @@ l1_malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 	len = valcval(argv[0]);
 	if(!isnatcval(len))
 		vmerr(vm, "malloc expects a non-negative length");
-	s = mkstrmalloc(len->val);
-	as = mkmas(s);
-	*rv = mkvalcval(mkdom(litdom->ns, as, mkstr0("malloc")),
-			mkptrxtn(litdom->ns->base[Vchar],
+	p = malloc(len->val);
+
+	/* FIXME: might be nice for ns to have cached void* */
+	*rv = mkvalcval(litdom,
+			mkptrxtn(mkvoidxtn(),
 				 litdom->ns->base[Vptr]->rep),
-			(uptr)strdata(s));
+			(uptr)p);
+}
+
+static void
+l1__free(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *p;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to malloc");
+	checkarg(vm, "malloc", argv, 0, Qcval);
+	p = valcval(argv[0]);
+	free((void*)(uptr)p->val);
 }
 
 static void
@@ -224,31 +205,6 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 		callput(vm, tcv->dom->as, tcv->val, lim, s);
 	}else
 		fatal("bug");
-}
-
-static void
-l1_mkstrext(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *p, *l;
-	void *a;
-	Str *s;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to mkstrext");
-	checkarg(vm, "mkstrext", argv, 0, Qcval);
-	checkarg(vm, "mkstrext", argv, 0, Qcval);
-	p = valcval(argv[0]);
-	l = valcval(argv[1]);
-	a = (void*)(uptr)p->val;
-
-	/* allocate before checking, in case allocation
-	   modifies set of managed ranges */
-	s = mkstrext(a, l->val);
-
-	/* check for intersection with managed range */
-	if(ismanagedrange(a, l->val))
-		vmerr(vm, "range includes managed address space");
-
-	*rv = mkvalstr(s);
 }
 
 static void
@@ -353,6 +309,29 @@ l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_strcmp(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *str1, *str2;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to strcmp");
+	str1 = valstrorcval(vm, "strstr", argv, 0);
+	str2 = valstrorcval(vm, "strstr", argv, 1);
+	switch(Strcmp(str1, str2)){
+	case -1:
+		*rv = mkvalcval2(cvalminus1);
+		break;
+	case 0:
+		*rv = mkvalcval2(cval0);
+		break;
+	case 1:
+		*rv = mkvalcval2(cval1);
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
+static void
 l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -414,10 +393,11 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnstr(Env *env)
 {
-	FN(malloc);
+	FN(_free);
+	FN(_malloc);
 	FN(memset);
 	FN(mkstr);
-	FN(mkstrext);
+	FN(strcmp);
 	FN(strput);
 	FN(strlen);
 	FN(strref);

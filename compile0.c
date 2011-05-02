@@ -172,8 +172,9 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			// $addr = {nsptr($dom)}$tmp
 			if(needaddr){
 				se = Zset(doid("$addr"),
-					  Zxcast(Zcall(G("nsptr"), 1,
-						       doid("$dom")),
+					  Zxcast(Zcall(G("mkctype_ptr"), 1,
+						       Zcall(G("mkctype_void"),
+							     0)),
 						 doid("$tmp")));
 				te = Zcons(se, te);
 			}

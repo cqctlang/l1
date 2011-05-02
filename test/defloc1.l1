@@ -1,0 +1,44 @@
+@define baz()
+{
+	printf("toplevel baz %a\n", x);
+}
+{
+	@define baz(x)
+	{
+		printf("interior baz %a\n", x);
+	}
+
+	baz('interior);
+}
+baz('toplevel);
+
+@define bar(x)
+{
+	printf("toplevel bar %a\n", x);
+}
+{
+	@local bar;
+	@define bar(x)
+	{
+		printf("interior bar %a\n", x);
+	}
+
+	bar('interior);
+}
+bar('toplevel);
+
+
+@define foo(x)
+{
+	printf("toplevel foo %a\n", x);
+}
+{
+	@defloc foo(x)
+	{
+		printf("interior foo %a\n", x);
+	}
+
+	foo('interior);
+}
+
+foo('toplevel);

@@ -133,28 +133,20 @@ efree(void *vp)
 }
 
 void*
-erealloc(void *vp, size_t old, size_t new)
+erealloc(void *p, size_t old, size_t new)
 {
-	size_t d;
-	char *p;
-	p = vp;
-	p -= sizeof(size_t);
-	/* assert(*(size_t*)p == old); */
-	p = realloc(p, new+sizeof(size_t));
-	if(p == 0)
-		fatal("out of memory");
-	*(size_t*)p = new;
-	p += sizeof(size_t);
+	char *q;
+	q = emalloc(new);
 	if(new > old){
-		d = new-old;
-		memset(p+old, 0, d);
-		cqctmeminuse += d;
-		cqctmemtotal += d;
+		memcpy(q, p, old);
+		cqctmeminuse += new-old;
+		cqctmemtotal += new-old;
 	}else{
-		d = old-new;
-		cqctmeminuse -= d;
+		memcpy(q, p, new);
+		cqctmeminuse -= old-new;
 	}
-	return p;
+	efree(p);
+	return q;
 }
 
 /* c = a - b */

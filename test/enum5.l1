@@ -18,8 +18,7 @@ ns = @names c32le {
 	};
 };
 
-fn = nsenumtype(ns);
-vec = tabvals(fn(ns));
+vec = tabvals(ns.enumtype());
 foreach(@lambda(t){
 		if(isenum(t))
 			foreach(@lambda(en){

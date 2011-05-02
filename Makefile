@@ -124,7 +124,7 @@ depend: $(L1C) Makefile
 	$(V)gcc $(INC) -MM $(L1C) > depend
 
 archive:
-	git archive --format=tar --prefix=l1/ HEAD > ../l1.tar
+	git archive --format=tar --prefix=l1/ HEAD | gzip -c > ../l1.tar.gz
 
 git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz

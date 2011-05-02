@@ -25,21 +25,26 @@
 <a href="#sec:functions">Functions</a><br />
 <a href="#sec:control">Control Operators</a><br />
 <a href="#sec:statements">Control Flow Statements</a><br />
-<a href="#sec:constants">Constants</a><br />
 <a href="#sec:records">Records</a><br />
 <br />
 <em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
+<a href="#sec:cvalues">Cvalues</a><br />
+<a href="#sec:ranges">Ranges</a><br />
 <a href="#sec:backtick">Backtick Operator</a><br />
 <a href="#sec:litdom">The Literal Domain</a><br />
 <a href="#sec:casts">Type and Domain Casting</a><br />
 <a href="#sec:mixeddom">Mixed-domain Expressions</a><br />
 <a href="#sec:cvalueops">C Operators</a><br />
+<a href="#sec:equivalence">Equivalence and other relations</a><br />
 <a href="#sec:pointers">Pointers</a><br />
 <br />
 <em>Defining Domains</em><br />
-<a href="#sec:mkdom">Domain constructor</a><br />
+<a href="#sec:objects">The object model</a><br />
+<a href="#sec:symbols">Symbols, Fields, Parameters</a><br />
 <a href="#sec:namespaces">Name spaces</a><br />
+<a href="#sec:rootnamespaces">Root name spaces</a><br />
+<a href="#sec:_at_names"><span class="val">@names</span></a><br />
 <a href="#sec:addressspaces">Address spaces</a><br />
 <a href="#sec:ctypes">Ctypes</a><br />
 <br />
@@ -50,17 +55,25 @@
 <a href="#sec:tables">Tables</a><br />
 <a href="#sec:characters">Characters</a><br />
 <a href="#sec:strings">Strings</a><br />
+<a href="#sec:pairs">Pairs</a><br />
+<br />
+<em>System Operations</em><br />
+<a href="#sec:storage">Storage Management</a><br />
+<a href="#sec:compile">Quotation, Compilation, and Evaluation</a><br />
 <br />
 <em>Built-in Libraries</em><br />
 <a href="#sec:io">I/O</a><br />
 <a href="#sec:fs">Filesystem Functions</a><br />
 <a href="#sec:fmt">Formatted Output</a><br />
 <a href="#sec:system">System Functions</a><br />
-<a href="#sec:other">Other Functions</a><br />
+<a href="#sec:mash">Compression and Hashing</a><br />
 <br />
-<br />
+<em>Implementation Details</em><br />
+<a href="#sec:runtime">L1 runtime</a><br />
 <a href="#sec:cinterface">C Interface</a><br />
 <br />
+<br />
+<a href="#sec:bib">Bibliography</a><br />
 <a href="#sec:synindex">Syntax Index</a><br />
 <a href="#sec:cindex">C Interface Index</a><br />
 <a href="#sec:fnindex">Built-in Function Index</a><br />
@@ -139,15 +152,14 @@ for common environments, such as x86 Linux systems.
 <p>
 Apart from domains and the C-based syntax, Cinquecento
 is a simple dynamic language with conventional
-functional semantics.  A dialect of Scheme at its
-heart, Cinquecento is lexically scoped, dynamically
-typed, properly tail recursive, and has first-class
-functions and automatic memory management.  Schemers
-will note departure in Cinquecento's model of integers
-(which rigorously emulates C's fixed precision
-semantics), the more imperative flavor of its built-in
-list data type, and the absence (today) of a compelling
-macro system.
+functional semantics.  A dialect of Scheme at heart,
+Cinquecento is lexically scoped, dynamically typed,
+properly tail recursive, and has first-class functions
+and automatic memory management.  Schemers will note
+departure in Cinquecento's model of integers (which
+rigorously emulates C's fixed precision semantics), the
+more imperative flavor of its built-in list data type,
+and the absence (today) of a compelling macro system.
 </p>
 
 <p>
@@ -210,15 +222,17 @@ The following are comments:
 
 <ul>
 <li>
-Input enclosed in <span class="val">/*</span>
-<span class="val">*/</span>;
+Input enclosed by <span class="val">/*</span>
+and <span class="val">*/</span>;
 </li>
 <li>
 Input between <span class="val">//</span>
 and the beginning of the next line;
 </li>
 <li>
-Lines beginning with <span class="val">#!</span>.
+Input enclosed by <span class="val">#!</span>
+and <span class="val">!#</span>.  (This syntax
+is intended for executable scripts on Unix.)
 </li>
 </ul>
 
@@ -230,9 +244,9 @@ The following are the keywords of Cinquecento.
 
 <div class="code">
 <!-- pipe through mc -60
-@const 
 @containerof
 @define
+@defloc
 @lambda 
 @let
 @local
@@ -240,6 +254,7 @@ The following are the keywords of Cinquecento.
 @names 
 @record 
 @typeof
+_Bool
 break 
 case 
 char 
@@ -269,16 +284,16 @@ volatile
 while 
 -->
 <pre>
-@const       break        float        switch 
-@containerof case         for          typedef 
-@define      char         if           union 
-@lambda      const        int          unsigned 
-@let         continue     long         void 
-@local       default      return       volatile
-@global      do           short        while 
-@names       double       signed 
-@record      else         sizeof 
-@typeof      enum         struct 
+@containerof _Bool        enum         struct 
+@define      break        float        switch 
+@defloc      case         for          typedef 
+@lambda      char         if           union 
+@let         const        int          unsigned 
+@local       continue     long         void 
+@global      default      return       volatile
+@names       do           short        while 
+@record      double       signed 
+@typeof      else         sizeof 
 </pre>
 </div>
 
@@ -494,7 +509,7 @@ been declared with <span class="id">@local</span>.
 </p>
 
 <p>
-A reference to an unbound variable is an error.
+A reference to an unbound global variable is an error.
 </p>
 
 <h4 id="sec:types">Types</h4>
@@ -508,7 +523,7 @@ belongs to the type.
 
 <p>
 Types with standard semantics include <em>string</em>,
-<em>function</em>, <em>record</em>, <em>record descriptor</em>,
+<em>pair</em>, <em>function</em>, <em>record</em>, <em>record descriptor</em>,
 and <em>file descriptor</em>.
 </p>
 
@@ -533,15 +548,7 @@ other type or equal to any other value.
 </p>
 
 <p>
-The <em>undefined</em> value is the value of
-uninitialized variables.  There is no literal
-expression for this value.
-</p>
-
-<p>
-There are no explicit numeric types.  In Cinquecento,
-all arithmetic is performed using C operators over
-values of type cvalue.
+There are no numeric types other than cvalue.
 </p>
 
 <p>
@@ -663,6 +670,19 @@ Name space
 
 <tr>
 <td>
+Pair
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:ispair">ispair(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
 Procedure
 </td>
 <td>
@@ -741,19 +761,6 @@ Table
 
 <tr>
 <td>
-Undefined
-</td>
-<td>
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:isundefined">isundefined(<span class="arg">val</span>)</span>
-</div>
-</div>
-</td>
-</tr>
-
-<tr>
-<td>
 Vector
 </td>
 <td>
@@ -767,37 +774,6 @@ Vector
 
 </table>
 </div>
-
-<!-- this is wrong: equal is like scheme equal,
-     but implemented only on lists for now -->
-
-<!-- <div class="docitem" id="fn:equal"> -->
-<!-- <div class="proto"> -->
-<!-- <div class="function"> -->
-<!-- <span class="id">equal(<span class="arg">v1</span>,<span class="arg">v2</span>)</span> -->
-<!-- </div> -->
-<!-- <div class="param"> -->
-<!-- <span class="arg">v1</span>: <span class="type">any value</span> -->
-<!-- </div> -->
-<!-- <div class="param"> -->
-<!-- <span class="arg">v2</span>: <span class="type">any value</span> -->
-<!-- </div> -->
-<!-- <div class="returns"> -->
-<!-- <span class="type">cvalue (1 or 0)</span> -->
-<!-- </div> -->
-<!-- </div> -->
-<!-- <div class="desc"> -->
-<!-- Compares <span class="arg">v1</span> -->
-<!-- and <span class="arg">v2</span> for equality. -->
-<!-- Generally two values are <span class="id">equal</span> -->
-<!-- if they are the same instance of an object (pointer equality). -->
-<!-- Several types define equality based on their value: -->
-<!-- <span class="type">ctype</span>, -->
-<!-- <span class="type">cvalue</span>, -->
-<!-- <span class="type">range</span>, and -->
-<!-- <span class="type">string</span>. -->
-<!-- </div> -->
-<!-- </div> -->
 
 
 <h4 id="sec:functions">Functions</h4>
@@ -943,6 +919,14 @@ is equivalent to
 </div>
 
 <p>
+The <span class="fnindex" id="syn:_at_defloc">@defloc</span> form
+is like <span class="fnindex" id="syn:_at_defloc">@define</span>,
+except that it forces the binding to be local to the innermost
+level of lexical scope.
+</p>
+
+
+<p>
 The built-in function <span class="id">apply</span>
 and the syntax form <span class="id">@lazyapply</span>
 are used to call functions.
@@ -951,7 +935,7 @@ are used to call functions.
 <div class="docitem" id="fn:apply">
 <div class="proto">
 <div class="function">
-<span class="id">apply(<span class="arg">fn</span>, <span class="arg">arg</span>, ...)</span>
+<span class="id">apply(<span class="arg">fn</span>, <span class="arg">arg</span>, ..., <span class="arg">list</span>)</span>
 </div>
 <div class="param">
 <span class="arg">fn</span>: <span class="type">function</span>
@@ -959,14 +943,20 @@ are used to call functions.
 <div class="param">
 <span class="arg">arg</span>: <span class="type">any value</span>
 </div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
 <div class="returns">
 <span class="type">see description</span>
 </div>
 </div>
 <div class="desc">
-Calls the function <span class="arg">fn</span>
-on the arguments <span class="arg">arg ... </span>
-and returns the value returned by the call.
+<span class="id">Apply</span> returns the result of
+applying the function <span class="arg">fn</span> to
+the remaining arguments.  The arguments
+<span class="arg">arg ... </span> comprise the leading
+arguments to <span class="arg">fn</span>; the elements
+of <span class="arg">list</span> comprise the remaining arguments.
 </div>
 </div>
 
@@ -986,14 +976,12 @@ and returns the value returned by the call.
 </div>
 </div>
 <div class="desc">
-Like <span class="id">apply</span>,
-<span class="id">@lazyapply</span>
-calls the function <span class="arg">fn</span>, but
-the arguments are evaluated lazily.  This is
-implemented by passing each argument expression <span class="arg">arg ... </span>
-as a procedure that, when called, 
-evaluates the argument expression.
-<span class="id">@lazyapply</span> returns the value returned by the call.
+<span class="id">@lazyapply</span> provides a lazy form of function application.
+Rather than evaluating the argument expressions,
+this form, when evaluated, constructs for each argument expression a separate procedure of
+no arguments that, when called, evaluates the expression.
+The function <span class="arg">fn</span> is applied to these thunks,
+and the resulting value is returned.
 </div>
 </div>
 
@@ -1075,6 +1063,50 @@ functions.
 </div>
 </div>
 
+
+<div class="docitem" id="fn:applyk">
+<div class="proto">
+<div class="function">
+<span class="id">applyk(<span class="arg">fn</span>, <span class="arg">succ</span>, <span class="arg">fail</span>, <span class="arg">arg</span>, ..., <span class="arg">list</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">succ</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">fail</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: <span class="type">any value</span>
+</div>
+<div class="param">
+<span class="arg">list</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Applyk</span> is like
+<span class="id"><a href="#fn:apply">apply</a></span>,
+but provides control over the outcome of function
+applications that cause an error to be raised.
+The function <span class="arg">fn</span>
+is applied to the arguments <span class="arg">arg ... list</span>
+in the same manner as <span class="id"><a href="#fn:apply">apply</a></span>.
+If the application causes an error to be raised,
+the same error message and stack trace that normally would be printed
+are printed, 
+then evaluation continues by calling the function
+<span class="arg">fail</span> with no arguments.
+Otherwise, the function <span class="arg">succ</span>
+is called with the result of the application as its
+single argument.
+</div>
+</div>
+
 <h4 id="sec:statements">Control Flow Statements</h4>
 
 <p>
@@ -1131,36 +1163,6 @@ None of the non-local control transfer statements
 (<span class="val">break</span>, <span class="val">continue</span>,
 <span class="val">goto</span>) can be used to leave
 or enter the body of a function.
-</p>
-
-<h4 id="sec:constants">Constants</h4>
-
-<p id="syn:_at_const">
-The <span class="id">@const</span> form defines constant expressions.
-The syntax is:
-</p>
-<div class="code">
-<pre>
-@const <span class="arg">id</span> = <span class="arg">expr</span>;
-</pre>
-</div>
-
-<p>
-The identifier <span class="arg">id</span> is bound to
-<span class="arg">expr</span> in a global constant name space.
-</p>
-
-<p>
-Occurrences of <span class="arg">id</span> in the current
-and subsequent input files are lexically
-replaced with <span class="arg">expr</span>.
-</p>
-
-<p>
-The constant name space is distinct from the top level
-environment and local scopes occupied by Cinquecento
-variables.  The use of the same identifier as both a constant
-and a variable has undefined behavior.  (This feature needs more work.)
 </p>
 
 
@@ -1310,10 +1312,35 @@ Returns the list of field names for the record descriptor
 </div>
 </div>
 <div class="desc">
-Returns a function that is a predicate for instances of
+Returns the predicate for instances of
 the record descriptor <span class="arg">rd</span>.  The
 function takes a single argument and returns non-zero
 if and only if the argument is an instance of <span class="arg">rd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdmk">
+<div class="proto">
+<div class="function">
+<span class="id">rdmk(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the constructor for instances of
+the record descriptor <span class="arg">rd</span>.  The
+function takes either zero arguments,
+in which case the fields of the new instance are bound to
+<span class="val">nil</span>, or exactly as many arguments
+as there are fields in the type,
+in which case the arguments are bound to the fields
+in the order they were given in the definition of
+the record descriptor.
 </div>
 </div>
 
@@ -1390,6 +1417,69 @@ Sets the format procedure of the record descriptor
 </div>
 </div>
 
+<p>
+Several functions are used by the implementation of the
+record system.
+</p>
+
+<div class="docitem" id="fn:mkrd">
+<div class="proto">
+<div class="function">
+<span class="id">mkrd(<span class="arg">name</span>,<span class="arg">fields</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">fields</span>: <span class="type">list of string</span>
+</div>
+<div class="returns">
+<span class="type">record descriptor</span>
+</div>
+</div>
+<div class="desc">
+Creates or updates the record descriptor for the record
+type named <span class="arg">name</span>.  The names of
+the fields of the record type are set, in order, to the
+strings in the list <span class="arg">fields</span>.
+The record descriptor is returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdgettab">
+<div class="proto">
+<div class="function">
+<span class="id">rdgettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="function">
+<span class="id">rdsettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+The record system maintains for each record descriptor
+a pair of tables, one that maps the name of a field to
+a function that accesses the field in an instance of the
+record, and one that maps the name of a field to a function
+that updates the value of field.
+<span class="id">Rdgettab</span> returns the
+table of accessor functions.  An accessor function
+expects as argument an instance of the record descriptor and
+returns the value of the corresponding
+field in the record.  <span class="id">rdsettab</span> returns the
+table of update functions.  An update function expects
+as arguments an instance of the record descriptor and a new value.
+It sets the field in the record to the new value and returns the new
+value.
+</div>
+</div>
+
+
 
 <h4 id="sec:domainover">Overview of Domains</h4>
 
@@ -1399,11 +1489,20 @@ of Cinquecento domains.
 </p>
 
 <p>
-A domain is an interface to three features of a program
-in execution: its memory, symbols, and types.  This
-interface is defined procedurally; like an object in an
-object-oriented language, a domain encapsulates the
-implementation of a predefined set of operations.
+Domains are Cinquecento objects that are used to
+represent programs in execution.  This representation
+is based on the idea of providing an interface to
+program state that is based on the syntax of C
+programming language.  Domains represent three aspects
+of a program in execution: its memory, symbols, and
+types.
+</p>
+
+</p>
+The domain interface is defined procedurally: like an
+object in an object-oriented language, a domain
+encapsulates the implementation of a predefined set of
+operations.
 </p>
 
 <p>
@@ -1423,17 +1522,24 @@ These objects define complementary subsets of the domain interface.
 <p>
 An <span class="type">address space</span> represents the memory of a C program:
 a mapping of byte addresses to byte values.
-It encapsulates four functions.
+It encapsulates three functions.
 Two access functions,
 <span class="type">get</span>
 and <span class="type">put</span>,
 read and write memory.
-<span class="type">Ismapped</span>
-tests whether a contiguous
-address range is accessible.
 <span class="type">Map</span>
 returns the accessible address
 ranges.
+</p>
+
+<p>
+The
+prototypical address space represents the live memory
+of a running programs, but address spaces can also
+represent less dynamic content, such as the content of
+files or strings.  More generally, address spaces can
+be composed of ordinary Cinquecento functions that
+manage a view of arbitrary synthetic storage.
 </p>
 
 <p>
@@ -1524,6 +1630,175 @@ such as access to registers, process control,
 and breakpoint control.
 </p>
 
+<h4 id="sec:cvalues">Cvalues</h4>
+
+<p>
+Cvalues represent typed values of domains.  Cvalues are
+limited to values of scalar types, including integers
+and pointers to arbitrary types (and, someday,
+floating-point values).  Through the use of the literal
+domain, cvalues are the type by which ordinary
+arithmetic is provided in Cinquecento.
+</p>
+
+<p>
+The
+predicate <a href="#fn:iscvalue"><span class="fnindex">iscvalue</span></a>
+tests whether a value is a cvalue.
+</p>
+
+<p>
+The type of a cvalue may be obtained by <a href="#syn:_at_typeof"><span class="fnindex">@typeof</span></a>.
+</p>
+
+<p>
+Functions that operate on cvalues include:
+</p>
+
+<div class="docitem" id="fn:domof">
+<div class="proto">
+<div class="function">
+<span class="id">domof(<span class="arg">v</span>))</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">domain</span>
+</div>
+</div>
+<div class="desc">
+Returns the domain of <span class="arg">v</span>.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:cvalcmp">
+<div class="proto">
+<div class="function">
+<span class="id">cvalcmp(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">cvalue</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (-1, 0, or 1)
+</div>
+</div>
+<div class="desc">
+Returns the result of comparing
+cvalues <span class="arg">u</span>
+and <span class="arg">v</span> in the following way.
+Domain promotion and the usual conversions are
+performed on the operands, and the underlying values of
+the resulting cvalues are compared.  Returns
+-1, 0, or 1 if <span class="arg">u</span> is,
+respectively,
+less than, equal to, or greater than <span class="arg">v</span>.
+</div>
+</div>
+
+
+<h4 id="sec:ranges">Ranges</h4>
+
+<p>
+A <em>range</em> is an object that represents a
+contiguous span of locations in an address space as a
+pair of cvalues: the offset of the beginning of the
+span, and its length.
+</p>
+
+<p>
+The predicate
+<a href="#fn:isrange"><span class="id">isrange</span></a>
+tests whether a value is a range.
+</p>
+
+<p>
+The functions that operate on ranges are:
+</p>
+
+<div class="docitem" id="fn:mkrange">
+<div class="proto">
+<div class="function">
+<span class="id">mkrange(<span class="arg">beg</span>,<span class="arg">len</span>)</span>
+</div>
+<div class="param">
+<span class="arg">beg</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">range</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new range representing the span
+of <span class="arg">len</span> bytes beginning
+at <span class="arg">beg</span>.  <span class="arg">Len</span>
+must be greater than zero.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangebeg">
+<div class="proto">
+<div class="function">
+<span class="id">rangebeg(<span class="arg">r</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the beginning of the range <span class="arg">r</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangelen">
+<div class="proto">
+<div class="function">
+<span class="id">rangelen(<span class="arg">r</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the length of the range <span class="arg">r</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:isrinrs">
+<div class="proto">
+<div class="function">
+<span class="id">isrinrs(<span class="arg">r</span>,<span class="arg">rs</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="param">
+<span class="arg">rs</span>: <span class="type">vector or list of ranges</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This predicate returns non-zero if the
+range <span class="arg">r</span> is contained in the
+set of ranges <span class="arg">rs</span>, possibly by
+spanning one or more adjoined ranges.  The elements
+of <span class="arg">rs</span> are assumed to be
+non-overlapping and sorted by increasing offset.
+</div>
+</div>
 
 <h4 id="sec:backtick">Backtick Operator</h4>
 
@@ -1571,46 +1846,26 @@ In general, the syntax for symbol resolution is:
 </p>
 <div class="code">
 <pre>
-<span class="arg">domain</span>`<span class="arg">identifier</span>
+<span class="arg">dom</span>`<span class="arg">id</span>
 </pre>
 </div>
 
 <p>
-where <span class="arg">domain</span> is a
-variable bound to a domain (not an expression that evaluates to a domain), and
-<span class="arg">identifier</span> is a symbol defined in the domain.
-
+where <span class="arg">dom</span> is a variable bound
+to a domain (<em>not</em> an expression that evaluates
+to a domain), and <span class="arg">id</span> is an identifier.
+The evaluator implicitly calls
+<span class="val"><a href="#fn:looksym">looksym</a>(<span class="arg">dom</span>,<span class="arg">id</span>)</span> to resolve the symbol.
 </p>
 
 <p>
-
-To obtain the type and location
-associated with the symbol, the evaluator implicitly calls
-<span class="val"><span class="arg">domain</span>.looksym(<span class="arg">identifier</span>)</span>
-</p>
-
-
-<!-- <p> -->
-<!-- The resulting reference may be used -->
-<!-- to examine or modify the value stored at the location.  When the -->
-<!-- location is read, such as in the reference -->
-<!-- to <span class="val">dom`y</span> above, -->
-<!-- the <span class="type">get</span> function -->
-<!-- of the domain is called. -->
-<!-- When the location is written, such as in the -->
-<!-- reference to <span class="val">dom`x</span> -->
-<!-- above, the <span class="type">put</span> function -->
-<!-- of the domain is called. -->
-<!-- </p> -->
-
-<p>
-Normally the left operand to backtick must be a domain.
-However, if the right operand is the name of an enumeration
-constant, the right operand may be a name space.  The
-resulting cvalue has type and value of the constant
-as defined in the name space, and a freshly allocated
-domain with the same name space and the address space
-of the literal domain.
+Normally the left operand to backtick is a domain.
+However, if the right operand is the name of an
+enumeration constant, the right operand may be a name
+space.  The resulting cvalue has type and value of the
+constant as defined in the name space, and a freshly
+allocated domain with the same name space and the
+address space of the literal domain.
 </p>
 
 
@@ -1907,6 +2162,172 @@ compute logical and and over integers, treated as boolean values,
 as in C.  Evaluation is short circuited, as in C.
 </p>
 
+<h4 id="sec:equivalence">Equivalence and other relations</h4>
+
+<p>
+Equivalence is determined by the
+functions
+<span class="id" id="fn:eq">eq</span>,
+<span class="id" id="fn:eq">eqv</span>,
+and <span class="id" id="fn:eq">equal</span>.
+
+
+ <span class="id" id="fn:equal">equal</span>
+function and the <span class="id" id="syn:equal">==</span> operator.
+</p>
+
+<p>
+<div class="docitem" id="fn:equal">
+<div class="proto">
+<div class="function">
+<span class="id">equal(<span class="arg">u</span>,<span class="arg">v</span>)
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: any values
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (1 or 0)
+</div>
+</div>
+<div class="desc">
+Determines the equality of <span class="arg">u</span>
+and <span class="arg">v</span> according to the
+following rules.
+<ul>
+<li>
+If <span class="arg">u</span>
+and <span class="arg">v</span> are of different types,
+they are not <span class="id">equal</span>;
+</li>
+<li>
+If <span class="arg">u</span> is <span class="id">nil</span>
+and <span class="arg">v</span>  is <span class="id">nil</span>,
+they are <span class="id">equal</span>;
+</li>
+<li>
+If <span class="arg">u</span>
+and <span class="arg">v</span> are both address spaces,
+procedures, domains, file descriptors, name spaces,
+pairs, record descriptors, records, or tables, they
+are <span class="id">equal</span> if and only if they
+are the same object (pointer equality);
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both cvalues, they are <span class="id">equal</span>
+if and only if they have <span class="id">equal</span> types
+and equal underlying values (<em>q.v.</em>);
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both lists or vectors, they are <span class="id">equal</span>
+if and only if they have the same length and each of their
+corresponding elements are <span class="id">equal</span>;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both ranges, they are <span class="id">equal</span>
+if and only if the underlying values of their offset and length
+cvalues are equal;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both strings, they are <span class="id">equal</span>
+if and only if they have the same length and contain the same sequence of bytes;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both ctypes, they are <span class="id">equal</span>
+if and only if they are of the same category of ctype and any of the following is true:
+<ul>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">void</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both base types and have the same representation;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both typedefs whose identifiers are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">typedef</span>s whose identifiers are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both either 
+<span class="id">struct</span>s,
+<span class="id">union</span>s, or
+<span class="id">enum</span>s whose tag identifiers are
+are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both either pointer
+or undefined types whose subtypes are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both array
+types whose element counts are either both unspecified or <span class="id">equal</span>
+and whose subtypes are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both function
+types with <span class="id">equal</span> subtypes (return types),
+parameter lists of equal length,
+and <span class="id">equal</span>ity across each of the types of corresponding elements of the parameter lists;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both
+bitfield types whose widths are <span class="id">equal</span>
+and whose subtypes are <span class="id">equal</span>;
+</li>
+<li>
+<span class="arg">u</span> and <span class="arg">v</span> are both
+enumeration constant types whose
+subtypes are <span class="id">equal</span>.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<p>
+The above definition depends on the definition of
+equality of the "underlying values" of two cvalues.
+This is (unfortunately) implementation-dependent.
+In L1, the underlying value of a cvalue is represented
+as a 64-bit unsigned integer, and their equality is
+is that determined by the C <span class="id">==</span>
+operator.
+</p>
+
+<p>
+The <span class="id">==</span> operator is a weaker
+form of equality, defined as follows.  If the operands
+are both cvalues, then domain promotion and the usual
+conversions are performed on the operands, and the
+underlying values of the resulting cvalues are
+compared.  If the operands are strings, then the
+operands are compared
+with <a href="#fn:equal><span class="id">equal</span></a>.
+If one operand is a string cvalue (q.v.) and the other
+operand is a string, then the cvalue operand is
+promoted to a string via stringof, and the result
+is compared with other operand with 
+<a href="#fn:equal><span class="id">equal</span></a>.
+Otherwise, the operands are compared
+with <a href="#fn:equal><span class="id">equal</span></a>.
+</p>
+
+<p>
+The other relational operators
+(<span class="id">&lt;</span>,
+<span class="id">&lt;=</span>,
+<span class="id">&gt;</span>,
+<span class="id">&gt;=</span>,
+<span class="id">!=</span>) will be mapped to string
+and cvalue comparison functions (cmp?).
+</p>
+
 <h4 id="sec:pointers">Pointers</h4>
 
 <p>
@@ -2058,17 +2479,196 @@ the Cinquecento runtime is an implementation bug, never
 a consequence of operating on erroneous user data.
 </p>
 
-<h4 id="sec:mkdom">Domain constructor</h4>
+<h4 id="sec:objects">The object model</h4>
 
 <p>
-New domain instances are created with
-<span class="id">mkdom</span>.
+Three types in Cinquecento &mdash names spaces, address
+spaces, and domains &mdash have object-oriented structure.
+This section describes the object model.
+</p>
+
+<p>
+Every object comprises a set of named functions,
+called its <em>methods</em>, and a name.
+</p>
+
+<p id="syn:invoke">
+The primary operation on objects is method invocation.
+Given an object <span class="val">o</span>, the method
+named <span class="val">f</span> is invoked
+(called) with arguments <span class="val"><span class="arg">arg</span>,
+...</span> by the following syntax:
+
+<div class="code">
+<pre>
+o.f(<span class="arg">arg</span>, ...)
+</pre>
+</div>
+
+</p>
+
+<p>
+A method is an ordinary Cinquecento function, but
+method invocation is not a completely ordinary function call.
+In method invocation, one additional argument, the
+object upon which the method is invoked, is prepended
+to the argument
+list <span class="val"><span class="arg">arg</span>,
+...</span></span>.  This argument is conventionally
+named <span class="val">this</span> in method
+definitions.
+</p>
+
+<p>
+By default it is an error to invoke a method
+named <span class="val">f</span> on an object that does
+not define <span class="val">f</span>.  However,
+if the object defines a method named
+<span class="val">dispatch</span>, then such unresolved
+invocations are transformed into the following invocation
+of <span class="val">dispatch</span>:
+<div class="code">
+<pre>
+o.dispatch(<span class="val">"f"</span>, <span class="arg">arg</span>, ...)
+</pre>
+</div>
+
+<p>
+The value of a method invocation is the value returned
+by the resulting function call.
+</p>
+
+<p>
+An expression of the form
+</p>
+
+<div class="code">
+<pre>
+o.f
+</pre>
+</div>
+
+<p>
+evaluates to a function that, when called on
+arguments <span class="val"><span class="arg">arg</span>,
+...</span></span>, is equivalent to the method invocation
+</p>
+
+<div class="code">
+<pre>
+o.f(<span class="arg">arg</span>, ...)
+</pre>
+</div>
+
+<p>
+The name of an object is a string that is typically used by
+programs to label an object.  The system provides
+functions to access and update object names, but does
+not interpret names nor care whether they are used.
+Two objects may have the same name.  The default value
+of an object's name is <span class="val">nil</span>.
+</p>
+
+<p>
+<div class="docitem" id="fn:nameof">
+<div class="proto">
+<div class="function">
+<span class="id">nameof(<span class="arg">o</span>)
+</div>
+<div class="param">
+<span class="arg">o</span>: <span class="type">name space</span>, <span class="type">address space</span>, or <span class="type">domain</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of the object <span class="arg">o</span>.
+</div>
+</div>
+
+<p>
+<div class="docitem" id="fn:setname">
+<div class="proto">
+<div class="function">
+<span class="id">setname(<span class="arg">o</span>, <span class="arg">s</span>)
+</div>
+<div class="param">
+<span class="arg">o</span>: <span class="type">name space</span>, <span class="type">address space</span>, or <span class="type">domain</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span> or <span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Updates the name of the object <span class="arg">o</span> to <span class="arg">s</span>.
+</div>
+</div>
+
+
+<p>
+Name spaces and address spaces are constructed from
+tables of methods:
+</p>
+
+<div class="docitem" id="fn:mkas">
+<div class="proto">
+<div class="function">
+<span class="id">mkas(<span class="arg">tab</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="function">
+<span class="id">mkns(<span class="arg">tab</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="param">
+<span class="arg">tab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+These functions construct a new address space or new
+name space, respectively, from the method table
+<span class="arg">tab</span>.  Keys
+in <span class="arg">tab</span> are strings,
+identifying method names.  Values
+in <span class="arg">tab</span> are the
+corresponding method functions.  The name of the object is
+initialized to <span class="arg">name</span>, if
+provided.
+
+<p>
+Certain methods are required to be defined by name
+spaces and address spaces, either as explicit entries
+in their method tables or as names recognized by
+a <span class="val">dispatch</span> method.  These
+methods are discussed below in the sections on
+<a href="#sec:namespaces">names spaces</a>
+and
+<a href="#sec:addressspaces">address spaces</a>.
+Name spaces and address spaces may define any number of
+additional methods.
+</p>
+
+</div>
+</div>
+
+
+<p>
+A domain object is constructed from a name space and
+address space object.
 </p>
 
 <div class="docitem" id="fn:mkdom">
 <div class="proto">
 <div class="function">
-<span class="id">mkdom(<span class="arg">ns</span>,<span class="arg">as</span>)</span>
+<span class="id">mkdom(<span class="arg">ns</span>,<span class="arg">as</span>[,<span class="arg">name</span>)</span>
 </div>
 <div class="param">
 <span class="arg">ns</span>: <span class="type">name space</span>
@@ -2076,97 +2676,626 @@ New domain instances are created with
 <div class="param">
 <span class="arg">as</span>: <span class="type">address space</span>
 </div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
 <div class="returns">
 <span class="type">domain</span>
 </div>
 </div>
 <div class="desc">
-Returns a new domain instance whose associated name space 
+Constructs a new domain whose associated name space 
 and address space are
 <span class="arg">ns</span> and
-<span class="arg">as</span>.
+<span class="arg">as</span>.  The name of the object is
+initialized to <span class="arg">name</span>, if
+provided.
 </div>
 </div>
-
-<h4 id="sec:domobj">Domains as objects</h4>
 
 <p>
-Cinquecento address spaces and name spaces encapsulate
-functions that implement the behavior of these
-abstractions.  The structure of this encapsulation is
-similar to that of simple objects in a conventional
-object-oriented language.
+Any method defined by either the name space or address space
+used to construct a domain may be invoked on the domain.
+Names are resolved in the following order:
 </p>
+
+<ol>
+<li>Name space method table;</li>
+<li>Address space method table;</li>
+<li>Name space <span class="val">dispatch</span> method, if defined;</li>
+<li>Address space <span class="val">dispatch</span> method, if defined.</li>
+</ol>
+
+<p>
+If both the name space and the address space define
+a <span class="val">dispatch</span> method, only the
+name space <span class="val">dispatch</span> will ever
+be used to resolve method invocations through the
+domain.
+</p>
+
+<p id="syn:asof">
+The name space and address space used to construct a
+domain <span class="val">dom</span> can be accessed by
+the following syntax:
+</p>
+
+<div class="code">
+<pre>
+dom.ns  /* evaluates to the name space of dom */
+dom.as  /* evaluates to the address space of dom */
+</pre>
+</div>
+
+In addition, two functions provide equivalent access:
+
+<div class="docitem" id="fn:asof">
+<div class="proto">
+<div class="function">
+<span class="id">asof(<span class="arg">dom</span>)
+</div>
+<div class="function">
+<span class="id">nsof(<span class="arg">dom</span>)
+</div>
+<div class="param">
+<span class="arg">dom</span>: <span class="type">domain</span>
+</div>
+<div class="returns">
+<span class="type">address space or name space</span>
+</div>
+</div>
+<div class="desc">
+These functions return the address space or 
+name space, respectively, used to construct
+the domain <span class="arg">dom</span>.
+</div>
+</div>
+
+
+<p>
+The object model described here was designed to
+implement the domain abstraction, not for
+general-purpose object-oriented programming.
+Plans for future development of Cinquecento
+include support for a better object system.
+</p>
+
+<h4 id="sec:symbols">Symbols, Fields, Parameters</h4>
+
+<p>
+A C <em>symbol</em> &mdash a named, typed location
+&mdash is represented in Cinquecento as a triple
+comprising name (of type string), type (ctype), and
+optional attribute table (table).
+</p>
+
+<p>
+The attribute table maps attributes names (strings) to
+values.  The only attribute consulted by the system is
+the one named <span class="val">"offset"</span>.  Its
+value is a cvalue representing the offset of the first
+byte of the object named by the symbol from the start
+of the address space in which it resides.  Attribute
+tables are otherwise a convenience to allow programs to
+associate arbitrary data with a symbol.
+</p>
+
+<p>
+L1 implements symbols using vectors, rather than, say,
+a record or a dedicated primitive type.  This
+representation is likely to change.
+To avoid breaking, programs should use the following
+functions to create and access symbols, and not
+directly access the vector.  In particular, the effect
+of modifying a symbol vector is undefined.  (In what
+follows, <span class="type">symbol</span> denotes the
+representation of symbols.)
+</p>
+
+
+<div class="docitem" id="fn:mksym">
+<div class="proto">
+<div class="function">
+<span class="id">mksym(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">attr</span>])
+</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">attr</span>: <span class="type">table or cvalue</span> or
+<span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new symbol from
+<span class="arg">type</span>,
+<span class="arg">id</span>, and
+<span class="arg">attr</span>.
+If <span class="arg">attr</span> is a cvalue, it is
+promoted to an attribute table that maps
+<span class="val">"offset"</span> to <span class="arg">attr</span>.
+If <span class="arg">attr</span> is <span class="arg">nil</span>
+or omitted, no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symid">
+<span class="id">symid(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">sym</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symtype">
+<span class="id">symtype(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns the type of <span class="arg">sym</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symattr">
+<span class="id">symattr(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">sym</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:symoff">
+<span class="id">symoff(<span class="arg">sym</span>)</span>
+</div>
+<div class="param">
+<span class="arg">sym</span>: <span class="type">symbol</span>
+</div>
+<div class="returns">
+<span class="type">cvalue or nil</span>
+</div>
+</div>
+<div class="desc">
+If <span class="arg">sym</span> does not have an
+attribute table, or if its attribute table does not define
+the attribute <span class="val">"offset"</span>,
+then this function returns <span class="val">nil</span>.
+Otherwise it returns the value of the
+attribute <span class="val">"offset"</span >.
+</div>
+</div>
+
+
+<p>
+Two additional C abstractions &mdash the fields of an
+aggregate ctype (<span class="val">struct</span>
+or <span class="val">union</span>), and the parameters
+of a function &mdash are structually analogous to a
+symbol.  Because of the similarity, Cinquecento uses
+its symbol representation for these two abstractions.
+</p>
+
+<p>
+A difference between fields and symbols is that the
+offset attribute of a field represents the offset of
+the first byte of the field from the start of the
+aggregate in which it resides.  Parameters are
+different from symbols in that there is no notion of an
+offset, and some parameters ("abstract declarators")
+omit an identifier. 
+</p>
+
+<p>
+The following functions, based on the symbol functions,
+operate on fields and parameters (denoted <span class="type">field</span>
+and <span class="type">param</span> below).
+</p>
+
+<div class="docitem" id="fn:mkfield">
+<div class="proto">
+<div class="function">
+<span class="id">mkfield(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">attr</span>])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">attr</span>: <span class="type">table or cvalue</span> or
+<span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">field</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new field
+from <span class="arg">type</span>,
+<span class="arg">id</span>, and
+<span class="arg">attr</span>.
+The resulting value is a suitable
+element for the <span class="arg">fields</span>
+argument
+to <span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span>
+or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
+If <span class="arg">attr</span> is a cvalue, it is
+promoted to an attribute table that maps
+<span class="val">"offset"</span> to <span class="arg">attr</span>.
+If <span class="arg">attr</span> is <span class="arg">nil</span>
+or omitted, no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldid">
+<span class="id">fieldid(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">field</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldtype">
+<span class="id">fieldtype(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns the type of <span class="arg">field</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldattr">
+<span class="id">fieldattr(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">field</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:fieldoff">
+<span class="id">fieldoff(<span class="arg">field</span>)</span>
+</div>
+<div class="param">
+<span class="arg">field</span>: <span class="type">field</span>
+</div>
+<div class="returns">
+<span class="type">cvalue or nil</span>
+</div>
+</div>
+<div class="desc">
+If <span class="arg">field</span> does not have an
+attribute table, or if its attribute table does not define
+the attribute <span class="val">"offset"</span>,
+then this function returns <span class="val">nil</span>.
+Otherwise it returns the value of the
+attribute <span class="val">"offset"</span >.
+</div>
+</div>
+
+<div class="docitem" id="fn:mkparam">
+<div class="proto">
+<div class="function">
+<span class="id">mkparam(<span class="arg">type</span>[,<span class="arg">id</span>[,<span class="arg">attr</span>]])</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span> or <span class="type">nil</span>
+</div>
+<div class="param">
+<span class="arg">attr</span>: <span class="type">table</span> or
+<span class="type">nil</span>
+</div>
+<div class="returns">
+<span class="type">param</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new param
+from <span class="arg">type</span>,
+<span class="arg">id</span>, and
+<span class="arg">attr</span>.
+The resulting value is a suitable
+element for the <span class="arg">params</span>
+argument
+to <span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>.
+If <span class="arg">attr</span> is <span class="val">nil</span> or omitted,
+no attribute table is created.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramid">
+<span class="id">paramid(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the name of <span class="arg">param</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramtype">
+<span class="id">paramtype(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns the type of <span class="arg">param</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:paramattr">
+<span class="id">paramattr(<span class="arg">param</span>)</span>
+</div>
+<div class="param">
+<span class="arg">param</span>: <span class="type">param</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">param</span>.
+</div>
+</div>
+
+
 
 <h4 id="sec:namespaces">Name spaces</h4>
 
 <p>
-Name spaces catalog information about C types and symbols.
+Name spaces are <a href="#sec:objects">objects</a> that
+catalog information about a set of C types and symbols.
+The primitive constructor for a name space is
+<span class="fnindex"><a href="#fn:mkns">mkns</a></span>.
+Higher-level constructors are the syntax <span class="fnindex"><a
+href="#syn:_at_names">@names</a></span> and the function
+<span class="fnindex"><a
+href="#fn:mknsraw">mknsraw</a></span>.
+The predicate
+<a href="#fn:isns"><span class="fnindexid">isns</span></a>
+tests whether a value is a name space.
 </p>
 
 <p>
-C types are represented by the Cinquecento type <em>ctype</em>.
-Ctypes represent two related but subtly different concepts:
-C type names and C type definitions.
+Every name space implements the following five methods:
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nslooktype">
+<span class="id">looktype(<span class="arg">this</span>,<span class="arg">typename</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">typename</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns the definition of the type
+name <span class="arg">typename</span> in the name
+space, or <span class="val">nil</span> if the type is
+not defined.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nslooksym">
+<span class="id">looksym(<span class="arg">this</span>,<span class="arg">id</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns the definition of the symbol
+named <span class="arg">id</span> in the name
+space, or <span class="val">nil</span> if the symbol is
+not defined.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsenumtype">
+<span class="id">enumtype(<span class="arg">this</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns a table containing the
+types defined by the name space.
+Keys are type names, values are corresponding type definitions.
+Modifying the table may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsenumsym">
+<span class="id">enumsym(<span class="arg">this</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+This name space returns a table containing the symbols
+defined by the name space.
+Keys are identifiers, values are corresponding symbols.
+Modifying the table may cause undefined effects.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nslookaddr">
+<span class="id">lookaddr(<span class="arg">this</span>,<span class="arg">addr</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This name space method returns a symbol defined in the
+name space whose offset is closet to, but not greater
+than, the offset <span class="arg">addr</span>.
+If there is more than one such symbol, an arbitrary one is returned.
+If no such symbol exists, <span class="val">nil</span> is returned.
+</div>
+</div>
+
+<p id="para:nstypes">
+The <span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
+and
+<span class="fnindex"><a href="#fn:looktype">looktype</a></span>
+methods of every name space must provide definitions
+for the following types:
+<div class="code">
+<pre>
+char         unsigned char          _Bool
+short	     unsigned short	    float
+int	     unsigned int	    double
+long	     unsigned long	    long double
+long long    unsigned long long     void*
+</pre>
+</div>
 </p>
 
 <p>
-C type names are the syntactic constructions, such
-as <tt>int*</tt>, that in C appear as type declarations
-and as type operands to operators such as
-<tt>sizeof</tt> and the cast operator.
+The definition for <span class="val">void*</span>
+establishes the pointer representation for the name
+space.  The other definitions establish mandatory C base types.
 </p>
 
 <p>
-C type definitions are the definition of types referenced
-by type names.  What a definition specifies depends on the type.  
-
-For base C types, the definition specifies the number of bytes
-used to represent values of the type and how the bytes are
-interpreted (<em>e.g.</em>, big- or little-endian order).
-
-For pointers, it specifies the size and representation
-of the pointer value in memory.
-
-For aggregates, it specifies the offset from the beginning
-of the aggregate to each field, 
-the name and type of each field,
-and the total size of the aggregate.
-
-For enums, it specifies the enumeration constant
-identifiers and their values, and the common type used to
-repesent all values of the enumeration.
-
-For typedefs, it specifies the binding of a name to another
-type.
+In addition, these methods may define any number of additional
+tagged aggregated types,
+tagged enumeration types,
+and <span class="val">typedef</span>s.
 </p>
 
 <p>
-The distinction between type name and definition enables
-Cinquecento to represent multiple
-programs that have potentially conflicting meanings for
-the same type.
-
-For example, the type name <tt>int*</tt> always
-references the type pointer-to-<tt>int</tt>, but
-there are many possible definitions for this type.
-
-One domain can define it to be a 64-bit address of a
-64-bit integer encoded in big-endian order, while
-another may be define it be a 32-bit address of a
-32-bit integer encoded in little-endian order.  Given a
-ctype for <tt>int*</tt>, part of the role of a name space is to
-provide a ctype that defines its encoding.
+A composite type &mdash a pointer to, an array of, or a
+function of an already defined type &mdash need not be
+explicitly defined by
+<span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
+and
+<span class="fnindex"><a href="#fn:enumtype">looktype</a></span>.
+Other than the
+special case of <span class="val">void*</span>, the system will never
+consult either method for a composite type definition.
 </p>
 
-<p>
-Functions that operate on ctypes are described in the
-section <a href="#sec:ctypes">Ctypes</a>.
-</p>
 
 <p>
-Several
-functions retrieve type information from a name space.
+Several functions operate on name spaces:
 </p>
 
 <div class="docitem" id="fn:nsptr">
@@ -2178,194 +3307,68 @@ functions retrieve type information from a name space.
 <span class="arg">ns</span>: <span class="type">name space</span>
 </div>
 <div class="returns">
-<span class="type">ctype</span>
+<span class="type">value</span>
 </div>
 </div>
 <div class="desc">
-Returns a base type defined in <span class="arg">ns</span>
-that can represent the pointer type defined in <span class="arg">ns</span>.
+Returns the representation of the pointer type defined
+in <span class="arg">ns</ span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:nsrepbase">
+<div class="docitem" id="fn:looktype">
 <div class="proto">
 <div class="function">
-<span class="id">nsrepbase(<span class="arg">ns</span>,<span class="arg">rep</span>)</span>
+<span class="id">looktype(<span class="arg">obj</span>,<span class="arg">type</span>)</span>
 </div>
 <div class="param">
-<span class="arg">ns</span>: <span class="type">name space</span>
+<span class="arg">obj</span>: <span class="type">domain</span> or <span class="type">name space</span>
 </div>
 <div class="param">
-<span class="arg">rep</span>: <span class="type">cvalue</span>
+<span class="arg">typename</span>: <span class="type">ctype</span>
 </div>
 <div class="returns">
-<span class="type">ctype</span>
+<span class="type">ctype</span> or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
-Returns a base type defined
-in <span class="arg">ns</span> whose representation
-is <span class="arg">rep</span>,
-or <span class="val">nil</span> if there is no such
-type.
+Returns the definition of the type
+name <span class="arg">typename</span>
+in the name space or domain <span class="arg">obj</span>.
 </div>
 </div>
 
-
-<p>
-C symbols have three components: the type of the symbol
-(represented as a ctype),
-the name of the symbol (string),
-and the location of the symbol (cvalue).
-C symbols are not represented by a distinct Cinquecento
-type; rather a symbol is represented by a vector
-containing the three components.
-</p>
-
-<p>
-The representation may change in a later version of Cinquecento.
-To avoid future incompatibility, programs should use the following
-interface to create and access symbols.  (The notation
-<span class="arg">symbol</span> denotes the representation
-of symbols.)
-</p>
-
-
-<div class="docitem" id="fn:mksym">
+<div class="docitem" id="fn:looksym">
 <div class="proto">
 <div class="function">
-<span class="id">mksym(<span class="arg">type</span>,<span class="arg">id</span>,<span class="arg">loc</span>)
-</span>
+<span class="id">looksym(<span class="arg">obj</span>,<span class="arg">id</span>)</span>
 </div>
 <div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
+<span class="arg">obj</span>: <span class="type">domain</span> or <span class="type">name space</span>
 </div>
 <div class="param">
 <span class="arg">id</span>: <span class="type">string</span>
 </div>
-<div class="param">
-<span class="arg">val</span>: <span class="type">cvalue</span> or
-<span class="type">nil</span>
-</div>
-
 <div class="returns">
-<span class="type">symbol</span>
+<span class="type">symbol</span> or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
-Constructs a new symbol from
-<span class="arg">type</span>,
-<span class="arg">id</span>, and
-<span class="arg">val</span>.
-Usually <span class="arg">val</span>
-gives the offset in bytes of the object named
-by the symbol from the beginning of the
-address space in which it is located.
-<span class="arg">Val</span> may be <span class="val">nil</span>,
-in which case the symbol is used only to associate a type with a name.
+Returns the definition of the symbol
+named <span class="arg">id</span>
+in the name space or domain <span class="arg">obj</span>.
 </div>
 </div>
 
-<div class="docitem">
-<div class="proto">
-<div class="function"  id="fn:symtype">
-<span class="id">symtype(<span class="arg">sym</span>)
-</span>
-</div>
-<div class="function"  id="fn:symid">
-<span class="id">symid(<span class="arg">sym</span>)
-</span>
-</div>
-<div class="function"  id="fn:symoff">
-<span class="id">symoff(<span class="arg">sym</span>)
-</span>
-</div>
-<div class="param">
-<span class="arg">sym</span>: <span class="type">symbol</span>
-</div>
-<div class="returns">
-see description
-</div>
-</div>
-<div class="desc">
-Each of these functions returns one of the components of 
-<span class="arg">symbol</span>.
-</div>
-</div>
+
+
+<h4 id="sec:rootnamespaces">Root Name Spaces</h4>
 
 <p>
-Name spaces implement an interface of five functions:
-</p>
-
-<ol>
-<li><span class="arg">looktype(ctype) -> ctype</span></li>
-<li><span class="arg">enumtype() -> table</span></li>
-<li><span class="arg">looksym(string) -> symbol</span></li>
-<li><span class="arg">enumsym() -> table</span></li>
-<li><span class="arg">lookaddr(cval) -> symbol</span></li>
-</ol>
-
-<p>
-Given a type name (as a ctype), <span
-class="arg">looktype</span> returns a ctype representing
-the definition of the type.  If the name space does not
-define the type, <span class="arg">looktype</span>
-returns <span class="val">nil</span>.
-</p>
-
-<p>
-Given a symbol name, <span class="arg">looksym</span>
-returns the corresponding symbol.
-If the name space does not
-define the symbol, <span class="arg">looksym</span>
-returns <span class="val">nil</span>.
-</p>
-
-<p>
-<span class="arg">Enumtype</span> and <span
-class="arg">enumsym</span> each return a table
-representing the mapping defined by <span
-class="arg">looktype</span> and
-<span class="arg">looksym</span>.  For <span
-class="arg">enumtype</span> the keys are type names (as
-ctypes) and the values are the corresponding definitions
-(also as ctypes).  For <span class="arg">enumsym</span>
-the keys are symbol names (as strings) and the values
-are the corresponding definitions (as vectors).
-</p>
-
-<p>
-<span class="arg">Lookaddr</span> performs the inverse
-of <span class="arg">looksym</span>.  Given an address,
-<span class="arg">lookaddr</span> returns the symbol
-definition whose offset is the greatest value less than
-or equal to the address in the name space.  If more
-than one symbol qualifies, an arbitrary one is returned.
-</p>
-
-<p>
-Given a type name (as a ctype), <span
-class="arg">looktype</span> returns a ctype representing
-the definition of the type.  If the name space does not
-define the type, <span class="arg">looktype</span>
-returns <span class="val">nil</span>.
-</p>
-
-<p>
-Every name space created by a Cinquecento program
-inherits type and symbol definitions from an
-existing name space.
-
-This inheritance relation starts with
-a <em>root name space</em> that defines the
-representation of the C base types,
-including the size and encoding for each base type.
-</p>
-
-<p>
-The built-in root name spaces correspond to several
-common machine models, and vary in the size of
-pointers and <span class="id">long</span> integers.
+Cinquecento defines several top-level <em>root name
+spaces</em> that correspond to common C compiler
+choices.  They vary in the size and encoding of
+integers and pointers.
 </p>
 
 <div class="table-short">
@@ -2373,9 +3376,9 @@ pointers and <span class="id">long</span> integers.
 
 <tr>
 <th>Root name space</th>
-<th>Endianness</th>
 <th><span class="id">sizeof(void*)</span></th>
 <th><span class="id">sizeof(long)</span></th>
+<th>Encoding</th>
 </tr>
 
 <tr>
@@ -2383,13 +3386,13 @@ pointers and <span class="id">long</span> integers.
 <span class="id">c32le</span>
 </td>
 <td>
-little
-</td>
-<td>
 4
 </td>
 <td>
 4
+</td>
+<td>
+little-endian
 </td>
 </tr>
 
@@ -2398,13 +3401,13 @@ little
 <span class="id">c32be</span>
 </td>
 <td>
-big
-</td>
-<td>
 4
 </td>
 <td>
 4
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -2413,13 +3416,13 @@ big
 <span class="id">c64le</span>
 </td>
 <td>
-little
-</td>
-<td>
 4
 </td>
 <td>
 8
+</td>
+<td>
+little-endian
 </td>
 </tr>
 
@@ -2428,13 +3431,13 @@ little
 <span class="id">c64be</span>
 </td>
 <td>
-big
-</td>
-<td>
 4
 </td>
 <td>
 8
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
@@ -2443,144 +3446,93 @@ big
 <span class="id">clp64le</span>
 </td>
 <td>
-little
-</td>
-<td>
 8
 </td>
 <td>
 8
+</td>
+<td>
+little-endian
 </td>
 </tr>
+
 <tr>
 <td>
-
 <span class="id">clp64be</span>
 </td>
 <td>
-big
-</td>
-<td>
 8
 </td>
 <td>
 8
+</td>
+<td>
+big-endian
 </td>
 </tr>
 
 </table>
 </div>
  
+<p>
+In addition to the <a href="#para:nstypes">types</a> defined by all name spaces,
+every root name spaces defines the following convenience
+<span class="val">typedef</span>s:
 
-<p>To construct a new name space, you must supply an
-implementation of the name space interface.
-Cinquecento provides three mechanisms for doing so.
-The <span class="id"><a href="#fn:mkns">mkns</a></span>
-function accepts predefined functions and returns a
-new name space.  The <span class="id"><a
-href="#fn:mknsraw">mknsraw</a></span> function accepts
-two tables that define the symbols and types in the
-namespace.  Finally, the <span class="id"><a
-href="#syn:_at_names">@names</a></span> syntactic form
-accepts symbol and type definitions in C declaration
-syntax.  Each of these mechanisms also accepts an
-optional human-readable name to be associated with
-resulting name space; this name is used only for
-presentation, and need not be unique.  The remainder of
-this section further describes these mechanisms.
+<div class="code">
+<pre>
+int8         uint8 	     uintptr
+int16	     uint16
+int32	     uint32
+int64	     uint64
+</pre>
+</div>
+
+The types <span class="val">int</span><span class="arg">X</span>
+and <span class="val">uint</span><span class="arg">X</span>
+correspond, respectively, to signed and unsigned
+integers of <span class="arg">X</span> bytes.
+The type <span class="val">uintptr</span> represents
+is an unsigned integer large enough to hold pointers.
 </p>
 
-<div class="docitem" id="fn:mkns">
+<p>
+One function operates on root name spaces.
+</p>
+
+<div class="docitem" id="fn:myrootns">
 <div class="proto">
 <div class="function">
-<span class="id">mkns(<span class="arg">looktype</span>,<span class="arg">enumtype</span>,<span class="arg">looksym</span>,<span class="arg">enumsym</span>,<span class="arg">lookaddr</span>[,<span class="arg">name</span>])</span>
-</div>
-<div class="param">
-<span class="arg">looktype</span>, <span class="arg">enumtype</span>, <span class="arg">looksym</span>, <span class="arg">enumsym</span>, <span class="arg">lookaddr</span>: <span class="type">function</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
+<span class="id">myrootns()</span>
 </div>
 <div class="returns">
-<span class="type">name space</span>
+<span class="type">ns</span>
 </div>
 </div>
 <div class="desc">
-The five function parameters implement the Cinquecento
-name space interface.  <span class="id">Mkns</span>
-constructs and returns a new name space corresponding
-to this implementation.  If specified, <span
-class="arg">name</span> is a human-readable name
-associated with the name space.
+Returns the root name space corresponding to the machine
+model for which the currently running L1 executable was built.
 </div>
 </div>
 
-<div class="docitem" id="fn:mknsraw">
-<div class="proto">
-<div class="function">
-<span class="id">mknsraw(<span class="arg">parent</span>,<span class="arg">typetab</span>,<span class="arg">symtab</span>[,<span class="arg">name</span>])</span>
-</div>
-<div class="param">
-<span class="arg">parent</span>: <span class="type">namespace</span>
-</div>
-<div class="param">
-<span class="arg">typetab</span>: <span class="type">table</span>
-</div>
-<div class="param">
-<span class="arg">symtab</span>: <span class="type">table</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
-</div>
-<div class="returns">
-<span class="type">name space</span>
-</div>
-</div>
-<div class="desc">
-<span class="arg">Typetab</span> is a table whose keys
-are type names (as ctypes) and whose values are type
-definitions (as ctypes).  The type definitions may be
-<em>incomplete</em>: types definitions may refer to
-type names rather than fully specified types.  As long
-as a definition for the referenced type occurs either
-elsewhere in <span class="arg">typetab</span> or in the
-name space <span class="arg">parent</span>, the type
-definition will be implicitly resolved.  If a referenced
-type is defined in both <span
-class="arg">typetab</span> and <span
-class="arg">parent</span>, the <span
-class="arg">typetab</span> definition has precedence.
-</div>
-<div class="desc">
-<span class="arg">Symtab</span> is a table whose keys
-are symbol names (as strings) and whose values are
-symbols (in the 3-element vector form defined above).
-As with <span class="arg">typetab</span>, the types
-occurring in symbols may be type references.
-</div>
-<div class="desc">
-<span class="id">Mknsraw</span> resolves all type
-references, then constructs and returns a new name
-space.
-If specified, <span
-class="arg">name</span> is a human-readable name
-associated with the name space.
-</div>
-</div>
+<h4 id="sec:_at_names"><span class="val">@names</span></h4>
+
+<p>
+The <span class="id"><a href="#syn:_at_names">@names</a></span>
+form allows a name space to be constructed from type and variable
+definitions written in an extension of C syntax.
+</p>
 
 <div class="docitem" id="syn:_at_names">
 <div class="proto">
 <div class="syntax">
-<span class="id">@names <span class="arg">parent</span> [ $ <span class="arg">name</span> ] {
+<span class="id">@names <span class="arg">parent</span> {
 	<span class="arg">decl</span> ...
 };
 </span>
 </div>
 <div class="param">
 <span class="arg">parent</span>: <span class="type">name space</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
 </div>
 <div class="param">
 <span class="arg">decl</span>: <span class="type">see description</span>
@@ -2593,10 +3545,7 @@ associated with the name space.
 This syntax constructs a new name space from a sequence
 of symbol and type declarations.  The declarations are
 written in an extension of the C variable and type
-declaration syntax.  If specified,
-<span
-class="arg">name</span> is a human-readable name
-associated with the name space.
+declaration syntax.
 
 </div>
 <div class="desc">
@@ -2644,265 +3593,673 @@ must be literal values or preceding constant names within the same enumeration.
 <div class="desc">
 The syntax for typedef declarations is the same as their syntax in C.
 </div>
+
+<div class="desc">
+A name can be associated with
+the resulting name space object with <span class="fnindex"><a href="#fn:setname">setname</a></span>.
+</div>
+
+</div>
+
+<p>
+The implementation of
+<span class="id"><a href="#syn:_at_names">@names</a></span>
+converts type and variable declarations into a pair of
+tables that map type and symbol names to their
+definitions.  The following function is the low-level
+constructor that produces a name space from such
+tables.
+</p>
+
+<div class="docitem" id="fn:mknsraw">
+<div class="proto">
+<div class="function">
+<span class="id">mknsraw(<span class="arg">parent</span>,<span class="arg">typetab</span>,<span class="arg">symtab</span>[,<span class="arg">name</span>])</span>
+</div>
+<div class="param">
+<span class="arg">parent</span>: <span class="type">name space</span>
+</div>
+<div class="param">
+<span class="arg">typetab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">symtab</span>: <span class="type">table</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+<span class="arg">Typetab</span> is a table whose keys
+are type names (as ctypes) and whose values are type
+definitions (as ctypes).  The type definitions may be
+<em>incomplete</em>: types definitions may refer to
+type names rather than fully specified types.  As long
+as a definition for the referenced type occurs either
+elsewhere in <span class="arg">typetab</span> or in the
+name space <span class="arg">parent</span>, the type
+definition will be implicitly resolved.  If a referenced
+type is defined in both <span
+class="arg">typetab</span> and <span
+class="arg">parent</span>, the <span
+class="arg">typetab</span> definition has precedence.
+</div>
+<div class="desc">
+<span class="arg">Symtab</span> is a table whose keys
+are symbol names (as strings) and whose values are
+symbols (in the 3-element vector form defined above).
+As with <span class="arg">typetab</span>, the types
+occurring in symbols may be type references.
+</div>
+<div class="desc">
+<span class="id">Mknsraw</span> resolves all type
+references, then constructs and returns a new name
+space.
+</div>
+
+
+<div class="desc">
+The name of the resulting name space object is
+initialized to <span class="arg">name</span>, if
+provided.
+</div>
 </div>
 
 <h4 id="sec:addressspaces">Address spaces</h4>
 
 <p>
-Cinquecento address spaces represent byte-addressed
-storage by providing methods to reflect the set
-of <em>mapped</em> locations &mdash; the set of
-addresses backed by storage &mdash; and methods to read
-and write the contents of mapped locations.  The
-prototypical address space represents the live memory
-of a running programs, but address spaces can also
-represent less dynamic content, such as the content of
-files or strings.  More generally, address spaces can
-be composed of ordinary Cinquecento functions that
-manage a view of arbitrary synthetic storage.
+Address spaces are <a href="#sec:objects">objects</a>
+that represent sparse byte-addressed storage.
+The primitive constructor for an address space is
+<span class="fnindex"><a href="#fn:mkas">mkas</a></span>.
+The predicate
+<a href="#fn:isas"><span class="fnindexid">isas</span></a>
+tests whether a value is an address space.
 </p>
 
 <p>
-Several built-in functions create new address spaces
+Every address space implements the following four methods:
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asget">
+<span class="id">get(<span class="arg">this</span>,<span class="arg">r</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+This address space method returns a string containing
+the bytes located in the
+range <span class="arg">r</span> of the address space.
+It is an error (<span class="fnindex"><a href="#fn:fault">fault</a></span>)
+if the range is out of bounds.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asput">
+<span class="id">put(<span class="arg">this</span>,<span class="arg">r</span>,<span class="arg">s</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This address space method replace the bytes
+located in the range <span class="arg">r</span> of the address space
+with those in <span class="arg">s</span>.
+It is an error (<span class="fnindex"><a href="#fn:fault">fault</a></span>)
+if the range is out of bounds or if <span class="arg">s</span>
+is shorter than the range.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asmap">
+<span class="id">map(<span class="arg">this</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">vector of ranges</span>
+</div>
+</div>
+<div class="desc">
+This address space method returns a vector
+of non-overlapping ranges in order of increasing offset
+corresponding to the ranges of the address space
+that may be accessed by 
+<span class="fnindex"><a href="#fn:asget">get</a></span>
+or <span class="fnindex"><a href="#fn:asput">put</a></span>
+method invocations.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:asismapped">
+<span class="id">ismapped(<span class="arg">this</span>,<span class="arg">r</span>)
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This address space method is a predicate that returns
+non-zero if <span class="arg">r</span> is contained in
+the set of ranges mapped by the address space.
+</div>
+</div>
+
+
+<p>
+Several functions create new address spaces
 with specific forms of backing storage.
 </p>
 
-<p>
-The function <tt>mknas()</tt> returns a null address
-space that has no backing storage.  Any attempt to read
-or write this address space fails.  This address space
-is used to construct domains that act solely as sources
-for types and symbols; for example, the literal domain
-is backed by a null address space.
-</p>
+<div class="docitem" id="fn:mknas">
+<div class="proto">
+<div class="function">
+<span class="id">mknas()</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns a null address space that has no backing
+storage.  It is an error to access (get or put) this
+address space.  Null address spaces are used to
+construct domains that act solely as sources for types
+and symbols; for example, the literal domain is backed
+by a null address space.
+</div>
+</div>
 
-<p>
-The function <tt>mksas(<em>str</em>)</tt> creates an
-address base backed by the string <em>str</em>.  The
-memory associated with the string is shared with the
-address space, so that an update made to either the
-string or the address space will be reflected in the
-other.
-</p>
+<div class="docitem" id="fn:mksas">
+<div class="proto">
+<div class="function">
+<span class="id">mksas(<span class="arg">s</span>)</span>
+</div>
+<div class="param">
+<span class="arg">s</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns an address space backed by the
+string <span class="arg">s</span> storage.  The memory
+associated with the string is shared with the address
+space, so that an update made to either the string or
+the address space will be reflected in the other.
+</div>
+</div>
 
-<p>
-The function <tt>mkzas(<em>len</em>)</tt> creates a
-zero-filled address space backed by
-<tt><em>len</em></tt> bytes of unshared, cleared
-memory supplied by the system.
-</p>
+<div class="docitem" id="fn:mkzas">
+<div class="proto">
+<div class="function">
+<span class="id">mkzas(<span class="arg">n</span>)</span>
+</div>
+<div class="param">
+<span class="arg">n</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns an address space backed by a freshly allocated
+zero-filled string.  The call
+ <span class="val"><span class="id">mkzas</span>(<span class="arg">n</span>)</span>
+is equivalent to 
+<span class="val"><span class="id">mksas</span>(<span class="id">mkstr</span>(<span class="arg">n</span>))</span>.
+</div>
+</div>
 
-
-<p>
-Mapped locations in an address space are subdivided
-into disjoint <em>units</em>.  Each unit spans a
-contiguous range of the address space.  Units are
-commonly used to represent the sparse page-based
-virtual address spaces of running programs.  The units
-of an address space need not be of equal size, and the
-number of units and their dimensions may change over
-time.
-</p>
-
-<p>
-Every address space implements four methods
-(this interface is tentatively planned for future version,
-but not currently supported):
-</p>
-<div class="table-short">
-<table>
-
-<tr>
-<td align="right">
-<span class="arg">unit</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">cvalue</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">range</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">limit</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">void</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<em>list of</em> <span class="type">cvalue</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">get</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">range</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">string</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-<tr>
-<td align="right">
-<span class="arg">put</span>&emsp;:&emsp;
-</td>
-<td align="right">
-<span class="type">range</span> &times; <span class="type">string</span>&emsp;&rarr;&emsp;
-</td>
-<td>
-<span class="type">cvalue</span> <em>or</em> <span class="type">nil</span>
-</td>
-</tr>
-
-</table>
+<div class="docitem" id="fn:mkmas">
+<div class="proto">
+<div class="function">
+<span class="id">mkmas([<span class="arg">ptr</span>,<span class="arg">len</span>])</span>
+</div>
+<div class="function">
+<span class="id">mkmasx([<span class="arg">ptr</span>,<span class="arg">len</span>])</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Mkmas</span> returns an address space backed by the address space of
+the calling process.  Yep.
+If <span class="arg">ptr</span> and <span class="arg">len</span> are provided, access is
+restricted to the <span class="arg">len</span> byte range of the address space
+beginning at address <span class="arg">ptr</span>.
+<span class="id">Mkmasx</span> is
+like <span class="id">mkmas</span>, except that it is
+an error if the requested range intersects with any
+range of the address space currently managed by the
+Cinquecento evaluator.
+</div>
 </div>
 
 <p>
-The range type represents a contiguous span of
-locations in an address space.
-A range is constructed by the function
-<tt>mkrange(<em>beg</em>,<em>len</em>)</tt>, where
-<tt><em>beg</em></tt> is the non-negative start address
-of the range and <tt><em>len</em></tt> is the positive
-number of bytes in the range; both are cvalues.  Empty
-ranges are invalid.  The functions
-<tt>rangebeg(<em>range</em>)</tt> and
-<tt>rangelen(<em>range</em>)</tt> return the start
-address and byte count from a range as cvalues.
+Several functions operate on address spaces.
 </p>
 
-<p>
-The <span class="arg">unit</span> method queries the
-units of an address space.  Its argument is an address.
-If the address is mapped,
-<span class="arg">unit</span> returns a range that specifies
-the boundaries of the containing unit.  Otherwise it returns
-<span class="type">nil</span>.
-</p>
-
-<p>
-The <span class="arg">limit</span> method queries the
-overall address boundaries of an address space.  It
-returns a list containing two addresses (as cvalues).
-The first is the smallest address defined by the
-address space; the second is the highest.  These values
-need not be mapped, but are merely the minimum and
-maximum address values handled by the address space.
-</p>
-
-<p>
-The <span class="arg">get</span> method reads from a range of the
-address space, returning the stored bytes as a string.
-<span class="arg">Get</span> fails (returns <span class="type">nil</span>)
-if the access includes unmapped locations.
-<span class="arg">Get</span> may also fail
-if the access spans
-the boundary of a unit of the address space.
-</p>
-
-<p>
-The <span class="arg">put</span> method writes to a
-range of the address space.  The string argument
-contains the bytes to be written; its length be of
-equal to that of the range argument.  If the write
-succeeds, the number of bytes written (always the
-length of the string) is returned.  
-<span class="arg">Put</span> fails (returns <span class="type">nil</span>)
-if the access includes unmapped locations.
-<span class="arg">Put</span> may also fail
-if the access spans
-the boundary of a unit of the address space.
-</p>
-
-<p>
-The function <tt>mkas(<em>dispatch</em>)</tt>
-constructs a custom address space.  Dispatch is a
-program-defined variable arity function that
-encapsulates the <tt><em>map</em></tt>,
-<tt><em>get</em></tt>, and <tt><em>put</em></tt>
-functions.  The first argument to dispatch is a string
-whose value is the name of the function to be called;
-dispatch must apply the corresponding function to the
-remaining arguments.
-</p>
-
-<p>
-Ordinarily the functions represented by
-<em>dispatch</em> are implicitly invoked by the
-Cinquecento implementation during evaluation of C
-expressions that involve storage access operations
-(such as dereferencing a pointer).  However, programs
-may directly invoked these functions by name using an
-overloaded form of the C binary dot operator:
-</p>
-<div class="code">
-<pre>
-; as.get(mkrange(0,1024));
-</pre>
+<div class="docitem" id="fn:ismapped">
+<div class="proto">
+<div class="function">
+<span class="id">ismapped(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This predicate returns non-zero if a range of bytes is
+mapped in the address space associated
+with <span class="arg">ptr</span>.
+The range begins at the address <span class="arg">ptr</span>.
+If provided,  <span class="arg">len</span> is the length in
+bytes of the range; otherwise the length is
+<span class="val">sizeof(*<span class="arg">ptr</span>)</span>.
+</div>
 </div>
 
-<p>
-When the left operand of a dot expression is an address
-space, the result of the expression is a variable arity
-function that, when called, calls the dispatch function
-of the address space.  The arguments it passes to
-dispatch are, first, the identifier appearing as the
-right operand to the dot expression as a string,
-followed by the arguments to the call.
-</p>
-
-<p>
-In addition, if the right operand is the identifier
-<tt>dispatch</tt>, then the result of the expression is
-simply the dispatch function of the address space,
-instead of the curried version described above.
-For example, the above call to <tt>get</tt> is equivalent to:
-</p>
-<div class="code">
-<pre>
-; as.dispatch("get",mkrange(0,1024));
-</pre>
+<div class="docitem" id="fn:stringof">
+<div class="proto">
+<div class="function">
+<span class="id">stringof(<span class="arg">ptr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the bytes
+beginning at <span class="arg">ptr</span> from the
+address space associated with <span
+class="arg">ptr</span>.  The string extends to, but
+does not include, the first null byte at or beyond
+<span class="arg">ptr</span>.  <span
+class="id">Stringof</span> does not span address space
+mapping boundaries: if the boundary of the address
+space mapping containing <span class="arg">ptr</span>
+is reached before a null byte is encountered, then the
+search ends and the string of bytes seen so far is
+returned.
+</div>
 </div>
 
-<p>
-As a syntactic convenience, the left operand to the dot
-operator can also be a domain, in which case the same
-operation is performed on the underlying address space.
-</p>
+<div class="docitem" id="fn:getbytes">
+<div class="proto">
+<div class="function">
+<span class="id">getbytes(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing a copy of the bytes
+beginning at <span class="arg">ptr</span> from the
+address space associated with <span
+class="arg">ptr</span>.  If provided, <span
+class="arg">len</span> is a non-negative count of bytes
+to read; otherwise, <tt>sizeof(*<span
+class="arg">ptr</span>)</tt> bytes are read.
+</div>
+</div>
 
-<p>
-The address spaces returned by the standard address
-space constructors all implement a dispatch function
-that can be accessed with the dot operator in the same
-way as a custom address space.
-</p>
+<div class="docitem" id="fn:putbytes">
+<div class="proto">
+<div class="function">
+<span class="id">putbytes(<span class="arg">ptr</span>,<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Copies the bytes in <span class="arg">str</span> into
+the address space associated with <span
+class="arg">ptr</span>, starting at the location
+pointed to by <span class="arg">ptr</span>.
+</div>
+</div>
 
-<p>
-The dot operator on address spaces will accept any
-valid identifier (not just <tt>map</tt>, <tt>get</tt>,
-<tt>put</tt>, and <tt>dispatch</tt>), providing a way
-for programs to extend the standard address space
-interface with additional custom functions.  This
-feature can be used, for example, to associate a
-function for setting breakpoints with an address space.
-</p>
+<div class="docitem" id="fn:malloc">
+<div class="proto">
+<div class="function">
+<span class="id">malloc(<span class="arg">len</span>)
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns a pointer to <span class="arg">len</span> bytes
+of non-moving storage in the calling process backed by
+a freshly
+allocated <a href="#fn:isctype"><span class="id">mkmas</span></a>
+address space.  The lifespan of the storage is tied to
+the lifespan of the backing address space.
+</div>
+</div>
 
 
 <h4 id="sec:ctypes">Ctypes</h4>
 
-<p>The Cinquecento type <em>ctype</em> represents types
-defined in C programs.  The predicate
-<a href="#fn:isctype"><span class="id">isctype</span></a> tests whether a value is
-a ctype.
-The <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
-operator can be used to obtain a ctype representing the
-type of a cvalue or the type denoted by a type name.
+<p>
+<em>Ctypes</em> represent types that can be named or
+defined in the type system of C.  The
+predicate <a href="#fn:isctype"><span class="id">isctype</span></a>
+tests whether a value is a ctype.
+</p>
+
+<p>
+Ctypes are subdivided into 12 <em>variants</em>:
+</p>
+
+<div id="inset">
+<p>
+void base pointer function array struct union enum typedef<br />
+bitfield enumconst<br />
+undefined<br />
+</p>
+</div>
+	
+<p>
+The variants in the first row correspond directly to
+the types that appear in C programs.
+</p>
+
+<p>
+The variants in the second row are Cinquecento
+inventions used to represent, respectively, the types
+of bitfields of structure and unions types, and the
+constants of enumeration types.
+</p>
+
+<p>
+The undefined variant is another invention used to
+represent types whose names but not definitions occur
+in a name space.
+</p>
+
+<p>
+Ctypes are one of the most complicated features of Cinquecento.
+Details follow.
+</p>
+
+<p>
+In the context of Cinquecento ctypes, a <em>type
+name</em> is the abstract structure denoted by type
+syntax in C.  For example, the
+syntax <span class="val">int*</span> denotes the type
+name pointer-to-<span class="val">int</span>.  Such
+names are first-class ctype values in Cinquecento:
+</p>
+
+<div class="code">
+<pre>
+; t = @typeof(int*);
+<span class="arg">int *</span>
+; isctype(t);
+<span class="arg">1</span>
+; printf("%t\n", t);
+<span class="arg">int *</span>
+; isptr(t);
+<span class="arg">1</span>
+; printf("%t\n", subtype(t));
+<span class="arg">int</span>
+</pre>
+</div>
+
+<p>
+
+This shows the use
+of <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
+to construct a ctype from the the C
+syntax <span class="val">int*</span>.
+The <span class="val">%t</span> <a href="#sec:fmt">format</a>
+verb returns a printed representation of a ctype in C
+syntax.  (This verb is also used by the L1 repl to
+print ctype values.)  Associated with each ctype
+variant is a predicate (<em>e.g.,</em>
+<a href="#fn:isptr"><span class="fnindex">isptr</span></a>)
+that tests whether a value is an instance of the
+variant, and a set of functions (<em>e.g.,</em>
+<a href="#fn:subtype"><span class="fnindex">subtype</span></a>)
+to deconstruct and inspect the type.
+</p>
+
+<p>
+The ctype constructor functions, one for each ctype
+variant, provide an alternative to the special syntax
+of <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>.
+Continuing the example:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int());
+<span class="arg">int *</span>
+; t == u;
+<span class="arg">1</span>
+</pre>
+</div>
+
+<p>
+A type name determines the abstract structure of a
+type, but not the concrete encoding of a value of the
+type in an address space.  Here, the
+name <span class="val">int*</span> alone could very
+well describe a 64-bit pointer to a 64-bit integer
+encoded in big-endian order, or a 32-bit pointer to a
+32-bit integer encoded in little-endian order, or some
+other variation.  Such ctypes are said to
+be <em>undefined</em>:
+</p>
+
+<div class="code">
+<pre>
+; sizeof(t);
+<span class="arg">error: attempt to determine size of undefined type</span>
+; sizeof(subtype(t));
+<span class="arg">error: attempt to determine size of undefined type</span>
+</pre>
+</div>
+
+<p>
+<em>Type definitions</em> are ctypes that extend the
+abstract structure of type names with concrete
+information about encoding and substructure.
+They are created through the use of optional arguments
+to the ctype constructors:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int(), cqct`Ru64le);
+<span class="arg">int *</span>
+; sizeof(u);
+<span class="arg">8</span>
+</pre>
+</div>
+
+<p>
+The optional second argument to
+<a href="#fn:mkctype_ptr"><span class="id">mkctype_ptr</span></a>
+gives the <em>representation</em> of the type.  The
+value <span class="val">cqct`Ru64le</span> is one of
+several constants defined for the built-in enumeration
+type <span class="val">cqct`Rkind</span>.  In this
+example, we have specified that the pointer value is
+represented as an unsigned 64-bit little-endian
+integer, a specification sufficient to read or write the
+value of such a pointer.  Constants are defined
+in <span class="val">cqct`Rkind</span> for all common
+integer encodings.
+</p>
+
+<p>
+Although type names and type definitions may be related,
+they are not equivalent ctypes:
+<p>
+
+<div class="code">
+<pre>
+; t == u;
+<span class="arg">0</span>
+</pre>
+</div>
+
+<p>
+The function <a href="#fn:typename"><span class="id">typename</span></a>
+maps a type definition to its name, essentially stripping
+it of all defining information.
+</p>
+
+<div class="code">
+<pre>
+; t == typename(u);
+<span class="arg">1</span>
+</pre>
+</div>
+
+<p>
+In the previous definition
+of <span class="val">u</span>, we created a type
+definition for the pointer type, but left its subtype
+undefined:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int(), cqct`Ru64le);
+<span class="arg">int *</span>
+; sizeof(u);
+<span class="arg">8</span>
+; sizeof(subtype(u));
+<span class="arg">error: attempt to determine size of undefined type</span>
+</pre>
+</div>
+
+<p>
+This is not a particularly useful type definition.
+While it provides sufficient information to access the
+pointer value, it provides no information about how to
+dereference this pointer, because the type does not
+define the concrete encoding of the
+pointed-to <span class="id">int</span> value.  We can
+fix this by adding a representation argument
+to <a href="#fn:mkctype_int"><span class="id">mkctype_int</span></a>:
+</p>
+
+<div class="code">
+<pre>
+; u = mkctype_ptr(mkctype_int(cqct`Rs64le), cqct`Ru64le);
+<span class="arg">int *</span>
+; sizeof(u);
+<span class="arg">8</span>
+; sizeof(subtype(u));
+<span class="arg">8</span>
+</pre>
+</div>
+
+<p>
+A ctype is <em>fully defined</em> if it is a type
+definition whose constituent subtypes, if any, are also
+fully defined.  Of all the preceding definitions
+of <span class="val">u</span>, only the final one is
+fully defined.  We will return to the role of fully
+defined after a detour into name spaces.
+</p>
+
+<p>
+A type name may be used to look up a type definition in
+a name space.
+</p>
+
+<p>
+Fortunately, most Cinquecento programs do not directly
+work with these details.  Name spaces provide
+definitions of types, and most types come along
+for the ride when symbols are referenced.
+</p>
+
+<p>
+Need to combine this with backtick.  It is confusing
+that @typeof(dom`T) performs a lookup, while @typeof(`T)
+does not.  Should we have @type?
+</p>
+
+<p>
+Maybe need a discussion of C syntax and how domain
+references fit into it.
 </p>
 
 <div class="docitem" id="syn:_at_typeof">
@@ -2937,17 +4294,20 @@ is resolved in the literal domain.
 </div>
 
 <p>
-In Cinquecento, the set of types that can be defined in
-a C program are divided into several categories.  The
-main categories are: the <tt>void</tt> type, the base
-arithmetic types (<tt>char</tt>, <tt>int</tt>,
+Cinquecento subdivides the set of ctypes into several
+<em>kind</em>s of ctypes.  Most kinds of ctypes
+correspond to types that occur in C programs.  These
+includes the <tt>void</tt> type, the base arithmetic types
+(<tt>char</tt>, <tt>int</tt>,
 <tt>unsigned long</tt>, <em>etc</em>), pointers,
 arrays, aggregates (<tt>struct</tt> and
 <tt>union</tt>), functions, enumerations, and
-<tt>typedef</tt>s.  In addition, Cinquecento also has
-separate categories for bitfields, enumeration
-constants, undefined types, and a special extended
-accessor type.
+<tt>typedef</tt>s.
+
+
+Other kinds of  also has kinds categories for bitfields,
+enumeration constants, undefined types, and a special
+extended accessor type.
 </p>
 
 <p>
@@ -3025,6 +4385,7 @@ Base C type
 </td>
 <td>
 <span class="fnindex"><a href="#fn:mkctype_base">mkctype_base</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_bool">mkctype_bool</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_char">mkctype_char</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_short">mkctype_short</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_int">mkctype_int</a></span><br />
@@ -3205,54 +4566,43 @@ the ctype does not define its subordinate.
 <span class="arg">type</span>: <span class="type">aggregate ctype</span>
 </div>
 <div class="returns">
-<span class="type">vector</span>
+<span class="type">vector of fields</span>
 </div>
 </div>
 <div class="desc">
 Returns a vector containing the
 definitions of the fields in the aggregate <span
-class="arg">type</span>.  Each item in the vector defines a field 
-that can be examined with the functions
+class="arg">type</span>.  Each element of the vector is a
+<a href="#sec:symbols">field</a>
+that can be inspected with the functions
 <span class="fnindex"><a
-href="#fn:fieldid">fieldid</a></span>, <span
-class="fnindex"><a
-href="#fn:fieldoff">fieldoff</a></span>, and <span
-class="fnindex"><a
-href="#fn:fieldtype">fieldtype</a></span>.
+href="#fn:fieldid">fieldid</a></span>,
+<span class="fnindex"><a href="#fn:fieldtype">fieldtype</a></span>,
+<span class="fnindex"><a href="#fn:fieldattr">fieldattr</a></span>, and
+<span class="fnindex"><a href="#fn:fieldoff">fieldoff</a></span>.
 Modifying the vector may cause undefined effects.
 </div>
 </div>
 
-<div class="docitem">
+<div class="docitem" id="fn:lookfield">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:fieldid">fieldid(<span class="arg">field</span>)</span>
-</div>
-<div class="function">
-<span class="id" id="fn:fieldoff">fieldoff(<span class="arg">field</span>)</span>
-</div>
-<div class="function">
-<span class="id" id="fn:fieldtype">fieldtype(<span class="arg">field</span>)</span>
+<span class="id">lookfield(<span class="arg">type</span>,<span class="arg">id</span>)</span>
 </div>
 <div class="param">
-<span class="arg">field</span>: <span class="type">item in the vector returned by <span
-class="fnindex"><a
-href="#fn:fields">fields</a></span></span>
+<span class="arg">type</span>: <span class="type">aggregate ctype</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">string</span>
 </div>
 <div class="returns">
-<span class="type">see description</span>
+<span class="type">field</span> or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
-These functions examine an aggregate field definition returned by <span
-class="fnindex"><a href="#fn:fields">fields</a></span>.  <span
-class="id">Fieldid</span> returns the name of the field
-as a string.  <span class="id">Fieldoff</span> returns
-the offset in bytes of the field from the start of the
-aggregate as a cvalue, or <span class="val">nil</span>
-if the offset is undefined.  <span
-class="id">Fieldtype</span> returns the type of the
-field as a ctype.
+Returns the <a href="#sec:symbols">field</a> named <span class="arg">id</span> 
+in the aggregate <span class="arg">type</span>, or <span class="val">nil</span>
+if no field has that name.
 </div>
 </div>
 
@@ -3278,6 +4628,24 @@ anonymous aggregate or enumeration).
 </div>
 </div>
 
+<div class="docitem" id="fn:suattr">
+<div class="proto">
+<div class="function">
+<span class="id">suattr(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">aggregate ctype</span>
+</div>
+<div class="returns">
+<span class="type">table or nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the attribute table of <span class="arg">type</span>.
+</div>
+</div>
+
+
 <div class="docitem" id="fn:susize">
 <div class="proto">
 <div class="function">
@@ -3291,10 +4659,12 @@ anonymous aggregate or enumeration).
 </div>
 </div>
 <div class="desc">
-Returns the size in bytes of the aggregate
-ctype <span class="arg">type</span> as a cvalue.
-Returns <span class="val">nil</span>
-if <span class="arg">type</span> does not define its size.
+If <span class="arg">type</span> does not have an
+attribute table, or if its attribute table does not define
+the attribute <span class="val">"offset"</span>,
+then this function returns <span class="val">nil</span>.
+Otherwise it returns the value of the
+attribute <span class="val">"offset"</span >.
 </div>
 </div>
 
@@ -3465,43 +4835,14 @@ constant as a cvalue.
 <div class="desc">
 Returns a vector containing the
 definitions of the parameters in the function type represented by <span
-class="arg">type</span>.  Each item in the vector defines a parameter
-that can be examined with the functions
-<span class="fnindex"><a
-href="#fn:paramid">paramid</a></span> and <span
-class="fnindex"><a
-href="#fn:paramtype">paramtype</a></span>.
-The parameters occur in the vector in the order they are 
-declared in the function type represented by <span
 class="arg">type</span>.
+Each element of the vector is a
+<a href="#sec:symbols">param</a>
+that can be inspected with the functions
+<span class="fnindex"><a href="#fn:paramid">paramid</a></span>,
+<span class="fnindex"><a href="#fn:paramtype">paramtype</a></span>, and
+<span class="fnindex"><a href="#fn:paramattr">paramattr</a></span>.
 Modifying the vector may cause undefined effects.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:paramid">paramid(<span class="arg">param</span>)</span>
-</div>
-<div class="function">
-<span class="id" id="fn:paramtype">paramtype(<span class="arg">param</span>)</span>
-</div>
-<div class="param">
-<span class="arg">param</span>: <span class="type">item in the vector returned by <span
-class="fnindex"><a
-href="#fn:fieldtype">params</a></span></span>
-</div>
-<div class="returns">
-<span class="type">see description</span>
-</div>
-</div>
-<div class="desc">
-These functions examine a parameter definition returned by <span
-class="fnindex"><a href="#fn:params">params</a></span>.  <span
-class="id">Paramid</span> returns the name of the parameter
-as a string.  <span
-class="id">Paramtype</span> returns the type of the
-parameter as a ctype.
 </div>
 </div>
 
@@ -3625,21 +4966,23 @@ The following functions are the ctype constructors.
 <div class="proto">
 
 <div class="function">
-<span class="id" id="fn:mkctype_struct">mkctype_struct(<span class="arg">tag</span>[,<span class="arg">fields</span>,<span class="arg">size</span>])</span>
+<span class="id" id="fn:mkctype_struct">mkctype_struct(<span class="arg">tag</span>[,<span class="arg">fields</span>[,<span class="arg">size</span>]])</span>
 </div>
 
 <div class="function">
-<span class="id" id="fn:mkctype_union">mkctype_union(<span class="arg">tag</span>[,<span class="arg">fields</span>,<span class="arg">size</span>])</span>
+<span class="id" id="fn:mkctype_union">mkctype_union(<span class="arg">tag</span>[,<span class="arg">fields</span>[,<span class="arg">size</span>]])</span>
 </div>
 
 <div class="param">
 <span class="arg">tag</span>: <span class="type">string</span>
 </div>
 <div class="param">
-<span class="arg">fields</span>: <span class="type">vector</span>
+<span class="arg">fields</span>: <span class="type">vector of fields</span>
+or <span class="type">nil</span>
 </div>
 <div class="param">
-<span class="arg">size</span>: <span class="type">size</span>
+<span class="arg">attr</span>: <span class="type">table</span> or 
+<span class="type">ctype</span> or <span class="type">nil</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
@@ -3648,46 +4991,23 @@ The following functions are the ctype constructors.
 <div class="desc">
 Returns a new ctype representing a struct or union
 aggregate type.
-<span class="arg">Tag</span> is the type tag.  If
-specified, <span class="arg">fields</span> is a vector
+<span class="arg">Tag</span> is the type tag.  
+<span class="arg">Fields</span>, if provided, is a vector
 defining the fields of the aggregate, each element of
-which is constructed
-by <span class="fnindex"><a href="#fn:mkfield">mkfield</a></span>,
-and <span class="arg">size</span> is the size in bytes
-of the aggregate.
+which is a field constructed
+by <span class="fnindex"><a href="#fn:mkfield">mkfield</a></span>.
+<span class="arg">Attr</span> is an attribute table
+defined and used in the manner of the <a href="#sec:symbols">symbol attribute table</a>.
+The attribute named <span class="val">"offset"</span> determines
+the size in byte of the aggregate.
+If <span class="arg">attr</span> is a cvalue, it is
+promoted to an attribute table that maps
+<span class="val">"offset"</span> to <span class="arg">attr</span>.
+If <span class="arg">attr</span> is <span class="arg">nil</span>
+or omitted, no attribute table is created.
 </div>
 </div>
 
-<div class="docitem" id="fn:mkfield">
-<div class="proto">
-<div class="function">
-<span class="id">mkfield(<span class="arg">type</span>,<span class="arg">id</span>[,<span class="arg">off</span>])</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">off</span>: <span class="type">cvalue</span>
-</div>
-<div class="returns">
-<span class="type">vector</span>
-</div>
-</div>
-<div class="desc">
-
-Returns a new field definition that is a suitable
-element of the <span class="arg">fields</span>
-argument
-of <span class="fnindex"><a href="#fn:mkctype_struct">mkctype_struct</a></span>
-or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
-<span class="arg">Type</span> is the type of the field,
-<span class="arg">id</span> is the name of the field, and
-<span class="arg">off</span>, if specified, is the offset in bytes of the field from the beginning of the aggregate.
-</div>
-</div>
 
 
 <div class="docitem" id="fn:mkctype_array">
@@ -3708,7 +5028,7 @@ or <span class="fnindex"><a href="#fn:mkctype_union">mkctype_union</a></span>.
 <div class="desc">
 Returns a new ctype representing an array of 
 represented by <span class="arg">type</span>.
-<span class="arg">Nelm</span>, if specified, is the number of elements
+<span class="arg">Nelm</span>, if provided, is the number of elements
 in arrays represented by the type.
 </div>
 </div>
@@ -3717,6 +5037,9 @@ in arrays represented by the type.
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:mkctype_base">mkctype_base(<span class="arg">base</span>[,<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_bool">mkctype_bool([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
 <span class="id" id="fn:mkctype_char">mkctype_char([<span class="arg">rep</span>])</span>
@@ -3755,7 +5078,7 @@ in arrays represented by the type.
 <span class="id" id="fn:mkctype_double">mkctype_double([<span class="arg">rep</span>])</span>
 </div>
 <div class="function">
-<span class="id" id="fn:mkctype_longdouble">mkctype_longdouble([<span class="arg">rep</span>])</span>
+<span class="id" id="fn:mkctype_ldouble">mkctype_ldouble([<span class="arg">rep</span>])</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
@@ -3825,12 +5148,12 @@ offset <span class="arg">pos</span> in the containing type.
 <div class="desc">
 Returns a new ctype representing an enumeration type.  
 <span class="arg">Tag</span> is the type tag.  
-If specified, <span class="arg">consts</span> is a vector defining
+If provided, <span class="arg">consts</span> is a vector defining
 the constants of the enumeration type.  Each element of 
 <span class="arg">consts</span> is a two-element vector.
 The first element is the name of the
 constant as a string, the second is the value of
-constant as a cvalue.  <span class="arg">Type</span>, if specified, is the
+constant as a cvalue.  <span class="arg">Type</span>, if provided, is the
 underlying (subordinate) type of the enumeration.
 </div>
 </div>
@@ -3874,34 +5197,8 @@ Returns a new ctype representing a function type.
 <span class="arg">Type</span> is the return type of the function.
 <span class="arg">Params</span> is a vector
 defining the parameters of the function, each element of which
-is constructed
+is a param constructed
 by <span class="fnindex"><a href="#fn:mkparam">mkparam</a></span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:mkparam">
-<div class="proto">
-<div class="function">
-<span class="id">mkparam(<span class="arg">type</span>[,<span class="arg">id</span>])</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
-</div>
-<div class="returns">
-<span class="type">vector</span>
-</div>
-</div>
-<div class="desc">
-Returns a new parameter definition that is a suitable
-element of the <span class="arg">params</span>
-argument
-of <span class="fnindex"><a href="#fn:mkctype_fn">mkctype_fn</a></span>.
-<span class="arg">Type</span> is the type of the parameter and
-<span class="arg">id</span>, if specified and non-nil,
-is the name of the parameter.
 </div>
 </div>
 
@@ -3946,7 +5243,7 @@ representing the pointer representation type.
 <div class="desc">
 Returns a new ctype representing a typedef.  
 <span class="arg">Id</span> is the name of typedef.
-If specified, <span class="arg">type</span> is a ctype representing
+If provided, <span class="arg">type</span> is a ctype representing
 the aliased type.
 </div>
 </div>
@@ -4408,6 +5705,60 @@ expression
 a valid index for the container.  For tables, a valid index is a key.
 </p>
 
+<p>
+This and other syntax are supported by two generic functions on containers:
+</p>
+
+<div class="docitem" id="fn:cntrget">
+<div class="proto">
+<div class="function">
+<span class="id">cntrget(<span class="arg">cntr</span>, <span class="arg">idx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">cntr</span>: <span class="type">container</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">valid index for <span class="arg">cntr</span></span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Cntrget</span> is the generic access function for
+containers.  It returns the element of <span class="arg">cntr</span>
+corresponding to <span class="arg">idx</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:cntrput">
+<div class="proto">
+<div class="function">
+<span class="id">cntrput(<span class="arg">cntr</span>, <span class="arg">idx</span>, <span class="arg">val</span>)</span>
+</div>
+<div class="param">
+<span class="arg">cntr</span>: <span class="type">container</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type"><span class="type">valid index for <span class="arg">cntr</span></span>
+</div>
+<div class="param">
+<span class="arg">val</span>: <span class="type">see description</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Cntrput</span> is the generic update function for
+containers.  It updates the element
+of <span class="arg">cntr</span> corresponding
+to <span class="arg">idx</span> to
+<span class="arg">val</span>, and returns <span class="arg">val</span>.
+</div>
+</div>
+
+
 <h4 id="sec:lists">Lists</h4>
 
 <p>
@@ -4454,7 +5805,7 @@ The values are stored in argument order.
 </div>
 <div class="desc">
 Constructs a new list of size <span class="arg">len</span>.
-Each element is initialized to <span class="arg">val</span>, if specified,
+Each element is initialized to <span class="arg">val</span>, if provided,
 otherwise to <span class="val">nil</span>.
 </div>
 </div>
@@ -4731,7 +6082,7 @@ a vector.
 </div>
 <div class="desc">
 Constructs a new vector of size <span class="arg">len</span>.
-Each element is initialized to <span class="arg">val</span>, if specified,
+Each element is initialized to <span class="arg">val</span>, if provided,
 otherwise to <span class="val">nil</span>.
 </div>
 </div>
@@ -5065,7 +6416,7 @@ evaluator.
 <span class="arg">char</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
-<span class="type">cvalue (1 or 0)</span>
+<span class="type">cvalue</span>
 </div>
 </div>
 <div class="desc">
@@ -5083,7 +6434,7 @@ bytes.  Cinquecento strings have fixed length (possibly
 zero), are indexed from position 0, and are not null
 terminated.  Strings are mutable, but do not share
 storage with other strings.  The maximum string length
-is 2^64-1.  The predicate
+is 2<sup>64</sup>-1.  The predicate
 <a href="#fn:isstring"><span class="id">isstring</span></a> tests whether a value is
 a string.
 </p>
@@ -5102,7 +6453,10 @@ The binary C operator <tt>+</tt> concatenates strings.
 
 <p>
 The following functions comprise the basic string
-operations.
+operations. Note that while some of these functions
+share names with C standard library functions, they are
+not equivalent to these functions, because they do
+not terminate on NUL bytes.
 </p>
 
 <div class="docitem" id="fn:mkstr">
@@ -5138,8 +6492,42 @@ class="arg">len</span> null bytes.
 <div class="desc">
 Returns the number of bytes in <span class="arg">str</span>.
 Equivalent to <tt>length(<span class="arg">str</span>)</tt>.
+
+(This function is equivalent to C standard library
+to <span class="id">strlen</span> only when no NUL bytes appear in
+<span class="arg">str</span>.)
+
 </div>
 </div>
+
+<div class="docitem" id="fn:strcmp">
+<div class="proto">
+<div class="function">
+<span class="id">strcmp(<span class="arg">s1</span>,<span class="arg">s2</span>)</span>
+</div>
+<div class="param">
+<span class="arg">s1</span>,<span class="arg">s2</span>: <span class="type">string</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (-1, 0, or 1)
+</div>
+</div>
+<div class="desc">
+Returns the result of comparing
+strings <span class="arg">s1</span>
+and <span class="arg">s2</span> byte-by-byte.
+Returns -1, 0, or 1 if <span class="arg">s1</span>
+is, respectively,
+less than, equal to, or greater than <span class="arg">v</span>.
+Returns the number of bytes in <span class="arg">str</span>.
+
+(This function is equivalent to C standard library
+to <span class="id">strcmp</span> only when no NUL bytes appear in
+<span class="arg">str</span>.)
+
+</div>
+</div>
+
 
 <div class="docitem" id="fn:strref">
 <div class="proto">
@@ -5160,6 +6548,11 @@ Equivalent to <tt>length(<span class="arg">str</span>)</tt>.
 <div class="desc">
 Returns the character at index <span class="arg">idx</span> in
 <span class="arg">str</span>.
+
+(This function is equivalent to C standard library
+to <span class="id">strref</span> only when no NUL bytes appear in
+<span class="arg">str</span>.)
+
 </div>
 </div>
 
@@ -5182,6 +6575,11 @@ Returns the character at index <span class="arg">idx</span> in
 Returns the index in <span class="arg">s1</span> of the first occurrence
 of the string <span class="arg">s2</span>, or nil if <span class="arg">s2</span>
 does not match.
+
+(This function is equivalent to C standard library
+to <span class="id">strstr</span> only when no NUL bytes appear in
+either <span class="arg">s1</span> or <span class="arg">s2</span>.)
+
 </div>
 </div>
 
@@ -5341,93 +6739,187 @@ the file named <span class="arg">filename</span>.
 </div>
 </div>
 
+<h4 id="sec:pairs">Pairs</h4>
+
 <p>
-Several functions move strings to and
-from address spaces.
+A pair is an object that holds references
+to two other Cinquecento values, called the <em>car</em>
+and <em>cdr</em> of the pair.  It is akin to the
+<em>cons cell</em> data structure that is
+fundamental to Scheme and other Lisp-based languages.
 </p>
 
-<div class="docitem" id="fn:stringof">
+<p>
+Both pairs and the <a href="#sec:lists">list</a> type can be used to build
+lists.  The primary difference is that a list built from
+the list type is itself mutable, <em>i.e.</em>, it can
+be updated in place by imperative operations such
+as <a href="#fn:isstring"><span class="id">append</span></a>
+and <a href="#fn:isstring"><span class="id">delete</span></a>.
+Lists based on pairs, in contrast, are typically manipulated
+by functional operations in the style of Scheme lists.
+</p>
+
+<p>
+The conventional value for the empty list in
+Cinquecento is <span class="id">nil</span>.
+It is an error to call container and list functions
+such as
+<a href="#fn:isempty"><span class="id">isempty</span></a>,
+<a href="#fn:length"><span class="id">length</span></a>, and
+<a href="#fn:listref"><span class="id">listref</span></a>
+on a list built from pairs and <span class="id">nil</span>.
+</p>
+
+<p>
+Note that the list constructor syntax
+<a href="#syn:_emptylist_"><span class="id">[...]</span></a>
+is used to build instances of the list type, not
+pair-based lists.
+</p>
+
+<p>
+The predicate
+<a href="#fn:ispair"><span class="id">ispair</span></a> tests whether a value is
+a pair.
+</p>
+
+<p>
+The functions that operate on pairs are:
+</p>
+
+<div class="docitem" id="fn:cons">
 <div class="proto">
 <div class="function">
-<span class="id">stringof(<span class="arg">ptr</span>)</span>
+<span class="id">cons(<span class="arg">v1</span>,<span class="arg">v2</span>)</span>
 </div>
 <div class="param">
-<span class="arg">ptr</span>: <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
+<span class="arg">v1,v2</span>: <span class="type">any value</span>
 </div>
 <div class="returns">
-<span class="type">string</span>
+<span class="type">pair</span>
 </div>
 </div>
 <div class="desc">
-Returns a string containing a copy of the bytes
-beginning at <span class="arg">ptr</span> from the
-address space associated with <span
-class="arg">ptr</span>.  The string extends to, but
-does not include, the first null byte at or beyond
-<span class="arg">ptr</span>.  <span
-class="id">Stringof</span> does not span address space
-mapping boundaries: if the boundary of the address
-space mapping containing <span class="arg">ptr</span>
-is reached before a null byte is encountered, then the
-search ends and the string of bytes seen so far is
-returned.
+Constructs a new pair whose car is <span
+class="arg">v1</span> and whose cdr is
+<span
+class="arg">v2</span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:getbytes">
+<div class="docitem" id="fn:car">
 <div class="proto">
 <div class="function">
-<span class="id">getbytes(<span class="arg">ptr</span>[,<span class="arg">len</span>])</span>
+<span class="id">car(<span class="arg">p</span>)</span>
 </div>
 <div class="param">
-<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
-</div>
-<div class="param">
-<span class="arg">len</span>: <span class="type">cvalue</span>
+<span class="arg">p</span>: <span class="type">pair</span>
 </div>
 <div class="returns">
-<span class="type">string</span>
+<span class="type">depends on the contents of <span class="arg">p</span></span>
 </div>
 </div>
 <div class="desc">
-Returns a string containing a copy of the bytes
-beginning at <span class="arg">ptr</span> from the
-address space associated with <span
-class="arg">ptr</span>.  If provided, <span
-class="arg">len</span> is a non-negative count of bytes
-to read; otherwise, <tt>sizeof(*<span
-class="arg">ptr</span>)</tt> bytes are read.  It is an
-error for the read to cross the boundary of the address
-space mapping containing <span
-class="arg">ptr</span>.
+Returns the the car of <span class="arg">p</span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:putbytes">
+<div class="docitem" id="fn:cdr">
 <div class="proto">
 <div class="function">
-<span class="id">putbytes(<span class="arg">ptr</span>,<span class="arg">str</span>)</span>
+<span class="id">cdr(<span class="arg">p</span>)</span>
 </div>
 <div class="param">
-<span class="arg">ptr</span>: <span class="type">cvalue</span> of any pointer type
+<span class="arg">p</span>: <span class="type">pair</span>
+</div>
+<div class="returns">
+<span class="type">depends on the contents of <span class="arg">p</span></span>
+</div>
+</div>
+<div class="desc">
+Returns the cdr of <span class="arg">p</span>.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:setcar">
+<div class="proto">
+<div class="function">
+<span class="id">setcar(<span class="arg">p</span>,<span class="arg">v</span>)</span>
 </div>
 <div class="param">
-<span class="arg">str</span>: <span class="type">string</span>
+<span class="arg">p</span>: <span class="type">pair</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
 </div>
 <div class="returns">
 <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
-Copies the bytes in <span class="arg">str</span> into
-address space associated with <span
-class="arg">ptr</span>, starting at the location
-pointed to by <span class="arg">ptr</span>.  It is an
-error for the write to cross the boundary of the
-address space mapping containing <span
-class="arg">ptr</span>.
+Sets the car of <span class="arg">p</span> to <span class="arg">v</span>.
 </div>
 </div>
+
+<div class="docitem" id="fn:setcdr">
+<div class="proto">
+<div class="function">
+<span class="id">setcdr(<span class="arg">p</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">p</span>: <span class="type">pair</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the cdr of <span class="arg">p</span> to <span class="arg">v</span>.
+</div>
+</div>
+
+<p>
+A <em>weak pair</em> is a pair whose car is a <em>weak pointer</em>,
+a pointer that is not followed by the collector.  An object
+that is reachable only through weak pointers will be eventually reclaimed
+by the collector, at which time its references will be replaced
+with the value <span class="id">nil</span>.  A weak pair is otherwise
+indistinguishable from a pair.
+The predicate
+<span class="id" id="fn:isweakpair">isweakpair</span> tests whether a value is
+a weak pair.
+</p>
+
+<div class="docitem" id="fn:weakcons">
+<div class="proto">
+<div class="function">
+<span class="id">weakcons(<span class="arg">v1</span>,<span class="arg">v2</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v1,v2</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">weak pair</span>
+</div>
+</div>
+<div class="desc">
+Constructs a new weak pair whose car is <span
+class="arg">v1</span> and whose cdr is
+<span
+class="arg">v2</span>.  The car is a weak pointer
+to <span class="arg">v1</span>.
+</div>
+</div>
+
+
+
+
+
 
 <h4 id="sec:io">I/O</h4>
 
@@ -5500,7 +6992,7 @@ file descriptor can be read, written, or both; see
 The native file descriptor is closed if and when the
 Cinquecento file descriptor is closed, including the
 implicit close that occurs when a file descriptor is
-garbage collected.
+collected.
 </div>
 </div>
 
@@ -5871,7 +7363,7 @@ attempts to close operations are silently ignored.
 </div>
 
 <div class="desc">
-If specified, <span class="arg">name</span> is the string
+If provided, <span class="arg">name</span> is the string
 returned by <span class="id">fdname</span>; otherwise 
 <span class="id">fdname</span> returns the empty string.
 </div>
@@ -6179,6 +7671,360 @@ Returns a new string containing formatted output.
 </div>
 
 
+<h4 id="sec:compile">Quotation, Compilation, and Evaluation</h4>
+
+<p>
+L1 provides access to some stages of
+Cinquecento expression evaluation.  The details of
+these interfaces are likely to change.
+</p>
+
+<div class="docitem" id="fn:eval">
+<div class="proto">
+<div class="function">
+<span class="id">eval(<span class="arg">expr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">eval</span> evaluates the Cinquecento
+expression contained in the
+string <span class="arg">expr</span> and returns the
+computed value.  The evaluation occurs in the top-level
+environment of the caller.
+</div>
+</div>
+
+<div class="docitem" id="fn:evalk">
+<div class="proto">
+<div class="function">
+<span class="id">evalk(<span class="arg">expr</span>, <span class="arg">succ</span>, <span class="arg">fail</span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">succ</span>: <span class="type">function</span>
+</div>
+<div class="param">
+<span class="arg">fail</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">see description</span>
+</div>
+</div>
+<div class="desc">
+<span class="id">Evalk</span> is like 
+<span class="id">eval</span>, but provides control over
+the outcome of evaluations that cause an error to be raised.
+<span class="id">Evalk</span> evaluates the Cinquecento
+expression contained in the
+string <span class="arg">expr</span>.
+If the evaluation causes an error to be raised, the
+same error message and stack trace that normally would be
+be printed are printed, then evaluation continues by calling the function
+<span class="arg">fail</span> with no arguments.
+Otherwise, the function <span class="arg">succ</span>
+is called with the result of the application as its
+single argument.
+</div>
+</div>
+
+<div class="docitem" id="fn:parse">
+<div class="proto">
+<div class="function">
+<span class="id">parse(<span class="arg">expr<span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns the result of parsing the Cinquecento
+expression in the string <span class="arg">expr</span>.
+The parsed expression is an S-expression encoding of
+the parse tree.  Details are too volatile to document
+at present, but generally each node in the tree is a
+list whose first element is a string identifier for the
+syntax type of the tree node and whose remaining
+elements are the children of the node.
+</div>
+</div>
+
+<div class="docitem" id="syn:_at_quote">
+<div class="proto">
+<div class="function">
+<span class="id">@quote { <span class="arg">expr</span> }</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">see description</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+The <span class="id">@quote</span> form provides a syntactic interface
+to the functionality <span class="id"><a href="#fn:stringof">parse</a></span>.
+It returns the result of parsing the literal Cinquecento expression <span class="arg">expr</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:compile">
+<div class="proto">
+<div class="function">
+<span class="id">compile(<span class="arg">expr<span>)</span>
+</div>
+<div class="param">
+<span class="arg">expr</span>: <span class="type">list</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+<span class="arg">Expr</span> must be a Cinquecento parse tree
+of the form returned by <span class="id"><a href="#fn:stringof">parse</a></span> or <span class="id"><a href="#syn:_at_quote">@quote</a></span>.
+<span class="id">Compile</span> returns a function
+that, when called, returns the result of evaluating the
+original expression.
+</div>
+</div>
+
+
+<p>
+If <span class="arg">e</span> is a literal
+Cinquecento expression, then the expressions
+<div class="code">
+<pre>
+	eval("<span class="arg">e</span>")
+</pre>
+</div>
+and
+<div class="code">
+<pre>
+	compile(parse("<span class="arg">e</span>"))()
+</pre>
+</div>
+and
+<div class="code">
+<pre>
+	compile(@quote { <span class="arg">e</span> })()
+</pre>
+</div>
+are equivalent.
+</p>
+
+
+<h4 id="sec:storage">Storage Management</h4>
+
+<p>
+Storage in the L1 implementation of Cinquecento is
+managed by a generational stop-the-world copying
+collector.  Its design draws on published
+descriptions of storage management in <em>Chez Scheme</em>
+[<a href="#bib:chez">Chez</a>, <a href="#bib:bibop">BiBOP</a>,
+<a href="#bib:bibop">Guardians</a>].
+</p>
+
+<p>
+User functions related to storage management are:
+</p>
+
+
+<div class="docitem" id="fn:gc">
+<div class="proto">
+<div class="function">
+<span class="id">gc()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Runs the collector.
+</div>
+</div>
+
+<div class="docitem" id="fn:postgc">
+<div class="proto">
+<div class="function">
+<span class="id">postgc()</span>
+</div>
+<div class="returns">
+<span class="type">ignored</span>
+</div>
+</div>
+<div class="desc">
+Following every collection, the system calls the
+function bound to the top-level variable
+<span class="id">postgc</span>.  By default the value
+of <span class="id">postgc</span> is a function that
+returns <span class="val">nil</span>.  Programs may
+modify <span class="id">postgc</span> to be a function
+that performs work intended to be coordinated with
+collection.  Since other code may independently modify
+<span class="id">postgc</span>, the
+old value of <span class="id">postgc</span> should be called
+at some time during the evaluation of its replacement.  For example,
+the first call
+to <span class="fnindex"><a href="#fn:finalize">finalize</a></span>
+replaces <span class="id">postgc</span> with a function
+that first calls the previous value
+of <span class="id">postgc</span>, then services
+finalizers.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:compact">
+<div class="proto">
+<div class="function">
+<span class="id">compact()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This function moves all currently live objects to a
+region of memory that will never be collected again.
+Its effect is to spare the collector most of the
+overhead of ever scanning these objects again, at the
+cost of their perpetual storage.  Mutable objects
+preserved by <span class="id">compact</span> that later
+acquire references to objects in younger generations
+may still be scanned during future collections.
+</div>
+</div>
+
+<div class="docitem" id="fn:gclock">
+<div class="proto">
+<div class="function">
+<span class="id">gclock(<span class="arg">val</span>)</span>
+</div>
+<div class="function">
+<span class="id">gcunlock(<span class="arg">val</span>)</span>
+</div>
+<div class="param">
+<span class="arg">val</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Prevents the storage associated
+with <span class="arg">val</span> from being reclaimed
+or moved by the collector.  Locking incurs significant
+space and execution overhead; it should be done
+sparingly.  An object may be locked multiple times.
+A locked object
+may be later unlocked by an equal number of calls to <span class="id">gcunlock</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:gcstats">gcstats()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Prints information about the current state of the storage manager.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:mkguardian">mkguardian()</span>
+</div>
+<div class="returns">
+<span class="type">procedure</span>
+</div>
+</div>
+<div class="desc">
+Guardians protect objects from reclamation.  The
+semantics and interface of the guardians provided by L1
+are very similar to those in published descriptions of <em>Chez Scheme</em>
+[<a href="#bib:chez">Chez</a>].
+</div>
+</div>
+
+<div class="docitem" id="fn:finalize">
+<div class="proto">
+<div class="function">
+<span class="id">finalize(v, fn)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function or nil</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+
+Registers a finalizer function to be called before the
+collector reclaims storage for the
+value <span class="arg">v</span>.  The collector schedules a
+call to the finalizer <span class="arg">fn</span> some
+time after determining that <span class="arg">v</span>
+is unreachable.  The sole argument passed
+to <span class="arg">fn</span>
+is <span class="arg">v</span>.
+
+<p>
+At the time it is passed to the finalizer, the
+value <span class="arg">v</span> is unreachable but
+otherwise has no special status.  In particular, the
+finalizer may reintroduce references to the value,
+e.g. by storing it in a hash table.  The finalizer will
+not be called again for such a reincarnated value;
+a new call to <span class="id">finalize</span>
+must be arranged.
+</p>
+
+<p>
+Only one finalizer can be associated with a value at
+a time; <span class="id">finalize</span> replaces
+the previously registered finalizer, if any.
+To disassociate a finalizer from a value <span class="arg">v</span>,
+call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
+</p>
+
+<p>
+When shutting down the last VM (via 
+<span class="fnindex"><a href="#fn:cqctfreevm">cqctfreevm</a></span>),
+the Cinquecento system performs a final collection and calls finalizers for unreachable values.
+However, finalizers for objects that are still reachable
+at shutdown may not be called.
+</p>
+
+<p>
+Finalizers are implemented through <a href="#fn:mkguardian">guardians</a>
+and <span class="fnindex"><a href="#fn:postgc">postgc</a></span>.
+</p>
+
+</div>
+</div>
+
 
 <h4 id="sec:system">System Functions</h4>
 
@@ -6250,6 +8096,23 @@ Returns the current time in microseconds.
 Returns the value associated with the variable <span class="arg">var</span>
 in the environment of the calling process, or <span class="val">nil</span>
 if the variable is undefined.
+</div>
+</div>
+
+<div class="docitem" id="fn:environ">
+<div class="proto">
+<div class="function">
+<span class="id">environ()</span>
+</div>
+<div class="returns">
+<span class="type">list of string</span>
+</div>
+</div>
+<div class="desc">
+Returns the environment of the calling process as list each of whose elements
+is a string of the form <span class="val">"<span class="arg">VAR</span>=<span class="arg">VAL</span>"</span>, where <span class="arg">VAR</span>
+is the name of a defined environment variable  and 
+<span class="arg">VAL</span> is the corresponding value.
 </div>
 </div>
 
@@ -6373,98 +8236,20 @@ started.  All user-defined bindings are destroyed.
 </div>
 
 
-<div class="docitem" id="fn:finalize">
+
+<h4 id="sec:mash">Compression and Hashing</h4>
+
+<p>
+This section documents functions related to compression and hashing.
+</p>
+
+<div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id">finalize(v, fn)</span>
-</div>
-<div class="param">
-<span class="arg">v</span>: <span class="type">any value</span>
-</div>
-<div class="param">
-<span class="arg">fn</span>: <span class="type">function or nil</span>
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-
-Registers a finalizer function to be called before the
-garbage collector reclaims storage for the
-value <span class="arg">v</span>.  The GC schedules a
-call to the finalizer <span class="arg">fn</span> some
-time after determining that <span class="arg">v</span>
-is unreachable.  The sole argument passed
-to <span class="arg">fn</span>
-is <span class="arg">v</span>.
-
-<p>
-At the time it is passed to the finalizer, the
-value <span class="arg">v</span> is unreachable but
-otherwise has no special status.  In particular, the
-finalizer may reintroduce references to the value,
-e.g. by storing it in a hash table.  The finalizer will
-not be called again for such a reincarnated value;
-a new call to <span class="id">finalize</span>
-must be arranged.
-</p>
-
-<p>
-Only one finalizer can be associated with a value at
-a time; <span class="id">finalize</span> replaces
-the previously registered finalizer, if any.
-To disassociate a finalizer from a value <span class="arg">v</span>,
-call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
-</p>
-
-<p>
-When shutting down the last VM (via 
-<span class="fnindex"><a href="#fn:cqctfreevm">cqctfreevm</a></span>),
-the Cinquecento system performs a final garbage
-collection and calls finalizers for unreachable values.
-However, finalizers for objects that are still reachable
-at shutdown may not be called.
-</p>
-
-</div>
-</div>
-
-<h4 id="sec:other">Other Functions</h4>
-
-<p>
-This section documents various other functions.
-</p>
-
-<div class="docitem" id="fn:eval">
-<div class="proto">
-<div class="function">
-<span class="id">eval(<span class="arg">expr</span>)</span>
-</div>
-<div class="param">
-<span class="arg">expr</span>: <span class="type">string</span>
-</div>
-<div class="returns">
-<span class="type">see description</span>
-</div>
-</div>
-<div class="desc">
-<span class="id">eval</span> evaluates the Cinquecento
-expression contained in the
-string <span class="arg">expr</span> and returns the
-computed value.  The evaluation occurs in the top-level
-environment of the caller.
-</div>
-</div>
-
-
-<div class="docitem" id="fn:inflate">
-<div class="proto">
-<div class="function">
-<span class="id">inflate(<span class="arg">buf</span>)</span>
+<span class="id" id="fn:inflate">inflate(<span class="arg">buf</span>)</span>
 </div>
 <div class="function">
-<span class="id">inflatezlib(<span class="arg">buf</span>)</span>
+<span class="id" id="fn:inflatezlib">inflatezlib(<span class="arg">buf</span>)</span>
 </div>
 <div class="param">
 <span class="arg">buf</span>: <span class="type">string</span> or <span class="type">cvalue</span> of type <span class="type">char*</span> or <span class="type">unsigned char*</span>
@@ -6475,12 +8260,28 @@ environment of the caller.
 </div>
 <div class="desc">
 <span class="id">inflate</span> decompresses the
-contents of the string represented
-by <span class="arg">buf</span> using the deflate
+contents of the string <span class="arg">buf</span> using the deflate
 compression algorithm (which is used for gzip, zip, and
 zlib files).  <span class="id">inflatezlib</span> is
 like <span class="id">inflate</span>, but operates on
 strings with a zlib header and trailer.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:sha1">sha1(<span class="arg">buf</span>)</span>
+</div>
+<div class="param">
+<span class="arg">buf</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the SHA-1 hash of <span class="arg">buf</span>.
 </div>
 </div>
 
@@ -6498,233 +8299,68 @@ l1's load path, these libraries are loaded via the command:
 </div>
 
 <p>
-This section gives non-exhaustive describions 
-for several of the provided libraries.
+In <a href=libs.html>this document</a>, the APIs for many of
+the provided libraries are specified.
 </p>
 
-<h5 id="lib:asutil.cqct">asutil.cqct</h5>
 
-<span class="id">asutil.cqct</span> provides code for 
-loading, saving, and copying address spaces. 
+<h4 id="sec:runtime">L1 Executable</h4>
 
-<div class="docitem" id="fn:asload">
-<div class="proto">
-<div class="function">
-<span class="id">asload(<span class="arg">filename</span>)</span>
-</div>
-<div class="param">
-<span class="arg">filename</span>: <span class="type">string</span> 
-</div>
-<div class="returns">
-<span class="type">address space</span>
-</div>
-</div>
-<div class="desc">
-Loads the address space saved to the file 
-in <span class="arg">filename</span>.
-</div>
-</div>
+<p>
+The L1 executable is a command-line program that
+provides an interactive read-eval-print-loop interface
+to Cinquecento.  It is built by default when the L1
+source distribution is compiled.
+</p>
 
-<div class="docitem" id="fn:asload_str">
-<div class="proto">
-<div class="function">
-<span class="id">asload_str(<span class="arg">str</span>)</span>
-</div>
-<div class="param">
-<span class="arg">str</span>: <span class="type">string</span> 
-</div>
-<div class="returns">
-<span class="type">address space</span>
-</div>
-</div>
-<div class="desc">
-Loads the address space saved in the string
-<span class="arg">str</span>.
-</div>
-</div>
+<p>
+During initialization, the l1 executable determines
+an initial load path.  The load path is initialized to the empty list.
+Then load paths specified on the command line by the <tt>-l</tt>
+flag are appended, in order, to the load path.
+Finally, unless it is suppressed with the <tt>-s</tt> flag,
+the default load path is appended to the load path.
+</p>
 
-<div class="docitem" id="fn:assave">
-<div class="proto">
-<div class="function">
-<span class="id">assave(<span class="arg">as</span>,
-			<span class="arg">filename</span>)</span>
-</div>
-<div class="param">
-<span class="arg">as</span>: <span class="type">address space</span> 
-<span class="arg">filename</span>: <span class="type">string</span> 
-</div>
-<div class="returns">
-<span class="type">undefined</span>
-</div>
-</div>
-<div class="desc">
-Saves the address space 
-<span class="arg">as</span>
-to the file <span class="arg">filename</span>.
-</div>
-</div>
+<p>
+The default load path is determined in the following way:
+</p>
 
-<div class="docitem" id="fn:assave_str">
-<div class="proto">
-<div class="function">
-<span class="id">assave_str(<span class="arg">as</span>)</span>
-</div>
-<div class="param">
-<span class="arg">as</span>: <span class="type">address space</span> 
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Saves the address space 
-<span class="arg">as</span> to a string, and returns that string.
-</div>
-</div>
+<ul>
+<li>
+At compile time, if the preprocessor variable <span class="val">LIBDIR</span> is defined
+when the l1 driver (main.c) is compiled, then the
+default load path is initialized to its value, which
+must be a string containing colon-separated list of
+directories.  Otherwise the default load path is
+initialized to the empty list.
+</li>
 
-<div class="docitem" id="fn:ascopy">
-<div class="proto">
-<div class="function">
-<span class="id">ascopy(<span class="arg">as</span>)</span>
-</div>
-<div class="param">
-<span class="arg">as</span>: <span class="type">address space</span> 
-</div>
-<div class="returns">
-<span class="type">address space</span>
-</div>
-</div>
-<div class="desc">
-Creates a copy of the address space <span class="arg">as</span>, 
-and returns the copy. No changes to the returned address space
-affect the passed address space.
-</div>
-</div>
+<li>
+At run time, if the environment
+variable <span class="val">L1LIBPATH</span> is defined,
+then its value, which must be a colon-separated list of
+directories, is appended to the default load path.
+</li>
 
-<h5 id="lib:dump.cqct">dump.cqct</h5>
+<li>
+If neither <span class="val">LIBDIR</span>  (at compile
+time) nor <span class="val">L1LIBPATH</span> (at run
+time) is defined, then the default load path is
+set to the list containing the single directory
+<span class="val"><span class="arg">L1PATH</span>/lib</span>,
+where <span class="arg">L1PATH</span> is the directory containing
+the L1 executable.
+</li>
 
-<span class="id">dump.cqct</span> provides code for printing
-out namespaces and the values associated with typed pointers.
+</ul>
 
-<div class="docitem" id="fn:printtype">
-<div class="proto">
-<div class="function">
-<span class="id">printtype(<span class="arg">t</span>)</span>
-</div>
-<div class="param">
-<span class="arg">t</span>: <span class="type">ctype</span> 
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns a string representation
-of the provided ctype that can be included inside a @names directive. 
-</div>
-</div>
-
-<div class="docitem" id="fn:dumpns">
-<div class="proto">
-<div class="function">
-<span class="id">dumpns(<span class="arg">dn</span>)</span>
-</div>
-<div class="param">
-<span class="arg">dn</span>: 
-Domain or name space to be printed.
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-Prints all types in the given domain or name space to standard out.
-</div>
-</div>
-
-<div class="docitem" id="fn:objectStr">
-<div class="proto">
-<div class="function">
-<span class="id">objectStr(<span class="arg">x</span>)</span>
-</div>
-<div class="param">
-<span class="arg">x</span>: 
-Pointer to a cvalue. 
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Pretty-prints the object pointed to by x based on x's ctype to
-a string, and returns that string.
-</div>
-</div>
-
-<h5 id="lib:dynamictypes.cqct">dynamictypes.cqct</h5>
-
-This file provides the ability to create dynamic types, or types
-that change based on their content. For example, consider the following
-vector type:
-<div class="code">
-<pre>
-struct Vector {
-        unsigned int size;
-        int data[];
-};
-</pre>
-</div>
-The data pointer is actually an array of length size.
-With dynamic typing, one can specify types such that a pointer
-<span class="id">p</span> pointing to an object of type 
-<span class="id">Vector</span> can be translated into the appropriate
-type using the <span class="id">refine</span> function. In this case,
-that type will be:
-<div class="code">
-<pre>
-stuct Vector {
-        unsigned int size;
-	int data[p->size];
-};
-</pre>
-</div>
-
-The basic idea is for the person defining the type to include an 
-extra mapping in fields for the
-keyword "refine", which specifies a function for performing the
-transformation. Then for a pointer to an object p, one can call
-refine(p) to create a pointer that points to the refined version
-of the type of p.
-
-For a complete example, see the <span class="function">example</span>
-function in the file <span class="id">dynamictypes.cqct</span>.
-
-<div class="docitem" id="fn:refine">
-<div class="proto">
-<div class="function">
-<span class="id">refine(<span class="arg">p</span>)</span>
-</div>
-<div class="param">
-<span class="arg">p</span>: 
-A cvalue pointer. 
-</div>
-<div class="returns">
-<span class="type">A cvalue pointer.</span>
-</div>
-</div>
-<div class="desc">
-Returns a pointer to the same address as is pointed to by 
-<span class="arg">p</span>, but points to a refined version of
-<span class="arg">p</span>'s type. The newly refined type inherits
-any refinement properties from the old type so that further calls
-to refine will behave as expected. If 
-any part of the object <span class="arg">p</span> points to is
-unmapped, or if any part of the refined structure <span class="arg">p</span>
-would have pointed to on return is unmapped, then no changes are made.
-</div>
-</div>
-
-
+<p>
+The load path may be inspected and changed from within
+Cinquecento through the built-in functions
+<a href="#fn:setloadpath">loadpath</a>
+and <a href="#fn:setloadpath">setloadpath</a>.
+</p>
 
 <h4 id="sec:cinterface">C Interface</h4>
 
@@ -6777,9 +8413,8 @@ Cinquecento type of the object:
 <pre>
 typedef
 enum {
-	Qundef = 0,	/* the undefined value */
+	Qundef = 0,	/* the undefined value (private) */
 	Qnil,		/* the nil value */
-	Qnull,		/* the null value (unused) */
 	Qas,		/* address space */
 	Qbox,		/* box (private) */
 	Qcl,		/* closure */
@@ -7443,6 +9078,46 @@ machines sharing the environment have been freed.
 </div>
 </div>
 
+<h4 id="sec:bib">Bibliography</h4>
+
+<div>
+<table>
+
+<tr>
+<td>
+<span id="bib:chez">[Chez]</span>
+</td>
+<td>
+ R. Kent Dybvig. <em><a href="http://www.scheme.com/csug8">The Chez Scheme Version 8 User's Guide</a></em>.  Cadence Research Systems, 2009.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:bibop">[BiBOP]</span>
+</td>
+<td>
+R. Kent Dybvig, David Eby, and Carl Bruggeman.
+<em><a href="http://www.cs.indiana.edu/~dyb/pubs/bibop.pdf">Don't stop the BiBOP: Flexible and efficient storage management for dynamically typed languages.</a></em>  Indiana University technical report #400, March 1994. 
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:guardian">[Guardians]</span>
+</td>
+<td>
+R. Kent Dybvig, David Eby, and Carl Bruggeman.
+<em><a href="http://www.cs.indiana.edu/~dyb/pubs/guardians-pldi93.pdf">
+Guardians in a generation-based collector.</a></em>
+ACM SIGPLAN 1993 Conference on Programming Language
+Design and Implementation, 207-216, June 1993.
+</td>
+</tr>
+
+</table>
+
+
 <h4 id="sec:synindex">Syntax Index</h4>
 <div class="id">
 <div class="index">
@@ -7450,17 +9125,21 @@ machines sharing the environment have been freed.
 <table>
 <tr>
 <td>
+<a href="#syn:invoke"><span class="val"><span class="arg">o</span>.<span class="arg">f</span> (method invocation)</a><br />
+<a href="#syn:asof"><span class="val"><span class="arg">dom</span>.as</span></a><br />
+<a href="#syn:asof"><span class="val"><span class="arg">dom</span>.ns</span></a><br />
 <a href="#syn:_emptylist_">[<span class="arg">value</span>, ... ]</a><br />
 <a href="#syn:_emptytable_">[<span class="arg">key</span> : <span class="arg">value</span>, ...]</a><br />
-<a href="#syn:_at_const">@const</a><br />
+<a href="#syn:_at_define">@define</a><br />
+<a href="#syn:_at_defloc">@defloc</a><br />
 <a href="#syn:_at_global">@global</a><br />
 <a href="#syn:_at_include">@include</a><br />
+<a href="#syn:_at_lambda">@lambda</a><br />
 <a href="#syn:_at_lazyapply">@lazyapply</a><br />
 <a href="#syn:_at_local">@local</a><br />
 <a href="#syn:_at_names">@names</a><br />
+<a href="#syn:_at_quote">@quote</a><br />
 <a href="#syn:_at_record">@record</a><br />
-<a href="#syn:_at_define">@define</a><br />
-<a href="#syn:_at_lambda">@lambda</a><br />
 <a href="#syn:return">return</a><br />
 <a href="#syn:_at_typeof">@typeof</a><br />
 </td>
@@ -7546,9 +9225,11 @@ machines sharing the environment have been freed.
 <table>
 <tr>
 <td>
+<a href="#fn:asof">asof</a><br />
 <a href="#fn:access">access</a><br />
 <a href="#fn:append">append</a><br />
 <a href="#fn:apply">apply</a><br />
+<a href="#fn:applyk">applyk</a><br />
 <a href="#fn:arraynelm">arraynelm</a><br />
 <a href="#fn:backtrace">backtrace</a><br />
 <a href="#fn:basebase">basebase</a><br />
@@ -7558,18 +9239,33 @@ machines sharing the environment have been freed.
 <a href="#fn:bitfieldpos">bitfieldpos</a><br />
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
 <a href="#fn:bsearch">bsearch</a><br />
+<a href="#fn:car">car</a><br />
+<a href="#fn:cdr">cdr</a><br />
 <a href="#fn:close">close</a><br />
+<a href="#fn:cntrget">cntrget</a><br />
+<a href="#fn:cntrput">cntrput</a><br />
+<a href="#fn:compact">compact</a><br />
+<a href="#fn:compile">compile</a><br />
 <a href="#fn:concat">concat</a><br />
+<a href="#fn:cons">cons</a><br />
 <a href="#fn:copy">copy</a><br />
 <a href="#fn:count">count</a><br />
+<a href="#fn:cvalcmp">cvalcmp</a><br />
 <a href="#fn:delete">delete</a><br />
+<a href="#fn:domof">domof</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
+<a href="#fn:nsenumsym">enumsym</a> (ns method)<br />
+<a href="#fn:nsenumtype">enumtype</a> (ns method)<br />
+<a href="#fn:environ">environ</a><br />
+<a href="#fn:equal">equal</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
+<a href="#fn:evalk">evalk</a><br />
 <a href="#fn:exit">exit</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
 <a href="#fn:fdopen">fdopen</a><br />
+<a href="#fn:fieldattr">fieldattr</a><br />
 <a href="#fn:fieldid">fieldid</a><br />
 <a href="#fn:fieldoff">fieldoff</a><br />
 <a href="#fn:fields">fields</a><br />
@@ -7577,6 +9273,11 @@ machines sharing the environment have been freed.
 <a href="#fn:finalize">finalize</a><br />
 <a href="#fn:foreach">foreach</a><br />
 <a href="#fn:fprintf">fprintf</a><br />
+<a href="#fn:gc">gc</a><br />
+<a href="#fn:gclock">gclock</a><br />
+<a href="#fn:gcstats">gcstats</a><br />
+<a href="#fn:gclock">gcunlock</a><br />
+<a href="#fn:asget">get</a> (as method)<br />
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
 <a href="#fn:getpid">getpid</a><br />
@@ -7600,7 +9301,7 @@ machines sharing the environment have been freed.
 <a href="#fn:isctype">isctype</a><br />
 <a href="#fn:iscvalue">iscvalue</a><br />
 <a href="#fn:isdigit">isdigit</a><br />
-<a href="#fn:isdomain">isdomain</a><br />
+<a href="#fn:isdom">isdom</a><br />
 <a href="#fn:isempty">isempty</a><br />
 </td>
 <td>
@@ -7611,10 +9312,13 @@ machines sharing the environment have been freed.
 <a href="#fn:isgraph">isgraph</a><br />
 <a href="#fn:islist">islist</a><br />
 <a href="#fn:islower">islower</a><br />
+<a href="#fn:ismapped">ismapped</a> (function)<br />
+<a href="#fn:asismapped">ismapped</a> (as method)<br />
 <a href="#fn:ismember">ismember</a><br />
 <a href="#fn:isnil">isnil</a><br />
 <a href="#fn:isns">isns</a><br />
 <a href="#fn:isodigit">isodigit</a><br />
+<a href="#fn:ispair">ispair</a><br />
 <a href="#fn:isprint">isprint</a><br />
 <a href="#fn:isprocedure">isprocedure</a><br />
 <a href="#fn:isptr">isptr</a><br />
@@ -7622,6 +9326,7 @@ machines sharing the environment have been freed.
 <a href="#fn:isrange">isrange</a><br />
 <a href="#fn:isrd">isrd</a><br />
 <a href="#fn:isrec">isrec</a><br />
+<a href="#fn:isrinr">isrinr</a><br />
 <a href="#fn:isspace">isspace</a><br />
 <a href="#fn:isstring">isstring</a><br />
 <a href="#fn:isstruct">isstruct</a><br />
@@ -7633,6 +9338,7 @@ machines sharing the environment have been freed.
 <a href="#fn:isupper">isupper</a><br />
 <a href="#fn:isvector">isvector</a><br />
 <a href="#fn:isvoid">isvoid</a><br />
+<a href="#fn:isweakpair">isweakpair</a><br />
 <a href="#fn:isxdigit">isxdigit</a><br />
 <a href="#fn:length">length</a><br />
 <a href="#fn:list">list</a><br />
@@ -7640,12 +9346,21 @@ machines sharing the environment have been freed.
 <a href="#fn:listins">listins</a><br />
 <a href="#fn:listref">listref</a><br />
 <a href="#fn:listset">listset</a><br />
-<a href="#fn:map">map</a><br />
+<a href="#fn:nslookaddr">lookaddr</a> (ns method)<br />
+<a href="#fn:lookfield">lookfield</a><br />
+<a href="#fn:nslooksym">looksym</a> (ns method)<br />
+<a href="#fn:looksym">looksym</a> (function)<br />
+<a href="#fn:nslooktype">looktype</a> (ns method)<br />
+<a href="#fn:looktype">looktype</a> (function)<br />
+<a href="#fn:malloc">malloc</a><br />
+<a href="#fn:map">map</a> (function)<br />
+<a href="#fn:asmap">map</a> (as method)<br />
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
 <a href="#fn:mkctype_base">mkctype_base</a><br />
 <a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
+<a href="#fn:mkctype_bool">mkctype_bool</a><br />
 <a href="#fn:mkctype_char">mkctype_char</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
 <a href="#fn:mkctype_double">mkctype_double</a><br />
@@ -7675,24 +9390,39 @@ machines sharing the environment have been freed.
 <a href="#fn:mkdom">mkdom</a><br />
 <a href="#fn:mkfd">mkfd</a><br />
 <a href="#fn:mkfield">mkfield</a><br />
+<a href="#fn:mkguardian">mkguardian</a><br />
 <a href="#fn:mklist">mklist</a><br />
-<a href="#fn:mkns">mkns</a><br />
+<a href="#fn:mkmas">mkmas</a><br />
+<a href="#fn:mkmas">mkmasx</a><br />
+<a href="#fn:mknas">mknas</a><br />
+<a href="#fn:mkas">mkns</a><br />
 <a href="#fn:mknsraw">mknsraw</a><br />
 <a href="#fn:mkparam">mkparam</a><br />
+<a href="#fn:mkrange">mkrange</a><br />
+<a href="#fn:mkrd">mkrd</a><br />
+<a href="#fn:mksas">mksas</a><br />
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
+<a href="#fn:mkzas">mkzas</a><br />
+<a href="#fn:myrootns">myrootns</a><br />
+<a href="#fn:nameof">nameof</a><br />
+<a href="#fn:asof">nsof</a><br />
 <a href="#fn:nsptr">nsptr</a><br />
-<a href="#fn:nsrepbase">nsrepbase</a><br />
 <a href="#fn:open">open</a><br />
 <a href="#fn:paramid">paramid</a><br />
 <a href="#fn:params">params</a><br />
 <a href="#fn:paramtype">paramtype</a><br />
+<a href="#fn:parse">parse</a><br />
 <a href="#fn:pop">pop</a><br />
+<a href="#fn:postgc">postgc</a><br />
+<a href="#fn:asput">put</a> (as method)<br />
 <a href="#fn:printf">printf</a><br />
 <a href="#fn:push">push</a><br />
 <a href="#fn:putbytes">putbytes</a><br />
+<a href="#fn:rangebeg">rangebeg</a><br />
+<a href="#fn:rangelen">rangelen</a><br />
 <a href="#fn:rand">rand</a><br />
 <a href="#fn:rand">randseed</a><br />
 <a href="#fn:rdis">rdis</a><br />
@@ -7700,22 +9430,30 @@ machines sharing the environment have been freed.
 </td>
 <td>
 <a href="#fn:rdfmt">rdfmt</a><br />
+<a href="#fn:rdgettab">rdgettab</a><br />
+<a href="#fn:rdmk">rdmk</a><br />
 <a href="#fn:rdname">rdname</a><br />
 <a href="#fn:rdof">rdof</a><br />
 <a href="#fn:rdsetfmt">rdsetfmt</a><br />
+<a href="#fn:rdgettab">rdsettab</a><br />
 <a href="#fn:read">read</a><br />
 <a href="#fn:resettop">resettop</a><br />
 <a href="#fn:rettype">rettype</a><br />
 <a href="#fn:reverse">reverse</a><br />
 <a href="#fn:seek">seek</a><br />
 <a href="#fn:select">select</a><br />
+<a href="#fn:setcar">setcar</a><br />
+<a href="#fn:setcdr">setcdr</a><br />
 <a href="#fn:setloadpath">setloadpath</a><br />
+<a href="#fn:setname">setname</a><br />
 <a href="#fn:settypedeftype">settypedeftype</a><br />
+<a href="#fn:sha1">sha1</a><br />
 <a href="#fn:slice">slice</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
 <a href="#fn:sprintfa">sprintfa</a><br />
 <a href="#fn:stringof">stringof</a><br />
+<a href="#fn:strcmp">strcmp</a><br />
 <a href="#fn:strlen">strlen</a><br />
 <a href="#fn:strput">strput</a><br />
 <a href="#fn:strref">strref</a><br />
@@ -7723,9 +9461,11 @@ machines sharing the environment have been freed.
 <a href="#fn:strton">strton</a><br />
 <a href="#fn:substr">substr</a><br />
 <a href="#fn:subtype">subtype</a><br />
+<a href="#fn:suattr">suattr</a><br />
 <a href="#fn:suekind">suekind</a><br />
 <a href="#fn:suetag">suetag</a><br />
 <a href="#fn:susize">susize</a><br />
+<a href="#fn:symattr">symattr</a><br />
 <a href="#fn:symid">symid</a><br />
 <a href="#fn:symoff">symoff</a><br />
 <a href="#fn:symtype">symtype</a><br />
@@ -7749,6 +9489,7 @@ machines sharing the environment have been freed.
 <a href="#fn:vecref">vecref</a><br />
 <a href="#fn:vecset">vecset</a><br />
 <a href="#fn:vector">vector</a><br />
+<a href="#fn:weakcons">weakcons</a><br />
 <a href="#fn:write">write</a><br />
 <a href="#fn:xaccessget">xaccessget</a><br />
 <a href="#fn:xaccessput">xaccessput</a><br />

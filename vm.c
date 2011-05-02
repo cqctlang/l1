@@ -5,7 +5,6 @@
 char *qname[Qnkind] = {
 	[Qundef]=	"undefined",
 	[Qnil]=		"nil",
-	[Qnull]=	"null",
 	[Qas]=		"address space",
 	[Qbox]=		"box",
 	[Qcl]=		"closure",
@@ -67,7 +66,6 @@ static unsigned isbigendian[Rnrep] = {
 static void vmsetcl(VM *vm, Val val);
 static Xtypename* safechasetype(Xtypename *xtn);
 static Xtypename* dolooktype(VM *vm, Xtypename *xtn, Ns *ns);
-static Xtypename* mkvoidxtn(void);
 static Xtypename* mkbasextn(Cbase name, Rkind rep);
 static Xtypename* mkconstxtn(Xtypename *t);
 static Xtypename* mktypedefxtn(Str *tid, Xtypename *t);
@@ -80,7 +78,6 @@ static void setgo(Insn *i, Imm lim);
 void *GCiterdone;
 Val Xundef;
 Val Xnil;
-Val Xnulllist;
 Dom *litdom;
 static Closure *halt, *nop;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
@@ -132,7 +129,6 @@ static int equalxtnv(Val, Val);
 Hashop hashop[Qnkind] = {
 	[Qundef] = { nohash, 0 },
 	[Qnil]	 = { hashconst, eqtrue },
-	[Qnull]  = { hashconst, eqtrue },
 	[Qas]	 = { hashptr, eqptr },
 	[Qbox]	 = { nohash, 0 },
 	[Qcl]	 = { hashptr, eqptr },
@@ -201,7 +197,6 @@ valhead(Val v)
 	switch(Vkind(v)){
 	case Qundef:
 	case Qnil:
-	case Qnull:
 		return 0;
 		break;
 	default:
@@ -216,11 +211,13 @@ typesize(VM *vm, Xtypename *xtn)
 	Cval *cv;
 	Str *es;
 	if(xtn == 0)
-		vmerr(vm, "attempt to compute size of undefined type");
+		vmerr(vm, "attempt to determine size of undefined type");
 	switch(xtn->tkind){
 	case Tvoid:
-		vmerr(vm, "attempt to compute size of void type");
+		vmerr(vm, "attempt to determine size of void type");
 	case Tbase:
+		if(xtn->rep == Rundef)
+			vmerr(vm, "attempt to determine size of undefined type");
 		return repsize[xtn->rep];
 	case Ttypedef:
 		return typesize(vm, xtn->link);
@@ -231,20 +228,22 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tenum:
 		return typesize(vm, xtn->link);
 	case Tptr:
+		if(xtn->rep == Rundef)
+			vmerr(vm, "attempt to determine size of undefined type");
 		return repsize[xtn->rep];
 	case Tarr:
 		if(Vkind(xtn->cnt) != Qcval)
 			vmerr(vm,
-			      "attempt to compute size of unspecified array");
+			      "attempt to determine size of unspecified array");
 		cv = valcval(xtn->cnt);
 		return cv->val*typesize(vm, xtn->link);
 	case Tfun:
-		vmerr(vm, "attempt to compute size of function type");
+		vmerr(vm, "attempt to determine size of function type");
 	case Tbitfield:
-		vmerr(vm, "attempt to compute size of bitfield");
+		vmerr(vm, "attempt to determine size of bitfield");
 	case Tundef:
 		es = fmtxtn(xtn->link);
-		vmerr(vm, "attempt to compute size of undefined type: %.*s",
+		vmerr(vm, "attempt to determine size of undefined type: %.*s",
 		      (int)es->len, strdata(es));
 	case Tconst:
 		vmerr(vm, "shouldn't this be impossible?");
@@ -445,8 +444,6 @@ hashconst(Val val)
 	switch(Vkind(val)){
 	case Qnil:
 		return hashptr32shift(Xnil);
-	case Qnull:
-		return hashptr32shift(Xnulllist);
 	default:
 		fatal("bug");
 	}
@@ -849,8 +846,8 @@ mkrange(Cval *beg, Cval *len)
 	return r;
 }
 
-Val
-mkvalrange(Cval *beg, Cval *len)
+static Val
+mkvalrange2(Cval *beg, Cval *len)
 {
 	Range *r;
 	r = mkrange(beg, len);
@@ -1386,7 +1383,7 @@ domcastbase(VM *vm, Dom *dom, Cval *cv)
 	if(old->rep == Rundef || new->rep == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, xtn, rerep(cv->val, old, new));
+	return mkcval(dom, xtn, _rerep(cv->val, old, new));
 }
 
 Cval*
@@ -1410,7 +1407,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	if(old->rep == Rundef || new->rep == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, xtn, rerep(cv->val, old, new));
+	return mkcval(dom, xtn, _rerep(cv->val, old, new));
 }
 
 static void
@@ -1934,72 +1931,87 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 	return mkcval(op1->dom, op1->type, rv);
 }
 
-static Cval*
-xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
+static int
+cvalcmp(VM *vm, Cval *op1, Cval *op2)
 {
-	Imm i1, i2, rv;
+	Imm i1, i2;
 	Xtypename *t;
-
-	dompromote(vm, op, op1, op2, &op1, &op2);
-	usualconvs(vm, op1, op2, &op1, &op2);
-	i1 = op1->val;
-	i2 = op2->val;
-	t = chasetype(op1->type);
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
 	   written without cast clutter. */
 
-	if(isunsigned[t->basename])
+	/* op to dompromote does not matter as long as it is
+	   not Iadd or Isub */
+
+	dompromote(vm, Icmpeq, op1, op2, &op1, &op2);
+	usualconvs(vm, op1, op2, &op1, &op2);
+	i1 = op1->val;
+	i2 = op2->val;
+	t = chasetype(op1->type);
+	if(isunsigned[t->basename]){
+		if(i1<i2)
+			return -1;
+		else if(i1>i2)
+			return 1;
+		else
+			return 0;
+	}else{
+		if((s64)i1<(s64)i2)
+			return -1;
+		else if((s64)i1>(s64)i2)
+			return 1;
+		else
+			return 0;
+	}
+}
+
+static Cval*
+xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
+{
+	switch(cvalcmp(vm, op1, op2)){
+	case -1:
 		switch(op){
 		case Icmpeq:
-			rv = i1==i2;
-			break;
-		case Icmpneq:
-			rv = i1!=i2;
-			break;
-		case Icmpgt:
-			rv = i1>i2;
-			break;
 		case Icmpge:
-			rv = i1>=i2;
-			break;
-		case Icmplt:
-			rv = i1<i2;
-			break;
+		case Icmpgt:
+			return cval0;
 		case Icmple:
-			rv = i1<=i2;
-			break;
+		case Icmplt:
+		case Icmpneq:
+			return cval1;
 		default:
 			fatal("bug");
 		}
-	else
+	case 0:
 		switch(op){
 		case Icmpeq:
-			rv = (s64)i1==(s64)i2;
-			break;
-		case Icmpneq:
-			rv = (s64)i1!=(s64)i2;
-			break;
-		case Icmpgt:
-			rv = (s64)i1>(s64)i2;
-			break;
 		case Icmpge:
-			rv = (s64)i1>=(s64)i2;
-			break;
-		case Icmplt:
-			rv = (s64)i1<(s64)i2;
-			break;
 		case Icmple:
-			rv = (s64)i1<=(s64)i2;
-			break;
+			return cval1;
+		case Icmpgt:
+		case Icmplt:
+		case Icmpneq:
+			return cval0;
 		default:
 			fatal("bug");
 		}
-	if(rv)
-		return cval1;
-	else
-		return cval0;
+	case 1:
+		switch(op){
+		case Icmpeq:
+		case Icmple:
+		case Icmplt:
+			return cval0;
+		case Icmpge:
+		case Icmpgt:
+		case Icmpneq:
+			return cval1;
+		default:
+			fatal("bug");
+		}
+	default:
+		fatal("bug");
+	}
 }
 
 static void
@@ -2543,6 +2555,7 @@ xsizeof(VM *vm, Operand *op, Operand *dst)
 	putvalrand(vm, rv, dst);
 }
 
+/* function from any arguments to nil */
 static void
 nilfn(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -2552,61 +2565,80 @@ nilfn(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(rv);
 }
 
-/* dispatch for abstract address spaces */
 static void
-nasdispatch(VM *vm, Imm argc, Val *argv, Val *rv)
+nasbad(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Str *cmd;
-
-	if(argc < 2)
-		vmerr(vm,
-		      "wrong number of arguments to address space dispatch");
-	checkarg(vm, "nasdispatch", argv, 1, Qstr);
-	cmd = valstr(argv[1]);
-	if(equalstrc(cmd, "map")){
-		if(argc != 2)
-			vmerr(vm, "wrong number of arguments to map");
-		*rv = mkvalvec(mkvec(0));
-		return;
-	}
-	vmerr(vm, "attempt to access abstract address space");
+	vmerr(vm, "attempt to access null address space");
 }
+
+static void
+nasmap(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to map method");
+	*rv = mkvalvec(mkvec(0));
+}
+
+static void
+nasismapped(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to ismapped method");
+	*rv = mkvalcval2(cval0);
+}
+
 
 static As*
 mknas(void)
 {
-	As *as;
 	Tab *mtab;
 	mtab = mktab();
-	tabput(mtab,
-		mkvalstr(mkstr0("dispatch")),
-		mkvalcl(mkcfn("nasdispatch", nasdispatch)));
-	as = mkastab(mtab, mkstr0("nullas"));
-	return as;
+	tabput(mtab, mkvalstr(mkstr0("get")),
+	       mkvalcl(mkcfn("nasget", nasbad)));
+	tabput(mtab, mkvalstr(mkstr0("put")),
+	       mkvalcl(mkcfn("nasput", nasbad)));
+	tabput(mtab, mkvalstr(mkstr0("map")),
+	       mkvalcl(mkcfn("nasmap", nasmap)));
+	tabput(mtab, mkvalstr(mkstr0("ismapped")),
+	       mkvalcl(mkcfn("nasismapped", nasismapped)));
+	return mkastab(mtab, mkstr0("nullas"));
+}
+
+/* is [rb,rl) in [b,l)? */
+static int
+checkrange(Imm b, Imm l, Imm rb, Imm rl)
+{
+	Imm e, re;
+	e = b+l;
+	if(e < b)
+		fatal("bug");
+	if(rb < b || rb > e)
+		return 0;
+	re = rb+rl;
+	if(re < rb || re > e)
+		/* FIXME: depending on whether ranges can be empty,
+		   also check re==rb */
+		return 0;
+	return 1;
 }
 
 static void
 sasget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Str *s, *dat;
+	Str *s;
 	Range *r;
-	Cval *beg, *end;
+	Imm rb, rl;
 
 	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to get");
+		vmerr(vm, "wrong number of arguments to get method");
 	checkarg(vm, "sasget", argv, 1, Qrange);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
-	beg = r->beg;
-	end = xcvalalu(vm, Iadd, beg, r->len);
-	if(beg->val > s->len)	/* FIXME: >=? */
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(0, s->len, rb, rl))
 		vmerr(vm, "address space access out of bounds");
-	if(end->val > s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	dat = strslice(s, beg->val, end->val);
-	*rv = mkvalstr(dat);
+	*rv = mkvalstr(strslice(s, rb, rb+rl));
 }
 
 static void
@@ -2614,30 +2646,23 @@ sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Str *s, *dat;
 	Range *r;
-	Cval *beg, *end;
+	Imm rb, rl;
 
 	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to put");
+		vmerr(vm, "wrong number of arguments to put method");
 	checkarg(vm, "sasput", argv, 1, Qrange);
 	checkarg(vm, "sasput", argv, 2, Qstr);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(0, s->len, rb, rl))
+		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
-	beg = r->beg;
-	if(r->len->val == 0 && beg->val <= s->len)
-		/* special case: empty string */
-		return;
-	end = xcvalalu(vm, Iadd, beg, r->len);
-	if(beg->val >= s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(end->val > s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	if(dat->len < r->len->val)
-		vmerr(vm, "short put");
+	if(dat->len < rl)
+		vmerr(vm, "not enough bytes for address space update");
 	/* FIXME: rationalize with l1_strput */
-	memcpy(strdata(s)+beg->val, strdata(dat), dat->len);
+	memcpy(strdata(s)+rb, strdata(dat), rl);
 	USED(rv);
 }
 
@@ -2649,15 +2674,34 @@ sasmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Str *s;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to map");
+		vmerr(vm, "wrong number of arguments to map method");
 	USED(argv);
 	s = valstr(disp[0]);
 	v = mkvec(1);
-	val = mkvalrange(cvalnull,
-			 mkcval(litdom,
-				litdom->ns->base[Vptr], s->len));
+	val = mkvalrange2(cvalnull,
+			  mkcval(litdom,
+				 litdom->ns->base[Vptr], s->len));
 	_vecset(v, 0, val);
 	*rv = mkvalvec(v);
+}
+
+static void
+sasismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Range *r;
+	Imm rb, rl;
+	Str *s;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to ismapped method");
+	s = valstr(disp[0]);
+	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	if(!checkrange(0, s->len, rb, rl))
+		*rv = mkvalcval2(cval0);
+	else
+		*rv = mkvalcval2(cval1);
 }
 
 As*
@@ -2671,105 +2715,115 @@ mksas(Str *s)
 		mkvalcl(mkccl("sasput", sasput, 1, mkvalstr(s))));
 	tabput(mtab, mkvalstr(mkstr0("map")),
 		mkvalcl(mkccl("sasmap", sasmap, 1, mkvalstr(s))));
+	tabput(mtab, mkvalstr(mkstr0("ismapped")),
+		mkvalcl(mkccl("sasismapped", sasismapped, 1, mkvalstr(s))));
 	return mkastab(mtab, 0);
 }
 
 static void
 masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Str *s, *dat;
-	Range *r;
-	Cval *beg, *end;
-	uptr o;
+	Str *dat;
+	Range *r, *mr;
+	Imm rb, rl, mb, ml;
 
 	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to get");
+		vmerr(vm, "wrong number of arguments to get method");
 	checkarg(vm, "masget", argv, 1, Qrange);
-	s = valstr(disp[0]);
+	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
-	beg = r->beg;
-	end = xcvalalu(vm, Iadd, beg, r->len);
-	o = (uptr)strdata(s);
-	if(beg->val < o)
+	rb = r->beg->val;
+	rl = r->len->val;
+	mb = mr->beg->val;
+	ml = mr->len->val;
+	if(!checkrange(mb, ml, rb, rl))
 		vmerr(vm, "address space access out of bounds");
-	if(beg->val > o+s->len)	/* FIXME: >=? */
-		vmerr(vm, "address space access out of bounds");
-	if(end->val > o+s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	dat = strslice(s, beg->val-o, end->val-o); /* yee-haw! */
+	dat = mkstr((char*)(uptr)rb, rl);
 	*rv = mkvalstr(dat);
 }
 
 static void
 masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Str *s, *dat;
-	Range *r;
-	Cval *beg, *end;
-	uptr o;
+	Str *dat;
+	Range *r, *mr;
+	Imm rb, rl, mb, ml;
 
 	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to put");
+		vmerr(vm, "wrong number of arguments to put method");
 	checkarg(vm, "masput", argv, 1, Qrange);
 	checkarg(vm, "masput", argv, 2, Qstr);
-	s = valstr(disp[0]);
+	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	mb = mr->beg->val;
+	ml = mr->len->val;
+	if(!checkrange(mb, ml, rb, rl))
+		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
-	beg = r->beg;
-	o = (uptr)strdata(s);
-	if(r->len->val == 0 && beg->val <= o+s->len)
-		/* special case: empty string */
-		return;
-	end = xcvalalu(vm, Iadd, beg, r->len);
-	if(beg->val < o)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val >= o+s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(end->val > o+s->len)
-		vmerr(vm, "address space access out of bounds");
-	if(beg->val > end->val)
-		vmerr(vm, "address space access out of bounds");
-	if(dat->len < r->len->val)
-		vmerr(vm, "short put");
-	/* FIXME: rationalize with l1_strput */
-	memcpy((char*)(uptr)beg->val, strdata(dat), dat->len);
+	if(dat->len < rl)
+		vmerr(vm, "not enough bytes for address space update");
+	memcpy((char*)(uptr)rb, strdata(dat), rl);
 	USED(rv);
 }
 
 static void
 masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
-	Val val;
 	Vec *v;
-	Str *s;
-	uptr o;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to map");
+		vmerr(vm, "wrong number of arguments to map method");
 	USED(argv);
-	s = valstr(disp[0]);
 	v = mkvec(1);
-	o = (uptr)strdata(s);
-	val = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], o),
-			 mkcval(litdom, litdom->ns->base[Vptr], s->len));
-	_vecset(v, 0, val);
+	_vecset(v, 0, disp[0]);
 	*rv = mkvalvec(v);
 }
 
-As*
-mkmas(Str *s)
+static void
+masismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Range *r, *mr;
+	Imm rb, rl, mb, ml;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to ismapped method");
+	checkarg(vm, "ismapped", argv, 1, Qrange);
+	mr = valrange(disp[0]);
+	r = valrange(argv[1]);
+	rb = r->beg->val;
+	rl = r->len->val;
+	mb = mr->beg->val;
+	ml = mr->len->val;
+	if(!checkrange(mb, ml, rb, rl))
+		*rv = mkvalcval2(cval0);
+	else
+		*rv = mkvalcval2(cval1);
+}
+
+static As*
+mkmas(VM *vm, Range *r, unsigned x)
 {
 	Tab *mtab;
+	As *as;
+
 	mtab = mktab();
 	tabput(mtab, mkvalstr(mkstr0("get")),
-		mkvalcl(mkccl("masget", masget, 1, mkvalstr(s))));
+		mkvalcl(mkccl("masget", masget, 1, mkvalrange(r))));
 	tabput(mtab, mkvalstr(mkstr0("put")),
-		mkvalcl(mkccl("masput", masput, 1, mkvalstr(s))));
+		mkvalcl(mkccl("masput", masput, 1, mkvalrange(r))));
 	tabput(mtab, mkvalstr(mkstr0("map")),
-		mkvalcl(mkccl("masmap", masmap, 1, mkvalstr(s))));
-	return mkastab(mtab, 0);
+		mkvalcl(mkccl("masmap", masmap, 1, mkvalrange(r))));
+	tabput(mtab, mkvalstr(mkstr0("ismapped")),
+		mkvalcl(mkccl("masmap", masismapped, 1, mkvalrange(r))));
+	as = mkastab(mtab, 0);
+	/* check if asked for intersection with managed
+	   range, but *after* any potential heap churn
+	   of this call. */
+	if(x && ismanagedrange((void*)(uptr)r->beg->val, r->len->val))
+		vmerr(vm, "range includes managed address space");
+	return as;
 }
 
 As*
@@ -2989,9 +3043,24 @@ static void
 nscachebase(VM *vm, Ns *ns)
 {
 	Cbase cb;
+	Val rv, argv[2];
+	Xtypename *xtn;
+
 	for(cb = Vlo; cb < Vnbase; cb++)
 		nscache1base(vm, ns, cb);
-	nscache1base(vm, ns, Vptr);
+
+	/* use result of looktype(void*) to define Vptr base */
+	argv[0] = mkvalns(ns);
+	argv[1] = mkvalxtn(mkptrxtn(mkvoidxtn(), Rundef));
+	rv = safedovm(vm, ns->looktype, 2, argv);
+	if(Vkind(rv) == Qnil)
+		vmerr(vm, "name space does not define void*");
+	xtn = valxtn(rv);
+	if(xtn->rep == Rundef)
+		xtn->flag = Tincomplete;
+	else
+		xtn->flag = Tcomplete;
+	ns->base[Vptr] = mkbasextn(Vptr, xtn->rep);
 }
 
 /* enumsym for namespaces constructed by @names */
@@ -3470,6 +3539,7 @@ ascachemethod(As *as)
 
 	ascache1method(as, "get", &as->get);
 	ascache1method(as, "put", &as->put);
+	ascache1method(as, "ismapped", &as->ismapped);
 	ascache1method(as, "map", &as->map);
 }
 
@@ -4597,8 +4667,8 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	Val argv[3];
 
 	argv[0] = mkvalas(as);
-	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
-			     mkcval(litdom, litdom->ns->base[Vptr], len));
+	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
+			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	argv[2] = mkvalstr(s);
 	if(s->len < len)
 		vmerr(vm, "attempt to put short string into longer range");
@@ -4612,15 +4682,14 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	Str *s;
 
 	argv[0] = mkvalas(as);
-	argv[1] = mkvalrange(mkcval(litdom, litdom->ns->base[Vptr], off),
-			     mkcval(litdom, litdom->ns->base[Vptr], len));
+	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
+			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = safedovm(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
-		vmerr(vm, "address space get method returned non-string");
+		vmerr(vm, "get method returned non-string");
 	s = valstr(rv);
 	if(s->len != len)
-		vmerr(vm, "address space get method returned wrong number of "
-		      "bytes");
+		vmerr(vm, "get method returned wrong number of bytes");
 	return s;
 }
 
@@ -4637,8 +4706,21 @@ callmap(VM *vm, As *as)
 	argv[0] = mkvalas(as);
 	rv = safedovm(vm, as->map, 1, argv);
 	if(Vkind(rv) != Qvec)
-		vmerr(vm, "address space map returned invalid value");
+		vmerr(vm, "map method returned invalid value");
 	return valvec(rv);
+}
+
+Cval*
+callismapped(VM *vm, As *as, Imm off, Imm len)
+{
+	Val argv[2], rv;
+	argv[0] = mkvalas(as);
+	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
+			      mkcval(litdom, litdom->ns->base[Vptr], len));
+	rv = safedovm(vm, as->ismapped, 2, argv);
+	if(Vkind(rv) != Qcval)
+		vmerr(vm, "ismapped method returned invalid value");
+	return valcval(rv);
 }
 
 Range*
@@ -4707,17 +4789,9 @@ stringof(VM *vm, Cval *cv)
 int
 ismapped(VM *vm, As *as, Imm addr, Imm len)
 {
-	Vec *v;
-	Range *r;
-
-	if(len == 0)
-		return 0;
-	if(addr+len < len)
-		/* bogus length */
-		return 0;
-	v = callmap(vm, as);
-	r = mapstab(vm, v, addr, len);	/* FIXME: type sanity */
-	return r != 0;
+	Cval *cv;
+	cv = callismapped(vm, as, addr, len);
+	return cv->val != 0;
 }
 
 static void
@@ -5177,7 +5251,7 @@ l1_paramtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to paramtype must be a vector returned by params";
+		= "operand 1 to paramtype must be a param";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramtype");
@@ -5198,7 +5272,7 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to paramid must be a vector returned by params";
+		= "operand 1 to paramid must be a param";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramid");
@@ -5211,6 +5285,23 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
+}
+
+static void
+l1_paramattr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Vec *v;
+	static char *err
+		= "operand 1 to paramattr must be a param";
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to paramattr");
+	if(Vkind(argv[0]) != Qvec)
+		vmerr(vm, err);
+	v = valvec(argv[0]);
+	if(v->len < 3)
+		vmerr(vm, err);
+	*rv = vecref(v, Attrpos);
 }
 
 static void
@@ -5300,7 +5391,7 @@ l1_fieldtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to fieldtype must be a vector returned by fields";
+		= "operand 1 to fieldtype must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldtype");
@@ -5321,7 +5412,7 @@ l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to fieldid must be a vector returned by fields";
+		= "operand 1 to fieldid must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldid");
@@ -5341,7 +5432,7 @@ l1_fieldattr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
 	static char *err
-		= "operand 1 to fieldattr must be a vector returned by fields";
+		= "operand 1 to fieldattr must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldattr");
@@ -5359,7 +5450,7 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to fieldoff must be a vector returned by fields";
+		= "operand 1 to fieldoff must be a field";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldoff");
@@ -5399,7 +5490,7 @@ l1_symtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to symtype must be a vector returned by looksym";
+		= "operand 1 to symtype must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symtype");
@@ -5420,7 +5511,7 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to symid must be a vector returned by looksym";
+		= "operand 1 to symid must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symid");
@@ -5440,7 +5531,7 @@ l1_symattr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Vec *v;
 	static char *err
-		= "operand 1 to symattr must be a vector returned by looksym";
+		= "operand 1 to symattr must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symattr");
@@ -5458,7 +5549,7 @@ l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *v;
 	Val vp;
 	static char *err
-		= "operand 1 to symoff must be a vector returned by looksym";
+		= "operand 1 to symoff must be a symbol";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symoff");
@@ -5549,7 +5640,7 @@ l1_mkctype_base(VM *vm, Imm argc, Val *argv, Val *rv)
 		rep = cv->val;
 	}else
 		vmerr(vm, "wrong number of arguments to mkctype_base");
-	
+
 	if(cb == Vvoid){
 		*rv = mkvalxtn(mkvoidxtn());
 		return;
@@ -5803,7 +5894,8 @@ l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Xtypename *xtn, *pxtn;
+	Xtypename *xtn;
+	Cval *cv;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_ptr");
 	if(Vkind(argv[0]) != Qxtn)
@@ -5812,17 +5904,12 @@ l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1)
 		xtn = mkptrxtn(xtn, Rundef);
 	else{
-		if(Vkind(argv[1]) != Qxtn)
-			vmerr(vm, "operand 2 to mkctype_ptr "
-			      "must define a pointer type");
-		checkarg(vm, "mkctype_ptr", argv, 1, Qxtn);
-		pxtn = valxtn(argv[1]);
-		pxtn = chasetype(pxtn);
-		if((pxtn->tkind != Tptr && pxtn->tkind != Tbase)
-		   || pxtn->rep == Rundef)
-			vmerr(vm, "operand 2 to mkctype_ptr "
-			      "must define a pointer type");
-		xtn = mkptrxtn(xtn, pxtn->rep);
+		if(Vkind(argv[1]) != Qcval)
+			vmerr(vm, "invalid pointer representation");
+		cv = valcval(argv[1]);
+		if(cv->val <= Rundef || cv->val >= Rnrep)
+			vmerr(vm, "invalid pointer representation");
+		xtn = mkptrxtn(xtn, cv->val);
 	}
 	*rv = mkvalxtn(xtn);
 }
@@ -5943,7 +6030,7 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		xtn->tkind = tkind;
 		xtn->tag = s;
 		xtn->field = f;
-		xtn->attr = argv[2];
+		xtn->attr = mkattr(argv[2]);
 		fl = Tcomplete;
 		for(i = 0; i < f->len; i++){
 			t = valxtn(vecref(valvec(vecref(f, i)), Typepos));
@@ -6166,18 +6253,18 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 			      "operand 3 to %s must be a table, cvalue, or nil",
 			      what);
 	vec = mkvec(3);
-	_vecset(vec, 0, argv[0]);
+	_vecset(vec, Typepos, argv[0]);
 	if(argc > 1)
-		_vecset(vec, 1, argv[1]);
+		_vecset(vec, Idpos, argv[1]);
 	else
-		_vecset(vec, 1, Xnil);
+		_vecset(vec, Idpos, Xnil);
 	if(argc > 2 && Vkind(argv[2]) == Qcval)
 		attr = mkattr(argv[2]);
 	else if(argc > 2)
 		attr = argv[2];
 	else
 		attr = Xnil;
-	_vecset(vec, 2, attr);
+	_vecset(vec, Attrpos, attr);
 	*rv = mkvalvec(vec);
 }
 
@@ -6200,7 +6287,7 @@ l1_mkfield(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkparam(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc < 1 || argc > 2)
+	if(argc < 1 || argc > 3)
 		vmerr(vm, "wrong number of arguments to mkparam");
 	mksymorfieldorparam("mkparam", vm, argc, argv, rv);
 }
@@ -6412,16 +6499,41 @@ l1_mksas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+domkmas(VM *vm, Imm argc, Val *argv, Val *rv, unsigned x)
 {
 	As *as;
-	Str *s;
-	if(argc != 1)
+	Cval *p, *l;
+	Range *r;
+	switch(argc){
+	case 0:
+		r = mkrange(mklitcval(Vptr, 0), mklitcval(Vptr, (uptr)-1));
+		break;
+	case 2:
+		checkarg(vm, "mksas", argv, 0, Qcval);
+		checkarg(vm, "mksas", argv, 1, Qcval);
+		p = valcval(argv[0]);
+		l = valcval(argv[1]);
+		if(l->val && p->val+l->val <= p->val)
+			vmerr(vm, "bad range for mkmas");
+		r = mkrange(p, l);
+		break;
+	default:
 		vmerr(vm, "wrong number of arguments to mkmas");
-	checkarg(vm, "mksas", argv, 0, Qstr);
-	s = valstr(argv[0]);
-	as = mkmas(s);
+	}
+	as = mkmas(vm, r, x);
 	*rv = mkvalas(as);
+}
+
+static void
+l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkmas(vm, argc, argv, rv, 0);
+}
+
+static void
+l1_mkmasx(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkmas(vm, argc, argv, rv, 1);
 }
 
 static void
@@ -6497,15 +6609,6 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_attroff(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to attroff");
-	checkarg(vm, "attroff", argv, 0, Qtab);
-	*rv = attroff(argv[0]);
-}
-
-static void
 l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ns *ns;
@@ -6574,6 +6677,37 @@ l1_nameof(VM *vm, Imm argc, Val *argv, Val *rv)
 		      " or address space");
 	if(name)
 		*rv = mkvalstr(name);
+}
+
+static void
+l1_setname(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Dom *dom;
+	Ns *ns;
+	As *as;
+	Str *name;
+
+	name = 0;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to setname");
+	if(Vkind(argv[1]) != Qnil && Vkind(argv[1]) != Qstr)
+		vmerr(vm, "argument 2 to setname must be a string or nil");
+	if(Vkind(argv[1]) == Qstr)
+		name = valstr(argv[1]);
+	else
+		name = 0;
+	if(Vkind(argv[0]) == Qdom){
+		dom = valdom(argv[0]);
+		dom->name = name;
+	}else if(Vkind(argv[0]) == Qns){
+		ns = valns(argv[0]);
+		ns->name = name;
+	}else if(Vkind(argv[0]) == Qas){
+		as = valas(argv[0]);
+		as->name = name;
+	}else
+		vmerr(vm, "operand 1 to nameof must be a domain, name space"
+		      " or address space");
 }
 
 static void
@@ -6691,75 +6825,6 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_nslookaddr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nslookaddr");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
-		vmerr(vm,
-		      "operand 1 to nslookaddr must be a namespace or domain");
-	if(Vkind(arg0) == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->lookaddr)
-		*rv = mkvalcl(ns->lookaddr);
-}
-
-static void
-l1_nsenumsym(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nsenumsym");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
-		vmerr(vm,
-		      "operand 1 to nsenumsym must be a namespace or domain");
-	if(Vkind(arg0) == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->enumsym)
-		*rv = mkvalcl(ns->enumsym);
-}
-
-static void
-l1_nsenumtype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val arg0;
-	Dom *dom;
-	Ns *ns;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to nsenumtype");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
-		vmerr(vm,
-		      "operand 1 to nsenumtype must be a namespace or domain");
-	if(Vkind(arg0) == Qns)
-		ns = valns(arg0);
-	else{
-		dom = valdom(arg0);
-		ns = dom->ns;
-	}
-	if(ns->enumtype)
-		*rv = mkvalcl(ns->enumtype);
-}
-
-static void
 l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
@@ -6809,7 +6874,7 @@ l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvalxtn(ns->base[Vptr]);
+	*rv = mkvallitcval(Vuchar, ns->base[Vptr]->rep);
 }
 
 static void
@@ -6820,7 +6885,7 @@ l1_mkrange(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "mkrange", argv, 0, Qcval);
 	checkarg(vm, "mkrange", argv, 1, Qcval);
 	/* FIXME: check sanity */
-	*rv = mkvalrange(valcval(argv[0]), valcval(argv[1]));
+	*rv = mkvalrange2(valcval(argv[0]), valcval(argv[1]));
 }
 
 static void
@@ -6989,8 +7054,11 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "ismapped expects a non-negative length");
 		sz = len->val;
 	}
-	if(sz == 0)
-		sz = typesize(vm, addr->type);
+	if(sz == 0){
+		if(addr->type->tkind != Tptr)
+			vmerr(vm, "ismapped expects a pointer cvalue");
+		sz = typesize(vm, addr->type->link);
+	}
 	if(ismapped(vm, addr->dom->as, addr->val, sz))
 		*rv = mkvalcval2(cval1);
 	else
@@ -7284,15 +7352,6 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_null(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to null");
-	USED(argv);
-	*rv = Xnulllist;
-}
-
-static void
 l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg;
@@ -7469,12 +7528,6 @@ l1_isns(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_isnull(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	l1_isx(vm, argc, argv, rv, "isnull", Qnull);
-}
-
-static void
 l1_ispair(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "ispair", Qpair);
@@ -7520,12 +7573,6 @@ static void
 l1_isvector(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isvector", Qvec);
-}
-
-static void
-l1_isundefined(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	l1_isx(vm, argc, argv, rv, "isundefined", Qundef);
 }
 
 static void
@@ -8049,6 +8096,30 @@ l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_cvalcmp(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int r;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cvalcmp");
+	checkarg(vm, "cvalcmp", argv, 0, Qcval);
+	checkarg(vm, "cvalcmp", argv, 1, Qcval);
+	r = cvalcmp(vm, valcval(argv[0]), valcval(argv[1]));
+	switch(r){
+	case -1:
+		*rv = mkvalcval2(cvalminus1);
+		break;
+	case 0:
+		*rv = mkvalcval2(cval0);
+		break;
+	case 1:
+		*rv = mkvalcval2(cval1);
+		break;
+	default:
+		fatal("bug");
+	}
+}
+
+static void
 l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -8257,7 +8328,7 @@ static NSroot clp64be = {
 .name = "clp64be",
 };
 
-static Xtypename*
+Xtypename*
 mkvoidxtn(void)
 {
 	Xtypename *xtn;
@@ -8444,7 +8515,12 @@ basetab(NSroot *def, Xtypename **base)
 		tabput(type, kv, vv);
 	}
 
-	/* map pointer to integer representation */
+	/* map pointer to integer representation (void*) */
+	kv = mkvalxtn(mkptrxtn(mkvoidxtn(), Rundef));
+	vv = mkvalxtn(mkptrxtn(mkvoidxtn(), def->base[def->ptr]));
+	tabput(type, kv, vv);
+
+	/* map pointer to integer representation (base Vptr) */
 	kv = mkvalxtn(mkbasextn(Vptr, Rundef));
 	vv = mkvalxtn(base[Vptr]);
 	tabput(type, kv, vv);
@@ -8528,7 +8604,6 @@ mktopenv(void)
 	FN(applyk);
 	FN(arraynelm);
 	FN(asof);
-	FN(attroff);
 	FN(backtrace);
 	FN(baseid);
 	FN(basebase);
@@ -8546,6 +8621,7 @@ mktopenv(void)
 	FN(concat);
 	FN(copy);
 	FN(count);
+	FN(cvalcmp);
 	FN(cval2str);
 	FN(delete);
 	FN(domof);
@@ -8587,7 +8663,6 @@ mktopenv(void)
 	FN(ismember);
 	FN(isnil);
 	FN(isns);
-	FN(isnull);
 	FN(ispair);
 	FN(isprocedure);
 	FN(isptr);
@@ -8599,7 +8674,6 @@ mktopenv(void)
 	FN(issu);
 	FN(istable);
 	FN(istypedef);
-	FN(isundefined);
 	FN(isundeftype);
 	FN(isunion);
 	FN(isvector);
@@ -8647,6 +8721,7 @@ mktopenv(void)
 	FN(mkfd);
 	FN(mkfield);
 	FN(mkmas);
+	FN(mkmasx);
 	FN(mknas);
 	FN(mkns);
 	FN(mknsraw);
@@ -8658,12 +8733,9 @@ mktopenv(void)
 	FN(myrootns);
 	FN(nameof);
 	FN(nsof);
-	FN(nsenumsym);
-	FN(nsenumtype);
-	FN(nslookaddr);
 	FN(nsptr);
 	FN(nsreptype);
-	FN(null);
+	FN(paramattr);
 	FN(paramid);
 	FN(params);
 	FN(paramtype);
@@ -8675,6 +8747,7 @@ mktopenv(void)
 	FN(rangelen);
 	FN(resettop);
 	FN(rettype);
+	FN(setname);
 	FN(setloadpath);
 	FN(settypedeftype);
 	FN(sort);
@@ -8750,11 +8823,13 @@ cqctmkvm(Toplevel *top)
 	nvms++;
 
 	/* call prelude without -b (to avoid cluttering tests) */
-	ob = cqctflags['b'];
-	cqctflags['b'] = 0;
-	cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
-	cqctflags['b'] = ob;
-	resetlabels();
+	if(!cqctflags['d']){
+		ob = cqctflags['b'];
+		cqctflags['b'] = 0;
+		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
+		cqctflags['b'] = ob;
+		resetlabels();
+	}
 
 	/* vm is now callable */
 	return vm;
@@ -8796,7 +8871,6 @@ void
 initvm(int gcthread, u64 heapmax)
 {
 	Xundef = gclock(malq(Qundef));
-	Xnulllist = gclock(malq(Qnull));
 	cccode = gclock(callccode());
 	tcccode = gclock(calltccode());
 	kcode = gclock(contcode());
@@ -8815,7 +8889,6 @@ void
 finivm(void)
 {
 	gcunlock(Xundef);
-	gcunlock(Xnulllist);
 	gcunlock(tcccode);
 	gcunlock(cccode);
 	gcunlock(kcode);

@@ -224,7 +224,6 @@ static Qtype qs[Qnkind] = {
 	[Qlist]	 = { "list", sizeof(List), 0, 0, iterlist },
 	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
 	[Qns]	 = { "ns", sizeof(Ns), 1, 0, iterns },
-	[Qnull]	 = { "null", sizeof(Head), 0, 0, 0 },
 	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", sizeof(Range), 0, 0, iterrange },
 	[Qrd]    = { "rd", sizeof(Rd), 0, 0, iterrd },
@@ -330,8 +329,10 @@ iteras(Head *hd, Ictx *ictx)
 	case 3:
 		return (Val*)&as->put;
 	case 4:
-		return (Val*)&as->map;
+		return (Val*)&as->ismapped;
 	case 5:
+		return (Val*)&as->map;
+	case 6:
 		return (Val*)&as->dispatch;
 	default:
 		return GCiterdone;
@@ -2285,12 +2286,8 @@ initmem()
 void
 finimem()
 {
-	u32 i;
-
-	_gc(Ngen-1, Ngen-1);  // hopefully free all outstanding objects
-	for(i = 0; i < Qnkind; i++)
-		H.guards[i] = 0;
-	_gc(Ngen-1, Ngen-1);  // hopefully free the guardians
+	_gc(Ngen-1, Ngen-1); /* collect non-quarded objects */
+	_gc(Ngen-1, Ngen-1); /* collect quarded objects */
 	/* FIXME: free all segments */
 	/* FIXME: free static generation */
 }

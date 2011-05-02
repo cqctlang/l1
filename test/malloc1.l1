@@ -1,4 +1,4 @@
-p = malloc(10);
+p = (char*)malloc(10);
 for(i = 0; i < 10; i++)
 	*(p+i) = i;
 for(i = 0; i < 10; i++)
