@@ -41,7 +41,6 @@ L1C =\
 	compilel.c\
 	compilei.c\
 	compile1.c\
-	compile2.c\
 	compilev.c\
 	compileb.c\
 	compileu.c\

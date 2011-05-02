@@ -853,9 +853,6 @@ int		docompilei(U *ctx, Expr *e);
 /* compile1.c */
 int		docompile1(U *ctx, Expr *e);
 
-/* compile2.c */
-Expr*		docompile2(U *ctx, Expr *el, Toplevel *top, char *argsid);
-
 /* compileb.c */
 Expr*		docompileb(U *ctx, Expr *e, Toplevel *top, char *argsid);
 
