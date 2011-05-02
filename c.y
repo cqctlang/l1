@@ -348,24 +348,6 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression
-	| unary_expression CAST_ASSIGN type_name
-	{ $$ = newexprsrc(&ctx->inp->src,
-			  Eg,
-			  $1,
-			  newexprsrc(&ctx->inp->src,
-				     Ecast,
-				     $3,
-				     copyexpr($1),
-				     0, 0),
-			  0, 0);
-	}
-	| unary_expression XCAST_ASSIGN root_expression
-	{ $$ = newexprsrc(&ctx->inp->src,
-			  Eg,
-			  $1,
-			  newbinopsrc(&ctx->inp->src, Excast, $3, copyexpr($1)),
-			  0, 0);
-	}
 	| unary_expression assignment_operator root_expression
 	{ if($2 == Eg)
 	  	$$ = newexprsrc(&ctx->inp->src, $2, $1, $3, 0, 0);

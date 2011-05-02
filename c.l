@@ -104,8 +104,6 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+ { count(ctx); return(chars(lvalp, STRING_LITERAL));
 "&="			{ count(ctx); return(AND_ASSIGN); }
 "^="			{ count(ctx); return(XOR_ASSIGN); }
 "|="			{ count(ctx); return(OR_ASSIGN); }
-"()="			{ count(ctx); return(CAST_ASSIGN); }
-"{}="			{ count(ctx); return(XCAST_ASSIGN); }
 ">>"			{ count(ctx); return(RIGHT_OP); }
 "<<"			{ count(ctx); return(LEFT_OP); }
 "++"			{ count(ctx); return(INC_OP); }
