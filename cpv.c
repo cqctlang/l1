@@ -153,10 +153,7 @@ freeexprx(Expr *e)
 		efree(v);
 		break;
 	case Eid:
-		/* these point to lambda/block vars freed elsewhere */
-		v = e->xp;
-		if(v->where == Vtop)
-			fatal("bug");
+		/* e->xp points to lambda/block vars freed elsewhere */
 		break;
 	case Elambda:
 		freelambda(e->xp);
