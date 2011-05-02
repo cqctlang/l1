@@ -5,6 +5,7 @@
 char **cqctloadpath;
 char cqctflags[256];
 
+#if 0
 static void
 checkxp(Expr *e)
 {
@@ -29,6 +30,7 @@ checkxp(Expr *e)
 		break;
 	}
 }
+#endif
 
 Expr*
 cqctparse(char *s, Toplevel *top, char *src)
@@ -43,261 +45,114 @@ cqctparse(char *s, Toplevel *top, char *src)
 	return doparse(&ctx, s, src);
 }
 
-Expr*
-cqctcompilex(Expr *e, Toplevel *top, char *argsid)
+typedef
+struct Pass
+{
+	char *id;
+	Expr* (*fn)(U *ctx, Expr *e);
+} Pass;
+
+enum
+{
+	Maxpass = 128
+};
+
+static void
+printT(char *id, Imm t)
+{
+	xprintf("%-40s\t%16" PRIu64 " usec\n", id, t);
+}
+
+static Expr*
+dopasses(Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 {
 	U ctx;
+	Pass *p;
+	Imm tv[1+Maxpass];
+	unsigned i;
 
+	if(np > Maxpass)
+		fatal("bug");
+
+	if(cqctflags['p']){
+		xprintf("\n*** compiler input ***\n");
+		printexpr(e);
+		xprintf("\n");
+	}
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.top = top;
 	ctx.argsid = argsid;
 	ctx.out = &top->out;
-	e = docompileq(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompilen(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompilea(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompile0(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompileg(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompilel(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompilei(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompile1(&ctx, e);
-	if(e == 0)
-		return 0;
-	return e;
-	resetuniqid();
-	e = docompileb(&ctx, e);
-	if(e == 0)
-		return 0;
-	checkxp(e);
-	e = docompileu(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompilex(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompilec(&ctx, e);
-	if(e == 0)
-		return 0;
-	e = docompiles(&ctx, e);
-	if(e == 0)
-		return 0;
+	for(i = 0, p = ps; i < np; i++, p++){
+		if(cqctflags['T'])
+			tv[i] = usec();
+		e = p->fn(&ctx, e);
+		if(e == 0)
+			return 0;
+		if(cqctflags['p']){
+			xprintf("\n*** after %s ***\n", p->id);
+			printexpr(e);
+			xprintf("\n");
+		}
+	}
+
+	if(cqctflags['T']){
+		tv[np] = usec();
+		for(i = 0, p = ps; i < np; i++, p++)
+			printT(p->id, tv[i+1]-tv[i]);
+	}
 	return e;
 }
+
+#define CP(id)      { "cp"#id, docompile##id }
+#define NPASS(ps)   (sizeof(ps)/sizeof((ps)[0]))
+
+static Pass all[] = {
+	CP(q),
+	CP(n),
+	CP(a),
+	CP(0),
+	CP(g),
+	CP(l),
+	CP(i),
+	CP(1),
+	CP(b),
+	CP(v),
+};
 
 Val
 cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 {
-	U ctx;
+	Imm tv[2];
 	Closure *cl;
-	enum { Maxphase = 128 };
-	char *phase[Maxphase];
-	Imm tv[Maxphase];
-	unsigned i, ntv;
 
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.top = top;
-	ctx.argsid = argsid;
-	ctx.out = &top->out;
-	if(0 && cqctflags['p']){
-		xprintf("input:\n");
-		printexpr(e);
-		xprintf("\n");
-	}
-	ntv = 0;
-	if(cqctflags['T']){
-		phase[ntv] = "init";
-		tv[ntv++] = usec();
-	}
-	e = docompileq(&ctx, e);
+	e = dopasses(e, top, argsid, all, NPASS(all));
 	if(e == 0)
 		return 0;
+	if(cqctflags['T'])
+		tv[0] = usec();
+	cl = codegen(e);
 	if(cqctflags['T']){
-		phase[ntv] = "q";
-		tv[ntv++] = usec();
+		tv[1] = usec();
+		printT("cg", tv[1]-tv[0]);
 	}
-	e = docompilen(&ctx, e);
-	if(e == 0){
-		printf("compilen failed\n");
-		return 0;
-	}
-	if(cqctflags['p']){
-		printf("*** compilen ***\n");
-		printexpr(e);
-		printf("\n");
-	}
-	e = docompilea(&ctx, e);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "a";
-		tv[ntv++] = usec();
-	}
-	if(cqctflags['p']){
-		printf("*** compilea ***\n");
-		printexpr(e);
-		printf("\n");
-	}
-	e = docompile0(&ctx, e);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "0";
-		tv[ntv++] = usec();
-	}
-	if(cqctflags['p']){
-		printf("*** compile0 ***\n");
-		printexpr(e);
-		printf("\n");
-	}
-	e = docompileg(&ctx, e);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "g";
-		tv[ntv++] = usec();
-	}
-	e = docompilel(&ctx, e);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "l";
-		tv[ntv++] = usec();
-	}
-	e = docompilei(&ctx, e);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "i";
-		tv[ntv++] = usec();
-	}
-	e = docompile1(&ctx, e);
-	if(e == 0)
-		return 0;
-	if(cqctflags['T']){
-		phase[ntv] = "1";
-		tv[ntv++] = usec();
-	}
-	if(cqctflags['p']){
-		printf("*** compile1 ***\n");
-		printexpr(e);
-		printf("\n");
-	}
+	return mkvalcl(cl);
+}
 
-#if 0
-	if(cqctflags['6']){
-		resetuniqid();
-		if(cqctflags['q']){
-			xprintf("*** 1 ***\n");
-			printcqct(e);
-			xprintf("\n");
-		}
-		e = docompileb(&ctx, e);
-		if(e == 0)
-			return 0;
-		checkxp(e);
-		if(cqctflags['T']){
-			phase[ntv] = "b";
-			tv[ntv++] = usec();
-		}
-		if(cqctflags['q']){
-			xprintf("*** b ***\n");
-			printcqct(e);
-			xprintf("\n");
-		}
-		e = docompileu(&ctx, e);
-		if(e == 0)
-			return 0;
-		if(cqctflags['T']){
-			phase[ntv] = "u";
-			tv[ntv++] = usec();
-		}
-		if(cqctflags['q']){
-			xprintf("*** u ***\n");
-			printcqct(e);
-			xprintf("\n");
-		}
-		e = docompilex(&ctx, e);
-		if(e == 0)
-			return 0;
-		if(cqctflags['T']){
-			phase[ntv] = "x";
-			tv[ntv++] = usec();
-		}
-		if(cqctflags['q']){
-			xprintf("*** x ***\n");
-			printcqct(e);
-			xprintf("\n");
-		}
-		e = docompilec(&ctx, e);
-		if(e == 0)
-			return 0;
-		if(cqctflags['T']){
-			phase[ntv] = "c";
-			tv[ntv++] = usec();
-		}
-		if(cqctflags['q']){
-			xprintf("*** c ****\n");
-			printcqct(e);
-			xprintf("\n");
-		}
-		e = docompiles(&ctx, e);
-		if(e == 0)
-			return 0;
-		if(cqctflags['T']){
-			phase[ntv] = "s";
-			tv[ntv++] = usec();
-		}
-		if(cqctflags['q']){
-			xprintf("*** s ***\n");
-			printcqct(e);
-			xprintf("\n");
-		}
-		return 0;
-	}else{
-#endif
-		e = docompileb(&ctx, e);
-		if(e == 0)
-			return 0;
-		checkxp(e);
-		if(cqctflags['T']){
-			phase[ntv] = "2";
-			tv[ntv++] = usec();
-		}
-		e = docompilev(&ctx, e);
-		if(e == 0)
-			return 0;
-		if(cqctflags['T']){
-			phase[ntv] = "v";
-			tv[ntv++] = usec();
-		}
-		if(cqctflags['q']){
-			xprintf("transformed source:\n");
-			printcqct(e);
-			xprintf("\n");
-		}
-
-		cl = codegen(e);
-		if(cqctflags['T']){
-			phase[ntv] = "codegen";
-			tv[ntv++] = usec();
-			for(i = 0; i < ntv-1; i++)
-				xprintf("%-40s\t%16" PRIu64 " usec\n",
-					phase[i+1], tv[i+1]-tv[i]);
-		}
-		return mkvalcl(cl);
+Expr*
+cqctcompilex(Expr *e, Toplevel *top, char *argsid)
+{
+	static Pass front[] = {
+		CP(q),
+		CP(n),
+		CP(a),
+		CP(0),
+		CP(g),
+		CP(l),
+		CP(i),
+		CP(1),
+	};
+	return dopasses(e, top, argsid, front, NPASS(front));
 }
 
 Val

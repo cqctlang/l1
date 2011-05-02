@@ -33,20 +33,16 @@ L1C =\
 	parse.c\
 	xenv.c\
 	cutil.c\
-	compileq.c\
-	compilen.c\
-	compilea.c\
-	compile0.c\
-	compileg.c\
-	compilel.c\
-	compilei.c\
-	compile1.c\
-	compilev.c\
-	compileb.c\
-	compileu.c\
-	compilex.c\
-	compilec.c\
-	compiles.c\
+	cpq.c\
+	cpn.c\
+	cpa.c\
+	cp0.c\
+	cpg.c\
+	cpl.c\
+	cpi.c\
+	cp1.c\
+	cpv.c\
+	cpb.c\
 	cg.c\
 	ch.c\
 	list.c\
