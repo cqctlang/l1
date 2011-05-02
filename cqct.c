@@ -32,6 +32,31 @@ checkxp(Expr *e)
 }
 #endif
 
+static void
+checksrc(char *pass, Expr *e)
+{
+	Expr *p;
+	if(e == 0)
+		return;
+	if(e->src.filename == 0 || e->src.line == 0)
+		fatal("source information missing after pass %s", pass);
+	switch(e->kind){
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			checksrc(pass, p->e1);
+			p = p->e2;
+		}
+		break;
+	default:
+		checksrc(pass, e->e1);
+		checksrc(pass, e->e2);
+		checksrc(pass, e->e3);
+		checksrc(pass, e->e4);
+		break;
+	}
+}
+
 Expr*
 cqctparse(char *s, Toplevel *top, char *src)
 {
@@ -79,6 +104,8 @@ dopasses(Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 		printexpr(e);
 		xprintf("\n");
 	}
+	if(cqctflags['K'])
+		checksrc("parse", e);
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.top = top;
 	ctx.argsid = argsid;
@@ -89,6 +116,8 @@ dopasses(Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 		e = p->fn(&ctx, e);
 		if(e == 0)
 			return 0;
+		if(cqctflags['K'])
+			checksrc(p->id, e);
 		if(cqctflags['p']){
 			xprintf("\n*** after %s ***\n", p->id);
 			printexpr(e);

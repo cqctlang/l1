@@ -19,7 +19,7 @@ else:
 for m in run:
     print m,
     sys.stdout.flush()
-    cmd = '../l1 -b -w '+m
+    cmd = '../l1 -b -w -K '+m
     p = popen2.Popen4(cmd);
     rv = p.wait()
     if os.WIFSIGNALED(rv):

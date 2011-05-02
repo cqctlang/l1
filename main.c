@@ -60,6 +60,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-x do not execute object code\n");
 	fprintf(stderr, "\t-g do not run gc in separate thread\n");
 	fprintf(stderr, "\t-T report timing statistics for the compiler\n");
+	fprintf(stderr, "\t-K sanity check intermediate representations\n");
 
 	exit(0);
 }
@@ -424,12 +425,13 @@ main(int argc, char *argv[])
 	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6bde:ghkl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6bde:ghkKl:m:opqrstTwxz"))){
 		switch(c){
 		case '6':
 		case 'b':
 		case 'd':
 		case 'k':
+		case 'K':
 		case 'o':
 		case 'p':
 		case 'q':

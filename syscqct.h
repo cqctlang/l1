@@ -1047,7 +1047,7 @@ Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 unsigned	elistlen(Expr *l);
 char*		idsym(Expr *e);
 int		isnull(Expr *e);
-void		putsrc(Expr *e, Src *src);
+Expr*		putsrc(Expr *e, Src *src);
 void		resetuniqid();
 Expr*		uniqid(char *id);
 Expr*		vdiff(Expr *a, Expr *b);

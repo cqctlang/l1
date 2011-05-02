@@ -498,16 +498,16 @@ Zgotosrc(Src *src, Expr *id)
 	return e;
 }
 
-void
+Expr*
 putsrc(Expr *e, Src *src)
 {
 	Expr *p;
 
 	if(e == 0)
-		return;
+		return e;
 
 	if(e->src.line != 0)
-		return;
+		return e;
 	e->src = *src;
 	switch(e->kind){
 	case Eelist:
@@ -516,7 +516,7 @@ putsrc(Expr *e, Src *src)
 			putsrc(p->e1, src);
 			p = p->e2;
 			if(p->src.line != 0)
-				return;
+				return e;
 			p->src = *src;
 		}
 		break;
@@ -527,6 +527,7 @@ putsrc(Expr *e, Src *src)
 		putsrc(e->e4, src);
 		break;
 	}
+	return e;
 }
 
 void
