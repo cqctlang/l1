@@ -2300,7 +2300,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Rlooktype, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2340,7 +2340,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Rlooksym, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2382,7 +2382,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Renumsym, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2474,7 +2474,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Renumtype, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2517,7 +2517,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Renumloc, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2566,7 +2566,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Renumseg, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2611,7 +2611,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Runwind, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
@@ -2654,7 +2654,7 @@ ctlmux = @names clp64le {
 		case ctlmux`Rerror:
 			if(rep->bytes == "no such thing")
 				return nil;
-			error("ctlmux: error while waiting for %e: %e",
+			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Rnames, rep->bytes);
 		default:
 			error("unexpected response: %e", rep->op);
