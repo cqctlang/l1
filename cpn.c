@@ -490,7 +490,7 @@ tie1name(U *ctx, Expr *e, Expr **te)
 		break;
 	case Eenum:
 		*te = Zcons(e, *te);
-		putsrc(fs, &e->src);
+		putsrc(*te, &e->src);
 		p = e->e2;
 		while(!isnull(p)){
 			en = p->e1;
