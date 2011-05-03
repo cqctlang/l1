@@ -32,11 +32,49 @@ inc(Expr *e)
 	return Zadd(e, Zuint(1));
 }
 
+static Expr* enumsub(U *ctx, HT *tab, Expr *e);
+
+static Expr*
+enumsubconst(U *ctx, HT *tab, Expr *e)
+{
+	Expr *v, *p;
+
+	if(e == 0)
+		return e;
+	switch(e->kind){
+	case Eid:
+		if(tab == 0)
+			/* not in @names expression */
+			return e;
+		v = hgets(tab, idsym(e), strlen(idsym(e)));
+		if(v)
+			return v;
+		else
+			return e;
+	case Enames:
+	case Eenum:
+		return enumsub(ctx, tab, e);
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = enumsubconst(ctx, tab, p->e1);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = enumsubconst(ctx, tab, e->e1);
+		e->e2 = enumsubconst(ctx, tab, e->e2);
+		e->e3 = enumsubconst(ctx, tab, e->e3);
+		e->e4 = enumsubconst(ctx, tab, e->e4);
+		return e;
+	}
+}
+
 /* substitute enum references with expressions inside @names */
 static Expr*
 enumsub(U *ctx, HT *tab, Expr *e)
 {
-	Expr *v, *p, *en;
+	Expr *p, *en;
 	HT *nt;
 	char *s;
 
@@ -49,18 +87,10 @@ enumsub(U *ctx, HT *tab, Expr *e)
 		e->e2 = enumsub(ctx, nt, e->e2);
 		freeht(nt);
 		return e;
-	case Eid:
-		/* matching any identifier may be too generous.
-		   instead maybe restrict to constant
-		   expressions in type definitions. */
-		if(tab == 0)
-			/* not in @names expression */
-			return e;
-		v = hgets(tab, idsym(e), strlen(idsym(e)));
-		if(v)
-			return v;
-		else
-			return e;
+	case Earr:
+		e->e1 = enumsub(ctx, tab, e->e1);
+		e->e2 = enumsubconst(ctx, tab, e->e2);
+		return e;
 	case Eenum:
 		if(e->e2 == 0 || isnull(e->e2))
 			return e;
@@ -68,7 +98,7 @@ enumsub(U *ctx, HT *tab, Expr *e)
 		while(!isnull(p)){
 			en = p->e1;
 			p = p->e2;
-			en->e2 = enumsub(ctx, tab, en->e2);
+			en->e2 = enumsubconst(ctx, tab, en->e2);
 			s = idsym(en->e1);
 			hputs(tab, s, strlen(s), en->e2);
 		}
