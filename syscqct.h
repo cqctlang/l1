@@ -91,6 +91,7 @@ enum{
 	Elist,
 	Elor,
 	Elt,
+	Emkctype,
 	Emod,
 	Emul,
 	Enames,

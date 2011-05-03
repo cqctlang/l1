@@ -130,7 +130,7 @@ domandtype(Expr *e, Expr **dom, Expr **t)
 }
 
 static Expr*
-compilesizeof(U *ctx, Expr *e, Src *src)
+compiletypeof(U *ctx, Expr *e, Src *src)
 {
 	Expr *se, *te, *loc, *t, *dom;
 
@@ -160,49 +160,6 @@ compilesizeof(U *ctx, Expr *e, Src *src)
 		     0, 0);
 	te = Zcons(se, te);
 
-	// sizeof($tmp);
-	se = Zsizeof(doid("$tmp"));
-	te = Zcons(se, te);
-	te = Zblock(loc, invert(te), NULL);
-	putsrc(te, src);
-	return te;
-}
-
-/* FIXME: these historical semantics seems
-   poorly designed: look up the type if given a
-   domain name, otherwise just return the type
-   expression, whatever it may be. */
-static Expr*
-compiletypeof(U *ctx, Expr *e, Src *src)
-{
-	Expr *se, *te, *loc, *t, *dom;
-
-	loc = Zlocals(1, "$tmp");
-	te = nullelist();
-
-	domandtype(e, &dom, &t);
-
-	// $tmp = t;
-	se = Zset(doid("$tmp"), compile1(ctx, t));
-	te = Zcons(se, te);
-
-	if(dom){
-		// $tmp = looktype(t->dom, $tmp);
-		se = Zset(doid("$tmp"),
-			  Zcall(G("looktype"), 2, dom, doid("$tmp")));
-		te = Zcons(se, te);
-
-		// if(isnil($tmp)) error("undefined type: %t", $tmp);
-		// FIXME: this is a redundant test under Eambig
-		se = newexpr(Eif,
-			     Zcall(G("isnil"), 1, doid("$tmp")),
-			     Zcall(G("error"), 2,
-				   Zconsts("undefined type: %t"),
-				   doid("$tmp")),
-			     0, 0);
-		te = Zcons(se, te);
-	}
-
 	// $tmp;
 	se = doid("$tmp");
 	te = Zcons(se, te);
@@ -210,6 +167,24 @@ compiletypeof(U *ctx, Expr *e, Src *src)
 	putsrc(te, src);
 	return te;
 }
+
+static Expr*
+compilesizeof(U *ctx, Expr *e, Src *src)
+{
+	return putsrc(Zsizeof(compiletypeof(ctx, e, src)), src);
+}
+
+static Expr*
+compilemkctype(U *ctx, Expr *e, Src *src)
+{
+	Expr *t, *dom;
+
+	domandtype(e, &dom, &t);
+	if(dom)
+		cerror(ctx, e, "attempt to qualify type in @typename");
+	return compile1(ctx, t);
+}
+
 
 static Expr*
 compilecast(U *ctx, Expr *e)
@@ -429,6 +404,10 @@ compile1(U *ctx, Expr *e)
 	case Etypeoft:
 		se = compiletypeof(ctx, e->e1, &e->src);
 //		freeexpr(e);
+		return se;
+	case Emkctype:
+		se = compilemkctype(ctx, e->e1, &e->src);
+		freeexpr(e);
 		return se;
 	case Ecast:
 		se = compilecast(ctx, e);

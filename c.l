@@ -47,6 +47,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@names"		{ count(ctx); return(NAMES); }
 "@quote"		{ count(ctx); return(QUOTE); }
 "@record"		{ count(ctx); return(DEFREC); }
+"@typename"		{ count(ctx); return(TYPENAME); }
 "@typeof"		{ count(ctx); return(TYPEOF); }
 "_Bool"			{ count(ctx); return(BOOL); }
 "break"			{ count(ctx); return(BREAK); }

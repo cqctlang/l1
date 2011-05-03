@@ -22,7 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE
-%token SIZEOF TYPEOF TYPEDEF DEFINE DEFLOC DEFREC CONTAINEROF
+%token SIZEOF TYPENAME TYPEOF TYPEDEF DEFINE DEFLOC DEFREC CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -239,6 +239,8 @@ unary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeofe, $2, 0, 0, 0); }
 	| TYPEOF '(' type_name ')'			%merge <ofmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Etypeoft, $3, 0, 0, 0); }
+	| TYPENAME '(' type_name ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Emkctype, $3, 0, 0, 0); }
 	;
 
 unary_operator
