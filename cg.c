@@ -12,6 +12,8 @@ static Location toploc[8];
 static Location *Effect;
 static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
 static void cglambda(Ctl *name, Code *code, Expr *el);
+char syssrcfile[] = "(system built-in)";
+static Src syssrc = { syssrcfile, 0, 0 };
 
 static Val
 konval(Tab *kon, Val v)
@@ -223,7 +225,10 @@ nextinsn(Code *code, Src *src)
 		code->maxinsn *= 2;
 	}
 	in = &code->insn[code->ninsn++];
-	in->src = src;
+	if(src)
+		in->src = *src;
+	else
+		in->src = syssrc;
 	return in;
 }
 

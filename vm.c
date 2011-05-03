@@ -915,7 +915,7 @@ putval(VM *vm, Val v, Location *loc)
 Src*
 addr2line(Code *code, Imm pc)
 {
-	return code->insn[pc].src;
+	return &code->insn[pc].src;
 }
 
 static void
@@ -937,13 +937,13 @@ printsrc(Xfd *xfd, Closure *cl, Imm pc)
 	}
 
 	src = addr2line(code, pc);
-	if(src == 0){
+	fn = src->filename;
+	if(fn == syssrcfile){
 		cprintf(xfd, "%20s\t(no source information)\n", cl->id);
 		return;
 	}
-	fn = src->filename;
 	if(fn == 0)
-		fn = "<stdin>";
+		fn = "<stdin!!!>";
 	cprintf(xfd, "%20s\t(%s:%u)\n", cl->id, fn, src->line);
 }
 

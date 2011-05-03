@@ -670,7 +670,7 @@ struct Insn {
 		Ctl *dstlabel;
 		u64 cnt;
 	};
-	Src *src;
+	Src src;
 	unsigned long ox;
 } Insn;
 
@@ -778,6 +778,7 @@ extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
 extern Code *kcode, *cccode, *tcccode;
+extern char syssrcfile[];
 
 /* c.l */
 void		freeyystate(YYstate *yy);
