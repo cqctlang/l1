@@ -7,5 +7,5 @@
 	as = mkmas(p, len);
 	finalize(as, @lambda(as) { _free(p); });
 	dom = mkdom(litdom.ns, as);
-	return {dom}p;
+	return {dom}(char*)p;
 }
