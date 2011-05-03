@@ -160,6 +160,11 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 		return 0;
 	if(cqctflags['T'])
 		tv[0] = usec();
+	if(cqctflags['q']){
+		xprintf("*** input to code generator ***\n");
+		printcqct(e);
+		xprintf("\n");
+	}
 	cl = codegen(e);
 	if(cqctflags['T']){
 		tv[1] = usec();
