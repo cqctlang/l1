@@ -22,3 +22,12 @@ the functions nsenumsym, nsenumtype, nslookaddr have been removed;
 instead, reference the name space methods directly.
 
 the augmented cast assignment operators ()= and {}= have been removed.
+
+@typename is a new syntactic constructor replacement for @typeof
+
+@typeof is now like sizeof on unqualified types: they are resolved in litdom.
+
+enum constants defined in @names forms may be
+referenced in subsequent array element expressions
+(possibly others .... e.g., attr?)
+
