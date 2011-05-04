@@ -1,2 +1,2 @@
-entry: var params, 4 locals, 0 temps
+entry: var params, 5 locals, 0 temps
 int (*)[2]
