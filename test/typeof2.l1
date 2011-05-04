@@ -64,6 +64,3 @@ printf("typeof(x->foo) = %t\n",
 x = (struct s*){dom}0;
 printf("sizeof(x->foo) = %d\n",
        sizeof(x->foo));
-x = (struct s*){dom}0;
-printf("sizeof(typeof(x->foo)) = %d\n",
-       sizeof(@typeof(x->foo)));

@@ -8,5 +8,5 @@ typeof(dom`a) = enum x
 sizeof(dom`a) = 4
 sizeof(typeof(dom`a)) = 4
 typeof(x->foo) = int
-sizeof(x->foo) = 4
-sizeof(typeof(x->foo)) = 4
+error: attempt to determine size of bitfield
+               entry	(typeof2.l1:66)

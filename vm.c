@@ -5591,12 +5591,9 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
 		t = cv->type;
-	}else if(Vkind(argv[0]) == Qxtn){
+	}else if(Vkind(argv[0]) == Qxtn)
 		t = valxtn(argv[0]);
-		if(t->tkind == Tbitfield || t->tkind == Tconst
-		   || t->tkind == Txaccess)
-			t = t->link;
-	}else
+	else
 		vmerr(vm, "operand 1 to $typeof must be a cvalue or type");
 	*rv = mkvalxtn(t);
 }
