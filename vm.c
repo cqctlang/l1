@@ -225,6 +225,7 @@ typesize(VM *vm, Xtypename *xtn)
 	case Tunion:
 		cv = valcval(attroff(xtn->attr));
 		return cv->val;
+	case Tconst:
 	case Tenum:
 		return typesize(vm, xtn->link);
 	case Tptr:
@@ -245,8 +246,6 @@ typesize(VM *vm, Xtypename *xtn)
 		es = fmtxtn(xtn->link);
 		vmerr(vm, "attempt to determine size of undefined type: %.*s",
 		      (int)es->len, strdata(es));
-	case Tconst:
-		vmerr(vm, "shouldn't this be impossible?");
 	case Txaccess:
 		return typesize(vm, xtn->link);
 	}
