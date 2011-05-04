@@ -58,14 +58,14 @@
 if(0)test1("./locals1",
 	   [ "locals", "foo", "main", "v6" ],
 	   [
-		#int#,
-		#`Node#,
-		#struct Node#,
-		#`X#,
-		#enum X#,
-		#enum Y#,
-		#`Z#,
-		#struct Z#,
+		   @typename(int),
+		   @typename(`Node),
+		   @typename(struct Node),
+		   @typename(`X),
+		   @typename(enum X),
+		   @typename(enum Y),
+		   @typename(`Z),
+		   @typename(struct Z),
 	   ]);
 
-if(0)test2("./locals1");
+if(1)test2("./locals1");
