@@ -1,0 +1,4 @@
+ns = @names c32le {typedef unsigned char NEWTYPE;};
+len = 4;
+t = @typeof(ns`NEWTYPE (*) [len/sizeof(ns`NEWTYPE)]);
+printf("%t\n", t);
