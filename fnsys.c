@@ -230,14 +230,14 @@ l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	unsigned long i, xarg[5];
+	unsigned long i, xarg[6];
 	Cval *cv;
 	int xrv, sysn;
 
 
 	if(argc < 1)
 		vmerr(vm, "too few arguments to syscall");
-	if(argc > 6)
+	if(argc > 7)
 		vmerr(vm, "too many arguments to syscall");
 	checkarg(vm, "syscall", argv, 0, Qcval);
 	cv = valcval(argv[0]);
@@ -266,6 +266,10 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 	case 6:
 		xrv = syscall(sysn, xarg[0], xarg[1], xarg[2], xarg[3],
 			      xarg[4]);
+		break;
+	case 7:
+		xrv = syscall(sysn, xarg[0], xarg[1], xarg[2], xarg[3],
+			      xarg[4], xarg[5]);
 		break;
 	}
 	*rv = mkvallitcval(Vint, (Imm)xrv);
