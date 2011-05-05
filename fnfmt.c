@@ -678,7 +678,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Val *vpp, vp, vq;
 	Cval *cv, *cv1;
 	Str *as, *ys;
-	char *efmt;
+	char *sfmt, *efmt;
 	char ch;
 	unsigned char c;
 	Xtypename *xtn;
@@ -693,6 +693,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 		while(fmt < efmt && (ch = *fmt++) != '%')
 			if(fmtputc(vm, f, ch))
 				return;
+		sfmt = fmt-1;
+		if(ch == '%' && fmt >= efmt)
+			goto fail;
 		if(fmt >= efmt)
 			return;
 		if(*fmt == '%'){
@@ -710,7 +713,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 		f->prec = 0;
 	morespec:
 		if(fmt >= efmt)
-			return;
+			goto fail;
 		ch = *fmt++;
 		switch(ch){
 		case '.':
@@ -935,7 +938,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				return;
 			break;
 		default:
-			vmerr(vm, "unrecognized format conversion: %%%c", ch);
+		fail:
+			vmerr(vm, "invalid format conversion: \'%.*s\'",
+			      fmt-sfmt, sfmt);
 		}
 	}
 	/* not reached */
