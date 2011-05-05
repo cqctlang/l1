@@ -792,7 +792,7 @@ tryinclude(U *ctx, char *raw)
 		buf = readfile(full);
 	}
 	if(buf == 0)
-		parseerror(ctx, "cannot @include %s", p);
+		parseerror(ctx, "cannot @include %s: %s", p, strerror(errno));
 	pushyy(ctx, full, buf, 1);
 	efree(full);
 }
