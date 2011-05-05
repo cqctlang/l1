@@ -4055,6 +4055,88 @@ Details follow.
 </p>
 
 <p>
+The syntax of C includes <em>type syntax</em> used to
+name (reference) and define the various types that C
+supports.  Use of this syntax is limited to a few
+contexts: declarations and definitions of variable and
+types, and <span class="id">sizeof</span> and cast
+operations.
+</p>
+
+<p>
+Cinquecento accepts a slightly modified form of C type
+syntax.  The modifications serve two purposes: to allow
+a type name to be qualified by the name space in which
+the name is resolved, and to allow a type definition to
+include layout information and other attributes.
+</p>
+
+<p>
+Use of Cinquecento type syntax is, as in C, limited to
+a few contexts.  These will be explained below, but in
+summary: type names may appear in
+<a href="#syn:_at_containerof">@containerof</a>,
+<a href="#syn:sizeof">sizeof</a>,
+<a href="#syn:_at_typename">@typename</a>,
+<a href="#syn:_at_typeof">@typeof</a> forms,
+and as the first operand to the cast operator <a href="#syn:cast">( )</a>;
+type definitions may appear only in the body
+of the <a href="#syn:_at_names">@names</a> form.
+</p>
+
+<p>
+In C, the following forms use type syntax to name types:
+</p>
+
+<div class="code">
+<pre>
+x = (unsigned long long)v;
+sizeof(struct X)
+sizeof(T*)
+*(T*)x = 0;
+</pre>
+</div>
+
+<p>
+Similar forms in Cinquecento are:
+</p>
+
+<div class="code">
+<pre>
+x = (<u>unsigned long long</u>)v;
+x = (<u>dom`unsigned long long</u>)v;
+sizeof(<u>struct dom`X</u>)
+sizeof(<u>ns`T*</u>)
+*(<u>ns`T*</u>)x = 0;
+*(<u>`T*</u>)x = 0;
+</pre>
+</div>
+
+<p>
+These forms illustrate use of the backtick operator for
+name resolution.  In general, a reference to type must
+be resolved within a name space.  The name space may be
+explicitly named, or indirectly through an explicitly
+named domain, or left off.
+</p>
+
+<p>
+How a type name with a left off domain works depends
+on the circumstance.
+</p>
+
+<p>
+The syntax for the backtick form in type names appears
+in three ways: base type name, tagged type, and typename.
+</p>
+
+<p>
+Due to an unfortunate limitation in parsing, there is
+no standalone use of typenames without a backtick.
+</p>
+
+
+<p>
 In the context of Cinquecento ctypes, a <em>type
 name</em> is the abstract structure denoted by type
 syntax in C.  For example, the
@@ -4065,7 +4147,7 @@ names are first-class ctype values in Cinquecento:
 
 <div class="code">
 <pre>
-; t = @typeof(int*);
+; t = @typename(int*);
 <span class="arg">int *</span>
 ; isctype(t);
 <span class="arg">1</span>
@@ -4080,15 +4162,15 @@ names are first-class ctype values in Cinquecento:
 
 <p>
 
-This shows the use
-of <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>
+This example shows the use
+of <span class="fnindex"><a href="#syn:_at_typename">@typename</a></span>
 to construct a ctype from the the C
 syntax <span class="val">int*</span>.
 The <span class="val">%t</span> <a href="#sec:fmt">format</a>
 verb returns a printed representation of a ctype in C
-syntax.  (This verb is also used by the L1 repl to
-print ctype values.)  Associated with each ctype
-variant is a predicate (<em>e.g.,</em>
+syntax.  (This verb is used by the L1 repl to print
+ctype values.)  Associated with each ctype variant is a
+predicate (<em>e.g.,</em>
 <a href="#fn:isptr"><span class="fnindex">isptr</span></a>)
 that tests whether a value is an instance of the
 variant, and a set of functions (<em>e.g.,</em>
@@ -4249,12 +4331,6 @@ Fortunately, most Cinquecento programs do not directly
 work with these details.  Name spaces provide
 definitions of types, and most types come along
 for the ride when symbols are referenced.
-</p>
-
-<p>
-Need to combine this with backtick.  It is confusing
-that @typeof(dom`T) performs a lookup, while @typeof(`T)
-does not.  Should we have @type?
 </p>
 
 <p>
