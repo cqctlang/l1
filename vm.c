@@ -41,6 +41,14 @@ static Imm repsize[Rnrep] = {
 	[Rs16be]=	2,
 	[Rs32be]=	4,
 	[Rs64be]=	8,
+	[Rf32]=		4,
+	[Rf64]=		8,
+};
+
+unsigned isfloat[Vnbase] = {
+	[Vfloat] = 1,
+	[Vdouble] = 1,
+	[Vlongdouble] = 1,
 };
 
 unsigned isunsigned[Vnbase] = {
@@ -1507,6 +1515,8 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vulong] = 4,
 		[Vvlong] = 5,
 		[Vuvlong] = 5,
+		[Vfloat] = 6,
+		[Vdouble] = 6,
 	};
 	static unsigned uvariant[Vnbase] = {
 		[Vchar] = Vuchar,
@@ -1551,7 +1561,12 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		return;
 	}
 
-	if((isunsigned[c1] && isunsigned[c2])
+	if(isfloat[c1] || isfloat[c2]){
+		if(rank[c1] < rank[c2])
+			nc = c2;
+		else
+			nc = c1;
+	}else if((isunsigned[c1] && isunsigned[c2])
 	   || (!isunsigned[c1] && !isunsigned[c2])){
 		if(rank[c1] < rank[c2])
 			nc = c2;
@@ -1814,6 +1829,70 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 }
 
 static Cval*
+xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2,
+	   Xtypename *t1, Xtypename *t2)
+{
+	float f1, f2, fr;
+	double d1, d2, dr;
+	Imm rv;
+
+	if(t1->basename != t2->basename)
+		fatal("bug");
+
+	switch(t1->basename){
+	case Vfloat:
+		f1 = *(float*)&op1->val;
+		f2 = *(float*)&op2->val;
+		switch(op){
+		case Iadd:
+			fr = (Imm)((float)f1+(float)f2);
+			break;
+		case Isub:
+			fr = (Imm)((float)f1-(float)f2);
+			break;
+		case Imul:
+			fr = (Imm)((float)f1*(float)f2);
+			break;
+		case Idiv:
+			fr = (Imm)((float)f1/(float)f2);
+			break;
+		default:
+			vmerr(vm, "attempt to perform %s "
+			      "on floating point values",
+			      opstr[op]);
+		}
+		*(float*)&rv = fr;
+		break;
+	case Vdouble:
+		d1 = *(double*)&op1->val;
+		d2 = *(double*)&op2->val;
+		switch(op){
+		case Iadd:
+			dr = (Imm)((double)d1+(double)d2);
+			break;
+		case Isub:
+			dr = (Imm)((double)d1-(double)d2);
+			break;
+		case Imul:
+			dr = (Imm)((double)d1*(double)d2);
+			break;
+		case Idiv:
+			dr = (Imm)((double)d1/(double)d2);
+			break;
+		default:
+			vmerr(vm, "attempt to perform %s "
+			      "on floating point values",
+			      opstr[op]);
+		}
+		*(double*)&rv = dr;
+		break;
+	default:
+		fatal("bug");
+	}
+	return mkcval(op1->dom, op1->type, rv);
+}
+
+static Cval*
 xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
@@ -1826,6 +1905,8 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 	t2 = chasetype(op2->type);
 	if(t1->tkind == Tptr || t2->tkind == Tptr)
 		return xcvalptralu(vm, op, op1, op2, t1, t2);
+	if(isfloat[t1->basename] || isfloat[t2->basename])
+		return xcvalfpalu(vm, op, op1, op2, t1, t2);
 
 	i1 = op1->val;
 	i2 = op2->val;
@@ -8163,8 +8244,8 @@ static NSroot c32le = {
 	[Vuint]=	Ru32le,
 	[Vulong]=	Ru32le,
 	[Vuvlong]=	Ru64le,
-	[Vfloat]=	Rundef,
-	[Vdouble]=	Rundef,
+	[Vfloat]=	Rf32,
+	[Vdouble]=	Rf64,
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,
@@ -8192,8 +8273,8 @@ static NSroot c32be = {
 	[Vuint]=	Ru32be,
 	[Vulong]=	Ru32be,
 	[Vuvlong]=	Ru64be,
-	[Vfloat]=	Rundef,
-	[Vdouble]=	Rundef,
+	[Vfloat]=	Rf32,
+	[Vdouble]=	Rf64,
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,
@@ -8221,8 +8302,8 @@ static NSroot c64le = {
 	[Vuint]=	Ru32le,
 	[Vulong]=	Ru64le,
 	[Vuvlong]=	Ru64le,
-	[Vfloat]=	Rundef,
-	[Vdouble]=	Rundef,
+	[Vfloat]=	Rf32,
+	[Vdouble]=	Rf64,
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vuint,
@@ -8250,8 +8331,8 @@ static NSroot c64be = {
 	[Vuint]=	Ru32be,
 	[Vulong]=	Ru64be,
 	[Vuvlong]=	Ru64be,
-	[Vfloat]=	Rundef,
-	[Vdouble]=	Rundef,
+	[Vfloat]=	Rf32,
+	[Vdouble]=	Rf64,
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vuint,
@@ -8279,8 +8360,8 @@ static NSroot clp64le = {
 	[Vuint]=	Ru32le,
 	[Vulong]=	Ru64le,
 	[Vuvlong]=	Ru64le,
-	[Vfloat]=	Rundef,
-	[Vdouble]=	Rundef,
+	[Vfloat]=	Rf32,
+	[Vdouble]=	Rf64,
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,
@@ -8308,8 +8389,8 @@ static NSroot clp64be = {
 	[Vuint]=	Ru32be,
 	[Vulong]=	Ru64be,
 	[Vuvlong]=	Ru64be,
-	[Vfloat]=	Rundef,
-	[Vdouble]=	Rundef,
+	[Vfloat]=	Rf32,
+	[Vdouble]=	Rf64,
 	[Vlongdouble]=	Rundef,
 	},
 .ptr = Vulong,

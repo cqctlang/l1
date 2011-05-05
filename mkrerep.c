@@ -20,6 +20,8 @@ enum Rkind {
 	Rs16be,
 	Rs32be,
 	Rs64be,
+	Rf32,
+	Rf64,
 	Rnrep,
 } Rkind;
 
@@ -40,6 +42,8 @@ static char* repname[Rnrep] = {
 	[Rs16be]=	"Rs16be",
 	[Rs32be]=	"Rs32be",
 	[Rs64be]=	"Rs64be",
+	[Rf32]=		"Rf32",
+	[Rf64]=		"Rf64",
 };
 
 static char* reptype[Rnrep] = {
@@ -59,7 +63,8 @@ static char* reptype[Rnrep] = {
 	[Rs16be]=	"s16",
 	[Rs32be]=	"s32",
 	[Rs64be]=	"s64",
-
+	[Rf32]=		"f32",
+	[Rf64]=		"f64",
 };
 
 int

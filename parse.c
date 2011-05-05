@@ -411,8 +411,9 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 	}
 
 	if(strnchr(s, '.', len)){
-		*err = "floating point constants unsupported";
-		return -1;
+		liti->base = Vfloat;
+		*(float*)&liti->val = strtof(s, 0);
+		return 0;
 	}
 
 	/* integer constant */

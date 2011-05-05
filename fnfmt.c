@@ -368,6 +368,8 @@ fmtval(VM *vm, Fmt *f, Val val)
 	As *as;
 	Ns *ns;
 	Xtypename *t;
+	float fv;
+	double dv;
 
 	switch(Vkind(val)){
 	case Qcval:
@@ -375,7 +377,23 @@ fmtval(VM *vm, Fmt *f, Val val)
 		t = chasetype(cv->type);
 		switch(t->tkind){
 		case Tbase:
-			if(isunsigned[t->basename])
+			if(isfloat[t->basename]){
+				switch(t->basename){
+				case Vfloat:
+					fv = *(float*)&cv->val;
+					snprintf(buf, sizeof(buf), "%f",
+						 (double)fv);
+					break;
+				case Vdouble:
+					dv = *(double*)&cv->val;
+					snprintf(buf, sizeof(buf), "%f", dv);
+					break;
+				case Vlongdouble:
+					vmerr(vm, "long doubles unsupported");
+				default:
+					fatal("bug");
+				}
+			}else if(isunsigned[t->basename])
 				snprint(buf, sizeof(buf), "%" PRIu64,
 					cv->val);
 			else
@@ -524,6 +542,9 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	unsigned int fl;
 	Xtypename *t;
 	char *fp;
+	float fv;
+	double dv;
+
 	static char* fmttab[Rnrep][256] = {
 	[Ru08le]['d'] = PRId8,	[Ru08le]['i'] = PRIi8,
 	[Ru08be]['d'] = PRId8,	[Ru08be]['i'] = PRIi8,
@@ -574,7 +595,11 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	[Ru64le]['x'] = PRIx64,	[Ru64le]['X'] = PRIX64,
 	[Ru64be]['x'] = PRIx64,	[Ru64be]['X'] = PRIX64,
 	[Rs64le]['x'] = PRIx64,	[Rs64le]['X'] = PRIX64,
-	[Rs64be]['x'] = PRIx64,	[Rs64be]['X'] = PRIX64,	};
+	[Rs64be]['x'] = PRIx64,	[Rs64be]['X'] = PRIX64,
+
+	[Rf32]['f'] = "f",
+	[Rf64]['f'] = "f",
+	};
 
 	t = chasetype(cv->type);
 	fp = fmttab[t->rep][conv];
@@ -634,6 +659,15 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	case Rs64le:
 	case Rs64be:
 		snprint(buf, sizeof(buf), fmt, (s64)cv->val);
+		break;
+	case Rf32:
+		fv = *(float*)&cv->val;
+		fprintf(stderr, "printing %f via %s\n", fv, fmt);
+		snprint(buf, sizeof(buf), fmt, fv);
+		break;
+	case Rf64:
+		dv = *(double*)&cv->val;
+		snprint(buf, sizeof(buf), fmt, dv);
 		break;
 	default:
 		fatal("bug");
@@ -804,6 +838,13 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			else
 				snprint(buf, sizeof(buf), "\\%.3o", c);
 			if(fmtputs(vm, f, buf, strlen(buf)))
+				return;
+			break;
+		case 'f':
+			if(Vkind(vp) != Qcval)
+				goto badarg;
+			cv = valcval(vp);
+			if(fmticval(vm, f, ch, cv))
 				return;
 			break;
 		case 'd':

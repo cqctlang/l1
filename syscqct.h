@@ -767,6 +767,7 @@ struct VM {
 
 extern char* S[];
 extern char* cbasename[];
+extern unsigned isfloat[Vnbase];
 extern unsigned isunsigned[Vnbase];
 extern Hashop hashop[];
 extern char* tkindstr[];
