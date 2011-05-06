@@ -662,7 +662,6 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 		break;
 	case Rf32:
 		fv = *(float*)&cv->val;
-		fprintf(stderr, "printing %f via %s\n", fv, fmt);
 		snprint(buf, sizeof(buf), fmt, fv);
 		break;
 	case Rf64:
@@ -844,6 +843,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(Vkind(vp) != Qcval)
 				goto badarg;
 			cv = valcval(vp);
+			xtn = chasetype(cv->type);
+			if(!isfloat[xtn->basename])
+				vmerr(vm, "bad operand to %%f");
 			if(fmticval(vm, f, ch, cv))
 				return;
 			break;

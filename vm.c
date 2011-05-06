@@ -1165,6 +1165,9 @@ getbeint(char *s, unsigned nb)
 static Imm
 str2imm(VM *vm, Xtypename *xtn, Str *str)
 {
+	Imm v;
+	float f;
+	double d;
 	char *s;
 
 	xtn = chasetype(xtn);
@@ -1205,6 +1208,14 @@ str2imm(VM *vm, Xtypename *xtn, Str *str)
 		return (s32)getbeint(s, 4);
 	case Rs64be:
 		return (s64)getbeint(s, 8);
+	case Rf32:
+		f = *(f32*)s;
+		*(f32*)&v = f;
+		return v;
+	case Rf64:
+		d = *(f64*)s;
+		*(f64*)&v = d;
+		return v;
 	default:
 		vmerr(vm, "attempt to access memory with incomplete type");
 	}
@@ -1226,6 +1237,8 @@ imm2str(VM *vm, Xtypename *xtn, Imm imm)
 {
 	Str *str;
 	char *s;
+	f32 f;
+	f64 d;
 
 	xtn = chasetype(xtn);
 	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
@@ -1312,6 +1325,18 @@ imm2str(VM *vm, Xtypename *xtn, Imm imm)
 		s = strdata(str);
 		putbeint(s, imm, 8);
 		return str;
+	case Rf32:
+		str = mkstrn(sizeof(f32));
+		s = strdata(str);
+		f = *(f32*)&imm;
+		*(f32*)s = f;
+		return str;
+	case Rf64:
+		str = mkstrn(sizeof(f64));
+		s = strdata(str);
+		d = *(f64*)&imm;
+		*(f64*)s = d;
+		return str;
 	case Rundef:
 		vmerr(vm, "attempt to access memory with incomplete type");
 	default:
@@ -1330,6 +1355,8 @@ _rerep(Imm val, Xtypename *old, Xtypename *new)
 	   integer truncation
 	   (so div and shr work)
 	*/
+	float fv;
+	double dv;
 	switch((new->rep<<5)|old->rep){
 		#include "rerep.switch" /* re-cast val */
 	}
@@ -1516,7 +1543,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vvlong] = 5,
 		[Vuvlong] = 5,
 		[Vfloat] = 6,
-		[Vdouble] = 6,
+		[Vdouble] = 7,
 	};
 	static unsigned uvariant[Vnbase] = {
 		[Vchar] = Vuchar,
@@ -1845,16 +1872,16 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		f2 = *(float*)&op2->val;
 		switch(op){
 		case Iadd:
-			fr = (Imm)((float)f1+(float)f2);
+			fr = ((float)f1+(float)f2);
 			break;
 		case Isub:
-			fr = (Imm)((float)f1-(float)f2);
+			fr = ((float)f1-(float)f2);
 			break;
 		case Imul:
-			fr = (Imm)((float)f1*(float)f2);
+			fr = ((float)f1*(float)f2);
 			break;
 		case Idiv:
-			fr = (Imm)((float)f1/(float)f2);
+			fr = ((float)f1/(float)f2);
 			break;
 		default:
 			vmerr(vm, "attempt to perform %s "
@@ -1868,16 +1895,16 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		d2 = *(double*)&op2->val;
 		switch(op){
 		case Iadd:
-			dr = (Imm)((double)d1+(double)d2);
+			dr = ((double)d1+(double)d2);
 			break;
 		case Isub:
-			dr = (Imm)((double)d1-(double)d2);
+			dr = ((double)d1-(double)d2);
 			break;
 		case Imul:
-			dr = (Imm)((double)d1*(double)d2);
+			dr = ((double)d1*(double)d2);
 			break;
 		case Idiv:
-			dr = (Imm)((double)d1/(double)d2);
+			dr = ((double)d1/(double)d2);
 			break;
 		default:
 			vmerr(vm, "attempt to perform %s "

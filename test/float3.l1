@@ -1,0 +1,26 @@
+@define fmt(v)
+{
+	return sprintfa("%t %a", v, v);
+}
+
+ns = @names c32le {
+	@0x0 float f;
+	@0x4 double d;
+};
+
+as = mkzas(16);
+dom = mkdom(ns, as);
+
+dom`f = 1.5;
+dom`d = 2.5;
+
+printf("%s\n", fmt(dom`f));
+printf("%s\n", fmt(dom`d));
+
+p = &dom`f;
+*p += 5.0;
+p = &dom`d;
+*p += 5.0;
+
+printf("%s\n", fmt(dom`f));
+printf("%s\n", fmt(dom`d));

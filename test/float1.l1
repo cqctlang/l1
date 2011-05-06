@@ -1,0 +1,50 @@
+@define fmt(v)
+{
+	return sprintfa("%t %a", v, v);
+}
+
+@define add(x, y)
+{
+	z = x+y;
+	printf("%s + %s => %s\n", fmt(x), fmt(y), fmt(z));
+}
+
+@define sub(x, y)
+{
+	z = x-y;
+	printf("%s - %s => %s\n", fmt(x), fmt(y), fmt(z));
+}
+
+@define mul(x, y)
+{
+	z = x*y;
+	printf("%s * %s => %s\n", fmt(x), fmt(y), fmt(z));
+}
+
+@define div(x, y)
+{
+	z = x/y;
+	printf("%s / %s => %s\n", fmt(x), fmt(y), fmt(z));
+}
+
+
+@define alu(op)
+{
+	x = 1.5;
+	y = 2.5;
+	op(x, y);
+	op(x, (int)y);
+	op((int)x, y);
+	op(x, (double)y);
+	op((double)x, y);
+}
+
+foreach(alu, [add,sub,mul,div]);
+
+i = 0;
+x = (float)i;
+printf("(float)%a => %s\n", i, fmt(x));
+
+i = 1;
+x = (float)i;
+printf("(float)%a => %s\n", i, fmt(x));

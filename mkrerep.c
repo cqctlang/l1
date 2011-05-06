@@ -20,7 +20,8 @@ enum Rkind {
 	Rs16be,
 	Rs32be,
 	Rs64be,
-	Rf32,
+	Rnirep,
+	Rf32=Rnirep,
 	Rf64,
 	Rnrep,
 } Rkind;
@@ -67,17 +68,61 @@ static char* reptype[Rnrep] = {
 	[Rf64]=		"f64",
 };
 
+static char* fpvar[Rnrep] = {
+	[Rf32]=		"fv",
+	[Rf64]=		"dv",
+};
+
 int
 main(int argc, char *argv[])
 {
 	unsigned i, j;
 
-	for(i = 1; i < Rnrep; i++)
-		for(j = 1; j < Rnrep; j++){
+	/* integer -> integer */
+	for(i = 1; i < Rnirep; i++)
+		for(j = 1; j < Rnirep; j++){
 			printf("case (%s<<5)|%s:\n",
 			       repname[i], repname[j]);
 			printf("\tval = (%s)(%s)val;\n",
 			       reptype[i], reptype[j]);
+			printf("\tbreak;\n");
+		}
+
+	/* integer -> float */
+	for(i = Rf32; i <= Rf64; i++)
+		for(j = 1; j < Rnirep; j++){
+			printf("case (%s<<5)|%s:\n",
+			       repname[i], repname[j]);
+			printf("\t%s = (%s)(%s)val;\n",
+			       fpvar[i], reptype[i], reptype[j]);
+			printf("\t*(%s*)&val = %s;\n",
+			       reptype[i], fpvar[i]);
+			printf("\tbreak;\n");
+		}
+
+	/* float -> integer */
+	for(i = 1; i < Rnirep; i++)
+		for(j = Rf32; j <= Rf64; j++){
+			printf("case (%s<<5)|%s:\n",
+			       repname[i], repname[j]);
+			printf("\t%s = *(%s*)&val;\n",
+			       fpvar[j], reptype[j]);
+			printf("\tval = (%s)%s;\n",
+			       reptype[i], fpvar[j]);
+			printf("\tbreak;\n");
+		}
+
+	/* float -> float */
+	for(i = Rf32; i <= Rf64; i++)
+		for(j = Rf32; j <= Rf64; j++){
+			printf("case (%s<<5)|%s:\n",
+			       repname[i], repname[j]);
+			printf("\t%s = *(%s*)&val;\n",
+			       fpvar[j], reptype[j]);
+			printf("\t%s = (%s)%s;\n",
+			       fpvar[i], reptype[i], fpvar[j]);
+			printf("\t*(%s*)&val = %s;\n",
+			       reptype[i], fpvar[i]);
 			printf("\tbreak;\n");
 		}
 }

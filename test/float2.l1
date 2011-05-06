@@ -1,0 +1,13 @@
+@define mkpi(n)
+{
+	@local k, s, a;
+	s = 0;
+	a = 1;
+	for(k = 0; k < n; k++){
+		s += a/(float)(2*k+1);
+		a *= -1;
+	}
+	return 4*s;
+}
+foreach(@lambda(n){ printf("%f\n", mkpi(n)); },
+	[ 1, 10, 100, 1000, 10000 ]);
