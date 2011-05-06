@@ -365,22 +365,25 @@ An integer literal is a sequence of digit characters.
 With no prefix, integer literals are interpreted in decimal.
 The <span class="val">0x</span> prefix and <span class="val">0X</span> prefix causes hexadecimal interpretation.
 The <span class="val">0</span> prefix causes octal interpretation.
-The <span class="val">0b</span> prefix and <span class="val">0B</span> prefix causes hexadecimal interpretation.
+The <span class="val">0b</span> prefix and <span class="val">0B</span> prefix causes binary interpretation.
 </p>
 
 <p>
-As in C, the C type of an integer constant is
-ordinarily the smallest integer type (up
-to <span class="val">int</span>) that can represent the
+By default, the C type imposed on an integer constant
+is is the smallest integer type (up
+to <span class="val">int</span>?) that can represent the
 value.  The suffixes <span class="val">U</span>,
 <span class="val">UL</span>, <span class="val">ULL</span>,
 <span class="val">L</span>, 
 <span class="val">LL</span>, and their lowercase variants
 impose the specified long and/or unsigned types upon the value.
-</p>
-
-<p>
-Cinquecento currently does not support floating point types or values.
+The suffixes <span class="val">K</span>,
+<span class="val">M</span>, <span class="val">G</span>,
+<span class="val">T</span>, 
+and their lowercase variants
+impose the type <span class="val">unsigned long long</span>
+upon the value and shift the value left by 10, 20, 30, or 40 bits
+respectively.
 </p>
 
 <h4 id="sec:scope">Scope and Variables</h4>
@@ -1634,11 +1637,10 @@ and breakpoint control.
 
 <p>
 Cvalues represent typed values of domains.  Cvalues are
-limited to values of scalar types, including integers
-and pointers to arbitrary types (and, someday,
-floating-point values).  Through the use of the literal
-domain, cvalues are the type by which ordinary
-arithmetic is provided in Cinquecento.
+limited to values of scalar types, including integers,
+floats, and pointers to arbitrary types.  Through the
+use of the literal domain, cvalues are the type by
+which ordinary arithmetic is provided in Cinquecento.
 </p>
 
 <p>
@@ -4054,87 +4056,226 @@ Ctypes are one of the most complicated features of Cinquecento.
 Details follow.
 </p>
 
+<h5>Type syntax</h5>
+
 <p>
 The syntax of C includes <em>type syntax</em> used to
-name (reference) and define the various types that C
-supports.  Use of this syntax is limited to a few
-contexts: declarations and definitions of variable and
-types, and <span class="id">sizeof</span> and cast
-operations.
+name (reference) and define C types.  Cinquecento accepts a slightly modified form of C type
+syntax.
 </p>
 
 <p>
-Cinquecento accepts a slightly modified form of C type
-syntax.  The modifications serve two purposes: to allow
+In C, use of type syntax is limited to certain
+contexts: declarations and definitions of variable and
+types, and <span class="id">sizeof</span> and cast
+operations.  In Cinquecento, type syntax is also limited to
+certain contexts: as an operand of the forms
+<a href="#syn:_at_containerof">@containerof</a>,
+<a href="#syn:sizeof">sizeof</a>,
+<a href="#syn:_at_typename">@typename</a>,
+<a href="#syn:_at_typeof">@typeof</a>;
+as the first operand to the cast operator <a href="#syn:cast">( )</a>;
+and in symbol and type definitions appearing within the body of the <a href="#syn:_at_names">@names</a> form.
+</p>
+
+<p>
+Depending on the context, one of three form of
+type syntax are allowed:
+</p>
+
+<ul>
+<li>
+<em>Type names</em> refer to types defined
+elsewhere.  They may appear in symbol and type
+definitions within the body of
+the <a href="#syn:_at_names">@names</a> form, and as
+the operand to
+the <a href="#syn:_at_typename">@typename</a> form.
+Their syntax is C syntax:
+<div class="code">
+<pre>
+int
+unsigned long
+void
+struct foo
+union bar
+enum baz
+foo_t
+int**
+foo_t* (*) (struct foo *fp)
+</pre>
+</div>
+
+</li>
+<li>
+<em>Qualified type names</em> are type names
+that include an additional reference to a domain or name space in
+which the definition of the type is to be resolved.
+They may appear as an operand of the forms in <a href="#syn:_at_containerof">@containerof</a>,
+<a href="#syn:sizeof">sizeof</a>,
+and <a href="#syn:_at_typeof">@typeof</a>, and as the
+first operand to the cast
+operator <a href="#syn:cast">( )</a>.
+Their syntax is type name syntax with modifier:
+<div class="code">
+<pre>
+ns`int
+ns`unsigned long
+ns`void
+struct ns`foo
+union ns`bar
+enum ns`baz
+ns`foo_t
+ns`int**
+ns`foo_t* (*) (struct foo *fp)
+</pre>
+</div>
+</li>
+<li>
+<em>Type definitions</em>
+</li>
+</ul>
+
+
+<p>
+The modifications serve two purposes: to allow
 a type name to be qualified by the name space in which
 the name is resolved, and to allow a type definition to
 include layout information and other attributes.
 </p>
 
 <p>
-Use of Cinquecento type syntax is, as in C, limited to
-a few contexts.  These will be explained below, but in
-summary: type names may appear in
-<a href="#syn:_at_containerof">@containerof</a>,
+
+<p>
+A qualified type name may appear in 
+a subset of the type name contexts: in <a href="#syn:_at_containerof">@containerof</a>,
 <a href="#syn:sizeof">sizeof</a>,
-<a href="#syn:_at_typename">@typename</a>,
-<a href="#syn:_at_typeof">@typeof</a> forms,
-and as the first operand to the cast operator <a href="#syn:cast">( )</a>;
-type definitions may appear only in the body
-of the <a href="#syn:_at_names">@names</a> form.
-</p>
-
-<p>
-In C, the following forms use type syntax to name types:
-</p>
-
-<div class="code">
-<pre>
-x = (unsigned long long)v;
-sizeof(struct X)
-sizeof(T*)
-*(T*)x = 0;
-</pre>
-</div>
-
-<p>
-Similar forms in Cinquecento are:
+<a href="#syn:_at_typeof">@typeof</a> forms, and as the
+first operand to the cast
+operator <a href="#syn:cast">( )</a>.  The meaning of a
+qualified type name depends on the context, and so is
+described separately for each context, but the syntax
+is always the same.  For base type names, the qualifier
+preceeds the name:
 </p>
 
 <div class="code">
 <pre>
-x = (<u>unsigned long long</u>)v;
-x = (<u>dom`unsigned long long</u>)v;
-sizeof(<u>struct dom`X</u>)
-sizeof(<u>ns`T*</u>)
-*(<u>ns`T*</u>)x = 0;
-*(<u>`T*</u>)x = 0;
+dom`int
+litdom`unsigned long
+ns`void
 </pre>
 </div>
 
 <p>
-These forms illustrate use of the backtick operator for
-name resolution.  In general, a reference to type must
-be resolved within a name space.  The name space may be
-explicitly named, or indirectly through an explicitly
-named domain, or left off.
+For tagged type names, the qualifier precedes the tag:
+</p>
+
+<div class="code">
+<pre>
+struct dom`foo
+union ns`bar
+enum dom`baz
+</pre>
+</div>
+
+
+<p>
+For names defined with <span class="val">typedef</span>,
+the qualifier precedes the name:
+</p>
+
+<div class="code">
+<pre>
+dom`foo_t
+</pre>
+</div>
+
+<p>
+Every other type name is an array, pointer, or function
+type based on of the one of the above three forms.
+Syntactically, the qualifier is part of the type being
+modified:
+</p>
+
+<div class="code">
+<pre>
+dom`int[100]
+struct dom`foo*
+dom`foo_t* (*)(int arg)
+</pre>
+</div>
+
+<p>
+Qualifiers themselves are variable identifers typically
+bound to a domain or name space value.  (It would be
+nice if they could be arbitrary expressions, but the
+parser does not support that.)
 </p>
 
 <p>
-How a type name with a left off domain works depends
-on the circumstance.
+Qualifiers are always optional.  Again, the meaning of
+omitted qualifiers depends on the context.  For base
+type names and tagged type names, omitting the qualifier
+syntactically means writing ordinary C type names:
 </p>
+
+<div class="code">
+<pre>
+int
+unsigned long
+void
+struct foo
+union bar
+enum baz
+</pre>
+</div>
 
 <p>
-The syntax for the backtick form in type names appears
-in three ways: base type name, tagged type, and typename.
+For names defined with <span class="val">typedef</span>,
+however, the qualifier may be omitted, but the backtick
+must be retained:
 </p>
+
+<div class="code">
+<pre>
+`foo_t
+`foo_t* (*)(int arg)
+</pre>
+</div>
 
 <p>
-Due to an unfortunate limitation in parsing, there is
-no standalone use of typenames without a backtick.
+Thus, some C expressions involving
+unqualified <span class="val">typedef</span> type names
+must be <em>modified</em> to include the backtick.
+In Cinquecento, we write:
 </p>
 
+<div class="code">
+<pre>
+x = n*sizeof(`T)
+</pre>
+</div>
+
+instead of
+
+<div class="code">
+<pre>
+x = n*sizeof(T)
+</pre>
+</div>
+
+<p>
+This syntactic quirk is an unfortunate artifact of a
+limitation in all existing Cinquecento parsers that we
+hope one day to eliminate.  For now, again, it is
+needed and accepted only in
+unqualified <span class="val">typedef</span> type names
+that appear where qualified type names are
+accepted.
+</p>
+
+<h5>Ctypes</h5>
 
 <p>
 In the context of Cinquecento ctypes, a <em>type
@@ -4317,8 +4458,7 @@ A ctype is <em>fully defined</em> if it is a type
 definition whose constituent subtypes, if any, are also
 fully defined.  Of all the preceding definitions
 of <span class="val">u</span>, only the final one is
-fully defined.  We will return to the role of fully
-defined after a detour into name spaces.
+fully defined.
 </p>
 
 <p>
@@ -4333,11 +4473,6 @@ definitions of types, and most types come along
 for the ride when symbols are referenced.
 </p>
 
-<p>
-Maybe need a discussion of C syntax and how domain
-references fit into it.
-</p>
-
 <div class="docitem" id="syn:_at_typeof">
 <div class="proto">
 <div class="function">
@@ -4347,7 +4482,7 @@ references fit into it.
 <span class="id">@typeof(<span class="arg">value</span>)</span>
 </div>
 <div class="param">
-<span class="arg">typename</span>: <span class="type">type name expression</span>
+<span class="arg">typename</span>: <span class="type">type name syntax</span>
 </div>
 <div class="param">
 <span class="arg">value</span>: <span class="type">cvalue expression</span>

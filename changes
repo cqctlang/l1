@@ -31,3 +31,6 @@ enum constants defined in @names forms may be
 referenced in subsequent array element expressions
 (possibly others .... e.g., attr?)
 
+cvalues of float and double types are supported.  long
+double is still not supported.
+
