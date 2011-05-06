@@ -1,0 +1,3 @@
+foreach(@lambda(v) { printf("%a\n", v); },
+	[ 1k, 1K, 1m, 1M, 1g, 1G, 1t, 1T,
+	  1024k, 1024K, 1024m, 1024M, 1024g, 1024G, 1024t, 1024T ]);

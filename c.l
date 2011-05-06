@@ -5,7 +5,7 @@ H			[a-fA-F0-9]
 O			[0-7]
 E			[Ee][+-]?{D}+
 FS			(f|F|l|L)
-IS			(u|U|l|L)*
+IS			(u|U|l|L|k|K|m|M|g|G|t|T)*
 CHARC			(\\([ntbvrfa\\\?'"]|x{H}+|{O}|{O}{O}|{O}{O}{O})|[^\\'])
 STRC			(\\([ntbvrfa\\\?'"]|x{H}+|{O}|{O}{O}|{O}{O}{O})|[^\\"])
 

@@ -317,7 +317,7 @@ int
 parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 {
 	Imm n;
-	enum { Snone=0, Su, Sl, Sul, Sll, Sull } suf;
+	enum { Snone=0, Su, Sl, Sul, Sll, Sull, Sk, Sm, Sg, St } suf;
 	unsigned base, noct;
 	char c, *p, *z;
 	char buf[Maxliti];	/* stage for null-terminated strtoull input */
@@ -467,6 +467,42 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 				*err = "invalid use of constant suffix L";
 				return -1;
 			}
+		else if(*p == 'K' || *p == 'k')
+			switch(suf){
+			case Snone:
+				suf = Sk;
+				break;
+			default:
+				*err = "invalid use of constant suffix K";
+				return -1;
+			}
+		else if(*p == 'M' || *p == 'm')
+			switch(suf){
+			case Snone:
+				suf = Sm;
+				break;
+			default:
+				*err = "invalid use of constant suffix M";
+				return -1;
+			}
+		else if(*p == 'G' || *p == 'g')
+			switch(suf){
+			case Snone:
+				suf = Sg;
+				break;
+			default:
+				*err = "invalid use of constant suffix G";
+				return -1;
+			}
+		else if(*p == 'T' || *p == 't')
+			switch(suf){
+			case Snone:
+				suf = St;
+				break;
+			default:
+				*err = "invalid use of constant suffix T";
+				return -1;
+			}
 		else{
 			*err = "invalid integer constant";
 			return -1;
@@ -527,6 +563,18 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 			base = Vvlong;
 		else
 			base = Vuvlong;
+	}else if(suf == Sk){
+		base = Vuvlong;
+		n <<= 10;
+	}else if(suf == Sm){
+		base = Vuvlong;
+		n <<= 20;
+	}else if(suf == Sg){
+		base = Vuvlong;
+		n <<= 30;
+	}else if(suf == St){
+		base = Vuvlong;
+		n <<= 40;
 	}else
 		fatal("bug");
 
