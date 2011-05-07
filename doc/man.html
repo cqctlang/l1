@@ -2772,21 +2772,21 @@ optional attribute table (table).
 </p>
 
 <p>
-The attribute table maps attributes names (strings) to
+The attribute table maps names (strings) to
 values.  The only attribute consulted by the system is
 the one named <span class="val">"offset"</span>.  Its
 value is a cvalue representing the offset of the first
 byte of the object named by the symbol from the start
 of the address space in which it resides.  Attribute
-tables are otherwise a convenience to allow programs to
+tables otherwise offer a convenient way for programs to
 associate arbitrary data with a symbol.
 </p>
 
 <p>
 L1 implements symbols using vectors, rather than, say,
 a record or a dedicated primitive type.  This
-representation is likely to change.
-To avoid breaking, programs should use the following
+representation is likely to change.  To avoid breaking
+in the future, programs should use the following
 functions to create and access symbols, and not
 directly access the vector.  In particular, the effect
 of modifying a symbol vector is undefined.  (In what
