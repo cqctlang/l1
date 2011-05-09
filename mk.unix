@@ -3,14 +3,11 @@ L1DEPS +=\
 	x/libflate/libflate.a\
 	x/libsec/libsec.a
 
-x/libflate/libflate.a:
-	$(MAKE) -s -C x/libflate
+x/libflate/libflate.a: FORCE
+	$(V)$(MAKE) -s -C x/libflate
 
-x/libsec/libsec.a:
-	$(MAKE) -s -C x/libsec
-
-x/libtre/libtre.a:
-	$(MAKE) -s -C x/libtre
+x/libsec/libsec.a: FORCE
+	$(V)$(MAKE) -s -C x/libsec
 
 L1EXTRAS := $(addsuffix .c, $(UNIX)) \
 	     unix.c
