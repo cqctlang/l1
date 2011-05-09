@@ -8907,7 +8907,7 @@ cqctmkvm(Toplevel *top)
 {
 	VM *vm, **vmp;
 	Val rv;
-	int ob;
+	char fb, fp, fq;
 
 	vm = emalloc(sizeof(VM));
 	vm->top = top;
@@ -8926,12 +8926,18 @@ cqctmkvm(Toplevel *top)
 	*vmp = vm;
 	nvms++;
 
-	/* call prelude without -b (to avoid cluttering tests) */
+	/* clear call prelude without -b (to avoid cluttering tests) */
 	if(!cqctflags['d']){
-		ob = cqctflags['b'];
+		fb = cqctflags['b'];
+		fp = cqctflags['p'];
+		fq = cqctflags['q'];
 		cqctflags['b'] = 0;
+		cqctflags['p'] = 0;
+		cqctflags['q'] = 0;
 		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
-		cqctflags['b'] = ob;
+		cqctflags['b'] = fb;
+		cqctflags['p'] = fp;
+		cqctflags['q'] = fq;
 		resetlabels();
 	}
 

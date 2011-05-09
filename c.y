@@ -791,7 +791,7 @@ tn_param_type_specifier
 	: base_list
 	{ $$ = newexprsrc(&ctx->inp->src, Ebase, $1, 0, 0, 0); }
 	| id
-	{ $$ = newexprsrc(&ctx->inp->src, Etid, $1, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Etypedef, $1, 0, 0, 0); }
 	| tn_param_struct_or_union_specifier
 	| tn_param_enum_specifier
 	;
