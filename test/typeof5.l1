@@ -1,0 +1,2 @@
+t = @typename(void (*)(T));
+printf("%t\n", t);
