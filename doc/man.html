@@ -2785,8 +2785,8 @@ associate arbitrary data with a symbol.
 <p>
 L1 implements symbols using vectors, rather than, say,
 a record or a dedicated primitive type.  This
-representation is likely to change.
-To avoid breaking, programs should use the following
+representation is likely to change.  To avoid breaking
+in the future, programs should use the following
 functions to create and access symbols, and not
 directly access the vector.  In particular, the effect
 of modifying a symbol vector is undefined.  (In what
@@ -3544,52 +3544,140 @@ definitions written in an extension of C syntax.
 </div>
 </div>
 <div class="desc">
-This syntax constructs a new name space from a sequence
-of symbol and type declarations.  The declarations are
-written in an extension of the C variable and type
-declaration syntax.
+<p>
+This syntax constructs a new name space from the set
+of symbol and type declarations <span class="arg">decl ...</span>.
+</p>
 
-</div>
-<div class="desc">
+<p>
+The resulting name space is a fresh name space derived
+from the <span class="arg">parent</span> name space.
+Every type and symbol that is defined in
+<span class="arg">parent</span> and not shadowed
+by a definition of the same name in any <span class="arg">decl</span>
+is conveyed to the resulting name space.
+
+Likewise, if a <span class="arg">decl</span> refers to
+a type that is not defined by
+any other <span class="arg">decl</span>,
+then the type is resolved in <span class="arg">parent</span>.
+</p>
+
+<p>
+The syntax of each <span class="arg">decl</span> is based on C declaration syntax, but
+includes extensions that allow type and variable
+declarations to include explicit specification of
+location, layout and encoding of the defined object in
+an address space.
+</p>
+
+<p>
 There are four forms of declaration: aggregates, symbols,
 enums, and typedefs.
-</div>
+</p>
 
-<div class="desc">
-The syntax for an aggregate declaration is the same as C
-aggregate declaration except that:
+<p>
+Aggregate declarations declare
+a <span class="val">struct</span>
+or <span class="val">union</span> type.  The syntax for
+an aggregate declaration is the same as C
+aggregate declaration syntax except that:
 <ul>
-<li> each field declaration must includes an offset
-         expression that specifies the offset of the
-          field relative to the beginning of the
-          aggregate;</li>
-<li> the declaration must end with a final offset
-          expression (not associated with any field)
-          that specifies the size of the aggregate.</li>
+
+<li>
+each field declaration must begin with an <em>attribute
+expression</em> of the
+form <span class="val">@<span class="arg">expr</span></span>
+that specifies the offset of the field relative to the
+beginning of the aggregate;
+</li>
+
+<li>
+the declaration must end with a final attribute
+expression (not associated with any field) that
+specifies the size of the aggregate.
+</li>
+
 </ul>
-The offset expression has two variants: one (<span class="val">@<span class="arg">expr</span></span>)
-to specify the offset in <em>bytes</em>, and
-one (<span class="val">@@<span class="arg">expr</span></span>)
-to specify the offset in <em>
-bits</em>.  The bit offset variant must be used to
-define fields corresponding to C bitfields.
-</div>
-<div class="desc">
-The syntax for a symbol declaration is the same as C
-variable declarations (without initializers) except
-that: each symbol declaration may be preceded by an
-offset expression that specifies the offset of the
-first byte in the address space of the object named by
-the symbol.
-The offset expression syntax is the same as the byte offset expression
-used in aggregate fields.  There is no way to associate a bit offset
-with a symbol.
+</p>
+
+<p>
+An attribute expression is, in general, any expression
+that evaluates to a table.  This table must include an
+entry whose key is the
+string <span class="val">"offset"</span> and whose
+value is a cvalue specifying the offset.  The table may
+include any number of addition key/value pairs, none of
+which will consulted by the Cinquecento evaluator, except
+when explicitly requested by the program.
+</p>
+
+<p>
+An attribute expression may also be a single cvalue
+representing the offset.  This value is implicitly
+promoted to an attribute table by creating a fresh
+table of one element that maps the string
+<span class="val">"offset"</span> to the specified
+cvalue.
+</p>
+
+<p>
+Normally the offset for a field is interpreted to be a
+count of bytes from the beginning of the aggregate to
+the beginning of the field.  If, however, the attribute
+expression begins with <span class="val">@@</span> instead of 
+<span class="val">@</span>, then the offset is
+interpreted as a count of <em>bits</em> from the
+beginning of the aggregate.  In this case, an
+additional bitfield width, specified in the same manner
+as a bitfield in C, is expected, and the type of the
+resulting field is wrapped in a bitfield ctype.
+</p>
+
+<p>
+The fields of aggregate may include <em>anonymous</em>
+fields of aggregate type in which the aggregate is
+named or defined by the field itself does not have a
+name.  In this case the names of the fields of the
+interior aggregate are defined as part of the fields of
+the fields of the aggregate being defined.  Such
+declarations may occur recursively.  It is an error if
+multiple fields have the same name.
+</p>
+
+<p>
+The final attribute expression gives the total size of
+the aggregate.  It is permitted to define multiple
+overlapping fields, fields that extend past the
+aggregate, or (given negative offset values) fields
+that begin before the aggregate.  Given this
+flexibility, from the perspective of the Cinquecento
+evaluator there is no distinction between
+a <span class="val">struct</span> aggregate and
+a <span class="val">union</span> aggregate, other than
+type name.
+</p>
+
+<p>
+Symbol declarations assign a name and type to a
+location.  The syntax for a symbol declaration is the
+same as C variable declarations (without initializers)
+except that each symbol declaration must begin with an
+attribute expression of the form 
+<span class="val">@<span class="arg">expr</span></span>.
+(There is no way to give a bit offset to a symbol.)
 </div>
 
 <div class="desc">
-The syntax for enum declarations is the same as their syntax in C,
-except that the terms in expressions used to define enumeration values
-must be literal values or preceding constant names within the same enumeration.
+Enumeration declarations declare
+an <span class="val">enum</span> type.  The syntax for
+an enumeration declaration is the same as enumeration
+declaration syntax in C.  Identifiers defined as
+enumeration constants in an enumeration declaration
+may be referenced in the defintion of subsequent constants
+in the same declaration, and in subsequent array element counts
+and enumeration declarations within the same 
+<span class="id">@names</span> form.
 </div>
 
 <div class="desc">
@@ -4060,15 +4148,15 @@ Details follow.
 
 <p>
 The syntax of C includes <em>type syntax</em> used to
-name (reference) and define C types.  Cinquecento accepts a slightly modified form of C type
+name (reference) and declare C types.  Cinquecento accepts a slightly modified form of C type
 syntax.
 </p>
 
 <p>
 In C, use of type syntax is limited to certain
-contexts: declarations and definitions of variable and
-types, and <span class="id">sizeof</span> and cast
-operations.  In Cinquecento, type syntax is also limited to
+contexts: declarations of variables and types,
+and <span class="id">sizeof</span> and cast operations.
+In Cinquecento, type syntax is likewise limited to
 certain contexts: as an operand of the forms
 <a href="#syn:_at_containerof">@containerof</a>,
 <a href="#syn:sizeof">sizeof</a>,
@@ -4079,19 +4167,19 @@ and in symbol and type definitions appearing within the body of the <a href="#sy
 </p>
 
 <p>
-Depending on the context, one of three form of
-type syntax are allowed:
+Depending on the context, one of three forms of type
+syntax are allowed:
 </p>
 
 <ul>
 <li>
-<em>Type names</em> refer to types defined
+<em>Type names</em> refer to types declared
 elsewhere.  They may appear in symbol and type
 definitions within the body of
 the <a href="#syn:_at_names">@names</a> form, and as
 the operand to
 the <a href="#syn:_at_typename">@typename</a> form.
-Their syntax is C syntax:
+Their syntax is C type name syntax:
 <div class="code">
 <pre>
 int
@@ -4115,8 +4203,9 @@ They may appear as an operand of the forms in <a href="#syn:_at_containerof">@co
 <a href="#syn:sizeof">sizeof</a>,
 and <a href="#syn:_at_typeof">@typeof</a>, and as the
 first operand to the cast
-operator <a href="#syn:cast">( )</a>.
-Their syntax is type name syntax with modifier:
+operator <a href="#syn:cast">( )</a>.  Their syntax is
+an extended type name syntax that includes an optional
+identifier and bactick before the type specifier:
 <div class="code">
 <pre>
 ns`int
@@ -4130,21 +4219,43 @@ ns`int**
 ns`foo_t* (*) (struct foo *fp)
 </pre>
 </div>
+<p>
+Details about this syntax are given in the following section.
+</p>
+
 </li>
 <li>
-<em>Type definitions</em>
+<em>Type declarations</em> associate a type name with a
+definition of the type.  They may appear only in
+an <a href="#syn:_at_names">@names</a> form.  Their
+syntax is like C type declaration syntax, but extended
+to allow type and variable declarations to include
+explicit specification of location, layout and encoding
+of the defined object.  Example:
+<div class="code">
+<pre>
+ns = @names c32le {
+	struct node {
+		@0x0 int x;
+		@0x4 node_t *next;
+		@0x8;
+	};
+	typedef struct node node_t;
+	@0x800000 node_t *head;
+};
+</pre>
+</div>
+
+<p>
+Details about this syntax are given in the discussion
+of <a href="#syn:_at_names ">@names</a>.
+</p>
+
 </li>
 </ul>
 
 
-<p>
-The modifications serve two purposes: to allow
-a type name to be qualified by the name space in which
-the name is resolved, and to allow a type definition to
-include layout information and other attributes.
-</p>
-
-<p>
+<h5>Qualified type names</h5>
 
 <p>
 A qualified type name may appear in 
@@ -4181,7 +4292,7 @@ enum dom`baz
 
 
 <p>
-For names defined with <span class="val">typedef</span>,
+For names declared with <span class="val">typedef</span>,
 the qualifier precedes the name:
 </p>
 
@@ -4232,7 +4343,7 @@ enum baz
 </div>
 
 <p>
-For names defined with <span class="val">typedef</span>,
+For names declared with <span class="val">typedef</span>,
 however, the qualifier may be omitted, but the backtick
 must be retained:
 </p>
@@ -4279,7 +4390,7 @@ accepted.
 
 <p>
 In the context of Cinquecento ctypes, a <em>type
-name</em> is the abstract structure denoted by type
+name</em> is the abstract structure denoted by type name
 syntax in C.  For example, the
 syntax <span class="val">int*</span> denotes the type
 name pointer-to-<span class="val">int</span>.  Such
@@ -5216,6 +5327,9 @@ promoted to an attribute table that maps
 <span class="val">"offset"</span> to <span class="arg">attr</span>.
 If <span class="arg">attr</span> is <span class="arg">nil</span>
 or omitted, no attribute table is created.
+
+[ Appeal to specification in @names for rules of forming these types.]
+
 </div>
 </div>
 
