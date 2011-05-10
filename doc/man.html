@@ -3550,42 +3550,56 @@ of symbol and type declarations <span class="arg">decl ...</span>.
 </p>
 
 <p>
-The resulting name space is a fresh name space derived
-from the <span class="arg">parent</span> name space.
-Every type and symbol that is defined in
-<span class="arg">parent</span> and not shadowed
-by a definition of the same name in any <span class="arg">decl</span>
-is conveyed to the resulting name space.
-
-Likewise, if a <span class="arg">decl</span> refers to
-a type that is not defined by
-any other <span class="arg">decl</span>,
-then the type is resolved in <span class="arg">parent</span>.
+The result is a fresh name space containing the types
+and symbols defined in <span class="arg">parent</span>
+unioned with those declared by
+the <span class="arg">decl ...</span> forms of the
+body.  If a <span class="arg">decl</span> declaration
+collides with (defines the same name as) a symbol or type
+in <span class="arg">parent</span>, the
+new <span class="arg">decl</span> definition shadows
+the <span class="arg">parent</span> definition.
 </p>
 
 <p>
-The syntax of each <span class="arg">decl</span> is based on C declaration syntax, but
-includes extensions that allow type and variable
-declarations to include explicit specification of
-location, layout and encoding of the defined object in
-an address space.
-</p>
-
-<p>
-There are four forms of declaration: aggregates, symbols,
+The syntax for a <span class="arg">decl</span> is an
+extension of C type and variable declaration
+syntax.  There are four forms: aggregates, symbols,
 enums, and typedefs.
 </p>
 
 <p>
 Aggregate declarations declare
 a <span class="val">struct</span>
-or <span class="val">union</span> type.  The syntax for
-an aggregate declaration is the same as C
-aggregate declaration syntax except that:
+or <span class="val">union</span> type.  Here is a basic example:
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	struct foo {
+		@0x0	int field1;
+		@0x4	char *field2;
+		@0x8;
+	};
+};
+</pre>
+</div>
+
+<p>
+Overall, this form constructs (and binds to the
+variable <span class="id">ns</span>) a new name space
+derived from the root name
+space <span class="val">c32le</span>.  The body of
+the <span class="val">@names</span> form contains a
+single declaration of the aggregate type
+<span class="val">struct foo</span>.  This declaration
+is syntactically like a C aggregate declaration, except:
+
 <ul>
 
 <li>
-each field declaration must begin with an <em>attribute
+each field declaration begins with an <em>attribute
 expression</em> of the
 form <span class="val">@<span class="arg">expr</span></span>
 that specifies the offset of the field relative to the
@@ -3593,7 +3607,7 @@ beginning of the aggregate;
 </li>
 
 <li>
-the declaration must end with a final attribute
+the declaration ends with a final attribute
 expression (not associated with any field) that
 specifies the size of the aggregate.
 </li>
@@ -3602,30 +3616,52 @@ specifies the size of the aggregate.
 </p>
 
 <p>
-An attribute expression is, in general, any expression
-that evaluates to a table.  This table must include an
+Here, the declaration says
+that <span class="val">struct foo</span> contains two
+fields.  The field named <span class="val">field1</span>
+begins at byte offset <span class="val">0</span> from
+the start of the aggregrate, and has type <span class="val">int</span>.
+The field named <span class="val">field2</span>
+begins at byte offset <span class="val">4</span> from
+the start of the aggregrate, and has type <span class="val">char*</span>.
+Overall, the size of a <span class="val">struct foo</span> is
+<span class="val">8</span> bytes.
+The definitions of the types <span class="val">int</span>
+and <span class="val">char*</span> given to the
+fields of <span class="val">struct foo</span> are drawn from
+the parent name space <span class="val">c32le</span>.
+</p>
+
+<p>
+An attribute expression is, in general, either an
+expression that evaluates to a cvalue representing the offset, as in the above example,
+or an expression that evaluates to a table.
+In the latter case, the table must include an
 entry whose key is the
 string <span class="val">"offset"</span> and whose
 value is a cvalue specifying the offset.  The table may
 include any number of addition key/value pairs, none of
-which will consulted by the Cinquecento evaluator, except
-when explicitly requested by the program.
+which will consulted by the Cinquecento evaluator, but
+rather may be used by programs to  associate
+additional information with the aggregate or individual fields.
 </p>
 
 <p>
-An attribute expression may also be a single cvalue
-representing the offset.  This value is implicitly
-promoted to an attribute table by creating a fresh
-table of one element that maps the string
+If attribute expression is a cvalue representing the
+offset, this value is implicitly promoted to an
+attribute table by creating a fresh table of one
+element that maps the string
 <span class="val">"offset"</span> to the specified
 cvalue.
 </p>
 
 <p>
-Normally the offset for a field is interpreted to be a
-count of bytes from the beginning of the aggregate to
-the beginning of the field.  If, however, the attribute
-expression begins with <span class="val">@@</span> instead of 
+Bitfields require a special attribute expression.
+Normally the offset attribute of a field is interpreted
+to be a count of bytes from the beginning of the
+aggregate to the beginning of the field.  If, however,
+the attribute expression begins
+with <span class="val">@@</span> instead of
 <span class="val">@</span>, then the offset is
 interpreted as a count of <em>bits</em> from the
 beginning of the aggregate.  In this case, an
