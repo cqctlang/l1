@@ -3567,7 +3567,7 @@ ns = @names c32le {
 </div>
 
 <p>
-Overall, this form constructs (and binds to the
+This form constructs (and binds to the
 variable <span class="id">ns</span>) a new name space
 derived from the root name
 space <span class="val">c32le</span>.  The body of
@@ -3597,15 +3597,25 @@ specifies the size of the aggregate.
 
 <p>
 Here, the declaration says
-that <span class="val">struct foo</span> contains two
-fields.  The field named <span class="val">field1</span>
-begins at byte offset <span class="val">0</span> from
-the start of the aggregrate, and has type <span class="val">int</span>.
-The field named <span class="val">field2</span>
-begins at byte offset <span class="val">4</span> from
-the start of the aggregrate, and has type <span class="val">char*</span>.
-Overall, the size of a <span class="val">struct foo</span> is
-<span class="val">8</span> bytes.
+that <span class="val">struct foo</span> has two
+fields.  The field
+named <span class="val">field1</span> begins at byte
+offset <span class="val">0</span> from the start of the
+aggregrate, and has type <span class="val">int</span>.
+The field named <span class="val">field2</span> begins
+at byte offset <span class="val">4</span> from the
+start of the aggregrate, and has
+type <span class="val">char*</span>.  The third and
+final line of the aggregate declares
+the overall size of a <span class="val">struct foo</span>
+to be <span class="val">8</span> bytes.
+</p>
+
+<p>
+The value of this <span class="val">@names</span> form
+is a new name space that contains the types and symbols
+of <span class="val">c32le</span> plus the newly declared
+type <span class="val">struct foo</span>.  
 The definitions of the types <span class="val">int</span>
 and <span class="val">char*</span> given to the
 fields of <span class="val">struct foo</span> are drawn from
@@ -3627,16 +3637,37 @@ additional information with the aggregate or individual fields.
 </p>
 
 <p>
-If attribute expression is a cvalue representing the
-offset, this value is implicitly promoted to an
+Internally, the Cinquecento evaluator maintains a
+separate attribute table for every field as well as for
+the entire aggregate.  If the attribute expression is a
+cvalue, this value is implicitly promoted to an
 attribute table by creating a fresh table of one
 element that maps the string
 <span class="val">"offset"</span> to the specified
-cvalue.
+cvalue.  The following form, for instance, yields a
+name space that is equivalent to the one given above,
+except that an additional (silly)
+attribute <span class="val">flavor</span> is associated
+with both <span class="val">field2</span> and the
+overall aggregate.
 </p>
 
+<div class="code">
+<pre>
+ns = @names c32le {
+	struct foo {
+	   	@0x0	int field1;
+		@[ "offset" : 0x4,
+		   "flavor" : "bald" ] int field2;
+		@[ "offset" : 0x8,
+		   "flavor" : "all-weather" ];
+	   };
+};
+</pre>
+</div>
+
 <p>
-Bitfields require a special attribute expression.
+Bitfields involve a special attribute expression.
 Normally the offset attribute of a field is interpreted
 to be a count of bytes from the beginning of the
 aggregate to the beginning of the field.  If, however,
@@ -3645,59 +3676,271 @@ with <span class="val">@@</span> instead of
 <span class="val">@</span>, then the offset is
 interpreted as a count of <em>bits</em> from the
 beginning of the aggregate.  In this case, an
-additional bitfield width, specified in the same manner
-as a bitfield in C, is expected, and the type of the
+additional bitfield width, specified like
+a C bitfield width, is expected, and the type of the
 resulting field is wrapped in a bitfield ctype.
 </p>
 
 <p>
-The fields of aggregate may include <em>anonymous</em>
-fields of aggregate type in which the aggregate is
-named or defined by the field itself does not have a
-name.  In this case the names of the fields of the
-interior aggregate are defined as part of the fields of
-the fields of the aggregate being defined.  Such
-declarations may occur recursively.  It is an error if
-multiple fields have the same name.
+For example:
+<div class="code">
+<pre>
+ns = @names c32le {
+	struct foo {
+		@0x0	int field1;
+		@@0x4*8	int bitfield : 3;
+		@0x8;
+	};
+};
+</pre>
+</div>
+declares <span class="val">bitfield</span> to be a 3-bit bitfield at bit offset 32 of
+<span class="val">struct foo</span>.
 </p>
 
 <p>
-The final attribute expression gives the total size of
-the aggregate.  It is permitted to define multiple
-overlapping fields, fields that extend past the
-aggregate, or (given negative offset values) fields
-that begin before the aggregate.  Given this
-flexibility, from the perspective of the Cinquecento
-evaluator there is no distinction between
+The bitfield attribute expression must be a cvalue
+expression.  An explicit table expression is not
+permitted.
+</p>
+
+<p>
+An aggregate may declare <em>anonymous
+fields</em> of aggregate type.  These interior
+aggregates may be declared within the containing
+aggregate, or refer to an aggregate declared elsewhere.
+Either way, their fields in effect become the fields of
+the containing aggregate.  For example, this sequence
+of expressions:
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+   struct foo {
+   	@0x0	int field1;
+	@0x4	struct {
+			@0x0 int subfield1;
+			@0x4 int subfield2;
+			@0x8;
+		};
+	@0xc    struct bar;
+	@0x10;
+   };
+   struct bar {
+	@0x0	int subfield3;
+	@0x4;
+   };
+};
+
+dom = mkdom(ns, litdom.as);
+p = (struct foo*){dom}0;
+printf("%d ", &p->field1);
+printf("%d ", &p->subfield1);
+printf("%d ", &p->subfield2);
+printf("%d\n", &p->subfield3);
+</pre>
+</div>
+
+<p>
+yields
+</p>
+
+<div class="code">
+<pre>
+0 4 8 12
+</pre>
+</div>
+
+<p>
+The result of creating an aggregate with multiple fields
+of the same name is undefined.
+</p>
+
+<p>
+The attribute expression that declares the size of the
+aggregate is required in every non-empty aggregate
+declaration.  It always appears as the final
+declaration.  In the special case of a zero-sized
+aggregate containing no fields, the final attribute is
+permitted but not required:
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	struct empty { };
+};
+</pre>
+</div>
+
+<p>
+Explicit offset attributes offer far greater control
+over the layout of an aggregate type than is possible
+in C.  This flexibility is designed to allow
+Cinquecento to be independent of variations in C
+compiler aggregate layout policies, but it also admits
+some unnatural constructions.  Multiple overlapping
+fields, unaligned fields, fields that extend past the
+aggregate, fields that begin before (given negative
+offset values) the aggregate, and arbitrary gaps in
+between fields, are all permitted.  In particular,
+given this flexibility, the Cinquecento evaluator makes
+no distinction between
 a <span class="val">struct</span> aggregate and
 a <span class="val">union</span> aggregate, other than
 type name.
 </p>
 
 <p>
-Symbol declarations assign a name and type to a
-location.  The syntax for a symbol declaration is the
-same as C variable declarations (without initializers)
-except that each symbol declaration must begin with an
-attribute expression of the form 
-<span class="val">@<span class="arg">expr</span></span>.
-(There is no way to give a bit offset to a symbol.)
+Symbol declarations associate a name and type with a
+location.  The syntax for a symbol declaration is like
+the syntax of a C variable declaration, except that each symbol
+declaration begins with an attribute expression.  For example:
+</p>
+
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	@0x1000	int x;
+};
+</pre>
+</div>
+
+<p>
+The attribute expression of a symbol gives the offset
+in bytes from the beginning of the address space
+(address <span class="val">0</span>) to the first byte
+of the object named by the symbol.  As with attribute
+expressions of aggregates, the attribute expression
+for a symbol may be either a cvalue giving the offset,
+or a table containing a key <span class="val">"offset"</span>
+paired with an offset value; regardless, the evaluator
+maintains an attribute table for each symbol.
+</p>
+
+<p>
+Here, the declaration associates
+a symbol named <span class="val">x</span> of 
+type <span class="val">int</span>
+with the location beginning at offset <span class="val">0x1000</span>.
+</p>
+
+<p>
+In C, an initializer may follow a variable declaration
+(<span class="val">int x = 5;</span>),
+but not in Cinquecento.  Name spaces project symbolic
+interpretations over the raw bytes of address spaces;
+they do not populate them with values.
 </p>
 
 <p>
 Enumeration declarations declare
 an <span class="val">enum</span> type.  The syntax for
 an enumeration declaration is the same as enumeration
-declaration syntax in C.  Identifiers defined as
-enumeration constants in an enumeration declaration
-may be referenced in the defintion of subsequent constants
-in the same declaration, and in subsequent array element counts
-and enumeration declarations within the same 
-<span class="id">@names</span> form.
+declaration syntax in C.
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	enum Rkind
+	{
+		Rundef=0,
+		Ru08le,
+		Ru16le,
+		Rnrep,
+	};
+};
+</pre>
+</div>
+
+<p>
+The implicit initialization rules of C are followed in
+Cinquecento.  Unless explicitly initialized, the first
+constant of an <span class="val">enum</span> is
+initialized to <span class="val">0</span>.  Any
+subsequent uninitialized constant is set to the
+result of incrementing the previous constant.
+The initializer expression may be any expression
+that yields a cvalue.
 </p>
 
 <p>
-The syntax for typedef declarations is the same as their syntax in C.
+The constants of an enumeration declaration may be
+referenced in a subsequent enumeration constant
+expression, as well as in the element size expression
+of an array declaration.  For example:
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	enum Rkind
+	{
+		Rundef,
+		Ru08le,
+		Ru16le,
+		Rnrep,
+	};
+
+	enum Qkind
+	{
+		Qundef = Rnrep,
+		Q1,
+		Q2,
+		Qnq,
+	};
+
+	struct foo {
+		@0x0	int rs[Rnrep];
+		@0x4;
+	};
+
+	@0x100 int RQ[Rnrep+Qnq];
+};
+</pre>
+</div>
+
+<p>
+(It is an oversight that enumeration constants may not
+be referenced in attribute expressions; this will be
+addressed soon.)
+</p>
+
+<p>
+Typedef declarations gives names to arbitrary types.
+Their syntax follows that of C.
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	typedef
+	enum Rkind
+	{
+		Rundef,
+		Ru08le,
+		Ru16le,
+		Rnrep,
+	} Rkind;
+
+	struct foo {
+		@0x0	Rkind r;
+		@0x4	foo_t next;
+		@0x8;
+	};
+
+	typedef struct foo* foo_t;
+};
+</pre>
+</div>
+
+<p>
+As illustrated in this example, a typedef name
+may be referenced before its declaration,
+unlike C.
 </p>
 
 <p>
@@ -3707,13 +3950,63 @@ the resulting name space object with <span class="fnindex"><a href="#fn:setname"
 
 
 <p>
-The implementation of
-<span class="id"><a href="#syn:_at_names">@names</a></span>
-converts type and variable declarations into a pair of
-tables that map type and symbol names to their
-definitions.  The following function is the low-level
-constructor that produces a name space from such
-tables.
+A common use of <span class="val">@names</span> is to
+include a file of externally generated type and symbol
+declarations into the <span class="val">@names</span> body:
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	@include "mydecls.names"
+};
+</pre>
+</div>
+
+<p>
+For instance, the program <span class="val">dwarf2cqct</span>
+(available on the <a href="http://cqctworld.org">web</a>),
+generates declarations suitable for inclusion in the body
+of an <span class="val">@names</span> from from the DWARF debugging
+information contained in an ELF executable.
+</p>
+
+<p>
+Unfortunately, there is no straightforward way to make
+the filename in these forms (or in any use of
+<span class="id">@include</span>) a variable to be
+evaluated at run time.  The idiomatic workaround is to
+use <span class="fnindex"><a href="#fn:eval">eval</a></span>:
+</p>
+
+<div class="code">
+<pre>
+@define atnames(parent, file)
+{
+	@local s, f;
+	s = sprintfa("@lambda(pns) {
+			@names pns { @include \"%s\" };
+		      };",
+		     file);
+	f = eval(s);
+	return f(parent);
+}
+ns = atnames(c32le, "/tmp/mydecls.names");
+</pre>
+</div>
+
+
+
+<p>
+
+The <span class="id"><a href="#syn:_at_names">@names</a></span>
+form is a high-level syntactic form that is expanded
+(at compile time) into a series of ctype and symbol
+definitions that are entered into a pair of tables that
+map type and symbol names to their definitions.  The
+following function is the low-level constructor that
+produces a name space from these tables.
+It is not needed by most programs.
 </p>
 
 <div class="docitem" id="fn:mknsraw">
