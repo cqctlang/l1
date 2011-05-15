@@ -914,7 +914,7 @@ ctlmux = @names clp64le {
 
 	@define mem()
 	{
-		@local map, get, put, prot2str, dispatch, ctl, id;
+		@local map, get, put, prot2str, dispatch, ismapped, ctl, id;
 
 		@define get(as, r)
 		{
@@ -995,6 +995,7 @@ ctlmux = @names clp64le {
 		return mkas([ "get"       : get,
 			      "put"       : put,
 			      "map"       : map,
+			      "ismapped"  : ismapped,
 			      "ctl"       : ctl,
 			      "id"	  : id,
 			      "dispatch"  : dispatch,
