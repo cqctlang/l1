@@ -23,7 +23,7 @@
 			  foreach(@lambda(id){
 					  @local ctl, dom;
 					  ctl = mux.attach(id);
-					  dom = mkdom(ns, ctl.mem());
+					  dom = mkdom(ctl.ns(), ctl.mem());
 					  dom`f = 0;
 					  dom.detach();
 					  printf("cleared %d\n", id);

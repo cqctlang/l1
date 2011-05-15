@@ -42,8 +42,7 @@ usage(char *argv0)
 	fprintf(stderr, "\nuser flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
 	fprintf(stderr, "\t-r allow redefinition of implicitly called builtins\n");
-	fprintf(stderr, "\t-m <N> limit heap to <N> megabytes\n");
-	fprintf(stderr, "\t-t report timing statistics\n");
+	fprintf(stderr, "\t-t report timing and memory statistics\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
 	fprintf(stderr, "\t-s do not use default load path\n");
@@ -58,8 +57,7 @@ usage(char *argv0)
 	fprintf(stderr, "\t-b dump frame storage\n");
 	fprintf(stderr, "\t-c do not compile expanded source\n");
 	fprintf(stderr, "\t-x do not execute object code\n");
-	fprintf(stderr, "\t-g do not run gc in separate thread\n");
-	fprintf(stderr, "\t-T report timing statistics for the compiler\n");
+	fprintf(stderr, "\t-T show timing break down\n");
 	fprintf(stderr, "\t-K sanity check intermediate representations\n");
 
 	exit(0);
@@ -354,15 +352,16 @@ fail:
 	return 0;
 }
 
-static void
-tvdiff(struct timeval *a, struct timeval *b, struct timeval *c)
+static uint64_t
+usec(void)
 {
-        c->tv_sec = a->tv_sec - b->tv_sec;
-        c->tv_usec = a->tv_usec - b->tv_usec;
-        if (c->tv_usec < 0) {
-                c->tv_sec -= 1;
-                c->tv_usec += 1000000;
-        }
+	uint64_t u;
+	struct timeval tv;
+	gettimeofday(&tv, 0);
+	u = tv.tv_sec;
+	u *= 1000000;
+	u += tv.tv_usec;
+	return u;
 }
 
 struct memusage
@@ -397,11 +396,10 @@ main(int argc, char *argv[])
 	Val entry, fn, v;
 	char *filename;
 	int c;
-	struct timeval beg, end;
+	uint64_t tbeg, Tbeg, end;
 	int dorepl;
 	char opt[256];
 	char *inbuf, *s, *p;
-	uint64_t heapmax;
 	int i, valc;
 	Val *valv;
 	char *argv0, *root;
@@ -410,7 +408,6 @@ main(int argc, char *argv[])
 	Toplevel *top;
 	char *ename, *argsid;
 	struct memusage mu;
-	uint64_t usec;
 	int rv;
 	Xfd *xfd, devnull;
 	int status;
@@ -422,10 +419,9 @@ main(int argc, char *argv[])
 	opt['s'] = 1;		/* include default load path */
 	dorepl = 1;
 	ename = 0;
-	heapmax = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6bde:ghkKl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:m:opqrstTwxz"))){
 		switch(c){
 		case '6':
 		case 'b':
@@ -444,16 +440,12 @@ main(int argc, char *argv[])
 		case 'z':
 			opt[c] = 1;
 			break;
-		case 'g':
 		case 's':
 		case 'x':
 			opt[c] = 0;
 			break;
 		case 'e':
 			ename = optarg;
-			break;
-		case 'm':
-			heapmax = atoi(optarg);
 			break;
 		case 'l':
 			if(nlp >= Maxloadpath)
@@ -524,7 +516,7 @@ main(int argc, char *argv[])
 		xfd = &devnull;
 	}
 
-	top = cqctinit(opt['g'], heapmax, lp, 0, xfd, 0);
+	top = cqctinit(lp, 0, xfd, 0);
 	while(nlp > 0)
 		free(lp[--nlp]);
 	if(opt['x']){
@@ -575,13 +567,15 @@ main(int argc, char *argv[])
 		}
 
 		if(opt['t'])
-			gettimeofday(&beg, 0);
+			tbeg = usec();
 		entry = cqctcompile(inbuf, filename, top, ename ? 0 : argsid);
 		free(inbuf);
 		if(entry == 0)
 			continue;
 		if(opt['x'] == 0)
 			continue; /* just compiling */
+		if(cqctflags['T'])
+			Tbeg = usec();
 		if(!ename)
 			rv = cqctcallfn(vm, entry, valc, valv, &v);
 		else{
@@ -593,18 +587,18 @@ main(int argc, char *argv[])
 				fatal("entry point \"%s\" is undefined", ename);
 			rv = cqctcallfn(vm, fn, valc, valv, &v);
 		}
-		if(opt['t']){
-			gettimeofday(&end, 0);
-			tvdiff(&end, &beg, &end);
-			usec = 1000000*end.tv_sec+end.tv_usec;
-			if(dorepl){
-				printf("%" PRIu64 " usec", usec);
-				if(0 == memusage(&mu))
-					printf("\t%10" PRIu64 "K vm  "
-					       "%10" PRIu64 "K rss",
-					       4*mu.size, 4*mu.rss);
-				printf("\n");
-			}
+		if(opt['t'] || cqctflags['T'])
+			end = usec();
+		if(cqctflags['T'] && dorepl)
+			printf("%-40s\t%16" PRIu64 " usec\n", "exe",
+			       end-Tbeg);
+		if(opt['t'] && dorepl){
+			printf("%" PRIu64 " usec", end-tbeg);
+			if(0 == memusage(&mu))
+				printf("\t%10" PRIu64 "K vm  "
+				       "%10" PRIu64 "K rss",
+				       4*mu.size, 4*mu.rss);
+			printf("\n");
 		}
 		if(rv)
 			continue; /* error */
@@ -624,8 +618,11 @@ main(int argc, char *argv[])
 		cqctfreevm(vm);
 	cqctfini(top);
 
+	if(cqctflags['T'] && !dorepl)
+		printf("%-40s\t%16" PRIu64 " usec\n", "exe",
+		       end-Tbeg);
 	if(opt['t'] && !dorepl){
-		printf("%" PRIu64 " usec", usec);
+		printf("%" PRIu64 " usec", end-tbeg);
 		if(0 == memusage(&mu))
 			printf("\t%10" PRIu64 "K vm  "
 			       "%10" PRIu64 "K rss",

@@ -8824,8 +8824,7 @@ if the system needs to call a <span class="id">NULL</span> function, it becomes 
 <div class="docitem" id="fn:cqctinit">
 <div class="proto">
 <div class="function">
-<span class="id">Toplevel* cqctinit(int <span class="arg">gcthread</span>, uint64_t <span class="arg">heapmax</span>,
-char **<span class="arg">loadpath</span>, 
+<span class="id">Toplevel* cqctinit(char **<span class="arg">loadpath</span>, 
 Xfd *<span class="arg">in</span>, 
 Xfd *<span class="arg">out</span>, 
 Xfd *<span class="arg">err</span>)</span>
@@ -8836,12 +8835,7 @@ This function must be called first.  It allocates
 and returns an initialized Cinquecento top-level environment
 containing bindings for all built-in functions and
 other values.  It also initializes the Cinquecento
-storage manager.  If <span class="arg">gcthread</span>
-is non-zero, the garbage collector runs in a separate
-thread.  If <span class="arg">heapmax</span> is
-non-zero, the memory allocator restricts the heap size
-to <span class="arg">heapmax</span> megabytes.
-If <span class="arg">loadpath</span> is non-NULL,
+storage manager.  If <span class="arg">loadpath</span> is non-NULL,
 it is the vector of directories in which the
 the @include &lt;<span class="arg">filename</span>>
 form searches for <span class="arg">filename</span>; its final element must be NULL.

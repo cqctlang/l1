@@ -141,8 +141,7 @@ Val		cqctgcpersist(VM *vm, Val v);
 Val		cqctgcprotect(VM *vm, Val v);
 Val		cqctgcunpersist(VM *vm, Val v);
 Val		cqctgcunprotect(VM *vm, Val v);
-Toplevel*	cqctinit(int gct, uint64_t hmax, char **lp,
-			 Xfd *in, Xfd *out, Xfd *err);
+Toplevel*	cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);

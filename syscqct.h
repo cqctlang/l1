@@ -933,7 +933,7 @@ void		freeenv(Env *env);
 void		fvmbacktrace(VM *vm);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
 u32		hashval(Val v);
-void		initvm(int gcthread, u64 heapmax);
+void		initvm();
 int		isbasecval(Cval *cv);
 int		isnatcval(Cval *cv);
 int		isnegcval(Cval *cv);

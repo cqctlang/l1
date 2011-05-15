@@ -8907,7 +8907,7 @@ cqctmkvm(Toplevel *top)
 {
 	VM *vm, **vmp;
 	Val rv;
-	char fb, fp, fq;
+	char fb, fp, fq, fT;
 
 	vm = emalloc(sizeof(VM));
 	vm->top = top;
@@ -8926,18 +8926,22 @@ cqctmkvm(Toplevel *top)
 	*vmp = vm;
 	nvms++;
 
-	/* clear call prelude without -b (to avoid cluttering tests) */
+	/* load prelude (unless suppressed with -d)
+	   suppress IR printing and stats */
 	if(!cqctflags['d']){
 		fb = cqctflags['b'];
 		fp = cqctflags['p'];
 		fq = cqctflags['q'];
+		fT = cqctflags['T'];
 		cqctflags['b'] = 0;
 		cqctflags['p'] = 0;
 		cqctflags['q'] = 0;
+		cqctflags['T'] = 0;
 		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
 		cqctflags['b'] = fb;
 		cqctflags['p'] = fp;
 		cqctflags['q'] = fq;
+		cqctflags['T'] = fT;
 		resetlabels();
 	}
 
@@ -8978,7 +8982,7 @@ vmfaulthook()
 }
 
 void
-initvm(int gcthread, u64 heapmax)
+initvm()
 {
 	Xundef = gclock(malq(Qundef));
 	cccode = gclock(callccode());
