@@ -421,7 +421,7 @@ main(int argc, char *argv[])
 	ename = 0;
 	nlp = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:m:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:opqrstTwxz"))){
 		switch(c){
 		case '6':
 		case 'b':
