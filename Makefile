@@ -42,6 +42,8 @@ L1C =\
 	cpb.c\
 	cg.c\
 	ch.c\
+	ctype.c\
+	cval.c\
 	list.c\
 	pair.c\
 	rec.c\

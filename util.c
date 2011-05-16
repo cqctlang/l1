@@ -53,7 +53,14 @@ fatal(char *fmt, ...)
 	n = nfh;
 	while(n-- != 0)
 		faulthook[n]();
+	xprintf("please report this L1 failure");
 	xabort();
+}
+
+void
+bug()
+{
+	fatal("bug");
 }
 
 size_t

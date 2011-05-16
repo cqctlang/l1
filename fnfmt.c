@@ -24,8 +24,8 @@ struct Fmt {
 	unsigned int flags;
 };
 
-static char* _fmtxtn(Xtypename *xtn, char *o);
-static char* _fmtdecl(Xtypename *xtn, Str *is);
+static char* _fmtctype(Ctype *t, char *o);
+static char* _fmtdecl(Ctype *t, Str *is);
 
 static char*
 fmtplist(Vec *param)
@@ -33,7 +33,7 @@ fmtplist(Vec *param)
 	char **ds, *buf, *bp;
 	Imm i, n;
 	unsigned long m;
-	Xtypename *xtn;
+	Ctype *t;
 	Vec *pvec;
 	Val id;
 
@@ -45,12 +45,12 @@ fmtplist(Vec *param)
 	m = 1;			/* null */
 	for(i = 0; i < n; i++){
 		pvec = valvec(vecref(param, i));
-		xtn = valxtn(vecref(pvec, Typepos));
+		t = valctype(vecref(pvec, Typepos));
 		id = vecref(pvec, 1);
 		if(Vkind(id) == Qstr)
-			ds[i] = _fmtdecl(xtn, valstr(id));
+			ds[i] = _fmtdecl(t, valstr(id));
 		else
-			ds[i] = _fmtxtn(xtn, xstrdup(""));
+			ds[i] = _fmtctype(t, xstrdup(""));
 		m += strlen(ds[i]);
 		if(i < n-1)
 			m += 2;	/* comma, space */
@@ -72,15 +72,26 @@ fmtplist(Vec *param)
 }
 
 static char*
-_fmtxtn(Xtypename *xtn, char *o)
+_fmtctype(Ctype *t, char *o)
 {
 	char *buf, *w, *pl;
 	unsigned m, leno;
 	Str *s;
 	Cval *cv;
+	Ctype *sub;
+	Ctypearr *ta;
+	Ctypebase *tb;
+	Ctypeconst *tc;
+	Ctypeenum *te;
+	Ctypefunc *tf;
+	Ctypesu *ts;
+	Ctypeptr *tp;
+	Ctypetypedef *tt;
+	Ctypeundef *tu;
+	Ctypebitfield *tw;
 
 	leno = strlen(o);
-	switch(xtn->tkind){
+	switch(t->tkind){
 	case Tvoid:
 		m = 4+1+leno+1;
 		buf = emalloc(m);
@@ -91,16 +102,18 @@ _fmtxtn(Xtypename *xtn, char *o)
 		efree(o);
 		return buf;
 	case Tbase:
-		m = strlen(cbasename[xtn->basename])+1+leno+1;
+		tb = (Ctypebase*)t;
+		m = strlen(cbasename[tb->basename])+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprint(buf, m, "%s %s", cbasename[xtn->basename], o);
+			snprint(buf, m, "%s %s", cbasename[tb->basename], o);
 		else
-			snprint(buf, m, "%s", cbasename[xtn->basename]);
+			snprint(buf, m, "%s", cbasename[tb->basename]);
 		efree(o);
 		return buf;
 	case Ttypedef:
-		s = xtn->tid;
+		tt = (Ctypetypedef*)t;
+		s = tt->tid;
 		m = s->len+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
@@ -112,9 +125,9 @@ _fmtxtn(Xtypename *xtn, char *o)
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		w = tkindstr[xtn->tkind];
-		if(xtn->tag){
-			s = xtn->tag;
+		w = tkindstr[t->tkind];
+		s = typetag(t);
+		if(s){
 			m = strlen(w)+1+s->len+1+leno+1;
 			buf = emalloc(m);
 			if(leno)
@@ -134,78 +147,80 @@ _fmtxtn(Xtypename *xtn, char *o)
 		efree(o);
 		return buf;
 	case Tundef:
-		return _fmtxtn(xtn->link, o);
+		return _fmtctype(subtype(t), o);
 	case Tptr:
 		m = 2+leno+1+1;
 		buf = emalloc(m);
-		if(xtn->link->tkind == Tfun || xtn->link->tkind == Tarr)
+		sub = subtype(t);
+		if(sub->tkind == Tfun || sub->tkind == Tarr)
 			snprint(buf, m, "(*%s)", o);
 		else
 			snprint(buf, m, "*%s", o);
 		efree(o);
-		return _fmtxtn(xtn->link, buf);
+		return _fmtctype(sub, buf);
 	case Tarr:
+		ta = (Ctypearr*)t;
 		m = leno+1+10+1+1;	/* assume max 10 digit size */
 		buf = emalloc(m);
-		if(Vkind(xtn->cnt) == Qnil)
+		if(Vkind(t->cnt) == Qnil)
 			snprint(buf, m, "%s[]", o);
 		else{
-			cv = valcval(xtn->cnt);
+			cv = valcval(t->cnt);
 			snprint(buf, m, "%s[%" PRIu64 "]", o, cv->val);
 		}
 		efree(o);
-		return _fmtxtn(xtn->link, buf);
+		return _fmtctype(subtype(t), buf);
 	case Tfun:
-		pl = fmtplist(xtn->param);
+		tf = (Ctypefunc*)t;
+		pl = fmtplist(tf->param);
 		m = leno+1+strlen(pl)+1+1;
 		buf = emalloc(m);
 		snprint(buf, m, "%s(%s)", o, pl);
 		efree(o);
 		efree(pl);
-		return _fmtxtn(xtn->link, buf);
+		return _fmtctype(subtype(t), buf);
 	case Tconst:
 	case Tbitfield:
-	case Txaccess:
 		/* this is questionable...maybe we want more accurate printed
 		   representation of these objects, especially bitfields */
-		return _fmtxtn(xtn->link, o);
+		return _fmtctype(subtype(t), o);
 	}
 	return 0;
 
 }
 
 static char*
-_fmtdecl(Xtypename *xtn, Str *id)
+_fmtdecl(Ctype *t, Str *id)
 {
 	char *o;
 	o = emalloc(id->len+1);
 	memcpy(o, strdata(id), id->len);
-	return _fmtxtn(xtn, o);
+	return _fmtctype(t, o);
 }
 
 static Str*
-fmtdecl(Xtypename *xtn, Str *id)
+fmtdecl(Ctype *t, Str *id)
 {
 	char *s;
 	Str *str;
-	s = _fmtdecl(xtn, id);
+	s = _fmtdecl(t, id);
 	str = mkstr0(s);
 	efree(s);
 	return str;
 }
 
 char*
-fmtxtnc(Xtypename *xtn)
+fmtctypec(Ctype *t)
 {
-	return _fmtxtn(xtn, xstrdup(""));
+	return _fmtctype(t, xstrdup(""));
 }
 
 Str*
-fmtxtn(Xtypename *xtn)
+fmtctype(Ctype *t)
 {
 	char *s;
 	Str *str;
-	s = fmtxtnc(xtn);
+	s = fmtctype(t);
 	str = mkstr0(s);
 	efree(s);
 	return str;
@@ -215,9 +230,9 @@ static int
 cval2int(Cval *cv)
 {
 	/* FIXME: implement with rerep? */
-	Xtypename *t;
+	Ctype *t;
 	t = chasetype(cv->type);
-	switch(t->rep){
+	switch(typerep(t)){
 	case Rs08le:
 	case Rs08be:
 		return (int)(s8)cv->val;
@@ -243,7 +258,7 @@ cval2int(Cval *cv)
 	case Ru64be:
 		return (int)(u64)cv->val;
 	default:
-		fatal("bug");
+		bug();
 	}
 }
 
@@ -367,9 +382,10 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Dom *d;
 	As *as;
 	Ns *ns;
-	Xtypename *t;
+	Ctype *t;
 	float fv;
 	double dv;
+	Cbase cb;
 
 	switch(Vkind(val)){
 	case Qcval:
@@ -377,8 +393,9 @@ fmtval(VM *vm, Fmt *f, Val val)
 		t = chasetype(cv->type);
 		switch(t->tkind){
 		case Tbase:
-			if(isfloat[t->basename]){
-				switch(t->basename){
+			cb = typecbase(t);
+			if(isfloat[cb]){
+				switch(cb){
 				case Vfloat:
 					fv = *(float*)&cv->val;
 					snprintf(buf, sizeof(buf), "%f",
@@ -393,7 +410,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 				default:
 					fatal("bug");
 				}
-			}else if(isunsigned[t->basename])
+			}else if(isunsigned[cb])
 				snprint(buf, sizeof(buf), "%" PRIu64,
 					cv->val);
 			else
@@ -463,8 +480,8 @@ fmtval(VM *vm, Fmt *f, Val val)
 		hd = valhead(val);
 		snprint(buf, sizeof(buf), "<%s %p>", qname[Vkind(hd)], hd);
 		return fmtputs0(vm, f, buf);
-	case Qxtn:
-		str = fmtxtn(valxtn(val));
+	case Qctype:
+		str = fmtctype(valctype(val));
 		return fmtputB(vm, f, strdata(str), str->len);
 	case Qvec:
 		v = valvec(val);
@@ -540,10 +557,10 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	static char fmt[1+3+1+Maxprintint+5];
 	static char mod[4], *mp;
 	unsigned int fl;
-	Xtypename *t;
 	char *fp;
 	float fv;
 	double dv;
+	Rkind rep;
 
 	static char* fmttab[Rnrep][256] = {
 	[Ru08le]['d'] = PRId8,	[Ru08le]['i'] = PRIi8,
@@ -601,8 +618,8 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	[Rf64]['f'] = "f",
 	};
 
-	t = chasetype(cv->type);
-	fp = fmttab[t->rep][conv];
+	rep = typerep(chasetype(cv->type));
+	fp = fmttab[rep][conv];
 	fl = f->flags;
 	f->flags &= ~(FmtWidth|FmtPrec|FmtSpace|FmtSign|FmtSharp);
 
@@ -627,7 +644,7 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	else
 		snprint(fmt, sizeof(fmt), "%%%s%s", mod, fp);
 
-	switch(t->rep){
+	switch(rep){
 	case Ru08le:
 	case Ru08be:
 		snprint(buf, sizeof(buf), fmt, (u8)cv->val);
@@ -677,7 +694,7 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 static int
 fmtenconst(VM *vm, Fmt *f, Cval *cv)
 {
-	Xtypename *t;
+	Ctype *t;
 	Vec *v;
 	Cval *k;
 	Str *s;
@@ -714,7 +731,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	char *sfmt, *efmt;
 	char ch;
 	unsigned char c;
-	Xtypename *xtn;
+	Ctype *t;
 	Vec *vec;
 	int i;
 	Imm len;
@@ -843,8 +860,8 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(Vkind(vp) != Qcval)
 				goto badarg;
 			cv = valcval(vp);
-			xtn = chasetype(cv->type);
-			if(!isfloat[xtn->basename])
+			t = chasetype(cv->type);
+			if(!isfloat[typecbase(t)])
 				vmerr(vm, "bad operand to %%f");
 			if(fmticval(vm, f, ch, cv))
 				return;
@@ -909,26 +926,26 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			}
 			break;
 		case 't':
-			if(Vkind(vp) == Qxtn)
-				as = fmtxtn(valxtn(vp));
+			if(Vkind(vp) == Qctype)
+				as = fmtctype(valctype(vp));
 			else if(Vkind(vp) == Qvec){
 				vec = valvec(vp);
 				if(vec->len < 2)
 					goto badarg;
 				vq = vecref(vec, Typepos);
-				if(Vkind(vq) != Qxtn)
+				if(Vkind(vq) != Qctype)
 					goto badarg;
-				xtn = valxtn(vq);
+				t = valctype(vq);
 				vq = vecref(vec, Idpos);
 				if(Vkind(vq) == Qnil)
-					as = fmtxtn(xtn);
+					as = fmtctype(t);
 				else if(Vkind(vq) == Qstr)
-					as = fmtdecl(xtn, valstr(vq));
+					as = fmtdecl(t, valstr(vq));
 				else
 					goto badarg;
 			}else if(Vkind(vp) == Qcval){
 				cv = valcval(vp);
-				as = fmtxtn(cv->type);
+				as = fmtctype(cv->type);
 			}else
 				vmerr(vm, "bad operand to %%t");
 			if(fmtputs(vm, f, strdata(as), as->len))

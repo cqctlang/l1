@@ -102,7 +102,7 @@ put(Tab *t, Pair *lnk)
 	u32 h;
 	Val k;
 	k = linkkey(lnk);
-	h = hashop[Vkind(k)].hash(k);
+	h = hashval(k);
 	h &= t->sz-1;
 	setlinknext(lnk, vecref(t->ht, h));
 	vecset(t->ht, h, mkvalpair(lnk));
@@ -113,9 +113,7 @@ getrehash(Tab *t, Val k)
 {
 	Pair *lnk;
 	Qkind kind;
-	Hashop *op;
 	kind = Vkind(k);
-	op = &hashop[kind];
 	while(1){
 		lnk = (Pair*)pop1tguard(t->tg);
 		if(lnk == 0)
@@ -125,7 +123,7 @@ getrehash(Tab *t, Val k)
 			continue;
 		dellink(t, lnk);
 		put(t, lnk);
-		if(Vkind(linkkey(lnk)) == kind && op->eq(linkkey(lnk), k))
+		if(Vkind(linkkey(lnk)) == kind && eqval(linkkey(lnk), k))
 			return lnk;
 	}
 }
@@ -136,17 +134,15 @@ get(Tab *t, Val k)
 	Val x;
 	Pair *lnk;
 	Qkind kind;
-	Hashop *op;
 	u32 h;
 
 	kind = Vkind(k);
-	op = &hashop[kind];
-	h = op->hash(k);
+	h = hashval(k);
 	x = vecref(t->ht, h&(t->sz-1));
 	while(islink(x)){
 		lnk = (Pair*)x;
 		x = linknext(lnk);
-		if(Vkind(linkkey(lnk)) == kind && op->eq(linkkey(lnk), k))
+		if(Vkind(linkkey(lnk)) == kind && eqval(linkkey(lnk), k))
 			return lnk;
 	}
 	return getrehash(t, k);

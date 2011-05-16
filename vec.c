@@ -3,15 +3,13 @@
 #include "syscqct.h"
 
 u32
-hashvec(Val v)
+hashvec(Vec *v)
 {
-	Vec *a;
 	u32 i, len, m;
-	a = valvec(v);
-	m = Vkind(v);
-	len = a->len;
+	m = Qvec;
+	len = v->len;
 	for(i = 0; i < len; i++)
-		m ^= hashval(vecdata(a)[i]);
+		m = hashx(m, hashval(vecdata(v)[i]));
 	return m;
 }
 

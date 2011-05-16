@@ -22,6 +22,61 @@ struct HT {
 static u32 strhash(Hent *hp);
 static u32 ptrhash(Hent *hp);
 
+/* this is how we combine two hash values into one */
+u32
+hashx(u32 a, u32 b)
+{
+	return a^b;
+}
+
+u32
+hashp(void *p)
+{
+	uptr key;
+	key = (uptr)p;
+	key = (~key) + (key << 18);
+	key = key ^ (key >> 31);
+	key = key * 21;
+	key = key ^ (key >> 11);
+	key = key + (key << 6);
+	key = key ^ (key >> 22);
+	return (u32)key;
+}
+
+/* one-at-a-time by jenkins */
+u32
+hashs(char *s, unsigned len)
+{
+	unsigned char *p = (unsigned char*)s;
+	u32 h;
+
+	h = 0;
+	while(len != 0){
+		h += *p;
+		h += h<<10;
+		h ^= h>>6;
+		p++;
+		len--;
+	}
+	h += h<<3;
+	h ^= h>>11;
+	h += h<<15;
+	return h;
+}
+
+/* http://www.cris.com/~Ttwang/tech/inthash.htm */
+u32
+hashu64(u64 key)
+{
+	key = (~key) + (key << 18);
+	key = key ^ (key >> 31);
+	key = key * 21;
+	key = key ^ (key >> 11);
+	key = key + (key << 6);
+	key = key ^ (key >> 22);
+	return (u32)key;
+}
+
 static HT*
 mkhtsz(u32 sz)
 {
@@ -149,23 +204,9 @@ hnent(HT *ht)
 }
 
 static u32
-phash(void *p)
-{
-	uptr key;
-	key = (uptr)p;
-	key = (~key) + (key << 18);
-	key = key ^ (key >> 31);
-	key = key * 21;
-	key = key ^ (key >> 11);
-	key = key + (key << 6);
-	key = key ^ (key >> 22);
-	return (u32)key;
-}
-
-static u32
 ptrhash(Hent *hp)
 {
-	return phash(hp->key);
+	return hashp(hp->key);
 }
 
 static Hent*
@@ -173,7 +214,7 @@ _hgetp(HT *ht, void *k)
 {
 	Hent *hp;
 
-	hp = ht->ht[phash(k)%ht->sz];
+	hp = ht->ht[hashp(k)%ht->sz];
 	while(hp){
 		if(hp->key == k)
 			return hp;
@@ -211,7 +252,7 @@ hputp(HT *ht, void *k, void *v)
 	hp = emalloc(sizeof(Hent));
 	hp->key = k;
 	hp->val = v;
-	idx = phash(k)%ht->sz;
+	idx = hashp(k)%ht->sz;
 	hp->next = ht->ht[idx];
 	ht->ht[idx] = hp;
 	ht->nent++;
@@ -222,7 +263,7 @@ hdelp(HT *ht, void *k)
 {
 	Hent *hp, **q;
 
-	q = &ht->ht[phash(k)%ht->sz];
+	q = &ht->ht[hashp(k)%ht->sz];
 	hp = *q;
 	while(hp){
 		if(hp->key == k){
@@ -236,31 +277,10 @@ hdelp(HT *ht, void *k)
 	}
 }
 
-/* one-at-a-time by jenkins */
-static u32
-shash(char *s, unsigned len)
-{
-	unsigned char *p = (unsigned char*)s;
-	u32 h;
-
-	h = 0;
-	while(len != 0){
-		h += *p;
-		h += h<<10;
-		h ^= h>>6;
-		p++;
-		len--;
-	}
-	h += h<<3;
-	h ^= h>>11;
-	h += h<<15;
-	return (unsigned long)h;
-}
-
 static u32
 strhash(Hent *hp)
 {
-	return shash(hp->key, hp->keylen);
+	return hashs(hp->key, hp->keylen);
 }
 
 static Hent*
@@ -268,7 +288,7 @@ _hgets(HT *ht, char *k, u32 len)
 {
 	Hent *hp;
 
-	hp = ht->ht[shash(k, len)%ht->sz];
+	hp = ht->ht[hashs(k, len)%ht->sz];
 	while(hp){
 		if(hp->keylen == len && memcmp(k, hp->key, len) == 0)
 			return hp;
@@ -307,7 +327,7 @@ hputs(HT *ht, char *k, u32 len, void *v)
 	hp->key = k;
 	hp->keylen = len;
 	hp->val = v;
-	idx = shash(k, len)%ht->sz;
+	idx = hashs(k, len)%ht->sz;
 	hp->next = ht->ht[idx];
 	ht->ht[idx] = hp;
 	ht->nent++;
@@ -318,7 +338,7 @@ hdels(HT *ht, char *k, u32 len)
 {
 	Hent *hp, **q;
 
-	q = &ht->ht[shash(k, len)%ht->sz];
+	q = &ht->ht[hashs(k, len)%ht->sz];
 	hp = *q;
 	while(hp){
 		if(hp->keylen == len && memcmp(k, hp->key, len) == 0){

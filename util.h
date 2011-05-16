@@ -4,6 +4,10 @@ typedef struct HT HT;
 void		freeht(HT *ht);
 HT*		mkhtp(void);
 HT*		mkhts(void);
+u32		hashp(void *p);
+u32		hashs(char *s, unsigned len);
+u32		hashu64(u64 key);
+u32		hashx(u32 a, u32 b);
 int		heqs(HT *ha, HT *hb);
 void		hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u);
 void		hforeachp(HT *ht, void (*f)(void *u, void *k, void *v), void *u);
@@ -18,6 +22,7 @@ u64		hsz(HT *ht);
 
 
 char** copystrv(char **lp);
+void bug() NORETURN;
 void fatal(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);

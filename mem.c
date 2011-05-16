@@ -80,6 +80,7 @@ static char *MTname[] = {
 /* n must be a power-of-2 */
 #define roundup(l,n)   ((uptr)(((uptr)(l)+((n)-1))&~((n)-1)))
 #define rounddown(l,n) ((uptr)(((uptr)(l))&~((n)-1)))
+#define align(l)       (roundup((l), Align))
 
 enum
 {
@@ -208,7 +209,6 @@ static Val* iterrd(Head*, Ictx*);
 static Val* iterrec(Head*, Ictx*);
 static Val* itertab(Head*, Ictx*);
 static Val* itervec(Head*, Ictx*);
-static Val* iterxtn(Head*, Ictx*);
 
 static void copykstack(Val *stack, Imm len, Imm fp);
 
@@ -218,6 +218,7 @@ static Qtype qs[Qnkind] = {
 	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
 	[Qcl]	 = { "closure", sizeof(Closure), 1, freecl, itercl },
 	[Qcode]	 = { "code", sizeof(Code), 1, freecode, itercode },
+	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, iterctype },
 	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, iterdom },
 	[Qexpr]	 = { "expr", sizeof(Expr), 1, xfreeexpr, iterexpr },
 	[Qfd]	 = { "fd", sizeof(Fd), 0, freefd, iterfd },
@@ -232,7 +233,6 @@ static Qtype qs[Qnkind] = {
 	[Qtab]	 = { "table",  sizeof(Tab), 1, 0, itertab },
 	[Qundef] = { "undef", sizeof(Head), 0, 0, 0 },
 	[Qvec]	 = { "vector", sizeof(Vec), 0, 0, itervec },
-	[Qxtn]	 = { "typename", sizeof(Xtypename), 1, 0, iterxtn },
 };
 
 static Segmap	segmap;
@@ -599,106 +599,6 @@ itervec(Head *hd, Ictx *ictx)
 	if(ictx->n >= vec->len)
 		return GCiterdone;
 	return &vecdata(vec)[ictx->n++];
-}
-
-static Val*
-iterxtn(Head *hd, Ictx *ictx)
-{
-	Xtypename *xtn;
-
-	xtn = (Xtypename*)hd;
-	switch(xtn->tkind){
-	case Tvoid:
-	case Tbase:
-		return GCiterdone;
-	case Tstruct:
-	case Tunion:
-		switch(ictx->n++){
-		case 0:
-			return (Val*)&xtn->tag;
-		case 1:
-			return (Val*)&xtn->field;
-		case 2:
-			return &xtn->attr;
-		default:
-			return GCiterdone;
-		}
-	case Tenum:
-		switch(ictx->n++){
-		case 0:
-			return (Val*)&xtn->tag;
-		case 1:
-			return (Val*)&xtn->link;
-		case 2:
-			return (Val*)&xtn->konst;
-		default:
-			return GCiterdone;
-		}
-	case Tundef:
-	case Tptr:
-		if(ictx->n++ > 0)
-			return GCiterdone;
-		else
-			return (Val*)&xtn->link;
-	case Tarr:
-		switch(ictx->n++){
-		case 0:
-			return &xtn->cnt;
-		case 1:
-			return (Val*)&xtn->link;
-		default:
-			return GCiterdone;
-		}
-	case Tfun:
-		switch(ictx->n++){
-		case 0:
-			return (Val*)&xtn->link;
-		case 1:
-			return (Val*)&xtn->param;
-		default:
-			return GCiterdone;
-		}
-		break;
-	case Ttypedef:
-		switch(ictx->n++){
-		case 0:
-			return (Val*)&xtn->link;
-		case 1:
-			return (Val*)&xtn->tid;
-		default:
-			return GCiterdone;
-		}
-	case Tbitfield:
-		switch(ictx->n++){
-		case 0:
-			return &xtn->cnt;
-		case 1:
-			return &xtn->bit0;
-		case 2:
-			return (Val*)&xtn->link;
-		default:
-			return GCiterdone;
-		}
-	case Tconst:
-		switch(ictx->n++){
-		case 0:
-			return (Val*)&xtn->link;
-		default:
-			return GCiterdone;
-		}
-	case Txaccess:
-		switch(ictx->n++){
-		case 0:
-			return (Val*)&xtn->link;
-		case 1:
-			return (Val*)&xtn->get;
-		case 2:
-			return (Val*)&xtn->put;
-		default:
-			return GCiterdone;
-		}
-	}
-	return 0;
 }
 
 static void*
@@ -1267,11 +1167,11 @@ qsz(Head *h)
 		case Sheap:
 			return roundup(strsize(s->len), Align);
 		case Smalloc:
-			return sizeof(Strmalloc);
+			return sizeof(Strmalloc); /* FIXME: align? */
 		case Smmap:
-			return sizeof(Strmmap);
+			return sizeof(Strmmap); /* FIXME: align? */
 		case Sperm:
-			return sizeof(Strperm);
+			return sizeof(Strperm); /* FIXME: align? */
 		}
 		fatal("bug");
 	case Qvec:
@@ -1280,6 +1180,35 @@ qsz(Head *h)
 	case Qrec:
 		r = (Rec*)h;
 		return roundup(recsize(r->nf), Align);
+	case Qctype:
+		t = (Ctype*)h;
+		switch(t->tkind){
+		case Tvoid:
+			return align(sizeof(Ctype));
+		case Tbase:
+			return align(sizeof(Ctypebase));
+		case Tstruct:
+		case Tunion:
+			return align(sizeof(Ctypesu));
+		case Tenum:
+			return align(sizeof(Ctypeenum));
+		case Ttypedef:
+			return align(sizeof(Ctypedef));
+		case Tptr:
+			return align(sizeof(Ctypeptr));
+		case Tarr:
+			return align(sizeof(Ctypearr));
+		case Tfun:
+			return align(sizeof(Ctypefunc));
+		case Tundef:
+			return align(sizeof(Ctypeundef));
+		case Tbitfield:
+			return align(sizeof(Ctypebitfield));
+		case Tconst:
+			return align(sizeof(Ctypeconst));
+		default:
+			bug();
+		}
 	default:
 		return qs[Vkind(h)].sz;
 	}
@@ -1348,6 +1277,7 @@ copy(Val *v)
 		else
 			nh = malq(Qpair);
 		break;
+	case Qctype:
 	case Qstr:
 	case Qvec:
 	case Qrec:

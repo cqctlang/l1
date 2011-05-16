@@ -280,7 +280,7 @@ printkon(Val v)
 {
 	Cval *cv;
 	Str *str;
-	Xtypename *xtn;
+	Ctype *t;
 	char c, *p;
 	Imm i, m;
 
@@ -314,10 +314,10 @@ printkon(Val v)
 			xprintf("...");
 		xprintf("\"");
 		break;
-	case Qxtn:
-		xtn = valxtn(v);
-		p = fmtxtnc(xtn);
-		xprintf("#%p %s#", xtn, p);
+	case Qctype:
+		t = valctype(v);
+		p = fmtctypec(t);
+		xprintf("#%p %s#", t, p);
 		efree(p);
 		break;
 	default:

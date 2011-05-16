@@ -154,10 +154,9 @@ enum Tkind {
 	Tarr,
 	Tfun,
 	Ttypedef,
-	Tbitfield,		/* xtn only */
-	Tconst,			/* xtn only */
-	Txaccess,		/* xtn only */
-	Tundef,			/* xtn only */
+	Tbitfield,
+	Tconst,
+	Tundef,
 } Tkind;
 enum {
 	Tincomplete=0,
@@ -228,6 +227,7 @@ struct Expr {
 
 typedef struct As As;
 typedef struct Box Box;
+typedef struct Ctype Ctype;
 typedef struct Cval Cval;
 typedef struct Dom Dom;
 typedef struct Fd Fd;
@@ -240,7 +240,7 @@ typedef struct Rec Rec;
 typedef struct Str Str;
 typedef struct Tab Tab;
 typedef struct Vec Vec;
-typedef struct Xtypename Xtypename;
+
 
 typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
 typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
@@ -248,7 +248,7 @@ typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
 struct Cval {
 	Head hd;
 	Dom *dom;
-	Xtypename *type;
+	Ctype *type;
 	Imm val;
 };
 
@@ -324,7 +324,7 @@ struct Ns {
 	Closure *dispatch;
 
 	/* cached base type definition */
-	Xtypename *base[Vnallbase];
+	Ctype *base[Vnallbase];
 };
 
 struct Dom {
@@ -437,24 +437,80 @@ struct Vec {
 #define vecdata(x) ((Val*)((Vec*)(x)+1))
 #define vecsize(n) (sizeof(Vec)+(n)*sizeof(Val))
 
-struct Xtypename {
+struct Ctype {
 	Head hd;
-	unsigned char flag;	/* Tincomplete/Tcomplete */
 	Tkind tkind;		/* = Tbase, Tstruct, ... */
-	Cbase basename;		/* base (FIXME: rename cbase) */
-	Rkind rep;		/* base, ptr, enum; = Ru08le ... */
-	Str *tid;		/* typedef */
-	Str *tag;		/* struct, union, enum */
-	Val cnt;		/* arr */
-	Val attr;		/* struct, union, bitfield size and attrs */
-	Val bit0;		/* bitfield */
-	Xtypename *link;	/* ptr, arr, func, bitfield, enum,
-				   const, xaccess */
-	Vec *field;		/* struct, union */
-	Vec *param;		/* func */
-	Vec *konst;		/* enum (constants) */
-	Closure *get;		/* xaccess */
-	Closure *put;		/* xaccess */
+};
+
+typedef
+struct Ctypebase {
+	Ctype ct;
+	Cbase cbase;
+	Rkind rep;
+} Ctypebase;
+
+typedef
+struct Ctypedef {
+	Ctype ct;
+	Str *tid;
+	Ctype *sub;
+} Ctypedef;
+
+typedef
+struct Ctypesu {
+	Ctype ct;
+	Str *tag;
+	Vec *field;
+	Val attr;
+} Ctypesu;
+
+typedef
+struct Ctypeenum {
+	Ctype ct;
+/*	Rkind rep;   FIXME: seems there should be a rep or sub, not both */
+	Str *tag;
+	Vec *konst;
+	Ctype *sub;
+} Ctypesu;
+
+typedef
+struct Ctypefunc {
+	Ctype ct;
+	Ctype *sub;		/* return type */
+	Vec *param;
+} Ctypefunc;
+
+typedef
+struct Ctypeptr {
+	Ctype ct;
+	Rkind rep;
+	Ctype *sub;
+} Ctypeptr;
+
+typedef
+struct Ctypearr {
+	Ctype ct;
+	Val cnt;
+	Ctype *sub;
+}
+
+typedef
+struct Ctypebitfield {
+	Ctype ct;
+	Val cnt;
+	Val bit0;
+	Ctype *sub;
+} Ctypebitfield;
+
+typedef
+struct Ctypeconst {
+	Ctype ct;
+	Ctype *sub;
+} Ctypebitfield;
+
+typedef
+struct Ctypeundef {
+	Ctype *sub;
 };
 
 enum {
@@ -758,9 +814,6 @@ struct VM {
 	Toplevel *top;
 	Insn *ibuf;
 	Val stack[Maxstk];
-	//Dom *litdom;
-	//Ns *litns;
-	//Xtypename **litbase;	/* always points to litns->base */
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
 };
@@ -769,7 +822,6 @@ extern char* S[];
 extern char* cbasename[];
 extern unsigned isfloat[Vnbase];
 extern unsigned isunsigned[Vnbase];
-extern Hashop hashop[];
 extern char* tkindstr[];
 extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
@@ -917,7 +969,7 @@ Str*		callget(VM *vm, As *as, Imm off, Imm len);
 Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
 void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
-Xtypename*	chasetype(Xtypename *xtn);
+Ctype*		chasetype(Ctype *t);
 void		checkarg(VM *vm, char *f, Val *argv,
 			 unsigned arg, Qkind qkind);
 Tab*		doinsncnt(void);
@@ -942,7 +994,7 @@ void		finivm(void);
 int		freecode(Head *hd);
 void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
-int		iscomplete(Xtypename *t);
+int		iscomplete(Ctype *t);
 int		ismapped(VM *vm, As *as, Imm addr, Imm len);
 int		isstrcval(Cval *cv);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
@@ -953,22 +1005,20 @@ Closure*	mktcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkxfn(Str *code);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
-Cval*		mkcval(Dom *dom, Xtypename *type, Imm val);
+Cval*		mkcval(Dom *dom, Ctype *type, Imm val);
 Dom*		mkdom(Ns *ns, As *as, Str *name);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);
 Ns*		mknstab(Tab *mtab, Str *name);
-Xtypename*	mkptrxtn(Xtypename *t, Rkind rep);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
 Toplevel*	mktoplevel(Xfd *in, Xfd *out, Xfd *err);
 Val		mkvalbox(Val boxed);
-Val		mkvalcval(Dom *dom, Xtypename *t, Imm imm);
+Val		mkvalcval(Dom *dom, Ctype *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
-Xtypename*	mkvoidxtn(void);
 As*		mkzas(Imm len);
 Code*		newcode(void);
 void		nexterror(VM *vm) NORETURN;
@@ -979,7 +1029,7 @@ Val		safedovm(VM* vm, Closure *cl, Imm argc, Val *argv);
 u32		shash(char *s, Imm len);
 Imm		stkimm(Val v);
 Str*		stringof(VM *vm, Cval *cv);
-Cval*		typecast(VM *vm, Xtypename *xtn, Cval *cv);
+Cval*		typecast(VM *vm, Ctype *t, Cval *cv);
 Val		valboxed(Val v);
 Head*		valhead(Val v);
 Imm		valimm(Val v);
@@ -989,6 +1039,7 @@ Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvalas(x)	((Val)(x))
 #define mkvalcl(x)	((Val)(x))
+#define mkvalctype(x)	((Val)(x))
 #define mkvaldom(x)	((Val)(x))
 #define mkvalfd(x)	((Val)(x))
 #define mkvallist(x)	((Val)(x))
@@ -1000,11 +1051,11 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvalstr(x)	((Val)(x))
 #define mkvaltab(x)	((Val)(x))
 #define mkvalvec(x)	((Val)(x))
-#define mkvalxtn(x)	((Val)(x))
 
 #define valas(v)	((As*)(v))
-#define valcval(v)	((Cval*)(v))
 #define valcl(v)	((Closure*)(v))
+#define valctype(v)	((Ctype*)(t))
+#define valcval(v)	((Cval*)(v))
 #define valdom(v)	((Dom*)(v))
 #define valfd(v)	((Fd*)(v))
 #define vallist(v)	((List*)(v))
@@ -1016,7 +1067,6 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define valstr(v)	((Str*)(v))
 #define valtab(v)	((Tab*)(v))
 #define valvec(v)	((Vec*)(v))
-#define valxtn(v)	((Xtypename*)(v))
 #define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 #define FN(name) builtinfn(env, "%"#name, mkcfn(#name, l1_##name))
@@ -1030,8 +1080,8 @@ void setfreeheadfn(Qkind qkind, Freeheadfn free1);
 int		snprint(char *buf, int len, char *fmt, ...);
 
 /* fnfmt.c */
-char*		fmtxtnc(Xtypename *xtn);
-Str*		fmtxtn(Xtypename *xtn);
+char*		fmctypec(Ctype *t);
+Str*		fmctype(Ctype *t);
 void		l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv);
 
 /* xfd.c */
@@ -1146,10 +1196,38 @@ void		tguard(Val o, Pair *g);
 /* ch.c */
 void		fnch(Env *env);
 
+/* ctype.c */
+Ctype*		chasetype(Ctype *t);
+Val*		iterctype(Head *hd, Ictx *ictx);
+Ctype*		mkctypearr(Ctype *sub, Val cnt);
+Ctype*		mkctypebase(Cbase cbase, Rkind rep);
+Ctype*		mkctypebitfield(Ctype *sub, Val cnt, Val bit0);
+Ctype*		mkctypeconst(Ctype *sub);
+Ctype*		mkctypedef(Str *tid, Ctype *sub);
+Ctype*		mkctypeenum(Str *tag, Ctype *sub, Vec *konst);
+Ctype*		mkctypefunc(Ctype *sub, Vec *param);
+Ctype*		mkctypeptr(Ctype *sub, Rkind rep);
+Ctype*		mkctypesu(Tkind kind, Str *tag, Vec *field, Val attr);
+Ctype*		mkctypeundef(Ctype *sub);
+Ctype*		mkctypevoid(void);
+Ctype*		safechasetype(Ctype *t);
+Ctype*		subtype(Ctype *t);
+Cbase		typecbase(Ctype *t);
+Rkind		typerep(Ctype *t);
+Imm		typesize(VM *vm, Ctype *t);
+Str*		typetag(Ctype *t);
+Str*		typetid(Ctype *t);
+
+/* cval.c */
+u32		hashcval(Cval *v);
+u32		hashqcval(Cval *v);
+int		eqcval(Cval *a, Cval *b);
+int		equalcval(Cval *a, Cval *b);
+
 /* list.c */
 int		equallist(List *a, List *b);
 void		fnlist(Env *env);
-u32		hashlist(Val);
+u32		hashlist(List *l);
 Val*		iterlist(Head *hd, Ictx *ictx);
 void		l1_listref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_listset(VM *vm, Imm argc, Val *argv, Val *rv);
@@ -1208,7 +1286,7 @@ void		fnrec(Env *env);
 /* str.c */
 int		equalstr(Str *a, Str *b);
 void		fnstr(Env *env);
-u32		hashstr(Val);
+u32		hashstr(Str *s);
 void		l1_strref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_strput(VM *vm, Imm argc, Val *argv, Val *rv);
 Str*		mkstr(char *s, Imm len);
@@ -1224,7 +1302,7 @@ int		Strcmp(Str *s1, Str *s2);
 /* vec.c */
 int		equalvec(Vec *a, Vec *b);
 void		fnvec(Env *env);
-u32		hashvec(Val v);
+u32		hashvec(Vec *v);
 void		l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv);
 Vec*		mkvec(Imm len);

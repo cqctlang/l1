@@ -3,11 +3,9 @@
 #include "syscqct.h"
 
 u32
-hashstr(Val val)
+hashstr(Str *s)
 {
-	Str *s;
-	s = valstr(val);
-	return shash(strdata(s), s->len);
+	return hashs(strdata(s), s->len);
 }
 
 int

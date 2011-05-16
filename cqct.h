@@ -8,6 +8,7 @@ enum {
 	Qbox,
 	Qcl,
 	Qcode,
+	Qctype,
 	Qcval,
 	Qdom,
 	Qexpr,
@@ -21,7 +22,6 @@ enum {
 	Qstr,
 	Qtab,
 	Qvec,
-	Qxtn,
 	Qnkind
 } Qkind;
 

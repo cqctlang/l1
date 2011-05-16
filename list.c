@@ -136,16 +136,14 @@ listtail(VM *vm, List *l)
 }
 
 u32
-hashlist(Val v)
+hashlist(List *l)
 {
-	List *l;
 	u32 m;
 	Imm i, len;
-	l = vallist(v);
 	m = Vkind(v);
 	len = listlen(l);
 	for(i = 0; i < len; i++)
-		m ^= hashval(listdata(l)[l->h+i]);
+		m = hashx(m, hashval(listdata(l)[l->h+i]));
 	return m;
 }
 
