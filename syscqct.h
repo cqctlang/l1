@@ -1214,6 +1214,7 @@ Ctype*		safechasetype(Ctype *t);
 Ctype*		subtype(Ctype *t);
 Cbase		typecbase(Ctype *t);
 Rkind		typerep(Ctype *t);
+void		typesetrep(Ctype *t, Rkind rep);
 Imm		typesize(VM *vm, Ctype *t);
 Str*		typetag(Ctype *t);
 Str*		typetid(Ctype *t);

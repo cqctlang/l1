@@ -398,6 +398,33 @@ typerep(Ctype *t)
 	}
 }
 
+/* the existence of this function is unfortunate.
+   don't make further use of it. */
+void
+typesetrep(Ctype *t, Rkind rep)
+{
+	Ctypebase *tb;
+	Ctypeenum *te;
+	Ctypeptr *tp;
+
+	switch(t->kind){
+	case Tbase:
+		tb = (Ctypebase*)t;
+		tb->rep = rep;
+		break;
+	case Tptr:
+		tp = (Ctypeptr*)t;
+		tp->rep = rep;
+		break;
+	case Tenum:
+		te = (Ctypeenum*)t;
+		te->rep = rep;
+		break;
+	default:
+		bug();
+	}
+}
+
 static Ctype*
 mkctype(Tkind kind)
 {

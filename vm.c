@@ -581,7 +581,7 @@ freetoplevel(Toplevel *top)
 }
 
 Cval*
-mkcval(Dom *dom, Xtypename *type, Imm val)
+mkcval(Dom *dom, Ctype *type, Imm val)
 {
 	Cval *cv;
 	cv = (Cval*)malq(Qcval);
@@ -598,7 +598,7 @@ mklitcval(Cbase base, Imm val)
 }
 
 Val
-mkvalcval(Dom *dom, Xtypename *t, Imm imm)
+mkvalcval(Dom *dom, Ctype *t, Imm imm)
 {
 	return (Val)mkcval(dom, t, imm);
 }
@@ -944,19 +944,15 @@ getbeint(char *s, unsigned nb)
 
 // FIXME: don't assume little-endian
 static Imm
-str2imm(VM *vm, Xtypename *xtn, Str *str)
+str2imm(VM *vm, Ctype *t, Str *str)
 {
 	Imm v;
 	float f;
 	double d;
 	char *s;
 
-	xtn = chasetype(xtn);
-	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
-		fatal("str2imm on non-scalar type");
-
 	s = strdata(str);
-	switch(xtn->rep){
+	switch(typerep(chasetype(t))){
 	case Rs08le:
 		return *(s8*)s;
 	case Rs16le:
@@ -1000,7 +996,6 @@ str2imm(VM *vm, Xtypename *xtn, Str *str)
 	default:
 		vmerr(vm, "attempt to access memory with incomplete type");
 	}
-	return 0; /* not reached */
 }
 
 static void
@@ -1014,18 +1009,14 @@ putbeint(char *p, Imm w, unsigned nb)
 }
 
 static Str*
-imm2str(VM *vm, Xtypename *xtn, Imm imm)
+imm2str(VM *vm, Ctype *t, Imm imm)
 {
 	Str *str;
 	char *s;
 	f32 f;
 	f64 d;
 
-	xtn = chasetype(xtn);
-	if(xtn->tkind != Tbase && xtn->tkind != Tptr)
-		fatal("imm2str on non-scalar type");
-
-	switch(xtn->rep){
+	switch(typerep(chasetype(t))){
 	case Rs08le:
 		str = mkstrn(sizeof(s8));
 		s = strdata(str);
@@ -1121,15 +1112,14 @@ imm2str(VM *vm, Xtypename *xtn, Imm imm)
 	case Rundef:
 		vmerr(vm, "attempt to access memory with incomplete type");
 	default:
-		fatal("bug");
+		bug();
 	}
-	return 0; /* not reached */
 }
 
 /* transform representation of VAL used for type OLD to type NEW.
    OLD and NEW must be chased types with defined representations. */
 static Imm
-_rerep(Imm val, Xtypename *old, Xtypename *new)
+_rerep(Imm val, Ctype *old, Ctype *new)
 {
 	/* FIXME: non-trivial cases are : real <-> int,
 	   real <-> alternate real
@@ -1138,7 +1128,7 @@ _rerep(Imm val, Xtypename *old, Xtypename *new)
 	*/
 	float fv;
 	double dv;
-	switch((new->rep<<5)|old->rep){
+	switch((typerep(new)<<5)|typerep(old)){
 		#include "rerep.switch" /* re-cast val */
 	}
  	return val;
@@ -1146,89 +1136,90 @@ _rerep(Imm val, Xtypename *old, Xtypename *new)
 
 
 static Imm
-rerep(Imm val, Xtypename *old, Xtypename *new)
+rerep(Imm val, Ctype *old, Ctype *new)
 {
 	old = chasetype(old);
 	new = chasetype(new);
-	if(old->rep == Rundef || new->rep == Rundef)
+	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		fatal("undef!");
 	return _rerep(val, old, new);
 }
 
 Cval*
-typecast(VM *vm, Xtypename *xtn, Cval *cv)
+typecast(VM *vm, Ctype *t, Cval *cv)
 {
-	Xtypename *old, *new;
+	Ctype *old, *new;
 	old = chasetype(cv->type);
-	new = chasetype(xtn);
-	if(new->rep == Rundef){
+	new = chasetype(t);
+	if(typerep(new) == Rundef){
 		/* steal pointer representation from old */
-		if(old->rep == Rundef)
+		if(typerep(old) == Rundef)
 			/* this is possible? */
 			fatal("whoa.");
 		if(old->tkind != Tptr)
 			vmerr(vm, "attempt to cast to type "
 			      "with undefined representation");
-		new->rep = old->rep;
+		/* FIXME: be functional */
+		typesetrep(new, typerep(old));
 	}
-	return mkcval(cv->dom, xtn, _rerep(cv->val, old, new));
+	return mkcval(cv->dom, t, _rerep(cv->val, old, new));
 }
 
 Cval*
 domcastbase(VM *vm, Dom *dom, Cval *cv)
 {
-	Xtypename *xtn, *old, *new;
+	Ctype *t, *old, *new;
 	Str *es;
 
-	xtn = cv->type;
+	t = cv->type;
 	if(dom == litdom)
-		xtn = chasetype(xtn);
-	if(xtn->tkind != Tbase)
+		t = chasetype(t);
+	if(t->tkind != Tbase)
 		vmerr(vm, "operand must be of base type");
 
 	/* FIXME: do we really want to lookup the type in the new domain? */
-	xtn = dom->ns->base[xtn->basename];
-	if(xtn == 0){
-		es = fmtxtn(cv->type);
+	t = dom->ns->base[typecbase(t)];
+	if(t == 0){
+		es = fmtctype(cv->type);
 		vmerr(vm, "cast to domain that does not define %.*s",
 		      (int)es->len, strdata(es));
 	}
 	old = chasetype(cv->type);
-	new = chasetype(xtn);
-	if(old->rep == Rundef || new->rep == Rundef)
+	new = chasetype(t);
+	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, xtn, _rerep(cv->val, old, new));
+	return mkcval(dom, t, _rerep(cv->val, old, new));
 }
 
 Cval*
 domcast(VM *vm, Dom *dom, Cval *cv)
 {
-	Xtypename *xtn, *old, *new;
+	Ctype *t, *old, *new;
 	Str *es;
 
 	/* FIXME: do we really want to lookup the type in the new domain? */
 	if(dom == litdom)
-		xtn = dolooktype(vm, chasetype(cv->type), dom->ns);
+		t = dolooktype(vm, chasetype(cv->type), dom->ns);
 	else
-		xtn = dolooktype(vm, cv->type, dom->ns);
-	if(xtn == 0){
-		es = fmtxtn(cv->type);
+		t = dolooktype(vm, cv->type, dom->ns);
+	if(t == 0){
+		es = fmtctype(cv->type);
 		vmerr(vm, "cast to domain that does not define %.*s",
 		      (int)es->len, strdata(es));
 	}
 	old = chasetype(cv->type);
-	new = chasetype(xtn);
-	if(old->rep == Rundef || new->rep == Rundef)
+	new = chasetype(t);
+	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, xtn, _rerep(cv->val, old, new));
+	return mkcval(dom, t, _rerep(cv->val, old, new));
 }
 
 static void
 dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 {
-	Xtypename *b1, *b2;
+	Ctype *b1, *b2;
 	static char *domerr
 		= "attempt to combine cvalues of incompatible domains";
 
@@ -1267,7 +1258,7 @@ out:
 static Cval*
 intpromote(VM *vm, Cval *cv)
 {
-	Xtypename *base;
+	Ctype *base;
 
 	base = chasetype(cv->type);
 	if(base->tkind != Tbase)
@@ -1285,26 +1276,25 @@ intpromote(VM *vm, Cval *cv)
 	return cv;
 }
 
-static Xtypename*
-commontype(Xtypename *t1, Xtypename *t2)
+static Ctype*
+commontype(Ctype *t1, Ctype *t2)
 {
-	Xtypename *p1, *p2;
+	Ctype *p1, *p2;
 	p1 = t1;
 	while(1){
 		p2 = t2;
 		while(1){
-			if(equalxtn(p1, p2))
+			if(equalctype(p1, p2))
 				return p1;
 			if(p2->tkind != Ttypedef && p2->tkind != Tenum)
 				break;
-			p2 = p2->link;
+			p2 = subtype(p2);
 		}
 		if(p1->tkind != Ttypedef && p1->tkind != Tenum)
 			break;
-		p1 = p1->link;
+		p1 = subtype(p1);
 	}
-	fatal("cannot determine common type");
-	return 0; /* not reached */
+	fatal("no common type");
 }
 
 static void
@@ -1334,7 +1324,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vvlong] = Vuvlong,
 	};
 	Cbase c1, c2, nc;
-	Xtypename *t1, *t2, *b1, *b2, *nxtn;
+	Ctype *t1, *t2, *b1, *b2, *nt;
 
 	op1 = intpromote(vm, op1);
 	op2 = intpromote(vm, op2);
@@ -1350,19 +1340,19 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		return;
 	}
 
-	c1 = b1->basename;
-	c2 = b2->basename;
+	c1 = typecbase(b1);
+	c2 = typecbase(b2);
 	if(c1 == c2){
 		/* combinations of distinct typedefs
 		   and/or enums yield the first type
 		   they have in common (not necessarily
 		   the base type). */
 		if(t1->tkind == Ttypedef || t2->tkind == Ttypedef){
-			nxtn = commontype(t1, t2);
-			if(t1 != nxtn)
-				op1 = typecast(vm, nxtn, op1);
-			if(t2 != nxtn)
-				op2 = typecast(vm, nxtn, op2);
+			nt = commontype(t1, t2);
+			if(t1 != nt)
+				op1 = typecast(vm, nt, op1);
+			if(t2 != nt)
+				op2 = typecast(vm, nt, op2);
 		}
 		*rv1 = op1;
 		*rv2 = op2;
@@ -1384,20 +1374,20 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		nc = c1;
 	else if(isunsigned[c2] && rank[c2] >= rank[c1])
 		nc = c2;
-	else if(!isunsigned[c1] && repsize[b1->rep] > repsize[b2->rep])
+	else if(!isunsigned[c1] && repsize[typerep(b1)] > repsize[typerep(b2)])
 		nc = c1;
-	else if(!isunsigned[c2] && repsize[b2->rep] > repsize[b1->rep])
+	else if(!isunsigned[c2] && repsize[typerep(b2)] > repsize[typerep(b1)])
 		nc = c2;
 	else if(!isunsigned[c1])
 		nc = uvariant[c1];
 	else
 		nc = uvariant[c2];
 
-	nxtn = op1->dom->ns->base[nc];          /* op2 has the same domain */
+	nt = op1->dom->ns->base[nc];          /* op2 has the same domain */
 	if(c1 != nc)
-		op1 = typecast(vm, nxtn, op1);
+		op1 = typecast(vm, nt, op1);
 	if(c2 != nc)
-		op2 = typecast(vm, nxtn, op2);
+		op2 = typecast(vm, nt, op2);
 	*rv1 = op1;
 	*rv2 = op2;
 }
@@ -1569,10 +1559,9 @@ truncimm(Imm v, Rkind rep)
 }
 
 static Cval*
-xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
-	    Xtypename *t1, Xtypename *t2)
+xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 {
-	Xtypename *sub, *pt;
+	Ctype *sub, *pt;
 	Cval *ptr;
 	Imm sz, osz, n;
 
@@ -1583,13 +1572,13 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 		if(op != Isub)
 			vmerr(vm, "attempt to apply %s to pointer operands",
 			      opstr[op]);
-		sub = chasetype(t1->link);
+		sub = chasetype(subtype(t1));
 		/* special case: sizeof(void)==1 for pointer arith */
 		if(sub->tkind == Tvoid)
 			sz = 1;
 		else
 			sz = typesize(vm, sub);
-		sub = chasetype(t2->link);
+		sub = chasetype(subtype(t2));
 		if(sub->tkind == Tvoid)
 			osz = 1;
 		else
@@ -1601,7 +1590,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 			vmerr(vm, "attempt to subtract pointers to "
 			      "zero-sized objects");
 		n = (op1->val-op2->val)/sz;
-		n = truncimm(n, t1->rep);
+		n = truncimm(n, typerep(t1));
 		/* FIXME: define ptrdiff_t? */
 		return mkcval(litdom, litdom->ns->base[Vlong], n);
 	}
@@ -1609,14 +1598,14 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	/* exactly one operand is a pointer */
 
 	if(t1->tkind == Tptr){
-		sub = chasetype(t1->link);
+		sub = chasetype(subtype(t1));
 		ptr = op1;
 		n = op2->val;
 	}else if(op == Isub){
 		vmerr(vm, "invalid right-hand pointer operand to -");
 		return 0; /* not reached */
 	}else{
-		sub = chasetype(t2->link);
+		sub = chasetype(subtype(t2));
 		ptr = op2;
 		n = op1->val;
 	}
@@ -1632,22 +1621,22 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2,
 	else
 		n = ptr->val-n*sz;
 	pt = chasetype(ptr->type);
-	n = truncimm(n, pt->rep);
+	n = truncimm(n, typerep(pt));
 	return mkcval(ptr->dom, ptr->type, n);
 }
 
 static Cval*
-xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2,
-	   Xtypename *t1, Xtypename *t2)
+xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 {
 	float f1, f2, fr;
 	double d1, d2, dr;
 	Imm rv;
+	Cbase cb;
 
-	if(t1->basename != t2->basename)
-		fatal("bug");
-
-	switch(t1->basename){
+	cb = typecbase(t1);
+	if(cb != typecbase(t2))
+		bug();
+	switch(cb){
 	case Vfloat:
 		f1 = *(float*)&op1->val;
 		f2 = *(float*)&op2->val;
@@ -1704,7 +1693,8 @@ static Cval*
 xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
-	Xtypename *t1, *t2;
+	Ctype *t1, *t2;
+	Cbase b1, b2;
 
 	if(op1->dom != op2->dom)
 		fatal("bug");
@@ -1713,7 +1703,9 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 	t2 = chasetype(op2->type);
 	if(t1->tkind == Tptr || t2->tkind == Tptr)
 		return xcvalptralu(vm, op, op1, op2, t1, t2);
-	if(isfloat[t1->basename] || isfloat[t2->basename])
+	b1 = typecbase(t1);
+	b2 = typecbase(t2);
+	if(isfloat[b1] || isfloat[b2])
 		return xcvalfpalu(vm, op, op1, op2, t1, t2);
 
 	i1 = op1->val;
@@ -1726,11 +1718,11 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 	case Idiv:
 		if(i2 == 0)
 			vmerr(vm, "divide by zero");
-		if(isunsigned[t1->basename] && isunsigned[t2->basename])
+		if(isunsigned[b1] && isunsigned[b2])
 			rv = i1/i2;
-		else if(isunsigned[t1->basename])
+		else if(isunsigned[b1])
 			rv = i1/(s64)i2;
-		else if(isunsigned[t2->basename])
+		else if(isunsigned[b2])
 			rv = (s64)i1/i2;
 		else
 			rv = (s64)i1/(s64)i2;
@@ -1759,7 +1751,7 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 		fatal("bug");
 	}
 
-	rv = truncimm(rv, t1->rep);
+	rv = truncimm(rv, typerep(t1));
 	return mkcval(op1->dom, op1->type, rv);
 }
 
@@ -1774,7 +1766,7 @@ static Cval*
 xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
-	Xtypename *t;
+	Ctype *t;
 
 	/* no need to rationalize domains */
 	op1 = intpromote(vm, op1);
@@ -1794,7 +1786,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		    your compiler says.  gcc and microsoft
 		    performs sign extension.
 	*/
-	if(isunsigned[t->basename])
+	if(isunsigned[typecbase(t)])
 		switch(op){
 		case Ishl:
 			rv = i1<<i2;
@@ -1823,7 +1815,7 @@ static int
 cvalcmp(VM *vm, Cval *op1, Cval *op2)
 {
 	Imm i1, i2;
-	Xtypename *t;
+	Ctype *t;
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
@@ -1837,7 +1829,7 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 	i1 = op1->val;
 	i2 = op2->val;
 	t = chasetype(op1->type);
-	if(isunsigned[t->basename]){
+	if(isunsigned[typecbase(t)]){
 		if(i1<i2)
 			return -1;
 		else if(i1>i2)
