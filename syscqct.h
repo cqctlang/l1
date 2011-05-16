@@ -1198,6 +1198,7 @@ void		fnch(Env *env);
 
 /* ctype.c */
 Ctype*		chasetype(Ctype *t);
+void		fnctype(Env *env);
 Val*		iterctype(Head *hd, Ictx *ictx);
 Ctype*		mkctypearr(Ctype *sub, Val cnt);
 Ctype*		mkctypebase(Cbase cbase, Rkind rep);
@@ -1211,6 +1212,7 @@ Ctype*		mkctypesu(Tkind kind, Str *tag, Vec *field, Val attr);
 Ctype*		mkctypeundef(Ctype *sub);
 Ctype*		mkctypevoid(void);
 Ctype*		safechasetype(Ctype *t);
+void		setsubtype(Ctype *t, Ctype *s);
 Ctype*		subtype(Ctype *t);
 Cbase		typecbase(Ctype *t);
 Rkind		typerep(Ctype *t);
@@ -1299,6 +1301,11 @@ Str*		strconcat(Str *s1, Str *s2);
 Str*		strcopy(Str *s);
 Str*		strslice(Str *str, Imm beg, Imm end);
 int		Strcmp(Str *s1, Str *s2);
+
+/* sym.c */
+Ctype*		fieldtype(Vec *s);
+Ctype*		paramtype(Vec *s);
+Ctype*		symtype(Vec *s);
 
 /* vec.c */
 int		equalvec(Vec *a, Vec *b);
