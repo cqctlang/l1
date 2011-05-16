@@ -754,7 +754,7 @@ static char* cbasector[Vnallbase] = {
 };
 
 static Expr*
-mkctypebase(U *ctx, Expr *e)
+mkctypebasen(U *ctx, Expr *e)
 {
 	Expr *p, *r;
 	Cbase b;
@@ -893,7 +893,7 @@ mkctypename(U *ctx, Expr *e)
 		return putsrc(Zcall(G("mkctype_typedef"), 1, id2sym(e->e1)),
 			      &e->src);
 	case Ebase:
-		return putsrc(mkctypebase(ctx, e), &e->src);
+		return putsrc(mkctypebasen(ctx, e), &e->src);
 	case Eptr:
 		return putsrc(Zcall(G("mkctype_ptr"),
 				    1, mkctypename(ctx, e->e1)),

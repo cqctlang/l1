@@ -1157,9 +1157,11 @@ curaddr(Val v)
 static u32
 qsz(Head *h)
 {
-	Str *s;
 	Rec *r;
+	Str *s;
+	Ctype *t;
 	Vec *v;
+
 	switch(Vkind(h)){
 	case Qstr:
 		s = (Str*)h;

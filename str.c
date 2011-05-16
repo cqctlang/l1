@@ -156,8 +156,8 @@ l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	/* FIXME: might be nice for ns to have cached void* */
 	*rv = mkvalcval(litdom,
-			mkptrxtn(mkctypevoid(),
-				 typerep(litdom->ns->base[Vptr])),
+			mkctypeptr(mkctypevoid(),
+				   typerep(litdom->ns->base[Vptr])),
 			(uptr)p);
 }
 

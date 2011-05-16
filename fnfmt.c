@@ -77,18 +77,11 @@ _fmtctype(Ctype *t, char *o)
 	char *buf, *w, *pl;
 	unsigned m, leno;
 	Str *s;
+	Cbase cb;
 	Cval *cv;
 	Ctype *sub;
 	Ctypearr *ta;
-	Ctypebase *tb;
-	Ctypeconst *tc;
-	Ctypeenum *te;
 	Ctypefunc *tf;
-	Ctypesu *ts;
-	Ctypeptr *tp;
-	Ctypetypedef *tt;
-	Ctypeundef *tu;
-	Ctypebitfield *tw;
 
 	leno = strlen(o);
 	switch(t->tkind){
@@ -102,18 +95,17 @@ _fmtctype(Ctype *t, char *o)
 		efree(o);
 		return buf;
 	case Tbase:
-		tb = (Ctypebase*)t;
-		m = strlen(cbasename[tb->basename])+1+leno+1;
+		cb = typecbase(t);
+		m = strlen(cbasename[cb])+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprint(buf, m, "%s %s", cbasename[tb->basename], o);
+			snprint(buf, m, "%s %s", cbasename[cb], o);
 		else
-			snprint(buf, m, "%s", cbasename[tb->basename]);
+			snprint(buf, m, "%s", cbasename[cb]);
 		efree(o);
 		return buf;
 	case Ttypedef:
-		tt = (Ctypetypedef*)t;
-		s = tt->tid;
+		s = typetid(t);
 		m = s->len+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
@@ -162,10 +154,10 @@ _fmtctype(Ctype *t, char *o)
 		ta = (Ctypearr*)t;
 		m = leno+1+10+1+1;	/* assume max 10 digit size */
 		buf = emalloc(m);
-		if(Vkind(t->cnt) == Qnil)
+		if(Vkind(ta->cnt) == Qnil)
 			snprint(buf, m, "%s[]", o);
 		else{
-			cv = valcval(t->cnt);
+			cv = valcval(ta->cnt);
 			snprint(buf, m, "%s[%" PRIu64 "]", o, cv->val);
 		}
 		efree(o);
@@ -220,7 +212,7 @@ fmtctype(Ctype *t)
 {
 	char *s;
 	Str *str;
-	s = fmtctype(t);
+	s = fmtctypec(t);
 	str = mkstr0(s);
 	efree(s);
 	return str;
@@ -695,6 +687,7 @@ static int
 fmtenconst(VM *vm, Fmt *f, Cval *cv)
 {
 	Ctype *t;
+	Ctypeenum *te;
 	Vec *v;
 	Cval *k;
 	Str *s;
@@ -702,11 +695,12 @@ fmtenconst(VM *vm, Fmt *f, Cval *cv)
 
 	t = cv->type;
 	while(t->tkind == Ttypedef)
-		t = t->link;
+		t = subtype(t);
 	if(t->tkind != Tenum)
 		return fmticval(vm, f, 'd', cv);
-	for(m = 0; m < t->konst->len; m++){
-		v = valvec(vecref(t->konst, m));
+	te = (Ctypeenum*)t;
+	for(m = 0; m < te->konst->len; m++){
+		v = valvec(vecref(te->konst, m));
 		k = valcval(vecref(v, 1));
 		/* direct comparison is sane because
 		 * enum consts all have the same

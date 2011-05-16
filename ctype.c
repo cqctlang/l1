@@ -18,12 +18,35 @@
 
  */
 
+Imm repsize[Rnrep] = {
+	[Ru08le]=	1,
+	[Ru16le]=	2,
+	[Ru32le]=	4,
+	[Ru64le]=	8,
+	[Rs08le]=	1,
+	[Rs16le]=	2,
+	[Rs32le]=	4,
+	[Rs64le]=	8,
+	[Ru08be]=	1,
+	[Ru16be]=	2,
+	[Ru32be]=	4,
+	[Ru64be]=	8,
+	[Rs08be]=	1,
+	[Rs16be]=	2,
+	[Rs32be]=	4,
+	[Rs64be]=	8,
+	[Rf32]=		4,
+	[Rf64]=		8,
+};
+
+
+static Vec*	funcparam(Ctypefunc *tf, Imm m);
+
 Val*
 iterctype(Head *hd, Ictx *ictx)
 {
 	Ctype *t;
 	Ctypearr *ta;
-	Ctypebase *tb;
 	Ctypeconst *tc;
 	Ctypedef *td;
 	Ctypeenum *te;
@@ -135,11 +158,12 @@ u32
 hashctype(Ctype *t)
 {
 	u32 x;
-	Ctype *t;
 	Ctypearr *ta;
-	Ctypearr *tf;
+	Ctypefunc *tf;
+	Ctypebitfield *tw;
+	Imm m;
 
-	x = hashu64(t->kind);
+	x = hashu64(t->tkind);
 	switch(t->tkind){
 	case Tvoid:
 		return x;
@@ -189,14 +213,8 @@ equalctype(Ctype *a, Ctype *b)
 {
 	Imm m;
 	Ctypearr *ata, *bta;
-	Ctypebase *atb, *btb;
-	Ctypeconst *atc, *btc;
-	Ctypedef *ats, *bts;
-	Ctypeenum *ate, *bte;
+	Ctypedef *atd, *btd;
 	Ctypefunc *atf, *btf;
-	Ctypeptr *atp, *btp;
-	Ctypesu *ats, *bts;
-	Ctypeundef *atu, *btu;
 	Ctypebitfield *atw, *btw;
 
 	if(a->tkind != b->tkind)
@@ -257,26 +275,24 @@ Ctype*
 subtype(Ctype *t)
 {
 	Ctypearr *ta;
-	Ctypebase *tb;
 	Ctypeconst *tc;
-	Ctypedef *ts;
+	Ctypedef *td;
 	Ctypeenum *te;
 	Ctypefunc *tf;
-	Ctypesu *ts;
 	Ctypeptr *tp;
 	Ctypeundef *tu;
 	Ctypebitfield *tw;
 
-	switch(t->kind){
+	switch(t->tkind){
 	case Tenum:
 		te = (Ctypeenum*)t;
 		return te->sub;
 	case Ttypedef:
-		tt = (Ctypedef*)t;
-		return tt->sub;
-	case Tfunc:
+		td = (Ctypedef*)t;
+		return td->sub;
+	case Tfun:
 		tf = (Ctypefunc*)t;
-		return tt->sub;
+		return tf->sub;
 	case Tptr:
 		tp = (Ctypeptr*)t;
 		return tp->sub;
@@ -290,8 +306,8 @@ subtype(Ctype *t)
 		tc = (Ctypeconst*)t;
 		return tc->sub;
 	case Tundef:
-		tc = (Ctypeundef*)t;
-		return tc->undef;
+		tu = (Ctypeundef*)t;
+		return tu->sub;
 	default:
 		bug();
 	}
@@ -303,29 +319,27 @@ void
 setsubtype(Ctype *t, Ctype *s)
 {
 	Ctypearr *ta;
-	Ctypebase *tb;
 	Ctypeconst *tc;
-	Ctypedef *ts;
+	Ctypedef *td;
 	Ctypeenum *te;
 	Ctypefunc *tf;
-	Ctypesu *ts;
 	Ctypeptr *tp;
 	Ctypeundef *tu;
 	Ctypebitfield *tw;
 
 	gcwb(mkvalctype(t));
-	switch(t->kind){
+	switch(t->tkind){
 	case Tenum:
 		te = (Ctypeenum*)t;
 		te->sub = s;
 		break;
 	case Ttypedef:
-		tt = (Ctypedef*)t;
-		tt->sub = s;
+		td = (Ctypedef*)t;
+		td->sub = s;
 		break;
-	case Tfunc:
+	case Tfun:
 		tf = (Ctypefunc*)t;
-		tt->sub = s;
+		tf->sub = s;
 		break;
 	case Tptr:
 		tp = (Ctypeptr*)t;
@@ -344,8 +358,8 @@ setsubtype(Ctype *t, Ctype *s)
 		tc->sub = s;
 		break;
 	case Tundef:
-		tc = (Ctypeundef*)t;
-		tc->undef = s;
+		tu = (Ctypeundef*)t;
+		tu->sub = s;
 		break;
 	default:
 		bug();
@@ -355,7 +369,7 @@ setsubtype(Ctype *t, Ctype *s)
 Ctype*
 chasetype(Ctype *t)
 {
-	switch(t->kind){
+	switch(t->tkind){
 	case Ttypedef:
 	case Tenum:
 		return chasetype(subtype(t));
@@ -369,7 +383,7 @@ safechasetype(Ctype *t)
 {
 	if(t == 0)
 		return 0;
-	switch(t->kind){
+	switch(t->tkind){
 	case Ttypedef:
 	case Tenum:
 		return safechasetype(subtype(t));
@@ -381,11 +395,11 @@ safechasetype(Ctype *t)
 Str*
 typetid(Ctype *t)
 {
-	Ctypetypedef *td;
-	switch(t->kind){
+	Ctypedef *td;
+	switch(t->tkind){
 	case Ttypedef:
 		td = (Ctypedef*)t;
-		return t->tid;
+		return td->tid;
 	default:
 		bug();
 	}
@@ -397,7 +411,7 @@ typetag(Ctype *t)
 	Ctypeenum *te;
 	Ctypesu *ts;
 
-	switch(t->kind){
+	switch(t->tkind){
 	case Tstruct:
 	case Tunion:
 		ts = (Ctypesu*)t;
@@ -416,7 +430,7 @@ typecbase(Ctype *t)
 {
 	Ctypebase *tb;
 
-	switch(t->kind){
+	switch(t->tkind){
 	case Tbase:
 		tb = (Ctypebase*)t;
 		return tb->cbase;
@@ -425,29 +439,19 @@ typecbase(Ctype *t)
 	}
 }
 
-Vec*
-funcparam(Ctypefunc *tf, Imm i)
-{
-	return valvec(vecref(tf->param, i));
-}
-
 Rkind
 typerep(Ctype *t)
 {
 	Ctypebase *tb;
-	Ctypeenum *te;
 	Ctypeptr *tp;
 
-	switch(t->kind){
+	switch(t->tkind){
 	case Tbase:
 		tb = (Ctypebase*)t;
 		return tb->rep;
 	case Tptr:
 		tp = (Ctypeptr*)t;
 		return tp->rep;
-	case Tenum:
-		te = (Ctypeenum*)t;
-		return te->rep;
 	default:
 		bug();
 	}
@@ -459,10 +463,9 @@ void
 typesetrep(Ctype *t, Rkind rep)
 {
 	Ctypebase *tb;
-	Ctypeenum *te;
 	Ctypeptr *tp;
 
-	switch(t->kind){
+	switch(t->tkind){
 	case Tbase:
 		tb = (Ctypebase*)t;
 		tb->rep = rep;
@@ -470,10 +473,6 @@ typesetrep(Ctype *t, Rkind rep)
 	case Tptr:
 		tp = (Ctypeptr*)t;
 		tp->rep = rep;
-		break;
-	case Tenum:
-		te = (Ctypeenum*)t;
-		te->rep = rep;
 		break;
 	default:
 		bug();
@@ -589,7 +588,7 @@ Ctype*
 mkctypefunc(Ctype *sub, Vec *param)
 {
 	Ctypefunc *tf;
-	tf = (Ctypefunc*)mkctype(Tfunc);
+	tf = (Ctypefunc*)mkctype(Tfun);
 	tf->sub = sub;
 	tf->param = param;
 	return (Ctype*)tf;
@@ -652,7 +651,8 @@ typesize(VM *vm, Ctype *t)
 	case Tptr:
 		rep = typerep(t);
 		if(rep == Rundef)
-			vmerr(vm, "attempt to determine size of undefined type")
+			vmerr(vm,
+			      "attempt to determine size of undefined type");
 		return repsize[rep];
 	case Ttypedef:
 	case Tconst:
@@ -680,6 +680,12 @@ typesize(VM *vm, Ctype *t)
 		      (int)es->len, strdata(es));
 	}
 	fatal("bug");
+}
+
+static Vec*
+funcparam(Ctypefunc *tf, Imm m)
+{
+	return valvec(vecref(tf->param, m));
 }
 
 static void
@@ -1024,8 +1030,6 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 	Ctype *t;
 	Str *s;
 	Vec *f;
-	Imm i;
-	unsigned char fl;
 
 	t = 0;
 	switch((unsigned)argc){
@@ -1106,7 +1110,7 @@ l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
 	p = valvec(argv[1]);
 	if(!issymvec(p))
 		vmerr(vm, "bad parameter vector");
-	t = mkctypefun(sub, p);
+	t = mkctypefunc(sub, p);
 	*rv = mkvalctype(t);
 }
 
@@ -1138,7 +1142,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		/* TAG */
 		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
 		s = valstr(argv[0]);
-		t = mkctypeenum(s, 0);
+		t = mkctypeenum(s, 0, 0);
 		break;
 	case 2:
 		/* TAG CONSTS (FIXME: is this a good form?) */
@@ -1537,7 +1541,7 @@ l1_typedefid(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = valctype(argv[0]);
 	if(t->tkind != Ttypedef)
 		vmerr(vm, "operand 1 to typedefid must be a typedef ctype");
-	*rv = mkvalstr(typetid(tid));
+	*rv = mkvalstr(typetid(t));
 }
 
 static void
@@ -1630,7 +1634,7 @@ rlookfield(VM *vm, Ctype *xsu, Val tag)
 		f = valvec(vp);
 		id = vecref(f, Idpos);
 		if(Vkind(id) == Qstr){
-			if(equalstrv(tag, id))
+			if(equalstr(valstr(tag), valstr(id)))
 				return vp;
 			else
 				continue;
@@ -1702,9 +1706,9 @@ l1_enumconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 static Ctype*
 typename(Ctype *td)
 {
-	Ctype *tn;
 	Ctypearr *ta;
 	Ctypefunc *tf;
+	Ctypebitfield *tw;
 	Vec *o, *p, *pv;
 	Imm i;
 
@@ -1729,8 +1733,8 @@ typename(Ctype *td)
 	case Tfun:
 		tf = (Ctypefunc*)td;
 		pv = mkvec(tf->param->len);
-		for(i = 0; i < td->param->len; i++){
-			o = valvec(vecref(td->param, i));
+		for(i = 0; i < tf->param->len; i++){
+			o = valvec(vecref(tf->param, i));
 			p = mkvec(3);
 			_vecset(p, Typepos,
 				mkvalctype(typename(fieldtype(o))));

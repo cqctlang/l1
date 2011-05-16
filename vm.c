@@ -24,27 +24,6 @@ char *qname[Qnkind] = {
 	[Qvec]=		"vector",
 };
 
-static Imm repsize[Rnrep] = {
-	[Ru08le]=	1,
-	[Ru16le]=	2,
-	[Ru32le]=	4,
-	[Ru64le]=	8,
-	[Rs08le]=	1,
-	[Rs16le]=	2,
-	[Rs32le]=	4,
-	[Rs64le]=	8,
-	[Ru08be]=	1,
-	[Ru16be]=	2,
-	[Ru32be]=	4,
-	[Ru64be]=	8,
-	[Rs08be]=	1,
-	[Rs16be]=	2,
-	[Rs32be]=	4,
-	[Rs64be]=	8,
-	[Rf32]=		4,
-	[Rf64]=		8,
-};
-
 unsigned isfloat[Vnbase] = {
 	[Vfloat] = 1,
 	[Vdouble] = 1,
@@ -75,7 +54,6 @@ static void vmsetcl(VM *vm, Val val);
 static Ctype* dolooktype(VM *vm, Ctype *t, Ns *ns);
 static Env* mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
-static int issym(Vec *sym);
 static void setgo(Insn *i, Imm lim);
 
 void *GCiterdone;
@@ -110,21 +88,11 @@ static char *opstr[Iopmax+1] = {
 	[Icmple] = "<=",
 };
 
-static u32 nohash(Val);
-static u32 hashcval(Val);
 static u32 hashptr(Val);
-static u32 hashconst(Val);
-static u32 hashrange(Val);
-
-static int eqcvalv(Val, Val);
+static u32 hashrange(Range *r);
 static int eqptr(Val, Val);
-static int eqtrue(Val, Val);
-
-static int equalctypev(Val, Val);
 static int equallistv(Val a, Val b);
 static int equalrange(Range *ra, Range *rb);
-static int equalstrv(Val, Val);
-static int equalvecv(Val a, Val b);
 
 Code *kcode, *cccode, *tcccode;
 
@@ -360,12 +328,6 @@ hashval(Val v)
 	}
 }
 
-tatic u32
-nohash(Val val)
-{
-	fatal("bad type of key (%d) to table operation", Vkind(val));
-}
-
 static u32
 hashptr(Val val)
 {
@@ -379,27 +341,8 @@ eqptr(Val a, Val b)
 }
 
 static u32
-hashconst(Val val)
+hashrange(Range *r)
 {
-	switch(Vkind(val)){
-	case Qnil:
-		return hashp(Xnil);
-	default:
-		fatal("bug");
-	}
-}
-
-static int
-eqtrue(Val a, Val b)
-{
-	return 1;
-}
-
-static u32
-hashrange(Val val)
-{
-	Range *r;
-	r = valrange(val);
 	return hashx(hashu64(r->beg->val), hashu64(r->len->val));
 }
 
@@ -410,33 +353,9 @@ equalrange(Range *ra, Range *rb)
 }
 
 static int
-eqcvalv(Val a, Val b)
-{
-	return eqcval(valcval(a), valcval(b));
-}
-
-static int
-equalstrv(Val a, Val b)
-{
-	return equalstr(valstr(a), valstr(b));
-}
-
-static int
-equalctypev(Val a, Val b)
-{
-	return equalctype(valctype(a), valctype(b));
-}
-
-static int
 equallistv(Val a, Val b)
 {
 	return equallist(vallist(a), vallist(b));
-}
-
-static int
-equalvecv(Val a, Val b)
-{
-	return equalvec(valvec(a), valvec(b));
 }
 
 static As*
@@ -1263,7 +1182,7 @@ intpromote(VM *vm, Cval *cv)
 	base = chasetype(cv->type);
 	if(base->tkind != Tbase)
 		return cv;
-	switch(base->basename){
+	switch(typecbase(base)){
 	case Vbool: // FIXME: is this case right?
 	case Vuchar:
 	case Vushort:
@@ -2211,10 +2130,10 @@ dobitfieldgeom(Ctype *t, BFgeom *bfg)
 static void
 xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 {
-	Val xv, typev, cvalv, rv, p, argv[2];
+	Val xv, typev, cvalv, rv;
 	Imm imm;
 	Dom *d;
-	Ctype *t, *b, *s, *pt;
+	Ctype *t, *b, *sub, *pt;
 	Cval *cv;
 	Str *s, *es;
 	BFgeom bfg;
@@ -2249,10 +2168,10 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	d = valdom(xv);
 	switch(b->tkind){
 	case Tbitfield:
-		s = subtype(b);
-		if(s->tkind == Tundef){
-			s = subtype(s);
-			es = fmtctype(s);
+		sub = subtype(b);
+		if(sub->tkind == Tundef){
+			sub = subtype(sub);
+			es = fmtctype(sub);
 			vmerr(vm, "attempt to read object of undefined type: "
 			      "%.*s", (int)es->len, strdata(es));
 		}
@@ -2692,57 +2611,6 @@ mkzas(Imm len)
 	return mksas(mkstrn(len));
 }
 
-Val
-mkattr(Val o)
-{
-	Tab *tab;
-
-	if(Vkind(o) != Qtab && Vkind(o) != Qcval)
-		fatal("bug");
-	if(Vkind(o) == Qtab)
-		tab = tabcopy(valtab(o));
-	else{
-		tab = mktab();
-		tabput(tab, mkvalstr(mkstr0("offset")), o);
-	}
-	return mkvaltab(tab);
-}
-
-Val
-attroff(Val o)
-{
-	Tab *tab;
-	Val vp;
-
-	if(Vkind(o) == Qcval)
-		return o;
-	if(Vkind(o) != Qtab)
-		fatal("bug");
-	tab = valtab(o);
-	vp = tabget(tab, mkvalstr(mkstr0("offset")));
-	if(vp)
-		return vp;
-	return Xnil;
-}
-
-static Val
-copyattr(Val attr, Val newoff)
-{
-	Tab *t;
-	Val off;
-	Val key;
-	if(Vkind(attr) != Qtab)
-		fatal("bug");
-	t = tabcopy(valtab(attr));
-	key = mkvalstr(mkstr0("offset"));
-	if(newoff)
-		off = newoff;
-	else
-		off = tabget(t, key);
-	tabput(t, key, off);
-	return mkvaltab(t);
-}
-
 /* call looktype operator of NS on ctype T.
    FIXME: consider adding a new return parameter that,
    if result is 0, points to the undefined type name */
@@ -2754,6 +2622,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 	Vec *v1, *v2;
 	Imm i;
 	Rkind rep;
+	Ctypearr *ta;
 	Ctypefunc *tf;
 	Ctypebitfield *tw;
 
@@ -2784,7 +2653,8 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 		sub = _dolooktype(vm, subtype(t), ns);
 		if(sub == 0)
 			return 0;
-		return mkctypearr(sub, t->cnt);
+		ta = (Ctypearr*)t;
+		return mkctypearr(sub, ta->cnt);
 	case Tfun:
 		sub = _dolooktype(vm, subtype(t), ns);
 		if(sub == 0)
@@ -2811,7 +2681,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 		if(sub == 0)
 			return 0;
 		tw = (Ctypebitfield*)t;
-		return mkctypebitfield(sub, t->cnt, t->bit0);
+		return mkctypebitfield(sub, tw->cnt, tw->bit0);
 	}
 	bug();
 }
@@ -2999,7 +2869,7 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 			vmerr(vm, "invalid typedef in raw type table");
 		if(!equalstr(typetid(def), typetid(t)))
 			vmerr(vm, "invalid typedef in raw type table");
-		setsubtype(new, resolvetypename(vm, subtype(link), ctx));
+		setsubtype(new, resolvetypename(vm, subtype(def), ctx));
 		if(subtype(new) == new){
 			s = typetid(def);
 			vmerr(vm, "circular definition in name space: "
@@ -3058,11 +2928,10 @@ doenconsts(VM *vm, Vec *v, Ns *ns)
 static Ctype*
 resolvetag(VM *vm, Val tv, NSctx *ctx)
 {
-	Val rv, v, vp, attr;
+	Val rv, attr;
 	Vec *vec, *fld, *nfld, *fv;
 	Imm i;
 	Str *es;
-	unsigned char f;
 	Ctype *t, *new, *tmp;
 	Ctypesu *ts;
 	Ctypeenum *te;
@@ -3155,10 +3024,9 @@ static Ctype*
 resolvetypename(VM *vm, Ctype *t, NSctx *ctx)
 {
 	Vec *vec, *pv, *np;
-	Val v;
 	Imm i;
-	Ctype *tmp, *new;
-	Ctypearray *ta;
+	Ctype *tmp;
+	Ctypearr *ta;
 	Ctypefunc *tf;
 	Ctypebitfield *tw;
 
@@ -3166,7 +3034,7 @@ resolvetypename(VM *vm, Ctype *t, NSctx *ctx)
 	case Tvoid:
 		return mkctypevoid();
 	case Tbase:
-		if(typerec(t) != Rundef)
+		if(typerep(t) != Rundef)
 			/* FIXME: can we avoid this if we use a table equality
 			   function that does not discriminate on rep? */
 			t = mkctypebase(typecbase(t), Rundef);
@@ -4082,7 +3950,7 @@ isnegcval(Cval *cv)
 	t = chasetype(cv->type);
 	if(t->tkind != Tbase)
 		return 0;
-	if(isunsigned[t->basename])
+	if(isunsigned[typecbase(t)])
 		return 0;
 	return (s64)cv->val < 0;
 }
@@ -4094,7 +3962,7 @@ isnatcval(Cval *cv)
 	t = chasetype(cv->type);
 	if(t->tkind != Tbase)
 		return 0;
-	if(isunsigned[t->basename])
+	if(isunsigned[typecbase(t)])
 		return 1;
 	return (s64)cv->val >= 0;
 }
@@ -4337,7 +4205,7 @@ isstrcval(Cval *cv)
 	t = chasetype(cv->type);
 	if(t->tkind != Tptr)
 		return 0;
-	t = chasetype(t->link);
+	t = chasetype(subtype(t));
 	if(t->tkind != Tbase)
 		return 0;
 	if(typecbase(t) != Vchar && typecbase(t) != Vuchar)
@@ -4535,226 +4403,6 @@ l1_myrootns(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "my root name space is undefined: %s", r);
 }
 
-static void
-l1_paramtype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to paramtype must be a param";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to paramtype");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 2)
-		vmerr(vm, err);
-	vp = vecdata(v)[Typepos];
-	if(Vkind(vp) != Qctype)
-		vmerr(vm, err);
-	*rv = vp;
-}
-
-static void
-l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to paramid must be a param";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to paramid");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 2)
-		vmerr(vm, err);
-	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
-		vmerr(vm, err);
-	*rv = vp;
-}
-
-static void
-l1_paramattr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	static char *err
-		= "operand 1 to paramattr must be a param";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to paramattr");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	*rv = vecref(v, Attrpos);
-}
-
-static void
-l1_fieldtype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to fieldtype must be a field";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to fieldtype");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	vp = vecdata(v)[Typepos];
-	if(Vkind(vp) != Qctype)
-		vmerr(vm, err);
-	*rv = vp;
-}
-
-static void
-l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to fieldid must be a field";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to fieldid");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
-		vmerr(vm, err);
-	*rv = vp;
-}
-
-static void
-l1_fieldattr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	static char *err
-		= "operand 1 to fieldattr must be a field";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to fieldattr");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	*rv = vecref(v, Attrpos);
-}
-
-static void
-l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to fieldoff must be a field";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to fieldoff");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	vp = vecref(v, Attrpos);
-	if(Vkind(vp) == Qnil)
-		return;		/* nil */
-	vp = attroff(vp);
-	*rv  = vp;
-}
-
-static void
-l1_symtype(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to symtype must be a symbol";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to symtype");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	vp = vecdata(v)[Typepos];
-	if(Vkind(vp) != Qctype)
-		vmerr(vm, err);
-	*rv = vp;
-}
-
-static void
-l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to symid must be a symbol";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to symid");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
-		vmerr(vm, err);
-	*rv = vp;
-}
-
-static void
-l1_symattr(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	static char *err
-		= "operand 1 to symattr must be a symbol";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to symattr");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	*rv = vecref(v, Attrpos);
-}
-
-static void
-l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *v;
-	Val vp;
-	static char *err
-		= "operand 1 to symoff must be a symbol";
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to symoff");
-	if(Vkind(argv[0]) != Qvec)
-		vmerr(vm, err);
-	v = valvec(argv[0]);
-	if(v->len < 3)
-		vmerr(vm, err);
-	vp = vecref(v, Attrpos);
-	if(Vkind(vp) == Qnil)
-		return;		/* nil */
-	*rv = attroff(vp);
-}
-
 /* the purpose of typeof on types is to strip the
    enum Tconst and bitfield Tbitfield status from
    lvalue expressions passed to typeof.
@@ -4788,102 +4436,6 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 	else
 		vmerr(vm, "operand 1 to $typeof must be a cvalue or type");
 	*rv = mkvalctype(t);
-}
-
-static int
-issym(Vec *sym)
-{
-	Val x;
-
-	if(sym->len != 2 && sym->len != 3)
-		return 0;
-	x = vecref(sym, Typepos);
-	if(Vkind(x) != Qctype)
-		return 0;
-	x = vecref(sym, Idpos);
-	if(Vkind(x) != Qstr && Vkind(x) != Qnil)
-		return 0;
-	if(sym->len < 3)
-		return 1;
-	x = vecref(sym, Attrpos);
-	if(Vkind(x) != Qtab && Vkind(x) != Qnil)
-		return 0;
-	return 1;
-}
-
-static int
-issymvec(Vec *v)
-{
-	Imm m;
-	Val e;
-	Vec *sym;
-	for(m = 0; m < v->len; m++){
-		e = vecref(v, m);
-		if(Vkind(e) != Qvec)
-			return 0;
-		sym = valvec(e);
-		if(!issym(sym))
-			return 0;
-	}
-	return 1;
-}
-
-static void
-mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Vec *vec;
-	Val attr;
-
-	checkarg(vm, what, argv, 0, Qctype);
-	if(argc > 1)
-		if(Vkind(argv[1]) != Qstr && Vkind(argv[1]) != Qnil)
-			vmerr(vm, "operand 2 to %s must be a string or nil",
-			      what);
-	if(argc == 3)
-		if(Vkind(argv[2]) != Qcval
-		   && Vkind(argv[2]) != Qtab
-		   && Vkind(argv[2]) != Qnil)
-			vmerr(vm,
-			      "operand 3 to %s must be a table, cvalue, or nil",
-			      what);
-	vec = mkvec(3);
-	_vecset(vec, Typepos, argv[0]);
-	if(argc > 1)
-		_vecset(vec, Idpos, argv[1]);
-	else
-		_vecset(vec, Idpos, Xnil);
-	if(argc > 2 && Vkind(argv[2]) == Qcval)
-		attr = mkattr(argv[2]);
-	else if(argc > 2)
-		attr = argv[2];
-	else
-		attr = Xnil;
-	_vecset(vec, Attrpos, attr);
-	*rv = mkvalvec(vec);
-}
-
-static void
-l1_mksym(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 2 && argc != 3)
-		vmerr(vm, "wrong number of arguments to mksym");
-	mksymorfieldorparam("mksym", vm, argc, argv, rv);
-}
-
-static void
-l1_mkfield(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 2 && argc != 3)
-		vmerr(vm, "wrong number of arguments to mkfield");
-	mksymorfieldorparam("mkfield", vm, argc, argv, rv);
-}
-
-static void
-l1_mkparam(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc < 1 || argc > 3)
-		vmerr(vm, "wrong number of arguments to mkparam");
-	mksymorfieldorparam("mkparam", vm, argc, argv, rv);
 }
 
 static void
@@ -4921,7 +4473,6 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	Dom *d;
 	Ctype *t, *b, *s;
 	Cval *addr, *cv;
-	Val argv[3];
 	Str *bytes, *es;
 	BFgeom bfg;
 	Imm imm;
@@ -5427,7 +4978,7 @@ l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(rep >= Rnrep)
 		vmerr(vm, "invalid representation identifier");
 	for(cb = Vlo; cb < Vnallbase; cb++)
-		if(ns->base[cb]->rep == rep){
+		if(typerep(ns->base[cb]) == rep){
 			*rv = mkvalctype(ns->base[cb]);
 			return;
 		}
@@ -5452,7 +5003,7 @@ l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 		dom = valdom(arg0);
 		ns = dom->ns;
 	}
-	*rv = mkvallitcval(Vuchar, ns->base[Vptr]->rep);
+	*rv = mkvallitcval(Vuchar, typerep(ns->base[Vptr]));
 }
 
 static void
@@ -5635,7 +5186,7 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(sz == 0){
 		if(addr->type->tkind != Tptr)
 			vmerr(vm, "ismapped expects a pointer cvalue");
-		sz = typesize(vm, addr->type->link);
+		sz = typesize(vm, subtype(addr->type));
 	}
 	if(ismapped(vm, addr->dom->as, addr->val, sz))
 		*rv = mkvalcval2(cval1);
@@ -7042,10 +6593,6 @@ mktopenv(void)
 	FN(error);
 	FN(fault);
 	FN(fdname);
-	FN(fieldattr);
-	FN(fieldid);
-	FN(fieldoff);
-	FN(fieldtype);
 	FN(front);
 	FN(gc);
 	FN(gclock);
@@ -7086,25 +6633,19 @@ mktopenv(void)
 	FN(mkcl);
 	FN(mkdom);
 	FN(mkfd);
-	FN(mkfield);
 	FN(mkmas);
 	FN(mkmasx);
 	FN(mknas);
 	FN(mkns);
 	FN(mknsraw);
-	FN(mkparam);
 	FN(mkrange);
 	FN(mksas);
-	FN(mksym);
 	FN(mkzas);
 	FN(myrootns);
 	FN(nameof);
 	FN(nsof);
 	FN(nsptr);
 	FN(nsreptype);
-	FN(paramattr);
-	FN(paramid);
-	FN(paramtype);
 	FN(parse);
 	FN(pop);
 	FN(pp);
@@ -7118,10 +6659,6 @@ mktopenv(void)
 	FN(split);
 	FN(sprintfa);
 	FN(stringof);
-	FN(symattr);
-	FN(symid);
-	FN(symoff);
-	FN(symtype);
 
 	fnch(env);
 	fnctype(env);

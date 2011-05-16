@@ -471,7 +471,7 @@ struct Ctypeenum {
 	Str *tag;
 	Vec *konst;
 	Ctype *sub;
-} Ctypesu;
+} Ctypeenum;
 
 typedef
 struct Ctypefunc {
@@ -492,7 +492,7 @@ struct Ctypearr {
 	Ctype ct;
 	Val cnt;
 	Ctype *sub;
-}
+} Ctypearr;
 
 typedef
 struct Ctypebitfield {
@@ -506,12 +506,12 @@ typedef
 struct Ctypeconst {
 	Ctype ct;
 	Ctype *sub;
-} Ctypebitfield;
+} Ctypeconst;
 
 typedef
 struct Ctypeundef {
 	Ctype *sub;
-};
+} Ctypeundef;
 
 enum {
 	MaxIn	= 128,
@@ -822,6 +822,7 @@ extern char* S[];
 extern char* cbasename[];
 extern unsigned isfloat[Vnbase];
 extern unsigned isunsigned[Vnbase];
+extern Imm repsize[Rnrep];
 extern char* tkindstr[];
 extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
@@ -962,7 +963,6 @@ void		xenvupdate(Xenv *xe, char *id, void *v);
 
 /* vm.c */
 Src*		addr2line(Code *code, Imm pc);
-Val		attroff(Val o);
 void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
@@ -999,7 +999,6 @@ int		ismapped(VM *vm, As *as, Imm addr, Imm len);
 int		isstrcval(Cval *cv);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
-Val		mkattr(Val o);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mktcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
@@ -1054,7 +1053,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 
 #define valas(v)	((As*)(v))
 #define valcl(v)	((Closure*)(v))
-#define valctype(v)	((Ctype*)(t))
+#define valctype(v)	((Ctype*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valdom(v)	((Dom*)(v))
 #define valfd(v)	((Fd*)(v))
@@ -1080,8 +1079,8 @@ void setfreeheadfn(Qkind qkind, Freeheadfn free1);
 int		snprint(char *buf, int len, char *fmt, ...);
 
 /* fnfmt.c */
-char*		fmctypec(Ctype *t);
-Str*		fmctype(Ctype *t);
+char*		fmtctypec(Ctype *t);
+Str*		fmtctype(Ctype *t);
 void		l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv);
 
 /* xfd.c */
@@ -1199,6 +1198,8 @@ void		fnch(Env *env);
 /* ctype.c */
 Ctype*		chasetype(Ctype *t);
 void		fnctype(Env *env);
+u32		hashctype(Ctype *t);
+int		equalctype(Ctype *a, Ctype *b);
 Val*		iterctype(Head *hd, Ictx *ictx);
 Ctype*		mkctypearr(Ctype *sub, Val cnt);
 Ctype*		mkctypebase(Cbase cbase, Rkind rep);
@@ -1303,7 +1304,13 @@ Str*		strslice(Str *str, Imm beg, Imm end);
 int		Strcmp(Str *s1, Str *s2);
 
 /* sym.c */
+Val		attroff(Val o);
+Val		copyattr(Val attr, Val newoff);
 Ctype*		fieldtype(Vec *s);
+void		fnsym(Env *env);
+int		issym(Vec *sym);
+int		issymvec(Vec *v);
+Val		mkattr(Val o);
 Ctype*		paramtype(Vec *s);
 Ctype*		symtype(Vec *s);
 

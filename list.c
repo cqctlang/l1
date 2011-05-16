@@ -140,7 +140,7 @@ hashlist(List *l)
 {
 	u32 m;
 	Imm i, len;
-	m = Vkind(v);
+	m = Qlist;
 	len = listlen(l);
 	for(i = 0; i < len; i++)
 		m = hashx(m, hashval(listdata(l)[l->h+i]));
