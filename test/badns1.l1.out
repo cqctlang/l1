@@ -1,6 +1,6 @@
 entry: var params, 3 locals, 0 temps
 warning: name space references undefined types:
-	struct foo
 	struct blah
 	notdef
 	struct alsonotdef
+	struct foo

@@ -1685,14 +1685,18 @@ static Cval*
 xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
-	Ctype *t;
+	Ctype *t1, *t2;
 
 	/* no need to rationalize domains */
 	op1 = intpromote(vm, op1);
 	op2 = intpromote(vm, op2);
 	i1 = op1->val;
 	i2 = op2->val;
-	t = chasetype(op1->type);
+	t1 = chasetype(op1->type);
+	t2 = chasetype(op2->type);
+
+	if(t1->tkind == Tptr || t2->tkind == Tptr)
+		vmerr(vm, "invalid pointer operand to shift operator");
 
 	/* following C99:
 	   - (both) if op2 is negative or >= width of op1,
@@ -1705,7 +1709,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		    your compiler says.  gcc and microsoft
 		    performs sign extension.
 	*/
-	if(isunsigned[typecbase(t)])
+	if(isunsigned[typecbase(t1)])
 		switch(op){
 		case Ishl:
 			rv = i1<<i2;
@@ -1734,7 +1738,7 @@ static int
 cvalcmp(VM *vm, Cval *op1, Cval *op2)
 {
 	Imm i1, i2;
-	Ctype *t;
+	Ctype *t1, *t2;
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
@@ -1747,8 +1751,10 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 	usualconvs(vm, op1, op2, &op1, &op2);
 	i1 = op1->val;
 	i2 = op2->val;
-	t = chasetype(op1->type);
-	if(isunsigned[typecbase(t)]){
+	t1 = chasetype(op1->type);
+	t2 = chasetype(op2->type);
+	if(t1->tkind == Tptr || t2->tkind == Tptr
+	   || isunsigned[typecbase(t1)]){
 		if(i1<i2)
 			return -1;
 		else if(i1>i2)
@@ -6666,6 +6672,7 @@ mktopenv(void)
 	fnpair(env);
 	fnrec(env);
 	fnstr(env);
+	fnsym(env);
 	fntab(env);
 	fnvec(env);
 	fns(env);		/* configuration-specific functions */

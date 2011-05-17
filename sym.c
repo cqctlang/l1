@@ -56,19 +56,31 @@ copyattr(Val attr, Val newoff)
 Ctype*
 fieldtype(Vec *s)
 {
-	return valctype(vecref(s, Typepos));
+	Val v;
+	v = vecref(s, Typepos);
+	if(Vkind(v) != Qctype)
+		bug();
+	return valctype(v);
 }
 
 Ctype*
 paramtype(Vec *s)
 {
-	return valctype(vecref(s, Typepos));
+	Val v;
+	v = vecref(s, Typepos);
+	if(Vkind(v) != Qctype)
+		bug();
+	return valctype(v);
 }
 
 Ctype*
 symtype(Vec *s)
 {
-	return valctype(vecref(s, Typepos));
+	Val v;
+	v = vecref(s, Typepos);
+	if(Vkind(v) != Qctype)
+		bug();
+	return valctype(v);
 }
 
 int

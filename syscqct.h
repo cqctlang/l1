@@ -510,6 +510,7 @@ struct Ctypeconst {
 
 typedef
 struct Ctypeundef {
+	Ctype ct;
 	Ctype *sub;
 } Ctypeundef;
 
