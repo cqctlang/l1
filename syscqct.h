@@ -756,21 +756,6 @@ struct BFgeom {
 	int les, bes;
 } BFgeom;
 
-typedef struct Root Root;
-struct Root {
-	Head *hd;
-	Root *link;
-};
-
-typedef
-struct Rootset {
-	Root *roots;
-	Root *last;
-	Root *before_last;
-	Root *this;
-	Root *free;
-} Rootset;
-
 typedef
 struct Err {
 	jmp_buf esc;
@@ -835,6 +820,7 @@ extern Val Xundef;
 extern Val Xnil;
 extern Code *kcode, *cccode, *tcccode;
 extern char syssrcfile[];
+extern Val typecache;
 
 /* c.l */
 void		freeyystate(YYstate *yy);
@@ -1198,9 +1184,10 @@ void		fnch(Env *env);
 
 /* ctype.c */
 Ctype*		chasetype(Ctype *t);
+int		equalctype(Ctype *a, Ctype *b);
 void		fnctype(Env *env);
 u32		hashctype(Ctype *t);
-int		equalctype(Ctype *a, Ctype *b);
+void		inittype();
 Val*		iterctype(Head *hd, Ictx *ictx);
 Ctype*		mkctypearr(Ctype *sub, Val cnt);
 Ctype*		mkctypebase(Cbase cbase, Rkind rep);

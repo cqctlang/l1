@@ -265,6 +265,7 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 	}
 	cqctloadpath = copystrv(lp);
 	initmem();
+	inittype();
 	initparse();
 	initcg();
 	initvm();

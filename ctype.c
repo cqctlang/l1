@@ -41,6 +41,7 @@ Imm repsize[Rnrep] = {
 
 
 static Vec*	funcparam(Ctypefunc *tf, Imm m);
+Val typecache;
 
 Val*
 iterctype(Head *hd, Ictx *ictx)
@@ -525,14 +526,21 @@ mkctype(Tkind kind)
 	return t;
 }
 
-Ctype*
-mkctypevoid(void)
+enum
+{
+	cbshift = 5, /* sufficient to hold Rnrep values */
+};
+
+#define tcidx(cb,rep) ((cb)<<cbshift|(rep))
+
+static Ctype*
+_mkctypevoid(void)
 {
 	return mkctype(Tvoid);
 }
 
-Ctype*
-mkctypebase(Cbase cbase, Rkind rep)
+static Ctype*
+_mkctypebase(Cbase cbase, Rkind rep)
 {
 	Ctypebase *cb;
 	cb = (Ctypebase*)mkctype(Tbase);
@@ -541,6 +549,36 @@ mkctypebase(Cbase cbase, Rkind rep)
 	return (Ctype*)cb;
 }
 
+static void
+inittypecache()
+{
+	Cbase cb;
+	Rkind rep;
+	Vec *v;
+
+	v = mkvec(Vnallbase<<cbshift);
+	for(cb = Vlo; cb <= Vnbase; cb++)
+		for(rep = Rundef; rep < Rnrep; rep++)
+			vecset(v,
+			       tcidx(cb, rep),
+			       mkvalctype(_mkctypebase(cb, rep)));
+	vecset(v,
+	       tcidx(Vvoid, Rundef),
+	       mkvalctype(_mkctypevoid()));
+	typecache = mkvalvec(v);
+}
+
+Ctype*
+mkctypevoid(void)
+{
+	return valctype(vecref(valvec(typecache), tcidx(Vvoid, Rundef)));
+}
+
+Ctype*
+mkctypebase(Cbase cbase, Rkind rep)
+{
+	return valctype(vecref(valvec(typecache), tcidx(cbase, rep)));
+}
 
 Ctype*
 mkctypedef(Str *tid, Ctype *sub)
@@ -1826,4 +1864,10 @@ fnctype(Env *env)
 	FN(typedefid);
 	FN(typedeftype);
 	FN(typename);
+}
+
+void
+inittype()
+{
+	inittypecache();
 }

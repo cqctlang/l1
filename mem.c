@@ -2020,6 +2020,9 @@ _gc(u32 g, u32 tg)
 	}
 	if(dbg)printf("copied vm roots\n");
 
+	/* global roots */
+	copy(&typecache);
+
 	// add per-type guards as roots
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
