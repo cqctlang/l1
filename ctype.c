@@ -1177,7 +1177,7 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkctype_const");
 	checkarg(vm, "mkctype_const", argv, 0, Qctype);
 	sub = valctype(argv[0]);
-	t = mkctypeundef(sub);
+	t = mkctypeconst(sub);
 	*rv = mkvalctype(t);
 }
 
