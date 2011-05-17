@@ -3,11 +3,11 @@
 #include "syscqct.h"
 
 static void
-newlocal(Expr *e, char *id)
+newlocal(Expr *e, Expr *id)
 {
 	if(e->kind != Eblock)
 		fatal("bug");
-	e->e1 = newexprsrc(&e->e1->src, Eelist, doid(id), e->e1, 0, 0);
+	e->e1 = newexprsrc(&e->e1->src, Eelist, id, e->e1, 0, 0);
 }
 
 static Expr*
@@ -24,7 +24,7 @@ defloc(U *ctx, Expr *e, Expr *scope)
 			 Zlambdn(e->e2,
 				 defloc(ctx, e->e3, scope),
 				 copyexpr(e->e1)));
-		newlocal(scope->e1, e->e1->id);
+		newlocal(scope->e1, e->e1);
 		e->e1 = 0;
 		e->e2 = 0;
 		e->e3 = 0;
@@ -64,7 +64,7 @@ globals(U *ctx, Expr *e, Env *env)
 		p = e->e1;
 		se = nullelist();
 		while(p->kind == Eelist){
-			envgetbind(env, p->e1->id);
+			envgetbind(env, idsym(p->e1));
 			se = Zcons(Zset(p->e1, Znil()), se);
 			p->e1 = 0; /* steal */
 			p = p->e2;
@@ -94,7 +94,7 @@ bindids(Xenv *xe, Expr *e, void *v)
 	p = e;
 	while(p->kind == Eelist){
 		if(p->e1->kind != Eellipsis)
-			xenvbind(xe, p->e1->id, v);
+			xenvbind(xe, idsym(p->e1), v);
 		p = p->e2;
 	}
 }
@@ -122,7 +122,7 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 	case Elambda:
 		return e;
 	case Eid:
-		id = e->id;
+		id = idsym(e);
 		if(xenvlook(lex, id))
 			return e;
 		if(!envbinds(env, id))
@@ -132,7 +132,7 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 		freeexpr(e);
 		return se;
 	case Eg:
-		id = e->e1->id;
+		id = idsym(e->e1);
 		e->e2 = toplevel(ctx, e->e2, env, lex);
 		if(xenvlook(lex, id))
 			return e;
@@ -171,7 +171,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 
 	switch(e->kind){
 	case Eid:
-		id = e->id;
+		id = idsym(e);
 		if(xenvlook(lex, id))
 			return e;
 		else if(envbinds(top, id)){
@@ -181,7 +181,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 			return se;
 		}else if(scope){
 			/* bind to innermost lexical scope */
-			newlocal(scope->e1, id);
+			newlocal(scope->e1, e);
 			xenvbind(slex, id, e);
 			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
 			return e;
@@ -189,7 +189,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 			fatal("bug");
 		return e;
 	case Eg:
-		id = e->e1->id;
+		id = idsym(e->e1);
 		if(xenvlook(lex, id)){
 			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
 			return e;
@@ -206,7 +206,7 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 				cwarnln(ctx,
 					e, "assignment to unbound variable: %s",
 					id);
-			newlocal(scope->e1, id);
+			newlocal(scope->e1, e->e1);
 			xenvbind(slex, id, e);
 			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
 			return e;

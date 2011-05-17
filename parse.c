@@ -166,9 +166,7 @@ newgopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
 	return e;
 }
 
-/* intentionally does not copy e->xp except Ekon */
-/* FIXME: since we're using id in many nodes,
-   check e->id rather than switch on type */
+/* intentionally does not copy e->xp */
 Expr*
 copyexpr(Expr *e)
 {
@@ -187,7 +185,8 @@ copyexpr(Expr *e)
 	case Egoto:
 	case E_tid:
 	case E_tg:
-		ne->id = xstrdup(e->id);
+	case Ekon:
+		ne->aux = e->aux;
 		break;
 	case Econsts:
 		ne->lits = copylits(e->lits);
@@ -198,9 +197,6 @@ copyexpr(Expr *e)
 	case Egop:
 	case Ebinop:
 		ne->op = e->op;
-		break;
-	case Ekon:
-		ne->xp = e->xp;	/* FIXME: caller must ensure gc safety  */
 		break;
 	default:
 		break;

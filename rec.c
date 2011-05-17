@@ -163,7 +163,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	Imm n;
 	Closure *cl;
 	unsigned len;
-	Str *f;
+	Cid *f;
 	Val mn;
 	char *buf;
 
@@ -198,27 +198,27 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	rd->get = mktab();
 	rd->set = mktab();
 	for(n = 0; n < rd->nf; n++){
-		f = valstr(listref(vm, fname, n));
+		f = valcid(listref(vm, fname, n));
 		len = name->len+3+f->len+1;
 		buf = emalloc(len);
 
 		/* get method */
 		snprint(buf, len, "%.*s%.*s",
 			(int)name->len, strdata(name),
-			(int)f->len, strdata(f));
+			(int)f->len, ciddata(f));
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recget, 3,
 			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
-		tabput(rd->get, mkvalstr(f), mkvalcl(cl));
+		tabput(rd->get, mkvalcid(f), mkvalcl(cl));
 
 		/* set method */
 		snprint(buf, len, "%.*sset%.*s",
 			(int)name->len, strdata(name),
-			(int)f->len, strdata(f));
+			(int)f->len, ciddata(f));
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recset, 3,
 			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
-		tabput(rd->set, mkvalstr(f), mkvalcl(cl));
+		tabput(rd->set, mkvalcid(f), mkvalcl(cl));
 
 		efree(buf);
 	}
@@ -259,7 +259,7 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 	nf = listlen(lst);
 	for(n = 0; n < nf; n++){
 		v = listref(vm, lst, n);
-		if(Vkind(v) != Qstr)
+		if(Vkind(v) != Qcid)
 			vmerr(vm, "operand 2 to mkrd must be a "
 			      "list of field names");
 	}

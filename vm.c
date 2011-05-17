@@ -2766,7 +2766,7 @@ stdlooksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to looksym");
-	checkarg(vm, "looksym", argv, 1, Qstr);
+	checkarg(vm, "looksym", argv, 1, Qcid);
 	sym = valtab(disp[0]);
 	vp = tabget(sym, argv[1]);
 	if(vp)
@@ -4181,8 +4181,8 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm,
 		      "operand 1 to looksym must be a namespace or domain");
 
-	if(Vkind(argv[1]) != Qstr)
-		vmerr(vm, "operand 2 to looksym must be a string");
+	if(Vkind(argv[1]) != Qcid)
+		vmerr(vm, "operand 2 to looksym must be an identifier");
 	*rv = dovm(vm, ns->looksym, argc, argv);
 }
 
@@ -5997,10 +5997,11 @@ expr2syntax(Expr *e)
 	case Eid:
 	case Elabel:
 	case Egoto:
-		_listappend(l, mkvalstr(mkstr0(e->id)));
+	case Ekon:
+		_listappend(l, e->aux);
 		break;
 	case E_tg:
-		_listappend(l, mkvalstr(mkstr0(e->id)));
+		_listappend(l, e->aux);
 		_listappend(l, expr2syntax(e->e1));
 		break;
 	case Econst:

@@ -228,7 +228,7 @@ pass0(Expr *e)
 	case Elambda:
 		e->xp = l = emalloc(sizeof(Lambda));
 		if(e->e3)
-			l->id = e->e3->id;
+			l->id = idsym(e->e3);
 		p = e->e1;
 		if(p == 0)
 			fatal("bug");
@@ -239,14 +239,14 @@ pass0(Expr *e)
 			p = e->e1;
 			m = 0;
 			while(m < l->nparam-1){
-				v->id = p->e1->id;
+				v->id = idsym(p->e1);
 				v->where = Vparam;
 				v->idx = m++;
 				v++;
 				p = p->e2;
 			}
 			/* by convention varg is first local stack variable */
-			v->id = p->e1->id;
+			v->id = idsym(p->e1);
 			v->where = Vlocal;
 			v->idx = 0;
 		}else{
@@ -255,7 +255,7 @@ pass0(Expr *e)
 			p = e->e1;
 			m = 0;
 			while(p->kind == Eelist){
-				v->id = p->e1->id;
+				v->id = idsym(p->e1);
 				v->where = Vparam;
 				v->idx = m++;
 				v++;
@@ -276,7 +276,7 @@ pass0(Expr *e)
 		v = b->loc = emalloc(m*sizeof(Var));
 		p = e->e1;
 		while(p->kind == Eelist){
-			v->id = p->e1->id;
+			v->id = idsym(p->e1);
 			v->where = Vlocal;
 			v++;
 			p = p->e2;
@@ -339,7 +339,7 @@ pass0_5(Expr *e, Xenv *lex)
 		break;
 	case Eg:
 		/* Box all variables that are assigned */
-		v = xenvlook(lex, e->e1->id);
+		v = xenvlook(lex, idsym(e->e1));
 		if(v)
 			v->box = 1;
 		pass0_5(e->e2, lex);
@@ -399,9 +399,9 @@ fv(Expr *e, Xenv *lex, Xenv *loc, Xenv *free)
 	case E_tid:
 		break;
 	case Eid:
-		v = xenvlook(lex, e->id);
-		if(v && !xenvlook(loc, e->id))
-			xenvbind(free, e->id, v);
+		v = xenvlook(lex, idsym(e));
+		if(v && !xenvlook(loc, idsym(e)))
+			xenvbind(free, idsym(e), v);
 		break;
 	case Eelist:
 		p = e;
@@ -558,14 +558,14 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		freexenv(rib);
 		break;
 	case E_tid:
-		id = e->id;
+		id = idsym(e);
 		if(xenvlook(lex, id))
 			fatal("bug");
 		v = topvar(top, id);
 		e->xp = v;
 		break;
 	case Eid:
-		id = e->id;
+		id = idsym(e);
 		v = xenvlook(lex, id);
 		if(!v)
 			fatal("bug");
@@ -709,13 +709,13 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 		freexenv(rib);
 		break;
 	case E_tid:
-		id = e->id;
+		id = idsym(e);
 		v = xenvlook(lex, id);
 		if(v)
 			fatal("bug");
 		break;
 	case Eid:
-		id = e->id;
+		id = idsym(e);
 		v = xenvlook(lex, id);
 		if(!v)
 			fatal("bug");
@@ -867,7 +867,7 @@ gotos(Expr *e, HT *ls, Exprs *ges)
 		free1exprs(ges);
 		break;
 	case Egoto:
-		id = e->id;
+		id = idsym(e);
 		les = hgets(ls, id, strlen(id));
 		e->xp = gotoplan(les, ges);
 		break;
@@ -921,7 +921,7 @@ pass5(Expr *e, HT *ls, Exprs *les)
 		free1exprs(les);
 		break;
 	case Elabel:
-		id = e->id;
+		id = idsym(e);
 		hputs(ls, id, strlen(id), copyexprs(les));
 		break;
 	case Eelist:

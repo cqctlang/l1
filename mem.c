@@ -262,7 +262,6 @@ xfreeexpr(Head *hd)
 	case Egoto:
 	case E_tg:
 	case E_tid:
-		efree(e->id);
 		break;
 	case Econsts:
 		freelits(e->lits);
@@ -439,6 +438,8 @@ iterexpr(Head *hd, Ictx *ictx)
 		return (Val*)&e->e3;
 	case 3:
 		return (Val*)&e->e4;
+	case 4:
+		return (Val*)&e->aux;
 	default:
 		return GCiterdone;
 	}

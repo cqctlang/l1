@@ -129,8 +129,9 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 
 	checkarg(vm, what, argv, 0, Qctype);
 	if(argc > 1)
-		if(Vkind(argv[1]) != Qstr && Vkind(argv[1]) != Qnil)
-			vmerr(vm, "operand 2 to %s must be a string or nil",
+		if(Vkind(argv[1]) != Qcid && Vkind(argv[1]) != Qnil)
+			vmerr(vm, "operand 2 to %s must be "
+			      "an identifier or nil",
 			      what);
 	if(argc == 3)
 		if(Vkind(argv[2]) != Qcval

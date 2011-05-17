@@ -275,9 +275,19 @@ Zref(Expr *dom, Expr *type, Expr *val)
 char*
 idsym(Expr *e)
 {
-	if(e->kind != Eid)
-		fatal("bug");
-	return e->id;
+	Cid *id;
+	switch(e->kind){
+	case Eid:
+	case Elabel:
+	case Egoto:
+	case E_tg:
+	case E_tid:
+		break;
+	default:
+		bug();
+	}
+	id = valcid(e->aux);
+	return ciddata(id);
 }
 
 Expr*
@@ -285,7 +295,7 @@ doid(char *s)
 {
 	Expr *e;
 	e = newexpr(Eid, 0, 0, 0, 0);
-	e->id = xstrdup(s);
+	e->aux = mkvalcid(mkcid(s, strlen(s)));
 	return e;
 }
 
@@ -293,12 +303,17 @@ Expr*
 G(char *s)
 {
 	Expr *e;
+	char *t;
+	Imm m;
 	if(cqctflags['r'])
 		return doid(s);
 	e = newexpr(Eid, 0, 0, 0, 0);
-	e->id = emalloc(strlen(s)+2);
-	memcpy(e->id+1, s, strlen(s));
-	e->id[0] = '%';
+	m = strlen(s)+1;
+	t = emalloc(m+1);
+	memcpy(t+1, s, m-1);
+	t[0] = '%';
+	e->aux = mkvalcid(mkcid(t, m));
+	efree(t);
 	return e;
 }
 
@@ -307,7 +322,7 @@ doidnsrc(Src *src, char *s, unsigned long len)
 {
 	Expr *e;
 	e = newexprsrc(src, Eid, 0, 0, 0, 0);
-	e->id = xstrndup(s, len);
+	e->aux = mkvalcid(mkcid(s, len));
 	return e;
 }
 
@@ -324,7 +339,7 @@ Ztidn(char *id, unsigned long len)
 {
 	Expr *e;
 	e = Z0(E_tid);
-	e->id = xstrndup(id, len);
+	e->aux = mkvalcid(mkcid(id, len));
 	return e;
 }
 
@@ -341,7 +356,7 @@ Ztid(char *id)
 {
 	Expr *e;
 	e = Z0(E_tid);
-	e->id = xstrdup(id);
+	e->aux = mkvalcid(mkcid(id, strlen(id)));
 	return e;
 }
 
@@ -418,12 +433,23 @@ Zscope(Expr *block)
 }
 
 Expr*
-Zids2strs(Expr *l)
+Zid2sym(Expr *e)
+{
+	Expr *r;
+	if(e->kind != Eid)
+		fatal("bug");
+	r = Zkon(e->aux);
+	putsrc(r, &e->src);
+	return r;
+}
+
+Expr*
+Zids2syms(Expr *l)
 {
 	Expr *te;
 	te = nullelist();
 	while(l->kind == Eelist){
-		te = Z2(Eelist, Zconsts(l->e1->id), te);
+		te = Z2(Eelist, Zid2sym(l->e1), te);
 		l = l->e2;
 	}
 	return Zapply(G("list"), invert(te));
@@ -436,7 +462,7 @@ Zkon(Val v)
 	e = newexpr(Ekon, 0, 0, 0, 0);
 	if(v == 0)
 		fatal("bug");
-	e->xp = v;
+	e->aux = v;
 	return e;
 }
 
@@ -445,7 +471,7 @@ Zlabel(char *l)
 {
 	Expr *e;
 	e = Z0(Elabel);
-	e->id = xstrdup(l);
+	e->aux = mkvalcid(mkcid(l, strlen(l)));
 	return e;
 }
 
@@ -454,7 +480,7 @@ Zlabeln(char *l, unsigned long len)
 {
 	Expr *e;
 	e = Z0(Elabel);
-	e->id = xstrndup(l, len);
+	e->aux = mkvalcid(mkcid(l, len));
 	return e;
 }
 
@@ -463,7 +489,7 @@ Zgoto(char *l)
 {
 	Expr *e;
 	e = Z0(Egoto);
-	e->id = xstrdup(l);
+	e->aux = mkvalcid(mkcid(l, strlen(l)));
 	return e;
 }
 
@@ -472,27 +498,27 @@ Zgoton(char *l, unsigned long len)
 {
 	Expr *e;
 	e = Z0(Egoto);
-	e->id = xstrndup(l, len);
+	e->aux = mkvalcid(mkcid(l, len));
 	return e;
 }
 
-// FIXME: fix interface: pass string, not Eid; rationalize with Zlabel
+/* FIXME: fix handling of id in interface */
 Expr*
 Zlabelsrc(Src *src, Expr *id, Expr *s)
 {
 	Expr *e;
-	e = Zcons(Zlabel(id->id), Zcons(s, nullelist()));
+	e = Zcons(Zlabel(idsym(id)), Zcons(s, nullelist()));
 	putsrc(e, src);
 	freeexpr(id);
 	return e;
 }
 
-// FIXME: fix interface: pass string, not Eid
+/* FIXME: fix handling of id in interface */
 Expr*
 Zgotosrc(Src *src, Expr *id)
 {
 	Expr *e;
-	e = Zgoto(id->id);
+	e = Zgoto(idsym(id));
 	freeexpr(id);
 	putsrc(e, src);
 	return e;
@@ -559,7 +585,7 @@ vmember(Expr *e, Expr *l)
 
 	p = l;
 	while(p->kind == Eelist){
-		if(p->e1->kind == Eid && !strcmp(e->id, p->e1->id))
+		if(p->e1->kind == Eid && e->aux == p->e1->aux)
 			return 1;
 		p = p->e2;
 	}

@@ -110,15 +110,15 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		// $tmp = looksym($dom,sym)
 		se = Zset(doid("$tmp"),
 			  Zcall(G("looksym"), 2,
-				doid("$dom"), Zconsts(e->e2->id)));
+				doid("$dom"), Zid2sym(e->e2)));
 		te = Zcons(se, te);
 
 		// if(isnil($tmp)) error("undefined symbol: %s", sym);
 		se = newexpr(Eif,
 			     Zcall(G("isnil"), 1, doid("$tmp")),
 			     Zcall(G("error"), 2,
-				   Zconsts("undefined symbol: %s"),
-				   Zconsts(e->e2->id)),
+				   Zconsts("undefined symbol: %a"),
+				   Zid2sym(e->e2)),
 			     0, 0);
 		te = Zcons(se, te);
 
@@ -137,8 +137,8 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			se = newexpr(Eif,
 				     Zcall(G("isnil"), 1, doid("$addr")),
 				     Zcall(G("error"), 2,
-					   Zconsts("symbol lacks address: %s"),
-					   Zconsts(e->e2->id)),
+					   Zconsts("symbol lacks address: %a"),
+					   Zid2sym(e->e2)),
 				     0, 0);
 			te = Zcons(se, te);
 		}
@@ -204,7 +204,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		// $tmp = lookfield(type, field);
 		se = Zset(doid("$tmp"),
 			  Zcall(G("lookfield"), 2,
-				doid("$type"), Zconsts(e->e2->id)));
+				doid("$type"), Zid2sym(e->e2)));
 		te = Zcons(se, te);
 
 		// if(isnil($tmp)) error("undefined field: %s", sym);
@@ -212,7 +212,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			     Zcall(G("isnil"), 1, doid("$tmp")),
 			     Zcall(G("error"), 2,
 				   Zconsts("undefined field: %s"),
-				   Zconsts(e->e2->id)),
+				   Zid2sym(e->e2)),
 			     0, 0);
 		te = Zcons(se, te);
 
@@ -544,7 +544,7 @@ labels(U *ctx, Expr *e, HT *ls)
 	case Edefine:
 		return;
 	case Elabel:
-		id = e->id;
+		id = idsym(e);
 		if(hgets(ls, id, strlen(id)))
 			cerror(ctx, e, "duplicate label: %s", id);
 		else{
@@ -585,7 +585,7 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		checkgoto(ctx, e->e3);
 		break;
 	case Egoto:
-		id = e->id;
+		id = idsym(e);
 		q = hgets(ls, id, strlen(id));
 		if(q == 0)
 			cerror(ctx, e, "undefined label: %s", id);
@@ -617,7 +617,7 @@ check1label(void *u, char *k, void *q)
 	USED(k);
 	p = q;
 	if(p->attr == Unusedlabel)
-		cerror((U*)u, p, "unused label: %s", p->id);
+		cerror((U*)u, p, "unused label: %s", idsym(p));
 }
 
 static void

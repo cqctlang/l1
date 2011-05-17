@@ -582,18 +582,6 @@ tie(U *ctx, Expr *e)
 
 static Expr* names(U *ctx, Expr *e);
 
-/* FIXME: this is here only to get ids for symbols */
-static Expr*
-id2sym(Expr *e)
-{
-	Expr *r;
-	if(e->kind != Eid)
-		fatal("bug");
-	r = Zstr(e->id);
-	putsrc(r, &e->src);
-	return r;
-}
-
 static void
 do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 {
@@ -627,7 +615,7 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 		e->e3 = names(ctx, e->e3);
 		q = Zcall(G("tabinsert"), 3,
 			  doid("$symtab"),
-			  id2sym(e->e2), names(ctx, e));
+			  Zid2sym(e->e2), names(ctx, e));
 		*te = Zcons(q, *te);
 		putsrc(*te, &e->src);
 		break;
@@ -793,7 +781,7 @@ mkfieldspec(U *ctx, Expr *f)
 
 	tn = mkctype(ctx, f->e1);
 	if(f->e2)
-		id = id2sym(f->e2);
+		id = Zid2sym(f->e2);
 	else
 		id = Znil(); /* anonymous field */
 	a = mkctype(ctx, f->e3);
@@ -840,7 +828,7 @@ mkctypespec(U *ctx, Expr *e)
 		r = Zcall(e->kind == Estruct ?
 			  G("mkctype_struct") : G("mkctype_union"),
 			  3,
-			  id2sym(e->e1),
+			  Zid2sym(e->e1),
 			  Zapply(G("vector"), invert(se)),
 			  e->e3 ? mkctype(ctx, e->e3) : Znil());
 		putsrc(r, &e->src);
@@ -852,18 +840,18 @@ mkctypespec(U *ctx, Expr *e)
 			en = p->e1;
 			p = p->e2;
 			se = putsrc(Zcons(Zcall(G("vector"), 2,
-						id2sym(en->e1),
+						Zid2sym(en->e1),
 						mkctype(ctx, en->e2)),
 					  se),
 				    &en->src); 
 		}
 		se = Zapply(G("vector"), invert(se));
-		r = Zcall(G("mkctype_enum"), 2, id2sym(e->e1), se);
+		r = Zcall(G("mkctype_enum"), 2, Zid2sym(e->e1), se);
 		putsrc(r, &e->src);
 		return r;
 	case Etypedef:
 		r = Zcall(G("mkctype_typedef"), 2,
-			  id2sym(e->e2),
+			  Zid2sym(e->e2),
 			  mkctype(ctx, e->e1));
 		putsrc(r, &e->src);
 		return r;
@@ -881,16 +869,16 @@ mkctypename(U *ctx, Expr *e)
 		fatal("bug");
 	switch(e->kind){
 	case Estruct:
-		return putsrc(Zcall(G("mkctype_struct"), 1, id2sym(e->e1)),
+		return putsrc(Zcall(G("mkctype_struct"), 1, Zid2sym(e->e1)),
 			      &e->src);
 	case Eunion:
-		return putsrc(Zcall(G("mkctype_union"), 1, id2sym(e->e1)),
+		return putsrc(Zcall(G("mkctype_union"), 1, Zid2sym(e->e1)),
 			      &e->src);
 	case Eenum:
-		return putsrc(Zcall(G("mkctype_enum"), 1, id2sym(e->e1)),
+		return putsrc(Zcall(G("mkctype_enum"), 1, Zid2sym(e->e1)),
 			      &e->src);
 	case Etypedef:
-		return putsrc(Zcall(G("mkctype_typedef"), 1, id2sym(e->e1)),
+		return putsrc(Zcall(G("mkctype_typedef"), 1, Zid2sym(e->e1)),
 			      &e->src);
 	case Ebase:
 		return putsrc(mkctypebasen(ctx, e), &e->src);
@@ -916,7 +904,7 @@ mkctypename(U *ctx, Expr *e)
 			p = p->e2;
 			se = Zcons(Zcall(G("vector"), 2,
 					 mkctype(ctx, a->e1),
-					 a->e2 ? id2sym(a->e2) : Znil()),
+					 a->e2 ? Zid2sym(a->e2) : Znil()),
 				   se);
 			putsrc(se, &a->src);
 		}
@@ -934,7 +922,7 @@ mkctypesym(U *ctx, Expr *e)
 {
 	return putsrc(Zcall(G("mksym"), 3,
 			    mkctype(ctx, e->e1),
-			    id2sym(e->e2),
+			    Zid2sym(e->e2),
 			    e->e3 ? mkctype(ctx, e->e3) : Znil()),
 		      &e->src);
 }

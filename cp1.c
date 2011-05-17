@@ -29,7 +29,7 @@ compilerec(U *ctx, Expr *e)
 	unsigned len;
 	Expr *p;
 
-	id = e->e1->id;
+	id = idsym(e->e1);
 	len = 2+strlen(id)+1;
 	is = emalloc(len);
 	snprint(is, len, "is%s", id);
@@ -37,7 +37,7 @@ compilerec(U *ctx, Expr *e)
 		   Zset(doid("$rd"),
 			Zcall(G("mkrd"), 2,
 			      Zconsts(id),
-			      Zids2strs(e->e2))),
+			      Zids2syms(e->e2))),
 		   Zset(doid(id), Zcall(G("rdmk"),
 					1, doid("$rd"))),
 		   Zset(doid(is), Zcall(G("rdis"),
@@ -269,8 +269,7 @@ compilecontainer(U *ctx, Expr *e)
 
 	// $fld = lookfield($type, field);
 	se = Zset(doid("$fld"),
-		  Zcall(G("lookfield"), 2,
-			doid("$type"), Zconsts(e->e3->id)));
+		  Zcall(G("lookfield"), 2, doid("$type"), Zid2sym(e->e3)));
 	te = Zcons(se, te);
 
 	// if(isnil($fld)) error("undefined field: %s", sym);
@@ -278,7 +277,7 @@ compilecontainer(U *ctx, Expr *e)
 		     Zcall(G("isnil"), 1, doid("$fld")),
 		     Zcall(G("error"), 2,
 			   Zconsts("undefined field: %s"),
-			   Zconsts(e->e3->id)),
+			   Zid2sym(e->e3)),
 		     0, 0);
 	te = Zcons(se, te);
 

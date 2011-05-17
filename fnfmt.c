@@ -25,7 +25,7 @@ struct Fmt {
 };
 
 static char* _fmtctype(Ctype *t, char *o);
-static char* _fmtdecl(Ctype *t, Str *is);
+static char* _fmtdecl(Ctype *t, Cid *is);
 
 static char*
 fmtplist(Vec *param)
@@ -47,8 +47,8 @@ fmtplist(Vec *param)
 		pvec = valvec(vecref(param, i));
 		t = valctype(vecref(pvec, Typepos));
 		id = vecref(pvec, 1);
-		if(Vkind(id) == Qstr)
-			ds[i] = _fmtdecl(t, valstr(id));
+		if(Vkind(id) == Qcid)
+			ds[i] = _fmtdecl(t, valcid(id));
 		else
 			ds[i] = _fmtctype(t, xstrdup(""));
 		m += strlen(ds[i]);
@@ -182,16 +182,16 @@ _fmtctype(Ctype *t, char *o)
 }
 
 static char*
-_fmtdecl(Ctype *t, Str *id)
+_fmtdecl(Ctype *t, Cid *id)
 {
 	char *o;
 	o = emalloc(id->len+1);
-	memcpy(o, strdata(id), id->len);
+	memcpy(o, ciddata(id), id->len);
 	return _fmtctype(t, o);
 }
 
 static Str*
-fmtdecl(Ctype *t, Str *id)
+fmtdecl(Ctype *t, Cid *id)
 {
 	char *s;
 	Str *str;
@@ -726,6 +726,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Val *vpp, vp, vq;
 	Cval *cv, *cv1;
 	Str *as, *ys;
+	Cid *xs;
 	char *sfmt, *efmt;
 	char ch;
 	unsigned char c;
@@ -937,8 +938,8 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				vq = vecref(vec, Idpos);
 				if(Vkind(vq) == Qnil)
 					as = fmtctype(t);
-				else if(Vkind(vq) == Qstr)
-					as = fmtdecl(t, valstr(vq));
+				else if(Vkind(vq) == Qcid)
+					as = fmtdecl(t, valcid(vq));
 				else
 					goto badarg;
 			}else if(Vkind(vp) == Qcval){
@@ -973,9 +974,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(vec->len < 3)
 				goto bady;
 			vq = vecref(vec, Idpos);
-			if(Vkind(vq) != Qstr)
+			if(Vkind(vq) != Qcid)
 				goto bady;
-			as = valstr(vq);
+			xs = valcid(vq);
 			vq = attroff(vecref(vec, Attrpos));
 			if(Vkind(vq) != Qcval)
 				goto bady;
@@ -987,13 +988,14 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(cv->val != 0){
 				snprint(buf, sizeof(buf),
 					"+0x%" PRIx64, cv->val);
-				ys = mkstrn(as->len+strlen(buf));
-				memcpy(strdata(ys), strdata(as), as->len);
-				memcpy(strdata(ys)+as->len, buf, strlen(buf));
+				ys = mkstrn(xs->len+strlen(buf));
+				memcpy(strdata(ys), ciddata(xs), xs->len);
+				memcpy(strdata(ys)+xs->len, buf, strlen(buf));
+				if(fmtputs(vm, f, strdata(ys), ys->len))
+					return;
 			}else
-				ys = as;
-			if(fmtputs(vm, f, strdata(ys), ys->len))
-				return;
+				if(fmtputs(vm, f, ciddata(xs), xs->len))
+					return;
 			break;
 		default:
 		fail:

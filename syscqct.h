@@ -208,9 +208,10 @@ struct Expr {
 	Expr *e2;
 	Expr *e3;
 	Expr *e4;
+	Val aux;
 
 	union{
-		char *id;		/* Eid, Etick, Etickt */
+		char *xid;		/* Eid, Etick, Etickt */
 		Lits *lits;		/* Econsts */
 		Liti liti;		/* Econst */
 		Kind op;		/* Ebinop, Egop */
@@ -1129,7 +1130,8 @@ Expr*		Zcall(Expr *fn, unsigned narg, ...);
 Expr*		Zcons(Expr *hd, Expr *tl);
 Expr*		Zconsts(char *s);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
-Expr*		Zids2strs(Expr *l);
+Expr*		Zid2sym(Expr *e);
+Expr*		Zids2syms(Expr *l);
 Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
 Expr*		Zint(Imm val);
@@ -1200,6 +1202,7 @@ void		fnch(Env *env);
 void		finicid();
 void		fncid(Env *env);
 void		initcid();
+Cid*		mkcid(char *s, Imm len);
 
 /* ctype.c */
 Ctype*		chasetype(Ctype *t);

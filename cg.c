@@ -59,7 +59,7 @@ konsts(Expr *e, Code *code)
 		freeexpr(e);
 		return p;
 	case Ekon:
-		e->xp = konval(code->konst, e->xp);
+		e->aux = konval(code->konst, e->aux);
 		return e;
 	case Eelist:
 		p = e;
@@ -293,10 +293,9 @@ printkon(Val v)
 	case Qcid:
 		id = valcid(v);
 		p = ciddata(id);
-		m = id->len;
+		m = id->len-1;
 		if(m > 15)
 			m = 15;
-		xprintf("\'");
 		for(i = 0; i < m; i++){
 			c = *p++;
 			switch(c){
@@ -682,7 +681,7 @@ reclabels(Expr *e, Code *code, HT *ls)
 	case Elambda:
 		break;
 	case Elabel:
-		id = e->id;
+		id = idsym(e);
 		hputs(ls, id, strlen(id), genlabel(code, id));
 		break;
 	case Eelist:
@@ -793,7 +792,7 @@ cgrand(Code *c, Operand *rand, Expr *e)
 		randvarloc(rand, e->xp, 1);
 		break;
 	case Ekon:
-		randkon(c, rand, e->xp);
+		randkon(c, rand, e->aux);
 		break;
 	case Enil:
 		randnil(rand);
@@ -869,7 +868,7 @@ escapectl(Expr *e, CGEnv *p)
 		fatal("not an escaping expression");
 	// FIXME: need to emit box init prologue; then enable goto in escaping
 	else if(kind->kind == Egoto)
-		rv = hgets(p->labels, kind->id, strlen(kind->id));
+		rv = hgets(p->labels, idsym(kind), strlen(idsym(kind)));
 	else
 		fatal("not an escaping expression");
 	if(rv == 0)
@@ -1234,7 +1233,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Ekon:
 		i = nextinsn(code, &e->src);
 		i->kind = Imov;
-		randkon(code, &i->op1, e->xp);
+		randkon(code, &i->op1, e->aux);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt, &e->src);
 		break;
@@ -1331,13 +1330,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Ibox0;
 			randvarloc(&i->op1, bxst->var[m], 0);
 		}
-		L = hgets(p->labels, e->id, strlen(e->id));
+		L = hgets(p->labels, idsym(e), strlen(idsym(e)));
 		if(L == 0)
 			fatal("goto bug");
 		cgjmp(code, p, L, nxt, &e->src);
 		break;
 	case Elabel:
-		L = hgets(p->labels, e->id, strlen(e->id));
+		L = hgets(p->labels, idsym(e), strlen(idsym(e)));
 		if(L == 0)
 			fatal("goto bug");
 		emitlabel(L, e);

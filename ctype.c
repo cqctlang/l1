@@ -1051,12 +1051,12 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = 0;
 	switch((unsigned)argc){
 	case 1:
-		checkarg(vm, "mkctype_typedef", argv, 0, Qstr);
+		checkarg(vm, "mkctype_typedef", argv, 0, Qcid);
 		s = valstr(argv[0]);
 		t = mkctypedef(s, 0);
 		break;
 	case 2:
-		checkarg(vm, "mkctype_typedef", argv, 0, Qstr);
+		checkarg(vm, "mkctype_typedef", argv, 0, Qcid);
 		checkarg(vm, "mkctype_typedef", argv, 1, Qctype);
 		s = valstr(argv[0]);
 		sub = valctype(argv[1]);
@@ -1079,13 +1079,13 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 	switch((unsigned)argc){
 	case 1:
 		/* TAG */
-		checkarg(vm, fn, argv, 0, Qstr);
+		checkarg(vm, fn, argv, 0, Qcid);
 		s = valstr(argv[0]);
 		t = mkctypesu(tkind, s, 0, 0);
 		break;
 	case 3:
 		/* TAG FIELDS SIZE */
-		checkarg(vm, fn, argv, 0, Qstr);
+		checkarg(vm, fn, argv, 0, Qcid);
 		checkarg(vm, fn, argv, 1, Qvec);
 		if(Vkind(argv[2]) != Qcval && Vkind(argv[2]) != Qtab)
 			vmerr(vm, "operand 3 to %s must be a cvalue or table",
@@ -1184,13 +1184,13 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 	switch((unsigned)argc){
 	case 1:
 		/* TAG */
-		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
+		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
 		s = valstr(argv[0]);
 		t = mkctypeenum(s, 0, 0);
 		break;
 	case 2:
 		/* TAG CONSTS (FIXME: is this a good form?) */
-		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
+		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
 		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
 		s = valstr(argv[0]);
 		c = valvec(argv[1]);
@@ -1198,7 +1198,7 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 		break;
 	case 3:
 		/* TAG CONSTS TYPE */
-		checkarg(vm, "mkctype_enum", argv, 0, Qstr);
+		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
 		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
 		checkarg(vm, "mkctype_enum", argv, 2, Qctype);
 		s = valstr(argv[0]);
@@ -1677,8 +1677,8 @@ rlookfield(VM *vm, Ctype *xsu, Val tag)
 		vp = vecref(su->field, i);
 		f = valvec(vp);
 		id = vecref(f, Idpos);
-		if(Vkind(id) == Qstr){
-			if(equalstr(valstr(tag), valstr(id)))
+		if(Vkind(id) == Qcid){
+			if(tag == id)
 				return vp;
 			else
 				continue;
@@ -1710,7 +1710,7 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	static char *err1
 		= "operand 1 to lookfield must be a struct or union ctype";
 	static char *err2
-		= "operand 2 to lookfield must be a string";
+		= "operand 2 to lookfield must be an identifier";
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to lookfield");
@@ -1720,7 +1720,7 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = chasetype(t);
 	if(t->tkind != Tstruct && t->tkind != Tunion)
 		vmerr(vm, err1);
-	if(Vkind(argv[1]) != Qstr)
+	if(Vkind(argv[1]) != Qcid)
 		vmerr(vm, err2);
 	vp = rlookfield(vm, t, argv[1]);
 	if(vp)

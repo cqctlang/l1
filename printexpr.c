@@ -165,7 +165,7 @@ printexpr(Expr *e)
 
 	switch(e->kind){
 	case Ekon:
-		printkon(e->xp);
+		printkon(e->aux);
 		break;
 	case Econst:
 		xprintf("%" PRIu64, e->liti.val);
@@ -175,8 +175,14 @@ printexpr(Expr *e)
 		abbrevlits(consts, sizeof(consts), e->lits);
 		xprintf("(Econsts \"%s\")", consts);
 		break;
+	case E_tg:
+	case E_tid:
+	case Elabel:
+	case Egoto:
 	case Eid:
-		xprintf("(Eid %s)", e->id);
+		xprintf("(%s ", S[e->kind]);
+		printkon(e->aux);
+		xprintf(")");
 		break;
 	case Ebinop:
 		xprintf("(%s ", S[e->op]);
@@ -245,7 +251,7 @@ printlocals(Expr *e, unsigned ni)
 		}else
 			xprintf(", ");
 		cnt++;
-		xprintf("%s", p->e1->id);
+		printkon(p->e1->aux);
 		p = p->e2;
 	}
 	if(cnt)
@@ -406,7 +412,7 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("nil");
 		break;
 	case Ekon:
-		printkon(e->xp);
+		printkon(e->aux);
 		break;
 	case Econst:
 		xprintf("%" PRIu64, e->liti.val);
@@ -416,13 +422,16 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("\"%s\"", consts);
 		break;
 	case Eid:
-		xprintf("%s", e->id);
+		printkon(e->aux);
 		break;
 	case E_tid:
-		xprintf("#%s", e->id);
+		xprintf("#");
+		printkon(e->aux);
 		break;
 	case E_tg:
-		xprintf("#%s = ", e->e1->id);
+		xprintf("#");
+		printkon(e->aux);
+		xprintf("= ");
 		printcqct0(e->e2, ni);
 		break;
 	case Eellipsis:
@@ -594,7 +603,8 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Elabel:
-		xprintf("%s:", e->id);
+		printkon(e->aux);
+		xprintf(":");
 		break;
 	case Edefault:
 		xprintf("default:\n");
@@ -693,7 +703,8 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		break;
 	case Egoto:
-		xprintf("goto %s", e->id);
+		xprintf("goto ");
+		printkon(e->aux);
 		break;
 	case Eret:
 		xprintf("return");

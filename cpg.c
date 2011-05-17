@@ -15,9 +15,7 @@ compileg(U *ctx, Expr* e)
 	case Egop:
 		se = Zblock(Zlocals(1, "$tmp"),
 			    Zset(doid("$tmp"), compileg(ctx, e->e2)),
-			    Zset(doid(e->e1->id), Zbinop(e->op,
-							 doid(e->e1->id),
-							 doid("$tmp"))),
+			    Zset(e->e1, Zbinop(e->op, e->e1, doid("$tmp"))),
 			    NULL);
 		e->e2 = 0;
 		putsrc(se, &e->src);
@@ -27,9 +25,8 @@ compileg(U *ctx, Expr* e)
 	case Epostdec:
 		op = e->kind == Epostinc ? Eadd : Esub;
 		se = Zblock(Zlocals(1, "$tmp"),
-			    Zset(doid("$tmp"), doid(e->e1->id)),
-			    Zset(doid(e->e1->id),
-				 Zbinop(op, doid("$tmp"), Zint(1))),
+			    Zset(doid("$tmp"), e->e1),
+			    Zset(e->e1, Zbinop(op, doid("$tmp"), Zint(1))),
 			    doid("$tmp"),
 			    NULL);
 		putsrc(se, &e->src);
@@ -38,8 +35,7 @@ compileg(U *ctx, Expr* e)
 	case Epreinc:
 	case Epredec:
 		op = e->kind == Epreinc ? Eadd : Esub;
-		se = Zset(doid(e->e1->id),
-			  Zbinop(op, doid(e->e1->id), Zint(1)));
+		se = Zset(e->e1, Zbinop(op, e->e1, Zint(1)));
 		putsrc(se, &e->src);
 		freeexpr(e);
 		return se;

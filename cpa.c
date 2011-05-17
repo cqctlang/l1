@@ -61,7 +61,7 @@ Zap(Expr *e, char *id)
 	*ne = *e;
 
 	e->kind = Eid;
-	e->id = xstrdup(id);
+	e->aux = mkvalcid(mkcid(id, strlen(id)));
 	e->e1 = 0;
 	e->e2 = 0;
 	e->e3 = 0;
@@ -340,7 +340,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		if(a)
 			return disambig(ctx, a, e, d);
 
-		id = e->e2->id;
+		id = idsym(e->e2);
 		o = Zset(doid("$o"), expanda(ctx, e->e1, d, w));
 
 		/* record accessor case */
@@ -387,7 +387,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
-		id = e->e1->e2->id;
+		id = idsym(e->e1->e2);
 		te = Zblock(Zlocals(1, "$o"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zcall(Zcall(G("tablook"), 2,
@@ -418,7 +418,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
-		id = e->e1->e2->id;
+		id = idsym(e->e1->e2);
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
@@ -458,7 +458,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
-		id = e->e1->e2->id;
+		id = idsym(e->e1->e2);
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
@@ -497,7 +497,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
-		id = e->e1->e2->id;
+		id = idsym(e->e1->e2);
 		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
@@ -697,7 +697,7 @@ expandm(U *ctx, Expr *e)
 		i = 0;
 		p = e->e1->e1;
 		while(p->kind == Eelist){
-			se = Zcons(Zset(doid(p->e1->id),
+			se = Zcons(Zset(p->e1,
 					Zcall(G("cntrget"), 2,
 					      doid("$tmp"),
 					      Zint(i++))),
