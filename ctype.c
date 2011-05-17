@@ -568,6 +568,12 @@ inittypecache()
 	typecache = mkvalvec(v);
 }
 
+static void
+finitypecache()
+{
+	typecache = Xnil;
+}
+
 Ctype*
 mkctypevoid(void)
 {
@@ -1870,4 +1876,10 @@ void
 inittype()
 {
 	inittypecache();
+}
+
+void
+finitype()
+{
+	finitypecache();
 }

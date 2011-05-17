@@ -215,10 +215,11 @@ static void copykstack(Val *stack, Imm len, Imm fp);
 static Qtype qs[Qnkind] = {
 	[Qas]	 = { "as", sizeof(As), 1, 0, iteras },
 	[Qbox]	 = { "box", sizeof(Box), 0, 0, iterbox },
-	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
+	[Qcid]   = { "cid", sizeof(Cid), 1, 0, 0 },
 	[Qcl]	 = { "closure", sizeof(Closure), 1, freecl, itercl },
 	[Qcode]	 = { "code", sizeof(Code), 1, freecode, itercode },
 	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, iterctype },
+	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
 	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, iterdom },
 	[Qexpr]	 = { "expr", sizeof(Expr), 1, xfreeexpr, iterexpr },
 	[Qfd]	 = { "fd", sizeof(Fd), 0, freefd, iterfd },
@@ -1157,12 +1158,16 @@ curaddr(Val v)
 static u32
 qsz(Head *h)
 {
+	Cid *id;
 	Rec *r;
 	Str *s;
 	Ctype *t;
 	Vec *v;
 
 	switch(Vkind(h)){
+	case Qcid:
+		id = (Cid*)h;
+		return roundup(cidsize(id->len), Align);
 	case Qstr:
 		s = (Str*)h;
 		switch(s->skind){
@@ -1279,6 +1284,7 @@ copy(Val *v)
 		else
 			nh = malq(Qpair);
 		break;
+	case Qcid:
 	case Qctype:
 	case Qstr:
 	case Qvec:
@@ -2021,6 +2027,7 @@ _gc(u32 g, u32 tg)
 	if(dbg)printf("copied vm roots\n");
 
 	/* global roots */
+	copy(&syms);
 	copy(&typecache);
 
 	// add per-type guards as roots

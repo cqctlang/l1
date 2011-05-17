@@ -7,6 +7,7 @@ enum {
 	Qas,
 	Qbox,
 	Qcl,
+	Qcid,
 	Qcode,
 	Qctype,
 	Qcval,

@@ -42,6 +42,7 @@ L1C =\
 	cpb.c\
 	cg.c\
 	ch.c\
+	cid.c\
 	ctype.c\
 	cval.c\
 	list.c\

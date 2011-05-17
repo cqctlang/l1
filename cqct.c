@@ -265,8 +265,9 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 	}
 	cqctloadpath = copystrv(lp);
 	initmem();
-	inittype();
 	initparse();
+	initcid();
+	inittype();
 	initcg();
 	initvm();
 	return mktoplevel(in, out, err);
@@ -279,6 +280,8 @@ cqctfini(Toplevel *top)
 	freetoplevel(top);
 	finivm();
 	finicg();
+	finitype();
+	finicid();
 	finiparse();
 	finimem();
 }

@@ -227,6 +227,7 @@ struct Expr {
 
 typedef struct As As;
 typedef struct Box Box;
+typedef struct Cid Cid;
 typedef struct Ctype Ctype;
 typedef struct Cval Cval;
 typedef struct Dom Dom;
@@ -244,6 +245,14 @@ typedef struct Vec Vec;
 
 typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
 typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
+
+struct Cid {
+	Head hd;
+	u64 len;
+};
+
+#define ciddata(x) ((char*)((x)+1))
+#define cidsize(n) (sizeof(Cid)+(n)*sizeof(char))
 
 struct Cval {
 	Head hd;
@@ -820,6 +829,9 @@ extern Val Xundef;
 extern Val Xnil;
 extern Code *kcode, *cccode, *tcccode;
 extern char syssrcfile[];
+
+/* top-level roots */
+extern Val syms;
 extern Val typecache;
 
 /* c.l */
@@ -1024,6 +1036,7 @@ void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvalas(x)	((Val)(x))
+#define mkvalcid(x)	((Val)(x))
 #define mkvalcl(x)	((Val)(x))
 #define mkvalctype(x)	((Val)(x))
 #define mkvaldom(x)	((Val)(x))
@@ -1039,6 +1052,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvalvec(x)	((Val)(x))
 
 #define valas(v)	((As*)(v))
+#define valcid(v)	((Cid*)(v))
 #define valcl(v)	((Closure*)(v))
 #define valctype(v)	((Ctype*)(v))
 #define valcval(v)	((Cval*)(v))
@@ -1182,9 +1196,15 @@ void		tguard(Val o, Pair *g);
 /* ch.c */
 void		fnch(Env *env);
 
+/* cid.c */
+void		finicid();
+void		fncid(Env *env);
+void		initcid();
+
 /* ctype.c */
 Ctype*		chasetype(Ctype *t);
 int		equalctype(Ctype *a, Ctype *b);
+void		finitype();
 void		fnctype(Env *env);
 u32		hashctype(Ctype *t);
 void		inittype();

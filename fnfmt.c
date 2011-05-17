@@ -366,6 +366,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Vec *v;
 	Range *r;
 	Rd *rd;
+	Cid *id;
 	Rec *rec;
 	Str *str;
 	Val bv, rv;
@@ -513,6 +514,9 @@ fmtval(VM *vm, Fmt *f, Val val)
 			 "<range 0x%" PRIx64 " 0x%" PRIx64 ">",
 			 r->beg->val, r->len->val);
 		return fmtputs0(vm, f, buf);
+	case Qcid:
+		id = valcid(val);
+		return fmtputB(vm, f, ciddata(id), id->len-1);
 	case Qstr:
 		str = valstr(val);
 		if(fmtputs0(vm, f, "\""))

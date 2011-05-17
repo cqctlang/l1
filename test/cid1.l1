@@ -1,0 +1,7 @@
+s1 = mkcid("abc");
+s2 = mkcid("abc");
+s3 = mkcid("def");
+printf("%d\n", iscid(s1));
+printf("%d\n", isstring(s1));
+printf("%d\n", s1 == s2);
+printf("%d\n", s1 == s3);

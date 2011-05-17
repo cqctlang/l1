@@ -7,6 +7,7 @@ char *qname[Qnkind] = {
 	[Qnil]=		"nil",
 	[Qas]=		"address space",
 	[Qbox]=		"box",
+	[Qcid]=		"cid",
 	[Qcl]=		"closure",
 	[Qcode]=	"code",
 	[Qctype]=	"ctype",
@@ -266,6 +267,7 @@ eqval(Val v1, Val v2)
 	case Qnil:
 		return 1;
 	case Qas:
+	case Qcid:
 	case Qcl:
 	case Qdom:
 	case Qfd:
@@ -287,9 +289,8 @@ eqval(Val v1, Val v2)
 		return equalstr(valstr(v1), valstr(v2));
 	case Qvec:
 		return equalvec(valvec(v1), valvec(v2));
-	default:
-		bug();
 	}
+	bug();
 }
 
 u32
@@ -302,6 +303,7 @@ hashval(Val v)
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
+	case Qcid:
 	case Qcl:
 	case Qdom:
 	case Qfd:
@@ -323,9 +325,8 @@ hashval(Val v)
 		return hashstr(valstr(v));
 	case Qvec:
 		return hashvec(valvec(v));
-	default:
-		bug();
 	}
+	bug();
 }
 
 static u32
@@ -5627,6 +5628,13 @@ l1_isas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_iscid(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "iscid", Qcid);
+}
+
+
+static void
 l1_isctype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isctype", Qctype);
@@ -6609,6 +6617,7 @@ mktopenv(void)
 	FN(index);
 	FN(instguard);  // FIXME: make system routine
 	FN(isas);
+	FN(iscid);
 	FN(isctype);
 	FN(iscvalue);
 	FN(isdom);
@@ -6667,6 +6676,7 @@ mktopenv(void)
 	FN(stringof);
 
 	fnch(env);
+	fncid(env);
 	fnctype(env);
 	fnlist(env);
 	fnpair(env);

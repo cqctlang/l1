@@ -278,6 +278,7 @@ regtos(Reg reg)
 void
 printkon(Val v)
 {
+	Cid *id;
 	Cval *cv;
 	Str *str;
 	Ctype *t;
@@ -289,13 +290,36 @@ printkon(Val v)
 		cv = valcval(v);
 		xprintf("%" PRIu64, cv->val);
 		break;
+	case Qcid:
+		id = valcid(v);
+		p = ciddata(id);
+		m = id->len;
+		if(m > 15)
+			m = 15;
+		xprintf("\'");
+		for(i = 0; i < m; i++){
+			c = *p++;
+			switch(c){
+			case '\n':
+				xprintf("\\n");
+				break;
+			case '\t':
+				xprintf("\\t");
+				break;
+			default:
+				xprintf("%c", c);
+				break;
+			}
+		}
+		if(id->len-1 > m)
+			xprintf("...");
+		break;
 	case Qstr:
 		str = valstr(v);
 		p = strdata(str);
-		m = str->len;
+		m = str->len-1;
 		if(m > 15)
 			m = 15;
-		xprintf("\"");
 		for(i = 0; i < m; i++){
 			c = *p++;
 			switch(c){
