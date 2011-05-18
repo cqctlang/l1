@@ -347,7 +347,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		se = Zcall(Zcall(G("tablook"), 2,
 				 Zcall(G("rdgettab"), 1,
 				       Zcall(G("rdof"), 1, doid("$o"))),
-				 Zconsts(id)),
+				 Zid2sym(e->e2)),
 			   1, doid("$o"));
 
 		/* cval/as/ns/dom case */
@@ -387,14 +387,13 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
-		id = idsym(e->e1->e2);
 		te = Zblock(Zlocals(1, "$o"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zcall(Zcall(G("tablook"), 2,
 					Zcall(G("rdsettab"), 1,
 					      Zcall(G("rdof"), 1,
 						    doid("$o"))),
-					Zconsts(id)), 2,
+					Zid2sym(e->e1->e2)), 2,
 				  doid("$o"), expanda(ctx, e->e2, d, w)),
 			    NULL);
 		putsrc(te, &e->src);
@@ -426,13 +425,13 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    Zcall(Zcall(G("tablook"), 2,
 					Zcall(G("rdsettab"),
 					      1, doid("$rd")),
-					Zconsts(id)), 2,
+					Zid2sym(e->e1->e2)), 2,
 				  doid("$o"),
 				  Zbinop(e->op,
 					 Zcall(Zcall(G("tablook"), 2,
 						     Zcall(G("rdgettab"),
 							   1, doid("$rd")),
-						     Zconsts(id)), 1,
+						     Zid2sym(e->e1->e2)), 1,
 					       doid("$o")),
 					 expanda(ctx, e->e2, d, w))),
 			    NULL);
@@ -458,7 +457,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
-		id = idsym(e->e1->e2);
 		te = Zblock(Zlocals(2, "$o", "$rd"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
@@ -466,13 +464,13 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    Zcall(Zcall(G("tablook"), 2,
 					Zcall(G("rdsettab"),
 					      1, doid("$rd")),
-					Zconsts(id)), 2,
+					Zid2sym(e->e1->e2)), 2,
 				  doid("$o"),
 				  Zbinop(e->kind == Epreinc ? Eadd : Esub,
 					 Zcall(Zcall(G("tablook"), 2,
 						     Zcall(G("rdgettab"),
 							   1, doid("$rd")),
-						     Zconsts(id)), 1,
+						     Zid2sym(e->e1->e2)), 1,
 					       doid("$o")),
 					 Zint(1))),
 			    NULL);
@@ -497,7 +495,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
-		id = idsym(e->e1->e2);
 		te = Zblock(Zlocals(3, "$o", "$rd", "$l"),
 			    Zset(doid("$o"), expanda(ctx, e->e1->e1, d, w)),
 			    Zset(doid("$rd"), Zcall(G("rdof"), 1,
@@ -506,12 +503,12 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				 Zcall(Zcall(G("tablook"), 2,
 					     Zcall(G("rdgettab"), 1,
 						   doid("$rd")),
-					     Zconsts(id)), 1,
+					     Zid2sym(e->e1->e2)), 1,
 				       doid("$o"))),
 			    Zcall(Zcall(G("tablook"), 2,
 					Zcall(G("rdsettab"),
 					      1, doid("$rd")),
-					Zconsts(id)), 2,
+					Zid2sym(e->e1->e2)), 2,
 				  doid("$o"),
 				  Zbinop(e->kind == Epostinc ? Eadd : Esub,
 					 doid("$l"), Zint(1))),

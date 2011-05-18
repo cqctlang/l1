@@ -8,10 +8,10 @@ gt = rdgettab(rd);
 st = rdsettab(rd);
 
 foo = rdmk(rd);
-foof1 = tablook(gt, "f1");
-foof2 = tablook(gt, "f2");
-foosetf1 = tablook(st, "f1");
-foosetf2 = tablook(st, "f2");
+foof1 = tablook(gt, 'f1);
+foof2 = tablook(gt, 'f2);
+foosetf1 = tablook(st, 'f1);
+foosetf2 = tablook(st, 'f2);
 
 x = foo(1, 2);
 y = foo(4, 5);
