@@ -696,7 +696,7 @@ fmtenconst(VM *vm, Fmt *f, Cval *cv)
 	Ctypeenum *te;
 	Vec *v;
 	Cval *k;
-	Str *s;
+	Cid *id;
 	u32 m;
 
 	t = cv->type;
@@ -712,8 +712,8 @@ fmtenconst(VM *vm, Fmt *f, Cval *cv)
 		 * enum consts all have the same
 		 * type */
 		if(cv->val == k->val){
-			s = valstr(vecref(v, 0));
-			return fmtputs(vm, f, strdata(s), s->len);
+			id = valcid(vecref(v, 0));
+			return fmtputs(vm, f, ciddata(id), id->len-1);
 		}
 	}
 	return fmticval(vm, f, 'd', cv);
