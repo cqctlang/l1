@@ -1894,7 +1894,7 @@ updateweak(u32 tg)
 		while((void*)p < s->a){
 			if(Vfwd(car(p)))
 				_setcar(p, Vfwdaddr(car(p)));
-			else
+			else if(!islive(car(p)))
 				_setcar(p, Xnil);
 			p++;
 		}

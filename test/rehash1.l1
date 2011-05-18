@@ -1,0 +1,20 @@
+a1 = mkzas(1);
+b1 = mkzas(1);
+c1 = mkzas(1);
+d1 = mkzas(1);
+
+t = [ a1 : "a",
+      b1 : "b",
+      c1 : "c",
+      d1 : "d" ];
+@define dump()
+{
+	printf("%a\n", t[a1]);
+	printf("%a\n", t[b1]);
+	printf("%a\n", t[c1]);
+	printf("%a\n", t[d1]);
+}
+dump();
+for(i = 0; i < 2; i++) gc();
+dump();
+
