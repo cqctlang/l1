@@ -1,0 +1,10 @@
+entry: var params, 2 locals, 0 temps
+dump: 0 params, 6 locals, 0 temps
+"a"
+"b"
+"c"
+"d"
+"a"
+"b"
+"c"
+"d"
