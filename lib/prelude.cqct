@@ -1,4 +1,5 @@
 @include <cqct.cqct>
+@include <ctype.cqct>
 @include <gc.cqct>
 @include <malloc.cqct>
 @include <control.cqct>

@@ -730,28 +730,10 @@ static unsigned basemod[Vnbase][Enbase] = {
 	/* the rest are Vundef, which we assume to be 0 */
 };
 
-static char* cbasector[Vnallbase] = {
-	[Vbool]               = "mkctype_bool",
-	[Vchar]               = "mkctype_char",
-	[Vshort]	      = "mkctype_short",
-	[Vint]		      = "mkctype_int",
-	[Vlong]		      = "mkctype_long",
-	[Vvlong]	      = "mkctype_vlong",
-	[Vuchar]	      = "mkctype_uchar",
-	[Vushort]	      = "mkctype_ushort",
-	[Vuint]		      = "mkctype_uint",
-	[Vulong]	      = "mkctype_ulong",
-	[Vuvlong]	      = "mkctype_uvlong",
-	[Vfloat]	      = "mkctype_float",
-	[Vdouble]	      = "mkctype_double",
-	[Vlongdouble]	      = "mkctype_ldouble",
-	[Vvoid]		      = "mkctype_void",
-};
-
 static Expr*
 mkctypebasen(U *ctx, Expr *e)
 {
-	Expr *p, *r;
+	Expr *p;
 	Cbase b;
 	b = Vundef;
 	p = e->e1;
@@ -780,9 +762,6 @@ mkctypebasen(U *ctx, Expr *e)
 		return Zkon(mkvalctype(mkctypevoid()));
 	else
 		return Zkon(mkvalctype(mkctypebase(b, Rundef)));
-//	r = Zcall(G(cbasector[b]), 0);
-//	putsrc(r, &e->src);
-//	return r;
 }
 
 static Expr*
@@ -890,8 +869,6 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 		v = mkvalctype(mkctypesu(Tstruct, valcid(e->e1->aux), 0, 0));
 		hputs(s->s, id, strlen(id), v);
 		return Zkon(v);
-//		return putsrc(Zcall(G("mkctype_struct"), 1, Zid2sym(e->e1)),
-//			      &e->src);
 	case Eunion:
 		id = idsym(e->e1);
 		v = hgets(s->u, id, strlen(id));
@@ -900,8 +877,6 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 		v = mkvalctype(mkctypesu(Tunion, valcid(e->e1->aux), 0, 0));
 		hputs(s->u, id, strlen(id), v);
 		return Zkon(v);
-//		return putsrc(Zcall(G("mkctype_union"), 1, Zid2sym(e->e1)),
-//			      &e->src);
 	case Eenum:
 		id = idsym(e->e1);
 		v = hgets(s->e, id, strlen(id));
@@ -910,8 +885,6 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 		v = mkvalctype(mkctypeenum(valcid(e->e1->aux), 0, 0));
 		hputs(s->e, id, strlen(id), v);
 		return Zkon(v);
-//		return putsrc(Zcall(G("mkctype_enum"), 1, Zid2sym(e->e1)),
-//			      &e->src);
 	case Etypedef:
 		id = idsym(e->e1);
 		v = hgets(s->tid, id, strlen(id));
@@ -920,8 +893,6 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 		v = mkvalctype(mkctypedef(valcid(e->e1->aux), 0));
 		hputs(s->tid, id, strlen(id), v);
 		return Zkon(v);
-//		return putsrc(Zcall(G("mkctype_typedef"), 1, Zid2sym(e->e1)),
-//			      &e->src);
 	case Ebase:
 		return putsrc(mkctypebasen(ctx, e), &e->src);
 	case Eptr:

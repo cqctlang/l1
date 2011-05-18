@@ -44,6 +44,12 @@ mkcid0(char *s)
 	return mkcidstr(str);
 }
 
+Str*
+cid2str(Cid *id)
+{
+	return mkstr0(ciddata(id));
+}
+
 static void
 l1_mkcid(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -53,9 +59,19 @@ l1_mkcid(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalcid(mkcidstr(valstr(argv[0])));
 }
 
+static void
+l1_cid2str(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cid2str");
+	checkarg(vm, "mkcid", argv, 0, Qcid);
+	*rv = mkvalstr(cid2str(valcid(argv[0])));
+}
+
 void
 fncid(Env *env)
 {
+	FN(cid2str);
 	FN(mkcid);
 }
 

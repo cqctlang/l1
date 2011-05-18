@@ -1365,6 +1365,20 @@ l1_basebase(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_typekind(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Ctype *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to typekind");
+	if(Vkind(argv[0]) != Qctype)
+		vmerr(vm, "operand 1 to typekind must be a ctype");
+	t = valctype(argv[0]);
+	*rv = mkvallitcval(Vuchar, t->tkind);
+}
+
+
+static void
 l1_baserep(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ctype *t;
@@ -1866,6 +1880,7 @@ fnctype(Env *env)
 	FN(susize);
 	FN(typedefid);
 	FN(typedeftype);
+	FN(typekind);
 	FN(typename);
 }
 

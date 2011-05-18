@@ -50,4 +50,20 @@ cqct = @names c32le {
 		Vnallbase,
 	} Cbase;
 
+	typedef
+	enum Tkind
+	{
+		Tvoid=0,
+		Tbase,
+		Tstruct,
+		Tunion,
+		Tenum,
+		Tptr,
+		Tarr,
+		Tfun,
+		Ttypedef,
+		Tbitfield,
+		Tconst,
+		Tundef,
+	} Tkind;
 };

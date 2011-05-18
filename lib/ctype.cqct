@@ -1,0 +1,39 @@
+@define typenamecmp(t1, t2)
+{
+	@local k1, k2, b1, b2, s1, s2;
+	k1 = typekind(t1);
+	k2 = typekind(t2);
+	if(k1 != k2){
+		if(k1 < k2)
+			return -1;
+		else
+			return 1;
+	}
+	switch(k1){
+	case cqct`Tvoid:
+		return 0;
+	case cqct`Tbase:
+		b1 = basebase(t1);
+		b2 = basebase(t2);
+		if(b1 == b2)
+			return 0;
+		else if(b1 < b2)
+			return -1;
+		else
+			return 1;
+		break;
+	case cqct`Tstruct:
+	case cqct`Tunion:
+	case cqct`Tenum:
+		s1 = cid2str(suetag(t1));
+		s2 = cid2str(suetag(t2));
+		return strcmp(s1, s2);
+	case cqct`Ttypedef:
+		s1 = cid2str(typedefid(t1));
+		s2 = cid2str(typedefid(t2));
+		return strcmp(s1, s2);
+	default:
+		/* arbitrary */
+		return 0;
+	}
+}
