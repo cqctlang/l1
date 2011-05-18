@@ -5,19 +5,19 @@ enumtype: var params, 1 locals, 0 temps
 enumsym: var params, 1 locals, 0 temps
 foo: 0 params, 12 locals, 0 temps
 enumtype: var params, 1 locals, 0 temps
+typedef unsigned long uint32;
+typedef unsigned long uintptr;
+typedef long long int64;
+typedef char int8;
+typedef unsigned char uint8;
+typedef unsigned long long uint64;
+typedef short int16;
+typedef long int32;
 struct foo {
 	@0x0	void *x;
 	@0x28;
 };
-typedef short int16;
 typedef unsigned short uint16;
-typedef unsigned long long uint64;
-typedef long long int64;
-typedef long int32;
-typedef unsigned long uintptr;
-typedef unsigned char uint8;
-typedef char int8;
-typedef unsigned long uint32;
 sizeof(p->x) = 4
 typeof(p->x) = void *
 sizeof(p) = 4

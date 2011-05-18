@@ -1,5 +1,5 @@
 entry: var params, 8 locals, 0 temps
-vector( vector( "a", 1 ), vector( "b", 2 ) )
-vector( vector( "a", 1 ), vector( "b", 2 ) )
+vector( vector( a, 1 ), vector( b, 2 ) )
+vector( vector( a, 1 ), vector( b, 2 ) )
 vector( )
 vector( )
