@@ -2853,7 +2853,7 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 {
 	Val rv;
 	Ctype *t, *new, *def;
-	Str *s;
+	Cid *id;
 
 	/* have we already defined this type in the new namespace? */
 	rv = tabget(ctx->type, tv);
@@ -2874,14 +2874,14 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 		def = valctype(rv);
 		if(def->tkind != Ttypedef)
 			vmerr(vm, "invalid typedef in raw type table");
-		if(!equalstr(typetid(def), typetid(t)))
+		if(def == t)
 			vmerr(vm, "invalid typedef in raw type table");
 		setsubtype(new, resolvetypename(vm, subtype(def), ctx));
 		if(subtype(new) == new){
-			s = typetid(def);
+			id = typetid(def);
 			vmerr(vm, "circular definition in name space: "
 			      "typedef %.*s",
-			      (int)s->len, strdata(s));
+			      (int)id->len, ciddata(id));
 		}
 		return new;
 	}
@@ -6000,10 +6000,6 @@ expr2syntax(Expr *e)
 	case Ekon:
 		_listappend(l, e->aux);
 		break;
-	case E_tg:
-		_listappend(l, e->aux);
-		_listappend(l, expr2syntax(e->e1));
-		break;
 	case Econst:
 		_listappend(l, mkvallitcval(e->liti.base, e->liti.val));
 		break;
@@ -6486,7 +6482,7 @@ basetab(NSroot *def, Ctype **base)
 	Cbase cb;
 	Val kv, vv;
 	Tab *type;
-	Str *tn;
+	Cid *tn;
 
 	for(cb = Vlo; cb < Vnbase; cb++)
 		base[cb] = mkctypebase(cb, def->base[cb]);
@@ -6511,41 +6507,41 @@ basetab(NSroot *def, Ctype **base)
 
 	/* define stdint-like integer typedefs */
 
-	tn = mkstr0("uintptr");
+	tn = mkcid0("uintptr");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->ptr]));
 	tabput(type, kv, vv);
 
-	tn = mkstr0("int8");
+	tn = mkcid0("int8");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xint8]));
 	tabput(type, kv, vv);
-	tn = mkstr0("int16");
+	tn = mkcid0("int16");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xint16]));
 	tabput(type, kv, vv);
-	tn = mkstr0("int32");
+	tn = mkcid0("int32");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xint32]));
 	tabput(type, kv, vv);
-	tn = mkstr0("int64");
+	tn = mkcid0("int64");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xint64]));
 	tabput(type, kv, vv);
 
-	tn = mkstr0("uint8");
+	tn = mkcid0("uint8");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xuint8]));
 	tabput(type, kv, vv);
-	tn = mkstr0("uint16");
+	tn = mkcid0("uint16");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xuint16]));
 	tabput(type, kv, vv);
-	tn = mkstr0("uint32");
+	tn = mkcid0("uint32");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xuint32]));
 	tabput(type, kv, vv);
-	tn = mkstr0("uint64");
+	tn = mkcid0("uint64");
 	kv = mkvalctype(mkctypedef(tn, 0));
 	vv = mkvalctype(mkctypedef(tn, base[def->xuint64]));
 	tabput(type, kv, vv);

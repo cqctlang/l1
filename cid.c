@@ -36,6 +36,14 @@ mkcid(char *s, Imm len)
 	return mkcidstr(str);
 }
 
+Cid*
+mkcid0(char *s)
+{
+	Str *str;
+	str = mkstr0(s);
+	return mkcidstr(str);
+}
+
 static void
 l1_mkcid(VM *vm, Imm argc, Val *argv, Val *rv)
 {

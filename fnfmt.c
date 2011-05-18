@@ -76,7 +76,7 @@ _fmtctype(Ctype *t, char *o)
 {
 	char *buf, *w, *pl;
 	unsigned m, leno;
-	Str *s;
+	Cid *id;
 	Cbase cb;
 	Cval *cv;
 	Ctype *sub;
@@ -105,29 +105,31 @@ _fmtctype(Ctype *t, char *o)
 		efree(o);
 		return buf;
 	case Ttypedef:
-		s = typetid(t);
-		m = s->len+1+leno+1;
+		id = typetid(t);
+		m = id->len+1+leno+1;
 		buf = emalloc(m);
 		if(leno)
-			snprint(buf, m, "%.*s %s", (int)s->len, strdata(s), o);
+			snprint(buf, m, "%.*s %s",
+				(int)id->len, ciddata(id), o);
 		else
-			snprint(buf, m, "%.*s", (int)s->len, strdata(s));
+			snprint(buf, m, "%.*s",
+				(int)id->len, ciddata(id));
 		efree(o);
 		return buf;
 	case Tstruct:
 	case Tunion:
 	case Tenum:
 		w = tkindstr[t->tkind];
-		s = typetag(t);
-		if(s){
-			m = strlen(w)+1+s->len+1+leno+1;
+		id = typetag(t);
+		if(id){
+			m = strlen(w)+1+id->len+1+leno+1;
 			buf = emalloc(m);
 			if(leno)
 				snprint(buf, m, "%s %.*s %s",
-					w, (int)s->len, strdata(s), o);
+					w, (int)id->len, ciddata(id), o);
 			else
 				snprint(buf, m, "%s %.*s", w,
-					(int)s->len, strdata(s));
+					(int)id->len, ciddata(id));
 		}else{
 			m = strlen(w)+1+leno+1;
 			buf = emalloc(m);

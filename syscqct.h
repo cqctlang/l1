@@ -462,14 +462,14 @@ struct Ctypebase {
 typedef
 struct Ctypedef {
 	Ctype ct;
-	Str *tid;
+	Cid *tid;
 	Ctype *sub;
 } Ctypedef;
 
 typedef
 struct Ctypesu {
 	Ctype ct;
-	Str *tag;
+	Cid *tag;
 	Vec *field;
 	Val attr;
 } Ctypesu;
@@ -478,7 +478,7 @@ typedef
 struct Ctypeenum {
 	Ctype ct;
 /*	Rkind rep;   FIXME: seems there should be a rep or sub, not both */
-	Str *tag;
+	Cid *tag;
 	Vec *konst;
 	Ctype *sub;
 } Ctypeenum;
@@ -1203,6 +1203,7 @@ void		finicid();
 void		fncid(Env *env);
 void		initcid();
 Cid*		mkcid(char *s, Imm len);
+Cid*		mkcid0(char *s);
 
 /* ctype.c */
 Ctype*		chasetype(Ctype *t);
@@ -1216,11 +1217,11 @@ Ctype*		mkctypearr(Ctype *sub, Val cnt);
 Ctype*		mkctypebase(Cbase cbase, Rkind rep);
 Ctype*		mkctypebitfield(Ctype *sub, Val cnt, Val bit0);
 Ctype*		mkctypeconst(Ctype *sub);
-Ctype*		mkctypedef(Str *tid, Ctype *sub);
-Ctype*		mkctypeenum(Str *tag, Ctype *sub, Vec *konst);
+Ctype*		mkctypedef(Cid *tid, Ctype *sub);
+Ctype*		mkctypeenum(Cid *tag, Ctype *sub, Vec *konst);
 Ctype*		mkctypefunc(Ctype *sub, Vec *param);
 Ctype*		mkctypeptr(Ctype *sub, Rkind rep);
-Ctype*		mkctypesu(Tkind kind, Str *tag, Vec *field, Val attr);
+Ctype*		mkctypesu(Tkind kind, Cid *tag, Vec *field, Val attr);
 Ctype*		mkctypeundef(Ctype *sub);
 Ctype*		mkctypevoid(void);
 Ctype*		safechasetype(Ctype *t);
@@ -1230,8 +1231,8 @@ Cbase		typecbase(Ctype *t);
 Rkind		typerep(Ctype *t);
 void		typesetrep(Ctype *t, Rkind rep);
 Imm		typesize(VM *vm, Ctype *t);
-Str*		typetag(Ctype *t);
-Str*		typetid(Ctype *t);
+Cid*		typetag(Ctype *t);
+Cid*		typetid(Ctype *t);
 
 /* cval.c */
 u32		hashcval(Cval *v);

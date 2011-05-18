@@ -173,11 +173,11 @@ hashctype(Ctype *t)
 		x = hashx(x, hashu64(typerep(t)));
 		return x;
 	case Ttypedef:
-		return hashx(x, hashstr(typetid(t)));
+		return hashx(x, hashp(typetid(t)));
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		return hashx(x, hashstr(typetag(t)));
+		return hashx(x, hashp(typetag(t)));
 	case Tundef:
 		return hashx(x, hashctype(subtype(t)));
 	case Tconst:
@@ -214,7 +214,6 @@ equalctype(Ctype *a, Ctype *b)
 {
 	Imm m;
 	Ctypearr *ata, *bta;
-	Ctypedef *atd, *btd;
 	Ctypefunc *atf, *btf;
 	Ctypebitfield *atw, *btw;
 
@@ -227,13 +226,11 @@ equalctype(Ctype *a, Ctype *b)
 		return (typecbase(a) == typecbase(b)
 			&& typerep(a) == typerep(b));
 	case Ttypedef:
-		atd = (Ctypedef*)a;
-		btd = (Ctypedef*)b;
-		return equalstr(atd->tid, btd->tid);
+		return typetid(a) == typetid(b);
 	case Tstruct:
 	case Tunion:
 	case Tenum:
-		return equalstr(typetag(a), typetag(b));
+		return typetag(a) == typetag(b);
 	case Tptr:
 		return (typerep(a) == typerep(b)
 			&& equalctype(subtype(a), subtype(b)));
@@ -393,7 +390,7 @@ safechasetype(Ctype *t)
 	}
 }
 
-Str*
+Cid*
 typetid(Ctype *t)
 {
 	Ctypedef *td;
@@ -406,7 +403,7 @@ typetid(Ctype *t)
 	}
 }
 
-Str*
+Cid*
 typetag(Ctype *t)
 {
 	Ctypeenum *te;
@@ -587,7 +584,7 @@ mkctypebase(Cbase cbase, Rkind rep)
 }
 
 Ctype*
-mkctypedef(Str *tid, Ctype *sub)
+mkctypedef(Cid *tid, Ctype *sub)
 {
 	Ctypedef *td;
 	td = (Ctypedef*)mkctype(Ttypedef);
@@ -597,7 +594,7 @@ mkctypedef(Str *tid, Ctype *sub)
 }
 
 Ctype*
-mkctypesu(Tkind kind, Str *tag, Vec *field, Val attr)
+mkctypesu(Tkind kind, Cid *tag, Vec *field, Val attr)
 {
 	Ctypesu *ts;
 	ts = (Ctypesu*)mkctype(kind);
@@ -608,7 +605,7 @@ mkctypesu(Tkind kind, Str *tag, Vec *field, Val attr)
 }
 
 Ctype*
-mkctypeenum(Str *tag, Ctype *sub, Vec *konst)
+mkctypeenum(Cid *tag, Ctype *sub, Vec *konst)
 {
 	Ctypeenum *te;
 	te = (Ctypeenum*)mkctype(Tenum);
@@ -1046,21 +1043,21 @@ static void
 l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ctype *t, *sub;
-	Str *s;
+	Cid *id;
 
 	t = 0;
 	switch((unsigned)argc){
 	case 1:
 		checkarg(vm, "mkctype_typedef", argv, 0, Qcid);
-		s = valstr(argv[0]);
-		t = mkctypedef(s, 0);
+		id = valcid(argv[0]);
+		t = mkctypedef(id, 0);
 		break;
 	case 2:
 		checkarg(vm, "mkctype_typedef", argv, 0, Qcid);
 		checkarg(vm, "mkctype_typedef", argv, 1, Qctype);
-		s = valstr(argv[0]);
+		id = valcid(argv[0]);
 		sub = valctype(argv[1]);
-		t = mkctypedef(s, sub);
+		t = mkctypedef(id, sub);
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_typedef");
@@ -1072,7 +1069,7 @@ static void
 domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 {
 	Ctype *t;
-	Str *s;
+	Cid *id;
 	Vec *f;
 
 	t = 0;
@@ -1080,8 +1077,8 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 	case 1:
 		/* TAG */
 		checkarg(vm, fn, argv, 0, Qcid);
-		s = valstr(argv[0]);
-		t = mkctypesu(tkind, s, 0, 0);
+		id = valcid(argv[0]);
+		t = mkctypesu(tkind, id, 0, 0);
 		break;
 	case 3:
 		/* TAG FIELDS SIZE */
@@ -1090,11 +1087,11 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		if(Vkind(argv[2]) != Qcval && Vkind(argv[2]) != Qtab)
 			vmerr(vm, "operand 3 to %s must be a cvalue or table",
 			      fn);
-		s = valstr(argv[0]);
+		id = valcid(argv[0]);
 		f = valvec(argv[1]);
 		if(!issymvec(f))
 			vmerr(vm, "bad field vector", fn);
-		t = mkctypesu(tkind, s, f, mkattr(argv[2]));
+		t = mkctypesu(tkind, id, f, mkattr(argv[2]));
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to %s", fn);
@@ -1177,7 +1174,7 @@ static void
 l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ctype *t, *sub;
-	Str *s;
+	Cid *id;
 	Vec *c;
 
 	t = 0;
@@ -1185,26 +1182,26 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 	case 1:
 		/* TAG */
 		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
-		s = valstr(argv[0]);
-		t = mkctypeenum(s, 0, 0);
+		id = valcid(argv[0]);
+		t = mkctypeenum(id, 0, 0);
 		break;
 	case 2:
 		/* TAG CONSTS (FIXME: is this a good form?) */
 		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
 		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
-		s = valstr(argv[0]);
+		id = valcid(argv[0]);
 		c = valvec(argv[1]);
-		t = mkctypeenum(s, 0, c);
+		t = mkctypeenum(id, 0, c);
 		break;
 	case 3:
 		/* TAG CONSTS TYPE */
 		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
 		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
 		checkarg(vm, "mkctype_enum", argv, 2, Qctype);
-		s = valstr(argv[0]);
+		id = valcid(argv[0]);
 		c = valvec(argv[1]);
 		sub = valctype(argv[2]);
-		t = mkctypeenum(s, sub, c);
+		t = mkctypeenum(id, sub, c);
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to mkctype_enum");
@@ -1457,7 +1454,7 @@ l1_suetag(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(t->tkind != Tstruct && t->tkind != Tunion
 	   && t->tkind != Tenum)
 		vmerr(vm, "operand 1 to sutag must be a tagged ctype");
-	*rv = mkvalstr(typetag(t));
+	*rv = mkvalcid(typetag(t));
 }
 
 static void
@@ -1585,7 +1582,7 @@ l1_typedefid(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = valctype(argv[0]);
 	if(t->tkind != Ttypedef)
 		vmerr(vm, "operand 1 to typedefid must be a typedef ctype");
-	*rv = mkvalstr(typetid(t));
+	*rv = mkvalcid(typetid(t));
 }
 
 static void

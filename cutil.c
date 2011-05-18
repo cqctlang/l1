@@ -280,7 +280,6 @@ idsym(Expr *e)
 	case Eid:
 	case Elabel:
 	case Egoto:
-	case E_tg:
 	case E_tid:
 		break;
 	default:

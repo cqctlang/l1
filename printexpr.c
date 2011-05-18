@@ -165,7 +165,9 @@ printexpr(Expr *e)
 
 	switch(e->kind){
 	case Ekon:
+		xprintf("(Ekon ");
 		printkon(e->aux);
+		xprintf(")");
 		break;
 	case Econst:
 		xprintf("%" PRIu64, e->liti.val);
@@ -175,7 +177,6 @@ printexpr(Expr *e)
 		abbrevlits(consts, sizeof(consts), e->lits);
 		xprintf("(Econsts \"%s\")", consts);
 		break;
-	case E_tg:
 	case E_tid:
 	case Elabel:
 	case Egoto:
@@ -429,9 +430,8 @@ printcqct0(Expr *e, unsigned ni)
 		printkon(e->aux);
 		break;
 	case E_tg:
-		xprintf("#");
-		printkon(e->aux);
-		xprintf("= ");
+		printcqct0(e->e1, ni);
+		xprintf(" = ");
 		printcqct0(e->e2, ni);
 		break;
 	case Eellipsis:

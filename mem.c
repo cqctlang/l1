@@ -260,7 +260,6 @@ xfreeexpr(Head *hd)
 	case Eid:
 	case Elabel:
 	case Egoto:
-	case E_tg:
 	case E_tid:
 		break;
 	case Econsts:

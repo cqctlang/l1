@@ -184,7 +184,6 @@ copyexpr(Expr *e)
 	case Elabel:
 	case Egoto:
 	case E_tid:
-	case E_tg:
 	case Ekon:
 		ne->aux = e->aux;
 		break;
