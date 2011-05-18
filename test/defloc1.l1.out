@@ -5,9 +5,9 @@ bar: 1 params, 0 locals, 0 temps
 bar: 1 params, 0 locals, 0 temps
 foo: 1 params, 0 locals, 0 temps
 foo: 1 params, 0 locals, 0 temps
-interior baz "interior"
-interior baz "toplevel"
-interior bar "interior"
-toplevel bar "toplevel"
-interior foo "interior"
-toplevel foo "toplevel"
+interior baz interior
+interior baz toplevel
+interior bar interior
+toplevel bar toplevel
+interior foo interior
+toplevel foo toplevel

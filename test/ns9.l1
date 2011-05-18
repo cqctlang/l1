@@ -20,6 +20,6 @@ t = @typeof(struct ns`X);
 F(fieldtype(fields(t)[0]));
 F(fieldtype(fields(t)[1]));
        
-F(fieldtype(looksym(ns, "C")));
-F(fieldtype(looksym(ns, "D")));
+F(fieldtype(looksym(ns, 'C)));
+F(fieldtype(looksym(ns, 'D)));
 

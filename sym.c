@@ -94,7 +94,7 @@ issym(Vec *sym)
 	if(Vkind(x) != Qctype)
 		return 0;
 	x = vecref(sym, Idpos);
-	if(Vkind(x) != Qstr && Vkind(x) != Qnil)
+	if(Vkind(x) != Qcid && Vkind(x) != Qnil)
 		return 0;
 	if(sym->len < 3)
 		return 1;
@@ -217,7 +217,7 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(v->len < 2)
 		vmerr(vm, err);
 	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
+	if(Vkind(vp) != Qcid && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -276,7 +276,7 @@ l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
+	if(Vkind(vp) != Qcid && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -357,7 +357,7 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qstr && Vkind(vp) != Qnil)
+	if(Vkind(vp) != Qcid && Vkind(vp) != Qnil)
 		vmerr(vm, err);
 	*rv = vp;
 }

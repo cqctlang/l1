@@ -729,7 +729,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Cval *cv, *cv1;
 	Str *as, *ys;
 	Cid *xs;
-	char *sfmt, *efmt;
+	char *sfmt, *efmt, *p;
 	char ch;
 	unsigned char c;
 	Ctype *t;
@@ -898,8 +898,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 		case 'B':
 			if(Vkind(vp) == Qstr){
 				as = valstr(vp);
+				p = strdata(as);
 				if(ch == 's')
-					len = xstrnlen(strdata(as), as->len);
+					len = xstrnlen(p, as->len);
 				else
 					len = as->len;
 			}
@@ -908,21 +909,29 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				if(!isstrcval(cv))
 					goto badarg;
 				if(cv->val == 0 && ch == 's'
-				   && !ismapped(vm, cv->dom->as, cv->val, 1))
-					as = mkstr0("(null)");
-				else
+				   && !ismapped(vm, cv->dom->as, cv->val, 1)){
+					p = "(null)";
+					len = 6;
+				}else{
 					as = stringof(vm, cv);
-				len = as->len;
+					p = strdata(as);
+					len = as->len;
+				}
 			}else if(Vkind(vp) == Qnil){
 				as = mkstr0("(nil)");
-				len = as->len;
+				p = "(nil)";
+				len = 5;
+			}else if(Vkind(vp) == Qcid){
+				xs = valcid(vp);
+				p = ciddata(xs);
+				len = xs->len-1;
 			}else
 				goto badarg;
 			if(ch == 'B'){
-				if(fmtputB(vm, f, strdata(as), len))
+				if(fmtputB(vm, f, p, len))
 					return;
 			}else{
-				if(fmtputs(vm, f, strdata(as), len))
+				if(fmtputs(vm, f, p, len))
 					return;
 			}
 			break;
@@ -990,13 +999,13 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(cv->val != 0){
 				snprint(buf, sizeof(buf),
 					"+0x%" PRIx64, cv->val);
-				ys = mkstrn(xs->len+strlen(buf));
-				memcpy(strdata(ys), ciddata(xs), xs->len);
-				memcpy(strdata(ys)+xs->len, buf, strlen(buf));
+				ys = mkstrn(xs->len-1+strlen(buf));
+				memcpy(strdata(ys), ciddata(xs), xs->len-1);
+				memcpy(strdata(ys)+xs->len-1, buf, strlen(buf));
 				if(fmtputs(vm, f, strdata(ys), ys->len))
 					return;
 			}else
-				if(fmtputs(vm, f, ciddata(xs), xs->len))
+				if(fmtputs(vm, f, ciddata(xs), xs->len-1))
 					return;
 			break;
 		default:

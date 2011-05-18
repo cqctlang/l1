@@ -3338,7 +3338,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			idv = linkkey(lnk);
 			vecv = linkval(lnk);
 			x = linknext(lnk);
-			if(Vkind(idv) != Qstr)
+			if(Vkind(idv) != Qcid)
 				vmerr(vm, "invalid raw symbol table");
 			if(Vkind(vecv) != Qvec)
 				vmerr(vm, "invalid raw symbol table");

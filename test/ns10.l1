@@ -22,9 +22,9 @@ ns = @names c32le
 printf("%d\n", ns`x);
 printf("%d\n", ns`y);
 t = @typeof(struct ns`x);
-printf("%d\n", sizeof(fieldtype(lookfield(t, "x"))));
-printf("%d\n", sizeof(fieldtype(lookfield(t, "a"))));
-printf("%d\n", sizeof(fieldtype(lookfield(t, "b"))));
-printf("%d\n", sizeof(fieldtype(lookfield(t, "c"))));
-printf("%d\n", sizeof(fieldtype(lookfield(t, "d"))));
+printf("%d\n", sizeof(fieldtype(lookfield(t, 'x))));
+printf("%d\n", sizeof(fieldtype(lookfield(t, 'a))));
+printf("%d\n", sizeof(fieldtype(lookfield(t, 'b))));
+printf("%d\n", sizeof(fieldtype(lookfield(t, 'c))));
+printf("%d\n", sizeof(fieldtype(lookfield(t, 'd))));
 

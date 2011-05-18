@@ -593,10 +593,7 @@ doconst(U *ctx, char *s, unsigned long len)
 Expr*
 dosymsrc(Src *src, char *s, unsigned long len)
 {
-	Expr *e;
-	e = newexprsrc(src, Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s+1, len-1);
-	return e;
+	return Zkon(mkvalcid(mkcid(s+1, len-1)));
 }
 
 Expr*
