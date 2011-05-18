@@ -127,8 +127,8 @@ git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
 
 clean:
-	@$(MAKE) -C x/lib9 clean
-	@$(MAKE) -C x/libflate clean
-	@$(MAKE) -C x/libsec clean
-	@$(MAKE) -C demo clean
+	@$(MAKE) -s -C x/lib9 clean
+	@$(MAKE) -s -C x/libflate clean
+	@$(MAKE) -s -C x/libsec clean
+	@$(MAKE) -s -C demo clean
 	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
