@@ -589,7 +589,7 @@ main(int argc, char *argv[])
 		}
 		if(opt['t'] || cqctflags['T'])
 			end = usec();
-		if(cqctflags['T'] && dorepl)
+		if(cqctflags['T'] && dorepl && opt['x'])
 			printf("%-40s\t%16" PRIu64 " usec\n", "exe",
 			       end-Tbeg);
 		if(opt['t'] && dorepl){
@@ -613,12 +613,7 @@ main(int argc, char *argv[])
 
 	}while(dorepl);
 
-	free(valv);
-	if(opt['x'])
-		cqctfreevm(vm);
-	cqctfini(top);
-
-	if(cqctflags['T'] && !dorepl)
+	if(cqctflags['T'] && !dorepl && opt['x'])
 		printf("%-40s\t%16" PRIu64 " usec\n", "exe",
 		       end-Tbeg);
 	if(opt['t'] && !dorepl){
@@ -629,6 +624,14 @@ main(int argc, char *argv[])
 			       4*mu.size, 4*mu.rss);
 		printf("\n");
 	}
+	if(opt['t'] || cqctflags['T'])
+		/* if we're profiling this process, exclude shutdown */
+		exit(0);
+
+	free(valv);
+	if(opt['x'])
+		cqctfreevm(vm);
+	cqctfini(top);
 
 	return status;
 }
