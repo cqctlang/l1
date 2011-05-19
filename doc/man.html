@@ -29,6 +29,7 @@
 <br />
 <em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
+<a href="#sec:cids">C Identifiers</a><br />
 <a href="#sec:cvalues">Cvalues</a><br />
 <a href="#sec:ranges">Ranges</a><br />
 <a href="#sec:backtick">Backtick Operator</a><br />
@@ -531,7 +532,7 @@ and <em>file descriptor</em>.
 </p>
 
 <p>
-The types special to Cinquecento are <em>cvalue</em>,
+The types special to Cinquecento are <em>cid</em>, <em>cvalue</em>,
 <em>ctype</em>, <em>domain</em>, <em>address
 space</em>, <em>name space</em>, and <em>range</em>.
 These types represent different aspects of a program in
@@ -575,6 +576,19 @@ Address space
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:isas">isas(<span class="arg">val</span>)</span>
+</div>
+</div>
+</td>
+</tr>
+
+<tr>
+<td>
+C type
+</td>
+<td>
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:iscid">iscid(<span class="arg">val</span>)</span>
 </div>
 </div>
 </td>
@@ -1632,6 +1646,75 @@ debugging functionality,
 such as access to registers, process control,
 and breakpoint control.
 </p>
+
+<h4 id="sec:cids">C identifiers</h4>
+
+<p>
+C identifiers (cids) represent identifiers in C programs.
+They also provide a general-purpose symbol type,
+similar to the symbol type of Lisp-based languages.
+</p>
+
+<p>
+The
+predicate <a href="#fn:iscid"><span class="fnindex">iscid</span></a>
+tests whether a value is a cid.
+</p>
+
+<p id="syn:cid">
+A cid literal is a single quote followed by any sequence
+of characters comprising a valid C identifier:
+</p>
+
+<div class="code">
+<pre>
+; s = 'identifier;
+identifier
+; iscid(s);
+1
+</pre>
+</div>
+
+<p>
+The following functions operate on cids.
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:mkcid">
+<span class="id">mkcid(<span class="arg">str</span>)</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">cid</span>
+</div>
+</div>
+<div class="desc">
+Converts the identifier in the string <span class="arg">str</span>
+to a cid.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:cid2str">
+<span class="id">cid2str(<span class="arg">cid</span>)</span>
+</div>
+<div class="param">
+<span class="arg">cid</span>: <span class="type">cid</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string containing the characters of the identifier
+<span class="arg">cid</span>.
+</div>
+</div>
+
 
 <h4 id="sec:cvalues">Cvalues</h4>
 
@@ -2784,7 +2867,7 @@ representation of symbols.)
 <span class="arg">type</span>: <span class="type">ctype</span>
 </div>
 <div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
+<span class="arg">id</span>: <span class="type">cid</span>
 </div>
 <div class="param">
 <span class="arg">attr</span>: <span class="type">table or cvalue</span> or
@@ -2816,7 +2899,7 @@ or omitted, no attribute table is created.
 <span class="arg">sym</span>: <span class="type">symbol</span>
 </div>
 <div class="returns">
-<span class="type">string</span>
+<span class="type">cid</span>
 </div>
 </div>
 <div class="desc">
@@ -2915,7 +2998,7 @@ and <span class="type">param</span> below).
 <span class="arg">type</span>: <span class="type">ctype</span>
 </div>
 <div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
+<span class="arg">id</span>: <span class="type">cid</span>
 </div>
 <div class="param">
 <span class="arg">attr</span>: <span class="type">table or cvalue</span> or
@@ -2952,7 +3035,7 @@ or omitted, no attribute table is created.
 <span class="arg">field</span>: <span class="type">field</span>
 </div>
 <div class="returns">
-<span class="type">string</span>
+<span class="type">cid</span>
 </div>
 </div>
 <div class="desc">
@@ -3025,7 +3108,7 @@ attribute <span class="val">"offset"</span >.
 <span class="arg">type</span>: <span class="type">ctype</span>
 </div>
 <div class="param">
-<span class="arg">id</span>: <span class="type">string</span> or <span class="type">nil</span>
+<span class="arg">id</span>: <span class="type">cid</span> or <span class="type">nil</span>
 </div>
 <div class="param">
 <span class="arg">attr</span>: <span class="type">table</span> or
@@ -3058,7 +3141,7 @@ no attribute table is created.
 <span class="arg">param</span>: <span class="type">param</span>
 </div>
 <div class="returns">
-<span class="type">string</span> or <span class="type">nil</span>
+<span class="type">cid</span> or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
@@ -3154,7 +3237,7 @@ not defined.
 <span class="arg">this</span>: <span class="type">invoking object</span>
 </div>
 <div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
+<span class="arg">id</span>: <span class="type">cid</span>
 </div>
 <div class="returns">
 <span class="type">symbol</span> or <span class="type">nil</span>
@@ -3328,7 +3411,7 @@ in the name space or domain <span class="arg">obj</span>.
 <span class="arg">obj</span>: <span class="type">domain</span> or <span class="type">name space</span>
 </div>
 <div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
+<span class="arg">id</span>: <span class="type">cid</span>
 </div>
 <div class="returns">
 <span class="type">symbol</span> or <span class="type">nil</span>
@@ -5245,7 +5328,7 @@ if no field has that name.
 <span class="arg">type</span>: <span class="type">aggregate or enumeration ctype</span>
 </div>
 <div class="returns">
-<span class="type">string or nil</span>
+<span class="type">cid or nil</span>
 </div>
 </div>
 <div class="desc">
@@ -5504,7 +5587,7 @@ Returns the return type of the function type represented by
 <span class="arg">type</span>: <span class="type">typedef ctype</span>
 </div>
 <div class="returns">
-<span class="type">string</span>
+<span class="type">cid</span>
 </div>
 </div>
 <div class="desc">
@@ -5604,7 +5687,7 @@ The following functions are the ctype constructors.
 </div>
 
 <div class="param">
-<span class="arg">tag</span>: <span class="type">string</span>
+<span class="arg">tag</span>: <span class="type">cid</span>
 </div>
 <div class="param">
 <span class="arg">fields</span>: <span class="type">vector of fields</span>
@@ -5766,7 +5849,7 @@ offset <span class="arg">pos</span> in the containing type.
 <span class="id">mkctype_enum(<span class="arg">tag</span>[,<span class="arg">consts</span>[,<span class="arg">type</span>]])</span>
 </div>
 <div class="param">
-<span class="arg">tag</span>: <span class="type">string</span>
+<span class="arg">tag</span>: <span class="type">cid</span>
 </div>
 <div class="param">
 <span class="arg">consts</span>: <span class="type">vector</span>
@@ -5864,7 +5947,7 @@ representing the pointer representation type.
 <span class="id">mkctype_typedef(<span class="arg">id</span>[,<span class="arg">type</span>])</span>
 </div>
 <div class="param">
-<span class="arg">id</span>: <span class="type">string</span>
+<span class="arg">id</span>: <span class="type">cid</span>
 </div>
 <div class="param">
 <span class="arg">type</span>: <span class="type">ctype</span>
@@ -5875,7 +5958,7 @@ representing the pointer representation type.
 </div>
 <div class="desc">
 Returns a new ctype representing a typedef.  
-<span class="arg">Id</span> is the name of typedef.
+<span class="arg">Id</span> is the name of the typedef.
 If provided, <span class="arg">type</span> is a ctype representing
 the aliased type.
 </div>
@@ -9751,6 +9834,7 @@ Design and Implementation, 207-216, June 1993.
 <table>
 <tr>
 <td>
+<a href="#syn:cidlit"><span class="val">'id</span> (cid literal)</a><br />
 <a href="#syn:invoke"><span class="val"><span class="arg">o</span>.<span class="arg">f</span> (method invocation)</a><br />
 <a href="#syn:asof"><span class="val"><span class="arg">dom</span>.as</span></a><br />
 <a href="#syn:asof"><span class="val"><span class="arg">dom</span>.ns</span></a><br />
@@ -9867,6 +9951,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:bsearch">bsearch</a><br />
 <a href="#fn:car">car</a><br />
 <a href="#fn:cdr">cdr</a><br />
+<a href="#fn:cid2str">cid2str</a><br />
 <a href="#fn:close">close</a><br />
 <a href="#fn:cntrget">cntrget</a><br />
 <a href="#fn:cntrput">cntrput</a><br />
@@ -9923,6 +10008,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isbase">isbase</a><br />
 <a href="#fn:isbitfield">isbitfield</a><br />
 <a href="#fn:isblank">isblank</a><br />
+<a href="#fn:iscid">iscid</a><br />
 <a href="#fn:iscntrl">iscntrl</a><br />
 <a href="#fn:isctype">isctype</a><br />
 <a href="#fn:iscvalue">iscvalue</a><br />
@@ -9983,6 +10069,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:asmap">map</a> (as method)<br />
 <a href="#fn:mapfile">mapfile</a><br />
 <a href="#fn:memset">memset</a><br />
+<a href="#fn:mkcid">mkcid</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
 <a href="#fn:mkctype_base">mkctype_base</a><br />
 <a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
