@@ -542,6 +542,7 @@ labels(U *ctx, Expr *e, HT *ls)
 	switch(e->kind){
 	case Elambda:
 	case Edefine:
+	case Edefloc:
 		return;
 	case Elabel:
 		id = idsym(e);
@@ -582,6 +583,7 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		checkgoto(ctx, e->e2);
 		break;
 	case Edefine:
+	case Edefloc:
 		checkgoto(ctx, e->e3);
 		break;
 	case Egoto:
@@ -664,6 +666,7 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 		checkctl(ctx, e->e2, 0, 0);
 		break;
 	case Edefine:
+	case Edefloc:
 		checkctl(ctx, e->e3, 0, 0);
 		break;
 	case Econtinue:
