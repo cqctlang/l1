@@ -985,7 +985,7 @@ ctlmux = @names clp64le {
 			name = pop(arg);
 
 			// this is not cool.
-			f = rdgettab(rdof(this))[name](this);
+			f = rdgettab(rdof(this))[mkcid(name)](this);
 
 			rv = apply(f, arg);
 			return rv;
@@ -1942,7 +1942,7 @@ ctlmux = @names clp64le {
 			// FIXME: this conversion is unfortunate.
 			s[1] = (ctlmux`uint8)basebase(t);
 		}else if(issu(t) || isenum(t)){
-			id = suetag(t);
+			id = cid2str(suetag(t));
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tag */
 			s = malloc(sz);
 			if(isstruct(t))
@@ -1958,7 +1958,7 @@ ctlmux = @names clp64le {
 			q = (char*)q;
 			putbytes(q, id);
 		}else if(istypedef(t)){
-			id = typedefid(t);
+			id = cid2str(typedefid(t));
 			sz += sizeof(ctlmux`uint64)+strlen(id); /* tid */
 			s = malloc(sz);
 			s[0] = ctlmux`Ttypedef;
@@ -1993,16 +1993,16 @@ ctlmux = @names clp64le {
 			cb = *q++;
 			return [mkctype_base(cb), q];
 		case ctlmux`Tstruct:
-			id = gets();
+			id = mkcid(gets());
 			return [mkctype_struct(id), q];
 		case ctlmux`Tunion:
-			id = gets();
+			id = mkcid(gets());
 			return [mkctype_union(id), q];
 		case ctlmux`Tenum:
-			id = gets();
+			id = mkcid(gets());
 			return [mkctype_enum(id), q];
 		case ctlmux`Ttypedef:
-			id = gets();
+			id = mkcid(gets());
 			return [mkctype_typedef(id), q];
 		case ctlmux`Tptr:
 			[st,tq] = decodetname(q);
@@ -2028,7 +2028,9 @@ ctlmux = @names clp64le {
 				sid = gets();
 				[pt,tq] = decodetname(q);
 				q = tq;
-				v[i] = mkparam(pt, strlen(sid) > 0 ? sid : nil);
+				v[i] = mkparam(pt,
+					       (strlen(sid) > 0
+						? mkcid(sid) : nil));
 			}
 			return [mkctype_fn(st, v), q];
 		case ctlmux`Tbitfield:
@@ -2073,7 +2075,7 @@ ctlmux = @names clp64le {
 				mk = mkctype_struct;
 			else
 				mk = mkctype_union;
-			id = gets();
+			id = mkcid(gets());
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
 			n = *q++;
@@ -2081,14 +2083,14 @@ ctlmux = @names clp64le {
 			for(i = 0; i < n; i++){
 				q = (ctlmux`uint64*)q;
 				off = *q++;
-				sid = gets();
+				sid = mkcid(gets());
 				[st,tq] = decodetname(q);
 				q = tq;
 				v[i] = mkfield(st, sid, off);
 			}
 			return [mk(id, v, sz), q];
 		case ctlmux`Tenum:
-			id = gets();
+			id = mkcid(gets());
 			q = (ctlmux`uint8*)q;
 			rep = *q++;
 			q = (ctlmux`uint64*)q;
@@ -2098,7 +2100,7 @@ ctlmux = @names clp64le {
 				error("no base type for rep %d", rep);
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
-				sid = gets();
+				sid = mkcid(gets());
 				q = (ctlmux`uint64*)q;
 				c = *q++;
 				v[i] = vector(sid, {st}c);
@@ -2128,11 +2130,13 @@ ctlmux = @names clp64le {
 				sid = gets();
 				[pt,tq] = decodetname(q);
 				q = tq;
-				v[i] = mkparam(pt, strlen(sid) > 0 ? sid : nil);
+				v[i] = mkparam(pt,
+					       (strlen(sid) > 0 ? 
+						mkcid(sid) : nil));
 			}
 			return [mkctype_fn(st, v), q];
 		case ctlmux`Ttypedef:
-			id = gets();
+			id = mkcid(gets());
 			[st,tq] = decodetname(q);
 			q = tq;
 			return [mkctype_typedef(id, st), q];
@@ -2319,6 +2323,7 @@ ctlmux = @names clp64le {
 		@local xid, xerr, flags, t, val, xsz;
 		@local tq; /* FIXME: unnecessary in bleed */
 
+		sym = cid2str(sym);
 		sz = sizeof(ctlmux`Tlooksym);
 		sz += sizeof(ctlmux`uint64); /* id */
 		sz += sizeof(ctlmux`uint64)+strlen(sym);
@@ -2349,7 +2354,7 @@ ctlmux = @names clp64le {
 
 		q = (ctlmux`uint64*)dat;
 		sz = *q++;
-		xid = getbytes(q, sz);
+		xid = mkcid(getbytes(q, sz));
 		q = (ctlmux`uint8*)((char*)q+sz);
 		flags = *q++;
 		q = (ctlmux`uint64*)q;
@@ -2395,7 +2400,7 @@ ctlmux = @names clp64le {
 		for(i = 0; i < m; i++){
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
-			xid = getbytes(q, sz);
+			xid = mkcid(getbytes(q, sz));
 			q = (ctlmux`uint8*)((char*)q+sz);
 			flags = *q++;
 			q = (ctlmux`uint64*)q;
@@ -2441,7 +2446,7 @@ ctlmux = @names clp64le {
 
 		q = (ctlmux`uint64*)dat;
 		sz = *q++;
-		xid = getbytes(q, sz);
+		xid = mkcid(getbytes(q, sz));
 		q = (ctlmux`uint8*)((char*)q+sz);
 		flags = *q++;
 		q = (ctlmux`uint64*)q;
