@@ -47,18 +47,18 @@ smapsz =    1048576
  nlock =          0
    ngc =          0
       TYPE GEN     #SEG  #LOCKED   #DIRTY
-      free   0       25        0        0
+      free   0       24        0        0
       free   1        0        0        0
       free   2        0        0        0
       free   3        0        0        0
       free   S        0        0        0
       free   L        0        0        0
-      data   0        3     4973        0
+      data   0        4     5536        0
       data   1        3        1        3
       data   2        0        0        0
       data   3        0        0        0
       data   S        0        0        0
-      data   L        4     5036        4
+      data   L        4     4473        4
       code   0        1        0        0
       code   1        1        0        0
       code   2        0        0        0
@@ -83,13 +83,13 @@ smapsz =    1048576
    bigcode   3        0        0        0
    bigcode   S        0        0        0
    bigcode   L        0        0        0
- inuse =   15728640
-  free =   26214400
+ inuse =   16777216
+  free =   25165824
 heapsz =   41943040
  bigsz =          0
 smapsz =    1048576
  ncard =          0
- nlock =       5039
+ nlock =       4476
    ngc =          1
       TYPE GEN     #SEG  #LOCKED   #DIRTY
       free   0       37        0        0
@@ -98,12 +98,12 @@ smapsz =    1048576
       free   3        0        0        0
       free   S        0        0        0
       free   L        0        0        0
-      data   0        3     7236        0
-      data   1        7        3        4
+      data   0        3     7301        0
+      data   1        7        3        3
       data   2        0        0        0
       data   3        0        0        0
       data   S        0        0        0
-      data   L        9    12771        9
+      data   L        9    12706        9
       code   0        1        0        0
       code   1        1        0        0
       code   2        0        0        0
@@ -133,6 +133,6 @@ smapsz =    1048576
 heapsz =   63963136
  bigsz =          0
 smapsz =    1048576
- ncard =          5
- nlock =      12776
+ ncard =          6
+ nlock =      12711
    ngc =          3
