@@ -310,23 +310,18 @@ static void
 l1_strcmp(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *str1, *str2;
+	int m;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to strcmp");
 	str1 = valstrorcval(vm, "strstr", argv, 0);
 	str2 = valstrorcval(vm, "strstr", argv, 1);
-	switch(Strcmp(str1, str2)){
-	case -1:
+	m = Strcmp(str1, str2);
+	if(m < 0)
 		*rv = mkvalcval2(cvalminus1);
-		break;
-	case 0:
+	else if(m == 0)
 		*rv = mkvalcval2(cval0);
-		break;
-	case 1:
+	else
 		*rv = mkvalcval2(cval1);
-		break;
-	default:
-		fatal("bug");
-	}
 }
 
 static void
