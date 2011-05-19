@@ -19,6 +19,7 @@ ns = @names c32le {
 };
 
 vec = tabvals(ns.enumtype());
+vec = sort(vec, typenamecmp);
 foreach(@lambda(t){
 		if(isenum(t))
 			foreach(@lambda(en){

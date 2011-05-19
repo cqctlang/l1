@@ -43,22 +43,6 @@
 	}
 };
 
-@define dumpns(dn){
-	@local ns, vec, i;
-	if(isdomain(dn))
-		ns = domns(dn);
-	else
-		ns = dn;
-	
-	vec = tabvals(ns.enumtype());
-	for(i = 0; i < length(vec); i++)
-		printtype(vecref(vec, i));
-
-	vec = tabvals(ns.enumsym());
-	for(i = 0; i < length(vec); i++)
-		printf("%t;\n", vecref(vec, i));
-}
-
 @define foo(){
 	@local ns, tab, vec, i, dom, p;
 

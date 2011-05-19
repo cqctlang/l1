@@ -1,12 +1,12 @@
 entry: var params, 3 locals, 1 temps
 enumtype: var params, 1 locals, 0 temps
+L100: 1 params, 0 locals, 0 temps
 L108: 1 params, 0 locals, 0 temps
-L116: 1 params, 0 locals, 0 temps
+a = 0
+b = 1
+c = 2
 d = 3
 v0 = 1
 v1 = 2
 v2 = 4
 v3 = 8
-a = 0
-b = 1
-c = 2
