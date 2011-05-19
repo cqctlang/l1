@@ -3281,7 +3281,7 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 static Ns*
 mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 {
-	Val v, idv, vecv, vp, x;
+	Val v, idv, vecv, vp, x, rv, argv[2];
 	Vec *vec, *kvec, *nvec;
 	Tab *t;
 	Ctype *tt, *tmp;
@@ -3408,11 +3408,16 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	vec = tabenum(ctx.undef);
 	m = vec->len/2;
 	if(m > 0 && cqctflags['w']){
+		nvec = mkvec(m);
+		for(i = 0; i < m; i++)
+			vecset(nvec, i, vecref(vec, i));
+		argv[0] = mkvalvec(nvec);
+		argv[1] = envlookup(vm->top->env, "typenamecmp");
+		l1_sort(vm, 2, argv, &rv);
 		xprintf("warning: name space references undefined "
 			"type%s:\n", m > 1 ? "s" : "");
-		while(m != 0){
-			m--;
-			vp = vecref(vec, m);
+		for(i = 0; i < m; i++){
+			vp = vecref(nvec, i);
 			as = fmtctype(valctype(vp));
 			xprintf("\t%.*s\n", (int)as->len, strdata(as));
 		}
