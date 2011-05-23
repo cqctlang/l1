@@ -148,7 +148,7 @@ freeexprx(Expr *e)
 	switch(e->kind){
 	case E_tid:
 		v = e->xp;
-		if(v->where != Vtop)
+		if(v->where != Vtopl && v->where != Vtopr)
 			fatal("bug");
 		efree(v);
 		break;
@@ -517,13 +517,17 @@ pass1(Expr *e, Xenv *lex)
 }
 
 static Var*
-topvar(Env *top, char *id)
+topvar(Env *top, Cid *id)
 {
 	Var *v;
 	v = emalloc(sizeof(Var));
-	v->id = id;
-	v->where = Vtop;
-	v->val = envgetbind(top, id);
+	if(envbinds(top, id)){
+		v->where = Vtopr;
+		v->kv = envgetkv(top, id);
+	}else{
+		v->where = Vtopl;
+		v->sym = id;
+	}
 	return v;
 }
 
@@ -561,7 +565,7 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		id = idsym(e);
 		if(xenvlook(lex, id))
 			fatal("bug");
-		v = topvar(top, id);
+		v = topvar(top, idcid(e));
 		e->xp = v;
 		break;
 	case Eid:
@@ -759,11 +763,17 @@ varequal(Var *a, Var *b)
 {
 	if(a->where != b->where)
 		return 0;
-	if(a->where == Vtop){
-		if(strcmp(a->id, b->id))
-			return 0;
-		else
+	if(a->where == Vtopl){
+		if(a->sym == b->sym)
 			return 1;
+		else
+			return 0;
+	}
+	if(a->where == Vtopr){
+		if(a->kv == b->kv)
+			return 1;
+		else
+			return 0;
 	}
 	return (a->idx == b->idx && a->box == b->box);
 }

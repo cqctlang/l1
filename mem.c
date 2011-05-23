@@ -1582,14 +1582,6 @@ gcwb(Val v)
 }
 
 static void
-toproot(void *u, char *k, void *v)
-{
-	Val *p;
-	p = v;
-	copy(v);
-}
-
-static void
 toprd(void *u, void *k, void *v)
 {
 	Val *p;
@@ -2018,7 +2010,7 @@ _gc(u32 g, u32 tg)
 		copystack(vm);
 		for(m = 0; m < vm->edepth; m++)
 			copy(&vm->err[m].cl);
-		hforeach(vm->top->env->var, toproot, 0);
+		copy((Val*)&vm->top->env->var);
 		hforeachp(vm->top->env->rd, toprd, 0);
 		copy(&vm->ac);
 		copy(&vm->cl);

@@ -1,0 +1,15 @@
+@global main;
+{
+	@defloc foo()
+	{
+		printf("%a\n", unboundvar);
+	}
+
+	@define main()
+	{
+		gc(); gc(); gc(); gc(); gc(); gc();
+		foo();	
+	}
+}
+
+main();

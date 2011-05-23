@@ -1,0 +1,13 @@
+@global foo;
+{
+@defloc fool()
+{
+	printf("okay\n");
+}
+
+@define foo()
+{
+	fool();
+}
+}
+foo();

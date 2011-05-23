@@ -634,7 +634,8 @@ enum
 {
 	Vparam,
 	Vlocal,
-	Vtop,
+	Vtopl,
+	Vtopr,
 	Vdisp,
 } Vwhere;
 
@@ -645,7 +646,8 @@ struct Var
 	Vwhere where;
 	unsigned idx;
 	unsigned box;
-	Val *val;		/* Vtop */
+	Cid *sym;		/* Vtopl (FIXME: not gc protected) */
+	Pair *kv;		/* Vtopr (FIXME: not gc protected) */
 } Var;
 
 typedef
@@ -656,6 +658,7 @@ enum
 	Llocal,
 	Ldisp,
 	Ltopl,
+	Ltopr,
 } Lkind;
 
 typedef
@@ -689,8 +692,8 @@ struct Boxset
 
 typedef
 struct Location {
-	Var *var;		/* Ltopl */
 	unsigned loc;		/* access with LOC macros */
+	Val v;			/* topl/topr */
 } Location;
 
 #define LOC(idx,box,kind)	(((idx)<<4)|((box&1)<<3)|((kind)&0x7))
@@ -700,7 +703,7 @@ struct Location {
 
 typedef
 struct Operand {
-	unsigned okind;
+	unsigned char okind;
 	union{
 		Location loc;
 		Val kon;
@@ -782,7 +785,7 @@ struct Xenv {
 
 typedef
 struct Env {
-	HT *var;		/* variable bindings */
+	Tab *var;		/* variable bindings */
 	HT *rd;			/* record descriptors */
 } Env;
 
@@ -976,9 +979,10 @@ Tab*		doinsncnt(void);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 void		dogc(VM *vm, u32 g, u32 tg);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
-int		envbinds(Env *env, char *id);
-Val*		envget(Env *env, char *id);
-Val*		envgetbind(Env *env, char *id);
+int		envbinds(Env *env, Cid *id);
+void		envdefine(Env *env, Cid *id, Val v);
+Val		envget(Env *env, Cid *id);
+Pair*		envgetkv(Env *env, Cid *id);
 int		eqval(Val v1, Val v2);
 Val		expr2syntax(Expr *e);
 void		freeenv(Env *env);
@@ -1099,6 +1103,7 @@ void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 Expr*		doid(char*);
 Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 unsigned	elistlen(Expr *l);
+Cid*		idcid(Expr *e);
 char*		idsym(Expr *e);
 int		isnull(Expr *e);
 Expr*		putsrc(Expr *e, Src *src);
@@ -1268,6 +1273,7 @@ int		islink(Val v);
 void		l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv);
 Val		linkkey(Pair *lnk);
+Pair*		linkkv(Pair *lnk);
 Val		linkval(Pair *lnk);
 Val		linknext(Pair *lnk);
 Tab*		tabcopy(Tab *tab);
@@ -1276,6 +1282,7 @@ Vec*		tabenum(Tab *tab);
 Vec*		tabenumkeys(Tab *tab);
 Vec*		tabenumvals(Tab *tab);
 Val		tabget(Tab *tab, Val keyv);
+Pair*		tabgetkv(Tab *t, Val k);
 void		tabpop(Tab *tab, Val *rv);
 void		tabput(Tab *tab, Val keyv, Val val);
 

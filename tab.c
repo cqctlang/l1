@@ -48,6 +48,12 @@ linkkey(Pair *lnk)
 	return caar(lnk);
 }
 
+Pair*
+linkkv(Pair *lnk)
+{
+	return (Pair*)car(lnk);
+}
+
 Val
 linkval(Pair *lnk)
 {
@@ -146,6 +152,16 @@ get(Tab *t, Val k)
 			return lnk;
 	}
 	return getrehash(t, k);
+}
+
+Pair*
+tabgetkv(Tab *t, Val k)
+{
+	Pair *lnk;
+	lnk = get(t, k);
+	if(lnk)
+		return linkkv(lnk);
+	return 0;
 }
 
 Val

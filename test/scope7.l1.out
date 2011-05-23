@@ -1,0 +1,7 @@
+scope7.l1:5: warning: reference to unbound variable: unboundvar
+entry: var params, 2 locals, 0 temps
+foo: 0 params, 0 locals, 0 temps
+main: 0 params, 0 locals, 0 temps
+error: reference to unbound variable: unboundvar
+                 foo	(scope7.l1:5)
+               entry	(scope7.l1:14)

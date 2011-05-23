@@ -272,10 +272,9 @@ Zref(Expr *dom, Expr *type, Expr *val)
 	return newexpr(E_ref, dom, type, val, 0);
 }
 
-char*
-idsym(Expr *e)
+Cid*
+idcid(Expr *e)
 {
-	Cid *id;
 	switch(e->kind){
 	case Eid:
 	case Elabel:
@@ -285,8 +284,13 @@ idsym(Expr *e)
 	default:
 		bug();
 	}
-	id = valcid(e->aux);
-	return ciddata(id);
+	return valcid(e->aux);
+}
+
+char*
+idsym(Expr *e)
+{
+	return ciddata(idcid(e));
 }
 
 Expr*

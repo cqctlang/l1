@@ -391,66 +391,62 @@ mkenv(void)
 {
 	Env *env;
 	env = emalloc(sizeof(Env));
-	env->var = mkhts();
+	env->var = mktab();
 	env->rd = mkhts();
 	return env;
 }
 
 int
-envbinds(Env *env, char *id)
+envbinds(Env *env, Cid *id)
 {
-	if(hgets(env->var, id, strlen(id)))
+	if(tabget(env->var, mkvalcid(id)))
 		return 1;
 	else
 		return 0;
 }
 
-Val*
-envgetbind(Env *env, char *id)
+void
+envdefine(Env *env, Cid *id, Val v)
 {
-	Val *v;
-
-	v = hgets(env->var, id, strlen(id));
-	if(!v){
-		v = emalloc(sizeof(Val));
-		*v = Xundef;
-		hputs(env->var, xstrdup(id), strlen(id), v);
-	}
-	return v;
+	if(envbinds(env, id))
+		bug();
+	tabput(env->var, mkvalcid(id), v);
 }
 
-Val*
-envget(Env *env, char *id)
+Pair*
+envgetkv(Env *env, Cid *id)
 {
-	return hgets(env->var, id, strlen(id));
+	return tabgetkv(env->var, mkvalcid(id));
+}
+
+Val
+envget(Env *env, Cid *id)
+{
+	return tabget(env->var, mkvalcid(id));
+}
+
+void
+envput(Env *env, Cid *id, Val v)
+{
+	tabput(env->var, mkvalcid(id), v);
 }
 
 static void
 envbind(Env *env, char *id, Val val)
 {
-	Val *v;
-
-	v = envgetbind(env, id);
-	*v = val;
+	Cid *cid;
+	cid = mkcid0(id);
+	if(envbinds(env, cid)){
+		xprintf("warning: rebinding %s via envbind\n", id);
+		envput(env, cid, val);
+	}else
+		envdefine(env, cid, val);
 }
 
 static Val
 envlookup(Env *env, char *id)
 {
-	Val *v;
-
-	v = envgetbind(env, id);
-	if(Vkind(*v) == Qundef)
-		return 0;
-	return *v;
-}
-
-static void
-freebinding(void *u, char *id, void *v)
-{
-	USED(u);
-	efree(id);
-	efree((Val*)v);
+	return envget(env, mkcid0(id));
 }
 
 static void
@@ -464,9 +460,7 @@ freerd(void *u, char *id, void *v)
 void
 freeenv(Env *env)
 {
-	hforeach(env->var, freebinding, 0);
 	hforeach(env->rd, freerd, 0);
-	freeht(env->var);
 	freeht(env->rd);
 	efree(env);
 }
@@ -612,8 +606,10 @@ putval(VM *vm, Val v, Location *loc)
 			*dst = v;
 		break;
 	case Ltopl:
-		dst = loc->var->val;
-		*dst = v;
+		envput(vm->top->env, valcid(loc->v), v);
+		break;
+	case Ltopr:
+		setcdr(loc->v, v);
 		break;
 	default:
 		fatal("bug");
@@ -736,10 +732,16 @@ getval(VM *vm, Location *loc)
 		else
 			return p;
 	case Ltopl:
-		p = *(loc->var->val);
+		p = envget(vm->top->env, valcid(loc->v));
+		if(p == 0 || p == Xundef)
+			vmerr(vm, "reference to unbound variable: %s",
+			      ciddata(valcid(loc->v)));
+		return p;
+	case Ltopr:
+		p = cdr(loc->v);
 		if(p == Xundef)
 			vmerr(vm, "reference to unbound variable: %s",
-			      loc->var->id);
+			      ciddata(valcid(car(loc->v))));
 		return p;
 	default:
 		fatal("bug");
@@ -781,10 +783,16 @@ getcval(VM *vm, Location *loc)
 			return valboxedcval(p);
 		return valcval(p);
 	case Ltopl:
-		p = *(loc->var->val);
-		if(Vkind(p) == Qundef)
+		p = envget(vm->top->env, valcid(loc->v));
+		if(p == 0 || p == Xundef)
 			vmerr(vm, "reference to unbound variable: %s",
-			      loc->var->id);
+			      ciddata(valcid(loc->v)));
+		return valcval(p);
+	case Ltopr:
+		p = cdr(loc->v);
+		if(p == Xundef)
+			vmerr(vm, "reference to unbound variable: %s",
+			      ciddata(valcid(car(loc->v))));
 		return valcval(p);
 	default:
 		fatal("bug");
@@ -6674,7 +6682,6 @@ mktopenv(void)
 	FN(setloadpath);
 	FN(sort);
 	FN(split);
-	FN(sprintfa);
 	FN(stringof);
 
 	fnch(env);
@@ -7113,11 +7120,7 @@ cqctenvbind(Toplevel *top, char *name, Val v)
 Val
 cqctenvlook(Toplevel *top, char *name)
 {
-	Val *rv;
-	rv = envget(top->env, name);
-	if(rv)
-		return *rv;
-	return 0;
+	return envget(top->env, mkcid0(name));
 }
 
 uint64_t

@@ -54,7 +54,7 @@ defloc(U *ctx, Expr *e, Expr *scope)
 static Expr*
 globals(U *ctx, Expr *e, Env *env)
 {
-	Expr *p, *se;
+	Expr *p;
 
 	if(e == 0)
 		return e;
@@ -62,15 +62,12 @@ globals(U *ctx, Expr *e, Env *env)
 	switch(e->kind){
 	case Eglobal:
 		p = e->e1;
-		se = nullelist();
 		while(p->kind == Eelist){
-			envgetbind(env, idsym(p->e1));
-			se = Zcons(Zset(p->e1, Znil()), se);
-			p->e1 = 0; /* steal */
+			if(!envbinds(env, idcid(p->e1)))
+				envdefine(env, idcid(p->e1), Xnil);
 			p = p->e2;
 		}
-		freeexpr(e);
-		return invert(se);
+		return putsrc(Znop(), &e->src);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
@@ -125,23 +122,18 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 		id = idsym(e);
 		if(xenvlook(lex, id))
 			return e;
-		if(!envbinds(env, id))
-			envgetbind(env, id);
 		se = Ztid(id);
 		putsrc(se, &e->src);
-		freeexpr(e);
 		return se;
 	case Eg:
 		id = idsym(e->e1);
 		e->e2 = toplevel(ctx, e->e2, env, lex);
 		if(xenvlook(lex, id))
 			return e;
-		if(!envbinds(env, id))
-			envgetbind(env, id);
+		if(!envbinds(env, idcid(e->e1)))
+			envdefine(env, idcid(e->e1), Xnil);
 		se = Ztg(id, e->e2);
 		putsrc(se, &e->src);
-		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;
@@ -160,7 +152,76 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 }
 
 static Expr*
-resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
+resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
+{
+	Expr *se, *p;
+	char *id;
+	Xenv *rib;
+
+	if(e == 0)
+		return 0;
+
+	switch(e->kind){
+	case Eg:
+		id = idsym(e->e1);
+		if(xenvlook(lex, id)){
+			e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
+			return e;
+		}else if(!envbinds(top, idcid(e->e1)) && scope){
+			/* create binding in innermost lexical scope */
+			if(cqctflags['w'])
+				cwarnln(ctx,
+					e, "assignment to unbound variable: %s",
+					id);
+			newlocal(scope->e1, e->e1);
+			xenvbind(slex, id, e);
+			e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
+			return e;
+		}else{
+			/* global assignment */
+			e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
+			se = Ztg(id, e->e2);
+			putsrc(se, &e->src);
+			return se;
+		}
+		break;
+	case Elambda:
+		rib = mkxenv(lex);
+		bindids(rib, e->e1, e);
+		e->e2 = resolve1(ctx, e->e2, top, rib, scope, slex);
+		freexenv(rib);
+		return e;
+	case Escope:
+		e->e1 = resolve1(ctx, e->e1, top, lex, e, slex);
+		return e;
+	case Eblock:
+		rib = mkxenv(lex);
+		bindids(rib, e->e1, e);
+		// slex always points to rib of innermost Escope's block
+		// scope is 0 where we've introduced blocks at toplevel
+		if(scope && scope->e1 == e)
+			slex = rib;
+		e->e2 = resolve1(ctx, e->e2, top, rib, scope, slex);
+		freexenv(rib);
+		return e;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			p->e1 = resolve1(ctx, p->e1, top, lex, scope, slex);
+			p = p->e2;
+		}
+		return e;
+	default:
+		e->e1 = resolve1(ctx, e->e1, top, lex, scope, slex);
+		e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
+		e->e3 = resolve1(ctx, e->e3, top, lex, scope, slex);
+		e->e4 = resolve1(ctx, e->e4, top, lex, scope, slex);
+		return e;
+	}
+}
+
+static Expr*
+resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 {
 	Expr *se, *p;
 	char *id;
@@ -174,53 +235,20 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		id = idsym(e);
 		if(xenvlook(lex, id))
 			return e;
-		else if(envbinds(top, id)){
-			se = Ztid(id);
-			putsrc(se, &e->src);
-			freeexpr(e);
-			return se;
-		}else if(scope){
-			/* bind to innermost lexical scope */
-			newlocal(scope->e1, e);
-			xenvbind(slex, id, e);
-			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
-			return e;
-		}else
-			fatal("bug");
-		return e;
-	case Eg:
-		id = idsym(e->e1);
-		if(xenvlook(lex, id)){
-			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
-			return e;
-		}else if(envbinds(top, id)){
-			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
-			se = Ztg(id, e->e2);
-			e->e2 = 0;
-			putsrc(se, &e->src);
-			freeexpr(e);
-			return se;
-		}else if(scope){
-			/* bind to innermost lexical scope */
-			if(cqctflags['w'])
-				cwarnln(ctx,
-					e, "assignment to unbound variable: %s",
-					id);
-			newlocal(scope->e1, e->e1);
-			xenvbind(slex, id, e);
-			e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
-			return e;
-		}else
-			fatal("bug");
-		break;
+		if(cqctflags['w'] && !envbinds(top, idcid(e)))
+			cwarnln(ctx, e,
+				"reference to unbound variable: %s", id);
+		se = Ztid(id);
+		putsrc(se, &e->src);
+		return se;
 	case Elambda:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		e->e2 = resolve(ctx, e->e2, top, rib, scope, slex);
+		e->e2 = resolve2(ctx, e->e2, top, rib, scope, slex);
 		freexenv(rib);
 		return e;
 	case Escope:
-		e->e1 = resolve(ctx, e->e1, top, lex, e, slex);
+		e->e1 = resolve2(ctx, e->e1, top, lex, e, slex);
 		return e;
 	case Eblock:
 		rib = mkxenv(lex);
@@ -229,23 +257,31 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		// scope is 0 where we've introduced blocks at toplevel
 		if(scope && scope->e1 == e)
 			slex = rib;
-		e->e2 = resolve(ctx, e->e2, top, rib, scope, slex);
+		e->e2 = resolve2(ctx, e->e2, top, rib, scope, slex);
 		freexenv(rib);
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = resolve(ctx, p->e1, top, lex, scope, slex);
+			p->e1 = resolve2(ctx, p->e1, top, lex, scope, slex);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = resolve(ctx, e->e1, top, lex, scope, slex);
-		e->e2 = resolve(ctx, e->e2, top, lex, scope, slex);
-		e->e3 = resolve(ctx, e->e3, top, lex, scope, slex);
-		e->e4 = resolve(ctx, e->e4, top, lex, scope, slex);
+		e->e1 = resolve2(ctx, e->e1, top, lex, scope, slex);
+		e->e2 = resolve2(ctx, e->e2, top, lex, scope, slex);
+		e->e3 = resolve2(ctx, e->e3, top, lex, scope, slex);
+		e->e4 = resolve2(ctx, e->e4, top, lex, scope, slex);
 		return e;
 	}
+}
+
+static Expr*
+resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
+{
+	e = resolve1(ctx, e, top, lex, scope, slex);
+	e = resolve2(ctx, e, top, lex, scope, slex);
+	return e;
 }
 
 static Expr*
@@ -307,7 +343,6 @@ docompileb(U *ctx, Expr *e)
 	 * top-level source line info in errors.
 	 */
 	s = e->src;
-	envgetbind(ctx->top->env, "$$");
 	e = Zlambda(ctx->argsid ? Zvararg(doid(ctx->argsid)) : nullelist(),
 		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
 	putsrc(e, &s);

@@ -383,7 +383,10 @@ printrand(Operand *r)
 				xprintf("]");
 			break;
 		case Ltopl:
-			xprintf("<%s>", loc->var->id);
+			xprintf("<%s>", ciddata(valcid(loc->v)));
+			break;
+		case Ltopr:
+			xprintf("<%s>", ciddata(valcid(car(loc->v))));
 			break;
 		}
 		break;
@@ -402,11 +405,21 @@ static void
 setreloc1(Code *c, Operand *r)
 {
 	void *b, *a;
-	if(r->okind != Okon)
+	switch(r->okind){
+	case Okon:
+		a = &r->u.kon;
+		break;
+	case Oloc:
+		if(LOCKIND(r->u.loc.loc) != Ltopl
+		   && LOCKIND(r->u.loc.loc) != Ltopr)
+			return;
+		a = &r->u.loc.v;
+		break;
+	default:
 		return;
+	}
 	b = c->insn;
-	a = &r->u.kon;
-	addreloc(c, a-b);
+	addreloc(c, a-b);	
 }
 
 static void
@@ -422,26 +435,30 @@ setreloc(Code *c)
 		case Iret:
 		case Ihalt:
 		case Ipanic:
-		case Ikg:
 		case Ikp:
 		case Ijmp:
 		case Ilive:
 		case Inop:
-			// none case
 			break;
-		case Iargc:
-		case Ivargc:
+		case Ikg:
+			setreloc1(c, &i->dst);
+			break;
 		case Iinv:
 		case Ineg:
 		case Inot:
-		case Isubsp:
 		case Imov:
+		case Iclo:
+		case Isizeof:
+			setreloc1(c, &i->op1);
+			setreloc1(c, &i->dst);
+			break;
+		case Iargc:
+		case Ivargc:
+		case Isubsp:
 		case Ipush:
 		case Ipushi:
 		case Icall:
 		case Icallt:
-		case Isizeof:
-		case Iclo:
 		case Ibox:
 		case Ibox0:
 		case Ijnz:
@@ -468,12 +485,14 @@ setreloc(Code *c)
 		case Ilist:
 			setreloc1(c, &i->op1);
 			setreloc1(c, &i->op2);
+			setreloc1(c, &i->dst);
 			break;
 		case Icval:
 		case Iref:
 			setreloc1(c, &i->op1);
 			setreloc1(c, &i->op2);
 			setreloc1(c, &i->op3);
+			setreloc1(c, &i->dst);
 			break;
 		}
 	}
@@ -750,11 +769,15 @@ varloc(Location *loc, Var *v, int deref)
 	case Vdisp:
 		newloc(loc, Ldisp, v->idx, deref);
 		break;
-	case Vtop:
-		/* toplevel vars are not referencable boxes
-		   and use var instead of index */
+	case Vtopl:
+		/* only the location type is used for toplevel var */
 		newloc(loc, Ltopl, 0, 0);
-		loc->var = v;
+		loc->v = mkvalcid(v->sym);
+		break;
+	case Vtopr:
+		/* only the location type is used for toplevel var */
+		newloc(loc, Ltopr, 0, 0);
+		loc->v = mkvalpair(v->kv);
 		break;
 	default:
 		fatal("bug");
