@@ -34,3 +34,7 @@ referenced in subsequent array element expressions
 cvalues of float and double types are supported.  long
 double is still not supported.
 
+cids have been added.  many interface use cids instead of strings.
+
+@global no longer dynamically resets variables to nil
+
