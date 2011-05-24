@@ -96,35 +96,32 @@ of the L1 implementation of Cinquecento.
 
 <p>
 Cinquecento is a programming language designed for
-examining programs in execution.  Its most
-distinguishing feature is an extensible abstraction,
-called a <em>domain</em>, that represents a target
-program in execution.
+examining programs in execution.  It features an
+extensible abstraction, called a <em>domain</em>, that
+represents a program in execution as a language
+value.
 </p>
 
 <p>
-A domain presents the state of a target program through
-an interface based on the syntax and semantics of C.
-Ordinary C expressions can be used to read or modify
-target program memory.  More complex C idioms for
-traversing data structures, such as pointer-chasing
-loops, generally work without modification.  All C
-types, operators, and control flow statements work as
-expected.  The names and types of target program data
-can be specified in C declaration syntax; minor
-extensions allow machine-level specification of
+The interface to a domain is based on the syntax and
+semantics of the C programming language.  Fragments of
+C, including C operators, types, and control flow, can
+be written to read or modify target program memory.
+Complex C idioms for traversing data structures, such
+as pointer-chasing loops, generally work without
+modification.  The names and types of target program
+data can be specified in the syntax of C declarations;
+minor extensions allow machine-level specification of
 location, layout, and encoding of data in memory.
 </p>
 
 <p>
-A Cinquecento program can use multiple domains to
-manipulate multiple simultaneously active target
-programs.
-
+Multiple simultaneously active target programs can be
+represented as distinct domains within a single Cinquecento program.
 Heterogeneity is expected: the targets may be different
 programs, or the same program with different types,
-symbols, or executable format; and the targets may
-execute on different machines, of possibly different
+symbols, or executable format; the targets may execute
+on different machines, possibly of different
 architecture or operating system.
 
 Example applications include comparing executions of
@@ -143,7 +140,7 @@ memory and other run-time state.  Rather than favor the
 idiosyncrasies of one operating system, architecture,
 compiler, or debugging information format, Cinquecento
 specifies a small, extensible interface that allows
-users to easily tailor domains for their target
+users to tailor domains for their target
 environment.  New domain implementations can be written
 entirely in Cinquecento; built-in library functions and
 accompanying programs simplify construction of domains
@@ -513,7 +510,9 @@ been declared with <span class="id">@local</span>.
 </p>
 
 <p>
-A reference to an unbound global variable is an error.
+A reference to an unbound variable is resolved in the top-level
+environment.  It is an error if no binding to the variable
+has occurred before the reference is evaluated.
 </p>
 
 <h4 id="sec:types">Types</h4>
@@ -3792,7 +3791,7 @@ An aggregate may declare <em>anonymous
 fields</em> of aggregate type.  These interior
 aggregates may be declared within the containing
 aggregate, or refer to an aggregate declared elsewhere.
-Either way, their fields in effect become the fields of
+Either way, their fields become in effect the fields of
 the containing aggregate.  For example, this sequence
 of expressions:
 </p>
