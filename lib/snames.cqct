@@ -1,0 +1,164 @@
+#!/usr/bin/env l1
+!#
+@include <sctl.cqct>
+
+sns = @names clp64be {
+	typedef short unsigned int sa_family_t;
+	typedef uint16 in_port_t;
+	typedef uint32 in_addr_t;
+
+	struct in_addr {
+		@0x0	in_addr_t s_addr;
+		@0x4;
+	};
+
+	struct sockaddr_in {
+		@0x0	sa_family_t sin_family;
+		@0x2	in_port_t sin_port;
+		@0x4	struct in_addr sin_addr;
+		@0x8	unsigned char sin_zero[0x8];
+		@0x10;
+	};
+};
+
+@define fmtsa(sa)
+{
+	@local p;
+	sa = (struct sns`sockaddr_in*)sa;
+	p = (`uint8*)&sa->sin_addr.s_addr;
+	return sprintfa("%d.%d.%d.%d:%d",
+			p[0], p[1], p[2], p[3],
+			sa->sin_port);
+}
+
+@define notimpl(fd, msg, dat)
+{
+	rerror(fd, msg->tag, "server does not support %e", msg->op);
+}
+
+@define botch(fd, tag)
+{
+	rerror(fd, tag, "protocol botched");
+}
+
+@define tping(fd, msg, dat)
+{
+	@local p, sz;
+	sz = sizeof(sctl`Rping);
+	p = (sctl`Rping*)malloc(sz);
+	p->op = sctl`Rping;
+	p->tag = msg->tag;
+	p->cnt = length(dat);
+	sendmsg(fd, p);
+	return 'ok;
+}
+
+@define tversion(fd, msg, dat)
+{
+	@local p, sz, s;
+	s = split(dat, ":");
+	if(length(s) < 1){
+		botch(fd, msg->tag);
+		return 'bad;
+	}
+	if(s[0] != "sctl-2010"){
+		rerror(fd, msg->tag, "unsupported version");
+		return 'bad;
+	}
+	if(length(s) != 2){
+		botch(fd, msg->tag);
+		return 'bad;
+	}
+	sz = sizeof(sctl`Rversion)+strlen(dat);
+	p = (sctl`Rversion*)malloc(sz);
+	p->op = sctl`Rversion;
+	p->tag = msg->tag;
+	printf("data is %s\n", dat);
+	putbytes(p+1, dat);
+	sendmsg(fd, p, sz);
+	return 'ok;
+}
+
+/* FIXME: resolve issues in equivalence that led us to
+   explicitly unify types of handle keys */
+handle = [
+	(sctl`Mkind)sctl`Tversion  : tversion,
+	(sctl`Mkind)sctl`Tping     : tping,
+	(sctl`Mkind)sctl`Tps       : notimpl,
+	(sctl`Mkind)sctl`Tlaunch   : notimpl,
+	(sctl`Mkind)sctl`Tattach   : notimpl,
+	(sctl`Mkind)sctl`Tstat     : notimpl,
+	(sctl`Mkind)sctl`Tcont     : notimpl,
+	(sctl`Mkind)sctl`Tstop     : notimpl,
+	(sctl`Mkind)sctl`Tstep     : notimpl,
+	(sctl`Mkind)sctl`Tsnap     : notimpl,
+	(sctl`Mkind)sctl`Tkill     : notimpl,
+	(sctl`Mkind)sctl`Tdetach   : notimpl,
+	(sctl`Mkind)sctl`Ttrace    : notimpl,
+	(sctl`Mkind)sctl`Tsettrap  : notimpl,
+	(sctl`Mkind)sctl`Tclrtrap  : notimpl,
+	(sctl`Mkind)sctl`Tgetctx   : notimpl,
+	(sctl`Mkind)sctl`Tsetctx   : notimpl,
+	(sctl`Mkind)sctl`Tread     : notimpl,
+	(sctl`Mkind)sctl`Twrite    : notimpl,
+	(sctl`Mkind)sctl`Tlooksym  : notimpl,
+	(sctl`Mkind)sctl`Tenumsym  : notimpl,
+	(sctl`Mkind)sctl`Tlooktype : notimpl,
+	(sctl`Mkind)sctl`Tenumtype : notimpl,
+	(sctl`Mkind)sctl`Tlookaddr : notimpl,
+	(sctl`Mkind)sctl`Tenumloc  : notimpl,
+	(sctl`Mkind)sctl`Tunwind   : notimpl,
+	(sctl`Mkind)sctl`Tenumseg  : notimpl,
+	(sctl`Mkind)sctl`Tnames    : notimpl,
+];
+
+@define tdispatch(fd)
+{
+	@local msg, dat, fn;
+	[msg, dat] = recvmsg(fd);
+	if(msg == nil)
+		return dat;
+	fn = handle[(sctl`Mkind)msg->op];
+	if(fn == nil)
+		return 'badop;
+	return fn(fd, msg, dat);
+}
+
+@define main(port, prefix)
+{
+	@local lfd, fd, fds, rs, ws, es, x;
+	lfd = tcplisten(sprintfa(":%u", port));
+	fds = [ lfd ];
+	while(1){
+		[rs, ws, es] = select(fds, [], []);
+		foreach(@lambda(r){
+				if(r == lfd){
+					fd = tcpaccept(lfd);
+					printf("accepted connection from ");
+					printf("%s\n", fmtsa(getpeername(fd)));
+					append(fds, fd);
+					return;
+				}
+				switch(x = tdispatch(r)){
+				case 'closed:
+					printf("closing %s\n",
+					       fmtsa(getpeername(r)));
+					close(r);
+					delete(fds, r);
+					break;
+				case 'badop:
+					printf("bad op!\n");
+					close(r);
+					delete(fds, r);
+					break;
+				case 'ok:
+					break;
+				default:
+					printf("??tdispatch?? %a\n", x);
+					break;
+				}
+			}, rs);
+	}
+}
+
+main(30000, "/prefix");

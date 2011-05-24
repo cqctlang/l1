@@ -1,0 +1,869 @@
+/* sctl messages */
+
+sctl = @names clp64le {
+	typedef
+	enum Mkind {
+		Reserved0 = 0,
+		Rerror,
+		Reserved2,
+		Aevent,
+		Tversion,
+		Rversion,
+		Tping,
+		Rping,
+		Tps,
+		Rps,
+		Tlaunch,
+		Rlaunch,
+		Tattach,
+		Rattach,
+		Tstat,
+		Rstat,
+		Tcont,
+		Rcont,
+		Tstop,
+		Rstop,
+		Tstep,
+		Rstep,
+		Tsnap,
+		Rsnap,
+		Tkill,
+		Rkill,
+		Tdetach,
+		Rdetach,
+		Ttrace,
+		Rtrace,
+		Tsettrap,
+		Rsettrap,
+		Tclrtrap,
+		Rclrtrap,
+		Tgetctx,
+		Rgetctx,
+		Tsetctx,
+		Rsetctx,
+		Tread,
+		Rread,
+		Twrite,
+		Rwrite,
+		Tlooksym,
+		Rlooksym,
+		Tenumsym,
+		Renumsym,
+		Tlooktype,
+		Rlooktype,
+		Tenumtype,
+		Renumtype,
+		Tlookaddr,
+		Rlookaddr,
+		Tenumloc,
+		Renumloc,
+		Tunwind,
+		Runwind,
+		Tenumseg,
+		Renumseg,
+		Tnames,
+		Rnames,
+	} Mkind;
+
+	enum Mode {
+		/* trap modes */
+		Mbrk	= 0,
+		Msnap	= 1,
+	};
+	enum Flags {
+		/* launch flags */
+		Fstdin   = 1,		  /* redirect stdin */
+		Fstdout  = (Fstdin<<1),   /* redirect stdout */
+		Fstderr  = (Fstdout<<1),  /* redirect stderr */
+	};
+
+	typedef
+	enum Event {
+		Eclear	 = 0,
+		Eset	 = 1,
+		Esyscall = (Eset<<1),
+		Eexec	 = (Esyscall<<1),
+		Efork    = (Eexec<<1),
+		Eclone   = (Efork<<1),
+		Esignal  = (Eclone<<1),
+		Eexit    = (Esignal<<1),
+		Etrap    = (Eexit<<1),
+		Esnap	 = (Etrap<<1),
+		Estepctx = (Esnap<<1),
+		Eload	 = (Estepctx<<1),
+		Eunload	 = (Eload<<1),
+	} Event;
+
+	typedef
+	enum Prot {
+		PROT_READ	= 0x1,		/* Page can be read.  */
+		PROT_WRITE	= 0x2,		/* Page can be written.  */
+		PROT_EXEC	= 0x4,		/* Page can be executed.  */
+	} Prot;
+
+
+	typedef
+	enum Cbase
+	{
+		Vundef=0,
+		Vlo,
+		Vbool=Vlo,
+		Vchar,
+		Vshort,
+		Vint,
+		Vlong,
+		Vvlong,
+		Vuchar,
+		Vushort,
+		Vuint,
+		Vulong,
+		Vuvlong,
+		Vfloat,
+		Vdouble,
+		Vlongdouble,
+		Vnbase,
+		Vptr = Vnbase,		/* alias for some other base type */
+		Vvoid,
+		Vnallbase,
+	} Cbase;
+
+	/* base type representations */
+	typedef
+	enum Rkind
+	{
+		Rundef,
+		Ru08le,
+		Ru16le,
+		Ru32le,
+		Ru64le,
+		Rs08le,
+		Rs16le,
+		Rs32le,
+		Rs64le,
+		Ru08be,
+		Ru16be,
+		Ru32be,
+		Ru64be,
+		Rs08be,
+		Rs16be,
+		Rs32be,
+		Rs64be,
+		Rf32,
+		Rf64,
+		Rf128,
+		Rnrep,
+	} Rkind;
+	
+	typedef
+	enum Tkind
+	{
+		Tvoid = 0,
+		Tbase = 1,
+		Tstruct = 2,
+		Tunion = 3,
+		Tenum = 4,
+		Tptr = 5,
+		Tarr = 6,
+		Tfun = 7,
+		Ttypedef = 8,
+		Tbitfield = 9,
+		Tconst = 10,
+		Txaccess = 11,		/* unused */
+		Tundef = 12,
+	} Tkind;
+
+	enum Stype
+	{
+		Sundef = 1,
+		Sdata = Sundef<<1,
+		Stext = Sdata<<1,
+		Sro = Stext<<1,
+		Senum = Sro<<1,
+		Sinline = Senum<<1,
+	};
+
+	enum ELF_SHN {
+		SHN_UNDEF	= 0,
+		SHN_ABS		= 0xfff1,
+		SHN_COMMON	= 0xfff2,
+	};
+
+	/* FIXME: this type needs to be a parameter of the name space
+	   (maybe it goes in the parent?) */
+	typedef
+	struct Ctx {
+		/* kernel's register set */
+		@0x0	uint64 r15;
+		@0x8	uint64 r14;
+		@0x10	uint64 r13;
+		@0x18	uint64 r12;
+		@0x20	uint64 rbp;
+		@0x28	uint64 rbx;
+		@0x30	uint64 r11;
+		@0x38	uint64 r10;
+		@0x40	uint64 r9;
+		@0x48	uint64 r8;
+		@0x50	uint64 rax;
+		@0x58	uint64 rcx;
+		@0x60	uint64 rdx;
+		@0x68	uint64 rsi;
+		@0x70	uint64 rdi;
+		@0x78	uint64 orig_rax;
+		@0x80	uint64 rip;
+		@0x88	uint64 cs;
+		@0x90	uint64 eflags;
+		@0x98	uint64 rsp;
+		@0xa0	uint64 ss;
+		@0xa8	uint64 fs_base;
+		@0xb0	uint64 gs_base;
+		@0xb8	uint64 ds;
+		@0xc0	uint64 es;
+		@0xc8	uint64 fs;
+		@0xd0	uint64 gs;
+
+		/* current signal number */
+		@0xd8	uint64 sig;
+		@0xe0; /* 224 */
+	} Ctx;
+
+	struct Tversion{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5;
+	};
+	typedef struct Tversion Tversion;
+	typedef struct Tversion Rversion;
+
+	struct Rerror{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	char err[0];
+		@5	char bytes[0];
+		@5;
+	};
+	typedef struct Rerror Rerror;
+	typedef struct Rerror Rread;
+
+	struct Rcont {
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5;
+	};
+	typedef struct Rcont Rcont;
+	typedef struct Rcont Rclrtrap;
+	typedef struct Rcont Rdetach;
+	typedef struct Rcont Rkill;
+	typedef struct Rcont Rsetctx;
+	typedef struct Rcont Rtrace;
+
+	struct Rstop {
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	Ctx ctx;
+		@229;
+	};
+	typedef struct Rstop Rstop;
+	typedef struct Rstop Rgetctx;
+
+	struct Rstep {
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	Ctx ctx;
+		@229;
+	};
+	typedef struct Rstep Rstep;
+
+	struct Tlaunch{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5;
+	};
+	typedef struct Tlaunch Tlaunch;
+	typedef struct Tlaunch Tps;
+	typedef struct Tlaunch Rps;
+
+	struct Ttrace{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13;
+	};
+	typedef struct Ttrace Ttrace;
+
+	struct Rlaunch{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	Ctx ctx;
+		@237;
+	};
+	typedef struct Rlaunch Rlaunch;
+	typedef struct Rlaunch Rattach;
+	typedef struct Rlaunch Tsetctx;
+
+	struct Tcont{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@5	uint64 cnt;
+		@13;
+	};
+	typedef struct Tcont Tcont;
+	typedef struct Tcont Tstop;
+	typedef struct Tcont Tattach;
+	typedef struct Tcont Tkill;
+	typedef struct Tcont Tsnap;
+	typedef struct Tcont Tdetach;
+	typedef struct Tcont Tstep;
+	typedef struct Tcont Tstat;
+	typedef struct Tcont Rwrite;
+	typedef struct Tcont Rping;
+	typedef struct Tcont Tgetctx;
+
+	struct Tsettrap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13;
+	};
+	typedef struct Tsettrap Tsettrap;
+
+	struct Tclrtrap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 tid;
+		@21;
+	};
+	typedef struct Tclrtrap Tclrtrap;
+
+	struct Rsettrap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 tid;
+		@13;
+	};
+	typedef struct Rsettrap Rsettrap;
+
+	struct Rsnap{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 cid;
+		@13	Ctx ctx;
+		@237;
+	};
+	typedef struct Rsnap Rsnap;
+
+	struct Aevent{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 flags;
+		@21;
+	};
+	typedef struct Aevent Aevent;
+
+	struct Esyscall {
+		@0	Ctx ctx;
+		@224;
+	};
+	typedef struct Esyscall Esyscall;
+
+	struct Eexit {
+		@0;
+	};
+	typedef struct Eexit Eexit;
+
+	struct Etrap {
+		@0	uint64 tid;
+		@8	Ctx ctx;
+		@232;
+	};
+	typedef struct Etrap Etrap;
+	typedef struct Etrap Eexec;
+
+	struct Esnap {
+		@0	uint64 tid;
+		@8	uint64 cid;
+		@16	Ctx ctx;
+		@240;
+	};
+	typedef struct Esnap Esnap;
+
+	struct Esignal {
+		@0	Ctx ctx;
+		@224;
+	};
+	typedef struct Esignal Esignal;
+
+	struct Efork {
+		@0	uint64 cid;
+		@8	Ctx ctx;
+		@232	Ctx cctx;
+		@456;
+	};
+	typedef struct Efork Efork;
+	typedef struct Efork Eclone;
+
+	struct Eload {
+		/* parse by hand */
+		@0;
+	};
+	typedef struct Eload Eload;
+
+	struct Eunload {
+		/* parse by hand */
+		@0;
+	};
+	typedef struct Eunload Eunload;
+
+	struct Tread{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 fd;
+		@21     uint64 addr;
+		@29	uint64 cnt;
+		@37;
+	};
+	typedef struct Tread Tread;
+
+	struct Twrite{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;
+		@13	uint64 fd;
+		@21     uint64 addr;
+		@29	char bytes[0];
+		@29;
+	};
+	typedef struct Twrite Twrite;
+
+	struct Rstat{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	char bytes[0];
+		@5;
+	};
+	typedef struct Rstat Rstat;
+	typedef struct Rstat Tping;
+
+	struct Tns{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	char bytes[0];
+		@5;
+	};
+	typedef struct Tns Tlooksym;
+	typedef struct Tns Tenumsym;
+	typedef struct Tns Tlooktype;
+	typedef struct Tns Tenumtype;
+	typedef struct Tns Tlookaddr;
+	typedef struct Tns Tenumloc;
+	typedef struct Tns Tunwind;
+	typedef struct Tns Tenumseg;
+	typedef struct Tns Tnames;
+	typedef struct Tns Rlooksym;
+	typedef struct Tns Renumsym;
+	typedef struct Tns Rlooktype;
+	typedef struct Tns Renumtype;
+	typedef struct Tns Rlookaddr;
+	typedef struct Tns Renumloc;
+	typedef struct Tns Runwind;
+	typedef struct Tns Renumseg;
+	typedef struct Tns Rnames;
+};
+
+@record region {
+	file,
+	addr,
+	len,
+	flags,
+};
+
+@record dll {
+	id,
+	path,
+	base,
+};
+
+@record symrec {
+	id,
+	flags,
+	val,
+	sz,
+	type,
+};
+
+@record loc {
+	id,
+	sz,
+	ltype,
+	loc,
+	type,
+};
+
+@record seg {
+	addr,
+	len,
+	name,
+};
+
+
+@define buf2msg(p)
+{
+	@local op;
+	op = (enum sctl`Mkind)*(sctl`uint8*)p;
+	switch(op){
+	case sctl`Aevent:
+		return (sctl`Aevent*)p;
+	case sctl`Rerror:
+		return (sctl`Rerror*)p;
+	case sctl`Tversion:
+		return (sctl`Tversion*)p;
+	case sctl`Rversion:
+		return (sctl`Rversion*)p;
+	case sctl`Tps:
+		return (sctl`Tps*)p;
+	case sctl`Rps:
+		return (sctl`Rps*)p;
+	case sctl`Tlaunch:
+		return (sctl`Tlaunch*)p;
+	case sctl`Rlaunch:
+		return (sctl`Rlaunch*)p;
+	case sctl`Tcont:
+		return (sctl`Tcont*)p;
+	case sctl`Rcont:
+		return (sctl`Rcont*)p;
+	case sctl`Tstop:
+		return (sctl`Tstop*)p;
+	case sctl`Rstop:
+		return (sctl`Rstop*)p;
+	case sctl`Tkill:
+		return (sctl`Tkill*)p;
+	case sctl`Rkill:
+		return (sctl`Rkill*)p;
+	case sctl`Tdetach:
+		return (sctl`Tdetach*)p;
+	case sctl`Rdetach:
+		return (sctl`Rdetach*)p;
+	case sctl`Tsettrap:
+		return (sctl`Tsettrap*)p;
+	case sctl`Rsettrap:
+		return (sctl`Rsettrap*)p;
+	case sctl`Tclrtrap:
+		return (sctl`Tclrtrap*)p;
+	case sctl`Rclrtrap:
+		return (sctl`Rclrtrap*)p;
+	case sctl`Tread:
+		return (sctl`Tread*)p;
+	case sctl`Rread:
+		return (sctl`Rread*)p;
+	case sctl`Tsnap:
+		return (sctl`Tsnap*)p;
+	case sctl`Rsnap:
+		return (sctl`Rsnap*)p;
+	case sctl`Twrite:
+		return (sctl`Twrite*)p;
+	case sctl`Rwrite:
+		return (sctl`Rwrite*)p;
+	case sctl`Tgetctx:
+		return (sctl`Tgetctx*)p;
+	case sctl`Rgetctx:
+		return (sctl`Rgetctx*)p;
+	case sctl`Tsetctx:
+		return (sctl`Tsetctx*)p;
+	case sctl`Rsetctx:
+		return (sctl`Rsetctx*)p;
+	case sctl`Tattach:
+		return (sctl`Tattach*)p;
+	case sctl`Rattach:
+		return (sctl`Rattach*)p;
+	case sctl`Tping:
+		return (sctl`Tping*)p;
+	case sctl`Rping:
+		return (sctl`Rping*)p;
+	case sctl`Tstep:
+		return (sctl`Tstep*)p;
+	case sctl`Rstep:
+		return (sctl`Rstep*)p;
+	case sctl`Ttrace:
+		return (sctl`Ttrace*)p;
+	case sctl`Rtrace:
+		return (sctl`Rtrace*)p;
+	case sctl`Tstat:
+		return (sctl`Tstat*)p;
+	case sctl`Rstat:
+		return (sctl`Rstat*)p;
+	case sctl`Tlooksym:
+		return (sctl`Tlooksym*)p;
+	case sctl`Rlooksym:
+		return (sctl`Rlooksym*)p;
+	case sctl`Tenumsym:
+		return (sctl`Tenumsym*)p;
+	case sctl`Renumsym:
+		return (sctl`Renumsym*)p;
+	case sctl`Tenumtype:
+		return (sctl`Tenumtype*)p;
+	case sctl`Renumtype:
+		return (sctl`Renumtype*)p;
+	case sctl`Tunwind:
+		return (sctl`Tunwind*)p;
+	case sctl`Runwind:
+		return (sctl`Runwind*)p;
+	case sctl`Tnames:
+		return (sctl`Tnames*)p;
+	case sctl`Rnames:
+		return (sctl`Rnames*)p;
+	case sctl`Tlooktype:
+		return (sctl`Tlooktype*)p;
+	case sctl`Rlooktype:
+		return (sctl`Rlooktype*)p;
+	case sctl`Tlookaddr:
+		return (sctl`Tlookaddr*)p;
+	case sctl`Rlookaddr:
+		return (sctl`Rlookaddr*)p;
+	case sctl`Tenumloc:
+		return (sctl`Tenumloc*)p;
+	case sctl`Renumloc:
+		return (sctl`Renumloc*)p;
+	case sctl`Tenumseg:
+		return (sctl`Tenumseg*)p;
+	case sctl`Renumseg:
+		return (sctl`Renumseg*)p;
+	default:
+		error("unknown op %e", op);
+	}
+}
+
+nexttag = 0;
+@define freshtag()
+{
+	return nexttag++;
+}
+
+@define fmtmsg(msg, sz)
+{
+	@local s, p, q;
+
+	@defloc gets()
+	{
+		@local sz, s;
+		q = (`uint64*)q;
+		sz = *q++;
+		s = getbytes(q, sz);
+		q = (`uint8*)((char*)q+sz);
+		return s;
+	}
+
+	msg = buf2msg(msg);
+	s = sprintfa("%e %d (%d bytes)",
+		     (enum sctl`Mkind)msg->op, msg->tag, sz);
+	switch((enum sctl`Mkind)msg->op){
+	case sctl`Aevent:
+	case sctl`Tps:
+	case sctl`Rps:
+	case sctl`Tlaunch:
+	case sctl`Rlaunch:
+	case sctl`Tcont:
+	case sctl`Rcont:
+	case sctl`Tstop:
+	case sctl`Rstop:
+	case sctl`Tkill:
+	case sctl`Rkill:
+	case sctl`Tdetach:
+	case sctl`Rdetach:
+	case sctl`Tsettrap:
+	case sctl`Rsettrap:
+	case sctl`Tclrtrap:
+	case sctl`Rclrtrap:
+	case sctl`Tread:
+	case sctl`Rread:
+	case sctl`Tsnap:
+	case sctl`Rsnap:
+	case sctl`Twrite:
+	case sctl`Rwrite:
+	case sctl`Tgetctx:
+	case sctl`Rgetctx:
+	case sctl`Tsetctx:
+	case sctl`Rsetctx:
+	case sctl`Tattach:
+	case sctl`Rattach:
+	case sctl`Tstep:
+	case sctl`Rstep:
+	case sctl`Ttrace:
+	case sctl`Rtrace:
+	case sctl`Tstat:
+	case sctl`Rstat:
+	case sctl`Tping:
+	case sctl`Rping:
+		break;
+	case sctl`Rerror:
+		s += sprintfa(" %s", getbytes(msg+1, sz-sizeof(sctl`Rerror)));
+		break;
+	case sctl`Tversion:
+		s += sprintfa(" %s", getbytes(msg+1, sz-sizeof(sctl`Tversion)));
+		break;
+	case sctl`Rversion:
+		s += sprintfa(" %s", getbytes(msg+1, sz-sizeof(sctl`Rversion)));
+		break;
+	case sctl`Tlooksym:
+	case sctl`Rlooksym:
+	case sctl`Tenumsym:
+	case sctl`Renumsym:
+	case sctl`Tenumtype:
+	case sctl`Renumtype:
+	case sctl`Tunwind:
+	case sctl`Runwind:
+	case sctl`Tnames:
+		q = msg+1;
+		s += sprintfa(" %s", gets());
+		break;
+	case sctl`Rnames:
+		p = (`uint64*)(msg+1);
+		s += sprintf(" nsid=%u", *p);
+		break;
+	case sctl`Tlooktype:
+	case sctl`Rlooktype:
+	case sctl`Tlookaddr:
+	case sctl`Rlookaddr:
+	case sctl`Tenumloc:
+	case sctl`Renumloc:
+	case sctl`Tenumseg:
+	case sctl`Renumseg:
+		break;
+	default:
+		error("unknown op %e", (enum sctl`Mkind)msg->op);
+	}
+	return s;
+}
+
+@define sendmsg(fd, arg ...)
+{
+	@local p, sz;
+	p = arg[0];
+	switch(length(arg)){
+	case 1:
+		sz = sizeof(*p);
+		break;
+	case 2:
+		sz = arg[1];
+		break;
+	default:
+		error("bad sendmsg");
+	}
+	printf("(send) %s\n", fmtmsg(p, sz));
+	write(fd, cval2str((`uint64)sz));
+	write(fd, getbytes(p, sz));
+}
+
+@define recvmsg(fd)
+{
+	@local s, sz, p, msg, dat;
+	s = read(fd, sizeof(`uint64));
+	if(s == nil)
+		return [nil, 'closed];
+	sz = *(`uint64*)s;
+	p = read(fd, sz);
+	msg = buf2msg(p);
+	if(sz > sizeof(*msg))
+		dat = getbytes(msg+1, sz-sizeof(*msg));
+	else
+		dat = "";
+	printf("(recv) %s\n", fmtmsg(msg, sz));
+	return [msg, dat];
+}
+
+@define checkreply(rep, op)
+{
+	switch(rep->op){
+	case op:
+		break;
+	case sctl`Rerror:
+		error("sctl: while waiting for %e: %s",
+		      op, rep->bytes);
+	default:
+		error("sctl: while waiting for %e: received %e",
+		      op, (sctl`Mkind)rep->op);
+	}
+}
+
+@define rerror(fd, tag, err)
+{
+	@local p, sz;
+	sz = sizeof(sctl`Rerror)+strlen(err);
+	p = (sctl`Rerror*)malloc(sz);
+	p->op = sctl`Rerror;
+	p->tag = tag;
+	sendmsg(fd, p, sz);
+}
+
+@define ping(fd, cnt)
+{
+	@local p, rep, dat, sz;
+
+	sz = sizeof(sctl`Tping)+cnt;
+	p = (sctl`Tping*)malloc(sz);
+	p->op = sctl`Tping;
+	p->tag = freshtag();
+	sendmsg(fd, p, sz);
+
+	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("ping failed: %a\n", dat);
+	checkreply(rep, sctl`Rping);
+	if(rep->cnt != cnt)
+		error("ping reply acknowledged %d bytes, not %d",
+		      rep->cnt, cnt);
+}
+
+@define version(fd)
+{
+	@local p, rep, dat, sz, version, os, s;
+
+	version = "sctl-2010:x86-linux-2010,x86-win-2010";
+
+	sz = sizeof(sctl`Tversion)+strlen(version);
+	p = (sctl`Tversion*)malloc(sz);
+	p->op = sctl`Tversion;
+	p->tag = freshtag();
+	putbytes(p+1, version);
+	sendmsg(fd, p, sz);
+
+	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("version failed: %a\n", dat);
+	checkreply(rep, sctl`Rversion);
+	s = split(dat, ":");
+	if(length(s) != 2)
+		error("unknown remote sctl version: %s", dat);
+	os = s[1];
+	os = substr(os, 0, strlen(os)); /* chop NUL */
+	printf("version is %s %s\n", s[0], os);
+}
+
+@define names(fd, path)
+{
+	@local p, q, rep, dat, sz;
+
+	sz = sizeof(sctl`Tnames);
+	sz += sizeof(ctlmux`uint64)+strlen(path); /* path */
+	p = (sctl`Tnames*)malloc(sz);
+	p->op = sctl`Tnames;
+	p->tag = freshtag();
+	q = (`uint64*)(p+1);
+	*q++ = strlen(path);
+	q = (char*)q;
+	putbytes(q, path);
+	q += strlen(path);
+	sendmsg(fd, p, sz);
+
+	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("ping failed: %a\n", dat);
+	checkreply(rep, sctl`Rping);
+	if(rep->cnt != cnt)
+		error("ping reply acknowledged %d bytes, not %d",
+		      rep->cnt, cnt);
+
+}
