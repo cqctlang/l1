@@ -422,7 +422,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	case Qcl:
 		cl = valcl(val);
 		if(cl->fp){
-			snprint(buf, sizeof(buf), "<continuation %p>", cl);
+			snprint(buf, sizeof(buf), "<continuation>", cl);
 			return fmtputs0(vm, f, buf);
 		}else if(cl->dlen > 0){
 			if(fmtputs0(vm, f, "<closure "))
@@ -451,7 +451,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			snprint(buf, sizeof(buf), "<ns %.*s>",
 				(int)ns->name->len, strdata(ns->name));
 		else
-			snprint(buf, sizeof(buf), "<ns %p>", ns);
+			snprint(buf, sizeof(buf), "<ns>");
 		return fmtputs0(vm, f, buf);
 	case Qas:
 		as = valas(val);
@@ -459,7 +459,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			snprint(buf, sizeof(buf), "<as %.*s>",
 				(int)as->name->len, strdata(as->name));
 		else
-			snprint(buf, sizeof(buf), "<as %p>", as);
+			snprint(buf, sizeof(buf), "<as>");
 		return fmtputs0(vm, f, buf);
 	case Qdom:
 		d = valdom(val);
@@ -467,13 +467,13 @@ fmtval(VM *vm, Fmt *f, Val val)
 			snprint(buf, sizeof(buf), "<domain %.*s>",
 				(int)d->name->len, strdata(d->name));
 		else
-			snprint(buf, sizeof(buf), "<domain %p>", d);
+			snprint(buf, sizeof(buf), "<domain>");
 		return fmtputs0(vm, f, buf);
 	case Qfd:
 	case Qpair:
 	case Qtab:
 		hd = valhead(val);
-		snprint(buf, sizeof(buf), "<%s %p>", qname[Vkind(hd)], hd);
+		snprint(buf, sizeof(buf), "<%s>", qname[Vkind(hd)]);
 		return fmtputs0(vm, f, buf);
 	case Qctype:
 		str = fmtctype(valctype(val));
