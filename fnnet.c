@@ -24,6 +24,8 @@ static int
 parseaddr(const char *s, struct in_addr *addr)
 {
 	struct hostent* h;
+	if(*s == '\0')
+		return 0;
 	h = gethostbyname(s);
 	if(!h)
 		return -1;
