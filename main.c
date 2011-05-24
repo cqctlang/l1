@@ -411,6 +411,7 @@ main(int argc, char *argv[])
 	int rv;
 	Xfd *xfd, devnull;
 	int status;
+	struct sigaction sa;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -525,7 +526,9 @@ main(int argc, char *argv[])
 			cqctfini(top);
 			return -1;
 		}
-		signal(SIGINT, sigint);
+		memset(&sa, sizeof(sa), 0);
+		sa.sa_handler = sigint;
+		sigaction(SIGINT, &sa, 0);
 	}
 
 	if(dorepl){

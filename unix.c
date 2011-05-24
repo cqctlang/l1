@@ -10,8 +10,6 @@ xread(int fd, char *p, Imm len)
 	nr = 0;
 	while(nr < len){
 		rv = read(fd, p, len-nr);
-		if(0 > rv && errno == EINTR)
-			continue;
 		if(0 > rv)
 			return -1;
 		if(0 == rv)
@@ -55,8 +53,6 @@ xwrite(int fd, char *p, Imm len)
 	ns = 0;
 	while(ns < len){
 		rv = write(fd, p, len-ns);
-		if(0 > rv && (errno == EINTR || errno == EAGAIN))
-			continue;
 		if(0 > rv)
 			return -1;
 		ns += rv;
