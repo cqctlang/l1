@@ -26,7 +26,7 @@ sns = @names clp64be {
 	@local p;
 	sa = (struct sns`sockaddr_in*)sa;
 	p = (`uint8*)&sa->sin_addr.s_addr;
-	return sprintfa("%d.%d.%d.%d:%d",
+	return sprintfa("%u.%u.%u.%u:%u",
 			p[0], p[1], p[2], p[3],
 			sa->sin_port);
 }
