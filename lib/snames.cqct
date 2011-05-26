@@ -2,6 +2,10 @@
 !#
 @include <sctl.cqct>
 
+@global prefix;
+@global path2nsid;
+@global nsid2ns;
+
 sns = @names clp64be {
 	typedef short unsigned int sa_family_t;
 	typedef uint16 in_port_t;
@@ -39,6 +43,29 @@ sns = @names clp64be {
 @define botch(fd, tag)
 {
 	rerror(fd, tag, "protocol botched");
+}
+
+@define tnames(fd, msg, dat)
+{
+	@local p, sz, nsid;
+	@local q, path;
+
+	q = (`uint64*)dat;
+	sz = *q++;
+	path = getbytes(q, sz);
+
+	nsid = openns(path);
+	if(nsid == nil){
+		rerror(fd, msg->tag, "invalid name space");
+		return 'badop;
+	}
+	sz = sizeof(sctl`Rnames);
+	p = (sctl`Rnames*)malloc(sz);
+	p->op = sctl`Rnames;
+	p->tag = msg->tag;
+	p->id = nsid;
+	sendmsg(fd, p);
+	return 'ok;
 }
 
 @define tping(fd, msg, dat)
@@ -109,7 +136,7 @@ handle = [
 	(sctl`Mkind)sctl`Tenumloc  : notimpl,
 	(sctl`Mkind)sctl`Tunwind   : notimpl,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
-	(sctl`Mkind)sctl`Tnames    : notimpl,
+	(sctl`Mkind)sctl`Tnames    : tnames,
 ];
 
 @define tdispatch(fd)
@@ -124,11 +151,35 @@ handle = [
 	return fn(fd, msg, dat);
 }
 
-@define main(port, prefix)
+@global nextnsid;
+nextnsid = 1;
+@define openns(path)
+{
+	@local ns, id;
+	id = path2nsid[path];
+	if(id)
+		return id;
+	printf("opening %s (%s)\n", path, prefix+path);
+	evalk(sprintfa("@names clp64le { @include \"%s\" };", prefix+path),
+//	evalk(sprintfa("@names clp64le {  };", prefix+path),
+	      @lambda(ns){
+		      printf("success!\n");
+		      id = nextnsid++;
+		      nsid2ns[id] = ns;
+		      path2nsid[path] = id;
+		      return id;
+	      },
+	      @lambda(){ return nil; });
+}
+
+@define main(port)
 {
 	@local lfd, fd, fds, rs, ws, es, x;
 	lfd = tcplisten(sprintfa(":%u", port));
 	fds = [ lfd ];
+	prefix = getenv("HOME")+"/src/l1/";
+	path2nsid = [:];
+	nsid2ns = [:];
 	while(1){
 		[rs, ws, es] = select(fds, [], []);
 		foreach(@lambda(r){
@@ -161,4 +212,4 @@ handle = [
 	}
 }
 
-main(30000, "/prefix");
+main(30000);

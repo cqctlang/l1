@@ -471,7 +471,14 @@ sctl = @names clp64le {
 	typedef struct Tns Renumloc;
 	typedef struct Tns Runwind;
 	typedef struct Tns Renumseg;
-	typedef struct Tns Rnames;
+
+	struct Rnames{
+		@0	uint8 op;
+		@1	uint32 tag;
+		@5	uint64 id;		
+		@13;
+	};
+	typedef struct Rnames Rnames;
 };
 
 @record region {
@@ -720,8 +727,7 @@ nexttag = 0;
 		s += sprintfa(" %s", gets());
 		break;
 	case sctl`Rnames:
-		p = (`uint64*)(msg+1);
-		s += sprintf(" nsid=%u", *p);
+		s += sprintfa(" nsid=%u", msg->id);
 		break;
 	case sctl`Tlooktype:
 	case sctl`Rlooktype:
@@ -770,6 +776,7 @@ nexttag = 0;
 		dat = getbytes(msg+1, sz-sizeof(*msg));
 	else
 		dat = "";
+	printf("dat is %s\n", dat);
 	printf("(recv) %s\n", fmtmsg(msg, sz));
 	return [msg, dat];
 }
@@ -795,6 +802,7 @@ nexttag = 0;
 	p = (sctl`Rerror*)malloc(sz);
 	p->op = sctl`Rerror;
 	p->tag = tag;
+	putbytes(p+1, err);
 	sendmsg(fd, p, sz);
 }
 
@@ -810,7 +818,7 @@ nexttag = 0;
 
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
-		error("ping failed: %a\n", dat);
+		error("ping failed: %a", dat);
 	checkreply(rep, sctl`Rping);
 	if(rep->cnt != cnt)
 		error("ping reply acknowledged %d bytes, not %d",
@@ -832,7 +840,7 @@ nexttag = 0;
 
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
-		error("version failed: %a\n", dat);
+		error("version failed: %a", dat);
 	checkreply(rep, sctl`Rversion);
 	s = split(dat, ":");
 	if(length(s) != 2)
@@ -847,7 +855,7 @@ nexttag = 0;
 	@local p, q, rep, dat, sz;
 
 	sz = sizeof(sctl`Tnames);
-	sz += sizeof(ctlmux`uint64)+strlen(path); /* path */
+	sz += sizeof(sctl`uint64)+strlen(path); /* path */
 	p = (sctl`Tnames*)malloc(sz);
 	p->op = sctl`Tnames;
 	p->tag = freshtag();
@@ -860,10 +868,8 @@ nexttag = 0;
 
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
-		error("ping failed: %a\n", dat);
-	checkreply(rep, sctl`Rping);
-	if(rep->cnt != cnt)
-		error("ping reply acknowledged %d bytes, not %d",
-		      rep->cnt, cnt);
-
+		error("names failed: %a", dat);
+	checkreply(rep, sctl`Rnames);
+	printf("nsid for %s is %u\n", path, rep->id);
+	return rep->id;
 }
