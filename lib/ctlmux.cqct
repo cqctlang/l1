@@ -877,7 +877,7 @@ ctlmux = @names clp64le {
 		ns = xns();
 		foreach(@lambda(s){
 				sym[s.id] = mksym(looktype(ns, s.type),
-						  s.id,
+						  mkcid(s.id),
 						  s.loc);
 			}, ls);
 		return sym;
