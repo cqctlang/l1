@@ -1,0 +1,17 @@
+applyk1.l1:3: warning: assignment to unbound variable: i
+applyk1.l1:3: warning: assignment to unbound variable: x
+applyk1.l1:9: warning: assignment to unbound variable: i
+applyk1.l1:9: warning: assignment to unbound variable: x
+entry: var params, 2 locals, 0 temps
+L12: 0 params, 0 locals, 0 temps
+L16: 1 params, 0 locals, 0 temps
+L20: 1 params, 3 locals, 0 temps
+L44: 0 params, 0 locals, 0 temps
+L48: 1 params, 0 locals, 0 temps
+L52: 1 params, 3 locals, 0 temps
+okay
+error: hi
+               error	(builtin function)
+              applyk	(builtin function)
+               entry	(applyk1.l1:12)
+fail!

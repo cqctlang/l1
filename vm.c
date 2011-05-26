@@ -3682,15 +3682,6 @@ dogc(VM *vm, u32 g, u32 tg)
 	_gc(g, tg);
 	v = cqctenvlook(vm->top, "postgc");
 	if(v && Vkind(v) == Qcl){
-		/* FIXME: this is almost certainly
-		   broken, at least spirtually; the gc
-		   does not know to scan this object
-		   since it does not appear in any
-		   mask.  but so far it has not given
-		   trouble.  a fix would be to add an
-		   extra gc-scanned vm register (oldac)
-		   into which ac gets stashed for the
-		   postgc call. */
 		vmpush(vm, vm->ac);
 		dovm(vm, valcl(v), 0, 0);
 		vm->ac = vm->stack[vm->sp];
@@ -5837,12 +5828,20 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 applyk(VM *vm, Val cl, Val succ, Val fail, Imm argc, Val *argv, Val *rv)
 {
+	vmpush(vm, succ); /* might move */
+	vmpush(vm, fail); /* might move */
 	if(waserror(vm)){
+		fail = vm->stack[vm->sp];
+		succ = vm->stack[vm->sp+1];
+		vmpop(vm, 2);
 		*rv = dovm(vm, valcl(fail), 0, 0);
 		return;
 	}
 	*rv = dovm(vm, valcl(cl), argc, argv);
 	poperror(vm);
+	fail = vm->stack[vm->sp];
+	succ = vm->stack[vm->sp+1];
+	vmpop(vm, 2);
 	*rv = dovm(vm, valcl(succ), 1, rv);
 }
 
