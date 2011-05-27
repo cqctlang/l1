@@ -516,62 +516,6 @@ sctl = @names clp64le {
 	name,
 };
 
-/* generally-useful extensible string address space */
-@define mkxsas()
-{
-	@local get, put, map, ismapped, dat;
-	@local s;
-
-	@define get(self, r)
-	{
-		@local b, e;
-		b = rangebeg(r);
-		e = b+rangelen(r);
-		if(e <= m)
-			return substr(s, b, e);
-		else
-			error("xsas out of bounds get");
-	}
-
-	@define put(self, r, x)
-	{
-		@local b, e, nm, ns;
-		b = rangebeg(r);
-		e = b+rangelen(r);
-		if(e <= m)
-			return strput(s, b, x);
-		else{
-			nm = 2*e;
-			ns = mkstr(nm);
-			strput(ns, 0, s);
-			s = ns;
-			m = nm;
-			return put(self, r, x);
-		}
-	}
-
-	@define map(self)
-	{
-		return vector(mkrange(0, m));
-	}
-
-	@define ismapped(self, r)
-	{
-		return isrinr(r, map(self));
-	}
-
-	@define dat(self)
-	{
-		return s;
-	}
-
-	m = 128;
-	s = mkstr(m);
-	return mkas([ "get" : get, "put" : put,
-		      "map" : map, "ismapped" : ismapped,
-		      "dat" : dat ]);
-}
-
 @define buf2msg(p)
 {
 	@local op;
