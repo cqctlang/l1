@@ -38,3 +38,5 @@ cids have been added.  many interface use cids instead of strings.
 
 @global no longer dynamically resets variables to nil
 
+the extended accessor ctype has been removed
+(it may return someday, with a better design)

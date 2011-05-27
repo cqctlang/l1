@@ -1,7 +1,7 @@
 @define mkxsas()
 {
 	@local get, put, map, ismapped, dat;
-	@local m, s;
+	@local m, s, as;
 
 	@define get(self, r)
 	{
@@ -48,7 +48,8 @@
 
 	m = 128;
 	s = mkstr(m);
-	return mkas([ "get" : get, "put" : put,
-		      "map" : map, "ismapped" : ismapped,
-		      "dat" : dat ]);
+	as = mkas([ "get" : get, "put" : put,
+		    "map" : map, "ismapped" : ismapped,
+		    "dat" : dat ]);
+	return (char*){as}0;
 }

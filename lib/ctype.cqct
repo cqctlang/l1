@@ -37,3 +37,317 @@
 		return 0;
 	}
 }
+
+@define encodetname(p, t)
+{
+	@local as, p, q, id;
+	@local t, i, np;
+
+	@defloc puts(p, s)
+	{
+		@local m;
+		m = strlen(s);
+		p = (`uint64*)p;
+		*p++ = m;
+		p = (char*)p;
+		putbytes(p, s);
+		p += m;
+		return p;
+	}
+
+	@defloc loop(t)
+	{
+		p = (`uint8*)p;
+		if(isbase(t)){
+			*p++ = cqct`Tbase;
+			*p++ = (`uint8)basebase(t);
+		}else if(issu(t) || isenum(t)){
+			if(isstruct(t))
+				*p++ = cqct`Tstruct;
+			else if(isunion(t))
+				*p++ = cqct`Tunion;
+			else if(isenum(t))
+				*p++ = cqct`Tenum;
+			else
+				error("bug");
+			return puts(p, cid2str(suetag(t)));
+		}else if(istypedef(t)){
+			*p++ = cqct`Ttypedef;
+			return puts(p, cid2str(typedefid(t)));
+		}else if(isptr(t)){
+			*p++ = cqct`Tptr;
+			return loop(subtype(t));
+		}else if(isarray(t)){
+			*p++ = cqct`Tarr;
+			p = (`uint64*)p;
+			*p++ = arraynelm(t);
+			return loop(subtype(t));
+		}else if(isfunc(t)){
+			*p++ = cqct`Tfun;
+			p = loop(subtype(t));
+			np = length(params(t));
+			p = (`uint64*)p;
+			*p++ = np;
+			p = (`uint8*)p;
+			foreach(@lambda(par){
+					p = puts(p, cid2str(paramid(par)));
+					p = loop(paramtype(par));
+				}, params(t));
+			return p;
+		}else if(isundef(t)){
+			*p++ = cqct`Tundef;
+			return p;
+		}else if(isbitfield(t)){
+			*p++ = cqct`Tbitfield;
+			p = (`uint8*)p;
+			*p++ = bitfieldwidth(t);
+			*p++ = bitfieldpos(t);
+			p = loop(subtype(t));
+			return p;
+		}else
+			error("unhandled type name %t", t);
+	}
+
+	return loop(t);
+}
+
+@define encodetdef(p, t)
+{
+	@local n, st;
+
+	@defloc puts(p, s)
+	{
+		@local m;
+		m = strlen(s);
+		p = (`uint64*)p;
+		*p++ = m;
+		p = (char*)p;
+		putbytes(p, s);
+		p += m;
+		return p;
+	}
+
+	p = (`uint8*)p;
+	if(isbase(t)){
+		*p++ = cqct`Tbase;
+		*p++ = (`uint8)basebase(t);
+		*p++ = (`uint8)baserep(t);
+		return p;
+	}else if(issu(t)){
+		if(isstruct(t))
+			*p++ = cqct`Tstruct;
+		else if(isunion(t))
+			*p++ = cqct`Tunion;
+		p = puts(p, cid2str(suetag(t)));
+		p = (`uint64*)p;
+		*p++ = susize(t);
+		*p++ = length(fields(t));
+		foreach(@lambda(f){
+				p = (`uint64*)p;
+				*p++ = fieldoff(f);
+				p = puts(cid2str(fieldid(f)));
+				p = encodetname(fieldtype(f));
+			}, fields(t));
+		return p;
+	}else if(isenum(t)){
+		*p++ = cqct`Tenum;
+		p = puts(p, cid2str(suetag(t)));
+		/* ... representation ... */
+		p = (`uint64*)p;
+		*p++ = length(enumconsts(t));
+		foreach(@lambda(ec){
+				p = puts(cid2str(ec[0]));
+				p = (`uint64*)p;
+				*p++ = ec[1];
+			}, enumconsts(t));
+		return p;
+	}else if(istypedef(t)){
+		*p++ = cqct`Ttypedef;
+		p = puts(p, cid2str(typedefid(t)));
+		p = encodetname(subtype(t));
+		return p;
+	}else
+		error("unhandled type name %t", t);
+}
+
+
+@define decodetname(q)
+{
+	@local k, cb, id, gets, w, pos;
+	@local tq; 	/* FIXME: unnecessary in bleed */
+
+	@define gets()
+	{
+		@local sz, s;
+		q = (ctlmux`uint64*)q;
+		sz = *q++;
+		s = getbytes(q, sz);
+		q = (ctlmux`uint8*)((char*)q+sz);
+		return s;
+	}
+
+	q = (ctlmux`uint8*)q;
+	k = *q++;
+	switch(k){
+	case ctlmux`Tbase:
+		cb = *q++;
+		return [mkctype_base(cb), q];
+	case ctlmux`Tstruct:
+		id = mkcid(gets());
+		return [mkctype_struct(id), q];
+	case ctlmux`Tunion:
+		id = mkcid(gets());
+		return [mkctype_union(id), q];
+	case ctlmux`Tenum:
+		id = mkcid(gets());
+		return [mkctype_enum(id), q];
+	case ctlmux`Ttypedef:
+		id = mkcid(gets());
+		return [mkctype_typedef(id), q];
+	case ctlmux`Tptr:
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_ptr(st), q];
+	case ctlmux`Tconst:
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_const(st), q];
+	case ctlmux`Tarr:
+		q = (ctlmux`uint64*)q;
+		n = *q++;
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_array(st, n), q];
+	case ctlmux`Tfun:
+		[st,tq] = decodetname(q);
+		q = tq;
+		q = (ctlmux`uint64*)q;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			sid = gets();
+			[pt,tq] = decodetname(q);
+			q = tq;
+			v[i] = mkparam(pt,
+				       (strlen(sid) > 0
+					? mkcid(sid) : nil));
+		}
+		return [mkctype_fn(st, v), q];
+	case ctlmux`Tbitfield:
+		q = (ctlmux`uint64*)q;
+		w = *q++;
+		pos = *q++;
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_bitfield(st, w, pos), q];
+	default:
+		error("decodetname: unhandled case %d", k);
+	}
+}
+
+@define decodetdef(ns, q)
+{
+	@local t, k, cb, rep, sz, n, i, v, id, sid, c, off, mk, st, pt;
+	@local w, pos;
+	@local gets;
+	@local tq; 	/* FIXME: unnecessary in bleed */
+
+	@define gets()
+	{
+		@local sz, s;
+		q = (ctlmux`uint64*)q;
+		sz = *q++;
+		s = getbytes(q, sz);
+		q = (ctlmux`uint8*)((char*)q+sz);
+		return s;
+	}
+
+	q = (ctlmux`uint8*)q;
+	k = *q++;
+	switch(k){
+	case ctlmux`Tbase:
+		cb = *q++;
+		rep = *q++;
+		return [mkctype_base(cb, rep), q];
+	case ctlmux`Tstruct:
+	case ctlmux`Tunion:
+		if(k == ctlmux`Tstruct)
+			mk = mkctype_struct;
+		else
+			mk = mkctype_union;
+		id = mkcid(gets());
+		q = (ctlmux`uint64*)q;
+		sz = *q++;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			q = (ctlmux`uint64*)q;
+			off = *q++;
+			sid = mkcid(gets());
+			[st,tq] = decodetname(q);
+			q = tq;
+			v[i] = mkfield(st, sid, off);
+		}
+		return [mk(id, v, sz), q];
+	case ctlmux`Tenum:
+		id = mkcid(gets());
+		q = (ctlmux`uint8*)q;
+		rep = *q++;
+		q = (ctlmux`uint64*)q;
+		n = *q++;
+		st = nsreptype(ns, rep);
+		if(st == nil)
+			error("no base type for rep %d", rep);
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			sid = mkcid(gets());
+			q = (ctlmux`uint64*)q;
+			c = *q++;
+			v[i] = vector(sid, {st}c);
+		}
+		return [mkctype_enum(id, v, st), q];
+	case ctlmux`Tptr:
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_ptr(st, nsptr(ns)), q];
+	case ctlmux`Tconst:
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_const(st), q];
+	case ctlmux`Tarr:
+		q = (ctlmux`uint64*)q;
+		n = *q++;
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_array(st, n), q];
+	case ctlmux`Tfun:
+		[st,tq] = decodetname(q);
+		q = tq;
+		q = (ctlmux`uint64*)q;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			sid = gets();
+			[pt,tq] = decodetname(q);
+			q = tq;
+			v[i] = mkparam(pt,
+				       (strlen(sid) > 0 ? 
+					mkcid(sid) : nil));
+		}
+		return [mkctype_fn(st, v), q];
+	case ctlmux`Ttypedef:
+		id = mkcid(gets());
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_typedef(id, st), q];
+	case ctlmux`Tbitfield:
+		q = (ctlmux`uint64*)q;
+		w = *q++;
+		pos = *q++;
+		[st,tq] = decodetname(q);
+		q = tq;
+		return [mkctype_bitfield(st, w, pos), q];
+	default:
+		error("decodetdef: unhandled case %d", k);
+	}
+}
