@@ -957,6 +957,7 @@ Xenv*		mkxenv(Xenv *link);
 void		xenvapply(Xenv *xe, HT *d);
 Xenv*		xenvcopy(Xenv *xe);
 HT*		xenvdiff(Xenv *fr, Xenv *to);
+void		xenvlink(Xenv *xe, Xenv *link);
 void*		xenvlook(Xenv *xe, char *id);
 void		xenvbind(Xenv *xe, char *id, void *v);
 void		xenvforeach(Xenv *xe, void (*f)(void *u, char *k, void *v),

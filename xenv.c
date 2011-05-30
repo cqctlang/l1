@@ -30,6 +30,12 @@ freexenvall(Xenv *xe)
 	freexenvall(l);
 }
 
+void
+xenvlink(Xenv *xe, Xenv *link)
+{
+	xe->link = link;
+}
+
 void*
 xenvlook(Xenv *xe, char *id)
 {

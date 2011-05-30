@@ -284,6 +284,170 @@ resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 	return e;
 }
 
+typedef
+struct VU
+{
+	Expr *e; /* source expression */
+	u32 ref;
+	u32 def;
+	u32 shadows;
+} VU;
+
+static VU*
+mkvu(Expr *e)
+{
+	VU *vu;
+	vu = emalloc(sizeof(VU));
+	vu->e = e;
+	return vu;
+}
+
+static void
+freevu(VU *v)
+{
+	efree(v);
+}
+
+static void
+wbindids(U *ctx, Xenv *xe, Expr *e, char *what)
+{
+	Expr *p;
+	VU *vu;
+
+	p = e;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eellipsis){
+			p = p->e2;
+			continue;
+		}
+		vu = xenvlook(xe, idsym(p->e1));
+		if(vu){
+			cwarnln(ctx, vu->e,
+				"multiple declarations of %s %s",
+				what,
+				idsym(p->e1));
+			continue;
+		}
+		xenvbind(xe, idsym(p->e1), mkvu(p->e1));
+		p = p->e2;
+	}
+}
+
+static void
+checkbvar(void *u, char *id, void *v)
+{
+	U *ctx;
+	VU *vu;
+	ctx = u;
+	vu = v;
+	if(vu->shadows)
+		cwarnln(ctx, vu->e, "variable shadows parameter: %s", id);
+	if(vu->ref == 0 && vu->def == 0)
+		cwarnln(ctx, vu->e, "useless variable: %s", id);
+	else if(vu->ref == 0)
+		cwarnln(ctx, vu->e, "variable defined but not used: %s", id);
+	else if(vu->ref == 0)
+		cwarnln(ctx, vu->e, "variable used but not defined: %s", id);
+}
+
+static void
+checkfnvar(void *u, char *id, void *v)
+{
+	U *ctx;
+	VU *vu;
+	ctx = u;
+	vu = v;
+	if(vu->ref == 0 && vu->def == 0)
+		cwarnln(ctx, vu->e, "useless parameter: %s", id);
+}
+
+static void
+markshadow(void *u, char *id, void *v)
+{
+	VU *vu;
+	Xenv *fn;
+	fn = u;
+	vu = v;
+	if(xenvlook(fn, id))
+		vu->shadows++;
+}
+
+static void
+free1vu(void *u, char *id, void *v)
+{
+	VU *vu;
+	vu = (VU*)v;
+	freevu(vu);
+}
+
+/* warn on:
+   - locals that shadow lambda vars
+   - redundant vars in lambda arg list
+   - redundant vars in locals list
+   - unused parameters
+   - unused locals
+   - defined but not used
+   - used but not defined
+*/
+static void
+check(U *ctx, Expr *e, Xenv *fn, Xenv *lex)
+{
+	Expr *p;
+	Xenv *rib;
+	VU *vu;
+	if(e == 0)
+		return;
+	switch(e->kind){
+	case Eg:
+		check(ctx, e->e2, fn, lex);
+		vu = xenvlook(lex, idsym(e->e1));
+		if(vu == 0)
+			return;
+		vu->def++;
+		return;
+	case Eid:
+		vu = xenvlook(lex, idsym(e));
+		if(vu == 0)
+			return;
+		vu->ref++;
+		return;
+	case Escope:
+		rib = mkxenv(0);
+		wbindids(ctx, rib, e->e1->e1, "variable");
+		if(fn)
+			xenvforeach(rib, markshadow, fn);
+		xenvlink(rib, lex);
+		check(ctx, e->e1->e2, fn, rib);
+		xenvforeach(rib, checkbvar, ctx);
+		xenvforeach(rib, free1vu, 0);
+		freexenv(rib);
+		return;
+	case Elambda:
+		rib = mkxenv(0);
+		wbindids(ctx, rib, e->e1, "parameter");
+		xenvlink(rib, lex);
+		check(ctx, e->e2, rib, rib);
+		xenvforeach(rib, checkfnvar, ctx);
+		xenvforeach(rib, free1vu, 0);
+		freexenv(rib);
+		return;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			check(ctx, p->e1, fn, lex);
+			p = p->e2;
+		}
+		return;
+	default:
+		check(ctx, e->e1, fn, lex);
+		check(ctx, e->e2, fn, lex);
+		check(ctx, e->e3, fn, lex);
+		check(ctx, e->e4, fn, lex);
+		return;
+	}
+}
+
+
 static Expr*
 rmscope(U *ctx, Expr *e)
 {
@@ -331,6 +495,7 @@ docompileb(U *ctx, Expr *e)
 	}else
 		lex = 0;
 	e = toplevel(ctx, e, ctx->top->env, lex);
+	check(ctx, e, 0, 0);
 	e = resolve(ctx, e, ctx->top->env, lex, 0, 0);
 	if(lex)
 		freexenv(lex);
