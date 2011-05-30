@@ -97,7 +97,7 @@
 					p = loop(paramtype(par));
 				}, params(t));
 			return p;
-		}else if(isundef(t)){
+		}else if(isundeftype(t)){
 			*p++ = cqct`Tundef;
 			return p;
 		}else if(isbitfield(t)){
@@ -174,7 +174,7 @@
 
 @define decodetname(q)
 {
-	@local k, cb, id, gets, w, pos;
+	@local k, cb, id, gets, w, pos, st, pt, n, v, i, sid;
 
 	@define gets()
 	{
@@ -297,29 +297,24 @@
 		}
 		return [mkctype_enum(id, v, st), q];
 	case cqct`Tptr:
-		[st,tq] = decodetname(q);
-		q = tq;
+		[st, q] = decodetname(q);
 		return [mkctype_ptr(st, nsptr(ns)), q];
 	case cqct`Tconst:
-		[st,tq] = decodetname(q);
-		q = tq;
+		[st, q] = decodetname(q);
 		return [mkctype_const(st), q];
 	case cqct`Tarr:
 		q = (`uint64*)q;
 		n = *q++;
-		[st,tq] = decodetname(q);
-		q = tq;
+		[st, q] = decodetname(q);
 		return [mkctype_array(st, n), q];
 	case cqct`Tfun:
-		[st,tq] = decodetname(q);
-		q = tq;
+		[st, q] = decodetname(q);
 		q = (`uint64*)q;
 		n = *q++;
 		v = mkvec(n);
 		for(i = 0; i < n; i++){
 			sid = gets();
-			[pt,tq] = decodetname(q);
-			q = tq;
+			[pt, q] = decodetname(q);
 			v[i] = mkparam(pt,
 				       (strlen(sid) > 0 ? 
 					mkcid(sid) : nil));
@@ -327,15 +322,13 @@
 		return [mkctype_fn(st, v), q];
 	case cqct`Ttypedef:
 		id = mkcid(gets());
-		[st,tq] = decodetname(q);
-		q = tq;
+		[st, q] = decodetname(q);
 		return [mkctype_typedef(id, st), q];
 	case cqct`Tbitfield:
 		q = (`uint64*)q;
 		w = *q++;
 		pos = *q++;
-		[st,tq] = decodetname(q);
-		q = tq;
+		[st, q] = decodetname(q);
 		return [mkctype_bitfield(st, w, pos), q];
 	default:
 		error("decodetdef: unhandled case %d", k);
