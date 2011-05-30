@@ -343,7 +343,7 @@ checkbvar(void *u, char *id, void *v)
 	if(vu->shadows)
 		cwarnln(ctx, vu->e, "variable shadows parameter: %s", id);
 	if(vu->ref == 0 && vu->def == 0)
-		cwarnln(ctx, vu->e, "useless variable: %s", id);
+		cwarnln(ctx, vu->e, "unused variable: %s", id);
 	else if(vu->ref == 0)
 		cwarnln(ctx, vu->e, "variable defined but not used: %s", id);
 	else if(vu->ref == 0)
@@ -358,7 +358,7 @@ checkfnvar(void *u, char *id, void *v)
 	ctx = u;
 	vu = v;
 	if(vu->ref == 0 && vu->def == 0)
-		cwarnln(ctx, vu->e, "useless parameter: %s", id);
+		cwarnln(ctx, vu->e, "unused parameter: %s", id);
 }
 
 static void
@@ -425,11 +425,13 @@ check(U *ctx, Expr *e, Xenv *fn, Xenv *lex)
 	case Elambda:
 		rib = mkxenv(0);
 		wbindids(ctx, rib, e->e1, "parameter");
+		fn = xenvcopy(rib);
 		xenvlink(rib, lex);
-		check(ctx, e->e2, rib, rib);
+		check(ctx, e->e2, fn, rib);
 		xenvforeach(rib, checkfnvar, ctx);
 		xenvforeach(rib, free1vu, 0);
 		freexenv(rib);
+		freexenv(fn);
 		return;
 	case Eelist:
 		p = e;
