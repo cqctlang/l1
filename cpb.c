@@ -357,8 +357,8 @@ checkfnvar(void *u, char *id, void *v)
 	VU *vu;
 	ctx = u;
 	vu = v;
-	if(vu->ref == 0 && vu->def == 0)
-		cwarnln(ctx, vu->e, "unused parameter: %s", id);
+//	if(vu->ref == 0 && vu->def == 0)
+//		cwarnln(ctx, vu->e, "unused parameter: %s", id);
 }
 
 static void
