@@ -43,7 +43,7 @@
 
 @define finalize(o, fn)
 {
-	@local origf, origg, _finalize;
+	@local origg, _finalize;
 	@local guards, inf, dofinals;
 
 	inf = 0; // avoid inconsistent access to guards
@@ -79,7 +79,6 @@
 	guards = [];
 
 	/* skip this initialization on future finalize calls */
-	origf = finalize;
 	finalize = _finalize;
 
 	/* schedule finalizer after each gc */
