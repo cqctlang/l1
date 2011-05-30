@@ -418,6 +418,7 @@ main(int argc, char *argv[])
 	opt['x'] = 1;		/* execute */
 	opt['g'] = 1;		/* gc in separate thread */
 	opt['s'] = 1;		/* include default load path */
+	cqctflags['w'] = 1;
 	dorepl = 1;
 	ename = 0;
 	nlp = 0;
