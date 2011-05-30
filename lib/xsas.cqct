@@ -50,6 +50,11 @@
 	s = mkstr(m);
 	as = mkas([ "get" : get, "put" : put,
 		    "map" : map, "ismapped" : ismapped,
-		    "dat" : dat ]);
-	return (char*){as}0;
+		    "dat" : dat ], "xsas");
+	return as;
+}
+
+@define mkxs()
+{
+	return (char*){mkxsas()}0;
 }
