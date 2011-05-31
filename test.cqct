@@ -1,0 +1,52 @@
+@include <ctype.cqct>
+@include <xsas.cqct>
+@include <dump.cqct>
+
+
+ts = [ @typename(int),
+       @typename(long long),
+       @typename(`T),
+       @typename(`T*),
+       @typename(`T***),
+       @typename(struct S),
+       @typename(struct S*),
+       @typename(union U*),
+       @typename(enum E),
+       @typename(enum E*),
+       @typename(enum E[100]),
+       @typename(int[]),
+       @typename(int[10]),
+       @typename(int (*)(int x, int y)),
+       @typename(`T** (*)(A *a, B *b)),
+	];
+
+us = map(@lambda(t) {
+		@local p;
+		p = mkxs();
+		encodetname(p, t);
+		decodetname(p)[0]; },
+	ts);
+foreach(@lambda(t, u) { printf("%t -> %t\n", t, u); }, ts, us);
+
+ns = @names c32le {
+	struct X {
+		@0x0 int x;
+		@0x4 int y;
+		@0x8;
+	};
+};
+
+//ts = map(@lambda(tn, td) { printtype(td); td; }, ns.enumtype());
+ts = map(@lambda(tn, td) { printf("%t\n", td); td; }, ns.enumtype());
+us = map(@lambda(td){
+		@local p, ud;
+		p = mkxs();
+		encodetdef(p, td);
+		decodetdef(c32le, p)[0];
+	}, ts);
+foreach(@lambda(td, ud) {
+		printtype(td);
+		printf("\n -> \n");
+		printtype(ud);
+	}, ts, us);
+
