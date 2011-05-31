@@ -432,6 +432,8 @@ typecbase(Ctype *t)
 	case Tbase:
 		tb = (Ctypebase*)t;
 		return tb->cbase;
+	case Tptr:
+		return Vptr;
 	default:
 		bug();
 	}
@@ -1359,7 +1361,7 @@ l1_basebase(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qctype)
 		vmerr(vm, "operand 1 to basebase must be a base ctype");
 	t = valctype(argv[0]);
-	if(t->tkind != Tbase)
+	if(t->tkind != Tbase && t->tkind != Tptr)
 		vmerr(vm, "operand 1 to basebase must be a base ctype");
 	*rv = mkvallitcval(Vuchar, typecbase(t));
 }
@@ -1388,7 +1390,7 @@ l1_baserep(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qctype)
 		vmerr(vm, "operand 1 to baserep must be a base ctype");
 	t = valctype(argv[0]);
-	if(t->tkind != Tbase)
+	if(t->tkind != Tbase && t->tkind != Tptr)
 		vmerr(vm, "operand 1 to baserep must be a base ctype");
 	*rv = mkvallitcval(Vuchar, typerep(t));
 }
