@@ -105,7 +105,7 @@
 			p = (`uint8*)p;
 			*p++ = bitfieldwidth(t);
 			*p++ = bitfieldpos(t);
-			p = loop(subtype(t));
+			p = loop(bitfieldcontainer(t));
 			return p;
 		}else
 			error("unhandled type name %t", t);
@@ -159,7 +159,7 @@
 		p = (`uint64*)p;
 		*p++ = length(enumconsts(t));
 		foreach(@lambda(ec){
-				p = puts(cid2str(ec[0]));
+				p = puts(p, cid2str(ec[0]));
 				p = (`uint64*)p;
 				*p++ = ec[1];
 			}, enumconsts(t));

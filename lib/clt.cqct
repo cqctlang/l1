@@ -10,3 +10,4 @@ ping(fd, 200);
 ping(fd, 200000);
 nsid = names(fd, "emacs.names");
 printf("nsid %u\n", nsid);
+sctllookstype

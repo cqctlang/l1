@@ -59,7 +59,8 @@ Prints the type t in a way parsable in a .names file.
 			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
 		}
 		printf("};\n");
-	}
+	}else
+		printf("%t;\n", t);
 };
 
 /**

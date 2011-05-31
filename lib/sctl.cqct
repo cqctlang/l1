@@ -871,3 +871,28 @@ nexttag = 0;
 	printf("nsid for %s is %u\n", path, rep->id);
 	return rep->id;
 }
+
+@define mksctlns(fd, nsid)
+{
+}
+
+@define sctllooktype(fd, nsid, tn)
+{
+	@local p, m, rep, dat, sz;
+
+	m = p = mkxs();
+	p = (sctl`Tlooktype*)p;
+	p->op = sctl`Tlooktype;
+	p->tag = freshtag();
+	p = (`uint64*)(p+1);
+	*p++ = nsid;
+	encodetname(p, tn);
+	p = (`char*)p;
+	sendmsg(fd, m, p-m);
+
+	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("looktype failed: %a", dat);
+	checkreply(rep, sctl`Rlooktype);
+	printf(
+}

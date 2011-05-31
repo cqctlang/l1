@@ -26,7 +26,7 @@ us = map(@lambda(t) {
 		encodetname(p, t);
 		decodetname(p)[0]; },
 	ts);
-foreach(@lambda(t, u) { printf("%t -> %t\n", t, u); }, ts, us);
+foreach(@lambda(t, u) { printf("***\n%t\n -> %t\n", t, u); }, ts, us);
 
 ns = @names c32le {
 	struct X {
@@ -34,6 +34,21 @@ ns = @names c32le {
 		@0x4 int y;
 		@0x8;
 	};
+
+	struct Y {
+		@0x0 int x;
+		@@0x4*8+0 int y : 2;
+		@@0x4*8+2 int z : 3;
+		@0x8;
+	};
+
+	enum E {
+		c1,
+		c2,
+		c3=c1+c2,
+		c4,
+	};
+
 };
 
 //ts = map(@lambda(tn, td) { printtype(td); td; }, ns.enumtype());
@@ -45,8 +60,8 @@ us = map(@lambda(td){
 		decodetdef(c32le, p)[0];
 	}, ts);
 foreach(@lambda(td, ud) {
+		printf("***\n");
 		printtype(td);
-		printf("\n -> \n");
+		printf(" ->\n");
 		printtype(ud);
 	}, ts, us);
-
