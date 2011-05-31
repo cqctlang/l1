@@ -116,6 +116,7 @@
 
 @define encodetdef(p, t)
 {
+	printf("encoding %t\n", t);
 	@defloc puts(p, s)
 	{
 		@local m;
@@ -146,8 +147,8 @@
 		foreach(@lambda(f){
 				p = (`uint64*)p;
 				*p++ = fieldoff(f);
-				p = puts(cid2str(fieldid(f)));
-				p = encodetname(fieldtype(f));
+				p = puts(p, cid2str(fieldid(f)));
+				p = encodetname(p, fieldtype(f));
 			}, fields(t));
 		return p;
 	}else if(isenum(t)){
@@ -166,10 +167,17 @@
 	}else if(istypedef(t)){
 		*p++ = cqct`Ttypedef;
 		p = puts(p, cid2str(typedefid(t)));
-		p = encodetname(subtype(t));
+		p = encodetname(p, typedeftype(t));
 		return p;
+	}else if(isptr(t)){
+		if(!isvoid(subtype(t)))
+			error("unhandled type definition %t", t);
+		/* void* is special case of Tbase */
+		*p++ = cqct`Tbase;
+		*p++ = (`uint8)basebase(t);
+		*p++ = (`uint8)baserep(t);
 	}else
-		error("unhandled type name %t", t);
+		error("unhandled type definition %t", t);
 }
 
 @define decodetname(q)
