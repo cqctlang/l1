@@ -2034,7 +2034,7 @@ ctlmux = @names clp64le {
 			}
 			return [mkctype_fn(st, v), q];
 		case ctlmux`Tbitfield:
-			q = (ctlmux`uint64*)q;
+			q = (ctlmux`uint8*)q;
 			w = *q++;
 			pos = *q++;
 			[st,tq] = decodetname(q);
