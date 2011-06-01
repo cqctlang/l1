@@ -872,11 +872,7 @@ nexttag = 0;
 	return rep->id;
 }
 
-@define mksctlns(fd, nsid)
-{
-}
-
-@define sctllooktype(fd, nsid, tn)
+@define sctllooktype(fd, nsid, ns, tn)
 {
 	@local p, m, rep, dat, sz;
 
@@ -893,6 +889,318 @@ nexttag = 0;
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("looktype failed: %a", dat);
-	checkreply(rep, sctl`Rlooktype);
-	printf(
+	switch(rep->op){
+	case sctl`Rlooktype:
+		break;
+	case sctl`Rerror:
+		if(rep->bytes == "no such thing")
+			return nil;
+		error("sctl: error while waiting for %e: %s",
+		      sctl`Rlooktype, rep->bytes);
+	default:
+		error("sctl: while waiting for %e: received %e",
+		      sctl`Rlooktype, (sctl`Mkind)rep->op);
+	}
+	return decodetdef(ns, (char*)dat);
+}
+
+@define sctlenumtype(fd, nsid, ns)
+{
+	@local p, m, rep, dat, sz;
+
+	m = p = mkxs();
+	p = (sctl`Tlooktype*)p;
+	p->op = sctl`Tenumtype;
+	p->tag = freshtag();
+	p = (`uint64*)(p+1);
+	*p++ = nsid;
+	p = (char*)p;
+	sendmsg(fd, m, p-m);
+
+	[rep, dat] = runtiltag(p->tag);
+	checkreply(rep, sctl`Renumtype);
+	ss = [:];
+	q = (ctlmux`uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		[t, q] = decodetdef(ns, q);
+		ss[typename(t)] = t;
+	}
+	return ss;
+}
+
+@define sctllooksym(fd, nsid, sym)
+{
+	@local p, m, rep, dat, sz, addr;
+	@local xid, xerr, flags, t, val, xsz;
+
+	@defloc puts(p, s)
+	{
+		@local m;
+		m = strlen(s);
+		p = (`uint64*)p;
+		*p++ = m;
+		p = (char*)p;
+		putbytes(p, s);
+		p += m;
+		return p;
+	}
+
+	p = m = mkxs();
+	p = (sctl`Tlooksym*)p;
+	p->op = sctl`Tlooksym;
+	p->tag = freshtag();
+	p++;
+	puts(p, cid2str(sym));
+	p = (char*)p;
+	sendmsg(fd, m, p-m);
+	
+	[rep, dat] = runtiltag(p->tag);
+	switch(rep->op){
+	case sctl`Rlooksym:
+		break;
+	case sctl`Rerror:
+		if(rep->bytes == "no such thing")
+			return nil;
+		error("ctlmux: error while waiting for %e: %s",
+		      sctl`Rlooksym, rep->bytes);
+	default:
+		error("unexpected response: %e", rep->op);
+	}
+
+	q = (ctlmux`uint64*)dat;
+	sz = *q++;
+	xid = mkcid(getbytes(q, sz));
+	q = (ctlmux`uint8*)((char*)q+sz);
+	flags = *q++;
+	q = (ctlmux`uint64*)q;
+	val = *q++;
+	xsz = *q++;
+	[t,tq] = decodetname(q);
+	q = tq;
+	return symrec(xid, flags, val, xsz, t);
+}
+
+@define mkresolve(cache, undef, lt)
+{
+	@local resolve, undefined, ptr, ptrrep;
+	@local typepos;
+
+	typepos = 0;   // FIXME: should be opaque
+
+	ptr = lt(mkctype_base(ctlmux`Vptr));
+	if(ptr == nil)
+		error("no pointer type");
+	ptrrep = baserep(ptr);
+
+	@define undefined(tn)
+	{
+		@local td;
+		td = mkctype_undef(tn);
+		cache[typename(tn)] = td;
+		undef[typename(tn)] = td;
+		return td;
+	}
+
+	@define resolve(tn)
+	{
+		@local td, i, m, s, v, st;
+
+		td = cache[typename(tn)];
+		if(td != nil)
+			return td;
+
+		if(isbase(tn)){
+			td = lt(tn);
+			if(td == nil)
+				error("name space does not define %t", tn);
+			cache[typename(tn)] = td;
+			return td;
+		}else if(issu(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td; // terminate cycles
+			s = fields(td);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			return td;
+		}else if(isenum(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td;
+			return td;
+		}else if(istypedef(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td; // terminate cycles
+			settypedeftype(td, resolve(typedeftype(td)));
+			return td;
+		}else if(isptr(tn)){
+			td = mkctype_ptr(resolve(subtype(tn)), ptrrep);
+			/* FIXME: cannot cache into cache because
+			   we return that as enumtype.  but we could
+		           create a separate ptrcache. */
+			// cache[typename(tn)] = td; // why not?
+			return td;
+		}else if(isenumconst(tn)){
+			td = mkctype_const(resolve(subtype(tn)));
+			return td;
+		}else if(isfunc(tn)){
+			s = params(tn);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			td = mkctype_fn(resolve(rettype(tn)), s);
+			return td;
+		}else if(isarray(tn)){
+			return mkctype_array(resolve(subtype(tn)),
+					     arraynelm(tn));
+		}else if(isvoid(tn)){
+			cache[typename(tn)] = mkctype_void();
+		}else if(isbitfield(tn)){
+			st = resolve(bitfieldcontainer(tn));
+			return mkctype_bitfield(st,
+						bitfieldwidth(tn),
+						bitfieldpos(tn));
+		}else
+			error("type resolution on unexpected type: %t", tn);
+	}
+	
+	return resolve;
+}
+
+@define mksctlns(fd, nsid)
+{
+	@local type, sym, addr, undef;
+	@local lt, ls, et, es, la, ns;
+	@local psym2sym;
+	@local ltresolve;
+		
+	type = [:];
+	sym = [:];
+	addr = [:];
+	undef = [:];
+	resetltr();
+
+	@defloc resetltr()
+	{
+		ltresolve = mkresolve(type, undef,
+				      @lambda(tn){
+					      sctllooktype(fd, nsid, ns, tn);
+				      });
+	}
+
+	@define lt(this, tn)
+	{
+		@local t;
+		t = ltresolve(tn);
+		if(isundeftype(t))
+			return nil;
+		return t;
+	}
+
+	@define et(this)
+	{
+		@local resolve, ts;
+
+		// FIXME: maybe only muxenumtype if we haven't before
+
+		/* reset cache */
+		type = [:];
+		undef = [:];
+		resetltr();
+
+		ts = sctlenumtype(fd, nsid, ns);
+		resolve = mkresolve(type, undef,
+				    @lambda(tn){
+					    return ts[typename(tn)];
+				    });
+		foreach(@lambda(k, v){
+				resolve(k);
+			}, ts);
+		if(length(undef) > 0){
+			printf("%d unresolved\n", length(undef));
+			foreach(@lambda(k, v){
+					printf("\t%t\n", k);
+				}, undef);
+		}
+		return type;
+	}
+
+	@define psym2sym(psym)
+	{
+		@local v, t;
+			
+		if(psym.flags&sctl`Sundef)
+			return nil;
+		if(psym.flags&sctl`Sinline)
+			return nil;
+		t = ltresolve(psym.type);
+		v = psym.val;
+		if(psym.flags&sctl`Senum)
+			v = {subtype(t)}v;
+		s = mksym(t, psym.id, v);
+	}
+		
+	@define ls(this, name)
+	{
+		@local psym, s, v;
+		s = sym[name];
+		if(s != nil)
+			return s;
+		psym = sctllooksym(fd, nsid, name);
+		if(psym == nil)
+			return nil;
+		s = psym2sym(psym);
+		if(s != nil){
+			sym[symid(s)] = s;
+			addr[symoff(s)] = s;
+		}
+		return s;
+	}
+
+	@define es(this)
+	{
+		@local ss, t, v;
+
+		/* reset cache */
+		sym = [:];
+
+		ss = sctlenumsym(fd, nsid);
+		foreach(@lambda(psym){
+				s = psym2sym(psym);
+				if(s != nil)
+					sym[psym.id] = s;
+			}, ss);
+		return sym;
+	}
+
+	@define la(this, a)
+	{
+		@local psym, s, v;
+		s = addr[a];
+		if(s != nil)
+			return s;
+		psym = sctllookaddr(id, a);
+		if(psym == nil)
+			return nil;
+		s = psym2sym(psym);
+		if(s != nil)
+			addr[a] = s;
+		return s;
+	}
+
+	ns = mkns([ "looktype" : lt,
+		    "enumtype" : et,
+		    "looksym"  : ls,
+		    "enumsym"  : es,
+		    "lookaddr" : la ]);
 }
