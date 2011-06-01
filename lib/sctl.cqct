@@ -1,5 +1,13 @@
 /* sctl messages */
 
+@record symrec {
+	id,
+	flags,
+	val,
+	sz,
+	type,
+};
+
 sctl = @names clp64le {
 	typedef
 	enum Mkind {
@@ -650,7 +658,7 @@ nexttag = 0;
 
 @define fmtmsg(msg, sz)
 {
-	@local s, p, q;
+	@local s, q;
 
 	@defloc gets()
 	{
@@ -874,7 +882,7 @@ nexttag = 0;
 
 @define sctllooktype(fd, nsid, ns, tn)
 {
-	@local p, m, rep, dat, sz;
+	@local p, m, rep, dat;
 
 	m = p = mkxs();
 	p = (sctl`Tlooktype*)p;
@@ -883,8 +891,7 @@ nexttag = 0;
 	p = (`uint64*)(p+1);
 	*p++ = nsid;
 	encodetname(p, tn);
-	p = (`char*)p;
-	sendmsg(fd, m, p-m);
+	sendmsg(fd, m, (char*)p-m);
 
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
@@ -906,7 +913,7 @@ nexttag = 0;
 
 @define sctlenumtype(fd, nsid, ns)
 {
-	@local p, m, rep, dat, sz;
+	@local p, m, rep, dat, ss, q, i, t;
 
 	m = p = mkxs();
 	p = (sctl`Tlooktype*)p;
@@ -917,10 +924,10 @@ nexttag = 0;
 	p = (char*)p;
 	sendmsg(fd, m, p-m);
 
-	[rep, dat] = runtiltag(p->tag);
+	[rep, dat] = recvmsg(fd);
 	checkreply(rep, sctl`Renumtype);
 	ss = [:];
-	q = (ctlmux`uint64*)dat;
+	q = (`uint64*)dat;
 	m = *q++;
 	for(i = 0; i < m; i++){
 		[t, q] = decodetdef(ns, q);
@@ -931,8 +938,8 @@ nexttag = 0;
 
 @define sctllooksym(fd, nsid, sym)
 {
-	@local p, m, rep, dat, sz, addr;
-	@local xid, xerr, flags, t, val, xsz;
+	@local p, m, q, rep, dat, sz;
+	@local xid, flags, t, val, xsz;
 
 	@defloc puts(p, s)
 	{
@@ -951,33 +958,100 @@ nexttag = 0;
 	p->op = sctl`Tlooksym;
 	p->tag = freshtag();
 	p++;
+	p = (`uint64*)p;
+	*p++ = nsid;
 	puts(p, cid2str(sym));
 	p = (char*)p;
 	sendmsg(fd, m, p-m);
 	
-	[rep, dat] = runtiltag(p->tag);
+	[rep, dat] = recvmsg(fd);
 	switch(rep->op){
 	case sctl`Rlooksym:
 		break;
 	case sctl`Rerror:
 		if(rep->bytes == "no such thing")
 			return nil;
-		error("ctlmux: error while waiting for %e: %s",
+		error("sctl: error while waiting for %e: %s",
 		      sctl`Rlooksym, rep->bytes);
 	default:
 		error("unexpected response: %e", rep->op);
 	}
 
-	q = (ctlmux`uint64*)dat;
+	q = (`uint64*)dat;
 	sz = *q++;
 	xid = mkcid(getbytes(q, sz));
-	q = (ctlmux`uint8*)((char*)q+sz);
+	q = (`uint8*)((char*)q+sz);
 	flags = *q++;
-	q = (ctlmux`uint64*)q;
+	q = (`uint64*)q;
 	val = *q++;
 	xsz = *q++;
-	[t,tq] = decodetname(q);
-	q = tq;
+	[t, q] = decodetname(q);
+	return symrec(xid, flags, val, xsz, t);
+}
+
+@define sctlenumsym(fd, nsid)
+{
+	@local p, m, q, rep, dat, sz, ss;
+	@local i, xid, xsz, val, flags, t;
+
+	p = m = mkxs();
+	p = (sctl`Tenumsym*)p;
+	p->op = sctl`Tenumsym;
+	p->tag = freshtag();
+	p++;
+	p = (`uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	sendmsg(fd, m, p-m);
+
+	/* wait for reply */
+	[rep, dat] = recvmsg(fd);
+	checkreply(rep, sctl`Renumsym);
+
+	ss = [];
+	q = (`uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		q = (`uint64*)q;
+		sz = *q++;
+		xid = mkcid(getbytes(q, sz));
+		q = (`uint8*)((char*)q+sz);
+		flags = *q++;
+		q = (`uint64*)q;
+		val = *q++;
+		xsz = *q++;
+		[t, q] = decodetname(q);
+		append(ss, symrec(xid, flags, val, xsz, t));
+	}
+	return ss;
+}
+
+@define sctllookaddr(fd, nsid, addr)
+{
+	@local p, m, q, rep, dat, sz;
+	@local xid, xsz, val, flags, t;
+
+	p = m = mkxs();
+	p = (sctl`Tlooksym*)p;
+	p->op = sctl`Tlooksym;
+	p->tag = freshtag();
+	p++;
+	p = (`uint64*)p;
+	*p++ = nsid;
+	*p++ = addr;
+	sendmsg(fd, m, (char*)p-m);
+	
+	[rep, dat] = recvmsg(fd);
+	checkreply(rep, sctl`Rlookaddr);
+	q = (`uint64*)dat;
+	sz = *q++;
+	xid = mkcid(getbytes(q, sz));
+	q = (`uint8*)((char*)q+sz);
+	flags = *q++;
+	q = (`uint64*)q;
+	val = *q++;
+	xsz = *q++;
+	[t, q] = decodetname(q);
 	return symrec(xid, flags, val, xsz, t);
 }
 
@@ -988,7 +1062,7 @@ nexttag = 0;
 
 	typepos = 0;   // FIXME: should be opaque
 
-	ptr = lt(mkctype_base(ctlmux`Vptr));
+	ptr = lt(mkctype_base(sctl`Vptr));
 	if(ptr == nil)
 		error("no pointer type");
 	ptrrep = baserep(ptr);
@@ -1147,12 +1221,12 @@ nexttag = 0;
 		v = psym.val;
 		if(psym.flags&sctl`Senum)
 			v = {subtype(t)}v;
-		s = mksym(t, psym.id, v);
+		return mksym(t, psym.id, v);
 	}
 		
 	@define ls(this, name)
 	{
-		@local psym, s, v;
+		@local psym, s;
 		s = sym[name];
 		if(s != nil)
 			return s;
@@ -1169,7 +1243,7 @@ nexttag = 0;
 
 	@define es(this)
 	{
-		@local ss, t, v;
+		@local ss, s;
 
 		/* reset cache */
 		sym = [:];
@@ -1185,11 +1259,11 @@ nexttag = 0;
 
 	@define la(this, a)
 	{
-		@local psym, s, v;
+		@local psym, s;
 		s = addr[a];
 		if(s != nil)
 			return s;
-		psym = sctllookaddr(id, a);
+		psym = sctllookaddr(fd, nsid, a);
 		if(psym == nil)
 			return nil;
 		s = psym2sym(psym);

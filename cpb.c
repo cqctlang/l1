@@ -326,6 +326,7 @@ wbindids(U *ctx, Xenv *xe, Expr *e, char *what)
 				"multiple declarations of %s %s",
 				what,
 				idsym(p->e1));
+			p = p->e2;
 			continue;
 		}
 		xenvbind(xe, idsym(p->e1), mkvu(p->e1));
