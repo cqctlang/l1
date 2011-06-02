@@ -169,7 +169,7 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 			return e;
 		}else if(!envbinds(top, idcid(e->e1)) && scope){
 			/* create binding in innermost lexical scope */
-			if(cqctflags['w'])
+			if(cqctflags['w'] && strcmp(id, "_") != 0)
 				cwarnln(ctx,
 					e, "assignment to unbound variable: %s",
 					id);
@@ -235,7 +235,9 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		id = idsym(e);
 		if(xenvlook(lex, id))
 			return e;
-		if(cqctflags['w'] && !envbinds(top, idcid(e)))
+		if(cqctflags['w']
+		   && !envbinds(top, idcid(e))
+		   && strcmp(id, "_") != 0)
 			cwarnln(ctx, e,
 				"reference to unbound variable: %s", id);
 		se = Ztid(id);
@@ -341,6 +343,8 @@ checkbvar(void *u, char *id, void *v)
 	VU *vu;
 	ctx = u;
 	vu = v;
+	if(!strcmp(id, "_"))
+		return;
 	if(vu->shadows)
 		cwarnln(ctx, vu->e, "variable shadows parameter: %s", id);
 	if(vu->ref == 0 && vu->def == 0)
