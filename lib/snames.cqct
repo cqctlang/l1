@@ -158,34 +158,6 @@ sns = @names clp64be {
 	return 'ok;
 }
 
-@define encodesym(p, sym)
-{
-	@local flags;
-	p = (`uint64*)p;
-
-	/* id */
-	p = encodes(p, cid2str(symid(sym)));
-	
-	/* flags */
-	flags = (`uint8)0;
-	if(isenumconst(symtype(sym)))
-		flags |= sctl`Senum;
-	p = (`uint8*)p;
-	*p++ = flags;
-	
-	/* val */
-	p = (`uint64*)p;
-	*p++ = symoff(sym);
-
-	/* size */
-	*p++ = 0;
-	
-	/* typename */
-	p = encodetname(p, symtype(sym));
-
-	return p;
-}
-
 @define tlooksym(fd, msg, dat)
 {
 	@local p, m, nsid, id, ns, sym;

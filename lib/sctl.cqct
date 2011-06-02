@@ -2,14 +2,6 @@
 
 @include <xsas.cqct>
 
-@record symrec {
-	id,
-	flags,
-	val,
-	sz,
-	type,
-};
-
 sctl = @names clp64le {
 	typedef
 	enum Mkind {
@@ -111,6 +103,11 @@ sctl = @names clp64le {
 		PROT_EXEC	= 0x4,		/* Page can be executed.  */
 	} Prot;
 
+	typedef
+	enum Attrval {
+		Astr,
+		Auint,
+	} Attrval;
 
 	typedef
 	enum Cbase
@@ -504,14 +501,6 @@ sctl = @names clp64le {
 	base,
 };
 
-@record symrec {
-	id,
-	flags,
-	val,
-	sz,
-	type,
-};
-
 @record loc {
 	id,
 	sz,
@@ -525,6 +514,430 @@ sctl = @names clp64le {
 	len,
 	name,
 };
+
+@record symrec {
+	id,
+	flags,
+	val,
+	attrs,
+	sz,
+	type,
+};
+
+@define encodes(p, s)
+{
+	@local m;
+	m = strlen(s);
+	p = (`uint64*)p;
+	*p++ = m;
+	p = (char*)p;
+	putbytes(p, s);
+	p += m;
+	return p;
+}
+
+@define decodes(p)
+{
+	@local sz, s;
+	p = (`uint64*)p;
+	sz = *p++;
+	s = getbytes(p, sz);
+	p = (`uint8*)((char*)p+sz);
+	return [s, p];
+}
+
+@define encodeattrs(p, attrs)
+{
+	@local na;
+
+	/* never encode an attribute named "offset" */
+	na = 0;
+	foreach(@lambda(k, v) { if(k != "offset") na++ }, attrs);
+
+	p = (`uint64*)p;
+	*p++ = na;
+	foreach(@lambda(k, v) { 
+			if(k == "offset")
+				return;
+			if(!isstring(k))
+				return;
+			if(!iscvalue(v) && !isstring(v))
+				return;
+			p = encodes(p, k);
+			p = (`uint8*)p;
+			if(iscvalue(v)){
+				*p++ = sctl`Auint;
+				p = (`uint64*)p;
+				*p++ = (`uint64)v;
+			}else{
+				*p++ = sctl`Astr;
+				p = encodes(p, v);
+			}
+		}, attrs);
+	return p;
+}
+
+@define decodeattrs(p)
+{
+	@local tab, na, i, k, v, e;
+
+	tab = [:];
+	p = (`uint64*)p;
+	na = *p++;
+	for(i = 0; i < na; i++){
+		[k, p] = decodes(p);
+		p = (`uint8*)p;
+		e = *p++;
+		switch(e){
+		case sctl`Auint:
+			p = (`uint64*)p;
+			v = *p++;
+			break;
+		case sctl`Astr:
+			[v, p] = decodes(p);
+			break;
+		default:
+			error("unrecognized attribute value type: %d", e);
+		}
+		tab[k] = v;
+	}
+	return [tab, p];
+}
+
+@define encodesym(p, sym)
+{
+	@local flags;
+	p = (`uint64*)p;
+
+	/* id */
+	p = encodes(p, cid2str(symid(sym)));
+	
+	/* flags */
+	flags = (`uint8)0;
+	if(isenumconst(symtype(sym)))
+		flags |= sctl`Senum;
+	p = (`uint8*)p;
+	*p++ = flags;
+	
+	/* val */
+	p = (`uint64*)p;
+	*p++ = symoff(sym);
+
+	/* attrs */
+	p = encodeattrs(p, symattr(sym));
+
+	/* size */
+	*p++ = 0;
+	
+	/* typename */
+	p = encodetname(p, symtype(sym));
+
+	return p;
+}
+
+@define decodesym(p)
+{
+	@local id, f, v, sz, t, at;
+
+	p = (`uint64*)p;
+	[id, p] = decodes(p);
+	p = (`uint8*)p;
+	f = *p++;
+	p = (`uint64*)p;
+	v = *p++;
+	[at, p] = decodeattrs(p);
+	at["offset"] = v;
+	sz = *p++;
+	[t, p] = decodetname(p);
+	return [symrec(mkcid(id), f, v, at, sz, t), p];
+}
+
+@define encodeparam(p, par)
+{
+	@local id;
+	p = encodeattrs(p, paramattr(par));
+	id = paramid(par);
+	if(id == nil)
+		p = encodes(p, "");
+	else
+		p = encodes(p, cid2str(id));
+	p = encodetname(p, paramtype(par));
+	return p;
+}
+
+@define decodeparam(p)
+{
+	@local sid, at, pt, par;
+	[at, p] = decodeattrs(p);
+	[sid, p] = decodes(p);
+	[pt, p] = decodetname(p);
+	par = mkparam(pt, strlen(sid) > 0 ? mkcid(sid) : nil, at);
+	return [par, p];
+}
+
+@define encodetname(p, t)
+{
+	@local id, m;
+	p = (`uint8*)p;
+	if(isbase(t)){
+		*p++ = cqct`Tbase;
+		*p++ = (`uint8)basebase(t);
+		return p;
+	}else if(issu(t) || isenum(t)){
+		if(isstruct(t))
+			*p++ = cqct`Tstruct;
+		else if(isunion(t))
+			*p++ = cqct`Tunion;
+		else if(isenum(t))
+			*p++ = cqct`Tenum;
+		else
+			error("bug");
+		return encodes(p, cid2str(suetag(t)));
+	}else if(istypedef(t)){
+		*p++ = cqct`Ttypedef;
+		return encodes(p, cid2str(typedefid(t)));
+	}else if(isptr(t)){
+		*p++ = cqct`Tptr;
+		return encodetname(p, subtype(t));
+	}else if(isarray(t)){
+		*p++ = cqct`Tarr;
+		p = (`uint64*)p;
+		m = arraynelm(t);
+		if(m == nil)
+			*p++ = 0; /* FIXME: maybe want escape */
+		else
+			*p++ = m;
+		return encodetname(p, subtype(t));
+	}else if(isfunc(t)){
+		*p++ = cqct`Tfun;
+		p = encodetname(p, rettype(t));
+		p = (`uint64*)p;
+		*p++ = length(params(t));
+		p = (`uint8*)p;
+		foreach(@lambda(par){ p = encodeparam(p, par); }, params(t));
+		return p;
+	}else if(isvoid(t)){
+		*p++ = cqct`Tbase;
+		*p++ = (`uint8)cqct`Vvoid;
+		return p;
+	}else if(isundeftype(t)){
+		*p++ = cqct`Tundef;
+		return encodetname(p, subtype(t));
+	}else if(isenumconst(t)){
+		*p++ = cqct`Tconst;
+		return encodetname(p, subtype(t));
+	}else if(isbitfield(t)){
+		*p++ = cqct`Tbitfield;
+		p = (`uint8*)p;
+		*p++ = bitfieldwidth(t);
+		*p++ = bitfieldpos(t);
+		p = encodetname(p, bitfieldcontainer(t));
+		return p;
+	}else
+		error("unhandled type name %t", t);
+}
+
+@define encodetdef(p, t)
+{
+	printf("encoding %t\n", t);
+
+	p = (`uint8*)p;
+	if(isbase(t)){
+		*p++ = cqct`Tbase;
+		*p++ = (`uint8)basebase(t);
+		*p++ = (`uint8)baserep(t);
+		return p;
+	}else if(issu(t)){
+		if(isstruct(t))
+			*p++ = cqct`Tstruct;
+		else if(isunion(t))
+			*p++ = cqct`Tunion;
+		p = encodes(p, cid2str(suetag(t)));
+		p = (`uint64*)p;
+		*p++ = susize(t);
+		*p++ = length(fields(t));
+		foreach(@lambda(f){
+				p = (`uint64*)p;
+				*p++ = fieldoff(f);
+				p = encodes(p, cid2str(fieldid(f)));
+				p = encodetname(p, fieldtype(f));
+			}, fields(t));
+		return p;
+	}else if(isenum(t)){
+		*p++ = cqct`Tenum;
+		p = encodes(p, cid2str(suetag(t)));
+		p = (`uint8*)p;
+		*p++ = baserep(subtype(t));
+		p = (`uint64*)p;
+		*p++ = length(enumconsts(t));
+		foreach(@lambda(ec){
+				p = encodes(p, cid2str(ec[0]));
+				p = (`uint64*)p;
+				*p++ = ec[1];
+			}, enumconsts(t));
+		return p;
+	}else if(istypedef(t)){
+		*p++ = cqct`Ttypedef;
+		p = encodes(p, cid2str(typedefid(t)));
+		p = encodetname(p, typedeftype(t));
+		return p;
+	}else if(isptr(t)){
+		if(!isvoid(subtype(t)))
+			error("unhandled type definition %t", t);
+		/* void* is special case of Tbase */
+		*p++ = cqct`Tbase;
+		*p++ = (`uint8)basebase(t);
+		*p++ = (`uint8)baserep(t);
+		return p;
+	}else
+		error("unhandled type definition %t", t);
+}
+
+@define decodetname(q)
+{
+	@local k, cb, id, w, pos, st, par, n, v, i, sid;
+
+	q = (`uint8*)q;
+	k = *q++;
+	switch(k){
+	case cqct`Tbase:
+		cb = *q++;
+		return [mkctype_base(cb), q];
+	case cqct`Tstruct:
+		[id, q] = decodes(q);
+		return [mkctype_struct(mkcid(id)), q];
+	case cqct`Tunion:
+		[id, q] = decodes(q);
+		return [mkctype_union(mkcid(id)), q];
+	case cqct`Tenum:
+		[id, q] = decodes(q);
+		return [mkctype_enum(mkcid(id)), q];
+	case cqct`Ttypedef:
+		[id, q] = decodes(q);
+		return [mkctype_typedef(mkcid(id)), q];
+	case cqct`Tptr:
+		[st, q] = decodetname(q);
+		return [mkctype_ptr(st), q];
+	case cqct`Tconst:
+		[st, q] = decodetname(q);
+		return [mkctype_const(st), q];
+	case cqct`Tarr:
+		q = (`uint64*)q;
+		n = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_array(st, n), q];
+	case cqct`Tfun:
+		[st, q] = decodetname(q);
+		q = (`uint64*)q;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			[sid, q] = decodes(q);
+			[pt, q] = decodetname(q);
+			[par, q] = decodeparam(p);
+			v[i] = par;
+		}
+		return [mkctype_fn(st, v), q];
+	case cqct`Tbitfield:
+		q = (`uint8*)q;
+		w = *q++;
+		pos = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_bitfield(st, w, pos), q];
+	case cqct`Tundef:
+		[st, q] = decodetname(q);
+		return [mkctype_undef(st), q];
+	default:
+		error("decodetname: unhandled case %d", k);
+	}
+}
+
+@define decodetdef(ns, q)
+{
+	@local k, cb, rep, sz, n, i, v, id, sid, c, off, mk, st, pt;
+	@local w, pos;
+
+	q = (`uint8*)q;
+	k = *q++;
+	switch(k){
+	case cqct`Tbase:
+		cb = *q++;
+		rep = *q++;
+		return [mkctype_base(cb, rep), q];
+	case cqct`Tstruct:
+	case cqct`Tunion:
+		if(k == cqct`Tstruct)
+			mk = mkctype_struct;
+		else
+			mk = mkctype_union;
+		[id, q] = decodes(q);
+		q = (`uint64*)q;
+		sz = *q++;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			q = (`uint64*)q;
+			off = *q++;
+			[sid, q] = decodes(q);
+			[st, q] = decodetname(q);
+			v[i] = mkfield(st, mkcid(sid), off);
+		}
+		return [mk(mkcid(id), v, sz), q];
+	case cqct`Tenum:
+		[id, q] = decodes(q);
+		q = (`uint8*)q;
+		rep = *q++;
+		q = (`uint64*)q;
+		n = *q++;
+		st = nsreptype(ns, rep);
+		if(st == nil)
+			error("no base type for rep %d", rep);
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			[sid, q] = decodes(q);
+			q = (`uint64*)q;
+			c = *q++;
+			v[i] = vector(mkcid(sid), {st}c);
+		}
+		return [mkctype_enum(mkcid(id), v, st), q];
+	case cqct`Tptr:
+		[st, q] = decodetname(q);
+		return [mkctype_ptr(st, nsptr(ns)), q];
+	case cqct`Tconst:
+		[st, q] = decodetname(q);
+		return [mkctype_const(st), q];
+	case cqct`Tarr:
+		q = (`uint64*)q;
+		n = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_array(st, n), q];
+	case cqct`Tfun:
+		[st, q] = decodetname(q);
+		q = (`uint64*)q;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			[sid, q] = decodes(q);
+			[pt, q] = decodetname(q);
+			v[i] = mkparam(pt,
+				       (strlen(sid) > 0 ? 
+					mkcid(sid) : nil));
+		}
+		return [mkctype_fn(st, v), q];
+	case cqct`Ttypedef:
+		[id, q] = decodes(q);
+		[st, q] = decodetname(q);
+		return [mkctype_typedef(mkcid(id), st), q];
+	case cqct`Tbitfield:
+		q = (`uint64*)q;
+		w = *q++;
+		pos = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_bitfield(st, w, pos), q];
+	default:
+		error("decodetdef: unhandled case %d", k);
+	}
+}
 
 @define buf2msg(p)
 {
@@ -979,21 +1392,6 @@ nexttag = 0;
 		ss[typename(t)] = t;
 	}
 	return ss;
-}
-
-@define decodesym(p)
-{
-	@local id, f, v, sz, t;
-
-	p = (`uint64*)p;
-	[id, p] = decodes(p);
-	p = (`uint8*)p;
-	f = *p++;
-	p = (`uint64*)p;
-	v = *p++;
-	sz = *p++;
-	[t, p] = decodetname(p);
-	return [symrec(mkcid(id), f, v, sz, t), p];
 }
 
 @define sctllooksym(fd, nsid, id)

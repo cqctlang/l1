@@ -14,7 +14,7 @@ nsid = names(fd, "emacs.names");
 printf("nsid %u\n", nsid);
 
 ns = mksctlns(fd, nsid);
-if(0){
+if(1){
 t = looktype(ns, @typename(struct Lisp_Vector));
 printtype(t);
 ts = ns.enumtype();
@@ -23,7 +23,7 @@ ss = ns.enumsym();
 foreach(@lambda(id, sym) { printf("%t\n", sym); }, ss);
 }
 
-sym = looksym(ns, 'xaw_actions);
+sym = looksym(ns, 'safe_eval_handler);
 printf("orig: %x %t\n", symoff(sym), sym);
 sym1 = ns.lookaddr(symoff(sym));
 printf("sym1: %x %t\n", symoff(sym1), sym1);
