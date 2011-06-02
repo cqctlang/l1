@@ -5,6 +5,9 @@
 @global prefix;
 @global path2nsid;
 @global nsid2ns;
+@global Enone;
+
+Enone = "no such thing";
 
 sns = @names clp64be {
 	typedef short unsigned int sa_family_t;
@@ -37,12 +40,14 @@ sns = @names clp64be {
 
 @define notimpl(fd, msg, dat)
 {
-	rerror(fd, msg->tag, "server does not support %e", msg->op);
+	rerror(fd, msg->tag, "server does not support %e", (sctl`Mkind)msg->op);
+	return 'badop;
 }
 
 @define botch(fd, tag)
 {
 	rerror(fd, tag, "protocol botched");
+	return 'badop;
 }
 
 @define tnames(fd, msg, dat)
@@ -51,8 +56,7 @@ sns = @names clp64be {
 	@local q, path;
 
 	q = (`uint64*)dat;
-	sz = *q++;
-	path = getbytes(q, sz);
+	[path, q] = decodes(q);
 
 	nsid = openns(path);
 	if(nsid == nil){
@@ -86,15 +90,15 @@ sns = @names clp64be {
 	s = split(dat, ":");
 	if(length(s) < 1){
 		botch(fd, msg->tag);
-		return 'bad;
+		return 'badop;
 	}
 	if(s[0] != "sctl-2010"){
 		rerror(fd, msg->tag, "unsupported version");
-		return 'bad;
+		return 'badop;
 	}
 	if(length(s) != 2){
 		botch(fd, msg->tag);
-		return 'bad;
+		return 'badop;
 	}
 	sz = sizeof(sctl`Rversion)+strlen(dat);
 	p = (sctl`Rversion*)malloc(sz);
@@ -103,6 +107,157 @@ sns = @names clp64be {
 	printf("data is %s\n", dat);
 	putbytes(p+1, dat);
 	sendmsg(fd, p, sz);
+	return 'ok;
+}
+
+@define tlooktype(fd, msg, dat)
+{
+	@local p, m, nsid, tn, ns, td;
+	p = (`uint64*)dat;
+	nsid = *p++;
+	[tn, p] = decodetname(p);
+	ns = nsid2ns[nsid];
+	if(ns == nil){
+		rerror(fd, msg->tag, "unknown name space");
+		return 'badop;
+	}
+	td = ns.looktype(tn);
+	if(td == nil){
+       		rerror(fd, msg->tag, Enone);
+		return 'badop;
+	}
+	m = p = (sctl`Rlooktype*)mkxs();
+	p->op = sctl`Rlooktype;
+	p->tag = msg->tag;
+	p++;
+	p = encodetdef(p, td);
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
+@define tenumtype(fd, msg, dat)
+{
+	@local p, m, nsid, ns, ts, nt;
+	p = (`uint64*)dat;
+	nsid = *p++;
+	ns = nsid2ns[nsid];
+	if(ns == nil){
+		rerror(fd, msg->tag, "unknown name space");
+		return 'badop;
+	}
+	ts = ns.enumtype();
+	nt = length(ts);
+	m = p = (sctl`Renumtype*)mkxs();
+	p->op = sctl`Renumtype;
+	p->tag = msg->tag;
+	p++;
+	p = (`uint64*)p;
+	*p++ = nt;
+	foreach(@lambda(tn, td){ p = encodetdef(p, td); }, ts);
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
+@define encodesym(p, sym)
+{
+	@local flags;
+	p = (`uint64*)p;
+
+	/* id */
+	p = encodes(p, cid2str(symid(sym)));
+	
+	/* flags */
+	flags = (`uint8)0;
+	if(isenumconst(symtype(sym)))
+		flags |= sctl`Senum;
+	p = (`uint8*)p;
+	*p++ = flags;
+	
+	/* val */
+	p = (`uint64*)p;
+	*p++ = symoff(sym);
+
+	/* size */
+	*p++ = 0;
+	
+	/* typename */
+	p = encodetname(p, symtype(sym));
+
+	return p;
+}
+
+@define tlooksym(fd, msg, dat)
+{
+	@local p, m, nsid, id, ns, sym;
+
+	p = (`uint64*)dat;
+	nsid = *p++;
+	[id, p] = decodes(p);
+	ns = nsid2ns[nsid];
+	if(ns == nil){
+		rerror(fd, msg->tag, "unknown name space");
+		return 'badop;
+	}
+	sym = looksym(ns, mkcid(id));
+	if(sym == nil){
+		rerror(fd, msg->tag, Enone);
+		return 'badop;
+	}
+
+	m = p = (sctl`Rlooksym*)mkxs();
+	p->op = sctl`Rlooksym;
+	p->tag = msg->tag;
+	p++;
+	p = encodesym(p, sym);
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
+@define tenumsym(fd, msg, dat)
+{
+	@local p, m, nsid, ns, n, ss;
+
+	p = (`uint64*)dat;
+	nsid = *p++;
+	ns = nsid2ns[nsid];
+	if(ns == nil){
+		rerror(fd, msg->tag, "unknown name space");
+		return 'badop;
+	}
+
+	ss = ns.enumsym();
+	n = length(ss);
+	m = p = (sctl`Renumsym*)mkxs();
+	p->op = sctl`Renumsym;
+	p->tag = msg->tag;
+	p++;
+	p = (`uint64*)p;
+	*p++ = n;
+	foreach(@lambda(id, sym) { p = encodesym(p, sym); }, ss);
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
+@define tlookaddr(fd, msg, dat)
+{
+	@local p, m, nsid, ns, addr, sym;
+
+	p = (`uint64*)dat;
+	nsid = *p++;
+	addr = *p++;
+
+	ns = nsid2ns[nsid];
+	if(ns == nil){
+		rerror(fd, msg->tag, "unknown name space");
+		return 'badop;
+	}
+	sym = ns.lookaddr(addr);
+	m = p = (sctl`Rlookaddr*)mkxs();
+	p->op = sctl`Rlookaddr;
+	p->tag = msg->tag;
+	p++;
+	p = encodesym(p, sym);
+	sendmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
@@ -128,11 +283,11 @@ handle = [
 	(sctl`Mkind)sctl`Tsetctx   : notimpl,
 	(sctl`Mkind)sctl`Tread     : notimpl,
 	(sctl`Mkind)sctl`Twrite    : notimpl,
-	(sctl`Mkind)sctl`Tlooksym  : notimpl,
-	(sctl`Mkind)sctl`Tenumsym  : notimpl,
-	(sctl`Mkind)sctl`Tlooktype : notimpl,
-	(sctl`Mkind)sctl`Tenumtype : notimpl,
-	(sctl`Mkind)sctl`Tlookaddr : notimpl,
+	(sctl`Mkind)sctl`Tlooksym  : tlooksym,
+	(sctl`Mkind)sctl`Tenumsym  : tenumsym,
+	(sctl`Mkind)sctl`Tlooktype : tlooktype,
+	(sctl`Mkind)sctl`Tenumtype : tenumtype,
+	(sctl`Mkind)sctl`Tlookaddr : tlookaddr,
 	(sctl`Mkind)sctl`Tenumloc  : notimpl,
 	(sctl`Mkind)sctl`Tunwind   : notimpl,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
@@ -155,7 +310,7 @@ handle = [
 nextnsid = 1;
 @define openns(path)
 {
-	@local ns, id;
+	@local id;
 	id = path2nsid[path];
 	if(id)
 		return id;
@@ -164,7 +319,7 @@ nextnsid = 1;
 //	evalk(sprintfa("@names clp64le {  };", prefix+path),
 	      @lambda(ns){
 		      printf("success!\n");
-		      id = nextnsid++;
+		      id = (`uint64)nextnsid++;
 		      nsid2ns[id] = ns;
 		      path2nsid[path] = id;
 		      return id;
@@ -174,14 +329,14 @@ nextnsid = 1;
 
 @define main(port)
 {
-	@local lfd, fd, fds, rs, ws, es, x;
+	@local lfd, fd, fds, rs, x;
 	lfd = tcplisten(sprintfa(":%u", port));
 	fds = [ lfd ];
 	prefix = getenv("HOME")+"/src/l1/";
 	path2nsid = [:];
 	nsid2ns = [:];
 	while(1){
-		[rs, ws, es] = select(fds, [], []);
+		[rs, _, _] = select(fds, [], []);
 		foreach(@lambda(r){
 				if(r == lfd){
 					fd = tcpaccept(lfd);

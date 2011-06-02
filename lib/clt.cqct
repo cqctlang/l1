@@ -2,6 +2,8 @@
 !#
 
 @include <sctl.cqct>
+@include <dump.cqct>
+
 
 fd = tcpopen("localhost:30000");
 version(fd);
@@ -10,4 +12,20 @@ ping(fd, 200);
 ping(fd, 200000);
 nsid = names(fd, "emacs.names");
 printf("nsid %u\n", nsid);
-sctllookstype
+
+ns = mksctlns(fd, nsid);
+if(0){
+t = looktype(ns, @typename(struct Lisp_Vector));
+printtype(t);
+ts = ns.enumtype();
+foreach(@lambda(tn, td) { printtype(td); }, ts);
+ss = ns.enumsym();
+foreach(@lambda(id, sym) { printf("%t\n", sym); }, ss);
+}
+
+sym = looksym(ns, 'xaw_actions);
+printf("orig: %x %t\n", symoff(sym), sym);
+sym1 = ns.lookaddr(symoff(sym));
+printf("sym1: %x %t\n", symoff(sym1), sym1);
+sym2 = ns.lookaddr(symoff(sym)+0x10);
+printf("sym2: %x %t\n", symoff(sym2), sym2);

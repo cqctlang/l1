@@ -1,5 +1,7 @@
 /* sctl messages */
 
+@include <xsas.cqct>
+
 @record symrec {
 	id,
 	flags,
@@ -658,17 +660,8 @@ nexttag = 0;
 
 @define fmtmsg(msg, sz)
 {
-	@local s, q;
-
-	@defloc gets()
-	{
-		@local sz, s;
-		q = (`uint64*)q;
-		sz = *q++;
-		s = getbytes(q, sz);
-		q = (`uint8*)((char*)q+sz);
-		return s;
-	}
+	@local s, q, tn, td, nsid, id, n, a;
+	@local f, val, xsz;
 
 	msg = buf2msg(msg);
 	s = sprintfa("%e %d (%d bytes)",
@@ -722,23 +715,74 @@ nexttag = 0;
 		s += sprintfa(" %s", getbytes(msg+1, sz-sizeof(sctl`Rversion)));
 		break;
 	case sctl`Tlooksym:
+		q = msg+1;
+		q = (`uint64*)q;
+		nsid = *q++;
+		[id, q] = decodes(q);
+		s += sprintfa(" nsid=%u sym=%s", nsid, id);
+		break;
 	case sctl`Rlooksym:
-	case sctl`Tenumsym:
+		q = msg+1;
+		[id, q] = decodes(q);
+		q = (`uint8*)q;
+		f = *q++;
+		q = (`uint64*)q;
+		val = *q++;
+		xsz = *q++;
+		[tn, q] = decodetname(q);
+		s += sprintfa(" id=%s flags=%x val=%x sz=%x tname=%t",
+			      id, f, val, xsz, tn);
+		break;
 	case sctl`Renumsym:
+		q = msg+1;
+		q = (`uint64*)q;
+		n = *q++;
+		s += sprintfa(" ns=%u syms=...", n);
+		break;
+	case sctl`Tenumsym:
 	case sctl`Tenumtype:
+		q = msg+1;
+		q = (`uint64*)q;
+		id = *q++;
+		s += sprintfa(" nsid=%u", id);
+		break;
 	case sctl`Renumtype:
+		q = msg+1;
+		q = (`uint64*)q;
+		n = *q++;
+		s += sprintfa(" nt=%u tdefs=...", n);
+		break;
 	case sctl`Tunwind:
 	case sctl`Runwind:
+		break;
 	case sctl`Tnames:
 		q = msg+1;
-		s += sprintfa(" %s", gets());
+		[id, q] = decodes(q);
+		s += sprintfa(" path=%s", id);
 		break;
 	case sctl`Rnames:
 		s += sprintfa(" nsid=%u", msg->id);
 		break;
 	case sctl`Tlooktype:
+		q = msg+1;
+		q = (`uint64*)q;
+		id = *q++;
+		[tn, q] = decodetname(q);
+		s += sprintfa(" nsid=%u tname=%t", id, tn);
+		break;
 	case sctl`Rlooktype:
+		q = msg+1;
+		/* pass arbitrary name space to allow decode to occur */
+		[td, q] = decodetdef(clp64le, q);
+		s += sprintfa(" tdef=%t", td);
+		break;
 	case sctl`Tlookaddr:
+		q = msg+1;
+		q = (`uint64*)q;
+		id = *q++;
+		a = *q++;
+		s += sprintfa(" nsid=%u addr=%x", id, a);
+		break;
 	case sctl`Rlookaddr:
 	case sctl`Tenumloc:
 	case sctl`Renumloc:
@@ -801,9 +845,10 @@ nexttag = 0;
 	}
 }
 
-@define rerror(fd, tag, err)
+@define rerror(fd, tag, fmt, arg ...)
 {
-	@local p, sz;
+	@local p, sz, err;
+	err = apply(sprintfa, fmt, arg);
 	sz = sizeof(sctl`Rerror)+strlen(err);
 	p = (sctl`Rerror*)malloc(sz);
 	p->op = sctl`Rerror;
@@ -890,7 +935,7 @@ nexttag = 0;
 	p->tag = freshtag();
 	p = (`uint64*)(p+1);
 	*p++ = nsid;
-	encodetname(p, tn);
+	p = encodetname(p, tn);
 	sendmsg(fd, m, (char*)p-m);
 
 	[rep, dat] = recvmsg(fd);
@@ -908,7 +953,7 @@ nexttag = 0;
 		error("sctl: while waiting for %e: received %e",
 		      sctl`Rlooktype, (sctl`Mkind)rep->op);
 	}
-	return decodetdef(ns, (char*)dat);
+	return decodetdef(ns, (char*)dat)[0];
 }
 
 @define sctlenumtype(fd, nsid, ns)
@@ -936,22 +981,24 @@ nexttag = 0;
 	return ss;
 }
 
-@define sctllooksym(fd, nsid, sym)
+@define decodesym(p)
 {
-	@local p, m, q, rep, dat, sz;
-	@local xid, flags, t, val, xsz;
+	@local id, f, v, sz, t;
 
-	@defloc puts(p, s)
-	{
-		@local m;
-		m = strlen(s);
-		p = (`uint64*)p;
-		*p++ = m;
-		p = (char*)p;
-		putbytes(p, s);
-		p += m;
-		return p;
-	}
+	p = (`uint64*)p;
+	[id, p] = decodes(p);
+	p = (`uint8*)p;
+	f = *p++;
+	p = (`uint64*)p;
+	v = *p++;
+	sz = *p++;
+	[t, p] = decodetname(p);
+	return [symrec(mkcid(id), f, v, sz, t), p];
+}
+
+@define sctllooksym(fd, nsid, id)
+{
+	@local p, m, rep, dat, sym;
 
 	p = m = mkxs();
 	p = (sctl`Tlooksym*)p;
@@ -960,7 +1007,7 @@ nexttag = 0;
 	p++;
 	p = (`uint64*)p;
 	*p++ = nsid;
-	puts(p, cid2str(sym));
+	p = encodes(p, cid2str(id));
 	p = (char*)p;
 	sendmsg(fd, m, p-m);
 	
@@ -977,22 +1024,13 @@ nexttag = 0;
 		error("unexpected response: %e", rep->op);
 	}
 
-	q = (`uint64*)dat;
-	sz = *q++;
-	xid = mkcid(getbytes(q, sz));
-	q = (`uint8*)((char*)q+sz);
-	flags = *q++;
-	q = (`uint64*)q;
-	val = *q++;
-	xsz = *q++;
-	[t, q] = decodetname(q);
-	return symrec(xid, flags, val, xsz, t);
+	[sym, _] = decodesym(dat);
+	return sym;
 }
 
 @define sctlenumsym(fd, nsid)
 {
-	@local p, m, q, rep, dat, sz, ss;
-	@local i, xid, xsz, val, flags, t;
+	@local p, m, q, rep, dat, i, ss, sym;
 
 	p = m = mkxs();
 	p = (sctl`Tenumsym*)p;
@@ -1012,28 +1050,19 @@ nexttag = 0;
 	q = (`uint64*)dat;
 	m = *q++;
 	for(i = 0; i < m; i++){
-		q = (`uint64*)q;
-		sz = *q++;
-		xid = mkcid(getbytes(q, sz));
-		q = (`uint8*)((char*)q+sz);
-		flags = *q++;
-		q = (`uint64*)q;
-		val = *q++;
-		xsz = *q++;
-		[t, q] = decodetname(q);
-		append(ss, symrec(xid, flags, val, xsz, t));
+		[sym, q] = decodesym(q);
+		append(ss, sym);
 	}
 	return ss;
 }
 
 @define sctllookaddr(fd, nsid, addr)
 {
-	@local p, m, q, rep, dat, sz;
-	@local xid, xsz, val, flags, t;
+	@local p, m, rep, dat, sym;
 
 	p = m = mkxs();
-	p = (sctl`Tlooksym*)p;
-	p->op = sctl`Tlooksym;
+	p = (sctl`Tlookaddr*)p;
+	p->op = sctl`Tlookaddr;
 	p->tag = freshtag();
 	p++;
 	p = (`uint64*)p;
@@ -1043,16 +1072,9 @@ nexttag = 0;
 	
 	[rep, dat] = recvmsg(fd);
 	checkreply(rep, sctl`Rlookaddr);
-	q = (`uint64*)dat;
-	sz = *q++;
-	xid = mkcid(getbytes(q, sz));
-	q = (`uint8*)((char*)q+sz);
-	flags = *q++;
-	q = (`uint64*)q;
-	val = *q++;
-	xsz = *q++;
-	[t, q] = decodetname(q);
-	return symrec(xid, flags, val, xsz, t);
+	
+	[sym, _] = decodesym(dat);
+	return sym;
 }
 
 @define mkresolve(cache, undef, lt)
@@ -1144,6 +1166,8 @@ nexttag = 0;
 			return mkctype_bitfield(st,
 						bitfieldwidth(tn),
 						bitfieldpos(tn));
+		}else if(isundeftype(tn)){
+			cache[typename(tn)] = tn;
 		}else
 			error("type resolution on unexpected type: %t", tn);
 	}
@@ -1158,12 +1182,6 @@ nexttag = 0;
 	@local psym2sym;
 	@local ltresolve;
 		
-	type = [:];
-	sym = [:];
-	addr = [:];
-	undef = [:];
-	resetltr();
-
 	@defloc resetltr()
 	{
 		ltresolve = mkresolve(type, undef,
@@ -1171,6 +1189,12 @@ nexttag = 0;
 					      sctllooktype(fd, nsid, ns, tn);
 				      });
 	}
+
+	type = [:];
+	sym = [:];
+	addr = [:];
+	undef = [:];
+	resetltr();
 
 	@define lt(this, tn)
 	{
@@ -1277,4 +1301,5 @@ nexttag = 0;
 		    "looksym"  : ls,
 		    "enumsym"  : es,
 		    "lookaddr" : la ]);
+	return ns;
 }
