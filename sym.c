@@ -235,7 +235,7 @@ l1_paramattr(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
-		vmerr(vm, err);
+		return; /* nil */
 	*rv = vecref(v, Attrpos);
 }
 
