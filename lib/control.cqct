@@ -100,3 +100,12 @@
 	}
 	return nil;
 }
+
+/* FIXME: extend to tables and to sets of lists/vectors */
+@define filter(fn, l)
+{
+	@local rv;
+	rv = [];
+	foreach(@lambda(e){ if(fn(e)) append(rv, e); }, l);
+	return rv;
+}
