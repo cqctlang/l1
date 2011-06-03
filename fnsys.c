@@ -18,6 +18,42 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	exit(code);
 }
 
+static void
+l1_fork(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int pid;
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to fork");
+	pid = fork();
+	if(0 > pid)
+		vmerr(vm, "fork: %s", strerror(errno));
+	*rv = mkvallitcval(Vulong, pid);
+}
+
+static void
+l1_waitpid(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int pid, stat, opt, r;
+	Cval *cv;
+	List *l;
+	
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to waitpid");
+	checkarg(vm, "waitpid", argv, 0, Qcval);
+	checkarg(vm, "waitpid", argv, 1, Qcval);
+	cv = valcval(argv[0]);
+	pid = (int)cv->val;
+	cv = valcval(argv[1]);
+	opt = (int)cv->val;
+	r = waitpid(pid, &stat, opt);
+	if(0 > r)
+		vmerr(vm, "waitpid: %s", strerror(errno));
+	l = mklist();
+	listappend(vm, l, mkvallitcval(Vint, r));
+	listappend(vm, l, mkvallitcval(Vint, stat));
+	*rv = mkvallist(l);
+}
+
 extern char **environ;
 
 static void
@@ -234,7 +270,6 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	int xrv, sysn;
 
-
 	if(argc < 1)
 		vmerr(vm, "too few arguments to syscall");
 	if(argc > 7)
@@ -293,11 +328,40 @@ l1_uname(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallist(l);
 }
 
+static void
+l1_chdir(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char *d;
+	int r;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to chdir");
+	checkarg(vm, "chdir", argv, 0, Qstr);
+	d = str2cstr(valstr(argv[0]));
+	r = chdir(d);
+	efree(d);
+	if(0 > r)
+		vmerr(vm, "chdir: %s", strerror(errno));
+}
+
+static void
+l1_cwd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char buf[PATH_MAX];
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to cwd");
+	if(!getcwd(buf, sizeof(buf)))
+		vmerr(vm, "cwd: %s", strerror(errno));
+	*rv = mkvalstr(mkstr0(buf));
+}
+
 void
 fnsys(Env *env)
 {
+	FN(chdir);
+	FN(cwd);
 	FN(environ);
 	FN(exit);
+	FN(fork);
 	FN(getenv);
 	FN(getpid);
 	FN(gettimeofday);
@@ -306,4 +370,5 @@ fnsys(Env *env)
 	FN(randseed);
 	FN(syscall);
 	FN(uname);
+	FN(waitpid);
 }
