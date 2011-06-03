@@ -2,10 +2,10 @@
 !#
 @include <sctl.cqct>
 
-@global prefix;
 @global path2nsid;
 @global nsid2ns;
 @global Enone;
+@global prefix;
 
 Enone = "no such thing";
 
@@ -299,14 +299,16 @@ nextnsid = 1;
 	      @lambda(){ return nil; });
 }
 
-@define main(port)
+@define main(port, pref, vars)
 {
 	@local lfd, fd, fds, rs, x;
 	lfd = tcplisten(sprintfa(":%u", port));
 	fds = [ lfd ];
-	prefix = getenv("HOME")+"/src/l1/";
 	path2nsid = [:];
 	nsid2ns = [:];
+	prefix = pref;
+	if(prefix[strlen(prefix)-1] != '/')
+		prefix += "/";
 	while(1){
 		[rs, _, _] = select(fds, [], []);
 		foreach(@lambda(r){
@@ -339,4 +341,26 @@ nextnsid = 1;
 	}
 }
 
-main(30000);
+@define watchdog(fn)
+{
+	@local pid, s;
+	while(1){
+		pid = fork();
+		if(pid == 0){
+			fn();
+			exit(1);
+		}
+		[_, s] = waitpid(pid, 0);
+		printf("pid has failed (status=%x) ... restarting\n", s);
+	}
+}
+
+if(length(args) < 2){
+	printf("usage: %s PORT PREFIX [VAR ...] \n");
+	exit(1);
+}
+
+pop(args);
+port = strton(pop(args));
+prefix = pop(args);
+watchdog(@lambda(){ main(port, prefix, args); });
