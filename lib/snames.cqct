@@ -6,6 +6,7 @@
 @global nsid2ns;
 @global Enone;
 @global prefix;
+@global vars;
 
 Enone = "no such thing";
 
@@ -282,13 +283,33 @@ handle = [
 nextnsid = 1;
 @define openns(path)
 {
-	@local id;
+	@local id, s, a, nc;
 	id = path2nsid[path];
 	if(id)
 		return id;
 	printf("opening %s (%s)\n", path, prefix+path);
-	evalk(sprintfa("@names clp64le { @include \"%s\" };", prefix+path),
-//	evalk(sprintfa("@names clp64le {  };", prefix+path),
+	s = "@lambda(";
+	a = "}(";
+	nc = 1;
+	foreach(@lambda(v) {
+			@local fmts, fmta;
+			if(nc){
+				nc = 0;
+				fmts = "%s";
+				fmta = "%u";
+			}else{
+				fmts = ", %s";
+				fmta = ", %u";
+			}
+			s += sprintfa(fmts, v);
+			a += sprintfa(fmta, 0);
+		}, vars);
+	s += "){\n";
+	a += ");\n";
+	s += sprintfa("\t@names clp64le { @include \"%s\" };\n", prefix+path);
+	s += a;
+	printf("evaluating ...\n%s\n", s);
+	evalk(s,
 	      @lambda(ns){
 		      printf("success!\n");
 		      id = (`uint64)nextnsid++;
@@ -299,7 +320,7 @@ nextnsid = 1;
 	      @lambda(){ return nil; });
 }
 
-@define main(port, pref, vars)
+@define main(port, pref, vs)
 {
 	@local lfd, fd, fds, rs, x;
 	lfd = tcplisten(sprintfa(":%u", port));
@@ -307,6 +328,7 @@ nextnsid = 1;
 	path2nsid = [:];
 	nsid2ns = [:];
 	prefix = pref;
+	vars = vs;
 	if(prefix[strlen(prefix)-1] != '/')
 		prefix += "/";
 	while(1){
