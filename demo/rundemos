@@ -1,0 +1,16 @@
+#!/bin/sh
+
+../l1 ./traceattach.cqct
+../l1 ./traceelf.cqct
+../l1 ./tracelist.cqct
+../l1 ./tracelocals.cqct
+../l1 ./tracemclones.cqct
+../l1 ./tracenames.cqct
+../l1 ./tracepar1.cqct
+../l1 ./tracesctl.cqct
+../l1 ./tracesig.cqct
+../l1 ./tracespawn.cqct
+../l1 ./tracestep.cqct
+../l1 ./tracewind.cqct
+
+
