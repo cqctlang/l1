@@ -617,6 +617,10 @@ main(int argc, char *argv[])
 
 	}while(dorepl);
 
+	if(rv)
+		/* last evaluation was an error */
+		exit(1);
+
 	if(cqctflags['T'] && !dorepl && opt['x'])
 		printf("%-40s\t%16" PRIu64 " usec\n", "exe",
 		       end-Tbeg);
