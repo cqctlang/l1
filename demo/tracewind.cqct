@@ -1,18 +1,18 @@
 @include <ctlmux.cqct>
 
-@define test1(cmd, ns)
+@define test1(cmd)
 {
-	@local ctl, mux, as, dom, bs, ss, sym;
+	@local ctl, mux, as, ns, dom;
 
 	printf("%s:\n", cmd);
 	mux = mkctlmux_local();
 	ctl = mux.launch([cmd], 0);
-	regs = ctl.reg();
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`f,
 		  @lambda(ctl){
-			  @local xs;
+			  @local xs, regs;
 			  if(0)foreach(@lambda(dll){
 					  printf("\t%p\t%s\n",
 						 dll.base, dll.path);
@@ -40,7 +40,7 @@
 	mux.run();
 }
 
-test1("./wind1",    @names clp64le { @include "./wind1.names" });
-test1("./wind1.32", @names c32le   { @include "./wind1.32.names" });
-test1("./wind2",    @names clp64le { @include "./wind2.names" });
-test1("./wind2.32", @names c32le   { @include "./wind2.32.names" });
+foreach(test1, [ "./wind1",
+		 "./wind1.32",
+		 "./wind2",
+		 "./wind2.32" ]);

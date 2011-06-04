@@ -2,11 +2,10 @@
 
 @define test1()
 {
-	@local ctl, mux, ns, as, dom;
-
+	@local ctl, mux;
 	mux = mkctlmux_local();
 	foreach(@lambda(p){
-			@local pid;
+			@local pid, cmd;
 			pid = p[0];
 			cmd = p[1];
 			printf("%5d %s\n", pid, cmd);
@@ -16,6 +15,8 @@
 				return;
 			if(cmd == "emacs")
 				return;
+			if(cmd == "tcsh")
+				return; /* job control botch in emacs */
 			if(pid == getpid())
 				return;
 			ctl = mux.attach(pid);

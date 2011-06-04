@@ -66,10 +66,10 @@
 		serialize();
 	}
 		       
-	ns = @names clp64le { @include "./par1.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./par1"], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 
 	dom.trace(ctlmux`Efork,

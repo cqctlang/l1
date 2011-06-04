@@ -1,16 +1,15 @@
 @include <ctlmux.cqct>
 
-// test printlist
 @define test1()
 {
 	@local ctl, mux, ns, as, dom, ids;
 
 	ids = [];
 
-	ns = @names clp64le { @include "./attach.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./attach"], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.trace(ctlmux`Efork,
 		  @lambda(ctl, spwn){
@@ -23,6 +22,7 @@
 			  foreach(@lambda(id){
 					  @local ctl, dom;
 					  ctl = mux.attach(id);
+					  printf("attached to %d\n", id);
 					  dom = mkdom(ctl.ns(), ctl.mem());
 					  dom`f = 0;
 					  dom.detach();

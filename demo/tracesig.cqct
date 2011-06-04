@@ -4,10 +4,10 @@
 {
 	@local ctl, mux, ns, as, dom;
 
-	ns = @names clp64le { @include "./sig.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./sig" ], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.trace(ctlmux`Esignal,
 		  @lambda(ctl, sig){
@@ -22,10 +22,10 @@
 {
 	@local ctl, mux, ns, as, dom, n;
 
-	ns = @names clp64le { @include "./sig.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./sig" ], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	n = 0;
 	dom.trace(ctlmux`Esignal,
@@ -40,9 +40,10 @@
 	mux.run();
 }
 
-if(length(args) == 1)
+if(length(args) == 1){
 	test1();
-else if(length(args) == 2){
+	test2();
+}else if(length(args) == 2){
 	switch(args[1]){
 	case "1":
 		return test1();

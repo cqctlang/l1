@@ -1,19 +1,19 @@
 @include <ctlmux.cqct>
 
-@define test1(cmd, ns)
+@define test1(cmd)
 {
-	@local ctl, mux, as, dom, bs, ss, sym;
+	@local ctl, mux, as, ns, dom;
 
 	mux = mkctlmux_local();
 	ctl = mux.launch([cmd], 0);
-	regs = ctl.reg();
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.xtrap((void*)&dom`locals,
 		  @lambda(ctl){
 			  @local ss, regs;
 			  regs = ctl.reg();
-			  printf("%s locals (prctl):\n", cmd);
+			  printf("%s locals (sctl):\n", cmd);
 			  ss = mux.enumloc(ctl.id, regs);
 			  if(ss == nil){
 				  printf("no location information for %p\n",
@@ -38,5 +38,6 @@
 	mux.close();
 }
 
-test1("./locals1", @names clp64le { @include "./locals1.names" });
-test1("./locals1.32", @names c32le { @include "./locals1.32.names" });
+test1("./locals1");
+test1("./locals1.32");
+

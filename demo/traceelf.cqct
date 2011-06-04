@@ -2,28 +2,6 @@
 
 @define dumpmap(ctl)
 {
-	@local prot2str;
-
-	@define prot2str(prot)
-	{
-		@local s;
-		prot = (ctlmux`Prot)prot;
-		s = "";
-		if(prot&ctlmux`PROT_READ)
-			s += "r";
-		else
-			s += "-";
-		if(prot&ctlmux`PROT_WRITE)
-			s += "w";
-		else
-			s += "-";
-		if(prot&ctlmux`PROT_EXEC)
-			s += "x";
-		else
-			s += "-";
-		return s;
-	}
-
 	printf("dumpmap\n");
 	foreach(@lambda(dll){
 			printf("%16x %16x %s\n",
@@ -35,6 +13,7 @@
 
 @define printlist(dom)
 {
+	@local p;
 	p = dom`head;
 	while(p){
 		printf("%d ", p->v);
@@ -45,6 +24,7 @@
 
 @define manglelist(dom)
 {
+	@local p;
 	p = dom`head;
 	while(p){
 		printf("%d ", p->v++);
@@ -55,23 +35,17 @@
 
 @define mode32()
 {
-	@local ns;
-	ns = @names c32le { @include "./list32.names" };
-	return [ns,"./list32"];
+	return "./list32";
 }
 
 @define mode32s()
 {
-	@local ns;
-	ns = @names c32le { @include "./list32stat.names" };
-	return [ns,"./list32stat"];
+	return "./list32stat";
 }
 
 @define modenat()
 {
-	@local ns;
-	ns = @names clp64le { @include "./list.names" };
-	return [ns,"./list"];
+	return "./list";
 }
 
 @define dumpsym(ss)
@@ -94,15 +68,15 @@
 }
 
 // test printlist
-@define test1(mode, n)
+@define test1(cmd, n)
 {
-	@local ctl, mux, ns, cmd, as, dom, bs, ms, sym;
+	@local ctl, mux, ns, as, dom, bs, ms, sym;
 
-	[ns,cmd] = mode();
+	printf("** test1 %s **\n", cmd);
 	mux = mkctlmux_local();
 	ctl = mux.launch([cmd, sprintfa("%d", n)], 0);
-	regs = ctl.reg();
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.trace(ctlmux`Eload,
 		  @lambda(ctl, path, base){
@@ -110,7 +84,8 @@
 			  bs = ctl.statunix()[1];
 			  foreach(@lambda(dll){
 					  if(strstr(dll.path, "libc") != nil){
-						  sym = mux.looksym(dll.id, "malloc");
+						  sym = mux.looksym(dll.id,
+								    'malloc);
 						  if(sym.val)
 							  append(ms, sym.val);
 //						  dumpseg(mux.enumseg(dll.id));
@@ -118,7 +93,7 @@
 					  }
 					  if(strstr(dll.path, "list") != nil){
 						  sym = mux.looksym(dll.id,
-								    "malloc");
+								    'malloc);
 						  if(sym.val)
 							  append(ms, sym.val);
 //						  dumpseg(mux.enumseg(dll.id));
@@ -170,14 +145,15 @@
 
 
 // test manglelist
-@define test2(mode, n)
+@define test2(cmd, n)
 {
-	@local ctl, mux, ns, cmd, as, dom, m;
+	@local ctl, mux, ns, as, dom;
 
-	[ns,cmd] = mode();
+	printf("** test2 %s **\n", cmd);
 	mux = mkctlmux_local();
 	ctl = mux.launch([cmd, sprintfa("%d", n)], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.xtrap(&dom`insert,
 		  @lambda(ctl){
@@ -188,26 +164,12 @@
 	mux.run();
 }
 
-mode = nil;
-if(length(args) != 3)
-	error("usage: %s <mode> <testno>", args[0]);
-if(args[1] == "32")
-	mode = mode32;
-else if(args[1] == "32s")
-	mode = mode32s;
-else if(args[1] == "64")
-//	mode = mode64;
-	error("usage: %s <mode> <testno>", args[0]);
-else if(args[1] == "0")
-	mode = modenat;
-else
-	error("bad mode %s", args[1]);
-switch(args[2]){
-case "1":
-	return test1(mode, 10);
-case "2":
-	return test2(mode, 10);
-default:
-	error("no such test %a", args[1]);
-}
+
+cmds = [ "./list32",  "./list32stat",  "./list" ];
+
+printf("** test1 **\n");
+foreach(@lambda(cmd){ test1(cmd, 10); }, cmds);
+
+printf("** test2 **\n");
+foreach(@lambda(cmd){ test2(cmd, 10); }, cmds);
 

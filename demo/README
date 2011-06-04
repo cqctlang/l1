@@ -1,11 +1,10 @@
 in this directory are some cinquecento programs that
 demonstrate simple debugging activities.
 
-to use them, you also need prctl and dwarf2cqct.  these
-are available from cqctworld.org.
+to use them, you also need sctl, which is available
+from cqctworld.org.
 
-build prctl and dwarf2cqct and install them somewhere
-in your path.
+build sctl and install it somewhere in your path.
 
 then,
 
@@ -46,3 +45,226 @@ other tests...
 
     % ../l1 ./tracewind.cqct
 
+
+traceall.cqct
+-------------
+
+traceall.cqct briefly attaches to all debuggable
+processes on the calling machines.  processes that may
+not react well to being debugged (such as the sctl)
+are skipped.
+
+	% ./traceall.cqct
+
+
+
+tracelist.cqct
+--------------
+
+list.c is a C program with a linked list type and
+insert function.  It is run as:
+
+	% ./list [N]
+
+It creates a list of N elements (integers from 0 to
+N-1; N defaults to 100), prints "list is done", and
+exits.
+
+tracelist.cqct executes list, and observes and
+interacts with the insertion of nodes.  There are five
+modes, selected by the first argument:
+
+
+	% ../l1 ./tracelist 1 N
+
+	shows the state of the list upon each entry to the
+	insert function function.  N is the argument N passe
+
+
+	% ../l1 ./tracelist 2 N
+
+	modifies the state of the list upon each entry
+	to the insert function function.
+
+
+	% ../l1 ./tracelist 3 N
+
+	traces system calls made during the execution of list.
+
+	% ../l1 ./tracelist 4 N
+
+	collects snappoints of the list exectution.
+	THIS DEMO DOES NOT TERMINATE (hit Control-C)
+
+	% ../l1 ./tracelist 5 N
+
+	also collects snappoints of the list exectution,
+	but uses a different interface (and terminates).
+
+
+traceattach.cqct
+----------------
+
+traceattach.cqct demonstrates process attach
+functionality.
+
+attach.c is a C program that sets up processes to which
+traceattach attaches.
+
+	% ../l1 ./traceattach
+
+
+traceelf.cqct
+-------------
+
+traceelf.cqct demonstrates 
+
+	- traps on library load events
+	- traps on symbols with the same name in different libraries
+	- enumeration of local variables
+	- interaction with 32-bit and 64-bit binaries
+	- interaction with 32-bit static binaries
+
+	% ../l1 ./traceelf.cqct
+
+
+tracelocals.cqct
+----------------
+
+tracelocals demonstrates enumeration of local variables
+of a function.
+
+upon entry to the function locals, the target program
+(locals1) prints descriptions (location, name, size) of
+its local variable, while tracelocals prints the locals
+information provided by two interfaces offered by sctl.
+all three descriptions should be equivalent.
+
+two versions of locals are tested: the native binary
+size, and a 32-bit binary.
+
+	% ../l1 ./tracelocals.cqct
+
+
+tracemclones.cqct
+-----------------
+
+tracemclones demonstrates tracing of malloc and free
+calls in a multithreaded program.
+
+	% ../l1 ./tracemclones.cqct
+
+
+tracenames.cqct
+---------------
+
+tracenames.cqct demonstrates several executable name
+space examination features:
+
+	- look-up of symbols and types by name
+	- enumeration of types and symbols
+
+The target program (locals1) is not run in this
+demonstration; instead, the name space in its
+executable is read.
+
+	% ../l1 ./tracenames.cqct
+
+
+tracepar1.cqct
+--------------
+
+tracepar1.cqct demonstrates control of a multithreaded program.
+it serializes (in reverse order) the execution of
+the children threads of the target program (par1).
+
+	% ../l1 ./tracepar1.cqct
+
+
+tracesctl.cqct
+--------------
+
+tracesctl.cqct recursively runs tracelist.cqct and
+traces the execution of the sctl process invoked by
+tracelist.cqct to debug list.
+
+at every message transmission (writemsg) by this
+inferior sctl, tracesctl.cqct checks the state
+of the data structures in the sctl that represent
+control threads, address spaces, and breakpoints.
+it performs a simple consistency check.
+
+to make things interesting, tracelist.cqct is invoked
+in mode 5, to cause multiple ctls and address spaces to
+be created and deleted.
+
+	% ../l1 ./tracesctl.cqct
+
+also demonstrated here is the ability to reset name
+spaces across exec.
+
+
+tracesig.cqct
+-------------
+
+tracespawn.cqct demonstrates tracing of signal events.
+
+	% ../l1 ./tracesig.cqct
+
+
+tracespawn.cqct
+---------------
+
+tracespawn.cqct demonstrates tracing of process and
+thread creation.
+
+the third part (test3) exercises multi-threaded
+breakpoints, and illustrates a current limitation in
+sctl's breakpoint mechanism: it does not guarantee that
+every thread that executes a trapped instruction
+actually generates a trap.  (by default, to continue a
+trapped thread, sctl clears and steps over the
+breakpoint; a concurrent thread reaching the same trap
+may not see a breakpoint.  sctl contains an different
+implementation of trap stepping that does not have
+this problem, but introduces others.
+
+	% ../l1 ./tracespawn.cqct
+
+
+tracestep.cqct
+--------------
+
+tracestep.cqct demonstrates single stepping of a 32-bit
+and native-size binary.
+
+	% ../l1 ./tracestep.cqct
+
+
+tracewind.cqct
+--------------
+
+tracewind.cqct demonstrates sctl's ability to unwind
+the stack of 32-bit and native-size binaries.
+
+	% ../l1 ./tracewind.cqct
+
+
+
+
+The following demonstrations were one-off experiments
+that probably no longer work, but may be interesting
+to resurrect.
+
+	debugprctl.cqct
+	tracegc-s2.cqct
+	tracegc.cqct
+	tracel1.cqct
+
+
+The following are demonstrations for Windows that
+need to be documented.
+
+	traceattach_win.cqct
+	tracelist_win.cqct
+	tracex_win.cqct

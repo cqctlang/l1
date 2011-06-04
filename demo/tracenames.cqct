@@ -11,7 +11,7 @@
 
 @define test1(path, syms, types)
 {
-	@local mux, ns, rv, t;
+	@local mux, ns, rv;
 	mux = mkctlmux_local();
 	ns = mux.names(path);
 	foreach(@lambda(s){
@@ -28,7 +28,7 @@
 
 @define test2(path)
 {
-	@local mux, ns, rv, t, ts, s, ss;
+	@local mux, ns, ts, ss;
 	mux = mkctlmux_local();
 	ns = mux.names(path);
 	ts = ns.enumtype();
@@ -46,26 +46,18 @@
 		}, ss);
 }
 
-@define test3(path)
-{
-	@local mux, ns, rv, t, ts;
-	mux = mkctlmux_local();
-	ns = mux.names(path);
-	printf("parsed names\n");
-}
+test1("./locals1",
+      [ 'locals, 'foo, 'main, 'v6 ],
+      [
+	      @typename(int),
+	      @typename(`Node),
+	      @typename(struct Node),
+	      @typename(`X),
+	      @typename(enum X),
+	      @typename(enum Y),
+	      @typename(`Z),
+	      @typename(struct Z),
+      ]);
 
-//test1("../l1", "dovm");
-if(0)test1("./locals1",
-	   [ "locals", "foo", "main", "v6" ],
-	   [
-		   @typename(int),
-		   @typename(`Node),
-		   @typename(struct Node),
-		   @typename(`X),
-		   @typename(enum X),
-		   @typename(enum Y),
-		   @typename(`Z),
-		   @typename(struct Z),
-	   ]);
+test2("./locals1");
 
-if(1)test2("./locals1");

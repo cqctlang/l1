@@ -2,6 +2,7 @@
 
 @define printlist(dom)
 {
+	@local p;
 	p = dom`head;
 	while(p){
 		printf("%d ", p->v);
@@ -12,6 +13,7 @@
 
 @define manglelist(dom)
 {
+	@local p;
 	p = dom`head;
 	while(p){
 		printf("%d ", p->v++);
@@ -27,7 +29,6 @@
 
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
-	regs = ctl.reg();
 	as = ctl.mem();
 	ns = ctl.ns();
 	dom = mkdom(ns, as);
@@ -44,9 +45,8 @@
 // test manglelist
 @define test2(n)
 {
-	@local ctl, mux, ns, as, dom, m;
+	@local ctl, mux, ns, as, dom;
 
-	m = 0;
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./list", sprintfa("%d", n)], 0);
 	as = ctl.mem();
@@ -134,8 +134,12 @@
 	mux.run();
 }
 
-if(length(args) == 1)
-	test1(100);
+if(length(args) == 1){
+	test1(10);
+	test2(10);
+	test3(10);
+	test5(10);
+}
 else if(length(args) == 2)
 	test1(strton(args[1]));
 else if(length(args) == 3){

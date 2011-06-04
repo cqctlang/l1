@@ -5,8 +5,9 @@ FreeBSD, and Solaris.
 
 doc/man.html is a manual for the language.
 The directory lib is a loosely organized collection of library code.
+The directory demo contains demonstrations (see demo/README).
 
-To build:
+To build l1:
 
 	% make
 
@@ -18,11 +19,15 @@ To test (requires python):
 To run:
 
 	% ./l1
+	; printf("hello, world\n");
+	hello, world
+	;
 
-The executable l1 is an interactive cinquecento
-evaluator.  When run out of the directory in which it
-was built, it will find the library code in the lib
-directory.
+The executable l1 is an interactive Cinquecento
+evaluator.  This executable expects to remain in the l1
+directory in which it was built, so that it can find
+the library code in the lib directory.  A symbolic link
+to this executable can also be executed.
 
 The object l1.o can be linked into other programs (see
 cqct.h and the manual).

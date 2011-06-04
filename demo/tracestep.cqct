@@ -5,10 +5,10 @@
 {
 	@local ctl, mux, ns, as, dom, i, regs;
 
-	ns = @names c32le { @include "./mclones32.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./mclones32"], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.map();
 	time(@lambda(){
@@ -26,10 +26,10 @@
 {
 	@local ctl, mux, ns, as, dom, i, regs;
 
-	ns = @names clp64le { @include "./exit.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./exit"], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 	dom.map();
 	time(@lambda(){
@@ -43,9 +43,10 @@
 	dom.kill();
 }
 
-if(length(args) == 1)
+if(length(args) == 1){
 	test1();
-else if(length(args) == 2){
+	test2();
+}else if(length(args) == 2){
 	switch(args[1]){
 	case "1":
 		return test1();

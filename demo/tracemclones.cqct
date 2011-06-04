@@ -4,10 +4,10 @@
 {
 	@local ctl, mux, ns, as, dom;
 
-	ns = @names c32le { @include "./mclones32.names" };
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./mclones32"], 0);
 	as = ctl.mem();
+	ns = ctl.ns();
 	dom = mkdom(ns, as);
 
 	printf("&dom`xmalloc = %p\n", &dom`xmalloc);
