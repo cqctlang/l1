@@ -15,8 +15,11 @@ TARG = clones\
 	float1 float1.32\
 #	types1 types1.32\
 
+TARG32 = list32\
+	list32stat\
+	mclones32\
 
-all: $(TARG)
+all: $(TARG) $(TARG32)
 
 %.o:%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -90,4 +93,4 @@ list32stat: list.c
 	$(CC) -static -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 
 clean:
-	$(V)rm -rf *~ .gdbhistory core core.* *.o *.names $(TARG) *.so *.dylib depend
+	$(V)rm -rf *~ .gdbhistory core core.* *.o *.names $(TARG) $(TARG32) *.so *.dylib depend
