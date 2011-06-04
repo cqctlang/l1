@@ -40,7 +40,7 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 
 	@define list()
 	{
-		@local k, rv;
+		@local k;
 		k = tabkeys(uidmap);
 		sort(k, @lambda(a,b){ return a-b; });
 		return map(@lambda(uid){ uidmap[uid]; }, k);
@@ -48,7 +48,7 @@ rdsetfmt(@record Trap { uid, mid, fn, desc, clr },
 
 	@define reset()
 	{
-		@local k, rv;
+		@local k;
 		k = tabkeys(uidmap);
 		sort(k, @lambda(a,b){ return a-b; });
 		foreach(clr, k);

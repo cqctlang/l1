@@ -27,7 +27,7 @@
 
 @define fnargs(a)
 {
-	@local args, sym, fp, fn, ns, i, m, o, rv, t, p;
+	@local args, sym, fn, ns, i, m, rv, t;
 	ns = nsof(a);
 	sym = ns.lookaddr(a);
 	rv = [];
@@ -51,10 +51,9 @@
 
 @define fnret(a)
 {
-	@local args, sym, fp, fn, ns, i, m, o, rv, t, p;
+	@local sym, fn, ns, t;
 	ns = nsof(a);
 	sym = ns.lookaddr(a);
-	rv = nil;
 	if(sym == nil)
 		return nil;
 	fn = symtype(sym);
@@ -162,61 +161,59 @@
 
 @define rbrk(a, fn)
 {
-	@local dom, ns, ctl, id, rt;
+	@local dom, ns, rt;
 	dom = domof(a);
 	ns = dom.ns;
-	ctl = dom.ctl();
 	rt = fnret(a);
-	id = brk(a,
-		 @lambda(ectl, arg ...){
-			 @local dom, regs, sp, rid, rax;
-			 regs = ectl.reg();
-			 dom = mkdom(ns, ectl.mem());
-			 sp = (void**){dom}regs->rsp;
-			 rid = ectl.xtrap(*sp,
-					  @lambda(rctl){
-						  ectl.trapdel(rid);
-						  regs = rctl.reg();
-						  dom = mkdom(ns, rctl.mem());
-						  rax = regs->rax;
-						  if(rt != nil)
-							  push(arg,
-							       {rt}{dom}rax);
-						  push(arg, rctl);
-						  return apply(fn, arg);
-					  });
-		 });
+	brk(a,
+	    @lambda(ectl, arg ...){
+		    @local dom, regs, sp, rid, rax;
+		    regs = ectl.reg();
+		    dom = mkdom(ns, ectl.mem());
+		    sp = (void**){dom}regs->rsp;
+		    rid = ectl.xtrap(*sp,
+				     @lambda(rctl){
+					     ectl.trapdel(rid);
+					     regs = rctl.reg();
+					     dom = mkdom(ns, rctl.mem());
+					     rax = regs->rax;
+					     if(rt != nil)
+						     push(arg,
+							  {rt}{dom}rax);
+					     push(arg, rctl);
+					     return apply(fn, arg);
+				     });
+	    });
 }
 
 @define brbrk(a, in)
 {
-	@local dom, ns, ctl, id, rt;
+	@local dom, ns, rt;
 	dom = domof(a);
 	ns = dom.ns;
-	ctl = dom.ctl();
 	rt = fnret(a);
-	id = brk(a,
-		 @lambda(ectl, arg ...){
-			 @local dom, regs, sp, rid, rax, out;
-			 regs = ectl.reg();
-			 dom = mkdom(ns, ectl.mem());
-			 push(arg, ectl);
-			 out = apply(in, arg);
-			 if(out == nil)
-				 return;
-			 pop(arg);
-			 sp = (void**){dom}regs->rsp;
-			 rid = ectl.xtrap(*sp,
-					  @lambda(rctl){
-						  ectl.trapdel(rid);
-						  regs = rctl.reg();
-						  dom = mkdom(ns, rctl.mem());
-						  rax = regs->rax;
-						  if(rt != nil)
-							  push(arg,
-							       {rt}{dom}rax);
-						  push(arg, rctl);
-						  return apply(out, arg);
-					  });
-		 });
+	brk(a,
+	    @lambda(ectl, arg ...){
+		    @local dom, regs, sp, rid, rax, out;
+		    regs = ectl.reg();
+		    dom = mkdom(ns, ectl.mem());
+		    push(arg, ectl);
+		    out = apply(in, arg);
+		    if(out == nil)
+			    return;
+		    pop(arg);
+		    sp = (void**){dom}regs->rsp;
+		    rid = ectl.xtrap(*sp,
+				     @lambda(rctl){
+					     ectl.trapdel(rid);
+					     regs = rctl.reg();
+					     dom = mkdom(ns, rctl.mem());
+					     rax = regs->rax;
+					     if(rt != nil)
+						     push(arg,
+							  {rt}{dom}rax);
+					     push(arg, rctl);
+					     return apply(out, arg);
+				     });
+	    });
 }

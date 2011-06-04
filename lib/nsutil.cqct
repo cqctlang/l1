@@ -18,8 +18,8 @@ nsutil_defined = 1;
 *   form when used to declare a C variable), 0 otherwise.
 */
 @define typenameequal(t1, t2){
-	@local i, j, flds1, flds2, ps1, ps2, p1, p2,
-               f1, f2, c1, c2, tag1, tag2, n1, n2;
+	@local i, ps1, ps2, p1, p2,
+               tag1, tag2, n1, n2;
 
 	if(isvoid(t1) && isvoid(t2))
 		return 1;
@@ -308,7 +308,7 @@ nsutil_defined = 1;
 * returns: nil
 */
 @define printtype(t){
-	@local ct, i, fld, flds, sz, off, ft,id;
+	@local i, fld, flds, sz, off, ft,id;
 
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
@@ -373,16 +373,6 @@ nsutil_defined = 1;
 		printf("\t%t;\n", sym);
 	}
 }
-
-@define types_with_ptrs(ns)
-{
-        printf("The following types contain struct pointers:\n");
-        nsiter(ns, @lambda(x) {
-                        if (hasstructptr(x))
-                                printf("\t%t\n", x);
-                });
-}
-
 
 @define all_types(ns)
 {

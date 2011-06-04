@@ -55,6 +55,15 @@ type_debug = 0;
 	return 0;
 }
 		  
+@defloc types_with_ptrs(ns)
+{
+        printf("The following types contain struct pointers:\n");
+        nsiter(ns, @lambda(x) {
+                        if (hasstructptr(x))
+                                printf("\t%t\n", x);
+                });
+}
+
 // handle struct members, sometimes recursively
 @define cachehelper(t, cache)
 {
