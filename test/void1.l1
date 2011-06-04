@@ -1,5 +1,5 @@
 @define printtype(t){
-	@local ct, i, fld, flds, sz, off;
+	@local i, fld, flds, sz, off;
 
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
@@ -44,7 +44,7 @@
 };
 
 @define foo(){
-	@local ns, tab, vec, i, dom, p;
+	@local ns, vec, i, dom, p;
 
  	ns = @names c32le {
  		struct foo {

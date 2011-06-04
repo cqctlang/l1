@@ -1,6 +1,6 @@
 entry: var params, 7 locals, 0 temps
 mkzas: 1 params, 4 locals, 0 temps
-dispatch: var params, 7 locals, 0 temps
+dispatch: var params, 6 locals, 0 temps
 put 0 1
 put 1 2
 put 2 3

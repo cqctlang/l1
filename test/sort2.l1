@@ -28,8 +28,7 @@ mycmp = @lambda(a, b){
 };
 
 testsort = @lambda(len){
-	@local tod, v, i;
-	tod = gettimeofday();
+	@local v, i;
 	randseed(0);
 	v = randvec(len);
 	sort(v, mycmp);

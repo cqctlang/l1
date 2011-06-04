@@ -9,7 +9,7 @@
 	@local dispatch, str;
 	str = mkstr(len);
 	@define dispatch(args ...) {
-		@local arg, range, s, new, beg, end;
+		@local arg, range, new, beg, end;
 		arg = listref(args, 1);
 
 		if(arg == "get"){

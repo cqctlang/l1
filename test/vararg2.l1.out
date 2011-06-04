@@ -1,3 +1,4 @@
+vararg2.l1:8: warning: unused variable: x
 entry: var params, 1 locals, 0 temps
 L4: 1 params, 2 locals, 0 temps
 L25: var params, 2 locals, 0 temps

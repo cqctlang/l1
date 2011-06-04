@@ -9,7 +9,7 @@
 	@local dispatch, str;
 	str = mkstr(len);
 	@define dispatch(args ...) {
-		@local arg, range, s, new, beg, end;
+		@local arg, range, new, beg, end;
 		arg = listref(args, 1);
 
 		if(arg == "get"){
@@ -36,7 +36,7 @@
 }
 
 @define main(){
-	@local dom, ns, as, v, y;
+	@local dom, ns, as, v;
 
 	as = mkzas(1024);
 	ns = @names c32le {
@@ -57,6 +57,7 @@
 	printf("typeof(dom`a) == %t\n", @typeof(dom`a));	
 	printf("typeof(v = &dom`a[0]) == %t\n", @typeof(v = &dom`a[0]));
 	printf("typeof(v = dom`a) == %t\n", @typeof(v = dom`a));
+	printf("typeof(v) == %t\n", @typeof(v));
 	printf("typeof(dom`a[2]) == %t\n", @typeof(dom`a[2]));
 	printf("typeof(dom`a[2].i) == %t\n", @typeof(dom`a[2].i));
 }

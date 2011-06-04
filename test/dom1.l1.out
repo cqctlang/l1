@@ -1,6 +1,6 @@
 entry: var params, 1 locals, 0 temps
 mkzas: 1 params, 3 locals, 0 temps
-dispatch: var params, 7 locals, 0 temps
+dispatch: var params, 6 locals, 0 temps
 main: 0 params, 12 locals, 1 temps
 get 0 4
 init: dom`x -> 0

@@ -1,12 +1,13 @@
 entry: var params, 1 locals, 0 temps
 listref: 2 params, 0 locals, 0 temps
 mkzas: 1 params, 3 locals, 0 temps
-dispatch: var params, 7 locals, 0 temps
-main: 0 params, 17 locals, 0 temps
+dispatch: var params, 6 locals, 0 temps
+main: 0 params, 16 locals, 0 temps
 typeof(int) == int
 typeof(3) == int
 typeof(dom`a) == struct foo [3]
 typeof(v = &dom`a[0]) == struct foo *
 typeof(v = dom`a) == struct foo *
+typeof(v) == struct foo *
 typeof(dom`a[2]) == struct foo
 typeof(dom`a[2].i) == int

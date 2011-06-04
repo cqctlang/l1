@@ -16,7 +16,7 @@ randvec = @lambda(len){
 };
 
 vecpartition = @lambda(v, lo, hi, cmp){
-	@local nl, i, el, p, temp, x;
+	@local i, el, p, temp;
 
 	if(hi > length(v) || hi < lo)
 		return hi+1;	/* stop */

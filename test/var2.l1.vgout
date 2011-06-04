@@ -1,3 +1,5 @@
+var2.l1:2: warning: variable defined but not used: y
+var2.l1:2: warning: variable defined but not used: z
 entry: var params, 1 locals, 0 temps
 L4: 2 params, 3 locals, 0 temps
 L9: 1 params, 0 locals, 0 temps

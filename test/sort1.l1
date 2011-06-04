@@ -30,7 +30,6 @@
 
 @define cmp(x,y) { return x-y; }
 @define tst(v){
-	@local i, m;
 	sort(v, cmp);
 	printf("%d ", issorted(v));
 	printit(v);

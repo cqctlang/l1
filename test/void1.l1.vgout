@@ -1,6 +1,6 @@
 entry: var params, 1 locals, 0 temps
-printtype: 1 params, 8 locals, 0 temps
-foo: 0 params, 12 locals, 0 temps
+printtype: 1 params, 7 locals, 0 temps
+foo: 0 params, 11 locals, 0 temps
 enumtype: var params, 1 locals, 0 temps
 struct foo {
 	@0x0	void *x;
