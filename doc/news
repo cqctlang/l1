@@ -136,3 +136,56 @@ dec 07 2009
 	We plan to make nil and other bindings
 	immutable.
 
+jun 05 2011
+
+	The suffixes K, M, G, T, when applied to an
+	integer literal, shift the value left by 10,
+	20, 30, 40 bits, respectively.
+
+	The 0B and 0b prefixes allow integer literals
+	to be expressed in binary.
+
+	Floating-point values may be used in limited
+	ways.
+
+	As a predicate value, the value nil is now
+	false.
+
+	The new functions applyk and evalk support
+	recovery from errors.
+
+	In an @names body, enum constants may be
+	referenced in subsequent enum and array
+	declarations.
+
+	lib/snames.cqct is a new remote server for name
+	spaces backed by .names files.
+
+	Pairs have been embraced are a real Cinquecento
+	type.
+
+	Cids are a new Cinquecento type for
+	representing C identifiers.  They also provide
+	a general-purpose symbol type.
+
+	The storage manager has been upgraded to a
+	generational copying collector.  It supports a
+	static (uncollected) heap, guardians, and weak
+	pairs.
+
+	The rules by which variables are assigned
+	implicit bindings have been revised.  Several
+	new warnings are issued for binding mishaps.
+	These warnings cannot be suppressed.
+
+	The role of @typeof in constructing type names
+	has been transferred to a new form, @typename.
+	@typeof now resolves type definitions, only.
+
+	@const is deprecated.  It currently is a
+	whitespace token; soon it will disappear.
+
+	The operators ()= and {}= have been eliminated.
+
+	The extended accessor ctype variant has been
+	eliminated.
