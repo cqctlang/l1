@@ -1,0 +1,228 @@
+@define mkresolve(cache, undef, lt)
+{
+	@local resolve, undefined, ptr, ptrrep;
+	@local typepos;
+
+	typepos = 0;   // FIXME: should be opaque
+
+	ptr = lt(mkctype_base(cqct`Vptr));
+	if(ptr == nil)
+		error("no pointer type");
+	ptrrep = baserep(ptr);
+
+	@define undefined(tn)
+	{
+		@local td;
+		td = mkctype_undef(tn);
+		cache[typename(tn)] = td;
+		undef[typename(tn)] = td;
+		return td;
+	}
+
+	@define resolve(tn)
+	{
+		@local td, i, m, s, v, st;
+
+		td = cache[typename(tn)];
+		if(td != nil)
+			return td;
+
+		if(isbase(tn)){
+			td = lt(tn);
+			if(td == nil)
+				error("name space does not define %t", tn);
+			cache[typename(tn)] = td;
+			return td;
+		}else if(issu(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td; // terminate cycles
+			s = fields(td);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			return td;
+		}else if(isenum(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td;
+			return td;
+		}else if(istypedef(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td; // terminate cycles
+			settypedeftype(td, resolve(typedeftype(td)));
+			return td;
+		}else if(isptr(tn)){
+			td = mkctype_ptr(resolve(subtype(tn)), ptrrep);
+			/* FIXME: cannot cache into cache because
+			   we return that as enumtype.  but we could
+		           create a separate ptrcache. */
+			// cache[typename(tn)] = td; // why not?
+			return td;
+		}else if(isenumconst(tn)){
+			td = mkctype_const(resolve(subtype(tn)));
+			return td;
+		}else if(isfunc(tn)){
+			s = params(tn);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			td = mkctype_fn(resolve(rettype(tn)), s);
+			return td;
+		}else if(isarray(tn)){
+			return mkctype_array(resolve(subtype(tn)),
+					     arraynelm(tn));
+		}else if(isvoid(tn)){
+			cache[typename(tn)] = mkctype_void();
+		}else if(isbitfield(tn)){
+			st = resolve(bitfieldcontainer(tn));
+			return mkctype_bitfield(st,
+						bitfieldwidth(tn),
+						bitfieldpos(tn));
+		}else if(isundeftype(tn)){
+			cache[typename(tn)] = tn;
+		}else
+			error("type resolution on unexpected type: %t", tn);
+	}
+	
+	return resolve;
+}
+
+@define mknsraw(ons, typetab, symtab, name)
+{
+	@local type, sym, addr, undef;
+	@local lt, ls, et, es, la, ns;
+	@local ltresolve;
+
+	printf("all right.\n");
+		
+	@defloc resetltr()
+	{
+		ltresolve = mkresolve(type, undef,
+				      @lambda(tn){
+					      @local td;
+					      tn = typename(tn); /* ? */
+					      td = typetab[tn];
+					      if(td)
+						      return td;
+					      /* FIXME: or looktype? */
+					      return ons.looktype(tn);
+				      });
+	}
+
+	type = [:];
+	sym = [:];
+	addr = [:];
+	undef = [:];
+	resetltr();
+
+	@define lt(this, tn)
+	{
+		@local t;
+		t = ltresolve(tn);
+		if(isundeftype(t))
+			return nil;
+		return t;
+	}
+
+	@define et(this)
+	{
+		@local resolve, ts;
+
+		// FIXME: maybe only muxenumtype if we haven't before
+
+		/* reset cache */
+		type = [:];
+		undef = [:];
+		resetltr();
+
+		ts = ons.enumtype();
+		resolve = mkresolve(type, undef,
+				    @lambda(tn){
+					    @local td;
+					    tn = typename(tn);
+					    td = typetab[ns];
+					    if(td)
+						    return td;
+					    return ts[typename(tn)];
+				    });
+		foreach(@lambda(k, v){
+				resolve(k);
+			}, typetab);
+		foreach(@lambda(k, v){
+				resolve(k);
+			}, ts);
+		if(length(undef) > 0){
+			printf("%d unresolved\n", length(undef));
+			foreach(@lambda(k, v){
+					printf("\t%t\n", k);
+				}, undef);
+		}
+		return type;
+	}
+
+	@defloc fixsym(sym)
+	{
+		@local t, s;
+		t = ltresolve(typename(symtype(sym)));
+		s = mksym(t, symid(sym), symattr(sym));
+		return s;
+	}
+		
+	@define ls(this, name)
+	{
+		@local s;
+		s = sym[name];
+		if(s != nil)
+			return s;
+		s = symtab[name];
+		if(s == nil)
+			s = ons.looksym(s);
+		if(s != nil){
+			s = fixsym(s);
+			sym[name] = s;
+			addr[symoff(s)] = s;
+		}
+		return s;
+	}
+
+	@define es(this)
+	{
+		@defloc add(id, s)
+		{
+			if(s){
+				s = fixsym(s);
+				sym[symid(s)] = s;
+				addr[symoff(s)] = s;
+			}
+		}
+		/* reset cache */
+		sym = [:];
+
+		/* why does the code this came from
+		   iterate over non-tables? */
+		foreach(add, ons.enumsym());
+		foreach(add, symtab);
+		return sym;
+	}
+
+	@define la(this, a)
+	{
+		error("lookaddr is unimplemented");
+	}
+
+	ns = mkns([ "looktype" : lt,
+		    "enumtype" : et,
+		    "looksym"  : ls,
+		    "enumsym"  : es,
+		    "lookaddr" : la ]);
+	return ns;
+}
