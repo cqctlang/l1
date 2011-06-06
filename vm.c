@@ -3609,7 +3609,6 @@ builtindom(Env *env, char *name, Dom *dom)
 	envbind(env, name, val);
 }
 
-#if 0
 static void
 builtintab(Env *env, char *name, Tab *tab)
 {
@@ -3617,7 +3616,6 @@ builtintab(Env *env, char *name, Tab *tab)
 	val = mkvaltab(tab);
 	envbind(env, name, val);
 }
-#endif
 
 static void
 builtincval(Env *env, char *name, Cval *cv)
@@ -6698,6 +6696,7 @@ mktopenv(void)
 	/* FIXME: these bindings should be immutable */
 	builtinval(env, "nil", Xnil);
 	builtindom(env, "litdom", litdom);
+	builtintab(env, "toplevel", env->var);
 	builtinns(env, "c32le", mkrootns(&c32le));
 	builtinns(env, "c32be", mkrootns(&c32be));
 	builtinns(env, "c64le", mkrootns(&c64le));
