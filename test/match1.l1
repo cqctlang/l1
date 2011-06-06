@@ -1,0 +1,13 @@
+@define list_length(x) {
+  @local n;
+  n = 0;
+  while (1) {
+   switch (x) {
+   case []: return n;
+   case [_,t ...]: { printf ("here, t = %a\n",t); n = n+1; x = t; break; }
+   default: printf("default case x = %a\n",x); break;
+   }
+  }
+}
+x = [1,2,3];
+printf("length of %a is %d\n",x,list_length(x));

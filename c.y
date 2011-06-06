@@ -32,6 +32,7 @@ extern char *yytext;
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
 %token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
+%token LPAIR RPAIR
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -178,12 +179,22 @@ primary_expression
 	{ $$ = doconstssrc(&ctx->inp->src, $1.p, $1.len); }
 	| '(' expression ')'
 	{ $$ = $2; }
+        | LPAIR root_expression ',' root_expression RPAIR
+	{ Expr *tl = newexprsrc(&ctx->inp->src, Eelist, $4, nullelist(), 0, 0);
+          Expr *l = newexprsrc(&ctx->inp->src, Eelist, $2, tl, 0, 0); 
+          /* FIXME: should be a pair; what constructor to use? */
+          $$ = newexprsrc(&ctx->inp->src, Elist, l, 0, 0, 0); }
 	| '[' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
 	| '[' argument_expression_list ',' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
+	| '[' argument_expression_list ELLIPSIS ']'
+	{ Expr *ell = newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0);
+          $$ = newexprsrc(&ctx->inp->src, Elist, 
+                          invert(newexprsrc(&ctx->inp->src, Eelist, 
+                                            ell, $2, 0, 0)), 0, 0, 0); }
 	| '[' ':' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); }
 	| '[' table_init_list ']'

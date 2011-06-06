@@ -1169,6 +1169,7 @@ Expr*		Ztgn(char *id, unsigned long len, Expr *e);
 Expr*		Ztid(char *id);
 Expr*		Ztidn(char *id, unsigned long len);
 Expr*		Zuint(Imm val);
+int		hasvarg(Expr *e);
 Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);
 
