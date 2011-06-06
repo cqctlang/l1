@@ -1,0 +1,67 @@
+
+
+@global nsoff_defined;
+
+if (nsoff_defined == nil) 
+{
+@global mknsoff;
+
+@define mknsoff(ns,off) {
+	@local  _ls, _es, _la, inc_sym, sym_cache;
+
+	sym_cache = mktab();
+
+	@define inc_sym(sym) {
+		@local ret;
+		ret = sym_cache[sym];
+		if (ret == nil) {
+			@local attr, new_attr;
+			attr = symattr(sym);
+			new_attr = mktab();
+			foreach(@lambda(k,v) {
+				if (k == "offset") {
+					new_attr[k] = v+off;
+				} else {
+					new_attr[k] = v;
+				}
+			},attr);
+			sym_cache[sym] = ret = 
+				mksym(symtype(sym),symid(sym),new_attr);
+		}
+		return ret;
+	}
+	//looksym
+	@define _ls(this,id) {
+		@local sym,attr;
+		sym = ns.looksym(id);
+		if (sym == nil) return nil;
+		return inc_sym(sym);
+	}
+	//enumsym
+	@define _es(this) {
+		@local tab;
+		tab = ns.enumsym();
+		foreach(@lambda(k,sym) {
+			inc_sym(sym);
+		}, tab);
+		return sym_cache;
+	}
+	//lookaddr
+	@define _la(this,addr) {
+		@local sym;
+		sym = ns.lookaddr(addr-off);
+		return inc_sym(sym);
+	}
+
+	return mkns([
+		"looksym" : _ls,
+		"enumsym" : _es,
+		"lookaddr" : _la,
+		"looktype" : @lambda(this,t) { return ns.looktype(t); },
+		"enumtype" : @lambda(this) { return ns.enumtype(); },
+		"offset" : @lambda(this) { return off; }
+	]);
+
+}
+
+}

@@ -1,0 +1,34 @@
+/.ccs/u02/ajpark2/projects/l1v2/lib/nsoff.cqct:35: warning: unused variable: attr
+entry: var params, 3 locals, 0 temps
+mknsoff: 2 params, 6 locals, 0 temps
+inc_sym: 1 params, 9 locals, 0 temps
+L41: 2 params, 6 locals, 0 temps
+_ls: 2 params, 4 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+_es: 1 params, 3 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+L172: 2 params, 0 locals, 0 temps
+_la: 2 params, 3 locals, 0 temps
+lookaddr: var params, 1 locals, 0 temps
+L215: 2 params, 2 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+L243: 1 params, 2 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+L271: 1 params, 0 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+lookaddr: var params, 1 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+L494: 2 params, 0 locals, 0 temps
+unsigned int
+name: zero, offset: 33, type int
+name: zero, offset: 33, type int
+name: oneeleven, offset: 306, type void *
+name: oneeleven, offset: 273, type void *
+name: onehundred, offset: 289, type int
+Enumerating
+name: oneeleven, offset: 306, type void *
+name: onehundred, offset: 289, type int
+name: zero, offset: 33, type int
