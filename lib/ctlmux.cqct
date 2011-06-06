@@ -1,6 +1,7 @@
 @include <linux-x86_64.cqct>
 @include <stack.x86_64.cqct>
 @include <trapman.cqct>
+@include <linux.cqct>
 
 ctlmux = @names clp64le {
 	enum Mkind {
@@ -1002,6 +1003,7 @@ ctlmux = @names clp64le {
 	attach,
 	run,
 	runtil,
+	settimer,
 	close,
 	abort,
 	looksym,
@@ -1065,6 +1067,7 @@ ctlmux = @names clp64le {
 	@local muxenumloc, muxunwind;
 	@local muxnames, nsinit;
 	@local contasync;
+	@local timerfn, tfd;
 
 	verbose = 0;
 	aborted = 0;
@@ -1072,6 +1075,7 @@ ctlmux = @names clp64le {
 	freetags = [ ];
 	ctls = [:];
 	taghandler = [:];
+	timerfn = nil;
 
 	@defloc freshtag()
 	{
@@ -1474,6 +1478,29 @@ ctlmux = @names clp64le {
 		return length(taghandler) == 0;
 	}
 
+	@defloc settimer(freq, fn){
+		@local sec, msec;
+		timerfn = fn;
+		if(fn != nil){
+			tfd = timerfd_create(linux`CLOCK_REALTIME, 0);
+			sec = freq/1000;
+			msec = freq%1000;
+			timerfd_settime(tfd, 0,
+					[ sec, msec*1000000UL,
+					  sec, msec*1000000UL ]);
+			timerfn();
+		}else if(isfd(tfd)){
+			close(tfd);
+			tfd = nil;
+		}
+	}
+
+	@defloc dotimer()
+	{
+		read(tfd, 8);
+		timerfn();
+	}
+
 	@defloc runtil(pred)
 	{
 		@local s, sz, p, msg, h, tag, dat;
@@ -1481,9 +1508,19 @@ ctlmux = @names clp64le {
 		while(!aborted && !pred()){
 			if(noinflight() && noctls())
 				error("runtil: nothing to do");
-			s = read(fd, sizeof(ctlmux`uint64));
-			if(s == nil)
-				error("remote sctl hung up");
+			if(timerfn == nil){
+				s = read(fd, sizeof(ctlmux`uint64));
+				if(s == nil)
+					error("remote sctl hung up");
+			}else{
+				@local rs;
+				[rs, _, _] = select([fd, tfd], [], []);
+				if(ismember(rs, tfd))
+					dotimer();
+				if(!ismember(rs, fd))
+					continue;
+				s = read(fd, sizeof(ctlmux`uint64));
+			}
 			sz = *(ctlmux`uint64*)s;
 			p = read(fd, sz);
 			msg = buf2msg(p);
@@ -2745,6 +2782,7 @@ ctlmux = @names clp64le {
 		     attach,
 		     run,
 		     runtil,
+		     settimer,
 		     muxclose,
 		     abort,
 		     muxlooksym,
