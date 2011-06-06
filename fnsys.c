@@ -346,12 +346,14 @@ l1_chdir(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_cwd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	char buf[PATH_MAX];
+	char *buf;
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to cwd");
-	if(!getcwd(buf, sizeof(buf)))
+	buf = getcwd(0, 0);
+	if(!buf)
 		vmerr(vm, "cwd: %s", strerror(errno));
 	*rv = mkvalstr(mkstr0(buf));
+	free(buf);
 }
 
 void
