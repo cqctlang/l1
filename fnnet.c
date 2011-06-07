@@ -143,6 +143,7 @@ l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xfd xfd;
 	struct sockaddr_in saddr;
 
+	setlasterrno(0);
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tcpopen");
 	checkarg(vm, "tcpopen", argv, 0, Qstr);
@@ -155,8 +156,10 @@ l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd.fd)
 		vmerr(vm, "tcpopen: %s", strerror(errno));
-	if(0 > connect(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
-		vmerr(vm, "tcpopen: %s", strerror(errno));
+	if(0 > connect(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr))){
+		setlasterrno(errno);
+		return;
+	}
 	nodelay(xfd.fd);
 	xfd.read = fdread;
 	xfd.write = fdwrite;

@@ -989,6 +989,7 @@ Val		expr2syntax(Expr *e);
 void		freeenv(Env *env);
 void		fvmbacktrace(VM *vm);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
+int		getlasterrno();
 u32		hashval(Val v);
 void		initvm();
 int		isbasecval(Cval *cv);
@@ -1030,6 +1031,7 @@ void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
 Val		safedovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+void		setlasterrno(int no);
 u32		shash(char *s, Imm len);
 Imm		stkimm(Val v);
 Str*		stringof(VM *vm, Cval *cv);
@@ -1265,7 +1267,9 @@ void		listpop(List *lst, Val *vp);
 Val		listref(VM *vm, List *lst, Imm idx);
 List*		listset(VM *vm, List *lst, Imm idx, Val v);
 List*		mklist(void);
+List*		mklistinit(Imm len, Val v);
 List*		mklistn(Imm sz);
+
 
 /* tab.c */
 void		fntab(Env *env);

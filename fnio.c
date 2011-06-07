@@ -390,6 +390,7 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *name, *mode;
 	int oflags, flags;
 
+	setlasterrno(0);
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to open");
 	checkarg(vm, "open", argv, 0, Qstr);
@@ -416,10 +417,10 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	xfd.fd = open(name, oflags, 0777); /* ~umask */
 	efree(name);
 	efree(mode);
-	if(0 > xfd.fd)
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
-		      strerror(errno));
+	if(0 > xfd.fd){
+		setlasterrno(errno);
+		return;
+	}
 	if(strchr(mode, 'a'))
 		lseek(xfd.fd, 0, SEEK_END);
 	xfd.read = xfdread;

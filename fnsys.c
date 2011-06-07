@@ -356,12 +356,27 @@ l1_cwd(VM *vm, Imm argc, Val *argv, Val *rv)
 	free(buf);
 }
 
+static void
+l1_errno(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	List *l;
+	int no;
+	l = mklistinit(2, Xnil);
+	*rv = mkvallist(l);
+	no = getlasterrno();
+	if(no == 0)
+		return;
+	listset(vm, l, 0, mkvalcval2(mklitcval(Vint, no)));
+	listset(vm, l, 1, mkvalstr(mkstr0(strerror(errno))));
+}
+
 void
 fnsys(Env *env)
 {
 	FN(chdir);
 	FN(cwd);
 	FN(environ);
+	FN(errno);
 	FN(exit);
 	FN(fork);
 	FN(getenv);
