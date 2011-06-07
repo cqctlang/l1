@@ -849,6 +849,8 @@ sctl = @names clp64le {
 	q = (`uint8*)q;
 	k = *q++;
 	switch(k){
+	case cqct`Tvoid:
+		return [mkctype_void(), q];
 	case cqct`Tbase:
 		cb = *q++;
 		return [mkctype_base(cb), q];
