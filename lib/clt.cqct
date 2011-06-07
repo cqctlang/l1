@@ -4,6 +4,19 @@
 @include <sctl.cqct>
 @include <dump.cqct>
 
+@global nsamesclt_defined;
+if(nsamesclt_defined == nil){
+@local snamesaddr;
+
+@global setsnamesaddr, resetsnamesclt, snamesns;
+
+snamesaddr = "localhost:30000";
+
+@define setsnamesaddr(addr)
+{
+	snamesaddr = addr;
+}
+
 
 fd = tcpopen("localhost:30000");
 version(fd);
