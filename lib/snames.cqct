@@ -386,14 +386,13 @@ handle = [
 				if(r == lfd){
 					fd = tcpaccept(lfd);
 					printf("accepted connection from ");
-					printf("%s\n", fmtsa(getpeername(fd)));
+					printf("%s\n", getpeername(fd));
 					append(fds, fd);
 					return;
 				}
 				switch(x = tdispatch(r)){
 				case 'closed:
-					printf("closing %s\n",
-					       fmtsa(getpeername(r)));
+					printf("closing %s\n", getpeername(r));
 					close(r);
 					delete(fds, r);
 					break;
