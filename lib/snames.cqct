@@ -1,12 +1,16 @@
 #!/usr/bin/env l1
 !#
 @include <sctl.cqct>
+@include <9p.cqct>
 
+@global nsid2path;
 @global path2nsid;
 @global nsid2ns;
 @global Enone;
 @global prefix;
 @global vars;
+@global index;
+@global history;
 
 Enone = "no such thing";
 
@@ -59,7 +63,7 @@ sns = @names clp64be {
 	q = (`uint64*)dat;
 	[path, q] = decodes(q);
 
-	nsid = openns(path);
+	nsid = openns(prefix+path);
 	if(nsid == nil){
 		rerror(fd, msg->tag, "invalid name space");
 		return 'badop;
@@ -117,7 +121,7 @@ sns = @names clp64be {
 	p = (`uint64*)dat;
 	nsid = *p++;
 	[tn, p] = decodetname(p);
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
 		rerror(fd, msg->tag, "unknown name space");
 		return 'badop;
@@ -141,7 +145,7 @@ sns = @names clp64be {
 	@local p, m, nsid, ns, ts, nt;
 	p = (`uint64*)dat;
 	nsid = *p++;
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
 		rerror(fd, msg->tag, "unknown name space");
 		return 'badop;
@@ -166,7 +170,7 @@ sns = @names clp64be {
 	p = (`uint64*)dat;
 	nsid = *p++;
 	[id, p] = decodes(p);
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
 		rerror(fd, msg->tag, "unknown name space");
 		return 'badop;
@@ -192,7 +196,7 @@ sns = @names clp64be {
 
 	p = (`uint64*)dat;
 	nsid = *p++;
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
 		rerror(fd, msg->tag, "unknown name space");
 		return 'badop;
@@ -219,7 +223,7 @@ sns = @names clp64be {
 	nsid = *p++;
 	addr = *p++;
 
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
 		rerror(fd, msg->tag, "unknown name space");
 		return 'badop;
@@ -279,15 +283,39 @@ handle = [
 	return fn(fd, msg, dat);
 }
 
-@global nextnsid;
-nextnsid = 1;
+@define remember()
+{
+	@local s;
+	if(!access(history, "r"))
+		return;
+	s = mapfile(history);
+	foreach(@lambda(l){
+			@local vs;
+			vs = split(l, " ");
+			nsid2path[(`uint64)strton(vs[0])] = vs[1];
+			printf("%u -> %s\n", (`uint64)strton(vs[0]), vs[1]);
+		}, split(s, "\n"));
+}
+
+@define record()
+{
+	@local fd;
+	fd = open(history, "w");
+	foreach(@lambda(nsid, path){
+			fprintf(fd, "%u %s\n", nsid, path);
+		}, nsid2path);
+	close(fd);
+}
+
 @define openns(path)
 {
-	@local id, s, a, nc;
+	@local id, s, a, nc, st;
 	id = path2nsid[path];
 	if(id)
 		return id;
-	printf("opening %s (%s)\n", path, prefix+path);
+	printf("opening %s\n", path);
+	st = (ns9p`Diru*)stat(path);
+	printf("stat: %s %x\n", st->name, st->qid.path);
 	s = "@lambda(";
 	a = "}(";
 	nc = 1;
@@ -306,18 +334,36 @@ nextnsid = 1;
 		}, vars);
 	s += "){\n";
 	a += ");\n";
-	s += sprintfa("\t@names clp64le { @include \"%s\" };\n", prefix+path);
+	s += sprintfa("\t@names clp64le { @include \"%s\" };\n", path);
 	s += a;
 	printf("evaluating ...\n%s\n", s);
 	evalk(s,
 	      @lambda(ns){
-		      printf("success!\n");
-		      id = (`uint64)nextnsid++;
+		      id = st->qid.path;
 		      nsid2ns[id] = ns;
 		      path2nsid[path] = id;
+		      nsid2path[(`uint64)id] = path;
+		      record();
 		      return id;
 	      },
 	      @lambda(){ return nil; });
+}
+
+@define looknsid(nsid)
+{
+	@local ns, path;
+	ns = nsid2ns[nsid];
+	if(ns)
+		return ns;
+	path = nsid2path[nsid];
+	if(path){
+		openns(path);
+		ns = nsid2ns[nsid];
+		if(ns == nil)
+			error("i am broken");
+		return ns;
+	}
+	return nil;
 }
 
 @define main(port, pref, vs)
@@ -327,6 +373,9 @@ nextnsid = 1;
 	fds = [ lfd ];
 	path2nsid = [:];
 	nsid2ns = [:];
+	nsid2path = [:];
+	history = "/tmp/snames."+getenv("USER");
+	remember();
 	prefix = pref;
 	vars = vs;
 	if(prefix[strlen(prefix)-1] != '/')
@@ -378,7 +427,7 @@ nextnsid = 1;
 }
 
 if(length(args) < 2){
-	printf("usage: %s PORT PREFIX [VAR ...] \n");
+	printf("usage: %s PORT PREFIX [VAR ...] \n", "snames.cqct");
 	exit(1);
 }
 
