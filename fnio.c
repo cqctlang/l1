@@ -252,7 +252,7 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stat");
-	checkarg(vm, "mapfile", argv, 0, Qstr);
+	checkarg(vm, "stat", argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	if(0 > stat(name, &st)){
