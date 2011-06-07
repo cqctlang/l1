@@ -237,6 +237,7 @@ l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 	struct sockaddr_in sa;
 	int r;
 	socklen_t len;
+	char buf[128];
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getpeername");
@@ -247,7 +248,8 @@ l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = getpeername(xfd->fd, (struct sockaddr*)&sa, &len);
 	if(0 > r)
 		vmerr(vm, "getpeername: %s", strerror(errno));
-	*rv = mkvalstr(mkstr((char*)&sa, len));
+	sa2str(&sa, buf, sizeof(buf));
+	*rv = mkvalstr(mkstr0(buf));
 }
 
 static void
@@ -258,6 +260,7 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 	struct sockaddr_in sa;
 	int r;
 	socklen_t len;
+	char buf[128];
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getsockname");
@@ -268,7 +271,8 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = getsockname(xfd->fd, (struct sockaddr*)&sa, &len);
 	if(0 > r)
 		vmerr(vm, "getsockname: %s", strerror(errno));
-	*rv = mkvalstr(mkstr((char*)&sa, len));
+	sa2str(&sa, buf, sizeof(buf));
+	*rv = mkvalstr(mkstr0(buf));
 }
 
 void

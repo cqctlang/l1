@@ -7789,10 +7789,9 @@ If no connection is waiting, the call blocks until one arrives.
 </div>
 </div>
 <div class="desc">
-Returns the result of calling the
-system <span class="id">getpeername</span> call on the
-TCP connection associated with <span class="arg">fd</span>.
-The return value is the string of raw bytes of the system socket address. 
+Returns the address, in the form <tt>"<em>addr</em>:<em>port</em>"</tt>,
+of the peer endpoint of the TCP
+connection associated with <span class="arg">fd</span>.
 </div>
 </div>
 
@@ -7809,10 +7808,9 @@ The return value is the string of raw bytes of the system socket address.
 </div>
 </div>
 <div class="desc">
-Returns the result of calling the
-system <span class="id">getsockname</span> call on the
-TCP connection associated with <span class="arg">fd</span>.
-The return value is the string of raw bytes of the system socket address. 
+Returns the address, in the form <tt>"<em>addr</em>:<em>port</em>"</tt>,
+of the local endpoint of the TCP
+connection associated with <span class="arg">fd</span>.
 </div>
 </div>
 
