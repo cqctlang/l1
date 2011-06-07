@@ -27,8 +27,21 @@ zsym5 = ons.lookaddr(305);
 printf("name: %s, offset: %d, type %t\n",
 		symid(zsym5),symoff(zsym5),symtype(zsym5));
 printf("Enumerating\n");
-tab = ons.enumsym();
-foreach(@lambda(k,v) {
+@define symcmp(s1, s2)
+{
+	@local o1, o2;
+	o1 = symoff(s1);
+	o2 = symoff(s2);
+	if(o1 < o2)
+		return -1;
+	else if(o1 > o2)
+		return 1;
+	else
+		return 0;
+}
+l = map(@lambda(k, v) { v; }, ons.enumsym());
+sort(l, symcmp);
+foreach(@lambda(v) {
 printf("name: %s, offset: %d, type %t\n",
 		symid(v),symoff(v),symtype(v));
-}, tab);
+}, l);

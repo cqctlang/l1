@@ -32,7 +32,7 @@ if (nsoff_defined == nil)
 	}
 	//looksym
 	@define _ls(this,id) {
-		@local sym,attr;
+		@local sym;
 		sym = ns.looksym(id);
 		if (sym == nil) return nil;
 		return inc_sym(sym);
