@@ -1,0 +1,30 @@
+#!/usr/bin/env l1
+!#
+
+@include <sctl.cqct>
+@include <dump.cqct>
+@include <rocks.cqct>
+
+@global nsamesclt_defined;
+if(nsamesclt_defined == nil){
+@local snamesaddr;
+
+@global setsnamesaddr, snamesns;
+
+snamesaddr = "localhost:30000";
+
+@define setsnamesaddr(addr)
+{
+	snamesaddr = addr;
+}
+
+@define snamesns(path)
+{
+	@local fd, nsid;
+	fd = mkrock(tcpopen(snamesaddr));
+	nsid = names(fd, path);
+	return mksctlns(fd, nsid);
+}
+
+}
+
