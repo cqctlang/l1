@@ -189,7 +189,7 @@ l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd.fd)
-		vmerr(vm, "tcpopen: %s", strerror(errno));
+		vmerr(vm, "tcplisten: %s", strerror(errno));
 	reuseaddr(xfd.fd);
 	if(0 > bind(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "tcplisten: %s", strerror(errno));
