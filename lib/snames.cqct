@@ -1,18 +1,16 @@
 #!/usr/bin/env l1
 !#
 @include <sctl.cqct>
-@include <9p.cqct>
+@include <9p.cqct>   /* FIXME: collides with names in sctl.cqct  */
 
 @global nsid2path;
 @global path2nsid;
 @global nsid2ns;
-@global Enone;
 @global prefix;
 @global vars;
 @global index;
 @global history;
-
-Enone = "no such thing";
+@global rootns;
 
 sns = @names clp64be {
 	typedef short unsigned int sa_family_t;
@@ -45,13 +43,14 @@ sns = @names clp64be {
 
 @define notimpl(fd, msg, dat)
 {
-	rerror(fd, msg->tag, "server does not support %e", (sctl`Mkind)msg->op);
+	sctlrerror(fd, msg->tag,
+		   "server does not support %e", (sctl`Mkind)msg->op);
 	return 'badop;
 }
 
 @define botch(fd, tag)
 {
-	rerror(fd, tag, "protocol botched");
+	sctlrerror(fd, tag, "protocol botched");
 	return 'badop;
 }
 
@@ -65,7 +64,7 @@ sns = @names clp64be {
 
 	nsid = openns(prefix+path);
 	if(nsid == nil){
-		rerror(fd, msg->tag, "invalid name space");
+		sctlrerror(fd, msg->tag, Enone);
 		return 'badop;
 	}
 	sz = sizeof(sctl`Rnames);
@@ -98,7 +97,7 @@ sns = @names clp64be {
 		return 'badop;
 	}
 	if(s[0] != "sctl-2010"){
-		rerror(fd, msg->tag, "unsupported version");
+		sctlrerror(fd, msg->tag, "unsupported version");
 		return 'badop;
 	}
 	if(length(s) != 2){
@@ -122,12 +121,12 @@ sns = @names clp64be {
 	[tn, p] = decodetname(p);
 	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	td = ns.looktype(tn);
 	if(td == nil){
-       		rerror(fd, msg->tag, Enone);
+       		sctlrerror(fd, msg->tag, Enone);
 		return 'badop;
 	}
 	m = p = (sctl`Rlooktype*)mkxs();
@@ -146,7 +145,7 @@ sns = @names clp64be {
 	nsid = *p++;
 	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	ts = ns.enumtype();
@@ -171,12 +170,12 @@ sns = @names clp64be {
 	[id, p] = decodes(p);
 	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	sym = looksym(ns, mkcid(id));
 	if(sym == nil){
-		rerror(fd, msg->tag, Enone);
+		sctlrerror(fd, msg->tag, Enone);
 		return 'badop;
 	}
 
@@ -197,7 +196,7 @@ sns = @names clp64be {
 	nsid = *p++;
 	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 
@@ -224,7 +223,7 @@ sns = @names clp64be {
 
 	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	sym = ns.lookaddr(addr);
@@ -311,6 +310,8 @@ handle = [
 	id = path2nsid[path];
 	if(id)
 		return id;
+	if(!access(path, "r"))
+		return nil;
 	st = (ns9p`Diru*)stat(path);
 	s = "@lambda(";
 	a = "}(";
@@ -330,7 +331,7 @@ handle = [
 		}, vars);
 	s += "){\n";
 	a += ");\n";
-	s += sprintfa("\t@names clp64le { @include \"%s\" };\n", path);
+	s += sprintfa("\t@names %s { @include \"%s\" };\n", rootns, path);
 	s += a;
 //	printf("evaluating ...\n%s\n", s);
 	evalk(s,
@@ -354,10 +355,7 @@ handle = [
 	path = nsid2path[nsid];
 	if(path){
 		openns(path);
-		ns = nsid2ns[nsid];
-		if(ns == nil)
-			error("i am broken");
-		return ns;
+		ns = nsid2ns[nsid]; /* maybe nil */
 	}
 	return nil;
 }
@@ -421,12 +419,13 @@ handle = [
 	}
 }
 
-if(length(args) < 2){
-	printf("usage: %s PORT PREFIX [VAR ...] \n", "snames.cqct");
+if(length(args) < 3){
+	printf("usage: %s PORT ROOTNS PREFIX [VAR ...] \n", "snames.cqct");
 	exit(1);
 }
 
 pop(args);
 port = strton(pop(args));
+rootns = pop(args);
 prefix = pop(args);
 watchdog(@lambda(){ main(port, prefix, args); });
