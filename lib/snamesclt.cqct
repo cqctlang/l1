@@ -27,6 +27,8 @@ snamesaddr = "localhost:30000";
 		return nil;
 	}
 	nsid = names(fd, path);
+	if(nsid == nil)
+		return nil;
 	return mksctlns(fd, nsid);
 }
 
