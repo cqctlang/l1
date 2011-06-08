@@ -22,6 +22,10 @@ snamesaddr = "localhost:30000";
 {
 	@local fd, nsid;
 	fd = mkrock(tcpopen(snamesaddr));
+	if(fd == nil){
+		printf("%s\n", errno()[1]);
+		return nil;
+	}
 	nsid = names(fd, path);
 	return mksctlns(fd, nsid);
 }

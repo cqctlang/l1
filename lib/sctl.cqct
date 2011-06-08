@@ -2,6 +2,8 @@
 
 @include <xsas.cqct>
 
+snamesverbose = 0;
+
 sctl = @names clp64le {
 	typedef
 	enum Mkind {
@@ -792,8 +794,6 @@ sctl = @names clp64le {
 
 @define encodetdef(p, t)
 {
-	printf("encoding %t\n", t);
-
 	p = (`uint8*)p;
 	if(isbase(t)){
 		*p++ = cqct`Tbase;
@@ -1122,6 +1122,8 @@ nexttag = 0;
 	@local s, q, tn, td, nsid, id, n, a;
 	@local f, val, xsz;
 
+	if(!snamesverbose)
+		return;
 	msg = buf2msg(msg);
 	s = sprintfa("%e %d (%d bytes)",
 		     (enum sctl`Mkind)msg->op, msg->tag, sz);
@@ -1256,7 +1258,7 @@ nexttag = 0;
 
 @define sendmsg(fd, arg ...)
 {
-	@local p, sz;
+	@local p, sz, e;
 	p = arg[0];
 	switch(length(arg)){
 	case 1:
@@ -1268,17 +1270,28 @@ nexttag = 0;
 	default:
 		error("bad sendmsg");
 	}
-	printf("(send) %s\n", fmtmsg(p, sz));
+	if(snamesverbose)
+		printf("(send) %s\n", fmtmsg(p, sz));
 	write(fd, cval2str((`uint64)sz));
+	e = errno();
+	if(e[0] != 0)
+		error("sctl sendmsg: %s", e[1]);
 	write(fd, getbytes(p, sz));
+	e = errno();
+	if(e[0] != 0)
+		error("sctl sendmsg: %s", e[1]);
 }
 
 @define recvmsg(fd)
 {
-	@local s, sz, p, msg, dat;
+	@local s, sz, p, msg, dat, e;
 	s = read(fd, sizeof(`uint64));
-	if(s == nil)
+	if(s == nil){
+		e = errno();
+		if(e[0])
+			error("sctl recvmsg: %d %s", getpid(), e[1]);
 		return [nil, 'closed];
+	}
 	sz = *(`uint64*)s;
 	p = read(fd, sz);
 	msg = buf2msg(p);
@@ -1286,7 +1299,8 @@ nexttag = 0;
 		dat = getbytes(msg+1, sz-sizeof(*msg));
 	else
 		dat = "";
-	printf("(recv) %s\n", fmtmsg(msg, sz));
+	if(snamesverbose)
+		printf("(recv) %s\n", fmtmsg(msg, sz));
 	return [msg, dat];
 }
 
@@ -1357,7 +1371,7 @@ nexttag = 0;
 		error("unknown remote sctl version: %s", dat);
 	os = s[1];
 	os = substr(os, 0, strlen(os)); /* chop NUL */
-	printf("version is %s %s\n", s[0], os);
+//	printf("version is %s %s\n", s[0], os);
 }
 
 @define names(fd, path)
@@ -1380,7 +1394,6 @@ nexttag = 0;
 	if(rep == nil)
 		error("names failed: %a", dat);
 	checkreply(rep, sctl`Rnames);
-	printf("nsid for %s is %u\n", path, rep->id);
 	return rep->id;
 }
 
@@ -1456,6 +1469,8 @@ nexttag = 0;
 	sendmsg(fd, m, p-m);
 	
 	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("recvmsg: pid = %d %a", getpid(), dat);
 	switch(rep->op){
 	case sctl`Rlooksym:
 		break;
@@ -1668,7 +1683,7 @@ nexttag = 0;
 		foreach(@lambda(k, v){
 				resolve(k);
 			}, ts);
-		if(length(undef) > 0){
+		if(0 && length(undef) > 0){
 			printf("%d unresolved\n", length(undef));
 			foreach(@lambda(k, v){
 					printf("\t%t\n", k);

@@ -109,7 +109,6 @@ sns = @names clp64be {
 	p = (sctl`Rversion*)malloc(sz);
 	p->op = sctl`Rversion;
 	p->tag = msg->tag;
-	printf("data is %s\n", dat);
 	putbytes(p+1, dat);
 	sendmsg(fd, p, sz);
 	return 'ok;
@@ -293,7 +292,6 @@ handle = [
 			@local vs;
 			vs = split(l, " ");
 			nsid2path[(`uint64)strton(vs[0])] = vs[1];
-			printf("%u -> %s\n", (`uint64)strton(vs[0]), vs[1]);
 		}, split(s, "\n"));
 }
 
@@ -313,9 +311,7 @@ handle = [
 	id = path2nsid[path];
 	if(id)
 		return id;
-	printf("opening %s\n", path);
 	st = (ns9p`Diru*)stat(path);
-	printf("stat: %s %x\n", st->name, st->qid.path);
 	s = "@lambda(";
 	a = "}(";
 	nc = 1;
@@ -336,7 +332,7 @@ handle = [
 	a += ");\n";
 	s += sprintfa("\t@names clp64le { @include \"%s\" };\n", path);
 	s += a;
-	printf("evaluating ...\n%s\n", s);
+//	printf("evaluating ...\n%s\n", s);
 	evalk(s,
 	      @lambda(ns){
 		      id = st->qid.path;
@@ -385,19 +381,19 @@ handle = [
 		foreach(@lambda(r){
 				if(r == lfd){
 					fd = tcpaccept(lfd);
-					printf("accepted connection from ");
-					printf("%s\n", getpeername(fd));
+//					printf("accepted connection from ");
+//					printf("%s\n", getpeername(fd));
 					append(fds, fd);
 					return;
 				}
 				switch(x = tdispatch(r)){
 				case 'closed:
-					printf("closing %s\n", getpeername(r));
+//					printf("closing %s\n", getpeername(r));
 					close(r);
 					delete(fds, r);
 					break;
 				case 'badop:
-					printf("bad op!\n");
+//					printf("bad op!\n");
 					close(r);
 					delete(fds, r);
 					break;
