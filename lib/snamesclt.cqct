@@ -9,13 +9,14 @@
 if(nsamesclt_defined == nil){
 @local snamesaddr;
 
-@global setsnamesaddr, snamesns;
+@global setsnamesaddr, snamesns, snamesreconnect;
 
 snamesaddr = "localhost:30000";
 
 @define setsnamesaddr(addr)
 {
 	snamesaddr = addr;
+	return nil;
 }
 
 @define snamesns(path)
@@ -32,5 +33,9 @@ snamesaddr = "localhost:30000";
 	return mksctlns(fd, nsid);
 }
 
+@define snamesreconnect()
+{
+	rockup();
 }
 
+}
