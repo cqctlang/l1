@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-<title>Cinquecento Manual</title>
+<title>Cinquecento Libraries</title>
 <link rel="stylesheet" type="text/css" href="reset.css"/>
 <link rel="stylesheet" type="text/css" href="styles.css"/>
 </head>
@@ -23,22 +23,23 @@
 <a href="#lib:nsgraph.cqct">nsgraph</a><br />
 <a href="#lib:nsoff.cqct">nsoff</a><br />
 <a href="#lib:nsutil.cqct">nsutil</a><br />
+<a href="#lib:snames.cqct">snames</a><br />
+<a href="#lib:snamesclt.cqct">snamesclt</a><br />
 </div>
 
 <div id="content">
 
 <div id="title">
-<h3>Cinquecento Library Documentation</h3>
+<h3>Cinquecento Libraries</h3>
 </div>
 
 <h4 id="sec:introduction">Introduction</h4>
 
 <p>
-This document provides some basic information on 
-various libraies provided with this implementation of
-Cinquecento. It is not exhaustive. 
-See <a href=man.html>the L1 Manual</a> for more details on
-Cinquecento and L1.
+This document describes various libraries provided with
+the L1 implementation of Cinquecento. It is not
+complete.  See <a href=man.html>the L1 Manual</a> for
+more details on Cinquecento and L1.
 </p>
 
 <h4 id="sec:stdlib">Standard Libraries</h4>
@@ -47,7 +48,7 @@ Cinquecento and L1.
 The L1 implementation of Cinquecento comes with several 
 standard libraries stored
 in the lib/ subdirectory. Since they are included in
-l1's load path, these libraries are loaded via the command:
+l1's load path, these libraries are loaded via the form:
 </p>
 <div class="code">
 @include &lt;<span class="arg">library</span>&gt;<br />
@@ -1032,6 +1033,131 @@ over types in namespaces.
 	Print all the types containing pointers.
 </div>
 </div>
+
+
+<h5 id="lib:snames.cqct">snames.cqct</h5>
+
+<p>
+<span class="id">snames.cqct</span> is a name space
+server intended to serve to Cinquecento programs name
+spaces represented by "names files" (i.e., the valid
+bodies of Cinquecento <span class="val">@names</span>
+forms typically stored in files with names ending in
+"<span class="id">.names</span>").  It should be
+executed as a stand-alone command, with the following
+arguments:
+</p>
+
+<div id="inset">
+<p>
+snames.cqct <span class="arg">port</span> <span class="arg">rootns</span> <span class="arg">prefix</span> [<span class="arg">var</span> ...]
+</p>
+</div>
+
+<p>
+<span class="arg">Port</span> is the port on which the
+server accepts connections (from any available network
+interface).
+</p>
+
+<p>
+<span class="arg">Rootns</span> is the name of the root name
+space (e.g., <span class="val">c32le</span>) from which all served name spaces are extended.
+</p>
+
+<p>
+<span class="arg">Prefix</span> is the path to the
+directory tree in which the served names files are
+accessed.  To resolve a name space name,
+the <span class="arg">path</span> argument provided by
+the client <span class="val">snamesns</span> operation
+is appended to <span class="arg">prefix</span>.
+(If <span class="arg">Prefix</span> does not end with
+the character <span class="val">"/"</span>,
+it is added.)
+</p>
+
+<p>
+The remaining optional arguments <span class="arg">var
+...</span>  are each the name of a variable that will
+be bound, with value <span class="val">0</span>, in the
+scope of the <span class="val">@names</span> evaluation
+that is performed for each served name space.  This
+allows the serving of names files that contain
+references to variables, but it does not offer any
+control over their values.
+</p>
+
+<p>
+In the event of an error, the snames server automatically restarts.
+Some diagnostics are printed to standard output.
+</p>
+
+<h5 id="lib:snamesclt.cqct">snamesclt.cqct</h5>
+
+<p>
+<span class="id">snamesclt.cqct</span> is a client interface to
+the remote names server
+<span class="id"><a href="#lib:snames.cqct">snames</a></span>
+</p>
+
+<div class="docitem" id="fn:setsnamesaddr">
+<div class="proto">
+<div class="function">
+<span class="id">setsnamesaddr(<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Address is a network address of the form 
+<tt>"<em>addr</em>:<em>port</em>"</tt>, where
+<span class="arg">addr</span> is an IP address or hostname and
+<span class="arg">port</span> is a port number or
+service name.  Updates to <span class="arg">addr</span>
+the address of the snames server
+contacted by the library.  The default is <span class="val">"localhost:30000</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:snamesns">
+<div class="proto">
+<div class="function">
+<span class="id">snamesns(<span class="arg">path</span>)</span>
+</div>
+<div class="param">
+<span class="arg">path</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+Returns the name space associated with the
+name <span class="arg">path</span> on the snames
+server, or <span class="id">nil</span> if there is no
+associated name space.
+</div>
+</div>
+
+<div class="docitem" id="fn:snamesreconnect">
+<div class="proto">
+<div class="function">
+<span class="id">snamesreconnect()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Advises the library to reset its connection to the snames server.
+</div>
+</div>
+
 
 
 </div>
