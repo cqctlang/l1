@@ -2,7 +2,11 @@
 
 @include <xsas.cqct>
 
+@global Enone;
+@global snamesverbose;
+
 snamesverbose = 0;
+Enone = "no such thing";
 
 sctl = @names clp64le {
 	typedef
@@ -849,8 +853,9 @@ sctl = @names clp64le {
 	q = (`uint8*)q;
 	k = *q++;
 	switch(k){
-	case cqct`Tvoid:
-		return [mkctype_void(), q];
+//  Tvoid is not used; instead we use Tbase(Vvoid).
+//	case cqct`Tvoid:
+//		return [mkctype_void(), q];
 	case cqct`Tbase:
 		cb = *q++;
 		return [mkctype_base(cb), q];
@@ -1318,7 +1323,7 @@ nexttag = 0;
 	}
 }
 
-@define rerror(fd, tag, fmt, arg ...)
+@define sctlrerror(fd, tag, fmt, arg ...)
 {
 	@local p, sz, err;
 	err = apply(sprintfa, fmt, arg);
@@ -1393,7 +1398,16 @@ nexttag = 0;
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("names failed: %a", dat);
-	checkreply(rep, sctl`Rnames);
+	switch(rep->op){
+	case sctl`Rnames:
+		break;
+	case sctl`Rerror:
+		if(rep->bytes == Enone)
+			return nil;
+	default:
+		error("sctl: while waiting for %e: received %e",
+		      sctl`Rnames, (sctl`Mkind)rep->op);
+	}
 	return rep->id;
 }
 
@@ -1417,7 +1431,7 @@ nexttag = 0;
 	case sctl`Rlooktype:
 		break;
 	case sctl`Rerror:
-		if(rep->bytes == "no such thing")
+		if(rep->bytes == Enone)
 			return nil;
 		error("sctl: error while waiting for %e: %s",
 		      sctl`Rlooktype, rep->bytes);
@@ -1475,7 +1489,7 @@ nexttag = 0;
 	case sctl`Rlooksym:
 		break;
 	case sctl`Rerror:
-		if(rep->bytes == "no such thing")
+		if(rep->bytes == Enone)
 			return nil;
 		error("sctl: error while waiting for %e: %s",
 		      sctl`Rlooksym, rep->bytes);
