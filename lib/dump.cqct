@@ -19,7 +19,7 @@ dump_defined = 1;
 Prints the type t in a way parsable in a .names file.
 */
 @define printtype(t){
-	@local ct, i, fld, flds, sz, off;
+	@local i, fld, flds, sz, off;
 
 	if(issu(t)){
 		printf("%s %s {\n", suekind(t), suetag(t));
@@ -67,7 +67,7 @@ Prints the type t in a way parsable in a .names file.
 print a namespace in .names file format.
 */
 @define dumpns(dn){
-	@local ns, fn, vec,i;
+	@local ns, vec,i;
 	if(isdom(dn))
 		ns = dn.ns;
 	else
@@ -87,7 +87,7 @@ print a namespace in .names file format.
 Function for testing.
 */
 @define foo(){
-	@local ns, fn, tab, vec, i;
+	@local ns, fn, vec, i;
 
  	ns = @names c32le {
  		typedef struct foo foo_t;
@@ -125,7 +125,7 @@ Function for testing.
 		@0x100 struct t2 { int z; @0x4; } x;
  	};
 
-	fn = nsenumtype(ns);
+	fn = ns.enumtype();
 	vec = tabvals(fn(ns));
 	for(i = 0; i < length(vec); i++)
 		printtype(vecref(vec, i));
@@ -154,7 +154,6 @@ Function for testing.
 		if (!ismapped(p)) return "UNMAPPED";
 		else if (issu(t2)) {
 			@local flds, i, nxt_indent, ret;
-			@local adr;
 			if (strlen(indent)>70 ) return sprintfa("...",p);
 			flds = fields(t2);
 			if (isstruct(t2)) ret = "struct ";
@@ -218,6 +217,6 @@ Function for testing.
 	}
 }
 
-//foo();
+if(0)foo();
 
 }
