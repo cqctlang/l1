@@ -14,6 +14,11 @@
 <div id="side1">
 <a href="#sec:introduction">Introduction</a><br />
 <br />
+<em>Getting Started</em><br />
+<a href="#sec:audience">Audience</a><br />
+<a href="#sec:repl">Interactive Use</a><br />
+<a href="#sec:examples">Examples</a><br />
+<br />
 <em>Basic Language</em><br />
 <a href="#sec:input">Input</a><br />
 <a href="#sec:comments">Comments</a><br />
@@ -133,18 +138,17 @@ distributed, multi-process program.
 
 <p>
 Each domain encapsulates user-defined functions that
-implement access to the associated target.  These
-include functions that define the types and symbols of
-the target, and functions that read and write its
-memory and other run-time state.  Rather than favor the
-idiosyncrasies of one operating system, architecture,
-compiler, or debugging information format, Cinquecento
-specifies a small, extensible interface that allows
-users to tailor domains for their target
-environment.  New domain implementations can be written
-entirely in Cinquecento; built-in library functions and
-accompanying programs simplify construction of domains
-for common environments, such as x86 Linux systems.
+catalog the types and symbols of the target, and
+functions that read and write its memory and other
+run-time state.  Rather than favor the idiosyncrasies
+of one operating system, architecture, compiler, or
+debugging information format, Cinquecento specifies a
+small, extensible interface that allows users to tailor
+domains for their target environment.  New domain
+implementations can be written entirely in Cinquecento;
+built-in library functions and accompanying programs
+simplify construction of domains for common
+environments, such as x86 Linux systems.
 </p>
 
 <p>
@@ -173,6 +177,133 @@ down, sometimes we will fall behind.
 <p>
 We welcome feedback of any kind from all users.
 </p>
+
+<h4 id="sec:audience">Audience</h4>
+
+<p>
+Cinquecento is meant to feel natural and responsive to
+programmers who are fluent in both C and Scheme.  The
+essence of Cinquecento programming is the use of
+functional abstraction, in the style enabled and
+epitomized by Scheme, to program the evaluation of
+expressions involving the syntax, operators, types,
+memory model, and control flow of idiomatic C.
+</p>
+
+<p>
+There is no substitute for joyful immersion in the
+classic literature on artful use of C and Scheme.  It
+would be a foolish disservice for this manual to
+dispense nutshell caricatures of the deep ideas and
+traditions of these languages so carefully articulated elsewhere.
+Instead, we recommend a few standard selections, out of
+the many superb treatments available on the web and in
+libraries, that we regard as enjoyable starting points
+from which one cannot be led astray.
+</p>
+
+<p>
+Every edition of <em>The Scheme Programming
+Language</em> offers both a gentle introduction to
+Scheme and clear exposition on its many fine points.
+The point most central to Cinquecento is the role of
+<span class="val">lambda</span> as an operator for
+constructing stateful first-class functions.  A taste
+and habit for stylistic use
+of <span class="val">lambda</span> can be acquired by
+practicing the lessons of
+<em>The Little Schemer</em> and <em>Structure and
+Interpretation of Computer Programs</em>.
+</p>
+
+<p>
+Into its Scheme-like functional setting, Cinquecento
+carries nearly every feature of C other than static
+typing.  Thus comprehensive familiarity with C is
+essential, but especially keen awareness about what is
+and what is not promised about the meaning of types and
+operations involving pointers and memory.  <em>The C
+Programming Language</em> offers a concise and
+definitive foundation, while
+<em>C, A Reference Manual</em> reveals and analyzes the
+wrinkles over which Cinquecento aspires to bring
+precise control.
+</p>
+
+<p>
+Looking from the other direction, the primary work of a
+Cinquecento program is tailored observation and
+manipulation of a program execution, which puts the
+Cinquecento programmer in the business of making,
+operating, and extending bespoke debuggers.  Sooner or
+later, understanding how program executions are
+represented and controlled in your environment becomes
+a requirement.  We know of no resource better than
+source code, your curiosity, and well-posed inquiries
+to the scattered wizards.
+</p>
+
+<h4 id="sec:repl">Interactive Use</h4>
+
+<p>
+Cinquecento is an expression-oriented language.  L1
+includes a read-eval-print loop through which Cinquecento
+expressions can be interactively evaluated.
+</p>
+
+<p>
+Assuming L1 has been built and made available in your
+path, you can start the repl in a shell by running the command <span class="val">l1</span>:
+
+</p>
+
+<div class="code">
+<pre>
+% l1
+;
+</pre>
+</div>
+
+<p>
+The semicolon is the repl prompt.  Typing a complete
+expression followed a newline sends the expression to
+the evaluator.  The resulting value is printed on the
+following line, followed by a new prompt:
+</p>
+
+
+<div class="code">
+<pre>
+; 3+3;
+<span class="arg">6</span>
+</pre>
+</div>
+
+<p>
+Most Cinquecento expressions end with a semicolon.
+(Welcome to the C part of the language.)  In this
+manual, we show the printed output of interactions with
+the evaluator in <span class="arg">italics</span>.
+</p>
+
+<p>
+Some expressions have the side-effect of printing
+to the standard output or error of the l1 process.
+We do not distinguish such output from the value
+printed by the repl.
+</p>
+
+<div class="code">
+<pre>
+; { printf("hello, world\n"); 3+3; }
+<span class="arg">hello, world</span>
+<span class="arg">6</span>
+</pre>
+</div>
+
+
+<h4 id="sec:repl">Examples</h4>
+
 
 <h4 id="sec:input">Input</h4>
 
@@ -433,11 +564,7 @@ that is visible in the innermost
 level of lexical scope.  If the assignment occurs
 in a top-level expression, a new binding is added
 to the top-level environment.
-There is no way to remove a binding from any scope.
-</p>
-
-<p>
-The other assignment operators
+These rules also apply to the other assignment operators
 (<span class="id">+=</span>,
 <span class="id">-=</span>,
 <span class="id">*=</span>,
@@ -449,9 +576,7 @@ The other assignment operators
 <span class="id">&lt;&lt;=</span>,
 <span class="id">&gt;&gt;=</span>,
 <span class="id">++</span>,
-<span class="id">--</span>)
-update existing bindings but do not
-create new ones.
+<span class="id">--</span>).
 </p>
 
 <p>
@@ -582,7 +707,7 @@ Address space
 
 <tr>
 <td>
-C type
+C identifier
 </td>
 <td>
 <div class="proto">
