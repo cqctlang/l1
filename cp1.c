@@ -114,6 +114,23 @@ compilelist(U *ctx, Expr *e)
 	return te;
 }
 
+static Expr*
+compilepair(U *ctx, Expr *e)
+{
+	Expr *loc, *se;
+	Src *src;
+
+	src = &e->src;
+	loc = Zlocals(1, "$pr");
+	e->e1 = compile1(ctx, e->e1);
+	e->e2 = compile1(ctx, e->e2);
+	se = Zset(doid("$pr"), Zcall(G("cons"), 2, e->e1, e->e2));
+	se = Zcons(se, doid("$lst"));
+	se = Zblock(loc, se, NULL);
+	putsrc(se, src);
+	return se;
+}
+
 static void
 domandtype(Expr *e, Expr **dom, Expr **t)
 {
@@ -425,6 +442,10 @@ compile1(U *ctx, Expr *e)
 		return se;
 	case Elist:
 		se = compilelist(ctx, e);
+		freeexpr(e);
+		return se;
+	case Epair:
+		se = compilepair(ctx, e);
 		freeexpr(e);
 		return se;
 	case Elapply:

@@ -1,5 +1,5 @@
 entry: var params, 2 locals, 0 temps
-list_length: 1 params, 3 locals, 0 temps
+list_length: 1 params, 4 locals, 0 temps
 here, t = [ 2, 3 ]
 here, t = [ 3 ]
 here, t = [ ]
