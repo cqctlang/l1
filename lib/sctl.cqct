@@ -1129,8 +1129,7 @@ nexttag = 0;
 
 @define fmtmsg(msg, sz)
 {
-	@local s, q, tn, td, nsid, id, n, a;
-	@local f, val, xsz;
+	@local s, q, tn, td, nsid, id, n, a, sym;
 
 	if(!snamesverbose)
 		return;
@@ -1194,15 +1193,9 @@ nexttag = 0;
 		break;
 	case sctl`Rlooksym:
 		q = msg+1;
-		[id, q] = decodes(q);
-		q = (`uint8*)q;
-		f = *q++;
-		q = (`uint64*)q;
-		val = *q++;
-		xsz = *q++;
-		[tn, q] = decodetname(q);
+		[sym, q] = decodesym(q);
 		s += sprintfa(" id=%s flags=%x val=%x sz=%x tname=%t",
-			      id, f, val, xsz, tn);
+			      sym.id, sym.flags, sym.val, sym.sz, sym.type);
 		break;
 	case sctl`Renumsym:
 		q = msg+1;
