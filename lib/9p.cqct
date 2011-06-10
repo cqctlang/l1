@@ -463,7 +463,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+4+2+len)
 		error("bad Rversion");
 	version = getbytes(p, len);
-//	printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
+	if(0)printf("Rversion: tag=%u msize=%u version=%s\n", tag, msize, version);
 	return [ msize, version ];
 }
 
@@ -477,13 +477,13 @@ dom9p = mkdom(ns9p, mknas());
 	tag = *(`uint16*)p;
 	p += 2;	
 	qid = (`Qid*)p;
-//	printf("Rattach: tag=%u qid=%s\n", tag, fmtqid(qid));
+	if(0)printf("Rattach: tag=%u qid=%s\n", tag, fmtqid(qid));
 	return [ qid ];
 }
 
 @define convM2D(p)
 {
-	@local s, q, r, slen;
+	@local s, q, r, slen, sz;
 	sz = *(`uint16*)p;
 	p += 2;
 	s = mkstr(sz+4*4+4);    // four field ptrs, four NULL bytes in fields
@@ -539,7 +539,7 @@ dom9p = mkdom(ns9p, mknas());
 
 @define rstat(sz, p)
 {
-	@local tag, stat;
+	@local tag, stat, len;
 	// (size[4]) Rstat tag[2] stat[n]
 	if(sz <= 1+2+2)
 		error("Rstat is too short");
@@ -551,7 +551,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+2+len)
 		error("bad Rstat");
 	stat = convM2D(p);
-//	printf("Rstat tag=%u\n", tag);
+	if(0)printf("Rstat tag=%u\n", tag);
 //	dumpstat(stat);
 	return [ stat ];
 }
@@ -564,7 +564,7 @@ dom9p = mkdom(ns9p, mknas());
 		error("bad Rwstat");
 	p += 1; // Rwstat
 	tag = *(`uint16*)p;
-//	printf("Rwstat: tag=%u\n", tag);
+	if(0)printf("Rwstat: tag=%u\n", tag);
 	return [];
 }
 
@@ -576,7 +576,7 @@ dom9p = mkdom(ns9p, mknas());
 		error("bad Rclunk");
 	p += 1; // Rclunk
 	tag = *(`uint16*)p;
-//	printf("Rclunk: tag=%u\n", tag);
+	if(0)printf("Rclunk: tag=%u\n", tag);
 	return [];
 }
 
@@ -588,7 +588,7 @@ dom9p = mkdom(ns9p, mknas());
 		error("bad Rflush");
 	p += 1; // Rflush
 	tag = *(`uint16*)p;
-//	printf("Rflush: tag=%u\n", tag);
+	if(0)printf("Rflush: tag=%u\n", tag);
 	return [];
 }
 
@@ -605,7 +605,7 @@ dom9p = mkdom(ns9p, mknas());
 	p += 2;
 	if(sz != 1+2+2+nwqid*13)
 		error("bad Rwalk");
-//	printf("Rwalk tag=%u nwqid=%u\n", tag, nwqid);
+	if(0)printf("Rwalk tag=%u nwqid=%u\n", tag, nwqid);
 	qid = (`Qid*)p;
 	rv = [];
 	for(i = 0; i < nwqid; i++){
@@ -627,7 +627,7 @@ dom9p = mkdom(ns9p, mknas());
 	qid = (`Qid*)p;
 	p += sizeof(*qid);
 	iounit = *(`uint32*)p;
-//	printf("Ropen tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
+	if(0)printf("Ropen tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
 	return [ qid, iounit ];
 }
 
@@ -643,7 +643,7 @@ dom9p = mkdom(ns9p, mknas());
 	qid = (`Qid*)p;
 	p += sizeof(*qid);
 	iounit = *(`uint32*)p;
-//	printf("Rcreate tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
+	if(0)printf("Rcreate tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
 	return [ qid, iounit ];
 }
 
@@ -655,7 +655,7 @@ dom9p = mkdom(ns9p, mknas());
 		error("bad Rremove");
 	p += 1; // Rremove
 	tag = *(`uint16*)p;
-//	printf("Rremove: tag=%u\n", tag);
+	if(0)printf("Rremove: tag=%u\n", tag);
 	return [];
 }
 
@@ -673,7 +673,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+4+count)
 		error("bad Rread");
 	data = getbytes(p, count);
-//	printf("Rread: tag=%u count=%u data='%B'\n", tag, count, data);
+	if(0)printf("Rread: tag=%u count=%u data='%B'\n", tag, count, data);
 	return [ data ];
 }
 
@@ -688,7 +688,7 @@ dom9p = mkdom(ns9p, mknas());
 	p += 2;
 	count = *(`uint32*)p;
 	p += 4;
-//	printf("Rwrite: tag=%u count=%u\n", tag, count);
+	if(0)printf("Rwrite: tag=%u count=%u\n", tag, count);
 	return [ count ];
 }
 
@@ -706,7 +706,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+2+len)
 		error("bad Rerror");
 	ename = getbytes(p, len);
-//	printf("Rerror: tag=%u ename=\"%s\"\n", tag, ename);
+	if(0)printf("Rerror: tag=%u ename=\"%s\"\n", tag, ename);
 	return ename;
 }
 
@@ -976,14 +976,12 @@ dom9p = mkdom(ns9p, mknas());
 
 @define mount9p(fd)
 {
-	@local msize, version;
-	@local rfid, rqid;
+	@local msize;
+	@local rfid;
 	@local allocfd, doread;
-	@local xopen, xclose, xread, xpread, xstat, xfstat, xdirread;
-	@local nextc, nextfid, version, rv, tag, ftab, mnt;
+	@local xopen, xclose, xread, xstat, xfstat, xdirread;
+	@local nextfid, rv, tag, ftab, mnt;
 
-	ctab = mktab();
-	nextc = 0;
 	tag = 0;
 	ftab = mklist(maxfd);
 
@@ -991,13 +989,11 @@ dom9p = mkdom(ns9p, mknas());
 	if(isstring(rv))
 		error(rv);
 	msize = rv[0];
-	version = rv[1];
 
 	rfid = 0;
 	rv = do9p(fd, tattach(tag, rfid, NOFID, getenv("USER"), ""));
 	if(isstring(rv))
 		error(rv);
-	rqid = rv[0];
 	nextfid = rfid+1;
 
 	@define allocfd()
@@ -1096,22 +1092,22 @@ dom9p = mkdom(ns9p, mknas());
 		return rv;
 	}
 
-	@define xpread(xfd, len, off)
-	{
-		@local of, rv;
-		of = ftab[xfd];
-		if(of == nil)
-			error("bad file descriptor: %a", xfd);
-		if(of.iounit && len > of.iounit)
-			error("read exceeds iounit");
-		rv = doread(of.fid, len, off);
-		of.off = off+length(rv);
-		return rv;
-	}
+//	@define xpread(xfd, len, off)
+//	{
+//		@local of, rv;
+//		of = ftab[xfd];
+//		if(of == nil)
+//			error("bad file descriptor: %a", xfd);
+//		if(of.iounit && len > of.iounit)
+//			error("read exceeds iounit");
+//		rv = doread(of.fid, len, off);
+//		of.off = off+length(rv);
+//		return rv;
+//	}
 
-	@define xmmap(xfd)
+	@defloc xmmap(xfd)
 	{
-		@local of, unit, st, cache, as, get, put, map, ma, ml;
+		@local of, unit, st, cache, get, put, map, ma, ml;
 		of = ftab[xfd];
 		if(of == nil)
 			error("bad file descriptor: %a", xfd);
@@ -1133,7 +1129,7 @@ dom9p = mkdom(ns9p, mknas());
 			if(a > ma){
 				if(a > ma+1 || ml == 0)
 					error("access out of bounds");
-				if((b&CNMASK)+l > ml)
+				if((b&CMASK)+l > ml)
 					error("access out of bounds");
 				if(cache[a] == nil)
 					cache[a] = doread(of.fid,
@@ -1174,7 +1170,7 @@ dom9p = mkdom(ns9p, mknas());
 
 	@define xdirread(xfd)
 	{
-		@local of, rv, unit, buf, p, len, ss;
+		@local of, rv, unit, buf, p, len, ss, sz;
 		of = ftab[xfd];
 		if(of == nil)
 			error("bad file descriptor: %a", xfd);
@@ -1211,7 +1207,7 @@ dom9p = mkdom(ns9p, mknas());
 
 @define test()
 {
-	@local fds;
+	@local fd, fds;
 	fds = popen(getenv("HOME")+"/src/u9fs/u9fs",
 		    "-D",
 		    "-a", "none",
@@ -1241,7 +1237,7 @@ dom9p = mkdom(ns9p, mknas());
 
 @define test2()
 {
-	@local fds, mnt, fd, st, p, as, i;
+	@local fds, mnt, fd, st, p, as, s, i;
 	fds = popen(getenv("HOME")+"/src/u9fs/u9fs",
 		    "-D",
 		    "-a", "none",

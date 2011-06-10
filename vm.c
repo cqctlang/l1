@@ -67,6 +67,7 @@ Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 VM *vms[Maxvms];
 static unsigned nvms;
 static unsigned long long tick;
+static int lasterrno;
 
 static char *opstr[Iopmax+1] = {
 	[Iadd] = "+",
@@ -96,6 +97,18 @@ static int equallistv(Val a, Val b);
 static int equalrange(Range *ra, Range *rb);
 
 Code *kcode, *cccode, *tcccode;
+
+void
+setlasterrno(int no)
+{
+	lasterrno = no;
+}
+
+int
+getlasterrno()
+{
+	return lasterrno;
+}
 
 Imm
 stkimm(Val v)

@@ -41,7 +41,7 @@ mklist(void)
 	return mklistn(Listinitsize);
 }
 
-static List*
+List*
 mklistinit(Imm len, Val v)
 {
 	List *l;
