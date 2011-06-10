@@ -15,9 +15,8 @@
 <a href="#sec:introduction">Introduction</a><br />
 <br />
 <em>Getting Started</em><br />
-<a href="#sec:audience">Audience</a><br />
+<a href="#sec:audience">Prerequisites</a><br />
 <a href="#sec:repl">Interactive Use</a><br />
-<a href="#sec:examples">Examples</a><br />
 <br />
 <em>Basic Language</em><br />
 <a href="#sec:input">Input</a><br />
@@ -178,24 +177,24 @@ down, sometimes we will fall behind.
 We welcome feedback of any kind from all users.
 </p>
 
-<h4 id="sec:audience">Audience</h4>
+<h4 id="sec:audience">Prerequisites</h4>
 
 <p>
-Cinquecento is meant to feel natural and responsive to
+Cinquecento is meant to feel familiar and responsive to
 programmers who are fluent in both C and Scheme.  The
 essence of Cinquecento programming is the use of
-functional abstraction, in the style enabled and
-epitomized by Scheme, to program the evaluation of
-expressions involving the syntax, operators, types,
-memory model, and control flow of idiomatic C.
+functional abstraction, in the style epitomized by
+Scheme, to program the evaluation of expressions
+involving the syntax, operators, types, memory model,
+and control flow of idiomatic C.
 </p>
 
 <p>
 There is no substitute for joyful immersion in the
-classic literature on artful use of C and Scheme.  It
-would be a foolish disservice for this manual to
-dispense nutshell caricatures of the deep ideas and
-traditions of these languages so carefully articulated elsewhere.
+classic writings on artful use of C and Scheme.  It
+would be a disservice for this manual to dispense
+nutshell caricatures of the deep ideas and traditions
+that have been so carefully articulated elsewhere.
 Instead, we recommend a few standard selections, out of
 the many superb treatments available on the web and in
 libraries, that we regard as enjoyable starting points
@@ -203,8 +202,8 @@ from which one cannot be led astray.
 </p>
 
 <p>
-Every edition of <em>The Scheme Programming
-Language</em> offers both a gentle introduction to
+<em>The Scheme Programming
+Language</em> [<a href="#bib:tspl">TSPL</a>] offers both a gentle introduction to
 Scheme and clear exposition on its many fine points.
 The point most central to Cinquecento is the role of
 <span class="val">lambda</span> as an operator for
@@ -212,35 +211,35 @@ constructing stateful first-class functions.  A taste
 and habit for stylistic use
 of <span class="val">lambda</span> can be acquired by
 practicing the lessons of
-<em>The Little Schemer</em> and <em>Structure and
-Interpretation of Computer Programs</em>.
+<em>The Little Schemer</em> [<a href="#bib:ls">Little</a>] and <em>Structure and
+Interpretation of Computer Programs</em> [<a href="#bib:sicp">SICP</a>].
 </p>
 
 <p>
-Into its Scheme-like functional setting, Cinquecento
+Into its Scheme-like setting, Cinquecento
 carries nearly every feature of C other than static
-typing.  Thus comprehensive familiarity with C is
-essential, but especially keen awareness about what is
-and what is not promised about the meaning of types and
-operations involving pointers and memory.  <em>The C
-Programming Language</em> offers a concise and
-definitive foundation, while
-<em>C, A Reference Manual</em> reveals and analyzes the
-wrinkles over which Cinquecento aspires to bring
-precise control.
+typing.  Understanding Cinquecento requires
+comprehensive familiarity with the semantics of C,
+especially sensitivity to what is and what is not
+promised about the meaning of types and operations
+involving pointers and memory.  <em>The C Programming
+Language</em> [<a href="#bib:kr">K&R</a>] offers a concise and definitive
+foundation, while
+<em>C: A Reference Manual</em> [<a href="#bib:hs">H&S</a>] reveals and analyzes the
+wrinkles.
 </p>
 
 <p>
-Looking from the other direction, the primary work of a
+Looking from another direction, the primary work of a
 Cinquecento program is tailored observation and
 manipulation of a program execution, which puts the
 Cinquecento programmer in the business of making,
 operating, and extending bespoke debuggers.  Sooner or
 later, understanding how program executions are
 represented and controlled in your environment becomes
-a requirement.  We know of no resource better than
-source code, your curiosity, and well-posed inquiries
-to the scattered wizards.
+a requirement.  Manuals tend to be inadequate.  We know
+of no resource better than source code, your curiosity,
+and the scattered wizards.
 </p>
 
 <h4 id="sec:repl">Interactive Use</h4>
@@ -251,8 +250,9 @@ expressions can be interactively evaluated.
 </p>
 
 <p>
-Assuming L1 has been built and made available in your
-path, you can start the repl in a shell by running the command <span class="val">l1</span>:
+Assuming L1 has been made available in your path, you
+can start the REPL in a shell by running the
+command <span class="val">l1</span>:
 
 </p>
 
@@ -264,7 +264,7 @@ path, you can start the repl in a shell by running the command <span class="val"
 </div>
 
 <p>
-The semicolon is the repl prompt.  Typing a complete
+The semicolon is the REPL prompt.  Typing a complete
 expression followed a newline sends the expression to
 the evaluator.  The resulting value is printed on the
 following line, followed by a new prompt:
@@ -287,10 +287,9 @@ the evaluator in <span class="arg">italics</span>.
 </p>
 
 <p>
-Some expressions have the side effect of printing to
-the standard output or error of the l1 process.  We
-show such output along with the value printed by the
-repl.
+Some expressions cause output to be printed.
+We show such output along with the value
+printed by the REPL.
 </p>
 
 <div class="code">
@@ -303,13 +302,80 @@ repl.
 </div>
 
 <p>
-As in C, statement blocks (enclosed in curly braces)
-do not require a final semicolon.
+(Like blocks of statements in C, blocks of expressions
+enclosed in curly braces do not require the final
+semicolon.)
 </p>
 
+<p>
+An error encountered during expression evaluation
+aborts the evaluation and prints a diagnostic and stack
+trace:
+</p>
 
-<h4 id="sec:repl">Examples</h4>
+<div class="code">
+<pre>
+; for(i = 4; i >= 0; i--) printf("%d\n", 4/i);
+<span class="arg">1
+1
+2
+4
+error: divide by zero
+               entry	(&lt;stdin&gt;:1)</span>
+</pre>
+</div>
 
+<p>
+Long-running or non-terminating evaluations can be
+interrupted by typing control-C.
+Typing control-D exits the REPL.
+</p>
+
+<p>
+The REPL does not accept multi-line input: the newline
+signals the end of the expression.  The REPL also does
+not offer line editing or expression history.  Some
+users run L1 through a standalone tool such
+as <span class="val">rlwrap</span> or from within Emacs
+to obtain editing and history service.
+</p>
+
+<p>
+The REPL can be directed to evaluated a file of
+Cinquecento code with
+the <span class="val"><a href="#syn:_at_include">@include</a></span>
+form:
+</p>
+
+<div class="code">
+<pre>
+; @include "/home/me/file.cqct"
+</pre>
+</div>
+
+<p>
+Alternatively, the file name can be passed as an argument to
+<span class="val">l1</span>:
+</p>
+
+<div class="code">
+<pre>
+% l1 /home/me/file.cqct
+</pre>
+</div>
+
+<p>
+in which case L1 exits
+after evaluating the contents of the file.
+</p>
+
+<p>
+Some demonstrations of Cinquecento are included in the
+directory <span class="val">demo</span> in the L1
+source distribution.  They make use of the process
+control server <span class="val">sctl</span>,
+which is available from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
+</p>
 
 <h4 id="sec:input">Input</h4>
 
@@ -8672,8 +8738,8 @@ Storage in the L1 implementation of Cinquecento is
 managed by a generational stop-the-world copying
 collector.  Its design draws on published
 descriptions of storage management in <em>Chez Scheme</em>
-[<a href="#bib:chez">Chez</a>, <a href="#bib:bibop">BiBOP</a>,
-<a href="#bib:bibop">Guardians</a>].
+[<a href="#bib:csug">CSUG</a>, <a href="#bib:bibop">BiBOP</a>,
+<a href="#bib:guardian">Guardians</a>].
 </p>
 
 <p>
@@ -8802,7 +8868,7 @@ Prints information about the current state of the storage manager.
 Guardians protect objects from reclamation.  The
 semantics and interface of the guardians provided by L1
 are very similar to those in published descriptions of <em>Chez Scheme</em>
-[<a href="#bib:chez">Chez</a>].
+[<a href="#bib:csug">CSUG</a>].
 </div>
 </div>
 
@@ -10009,12 +10075,31 @@ machines sharing the environment have been freed.
 
 <tr>
 <td>
-<span id="bib:chez">[Chez]</span>
+<span id="bib:sicp">[SICP]</span>
+</td>
+<td>
+Harold Abelson and Gerald Jay Sussman with Julie Sussman.
+<em><a href="http://mitpress.mit.edu/sicp/full-text/book/book.html">Structure and Interpretation of Computer Programs (2nd Edition)</a></em>.
+MIT Press, 1996.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:csug">[CSUG]</span>
 </td>
 <td>
  R. Kent Dybvig. <em><a href="http://www.scheme.com/csug8">The Chez Scheme Version 8 User's Guide</a></em>.  Cadence Research Systems, 2009.
 </td>
 </tr>
+
+<tr>
+<td>
+<span id="bib:tspl">[TSPL]</span>
+</td>
+<td>
+R. Kent Dybvig. <em><a href="http://www.scheme.com/tspl4/">The Scheme Programming Language, 4th edition</a></em>. MIT Press, 2009
+</td>
 
 <tr>
 <td>
@@ -10036,6 +10121,39 @@ R. Kent Dybvig, David Eby, and Carl Bruggeman.
 Guardians in a generation-based collector.</a></em>
 ACM SIGPLAN 1993 Conference on Programming Language
 Design and Implementation, 207-216, June 1993.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:ls">[Little]</span>
+</td>
+<td>
+Daniel P. Friedman and Matthias Felleisen.
+<em>The Little Schemer (4th Edition)</em>.
+MIT Press, 1995.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:hs">[H&S]</span>
+</td>
+<td>
+Samuel P. Harbison III and Guy L. Steele Jr.
+<em>C: A Reference Manual (5th Edition)</em>.
+Prentice Hall, 2002.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:kr">[K&R]</span>
+</td>
+<td>
+Brian W. Kernighan and Dennis M. Ritchie.
+<em>The C Programming Language (2nd Edition)</em>.
+Prentice Hall, 1988.
 </td>
 </tr>
 
