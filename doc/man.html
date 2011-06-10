@@ -246,8 +246,7 @@ to the scattered wizards.
 <h4 id="sec:repl">Interactive Use</h4>
 
 <p>
-Cinquecento is an expression-oriented language.  L1
-includes a read-eval-print loop through which Cinquecento
+L1 includes a read-eval-print loop through which Cinquecento
 expressions can be interactively evaluated.
 </p>
 
@@ -276,6 +275,7 @@ following line, followed by a new prompt:
 <pre>
 ; 3+3;
 <span class="arg">6</span>
+;
 </pre>
 </div>
 
@@ -287,10 +287,10 @@ the evaluator in <span class="arg">italics</span>.
 </p>
 
 <p>
-Some expressions have the side-effect of printing
-to the standard output or error of the l1 process.
-We do not distinguish such output from the value
-printed by the repl.
+Some expressions have the side effect of printing to
+the standard output or error of the l1 process.  We
+show such output along with the value printed by the
+repl.
 </p>
 
 <div class="code">
@@ -298,8 +298,14 @@ printed by the repl.
 ; { printf("hello, world\n"); 3+3; }
 <span class="arg">hello, world</span>
 <span class="arg">6</span>
+;
 </pre>
 </div>
+
+<p>
+As in C, statement blocks (enclosed in curly braces)
+do not require a final semicolon.
+</p>
 
 
 <h4 id="sec:repl">Examples</h4>
