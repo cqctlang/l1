@@ -692,10 +692,15 @@ sctl = @names clp64le {
 
 @define encodefield(p, f)
 {
+	@local id;
 	p = (`uint64*)p;
 	*p++ = fieldoff(f);
 	p = encodeattrs(p, fieldattr(f));
-	p = encodes(p, cid2str(fieldid(f)));
+	id = fieldid(f);
+	if(id == nil)
+		p = encodes(p, "");
+	else
+		p = encodes(p, cid2str(id));
 	p = encodetname(p, fieldtype(f));
 	return p;
 }
@@ -709,7 +714,7 @@ sctl = @names clp64le {
 	[id, p] = decodes(p);
 	[st, p] = decodetname(p);
 	at["offset"] = off;
-	return [mkfield(st, mkcid(id), at), p];
+	return [mkfield(st, strlen(id) > 0 ? mkcid(id) : nil, at), p];
 }
 
 @define encodeparam(p, par)
