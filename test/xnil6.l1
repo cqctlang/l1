@@ -1,0 +1,6 @@
+{
+	@defloc f(nil)
+	{
+		return 0;
+	}
+}

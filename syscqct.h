@@ -905,6 +905,9 @@ Expr*		docompile0(U *ctx, Expr *e);
 /* compileg.c */
 Expr*		docompileg(U *ctx, Expr *e);
 
+/* compilek.c */
+Expr*		docompilek(U *ctx, Expr *e);
+
 /* compilel.c */
 Expr*		docompilel(U *ctx, Expr *e);
 

@@ -1,0 +1,4 @@
+f = @lambda(nil){
+	return 0;
+};
+

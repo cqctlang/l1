@@ -1,0 +1,4 @@
+@define nil()
+{
+	return 0;
+}
