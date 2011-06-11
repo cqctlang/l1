@@ -1380,7 +1380,7 @@ xcalltc(VM *vm)
 	vmsetcl(vm, vm->cl);
 	vm->pc = stkimm(vm->stack[vm->sp]);
 	vm->sp += 3; /* should be vmpop(vm, 3), but only declared below */
-	
+
 	vm->ac = Xnil; /* FIXME: okay?  why doesn't callc do this? */
 	if(cl->cfn)
 		cl->cfn(vm, argc, argv, &vm->ac);
@@ -2697,7 +2697,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 			if(tmp == 0)
 				return 0;
 			vecset(v2, Typepos, mkvalctype(tmp));
-		}			
+		}
 		return mkctypefunc(sub, v1);
 	case Tundef:
 		/* FIXME: do we want this? */
@@ -5921,10 +5921,10 @@ l1_applyk(VM *vm, Imm iargc, Val *iargv, Val *rv)
 
 	if(iargc < 4)
 		vmerr(vm, "wrong number of arguments to applyk");
-	checkarg(vm, "apply", iargv, 0, Qcl);
-	checkarg(vm, "apply", iargv, 1, Qcl);
-	checkarg(vm, "apply", iargv, 2, Qcl);
-	checkarg(vm, "apply", iargv, iargc-1, Qlist);
+	checkarg(vm, "applyk", iargv, 0, Qcl);
+	checkarg(vm, "applyk", iargv, 1, Qcl);
+	checkarg(vm, "applyk", iargv, 2, Qcl);
+	checkarg(vm, "applyk", iargv, iargc-1, Qlist);
 	ll = listlen(vallist(iargv[iargc-1]));
 	argc = iargc-4+ll;
 	argv = emalloc(argc*sizeof(Val));
