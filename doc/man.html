@@ -180,13 +180,13 @@ We welcome feedback of any kind from all users.
 <h4 id="sec:audience">Prerequisites</h4>
 
 <p>
-Cinquecento is meant to feel familiar and responsive to
-programmers who are fluent in both C and Scheme.  The
-essence of Cinquecento programming is the use of
-functional abstraction, in the style epitomized by
-Scheme, to program the evaluation of expressions
-involving the syntax, operators, types, memory model,
-and control flow of idiomatic C.
+Cinquecento is meant to appeal to programmers who are
+fluent in both C and Scheme.  The essence of
+Cinquecento programming is the use of functional
+abstraction, in the style epitomized by Scheme, to
+program the evaluation of expressions involving the
+syntax, operators, types, memory model, and control
+flow of idiomatic C.
 </p>
 
 <p>
@@ -209,7 +209,7 @@ The point most central to Cinquecento is the role of
 <span class="val">lambda</span> as an operator for
 constructing stateful first-class functions.  A taste
 and habit for stylistic use
-of <span class="val">lambda</span> can be acquired by
+of <span class="val">lambda</span> can be cultivated by
 practicing the lessons of
 <em>The Little Schemer</em> [<a href="#bib:ls">Little</a>] and <em>Structure and
 Interpretation of Computer Programs</em> [<a href="#bib:sicp">SICP</a>].
@@ -250,7 +250,7 @@ expressions can be interactively evaluated.
 </p>
 
 <p>
-Assuming L1 has been made available in your path, you
+Assuming that L1 has been made available in your path, you
 can start the REPL in a shell by running the
 command <span class="val">l1</span>:
 
@@ -332,12 +332,18 @@ Typing control-D exits the REPL.
 </p>
 
 <p>
+The REPL does not offer line editing or expression
+history.  Some users run L1 through a standalone tool
+such as <span class="val">rlwrap</span> or from within
+Emacs to obtain editing and history service.
+</p>
+
+<p>
 The REPL does not accept multi-line input: the newline
-signals the end of the expression.  The REPL also does
-not offer line editing or expression history.  Some
-users run L1 through a standalone tool such
-as <span class="val">rlwrap</span> or from within Emacs
-to obtain editing and history service.
+signals the end of the expression.  In this manual, to
+make the presentation easier to read, we sometimes
+present multi-line input anyway.  The usual way to
+prepare longer input is to edit it a file.
 </p>
 
 <p>
@@ -367,6 +373,12 @@ Alternatively, the file name can be passed as an argument to
 <p>
 in which case L1 exits
 after evaluating the contents of the file.
+</p>
+
+<p>
+An Emacs major mode for editing Cinquecento code is
+include in the directory <span class="val">doc</span>
+in the L1 source distribution.
 </p>
 
 <p>
@@ -1865,9 +1877,9 @@ of characters comprising a valid C identifier:
 <div class="code">
 <pre>
 ; s = 'identifier;
-identifier
+<span class="arg">identifier</span>
 ; iscid(s);
-1
+<span class="arg">1</span>
 </pre>
 </div>
 
@@ -1917,9 +1929,9 @@ Returns a string containing the characters of the identifier
 <p>
 Cvalues represent typed values of domains.  Cvalues are
 limited to values of scalar types, including integers,
-floats, and pointers to arbitrary types.  Through the
-use of the literal domain, cvalues are the type by
-which ordinary arithmetic is provided in Cinquecento.
+floats, and pointers to any type.  Cvalues are the only
+numeric type over which ordinary arithmetic is
+performed in Cinquecento.
 </p>
 
 <p>
@@ -1952,6 +1964,38 @@ Functions that operate on cvalues include:
 Returns the domain of <span class="arg">v</span>.
 </div>
 </div>
+
+<div class="docitem" id="fn:equalcval">
+<div class="proto">
+<div class="function">
+<span class="id">equalcval(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">cvalue</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Equalcval</span> is an equivalence predicate over cvalues.  
+The cvalues <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">equalcvalue</span> if
+and only if they are both:
+
+Returns the result of comparing
+cvalues <span class="arg">u</span>
+and <span class="arg">v</span> in the following way.
+Domain promotion and the usual conversions are
+performed on the operands, and the underlying values of
+the resulting cvalues are compared.  Returns
+-1, 0, or 1 if <span class="arg">u</span> is,
+respectively,
+less than, equal to, or greater than <span class="arg">v</span>.
+</div>
+</div>
+
 
 
 <div class="docitem" id="fn:cvalcmp">
@@ -2446,15 +2490,10 @@ as in C.  Evaluation is short circuited, as in C.
 <h4 id="sec:equivalence">Equivalence and other relations</h4>
 
 <p>
-Equivalence is determined by the
-functions
+Equivalence is determined by the function
 <span class="id" id="fn:eq">eq</span>,
 <span class="id" id="fn:eq">eqv</span>,
 and <span class="id" id="fn:eq">equal</span>.
-
-
- <span class="id" id="fn:equal">equal</span>
-function and the <span class="id" id="syn:equal">==</span> operator.
 </p>
 
 <p>
@@ -2467,7 +2506,7 @@ function and the <span class="id" id="syn:equal">==</span> operator.
 <span class="arg">u</span>,<span class="arg">v</span>: any values
 </div>
 <div class="returns">
-<span class="type">cvalue</span> (1 or 0)
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
 </div>
 </div>
 <div class="desc">
@@ -2488,16 +2527,15 @@ they are <span class="id">equal</span>;
 <li>
 If <span class="arg">u</span>
 and <span class="arg">v</span> are both address spaces,
-procedures, domains, file descriptors, name spaces,
-pairs, record descriptors, records, or tables, they
+cids, domains, file descriptors, name spaces,
+pairs, procedures, record descriptors, records, or tables, they
 are <span class="id">equal</span> if and only if they
 are the same object (pointer equality);
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
 are both cvalues, they are <span class="id">equal</span>
-if and only if they have <span class="id">equal</span> types
-and equal underlying values (<em>q.v.</em>);
+if and only if they are <a href="#fn:equalcval"><span class="id">equalcval</span></a>;
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
@@ -2509,7 +2547,7 @@ corresponding elements are <span class="id">equal</span>;
 If <span class="arg">u</span> and <span class="arg">v</span>
 are both ranges, they are <span class="id">equal</span>
 if and only if the underlying values of their offset and length
-cvalues are equal;
+cvalues are equal (FIXME);
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
@@ -2519,53 +2557,7 @@ if and only if they have the same length and contain the same sequence of bytes;
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
 are both ctypes, they are <span class="id">equal</span>
-if and only if they are of the same category of ctype and any of the following is true:
-<ul>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">void</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both base types and have the same representation;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both typedefs whose identifiers are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">typedef</span>s whose identifiers are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both either 
-<span class="id">struct</span>s,
-<span class="id">union</span>s, or
-<span class="id">enum</span>s whose tag identifiers are
-are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both either pointer
-or undefined types whose subtypes are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both array
-types whose element counts are either both unspecified or <span class="id">equal</span>
-and whose subtypes are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both function
-types with <span class="id">equal</span> subtypes (return types),
-parameter lists of equal length,
-and <span class="id">equal</span>ity across each of the types of corresponding elements of the parameter lists;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both
-bitfield types whose widths are <span class="id">equal</span>
-and whose subtypes are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both
-enumeration constant types whose
-subtypes are <span class="id">equal</span>.
-</li>
-</ul>
+if and only if they are <a href="#fn:equalctype"><span class="id">equalctype</span></a>.
 </li>
 </ul>
 </div>
@@ -3652,7 +3644,7 @@ integers and pointers.
 4
 </td>
 <td>
-little-endian
+little endian
 </td>
 </tr>
 
@@ -3667,7 +3659,7 @@ little-endian
 4
 </td>
 <td>
-big-endian
+big endian
 </td>
 </tr>
 
@@ -3682,7 +3674,7 @@ big-endian
 8
 </td>
 <td>
-little-endian
+little endian
 </td>
 </tr>
 
@@ -3697,7 +3689,7 @@ little-endian
 8
 </td>
 <td>
-big-endian
+big endian
 </td>
 </tr>
 
@@ -3712,7 +3704,7 @@ big-endian
 8
 </td>
 <td>
-little-endian
+little endian
 </td>
 </tr>
 
@@ -3727,7 +3719,7 @@ little-endian
 8
 </td>
 <td>
-big-endian
+big endian
 </td>
 </tr>
 
@@ -4714,20 +4706,18 @@ the types that appear in C programs.
 </p>
 
 <p>
-The variants in the second row are Cinquecento
-inventions used to represent, respectively, the types
-of bitfields of structure and unions types, and the
-constants of enumeration types.
+The variants in the second row are used to represent,
+respectively, the types of bitfields of structure and
+unions types, and the constants of enumeration types.
 </p>
 
 <p>
-The undefined variant is another invention used to
-represent types whose names but not definitions occur
-in a name space.
+The undefined variant is used to represent types whose
+names but not definitions occur in a name space.
 </p>
 
 <p>
-Ctypes are one of the most complicated features of Cinquecento.
+Ctypes are one of the more complicated features of Cinquecento.
 Details follow.
 </p>
 
@@ -5076,14 +5066,15 @@ The optional second argument to
 <a href="#fn:mkctype_ptr"><span class="id">mkctype_ptr</span></a>
 gives the <em>representation</em> of the type.  The
 value <span class="val">cqct`Ru64le</span> is one of
-several constants defined for the built-in enumeration
-type <span class="val">cqct`Rkind</span>.  In this
-example, we have specified that the pointer value is
-represented as an unsigned 64-bit little-endian
-integer, a specification sufficient to read or write the
-value of such a pointer.  Constants are defined
-in <span class="val">cqct`Rkind</span> for all common
-integer encodings.
+several constants defined in the
+built-in <span class="val">cqct</span> name space.  In
+this example, we have specified that the pointer value
+is represented as an unsigned 64-bit little-endian
+integer, a specification sufficient to read or write
+the value of such a pointer.  Representation constants
+are defined for common integer, pointer, and float
+encodings
+(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span</a>).
 </p>
 
 <p>
@@ -5202,28 +5193,105 @@ is resolved in the literal domain.
 </div>
 </div>
 
+<div class="docitem" id="fn:typename">
+<div class="proto">
+<div class="function">
+<span class="id">typename(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a ctype representing the type name of <span class="arg">type</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:equalctype">
+<div class="proto">
+<span class="id">equalctype(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">ctype</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Equalctype</span> is an equivalence predicate over
+ctypes.  
+The ctypes <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">equalctype</span> if
+and only if they are both:
+
+<ul>
+<li>
+<span class="id">void</span>;
+</li>
+<li>
+base types with the same representation;
+</li>
+<li>
+<span class="id">typedef</span>s with <span class="id">equal</span> identifiers;
+</li>
+<li>
+<span class="id">struct</span>s,
+<span class="id">union</span>s, or
+<span class="id">enum</span>s with <span class="id">equal</span> tags;
+</li>
+<li>
+pointer
+or undefined types with <span class="id">equalctype</span> subtypes;
+</li>
+<li>
+array types with <span class="id">equal</span> element counts
+and <span class="id">equalctype</span> subtypes;
+</li>
+<li>
+function types with <span class="id">equalctype</span> return types,
+parameter lists of equal length,
+and parameters with corresponding <span class="id">equalctype</span> types.
+</li>
+<li>
+bitfield types with <span class="id">equal</span> widths and
+<span class="id">equalctype</span> subtypes; or
+</li>
+<li>
+enumeration constant types with
+<span class="id">equalctype</span> subtypes.
+</li>
+</ul>
+</div>
+</div>
+
+<div class="docitem" id="fn:hashctype">
+<div class="proto">
+<div class="function">
+<span class="id">hashctype(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">ctype</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:equalctype"><span class="id">equalctype</span></a>.
+</div>
+</div>
+
 <p>
-Cinquecento subdivides the set of ctypes into several
-<em>kind</em>s of ctypes.  Most kinds of ctypes
-correspond to types that occur in C programs.  These
-includes the <tt>void</tt> type, the base arithmetic types
-(<tt>char</tt>, <tt>int</tt>,
-<tt>unsigned long</tt>, <em>etc</em>), pointers,
-arrays, aggregates (<tt>struct</tt> and
-<tt>union</tt>), functions, enumerations, and
-<tt>typedef</tt>s.
-
-
-Other kinds of  also has kinds categories for bitfields,
-enumeration constants, undefined types, and a special
-extended accessor type.
-</p>
-
-<p>
-The following table summarizes the category-specific
-functions that manipulate ctypes.  The predicates
-determine to which category a ctype belongs.  Each
-predicate takes one argument, a ctype, and returns
+The following table summarizes the functions that
+manipulate each of the ctypes variant.  The predicates
+determine the variant of a ctype.  Each predicate takes
+one argument, a ctype, and returns
 <span class="val">1</span> if the predicate is true for
 that ctype, <span class="val">0</span> otherwise.  With
 the exception
@@ -5290,7 +5358,9 @@ Base C type
 </td>
 <td><span class="fnindex" id="fn:isbase">isbase</span></td>
 <td>
-<span class="fnindex">baseid</span>
+<span class="fnindex"><a href="#fn:basebase">basebase</a></span><br />
+<span class="fnindex"><a href="#fn:baseid">baseid</a></span><br />
+<span class="fnindex"><a href="#fn:baserep">baserep</a></span><br />
 </td>
 <td>
 <span class="fnindex"><a href="#fn:mkctype_base">mkctype_base</a></span><br />
@@ -5351,21 +5421,6 @@ Enumeration constant
 </td>
 <td>
 <span class="fnindex"><a href="#fn:mkctype_const">mkctype_const</a></span>
-</td>
-</tr>
-
-<tr>
-<td>
-Extended accessor
-</td>
-<td><span class="fnindex" id="fn:isxaccess">isxaccess</span></td>
-<td>
-<span class="fnindex"><a href="#fn:subtype">subtype</a></span><br />
-<span class="fnindex"><a href="#fn:xaccessget">xaccessget</a></span><br />
-<span class="fnindex"><a href="#fn:xaccessput">xaccessput</a></span>
-</td>
-<td>
-<span class="fnindex"><a href="#fn:mkctype_xaccess">mkctype_xaccess</a></span>
 </td>
 </tr>
 
@@ -5458,7 +5513,7 @@ The following functions are the ctype accessors.
 </div>
 <div class="desc">
 The ctype categories array, enumeration, enumeration
-constant, pointer, undefined, and extended accessor each modify another,
+constant, pointer, and undefined each modify another,
 subordinate ctype.  Given a ctype from any one of these
 categories, <span class="id">subtype</span> returns the
 subordinate ctype, or <span class="val">nil</span> if
@@ -5595,6 +5650,25 @@ class="arg">type</span>.  Returns <span class="val">nil</span> if the type does 
 </div>
 </div>
 
+<div class="docitem" id="fn:basebase">
+<div class="proto">
+<div class="function">
+<span class="id">basebase(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">base ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the base type specifier
+(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span></a>)
+of the base C type represented by <span class="arg">type</span>.
+</div>
+</div>
+
 <div class="docitem" id="fn:baseid">
 <div class="proto">
 <div class="function">
@@ -5613,25 +5687,6 @@ by <span class="arg">type</span> as a string.
 </div>
 </div>
 
-<div class="docitem" id="fn:basebase">
-<div class="proto">
-<div class="function">
-<span class="id">basebase(<span class="arg">type</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">base ctype</span>
-</div>
-<div class="returns">
-<span class="type">cvalue</span>
-</div>
-</div>
-<div class="desc">
-Returns the integer representation (with FIXME
-unspecified semantics) of the base C type represented
-by <span class="arg">type</span>.
-</div>
-</div>
-
 <div class="docitem" id="fn:baserep">
 <div class="proto">
 <div class="function">
@@ -5645,9 +5700,9 @@ by <span class="arg">type</span>.
 </div>
 </div>
 <div class="desc">
-Returns the integer representation (with FIXME
-unspecified semantics) of the representation of the base C type represented
-by <span class="arg">type</span> (indeed!).
+Returns the representation specifier
+(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span></a>)
+of the base C type represented by <span class="arg">type</span>.
 </div>
 </div>
 
@@ -5831,42 +5886,6 @@ an alias for <span class="arg">type</span>.
 </div>
 </div>
 
-<div class="docitem" id="fn:xaccessget">
-<div class="proto">
-<div class="function">
-<span class="id">xaccessget(<span class="arg">type</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">extended accessor ctype</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the get function of the extended accessor ctype
-<span class="arg">type</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:xaccessput">
-<div class="proto">
-<div class="function">
-<span class="id">xaccessput(<span class="arg">type</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">extended accessor ctype</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the put function of the extended accessor ctype
-<span class="arg">type</span>.
-</div>
-</div>
-
 <p>
 The following functions are the ctype constructors.
 </p>
@@ -5950,6 +5969,187 @@ in arrays represented by the type.
 <div class="function">
 <span class="id" id="fn:mkctype_base">mkctype_base(<span class="arg">base</span>[,<span class="arg">rep</span>])</span>
 </div>
+<div class="param">
+<span class="arg">base</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">rep</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Returns a new ctype representing the base C type corresponding 
+to <span class="arg">base</span>, which may be any one of
+the following base type specifiers defined in the
+<span class="val">cqct</span> name space:
+</p>
+
+<div class="table-short">
+<table>
+<tr>
+<td><span class="val">Vbool</span></td>
+<td><span class="val">_Bool</span></td>
+</tr>
+<tr>
+<td><span class="val">Vchar</span></td>
+<td><span class="val">char</span></td>
+</tr>
+<tr>
+<td><span class="val">Vshort</span></td>
+<td><span class="val">short</span></td>
+</tr>
+<tr>
+<td><span class="val">Vint</span></td>
+<td><span class="val">int</span></td>
+</tr>
+<tr>
+<td><span class="val">Vlong</span></td>
+<td><span class="val">long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vvlong</span></td>
+<td><span class="val">long long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vuchar</span></td>
+<td><span class="val">unsigned char</span></td>
+</tr>
+<tr>
+<td><span class="val">Vushort</span></td>
+<td><span class="val">unsigned short</span></td>
+</tr>
+<tr>
+<td><span class="val">Vuint</span></td>
+<td><span class="val">unsigned int</span></td>
+</tr>
+<tr>
+<td><span class="val">Vulong</span></td>
+<td><span class="val">unsigned long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vuvlong</span></td>
+<td><span class="val">unsigned long long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vfloat</span></td>
+<td><span class="val">float</span></td>
+</tr>
+<tr>
+<td><span class="val">Vdouble</span></td>
+<td><span class="val">double</span></td>
+</tr>
+<tr>
+<td><span class="val">Vldouble</span></td>
+<td><span class="val">long double</span></td>
+</tr>
+</table>
+</div>
+
+<p>
+<span class="arg">Rep</span> may be any one of the
+following representation specifiers defined in the
+<span class="val">cqct</span> name space:
+</p>
+
+<div class="table-short">
+<table>
+<tr>
+<td><span class="val">Rundef</span></td>
+<td>undefined representation</td>
+</tr>
+<tr>
+<td><span class="val">Ru08le</td>
+<td>8-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru16le</td>
+<td>16-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru32le</td>
+<td>32-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru64le</td>
+<td>64-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs08le</td>
+<td>8-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs16le</td>
+<td>16-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs32le</td>
+<td>32-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs64le</td>
+<td>64-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru08be</td>
+<td>8-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru16be</td>
+<td>16-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru32be</td>
+<td>32-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru64be</td>
+<td>64-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs08be</td>
+<td>8-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs16be</td>
+<td>16-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs32be</td>
+<td>32-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs64be</td>
+<td>64-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rf32</td> 
+<td>32-bit floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rf64</td> 
+<td>64-bit floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rf128</td>
+<td>128-bit floating point</td>
+</tr>
+</table>
+</div>
+
+<p>
+<span class="arg">Rep</span> defaults to <span class="val">Rundef</span>.
+</p>
+
+</div>
+</div>
+
+
+
+<div class="docitem">
+<div class="proto">
 <div class="function">
 <span class="id" id="fn:mkctype_bool">mkctype_bool([<span class="arg">rep</span>])</span>
 </div>
@@ -5992,22 +6192,21 @@ in arrays represented by the type.
 <div class="function">
 <span class="id" id="fn:mkctype_ldouble">mkctype_ldouble([<span class="arg">rep</span>])</span>
 </div>
+<div class="param">
+<span class="arg">rep</span>: <span class="type">cvalue</span>
+</div>
 <div class="returns">
 <span class="type">ctype</span>
 </div>
 </div>
 <div class="desc">
 
-<span class="id">mkctype_base</span> returns a new
-ctype representing the base C type corresponding to the
-base type specified by <span class="arg">base</span>,
-an integer (with FIXME unspecifed semantics).
-The remaining functions each return a new ctype
-representing the base C type corresponding to the
-suffix of the function name.  The returned type is
-incomplete unless the <span class="arg">rep</span>
-argument, which specifies the representation of the
-type (with FIXME unspecifed semantics), is provided.
+These functions are wrappers
+for <a href="#fn:mkctype_base"><span class="id">mkctype_base</span></a>
+that each return a new ctype representing the base C
+type corresponding to the suffix of the function name.
+The default value of the representation specifier
+<span class="arg">rep</span> is <span class="val">Rundef</span>.
 </div>
 </div>
 
@@ -6117,13 +6316,13 @@ by <span class="fnindex"><a href="#fn:mkparam">mkparam</a></span>.
 <div class="docitem" id="fn:mkctype_ptr">
 <div class="proto">
 <div class="function">
-<span class="id">mkctype_ptr(<span class="arg">type</span>[,<span class="arg">reptype</span>])</span>
+<span class="id">mkctype_ptr(<span class="arg">type</span>[,<span class="arg">rep</span>])</span>
 </div>
 <div class="param">
 <span class="arg">type</span>: <span class="type">ctype</span>
 </div>
 <div class="param">
-<span class="arg">reptype</span>: <span class="type">ctype</span>
+<span class="arg">rep</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
@@ -6131,9 +6330,9 @@ by <span class="fnindex"><a href="#fn:mkparam">mkparam</a></span>.
 </div>
 <div class="desc">
 Returns a new ctype representing a pointer to the type represented by
-<span class="arg">type</span>.  If
-specified, <span class="arg">reptype</span> is a ctype
-representing the pointer representation type.
+<span class="arg">type</span>.
+<span class="arg">Rep</span> specifies the representation
+of the pointer type, and defaults to <span class="val">cqct`Rundef</span>.
 </div>
 </div>
 
@@ -6191,65 +6390,6 @@ Returns a new ctype representing an undefined type whose name is
 Returns a new ctype representing the void type.
 </div>
 </div>
-
-<div class="docitem" id="fn:mkctype_xaccess">
-<div class="proto">
-<div class="function">
-<span class="id">mkctype_xaccess(<span class="arg">type</span>,<span class="arg">get</span>,<span class="arg">put</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="param">
-<span class="arg">get</span>: <span class="type">function</span>
-</div>
-<div class="param">
-<span class="arg">put</span>: <span class="type">function</span>
-</div>
-<div class="returns">
-<span class="type">ctype</span>
-</div>
-</div>
-<div class="desc">
-Returns a new ctype representing a type whose values
-are accessed through calls to custom accessor
-functions, rather than through calls to the address
-space interface.  The ctype <span
-class="arg">type</span> is the underlying (subordinate)
-type of the value.  When the system dereferences a
-pointer to a value of the type, it calls <span
-class="arg">get</span>, passing the domain of the
-pointer cvalue.  <span class="arg">Get</span> returns a
-cvalue, which the system casts to <span
-class="arg">type</span>.
-</div>
-<div class="desc">
-Similarly, when the system assigns through a pointer to
-a value of the type, it calls <span
-class="arg">put</span> on the domain of the pointer and
-the new value to be written.  The new value is cast to
-<span class="arg">type</span> before the call.  The
-return value is ignored.
-</div>
-</div>
-
-<div class="docitem" id="fn:typename">
-<div class="proto">
-<div class="function">
-<span class="id">typename(<span class="arg">type</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="returns">
-<span class="type">ctype</span>
-</div>
-</div>
-<div class="desc">
-Returns a ctype representing the type name of <span class="arg">type</span>.
-</div>
-</div>
-
 
 <h4 id="sec:containers">Container Types</h4>
 
@@ -10304,6 +10444,7 @@ Prentice Hall, 1988.
 <a href="#fn:nsenumtype">enumtype</a> (ns method)<br />
 <a href="#fn:environ">environ</a><br />
 <a href="#fn:equal">equal</a><br />
+<a href="#fn:equalctype">equalctype</a><br />
 <a href="#fn:errno">errno</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
@@ -10332,6 +10473,7 @@ Prentice Hall, 1988.
 <a href="#fn:getpeername">getpeername</a><br />
 <a href="#fn:getsockname">getsockname</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
+<a href="#fn:hashctype">hashctype</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />
 <a href="#fn:inflate">inflate</a><br />
@@ -10435,7 +10577,6 @@ Prentice Hall, 1988.
 <a href="#fn:mkctype_uvlong">mkctype_uvlong</a><br />
 <a href="#fn:mkctype_vlong">mkctype_vlong</a><br />
 <a href="#fn:mkctype_void">mkctype_void</a><br />
-<a href="#fn:mkctype_xaccess">mkctype_xaccess</a><br />
 <a href="#fn:mkdir">mkdir</a><br />
 <a href="#fn:mkdom">mkdom</a><br />
 <a href="#fn:mkfd">mkfd</a><br />
@@ -10542,8 +10683,6 @@ Prentice Hall, 1988.
 <a href="#fn:waitpid">waitpid</a><br />
 <a href="#fn:weakcons">weakcons</a><br />
 <a href="#fn:write">write</a><br />
-<a href="#fn:xaccessget">xaccessget</a><br />
-<a href="#fn:xaccessput">xaccessput</a><br />
 </td>
 </tr>
 </table>
