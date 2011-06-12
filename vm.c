@@ -269,7 +269,81 @@ mkfdcl(Str *name, int flags,
 }
 
 int
-eqval(Val v1, Val v2)
+eqvval(Val v1, Val v2)
+{
+	if(Vkind(v1) != Vkind(v2))
+		return 0;
+	switch(Vkind(v1)){
+	case Qundef:
+	case Qbox:
+		bug();
+	case Qnil:
+		return 1;
+	case Qas:
+	case Qcid:
+	case Qcl:
+	case Qdom:
+	case Qfd:
+	case Qns:
+	case Qpair:
+	case Qrd:
+	case Qrec:
+	case Qtab:
+		return eqptr(v1, v2);
+	case Qctype:
+		return eqvctype(valctype(v1), valctype(v2));
+	case Qcval:
+		return eqvcval(valcval(v1), valcval(v2));
+	case Qlist:
+		return equallist(vallist(v1), vallist(v2));
+	case Qrange:
+		return equalrange(valrange(v1), valrange(v2));
+	case Qstr:
+		return equalstr(valstr(v1), valstr(v2));
+	case Qvec:
+		return equalvec(valvec(v1), valvec(v2));
+	}
+	bug();
+}
+
+u32
+hashqvval(Val v)
+{
+	switch(Vkind(v)){
+	case Qundef:
+	case Qbox:
+		bug();
+	case Qnil:
+		return hashp(Xnil);
+	case Qas:
+	case Qcid:
+	case Qcl:
+	case Qdom:
+	case Qfd:
+	case Qns:
+	case Qpair:
+	case Qrd:
+	case Qrec:
+	case Qtab:
+		return hashptr(v);
+	case Qctype:
+		return hashqvctype(valctype(v));
+	case Qcval:
+		return hashqvcval(valcval(v));
+	case Qlist:
+		return hashlist(vallist(v));
+	case Qrange:
+		return hashrange(valrange(v));
+	case Qstr:
+		return hashstr(valstr(v));
+	case Qvec:
+		return hashvec(valvec(v));
+	}
+	bug();
+}
+
+int
+equalval(Val v1, Val v2)
 {
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
@@ -293,7 +367,7 @@ eqval(Val v1, Val v2)
 	case Qctype:
 		return equalctype(valctype(v1), valctype(v2));
 	case Qcval:
-		return eqcval(valcval(v1), valcval(v2));
+		return equalcval(valcval(v1), valcval(v2));
 	case Qlist:
 		return equallist(vallist(v1), vallist(v2));
 	case Qrange:
@@ -329,7 +403,7 @@ hashval(Val v)
 	case Qctype:
 		return hashctype(valctype(v));
 	case Qcval:
-		return hashqcval(valcval(v));
+		return hashcval(valcval(v));
 	case Qlist:
 		return hashlist(vallist(v));
 	case Qrange:
@@ -1926,7 +2000,7 @@ dostr:
 	if(op != Icmpeq && op != Icmpneq)
 		vmerr(vm, "incompatible operands for binary %s", opstr[op]);
 
-	nv = eqval(v1, v2);
+	nv = equalval(v1, v2);
 	if(op == Icmpneq)
 		nv = !nv;
 	if(nv)
@@ -5337,7 +5411,14 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(vm, lst, i)))
+				m++;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(equalval(v, vecdata(vec)[i]))
 				m++;
 		break;
 	case Qstr:
@@ -5350,13 +5431,6 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = str->len;
 		for(i = 0; i < len; i++)
 			if(c == strdata(str)[i])
-				m++;
-		break;
-	case Qvec:
-		vec = valvec(argv[0]);
-		len = vec->len;
-		for(i = 0; i < len; i++)
-			if(eqval(v, vecdata(vec)[i]))
 				m++;
 		break;
 	}
@@ -5385,7 +5459,14 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(vm, lst, i)))
+				goto gotit;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(equalval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	case Qstr:
@@ -5398,13 +5479,6 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = str->len;
 		for(i = 0; i < len; i++)
 			if(c == strdata(str)[i])
-				goto gotit;
-		break;
-	case Qvec:
-		vec = valvec(argv[0]);
-		len = vec->len;
-		for(i = 0; i < len; i++)
-			if(eqval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	}
@@ -5437,7 +5511,14 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(vm, lst, i)))
+				goto gotit;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(equalval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	case Qstr:
@@ -5450,13 +5531,6 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = str->len;
 		for(i = 0; i < len; i++)
 			if(c == strdata(str)[i])
-				goto gotit;
-		break;
-	case Qvec:
-		vec = valvec(argv[0]);
-		len = vec->len;
-		for(i = 0; i < len; i++)
-			if(eqval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	case Qtab:
@@ -5488,7 +5562,7 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		i = 0;
 		while(i < listlen(lst)){
-			if(!eqval(v, listref(vm, lst, i)))
+			if(!equalval(v, listref(vm, lst, i)))
 				i++;
 			else
 				listdel(vm, lst, i);

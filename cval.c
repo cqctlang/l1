@@ -17,6 +17,18 @@ eqcval(Cval *a, Cval *b)
 }
 
 u32
+hashqvcval(Cval *v)
+{
+	return hashqcval(v);
+}
+
+int
+eqvcval(Cval *a, Cval *b)
+{
+	return eqcval(a, b);
+}
+
+u32
 hashcval(Cval *v)
 {
 	return hashu64(v->val);

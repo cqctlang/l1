@@ -21,7 +21,21 @@ _mktab(u32 sz)
 Tab*
 mktab()
 {
-	return _mktab(Tabinitsize);
+	Tab *t;
+	t = _mktab(Tabinitsize);
+	t->equal = equalval;
+	t->hash = hashval;
+	return t;
+}
+
+Tab*
+mktabqv()
+{
+	Tab *t;
+	t = _mktab(Tabinitsize);
+	t->equal = eqvval;
+	t->hash = hashqvval;
+	return t;
 }
 
 static Pair*
@@ -108,7 +122,7 @@ put(Tab *t, Pair *lnk)
 	u32 h;
 	Val k;
 	k = linkkey(lnk);
-	h = hashval(k);
+	h = t->hash(k);
 	h &= t->sz-1;
 	setlinknext(lnk, vecref(t->ht, h));
 	vecset(t->ht, h, mkvalpair(lnk));
@@ -129,7 +143,7 @@ getrehash(Tab *t, Val k)
 			continue;
 		dellink(t, lnk);
 		put(t, lnk);
-		if(Vkind(linkkey(lnk)) == kind && eqval(linkkey(lnk), k))
+		if(Vkind(linkkey(lnk)) == kind && t->equal(linkkey(lnk), k))
 			return lnk;
 	}
 }
@@ -143,12 +157,12 @@ get(Tab *t, Val k)
 	u32 h;
 
 	kind = Vkind(k);
-	h = hashval(k);
+	h = t->hash(k);
 	x = vecref(t->ht, h&(t->sz-1));
 	while(islink(x)){
 		lnk = (Pair*)x;
 		x = linknext(lnk);
-		if(Vkind(linkkey(lnk)) == kind && eqval(linkkey(lnk), k))
+		if(Vkind(linkkey(lnk)) == kind && t->equal(linkkey(lnk), k))
 			return lnk;
 	}
 	return getrehash(t, k);
@@ -329,7 +343,9 @@ tabcopy(Tab *t)
 	Pair *lnk;
 	u32 i, m;
 
-	rv = mktab();
+	rv = _mktab(t->sz);
+	rv->equal = t->equal;
+	rv->hash = t->hash;
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
 		x = vecref(t->ht, i);
 		while(islink(x)){
