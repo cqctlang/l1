@@ -5,7 +5,7 @@
 typedef
 struct Case
 {
-	char *l;
+	char *l;	
 	Expr *e;
 } Case;
 
@@ -14,6 +14,7 @@ struct Cases
 {
 	u32 nc, max;
 	char *dflt;
+	Expr *locals;
 	Case *cases;
 } Cases;
 
@@ -39,6 +40,23 @@ mkbind(Expr *id, Expr *exp, Bind *next)
 	b->exp = exp;
 	b->next = next;
 	return b;
+}
+
+static Expr *
+putifabsent(Expr *e, Expr *id)
+{
+	Expr *p;
+	if ((e->kind != Eelist || e->kind != Enull) && id->kind != Eid)
+		fatal("bug in putifabsent");
+	p = e;
+	while(p->kind != Enull){
+		if (p->e1->kind != Eid)
+			fatal("bug in putifabsent(2)");
+		if (id->aux == p->e1->aux)
+			return e;
+		p = p->e2;
+	}
+	return Zcons(id, e);
 }
 
 static int
@@ -92,6 +110,11 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                 }
                 rv = 1; /* pretend this is a binder even if _ used */
 		break;
+	case Epair:
+		m->check = Zand(m->check,Zcall(doid("ispair"),1,exp));
+		rv |= match(ctx,Zcall(doid("car"),1,copyexpr(exp)),pat->e1,m);
+		rv |= match(ctx,Zcall(doid("cdr"),1,copyexpr(exp)),pat->e2,m);
+		break;
 	case Elist:
 		m->check = Zand(m->check,Zcall(doid("islist"),1,exp));
 		p = pat->e1;
@@ -124,6 +147,8 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
         case Etab:
                 m->check = Zand(m->check,Zcall(doid("istable"),1,exp));
                 p = pat->e1;
+		/* FIXME: I think I can delete this check; handled by
+		   making N calls to tablook below. */
 		m->check = Zand(m->check,
 				Zbinop(Ege,
 				       Zcall(doid("length"),1,exp),
@@ -164,17 +189,15 @@ genlabel()
 }
 
 static void
-mklocals(Bind *binds, Expr **decls, Expr **inits)
+mklocals(Bind *binds, Expr **locals, Expr **inits)
 {
-	Expr *l, *i;
+	Expr *i;
 	i = nullelist();
-	l = nullelist();
 	while (binds != NULL){
-		l = Zcons(binds->id, l);
+		*locals = putifabsent(*locals,binds->id);
 		i = Zcons(Zset(binds->id,binds->exp), i);
 		binds = binds->next;
 	}
-	*decls = l;
 	*inits = i;
 }
 
@@ -196,12 +219,10 @@ addcase(U *ctx, Expr *e, Expr *b, Cases *cs)
 	l = genlabel();
 	match(ctx, doid("$t"), e, &m);
 	if (m.binds != 0) {
-		Expr *decls, *inits;
-		mklocals(m.binds,&decls,&inits);
+		Expr *inits;
+		mklocals(m.binds,&cs->locals,&inits);
 		freebinds(m.binds);
-                /* FIXME: b is just the next expression, not ALL of the
-                   expressions up to the next case. */
-		b = Zblock(decls, inits, b, NULL);
+		b = Zblock(nullelist(), inits, b, NULL);
 	}
 	else {
 		m.check = Zbinop(Eeq,e,doid("$t"));
@@ -219,6 +240,7 @@ mkcases()
 	Cases *cs;
 	cs = emalloc(sizeof(Cases));
 	cs->max = 128;
+	cs->locals = nullelist();
 	cs->cases = emalloc(cs->max*sizeof(Case));
 	return cs;
 }
@@ -312,7 +334,7 @@ swtch(U *ctx, Expr *e, char *lb)
 				       Zgoto(cs->cases[i].l)) :
 				   Zgoto(cs->cases[i].l),
 				   se);
-		se = Zblock(Zlocals(1, "$t"),
+		se = Zblock(Zcons(doid("$t"),cs->locals),
 			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
 			    invert(se),
 			    cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb),

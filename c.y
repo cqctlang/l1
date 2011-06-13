@@ -180,10 +180,7 @@ primary_expression
 	| '(' expression ')'
 	{ $$ = $2; }
         | LPAIR root_expression ',' root_expression RPAIR
-	{ Expr *tl = newexprsrc(&ctx->inp->src, Eelist, $4, nullelist(), 0, 0);
-          Expr *l = newexprsrc(&ctx->inp->src, Eelist, $2, tl, 0, 0); 
-          /* FIXME: should be a pair; what constructor to use? */
-          $$ = newexprsrc(&ctx->inp->src, Elist, l, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Epair, $2, $4, 0, 0); }
 	| '[' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'

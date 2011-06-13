@@ -89,6 +89,7 @@ enum{
 	Ele,
 	Eletrec,
 	Elist,
+	Epair,
 	Elor,
 	Elt,
 	Emkctype,
