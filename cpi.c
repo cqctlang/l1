@@ -267,6 +267,77 @@ freecases(Cases *cs)
 	efree(cs);
 }
 
+
+/* Doesn't work!  Just ends up shadowing everything again, but only
+ * for the cases just below the current case, rather than cases above
+ * it.  Solution:
+ *
+ * 1) Establish circumstances under which the following transformation
+ * is correct:
+ *
+ * (Switch (Eelist (case e1 e2) e3)) ~~> 
+ * (Switch (Eelist (case e1 (Eelist e2 e3)))) 
+ *
+ * is correct when e3 contains no case expression itself that
+ * references variables bound in e1, but which are not bound in its
+ * own guard.  This is because these references would normally go to
+ * the outer scope.  
+ *
+ * 2) The algorithm is easy: iterate through a switch list's top-level
+ * expressions; for each (case e1:e2), if e1 binds any variables, then
+ * coalesce e2 with subsequent expresions e_i until one of the e_i is
+ * itself a case (at which point stop coalescing and carry on); abort
+ * with failure if e2 or any e_i itself contains a floating case.
+ *
+ * Not sure how to do this during the binding-getting phase, since we
+ * don't know what the top-level switch list is when we're evaluating
+ * each case.  Need to think more about this.
+ *
+ * Maybe there's a silly stopgap: pass in parent pointer when doing
+ * cases() traversal, and when we come upon (case e1:e2), we coalesce
+ * its e2 with all subsequent expressions in the parent's tail,
+ * assuming it's a list, making the check above.  Not sure when it
+ * wouldn't be a list; do I care?
+ */
+
+/* static Expr* */
+/* coalesce(U *ctx, Expr* e) */
+/* { */
+/* 	Expr *p; */
+
+/* 	if(e == 0) */
+/* 		return 0; */
+/* 	switch(e->kind){ */
+/*         case Eelist: */
+/* 		p = e; */
+/* 		while(p->kind == Eelist){ */
+/*                         switch(p->e1->kind){ */
+/*                         case Ecase: */
+/*                                 p->e1->e2 = Zblock(nullelist(), p->e1->e2, */
+/*                                                    coalesce(ctx, p->e2)); */
+/*                                 p->e2 = nullelist(); */
+/*                                 return e; */
+/*                         case Edefault: */
+/*                                 p->e1->e1 = Zblock(nullelist(), p->e1->e1, */
+/*                                                    coalesce(ctx, p->e2)); */
+/*                                 p->e2 = nullelist(); */
+/*                                 return e; */
+/*                         default: */
+/*                                 p->e1 = coalesce(ctx, p->e1); */
+/*                                 break; */
+/*                         } */
+/* 			p = p->e2; */
+/* 		} */
+/*                 return e; */
+/*         default: */
+/* 		e->e1 = coalesce(ctx, e->e1); */
+/* 		e->e2 = coalesce(ctx, e->e2); */
+/* 		e->e3 = coalesce(ctx, e->e3); */
+/* 		e->e4 = coalesce(ctx, e->e4); */
+/* 		return e; */
+/* 	} */
+/* } */
+
 static Expr*
 cases(U *ctx, Expr* e, Cases *cs)
 {
@@ -495,6 +566,7 @@ docompilei(U *ctx, Expr *e)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
+        coalesce(ctx, e);
 	loops(ctx, e, 0, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);

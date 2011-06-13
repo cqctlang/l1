@@ -32,7 +32,7 @@ extern char *yytext;
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
 %token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
-%token LPAIR RPAIR
+%token LPAIR RPAIR NOBIND_PRE
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression

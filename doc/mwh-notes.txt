@@ -4,15 +4,21 @@ HOURS
 
 TO DO
 
-- Deal with nil: this is actually an identifier that's pre-bound in
-  the environment.  Since it's not a constant, if I attempt to pattern
-  match on it, I effectively rebind it.  This is probably bad in
-  general; i.e., allowing users to write nil = 1.
+
 - Deal with fall-through when we've bound stuff
   - Make sure we end with a break or somesuch?
-- Warn about shadowing outer bindings in switches, or else fix the
-  scoping problem (maybe do both).
-- Make a bunch of test cases and check in!
+- Fix scoping problem.  Idea for fix:
+
+  Implement a pre-pass, prior to the cases() pass that groups together
+  adjacent elements of an Eelist into a single block.  So if we had
+  ((case e1 e2) e3 e4 (case e5 e6) ...) we would convert this to
+  ((case e1 (e2 e3 e4)) (case e5 (e6 ...))).  It's possible I can do
+  this in the cases() pass itself, I'm not sure.  But we need to
+  account for nested switches, as it does, so we don't end one case
+  expression block with the beginning of a case in a nested switch.
+  Once this prepass is complete, we can just declare the local
+  variables at the point of the case since we know that when we see a
+  (case e1 e2) that e2 is the entire block for the case. 
 
 TO DO LATER
 
@@ -24,10 +30,12 @@ TO DO LATER
   a normal expression and defeat pattern matching unless I treat it
   specially.  I suppose I could look for this as a top-level pattern,
   but I'm not sure how it would be parsed; is that reliable?
-- Idea with variables @@x is a variable that's bound in a pattern, but
-  you drop the @@ part inside the body.  Need to reject such variables
-  outside of patterns (presumably doing the same as I would for _
-  outside of patterns).
+- Idea: variables @@x in a pattern are emphasize they are NOT binders,
+  but rather should inherit from the outer scope.  Should only affect
+  pattern matching---any occurrence of @@x elsewhere in the program is
+  just treated as x, undecorated.  (Could implement this latter
+  semantics by translating these occurrences to their originals after
+  the pattern matching pass, as a separate pass.)
 - Add record patterns and C patterns; see below.
 
 NOTES

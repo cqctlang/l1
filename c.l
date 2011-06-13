@@ -140,6 +140,7 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+ { count(ctx); return(chars(lvalp, STRING_LITERAL));
 "<"			{ count(ctx); return('<'); }
 ">"			{ count(ctx); return('>'); }
 "^"			{ count(ctx); return('^'); }
+"^^"			{ count(ctx); return (NOBIND_PRE); }
 "|"			{ count(ctx); return('|'); }
 "?"			{ count(ctx); return('?'); }
 "@"			{ count(ctx); return('@'); }
