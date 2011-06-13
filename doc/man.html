@@ -27,8 +27,7 @@
 <a href="#sec:scope">Scope and Variables</a><br />
 <a href="#sec:types">Types</a><br />
 <a href="#sec:functions">Functions</a><br />
-<a href="#sec:control">Control Operators</a><br />
-<a href="#sec:statements">Control Flow Statements</a><br />
+<a href="#sec:control">Control</a><br />
 <a href="#sec:records">Records</a><br />
 <br />
 <em>Using Domains</em><br />
@@ -1210,12 +1209,67 @@ and the resulting value is returned.
 </div>
 </div>
 
-
-<h4 id="sec:control">Control Operators</h4>
+<h4 id="sec:control">Control</h4>
 
 <p>
-Several built-in functions support non-local control
-flow.
+Cinquecento supports the control flow statements of C,
+including the loop statements <span class="val">do</span>-<span class="val">while</span>,
+<span class="val">for</span>,
+and <span class="val">while</span>,
+the conditional statements <span class="val">if</span>,
+<span class="val">if</span>-<span class="val">else</span>,
+and <span class="val">switch</span> (with <span class="val">case</span>
+and <span class="val">default</span> labels),
+and the <span class="val">goto</span> statement.
+</p>
+
+<p>
+These statements have the same syntax they have in C.
+Control flow through loops and <span class="val">switch</span> 
+statements can be controlled with <span class="val">break</span>
+and <span class="val">continue</span> as in C.
+</p>
+
+<p>
+As in C, the integer value <span class="val">0</span>
+is considered false in conditional evaluation.  Unlike
+C, the value <span class="id">nil</span> is also
+considered false.  (The value
+of <span class="id">!nil</span>
+is <span class="val">1</span>.)  All other values are
+considered true.
+</p>
+
+<p>
+Unlike C, the <span class="val">switch</span> statement
+dispatches values of any type, not just integers.
+The <span class="val">==</span> operator determines
+equality.
+</p>
+
+<p>
+The <span class="val">case</span>s of a
+<span class="val">switch</span> are compared in
+lexical order; control jumps to the first statement
+with a matching <span class="val">case</span> label, or to the
+optional <span class="val">default</span> label,
+regardless of where it appears, if
+no <span class="val">case</span> matches.
+Control skips past the <span class="val">switch</span> body 
+if there is no matching case
+and no <span class="val">default</span> label.
+</p>
+
+<p>
+None of the non-local control transfer statements
+(<span class="val">break</span>, <span class="val">continue</span>,
+<span class="val">goto</span>) can be used to leave
+or enter the body of a function.
+</p>
+
+<p>
+Several functions support additional forms of non-local
+control flow:
 </p>
 
 <div class="docitem" id="fn:error">
@@ -1331,64 +1385,6 @@ is called with the result of the application as its
 single argument.
 </div>
 </div>
-
-<h4 id="sec:statements">Control Flow Statements</h4>
-
-<p>
-Cinquecento supports the control flow statements of C,
-including the loop statements <span class="val">do</span>-<span class="val">while</span>,
-<span class="val">for</span>,
-and <span class="val">while</span>,
-the conditional statements <span class="val">if</span>,
-<span class="val">if</span>-<span class="val">else</span>,
-and <span class="val">switch</span> (with <span class="val">case</span>
-and <span class="val">default</span> labels),
-and the <span class="val">goto</span> statement.
-</p>
-
-<p>
-These statements have the same syntax they have in C.
-Control flow through loops and <span class="val">switch</span> 
-statements can be controlled with <span class="val">break</span>
-and <span class="val">continue</span> as in C.
-</p>
-
-<p>
-As in C, the integer value <span class="val">0</span>
-is considered false in conditional evaluation.  Unlike
-C, the value <span class="id">nil</span> is also
-considered false.  (The value
-of <span class="id">!nil</span>
-is <span class="val">1</span>.)  All other values are
-considered true.
-</p>
-
-<p>
-Unlike C, the <span class="val">switch</span> statement
-dispatches values of any type, not just integers.
-The <span class="val">==</span> operator determines
-equality.
-</p>
-
-<p>
-The <span class="val">case</span>s of a
-<span class="val">switch</span> are compared in
-lexical order; control jumps to the first statement
-with a matching <span class="val">case</span> label, or to the
-optional <span class="val">default</span> label,
-regardless of where it appears, if
-no <span class="val">case</span> matches.
-Control skips past the <span class="val">switch</span> body 
-if there is no matching case
-and no <span class="val">default</span> label.
-</p>
-
-<p>
-None of the non-local control transfer statements
-(<span class="val">break</span>, <span class="val">continue</span>,
-<span class="val">goto</span>) can be used to leave
-or enter the body of a function.
-</p>
 
 
 <h4 id="sec:records">Records</h4>
@@ -1927,11 +1923,14 @@ Returns a string containing the characters of the identifier
 <h4 id="sec:cvalues">Cvalues</h4>
 
 <p>
-Cvalues represent typed values of domains.  Cvalues are
-limited to values of scalar types, including integers,
-floats, and pointers to any type.  Cvalues are the only
-numeric type over which ordinary arithmetic is
-performed in Cinquecento.
+Cvalues represent scalar typed values of domains,
+including integers, floats, and pointers to any type.
+Every cvalue has an associated ctype that represents
+the type of the value, an associated domain through
+which operations such as pointer dereference and type
+conversion are resolved, and an <em>underlying
+encoding</em> of its value, in the form of an unsigned,
+64-bit, 2's complement integer.
 </p>
 
 <p>
@@ -1941,8 +1940,30 @@ tests whether a value is a cvalue.
 </p>
 
 <p>
-The type of a cvalue may be obtained by <a href="#syn:_at_typeof"><span class="fnindex">@typeof</span></a>.
+The syntax <a href="#syn:_at_typeof"><span class="fnindex">@typeof</span></a>
+is used to obtain the ctype associated with a cvalue.
 </p>
+
+<p>
+Cvalues are the only numeric type in Cinquecento.  The
+arithmetic, logical, and relational operators of C are
+defined over cvalues, and yield equivalent values.  In
+particular, Cinquecento applies the same integer promotion rules and "usual
+conversions" that are applied to the operands of unary
+and binary operators in C to determine a common type
+for the operation and its result.
+For example, the relational
+operators (<span class="id">&lt;</span>,
+<span class="id">&lt;=</span>,
+<span class="id">&gt;</span>,
+<span class="id">&gt;=</span>,
+<span class="id">==</span>,
+<span class="id">!=</span>) are implemented by
+<a href="#fn:cvalcmp"><span class="id">cvalcmp</span></a>,
+which promotes and converts its operands before
+comparing them.
+</p>
+
 
 <p>
 Functions that operate on cvalues include:
@@ -1981,21 +2002,71 @@ Returns the domain of <span class="arg">v</span>.
 <span class="id">Equalcval</span> is an equivalence predicate over cvalues.  
 The cvalues <span class="arg">u</span>
 and <span class="arg">v</span> are
-<span class="id">equalcvalue</span> if
-and only if they are both:
-
-Returns the result of comparing
-cvalues <span class="arg">u</span>
-and <span class="arg">v</span> in the following way.
-Domain promotion and the usual conversions are
-performed on the operands, and the underlying values of
-the resulting cvalues are compared.  Returns
--1, 0, or 1 if <span class="arg">u</span> is,
-respectively,
-less than, equal to, or greater than <span class="arg">v</span>.
+<span class="id">equalcval</span> if and only if they
+have the same underlying encoding.
 </div>
 </div>
 
+<div class="docitem" id="fn:eqvcval">
+<div class="proto">
+<div class="function">
+<span class="id">eqvcval(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">cvalue</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Eqvcval</span> is an equivalence predicate over cvalues.  
+The cvalues <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">eqvcval</span> if and only if they
+have the same underlying encoding and
+<a href="#fn:eqvctype"><span class="fnindex">eqvctype</span></a>
+types.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashcval">
+<div class="proto">
+<div class="function">
+<span class="id">hashcval(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:equalcval"><span class="id">equalcval</span></a>.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashqvcval">
+<div class="proto">
+<div class="function">
+<span class="id">hashqvcval(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:eqvval"><span class="id">eqvcval</span></a>.
+</div>
+</div>
 
 
 <div class="docitem" id="fn:cvalcmp">
@@ -2013,13 +2084,15 @@ less than, equal to, or greater than <span class="arg">v</span>.
 <div class="desc">
 Returns the result of comparing
 cvalues <span class="arg">u</span>
-and <span class="arg">v</span> in the following way.
+and <span class="arg">v</span> in the manner of C.
 Domain promotion and the usual conversions are
-performed on the operands, and the underlying values of
-the resulting cvalues are compared.  Returns
--1, 0, or 1 if <span class="arg">u</span> is,
-respectively,
-less than, equal to, or greater than <span class="arg">v</span>.
+performed on the operands, and the underlying encodings
+of the resulting cvalues are compared as either
+unsigned or signed values, according to whether their
+common type is unsigned or signed.  Returns -1, 0, or 1
+if <span class="arg">u</span> is, respectively, less
+than, equal to, or greater
+than <span class="arg">v</span>.
 </div>
 </div>
 
@@ -2544,10 +2617,10 @@ if and only if they have the same length and each of their
 corresponding elements are <span class="id">equal</span>;
 </li>
 <li>
-If <span class="arg">u</span> and <span class="arg">v</span>
-are both ranges, they are <span class="id">equal</span>
-if and only if the underlying values of their offset and length
-cvalues are equal (FIXME);
+If <span class="arg">u</span>
+and <span class="arg">v</span> are both ranges, they
+are <span class="id">equal</span> if and only if their
+offsets and lengths are both <a href="#fn:equalcval"><span class="id">equalcval</span></a>;
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
@@ -2564,14 +2637,80 @@ if and only if they are <a href="#fn:equalctype"><span class="id">equalctype</sp
 </div>
 
 <p>
-The above definition depends on the definition of
-equality of the "underlying values" of two cvalues.
-This is (unfortunately) implementation-dependent.
-In L1, the underlying value of a cvalue is represented
-as a 64-bit unsigned integer, and their equality is
-is that determined by the C <span class="id">==</span>
-operator.
-</p>
+<div class="docitem" id="fn:eqv">
+<div class="proto">
+<div class="function">
+<span class="id">eqv(<span class="arg">u</span>,<span class="arg">v</span>)
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: any values
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+Determines the equivalence of <span class="arg">u</span>
+and <span class="arg">v</span> according to the
+following rules.
+<ul>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both cvalues, they are <span class="id">eqv</span>
+if and only if they are <a href="#fn:eqvcval"><span class="id">eqvcval</span></a>;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both ctypes, they are <span class="id">eqv</span>
+if and only if they are <a href="#fn:eqvctype"><span class="id">eqvctype</span></a>;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both ctypes, they are <span class="id">eqv</span>
+if and only if they are <a href="#fn:equal"><span class="id">equal</span></a>
+</li>
+</ul>
+</div>
+</div>
+
+
+<div class="docitem" id="fn:hash">
+<div class="proto">
+<div class="function">
+<span class="id">hash(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:equal"><span class="id">equal</span></a>.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashqv">
+<div class="proto">
+<div class="function">
+<span class="id">hashqv(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:eqv"><span class="id">eqv</span></a>.
+</div>
+</div>
 
 <p>
 The <span class="id">==</span> operator is a weaker
@@ -2725,10 +2864,9 @@ space).
 
 <p>
 An attempt to dereference a pointer to an unmapped
-location draws an error.  Programs can call 
-<span class="fnindex"><a href="#fn:ismapped">ismapped</a></span>
-to test whether a range is mapped without risk of
-error.
+location draws an error.  To test whether a range is
+mapped without risk of error, call
+<span class="fnindex"><a href="#fn:ismapped">ismapped</a></span>.
 </p>
 
 <h4 id="sec:objects">The object model</h4>
@@ -5258,13 +5396,33 @@ and parameters with corresponding <span class="id">equalctype</span> types.
 </li>
 <li>
 bitfield types with <span class="id">equal</span> widths and
-<span class="id">equalctype</span> subtypes; or
+<span class="id">equalctype</span> container types; or
 </li>
 <li>
 enumeration constant types with
 <span class="id">equalctype</span> subtypes.
 </li>
 </ul>
+</div>
+</div>
+
+<div class="docitem" id="fn:eqvctype">
+<div class="proto">
+<span class="id">eqvctype(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">ctype</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Eqvctype</span> is an equivalence predicate over
+ctypes.  
+The ctypes <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">eqvctype</span> if
+and only if they are (for now) <a href="#fn:equalctype"><span class="id">equalctype</span></a>
 </div>
 </div>
 
@@ -5284,6 +5442,25 @@ enumeration constant types with
 Returns an unsigned 32-bit integer hash of <span class="type">ctype</span>
 suitable for use with the equivalence predicate 
 <a href="#fn:equalctype"><span class="id">equalctype</span></a>.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashqvctype">
+<div class="proto">
+<div class="function">
+<span class="id">hashqvctype(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">ctype</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:eqvctype"><span class="id">eqvctype</span></a>.
 </div>
 </div>
 
@@ -5843,7 +6020,7 @@ Returns the return type of the function type represented by
 </div>
 <div class="desc">
 Returns the name of the type defined by the typedef type represented by
-<span class="arg">type</span> as a string.
+<span class="arg">type</span>.
 </div>
 </div>
 
@@ -5860,8 +6037,8 @@ Returns the name of the type defined by the typedef type represented by
 </div>
 </div>
 <div class="desc">
-Returns the type aliased defined by the typedef type represented by
-<span class="arg">type</span> as a ctype.
+Returns the type aliased by the typedef type represented by
+<span class="arg">type</span>.
 </div>
 </div>
 
@@ -6644,8 +6821,10 @@ be of the same type.
 </div>
 </div>
 <div class="desc">
-Returns the number of occurrences of <span class="arg">v</span>
-in <span class="arg">container</span>.
+Returns the number of values
+in <span class="arg">container</span> that
+are <a href="#fn:equal"><span class="id">equal</span></a>
+to <span class="arg">v</span>.
 </div>
 </div>
 
@@ -6665,9 +6844,12 @@ in <span class="arg">container</span>.
 </div>
 </div>
 <div class="desc">
-Returns the index of the first occurrences of <span class="arg">v</span>
-in <span class="arg">container</span> or <span class="val">nil</span>
-if <span class="arg">v</span> is not in <span class="arg">container</span>.
+Returns the index of the first value
+in <span class="arg">container</span>
+<a href="#fn:equal"><span class="id">equal</span></a>
+to <span class="arg">v</span>, or 
+or <span class="val">nil</span>
+is there is no such value.
 </div>
 </div>
 
@@ -6687,8 +6869,11 @@ if <span class="arg">v</span> is not in <span class="arg">container</span>.
 </div>
 </div>
 <div class="desc">
-Returns <span class="val">1</span> if <span class="arg">v</span>
-occurs in <span class="arg">container</span> or <span class="val">0</span>
+Returns <span class="val">1</span> if 
+<span class="arg">container</span> contains a value
+<a href="#fn:equal"><span class="id">equal</span></a> to 
+<span class="arg">v</span>,
+or <span class="val">0</span>
 otherwise.
 </div>
 </div>
@@ -6709,8 +6894,12 @@ otherwise.
 </div>
 </div>
 <div class="desc">
-Deletes every occurrence of <span class="arg">v</span>
-in <span class="arg">container</span>.
+Deletes every value
+in <span class="arg">container</span>
+that is
+<a href="#fn:equal"><span class="id">equal</span></a>
+to
+<span class="arg">v</span>.
 Returns <span class="arg">container</span> following the update.
 </div>
 </div>
@@ -7226,10 +7415,27 @@ a table.
 </div>
 </div>
 <div class="desc">
-Creates and returns a new, empty table.
+Creates and returns a new, empty table in which
+key equivalence is determined by  
+<a href="#fn:equal"><span class="id">equal</span></a>.
 </div>
 </div>
 
+<div class="docitem" id="fn:mktabqv">
+<div class="proto">
+<div class="function">
+<span class="id">mktabqv()</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+Creates and returns a new, empty table in which
+key equivalence is determined by  
+<a href="#fn:eqv"><span class="id">eqv</span></a>.
+</div>
+</div>
 
 <div class="docitem"  id="syn:_emptytable_">
 <div class="proto">
@@ -7250,6 +7456,7 @@ Creates and returns a new, empty table.
 This syntax constructs a
 new table containing the zero or more key/value pairs enclosed in the
 braces.  The syntax <span class="id">[ : ]</span> constructs an empty table.
+The table is constructed with <a href="#fn:mktab"><span class="id">mktab</span></a>.
 </div>
 </div>
 
@@ -10304,9 +10511,6 @@ Prentice Hall, 1988.
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<table>
-<tr>
-<td>
 <a href="#syn:cidlit"><span class="val">'id</span> (cid literal)</a><br />
 <a href="#syn:invoke"><span class="val"><span class="arg">o</span>.<span class="arg">f</span> (method invocation)</a><br />
 <a href="#syn:asof"><span class="val"><span class="arg">dom</span>.as</span></a><br />
@@ -10325,9 +10529,6 @@ Prentice Hall, 1988.
 <a href="#syn:_at_record">@record</a><br />
 <a href="#syn:return">return</a><br />
 <a href="#syn:_at_typeof">@typeof</a><br />
-</td>
-</tr>
-</table>
 </div>
 </div>
 </div>
@@ -10336,9 +10537,6 @@ Prentice Hall, 1988.
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<table>
-<tr>
-<td>
 <a href="#fn:cqctcallfn">cqctcallfn</a><br />
 <a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
 <a href="#fn:cqctcompile">cqctcompile</a><br />
@@ -10350,8 +10548,6 @@ Prentice Hall, 1988.
 <a href="#fn:cqctenvlook">cqctenvlook</a><br />
 <a href="#fn:cqcteval">cqcteval</a><br />
 <a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
-</td>
-<td>
 <a href="#fn:cqctfini">cqctfini</a><br />
 <a href="#fn:cqctfreevm">cqctfreevm</a><br />
 <a href="#fn:cqctgcpersist">cqctgcpersist</a><br />
@@ -10365,9 +10561,6 @@ Prentice Hall, 1988.
 <a href="#fn:cqctint16val">cqctint16val</a><br />
 <a href="#fn:cqctint32val">cqctint32val</a><br />
 <a href="#fn:cqctint64val">cqctint64val</a><br />
-
-</td>
-<td>
 <a href="#fn:cqctinterrupt">cqctinterrupt</a><br />
 <a href="#fn:cqctlength">cqctlength</a><br />
 <a href="#fn:cqctlistvals">cqctlistvals</a><br />
@@ -10380,8 +10573,6 @@ Prentice Hall, 1988.
 <a href="#fn:cqctuint64val">cqctuint64val</a><br />
 <a href="#fn:cqctvalcbase">cqctvalcbase</a><br />
 <a href="#fn:cqctvalcstr">cqctvalcstr</a><br />
-</td>
-<td>
 <a href="#fn:cqctvalcstrlen">cqctvalcstrlen</a><br />
 <a href="#fn:cqctvalcstrshared">cqctvalcstrshared</a><br />
 <a href="#fn:cqctvalint8">cqctvalint8</a><br />
@@ -10393,21 +10584,15 @@ Prentice Hall, 1988.
 <a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
 <a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
 <a href="#fn:cqctvecvals">cqctvecvals</a><br />
-</td>
-</tr>
-</table>
 </div>
 </div>
 </div>
 
 
-<h4 id="sec:fnindex">Built-in Function Index</h4>
+<h4 id="sec:fnindex">Function Index</h4>
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<table>
-<tr>
-<td>
 <a href="#fn:asof">asof</a><br />
 <a href="#fn:access">access</a><br />
 <a href="#fn:append">append</a><br />
@@ -10445,6 +10630,10 @@ Prentice Hall, 1988.
 <a href="#fn:environ">environ</a><br />
 <a href="#fn:equal">equal</a><br />
 <a href="#fn:equalctype">equalctype</a><br />
+<a href="#fn:equalcval">equalcval</a><br />
+<a href="#fn:eqv">eqv</a><br />
+<a href="#fn:eqvctype">eqvctype</a><br />
+<a href="#fn:eqvcval">eqvcval</a><br />
 <a href="#fn:errno">errno</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
@@ -10473,7 +10662,12 @@ Prentice Hall, 1988.
 <a href="#fn:getpeername">getpeername</a><br />
 <a href="#fn:getsockname">getsockname</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
+<a href="#fn:hash">hash</a><br />
 <a href="#fn:hashctype">hashctype</a><br />
+<a href="#fn:hashcval">hashcval</a><br />
+<a href="#fn:hashq">hashq</a><br />
+<a href="#fn:hashqctype">hashqctype</a><br />
+<a href="#fn:hashqcval">hashqcval</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />
 <a href="#fn:inflate">inflate</a><br />
@@ -10494,8 +10688,6 @@ Prentice Hall, 1988.
 <a href="#fn:isdigit">isdigit</a><br />
 <a href="#fn:isdom">isdom</a><br />
 <a href="#fn:isempty">isempty</a><br />
-</td>
-<td>
 <a href="#fn:isenum">isenum</a><br />
 <a href="#fn:isenumconst">isenumconst</a><br />
 <a href="#fn:isfd">isfd</a><br />
@@ -10556,8 +10748,6 @@ Prentice Hall, 1988.
 <a href="#fn:mkctype_char">mkctype_char</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
 <a href="#fn:mkctype_double">mkctype_double</a><br />
-</td>
-<td>
 <a href="#fn:mkctype_enum">mkctype_enum</a><br />
 <a href="#fn:mkctype_float">mkctype_float</a><br />
 <a href="#fn:mkctype_fn">mkctype_fn</a><br />
@@ -10595,6 +10785,7 @@ Prentice Hall, 1988.
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
+<a href="#fn:mktabqv">mktabqv</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:mkzas">mkzas</a><br />
 <a href="#fn:myrootns">myrootns</a><br />
@@ -10618,8 +10809,6 @@ Prentice Hall, 1988.
 <a href="#fn:rand">randseed</a><br />
 <a href="#fn:rdis">rdis</a><br />
 <a href="#fn:rdfields">rdfields</a><br />
-</td>
-<td>
 <a href="#fn:rdfmt">rdfmt</a><br />
 <a href="#fn:rdgettab">rdgettab</a><br />
 <a href="#fn:rdmk">rdmk</a><br />
@@ -10683,10 +10872,6 @@ Prentice Hall, 1988.
 <a href="#fn:waitpid">waitpid</a><br />
 <a href="#fn:weakcons">weakcons</a><br />
 <a href="#fn:write">write</a><br />
-</td>
-</tr>
-</table>
-
 </div>
 </div>
 </div>

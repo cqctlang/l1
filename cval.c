@@ -13,7 +13,7 @@ eqcval(Cval *a, Cval *b)
 {
 	if(a->val != b->val)
 		return 0;
-	return equalctype(a->type, b->type);
+	return eqvctype(a->type, b->type);
 }
 
 u32
