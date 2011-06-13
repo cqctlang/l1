@@ -566,7 +566,7 @@ docompilei(U *ctx, Expr *e)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
-        coalesce(ctx, e);
+        /*coalesce(ctx, e);*/
 	loops(ctx, e, 0, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);
