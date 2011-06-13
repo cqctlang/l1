@@ -28,7 +28,6 @@
 <a href="#sec:types">Types</a><br />
 <a href="#sec:functions">Functions</a><br />
 <a href="#sec:control">Control</a><br />
-<a href="#sec:records">Records</a><br />
 <br />
 <em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
@@ -53,6 +52,7 @@
 <a href="#sec:ctypes">Ctypes</a><br />
 <br />
 <em>Data Structures</em><br />
+<a href="#sec:records">Records</a><br />
 <a href="#sec:containers">Container Types</a><br />
 <a href="#sec:lists">Lists</a><br />
 <a href="#sec:vectors">Vectors</a><br />
@@ -179,8 +179,8 @@ We welcome feedback of any kind from all users.
 <h4 id="sec:audience">Prerequisites</h4>
 
 <p>
-Cinquecento is meant to appeal to programmers who are
-fluent in both C and Scheme.  The essence of
+Cinquecento is meant to feel familiar to programmers
+who are fluent in both C and Scheme.  The essence of
 Cinquecento programming is the use of functional
 abstraction, in the style epitomized by Scheme, to
 program the evaluation of expressions involving the
@@ -190,12 +190,12 @@ flow of idiomatic C.
 
 <p>
 There is no substitute for joyful immersion in the
-classic writings on artful use of C and Scheme.  It
-would be a disservice for this manual to dispense
-nutshell caricatures of the deep ideas and traditions
-that have been so carefully articulated elsewhere.
-Instead, we recommend a few standard selections, out of
-the many superb treatments available on the web and in
+classic texts on artful use of C and Scheme.  It would
+be a disservice for this manual to dispense nutshell
+caricatures of the deep ideas and traditions that have
+been so carefully articulated elsewhere.  Instead, we
+recommend a few standard selections, out of the many
+superb treatments available on the web and in
 libraries, that we regard as enjoyable starting points
 from which one cannot be led astray.
 </p>
@@ -215,17 +215,17 @@ Interpretation of Computer Programs</em> [<a href="#bib:sicp">SICP</a>].
 </p>
 
 <p>
-Into its Scheme-like setting, Cinquecento
-carries nearly every feature of C other than static
-typing.  Understanding Cinquecento requires
-comprehensive familiarity with the semantics of C,
-especially sensitivity to what is and what is not
-promised about the meaning of types and operations
-involving pointers and memory.  <em>The C Programming
-Language</em> [<a href="#bib:kr">K&R</a>] offers a concise and definitive
-foundation, while
-<em>C: A Reference Manual</em> [<a href="#bib:hs">H&S</a>] reveals and analyzes the
-wrinkles.
+Into its Scheme-like setting, Cinquecento carries
+nearly every feature of C other than static typing.
+Understanding Cinquecento requires familiarity with the
+sharp edges of C, especially sensitivity to what is and
+what is not promised about the meaning of types and
+operations involving pointers and memory.  <em>The C
+Programming Language</em> [<a href="#bib:kr">K&R</a>]
+offers a concise and definitive foundation, while
+<em>C: A Reference Manual</em>
+[<a href="#bib:hs">H&S</a>] reveals and analyzes more
+of the edges.
 </p>
 
 <p>
@@ -342,11 +342,11 @@ The REPL does not accept multi-line input: the newline
 signals the end of the expression.  In this manual, to
 make the presentation easier to read, we sometimes
 present multi-line input anyway.  The usual way to
-prepare longer input is to edit it a file.
+handle longer input is to put it in a file.
 </p>
 
 <p>
-The REPL can be directed to evaluated a file of
+The REPL can be directed to evaluate a file of
 Cinquecento code with
 the <span class="val"><a href="#syn:_at_include">@include</a></span>
 form:
@@ -1387,321 +1387,6 @@ single argument.
 </div>
 
 
-<h4 id="sec:records">Records</h4>
-
-<p id="syn:_at_record">
-The Cinquecento record system allows the creation of new
-aggregate types with named fields.  A <em>record descriptor</em>
-is a Cinquecento value that define a particular record type;
-it associates a record type name with the definition
-of the record type.
-A <em>record</em> is instance of a record type.
-It has an associated record descriptor and bindings for
-the fields defined by the record descriptor.
-</p>
-
-<p>
-For example, the expression:
-</p>
-<div class="code">
-<pre>
-@record myrec { field1, field2, field3 };
-</pre>
-</div>
-<p>
-defines a new record type, named <span class="id">myrec</span>.
-
-The record type has three fields, named
-<span class="id">field1</span>, 
-<span class="id">field2</span>, and 
-<span class="id">field3</span>.
-
-The value of the <span class="id">@record</span> expression
-is the resulting record descriptor.
-</p>
-
-<p>
-In addition, evaluation of
-the <span class="id">@record</span> expression
-implicitly defines two functions,
-named <span class="id">myrec</span>
-and <span class="id">ismyrec</span>,
-in the innermost level of lexical scope.
-</p>
-
-<p>
-The function <span class="id">ismyrec</span> is a predicate
-for instances of <span class="id">myrec</span>.  Like
-the type predicates, it accepts
-a single argument and returns <span class="val">1</span>
-if the argument is an instance of <span class="id">myrec</span>,
-and <span class="val">0</span> otherwise.
-</p>
-
-<p>
-The function <span class="id">myrec</span> is the
-constructor for instances of the <span class="id">myrec</span> type.
-
-For example:
-</p>
-<div class="code">
-<pre>
-x = myrec("abc", 1, @lambda(x){ printf("hi\n")});
-</pre>
-</div>
-<p>
-
-binds <span class="id">x</span> to a new instance of the
-<span class="id">myrec</span> type.
-</p>
-
-<p>
-The function <span class="id">myrec</span>
-expects either zero arguments,
-in which case the fields of the new instance are bound to <span class="id">nil</span>,
-or exactly as many arguments as there are fields in the type,
-in which case the arguments are bound to the fields in the order
-they were given in the <span class="id">@record</span> definition.
-</p>
-
-<p>
-The dot operator provides access to the fields of a record instance:
-</p>
-<div class="code">
-<pre>
-printf("%a", x.field1);   // print x's field1
-x.field1 = "bcd";         // update x's field1
-
-x.field2 += 5;		  // update x's field2
-++x.field2;               // update x's field2
-
-x.field3("blah");	  // call the value of x's field3
-</pre>
-</div>
-
-<p>
-The following routines operate on records and record descriptors.
-</p>
-
-<div class="docitem" id="fn:rdof">
-<div class="proto">
-<div class="function">
-<span class="id">rdof(<span class="arg">r</span>)</span>
-</div>
-<div class="param">
-<span class="arg">r</span>: <span class="type">record</span>
-</div>
-<div class="returns">
-<span class="type">record descriptor</span>
-</div>
-</div>
-<div class="desc">
-Returns the record descriptor associated with the record
-<span class="arg">r</span>. 
-</div>
-</div>
-
-<div class="docitem" id="fn:rdfields">
-<div class="proto">
-<div class="function">
-<span class="id">rdfields(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">list</span>
-</div>
-</div>
-<div class="desc">
-Returns the list of field names for the record descriptor
-<span class="arg">rd</span> in the order they were given in the
-<span class="id">@record</span> definition for <span class="arg">rd</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdis">
-<div class="proto">
-<div class="function">
-<span class="id">rdis(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the predicate for instances of
-the record descriptor <span class="arg">rd</span>.  The
-function takes a single argument and returns non-zero
-if and only if the argument is an instance of <span class="arg">rd</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdmk">
-<div class="proto">
-<div class="function">
-<span class="id">rdmk(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the constructor for instances of
-the record descriptor <span class="arg">rd</span>.  The
-function takes either zero arguments,
-in which case the fields of the new instance are bound to
-<span class="val">nil</span>, or exactly as many arguments
-as there are fields in the type,
-in which case the arguments are bound to the fields
-in the order they were given in the definition of
-the record descriptor.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdname">
-<div class="proto">
-<div class="function">
-<span class="id">rdname(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns the name associated with the record descriptor
-<span class="arg">rd</span>. 
-</div>
-</div>
-
-<p>
-Record descriptors have an associated format procedure
-that is implicitly called when 
-the <span class="val">%a</span> conversion of the
-formatted I/O library routines is applied to an instance of the record type.
-The format procedure takes a single argument,
-the record instance,
-and returns a string representing the formatted
-record.
-</p>
-
-<p>
-The following routines access the format procedure
-associated with a record descriptor.
-</p>
-
-<div class="docitem" id="fn:rdfmt">
-<div class="proto">
-<div class="function">
-<span class="id">rdfmt(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the format procedure of the record descriptor
-<span class="arg">rd</span>. 
-</div>
-</div>
-
-<div class="docitem" id="fn:rdsetfmt">
-<div class="proto">
-<div class="function">
-<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="param">
-<span class="arg">fmt</span>: <span class="type">function</span>
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-Sets the format procedure of the record descriptor
-<span class="arg">rd</span> to <span class="arg">fmt</span>.
-</div>
-</div>
-
-<p>
-Several functions are used by the implementation of the
-record system.
-</p>
-
-<div class="docitem" id="fn:mkrd">
-<div class="proto">
-<div class="function">
-<span class="id">mkrd(<span class="arg">name</span>,<span class="arg">fields</span>)</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">fields</span>: <span class="type">list of string</span>
-</div>
-<div class="returns">
-<span class="type">record descriptor</span>
-</div>
-</div>
-<div class="desc">
-Creates or updates the record descriptor for the record
-type named <span class="arg">name</span>.  The names of
-the fields of the record type are set, in order, to the
-strings in the list <span class="arg">fields</span>.
-The record descriptor is returned.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdgettab">
-<div class="proto">
-<div class="function">
-<span class="id">rdgettab(<span class="arg">rd</span>)</span>
-</div>
-<div class="function">
-<span class="id">rdsettab(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">table</span>
-</div>
-</div>
-<div class="desc">
-The record system maintains for each record descriptor
-a pair of tables, one that maps the name of a field to
-a function that accesses the field in an instance of the
-record, and one that maps the name of a field to a function
-that updates the value of field.
-<span class="id">Rdgettab</span> returns the
-table of accessor functions.  An accessor function
-expects as argument an instance of the record descriptor and
-returns the value of the corresponding
-field in the record.  <span class="id">rdsettab</span> returns the
-table of update functions.  An update function expects
-as arguments an instance of the record descriptor and a new value.
-It sets the field in the record to the new value and returns the new
-value.
-</div>
-</div>
-
-
-
 <h4 id="sec:domainover">Overview of Domains</h4>
 
 <p>
@@ -2563,10 +2248,10 @@ as in C.  Evaluation is short circuited, as in C.
 <h4 id="sec:equivalence">Equivalence and other relations</h4>
 
 <p>
-Equivalence is determined by the function
-<span class="id" id="fn:eq">eq</span>,
-<span class="id" id="fn:eq">eqv</span>,
-and <span class="id" id="fn:eq">equal</span>.
+Equivalence is determined by the functions
+<span class="id" id="fn:eq">equal</span>
+and
+<span class="id" id="fn:eq">eqv</span>.
 </p>
 
 <p>
@@ -2665,13 +2350,22 @@ are both ctypes, they are <span class="id">eqv</span>
 if and only if they are <a href="#fn:eqvctype"><span class="id">eqvctype</span></a>;
 </li>
 <li>
-If <span class="arg">u</span> and <span class="arg">v</span>
-are both ctypes, they are <span class="id">eqv</span>
-if and only if they are <a href="#fn:equal"><span class="id">equal</span></a>
+Otherwise <span class="arg">u</span> and <span class="arg">v</span>
+are <span class="id">eqv</span>
+if and only if they are <a href="#fn:equal"><span class="id">equal</span></a>.
 </li>
 </ul>
 </div>
 </div>
+
+<p>
+Each equivalence function is associated with a hash
+function.  Each hash function has the property that any
+two values that are equivalent by the associated
+equivalence function have the same hash value.  This
+property of hash functions is used in the
+implementation of <a href="#sec:tables">tables</a>.
+</p>
 
 
 <div class="docitem" id="fn:hash">
@@ -2713,21 +2407,22 @@ suitable for use with the equivalence predicate
 </div>
 
 <p>
-The <span class="id">==</span> operator is a weaker
-form of equality, defined as follows.  If the operands
-are both cvalues, then domain promotion and the usual
-conversions are performed on the operands, and the
-underlying values of the resulting cvalues are
-compared.  If the operands are strings, then the
-operands are compared
-with <a href="#fn:equal><span class="id">equal</span></a>.
-If one operand is a string cvalue (q.v.) and the other
-operand is a string, then the cvalue operand is
-promoted to a string via stringof, and the result
-is compared with other operand with 
-<a href="#fn:equal><span class="id">equal</span></a>.
-Otherwise, the operands are compared
-with <a href="#fn:equal><span class="id">equal</span></a>.
+The equivalence operators <span class="id">==</span>
+and <span class="id">!=</span> are defined
+over all types of Cinquecento values.  If the operands
+are both cvalues, the result is determined
+by <a href="#fn:cvalcmp"><span class="id">cvalcmp</span></a>.
+If the operands are both strings, the result is
+determined
+by <a href="#fn:strcmp"><span class="id">strcmp</span></a>.
+If one operand is a string and the other is a
+<span class="id">char*</span> or <span class="id">unsigned char*</span>
+cvalue, then the cvalue is promoted to a string by calling
+<a href="#fn:stringof"><span class="id">stringof</span></a>
+and compared to the string with
+<a href="#fn:strcmp"><span class="id">strcmp</span></a>.
+Operands of any other type are compared with 
+<a href="#fn:equal"><span class="id">equal</span></a>.
 </p>
 
 <p>
@@ -2736,8 +2431,12 @@ The other relational operators
 <span class="id">&lt;=</span>,
 <span class="id">&gt;</span>,
 <span class="id">&gt;=</span>,
-<span class="id">!=</span>) will be mapped to string
-and cvalue comparison functions (cmp?).
+<span class="id">!=</span>) are defined 
+on cvalues, strings, and 
+combinations of strings and <span class="id">char*</span> or <span class="id">unsigned char*</span> cvalues in the same manner as
+the <span class="id">==</span>
+and <span class="id">!=</span> operators.
+It is an error to apply them to operands of any other type.
 </p>
 
 <h4 id="sec:pointers">Pointers</h4>
@@ -6565,6 +6264,320 @@ Returns a new ctype representing an undefined type whose name is
 </div>
 <div class="desc">
 Returns a new ctype representing the void type.
+</div>
+</div>
+
+
+<h4 id="sec:records">Records</h4>
+
+<p id="syn:_at_record">
+Records allows the creation of new aggregate types with
+named fields.  A <em>record descriptor</em> is a
+Cinquecento value that define a particular record type;
+it associates a record type name with the definition of
+the record type.  A <em>record</em> is instance of a
+record type.  It has an associated record descriptor
+and bindings for the fields defined by the record
+descriptor.
+</p>
+
+<p>
+For example, the expression:
+</p>
+<div class="code">
+<pre>
+@record myrec { field1, field2, field3 };
+</pre>
+</div>
+<p>
+defines a new record type, named <span class="id">myrec</span>.
+
+The record type has three fields, named
+<span class="id">field1</span>, 
+<span class="id">field2</span>, and 
+<span class="id">field3</span>.
+
+The value of the <span class="id">@record</span> expression
+is the resulting record descriptor.
+</p>
+
+<p>
+In addition, evaluation of
+the <span class="id">@record</span> expression
+implicitly defines two functions,
+named <span class="id">myrec</span>
+and <span class="id">ismyrec</span>,
+in the innermost level of lexical scope.
+</p>
+
+<p>
+The function <span class="id">ismyrec</span> is a predicate
+for instances of <span class="id">myrec</span>.  Like
+the type predicates, it accepts
+a single argument and returns <span class="val">1</span>
+if the argument is an instance of <span class="id">myrec</span>,
+and <span class="val">0</span> otherwise.
+</p>
+
+<p>
+The function <span class="id">myrec</span> is the
+constructor for instances of the <span class="id">myrec</span> type.
+
+For example:
+</p>
+<div class="code">
+<pre>
+x = myrec("abc", 1, @lambda(x){ printf("hi\n")});
+</pre>
+</div>
+<p>
+
+binds <span class="id">x</span> to a new instance of the
+<span class="id">myrec</span> type.
+</p>
+
+<p>
+The function <span class="id">myrec</span>
+expects either zero arguments,
+in which case the fields of the new instance are bound to <span class="id">nil</span>,
+or exactly as many arguments as there are fields in the type,
+in which case the arguments are bound to the fields in the order
+they were given in the <span class="id">@record</span> definition.
+</p>
+
+<p>
+The dot operator provides access to the fields of a record instance:
+</p>
+<div class="code">
+<pre>
+printf("%a", x.field1);   // print x's field1
+x.field1 = "bcd";         // update x's field1
+
+x.field2 += 5;		  // update x's field2
+++x.field2;               // update x's field2
+
+x.field3("blah");	  // call the value of x's field3
+</pre>
+</div>
+
+<p>
+The following routines operate on records and record descriptors.
+</p>
+
+<div class="docitem" id="fn:rdof">
+<div class="proto">
+<div class="function">
+<span class="id">rdof(<span class="arg">r</span>)</span>
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">record</span>
+</div>
+<div class="returns">
+<span class="type">record descriptor</span>
+</div>
+</div>
+<div class="desc">
+Returns the record descriptor associated with the record
+<span class="arg">r</span>. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rdfields">
+<div class="proto">
+<div class="function">
+<span class="id">rdfields(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns the list of field names for the record descriptor
+<span class="arg">rd</span> in the order they were given in the
+<span class="id">@record</span> definition for <span class="arg">rd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdis">
+<div class="proto">
+<div class="function">
+<span class="id">rdis(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the predicate for instances of
+the record descriptor <span class="arg">rd</span>.  The
+function takes a single argument and returns non-zero
+if and only if the argument is an instance of <span class="arg">rd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdmk">
+<div class="proto">
+<div class="function">
+<span class="id">rdmk(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the constructor for instances of
+the record descriptor <span class="arg">rd</span>.  The
+function takes either zero arguments,
+in which case the fields of the new instance are bound to
+<span class="val">nil</span>, or exactly as many arguments
+as there are fields in the type,
+in which case the arguments are bound to the fields
+in the order they were given in the definition of
+the record descriptor.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdname">
+<div class="proto">
+<div class="function">
+<span class="id">rdname(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name associated with the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
+<p>
+Record descriptors have an associated format procedure
+that is implicitly called when 
+the <span class="val">%a</span> conversion of the
+formatted I/O library routines is applied to an instance of the record type.
+The format procedure takes a single argument,
+the record instance,
+and returns a string representing the formatted
+record.
+</p>
+
+<p>
+The following routines access the format procedure
+associated with a record descriptor.
+</p>
+
+<div class="docitem" id="fn:rdfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdfmt(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the format procedure of the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rdsetfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the format procedure of the record descriptor
+<span class="arg">rd</span> to <span class="arg">fmt</span>.
+</div>
+</div>
+
+<p>
+Several functions are used by the implementation of the
+record system.
+</p>
+
+<div class="docitem" id="fn:mkrd">
+<div class="proto">
+<div class="function">
+<span class="id">mkrd(<span class="arg">name</span>,<span class="arg">fields</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">fields</span>: <span class="type">list of string</span>
+</div>
+<div class="returns">
+<span class="type">record descriptor</span>
+</div>
+</div>
+<div class="desc">
+Creates or updates the record descriptor for the record
+type named <span class="arg">name</span>.  The names of
+the fields of the record type are set, in order, to the
+strings in the list <span class="arg">fields</span>.
+The record descriptor is returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdgettab">
+<div class="proto">
+<div class="function">
+<span class="id">rdgettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="function">
+<span class="id">rdsettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+The record system maintains for each record descriptor
+a pair of tables, one that maps the name of a field to
+a function that accesses the field in an instance of the
+record, and one that maps the name of a field to a function
+that updates the value of field.
+<span class="id">Rdgettab</span> returns the
+table of accessor functions.  An accessor function
+expects as argument an instance of the record descriptor and
+returns the value of the corresponding
+field in the record.  <span class="id">rdsettab</span> returns the
+table of update functions.  An update function expects
+as arguments an instance of the record descriptor and a new value.
+It sets the field in the record to the new value and returns the new
+value.
 </div>
 </div>
 
