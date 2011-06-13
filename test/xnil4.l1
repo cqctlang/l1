@@ -1,0 +1,4 @@
+@define f(nil)
+{
+	return 0;
+}

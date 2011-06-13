@@ -1,0 +1,6 @@
+{
+	@defloc nil()
+	{	
+		return 0;
+	}
+}

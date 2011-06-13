@@ -219,6 +219,8 @@ dl.bolddt-indentdd {
 
 .fnindex {
 //	color: navy;
+	-webkit-column-count: 4;
+	-moz-column-count: 4;
 	font-family: monospace;
 //	font-weight: bold;
 

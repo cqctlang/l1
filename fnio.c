@@ -252,7 +252,7 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stat");
-	checkarg(vm, "mapfile", argv, 0, Qstr);
+	checkarg(vm, "stat", argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	if(0 > stat(name, &st)){
@@ -390,6 +390,7 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *name, *mode;
 	int oflags, flags;
 
+	setlasterrno(0);
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to open");
 	checkarg(vm, "open", argv, 0, Qstr);
@@ -416,10 +417,10 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	xfd.fd = open(name, oflags, 0777); /* ~umask */
 	efree(name);
 	efree(mode);
-	if(0 > xfd.fd)
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
-		      strerror(errno));
+	if(0 > xfd.fd){
+		setlasterrno(errno);
+		return;
+	}
 	if(strchr(mode, 'a'))
 		lseek(xfd.fd, 0, SEEK_END);
 	xfd.read = xfdread;
@@ -468,6 +469,7 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *n;
 	Imm r;
 
+	setlasterrno(0);
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to read");
 	checkarg(vm, "read", argv, 0, Qfd);
@@ -483,8 +485,10 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(!fd->u.fn.read)
 			return;	/* nil */
 		r = fd->u.fn.read(&fd->u.fn, buf, n->val);
-		if(r == (Imm)-1)
-			vmerr(vm, "read error: %s", strerror(errno));
+		if(r == (Imm)-1){
+			setlasterrno(errno);
+			return;		/* nil */
+		}
 		if(n->val > 0 && r == 0)
 			return;		/* nil */
 		s = mkstrk(buf, r, Smalloc);
@@ -501,6 +505,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	int r;
 	Val x;
 
+	setlasterrno(0);
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to write");
 	checkarg(vm, "write", argv, 0, Qfd);
@@ -516,12 +521,9 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 			return;	/* nil */
 		r = fd->u.fn.write(&fd->u.fn, strdata(s), s->len);
 		if(r == -1)
-			vmerr(vm, "write error: %s", strerror(errno));
-	}else{
+			setlasterrno(errno);
+	}else
 		x = safedovm(vm, fd->u.cl.write, argc-1, argv+1);
-		if(Vkind(x) != Qnil)
-			vmerr(vm, "write error");
-	}
 	/* return nil */
 }
 

@@ -40,3 +40,5 @@ cids have been added.  many interface use cids instead of strings.
 
 the extended accessor ctype has been removed
 (it may return someday, with a better design)
+
+nil is immutable

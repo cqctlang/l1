@@ -14,6 +14,10 @@
 <div id="side1">
 <a href="#sec:introduction">Introduction</a><br />
 <br />
+<em>Getting Started</em><br />
+<a href="#sec:audience">Prerequisites</a><br />
+<a href="#sec:repl">Interactive Use</a><br />
+<br />
 <em>Basic Language</em><br />
 <a href="#sec:input">Input</a><br />
 <a href="#sec:comments">Comments</a><br />
@@ -23,9 +27,7 @@
 <a href="#sec:scope">Scope and Variables</a><br />
 <a href="#sec:types">Types</a><br />
 <a href="#sec:functions">Functions</a><br />
-<a href="#sec:control">Control Operators</a><br />
-<a href="#sec:statements">Control Flow Statements</a><br />
-<a href="#sec:records">Records</a><br />
+<a href="#sec:control">Control</a><br />
 <br />
 <em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
@@ -50,6 +52,7 @@
 <a href="#sec:ctypes">Ctypes</a><br />
 <br />
 <em>Data Structures</em><br />
+<a href="#sec:records">Records</a><br />
 <a href="#sec:containers">Container Types</a><br />
 <a href="#sec:lists">Lists</a><br />
 <a href="#sec:vectors">Vectors</a><br />
@@ -133,18 +136,17 @@ distributed, multi-process program.
 
 <p>
 Each domain encapsulates user-defined functions that
-implement access to the associated target.  These
-include functions that define the types and symbols of
-the target, and functions that read and write its
-memory and other run-time state.  Rather than favor the
-idiosyncrasies of one operating system, architecture,
-compiler, or debugging information format, Cinquecento
-specifies a small, extensible interface that allows
-users to tailor domains for their target
-environment.  New domain implementations can be written
-entirely in Cinquecento; built-in library functions and
-accompanying programs simplify construction of domains
-for common environments, such as x86 Linux systems.
+catalog the types and symbols of the target, and
+functions that read and write its memory and other
+run-time state.  Rather than favor the idiosyncrasies
+of one operating system, architecture, compiler, or
+debugging information format, Cinquecento specifies a
+small, extensible interface that allows users to tailor
+domains for their target environment.  New domain
+implementations can be written entirely in Cinquecento;
+built-in library functions and accompanying programs
+simplify construction of domains for common
+environments, such as x86 Linux systems.
 </p>
 
 <p>
@@ -172,6 +174,218 @@ down, sometimes we will fall behind.
 
 <p>
 We welcome feedback of any kind from all users.
+</p>
+
+<h4 id="sec:audience">Prerequisites</h4>
+
+<p>
+Cinquecento is meant to feel familiar to programmers
+who are fluent in both C and Scheme.  The essence of
+Cinquecento programming is the use of functional
+abstraction, in the style epitomized by Scheme, to
+program the evaluation of expressions involving the
+syntax, operators, types, memory model, and control
+flow of idiomatic C.
+</p>
+
+<p>
+There is no substitute for joyful immersion in the
+classic texts on artful use of C and Scheme.  It would
+be a disservice for this manual to dispense nutshell
+caricatures of the deep ideas and traditions that have
+been so carefully articulated elsewhere.  Instead, we
+recommend a few standard selections, out of the many
+superb treatments available on the web and in
+libraries, that we regard as enjoyable starting points
+from which one cannot be led astray.
+</p>
+
+<p>
+<em>The Scheme Programming
+Language</em> [<a href="#bib:tspl">TSPL</a>] offers both a gentle introduction to
+Scheme and clear exposition on its many fine points.
+The point most central to Cinquecento is the role of
+<span class="val">lambda</span> as an operator for
+constructing stateful first-class functions.  A taste
+and habit for stylistic use
+of <span class="val">lambda</span> can be cultivated by
+practicing the lessons of
+<em>The Little Schemer</em> [<a href="#bib:ls">Little</a>] and <em>Structure and
+Interpretation of Computer Programs</em> [<a href="#bib:sicp">SICP</a>].
+</p>
+
+<p>
+Into its Scheme-like setting, Cinquecento carries
+nearly every feature of C other than static typing.
+Understanding Cinquecento requires familiarity with the
+sharp edges of C, especially sensitivity to what is and
+what is not promised about the meaning of types and
+operations involving pointers and memory.  <em>The C
+Programming Language</em> [<a href="#bib:kr">K&R</a>]
+offers a concise and definitive foundation, while
+<em>C: A Reference Manual</em>
+[<a href="#bib:hs">H&S</a>] reveals and analyzes more
+of the edges.
+</p>
+
+<p>
+Looking from another direction, the primary work of a
+Cinquecento program is tailored observation and
+manipulation of a program execution, which puts the
+Cinquecento programmer in the business of making,
+operating, and extending bespoke debuggers.  Sooner or
+later, understanding how program executions are
+represented and controlled in your environment becomes
+a requirement.  Manuals tend to be inadequate.  We know
+of no resource better than source code, your curiosity,
+and the scattered wizards.
+</p>
+
+<h4 id="sec:repl">Interactive Use</h4>
+
+<p>
+L1 includes a read-eval-print loop through which Cinquecento
+expressions can be interactively evaluated.
+</p>
+
+<p>
+Assuming that L1 has been made available in your path, you
+can start the REPL in a shell by running the
+command <span class="val">l1</span>:
+
+</p>
+
+<div class="code">
+<pre>
+% l1
+;
+</pre>
+</div>
+
+<p>
+The semicolon is the REPL prompt.  Typing a complete
+expression followed a newline sends the expression to
+the evaluator.  The resulting value is printed on the
+following line, followed by a new prompt:
+</p>
+
+
+<div class="code">
+<pre>
+; 3+3;
+<span class="arg">6</span>
+;
+</pre>
+</div>
+
+<p>
+Most Cinquecento expressions end with a semicolon.
+(Welcome to the C part of the language.)  In this
+manual, we show the printed output of interactions with
+the evaluator in <span class="arg">italics</span>.
+</p>
+
+<p>
+Some expressions cause output to be printed.
+We show such output along with the value
+printed by the REPL.
+</p>
+
+<div class="code">
+<pre>
+; { printf("hello, world\n"); 3+3; }
+<span class="arg">hello, world</span>
+<span class="arg">6</span>
+;
+</pre>
+</div>
+
+<p>
+(Like blocks of statements in C, blocks of expressions
+enclosed in curly braces do not require the final
+semicolon.)
+</p>
+
+<p>
+An error encountered during expression evaluation
+aborts the evaluation and prints a diagnostic and stack
+trace:
+</p>
+
+<div class="code">
+<pre>
+; for(i = 4; i >= 0; i--) printf("%d\n", 4/i);
+<span class="arg">1
+1
+2
+4
+error: divide by zero
+               entry	(&lt;stdin&gt;:1)</span>
+</pre>
+</div>
+
+<p>
+Long-running or non-terminating evaluations can be
+interrupted by typing control-C.
+Typing control-D exits the REPL.
+</p>
+
+<p>
+The REPL does not offer line editing or expression
+history.  Some users run L1 through a standalone tool
+such as <span class="val">rlwrap</span> or from within
+Emacs to obtain editing and history service.
+</p>
+
+<p>
+The REPL does not accept multi-line input: the newline
+signals the end of the expression.  In this manual, to
+make the presentation easier to read, we sometimes
+present multi-line input anyway.  The usual way to
+handle longer input is to put it in a file.
+</p>
+
+<p>
+The REPL can be directed to evaluate a file of
+Cinquecento code with
+the <span class="val"><a href="#syn:_at_include">@include</a></span>
+form:
+</p>
+
+<div class="code">
+<pre>
+; @include "/home/me/file.cqct"
+</pre>
+</div>
+
+<p>
+Alternatively, the file name can be passed as an argument to
+<span class="val">l1</span>:
+</p>
+
+<div class="code">
+<pre>
+% l1 /home/me/file.cqct
+</pre>
+</div>
+
+<p>
+in which case L1 exits
+after evaluating the contents of the file.
+</p>
+
+<p>
+An Emacs major mode for editing Cinquecento code is
+include in the directory <span class="val">doc</span>
+in the L1 source distribution.
+</p>
+
+<p>
+Some demonstrations of Cinquecento are included in the
+directory <span class="val">demo</span> in the L1
+source distribution.  They make use of the process
+control server <span class="val">sctl</span>,
+which is available from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
 </p>
 
 <h4 id="sec:input">Input</h4>
@@ -433,11 +647,7 @@ that is visible in the innermost
 level of lexical scope.  If the assignment occurs
 in a top-level expression, a new binding is added
 to the top-level environment.
-There is no way to remove a binding from any scope.
-</p>
-
-<p>
-The other assignment operators
+These rules also apply to the other assignment operators
 (<span class="id">+=</span>,
 <span class="id">-=</span>,
 <span class="id">*=</span>,
@@ -449,9 +659,7 @@ The other assignment operators
 <span class="id">&lt;&lt;=</span>,
 <span class="id">&gt;&gt;=</span>,
 <span class="id">++</span>,
-<span class="id">--</span>)
-update existing bindings but do not
-create new ones.
+<span class="id">--</span>).
 </p>
 
 <p>
@@ -582,7 +790,7 @@ Address space
 
 <tr>
 <td>
-C type
+C identifier
 </td>
 <td>
 <div class="proto">
@@ -1001,12 +1209,67 @@ and the resulting value is returned.
 </div>
 </div>
 
-
-<h4 id="sec:control">Control Operators</h4>
+<h4 id="sec:control">Control</h4>
 
 <p>
-Several built-in functions support non-local control
-flow.
+Cinquecento supports the control flow statements of C,
+including the loop statements <span class="val">do</span>-<span class="val">while</span>,
+<span class="val">for</span>,
+and <span class="val">while</span>,
+the conditional statements <span class="val">if</span>,
+<span class="val">if</span>-<span class="val">else</span>,
+and <span class="val">switch</span> (with <span class="val">case</span>
+and <span class="val">default</span> labels),
+and the <span class="val">goto</span> statement.
+</p>
+
+<p>
+These statements have the same syntax they have in C.
+Control flow through loops and <span class="val">switch</span> 
+statements can be controlled with <span class="val">break</span>
+and <span class="val">continue</span> as in C.
+</p>
+
+<p>
+As in C, the integer value <span class="val">0</span>
+is considered false in conditional evaluation.  Unlike
+C, the value <span class="id">nil</span> is also
+considered false.  (The value
+of <span class="id">!nil</span>
+is <span class="val">1</span>.)  All other values are
+considered true.
+</p>
+
+<p>
+Unlike C, the <span class="val">switch</span> statement
+dispatches values of any type, not just integers.
+The <span class="val">==</span> operator determines
+equality.
+</p>
+
+<p>
+The <span class="val">case</span>s of a
+<span class="val">switch</span> are compared in
+lexical order; control jumps to the first statement
+with a matching <span class="val">case</span> label, or to the
+optional <span class="val">default</span> label,
+regardless of where it appears, if
+no <span class="val">case</span> matches.
+Control skips past the <span class="val">switch</span> body 
+if there is no matching case
+and no <span class="val">default</span> label.
+</p>
+
+<p>
+None of the non-local control transfer statements
+(<span class="val">break</span>, <span class="val">continue</span>,
+<span class="val">goto</span>) can be used to leave
+or enter the body of a function.
+</p>
+
+<p>
+Several functions support additional forms of non-local
+control flow:
 </p>
 
 <div class="docitem" id="fn:error">
@@ -1122,379 +1385,6 @@ is called with the result of the application as its
 single argument.
 </div>
 </div>
-
-<h4 id="sec:statements">Control Flow Statements</h4>
-
-<p>
-Cinquecento supports the control flow statements of C,
-including the loop statements <span class="val">do</span>-<span class="val">while</span>,
-<span class="val">for</span>,
-and <span class="val">while</span>,
-the conditional statements <span class="val">if</span>,
-<span class="val">if</span>-<span class="val">else</span>,
-and <span class="val">switch</span> (with <span class="val">case</span>
-and <span class="val">default</span> labels),
-and the <span class="val">goto</span> statement.
-</p>
-
-<p>
-These statements have the same syntax they have in C.
-Control flow through loops and <span class="val">switch</span> 
-statements can be controlled with <span class="val">break</span>
-and <span class="val">continue</span> as in C.
-</p>
-
-<p>
-As in C, the integer value <span class="val">0</span>
-is considered false in conditional evaluation.  Unlike
-C, the value <span class="id">nil</span> is also
-considered false.  (The value
-of <span class="id">!nil</span>
-is <span class="val">1</span>.)  All other values are
-considered true.
-</p>
-
-<p>
-Unlike C, the <span class="val">switch</span> statement
-dispatches values of any type, not just integers.
-The <span class="val">==</span> operator determines
-equality.
-</p>
-
-<p>
-The <span class="val">case</span>s of a
-<span class="val">switch</span> are compared in
-lexical order; control jumps to the first statement
-with a matching <span class="val">case</span> label, or to the
-optional <span class="val">default</span> label,
-regardless of where it appears, if
-no <span class="val">case</span> matches.
-Control skips past the <span class="val">switch</span> body 
-if there is no matching case
-and no <span class="val">default</span> label.
-</p>
-
-<p>
-None of the non-local control transfer statements
-(<span class="val">break</span>, <span class="val">continue</span>,
-<span class="val">goto</span>) can be used to leave
-or enter the body of a function.
-</p>
-
-
-<h4 id="sec:records">Records</h4>
-
-<p id="syn:_at_record">
-The Cinquecento record system allows the creation of new
-aggregate types with named fields.  A <em>record descriptor</em>
-is a Cinquecento value that define a particular record type;
-it associates a record type name with the definition
-of the record type.
-A <em>record</em> is instance of a record type.
-It has an associated record descriptor and bindings for
-the fields defined by the record descriptor.
-</p>
-
-<p>
-For example, the expression:
-</p>
-<div class="code">
-<pre>
-@record myrec { field1, field2, field3 };
-</pre>
-</div>
-<p>
-defines a new record type, named <span class="id">myrec</span>.
-
-The record type has three fields, named
-<span class="id">field1</span>, 
-<span class="id">field2</span>, and 
-<span class="id">field3</span>.
-
-The value of the <span class="id">@record</span> expression
-is the resulting record descriptor.
-</p>
-
-<p>
-In addition, evaluation of
-the <span class="id">@record</span> expression
-implicitly defines two functions,
-named <span class="id">myrec</span>
-and <span class="id">ismyrec</span>,
-in the innermost level of lexical scope.
-</p>
-
-<p>
-The function <span class="id">ismyrec</span> is a predicate
-for instances of <span class="id">myrec</span>.  Like
-the type predicates, it accepts
-a single argument and returns <span class="val">1</span>
-if the argument is an instance of <span class="id">myrec</span>,
-and <span class="val">0</span> otherwise.
-</p>
-
-<p>
-The function <span class="id">myrec</span> is the
-constructor for instances of the <span class="id">myrec</span> type.
-
-For example:
-</p>
-<div class="code">
-<pre>
-x = myrec("abc", 1, @lambda(x){ printf("hi\n")});
-</pre>
-</div>
-<p>
-
-binds <span class="id">x</span> to a new instance of the
-<span class="id">myrec</span> type.
-</p>
-
-<p>
-The function <span class="id">myrec</span>
-expects either zero arguments,
-in which case the fields of the new instance are bound to <span class="id">nil</span>,
-or exactly as many arguments as there are fields in the type,
-in which case the arguments are bound to the fields in the order
-they were given in the <span class="id">@record</span> definition.
-</p>
-
-<p>
-The dot operator provides access to the fields of a record instance:
-</p>
-<div class="code">
-<pre>
-printf("%a", x.field1);   // print x's field1
-x.field1 = "bcd";         // update x's field1
-
-x.field2 += 5;		  // update x's field2
-++x.field2;               // update x's field2
-
-x.field3("blah");	  // call the value of x's field3
-</pre>
-</div>
-
-<p>
-The following routines operate on records and record descriptors.
-</p>
-
-<div class="docitem" id="fn:rdof">
-<div class="proto">
-<div class="function">
-<span class="id">rdof(<span class="arg">r</span>)</span>
-</div>
-<div class="param">
-<span class="arg">r</span>: <span class="type">record</span>
-</div>
-<div class="returns">
-<span class="type">record descriptor</span>
-</div>
-</div>
-<div class="desc">
-Returns the record descriptor associated with the record
-<span class="arg">r</span>. 
-</div>
-</div>
-
-<div class="docitem" id="fn:rdfields">
-<div class="proto">
-<div class="function">
-<span class="id">rdfields(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">list</span>
-</div>
-</div>
-<div class="desc">
-Returns the list of field names for the record descriptor
-<span class="arg">rd</span> in the order they were given in the
-<span class="id">@record</span> definition for <span class="arg">rd</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdis">
-<div class="proto">
-<div class="function">
-<span class="id">rdis(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the predicate for instances of
-the record descriptor <span class="arg">rd</span>.  The
-function takes a single argument and returns non-zero
-if and only if the argument is an instance of <span class="arg">rd</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdmk">
-<div class="proto">
-<div class="function">
-<span class="id">rdmk(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the constructor for instances of
-the record descriptor <span class="arg">rd</span>.  The
-function takes either zero arguments,
-in which case the fields of the new instance are bound to
-<span class="val">nil</span>, or exactly as many arguments
-as there are fields in the type,
-in which case the arguments are bound to the fields
-in the order they were given in the definition of
-the record descriptor.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdname">
-<div class="proto">
-<div class="function">
-<span class="id">rdname(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">string</span>
-</div>
-</div>
-<div class="desc">
-Returns the name associated with the record descriptor
-<span class="arg">rd</span>. 
-</div>
-</div>
-
-<p>
-Record descriptors have an associated format procedure
-that is implicitly called when 
-the <span class="val">%a</span> conversion of the
-formatted I/O library routines is applied to an instance of the record type.
-The format procedure takes a single argument,
-the record instance,
-and returns a string representing the formatted
-record.
-</p>
-
-<p>
-The following routines access the format procedure
-associated with a record descriptor.
-</p>
-
-<div class="docitem" id="fn:rdfmt">
-<div class="proto">
-<div class="function">
-<span class="id">rdfmt(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the format procedure of the record descriptor
-<span class="arg">rd</span>. 
-</div>
-</div>
-
-<div class="docitem" id="fn:rdsetfmt">
-<div class="proto">
-<div class="function">
-<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="param">
-<span class="arg">fmt</span>: <span class="type">function</span>
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-Sets the format procedure of the record descriptor
-<span class="arg">rd</span> to <span class="arg">fmt</span>.
-</div>
-</div>
-
-<p>
-Several functions are used by the implementation of the
-record system.
-</p>
-
-<div class="docitem" id="fn:mkrd">
-<div class="proto">
-<div class="function">
-<span class="id">mkrd(<span class="arg">name</span>,<span class="arg">fields</span>)</span>
-</div>
-<div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">fields</span>: <span class="type">list of string</span>
-</div>
-<div class="returns">
-<span class="type">record descriptor</span>
-</div>
-</div>
-<div class="desc">
-Creates or updates the record descriptor for the record
-type named <span class="arg">name</span>.  The names of
-the fields of the record type are set, in order, to the
-strings in the list <span class="arg">fields</span>.
-The record descriptor is returned.
-</div>
-</div>
-
-<div class="docitem" id="fn:rdgettab">
-<div class="proto">
-<div class="function">
-<span class="id">rdgettab(<span class="arg">rd</span>)</span>
-</div>
-<div class="function">
-<span class="id">rdsettab(<span class="arg">rd</span>)</span>
-</div>
-<div class="param">
-<span class="arg">rd</span>: <span class="type">record descriptor</span>
-</div>
-<div class="returns">
-<span class="type">table</span>
-</div>
-</div>
-<div class="desc">
-The record system maintains for each record descriptor
-a pair of tables, one that maps the name of a field to
-a function that accesses the field in an instance of the
-record, and one that maps the name of a field to a function
-that updates the value of field.
-<span class="id">Rdgettab</span> returns the
-table of accessor functions.  An accessor function
-expects as argument an instance of the record descriptor and
-returns the value of the corresponding
-field in the record.  <span class="id">rdsettab</span> returns the
-table of update functions.  An update function expects
-as arguments an instance of the record descriptor and a new value.
-It sets the field in the record to the new value and returns the new
-value.
-</div>
-</div>
-
 
 
 <h4 id="sec:domainover">Overview of Domains</h4>
@@ -1668,9 +1558,9 @@ of characters comprising a valid C identifier:
 <div class="code">
 <pre>
 ; s = 'identifier;
-identifier
+<span class="arg">identifier</span>
 ; iscid(s);
-1
+<span class="arg">1</span>
 </pre>
 </div>
 
@@ -1718,11 +1608,14 @@ Returns a string containing the characters of the identifier
 <h4 id="sec:cvalues">Cvalues</h4>
 
 <p>
-Cvalues represent typed values of domains.  Cvalues are
-limited to values of scalar types, including integers,
-floats, and pointers to arbitrary types.  Through the
-use of the literal domain, cvalues are the type by
-which ordinary arithmetic is provided in Cinquecento.
+Cvalues represent scalar typed values of domains,
+including integers, floats, and pointers to any type.
+Every cvalue has an associated ctype that represents
+the type of the value, an associated domain through
+which operations such as pointer dereference and type
+conversion are resolved, and an <em>underlying
+encoding</em> of its value, in the form of an unsigned,
+64-bit, 2's complement integer.
 </p>
 
 <p>
@@ -1732,8 +1625,30 @@ tests whether a value is a cvalue.
 </p>
 
 <p>
-The type of a cvalue may be obtained by <a href="#syn:_at_typeof"><span class="fnindex">@typeof</span></a>.
+The syntax <a href="#syn:_at_typeof"><span class="fnindex">@typeof</span></a>
+is used to obtain the ctype associated with a cvalue.
 </p>
+
+<p>
+Cvalues are the only numeric type in Cinquecento.  The
+arithmetic, logical, and relational operators of C are
+defined over cvalues, and yield equivalent values.  In
+particular, Cinquecento applies the same integer promotion rules and "usual
+conversions" that are applied to the operands of unary
+and binary operators in C to determine a common type
+for the operation and its result.
+For example, the relational
+operators (<span class="id">&lt;</span>,
+<span class="id">&lt;=</span>,
+<span class="id">&gt;</span>,
+<span class="id">&gt;=</span>,
+<span class="id">==</span>,
+<span class="id">!=</span>) are implemented by
+<a href="#fn:cvalcmp"><span class="id">cvalcmp</span></a>,
+which promotes and converts its operands before
+comparing them.
+</p>
+
 
 <p>
 Functions that operate on cvalues include:
@@ -1756,6 +1671,88 @@ Returns the domain of <span class="arg">v</span>.
 </div>
 </div>
 
+<div class="docitem" id="fn:equalcval">
+<div class="proto">
+<div class="function">
+<span class="id">equalcval(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">cvalue</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Equalcval</span> is an equivalence predicate over cvalues.  
+The cvalues <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">equalcval</span> if and only if they
+have the same underlying encoding.
+</div>
+</div>
+
+<div class="docitem" id="fn:eqvcval">
+<div class="proto">
+<div class="function">
+<span class="id">eqvcval(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">cvalue</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Eqvcval</span> is an equivalence predicate over cvalues.  
+The cvalues <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">eqvcval</span> if and only if they
+have the same underlying encoding and
+<a href="#fn:eqvctype"><span class="fnindex">eqvctype</span></a>
+types.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashcval">
+<div class="proto">
+<div class="function">
+<span class="id">hashcval(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:equalcval"><span class="id">equalcval</span></a>.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashqvcval">
+<div class="proto">
+<div class="function">
+<span class="id">hashqvcval(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:eqvval"><span class="id">eqvcval</span></a>.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:cvalcmp">
 <div class="proto">
@@ -1772,13 +1769,15 @@ Returns the domain of <span class="arg">v</span>.
 <div class="desc">
 Returns the result of comparing
 cvalues <span class="arg">u</span>
-and <span class="arg">v</span> in the following way.
+and <span class="arg">v</span> in the manner of C.
 Domain promotion and the usual conversions are
-performed on the operands, and the underlying values of
-the resulting cvalues are compared.  Returns
--1, 0, or 1 if <span class="arg">u</span> is,
-respectively,
-less than, equal to, or greater than <span class="arg">v</span>.
+performed on the operands, and the underlying encodings
+of the resulting cvalues are compared as either
+unsigned or signed values, according to whether their
+common type is unsigned or signed.  Returns -1, 0, or 1
+if <span class="arg">u</span> is, respectively, less
+than, equal to, or greater
+than <span class="arg">v</span>.
 </div>
 </div>
 
@@ -2249,15 +2248,10 @@ as in C.  Evaluation is short circuited, as in C.
 <h4 id="sec:equivalence">Equivalence and other relations</h4>
 
 <p>
-Equivalence is determined by the
-functions
-<span class="id" id="fn:eq">eq</span>,
-<span class="id" id="fn:eq">eqv</span>,
-and <span class="id" id="fn:eq">equal</span>.
-
-
- <span class="id" id="fn:equal">equal</span>
-function and the <span class="id" id="syn:equal">==</span> operator.
+Equivalence is determined by the functions
+<span class="id" id="fn:eq">equal</span>
+and
+<span class="id" id="fn:eq">eqv</span>.
 </p>
 
 <p>
@@ -2270,7 +2264,7 @@ function and the <span class="id" id="syn:equal">==</span> operator.
 <span class="arg">u</span>,<span class="arg">v</span>: any values
 </div>
 <div class="returns">
-<span class="type">cvalue</span> (1 or 0)
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
 </div>
 </div>
 <div class="desc">
@@ -2291,16 +2285,15 @@ they are <span class="id">equal</span>;
 <li>
 If <span class="arg">u</span>
 and <span class="arg">v</span> are both address spaces,
-procedures, domains, file descriptors, name spaces,
-pairs, record descriptors, records, or tables, they
+cids, domains, file descriptors, name spaces,
+pairs, procedures, record descriptors, records, or tables, they
 are <span class="id">equal</span> if and only if they
 are the same object (pointer equality);
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
 are both cvalues, they are <span class="id">equal</span>
-if and only if they have <span class="id">equal</span> types
-and equal underlying values (<em>q.v.</em>);
+if and only if they are <a href="#fn:equalcval"><span class="id">equalcval</span></a>;
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
@@ -2309,10 +2302,10 @@ if and only if they have the same length and each of their
 corresponding elements are <span class="id">equal</span>;
 </li>
 <li>
-If <span class="arg">u</span> and <span class="arg">v</span>
-are both ranges, they are <span class="id">equal</span>
-if and only if the underlying values of their offset and length
-cvalues are equal;
+If <span class="arg">u</span>
+and <span class="arg">v</span> are both ranges, they
+are <span class="id">equal</span> if and only if their
+offsets and lengths are both <a href="#fn:equalcval"><span class="id">equalcval</span></a>;
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
@@ -2322,84 +2315,114 @@ if and only if they have the same length and contain the same sequence of bytes;
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>
 are both ctypes, they are <span class="id">equal</span>
-if and only if they are of the same category of ctype and any of the following is true:
+if and only if they are <a href="#fn:equalctype"><span class="id">equalctype</span></a>.
+</li>
+</ul>
+</div>
+</div>
+
+<p>
+<div class="docitem" id="fn:eqv">
+<div class="proto">
+<div class="function">
+<span class="id">eqv(<span class="arg">u</span>,<span class="arg">v</span>)
+</div>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: any values
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+Determines the equivalence of <span class="arg">u</span>
+and <span class="arg">v</span> according to the
+following rules.
 <ul>
 <li>
-<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">void</span>;
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both cvalues, they are <span class="id">eqv</span>
+if and only if they are <a href="#fn:eqvcval"><span class="id">eqvcval</span></a>;
 </li>
 <li>
-<span class="arg">u</span> and <span class="arg">v</span> are both base types and have the same representation;
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both ctypes, they are <span class="id">eqv</span>
+if and only if they are <a href="#fn:eqvctype"><span class="id">eqvctype</span></a>;
 </li>
 <li>
-<span class="arg">u</span> and <span class="arg">v</span> are both typedefs whose identifiers are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both <span class="id">typedef</span>s whose identifiers are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both either 
-<span class="id">struct</span>s,
-<span class="id">union</span>s, or
-<span class="id">enum</span>s whose tag identifiers are
-are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both either pointer
-or undefined types whose subtypes are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both array
-types whose element counts are either both unspecified or <span class="id">equal</span>
-and whose subtypes are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both function
-types with <span class="id">equal</span> subtypes (return types),
-parameter lists of equal length,
-and <span class="id">equal</span>ity across each of the types of corresponding elements of the parameter lists;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both
-bitfield types whose widths are <span class="id">equal</span>
-and whose subtypes are <span class="id">equal</span>;
-</li>
-<li>
-<span class="arg">u</span> and <span class="arg">v</span> are both
-enumeration constant types whose
-subtypes are <span class="id">equal</span>.
-</li>
-</ul>
+Otherwise <span class="arg">u</span> and <span class="arg">v</span>
+are <span class="id">eqv</span>
+if and only if they are <a href="#fn:equal"><span class="id">equal</span></a>.
 </li>
 </ul>
 </div>
 </div>
 
 <p>
-The above definition depends on the definition of
-equality of the "underlying values" of two cvalues.
-This is (unfortunately) implementation-dependent.
-In L1, the underlying value of a cvalue is represented
-as a 64-bit unsigned integer, and their equality is
-is that determined by the C <span class="id">==</span>
-operator.
+Each equivalence function is associated with a hash
+function.  Each hash function has the property that any
+two values that are equivalent by the associated
+equivalence function have the same hash value.  This
+property of hash functions is used in the
+implementation of <a href="#sec:tables">tables</a>.
 </p>
 
+
+<div class="docitem" id="fn:hash">
+<div class="proto">
+<div class="function">
+<span class="id">hash(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:equal"><span class="id">equal</span></a>.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashqv">
+<div class="proto">
+<div class="function">
+<span class="id">hashqv(<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">any value</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">v</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:eqv"><span class="id">eqv</span></a>.
+</div>
+</div>
+
 <p>
-The <span class="id">==</span> operator is a weaker
-form of equality, defined as follows.  If the operands
-are both cvalues, then domain promotion and the usual
-conversions are performed on the operands, and the
-underlying values of the resulting cvalues are
-compared.  If the operands are strings, then the
-operands are compared
-with <a href="#fn:equal><span class="id">equal</span></a>.
-If one operand is a string cvalue (q.v.) and the other
-operand is a string, then the cvalue operand is
-promoted to a string via stringof, and the result
-is compared with other operand with 
-<a href="#fn:equal><span class="id">equal</span></a>.
-Otherwise, the operands are compared
-with <a href="#fn:equal><span class="id">equal</span></a>.
+The equivalence operators <span class="id">==</span>
+and <span class="id">!=</span> are defined
+over all types of Cinquecento values.  If the operands
+are both cvalues, the result is determined
+by <a href="#fn:cvalcmp"><span class="id">cvalcmp</span></a>.
+If the operands are both strings, the result is
+determined
+by <a href="#fn:strcmp"><span class="id">strcmp</span></a>.
+If one operand is a string and the other is a
+<span class="id">char*</span> or <span class="id">unsigned char*</span>
+cvalue, then the cvalue is promoted to a string by calling
+<a href="#fn:stringof"><span class="id">stringof</span></a>
+and compared to the string with
+<a href="#fn:strcmp"><span class="id">strcmp</span></a>.
+Operands of any other type are compared with 
+<a href="#fn:equal"><span class="id">equal</span></a>.
 </p>
 
 <p>
@@ -2408,8 +2431,12 @@ The other relational operators
 <span class="id">&lt;=</span>,
 <span class="id">&gt;</span>,
 <span class="id">&gt;=</span>,
-<span class="id">!=</span>) will be mapped to string
-and cvalue comparison functions (cmp?).
+<span class="id">!=</span>) are defined 
+on cvalues, strings, and 
+combinations of strings and <span class="id">char*</span> or <span class="id">unsigned char*</span> cvalues in the same manner as
+the <span class="id">==</span>
+and <span class="id">!=</span> operators.
+It is an error to apply them to operands of any other type.
 </p>
 
 <h4 id="sec:pointers">Pointers</h4>
@@ -2536,10 +2563,9 @@ space).
 
 <p>
 An attempt to dereference a pointer to an unmapped
-location draws an error.  Programs can call 
-<span class="fnindex"><a href="#fn:ismapped">ismapped</a></span>
-to test whether a range is mapped without risk of
-error.
+location draws an error.  To test whether a range is
+mapped without risk of error, call
+<span class="fnindex"><a href="#fn:ismapped">ismapped</a></span>.
 </p>
 
 <h4 id="sec:objects">The object model</h4>
@@ -3455,7 +3481,7 @@ integers and pointers.
 4
 </td>
 <td>
-little-endian
+little endian
 </td>
 </tr>
 
@@ -3470,7 +3496,7 @@ little-endian
 4
 </td>
 <td>
-big-endian
+big endian
 </td>
 </tr>
 
@@ -3485,7 +3511,7 @@ big-endian
 8
 </td>
 <td>
-little-endian
+little endian
 </td>
 </tr>
 
@@ -3500,7 +3526,7 @@ little-endian
 8
 </td>
 <td>
-big-endian
+big endian
 </td>
 </tr>
 
@@ -3515,7 +3541,7 @@ big-endian
 8
 </td>
 <td>
-little-endian
+little endian
 </td>
 </tr>
 
@@ -3530,7 +3556,7 @@ little-endian
 8
 </td>
 <td>
-big-endian
+big endian
 </td>
 </tr>
 
@@ -4517,20 +4543,18 @@ the types that appear in C programs.
 </p>
 
 <p>
-The variants in the second row are Cinquecento
-inventions used to represent, respectively, the types
-of bitfields of structure and unions types, and the
-constants of enumeration types.
+The variants in the second row are used to represent,
+respectively, the types of bitfields of structure and
+unions types, and the constants of enumeration types.
 </p>
 
 <p>
-The undefined variant is another invention used to
-represent types whose names but not definitions occur
-in a name space.
+The undefined variant is used to represent types whose
+names but not definitions occur in a name space.
 </p>
 
 <p>
-Ctypes are one of the most complicated features of Cinquecento.
+Ctypes are one of the more complicated features of Cinquecento.
 Details follow.
 </p>
 
@@ -4879,14 +4903,15 @@ The optional second argument to
 <a href="#fn:mkctype_ptr"><span class="id">mkctype_ptr</span></a>
 gives the <em>representation</em> of the type.  The
 value <span class="val">cqct`Ru64le</span> is one of
-several constants defined for the built-in enumeration
-type <span class="val">cqct`Rkind</span>.  In this
-example, we have specified that the pointer value is
-represented as an unsigned 64-bit little-endian
-integer, a specification sufficient to read or write the
-value of such a pointer.  Constants are defined
-in <span class="val">cqct`Rkind</span> for all common
-integer encodings.
+several constants defined in the
+built-in <span class="val">cqct</span> name space.  In
+this example, we have specified that the pointer value
+is represented as an unsigned 64-bit little-endian
+integer, a specification sufficient to read or write
+the value of such a pointer.  Representation constants
+are defined for common integer, pointer, and float
+encodings
+(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span</a>).
 </p>
 
 <p>
@@ -5005,28 +5030,144 @@ is resolved in the literal domain.
 </div>
 </div>
 
+<div class="docitem" id="fn:typename">
+<div class="proto">
+<div class="function">
+<span class="id">typename(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+Returns a ctype representing the type name of <span class="arg">type</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:equalctype">
+<div class="proto">
+<span class="id">equalctype(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">ctype</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Equalctype</span> is an equivalence predicate over
+ctypes.  
+The ctypes <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">equalctype</span> if
+and only if they are both:
+
+<ul>
+<li>
+<span class="id">void</span>;
+</li>
+<li>
+base types with the same representation;
+</li>
+<li>
+<span class="id">typedef</span>s with <span class="id">equal</span> identifiers;
+</li>
+<li>
+<span class="id">struct</span>s,
+<span class="id">union</span>s, or
+<span class="id">enum</span>s with <span class="id">equal</span> tags;
+</li>
+<li>
+pointer
+or undefined types with <span class="id">equalctype</span> subtypes;
+</li>
+<li>
+array types with <span class="id">equal</span> element counts
+and <span class="id">equalctype</span> subtypes;
+</li>
+<li>
+function types with <span class="id">equalctype</span> return types,
+parameter lists of equal length,
+and parameters with corresponding <span class="id">equalctype</span> types.
+</li>
+<li>
+bitfield types with <span class="id">equal</span> widths and
+<span class="id">equalctype</span> container types; or
+</li>
+<li>
+enumeration constant types with
+<span class="id">equalctype</span> subtypes.
+</li>
+</ul>
+</div>
+</div>
+
+<div class="docitem" id="fn:eqvctype">
+<div class="proto">
+<span class="id">eqvctype(<span class="arg">u</span>,<span class="arg">v</span>)</span>
+<div class="param">
+<span class="arg">u</span>,<span class="arg">v</span>: <span class="type">ctype</span>s
+</div>
+<div class="returns">
+<span class="type">cvalue</span> (<span class="val">1</span> or <span class="val">0</span>)
+</div>
+</div>
+<div class="desc">
+<span class="id">Eqvctype</span> is an equivalence predicate over
+ctypes.  
+The ctypes <span class="arg">u</span>
+and <span class="arg">v</span> are
+<span class="id">eqvctype</span> if
+and only if they are (for now) <a href="#fn:equalctype"><span class="id">equalctype</span></a>
+</div>
+</div>
+
+<div class="docitem" id="fn:hashctype">
+<div class="proto">
+<div class="function">
+<span class="id">hashctype(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">ctype</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:equalctype"><span class="id">equalctype</span></a>.
+</div>
+</div>
+
+<div class="docitem" id="fn:hashqvctype">
+<div class="proto">
+<div class="function">
+<span class="id">hashqvctype(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an unsigned 32-bit integer hash of <span class="type">ctype</span>
+suitable for use with the equivalence predicate 
+<a href="#fn:eqvctype"><span class="id">eqvctype</span></a>.
+</div>
+</div>
+
 <p>
-Cinquecento subdivides the set of ctypes into several
-<em>kind</em>s of ctypes.  Most kinds of ctypes
-correspond to types that occur in C programs.  These
-includes the <tt>void</tt> type, the base arithmetic types
-(<tt>char</tt>, <tt>int</tt>,
-<tt>unsigned long</tt>, <em>etc</em>), pointers,
-arrays, aggregates (<tt>struct</tt> and
-<tt>union</tt>), functions, enumerations, and
-<tt>typedef</tt>s.
-
-
-Other kinds of  also has kinds categories for bitfields,
-enumeration constants, undefined types, and a special
-extended accessor type.
-</p>
-
-<p>
-The following table summarizes the category-specific
-functions that manipulate ctypes.  The predicates
-determine to which category a ctype belongs.  Each
-predicate takes one argument, a ctype, and returns
+The following table summarizes the functions that
+manipulate each of the ctypes variant.  The predicates
+determine the variant of a ctype.  Each predicate takes
+one argument, a ctype, and returns
 <span class="val">1</span> if the predicate is true for
 that ctype, <span class="val">0</span> otherwise.  With
 the exception
@@ -5093,7 +5234,9 @@ Base C type
 </td>
 <td><span class="fnindex" id="fn:isbase">isbase</span></td>
 <td>
-<span class="fnindex">baseid</span>
+<span class="fnindex"><a href="#fn:basebase">basebase</a></span><br />
+<span class="fnindex"><a href="#fn:baseid">baseid</a></span><br />
+<span class="fnindex"><a href="#fn:baserep">baserep</a></span><br />
 </td>
 <td>
 <span class="fnindex"><a href="#fn:mkctype_base">mkctype_base</a></span><br />
@@ -5154,21 +5297,6 @@ Enumeration constant
 </td>
 <td>
 <span class="fnindex"><a href="#fn:mkctype_const">mkctype_const</a></span>
-</td>
-</tr>
-
-<tr>
-<td>
-Extended accessor
-</td>
-<td><span class="fnindex" id="fn:isxaccess">isxaccess</span></td>
-<td>
-<span class="fnindex"><a href="#fn:subtype">subtype</a></span><br />
-<span class="fnindex"><a href="#fn:xaccessget">xaccessget</a></span><br />
-<span class="fnindex"><a href="#fn:xaccessput">xaccessput</a></span>
-</td>
-<td>
-<span class="fnindex"><a href="#fn:mkctype_xaccess">mkctype_xaccess</a></span>
 </td>
 </tr>
 
@@ -5261,7 +5389,7 @@ The following functions are the ctype accessors.
 </div>
 <div class="desc">
 The ctype categories array, enumeration, enumeration
-constant, pointer, undefined, and extended accessor each modify another,
+constant, pointer, and undefined each modify another,
 subordinate ctype.  Given a ctype from any one of these
 categories, <span class="id">subtype</span> returns the
 subordinate ctype, or <span class="val">nil</span> if
@@ -5398,6 +5526,25 @@ class="arg">type</span>.  Returns <span class="val">nil</span> if the type does 
 </div>
 </div>
 
+<div class="docitem" id="fn:basebase">
+<div class="proto">
+<div class="function">
+<span class="id">basebase(<span class="arg">type</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">base ctype</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns the base type specifier
+(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span></a>)
+of the base C type represented by <span class="arg">type</span>.
+</div>
+</div>
+
 <div class="docitem" id="fn:baseid">
 <div class="proto">
 <div class="function">
@@ -5416,25 +5563,6 @@ by <span class="arg">type</span> as a string.
 </div>
 </div>
 
-<div class="docitem" id="fn:basebase">
-<div class="proto">
-<div class="function">
-<span class="id">basebase(<span class="arg">type</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">base ctype</span>
-</div>
-<div class="returns">
-<span class="type">cvalue</span>
-</div>
-</div>
-<div class="desc">
-Returns the integer representation (with FIXME
-unspecified semantics) of the base C type represented
-by <span class="arg">type</span>.
-</div>
-</div>
-
 <div class="docitem" id="fn:baserep">
 <div class="proto">
 <div class="function">
@@ -5448,9 +5576,9 @@ by <span class="arg">type</span>.
 </div>
 </div>
 <div class="desc">
-Returns the integer representation (with FIXME
-unspecified semantics) of the representation of the base C type represented
-by <span class="arg">type</span> (indeed!).
+Returns the representation specifier
+(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span></a>)
+of the base C type represented by <span class="arg">type</span>.
 </div>
 </div>
 
@@ -5591,7 +5719,7 @@ Returns the return type of the function type represented by
 </div>
 <div class="desc">
 Returns the name of the type defined by the typedef type represented by
-<span class="arg">type</span> as a string.
+<span class="arg">type</span>.
 </div>
 </div>
 
@@ -5608,8 +5736,8 @@ Returns the name of the type defined by the typedef type represented by
 </div>
 </div>
 <div class="desc">
-Returns the type aliased defined by the typedef type represented by
-<span class="arg">type</span> as a ctype.
+Returns the type aliased by the typedef type represented by
+<span class="arg">type</span>.
 </div>
 </div>
 
@@ -5631,42 +5759,6 @@ Returns the type aliased defined by the typedef type represented by
 <div class="desc">
 Modifies the typedef ctype <span class="arg">typedef</span> to be
 an alias for <span class="arg">type</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:xaccessget">
-<div class="proto">
-<div class="function">
-<span class="id">xaccessget(<span class="arg">type</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">extended accessor ctype</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the get function of the extended accessor ctype
-<span class="arg">type</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:xaccessput">
-<div class="proto">
-<div class="function">
-<span class="id">xaccessput(<span class="arg">type</span>)</span>
-</div>
-<div class="param">
-<span class="arg">type</span>: <span class="type">extended accessor ctype</span>
-</div>
-<div class="returns">
-<span class="type">function</span>
-</div>
-</div>
-<div class="desc">
-Returns the put function of the extended accessor ctype
-<span class="arg">type</span>.
 </div>
 </div>
 
@@ -5753,6 +5845,187 @@ in arrays represented by the type.
 <div class="function">
 <span class="id" id="fn:mkctype_base">mkctype_base(<span class="arg">base</span>[,<span class="arg">rep</span>])</span>
 </div>
+<div class="param">
+<span class="arg">base</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">rep</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Returns a new ctype representing the base C type corresponding 
+to <span class="arg">base</span>, which may be any one of
+the following base type specifiers defined in the
+<span class="val">cqct</span> name space:
+</p>
+
+<div class="table-short">
+<table>
+<tr>
+<td><span class="val">Vbool</span></td>
+<td><span class="val">_Bool</span></td>
+</tr>
+<tr>
+<td><span class="val">Vchar</span></td>
+<td><span class="val">char</span></td>
+</tr>
+<tr>
+<td><span class="val">Vshort</span></td>
+<td><span class="val">short</span></td>
+</tr>
+<tr>
+<td><span class="val">Vint</span></td>
+<td><span class="val">int</span></td>
+</tr>
+<tr>
+<td><span class="val">Vlong</span></td>
+<td><span class="val">long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vvlong</span></td>
+<td><span class="val">long long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vuchar</span></td>
+<td><span class="val">unsigned char</span></td>
+</tr>
+<tr>
+<td><span class="val">Vushort</span></td>
+<td><span class="val">unsigned short</span></td>
+</tr>
+<tr>
+<td><span class="val">Vuint</span></td>
+<td><span class="val">unsigned int</span></td>
+</tr>
+<tr>
+<td><span class="val">Vulong</span></td>
+<td><span class="val">unsigned long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vuvlong</span></td>
+<td><span class="val">unsigned long long</span></td>
+</tr>
+<tr>
+<td><span class="val">Vfloat</span></td>
+<td><span class="val">float</span></td>
+</tr>
+<tr>
+<td><span class="val">Vdouble</span></td>
+<td><span class="val">double</span></td>
+</tr>
+<tr>
+<td><span class="val">Vldouble</span></td>
+<td><span class="val">long double</span></td>
+</tr>
+</table>
+</div>
+
+<p>
+<span class="arg">Rep</span> may be any one of the
+following representation specifiers defined in the
+<span class="val">cqct</span> name space:
+</p>
+
+<div class="table-short">
+<table>
+<tr>
+<td><span class="val">Rundef</span></td>
+<td>undefined representation</td>
+</tr>
+<tr>
+<td><span class="val">Ru08le</td>
+<td>8-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru16le</td>
+<td>16-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru32le</td>
+<td>32-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru64le</td>
+<td>64-bit unsigned little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs08le</td>
+<td>8-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs16le</td>
+<td>16-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs32le</td>
+<td>32-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs64le</td>
+<td>64-bit signed little endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru08be</td>
+<td>8-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru16be</td>
+<td>16-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru32be</td>
+<td>32-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Ru64be</td>
+<td>64-bit unsigned big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs08be</td>
+<td>8-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs16be</td>
+<td>16-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs32be</td>
+<td>32-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rs64be</td>
+<td>64-bit signed big endian</td>
+</tr>
+<tr>
+<td><span class="val">Rf32</td> 
+<td>32-bit floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rf64</td> 
+<td>64-bit floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rf128</td>
+<td>128-bit floating point</td>
+</tr>
+</table>
+</div>
+
+<p>
+<span class="arg">Rep</span> defaults to <span class="val">Rundef</span>.
+</p>
+
+</div>
+</div>
+
+
+
+<div class="docitem">
+<div class="proto">
 <div class="function">
 <span class="id" id="fn:mkctype_bool">mkctype_bool([<span class="arg">rep</span>])</span>
 </div>
@@ -5795,22 +6068,21 @@ in arrays represented by the type.
 <div class="function">
 <span class="id" id="fn:mkctype_ldouble">mkctype_ldouble([<span class="arg">rep</span>])</span>
 </div>
+<div class="param">
+<span class="arg">rep</span>: <span class="type">cvalue</span>
+</div>
 <div class="returns">
 <span class="type">ctype</span>
 </div>
 </div>
 <div class="desc">
 
-<span class="id">mkctype_base</span> returns a new
-ctype representing the base C type corresponding to the
-base type specified by <span class="arg">base</span>,
-an integer (with FIXME unspecifed semantics).
-The remaining functions each return a new ctype
-representing the base C type corresponding to the
-suffix of the function name.  The returned type is
-incomplete unless the <span class="arg">rep</span>
-argument, which specifies the representation of the
-type (with FIXME unspecifed semantics), is provided.
+These functions are wrappers
+for <a href="#fn:mkctype_base"><span class="id">mkctype_base</span></a>
+that each return a new ctype representing the base C
+type corresponding to the suffix of the function name.
+The default value of the representation specifier
+<span class="arg">rep</span> is <span class="val">Rundef</span>.
 </div>
 </div>
 
@@ -5920,13 +6192,13 @@ by <span class="fnindex"><a href="#fn:mkparam">mkparam</a></span>.
 <div class="docitem" id="fn:mkctype_ptr">
 <div class="proto">
 <div class="function">
-<span class="id">mkctype_ptr(<span class="arg">type</span>[,<span class="arg">reptype</span>])</span>
+<span class="id">mkctype_ptr(<span class="arg">type</span>[,<span class="arg">rep</span>])</span>
 </div>
 <div class="param">
 <span class="arg">type</span>: <span class="type">ctype</span>
 </div>
 <div class="param">
-<span class="arg">reptype</span>: <span class="type">ctype</span>
+<span class="arg">rep</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
 <span class="type">ctype</span>
@@ -5934,9 +6206,9 @@ by <span class="fnindex"><a href="#fn:mkparam">mkparam</a></span>.
 </div>
 <div class="desc">
 Returns a new ctype representing a pointer to the type represented by
-<span class="arg">type</span>.  If
-specified, <span class="arg">reptype</span> is a ctype
-representing the pointer representation type.
+<span class="arg">type</span>.
+<span class="arg">Rep</span> specifies the representation
+of the pointer type, and defaults to <span class="val">cqct`Rundef</span>.
 </div>
 </div>
 
@@ -5995,64 +6267,319 @@ Returns a new ctype representing the void type.
 </div>
 </div>
 
-<div class="docitem" id="fn:mkctype_xaccess">
+
+<h4 id="sec:records">Records</h4>
+
+<p id="syn:_at_record">
+Records allows the creation of new aggregate types with
+named fields.  A <em>record descriptor</em> is a
+Cinquecento value that define a particular record type;
+it associates a record type name with the definition of
+the record type.  A <em>record</em> is instance of a
+record type.  It has an associated record descriptor
+and bindings for the fields defined by the record
+descriptor.
+</p>
+
+<p>
+For example, the expression:
+</p>
+<div class="code">
+<pre>
+@record myrec { field1, field2, field3 };
+</pre>
+</div>
+<p>
+defines a new record type, named <span class="id">myrec</span>.
+
+The record type has three fields, named
+<span class="id">field1</span>, 
+<span class="id">field2</span>, and 
+<span class="id">field3</span>.
+
+The value of the <span class="id">@record</span> expression
+is the resulting record descriptor.
+</p>
+
+<p>
+In addition, evaluation of
+the <span class="id">@record</span> expression
+implicitly defines two functions,
+named <span class="id">myrec</span>
+and <span class="id">ismyrec</span>,
+in the innermost level of lexical scope.
+</p>
+
+<p>
+The function <span class="id">ismyrec</span> is a predicate
+for instances of <span class="id">myrec</span>.  Like
+the type predicates, it accepts
+a single argument and returns <span class="val">1</span>
+if the argument is an instance of <span class="id">myrec</span>,
+and <span class="val">0</span> otherwise.
+</p>
+
+<p>
+The function <span class="id">myrec</span> is the
+constructor for instances of the <span class="id">myrec</span> type.
+
+For example:
+</p>
+<div class="code">
+<pre>
+x = myrec("abc", 1, @lambda(x){ printf("hi\n")});
+</pre>
+</div>
+<p>
+
+binds <span class="id">x</span> to a new instance of the
+<span class="id">myrec</span> type.
+</p>
+
+<p>
+The function <span class="id">myrec</span>
+expects either zero arguments,
+in which case the fields of the new instance are bound to <span class="id">nil</span>,
+or exactly as many arguments as there are fields in the type,
+in which case the arguments are bound to the fields in the order
+they were given in the <span class="id">@record</span> definition.
+</p>
+
+<p>
+The dot operator provides access to the fields of a record instance:
+</p>
+<div class="code">
+<pre>
+printf("%a", x.field1);   // print x's field1
+x.field1 = "bcd";         // update x's field1
+
+x.field2 += 5;		  // update x's field2
+++x.field2;               // update x's field2
+
+x.field3("blah");	  // call the value of x's field3
+</pre>
+</div>
+
+<p>
+The following routines operate on records and record descriptors.
+</p>
+
+<div class="docitem" id="fn:rdof">
 <div class="proto">
 <div class="function">
-<span class="id">mkctype_xaccess(<span class="arg">type</span>,<span class="arg">get</span>,<span class="arg">put</span>)</span>
+<span class="id">rdof(<span class="arg">r</span>)</span>
 </div>
 <div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
-</div>
-<div class="param">
-<span class="arg">get</span>: <span class="type">function</span>
-</div>
-<div class="param">
-<span class="arg">put</span>: <span class="type">function</span>
+<span class="arg">r</span>: <span class="type">record</span>
 </div>
 <div class="returns">
-<span class="type">ctype</span>
+<span class="type">record descriptor</span>
 </div>
 </div>
 <div class="desc">
-Returns a new ctype representing a type whose values
-are accessed through calls to custom accessor
-functions, rather than through calls to the address
-space interface.  The ctype <span
-class="arg">type</span> is the underlying (subordinate)
-type of the value.  When the system dereferences a
-pointer to a value of the type, it calls <span
-class="arg">get</span>, passing the domain of the
-pointer cvalue.  <span class="arg">Get</span> returns a
-cvalue, which the system casts to <span
-class="arg">type</span>.
-</div>
-<div class="desc">
-Similarly, when the system assigns through a pointer to
-a value of the type, it calls <span
-class="arg">put</span> on the domain of the pointer and
-the new value to be written.  The new value is cast to
-<span class="arg">type</span> before the call.  The
-return value is ignored.
+Returns the record descriptor associated with the record
+<span class="arg">r</span>. 
 </div>
 </div>
 
-<div class="docitem" id="fn:typename">
+<div class="docitem" id="fn:rdfields">
 <div class="proto">
 <div class="function">
-<span class="id">typename(<span class="arg">type</span>)</span>
+<span class="id">rdfields(<span class="arg">rd</span>)</span>
 </div>
 <div class="param">
-<span class="arg">type</span>: <span class="type">ctype</span>
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
 </div>
 <div class="returns">
-<span class="type">ctype</span>
+<span class="type">list</span>
 </div>
 </div>
 <div class="desc">
-Returns a ctype representing the type name of <span class="arg">type</span>.
+Returns the list of field names for the record descriptor
+<span class="arg">rd</span> in the order they were given in the
+<span class="id">@record</span> definition for <span class="arg">rd</span>.
 </div>
 </div>
 
+<div class="docitem" id="fn:rdis">
+<div class="proto">
+<div class="function">
+<span class="id">rdis(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the predicate for instances of
+the record descriptor <span class="arg">rd</span>.  The
+function takes a single argument and returns non-zero
+if and only if the argument is an instance of <span class="arg">rd</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdmk">
+<div class="proto">
+<div class="function">
+<span class="id">rdmk(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the constructor for instances of
+the record descriptor <span class="arg">rd</span>.  The
+function takes either zero arguments,
+in which case the fields of the new instance are bound to
+<span class="val">nil</span>, or exactly as many arguments
+as there are fields in the type,
+in which case the arguments are bound to the fields
+in the order they were given in the definition of
+the record descriptor.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdname">
+<div class="proto">
+<div class="function">
+<span class="id">rdname(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns the name associated with the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
+<p>
+Record descriptors have an associated format procedure
+that is implicitly called when 
+the <span class="val">%a</span> conversion of the
+formatted I/O library routines is applied to an instance of the record type.
+The format procedure takes a single argument,
+the record instance,
+and returns a string representing the formatted
+record.
+</p>
+
+<p>
+The following routines access the format procedure
+associated with a record descriptor.
+</p>
+
+<div class="docitem" id="fn:rdfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdfmt(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">function</span>
+</div>
+</div>
+<div class="desc">
+Returns the format procedure of the record descriptor
+<span class="arg">rd</span>. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rdsetfmt">
+<div class="proto">
+<div class="function">
+<span class="id">rdsetfmt(<span class="arg">rd</span>,<span class="arg">fmt</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="param">
+<span class="arg">fmt</span>: <span class="type">function</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Sets the format procedure of the record descriptor
+<span class="arg">rd</span> to <span class="arg">fmt</span>.
+</div>
+</div>
+
+<p>
+Several functions are used by the implementation of the
+record system.
+</p>
+
+<div class="docitem" id="fn:mkrd">
+<div class="proto">
+<div class="function">
+<span class="id">mkrd(<span class="arg">name</span>,<span class="arg">fields</span>)</span>
+</div>
+<div class="param">
+<span class="arg">name</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">fields</span>: <span class="type">list of string</span>
+</div>
+<div class="returns">
+<span class="type">record descriptor</span>
+</div>
+</div>
+<div class="desc">
+Creates or updates the record descriptor for the record
+type named <span class="arg">name</span>.  The names of
+the fields of the record type are set, in order, to the
+strings in the list <span class="arg">fields</span>.
+The record descriptor is returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:rdgettab">
+<div class="proto">
+<div class="function">
+<span class="id">rdgettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="function">
+<span class="id">rdsettab(<span class="arg">rd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">rd</span>: <span class="type">record descriptor</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+The record system maintains for each record descriptor
+a pair of tables, one that maps the name of a field to
+a function that accesses the field in an instance of the
+record, and one that maps the name of a field to a function
+that updates the value of field.
+<span class="id">Rdgettab</span> returns the
+table of accessor functions.  An accessor function
+expects as argument an instance of the record descriptor and
+returns the value of the corresponding
+field in the record.  <span class="id">rdsettab</span> returns the
+table of update functions.  An update function expects
+as arguments an instance of the record descriptor and a new value.
+It sets the field in the record to the new value and returns the new
+value.
+</div>
+</div>
 
 <h4 id="sec:containers">Container Types</h4>
 
@@ -6307,8 +6834,10 @@ be of the same type.
 </div>
 </div>
 <div class="desc">
-Returns the number of occurrences of <span class="arg">v</span>
-in <span class="arg">container</span>.
+Returns the number of values
+in <span class="arg">container</span> that
+are <a href="#fn:equal"><span class="id">equal</span></a>
+to <span class="arg">v</span>.
 </div>
 </div>
 
@@ -6328,9 +6857,12 @@ in <span class="arg">container</span>.
 </div>
 </div>
 <div class="desc">
-Returns the index of the first occurrences of <span class="arg">v</span>
-in <span class="arg">container</span> or <span class="val">nil</span>
-if <span class="arg">v</span> is not in <span class="arg">container</span>.
+Returns the index of the first value
+in <span class="arg">container</span>
+<a href="#fn:equal"><span class="id">equal</span></a>
+to <span class="arg">v</span>, or 
+or <span class="val">nil</span>
+is there is no such value.
 </div>
 </div>
 
@@ -6350,8 +6882,11 @@ if <span class="arg">v</span> is not in <span class="arg">container</span>.
 </div>
 </div>
 <div class="desc">
-Returns <span class="val">1</span> if <span class="arg">v</span>
-occurs in <span class="arg">container</span> or <span class="val">0</span>
+Returns <span class="val">1</span> if 
+<span class="arg">container</span> contains a value
+<a href="#fn:equal"><span class="id">equal</span></a> to 
+<span class="arg">v</span>,
+or <span class="val">0</span>
 otherwise.
 </div>
 </div>
@@ -6372,8 +6907,12 @@ otherwise.
 </div>
 </div>
 <div class="desc">
-Deletes every occurrence of <span class="arg">v</span>
-in <span class="arg">container</span>.
+Deletes every value
+in <span class="arg">container</span>
+that is
+<a href="#fn:equal"><span class="id">equal</span></a>
+to
+<span class="arg">v</span>.
 Returns <span class="arg">container</span> following the update.
 </div>
 </div>
@@ -6889,10 +7428,27 @@ a table.
 </div>
 </div>
 <div class="desc">
-Creates and returns a new, empty table.
+Creates and returns a new, empty table in which
+key equivalence is determined by  
+<a href="#fn:equal"><span class="id">equal</span></a>.
 </div>
 </div>
 
+<div class="docitem" id="fn:mktabqv">
+<div class="proto">
+<div class="function">
+<span class="id">mktabqv()</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+Creates and returns a new, empty table in which
+key equivalence is determined by  
+<a href="#fn:eqv"><span class="id">eqv</span></a>.
+</div>
+</div>
 
 <div class="docitem"  id="syn:_emptytable_">
 <div class="proto">
@@ -6913,6 +7469,7 @@ Creates and returns a new, empty table.
 This syntax constructs a
 new table containing the zero or more key/value pairs enclosed in the
 braces.  The syntax <span class="id">[ : ]</span> constructs an empty table.
+The table is constructed with <a href="#fn:mktab"><span class="id">mktab</span></a>.
 </div>
 </div>
 
@@ -7629,11 +8186,6 @@ to <span class="arg">v1</span>.
 </div>
 </div>
 
-
-
-
-
-
 <h4 id="sec:io">I/O</h4>
 
 <p>
@@ -7664,7 +8216,7 @@ user-defined functions.)
 <span class="arg">mode</span>: <span class="type">string</span>
 </div>
 <div class="returns">
-<span class="type">file descriptor</span>
+<span class="type">file descriptor</span> or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
@@ -7676,6 +8228,9 @@ class="arg">Mode</span> specifies the mode of access:
 <span class="val">"rw"</span> (create or truncate for reading and writing),
 <span class="val">"a"</span> (append), or
 <span class="val">"ra"</span> (append and read).
+Returns <span class="val">nil</span> if the file cannot
+be opened; the error condition is available
+via <span class="fnindex"><a href="#fn:errno">errno</a></span>.
 </div>
 </div>
 
@@ -7719,7 +8274,7 @@ collected.
 <span class="arg">address</span>: <span class="type">string</span>
 </div>
 <div class="returns">
-<span class="type">file descriptor</span>
+<span class="type">file descriptor</span> or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
@@ -7729,7 +8284,8 @@ returns the associated file descriptor.
 <tt>"<em>addr</em>:<em>port</em>"</tt>, where
 <span class="arg">addr</span> is an IP address or hostname and
 <span class="arg">port</span> is a port number or service
-name.
+name.  Returns <span class="val">nil</span> if the connection cannot be opened;
+the error condition is available via <span class="fnindex"><a href="#fn:errno">errno</a></span>.
 </div>
 </div>
 
@@ -7790,10 +8346,9 @@ If no connection is waiting, the call blocks until one arrives.
 </div>
 </div>
 <div class="desc">
-Returns the result of calling the
-system <span class="id">getpeername</span> call on the
-TCP connection associated with <span class="arg">fd</span>.
-The return value is the string of raw bytes of the system socket address. 
+Returns the address, in the form <tt>"<em>addr</em>:<em>port</em>"</tt>,
+of the peer endpoint of the TCP
+connection associated with <span class="arg">fd</span>.
 </div>
 </div>
 
@@ -7810,10 +8365,9 @@ The return value is the string of raw bytes of the system socket address.
 </div>
 </div>
 <div class="desc">
-Returns the result of calling the
-system <span class="id">getsockname</span> call on the
-TCP connection associated with <span class="arg">fd</span>.
-The return value is the string of raw bytes of the system socket address. 
+Returns the address, in the form <tt>"<em>addr</em>:<em>port</em>"</tt>,
+of the local endpoint of the TCP
+connection associated with <span class="arg">fd</span>.
 </div>
 </div>
 
@@ -8544,8 +9098,8 @@ Storage in the L1 implementation of Cinquecento is
 managed by a generational stop-the-world copying
 collector.  Its design draws on published
 descriptions of storage management in <em>Chez Scheme</em>
-[<a href="#bib:chez">Chez</a>, <a href="#bib:bibop">BiBOP</a>,
-<a href="#bib:bibop">Guardians</a>].
+[<a href="#bib:csug">CSUG</a>, <a href="#bib:bibop">BiBOP</a>,
+<a href="#bib:guardian">Guardians</a>].
 </p>
 
 <p>
@@ -8674,7 +9228,7 @@ Prints information about the current state of the storage manager.
 Guardians protect objects from reclamation.  The
 semantics and interface of the guardians provided by L1
 are very similar to those in published descriptions of <em>Chez Scheme</em>
-[<a href="#bib:chez">Chez</a>].
+[<a href="#bib:csug">CSUG</a>].
 </div>
 </div>
 
@@ -8746,6 +9300,25 @@ and <span class="fnindex"><a href="#fn:postgc">postgc</a></span>.
 This section documents various system-level functions.
 </p>
 
+<div class="docitem" id="fn:errno">
+<div class="proto">
+<div class="function">
+<span class="id">errno()</span>
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+Returns a list of two elements that describe the most
+recent OS-level error caused by execution of an L1
+system function.  The first element is a cvalue whose
+value is the <span class="arg">errno</span> value
+returned by the operating system.  The second element
+is string containing the textual description of the
+error.
+</div>
+</div>
 
 <div class="docitem" id="fn:exit">
 <div class="proto">
@@ -9862,12 +10435,31 @@ machines sharing the environment have been freed.
 
 <tr>
 <td>
-<span id="bib:chez">[Chez]</span>
+<span id="bib:sicp">[SICP]</span>
+</td>
+<td>
+Harold Abelson and Gerald Jay Sussman with Julie Sussman.
+<em><a href="http://mitpress.mit.edu/sicp/full-text/book/book.html">Structure and Interpretation of Computer Programs (2nd Edition)</a></em>.
+MIT Press, 1996.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:csug">[CSUG]</span>
 </td>
 <td>
  R. Kent Dybvig. <em><a href="http://www.scheme.com/csug8">The Chez Scheme Version 8 User's Guide</a></em>.  Cadence Research Systems, 2009.
 </td>
 </tr>
+
+<tr>
+<td>
+<span id="bib:tspl">[TSPL]</span>
+</td>
+<td>
+R. Kent Dybvig. <em><a href="http://www.scheme.com/tspl4/">The Scheme Programming Language, 4th edition</a></em>. MIT Press, 2009
+</td>
 
 <tr>
 <td>
@@ -9892,6 +10484,39 @@ Design and Implementation, 207-216, June 1993.
 </td>
 </tr>
 
+<tr>
+<td>
+<span id="bib:ls">[Little]</span>
+</td>
+<td>
+Daniel P. Friedman and Matthias Felleisen.
+<em>The Little Schemer (4th Edition)</em>.
+MIT Press, 1995.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:hs">[H&S]</span>
+</td>
+<td>
+Samuel P. Harbison III and Guy L. Steele Jr.
+<em>C: A Reference Manual (5th Edition)</em>.
+Prentice Hall, 2002.
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="bib:kr">[K&R]</span>
+</td>
+<td>
+Brian W. Kernighan and Dennis M. Ritchie.
+<em>The C Programming Language (2nd Edition)</em>.
+Prentice Hall, 1988.
+</td>
+</tr>
+
 </table>
 
 
@@ -9899,9 +10524,6 @@ Design and Implementation, 207-216, June 1993.
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<table>
-<tr>
-<td>
 <a href="#syn:cidlit"><span class="val">'id</span> (cid literal)</a><br />
 <a href="#syn:invoke"><span class="val"><span class="arg">o</span>.<span class="arg">f</span> (method invocation)</a><br />
 <a href="#syn:asof"><span class="val"><span class="arg">dom</span>.as</span></a><br />
@@ -9920,9 +10542,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#syn:_at_record">@record</a><br />
 <a href="#syn:return">return</a><br />
 <a href="#syn:_at_typeof">@typeof</a><br />
-</td>
-</tr>
-</table>
 </div>
 </div>
 </div>
@@ -9931,9 +10550,6 @@ Design and Implementation, 207-216, June 1993.
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<table>
-<tr>
-<td>
 <a href="#fn:cqctcallfn">cqctcallfn</a><br />
 <a href="#fn:cqctcallthunk">cqctcallthunk</a><br />
 <a href="#fn:cqctcompile">cqctcompile</a><br />
@@ -9945,8 +10561,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:cqctenvlook">cqctenvlook</a><br />
 <a href="#fn:cqcteval">cqcteval</a><br />
 <a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
-</td>
-<td>
 <a href="#fn:cqctfini">cqctfini</a><br />
 <a href="#fn:cqctfreevm">cqctfreevm</a><br />
 <a href="#fn:cqctgcpersist">cqctgcpersist</a><br />
@@ -9960,9 +10574,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:cqctint16val">cqctint16val</a><br />
 <a href="#fn:cqctint32val">cqctint32val</a><br />
 <a href="#fn:cqctint64val">cqctint64val</a><br />
-
-</td>
-<td>
 <a href="#fn:cqctinterrupt">cqctinterrupt</a><br />
 <a href="#fn:cqctlength">cqctlength</a><br />
 <a href="#fn:cqctlistvals">cqctlistvals</a><br />
@@ -9975,8 +10586,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:cqctuint64val">cqctuint64val</a><br />
 <a href="#fn:cqctvalcbase">cqctvalcbase</a><br />
 <a href="#fn:cqctvalcstr">cqctvalcstr</a><br />
-</td>
-<td>
 <a href="#fn:cqctvalcstrlen">cqctvalcstrlen</a><br />
 <a href="#fn:cqctvalcstrshared">cqctvalcstrshared</a><br />
 <a href="#fn:cqctvalint8">cqctvalint8</a><br />
@@ -9988,21 +10597,15 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
 <a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
 <a href="#fn:cqctvecvals">cqctvecvals</a><br />
-</td>
-</tr>
-</table>
 </div>
 </div>
 </div>
 
 
-<h4 id="sec:fnindex">Built-in Function Index</h4>
+<h4 id="sec:fnindex">Function Index</h4>
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<table>
-<tr>
-<td>
 <a href="#fn:asof">asof</a><br />
 <a href="#fn:access">access</a><br />
 <a href="#fn:append">append</a><br />
@@ -10039,6 +10642,12 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:nsenumtype">enumtype</a> (ns method)<br />
 <a href="#fn:environ">environ</a><br />
 <a href="#fn:equal">equal</a><br />
+<a href="#fn:equalctype">equalctype</a><br />
+<a href="#fn:equalcval">equalcval</a><br />
+<a href="#fn:eqv">eqv</a><br />
+<a href="#fn:eqvctype">eqvctype</a><br />
+<a href="#fn:eqvcval">eqvcval</a><br />
+<a href="#fn:errno">errno</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
 <a href="#fn:evalk">evalk</a><br />
@@ -10066,6 +10675,12 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:getpeername">getpeername</a><br />
 <a href="#fn:getsockname">getsockname</a><br />
 <a href="#fn:gettimeofday">gettimeofday</a><br />
+<a href="#fn:hash">hash</a><br />
+<a href="#fn:hashctype">hashctype</a><br />
+<a href="#fn:hashcval">hashcval</a><br />
+<a href="#fn:hashq">hashq</a><br />
+<a href="#fn:hashqctype">hashqctype</a><br />
+<a href="#fn:hashqcval">hashqcval</a><br />
 <a href="#fn:head">head</a><br />
 <a href="#fn:index">index</a><br />
 <a href="#fn:inflate">inflate</a><br />
@@ -10086,8 +10701,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:isdigit">isdigit</a><br />
 <a href="#fn:isdom">isdom</a><br />
 <a href="#fn:isempty">isempty</a><br />
-</td>
-<td>
 <a href="#fn:isenum">isenum</a><br />
 <a href="#fn:isenumconst">isenumconst</a><br />
 <a href="#fn:isfd">isfd</a><br />
@@ -10148,8 +10761,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkctype_char">mkctype_char</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
 <a href="#fn:mkctype_double">mkctype_double</a><br />
-</td>
-<td>
 <a href="#fn:mkctype_enum">mkctype_enum</a><br />
 <a href="#fn:mkctype_float">mkctype_float</a><br />
 <a href="#fn:mkctype_fn">mkctype_fn</a><br />
@@ -10169,7 +10780,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkctype_uvlong">mkctype_uvlong</a><br />
 <a href="#fn:mkctype_vlong">mkctype_vlong</a><br />
 <a href="#fn:mkctype_void">mkctype_void</a><br />
-<a href="#fn:mkctype_xaccess">mkctype_xaccess</a><br />
 <a href="#fn:mkdir">mkdir</a><br />
 <a href="#fn:mkdom">mkdom</a><br />
 <a href="#fn:mkfd">mkfd</a><br />
@@ -10188,6 +10798,7 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:mkstr">mkstr</a><br />
 <a href="#fn:mksym">mksym</a><br />
 <a href="#fn:mktab">mktab</a><br />
+<a href="#fn:mktabqv">mktabqv</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
 <a href="#fn:mkzas">mkzas</a><br />
 <a href="#fn:myrootns">myrootns</a><br />
@@ -10211,8 +10822,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:rand">randseed</a><br />
 <a href="#fn:rdis">rdis</a><br />
 <a href="#fn:rdfields">rdfields</a><br />
-</td>
-<td>
 <a href="#fn:rdfmt">rdfmt</a><br />
 <a href="#fn:rdgettab">rdgettab</a><br />
 <a href="#fn:rdmk">rdmk</a><br />
@@ -10276,12 +10885,6 @@ Design and Implementation, 207-216, June 1993.
 <a href="#fn:waitpid">waitpid</a><br />
 <a href="#fn:weakcons">weakcons</a><br />
 <a href="#fn:write">write</a><br />
-<a href="#fn:xaccessget">xaccessget</a><br />
-<a href="#fn:xaccessput">xaccessput</a><br />
-</td>
-</tr>
-</table>
-
 </div>
 </div>
 </div>

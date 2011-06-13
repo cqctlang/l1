@@ -143,6 +143,7 @@ l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	Xfd xfd;
 	struct sockaddr_in saddr;
 
+	setlasterrno(0);
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tcpopen");
 	checkarg(vm, "tcpopen", argv, 0, Qstr);
@@ -155,8 +156,10 @@ l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd.fd)
 		vmerr(vm, "tcpopen: %s", strerror(errno));
-	if(0 > connect(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
-		vmerr(vm, "tcpopen: %s", strerror(errno));
+	if(0 > connect(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr))){
+		setlasterrno(errno);
+		return;
+	}
 	nodelay(xfd.fd);
 	xfd.read = fdread;
 	xfd.write = fdwrite;
@@ -186,7 +189,7 @@ l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > xfd.fd)
-		vmerr(vm, "tcpopen: %s", strerror(errno));
+		vmerr(vm, "tcplisten: %s", strerror(errno));
 	reuseaddr(xfd.fd);
 	if(0 > bind(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "tcplisten: %s", strerror(errno));
@@ -234,6 +237,7 @@ l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 	struct sockaddr_in sa;
 	int r;
 	socklen_t len;
+	char buf[128];
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getpeername");
@@ -244,7 +248,8 @@ l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = getpeername(xfd->fd, (struct sockaddr*)&sa, &len);
 	if(0 > r)
 		vmerr(vm, "getpeername: %s", strerror(errno));
-	*rv = mkvalstr(mkstr((char*)&sa, len));
+	sa2str(&sa, buf, sizeof(buf));
+	*rv = mkvalstr(mkstr0(buf));
 }
 
 static void
@@ -255,6 +260,7 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 	struct sockaddr_in sa;
 	int r;
 	socklen_t len;
+	char buf[128];
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getsockname");
@@ -265,7 +271,8 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = getsockname(xfd->fd, (struct sockaddr*)&sa, &len);
 	if(0 > r)
 		vmerr(vm, "getsockname: %s", strerror(errno));
-	*rv = mkvalstr(mkstr((char*)&sa, len));
+	sa2str(&sa, buf, sizeof(buf));
+	*rv = mkvalstr(mkstr0(buf));
 }
 
 void

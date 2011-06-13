@@ -170,7 +170,7 @@ mkcode(void)
 	code->insn = emalloc(code->maxinsn*sizeof(Insn));
 	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
 	code->ninsn = 0;
-	code->konst = mktab();
+	code->konst = mktabqv();
 	code->maxreloc = code->maxinsn;
 	code->reloc = emalloc(code->maxreloc*sizeof(u64));
 	code->nreloc = 0;

@@ -1,14 +1,16 @@
 #!/usr/bin/env l1
 !#
 @include <sctl.cqct>
+@include <9p.cqct>   /* FIXME: collides with names in sctl.cqct  */
 
+@global nsid2path;
 @global path2nsid;
 @global nsid2ns;
-@global Enone;
 @global prefix;
 @global vars;
-
-Enone = "no such thing";
+@global index;
+@global history;
+@global rootns;
 
 sns = @names clp64be {
 	typedef short unsigned int sa_family_t;
@@ -41,13 +43,14 @@ sns = @names clp64be {
 
 @define notimpl(fd, msg, dat)
 {
-	rerror(fd, msg->tag, "server does not support %e", (sctl`Mkind)msg->op);
+	sctlrerror(fd, msg->tag,
+		   "server does not support %e", (sctl`Mkind)msg->op);
 	return 'badop;
 }
 
 @define botch(fd, tag)
 {
-	rerror(fd, tag, "protocol botched");
+	sctlrerror(fd, tag, "protocol botched");
 	return 'badop;
 }
 
@@ -59,9 +62,9 @@ sns = @names clp64be {
 	q = (`uint64*)dat;
 	[path, q] = decodes(q);
 
-	nsid = openns(path);
+	nsid = openns(prefix+path);
 	if(nsid == nil){
-		rerror(fd, msg->tag, "invalid name space");
+		sctlrerror(fd, msg->tag, Enone);
 		return 'badop;
 	}
 	sz = sizeof(sctl`Rnames);
@@ -94,7 +97,7 @@ sns = @names clp64be {
 		return 'badop;
 	}
 	if(s[0] != "sctl-2010"){
-		rerror(fd, msg->tag, "unsupported version");
+		sctlrerror(fd, msg->tag, "unsupported version");
 		return 'badop;
 	}
 	if(length(s) != 2){
@@ -105,7 +108,6 @@ sns = @names clp64be {
 	p = (sctl`Rversion*)malloc(sz);
 	p->op = sctl`Rversion;
 	p->tag = msg->tag;
-	printf("data is %s\n", dat);
 	putbytes(p+1, dat);
 	sendmsg(fd, p, sz);
 	return 'ok;
@@ -117,14 +119,14 @@ sns = @names clp64be {
 	p = (`uint64*)dat;
 	nsid = *p++;
 	[tn, p] = decodetname(p);
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	td = ns.looktype(tn);
 	if(td == nil){
-       		rerror(fd, msg->tag, Enone);
+       		sctlrerror(fd, msg->tag, Enone);
 		return 'badop;
 	}
 	m = p = (sctl`Rlooktype*)mkxs();
@@ -141,9 +143,9 @@ sns = @names clp64be {
 	@local p, m, nsid, ns, ts, nt;
 	p = (`uint64*)dat;
 	nsid = *p++;
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	ts = ns.enumtype();
@@ -166,14 +168,14 @@ sns = @names clp64be {
 	p = (`uint64*)dat;
 	nsid = *p++;
 	[id, p] = decodes(p);
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	sym = looksym(ns, mkcid(id));
 	if(sym == nil){
-		rerror(fd, msg->tag, Enone);
+		sctlrerror(fd, msg->tag, Enone);
 		return 'badop;
 	}
 
@@ -192,9 +194,9 @@ sns = @names clp64be {
 
 	p = (`uint64*)dat;
 	nsid = *p++;
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 
@@ -219,9 +221,9 @@ sns = @names clp64be {
 	nsid = *p++;
 	addr = *p++;
 
-	ns = nsid2ns[nsid];
+	ns = looknsid(nsid);
 	if(ns == nil){
-		rerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, msg->tag, "unknown name space");
 		return 'badop;
 	}
 	sym = ns.lookaddr(addr);
@@ -279,15 +281,38 @@ handle = [
 	return fn(fd, msg, dat);
 }
 
-@global nextnsid;
-nextnsid = 1;
+@define remember()
+{
+	@local s;
+	if(!access(history, "r"))
+		return;
+	s = mapfile(history);
+	foreach(@lambda(l){
+			@local vs;
+			vs = split(l, " ");
+			nsid2path[(`uint64)strton(vs[0])] = vs[1];
+		}, split(s, "\n"));
+}
+
+@define record()
+{
+	@local fd;
+	fd = open(history, "w");
+	foreach(@lambda(nsid, path){
+			fprintf(fd, "%u %s\n", nsid, path);
+		}, nsid2path);
+	close(fd);
+}
+
 @define openns(path)
 {
-	@local id, s, a, nc;
+	@local id, s, a, nc, st;
 	id = path2nsid[path];
 	if(id)
 		return id;
-	printf("opening %s (%s)\n", path, prefix+path);
+	if(!access(path, "r"))
+		return nil;
+	st = (ns9p`Diru*)stat(path);
 	s = "@lambda(";
 	a = "}(";
 	nc = 1;
@@ -306,18 +331,33 @@ nextnsid = 1;
 		}, vars);
 	s += "){\n";
 	a += ");\n";
-	s += sprintfa("\t@names clp64le { @include \"%s\" };\n", prefix+path);
+	s += sprintfa("\t@names %s { @include \"%s\" };\n", rootns, path);
 	s += a;
-	printf("evaluating ...\n%s\n", s);
+//	printf("evaluating ...\n%s\n", s);
 	evalk(s,
 	      @lambda(ns){
-		      printf("success!\n");
-		      id = (`uint64)nextnsid++;
+		      id = st->qid.path;
 		      nsid2ns[id] = ns;
 		      path2nsid[path] = id;
+		      nsid2path[(`uint64)id] = path;
+		      record();
 		      return id;
 	      },
 	      @lambda(){ return nil; });
+}
+
+@define looknsid(nsid)
+{
+	@local ns, path;
+	ns = nsid2ns[nsid];
+	if(ns)
+		return ns;
+	path = nsid2path[nsid];
+	if(path){
+		openns(path);
+		ns = nsid2ns[nsid]; /* maybe nil */
+	}
+	return nil;
 }
 
 @define main(port, pref, vs)
@@ -327,6 +367,9 @@ nextnsid = 1;
 	fds = [ lfd ];
 	path2nsid = [:];
 	nsid2ns = [:];
+	nsid2path = [:];
+	history = "/tmp/snames."+getenv("USER");
+	remember();
 	prefix = pref;
 	vars = vs;
 	if(prefix[strlen(prefix)-1] != '/')
@@ -336,20 +379,19 @@ nextnsid = 1;
 		foreach(@lambda(r){
 				if(r == lfd){
 					fd = tcpaccept(lfd);
-					printf("accepted connection from ");
-					printf("%s\n", fmtsa(getpeername(fd)));
+//					printf("accepted connection from ");
+//					printf("%s\n", getpeername(fd));
 					append(fds, fd);
 					return;
 				}
 				switch(x = tdispatch(r)){
 				case 'closed:
-					printf("closing %s\n",
-					       fmtsa(getpeername(r)));
+//					printf("closing %s\n", getpeername(r));
 					close(r);
 					delete(fds, r);
 					break;
 				case 'badop:
-					printf("bad op!\n");
+//					printf("bad op!\n");
 					close(r);
 					delete(fds, r);
 					break;
@@ -377,12 +419,13 @@ nextnsid = 1;
 	}
 }
 
-if(length(args) < 2){
-	printf("usage: %s PORT PREFIX [VAR ...] \n");
+if(length(args) < 3){
+	printf("usage: %s PORT ROOTNS PREFIX [VAR ...] \n", "snames.cqct");
 	exit(1);
 }
 
 pop(args);
 port = strton(pop(args));
+rootns = pop(args);
 prefix = pop(args);
 watchdog(@lambda(){ main(port, prefix, args); });
