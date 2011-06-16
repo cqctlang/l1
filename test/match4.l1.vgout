@@ -1,5 +1,5 @@
 entry: var params, 3 locals, 0 temps
-listapp_: 2 params, 4 locals, 0 temps
+listapp_: 2 params, 3 locals, 0 temps
 [ 1, 2, 3 ]
 [ 1, 2, 3 ]
 [ 1, 2, 3, 4, 5 ]
