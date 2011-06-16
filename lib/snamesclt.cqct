@@ -9,9 +9,19 @@
 if(nsamesclt_defined == nil){
 @local snamesaddr;
 
-@global setsnamesaddr, snamesns, snamesreconnect;
+@global issnamesup, setsnamesaddr, snamesns, snamesreconnect;
 
 snamesaddr = "localhost:30000";
+
+@define issnamesup()
+{
+	@local fd;
+	fd = tcpopen(snamesaddr);
+	if(fd == nil)
+		return 0;
+	close(fd);
+	return 1;
+}
 
 @define setsnamesaddr(addr)
 {

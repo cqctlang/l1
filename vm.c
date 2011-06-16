@@ -1180,7 +1180,7 @@ typecast(VM *vm, Ctype *t, Cval *cv)
 	return mkcval(cv->dom, t, _rerep(cv->val, old, new));
 }
 
-Cval*
+static Cval*
 domcastbase(VM *vm, Dom *dom, Cval *cv)
 {
 	Ctype *t, *old, *new;
