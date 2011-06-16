@@ -6,6 +6,7 @@ typedef
 struct Case
 {
 	char *l;	
+//        Expr *bvars;
 	Expr *e;
 } Case;
 
@@ -14,7 +15,7 @@ struct Cases
 {
 	u32 nc, max;
 	char *dflt;
-	Expr *locals;
+	Expr *bvars;
 	Case *cases;
 } Cases;
 
@@ -63,7 +64,7 @@ static int
 dupbind(Bind *bind, Expr *id) 
 {
 	if(id->kind != Eid)
-		fatal("bug");
+		fatal("bug in dupbind");
 	for(; bind != 0; bind = bind->next){
 		if(id->aux == bind->id->aux)
 			return 1;
@@ -166,7 +167,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                         if(p->e1->kind != Eelist 
                            || p->e1->e2->kind != Eelist 
                            || p->e1->e2->e2->kind != Enull)
-                                fatal("bug");
+                                fatal("bug in Etab pattern");
                         k = p->e1->e1;
                         v = p->e1->e2->e1;
                         /* check whether key contains pat variables */
@@ -200,27 +201,32 @@ genlabel()
 }
 
 static void
-mklocals(Bind *binds, Expr **locals, Expr **inits)
+bindvars(Bind *binds, Expr **bvars, Expr **inits)
 {
 	Expr *i;
 	i = nullelist();
 	while(binds != NULL){
-		*locals = putifabsent(*locals, binds->id);
+		*bvars = putifabsent(*bvars, binds->id);
 		i = Zcons(Zset(binds->id, binds->exp), i);
 		binds = binds->next;
 	}
 	*inits = i;
 }
 
+static Expr* cases(U *ctx, Expr* e, Cases *cs);
+
 static Expr*
 addcase(U *ctx, Expr *e, Expr *b, Cases *cs)
 {
 	Expr *se;
 	char *l;
+        int nc;
 	Match m = {0,0};
 
         if(!cs)
                 fatal("dangling case statement");
+        nc = cs->nc;
+        b = cases(ctx,b,cs);
 	if(cs->nc >= cs->max){
 		cs->cases = erealloc(cs->cases,
 				     cs->max*sizeof(Case),
@@ -231,12 +237,17 @@ addcase(U *ctx, Expr *e, Expr *b, Cases *cs)
 	match(ctx, doid("$t"), e, &m);
 	if(m.binds != 0){
 		Expr *inits;
-		mklocals(m.binds, &cs->locals, &inits);
+                if(nc != cs->nc)
+                        cerror(ctx, e, 
+                               "nested case when pattern matching");
+		bindvars(m.binds, &cs->bvars, &inits);
+//                cs->cases[cs->nc].bvars = nullelist();
 		freebinds(m.binds);
 		b = Zblock(nullelist(), inits, b, NULL);
 	}
 	else {
 		m.check = Zbinop(Eeq, e, doid("$t"));
+//                cs->cases[cs->nc].bvars = NULL;
 	}
 	se = Zblock(nullelist(), Zlabel(l), b, NULL);
 	cs->cases[cs->nc].l = l;
@@ -251,7 +262,7 @@ mkcases()
 	Cases *cs;
 	cs = emalloc(sizeof(Cases));
 	cs->max = 128;
-	cs->locals = nullelist();
+	cs->bvars = nullelist();
 	cs->cases = emalloc(cs->max*sizeof(Case));
 	return cs;
 }
@@ -267,73 +278,87 @@ freecases(Cases *cs)
 	efree(cs);
 }
 
+/* Algorithm: coalesce adjacent statements in a compound statement so there
+   is a single block associated with each case.  Pretty sure this
+   is semantics preserving.  Then, for pattern matching, make sure
+   that the block for a case in which variables are bound does not
+   itself contain any cases for the same switch.  If it does, then die.
+   Need to change the way locals are bound---now they are all at the top
+   of the switch.  Instead, they should be attached to the block
+   added by the coalesce.  To do this, add locals to each Case object
+   (commented out now) and then declare them at the start of the block.
 
-/* Doesn't work!  Just ends up shadowing everything again, but only
- * for the cases just below the current case, rather than cases above
- * it.  Solution:
- *
- * 1) Establish circumstances under which the following transformation
- * is correct:
- *
- * (Switch (Eelist (case e1 e2) e3)) ~~> 
- * (Switch (Eelist (case e1 (Eelist e2 e3)))) 
- *
- * is correct when e3 contains no case expression itself that
- * references variables bound in e1, but which are not bound in its
- * own guard.  This is because these references would normally go to
- * the outer scope.  
- *
- * 2) The algorithm is easy: iterate through a switch list's top-level
- * expressions; for each (case e1:e2), if e1 binds any variables, then
- * coalesce e2 with subsequent expresions e_i until one of the e_i is
- * itself a case (at which point stop coalescing and carry on); abort
- * with failure if e2 or any e_i itself contains a floating case.
- *
- * Not sure how to do this during the binding-getting phase, since we
- * don't know what the top-level switch list is when we're evaluating
- * each case.  Need to think more about this.
- *
- * Maybe there's a silly stopgap: pass in parent pointer when doing
- * cases() traversal, and when we come upon (case e1:e2), we coalesce
- * its e2 with all subsequent expressions in the parent's tail,
- * assuming it's a list, making the check above.  Not sure when it
- * wouldn't be a list; do I care?
- */
+   Right now, coalesce does not work ...
+*/
 
 /* static Expr* */
-/* coalesce(U *ctx, Expr* e) */
+/* smush(Expr* p) */
 /* { */
-/* 	Expr *p; */
+/*         if(p->kind != Eelist) fatal("bug in smush"); */
+/*         switch(p->e1->kind){ */
+/*         case Ecase: */
+/*                 p->e1->e2 = Zblock(nullelist(), p->e1->e2, p->e2); */
+/*                 p->e2 = nullelist(); */
+/*                 break; */
+/*         case Edefault: */
+/*                 p->e1->e1 = Zblock(nullelist(), p->e1->e1, p->e2); */
+/*                 p->e2 = nullelist(); */
+/*                 break; */
+/*         default: */
+/*                 fatal("bug in smush(2)"); */
+/*         } */
+/*         return p; */
+/* } */
 
-/* 	if(e == 0) */
-/* 		return 0; */
+/* static Expr* */
+/* coalesce(U *ctx, Expr* e, Expr* q) */
+/* { */
+/* 	Expr *p, *pp = 0; */
+
+/* 	if(e == 0 || (q && e->kind == Enull)) */
+/*                 return e; */
 /* 	switch(e->kind){ */
 /*         case Eelist: */
 /* 		p = e; */
 /* 		while(p->kind == Eelist){ */
 /*                         switch(p->e1->kind){ */
 /*                         case Ecase: */
-/*                                 p->e1->e2 = Zblock(nullelist(), p->e1->e2, */
-/*                                                    coalesce(ctx, p->e2)); */
-/*                                 p->e2 = nullelist(); */
-/*                                 return e; */
 /*                         case Edefault: */
-/*                                 p->e1->e1 = Zblock(nullelist(), p->e1->e1, */
-/*                                                    coalesce(ctx, p->e2)); */
-/*                                 p->e2 = nullelist(); */
-/*                                 return e; */
+/*                                 printexpr(p->e1); */
+/*                                 /\* start coalescing *\/ */
+/*                                 if(!q){ */
+/*                                         p = coalesce(ctx, p->e2, p); */
+/*                                         pp = 0; */
+/*                                         continue; */
+/*                                 } */
+/*                                 /\* finish coalescing *\/ */
+/*                                 else if(pp){ */
+/*                                         pp->e2 = nullelist(); */
+/*                                         smush(q); */
+/*                                 } */
+/*                                 return p; */
 /*                         default: */
-/*                                 p->e1 = coalesce(ctx, p->e1); */
-/*                                 break; */
+/*                                 printexpr(p->e1); printf("\n"); */
+/*                                 p->e1 = coalesce(ctx, p->e1, 0); */
 /*                         } */
-/* 			p = p->e2; */
+/*                         pp = p; */
+/*                         p = p->e2; */
 /* 		} */
-/*                 return e; */
+/*                 if(q){ */
+/*                         smush(q); */
+/*                         return p; */
+/*                 } */
+/*                 else */
+/*                         return e; */
 /*         default: */
-/* 		e->e1 = coalesce(ctx, e->e1); */
-/* 		e->e2 = coalesce(ctx, e->e2); */
-/* 		e->e3 = coalesce(ctx, e->e3); */
-/* 		e->e4 = coalesce(ctx, e->e4); */
+/*                 if(q){ */
+/*                         printexpr(e); xprintf("\n"); */
+/*                         fatal("bug in coalesce"); */
+/*                 } */
+/* 		e->e1 = coalesce(ctx, e->e1, 0); */
+/* 		e->e2 = coalesce(ctx, e->e2, 0); */
+/* 		e->e3 = coalesce(ctx, e->e3, 0); */
+/* 		e->e4 = coalesce(ctx, e->e4, 0); */
 /* 		return e; */
 /* 	} */
 /* } */
@@ -353,9 +378,9 @@ cases(U *ctx, Expr* e, Cases *cs)
 		e->e2 = cases(ctx, e->e2, e->xp);
 		return e;
 	case Ecase:
-		se = addcase(ctx,
+		se = addcase(ctx, 
                              cases(ctx, e->e1, 0), 
-			     cases(ctx, e->e2, cs), cs);
+                             e->e2, cs);
 		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
@@ -402,7 +427,7 @@ swtch(U *ctx, Expr *e, char *lb)
 	switch(e->kind){
 	case Ebreak:
 		if(!lb)
-			fatal("bug");
+			fatal("bug in swtch");
 		se = Zgoto(lb);
 		putsrc(se, &e->src);
 		freeexpr(e);
@@ -417,7 +442,7 @@ swtch(U *ctx, Expr *e, char *lb)
 				       Zgoto(cs->cases[i].l)) :
 				   Zgoto(cs->cases[i].l),
 				   se);
-		se = Zblock(Zcons(doid("$t"),cs->locals),
+		se = Zblock(Zcons(doid("$t"),cs->bvars),
 			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
 			    invert(se),
 			    cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb),
@@ -566,8 +591,8 @@ docompilei(U *ctx, Expr *e)
 		fatal("bug");
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
-        /*coalesce(ctx, e);*/
 	loops(ctx, e, 0, 0);
+        //coalesce(ctx, e, 0);  /* not working yet */
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);
 	return e;

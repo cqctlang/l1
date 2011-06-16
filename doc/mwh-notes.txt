@@ -1,9 +1,4 @@
-HOURS
-
-6/8 3:35-6:15
-
 TO DO
-
 
 - Deal with fall-through when we've bound stuff
   - Make sure we end with a break or somesuch?
@@ -30,9 +25,9 @@ TO DO LATER
   a normal expression and defeat pattern matching unless I treat it
   specially.  I suppose I could look for this as a top-level pattern,
   but I'm not sure how it would be parsed; is that reliable?
-- Idea: variables @@x in a pattern are emphasize they are NOT binders,
+- Idea: variables ^^x in a pattern are emphasize they are NOT binders,
   but rather should inherit from the outer scope.  Should only affect
-  pattern matching---any occurrence of @@x elsewhere in the program is
+  pattern matching---any occurrence of ^^x elsewhere in the program is
   just treated as x, undecorated.  (Could implement this latter
   semantics by translating these occurrences to their originals after
   the pattern matching pass, as a separate pass.)
