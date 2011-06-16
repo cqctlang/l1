@@ -2,18 +2,6 @@ TO DO
 
 - Deal with fall-through when we've bound stuff
   - Make sure we end with a break or somesuch?
-- Fix scoping problem.  Idea for fix:
-
-  Implement a pre-pass, prior to the cases() pass that groups together
-  adjacent elements of an Eelist into a single block.  So if we had
-  ((case e1 e2) e3 e4 (case e5 e6) ...) we would convert this to
-  ((case e1 (e2 e3 e4)) (case e5 (e6 ...))).  It's possible I can do
-  this in the cases() pass itself, I'm not sure.  But we need to
-  account for nested switches, as it does, so we don't end one case
-  expression block with the beginning of a case in a nested switch.
-  Once this prepass is complete, we can just declare the local
-  variables at the point of the case since we know that when we see a
-  (case e1 e2) that e2 is the entire block for the case. 
 
 TO DO LATER
 
@@ -35,6 +23,12 @@ TO DO LATER
 
 NOTES
 
+git commit -a
+git checkout master
+git pull
+git checkout patterns
+git push
+
 A description of the design I have in mind is at the bottom of this
 file (search for DESIGN).  These are notes about the implementation of
 said design.
@@ -43,28 +37,8 @@ said design.
 
 LIMITATIONS
 
-* Scoping is a little busted.  I declare all bound variables at the
-outset of the switch statement.  For example, if you had
-
-@local x,z;
-x = 5; z = 0;
-switch (e) {
-case [y] : z = y+x; break;
-case [x,y...] : z = x; break;
-default: break;
-}
-
-In my current implementation, if e == [1] then we'll get an error that
-x is not initialized.  You would expect that the result would be z =
-6, since we assume that z = y+x amounts to z = 1+5, as x would be the
-outer local.  What's happening is that this x is being shadowed by a
-declaration for the x bound in the second case of the switch.
-
-The reason for this is that I'm not sure how to define the scope of
-the expression list between cases.  Perhaps there could be some pass
-prior to this one that gathers up all expressions between cases and
-sticks them in a block attached directly to the case.  Then you could
-declare the variables at the start of this block.
+* We don't deal with fall-through at all.  Should at the least warn
+  about not doing fall through when binding variables.
 
 ======================================================================
 
