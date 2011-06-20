@@ -2364,30 +2364,26 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 		vmerr(vm, "operand 2 to extended cast operator must be a"
 		      " cvalue or string");
 	tv = getvalrand(vm, typeordom);
+	if(Vkind(ov) == Qstr)
+		cv = str2voidstar(litdom->ns, valstr(ov));
+	else
+		cv = valcval(ov);
 	if(Vkind(tv) != Qctype && Vkind(ov) == Qstr)
 		vmerr(vm, "illegal conversion");
 	if(Vkind(tv) == Qctype){
 		t = valctype(tv);
 		if(!iscvaltype(t))
 			vmerr(vm, "bad type conversion");
-		if(Vkind(ov) == Qstr){
-			if(!isptrtype(t))
-				vmerr(vm, "bad type conversion");
-			cv = str2voidstar(litdom->ns, valstr(ov));
-		}else
-			cv = valcval(ov);
 		rv = mkvalcval2(typecast(vm, t, cv));
 	}else if(Vkind(tv) == Qdom){
 		d = valdom(tv);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else if(Vkind(tv) == Qns){
-		cv = valcval(ov);
 		d = mkdom(valns(tv), cv->dom->as, 0);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else if(Vkind(tv) == Qas){
-		cv = valcval(ov);
 		d = mkdom(cv->dom->ns, valas(tv), 0);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else
 		vmerr(vm, "bad type for operand 1 to extended cast operator");
 	putvalrand(vm, rv, dst);
