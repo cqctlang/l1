@@ -5305,9 +5305,9 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		sz = len->val;
 	}
 	if(sz == 0){
-		if(addr->type->tkind != Tptr)
+		if(!isptrtype(addr->type))
 			vmerr(vm, "ismapped expects a pointer cvalue");
-		sz = typesize(vm, subtype(addr->type));
+		sz = typesize(vm, subtype(chasetype(addr->type)));
 	}
 	if(ismapped(vm, addr->dom->as, addr->val, sz))
 		*rv = mkvalcval2(cval1);
