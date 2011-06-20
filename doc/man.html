@@ -2099,7 +2099,7 @@ the form
 yield a new cvalue that represents the conversion of the
 value <span class="arg">expr</span> to the
 type named <span class="arg">typename</span>.
-<span class="arg">Typename</span> is
+<span class="arg">Typename</span> is a
 <a href="#sec:qualifiedtname">qualified type name</a>
 (with optional qualifier).  If the type name provides a
 qualifier, then it is resolved in the name space or
@@ -2114,10 +2114,9 @@ to which the value is to be converted is known
 statically and can be written in type name syntax.
 Sometimes, however, the type is determined dynamically,
 and represented by a ctype.  In this case,
-the <em>extended cast
+the conversion can be performed with the <em>extended cast
 operator</em> <span id="syn:xcast"
-class="id">{}</a></span> can be used to perform the
-conversion instead.
+class="id">{}.
 </p>
 
 <p>
@@ -2145,15 +2144,30 @@ q = {t}p;
 Unlike the cast operator, the extended cast operator
 expects its type argument to be a defined type, not a
 type name to be resolved.  For example, the following
-expression draws an error because the type operand
+expression is problematic because the type operand
 to the conversion is undefined:
 </p>
 
 <div class="code">
 <pre>
-q = {@typename(struct T*)}p;  /* error */
+q = {@typename(struct T*)}p;
 </pre>
 </div>
+
+<p>
+If the value being converted has pointer type, then the
+result of converting it to a pointer type with undefined
+representation (as in the above example), is to inherit
+the pointer representation of the value being
+converted.  In the above example, this results
+in <span class="id">q</span> being a valid pointer,
+with the same pointer representation
+as <span class="id">p</span>, however the type to which
+it points (<span class="id">struct T</span>) remains
+undefined.  If <span class="id">p</span> were not a
+pointer type, then the above expression would draw an
+error.
+</p>
 
 <p>
 The extended cast operator also performs
@@ -2170,23 +2184,43 @@ q = {dom}p;
 
 <p>
 converts <span class="val">p</span> to the
-domain <span class="val">dom</span>.  An implicit type
-conversion occurs as part of domain conversion: the
-name space of the domain operand is searched for a
-definition of the type of the value operand, and the
-resulting cvalue is converted to that type.
-As a special case, when the domain operand is the
-literal domain, the type of the operand is first
-reduced to the base C type, to ensure that there
-exists a definition for the type name.
+domain <span class="val">dom</span>.
 </p>
 
 <p>
-While the <span class="arg">expr</span> operand is
-ordinarily a cvalue, the cast operator also can be
-applied to a string.  In this case, the string is
-implicitly converted to a pointer to the first byte of
-the string.  For example, in this form:
+Domain conversion always involves an implicit type
+conversion.  The domain into which the value is being
+converted is searched for a definition of type of the
+value being converted.  The resulting type definition
+is the type to which the value is converted.  It is an
+error if there is no definition for the type in the
+new domain.
+</p> 
+
+<p>
+As a special case, when the domain operand is the
+literal domain, the type of the operand is stripped
+of <tt>typedef</tt> aliases, to ensure that for base
+types there exists a definition for the type name.
+</p>
+
+<p>
+The extended cast operator also accepts a name space or
+an address space as the operand to which the value is
+converted.  In this case, a new domain is constructed.
+Its name space (or address space) is the operand of the
+extended cast operator, and its address space (or name
+space) is that of the domain of the value being
+converted.
+</p>
+
+<p>
+Ordinarily, the <span class="arg">expr</span> operand
+to the conversion operators is a cvalue.  However,
+these operators also can be applied to a string.  In
+this case, the string is implicitly converted to a
+pointer, in a freshly allocated domain, to the first
+byte of the string.  For example, in this form:
 </p>
 
 <div class="code">
@@ -2198,22 +2232,22 @@ p = (char*)"hello, world\n";
 a <span class="id">char*</span> cvalue that points to
 the first byte of the string <span class="id">"hello,
 world\n"</span>.  A new domain is constructed for this
-pointer with the name space of the literal
-domain and a fresh <a href="#fn:mksas"><span class="id">mksas</span></a>
+pointer with the name space of the literal domain and a
+fresh <a href="#fn:mksas"><span class="id">mksas</span></a>
 address space backed by the string operand.
 </p>
 
 <h5>Implicit conversions</h5>
 
 <p>
-Part of the evaluation of C expressions includes
-implicit conversion of the operands.  Cinquecento
-adheres to these rules of C, while extending them to
-expressions whose operands have a mixture of domains.
+The evaluation of many C operators includes certain
+implicit conversions of the operands.  Cinquecento
+adheres to the implicit conversions of C, while
+extending them to domains.
 </p>
 
 <p>
-<em>Integer promotion</em> is the act of converting a
+<em>Integer promotion</em> in C is the act of converting a
 value of one of the smaller integer types 
 (<span class="id">_Bool</span>, <span class="id">char</span>,
 <span class="id">unsigned char</span>,
@@ -2223,91 +2257,8 @@ of type <span class="id">int</span>.  It is performed
 implicitly to the operand of the unary operators
 <span class="id">+</span>,
 <span class="id">-</span>, <span class="id">~</span>, and
-<span class="id">!</span>.
-</p>
-
-<p>
-A pair of values of different types may be converted to
-values of a common type by the <em>usual
-conversions</em>.  Generally, the usual conversions
-determine the smallest type (in terms of the size of
-the set of values it represents) that can represent
-both values.  The precise rules are based on the usual
-conversions in C.
-</p>
-
-<p>
-Cinquecento extends the usual conversions to pairs of
-cvalues of different domains.  Four rules determine the
-outcome of such <em>mixed-domain expressions</em>.
-</p>
-
-<ol>
-
-<li>
-<p>
-When one operand is from the literal domain and the
-other is from some other domain, the operand from the
-literal domain is implicitly converted to the domain of
-the other operand.
-</p>
-</li>
-
-<li>
-<p>
-When the two operands are from different non-literal
-domains and neither operand has a pointer type, both
-operands are converted to the literal domain.
-</p>
-</li>
-
-<li>
-<p>
-When the two operands are from different non-literal
-domains and at least one operand has a pointer type,
-the result depends on the operation.  For pointer
-addition, the non-pointer operand is converted to the
-domain of the pointer operand.  (Addition is invalid
-when both operands are pointers.)  For pointer
-subtraction,
-</p>
-</li>
-
-<p>
-The third rule concerns mixed expressions in which one
-operand is a pointer.  Pointer addition operations
-(including array subscripting) comprise one pointer
-operand and one arithmetic operand.  In mixed-domain
-pointer addition, the domain of the arithmetic operand
-is implicitly cast to that of the pointer operand.
-Since the type of the result is pointer, the domain of
-the result should remain in the domain of the pointer
-operand.  (This rule also maintains consistency with
-the rule for literals.)  Pointer subtraction operations
-involve either one pointer operand and one arithmetic
-operand or two pointer operands.  In the former case,
-the rule is the same as that for pointer addition.  The
-latter case is disallowed: it makes no sense to relate
-locations in two different address spaces.  A program
-that wishes to do so must explicitly domain cast one of
-the operands.
-</p>
-
-<p>
-The final rule is that all other mixed-domain
-expressions are disallowed.  Generally this rule covers
-the other mixed-domain pointer expressions.  For
-example, comparison of pointers from different domains
-is prohibited for the same reason that pointer
-subtraction is prohibited.  An explicit domain cast can
-be used to circumvent this rule.
-</p>
-
-</ol>
-
-<p>
-Three conversions implicitly occur during the evaluation
-of any of the binary operators
+<span class="id">!</span>, and to each of the operands
+of the binary operators
 <span class="id">+</span>,
 <span class="id">-</span>,
 <span class="id">*</span>,
@@ -2321,20 +2272,96 @@ of any of the binary operators
 <span class="id">&lt;=</span>,
 <span class="id">&gt;=</span>,
 <span class="id">==</span>,
-<span class="id">!=</span>.
-First, integer promotion is applied to operands of different types.
+<span class="id">!=</span>,
+<span class="id">&lt;&lt;</span>, and
+<span class="id">&gt;&gt;</span>,
 </p>
 
 <p>
-The type name to give to the result of an operation is
-not always obvious. Consider arithmetic of two operands
-whose type names are two different typedefs for
-int. What should the type name of the result be? C
-offers no guidance: in the context of C evaluation
-rules, the types of rvalues are intangible, so the type
-name of this result does not matter. Cinquecento
-chooses a canonical name for the type definition they
-have in common.
+Following integer promotion, the operands to any of the binary
+operators except <span class="id">&lt;&lt;</span> and
+<span class="id">&gt;&gt;</span> are converted to a
+common type through a set of rules called the <em>usual
+conversions</em>.  Generally, the usual conversions
+determine the smallest type (in terms of the size of
+the set of values it represents) that can represent
+both values.</p>
+
+<p>
+For operands of the same domain, the precise rules are
+based on the usual conversions in C.  However, consider
+addition of two operands whose types are two
+different <span class="id">typedef</span> aliases for
+<span class="id">int</span>.  What should the type name
+of the result be? C offers no guidance: in the context
+of C evaluation rules, the types of rvalues are
+intangible, so the type name of this result does not
+matter.  To resolve this dilemma, Cinquecento follows
+the <span class="id">typedef</span> aliases of each of
+the types until a common type (possibly the C base type)
+is found.
+</p>
+
+<p>
+For operands of two different domains, the operands
+are first converted to a common domain, and then
+the usual conversions are applied.  The rules for
+determining the common domain for such <em>mixed-domain
+expressions</em> are as follows:
+</p>
+
+<ol>
+
+<li>
+<p>
+If one operand is from the literal domain and the other
+is from some other domain, then the operand from the
+literal domain is implicitly converted to the domain of
+the other operand.
+</p>
+</li>
+
+<li>
+<p>
+If the operands are from different non-literal domains,
+and neither operand has a pointer type, then both
+operands are converted to the literal domain.
+</p>
+</li>
+
+<li>
+<p>
+If the operands are from different non-literal domains,
+and one or both operands has a pointer type, then the
+result depends on the operation.  If the operation is
+addition, then (by definition of pointer addition) only
+one of the operands has a pointer type.  The
+non-pointer operand is converted to the domain of the
+pointer operand.  If the operation is subtraction, and
+if only one of the operands has a pointer type, then as
+with addition the non-pointer operand is converted to
+the domain of the pointer operand.  The other case,
+subtraction of two pointers from different domains,
+raises an error.  No other binary operations on pointer
+values are defined, since array indexing expands to
+pointer addition.
+</p>
+</li>
+
+<li>
+<p>
+All other mixed-domain expressions, including
+comparison of pointers from different domains,
+draw an error.
+</p>
+</li>
+</ol>
+
+<p>
+Remember that the above rules are implicitly applied to
+operands of binary expression.  It is always possible
+to explicitly cast either operand in order to arrange
+an evaluation not supported by the rules.
 </p>
 
 
