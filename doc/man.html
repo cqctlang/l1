@@ -2143,7 +2143,7 @@ q = {t}p;
 Unlike the cast operator, the extended cast operator
 expects its type argument to be a defined type, not a
 type name to be resolved.  For example, the following
-expression is problematic because the type operand
+expression draws an error because the type operand
 to the conversion is undefined:
 </p>
 
@@ -2154,18 +2154,13 @@ q = {@typename(struct T*)}p;
 </div>
 
 <p>
-If the value being converted has pointer type, then the
-result of converting it to a pointer type with undefined
-representation (as in the above example), is to inherit
-the pointer representation of the value being
-converted.  In the above example, this results
-in <span class="id">q</span> being a valid pointer,
-with the same pointer representation
-as <span class="id">p</span>, however the type to which
-it points (<span class="id">struct T</span>) remains
-undefined.  If <span class="id">p</span> were not a
-pointer type, then the above expression would draw an
-error.
+As a special case, if the type operand is
+the <em>name</em> <span class="id">void*</span> with
+undefined representation, or any alias for that name,
+and the value being converted has pointer type, then
+the conversion is performed as if the type operand had
+the pointer representation of the type of the value
+being converted.
 </p>
 
 <p>

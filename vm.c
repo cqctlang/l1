@@ -1160,6 +1160,36 @@ rerep(Imm val, Ctype *old, Ctype *new)
 	return _rerep(val, old, new);
 }
 
+static Ctype*
+fixrep(Ctype *t, Rkind rep)
+{
+	Ctypeenum *te;
+	switch(t->tkind){
+	case Ttypedef:
+		return mkctypedef(typetid(t), fixrep(subtype(t), rep));
+	case Tenum:
+		te = (Ctypeenum*)t;
+		return mkctypeenum(typetag(t),
+				   fixrep(subtype(t), rep),
+				   te->konst);
+	case Tptr:
+		return mkctypeptr(subtype(t), rep);
+	default:
+		bug();
+	}
+}
+
+static int
+isvoidstar(Ctype *t)
+{
+	if(t->tkind != Tptr)
+		return 0;
+	t = subtype(t);
+	if(t->tkind != Tvoid)
+		return 0;
+	return 1;
+}
+
 Cval*
 typecast(VM *vm, Ctype *t, Cval *cv)
 {
@@ -1167,17 +1197,16 @@ typecast(VM *vm, Ctype *t, Cval *cv)
 	old = chasetype(cv->type);
 	new = chasetype(t);
 	if(typerep(new) == Rundef){
-		/* steal pointer representation from old */
+		/* if new is void* (or alias), steal
+		 * pointer representation from old */
 		if(typerep(old) == Rundef)
-			/* this is possible? */
-			fatal("whoa.");
-		if(old->tkind != Tptr)
-			vmerr(vm, "attempt to cast to type "
-			      "with undefined representation");
-		/* FIXME: be functional */
-		typesetrep(new, typerep(old));
-	}
-	return mkcval(cv->dom, t, _rerep(cv->val, old, new));
+			bug();
+		if(old->tkind != Tptr || !isvoidstar(new))
+			vmerr(vm, "attempt to cast to undefined type");
+		t = fixrep(t, typerep(old));
+		return mkcval(cv->dom, t, rerep(cv->val, old, t));
+	}else
+		return mkcval(cv->dom, t, _rerep(cv->val, old, new));
 }
 
 static Cval*
