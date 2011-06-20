@@ -36,7 +36,7 @@
 <a href="#sec:ranges">Ranges</a><br />
 <a href="#sec:backtick">Backtick Operator</a><br />
 <a href="#sec:litdom">The Literal Domain</a><br />
-<a href="#sec:casts">Type and Domain Casting</a><br />
+<a href="#sec:casts">Type and Domain Conversion</a><br />
 <a href="#sec:mixeddom">Mixed-domain Expressions</a><br />
 <a href="#sec:cvalueops">C Operators</a><br />
 <a href="#sec:equivalence">Equivalence and other relations</a><br />
@@ -2055,7 +2055,7 @@ in the literal domain (see next section).
 When used in the type operand to the cast operator,
 the meaning is the same as if the domain has been specified,
 since the cast operator always resolves the type name in the domain
-of its other operand (see <a href="#sec:casts">Type and Domain Casting</a>).
+of its other operand (see <a href="#sec:casts">Type and Domain Conversion</a>).
 </p>
 
 
@@ -2076,47 +2076,19 @@ because expressions in this domain never reference memory.
 
 <p>
 Conversion is the process of producing a new cvalue
-from an old one by changing its type and/or its domain.
-Involves a possible change of its underlying encoding.
-Occurs in several circumstance: common type for
-operations, conversion during assignment, and explicit
-conversion by cast operators.
+from an old one by changing its type or domain.
+Cinquecento supports the same explicit and implicit
+type conversion semantics and operations as C, while
+extending the notion of conversion to domains.
 </p>
 
-<p>
-Type conversion occurs in Cinquecento in similar
-circumstances as it does in C: implicitly, such as when
-the operands of an expression are converted to a common
-type, and explicitly, such as when the cast operator is
-applied to a value.
-</p>
+<h5>Explicit conversions</h5>
 
 <p>
-Conversion is the process of obtaining a new cvalue
-
-A cvalue may be converted to a new cvalue
-
-  type and or domain conversion changes the name of the cvalue’s
-type, and possibly applies a transformation to the
-encoding of its value.
-</p>
-
-<p>
-The type name to give to the result of an operation is
-not always obvious. Consider arithmetic of two operands
-whose type names are two different typedefs for
-int. What should the type name of the result be? C
-offers no guidance: in the context of C evaluation
-rules, the types of rvalues are intangible, so the type
-name of this result does not matter. Cinquecento
-chooses a canonical name for the type definition they
-have in common.
-</p>
-
-<p>
-The cast operator <span id="syn:cast" class="id">(
-)</a></span> is used to explicitly convert the type of
-a value.  In expressions of the form
+The cast operator <span id="syn:cast"
+class="id">()</a></span> performs, as in C, an explicit
+conversion of the type of a value.  Expressions of
+the form
 </p>
 
 <div class="code">
@@ -2124,13 +2096,89 @@ a value.  In expressions of the form
 </div>
 
 <p>
-the value of <span class="arg">expr</span> is converted
-to the type named by <span class="arg">typename</span>.
-If <span class="arg">typename</span> is
-a <a href="#sec:qualifiedtname">qualified type
-name</a>, then it is resolved in the name space or
+yield a new cvalue that represents the conversion of the
+value <span class="arg">expr</span> to the
+type named <span class="arg">typename</span>.
+<span class="arg">Typename</span> is
+<a href="#sec:qualifiedtname">qualified type name</a>
+(with optional qualifier).  If the type name provides a
+qualifier, then it is resolved in the name space or
 domain bound to the qualifier.  Otherwise it is
-resolved in the domain of <span class="arg">expr</span>.
+resolved in the domain
+of <span class="arg">expr</span>.
+</p>
+
+<p>
+The cast operator is useful when the name of the type
+to which the value is to be converted is known
+statically and can be written in type name syntax.
+Sometimes, however, the type is determined dynamically,
+and represented by a ctype.  In this case,
+the <em>extended cast
+operator</em> <span id="syn:xcast"
+class="id">{}</a></span> can be used to perform the
+conversion instead.
+</p>
+
+<p>
+For example, the following conversion expression:
+</p>
+
+<div class="code">
+<pre>
+q = (struct dom`T*)p;
+</pre>
+</div>
+
+<p>
+can be expressed (more laboriously) with the extended cast operator: 
+</p>
+
+<div class="code">
+<pre>
+t = looktype(dom, @typename(struct T*));
+q = {t}p;
+</pre>
+</div>
+
+<p>
+Unlike the cast operator, the extended cast operator
+expects its type argument to be a defined type, not a
+type name to be resolved.  For example, the following
+expression draws an error because the type operand
+to the conversion is undefined:
+</p>
+
+<div class="code">
+<pre>
+q = {@typename(struct T*)}p;  /* error */
+</pre>
+</div>
+
+<p>
+The extended cast operator also performs
+<em>domain conversion</em>.
+If <span class="val">dom</span> is a domain, then the
+expession
+</p>
+
+<div class="code">
+<pre>
+q = {dom}p;
+</pre>
+</div>
+
+<p>
+converts <span class="val">p</span> to the
+domain <span class="val">dom</span>.  An implicit type
+conversion occurs as part of domain conversion: the
+name space of the domain operand is searched for a
+definition of the type of the value operand, and the
+resulting cvalue is converted to that type.
+As a special case, when the domain operand is the
+literal domain, the type of the operand is first
+reduced to the base C type, to ensure that there
+exists a definition for the type name.
 </p>
 
 <p>
@@ -2153,6 +2201,140 @@ world\n"</span>.  A new domain is constructed for this
 pointer with the name space of the literal
 domain and a fresh <a href="#fn:mksas"><span class="id">mksas</span></a>
 address space backed by the string operand.
+</p>
+
+<h5>Implicit conversions</h5>
+
+<p>
+Part of the evaluation of C expressions includes
+implicit conversion of the operands.  Cinquecento
+adheres to these rules of C, while extending them to
+expressions whose operands have a mixture of domains.
+</p>
+
+<p>
+<em>Integer promotion</em> is the act of converting a
+value of one of the smaller integer types 
+(<span class="id">_Bool</span>, <span class="id">char</span>,
+<span class="id">unsigned char</span>,
+<span class="id">short</span>,
+or <span class="id">unsigned short</span>) to a value
+of type <span class="id">int</span>.  It is performed
+implicitly to the operand of the unary operators
+<span class="id">+</span>,
+<span class="id">-</span>, <span class="id">~</span>, and
+<span class="id">!</span>.
+</p>
+
+<p>
+A pair of values of different types may be converted to
+values of a common type by the <em>usual
+conversions</em>.  Generally, the usual conversions
+determine the smallest type (in terms of the size of
+the set of values it represents) that can represent
+both values.  The precise rules are based on the usual
+conversions in C.
+</p>
+
+<p>
+Cinquecento extends the usual conversions to pairs of
+cvalues of different domains.  Four rules determine the
+outcome of such <em>mixed-domain expressions</em>.
+</p>
+
+<ol>
+
+<li>
+<p>
+When one operand is from the literal domain and the
+other is from some other domain, the operand from the
+literal domain is implicitly converted to the domain of
+the other operand.
+</p>
+</li>
+
+<li>
+<p>
+When the two operands are from different non-literal
+domains and neither operand has a pointer type, both
+operands are converted to the literal domain.
+</p>
+</li>
+
+<li>
+<p>
+When the two operands are from different non-literal
+domains and at least one operand has a pointer type,
+the result depends on the operation.  For pointer
+addition, the non-pointer operand is converted to the
+domain of the pointer operand.  (Addition is invalid
+when both operands are pointers.)  For pointer
+subtraction,
+</p>
+</li>
+
+<p>
+The third rule concerns mixed expressions in which one
+operand is a pointer.  Pointer addition operations
+(including array subscripting) comprise one pointer
+operand and one arithmetic operand.  In mixed-domain
+pointer addition, the domain of the arithmetic operand
+is implicitly cast to that of the pointer operand.
+Since the type of the result is pointer, the domain of
+the result should remain in the domain of the pointer
+operand.  (This rule also maintains consistency with
+the rule for literals.)  Pointer subtraction operations
+involve either one pointer operand and one arithmetic
+operand or two pointer operands.  In the former case,
+the rule is the same as that for pointer addition.  The
+latter case is disallowed: it makes no sense to relate
+locations in two different address spaces.  A program
+that wishes to do so must explicitly domain cast one of
+the operands.
+</p>
+
+<p>
+The final rule is that all other mixed-domain
+expressions are disallowed.  Generally this rule covers
+the other mixed-domain pointer expressions.  For
+example, comparison of pointers from different domains
+is prohibited for the same reason that pointer
+subtraction is prohibited.  An explicit domain cast can
+be used to circumvent this rule.
+</p>
+
+</ol>
+
+<p>
+Three conversions implicitly occur during the evaluation
+of any of the binary operators
+<span class="id">+</span>,
+<span class="id">-</span>,
+<span class="id">*</span>,
+<span class="id">/</span>,
+<span class="id">%</span>,
+<span class="id">&</span>,
+<span class="id">|</span>,
+<span class="id">^</span>
+<span class="id">&lt;</span>,
+<span class="id">&gt;</span>,
+<span class="id">&lt;=</span>,
+<span class="id">&gt;=</span>,
+<span class="id">==</span>,
+<span class="id">!=</span>.
+First, integer promotion is applied to operands of different types.
+</p>
+
+<p>
+The type name to give to the result of an operation is
+not always obvious. Consider arithmetic of two operands
+whose type names are two different typedefs for
+int. What should the type name of the result be? C
+offers no guidance: in the context of C evaluation
+rules, the types of rvalues are intangible, so the type
+name of this result does not matter. Cinquecento
+chooses a canonical name for the type definition they
+have in common.
 </p>
 
 
@@ -4635,12 +4817,9 @@ syntax are allowed:
 <em>Type names</em> refer to types declared
 elsewhere.  They may appear in symbol and type
 definitions within the body of
-the <a href="#syn:_at_names">@names</a> form, as
+the <a href="#syn:_at_names">@names</a> form, and as
 the operand to
-the <a href="#syn:_at_typename">@typename</a> form,
-and as the
-first operand to the cast
-operator <a href="#syn:cast">( )</a>.
+the <a href="#syn:_at_typename">@typename</a> form.
 Their syntax is C type name syntax:
 <div class="code">
 <pre>
@@ -4787,10 +4966,9 @@ parser does not support that.)
 </p>
 
 <p>
-Qualifiers are always optional.  Again, the meaning of
-omitted qualifiers depends on the context.  For base
-type names and tagged type names, omitting the qualifier
-syntactically means writing ordinary C type names:
+Qualifiers are optional and may be omitted.  To omit
+the qualifier in base type names and tagged type names,
+just write the ordinary C type name:
 </p>
 
 <div class="code">
@@ -4821,8 +4999,7 @@ This syntactic quirk is an unfortunate artifact of a
 limitation in our method for parsing Cinquecento.  This
 quirk affects any form that accepts both unqualified or
 qualified type names
-(<em>i.e.</em>, <a href="#syn:sizeof">sizeof</a> and the
-cast operator).  In these forms,
+(<em>i.e.</em>, <a href="#syn:sizeof">sizeof</a>).  In these forms,
 unqualified <span class="val">typedef</span> type names
 must include the backtick.  For example, in Cinquecento
 we write:
