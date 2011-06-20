@@ -37,7 +37,6 @@
 <a href="#sec:backtick">Backtick Operator</a><br />
 <a href="#sec:litdom">The Literal Domain</a><br />
 <a href="#sec:casts">Type and Domain Conversion</a><br />
-<a href="#sec:mixeddom">Mixed-domain Expressions</a><br />
 <a href="#sec:cvalueops">C Operators</a><br />
 <a href="#sec:equivalence">Equivalence and other relations</a><br />
 <a href="#sec:pointers">Pointers</a><br />
@@ -2364,68 +2363,6 @@ to explicitly cast either operand in order to arrange
 an evaluation not supported by the rules.
 </p>
 
-
-<h4 id="sec:mixeddom">Mixed-domain Expressions</h4>
-
-<p>
-A binary C operator may be applied to cvalue operands
-from two different domains.  Several rules determine
-the outcome of such <em>mixed-domain expressions</em>.
-These rules give sensible meaning to mixed-domain
-expressions that yield or compare arithmetic
-quantities, but disallow rarely sensible
-mixed-domain combinations of pointer values.
-</p>
-
-<p>
-The first rule concerns expressions in which exactly
-one operand is from the literal domain,
-such as
-<span class="val">dom`x+5</span>.
-The domain of the literal operand is implicitly
-converted to the domain of the other, non-literal
-operand.
-</p>
-
-<p>
-The second rule concerns mixed-domain arithmetic,
-bitwise, and relational operations on non-literal
-operands that are not pointers.  Such operands are both
-converted to the literal domain.  This rule allows
-comparison or aggregation of arithmetic values from
-different domains to be expressed naturally without the
-clutter of explicit domain conversions.
-</p>
-
-<p>
-The third rule concerns mixed expressions in which one
-operand is a pointer.  Pointer addition operations
-(including array subscripting) comprise one pointer
-operand and one arithmetic operand.  In mixed-domain
-pointer addition, the domain of the arithmetic operand
-is implicitly cast to that of the pointer operand.
-Since the type of the result is pointer, the domain of
-the result should remain in the domain of the pointer
-operand.  (This rule also maintains consistency with
-the rule for literals.)  Pointer subtraction operations
-involve either one pointer operand and one arithmetic
-operand or two pointer operands.  In the former case,
-the rule is the same as that for pointer addition.  The
-latter case is disallowed: it makes no sense to relate
-locations in two different address spaces.  A program
-that wishes to do so must explicitly domain cast one of
-the operands.
-</p>
-
-<p>
-The final rule is that all other mixed-domain
-expressions are disallowed.  Generally this rule covers
-the other mixed-domain pointer expressions.  For
-example, comparison of pointers from different domains
-is prohibited for the same reason that pointer
-subtraction is prohibited.  An explicit domain cast can
-be used to circumvent this rule.
-</p>
 
 
 <h4 id="sec:cvalueops">C Operators</h4>
