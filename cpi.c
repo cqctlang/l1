@@ -264,11 +264,11 @@ smush(Expr* p, Expr *tail)
         if(p->kind != Eelist) fatal("bug in smush");
         switch(p->e1->kind){
         case Ecase:
-                p->e1->e2 = Zblock(nullelist(), p->e1->e2, p->e2);
+                p->e1->e2 = Zblock(nullelist(), p->e1->e2, p->e2, NULL);
                 p->e2 = tail;
                 break;
         case Edefault:
-                p->e1->e1 = Zblock(nullelist(), p->e1->e1, p->e2);
+                p->e1->e1 = Zblock(nullelist(), p->e1->e1, p->e2, NULL);
                 p->e2 = tail;
                 break;
         default:
