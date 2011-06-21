@@ -1160,6 +1160,36 @@ rerep(Imm val, Ctype *old, Ctype *new)
 	return _rerep(val, old, new);
 }
 
+static Ctype*
+fixrep(Ctype *t, Rkind rep)
+{
+	Ctypeenum *te;
+	switch(t->tkind){
+	case Ttypedef:
+		return mkctypedef(typetid(t), fixrep(subtype(t), rep));
+	case Tenum:
+		te = (Ctypeenum*)t;
+		return mkctypeenum(typetag(t),
+				   fixrep(subtype(t), rep),
+				   te->konst);
+	case Tptr:
+		return mkctypeptr(subtype(t), rep);
+	default:
+		bug();
+	}
+}
+
+static int
+isvoidstar(Ctype *t)
+{
+	if(t->tkind != Tptr)
+		return 0;
+	t = subtype(t);
+	if(t->tkind != Tvoid)
+		return 0;
+	return 1;
+}
+
 Cval*
 typecast(VM *vm, Ctype *t, Cval *cv)
 {
@@ -1167,17 +1197,16 @@ typecast(VM *vm, Ctype *t, Cval *cv)
 	old = chasetype(cv->type);
 	new = chasetype(t);
 	if(typerep(new) == Rundef){
-		/* steal pointer representation from old */
+		/* if new is void* (or alias), steal
+		 * pointer representation from old */
 		if(typerep(old) == Rundef)
-			/* this is possible? */
-			fatal("whoa.");
-		if(old->tkind != Tptr)
-			vmerr(vm, "attempt to cast to type "
-			      "with undefined representation");
-		/* FIXME: be functional */
-		typesetrep(new, typerep(old));
-	}
-	return mkcval(cv->dom, t, _rerep(cv->val, old, new));
+			bug();
+		if(old->tkind != Tptr || !isvoidstar(new))
+			vmerr(vm, "attempt to cast to undefined type");
+		t = fixrep(t, typerep(old));
+		return mkcval(cv->dom, t, rerep(cv->val, old, t));
+	}else
+		return mkcval(cv->dom, t, _rerep(cv->val, old, new));
 }
 
 static Cval*
@@ -2364,30 +2393,26 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 		vmerr(vm, "operand 2 to extended cast operator must be a"
 		      " cvalue or string");
 	tv = getvalrand(vm, typeordom);
+	if(Vkind(ov) == Qstr)
+		cv = str2voidstar(litdom->ns, valstr(ov));
+	else
+		cv = valcval(ov);
 	if(Vkind(tv) != Qctype && Vkind(ov) == Qstr)
 		vmerr(vm, "illegal conversion");
 	if(Vkind(tv) == Qctype){
 		t = valctype(tv);
 		if(!iscvaltype(t))
 			vmerr(vm, "bad type conversion");
-		if(Vkind(ov) == Qstr){
-			if(!isptrtype(t))
-				vmerr(vm, "bad type conversion");
-			cv = str2voidstar(litdom->ns, valstr(ov));
-		}else
-			cv = valcval(ov);
 		rv = mkvalcval2(typecast(vm, t, cv));
 	}else if(Vkind(tv) == Qdom){
 		d = valdom(tv);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else if(Vkind(tv) == Qns){
-		cv = valcval(ov);
 		d = mkdom(valns(tv), cv->dom->as, 0);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else if(Vkind(tv) == Qas){
-		cv = valcval(ov);
 		d = mkdom(cv->dom->ns, valas(tv), 0);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else
 		vmerr(vm, "bad type for operand 1 to extended cast operator");
 	putvalrand(vm, rv, dst);
@@ -5280,9 +5305,9 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		sz = len->val;
 	}
 	if(sz == 0){
-		if(addr->type->tkind != Tptr)
+		if(!isptrtype(addr->type))
 			vmerr(vm, "ismapped expects a pointer cvalue");
-		sz = typesize(vm, subtype(addr->type));
+		sz = typesize(vm, subtype(chasetype(addr->type)));
 	}
 	if(ismapped(vm, addr->dom->as, addr->val, sz))
 		*rv = mkvalcval2(cval1);
