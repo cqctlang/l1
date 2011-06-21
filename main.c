@@ -541,6 +541,7 @@ main(int argc, char *argv[])
 	valc = 0;
 	valv = 0;
 	argsid = 0;
+	rv = 0;
 	if(!dorepl){
 		valc = argc-optind+1;
 		valv = emalloc(valc*sizeof(Val));
