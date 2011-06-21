@@ -13,7 +13,19 @@ eqcval(Cval *a, Cval *b)
 {
 	if(a->val != b->val)
 		return 0;
-	return equalctype(a->type, b->type);
+	return eqvctype(a->type, b->type);
+}
+
+u32
+hashqvcval(Cval *v)
+{
+	return hashqcval(v);
+}
+
+int
+eqvcval(Cval *a, Cval *b)
+{
+	return eqcval(a, b);
 }
 
 u32

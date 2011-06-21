@@ -1,0 +1,11 @@
+@define third(x) {
+  switch (x) {
+  case [_,_,h,_ ...]: return h;
+  default: printf("non-list or length < 3\n"); return -1;
+  }
+}
+
+printf("got %d\n", third([1,2,3]));
+printf("got %d\n", third([1,2,4,8,10]));
+third([1,2]);
+third("hello");

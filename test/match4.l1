@@ -1,0 +1,18 @@
+@define listapp_(l1,l2) {
+  if (!islist(l2)) {
+    append(l1,l2);
+    return l1;
+  }
+  while (!isempty(l2)) {
+    switch (l2) {
+    case []: break;
+    case [h,t...]: append(l1,h); l2 = t; break;
+    }
+  }
+  return l1;
+}
+
+printf("%a\n", listapp_([],[1,2,3]));
+printf("%a\n", listapp_([1,2,3],[]));
+printf("%a\n", listapp_([1,2],[3,4,5]));
+printf("%a\n", listapp_([[1,2],[3,4,5]],[[1,2]]));

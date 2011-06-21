@@ -391,6 +391,22 @@ Zlambdn(Expr *args, Expr *body, Expr *name)
 	return newexpr(Elambda, args, body, name, 0);
 }
 
+int
+hasvarg(Expr *e)
+{
+	Expr *p;
+	p = e;
+	while(p->kind == Eelist){
+		if(p->e1->kind == Eellipsis){
+			if(p->e2->kind != Enull)
+				fatal("bug");
+			return 1;
+		}
+		p = p->e2;
+	}
+	return 0;
+}
+
 Expr*
 Zvararg(Expr *id)
 {

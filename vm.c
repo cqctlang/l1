@@ -269,7 +269,81 @@ mkfdcl(Str *name, int flags,
 }
 
 int
-eqval(Val v1, Val v2)
+eqvval(Val v1, Val v2)
+{
+	if(Vkind(v1) != Vkind(v2))
+		return 0;
+	switch(Vkind(v1)){
+	case Qundef:
+	case Qbox:
+		bug();
+	case Qnil:
+		return 1;
+	case Qas:
+	case Qcid:
+	case Qcl:
+	case Qdom:
+	case Qfd:
+	case Qns:
+	case Qpair:
+	case Qrd:
+	case Qrec:
+	case Qtab:
+		return eqptr(v1, v2);
+	case Qctype:
+		return eqvctype(valctype(v1), valctype(v2));
+	case Qcval:
+		return eqvcval(valcval(v1), valcval(v2));
+	case Qlist:
+		return equallist(vallist(v1), vallist(v2));
+	case Qrange:
+		return equalrange(valrange(v1), valrange(v2));
+	case Qstr:
+		return equalstr(valstr(v1), valstr(v2));
+	case Qvec:
+		return equalvec(valvec(v1), valvec(v2));
+	}
+	bug();
+}
+
+u32
+hashqvval(Val v)
+{
+	switch(Vkind(v)){
+	case Qundef:
+	case Qbox:
+		bug();
+	case Qnil:
+		return hashp(Xnil);
+	case Qas:
+	case Qcid:
+	case Qcl:
+	case Qdom:
+	case Qfd:
+	case Qns:
+	case Qpair:
+	case Qrd:
+	case Qrec:
+	case Qtab:
+		return hashptr(v);
+	case Qctype:
+		return hashqvctype(valctype(v));
+	case Qcval:
+		return hashqvcval(valcval(v));
+	case Qlist:
+		return hashlist(vallist(v));
+	case Qrange:
+		return hashrange(valrange(v));
+	case Qstr:
+		return hashstr(valstr(v));
+	case Qvec:
+		return hashvec(valvec(v));
+	}
+	bug();
+}
+
+int
+equalval(Val v1, Val v2)
 {
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
@@ -293,7 +367,7 @@ eqval(Val v1, Val v2)
 	case Qctype:
 		return equalctype(valctype(v1), valctype(v2));
 	case Qcval:
-		return eqcval(valcval(v1), valcval(v2));
+		return equalcval(valcval(v1), valcval(v2));
 	case Qlist:
 		return equallist(vallist(v1), vallist(v2));
 	case Qrange:
@@ -329,7 +403,7 @@ hashval(Val v)
 	case Qctype:
 		return hashctype(valctype(v));
 	case Qcval:
-		return hashqcval(valcval(v));
+		return hashcval(valcval(v));
 	case Qlist:
 		return hashlist(vallist(v));
 	case Qrange:
@@ -1086,6 +1160,36 @@ rerep(Imm val, Ctype *old, Ctype *new)
 	return _rerep(val, old, new);
 }
 
+static Ctype*
+fixrep(Ctype *t, Rkind rep)
+{
+	Ctypeenum *te;
+	switch(t->tkind){
+	case Ttypedef:
+		return mkctypedef(typetid(t), fixrep(subtype(t), rep));
+	case Tenum:
+		te = (Ctypeenum*)t;
+		return mkctypeenum(typetag(t),
+				   fixrep(subtype(t), rep),
+				   te->konst);
+	case Tptr:
+		return mkctypeptr(subtype(t), rep);
+	default:
+		bug();
+	}
+}
+
+static int
+isvoidstar(Ctype *t)
+{
+	if(t->tkind != Tptr)
+		return 0;
+	t = subtype(t);
+	if(t->tkind != Tvoid)
+		return 0;
+	return 1;
+}
+
 Cval*
 typecast(VM *vm, Ctype *t, Cval *cv)
 {
@@ -1093,20 +1197,19 @@ typecast(VM *vm, Ctype *t, Cval *cv)
 	old = chasetype(cv->type);
 	new = chasetype(t);
 	if(typerep(new) == Rundef){
-		/* steal pointer representation from old */
+		/* if new is void* (or alias), steal
+		 * pointer representation from old */
 		if(typerep(old) == Rundef)
-			/* this is possible? */
-			fatal("whoa.");
-		if(old->tkind != Tptr)
-			vmerr(vm, "attempt to cast to type "
-			      "with undefined representation");
-		/* FIXME: be functional */
-		typesetrep(new, typerep(old));
-	}
-	return mkcval(cv->dom, t, _rerep(cv->val, old, new));
+			bug();
+		if(old->tkind != Tptr || !isvoidstar(new))
+			vmerr(vm, "attempt to cast to undefined type");
+		t = fixrep(t, typerep(old));
+		return mkcval(cv->dom, t, rerep(cv->val, old, t));
+	}else
+		return mkcval(cv->dom, t, _rerep(cv->val, old, new));
 }
 
-Cval*
+static Cval*
 domcastbase(VM *vm, Dom *dom, Cval *cv)
 {
 	Ctype *t, *old, *new;
@@ -1380,7 +1483,7 @@ xcalltc(VM *vm)
 	vmsetcl(vm, vm->cl);
 	vm->pc = stkimm(vm->stack[vm->sp]);
 	vm->sp += 3; /* should be vmpop(vm, 3), but only declared below */
-	
+
 	vm->ac = Xnil; /* FIXME: okay?  why doesn't callc do this? */
 	if(cl->cfn)
 		cl->cfn(vm, argc, argv, &vm->ac);
@@ -1926,7 +2029,7 @@ dostr:
 	if(op != Icmpeq && op != Icmpneq)
 		vmerr(vm, "incompatible operands for binary %s", opstr[op]);
 
-	nv = eqval(v1, v2);
+	nv = equalval(v1, v2);
 	if(op == Icmpneq)
 		nv = !nv;
 	if(nv)
@@ -2290,30 +2393,26 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 		vmerr(vm, "operand 2 to extended cast operator must be a"
 		      " cvalue or string");
 	tv = getvalrand(vm, typeordom);
+	if(Vkind(ov) == Qstr)
+		cv = str2voidstar(litdom->ns, valstr(ov));
+	else
+		cv = valcval(ov);
 	if(Vkind(tv) != Qctype && Vkind(ov) == Qstr)
 		vmerr(vm, "illegal conversion");
 	if(Vkind(tv) == Qctype){
 		t = valctype(tv);
 		if(!iscvaltype(t))
 			vmerr(vm, "bad type conversion");
-		if(Vkind(ov) == Qstr){
-			if(!isptrtype(t))
-				vmerr(vm, "bad type conversion");
-			cv = str2voidstar(litdom->ns, valstr(ov));
-		}else
-			cv = valcval(ov);
 		rv = mkvalcval2(typecast(vm, t, cv));
 	}else if(Vkind(tv) == Qdom){
 		d = valdom(tv);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else if(Vkind(tv) == Qns){
-		cv = valcval(ov);
 		d = mkdom(valns(tv), cv->dom->as, 0);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else if(Vkind(tv) == Qas){
-		cv = valcval(ov);
 		d = mkdom(cv->dom->ns, valas(tv), 0);
-		rv = mkvalcval2(domcast(vm, d, valcval(ov)));
+		rv = mkvalcval2(domcast(vm, d, cv));
 	}else
 		vmerr(vm, "bad type for operand 1 to extended cast operator");
 	putvalrand(vm, rv, dst);
@@ -2697,7 +2796,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 			if(tmp == 0)
 				return 0;
 			vecset(v2, Typepos, mkvalctype(tmp));
-		}			
+		}
 		return mkctypefunc(sub, v1);
 	case Tundef:
 		/* FIXME: do we want this? */
@@ -5206,9 +5305,9 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		sz = len->val;
 	}
 	if(sz == 0){
-		if(addr->type->tkind != Tptr)
+		if(!isptrtype(addr->type))
 			vmerr(vm, "ismapped expects a pointer cvalue");
-		sz = typesize(vm, subtype(addr->type));
+		sz = typesize(vm, subtype(chasetype(addr->type)));
 	}
 	if(ismapped(vm, addr->dom->as, addr->val, sz))
 		*rv = mkvalcval2(cval1);
@@ -5337,7 +5436,14 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(vm, lst, i)))
+				m++;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(equalval(v, vecdata(vec)[i]))
 				m++;
 		break;
 	case Qstr:
@@ -5350,13 +5456,6 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = str->len;
 		for(i = 0; i < len; i++)
 			if(c == strdata(str)[i])
-				m++;
-		break;
-	case Qvec:
-		vec = valvec(argv[0]);
-		len = vec->len;
-		for(i = 0; i < len; i++)
-			if(eqval(v, vecdata(vec)[i]))
 				m++;
 		break;
 	}
@@ -5385,7 +5484,14 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(vm, lst, i)))
+				goto gotit;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(equalval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	case Qstr:
@@ -5398,13 +5504,6 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = str->len;
 		for(i = 0; i < len; i++)
 			if(c == strdata(str)[i])
-				goto gotit;
-		break;
-	case Qvec:
-		vec = valvec(argv[0]);
-		len = vec->len;
-		for(i = 0; i < len; i++)
-			if(eqval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	}
@@ -5437,7 +5536,14 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(eqval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(vm, lst, i)))
+				goto gotit;
+		break;
+	case Qvec:
+		vec = valvec(argv[0]);
+		len = vec->len;
+		for(i = 0; i < len; i++)
+			if(equalval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	case Qstr:
@@ -5450,13 +5556,6 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = str->len;
 		for(i = 0; i < len; i++)
 			if(c == strdata(str)[i])
-				goto gotit;
-		break;
-	case Qvec:
-		vec = valvec(argv[0]);
-		len = vec->len;
-		for(i = 0; i < len; i++)
-			if(eqval(v, vecdata(vec)[i]))
 				goto gotit;
 		break;
 	case Qtab:
@@ -5488,7 +5587,7 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		i = 0;
 		while(i < listlen(lst)){
-			if(!eqval(v, listref(vm, lst, i)))
+			if(!equalval(v, listref(vm, lst, i)))
 				i++;
 			else
 				listdel(vm, lst, i);
@@ -5921,10 +6020,10 @@ l1_applyk(VM *vm, Imm iargc, Val *iargv, Val *rv)
 
 	if(iargc < 4)
 		vmerr(vm, "wrong number of arguments to applyk");
-	checkarg(vm, "apply", iargv, 0, Qcl);
-	checkarg(vm, "apply", iargv, 1, Qcl);
-	checkarg(vm, "apply", iargv, 2, Qcl);
-	checkarg(vm, "apply", iargv, iargc-1, Qlist);
+	checkarg(vm, "applyk", iargv, 0, Qcl);
+	checkarg(vm, "applyk", iargv, 1, Qcl);
+	checkarg(vm, "applyk", iargv, 2, Qcl);
+	checkarg(vm, "applyk", iargv, iargc-1, Qlist);
 	ll = listlen(vallist(iargv[iargc-1]));
 	argc = iargc-4+ll;
 	argv = emalloc(argc*sizeof(Val));

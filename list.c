@@ -155,7 +155,7 @@ equallist(List *a, List *b)
 	if(len != listlen(b))
 		return 0;
 	for(m = 0; m < len; m++)
-		if(!eqval(listdata(a)[a->h+m], listdata(b)[b->h+m]))
+		if(!equalval(listdata(a)[a->h+m], listdata(b)[b->h+m]))
 			return 0;
 	return 1;
 }

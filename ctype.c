@@ -156,6 +156,18 @@ iterctype(Head *hd, Ictx *ictx)
 }
 
 u32
+hashqvctype(Ctype *t)
+{
+	return hashctype(t);
+}
+
+int
+eqvctype(Ctype *a, Ctype *b)
+{
+	return equalctype(a, b);
+}
+
+u32
 hashctype(Ctype *t)
 {
 	u32 x;
@@ -1820,6 +1832,27 @@ l1_typename(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalctype(typename(valctype(argv[0])));
 }
 
+static void
+l1_equalctype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to equalctype");
+	checkarg(vm, "equalctype", argv, 0, Qctype);
+	checkarg(vm, "equalctype", argv, 1, Qctype);
+	if(equalctype(valctype(argv[0]), valctype(argv[1])))
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
+l1_hashctype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to hashctype");
+	*rv = mkvalcval2(mklitcval(Vuint, hashctype(valctype(argv[0]))));
+}
+
 void
 fnctype(Env *env)
 {
@@ -1831,7 +1864,9 @@ fnctype(Env *env)
 	FN(bitfieldpos);
 	FN(bitfieldwidth);
 	FN(enumconsts);
+	FN(equalctype);
 	FN(fields);
+	FN(hashctype);
 	FN(isarray);
 	FN(isbase);
 	FN(isbitfield);

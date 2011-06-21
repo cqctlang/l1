@@ -32,6 +32,7 @@ extern char *yytext;
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
 %token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
+%token LPAIR RPAIR NOBIND_PRE
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -178,12 +179,19 @@ primary_expression
 	{ $$ = doconstssrc(&ctx->inp->src, $1.p, $1.len); }
 	| '(' expression ')'
 	{ $$ = $2; }
+        | LPAIR root_expression ',' root_expression RPAIR
+	{ $$ = newexprsrc(&ctx->inp->src, Epair, $2, $4, 0, 0); }
 	| '[' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
 	| '[' argument_expression_list ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
 	| '[' argument_expression_list ',' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
+	| '[' argument_expression_list ELLIPSIS ']'
+	{ Expr *ell = newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0);
+          $$ = newexprsrc(&ctx->inp->src, Elist,
+                          invert(newexprsrc(&ctx->inp->src, Eelist,
+                                            ell, $2, 0, 0)), 0, 0, 0); }
 	| '[' ':' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); }
 	| '[' table_init_list ']'
@@ -548,7 +556,7 @@ struct_declaration_list
 			$$ = Znull();
 	}
 	| struct_declaration_list struct_declaration
-	{ 
+	{
 		/* labels yield null struct_declarations */
 	 	if($2)
 			$$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0);

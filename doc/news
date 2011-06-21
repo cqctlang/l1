@@ -189,3 +189,16 @@ jun 05 2011
 
 	The extended accessor ctype variant has been
 	eliminated.
+
+jun 12 2011
+
+	The equivalence predicate (equal) applied by
+	tables has been relaxed to disregard the type
+	of cvalues.  
+
+	Tables constructed by the new function mktabqv
+	reflect the previous behavior, supported by a
+	new equivalence predicate (eqv) and associated
+	hash function (hashqv).
+
+	The details of equivalence are now documented.

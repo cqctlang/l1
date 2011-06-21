@@ -21,7 +21,7 @@ equalvec(Vec *a, Vec *b)
 	if(len != b->len)
 		return 0;
 	for(m = 0; m < len; m++)
-		if(!eqval(vecdata(a)[m], vecdata(b)[m]))
+		if(!equalval(vecdata(a)[m], vecdata(b)[m]))
 			return 0;
 	return 1;
 }

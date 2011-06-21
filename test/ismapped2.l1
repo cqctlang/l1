@@ -1,0 +1,19 @@
+ns = @names c32le {
+	typedef struct X X;
+	struct X {
+		@0	int x;
+		@4;
+	};
+	typedef struct X* Xp;
+};
+
+p = (struct ns`X*)mkstr(4);
+printf("ismapped(p) == %d\n", ismapped(p));
+
+q = (ns`X*)mkstr(4);
+printf("ismapped(q) == %d\n", ismapped(q));
+
+r = (ns`Xp)mkstr(4);
+printf("ismapped(r) == %d\n", ismapped(r));
+
+

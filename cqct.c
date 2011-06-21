@@ -142,6 +142,7 @@ static Pass all[] = {
 	CP(a),
 	CP(0),
 	CP(g),
+	CP(k),
 	CP(l),
 	CP(i),
 	CP(1),

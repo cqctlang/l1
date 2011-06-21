@@ -1,0 +1,4 @@
+entry: var params, 2 locals, 0 temps
+foo: 1 params, 3 locals, 0 temps
+y=3 x=[ 1, 2, 3 ]
+y=6 x=[ 3, 4 ]

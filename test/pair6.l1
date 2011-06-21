@@ -1,0 +1,7 @@
+x = nil;
+for(i = 0; i < 10; i++)
+     x = <| i, x |>;
+while(!isnil(x)){
+     print(car(x));
+     x = cdr(x);
+}

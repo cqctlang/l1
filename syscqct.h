@@ -89,6 +89,7 @@ enum{
 	Ele,
 	Eletrec,
 	Elist,
+	Epair,
 	Elor,
 	Elt,
 	Emkctype,
@@ -285,6 +286,8 @@ struct Tab {
 	u32 sz, nent;
 	Vec *ht;
 	Pair *tg;		/* transport guardian */
+	int (*equal)(Val, Val);
+	u32 (*hash)(Val);
 };
 
 struct List {
@@ -905,6 +908,9 @@ Expr*		docompile0(U *ctx, Expr *e);
 /* compileg.c */
 Expr*		docompileg(U *ctx, Expr *e);
 
+/* compilek.c */
+Expr*		docompilek(U *ctx, Expr *e);
+
 /* compilel.c */
 Expr*		docompilel(U *ctx, Expr *e);
 
@@ -984,13 +990,15 @@ int		envbinds(Env *env, Cid *id);
 void		envdefine(Env *env, Cid *id, Val v);
 Val		envget(Env *env, Cid *id);
 Pair*		envgetkv(Env *env, Cid *id);
-int		eqval(Val v1, Val v2);
+int		equalval(Val v1, Val v2);
+int		eqvval(Val v1, Val v2);
 Val		expr2syntax(Expr *e);
 void		freeenv(Env *env);
 void		fvmbacktrace(VM *vm);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
 int		getlasterrno();
 u32		hashval(Val v);
+u32		hashqvval(Val v);
 void		initvm();
 int		isbasecval(Cval *cv);
 int		isnatcval(Cval *cv);
@@ -1171,6 +1179,7 @@ Expr*		Ztgn(char *id, unsigned long len, Expr *e);
 Expr*		Ztid(char *id);
 Expr*		Ztidn(char *id, unsigned long len);
 Expr*		Zuint(Imm val);
+int		hasvarg(Expr *e);
 Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);
 
@@ -1216,9 +1225,11 @@ Cid*		mkcid0(char *s);
 /* ctype.c */
 Ctype*		chasetype(Ctype *t);
 int		equalctype(Ctype *a, Ctype *b);
+int		eqvctype(Ctype *a, Ctype *b);
 void		finitype();
 void		fnctype(Env *env);
 u32		hashctype(Ctype *t);
+u32		hashqvctype(Ctype *t);
 void		inittype();
 Val*		iterctype(Head *hd, Ictx *ictx);
 Ctype*		mkctypearr(Ctype *sub, Val cnt);
@@ -1245,8 +1256,10 @@ Cid*		typetid(Ctype *t);
 /* cval.c */
 u32		hashcval(Cval *v);
 u32		hashqcval(Cval *v);
+u32		hashqvcval(Cval *v);
 int		eqcval(Cval *a, Cval *b);
 int		equalcval(Cval *a, Cval *b);
+int		eqvcval(Cval *a, Cval *b);
 
 /* list.c */
 int		equallist(List *a, List *b);
@@ -1274,6 +1287,7 @@ List*		mklistn(Imm sz);
 /* tab.c */
 void		fntab(Env *env);
 Tab*		mktab(void);
+Tab*		mktabqv(void);
 int		islink(Val v);
 void		l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv);

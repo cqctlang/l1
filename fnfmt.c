@@ -365,6 +365,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Cval *cv;
 	Closure *cl;
 	List *l;
+	Pair *p;
 	Vec *v;
 	Range *r;
 	Rd *rd;
@@ -470,7 +471,6 @@ fmtval(VM *vm, Fmt *f, Val val)
 			snprint(buf, sizeof(buf), "<domain>");
 		return fmtputs0(vm, f, buf);
 	case Qfd:
-	case Qpair:
 	case Qtab:
 		hd = valhead(val);
 		snprint(buf, sizeof(buf), "<%s>", qname[Vkind(hd)]);
@@ -510,6 +510,23 @@ fmtval(VM *vm, Fmt *f, Val val)
 				return -1;
 		}
 		return fmtputs0(vm, f, " ]");
+	case Qpair:
+		p = valpair(val);
+		if (isweak(&p->hd)) {
+			if(fmtputs0(vm, f, "<W|"))
+				return -1;
+		}
+		else {
+			if(fmtputs0(vm, f, "<|"))
+				return -1;
+		}
+		if(fmtval(vm, f, p->car))
+			return -1;
+		if(fmtputs0(vm, f, ", "))
+			return -1;
+		if(fmtval(vm, f, p->cdr))
+			return -1;
+		return fmtputs0(vm, f, " |>");		
 	case Qrange:
 		r = valrange(val);
  		snprint(buf, sizeof(buf),

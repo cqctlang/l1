@@ -80,6 +80,7 @@ char* S[] = {
 	[Ele] =		"Ele",
 	[Eletrec] =	"Eletrec",
 	[Elist] =	"Elist",
+	[Epair] =	"Epair",
 	[Elor] =	"Elor",
 	[Elt] =		"Elt",
 	[Emkctype] =	"Emkctype",

@@ -1,0 +1,6 @@
+{
+	goto nil;
+	nil:
+		printf("here\n");
+}
+	

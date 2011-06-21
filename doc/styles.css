@@ -19,7 +19,13 @@ sup {
 	font-size: smaller;
 }
 
-ol, ul {
+ol {
+//	margin-right: 20px;
+	margin-left: 20px;
+	margin-bottom: 10px;
+}
+
+ul {
 //	margin-right: 20px;
 	margin-left: 20px;
 	margin-bottom: 10px;
@@ -219,6 +225,8 @@ dl.bolddt-indentdd {
 
 .fnindex {
 //	color: navy;
+	-webkit-column-count: 4;
+	-moz-column-count: 4;
 	font-family: monospace;
 //	font-weight: bold;
 
