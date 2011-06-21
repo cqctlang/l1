@@ -113,7 +113,8 @@
      SYNTAXUNQUOTE = 330,
      SYNTAXSPLICE = 331,
      LPAIR = 332,
-     RPAIR = 333
+     RPAIR = 333,
+     NOBIND_PRE = 334
    };
 #endif
 
@@ -139,7 +140,7 @@ typedef union YYSTYPE
 
 
 /* Line 2638 of glr.c  */
-#line 143 "c.tab.h"
+#line 144 "c.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 #endif

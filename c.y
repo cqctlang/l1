@@ -189,8 +189,8 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
 	| '[' argument_expression_list ELLIPSIS ']'
 	{ Expr *ell = newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0);
-          $$ = newexprsrc(&ctx->inp->src, Elist, 
-                          invert(newexprsrc(&ctx->inp->src, Eelist, 
+          $$ = newexprsrc(&ctx->inp->src, Elist,
+                          invert(newexprsrc(&ctx->inp->src, Eelist,
                                             ell, $2, 0, 0)), 0, 0, 0); }
 	| '[' ':' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); }
@@ -556,7 +556,7 @@ struct_declaration_list
 			$$ = Znull();
 	}
 	| struct_declaration_list struct_declaration
-	{ 
+	{
 		/* labels yield null struct_declarations */
 	 	if($2)
 			$$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0);
