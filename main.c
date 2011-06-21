@@ -527,7 +527,7 @@ main(int argc, char *argv[])
 			cqctfini(top);
 			return -1;
 		}
-		memset(&sa, sizeof(sa), 0);
+		memset(&sa, 0, sizeof(sa));
 		sa.sa_handler = sigint;
 		sigaction(SIGINT, &sa, 0);
 	}
