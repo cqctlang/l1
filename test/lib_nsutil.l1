@@ -1,0 +1,42 @@
+@include <nsutil.cqct>
+
+ns1 = @names c32le {
+	@0x0 int zero;
+	@0x100 int onehundred;
+	@0x111 void* oneeleven;
+	struct s1 {
+		@0	int d;
+		@4;
+	};
+	struct s2 {
+		@0	int e;
+		@4;
+	};
+};
+
+ns2 = @names c32le {
+	@0x0 int lalala;
+	@100 int onehundred;
+	struct s2 {
+		@0	int a;
+		@4	int b;
+		@8;
+	};
+	typedef int silly;
+};
+
+ns = nsjoin(ns1,ns2);
+printf("should be 0: %d\n",symoff(ns.looksym('lalala)));
+printf("should be 0: %d\n",symoff(ns.looksym('zero)));
+printf("should be 100: %d\n",symoff(ns.looksym('onehundred)));
+printf("should be 8: %a\n",sizeof(ns.looktype(@typename(struct s2))));
+printf("should be 4: %a\n",sizeof(ns.looktype(@typename(struct s1))));
+printf("should be \"onehundred\": %a\n",symid(ns.lookaddr(101)));
+printf("should be \"onehundred\": %a\n",symid(ns.lookaddr(0x102)));
+printf("should be 0x100: 0x%x\n",symoff(ns.lookaddr(0x102)));
+printf("should be \"oneeleven\": %a\n",symid(ns.lookaddr(0x112)));
+t = ns.enumsym();
+printf("length of enumsym: %d\n",length(t));
+l = ns.enumtype();
+printf("length of enumsym: %d\n",length(l));
+
