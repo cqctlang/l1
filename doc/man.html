@@ -1146,6 +1146,67 @@ except that it forces the binding to be local to the innermost
 level of lexical scope.
 </p>
 
+<p>
+Multiple values may be returned from a function by
+returning a list of the values:
+</p>
+
+<div class="code">
+<pre>
+@define foo()
+{
+	return [1, 2, 3];
+}
+</pre>
+</div>
+
+<p>
+While the value returned is an ordinary list.  its
+elements can be bound directly to variables:
+</p>
+
+<div class="code">
+<pre>
+; [x, y, z] = foo();
+; printf("%d %d %d\n", x, y, z);
+<span class="arg">1 2 3</span>
+</pre>
+</div>
+
+<p>
+Any number of variables up to the number of elements in
+the returned list may be bound.  Assignment start
+from the front of the list:
+</p>
+
+<div class="code">
+<pre>
+; [x, y] = foo();
+; printf("%d %d\n", x, y);
+<span class="arg">1 2</span>
+</pre>
+</div>
+
+<p>
+The identifier <span class="id">_</span> is reserved
+for binding values that will not be used:
+</p>
+
+<div class="code">
+<pre>
+; [_, _, z] = foo();
+; printf("%d\n", z);
+<span class="arg">3</span>
+</pre>
+</div>
+
+<p>
+Only variable identifiers (and not, <em>e.g.</em>,
+nested binding forms) may appear as elements of this
+binding form.  They are subject to the same implicit
+binding rules as ordinary assignments.  As an expression,
+the value of this binding form is <span class="id">nil</span>.
+</p>
 
 <p>
 The built-in function <span class="id">apply</span>

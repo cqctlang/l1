@@ -701,6 +701,7 @@ expandm(U *ctx, Expr *e)
 				   se);
 			p = p->e2;
 		}
+		se = Zcons(Znil(), se);
 		se = invert(se);
 		se = Zcons(Zset(doid("$tmp"), expandm(ctx, e->e2)), se);
 		se = Zblock(Zlocals(1, "$tmp"), se, NULL);
