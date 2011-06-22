@@ -5,7 +5,7 @@
 if (nsutil_defined == nil)
 {
 @global typenameequal, typeequal, nsdiff, printtype, printns;
-@global types_with_ptrs, nsiter, all_types;
+@global types_with_ptrs, nsiter, all_types, nsjoin;
 
 nsutil_defined = 1;
 
@@ -377,6 +377,58 @@ nsutil_defined = 1;
 @define all_types(ns)
 {
         nsiter(ns, @lambda(x) { printf("%t\n", x); });
+}
+
+//names in ns2 override names and symbols in ns1.
+@define nsjoin(ns1,ns2) {
+	@local _ls, _es, _la, _lt, _et;
+	@define _ls(this,id) {
+		@local ret;
+		ret = ns2.looksym(id);
+		if (ret == nil) return ns1.looksym(id);
+		return ret;
+	}
+	@define _es(this) {
+		@local tab;
+		tab = mktab();
+		foreach(@lambda(k,v) {
+			tab[k] = v;
+		},ns1.enumsym());
+		foreach(@lambda(k,v) {
+			tab[k] = v;
+		},ns2.enumsym());
+		return tab;
+	}
+	@define _la(this,addr) {
+		@local r1,r2;
+		r1 = ns1.lookaddr(addr);
+		r2 = ns2.lookaddr(addr);
+		if (symoff(r1) > symoff(r2)) return r1;
+		return r2;
+	}
+	@define _lt(this,tn) {
+		@local res;
+		res = ns2.looktype(tn);
+		if (res == nil) return ns1.looktype(tn);
+		return res;
+	}
+	@define _et(this) {
+		@local tab;
+		tab = mktab();
+		foreach(@lambda(k,v) {
+			tab[k] = v;
+		},ns1.enumtype());
+		foreach(@lambda(k,v) {
+			tab[k] = v;
+		},ns2.enumtype());
+		return tab;
+	}
+	return mkns([
+		"looksym" : _ls,
+                "enumsym" : _es,
+                "lookaddr" : _la,
+                "looktype" : _lt,
+                "enumtype" : _et]);
 }
 
 

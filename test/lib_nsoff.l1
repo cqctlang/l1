@@ -26,6 +26,16 @@ printf("name: %s, offset: %d, type %t\n",
 zsym5 = ons.lookaddr(305);
 printf("name: %s, offset: %d, type %t\n",
 		symid(zsym5),symoff(zsym5),symtype(zsym5));
+zsym6 = ons.lookaddr(50);
+printf("should be zero: %s, offset: %d, type %t\n",
+		symid(zsym6),symoff(zsym6),symtype(zsym6));
+ons.addsym('added,mksym(@typename(unsigned int),'added,37));
+zsym6 = ons.lookaddr(50);
+printf("should be added: %s, offset: %d, type %t\n",
+		symid(zsym6),symoff(zsym6),symtype(zsym6));
+zsym7 = ons.lookaddr(34);
+printf("name: %s, offset: %d, type %t\n",
+		symid(zsym7),symoff(zsym7),symtype(zsym7));
 printf("Enumerating\n");
 @define symcmp(s1, s2)
 {

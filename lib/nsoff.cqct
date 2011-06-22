@@ -7,32 +7,30 @@ if (nsoff_defined == nil)
 @global mknsoff;
 
 @define mknsoff(ns,off) {
-	@local  _ls, _es, _la, inc_sym, sym_cache;
+	@local  _ls, _es, _la, inc_sym, sym_cache, _addsym;
 
 	sym_cache = mktab();
 
 	@define inc_sym(sym) {
 		@local ret;
-		ret = sym_cache[sym];
-		if (ret == nil) {
-			@local attr, new_attr;
-			attr = symattr(sym);
-			new_attr = mktab();
-			foreach(@lambda(k,v) {
-				if (k == "offset") {
-					new_attr[k] = v+off;
-				} else {
-					new_attr[k] = v;
-				}
-			},attr);
-			sym_cache[sym] = ret = 
-				mksym(symtype(sym),symid(sym),new_attr);
-		}
+		@local attr, new_attr;
+		attr = symattr(sym);
+		new_attr = mktab();
+		foreach(@lambda(k,v) {
+			if (k == "offset") {
+				new_attr[k] = v+off;
+			} else {
+				new_attr[k] = v;
+			}
+		},attr);
+		sym_cache[symid(sym)] = ret = 
+			mksym(symtype(sym),symid(sym),new_attr);
 		return ret;
 	}
 	//looksym
 	@define _ls(this,id) {
 		@local sym;
+		if (sym_cache[id] != nil) return sym_cache[id];
 		sym = ns.looksym(id);
 		if (sym == nil) return nil;
 		return inc_sym(sym);
@@ -42,15 +40,40 @@ if (nsoff_defined == nil)
 		@local tab;
 		tab = ns.enumsym();
 		foreach(@lambda(k,sym) {
-			inc_sym(sym);
+			if (sym_cache[k] != nil) inc_sym(sym);
 		}, tab);
 		return sym_cache;
 	}
 	//lookaddr
 	@define _la(this,addr) {
-		@local sym;
+		@local sym1, sym;
+		sym1 = nil;
+		foreach(@lambda(k,v) {
+			if (symoff(v) <= addr &&
+				(sym1 == nil || symoff(sym1)<symoff(v)))
+				sym1 = v;	
+		}, sym_cache);
+		//if we happen to find exactly the right address, we
+		//don't have to ask the other ns.
+		if (sym1 != nil && symoff(sym1) == addr) return sym1;
 		sym = ns.lookaddr(addr-off);
-		return inc_sym(sym);
+		//only if we don't already have the symbol cached is
+		//it necessary to check if the lookaddr symbol is best.
+		if (sym != nil) {
+			if (sym_cache[symid(sym)] == nil) {
+				sym = inc_sym(sym);
+				if (sym1 == nil) return sym;
+				//sym1 != nil...
+				if (symoff(sym)>symoff(sym1)) return sym;
+				else return sym1;
+			} //else return sym1 //sym was already in sym_cache
+					     //and was therefore considered 
+					     //when generating sym1.
+		} //else return sym1
+		return sym1;
+	}
+	@define _addsym(this,id,sym) {
+		sym_cache[id] = sym;
 	}
 
 	return mkns([
@@ -59,6 +82,7 @@ if (nsoff_defined == nil)
 		"lookaddr" : _la,
 		"looktype" : @lambda(this,t) { return ns.looktype(t); },
 		"enumtype" : @lambda(this) { return ns.enumtype(); },
+		"addsym" : _addsym,
 		"offset" : @lambda(this) { return off; }
 	]);
 

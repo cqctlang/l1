@@ -1,0 +1,61 @@
+entry: var params, 3 locals, 0 temps
+typenameequal: 2 params, 10 locals, 1 temps
+typeequal: 2 params, 19 locals, 1 temps
+nsiter: 2 params, 6 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+nsdiff: 2 params, 7 locals, 0 temps
+nsdiff0: 2 params, 4 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+L654: 2 params, 2 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+L716: 2 params, 0 locals, 0 temps
+L727: 2 params, 0 locals, 0 temps
+L737: 2 params, 0 locals, 0 temps
+printtype: 1 params, 10 locals, 0 temps
+printns: 1 params, 5 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+all_types: 1 params, 0 locals, 0 temps
+L953: 1 params, 0 locals, 0 temps
+nsjoin: 2 params, 6 locals, 0 temps
+_ls: 2 params, 3 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+_es: 1 params, 3 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+L1041: 2 params, 6 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+L1088: 2 params, 6 locals, 0 temps
+_la: 2 params, 4 locals, 1 temps
+lookaddr: var params, 1 locals, 0 temps
+lookaddr: var params, 1 locals, 0 temps
+_lt: 2 params, 3 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+_et: 1 params, 3 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+L1248: 2 params, 6 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+L1295: 2 params, 6 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+looksym: var params, 1 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+lookaddr: var params, 1 locals, 0 temps
+lookaddr: var params, 1 locals, 0 temps
+lookaddr: var params, 1 locals, 0 temps
+lookaddr: var params, 1 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+should be 0: 0
+should be 0: 0
+should be 100: 100
+should be 8: 8
+should be 4: 4
+should be "onehundred": onehundred
+should be "onehundred": onehundred
+should be 0x100: 0x100
+should be "oneeleven": oneeleven
+length of enumsym: 4
+length of enumsym: 28
