@@ -213,7 +213,7 @@ addcase(U *ctx, Expr *e, Expr *b, Cases *cs)
 	Match m = {0,0};
 
         if(!cs)
-                fatal("dangling case statement");
+		cerror(ctx, e, "case without switch");
         nc = cs->nc;
         b = cases(ctx,b,cs);
 	if(cs->nc >= cs->max){
