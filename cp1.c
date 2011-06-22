@@ -28,6 +28,22 @@ compilerec(U *ctx, Expr *e)
 	char *id, *is;
 	unsigned len;
 	Expr *p;
+	Xenv *xe;
+
+	xe = mkxenv(0);
+	p = e->e2;
+	while(p->kind == Eelist){
+		id = idsym(p->e1);
+		if(xenvlook(xe, id)){
+			freexenv(xe);
+			cerror(ctx, e,
+			       "record has multiple bindings for %s",
+			       id);
+		}
+		xenvbind(xe, id, id);
+		p = p->e2;
+	}
+	freexenv(xe);
 
 	id = idsym(e->e1);
 	len = 2+strlen(id)+1;
