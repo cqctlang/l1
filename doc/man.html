@@ -34,7 +34,7 @@
 <a href="#sec:cids">C Identifiers</a><br />
 <a href="#sec:cvalues">Cvalues</a><br />
 <a href="#sec:ranges">Ranges</a><br />
-<a href="#sec:backtick">Backtick Operator</a><br />
+<a href="#sec:symref">Symbol references</a><br />
 <a href="#sec:litdom">The Literal Domain</a><br />
 <a href="#sec:casts">Type and Domain Conversion</a><br />
 <a href="#sec:cvalueops">C Operators</a><br />
@@ -1161,7 +1161,7 @@ returning a list of the values:
 </div>
 
 <p>
-While the value returned is an ordinary list.  its
+While the value returned is an ordinary list, its
 elements can be bound directly to variables:
 </p>
 
@@ -1941,181 +1941,109 @@ non-overlapping and sorted by increasing offset.
 </div>
 </div>
 
-<h4 id="sec:backtick">Backtick Operator</h4>
+<h4 id="sec:symref">Symbol references</h4>
 
 <p>
-Symbols and types in a domain are referenced with the backtick operator.
+If <span class="id">id</span> is a symbol defined
+in domain <span class="id">dom</span>, then an
+expression of the form
 </p>
 
-<p>
-An expression of the form
-</p>
 <div class="code">
 <pre>
-dom`x
-</pre>
-</div>
-<p>
-resolves <span class="val">x</span> 
-as either a symbol or type name in the domain 
-<span class="val">dom</span>, depending on the context
-of the expression.
-</p>
-
-<p>
-Symbol resolution occurs when the backtick expression
-appears where an lvalue or rvalue would be expected in C.
-For example, in the expression
-</p>
-<div class="code">
-<pre>
-dom`x = dom`y;
-</pre>
-</div>
-<p>
-the names
-<span class="val">x</span>
-and
-<span class="val">y</span>
-are both resolved as symbols
-in the domain
-<span class="val">dom</span>.
-</p>
-
-<p>
-In general, the syntax for symbol resolution is:
-</p>
-<div class="code">
-<pre>
-<span class="arg">dom</span>`<span class="arg">id</span>
+dom`id
 </pre>
 </div>
 
 <p>
-where <span class="arg">dom</span> is a variable bound
-to a domain (<em>not</em> an expression that evaluates
-to a domain), and <span class="arg">id</span> is an identifier.
-The evaluator implicitly calls
-<span class="val"><a href="#fn:looksym">looksym</a>(<span class="arg">dom</span>,<span class="arg">id</span>)</span> to resolve the symbol.
+is a reference to <span class="id">id</span>.
 </p>
 
 <p>
-Normally the left operand to backtick is a domain.
-However, if the right operand is the name of an
-enumeration constant, the right operand may be a name
-space.  The resulting cvalue has type and value of the
-constant as defined in the name space, and a freshly
-allocated domain with the same name space and the
-address space of the literal domain.
+Such a reference may appear anywhere that a value may appear
+in a C expression (<em>i.e.</em>, a C <em>rvalue</em>).
+The result is a cvalue
+that represents the value stored at the location (offset)
+of the symbol.  To compute this cvalue, the evaluator:
+</p>
+
+<ol>
+<li>
+Calls <span class="id"><a href="#fn:looksym">looksym</a>(dom,'id)</span> to obtain
+the definition of the symbol;
+</li>
+<li>
+Reads (using the address
+space <a href="#fn:asget"><span class="id">get</span></a> method) consecutive
+bytes from the address space associated with the
+domain, starting at the location of the symbol, up to
+the number of bytes in the size of its type;
+</li>
+<li>
+Constructs a new cvalue whose domain is <span class="id">dom</span>,
+whose type is the type of the symbol,
+and whose value is the interpretation of the bytes
+read from the address space as a value of the type of the symbol.
+</li>
+</ol>
+
+<p>
+If the symbol for an identifier has a type of the
+enumeration constant variant, then identifier is an
+enumeration constant, and the reference is handled
+differently: instead of causing an access to the
+address space, a reference to an enumeration constant
+evaluates to a cvalue representing the value of the
+constant.  Its domain is the referenced domain, and its
+type is the enumeration type for which the constant was
+defined.
+</p>
+
+<p>
+An enumeration constant may be referenced through a
+name space rather than a domain.  The domain of the
+resulting cvalue is a freshly allocated domain whose
+name space is the one being referenced, and whose
+address space is that of the literal domain.
 </p>
 
 
 <p>
-Type resolution occurs when the backtick expression
-appears where a type name would be expected or accepted in C:
-the operand to <span class="id">sizeof</span>,
-and the type operand of the cast operator.
-The Cinquecento <span class="id">@typeof</span> operator,
-which is syntactically similar to <span class="id">sizeof</span>,
-also accepts a type name.
+A symbol reference may also appear anywhere that a
+location may appear in a C expression (<em>i.e.</em>, a
+C <em>lvalue</em>), such as on the left side of an
+assignment form:
 </p>
 
-<p>
-Variants of the type resolution form express the different forms of C type names:
-</p>
-<div class="table-short">
-<table>
-
-<tr>
-<td>
-Base types
-</td>
-<td>
-<span class="id">
-<span class="arg">domain</span>`<span class="arg">identifier</span> ...
-</span>
-</td>
-</tr>
-
-<tr>
-<td>
-<span class="id">typedef</span>s
-</td>
-<td>
-<span class="id">
-<span class="arg">domain</span>`<span class="arg">identifier</span>
-</span>
-</td>
-</tr>
-
-
-<tr>
-<td>
-Structs
-</td>
-<td>
-<span class="id">
-struct <span class="arg">domain</span>`<span class="arg">identifier</span>
-</span>
-</td>
-</tr>
-
-<tr>
-<td>
-Unions
-</td>
-<td>
-<span class="id">
-union <span class="arg">domain</span>`<span class="arg">identifier</span>
-</span>
-</td>
-</tr>
-
-<tr>
-<td>
-Enums
-</td>
-<td>
-<span class="id">
-enum <span class="arg">domain</span>`<span class="arg">identifier</span>
-</span>
-</td>
-</tr>
-
-</table>
-</div>
-
-<p>
-The first variant references base C type specifiers,
-which comprise one or more type specifier tokens.
-For example, these expressions
-</p>
 <div class="code">
 <pre>
-dom`int
-dom`unsigned long
-dom`signed short int
+dom`id = x;
 </pre>
 </div>
-<p>
-reference the base C types
-<span class="id">int</span>, 
-<span class="id">unsigned long</span>, 
-and <span class="id">signed short int</span>.
-</p>
 
 <p>
-The second variant is used to reference types
-defined with <span class="id">typedef</span>.
-The <span class="arg">domain</span> may be omitted for this variant.
-The meaning of this abbreviated form depends on the context.
-When used in the operand to <span class="id">sizeof</span>
-or <span class="id">@typeof</span>, the type name is resolved
-in the literal domain (see next section).
-When used in the type operand to the cast operator,
-the meaning is the same as if the domain has been specified,
-since the cast operator always resolves the type name in the domain
-of its other operand (see <a href="#sec:casts">Type and Domain Conversion</a>).
+To evaluate this assignment, the evaluator:
+</p>
+
+<ol>
+<li>
+Calls <span class="id"><a href="#fn:looksym">looksym</a>(dom,'id)</span> to obtain
+the definition of the symbol;
+</li>
+<li>
+Constructs an encoding of the value on the right side
+based on the type of the symbol;
+</li>
+<li>
+Writes (using the address space <a href="#fn:asput"><span class="id">put</span></a> method)
+the encoding to the address space associated with
+the domain at the location of the symbol.
+</li>
+</ol>
+
+<p>
+An attempt to assign to a reference to an enumeration
+constant draws an error.
 </p>
 
 
