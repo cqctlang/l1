@@ -9893,54 +9893,91 @@ to Cinquecento.  It is built by default when the L1
 source distribution is compiled.
 </p>
 
+<h5>The load path</h5>
+
 <p>
-During initialization, the l1 executable determines
-an initial load path.  The load path is initialized to the empty list.
-Then load paths specified on the command line by the <tt>-l</tt>
-flag are appended, in order, to the load path.
-Finally, unless it is suppressed with the <tt>-s</tt> flag,
-the default load path is appended to the load path.
+The system load path is a list of paths that is searched
+in order for any input file that is included with the form:
+</p>
+
+<div class="code">
+@include &lt;<span class="arg">filename</span>&gt;<br />
+</div>
+
+<p>
+The load path may be inspected and changed from within
+Cinquecento with the functions
+<a href="#fn:setloadpath">loadpath</a>
+and <a href="#fn:setloadpath">setloadpath</a>.
 </p>
 
 <p>
-The default load path is determined in the following way:
+The default load path consists of one path:
+<span class="val"><span class="arg">L1PATH</span>/lib</span>,
+where <span class="val"><span class="arg">L1PATH</span></span>
+is an absolute path to the directory containing the L1
+executable.  L1 attempts to
+set <span class="val"><span class="arg">L1PATH</span></span>
+to the directory in which the actual L1 executable
+resides, even if it was invoked through a symbolic
+link.
+</p>
+
+<p>
+Two L1 command-line options affect the load path.  First,
+each occurrence of a command line option of the form
+</p>
+
+<div class="code">
+-l <span class="arg">path</span>
+</div>
+
+<p>
+prepends <span class="val"><span class="arg">path</span></span>
+to the load path.  Each occurrence is processed in the
+order in which it appears.  Second, if
+the <span class="val">-s</span> option is given, then
+the default load path is <em>not</em> included in the
+load path; instead, the load path consists only of
+paths specified with the <span class="val">-l</span>
+option.
+</p>
+
+<p>
+Two additional mechanisms override the use of
+<span class="val"><span class="arg">L1PATH</span>/lib</span>
+as the default path:
 </p>
 
 <ul>
+
 <li>
-At compile time, if the preprocessor variable <span class="val">LIBDIR</span> is defined
-when the l1 driver (main.c) is compiled, then the
+When L1 is built, if the preprocessor variable <span class="val">LIBDIR</span> is defined
+for the compilation of the l1 driver (main.c), then the
 default load path is initialized to its value, which
 must be a string containing colon-separated list of
-directories.  Otherwise the default load path is
-initialized to the empty list.
+directories.
 </li>
 
 <li>
-At run time, if the environment
+When L1 is executed, if the environment
 variable <span class="val">L1LIBPATH</span> is defined,
 then its value, which must be a colon-separated list of
-directories, is appended to the default load path.
-</li>
-
-<li>
-If neither <span class="val">LIBDIR</span>  (at compile
-time) nor <span class="val">L1LIBPATH</span> (at run
-time) is defined, then the default load path is
-set to the list containing the single directory
-<span class="val"><span class="arg">L1PATH</span>/lib</span>,
-where <span class="arg">L1PATH</span> is the directory containing
-the L1 executable.
+directories, is appended to the path specified
+by <span class="val">LIBDIR</span>, if any.
 </li>
 
 </ul>
 
 <p>
-The load path may be inspected and changed from within
-Cinquecento through the built-in functions
-<a href="#fn:setloadpath">loadpath</a>
-and <a href="#fn:setloadpath">setloadpath</a>.
+If neither <span class="val">LIBDIR</span>  (at compile
+time) nor <span class="val">L1LIBPATH</span> (at run
+time) is defined, then the default load path is
+set to the list containing the single directory
+<span class="val"><span class="arg">L1PATH</span>/lib</span>,
+as described above.
 </p>
+
 
 <h4 id="sec:cinterface">C Interface</h4>
 
