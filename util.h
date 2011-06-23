@@ -24,6 +24,7 @@ u64		hsz(HT *ht);
 char** copystrv(char **lp);
 void bug() NORETURN;
 void fatal(char *fmt, ...) NORETURN;
+#define bug() fatal("bug at %s:%d", __FILE__, __LINE__)
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);
 void* emalloc(size_t size);

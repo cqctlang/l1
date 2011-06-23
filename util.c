@@ -57,12 +57,6 @@ fatal(char *fmt, ...)
 	xabort();
 }
 
-void
-bug()
-{
-	fatal("bug");
-}
-
 size_t
 xstrnlen(char *s, size_t max)
 {
