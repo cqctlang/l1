@@ -4668,6 +4668,32 @@ pointed to by <span class="arg">ptr</span>.
 </div>
 </div>
 
+
+<div class="docitem" id="fn:memcpy">
+<div class="proto">
+<div class="function">
+<span class="id">memcpy(<span class="arg">p</span>,<span class="arg">q</span>,<span class="arg">n</span>)</span>
+</div>
+<div class="param">
+<span class="arg">p</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">q</span>: <span class="type">cvalue</span> of any pointer type
+</div>
+<div class="param">
+<span class="arg">n</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Copies <span class="arg">n</span> bytes starting at <span class="arg">q</span>
+to the storage at <span class="arg">p</span>.
+</div>
+</div>
+
+
 <div class="docitem" id="fn:malloc">
 <div class="proto">
 <div class="function">
@@ -10925,6 +10951,7 @@ Prentice Hall, 1988.
 <a href="#fn:map">map</a> (function)<br />
 <a href="#fn:asmap">map</a> (as method)<br />
 <a href="#fn:mapfile">mapfile</a><br />
+<a href="#fn:memcpy">memcpy</a><br />
 <a href="#fn:memset">memset</a><br />
 <a href="#fn:mkcid">mkcid</a><br />
 <a href="#fn:mkctype_array">mkctype_array</a><br />
