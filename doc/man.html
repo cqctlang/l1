@@ -2617,10 +2617,33 @@ It is an error to apply them to operands of any other type.
 <h4 id="sec:pointers">Pointers</h4>
 
 <p>
-Pointer-typed cvalues represent typed locations.
-The domain of a pointer-typed cvalue provides the address space in
-which pointer operators on the cvalue are applied.
+Pointer-typed cvalues represent typed locations in a domain.
 </p>
+
+<p>
+We illustrate the use of pointers with a simple domain
+<span class="id">dom</span>, defined as follows:
+</p>
+
+<div class="code">
+<pre>
+ns = @names c32le {
+	struct T {
+		@0 int id;
+		@4 struct T *next;
+		@8;
+	};
+	@0 int x;
+	@4 int y;
+	@0 struct T t;
+};
+as = mkzas(1024);
+dom = mkdom(ns, as);
+</p>
+</pre>
+</div>
+
+
 
 <p>
 As in C, one way to obtain a pointer is through the unary
@@ -2628,7 +2651,9 @@ reference operator.  For example, the form
 </p>
 
 <div class="code">
-	p = &amp;dom`x;
+<pre>
+p = &amp;dom`x;
+</pre>
 </div>
 
 <p>
@@ -2639,6 +2664,8 @@ location associated with
 </p>
 
 <p>
+The domain of a pointer-typed cvalue provides the address space in
+which pointer operators on the cvalue are applied.
 The operator <span class="val">*</span> dereferences
 pointer-typed cvalues.  Precisely
 as a C programmer would expect, <span class="val">*</span> accesses the
@@ -2660,7 +2687,7 @@ would yield equivalent cvalues.
 </p>
 
 <p>
-Pointer arithmetic is like C.  The following sequence
+Pointer arithmetic is C pointer arithmetic.  The following sequence
 of expressions:
 </p>
 
@@ -2675,11 +2702,9 @@ p = p+1;
 leaves <span class="val">p</span> bound to a pointer cvalue that
 refers to the location following <span class="val">x</span>
 in <span class="val">dom</span>.
-In C pointer arithmetic, the amount by which the value
+As in C, the amount by which the value
 of a pointer is incremented is determined by the size
-of the underlying type of the pointer.  In Cinquecento,
-this size is determined by the definition of the type
-in the domain of the cvalue.
+of the underlying type of the pointer.
 </p>
 
 <p>
@@ -2704,9 +2729,9 @@ to otherwise untyped locations.
 </p>
 
 <p>
-The C pointer/array relationship works as expected.
-This sequence of expressions has an equivalent effect
-to the preceding one:
+Cinquecento maintains the C pointer/array relationship.
+The effect of the following sequence of expressions is equivalent
+to that of the preceding one:
 </p>
 
 <div class="code">
@@ -2732,7 +2757,7 @@ p = p+256;
 <p>
 binds <span class="val">p</span> to a pointer to a location that
 does not exist in the address space of <span class="val">dom</span> (since
-we used <span class="val">mkzas</span> to create a fixed 1024-byte address
+we used <a href="#fn:mkzas"><span class="val">mkzas</span></a> to create a fixed 1024-byte address
 space).
 </p>
 
