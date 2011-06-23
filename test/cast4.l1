@@ -1,0 +1,5 @@
+// this used to cause commontype to fail;
+// then we made its entry more discriminating
+addr = (c32le`uintptr)1;
+off = (unsigned long)100;
+addr-off;

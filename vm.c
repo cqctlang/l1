@@ -1368,6 +1368,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		[Vvlong] = Vuvlong,
 	};
 	Cbase c1, c2, nc;
+	Rkind r1, r2;
 	Ctype *t1, *t2, *b1, *b2, *nt;
 
 	op1 = intpromote(vm, op1);
@@ -1386,7 +1387,9 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 
 	c1 = typecbase(b1);
 	c2 = typecbase(b2);
-	if(c1 == c2){
+	r1 = typerep(b1);
+	r2 = typerep(b2);
+	if(c1 == c2 && r1 == r2){
 		/* combinations of distinct typedefs
 		   and/or enums yield the first type
 		   they have in common (not necessarily
