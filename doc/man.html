@@ -7897,8 +7897,8 @@ The binary C operator <tt>+</tt> concatenates strings.
 The following functions comprise the basic string
 operations. Note that while some of these functions
 share names with C standard library functions, they are
-not equivalent to these functions, because they do
-not terminate on NUL bytes.
+equivalent to these functions only when their string
+operands do not contain NUL bytes.
 </p>
 
 <div class="docitem" id="fn:mkstr">
@@ -7934,11 +7934,6 @@ class="arg">len</span> null bytes.
 <div class="desc">
 Returns the number of bytes in <span class="arg">str</span>.
 Equivalent to <tt>length(<span class="arg">str</span>)</tt>.
-
-(This function is equivalent to C standard library
-to <span class="id">strlen</span> only when no NUL bytes appear in
-<span class="arg">str</span>.)
-
 </div>
 </div>
 
@@ -7961,10 +7956,6 @@ and <span class="arg">s2</span> byte-by-byte.
 Returns -1, 0, or 1 if <span class="arg">s1</span>
 is, respectively,
 less than, equal to, or greater than <span class="arg">v</span>.
-(This function is equivalent to C standard library
-to <span class="id">strcmp</span> only when no NUL bytes appear in
-<span class="arg">str</span>.)
-
 </div>
 </div>
 
@@ -7988,11 +7979,6 @@ to <span class="id">strcmp</span> only when no NUL bytes appear in
 <div class="desc">
 Returns the character at index <span class="arg">idx</span> in
 <span class="arg">str</span>.
-
-(This function is equivalent to C standard library
-to <span class="id">strref</span> only when no NUL bytes appear in
-<span class="arg">str</span>.)
-
 </div>
 </div>
 
@@ -8015,11 +8001,6 @@ to <span class="id">strref</span> only when no NUL bytes appear in
 Returns the index in <span class="arg">s1</span> of the first occurrence
 of the string <span class="arg">s2</span>, or nil if <span class="arg">s2</span>
 does not match.
-
-(This function is equivalent to C standard library
-to <span class="id">strstr</span> only when no NUL bytes appear in
-either <span class="arg">s1</span> or <span class="arg">s2</span>.)
-
 </div>
 </div>
 
