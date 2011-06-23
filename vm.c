@@ -5178,12 +5178,10 @@ l1_memcpy(VM *vm, Imm argc, Val *argv, Val *rv)
 	dcv = valcval(argv[0]);
 	scv = valcval(argv[1]);
 	ncv = valcval(argv[2]);
-	if(!isstrcval(dcv))
-		vmerr(vm, "operand 1 to memcpy must be a char* or "
-		      "unsigned char*");
-	if(!isstrcval(scv))
-		vmerr(vm, "operand 2 to memcpy must be a char* or "
-		      "unsigned char*");
+	if(!isptrtype(dcv->type))
+		vmerr(vm, "operand 1 to memcpy must be a pointer");
+	if(!isptrtype(scv->type))
+		vmerr(vm, "operand 2 to memcpy must be a pointer");
 	buf = callget(vm, scv->dom->as, scv->val, ncv->val);
 	callput(vm, dcv->dom->as, dcv->val, ncv->val, buf);
 	USED(rv);
@@ -6299,6 +6297,9 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 2)
 		whence = str2cstr(valstr(argv[1]));
 	e = cqctparse(buf, vm->top, whence);
+	efree(buf);
+	if(argc == 2)
+		efree(whence);
 	if(e == 0)
 		return;
 	*rv = expr2syntax(e);

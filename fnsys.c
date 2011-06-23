@@ -83,6 +83,7 @@ l1_getenv(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "getenv", argv, 0, Qstr);
 	s = str2cstr(valstr(argv[0]));
 	t = getenv(s);
+	efree(s);
 	if(t == 0)
 		return;		/* nil */
 	*rv = mkvalstr(mkstr0(t));

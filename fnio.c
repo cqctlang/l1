@@ -451,6 +451,7 @@ l1_fdopen(VM *vm, Imm argc, Val *argv, Val *rv)
 		flags |= Fread;
 	if(strchr(mode, 'w'))
 		flags |= Fwrite;
+	efree(mode);
 	xfd.fd = cfd->val;
 	snprintf(buf, sizeof(buf), "fd%d", xfd.fd);
 	xfd.read = xfdread;
