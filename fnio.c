@@ -84,6 +84,24 @@ struct Dir
 	char	*extension;
 } Dir;
 
+
+static int
+issysfd(Fd *fd)
+{
+	if(fd->flags&Ffn)
+		return 1;
+	else
+		return 0;
+}
+
+static int
+sysfdno(Fd *fd)
+{
+	if(!issysfd(fd))
+		bug();
+	return fd->u.fn.fd;
+}
+
 // this is derived from plan9port/src/lib9/_p9dir.c,
 // but not as sophisticated.
 static Dir*
@@ -373,9 +391,9 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to ioctl on closed file descriptor");
-	if((fd->flags&Ffn) == 0)
+	if(!issysfd(fd))
 		vmerr(vm, "file descriptor does not support ioctl");
-	r = xioctl(fd->u.fn.fd, (unsigned long)req->val, p);
+	r = xioctl(sysfdno(fd), (unsigned long)req->val, p);
 	if(r == -1)
 		r = -errno;
 	*rv = mkvallitcval(Vint, r);
@@ -543,11 +561,11 @@ l1_seek(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to seek on closed file descriptor");
-	if((fd->flags&Ffn) == 0)
+	if(!issysfd(fd))
 		vmerr(vm, "file descriptor does not support seek");
 	off = valcval(argv[1]);
 	wh = valcval(argv[2]);
-	r = xlseek(fd->u.fn.fd, (long)off->val, (int)wh->val);
+	r = xlseek(sysfdno(fd), (long)off->val, (int)wh->val);
 	if(r == -1)
 		r = -errno;
 	*rv = mkvallitcval(Vlong, r);
@@ -631,7 +649,7 @@ setfdsin(VM *vm, List *l, fd_set *f)
 {
 	Val v;
 	Imm i, m;
-	int n;
+	int n, no;
 	Fd *fd;
 
 	m = listlen(l);
@@ -641,11 +659,12 @@ setfdsin(VM *vm, List *l, fd_set *f)
 		if(Vkind(v) != Qfd)
 			vmerr(vm, "select on non file descriptor");
 		fd = valfd(v);
-		if((fd->flags&Ffn) == 0)
+		if(!issysfd(fd))
 			vmerr(vm, "select on unselectable file descriptor");
-		FD_SET(fd->u.fn.fd, f);
-		if(fd->u.fn.fd > n)
-			n = fd->u.fn.fd;
+		no = sysfdno(fd);
+		FD_SET(no, f);
+		if(no > n)
+			n = no;
 	}
 	return n;
 }
@@ -661,7 +680,7 @@ setfdsout(VM *vm, List *il, fd_set *f, List *ol)
 	for(i = 0; i < m; i++){
 		v = listref(vm, il, i);
 		fd = valfd(v);
-		if(FD_ISSET(fd->u.fn.fd, f))
+		if(FD_ISSET(sysfdno(fd), f))
 			listappend(vm, ol, v);
 	}
 }
