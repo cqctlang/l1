@@ -89,6 +89,24 @@ l1_getenv(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_setenv(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	char *s, *t;
+	int r;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to setenv");
+	checkarg(vm, "setenv", argv, 0, Qstr);
+	checkarg(vm, "setenv", argv, 1, Qstr);
+	s = str2cstr(valstr(argv[0]));
+	t = str2cstr(valstr(argv[1]));
+	r = setenv(s, t, 1);
+	efree(s);
+	efree(t);
+	if(0 > r)
+		vmerr(vm, "setenv: %s", strerror(errno));
+}
+
+static void
 l1_getpid(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	*rv = mkvallitcval(Vulong, getpid());
@@ -385,6 +403,7 @@ fnsys(Env *env)
 	FN(news);
 	FN(rand);
 	FN(randseed);
+	FN(setenv);
 	FN(syscall);
 	FN(uname);
 	FN(waitpid);
