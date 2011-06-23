@@ -9978,6 +9978,31 @@ set to the list containing the single directory
 as described above.
 </p>
 
+<h5>The prelude</h5>
+
+<p>
+Before the first evaluation of a user expression, the
+L1 evaluator loads the <em>prelude</em> by implicitly evaluating the form
+</p>
+
+<div class="code">
+@include &lt;<span class="arg">prelude.cqct</span>&gt;<br />
+</div>
+
+<p>
+The library distributed with L1 includes the
+version of <span class="val">prelude.cqct</span> that the
+evaluator expects to load with this evaluation.
+This file defines an increasing portion of the
+default top-level environment of the Cinquecento
+evaluator, including many functions, name spaces, and
+other top-level variables described in this manual.
+</p>
+
+<p>
+The prelude can be suppressed by passing the <span class="val">-s</span>
+option to L1.
+</p>
 
 <h4 id="sec:cinterface">C Interface</h4>
 
