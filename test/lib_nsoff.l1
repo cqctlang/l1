@@ -1,6 +1,6 @@
 
 
-@include <nsoff.cqct>
+@include <nsutil.cqct>
 
 ns = @names c32le {
 	@0x0 int zero;
