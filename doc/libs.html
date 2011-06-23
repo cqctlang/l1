@@ -21,7 +21,6 @@
 <a href="#lib:dynamictypes.cqct">dynamictypes</a><br />
 <a href="#lib:elf.cqct">elf</a><br />
 <a href="#lib:nsgraph.cqct">nsgraph</a><br />
-<a href="#lib:nsoff.cqct">nsoff</a><br />
 <a href="#lib:nsutil.cqct">nsutil</a><br />
 <a href="#lib:snames.cqct">snames</a><br />
 <a href="#lib:snamesclt.cqct">snamesclt</a><br />
@@ -826,11 +825,30 @@ creating and analyzing graphs of types inferred from a namespace.
 	</div>
 </div>
 
-<h5 id="lib:nsoff.cqct">nsoff.cqct</h5>
 
-<span class="id">nsoff.cqct</span> provides a function 
-creating a namespace whose symbols are translated some offset
-from some other provided namespace.
+<h5 id="lib:nsutil.cqct">nsutil.cqct</h5>
+
+<span class="id">nsutil.cqct</span> provides code for 
+checking type equality, printing namespaces, and iterating
+over types in namespaces.
+
+<div class="docitem" id="fn:all_types">
+<div class="proto">
+<div class="function">
+	<span class="id">all_types(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+	Print all the types in a namespace (not parsable by cqct).
+</div>
+</div>
 
 <div class="docitem" id="fn:mknsoff">
 <div class="proto">
@@ -855,30 +873,6 @@ from some other provided namespace.
 	ns1 will be at offset 0x20 in mknsoff(ns1,0x10). 
 	This namespace is implemented in such a way as to not interfere with
 	the caching provided by the sctl namespaces. 
-</div>
-</div>
-
-<h5 id="lib:nsutil.cqct">nsutil.cqct</h5>
-
-<span class="id">nsutil.cqct</span> provides code for 
-checking type equality, printing namespaces, and iterating
-over types in namespaces.
-
-<div class="docitem" id="fn:all_types">
-<div class="proto">
-<div class="function">
-	<span class="id">all_types(<span class="arg">ns</span>)
-	</span>
-</div>
-<div class="param">
-<span class="arg">ns</span>: <span class="type">namespace</span> 
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-	Print all the types in a namespace (not parsable by cqct).
 </div>
 </div>
 
