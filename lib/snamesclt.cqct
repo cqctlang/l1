@@ -11,6 +11,7 @@ if(nsamesclt_defined == nil){
 
 @global issnamesup, setsnamesaddr, snamesns, snamesreconnect;
 
+nsamesclt_defined = 1;
 snamesaddr = "localhost:30000";
 
 @define issnamesup()
@@ -32,11 +33,12 @@ snamesaddr = "localhost:30000";
 @define snamesns(path)
 {
 	@local fd, nsid;
-	fd = mkrock(tcpopen(snamesaddr));
+	fd = tcpopen(snamesaddr);
 	if(fd == nil){
 		printf("%s\n", errno()[1]);
 		return nil;
 	}
+	fd = mkrock(fd);
 	nsid = names(fd, path);
 	if(nsid == nil)
 		return nil;
