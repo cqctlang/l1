@@ -17,8 +17,6 @@
 
 @define addwork(work, t)
 {
-	@local u;
-
 	if(isptr(t) || isbitfield(t) || isarray(t)){
 		addwork(work, subtype(t));
 		return;
@@ -153,7 +151,7 @@
 	}
 
 	@define dump(this, fd){
-		@local tt, et, work, done;
+		@local tt, et, work;
 //		printf("symbols:\n");
 //		dumptab(stab, @lambda(k, v) { printf("%8d\t%t\n",
 //						    v, ns.looksym(k));});

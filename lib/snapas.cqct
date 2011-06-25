@@ -37,7 +37,7 @@
 	}
 
 	@define ismapped(this, r){
-		return isrinrs(r, rs);
+		return isrinr(r, rs);
 	}
 
 	@define lookmap(a)
@@ -50,7 +50,7 @@
 	}
 
 	@define get(this, r){
-		@local b, l, i, m;
+		@local b, l, m;
 		b = rangebeg(r);
 		l = rangelen(r);
 		m = lookmap(b);

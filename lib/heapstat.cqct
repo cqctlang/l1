@@ -9,8 +9,7 @@
 
 @define dumpcode(hp)
 {
-	@local p, dom, mf, ml, n, nl, tab;
-	dom = domof(hp);
+	@local p, mf, ml, n, nl, tab;
 	p = hp->alloc;
 	n = 0;
 	nl = 0;
@@ -27,7 +26,6 @@
 		if(((p->bits>>5)&7) == 3)
 			mf += esize(p);
 		else{
-			@local a, b;
 			ml += szcode((`Code*)p, tab);
 			nl++;
 		}
