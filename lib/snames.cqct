@@ -227,6 +227,10 @@ sns = @names clp64be {
 		return 'badop;
 	}
 	sym = ns.lookaddr(addr);
+	if(sym == nil){
+       		sctlrerror(fd, msg->tag, Enone);
+		return 'badop;
+	}
 	m = p = (sctl`Rlookaddr*)mkxs();
 	p->op = sctl`Rlookaddr;
 	p->tag = msg->tag;
