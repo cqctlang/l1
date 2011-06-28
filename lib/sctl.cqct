@@ -1542,8 +1542,20 @@ nexttag = 0;
 	sendmsg(fd, m, (char*)p-m);
 	
 	[rep, dat] = recvmsg(fd);
-	checkreply(rep, sctl`Rlookaddr);
-	
+	if(rep == nil)
+		error("recvmsg: pid = %d %a", getpid(), dat);
+	switch(rep->op){
+	case sctl`Rlookaddr:
+		break;
+	case sctl`Rerror:
+		if(rep->bytes == Enone)
+			return nil;
+		error("sctl: error while waiting for %e: %s",
+		      sctl`Rlookaddr, rep->bytes);
+	default:
+		error("unexpected response: %e", rep->op);
+	}
+
 	[sym, _] = decodesym(dat);
 	return sym;
 }
