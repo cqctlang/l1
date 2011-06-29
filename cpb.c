@@ -350,9 +350,11 @@ checkbvar(void *u, char *id, void *v)
 	if(vu->ref == 0 && vu->def == 0)
 		cwarnln(ctx, vu->e, "unused variable: %s", id);
 	else if(vu->ref == 0)
-		cwarnln(ctx, vu->e, "variable defined but not used: %s", id);
+		cwarnln(ctx, vu->e, "variable defined but not referenced: %s",
+			id);
 	else if(vu->def == 0)
-		cwarnln(ctx, vu->e, "variable used but not defined: %s", id);
+		cwarnln(ctx, vu->e, "variable referenced but not defined: %s",
+			id);
 }
 
 static void

@@ -1,4 +1,4 @@
-ambig3.l1:2: warning: variable defined but not used: y
+ambig3.l1:2: warning: variable defined but not referenced: y
 ambig3.l1:3: warning: reference to unbound variable: dom
 entry: var params, 1 locals, 0 temps
 x: 0 params, 10 locals, 0 temps

@@ -1,5 +1,5 @@
 goto5.l1:30: warning: variable shadows parameter: x
-goto5.l1:30: warning: variable used but not defined: x
+goto5.l1:30: warning: variable referenced but not defined: x
 entry: var params, 1 locals, 0 temps
 foo: 1 params, 3 locals, 0 temps
 foo(0)

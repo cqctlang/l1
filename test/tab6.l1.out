@@ -1,2 +1,2 @@
-tab6.l1:2: warning: variable used but not defined: x
+tab6.l1:2: warning: variable referenced but not defined: x
 entry: var params, 8 locals, 0 temps
