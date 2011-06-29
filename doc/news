@@ -202,3 +202,12 @@ jun 12 2011
 	hash function (hashqv).
 
 	The details of equivalence are now documented.
+
+jun 29 2011
+
+	Stringof now ends its search for string bytes
+	if it reaches a 4KB boundary that is deemed
+	unmapped by ismapped, in addition to respecting
+	the address space map.  This is a stop-gap
+	defense against inaccurate address space maps,
+	not a permanent feature.

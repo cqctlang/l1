@@ -4640,7 +4640,11 @@ mapping boundaries: if the boundary of the address
 space mapping containing <span class="arg">ptr</span>
 is reached before a null byte is encountered, then the
 search ends and the string of bytes seen so far is
-returned.
+returned.  To guard against inaccurate address
+space mappings, <span class="id">stringof</span>
+also ends the search if it reaches a 4KB-aligned boundary
+that is deemed unmapped
+by <a href="#fn:ismapped"><span class="id">ismapped</span></a>.
 </div>
 </div>
 
