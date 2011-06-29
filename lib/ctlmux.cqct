@@ -1480,6 +1480,7 @@ ctlmux = @names clp64le {
 
 	@defloc settimer(freq, fn){
 		@local sec, msec;
+		@global timerfd_create, timerfd_settime; /* may be undefined */
 		timerfn = fn;
 		if(fn != nil){
 			tfd = timerfd_create(linux`CLOCK_REALTIME, 0);
