@@ -1,0 +1,59 @@
+/* this test verifies the 4K ismapped checks in the
+   stringof implementation.  eventually (once maps
+   generally become more reliable) these checks should
+   be removed, and this test will be invalid. */
+max = 2*4K;
+@define mkxas(str){
+	@local dispatch, map, len;
+	len = length(str);
+	map = vector(mkrange(0,len));
+	@define dispatch(args ...) {
+		@local arg, range, new, beg, end;
+		arg = listref(args, 1);
+
+		if(arg == "get"){
+			range = listref(args, 2);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			return substr(str, beg, end);
+		}
+
+		if(arg == "put"){
+			range = listref(args, 2);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			new = listref(args, 3);
+			strput(str, beg, new);
+			return;
+		}
+
+		if(arg == "map")
+			return map;
+
+		if(arg == "ismapped"){
+		        range = listref(args, 2);
+			beg = rangebeg(range);
+			end = beg+rangelen(range);
+			if(end <= max)
+			       return 1;
+			else
+			       return 0;
+		}
+
+		printf("bad argument to dispatch!\n");
+	}
+	return mkas([ "dispatch" : dispatch ]);
+}
+
+s = mkstr(3*4K);
+memset(s, 'a');
+dom = mkdom(c32le, mkxas(s));
+p = (char*){dom}0;
+t = stringof(p);
+printf("length(t) = %d\n", length(t));
+for(i = 0; i < max; i++){
+	p = (char*){dom}i;
+	t = stringof(p);
+	if(max != length(t)+i)
+		printf("wrong: offset %d, length %d\n", i, length(t));
+}

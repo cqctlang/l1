@@ -4455,6 +4455,12 @@ mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 }
 
 /* assume CV has been vetted by isstrcval */
+/* FIXME: we don't trust map, so we stride
+   the reads by PAGESZ and verify each page
+   with ismapped.
+   we should not be doing this.
+   we should have reliable maps.
+   but we don't. */
 Str*
 stringof(VM *vm, Cval *cv)
 {
@@ -4463,7 +4469,6 @@ stringof(VM *vm, Cval *cv)
 	Vec *v;
 	Range *r;
 	Imm l, m, n, o;
-	static unsigned unit = 128;
 
 	/* effectively a call to unit */
 	v = callmap(vm, cv->dom->as);
@@ -4475,10 +4480,12 @@ stringof(VM *vm, Cval *cv)
 	m = r->beg->val+r->len->val-cv->val;
 	o = cv->val;
 	buf = 0;
+	n = MIN(m, PAGESZ-o%PAGESZ);
+	if(!ismapped(vm, cv->dom->as, o, 1))
+		vmerr(vm, "address space access out of bounds");
 	while(m > 0){
-		n = MIN(m, unit);
 		if(buf == 0)
-			buf = emalloc(unit);
+			buf = emalloc(n);
 		else
 			buf = erealloc(buf, l, l+n);
 		s = callget(vm, cv->dom->as, o, n);
@@ -4491,6 +4498,9 @@ stringof(VM *vm, Cval *cv)
 		l += s->len;
 		o += s->len;
 		m -= s->len;
+		n = MIN(m, PAGESZ);
+		if(!ismapped(vm, cv->dom->as, o, 1))
+			break;
 	}
 	s = mkstr(buf, l);	/* FIXME: mkstr copies buf; should steal */
 	efree(buf);
