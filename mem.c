@@ -1475,7 +1475,7 @@ islive(Head *o)
 	s = a2s(o);
 	if(islocked(s, o))
 		return 1;
-	if(!MTold(s->mt))
+	if(!MTold(s->mt) && s->gen != Glock)
 		return 1;
 	return 0;
 }
