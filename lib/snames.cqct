@@ -65,7 +65,7 @@ sns = @names clp64be {
 	nsid = openns(prefix+path);
 	if(nsid == nil){
 		sctlrerror(fd, msg->tag, Enone);
-		return 'badop;
+		return 'ok;
 	}
 	sz = sizeof(sctl`Rnames);
 	p = (sctl`Rnames*)malloc(sz);
@@ -122,12 +122,12 @@ sns = @names clp64be {
 	ns = looknsid(nsid);
 	if(ns == nil){
 		sctlrerror(fd, msg->tag, "unknown name space");
-		return 'badop;
+		return 'ok;
 	}
 	td = ns.looktype(tn);
 	if(td == nil){
        		sctlrerror(fd, msg->tag, Enone);
-		return 'badop;
+		return 'ok;
 	}
 	m = p = (sctl`Rlooktype*)mkxs();
 	p->op = sctl`Rlooktype;
@@ -146,7 +146,7 @@ sns = @names clp64be {
 	ns = looknsid(nsid);
 	if(ns == nil){
 		sctlrerror(fd, msg->tag, "unknown name space");
-		return 'badop;
+		return 'ok;
 	}
 	ts = ns.enumtype();
 	nt = length(ts);
@@ -171,12 +171,12 @@ sns = @names clp64be {
 	ns = looknsid(nsid);
 	if(ns == nil){
 		sctlrerror(fd, msg->tag, "unknown name space");
-		return 'badop;
+		return 'ok;
 	}
 	sym = looksym(ns, mkcid(id));
 	if(sym == nil){
 		sctlrerror(fd, msg->tag, Enone);
-		return 'badop;
+		return 'ok;
 	}
 
 	m = p = (sctl`Rlooksym*)mkxs();
@@ -197,7 +197,7 @@ sns = @names clp64be {
 	ns = looknsid(nsid);
 	if(ns == nil){
 		sctlrerror(fd, msg->tag, "unknown name space");
-		return 'badop;
+		return 'ok;
 	}
 
 	ss = ns.enumsym();
@@ -224,12 +224,12 @@ sns = @names clp64be {
 	ns = looknsid(nsid);
 	if(ns == nil){
 		sctlrerror(fd, msg->tag, "unknown name space");
-		return 'badop;
+		return 'ok;
 	}
 	sym = ns.lookaddr(addr);
 	if(sym == nil){
        		sctlrerror(fd, msg->tag, Enone);
-		return 'badop;
+		return 'ok;
 	}
 	m = p = (sctl`Rlookaddr*)mkxs();
 	p->op = sctl`Rlookaddr;
