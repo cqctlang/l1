@@ -4762,7 +4762,7 @@ l1_mksas(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-domkmas(VM *vm, Imm argc, Val *argv, Val *rv, unsigned x)
+domkmas(VM *vm, char *fn, Imm argc, Val *argv, Val *rv, unsigned x)
 {
 	As *as;
 	Cval *p, *l;
@@ -4777,11 +4777,11 @@ domkmas(VM *vm, Imm argc, Val *argv, Val *rv, unsigned x)
 		p = valcval(argv[0]);
 		l = valcval(argv[1]);
 		if(l->val && p->val+l->val <= p->val)
-			vmerr(vm, "bad range for mkmas");
+			vmerr(vm, "bad range for %s", fn);
 		r = mkrange(p, l);
 		break;
 	default:
-		vmerr(vm, "wrong number of arguments to mkmas");
+		vmerr(vm, "wrong number of arguments to %s", fn);
 	}
 	as = mkmas(vm, r, x);
 	*rv = mkvalas(as);
@@ -4790,13 +4790,15 @@ domkmas(VM *vm, Imm argc, Val *argv, Val *rv, unsigned x)
 static void
 l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	domkmas(vm, argc, argv, rv, 0);
+	domkmas(vm, "mkmas", argc, argv, rv, 0);
 }
 
 static void
 l1_mkmasx(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	domkmas(vm, argc, argv, rv, 1);
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mkmasx");
+	domkmas(vm, "mkmasx", argc, argv, rv, 1);
 }
 
 static void
