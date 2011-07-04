@@ -6168,6 +6168,7 @@ syntax2expr(VM *vm, Val a)
 	Val v;
 	Imm i;
 	Expr *e;
+	Cid *id;
 	Str *s;
 	Cval *cv;
 	Ctype *t;
@@ -6190,35 +6191,35 @@ syntax2expr(VM *vm, Val a)
 	switch(k){
 	case E_tid:
 		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
+		if(Vkind(v) != Qcid)
 			goto bad;
-		s = (Str*)v;
-		return Ztidn(strdata(s), s->len);
+		id = (Cid*)v;
+		return Ztidn(ciddata(id), strlen(ciddata(id)));
 	case Egoto:
 		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
+		if(Vkind(v) != Qcid)
 			goto bad;
-		s = (Str*)v;
-		return Zgoton(strdata(s), s->len);
+		id = (Cid*)v;
+		return Zgoton(ciddata(id), strlen(ciddata(id)));
 	case Elabel:
 		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
+		if(Vkind(v) != Qcid)
 			goto bad;
-		s = (Str*)v;
-		return Zlabeln(strdata(s), s->len);
+		id = (Cid*)v;
+		return Zlabeln(ciddata(id), strlen(ciddata(id)));
 	case E_tg:
 		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
+		if(Vkind(v) != Qcid)
 			goto bad;
-		s = (Str*)v;
-		return Ztgn(strdata(s), s->len,
+		id = (Cid*)v;
+		return Ztgn(ciddata(id), strlen(ciddata(id)),
 			    syntax2expr(vm, listref(vm, l, skip+2)));
 	case Eid:
 		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
+		if(Vkind(v) != Qcid)
 			goto bad;
-		s = (Str*)v;
-		return doidnsrc(0, strdata(s), s->len);
+		id = (Cid*)v;
+		return doidnsrc(0, ciddata(id), strlen(ciddata(id)));
 	case Econst:
 		v = listref(vm, l, skip+1);
 		if(Vkind(v) != Qcval)
