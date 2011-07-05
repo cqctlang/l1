@@ -3,7 +3,7 @@
 #include "syscqct.h"
 
 static Tab*
-_mktab(u32 sz)
+_mktab(u32 sz, Val def)
 {
 	Tab *t;
 	u32 i;
@@ -12,6 +12,7 @@ _mktab(u32 sz)
 	t->sz = sz;
 	t->nent = 0;
 	t->ht = mkvec(sz);
+	t->def = def;
 	for(i = 0; i < sz; i++)
 		_vecset(t->ht, i, mkvalcval(0, 0, i));
 	t->tg = mkguard();
@@ -22,7 +23,7 @@ Tab*
 mktab()
 {
 	Tab *t;
-	t = _mktab(Tabinitsize);
+	t = _mktab(Tabinitsize, Xnil);
 	t->equal = equalval;
 	t->hash = hashval;
 	return t;
@@ -32,10 +33,16 @@ Tab*
 mktabqv()
 {
 	Tab *t;
-	t = _mktab(Tabinitsize);
+	t = _mktab(Tabinitsize, Xnil);
 	t->equal = eqvval;
 	t->hash = hashqvval;
 	return t;
+}
+
+static void
+tabsetdef(Tab *t, Val def)
+{
+	t->def = def;
 }
 
 static Pair*
@@ -343,7 +350,7 @@ tabcopy(Tab *t)
 	Pair *lnk;
 	u32 i, m;
 
-	rv = _mktab(t->sz);
+	rv = _mktab(t->sz, t->def);
 	rv->equal = t->equal;
 	rv->hash = t->hash;
 	for(i = m = 0; i < t->sz && m < t->nent; i++){
@@ -361,10 +368,13 @@ tabcopy(Tab *t)
 static void
 l1_mktab(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 0)
+	Tab *t;
+	if(argc != 0 && argc != 1)
 		vmerr(vm, "wrong number of arguments to mktab");
-	USED(argv);
-	*rv = mkvaltab(mktab());
+	t = mktab();
+	if(argc == 1)
+		tabsetdef(t, argv[0]);
+	*rv = mkvaltab(t);
 }
 
 static void
@@ -395,7 +405,8 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 	vp = tabget(t, argv[1]);
 	if(vp)
 		*rv = vp;
-	/* otherwise return nil */
+	else
+		*rv = t->def;
 }
 
 void

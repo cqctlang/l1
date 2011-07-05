@@ -1,0 +1,4 @@
+/* default table value */
+t = mktab(0);
+t[1]++;
+printf("%d\n", t[1]);

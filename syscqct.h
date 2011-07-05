@@ -284,6 +284,7 @@ struct Box {
 struct Tab {
 	Head hd;
 	u32 sz, nent;
+	Val def;		/* default value */
 	Vec *ht;
 	Pair *tg;		/* transport guardian */
 	int (*equal)(Val, Val);
