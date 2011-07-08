@@ -1259,10 +1259,11 @@ copy(Val *v)
 		if(dbg)printf("copy: object %p is protected\n", h);
 		return Glock;
 	}
-	if(!MTold(s->mt)){
+	if(!MTold(s->mt) && s->gen != Glock){
+		// this object does not move
 		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
 			      h, s->gen);
-		return s->gen; // objects in older generations do not move
+		return s->gen;
 	}
 	if(MTbig(s->mt)){
 		t = s;
