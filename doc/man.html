@@ -100,21 +100,21 @@ of the L1 implementation of Cinquecento.
 Cinquecento is a programming language designed for
 examining programs in execution.  It features an
 extensible abstraction, called a <em>domain</em>, that
-represents a program in execution as a language
-value.
+presents a program in execution as a language
+value, and a syntactic interface to domains based on
+the C programming language.
 </p>
 
 <p>
-The interface to a domain is based on the syntax and
-semantics of the C programming language.  Fragments of
-C, including C operators, types, and control flow, can
-be written to read or modify target program memory.
-Complex C idioms for traversing data structures, such
-as pointer-chasing loops, generally work without
-modification.  The names and types of target program
-data can be specified in the syntax of C declarations;
-minor extensions allow machine-level specification of
-location, layout, and encoding of data in memory.
+In Cinquecento, fragments of C &mdash; employing C operators,
+types, and control flow &mdash; can read or modify target
+program memory.  Complex C idioms for traversing data
+structures, such as pointer-chasing loops, often work
+without modification.  Specification of the names and
+types of target program data begins in the syntax of C
+declarations; minor extensions allow machine-level
+specification of location, layout, and encoding of data
+in memory.
 </p>
 
 <p>
@@ -128,9 +128,8 @@ architecture or operating system.
 
 Example applications include comparing executions of
 different versions of a program, comparing executions
-of a program across several machine types or operating
-systems, and validating global state in a
-distributed, multi-process program.
+of a program across machines or operating systems, and
+validating global state in a distributed program.
 </p>
 
 <p>
@@ -153,12 +152,12 @@ Apart from domains and the C-based syntax, Cinquecento
 is a simple dynamic language with conventional
 functional semantics.  A dialect of Scheme at heart,
 Cinquecento is lexically scoped, dynamically typed,
-properly tail recursive, and has first-class functions
-and automatic memory management.  Schemers will note
-departure in Cinquecento's model of integers (which
-rigorously emulates C's fixed precision semantics), the
-more imperative flavor of its built-in list data type,
-and the absence (today) of a compelling macro system.
+properly tail recursive, and has first-class functions,
+continuations, and automatic memory management.
+Schemers will note departure in Cinquecento's model of
+numbers (which rigorously emulates C's fixed precision
+semantics), the more generally imperative flavor, and
+the inadequate support for syntactic extension.
 </p>
 
 <p>
@@ -178,9 +177,9 @@ We welcome feedback of any kind from all users.
 <h4 id="sec:audience">Prerequisites</h4>
 
 <p>
-Cinquecento is meant to feel familiar to programmers
-who are fluent in both C and Scheme.  The essence of
-Cinquecento programming is the use of functional
+Cinquecento is meant to appeal to programmers who are
+fluent in both C and Scheme.  The essence
+of Cinquecento programming is the use of functional
 abstraction, in the style epitomized by Scheme, to
 program the evaluation of expressions involving the
 syntax, operators, types, memory model, and control
@@ -188,15 +187,14 @@ flow of idiomatic C.
 </p>
 
 <p>
-There is no substitute for joyful immersion in the
-classic texts on artful use of C and Scheme.  It would
-be a disservice for this manual to dispense nutshell
-caricatures of the deep ideas and traditions that have
-been so carefully articulated elsewhere.  Instead, we
-recommend a few standard selections, out of the many
-superb treatments available on the web and in
-libraries, that we regard as enjoyable starting points
-from which one cannot be led astray.
+This manual does not dispense nutshell caricatures of
+ideas and traditions explained well elsewhere.  There
+is no substitute for joyful immersion in a classic
+guide to artful use of C or Scheme.  Of the many
+superb ones available on the web and in
+libraries, we recommend a few standard selections as
+enjoyable starting points from which one cannot be led
+astray.
 </p>
 
 <p>
@@ -223,19 +221,18 @@ operations involving pointers and memory.  <em>The C
 Programming Language</em> [<a href="#bib:kr">K&R</a>]
 offers a concise and definitive foundation, while
 <em>C: A Reference Manual</em>
-[<a href="#bib:hs">H&S</a>] reveals and analyzes more
-of the edges.
+[<a href="#bib:hs">H&S</a>] further reveals the edges.
 </p>
 
 <p>
 Looking from another direction, the Cinquecento
 programmer is primarily in the business of making,
-operating, and extending special-purpose debuggers.
-Sooner or later, understanding how debuggers represent
-and control program executions in your environment
-becomes a requirement.  Manuals tend to be inadequate.
-We know of no resource better than source code, your
-curiosity, and the scattered wizards.
+operating, and extending custom debuggers.  Sooner or
+later, understanding how debuggers represent and
+control program executions in your environment becomes
+a requirement.  Manuals tend to be inadequate.  We know
+of no resources better than source code, the scattered
+wizards, and your curiosity.
 </p>
 
 <h4 id="sec:repl">Interactive Use</h4>
