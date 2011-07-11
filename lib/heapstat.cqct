@@ -1,12 +1,3 @@
-@define dumptab(tab, fn)
-{
-	@local ks, vs, i;
-	ks = tabkeys(tab);
-	vs = tabvals(tab);
-	for(i = 0; i < length(ks); i++)
-		fn(ks[i], vs[i]);
-}
-
 @define dumpcode(hp)
 {
 	@local p, mf, ml, n, nl, tab;
@@ -35,7 +26,7 @@
 	printf("%d code objects (%d live)\n", n, nl);
 	printf("%d live code bytes\n", ml);
 	printf("%d free code bytes\n", mf);
-	dumptab(tab, @lambda(k,v) { printf("%10s = %10d bytes\n", k, v); });
+	dumptab("%10s = %10d bytes\n", tab);
 }
 
 @define szcode(cp, tab)

@@ -819,6 +819,8 @@ struct VM {
 	Val stack[Maxstk];
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
+	u64 exetime, exelast;
+	u64 gctime;
 };
 
 extern char* S[];

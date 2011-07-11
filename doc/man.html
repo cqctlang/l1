@@ -60,9 +60,10 @@
 <a href="#sec:strings">Strings</a><br />
 <a href="#sec:pairs">Pairs</a><br />
 <br />
-<em>System Operations</em><br />
+<em>System Operation</em><br />
 <a href="#sec:storage">Storage Management</a><br />
 <a href="#sec:compile">Quotation, Compilation, and Evaluation</a><br />
+<a href="#sec:perf">Instrumentation</a><br />
 <br />
 <em>Built-in Libraries</em><br />
 <a href="#sec:io">I/O</a><br />
@@ -9499,6 +9500,60 @@ and <span class="fnindex"><a href="#fn:postgc">postgc</a></span>.
 </div>
 </div>
 
+<h4 id="sec:perf">Instrumentation</h4>
+
+<p>
+The function <span class="id">statistics</span> provides
+access to internal instrumentation of the L1 runtime.
+</p>
+
+<div class="docitem" id="fn:statistics">
+<div class="proto">
+<div class="function">
+<span class="id">statistics()</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Returns a table containing instrumentation data for the
+current L1 execution.  Each key/value pair of the table
+is a separate instrumentation report.  Keys are cids,
+identifying the form of instrumentation.  The type of
+the corresponding value depends on the instrumentation.
+Instrumentation reports include:
+</p>
+
+<div class="table-short">
+<table>
+<tr>
+<td>
+<span class="id">exetime</span>
+</td>
+<td>
+Elapsed wall clock time in microseconds spent in L1 execution,
+including calls to foreign functions,
+system calls,
+collection and other storage management.
+</td>
+</tr>
+<tr>
+<td>
+<span class="id">collectime</span>
+</td>
+<td>
+The portion of <span class="id">exetime</span>,
+in microseconds, spent in the L1 collector.
+</td>
+</tr>
+</table>
+</div>
+
+</div>
+</div>
+
 
 <h4 id="sec:system">System Functions</h4>
 
@@ -11137,6 +11192,7 @@ Prentice Hall, 1988.
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
 <a href="#fn:sprintfa">sprintfa</a><br />
+<a href="#fn:statistics">statistics</a><br />
 <a href="#fn:stringof">stringof</a><br />
 <a href="#fn:strcmp">strcmp</a><br />
 <a href="#fn:strlen">strlen</a><br />
