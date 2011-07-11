@@ -3792,6 +3792,8 @@ void
 dogc(VM *vm, u32 g, u32 tg)
 {
 	Val v;
+	u64 b;
+	b = usec();
 	_gc(g, tg);
 	v = cqctenvlook(vm->top, "postgc");
 	if(v && Vkind(v) == Qcl){
@@ -3800,6 +3802,7 @@ dogc(VM *vm, u32 g, u32 tg)
 		vm->ac = vm->stack[vm->sp];
 		vmpop(vm, 1);
 	}
+	vm->gctime += usec()-b;
 }
 
 Val
@@ -6411,6 +6414,28 @@ l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalstr(s);
 }
 
+static void
+updatestats(VM *vm)
+{
+	u64 t;
+	t = usec();
+	vm->exetime += t-vm->exelast;
+	vm->exelast = t;
+}
+
+static void
+l1_statistics(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	updatestats(vm);
+	t = mktab();
+	tabput(t, mkvalcid(mkcid0("exetime")),
+	       mkvallitcval(Vuvlong, vm->exetime));
+	tabput(t, mkvalcid(mkcid0("collecttime")),
+	       mkvallitcval(Vuvlong, vm->gctime));
+	*rv = mkvaltab(t);
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -6808,6 +6833,7 @@ mktopenv(void)
 	FN(setloadpath);
 	FN(sort);
 	FN(split);
+	FN(statistics);
 	FN(stringof);
 
 	fnch(env);
@@ -6961,27 +6987,26 @@ finivm(void)
 int
 cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 {
+	int r;
+	r = -1;
+	vm->exelast = usec();
 	if(waserror(vm))
-		return -1;
+		goto out;
 	if(Vkind(cl) != Qcl)
-		return -1;
+		goto out;
 	vm->flags &= ~VMirq;
 	*rv = dovm(vm, valcl(cl), argc, argv);
 	poperror(vm);
-	return 0;
+	r = 0;
+out:
+	updatestats(vm);
+	return r;
 }
 
 int
 cqctcallthunk(VM *vm, Val cl, Val *rv)
 {
-	if(waserror(vm))
-		return -1;
-	if(Vkind(cl) != Qcl)
-		return -1;
-	vm->flags &= ~VMirq;
-	*rv = dovm(vm, valcl(cl), 0, 0);
-	poperror(vm);
-	return 0;
+	return cqctcallfn(vm, cl, 0, 0, rv);
 }
 
 Cbase

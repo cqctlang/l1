@@ -19,6 +19,12 @@ sup {
 	font-size: smaller;
 }
 
+dl {
+//	margin-right: 20px;
+	margin-left: 20px;
+	margin-bottom: 10px;
+}
+
 ol {
 //	margin-right: 20px;
 	margin-left: 20px;
