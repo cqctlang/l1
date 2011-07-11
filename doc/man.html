@@ -28,6 +28,7 @@
 <a href="#sec:types">Types</a><br />
 <a href="#sec:functions">Functions</a><br />
 <a href="#sec:control">Control</a><br />
+<a href="#sec:patterns">Pattern Matching</a><br />
 <br />
 <em>Using Domains</em><br />
 <a href="#sec:domainover">Overview of Domains</a><br />
@@ -1280,10 +1281,14 @@ and the <span class="val">goto</span> statement.
 </p>
 
 <p>
-These statements have the same syntax they have in C.
-Control flow through loops and <span class="val">switch</span> 
-statements can be controlled with <span class="val">break</span>
-and <span class="val">continue</span> as in C.
+In all cases but <span class="val">switch</span>, these
+statements have the same syntax they have in C.  The
+syntax of <span class="val">switch</span> has been
+expanded to support pattern matching, discussed in
+<a href="#sec:patterns">the switch statement and
+pattern matching</a> below, but is backward compatible
+with C: a switch statement that is legal C will have
+the same semantics as in C.
 </p>
 
 <p>
@@ -1297,30 +1302,12 @@ considered true.
 </p>
 
 <p>
-Unlike C, the <span class="val">switch</span> statement
-dispatches values of any type, not just integers.
-The <span class="val">==</span> operator determines
-equality.
-</p>
-
-<p>
-The <span class="val">case</span>s of a
-<span class="val">switch</span> are compared in
-lexical order; control jumps to the first statement
-with a matching <span class="val">case</span> label, or to the
-optional <span class="val">default</span> label,
-regardless of where it appears, if
-no <span class="val">case</span> matches.
-Control skips past the <span class="val">switch</span> body 
-if there is no matching case
-and no <span class="val">default</span> label.
-</p>
-
-<p>
-None of the non-local control transfer statements
-(<span class="val">break</span>, <span class="val">continue</span>,
-<span class="val">goto</span>) can be used to leave
-or enter the body of a function.
+Control flow through loops
+and <span class="val">switch</span> statements can be
+controlled with <span class="val">break</span>
+and <span class="val">continue</span> as in C.  Neither
+these keywords nor <span class="val">goto</span> can be
+used to leave or enter the body of a function.
 </p>
 
 <p>
@@ -1441,6 +1428,265 @@ is called with the result of the application as its
 single argument.
 </div>
 </div>
+
+<h4 id="sec:patterns">The switch statement and pattern matching</h4>
+
+<p>
+As in C, the <span class="val">case</span>s of a
+<span class="val">switch</span> are compared in
+lexical order; control jumps to the first statement
+with a matching <span class="val">case</span> label, or to the
+optional <span class="val">default</span> label,
+regardless of where it appears, if
+no <span class="val">case</span> matches.
+Control skips past the <span class="val">switch</span> body 
+if there is no matching case
+and no <span class="val">default</span> label.
+</p>
+
+<p>
+The syntax and semantics
+of <span class="val">switch</span> has been expanded
+from that of C in several ways.
+First, <span class="val">switch</span> can dispatch on
+any type, not just integer types, and therefore the
+expressions in <span class="val">case</span> statements
+need not be integers.  For example:
+</p>
+
+<div class="code">
+<pre>
+; x = [1,2];
+<span class="arg">[ 1, 2 ]</span>
+; switch (x) { case [1,2]: printf("match\n"); }
+<span class="arg">match</span>
+; switch (x) { case []: break; default: printf("non-match\n"); }
+<span class="arg">non-match</span>
+</pre>
+</div>
+
+<p>
+The expression being dispatched
+(here, <span class="val">x</span>) is compared with
+the expressions in <span class="val">case</span>
+statements (here, <span class="val">[1,2]</span>
+and <span class="val">[]</span>) using
+the <span class="val">==</span> operator.  Generally
+speaking, and unlike C,  <span class="val">case</span>
+statements may include <i>expressions</i>, not just
+constants.  For example, 
+</p>
+
+<div class="code">
+<pre>
+; switch (x) { case (gettimeofday() > 2 ? [1,2] : []) : printf("match\n"); }
+<span class="arg">match</span>
+</pre>
+</div>
+
+<p>
+When a particular <span class="val">switch</span>
+contains <span class="val">case</span> statements with
+expressions they are executed in logical order; if a
+match occurs prior to reaching a
+particular <span class="val">case</span>, then
+that <span class="val">case</span>'s expression is not
+executed.
+</p>
+
+<p>
+Cinquecento's most liberal extension
+of <span class="val">switch</span> is in supporting
+pattern matching, as provided in functional languages
+like Ocaml and Erlang.  When pattern matching,
+variables that occur in <span class="val">case</span>
+expressions of structured type (like lists) correspond
+to portions of the structure being matched against, and
+can be referred to in the code associated with
+the <span class="val">case</span>.  This is most easily
+seen with an example:
+</p>
+
+<div class="code">
+<pre>
+; x = [1,2];
+<span class="arg">[ 1, 2 ]</span>
+; switch (x) { case [1,y] : printf("match: y = %d\n",y); }
+<span class="arg">match: y = 2</span>
+; switch (x) { case [2,y] : break; default: printf("no match\n"); }
+<span class="arg">no match</span>
+</pre>
+</div>
+
+<p>
+The first <span class="val">switch</span> statement
+matches the initial clause because there exists a value
+of <span class="val">y</span> for which the expression
+matches the value of <span class="val">x</span>, i.e.,
+when <span class="val">y</span>
+is <span class="val">2</span>.
+Thus, <span class="val">y</span> is bound
+to <span class="val">2</span> inside the body of
+the <span class="val">case</span> expression. The
+second <span class="val">switch</span> fails to match
+because there is no valuation
+of <span class="val">y</span> that would
+permit <span class="val">[2,y]</span> to
+match <span class="val">x</span>'s value
+of <span class="val">[1,2]</span>.
+</p>
+
+<p>
+For lists, legal patterns consist of normal list syntax
+along with variables or <i>wildcards</i> which are
+special "don't care" variables
+written as <span class="val">_</span>.  For example, to
+dispatch on a list of length 3, you could write:
+</p>
+
+<div class="code">
+<pre>
+; switch (x) { case [_,_,_] : printf("match\n"); }
+</pre>
+</div>
+
+<p>
+If the last element of a list pattern is a variable (or
+wildcard) with <span class="val">...</span> appended to
+it then the variable matches against the <i>tail</i> of
+the list (which could be empty).  Thus, to match
+against a list of at least length 3, and print the part
+of the list beyond the first three elements, you would
+do
+</p>
+
+<div class="code">
+<pre>
+; x = [1,2,3,4,5];
+<span class="arg">[ 1, 2, 3, 4, 5 ]</span>
+; switch (x) { case [_,_,_,t...] : printf("match: t = %a\n",t); }
+<span class="arg">match: t = [ 4, 5 ]</span>
+</pre>
+</div>
+
+<p>
+We can also match against tables, using patterns of the
+form <span class="val">[</span> <i>k</i>:<i>p</i> <span class="val">]</span>
+where <i>k</i> must be a constant (containing no
+variables) and <i>p</i> is an arbitrary pattern (i.e.,
+a constant, a list pattern, or a (nested) table
+pattern).  Such a pattern matches if the table being
+matched against contains the key <i>k</i> which maps to
+a value that matches against pattern <i>p</i>, in which
+case any variables in <i>p</i> are bound in the
+adjacent code.  For example:
+</p>
+
+<div class="code">
+<pre>
+; x = [1:"hello", 3:4];
+<span class="arg">&lt;table&gt</span>
+; switch (x) { case [1:v] : printf("match: v = %a\n",v); }
+<span class="arg">match: v = "hello"</span>
+</pre>
+</div>
+
+<p>
+Table patterns can have multiple key-value pairs in
+them, similarly to lists.  Since table patterns do not
+require exact matches (i.e., a pattern matches if the
+table contains the specified keys but there could be
+other key-value pairs in the table) there is no need
+for the ... pattern for tables.  Keys are not permitted
+to be pattern variables; this would be too inefficient
+and ambiguous.
+</p>
+
+<p>
+In general, patterns may not contain duplicate
+variables, though they may contain more than one
+wildcard.  So patterns
+like <span class="val">[x,x]</span>, which you might
+like to write to match against two-element lists whose
+elements are the same value, are disallowed.  Also,
+pattern variables will <i>shadow</i> variables defined
+in a surrounding scope, which may be surprising.  For
+example, you might write
+</p>
+
+<div class="code">
+<pre>
+; x = [1,2];
+<span class="arg">[ 1, 2 ]</span>
+; y = "hello";
+<span class="arg">"hello"</span>
+; switch (x) { case y : printf("match, y = %a\n",y); }
+<span class="arg">match, y = [ 1, 2 ]</span>
+; y;
+<span class="arg">"hello"</span>
+</pre>
+</div>
+
+<p>
+Here, the <span class="val">case</span> statement in
+the <span class="val">switch</span>
+treats <span class="val">y</span> as a binding variable
+which will match anything,
+binding <span class="val">y</span> to it.  You might
+have expected the match to fail if you
+thought <span class="val">y</span> in the case
+corresponded to the variable defined in the outer
+scope.  After the <span class="val">switch</span>
+concludes, references to <span class="val">y</span>
+refer to the <span class="val">y</span> defined in the
+outer scope.  In effect, you can think of pattern
+variables as being <span class="val">@local</span> to
+the case arm in which they appear.
+</p>
+
+<p>
+On the other hand, pattern matching only occurs within
+structured types; references to variables in general
+expressions will refer to the outer scope.  For
+example:
+</p>
+
+<div class="code">
+<pre>
+; x = 6;
+<span class="arg">6</span>
+; switch (9) { case x+3 : printf("match, x = %d\n",x); }
+<span class="arg">match, x = 6</span>
+; switch (6) { case x+3 : break; default: printf("no match\n"); }
+<span class="arg">no match</span>
+</pre>
+</div>
+
+<p>
+Here, the variable <span class="val">x</span> appears
+in the case expression, but it is part of an
+expression, not a constant of structured
+type.  <i>Pattern matching only applies to constants
+where some constant values may be replaced with
+variables.</i>  Limiting yourself to C-style
+<span class="val">switch</span> statements (which do
+not allow expressions in
+<span class="val">case</span> statements) generalized
+to patterns will avoid this potential confusion.
+</p>
+
+<p>
+Pattern matching does not play well with fall-through
+from one <span class="val">case</span> statement to the
+next.  If you do this, the behavior of the program
+isundefined.  Likewise, the behavior is undefined if
+you <span class="val">goto</span> under
+a <span class="val">case</span> statement that binds
+pattern variables.  Usages
+of <span class="val">break</span>
+and <span class="val">continue</span> are likely to be
+safe.
+</p>
 
 
 <h4 id="sec:domainover">Overview of Domains</h4>
