@@ -69,6 +69,7 @@ ctlmux = @names clp64le {
 
 	enum State {
 		Running,
+		Requestedrun,
 		Stopped,
 		Dead,
 	};
@@ -1104,9 +1105,9 @@ ctlmux = @names clp64le {
 
 	@define checkreply(rep, op)
 	{
+		if(op == rep->op)
+			return;
 		switch(rep->op){
-		case op:
-			break;
 		case ctlmux`Rerror:
 			error("ctlmux: while waiting for %e: %s",
 			      op, rep->bytes);
@@ -1395,11 +1396,11 @@ ctlmux = @names clp64le {
 			break;
 		case ctlmux`Eexit:
 			log("task %d has died", msg->id);
+			ctl.state = ctlmux`Dead;
 			fn = ctl.callbacks[ev];
 			if(fn != nil)
 				// it's dead: nothing to control with docall
 				fn(ctl);
-// ADDME		ctl.state = ctlmux`Dead;
 			tabdelete(ctls, msg->id);
 			break;
 		case ctlmux`Eexec:
@@ -1757,6 +1758,8 @@ ctlmux = @names clp64le {
 		p->id = ctl.id;
 		sendmsg(fd, p);
 
+		ctl.state = ctlmux`Requestedrun;
+
 		taghandler[p->tag] = @lambda(rep, dat){
 			checkreply(rep, ctlmux`Rcont);
 			ctl.state = ctlmux`Running;
@@ -1785,9 +1788,10 @@ ctlmux = @names clp64le {
 	{
 		@local p, rep;
 
-		if(ctl.state != ctlmux`Running)
+		if(ctl.state != ctlmux`Running
+		   && ctl.state != ctlmux`Requestedrun)
 			return;
-		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tstop));
+		p = (ctlmux`Tstop*)malloc(sizeof(ctlmux`Tstop));
 		p->op = ctlmux`Tstop;
 		p->tag = freshtag();
 		p->id = ctl.id;
@@ -1795,8 +1799,8 @@ ctlmux = @names clp64le {
 
 		/* FIXME: consume registers */
 		[rep, _] = runtiltag(p->tag);
-		ctl.setreg(cop(&rep->ctx));
 		checkreply(rep, ctlmux`Rstop);
+		ctl.setreg(cop(&rep->ctx));
 		ctl.state = ctlmux`Stopped;
 		return nil;
 	}
@@ -1807,7 +1811,7 @@ ctlmux = @names clp64le {
 
 		if(ctl.state != ctlmux`Stopped)
 			error("attempt to step running ctl");
-		p = (ctlmux`Tcont*)malloc(sizeof(ctlmux`Tstep));
+		p = (ctlmux`Tstep*)malloc(sizeof(ctlmux`Tstep));
 		p->op = ctlmux`Tstep;
 		p->tag = freshtag();
 		p->id = ctl.id;
