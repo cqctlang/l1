@@ -1682,10 +1682,7 @@ next.  If you do this, the behavior of the program
 isundefined.  Likewise, the behavior is undefined if
 you <span class="val">goto</span> under
 a <span class="val">case</span> statement that binds
-pattern variables.  Usages
-of <span class="val">break</span>
-and <span class="val">continue</span> are likely to be
-safe.
+pattern variables.
 </p>
 
 
@@ -8821,6 +8818,24 @@ connection associated with <span class="arg">fd</span>.
 </div>
 </div>
 
+<div class="docitem" id="fn:sockpair">
+<div class="proto">
+<div class="function">
+<span class="id">sockpair()</span>
+</div>
+<div class="returns">
+<span class="type">list of two file descriptors</span>
+</div>
+</div>
+<div class="desc">
+Creates a buffered, bi-directional channel for
+interprocess communication.  The two file
+descriptors returned are its endpoints:
+data written to one descriptor is available for reading
+from the other.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:read">
 <div class="proto">
@@ -11432,6 +11447,7 @@ Prentice Hall, 1988.
 <a href="#fn:settypedeftype">settypedeftype</a><br />
 <a href="#fn:sha1">sha1</a><br />
 <a href="#fn:slice">slice</a><br />
+<a href="#fn:sockpair">sockpair</a><br />
 <a href="#fn:sort">sort</a><br />
 <a href="#fn:split">split</a><br />
 <a href="#fn:sprintfa">sprintfa</a><br />
