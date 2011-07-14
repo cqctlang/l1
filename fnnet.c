@@ -197,7 +197,7 @@ l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 	reuseaddr(xfd.fd);
 	if(0 > bind(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "tcplisten: %s", strerror(errno));
-	if(0 > listen(xfd.fd, 1))
+	if(0 > listen(xfd.fd, 4096))
 		vmerr(vm, "tcplisten: %s", strerror(errno));
 	xfd.close = fdclose;
 	fd = mkfdfn(str, 0, &xfd);
