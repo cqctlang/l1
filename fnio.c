@@ -686,6 +686,32 @@ setfdsout(VM *vm, List *il, fd_set *f, List *ol)
 }
 
 static void
+l1_sockpair(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int fd[2], i;
+	Xfd xfd[2];
+	List *l;
+
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to sockpair");
+	if(0 > newchan(&fd[0], &fd[1]))
+		vmerr(vm, "sockpair: %s", strerror(errno));
+	l = mklist();
+	memset(xfd, 0, sizeof(xfd));
+	for(i = 0; i < 2; i++){
+		xfd[i].fd = fd[i];
+		xfd[i].read = xfdread;
+		xfd[i].write = xfdwrite;
+		xfd[i].close = xfdclose;
+	}
+	listappend(vm, l, mkvalfd(mkfdfn(mkstr0("<sockpair>"),
+					 Fread|Fwrite, &xfd[0])));
+	listappend(vm, l, mkvalfd(mkfdfn(mkstr0("<sockpair>"),
+					 Fread|Fwrite, &xfd[1])));
+	*rv = mkvallist(l);
+}
+
+static void
 l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	fd_set rfds, wfds, efds;
@@ -757,6 +783,7 @@ fnio(Env *env)
 	FN(read);
 	FN(seek);
 	FN(select);
+	FN(sockpair);
 	FN(stat);
 	FN(write);
 }

@@ -83,15 +83,16 @@ xabort()
 	abort();
 }
 
-static void
+int
 newchan(int *left, int *right)
 {
 	int fd[2];
 
 	if(0 > socketpair(PF_UNIX, SOCK_STREAM, 0, fd))
-		fatal("cannot allocate channel");
+		return -1;
 	*left = fd[0];
 	*right = fd[1];
+	return 0;
 }
 
 void
@@ -131,19 +132,23 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 	/* ignore sigpipe from now on */
 	signal(SIGPIPE, SIG_IGN);
 
-	newchan(&ctl[0], &ctl[1]);
-	newchan(&in[0], &in[1]);
+	if(0 > newchan(&ctl[0], &ctl[1]))
+		return -errno;
+	if(0 > newchan(&in[0], &in[1]))
+		return -errno;
 	if(flags&PopenFullDuplex){
 		out[0] = in[0];
 		out[1] = in[1];
 	}else
-		newchan(&out[0], &out[1]);
+		if(0 > newchan(&out[0], &out[1]))
+			return -errno;
 	if(flags&PopenStderr)
 		err[0] = err[1] = -1;
 	else if(flags&PopenNoErr)
 		err[0] = err[1] = -1;
 	else
-		newchan(&err[0], &err[1]);
+		if(0 > newchan(&err[0], &err[1]))
+			return -errno;
 	cloexec(ctl[1]);
 	switch(pid = fork()){
 	case 0:

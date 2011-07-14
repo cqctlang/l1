@@ -73,6 +73,7 @@ enum {
 	PopenFullDuplex	= 8,	/* popen flag -- put i/o on same channel */
 };
 
+int		newchan(int *l, int *r);
 void		setproftimer(u32 usec, void(*fn)());
 int		xioctl(int fd, unsigned long req, char *buf);
 long		xlseek(int fd, long off, int whence);
