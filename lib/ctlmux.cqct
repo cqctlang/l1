@@ -893,22 +893,32 @@ ctlmux = @names clp64le {
 		return _reg;
 	}
 
-	@define xns()
+	@define xns(path ...)
 	{
-		@local st, id;
+		@local st, id, ns;
+		if(path == [])
+			path = nil;
+		else
+			path = path[0];
 		if(thisns != nil)
 			return thisns;
 		st = mux.statunix(this);
 		id = nil;
-		foreach(@lambda(dll){
-				if(dll.base == 0)
-					id = dll.id;
-			}, st[1]);
-		if(id != nil){
-			thisns = mux.nsinit(id);
-			return thisns;
-		}
-		return nil;
+		if(path)
+			foreach(@lambda(dll){
+					if(strstr(dll.path, path))
+						id = dll.id;
+				}, st[1]);
+			else
+				foreach(@lambda(dll){
+						if(dll.base == 0)
+							id = dll.id;
+					}, st[1]);
+		if(id == nil)
+			return nil;
+		ns = mux.nsinit(id);
+		thisns = ns;
+		return ns;
 	}
 
 	@defloc flushns()
