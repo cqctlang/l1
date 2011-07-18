@@ -33,14 +33,14 @@
 	op(x, y);
 	op(x, (int)y);
 	op((int)x, y);
-	op(x, (double)y);
-	op((double)x, y);
+	op(x, (float)y);
+	op((float)x, y);
 	y = 1.5;
 	op(x, y);
 	op(x, (int)y);
 	op((int)x, y);
-	op(x, (double)y);
-	op((double)x, y);
+	op(x, (float)y);
+	op((float)x, y);
 }
 
 foreach(alu, [lt,gt,eq]);
