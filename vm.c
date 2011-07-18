@@ -1767,10 +1767,8 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 			vmerr(vm, "divide by zero");
 		if(isunsigned[b1] && isunsigned[b2])
 			rv = i1/i2;
-		else if(isunsigned[b1])
-			rv = i1/(s64)i2;
-		else if(isunsigned[b2])
-			rv = (s64)i1/i2;
+		else if(isunsigned[b1] || isunsigned[b2])
+			fatal("i am dumb");
 		else
 			rv = (s64)i1/(s64)i2;
 		break;
@@ -1779,10 +1777,8 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 			vmerr(vm, "divide by zero");
 		if(isunsigned[b1] && isunsigned[b2])
 			rv = i1%i2;
-		else if(isunsigned[b1])
-			rv = i1%(s64)i2;
-		else if(isunsigned[b2])
-			rv = (s64)i1%i2;
+		else if(isunsigned[b1] || isunsigned[b2])
+			fatal("i am dumb");
 		else
 			rv = (s64)i1%(s64)i2;
 		break;
