@@ -1799,7 +1799,7 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 		return xcvalptralu(vm, op, op1, op2, t1, t2);
 	b1 = typecbase(t1);
 	b2 = typecbase(t2);
-	if(isfloat[b1] || isfloat[b2])
+	if(isfloat[b1])
 		return xcvalfpalu(vm, op, op1, op2, t1, t2);
 
 	i1 = op1->val;
@@ -1919,10 +1919,45 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 }
 
 static int
+cvalfpcmp(VM *vm, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
+{
+	float f1, f2;
+	double d1, d2;
+	Cbase cb;
+
+	cb = typecbase(t1);
+	if(cb != typecbase(t2))
+		bug();
+	switch(cb){
+	case Vfloat:
+		f1 = *(float*)&op1->val;
+		f2 = *(float*)&op2->val;
+		if(f1<f2)
+			return -1;
+		else if(f1>f2)
+			return 1;
+		else
+			return 0;
+	case Vdouble:
+		d1 = *(double*)&op1->val;
+		d2 = *(double*)&op2->val;
+		if(d1<d2)
+			return -1;
+		else if(d1>d2)
+			return 1;
+		else
+			return 0;
+	default:
+		bug();
+	}
+}
+
+static int
 cvalcmp(VM *vm, Cval *op1, Cval *op2)
 {
 	Imm i1, i2;
 	Ctype *t1, *t2;
+	Cbase b1;
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
@@ -1937,8 +1972,10 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 	i2 = op2->val;
 	t1 = chasetype(op1->type);
 	t2 = chasetype(op2->type);
-	if(t1->tkind == Tptr || t2->tkind == Tptr
-	   || isunsigned[typecbase(t1)]){
+	b1 = typecbase(t1);
+	if(isfloat[b1])
+		return cvalfpcmp(vm, op1, op2, t1, t2);
+	if(t1->tkind == Tptr || t2->tkind == Tptr || isunsigned[b1]){
 		if(i1<i2)
 			return -1;
 		else if(i1>i2)
