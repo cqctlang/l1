@@ -1777,7 +1777,14 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 	case Imod:
 		if(i2 == 0)
 			vmerr(vm, "divide by zero");
-		rv = i1%i2;
+		if(isunsigned[b1] && isunsigned[b2])
+			rv = i1%i2;
+		else if(isunsigned[b1])
+			rv = i1%(s64)i2;
+		else if(isunsigned[b2])
+			rv = (s64)i1%i2;
+		else
+			rv = (s64)i1%(s64)i2;
 		break;
 	case Imul:
 		rv = i1*i2;
