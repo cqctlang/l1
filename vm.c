@@ -1526,19 +1526,59 @@ xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 	return 0; /* not reached */
 }
 
+static Cval*
+xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
+{
+	float f;
+	double d;
+	Imm rv;
+	switch(cb){
+	case Vfloat:
+		f = *(float*)&cv->val;
+		switch(op){
+		case Ineg:
+			f = -f;
+			break;
+		default:
+			vmerr(vm, "attempt to perform %s "
+			      "on a floating point value", opstr[op]);
+		}
+		*(float*)&rv = f;
+		break;
+	case Vdouble: 
+		d = *(double*)&cv->val;
+		switch(op){
+		case Ineg:
+			d = -d;
+			break;
+		default:
+			vmerr(vm, "attempt to perform %s "
+			      "on a floating point value", opstr[op]);
+		}
+		*(double*)&rv = d;
+		break;
+	default:
+		bug();
+	}
+	return mkcval(cv->dom, cv->type, rv);
+}
+
 static void
 xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 {
 	Val v;
 	Cval *cv, *cvr;
 	Imm imm, nv;
+	Ctype *t;
+	Cbase cb;
 
 	v = getvalrand(vm, op1);
 	if(op == Inot){
 		if(Vkind(v) == Qcval)
 			goto cval;
 		if(Vkind(v) != Qnil)
-			vmerr(vm, "incompatible operand for unary %s", opstr[op]);
+			vmerr(vm, "incompatible operand for unary %s",
+			      opstr[op]);
 		cvr = cval1;
 		goto out;
 	}
@@ -1546,6 +1586,13 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 		vmerr(vm, "incompatible operand for unary %s", opstr[op]);
 cval:
 	cv = intpromote(vm, valcval(v));
+	t = chasetype(cv->type);
+	cb = typecbase(t);
+	if(isfloat[cb]){
+		cvr = xunopfp(vm, op, cb, cv);
+		goto out;
+	}
+
 	imm = cv->val;
 
 	switch(op){
