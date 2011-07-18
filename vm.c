@@ -1864,6 +1864,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
 	Ctype *t1, *t2;
+	Cbase b1, b2;
 
 	/* no need to rationalize domains */
 	op1 = intpromote(vm, op1);
@@ -1876,6 +1877,11 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 	if(t1->tkind == Tptr || t2->tkind == Tptr)
 		vmerr(vm, "invalid pointer operand to shift operator");
 
+	b1 = typecbase(t1);
+	b2 = typecbase(t2);
+	if(isfloat[b1] || isfloat[b2])
+		vmerr(vm, "invalid floating point operand to shift operator");
+
 	/* following C99:
 	   - (both) if op2 is negative or >= width of op1,
 	            the result is undefined;
@@ -1887,7 +1893,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		    your compiler says.  gcc and microsoft
 		    performs sign extension.
 	*/
-	if(isunsigned[typecbase(t1)])
+	if(isunsigned[b1])
 		switch(op){
 		case Ishl:
 			rv = i1<<i2;
