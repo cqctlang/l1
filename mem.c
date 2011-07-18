@@ -1531,12 +1531,19 @@ updateguards(Guard *g)
 			}
 			p = q;
 		}
-		if(final == Xnil)
+		if(final == Xnil){
+			p = pfinal;
+			while(p != Xnil){
+				setcar(p, Xnil);
+				p = cdr(p);
+			}
 			break;
+		}
 		w = final;
 		while(w != Xnil){
 			copy(&caar(w));
 			push1guard(caar(w), curaddr(cdar(w)));
+			setcar(w, Xnil);
 			w = cdr(w);
 		}
 		kleenescan(H.tg);
@@ -1548,6 +1555,7 @@ updateguards(Guard *g)
 		o = cdar(p);
 		if(islive(o))
 			_instguard(g, cons(curaddr(caar(p)), curaddr(cdar(p))));
+		setcar(p, Xnil);
 		p = cdr(p);
 	}
 }
