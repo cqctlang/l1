@@ -189,7 +189,6 @@ struct Stats
 	u32 nseg[Nmt][Nsgen];
 } Stats;
 
-static int freecl(Head*);
 static int xfreeexpr(Head*);
 static int freefd(Head*);
 static int freestr(Head*);
@@ -216,7 +215,7 @@ static Qtype qs[Qnkind] = {
 	[Qas]	 = { "as", sizeof(As), 1, 0, iteras },
 	[Qbox]	 = { "box", sizeof(Box), 0, 0, iterbox },
 	[Qcid]   = { "cid", sizeof(Cid), 1, 0, 0 },
-	[Qcl]	 = { "closure", sizeof(Closure), 1, freecl, itercl },
+	[Qcl]	 = { "closure", sizeof(Closure), 1, 0, itercl },
 	[Qcode]	 = { "code", sizeof(Code), 1, freecode, itercode },
 	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, iterctype },
 	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
@@ -240,16 +239,6 @@ static Segmap	segmap;
 static Heap	H;
 static unsigned	alldbg = 0;
 static Stats	stats;
-
-static int
-freecl(Head *hd)
-{
-	Closure *cl;
-	cl = (Closure*)hd;
-	efree(cl->display);
-	efree(cl->id);
-	return 1;
-}
 
 static int
 xfreeexpr(Head *hd)
@@ -354,9 +343,13 @@ itercl(Head *hd, Ictx *ictx)
 {
 	Closure *cl;
 	cl = (Closure*)hd;
-	if(ictx->n > cl->dlen+1)
+	if(ictx->n > cl->dlen+2)
 		return GCiterdone;
 	if(ictx->n == cl->dlen+1){
+		ictx->n++;
+		return (Val*)&cl->id;
+	}
+	if(ictx->n == cl->dlen+2){
 		ictx->n++;
 		if(cl->xfn)
 			return (Val*)&cl->xfn;
@@ -368,11 +361,11 @@ itercl(Head *hd, Ictx *ictx)
 		return (Val*)&cl->code;
 	}
 	if(cl->code == kcode){
-		copykstack(cl->display, cl->dlen, cl->fp);
+		copykstack(cldisp(cl), cl->dlen, cl->fp);
 		ictx->n = cl->dlen+1;
 		return (Val*)&cl->code;
 	}
-	return &cl->display[ictx->n++];
+	return &cldisp(cl)[ictx->n++];
 }
 
 static Val*
@@ -1161,6 +1154,7 @@ static u32
 qsz(Head *h)
 {
 	Cid *id;
+	Closure *cl;
 	Rec *r;
 	Str *s;
 	Ctype *t;
@@ -1170,6 +1164,9 @@ qsz(Head *h)
 	case Qcid:
 		id = (Cid*)h;
 		return roundup(cidsize(id->len), Align);
+	case Qcl:
+		cl = (Closure*)h;
+		return roundup(clsize(cl->dlen), Align);
 	case Qstr:
 		s = (Str*)h;
 		switch(s->skind){
@@ -1288,6 +1285,7 @@ copy(Val *v)
 			nh = malq(Qpair);
 		break;
 	case Qcid:
+	case Qcl:
 	case Qctype:
 	case Qstr:
 	case Qvec:

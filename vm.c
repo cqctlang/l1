@@ -175,13 +175,11 @@ Closure*
 mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 {
 	Closure *cl;
-	cl = (Closure*)malq(Qcl);
+	cl = (Closure*)malv(Qcl, sizeof(Closure)+len*sizeof(Val));
 	cl->code = code;
 	cl->entry = entry;
 	cl->dlen = len;
-	cl->display = emalloc(cl->dlen*sizeof(Val));
-	cl->id = xstrdup(id);
-	quard((Val)cl);
+	cl->id = mkcid0(id);
 	return cl;
 }
 
@@ -225,7 +223,7 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 	cl->ccl = ccl;
 	for(m = 0; m < dlen; m++){
 		vp = va_arg(args, Val);
-		cl->display[m] = vp;
+		cldisp(cl)[m] = vp;
 	}
 	va_end(args);
 	return cl;
@@ -686,7 +684,7 @@ putval(VM *vm, Val v, Location *loc)
 			*dst = v;
 		break;
 	case Ldisp:
-		dst = &vm->clx->display[LOCIDX(loc->loc)];
+		dst = &cldisp(vm->clx)[LOCIDX(loc->loc)];
 		if(LOCBOX(loc->loc))
 			putbox(*dst, v);
 		else
@@ -718,24 +716,25 @@ printsrc(Xfd *xfd, Closure *cl, Imm pc)
 
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
-		cprintf(xfd, "%20s\t(builtin %s)\n", cl->id,
+		cprintf(xfd, "%20s\t(builtin %s)\n", ciddata(cl->id),
 			cl->cfn ? "function" : "closure");
 		return;
 	}
 	if(cl->xfn){
-		cprintf(xfd, "%20s\t(code)\n", cl->id);
+		cprintf(xfd, "%20s\t(code)\n", ciddata(cl->id));
 		return;
 	}
 
 	src = addr2line(code, pc);
 	fn = src->filename;
 	if(fn == syssrcfile){
-		cprintf(xfd, "%20s\t(no source information)\n", cl->id);
+		cprintf(xfd, "%20s\t(no source information)\n",
+			ciddata(cl->id));
 		return;
 	}
 	if(fn == 0)
 		fn = "<stdin!!!>";
-	cprintf(xfd, "%20s\t(%s:%u)\n", cl->id, fn, src->line);
+	cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(cl->id), fn, src->line);
 }
 
 void
@@ -751,7 +750,7 @@ fvmbacktrace(VM *vm)
 	fp = vm->fp;
 	cl = vm->clx;
 	while(fp != 0){
-		if(strcmp(cl->id, "$halt")){
+		if(strcmp(ciddata(cl->id), "$halt")){
 //			cprintf(xfd, "fp=%05lld pc=%08lld ", fp, pc);
 			printsrc(xfd, cl, pc);
 		}
@@ -813,7 +812,7 @@ getval(VM *vm, Location *loc)
 		else
 			return p;
 	case Ldisp:
-		p = vm->clx->display[LOCIDX(loc->loc)];
+		p = cldisp(vm->clx)[LOCIDX(loc->loc)];
 		if(LOCBOX(loc->loc))
 			return valboxed(p);
 		else
@@ -865,7 +864,7 @@ getcval(VM *vm, Location *loc)
 			return valboxedcval(p);
 		return valcval(p);
 	case Ldisp:
-		p = vm->clx->display[LOCIDX(loc->loc)];
+		p = cldisp(vm->clx)[LOCIDX(loc->loc)];
 		if(LOCBOX(loc->loc))
 			return valboxedcval(p);
 		return valcval(p);
@@ -1457,7 +1456,7 @@ xcallc(VM *vm)
 	if(vm->clx->cfn)
 		vm->clx->cfn(vm, argc, argv, &rv);
 	else if(vm->clx->ccl)
-		vm->clx->ccl(vm, argc, argv, vm->clx->display, &rv);
+		vm->clx->ccl(vm, argc, argv, cldisp(vm->clx), &rv);
 	else{
 		x = (Cfn*)strdata(vm->clx->xfn);
 		x(vm, argc, argv, &rv);
@@ -1491,7 +1490,7 @@ xcalltc(VM *vm)
 	if(cl->cfn)
 		cl->cfn(vm, argc, argv, &vm->ac);
 	else if(cl->ccl)
-		cl->ccl(vm, argc, argv, cl->display, &vm->ac);
+		cl->ccl(vm, argc, argv, cldisp(cl), &vm->ac);
 	else{
 		x = (Cfn*)strdata(cl->xfn);
 		x(vm, argc, argv, &vm->ac);
@@ -2058,7 +2057,7 @@ xclo(VM *vm, Operand *dl, Ctl *label, Operand *dst)
 
 	cl = mkcl(vm->clx->code, label->insn, len, label->label);
 	for(m = 0; m < len; m++)
-		cl->display[m] = vm->stack[vm->sp+m];
+		cldisp(cl)[m] = vm->stack[vm->sp+m];
 	vm->sp += m;
 
 	putvalrand(vm, mkvalcl(cl), dst);
@@ -2071,8 +2070,8 @@ xkg(VM *vm, Operand *dst)
 	Imm len;
 
 	len = Maxstk-vm->sp;
-	k = mkcl(kcode, 0, len, 0);
-	memcpy(k->display, &vm->stack[vm->sp], len*sizeof(Val));
+	k = mkcl(kcode, 0, len, "kg");
+	memcpy(cldisp(k), &vm->stack[vm->sp], len*sizeof(Val));
 	k->fp = vm->fp;
 
 	putvalrand(vm, mkvalcl(k), dst);
@@ -2085,7 +2084,7 @@ xkp(VM *vm)
 	k = vm->clx;
 	vm->fp = k->fp;
 	vm->sp = Maxstk-k->dlen;
-	memcpy(&vm->stack[vm->sp], k->display, k->dlen*sizeof(Val));
+	memcpy(&vm->stack[vm->sp], cldisp(k), k->dlen*sizeof(Val));
 }
 
 static void
@@ -3937,14 +3936,14 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			cv = valcval(val);
 			if(stkimm(vm->stack[vm->fp]) != cv->val)
 				vmerr(vm, "wrong number of arguments to %s",
-				      vm->clx->id);
+				      ciddata(vm->clx->id));
 			continue;
 		LABEL Ivargc:
 			val = getvalrand(vm, &i->op1);
 			cv = valcval(val);
 			if(stkimm(vm->stack[vm->fp]) < cv->val)
 				vmerr(vm, "insufficient arguments to %s",
-				      vm->clx->id);
+				      ciddata(vm->clx->id));
 			continue;
 		LABEL Icall:
 			vm->cl = getvalrand(vm, &i->op1);

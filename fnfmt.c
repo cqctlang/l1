@@ -432,7 +432,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			if(fmtputs0(vm, f, "<procedure "))
 				return -1;
 		}
-		if(fmtputs0(vm, f, cl->id))
+		if(fmtputB(vm, f, ciddata(cl->id), cl->id->len-1))
 			return -1;
 		return fmtputs0(vm, f, ">");
 	case Qundef:

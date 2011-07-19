@@ -268,13 +268,15 @@ struct Closure {
 	Code *code;
 	unsigned long entry;
 	unsigned dlen;
-	Val *display;
-	char *id;
+	Cid *id;
 	Imm fp;			/* of continuation, always >0 */
 	Cfn *cfn;
 	Ccl *ccl;
 	Str *xfn;
 };
+
+#define cldisp(x) ((Val*)((x)+1))
+#define clsize(n) (sizeof(Closure)+(n)*sizeof(Val))
 
 struct Box {
 	Head hd;
