@@ -10,25 +10,25 @@ sub: 2 params, 1 locals, 0 temps
 mul: 2 params, 1 locals, 0 temps
 div: 2 params, 1 locals, 0 temps
 alu: 1 params, 4 locals, 0 temps
-float 1.500000 + float 2.500000 => float 4.000000
-float 1.500000 + int 2 => float 3.500000
-int 1 + float 2.500000 => float 3.500000
-float 1.500000 + double 2.500000 => double 4.000000
+double 1.500000 + double 2.500000 => double 4.000000
+double 1.500000 + int 2 => double 3.500000
+int 1 + double 2.500000 => double 3.500000
 double 1.500000 + float 2.500000 => double 4.000000
-float 1.500000 - float 2.500000 => float -1.000000
-float 1.500000 - int 2 => float -0.500000
-int 1 - float 2.500000 => float -1.500000
-float 1.500000 - double 2.500000 => double -1.000000
+float 1.500000 + double 2.500000 => double 4.000000
+double 1.500000 - double 2.500000 => double -1.000000
+double 1.500000 - int 2 => double -0.500000
+int 1 - double 2.500000 => double -1.500000
 double 1.500000 - float 2.500000 => double -1.000000
-float 1.500000 * float 2.500000 => float 3.750000
-float 1.500000 * int 2 => float 3.000000
-int 1 * float 2.500000 => float 2.500000
-float 1.500000 * double 2.500000 => double 3.750000
+float 1.500000 - double 2.500000 => double -1.000000
+double 1.500000 * double 2.500000 => double 3.750000
+double 1.500000 * int 2 => double 3.000000
+int 1 * double 2.500000 => double 2.500000
 double 1.500000 * float 2.500000 => double 3.750000
-float 1.500000 / float 2.500000 => float 0.600000
-float 1.500000 / int 2 => float 0.750000
-int 1 / float 2.500000 => float 0.400000
-float 1.500000 / double 2.500000 => double 0.600000
+float 1.500000 * double 2.500000 => double 3.750000
+double 1.500000 / double 2.500000 => double 0.600000
+double 1.500000 / int 2 => double 0.750000
+int 1 / double 2.500000 => double 0.400000
 double 1.500000 / float 2.500000 => double 0.600000
-(float)0 => float 0.000000
-(float)1 => float 1.000000
+float 1.500000 / double 2.500000 => double 0.600000
+(double)0 => float 0.000000
+(double)1 => float 1.000000

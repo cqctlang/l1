@@ -35,16 +35,16 @@
 	op(x, y);
 	op(x, (int)y);
 	op((int)x, y);
-	op(x, (double)y);
-	op((double)x, y);
+	op(x, (float)y);
+	op((float)x, y);
 }
 
 foreach(alu, [add,sub,mul,div]);
 
 i = 0;
 x = (float)i;
-printf("(float)%a => %s\n", i, fmt(x));
+printf("(double)%a => %s\n", i, fmt(x));
 
 i = 1;
 x = (float)i;
-printf("(float)%a => %s\n", i, fmt(x));
+printf("(double)%a => %s\n", i, fmt(x));

@@ -405,8 +405,8 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 	}
 
 	if(strnchr(s, '.', len)){
-		liti->base = Vfloat;
-		*(float*)&liti->val = strtof(s, 0);
+		liti->base = Vdouble;
+		*(double*)&liti->val = strtod(s, 0);
 		return 0;
 	}
 

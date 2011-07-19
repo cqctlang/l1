@@ -1525,19 +1525,59 @@ xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 	return 0; /* not reached */
 }
 
+static Cval*
+xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
+{
+	float f;
+	double d;
+	Imm rv;
+	switch(cb){
+	case Vfloat:
+		f = *(float*)&cv->val;
+		switch(op){
+		case Ineg:
+			f = -f;
+			break;
+		default:
+			vmerr(vm, "attempt to perform %s "
+			      "on a floating point value", opstr[op]);
+		}
+		*(float*)&rv = f;
+		break;
+	case Vdouble: 
+		d = *(double*)&cv->val;
+		switch(op){
+		case Ineg:
+			d = -d;
+			break;
+		default:
+			vmerr(vm, "attempt to perform %s "
+			      "on a floating point value", opstr[op]);
+		}
+		*(double*)&rv = d;
+		break;
+	default:
+		bug();
+	}
+	return mkcval(cv->dom, cv->type, rv);
+}
+
 static void
 xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 {
 	Val v;
 	Cval *cv, *cvr;
 	Imm imm, nv;
+	Ctype *t;
+	Cbase cb;
 
 	v = getvalrand(vm, op1);
 	if(op == Inot){
 		if(Vkind(v) == Qcval)
 			goto cval;
 		if(Vkind(v) != Qnil)
-			vmerr(vm, "incompatible operand for unary %s", opstr[op]);
+			vmerr(vm, "incompatible operand for unary %s",
+			      opstr[op]);
 		cvr = cval1;
 		goto out;
 	}
@@ -1545,6 +1585,13 @@ xunop(VM *vm, ikind op, Operand *op1, Operand *dst)
 		vmerr(vm, "incompatible operand for unary %s", opstr[op]);
 cval:
 	cv = intpromote(vm, valcval(v));
+	t = chasetype(cv->type);
+	cb = typecbase(t);
+	if(isfloat[cb]){
+		cvr = xunopfp(vm, op, cb, cv);
+		goto out;
+	}
+
 	imm = cv->val;
 
 	switch(op){
@@ -1751,7 +1798,7 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 		return xcvalptralu(vm, op, op1, op2, t1, t2);
 	b1 = typecbase(t1);
 	b2 = typecbase(t2);
-	if(isfloat[b1] || isfloat[b2])
+	if(isfloat[b1])
 		return xcvalfpalu(vm, op, op1, op2, t1, t2);
 
 	i1 = op1->val;
@@ -1766,17 +1813,20 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 			vmerr(vm, "divide by zero");
 		if(isunsigned[b1] && isunsigned[b2])
 			rv = i1/i2;
-		else if(isunsigned[b1])
-			rv = i1/(s64)i2;
-		else if(isunsigned[b2])
-			rv = (s64)i1/i2;
+		else if(isunsigned[b1] || isunsigned[b2])
+			fatal("i am dumb");
 		else
 			rv = (s64)i1/(s64)i2;
 		break;
 	case Imod:
 		if(i2 == 0)
 			vmerr(vm, "divide by zero");
-		rv = i1%i2;
+		if(isunsigned[b1] && isunsigned[b2])
+			rv = i1%i2;
+		else if(isunsigned[b1] || isunsigned[b2])
+			fatal("i am dumb");
+		else
+			rv = (s64)i1%(s64)i2;
 		break;
 	case Imul:
 		rv = i1*i2;
@@ -1813,6 +1863,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
 	Imm i1, i2, rv;
 	Ctype *t1, *t2;
+	Cbase b1, b2;
 
 	/* no need to rationalize domains */
 	op1 = intpromote(vm, op1);
@@ -1825,6 +1876,11 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 	if(t1->tkind == Tptr || t2->tkind == Tptr)
 		vmerr(vm, "invalid pointer operand to shift operator");
 
+	b1 = typecbase(t1);
+	b2 = typecbase(t2);
+	if(isfloat[b1] || isfloat[b2])
+		vmerr(vm, "invalid floating point operand to shift operator");
+
 	/* following C99:
 	   - (both) if op2 is negative or >= width of op1,
 	            the result is undefined;
@@ -1836,7 +1892,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		    your compiler says.  gcc and microsoft
 		    performs sign extension.
 	*/
-	if(isunsigned[typecbase(t1)])
+	if(isunsigned[b1])
 		switch(op){
 		case Ishl:
 			rv = i1<<i2;
@@ -1862,10 +1918,45 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 }
 
 static int
+cvalfpcmp(VM *vm, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
+{
+	float f1, f2;
+	double d1, d2;
+	Cbase cb;
+
+	cb = typecbase(t1);
+	if(cb != typecbase(t2))
+		bug();
+	switch(cb){
+	case Vfloat:
+		f1 = *(float*)&op1->val;
+		f2 = *(float*)&op2->val;
+		if(f1<f2)
+			return -1;
+		else if(f1>f2)
+			return 1;
+		else
+			return 0;
+	case Vdouble:
+		d1 = *(double*)&op1->val;
+		d2 = *(double*)&op2->val;
+		if(d1<d2)
+			return -1;
+		else if(d1>d2)
+			return 1;
+		else
+			return 0;
+	default:
+		bug();
+	}
+}
+
+static int
 cvalcmp(VM *vm, Cval *op1, Cval *op2)
 {
 	Imm i1, i2;
 	Ctype *t1, *t2;
+	Cbase b1;
 
 	/* We're intentionally relaxed about whether one operand is
 	   pointer so that expressions like (p == 0x<addr>) can be
@@ -1880,8 +1971,10 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 	i2 = op2->val;
 	t1 = chasetype(op1->type);
 	t2 = chasetype(op2->type);
-	if(t1->tkind == Tptr || t2->tkind == Tptr
-	   || isunsigned[typecbase(t1)]){
+	b1 = typecbase(t1);
+	if(isfloat[b1])
+		return cvalfpcmp(vm, op1, op2, t1, t2);
+	if(t1->tkind == Tptr || t2->tkind == Tptr || isunsigned[b1]){
 		if(i1<i2)
 			return -1;
 		else if(i1>i2)
