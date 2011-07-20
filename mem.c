@@ -187,6 +187,8 @@ struct Stats
 	u32 ncard;
 	u32 nlock;
 	u32 nseg[Nmt][Nsgen];
+	u64 cardtime;
+
 } Stats;
 
 static int xfreeexpr(Head*);
@@ -1769,6 +1771,8 @@ static void
 scancards(u32 g)
 {
 	Seg *s, *es;
+	u64 b;
+	b = usec();
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	while(s < es){
@@ -1776,6 +1780,7 @@ scancards(u32 g)
 			scan1card(s, g);
 		s = nextseg(s);
 	}
+	stats.cardtime += usec()-b;
 }
 
 static void
@@ -2294,4 +2299,23 @@ gcstats()
 	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
 	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
 	printf("   ngc = %10" PRIu32 "\n", H.gctrip);
+}
+
+void
+gcstatistics(Tab *t)
+{
+	tabput(t, mkvalcid(mkcid0("inuse")),
+	       mkvallitcval(Vuvlong, H.inuse));
+	tabput(t, mkvalcid(mkcid0("free")),
+	       mkvallitcval(Vuvlong, H.free));
+	tabput(t, mkvalcid(mkcid0("heapsz")),
+	       mkvallitcval(Vuvlong, H.heapsz));
+	tabput(t, mkvalcid(mkcid0("bigsz")),
+	       mkvallitcval(Vuvlong, H.bigsz));
+	tabput(t, mkvalcid(mkcid0("smapsz")),
+	       mkvallitcval(Vuvlong, H.smapsz));
+	tabput(t, mkvalcid(mkcid0("collecttrip")),
+	       mkvallitcval(Vuvlong, H.gctrip));
+	tabput(t, mkvalcid(mkcid0("cardtime")),
+	       mkvallitcval(Vuvlong, stats.cardtime));
 }

@@ -60,4 +60,3 @@ test1("./locals1",
       ]);
 
 test2("./locals1");
-

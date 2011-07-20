@@ -6525,6 +6525,7 @@ l1_statistics(VM *vm, Imm argc, Val *argv, Val *rv)
 	       mkvallitcval(Vuvlong, vm->exetime));
 	tabput(t, mkvalcid(mkcid0("collecttime")),
 	       mkvallitcval(Vuvlong, vm->gctime));
+	gcstatistics(t);
 	*rv = mkvaltab(t);
 }
 
