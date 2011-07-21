@@ -169,7 +169,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 
 	rd = hgets(vm->top->env->rd, strdata(name), (unsigned)name->len);
 	if(rd == 0){
-		rd = (Rd*)malq(Qrd);
+		rd = (Rd*)malq(Qrd, sizeof(Rd));
 		hputs(vm->top->env->rd,
 		      xstrndup(strdata(name), (unsigned)name->len),
 		      (unsigned)name->len, rd);

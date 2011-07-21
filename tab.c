@@ -8,7 +8,7 @@ _mktab(u32 sz, Val def)
 	Tab *t;
 	u32 i;
 
-	t = (Tab*)malq(Qtab);
+	t = (Tab*)malq(Qtab, sizeof(Tab));
 	t->sz = sz;
 	t->nent = 0;
 	t->ht = mkvec(sz);

@@ -6,7 +6,7 @@ Pair*
 mkpair(Val a, Val d)
 {
 	Pair *p;
-	p = (Pair*)malq(Qpair);
+	p = (Pair*)malq(Qpair, sizeof(Pair));
 	// setc*r would invoke write barrier
 	_setcar(p, a);
 	_setcdr(p, d);

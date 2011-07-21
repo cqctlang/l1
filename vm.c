@@ -237,7 +237,7 @@ mkfdfn(Str *name, int flags, Xfd *xfd)
 //		flags &= ~Fread;
 //	if(write == 0)
 //		flags &= ~Fwrite;
-	fd = (Fd*)malq(Qfd);
+	fd = (Fd*)malq(Qfd, sizeof(Fd));
 	fd->name = name;
 	fd->u.fn = *xfd;
 	fd->flags = flags|Ffn;
@@ -256,7 +256,7 @@ mkfdcl(Str *name, int flags,
 		flags &= ~Fread;
 	if(write == 0)
 		flags &= ~Fwrite;
-	fd = (Fd*)malq(Qfd);
+	fd = (Fd*)malq(Qfd, sizeof(Fd));
 	fd->name = name;
 	fd->u.cl.read = read;
 	fd->u.cl.write = write;
@@ -448,7 +448,7 @@ static As*
 mkas(void)
 {
 	As *as;
-	as = (As*)malq(Qas);
+	as = (As*)malq(Qas, sizeof(As));
 	return as;
 }
 
@@ -456,7 +456,7 @@ Dom*
 mkdom(Ns *ns, As *as, Str *name)
 {
 	Dom *dom;
-	dom = (Dom*)malq(Qdom);
+	dom = (Dom*)malq(Qdom, sizeof(Dom));
 	dom->ns = ns;
 	dom->as = as;
 	dom->name = name;
@@ -467,7 +467,7 @@ static Ns*
 mkns(void)
 {
 	Ns *ns;
-	ns = (Ns*)malq(Qns);
+	ns = (Ns*)malq(Qns, sizeof(Ns));
 	return ns;
 }
 
@@ -583,7 +583,7 @@ Cval*
 mkcval(Dom *dom, Ctype *type, Imm val)
 {
 	Cval *cv;
-	cv = (Cval*)malq(Qcval);
+	cv = (Cval*)malq(Qcval, sizeof(Cval));
 	cv->dom = dom;
 	cv->type = type;
 	cv->val = val;
@@ -618,7 +618,7 @@ Val
 mkvalbox(Val boxed)
 {
 	Box *box;
-	box = (Box*)malq(Qbox);
+	box = (Box*)malbox();
 	box->v = boxed;
 	return (Val)box;
 }
@@ -627,7 +627,7 @@ Range*
 mkrange(Cval *beg, Cval *len)
 {
 	Range *r;
-	r = (Range*)malq(Qrange);
+	r = (Range*)malq(Qrange, sizeof(Range));
 	r->beg = beg;
 	r->len = len;
 	return r;
@@ -3887,6 +3887,8 @@ dogc(VM *vm, u32 g, u32 tg)
 	u64 b;
 	b = usec();
 	_gc(g, tg);
+	vm->gctime += usec()-b;
+	b = usec();	
 	v = cqctenvlook(vm->top, "postgc");
 	if(v && Vkind(v) == Qcl){
 		vmpush(vm, vm->ac);
@@ -3894,7 +3896,7 @@ dogc(VM *vm, u32 g, u32 tg)
 		vm->ac = vm->stack[vm->sp];
 		vmpop(vm, 1);
 	}
-	vm->gctime += usec()-b;
+	vm->postgctime += usec()-b;
 }
 
 Val
@@ -6525,6 +6527,8 @@ l1_statistics(VM *vm, Imm argc, Val *argv, Val *rv)
 	       mkvallitcval(Vuvlong, vm->exetime));
 	tabput(t, mkvalcid(mkcid0("collecttime")),
 	       mkvallitcval(Vuvlong, vm->gctime));
+	tabput(t, mkvalcid(mkcid0("postgctime")),
+	       mkvallitcval(Vuvlong, vm->postgctime));
 	gcstatistics(t);
 	*rv = mkvaltab(t);
 }
@@ -7044,7 +7048,7 @@ vmfaulthook()
 void
 initvm()
 {
-	Xundef = gclock(malq(Qundef));
+	Xundef = gclock(malq(Qundef, sizeof(Head)));
 	cccode = gclock(callccode());
 	tcccode = gclock(calltccode());
 	kcode = gclock(contcode());

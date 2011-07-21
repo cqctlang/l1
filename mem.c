@@ -8,6 +8,7 @@ enum
 	Mhole,
 	Mnix,
 	Mweak,
+	Mbox,
 	Mfree,
 	Mdata,
 	Mcode, /* FIXME: Nmt definition depends on this being last */
@@ -33,6 +34,7 @@ enum
 	MTdata    = (Mdata<<Ftag),
 	MTcode    = (Mcode<<Ftag),
 	MTweak    = (Mweak<<Ftag),
+	MTbox     = (Mbox<<Ftag),
 	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
 	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
 	Nmt,
@@ -45,6 +47,7 @@ static char *MTname[] = {
 	[MTdata]    = "data",
 	[MTcode]    = "code",
 	[MTweak]    = "weak",
+	[MTweak]    = "box",
 	[MTbigdata] = "bigdata",
 	[MTbigcode] = "bigcode",
 };
@@ -187,8 +190,21 @@ struct Stats
 	u32 ncard;
 	u32 nlock;
 	u32 nseg[Nmt][Nsgen];
+	u64 roottime;
+	u64 unlocktime;
+	u64 locktime;
+	u64 sweeptime;
+	u64 guardtime;
+	u64 promotetime;
+	u64 reloctime;
 	u64 cardtime;
-
+	u64 oldtime;
+	u64 weaktime;
+	u64 inittime;
+	u64 finaltime;
+	u64 recycletime;
+	u64 resettime;
+	u64 finimainttime;
 } Stats;
 
 static int xfreeexpr(Head*);
@@ -923,7 +939,7 @@ allocseg(MT mt, Gen g)
 	s->a = p;
 	s->e = p+Seguse-1;
 	s->card = Clean;
-	memset(s->a, 0, Segsize);
+//	memset(s->a, 0, Segsize);  /* done at allocation time */
 	if(s->mt != MTfree)
 		fatal("bug");
 	s->mt = mt;
@@ -1002,6 +1018,7 @@ isliveseg(Seg *s)
 	case Mdata:
 	case Mcode:
 	case Mweak:
+	case Mbox:
 		return 1;
 	default:
 		return 0;
@@ -1083,6 +1100,7 @@ again:
 	if(s->a+sz <= s->e+1){
 		h = s->a;
 		s->a += sz;
+		memset(h, 0, sz);
 		return h;
 	}
 	minsert(m, allocseg(mt, g));
@@ -1090,10 +1108,19 @@ again:
 }
 
 Head*
+malbox()
+{
+	Head *h;
+	h = __mal(MTbox, H.tg, sizeof(Box));
+	Vsetkind(h, Qbox);
+	return h;
+}
+
+Head*
 malweak()
 {
 	Head *h;
-	h = __mal(MTweak, H.tg, qs[Qpair].sz);
+	h = __mal(MTweak, H.tg, sizeof(Pair));
 	Vsetkind(h, Qpair);
 	return h;
 }
@@ -1102,7 +1129,7 @@ Head*
 malcode()
 {
 	Head *h;
-	h = __mal(MTcode, H.tg, qs[Qcode].sz);
+	h = __mal(MTcode, H.tg, sizeof(Code));
 	Vsetkind(h, Qcode);
 	return h;
 }
@@ -1136,10 +1163,10 @@ malv(Qkind kind, Imm len)
 }
 
 Head*
-malq(Qkind kind)
+malq(Qkind kind, u32 sz)
 {
 	Head *h;
-	h = _mal(qs[kind].sz);
+	h = _mal(sz);
 	Vsetkind(h, kind);
 	return h;
 }
@@ -1277,6 +1304,9 @@ copy(Val *v)
 	}
 	sz = qsz(h);
 	switch(Vkind(h)){
+	case Qbox:
+		nh = malbox();
+		break;
 	case Qcode:
 		nh = malcode();
 		break;
@@ -1284,7 +1314,7 @@ copy(Val *v)
 		if(isweak(h))
 			nh = malweak();
 		else
-			nh = malq(Qpair);
+			nh = malq(Qpair, sizeof(Pair));
 		break;
 	case Qcid:
 	case Qcl:
@@ -1295,7 +1325,7 @@ copy(Val *v)
 		nh = malv(Vkind(h), sz);
 		break;
 	default:
-		nh = malq(Vkind(h));
+		nh = malq(Vkind(h), sz);
 		break;
 	}
 	if(dbg)printf("copy %s %p to %p\n",
@@ -1375,11 +1405,14 @@ static void
 kleenescan(u32 tg)
 {
 	unsigned again, i;
+	u64 b;
+	b = usec();
 	do{
 		again = 0;
 		for(i = 0; i < Nmt; i++)
 			again |= scan(&H.m[i][tg]);
 	}while(again);
+	stats.sweeptime += usec()-b;
 }
 
 static Pair*
@@ -1417,8 +1450,8 @@ pop1guard(Pair *g)
 	x = car(g);
 	y = car(x);
 	setcar(g, cdr(x));
-	setcar(x, Xnil);
-	setcdr(x, Xnil);
+	_setcar(x, Xnil);
+	_setcdr(x, Xnil);
 	return y;
 }
 
@@ -1489,7 +1522,9 @@ updateguards(Guard *g)
 	Head *phold, *pfinal, *p, *q, *o;
 	Head *final, *w;
 	u32 i;
+	u64 b;
 
+	b = usec();
 	// move guarded objects and guards (and their containing cons) to
 	// either pending hold or pending final list
 	phold = Xnil;
@@ -1534,7 +1569,7 @@ updateguards(Guard *g)
 		if(final == Xnil){
 			p = pfinal;
 			while(p != Xnil){
-				setcar(p, Xnil);
+				_setcar(p, Xnil);
 				p = cdr(p);
 			}
 			break;
@@ -1543,7 +1578,7 @@ updateguards(Guard *g)
 		while(w != Xnil){
 			copy(&caar(w));
 			push1guard(caar(w), curaddr(cdar(w)));
-			setcar(w, Xnil);
+			_setcar(w, Xnil);
 			w = cdr(w);
 		}
 		kleenescan(H.tg);
@@ -1555,9 +1590,10 @@ updateguards(Guard *g)
 		o = cdar(p);
 		if(islive(o))
 			_instguard(g, cons(curaddr(caar(p)), curaddr(cdar(p))));
-		setcar(p, Xnil);
+		_setcar(p, Xnil);
 		p = cdr(p);
 	}
+	stats.guardtime += usec()-b;
 }
 
 void
@@ -1787,6 +1823,8 @@ static void
 scanunlocked()
 {
 	Pair *p;
+	u64 b;
+	b = usec();
 	p = H.unlocked;
 	while(p != (Pair*)Xnil){
 		if(!Vfwd(car(p)))
@@ -1794,6 +1832,7 @@ scanunlocked()
 		p = (Pair*)cdr(p);
 	}
 	H.unlocked = (Pair*)Xnil;
+	stats.unlocktime += usec()-b;
 }
 
 static void
@@ -1815,6 +1854,8 @@ static void
 scanlocked()
 {
 	Seg *s, *es;
+	u64 b;
+	b = usec();
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	while(s < es){
@@ -1822,6 +1863,7 @@ scanlocked()
 			scan1locked(s);
 		s = nextseg(s);
 	}
+	stats.locktime += usec()-b;
 }
 
 static void
@@ -1830,7 +1872,9 @@ updateweak(u32 tg)
 	M *m;
 	Seg *s;
 	Pair *p;
+	u64 b;
 
+	b = usec();
 	m = &H.m[MTweak][tg];
 	s = lookseg(m->h);
 	while(1){
@@ -1846,6 +1890,7 @@ updateweak(u32 tg)
 			break;
 		s = a2s(s->link);
 	}
+	stats.weaktime += usec()-b;
 }
 
 static void
@@ -1863,6 +1908,8 @@ static void
 promotelocked()
 {
 	Seg *s, *es;
+	u64 b;
+	b = usec();
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	while(s < es){
@@ -1870,6 +1917,7 @@ promotelocked()
 			promote1locked(s);
 		s = nextseg(s);
 	}
+	stats.promotetime += usec()-b;
 }
 
 static void
@@ -1922,6 +1970,8 @@ static void
 reloc(u32 tg)
 {
 	Seg *s, *es;
+	u64 b;
+	b = usec();
 	s = a2s(segmap.lo);
 	es = a2s(segmap.hi);
 	while(s < es){
@@ -1929,6 +1979,7 @@ reloc(u32 tg)
 			reloc1(s, tg);
 		s = nextseg(s);
 	}
+	stats.reloctime += usec()-b;
 }
 
 static void
@@ -1982,8 +2033,10 @@ _gc(u32 g, u32 tg)
 	VM **vmp, *vm;
 	Head *h;
 	unsigned dbg = alldbg;
+	u64 b;
 
-	memset(&stats, 0, sizeof(stats));
+//	memset(&stats, 0, sizeof(stats));
+	b = usec();
 	maintain();
 	H.ingc++;
 	if(g != tg && g != tg-1)
@@ -2000,7 +2053,9 @@ _gc(u32 g, u32 tg)
 	H.g = g;
 	H.tg = tg;
 	if(dbg)printf("gc(%u,%u)\n", g, tg);
+	stats.inittime += usec()-b;
 
+	b = usec();
 	markold(g);
 	for(i = 0; i <= g; i++)
 		for(mt = 0; mt < Nmt; mt++)
@@ -2010,12 +2065,16 @@ _gc(u32 g, u32 tg)
 		resetalloc(MTdata, tg);
 		resetalloc(MTcode, tg);
 		resetalloc(MTweak, tg);
+		resetalloc(MTbox, tg);
 	}else{
 		getalloc(MTdata, tg);
 		getalloc(MTcode, tg);
 		getalloc(MTweak, tg);
+		getalloc(MTbox, tg);
 	}
+	stats.oldtime += usec()-b;
 
+	b = usec();
 	vmp = vms;
 	while(vmp < vms+Maxvms){
 		vm = *vmp++;
@@ -2040,6 +2099,9 @@ _gc(u32 g, u32 tg)
 	for(i = 0; i < Qnkind; i++)
 		copy((Val*)&H.guards[i]);
 	if(dbg)printf("copied guard roots\n");
+
+	stats.roottime += usec()-b;
+
 	scanunlocked();
 	scancards(g);
 	if(dbg)printf("scanned cards\n");
@@ -2056,6 +2118,7 @@ _gc(u32 g, u32 tg)
 	reloc(tg);
 	if(dbg)printf("did reloc\n");
 
+	b = usec();
 	// call built-in finalizers
 	for(i = 0; i < Qnkind; i++)
 		if(H.guards[i])
@@ -2065,19 +2128,27 @@ _gc(u32 g, u32 tg)
 				Vsetdead(h, 1);
 				qs[i].free1(h);
 			}
+	stats.finaltime += usec()-b;
+	b = usec();
 	recycle();
 	if(dbg)printf("did recycle\n");
+	stats.recycletime += usec()-b;
 
+	b = usec();
 	if(H.tg != 0){
 		H.tg = 0;
 		resetalloc(MTdata, H.tg);
 		resetalloc(MTcode, H.tg);
 		resetalloc(MTweak, H.tg);
+		resetalloc(MTbox, H.tg);
 	}
 	H.na = 0;
 	if(dbg)printf("end of collection\n");
 	H.ingc--;
+	stats.resettime += usec()-b;
+	b = usec();
 	maintain();
+	stats.finimainttime += usec()-b;
 	if(dbg)printf("gc returning\n");
 }
 
@@ -2216,11 +2287,12 @@ initmem()
 	resetalloc(MTdata, 0);
 	resetalloc(MTcode, 0);
 	resetalloc(MTweak, 0);
+	resetalloc(MTbox, 0);
 	H.na = 0;
 	H.ma = GCthresh;
 
 	/* we need nil now to initialize the guarded object lists */
-	Xnil = gclock(malq(Qnil));
+	Xnil = gclock(malq(Qnil, sizeof(Head)));
 
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)
@@ -2288,6 +2360,7 @@ gcstats()
 	gcstat1(MTdata, ns[MTdata], np[MTdata], nd[MTdata]);
 	gcstat1(MTcode, ns[MTcode], np[MTcode], nd[MTcode]);
 	gcstat1(MTweak, ns[MTweak], np[MTweak], nd[MTweak]);
+	gcstat1(MTbox, ns[MTbox], np[MTbox], nd[MTbox]);
 	gcstat1(MTbigdata, ns[MTbigdata], np[MTbigdata], nd[MTbigdata]);
 	gcstat1(MTbigcode, ns[MTbigcode], np[MTbigcode], nd[MTbigcode]);
 
@@ -2318,4 +2391,34 @@ gcstatistics(Tab *t)
 	       mkvallitcval(Vuvlong, H.gctrip));
 	tabput(t, mkvalcid(mkcid0("cardtime")),
 	       mkvallitcval(Vuvlong, stats.cardtime));
+	tabput(t, mkvalcid(mkcid0("roottime")),
+	       mkvallitcval(Vuvlong, stats.roottime));
+	tabput(t, mkvalcid(mkcid0("unlocktime")),
+	       mkvallitcval(Vuvlong, stats.unlocktime));
+	tabput(t, mkvalcid(mkcid0("locktime")),
+	       mkvallitcval(Vuvlong, stats.locktime));
+	tabput(t, mkvalcid(mkcid0("sweeptime")),
+	       mkvallitcval(Vuvlong, stats.sweeptime));
+	tabput(t, mkvalcid(mkcid0("guardtime")),
+	       mkvallitcval(Vuvlong, stats.guardtime));
+	tabput(t, mkvalcid(mkcid0("promotetime")),
+	       mkvallitcval(Vuvlong, stats.promotetime));
+	tabput(t, mkvalcid(mkcid0("reloctime")),
+	       mkvallitcval(Vuvlong, stats.reloctime));
+	tabput(t, mkvalcid(mkcid0("weaktime")),
+	       mkvallitcval(Vuvlong, stats.weaktime));
+	tabput(t, mkvalcid(mkcid0("oldtime")),
+	       mkvallitcval(Vuvlong, stats.oldtime));
+	tabput(t, mkvalcid(mkcid0("ncard")),
+	       mkvallitcval(Vuvlong, stats.ncard));
+	tabput(t, mkvalcid(mkcid0("inittime")),
+	       mkvallitcval(Vuvlong, stats.inittime));
+	tabput(t, mkvalcid(mkcid0("finaltime")),
+	       mkvallitcval(Vuvlong, stats.finaltime));
+	tabput(t, mkvalcid(mkcid0("recycletime")),
+	       mkvallitcval(Vuvlong, stats.recycletime));
+	tabput(t, mkvalcid(mkcid0("resettime")),
+	       mkvallitcval(Vuvlong, stats.resettime));
+	tabput(t, mkvalcid(mkcid0("finimainttime")),
+	       mkvallitcval(Vuvlong, stats.finimainttime));
 }

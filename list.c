@@ -23,7 +23,7 @@ static List*
 _mklist(Imm cap)
 {
 	List *l;
-	l = (List*)malq(Qlist);
+	l = (List*)malq(Qlist, sizeof(List));
 	l->v = mkvec(cap);
 	l->h = l->t = cap/2;
 	return l;

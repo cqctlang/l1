@@ -822,7 +822,7 @@ struct VM {
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
 	u64 exetime, exelast;
-	u64 gctime;
+	u64 gctime, postgctime;
 };
 
 extern char* S[];
@@ -1206,8 +1206,9 @@ void		initmem();
 void		instguard(Pair *p);
 int		ismanagedrange(void *p, Imm len);
 int		isweak(Head *h);
-Head*		malq(Qkind kind);
+Head*		malq(Qkind kind, u32 sz);
 Head*		malv(Qkind kind, Imm len);
+Head*		malbox();
 Head*		malcode();
 Head*		malweak();
 u64		meminuse();
