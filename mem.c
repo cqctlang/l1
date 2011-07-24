@@ -47,7 +47,7 @@ static char *MTname[] = {
 	[MTdata]    = "data",
 	[MTcode]    = "code",
 	[MTweak]    = "weak",
-	[MTweak]    = "box",
+	[MTbox]     = "box",
 	[MTbigdata] = "bigdata",
 	[MTbigcode] = "bigcode",
 };
