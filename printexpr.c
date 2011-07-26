@@ -39,7 +39,6 @@ char* S[] = {
 	[Ecast] =	"Ecast",
 	[Ecomma] =	"Ecomma",
 	[Econd] =	"Econd",
-	[Econst] =	"Econst",
 	[Econsts] =	"Econsts",
 	[Econtainer] =	"Econtainer",
 	[Econtinue] =	"Econtinue",
@@ -169,9 +168,6 @@ printexpr(Expr *e)
 		xprintf("(Ekon ");
 		printkon(e->aux);
 		xprintf(")");
-		break;
-	case Econst:
-		xprintf("%" PRIu64, e->liti.val);
 		break;
 	case Econsts:
 //		xprintf("(Econsts %.*s)", e->lits->len, e->lits->s);
@@ -415,9 +411,6 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Ekon:
 		printkon(e->aux);
-		break;
-	case Econst:
-		xprintf("%" PRIu64, e->liti.val);
 		break;
 	case Econsts:
 		abbrevlits(consts, sizeof(consts), e->lits);

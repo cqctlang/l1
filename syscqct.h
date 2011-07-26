@@ -4,7 +4,7 @@
 #include "cqct.h"
 
 enum{
-	Maxliti		= 70,	/* longest integer literal (binary) plus null */
+	Maxlit		= 70,	/* longest literal (binary) plus null */
 	Maxspec		= 32,
 };
 
@@ -48,7 +48,6 @@ enum{
 	Ecast,
 	Ecomma,
 	Econd,
-	Econst,
 	Econsts,
 	Econtainer,
 	Econtinue,
@@ -197,10 +196,10 @@ struct Lits {
 } Lits;
 
 typedef
-struct Liti {
+struct Lit {
 	Imm val;
 	Cbase base;
-} Liti;
+} Lit;
 
 struct Expr {
 	Head hd;
@@ -214,7 +213,6 @@ struct Expr {
 	union{
 		char *xid;		/* Eid, Etick, Etickt */
 		Lits *lits;		/* Econsts */
-		Liti liti;		/* Econst */
 		Kind op;		/* Ebinop, Egop */
 	};
 
@@ -869,7 +867,6 @@ void		freelits(Lits *lits);
 void		initparse(void);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);
-Expr*		mkconst(Cbase base, Imm val); /* rename newconst? */
 Lits*		mklits(char*, unsigned len);
 Expr*		newbinop(unsigned, Expr*, Expr*);
 Expr*		newbinopsrc(Src*, unsigned, Expr*, Expr*);
@@ -878,8 +875,8 @@ Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
 Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
 Expr*		nullelist(void);
 Expr*		nullelistsrc(Src*);
-int		parseliti(char *s, unsigned long len, Liti *liti,
-			  unsigned radix, char **err);
+int		parselit(char *s, unsigned long len, Lit *lit,
+			 unsigned radix, char **err);
 Expr*		ptrto(Expr*, Expr*);
 void		parseerror(U *ctx, char *fmt, ...);
 int		popyy(U *ctx);
@@ -1148,6 +1145,7 @@ Expr*		Zbinop(unsigned op, Expr *x, Expr *y);
 Expr*		Zblock(Expr *locs, ...);
 Expr*		Zcall(Expr *fn, unsigned narg, ...);
 Expr*		Zcons(Expr *hd, Expr *tl);
+Expr*		Zconst(Cbase base, Imm val);
 Expr*		Zconsts(char *s);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
 Expr*		Zid2sym(Expr *e);

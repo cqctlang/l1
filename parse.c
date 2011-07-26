@@ -190,9 +190,6 @@ copyexpr(Expr *e)
 	case Econsts:
 		ne->lits = copylits(e->lits);
 		break;
-	case Econst:
-		ne->liti = e->liti;
-		break;
 	case Egop:
 	case Ebinop:
 		ne->op = e->op;
@@ -280,25 +277,6 @@ ptrto(Expr *ptre, Expr *e)
 	return ptre;
 }
 
-Expr*
-mkconst(Cbase type, Imm val)
-{
-	Expr *e;
-	e = newexpr(Econst, 0, 0, 0, 0);
-	e->liti.val = val;
-	e->liti.base = type;
-	return e;
-}
-
-Expr*
-mkconstliti(Liti *liti)
-{
-	Expr *e;
-	e = newexpr(Econst, 0, 0, 0, 0);
-	e->liti = *liti;
-	return e;
-}
-
 enum{
 	Rany = 0,
 	Rbin = 2,
@@ -307,16 +285,16 @@ enum{
 };
 
 int
-parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
+parselit(char *s, unsigned long len, Lit *lit, unsigned radix, char **err)
 {
 	Imm n;
 	enum { Snone=0, Su, Sl, Sul, Sll, Sull, Sk, Sm, Sg, St } suf;
 	unsigned base, noct;
 	char c, *p, *z;
-	char buf[Maxliti];	/* stage for null-terminated strtoull input */
+	char buf[Maxlit];	/* stage for null-terminated strtoull input */
 
-	if(len >= Maxliti){
-		*err = "excessively long integer literal";
+	if(len >= Maxlit){
+		*err = "excessively long literal";
 		return -1;
 	}
 
@@ -398,14 +376,14 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 			break;
 		}
 	achar:
-		liti->base = Vchar;
-		liti->val = c;
+		lit->base = Vchar;
+		lit->val = c;
 		return 0;
 	}
 
 	if(strnchr(s, '.', len)){
-		liti->base = Vdouble;
-		*(double*)&liti->val = strtod(s, 0);
+		lit->base = Vdouble;
+		*(double*)&lit->val = strtod(s, 0);
 		return 0;
 	}
 
@@ -571,20 +549,20 @@ parseliti(char *s, unsigned long len, Liti *liti, unsigned radix, char **err)
 	}else
 		fatal("bug");
 
-	liti->base = base;
-	liti->val = n;
+	lit->base = base;
+	lit->val = n;
 	return 0;
 }
 
 Expr*
 doconst(U *ctx, char *s, unsigned long len)
 {
-	Liti liti;
+	Lit lit;
 	Expr *e;
 	char *err;
-	if(0 != parseliti(s, len, &liti, 0, &err))
+	if(0 != parselit(s, len, &lit, 0, &err))
 		parseerror(ctx, err);
-	e = mkconstliti(&liti);
+	e = Zconst(lit.base, lit.val);
 	putsrc(e, &ctx->inp->src);
 	return e;
 }

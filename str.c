@@ -328,7 +328,7 @@ static void
 l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
-	Liti liti;
+	Lit lit;
 	Cval *cv;
 	char *err;
 	unsigned radix;
@@ -347,8 +347,8 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 
 	s = valstrorcval(vm, "strton", argv, 0);
-	if(!parseliti(strdata(s), s->len, &liti, radix, &err))
-		*rv = mkvalcval(litdom, litdom->ns->base[liti.base], liti.val);
+	if(!parselit(strdata(s), s->len, &lit, radix, &err))
+		*rv = mkvalcval(litdom, litdom->ns->base[lit.base], lit.val);
 }
 
 void

@@ -212,11 +212,6 @@ tailify(U *ctx, Expr *e, Expr *nxt, Expr **bs)
 	if(e == 0)
 		return 0;
 	switch(e->kind){
-	case Econst:
-		if(nxt)
-			return Zcons(e, Zcons(nxt, nullelist()));
-		else
-			return e;
 	case Eblock:
 	case Elambda:
 		e->e2 = tailify(ctx, e->e2, nxt, bs);

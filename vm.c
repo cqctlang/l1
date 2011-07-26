@@ -6232,9 +6232,6 @@ expr2syntax(Expr *e)
 	case Ekon:
 		_listappend(l, e->aux);
 		break;
-	case Econst:
-		_listappend(l, mkvallitcval(e->liti.base, e->liti.val));
-		break;
 	case Econsts:
 		_listappend(l, mkvalstr(mkstr(e->lits->s, e->lits->len)));
 		break;
@@ -6269,8 +6266,6 @@ syntax2expr(VM *vm, Val a)
 	Expr *e;
 	Cid *id;
 	Str *s;
-	Cval *cv;
-	Ctype *t;
 	Kind k;
 	List *l;
 	static unsigned skip = 0;
@@ -6319,15 +6314,6 @@ syntax2expr(VM *vm, Val a)
 			goto bad;
 		id = (Cid*)v;
 		return doidnsrc(0, ciddata(id), strlen(ciddata(id)));
-	case Econst:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qcval)
-			goto bad;
-		cv = (Cval*)v;
-		if(!isbasecval(cv))
-			goto bad;
-		t = chasetype(cv->type);
-		return mkconst(typecbase(t), cv->val);
 	case Econsts:
 		v = listref(vm, l, skip+1);
 		if(Vkind(v) != Qstr)

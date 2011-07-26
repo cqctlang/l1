@@ -210,6 +210,12 @@ Zletrec(Expr *binds, Expr *body)
 }
 
 Expr*
+Zconst(Cbase base, Imm val)
+{
+	return Zkon(mkvallitcval(base, val));
+}
+
+Expr*
 Zconsts(char *s)
 {
 	Expr *e;
@@ -221,13 +227,13 @@ Zconsts(char *s)
 Expr*
 Zuint(Imm val)
 {
-	return mkconst(Vuint, val);
+	return Zconst(Vuint, val);
 }
 
 Expr*
 Zint(Imm val)
 {
-	return mkconst(Vint, val);
+	return Zconst(Vint, val);
 }
 
 Expr*

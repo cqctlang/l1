@@ -48,10 +48,6 @@ konsts(Expr *e, Code *code)
 		return 0;
 
 	switch(e->kind){
-	case Econst:
-		p = Zkon(konimm(code->konst, e->liti.base, e->liti.val));
-		putsrc(p, &e->src);
-		return p;
 	case Econsts:
 		p = Zkon(koncstr(code->konst, e->lits->s, e->lits->len));
 		putsrc(p, &e->src);
@@ -1241,7 +1237,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgctl(code, p, p->Return, nxt, &e->src);
 		}
 		break;
-	/* can Eid/E_tid and Econst be rationalized with cgrand? */
+	/* can Eid/E_tid (and Ekon?) be rationalized with cgrand? */
 	case E_tid:
 	case Eid:
 		i = nextinsn(code, &e->src);
