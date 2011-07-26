@@ -353,8 +353,6 @@ cases(U *ctx, Expr* e, Cases *cs)
                              e->e2, /* recursive call in addcase() */
                              cs);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Edefault:
 		cs->dflt = genlabel();
@@ -363,7 +361,6 @@ cases(U *ctx, Expr* e, Cases *cs)
 			    cases(ctx, e->e1, cs),
 			    NULL);
 		putsrc(se, &e->src);
-		e->e1 = 0;
 		return se;
 	case Eelist:
 		p = e;
@@ -422,8 +419,6 @@ swtch(U *ctx, Expr *e, char *lb)
 		freecases(cs);
 		putsrc(se, &e->src);
 		e->xp = 0;
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		p = e;
@@ -488,10 +483,6 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 		efree(nlb);
 		efree(nlc);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
-		e->e3 = 0;
-		e->e4 = 0;
 		return se;
 	case Edo:
 		h = genlabel();
@@ -509,8 +500,6 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 		efree(nlb);
 		efree(nlc);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Ewhile:
 		nlb = genlabel();
@@ -526,8 +515,6 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 		efree(nlb);
 		efree(nlc);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		p = e;

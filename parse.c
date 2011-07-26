@@ -210,7 +210,6 @@ flatten(Expr *e)
 		q = p->e1;
 		while(q->kind != Enull){
 			nl = newexpr(Eelist, q->e1, nl, 0, 0);
-			q->e1 = 0;
 			q = q->e2;
 		}
 		p = p->e2;

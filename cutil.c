@@ -424,7 +424,6 @@ Zblock(Expr *locs, ...)
 			p = se;
 			while(p->kind == Eelist){
 				te = Zcons(p->e1, te);
-				p->e1 = 0;
 				p = p->e2;
 			}
 		}

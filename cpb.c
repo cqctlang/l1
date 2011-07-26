@@ -25,10 +25,6 @@ defloc(U *ctx, Expr *e, Expr *scope)
 				 defloc(ctx, e->e3, scope),
 				 copyexpr(e->e1)));
 		newlocal(scope->e1, e->e1);
-		e->e1 = 0;
-		e->e2 = 0;
-		e->e3 = 0;
-		e->e4 = 0;
 		putsrc(p, &e->src);
 		return p;
 	case Escope:
@@ -467,7 +463,6 @@ rmscope(U *ctx, Expr *e)
 	switch(e->kind){
 	case Escope:
 		p = rmscope(ctx, e->e1);
-		e->e1 = 0;
 		return p;
 	case Eelist:
 		p = e;

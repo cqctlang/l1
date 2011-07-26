@@ -143,8 +143,6 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		}
 
 		putsrc(te, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return lvalblock(invert(te));
 	case Ederef:
 		te = nullelist();
@@ -187,7 +185,6 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			te = Zcons(se, te);
 		}
 		putsrc(te, &e->src);
-		e->e1 = 0;
 		return lvalblock(invert(te));
 	case Edot:
 		te = nullelist();
@@ -227,7 +224,6 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		}
 
 		putsrc(te, &e->src);
-		e->e1 = 0;
 		return lvalblock(invert(te));
 	default:
 		cerror(ctx, e, "expression is not an lvalue");
@@ -265,7 +261,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		te = Zcons(se, te);
 		te = invert(te);
 		putsrc(te, &src);
-		e->e1 = 0;
 		return rvalblock(te, lfree);
 	case Eg:
 		if(!islval(e->e1)){
@@ -291,8 +286,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		te = invert(te);
 		putsrc(te, &src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return rvalblock(te, lfree);
 	case Egop:
 		if(!islval(e->e1)){
@@ -321,8 +314,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		te = invert(te);
 		putsrc(te, &src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return rvalblock(te, lfree);
 	case Epostinc:
 	case Epostdec:
@@ -351,7 +342,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		te = invert(te);
 		putsrc(te, &src);
-		e->e1 = 0;
 		return rvalblock(te, lfree);
 	case Epreinc:
 	case Epredec:
@@ -382,13 +372,11 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		te = invert(te);
 		putsrc(te, &src);
-		e->e1 = 0;
 		return rvalblock(te, lfree);
 	case Esizeofe:
 		if(!islval(e->e1)){
 			se = Zsizeof(compile_rval(ctx, e->e1, 0));
 			putsrc(se, &src);
-			e->e1 = 0;
 			return se;
 		}
 
@@ -402,14 +390,12 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		te = invert(te);
 		putsrc(te, &src);
-		e->e1 = 0;
 		return rvalblock(te, lfree);
 	case Etypeofe:
 		if(!islval(e->e1)){
 			se = Zcall(doid("$typeof"), 1,
 				   compile_rval(ctx, e->e1, 0));
 			putsrc(se, &src);
-			e->e1 = 0;
 			return se;
 		}
 
@@ -423,7 +409,6 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 
 		te = invert(te);
 		putsrc(te, &src);
-		e->e1 = 0;
 		return rvalblock(te, lfree);
 	case Eelist:
 		p = e;
@@ -479,17 +464,12 @@ groomc(U *ctx, Expr *e)
 			    groomc(ctx, e->e2),
 			    NULL);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Econd:
 		se = Zifelse(groomc(ctx, e->e1),
 			     groomc(ctx, e->e2),
 			     groomc(ctx, e->e3));
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
-		e->e3 = 0;
 		return se;
 	case Eelist:
 		p = e;

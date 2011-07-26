@@ -18,8 +18,6 @@ compilel(U *ctx, Expr* e)
 				     Zint(0)),
 			     Zint(0));
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Elor:
 		se = Zifelse(compilel(ctx, e->e1),
@@ -28,8 +26,6 @@ compilel(U *ctx, Expr* e)
 				     Zint(1),
 				     Zint(0)));
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		p = e;

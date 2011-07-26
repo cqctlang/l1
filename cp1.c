@@ -13,10 +13,6 @@ compiledef(U *ctx, Expr *e)
 		 Zlambdn(e->e2,
 			 compile1(ctx, e->e3),
 			 copyexpr(e->e1)));
-	e->e1 = 0;
-	e->e2 = 0;
-	e->e3 = 0;
-	e->e4 = 0;
 	putsrc(p, &e->src);
 	return p;
 }
@@ -85,8 +81,6 @@ compiletab(U *ctx, Expr *e)
 		se = Zcall(G("tabinsert"), 3, doid("$tab"), ti->e1, ti->e2->e1);
 		putsrc(se, &ti->src);
 		te = Zcons(se, te);
-		ti->e1 = 0;
-		ti->e2->e1 = 0;
 		e = e->e2;
 	}
 	se = doid("$tab");
@@ -118,7 +112,6 @@ compilelist(U *ctx, Expr *e)
 		se = Zcall(G("listins"), 3, doid("$lst"), Zuint(i++), e->e1);
 		putsrc(se, &e->e1->src);
 		te = Zcons(se, te);
-		e->e1 = 0;
 		e = e->e2;
 	}
 	se = doid("$lst");
@@ -423,8 +416,6 @@ compile1(U *ctx, Expr *e)
 		return e;
 	case Eambig:
 		se = compileambig(ctx, e);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Esizeoft:
 		se = compilesizeof(ctx, e->e1, &e->src);
@@ -438,11 +429,9 @@ compile1(U *ctx, Expr *e)
 	case Ecast:
 		se = compilecast(ctx, e);
 		// e1 is a decl that needs to be freed
-		e->e2 = 0;
 		return se;
 	case Econtainer:
 		se = compilecontainer(ctx, e);
-		e->e1 = 0;
 		return se;
 	case Etab:
 		se = compiletab(ctx, e);
@@ -464,8 +453,6 @@ compile1(U *ctx, Expr *e)
 			q = q->e2;
 		}
 		se = putsrc(Zapply(compile1(ctx, e->e1), e->e2), &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		q = e;

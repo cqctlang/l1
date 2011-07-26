@@ -179,8 +179,6 @@ convert1(U *ctx, Expr *e)
 						 1, copyexpr(t)),
 					   Zcons(t, e->e2)),
 				    NULL);
-			e->e1 = 0;
-			e->e2 = 0;
 			putsrc(se, &e->src);
 			return se;
 		}
@@ -274,7 +272,6 @@ lift(U *ctx, Expr *e, Expr **bs)
 		p = e->e1;
 		while(p->kind != Enull){
 			*bs = Zcons(p->e1, *bs);
-			p->e1 = 0;
 			p = p->e2;
 		}
 		se = e->e2;

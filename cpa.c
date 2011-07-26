@@ -66,7 +66,6 @@ Zap(Expr *e, char *id)
 	e->e2 = 0;
 	e->e3 = 0;
 	e->e4 = 0;
-
 	return ne;
 }
 
@@ -193,8 +192,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			   expanda(ctx, e->e1, d, w),
 			   expanda(ctx, e->e2, d, w));
 		putsrc(te, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return te;
 	case Eg:
 		if(e->e1->kind != Earef)
@@ -208,9 +205,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			   expanda(ctx, e->e1->e2, d, w),
 			   expanda(ctx, e->e2, d, w));
 		putsrc(te, &e->src);
-		e->e1->e1 = 0;
-		e->e1->e2 = 0;
-		e->e2 = 0;
 		return te;
 	case Egop:
 		if(e->e1->kind != Earef)
@@ -233,9 +227,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 					 expanda(ctx, e->e2, d, w))),
 			    NULL);
 		putsrc(te, &e->src);
-		e->e1->e1 = 0;
-		e->e1->e2 = 0;
-		e->e2 = 0;
 		return te;
 	case Epreinc:
 	case Epredec:
@@ -259,9 +250,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 					 Zint(1))),
 			    NULL);
 		putsrc(te, &e->src);
-		e->e1->e1 = 0;
-		e->e1->e2 = 0;
-		e->e2 = 0;
 		return te;
 	case Epostinc:
 	case Epostdec:
@@ -287,8 +275,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    doid("$l"),
 			    NULL);
 		putsrc(te, &e->src);
-		e->e1->e1 = 0;
-		e->e1->e2 = 0;
 		return te;
 	default:
 		fatal("bug");
@@ -355,7 +341,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    Zifelse(Zcall(G("isrec"), 1, o), se, te),
 			    NULL);
 		putsrc(te, &e->src);
-		e->e1 = 0;
 		return te;
 	case Eg:
 		if(e->e1->kind != Edot)
@@ -382,8 +367,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				  doid("$o"), expanda(ctx, e->e2, d, w)),
 			    NULL);
 		putsrc(te, &e->src);
-		e->e1->e1 = 0;
-		e->e2 = 0;
 		return te;
 	case Egop:
 		if(e->e1->kind != Edot)
@@ -419,8 +402,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					 expanda(ctx, e->e2, d, w))),
 			    NULL);
 		putsrc(te, &e->src);
-		e->e1->e1 = 0;
-		e->e2 = 0;
 		return te;
 	case Epreinc:
 	case Epredec:
@@ -494,7 +475,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    doid("$l"),
 			    NULL);
 		putsrc(te, &e->src);
-		e->e1->e1 = 0;
 		return te;
 	default:
 		fatal("bug");
@@ -579,8 +559,6 @@ expandc(U *ctx, Expr *e)
 			     Zadd(expandc(ctx, e->e1), expandc(ctx, e->e2)),
 			     0, 0, 0);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Earrow: /* for compile_rval */
 		/* rewrite: E->field => (*E).field */
@@ -588,8 +566,6 @@ expandc(U *ctx, Expr *e)
 			     newexpr(Ederef, expandc(ctx, e->e1), 0, 0, 0),
 			     e->e2, 0, 0);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		p = e;
@@ -621,8 +597,6 @@ expandarrow(U *ctx, Expr *e)
 			     newexpr(Ederef, expandarrow(ctx, e->e1), 0, 0, 0),
 			     e->e2, 0, 0);
 		putsrc(se, &e->src);
-		e->e1 = 0;
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		p = e;
