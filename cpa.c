@@ -121,7 +121,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 	ye = expanda(ctx, xe, d+1, &w);
 	if(w)
 		ye = Zcall(G("error"), 1,
-			   Zconsts("cannot apply dot to a cvalue"));
+			   Zstr("cannot apply dot to a cvalue"));
 	a->attr = Anotlval;
 	xe = copyexpr(e);
 	ne = expanda(ctx, xe, d+1, 0);
@@ -154,14 +154,14 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 	ye = expanda(ctx, xe, d+1, &w);
 	if(w)
 		return Zcall(G("error"), 1,
-			     Zconsts("cannot apply dot to a cvalue"));
+			     Zstr("cannot apply dot to a cvalue"));
 	te = Zblock(Zlocals(1, t),
 		    Zset(doid(t), p),
 		    Zifelse(Zcall(G("iscvalue"), 1,
 				  doid(t)),
 			    ye,
 			    Zcall(G("error"), 1,
-				  Zconsts("attempt to apply & to non-lvalue"))),
+				  Zstr("attempt to apply & to non-lvalue"))),
 		    NULL);
 	putsrc(te, &e->src);
 	clearattr(te);
@@ -322,7 +322,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				fatal("bug");
 			*w = 1;
 			return Zcall(G("error"), 1,
-				     Zconsts("cannot apply dot to a cvalue"));
+				     Zstr("cannot apply dot to a cvalue"));
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
@@ -347,7 +347,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				     Zret(Zcall(G("callmethod"),
 						3,
 						doid("$o"),
-						Zconsts(id),
+						Zstr(id),
 						doid("$args"))),
 				     copyexpr(e->e2));
 
@@ -368,7 +368,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				fatal("bug");
 			*w = 1;
 			return Zcall(G("error"), 1,
-				     Zconsts("cannot apply dot to a cvalue"));
+				     Zstr("cannot apply dot to a cvalue"));
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
@@ -396,7 +396,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				fatal("bug");
 			*w = 1;
 			return Zcall(G("error"), 1,
-				     Zconsts("cannot apply dot to a cvalue"));
+				     Zstr("cannot apply dot to a cvalue"));
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
@@ -434,7 +434,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				fatal("bug");
 			*w = 1;
 			return Zcall(G("error"), 1,
-				     Zconsts("cannot apply dot to a cvalue"));
+				     Zstr("cannot apply dot to a cvalue"));
 		}
 		if(a)
 			return disambig(ctx, a, e, d);
@@ -470,7 +470,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 				fatal("bug");
 			*w = 1;
 			return Zcall(G("error"), 1,
-				     Zconsts("cannot apply dot to a cvalue"));
+				     Zstr("cannot apply dot to a cvalue"));
 		}
 		if(a)
 			return disambig(ctx, a, e, d);

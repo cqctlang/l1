@@ -51,7 +51,7 @@ compilerec(U *ctx, Expr *e)
 	p = Zblock(Zlocals(1, "$rd"),
 		   Zset(doid("$rd"),
 			Zcall(G("mkrd"), 2,
-			      Zconsts(id),
+			      Zstr(id),
 			      Zids2syms(e->e2))),
 		   Zset(doid(id), Zcall(G("rdmk"),
 					1, doid("$rd"))),
@@ -186,7 +186,7 @@ compiletypeof(U *ctx, Expr *e, Src *src)
 	se = newexpr(Eif,
 		     Zcall(G("isnil"), 1, doid("$tmp")),
 		     Zcall(G("error"), 2,
-			   Zconsts("undefined type: %t"),
+			   Zstr("undefined type: %t"),
 			   doid("$tn")),
 		     0, 0);
 	te = Zcons(se, te);
@@ -248,7 +248,7 @@ compilecast(U *ctx, Expr *e)
 	se = newexpr(Eif,
 		     Zcall(G("isnil"), 1, doid("$type")),
 		     Zcall(G("error"), 2,
-			   Zconsts("undefined type: %t"),
+			   Zstr("undefined type: %t"),
 			   doid("$tn")),
 		     0, 0);
 	te = Zcons(se, te);
@@ -293,7 +293,7 @@ compilecontainer(U *ctx, Expr *e)
 	se = newexpr(Eif,
 		     Zcall(G("isnil"), 1, doid("$type")),
 		     Zcall(G("error"), 2,
-			   Zconsts("undefined type: %t"),
+			   Zstr("undefined type: %t"),
 			   doid("$tn")),
 		     0, 0);
 	te = Zcons(se, te);
@@ -307,7 +307,7 @@ compilecontainer(U *ctx, Expr *e)
 	se = newexpr(Eif,
 		     Zcall(G("isnil"), 1, doid("$fld")),
 		     Zcall(G("error"), 2,
-			   Zconsts("undefined field: %s"),
+			   Zstr("undefined field: %s"),
 			   Zid2sym(e->e3)),
 		     0, 0);
 	te = Zcons(se, te);

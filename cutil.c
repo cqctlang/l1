@@ -216,12 +216,15 @@ Zconst(Cbase base, Imm val)
 }
 
 Expr*
-Zconsts(char *s)
+Zstr(char *s)
 {
-	Expr *e;
-	e = newexpr(Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, strlen(s));
-	return e;
+	return Zkon(mkvalstr(mkstr0(s)));
+}
+
+Expr*
+Zstrn(char *s, Imm len)
+{
+	return Zkon(mkvalstr(mkstr(s, len)));
 }
 
 Expr*
@@ -246,24 +249,6 @@ Expr*
 Znop(void)
 {
 	return Z0(Enop);
-}
-
-Expr*
-Zstr(char *s)
-{
-	Expr *e;
-	e = newexpr(Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, strlen(s));
-	return e;
-}
-
-Expr*
-Zstrn(char *s, unsigned long len)
-{
-	Expr *e;
-	e = newexpr(Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, len);
-	return e;
 }
 
 Expr*

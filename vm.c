@@ -6232,9 +6232,6 @@ expr2syntax(Expr *e)
 	case Ekon:
 		_listappend(l, e->aux);
 		break;
-	case Econsts:
-		_listappend(l, mkvalstr(mkstr(e->lits->s, e->lits->len)));
-		break;
 	case Ebinop:
 	case Egop:
 		_listappend(l, mkvalstr(mkstr0(S[e->op])));
@@ -6314,12 +6311,6 @@ syntax2expr(VM *vm, Val a)
 			goto bad;
 		id = (Cid*)v;
 		return doidnsrc(0, ciddata(id), strlen(ciddata(id)));
-	case Econsts:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
-			goto bad;
-		s = (Str*)v;
-		return Zstrn(strdata(s), s->len);
 	case Ebinop:
 		v = listref(vm, l, skip+1);
 		if(Vkind(v) != Qstr)

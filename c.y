@@ -172,11 +172,11 @@ primary_expression
 	: id
 	| tickid
 	| SYMBOL
-	{ $$ = dosymsrc(&ctx->inp->src, $1.p, $1.len); }
+	{ $$ = dosym($1.p, $1.len); }
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
 	| STRING_LITERAL
-	{ $$ = doconstssrc(&ctx->inp->src, $1.p, $1.len); }
+	{ $$ = dostr($1.p, $1.len); }
 	| '(' expression ')'
 	{ $$ = $2; }
         | LPAIR root_expression ',' root_expression RPAIR

@@ -283,9 +283,6 @@ xfreeexpr(Head *hd)
 	case Egoto:
 	case E_tid:
 		break;
-	case Econsts:
-		freelits(e->lits);
-		break;
 	default:
 		break;
 	}

@@ -92,7 +92,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 				       dom, doid("$tn"))),
 			    Zif(Zcall(G("isnil"), 1, doid("$type")),
 				Zcall(G("error"), 2,
-				      Zconsts("undefined type: %t"),
+				      Zstr("undefined type: %t"),
 				      doid("$tn"))),
 			    NULL);
 		te = Zcons(se, te);
@@ -116,7 +116,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = newexpr(Eif,
 			     Zcall(G("isnil"), 1, doid("$tmp")),
 			     Zcall(G("error"), 2,
-				   Zconsts("undefined symbol: %a"),
+				   Zstr("undefined symbol: %a"),
 				   Zid2sym(e->e2)),
 			     0, 0);
 		te = Zcons(se, te);
@@ -136,7 +136,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			se = newexpr(Eif,
 				     Zcall(G("isnil"), 1, doid("$addr")),
 				     Zcall(G("error"), 2,
-					   Zconsts("symbol lacks address: %a"),
+					   Zstr("symbol lacks address: %a"),
 					   Zid2sym(e->e2)),
 				     0, 0);
 			te = Zcons(se, te);
@@ -207,7 +207,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = newexpr(Eif,
 			     Zcall(G("isnil"), 1, doid("$tmp")),
 			     Zcall(G("error"), 2,
-				   Zconsts("undefined field: %s"),
+				   Zstr("undefined field: %s"),
 				   Zid2sym(e->e2)),
 			     0, 0);
 		te = Zcons(se, te);

@@ -39,7 +39,6 @@ char* S[] = {
 	[Ecast] =	"Ecast",
 	[Ecomma] =	"Ecomma",
 	[Econd] =	"Econd",
-	[Econsts] =	"Econsts",
 	[Econtainer] =	"Econtainer",
 	[Econtinue] =	"Econtinue",
 	[Edecl] =	"Edecl",
@@ -130,6 +129,7 @@ char* S[] = {
 	[E_tid] =	"E_tid",
 };
 
+#if 0
 static void
 abbrevlits(char *buf, unsigned len, Lits *lits)
 {
@@ -156,23 +156,18 @@ abbrevlits(char *buf, unsigned len, Lits *lits)
 			*p++ = '.';
 	*p = 0;
 }
+#endif
 
 void
 printexpr(Expr *e)
 {
 	Expr *p;
-	static char consts[Abbrevlen];
 
 	switch(e->kind){
 	case Ekon:
 		xprintf("(Ekon ");
 		printkon(e->aux);
 		xprintf(")");
-		break;
-	case Econsts:
-//		xprintf("(Econsts %.*s)", e->lits->len, e->lits->s);
-		abbrevlits(consts, sizeof(consts), e->lits);
-		xprintf("(Econsts \"%s\")", consts);
 		break;
 	case E_tid:
 	case Elabel:
@@ -358,7 +353,6 @@ iscompound(Expr *e)
 static void
 printcqct0(Expr *e, unsigned ni)
 {
-	static char consts[Abbrevlen];
 	int wasstmt = 0;
 
 	if(e == 0)
@@ -411,10 +405,6 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Ekon:
 		printkon(e->aux);
-		break;
-	case Econsts:
-		abbrevlits(consts, sizeof(consts), e->lits);
-		xprintf("\"%s\"", consts);
 		break;
 	case Eid:
 		printkon(e->aux);

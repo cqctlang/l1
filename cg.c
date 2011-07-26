@@ -32,13 +32,7 @@ konimm(Tab *kon, Cbase base, Imm imm)
 	return konval(kon, mkvallitcval(base, imm));
 }
 
-static Val
-koncstr(Tab *kon, char *s, Imm len)
-{
-	return konval(kon, mkvalstr(mkstr(s, len)));
-}
-
-// allocate and bind constants to constant pool
+// register constants in code object constant pool
 static Expr*
 konsts(Expr *e, Code *code)
 {
@@ -48,10 +42,6 @@ konsts(Expr *e, Code *code)
 		return 0;
 
 	switch(e->kind){
-	case Econsts:
-		p = Zkon(koncstr(code->konst, e->lits->s, e->lits->len));
-		putsrc(p, &e->src);
-		return p;
 	case Ekon:
 		e->aux = konval(code->konst, e->aux);
 		return e;
@@ -309,9 +299,10 @@ printkon(Val v)
 	case Qstr:
 		str = valstr(v);
 		p = strdata(str);
-		m = str->len-1;
+		m = str->len;
 		if(m > 15)
 			m = 15;
+		xprintf("\"");
 		for(i = 0; i < m; i++){
 			c = *p++;
 			switch(c){
@@ -320,6 +311,9 @@ printkon(Val v)
 				break;
 			case '\t':
 				xprintf("\\t");
+				break;
+			case '\0':
+				xprintf("\0");
 				break;
 			default:
 				xprintf("%c", c);

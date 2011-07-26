@@ -85,32 +85,6 @@ parseerror(U *ctx, char *fmt, ...)
 	longjmp(ctx->jmp, 1);
 }
 
-Lits*
-mklits(char *s, unsigned len)
-{
-	Lits *lits;
-	char *p;
-
-	lits = emalloc(sizeof(Lits)+len);
-	p = (char*)(lits+1);
-	memcpy(p, s, len);
-	lits->s = p;
-	lits->len = len;
-	return lits;
-}
-
-Lits*
-copylits(Lits *lits)
-{
-	return mklits(lits->s, lits->len);
-}
-
-void
-freelits(Lits *lits)
-{
-	efree(lits);
-}
-
 Expr*
 mkexpr()
 {
@@ -186,9 +160,6 @@ copyexpr(Expr *e)
 	case E_tid:
 	case Ekon:
 		ne->aux = e->aux;
-		break;
-	case Econsts:
-		ne->lits = copylits(e->lits);
 		break;
 	case Egop:
 	case Ebinop:
@@ -568,15 +539,14 @@ doconst(U *ctx, char *s, unsigned long len)
 }
 
 Expr*
-dosymsrc(Src *src, char *s, unsigned long len)
+dosym(char *s, unsigned long len)
 {
 	return Zkon(mkvalcid(mkcid(s+1, len-1)));
 }
 
 Expr*
-doconstssrc(Src *src, char *s, unsigned long len)
+dostr(char *s, unsigned long len)
 {
-	Expr *e;
 	int c;
 	char *r, *w, *z;
 	unsigned noct;
@@ -678,9 +648,7 @@ doconstssrc(Src *src, char *s, unsigned long len)
 		*w++ = c;
 	}
 
-	e = newexprsrc(src, Econsts, 0, 0, 0, 0);
-	e->lits = mklits(s, w-s);
-	return e;
+	return Zstrn(s, w-s);
 }
 
 Expr*

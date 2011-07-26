@@ -48,7 +48,6 @@ enum{
 	Ecast,
 	Ecomma,
 	Econd,
-	Econsts,
 	Econtainer,
 	Econtinue,
 	Edecl,			/* type specifier + 1 declarator */
@@ -190,12 +189,6 @@ struct Src {
 } Src;
 
 typedef
-struct Lits {
-	char *s;
-	unsigned len;
-} Lits;
-
-typedef
 struct Lit {
 	Imm val;
 	Cbase base;
@@ -212,7 +205,6 @@ struct Expr {
 
 	union{
 		char *xid;		/* Eid, Etick, Etickt */
-		Lits *lits;		/* Econsts */
 		Kind op;		/* Ebinop, Egop */
 	};
 
@@ -853,21 +845,18 @@ void		setyystate(YYstate *yy);
 /* parse.c */
 Expr*		G(char *s);
 Expr*		copyexpr(Expr *e);
-Lits*		copylits(Lits *lits);
 Expr*		doconst(U *ctx, char*, unsigned long len);
-Expr*		doconstssrc(Src*, char*, unsigned long len);
+Expr*		dostr(char*, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
-Expr*		dosymsrc(Src *src, char *s, unsigned long len);
+Expr*		dosym(char *s, unsigned long len);
 Expr*		dotickesrc(Src *src, Expr*, Expr*);
 Expr*		doticktsrc(Src *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 void		finiparse(void);
 Expr*		flatten(Expr *e);
-void		freelits(Lits *lits);
 void		initparse(void);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);
-Lits*		mklits(char*, unsigned len);
 Expr*		newbinop(unsigned, Expr*, Expr*);
 Expr*		newbinopsrc(Src*, unsigned, Expr*, Expr*);
 Expr*		newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
@@ -1146,7 +1135,6 @@ Expr*		Zblock(Expr *locs, ...);
 Expr*		Zcall(Expr *fn, unsigned narg, ...);
 Expr*		Zcons(Expr *hd, Expr *tl);
 Expr*		Zconst(Cbase base, Imm val);
-Expr*		Zconsts(char *s);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
 Expr*		Zid2sym(Expr *e);
 Expr*		Zids2syms(Expr *l);
@@ -1174,7 +1162,7 @@ Expr*		Zscope(Expr *block);
 Expr*		Zset(Expr *l, Expr *r);
 Expr*		Zsizeof(Expr *e);
 Expr*		Zstr(char *s);
-Expr*		Zstrn(char *s, unsigned long len);
+Expr*		Zstrn(char *s, Imm len);
 Expr*		Zsub(Expr *x, Expr *y);
 Expr*		Ztg(char *id, Expr *e);
 Expr*		Ztgn(char *id, unsigned long len, Expr *e);
