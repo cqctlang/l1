@@ -17,7 +17,6 @@ compileg(U *ctx, Expr* e)
 			    Zset(doid("$tmp"), compileg(ctx, e->e2)),
 			    Zset(e->e1, Zbinop(e->op, e->e1, doid("$tmp"))),
 			    NULL);
-		e->e2 = 0;
 		putsrc(se, &e->src);
 		return se;
 	case Epostinc:

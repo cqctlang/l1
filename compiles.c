@@ -13,7 +13,6 @@ locals(U *ctx, Expr *e, Vs *vs)
 	case Eblock:
 		vsappend(e->e1, vs);
 		p = locals(ctx, e->e2, vs);
-		e->e2 = 0;
 		return p;
 	case Eelist:
 		p = e;

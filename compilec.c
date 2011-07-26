@@ -275,7 +275,6 @@ lift(U *ctx, Expr *e, Expr **bs)
 			p = p->e2;
 		}
 		se = e->e2;
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		p = e;

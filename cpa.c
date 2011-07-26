@@ -655,7 +655,6 @@ expandm(U *ctx, Expr *e)
 		se = Zcons(Zset(doid("$tmp"), expandm(ctx, e->e2)), se);
 		se = Zblock(Zlocals(1, "$tmp"), se, NULL);
 		putsrc(se, &e->src);
-		e->e2 = 0;
 		return se;
 	case Eelist:
 		p = e;

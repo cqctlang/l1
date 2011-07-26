@@ -97,7 +97,6 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 			    NULL);
 		te = Zcons(se, te);
 		putsrc(te, &e->src);
-		e->e2 = 0;
 		return lvalblock(invert(te));
 	case Eticke:
 		te = nullelist();
