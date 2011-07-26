@@ -202,12 +202,7 @@ struct Expr {
 	Expr *e3;
 	Expr *e4;
 	Val aux;
-
-	union{
-		char *xid;		/* Eid, Etick, Etickt */
-		Kind op;		/* Ebinop, Egop */
-	};
-
+	Kind op;		/* Ebinop, Egop */
 	char attr;			/* disambiguation attribute */
 
 	/* source */
