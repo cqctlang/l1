@@ -78,9 +78,9 @@ static int chars(YYSTYPE *lvalp, int);
 "void"			{ count(ctx); return(VOID); }
 "volatile"		{ count(ctx); return(VOLATILE); }
 "while"			{ count(ctx); return(WHILE); }
-\'\{			{ count(ctx); return(SYNTAXQUOTE); }
-`\{			{ count(ctx); return(SYNTAXQUASI); }
-,@\{			{ count(ctx); return(SYNTAXSPLICE); }
+#\'\{			{ count(ctx); return(SYNTAXQUOTE); }
+#`\{			{ count(ctx); return(SYNTAXQUASI); }
+#,			{ count(ctx); return(SYNTAXUNQUOTE); }
 
 {L}({L}|{D})*		{ count(ctx); return(chars(lvalp, IDENTIFIER)); }
 

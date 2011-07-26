@@ -130,21 +130,17 @@ let_expression
 
 quote_expression
 	: SYNTAXQUOTE statement '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Estxquote, $2, 0, 0, 0); }
 	| SYNTAXQUOTE expression '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Estxquote, $2, 0, 0, 0); }
 	| SYNTAXQUASI statement '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Estxquasi, $2, 0, 0, 0); }
 	| SYNTAXQUASI expression '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
-	| SYNTAXUNQUOTE statement '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
-	| SYNTAXUNQUOTE expression '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
-	| SYNTAXSPLICE statement '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
-	| SYNTAXSPLICE expression '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $2, 0, 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Estxquasi, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE id
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE '(' expression ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
 	| QUOTE '{' statement '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
 	| QUOTE '{' expression '}'

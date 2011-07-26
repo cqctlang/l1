@@ -112,6 +112,9 @@ enum{
 	Esizeofe,
 	Esizeoft,
 	Estruct,
+	Estxquote,
+	Estxquasi,
+	Estxunquote,
 	Esub,
 	Eswitch,
 	Etab,
@@ -201,9 +204,9 @@ struct Expr {
 	Expr *e2;
 	Expr *e3;
 	Expr *e4;
-	Val aux;
+	Val aux;		/* Eid, E_tid, Elabel, Egoto, Ekon */
 	Kind op;		/* Ebinop, Egop */
-	char attr;			/* disambiguation attribute */
+	char attr;		/* disambiguation attribute */
 
 	/* source */
 	Src src;
