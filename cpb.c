@@ -30,7 +30,6 @@ defloc(U *ctx, Expr *e, Expr *scope)
 		e->e3 = 0;
 		e->e4 = 0;
 		putsrc(p, &e->src);
-		freeexpr(e);
 		return p;
 	case Escope:
 		e->e1 = defloc(ctx, e->e1, e);
@@ -469,7 +468,6 @@ rmscope(U *ctx, Expr *e)
 	case Escope:
 		p = rmscope(ctx, e->e1);
 		e->e1 = 0;
-		freeexpr(e);
 		return p;
 	case Eelist:
 		p = e;

@@ -182,7 +182,6 @@ convert1(U *ctx, Expr *e)
 			e->e1 = 0;
 			e->e2 = 0;
 			putsrc(se, &e->src);
-			freeexpr(e);
 			return se;
 		}
 	case Eelist:
@@ -235,11 +234,9 @@ convert2(U *ctx, Expr *e, Expr *cp, Expr *fs)
 			return e;
 		se = Zcall(Ztid("%clref"), 2, copyexpr(cp), Zuint(i));
 		putsrc(se, &e->src);
-		freeexpr(e);
 		return se;
 	case Elambda:
 		e->e2 = convert2(ctx, e->e2, e->e1->e1, e->xp);
-		freeexpr(e->xp);
 		e->xp = 0;
 		return e;
 	case Eelist:
@@ -282,7 +279,6 @@ lift(U *ctx, Expr *e, Expr **bs)
 		}
 		se = e->e2;
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;

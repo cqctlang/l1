@@ -14,7 +14,6 @@ quote(U *ctx, Expr *e)
 	case Equote:
 		v = expr2syntax(e->e1);
 		p = Zkon(v);
-		freeexpr(e);
 		return p;
 	case Eelist:
 		p = e;

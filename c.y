@@ -576,7 +576,7 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $4, $5, $3, $7); }
 	/* accept (but discard) c++ labels such as "public:" */
 	| id ':'
-	{ freeexpr($1); $$ = 0; }
+	{ $$ = 0; }
 	| error ';'
 	{ $$ = 0; }
 	;
@@ -1079,7 +1079,6 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 	/* it's not possible to call through a domain reference,
 	   so call it a cast. */
 	duptickid(other->e1);
-	freeexpr(other);
 	return cast;
 }
 

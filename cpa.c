@@ -119,11 +119,9 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 	a->attr = Aptr;
 	xe = copyexpr(e);
 	ye = expanda(ctx, xe, d+1, &w);
-	if(w){
-		freeexpr(ye);
+	if(w)
 		ye = Zcall(G("error"), 1,
 			   Zconsts("cannot apply dot to a cvalue"));
-	}
 	a->attr = Anotlval;
 	xe = copyexpr(e);
 	ne = expanda(ctx, xe, d+1, 0);
@@ -137,7 +135,6 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 			    ye, ne),
 		    NULL);
 	putsrc(te, &e->src);
-	freeexpr(e);
 	clearattr(te);
 	return te;
 }
@@ -155,12 +152,9 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 	a->attr = Aptr;
 	xe = copyexpr(e);
 	ye = expanda(ctx, xe, d+1, &w);
-	if(w){
-		freeexpr(ye);
-		freeexpr(e);
+	if(w)
 		return Zcall(G("error"), 1,
 			     Zconsts("cannot apply dot to a cvalue"));
-	}
 	te = Zblock(Zlocals(1, t),
 		    Zset(doid(t), p),
 		    Zifelse(Zcall(G("iscvalue"), 1,
@@ -170,7 +164,6 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 				  Zconsts("attempt to apply & to non-lvalue"))),
 		    NULL);
 	putsrc(te, &e->src);
-	freeexpr(e);
 	clearattr(te);
 	return te;
 }
@@ -202,7 +195,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 		putsrc(te, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return te;
 	case Eg:
 		if(e->e1->kind != Earef)
@@ -219,7 +211,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 		e->e1->e1 = 0;
 		e->e1->e2 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return te;
 	case Egop:
 		if(e->e1->kind != Earef)
@@ -245,7 +236,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 		e->e1->e1 = 0;
 		e->e1->e2 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return te;
 	case Epreinc:
 	case Epredec:
@@ -272,7 +262,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 		e->e1->e1 = 0;
 		e->e1->e2 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return te;
 	case Epostinc:
 	case Epostdec:
@@ -300,7 +289,6 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 		putsrc(te, &e->src);
 		e->e1->e1 = 0;
 		e->e1->e2 = 0;
-		freeexpr(e);
 		return te;
 	default:
 		fatal("bug");
@@ -330,7 +318,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			return e;
 		}
 		if(x == Aptr){
-			freeexpr(e);
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
@@ -369,7 +356,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    NULL);
 		putsrc(te, &e->src);
 		e->e1 = 0;
-		freeexpr(e);
 		return te;
 	case Eg:
 		if(e->e1->kind != Edot)
@@ -378,7 +364,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		if(x == Alval)
 			return cassign(ctx, e, d, w);
 		if(x == Aptr){
-			freeexpr(e);
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
@@ -399,7 +384,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		putsrc(te, &e->src);
 		e->e1->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return te;
 	case Egop:
 		if(e->e1->kind != Edot)
@@ -408,7 +392,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		if(x == Alval)
 			return cassign(ctx, e, d, w);
 		if(x == Aptr){
-			freeexpr(e);
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
@@ -438,7 +421,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		putsrc(te, &e->src);
 		e->e1->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return te;
 	case Epreinc:
 	case Epredec:
@@ -448,7 +430,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		if(x == Alval)
 			return cassign(ctx, e, d, w);
 		if(x == Aptr){
-			freeexpr(e);
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
@@ -476,7 +457,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    NULL);
 		putsrc(te, &e->src);
 		e->e1->e1 = 0;
-		freeexpr(e);
 		return te;
 	case Epostinc:
 	case Epostdec:
@@ -486,7 +466,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		if(x == Alval)
 			return cassign(ctx, e, d, w);
 		if(x == Aptr){
-			freeexpr(e);
 			if(w == 0)
 				fatal("bug");
 			*w = 1;
@@ -516,7 +495,6 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    NULL);
 		putsrc(te, &e->src);
 		e->e1->e1 = 0;
-		freeexpr(e);
 		return te;
 	default:
 		fatal("bug");
@@ -603,7 +581,6 @@ expandc(U *ctx, Expr *e)
 		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Earrow: /* for compile_rval */
 		/* rewrite: E->field => (*E).field */
@@ -613,7 +590,6 @@ expandc(U *ctx, Expr *e)
 		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;
@@ -647,7 +623,6 @@ expandarrow(U *ctx, Expr *e)
 		putsrc(se, &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;
@@ -707,7 +682,6 @@ expandm(U *ctx, Expr *e)
 		se = Zblock(Zlocals(1, "$tmp"), se, NULL);
 		putsrc(se, &e->src);
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;

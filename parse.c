@@ -250,7 +250,6 @@ flatten(Expr *e)
 	}
 	putsrc(nl, &e->src);
 	nl = invert(nl);
-	freeexpr(e);
 	if(nl->src.line == 0)
 		xprintf("no src for flatten!\n");
 	return nl;

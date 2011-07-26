@@ -46,7 +46,6 @@ rmunused(U *ctx, Expr *e, HT *ls)
 		if(hget(ls, id, strlen(id)))
 			return e;
 		se = Znop();
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;

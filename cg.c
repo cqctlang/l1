@@ -51,12 +51,10 @@ konsts(Expr *e, Code *code)
 	case Econst:
 		p = Zkon(konimm(code->konst, e->liti.base, e->liti.val));
 		putsrc(p, &e->src);
-		freeexpr(e);
 		return p;
 	case Econsts:
 		p = Zkon(koncstr(code->konst, e->lits->s, e->lits->len));
 		putsrc(p, &e->src);
-		freeexpr(e);
 		return p;
 	case Ekon:
 		e->aux = konval(code->konst, e->aux);
@@ -191,7 +189,6 @@ freecode(Head *hd)
 		freelabel(p);
 		p = q;
 	}
-	freeexpr(code->src);
 	efree(code->insn);
 	efree(code->labels);
 	efree(code->reloc);

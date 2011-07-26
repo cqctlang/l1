@@ -16,14 +16,11 @@ uncover(U *ctx, Expr *e)
 		vs = uncover(ctx, e->e2);
 		e->xp = vintersect(vs, e->e1);
 		r = vdiff(vs, e->e1);
-		freeexpr(vs);
 		return r;
 	case Eg:
 		r = uncover(ctx, e->e2);
 		s = Zcons(copyexpr(e->e1), nullelist());
 		vs = vunion(r, s);
-		freeexpr(r);
-		freeexpr(s);
 		return vs;
 	case Eelist:
 		p = e;
@@ -32,8 +29,6 @@ uncover(U *ctx, Expr *e)
 			r = uncover(ctx, p->e1);
 			s = vs;
 			vs = vunion(r, s);
-			freeexpr(r);
-			freeexpr(s);
 			p = p->e2;
 		}
 		return vs;
@@ -45,17 +40,14 @@ uncover(U *ctx, Expr *e)
 		if(e->e2){
 			r = uncover(ctx, e->e2);
 			vs = vunion(vs, r);
-			freeexpr(r);
 		}
 		if(e->e3){
 			r = uncover(ctx, e->e3);
 			vs = vunion(vs, r);
-			freeexpr(r);
 		}
 		if(e->e4){
 			r = uncover(ctx, e->e4);
 			vs = vunion(vs, r);
-			freeexpr(r);
 		}
 		return vs;
 	}
@@ -93,7 +85,6 @@ convert(U *ctx, Expr *e, Expr *vs)
 					   se);
 				p = p->e2;
 			}
-			freeexpr(e->e1);
 			e->e1 = invert(nas);
 			e->e2 = Zblock(nl,
 				       invert(se),
@@ -101,10 +92,8 @@ convert(U *ctx, Expr *e, Expr *vs)
 				       NULL);
 			putsrc(e->e2, &e->src);
 //			e->e2 = flatten(e->e2);
-			freeexpr(nvs);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
-		freeexpr(e->xp);
 		e->xp = 0;
 		return e;
 	case Eblock:
@@ -124,10 +113,8 @@ convert(U *ctx, Expr *e, Expr *vs)
 				       NULL);
 			putsrc(e->e2, &e->src);
 //			e->e2 = flatten(e->e2);
-			freeexpr(nvs);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
-		freeexpr(e->xp);
 		e->xp = 0;
 		return e;
 	case Eid:
@@ -164,9 +151,7 @@ docompilex(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	vs = uncover(ctx, e);
-	freeexpr(vs);
 	vs = nullelist();
 	e = convert(ctx, e, vs);
-	freeexpr(vs);
 	return e;
 }

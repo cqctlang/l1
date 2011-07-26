@@ -19,7 +19,6 @@ compileg(U *ctx, Expr* e)
 			    NULL);
 		e->e2 = 0;
 		putsrc(se, &e->src);
-		freeexpr(e);
 		return se;
 	case Epostinc:
 	case Epostdec:
@@ -30,14 +29,12 @@ compileg(U *ctx, Expr* e)
 			    doid("$tmp"),
 			    NULL);
 		putsrc(se, &e->src);
-		freeexpr(e);
 		return se;
 	case Epreinc:
 	case Epredec:
 		op = e->kind == Epreinc ? Eadd : Esub;
 		se = Zset(e->e1, Zbinop(op, e->e1, Zint(1)));
 		putsrc(se, &e->src);
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;

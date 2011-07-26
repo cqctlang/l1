@@ -866,7 +866,6 @@ void		dotop(U*, Expr*);
 void		finiparse(void);
 Expr*		flatten(Expr *e);
 void		freelits(Lits *lits);
-#define		freeexpr(e)
 void		initparse(void);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);

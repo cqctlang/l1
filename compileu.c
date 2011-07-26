@@ -13,7 +13,6 @@ uniqids(Expr *e, Xenv *xe)
 		xenvbind(xe, e->id, u->id);  /* steal */
 		e->id = 0;
 		putsrc(u, &e->src);
-		freeexpr(e);
 		return u;
 	case Eellipsis:
 		return e;
@@ -57,7 +56,6 @@ alpha(U *ctx, Expr *e, Xenv *lex)
 			fatal("bug");
 		se = doid(u);
 		putsrc(se, &e->src);
-		freeexpr(e);
 		return se;
 	case Eelist:
 		p = e;

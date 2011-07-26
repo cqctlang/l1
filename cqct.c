@@ -228,12 +228,6 @@ cqctgcdisable(VM *vm)
 }
 
 void
-cqctfreeexpr(Expr *e)
-{
-	freeexpr(e);
-}
-
-void
 cqctinterrupt(VM *vm)
 {
 	if(vm->flags&VMirq)

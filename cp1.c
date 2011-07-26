@@ -18,7 +18,6 @@ compiledef(U *ctx, Expr *e)
 	e->e3 = 0;
 	e->e4 = 0;
 	putsrc(p, &e->src);
-	freeexpr(e);
 	return p;
 }
 
@@ -62,7 +61,6 @@ compilerec(U *ctx, Expr *e)
 		   NULL);
 	efree(is);
 	putsrc(p, &e->src);
-	freeexpr(e);
 	return p;
 }
 
@@ -427,42 +425,33 @@ compile1(U *ctx, Expr *e)
 		se = compileambig(ctx, e);
 		e->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Esizeoft:
 		se = compilesizeof(ctx, e->e1, &e->src);
-		freeexpr(e);
 		return se;
 	case Etypeoft:
 		se = compiletypeof(ctx, e->e1, &e->src);
-//		freeexpr(e);
 		return se;
 	case Emkctype:
 		se = compilemkctype(ctx, e->e1, &e->src);
-		freeexpr(e);
 		return se;
 	case Ecast:
 		se = compilecast(ctx, e);
 		// e1 is a decl that needs to be freed
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Econtainer:
 		se = compilecontainer(ctx, e);
 		e->e1 = 0;
-		freeexpr(e);
 		return se;
 	case Etab:
 		se = compiletab(ctx, e);
-		freeexpr(e);
 		return se;
 	case Elist:
 		se = compilelist(ctx, e);
-		freeexpr(e);
 		return se;
 	case Epair:
 		se = compilepair(ctx, e);
-		freeexpr(e);
 		return se;
 	case Elapply:
 		q = e->e2;
@@ -477,7 +466,6 @@ compile1(U *ctx, Expr *e)
 		se = putsrc(Zapply(compile1(ctx, e->e1), e->e2), &e->src);
 		e->e1 = 0;
 		e->e2 = 0;
-		freeexpr(e);
 		return se;
 	case Eelist:
 		q = e;

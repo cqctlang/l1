@@ -3274,7 +3274,7 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
 
 /* Line 936 of glr.c  */
 #line 579 "c.y"
-    { freeexpr((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr)); ((*yyvalp).expr) = 0; ;}
+    { ((*yyvalp).expr) = 0; ;}
     break;
 
   case 175:
@@ -5864,7 +5864,6 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 	/* it's not possible to call through a domain reference,
 	   so call it a cast. */
 	duptickid(other->e1);
-	freeexpr(other);
 	return cast;
 }
 

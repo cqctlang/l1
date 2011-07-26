@@ -6413,7 +6413,6 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(e == 0)
 		return;
 	*rv = expr2syntax(e);
-	freeexpr(e);
 }
 
 static void
@@ -6444,7 +6443,6 @@ l1_front(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(e == 0)
 		vmerr(vm, "compilex error");
 	*rv = expr2syntax(e);
-	freeexpr(e);
 }
 
 static void
@@ -6457,7 +6455,6 @@ l1_pp(VM *vm, Imm argc, Val *argv, Val *rv)
 	e = syntax2expr(vm, argv[0]);
 	printcqct(e);
 	xprintf("\n");
-	freeexpr(e);
 }
 
 static void

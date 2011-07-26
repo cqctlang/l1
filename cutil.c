@@ -425,10 +425,9 @@ Zblock(Expr *locs, ...)
 		se = va_arg(args, Expr*);
 		if(se == 0)
 			break;
-		if(se->kind == Enull){
-			freeexpr(se);
+		if(se->kind == Enull)
 			continue;
-		}else if(se->kind != Eelist)
+		else if(se->kind != Eelist)
 			te = Zcons(se, te);
 		else{
 			p = se;
@@ -437,7 +436,6 @@ Zblock(Expr *locs, ...)
 				p->e1 = 0;
 				p = p->e2;
 			}
-			freeexpr(se);
 		}
 	}
 	return newexpr(Eblock, locs, invert(te), 0, 0);
@@ -528,7 +526,6 @@ Zlabelsrc(Src *src, Expr *id, Expr *s)
 	Expr *e;
 	e = Zcons(Zlabel(idsym(id)), Zcons(s, nullelist()));
 	putsrc(e, src);
-	freeexpr(id);
 	return e;
 }
 
@@ -538,7 +535,6 @@ Zgotosrc(Src *src, Expr *id)
 {
 	Expr *e;
 	e = Zgoto(idsym(id));
-	freeexpr(id);
 	putsrc(e, src);
 	return e;
 }
@@ -684,7 +680,6 @@ vsunion(Vs *from, Vs *to)
 {
 	Expr *r;
 	r = vunion(from->vs, to->vs);
-	freeexpr(to->vs);
 	to->vs = r;
 }
 
@@ -705,7 +700,6 @@ vsdiff(Vs *a, Expr *b)
 {
 	Expr *r;
 	r = vdiff(a->vs, b);
-	freeexpr(a->vs);
 	a->vs = r;
 }
 
@@ -718,6 +712,5 @@ vsinit(Vs *vs)
 void
 vsfree(Vs *vs)
 {
-	freeexpr(vs->vs);
 	vs->vs = 0;
 }
