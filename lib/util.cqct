@@ -38,3 +38,18 @@
 			printf(fmt, k, v);
 		}, t);
 }
+
+@define dumpstats()
+{
+	@local s;
+	s = map(@lambda(k, v) { cons(k, v); }, statistics());
+	sort(s, @lambda(p1, p2){
+			@local s1, s2;
+			s1 = cid2str(car(p1));
+			s2 = cid2str(car(p2));
+			return strcmp(s1, s2);
+		});
+	foreach(@lambda(p){
+			printf("\t%20s\t%20u\n", car(p), cdr(p));
+		}, s);
+}

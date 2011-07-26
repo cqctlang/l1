@@ -7,9 +7,10 @@ enum
 {
 	Mhole,
 	Mnix,
+	Mfree,
 	Mweak,
 	Mbox,
-	Mfree,
+	Mmutable,
 	Mdata,
 	Mcode, /* FIXME: Nmt definition depends on this being last */
 	Nm,
@@ -35,6 +36,7 @@ enum
 	MTcode    = (Mcode<<Ftag),
 	MTweak    = (Mweak<<Ftag),
 	MTbox     = (Mbox<<Ftag),
+	MTmutable = (Mmutable<<Ftag),
 	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
 	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
 	Nmt,
@@ -48,6 +50,7 @@ static char *MTname[] = {
 	[MTcode]    = "code",
 	[MTweak]    = "weak",
 	[MTbox]     = "box",
+	[MTmutable] = "mutable",
 	[MTbigdata] = "bigdata",
 	[MTbigcode] = "bigcode",
 };
@@ -66,19 +69,27 @@ static char *MTname[] = {
 
 /* #define to ensure 64-bit constants */
 #if 0
-#define Segsize   (1ULL<<12)
+#define Segbits   12
+#define Segsize   (1ULL<<Segbits)
 #define	GCthresh  2*1024*Segsize
 #define Seghunk	  4*1024*Segsize
 #else
-#define Segsize   (1ULL<<20)
+#define Segbits   20
+#define Segsize   (1ULL<<Segbits)
 #define	GCthresh  4*Segsize
 #define Seghunk	  4*Segsize
 #endif
 
+#define Cardbits  3
+#define Ncard     (1ULL<<Cardbits)
+#define Cardsize  (1ULL<<(Segbits-Cardbits))
 #define Seguse    (Segsize-sizeof(void*))
 #define Segmask   ~(Segsize-1)
 #define Minheap   10*Seghunk
 #define Align     4
+#define card(a)   ((u8)(((uptr)(a)>>(Segbits-Cardbits))&(Ncard-1)))
+#define max(a,b)  ((a)>(b)?(a):(b))
+#define min(a,b)  ((a)<(b)?(a):(b))
 
 /* n must be a power-of-2 */
 #define roundup(l,n)   ((uptr)(((uptr)(l)+((n)-1))&~((n)-1)))
@@ -127,7 +138,8 @@ struct Seg
 	Gen gen;
 	void *a;		/* allocation pointer */
 	void *e;		/* pointer to last byte in segment */
-	u8 card;
+	u8 card[Ncard];
+	u8 crossing[Ncard];
 	Pair *p;		/* protected objects */
 	u32 nprotect;
 	void *link;
@@ -205,6 +217,8 @@ struct Stats
 	u64 recycletime;
 	u64 resettime;
 	u64 finimainttime;
+	u64 crossings[Ncard];
+	u64 multicardscan;
 } Stats;
 
 static int xfreeexpr(Head*);
@@ -896,8 +910,6 @@ shrink(u64 targ)
 		fatal("bug");
 }
 
-#define max(a,b) ((a)>(b)?(a):(b))
-
 static void
 maintain()
 {
@@ -938,7 +950,8 @@ allocseg(MT mt, Gen g)
 	s = a2s(p);
 	s->a = p;
 	s->e = p+Seguse-1;
-	s->card = Clean;
+	memset(s->card, Clean, sizeof(s->card));
+	memset(s->crossing, 0, sizeof(s->crossing));
 //	memset(s->a, 0, Segsize);  /* done at allocation time */
 	if(s->mt != MTfree)
 		fatal("bug");
@@ -969,7 +982,8 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	s->e = p+sz-1;
 
 	/* beginning Seg of big segment */
-	s->card = Clean;
+	memset(s->card, Clean, sizeof(s->card));
+	memset(s->crossing, 0, sizeof(s->crossing));
 	s->mt = mt;
 	s->gen = g;
 	/* FIXME: this should be unnecessary */
@@ -981,7 +995,8 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	es = a2s(p+sz);
 	/* remaining Segs */
 	while(s < es){
-		s->card = Clean;
+		memset(s->card, Clean, sizeof(s->card));
+		memset(s->crossing, 0, sizeof(s->crossing));
 		s->mt = mt;
 		MTsetbigcont(s->mt);
 		s->gen = g;
@@ -1019,6 +1034,7 @@ isliveseg(Seg *s)
 	case Mcode:
 	case Mweak:
 	case Mbox:
+	case Mmutable:
 		return 1;
 	default:
 		return 0;
@@ -1094,12 +1110,18 @@ __mal(MT mt, Gen g, u64 sz)
 	M *m;
 	Seg *s;
 	Head *h;
+	void *q;
 	m = &H.m[mt][g];
 again:
 	s = a2s(m->t);
 	if(s->a+sz <= s->e+1){
 		h = s->a;
 		s->a += sz;
+		q = (void*)h+sz-1;
+		while(card(h) != card(q)){
+			s->crossing[card(q)] = 1;
+			q -= Cardsize;
+		}
 		memset(h, 0, sz);
 		return h;
 	}
@@ -1145,9 +1167,19 @@ _malbig(MT mt, u64 sz)
 }
 
 static void*
-_mal(u64 sz)
+_mal(Qkind kind, u64 sz)
 {
-	return __mal(MTdata, H.tg, sz);
+	switch(kind){
+	case Qbox:
+		return __mal(MTbox, H.tg, sz);
+	case Qctype:
+	case Qvec:
+	case Qlist:
+	case Qtab:
+		return __mal(MTmutable, H.tg, sz);
+	default:
+		return __mal(MTdata, H.tg, sz);
+	}
 }
 
 Head*
@@ -1157,7 +1189,7 @@ malv(Qkind kind, Imm len)
 	if(len > Seguse)
 		h = _malbig(MTbigdata, roundup(len, Align));
 	else
-		h = _mal(roundup(len, Align));
+		h = _mal(kind, roundup(len, Align));
 	Vsetkind(h, kind);
 	return h;
 }
@@ -1166,7 +1198,7 @@ Head*
 malq(Qkind kind, u32 sz)
 {
 	Head *h;
-	h = _mal(sz);
+	h = _mal(kind, sz);
 	Vsetkind(h, kind);
 	return h;
 }
@@ -1625,7 +1657,7 @@ gcwb(Val v)
 {
 	Seg *s;
 	s = a2s((Head*)v);
-	s->card = Dirty;
+	s->card[card(v)] = Dirty;
 }
 
 static void
@@ -1762,45 +1794,59 @@ markold(u32 g)
 	}
 }
 
-static u8
-scancard(Seg *s)
+static void
+docards(Seg *s, void *p, void *e)
 {
-	void *p;
-	u8 min, g;
+	u8 min, g, c;
+	u32 sz;
 
-	if(MTold(s->mt))
-		fatal("wtf?");
+	if(p >= e)
+		fatal("bug");
+
 	stats.ncard++;
 	min = Clean;
-	p = s2a(s);
-	while(p < s->a){
+	c = card(p);
+	while(p < e){
+		if(card(p) != c){
+			/* crossed into next card */
+			s->card[c] = min < s->gen ? min : Clean;
+			c = card(p);
+			min = Clean;
+		}
 		if(!Vdead((Head*)p)){
 			g = scan1(p);
 			if(g < min)
 				min = g;
 		}
-		p += qsz(p);
+		sz = qsz(p);
+		p += sz;
+		if(sz > Cardsize)
+			stats.multicardscan++;
 	}
-	return min;
+	s->card[c] = min < s->gen ? min : Clean;
 }
 
 /* FIXME: is the real predicate here that the segment is not old? */
 static void
-scan1card(Seg *s, u32 g)
+scan1segcards(Seg *s, u32 g)
 {
-	u8 sg;
+	int i, k;
+	void *p;
 	if(s->gen <= g)
 		return;
 	if(s->gen == Glock)
 		/* no need to scan: scanlocked will do it */
 		return;
-	if(s->card > g)
-		return;
-	sg = scancard(s);
-	if(sg < s->gen)
-		s->card = sg;
-	else
-		s->card = Clean;
+	p = s2a(s);
+	for(i = Ncard-1; i >= 0; i--){
+		if(s->card[i] > g)
+			continue;
+		k = i;
+		while(s->crossing[i])
+			i--;
+		stats.crossings[k-i]++;
+		docards(s, p+i*Cardsize, min(p+(k+1)*Cardsize, s->a));
+	}
 }
 
 static void
@@ -1813,7 +1859,7 @@ scancards(u32 g)
 	es = a2s(segmap.hi);
 	while(s < es){
 		if(isliveseg(s))
-			scan1card(s, g);
+			scan1segcards(s, g);
 		s = nextseg(s);
 	}
 	stats.cardtime += usec()-b;
@@ -2066,11 +2112,13 @@ _gc(u32 g, u32 tg)
 		resetalloc(MTcode, tg);
 		resetalloc(MTweak, tg);
 		resetalloc(MTbox, tg);
+		resetalloc(MTmutable, tg);
 	}else{
 		getalloc(MTdata, tg);
 		getalloc(MTcode, tg);
 		getalloc(MTweak, tg);
 		getalloc(MTbox, tg);
+		getalloc(MTmutable, tg);
 	}
 	stats.oldtime += usec()-b;
 
@@ -2141,6 +2189,7 @@ _gc(u32 g, u32 tg)
 		resetalloc(MTcode, H.tg);
 		resetalloc(MTweak, H.tg);
 		resetalloc(MTbox, H.tg);
+		resetalloc(MTmutable, H.tg);
 	}
 	H.na = 0;
 	if(dbg)printf("end of collection\n");
@@ -2288,6 +2337,7 @@ initmem()
 	resetalloc(MTcode, 0);
 	resetalloc(MTweak, 0);
 	resetalloc(MTbox, 0);
+	resetalloc(MTmutable, 0);
 	H.na = 0;
 	H.ma = GCthresh;
 
@@ -2347,8 +2397,10 @@ gcstats()
 		ns[s->mt][s->gen]++;
 		if(isliveseg(s)){
 			np[s->mt][s->gen] += s->nprotect;
+#if 0
 			if(s->card < s->gen)
 				nd[s->mt][s->gen]++;
+#endif
 		}
 		s = nextseg(s);
 	}
@@ -2361,6 +2413,7 @@ gcstats()
 	gcstat1(MTcode, ns[MTcode], np[MTcode], nd[MTcode]);
 	gcstat1(MTweak, ns[MTweak], np[MTweak], nd[MTweak]);
 	gcstat1(MTbox, ns[MTbox], np[MTbox], nd[MTbox]);
+	gcstat1(MTmutable, ns[MTmutable], np[MTmutable], nd[MTmutable]);
 	gcstat1(MTbigdata, ns[MTbigdata], np[MTbigdata], nd[MTbigdata]);
 	gcstat1(MTbigcode, ns[MTbigcode], np[MTbigcode], nd[MTbigcode]);
 
@@ -2421,4 +2474,22 @@ gcstatistics(Tab *t)
 	       mkvallitcval(Vuvlong, stats.resettime));
 	tabput(t, mkvalcid(mkcid0("finimainttime")),
 	       mkvallitcval(Vuvlong, stats.finimainttime));
+	tabput(t, mkvalcid(mkcid0("crossings0")),
+	       mkvallitcval(Vuvlong, stats.crossings[0]));
+	tabput(t, mkvalcid(mkcid0("crossings1")),
+	       mkvallitcval(Vuvlong, stats.crossings[1]));
+	tabput(t, mkvalcid(mkcid0("crossings2")),
+	       mkvallitcval(Vuvlong, stats.crossings[2]));
+	tabput(t, mkvalcid(mkcid0("crossings3")),
+	       mkvallitcval(Vuvlong, stats.crossings[3]));
+	tabput(t, mkvalcid(mkcid0("crossings4")),
+	       mkvallitcval(Vuvlong, stats.crossings[4]));
+	tabput(t, mkvalcid(mkcid0("crossings5")),
+	       mkvallitcval(Vuvlong, stats.crossings[5]));
+	tabput(t, mkvalcid(mkcid0("crossings6")),
+	       mkvallitcval(Vuvlong, stats.crossings[6]));
+	tabput(t, mkvalcid(mkcid0("crossings7")),
+	       mkvallitcval(Vuvlong, stats.crossings[7]));
+	tabput(t, mkvalcid(mkcid0("multicardscan")),
+	       mkvallitcval(Vuvlong, stats.multicardscan));
 }
