@@ -1475,8 +1475,6 @@ codegen(Expr *e)
 	cl = mkcl(code, 0, l->ncap, L->label);
 	if(cqctflags['o'])
 		printcode(code);
-	l = (Lambda*)e->xp;
-	cl = mkcl(code, 0, l->ncap, L->label);
 	return cl;
 }
 
