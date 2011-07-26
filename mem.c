@@ -221,7 +221,6 @@ struct Stats
 	u64 multicardscan;
 } Stats;
 
-static int xfreeexpr(Head*);
 static int freefd(Head*);
 static int freestr(Head*);
 
@@ -252,7 +251,7 @@ static Qtype qs[Qnkind] = {
 	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, iterctype },
 	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
 	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, iterdom },
-	[Qexpr]	 = { "expr", sizeof(Expr), 1, xfreeexpr, iterexpr },
+	[Qexpr]	 = { "expr", sizeof(Expr), 1, 0, iterexpr },
 	[Qfd]	 = { "fd", sizeof(Fd), 0, freefd, iterfd },
 	[Qlist]	 = { "list", sizeof(List), 0, 0, iterlist },
 	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
@@ -271,25 +270,6 @@ static Segmap	segmap;
 static Heap	H;
 static unsigned	alldbg = 0;
 static Stats	stats;
-
-static int
-xfreeexpr(Head *hd)
-{
-	Expr *e;
-	e = (Expr*)hd;
-	switch(e->kind){
-	case Eid:
-	case Elabel:
-	case Egoto:
-	case E_tid:
-		break;
-	default:
-		break;
-	}
-	if(e->xp)
-		freeexprx(e);
-	return 1;
-}
 
 static int
 freefd(Head *hd)

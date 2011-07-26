@@ -922,8 +922,7 @@ Expr*		docompiles(U *ctx, Expr *e);
 
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el);
-void		freeconst(void *u, char *id, void *v);
-void		freeexprx(Expr *e);
+void		freexp(Expr *e);
 int		issimple(Expr *e);
 
 /* cg.c */

@@ -1473,6 +1473,7 @@ codegen(Expr *e)
 	setreloc(code);
 	l = (Lambda*)e->xp;
 	cl = mkcl(code, 0, l->ncap, L->label);
+	freexp(e);
 	if(cqctflags['o'])
 		printcode(code);
 	return cl;

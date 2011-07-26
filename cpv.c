@@ -138,31 +138,64 @@ tmppass(Expr *e)
 	}
 }
 
-void
+/* clean up xp data.  expr nodes may be shared, so
+   clear xp on the way out */
+static void
 freeexprx(Expr *e)
 {
 	Var *v;
 
+	if(e->xp == 0)
+		return;
 	switch(e->kind){
 	case E_tid:
 		v = e->xp;
 		if(v->where != Vtopl && v->where != Vtopr)
 			fatal("bug");
 		efree(v);
+		e->xp = 0;
 		break;
 	case Eid:
 		/* e->xp points to lambda/block vars freed elsewhere */
+		e->xp = 0;
 		break;
 	case Elambda:
 		freelambda(e->xp);
+		e->xp = 0;
 		break;
 	case Eblock:
 		freeblock(e->xp);
+		e->xp = 0;
 		break;
 	case Egoto:
 		freeboxset(e->xp);
+		e->xp = 0;
 		break;
 	default:
+		break;
+	}
+}
+
+void
+freexp(Expr *e)
+{
+	Expr *p;
+	if(e == 0)
+		return;
+	freeexprx(e);
+	switch(e->kind){
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			freexp(p->e1);
+			p = p->e2;
+		}
+		break;
+	default:
+		freexp(e->e1);
+		freexp(e->e2);
+		freexp(e->e3);
+		freexp(e->e4);
 		break;
 	}
 }
