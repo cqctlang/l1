@@ -67,7 +67,7 @@ extern char *yytext;
 %type <expr> table_init table_init_list
 %type <expr> maybe_attr
 %type <expr> quote_expression
-
+%type <expr> unquote_statement
 
 %type <kind> unary_operator assignment_operator struct_or_union struct_or_union_or_enum define
 
@@ -866,6 +866,12 @@ statement
 	| define_statement
 	| labeled_statement
 	| global_statement
+	| unquote_statement
+	;
+
+unquote_statement
+	: SYNTAXUNQUOTE '{' id '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
 	;
 
 global_statement
