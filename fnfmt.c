@@ -526,7 +526,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			return -1;
 		if(fmtval(vm, f, p->cdr))
 			return -1;
-		return fmtputs0(vm, f, " |>");		
+		return fmtputs0(vm, f, " |>");
 	case Qrange:
 		r = valrange(val);
  		snprint(buf, sizeof(buf),
@@ -559,6 +559,8 @@ fmtval(VM *vm, Fmt *f, Val val)
 			      (int)rec->rd->name->len, strdata(rec->rd->name));
 		str = valstr(rv);
 		return fmtputs(vm, f, strdata(str), str->len);
+	case Qexpr:
+		return fmtputs0(vm, f, "<stx>");
 	default:
 		snprint(buf, sizeof(buf), "<unhandled type %d>", Vkind(val));
 		return fmtputs0(vm, f, buf);

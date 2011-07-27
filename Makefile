@@ -50,6 +50,7 @@ L1C =\
 	pair.c\
 	rec.c\
 	str.c\
+	stx.c\
 	sym.c\
 	tab.c\
 	vec.c\

@@ -1043,6 +1043,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvalcl(x)	((Val)(x))
 #define mkvalctype(x)	((Val)(x))
 #define mkvaldom(x)	((Val)(x))
+#define mkvalexpr(x)	((Val)(x))
 #define mkvalfd(x)	((Val)(x))
 #define mkvallist(x)	((Val)(x))
 #define mkvalns(x)	((Val)(x))
@@ -1060,6 +1061,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define valctype(v)	((Ctype*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valdom(v)	((Dom*)(v))
+#define valexpr(v)	((Expr*)(v))
 #define valfd(v)	((Fd*)(v))
 #define vallist(v)	((List*)(v))
 #define valns(v)	((Ns*)(v))
@@ -1329,6 +1331,9 @@ Str*		strconcat(Str *s1, Str *s2);
 Str*		strcopy(Str *s);
 Str*		strslice(Str *str, Imm beg, Imm end);
 int		Strcmp(Str *s1, Str *s2);
+
+/* stx.c */
+void		fnstx(Env *env);
 
 /* sym.c */
 Val		attroff(Val o);

@@ -287,6 +287,7 @@ eqvval(Val v1, Val v2)
 	case Qrd:
 	case Qrec:
 	case Qtab:
+	case Qexpr:
 		return eqptr(v1, v2);
 	case Qctype:
 		return eqvctype(valctype(v1), valctype(v2));
@@ -323,6 +324,7 @@ hashqvval(Val v)
 	case Qrd:
 	case Qrec:
 	case Qtab:
+	case Qexpr:
 		return hashptr(v);
 	case Qctype:
 		return hashqvctype(valctype(v));
@@ -361,6 +363,7 @@ equalval(Val v1, Val v2)
 	case Qrd:
 	case Qrec:
 	case Qtab:
+	case Qexpr:
 		return eqptr(v1, v2);
 	case Qctype:
 		return equalctype(valctype(v1), valctype(v2));
@@ -397,6 +400,7 @@ hashval(Val v)
 	case Qrd:
 	case Qrec:
 	case Qtab:
+	case Qexpr:
 		return hashptr(v);
 	case Qctype:
 		return hashctype(valctype(v));
@@ -6914,6 +6918,7 @@ mktopenv(void)
 	fnpair(env);
 	fnrec(env);
 	fnstr(env);
+	fnstx(env);
 	fnsym(env);
 	fntab(env);
 	fnvec(env);
