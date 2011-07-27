@@ -2,20 +2,43 @@
 #include "util.h"
 #include "syscqct.h"
 
+static Expr*	stxquasi(Expr *e);
 
 static Expr*
 inquasi(Expr *e)
 {
-	switch(e->kind){
-	case Ekon:
-		return Zcall(G("mkkon"), 1, e->aux);
-	default:
+	if(e == 0)
 		return 0;
+	switch(e->kind){
+	case Estxunquote:
+		return stxquasi(e->e1);
+	case Eid:
+	case Elabel:
+	case Egoto:
+	case E_tid:
+	case Ekon:
+		return Zcall(G("mkstxaux"), 2,
+			     Zuint(e->kind),
+			     Zkon(e->aux));
+	case Ebinop:
+	case Egop:
+		return Zcall(G("mkstxop"), 4,
+			     Zuint(e->kind),
+			     Zuint(e->op),
+			     inquasi(e->e1) ?: Znil(),
+			     inquasi(e->e2) ?: Znil());
+	default:
+		return Zcall(G("mkstx"), 5,
+			     Zuint(e->kind),
+			     inquasi(e->e1) ?: Znil(),
+			     inquasi(e->e2) ?: Znil(),
+			     inquasi(e->e3) ?: Znil(),
+			     inquasi(e->e4) ?: Znil());
 	}
 }
 
 static Expr*
-stxquasi(U *ctx, Expr *e)
+stxquasi(Expr *e)
 {
 	Expr *p;
 	if(e == 0)
@@ -26,21 +49,21 @@ stxquasi(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = stxquasi(ctx, p->e1);
+			p->e1 = stxquasi(p->e1);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = stxquasi(ctx, e->e1);
-		e->e2 = stxquasi(ctx, e->e2);
-		e->e3 = stxquasi(ctx, e->e3);
-		e->e4 = stxquasi(ctx, e->e4);
+		e->e1 = stxquasi(e->e1);
+		e->e2 = stxquasi(e->e2);
+		e->e3 = stxquasi(e->e3);
+		e->e4 = stxquasi(e->e4);
 		return e;
 	}
 }
 
 static Expr*
-stxquote(U *ctx, Expr *e)
+stxquote(Expr *e)
 {
 	Expr *p;
 	if(e == 0)
@@ -51,15 +74,15 @@ stxquote(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = stxquote(ctx, p->e1);
+			p->e1 = stxquote(p->e1);
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = stxquote(ctx, e->e1);
-		e->e2 = stxquote(ctx, e->e2);
-		e->e3 = stxquote(ctx, e->e3);
-		e->e4 = stxquote(ctx, e->e4);
+		e->e1 = stxquote(e->e1);
+		e->e2 = stxquote(e->e2);
+		e->e3 = stxquote(e->e3);
+		e->e4 = stxquote(e->e4);
 		return e;
 	}
 }
@@ -99,7 +122,7 @@ docompileq(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	e = quote(ctx, e);
-	e = stxquote(ctx, e);
-//	e = stxquasi(ctx, e);
+	e = stxquote(e);
+	e = stxquasi(e);
 	return e;
 }

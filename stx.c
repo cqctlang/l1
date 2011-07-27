@@ -3,61 +3,89 @@
 #include "syscqct.h"
 
 static void
-l1_mkkon(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_mkstxop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to mkkon");
-	*rv = mkvalexpr(Zkon(argv[0]));
+	Kind k, op;
+	Cval *cv;
+	Expr *e;
+	if(argc != 4)
+		vmerr(vm, "wrong number of arguments to mkstxop");
+	checkarg(vm, "mkstxop", argv, 0, Qcval);
+	checkarg(vm, "mkstxop", argv, 1, Qcval);
+	checkarg(vm, "mkstxop", argv, 2, Qexpr);
+	checkarg(vm, "mkstxop", argv, 3, Qexpr);
+	cv = valcval(argv[0]);
+	k = cv->val;
+	cv = valcval(argv[1]);
+	op = cv->val;
+	switch(k){
+	case Ebinop:
+	case Egop:
+		e = newexpr(k, valexpr(argv[2]), valexpr(argv[3]), 0, 0);
+		e->op = op;
+		break;
+	default:
+		vmerr(vm, "mkstxop on invalid expression type");
+	}
+	*rv = mkvalexpr(e);
 }
 
 static void
-l1_mkexpr(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_mkstxaux(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Kind k;
 	Cval *cv;
+	Expr *e;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mkstxaux");
+	checkarg(vm, "mkstxaux", argv, 0, Qcval);
+	cv = valcval(argv[0]);
+	k = cv->val;
+	switch(k){
+	case Eid:
+	case Elabel:
+	case Egoto:
+	case E_tid:
+	case Ekon:
+		e = newexpr(k, 0, 0, 0, 0);
+		e->aux = argv[1];
+		break;
+	default:
+		vmerr(vm, "mkstxaux on invalid expression type");
+	}
+	*rv = mkvalexpr(e);
+}
+
+static void
+l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Kind k;
+	Cval *cv;
+	unsigned i;
+	Expr *earg[4];
 	if(argc < 1 || argc > 5)
-		vmerr(vm, "wrong number of arguments to mkexpr");
+		vmerr(vm, "wrong number of arguments to mkstx");
 	checkarg(vm, "mkexpr", argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	k = cv->val;
 	if(k >= Emax)
 		vmerr(vm, "invalid expression kind");
-	switch(argc-1){
-	case 0:
-		*rv = mkvalexpr(Z0(k));
-		break;
-	case 1:
-		checkarg(vm, "mkexpr", argv, 1, Qexpr);
-		*rv = mkvalexpr(Z1(k, valexpr(argv[1])));
-		break;
-	case 2:
-		checkarg(vm, "mkexpr", argv, 1, Qexpr);
-		checkarg(vm, "mkexpr", argv, 2, Qexpr);
-		*rv = mkvalexpr(Z2(k, valexpr(argv[1]), valexpr(argv[2])));
-		break;
-	case 3:
-		checkarg(vm, "mkexpr", argv, 1, Qexpr);
-		checkarg(vm, "mkexpr", argv, 2, Qexpr);
-		checkarg(vm, "mkexpr", argv, 3, Qexpr);
-		*rv = mkvalexpr(Z3(k, valexpr(argv[1]), valexpr(argv[2]),
-				   valexpr(argv[3])));
-		break;
-	case 4:
-		checkarg(vm, "mkexpr", argv, 1, Qexpr);
-		checkarg(vm, "mkexpr", argv, 2, Qexpr);
-		checkarg(vm, "mkexpr", argv, 3, Qexpr);
-		checkarg(vm, "mkexpr", argv, 4, Qexpr);
-		*rv = mkvalexpr(Z4(k, valexpr(argv[1]), valexpr(argv[2]),
-				   valexpr(argv[3]), valexpr(argv[4])));
-		break;
-	default:
-		bug();
-	}
+	memset(earg, 0, sizeof(earg));
+	argv++;
+	argc--;
+	for(i = 0; i < argc; i++)
+		if(argv[i] != Xnil){
+			/* the argv dance ensures correct operand is flagged */
+			checkarg(vm, "mkexpr", argv-1, i+1, Qexpr);
+			earg[i] = valexpr(argv[i]);
+		}
+	*rv = mkvalexpr(Z4(k, earg[0], earg[1], earg[2], earg[3]));
 }
 
 void
 fnstx(Env *env)
 {
-	FN(mkexpr);
-	FN(mkkon);
+	FN(mkstx);
+	FN(mkstxaux);
+	FN(mkstxop);
 }

@@ -13,6 +13,7 @@ char *qname[Qnkind] = {
 	[Qctype]=	"ctype",
 	[Qcval]=	"cvalue",
 	[Qdom]=		"domain",
+	[Qexpr]=	"stx",
 	[Qfd]=		"fd",
 	[Qlist]=	"list",
 	[Qns]=		"name space",
@@ -6403,8 +6404,8 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 	Val v;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to compile");
-	checkarg(vm, "compile", argv, 0, Qlist);
-	e = syntax2expr(vm, argv[0]);
+	checkarg(vm, "compile", argv, 0, Qexpr);
+	e = valexpr(argv[0]);
 	e = Zcons(e, nullelist()); /* wrap in "begin" just in case */
 	v = cqctcompile0(e, vm->top, 0);
 	if(v != 0)
@@ -6429,12 +6430,10 @@ l1_front(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_pp(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Expr *e;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to compile");
-	checkarg(vm, "front", argv, 0, Qlist);
-	e = syntax2expr(vm, argv[0]);
-	printcqct(e);
+		vmerr(vm, "wrong number of arguments to pp");
+	checkarg(vm, "front", argv, 0, Qexpr);
+	printcqct(valexpr(argv[0]));
 	xprintf("\n");
 }
 
