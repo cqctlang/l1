@@ -1,35 +1,64 @@
 entry: var params, 3 locals, 0 temps
-mknsoff: 2 params, 6 locals, 0 temps
-inc_sym: 1 params, 9 locals, 0 temps
-L41: 2 params, 6 locals, 0 temps
-_ls: 2 params, 3 locals, 0 temps
-looksym: var params, 1 locals, 0 temps
+typenameequal: 2 params, 10 locals, 1 temps
+typeequal: 2 params, 19 locals, 1 temps
+nsiter: 2 params, 5 locals, 0 temps
+nsdiff: 2 params, 7 locals, 0 temps
+nsdiff0: 2 params, 4 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+L646: 2 params, 2 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+L708: 2 params, 0 locals, 0 temps
+L719: 2 params, 0 locals, 0 temps
+L729: 2 params, 0 locals, 0 temps
+printtype: 1 params, 10 locals, 0 temps
+printns: 1 params, 5 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+all_types: 1 params, 0 locals, 0 temps
+L945: 1 params, 0 locals, 0 temps
+nsjoin: 2 params, 6 locals, 0 temps
+_ls: 2 params, 1 locals, 0 temps
 _es: 1 params, 3 locals, 0 temps
 enumsym: var params, 1 locals, 0 temps
-L172: 2 params, 0 locals, 0 temps
-_la: 2 params, 3 locals, 0 temps
-lookaddr: var params, 1 locals, 0 temps
-L215: 2 params, 2 locals, 0 temps
-looktype: var params, 1 locals, 0 temps
-L243: 1 params, 2 locals, 0 temps
+L1017: 2 params, 6 locals, 0 temps
+enumsym: var params, 1 locals, 0 temps
+L1064: 2 params, 6 locals, 0 temps
+_la: 2 params, 2 locals, 1 temps
+_lt: 2 params, 1 locals, 0 temps
+_et: 1 params, 3 locals, 0 temps
 enumtype: var params, 1 locals, 0 temps
-L271: 1 params, 0 locals, 0 temps
-looksym: var params, 1 locals, 0 temps
-looksym: var params, 1 locals, 0 temps
-looksym: var params, 1 locals, 0 temps
-looksym: var params, 1 locals, 0 temps
-lookaddr: var params, 1 locals, 0 temps
+L1195: 2 params, 6 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+L1242: 2 params, 6 locals, 0 temps
+mknsoff: 2 params, 9 locals, 0 temps
+inc_sym: 1 params, 9 locals, 0 temps
+L1298: 2 params, 8 locals, 0 temps
+_ls: 2 params, 7 locals, 0 temps
+_es: 1 params, 1 locals, 0 temps
+L1472: 2 params, 6 locals, 0 temps
+_la: 2 params, 8 locals, 1 temps
+L1510: 2 params, 0 locals, 1 temps
+_addsym: 3 params, 6 locals, 0 temps
+L1625: 2 params, 2 locals, 0 temps
+looktype: var params, 1 locals, 0 temps
+L1653: 1 params, 2 locals, 0 temps
+enumtype: var params, 1 locals, 0 temps
+L1683: 1 params, 0 locals, 0 temps
 symcmp: 2 params, 2 locals, 0 temps
 enumsym: var params, 1 locals, 0 temps
-L506: 2 params, 0 locals, 0 temps
-L513: 1 params, 0 locals, 0 temps
+L1970: 2 params, 0 locals, 0 temps
+L1977: 1 params, 0 locals, 0 temps
 unsigned int
 name: zero, offset: 33, type int
 name: zero, offset: 33, type int
 name: oneeleven, offset: 306, type void *
 name: oneeleven, offset: 273, type void *
 name: onehundred, offset: 289, type int
+should be zero: zero, offset: 33, type int
+should be added: added, offset: 37, type unsigned int
+name: zero, offset: 33, type int
 Enumerating
 name: zero, offset: 33, type int
+name: added, offset: 37, type unsigned int
 name: onehundred, offset: 289, type int
 name: oneeleven, offset: 306, type void *

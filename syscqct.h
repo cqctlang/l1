@@ -887,6 +887,9 @@ Expr*		docompileq(U *ctx, Expr *e);
 /* compilen.c */
 Expr*		docompilen(U *ctx, Expr *e);
 
+/* compilem.c */
+Expr*		docompilem(U *ctx, Expr *e);
+
 /* compilea.c */
 Expr*		docompilea(U *ctx, Expr *e);
 

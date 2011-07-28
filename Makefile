@@ -32,6 +32,7 @@ L1C =\
 	cutil.c\
 	cpq.c\
 	cpn.c\
+	cpm.c\
 	cpa.c\
 	cp0.c\
 	cpg.c\

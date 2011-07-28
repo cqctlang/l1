@@ -330,11 +330,12 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			te = Zcall(G("asof"), 1, doid("$o"));
 		else
 			te = Zlambdn(Zvararg(doid("$args")),
-				     Zret(Zcall(G("callmethod"),
-						3,
-						doid("$o"),
-						Zstr(id),
-						doid("$args"))),
+				     Zblock(nullelist(),
+					    Zret(Zcall(G("callmethod"),
+						       3,
+						       doid("$o"),
+						       Zstr(id),
+						       doid("$args")))),
 				     copyexpr(e->e2));
 
 		te = Zblock(Zlocals(1, "$o"),

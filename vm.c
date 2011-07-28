@@ -5192,6 +5192,69 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_callmethodx(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val this, id, v, *xargv;
+	Dom *dom;
+	As *as;
+	Ns *ns;
+	Str *s;
+	Closure *cl, *dcl;
+	Imm xargc;
+
+	if(argc < 2)
+		vmerr(vm, "wrong number of arguments to callmethod");
+	checkarg(vm, "callmethod", argv, 1, Qstr);
+	this = argv[0];
+	id = argv[1];
+	dcl = 0;
+	v = 0;
+
+	if(Vkind(this) == Qas){
+		as = valas(this);
+		v = tabget(as->mtab, id);
+		if(v == 0)
+			dcl = as->dispatch;
+	}else if(Vkind(this) == Qns){
+		ns = valns(this);
+		v = tabget(ns->mtab, id);
+		if(v == 0)
+			dcl = ns->dispatch;
+	}else if(Vkind(this) == Qdom){
+		dom = valdom(this);
+		/* search as, then ns */
+		v = tabget(dom->as->mtab, id);
+		if(v == 0)
+			v = tabget(dom->ns->mtab, id);
+		if(v == 0)
+			dcl = dom->as->dispatch;
+		if(dcl == 0)
+			dcl = dom->ns->dispatch;
+	}else
+		vmerr(vm,
+		      "operand 2 to callmethod must be an address space, "
+		      "name space, or domain");
+
+	if(v == 0 && dcl == 0){
+		s = valstr(id);
+		vmerr(vm, "callmethod target must define %.*s or dispatch",
+		      (int)s->len, strdata(s));
+	}
+
+	if(v){
+		cl = valcl(v);
+		xargc = argc-1;
+		xargv = argv+1;
+		xargv[0] = this;
+	}else{
+		cl = dcl;
+		xargc = argc;
+		xargv = argv;
+	}
+	*rv = dovm(vm, cl, xargc, xargv);
+}
+
+static void
 l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Dom *dom;
@@ -6824,6 +6887,7 @@ mktopenv(void)
 	FN(backtrace);
 	FN(bsearch);
 	FN(callmethod);
+	FN(callmethodx);
 	FN(close);
 	FN(compact);
 	FN(cntrget);
