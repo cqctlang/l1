@@ -5,4 +5,5 @@ dispatch: var params, 6 locals, 0 temps
 warning: name space references undefined type:
 	foo
 error: attempt to read object of undefined type: foo
+                cval	(builtin function)
                entry	(bitfield3.l1:85)

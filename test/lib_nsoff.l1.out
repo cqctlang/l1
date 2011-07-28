@@ -35,19 +35,19 @@ inc_sym: 1 params, 9 locals, 0 temps
 L1298: 2 params, 8 locals, 0 temps
 _ls: 2 params, 7 locals, 0 temps
 _es: 1 params, 1 locals, 0 temps
-L1472: 2 params, 6 locals, 0 temps
+L1473: 2 params, 6 locals, 0 temps
 _la: 2 params, 8 locals, 1 temps
-L1510: 2 params, 0 locals, 1 temps
+L1512: 2 params, 0 locals, 1 temps
 _addsym: 3 params, 6 locals, 0 temps
-L1625: 2 params, 2 locals, 0 temps
+L1628: 2 params, 2 locals, 0 temps
 looktype: var params, 1 locals, 0 temps
-L1653: 1 params, 2 locals, 0 temps
+L1656: 1 params, 2 locals, 0 temps
 enumtype: var params, 1 locals, 0 temps
-L1683: 1 params, 0 locals, 0 temps
+L1686: 1 params, 0 locals, 0 temps
 symcmp: 2 params, 2 locals, 0 temps
 enumsym: var params, 1 locals, 0 temps
-L1970: 2 params, 0 locals, 0 temps
-L1977: 1 params, 0 locals, 0 temps
+L1973: 2 params, 0 locals, 0 temps
+L1980: 1 params, 0 locals, 0 temps
 unsigned int
 name: zero, offset: 33, type int
 name: zero, offset: 33, type int

@@ -254,7 +254,7 @@ Znop(void)
 Expr*
 Zcval(Expr *dom, Expr *type, Expr *val)
 {
-	return newexpr(E_cval, dom, type, val, 0);
+	return Zcall(G("cval"), 3, dom, type, val);
 }
 
 Expr*

@@ -2358,6 +2358,24 @@ dobitfieldgeom(Ctype *t, BFgeom *bfg)
 	return bitfieldgeom(bfg);
 }
 
+static Str*
+_callget(VM *vm, As *as, Imm off, Imm len)
+{
+	Val rv, argv[2];
+	Str *s;
+
+	argv[0] = mkvalas(as);
+	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
+			      mkcval(litdom, litdom->ns->base[Vptr], len));
+	rv = dovm(vm, as->get, 2, argv);
+	if(Vkind(rv) != Qstr)
+		vmerr(vm, "get method returned non-string");
+	s = valstr(rv);
+	if(s->len != len)
+		vmerr(vm, "get method returned wrong number of bytes");
+	return s;
+}
+
 static void
 xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 {
@@ -2368,6 +2386,8 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	Cval *cv;
 	Str *s, *es;
 	BFgeom bfg;
+
+	bug();
 
 	xv = getvalrand(vm, x);
 	typev = getvalrand(vm, type);
@@ -2408,14 +2428,14 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 		}
 		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
-		s = callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
+		s = _callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
 		imm = bitfieldget(strdata(s), &bfg);
 		rv = mkvalcval(d, subtype(b), imm);
 		break;
 	case Tbase:
 	case Tptr:
 		/* FIXME: check type of cv */
-		s = callget(vm, d->as, cv->val, typesize(vm, t));
+		s = _callget(vm, d->as, cv->val, typesize(vm, t));
 		imm = str2imm(vm, t, s);
 		rv = mkvalcval(d, t, imm);
 		break;
@@ -2443,6 +2463,100 @@ xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	}
 out:
 	putvalrand(vm, rv, dst);
+}
+
+static void
+l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Imm imm;
+	Dom *d;
+	Ctype *t, *b, *sub, *pt;
+	Cval *cv;
+	Str *s, *es;
+	BFgeom bfg;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to cval");
+	if(Vkind(argv[0]) != Qdom && Vkind(argv[0]) != Qns)
+		vmerr(vm, "operand 1 to cval must be a domain or namespace");
+	checkarg(vm, "cval", argv, 1, Qctype);
+	checkarg(vm, "cval", argv, 2, Qcval);
+
+	t = valctype(argv[1]);
+	b = chasetype(t);
+	cv = valcval(argv[2]);
+
+	/* special case: enum constants can be referenced through namespace */
+	if(b->tkind == Tconst){
+		switch(Vkind(argv[0])){
+		case Qdom:
+			d = valdom(argv[0]);
+			*rv = mkvalcval(d, subtype(b), cv->val);
+			break;
+		case Qns:
+			d = mkdom(valns(argv[0]), litdom->as, 0);
+			*rv = mkvalcval(d, subtype(b), cv->val);
+			break;
+		default:
+			bug();
+		}
+		return;
+	}
+
+	if(Vkind(argv[0]) != Qdom)
+		vmerr(vm, "attempt to access address space through non-domain");
+	d = valdom(argv[0]);
+	switch(b->tkind){
+	case Tbitfield:
+		sub = subtype(b);
+		if(sub->tkind == Tundef){
+			sub = subtype(sub);
+			es = fmtctype(sub);
+			vmerr(vm, "attempt to read object of undefined type: "
+			      "%.*s", (int)es->len, strdata(es));
+		}
+		if(0 > dobitfieldgeom(b, &bfg))
+			vmerr(vm, "invalid bitfield access");
+		s = _callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
+		imm = bitfieldget(strdata(s), &bfg);
+		/* d, t, and b may have moved */
+		d = valdom(argv[0]);
+		t = valctype(argv[1]);
+		b = chasetype(t);
+		*rv = mkvalcval(d, subtype(b), imm);
+		break;
+	case Tbase:
+	case Tptr:
+		/* FIXME: check type of cv */
+		s = _callget(vm, d->as, cv->val, typesize(vm, t));
+		/* d and t may have moved */
+		d = valdom(argv[0]);
+		t = valctype(argv[1]);
+		imm = str2imm(vm, t, s);
+		*rv = mkvalcval(d, t, imm);
+		break;
+	case Tarr:
+		/* construct pointer to first element */
+		pt = mkctypeptr(subtype(t), typerep(d->ns->base[Vptr]));
+		imm = truncimm(cv->val, typerep(pt));
+		*rv = mkvalcval(d, pt, imm);
+		break;
+	case Tvoid:
+	case Tfun:
+	case Tstruct:
+	case Tunion:
+		vmerr(vm,
+		      "attempt to read %s-valued object from address space",
+		      tkindstr[b->tkind]);
+	case Tundef:
+		es = fmtctype(subtype(b));
+		vmerr(vm, "attempt to read object of undefined type: %.*s",
+		      (int)es->len, strdata(es));
+	case Tenum:
+	case Ttypedef:
+	case Tconst:
+		bug();
+	}
 }
 
 static int
@@ -6896,6 +7010,7 @@ mktopenv(void)
 	FN(concat);
 	FN(copy);
 	FN(count);
+	FN(cval);
 	FN(cvalcmp);
 	FN(cval2str);
 	FN(delete);
