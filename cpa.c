@@ -335,7 +335,8 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 						       3,
 						       doid("$o"),
 						       Zstr(id),
-						       doid("$args")))),
+						       doid("$args"))),
+					    NULL),
 				     copyexpr(e->e2));
 
 		te = Zblock(Zlocals(1, "$o"),
