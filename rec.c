@@ -332,7 +332,7 @@ l1_rdfields(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdfields");
-	checkarg(vm, "rdname", argv, 0, Qrd);
+	checkarg(vm, "rdfields", argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvallist(rd->fname);
 }
