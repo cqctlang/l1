@@ -518,8 +518,8 @@ prepcode(Code *c)
 	setinsn(c);
 }
 
-void
-printinsn(Insn *i)
+static void
+printinsn(Code *c, Insn *i)
 {
 	xprintf("\t");
 	switch(i->kind){
@@ -635,7 +635,7 @@ printinsn(Insn *i)
 		printrand(&i->dst);
 		break;
 	case Iframe:
-		xprintf("frame %s", i->dstlabel->label);
+		xprintf("frame %4d", i->targ-c->insn);
 		break;
 	case Iret:
 		xprintf("ret");
@@ -660,17 +660,17 @@ printinsn(Insn *i)
 		xprintf("kp");
 		break;
 	case Ijmp:
-		xprintf("jmp %s", i->dstlabel->label);
+		xprintf("jmp %4d", i->targ-c->insn);
 		break;
 	case Ijnz:
 		xprintf("jnz ");
 		printrand(&i->op1);
-		xprintf(" %s", i->dstlabel->label);
+		xprintf(" %4d", i->targ-c->insn);
 		break;
 	case Ijz:
 		xprintf("jz ");
 		printrand(&i->op1);
-		xprintf(" %s", i->dstlabel->label);
+		xprintf(" %4d", i->targ-c->insn);
 		break;
 	case Ibox:
 		xprintf("box ");
@@ -710,7 +710,7 @@ printcode(Code *code)
 		xprintf("\t%4d\t", i);
 		if(code->labels[i] && code->labels[i]->used)
 			xprintf("%s", code->labels[i]->label);
-		printinsn(&code->insn[i]);
+		printinsn(code, &code->insn[i]);
 		xprintf("\n");
 	}
 }

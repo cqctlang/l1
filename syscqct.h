@@ -946,7 +946,6 @@ void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
 Closure*	panicthunk(void);
-void		printinsn(Insn *i);
 void		printkon(Val v);
 void		resetlabels();
 
