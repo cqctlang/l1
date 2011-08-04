@@ -1,0 +1,14 @@
+/* catches frame size botch fixed by 3450d9a */
+
+@define g()
+{
+	gc();
+	printf("g!\n");
+}
+
+@define f(x)
+{
+	printf("f!\n");
+}
+
+f(g());
