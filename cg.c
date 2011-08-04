@@ -1312,6 +1312,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i = nextinsn(code, &e->src);
 		i->kind = Ipushi;
 		randkon(code, &i->op1, konimm(code->konst, Vint, narg));
+		f->sp++;
 
 		if(issimple(e->e1)){
 			cgrand(code, &r1, e->e1);
@@ -1330,7 +1331,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->op1 = r1;
 			else
 				randloc(&i->op1, AC);
-			f->sp -= narg+3;
+			f->sp -= narg+4;
 			femit(f, code, &e->src);
 			if(1 || loc != Effect){
 				emitlabel(R, e);
