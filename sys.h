@@ -57,7 +57,7 @@ typedef uintptr_t uptr;
 #define	USED(x)	if(x){}else{}
 
 #define THREADED
-#define NEXTLABEL(i) goto *i->go;
+#define NEXTLABEL(i) goto *(i)->go;
 #define LABEL
 
 #endif /* _BISONFLAW_SYS_H_ */
@@ -101,7 +101,7 @@ struct timeval
 char *dirname(char *path);
 typedef void FILE;
 
-#define NEXTLABEL(i) switch(i->kind)
+#define NEXTLABEL(i) switch((i)->kind)
 #define LABEL case
 
 #define PRIu64 "llud"

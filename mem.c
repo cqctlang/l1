@@ -1272,7 +1272,7 @@ copy(Val *v)
 	if(h == 0)
 		return Clean;
 	if((uptr)h&1)
-		return Clean; // stack immediate
+		bug();
 	if(Vfwd(h)){
 		if(dbg)printf("copy: read fwd %p -> %p\n",
 			      h, (void*)Vfwdaddr(h));
@@ -1648,10 +1648,11 @@ toprd(void *u, void *k, void *v)
 static void
 copykstack(Val *stack, Imm len, Imm fp)
 {
-	Imm pc, sp, narg, m, i, clx;
-	Imm shift;
-	u64 sz, mask;
+	Imm narg, m, i, clx;
+	Insn *pc, *fsz, *fm;
+	u64 sz, mask, *mp, o;
 	Closure *cl;
+	Imm shift;
 
 	/* fp is normally relative to Maxstk */
 	shift = Maxstk-len;
@@ -1660,93 +1661,102 @@ copykstack(Val *stack, Imm len, Imm fp)
 	/* stack corresponds to Ikg op in call to callcc.
 	   nothing to do in this frame. */
 
-	narg = stkimm(stack[fp]);
-	pc = stkimm(stack[fp+narg+1]);
-	clx = fp+narg+2;
-	cl = valcl(stack[fp+narg+2]);
-	sp = fp;
-	fp = stkimm(stack[fp+narg+3]);
-
-	while(fp != 0){
-		fp -= shift;
-		if(pc < 2)
-			fatal("no way to find livemask pc %llu", pc);
-		if(cl->code->insn[pc-1].kind != Ilive
-		   || cl->code->insn[pc-2].kind != Ilive)
-			fatal("no live mask for pc %d cl %p", pc, cl);
-		sz = cl->code->insn[pc-1].cnt;
-		mask = cl->code->insn[pc-2].cnt;
-		if(fp-sp < sz)
-			fatal("frame size is too large fp %llu sp %llu",
-			      fp, sp);
-		m = fp-1;
-		for(i = 0; i < sz; i++){
-			if((mask>>i)&1)
-				copy(&stack[m]);
-			m--;
-		}
-		for(i = 0; i < fp-sp-sz; i++){
-			copy(&stack[m]);
-			m--;
-		}
+	while(1){
 		narg = stkimm(stack[fp]);
-		pc = stkimm(stack[fp+narg+1]);
 		clx = fp+narg+2;
-		cl = valcl(stack[fp+narg+2]);
-		sp = fp;
+		copy(&stack[clx]);
+		for(i = 0; i < narg; i++)
+			copy(&stack[fp+1+i]);
+		pc = stkp(stack[fp+narg+1]);
+		if(pc == 0)
+			break;
 		fp = stkimm(stack[fp+narg+3]);
+		fp -= shift;
+		cl = valcl(stack[clx]);
+		fsz = pc-1;
+		fm = pc-2;
+		if(fsz->kind != Ifsize || fm->kind != Ifmask)
+			fatal("no live mask for pc %d cl %p", pc, cl);
+		sz = fsz->cnt;
+		mask = fm->cnt;
+		m = fp-1;
+		if((mask>>(mwbits-1))&1){
+			o = mask&~(1UL<<(mwbits-1));
+			mp = cl->code->lm+o;
+			for(i = 0; i < sz; i++){
+				if(i%mwbits == 0)
+					mask = *mp++;
+				if((mask>>i)&1)
+					copy(&stack[m]);
+				m--;
+			}
+		}else
+			for(i = 0; i < sz; i++){
+				if((mask>>i)&1)
+					copy(&stack[m]);
+				m--;
+			}
 	}
-	// initial frame of stack
-	for(i = 0; i < narg; i++)
-		copy(&stack[sp+1+i]);
-	copy(&stack[clx]);
 }
+
+/* assume current frame has no live refererences,
+   i.e., we are at start of a call:
+	fp points to beginning of frame for the current call
+	sp should be fp
+	pc is first insn in call
+*/
 
 static void
 copystack(VM *vm)
 {
-	Imm pc, fp, sp, narg, m, i, clx;
-	u64 sz, mask;
+	Imm ofp, fp, narg, m, i, clx;
+	Insn *pc, *fsz, *fm;
+	u64 sz, mask, *mp, o;
 	Closure *cl;
 
 	fp = vm->fp;
 	if(fp == 0)
 		return;
-	pc = vm->pc;
-	sp = vm->sp;
-	cl = vm->clx;
-	while(fp != 0){
-		if(pc < 2)
-			fatal("no way to find livemask pc %llu", pc);
-		if(cl->code->insn[pc-1].kind != Ilive
-		   || cl->code->insn[pc-2].kind != Ilive)
-			fatal("no live mask for pc %d cl %p", pc, cl);
-		sz = cl->code->insn[pc-1].cnt;
-		mask = cl->code->insn[pc-2].cnt;
-		if(fp-sp < sz)
-			fatal("frame size is too large fp %llu sp %llu",
-			      fp, sp);
-		m = fp-1;
-		for(i = 0; i < sz; i++){
-			if((mask>>i)&1)
-				copy(&vm->stack[m]);
-			m--;
-		}
-		for(i = 0; i < fp-sp-sz; i++){
-			copy(&vm->stack[m]);
-			m--;
-		}
+
+	while(1){
 		narg = stkimm(vm->stack[fp]);
-		pc = stkimm(vm->stack[fp+narg+1]);
 		clx = fp+narg+2;
-		cl = valcl(vm->stack[fp+narg+2]);
-		sp = fp;
+		copy(&vm->stack[clx]);
+		for(i = 0; i < narg; i++)
+			copy(&vm->stack[fp+1+i]);
+		pc = stkp(vm->stack[fp+narg+1]);
+		if(pc == 0)
+			break;
+		ofp = fp;
 		fp = stkimm(vm->stack[fp+narg+3]);
+		cl = valcl(vm->stack[clx]);
+		fsz = pc-1;
+		fm = pc-2;
+		if(fsz->kind != Ifsize || fm->kind != Ifmask)
+			fatal("no live mask for pc %d cl %p", pc, cl);
+		sz = fsz->cnt;
+		if(fp-ofp != sz+narg+4)
+			fatal("frame botch ofp %lu fp %lu sz %llu narg %llu",
+			      ofp, fp, sz, narg);
+		mask = fm->cnt;
+		m = fp-1;
+		if((mask>>(mwbits-1))&1){
+			o = mask&~(1UL<<(mwbits-1));
+			mp = cl->code->lm+o;
+			for(i = 0; i < sz; i++){
+				if(i%mwbits == 0)
+					mask = *mp++;
+				if((mask>>i)&1)
+					copy(&vm->stack[m]);
+				m--;
+			}
+		}else
+			for(i = 0; i < sz; i++){
+				if((mask>>i)&1)
+					copy(&vm->stack[m]);
+				m--;
+			}
 	}
-	// initial frame of stack
-	for(i = 0; i < narg; i++)
-		copy(&vm->stack[sp+1+i]);
-	copy(&vm->stack[clx]);
 }
 
 static void
@@ -2107,12 +2117,11 @@ _gc(u32 g, u32 tg)
 			continue;
 		copystack(vm);
 		for(m = 0; m < vm->edepth; m++)
-			copy(&vm->err[m].cl);
+			copy((Val*)&vm->err[m].cl);
 		copy((Val*)&vm->top->env->var);
 		hforeachp(vm->top->env->rd, toprd, 0);
 		copy(&vm->ac);
-		copy(&vm->cl);
-		copy((Val*)&vm->clx);
+		copy((Val*)&vm->cl);
 	}
 	if(dbg)printf("copied vm roots\n");
 

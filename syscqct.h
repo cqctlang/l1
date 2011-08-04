@@ -183,6 +183,7 @@ enum {
 
 typedef struct Ctl Ctl;
 typedef struct Code Code;
+typedef struct Insn Insn;
 typedef struct Expr Expr;
 
 typedef
@@ -254,7 +255,7 @@ struct Cval {
 struct Closure {
 	Head hd;
 	Code *code;
-	unsigned long entry;
+	Insn *entry;
 	unsigned dlen;
 	Cid *id;
 	Imm fp;			/* of continuation, always >0 */
@@ -562,9 +563,12 @@ enum {
 	Icmplt,
 	Icmple,
 	Icmpneq,
+	Icode,
 	Icval,
 	Idiv,
 	Iframe,
+	Ifmask,
+	Ifsize,
 	Ihalt,
 	Iinv,
 	Ijmp,
@@ -573,7 +577,6 @@ enum {
 	Ikg,
 	Ikp,
 	Ilist,
-	Ilive,
 	Imod,
 	Imov,
 	Imul,
@@ -726,34 +729,35 @@ struct Ctl {
 	Code *code;
 };
 
-typedef
 struct Insn {
 	ikind kind;
 	void *go;
 	Operand op1, op2, op3, dst;
 	union{
+		Insn *targ;
 		Ctl *dstlabel;
 		u64 cnt;
 	};
 	Src src;
 	unsigned long ox;
-} Insn;
+};
 
 struct Code {
 	Head hd;
-	unsigned long ninsn;
-	unsigned long maxinsn;
+	unsigned long ninsn, maxinsn;;
 	unsigned long nreloc, maxreloc;
 	Insn *insn;
 	Ctl **labels;
 	Ctl *clist;
 	Expr *src;
 	Tab *konst;
-	unsigned char *x;
-	unsigned long nx;
-	unsigned long maxx;
 	uptr *reloc;
+	u64 *lm;
+	u32 nlm, mlm;
 };
+
+/* live mask */
+#define mwbits	       (8*sizeof(u64))  /* # bits in mask word */
 
 typedef
 struct BFgeom {
@@ -767,8 +771,9 @@ typedef
 struct Err {
 	jmp_buf esc;
 	unsigned pdepth;	/* vm->pdepth when error label set */
-	Imm sp, fp, pc;
-	Val cl;
+	Imm sp, fp;
+	Insn *pc;
+	Closure *cl;
 } Err;
 
 typedef struct Xenv Xenv;
@@ -800,12 +805,12 @@ typedef struct Hashop {
 } Hashop;
 
 struct VM {
-	Imm sp, fp, pc;
-	Val ac, cl;
-	Closure *clx;
+	Imm sp, fp;
+	Insn *pc;
+	Closure *cl;
+	Val ac;
 	unsigned int flags;
 	Toplevel *top;
-	Insn *ibuf;
 	Val stack[Maxstk];
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
@@ -940,7 +945,6 @@ Code*		contcode(void);
 void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
-Closure*	nopthunk(void);
 Closure*	panicthunk(void);
 void		printinsn(Insn *i);
 void		printkon(Val v);
@@ -962,7 +966,7 @@ unsigned long	xenvsize(Xenv *xe);
 void		xenvupdate(Xenv *xe, char *id, void *v);
 
 /* vm.c */
-Src*		addr2line(Code *code, Imm pc);
+Src*		addr2line(Code *code, Insn *pc);
 void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
@@ -1029,9 +1033,9 @@ void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
 Val		safedovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+void		setgo(Code *c);
 void		setlasterrno(int no);
 u32		shash(char *s, Imm len);
-Imm		stkimm(Val v);
 Str*		stringof(VM *vm, Cval *cv);
 Cval*		typecast(VM *vm, Ctype *t, Cval *cv);
 Val		valboxed(Val v);
@@ -1079,6 +1083,8 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define waserror(vm) (setjmp(*(_pusherror(vm))))
 #define FN(name) builtinfn(env, "%"#name, mkcfn(#name, l1_##name))
 #define FNT(name) builtinfn(env, "%"#name, mktcfn(#name, l1_##name))
+#define stkimm(v)	(Imm)(uptr)(v)
+#define stkp(v)		(void*)(uptr)(v)
 
 typedef int(*Freeheadfn)(Head*);
 Freeheadfn getfreeheadfn(Qkind qkind);

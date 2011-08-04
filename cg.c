@@ -158,6 +158,9 @@ mkcode(void)
 	code->maxreloc = code->maxinsn;
 	code->reloc = emalloc(code->maxreloc*sizeof(u64));
 	code->nreloc = 0;
+	code->lm = emalloc(128*sizeof(u64));
+	code->nlm = 0;
+	code->mlm = 128;
 	quard((Val)code);
 	return code;
 }
@@ -178,6 +181,7 @@ freecode(Head *hd)
 	efree(code->insn);
 	efree(code->labels);
 	efree(code->reloc);
+	efree(code->lm);
 	return 1;
 }
 
@@ -406,7 +410,7 @@ setreloc1(Code *c, Operand *r)
 		return;
 	}
 	b = c->insn;
-	addreloc(c, a-b);	
+	addreloc(c, a-b);
 }
 
 static void
@@ -424,7 +428,8 @@ setreloc(Code *c)
 		case Ipanic:
 		case Ikp:
 		case Ijmp:
-		case Ilive:
+		case Ifmask:
+		case Ifsize:
 		case Inop:
 			break;
 		case Ikg:
@@ -439,6 +444,7 @@ setreloc(Code *c)
 			setreloc1(c, &i->op1);
 			setreloc1(c, &i->dst);
 			break;
+		case Icode:
 		case Iargc:
 		case Ivargc:
 		case Isubsp:
@@ -485,6 +491,33 @@ setreloc(Code *c)
 	}
 }
 
+static void
+setinsn(Code *c)
+{
+	Insn *i, *e;
+	e = &c->insn[c->ninsn];
+	for(i = c->insn; i < e; i++){
+		switch(i->kind){
+		case Iframe:
+		case Ijmp:
+		case Ijnz:
+		case Ijz:
+			i->targ = &c->insn[i->dstlabel->insn];
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void
+prepcode(Code *c)
+{
+	setreloc(c);
+	setgo(c);
+	setinsn(c);
+}
+
 void
 printinsn(Insn *i)
 {
@@ -504,8 +537,15 @@ printinsn(Insn *i)
 	case Icalltc:
 		xprintf("calltc");
 		break;
-	case Ilive:
-		xprintf("-live- 0x%x", i->cnt);
+	case Icode:
+		xprintf("-code- ");
+		printrand(&i->op1);
+		break;
+	case Ifsize:
+		xprintf("-fsize- 0x%x", i->cnt);
+		break;
+	case Ifmask:
+		xprintf("-fmask- 0x%x", i->cnt);
 		break;
 	case Iinv:
 	case Ineg:
@@ -659,7 +699,7 @@ printcode(Code *code)
 	char *fn;
 	unsigned i;
 	for(i = 0; i < code->ninsn; i++){
-		s = addr2line(code, i);
+		s = addr2line(code, &code->insn[i]);
 		if(s != 0){
 			fn = s->filename;
 			if(fn == 0)
@@ -994,11 +1034,103 @@ cgbinop(Code *code, CGEnv *p, unsigned kind, Operand *r1, Operand *r2,
 typedef
 struct Frame
 {
+	u64 *b, *l, *e;
+	u32 ml;
 	u32 nloc;
 	u32 ntmp;
-	u64 live;
+	u64 sp;
+	u64 *live;
 	u32 tmp;
 } Frame;
+
+static void
+finit(Frame *f, u32 nloc, u32 ntmp)
+{
+	f->ml = 1024;
+	f->b = f->l = emalloc(f->ml*sizeof(u64));
+	f->e = f->b+f->ml;
+	f->nloc = nloc;
+	f->ntmp = ntmp;
+	f->tmp = nloc;
+	f->sp = nloc+ntmp;
+}
+
+static void
+ffini(Frame *f)
+{
+	efree(f->l);
+}
+
+#define roundup(l,n)   (((u32)(l)+((n)-1))&~((n)-1))
+
+static void
+fpush(Frame *f)
+{
+	u32 nw;
+	u64 *p;
+	nw = roundup(f->sp, mwbits)/mwbits;
+	if(f->l+nw+1+nw > f->e){
+		p = erealloc(f->b, f->ml*sizeof(u64), 2*f->ml*sizeof(u64));
+		f->ml *= 2;
+		f->e = p+f->ml;
+		f->l = p+(f->l-f->b);
+		f->b = p;
+		if(f->l+nw > f->e)
+			bug();
+	}
+	*(f->l+nw) = f->sp;
+	memcpy(f->l+nw+1, f->l, nw*sizeof(u64));
+	f->l += nw+1;
+}
+
+static void
+fpop(Frame *f)
+{
+	u32 nw;
+	if(f->l <= f->b)
+		bug();
+	f->sp = *(f->l-1);
+	nw = roundup(f->sp, mwbits)/mwbits;
+	f->l -= nw+1;
+}
+
+static void
+fset(Frame *f, u32 i)
+{
+	u64 *p;
+	p = f->l+i/mwbits;
+	*p |= (1UL<<(i%mwbits));
+}
+
+static void
+femit(Frame *f, Code *c, Src *s)
+{
+	u32 nw;
+	Insn *i;
+	if(f->sp < mwbits-1){
+		i = nextinsn(c, s);
+		i->kind = Ifmask;
+		i->cnt = *f->l;
+		i = nextinsn(c, s);
+		i->kind = Ifsize; // frame size
+		i->cnt = f->sp;
+		return;
+	}
+	nw = roundup(f->sp, mwbits)/mwbits;
+	if(c->nlm+nw > c->mlm){
+		c->lm = erealloc(c->lm, c->mlm*sizeof(u64),
+				 2*c->mlm*sizeof(u64));
+		c->mlm *= 2;
+	}
+	i = nextinsn(c, s);
+	i->kind = Ifmask;
+	i->cnt = (1ULL<<(mwbits-1))|c->nlm;
+	i = nextinsn(c, s);
+	i->kind = Ifsize;
+	i->cnt = f->sp;
+	memcpy(c->lm+c->nlm, f->l, nw*sizeof(u64));
+	c->nlm += nw;
+}
 
 static void
 cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
@@ -1015,7 +1147,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	Location dst;
 	int m;
 	Src *src;
-	u64 olive;
 
 	switch(e->kind){
 	case Enop:
@@ -1039,20 +1170,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Enull:
 		cgctl(code, p, ctl, nxt, &e->src);
-		break;
-	case Eblock:
-		b = (Block*)e->xp;
-		olive = f->live;
-		for(m = 0; m < b->nloc; m++){
-			f->live |= (1ULL<<b->loc[m].idx);
-			if(b->loc[m].box){
-				i = nextinsn(code, &e->src);
-				i->kind = Ibox0;
-				randvarloc(&i->op1, &b->loc[m], 0);
-			}
-		}
-		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
-		f->live = olive;
 		break;
 	case E_tg:
 	case Eg:
@@ -1123,20 +1240,35 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cg(e->e1, code, p, &r1.u.loc, L0, prv, L0, f);
 			emitlabel(L0, e->e2);
 			L = genlabel(code, 0);
-			olive = f->live;
-			f->live |= (1ULL<<f->tmp);
+			fpush(f);
+			fset(f, f->tmp);
 			f->tmp++;
 			cg(e->e2, code, p, AC, L, L0, L, f);
-			f->live = olive;
 			f->tmp--;
+			fpop(f);
 			emitlabel(L, e);
 			randloc(&r2, AC);
 		}
 		cgbinop(code, p, e->op, &r1, &r2, loc, ctl, nxt, &e->src);
 		break;
+	case Eblock:
+		b = (Block*)e->xp;
+		fpush(f);
+		for(m = 0; m < b->nloc; m++){
+			fset(f, b->loc[m].idx);
+			if(b->loc[m].box){
+				i = nextinsn(code, &e->src);
+				i->kind = Ibox0;
+				randvarloc(&i->op1, &b->loc[m], 0);
+			}
+		}
+		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
+		fpop(f);
+		break;
 	case Ecall:
 		R = 0;
 		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
+		fpush(f);
 		if(!istail){
 			if(1 || loc != Effect)
 				R = genlabel(code, 0);
@@ -1146,6 +1278,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Iframe;
 			i->dstlabel = R;
 			R->used = 1;
+			fset(f, f->sp+1);  /* Iframe cl */
+			f->sp += 3;
 		}
 
 		q = e->e2 = invert(e->e2); /* push arguments in reverse order */
@@ -1162,13 +1296,14 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->op1 = r1;
 			}else{
 				L = genlabel(code, 0);
-// we may be able to track frame state here.
 				cg(q->e1, code, p, AC, L, L0, L, f);
 				emitlabel(L, q->e2);
 				i = nextinsn(code, &q->e1->src);
 				i->kind = Ipush;
 				randloc(&i->op1, AC);
 			}
+			fset(f, f->sp); /* argument */
+			f->sp++;
 			q = q->e2;
 			narg++;
 			L0 = L;
@@ -1195,12 +1330,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->op1 = r1;
 			else
 				randloc(&i->op1, AC);
-			i = nextinsn(code, &e->src);
-			i->kind = Ilive;  // live mask
-			i->cnt = f->live;
-			i = nextinsn(code, &e->src);
-			i->kind = Ilive;  // frame size
-			i->cnt = f->nloc+f->ntmp;
+			f->sp -= narg+3;
+			femit(f, code, &e->src);
 			if(1 || loc != Effect){
 				emitlabel(R, e);
 				if(loc != Effect && loc != AC){
@@ -1219,6 +1350,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			else
 				randloc(&i->op1, AC);
 		}
+		fpop(f);
 		break;
 	case Eret:
 		if(e->e1)
@@ -1394,12 +1526,9 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		randkon(code, &i->op1, konimm(code->konst, Vuint, l->nparam));
 		needtop = 1;
 	}
-	f.nloc = l->nloc;
-	f.ntmp = l->ntmp;
-	if(f.nloc+f.ntmp > sizeof(f.live)*8)
-		fatal("function has too many live variables");
+	finit(&f, l->nloc, l->ntmp);
 	f.tmp = l->nloc;
-	f.live = 0;
+	f.sp = l->nloc+l->ntmp;
 	if(l->nloc+l->ntmp > 0){
 		i = nextinsn(code, src);
 		i->kind = Isubsp;
@@ -1430,7 +1559,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		randkon(code, &i->op1, konimm(code->konst, Vuint, 0));
 		randkon(code, &i->op2, konimm(code->konst, Vuint, m));
 		randvarloc(&i->dst, &l->param[m], 1);
-		f.live |= (1ULL<<l->param[m].idx);
+		fset(&f, l->param[m].idx);
 	}else
 		for(m = 0; m < l->nparam; m++)
 			if(l->param[m].box){
@@ -1453,6 +1582,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	i = nextinsn(code, &e->src);
 	i->kind = Iret;
 	freelabels(p.labels);
+	ffini(&f);
 }
 
 Closure*
@@ -1470,7 +1600,7 @@ codegen(Expr *e)
 	e = konsts(e, code);
 	code->src = e;
 	cglambda(L, code, e);
-	setreloc(code);
+	prepcode(code);
 	l = (Lambda*)e->xp;
 	cl = mkcl(code, 0, l->ncap, L->label);
 	freexp(e);
@@ -1486,45 +1616,23 @@ haltthunk(void)
 	Insn *i;
 	Code *code;
 	Closure *cl;
+	Imm e;
 
 	code = mkcode();
 	i = nextinsn(code, 0);
-	i->kind = Ilive;
+	i->kind = Ifmask;
 	i->cnt = 0;
 	i = nextinsn(code, 0);
-	i->kind = Ilive;
+	i->kind = Ifsize;
 	i->cnt = 0;
 	L = genlabel(code, "$halt");
-	cl = mkcl(code, code->ninsn, 0, L->label);
+	e = code->ninsn;
 	L->used = 1;
 	emitlabel(L, 0);
 	i = nextinsn(code, 0);
 	i->kind = Ihalt;
-	setreloc(code);
-
-	return cl;
-}
-
-Closure*
-nopthunk(void)
-{
-	Ctl *L;
-	Insn *i;
-	Code *code;
-	Closure *cl;
-
-	code = mkcode();
-	L = genlabel(code, "$nop");
-	cl = mkcl(code, code->ninsn, 0, L->label);
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(code, 0);
-	i->kind = Imov;
-	randnil(&i->op1);
-	randloc(&i->dst, AC);
-	i = nextinsn(code, 0);
-	i->kind = Iret;
-	setreloc(code);
+	prepcode(code);
+	cl = mkcl(code, e, 0, L->label);
 
 	return cl;
 }
@@ -1539,7 +1647,6 @@ callcc(void)
 
 	code = mkcode();
 	L = genlabel(code, "callcc");
-	cl = mkcl(code, code->ninsn, 0, L->label);
 	L->used = 1;
 	emitlabel(L, 0);
 	i = nextinsn(code, 0);
@@ -1552,7 +1659,8 @@ callcc(void)
 	i = nextinsn(code, 0);
 	i->kind = Icallt;
 	randloc(&i->op1, AC);
-	setreloc(code);
+	prepcode(code);
+	cl = mkcl(code, 0, 0, L->label);
 
 	return cl;
 }
@@ -1567,14 +1675,14 @@ callccode(void)
 	i = nextinsn(code, 0);
 	i->kind = Icallc;
 	i = nextinsn(code, 0);
-	i->kind = Ilive;
+	i->kind = Ifmask;
 	i->cnt = 0;
 	i = nextinsn(code, 0);
-	i->kind = Ilive;
+	i->kind = Ifsize;
 	i->cnt = 0;
 	i = nextinsn(code, 0);
 	i->kind = Iret;
-	setreloc(code);
+	prepcode(code);
 
 	return code;
 }
@@ -1588,7 +1696,7 @@ calltccode(void)
 	code = mkcode();
 	i = nextinsn(code, 0);
 	i->kind = Icalltc;
-	setreloc(code);
+	prepcode(code);
 
 	return code;
 }
@@ -1608,7 +1716,7 @@ contcode(void)
 	i->kind = Ikp;
 	i = nextinsn(code, 0);
 	i->kind = Iret;
-	setreloc(code);
+	prepcode(code);
 
 	return code;
 }
@@ -1623,12 +1731,12 @@ panicthunk(void)
 
 	code = mkcode();
 	L = genlabel(code, "panic");
-	cl = mkcl(code, code->ninsn, 0, L->label);
 	L->used = 1;
 	emitlabel(L, 0);
 	i = nextinsn(code, 0);
 	i->kind = Ipanic;
-	setreloc(code);
+	prepcode(code);
+	cl = mkcl(code, 0, 0, L->label);
 
 	return cl;
 }

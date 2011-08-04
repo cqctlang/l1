@@ -7,6 +7,20 @@
 	http://www.cs.indiana.edu/~dyb/pubs/guardians-pldi93.pdf
 */
 
+@define postgc()
+{
+}
+
+/* V comes from the runtime.  it is the value of the AC
+   register.  by passing and returning it, we preserve
+   it without hand-rolling a call frame in the runtime
+   or some other special mechanism. */
+@define callpostgc(v)
+{
+	postgc();
+	return v;
+}
+
 @define mkguardian()
 {
 	@local tc, g;
