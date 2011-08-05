@@ -135,7 +135,6 @@ enum{
 	Excast,
 
 	/* open-coded primitives */
-	E_ref,
 	E_sizeof,
 	E_tid,
 	E_tg,
@@ -585,7 +584,6 @@ enum {
 	Ipanic,
 	Ipush,
 	Ipushi,
-	Iref,
 	Iret,
 	Ishl,
 	Ishr,

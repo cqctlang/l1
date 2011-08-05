@@ -2258,23 +2258,24 @@ xbox0(VM *vm, Operand *op)
 	putvalrand(vm, mkvalbox(Xnil), op);
 }
 
+// Operand *x, Operand *type, Operand *cval, Operand *dst)
 static void
-xref(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
+l1_cref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Val xv, typev, cvalv, rv;
 	Ctype *t, *b, *pt;
 	Dom *d;
 	Cval *cv;
 	Imm imm;
 
-	typev = getvalrand(vm, type);
-	cvalv = getvalrand(vm, cval);
-	xv = getvalrand(vm, x);
-	if(Vkind(xv) != Qdom)
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to cref");
+	if(Vkind(argv[0]) != Qdom)
 		vmerr(vm, "attempt to derive location from non-domain");
-	d = valdom(xv);
-	t = valctype(typev);
-	cv = valcval(cvalv);
+	checkarg(vm, "cref", argv, 1, Qctype);
+	checkarg(vm, "cref", argv, 2, Qcval);
+	d = valdom(argv[0]);
+	t = valctype(argv[1]);
+	cv = valcval(argv[2]);
 	b = chasetype(t);
 	switch(b->tkind){
 	case Tvoid:
@@ -2289,14 +2290,14 @@ xref(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 		/* construct pointer */
 		pt = mkctypeptr(t, typerep(d->ns->base[Vptr]));
 		imm = truncimm(cv->val, typerep(pt));
-		rv = mkvalcval(d, pt, imm);
+		*rv = mkvalcval(d, pt, imm);
 		break;
 	case Tarr:
 		/* construct pointer to first element */
 		pt = mkctypeptr(subtype(t), typerep(d->ns->base[Vptr]));
 		imm = cv->val;
 		imm = truncimm(imm, typerep(pt));
-		rv = mkvalcval(d, pt, imm);
+		*rv = mkvalcval(d, pt, imm);
 		break;
 	case Tconst:
 		vmerr(vm, "attempt to use enumeration constant as location");
@@ -2304,7 +2305,6 @@ xref(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
 	case Ttypedef:
 		bug();
 	}
-	putvalrand(vm, rv, dst);
 }
 
 static int
@@ -3923,7 +3923,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ipanic] 	= &&Ipanic;
 		gotab[Ipush] 	= &&Ipush;
 		gotab[Ipushi] 	= &&Ipushi;
-		gotab[Iref] 	= &&Iref;
 		gotab[Iret] 	= &&Iret;
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
@@ -4094,9 +4093,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			continue;
 		LABEL Ibox0:
 			xbox0(vm, &i->op1);
-			continue;
-		LABEL Iref:
-			xref(vm, &i->op1, &i->op2, &i->op3, &i->dst);
 			continue;
 		LABEL Ixcast:
 			xxcast(vm, &i->op1, &i->op2, &i->dst);
@@ -6858,6 +6854,7 @@ mktopenv(void)
 	FN(concat);
 	FN(copy);
 	FN(count);
+	FN(cref);
 	FN(cval);
 	FN(cvalcmp);
 	FN(cval2str);

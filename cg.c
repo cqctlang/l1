@@ -480,12 +480,6 @@ setreloc(Code *c)
 			setreloc1(c, &i->op2);
 			setreloc1(c, &i->dst);
 			break;
-		case Iref:
-			setreloc1(c, &i->op1);
-			setreloc1(c, &i->op2);
-			setreloc1(c, &i->op3);
-			setreloc1(c, &i->dst);
-			break;
 		}
 	}
 }
@@ -673,10 +667,6 @@ printinsn(Code *c, Insn *i)
 		break;
 	case Inop:
 		xprintf("nop");
-		break;
-	case Iref:
-		xprintf("ref ");
-		printrand(&i->op1);
 		break;
 	default:
 		fatal("printinsn: unrecognized insn %d", i->kind);
@@ -984,7 +974,6 @@ static ikind EtoVM[] = {
 	[Eutwiddle] = Iinv,
 	[Excast] = Ixcast,
 
-	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
 };
 
@@ -1192,20 +1181,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randloc(&r1, AC);
 		}
 		cgunop(code, p, e->kind, &r1, loc, ctl, nxt, &e->src);
-		break;
-	case E_ref:
-		/* rather than compute temp requirements for arbitrary
-		   3-operand applications, assume that all 3 operands
-		   are simple. */
-		if(!issimple(e->e1) || !issimple(e->e2) || !issimple(e->e3))
-			fatal("%s with non-simple operands", EtoVM[e->kind]);
-		i = nextinsn(code, &e->src);
-		i->kind = EtoVM[e->kind];
-		cgrand(code, &i->op1, e->e1);
-		cgrand(code, &i->op2, e->e2);
-		cgrand(code, &i->op3, e->e3);
-		randloc(&i->dst, loc);
-		cgctl(code, p, ctl, nxt, &e->src);
 		break;
 	case Ebinop:
 		if(issimple(e->e1) && issimple(e->e2)){

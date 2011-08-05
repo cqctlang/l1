@@ -260,7 +260,7 @@ Zcval(Expr *dom, Expr *type, Expr *val)
 Expr*
 Zref(Expr *dom, Expr *type, Expr *val)
 {
-	return newexpr(E_ref, dom, type, val, 0);
+	return Zcall(G("cref"), 3, dom, type, val);
 }
 
 Cid*
