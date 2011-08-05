@@ -2,6 +2,23 @@
 #include "util.h"
 #include "syscqct.h"
 
+u32
+hashpair(Pair *p)
+{
+	u32 m;
+	m = Qpair;
+	m = hashx(m, hashval(car(p)));
+	m = hashx(m, hashval(cdr(p)));
+	return m;
+}
+
+int
+equalpair(Pair *a, Pair *b)
+{
+	return (equalval(car(a), car(b))
+		&& equalval(cdr(a), cdr(b)));
+}
+
 Pair*
 mkpair(Val a, Val d)
 {

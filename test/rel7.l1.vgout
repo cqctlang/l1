@@ -14,7 +14,7 @@ nil1 == nil2 => 1
 nil1 != nil2 => 0
 nil1 == nil1 => 1
 nil1 != nil1 => 0
-cons1 == cons2 => 0
-cons1 != cons2 => 1
+cons1 == cons2 => 1
+cons1 != cons2 => 0
 cons1 == cons1 => 1
 cons1 != cons1 => 0

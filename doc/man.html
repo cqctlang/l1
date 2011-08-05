@@ -2701,7 +2701,7 @@ they are <span class="id">equal</span>;
 If <span class="arg">u</span>
 and <span class="arg">v</span> are both address spaces,
 cids, domains, file descriptors, name spaces,
-pairs, procedures, record descriptors, records, or tables, they
+procedures, record descriptors, or tables, they
 are <span class="id">equal</span> if and only if they
 are the same object (pointer equality);
 </li>
@@ -2717,10 +2717,22 @@ if and only if they have the same length and each of their
 corresponding elements are <span class="id">equal</span>;
 </li>
 <li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both pairs, they are <span class="id">equal</span>
+if and only if both their cars and their cdrs
+are <span class="id">equal</span>;
+</li>
+<li>
 If <span class="arg">u</span>
 and <span class="arg">v</span> are both ranges, they
 are <span class="id">equal</span> if and only if their
 offsets and lengths are both <a href="#fn:equalcval"><span class="id">equalcval</span></a>;
+</li>
+<li>
+If <span class="arg">u</span> and <span class="arg">v</span>
+are both records, they are <span class="id">equal</span>
+if and only if they have the same record descriptor and each of their
+corresponding fields are <span class="id">equal</span>;
 </li>
 <li>
 If <span class="arg">u</span> and <span class="arg">v</span>

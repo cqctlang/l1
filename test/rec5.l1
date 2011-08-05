@@ -1,0 +1,5 @@
+@record r { f1, f2 };
+x = r(1,2);
+y = r(1,2);
+printf("%d\n", x == y);
+printf("%d\n", equal(x, y));

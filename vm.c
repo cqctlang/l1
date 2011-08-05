@@ -91,7 +91,6 @@ static char *opstr[Iopmax+1] = {
 static u32 hashptr(Val);
 static u32 hashrange(Range *r);
 static int eqptr(Val, Val);
-static int equallistv(Val a, Val b);
 static int equalrange(Range *ra, Range *rb);
 
 Code *kcode, *cccode, *tcccode;
@@ -262,9 +261,7 @@ eqvval(Val v1, Val v2)
 	case Qdom:
 	case Qfd:
 	case Qns:
-	case Qpair:
 	case Qrd:
-	case Qrec:
 	case Qtab:
 	case Qexpr:
 		return eqptr(v1, v2);
@@ -274,8 +271,12 @@ eqvval(Val v1, Val v2)
 		return eqvcval(valcval(v1), valcval(v2));
 	case Qlist:
 		return equallist(vallist(v1), vallist(v2));
+	case Qpair:
+		return equalpair(valpair(v1), valpair(v2));
 	case Qrange:
 		return equalrange(valrange(v1), valrange(v2));
+	case Qrec:
+		return equalrec(valrec(v1), valrec(v2));
 	case Qstr:
 		return equalstr(valstr(v1), valstr(v2));
 	case Qvec:
@@ -299,9 +300,7 @@ hashqvval(Val v)
 	case Qdom:
 	case Qfd:
 	case Qns:
-	case Qpair:
 	case Qrd:
-	case Qrec:
 	case Qtab:
 	case Qexpr:
 		return hashptr(v);
@@ -311,8 +310,12 @@ hashqvval(Val v)
 		return hashqvcval(valcval(v));
 	case Qlist:
 		return hashlist(vallist(v));
+	case Qpair:
+		return hashpair(valpair(v));
 	case Qrange:
 		return hashrange(valrange(v));
+	case Qrec:
+		return hashrec(valrec(v));
 	case Qstr:
 		return hashstr(valstr(v));
 	case Qvec:
@@ -338,9 +341,7 @@ equalval(Val v1, Val v2)
 	case Qdom:
 	case Qfd:
 	case Qns:
-	case Qpair:
 	case Qrd:
-	case Qrec:
 	case Qtab:
 	case Qexpr:
 		return eqptr(v1, v2);
@@ -350,8 +351,12 @@ equalval(Val v1, Val v2)
 		return equalcval(valcval(v1), valcval(v2));
 	case Qlist:
 		return equallist(vallist(v1), vallist(v2));
+	case Qpair:
+		return equalpair(valpair(v1), valpair(v2));
 	case Qrange:
 		return equalrange(valrange(v1), valrange(v2));
+	case Qrec:
+		return equalrec(valrec(v1), valrec(v2));
 	case Qstr:
 		return equalstr(valstr(v1), valstr(v2));
 	case Qvec:
@@ -375,9 +380,7 @@ hashval(Val v)
 	case Qdom:
 	case Qfd:
 	case Qns:
-	case Qpair:
 	case Qrd:
-	case Qrec:
 	case Qtab:
 	case Qexpr:
 		return hashptr(v);
@@ -387,8 +390,12 @@ hashval(Val v)
 		return hashcval(valcval(v));
 	case Qlist:
 		return hashlist(vallist(v));
+	case Qpair:
+		return hashpair(valpair(v));
 	case Qrange:
 		return hashrange(valrange(v));
+	case Qrec:
+		return hashrec(valrec(v));
 	case Qstr:
 		return hashstr(valstr(v));
 	case Qvec:
@@ -419,12 +426,6 @@ static int
 equalrange(Range *ra, Range *rb)
 {
 	return ra->beg->val==rb->beg->val && ra->len->val==rb->len->val;
-}
-
-static int
-equallistv(Val a, Val b)
-{
-	return equallist(vallist(a), vallist(b));
 }
 
 static As*
@@ -5845,21 +5846,25 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_eqv(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to eqv");
+	if(eqvval(argv[0], argv[1]))
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
 l1_equal(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Qkind kind;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to equal");
-	kind = Vkind(argv[0]);
-	if(kind != Vkind(argv[1]))
+	if(equalval(argv[0], argv[1]))
+		*rv = mkvalcval2(cval1);
+	else
 		*rv = mkvalcval2(cval0);
-	else if(kind == Qlist){
-		if(equallistv(argv[0], argv[1]))
-			*rv = mkvalcval2(cval1);
-		else
-			*rv = mkvalcval2(cval0);
-	}else
-		vmerr(vm, "equal defined only for lists");
 }
 
 static void
@@ -6859,6 +6864,7 @@ mktopenv(void)
 	FN(delete);
 	FN(domof);
 	FN(equal);
+	FN(eqv);
 	FN(eval);
 	FN(evalk);
 	FN(error);

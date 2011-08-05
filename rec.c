@@ -2,6 +2,31 @@
 #include "util.h"
 #include "syscqct.h"
 
+u32
+hashrec(Rec *r)
+{
+	u32 i, len, m;
+	m = Qrec;
+	len = r->nf;
+	for(i = 0; i < len; i++)
+		m = hashx(m, hashval(recdata(r)[i]));
+	return m;
+}
+
+int
+equalrec(Rec *a, Rec *b)
+{
+	u32 m;
+	if(a->rd != b->rd)
+		return 0;
+	if(a->nf != b->nf)
+		bug();
+	for(m = 0; m < a->nf; m++)
+		if(!equalval(recdata(a)[m], recdata(b)[m]))
+			return 0;
+	return 1;
+}
+
 static Rec*
 mkrec(Rd *rd)
 {

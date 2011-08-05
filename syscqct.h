@@ -1310,11 +1310,15 @@ void		tabput(Tab *tab, Val keyv, Val val);
 #define 	_setcdr(p,x) do{ cdr(p) = (Val)(x); }while(0)
 #define		cons(a,d)  (mkpair((Val)(a), (Val)(d)))
 #define		weakcons(a,d)  (mkweakpair((Val)(a), (Val)(d)))
+int		equalpair(Pair *a, Pair *b);
 void		fnpair(Env *env);
+u32		hashpair(Pair *p);
 Pair*		mkpair(Val a, Val d);
 Pair*		mkweakpair(Val a, Val d);
 
 /* rec.c */
+int		equalrec(Rec *a, Rec *b);
+u32		hashrec(Rec *r);
 void		fnrec(Env *env);
 
 /* str.c */
