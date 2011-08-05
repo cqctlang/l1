@@ -480,7 +480,6 @@ setreloc(Code *c)
 			setreloc1(c, &i->op2);
 			setreloc1(c, &i->dst);
 			break;
-		case Icval:
 		case Iref:
 			setreloc1(c, &i->op1);
 			setreloc1(c, &i->op2);
@@ -603,14 +602,6 @@ printinsn(Code *c, Insn *i)
 	case Icallt:
 		xprintf("callt ");
 		printrand(&i->op1);
-		break;
-	case Icval:
-		xprintf("cval ");
-		printrand(&i->op1);
-		xprintf(" ");
-		printrand(&i->op2);
-		xprintf(" ");
-		printrand(&i->dst);
 		break;
 	case Ixcast:
 		xprintf("xcast ");
@@ -993,7 +984,6 @@ static ikind EtoVM[] = {
 	[Eutwiddle] = Iinv,
 	[Excast] = Ixcast,
 
-	[E_cval] = Icval,
 	[E_ref] = Iref,
 	[E_sizeof] = Isizeof,
 };
@@ -1203,7 +1193,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}
 		cgunop(code, p, e->kind, &r1, loc, ctl, nxt, &e->src);
 		break;
-	case E_cval:
 	case E_ref:
 		/* rather than compute temp requirements for arbitrary
 		   3-operand applications, assume that all 3 operands

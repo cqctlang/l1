@@ -2343,95 +2343,6 @@ _callget(VM *vm, As *as, Imm off, Imm len)
 }
 
 static void
-xcval(VM *vm, Operand *x, Operand *type, Operand *cval, Operand *dst)
-{
-	Val xv, typev, cvalv, rv;
-	Imm imm;
-	Dom *d;
-	Ctype *t, *b, *sub, *pt;
-	Cval *cv;
-	Str *s, *es;
-	BFgeom bfg;
-
-	bug();
-
-	xv = getvalrand(vm, x);
-	typev = getvalrand(vm, type);
-	cvalv = getvalrand(vm, cval);
-
-	rv = 0;
-	t = valctype(typev);
-	cv = valcval(cvalv);
-	b = chasetype(t);
-
-	/* special case: enum constants can be referenced through namespace */
-	if(b->tkind == Tconst){
-		switch(Vkind(xv)){
-		case Qdom:
-			d = valdom(xv);
-			rv = mkvalcval(d, subtype(b), cv->val);
-			goto out;
-		case Qns:
-			d = mkdom(valns(xv), litdom->as, 0);
-			rv = mkvalcval(d, subtype(b), cv->val);
-			goto out;
-		default:
-			fatal("bug");
-		}
-	}
-
-	if(Vkind(xv) != Qdom)
-		vmerr(vm, "attempt to access address space through non-domain");
-	d = valdom(xv);
-	switch(b->tkind){
-	case Tbitfield:
-		sub = subtype(b);
-		if(sub->tkind == Tundef){
-			sub = subtype(sub);
-			es = fmtctype(sub);
-			vmerr(vm, "attempt to read object of undefined type: "
-			      "%.*s", (int)es->len, strdata(es));
-		}
-		if(0 > dobitfieldgeom(b, &bfg))
-			vmerr(vm, "invalid bitfield access");
-		s = _callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
-		imm = bitfieldget(strdata(s), &bfg);
-		rv = mkvalcval(d, subtype(b), imm);
-		break;
-	case Tbase:
-	case Tptr:
-		/* FIXME: check type of cv */
-		s = _callget(vm, d->as, cv->val, typesize(vm, t));
-		imm = str2imm(vm, t, s);
-		rv = mkvalcval(d, t, imm);
-		break;
-	case Tarr:
-		/* construct pointer to first element */
-		pt = mkctypeptr(subtype(t), typerep(d->ns->base[Vptr]));
-		imm = truncimm(cv->val, typerep(pt));
-		rv = mkvalcval(d, pt, imm);
-		break;
-	case Tvoid:
-	case Tfun:
-	case Tstruct:
-	case Tunion:
-		vmerr(vm,
-		      "attempt to read %s-valued object from address space",
-		      tkindstr[b->tkind]);
-	case Tundef:
-		es = fmtctype(subtype(b));
-		vmerr(vm, "attempt to read object of undefined type: %.*s",
-		      (int)es->len, strdata(es));
-	case Tenum:
-	case Ttypedef:
-	case Tconst:
-		bug();
-	}
-out:
-	putvalrand(vm, rv, dst);
-}
-
-static void
 l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Imm imm;
@@ -3990,7 +3901,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icmple] 	= &&Icmple;
 		gotab[Icmpneq] 	= &&Icmpneq;
 		gotab[Icode]	= &&Icode;
-		gotab[Icval] 	= &&Icval;
 		gotab[Idiv] 	= &&Idiv;
 		gotab[Iframe] 	= &&Iframe;
 		gotab[Ifmask]	= &&Ifmask;
@@ -4184,9 +4094,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			continue;
 		LABEL Ibox0:
 			xbox0(vm, &i->op1);
-			continue;
-		LABEL Icval:
-			xcval(vm, &i->op1, &i->op2, &i->op3, &i->dst);
 			continue;
 		LABEL Iref:
 			xref(vm, &i->op1, &i->op2, &i->op3, &i->dst);

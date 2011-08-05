@@ -135,7 +135,6 @@ enum{
 	Excast,
 
 	/* open-coded primitives */
-	E_cval,
 	E_ref,
 	E_sizeof,
 	E_tid,
@@ -564,7 +563,6 @@ enum {
 	Icmple,
 	Icmpneq,
 	Icode,
-	Icval,
 	Idiv,
 	Iframe,
 	Ifmask,

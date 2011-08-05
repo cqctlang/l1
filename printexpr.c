@@ -125,7 +125,6 @@ char* S[] = {
 	[Ewhile] =	"Ewhile",
 	[Excast] =	"Excast",
 
-	[E_cval] =	"E_cval",
 	[E_ref] =	"E_ref",
 	[E_sizeof] =	"E_sizeof",
 	[E_tg] =	"E_tg",
@@ -706,7 +705,6 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(")");
 		break;
 	case E_ref:
-	case E_cval:
 		xprintf("%s(", S[e->kind]);
 		printcqct0(e->e1, ni);
 		xprintf(", ");
