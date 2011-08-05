@@ -135,7 +135,6 @@ enum{
 	Excast,
 
 	/* open-coded primitives */
-	E_sizeof,
 	E_tid,
 	E_tg,
 	Emax,
@@ -587,7 +586,6 @@ enum {
 	Iret,
 	Ishl,
 	Ishr,
-	Isizeof,
 	Isub,
 	Isubsp,
 	Ivargc,

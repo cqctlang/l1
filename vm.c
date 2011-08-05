@@ -2531,25 +2531,27 @@ xlist(VM *vm, Operand *op1, Operand *op2, Operand *dst)
 }
 
 static void
-xsizeof(VM *vm, Operand *op, Operand *dst)
+l1_sizeof(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Val v, rv;
 	Imm imm;
 	Ctype *t;
 	Cval *cv;
 
-	t = 0;
-	v = getvalrand(vm, op);
-	if(Vkind(v) == Qcval){
-		cv = valcval(v);
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to sizeof");
+	switch(Vkind(argv[0])){
+	case Qcval:
+		cv = valcval(argv[0]);
 		t = cv->type;
-	}else if(Vkind(v) == Qctype)
-		t = valctype(v);
-	else
-		vmerr(vm, "operand 1 to sizeof must be a type or cvalue");
+		break;
+	case Qctype:
+		t = valctype(argv[0]);
+		break;
+	default:
+		vmerr(vm, "operand 1 to sizeof must be a type or cvalue"); 
+	}
 	imm = typesize(vm, t);
-	rv = mkvalcval(litdom, litdom->ns->base[Vuint], imm);
-	putvalrand(vm, rv, dst);
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], imm);
 }
 
 /* function from any arguments to nil */
@@ -3926,7 +3928,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Iret] 	= &&Iret;
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
-		gotab[Isizeof]	= &&Isizeof;
 		gotab[Isub] 	= &&Isub;
 		gotab[Isubsp] 	= &&Isubsp;
 		gotab[Ivargc]	= &&Ivargc;
@@ -4099,9 +4100,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			continue;
 		LABEL Ilist:
 			xlist(vm, &i->op1, &i->op2, &i->dst);
-			continue;
-		LABEL Isizeof:
-			xsizeof(vm, &i->op1, &i->dst);
 			continue;
 		LABEL Ifsize:
 			fatal("attempt to execute frame size");
@@ -6929,6 +6927,7 @@ mktopenv(void)
 	FN(resettop);
 	FN(setname);
 	FN(setloadpath);
+	FN(sizeof);		/* cannot be called directly by user code */
 	FN(sort);
 	FN(split);
 	FN(statistics);

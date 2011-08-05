@@ -144,7 +144,7 @@ Zret(Expr *e)
 Expr*
 Zsizeof(Expr *e)
 {
-	return Z1(E_sizeof, e);
+	return Zcall(G("sizeof"), 1, e);
 }
 
 Expr*

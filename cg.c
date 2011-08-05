@@ -440,7 +440,6 @@ setreloc(Code *c)
 		case Inot:
 		case Imov:
 		case Iclo:
-		case Isizeof:
 			setreloc1(c, &i->op1);
 			setreloc1(c, &i->dst);
 			break;
@@ -610,12 +609,6 @@ printinsn(Code *c, Insn *i)
 		printrand(&i->op1);
 		xprintf(" ");
 		printrand(&i->op2);
-		xprintf(" ");
-		printrand(&i->dst);
-		break;
-	case Isizeof:
-		xprintf("sizeof ");
-		printrand(&i->op1);
 		xprintf(" ");
 		printrand(&i->dst);
 		break;
@@ -973,8 +966,6 @@ static ikind EtoVM[] = {
 	[Euplus] = Imov,
 	[Eutwiddle] = Iinv,
 	[Excast] = Ixcast,
-
-	[E_sizeof] = Isizeof,
 };
 
 static void
@@ -1171,7 +1162,6 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Euminus:
 	case Eutwiddle:
 	case Eunot:
-	case E_sizeof:
 		if(issimple(e->e1))
 			cgrand(code, &r1, e->e1);
 		else{
