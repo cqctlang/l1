@@ -726,16 +726,15 @@ struct Ctl {
 };
 
 struct Insn {
-	ikind kind;
 	void *go;
-	Operand op1, op2, op3, dst;
+	ikind kind;
+	Operand op1, op2, dst;
 	union{
 		Insn *targ;
 		Ctl *dstlabel;
 		u64 cnt;
 	};
 	Src src;
-	unsigned long ox;
 };
 
 struct Code {
