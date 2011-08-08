@@ -1470,10 +1470,11 @@ The expression being dispatched
 the expressions in <span class="val">case</span>
 statements (here, <span class="val">[1,2]</span>
 and <span class="val">[]</span>) using
-the <span class="val">==</span> operator.  Generally
-speaking, and unlike C,  <span class="val">case</span>
-statements may include <i>expressions</i>, not just
-constants.  For example, 
+the <span class="val">==</span> operator,
+<a href = "#sec:equivalence">whose semantics</a> depends on the values
+being compared.  Generally speaking, and unlike
+C, <span class="val">case</span> statements may
+include <i>expressions</i>, not just constants.  For example,
 </p>
 
 <div class="code">
@@ -1497,22 +1498,34 @@ executed.
 Cinquecento's most liberal extension
 of <span class="val">switch</span> is in supporting
 pattern matching, as provided in functional languages
-like Ocaml and Erlang.  When pattern matching,
-variables that occur in <span class="val">case</span>
-expressions of structured type (like lists) correspond
-to portions of the structure being matched against, and
-can be referred to in the code associated with
-the <span class="val">case</span>.  This is most easily
-seen with an example:
+like Ocaml and Erlang.  In addition to <span class="val">case</span>
+statements a <span class="val">switch</span> may also contain
+<span class="val">@match</span> statements, with syntax 
+<span class="val">@match <span class="arg">p</span>: 
+<span class="arg">s</span> </span> where <span class="arg">p</span> is
+a <i>pattern</i> and <span class="arg">s</span> is a statement.  A
+pattern is, roughly speaking, a constant but with the allowance that
+it may contain variables.  So <span class="val">[ 1, 2
+]</span> and <span class="val">[ x, 2 ]</span> and <span class="val">[
+  [x, y], 1, 2 ]</span> are patterns,
+while <span class="val">1+2</span> and <span class="val">[ 1, x+2
+  ]</span> are not.
+ </p>
+
+<p>When pattern matching, variables that occur in patterns correspond
+to portions of the object being matched against, and can be
+referred to in the code associated with
+the <span class="val">@match</span>.  This is most easily seen with an
+example:
 </p>
 
 <div class="code">
 <pre>
 ; x = [1,2];
 <span class="arg">[ 1, 2 ]</span>
-; switch (x) { case [1,y] : printf("match: y = %d\n",y); }
+; switch (x) { @match [1,y] : printf("match: y = %d\n",y); }
 <span class="arg">match: y = 2</span>
-; switch (x) { case [2,y] : break; default: printf("no match\n"); }
+; switch (x) { @match [2,y] : break; default: printf("no match\n"); }
 <span class="arg">no match</span>
 </pre>
 </div>
@@ -1526,7 +1539,7 @@ when <span class="val">y</span>
 is <span class="val">2</span>.
 Thus, <span class="val">y</span> is bound
 to <span class="val">2</span> inside the body of
-the <span class="val">case</span> expression. The
+the <span class="val">@match</span> expression. The
 second <span class="val">switch</span> fails to match
 because there is no valuation
 of <span class="val">y</span> that would
@@ -1545,7 +1558,7 @@ dispatch on a list of length 3, you could write:
 
 <div class="code">
 <pre>
-; switch (x) { case [_,_,_] : printf("match\n"); }
+; switch (x) { @match [_,_,_] : printf("match\n"); }
 </pre>
 </div>
 
@@ -1563,18 +1576,60 @@ do
 <pre>
 ; x = [1,2,3,4,5];
 <span class="arg">[ 1, 2, 3, 4, 5 ]</span>
-; switch (x) { case [_,_,_,t...] : printf("match: t = %a\n",t); }
+; switch (x) { @match [_,_,_,t...] : printf("match: t = %a\n",t); }
 <span class="arg">match: t = [ 4, 5 ]</span>
 </pre>
 </div>
 
 <p>
+We support general matching on records following a design 
+similar to matching on lists.  As an example:
+</p>
+
+<div class="code">
+<pre>
+; @record myrec { field1, field2 };
+<span class="arg">&lt;rd myrec&gt;</span>
+; x = myrec(1,2);
+<span class="arg">&lt;myrec 1031590bc&gt;</span>
+; switch (x) { @match myrec(a,2): printf("a = %d\n", a); break; }
+<span class="arg">a = 1</span>
+</pre>
+</div>
+
+<p>
+Record patterns match against fields in the order they 
+were defined, and all fields must be present in the 
+pattern.  If fields are missing then the pattern fails
+to match.  Alternatively you can match against particular
+fields by naming those fields; not all fields need to 
+be listed when using this form, and they may be listed in
+any order.  Continuing the previous example:
+</p>
+
+<div class="code">
+<pre>
+; switch (x) { @match myrec(field2=2): printf("ok\n"); break; }
+<span class="arg">ok</span>
+; switch (x) { @match myrec(field2=2,field1=y): printf("y=%d\n", y); break; }
+<span class="arg">y=1</span>
+</pre>
+</div>
+
+<p>
+Be warned that an expression to create a record
+resembles a function call and so if you
+mistakenly include a function call in
+a <span class="val">@match</span> Cinquecento will interpret 
+it as a record pattern and fail to match it.
+</p>
+
+<p>
 We can also match against tables, using patterns of the
 form <span class="val">[</span> <i>k</i>:<i>p</i> <span class="val">]</span>
 where <i>k</i> must be a constant (containing no
-variables) and <i>p</i> is an arbitrary pattern (i.e.,
-a constant, a list pattern, or a (nested) table
-pattern).  Such a pattern matches if the table being
+variables) and <i>p</i> is an arbitrary pattern.
+Such a pattern matches if the table being
 matched against contains the key <i>k</i> which maps to
 a value that matches against pattern <i>p</i>, in which
 case any variables in <i>p</i> are bound in the
@@ -1585,7 +1640,7 @@ adjacent code.  For example:
 <pre>
 ; x = [1:"hello", 3:4];
 <span class="arg">&lt;table&gt</span>
-; switch (x) { case [1:v] : printf("match: v = %a\n",v); }
+; switch (x) { @match [1:v] : printf("match: v = %a\n",v); }
 <span class="arg">match: v = "hello"</span>
 </pre>
 </div>
@@ -1619,7 +1674,7 @@ example, you might write
 <span class="arg">[ 1, 2 ]</span>
 ; y = "hello";
 <span class="arg">"hello"</span>
-; switch (x) { case y : printf("match, y = %a\n",y); }
+; switch (x) { @match y : printf("match, y = %a\n",y); }
 <span class="arg">match, y = [ 1, 2 ]</span>
 ; y;
 <span class="arg">"hello"</span>
@@ -1627,61 +1682,59 @@ example, you might write
 </div>
 
 <p>
-Here, the <span class="val">case</span> statement in
+Here, the <span class="val">@match</span> statement in
 the <span class="val">switch</span>
 treats <span class="val">y</span> as a binding variable
 which will match anything,
 binding <span class="val">y</span> to it.  You might
 have expected the match to fail if you
-thought <span class="val">y</span> in the case
+thought <span class="val">y</span> in the @match
 corresponded to the variable defined in the outer
 scope.  After the <span class="val">switch</span>
 concludes, references to <span class="val">y</span>
 refer to the <span class="val">y</span> defined in the
 outer scope.  In effect, you can think of pattern
 variables as being <span class="val">@local</span> to
-the case arm in which they appear.
+the @match arm in which they appear.
 </p>
 
 <p>
 On the other hand, pattern matching only occurs within
-structured types; references to variables in general
-expressions will refer to the outer scope.  For
-example:
+<span class="val">@match</span> statements, not 
+<span class="val">case</span> statements.  For the latter, 
+references to variables in general expressions will refer 
+to the outer scope whereas for the former they act as
+binders.  For example:
 </p>
 
 <div class="code">
 <pre>
 ; x = 6;
 <span class="arg">6</span>
-; switch (9) { case x+3 : printf("match, x = %d\n",x); }
+; switch (6) { case x : printf("match, x = %d\n",x); }
 <span class="arg">match, x = 6</span>
-; switch (6) { case x+3 : break; default: printf("no match\n"); }
+; switch (9) { case x : break; default: printf("no match\n"); }
 <span class="arg">no match</span>
+; switch (9) { @match x : printf("match, x = %d\n",x); }
+<span class="arg">match, x = 9</span>
 </pre>
 </div>
 
 <p>
-Here, the variable <span class="val">x</span> appears
-in the case expression, but it is part of an
-expression, not a constant of structured
-type.  <i>Pattern matching only applies to constants
-where some constant values may be replaced with
-variables.</i>  Limiting yourself to C-style
-<span class="val">switch</span> statements (which do
-not allow expressions in
-<span class="val">case</span> statements) generalized
-to patterns will avoid this potential confusion.
-</p>
-
-<p>
 Pattern matching does not play well with fall-through
-from one <span class="val">case</span> statement to the
-next.  If you do this, the behavior of the program
-isundefined.  Likewise, the behavior is undefined if
-you <span class="val">goto</span> under
-a <span class="val">case</span> statement that binds
-pattern variables.
+involving <span class="val">@match</span> statements.  In 
+particular, a <span class="val">@match</span> may attempt
+to bind variables, so falling through to its body
+from a previous class will leave those variables undefined.  
+To prevent this, we issue
+a run-time if you fall through to a 
+<span class="val">@match</span> clause.  (It is equally
+dangerous to <span class="val">goto</span> under a 
+<span class="val">@match</span> statement, but this is not
+something we prevent at the moment.)  You may fall
+through <i>from</i> a <span class="val">@match</span> into
+a <span class="val">case</span> or 
+<span clas="val">default</span>.  
 </p>
 
 

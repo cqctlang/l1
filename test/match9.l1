@@ -1,0 +1,19 @@
+x = 2;
+y = 0;
+switch(1){
+        @match x: y = 1; printf("falling through\n");
+	case 2: 
+                if(y == 1 && x == 2)
+                        printf("ok\n"); 
+                else
+                        printf("failed\n");
+                break;
+	default: printf("failed\n");
+}
+
+switch([1,2]){
+        case 1: break;
+        case [1,2]: 
+        @match [2,x]: printf("should not reach here\n"); break;
+}
+

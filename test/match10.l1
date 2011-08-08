@@ -1,0 +1,21 @@
+@record myrec { field1, field2 };
+
+x = myrec(1,2);
+
+switch (x) {
+  @match myrec(field1=1): // matches
+    switch (x) {
+      @match myrec(field2=y): printf("ok, y = %d\n",y); break; // matches
+    }
+    break;
+}
+
+switch (x) {
+         @match myrec(): printf("ok\n"); break;
+}
+
+switch (x) {
+       @match myrec(1): break; // not enough fields, won't match
+       @match myrec(field2=1): break; // wrong value
+       @match myrec(field2=2,field1=x): printf("ok, x = %d\n", x); break;
+}

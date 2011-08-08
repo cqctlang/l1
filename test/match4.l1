@@ -5,8 +5,8 @@
   }
   while (!isempty(l2)) {
     switch (l2) {
-    case []: break;
-    case [h,t...]: append(l1,h); l2 = t; break;
+    @match []: break;
+    @match [h,t...]: append(l1,h); l2 = t; break;
     }
   }
   return l1;

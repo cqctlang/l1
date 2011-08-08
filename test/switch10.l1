@@ -1,0 +1,10 @@
+@define f(x)
+{
+	return x;
+}
+
+switch(3){
+	case f(3): printf("ok\n"); break;
+	default: printf("failed\n"); break;
+	}
+

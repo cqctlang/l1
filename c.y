@@ -32,7 +32,7 @@ extern char *yytext;
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
 %token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
-%token LPAIR RPAIR NOBIND_PRE
+%token LPAIR RPAIR NOBIND_PRE MATCH
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -68,6 +68,8 @@ extern char *yytext;
 %type <expr> maybe_attr
 %type <expr> quote_expression
 %type <expr> unquote_statement
+%type <expr> pattern pattern_list var_pat_list rec_pat_list
+%type <expr> table_init_pattern table_init_pattern_list
 
 %type <kind> unary_operator assignment_operator struct_or_union struct_or_union_or_enum define
 
@@ -198,6 +200,83 @@ primary_expression
 	| defrec_expression
 	| let_expression
 	| quote_expression
+	;
+
+pattern 
+	: id
+	| CONSTANT
+	{ $$ = doconst(ctx, $1.p, $1.len); }
+	| STRING_LITERAL
+	{ $$ = dostr($1.p, $1.len); }
+	| '(' pattern ')'
+	{ $$ = $2; }
+        | LPAIR pattern ',' pattern RPAIR
+	{ $$ = newexprsrc(&ctx->inp->src, Epair, $2, $4, 0, 0); }
+	| '[' ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); }
+	| '[' pattern_list ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
+	| '[' pattern_list ',' ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Elist, invert($2), 0, 0, 0); }
+	| '[' pattern_list ELLIPSIS ']'
+	{ Expr *ell = newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0);
+          $$ = newexprsrc(&ctx->inp->src, Elist,
+                          invert(newexprsrc(&ctx->inp->src, Eelist,
+                                            ell, $2, 0, 0)), 0, 0, 0); }
+	| '[' ':' ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); }
+	| '[' table_init_pattern_list ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
+	| '[' table_init_pattern_list ',' ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
+	| id '(' rec_pat_list ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, invert($3), 0, 0); }
+	| id '(' ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, nullelist(), 0, 0); }
+	;
+
+rec_pat_list
+	: pattern_list
+	| var_pat_list
+	;
+
+pattern_list
+	: pattern
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
+	| pattern_list ',' pattern
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
+	;
+
+var_pat_list
+	: id '=' pattern
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, 
+                          newbinopsrc(&ctx->inp->src, Eeq, $1, $3),
+                          nullelist(), 
+                          0, 0); }
+	| var_pat_list ',' id '=' pattern
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, 
+                          newbinopsrc(&ctx->inp->src, Eeq, $3, $5),
+                          $1, 
+                          0, 0); }
+	;
+
+table_init_pattern_list
+	: table_init_pattern
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
+	| table_init_pattern_list ',' table_init_pattern
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
+	;
+
+table_init_pattern
+	: pattern ':' pattern
+	{ /* key may not actually bind variables, but this will get
+             caught during compilation. */
+          $$ = newexprsrc(&ctx->inp->src, Eelist,
+			  $1,
+			  newexprsrc(&ctx->inp->src, Eelist,
+				     $3, nullelist(), 0, 0),
+			  0, 0);
+	}
 	;
 
 postfix_expression
@@ -971,6 +1050,8 @@ labeled_statement
 	  { $$ = Zlabelsrc(&$1->src, $1, $3); }
 	| CASE expression ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
+	| MATCH pattern ':' statement
+	  { $$ = newexprsrc(&ctx->inp->src, Ematch, $2, $4, NULL, NULL); }
 	| DEFAULT ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Edefault, $3, NULL, NULL, NULL); }
 	;

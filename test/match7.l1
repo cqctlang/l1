@@ -1,0 +1,27 @@
+@record myrec { field1, field2 };
+
+x = myrec(1,2);
+
+switch (x) {
+  @match myrec(2,myrec(1,2)): printf("failed!\n"); break;
+  @match myrc(2,_): printf("failed!\n"); break;
+  @match myrec(a,2): printf("a = %d\n", a); break;
+  @match myrec(_,_): printf("failed!\n"); break;
+  default: printf("failed!\n"); break;
+}
+
+y = myrec("hello",x);
+
+ switch (y) {
+   @match myrec("hello",myrec(a,b)): 
+     printf("a = %a, b = %a\n", a, b);
+     break;
+   default: printf("failed!\n");
+}
+
+switch ([1,y,"bob"]) {
+  @match [x,myrec(a,myrec(b,c)),"bob"]:
+    printf("x = %d, a = %a, b = %a, c = %a\n", x, a, b, c);
+    break;
+  default: printf("failed!\n");
+}

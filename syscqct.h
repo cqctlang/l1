@@ -90,6 +90,7 @@ enum{
 	Epair,
 	Elor,
 	Elt,
+	Ematch,
 	Emkctype,
 	Emod,
 	Emul,

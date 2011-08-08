@@ -78,7 +78,7 @@ Zand(Expr *e1, Expr *e2)
 static int
 match(U *ctx, Expr* exp, Expr* pat, Match *m)
 {
-	Expr *p, *e0, *k, *v;
+	Expr *p, *e0, *f0, *k, *v;
         Match m0;
         int rv, isvarg, l;
         char *id;
@@ -171,6 +171,64 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 			p = p->e2;
 		}
 		break;
+        case Ecall:
+		m->check = Zand(Zand(m->check, Zcall(doid("isrec"), 1, 
+						     copyexpr(exp))),
+				Zbinop(Eeq, Zid2sym(pat->e1),
+				       Zcall(doid("mkcid"), 1, 
+					     Zcall(doid("rdname"), 1, 
+						   Zcall(doid("rdof"), 1, 
+							 copyexpr(exp))))));
+                /* Two forms of pattern matching:
+                   rec(f1=p1,...,fn=pn) where fi are a subset of
+                     rec's field names, or
+                   rec(p1,...,pm) where field names are implicit
+                     by order and all must be present.
+                */
+                p = pat->e2;
+                l = elistlen(p);
+                if(l != 0 && p->e1->kind != Ebinop){
+                        f0 = Zcall(doid("rdfields"), 1, 
+                                   Zcall(doid("rdof"), 1, copyexpr(exp)));
+                        m->check = Zand(m->check,
+                                        Zbinop(Eeq, /* pat. lists all fields */
+                                               Zcall(doid("length"), 1, f0),
+                                               Zint(l)));
+                }
+                /* FIXME: this is butt-slow since we are iterating
+                   from the start for each pattern.  Same problem with
+                   lists, above, actually.  But we are doing this to
+                   avoid introducing temporary variables that could
+                   get clobbered. */
+                for(; l > 0; l--){
+                        Expr *p0;
+                        if(p->e1->kind == Ebinop){
+                                p0 = p->e1->e2;
+                                if(p->e1->e1->kind != Eid)
+                                        fatal("bad pattern");
+                                e0 = Zcall(Zcall(doid("tablook"), 2, 
+                                                 Zcall(doid("rdgettab"), 1, 
+                                                       Zcall(doid("rdof"), 1, 
+                                                             copyexpr(exp))),
+                                                 Zid2sym(p->e1->e1)), 1,
+                                           copyexpr(exp));
+                        }
+                        else{
+                                p0 = p->e1;
+                                e0 = Zcall(Zcall(doid("tablook"), 2, 
+                                                 Zcall(doid("rdgettab"), 1, 
+                                                       Zcall(doid("rdof"), 1, 
+                                                             copyexpr(exp))),
+                                                 Zcall(doid("head"), 1, 
+                                                       copyexpr(f0))), 1,
+                                           copyexpr(exp));
+                                f0 = Zcall(doid("tail"), 1, f0);
+                        }
+                        rv |= match(ctx, e0, p0, m);
+                        p = p->e2;
+                }
+		rv = 1; // do not optimize away this m->check later
+		break;
 	default:
 		m->check = Zand(m->check, Zbinop(Eeq, pat, exp));
 		break;
@@ -205,17 +263,18 @@ bindvars(Bind *binds, Expr **bvars, Expr **inits)
 static Expr* cases(U *ctx, Expr* e, Cases *cs);
 
 static Expr*
-addcase(U *ctx, Expr *e, Expr *b, Cases *cs)
+addcase(U *ctx, Expr *c, Cases *cs)
 {
-	Expr *se;
+	Expr *se, *e, *b;
 	char *l;
         int nc;
 	Match m = {0,0};
 
-        if(!cs)
-		cerror(ctx, e, "case without switch");
+        if(!cs || (c->kind != Ecase && c->kind != Ematch))
+		cerror(ctx, c, "addcase called improperly");
+	e = cases(ctx, c->e1, 0);
         nc = cs->nc;
-        b = cases(ctx,b,cs);
+        b = cases(ctx, c->e2, cs);
 	if(cs->nc >= cs->max){
 		cs->cases = erealloc(cs->cases,
 				     cs->max*sizeof(Case),
@@ -223,19 +282,28 @@ addcase(U *ctx, Expr *e, Expr *b, Cases *cs)
 		cs->max *= 2;
 	}
 	l = genlabel();
-	match(ctx, doid("$t"), e, &m);
-	if(m.binds != 0){
-		Expr *inits, *decls;
-                if(nc != cs->nc)
-                        cerror(ctx, e,
-                               "nested case when pattern matching");
-		bindvars(m.binds, &decls, &inits);
-		freebinds(m.binds);
-		b = Zblock(decls, inits, b, NULL);
+	if (c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
+		if(m.binds != 0){
+			Expr *inits, *decls;
+                	if(nc != cs->nc)
+                        	cerror(ctx, e,
+                               	       "nested case when pattern matching");
+			bindvars(m.binds, &decls, &inits);
+			freebinds(m.binds);
+			b = Zblock(decls, inits, b, NULL);
+		}
 	}
 	else
 		m.check = Zbinop(Eeq, e, doid("$t"));
-	se = Zblock(nullelist(), Zlabel(l), b, NULL);
+        if(c->kind != Ematch)
+                se = Zblock(nullelist(), Zlabel(l), b, NULL);
+        else /* may not fall into a @match */
+                se = Zblock(nullelist(), 
+                            Zcall(doid("error"), 1, 
+                                  Zstr("attempt to fall through to a @match")),
+                            Zlabel(l), 
+                            b, 
+                            NULL);
 	cs->cases[cs->nc].l = l;
 	cs->cases[cs->nc].e = m.check;
 	cs->nc++;
@@ -269,6 +337,7 @@ smush(Expr* p, Expr *tail)
         if(p->kind != Eelist) fatal("bug in smush");
         switch(p->e1->kind){
         case Ecase:
+        case Ematch:
                 p->e1->e2 = Zblock(nullelist(), p->e1->e2, p->e2, NULL);
                 p->e2 = tail;
                 break;
@@ -283,7 +352,7 @@ smush(Expr* p, Expr *tail)
 }
 
 /* Blocks together statements associated with the same case statement.
-   Nnecessary for binding pattern variables in the cases() phase. */
+   Necessary for binding pattern variables in the cases() phase. */
 static Expr*
 coalesce(U *ctx, Expr* e, Expr* q)
 {
@@ -297,6 +366,7 @@ coalesce(U *ctx, Expr* e, Expr* q)
 		while(p->kind == Eelist){
                         switch(p->e1->kind){
                         case Ecase:
+                        case Ematch:
                         case Edefault:
                                 /* start coalescing */
                                 if(!q){
@@ -348,10 +418,8 @@ cases(U *ctx, Expr* e, Cases *cs)
 		e->e2 = cases(ctx, e->e2, e->xp);
 		return e;
 	case Ecase:
-		se = addcase(ctx,
-                             cases(ctx, e->e1, 0),
-                             e->e2, /* recursive call in addcase() */
-                             cs);
+	case Ematch:
+		se = addcase(ctx, e, cs);
 		putsrc(se, &e->src);
 		return se;
 	case Edefault:

@@ -81,6 +81,7 @@ char* S[] = {
 	[Epair] =	"Epair",
 	[Elor] =	"Elor",
 	[Elt] =		"Elt",
+	[Ematch] =	"Ematch",
 	[Emkctype] =	"Emkctype",
 	[Emod] =	"Emod",
 	[Emul] =	"Emul",
@@ -567,6 +568,7 @@ printcqct0(Expr *e, unsigned ni)
 		if(ni > 0 &&
 		   (e->e1->kind == Edefault
 		    || e->e1->kind == Ecase
+		    || e->e1->kind == Ematch
 		    || e->e1->kind == Elabel))
 			indent(ni-1);
 		else if(e->e1->kind != Eblock)
@@ -574,6 +576,7 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e1, ni);
 		if(e->e1->kind == Edefault
 		   || e->e1->kind == Ecase
+		   || e->e1->kind == Ematch
 		   || e->e1->kind == Elabel)
 			xprintf("\n");
 		else
@@ -597,6 +600,13 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Ecase:
 		xprintf("case ");
+		printcqct0(e->e1, ni);
+		xprintf(":\n");
+		indent(ni); printcqct0(e->e2, ni);
+		xprintf(";");
+		break;
+	case Ematch:
+		xprintf("@match ");
 		printcqct0(e->e1, ni);
 		xprintf(":\n");
 		indent(ni); printcqct0(e->e2, ni);

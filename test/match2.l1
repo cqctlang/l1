@@ -1,6 +1,6 @@
 @define third(x) {
   switch (x) {
-  case [_,_,h,_ ...]: return h;
+  @match [_,_,h,_ ...]: return h;
   default: printf("non-list or length < 3\n"); return -1;
   }
 }
