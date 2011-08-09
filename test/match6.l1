@@ -3,8 +3,8 @@
 @local y;
 y = 6;
 switch (x) {
-  case [1,2,y]: printf ("y=%d ",y); printf("x=%a\n",x); break;
-  case [1,x ...]: printf("y=%d ",y); printf("x=%a\n",x); break;
+  @match [1,2,y]: printf ("y=%d ",y); printf("x=%a\n",x); break;
+  @match [1,x ...]: printf("y=%d ",y); printf("x=%a\n",x); break;
   default: printf("bad\n"); break;
 }
 }

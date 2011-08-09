@@ -44,6 +44,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@lazyapply"		{ count(ctx); return(LAPPLY); }
 "@let"			{ count(ctx); return(LET); }
 "@local"		{ count(ctx); return(LOCAL); }
+"@match"		{ count(ctx); return(MATCH); }
 "@names"		{ count(ctx); return(NAMES); }
 "@quote"		{ count(ctx); return(QUOTE); }
 "@record"		{ count(ctx); return(DEFREC); }

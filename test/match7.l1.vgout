@@ -1,0 +1,4 @@
+entry: var params, 6 locals, 0 temps
+a = 1
+a = 1, b = 2
+x = 1, a = "hello", b = 1, c = 2

@@ -1850,6 +1850,7 @@ l1_hashctype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to hashctype");
+	checkarg(vm, "hashctype", argv, 0, Qctype);
 	*rv = mkvalcval2(mklitcval(Vuint, hashctype(valctype(argv[0]))));
 }
 

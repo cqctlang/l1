@@ -4024,13 +4024,19 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 				      ciddata(vm->cl->id));
 			continue;
 		LABEL Icall:
-			vm->cl = valcl(getvalrand(vm, &i->op1));
+			val = getvalrand(vm, &i->op1);
+			if(Vkind(val) != Qcl)
+				vmerr(vm, "attempt to call non-procedure");
+			vm->cl = valcl(val);
 			vm->pc = vm->cl->entry;
 			vm->fp = vm->sp;
 			gcpoll(vm);
 			continue;
 		LABEL Icallt:
-			vm->cl = valcl(getvalrand(vm, &i->op1));
+			val = getvalrand(vm, &i->op1);
+			if(Vkind(val) != Qcl)
+				vmerr(vm, "attempt to call non-procedure");
+			vm->cl = valcl(val);
 			/* shift current arguments over previous arguments */
 			narg = stkimm(vm->stack[vm->sp]);
 			onarg = stkimm(vm->stack[vm->fp]);
@@ -6953,6 +6959,7 @@ mktopenv(void)
 	fnch(env);
 	fncid(env);
 	fnctype(env);
+	fncval(env);
 	fnlist(env);
 	fnpair(env);
 	fnrec(env);

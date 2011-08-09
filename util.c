@@ -54,6 +54,7 @@ fatal(char *fmt, ...)
 	while(n-- != 0)
 		faulthook[n]();
 	xprintf("*** please report this l1 failure! ***\n");
+	xprintf("*** l1 version $Format:%H %cd$ ***\n");
 	xabort();
 }
 

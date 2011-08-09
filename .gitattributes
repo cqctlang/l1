@@ -1,2 +1,4 @@
 .id export-subst
+util.c export-subst
+lib/prelude.cqct export-subst
 doc/notes export-ignore

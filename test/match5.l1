@@ -1,7 +1,7 @@
 @define llength(l){
   switch (l) {
-    case nil : return 0;
-    case <| _,t |> : return llength(t)+1;
+    @match nil : return 0;
+    @match <| _,t |> : return llength(t)+1;
   }
 };
 
