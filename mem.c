@@ -1271,8 +1271,6 @@ copy(Val *v)
 	h = *v;
 	if(h == 0)
 		return Clean;
-	if((uptr)h&1)
-		bug();
 	if(Vfwd(h)){
 		if(dbg)printf("copy: read fwd %p -> %p\n",
 			      h, (void*)Vfwdaddr(h));
