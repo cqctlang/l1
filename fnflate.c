@@ -87,7 +87,7 @@ doinflate(VM *vm, struct getr *getr, Cval *omaxcv, int zlib)
 	memset(&wr, 0, sizeof(wr));
 	wr.vm = vm;
 	if(omaxcv){
-		wr.omax = omaxcv->val;
+		wr.omax = cvalu(omaxcv);
 		wr.out = emalloc(wr.omax);
 		wr.avail = wr.omax;
 	}else{
@@ -119,15 +119,15 @@ cvinflate(VM *vm, Cval *p, Cval *omaxcv, int zlib)
 
 	/* effectively r = unit(vm, p->dom->as, p->val) */
 	v = callmap(vm, p->dom->as);
-	r = mapstab(vm, v, p->val, 0);	/* FIXME: type sanity */
+	r = mapstab(vm, v, cvalu(p), 0);	/* FIXME: type sanity */
 	if(r == 0)
 		vmerr(vm, "out-of-bounds address space access");
 
 	memset(&getr, 0, sizeof(getr));
 	getr.vm = vm;
 	getr.p = p;
-	getr.off = p->val;
-	getr.lim = r->beg->val+r->len->val-p->val;
+	getr.off = cvalu(p);
+	getr.lim = cvalu(r->beg)+cvalu(r->len)-cvalu(p);
 
 	return doinflate(vm, &getr, omaxcv, zlib);
 }

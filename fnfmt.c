@@ -160,7 +160,7 @@ _fmtctype(Ctype *t, char *o)
 			snprint(buf, m, "%s[]", o);
 		else{
 			cv = valcval(ta->cnt);
-			snprint(buf, m, "%s[%" PRIu64 "]", o, cv->val);
+			snprint(buf, m, "%s[%" PRIu64 "]", o, cvalu(cv));
 		}
 		efree(o);
 		return _fmtctype(subtype(t), buf);
@@ -229,28 +229,28 @@ cval2int(Cval *cv)
 	switch(typerep(t)){
 	case Rs08le:
 	case Rs08be:
-		return (int)(s8)cv->val;
+		return (int)(s8)cvalu(cv);
 	case Rs16le:
 	case Rs16be:
-		return (int)(s16)cv->val;
+		return (int)(s16)cvalu(cv);
 	case Rs32le:
 	case Rs32be:
-		return (int)(s32)cv->val;
+		return (int)(s32)cvalu(cv);
 	case Rs64le:
 	case Rs64be:
-		return (int)(s64)cv->val;
+		return (int)(s64)cvalu(cv);
 	case Ru08le:
 	case Ru08be:
-		return (int)(u8)cv->val;
+		return (int)(u8)cvalu(cv);
 	case Ru16le:
 	case Ru16be:
-		return (int)(u16)cv->val;
+		return (int)(u16)cvalu(cv);
 	case Ru32le:
 	case Ru32be:
-		return (int)(u32)cv->val;
+		return (int)(u32)cvalu(cv);
 	case Ru64le:
 	case Ru64be:
-		return (int)(u64)cv->val;
+		return (int)(u64)cvalu(cv);
 	default:
 		bug();
 	}
@@ -393,12 +393,12 @@ fmtval(VM *vm, Fmt *f, Val val)
 			if(isfloat[cb]){
 				switch(cb){
 				case Vfloat:
-					fv = *(float*)&cv->val;
+					fv = cvalf(cv);
 					snprintf(buf, sizeof(buf), "%f",
 						 (double)fv);
 					break;
 				case Vdouble:
-					dv = *(double*)&cv->val;
+					dv = cvald(cv);
 					snprintf(buf, sizeof(buf), "%f", dv);
 					break;
 				case Vlongdouble:
@@ -408,13 +408,13 @@ fmtval(VM *vm, Fmt *f, Val val)
 				}
 			}else if(isunsigned[cb])
 				snprint(buf, sizeof(buf), "%" PRIu64,
-					cv->val);
+					cvalu(cv));
 			else
 				snprint(buf, sizeof(buf), "%" PRId64,
-					(int64_t)cv->val);
+					(int64_t)cvalu(cv));
 			break;
 		case Tptr:
-			snprint(buf, sizeof(buf), "%" PRIx64, cv->val);
+			snprint(buf, sizeof(buf), "%" PRIx64, cvalu(cv));
 			break;
 		default:
 			fatal("bug");
@@ -531,7 +531,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		r = valrange(val);
  		snprint(buf, sizeof(buf),
 			 "<range 0x%" PRIx64 " 0x%" PRIx64 ">",
-			 r->beg->val, r->len->val);
+			cvalu(r->beg), cvalu(r->len));
 		return fmtputs0(vm, f, buf);
 	case Qcid:
 		id = valcid(val);
@@ -664,42 +664,42 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 	switch(rep){
 	case Ru08le:
 	case Ru08be:
-		snprint(buf, sizeof(buf), fmt, (u8)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u8)cvalu(cv));
 		break;
 	case Rs08le:
 	case Rs08be:
-		snprint(buf, sizeof(buf), fmt, (s8)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s8)cvalu(cv));
 		break;
 	case Ru16le:
 	case Ru16be:
-		snprint(buf, sizeof(buf), fmt, (u16)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u16)cvalu(cv));
 		break;
 	case Rs16le:
 	case Rs16be:
-		snprint(buf, sizeof(buf), fmt, (s16)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s16)cvalu(cv));
 		break;
 	case Ru32le:
 	case Ru32be:
-		snprint(buf, sizeof(buf), fmt, (u32)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u32)cvalu(cv));
 		break;
 	case Rs32le:
 	case Rs32be:
-		snprint(buf, sizeof(buf), fmt, (s32)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s32)cvalu(cv));
 		break;
 	case Ru64le:
 	case Ru64be:
-		snprint(buf, sizeof(buf), fmt, (u64)cv->val);
+		snprint(buf, sizeof(buf), fmt, (u64)cvalu(cv));
 		break;
 	case Rs64le:
 	case Rs64be:
-		snprint(buf, sizeof(buf), fmt, (s64)cv->val);
+		snprint(buf, sizeof(buf), fmt, (s64)cvalu(cv));
 		break;
 	case Rf32:
-		fv = *(float*)&cv->val;
+		fv = cvalf(cv);
 		snprint(buf, sizeof(buf), fmt, fv);
 		break;
 	case Rf64:
-		dv = *(double*)&cv->val;
+		dv = cvald(cv);
 		snprint(buf, sizeof(buf), fmt, dv);
 		break;
 	default:
@@ -730,7 +730,7 @@ fmtenconst(VM *vm, Fmt *f, Cval *cv)
 		/* direct comparison is sane because
 		 * enum consts all have the same
 		 * type */
-		if(cv->val == k->val){
+		if(cvalu(cv) == cvalu(k)){
 			id = valcid(vecref(v, 0));
 			return fmtputs(vm, f, ciddata(id), id->len-1);
 		}
@@ -867,8 +867,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 		case 'c':
 			if(Vkind(vp) != Qcval)
 				goto badarg;
-			cv = valcval(vp);
-			c = cv->val;
+			c = cvalu(valcval(vp));
 			if(xisgraph(c) || xisspace(c))
 				snprint(buf, sizeof(buf), "%c", c);
 			else
@@ -927,8 +926,8 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				cv = valcval(vp);
 				if(!isstrcval(cv))
 					goto badarg;
-				if(cv->val == 0 && ch == 's'
-				   && !ismapped(vm, cv->dom->as, cv->val, 1)){
+				if(cvalu(cv) == 0 && ch == 's'
+				   && !ismapped(vm, cv->dom->as, cvalu(cv), 1)){
 					p = "(null)";
 					len = 6;
 				}else{
@@ -993,7 +992,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			if(Vkind(vq) == Qnil){
 				snprint(buf, sizeof(buf),
-					 "0x%" PRIx64, cv->val);
+					"0x%" PRIx64, cvalu(cv));
 				if(fmtputs(vm, f, buf, strlen(buf)))
 					return;
 				break;
@@ -1015,9 +1014,9 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				       cv->dom->ns->base[Vptr],
 				       valcval(vq));
 			cv = xcvalalu(vm, Isub, cv, cv1);
-			if(cv->val != 0){
+			if(cvalu(cv) != 0){
 				snprint(buf, sizeof(buf),
-					"+0x%" PRIx64, cv->val);
+					"+0x%" PRIx64, cvalu(cv));
 				ys = mkstrn(xs->len-1+strlen(buf));
 				memcpy(strdata(ys), ciddata(xs), xs->len-1);
 				memcpy(strdata(ys)+xs->len-1, buf, strlen(buf));

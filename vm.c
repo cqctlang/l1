@@ -1537,7 +1537,7 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 			vmerr(vm, "attempt to perform %s "
 			      "on a floating point value", opstr[op]);
 		}
-		v->f = f;
+		v.f = f;
 		break;
 	case Vdouble:
 		d = cvald(cv);
@@ -1549,7 +1549,7 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 			vmerr(vm, "attempt to perform %s "
 			      "on a floating point value", opstr[op]);
 		}
-		v->d = d;
+		v.d = d;
 		break;
 	default:
 		bug();
@@ -1587,7 +1587,7 @@ cval:
 		goto out;
 	}
 
-	imm = cv->val;
+	imm = cvalu(cv);
 
 	switch(op){
 	case Ineg:
@@ -1677,7 +1677,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 		if(sz == 0)
 			vmerr(vm, "attempt to subtract pointers to "
 			      "zero-sized objects");
-		n = (op1->val-op2->val)/sz;
+		n = (cvalu(op1)-cvalu(op2))/sz;
 		n = truncimm(n, typerep(t1));
 		/* FIXME: define ptrdiff_t? */
 		return mkcval(litdom, litdom->ns->base[Vlong], n);
@@ -1688,14 +1688,14 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 	if(t1->tkind == Tptr){
 		sub = chasetype(subtype(t1));
 		ptr = op1;
-		n = op2->val;
+		n = cvalu(op2);
 	}else if(op == Isub){
 		vmerr(vm, "invalid right-hand pointer operand to -");
 		return 0; /* not reached */
 	}else{
 		sub = chasetype(subtype(t2));
 		ptr = op2;
-		n = op1->val;
+		n = cvalu(op1);
 	}
 
 	/* special case: sizeof(void)==1 for pointer arith */
@@ -1705,9 +1705,9 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 		sz = typesize(vm, sub);
 	/* FIXME: what about undefined sub types? */
 	if(op == Iadd)
-		n = ptr->val+n*sz;
+		n = cvalu(ptr)+n*sz;
 	else
-		n = ptr->val-n*sz;
+		n = cvalu(ptr)-n*sz;
 	pt = chasetype(ptr->type);
 	n = truncimm(n, typerep(pt));
 	return mkcval(ptr->dom, ptr->type, n);
@@ -1718,7 +1718,7 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 {
 	float f1, f2, fr;
 	double d1, d2, dr;
-	Imm rv;
+	Enc v;
 	Cbase cb;
 
 	cb = typecbase(t1);
@@ -1726,8 +1726,8 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 		bug();
 	switch(cb){
 	case Vfloat:
-		f1 = *(float*)&op1->val;
-		f2 = *(float*)&op2->val;
+		f1 = cvalf(op1);
+		f2 = cvalf(op2);
 		switch(op){
 		case Iadd:
 			fr = ((float)f1+(float)f2);
@@ -1746,11 +1746,11 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 			      "on floating point values",
 			      opstr[op]);
 		}
-		*(float*)&rv = fr;
+		v.f = fr;
 		break;
 	case Vdouble:
-		d1 = *(double*)&op1->val;
-		d2 = *(double*)&op2->val;
+		d1 = cvald(op1);
+		d2 = cvald(op2);
 		switch(op){
 		case Iadd:
 			dr = ((double)d1+(double)d2);
@@ -1769,12 +1769,12 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 			      "on floating point values",
 			      opstr[op]);
 		}
-		*(double*)&rv = dr;
+		v.d = dr;
 		break;
 	default:
 		fatal("bug");
 	}
-	return mkcval(op1->dom, op1->type, rv);
+	return mkcvalenc(op1->dom, op1->type, v);
 }
 
 static Cval*
@@ -1796,8 +1796,8 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 	if(isfloat[b1])
 		return xcvalfpalu(vm, op, op1, op2, t1, t2);
 
-	i1 = op1->val;
-	i2 = op2->val;
+	i1 = cvalu(op1);
+	i2 = cvalu(op2);
 
 	switch(op){
 	case Iadd:
@@ -1863,8 +1863,8 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 	/* no need to rationalize domains */
 	op1 = intpromote(vm, op1);
 	op2 = intpromote(vm, op2);
-	i1 = op1->val;
-	i2 = op2->val;
+	i1 = cvalu(op1);
+	i2 = cvalu(op2);
 	t1 = chasetype(op1->type);
 	t2 = chasetype(op2->type);
 
@@ -1924,8 +1924,8 @@ cvalfpcmp(VM *vm, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 		bug();
 	switch(cb){
 	case Vfloat:
-		f1 = *(float*)&op1->val;
-		f2 = *(float*)&op2->val;
+		f1 = cvalf(op1);
+		f2 = cvalf(op2);
 		if(f1<f2)
 			return -1;
 		else if(f1>f2)
@@ -1933,8 +1933,8 @@ cvalfpcmp(VM *vm, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 		else
 			return 0;
 	case Vdouble:
-		d1 = *(double*)&op1->val;
-		d2 = *(double*)&op2->val;
+		d1 = cvald(op1);
+		d2 = cvald(op2);
 		if(d1<d2)
 			return -1;
 		else if(d1>d2)
@@ -1962,8 +1962,8 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 
 	dompromote(vm, Icmpeq, op1, op2, &op1, &op2);
 	usualconvs(vm, op1, op2, &op1, &op2);
-	i1 = op1->val;
-	i2 = op2->val;
+	i1 = cvalu(op1);
+	i2 = cvalu(op2);
 	t1 = chasetype(op1->type);
 	t2 = chasetype(op2->type);
 	b1 = typecbase(t1);
@@ -2141,7 +2141,7 @@ xclo(VM *vm, Operand *dl, Ctl *label, Operand *dst)
 	   from low to high stack address */
 
 	cv = getcvalrand(vm, dl);
-	len = cv->val;
+	len = cvalu(cv);
 
 	cl = mkcl(vm->cl->code, label->insn, len, label->label);
 	for(m = 0; m < len; m++)
@@ -2191,7 +2191,7 @@ falseval(Val v)
 	switch(Vkind(v)){
 	case Qcval:
 		cv = valcval(v);
-		return cv->val == 0;
+		return cvalu(cv) == 0;
 	case Qnil:
 		return 1;
 	default:
@@ -2249,7 +2249,7 @@ xpushi(VM *vm, Operand *op)
 
 	v = getvalrand(vm, op);
 	cv = valcval(v);
-	vmpushi(vm, cv->val);
+	vmpushi(vm, cvalu(cv));
 }
 
 static void
@@ -2301,13 +2301,13 @@ l1_cref(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Tbitfield: /* bitfield bonus: C wouldn't let you do this */
 		/* construct pointer */
 		pt = mkctypeptr(t, typerep(d->ns->base[Vptr]));
-		imm = truncimm(cv->val, typerep(pt));
+		imm = truncimm(cvalu(cv), typerep(pt));
 		*rv = mkvalcval(d, pt, imm);
 		break;
 	case Tarr:
 		/* construct pointer to first element */
 		pt = mkctypeptr(subtype(t), typerep(d->ns->base[Vptr]));
-		imm = cv->val;
+		imm = cvalu(cv);
 		imm = truncimm(imm, typerep(pt));
 		*rv = mkvalcval(d, pt, imm);
 		break;
@@ -2329,8 +2329,8 @@ dobitfieldgeom(Ctype *t, BFgeom *bfg)
 	b = (Ctypebitfield*)t;
 	bit0 = valcval(b->bit0);
 	bs = valcval(b->cnt);
-	bfg->bp = bit0->val;
-	bfg->bs = bs->val;
+	bfg->bp = cvalu(bit0);
+	bfg->bs = cvalu(bs);
 	bb = chasetype(subtype(t));
 	bfg->isbe = isbigendian[typerep(bb)];
 	return bitfieldgeom(bfg);
@@ -2380,11 +2380,11 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 		switch(Vkind(argv[0])){
 		case Qdom:
 			d = valdom(argv[0]);
-			*rv = mkvalcval(d, subtype(b), cv->val);
+			*rv = mkvalcval(d, subtype(b), cvalu(cv));
 			break;
 		case Qns:
 			d = mkdom(valns(argv[0]), litdom->as, 0);
-			*rv = mkvalcval(d, subtype(b), cv->val);
+			*rv = mkvalcval(d, subtype(b), cvalu(cv));
 			break;
 		default:
 			bug();
@@ -2406,7 +2406,7 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 		}
 		if(0 > dobitfieldgeom(b, &bfg))
 			vmerr(vm, "invalid bitfield access");
-		s = _callget(vm, d->as, cv->val+bfg.addr, bfg.cnt);
+		s = _callget(vm, d->as, cvalu(cv)+bfg.addr, bfg.cnt);
 		imm = bitfieldget(strdata(s), &bfg);
 		/* d, t, and b may have moved */
 		d = valdom(argv[0]);
@@ -2417,7 +2417,7 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Tbase:
 	case Tptr:
 		/* FIXME: check type of cv */
-		s = _callget(vm, d->as, cv->val, typesize(vm, t));
+		s = _callget(vm, d->as, cvalu(cv), typesize(vm, t));
 		/* d and t may have moved */
 		d = valdom(argv[0]);
 		t = valctype(argv[1]);
@@ -2427,7 +2427,7 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Tarr:
 		/* construct pointer to first element */
 		pt = mkctypeptr(subtype(t), typerep(d->ns->base[Vptr]));
-		imm = truncimm(cv->val, typerep(pt));
+		imm = truncimm(cvalu(cv), typerep(pt));
 		*rv = mkvalcval(d, pt, imm);
 		break;
 	case Tvoid:
@@ -2645,8 +2645,8 @@ sasget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "sasget", argv, 1, Qrange);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
-	rb = r->beg->val;
-	rl = r->len->val;
+	rb = cvalu(r->beg);
+	rl = cvalu(r->len);
 	if(!checkrange(0, s->len, rb, rl))
 		vmerr(vm, "address space access out of bounds");
 	*rv = mkvalstr(strslice(s, rb, rb+rl));
@@ -2665,8 +2665,8 @@ sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "sasput", argv, 2, Qstr);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
-	rb = r->beg->val;
-	rl = r->len->val;
+	rb = cvalu(r->beg);
+	rl = cvalu(r->len);
 	if(!checkrange(0, s->len, rb, rl))
 		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
@@ -2707,8 +2707,8 @@ sasismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		vmerr(vm, "wrong number of arguments to ismapped method");
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
-	rb = r->beg->val;
-	rl = r->len->val;
+	rb = cvalu(r->beg);
+	rl = cvalu(r->len);
 	if(!checkrange(0, s->len, rb, rl))
 		*rv = mkvalcval2(cval0);
 	else
@@ -2743,10 +2743,10 @@ masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "masget", argv, 1, Qrange);
 	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
-	rb = r->beg->val;
-	rl = r->len->val;
-	mb = mr->beg->val;
-	ml = mr->len->val;
+	rb = cvalu(r->beg);
+	rl = cvalu(r->len);
+	mb = cvalu(mr->beg);
+	ml = cvalu(mr->len);
 	if(!checkrange(mb, ml, rb, rl))
 		vmerr(vm, "address space access out of bounds");
 	dat = mkstr((char*)(uptr)rb, rl);
@@ -2766,10 +2766,10 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "masput", argv, 2, Qstr);
 	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
-	rb = r->beg->val;
-	rl = r->len->val;
-	mb = mr->beg->val;
-	ml = mr->len->val;
+	rb = cvalu(r->beg);
+	rl = cvalu(r->len);
+	mb = cvalu(mr->beg);
+	ml = cvalu(mr->len);
 	if(!checkrange(mb, ml, rb, rl))
 		vmerr(vm, "address space access out of bounds");
 	dat = valstr(argv[2]);
@@ -2803,10 +2803,10 @@ masismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "ismapped", argv, 1, Qrange);
 	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
-	rb = r->beg->val;
-	rl = r->len->val;
-	mb = mr->beg->val;
-	ml = mr->len->val;
+	rb = cvalu(r->beg);
+	rl = cvalu(r->len);
+	mb = cvalu(mr->beg);
+	ml = cvalu(mr->len);
 	if(!checkrange(mb, ml, rb, rl))
 		*rv = mkvalcval2(cval0);
 	else
@@ -2832,7 +2832,7 @@ mkmas(VM *vm, Range *r, unsigned x)
 	/* check if asked for intersection with managed
 	   range, but *after* any potential heap churn
 	   of this call. */
-	if(x && ismanagedrange((void*)(uptr)r->beg->val, r->len->val))
+	if(x && ismanagedrange((void*)(uptr)cvalu(r->beg), cvalu(r->len)))
 		vmerr(vm, "range includes managed address space");
 	return as;
 }
@@ -3028,7 +3028,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	checkarg(vm, "lookaddr", argv, 1, Qcval);
 	l = vallist(disp[0]);
 	cv = valcval(argv[1]);
-	addr = cv->val;
+	addr = cvalu(cv);
 	n = listlen(l);
 	if(n == 0){
 		*rv = Xnil;
@@ -3036,7 +3036,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	}
 	sym = valvec(listref(vm, l, 0));
 	a = valcval(attroff(vecref(sym, Attrpos)));
-	if(a->val > addr){
+	if(cvalu(a) > addr){
 		*rv = Xnil;
 		return;
 	}
@@ -3050,7 +3050,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 			break;
 		sym = valvec(listref(vm, l, m));
 		a = valcval(attroff(vecref(sym, Attrpos)));
-		if(addr < a->val)
+		if(addr < cvalu(a))
 			n = i;
 		else{
 			b = m;
@@ -3463,9 +3463,9 @@ symcmp(VM *vm, Imm argc, Val *argv, Val *rv)
 	sb = valvec(argv[1]);
 	a = valcval(attroff(vecref(sa, Attrpos)));
 	b = valcval(attroff(vecref(sb, Attrpos)));
-	if(a->val < b->val)
+	if(cvalu(a) < cvalu(b))
 		*rv = mkvalcval2(cvalminus1);
-	else if(a->val > b->val)
+	else if(cvalu(a) > cvalu(b))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
@@ -4012,14 +4012,14 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		LABEL Iargc:
 			val = getvalrand(vm, &i->op1);
 			cv = valcval(val);
-			if(stkimm(vm->stack[vm->fp]) != cv->val)
+			if(stkimm(vm->stack[vm->fp]) != cvalu(cv))
 				vmerr(vm, "wrong number of arguments to %s",
 				      ciddata(vm->cl->id));
 			continue;
 		LABEL Ivargc:
 			val = getvalrand(vm, &i->op1);
 			cv = valcval(val);
-			if(stkimm(vm->stack[vm->fp]) < cv->val)
+			if(stkimm(vm->stack[vm->fp]) < cvalu(cv))
 				vmerr(vm, "insufficient arguments to %s",
 				      ciddata(vm->cl->id));
 			continue;
@@ -4156,7 +4156,7 @@ isnegcval(Cval *cv)
 		return 0;
 	if(isunsigned[typecbase(t)])
 		return 0;
-	return (s64)cv->val < 0;
+	return (s64)cvalu(cv) < 0;
 }
 
 int
@@ -4168,13 +4168,13 @@ isnatcval(Cval *cv)
 		return 0;
 	if(isunsigned[typecbase(t)])
 		return 1;
-	return (s64)cv->val >= 0;
+	return (s64)cvalu(cv) >= 0;
 }
 
 int
 iszerocval(Cval *cv)
 {
-	return cv->val == 0;
+	return cvalu(cv) == 0;
 }
 
 static int
@@ -4487,7 +4487,7 @@ callget(VM *vm, As *as, Imm off, Imm len)
 Str*
 getbytes(VM *vm, Cval *addr, Imm n)
 {
-	return callget(vm, addr->dom->as, addr->val, n);
+	return callget(vm, addr->dom->as, cvalu(addr), n);
 }
 
 Vec*
@@ -4526,9 +4526,9 @@ mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 		if(Vkind(rp) != Qrange)
 			vmerr(vm, "address space map returned invalid value");
 		r = valrange(rp);
-		if(r->beg->val > addr)
+		if(cvalu(r->beg) > addr)
 			return 0;
-		if(r->beg->val+r->len->val >= addr+len)
+		if(cvalu(r->beg)+cvalu(r->len) >= addr+len)
 			return r;
 	}
 	return 0;
@@ -4552,13 +4552,13 @@ stringof(VM *vm, Cval *cv)
 
 	/* effectively a call to unit */
 	v = callmap(vm, cv->dom->as);
-	r = mapstab(vm, v, cv->val, 0);	/* FIXME: type sanity */
+	r = mapstab(vm, v, cvalu(cv), 0);	/* FIXME: type sanity */
 	if(r == 0)
 		vmerr(vm, "address space access out of bounds");
 
 	l = 0;
-	m = r->beg->val+r->len->val-cv->val;
-	o = cv->val;
+	m = cvalu(r->beg)+cvalu(r->len)-cvalu(cv);
+	o = cvalu(cv);
 	buf = 0;
 	n = MIN(m, PAGESZ-o%PAGESZ);
 	if(!ismapped(vm, cv->dom->as, o, 1))
@@ -4592,7 +4592,7 @@ ismapped(VM *vm, As *as, Imm addr, Imm len)
 {
 	Cval *cv;
 	cv = callismapped(vm, as, addr, len);
-	return cv->val != 0;
+	return cvalu(cv) != 0;
 }
 
 static void
@@ -4706,8 +4706,8 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	case Tbase:
 	case Tptr:
 		cv = typecast(vm, t, cv);
-		bytes = imm2str(vm, t, cv->val);
-		callput(vm, d->as, addr->val, typesize(vm, t), bytes);
+		bytes = imm2str(vm, t, cvalu(cv));
+		callput(vm, d->as, cvalu(addr), typesize(vm, t), bytes);
 		*rv = mkvalcval2(cv);
 		break;
 	case Tbitfield:
@@ -4721,13 +4721,13 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 			vmerr(vm, "invalid bitfield access");
 
 		/* get contents of bitfield container */
-		bytes = callget(vm, d->as, addr->val+bfg.addr, bfg.cnt);
+		bytes = callget(vm, d->as, cvalu(addr)+bfg.addr, bfg.cnt);
 
 		/* update bitfield container */
-		imm = bitfieldput(strdata(bytes), &bfg, cv->val);
+		imm = bitfieldput(strdata(bytes), &bfg, cvalu(cv));
 
 		/* put updated bitfield container */
-		callput(vm, d->as, addr->val+bfg.addr, bfg.cnt, bytes);
+		callput(vm, d->as, cvalu(addr)+bfg.addr, bfg.cnt, bytes);
 
 		/* return value of bitfield (not container) */
 		*rv = mkvalcval(d, s, imm);
@@ -4856,7 +4856,7 @@ domkmas(VM *vm, char *fn, Imm argc, Val *argv, Val *rv, unsigned x)
 		checkarg(vm, "mksas", argv, 1, Qcval);
 		p = valcval(argv[0]);
 		l = valcval(argv[1]);
-		if(l->val && p->val+l->val <= p->val)
+		if(cvalu(l) && cvalu(p)+cvalu(l) <= cvalu(p))
 			vmerr(vm, "bad range for %s", fn);
 		r = mkrange(p, l);
 		break;
@@ -4895,7 +4895,7 @@ l1_mkzas(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = chasetype(cv->type);
 	if(t->tkind != Tbase)
 		vmerr(vm, "operand 1 to mkzas must be an integer cvalue");
-	as = mkzas(cv->val);
+	as = mkzas(cvalu(cv));
 	*rv = mkvalas(as);
 }
 
@@ -5253,7 +5253,7 @@ l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm,
 		      "operand 1 to nsreptype must be a namespace or domain");
 	cv = valcval(argv[1]);
-	rep = cv->val;
+	rep = cvalu(cv);
 	if(rep >= Rnrep)
 		vmerr(vm, "invalid representation identifier");
 	for(cb = Vlo; cb < Vnallbase; cb++)
@@ -5337,8 +5337,8 @@ l1_memcpy(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to memcpy must be a pointer");
 	if(!isptrtype(scv->type))
 		vmerr(vm, "operand 2 to memcpy must be a pointer");
-	buf = callget(vm, scv->dom->as, scv->val, ncv->val);
-	callput(vm, dcv->dom->as, dcv->val, ncv->val, buf);
+	buf = callget(vm, scv->dom->as, cvalu(scv), cvalu(ncv));
+	callput(vm, dcv->dom->as, cvalu(dcv), cvalu(ncv), buf);
 	USED(rv);
 }
 
@@ -5387,7 +5387,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 		lim = valcval(argv[2]);
 		if(!isnatcval(lim))
 			vmerr(vm, "split expects a non-negative limit");
-		if(lim->val == 0){
+		if(cvalu(lim) == 0){
 			*rv = mkvallist(r);
 			return;
 		}
@@ -5405,7 +5405,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!mflag){
 		n = 0;
 		q = p;
-		while(q < e && (!lim || n < lim->val)){
+		while(q < e && (!lim || n < cvalu(lim))){
 			if(strchr(set, *q)){
 				listins(vm, r, n++, mkvalstr(mkstr(p, q-p)));
 				p = q+1;
@@ -5419,7 +5419,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 		n = 0;
 		q = p;
 		intok = 0;
-		while(q < e && (!lim || n < lim->val)){
+		while(q < e && (!lim || n < cvalu(lim))){
 			if(strchr(set, *q)){
 				if(intok)
 					listins(vm, r, n++,
@@ -5458,14 +5458,14 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		len = valcval(argv[1]);
 		if(!isnatcval(len))
 			vmerr(vm, "ismapped expects a non-negative length");
-		sz = len->val;
+		sz = cvalu(len);
 	}
 	if(sz == 0){
 		if(!isptrtype(addr->type))
 			vmerr(vm, "ismapped expects a pointer cvalue");
 		sz = typesize(vm, subtype(chasetype(addr->type)));
 	}
-	if(ismapped(vm, addr->dom->as, addr->val, sz))
+	if(ismapped(vm, addr->dom->as, cvalu(addr), sz))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
@@ -5488,7 +5488,7 @@ l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	if(iargc == 2){
 		checkarg(vm, "getbytes", iargv, 1, Qcval);
 		len = valcval(iargv[1]);
-		n = len->val;
+		n = cvalu(len);
 	}else
 		n = typesize(vm, subtype(t));
 	*rv = mkvalstr(getbytes(vm, addr, n));
@@ -5510,7 +5510,7 @@ l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	t = chasetype(addr->type);
 	if(t->tkind != Tptr)
 		vmerr(vm, "operand 1 to putbytes must be a pointer");
-	callput(vm, addr->dom->as, addr->val, str->len, str);
+	callput(vm, addr->dom->as, cvalu(addr), str->len, str);
 	USED(rv);
 }
 
@@ -5607,7 +5607,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "operand 2 to count must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
-		c = (char)cv->val;
+		c = (char)cvalu(cv);
 		str = valstr(argv[0]);
 		len = str->len;
 		for(i = 0; i < len; i++)
@@ -5655,7 +5655,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "operand 2 to index must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
-		c = (char)cv->val;
+		c = (char)cvalu(cv);
 		str = valstr(argv[0]);
 		len = str->len;
 		for(i = 0; i < len; i++)
@@ -5707,7 +5707,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "operand 2 to ismember must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
-		c = (char)cv->val;
+		c = (char)cvalu(cv);
 		str = valstr(argv[0]);
 		len = str->len;
 		for(i = 0; i < len; i++)
@@ -6013,21 +6013,21 @@ l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Cval *g, *tg;
+	u32 g, tg;
 	if(argc == 0)
 		gc(vm);
 	else if(argc == 1){
 		checkarg(vm, "gc", argv, 0, Qcval);
-		g = valcval(argv[0]);
-		dogc(vm, (u32)g->val, (u32)g->val+1);
+		g = cvalu(valcval(argv[0]));
+		dogc(vm, g, g+1);
 	}else if(argc == 2){
 		checkarg(vm, "gc", argv, 0, Qcval);
 		checkarg(vm, "gc", argv, 1, Qcval);
-		g = valcval(argv[0]);
-		tg = valcval(argv[1]);
-		if(g->val != tg->val && g->val != tg->val-1)
+		g = cvalu(valcval(argv[0]));
+		tg = cvalu(valcval(argv[1]));
+		if(g != tg && g != tg-1)
 			vmerr(vm, "invalid arguments to gc");
-		dogc(vm, (u32)g->val, (u32)tg->val);
+		dogc(vm, g, tg);
 	}else
 		vmerr(vm, "wrong number of arguments to gc");
 }
@@ -6523,7 +6523,7 @@ l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to cval2str");
 	checkarg(vm, "cval2str", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	s = imm2str(vm, cv->type, cv->val);
+	s = imm2str(vm, cv->type, cvalu(cv));
 	*rv = mkvalstr(s);
 }
 
@@ -7175,8 +7175,8 @@ cqctvalint8(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint8];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 int16_t
@@ -7189,8 +7189,8 @@ cqctvalint16(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 int32_t
@@ -7203,8 +7203,8 @@ cqctvalint32(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint32];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 int64_t
@@ -7217,8 +7217,8 @@ cqctvalint64(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint64];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 uint8_t
@@ -7231,8 +7231,8 @@ cqctvaluint8(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint8];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 uint16_t
@@ -7245,8 +7245,8 @@ cqctvaluint16(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 uint32_t
@@ -7259,8 +7259,8 @@ cqctvaluint32(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint32];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 uint64_t
@@ -7273,8 +7273,8 @@ cqctvaluint64(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint64];
-	rv = mkcval(litdom, t, rerep(cv->val, cv->type, t));
-	return rv->val;
+	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	return cvalu(rv);
 }
 
 char*

@@ -124,7 +124,7 @@ l1_socket(VM *vm, Imm argc, Val *argv, Val *rv)
 	type = valcval(argv[1]);
 	prot = valcval(argv[2]);
 	memset(&xfd, 0, sizeof(xfd));
-	xfd.fd = socket((int)dom->val, (int)type->val, (int)prot->val);
+	xfd.fd = socket((int)cvalu(dom), (int)cvalu(type), (int)cvalu(prot));
 	if(0 > xfd.fd)
 		vmerr(vm, "socket: %s", strerror(errno));
 	xfd.read = fdread;

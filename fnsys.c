@@ -13,7 +13,7 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	code = 0;
 	if(Vkind(argv[0]) == Qcval){
 		cv = valcval(argv[0]);
-		code = (int)cv->val;
+		code = (int)cvalu(cv);
 	}
 	exit(code);
 }
@@ -42,9 +42,9 @@ l1_waitpid(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "waitpid", argv, 0, Qcval);
 	checkarg(vm, "waitpid", argv, 1, Qcval);
 	cv = valcval(argv[0]);
-	pid = (int)cv->val;
+	pid = (int)cvalu(cv);
 	cv = valcval(argv[1]);
-	opt = (int)cv->val;
+	opt = (int)cvalu(cv);
 	r = waitpid(pid, &stat, opt);
 	if(0 > r)
 		vmerr(vm, "waitpid: %s", strerror(errno));
@@ -132,7 +132,7 @@ l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to randseed must be an integer");
 
 	cv = valcval(arg0);
-	xsrand((long)cv->val);
+	xsrand((long)cvalu(cv));
 }
 
 static void
@@ -149,10 +149,10 @@ l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 1 to randseed must be an integer");
 
 	cv = valcval(arg0);
-	if(cv->val == 0)
+	if(cvalu(cv) == 0)
 		vmerr(vm, "operand to rand must be positive");
 
-	r = nrand((int)cv->val);
+	r = nrand((int)cvalu(cv));
 	*rv = mkvallitcval(Vulong, r);
 }
 
@@ -179,7 +179,7 @@ l1_news(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "news", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		days = cv->val;
+		days = cvalu(cv);
 		lim = time(0)-(time_t)days*24*60*60;
 	}else{
 		snprint(ntpath, sizeof(ntpath), "%s/%s",
@@ -295,11 +295,11 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "too many arguments to syscall");
 	checkarg(vm, "syscall", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	sysn = (int)cv->val;
+	sysn = (int)cvalu(cv);
 	for(i = 1; i < argc; i++){
 		checkarg(vm, "syscall", argv, i, Qcval);
 		cv = valcval(argv[i]);
-		xarg[i-1] = (unsigned long)cv->val;
+		xarg[i-1] = (unsigned long)cvalu(cv);
 	}
 	switch(argc){
 	case 1:

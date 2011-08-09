@@ -387,13 +387,13 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 		p = strdata(bufs);
 	}else{
 		bufp = valcval(argv[2]);
-		p = (char*)(uptr)bufp->val;
+		p = (char*)(uptr)cvalu(bufp);
 	}
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to ioctl on closed file descriptor");
 	if(!issysfd(fd))
 		vmerr(vm, "file descriptor does not support ioctl");
-	r = xioctl(sysfdno(fd), (unsigned long)req->val, p);
+	r = xioctl(sysfdno(fd), (unsigned long)cvalu(req), p);
 	if(r == -1)
 		r = -errno;
 	*rv = mkvallitcval(Vint, r);
@@ -470,7 +470,7 @@ l1_fdopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(strchr(mode, 'w'))
 		flags |= Fwrite;
 	efree(mode);
-	xfd.fd = cfd->val;
+	xfd.fd = cvalu(cfd);
 	snprintf(buf, sizeof(buf), "fd%d", xfd.fd);
 	xfd.read = xfdread;
 	xfd.write = xfdwrite;
@@ -500,15 +500,15 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "attempt to read non-readable file descriptor");
 	if(fd->flags&Ffn){
 		n = valcval(argv[1]);
-		buf = emalloc(n->val);	/* FIXME: check sign, <= SSIZE_MAX */
+		buf = emalloc(cvalu(n));  /* FIXME: check sign, <= SSIZE_MAX */
 		if(!fd->u.fn.read)
 			return;	/* nil */
-		r = fd->u.fn.read(&fd->u.fn, buf, n->val);
+		r = fd->u.fn.read(&fd->u.fn, buf, cvalu(n));
 		if(r == (Imm)-1){
 			setlasterrno(errno);
 			return;		/* nil */
 		}
-		if(n->val > 0 && r == 0)
+		if(cvalu(n) > 0 && r == 0)
 			return;		/* nil */
 		s = mkstrk(buf, r, Smalloc);
 		*rv = mkvalstr(s);
@@ -565,7 +565,7 @@ l1_seek(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "file descriptor does not support seek");
 	off = valcval(argv[1]);
 	wh = valcval(argv[2]);
-	r = xlseek(sysfdno(fd), (long)off->val, (int)wh->val);
+	r = xlseek(sysfdno(fd), (long)cvalu(off), (int)cvalu(wh));
 	if(r == -1)
 		r = -errno;
 	*rv = mkvallitcval(Vlong, r);
@@ -589,7 +589,7 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	flags = 0;
 	if(Vkind(argv[argc-1]) == Qcval){
 		cv = valcval(argv[argc-1]);
-		flags = cv->val;
+		flags = cvalu(cv);
 		argc--;
 		if(argc == 0)
 			vmerr(vm, "wrong number of arguments to popen");
@@ -737,12 +737,12 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(Vkind(v) != Qcval)
 			vmerr(vm, "bad timeout specifier");
 		cv = valcval(v);
-		tv.tv_sec = cv->val;
+		tv.tv_sec = cvalu(cv);
 		v = listref(vm, t, 1);
 		if(Vkind(v) != Qcval)
 			vmerr(vm, "bad timeout specifier");
 		cv = valcval(v);
-		tv.tv_usec = cv->val;
+		tv.tv_usec = cvalu(cv);
 	}
 
 	FD_ZERO(&rfds);
