@@ -348,7 +348,7 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	s = valstrorcval(vm, "strton", argv, 0);
 	if(!parselit(strdata(s), s->len, &lit, radix, &err))
-		*rv = mkvalcval(litdom, litdom->ns->base[lit.base], lit.val);
+		*rv = mkvallitcvalenc(lit.base, lit.v);
 }
 
 void

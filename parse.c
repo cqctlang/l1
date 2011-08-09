@@ -346,13 +346,13 @@ parselit(char *s, unsigned long len, Lit *lit, unsigned radix, char **err)
 		}
 	achar:
 		lit->base = Vchar;
-		lit->val = c;
+		lit->v.u = c;
 		return 0;
 	}
 
 	if(strnchr(s, '.', len)){
 		lit->base = Vdouble;
-		*(double*)&lit->val = strtod(s, 0);
+		lit->v.d = strtod(s, 0);
 		return 0;
 	}
 
@@ -519,7 +519,7 @@ parselit(char *s, unsigned long len, Lit *lit, unsigned radix, char **err)
 		fatal("bug");
 
 	lit->base = base;
-	lit->val = n;
+	lit->v.u = n;
 	return 0;
 }
 
@@ -529,9 +529,10 @@ doconst(U *ctx, char *s, unsigned long len)
 	Lit lit;
 	Expr *e;
 	char *err;
+	lit.base = 0;
 	if(0 != parselit(s, len, &lit, 0, &err))
 		parseerror(ctx, err);
-	e = Zconst(lit.base, lit.val);
+	e = Zkon(mkvallitcvalenc(lit.base, lit.v));
 	putsrc(e, &ctx->inp->src);
 	return e;
 }

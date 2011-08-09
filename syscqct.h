@@ -191,8 +191,16 @@ struct Src {
 } Src;
 
 typedef
+union Enc
+{
+	Imm u;
+	float f;
+	double d;
+} Enc;
+
+typedef
 struct Lit {
-	Imm val;
+	Enc v;
 	Cbase base;
 } Lit;
 
@@ -242,14 +250,6 @@ struct Cid {
 
 #define ciddata(x) ((char*)((x)+1))
 #define cidsize(n) (sizeof(Cid)+(n)*sizeof(char))
-
-typedef
-union Enc
-{
-	Imm u;
-	float f;
-	double d;
-} Enc;
 
 struct Cval {
 	Head hd;
@@ -1033,6 +1033,7 @@ Val		mkvalbox(Val boxed);
 Val		mkvalcval(Dom *dom, Ctype *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
+Val		mkvallitcvalenc(Cbase base, Enc v);
 As*		mkzas(Imm len);
 Code*		newcode(void);
 void		nexterror(VM *vm) NORETURN;

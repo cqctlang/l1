@@ -604,6 +604,12 @@ mkvallitcval(Cbase base, Imm imm)
 }
 
 Val
+mkvallitcvalenc(Cbase base, Enc v)
+{
+	return (Val)mkcvalenc(litdom, litdom->ns->base[base], v);
+}
+
+Val
 mkvalcval2(Cval *cv)
 {
 	return (Val)cv;
@@ -953,59 +959,72 @@ getbeint(char *s, unsigned nb)
 }
 
 // FIXME: don't assume little-endian
-static Imm
-str2imm(VM *vm, Ctype *t, Str *str)
+static Enc
+str2enc(VM *vm, Ctype *t, Str *str)
 {
-	Imm v;
-	float f;
-	double d;
+	Enc v;
 	char *s;
 
 	s = strdata(str);
 	switch(typerep(chasetype(t))){
 	case Rs08le:
-		return *(s8*)s;
+		v.u = *(s8*)s;
+		break;
 	case Rs16le:
-		return *(s16*)s;
+		v.u = *(s16*)s;
+		break;
 	case Rs32le:
-		return *(s32*)s;
+		v.u = *(s32*)s;
+		break;
 	case Rs64le:
-		return *(s64*)s;
+		v.u = *(s64*)s;
+		break;
 	case Ru08le:
-		return *(u8*)s;
+		v.u = *(u8*)s;
+		break;
 	case Ru16le:
-		return *(u16*)s;
+		v.u = *(u16*)s;
+		break;
 	case Ru32le:
-		return *(u32*)s;
+		v.u = *(u32*)s;
+		break;
 	case Ru64le:
-		return *(u64*)s;
+		v.u = *(u64*)s;
+		break;
 	case Ru08be:
-		return (u8)getbeint(s, 1);
+		v.u = (u8)getbeint(s, 1);
+		break;
 	case Ru16be:
-		return (u16)getbeint(s, 2);
+		v.u = (u16)getbeint(s, 2);
+		break;
 	case Ru32be:
-		return (u32)getbeint(s, 4);
+		v.u = (u32)getbeint(s, 4);
+		break;
 	case Ru64be:
-		return (u64)getbeint(s, 8);
+		v.u = (u64)getbeint(s, 8);
+		break;
 	case Rs08be:
-		return (s8)getbeint(s, 1);
+		v.u = (s8)getbeint(s, 1);
+		break;
 	case Rs16be:
-		return (s16)getbeint(s, 2);
+		v.u = (s16)getbeint(s, 2);
+		break;
 	case Rs32be:
-		return (s32)getbeint(s, 4);
+		v.u = (s32)getbeint(s, 4);
+		break;
 	case Rs64be:
-		return (s64)getbeint(s, 8);
+		v.u = (s64)getbeint(s, 8);
+		break;
 	case Rf32:
-		f = *(f32*)s;
-		*(f32*)&v = f;
-		return v;
+		v.f = *(f32*)s;
+		break;
 	case Rf64:
-		d = *(f64*)s;
-		*(f64*)&v = d;
-		return v;
+		v.d = *(f64*)s;
+		break;
 	default:
 		vmerr(vm, "attempt to access memory with incomplete type");
 	}
+	return v;
 }
 
 static void
@@ -1019,105 +1038,101 @@ putbeint(char *p, Imm w, unsigned nb)
 }
 
 static Str*
-imm2str(VM *vm, Ctype *t, Imm imm)
+enc2str(VM *vm, Ctype *t, Enc v)
 {
 	Str *str;
 	char *s;
-	f32 f;
-	f64 d;
 
 	switch(typerep(chasetype(t))){
 	case Rs08le:
 		str = mkstrn(sizeof(s8));
 		s = strdata(str);
-		*(s8*)s = (s8)imm;
+		*(s8*)s = (s8)v.u;
 		return str;
 	case Rs16le:
 		str = mkstrn(sizeof(s16));
 		s = strdata(str);
-		*(s16*)s = (s16)imm;
+		*(s16*)s = (s16)v.u;
 		return str;
 	case Rs32le:
 		str = mkstrn(sizeof(s32));
 		s = strdata(str);
-		*(s32*)s = (s32)imm;
+		*(s32*)s = (s32)v.u;
 		return str;
 	case Rs64le:
 		str = mkstrn(sizeof(s64));
 		s = strdata(str);
-		*(s64*)s = (s64)imm;
+		*(s64*)s = (s64)v.u;
 		return str;
 	case Ru08le:
 		str = mkstrn(sizeof(u8));
 		s = strdata(str);
-		*(u8*)s = (u8)imm;
+		*(u8*)s = (u8)v.u;
 		return str;
 	case Ru16le:
 		str = mkstrn(sizeof(u16));
 		s = strdata(str);
-		*(u16*)s = (u16)imm;
+		*(u16*)s = (u16)v.u;
 		return str;
 	case Ru32le:
 		str = mkstrn(sizeof(u32));
 		s = strdata(str);
-		*(u32*)s = (u32)imm;
+		*(u32*)s = (u32)v.u;
 		return str;
 	case Ru64le:
 		str = mkstrn(sizeof(u64));
 		s = strdata(str);
-		*(u64*)s = (u64)imm;
+		*(u64*)s = (u64)v.u;
 		return str;
 	case Rs08be:
 		str = mkstrn(sizeof(s8));
 		s = strdata(str);
-		putbeint(s, imm, 1);
+		putbeint(s, v.u, 1);
 		return str;
 	case Rs16be:
 		str = mkstrn(sizeof(s16));
 		s = strdata(str);
-		putbeint(s, imm, 2);
+		putbeint(s, v.u, 2);
 		return str;
 	case Rs32be:
 		str = mkstrn(sizeof(s32));
 		s = strdata(str);
-		putbeint(s, imm, 4);
+		putbeint(s, v.u, 4);
 		return str;
 	case Rs64be:
 		str = mkstrn(sizeof(s64));
 		s = strdata(str);
-		putbeint(s, imm, 8);
+		putbeint(s, v.u, 8);
 		return str;
 	case Ru08be:
 		str = mkstrn(sizeof(u8));
 		s = strdata(str);
-		putbeint(s, imm, 1);
+		putbeint(s, v.u, 1);
 		return str;
 	case Ru16be:
 		str = mkstrn(sizeof(u16));
 		s = strdata(str);
-		putbeint(s, imm, 2);
+		putbeint(s, v.u, 2);
 		return str;
 	case Ru32be:
 		str = mkstrn(sizeof(u32));
 		s = strdata(str);
-		putbeint(s, imm, 4);
+		putbeint(s, v.u, 4);
 		return str;
 	case Ru64be:
 		str = mkstrn(sizeof(u64));
 		s = strdata(str);
-		putbeint(s, imm, 8);
+		putbeint(s, v.u, 8);
 		return str;
 	case Rf32:
 		str = mkstrn(sizeof(f32));
 		s = strdata(str);
-		f = *(f32*)&imm;
-		*(f32*)s = f;
+		*(f32*)s = v.f;
 		return str;
 	case Rf64:
 		str = mkstrn(sizeof(f64));
 		s = strdata(str);
-		d = *(f64*)&imm;
-		*(f64*)s = d;
+		*(f64*)s = v.d;
 		return str;
 	case Rundef:
 		vmerr(vm, "attempt to access memory with incomplete type");
@@ -2356,6 +2371,7 @@ static void
 l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Imm imm;
+	Enc v;
 	Dom *d;
 	Ctype *t, *b, *sub, *pt;
 	Cval *cv;
@@ -2419,8 +2435,8 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 		/* d and t may have moved */
 		d = valdom(argv[0]);
 		t = valctype(argv[1]);
-		imm = str2imm(vm, t, s);
-		*rv = mkvalcval(d, t, imm);
+		v = str2enc(vm, t, s);
+		*rv = mkvalcval2(mkcvalenc(d, t, v));
 		break;
 	case Tarr:
 		/* construct pointer to first element */
@@ -4704,7 +4720,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	case Tbase:
 	case Tptr:
 		cv = typecast(vm, t, cv);
-		bytes = imm2str(vm, t, cvalu(cv));
+		bytes = enc2str(vm, t, cvalenc(cv));
 		callput(vm, d->as, cvalu(addr), typesize(vm, t), bytes);
 		*rv = mkvalcval2(cv);
 		break;
@@ -6521,7 +6537,7 @@ l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to cval2str");
 	checkarg(vm, "cval2str", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	s = imm2str(vm, cv->type, cvalu(cv));
+	s = enc2str(vm, cv->type, cvalenc(cv));
 	*rv = mkvalstr(s);
 }
 
