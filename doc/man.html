@@ -9883,6 +9883,34 @@ in microseconds, spent in the L1 collector.
 This section documents various system-level functions.
 </p>
 
+<div class="docitem" id="fn:l1version">
+<div class="proto">
+<div class="function">
+<span class="id">l1version()</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+
+Returns a string describing the L1 system version.
+
+The string has the format
+
+<div class="code">
+<pre>
+<span class="val">"L1 version <span class="arg">commit</span> <span class="arg">date</span>"</span>
+</pre>
+</div>
+
+where <span class="val"><span class="arg">commit</span></span>
+is the version control commit identifier,
+and <span class="val"><span class="arg">date</span></span>
+is the commit date.
+</div>
+</div>
+
 <div class="docitem" id="fn:errno">
 <div class="proto">
 <div class="function">
@@ -11403,6 +11431,7 @@ Prentice Hall, 1988.
 <a href="#fn:isvoid">isvoid</a><br />
 <a href="#fn:isweakpair">isweakpair</a><br />
 <a href="#fn:isxdigit">isxdigit</a><br />
+<a href="#fn:l1version">l1version</a><br />
 <a href="#fn:length">length</a><br />
 <a href="#fn:list">list</a><br />
 <a href="#fn:listdel">listdel</a><br />
