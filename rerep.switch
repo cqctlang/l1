@@ -1,1044 +1,972 @@
 case (Ru08le<<5)|Ru08le:
-	val = (u8)(u8)val;
+	v.u = (u8)(u8)v.u;
 	break;
 case (Ru08le<<5)|Ru16le:
-	val = (u8)(u16)val;
+	v.u = (u8)(u16)v.u;
 	break;
 case (Ru08le<<5)|Ru32le:
-	val = (u8)(u32)val;
+	v.u = (u8)(u32)v.u;
 	break;
 case (Ru08le<<5)|Ru64le:
-	val = (u8)(u64)val;
+	v.u = (u8)(u64)v.u;
 	break;
 case (Ru08le<<5)|Rs08le:
-	val = (u8)(s8)val;
+	v.u = (u8)(s8)v.u;
 	break;
 case (Ru08le<<5)|Rs16le:
-	val = (u8)(s16)val;
+	v.u = (u8)(s16)v.u;
 	break;
 case (Ru08le<<5)|Rs32le:
-	val = (u8)(s32)val;
+	v.u = (u8)(s32)v.u;
 	break;
 case (Ru08le<<5)|Rs64le:
-	val = (u8)(s64)val;
+	v.u = (u8)(s64)v.u;
 	break;
 case (Ru08le<<5)|Ru08be:
-	val = (u8)(u8)val;
+	v.u = (u8)(u8)v.u;
 	break;
 case (Ru08le<<5)|Ru16be:
-	val = (u8)(u16)val;
+	v.u = (u8)(u16)v.u;
 	break;
 case (Ru08le<<5)|Ru32be:
-	val = (u8)(u32)val;
+	v.u = (u8)(u32)v.u;
 	break;
 case (Ru08le<<5)|Ru64be:
-	val = (u8)(u64)val;
+	v.u = (u8)(u64)v.u;
 	break;
 case (Ru08le<<5)|Rs08be:
-	val = (u8)(s8)val;
+	v.u = (u8)(s8)v.u;
 	break;
 case (Ru08le<<5)|Rs16be:
-	val = (u8)(s16)val;
+	v.u = (u8)(s16)v.u;
 	break;
 case (Ru08le<<5)|Rs32be:
-	val = (u8)(s32)val;
+	v.u = (u8)(s32)v.u;
 	break;
 case (Ru08le<<5)|Rs64be:
-	val = (u8)(s64)val;
+	v.u = (u8)(s64)v.u;
 	break;
 case (Ru16le<<5)|Ru08le:
-	val = (u16)(u8)val;
+	v.u = (u16)(u8)v.u;
 	break;
 case (Ru16le<<5)|Ru16le:
-	val = (u16)(u16)val;
+	v.u = (u16)(u16)v.u;
 	break;
 case (Ru16le<<5)|Ru32le:
-	val = (u16)(u32)val;
+	v.u = (u16)(u32)v.u;
 	break;
 case (Ru16le<<5)|Ru64le:
-	val = (u16)(u64)val;
+	v.u = (u16)(u64)v.u;
 	break;
 case (Ru16le<<5)|Rs08le:
-	val = (u16)(s8)val;
+	v.u = (u16)(s8)v.u;
 	break;
 case (Ru16le<<5)|Rs16le:
-	val = (u16)(s16)val;
+	v.u = (u16)(s16)v.u;
 	break;
 case (Ru16le<<5)|Rs32le:
-	val = (u16)(s32)val;
+	v.u = (u16)(s32)v.u;
 	break;
 case (Ru16le<<5)|Rs64le:
-	val = (u16)(s64)val;
+	v.u = (u16)(s64)v.u;
 	break;
 case (Ru16le<<5)|Ru08be:
-	val = (u16)(u8)val;
+	v.u = (u16)(u8)v.u;
 	break;
 case (Ru16le<<5)|Ru16be:
-	val = (u16)(u16)val;
+	v.u = (u16)(u16)v.u;
 	break;
 case (Ru16le<<5)|Ru32be:
-	val = (u16)(u32)val;
+	v.u = (u16)(u32)v.u;
 	break;
 case (Ru16le<<5)|Ru64be:
-	val = (u16)(u64)val;
+	v.u = (u16)(u64)v.u;
 	break;
 case (Ru16le<<5)|Rs08be:
-	val = (u16)(s8)val;
+	v.u = (u16)(s8)v.u;
 	break;
 case (Ru16le<<5)|Rs16be:
-	val = (u16)(s16)val;
+	v.u = (u16)(s16)v.u;
 	break;
 case (Ru16le<<5)|Rs32be:
-	val = (u16)(s32)val;
+	v.u = (u16)(s32)v.u;
 	break;
 case (Ru16le<<5)|Rs64be:
-	val = (u16)(s64)val;
+	v.u = (u16)(s64)v.u;
 	break;
 case (Ru32le<<5)|Ru08le:
-	val = (u32)(u8)val;
+	v.u = (u32)(u8)v.u;
 	break;
 case (Ru32le<<5)|Ru16le:
-	val = (u32)(u16)val;
+	v.u = (u32)(u16)v.u;
 	break;
 case (Ru32le<<5)|Ru32le:
-	val = (u32)(u32)val;
+	v.u = (u32)(u32)v.u;
 	break;
 case (Ru32le<<5)|Ru64le:
-	val = (u32)(u64)val;
+	v.u = (u32)(u64)v.u;
 	break;
 case (Ru32le<<5)|Rs08le:
-	val = (u32)(s8)val;
+	v.u = (u32)(s8)v.u;
 	break;
 case (Ru32le<<5)|Rs16le:
-	val = (u32)(s16)val;
+	v.u = (u32)(s16)v.u;
 	break;
 case (Ru32le<<5)|Rs32le:
-	val = (u32)(s32)val;
+	v.u = (u32)(s32)v.u;
 	break;
 case (Ru32le<<5)|Rs64le:
-	val = (u32)(s64)val;
+	v.u = (u32)(s64)v.u;
 	break;
 case (Ru32le<<5)|Ru08be:
-	val = (u32)(u8)val;
+	v.u = (u32)(u8)v.u;
 	break;
 case (Ru32le<<5)|Ru16be:
-	val = (u32)(u16)val;
+	v.u = (u32)(u16)v.u;
 	break;
 case (Ru32le<<5)|Ru32be:
-	val = (u32)(u32)val;
+	v.u = (u32)(u32)v.u;
 	break;
 case (Ru32le<<5)|Ru64be:
-	val = (u32)(u64)val;
+	v.u = (u32)(u64)v.u;
 	break;
 case (Ru32le<<5)|Rs08be:
-	val = (u32)(s8)val;
+	v.u = (u32)(s8)v.u;
 	break;
 case (Ru32le<<5)|Rs16be:
-	val = (u32)(s16)val;
+	v.u = (u32)(s16)v.u;
 	break;
 case (Ru32le<<5)|Rs32be:
-	val = (u32)(s32)val;
+	v.u = (u32)(s32)v.u;
 	break;
 case (Ru32le<<5)|Rs64be:
-	val = (u32)(s64)val;
+	v.u = (u32)(s64)v.u;
 	break;
 case (Ru64le<<5)|Ru08le:
-	val = (u64)(u8)val;
+	v.u = (u64)(u8)v.u;
 	break;
 case (Ru64le<<5)|Ru16le:
-	val = (u64)(u16)val;
+	v.u = (u64)(u16)v.u;
 	break;
 case (Ru64le<<5)|Ru32le:
-	val = (u64)(u32)val;
+	v.u = (u64)(u32)v.u;
 	break;
 case (Ru64le<<5)|Ru64le:
-	val = (u64)(u64)val;
+	v.u = (u64)(u64)v.u;
 	break;
 case (Ru64le<<5)|Rs08le:
-	val = (u64)(s8)val;
+	v.u = (u64)(s8)v.u;
 	break;
 case (Ru64le<<5)|Rs16le:
-	val = (u64)(s16)val;
+	v.u = (u64)(s16)v.u;
 	break;
 case (Ru64le<<5)|Rs32le:
-	val = (u64)(s32)val;
+	v.u = (u64)(s32)v.u;
 	break;
 case (Ru64le<<5)|Rs64le:
-	val = (u64)(s64)val;
+	v.u = (u64)(s64)v.u;
 	break;
 case (Ru64le<<5)|Ru08be:
-	val = (u64)(u8)val;
+	v.u = (u64)(u8)v.u;
 	break;
 case (Ru64le<<5)|Ru16be:
-	val = (u64)(u16)val;
+	v.u = (u64)(u16)v.u;
 	break;
 case (Ru64le<<5)|Ru32be:
-	val = (u64)(u32)val;
+	v.u = (u64)(u32)v.u;
 	break;
 case (Ru64le<<5)|Ru64be:
-	val = (u64)(u64)val;
+	v.u = (u64)(u64)v.u;
 	break;
 case (Ru64le<<5)|Rs08be:
-	val = (u64)(s8)val;
+	v.u = (u64)(s8)v.u;
 	break;
 case (Ru64le<<5)|Rs16be:
-	val = (u64)(s16)val;
+	v.u = (u64)(s16)v.u;
 	break;
 case (Ru64le<<5)|Rs32be:
-	val = (u64)(s32)val;
+	v.u = (u64)(s32)v.u;
 	break;
 case (Ru64le<<5)|Rs64be:
-	val = (u64)(s64)val;
+	v.u = (u64)(s64)v.u;
 	break;
 case (Rs08le<<5)|Ru08le:
-	val = (s8)(u8)val;
+	v.u = (s8)(u8)v.u;
 	break;
 case (Rs08le<<5)|Ru16le:
-	val = (s8)(u16)val;
+	v.u = (s8)(u16)v.u;
 	break;
 case (Rs08le<<5)|Ru32le:
-	val = (s8)(u32)val;
+	v.u = (s8)(u32)v.u;
 	break;
 case (Rs08le<<5)|Ru64le:
-	val = (s8)(u64)val;
+	v.u = (s8)(u64)v.u;
 	break;
 case (Rs08le<<5)|Rs08le:
-	val = (s8)(s8)val;
+	v.u = (s8)(s8)v.u;
 	break;
 case (Rs08le<<5)|Rs16le:
-	val = (s8)(s16)val;
+	v.u = (s8)(s16)v.u;
 	break;
 case (Rs08le<<5)|Rs32le:
-	val = (s8)(s32)val;
+	v.u = (s8)(s32)v.u;
 	break;
 case (Rs08le<<5)|Rs64le:
-	val = (s8)(s64)val;
+	v.u = (s8)(s64)v.u;
 	break;
 case (Rs08le<<5)|Ru08be:
-	val = (s8)(u8)val;
+	v.u = (s8)(u8)v.u;
 	break;
 case (Rs08le<<5)|Ru16be:
-	val = (s8)(u16)val;
+	v.u = (s8)(u16)v.u;
 	break;
 case (Rs08le<<5)|Ru32be:
-	val = (s8)(u32)val;
+	v.u = (s8)(u32)v.u;
 	break;
 case (Rs08le<<5)|Ru64be:
-	val = (s8)(u64)val;
+	v.u = (s8)(u64)v.u;
 	break;
 case (Rs08le<<5)|Rs08be:
-	val = (s8)(s8)val;
+	v.u = (s8)(s8)v.u;
 	break;
 case (Rs08le<<5)|Rs16be:
-	val = (s8)(s16)val;
+	v.u = (s8)(s16)v.u;
 	break;
 case (Rs08le<<5)|Rs32be:
-	val = (s8)(s32)val;
+	v.u = (s8)(s32)v.u;
 	break;
 case (Rs08le<<5)|Rs64be:
-	val = (s8)(s64)val;
+	v.u = (s8)(s64)v.u;
 	break;
 case (Rs16le<<5)|Ru08le:
-	val = (s16)(u8)val;
+	v.u = (s16)(u8)v.u;
 	break;
 case (Rs16le<<5)|Ru16le:
-	val = (s16)(u16)val;
+	v.u = (s16)(u16)v.u;
 	break;
 case (Rs16le<<5)|Ru32le:
-	val = (s16)(u32)val;
+	v.u = (s16)(u32)v.u;
 	break;
 case (Rs16le<<5)|Ru64le:
-	val = (s16)(u64)val;
+	v.u = (s16)(u64)v.u;
 	break;
 case (Rs16le<<5)|Rs08le:
-	val = (s16)(s8)val;
+	v.u = (s16)(s8)v.u;
 	break;
 case (Rs16le<<5)|Rs16le:
-	val = (s16)(s16)val;
+	v.u = (s16)(s16)v.u;
 	break;
 case (Rs16le<<5)|Rs32le:
-	val = (s16)(s32)val;
+	v.u = (s16)(s32)v.u;
 	break;
 case (Rs16le<<5)|Rs64le:
-	val = (s16)(s64)val;
+	v.u = (s16)(s64)v.u;
 	break;
 case (Rs16le<<5)|Ru08be:
-	val = (s16)(u8)val;
+	v.u = (s16)(u8)v.u;
 	break;
 case (Rs16le<<5)|Ru16be:
-	val = (s16)(u16)val;
+	v.u = (s16)(u16)v.u;
 	break;
 case (Rs16le<<5)|Ru32be:
-	val = (s16)(u32)val;
+	v.u = (s16)(u32)v.u;
 	break;
 case (Rs16le<<5)|Ru64be:
-	val = (s16)(u64)val;
+	v.u = (s16)(u64)v.u;
 	break;
 case (Rs16le<<5)|Rs08be:
-	val = (s16)(s8)val;
+	v.u = (s16)(s8)v.u;
 	break;
 case (Rs16le<<5)|Rs16be:
-	val = (s16)(s16)val;
+	v.u = (s16)(s16)v.u;
 	break;
 case (Rs16le<<5)|Rs32be:
-	val = (s16)(s32)val;
+	v.u = (s16)(s32)v.u;
 	break;
 case (Rs16le<<5)|Rs64be:
-	val = (s16)(s64)val;
+	v.u = (s16)(s64)v.u;
 	break;
 case (Rs32le<<5)|Ru08le:
-	val = (s32)(u8)val;
+	v.u = (s32)(u8)v.u;
 	break;
 case (Rs32le<<5)|Ru16le:
-	val = (s32)(u16)val;
+	v.u = (s32)(u16)v.u;
 	break;
 case (Rs32le<<5)|Ru32le:
-	val = (s32)(u32)val;
+	v.u = (s32)(u32)v.u;
 	break;
 case (Rs32le<<5)|Ru64le:
-	val = (s32)(u64)val;
+	v.u = (s32)(u64)v.u;
 	break;
 case (Rs32le<<5)|Rs08le:
-	val = (s32)(s8)val;
+	v.u = (s32)(s8)v.u;
 	break;
 case (Rs32le<<5)|Rs16le:
-	val = (s32)(s16)val;
+	v.u = (s32)(s16)v.u;
 	break;
 case (Rs32le<<5)|Rs32le:
-	val = (s32)(s32)val;
+	v.u = (s32)(s32)v.u;
 	break;
 case (Rs32le<<5)|Rs64le:
-	val = (s32)(s64)val;
+	v.u = (s32)(s64)v.u;
 	break;
 case (Rs32le<<5)|Ru08be:
-	val = (s32)(u8)val;
+	v.u = (s32)(u8)v.u;
 	break;
 case (Rs32le<<5)|Ru16be:
-	val = (s32)(u16)val;
+	v.u = (s32)(u16)v.u;
 	break;
 case (Rs32le<<5)|Ru32be:
-	val = (s32)(u32)val;
+	v.u = (s32)(u32)v.u;
 	break;
 case (Rs32le<<5)|Ru64be:
-	val = (s32)(u64)val;
+	v.u = (s32)(u64)v.u;
 	break;
 case (Rs32le<<5)|Rs08be:
-	val = (s32)(s8)val;
+	v.u = (s32)(s8)v.u;
 	break;
 case (Rs32le<<5)|Rs16be:
-	val = (s32)(s16)val;
+	v.u = (s32)(s16)v.u;
 	break;
 case (Rs32le<<5)|Rs32be:
-	val = (s32)(s32)val;
+	v.u = (s32)(s32)v.u;
 	break;
 case (Rs32le<<5)|Rs64be:
-	val = (s32)(s64)val;
+	v.u = (s32)(s64)v.u;
 	break;
 case (Rs64le<<5)|Ru08le:
-	val = (s64)(u8)val;
+	v.u = (s64)(u8)v.u;
 	break;
 case (Rs64le<<5)|Ru16le:
-	val = (s64)(u16)val;
+	v.u = (s64)(u16)v.u;
 	break;
 case (Rs64le<<5)|Ru32le:
-	val = (s64)(u32)val;
+	v.u = (s64)(u32)v.u;
 	break;
 case (Rs64le<<5)|Ru64le:
-	val = (s64)(u64)val;
+	v.u = (s64)(u64)v.u;
 	break;
 case (Rs64le<<5)|Rs08le:
-	val = (s64)(s8)val;
+	v.u = (s64)(s8)v.u;
 	break;
 case (Rs64le<<5)|Rs16le:
-	val = (s64)(s16)val;
+	v.u = (s64)(s16)v.u;
 	break;
 case (Rs64le<<5)|Rs32le:
-	val = (s64)(s32)val;
+	v.u = (s64)(s32)v.u;
 	break;
 case (Rs64le<<5)|Rs64le:
-	val = (s64)(s64)val;
+	v.u = (s64)(s64)v.u;
 	break;
 case (Rs64le<<5)|Ru08be:
-	val = (s64)(u8)val;
+	v.u = (s64)(u8)v.u;
 	break;
 case (Rs64le<<5)|Ru16be:
-	val = (s64)(u16)val;
+	v.u = (s64)(u16)v.u;
 	break;
 case (Rs64le<<5)|Ru32be:
-	val = (s64)(u32)val;
+	v.u = (s64)(u32)v.u;
 	break;
 case (Rs64le<<5)|Ru64be:
-	val = (s64)(u64)val;
+	v.u = (s64)(u64)v.u;
 	break;
 case (Rs64le<<5)|Rs08be:
-	val = (s64)(s8)val;
+	v.u = (s64)(s8)v.u;
 	break;
 case (Rs64le<<5)|Rs16be:
-	val = (s64)(s16)val;
+	v.u = (s64)(s16)v.u;
 	break;
 case (Rs64le<<5)|Rs32be:
-	val = (s64)(s32)val;
+	v.u = (s64)(s32)v.u;
 	break;
 case (Rs64le<<5)|Rs64be:
-	val = (s64)(s64)val;
+	v.u = (s64)(s64)v.u;
 	break;
 case (Ru08be<<5)|Ru08le:
-	val = (u8)(u8)val;
+	v.u = (u8)(u8)v.u;
 	break;
 case (Ru08be<<5)|Ru16le:
-	val = (u8)(u16)val;
+	v.u = (u8)(u16)v.u;
 	break;
 case (Ru08be<<5)|Ru32le:
-	val = (u8)(u32)val;
+	v.u = (u8)(u32)v.u;
 	break;
 case (Ru08be<<5)|Ru64le:
-	val = (u8)(u64)val;
+	v.u = (u8)(u64)v.u;
 	break;
 case (Ru08be<<5)|Rs08le:
-	val = (u8)(s8)val;
+	v.u = (u8)(s8)v.u;
 	break;
 case (Ru08be<<5)|Rs16le:
-	val = (u8)(s16)val;
+	v.u = (u8)(s16)v.u;
 	break;
 case (Ru08be<<5)|Rs32le:
-	val = (u8)(s32)val;
+	v.u = (u8)(s32)v.u;
 	break;
 case (Ru08be<<5)|Rs64le:
-	val = (u8)(s64)val;
+	v.u = (u8)(s64)v.u;
 	break;
 case (Ru08be<<5)|Ru08be:
-	val = (u8)(u8)val;
+	v.u = (u8)(u8)v.u;
 	break;
 case (Ru08be<<5)|Ru16be:
-	val = (u8)(u16)val;
+	v.u = (u8)(u16)v.u;
 	break;
 case (Ru08be<<5)|Ru32be:
-	val = (u8)(u32)val;
+	v.u = (u8)(u32)v.u;
 	break;
 case (Ru08be<<5)|Ru64be:
-	val = (u8)(u64)val;
+	v.u = (u8)(u64)v.u;
 	break;
 case (Ru08be<<5)|Rs08be:
-	val = (u8)(s8)val;
+	v.u = (u8)(s8)v.u;
 	break;
 case (Ru08be<<5)|Rs16be:
-	val = (u8)(s16)val;
+	v.u = (u8)(s16)v.u;
 	break;
 case (Ru08be<<5)|Rs32be:
-	val = (u8)(s32)val;
+	v.u = (u8)(s32)v.u;
 	break;
 case (Ru08be<<5)|Rs64be:
-	val = (u8)(s64)val;
+	v.u = (u8)(s64)v.u;
 	break;
 case (Ru16be<<5)|Ru08le:
-	val = (u16)(u8)val;
+	v.u = (u16)(u8)v.u;
 	break;
 case (Ru16be<<5)|Ru16le:
-	val = (u16)(u16)val;
+	v.u = (u16)(u16)v.u;
 	break;
 case (Ru16be<<5)|Ru32le:
-	val = (u16)(u32)val;
+	v.u = (u16)(u32)v.u;
 	break;
 case (Ru16be<<5)|Ru64le:
-	val = (u16)(u64)val;
+	v.u = (u16)(u64)v.u;
 	break;
 case (Ru16be<<5)|Rs08le:
-	val = (u16)(s8)val;
+	v.u = (u16)(s8)v.u;
 	break;
 case (Ru16be<<5)|Rs16le:
-	val = (u16)(s16)val;
+	v.u = (u16)(s16)v.u;
 	break;
 case (Ru16be<<5)|Rs32le:
-	val = (u16)(s32)val;
+	v.u = (u16)(s32)v.u;
 	break;
 case (Ru16be<<5)|Rs64le:
-	val = (u16)(s64)val;
+	v.u = (u16)(s64)v.u;
 	break;
 case (Ru16be<<5)|Ru08be:
-	val = (u16)(u8)val;
+	v.u = (u16)(u8)v.u;
 	break;
 case (Ru16be<<5)|Ru16be:
-	val = (u16)(u16)val;
+	v.u = (u16)(u16)v.u;
 	break;
 case (Ru16be<<5)|Ru32be:
-	val = (u16)(u32)val;
+	v.u = (u16)(u32)v.u;
 	break;
 case (Ru16be<<5)|Ru64be:
-	val = (u16)(u64)val;
+	v.u = (u16)(u64)v.u;
 	break;
 case (Ru16be<<5)|Rs08be:
-	val = (u16)(s8)val;
+	v.u = (u16)(s8)v.u;
 	break;
 case (Ru16be<<5)|Rs16be:
-	val = (u16)(s16)val;
+	v.u = (u16)(s16)v.u;
 	break;
 case (Ru16be<<5)|Rs32be:
-	val = (u16)(s32)val;
+	v.u = (u16)(s32)v.u;
 	break;
 case (Ru16be<<5)|Rs64be:
-	val = (u16)(s64)val;
+	v.u = (u16)(s64)v.u;
 	break;
 case (Ru32be<<5)|Ru08le:
-	val = (u32)(u8)val;
+	v.u = (u32)(u8)v.u;
 	break;
 case (Ru32be<<5)|Ru16le:
-	val = (u32)(u16)val;
+	v.u = (u32)(u16)v.u;
 	break;
 case (Ru32be<<5)|Ru32le:
-	val = (u32)(u32)val;
+	v.u = (u32)(u32)v.u;
 	break;
 case (Ru32be<<5)|Ru64le:
-	val = (u32)(u64)val;
+	v.u = (u32)(u64)v.u;
 	break;
 case (Ru32be<<5)|Rs08le:
-	val = (u32)(s8)val;
+	v.u = (u32)(s8)v.u;
 	break;
 case (Ru32be<<5)|Rs16le:
-	val = (u32)(s16)val;
+	v.u = (u32)(s16)v.u;
 	break;
 case (Ru32be<<5)|Rs32le:
-	val = (u32)(s32)val;
+	v.u = (u32)(s32)v.u;
 	break;
 case (Ru32be<<5)|Rs64le:
-	val = (u32)(s64)val;
+	v.u = (u32)(s64)v.u;
 	break;
 case (Ru32be<<5)|Ru08be:
-	val = (u32)(u8)val;
+	v.u = (u32)(u8)v.u;
 	break;
 case (Ru32be<<5)|Ru16be:
-	val = (u32)(u16)val;
+	v.u = (u32)(u16)v.u;
 	break;
 case (Ru32be<<5)|Ru32be:
-	val = (u32)(u32)val;
+	v.u = (u32)(u32)v.u;
 	break;
 case (Ru32be<<5)|Ru64be:
-	val = (u32)(u64)val;
+	v.u = (u32)(u64)v.u;
 	break;
 case (Ru32be<<5)|Rs08be:
-	val = (u32)(s8)val;
+	v.u = (u32)(s8)v.u;
 	break;
 case (Ru32be<<5)|Rs16be:
-	val = (u32)(s16)val;
+	v.u = (u32)(s16)v.u;
 	break;
 case (Ru32be<<5)|Rs32be:
-	val = (u32)(s32)val;
+	v.u = (u32)(s32)v.u;
 	break;
 case (Ru32be<<5)|Rs64be:
-	val = (u32)(s64)val;
+	v.u = (u32)(s64)v.u;
 	break;
 case (Ru64be<<5)|Ru08le:
-	val = (u64)(u8)val;
+	v.u = (u64)(u8)v.u;
 	break;
 case (Ru64be<<5)|Ru16le:
-	val = (u64)(u16)val;
+	v.u = (u64)(u16)v.u;
 	break;
 case (Ru64be<<5)|Ru32le:
-	val = (u64)(u32)val;
+	v.u = (u64)(u32)v.u;
 	break;
 case (Ru64be<<5)|Ru64le:
-	val = (u64)(u64)val;
+	v.u = (u64)(u64)v.u;
 	break;
 case (Ru64be<<5)|Rs08le:
-	val = (u64)(s8)val;
+	v.u = (u64)(s8)v.u;
 	break;
 case (Ru64be<<5)|Rs16le:
-	val = (u64)(s16)val;
+	v.u = (u64)(s16)v.u;
 	break;
 case (Ru64be<<5)|Rs32le:
-	val = (u64)(s32)val;
+	v.u = (u64)(s32)v.u;
 	break;
 case (Ru64be<<5)|Rs64le:
-	val = (u64)(s64)val;
+	v.u = (u64)(s64)v.u;
 	break;
 case (Ru64be<<5)|Ru08be:
-	val = (u64)(u8)val;
+	v.u = (u64)(u8)v.u;
 	break;
 case (Ru64be<<5)|Ru16be:
-	val = (u64)(u16)val;
+	v.u = (u64)(u16)v.u;
 	break;
 case (Ru64be<<5)|Ru32be:
-	val = (u64)(u32)val;
+	v.u = (u64)(u32)v.u;
 	break;
 case (Ru64be<<5)|Ru64be:
-	val = (u64)(u64)val;
+	v.u = (u64)(u64)v.u;
 	break;
 case (Ru64be<<5)|Rs08be:
-	val = (u64)(s8)val;
+	v.u = (u64)(s8)v.u;
 	break;
 case (Ru64be<<5)|Rs16be:
-	val = (u64)(s16)val;
+	v.u = (u64)(s16)v.u;
 	break;
 case (Ru64be<<5)|Rs32be:
-	val = (u64)(s32)val;
+	v.u = (u64)(s32)v.u;
 	break;
 case (Ru64be<<5)|Rs64be:
-	val = (u64)(s64)val;
+	v.u = (u64)(s64)v.u;
 	break;
 case (Rs08be<<5)|Ru08le:
-	val = (s8)(u8)val;
+	v.u = (s8)(u8)v.u;
 	break;
 case (Rs08be<<5)|Ru16le:
-	val = (s8)(u16)val;
+	v.u = (s8)(u16)v.u;
 	break;
 case (Rs08be<<5)|Ru32le:
-	val = (s8)(u32)val;
+	v.u = (s8)(u32)v.u;
 	break;
 case (Rs08be<<5)|Ru64le:
-	val = (s8)(u64)val;
+	v.u = (s8)(u64)v.u;
 	break;
 case (Rs08be<<5)|Rs08le:
-	val = (s8)(s8)val;
+	v.u = (s8)(s8)v.u;
 	break;
 case (Rs08be<<5)|Rs16le:
-	val = (s8)(s16)val;
+	v.u = (s8)(s16)v.u;
 	break;
 case (Rs08be<<5)|Rs32le:
-	val = (s8)(s32)val;
+	v.u = (s8)(s32)v.u;
 	break;
 case (Rs08be<<5)|Rs64le:
-	val = (s8)(s64)val;
+	v.u = (s8)(s64)v.u;
 	break;
 case (Rs08be<<5)|Ru08be:
-	val = (s8)(u8)val;
+	v.u = (s8)(u8)v.u;
 	break;
 case (Rs08be<<5)|Ru16be:
-	val = (s8)(u16)val;
+	v.u = (s8)(u16)v.u;
 	break;
 case (Rs08be<<5)|Ru32be:
-	val = (s8)(u32)val;
+	v.u = (s8)(u32)v.u;
 	break;
 case (Rs08be<<5)|Ru64be:
-	val = (s8)(u64)val;
+	v.u = (s8)(u64)v.u;
 	break;
 case (Rs08be<<5)|Rs08be:
-	val = (s8)(s8)val;
+	v.u = (s8)(s8)v.u;
 	break;
 case (Rs08be<<5)|Rs16be:
-	val = (s8)(s16)val;
+	v.u = (s8)(s16)v.u;
 	break;
 case (Rs08be<<5)|Rs32be:
-	val = (s8)(s32)val;
+	v.u = (s8)(s32)v.u;
 	break;
 case (Rs08be<<5)|Rs64be:
-	val = (s8)(s64)val;
+	v.u = (s8)(s64)v.u;
 	break;
 case (Rs16be<<5)|Ru08le:
-	val = (s16)(u8)val;
+	v.u = (s16)(u8)v.u;
 	break;
 case (Rs16be<<5)|Ru16le:
-	val = (s16)(u16)val;
+	v.u = (s16)(u16)v.u;
 	break;
 case (Rs16be<<5)|Ru32le:
-	val = (s16)(u32)val;
+	v.u = (s16)(u32)v.u;
 	break;
 case (Rs16be<<5)|Ru64le:
-	val = (s16)(u64)val;
+	v.u = (s16)(u64)v.u;
 	break;
 case (Rs16be<<5)|Rs08le:
-	val = (s16)(s8)val;
+	v.u = (s16)(s8)v.u;
 	break;
 case (Rs16be<<5)|Rs16le:
-	val = (s16)(s16)val;
+	v.u = (s16)(s16)v.u;
 	break;
 case (Rs16be<<5)|Rs32le:
-	val = (s16)(s32)val;
+	v.u = (s16)(s32)v.u;
 	break;
 case (Rs16be<<5)|Rs64le:
-	val = (s16)(s64)val;
+	v.u = (s16)(s64)v.u;
 	break;
 case (Rs16be<<5)|Ru08be:
-	val = (s16)(u8)val;
+	v.u = (s16)(u8)v.u;
 	break;
 case (Rs16be<<5)|Ru16be:
-	val = (s16)(u16)val;
+	v.u = (s16)(u16)v.u;
 	break;
 case (Rs16be<<5)|Ru32be:
-	val = (s16)(u32)val;
+	v.u = (s16)(u32)v.u;
 	break;
 case (Rs16be<<5)|Ru64be:
-	val = (s16)(u64)val;
+	v.u = (s16)(u64)v.u;
 	break;
 case (Rs16be<<5)|Rs08be:
-	val = (s16)(s8)val;
+	v.u = (s16)(s8)v.u;
 	break;
 case (Rs16be<<5)|Rs16be:
-	val = (s16)(s16)val;
+	v.u = (s16)(s16)v.u;
 	break;
 case (Rs16be<<5)|Rs32be:
-	val = (s16)(s32)val;
+	v.u = (s16)(s32)v.u;
 	break;
 case (Rs16be<<5)|Rs64be:
-	val = (s16)(s64)val;
+	v.u = (s16)(s64)v.u;
 	break;
 case (Rs32be<<5)|Ru08le:
-	val = (s32)(u8)val;
+	v.u = (s32)(u8)v.u;
 	break;
 case (Rs32be<<5)|Ru16le:
-	val = (s32)(u16)val;
+	v.u = (s32)(u16)v.u;
 	break;
 case (Rs32be<<5)|Ru32le:
-	val = (s32)(u32)val;
+	v.u = (s32)(u32)v.u;
 	break;
 case (Rs32be<<5)|Ru64le:
-	val = (s32)(u64)val;
+	v.u = (s32)(u64)v.u;
 	break;
 case (Rs32be<<5)|Rs08le:
-	val = (s32)(s8)val;
+	v.u = (s32)(s8)v.u;
 	break;
 case (Rs32be<<5)|Rs16le:
-	val = (s32)(s16)val;
+	v.u = (s32)(s16)v.u;
 	break;
 case (Rs32be<<5)|Rs32le:
-	val = (s32)(s32)val;
+	v.u = (s32)(s32)v.u;
 	break;
 case (Rs32be<<5)|Rs64le:
-	val = (s32)(s64)val;
+	v.u = (s32)(s64)v.u;
 	break;
 case (Rs32be<<5)|Ru08be:
-	val = (s32)(u8)val;
+	v.u = (s32)(u8)v.u;
 	break;
 case (Rs32be<<5)|Ru16be:
-	val = (s32)(u16)val;
+	v.u = (s32)(u16)v.u;
 	break;
 case (Rs32be<<5)|Ru32be:
-	val = (s32)(u32)val;
+	v.u = (s32)(u32)v.u;
 	break;
 case (Rs32be<<5)|Ru64be:
-	val = (s32)(u64)val;
+	v.u = (s32)(u64)v.u;
 	break;
 case (Rs32be<<5)|Rs08be:
-	val = (s32)(s8)val;
+	v.u = (s32)(s8)v.u;
 	break;
 case (Rs32be<<5)|Rs16be:
-	val = (s32)(s16)val;
+	v.u = (s32)(s16)v.u;
 	break;
 case (Rs32be<<5)|Rs32be:
-	val = (s32)(s32)val;
+	v.u = (s32)(s32)v.u;
 	break;
 case (Rs32be<<5)|Rs64be:
-	val = (s32)(s64)val;
+	v.u = (s32)(s64)v.u;
 	break;
 case (Rs64be<<5)|Ru08le:
-	val = (s64)(u8)val;
+	v.u = (s64)(u8)v.u;
 	break;
 case (Rs64be<<5)|Ru16le:
-	val = (s64)(u16)val;
+	v.u = (s64)(u16)v.u;
 	break;
 case (Rs64be<<5)|Ru32le:
-	val = (s64)(u32)val;
+	v.u = (s64)(u32)v.u;
 	break;
 case (Rs64be<<5)|Ru64le:
-	val = (s64)(u64)val;
+	v.u = (s64)(u64)v.u;
 	break;
 case (Rs64be<<5)|Rs08le:
-	val = (s64)(s8)val;
+	v.u = (s64)(s8)v.u;
 	break;
 case (Rs64be<<5)|Rs16le:
-	val = (s64)(s16)val;
+	v.u = (s64)(s16)v.u;
 	break;
 case (Rs64be<<5)|Rs32le:
-	val = (s64)(s32)val;
+	v.u = (s64)(s32)v.u;
 	break;
 case (Rs64be<<5)|Rs64le:
-	val = (s64)(s64)val;
+	v.u = (s64)(s64)v.u;
 	break;
 case (Rs64be<<5)|Ru08be:
-	val = (s64)(u8)val;
+	v.u = (s64)(u8)v.u;
 	break;
 case (Rs64be<<5)|Ru16be:
-	val = (s64)(u16)val;
+	v.u = (s64)(u16)v.u;
 	break;
 case (Rs64be<<5)|Ru32be:
-	val = (s64)(u32)val;
+	v.u = (s64)(u32)v.u;
 	break;
 case (Rs64be<<5)|Ru64be:
-	val = (s64)(u64)val;
+	v.u = (s64)(u64)v.u;
 	break;
 case (Rs64be<<5)|Rs08be:
-	val = (s64)(s8)val;
+	v.u = (s64)(s8)v.u;
 	break;
 case (Rs64be<<5)|Rs16be:
-	val = (s64)(s16)val;
+	v.u = (s64)(s16)v.u;
 	break;
 case (Rs64be<<5)|Rs32be:
-	val = (s64)(s32)val;
+	v.u = (s64)(s32)v.u;
 	break;
 case (Rs64be<<5)|Rs64be:
-	val = (s64)(s64)val;
+	v.u = (s64)(s64)v.u;
 	break;
 case (Rf32<<5)|Ru08le:
-	fv = (f32)(u8)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u8)v.u;
 	break;
 case (Rf32<<5)|Ru16le:
-	fv = (f32)(u16)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u16)v.u;
 	break;
 case (Rf32<<5)|Ru32le:
-	fv = (f32)(u32)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u32)v.u;
 	break;
 case (Rf32<<5)|Ru64le:
-	fv = (f32)(u64)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u64)v.u;
 	break;
 case (Rf32<<5)|Rs08le:
-	fv = (f32)(s8)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s8)v.u;
 	break;
 case (Rf32<<5)|Rs16le:
-	fv = (f32)(s16)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s16)v.u;
 	break;
 case (Rf32<<5)|Rs32le:
-	fv = (f32)(s32)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s32)v.u;
 	break;
 case (Rf32<<5)|Rs64le:
-	fv = (f32)(s64)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s64)v.u;
 	break;
 case (Rf32<<5)|Ru08be:
-	fv = (f32)(u8)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u8)v.u;
 	break;
 case (Rf32<<5)|Ru16be:
-	fv = (f32)(u16)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u16)v.u;
 	break;
 case (Rf32<<5)|Ru32be:
-	fv = (f32)(u32)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u32)v.u;
 	break;
 case (Rf32<<5)|Ru64be:
-	fv = (f32)(u64)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(u64)v.u;
 	break;
 case (Rf32<<5)|Rs08be:
-	fv = (f32)(s8)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s8)v.u;
 	break;
 case (Rf32<<5)|Rs16be:
-	fv = (f32)(s16)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s16)v.u;
 	break;
 case (Rf32<<5)|Rs32be:
-	fv = (f32)(s32)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s32)v.u;
 	break;
 case (Rf32<<5)|Rs64be:
-	fv = (f32)(s64)val;
-	*(f32*)&val = fv;
+	v.f = (f32)(s64)v.u;
 	break;
 case (Rf64<<5)|Ru08le:
-	dv = (f64)(u8)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u8)v.u;
 	break;
 case (Rf64<<5)|Ru16le:
-	dv = (f64)(u16)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u16)v.u;
 	break;
 case (Rf64<<5)|Ru32le:
-	dv = (f64)(u32)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u32)v.u;
 	break;
 case (Rf64<<5)|Ru64le:
-	dv = (f64)(u64)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u64)v.u;
 	break;
 case (Rf64<<5)|Rs08le:
-	dv = (f64)(s8)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s8)v.u;
 	break;
 case (Rf64<<5)|Rs16le:
-	dv = (f64)(s16)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s16)v.u;
 	break;
 case (Rf64<<5)|Rs32le:
-	dv = (f64)(s32)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s32)v.u;
 	break;
 case (Rf64<<5)|Rs64le:
-	dv = (f64)(s64)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s64)v.u;
 	break;
 case (Rf64<<5)|Ru08be:
-	dv = (f64)(u8)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u8)v.u;
 	break;
 case (Rf64<<5)|Ru16be:
-	dv = (f64)(u16)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u16)v.u;
 	break;
 case (Rf64<<5)|Ru32be:
-	dv = (f64)(u32)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u32)v.u;
 	break;
 case (Rf64<<5)|Ru64be:
-	dv = (f64)(u64)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(u64)v.u;
 	break;
 case (Rf64<<5)|Rs08be:
-	dv = (f64)(s8)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s8)v.u;
 	break;
 case (Rf64<<5)|Rs16be:
-	dv = (f64)(s16)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s16)v.u;
 	break;
 case (Rf64<<5)|Rs32be:
-	dv = (f64)(s32)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s32)v.u;
 	break;
 case (Rf64<<5)|Rs64be:
-	dv = (f64)(s64)val;
-	*(f64*)&val = dv;
+	v.d = (f64)(s64)v.u;
 	break;
 case (Ru08le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u8)fv;
+	v.u = (u8)v.f;
 	break;
 case (Ru08le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u8)dv;
+	v.u = (u8)v.d;
 	break;
 case (Ru16le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u16)fv;
+	v.u = (u16)v.f;
 	break;
 case (Ru16le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u16)dv;
+	v.u = (u16)v.d;
 	break;
 case (Ru32le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u32)fv;
+	v.u = (u32)v.f;
 	break;
 case (Ru32le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u32)dv;
+	v.u = (u32)v.d;
 	break;
 case (Ru64le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u64)fv;
+	v.u = (u64)v.f;
 	break;
 case (Ru64le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u64)dv;
+	v.u = (u64)v.d;
 	break;
 case (Rs08le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s8)fv;
+	v.u = (s8)v.f;
 	break;
 case (Rs08le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s8)dv;
+	v.u = (s8)v.d;
 	break;
 case (Rs16le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s16)fv;
+	v.u = (s16)v.f;
 	break;
 case (Rs16le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s16)dv;
+	v.u = (s16)v.d;
 	break;
 case (Rs32le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s32)fv;
+	v.u = (s32)v.f;
 	break;
 case (Rs32le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s32)dv;
+	v.u = (s32)v.d;
 	break;
 case (Rs64le<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s64)fv;
+	v.u = (s64)v.f;
 	break;
 case (Rs64le<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s64)dv;
+	v.u = (s64)v.d;
 	break;
 case (Ru08be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u8)fv;
+	v.u = (u8)v.f;
 	break;
 case (Ru08be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u8)dv;
+	v.u = (u8)v.d;
 	break;
 case (Ru16be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u16)fv;
+	v.u = (u16)v.f;
 	break;
 case (Ru16be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u16)dv;
+	v.u = (u16)v.d;
 	break;
 case (Ru32be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u32)fv;
+	v.u = (u32)v.f;
 	break;
 case (Ru32be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u32)dv;
+	v.u = (u32)v.d;
 	break;
 case (Ru64be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (u64)fv;
+	v.u = (u64)v.f;
 	break;
 case (Ru64be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (u64)dv;
+	v.u = (u64)v.d;
 	break;
 case (Rs08be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s8)fv;
+	v.u = (s8)v.f;
 	break;
 case (Rs08be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s8)dv;
+	v.u = (s8)v.d;
 	break;
 case (Rs16be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s16)fv;
+	v.u = (s16)v.f;
 	break;
 case (Rs16be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s16)dv;
+	v.u = (s16)v.d;
 	break;
 case (Rs32be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s32)fv;
+	v.u = (s32)v.f;
 	break;
 case (Rs32be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s32)dv;
+	v.u = (s32)v.d;
 	break;
 case (Rs64be<<5)|Rf32:
-	fv = *(f32*)&val;
-	val = (s64)fv;
+	v.u = (s64)v.f;
 	break;
 case (Rs64be<<5)|Rf64:
-	dv = *(f64*)&val;
-	val = (s64)dv;
+	v.u = (s64)v.d;
 	break;
 case (Rf32<<5)|Rf32:
-	fv = *(f32*)&val;
-	fv = (f32)fv;
-	*(f32*)&val = fv;
+	v.f = v.f;
 	break;
 case (Rf32<<5)|Rf64:
-	dv = *(f64*)&val;
-	fv = (f32)dv;
-	*(f32*)&val = fv;
+	v.f = v.d;
 	break;
 case (Rf64<<5)|Rf32:
-	fv = *(f32*)&val;
-	dv = (f64)fv;
-	*(f64*)&val = dv;
+	v.d = v.f;
 	break;
 case (Rf64<<5)|Rf64:
-	dv = *(f64*)&val;
-	dv = (f64)dv;
-	*(f64*)&val = dv;
+	v.d = v.d;
 	break;

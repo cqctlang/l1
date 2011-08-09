@@ -1128,31 +1128,29 @@ imm2str(VM *vm, Ctype *t, Imm imm)
 
 /* transform representation of VAL used for type OLD to type NEW.
    OLD and NEW must be chased types with defined representations. */
-static Imm
-_rerep(Imm val, Ctype *old, Ctype *new)
+static Enc
+_rerep(Enc v, Ctype *old, Ctype *new)
 {
 	/* FIXME: non-trivial cases are : real <-> int,
 	   real <-> alternate real
 	   integer truncation
 	   (so div and shr work)
 	*/
-	float fv;
-	double dv;
 	switch((typerep(new)<<5)|typerep(old)){
 		#include "rerep.switch" /* re-cast val */
 	}
- 	return val;
+ 	return v;
 }
 
 
-static Imm
-rerep(Imm val, Ctype *old, Ctype *new)
+static Enc
+rerep(Enc v, Ctype *old, Ctype *new)
 {
 	old = chasetype(old);
 	new = chasetype(new);
 	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		fatal("undef!");
-	return _rerep(val, old, new);
+	return _rerep(v, old, new);
 }
 
 static Ctype*
@@ -1199,9 +1197,9 @@ typecast(VM *vm, Ctype *t, Cval *cv)
 		if(old->tkind != Tptr || !isvoidstar(new))
 			vmerr(vm, "attempt to cast to undefined type");
 		t = fixrep(t, typerep(old));
-		return mkcval(cv->dom, t, rerep(cvalu(cv), old, t));
+		return mkcvalenc(cv->dom, t, rerep(cvalenc(cv), old, t));
 	}else
-		return mkcval(cv->dom, t, _rerep(cvalu(cv), old, new));
+		return mkcvalenc(cv->dom, t, _rerep(cvalenc(cv), old, new));
 }
 
 static Cval*
@@ -1228,7 +1226,7 @@ domcastbase(VM *vm, Dom *dom, Cval *cv)
 	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, t, _rerep(cvalu(cv), old, new));
+	return mkcvalenc(dom, t, _rerep(cvalenc(cv), old, new));
 }
 
 Cval*
@@ -1252,7 +1250,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, t, _rerep(cvalu(cv), old, new));
+	return mkcvalenc(dom, t, _rerep(cvalenc(cv), old, new));
 }
 
 static void
@@ -7175,7 +7173,7 @@ cqctvalint8(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint8];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 
@@ -7189,7 +7187,7 @@ cqctvalint16(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 
@@ -7203,7 +7201,7 @@ cqctvalint32(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint32];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 
@@ -7217,7 +7215,7 @@ cqctvalint64(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint64];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 
@@ -7231,7 +7229,7 @@ cqctvaluint8(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint8];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 
@@ -7245,7 +7243,7 @@ cqctvaluint16(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 
@@ -7259,7 +7257,7 @@ cqctvaluint32(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint32];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 
@@ -7273,7 +7271,7 @@ cqctvaluint64(Val v)
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint64];
-	rv = mkcval(litdom, t, rerep(cvalu(cv), cv->type, t));
+	rv = mkcvalenc(litdom, t, rerep(cvalenc(cv), cv->type, t));
 	return cvalu(rv);
 }
 

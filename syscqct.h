@@ -259,6 +259,7 @@ struct Cval {
 //	Imm val;
 };
 
+#define cvalenc(cv) ((cv)->v)
 #define cvalu(cv) ((cv)->v.u)
 #define cvalf(cv) ((cv)->v.f)
 #define cvald(cv) ((cv)->v.d)

@@ -69,8 +69,8 @@ static char* reptype[Rnrep] = {
 };
 
 static char* fpvar[Rnrep] = {
-	[Rf32]=		"fv",
-	[Rf64]=		"dv",
+	[Rf32]=		"f",
+	[Rf64]=		"d",
 };
 
 int
@@ -83,7 +83,7 @@ main(int argc, char *argv[])
 		for(j = 1; j < Rnirep; j++){
 			printf("case (%s<<5)|%s:\n",
 			       repname[i], repname[j]);
-			printf("\tval = (%s)(%s)val;\n",
+			printf("\tv.u = (%s)(%s)v.u;\n",
 			       reptype[i], reptype[j]);
 			printf("\tbreak;\n");
 		}
@@ -93,10 +93,8 @@ main(int argc, char *argv[])
 		for(j = 1; j < Rnirep; j++){
 			printf("case (%s<<5)|%s:\n",
 			       repname[i], repname[j]);
-			printf("\t%s = (%s)(%s)val;\n",
+			printf("\tv.%s = (%s)(%s)v.u;\n",
 			       fpvar[i], reptype[i], reptype[j]);
-			printf("\t*(%s*)&val = %s;\n",
-			       reptype[i], fpvar[i]);
 			printf("\tbreak;\n");
 		}
 
@@ -105,9 +103,7 @@ main(int argc, char *argv[])
 		for(j = Rf32; j <= Rf64; j++){
 			printf("case (%s<<5)|%s:\n",
 			       repname[i], repname[j]);
-			printf("\t%s = *(%s*)&val;\n",
-			       fpvar[j], reptype[j]);
-			printf("\tval = (%s)%s;\n",
+			printf("\tv.u = (%s)v.%s;\n",
 			       reptype[i], fpvar[j]);
 			printf("\tbreak;\n");
 		}
@@ -117,12 +113,8 @@ main(int argc, char *argv[])
 		for(j = Rf32; j <= Rf64; j++){
 			printf("case (%s<<5)|%s:\n",
 			       repname[i], repname[j]);
-			printf("\t%s = *(%s*)&val;\n",
-			       fpvar[j], reptype[j]);
-			printf("\t%s = (%s)%s;\n",
-			       fpvar[i], reptype[i], fpvar[j]);
-			printf("\t*(%s*)&val = %s;\n",
-			       reptype[i], fpvar[i]);
+			printf("\tv.%s = v.%s;\n",
+			       fpvar[i], fpvar[j]);
 			printf("\tbreak;\n");
 		}
 }
