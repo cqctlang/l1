@@ -383,7 +383,8 @@ memusage(struct memusage *mu)
 	if(0 > fd)
 		return -1;
 	memset(buf, 0, sizeof(buf));
-	read(fd, buf, sizeof(buf)-1);
+	if(0 > read(fd, buf, sizeof(buf)-1))
+		return -1;
 	close(fd);
 	if(2 != sscanf(buf, "%" PRIu64 " %" PRIu64, &mu->size, &mu->rss))
 		return -1;
@@ -422,6 +423,7 @@ main(int argc, char *argv[])
 	dorepl = 1;
 	ename = 0;
 	nlp = 0;
+	tbeg = Tbeg = end = 0;
 	filename = 0;
 	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:opqrstTwxz"))){
 		switch(c){

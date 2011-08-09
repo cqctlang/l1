@@ -307,13 +307,13 @@ fmtputB(VM *vm, Fmt *f, char *p, Imm m)
 	unsigned char c;
 	Imm w;
 
+	w = 0;
 	fl = f->flags;
 	if((fl&FmtPrec) && m > f->prec)
 		m = f->prec;
 	if(fl&FmtWidth){
 		q = p;
 		l = m;			/* lost precision */
-		w = 0;
 		while(l-- > 0){
 			c = *q++;
 			if(xisgraph(c) || xisspace(c))
@@ -758,6 +758,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	Val xargv[2];
 
 	vpp = &argv[0];
+	ch = 0;
 	efmt = fmt+fmtlen;
 	while(1){
 		while(fmt < efmt && (ch = *fmt++) != '%')

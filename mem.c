@@ -2194,6 +2194,7 @@ gc(VM *vm)
 	u32 g, tg;
 
 	H.gctrip++;
+	g = -1;
 	for(i = Ngen-1; i >= 0; i--)
 		if(H.gctrip%H.gcsched[i] == 0){
 			g = i;

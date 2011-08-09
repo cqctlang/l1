@@ -327,7 +327,7 @@ tabpop(Tab *t, Val *rv)
 
 	if(t->nent == 0)
 		return;		/* nil */
-
+	x = 0;
 	for(i = 0; i < t->sz; i++){
 		x = vecref(t->ht, i);
 		if(islink(x))

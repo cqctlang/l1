@@ -187,6 +187,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                 */
                 p = pat->e2;
                 l = elistlen(p);
+		f0 = 0;
                 if(l != 0 && p->e1->kind != Ebinop){
                         f0 = Zcall(doid("rdfields"), 1, 
                                    Zcall(doid("rdof"), 1, copyexpr(exp)));
