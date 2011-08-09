@@ -275,7 +275,7 @@ printkon(Val v)
 	switch(Vkind(v)){
 	case Qcval:
 		cv = valcval(v);
-		xprintf("%" PRIu64, cv->val);
+		xprintf("%" PRIu64, cvalu(cv));
 		break;
 	case Qcid:
 		id = valcid(v);

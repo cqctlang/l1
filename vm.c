@@ -114,7 +114,7 @@ valimm(Val v)
 	if(Vkind(v) != Qcval)
 		fatal("valimm on non-cval");
 	cv = (Cval*)v;
-	return cv->val;
+	return cvalu(cv);
 }
 
 Val
@@ -419,13 +419,13 @@ eqptr(Val a, Val b)
 static u32
 hashrange(Range *r)
 {
-	return hashx(hashu64(r->beg->val), hashu64(r->len->val));
+	return hashx(hashu64(cvalu(r->beg)), hashu64(cvalu(r->len)));
 }
 
 static int
 equalrange(Range *ra, Range *rb)
 {
-	return ra->beg->val==rb->beg->val && ra->len->val==rb->len->val;
+	return cvalu(ra->beg)==cvalu(rb->beg) && cvalu(ra->len)==cvalu(rb->len);
 }
 
 static As*
@@ -570,7 +570,18 @@ mkcval(Dom *dom, Ctype *type, Imm val)
 	cv = (Cval*)malq(Qcval, sizeof(Cval));
 	cv->dom = dom;
 	cv->type = type;
-	cv->val = val;
+	cvalu(cv) = val;
+	return cv;
+}
+
+Cval*
+mkcvalenc(Dom *dom, Ctype *type, Enc v)
+{
+	Cval *cv;
+	cv = (Cval*)malq(Qcval, sizeof(Cval));
+	cv->dom = dom;
+	cv->type = type;
+	cv->v = v;
 	return cv;
 }
 
@@ -1188,9 +1199,9 @@ typecast(VM *vm, Ctype *t, Cval *cv)
 		if(old->tkind != Tptr || !isvoidstar(new))
 			vmerr(vm, "attempt to cast to undefined type");
 		t = fixrep(t, typerep(old));
-		return mkcval(cv->dom, t, rerep(cv->val, old, t));
+		return mkcval(cv->dom, t, rerep(cvalu(cv), old, t));
 	}else
-		return mkcval(cv->dom, t, _rerep(cv->val, old, new));
+		return mkcval(cv->dom, t, _rerep(cvalu(cv), old, new));
 }
 
 static Cval*
@@ -1217,7 +1228,7 @@ domcastbase(VM *vm, Dom *dom, Cval *cv)
 	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, t, _rerep(cv->val, old, new));
+	return mkcval(dom, t, _rerep(cvalu(cv), old, new));
 }
 
 Cval*
@@ -1241,7 +1252,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 	if(typerep(old) == Rundef || typerep(new) == Rundef)
 		vmerr(vm, " attempt to cast to type "
 		      "with undefined representation");
-	return mkcval(dom, t, _rerep(cv->val, old, new));
+	return mkcval(dom, t, _rerep(cvalu(cv), old, new));
 }
 
 static void
@@ -1514,10 +1525,10 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 {
 	float f;
 	double d;
-	Imm rv;
+	Enc v;
 	switch(cb){
 	case Vfloat:
-		f = *(float*)&cv->val;
+		f = cvalf(cv);
 		switch(op){
 		case Ineg:
 			f = -f;
@@ -1526,10 +1537,10 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 			vmerr(vm, "attempt to perform %s "
 			      "on a floating point value", opstr[op]);
 		}
-		*(float*)&rv = f;
+		v->f = f;
 		break;
 	case Vdouble:
-		d = *(double*)&cv->val;
+		d = cvald(cv);
 		switch(op){
 		case Ineg:
 			d = -d;
@@ -1538,12 +1549,12 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 			vmerr(vm, "attempt to perform %s "
 			      "on a floating point value", opstr[op]);
 		}
-		*(double*)&rv = d;
+		v->d = d;
 		break;
 	default:
 		bug();
 	}
-	return mkcval(cv->dom, cv->type, rv);
+	return mkcvalenc(cv->dom, cv->type, v);
 }
 
 static void

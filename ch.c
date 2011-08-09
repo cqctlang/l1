@@ -11,7 +11,7 @@ l1_toupper(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to toupper");
 	checkarg(vm, "toupper", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	x = xtoupper(cv->val);
+	x = xtoupper(cvalu(cv));
 	*rv = mkvalcval(cv->dom, cv->type, x);
 }
 
@@ -24,7 +24,7 @@ l1_tolower(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to tolower");
 	checkarg(vm, "tolower", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	x = xtolower(cv->val);
+	x = xtolower(cvalu(cv));
 	*rv = mkvalcval(cv->dom, cv->type, x);
 }
 
@@ -36,7 +36,7 @@ l1_isxctype(VM *vm, Imm argc, Val *argv, Val *rv, char *name, int (*fn)(int))
 		vmerr(vm, "wrong number of arguments to %s", name);
 	checkarg(vm, name, argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	if(fn((int)cv->val))
+	if(fn((int)cvalu(cv)))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);

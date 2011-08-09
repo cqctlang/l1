@@ -101,7 +101,7 @@ linkidx(Pair *lnk)
 	while(islink(linknext(lnk)))
 		lnk = (Pair*)linknext(lnk);
 	cv = valcval(linknext(lnk));
-	return cv->val;
+	return cvalu(cv);
 }
 
 static void

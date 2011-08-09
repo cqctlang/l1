@@ -152,7 +152,7 @@ l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 	len = valcval(argv[0]);
 	if(!isnatcval(len))
 		vmerr(vm, "malloc expects a non-negative length");
-	p = malloc(len->val);
+	p = malloc(cvalu(len));
 
 	/* FIXME: might be nice for ns to have cached void* */
 	*rv = mkvalcval(litdom,
@@ -169,7 +169,7 @@ l1__free(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to malloc");
 	checkarg(vm, "malloc", argv, 0, Qcval);
 	p = valcval(argv[0]);
-	free((void*)(uptr)p->val);
+	free((void*)(uptr)cvalu(p));
 }
 
 static void
@@ -185,11 +185,11 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 	s = valstrorcval(vm, "memset", argv, 0);
 	checkarg(vm, "memset", argv, 1, Qcval);
 	bcv = valcval(argv[1]);
-	b = bcv->val&0xff;
+	b = cvalu(bcv)&0xff;
 	if(argc == 3){
 		checkarg(vm, "memset", argv, 2, Qcval);
 		lcv = valcval(argv[2]);
-		lim = lcv->val;
+		lim = cvalu(lcv);
 	}else
 		lim = s->len;
 	if(Vkind(argv[0]) == Qstr)
@@ -200,7 +200,7 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 		s = mkstrmalloc(lim);
 		memset(strdata(s), b, lim);
 		tcv = valcval(argv[0]);
-		callput(vm, tcv->dom->as, tcv->val, lim, s);
+		callput(vm, tcv->dom->as, cvalu(tcv), lim, s);
 	}else
 		fatal("bug");
 }
@@ -216,7 +216,7 @@ l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
 	cv = valcval(argv[0]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 1 to mkstr must be a non-negative integer");
-	*rv = mkvalstr(mkstrn(cv->val));
+	*rv = mkvalstr(mkstrn(cvalu(cv)));
 }
 
 static void
@@ -241,13 +241,13 @@ l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "substr", argv, 2, Qcval);
 	b = valcval(argv[1]);
 	e = valcval(argv[2]);
-	if(b->val > s->len)
+	if(cvalu(b) > s->len)
 		vmerr(vm, "substring out of bounds");
-	if(e->val > s->len)
+	if(cvalu(e) > s->len)
 		vmerr(vm, "substring out of bounds");
-	if(b->val > e->val)
+	if(cvalu(b) > cvalu(e))
 		vmerr(vm, "substring out of bounds");
-	*rv = mkvalstr(strslice(s, b->val, e->val));
+	*rv = mkvalstr(strslice(s, cvalu(b), cvalu(e)));
 }
 
 void
@@ -263,9 +263,9 @@ l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 2 to strref must be "
 		      "a non-negative integer");
 	str = valstrorcval(vm, "strref", argv, 0);
-	if(cv->val >= str->len)
+	if(cvalu(cv) >= str->len)
 		vmerr(vm, "strref out of bounds");
-	*rv = mkvallitcval(Vuchar, (u8)strdata(str)[cv->val]);
+	*rv = mkvallitcval(Vuchar, (u8)strdata(str)[cvalu(cv)]);
 }
 
 static char*
@@ -343,7 +343,7 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(!isnatcval(cv))
 			vmerr(vm, "operand 2 to strton must be "
 			      "non-negative");
-		radix = cv->val;
+		radix = cvalu(cv);
 	}
 
 	s = valstrorcval(vm, "strton", argv, 0);
@@ -368,7 +368,7 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 3 to strput must be a string or character");
 	s = valstr(argv[0]);
 	off = valcval(argv[1]);
-	o = off->val;		/* FIXME: use type */
+	o = cvalu(off);		/* FIXME: use type */
 	if(o >= s->len)
 		vmerr(vm, "strput out of bounds");
 	if(Vkind(argv[2]) == Qstr){
@@ -378,7 +378,7 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 		memcpy(strdata(s)+o, strdata(t), t->len);
 	}else{
 		cv = valcval(argv[2]);
-		strdata(s)[o] = (char)cv->val;
+		strdata(s)[o] = (char)cvalu(cv);
 	}
 	USED(rv);
 }

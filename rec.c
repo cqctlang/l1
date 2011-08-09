@@ -137,12 +137,12 @@ recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      (int)rd->name->len, strdata(rd->name));
 
 	/* weak test for compatible record descriptor */
-	if(r->nf <= ndx->val)
+	if(r->nf <= cvalu(ndx))
 		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
 		      (int)mn->len, strdata(mn),
 		      (int)rd->name->len, strdata(rd->name));
 
-	*rv = recdata(r)[ndx->val];
+	*rv = recdata(r)[cvalu(ndx)];
 }
 
 static void
@@ -171,13 +171,13 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		      (int)rd->name->len, strdata(rd->name));
 
 	/* weak test for compatible record descriptor */
-	if(r->nf <= ndx->val)
+	if(r->nf <= cvalu(ndx))
 		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
 		      (int)mn->len, strdata(mn),
 		      (int)rd->name->len, strdata(rd->name));
 
 	gcwb(mkvalrec(r));
-	recdata(r)[ndx->val] = argv[1];
+	recdata(r)[cvalu(ndx)] = argv[1];
 	*rv = argv[1];
 }
 

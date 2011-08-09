@@ -15,9 +15,9 @@ l1_mkstxop(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "mkstxop", argv, 2, Qexpr);
 	checkarg(vm, "mkstxop", argv, 3, Qexpr);
 	cv = valcval(argv[0]);
-	k = cv->val;
+	k = cvalu(cv);
 	cv = valcval(argv[1]);
-	op = cv->val;
+	op = cvalu(cv);
 	switch(k){
 	case Ebinop:
 	case Egop:
@@ -40,7 +40,7 @@ l1_mkstxaux(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkstxaux");
 	checkarg(vm, "mkstxaux", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	k = cv->val;
+	k = cvalu(cv);
 	switch(k){
 	case Eid:
 	case Elabel:
@@ -67,7 +67,7 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkstx");
 	checkarg(vm, "mkexpr", argv, 0, Qcval);
 	cv = valcval(argv[0]);
-	k = cv->val;
+	k = cvalu(cv);
 	if(k >= Emax)
 		vmerr(vm, "invalid expression kind");
 	memset(earg, 0, sizeof(earg));

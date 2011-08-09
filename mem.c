@@ -2232,7 +2232,7 @@ gclock(void *v)
 		while(p){
 			if(cdar(p) == h){
 				cv = (Cval*)caar(p);
-				cv->val++;
+				cvalu(cv)++;
 				return h;
 			}
 			p = (Pair*)cdr(p);
@@ -2265,8 +2265,8 @@ gcunlock(void *v)
 	while(p){
 		if(cdar(p) == h){
 			cv = (Cval*)caar(p);
-			cv->val--;
-			if(cv->val == 0){
+			cvalu(cv)--;
+			if(cvalu(cv) == 0){
 				*r = cdr(p);
 				s->nprotect--;
 				H.unlocked = cons(h, H.unlocked);

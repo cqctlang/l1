@@ -242,12 +242,25 @@ struct Cid {
 #define ciddata(x) ((char*)((x)+1))
 #define cidsize(n) (sizeof(Cid)+(n)*sizeof(char))
 
+typedef
+union Enc
+{
+	Imm u;
+	float f;
+	double d;
+} Enc;
+
 struct Cval {
 	Head hd;
 	Dom *dom;
 	Ctype *type;
-	Imm val;
+	Enc v;
+//	Imm val;
 };
+
+#define cvalu(cv) ((cv)->v.u)
+#define cvalf(cv) ((cv)->v.f)
+#define cvald(cv) ((cv)->v.d)
 
 struct Closure {
 	Head hd;

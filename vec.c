@@ -91,7 +91,7 @@ l1_mkvec(VM *vm, Imm argc, Val *argv, Val *rv)
 		v = Xnil;
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 1 to mkvec must be a non-negative integer");
-	*rv = mkvalvec(mkvecinit(cv->val, v));
+	*rv = mkvalvec(mkvecinit(cvalu(cv), v));
 }
 
 static void
@@ -123,9 +123,9 @@ l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to vecref must be "
 		      "a non-negative integer");
-	if(cv->val >= v->len)
+	if(cvalu(cv) >= v->len)
 		vmerr(vm, "vecref out of bounds");
-	vp = vecref(v, cv->val);
+	vp = vecref(v, cvalu(cv));
 	*rv = vp;
 }
 
@@ -144,9 +144,9 @@ l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to vecset must be "
 		      "a non-negative integer");
-	if(cv->val >= v->len)
+	if(cvalu(cv) >= v->len)
 		vmerr(vm, "vecset out of bounds");
-	vecset(v, cv->val, argv[2]);
+	vecset(v, cvalu(cv), argv[2]);
 	USED(rv);
 }
 

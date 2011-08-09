@@ -342,7 +342,7 @@ l1_mklist(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 1 to mklist must be "
 		      "a non-negative integer");
-	*rv = mkvallist(mklistinit(cv->val, v));
+	*rv = mkvallist(mklistinit(cvalu(cv), v));
 }
 
 void
@@ -360,7 +360,7 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 2 to listref must be "
 		      "a non-negative integer");
 	lst = vallist(argv[0]);
-	vp = listref(vm, lst, cv->val);
+	vp = listref(vm, lst, cvalu(cv));
 	*rv = vp;
 }
 
@@ -377,7 +377,7 @@ l1_listdel(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to listdel must be "
 		      "a non-negative integer");
-	lst = listdel(vm, vallist(argv[0]), cv->val);
+	lst = listdel(vm, vallist(argv[0]), cvalu(cv));
 	*rv = mkvallist(lst);
 }
 
@@ -395,7 +395,7 @@ l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 2 to listset must be "
 		      "a non-negative integer");
 	lst = vallist(argv[0]);
-	lst = listset(vm, lst, cv->val, argv[2]);
+	lst = listset(vm, lst, cvalu(cv), argv[2]);
 	*rv = mkvallist(lst);
 }
 
@@ -412,7 +412,7 @@ l1_listins(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to listins must be "
 		      "a non-negative integer");
-	lst = listins(vm, vallist(argv[0]), cv->val, argv[2]);
+	lst = listins(vm, vallist(argv[0]), cvalu(cv), argv[2]);
 	*rv = mkvallist(lst);
 }
 
@@ -432,13 +432,13 @@ l1_slice(VM *vm, Imm argc, Val *argv, Val *rv)
 	b = valcval(argv[1]);
 	e = valcval(argv[2]);
 	len = listlen(l);
-	if(b->val > len)
+	if(cvalu(b) > len)
 		vmerr(vm, "slice out of bounds");
-	if(e->val > len)
+	if(cvalu(e) > len)
 		vmerr(vm, "slice out of bounds");
-	if(b->val > e->val)
+	if(cvalu(b) > cvalu(e))
 		vmerr(vm, "slice out of bounds");
-	*rv = mkvallist(listslice(vm, l, b->val, e->val));
+	*rv = mkvallist(listslice(vm, l, cvalu(b), cvalu(e)));
 }
 
 static void

@@ -5,13 +5,13 @@
 u32
 hashqcval(Cval *v)
 {
-	return hashx(hashu64(v->val), hashctype(v->type));
+	return hashx(hashu64(cvalu(v)), hashctype(v->type));
 }
 
 int
 eqcval(Cval *a, Cval *b)
 {
-	if(a->val != b->val)
+	if(cvalu(a) != cvalu(b))
 		return 0;
 	return eqvctype(a->type, b->type);
 }
@@ -31,11 +31,11 @@ eqvcval(Cval *a, Cval *b)
 u32
 hashcval(Cval *v)
 {
-	return hashu64(v->val);
+	return hashu64(cvalu(v));
 }
 
 int
 equalcval(Cval *a, Cval *b)
 {
-	return a->val == b->val;
+	return cvalu(a) == cvalu(b);
 }

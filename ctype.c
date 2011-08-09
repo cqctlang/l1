@@ -717,14 +717,14 @@ typesize(VM *vm, Ctype *t)
 	case Tunion:
 		ts = (Ctypesu*)t;
 		cv = valcval(attroff(ts->attr));
-		return cv->val;
+		return cvalu(cv);
 	case Tarr:
 		ta = (Ctypearr*)t;
 		if(Vkind(ta->cnt) != Qcval)
 			vmerr(vm,
 			      "attempt to determine size of unspecified array");
 		cv = valcval(ta->cnt);
-		return cv->val*typesize(vm, subtype(t));
+		return cvalu(cv)*typesize(vm, subtype(t));
 	case Tfun:
 		vmerr(vm, "attempt to determine size of function type");
 	case Tbitfield:
@@ -768,15 +768,15 @@ l1_mkctype_base(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_base", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		cb = cv->val;
+		cb = cvalu(cv);
 		rep = Rundef;
 	}else if(argc == 2){
 		checkarg(vm, "mkctype_base", argv, 0, Qcval);
 		checkarg(vm, "mkctype_base", argv, 1, Qcval);
 		cv = valcval(argv[0]);
-		cb = cv->val;
+		cb = cvalu(cv);
 		cv = valcval(argv[1]);
-		rep = cv->val;
+		rep = cvalu(cv);
 	}else
 		vmerr(vm, "wrong number of arguments to mkctype_base");
 
@@ -801,7 +801,7 @@ l1_mkctype_bool(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_bool", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -818,7 +818,7 @@ l1_mkctype_char(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_char", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -835,7 +835,7 @@ l1_mkctype_short(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_short", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -852,7 +852,7 @@ l1_mkctype_int(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_int", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -869,7 +869,7 @@ l1_mkctype_long(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_long", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -886,7 +886,7 @@ l1_mkctype_vlong(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_vlong", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -903,7 +903,7 @@ l1_mkctype_uchar(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_uchar", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -920,7 +920,7 @@ l1_mkctype_ushort(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_ushort", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -937,7 +937,7 @@ l1_mkctype_uint(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_uint", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -954,7 +954,7 @@ l1_mkctype_ulong(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_ulong", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -971,7 +971,7 @@ l1_mkctype_uvlong(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_uvlong", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -988,7 +988,7 @@ l1_mkctype_float(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_float", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -1005,7 +1005,7 @@ l1_mkctype_double(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_double", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -1022,7 +1022,7 @@ l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1){
 		checkarg(vm, "mkctype_ldouble", argv, 0, Qcval);
 		cv = valcval(argv[0]);
-		rep = cv->val;
+		rep = cvalu(cv);
 		if(rep >= Rnrep)
 			vmerr(vm, "invalid representation identifier");
 	}else if(argc != 0)
@@ -1046,9 +1046,9 @@ l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(Vkind(argv[1]) != Qcval)
 			vmerr(vm, "invalid pointer representation");
 		cv = valcval(argv[1]);
-		if(cv->val <= Rundef || cv->val >= Rnrep)
+		if(cvalu(cv) <= Rundef || cvalu(cv) >= Rnrep)
 			vmerr(vm, "invalid pointer representation");
-		t = mkctypeptr(t, cv->val);
+		t = mkctypeptr(t, cvalu(cv));
 	}
 	*rv = mkvalctype(t);
 }
