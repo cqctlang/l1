@@ -1253,6 +1253,7 @@ u32		hashqvcval(Cval *v);
 int		eqcval(Cval *a, Cval *b);
 int		equalcval(Cval *a, Cval *b);
 int		eqvcval(Cval *a, Cval *b);
+void		fncval(Env *env);
 
 /* list.c */
 int		equallist(List *a, List *b);

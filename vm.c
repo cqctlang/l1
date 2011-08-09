@@ -6948,6 +6948,7 @@ mktopenv(void)
 	fnch(env);
 	fncid(env);
 	fnctype(env);
+	fncval(env);
 	fnlist(env);
 	fnpair(env);
 	fnrec(env);
