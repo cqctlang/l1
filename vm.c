@@ -4020,10 +4020,12 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			xmov(vm, &i->op1, &i->dst);
 			continue;
 		LABEL Ipush:
-			xpush(vm, &i->op1);
+			val = getvalrand(vm, &i->op1);
+			vm->stack[--vm->sp] = val;
 			continue;
 		LABEL Ipushi:
-			xpushi(vm, &i->op1);
+			val = getvalrand(vm, &i->op1);
+			vm->stack[--vm->sp] = (Val)(uptr)cvalu(valcval(val));
 			continue;
 		LABEL Iargc:
 			val = getvalrand(vm, &i->op1);
@@ -4070,9 +4072,15 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			xcallc(vm);
 			continue;
 		LABEL Iframe:
+#if 0
+			vm->stack[--vm->sp] = (Val)(uptr)vm->fp;
+			vm->stack[--vm->sp] = mkvalcl(vm->cl);
+			vm->stack[--vm->sp] = (Val)(uptr)i->targ;
+#else
 			vmpushi(vm, vm->fp);
 			vmpush(vm, mkvalcl(vm->cl));
 			vmpushp(vm, i->targ);
+#endif
 			continue;
 		LABEL Ipanic:
 			fatal("vm panic");
