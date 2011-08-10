@@ -384,6 +384,9 @@ printrand(Operand *r)
 	case Okon:
 		printkon(r->u.kon);
 		break;
+	case Oimm:
+		xprintf("%lu", r->u.imm);
+		break;
 	case Onil:
 		xprintf("nil");
 		break;
@@ -430,6 +433,7 @@ setreloc(Code *c)
 		case Ijmp:
 		case Ifmask:
 		case Ifsize:
+		case Ipushi:
 		case Inop:
 			break;
 		case Ikg:
@@ -447,7 +451,6 @@ setreloc(Code *c)
 		case Iargc:
 		case Ivargc:
 		case Ipush:
-		case Ipushi:
 		case Icall:
 		case Icallt:
 		case Ibox:
@@ -758,6 +761,13 @@ static void
 randnil(Operand *rand)
 {
 	rand->okind = Onil;
+}
+
+static void
+randimm(Operand *rand, Imm i)
+{
+	rand->okind = Oimm;
+	rand->u.imm = i;
 }
 
 /* if DEREF, reference box contents; otherwise the box itself */
@@ -1278,7 +1288,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 		i = nextinsn(code, &e->src);
 		i->kind = Ipushi;
-		randkon(code, &i->op1, konimm(code->konst, Vint, narg));
+		randimm(&i->op1, narg);
 		f->sp++;
 
 		if(issimple(e->e1)){

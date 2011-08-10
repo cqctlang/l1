@@ -621,6 +621,7 @@ enum {
 enum {
 	Oloc = 0,
 	Okon,
+	Oimm,
 	Onil,
 };
 
@@ -709,10 +710,11 @@ struct Location {
 
 typedef
 struct Operand {
-	unsigned char okind;
+	u8 okind;
 	union{
 		Location loc;
 		Val kon;
+		Imm imm;
 	} u;
 } Operand;
 

@@ -908,6 +908,7 @@ getvalrand(VM *vm, Operand *r)
 		return v;
 	case Onil:
 		return Xnil;
+	case Oimm:
 	default:
 		fatal("bug");
 	}
@@ -927,6 +928,17 @@ getcvalrand(VM *vm, Operand *r)
 		fatal("bug");
 	}
 	return 0; /* not reached */
+}
+
+static Imm
+getimmrand(Operand *r)
+{
+	switch(r->okind){
+	case Oimm:
+		return r->u.imm;
+	default:
+		bug();
+	}
 }
 
 static void
@@ -3999,8 +4011,8 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			vm->stack[--vm->sp] = val;
 			continue;
 		LABEL Ipushi:
-			val = getvalrand(vm, &i->op1);
-			vm->stack[--vm->sp] = (Val)(uptr)cvalu(valcval(val));
+			m = getimmrand(&i->op1);
+			vm->stack[--vm->sp] = (Val)(uptr)m;
 			continue;
 		LABEL Iargc:
 			val = getvalrand(vm, &i->op1);
