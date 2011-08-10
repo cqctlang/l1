@@ -2241,25 +2241,6 @@ vmpushp(VM *vm, void *p)
 }
 
 static void
-xpush(VM *vm, Operand *op)
-{
-	Val v;
-	v = getvalrand(vm, op);
-	vmpush(vm, v);
-}
-
-static void
-xpushi(VM *vm, Operand *op)
-{
-	Val v;
-	Cval *cv;
-
-	v = getvalrand(vm, op);
-	cv = valcval(v);
-	vmpushi(vm, cvalu(cv));
-}
-
-static void
 xbox(VM *vm, Operand *op)
 {
 	Val v;
@@ -4066,15 +4047,9 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			xcallc(vm);
 			continue;
 		LABEL Iframe:
-#if 0
 			vm->stack[--vm->sp] = (Val)(uptr)vm->fp;
 			vm->stack[--vm->sp] = mkvalcl(vm->cl);
 			vm->stack[--vm->sp] = (Val)(uptr)i->targ;
-#else
-			vmpushi(vm, vm->fp);
-			vmpush(vm, mkvalcl(vm->cl));
-			vmpushp(vm, i->targ);
-#endif
 			continue;
 		LABEL Ipanic:
 			fatal("vm panic");
