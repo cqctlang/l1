@@ -837,57 +837,6 @@ getval(VM *vm, Location *loc)
 	return 0; /* not reached */
 }
 
-static Cval*
-getcval(VM *vm, Location *loc)
-{
-	Val p;
-
-	switch(LOCKIND(loc->loc)){
-	case Lreg:
-		switch(LOCIDX(loc->loc)){
-		case Rac:
-			return valcval(vm->ac);
-		case Rsp:
-		case Rfp:
-		case Rpc:
-		case Rcl:
-		default:
-			fatal("bug");
-		}
-		break;
-	case Lparam:
-		p = vm->stack[(vm->fp+1)+LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			return valboxedcval(p);
-		return valcval(p);
-	case Llocal:
-		p = vm->stack[(vm->fp-1)-LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			return valboxedcval(p);
-		return valcval(p);
-	case Ldisp:
-		p = cldisp(vm->cl)[LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			return valboxedcval(p);
-		return valcval(p);
-	case Ltopl:
-		p = envget(vm->top->env, valcid(loc->v));
-		if(p == 0 || p == Xundef)
-			vmerr(vm, "reference to unbound variable: %s",
-			      ciddata(valcid(loc->v)));
-		return valcval(p);
-	case Ltopr:
-		p = cdr(loc->v);
-		if(p == Xundef)
-			vmerr(vm, "reference to unbound variable: %s",
-			      ciddata(valcid(car(loc->v))));
-		return valcval(p);
-	default:
-		fatal("bug");
-	}
-	return 0; /* not reached */
-}
-
 static Val
 getvalrand(VM *vm, Operand *r)
 {
@@ -909,21 +858,6 @@ getvalrand(VM *vm, Operand *r)
 	case Onil:
 		return Xnil;
 	case Oimm:
-	default:
-		fatal("bug");
-	}
-	return 0; /* not reached */
-}
-
-static Cval*
-getcvalrand(VM *vm, Operand *r)
-{
-	switch(r->okind){
-	case Oloc:
-		return getcval(vm, &r->u.loc);
-	case Okon:
-		/* FIXME: check for cval? */
-		return valcval(r->u.kon);
 	default:
 		fatal("bug");
 	}
@@ -2157,7 +2091,6 @@ static void
 xclo(VM *vm, Operand *dl, Ctl *label, Operand *dst)
 {
 	Closure *cl;
-	Cval *cv;
 	Imm m, len;
 
 	/* dl is number of values to copy from stack into display */
@@ -2165,8 +2098,7 @@ xclo(VM *vm, Operand *dl, Ctl *label, Operand *dst)
 	/* captured variables are in display order on stack,
 	   from low to high stack address */
 
-	cv = getcvalrand(vm, dl);
-	len = cvalu(cv);
+	len = getimmrand(dl);
 
 	cl = mkcl(vm->cl->code, label->insn, len, label->label);
 	for(m = 0; m < len; m++)
@@ -2525,16 +2457,14 @@ xxcast(VM *vm, Operand *typeordom, Operand *o, Operand *dst)
 static void
 xlist(VM *vm, Operand *op1, Operand *op2, Operand *dst)
 {
-	Val v;
-	Imm sp, n, m, i;
+	Imm sp, n, m, o, i;
 	List *lst;
 	Val rv;
 
-	v = getvalrand(vm, op1);
-	sp = vm->fp+valimm(v);
+	o = getimmrand(op1);
+	sp = vm->fp+o;
 	n = stkimm(vm->stack[sp]);
-	v = getvalrand(vm, op2);
-	m = valimm(v);
+	m = getimmrand(op2);
 
 	lst = mklist();
 	for(i = m; i < n; i++)
@@ -3893,7 +3823,6 @@ Val
 dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	Insn *i;
-	Cval *cv;
 	Val val;
 	Imm m, narg, onarg;
 
@@ -3998,10 +3927,10 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			xbinop(vm, i->kind, &i->op1, &i->op2, &i->dst);
 			continue;
 		LABEL Isubsp:
-			val = getvalrand(vm, &i->op2);  /* max frame size */
-			checkoverflow(vm, valimm(val));
-			val = getvalrand(vm, &i->op1);
-			vm->sp -= valimm(val);
+			m = getimmrand(&i->op2);  /* max frame size */
+			checkoverflow(vm, m);
+			m = getimmrand(&i->op1);
+			vm->sp -= m;
 			continue;
 		LABEL Imov:
 			xmov(vm, &i->op1, &i->dst);
@@ -4015,16 +3944,14 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			vm->stack[--vm->sp] = (Val)(uptr)m;
 			continue;
 		LABEL Iargc:
-			val = getvalrand(vm, &i->op1);
-			cv = valcval(val);
-			if(stkimm(vm->stack[vm->fp]) != cvalu(cv))
+			m = getimmrand(&i->op1);
+			if(stkimm(vm->stack[vm->fp]) != m)
 				vmerr(vm, "wrong number of arguments to %s",
 				      ciddata(vm->cl->id));
 			continue;
 		LABEL Ivargc:
-			val = getvalrand(vm, &i->op1);
-			cv = valcval(val);
-			if(stkimm(vm->stack[vm->fp]) < cvalu(cv))
+			m = getimmrand(&i->op1);
+			if(stkimm(vm->stack[vm->fp]) < m)
 				vmerr(vm, "insufficient arguments to %s",
 				      ciddata(vm->cl->id));
 			continue;

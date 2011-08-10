@@ -26,12 +26,6 @@ konval(Tab *kon, Val v)
 	return v;
 }
 
-static Val
-konimm(Tab *kon, Cbase base, Imm imm)
-{
-	return konval(kon, mkvallitcval(base, imm));
-}
-
 // register constants in code object constant pool
 static Expr*
 konsts(Expr *e, Code *code)
@@ -435,21 +429,23 @@ setreloc(Code *c)
 		case Ifsize:
 		case Ipushi:
 		case Inop:
+		case Iargc:
+		case Ivargc:
+		case Isubsp:
 			break;
 		case Ikg:
+		case Iclo:
+		case Ilist:
 			setreloc1(c, &i->dst);
 			break;
 		case Iinv:
 		case Ineg:
 		case Inot:
 		case Imov:
-		case Iclo:
 			setreloc1(c, &i->op1);
 			setreloc1(c, &i->dst);
 			break;
 		case Icode:
-		case Iargc:
-		case Ivargc:
 		case Ipush:
 		case Icall:
 		case Icallt:
@@ -458,10 +454,6 @@ setreloc(Code *c)
 		case Ijnz:
 		case Ijz:
 			setreloc1(c, &i->op1);
-			break;
-		case Isubsp:
-			setreloc1(c, &i->op1);
-			setreloc1(c, &i->op2);
 			break;
 		case Iadd:
 		case Iand:
@@ -480,7 +472,6 @@ setreloc(Code *c)
 		case Icmpeq:
 		case Icmpneq:
 		case Ixcast:
-		case Ilist:
 			setreloc1(c, &i->op1);
 			setreloc1(c, &i->op2);
 			setreloc1(c, &i->dst);
@@ -1383,7 +1374,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 
 		i = nextinsn(code, src);
 		i->kind = Iclo;
-		randkon(code, &i->op1, konimm(code->konst, Vint, l->ncap));
+		randimm(&i->op1, l->ncap);
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
@@ -1495,25 +1486,22 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	if(l->isvarg){
 		i = nextinsn(code, src);
 		i->kind = Ivargc;
-		randkon(code, &i->op1, konimm(code->konst, Vuint, l->nparam-1));
+		randimm(&i->op1, l->nparam-1);
 		needtop = 1;
 	}else{
 		i = nextinsn(code, src);
 		i->kind = Iargc;
-		randkon(code, &i->op1, konimm(code->konst, Vuint, l->nparam));
+		randimm(&i->op1, l->nparam);
 		needtop = 1;
 	}
 	finit(&f, l->nloc, l->ntmp);
 	f.tmp = l->nloc;
 	f.sp = l->nloc+l->ntmp;
-//	if(l->nloc+l->ntmp > 0){
 	idx = code->ninsn;
-		i = nextinsn(code, src);
-		i->kind = Isubsp;
-		randkon(code, &i->op1,
-			konimm(code->konst, Vint, l->nloc+l->ntmp));
-		needtop = 1;
-//	}
+	i = nextinsn(code, src);
+	i->kind = Isubsp;
+	randimm(&i->op1, l->nloc+l->ntmp);
+	needtop = 1;
 	if(l->isvarg){
 		m = 0;
 		while(m < l->nparam-1){
@@ -1534,8 +1522,8 @@ cglambda(Ctl *name, Code *code, Expr *e)
 		}
 		i = nextinsn(code, src);
 		i->kind = Ilist;
-		randkon(code, &i->op1, konimm(code->konst, Vuint, 0));
-		randkon(code, &i->op2, konimm(code->konst, Vuint, m));
+		randimm(&i->op1, 0);
+		randimm(&i->op2, m);
 		randvarloc(&i->dst, &l->param[m], 1);
 		fset(&f, l->param[m].idx);
 	}else
@@ -1556,9 +1544,8 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	p.labels = labels(e->e2, code);
 
 	cg(e->e2, code, &p, AC, p.Return, top, p.Return, &f);
-	i = &code->insn[idx];
-	randkon(code, &i->op2,
-		konimm(code->konst, Vint, f.maxsp));
+	i = &code->insn[idx]; /* finish Isubsp */
+	randimm(&i->op2, f.maxsp);
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code, &e->src);
 	i->kind = Iret;
