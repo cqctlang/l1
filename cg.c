@@ -446,7 +446,6 @@ setreloc(Code *c)
 		case Icode:
 		case Iargc:
 		case Ivargc:
-		case Isubsp:
 		case Ipush:
 		case Ipushi:
 		case Icall:
@@ -456,6 +455,10 @@ setreloc(Code *c)
 		case Ijnz:
 		case Ijz:
 			setreloc1(c, &i->op1);
+			break;
+		case Isubsp:
+			setreloc1(c, &i->op1);
+			setreloc1(c, &i->op2);
 			break;
 		case Iadd:
 		case Iand:
@@ -573,6 +576,8 @@ printinsn(Code *c, Insn *i)
 	case Isubsp:
 		xprintf("subsp ");
 		printrand(&i->op1);
+		xprintf(" ");
+		printrand(&i->op2);
 		break;
 	case Imov:
 		xprintf("mov ");
@@ -1008,7 +1013,7 @@ struct Frame
 	u32 ml;
 	u32 nloc;
 	u32 ntmp;
-	u64 sp;
+	u64 sp, maxsp;
 	u64 *live;
 	u32 tmp;
 } Frame;
@@ -1023,6 +1028,7 @@ finit(Frame *f, u32 nloc, u32 ntmp)
 	f->ntmp = ntmp;
 	f->tmp = nloc;
 	f->sp = nloc+ntmp;
+	f->maxsp = f->sp;
 }
 
 static void
@@ -1059,6 +1065,8 @@ fpop(Frame *f)
 	u32 nw;
 	if(f->l <= f->b)
 		bug();
+	if(f->sp > f->maxsp)
+		f->maxsp = f->sp;
 	f->sp = *(f->l-1);
 	nw = roundup(f->sp, mwbits)/mwbits;
 	f->l -= nw+1;
@@ -1072,21 +1080,26 @@ fset(Frame *f, u32 i)
 	*p |= (1UL<<(i%mwbits));
 }
 
+/* FIXME: we should mask out frame mask bits above the frame size.
+   they are harmless, but may be confusing if inspected. */
 static void
-femit(Frame *f, Code *c, Src *s)
+femit(Frame *f, Code *c, Src *s, u32 narg)
 {
 	u32 nw;
+	u64 fsz;
 	Insn *i;
-	if(f->sp < mwbits-1){
+
+	fsz = f->sp-(narg+4); /* args+narg+Iframe */
+	if(fsz < mwbits-1){
 		i = nextinsn(c, s);
 		i->kind = Ifmask;
 		i->cnt = *f->l;
 		i = nextinsn(c, s);
-		i->kind = Ifsize; // frame size
-		i->cnt = f->sp;
+		i->kind = Ifsize;
+		i->cnt = fsz;
 		return;
 	}
-	nw = roundup(f->sp, mwbits)/mwbits;
+	nw = roundup(fsz, mwbits)/mwbits;
 	if(c->nlm+nw > c->mlm){
 		c->lm = erealloc(c->lm, c->mlm*sizeof(u64),
 				 2*c->mlm*sizeof(u64));
@@ -1097,7 +1110,7 @@ femit(Frame *f, Code *c, Src *s)
 	i->cnt = (1ULL<<(mwbits-1))|c->nlm;
 	i = nextinsn(c, s);
 	i->kind = Ifsize;
-	i->cnt = f->sp;
+	i->cnt = fsz;
 	memcpy(c->lm+c->nlm, f->l, nw*sizeof(u64));
 	c->nlm += nw;
 }
@@ -1285,8 +1298,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->op1 = r1;
 			else
 				randloc(&i->op1, AC);
-			f->sp -= narg+4;
-			femit(f, code, &e->src);
+			femit(f, code, &e->src, narg);
 			if(1 || loc != Effect){
 				emitlabel(R, e);
 				if(loc != Effect && loc != AC){
@@ -1347,7 +1359,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		l = (Lambda*)e->xp;
 		L = genlabel(code, l->id);
 		src = &e->e1->src; /* argument list */
-
+		fpush(f);
 		for(m = l->ncap-1; m >= 0; m--){
 			i = nextinsn(code, src);
 			i->kind = Imov;
@@ -1356,6 +1368,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i = nextinsn(code, src);
 			i->kind = Ipush;
 			randloc(&i->op1, AC);
+			fset(f, f->sp++);
 		}
 
 		i = nextinsn(code, src);
@@ -1364,12 +1377,10 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		randloc(&i->dst, loc);
 		i->dstlabel = L;
 		L->used = 1;
-
+		fpop(f);
 		cgctl(code, p, ctl, L, &e->src);
-
 		emitlabel(L, e);
 		cglambda(L, code, e);
-
 		break;
 	case Eif:
 		if(e->e3){
@@ -1454,6 +1465,7 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	Ctl *top;
 	Src *src;
 	Frame f;
+	unsigned long idx;
 
 	if(e->kind != Elambda)
 		fatal("cglambda on non-lambda");
@@ -1484,13 +1496,14 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	finit(&f, l->nloc, l->ntmp);
 	f.tmp = l->nloc;
 	f.sp = l->nloc+l->ntmp;
-	if(l->nloc+l->ntmp > 0){
+//	if(l->nloc+l->ntmp > 0){
+	idx = code->ninsn;
 		i = nextinsn(code, src);
 		i->kind = Isubsp;
 		randkon(code, &i->op1,
 			konimm(code->konst, Vint, l->nloc+l->ntmp));
 		needtop = 1;
-	}
+//	}
 	if(l->isvarg){
 		m = 0;
 		while(m < l->nparam-1){
@@ -1533,6 +1546,9 @@ cglambda(Ctl *name, Code *code, Expr *e)
 	p.labels = labels(e->e2, code);
 
 	cg(e->e2, code, &p, AC, p.Return, top, p.Return, &f);
+	i = &code->insn[idx];
+	randkon(code, &i->op2,
+		konimm(code->konst, Vint, f.maxsp));
 	emitlabel(p.Return, e->e2);
 	i = nextinsn(code, &e->src);
 	i->kind = Iret;

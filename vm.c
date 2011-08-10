@@ -4011,6 +4011,8 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			xbinop(vm, i->kind, &i->op1, &i->op2, &i->dst);
 			continue;
 		LABEL Isubsp:
+			val = getvalrand(vm, &i->op2);  /* max frame size */
+			checkoverflow(vm, valimm(val));
 			val = getvalrand(vm, &i->op1);
 			vm->sp -= valimm(val);
 			continue;
