@@ -1492,7 +1492,7 @@ xcalltc(VM *vm)
 	vm->fp = stkimm(vm->stack[vm->sp+2]);
 	vm->cl = valcl(vm->stack[vm->sp+1]);
 	vm->pc = stkp(vm->stack[vm->sp]);
-	vm->sp += 3; /* should be vmpop(vm, 3), but only declared below */
+	vm->sp += 3;
 
 	vm->ac = Xnil; /* FIXME: okay?  why doesn't callc do this? */
 	if(cl->cfn)
@@ -2238,12 +2238,6 @@ vmpushp(VM *vm, void *p)
 {
 	checkoverflow(vm, 1);
 	vm->stack[--vm->sp] = (Val)(uptr)p;
-}
-
-static void
-vmpop(VM *vm, unsigned n)
-{
-	vm->sp += n;
 }
 
 static void
@@ -4090,7 +4084,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			vm->fp = stkimm(vm->stack[vm->sp+2]);
 			vm->cl = valcl(vm->stack[vm->sp+1]);
 			vm->pc = stkp(vm->stack[vm->sp]);
-			vmpop(vm, 3);
+			vm->sp += 3;
 
 			/* ...except that it returns from dovm */
 			return vm->ac;
@@ -4099,7 +4093,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			vm->fp = stkimm(vm->stack[vm->sp+2]);
 			vm->cl = valcl(vm->stack[vm->sp+1]);
 			vm->pc = stkp(vm->stack[vm->sp]);
-			vmpop(vm, 3);
+			vm->sp += 3;
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
 			continue;
