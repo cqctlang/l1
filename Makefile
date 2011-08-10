@@ -40,6 +40,7 @@ L1C =\
 	cpl.c\
 	cpi.c\
 	cp1.c\
+	cpo.c\
 	cpv.c\
 	cpb.c\
 	cg.c\

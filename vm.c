@@ -245,6 +245,72 @@ mkfdcl(Str *name, int flags,
 }
 
 int
+eqval(Val v1, Val v2)
+{
+	if(Vkind(v1) != Vkind(v2))
+		return 0;
+	switch(Vkind(v1)){
+	case Qundef:
+	case Qbox:
+		bug();
+	case Qnil:
+		return 1;
+	case Qas:
+	case Qcid:
+	case Qcl:
+	case Qdom:
+	case Qfd:
+	case Qns:
+	case Qrd:
+	case Qtab:
+	case Qexpr:
+	case Qctype:
+	case Qlist:
+	case Qpair:
+	case Qrange:
+	case Qrec:
+	case Qstr:
+	case Qvec:
+		return eqptr(v1, v2);
+	case Qcval:
+		return eqvcval(valcval(v1), valcval(v2));
+	}
+	bug();
+}
+
+u32
+hashqval(Val v)
+{
+	switch(Vkind(v)){
+	case Qundef:
+	case Qbox:
+		bug();
+	case Qnil:
+		return hashp(Xnil);
+	case Qas:
+	case Qcid:
+	case Qcl:
+	case Qdom:
+	case Qfd:
+	case Qns:
+	case Qrd:
+	case Qtab:
+	case Qexpr:
+	case Qctype:
+	case Qlist:
+	case Qpair:
+	case Qrange:
+	case Qrec:
+	case Qstr:
+	case Qvec:
+		return hashptr(v);
+	case Qcval:
+		return hashqvcval(valcval(v));
+	}
+	bug();
+}
+
+int
 eqvval(Val v1, Val v2)
 {
 	if(Vkind(v1) != Vkind(v2))
@@ -5795,6 +5861,41 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_hashq(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to hashq");
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], hashqval(argv[0]));
+}
+
+static void
+l1_hashqv(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to hashqv");
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], hashqvval(argv[0]));
+}
+
+static void
+l1_hash(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to hash");
+	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], hashval(argv[0]));
+}
+
+static void
+l1_eq(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to eq");
+	if(eqval(argv[0], argv[1]))
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
 l1_eqv(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
@@ -6481,6 +6582,7 @@ l1_statistics(VM *vm, Imm argc, Val *argv, Val *rv)
 	tabput(t, mkvalcid(mkcid0("postgctime")),
 	       mkvallitcval(Vuvlong, vm->postgctime));
 	gcstatistics(t);
+	cgstatistics(t);
 	*rv = mkvaltab(t);
 }
 
@@ -6680,14 +6782,6 @@ static NSroot clp64be = {
 .name = "clp64be",
 };
 
-static void
-l1_hash(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to hash");
-	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], hashval(argv[0]));
-}
-
 static Tab*
 basetab(NSroot *def, Ctype **base)
 {
@@ -6812,6 +6906,7 @@ mktopenv(void)
 	FN(cval2str);
 	FN(delete);
 	FN(domof);
+	FN(eq);
 	FN(equal);
 	FN(eqv);
 	FN(eval);
@@ -6826,6 +6921,8 @@ mktopenv(void)
 	FN(gcunlock);
 	FN(getbytes);
 	FN(hash);
+	FN(hashq);
+	FN(hashqv);
 	FN(index);
 	FN(instguard);  // FIXME: make system routine
 	FN(isas);

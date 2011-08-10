@@ -926,6 +926,9 @@ Expr*		docompilei(U *ctx, Expr *e);
 /* compile1.c */
 Expr*		docompile1(U *ctx, Expr *e);
 
+/* compileo.c */
+Expr*		docompileo(U *ctx, Expr *e);
+
 /* compileb.c */
 Expr*		docompileb(U *ctx, Expr *e);
 
@@ -950,6 +953,7 @@ int		issimple(Expr *e);
 Closure*	callcc(void);
 Code*		callccode(void);
 Code*		calltccode(void);
+void		cgstatistics();
 Closure*	codegen(Expr *e);
 Code*		contcode(void);
 void		finicg(void);
@@ -994,6 +998,7 @@ void		envdefine(Env *env, Cid *id, Val v);
 Val		envget(Env *env, Cid *id);
 Pair*		envgetkv(Env *env, Cid *id);
 int		equalval(Val v1, Val v2);
+int		eqval(Val v1, Val v2);
 int		eqvval(Val v1, Val v2);
 Val		expr2syntax(Expr *e);
 void		freeenv(Env *env);
@@ -1001,6 +1006,7 @@ void		fvmbacktrace(VM *vm);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
 int		getlasterrno();
 u32		hashval(Val v);
+u32		hashqval(Val v);
 u32		hashqvval(Val v);
 void		initvm();
 int		isbasecval(Cval *cv);

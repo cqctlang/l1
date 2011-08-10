@@ -8,12 +8,19 @@ struct CGEnv {
 	HT *labels;
 } CGEnv;
 
+typedef
+struct Stats
+{
+	u64 ninsn;
+} Stats;
+
 static Location toploc[8];
 static Location *Effect;
 static Location *AC, *FP, *SP, *PC, *ARG0, *ARG1, *ARG2;
 static void cglambda(Ctl *name, Code *code, Expr *el);
 char syssrcfile[] = "(system built-in)";
 static Src syssrc = { syssrcfile, 0, 0 };
+static Stats	stats;
 
 static Val
 konval(Tab *kon, Val v)
@@ -210,6 +217,7 @@ nextinsn(Code *code, Src *src)
 		in->src = *src;
 	else
 		in->src = syssrc;
+	stats.ninsn++;
 	return in;
 }
 
@@ -1734,3 +1742,10 @@ void
 finicg(void)
 {
 }
+
+void
+cgstatistics(Tab *t)
+{
+	tabput(t, mkvalcid(mkcid0("ninsn")),
+	       mkvallitcval(Vuvlong, stats.ninsn));
+} 

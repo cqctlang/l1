@@ -39,6 +39,16 @@ mktabqv()
 	return t;
 }
 
+Tab*
+mktabq()
+{
+	Tab *t;
+	t = _mktab(Tabinitsize, Xnil);
+	t->equal = eqval;
+	t->hash = hashqval;
+	return t;
+}
+
 static void
 tabsetdef(Tab *t, Val def)
 {
@@ -378,6 +388,30 @@ l1_mktab(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mktabq(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	if(argc != 0 && argc != 1)
+		vmerr(vm, "wrong number of arguments to mktabq");
+	t = mktabq();
+	if(argc == 1)
+		tabsetdef(t, argv[0]);
+	*rv = mkvaltab(t);
+}
+
+static void
+l1_mktabqv(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	if(argc != 0 && argc != 1)
+		vmerr(vm, "wrong number of arguments to mktabqv");
+	t = mktabqv();
+	if(argc == 1)
+		tabsetdef(t, argv[0]);
+	*rv = mkvaltab(t);
+}
+
+static void
 l1_tabdelete(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Tab *t;
@@ -464,6 +498,8 @@ void
 fntab(Env *env)
 {
 	FN(mktab);
+	FN(mktabq);
+	FN(mktabqv);
 	FN(tabdelete);
 	FN(tabenum);
 	FN(tabinsert);
