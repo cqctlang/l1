@@ -4634,7 +4634,7 @@ ns = @names c32le {
 For instance, the program <span class="val">dwarf2cqct</span>
 (available on the <a href="http://cqctworld.org">web</a>),
 generates declarations suitable for inclusion in the body
-of an <span class="val">@names</span> from from the DWARF debugging
+of a <span class="val">@names</span> form from the DWARF debugging
 information contained in an ELF executable.
 </p>
 
@@ -5230,7 +5230,7 @@ Details about this syntax are given in the following section.
 <li>
 <em>Type declarations</em> associate a type name with a
 definition of the type.  They may appear only in
-an <a href="#syn:_at_names">@names</a> form.  Their
+a <a href="#syn:_at_names">@names</a> form.  Their
 syntax is like C type declaration syntax, but extended
 to allow type and variable declarations to include
 explicit specification of location, layout and encoding
@@ -5307,7 +5307,7 @@ dom`foo_t
 
 <p>
 Every other type name is an array, pointer, or function
-type based on of the one of the above three forms.
+type based on one of the above three forms.
 Syntactically, the qualifier is part of the type being
 modified:
 </p>
@@ -5434,7 +5434,7 @@ to deconstruct and inspect the type.
 <p>
 The ctype constructor functions, one for each ctype
 variant, provide an alternative to the special syntax
-of <span class="fnindex"><a href="#syn:_at_typeof">@typeof</a></span>.
+of <span class="fnindex"><a href="#syn:_at_typename">@typename</a></span>.
 Continuing the example:
 </p>
 
