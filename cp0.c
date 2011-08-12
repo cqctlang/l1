@@ -286,7 +286,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		te = invert(te);
 		putsrc(te, &src);
 		return rvalblock(te, lfree);
-	case Egop:
+	case EGOP:
 		if(!islval(e->e1)){
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
@@ -302,8 +302,8 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		te = Zcons(se, te);
 
 		se = Zset(doid("$val"),
-			  Zbinop(e->op, doid("$val"),
-				 compile_rval(ctx, e->e2, 0)));
+			  Zgbinop(e->kind, doid("$val"),
+				  compile_rval(ctx, e->e2, 0)));
 		te = Zcons(se, te);
 
 		se = Zcall(doid("$put"), 4,

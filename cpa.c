@@ -206,7 +206,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			   expanda(ctx, e->e2, d, w));
 		putsrc(te, &e->src);
 		return te;
-	case Egop:
+	case EGOP:
 		if(e->e1->kind != Earef)
 			fatal("bug");
 		if(islval(e->e1->e1, &a))
@@ -221,10 +221,10 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    Zcall(G("cntrput"), 3,
 				  doid("$a"),
 				  doid("$i"),
-				  Zbinop(e->op,
-					 Zcall(G("cntrget"), 2,
-					       doid("$a"), doid("$i")),
-					 expanda(ctx, e->e2, d, w))),
+				  Zgbinop(e->kind,
+					  Zcall(G("cntrget"), 2,
+						doid("$a"), doid("$i")),
+					  expanda(ctx, e->e2, d, w))),
 			    NULL);
 		putsrc(te, &e->src);
 		return te;
@@ -369,7 +369,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 			    NULL);
 		putsrc(te, &e->src);
 		return te;
-	case Egop:
+	case EGOP:
 		if(e->e1->kind != Edot)
 			fatal("bug");
 		x = islval(e->e1->e1, &a);
@@ -394,13 +394,13 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					      1, doid("$rd")),
 					Zid2sym(e->e1->e2)), 2,
 				  doid("$o"),
-				  Zbinop(e->op,
-					 Zcall(Zcall(G("tablook"), 2,
-						     Zcall(G("rdgettab"),
-							   1, doid("$rd")),
-						     Zid2sym(e->e1->e2)), 1,
-					       doid("$o")),
-					 expanda(ctx, e->e2, d, w))),
+				  Zgbinop(e->kind,
+					  Zcall(Zcall(G("tablook"), 2,
+						      Zcall(G("rdgettab"),
+							    1, doid("$rd")),
+						      Zid2sym(e->e1->e2)), 1,
+						doid("$o")),
+					  expanda(ctx, e->e2, d, w))),
 			    NULL);
 		putsrc(te, &e->src);
 		return te;
@@ -513,7 +513,7 @@ expanda(U *ctx, Expr *e, unsigned d, unsigned *w)
 			return disambig0(ctx, a, e, d);
 		return e;
 	case Eg:
-	case Egop:
+	case EGOP:
 	case Epostinc:
 	case Epostdec:
 	case Epreinc:

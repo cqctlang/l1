@@ -171,6 +171,24 @@ Zbinop(unsigned op, Expr *x, Expr *y)
 }
 
 Expr*
+Zgbinop(unsigned gop, Expr *x, Expr *y)
+{
+	static Kind gop2bop[] = {
+		[Egadd]  = Eadd,
+		[Egband] = Eband,
+		[Egbor]  = Ebor,
+		[Egbxor] = Ebxor,
+		[Egdiv]  = Ediv,
+		[Egmod]  = Emod,
+		[Egmul]  = Emul,
+		[Egshl]  = Eshl,
+		[Egshr]  = Eshr,
+		[Egsub]  = Esub,
+	};
+       return newbinop(gop2bop[gop], x, y);
+}
+
+Expr*
 Zadd(Expr *x, Expr *y)
 {
 	return Zbinop(Eadd, x, y);

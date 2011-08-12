@@ -71,9 +71,18 @@ enum{
 	Efor,
 	Efun,
 	Eg,
+	Egadd,
+	Egband,
+	Egbor,
+	Egbxor,
+	Egdiv,
 	Ege,
+	Egmod,
+	Egmul,
+	Egshl,
+	Egshr,
+	Egsub,
 	Eglobal,
-	Egop,
 	Egoto,
 	Egt,
 	Eid,
@@ -160,6 +169,17 @@ enum{
 	case Eneq:   \
 	case Excast
 
+#define EGOP         \
+	     Egadd:  \
+	case Egband: \
+	case Egbor:  \
+	case Egbxor: \
+	case Egdiv:  \
+	case Egmod:  \
+	case Egmul:  \
+	case Egshl:  \
+	case Egshr:  \
+	case Egsub 
 
 /* ctypes */
 typedef
@@ -249,7 +269,6 @@ struct Expr {
 	Expr *e3;
 	Expr *e4;
 	Val aux;		/* Eid, E_tid, Elabel, Egoto, Ekon */
-	Kind op;		/* Egop */
 	char attr;		/* disambiguation attribute */
 
 	/* source */
@@ -1183,6 +1202,7 @@ Expr*		Zcall(Expr *fn, unsigned narg, ...);
 Expr*		Zcons(Expr *hd, Expr *tl);
 Expr*		Zconst(Cbase base, Imm val);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
+Expr*		Zgbinop(unsigned gop, Expr *x, Expr *y);
 Expr*		Zidcid(Cid *s);
 Expr*		Zid2sym(Expr *e);
 Expr*		Zids2syms(Expr *l);

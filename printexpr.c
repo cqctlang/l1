@@ -64,7 +64,6 @@ char* S[] = {
 	[Eg] =		"g",
 	[Ege] =		"ge",
 	[Eglobal] =	"global",
-	[Egop] =	"gop",
 	[Egoto] =	"goto",
 	[Egt] =		"gt",
 	[Eid] =		"id",
@@ -175,13 +174,6 @@ printexpr(Expr *e)
 	case Eid:
 		xprintf("(%s ", S[e->kind]);
 		printkon(e->aux);
-		xprintf(")");
-		break;
-	case Egop:
-		xprintf("(Egop %s ", S[e->op]);
-		printexpr(e->e1);
-		xprintf(" ");
-		printexpr(e->e2);
 		xprintf(")");
 		break;
 	case Eelist:
@@ -329,6 +321,16 @@ static char* Opstr[Emax] = {
 	[Eutwiddle] = "~",
 	[Elor] = "||",
 	[Eland] = "&&",
+	[Egadd] = "+=",
+	[Egband] = "&=",
+	[Egbor] = "|=",
+	[Egbxor] = "^=",
+	[Egdiv]	= "/=",
+	[Egmod]	= "%=",
+	[Egmul] = "*=",
+	[Egshl]	= "<<=",
+	[Egshr]	= ">>=",
+	[Egsub] = "-=",
 };
 
 static char*
@@ -462,9 +464,9 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf(" = ");
 		printcqct0(e->e2, ni);
 		break;
-	case Egop:
+	case EGOP:
 		printcqct0(e->e1, ni);
-		xprintf(" %s= ", opstr(e->op));
+		xprintf(" %s ", opstr(e->kind));
 		printcqct0(e->e2, ni);
 		break;
 	case Euminus:

@@ -449,26 +449,26 @@ assignment_expression
 assignment_operator
 	: '='
 	{ $$ = Eg; }
-	| MUL_ASSIGN
-	{ $$ = Emul; }
-	| DIV_ASSIGN
-	{ $$ = Ediv; }
-	| MOD_ASSIGN
-	{ $$ = Emod; }
 	| ADD_ASSIGN
-	{ $$ = Eadd; }
-	| SUB_ASSIGN
-	{ $$ = Esub; }
-	| LEFT_ASSIGN
-	{ $$ = Eshl; }
-	| RIGHT_ASSIGN
-	{ $$ = Eshr; }
+	{ $$ = Egadd; }
 	| AND_ASSIGN
-	{ $$ = Eband; }
-	| XOR_ASSIGN
-	{ $$ = Ebxor; }
+	{ $$ = Egband; }
 	| OR_ASSIGN
-	{ $$ = Ebor; }
+	{ $$ = Egbor; }
+	| XOR_ASSIGN
+	{ $$ = Egbxor; }
+	| DIV_ASSIGN
+	{ $$ = Egdiv; }
+	| MOD_ASSIGN
+	{ $$ = Egmod; }
+	| MUL_ASSIGN
+	{ $$ = Egmul; }
+	| LEFT_ASSIGN
+	{ $$ = Egshl; }
+	| RIGHT_ASSIGN
+	{ $$ = Egshr; }
+	| SUB_ASSIGN
+	{ $$ = Egsub; }
 	;
 
 identifier_list

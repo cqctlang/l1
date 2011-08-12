@@ -12,10 +12,10 @@ compileg(U *ctx, Expr* e)
 	if(e == 0)
 		return 0;
 	switch(e->kind){
-	case Egop:
+	case EGOP:
 		se = Zblock(Zlocals(1, "$tmp"),
 			    Zset(doid("$tmp"), compileg(ctx, e->e2)),
-			    Zset(e->e1, Zbinop(e->op, e->e1, doid("$tmp"))),
+			    Zset(e->e1, Zgbinop(e->kind, e->e1, doid("$tmp"))),
 			    NULL);
 		putsrc(se, &e->src);
 		return se;

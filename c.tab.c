@@ -357,9 +357,9 @@ static const short int yyrhs[] =
       -1,   138,    -1,   139,   104,   138,    -1,   139,    -1,   140,
       26,   139,    -1,   140,    -1,   141,    27,   140,    -1,   141,
       -1,   141,   105,   152,    88,   142,    -1,   142,    -1,   129,
-     144,   151,    -1,    91,    -1,    28,    -1,    29,    -1,    30,
-      -1,    31,    -1,    32,    -1,    33,    -1,    34,    -1,    35,
-      -1,    36,    -1,    37,    -1,   109,    -1,   145,    87,   109,
+     144,   151,    -1,    91,    -1,    31,    -1,    35,    -1,    37,
+      -1,    36,    -1,    29,    -1,    30,    -1,    28,    -1,    33,
+      -1,    34,    -1,    32,    -1,   109,    -1,   145,    87,   109,
       -1,   145,    -1,   145,    60,    -1,   148,    -1,   147,   148,
       -1,   156,    -1,   154,    -1,     1,   106,    -1,   143,    -1,
       44,   152,    85,   147,    86,    -1,    44,   152,    85,    86,
@@ -714,8 +714,8 @@ static const unsigned short int yydefact[] =
      172,   165,   187,   188,   189,     0,    24,     0,   175,   255,
        0,   201,     0,     0,   250,   252,     0,   310,     0,   314,
      308,     0,     0,     0,    31,    22,     0,     0,    75,     0,
-       0,     0,     0,    72,    73,     0,     0,     0,   128,   129,
-     130,   131,   132,   133,   134,   135,   136,   137,   127,     0,
+       0,     0,     0,    72,    73,     0,     0,     0,   134,   132,
+     133,   128,   137,   135,   136,   129,   131,   130,   127,     0,
       92,    80,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,   317,     0,     1,   343,     0,     0,     0,     0,
@@ -3033,70 +3033,70 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
 
 /* Line 936 of glr.c  */
 #line 453 "c.y"
-    { ((*yyvalp).kind) = Emul; ;}
+    { ((*yyvalp).kind) = Egadd; ;}
     break;
 
   case 129:
 
 /* Line 936 of glr.c  */
 #line 455 "c.y"
-    { ((*yyvalp).kind) = Ediv; ;}
+    { ((*yyvalp).kind) = Egband; ;}
     break;
 
   case 130:
 
 /* Line 936 of glr.c  */
 #line 457 "c.y"
-    { ((*yyvalp).kind) = Emod; ;}
+    { ((*yyvalp).kind) = Egbor; ;}
     break;
 
   case 131:
 
 /* Line 936 of glr.c  */
 #line 459 "c.y"
-    { ((*yyvalp).kind) = Eadd; ;}
+    { ((*yyvalp).kind) = Egbxor; ;}
     break;
 
   case 132:
 
 /* Line 936 of glr.c  */
 #line 461 "c.y"
-    { ((*yyvalp).kind) = Esub; ;}
+    { ((*yyvalp).kind) = Egdiv; ;}
     break;
 
   case 133:
 
 /* Line 936 of glr.c  */
 #line 463 "c.y"
-    { ((*yyvalp).kind) = Eshl; ;}
+    { ((*yyvalp).kind) = Egmod; ;}
     break;
 
   case 134:
 
 /* Line 936 of glr.c  */
 #line 465 "c.y"
-    { ((*yyvalp).kind) = Eshr; ;}
+    { ((*yyvalp).kind) = Egmul; ;}
     break;
 
   case 135:
 
 /* Line 936 of glr.c  */
 #line 467 "c.y"
-    { ((*yyvalp).kind) = Eband; ;}
+    { ((*yyvalp).kind) = Egshl; ;}
     break;
 
   case 136:
 
 /* Line 936 of glr.c  */
 #line 469 "c.y"
-    { ((*yyvalp).kind) = Ebxor; ;}
+    { ((*yyvalp).kind) = Egshr; ;}
     break;
 
   case 137:
 
 /* Line 936 of glr.c  */
 #line 471 "c.y"
-    { ((*yyvalp).kind) = Ebor; ;}
+    { ((*yyvalp).kind) = Egsub; ;}
     break;
 
   case 138:
