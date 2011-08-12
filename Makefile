@@ -31,6 +31,7 @@ L1C =\
 	xenv.c\
 	cutil.c\
 	cpq.c\
+	cpx.c\
 	cpn.c\
 	cpm.c\
 	cpa.c\

@@ -285,6 +285,15 @@ idsym(Expr *e)
 }
 
 Expr*
+Zidcid(Cid *s)
+{
+	Expr *e;
+	e = newexpr(Eid, 0, 0, 0, 0);
+	e->aux = mkvalcid(s);
+	return e;
+}
+
+Expr*
 doid(char *s)
 {
 	Expr *e;

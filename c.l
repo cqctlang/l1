@@ -46,7 +46,6 @@ static int chars(YYSTYPE *lvalp, int);
 "@local"		{ count(ctx); return(LOCAL); }
 "@match"		{ count(ctx); return(MATCH); }
 "@names"		{ count(ctx); return(NAMES); }
-"@quote"		{ count(ctx); return(QUOTE); }
 "@record"		{ count(ctx); return(DEFREC); }
 "@typename"		{ count(ctx); return(TYPENAME); }
 "@typeof"		{ count(ctx); return(TYPEOF); }
@@ -82,6 +81,8 @@ static int chars(YYSTYPE *lvalp, int);
 #\'\{			{ count(ctx); return(SYNTAXQUOTE); }
 #`\{			{ count(ctx); return(SYNTAXQUASI); }
 #,			{ count(ctx); return(SYNTAXUNQUOTE); }
+#id			{ count(ctx); return(SYNTAXID); }
+#			{ count(ctx); return(SYNTAX); }
 
 {L}({L}|{D})*		{ count(ctx); return(chars(lvalp, IDENTIFIER)); }
 
@@ -146,7 +147,6 @@ L?(\"{STRC}*\"[ \t\v\n\f]*)+ { count(ctx); return(chars(lvalp, STRING_LITERAL));
 "?"			{ count(ctx); return('?'); }
 "@"			{ count(ctx); return('@'); }
 "`"			{ count(ctx); return('`'); }
-"#"			{ count(ctx); return('#'); }
 
 [ \t\v\n\f\r]		{ count(ctx); }
 .			{ cerror(ctx, 0, "unexpected token: '%c'", yytext[0]); }

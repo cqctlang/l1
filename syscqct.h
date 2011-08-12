@@ -104,7 +104,6 @@ enum{
 	Epredec,
 	Epreinc,
 	Eptr,
-	Equote,
 	Eref,
 	Eret,
 	Escope,
@@ -113,6 +112,7 @@ enum{
 	Esizeofe,
 	Esizeoft,
 	Estruct,
+	Estx,
 	Estxquote,
 	Estxquasi,
 	Estxunquote,
@@ -139,7 +139,7 @@ enum{
 	E_tid,
 	E_tg,
 	Emax,
-	Ebad,
+	Euser,
 } Kind;
 
 /* ctypes */
@@ -184,6 +184,23 @@ typedef struct Code Code;
 typedef struct Insn Insn;
 typedef struct Expr Expr;
 
+typedef struct As As;
+typedef struct Box Box;
+typedef struct Cid Cid;
+typedef struct Ctype Ctype;
+typedef struct Cval Cval;
+typedef struct Dom Dom;
+typedef struct Fd Fd;
+typedef struct List List;
+typedef struct Ns Ns;
+typedef struct Pair Pair;
+typedef struct Range Range;
+typedef struct Rd Rd;
+typedef struct Rec Rec;
+typedef struct Str Str;
+typedef struct Tab Tab;
+typedef struct Vec Vec;
+
 typedef
 struct Src {
 	char *filename;
@@ -207,6 +224,7 @@ struct Lit {
 struct Expr {
 	Head hd;
 	Kind kind;
+	Cid *skind;
 	Expr *e1;
 	Expr *e2;
 	Expr *e3;
@@ -221,24 +239,6 @@ struct Expr {
 	/* compiler-managed fields */
 	void *xp;
 };
-
-typedef struct As As;
-typedef struct Box Box;
-typedef struct Cid Cid;
-typedef struct Ctype Ctype;
-typedef struct Cval Cval;
-typedef struct Dom Dom;
-typedef struct Fd Fd;
-typedef struct List List;
-typedef struct Ns Ns;
-typedef struct Pair Pair;
-typedef struct Range Range;
-typedef struct Rd Rd;
-typedef struct Rec Rec;
-typedef struct Str Str;
-typedef struct Tab Tab;
-typedef struct Vec Vec;
-
 
 typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
 typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
@@ -889,7 +889,7 @@ int		yyparse(U *ctx);
 void		printcqct(Expr*);
 void		printexpr(Expr*);
 void		printids(Expr *e);
-Kind		s2kind(Str *s);
+Kind		s2kind(char *s);
 
 /* bitfield.c */
 int		bitfieldgeom(BFgeom *bfg);
@@ -898,6 +898,9 @@ Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
 /* compileq.c */
 Expr*		docompileq(U *ctx, Expr *e);
+
+/* compilex.c */
+Expr*		docompilex(U *ctx, Expr *e);
 
 /* compilen.c */
 Expr*		docompilen(U *ctx, Expr *e);
@@ -1160,6 +1163,7 @@ Expr*		Zcall(Expr *fn, unsigned narg, ...);
 Expr*		Zcons(Expr *hd, Expr *tl);
 Expr*		Zconst(Cbase base, Imm val);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
+Expr*		Zidcid(Cid *s);
 Expr*		Zid2sym(Expr *e);
 Expr*		Zids2syms(Expr *l);
 Expr*		Zif(Expr *cond, Expr *true);

@@ -107,15 +107,16 @@
      RETURN = 324,
      CASE = 325,
      DEFAULT = 326,
-     QUOTE = 327,
-     SYNTAXQUOTE = 328,
-     SYNTAXQUASI = 329,
-     SYNTAXUNQUOTE = 330,
-     SYNTAXSPLICE = 331,
-     LPAIR = 332,
-     RPAIR = 333,
-     NOBIND_PRE = 334,
-     MATCH = 335
+     SYNTAX = 327,
+     SYNTAXID = 328,
+     SYNTAXQUOTE = 329,
+     SYNTAXQUASI = 330,
+     SYNTAXUNQUOTE = 331,
+     SYNTAXSPLICE = 332,
+     LPAIR = 333,
+     RPAIR = 334,
+     NOBIND_PRE = 335,
+     MATCH = 336
    };
 #endif
 
@@ -141,7 +142,7 @@ typedef union YYSTYPE
 
 
 /* Line 2638 of glr.c  */
-#line 145 "c.tab.h"
+#line 146 "c.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 #endif

@@ -6292,161 +6292,6 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(rv);
 }
 
-Val
-expr2syntax(Expr *e)
-{
-	List *l;
-	Expr *p;
-
-	if(e == 0)
-		return Xnil;
-	l = mklist();
-	_listappend(l, mkvalstr(mkstr0(S[e->kind])));
-//	_listappend(l, mkvalstr(mkstr0(e->src.filename)));
-//	_listappend(l, mkvallitcval(Vuint, e->src.line));
-	switch(e->kind){
-	case E_tid:
-	case Eid:
-	case Elabel:
-	case Egoto:
-	case Ekon:
-		_listappend(l, e->aux);
-		break;
-	case Ebinop:
-	case Egop:
-		_listappend(l, mkvalstr(mkstr0(S[e->op])));
-		_listappend(l, expr2syntax(e->e1));
-		_listappend(l, expr2syntax(e->e2));
-		break;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			_listappend(l, expr2syntax(p->e1));
-			p = p->e2;
-		}
-		break;
-	default:
-		_listappend(l, expr2syntax(e->e1));
-		_listappend(l, expr2syntax(e->e2));
-		_listappend(l, expr2syntax(e->e3));
-		_listappend(l, expr2syntax(e->e4));
-		break;
-	}
-	return mkvallist(l);
-}
-
-static Expr*
-syntax2expr(VM *vm, Val a)
-{
-	Val v;
-	Imm i;
-	Expr *e;
-	Cid *id;
-	Str *s;
-	Kind k;
-	List *l;
-	static unsigned skip = 0;
-
-	if(a == Xnil)
-		return 0;
-	if(Vkind(a) != Qlist)
-		goto bad;
-	l = (List*)a;
-	v = listref(vm, l, 0);
-	if(Vkind(v) != Qstr)
-		goto bad;
-	s = (Str*)v;
-	k = s2kind(s);
-	if(k == Ebad)
-		goto bad;
-	switch(k){
-	case E_tid:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qcid)
-			goto bad;
-		id = (Cid*)v;
-		return Ztidn(ciddata(id), strlen(ciddata(id)));
-	case Egoto:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qcid)
-			goto bad;
-		id = (Cid*)v;
-		return Zgoton(ciddata(id), strlen(ciddata(id)));
-	case Elabel:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qcid)
-			goto bad;
-		id = (Cid*)v;
-		return Zlabeln(ciddata(id), strlen(ciddata(id)));
-	case E_tg:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qcid)
-			goto bad;
-		id = (Cid*)v;
-		return Ztgn(ciddata(id), strlen(ciddata(id)),
-			    syntax2expr(vm, listref(vm, l, skip+2)));
-	case Eid:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qcid)
-			goto bad;
-		id = (Cid*)v;
-		return doidnsrc(0, ciddata(id), strlen(ciddata(id)));
-	case Ebinop:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
-			goto bad;
-		k = s2kind((Str*)v);
-		return newbinopsrc(0,
-				   k,
-				   syntax2expr(vm, listref(vm, l, skip+2)),
-				   syntax2expr(vm, listref(vm, l, skip+3)));
-	case Egop:
-		v = listref(vm, l, skip+1);
-		if(Vkind(v) != Qstr)
-			goto bad;
-		k = s2kind((Str*)v);
-		return newgopsrc(0,
-				 k,
-				 syntax2expr(vm, listref(vm, l, skip+2)),
-				 syntax2expr(vm, listref(vm, l, skip+3)));
-	case Eelist:
-		e = nullelist();
-		i = listlen(l)-1;
-		while(i > skip){
-			e = Zcons(syntax2expr(vm, listref(vm, l, i)), e);
-			i--;
-		}
-		return e;
-	default:
-		switch(listlen(l)-(skip+1)){
-		case 0:
-			return Z0(k);
-		case 1:
-			return Z1(k,
-				  syntax2expr(vm, listref(vm, l, skip+1)));
-		case 2:
-			return Z2(k,
-				  syntax2expr(vm, listref(vm, l, skip+1)),
-				  syntax2expr(vm, listref(vm, l, skip+2)));
-		case 3:
-			return Z3(k,
-				  syntax2expr(vm, listref(vm, l, skip+1)),
-				  syntax2expr(vm, listref(vm, l, skip+2)),
-				  syntax2expr(vm, listref(vm, l, skip+3)));
-		case 4:
-			return Z4(k,
-				  syntax2expr(vm, listref(vm, l, skip+1)),
-				  syntax2expr(vm, listref(vm, l, skip+2)),
-				  syntax2expr(vm, listref(vm, l, skip+3)),
-				  syntax2expr(vm, listref(vm, l, skip+4)));
-		default:
-			break;
-		}
-	}
-bad:
-	vmerr(vm, "invalid syntax expression");
-}
-
 static void
 l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -6469,7 +6314,8 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 		efree(whence);
 	if(e == 0)
 		return;
-	*rv = expr2syntax(e);
+	/* FIXME: symbolify E */
+	*rv = mkvalexpr(e);
 }
 
 static void
@@ -6492,14 +6338,15 @@ l1_front(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Expr *e;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to compile");
-	checkarg(vm, "front", argv, 0, Qlist);
-	e = syntax2expr(vm, argv[0]);
+		vmerr(vm, "wrong number of arguments to front");
+	checkarg(vm, "front", argv, 0, Qexpr);
+	e = valexpr(argv[0]);
 	e = Zcons(e, nullelist()); /* wrap in "begin" just in case */
 	e = cqctcompilex(e, vm->top, 0);
 	if(e == 0)
 		vmerr(vm, "compilex error");
-	*rv = expr2syntax(e);
+	/* FIXME: symbolify E */
+	*rv = mkvalexpr(e);
 }
 
 static void

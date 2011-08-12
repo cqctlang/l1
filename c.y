@@ -30,8 +30,8 @@ extern char *yytext;
 %token GLOBAL LOCAL LAMBDA NAMES LET LAPPLY
 %token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
-%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT QUOTE
-%token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
+%token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
+%token SYNTAX SYNTAXID SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
 %token LPAIR RPAIR NOBIND_PRE MATCH
 
 %type <expr> base base_list
@@ -66,6 +66,7 @@ extern char *yytext;
 %type <expr> tn_param_enum_specifier
 %type <expr> table_init table_init_list
 %type <expr> maybe_attr
+%type <expr> syntax_expression
 %type <expr> quote_expression
 %type <expr> unquote_statement
 %type <expr> pattern pattern_list var_pat_list rec_pat_list
@@ -143,10 +144,13 @@ quote_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
 	| SYNTAXUNQUOTE '(' expression ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
-	| QUOTE '{' statement '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
-	| QUOTE '{' expression '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Equote, $3, 0, 0, 0); }
+	;
+
+syntax_expression
+	: SYNTAXID '(' id ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
+	| SYNTAX id '(' argument_expression_list ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, invert($4), 0, 0); }
 	;
 
 table_init
@@ -200,6 +204,7 @@ primary_expression
 	| defrec_expression
 	| let_expression
 	| quote_expression
+	| syntax_expression
 	;
 
 pattern 

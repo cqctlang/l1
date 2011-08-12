@@ -441,6 +441,8 @@ iterexpr(Head *hd, Ictx *ictx)
 		return (Val*)&e->e4;
 	case 4:
 		return (Val*)&e->aux;
+	case 5:
+		return (Val*)&e->skind;
 	default:
 		return GCiterdone;
 	}

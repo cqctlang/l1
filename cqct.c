@@ -138,6 +138,7 @@ dopasses(Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 
 static Pass all[] = {
 	CP(q),
+	CP(x),
 	CP(n),
 	CP(m),
 	CP(a),
@@ -180,6 +181,7 @@ cqctcompilex(Expr *e, Toplevel *top, char *argsid)
 {
 	static Pass front[] = {
 		CP(q),
+		CP(x),
 		CP(n),
 		CP(m),
 		CP(a),
