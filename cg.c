@@ -956,11 +956,7 @@ cgctl(Code *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src *src)
 
 static ikind EtoVM[] = {
 	[Eadd] = Iadd,
-	[Epreinc] = Iadd,
-	[Epostinc] = Iadd,
 	[Esub] = Isub,
-	[Epredec] = Isub,
-	[Epostdec] = Isub,
 	[Emul] = Imul,
 	[Ediv] = Idiv,
 	[Emod] = Imod,
@@ -1194,7 +1190,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}
 		cgunop(code, p, e->kind, &r1, loc, ctl, nxt, &e->src);
 		break;
-	case Ebinop:
+	case EBINOP:
 		if(issimple(e->e1) && issimple(e->e2)){
 			cgrand(code, &r1, e->e1);
 			cgrand(code, &r2, e->e2);
@@ -1225,7 +1221,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(L, e);
 			randloc(&r2, AC);
 		}
-		cgbinop(code, p, e->op, &r1, &r2, loc, ctl, nxt, &e->src);
+		cgbinop(code, p, e->kind, &r1, &r2, loc, ctl, nxt, &e->src);
 		break;
 	case Eblock:
 		b = (Block*)e->xp;

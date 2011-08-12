@@ -19,7 +19,6 @@ l1_mkstxop(VM *vm, Imm argc, Val *argv, Val *rv)
 	cv = valcval(argv[1]);
 	op = cvalu(cv);
 	switch(k){
-	case Ebinop:
 	case Egop:
 		e = newexpr(k, valexpr(argv[2]), valexpr(argv[3]), 0, 0);
 		e->op = op;

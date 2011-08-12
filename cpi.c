@@ -188,7 +188,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                 p = pat->e2;
                 l = elistlen(p);
 		f0 = 0;
-                if(l != 0 && p->e1->kind != Ebinop){
+                if(l != 0 && p->e1->kind != Eeq){
                         f0 = Zcall(doid("rdfields"), 1, 
                                    Zcall(doid("rdof"), 1, copyexpr(exp)));
                         m->check = Zand(m->check,
@@ -203,7 +203,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                    get clobbered. */
                 for(; l > 0; l--){
                         Expr *p0;
-                        if(p->e1->kind == Ebinop){
+                        if(p->e1->kind == Eeq){
                                 p0 = p->e1->e2;
                                 if(p->e1->e1->kind != Eid)
                                         fatal("bad pattern");

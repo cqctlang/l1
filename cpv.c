@@ -106,12 +106,7 @@ tmppass(Expr *e)
 	if(e == 0)
 		return 0;
 
-	switch(e->kind){
-	case Elambda:
-		return 0;
-	case Eblock:
-		return tmppass(e->e2);
-	case Ebinop:
+	if(isbinop(e->kind)){
 		if(issimple(e->e1) && issimple(e->e2))
 			return 0;
 		else if(issimple(e->e1))
@@ -121,6 +116,12 @@ tmppass(Expr *e)
 		else
 			return 1+max(tmppass(e->e1),
 				     tmppass(e->e2));
+	}
+	switch(e->kind){
+	case Elambda:
+		return 0;
+	case Eblock:
+		return tmppass(e->e2);
 	case Eelist:
 		p = e;
 		m = 0;

@@ -119,8 +119,7 @@ Expr*
 newbinopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
 {
 	Expr *e;
-	e = newexprsrc(src, Ebinop, e1, e2, 0, 0);
-	e->op = kind;
+	e = newexprsrc(src, kind, e1, e2, 0, 0);
 	return e;
 }
 
@@ -161,7 +160,6 @@ copyexpr(Expr *e)
 		ne->aux = e->aux;
 		break;
 	case Egop:
-	case Ebinop:
 		ne->op = e->op;
 		break;
 	default:

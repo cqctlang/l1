@@ -4,6 +4,17 @@
 
 static u32 cnt;
 
+int
+isbinop(Kind k)
+{
+	switch(k){
+	case EBINOP:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 void
 cwarn(U *ctx, Expr *e, char *fmt, ...)
 {

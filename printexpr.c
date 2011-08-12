@@ -28,7 +28,6 @@ char* S[] = {
 	[Earrow] =	"arrow",
 	[Ebase] =	"base",
 	[Eband] =	"band",
-	[Ebinop] =	"binop",
 	[Ebitfield] =	"bitfield",
 	[Eblock] =	"block",
 	[Ebor] =	"bor",
@@ -176,13 +175,6 @@ printexpr(Expr *e)
 	case Eid:
 		xprintf("(%s ", S[e->kind]);
 		printkon(e->aux);
-		xprintf(")");
-		break;
-	case Ebinop:
-		xprintf("(%s ", S[e->op]);
-		printexpr(e->e1);
-		xprintf(" ");
-		printexpr(e->e2);
 		xprintf(")");
 		break;
 	case Egop:
@@ -482,24 +474,35 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("%s", opstr(e->kind));
 		printcqct0(e->e1, ni);
 		break;
-	case Ebinop:
-		switch(e->op){
-		case Excast:
-			xprintf("{");
-			printcqct0(e->e1, ni);
-			xprintf("}(");
-			printcqct0(e->e2, ni);
-			xprintf(")");
-			break;
-		default:
-			xprintf("(");
-			printcqct0(e->e1, ni);
-			xprintf(" %s ", opstr(e->op));
-			printcqct0(e->e2, ni);
-			xprintf(")");
-			break;
-		}
+	case Excast:
+		xprintf("{");
+		printcqct0(e->e1, ni);
+		xprintf("}(");
+		printcqct0(e->e2, ni);
+		xprintf(")");
 		break;
+	 case Eadd:
+	 case Esub:
+	 case Emul:
+	 case Ediv:
+	 case Emod:
+	 case Eshl:
+	 case Eshr:
+	 case Eband:
+	 case Ebor:
+	 case Ebxor:
+	 case Egt:
+	 case Ege:
+	 case Elt:
+	 case Ele:
+	 case Eeq:
+	 case Eneq:
+		 xprintf("(");
+		 printcqct0(e->e1, ni);
+		 xprintf(" %s ", opstr(e->kind));
+		 printcqct0(e->e2, ni);
+		 xprintf(")");
+		 break;
 	case Eland:
 	case Elor:
 		xprintf("(");

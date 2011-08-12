@@ -37,7 +37,6 @@ enum{
 	Earrow,
 	Eband,
 	Ebase,
-	Ebinop,
 	Ebitfield,
 	Eblock,
 	Ebor,
@@ -142,6 +141,26 @@ enum{
 	Euser,
 } Kind;
 
+#define EBINOP       \
+	     Eadd:   \
+	case Esub:   \
+	case Emul:   \
+	case Ediv:   \
+	case Emod:   \
+	case Eshl:   \
+	case Eshr:   \
+	case Eband:  \
+	case Ebor:   \
+	case Ebxor:  \
+	case Egt:    \
+	case Ege:    \
+	case Elt:    \
+	case Ele:    \
+	case Eeq:    \
+	case Eneq:   \
+	case Excast
+
+
 /* ctypes */
 typedef
 enum Tkind {
@@ -230,7 +249,7 @@ struct Expr {
 	Expr *e3;
 	Expr *e4;
 	Val aux;		/* Eid, E_tid, Elabel, Egoto, Ekon */
-	Kind op;		/* Ebinop, Egop */
+	Kind op;		/* Egop */
 	char attr;		/* disambiguation attribute */
 
 	/* source */
@@ -1133,6 +1152,7 @@ Expr*		doidnsrc(Src *src, char *s, unsigned long len);
 unsigned	elistlen(Expr *l);
 Cid*		idcid(Expr *e);
 char*		idsym(Expr *e);
+int		isbinop(Kind k);
 int		isnull(Expr *e);
 Expr*		putsrc(Expr *e, Src *src);
 void		resetuniqid();

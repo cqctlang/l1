@@ -20,7 +20,6 @@ inquasi(Expr *e)
 		return Zcall(G("mkstxaux"), 2,
 			     Zuint(e->kind),
 			     Zkon(e->aux));
-	case Ebinop:
 	case Egop:
 		return Zcall(G("mkstxop"), 4,
 			     Zuint(e->kind),
