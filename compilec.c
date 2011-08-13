@@ -45,6 +45,9 @@ uncoverfree(U *ctx, Expr *e, Vs *fs)
 		return 0;
 
 	switch(e->kind){
+	case Elabel:
+	case Egoto:
+		return e;
 	case Eid:
 		vsinsert(e, fs);
 		return e;

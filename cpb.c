@@ -110,6 +110,8 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 		e->e2 = toplevel(ctx, e->e2, env, rib);
 		freexenv(rib);
 		return e;
+	case Elabel:
+	case Egoto:
 	case Escope:
 	case Elambda:
 		return e;
@@ -226,6 +228,9 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		return 0;
 
 	switch(e->kind){
+	case Elabel:
+	case Egoto:
+		return e;
 	case Eid:
 		id = idsym(e);
 		if(xenvlook(lex, id))
@@ -406,6 +411,9 @@ check(U *ctx, Expr *e, Xenv *fn, Xenv *lex)
 		if(vu == 0)
 			return;
 		vu->def++;
+		return;
+	case Elabel:
+	case Egoto:
 		return;
 	case Eid:
 		vu = xenvlook(lex, idsym(e));

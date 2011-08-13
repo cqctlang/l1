@@ -506,7 +506,7 @@ labels(U *ctx, Expr *e, HT *ls)
 	case Edefloc:
 		return;
 	case Elabel:
-		id = idsym(e);
+		id = idsym(e->e1);
 		if(hgets(ls, id, strlen(id)))
 			cerror(ctx, e, "duplicate label: %s", id);
 		else{
@@ -548,7 +548,7 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		checkgoto(ctx, e->e3);
 		break;
 	case Egoto:
-		id = idsym(e);
+		id = idsym(e->e1);
 		q = hgets(ls, id, strlen(id));
 		if(q == 0)
 			cerror(ctx, e, "undefined label: %s", id);
@@ -580,7 +580,7 @@ check1label(void *u, char *k, void *q)
 	USED(k);
 	p = q;
 	if(p->attr == Unusedlabel)
-		cerror((U*)u, p, "unused label: %s", idsym(p));
+		cerror((U*)u, p, "unused label: %s", idsym(p->e1));
 }
 
 static void

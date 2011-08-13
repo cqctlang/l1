@@ -59,7 +59,7 @@ xnil(U *ctx, Expr *e)
 		return e;
 	case Egoto:
 	case Elabel:
-		id = idsym(e);
+		id = idsym(e->e1);
 		if(!strcmp(id, "nil"))
 			cerror(ctx, e, "attempt to treat nil as label");
 		return e;

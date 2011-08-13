@@ -157,7 +157,7 @@ freeexprx(Expr *e)
 		e->xp = 0;
 		break;
 	case Eid:
-		/* e->xp points to lambda/block vars freed elsewhere */
+		/* e->xp, if set, points to lambda/block vars freed elsewhere */
 		e->xp = 0;
 		break;
 	case Elambda:
@@ -413,6 +413,8 @@ fv(Expr *e, Xenv *lex, Xenv *loc, Xenv *free)
 		freexenv(rib);
 		break;
 	case E_tid:
+	case Elabel:
+	case Egoto:
 		break;
 	case Eid:
 		v = xenvlook(lex, idsym(e));
@@ -584,6 +586,9 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		v = topvar(top, idcid(e));
 		e->xp = v;
 		break;
+	case Elabel:
+	case Egoto:
+		break;
 	case Eid:
 		id = idsym(e);
 		v = xenvlook(lex, id);
@@ -733,6 +738,9 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 		v = xenvlook(lex, id);
 		if(v)
 			fatal("bug");
+		break;
+	case Elabel:
+	case Egoto:
 		break;
 	case Eid:
 		id = idsym(e);
@@ -893,7 +901,7 @@ gotos(Expr *e, HT *ls, Exprs *ges)
 		free1exprs(ges);
 		break;
 	case Egoto:
-		id = idsym(e);
+		id = idsym(e->e1);
 		les = hgets(ls, id, strlen(id));
 		e->xp = gotoplan(les, ges);
 		break;
@@ -947,7 +955,7 @@ pass5(Expr *e, HT *ls, Exprs *les)
 		free1exprs(les);
 		break;
 	case Elabel:
-		id = idsym(e);
+		id = idsym(e->e1);
 		hputs(ls, id, strlen(id), copyexprs(les));
 		break;
 	case Eelist:

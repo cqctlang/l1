@@ -268,7 +268,7 @@ struct Expr {
 	Expr *e2;
 	Expr *e3;
 	Expr *e4;
-	Val aux;		/* Eid, E_tid, Elabel, Egoto, Ekon */
+	Val aux;		/* Eid, E_tid, Ekon */
 	char attr;		/* disambiguation attribute */
 
 	/* source */
@@ -1210,11 +1210,9 @@ Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
 Expr*		Zint(Imm val);
 Expr*		Zgoto(char *l);
-Expr*		Zgoton(char *l, unsigned long len);
 Expr*		Zgotosrc(Src *src, Expr *id);
 Expr*		Zkon(Val v);
 Expr*		Zlabel(char *l);
-Expr*		Zlabeln(char *l, unsigned long len);
 Expr*		Zlabelsrc(Src *src, Expr *id, Expr *s);
 Expr*		Zlambda(Expr *args, Expr *body);
 Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);

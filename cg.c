@@ -708,7 +708,7 @@ reclabels(Expr *e, Code *code, HT *ls)
 	case Elambda:
 		break;
 	case Elabel:
-		id = idsym(e);
+		id = idsym(e->e1);
 		hputs(ls, id, strlen(id), genlabel(code, id));
 		break;
 	case Eelist:
@@ -1443,13 +1443,13 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Ibox0;
 			randvarloc(&i->op1, bxst->var[m], 0);
 		}
-		L = hgets(p->labels, idsym(e), strlen(idsym(e)));
+		L = hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
 		if(L == 0)
 			fatal("goto bug");
 		cgjmp(code, p, L, nxt, &e->src);
 		break;
 	case Elabel:
-		L = hgets(p->labels, idsym(e), strlen(idsym(e)));
+		L = hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
 		if(L == 0)
 			fatal("goto bug");
 		emitlabel(L, e);

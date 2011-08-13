@@ -12,8 +12,9 @@ targets(U *ctx, Expr *e, HT *ls)
 		return;
 	switch(e->kind){
 	case Egoto:
-		id = e->id;
+		id = e->e1->id;
 		hput(ls, id, strlen(id), e);
+		if(e->e2) printf("i guess so!\n");
 		targets(ctx, e->e2, ls);
 		break;
 	case Eelist:

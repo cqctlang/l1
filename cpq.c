@@ -13,8 +13,6 @@ inquasi(Expr *e)
 	case Estxunquote:
 		return stxquasi(e->e1);
 	case Eid:
-	case Elabel:
-	case Egoto:
 	case Ekon:
 		return Zcall(G("mkstxaux"), 2,
 			     Zuint(e->kind),

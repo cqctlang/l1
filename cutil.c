@@ -297,8 +297,6 @@ idcid(Expr *e)
 {
 	switch(e->kind){
 	case Eid:
-	case Elabel:
-	case Egoto:
 	case E_tid:
 		break;
 	default:
@@ -498,17 +496,7 @@ Expr*
 Zlabel(char *l)
 {
 	Expr *e;
-	e = Z0(Elabel);
-	e->aux = mkvalcid(mkcid(l, strlen(l)));
-	return e;
-}
-
-Expr*
-Zlabeln(char *l, unsigned long len)
-{
-	Expr *e;
-	e = Z0(Elabel);
-	e->aux = mkvalcid(mkcid(l, len));
+	e = Z1(Elabel, doid(l));
 	return e;
 }
 
@@ -516,17 +504,7 @@ Expr*
 Zgoto(char *l)
 {
 	Expr *e;
-	e = Z0(Egoto);
-	e->aux = mkvalcid(mkcid(l, strlen(l)));
-	return e;
-}
-
-Expr*
-Zgoton(char *l, unsigned long len)
-{
-	Expr *e;
-	e = Z0(Egoto);
-	e->aux = mkvalcid(mkcid(l, len));
+	e = Z1(Egoto, doid(l));
 	return e;
 }
 
@@ -535,7 +513,7 @@ Expr*
 Zlabelsrc(Src *src, Expr *id, Expr *s)
 {
 	Expr *e;
-	e = Zcons(Zlabel(idsym(id)), Zcons(s, nullelist()));
+	e = Zcons(Z1(Elabel, id), Zcons(s, nullelist()));
 	putsrc(e, src);
 	return e;
 }
@@ -545,7 +523,7 @@ Expr*
 Zgotosrc(Src *src, Expr *id)
 {
 	Expr *e;
-	e = Zgoto(idsym(id));
+	e = Z1(Egoto, id);
 	putsrc(e, src);
 	return e;
 }

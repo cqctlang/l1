@@ -169,8 +169,6 @@ printexpr(Expr *e)
 		xprintf(")");
 		break;
 	case E_tid:
-	case Elabel:
-	case Egoto:
 	case Eid:
 		xprintf("(%s ", S[e->kind]);
 		printkon(e->aux);
@@ -595,7 +593,7 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e2, ni);
 		break;
 	case Elabel:
-		printkon(e->aux);
+		printcqct0(e->e1, ni);
 		xprintf(":");
 		break;
 	case Edefault:
@@ -703,7 +701,7 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Egoto:
 		xprintf("goto ");
-		printkon(e->aux);
+		printcqct0(e->e1, ni);
 		break;
 	case Eret:
 		xprintf("return");

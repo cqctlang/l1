@@ -16,8 +16,6 @@ l1_mkstxaux(VM *vm, Imm argc, Val *argv, Val *rv)
 	k = cvalu(cv);
 	switch(k){
 	case Eid:
-	case Elabel:
-	case Egoto:
 	case E_tid:
 	case Ekon:
 		e = newexpr(k, 0, 0, 0, 0);
