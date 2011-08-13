@@ -359,23 +359,6 @@ doidnsrc(Src *src, char *s, unsigned long len)
 }
 
 Expr*
-Ztgn(char *id, unsigned long len, Expr *v)
-{
-	Expr *e;
-	e = Z2(E_tg, Ztidn(id, len), v);
-	return e;
-}
-
-Expr*
-Ztidn(char *id, unsigned long len)
-{
-	Expr *e;
-	e = Z0(E_tid);
-	e->aux = mkvalcid(mkcid(id, len));
-	return e;
-}
-
-Expr*
 Ztg(char *id, Expr *v)
 {
 	Expr *e;

@@ -15,7 +15,6 @@ inquasi(Expr *e)
 	case Eid:
 	case Elabel:
 	case Egoto:
-	case E_tid:
 	case Ekon:
 		return Zcall(G("mkstxaux"), 2,
 			     Zuint(e->kind),
