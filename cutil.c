@@ -297,7 +297,6 @@ idcid(Expr *e)
 {
 	switch(e->kind){
 	case Eid:
-	case E_tid:
 		break;
 	default:
 		bug();
@@ -368,8 +367,7 @@ Expr*
 Ztid(char *id)
 {
 	Expr *e;
-	e = Z0(E_tid);
-	e->aux = mkvalcid(mkcid(id, strlen(id)));
+	e = Z1(E_tid, doid(id));
 	return e;
 }
 

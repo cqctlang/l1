@@ -129,7 +129,6 @@ enum{
 	Etab,
 	Eticke,
 	Etickt,
-	Etid,
 	Etypedef,
 	Etypename,
 	Etypeofe,

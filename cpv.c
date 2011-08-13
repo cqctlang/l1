@@ -580,10 +580,10 @@ pass2(Expr *e, Xenv *lex, Env *top)
 		freexenv(rib);
 		break;
 	case E_tid:
-		id = idsym(e);
+		id = idsym(e->e1);
 		if(xenvlook(lex, id))
 			fatal("bug");
-		v = topvar(top, idcid(e));
+		v = topvar(top, idcid(e->e1));
 		e->xp = v;
 		break;
 	case Elabel:
@@ -734,7 +734,7 @@ pass4(U *ctx, Expr *e, Xenv *lex)
 		freexenv(rib);
 		break;
 	case E_tid:
-		id = idsym(e);
+		id = idsym(e->e1);
 		v = xenvlook(lex, id);
 		if(v)
 			fatal("bug");

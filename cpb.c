@@ -115,6 +115,8 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 	case Escope:
 	case Elambda:
 		return e;
+	case E_tid:
+		bug();
 	case Eid:
 		id = idsym(e);
 		if(xenvlook(lex, id))
@@ -230,6 +232,7 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 	switch(e->kind){
 	case Elabel:
 	case Egoto:
+	case E_tid:
 		return e;
 	case Eid:
 		id = idsym(e);

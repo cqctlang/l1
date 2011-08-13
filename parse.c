@@ -152,7 +152,6 @@ copyexpr(Expr *e)
 	ne->src = e->src;
 	switch(e->kind){
 	case Eid:
-	case E_tid:
 	case Ekon:
 		ne->aux = e->aux;
 		break;

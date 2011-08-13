@@ -110,7 +110,6 @@ char* S[] = {
 	[Etab] =	"tab",
 	[Eticke] = 	"ticke",
 	[Etickt] = 	"tickt",
-	[Etid] = 	"tid",
 	[Etypedef] =	"typedef",
 	[Etypename] =	"typename",
 	[Etypeofe] =	"typeofe",
@@ -404,7 +403,7 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case E_tid:
 		xprintf("#");
-		printkon(e->aux);
+		printcqct0(e->e1, ni);
 		break;
 	case E_tg:
 		printcqct0(e->e1, ni);
