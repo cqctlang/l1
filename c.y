@@ -959,7 +959,7 @@ statement
 	;
 
 unquote_statement
-	: SYNTAXUNQUOTE '{' id '}'
+	: SYNTAXUNQUOTE '{' root_expression '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
 	;
 
