@@ -799,6 +799,11 @@ printsrc(Xfd *xfd, Closure *cl, Insn *pc)
 			ciddata(cl->id));
 		return;
 	}
+	if(fn == stxsrcfile){
+		cprintf(xfd, "%20s\t(user syntax)\n",
+			ciddata(cl->id));
+		return;
+	}
 	if(fn == 0)
 		fn = "<stdin!!!>";
 	cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(cl->id), fn, src->line);
@@ -6327,7 +6332,8 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to compile");
 	checkarg(vm, "compile", argv, 0, Qexpr);
 	e = valexpr(argv[0]);
-	e = Zcons(e, nullelist()); /* wrap in "begin" just in case */
+	/* wrap in "begin" just in case */
+	e = putsrc(Zcons(e, nullelist()), &e->src);
 	v = cqctcompile0(e, vm->top, 0);
 	if(v != 0)
 		*rv = v;

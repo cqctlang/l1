@@ -880,6 +880,7 @@ extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
 extern Code *kcode, *cccode, *tcccode;
+extern char stxsrcfile[];
 extern char syssrcfile[];
 
 /* top-level roots */

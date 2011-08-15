@@ -2,30 +2,8 @@
 #include "util.h"
 #include "syscqct.h"
 
-
-static void
-l1_mkstxaux(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Kind k;
-	Cval *cv;
-	Expr *e;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to mkstxaux");
-	checkarg(vm, "mkstxaux", argv, 0, Qcval);
-	cv = valcval(argv[0]);
-	k = cvalu(cv);
-	switch(k){
-	case Eid:
-	case E_tid:
-	case Ekon:
-		e = newexpr(k, 0, 0, 0, 0);
-		e->aux = argv[1];
-		break;
-	default:
-		vmerr(vm, "mkstxaux on invalid expression type");
-	}
-	*rv = mkvalexpr(e);
-}
+char stxsrcfile[] = "(user syntax extension)";
+static Src stxsrc = { stxsrcfile, 0, 0 };
 
 static void
 l1_mkstxid(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -33,9 +11,10 @@ l1_mkstxid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkstxid");
-	checkarg(vm, "mkstxaux", argv, 0, Qcid);
+	checkarg(vm, "mkstxid", argv, 0, Qcid);
 	e = Zidcid(valcid(argv[0]));
 	e->skind = mkcid0("id");
+	e->src = stxsrc;
 	*rv = mkvalexpr(e);
 }
 
@@ -47,6 +26,7 @@ l1_mkstxval(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkstxval");
 	e = Zkon(argv[0]);
 	e->skind = mkcid0("kon");
+	e->src = stxsrc;
 	*rv = mkvalexpr(e);
 }
 
@@ -73,6 +53,7 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 		}
 	e = Z4(k, earg[0], earg[1], earg[2], earg[3]);
 	e->skind = sk;
+	e->src = stxsrc;
 	*rv = mkvalexpr(e);
 }
 
@@ -80,7 +61,6 @@ void
 fnstx(Env *env)
 {
 	FN(mkstx);
-	FN(mkstxaux);
 	FN(mkstxid);
 	FN(mkstxval);
 }

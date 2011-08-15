@@ -1,0 +1,7 @@
+x = 0;
+y = #'{ x++; };
+z = #`{ for(i = 0; i < 10; i++) #,y; };
+f = compile(z);
+f();
+printf("%d\n", x);
+
