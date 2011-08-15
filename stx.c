@@ -57,10 +57,60 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalexpr(e);
 }
 
+static void
+l1_stxkind(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Expr *e;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stxkind");
+	checkarg(vm, "stxkind", argv, 0, Qexpr);
+	e = valexpr(argv[0]);
+	*rv = mkvalcid(e->skind);
+}
+
+static void
+l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *cv;
+	Imm u;
+	Expr *e, *s;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to stxref");
+	checkarg(vm, "stxkind", argv, 0, Qexpr);
+	checkarg(vm, "stxkind", argv, 1, Qcval);
+	cv = valcval(argv[1]);
+	if(!isnatcval(cv))
+		vmerr(vm, "operand 2 to stxref must be "
+		      "a non-negative integer");
+	u = cvalu(cv);
+	if(u >= 4)
+		vmerr(vm, "stxref out of bounds");
+	e = valexpr(argv[0]);
+	switch(u){
+	case 0:
+		s = e->e1;
+		break;
+	case 1:
+		s = e->e2;
+		break;
+	case 2:
+		s = e->e3;
+		break;
+	case 3:
+		s = e->e4;
+		break;
+	}
+	if(s)
+		*rv = mkvalexpr(s);
+	/* else, nil */
+}
+
 void
 fnstx(Env *env)
 {
 	FN(mkstx);
 	FN(mkstxid);
 	FN(mkstxval);
+	FN(stxkind);
+	FN(stxref);
 }

@@ -46,7 +46,7 @@ extern char *yytext;
 %type <expr> names_expression names_declaration_list names_declaration
 %type <expr> lapply_expression
 %type <expr> arg_id_list identifier_list local_list local type_specifier
-%type <expr> id maybeid tickid struct_or_union_specifier
+%type <expr> _id id maybeid tickid struct_or_union_specifier
 %type <expr> struct_declaration_list struct_declaration struct_size
 %type <expr> struct_declarator_list struct_declarator enum_specifier
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
@@ -91,9 +91,18 @@ extern char *yytext;
 %}
 %%
 
-id
+_id
 	: IDENTIFIER
 	{ $$ = doidnsrc(&ctx->inp->src, $1.p, $1.len); }
+	;
+
+id
+	: _id
+	| SYNTAXUNQUOTE _id
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE '(' expression ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
+	;
 
 maybeid
 	: id
@@ -140,10 +149,6 @@ quote_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Estxquasi, $2, 0, 0, 0); }
 	| SYNTAXQUASI expression '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxquasi, $2, 0, 0, 0); }
-	| SYNTAXUNQUOTE id
-	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
-	| SYNTAXUNQUOTE '(' expression ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
 	;
 
 syntax_expression
