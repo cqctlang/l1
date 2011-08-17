@@ -65,6 +65,10 @@ l1_stxkind(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to stxkind");
 	checkarg(vm, "stxkind", argv, 0, Qexpr);
 	e = valexpr(argv[0]);
+	if(e->skind == 0)
+		bug();
+	if(Vkind(mkvalcid(e->skind)) != Qcid)
+		bug();
 	*rv = mkvalcid(e->skind);
 }
 
@@ -76,8 +80,8 @@ l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e, *s;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to stxref");
-	checkarg(vm, "stxkind", argv, 0, Qexpr);
-	checkarg(vm, "stxkind", argv, 1, Qcval);
+	checkarg(vm, "stxref", argv, 0, Qexpr);
+	checkarg(vm, "stxref", argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to stxref must be "

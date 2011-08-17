@@ -68,6 +68,7 @@ extern char *yytext;
 %type <expr> maybe_attr
 %type <expr> syntax_expression
 %type <expr> quote_expression
+%type <expr> mcall_statement
 %type <expr> unquote_statement
 %type <expr> pattern pattern_list var_pat_list rec_pat_list
 %type <expr> table_init_pattern table_init_pattern_list
@@ -956,6 +957,12 @@ statement
 	| labeled_statement
 	| global_statement
 	| unquote_statement
+	| mcall_statement
+	;
+
+mcall_statement
+	: '@' id '(' argument_expression_list ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $2, $4, $6, 0); }
 	;
 
 unquote_statement

@@ -89,6 +89,7 @@ char* S[] = {
 	[Epair] =	"pair",
 	[Elor] =	"lor",
 	[Elt] =		"lt",
+	[Emcall] =	"mcall",
 	[Ematch] =	"match",
 	[Emkctype] =	"mkctype",
 	[Emod] =	"mod",
@@ -718,6 +719,14 @@ printcqct0(Expr *e, unsigned ni)
 			xprintf(" ");
 			printcqct0(e->e1, ni);
 		}
+		break;
+	case Emcall:
+		printcqct0(e->e1, ni);
+		xprintf("(");
+		printargs(e->e2, ni);
+		xprintf(")");
+		xprintf("\n");
+		printcqct0(e->e3, ni);
 		break;
 	default:
 		xprintf("[%d]???", e->kind);

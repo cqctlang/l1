@@ -6126,7 +6126,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "eval", argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
-	cl = cqctcompile(s, "<eval-input>", vm->top, 0);
+	cl = cqctcompile(vm, s, "<eval-input>", vm->top, 0);
 	efree(s);
 	if(cl == 0)
 		return;
@@ -6164,7 +6164,7 @@ l1_evalk(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "evalk", argv, 2, Qcl);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
-	cl = cqctcompile(s, "<eval-input>", vm->top, 0);
+	cl = cqctcompile(vm, s, "<eval-input>", vm->top, 0);
 	efree(s);
 	if(cl == 0)
 		return;
@@ -6334,7 +6334,7 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 	e = valexpr(argv[0]);
 	/* wrap in "begin" just in case */
 	e = putsrc(Zcons(e, nullelist()), &e->src);
-	v = cqctcompile0(e, vm->top, 0);
+	v = cqctcompile0(vm, e, vm->top, 0);
 	if(v != 0)
 		*rv = v;
 }
@@ -6348,7 +6348,7 @@ l1_front(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "front", argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	e = Zcons(e, nullelist()); /* wrap in "begin" just in case */
-	e = cqctcompilex(e, vm->top, 0);
+	e = cqctcompilex(vm, e, vm->top, 0);
 	if(e == 0)
 		vmerr(vm, "compilex error");
 	/* FIXME: symbolify E */

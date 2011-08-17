@@ -1,0 +1,62 @@
+@define Zcar(l)
+{
+	return stxref(l, 0);
+}
+
+@define Zcdr(l)
+{
+	return stxref(l, 1);
+}
+
+@define Znull()
+{
+	return mkstx('null);
+}
+
+@define Zcons(h, t)
+{
+	return mkstx('elist, h, t);
+}
+
+@define Zreverse(l)
+{
+	@defloc rev(l, a)
+	{
+		if(stxkind(l) == 'null)
+			return a;
+		rev(Zcdr(l), Zcons(Zcar(l), a));
+	}
+	rev(l, Znull());
+}
+
+@define expand(e)
+{
+	@defloc exp(e)
+	{
+		@local p, l;
+		if(e == nil)
+			return e;
+		switch(stxkind(e)){
+		case 'kon:
+		case 'id:
+			return e;
+		case 'mcall:
+			return #'{0};
+		case 'elist:
+			p = e;
+			l = Znull();
+			while(stxkind(p) == 'elist){
+				l = Zcons(exp(Zcar(p)), l);
+				p = Zcdr(p);
+			}
+			return Zreverse(l);
+		default:
+			return mkstx(stxkind(e),
+				     exp(stxref(e, 0)),
+				     exp(stxref(e, 1)),
+				     exp(stxref(e, 2)),
+				     exp(stxref(e, 3)));
+		}
+	}
+	return exp(e);
+}

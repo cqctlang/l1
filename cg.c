@@ -1455,7 +1455,7 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		emitlabel(L, e);
 		break;
 	default:
-		fatal("cg undefined for expression %d", e->kind);
+		fatal("cg undefined for expression %s", S[e->kind]);
 		break;
 	}
 }

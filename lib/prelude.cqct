@@ -3,6 +3,7 @@
 	/* this string is updated by git */
 	return "L1 version $Format:%H %cd$";
 }
+@include <expand.cqct>
 @include <cqct.cqct>
 @include <ctype.cqct>
 @include <gc.cqct>

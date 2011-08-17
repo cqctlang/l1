@@ -98,6 +98,7 @@ enum{
 	Epair,
 	Elor,
 	Elt,
+	Emcall,
 	Ematch,
 	Emkctype,
 	Emod,
@@ -934,6 +935,9 @@ int		bitfieldgeom(BFgeom *bfg);
 Imm		bitfieldget(char *s, BFgeom *bfg);
 Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
+/* compilee.c */
+Expr*		docompilee(U *ctx, Expr *e);
+
 /* compileq.c */
 Expr*		docompileq(U *ctx, Expr *e);
 
@@ -1430,8 +1434,8 @@ void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);
 
 /* cqct.c */
-Val		cqctcompile0(Expr *e, Toplevel *top, char *argsid);
-Expr*		cqctcompilex(Expr *e, Toplevel *top, char *argsid);
+Val		cqctcompile0(VM *vm, Expr *e, Toplevel *top, char *argsid);
+Expr*		cqctcompilex(VM *vm, Expr *e, Toplevel *top, char *argsid);
 Expr*		cqctparse(char *s, Toplevel *top, char *src);
 
 extern		void fns(Env*);

@@ -149,6 +149,7 @@ copyexpr(Expr *e)
 
 	ne = mkexpr();
 	ne->kind = e->kind;
+	ne->skind = e->skind;
 	ne->attr = e->attr;
 	ne->src = e->src;
 	switch(e->kind){

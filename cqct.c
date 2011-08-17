@@ -100,7 +100,7 @@ dopasses(Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 		fatal("bug");
 
 	if(cqctflags['p']){
-		xprintf("\n*** compiler input ***\n");
+		xprintf("\n*** post-expand ***\n");
 		printexpr(e);
 		xprintf("\n");
 	}
@@ -133,6 +133,48 @@ dopasses(Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 	return e;
 }
 
+static Expr*
+doexpand(VM *vm, Expr *e)
+{
+	U ctx;
+	Imm bt, et;
+	Val argv[1], rv, v;
+
+	/* we need to fix Src handling to pass tests */
+	v = cqctenvlook(vm->top, "expand");
+	if(0 && v && Vkind(v) == Qcl){
+		argv[0] = mkvalexpr(e);
+		if(0 > cqctcallfn(vm, v, 1, argv, &rv))
+			return 0;
+		if(Vkind(rv) != Qexpr)
+			/* should call vmerr, but there is
+			   no error context, like that
+			   set by cqctcallfn */
+			bug();
+		return valexpr(rv);
+	}
+
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.out = &vm->top->out;
+	/* the other ctx fields are not used */
+
+	if(cqctflags['p']){
+		xprintf("\n*** post-expand ***\n");
+		printexpr(e);
+		xprintf("\n");
+	}
+	bt = et = 0;
+	if(cqctflags['T'])
+		bt = usec();
+	e = docompilee(&ctx, e);
+	if(cqctflags['T']){
+		et = usec();
+		printT("expand", et-bt);
+	}
+	return e;
+}
+
+
 #define CP(id)      { "cp"#id, docompile##id }
 #define NPASS(ps)   (sizeof(ps)/sizeof((ps)[0]))
 
@@ -153,11 +195,14 @@ static Pass all[] = {
 };
 
 Val
-cqctcompile0(Expr *e, Toplevel *top, char *argsid)
+cqctcompile0(VM *vm, Expr *e, Toplevel *top, char *argsid)
 {
 	Imm tv[2];
 	Closure *cl;
 
+	e = doexpand(vm, e);
+	if(e == 0)
+		return 0;
 	e = dopasses(e, top, argsid, all, NPASS(all));
 	if(e == 0)
 		return 0;
@@ -177,7 +222,7 @@ cqctcompile0(Expr *e, Toplevel *top, char *argsid)
 }
 
 Expr*
-cqctcompilex(Expr *e, Toplevel *top, char *argsid)
+cqctcompilex(VM *vm, Expr *e, Toplevel *top, char *argsid)
 {
 	static Pass front[] = {
 		CP(q),
@@ -191,17 +236,20 @@ cqctcompilex(Expr *e, Toplevel *top, char *argsid)
 		CP(i),
 		CP(1),
 	};
+	e = doexpand(vm, e);
+	if(e == 0)
+		return 0;
 	return dopasses(e, top, argsid, front, NPASS(front));
 }
 
 Val
-cqctcompile(char *s, char *src, Toplevel *top, char *argsid)
+cqctcompile(VM *vm, char *s, char *src, Toplevel *top, char *argsid)
 {
 	Expr *e;
 	e = cqctparse(s, top, src);
 	if(e == 0)
 		return 0;
-	return cqctcompile0(e, top, argsid);
+	return cqctcompile0(vm, e, top, argsid);
 }
 
 int
@@ -209,7 +257,7 @@ cqcteval(VM *vm, char *s, char *src, Val *rv)
 {
 	Val v, cl;
 
-	cl = cqctcompile(s, src, vm->top, 0);
+	cl = cqctcompile(vm, s, src, vm->top, 0);
 	if(cl == 0)
 		return -1;
 	if(rv == 0)
