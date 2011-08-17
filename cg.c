@@ -152,6 +152,7 @@ mkcode(void)
 	code->maxinsn = InsnAlloc;
 	code->insn = emalloc(code->maxinsn*sizeof(Insn));
 	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
+	code->src = emalloc(code->maxinsn*sizeof(Src));
 	code->ninsn = 0;
 	code->konst = mktabqv();
 	code->maxreloc = code->maxinsn;
@@ -181,6 +182,7 @@ freecode(Head *hd)
 	efree(code->labels);
 	efree(code->reloc);
 	efree(code->lm);
+	efree(code->src);
 	return 1;
 }
 
@@ -208,13 +210,16 @@ nextinsn(Code *code, Src *src)
 		code->labels = erealloc(code->labels,
 					code->maxinsn*sizeof(Ctl*),
 					2*code->maxinsn*sizeof(Ctl*));
+		code->src = erealloc(code->src,
+				     code->maxinsn*sizeof(Src),
+				     2*code->maxinsn*sizeof(Src));
 		code->maxinsn *= 2;
 	}
-	in = &code->insn[code->ninsn++];
-	if(src)
-		in->src = *src;
-	else
-		in->src = syssrc;
+	in = &code->insn[code->ninsn];
+	if(src == 0)
+		src = &syssrc;
+	code->src[code->ninsn] = *src;
+	code->ninsn++;
 	stats.ninsn++;
 	return in;
 }
@@ -1568,7 +1573,6 @@ codegen(Expr *e)
 	L->used = 1;
 	emitlabel(L, e);
 	e = konsts(e, code);
-	code->src = e;
 	cglambda(L, code, e);
 	prepcode(code);
 	l = (Lambda*)e->xp;

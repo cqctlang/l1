@@ -385,8 +385,6 @@ itercode(Head *hd, Ictx *ictx)
 	switch(ictx->n++){
 	case 0:
 		return (Val*)&code->konst;
-	case 1:
-		return (Val*)&code->src;
 	default:
 		return GCiterdone;
 	}

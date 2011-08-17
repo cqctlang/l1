@@ -771,7 +771,7 @@ putval(VM *vm, Val v, Location *loc)
 Src*
 addr2line(Code *code, Insn *pc)
 {
-	return &pc->src;
+	return &code->src[pc-code->insn];
 }
 
 static void

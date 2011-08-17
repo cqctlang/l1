@@ -792,7 +792,6 @@ struct Insn {
 		Ctl *dstlabel;
 		u64 cnt;
 	};
-	Src src;
 };
 
 struct Code {
@@ -801,8 +800,8 @@ struct Code {
 	unsigned long nreloc, maxreloc;
 	Insn *insn;
 	Ctl **labels;
+	Src *src;
 	Ctl *clist;
-	Expr *src;
 	Tab *konst;
 	uptr *reloc;
 	u64 *lm;
