@@ -774,7 +774,6 @@ struct Ctl {
 	Ctl *l1, *l2;
 
 	Ctl *link;
-	Src *src;
 	Code *code;
 };
 

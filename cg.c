@@ -141,8 +141,6 @@ emitlabel(Ctl *ctl, Expr *e)
 //		fatal("multiple labels %s,%s", ctl->label,
 //		      code->labels[code->ninsn]->label);
 	code->labels[code->ninsn] = ctl;
-	if(e && e->src.line)
-		ctl->src = &e->src;
 }
 
 static Code*
