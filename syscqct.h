@@ -247,6 +247,12 @@ struct Src {
 } Src;
 
 typedef
+struct Ysrc {
+	char *filename;
+	unsigned col, line;
+} Ysrc;
+
+typedef
 union Enc
 {
 	Imm u;
@@ -577,7 +583,7 @@ typedef struct YYstate YYstate;
 
 typedef
 struct In {
-	struct Src src;
+	struct Ysrc src;
 	char *buf;
 	int dofree;
 	YYstate *yy;
@@ -900,8 +906,8 @@ Expr*		doconst(U *ctx, char*, unsigned long len);
 Expr*		dostr(char*, unsigned long len);
 Expr*		doparse(U*, char *buf, char *whence);
 Expr*		dosym(char *s, unsigned long len);
-Expr*		dotickesrc(Src *src, Expr*, Expr*);
-Expr*		doticktsrc(Src *src, Expr*, Expr*);
+Expr*		dotickesrc(Ysrc *src, Expr*, Expr*);
+Expr*		doticktsrc(Ysrc *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
 void		finiparse(void);
 Expr*		flatten(Expr *e);
@@ -909,12 +915,12 @@ void		initparse(void);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);
 Expr*		newbinop(unsigned, Expr*, Expr*);
-Expr*		newbinopsrc(Src*, unsigned, Expr*, Expr*);
+Expr*		newbinopsrc(Ysrc*, unsigned, Expr*, Expr*);
 Expr*		newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
-Expr*		newexprsrc(Src*, unsigned, Expr*, Expr*, Expr*, Expr*);
-Expr*		newgopsrc(Src*, unsigned, Expr*, Expr*);
+Expr*		newexprsrc(Ysrc*, unsigned, Expr*, Expr*, Expr*, Expr*);
+Expr*		newgopsrc(Ysrc*, unsigned, Expr*, Expr*);
 Expr*		nullelist(void);
-Expr*		nullelistsrc(Src*);
+Expr*		nullelistsrc(Ysrc*);
 int		parselit(char *s, unsigned long len, Lit *lit,
 			 unsigned radix, char **err);
 Expr*		ptrto(Expr*, Expr*);
@@ -1170,12 +1176,13 @@ void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
 void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 Expr*		doid(char*);
-Expr*		doidnsrc(Src *src, char *s, unsigned long len);
+Expr*		doidnsrc(Ysrc *src, char *s, unsigned long len);
 unsigned	elistlen(Expr *l);
 Cid*		idcid(Expr *e);
 char*		idsym(Expr *e);
 int		isbinop(Kind k);
 int		isnull(Expr *e);
+Src		mksrc(Ysrc *y);
 Expr*		putsrc(Expr *e, Src *src);
 void		resetuniqid();
 Expr*		uniqid(char *id);
@@ -1213,7 +1220,7 @@ Expr*		Zif(Expr *cond, Expr *true);
 Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
 Expr*		Zint(Imm val);
 Expr*		Zgoto(char *l);
-Expr*		Zgotosrc(Src *src, Expr *id);
+Expr*		Zgotosrc(Ysrc *src, Expr *id);
 Expr*		Zkon(Val v);
 Expr*		Zlabel(char *l);
 Expr*		Zlabelsrc(Src *src, Expr *id, Expr *s);

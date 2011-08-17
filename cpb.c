@@ -7,7 +7,7 @@ newlocal(Expr *e, Expr *id)
 {
 	if(e->kind != Eblock)
 		fatal("bug");
-	e->e1 = newexprsrc(&e->e1->src, Eelist, id, e->e1, 0, 0);
+	e->e1 = putsrc(Zcons(id, e->e1), &e->e1->src);
 }
 
 static Expr*

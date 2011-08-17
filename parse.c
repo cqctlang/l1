@@ -94,9 +94,10 @@ mkexpr()
 }
 
 Expr*
-newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
+newexprsrc(Ysrc *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 {
 	Expr *e;
+	Src s;
 
 	e = mkexpr();
 	e->kind = kind;
@@ -105,8 +106,10 @@ newexprsrc(Src *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 	e->e2 = e2;
 	e->e3 = e3;
 	e->e4 = e4;
-	if(src)
-		putsrc(e, src);
+	if(src){
+		s = mksrc(src);
+		putsrc(e, &s);
+	}
 	return e;
 }
 
@@ -117,7 +120,7 @@ newexpr(unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 }
 
 Expr*
-newbinopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
+newbinopsrc(Ysrc *src, unsigned kind, Expr *e1, Expr *e2)
 {
 	Expr *e;
 	e = newexprsrc(src, kind, e1, e2, 0, 0);
@@ -131,7 +134,7 @@ newbinop(unsigned kind, Expr *e1, Expr *e2)
 }
 
 Expr*
-newgopsrc(Src *src, unsigned kind, Expr *e1, Expr *e2)
+newgopsrc(Ysrc *src, unsigned kind, Expr *e1, Expr *e2)
 {
 	Expr *e;
 	e = newexprsrc(src, kind, e1, e2, 0, 0);
@@ -215,7 +218,7 @@ flatten(Expr *e)
 }
 
 Expr*
-nullelistsrc(Src *src)
+nullelistsrc(Ysrc *src)
 {
 	return newexprsrc(src, Enull, 0, 0, 0, 0);
 }
@@ -526,7 +529,7 @@ doconst(U *ctx, char *s, unsigned long len)
 	if(0 != parselit(s, len, &lit, 0, &err))
 		parseerror(ctx, err);
 	e = Zkon(mkvallitcvalenc(lit.base, lit.v));
-	putsrc(e, &ctx->inp->src);
+	e->src = mksrc(&ctx->inp->src);
 	return e;
 }
 
@@ -644,7 +647,7 @@ dostr(char *s, unsigned long len)
 }
 
 Expr*
-dotickesrc(Src *src, Expr *dom, Expr *id)
+dotickesrc(Ysrc *src, Expr *dom, Expr *id)
 {
 	Expr *e;
 	e = newexprsrc(src, Eticke, dom, id, 0, 0);
@@ -652,7 +655,7 @@ dotickesrc(Src *src, Expr *dom, Expr *id)
 }
 
 Expr*
-doticktsrc(Src *src, Expr *dom, Expr *id)
+doticktsrc(Ysrc *src, Expr *dom, Expr *id)
 {
 	Expr *e;
 	e = newexprsrc(src, Etickt, dom, id, 0, 0);

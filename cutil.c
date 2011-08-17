@@ -68,6 +68,16 @@ cerror(U *ctx, Expr *e, char *fmt, ...)
 	longjmp(ctx->jmp, 1);
 }
 
+Src
+mksrc(Ysrc *y)
+{
+	Src s;
+	s.filename = y->filename;
+	s.col = y->col;
+	s.line = y->line;
+	return s;
+}
+
 Expr*
 Z0(unsigned kind)
 {
@@ -347,7 +357,7 @@ G(char *s)
 }
 
 Expr*
-doidnsrc(Src *src, char *s, unsigned long len)
+doidnsrc(Ysrc *src, char *s, unsigned long len)
 {
 	Expr *e;
 	e = newexprsrc(src, Eid, 0, 0, 0, 0);
@@ -518,11 +528,11 @@ Zlabelsrc(Src *src, Expr *id, Expr *s)
 
 /* FIXME: fix handling of id in interface */
 Expr*
-Zgotosrc(Src *src, Expr *id)
+Zgotosrc(Ysrc *src, Expr *id)
 {
 	Expr *e;
 	e = Z1(Egoto, id);
-	putsrc(e, src);
+	e->src = mksrc(src);
 	return e;
 }
 

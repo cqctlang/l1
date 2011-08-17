@@ -1013,26 +1013,24 @@ compound_statement
 		/* use src of first statement */
 		Expr *sl;
 		sl = invert($2);
-		$$ = newexprsrc(&sl->src,
-				Escope,
-				newexprsrc(&sl->src,
-					   Eblock,
-					   nullelist(),
-					   sl, 0, 0),
-				0, 0, 0);
+		$$ = putsrc(newexpr(Escope,
+				    newexpr(Eblock,
+					    nullelist(),
+					    sl, 0, 0),
+				    0, 0, 0),
+			    &sl->src);
 	}
 	| '{' local_list statement_list '}'
 	{
 		/* use src of first statement */
 		Expr *sl;
 		sl = invert($3);
-		$$ = newexprsrc(&sl->src,
-				Escope,
-				newexprsrc(&sl->src,
-					   Eblock,
-					   flatten($2),
-					   sl, 0, 0),
-				0, 0, 0);
+		$$ = putsrc(newexpr(Escope,
+				    newexpr(Eblock,
+					    flatten($2),
+					    sl, 0, 0),
+				    0, 0, 0),
+			    &sl->src);
 	}
 	;
 
@@ -1110,9 +1108,9 @@ define
 
 define_statement
 	: define id '(' arg_id_list ')' compound_statement
-	{ $$ = newexprsrc(&$2->src, $1, $2, invert($4), $6, 0); }
+	{ $$ = putsrc(newexpr($1, $2, invert($4), $6, 0), &$2->src); }
 	| define id '('  ')' compound_statement
-	{ $$ = newexprsrc(&$2->src, $1, $2, nullelist(), $5, 0); }
+	{ $$ = putsrc(newexpr($1, $2, nullelist(), $5, 0), &$2->src); }
 	;
 
 translation_unit_seq
@@ -1200,7 +1198,7 @@ andmerge(YYSTYPE ye1, YYSTYPE ye2)
 
 	duptickid(other->e1);
 
-	return newexprsrc(&cast->src, Eambig, cast, other, NULL, NULL);
+	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), &cast->src);
 }
 
 static Expr*
@@ -1221,7 +1219,7 @@ mulmerge(YYSTYPE ye1, YYSTYPE ye2)
 
 	duptickid(other->e1);
 
-	return newexprsrc(&cast->src, Eambig, cast, other, NULL, NULL);
+	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), &cast->src);
 }
 
 static int
@@ -1247,5 +1245,5 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 		duptickid(e1->e1);
 	else
 		duptickid(e2->e1);
-	return newexprsrc(&e1->src, Eambig, e1, e2, NULL, NULL);
+	return putsrc(newexpr(Eambig, e1, e2, NULL, NULL), &e1->src);
 }

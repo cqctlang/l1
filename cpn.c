@@ -282,7 +282,7 @@ liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 		/* generate tag if anonymous */
 		if(e->e1 == 0){
 			id = mkanontag();
-			e->e1 = doidnsrc(&e->src, id, strlen(id));
+			e->e1 = putsrc(doid(id), &e->src);
 		}else
 			id = idsym(e->e1);
 
