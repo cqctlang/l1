@@ -2,6 +2,68 @@
 #include "util.h"
 #include "syscqct.h"
 
+u32
+hashqvstx(Expr *e)
+{
+	u32 m;
+	m = Qexpr;
+	m = hashx(m, hashqvval(mkvalcid(e->skind)));
+	if(e->kind == Eid || e->kind == Ekon){
+		m = hashx(m, hashqvval(e->aux));
+		return m;
+	}
+	if(e->e1)
+		m = hashx(m, hashqvstx(e->e1));
+	if(e->e2)
+		m = hashx(m, hashqvstx(e->e2));
+	if(e->e3)
+		m = hashx(m, hashqvstx(e->e3));
+	if(e->e4)
+		m = hashx(m, hashqvstx(e->e4));
+	return m;
+}
+
+int
+eqvstx(Expr *a, Expr *b)
+{
+	/* ignore src */
+
+	if(!eqvval(mkvalcid(a->skind), mkvalcid(b->skind)))
+		return 0;
+
+	if(a->kind == Eid || a->kind == Ekon)
+		return eqvval(a->aux, b->aux);
+
+	if((a->e1 && !b->e1) || (!a->e1 && b->e1))
+		return 0;
+	if((a->e2 && !b->e2) || (!a->e2 && b->e2))
+		return 0;
+	if((a->e3 && !b->e3) || (!a->e3 && b->e3))
+		return 0;
+	if((a->e4 && !b->e4) || (!a->e4 && b->e4))
+		return 0;
+	if(a->e1 && !eqvstx(a->e1, b->e1))
+		return 0;
+	if(a->e2 && !eqvstx(a->e2, b->e2))
+		return 0;
+	if(a->e3 && !eqvstx(a->e3, b->e3))
+		return 0;
+	if(a->e4 && !eqvstx(a->e4, b->e4))
+		return 0;
+	return 1;
+}
+
+u32
+hashstx(Expr *e)
+{
+	return hashqvstx(e);
+}
+
+int
+equalstx(Expr *a, Expr *b)
+{
+	return eqvstx(a, b);
+}
 
 static void
 l1_mkstxid(VM *vm, Imm argc, Val *argv, Val *rv)

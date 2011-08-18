@@ -962,7 +962,7 @@ statement
 
 mcall_statement
 	: '@' id '(' argument_expression_list ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $2, $4, $6, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $2, invert($4), $6, 0); }
 	;
 
 unquote_statement

@@ -329,8 +329,9 @@ eqvval(Val v1, Val v2)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qexpr:
 		return eqptr(v1, v2);
+	case Qexpr:
+		return eqvstx(valexpr(v1), valexpr(v2));		
 	case Qctype:
 		return eqvctype(valctype(v1), valctype(v2));
 	case Qcval:
@@ -368,8 +369,9 @@ hashqvval(Val v)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qexpr:
 		return hashptr(v);
+	case Qexpr:
+		return hashqvstx(valexpr(v));
 	case Qctype:
 		return hashqvctype(valctype(v));
 	case Qcval:
@@ -409,8 +411,9 @@ equalval(Val v1, Val v2)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qexpr:
 		return eqptr(v1, v2);
+	case Qexpr:
+		return equalstx(valexpr(v1), valexpr(v2));
 	case Qctype:
 		return equalctype(valctype(v1), valctype(v2));
 	case Qcval:
@@ -448,8 +451,9 @@ hashval(Val v)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qexpr:
 		return hashptr(v);
+	case Qexpr:
+		return hashstx(valexpr(v));
 	case Qctype:
 		return hashctype(valctype(v));
 	case Qcval:
@@ -6897,6 +6901,7 @@ cqctmkvm(Toplevel *top)
 		cqctflags['p'] = 0;
 		cqctflags['q'] = 0;
 		cqctflags['T'] = 0;
+		cqcteval(vm, "@include <expand.cqct>", "<expand>", &rv);
 		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
 		cqctflags['b'] = fb;
 		cqctflags['p'] = fp;

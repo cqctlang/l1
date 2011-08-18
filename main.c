@@ -547,9 +547,10 @@ main(int argc, char *argv[])
 	if(!dorepl){
 		valc = argc-optind+1;
 		valv = emalloc(valc*sizeof(Val));
-		valv[0] = cqctcstrval(argv[0]);
+		valv[0] = cqctgcpersist(vm, cqctcstrval(argv[0]));
 		for(i = 1; i < valc; i++)
-			valv[i] = cqctcstrval(argv[optind+i-1]);
+			valv[i] = cqctgcpersist(vm, 
+						cqctcstrval(argv[optind+i-1]));
 		argsid = "args";
 	}
 

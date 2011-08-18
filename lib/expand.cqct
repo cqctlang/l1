@@ -1,3 +1,9 @@
+symn = 0;
+@define gensym()
+{
+	return mkstxid(mkcid(sprintfa("sym%d", symn++)));
+}
+
 @define Zcar(l)
 {
 	return stxref(l, 0);
@@ -29,11 +35,14 @@
 	rev(l, Znull());
 }
 
+@global stxtab;
+stxtab = [:];
+
 @define expand(e)
 {
 	@defloc exp(e)
 	{
-		@local p, l;
+		@local p, l, fn;
 		if(e == nil)
 			return e;
 		switch(stxkind(e)){
@@ -41,7 +50,13 @@
 		case 'id:
 			return e;
 		case 'mcall:
-			return #'{0};
+			fn = stxtab[stxref(e, 0)];
+			if(fn){
+				p = exp(fn(e));
+//				pp(p);
+				return p;
+			}
+			error("cannot expand @%a form", stxref(e, 0));
 		case 'elist:
 			p = e;
 			l = Znull();
@@ -60,4 +75,9 @@
 		}
 	}
 	return exp(e);
+}
+
+@define addsyntax(id, fn)
+{
+	stxtab[mkstxid(id)] = fn;
 }

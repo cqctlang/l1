@@ -1412,7 +1412,11 @@ Str*		strslice(Str *str, Imm beg, Imm end);
 int		Strcmp(Str *s1, Str *s2);
 
 /* stx.c */
+int		equalstx(Expr *a, Expr *b);
+int		eqvstx(Expr *a, Expr *b);
 void		fnstx(Env *env);
+u32		hashqvstx(Expr *e);
+u32		hashstx(Expr *e);
 
 /* sym.c */
 Val		attroff(Val o);
