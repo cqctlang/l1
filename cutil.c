@@ -19,14 +19,11 @@ void
 cwarn(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
-	if(e->src.line)
-		cprintf(ctx->out,
-			"%s:%u: warning: ",
-			e->src.filename ? e->src.filename : "<stdin>",
-			e->src.line);
+	if(e->src)
+		cprintf(ctx->out, "%s:%u: warning: ",
+			srcfile(e->src), srcline(e->src));
 	else
-		cprintf(ctx->out,
-			"<lost-location!>: warning: ");
+		cprintf(ctx->out, "<lost-location!>: warning: ");
 	va_start(args, fmt);
 	cvprintf(ctx->out, fmt, args);
 	va_end(args);
@@ -36,14 +33,11 @@ void
 cwarnln(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
-	if(e->src.line)
-		cprintf(ctx->out,
-			"%s:%u: warning: ",
-			e->src.filename ? e->src.filename : "<stdin>",
-			e->src.line);
+	if(e->src)
+		cprintf(ctx->out, "%s:%u: warning: ",
+			srcfile(e->src), srcline(e->src));
 	else
-		cprintf(ctx->out,
-			"<lost-location!>: warning: ");
+		cprintf(ctx->out, "<lost-location!>: warning: ");
 	va_start(args, fmt);
 	cvprintf(ctx->out, fmt, args);
 	cprintf(ctx->out, "\n");
@@ -54,11 +48,8 @@ void
 cerror(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
-	if(e && e->src.line)
-		cprintf(ctx->out,
-			"%s:%u: ",
-			e->src.filename ? e->src.filename : "<stdin>",
-			e->src.line);
+	if(e && e->src)
+		cprintf(ctx->out, "%s:%u: ", srcfile(e->src), srcline(e->src));
 	else if(e)
 		cprintf(ctx->out, "<lost-location!>: ");
 	va_start(args, fmt);
@@ -72,9 +63,21 @@ Src
 mksrc(Ysrc *y)
 {
 	Src s;
-	s.filename = y->filename;
-	s.col = y->col;
-	s.line = y->line;
+	if(y->filename == 0)
+		bug();
+	s = mkvec(SRCLEN);
+	srcfileval(s) = mkvalcid(mkcid0(y->filename));
+	srclineval(s) = mkvallitcval(Vuint, y->line);
+	return s;
+}
+
+Src
+mksrcfake(char *f)
+{
+	Src s;
+	s = mkvec(SRCLEN);
+	srcfileval(s) = mkvalcid(mkcid0(f));
+	srclineval(s) = Xnil;
 	return s;
 }
 
@@ -473,7 +476,7 @@ Zid2sym(Expr *e)
 	if(e->kind != Eid)
 		fatal("bug");
 	r = Zkon(e->aux);
-	putsrc(r, &e->src);
+	putsrc(r, e->src);
 	return r;
 }
 
@@ -518,7 +521,7 @@ Zgoto(char *l)
 
 /* FIXME: fix handling of id in interface */
 Expr*
-Zlabelsrc(Src *src, Expr *id, Expr *s)
+Zlabelsrc(Src src, Expr *id, Expr *s)
 {
 	Expr *e;
 	e = Zcons(Z1(Elabel, id), Zcons(s, nullelist()));
@@ -537,25 +540,24 @@ Zgotosrc(Ysrc *src, Expr *id)
 }
 
 Expr*
-putsrc(Expr *e, Src *src)
+putsrc(Expr *e, Src src)
 {
 	Expr *p;
 
 	if(e == 0)
 		return e;
-
-	if(e->src.line != 0)
+	if(e->src)
 		return e;
-	e->src = *src;
+	e->src = src;
 	switch(e->kind){
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
 			putsrc(p->e1, src);
 			p = p->e2;
-			if(p->src.line != 0)
+			if(p->src)
 				return e;
-			p->src = *src;
+			p->src = src;
 		}
 		break;
 	default:

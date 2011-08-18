@@ -38,7 +38,7 @@ checksrc(char *pass, Expr *e)
 	Expr *p;
 	if(e == 0)
 		return;
-	if(e->src.filename == 0)
+	if(e->src == 0)
 		fatal("source information missing after pass %s", pass);
 	switch(e->kind){
 	case Eelist:

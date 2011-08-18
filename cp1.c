@@ -13,7 +13,7 @@ compiledef(U *ctx, Expr *e)
 		 Zlambdn(e->e2,
 			 compile1(ctx, e->e3),
 			 copyexpr(e->e1)));
-	putsrc(p, &e->src);
+	putsrc(p, e->src);
 	return p;
 }
 
@@ -56,7 +56,7 @@ compilerec(U *ctx, Expr *e)
 		   doid("$rd"),
 		   NULL);
 	efree(is);
-	putsrc(p, &e->src);
+	putsrc(p, e->src);
 	return p;
 }
 
@@ -64,9 +64,9 @@ static Expr*
 compiletab(U *ctx, Expr *e)
 {
 	Expr *loc, *te, *se, *ti;
-	Src *src;
+	Src src;
 
-	src = &e->src;
+	src = e->src;
 	loc = Zlocals(1, "$tab");
 	te = nullelist();
 
@@ -79,7 +79,7 @@ compiletab(U *ctx, Expr *e)
 	while(e->kind == Eelist){
 		ti = e->e1;
 		se = Zcall(G("tabinsert"), 3, doid("$tab"), ti->e1, ti->e2->e1);
-		putsrc(se, &ti->src);
+		putsrc(se, ti->src);
 		te = Zcons(se, te);
 		e = e->e2;
 	}
@@ -94,10 +94,10 @@ static Expr*
 compilelist(U *ctx, Expr *e)
 {
 	Expr *loc, *te, *se;
-	Src *src;
+	Src src;
 	Imm i;
 
-	src = &e->src;
+	src = e->src;
 	loc = Zlocals(1, "$lst");
 	te = nullelist();
 
@@ -110,7 +110,7 @@ compilelist(U *ctx, Expr *e)
 	i = 0;
 	while(e->kind == Eelist){
 		se = Zcall(G("listins"), 3, doid("$lst"), Zuint(i++), e->e1);
-		putsrc(se, &e->e1->src);
+		putsrc(se, e->e1->src);
 		te = Zcons(se, te);
 		e = e->e2;
 	}
@@ -125,9 +125,9 @@ static Expr*
 compilepair(U *ctx, Expr *e)
 {
 	Expr *loc, *se;
-	Src *src;
+	Src src;
 
-	src = &e->src;
+	src = e->src;
 	loc = Zlocals(1, "$pr");
 	e->e1 = compile1(ctx, e->e1);
 	e->e2 = compile1(ctx, e->e2);
@@ -154,7 +154,7 @@ domandtype(Expr *e, Expr **dom, Expr **t)
 }
 
 static Expr*
-compiletypeof(U *ctx, Expr *e, Src *src)
+compiletypeof(U *ctx, Expr *e, Src src)
 {
 	Expr *se, *te, *loc, *t, *dom;
 
@@ -193,13 +193,13 @@ compiletypeof(U *ctx, Expr *e, Src *src)
 }
 
 static Expr*
-compilesizeof(U *ctx, Expr *e, Src *src)
+compilesizeof(U *ctx, Expr *e, Src src)
 {
 	return putsrc(Zsizeof(compiletypeof(ctx, e, src)), src);
 }
 
 static Expr*
-compilemkctype(U *ctx, Expr *e, Src *src)
+compilemkctype(U *ctx, Expr *e, Src src)
 {
 	Expr *t, *dom;
 
@@ -251,7 +251,7 @@ compilecast(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	te = Zblock(loc, invert(te), NULL);
-	putsrc(te, &e->src);
+	putsrc(te, e->src);
 	return te;
 }
 
@@ -327,7 +327,7 @@ compilecontainer(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	te = Zblock(loc, invert(te), NULL);
-	putsrc(te, &e->src);
+	putsrc(te, e->src);
 	return te;
 }
 
@@ -390,7 +390,7 @@ compileambig(U *ctx, Expr *e)
 	te = Zcons(se, te);
 
 	te = Zblock(loc, invert(te), NULL);
-	putsrc(te, &e->src);
+	putsrc(te, e->src);
 	return te;
 }
 
@@ -418,13 +418,13 @@ compile1(U *ctx, Expr *e)
 		se = compileambig(ctx, e);
 		return se;
 	case Esizeoft:
-		se = compilesizeof(ctx, e->e1, &e->src);
+		se = compilesizeof(ctx, e->e1, e->src);
 		return se;
 	case Etypeoft:
-		se = compiletypeof(ctx, e->e1, &e->src);
+		se = compiletypeof(ctx, e->e1, e->src);
 		return se;
 	case Emkctype:
-		se = compilemkctype(ctx, e->e1, &e->src);
+		se = compilemkctype(ctx, e->e1, e->src);
 		return se;
 	case Ecast:
 		se = compilecast(ctx, e);
@@ -449,10 +449,10 @@ compile1(U *ctx, Expr *e)
 					       Zblock(nullelist(),
 						      compile1(ctx, q->e1),
 						      NULL)),
-				       &q->e1->src);
+				       q->e1->src);
 			q = q->e2;
 		}
-		se = putsrc(Zapply(compile1(ctx, e->e1), e->e2), &e->src);
+		se = putsrc(Zapply(compile1(ctx, e->e1), e->e2), e->src);
 		return se;
 	case Eelist:
 		q = e;

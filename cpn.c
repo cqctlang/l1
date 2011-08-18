@@ -148,7 +148,7 @@ enumincs(U *ctx, Expr *e)
 				c = inc(en->e2);
 			}else{
 				en->e2 = c;
-				putsrc(en->e2, &en->src);
+				putsrc(en->e2, en->src);
 				c = inc(en->e2);
 			}
 		}
@@ -256,7 +256,7 @@ liftspecsu(U *ctx, Seen *s, Expr *e, Expr **te)
 	if(e->e3 == 0 && isnull(e->e2)){
 		/* ascribe size 0 to definitions of form struct tag { } */
 		e->e3 = Zint(0);
-		putsrc(e->e3, &e->src);
+		putsrc(e->e3, e->src);
 	}else
 		e->e3 = lift(ctx, e->e3);
 }
@@ -282,12 +282,12 @@ liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 		/* generate tag if anonymous */
 		if(e->e1 == 0){
 			id = mkanontag();
-			e->e1 = putsrc(doid(id), &e->src);
+			e->e1 = putsrc(doid(id), e->src);
 		}else
 			id = idsym(e->e1);
 
 		q = Z1(e->kind, e->e1);
-		putsrc(q, &e->src);
+		putsrc(q, e->src);
 		if(hgets(s->tag, id, strlen(id)))
 			return q; /* already defined */
 		hputs(s->tag, id, strlen(id), id);
@@ -296,7 +296,7 @@ liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 		else
 			liftspecsu(ctx, s, e, te);
 		*te = Zcons(e, *te);
-		putsrc(*te, &e->src);
+		putsrc(*te, e->src);
 		return q;
 	default:
 		fatal("bug");
@@ -314,7 +314,7 @@ lift1name(U *ctx, Seen *s, Expr *e, Expr **te)
 			/* translate declarators and emit declarations */
 			e->e2 = liftdtors(ctx, s, e->e2, te);
 			*te = Zcons(e, *te);
-			putsrc(*te, &e->src);
+			putsrc(*te, e->src);
 		}
 		break;
 	default:
@@ -338,7 +338,7 @@ liftnames(U *ctx, Expr *e)
 		p = p->e2;
 	}
 	finiseen(&s);
-	putsrc(te, &e->src);
+	putsrc(te, e->src);
 	return invert(te);
 }
 
@@ -392,31 +392,31 @@ rdotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id)
 	if(dtor == 0){
 		*id = 0;
 		*type = Z1(Etypename, t);
-		putsrc(*type, &t->src);
+		putsrc(*type, t->src);
 		return;
 	}
 	switch(dtor->kind){
 	case Eid:
 		*id = dtor;
 		*type = Z1(Etypename, t);
-		putsrc(*type, &t->src);
+		putsrc(*type, t->src);
 		break;
 	case Earr:
 		rdotie(ctx,
-		       putsrc(Z2(Earr, t, tie(ctx, dtor->e2)), &dtor->src),
+		       putsrc(Z2(Earr, t, tie(ctx, dtor->e2)), dtor->src),
 		       dtor->e1,
 		       type, id);
 		break;
 	case Eptr:
 		rdotie(ctx,
-		       putsrc(Z1(Eptr, t), &dtor->src),
+		       putsrc(Z1(Eptr, t), dtor->src),
 		       dtor->e1,
 		       type, id);
 		break;
 	case Efun:
 		rdotie(ctx,
 		       putsrc(Z2(Efun, t, tieparams(ctx, dtor->e2)),
-			      &dtor->src),
+			      dtor->src),
 		       dtor->e1,
 		       type, id);
 		break;
@@ -433,7 +433,7 @@ dotie(U *ctx, Expr *t, Expr *dtor, Expr **type, Expr **id)
 {
 	if(t->kind == Etickt){
 		rdotie(ctx, t->e2, dtor, type, id);
-		*type = putsrc(Z2(Etickt, t->e1, *type), &t->src);
+		*type = putsrc(Z2(Etickt, t->e1, *type), t->src);
 	}else
 		rdotie(ctx, t, dtor, type, id);
 }
@@ -450,7 +450,7 @@ tie1sufield(U *ctx, Expr *e, Expr **fs)
 		e->e3 = tie(ctx, e->e3); /* attribute */
 		e->e4 = tie(ctx, e->e4); /* width */
 		*fs = Zcons(e, *fs);
-		putsrc(*fs, &e->src);
+		putsrc(*fs, e->src);
 		break;
 	case Efields:
 		/* list of declarators */
@@ -461,12 +461,12 @@ tie1sufield(U *ctx, Expr *e, Expr **fs)
 			   to be accessed anonymously */
 			dotie(ctx, e->e1, 0, &t, &id);
 			*fs = Zcons(Z3(Edecl, t, id, a), *fs);
-			putsrc(*fs, &e->e1->src);
+			putsrc(*fs, e->e1->src);
 		}else
 			while(!isnull(p)){
 				dotie(ctx, e->e1, p->e1, &t, &id);
 				*fs = Zcons(Z3(Edecl, t, id, a), *fs);
-				putsrc(*fs, &e->e1->src);
+				putsrc(*fs, e->e1->src);
 				a = 0;
 				p = p->e2;
 			}
@@ -493,11 +493,11 @@ tie1name(U *ctx, Expr *e, Expr **te)
 		e->e2 = invert(fs);
 		e->e3 = tie(ctx, e->e3);
 		*te = Zcons(e, *te);
-		putsrc(fs, &e->src);
+		putsrc(fs, e->src);
 		break;
 	case Eenum:
 		*te = Zcons(e, *te);
-		putsrc(*te, &e->src);
+		putsrc(*te, e->src);
 		p = e->e2;
 		while(!isnull(p)){
 			en = p->e1;
@@ -510,7 +510,7 @@ tie1name(U *ctx, Expr *e, Expr **te)
 		while(!isnull(p)){
 			dotie(ctx, e->e1, p->e1, &t, &id);
 			*te = Zcons(Z2(Etypedef, t, id), *te);
-			putsrc(*te, &p->e1->src);
+			putsrc(*te, p->e1->src);
 			p = p->e2;
 		}
 		break;
@@ -520,7 +520,7 @@ tie1name(U *ctx, Expr *e, Expr **te)
 		while(!isnull(p)){
 			dotie(ctx, e->e1, p->e1, &t, &id);
 			*te = Zcons(Z3(Edecl, t, id, a), *te);
-			putsrc(*te, &p->e1->src);
+			putsrc(*te, p->e1->src);
 			a = 0;
 			p = p->e2;
 		}
@@ -543,7 +543,7 @@ tienames(U *ctx, Expr *e)
 		tie1name(ctx, p->e1, &te);
 		p = p->e2;
 	}
-	putsrc(te, &p->src);
+	putsrc(te, p->src);
 	return invert(te);
 }
 
@@ -604,7 +604,7 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 			  Z1(Etypename, Z1(e->kind, e->e1)),
 			  Z1(Etypespec, names(ctx, e)));
 		*te = Zcons(q, *te);
-		putsrc(*te, &e->src);
+		putsrc(*te, e->src);
 		break;
 	case Etypedef:
 		id = idsym(e->e2);
@@ -616,7 +616,7 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 			  Z1(Etypename, Z1(Etypedef, e->e2)),
 			  Z1(Etypespec, names(ctx, e)));
 		*te = Zcons(q, *te);
-		putsrc(*te, &e->src);
+		putsrc(*te, e->src);
 		break;
 	case Edecl:
 		e->e3 = names(ctx, e->e3);
@@ -624,7 +624,7 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 			  doid("$symtab"),
 			  Zid2sym(e->e2), names(ctx, e));
 		*te = Zcons(q, *te);
-		putsrc(*te, &e->src);
+		putsrc(*te, e->src);
 		break;
 	default:
 		fatal("bug");
@@ -656,7 +656,7 @@ donames(U *ctx, Expr *e)
 			 doid("$symtab")),
 		   te);
 	te = Zscope(Zblock(l, invert(te), NULL));
-	putsrc(te, &e->src);
+	putsrc(te, e->src);
 	return te;
 }
 
@@ -793,7 +793,7 @@ mkfieldspec(U *ctx, Expr *f, Seen *s)
 	else
 		r = Zcall(G("mkfield"), 3, tn, id,
 			  a ? Zcall(G("mkattr"), 1, a) : Znil());
-	putsrc(r, &f->src);
+	putsrc(r, f->src);
 	return r;
 }
 
@@ -813,7 +813,7 @@ mkctypespec(U *ctx, Expr *e, Seen *s)
 			f = p->e1;
 			p = p->e2;
 			se = Zcons(mkfieldspec(ctx, f, s), se);
-			putsrc(se, &f->src);
+			putsrc(se, f->src);
 		}
 		r = Zcall(e->kind == Estruct ?
 			  G("mkctype_struct") : G("mkctype_union"),
@@ -821,7 +821,7 @@ mkctypespec(U *ctx, Expr *e, Seen *s)
 			  Zid2sym(e->e1),
 			  Zapply(G("vector"), invert(se)),
 			  e->e3 ? mkctype(ctx, e->e3, s) : Znil());
-		putsrc(r, &e->src);
+		putsrc(r, e->src);
 		return r;
 	case Eenum:
 		se = Znull();
@@ -833,17 +833,17 @@ mkctypespec(U *ctx, Expr *e, Seen *s)
 						Zid2sym(en->e1),
 						mkctype(ctx, en->e2, s)),
 					  se),
-				    &en->src); 
+				    en->src);
 		}
 		se = Zapply(G("vector"), invert(se));
 		r = Zcall(G("mkctype_enum"), 2, Zid2sym(e->e1), se);
-		putsrc(r, &e->src);
+		putsrc(r, e->src);
 		return r;
 	case Etypedef:
 		r = Zcall(G("mkctype_typedef"), 2,
 			  Zid2sym(e->e2),
 			  mkctype(ctx, e->e1, s));
-		putsrc(r, &e->src);
+		putsrc(r, e->src);
 		return r;
 	default:
 		fatal("bug");
@@ -894,21 +894,21 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 		hputs(s->tid, id, strlen(id), v);
 		return Zkon(v);
 	case Ebase:
-		return putsrc(mkctypebasen(ctx, e), &e->src);
+		return putsrc(mkctypebasen(ctx, e), e->src);
 	case Eptr:
 		return putsrc(Zcall(G("mkctype_ptr"),
 				    1, mkctypename(ctx, e->e1, s)),
-			      &e->src);
+			      e->src);
 	case Earr:
 		if(e->e2)
 			return putsrc(Zcall(G("mkctype_array"), 2,
 					    mkctypename(ctx, e->e1, s),
 					    mkctype(ctx, e->e2, s)),
-				      &e->src);
+				      e->src);
 		else
 			return putsrc(Zcall(G("mkctype_array"), 1,
 					    mkctypename(ctx, e->e1, s)),
-				      &e->src);
+				      e->src);
 	case Efun:
 		se = Znull();
 		p = e->e2;
@@ -919,12 +919,12 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 					 mkctype(ctx, a->e1, s),
 					 a->e2 ? Zid2sym(a->e2) : Znil()),
 				   se);
-			putsrc(se, &a->src);
+			putsrc(se, a->src);
 		}
 		return putsrc(Zcall(G("mkctype_fn"), 2,
 				    mkctypename(ctx, e->e1, s),
 				    Zapply(G("vector"), invert(se))),
-			      &e->src);
+			      e->src);
 	default:
 		fatal("bug");
 	}
@@ -937,7 +937,7 @@ mkctypesym(U *ctx, Expr *e, Seen *s)
 			    mkctype(ctx, e->e1, s),
 			    Zid2sym(e->e2),
 			    e->e3 ? mkctype(ctx, e->e3, s) : Znil()),
-		      &e->src);
+		      e->src);
 }
 
 static Expr*
@@ -948,11 +948,11 @@ mkctype(U *ctx, Expr *e, Seen *s)
 		return 0;
 	switch(e->kind){
 	case Etypespec:
-		return putsrc(mkctypespec(ctx, e->e1, s), &e->src);
+		return putsrc(mkctypespec(ctx, e->e1, s), e->src);
 	case Etypename:
-		return putsrc(mkctypename(ctx, e->e1, s), &e->src);
+		return putsrc(mkctypename(ctx, e->e1, s), e->src);
 	case Edecl:
-		return putsrc(mkctypesym(ctx, e, s), &e->src);
+		return putsrc(mkctypesym(ctx, e, s), e->src);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

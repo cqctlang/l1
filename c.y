@@ -260,14 +260,14 @@ pattern_list
 
 var_pat_list
 	: id '=' pattern
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, 
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
                           newbinopsrc(&ctx->inp->src, Eeq, $1, $3),
-                          nullelist(), 
+                          nullelist(),
                           0, 0); }
 	| var_pat_list ',' id '=' pattern
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, 
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
                           newbinopsrc(&ctx->inp->src, Eeq, $3, $5),
-                          $1, 
+                          $1,
                           0, 0); }
 	;
 
@@ -1018,7 +1018,7 @@ compound_statement
 					    nullelist(),
 					    sl, 0, 0),
 				    0, 0, 0),
-			    &sl->src);
+			    sl->src);
 	}
 	| '{' local_list statement_list '}'
 	{
@@ -1030,7 +1030,7 @@ compound_statement
 					    flatten($2),
 					    sl, 0, 0),
 				    0, 0, 0),
-			    &sl->src);
+			    sl->src);
 	}
 	;
 
@@ -1062,7 +1062,7 @@ selection_statement
 
 labeled_statement
 	: id ':' statement
-	  { $$ = Zlabelsrc(&$1->src, $1, $3); }
+	  { $$ = Zlabelsrc($1->src, $1, $3); }
 	| CASE expression ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
 	| MATCH pattern ':' statement
@@ -1108,9 +1108,9 @@ define
 
 define_statement
 	: define id '(' arg_id_list ')' compound_statement
-	{ $$ = putsrc(newexpr($1, $2, invert($4), $6, 0), &$2->src); }
+	{ $$ = putsrc(newexpr($1, $2, invert($4), $6, 0), $2->src); }
 	| define id '('  ')' compound_statement
-	{ $$ = putsrc(newexpr($1, $2, nullelist(), $5, 0), &$2->src); }
+	{ $$ = putsrc(newexpr($1, $2, nullelist(), $5, 0), $2->src); }
 	;
 
 translation_unit_seq
@@ -1198,7 +1198,7 @@ andmerge(YYSTYPE ye1, YYSTYPE ye2)
 
 	duptickid(other->e1);
 
-	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), &cast->src);
+	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), cast->src);
 }
 
 static Expr*
@@ -1219,7 +1219,7 @@ mulmerge(YYSTYPE ye1, YYSTYPE ye2)
 
 	duptickid(other->e1);
 
-	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), &cast->src);
+	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), cast->src);
 }
 
 static int
@@ -1245,5 +1245,5 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 		duptickid(e1->e1);
 	else
 		duptickid(e2->e1);
-	return putsrc(newexpr(Eambig, e1, e2, NULL, NULL), &e1->src);
+	return putsrc(newexpr(Eambig, e1, e2, NULL, NULL), e1->src);
 }

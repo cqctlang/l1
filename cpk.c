@@ -33,7 +33,7 @@ xnil(U *ctx, Expr *e)
 	case Eid:
 		id = idsym(e);
 		if(!strcmp(id, "nil"))
-			return putsrc(Znil(), &e->src);
+			return putsrc(Znil(), e->src);
 		return e;
 	case Eg:
 		id = idsym(e->e1);

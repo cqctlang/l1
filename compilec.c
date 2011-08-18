@@ -16,7 +16,7 @@ letrec(U *ctx, Expr *e)
 		u = uniqid("f");
 		e->e2 = letrec(ctx, e->e2);
 		se = Zletrec(Zcons(Zbind(u, e), nullelist()), copyexpr(u));
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;
@@ -124,7 +124,7 @@ convert0(U *ctx, Expr *e)
 			    c,
 			    NULL);
 		se = Zletrec(Zcons(Zbind(u, e), nullelist()), se);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;
@@ -163,16 +163,16 @@ convert1(U *ctx, Expr *e)
 		case Eid:
 			e->e1 = Zcall(Ztid("%clcode"), 1, e->e1);
 			e->e2 = Zcons(copyexpr(e->e1), e->e2);
-			putsrc(e->e1, &e->src);
-			putsrc(e->e2, &e->src);
+			putsrc(e->e1, e->src);
+			putsrc(e->e2, e->src);
 			return e;
 		case E_tid:
 			if(isprim(e->e1))
 				return e;
 			e->e1 = Zcall(Ztid("%clcode"), 1, e->e1);
 			e->e2 = Zcons(copyexpr(e->e1), e->e2);
-			putsrc(e->e1, &e->src);
-			putsrc(e->e2, &e->src);
+			putsrc(e->e1, e->src);
+			putsrc(e->e2, e->src);
 			return e;
 		default:
 			t = uniqid("t");
@@ -182,7 +182,7 @@ convert1(U *ctx, Expr *e)
 						 1, copyexpr(t)),
 					   Zcons(t, e->e2)),
 				    NULL);
-			putsrc(se, &e->src);
+			putsrc(se, e->src);
 			return se;
 		}
 	case Eelist:
@@ -234,7 +234,7 @@ convert2(U *ctx, Expr *e, Expr *cp, Expr *fs)
 		if(i < 0)
 			return e;
 		se = Zcall(Ztid("%clref"), 2, copyexpr(cp), Zuint(i));
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Elambda:
 		e->e2 = convert2(ctx, e->e2, e->e1->e1, e->xp);

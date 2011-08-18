@@ -179,7 +179,7 @@ enum{
 	case Egmul:  \
 	case Egshl:  \
 	case Egshr:  \
-	case Egsub 
+	case Egsub
 
 /* ctypes */
 typedef
@@ -240,11 +240,12 @@ typedef struct Str Str;
 typedef struct Tab Tab;
 typedef struct Vec Vec;
 
-typedef
-struct Src {
-	char *filename;
-	unsigned col, line;
-} Src;
+typedef Vec* Src;
+#define SRCLEN 2
+#define srcfileval(s) (vecdata(s)[0])
+#define srclineval(s) (vecdata(s)[1])
+#define srcfile(s)    (ciddata(valcid(srcfileval(s))))
+#define srcline(s)    (cvalu(valcval(srclineval(s))))
 
 typedef
 struct Ysrc {
@@ -885,8 +886,6 @@ extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
 extern Code *kcode, *cccode, *tcccode;
-extern char stxsrcfile[];
-extern char syssrcfile[];
 
 /* top-level roots */
 extern Val syms;
@@ -1028,7 +1027,7 @@ unsigned long	xenvsize(Xenv *xe);
 void		xenvupdate(Xenv *xe, char *id, void *v);
 
 /* vm.c */
-Src*		addr2line(Code *code, Insn *pc);
+Src		addr2line(Code *code, Insn *pc);
 void		builtinfd(Env *env, char *name, Fd *fd);
 void		builtinfn(Env *env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
@@ -1182,7 +1181,8 @@ char*		idsym(Expr *e);
 int		isbinop(Kind k);
 int		isnull(Expr *e);
 Src		mksrc(Ysrc *y);
-Expr*		putsrc(Expr *e, Src *src);
+Src		mksrcfake(char *f);
+Expr*		putsrc(Expr *e, Src src);
 void		resetuniqid();
 Expr*		uniqid(char *id);
 Expr*		vdiff(Expr *a, Expr *b);
@@ -1222,7 +1222,7 @@ Expr*		Zgoto(char *l);
 Expr*		Zgotosrc(Ysrc *src, Expr *id);
 Expr*		Zkon(Val v);
 Expr*		Zlabel(char *l);
-Expr*		Zlabelsrc(Src *src, Expr *id, Expr *s);
+Expr*		Zlabelsrc(Src src, Expr *id, Expr *s);
 Expr*		Zlambda(Expr *args, Expr *body);
 Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
 Expr*		Zletrec(Expr *binds, Expr *body);

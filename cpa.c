@@ -133,7 +133,7 @@ disambig(U *ctx, Expr *a, Expr *e, unsigned d)
 				  doid(t)),
 			    ye, ne),
 		    NULL);
-	putsrc(te, &e->src);
+	putsrc(te, e->src);
 	clearattr(te);
 	return te;
 }
@@ -162,7 +162,7 @@ disambig0(U *ctx, Expr *a, Expr *e, unsigned d)
 			    Zcall(G("error"), 1,
 				  Zstr("attempt to apply & to non-lvalue"))),
 		    NULL);
-	putsrc(te, &e->src);
+	putsrc(te, e->src);
 	clearattr(te);
 	return te;
 }
@@ -191,7 +191,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 		te = Zcall(G("cntrget"), 2,
 			   expanda(ctx, e->e1, d, w),
 			   expanda(ctx, e->e2, d, w));
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case Eg:
 		if(e->e1->kind != Earef)
@@ -204,7 +204,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 			   expanda(ctx, e->e1->e1, d, w),
 			   expanda(ctx, e->e1->e2, d, w),
 			   expanda(ctx, e->e2, d, w));
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case EGOP:
 		if(e->e1->kind != Earef)
@@ -226,7 +226,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 						doid("$a"), doid("$i")),
 					  expanda(ctx, e->e2, d, w))),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case Epreinc:
 	case Epredec:
@@ -249,7 +249,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 					       doid("$a"), doid("$i")),
 					 Zint(1))),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case Epostinc:
 	case Epostdec:
@@ -274,7 +274,7 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 					 doid("$l"), Zint(1))),
 			    doid("$l"),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	default:
 		fatal("bug");
@@ -341,7 +341,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		te = Zblock(Zlocals(1, "$o"),
 			    Zifelse(Zcall(G("isrec"), 1, o), se, te),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case Eg:
 		if(e->e1->kind != Edot)
@@ -367,7 +367,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					Zid2sym(e->e1->e2)), 2,
 				  doid("$o"), expanda(ctx, e->e2, d, w)),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case EGOP:
 		if(e->e1->kind != Edot)
@@ -402,7 +402,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 						doid("$o")),
 					  expanda(ctx, e->e2, d, w))),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case Epreinc:
 	case Epredec:
@@ -437,7 +437,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					       doid("$o")),
 					 Zint(1))),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		e->e1->e1 = 0;
 		return te;
 	case Epostinc:
@@ -475,7 +475,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 					 doid("$l"), Zint(1))),
 			    doid("$l"),
 			    NULL);
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	default:
 		fatal("bug");
@@ -559,14 +559,14 @@ expandc(U *ctx, Expr *e)
 		se = newexpr(Ederef,
 			     Zadd(expandc(ctx, e->e1), expandc(ctx, e->e2)),
 			     0, 0, 0);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Earrow: /* for compile_rval */
 		/* rewrite: E->field => (*E).field */
 		se = newexpr(Edot,
 			     newexpr(Ederef, expandc(ctx, e->e1), 0, 0, 0),
 			     e->e2, 0, 0);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;
@@ -597,7 +597,7 @@ expandarrow(U *ctx, Expr *e)
 		se = newexpr(Edot,
 			     newexpr(Ederef, expandarrow(ctx, e->e1), 0, 0, 0),
 			     e->e2, 0, 0);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;
@@ -655,7 +655,7 @@ expandm(U *ctx, Expr *e)
 		se = invert(se);
 		se = Zcons(Zset(doid("$tmp"), expandm(ctx, e->e2)), se);
 		se = Zblock(Zlocals(1, "$tmp"), se, NULL);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;

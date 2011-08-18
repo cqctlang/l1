@@ -2,8 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-char stxsrcfile[] = "(user syntax extension)";
-static Src stxsrc = { stxsrcfile, 0, 0 };
 
 static void
 l1_mkstxid(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -14,7 +12,7 @@ l1_mkstxid(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "mkstxid", argv, 0, Qcid);
 	e = Zidcid(valcid(argv[0]));
 	e->skind = mkcid0("id");
-	e->src = stxsrc;
+	e->src = mksrcfake("(user syntax)");
 	*rv = mkvalexpr(e);
 }
 
@@ -26,7 +24,7 @@ l1_mkstxval(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkstxval");
 	e = Zkon(argv[0]);
 	e->skind = mkcid0("kon");
-	e->src = stxsrc;
+	e->src = mksrcfake("(user syntax)");
 	*rv = mkvalexpr(e);
 }
 
@@ -53,7 +51,7 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 		}
 	e = Z4(k, earg[0], earg[1], earg[2], earg[3]);
 	e->skind = sk;
-	e->src = stxsrc;
+	e->src = mksrcfake("(user syntax)");
 	*rv = mkvalexpr(e);
 }
 

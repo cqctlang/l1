@@ -768,18 +768,17 @@ putval(VM *vm, Val v, Location *loc)
 	}
 }
 
-Src*
+Src
 addr2line(Code *code, Insn *pc)
 {
-	return &code->src[pc-code->insn];
+	return code->src[pc-code->insn];
 }
 
 static void
 printsrc(Xfd *xfd, Closure *cl, Insn *pc)
 {
 	Code *code;
-	Src *src;
-	char *fn;
+	Src src;
 
 	code = cl->code;
 	if(cl->cfn || cl->ccl){
@@ -793,20 +792,11 @@ printsrc(Xfd *xfd, Closure *cl, Insn *pc)
 	}
 
 	src = addr2line(code, pc);
-	fn = src->filename;
-	if(fn == syssrcfile){
-		cprintf(xfd, "%20s\t(no source information)\n",
-			ciddata(cl->id));
-		return;
-	}
-	if(fn == stxsrcfile){
-		cprintf(xfd, "%20s\t(user syntax)\n",
-			ciddata(cl->id));
-		return;
-	}
-	if(fn == 0)
-		fn = "<stdin!!!>";
-	cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(cl->id), fn, src->line);
+	if(srclineval(src) == Xnil)
+		cprintf(xfd, "%20s\t(%s)\n", ciddata(cl->id), srcfile(src));
+	else
+		cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(cl->id),
+			srcfile(src), srcline(src));
 }
 
 void
@@ -6333,7 +6323,7 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, "compile", argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	/* wrap in "begin" just in case */
-	e = putsrc(Zcons(e, nullelist()), &e->src);
+	e = putsrc(Zcons(e, nullelist()), e->src);
 	v = cqctcompile0(vm, e, vm->top, 0);
 	if(v != 0)
 		*rv = v;

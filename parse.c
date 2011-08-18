@@ -108,7 +108,7 @@ newexprsrc(Ysrc *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 	e->e4 = e4;
 	if(src){
 		s = mksrc(src);
-		putsrc(e, &s);
+		putsrc(e, s);
 	}
 	return e;
 }
@@ -210,10 +210,8 @@ flatten(Expr *e)
 		}
 		p = p->e2;
 	}
-	putsrc(nl, &e->src);
+	putsrc(nl, e->src);
 	nl = invert(nl);
-	if(nl->src.line == 0)
-		xprintf("no src for flatten!\n");
 	return nl;
 }
 

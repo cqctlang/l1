@@ -381,13 +381,15 @@ static Val*
 itercode(Head *hd, Ictx *ictx)
 {
 	Code *code;
+	u32 n;
 	code = (Code*)hd;
-	switch(ictx->n++){
-	case 0:
+	n = ictx->n++;
+	if(n < code->ninsn)
+		return (Val*)&code->src[n];
+	else if(n == code->ninsn)
 		return (Val*)&code->konst;
-	default:
+	else
 		return GCiterdone;
-	}
 }
 
 static Val*
@@ -441,6 +443,8 @@ iterexpr(Head *hd, Ictx *ictx)
 		return (Val*)&e->aux;
 	case 5:
 		return (Val*)&e->skind;
+	case 6:
+		return (Val*)&e->src;
 	default:
 		return GCiterdone;
 	}

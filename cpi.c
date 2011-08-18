@@ -421,7 +421,7 @@ cases(U *ctx, Expr* e, Cases *cs)
 	case Ecase:
 	case Ematch:
 		se = addcase(ctx, e, cs);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Edefault:
 		cs->dflt = genlabel();
@@ -429,7 +429,7 @@ cases(U *ctx, Expr* e, Cases *cs)
 			    Zlabel(cs->dflt),
 			    cases(ctx, e->e1, cs),
 			    NULL);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;
@@ -464,7 +464,7 @@ swtch(U *ctx, Expr *e, char *lb)
 		if(!lb)
 			fatal("bug in swtch");
 		se = Zgoto(lb);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eswitch:
 		cs = e->xp;
@@ -486,7 +486,7 @@ swtch(U *ctx, Expr *e, char *lb)
 			    NULL);
 		efree(nlb);
 		freecases(cs);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		e->xp = 0;
 		return se;
 	case Eelist:
@@ -519,13 +519,13 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 		if(!lb)
 			return e;
 		se = Zgoto(lb);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Econtinue:
 		if(!lc)
 			return e;
 		se = Zgoto(lc);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eswitch:
 		e->e1 = loops(ctx, e->e1, lb, lc);
@@ -551,7 +551,7 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 		efree(h);
 		efree(nlb);
 		efree(nlc);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Edo:
 		h = genlabel();
@@ -568,7 +568,7 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 		efree(h);
 		efree(nlb);
 		efree(nlc);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Ewhile:
 		nlb = genlabel();
@@ -583,7 +583,7 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 			    NULL);
 		efree(nlb);
 		efree(nlc);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;

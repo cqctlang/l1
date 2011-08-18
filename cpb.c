@@ -7,7 +7,7 @@ newlocal(Expr *e, Expr *id)
 {
 	if(e->kind != Eblock)
 		fatal("bug");
-	e->e1 = putsrc(Zcons(id, e->e1), &e->e1->src);
+	e->e1 = putsrc(Zcons(id, e->e1), e->e1->src);
 }
 
 static Expr*
@@ -25,7 +25,7 @@ defloc(U *ctx, Expr *e, Expr *scope)
 				 defloc(ctx, e->e3, scope),
 				 copyexpr(e->e1)));
 		newlocal(scope->e1, e->e1);
-		putsrc(p, &e->src);
+		putsrc(p, e->src);
 		return p;
 	case Escope:
 		e->e1 = defloc(ctx, e->e1, e);
@@ -62,7 +62,7 @@ globals(U *ctx, Expr *e, Env *env)
 				envdefine(env, idcid(p->e1), Xnil);
 			p = p->e2;
 		}
-		return putsrc(Znop(), &e->src);
+		return putsrc(Znop(), e->src);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
@@ -122,7 +122,7 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 		if(xenvlook(lex, id))
 			return e;
 		se = Ztid(id);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eg:
 		id = idsym(e->e1);
@@ -132,7 +132,7 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 		if(!envbinds(env, idcid(e->e1)))
 			envdefine(env, idcid(e->e1), Xnil);
 		se = Ztg(id, e->e2);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;
@@ -180,7 +180,7 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 			/* global assignment */
 			e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
 			se = Ztg(id, e->e2);
-			putsrc(se, &e->src);
+			putsrc(se, e->src);
 			return se;
 		}
 		break;
@@ -244,7 +244,7 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 			cwarnln(ctx, e,
 				"reference to unbound variable: %s", id);
 		se = Ztid(id);
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Elambda:
 		rib = mkxenv(lex);
@@ -523,6 +523,6 @@ docompileb(U *ctx, Expr *e)
 	s = e->src;
 	e = Zlambda(ctx->argsid ? Zvararg(doid(ctx->argsid)) : nullelist(),
 		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
-	putsrc(e, &s);
+	putsrc(e, s);
 	return e;
 }

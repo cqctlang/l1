@@ -36,7 +36,7 @@ expandm(Expr *e)
 				    copyexpr(a)),
 			     Zapply(G("callmethodx"),
 				    Zcons(o, Zcons(Zstr(idsym(m)), a))));
-		putsrc(te, &e->src);
+		putsrc(te, e->src);
 		return te;
 	case Eelist:
 		p = e;

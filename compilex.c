@@ -90,7 +90,7 @@ convert(U *ctx, Expr *e, Expr *vs)
 				       invert(se),
 				       convert(ctx, e->e2, nvs),
 				       NULL);
-			putsrc(e->e2, &e->src);
+			putsrc(e->e2, e->src);
 //			e->e2 = flatten(e->e2);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
@@ -111,7 +111,7 @@ convert(U *ctx, Expr *e, Expr *vs)
 				       invert(se),
 				       convert(ctx, e->e2, nvs),
 				       NULL);
-			putsrc(e->e2, &e->src);
+			putsrc(e->e2, e->src);
 //			e->e2 = flatten(e->e2);
 		}else
 			e->e2 = convert(ctx, e->e2, vs);
@@ -120,13 +120,13 @@ convert(U *ctx, Expr *e, Expr *vs)
 	case Eid:
 		if(vmember(e, vs)){
 			se = Zcall(Ztid("%unbox"), 1, e);
-			putsrc(se, &e->src);
+			putsrc(se, e->src);
 			return se;
 		}
 		return e;
 	case Eg:
 		se = Zcall(Ztid("%setbox"), 2, e->e1, convert(ctx, e->e2, vs));
-		putsrc(se, &e->src);
+		putsrc(se, e->src);
 		return se;
 	case Eelist:
 		p = e;
