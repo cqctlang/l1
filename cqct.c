@@ -142,7 +142,7 @@ doexpand(VM *vm, Expr *e)
 
 	/* we need to fix Src handling to pass tests */
 	v = cqctenvlook(vm->top, "expand");
-	if(0 && v && Vkind(v) == Qcl){
+	if(v && Vkind(v) == Qcl){
 		argv[0] = mkvalexpr(e);
 		if(0 > cqctcallfn(vm, v, 1, argv, &rv))
 			return 0;

@@ -34,8 +34,9 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	Kind k;
 	Cid *sk;
 	unsigned i;
+	Src src;
 	Expr *earg[4], *e;
-	if(argc < 1 || argc > 5)
+	if(argc < 1 || argc > 6)
 		vmerr(vm, "wrong number of arguments to mkstx");
 	checkarg(vm, "mkstx", argv, 0, Qcid);
 	sk = valcid(argv[0]);
@@ -43,15 +44,20 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	memset(earg, 0, sizeof(earg));
 	argv++;
 	argc--;
+	if(Vkind(argv[argc-1]) == Qvec){
+		src = valvec(argv[argc-1]);
+		argc--;
+	}else
+		src = mksrcfake("(user syntax)");
 	for(i = 0; i < argc; i++)
 		if(argv[i] != Xnil){
-			/* the argv dance ensures correct operand is flagged */
+			/* argv dance correctly flags the incorrect operand */
 			checkarg(vm, "mkexpr", argv-1, i+1, Qexpr);
 			earg[i] = valexpr(argv[i]);
 		}
 	e = Z4(k, earg[0], earg[1], earg[2], earg[3]);
 	e->skind = sk;
-	e->src = mksrcfake("(user syntax)");
+	putsrc(e, src);
 	*rv = mkvalexpr(e);
 }
 
@@ -107,6 +113,17 @@ l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv)
 	/* else, nil */
 }
 
+static void
+l1_stxsrc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Expr *e;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stxsrc");
+	checkarg(vm, "stxsrc", argv, 0, Qexpr);
+	e = valexpr(argv[0]);
+	*rv = mkvalvec(e->src);
+}
+
 void
 fnstx(Env *env)
 {
@@ -115,4 +132,5 @@ fnstx(Env *env)
 	FN(mkstxval);
 	FN(stxkind);
 	FN(stxref);
+	FN(stxsrc);
 }

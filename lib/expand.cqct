@@ -55,7 +55,8 @@
 				     exp(stxref(e, 0)),
 				     exp(stxref(e, 1)),
 				     exp(stxref(e, 2)),
-				     exp(stxref(e, 3)));
+				     exp(stxref(e, 3)),
+				     stxsrc(e));
 		}
 	}
 	return exp(e);

@@ -12,7 +12,7 @@ chknil(U *ctx, Expr *e)
 		if(p->e1->kind != Eellipsis){
 			id = idsym(p->e1);
 			if(!strcmp(id, "nil"))
-				cerror(ctx, e, "attempt to rebind nil");
+				cerror(ctx, p->e1, "attempt to rebind nil");
 
 		}
 		p = p->e2;
