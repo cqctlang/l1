@@ -139,6 +139,32 @@ l1_stxkind(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_stxid(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Expr *e;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stxid");
+	checkarg(vm, "stxid", argv, 0, Qexpr);
+	e = valexpr(argv[0]);
+	if(e->kind != Eid)
+		vmerr(vm, "stxid on non-identifier syntax");
+	*rv = e->aux;
+}
+
+static void
+l1_stxval(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Expr *e;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stxval");
+	checkarg(vm, "stxval", argv, 0, Qexpr);
+	e = valexpr(argv[0]);
+	if(e->kind != Ekon)
+		vmerr(vm, "stxid on non-literal syntax");
+	*rv = e->aux;
+}
+
+static void
 l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *cv;
@@ -192,7 +218,9 @@ fnstx(Env *env)
 	FN(mkstx);
 	FN(mkstxid);
 	FN(mkstxval);
+	FN(stxid);
 	FN(stxkind);
 	FN(stxref);
 	FN(stxsrc);
+	FN(stxval);
 }
