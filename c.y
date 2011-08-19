@@ -22,6 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE
+%token <chars> ATIDENTIFIER
 %token SIZEOF TYPENAME TYPEOF TYPEDEF DEFINE DEFLOC DEFREC DEFSTX CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -68,8 +69,10 @@ extern char *yytext;
 %type <expr> maybe_attr
 %type <expr> defstx_statement
 %type <expr> syntax_expression
+%type <expr> mcall_expression
 %type <expr> quote_expression
 %type <expr> mcall_statement
+%type <expr> atid
 %type <expr> unquote_statement
 %type <expr> pattern pattern_list var_pat_list rec_pat_list
 %type <expr> table_init_pattern table_init_pattern_list
@@ -93,6 +96,7 @@ extern char *yytext;
 %}
 %%
 
+
 _id
 	: IDENTIFIER
 	{ $$ = doidnsrc(&ctx->inp->src, $1.p, $1.len); }
@@ -104,6 +108,11 @@ id
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
 	| SYNTAXUNQUOTE '(' expression ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
+	;
+
+atid
+	: ATIDENTIFIER
+	{ $$ = doidnsrc(&ctx->inp->src, $1.p+1, $1.len-1); }
 	;
 
 maybeid
@@ -162,6 +171,13 @@ syntax_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, nullelist(), 0, 0); }
 	;
 
+mcall_expression
+	: atid '(' ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, nullelist(), 0, 0); }
+	| atid '(' argument_expression_list ')'
+        { $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), 0, 0); }
+	;
+
 table_init
 	: root_expression ':' root_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
@@ -214,6 +230,7 @@ primary_expression
 	| let_expression
 	| quote_expression
 	| syntax_expression
+	| mcall_expression
 	;
 
 pattern 
@@ -965,8 +982,10 @@ statement
 	;
 
 mcall_statement
-	: '@' id '(' argument_expression_list ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $2, invert($4), $6, 0); }
+	: atid '(' argument_expression_list ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), $5, 0); }
+	| atid compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, 0, $2, 0); }
 	;
 
 unquote_statement
@@ -1104,12 +1123,12 @@ jump_statement
 	;
 
 defstx_statement
-	: DEFSTX '@' id '(' arg_id_list ')' id compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $3, invert($5), $7, $8); }
-	| DEFSTX '@' id '(' arg_id_list ')' compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $3, invert($5), 0, $7); }
-	| DEFSTX '@' id id compound_statement
-	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $3, 0, $4, $5); }
+	: DEFSTX atid '(' arg_id_list ')' id compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, invert($4), $6, $7); }
+	| DEFSTX atid '(' arg_id_list ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, invert($4), 0, $6); }
+	| DEFSTX atid id compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, 0, $3, $4); }
 	;
 
 define

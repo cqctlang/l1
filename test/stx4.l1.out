@@ -1,0 +1,13 @@
+entry: 0 params, 0 locals, 0 temps
+L3: 3 params, 0 locals, 0 temps
+entry: 0 params, 0 locals, 0 temps
+L51: 2 params, 0 locals, 0 temps
+entry: 0 params, 0 locals, 0 temps
+L85: 1 params, 0 locals, 0 temps
+entry: var params, 1 locals, 0 temps
+full x: 1
+full y: 2
+full body: 4
+x: 1
+y: 2
+half2 body: 4

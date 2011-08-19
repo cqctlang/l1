@@ -85,6 +85,7 @@ static int chars(YYSTYPE *lvalp, int);
 #id			{ count(ctx); return(SYNTAXID); }
 #			{ count(ctx); return(SYNTAX); }
 
+@{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, ATIDENTIFIER)); }
 {L}({L}|{D})*		{ count(ctx); return(chars(lvalp, IDENTIFIER)); }
 
 0[bB]{B}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }

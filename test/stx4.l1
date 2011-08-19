@@ -1,0 +1,30 @@
+@defstx @full(x, y) body
+{
+	#`{
+		printf("full x: %a\n", #,x);
+		printf("full y: %a\n", #,y);
+		printf("full body: %a\n", #,body);		
+	};
+}
+
+@full(1, 2) { 4; }
+
+
+@defstx @half1(x, y)
+{
+	#`{
+		printf("x: %a\n", #,x);
+		printf("y: %a\n", #,y);
+	};
+}
+
+@half1(1, 2);
+
+@defstx @half2 body
+{
+	#`{
+		printf("half2 body: %a\n", #,body);		
+	};
+}
+
+@half2 { 4; }
