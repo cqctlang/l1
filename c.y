@@ -72,6 +72,7 @@ extern char *yytext;
 %type <expr> mcall_expression
 %type <expr> quote_expression
 %type <expr> mcall_statement
+%type <expr> margument_expression_list
 %type <expr> atid
 %type <expr> unquote_statement
 %type <expr> pattern pattern_list var_pat_list rec_pat_list
@@ -86,7 +87,7 @@ extern char *yytext;
 %parse-param {U *ctx}
 %lex-param   {U *ctx}
 %expect 1
-%expect-rr 5
+%expect-rr 17
 %{
 	static void yyerror(U *ctx, const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
@@ -171,10 +172,22 @@ syntax_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, nullelist(), 0, 0); }
 	;
 
+margument_expression_list
+	: root_expression
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
+	| type_name
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
+	| margument_expression_list ',' root_expression
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
+	| margument_expression_list ',' type_name
+	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
+	;
+
+
 mcall_expression
 	: atid '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, nullelist(), 0, 0); }
-	| atid '(' argument_expression_list ')'
+	| atid '(' margument_expression_list ')'
         { $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), 0, 0); }
 	;
 
@@ -869,6 +882,11 @@ tn_type_specifier_tick
 	| struct_or_union_or_enum id '`' id
 	{ $$ = doticktsrc(&ctx->inp->src, $2,
 			  newexprsrc(&ctx->inp->src, $1, $4, 0, 0, 0)); }
+	| SYNTAXUNQUOTE _id
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
+	| SYNTAXUNQUOTE '(' expression ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
+	;
 
 tn_parameter_type_list
 	: tn_parameter_list
