@@ -27,7 +27,7 @@
 		   {
 			   foreach(@lambda(#,id)
 				   {
-					   #,{ rewrite(body, brk) }
+					   #,{ rewrite(body, brk); }
 				   },
 				   #,e);
 		   });

@@ -143,12 +143,12 @@ let_expression
 	;
 
 quote_expression
-	: SYNTAXQUOTE statement '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Estxquote, $2, 0, 0, 0); }
+	: SYNTAXQUOTE statement_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxquote, invert($2), 0, 0, 0); }
 	| SYNTAXQUOTE expression '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxquote, $2, 0, 0, 0); }
-	| SYNTAXQUASI statement '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Estxquasi, $2, 0, 0, 0); }
+	| SYNTAXQUASI statement_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxquasi, invert($2), 0, 0, 0); }
 	| SYNTAXQUASI expression '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxquasi, $2, 0, 0, 0); }
 	;
@@ -970,8 +970,8 @@ mcall_statement
 	;
 
 unquote_statement
-	: SYNTAXUNQUOTE '{' root_expression '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
+	: SYNTAXUNQUOTE '{' statement_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, invert($3), 0, 0, 0); }
 	;
 
 global_statement
