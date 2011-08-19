@@ -22,7 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE
-%token SIZEOF TYPENAME TYPEOF TYPEDEF DEFINE DEFLOC DEFREC CONTAINEROF
+%token SIZEOF TYPENAME TYPEOF TYPEDEF DEFINE DEFLOC DEFREC DEFSTX CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
@@ -66,6 +66,7 @@ extern char *yytext;
 %type <expr> tn_param_enum_specifier
 %type <expr> table_init table_init_list
 %type <expr> maybe_attr
+%type <expr> defstx_statement
 %type <expr> syntax_expression
 %type <expr> quote_expression
 %type <expr> mcall_statement
@@ -157,6 +158,8 @@ syntax_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
 	| SYNTAX id '(' argument_expression_list ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, invert($4), 0, 0); }
+	| SYNTAX id '(' ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, nullelist(), 0, 0); }
 	;
 
 table_init
@@ -954,6 +957,7 @@ statement
 	| iteration_statement
 	| jump_statement
 	| define_statement
+	| defstx_statement
 	| labeled_statement
 	| global_statement
 	| unquote_statement
@@ -1097,6 +1101,15 @@ jump_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Eret, 0, 0, 0, 0); }
 	| RETURN expression ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Eret, $2, 0, 0, 0); }
+	;
+
+defstx_statement
+	: DEFSTX '@' id '(' arg_id_list ')' id compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $3, invert($5), $7, $8); }
+	| DEFSTX '@' id '(' arg_id_list ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $3, invert($5), 0, $7); }
+	| DEFSTX '@' id id compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $3, 0, $4, $5); }
 	;
 
 define

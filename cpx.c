@@ -17,12 +17,15 @@ stx(Expr *e)
 	case Estx:
 		id = idsym(e->e1);
 		if(!strcmp(id, "id"))
-			return Zcall(G("mkstxid"), 1, Zid2sym(e->e2));
+			return putsrc(Zcall(G("mkstxid"), 1, Zid2sym(e->e2)),
+				      e->src);
 		else if(!strcmp(id, "val"))
-			return Zcall(G("mkstxval"), 1, stx(e->e2));
+			return putsrc(Zcall(G("mkstxval"), 1, stx(e->e2)),
+				      e->src);
 		else
-			return Zapply(G("mkstx"),
-				      Zcons(Zid2sym(e->e1), stx(e->e2)));
+			return putsrc(Zapply(G("mkstx"),
+					     Zcons(Zid2sym(e->e1), stx(e->e2))),
+				      e->src);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

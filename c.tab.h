@@ -1,22 +1,23 @@
-
-/* A Bison parser, made by GNU Bison 2.4.1.  */
+/* A Bison parser, made by GNU Bison 2.3.  */
 
 /* Skeleton interface for Bison GLR parsers in C
-   
-      Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
-   
-   This program is free software: you can redistribute it and/or modify
+
+   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+
+   This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-   
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor,
+   Boston, MA 02110-1301, USA.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -27,10 +28,9 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-   
+
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
-
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -51,83 +51,93 @@
      DEFINE = 268,
      DEFLOC = 269,
      DEFREC = 270,
-     CONTAINEROF = 271,
-     PTR_OP = 272,
-     INC_OP = 273,
-     DEC_OP = 274,
-     LEFT_OP = 275,
-     RIGHT_OP = 276,
-     LE_OP = 277,
-     GE_OP = 278,
-     EQ_OP = 279,
-     NE_OP = 280,
-     AND_OP = 281,
-     OR_OP = 282,
-     MUL_ASSIGN = 283,
-     DIV_ASSIGN = 284,
-     MOD_ASSIGN = 285,
-     ADD_ASSIGN = 286,
-     SUB_ASSIGN = 287,
-     LEFT_ASSIGN = 288,
-     RIGHT_ASSIGN = 289,
-     AND_ASSIGN = 290,
-     XOR_ASSIGN = 291,
-     OR_ASSIGN = 292,
-     CAST_ASSIGN = 293,
-     XCAST_ASSIGN = 294,
-     GOTO = 295,
-     GLOBAL = 296,
-     LOCAL = 297,
-     LAMBDA = 298,
-     NAMES = 299,
-     LET = 300,
-     LAPPLY = 301,
-     BOOL = 302,
-     CHAR = 303,
-     SHORT = 304,
-     INT = 305,
-     LONG = 306,
-     SIGNED = 307,
-     UNSIGNED = 308,
-     FLOAT = 309,
-     DOUBLE = 310,
-     VOID = 311,
-     STRUCT = 312,
-     UNION = 313,
-     ENUM = 314,
-     ELLIPSIS = 315,
-     IF = 316,
-     ELSE = 317,
-     SWITCH = 318,
-     WHILE = 319,
-     DO = 320,
-     FOR = 321,
-     CONTINUE = 322,
-     BREAK = 323,
-     RETURN = 324,
-     CASE = 325,
-     DEFAULT = 326,
-     SYNTAX = 327,
-     SYNTAXID = 328,
-     SYNTAXQUOTE = 329,
-     SYNTAXQUASI = 330,
-     SYNTAXUNQUOTE = 331,
-     SYNTAXSPLICE = 332,
-     LPAIR = 333,
-     RPAIR = 334,
-     NOBIND_PRE = 335,
-     MATCH = 336
+     DEFSTX = 271,
+     CONTAINEROF = 272,
+     PTR_OP = 273,
+     INC_OP = 274,
+     DEC_OP = 275,
+     LEFT_OP = 276,
+     RIGHT_OP = 277,
+     LE_OP = 278,
+     GE_OP = 279,
+     EQ_OP = 280,
+     NE_OP = 281,
+     AND_OP = 282,
+     OR_OP = 283,
+     MUL_ASSIGN = 284,
+     DIV_ASSIGN = 285,
+     MOD_ASSIGN = 286,
+     ADD_ASSIGN = 287,
+     SUB_ASSIGN = 288,
+     LEFT_ASSIGN = 289,
+     RIGHT_ASSIGN = 290,
+     AND_ASSIGN = 291,
+     XOR_ASSIGN = 292,
+     OR_ASSIGN = 293,
+     CAST_ASSIGN = 294,
+     XCAST_ASSIGN = 295,
+     GOTO = 296,
+     GLOBAL = 297,
+     LOCAL = 298,
+     LAMBDA = 299,
+     NAMES = 300,
+     LET = 301,
+     LAPPLY = 302,
+     BOOL = 303,
+     CHAR = 304,
+     SHORT = 305,
+     INT = 306,
+     LONG = 307,
+     SIGNED = 308,
+     UNSIGNED = 309,
+     FLOAT = 310,
+     DOUBLE = 311,
+     VOID = 312,
+     STRUCT = 313,
+     UNION = 314,
+     ENUM = 315,
+     ELLIPSIS = 316,
+     IF = 317,
+     ELSE = 318,
+     SWITCH = 319,
+     WHILE = 320,
+     DO = 321,
+     FOR = 322,
+     CONTINUE = 323,
+     BREAK = 324,
+     RETURN = 325,
+     CASE = 326,
+     DEFAULT = 327,
+     SYNTAX = 328,
+     SYNTAXID = 329,
+     SYNTAXQUOTE = 330,
+     SYNTAXQUASI = 331,
+     SYNTAXUNQUOTE = 332,
+     SYNTAXSPLICE = 333,
+     LPAIR = 334,
+     RPAIR = 335,
+     NOBIND_PRE = 336,
+     MATCH = 337
    };
 #endif
 
 
-#ifndef YYSTYPE
-typedef union YYSTYPE
-{
+/* Copy the first part of user declarations.  */
+#line 1 "c.y"
 
-/* Line 2638 of glr.c  */
+#include "sys.h"
+#include "util.h"
+#include "syscqct.h"
+
+extern int yylex();
+extern char *yytext;
+
+
+
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+typedef union YYSTYPE 
 #line 11 "c.y"
-
+{
 	Expr *expr;
 	struct {
 		/* GLR may pick tokens from input stream more than
@@ -138,12 +148,11 @@ typedef union YYSTYPE
 		unsigned long len;
 	} chars;
 	int kind;
-
-
-
-/* Line 2638 of glr.c  */
-#line 146 "c.tab.h"
-} YYSTYPE;
+}
+/* Line 2616 of glr.c.  */
+#line 154 "c.tab.h"
+	YYSTYPE;
+# define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1
 #endif
 
@@ -159,8 +168,7 @@ typedef struct YYLTYPE
 #endif
 
 
-
-
+extern YYSTYPE yylval;
 
 
 

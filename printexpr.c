@@ -43,10 +43,10 @@ char* S[] = {
 	[Edecl] =	"decl",
 	[Edecls] =	"decls",
 	[Edefault] =	"default",
-	[Edefconst] =	"defconst",
 	[Edefine] =	"define",
 	[Edefloc] =	"defloc",
 	[Edefrec] =	"defrec",
+	[Edefstx] =	"defstx",
 	[Ederef] =	"deref",
 	[Ediv] =	"div",
 	[Edo] =		"do",
@@ -374,10 +374,8 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("`");
 		printcqct0(e->e2, ni);
 		break;
-	case Edefconst:
-		printcqct0(e->e1, ni);
-		xprintf(" = ");
-		printcqct0(e->e2, ni);
+	case Edefstx:
+		xprintf("@defstx ...");
 		break;
 	case Edefine:
 	case Edefloc:

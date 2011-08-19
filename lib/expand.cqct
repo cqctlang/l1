@@ -35,28 +35,92 @@ symn = 0;
 	rev(l, Znull());
 }
 
+@define Zlength(l)
+{
+	@defloc rec(l, a)
+	{
+		if(stxkind(l) == 'null)
+			return a;
+		rec(Zcdr(l), a+1);
+	}
+	rec(l, 0);
+}
+
+@define Z2list(l)
+{
+	@local rv;
+	rv = [];
+	@defloc rec(l)
+	{
+		if(stxkind(l) == 'null)
+			return rv;
+		append(rv, Zcar(l));
+		rec(Zcdr(l));
+	}
+	rec(l);
+}
+
 @global stxtab;
-stxtab = [:];
+stxtab = mktab();
 
 @define expand(e)
 {
+	@defloc install(id, args, body, expander)
+	{
+		@local fn, l, pat;
+		
+		if(args == nil)
+			l = Zcons(body, Znull());
+		else if(body == nil)
+			l = args;
+		else
+			l = Zcons(body, args);
+		fn = compile(#lambda(l, expander));
+		fn = fn();
+		pat = [ args ? Zlength(args) : nil, body ? 1 : nil, fn ];
+		stxtab[id] = pat;
+	}
+
+	@defloc dispatch(id, args, body)
+	{
+		@local pat, a, b, l;
+		pat = stxtab[id];
+		if(pat == nil)
+			error("cannot expand @%a form", id);
+		a = args ? Zlength(args) : nil;
+		b = body ? 1 : nil;
+		if(pat[0] != a || pat[1] != b)
+			error("syntax error for @%a form", id);
+		if(args == nil)
+			l = [body];
+		else if(body == nil)
+			l = Z2list(args);
+		else
+			l = push(Z2list(args), body);
+		return apply(pat[2], l);
+	}
+
 	@defloc exp(e)
 	{
-		@local p, l, fn;
+		@local p, l;
 		if(e == nil)
 			return e;
 		switch(stxkind(e)){
 		case 'kon:
 		case 'id:
 			return e;
+		case 'defstx:
+			install(stxref(e, 0),
+				stxref(e, 1),
+				stxref(e, 2),
+				stxref(e, 3));
+			return #nil();
 		case 'mcall:
-			fn = stxtab[stxref(e, 0)];
-			if(fn){
-				p = exp(fn(e));
-//				pp(p);
-				return p;
-			}
-			error("cannot expand @%a form", stxref(e, 0));
+			e = dispatch(stxref(e, 0),
+				     stxref(e, 1),
+				     stxref(e, 2));
+//			pp(e);
+			return exp(e);
 		case 'elist:
 			p = e;
 			l = Znull();
@@ -75,9 +139,4 @@ stxtab = [:];
 		}
 	}
 	return exp(e);
-}
-
-@define addsyntax(id, fn)
-{
-	stxtab[mkstxid(id)] = fn;
 }

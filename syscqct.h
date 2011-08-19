@@ -52,10 +52,10 @@ enum{
 	Edecl,			/* type specifier + 1 declarator */
 	Edecls,			/* type specifier + list of declarators */
 	Edefault,
-	Edefconst,
 	Edefine,
 	Edefloc,
 	Edefrec,
+	Edefstx,
 	Ederef,
 	Ediv,
 	Edo,
