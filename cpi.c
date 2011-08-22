@@ -80,7 +80,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 {
 	Expr *p, *e0, *f0, *k, *v;
         Match m0;
-        int rv, isvarg, l;
+        int rv, isvarg, l, i;
         char *id;
         Kind op;
 
@@ -98,12 +98,48 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                 }
                 rv = 1; /* pretend this is a binder even if _ used */
 		break;
+	case Estx:
+		m->check = Zand(m->check, Zcall(doid("isstx"), 1, exp));
+		id = idsym(pat->e1);
+		p = pat->e2;
+		m->check = Zand(m->check,
+				Zbinop(Eeq,
+				       Zcall(doid("stxkind"), 1, copyexpr(exp)),
+				       Zid2sym(pat->e1)));
+		if(!strcmp(id, "id")){
+			m->check = Zand(m->check,
+					Zbinop(Eeq,
+					       Zcall(doid("stxid"), 1,
+						     copyexpr(exp)),
+					       Zid2sym(pat->e2)));
+			rv = 1;
+		}
+		else if(!strcmp(id, "val")){
+			l = elistlen(p);
+			if(l < 1)
+				bug(); /* or maybe cerror */
+			m->check = Zand(m->check,
+					Zbinop(Eeq,
+					       Zcall(doid("stxval"), 1,
+						     copyexpr(exp)),
+					       copyexpr(pat->e2->e1)));
+		}else{
+			l = elistlen(p);
+			for(i = 0; i < l; i++){
+				rv |= match(ctx, Zcall(doid("stxref"), 2,
+						       copyexpr(exp),
+						       Zuint(i)),
+					    p->e1, m);
+				p = p->e2;
+			}
+		}
+		break;
 	case Epair:
 		m->check = Zand(m->check, Zcall(doid("ispair"), 1, exp));
-		rv |= match(ctx, Zcall(doid("car"), 1,
-                                       copyexpr(exp)), pat->e1, m);
-		rv |= match(ctx, Zcall(doid("cdr"), 1,
-                                      copyexpr(exp)), pat->e2, m);
+		rv |= match(ctx, Zcall(doid("car"), 1, copyexpr(exp)),
+			    pat->e1, m);
+		rv |= match(ctx, Zcall(doid("cdr"), 1, copyexpr(exp)),
+			    pat->e2, m);
 		break;
 	case Elist:
 		m->check = Zand(m->check, Zcall(doid("islist"), 1, exp));

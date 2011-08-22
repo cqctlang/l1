@@ -6013,6 +6013,12 @@ l1_isstring(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_isstx(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "isstx", Qexpr);
+}
+
+static void
 l1_istable(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "istable", Qtab);
@@ -6790,6 +6796,7 @@ mktopenv(void)
 	FN(isrec);
 	FN(isrd);
 	FN(isstring);
+	FN(isstx);
 	FN(istable);
 	FN(isvector);
 	FN(length);

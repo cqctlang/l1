@@ -1,0 +1,6 @@
+entry: var params, 1 locals, 0 temps
+domatch: 1 params, 3 locals, 0 temps
+matched x!
+no match
+matched add!
+matched sub!
