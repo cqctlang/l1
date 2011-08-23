@@ -1,0 +1,44 @@
+@defstx @myforeach(id, e) body
+{
+	@local brk;
+	@defloc rewrite(e, brk)
+	{
+		if(e == nil)
+			return e;
+		switch(e){
+		@match #kon:
+			return e;
+		@match #id(_):
+			return e;
+		@match #break:
+			return #`{ #,brk(nil); };
+		@match #continue:
+			return #'{ return; };
+		default:
+			return mkstx(stxkind(e),
+				     rewrite(stxref(e, 0), brk),
+				     rewrite(stxref(e, 1), brk),
+				     rewrite(stxref(e, 2), brk),
+				     rewrite(stxref(e, 3), brk));
+		}
+	}
+
+	brk = gensym();
+	#`{ callcc(@lambda(#,brk)
+		   {
+			   foreach(@lambda(#,id)
+				   {
+					   #,{ rewrite(body, brk); }
+				   },
+				   #,e);
+		   });
+	};
+}
+
+@myforeach(x, [1,2,3,4,5,6,7,8,9,10]){
+	if(x%2 == 0)
+		continue;
+	printf("%d\n", x);
+	if(x >= 5)
+		break;
+}
