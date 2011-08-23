@@ -1,22 +1,23 @@
-
-/* A Bison parser, made by GNU Bison 2.4.1.  */
+/* A Bison parser, made by GNU Bison 2.3.  */
 
 /* Skeleton interface for Bison GLR parsers in C
-   
-      Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
-   
-   This program is free software: you can redistribute it and/or modify
+
+   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+
+   This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-   
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor,
+   Boston, MA 02110-1301, USA.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -27,10 +28,9 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-   
+
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
-
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -45,72 +45,72 @@
      CONST = 262,
      VOLATILE = 263,
      ATIDENTIFIER = 264,
-     SIZEOF = 265,
-     TYPENAME = 266,
-     TYPEOF = 267,
-     TYPEDEF = 268,
-     DEFINE = 269,
-     DEFLOC = 270,
-     DEFREC = 271,
-     DEFSTX = 272,
-     CONTAINEROF = 273,
-     PTR_OP = 274,
-     INC_OP = 275,
-     DEC_OP = 276,
-     LEFT_OP = 277,
-     RIGHT_OP = 278,
-     LE_OP = 279,
-     GE_OP = 280,
-     EQ_OP = 281,
-     NE_OP = 282,
-     AND_OP = 283,
-     OR_OP = 284,
-     MUL_ASSIGN = 285,
-     DIV_ASSIGN = 286,
-     MOD_ASSIGN = 287,
-     ADD_ASSIGN = 288,
-     SUB_ASSIGN = 289,
-     LEFT_ASSIGN = 290,
-     RIGHT_ASSIGN = 291,
-     AND_ASSIGN = 292,
-     XOR_ASSIGN = 293,
-     OR_ASSIGN = 294,
-     CAST_ASSIGN = 295,
-     XCAST_ASSIGN = 296,
-     GOTO = 297,
-     GLOBAL = 298,
-     LOCAL = 299,
-     LAMBDA = 300,
-     NAMES = 301,
-     LET = 302,
-     LAPPLY = 303,
-     BOOL = 304,
-     CHAR = 305,
-     SHORT = 306,
-     INT = 307,
-     LONG = 308,
-     SIGNED = 309,
-     UNSIGNED = 310,
-     FLOAT = 311,
-     DOUBLE = 312,
-     VOID = 313,
-     STRUCT = 314,
-     UNION = 315,
-     ENUM = 316,
-     ELLIPSIS = 317,
-     IF = 318,
-     ELSE = 319,
-     SWITCH = 320,
-     WHILE = 321,
-     DO = 322,
-     FOR = 323,
-     CONTINUE = 324,
-     BREAK = 325,
-     RETURN = 326,
-     CASE = 327,
-     DEFAULT = 328,
-     SYNTAX = 329,
-     SYNTAXID = 330,
+     SYNTAXID = 265,
+     SIZEOF = 266,
+     TYPENAME = 267,
+     TYPEOF = 268,
+     TYPEDEF = 269,
+     DEFINE = 270,
+     DEFLOC = 271,
+     DEFREC = 272,
+     DEFSTX = 273,
+     CONTAINEROF = 274,
+     PTR_OP = 275,
+     INC_OP = 276,
+     DEC_OP = 277,
+     LEFT_OP = 278,
+     RIGHT_OP = 279,
+     LE_OP = 280,
+     GE_OP = 281,
+     EQ_OP = 282,
+     NE_OP = 283,
+     AND_OP = 284,
+     OR_OP = 285,
+     MUL_ASSIGN = 286,
+     DIV_ASSIGN = 287,
+     MOD_ASSIGN = 288,
+     ADD_ASSIGN = 289,
+     SUB_ASSIGN = 290,
+     LEFT_ASSIGN = 291,
+     RIGHT_ASSIGN = 292,
+     AND_ASSIGN = 293,
+     XOR_ASSIGN = 294,
+     OR_ASSIGN = 295,
+     CAST_ASSIGN = 296,
+     XCAST_ASSIGN = 297,
+     GOTO = 298,
+     GLOBAL = 299,
+     LOCAL = 300,
+     LAMBDA = 301,
+     NAMES = 302,
+     LET = 303,
+     LAPPLY = 304,
+     BOOL = 305,
+     CHAR = 306,
+     SHORT = 307,
+     INT = 308,
+     LONG = 309,
+     SIGNED = 310,
+     UNSIGNED = 311,
+     FLOAT = 312,
+     DOUBLE = 313,
+     VOID = 314,
+     STRUCT = 315,
+     UNION = 316,
+     ENUM = 317,
+     ELLIPSIS = 318,
+     IF = 319,
+     ELSE = 320,
+     SWITCH = 321,
+     WHILE = 322,
+     DO = 323,
+     FOR = 324,
+     CONTINUE = 325,
+     BREAK = 326,
+     RETURN = 327,
+     CASE = 328,
+     DEFAULT = 329,
+     SYNTAXIDID = 330,
      SYNTAXQUOTE = 331,
      SYNTAXQUASI = 332,
      SYNTAXUNQUOTE = 333,
@@ -123,13 +123,22 @@
 #endif
 
 
-#ifndef YYSTYPE
-typedef union YYSTYPE
-{
+/* Copy the first part of user declarations.  */
+#line 1 "c.y"
 
-/* Line 2638 of glr.c  */
+#include "sys.h"
+#include "util.h"
+#include "syscqct.h"
+
+extern int yylex();
+extern char *yytext;
+
+
+
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+typedef union YYSTYPE 
 #line 11 "c.y"
-
+{
 	Expr *expr;
 	struct {
 		/* GLR may pick tokens from input stream more than
@@ -140,12 +149,11 @@ typedef union YYSTYPE
 		unsigned long len;
 	} chars;
 	int kind;
-
-
-
-/* Line 2638 of glr.c  */
-#line 148 "c.tab.h"
-} YYSTYPE;
+}
+/* Line 2616 of glr.c.  */
+#line 155 "c.tab.h"
+	YYSTYPE;
+# define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1
 #endif
 
@@ -161,8 +169,7 @@ typedef struct YYLTYPE
 #endif
 
 
-
-
+extern YYSTYPE yylval;
 
 
 

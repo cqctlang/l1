@@ -22,7 +22,7 @@ extern char *yytext;
 }
 
 %token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE
-%token <chars> ATIDENTIFIER
+%token <chars> ATIDENTIFIER SYNTAXID
 %token SIZEOF TYPENAME TYPEOF TYPEDEF DEFINE DEFLOC DEFREC DEFSTX CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -32,7 +32,7 @@ extern char *yytext;
 %token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
-%token SYNTAX SYNTAXID SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
+%token SYNTAXIDID SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
 %token LPAIR RPAIR NOBIND_PRE MATCH
 
 %type <expr> base base_list
@@ -73,7 +73,7 @@ extern char *yytext;
 %type <expr> quote_expression
 %type <expr> mcall_statement
 %type <expr> margument_expression_list
-%type <expr> atid
+%type <expr> atid syntaxid
 %type <expr> unquote_statement
 %type <expr> pattern pattern_list var_pat_list rec_pat_list
 %type <expr> table_init_pattern table_init_pattern_list
@@ -113,6 +113,11 @@ id
 
 atid
 	: ATIDENTIFIER
+	{ $$ = doidnsrc(&ctx->inp->src, $1.p+1, $1.len-1); }
+	;
+
+syntaxid
+	: SYNTAXID
 	{ $$ = doidnsrc(&ctx->inp->src, $1.p+1, $1.len-1); }
 	;
 
@@ -164,12 +169,14 @@ quote_expression
 	;
 
 syntax_expression
-	: SYNTAXID '(' id ')'
+	: SYNTAXIDID '(' id ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
-	| SYNTAX id '(' argument_expression_list ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, invert($4), 0, 0); }
-	| SYNTAX id '(' ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, nullelist(), 0, 0); }
+	| syntaxid '(' argument_expression_list ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, invert($3), 0, 0); }
+	| syntaxid '(' ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
+	| syntaxid
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
 	;
 
 margument_expression_list
@@ -242,7 +249,6 @@ primary_expression
 	| defrec_expression
 	| let_expression
 	| quote_expression
-	| syntax_expression
 	| mcall_expression
 	;
 
@@ -277,12 +283,12 @@ pattern
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, invert($3), 0, 0); }
 	| id '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, nullelist(), 0, 0); }
-	| SYNTAXID '(' id ')'
+	| SYNTAXIDID '(' id ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
-	| SYNTAX id '(' pattern_list ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, invert($4), 0, 0); }
-	| SYNTAX id '(' ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estx, $2, nullelist(), 0, 0); }
+	| syntaxid '(' pattern_list ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, invert($3), 0, 0); }
+	| syntaxid '(' ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
 	;
 
 rec_pat_list
@@ -358,6 +364,7 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
+	| syntax_expression
 	| INC_OP unary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Epreinc, $2, 0, 0, 0); }
 	| DEC_OP unary_expression

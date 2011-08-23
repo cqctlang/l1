@@ -35,6 +35,11 @@ static int chars(YYSTYPE *lvalp, int);
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }
 ^#!			{ comment(ctx, "!#"); }
 "/*"			{ comment(ctx, "*/"); }
+#\'\{			{ count(ctx); return(SYNTAXQUOTE); }
+#`\{			{ count(ctx); return(SYNTAXQUASI); }
+#,			{ count(ctx); return(SYNTAXUNQUOTE); }
+#id			{ count(ctx); return(SYNTAXIDID); }
+#{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, SYNTAXID)); }
 "@const"		{ count(ctx); }
 "@containerof"		{ count(ctx); return(CONTAINEROF); }
 "@define"		{ count(ctx); return(DEFINE); }
@@ -50,6 +55,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@record"		{ count(ctx); return(DEFREC); }
 "@typename"		{ count(ctx); return(TYPENAME); }
 "@typeof"		{ count(ctx); return(TYPEOF); }
+@{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, ATIDENTIFIER)); }
 "_Bool"			{ count(ctx); return(BOOL); }
 "break"			{ count(ctx); return(BREAK); }
 "case"			{ count(ctx); return(CASE); }
@@ -79,15 +85,7 @@ static int chars(YYSTYPE *lvalp, int);
 "void"			{ count(ctx); return(VOID); }
 "volatile"		{ count(ctx); return(VOLATILE); }
 "while"			{ count(ctx); return(WHILE); }
-#\'\{			{ count(ctx); return(SYNTAXQUOTE); }
-#`\{			{ count(ctx); return(SYNTAXQUASI); }
-#,			{ count(ctx); return(SYNTAXUNQUOTE); }
-#id			{ count(ctx); return(SYNTAXID); }
-#			{ count(ctx); return(SYNTAX); }
-
-@{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, ATIDENTIFIER)); }
 {L}({L}|{D})*		{ count(ctx); return(chars(lvalp, IDENTIFIER)); }
-
 0[bB]{B}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 0[xX]{H}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
 0{D}+{IS}?		{ count(ctx); return(chars(lvalp, CONSTANT)); }
