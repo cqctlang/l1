@@ -252,7 +252,7 @@ primary_expression
 	| mcall_expression
 	;
 
-pattern 
+pattern
 	: id
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
@@ -288,6 +288,8 @@ pattern
 	| syntaxid '(' pattern_list ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, invert($3), 0, 0); }
 	| syntaxid '(' ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
+	| syntaxid
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
 	;
 
