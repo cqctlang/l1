@@ -178,7 +178,6 @@ printexpr(Expr *e)
 		printkon(e->aux);
 		xprintf(")");
 		break;
-	case E_tid:
 	case Eid:
 		xprintf("(%s ", S[e->kind]);
 		printkon(e->aux);
