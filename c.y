@@ -1123,6 +1123,8 @@ labeled_statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ecase, $2, $4, NULL, NULL); }
 	| MATCH pattern ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Ematch, $2, $4, NULL, NULL); }
+	| MATCH pattern AND_OP expression ':' statement
+	  { $$ = newexprsrc(&ctx->inp->src, Ematch, $2, $6, $4, NULL); }
 	| DEFAULT ':' statement
 	  { $$ = newexprsrc(&ctx->inp->src, Edefault, $3, NULL, NULL, NULL); }
 	;
