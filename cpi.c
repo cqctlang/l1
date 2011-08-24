@@ -107,22 +107,25 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 				       Zcall(doid("stxkind"), 1, copyexpr(exp)),
 				       Zid2sym(pat->e1)));
 		if(!strcmp(id, "id")){
-			m->check = Zand(m->check,
-					Zbinop(Eeq,
-					       Zcall(doid("stxid"), 1,
-						     copyexpr(exp)),
-					       Zid2sym(pat->e2)));
+			if(strcmp(idsym(pat->e2), "_") != 0)
+				m->check = Zand(m->check,
+						Zbinop(Eeq,
+						       Zcall(doid("stxid"), 1,
+							     copyexpr(exp)),
+						       Zid2sym(pat->e2)));
 			rv = 1;
 		}
 		else if(!strcmp(id, "val")){
 			l = elistlen(p);
 			if(l < 1)
 				bug(); /* or maybe cerror */
-			m->check = Zand(m->check,
-					Zbinop(Eeq,
-					       Zcall(doid("stxval"), 1,
-						     copyexpr(exp)),
-					       copyexpr(pat->e2->e1)));
+			if(strcmp(idsym(pat->e2->e1), "_") != 0)
+				m->check = Zand(m->check,
+						Zbinop(Eeq,
+						       Zcall(doid("stxval"), 1,
+							     copyexpr(exp)),
+						       copyexpr(pat->e2->e1)));
+			rv = 1;
 		}else{
 			l = elistlen(p);
 			for(i = 0; i < l; i++){
@@ -132,6 +135,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 					    p->e1, m);
 				p = p->e2;
 			}
+			rv = 1;
 		}
 		break;
 	case Epair:
