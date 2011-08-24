@@ -275,7 +275,7 @@ struct Expr {
 	Expr *e2;
 	Expr *e3;
 	Expr *e4;
-	Val aux;		/* Eid, E_tid, Ekon */
+	Val aux;		/* Eid, Ekon */
 	char attr;		/* disambiguation attribute */
 
 	/* source */
