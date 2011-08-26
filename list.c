@@ -63,10 +63,10 @@ listref(List *l, Imm idx)
 }
 
 List*
-listset(VM *vm, List *l, Imm idx, Val v)
+listset(List *l, Imm idx, Val v)
 {
 	if(idx >= listlen(l))
-		vmerr(vm, "listset out of bounds");
+		bug(); /* caller should check */
 	gcwb((Val)l->v);
 	listdata(l)[l->h+idx] = v;
 	return l;
@@ -349,7 +349,7 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val vp;
 	List *lst;
-	Imm m;
+	Imm idx, m;
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to listref");
@@ -361,9 +361,10 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 		      "a non-negative integer");
 	lst = vallist(argv[0]);
 	m = listlen(lst);
-	if(cvalu(cv) >= m)
+	idx = cvalu(cv);
+	if(idx >= m)
 		vmerr(vm, "listref out of bounds");
-	vp = listref(lst, cvalu(cv));
+	vp = listref(lst, idx);
 	*rv = vp;
 }
 
@@ -389,6 +390,7 @@ l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	List *lst;
 	Cval *cv;
+	Imm idx, m;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to listset");
 	checkarg(vm, "listset", argv, 0, Qlist);
@@ -398,7 +400,11 @@ l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 2 to listset must be "
 		      "a non-negative integer");
 	lst = vallist(argv[0]);
-	lst = listset(vm, lst, cvalu(cv), argv[2]);
+	m = listlen(lst);
+	idx = cvalu(cv);
+	if(idx >= m)
+		vmerr(vm, "listset out of bounds");
+	lst = listset(lst, idx, argv[2]);
 	*rv = mkvallist(lst);
 }
 

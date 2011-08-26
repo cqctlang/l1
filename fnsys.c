@@ -383,10 +383,10 @@ l1_errno(VM *vm, Imm argc, Val *argv, Val *rv)
 	l = mklistinit(2, Xnil);
 	*rv = mkvallist(l);
 	no = getlasterrno();
-	listset(vm, l, 0, mkvalcval2(mklitcval(Vint, no)));
+	listset(l, 0, mkvalcval2(mklitcval(Vint, no)));
 	if(no == 0)
 		return;
-	listset(vm, l, 1, mkvalstr(mkstr0(strerror(errno))));
+	listset(l, 1, mkvalstr(mkstr0(strerror(errno))));
 }
 
 void
