@@ -195,6 +195,12 @@ cqctlength(Val v)
 }
 
 Val
+cqctmklist(uint64_t n)
+{
+	return mkvallist(mklistn(n));
+}
+
+Val
 cqctlistref(Val l, uint64_t idx)
 {
 	List *lst;
@@ -236,6 +242,12 @@ cqctlistappend(Val l, Val v)
 		return 0;
 	_listappend(vallist(l), v);
 	return l;
+}
+
+Val
+cqctmkvec(uint64_t n)
+{
+	return mkvalvec(mkvec(n));
 }
 
 Val

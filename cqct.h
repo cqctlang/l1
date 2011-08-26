@@ -162,6 +162,8 @@ Val*		cqctlistvals(Val v);
 Closure*	cqctmkcfn(char *id,
 			  void (fn)(VM *vm, uint64_t argc, Val *argv, Val *rv));
 Val		cqctmkfd(Xfd *xfd, char *name);
+Val		cqctmklist(uint64_t n);
+Val		cqctmkvec(uint64_t n);
 VM*		cqctmkvm(Toplevel *top);
 char*		cqctsprintval(VM *vm, Val v);
 Val		cqctuint8val(uint8_t);
