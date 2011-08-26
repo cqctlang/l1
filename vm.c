@@ -3826,12 +3826,6 @@ builtincval(Env *env, char *name, Cval *cv)
 }
 
 static void
-builtinval(Env *env, char *name, Val val)
-{
-	envbind(env, name, val);
-}
-
-static void
 vmresetctl(VM *vm)
 {
 	vm->edepth = 0;
@@ -6840,7 +6834,6 @@ mktopenv(void)
 	fns(env);		/* configuration-specific functions */
 
 	/* FIXME: these bindings should be immutable */
-	builtinval(env, "nil", Xnil);
 	builtindom(env, "litdom", litdom);
 	builtintab(env, "toplevel", env->var);
 	builtinns(env, "c32le", mkrootns(&c32le));
