@@ -128,7 +128,7 @@ void		cqctbuiltinfn(Toplevel *top, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
 void		cqctcheckarg(VM *vm, char *fn, Val *argv,
-			     unsigned arg, Qkind qkind)
+			     unsigned arg, Qkind qkind);
 Val		cqctcompile(VM *vm, char *s, char *src,
 			    Toplevel *top, char *argsid);
 Val		cqctcstrnval(char *s, uint64_t len);
