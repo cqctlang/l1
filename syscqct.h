@@ -1041,6 +1041,7 @@ Tab*		doinsncnt(void);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 void		dogc(VM *vm, u32 g, u32 tg);
 Val		dovm(VM* vm, Closure *cl, Imm argc, Val *argv);
+void		envbind(Env *env, char *id, Val v);
 int		envbinds(Env *env, Cid *id);
 void		envdefine(Env *env, Cid *id, Val v);
 Val		envget(Env *env, Cid *id);

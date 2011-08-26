@@ -5,33 +5,6 @@
 char **cqctloadpath;
 char cqctflags[256];
 
-#if 0
-static void
-checkxp(Expr *e)
-{
-	Expr *p;
-	if(e == 0)
-		return;
-	if(e->xp && e->kind != Ekon)
-		fatal("compiler was untidy");
-	switch(e->kind){
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			checkxp(p->e1);
-			p = p->e2;
-		}
-		break;
-	default:
-		checkxp(e->e1);
-		checkxp(e->e2);
-		checkxp(e->e3);
-		checkxp(e->e4);
-		break;
-	}
-}
-#endif
-
 Expr*
 cqctparse(char *s, Toplevel *top, char *src)
 {
@@ -88,6 +61,157 @@ cqctinterrupt(VM *vm)
 	if(vm->flags&VMirq)
 		fatal("hard interrupt");
 	vm->flags |= VMirq;
+}
+
+
+Cbase
+cqctvalcbase(Val v)
+{
+	Cval *cv;
+	Ctype *t;
+	if(Vkind(v) != Qcval)
+		return (Cbase)-1;
+	cv = valcval(v);
+	t = chasetype(cv->type);
+	switch(t->tkind){
+	case Tbase:
+		return typecbase(t);
+	case Tptr:
+		return typecbase(cv->dom->ns->base[Vptr]);
+	default:
+		/* only scalar types in cvalues */
+		bug();
+	}
+}
+
+Val
+cqctmkfd(Xfd *xfd, char *name)
+{
+	Fd *fd;
+	Str *n;
+
+	if(name)
+		n = mkstr0(name);
+	else
+		n = mkstr0("");
+	fd = mkfdfn(n, Fread|Fwrite, xfd);
+	return mkvalfd(fd);
+}
+
+char*
+cqctvalcstr(Val v)
+{
+	if(Vkind(v) != Qstr)
+		return 0;
+	return str2cstr(valstr(v));
+}
+
+char*
+cqctvalcstrshared(Val v)
+{
+	Str *s;
+	if(Vkind(v) != Qstr)
+		return 0;
+	s = valstr(v);
+	return strdata(s);
+}
+
+uint64_t
+cqctvalcstrlen(Val v)
+{
+	Str *s;
+	if(Vkind(v) != Qstr)
+		return 0;
+	s = valstr(v);
+	return (uint64_t)s->len;
+}
+
+Val
+cqctcstrval(char *s)
+{
+	return mkvalstr(mkstr0(s));
+}
+
+Val
+cqctcstrnval(char *s, uint64_t len)
+{
+	return mkvalstr(mkstr(s, len));
+}
+
+Val
+cqctcstrvalshared(char *s)
+{
+	return mkvalstr(mkstrk(s, strlen(s), Sperm));
+}
+
+Val
+cqctcstrnvalshared(char *s, uint64_t len)
+{
+	return mkvalstr(mkstrk(s, len, Sperm));
+}
+
+void
+cqctfreecstr(char *s)
+{
+	efree(s);
+}
+
+void
+cqctenvbind(Toplevel *top, char *name, Val v)
+{
+	envbind(top->env, name, v);
+}
+
+Val
+cqctenvlook(Toplevel *top, char *name)
+{
+	return envget(top->env, mkcid0(name));
+}
+
+uint64_t
+cqctlength(Val v)
+{
+	List *lst;
+	Vec *vec;
+	Str *str;
+	Tab *tab;
+
+	switch(Vkind(v)){
+	default:
+		return (uint64_t)-1;
+	case Qlist:
+		lst = vallist(v);
+		return listlen(lst);
+	case Qstr:
+		str = valstr(v);
+		return str->len;
+	case Qvec:
+		vec = valvec(v);
+		return vec->len;
+	case Qtab:
+		tab = valtab(v);
+		return tab->nent;
+	}
+}
+
+Val*
+cqctlistvals(Val v)
+{
+	List *l;
+	if(Vkind(v) != Qlist)
+		return 0;
+	l = vallist(v);
+	return &listdata(l)[l->h];
+}
+
+Val*
+cqctvecvals(Val v)
+{
+	Vec *vec;
+	if(Vkind(v) != Qvec)
+		return 0;
+	vec = valvec(v);
+	return vecdata(vec);
 }
 
 Toplevel*

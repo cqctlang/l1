@@ -567,7 +567,7 @@ envput(Env *env, Cid *id, Val v)
 	tabput(env->var, mkvalcid(id), v);
 }
 
-static void
+void
 envbind(Env *env, char *id, Val val)
 {
 	Cid *cid;
@@ -6999,40 +6999,6 @@ cqctcallthunk(VM *vm, Val cl, Val *rv)
 	return cqctcallfn(vm, cl, 0, 0, rv);
 }
 
-Cbase
-cqctvalcbase(Val v)
-{
-	Cval *cv;
-	Ctype *t;
-	if(Vkind(v) != Qcval)
-		return (Cbase)-1;
-	cv = valcval(v);
-	t = chasetype(cv->type);
-	switch(t->tkind){
-	case Tbase:
-		return typecbase(t);
-	case Tptr:
-		return typecbase(cv->dom->ns->base[Vptr]);
-	default:
-		/* only scalar types in cvalues */
-		bug();
-	}
-}
-
-Val
-cqctmkfd(Xfd *xfd, char *name)
-{
-	Fd *fd;
-	Str *n;
-
-	if(name)
-		n = mkstr0(name);
-	else
-		n = mkstr0("");
-	fd = mkfdfn(n, Fread|Fwrite, xfd);
-	return mkvalfd(fd);
-}
-
 /* these cqctval<type> routines and their inverses assume litdom is clp64le */
 
 int8_t
@@ -7147,58 +7113,6 @@ cqctvaluint64(Val v)
 	return cvalu(rv);
 }
 
-char*
-cqctvalcstr(Val v)
-{
-	if(Vkind(v) != Qstr)
-		return 0;
-	return str2cstr(valstr(v));
-}
-
-char*
-cqctvalcstrshared(Val v)
-{
-	Str *s;
-	if(Vkind(v) != Qstr)
-		return 0;
-	s = valstr(v);
-	return strdata(s);
-}
-
-uint64_t
-cqctvalcstrlen(Val v)
-{
-	Str *s;
-	if(Vkind(v) != Qstr)
-		return 0;
-	s = valstr(v);
-	return (uint64_t)s->len;
-}
-
-Val
-cqctcstrval(char *s)
-{
-	return mkvalstr(mkstr0(s));
-}
-
-Val
-cqctcstrnval(char *s, uint64_t len)
-{
-	return mkvalstr(mkstr(s, len));
-}
-
-Val
-cqctcstrvalshared(char *s)
-{
-	return mkvalstr(mkstrk(s, strlen(s), Sperm));
-}
-
-Val
-cqctcstrnvalshared(char *s, uint64_t len)
-{
-	return mkvalstr(mkstrk(s, len, Sperm));
-}
-
 Val
 cqctint8val(int8_t x)
 {
@@ -7245,68 +7159,4 @@ Val
 cqctuint64val(uint64_t x)
 {
 	return mkvallitcval(clp64le.xuint64, x);
-}
-
-void
-cqctfreecstr(char *s)
-{
-	efree(s);
-}
-
-void
-cqctenvbind(Toplevel *top, char *name, Val v)
-{
-	envbind(top->env, name, v);
-}
-
-Val
-cqctenvlook(Toplevel *top, char *name)
-{
-	return envget(top->env, mkcid0(name));
-}
-
-uint64_t
-cqctlength(Val v)
-{
-	List *lst;
-	Vec *vec;
-	Str *str;
-	Tab *tab;
-
-	switch(Vkind(v)){
-	default:
-		return (uint64_t)-1;
-	case Qlist:
-		lst = vallist(v);
-		return listlen(lst);
-	case Qstr:
-		str = valstr(v);
-		return str->len;
-	case Qvec:
-		vec = valvec(v);
-		return vec->len;
-	case Qtab:
-		tab = valtab(v);
-		return tab->nent;
-	}
-}
-
-Val*
-cqctlistvals(Val v)
-{
-	List *l;
-	if(Vkind(v) != Qlist)
-		return 0;
-	l = vallist(v);
-	return &listdata(l)[l->h];
-}
-
-Val*
-cqctvecvals(Val v)
-{
-	Vec *vec;
-	if(Vkind(v) != Qvec)
-		return 0;
-	vec = valvec(v);
-	return vecdata(vec);
 }
