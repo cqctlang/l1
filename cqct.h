@@ -122,6 +122,9 @@ struct Xfd {
 	int fd;
 };
 
+#define CQCTFN(top,id)	cqctbuiltinfn(top, "%"#id, cqctmkcfn(#id, l1_##id))
+
+void		cqctbuiltinfn(Toplevel *top, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
 Val		cqctcompile(VM *vm, char *s, char *src,
@@ -151,6 +154,8 @@ Val		cqctint64val(int64_t);
 void		cqctinterrupt(VM *vm);
 uint64_t	cqctlength(Val v);
 Val*		cqctlistvals(Val v);
+Closure*	cqctmkcfn(char *id,
+			  void (fn)(VM *vm, uint64_t argc, Val *argv, Val *rv));
 Val		cqctmkfd(Xfd *xfd, char *name);
 VM*		cqctmkvm(Toplevel *top);
 char*		cqctsprintval(VM *vm, Val v);

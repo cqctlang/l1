@@ -180,12 +180,9 @@ mkcfn(char *id, Cfn *cfn)
 }
 
 Closure*
-mktcfn(char *id, Cfn *cfn)
+cqctmkcfn(char *id, Cfn *cfn)
 {
-	Closure *cl;
-	cl = mkcl(tcccode, 0, 0, id);
-	cl->cfn = cfn;
-	return cl;
+	return mkcfn(id, cfn);
 }
 
 Closure*
@@ -3788,6 +3785,12 @@ builtinfn(Env *env, char *name, Closure *cl)
 	envbind(env, name, val);
 	if(name[0] == '%')
 		envbind(env, name+1, val);
+}
+
+void
+cqctbuiltinfn(Toplevel *top, char *name, Closure *cl)
+{
+	return builtinfn(top->env, name, cl);
 }
 
 static void

@@ -1071,7 +1071,6 @@ int		isstrcval(Cval *cv);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
 Closure*	mkcfn(char *id, Cfn *cfn);
-Closure*	mktcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkxfn(Str *code);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
@@ -1144,11 +1143,10 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define valtab(v)	((Tab*)(v))
 #define valvec(v)	((Vec*)(v))
 #define valboxedcval(b)	((Cval*)((Box*)(b))->v)
-#define waserror(vm) (setjmp(*(_pusherror(vm))))
-#define FN(name) builtinfn(env, "%"#name, mkcfn(#name, l1_##name))
-#define FNT(name) builtinfn(env, "%"#name, mktcfn(#name, l1_##name))
+#define waserror(vm)	(setjmp(*(_pusherror(vm))))
 #define stkimm(v)	(Imm)(uptr)(v)
 #define stkp(v)		(void*)(uptr)(v)
+#define FN(id)		builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id))
 
 typedef int(*Freeheadfn)(Head*);
 Freeheadfn getfreeheadfn(Qkind qkind);
