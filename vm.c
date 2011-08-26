@@ -3043,7 +3043,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		*rv = Xnil;
 		return;
 	}
-	sym = valvec(listref(vm, l, 0));
+	sym = valvec(listref(l, 0));
 	a = valcval(attroff(vecref(sym, Attrpos)));
 	if(cvalu(a) > addr){
 		*rv = Xnil;
@@ -3057,7 +3057,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		m = b+i;
 		if(i == 0)
 			break;
-		sym = valvec(listref(vm, l, m));
+		sym = valvec(listref(l, m));
 		a = valcval(attroff(vecref(sym, Attrpos)));
 		if(addr < cvalu(a))
 			n = i;
@@ -3066,7 +3066,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 			n = n-i;
 		}
 	}
-	sym = valvec(listref(vm, l, m));
+	sym = valvec(listref(l, m));
 	*rv = mkvalvec(sym);
 }
 
@@ -5608,7 +5608,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(equalval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(lst, i)))
 				m++;
 		break;
 	case Qvec:
@@ -5656,7 +5656,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(equalval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(lst, i)))
 				goto gotit;
 		break;
 	case Qvec:
@@ -5708,7 +5708,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		len = listlen(lst);
 		for(i = 0; i < len; i++)
-			if(equalval(v, listref(vm, lst, i)))
+			if(equalval(v, listref(lst, i)))
 				goto gotit;
 		break;
 	case Qvec:
@@ -5759,7 +5759,7 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 		lst = vallist(argv[0]);
 		i = 0;
 		while(i < listlen(lst)){
-			if(!equalval(v, listref(vm, lst, i)))
+			if(!equalval(v, listref(lst, i)))
 				i++;
 			else
 				listdel(vm, lst, i);
@@ -6212,7 +6212,7 @@ l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
 		*ap++ = *ip++;
 	lst = vallist(*ip);
 	for(m = 0; m < ll; m++){
-		vp = listref(vm, lst, m);
+		vp = listref(lst, m);
 		*ap++ = vp;
 	}
 	if(waserror(vm)){
@@ -6247,7 +6247,7 @@ l1_applyk(VM *vm, Imm iargc, Val *iargv, Val *rv)
 		*ap++ = *ip++;
 	lst = vallist(*ip);
 	for(m = 0; m < ll; m++){
-		vp = listref(vm, lst, m);
+		vp = listref(lst, m);
 		*ap++ = vp;
 	}
 	if(waserror(vm)){
@@ -6300,14 +6300,14 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	l = vallist(argv[0]);
 	m = listlen(l);
 	for(i = 0; i < m; i++){
-		v = listref(vm, l, i);
+		v = listref(l, i);
 		if(Vkind(v) != Qstr)
 			vmerr(vm, "argument 1 to setloadpath "
 			      "must be a list of strings");
 	}
 	lp = emalloc((m+1)*sizeof(char*));
 	for(i = 0; i < m; i++)
-		lp[i] = str2cstr(valstr(listref(vm, l, i)));
+		lp[i] = str2cstr(valstr(listref(l, i)));
 	efree(cqctloadpath);
 	cqctloadpath = copystrv(lp);
 	for(i = 0; i < m; i++)

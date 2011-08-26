@@ -223,7 +223,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	rd->get = mktab();
 	rd->set = mktab();
 	for(n = 0; n < rd->nf; n++){
-		f = valcid(listref(vm, fname, n));
+		f = valcid(listref(fname, n));
 		len = name->len+3+f->len+1;
 		buf = emalloc(len);
 
@@ -283,7 +283,7 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 	lst = vallist(argv[1]);
 	nf = listlen(lst);
 	for(n = 0; n < nf; n++){
-		v = listref(vm, lst, n);
+		v = listref(lst, n);
 		if(Vkind(v) != Qcid)
 			vmerr(vm, "operand 2 to mkrd must be a "
 			      "list of field names");

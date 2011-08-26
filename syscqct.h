@@ -1342,7 +1342,7 @@ List*		listdel(VM *vm, List *lst, Imm idx);
 List*		listins(VM *vm, List *lst, Imm idx, Val v);
 Imm		listlen(List *x);
 void		listpop(List *lst, Val *vp);
-Val		listref(VM *vm, List *lst, Imm idx);
+Val		listref(List *lst, Imm idx);
 List*		listset(VM *vm, List *lst, Imm idx, Val v);
 List*		mklist(void);
 List*		mklistinit(Imm len, Val v);

@@ -506,7 +506,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 				if(fmtputs0(vm, f, " "))
 					return -1;
 			}
-			if(fmtval(vm, f, listref(vm, l, m)))
+			if(fmtval(vm, f, listref(l, m)))
 				return -1;
 		}
 		return fmtputs0(vm, f, " ]");

@@ -54,12 +54,11 @@ mklistinit(Imm len, Val v)
 }
 
 /* FIXME: maybe just call vec* routines instead? */
-
 Val
-listref(VM *vm, List *l, Imm idx)
+listref(List *l, Imm idx)
 {
 	if(idx >= listlen(l))
-		vmerr(vm, "listref out of bounds");
+		bug(); /* caller should check */
 	return listdata(l)[l->h+idx];
 }
 
@@ -295,9 +294,9 @@ listconcat(VM *vm, List *l1, List *l2)
 	len2 = listlen(l2);
 	rv = mklistn(len1+len2);
 	for(m = 0; m < len1; m++)
-		listappend(vm, rv, listref(vm, l1, m));
+		listappend(vm, rv, listref(l1, m));
 	for(m = 0; m < len2; m++)
-		listappend(vm, rv, listref(vm, l2, m));
+		listappend(vm, rv, listref(l2, m));
 	return rv;
 }
 
@@ -309,7 +308,7 @@ listslice(VM *vm, List *l, Imm b, Imm e)
 
 	rv = mklistn(e-b);
 	for(m = b; m < e; m++)
-		listappend(vm, rv, listref(vm, l, m));
+		listappend(vm, rv, listref(l, m));
 	return rv;
 }
 
@@ -350,6 +349,7 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val vp;
 	List *lst;
+	Imm m;
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to listref");
@@ -360,7 +360,10 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 2 to listref must be "
 		      "a non-negative integer");
 	lst = vallist(argv[0]);
-	vp = listref(vm, lst, cvalu(cv));
+	m = listlen(lst);
+	if(cvalu(cv) >= m)
+		vmerr(vm, "listref out of bounds");
+	vp = listref(lst, cvalu(cv));
 	*rv = vp;
 }
 

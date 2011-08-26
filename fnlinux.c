@@ -50,22 +50,22 @@ l1_timerfd_settime(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(listlen(l) != 4)
 		vmerr(vm, "bad timer specifier");
 	
-	v = listref(vm, l, 0);
+	v = listref(l, 0);
 	if(Vkind(v) != Qcval)
 		vmerr(vm, "bad timer specifier");
 	cv = valcval(v);
 	it.it_interval.tv_sec = cv->val;
-	v = listref(vm, l, 1);
+	v = listref(l, 1);
 	if(Vkind(v) != Qcval)
 		vmerr(vm, "bad timer specifier");
 	cv = valcval(v);
 	it.it_interval.tv_nsec = cv->val;
-	v = listref(vm, l, 2);
+	v = listref(l, 2);
 	if(Vkind(v) != Qcval)
 		vmerr(vm, "bad timer specifier");
 	cv = valcval(v);
 	it.it_value.tv_sec = cv->val;
-	v = listref(vm, l, 3);
+	v = listref(l, 3);
 	if(Vkind(v) != Qcval)
 		vmerr(vm, "bad timer specifier");
 	cv = valcval(v);

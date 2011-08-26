@@ -655,7 +655,7 @@ setfdsin(VM *vm, List *l, fd_set *f)
 	m = listlen(l);
 	n = -1;
 	for(i = 0; i < m; i++){
-		v = listref(vm, l, i);
+		v = listref(l, i);
 		if(Vkind(v) != Qfd)
 			vmerr(vm, "select on non file descriptor");
 		fd = valfd(v);
@@ -678,7 +678,7 @@ setfdsout(VM *vm, List *il, fd_set *f, List *ol)
 
 	m = listlen(il);
 	for(i = 0; i < m; i++){
-		v = listref(vm, il, i);
+		v = listref(il, i);
 		fd = valfd(v);
 		if(FD_ISSET(sysfdno(fd), f))
 			listappend(vm, ol, v);
@@ -733,12 +733,12 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 		t = vallist(argv[3]);
 		if(listlen(t) != 2)
 			vmerr(vm, "bad timeout specifier");
-		v = listref(vm, t, 0);
+		v = listref(t, 0);
 		if(Vkind(v) != Qcval)
 			vmerr(vm, "bad timeout specifier");
 		cv = valcval(v);
 		tv.tv_sec = cvalu(cv);
-		v = listref(vm, t, 1);
+		v = listref(t, 1);
 		if(Vkind(v) != Qcval)
 			vmerr(vm, "bad timeout specifier");
 		cv = valcval(v);
