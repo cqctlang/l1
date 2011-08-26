@@ -832,16 +832,32 @@ vmbacktrace(VM *vm)
 	fvmbacktrace(vm);
 }
 
+static void
+vvmerr(VM *vm, char *fmt, va_list args)
+{
+	cprintf(&vm->top->out, "error: ");
+	cvprintf(&vm->top->out, fmt, args);
+	cprintf(&vm->top->out, "\n");
+	fvmbacktrace(vm);
+}
+
 void
 vmerr(VM *vm, char *fmt, ...)
 {
 	va_list args;
-	cprintf(&vm->top->out, "error: ");
 	va_start(args, fmt);
-	cvprintf(&vm->top->out, fmt, args);
+	vvmerr(vm, fmt, args);
 	va_end(args);
-	cprintf(&vm->top->out, "\n");
-	fvmbacktrace(vm);
+	nexterror(vm);
+}
+
+void
+cqctvmerr(VM *vm, char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vvmerr(vm, fmt, args);
+	va_end(args);
 	nexterror(vm);
 }
 
@@ -4129,6 +4145,12 @@ checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
 	if(Vkind(argv[arg]) != qkind)
 		vmerr(vm, "operand %d to %s must be a %s",
 		      arg+1, fn, qname[qkind]);
+}
+
+void
+cqctcheckarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
+{
+	checkarg(vm, fn, argv, arg, qkind);
 }
 
 int

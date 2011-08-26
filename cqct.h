@@ -127,6 +127,8 @@ struct Xfd {
 void		cqctbuiltinfn(Toplevel *top, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
+void		cqctcheckarg(VM *vm, char *fn, Val *argv,
+			     unsigned arg, Qkind qkind)
 Val		cqctcompile(VM *vm, char *s, char *src,
 			    Toplevel *top, char *argsid);
 Val		cqctcstrnval(char *s, uint64_t len);
@@ -176,3 +178,4 @@ uint16_t	cqctvaluint16(Val);
 uint32_t	cqctvaluint32(Val);
 uint64_t	cqctvaluint64(Val);
 Val*		cqctvecvals(Val v);
+void		cqctvmerr(VM *vm, char *fmt, ...);
