@@ -10491,9 +10491,9 @@ L1 implementation of Cinquecento.  The interface is defined in
 For an example of
 how to use the interface, see the file <span
 class="val">main.c</span> in the L1 implementation, which
-implements a simple Cinquecento read-eval-print loop.
-The functions are described below in the general order in
-which they would be called.
+implements the L1 read-eval-print loop.
+The functions are described below in roughly the order in
+which a typical program would call them.
 </p>
 
 <p>
@@ -10513,20 +10513,40 @@ types.
 </tr>
 <tr>
 <td><span class="id">VM</span></td>
-<td>Virtual machine for evaluating compiled Cinquecento expression</td>
+<td>Evaluator for compiled Cinquecento expressions</td>
 </tr>
 <tr>
 <td><span class="id">Xfd</span></td>
-<td>File descriptor interface</td>
+<td>File descriptor representation</td>
 </tr>
 </table>
 </div>
 
 <p>
 A <span class="id">Val</span> is pointer to a structure
-whose fields generally should not be examined, except for one field,
-<span class="id">qkind</span>, which specifies the
-Cinquecento type of the object:
+allocated and managed by the L1 storage manager.  Its
+fields should not be accessed.  Since the L1 storage
+manager is based on a copying garbage collector, the
+value of a <span class="id">Val</span> (<em>i.e.</em>,
+the address of the referenced structure) may change
+across calls to functions that invoke the L1 evaluator,
+including 
+<span class="fnindex"><a href="#fn:cqctcompile">cqctcompile</a></span>,
+<span class="fnindex"><a href="#fn:cqctcallfn">cqctcallfn</a></span>,
+<span class="fnindex"><a href="#fn:cqctcallthunk">cqctcallthunk</a></span>,
+and <span class="fnindex"><a href="#fn:cqcteval">cqctcalleval</a></span>.
+
+The function <span class="fnindex"><a href="#fn:cqctgcpersist">cqctgcpersist</a></span>
+can be called to lock the location in memory of 
+an individual <span class="id">Val</span>,
+but this operation creates storage and run-time overhead
+for the storage manager.
+</p>
+
+<p>
+A <span class="id">Val</span> can represent any type of
+Cinquecento value.  The <span class="id">Qkind</span>
+type defines enumeration constants for each valid type:
 </p>
 
 <div class="code">
@@ -10541,6 +10561,7 @@ enum {
 	Qcode,		/* code object (private) */
 	Qcval,		/* cvalue */
 	Qdom,		/* domain */
+	Qexpr,		/* syntax */
 	Qfd,		/* file descriptor */
 	Qlist,		/* list */
 	Qns,		/* name space */
@@ -10554,28 +10575,30 @@ enum {
 	Qxtn,		/* ctype */
 	Qnkind		/* invalid (# of kinds) */
 } Qkind;
-
-struct Head {
-	Qkind qkind;	/* kind of object */
-	/* ... */
-};
-
-typedef struct Head* Val;
 </pre>
 </div>
 
 
 <p>
-Callers of the C interface may use the 
-<span class="val">qkind</span> field to determine the
-type of a Cinquecento value.
-Some of the following
-routines expect their <span class="val">Val</span>
-arguments to be of a particular kind.
+Use the <span class="val">Vkind</span> macro
+to determine the 
+type of a <span class="id">Val</span>:
 </p>
 
+<div class="docitem" id="fn:Vkind">
+<div class="proto">
+<div class="function">
+<span class="id">Qkind Vkind(Val v)</span>
+</div>
+</div>
+<div class="desc">
+This macro evaluates to the <span class="id">Qkind</span>
+value corresponding to the type of the value <span class="arg">v</span>.
+</div>
+</div>
+
 <p>
-A <span class="id">Xfd</span> is a structure whose
+An <span class="id">Xfd</span> is a structure whose
 fields define an interface to an open file descriptor.
 The Cinquecento initializer,
 <span class="id"><a href="#fn:cqctinit">cqctinit</a></span> uses its <span class="id">Xfd</span>
@@ -10997,6 +11020,63 @@ The result is undefined if <span class="arg">v</span> is not a container.
 <div class="docitem">
 <div class="proto">
 <div class="function">
+<span class="id" id="fn:cqctmklist">Val cqctmklist(uint64_t <span class="arg">n</span>)</span>
+</div>
+</div>
+<div class="desc">
+This function is a C wrapper for
+<span class="fnindex"><a href="#fn:mklist">mklist</a></span>.
+It returns a Cinquecento list initialized with <span class="arg">n</span> <span class="val">nil</span>
+elements.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctlistref">Val cqctlistref(Val <span class="arg">l</span>, uint64_r <span class="arg">idx</span>)</span>
+</div>
+</div>
+<div class="desc">
+Returns the element at index <span class="arg">idx</span>
+in the list <span class="arg">l</span>, or <span class="val">0</span>
+if the index is out of bounds or <span class="arg">l</span>
+is not a list.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctlistset">Val cqctlistset(Val <span class="arg">l</span>, uint64_r <span class="arg">idx</span>, Val <span class="arg">val</span>)</span>
+</div>
+</div>
+<div class="desc">
+Sets the element at index <span class="arg">idx</span>
+in the list <span class="arg">l</span> to <span class="arg">val</span>,
+and returns <span class="arg">l</span>.
+If the index is out of bounds or <span class="arg">l</span>
+is not a list, returns <span class="val">0</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctlistappend">Val cqctlistappend(Val <span class="arg">l</span>, Val <span class="arg">val</span>)</span>
+</div>
+</div>
+<div class="desc">
+Appends <span class="arg">val</span> to the end of the list
+<span class="arg">l</span>, and returns <span class="arg">l</span>.
+If the index is out of bounds or <span class="arg">l</span>
+is not a list, returns <span class="val">0</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
 <span class="id" id="fn:cqctlistvals">Val* cqctlistvals(Val <span class="arg">v</span>)</span>
 </div>
 </div>
@@ -11012,6 +11092,49 @@ The result is undefined if <span class="arg">v</span> is not a list.
 <div class="docitem">
 <div class="proto">
 <div class="function">
+<span class="id" id="fn:cqctmkvec">Val cqctmkvec(uint64_t <span class="arg">n</span>)</span>
+</div>
+</div>
+<div class="desc">
+This function is a C wrapper for
+<span class="fnindex"><a href="#fn:mkvec">mkvec</a></span>.
+It returns a Cinquecento vector initialized with <span class="arg">n</span> <span class="val">nil</span>
+elements.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctvecref">Val cqctvecref(Val <span class="arg">v</span>, uint64_r <span class="arg">idx</span>)</span>
+</div>
+</div>
+<div class="desc">
+Returns the element at index <span class="arg">idx</span>
+in the vector <span class="arg">v</span>, or <span class="val">0</span>
+if the index is out of bounds or <span class="arg">v</span>
+is not a vector.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctvecset">Val cqctvecset(Val <span class="arg">v</span>, uint64_r <span class="arg">idx</span>, Val <span class="arg">val</span>)</span>
+</div>
+</div>
+<div class="desc">
+Sets the element at index <span class="arg">idx</span>
+in the vector <span class="arg">v</span> to <span class="arg">val</span>,
+and returns <span class="arg">v</span>.
+If the index is out of bounds or <span class="arg">v</span>
+is not a vector, returns <span class="val">0</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
 <span class="id" id="fn:cqctvecvals">Val* cqctvecvals(Val <span class="arg">v</span>)</span>
 </div>
 </div>
@@ -11021,6 +11144,48 @@ the vector <span class="arg">v</span>.
 The number of elements in the array is the length returned by
 <span class="id"><a href="#fn:cqctlength">cqctlength</a></span>.
 The result is undefined if <span class="arg">v</span> is not a vector.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctmkrange">Val cqctmkrange(Val <span class="arg">beg</span>, Val <span class="arg">len</span>)</span>
+</div>
+</div>
+<div class="desc">
+This function is a C wrapper for
+<span class="fnindex"><a href="#fn:mkrange">mkrange</a></span>.
+It returns a Cinquecento range representing the span of <span class="arg">len</span>
+bytes beginning at <span class="arg">beg</span>, or <span class="val">0</span>
+if either one <span class="arg">len</span> or <span class="arg">beg</span>
+is not a cvalue.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctrangebeg">Val cqctrangebeg(Val <span class="arg">r</span>)</span>
+</div>
+</div>
+<div class="desc">
+Returns a cvalue corresponding to the beginning of the range <span class="arg">r</span>,
+or <span class="val">0</span>
+if <span class="arg">r</span> is not a range.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id" id="fn:cqctrangelen">Val cqctrangelen(Val <span class="arg">r</span>)</span>
+</div>
+</div>
+<div class="desc">
+Returns a cvalue corresponding to the length of the range <span class="arg">r</span>,
+or <span class="val">0</span>
+if <span class="arg">r</span> is not a range.
 </div>
 </div>
 
@@ -11340,9 +11505,17 @@ Prentice Hall, 1988.
 <a href="#fn:cqctint64val">cqctint64val</a><br />
 <a href="#fn:cqctinterrupt">cqctinterrupt</a><br />
 <a href="#fn:cqctlength">cqctlength</a><br />
+<a href="#fn:cqctlistappend">cqctlistappend</a><br />
+<a href="#fn:cqctlistref">cqctlistref</a><br />
+<a href="#fn:cqctlistset">cqctlistset</a><br />
 <a href="#fn:cqctlistvals">cqctlistvals</a><br />
 <a href="#fn:cqctmkfd">cqctmkfd</a><br />
+<a href="#fn:cqctmklist">cqctmklist</a><br />
+<a href="#fn:cqctmkrange">cqctmkrange</a><br />
+<a href="#fn:cqctmkvec">cqctmkvec</a><br />
 <a href="#fn:cqctmkvm">cqctmkvm</a><br />
+<a href="#fn:cqctrangebeg">cqctrangebeg</a><br />
+<a href="#fn:cqctrangelen">cqctrangelen</a><br />
 <a href="#fn:cqctsprintval">cqctsprintval</a><br />
 <a href="#fn:cqctuint8val">cqctuint8val</a><br />
 <a href="#fn:cqctuint16val">cqctuint16val</a><br />
@@ -11360,6 +11533,8 @@ Prentice Hall, 1988.
 <a href="#fn:cqctvaluint16">cqctvaluint16</a><br />
 <a href="#fn:cqctvaluint32">cqctvaluint32</a><br />
 <a href="#fn:cqctvaluint64">cqctvaluint64</a><br />
+<a href="#fn:cqctvecref">cqctvecref</a><br />
+<a href="#fn:cqctvecset">cqctvecset</a><br />
 <a href="#fn:cqctvecvals">cqctvecvals</a><br />
 </div>
 </div>
