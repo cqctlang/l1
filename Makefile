@@ -30,6 +30,7 @@ L1C =\
 	parse.c\
 	xenv.c\
 	cutil.c\
+	c.c\
 	cpe.c\
 	cpq.c\
 	cpx.c\

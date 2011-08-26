@@ -6337,25 +6337,9 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 	e = valexpr(argv[0]);
 	/* wrap in "begin" just in case */
 	e = putsrc(Zcons(e, nullelist()), e->src);
-	v = cqctcompile0(vm, e, vm->top, 0);
+	v = compile(vm, e, vm->top, 0);
 	if(v != 0)
 		*rv = v;
-}
-
-static void
-l1_front(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Expr *e;
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to front");
-	checkarg(vm, "front", argv, 0, Qexpr);
-	e = valexpr(argv[0]);
-	e = Zcons(e, nullelist()); /* wrap in "begin" just in case */
-	e = cqctcompilex(vm, e, vm->top, 0);
-	if(e == 0)
-		vmerr(vm, "compilex error");
-	/* FIXME: symbolify E */
-	*rv = mkvalexpr(e);
 }
 
 static void
@@ -6363,7 +6347,7 @@ l1_pp(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to pp");
-	checkarg(vm, "front", argv, 0, Qexpr);
+	checkarg(vm, "pp", argv, 0, Qexpr);
 	printcqct(valexpr(argv[0]));
 	xprintf("\n");
 }
@@ -6770,7 +6754,6 @@ mktopenv(void)
 	FN(error);
 	FN(fault);
 	FN(fdname);
-	FN(front);
 	FN(gc);
 	FN(gclock);
 	FN(gcstats);

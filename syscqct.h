@@ -1440,9 +1440,11 @@ Val		vecref(Vec *vec, Imm idx);
 void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);
 
+/* c.c */
+Val		compile(VM *vm, Expr *e, Toplevel *top, char *argsid);
+Expr*		compilex(VM *vm, Expr *e, Toplevel *top, char *argsid);
+
 /* cqct.c */
-Val		cqctcompile0(VM *vm, Expr *e, Toplevel *top, char *argsid);
-Expr*		cqctcompilex(VM *vm, Expr *e, Toplevel *top, char *argsid);
 Expr*		cqctparse(char *s, Toplevel *top, char *src);
 
 extern		void fns(Env*);
