@@ -1437,6 +1437,7 @@ void		l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv);
 Vec*		mkvec(Imm len);
 Vec*		mkvecinit(Imm len, Val v);
 Vec*		veccopy(Vec *old);
+Imm		veclen(Vec *vec);
 Val		vecref(Vec *vec, Imm idx);
 void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);

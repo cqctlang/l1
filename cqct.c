@@ -187,11 +187,36 @@ cqctlength(Val v)
 		return str->len;
 	case Qvec:
 		vec = valvec(v);
-		return vec->len;
+		return veclen(vec);
 	case Qtab:
 		tab = valtab(v);
 		return tab->nent;
 	}
+}
+
+Val
+cqctlistref(Val l, uint64_t idx)
+{
+	List *lst;
+	if(Vkind(l) != Qlist)
+		return 0;
+	lst = vallist(l);
+	if(idx >= listlen(lst))
+		return 0;
+	return listref(lst, idx);
+}
+
+Val
+cqctlistset(Val l, uint64_t idx, Val v)
+{
+	List *lst;
+	if(Vkind(l) != Qlist)
+		return 0;
+	lst = vallist(l);
+	if(idx >= listlen(lst))
+		return 0;
+	listset(lst, idx, v);
+	return l;
 }
 
 Val*
@@ -202,6 +227,40 @@ cqctlistvals(Val v)
 		return 0;
 	l = vallist(v);
 	return &listdata(l)[l->h];
+}
+
+Val
+cqctlistappend(Val l, Val v)
+{
+	if(Vkind(l) != Qlist)
+		return 0;
+	_listappend(vallist(l), v);
+	return l;
+}
+
+Val
+cqctvecref(Val o, uint64_t idx)
+{
+	Vec *vec;
+	if(Vkind(o) != Qvec)
+		return 0;
+	vec = valvec(o);
+	if(idx >= veclen(vec))
+		return 0;
+	return vecref(vec, idx);
+}
+
+Val
+cqctvecset(Val o, uint64_t idx, Val v)
+{
+	Vec *vec;
+	if(Vkind(o) != Qvec)
+		return 0;
+	vec = valvec(o);
+	if(idx >= veclen(vec))
+		return 0;
+	vecset(vec, idx, v);
+	return o;
 }
 
 Val*

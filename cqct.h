@@ -155,6 +155,9 @@ Val		cqctint32val(int32_t);
 Val		cqctint64val(int64_t);
 void		cqctinterrupt(VM *vm);
 uint64_t	cqctlength(Val v);
+Val		cqctlistappend(Val l, Val v);
+Val		cqctlistref(Val l, uint64_t idx);
+Val		cqctlistset(Val l, uint64_t idx, Val v);
 Val*		cqctlistvals(Val v);
 Closure*	cqctmkcfn(char *id,
 			  void (fn)(VM *vm, uint64_t argc, Val *argv, Val *rv));
@@ -177,5 +180,7 @@ uint8_t		cqctvaluint8(Val);
 uint16_t	cqctvaluint16(Val);
 uint32_t	cqctvaluint32(Val);
 uint64_t	cqctvaluint64(Val);
+Val		cqctvecref(Val l, uint64_t idx);
+Val		cqctvecset(Val l, uint64_t idx, Val v);
 Val*		cqctvecvals(Val v);
 void		cqctvmerr(VM *vm, char *fmt, ...);

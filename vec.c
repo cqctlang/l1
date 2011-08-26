@@ -26,6 +26,12 @@ equalvec(Vec *a, Vec *b)
 	return 1;
 }
 
+Imm
+veclen(Vec *v)
+{
+	return v->len;
+}
+
 Vec*
 veccopy(Vec *old)
 {
