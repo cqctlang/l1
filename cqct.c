@@ -285,6 +285,34 @@ cqctvecvals(Val v)
 	return vecdata(vec);
 }
 
+Val
+cqctmkrange(Val b, Val l)
+{
+	if(Vkind(b) != Qcval || Vkind(l) != Qcval)
+		return 0;
+	return mkrange(valcval(b), valcval(l));
+}
+
+Val
+cqctrangebeg(Val o)
+{
+	Range *r;
+	if(Vkind(o) != Qrange)
+		return 0;
+	r = valrange(o);
+	return r->beg;
+}
+
+Val
+cqctrangelen(Val o)
+{
+	Range *r;
+	if(Vkind(o) != Qrange)
+		return 0;
+	r = valrange(o);
+	return r->len;
+}
+
 Toplevel*
 cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 {

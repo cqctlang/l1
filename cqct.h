@@ -163,8 +163,11 @@ Closure*	cqctmkcfn(char *id,
 			  void (fn)(VM *vm, uint64_t argc, Val *argv, Val *rv));
 Val		cqctmkfd(Xfd *xfd, char *name);
 Val		cqctmklist(uint64_t n);
+Val		cqctmkrange(Val b, Val l);
 Val		cqctmkvec(uint64_t n);
 VM*		cqctmkvm(Toplevel *top);
+Val		cqctrangebeg(Val o);
+Val		cqctrangelen(Val o);
 char*		cqctsprintval(VM *vm, Val v);
 Val		cqctuint8val(uint8_t);
 Val		cqctuint16val(uint16_t);
