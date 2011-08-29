@@ -37,6 +37,8 @@ symn = 0;
 
 @define Zlength(l)
 {
+	if(l == nil)
+		return 0;
 	@defloc rec(l, a)
 	{
 		if(stxkind(l) == 'null)
@@ -46,10 +48,23 @@ symn = 0;
 	rec(l, 0);
 }
 
+@define Zisvarg(l)
+{
+	if(l == nil)
+		return 0;
+	if(Zcar(l) == #null)
+		return 0;
+	if(Zcar(l) == #ellipsis)
+		return 1;
+	return Zisvarg(Zcdr(l));
+}
+
 @define Z2list(l)
 {
 	@local rv;
 	rv = [];
+	if(l == nil)
+		return rv;
 	@defloc rec(l)
 	{
 		if(stxkind(l) == 'null)
@@ -67,36 +82,56 @@ stxtab = mktab();
 {
 	@defloc install(id, args, body, expander)
 	{
-		@local fn, l, pat;
+		@local fn, l, pat, ad;
 		
-		if(args == nil)
-			l = Zcons(body, Znull());
-		else if(body == nil)
-			l = args;
-		else
+		if(args == nil){
+			args = Znull();
+			ad = cons('fixed, 0);
+		}else if(Zisvarg(args)){
+			/* remove ellipsis */
+			args = Zreverse(Zcdr(Zreverse(args)));
+			ad = cons('varg, Zlength(args)-1);
+		}else
+			ad = cons('fixed, Zlength(args));
+		if(body)
 			l = Zcons(body, args);
+		else
+			l = args;
 		fn = compile(#lambda(l, expander));
 		fn = fn();
-		pat = [ args ? Zlength(args) : nil, body ? 1 : nil, fn ];
+		pat = [ ad, body ? 1 : nil, fn ];
 		stxtab[id] = pat;
 	}
 
 	@defloc dispatch(id, args, body)
 	{
-		@local pat, a, b, l;
+		@local pat, b, l, ad, i, m;
 		pat = stxtab[id];
 		if(pat == nil)
 			error("cannot expand @%a form", id);
-		a = args ? Zlength(args) : nil;
 		b = body ? 1 : nil;
-		if(pat[0] != a || pat[1] != b)
+		if(pat[1] != b)
 			error("syntax error for @%a form", id);
-		if(args == nil)
-			l = [body];
-		else if(body == nil)
+		ad = pat[0];
+		if(car(ad) == 'fixed){
+			if(Zlength(args) != cdr(ad))
+				error("syntax error for @%a form: "
+				      "wrong number of arguments", id);
 			l = Z2list(args);
-		else
-			l = push(Z2list(args), body);
+		}else{
+			m = cdr(ad);
+			if(Zlength(args) < m)
+				error("syntax error for @%a form: "
+				      "too few arguments", id);
+			l = [];
+			for(i = 0; i < m; i++){
+				append(l, Zcar(args));
+				args = Zcdr(args);
+			}
+			append(l, Z2list(args));
+		}
+		if(body)
+			l = push(l, body);
 		return apply(pat[2], l);
 	}
 
