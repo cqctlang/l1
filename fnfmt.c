@@ -382,6 +382,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	float fv;
 	double dv;
 	Cbase cb;
+	Expr *e;
 
 	switch(Vkind(val)){
 	case Qcval:
@@ -560,7 +561,35 @@ fmtval(VM *vm, Fmt *f, Val val)
 		str = valstr(rv);
 		return fmtputs(vm, f, strdata(str), str->len);
 	case Qexpr:
-		return fmtputs0(vm, f, "<stx>");
+		e = valexpr(val);
+		switch(e->kind){
+		case Eid:
+			if(fmtputs0(vm, f, "#id("))
+				return -1;
+			if(fmtputs0(vm, f, ciddata(valcid(e->aux))))
+				return -1;
+			if(fmtputs0(vm, f, ")"))
+				return -1;
+			break;
+		case Ekon:
+			if(fmtputs0(vm, f, "#val("))
+				return -1;
+			if(fmtval(vm, f, e->aux))
+				return -1;
+			if(fmtputs0(vm, f, ")"))
+				return -1;
+			break;
+		default:
+			if(fmtputs0(vm, f, "#"))
+				return -1;
+			if(fmtputs0(vm, f, ciddata(e->skind)))
+				return -1;
+			if(e->e1 || e->e2 || e->e3 || e->e4)
+				if(fmtputs0(vm, f, "(...)"))
+					return -1;
+			break;
+		}
+		return 0;
 	default:
 		snprint(buf, sizeof(buf), "<unhandled type %d>", Vkind(val));
 		return fmtputs0(vm, f, buf);
