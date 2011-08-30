@@ -1143,7 +1143,6 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define valstr(v)	((Str*)(v))
 #define valtab(v)	((Tab*)(v))
 #define valvec(v)	((Vec*)(v))
-#define valboxedcval(b)	((Cval*)((Box*)(b))->v)
 #define waserror(vm)	(setjmp(*(_pusherror(vm))))
 #define stkimm(v)	(Imm)(uptr)(v)
 #define stkp(v)		(void*)(uptr)(v)
