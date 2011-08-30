@@ -290,7 +290,7 @@ cqctmkrange(Val b, Val l)
 {
 	if(Vkind(b) != Qcval || Vkind(l) != Qcval)
 		return 0;
-	return mkrange(valcval(b), valcval(l));
+	return mkvalrange(mkrange(valcval(b), valcval(l)));
 }
 
 Val
@@ -300,7 +300,7 @@ cqctrangebeg(Val o)
 	if(Vkind(o) != Qrange)
 		return 0;
 	r = valrange(o);
-	return r->beg;
+	return mkvalcval2(r->beg);
 }
 
 Val
@@ -310,7 +310,7 @@ cqctrangelen(Val o)
 	if(Vkind(o) != Qrange)
 		return 0;
 	r = valrange(o);
-	return r->len;
+	return mkvalcval2(r->len);
 }
 
 Toplevel*
