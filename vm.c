@@ -52,6 +52,15 @@ static unsigned isbigendian[Rnrep] = {
 	[Rs64be]=	1,
 };
 
+static unsigned isrelop[Iopmax+1] = {
+	[Icmpeq]=	1,
+	[Icmpneq]=	1,
+	[Icmpgt]=	1,
+	[Icmpge]=	1,
+	[Icmplt]=	1,
+	[Icmple]=	1,
+};
+
 static Ctype* dolooktype(VM *vm, Ctype *t, Ns *ns);
 static Env* mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
@@ -1312,9 +1321,16 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		if(b1->tkind != Tptr && b2->tkind != Tptr){
 			op1 = domcastbase(vm, litdom, op1);
 			op2 = domcastbase(vm, litdom, op2);
-		}else if(b1->tkind == Tptr && b2->tkind == Tptr)
-			vmerr(vm, domerr);
-		else if(b1->tkind == Tptr){
+		}else if(b1->tkind == Tptr && b2->tkind == Tptr){
+			if(!isrelop[op])
+				vmerr(vm, domerr);
+			op1 = domcast(vm, litdom,
+				      typecast(vm, op1->dom->ns->base[Vptr],
+					       op1));
+			op2 = domcast(vm, litdom,
+				      typecast(vm, op2->dom->ns->base[Vptr],
+					       op2));
+		}else if(b1->tkind == Tptr){
 			if(op == Iadd || op == Isub)
 				op2 = domcast(vm, op1->dom, op2);
 			else
