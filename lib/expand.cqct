@@ -1,3 +1,5 @@
+@global debugexpand;
+
 symn = 0;
 @define gensym()
 {
@@ -155,7 +157,8 @@ stxtab = mktab();
 			e = dispatch(stxref(e, 0),
 				     stxref(e, 1),
 				     stxref(e, 2));
-//			pp(e);
+			if(debugexpand)
+				pp(e);
 			return exp(e);
 		case 'elist:
 			p = e;
