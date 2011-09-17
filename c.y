@@ -47,7 +47,7 @@ extern char *yytext;
 %type <expr> names_expression names_declaration_list names_declaration
 %type <expr> lapply_expression
 %type <expr> arg_id_list identifier_list local_list local type_specifier
-%type <expr> _id id maybeid tickid struct_or_union_specifier
+%type <expr> _id id maybeid struct_or_union_specifier
 %type <expr> struct_declaration_list struct_declaration struct_size
 %type <expr> struct_declarator_list struct_declarator enum_specifier
 %type <expr> enumerator_list enumerator declarator direct_declarator pointer
@@ -69,12 +69,11 @@ extern char *yytext;
 %type <expr> maybe_attr
 %type <expr> defstx_statement
 %type <expr> syntax_expression
-%type <expr> mcall_expression
+%type <expr> mcall_expression margument_expression_list
 %type <expr> quote_expression
 %type <expr> mcall_statement
-%type <expr> margument_expression_list
 %type <expr> atid syntaxid
-%type <expr> unquote_statement
+%type <expr> unquote_statement unquote_expr
 %type <expr> pattern pattern_list var_pat_list rec_pat_list
 %type <expr> table_init_pattern table_init_pattern_list
 
@@ -91,9 +90,8 @@ extern char *yytext;
 %{
 	static void yyerror(U *ctx, const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
-	static Expr* mulmerge(YYSTYPE e1, YYSTYPE e2);
-	static Expr* andmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* ofmerge(YYSTYPE e1, YYSTYPE e2);
+	static Expr* tnmerge(YYSTYPE e1, YYSTYPE e2);
 %}
 %%
 
@@ -103,12 +101,16 @@ _id
 	{ $$ = doidnsrc(&ctx->inp->src, $1.p, $1.len); }
 	;
 
-id
-	: _id
-	| SYNTAXUNQUOTE _id
+unquote_expr
+	: SYNTAXUNQUOTE _id
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
 	| SYNTAXUNQUOTE '(' expression ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
+	;
+
+id
+	: _id
+	| unquote_expr
 	;
 
 atid
@@ -125,11 +127,6 @@ maybeid
 	: id
 	|
 	{ $$ = 0 }
-	;
-
-tickid
-	: id '`' id
-	{ $$ = dotickesrc(&ctx->inp->src, $1, $3); }
 	;
 
 lambda
@@ -180,16 +177,15 @@ syntax_expression
 	;
 
 margument_expression_list
-	: root_expression
+	: root_expression  %merge <tnmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
-	| type_name
+	| type_name        %merge <tnmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
-	| margument_expression_list ',' root_expression
+	| margument_expression_list ',' root_expression  %merge <tnmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
-	| margument_expression_list ',' type_name
+	| margument_expression_list ',' type_name        %merge <tnmerge>
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
-
 
 mcall_expression
 	: atid '(' ')'
@@ -217,7 +213,8 @@ table_init_list
 
 primary_expression
 	: id
-	| tickid
+	| id '`' id
+	{ $$ = dotickesrc(&ctx->inp->src, $1, $3); }
 	| SYMBOL
 	{ $$ = dosym($1.p, $1.len); }
 	| CONSTANT
@@ -409,8 +406,8 @@ cast_expression
 	;
 
 multiplicative_expression
-	: cast_expression				%merge <mulmerge>
-	| multiplicative_expression '*' cast_expression	%merge <mulmerge>
+	: cast_expression				%merge <castmerge>
+	| multiplicative_expression '*' cast_expression	%merge <castmerge>
 	{ $$ = newbinopsrc(&ctx->inp->src, Emul, $1, $3); }
 	| multiplicative_expression '/' cast_expression
 	{ $$ = newbinopsrc(&ctx->inp->src, Ediv, $1, $3); }
@@ -419,10 +416,10 @@ multiplicative_expression
 	;
 
 additive_expression
-	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
+	: multiplicative_expression                          %merge <castmerge>
+	| additive_expression '+' multiplicative_expression  %merge <castmerge>
 	{ $$ = newbinopsrc(&ctx->inp->src, Eadd, $1, $3); }
-	| additive_expression '-' multiplicative_expression
+	| additive_expression '-' multiplicative_expression  %merge <castmerge>
 	{ $$ = newbinopsrc(&ctx->inp->src, Esub, $1, $3); }
 	;
 
@@ -455,8 +452,8 @@ equality_expression
 	;
 
 and_expression
-	: equality_expression                       %merge <andmerge>
-	| and_expression '&' equality_expression    %merge <andmerge>
+	: equality_expression                       %merge <castmerge>
+	| and_expression '&' equality_expression    %merge <castmerge>
 	{ $$ = newbinopsrc(&ctx->inp->src, Eband, $1, $3); }
 	;
 
@@ -889,18 +886,19 @@ tn_type_specifier_tick
 	| id '`' id
 	{ $$ = doticktsrc(&ctx->inp->src, $1,
 			  newexprsrc(&ctx->inp->src, Etypedef, $3, 0, 0, 0)); }
-	| '`' id
+	| _id
 	{ $$ = doticktsrc(&ctx->inp->src, 0,
+			  newexprsrc(&ctx->inp->src, Etypedef, $1, 0, 0, 0)); }
+	| '`' _id
+	{ cwarnln(ctx, $2, "deprecated use of backtick on unqualified type name");
+	  $$ = doticktsrc(&ctx->inp->src, 0,
 			  newexprsrc(&ctx->inp->src, Etypedef, $2, 0, 0, 0)); }
 	| struct_or_union_or_enum id
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	| struct_or_union_or_enum id '`' id
 	{ $$ = doticktsrc(&ctx->inp->src, $2,
 			  newexprsrc(&ctx->inp->src, $1, $4, 0, 0, 0)); }
-	| SYNTAXUNQUOTE _id
-	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
-	| SYNTAXUNQUOTE '(' expression ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
+	| unquote_expr
 	;
 
 tn_parameter_type_list
@@ -1219,13 +1217,98 @@ duptickid(Expr *e)
 	duptickid(e->e4);
 }
 
+/* we are here for an ambiguous expression of the form:
+
+        (<xid>)+<expr>
+        (<xid>)-<expr>
+        (<xid>)*<expr>
+        (<xid>)&<expr>
+	(<xid>)(<expr>, ...)
+
+   <expr> is an expression.
+   <xid> is a identifier of one of two forms:
+
+	<id>
+	<id>`<id>
+
+   <id> is an identifier.
+
+   the underlying ambiguity is the same for all five
+   forms: does the <xid> denote a type name, in which
+   case the form is a cast operation, or a value, in
+   which case the form is some other operation,
+   superfluously parenthesized.
+
+   the first four forms involve the four operators that
+   serve both unary and binary roles.  either the form
+   is intended to be a cast of the result of unary
+   usage, or a binary usage with superfluous parens
+   around the left operand.
+
+   the fifth form is either a cast to the result of
+   a parenthesized expression, or a call expression
+   with superfluous parens around the function value.
+
+   our policy for these cases is harsh but simple: we
+   always assume the cast operation was the intended
+   one.  if the user actually wanted superfluous
+   parens, too bad.
+
+   in the past we supported more a flexible
+   interpretation for a limited set of forms.  for
+   example, for an expression of the form:
+
+	(dom`T)*p
+
+   we emitted code to dynamically lookup T as a type in
+   dom.  if there was type definition, we proceeded
+   with a cast to a pointer dereference.  if not, we
+   proceeded under the assumption that dom`T is a
+   variable reference, and multiplied the result by p.
+
+   there was no flexibility on the fifth form: we
+   always assume the cast was intended.  that is
+   because dom`T could not evaluate to a function value
+   (but we forsee allowing this in the future).
+
+   in the past, expressions of the form
+
+	(T)*p
+
+   were interpreted as multiplication.  to treat T as a
+   type name, it had to be prefixed by a tick:
+
+
+	(`T)*p
+
+   this violated commonly used C syntax. the current
+   policy was in put place as we were addressing this
+   syntactic problem.
+
+   the gist of this policy is that the user can always
+   remove superfluous parens to achieve the desire
+   binary (or call) operation.  while such parens may
+   result from expansion of defensively written textual
+   macros, macros based on syntactic abstraction, like
+   those, do not have this problem.
+
+   note that there is no ambiguity for cast expressions
+   of any other type name form.  each of these forms is
+   unambiguous:
+
+	   (struct dom`T)*p
+	   (struct T)*p
+	   (dom`T*)*p
+	   (T*)*p
+	   (int)*p
+
+*/
+
 static Expr*
 castmerge(YYSTYPE ye1, YYSTYPE ye2)
 {
 	Expr *cast, *other;
 
-	// (T)(<expr>)  cast expression or function call
-
 	if(ye1.expr->kind == Ecast){
 		cast = ye1.expr;
 		other = ye2.expr;
@@ -1233,60 +1316,13 @@ castmerge(YYSTYPE ye1, YYSTYPE ye2)
 		cast = ye2.expr;
 		other = ye1.expr;
 	}else
-		yyerror(0, "unresolved ambiguity");
+		yyerror(0, "unresolved ambiguity 0");
 
-	/* what else could it be? */
-	if(other->kind != Ecall)
-		yyerror(0, "unresolved ambiguity");
-	if(other->e1->kind != Eticke && other->e1->kind != Etickt)
-		yyerror(0, "unresolved ambiguity");
-
-	/* it's not possible to call through a domain reference,
-	   so call it a cast. */
-	duptickid(other->e1);
+	/* sanity check */
+	if(cast->e1->kind != Etypename)
+		yyerror(0, "unresolved ambiguity 1");
+	/* cast->e2 could be any expression */
 	return cast;
-}
-
-static Expr*
-andmerge(YYSTYPE ye1, YYSTYPE ye2)
-{
-	Expr *cast, *other;
-
-	// (dom`T)&p  cast expression or and
-
-	if(ye1.expr->kind == Ecast){
-		cast = ye1.expr;
-		other = ye2.expr;
-	}else if(ye2.expr->kind == Ecast){
-		cast = ye2.expr;
-		other = ye1.expr;
-	}else
-		yyerror(0, "unresolved ambiguity");
-
-	duptickid(other->e1);
-
-	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), cast->src);
-}
-
-static Expr*
-mulmerge(YYSTYPE ye1, YYSTYPE ye2)
-{
-	Expr *cast, *other;
-
-	// (dom`T)*p  cast expression or multiply
-
-	if(ye1.expr->kind == Ecast){
-		cast = ye1.expr;
-		other = ye2.expr;
-	}else if(ye2.expr->kind == Ecast){
-		cast = ye2.expr;
-		other = ye1.expr;
-	}else
-		yyerror(0, "unresolved ambiguity");
-
-	duptickid(other->e1);
-
-	return putsrc(newexpr(Eambig, cast, other, NULL, NULL), cast->src);
 }
 
 static int
@@ -1313,4 +1349,19 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 	else
 		duptickid(e2->e1);
 	return putsrc(newexpr(Eambig, e1, e2, NULL, NULL), e1->src);
+}
+
+static Expr*
+tnmerge(YYSTYPE ye1, YYSTYPE ye2)
+{
+	Expr *e1, *e2;
+
+	e1 = ye1.expr;
+	e2 = ye2.expr;
+	if(e1->kind == Eelist && e1->e1->kind == Eid)
+		return e1;
+	if(e2->kind == Eelist && e2->e1->kind == Eid)
+		return e2;
+	yyerror(0, "unresolved ambiguity");
+	abort();
 }

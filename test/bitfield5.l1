@@ -6,7 +6,7 @@ ns = @names c32le {
 };
 
 dom = mkdom(ns, mkzas(1024));
-q = (`uint16*){dom}0x0;
+q = (uint16*){dom}0x0;
 
 *(q+3) = 0xfeaa;
 *(q+4) = 0xd;

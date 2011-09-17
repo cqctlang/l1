@@ -7,6 +7,6 @@ ns = @names c32le {
 printf("%t\n", ns.looksym('nil));
 printf("%t\n", ns.looktype(@typename(struct nil)));
 printf("%t\n", @typeof(struct ns`nil));
-printf("%t\n", ns.looktype(@typename(`nil)));
+printf("%t\n", ns.looktype(@typename(nil)));
 printf("%t\n", @typeof(ns`nil));
 printf("%t\n", (ns`nil*)0);

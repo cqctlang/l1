@@ -5326,66 +5326,6 @@ nice if they could be arbitrary expressions, but the
 parser does not support that.)
 </p>
 
-<p>
-Qualifiers are optional and may be omitted.  To omit
-the qualifier in base type names and tagged type names,
-just write the ordinary C type name:
-</p>
-
-<div class="code">
-<pre>
-int
-unsigned long
-void
-struct foo
-union bar
-enum baz
-</pre>
-</div>
-
-<p>
-However, for <span class="val">typedef</span> names
-the backtick must be retained:
-</p>
-
-<div class="code">
-<pre>
-`foo_t
-`foo_t* (*)(int arg)
-</pre>
-</div>
-
-<p>
-This syntactic quirk is an unfortunate artifact of a
-limitation in our method for parsing Cinquecento.  This
-quirk affects any form that accepts both unqualified or
-qualified type names
-(<em>i.e.</em>, <a href="#syn:sizeof">sizeof</a>).  In these forms,
-unqualified <span class="val">typedef</span> type names
-must include the backtick.  For example, in Cinquecento
-we write:
-</p>
-
-<div class="code">
-<pre>
-x = n*sizeof(`T);
-p = (`T*)q;
-</pre>
-</div>
-
-instead of
-
-<div class="code">
-<pre>
-x = n*sizeof(T);
-p = (T*)q;
-</pre>
-</div>
-
-<p>
-We hope to fix this quirk in the future.
-</p>
-
 <h5>Ctypes</h5>
 
 <p>
@@ -5497,13 +5437,13 @@ integer, a specification sufficient to read or write
 the value of such a pointer.  Representation constants
 are defined for common integer, pointer, and float
 encodings
-(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span</a>).
+(see <a href="#fn:mkctype_base"><span class="id">mkctype_base</span></a>).
 </p>
 
 <p>
 Although type names and type definitions may be related,
 they are not equivalent ctypes:
-<p>
+</p>
 
 <div class="code">
 <pre>

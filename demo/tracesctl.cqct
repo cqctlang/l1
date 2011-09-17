@@ -21,7 +21,7 @@ sctl = "../../sctl/sctl";
 	l = [];
 	@define fn(k, v)
 	{
-		append(l, (`Ctl*)v);
+		append(l, (Ctl*)v);
 	}
 	htforeach(fn, dom`ctltab);
 	return l;
@@ -50,8 +50,8 @@ sctl = "../../sctl/sctl";
 			htforeach(@lambda(k,v)
 				  {
 					  @local addr, br;
-					  addr = (`u64)k;
-					  br = (`Brkref*)v;
+					  addr = (u64)k;
+					  br = (Brkref*)v;
 					  if(0)printf("\t%x -> %d %p %x %d\n",
 						 addr,
 						 br->id,
@@ -64,8 +64,8 @@ sctl = "../../sctl/sctl";
 			htforeach(@lambda(k,v)
 				  {
 					  @local id, br;
-					  id = (`u64)k;
-					  br = (`Brkref*)v;
+					  id = (u64)k;
+					  br = (Brkref*)v;
 					  if(0)printf("\t%d -> %d %p %x %d\n",
 						 id,
 						 br->id,
@@ -85,8 +85,8 @@ sctl = "../../sctl/sctl";
 			htforeach(@lambda(k,v)
 				  {
 					  @local addr, bp;
-					  addr = (`u64)k;
-					  bp = (`Brk*)v;
+					  addr = (u64)k;
+					  bp = (Brk*)v;
 					  if(0)printf("\t%x -> %p %x %d\n",
 						 addr,
 						 bp,
@@ -115,7 +115,7 @@ sctl = "../../sctl/sctl";
 				  @local pd, xmsg, regs;
 				  regs = ctl.reg();
 				  pd = mkdom(ns, ctl.mem());
-				  xmsg = (`Msg*){pd}regs->rsi;
+				  xmsg = (Msg*){pd}regs->rsi;
 				  printf("writemsg %e:\n",
 					 (enum Mkind)xmsg->op);
 				  checkctls(pd);

@@ -11,7 +11,7 @@ dom = mkdom(ns, mkzas(1024));
 p = (struct X*){dom}0;
 p->x = 0x11;
 dom`t1 = 0x10;
-x1 = (dom`t1)&p->x;
+x1 = dom`t1&p->x;
 x2 = (dom`t2)&p->x;
 printf("%x %t\n", x1, x1);
 printf("%x %t\n", x2, x2);

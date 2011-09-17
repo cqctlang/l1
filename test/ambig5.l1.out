@@ -1,3 +1,3 @@
-entry: var params, 12 locals, 1 temps
+entry: var params, 10 locals, 1 temps
 10 int
 0 t2

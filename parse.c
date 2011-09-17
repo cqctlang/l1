@@ -49,12 +49,14 @@ parseerror(U *ctx, char *fmt, ...)
 		/* we're here because of a bison limitation.
 		 * the caller is yyerror from one of our GLR merge
 		 * resolvers, which do not convey %parse-param's
+		 * abort hard because there is no way to recover,
+		 * and yyerror from a resolver is a serious bug.
 		 */
 		va_start(args, fmt);
 		xvprintf(fmt, args);
 		va_end(args);
 		xprintf("\n");
-		return;
+		abort();
 	}
 
 	if(ctx->inp){
