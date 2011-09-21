@@ -1085,8 +1085,10 @@ fset(Frame *f, u32 i)
 	*p |= (1UL<<(i%mwbits));
 }
 
-/* FIXME: we should mask out frame mask bits above the frame size.
-   they are harmless, but may be confusing if inspected. */
+/* FIXME: we should mask out frame mask bits above the
+   frame size in the extended form.  they are harmless,
+   but may be confusing if inspected.  (they are *not*
+   harmless in the short form.) */
 static void
 femit(Frame *f, Code *c, Src s, u32 narg)
 {
@@ -1098,7 +1100,9 @@ femit(Frame *f, Code *c, Src s, u32 narg)
 	if(fsz < mwbits-1){
 		i = nextinsn(c, s);
 		i->kind = Ifmask;
-		i->cnt = *f->l;
+		i->cnt = (*f->l)&((1UL<<fsz)-1);
+		if((i->cnt>>(mwbits-1))&1)
+			bug();
 		i = nextinsn(c, s);
 		i->kind = Ifsize;
 		i->cnt = fsz;
