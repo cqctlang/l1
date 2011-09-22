@@ -405,7 +405,8 @@ nsutil_defined = 1;
 		r2 = ns2.lookaddr(addr);
 		if (r1 == nil) return r2;
 		if (r2 == nil) return r1;
-		if ({litdom}symoff(r1) > {litdom}symoff(r2)) return r1;
+		if ({litdom}(uintptr)symoff(r1) > 
+ 		    {litdom}(uintptr)symoff(r2)) return r1;
 		return r2;
 	}
 	@define _lt(this,tn) {

@@ -50,12 +50,12 @@ test1("./locals1",
       [ 'locals, 'foo, 'main, 'v6 ],
       [
 	      @typename(int),
-	      @typename(`Node),
+	      @typename(Node),
 	      @typename(struct Node),
-	      @typename(`X),
+	      @typename(X),
 	      @typename(enum X),
 	      @typename(enum Y),
-	      @typename(`Z),
+	      @typename(Z),
 	      @typename(struct Z),
       ]);
 

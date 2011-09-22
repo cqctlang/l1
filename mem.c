@@ -1685,12 +1685,14 @@ copykstack(Val *stack, Imm len, Imm fp)
 		if((mask>>(mwbits-1))&1){
 			o = mask&~(1UL<<(mwbits-1));
 			mp = cl->code->lm+o;
-			for(i = 0; i < sz; i++){
-				if(i%mwbits == 0)
-					mask = *mp++;
-				if((mask>>i)&1)
-					copy(&stack[m]);
-				m--;
+			while(sz > 0){
+				mask = *mp++;
+				for(i = 0; sz > 0 && i < mwbits; i++){
+					if((mask>>i)&1)
+						copy(&stack[m]);
+					sz--;
+					m--;
+				}
 			}
 		}else
 			for(i = 0; i < sz; i++){
@@ -1745,12 +1747,14 @@ copystack(VM *vm)
 		if((mask>>(mwbits-1))&1){
 			o = mask&~(1UL<<(mwbits-1));
 			mp = cl->code->lm+o;
-			for(i = 0; i < sz; i++){
-				if(i%mwbits == 0)
-					mask = *mp++;
-				if((mask>>i)&1)
-					copy(&vm->stack[m]);
-				m--;
+			while(sz > 0){
+				mask = *mp++;
+				for(i = 0; sz > 0 && i < mwbits; i++){
+					if((mask>>i)&1)
+						copy(&vm->stack[m]);
+					sz--;
+					m--;
+				}
 			}
 		}else
 			for(i = 0; i < sz; i++){

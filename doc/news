@@ -211,3 +211,33 @@ jun 29 2011
 	the address space map.  This is a stop-gap
 	defense against inaccurate address space maps,
 	not a permanent feature.
+
+sep 19 2011
+
+	It is no longer necessary to use a backtick to
+	reference an unqualified typedef identifier
+	(i.e., a type name defined with typedef).
+
+	For example, previously a cast to an
+	unqualified typedef type name T would be
+	written:
+
+		np = (`T)p;
+
+	Now this can be written as it would in C:
+
+		np = (T)p;
+
+	The previous form is deprecated.  Soon it will
+	be disallowed.
+
+	Ambiguous forms involving the cast operator,
+	such as
+
+		v = (T)*p;
+
+	are now always interpreted to be cast
+	operations.  If you had wanted to multiply,
+	lose the superfluous parentheses:
+
+		v = T*p;

@@ -1,5 +1,5 @@
 
-x = (`uint64)0xffff5ffd0800bfff;
+x = (uint64)0xffff5ffd0800bfff;
 printf("%lx\n", x);
 x = x>>31;
 printf("%lx\n", x);
