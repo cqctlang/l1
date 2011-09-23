@@ -108,6 +108,7 @@ enum{
 	Enop,
 	Enil,
 	Enull,
+	Eorpat,
 	Epostdec,
 	Epostinc,
 	Epredec,

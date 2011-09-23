@@ -297,6 +297,8 @@ bindvars(Bind *binds, Expr **bvars, Expr **inits)
 		i = Zcons(Zset(binds->id, binds->exp), i);
 		binds = binds->next;
 	}
+        /* XXX check that bvars and j are the same variables 
+           if bvars != nullelist */
         *bvars = j;
 	*inits = i;
 }
@@ -306,8 +308,8 @@ static Expr* cases(U *ctx, Expr* e, Cases *cs);
 static Expr*
 addcase(U *ctx, Expr *c, Cases *cs)
 {
-	Expr *se, *e, *b;
-	char *l;
+	Expr *se, *e, *ib, *b, *ne;
+        char *l;
         int nc;
 	Match m = {0,0};
 
@@ -315,39 +317,58 @@ addcase(U *ctx, Expr *c, Cases *cs)
 		cerror(ctx, c, "addcase called improperly");
 	e = cases(ctx, c->e1, 0);
         nc = cs->nc;
-        b = cases(ctx, c->e2, cs);
-	if(cs->nc >= cs->max){
-		cs->cases = erealloc(cs->cases,
-				     cs->max*sizeof(Case),
-				     2*cs->max*sizeof(Case));
-		cs->max *= 2;
-	}
-	l = genlabel();
-	if (c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
-		if(m.binds != 0){
-			Expr *inits, *decls;
-                	if(nc != cs->nc)
-                        	cerror(ctx, e,
-                               	       "nested case when pattern matching");
-			bindvars(m.binds, &decls, &inits);
-			freebinds(m.binds);
-			b = Zblock(decls, inits, b, NULL);
-		}
-	}
-	else
-		m.check = Zbinop(Eeq, e, doid("$t"));
-        if(c->kind != Ematch)
-                se = Zblock(nullelist(), Zlabel(l), b, NULL);
-        else /* may not fall into a @match */
+        ib = b = cases(ctx, c->e2, cs);
+        ne = nullelist();
+	se = nullelist();
+
+        if (e->kind == Eorpat){
+                e = e->e1;
+                ne = e->e2;
+                e = e->e1;
+        }
+
+        while(1){
+                if(cs->nc >= cs->max){
+                        cs->cases = erealloc(cs->cases,
+                                             cs->max*sizeof(Case),
+                                             2*cs->max*sizeof(Case));
+                        cs->max *= 2;
+                }
+                l = genlabel();
+                if (c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
+                        if(m.binds != 0){
+                                Expr *inits, *decls;
+                                if(nc != cs->nc)
+                                        cerror(ctx, e, "nested case "
+                                               "when pattern matching");
+                                bindvars(m.binds, &decls, &inits);
+                                freebinds(m.binds);
+				m.binds = 0;
+                                b = Zblock(decls, inits, copyexpr(ib), NULL);
+                        }
+                }
+                else
+                        m.check = Zbinop(Eeq, e, doid("$t"));
+
+		se = Zcons(Zblock(nullelist(), Zlabel(l), b, NULL), se);
+                cs->cases[cs->nc].l = l;
+                cs->cases[cs->nc].e = m.check;
+		m.check = 0;
+                cs->nc++;
+		nc++;
+                if (ne->kind != Enull){
+                        e = ne->e1;
+                        ne = ne->e2;
+                }
+                else break;
+        }
+
+        if(c->kind == Ematch) /* may not fall into a @match */
                 se = Zblock(nullelist(), 
                             Zcall(doid("error"), 1, 
                                   Zstr("attempt to fall through to a @match")),
-                            Zlabel(l), 
-                            b, 
+                            se,
                             NULL);
-	cs->cases[cs->nc].l = l;
-	cs->cases[cs->nc].e = m.check;
-	cs->nc++;
 	return se;
 }
 
@@ -440,6 +461,36 @@ coalesce(U *ctx, Expr* e, Expr* q)
 		e->e2 = coalesce(ctx, e->e2, 0);
 		e->e3 = coalesce(ctx, e->e3, 0);
 		e->e4 = coalesce(ctx, e->e4, 0);
+		return e;
+	}
+}
+
+/* Converts @match p1: @match p2: ... into @match OR(p1,p2) */
+static Expr*
+collapse(U *ctx, Expr* e, Expr* p)
+{
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Ematch:
+		e->e1 = collapse(ctx, e->e1, 0);
+		if(p != 0){
+			p->e2 = Zcons(e->e1, nullelist());
+			e = collapse(ctx, e->e2, p->e2);
+			return e;
+		}
+		else{
+			p = Zcons(e->e1,nullelist());
+			e->e2 = collapse(ctx, e->e2, p);
+			if (p->e2->kind != Enull)
+				e->e1 = newexpr(Eorpat, p, 0, 0, 0);
+			return e;
+		}
+	default:
+		e->e1 = collapse(ctx, e->e1, 0);
+		e->e2 = collapse(ctx, e->e2, 0);
+		e->e3 = collapse(ctx, e->e3, 0);
+		e->e4 = collapse(ctx, e->e4, 0);
 		return e;
 	}
 }
@@ -650,6 +701,7 @@ docompilei(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	loops(ctx, e, 0, 0);
+	collapse(ctx, e, 0);
         coalesce(ctx, e, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);

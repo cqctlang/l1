@@ -99,6 +99,7 @@ char* S[] = {
 	[Enil] =	"nil",
 	[Enop] =	"nop",
 	[Enull] =	"null",
+	[Eorpat] = 	"orpat",
 	[Epostdec] =	"postdec",
 	[Epostinc] =	"postinc",
 	[Epredec] =	"predec",
