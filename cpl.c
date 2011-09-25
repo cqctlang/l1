@@ -30,15 +30,15 @@ compilel(U *ctx, Expr* e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = compilel(ctx, p->e1);
+			sete1(p, compilel(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = compilel(ctx, e->e1);
-		e->e2 = compilel(ctx, e->e2);
-		e->e3 = compilel(ctx, e->e3);
-		e->e4 = compilel(ctx, e->e4);
+		sete1(e, compilel(ctx, e->e1));
+		sete2(e, compilel(ctx, e->e2));
+		sete3(e, compilel(ctx, e->e3));
+		sete4(e, compilel(ctx, e->e4));
 		return e;
 	}
 }

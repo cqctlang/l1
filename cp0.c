@@ -265,8 +265,8 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		if(!islval(e->e1)){
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
-			e->e1 = compile_rval(ctx, e->e1, 0);
-			e->e2 = compile_rval(ctx, e->e2, 0);
+			sete1(e, compile_rval(ctx, e->e1, 0));
+			sete2(e, compile_rval(ctx, e->e2, 0));
 			return e;
 		}
 
@@ -290,8 +290,8 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		if(!islval(e->e1)){
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
-			e->e1 = compile_rval(ctx, e->e1, 0);
-			e->e2 = compile_rval(ctx, e->e2, 0);
+			sete1(e, compile_rval(ctx, e->e1, 0));
+			sete2(e, compile_rval(ctx, e->e2, 0));
 			return e;
 		}
 
@@ -319,7 +319,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		if(!islval(e->e1)){
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
-			e->e1 = compile_rval(ctx, e->e1, 0);
+			sete1(e, compile_rval(ctx, e->e1, 0));
 			return e;
 		}
 
@@ -347,7 +347,7 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		if(!islval(e->e1)){
 			if(e->e1->kind != Eid)
 				cerror(ctx, e, "invalid assignment");
-			e->e1 = compile_rval(ctx, e->e1, 0);
+			sete1(e, compile_rval(ctx, e->e1, 0));
 			return e;
 		}
 
@@ -412,15 +412,15 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = compile_rval(ctx, p->e1, 0);
+			sete1(p, compile_rval(ctx, p->e1, 0));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = compile_rval(ctx, e->e1, 0);
-		e->e2 = compile_rval(ctx, e->e2, 0);
-		e->e3 = compile_rval(ctx, e->e3, 0);
-		e->e4 = compile_rval(ctx, e->e4, 0);
+		sete1(e, compile_rval(ctx, e->e1, 0));
+		sete2(e, compile_rval(ctx, e->e2, 0));
+		sete3(e, compile_rval(ctx, e->e3, 0));
+		sete4(e, compile_rval(ctx, e->e4, 0));
 		return e;
 	}
 }
@@ -446,15 +446,15 @@ groomc(U *ctx, Expr *e)
 
 	switch(e->kind){
 	case Eif:
-		e->e1 = groomc(ctx, e->e1);
+		sete1(e, groomc(ctx, e->e1));
 		if(isemptyblock(e->e2))
-			e->e2 = newexpr(Enil, 0, 0, 0, 0);
+			sete2(e, newexpr(Enil, 0, 0, 0, 0));
 		else
-			e->e2 = groomc(ctx, e->e2);
+			sete2(e, groomc(ctx, e->e2));
 		if(e->e3 && isemptyblock(e->e3))
-			e->e3 = newexpr(Enil, 0, 0, 0, 0);
+			sete3(e, newexpr(Enil, 0, 0, 0, 0));
 		else
-			e->e3 = groomc(ctx, e->e3);
+			sete3(e, groomc(ctx, e->e3));
 		putsrc(e, e->src);
 		return e;
 	case Ecomma:
@@ -473,15 +473,15 @@ groomc(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = groomc(ctx, p->e1);
+			sete1(p, groomc(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = groomc(ctx, e->e1);
-		e->e2 = groomc(ctx, e->e2);
-		e->e3 = groomc(ctx, e->e3);
-		e->e4 = groomc(ctx, e->e4);
+		sete1(e, groomc(ctx, e->e1));
+		sete2(e, groomc(ctx, e->e2));
+		sete3(e, groomc(ctx, e->e3));
+		sete4(e, groomc(ctx, e->e4));
 		return e;
 	}
 }

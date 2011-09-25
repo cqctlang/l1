@@ -42,20 +42,20 @@ konsts(Expr *e, Code *code)
 
 	switch(e->kind){
 	case Ekon:
-		e->aux = konval(code->konst, e->aux);
+		setaux(e, konval(code->konst, e->aux));
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = konsts(p->e1, code);
+			sete1(p, konsts(p->e1, code));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = konsts(e->e1, code);
-		e->e2 = konsts(e->e2, code);
-		e->e3 = konsts(e->e3, code);
-		e->e4 = konsts(e->e4, code);
+		sete1(e, konsts(e->e1, code));
+		sete2(e, konsts(e->e2, code));
+		sete3(e, konsts(e->e3, code));
+		sete4(e, konsts(e->e4, code));
 		return e;
 	}
 }
@@ -1258,7 +1258,8 @@ cg(Expr *e, Code *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			f->sp += 3;
 		}
 
-		q = e->e2 = invert(e->e2); /* push arguments in reverse order */
+		sete2(e, invert(e->e2)); /* push arguments in reverse order */
+		q = e->e2;
 		narg = 0;
 		L0 = prv;
 		while(q->kind != Enull){

@@ -286,6 +286,14 @@ struct Expr {
 	void *xp;
 };
 
+#define sete1(e,w)    do{ ((e)->e1 = (w)); gcwb((Val)(e)); }while(0)
+#define sete2(e,w)    do{ ((e)->e2 = (w)); gcwb((Val)(e)); }while(0)
+#define sete3(e,w)    do{ ((e)->e3 = (w)); gcwb((Val)(e)); }while(0)
+#define sete4(e,w)    do{ ((e)->e4 = (w)); gcwb((Val)(e)); }while(0)
+#define setaux(e,p)   do{ ((e)->aux = (p)); gcwb((Val)(e)); }while(0)
+#define setsrc(e,s)   do{ ((e)->src = (s)); gcwb((Val)(e)); }while(0)
+#define setskind(e,s) do{ ((e)->skind = (s)); gcwb((Val)(e)); }while(0)
+
 typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
 typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
 

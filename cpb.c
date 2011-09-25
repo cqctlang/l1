@@ -7,7 +7,7 @@ newlocal(Expr *e, Expr *id)
 {
 	if(e->kind != Eblock)
 		fatal("bug");
-	e->e1 = putsrc(Zcons(id, e->e1), e->e1->src);
+	sete1(e, putsrc(Zcons(id, e->e1), e->e1->src));
 }
 
 static Expr*
@@ -28,20 +28,20 @@ defloc(U *ctx, Expr *e, Expr *scope)
 		putsrc(p, e->src);
 		return p;
 	case Escope:
-		e->e1 = defloc(ctx, e->e1, e);
+		sete1(e, defloc(ctx, e->e1, e));
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = defloc(ctx, p->e1, scope);
+			sete1(p, defloc(ctx, p->e1, scope));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = defloc(ctx, e->e1, scope);
-		e->e2 = defloc(ctx, e->e2, scope);
-		e->e3 = defloc(ctx, e->e3, scope);
-		e->e4 = defloc(ctx, e->e4, scope);
+		sete1(e, defloc(ctx, e->e1, scope));
+		sete2(e, defloc(ctx, e->e2, scope));
+		sete3(e, defloc(ctx, e->e3, scope));
+		sete4(e, defloc(ctx, e->e4, scope));
 		return e;
 	}
 }
@@ -66,15 +66,15 @@ globals(U *ctx, Expr *e, Env *env)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = globals(ctx, p->e1, env);
+			sete1(p, globals(ctx, p->e1, env));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = globals(ctx, e->e1, env);
-		e->e2 = globals(ctx, e->e2, env);
-		e->e3 = globals(ctx, e->e3, env);
-		e->e4 = globals(ctx, e->e4, env);
+		sete1(e, globals(ctx, e->e1, env));
+		sete2(e, globals(ctx, e->e2, env));
+		sete3(e, globals(ctx, e->e3, env));
+		sete4(e, globals(ctx, e->e4, env));
 		return e;
 	}
 }
@@ -107,7 +107,7 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 	case Eblock:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		e->e2 = toplevel(ctx, e->e2, env, rib);
+		sete2(e, toplevel(ctx, e->e2, env, rib));
 		freexenv(rib);
 		return e;
 	case Elabel:
@@ -126,7 +126,7 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 		return se;
 	case Eg:
 		id = idsym(e->e1);
-		e->e2 = toplevel(ctx, e->e2, env, lex);
+		sete2(e, toplevel(ctx, e->e2, env, lex));
 		if(xenvlook(lex, id))
 			return e;
 		if(!envbinds(env, idcid(e->e1)))
@@ -137,15 +137,15 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = toplevel(ctx, p->e1, env, lex);
+			sete1(p, toplevel(ctx, p->e1, env, lex));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = toplevel(ctx, e->e1, env, lex);
-		e->e2 = toplevel(ctx, e->e2, env, lex);
-		e->e3 = toplevel(ctx, e->e3, env, lex);
-		e->e4 = toplevel(ctx, e->e4, env, lex);
+		sete1(e, toplevel(ctx, e->e1, env, lex));
+		sete2(e, toplevel(ctx, e->e2, env, lex));
+		sete3(e, toplevel(ctx, e->e3, env, lex));
+		sete4(e, toplevel(ctx, e->e4, env, lex));
 		return e;
 	}
 }
@@ -164,7 +164,7 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 	case Eg:
 		id = idsym(e->e1);
 		if(xenvlook(lex, id)){
-			e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
+			sete2(e, resolve1(ctx, e->e2, top, lex, scope, slex));
 			return e;
 		}else if(!envbinds(top, idcid(e->e1)) && scope){
 			/* create binding in innermost lexical scope */
@@ -174,11 +174,11 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 					id);
 			newlocal(scope->e1, e->e1);
 			xenvbind(slex, id, e);
-			e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
+			sete2(e, resolve1(ctx, e->e2, top, lex, scope, slex));
 			return e;
 		}else{
 			/* global assignment */
-			e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
+			sete2(e, resolve1(ctx, e->e2, top, lex, scope, slex));
 			se = Ztg(id, e->e2);
 			putsrc(se, e->src);
 			return se;
@@ -187,11 +187,11 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 	case Elambda:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		e->e2 = resolve1(ctx, e->e2, top, rib, scope, slex);
+		sete2(e, resolve1(ctx, e->e2, top, rib, scope, slex));
 		freexenv(rib);
 		return e;
 	case Escope:
-		e->e1 = resolve1(ctx, e->e1, top, lex, e, slex);
+		sete1(e, resolve1(ctx, e->e1, top, lex, e, slex));
 		return e;
 	case Eblock:
 		rib = mkxenv(lex);
@@ -200,21 +200,21 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		// scope is 0 where we've introduced blocks at toplevel
 		if(scope && scope->e1 == e)
 			slex = rib;
-		e->e2 = resolve1(ctx, e->e2, top, rib, scope, slex);
+		sete2(e, resolve1(ctx, e->e2, top, rib, scope, slex));
 		freexenv(rib);
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = resolve1(ctx, p->e1, top, lex, scope, slex);
+			sete1(p, resolve1(ctx, p->e1, top, lex, scope, slex));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = resolve1(ctx, e->e1, top, lex, scope, slex);
-		e->e2 = resolve1(ctx, e->e2, top, lex, scope, slex);
-		e->e3 = resolve1(ctx, e->e3, top, lex, scope, slex);
-		e->e4 = resolve1(ctx, e->e4, top, lex, scope, slex);
+		sete1(e, resolve1(ctx, e->e1, top, lex, scope, slex));
+		sete2(e, resolve1(ctx, e->e2, top, lex, scope, slex));
+		sete3(e, resolve1(ctx, e->e3, top, lex, scope, slex));
+		sete4(e, resolve1(ctx, e->e4, top, lex, scope, slex));
 		return e;
 	}
 }
@@ -249,11 +249,11 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 	case Elambda:
 		rib = mkxenv(lex);
 		bindids(rib, e->e1, e);
-		e->e2 = resolve2(ctx, e->e2, top, rib, scope, slex);
+		sete2(e, resolve2(ctx, e->e2, top, rib, scope, slex));
 		freexenv(rib);
 		return e;
 	case Escope:
-		e->e1 = resolve2(ctx, e->e1, top, lex, e, slex);
+		sete1(e, resolve2(ctx, e->e1, top, lex, e, slex));
 		return e;
 	case Eblock:
 		rib = mkxenv(lex);
@@ -262,21 +262,21 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		// scope is 0 where we've introduced blocks at toplevel
 		if(scope && scope->e1 == e)
 			slex = rib;
-		e->e2 = resolve2(ctx, e->e2, top, rib, scope, slex);
+		sete2(e, resolve2(ctx, e->e2, top, rib, scope, slex));
 		freexenv(rib);
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = resolve2(ctx, p->e1, top, lex, scope, slex);
+			sete1(p, resolve2(ctx, p->e1, top, lex, scope, slex));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = resolve2(ctx, e->e1, top, lex, scope, slex);
-		e->e2 = resolve2(ctx, e->e2, top, lex, scope, slex);
-		e->e3 = resolve2(ctx, e->e3, top, lex, scope, slex);
-		e->e4 = resolve2(ctx, e->e4, top, lex, scope, slex);
+		sete1(e, resolve2(ctx, e->e1, top, lex, scope, slex));
+		sete2(e, resolve2(ctx, e->e2, top, lex, scope, slex));
+		sete3(e, resolve2(ctx, e->e3, top, lex, scope, slex));
+		sete4(e, resolve2(ctx, e->e4, top, lex, scope, slex));
 		return e;
 	}
 }
@@ -478,15 +478,15 @@ rmscope(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = rmscope(ctx, p->e1);
+			sete1(p, rmscope(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = rmscope(ctx, e->e1);
-		e->e2 = rmscope(ctx, e->e2);
-		e->e3 = rmscope(ctx, e->e3);
-		e->e4 = rmscope(ctx, e->e4);
+		sete1(e, rmscope(ctx, e->e1));
+		sete2(e, rmscope(ctx, e->e2));
+		sete3(e, rmscope(ctx, e->e3));
+		sete4(e, rmscope(ctx, e->e4));
 		return e;
 	}
 }

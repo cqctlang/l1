@@ -1207,8 +1207,8 @@ duptickid(Expr *e)
 	if(e == 0)
 		return;
 	if(e->kind == Eticke || e->kind == Etickt){
-		e->e1 = copyexpr(e->e1);
-		e->e2 = copyexpr(e->e2);
+		sete1(e, copyexpr(e->e1));
+		sete2(e, copyexpr(e->e2));
 		return;
 	}
 	duptickid(e->e1);

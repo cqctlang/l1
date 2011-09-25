@@ -29,15 +29,15 @@ stx(Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = stx(p->e1);
+			sete1(p, stx(p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = stx(e->e1);
-		e->e2 = stx(e->e2);
-		e->e3 = stx(e->e3);
-		e->e4 = stx(e->e4);
+		sete1(e, stx(e->e1));
+		sete2(e, stx(e->e2));
+		sete3(e, stx(e->e3));
+		sete4(e, stx(e->e4));
 		return e;
 	}
 }
