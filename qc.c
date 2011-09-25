@@ -97,6 +97,9 @@ doexpand(VM *vm, Expr *e)
 	Imm bt, et;
 	Val argv[1], rv, v;
 
+	/* disable expander -- Expr storage management is broken */
+	return e;
+
 	/* we need to fix Src handling to pass tests */
 	v = cqctenvlook(vm->top, "expand");
 	if(v && Vkind(v) == Qcl){
