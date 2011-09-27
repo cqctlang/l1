@@ -2007,7 +2007,7 @@ ctlmux = @names clp64le {
 
 	@defloc decodetname(q)
 	{
-		@local k, cb, id, gets, w, pos, st, n, v, i, sid, pt;
+		@local k, cb, id, gets, w, pos, st, n, v, i, sid, pt, at;
 		@local tq; 	/* FIXME: unnecessary in bleed */
 
 		@define gets()
@@ -2059,12 +2059,14 @@ ctlmux = @names clp64le {
 			n = *q++;
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
+				[at, q] = decodeattrs(q);
 				sid = gets();
 				[pt,tq] = decodetname(q);
 				q = tq;
 				v[i] = mkparam(pt,
 					       (strlen(sid) > 0
-						? mkcid(sid) : nil));
+						? mkcid(sid) : nil),
+					       at);
 			}
 			return [mkctype_fn(st, v), q];
 		case ctlmux`Tbitfield:
@@ -2207,8 +2209,8 @@ ctlmux = @names clp64le {
 			n = *q++;
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
-				sid = gets();
 				[at, q] = decodeattrs(q);
+				sid = gets();
 				[pt,tq] = decodetname(q);
 				q = tq;
 				v[i] = mkparam(pt,
