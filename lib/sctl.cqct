@@ -535,7 +535,7 @@ sctl = @names clp64le {
 {
 	@local m;
 	m = strlen(s);
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = m;
 	p = (char*)p;
 	putbytes(p, s);
@@ -546,10 +546,10 @@ sctl = @names clp64le {
 @define decodes(p)
 {
 	@local sz, s;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	sz = *p++;
 	s = getbytes(p, sz);
-	p = (`uint8*)((char*)p+sz);
+	p = (uint8*)((char*)p+sz);
 	return [s, p];
 }
 
@@ -567,11 +567,11 @@ sctl = @names clp64le {
 
 	@defloc encodev(p, v)
 	{
-		p = (`uint8*)p;
+		p = (uint8*)p;
 		if(iscvalue(v)){
 			*p++ = sctl`Auint;
-			p = (`uint64*)p;
-			*p++ = (`uint64)v;
+			p = (uint64*)p;
+			*p++ = (uint64)v;
 		}else if(isstring(v)){
 			*p++ = sctl`Astr;
 			p = encodes(p, v);
@@ -583,7 +583,7 @@ sctl = @names clp64le {
 		return p;
 	}
 
-	p = (`uint64*)p;
+	p = (uint64*)p;
 
 	/* parameter attributes may be nil (we'll
 	   decode them as empty tables because we
@@ -614,11 +614,11 @@ sctl = @names clp64le {
 	@defloc decodev(p)
 	{
 		@local e, v;
-		p = (`uint8*)p;
+		p = (uint8*)p;
 		e = *p++;
 		switch(e){
 		case sctl`Auint:
-			p = (`uint64*)p;
+			p = (uint64*)p;
 			v = *p++;
 			return [v, p];
 		case sctl`Astr:
@@ -632,7 +632,7 @@ sctl = @names clp64le {
 	}
 
 	tab = [:];
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	na = *p++;
 	for(i = 0; i < na; i++){
 		[k, p] = decodev(p);
@@ -645,20 +645,20 @@ sctl = @names clp64le {
 @define encodesym(p, sym)
 {
 	@local flags;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 
 	/* id */
 	p = encodes(p, cid2str(symid(sym)));
 	
 	/* flags */
-	flags = (`uint8)0;
+	flags = (uint8)0;
 	if(isenumconst(symtype(sym)))
 		flags |= sctl`Senum;
-	p = (`uint8*)p;
+	p = (uint8*)p;
 	*p++ = flags;
 	
 	/* val */
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = symoff(sym);
 
 	/* attrs */
@@ -677,11 +677,11 @@ sctl = @names clp64le {
 {
 	@local id, f, v, sz, t, at;
 
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	[id, p] = decodes(p);
-	p = (`uint8*)p;
+	p = (uint8*)p;
 	f = *p++;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	v = *p++;
 	[at, p] = decodeattrs(p);
 	at["offset"] = v;
@@ -693,7 +693,7 @@ sctl = @names clp64le {
 @define encodefield(p, f)
 {
 	@local id;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = fieldoff(f);
 	p = encodeattrs(p, fieldattr(f));
 	id = fieldid(f);
@@ -708,7 +708,7 @@ sctl = @names clp64le {
 @define decodefield(p)
 {
 	@local off, at, id, st;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	off = *p++;
 	[at, p] = decodeattrs(p);
 	[id, p] = decodes(p);
@@ -743,10 +743,10 @@ sctl = @names clp64le {
 @define encodetname(p, t)
 {
 	@local m;
-	p = (`uint8*)p;
+	p = (uint8*)p;
 	if(isbase(t)){
 		*p++ = cqct`Tbase;
-		*p++ = (`uint8)basebase(t);
+		*p++ = (uint8)basebase(t);
 		return p;
 	}else if(issu(t) || isenum(t)){
 		if(isstruct(t))
@@ -766,7 +766,7 @@ sctl = @names clp64le {
 		return encodetname(p, subtype(t));
 	}else if(isarray(t)){
 		*p++ = cqct`Tarr;
-		p = (`uint64*)p;
+		p = (uint64*)p;
 		m = arraynelm(t);
 		if(m == nil)
 			*p++ = 0; /* FIXME: maybe want escape */
@@ -776,13 +776,13 @@ sctl = @names clp64le {
 	}else if(isfunc(t)){
 		*p++ = cqct`Tfun;
 		p = encodetname(p, rettype(t));
-		p = (`uint64*)p;
+		p = (uint64*)p;
 		*p++ = length(params(t));
 		foreach(@lambda(par){ p = encodeparam(p, par); }, params(t));
 		return p;
 	}else if(isvoid(t)){
 		*p++ = cqct`Tbase;
-		*p++ = (`uint8)cqct`Vvoid;
+		*p++ = (uint8)cqct`Vvoid;
 		return p;
 	}else if(isundeftype(t)){
 		*p++ = cqct`Tundef;
@@ -792,7 +792,7 @@ sctl = @names clp64le {
 		return encodetname(p, subtype(t));
 	}else if(isbitfield(t)){
 		*p++ = cqct`Tbitfield;
-		p = (`uint8*)p;
+		p = (uint8*)p;
 		*p++ = bitfieldwidth(t);
 		*p++ = bitfieldpos(t);
 		p = encodetname(p, bitfieldcontainer(t));
@@ -803,11 +803,11 @@ sctl = @names clp64le {
 
 @define encodetdef(p, t)
 {
-	p = (`uint8*)p;
+	p = (uint8*)p;
 	if(isbase(t)){
 		*p++ = cqct`Tbase;
-		*p++ = (`uint8)basebase(t);
-		*p++ = (`uint8)baserep(t);
+		*p++ = (uint8)basebase(t);
+		*p++ = (uint8)baserep(t);
 		return p;
 	}else if(issu(t)){
 		if(isstruct(t))
@@ -815,7 +815,7 @@ sctl = @names clp64le {
 		else if(isunion(t))
 			*p++ = cqct`Tunion;
 		p = encodes(p, cid2str(suetag(t)));
-		p = (`uint64*)p;
+		p = (uint64*)p;
 		*p++ = susize(t);
 		p = encodeattrs(p, suattr(t));
 		*p++ = length(fields(t));
@@ -824,13 +824,13 @@ sctl = @names clp64le {
 	}else if(isenum(t)){
 		*p++ = cqct`Tenum;
 		p = encodes(p, cid2str(suetag(t)));
-		p = (`uint8*)p;
+		p = (uint8*)p;
 		*p++ = baserep(subtype(t));
-		p = (`uint64*)p;
+		p = (uint64*)p;
 		*p++ = length(enumconsts(t));
 		foreach(@lambda(ec){
 				p = encodes(p, cid2str(ec[0]));
-				p = (`uint64*)p;
+				p = (uint64*)p;
 				*p++ = ec[1];
 			}, enumconsts(t));
 		return p;
@@ -844,8 +844,8 @@ sctl = @names clp64le {
 			error("unhandled type definition %t", t);
 		/* void* is special case of Tbase */
 		*p++ = cqct`Tbase;
-		*p++ = (`uint8)basebase(t);
-		*p++ = (`uint8)baserep(t);
+		*p++ = (uint8)basebase(t);
+		*p++ = (uint8)baserep(t);
 		return p;
 	}else
 		error("unhandled type definition %t", t);
@@ -855,7 +855,7 @@ sctl = @names clp64le {
 {
 	@local k, cb, id, w, pos, st, par, n, v, i;
 
-	q = (`uint8*)q;
+	q = (uint8*)q;
 	k = *q++;
 	switch(k){
 //  Tvoid is not used; instead we use Tbase(Vvoid).
@@ -883,13 +883,13 @@ sctl = @names clp64le {
 		[st, q] = decodetname(q);
 		return [mkctype_const(st), q];
 	case cqct`Tarr:
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		[st, q] = decodetname(q);
 		return [mkctype_array(st, n), q];
 	case cqct`Tfun:
 		[st, q] = decodetname(q);
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		v = mkvec(n);
 		for(i = 0; i < n; i++){
@@ -898,7 +898,7 @@ sctl = @names clp64le {
 		}
 		return [mkctype_fn(st, v), q];
 	case cqct`Tbitfield:
-		q = (`uint8*)q;
+		q = (uint8*)q;
 		w = *q++;
 		pos = *q++;
 		[st, q] = decodetname(q);
@@ -916,7 +916,7 @@ sctl = @names clp64le {
 	@local k, cb, rep, sz, n, i, v, f, par, id, sid, c, mk, at, st;
 	@local w, pos;
 
-	q = (`uint8*)q;
+	q = (uint8*)q;
 	k = *q++;
 	switch(k){
 	case cqct`Tbase:
@@ -930,10 +930,10 @@ sctl = @names clp64le {
 		else
 			mk = mkctype_union;
 		[id, q] = decodes(q);
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		sz = *q++;
 		[at, q] = decodeattrs(q);
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		v = mkvec(n);
 		for(i = 0; i < n; i++){
@@ -944,9 +944,9 @@ sctl = @names clp64le {
 		return [mk(mkcid(id), v, at), q];
 	case cqct`Tenum:
 		[id, q] = decodes(q);
-		q = (`uint8*)q;
+		q = (uint8*)q;
 		rep = *q++;
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		st = nsreptype(ns, rep);
 		if(st == nil)
@@ -954,7 +954,7 @@ sctl = @names clp64le {
 		v = mkvec(n);
 		for(i = 0; i < n; i++){
 			[sid, q] = decodes(q);
-			q = (`uint64*)q;
+			q = (uint64*)q;
 			c = *q++;
 			v[i] = vector(mkcid(sid), {st}c);
 		}
@@ -966,13 +966,13 @@ sctl = @names clp64le {
 		[st, q] = decodetname(q);
 		return [mkctype_const(st), q];
 	case cqct`Tarr:
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		[st, q] = decodetname(q);
 		return [mkctype_array(st, n), q];
 	case cqct`Tfun:
 		[st, q] = decodetname(q);
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		v = mkvec(n);
 		for(i = 0; i < n; i++){
@@ -985,7 +985,7 @@ sctl = @names clp64le {
 		[st, q] = decodetname(q);
 		return [mkctype_typedef(mkcid(id), st), q];
 	case cqct`Tbitfield:
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		w = *q++;
 		pos = *q++;
 		[st, q] = decodetname(q);
@@ -1186,7 +1186,7 @@ nexttag = 0;
 		break;
 	case sctl`Tlooksym:
 		q = msg+1;
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		nsid = *q++;
 		[id, q] = decodes(q);
 		s += sprintfa(" nsid=%u sym=%s", nsid, id);
@@ -1199,20 +1199,20 @@ nexttag = 0;
 		break;
 	case sctl`Renumsym:
 		q = msg+1;
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		s += sprintfa(" ns=%u syms=...", n);
 		break;
 	case sctl`Tenumsym:
 	case sctl`Tenumtype:
 		q = msg+1;
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		id = *q++;
 		s += sprintfa(" nsid=%u", id);
 		break;
 	case sctl`Renumtype:
 		q = msg+1;
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		n = *q++;
 		s += sprintfa(" nt=%u tdefs=...", n);
 		break;
@@ -1229,7 +1229,7 @@ nexttag = 0;
 		break;
 	case sctl`Tlooktype:
 		q = msg+1;
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		id = *q++;
 		[tn, q] = decodetname(q);
 		s += sprintfa(" nsid=%u tname=%t", id, tn);
@@ -1242,7 +1242,7 @@ nexttag = 0;
 		break;
 	case sctl`Tlookaddr:
 		q = msg+1;
-		q = (`uint64*)q;
+		q = (uint64*)q;
 		id = *q++;
 		a = *q++;
 		s += sprintfa(" nsid=%u addr=%x", id, a);
@@ -1275,7 +1275,7 @@ nexttag = 0;
 	}
 	if(snamesverbose)
 		printf("(send) %s\n", fmtmsg(p, sz));
-	write(fd, cval2str((`uint64)sz));
+	write(fd, cval2str((uint64)sz));
 	e = errno();
 	if(e[0] != 0)
 		error("sctl sendmsg: %s", e[1]);
@@ -1288,14 +1288,14 @@ nexttag = 0;
 @define recvmsg(fd)
 {
 	@local s, sz, p, msg, dat, e;
-	s = read(fd, sizeof(`uint64));
+	s = read(fd, sizeof(litdom`uint64));
 	if(s == nil){
 		e = errno();
 		if(e[0])
 			error("sctl recvmsg: %d %s", getpid(), e[1]);
 		return [nil, 'closed];
 	}
-	sz = *(`uint64*)s;
+	sz = *(uint64*)s;
 	p = read(fd, sz);
 	msg = buf2msg(p);
 	if(sz > sizeof(*msg))
@@ -1386,7 +1386,7 @@ nexttag = 0;
 	p = (sctl`Tnames*)malloc(sz);
 	p->op = sctl`Tnames;
 	p->tag = freshtag();
-	q = (`uint64*)(p+1);
+	q = (uint64*)(p+1);
 	*q++ = strlen(path);
 	q = (char*)q;
 	putbytes(q, path);
@@ -1417,7 +1417,7 @@ nexttag = 0;
 	p = (sctl`Tlooktype*)p;
 	p->op = sctl`Tlooktype;
 	p->tag = freshtag();
-	p = (`uint64*)(p+1);
+	p = (uint64*)(p+1);
 	*p++ = nsid;
 	p = encodetname(p, tn);
 	sendmsg(fd, m, (char*)p-m);
@@ -1448,7 +1448,7 @@ nexttag = 0;
 	p = (sctl`Tlooktype*)p;
 	p->op = sctl`Tenumtype;
 	p->tag = freshtag();
-	p = (`uint64*)(p+1);
+	p = (uint64*)(p+1);
 	*p++ = nsid;
 	p = (char*)p;
 	sendmsg(fd, m, p-m);
@@ -1456,7 +1456,7 @@ nexttag = 0;
 	[rep, dat] = recvmsg(fd);
 	checkreply(rep, sctl`Renumtype);
 	ss = [:];
-	q = (`uint64*)dat;
+	q = (uint64*)dat;
 	m = *q++;
 	for(i = 0; i < m; i++){
 		[t, q] = decodetdef(ns, q);
@@ -1474,7 +1474,7 @@ nexttag = 0;
 	p->op = sctl`Tlooksym;
 	p->tag = freshtag();
 	p++;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = nsid;
 	p = encodes(p, cid2str(id));
 	p = (char*)p;
@@ -1508,7 +1508,7 @@ nexttag = 0;
 	p->op = sctl`Tenumsym;
 	p->tag = freshtag();
 	p++;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = nsid;
 	p = (char*)p;
 	sendmsg(fd, m, p-m);
@@ -1518,7 +1518,7 @@ nexttag = 0;
 	checkreply(rep, sctl`Renumsym);
 
 	ss = [];
-	q = (`uint64*)dat;
+	q = (uint64*)dat;
 	m = *q++;
 	for(i = 0; i < m; i++){
 		[sym, q] = decodesym(q);
@@ -1536,7 +1536,7 @@ nexttag = 0;
 	p->op = sctl`Tlookaddr;
 	p->tag = freshtag();
 	p++;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = nsid;
 	*p++ = addr;
 	sendmsg(fd, m, (char*)p-m);
