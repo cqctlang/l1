@@ -1067,14 +1067,17 @@ fpush(Frame *f)
 static void
 fpop(Frame *f)
 {
-	u32 nw;
+	u32 ow, nw;
 	if(f->l <= f->b)
 		bug();
 	if(f->sp > f->maxsp)
 		f->maxsp = f->sp;
-	f->sp = *(f->l-1);
+	ow = roundup(f->sp, mwbits)/mwbits;
+	f->l--;
+	f->sp = *f->l;
+	memset(f->l, 0, (ow+1)*sizeof(u64));
 	nw = roundup(f->sp, mwbits)/mwbits;
-	f->l -= nw+1;
+	f->l -= nw;
 }
 
 static void
