@@ -1409,6 +1409,8 @@ nexttag = 0;
 	case sctl`Rerror:
 		if(rep->bytes == Enone)
 			return nil;
+		error("sctl: error while waiting for %e: %s",
+		      sctl`Rnames, rep->bytes);
 	default:
 		error("sctl: while waiting for %e: received %e",
 		      sctl`Rnames, (sctl`Mkind)rep->op);
