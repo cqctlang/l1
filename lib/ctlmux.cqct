@@ -1043,6 +1043,7 @@ ctlmux = @names clp64le {
 	enumseg,
 	enumloc,
 	unwind,
+	unwind1,
 	names,
 	nsinit,
 	// private
@@ -2396,14 +2397,18 @@ ctlmux = @names clp64le {
 		putbytes(q, s);
 		sendmsg(fd, p, sz);
 
+		printf("muxlooktype %t\n", type);
+
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
 		switch(rep->op){
 		case ctlmux`Rlooktype:
 			break;
 		case ctlmux`Rerror:
-			if(rep->bytes == "no such thing")
+			if(rep->bytes == "no such thing"){
+				printf("muxlooktype %t -- undefined!\n", type);
 				return nil;
+			}
 			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Rlooktype, rep->bytes);
 		default:
@@ -2934,6 +2939,7 @@ ctlmux = @names clp64le {
 		     muxenumseg,
 		     muxenumloc,
 		     muxunwind,
+		     muxunwind1,
 		     muxnames,
 		     nsinit,
 		     stop,
