@@ -65,6 +65,8 @@ ctlmux = @names clp64le {
 		Renumseg,
 		Tnames,
 		Rnames,
+		Tunwind1,
+		Runwind1,
 	};
 
 	enum State {
@@ -110,28 +112,6 @@ ctlmux = @names clp64le {
 		PROT_WRITE	= 0x2,		/* Page can be written.  */
 		PROT_EXEC	= 0x4,		/* Page can be executed.  */
 	} Prot;
-
-	enum {
-		NRerror,
-		NTlooksym,
-		NRlooksym,
-		NTenumsym,
-		NRenumsym,
-		NTlooktype,
-		NRlooktype,
-		NTenumtype,
-		NRenumtype,
-		NTlookaddr,
-		NRlookaddr,
-		NTenumloc,
-		NRenumloc,
-		NTunwind,
-		NRunwind,
-		NTenumseg,
-		NRenumseg,
-		NTnames,
-		NRnames,
-	};
 
 	typedef
 	enum Attrval {
@@ -219,6 +199,22 @@ ctlmux = @names clp64le {
 		Senum = Sro<<1,
 		Sinline = Senum<<1,
 	};
+
+	typedef
+	enum Rulekind
+	{
+		Rnone = 0,
+		// cfa rules
+		Rcfaro,
+		Rcfae,			/* unimplemented */
+		// register rules
+		Rsame,
+		Roff,
+		Rvoff,
+		Rreg,
+		Rexp,			/* unimplemented */
+		Rvexp,			/* unimplemented */
+	} Rulekind;
 
 	enum ELF_SHN {
 		SHN_UNDEF	= 0,
@@ -499,6 +495,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Tunwind;
 	typedef struct Tns Tenumseg;
 	typedef struct Tns Tnames;
+	typedef struct Tns Tunwind1;
 	typedef struct Tns Rlooksym;
 	typedef struct Tns Renumsym;
 	typedef struct Tns Rlooktype;
@@ -508,6 +505,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Runwind;
 	typedef struct Tns Renumseg;
 	typedef struct Tns Rnames;
+	typedef struct Tns Runwind1;
 };
 
 @record region {
@@ -543,6 +541,12 @@ ctlmux = @names clp64le {
 	addr,
 	len,
 	name,
+};
+
+@record rule {
+	kind,
+	r,
+	n,
 };
 
 @record ctlrec {
@@ -1082,7 +1086,7 @@ ctlmux = @names clp64le {
 	@local osversion;
 	@local muxlooksym, muxenumsym, muxlookaddr;
 	@local muxlooktype, muxenumtype, muxenumseg;
-	@local muxenumloc, muxunwind;
+	@local muxenumloc, muxunwind, muxunwind1;
 	@local muxnames, nsinit;
 	@local contasync;
 	@local timerfn, tfd;
@@ -1254,6 +1258,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tunwind*)p;
 		case ctlmux`Runwind:
 			return (ctlmux`Runwind*)p;
+		case ctlmux`Tunwind1:
+			return (ctlmux`Tunwind1*)p;
+		case ctlmux`Runwind1:
+			return (ctlmux`Runwind1*)p;
 		case ctlmux`Tnames:
 			return (ctlmux`Tnames*)p;
 		case ctlmux`Rnames:
@@ -2724,6 +2732,51 @@ ctlmux = @names clp64le {
 			q++;
 		}
 		return ss;
+	}
+
+	@define muxunwind1(id, ctx)
+	{
+		@local p, q, rep, dat, sz, rs, k, r, n;
+		@local m, i;
+
+		sz = sizeof(ctlmux`Tunwind1);
+		sz += sizeof(ctlmux`uint64); /* id */
+		sz += sizeof(ctlmux`Ctx);    /* ctx */
+		p = (ctlmux`Tunwind1*)malloc(sz);
+		p->op = ctlmux`Tunwind1;
+		p->tag = freshtag();
+		q = (ctlmux`uint64*)(p+1);
+		*q++ = id;
+		putbytes(q, getbytes(ctx));
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		switch(rep->op){
+		case ctlmux`Runwind1:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
+				return nil;
+			error("ctlmux: error while waiting for %e: %s",
+			      ctlmux`Runwind1, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
+		}
+
+		rs = [];
+		q = (ctlmux`uint32*)dat;
+		m = *q++;
+		for(i = 0; i < m; i++){
+			q = (ctlmux`uint8*)q;
+			k = *q++;
+			q = (ctlmux`uint64*)q;
+			r = *q++;
+			q = (ctlmux`int64*)q;
+			n = *q++;
+			append(rs, rule(k, r, n));
+		}
+		return rs;
 	}
 
 	@define muxnames(path)
