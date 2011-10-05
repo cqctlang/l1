@@ -11,6 +11,7 @@ enum {
 char* S[] = {
 	[Ebool] =	"bool",
 	[Echar] =	"char",
+	[Ecomplex] =	"complex",
 	[Edouble] =	"double",
 	[Efloat] =	"float",
 	[Eint] =	"int",

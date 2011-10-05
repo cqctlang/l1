@@ -102,6 +102,9 @@ ctlns = @names clp64le {
 		Vfloat,
 		Vdouble,
 		Vlongdouble,
+		Vcomplex,
+		Vdoublex,
+		Vlongdoublex,
 		Vnbase,
 		Vptr = Vnbase,		/* alias for some other base type */
 		Vvoid,
@@ -132,7 +135,11 @@ ctlns = @names clp64le {
 
 		Rf32,
 		Rf64,
+		Rf96,
 		Rf128,
+		Rx64,
+		Rx128,
+		Rx192,
 		Rnrep,
 	} Rkind;
 	

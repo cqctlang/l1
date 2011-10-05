@@ -403,7 +403,11 @@ fmtval(VM *vm, Fmt *f, Val val)
 					snprintf(buf, sizeof(buf), "%f", dv);
 					break;
 				case Vlongdouble:
-					vmerr(vm, "long doubles unsupported");
+				case Vcomplex:
+				case Vdoublex:
+				case Vlongdoublex:
+					vmerr(vm, "formatter does not support %s",
+					      cbasename[cb]);
 				default:
 					fatal("bug");
 				}

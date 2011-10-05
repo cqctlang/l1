@@ -3906,9 +3906,9 @@ methods of every name space must provide definitions
 for the following types:
 <div class="code">
 <pre>
-char         unsigned char          _Bool
-short	     unsigned short	    float
-int	     unsigned int	    double
+char         unsigned char          _Bool         _Complex
+short	     unsigned short	    float         double _Complex
+int	     unsigned int	    double        long double _Complex
 long	     unsigned long	    long double
 long long    unsigned long long     void*
 </pre>
@@ -5780,6 +5780,9 @@ Base C type
 <span class="fnindex"><a href="#fn:mkctype_float">mkctype_float</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_double">mkctype_double</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_ldouble">mkctype_ldouble</a></span>
+<span class="fnindex"><a href="#fn:mkctype_complex">mkctype_complex</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_doublex">mkctype_doublex</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_ldoublex">mkctype_ldoublex</a></span>
 </td>
 </tr>
 
@@ -6444,6 +6447,18 @@ the following base type specifiers defined in the
 <td><span class="val">Vldouble</span></td>
 <td><span class="val">long double</span></td>
 </tr>
+<tr>
+<td><span class="val">Vcomplex</span></td>
+<td><span class="val">_Complex</span></td>
+</tr>
+<tr>
+<td><span class="val">Vdoublex</span></td>
+<td><span class="val">double _Complex</span></td>
+</tr>
+<tr>
+<td><span class="val">Vldoublex</span></td>
+<td><span class="val">long double _Complex</span></td>
+</tr>
 </table>
 </div>
 
@@ -6532,8 +6547,24 @@ following representation specifiers defined in the
 <td>64-bit floating point</td>
 </tr>
 <tr>
+<td><span class="val">Rf96</td> 
+<td>96-bit floating point</td>
+</tr>
+<tr>
 <td><span class="val">Rf128</td>
 <td>128-bit floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rx64</td> 
+<td>64-bit complex floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rx128</td> 
+<td>128-bit complex floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rx192</td>
+<td>192-bit complex floating point</td>
 </tr>
 </table>
 </div>
@@ -6590,6 +6621,15 @@ following representation specifiers defined in the
 </div>
 <div class="function">
 <span class="id" id="fn:mkctype_ldouble">mkctype_ldouble([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_complex">mkctype_complex([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_doublex">mkctype_doublex([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_ldoublex">mkctype_ldoublex([<span class="arg">rep</span>])</span>
 </div>
 <div class="param">
 <span class="arg">rep</span>: <span class="type">cvalue</span>
@@ -10768,6 +10808,9 @@ enum Cbase {
 	Vfloat,
 	Vdouble,
 	Vlongdouble,
+	Vcomplex,
+	Vdoublex,
+	Vlongdoublex,
 	Vnbase,
 	Vptr = Vnbase,
 	Vvoid,
@@ -10775,7 +10818,7 @@ enum Cbase {
 } Cbase;
 </pre>
 </div>
-Only names in the range <span class="id">Vchar</span> ... <span class="id">Vlongdouble</span> will be returned by <span class="id">cqctvalcbase</span>.
+Only names in the range <span class="id">Vchar</span> ... <span class="id">Vlongdoublex</span> will be returned by <span class="id">cqctvalcbase</span>.
 </div>
 </div>
 
@@ -11642,13 +11685,16 @@ Prentice Hall, 1988.
 <a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
 <a href="#fn:mkctype_bool">mkctype_bool</a><br />
 <a href="#fn:mkctype_char">mkctype_char</a><br />
+<a href="#fn:mkctype_complex">mkctype_complex</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
 <a href="#fn:mkctype_double">mkctype_double</a><br />
+<a href="#fn:mkctype_doublex">mkctype_doublex</a><br />
 <a href="#fn:mkctype_enum">mkctype_enum</a><br />
 <a href="#fn:mkctype_float">mkctype_float</a><br />
 <a href="#fn:mkctype_fn">mkctype_fn</a><br />
 <a href="#fn:mkctype_int">mkctype_int</a><br />
 <a href="#fn:mkctype_ldouble">mkctype_ldouble</a><br />
+<a href="#fn:mkctype_ldoublex">mkctype_ldoublex</a><br />
 <a href="#fn:mkctype_long">mkctype_long</a><br />
 <a href="#fn:mkctype_ptr">mkctype_ptr</a><br />
 <a href="#fn:mkctype_short">mkctype_short</a><br />

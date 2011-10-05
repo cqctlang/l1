@@ -20,6 +20,7 @@ typedef
 enum{
 	Ebool=0,
 	Echar,
+	Ecomplex,
 	Edouble,
 	Efloat,
 	Eint,

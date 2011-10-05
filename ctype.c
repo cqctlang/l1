@@ -1031,6 +1031,57 @@ l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkctype_complex(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_complex", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cvalu(cv);
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_complex");
+	domkctype_base(Vcomplex, rep, rv);
+}
+
+static void
+l1_mkctype_doublex(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_doublex", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cvalu(cv);
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_doublex");
+	domkctype_base(Vdoublex, rep, rv);
+}
+
+static void
+l1_mkctype_ldoublex(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Rkind rep;
+	Cval *cv;
+	rep = Rundef;
+	if(argc == 1){
+		checkarg(vm, "mkctype_ldoublex", argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		rep = cvalu(cv);
+		if(rep >= Rnrep)
+			vmerr(vm, "invalid representation identifier");
+	}else if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkctype_ldoublex");
+	domkctype_base(Vlongdoublex, rep, rv);
+}
+
+static void
 l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Ctype *t;
@@ -1888,12 +1939,15 @@ fnctype(Env *env)
 	FN(mkctype_bool);
 	FN(mkctype_char);
 	FN(mkctype_const);
+	FN(mkctype_complex);
 	FN(mkctype_double);
+	FN(mkctype_doublex);
 	FN(mkctype_enum);
 	FN(mkctype_float);
 	FN(mkctype_fn);
 	FN(mkctype_int);
 	FN(mkctype_ldouble);
+	FN(mkctype_ldoublex);
 	FN(mkctype_long);
 	FN(mkctype_ptr);
 	FN(mkctype_short);

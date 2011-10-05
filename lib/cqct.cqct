@@ -21,7 +21,11 @@ cqct = @names c32le {
 		Rs64be, /* 64-bit signed big endian */
 		Rf32,   /* 32-bit floating point */
 		Rf64,   /* 64-bit floating point */
+		Rf96,   /* 96-bit floating point */
 		Rf128,  /* 128-bit floating point */
+		Rx64,   /* 64-bit complex floating point */
+		Rx128,  /* 128-bit complex floating point */
+		Rx192,  /* 192-bit complex floating point */
 		Rnrep,  /* number of representations */
 	} Rkind;
 
@@ -44,6 +48,9 @@ cqct = @names c32le {
 		Vfloat,
 		Vdouble,
 		Vlongdouble,
+		Vcomplex,
+		Vdoublex,
+		Vlongdoublex,
 		Vnbase,
 		Vptr = Vnbase,		/* alias for some other base type */
 		Vvoid,

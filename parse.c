@@ -18,6 +18,9 @@ char* cbasename[Vnbase+1] = {
 	[Vfloat]	      = "float",
 	[Vdouble]	      = "double",
 	[Vlongdouble]	      = "long double",
+	[Vcomplex]	      = "float _Complex",
+	[Vdoublex]            = "double _Complex",
+	[Vlongdoublex]        = "long double _Complex",
 	[Vptr]		      = "$nsptr",
 };
 
