@@ -2397,18 +2397,14 @@ ctlmux = @names clp64le {
 		putbytes(q, s);
 		sendmsg(fd, p, sz);
 
-		printf("muxlooktype %t\n", type);
-
 		/* wait for reply */
 		[rep, dat] = runtiltag(p->tag);
 		switch(rep->op){
 		case ctlmux`Rlooktype:
 			break;
 		case ctlmux`Rerror:
-			if(rep->bytes == "no such thing"){
-				printf("muxlooktype %t -- undefined!\n", type);
+			if(rep->bytes == "no such thing")
 				return nil;
-			}
 			error("ctlmux: error while waiting for %e: %s",
 			      ctlmux`Rlooktype, rep->bytes);
 		default:
