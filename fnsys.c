@@ -389,6 +389,15 @@ l1_errno(VM *vm, Imm argc, Val *argv, Val *rv)
 	listset(l, 1, mkvalstr(mkstr0(strerror(errno))));
 }
 
+static void
+l1_usleep(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to usleep");
+	checkarg(vm, "usleep", argv, 0, Qcval);
+	usleep(cvalu(valcval(argv[0])));
+}
+
 void
 fnsys(Env *env)
 {
@@ -407,5 +416,6 @@ fnsys(Env *env)
 	FN(setenv);
 	FN(syscall);
 	FN(uname);
+	FN(usleep);
 	FN(waitpid);
 }
