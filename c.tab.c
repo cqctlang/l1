@@ -6585,25 +6585,61 @@ duptickid(Expr *e)
 
 */
 
+static unsigned
+castcount(Expr *e)
+{
+	Expr *p;
+	unsigned m;
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Ecast:
+		return 1+castcount(e->e2);
+	case Eelist:
+		p = e;
+		m = 0;
+		while(p->kind == Eelist){
+			m += castcount(p->e1);
+			p = p->e2;
+		}
+	default:
+		return (castcount(e->e1)
+			+castcount(e->e2)
+			+castcount(e->e3)
+			+castcount(e->e4));
+	}
+}
+
 static Expr*
 castmerge(YYSTYPE ye1, YYSTYPE ye2)
 {
+#if 0
 	Expr *cast, *other;
-
 	if(ye1.expr->kind == Ecast){
 		cast = ye1.expr;
 		other = ye2.expr;
 	}else if(ye2.expr->kind == Ecast){
 		cast = ye2.expr;
 		other = ye1.expr;
-	}else
+	}else{
+		printf("ye1:\n");
+		printexpr(ye1.expr);
+		printf("\nye2:\n");
+		printexpr(ye2.expr);
 		yyerror(0, "unresolved ambiguity 0");
+	}
 
 	/* sanity check */
 	if(cast->e1->kind != Etypename)
 		yyerror(0, "unresolved ambiguity 1");
 	/* cast->e2 could be any expression */
 	return cast;
+#else
+	if(castcount(ye1.expr) > castcount(ye2.expr))
+		return ye1.expr;
+	else
+		return ye2.expr;
+#endif
 }
 
 static int
