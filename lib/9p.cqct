@@ -127,8 +127,8 @@ typedef struct Diru {
 
 };
 
-@const NOTAG    = (`uint16)~0;
-@const NOFID    = (`uint32)~0;
+@const NOTAG    = (uint16)~0;
+@const NOFID    = (uint32)~0;
 @const BIT8SZ   = 1;
 @const BIT16SZ  = 2;
 @const BIT32SZ  = 4;
@@ -149,25 +149,25 @@ dom9p = mkdom(ns9p, mknas());
 
 @define push1(p, v)
 {
-	*(`uint8*)p = v;
+	*(uint8*)p = v;
 	return p+1;
 }
 
 @define push2(p, v)
 {
-	*(`uint16*)p = v;
+	*(uint16*)p = v;
 	return p+2;
 }
 
 @define push4(p, v)
 {
-	*(`uint32*)p = v;
+	*(uint32*)p = v;
 	return p+4;
 }
 
 @define push8(p, v)
 {
-	*(`uint64*)p = v;
+	*(uint64*)p = v;
 	return p+8;
 }
 
@@ -243,7 +243,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(length(s) != 4)
 		error("bad 9P2000 message");
 	p = charstar(ns9p, s);
-	n = *(`uint32*)p;
+	n = *(uint32*)p;
 	if(n <= 4)
 		error("bad length in 9P2000 message header");
 	s = read(fd, n-4);
@@ -454,11 +454,11 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz <= 1+2+4+2)
 		error("Rversion is too short");
 	p += 1;  // Rversion
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;	
-	msize = *(`uint32*)p;
+	msize = *(uint32*)p;
 	p += 4;
-	len = *(`uint16*)p;
+	len = *(uint16*)p;
 	p += 2;
 	if(sz != 1+2+4+2+len)
 		error("bad Rversion");
@@ -474,9 +474,9 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+13)
 		error("bad Rattach");
 	p += 1;  // Rattach
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;	
-	qid = (`Qid*)p;
+	qid = (Qid*)p;
 	if(0)printf("Rattach: tag=%u qid=%s\n", tag, fmtqid(qid));
 	return [ qid ];
 }
@@ -484,16 +484,16 @@ dom9p = mkdom(ns9p, mknas());
 @define convM2D(p)
 {
 	@local s, q, r, slen, sz;
-	sz = *(`uint16*)p;
+	sz = *(uint16*)p;
 	p += 2;
 	s = mkstr(sz+4*4+4);    // four field ptrs, four NULL bytes in fields
 	q = charstar(ns9p, s);
 	memcpy(q, p, 0x27); // offsetof(Dir, name)
 	p += 0x27;
-	q = (`Dir*)q;
+	q = (Dir*)q;
 	r = (char*)(q+1);
 
-	slen = *(`uint16*)p;
+	slen = *(uint16*)p;
 	p += 2;
 	q->name = r;
 	memcpy(r, p, slen);
@@ -501,7 +501,7 @@ dom9p = mkdom(ns9p, mknas());
 	r += slen;
 	*r++ = 0;
 	
-	slen = *(`uint16*)p;
+	slen = *(uint16*)p;
 	p += 2;
 	q->uid = r;
 	memcpy(r, p, slen);
@@ -509,7 +509,7 @@ dom9p = mkdom(ns9p, mknas());
 	r += slen;
 	*r++ = 0;
 
-	slen = *(`uint16*)p;
+	slen = *(uint16*)p;
 	p += 2;
 	q->gid = r;
 	memcpy(r, p, slen);
@@ -517,7 +517,7 @@ dom9p = mkdom(ns9p, mknas());
 	r += slen;
 	*r++ = 0;
 
-	slen = *(`uint16*)p;
+	slen = *(uint16*)p;
 	p += 2;
 	q->muid = r;
 	memcpy(r, p, slen);
@@ -544,9 +544,9 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz <= 1+2+2)
 		error("Rstat is too short");
 	p += 1;  // Rstat
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;	
-	len = *(`uint16*)p;
+	len = *(uint16*)p;
 	p += 2;
 	if(sz != 1+2+2+len)
 		error("bad Rstat");
@@ -563,7 +563,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2)
 		error("bad Rwstat");
 	p += 1; // Rwstat
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	if(0)printf("Rwstat: tag=%u\n", tag);
 	return [];
 }
@@ -575,7 +575,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2)
 		error("bad Rclunk");
 	p += 1; // Rclunk
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	if(0)printf("Rclunk: tag=%u\n", tag);
 	return [];
 }
@@ -587,7 +587,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2)
 		error("bad Rflush");
 	p += 1; // Rflush
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	if(0)printf("Rflush: tag=%u\n", tag);
 	return [];
 }
@@ -599,14 +599,14 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz < 1+2+2)
 		error("Rwalk is too short");
 	p += 1; // Rwalk
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;
-	nwqid = *(`uint16*)p;
+	nwqid = *(uint16*)p;
 	p += 2;
 	if(sz != 1+2+2+nwqid*13)
 		error("bad Rwalk");
 	if(0)printf("Rwalk tag=%u nwqid=%u\n", tag, nwqid);
-	qid = (`Qid*)p;
+	qid = (Qid*)p;
 	rv = [];
 	for(i = 0; i < nwqid; i++){
 //		printf("\tqid[%u]=%s\n", i, fmtqid(qid));
@@ -622,11 +622,11 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+13+4)
 		error("bad Ropen");
 	p += 1; // Ropen
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;
-	qid = (`Qid*)p;
+	qid = (Qid*)p;
 	p += sizeof(*qid);
-	iounit = *(`uint32*)p;
+	iounit = *(uint32*)p;
 	if(0)printf("Ropen tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
 	return [ qid, iounit ];
 }
@@ -638,11 +638,11 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+13+4)
 		error("bad Rcreate");
 	p += 1; // Rcreate
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;
-	qid = (`Qid*)p;
+	qid = (Qid*)p;
 	p += sizeof(*qid);
-	iounit = *(`uint32*)p;
+	iounit = *(uint32*)p;
 	if(0)printf("Rcreate tag=%u qid=%s iounit=%u\n", tag, fmtqid(qid), iounit);
 	return [ qid, iounit ];
 }
@@ -654,7 +654,7 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2)
 		error("bad Rremove");
 	p += 1; // Rremove
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	if(0)printf("Rremove: tag=%u\n", tag);
 	return [];
 }
@@ -666,9 +666,9 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz < 1+2+4)
 		error("Rread is too short");
 	p += 1; // Rread
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;
-	count = *(`uint32*)p;
+	count = *(uint32*)p;
 	p += 4;
 	if(sz != 1+2+4+count)
 		error("bad Rread");
@@ -684,9 +684,9 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz != 1+2+4)
 		error("Rwrite is too short");
 	p += 1; // Rwrite
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;
-	count = *(`uint32*)p;
+	count = *(uint32*)p;
 	p += 4;
 	if(0)printf("Rwrite: tag=%u count=%u\n", tag, count);
 	return [ count ];
@@ -699,9 +699,9 @@ dom9p = mkdom(ns9p, mknas());
 	if(sz <= 1+2+2)
 		error("Rerror is too short");
 	p += 1; // Rerror
-	tag = *(`uint16*)p;
+	tag = *(uint16*)p;
 	p += 2;
-	len = *(`uint16*)p;
+	len = *(uint16*)p;
 	p += 2;
 	if(sz != 1+2+2+len)
 		error("bad Rerror");
@@ -714,7 +714,7 @@ dom9p = mkdom(ns9p, mknas());
 {
 	@local r, p, sz, op;
 	p = charstar(ns9p, t);
-	op = *(`uint8*)(p+4);
+	op = *(uint8*)(p+4);
 	write(fd, t);
 	r = read9pmsg(fd);
 	if(r == nil)
@@ -1193,7 +1193,7 @@ dom9p = mkdom(ns9p, mknas());
 		p = buf;
 		ss = [];
 		while(p < buf+len){
-			sz = *(`uint16*)p;
+			sz = *(uint16*)p;
 			append(ss, convM2D(p));
 			p += 2+sz;
 		}
