@@ -3128,8 +3128,6 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 		def = valctype(rv);
 		if(def->tkind != Ttypedef)
 			vmerr(vm, "invalid typedef in raw type table");
-		if(def == t)
-			vmerr(vm, "invalid typedef in raw type table");
 		setsubtype(new, resolvetypename(vm, subtype(def), ctx));
 		if(subtype(new) == new){
 			id = typetid(def);
