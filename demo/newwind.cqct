@@ -25,6 +25,14 @@ progs = [ "./wind1",
 					  ctl.mem()),
 				    dll.id));
 		}, st);
+	sort(dvec, @lambda(a, b){
+			if(a.start < b.start)
+				return -1;
+			else if(a.start > b.start)
+				return 1;
+			else
+				return 0;
+		});
 	return dvec;
 }
 
