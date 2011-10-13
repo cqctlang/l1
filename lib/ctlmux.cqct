@@ -207,22 +207,6 @@ ctlmux = @names clp64le {
 		Sinline = Senum<<1,
 	};
 
-	typedef
-	enum Rulekind
-	{
-		Rnone = 0,
-		// cfa rules
-		Rcfaro,
-		Rcfae,			/* unimplemented */
-		// register rules
-		Rsame,
-		Roff,
-		Rvoff,
-		Rreg,
-		Rexp,			/* unimplemented */
-		Rvexp,			/* unimplemented */
-	} Rulekind;
-
 	enum ELF_SHN {
 		SHN_UNDEF	= 0,
 		SHN_ABS		= 0xfff1,
@@ -532,6 +516,7 @@ ctlmux = @names clp64le {
 	id,
 	flags,
 	val,
+	attrs,
 	sz,
 	type,
 };
@@ -2464,8 +2449,7 @@ ctlmux = @names clp64le {
 		xsz = *q++;
 		[t,tq] = decodetname(q);
 		q = tq;
-		/* FIXME: symrec should include at */
-		return symrec(xid, flags, val, xsz, t);
+		return symrec(xid, flags, val, at, xsz, t);
 	}
 
 	@define muxenumsym(id)
@@ -2513,8 +2497,7 @@ ctlmux = @names clp64le {
 			xsz = *q++;
 			[t,tq] = decodetname(q);
 			q = tq;
-			/* FIXME: symrec should include at */
-			append(ss, symrec(xid, flags, val, xsz, t));
+			append(ss, symrec(xid, flags, val, at, xsz, t));
 		}
 		return ss;
 	}
@@ -2562,8 +2545,7 @@ ctlmux = @names clp64le {
 		xsz = *q++;
 		[t,tq] = decodetname(q);
 		q = tq;
-		/* FIXME: symrec should include at */
-		return symrec(xid, flags, val, xsz, t);
+		return symrec(xid, flags, val, at, xsz, t);
 	}
 
 	@define muxenumtype(id)
@@ -2954,9 +2936,49 @@ ctlmux = @names clp64le {
 	return mux;
 }
 
-@define atnames(path)
+/*
+   dvec -- vector of domains representing a complete process address space
+
+ */
+
+@record vmap { start, end, path, dom };
+
+@define mkdvec(mux, ctl)
 {
-	@local mux;
-	mux = mkctlmux_local();
-	return mux.names(path);
+	@local st, dvec;
+	st = mux.statunix(ctl)[1];
+	dvec = [];
+	foreach(@lambda(dll){
+			printf("\t%d\t%016p\t%s\n",
+			       dll.id, dll.base, dll.path);
+			append(dvec,
+			       vmap(dll.base,
+				    0,
+				    dll.path,
+				    mkdom(atnames(dll.path, dll.base),
+					  ctl.mem())));
+		}, st);
+	sort(dvec, @lambda(a, b){
+			if(a.start < b.start)
+				return -1;
+			else if(a.start > b.start)
+				return 1;
+			else
+				return 0;
+		});
+	return dvec;
+}
+
+@define lookdvec(dvec, pc)
+{
+	@local v;
+	v = nil;
+	foreach(@lambda(u){
+			if(u.start > pc)
+				return;
+			v = u;
+		}, dvec);
+	if(v == nil)
+		error("lookdvec: no vmap for %p", pc);
+	return v;
 }

@@ -1,299 +1,25 @@
-@include <nsutil.cqct>
 @include <ctlmux.cqct>
+@include <sctlclt.cqct>
+@include <dwunwind.cqct>
 
 progs = [ "./wind1",
 	  "./wind1.32",
 	  "./wind2",
 	  "./wind2.32" ];
 
-@record vmap { start, end, path, dom, nsid };
-
-@define domvec(mux, ctl)
+@define fmtstack(xs)
 {
-	@local st, dvec;
-	st = mux.statunix(ctl)[1];
-	dvec = [];
-	foreach(@lambda(dll){
-			printf("\t%d\t%016p\t%s\n",
-			       dll.id, dll.base, dll.path);
-			append(dvec,
-			       vmap(dll.base,
-				    0,
-				    dll.path,
-				    mkdom(mknsoff(mux.names(dll.path),
-						  dll.base),
-					  ctl.mem()),
-				    dll.id));
-		}, st);
-	sort(dvec, @lambda(a, b){
-			if(a.start < b.start)
-				return -1;
-			else if(a.start > b.start)
-				return 1;
-			else
-				return 0;
-		});
-	return dvec;
+	@local s;
+	s = "";
+	foreach(@lambda(pc){
+			s += sprintfa("%016p\t%y\n", pc, pc);
+		}, xs);
+	return s;
 }
-
-@define pc2vmap(dvec, pc)
-{
-	@local v;
-	v = nil;
-	foreach(@lambda(u){
-			if(u.start > pc)
-				return;
-			v = u;
-		}, dvec);
-	if(v == nil)
-		error("pc2vmap: no vmap for %p", pc);
-	return v;
-}
-
-@define showrule(r)
-{
-	printf("rule: kind=%e r=%d n=%d\n",
-	       (enum ctlmux`Rulekind)r.kind,
-	       r.r,
-	       r.n);
-}
-
-@define applyunwind(rules, getreg, setreg, get, spno)
-{
-	@local uwns, cfa, i, r, needsp;
-
-	uwns = @names c32le {
-		enum
-		{
-			Nreg = 67,		/* # dwarf regs in amd64 abi */
-			CFA = Nreg,		/* index of CFA in Rule row */
-			Nrow = Nreg+1,		/* # entries in Rule row */
-		};
-
-		typedef
-		enum Rulekind
-		{
-			Rnone = 0,
-			// cfa rules
-			Rcfaro,
-			Rcfae,			/* unimplemented */
-			// register rules
-			Rsame,
-			Roff,
-			Rvoff,
-			Rreg,
-			Rexp,			/* unimplemented */
-			Rvexp,			/* unimplemented */
-		} Rulekind;
-
-	};
-
-	@defloc evalcfa()
-	{
-		@local r;
-		r = rules[uwns`CFA];
-		switch(r.kind){
-		case ctlmux`Rcfaro:
-			return getreg(r.r)+r.n;
-		case ctlmux`Rcfae:
-			error("unwind: rule Rcfae is unimplemented");
-		default:
-			error("unwind: bug");
-		}
-	}
-
-	cfa = evalcfa();
-	needsp = 0;
-	for(i = 0; i < uwns`Nreg; i++){
-		r = rules[i];
-		switch(r.kind){
-		case uwns`Rnone:
-			if(i == spno)
-				needsp = 1;
-			break;
-		case uwns`Rsame:
-			setreg(i, getreg(i));
-			break;
-		case uwns`Roff:
-			setreg(i, get(cfa+r.n));
-			break;
-		case uwns`Rvoff:
-			setreg(i, cfa+r.n);
-			break;
-		case uwns`Rreg:
-			setreg(i, getreg(r.r));
-			break;
-		case uwns`Rexp:
-		case uwns`Rvexp:
-			error("unwind: rule %e is unimplemented",
-			      (enum uwns`Rulekind)r.kind);
-		default:
-			error("unwind: bad unwind rule: %d\n", r.kind);
-		}
-	}
-
-	if(needsp)
-		setreg(spno, cfa);
-}
-
-@define mkuwctx32(dom, ctx)
-{
-	@local new;
-
-	/* copy ctx */
-	new = {@typeof(ctx)}getbytes(ctx);
-	
-	@defloc g(r)
-	{
-		switch(r){
-		case 0:  return ctx->rax;
-		case 1:  return ctx->rcx;
-		case 2:  return ctx->rdx;
-		case 3:  return ctx->rbx;
-		case 4:  return ctx->rsp;
-		case 5:  return ctx->rbp;
-		case 6:  return ctx->rsi;
-		case 7:  return ctx->rdi;
-		case 8:  return ctx->rip;
-		default:
-			error("getreg on bad register %d", r);
-		}
-	}
-
-	@defloc s(r, v)
-	{
-		switch(r){
-		case 0:  return new->rax = v;
-		case 1:  return new->rcx = v;
-		case 2:  return new->rdx = v;
-		case 3:  return new->rbx = v;
-		case 4:  return new->rsp = v;
-		case 5:  return new->rbp = v;
-		case 6:  return new->rsi = v;
-		case 7:  return new->rdi = v;
-		case 8:  return new->rip = v;
-		default:
-			error("putreg on bad register %d", r);
-		}
-	}
-
-	@defloc m(a)
-	{
-		return *(uintptr*){dom}a;
-	}
-	
-	return [g, s, m, new, 4];
-}
-
-@define mkuwctx64(dom, ctx)
-{
-	@local new;
-
-	/* copy ctx */
-	new = {@typeof(ctx)}getbytes(ctx);
-	
-	@defloc g(r)
-	{
-		switch(r){
-		case 0:  return ctx->rax;
-		case 1:  return ctx->rdx;
-		case 2:  return ctx->rcx;
-		case 3:  return ctx->rbx;
-		case 4:  return ctx->rsi;
-		case 5:  return ctx->rdi;
-		case 6:  return ctx->rbp;
-		case 7:  return ctx->rsp;
-		case 8:  return ctx->r8;
-		case 9:  return ctx->r9;
-		case 10: return ctx->r10;
-		case 11: return ctx->r11;
-		case 12: return ctx->r12;
-		case 13: return ctx->r13;
-		case 14: return ctx->r14;
-		case 15: return ctx->r15;
-		case 16: return ctx->rip;
-		case 49: return ctx->eflags;
-		case 50: return ctx->es;
-		case 51: return ctx->cs;
-		case 52: return ctx->ss;
-		case 53: return ctx->ds;
-		case 54: return ctx->fs;
-		case 55: return ctx->gs;
-		case 58: return ctx->fs_base;
-		case 59: return ctx->gs_base;
-		default:
-			error("get on bad register %d", r);
-		}
-	}
-
-	@defloc s(r, v)
-	{
-		switch(r){
-		case 0:  return new->rax = v;
-		case 1:  return new->rdx = v;
-		case 2:  return new->rcx = v;
-		case 3:  return new->rbx = v;
-		case 4:  return new->rsi = v;
-		case 5:  return new->rdi = v;
-		case 6:  return new->rbp = v;
-		case 7:  return new->rsp = v;
-		case 8:  return new->r8 = v;
-		case 9:  return new->r9 = v;
-		case 10: return new->r10 = v;
-		case 11: return new->r11 = v;
-		case 12: return new->r12 = v;
-		case 13: return new->r13 = v;
-		case 14: return new->r14 = v;
-		case 15: return new->r15 = v;
-		case 16: return new->rip = v;
-		case 49: return new->eflags = v;
-		case 50: return new->es = v;
-		case 51: return new->cs = v;
-		case 52: return new->ss = v;
-		case 53: return new->ds = v;
-		case 54: return new->fs = v;
-		case 55: return new->gs = v;
-		case 58: return new->fs_base = v;
-		case 59: return new->gs_base = v;
-		default:
-			error("get on bad register %d", r);
-		}
-	}
-
-	@defloc m(a)
-	{
-		return *(uintptr*){dom}a;
-	}
-	
-	return [g, s, m, new, 7];
-}
-
-@define unwind(mux, dvec, ctx)
-{
-	@local rs, v, new, g, s, m, spno, mkuwctx;
-
-	while(ctx->rip){
-		v = pc2vmap(dvec, ctx->rip);
-		printf("%016p\t%y\n", ctx->rip, {v.dom}ctx->rip);
-		rs = mux.unwind1(v.nsid, ctx);
-		if(rs == nil)
-			return;
-//		foreach(showrule, rs);
-		if(sizeof(looktype(v.dom, @typeof(void*))) == 8)
-			mkuwctx = mkuwctx64;
-		else
-			mkuwctx = mkuwctx32;
-		[g, s, m, new, spno] = mkuwctx(v.dom, ctx);
-		applyunwind(rs, g, s, m, spno);
-		ctx = new;
-	}
-}
-
-@global mux;
 
 @define try(prog)
 {
-	@local ctl, as, ns, dom, id, dvec;
+	@local ctl, as, ns, dom, dvec, mux, xs;
 
 	printf("%s:\n", prog);
 	mux = mkctlmux_local();
@@ -301,15 +27,15 @@ progs = [ "./wind1",
 	as = ctl.mem();
 	ns = ctl.ns();
 	dom = mkdom(ns, as);
-	id = dom.xtrap(&dom`f,
+	dom.xtrap(&dom`f,
 		       @lambda(ctl){
 			       if(dvec == nil)
-				       dvec = domvec(mux, ctl);
-			       unwind(mux, dvec, ctl.reg());
-			       printf("\n");
+				       dvec = mkdvec(mux, ctl);
+			       xs = dwunwind(dvec, ctl.reg());
+			       printf("%s\n", fmtstack(xs));
 		       });
 	dom.xcont();
 	mux.run();
 }
 
-try(progs[3]);
+foreach(try, progs);

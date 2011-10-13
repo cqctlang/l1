@@ -71,6 +71,8 @@ sctl = @names clp64le {
 		Renumseg,
 		Tnames,
 		Rnames,
+		Tunwind1,
+		Runwind1,
 	} Mkind;
 
 	enum Mode {
@@ -484,6 +486,7 @@ sctl = @names clp64le {
 	typedef struct Tns Tunwind;
 	typedef struct Tns Tenumseg;
 	typedef struct Tns Tnames;
+	typedef struct Tns Tunwind1;
 	typedef struct Tns Rlooksym;
 	typedef struct Tns Renumsym;
 	typedef struct Tns Rlooktype;
@@ -492,6 +495,7 @@ sctl = @names clp64le {
 	typedef struct Tns Renumloc;
 	typedef struct Tns Runwind;
 	typedef struct Tns Renumseg;
+	typedef struct Tns Runwind1;
 
 	struct Rnames{
 		@0	uint8 op;
@@ -1103,6 +1107,10 @@ sctl = @names clp64le {
 		return (sctl`Tunwind*)p;
 	case sctl`Runwind:
 		return (sctl`Runwind*)p;
+	case sctl`Tunwind1:
+		return (sctl`Tunwind1*)p;
+	case sctl`Runwind1:
+		return (sctl`Runwind1*)p;
 	case sctl`Tnames:
 		return (sctl`Tnames*)p;
 	case sctl`Rnames:
@@ -1225,6 +1233,8 @@ nexttag = 0;
 		break;
 	case sctl`Tunwind:
 	case sctl`Runwind:
+	case sctl`Tunwind1:
+	case sctl`Runwind1:
 		break;
 	case sctl`Tnames:
 		q = msg+1;
@@ -1569,7 +1579,40 @@ nexttag = 0;
 	return sym;
 }
 
-@define mkresolve(cache, undef, lt)
+@define sctlunwind1(fd, nsid, ctx)
+{
+	@local p, m, rep, dat;
+
+	p = m = mkxs();
+	p = (sctl`Tunwind1*)p;
+	p->op = sctl`Tunwind1;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	putbytes(p, getbytes(ctx));
+	p += sizeof(sctl`Ctx);
+	sendmsg(fd, m, (char*)p-m);
+
+	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("recvmsg: pid = %d %a", getpid(), dat);
+	switch(rep->op){
+	case sctl`Runwind1:
+		break;
+	case sctl`Rerror:
+		if(rep->bytes == Enone)
+			return nil;
+		error("sctl: error while waiting for %e: %s",
+		      sctl`Runwind1, rep->bytes);
+	default:
+		error("unexpected response: %e", rep->op);
+	}
+	return dat; /* encoded rules */
+}
+
+@define sctlmkresolve(cache, undef, lt)
 {
 	@local resolve, undefined, ptr, ptrrep;
 	@local typepos;
@@ -1670,16 +1713,15 @@ nexttag = 0;
 @define mksctlns(fd, nsid)
 {
 	@local type, sym, addr, undef;
-	@local lt, ls, et, es, la, ns;
-	@local psym2sym;
-	@local ltresolve;
+	@local ltresolve, ns;
 		
 	@defloc resetltr()
 	{
-		ltresolve = mkresolve(type, undef,
-				      @lambda(tn){
-					      sctllooktype(fd, nsid, ns, tn);
-				      });
+		ltresolve = sctlmkresolve(type, undef,
+					  @lambda(tn){
+						  sctllooktype(fd,
+							       nsid, ns, tn);
+					  });
 	}
 
 	type = [:];
@@ -1688,7 +1730,7 @@ nexttag = 0;
 	undef = [:];
 	resetltr();
 
-	@define lt(this, tn)
+	@defloc lt(this, tn)
 	{
 		@local t;
 		t = ltresolve(tn);
@@ -1697,7 +1739,7 @@ nexttag = 0;
 		return t;
 	}
 
-	@define et(this)
+	@defloc et(this)
 	{
 		@local resolve, ts;
 
@@ -1709,10 +1751,10 @@ nexttag = 0;
 		resetltr();
 
 		ts = sctlenumtype(fd, nsid, ns);
-		resolve = mkresolve(type, undef,
-				    @lambda(tn){
-					    return ts[typename(tn)];
-				    });
+		resolve = sctlmkresolve(type, undef,
+					@lambda(tn){
+						return ts[typename(tn)];
+					});
 		foreach(@lambda(k, v){
 				resolve(k);
 			}, ts);
@@ -1725,7 +1767,7 @@ nexttag = 0;
 		return type;
 	}
 
-	@define psym2sym(psym)
+	@defloc psym2sym(psym)
 	{
 		@local at, v, t;
 			
@@ -1742,7 +1784,7 @@ nexttag = 0;
 		return mksym(t, psym.id, at);
 	}
 		
-	@define ls(this, name)
+	@defloc ls(this, name)
 	{
 		@local psym, s;
 		s = sym[name];
@@ -1759,7 +1801,7 @@ nexttag = 0;
 		return s;
 	}
 
-	@define es(this)
+	@defloc es(this)
 	{
 		@local ss, s;
 
@@ -1775,7 +1817,7 @@ nexttag = 0;
 		return sym;
 	}
 
-	@define la(this, a)
+	@defloc la(this, a)
 	{
 		@local psym, s;
 		s = addr[a];
@@ -1790,10 +1832,17 @@ nexttag = 0;
 		return s;
 	}
 
+	@defloc uw1(this, ctx)
+	{
+		return sctlunwind1(fd, nsid, ctx);
+	}
+
 	ns = mkns([ "looktype" : lt,
 		    "enumtype" : et,
 		    "looksym"  : ls,
 		    "enumsym"  : es,
-		    "lookaddr" : la ]);
+		    "lookaddr" : la,
+		    "unwind1"  : uw1,
+		  ]);
 	return ns;
 }
