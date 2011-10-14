@@ -39,7 +39,7 @@ snamesaddr = "localhost:30000";
 		return nil;
 	}
 	fd = mkrock(fd);
-	nsid = names(fd, path);
+	nsid = sctlnames(fd, path);
 	if(nsid == nil)
 		return nil;
 	return mksctlns(fd, nsid);
