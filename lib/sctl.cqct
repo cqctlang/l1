@@ -1,12 +1,42 @@
 /* sctl messages */
-
 @include <xsas.cqct>
 
-@global Enone;
-@global snamesverbose;
+@global sctl,
 
-snamesverbose = 0;
+	/* client-side transactions */
+	sctlping,
+	sctlversion,
+	sctlnames,
+	sctllooktype,
+	sctlenumtype,
+	sctllooksym,
+	sctlenumsym,
+	sctllookaddr, 
+	sctlunwind1,
+
+	/* server-side replies */
+	sctlrerror,
+
+	/* codecs */
+	decodes,
+	decodetname,
+	encodesym,
+	encodetdef,
+	encodetname,
+
+	/* i/o */
+	sendmsg,
+	recvmsg,
+
+	Enone
+	;
+
+{
+@local verbose, nexttag;
+
+verbose = 0;
 Enone = "no such thing";
+nexttag = 0;
 
 sctl = @names clp64le {
 	typedef
@@ -542,7 +572,7 @@ sctl = @names clp64le {
 	type,
 };
 
-@define encodes(p, s)
+@defloc encodes(p, s)
 {
 	@local m;
 	m = strlen(s);
@@ -564,7 +594,7 @@ sctl = @names clp64le {
 	return [s, p];
 }
 
-@define encodeattrs(p, attrs)
+@defloc encodeattrs(p, attrs)
 {
 	@local na;
 
@@ -618,7 +648,7 @@ sctl = @names clp64le {
 	return p;
 }
 
-@define decodeattrs(p)
+@defloc decodeattrs(p)
 {
 	@local tab, na, i, k, v;
 
@@ -684,7 +714,7 @@ sctl = @names clp64le {
 	return p;
 }
 
-@define decodesym(p)
+@defloc decodesym(p)
 {
 	@local id, f, v, sz, t, at;
 
@@ -701,7 +731,7 @@ sctl = @names clp64le {
 	return [symrec(mkcid(id), f, v, at, sz, t), p];
 }
 
-@define encodefield(p, f)
+@defloc encodefield(p, f)
 {
 	@local id;
 	p = (uint64*)p;
@@ -716,7 +746,7 @@ sctl = @names clp64le {
 	return p;
 }
 
-@define decodefield(p)
+@defloc decodefield(p)
 {
 	@local off, at, id, st;
 	p = (uint64*)p;
@@ -728,7 +758,7 @@ sctl = @names clp64le {
 	return [mkfield(st, strlen(id) > 0 ? mkcid(id) : nil, at), p];
 }
 
-@define encodeparam(p, par)
+@defloc encodeparam(p, par)
 {
 	@local id;
 	p = encodeattrs(p, paramattr(par));
@@ -741,7 +771,7 @@ sctl = @names clp64le {
 	return p;
 }
 
-@define decodeparam(p)
+@defloc decodeparam(p)
 {
 	@local sid, at, pt, par;
 	[at, p] = decodeattrs(p);
@@ -922,7 +952,7 @@ sctl = @names clp64le {
 	}
 }
 
-@define decodetdef(ns, q)
+@defloc decodetdef(ns, q)
 {
 	@local k, cb, rep, sz, n, i, v, f, par, id, sid, c, mk, at, st;
 	@local w, pos;
@@ -1006,7 +1036,7 @@ sctl = @names clp64le {
 	}
 }
 
-@define buf2msg(p)
+@defloc buf2msg(p)
 {
 	@local op;
 	op = (enum sctl`Mkind)*(sctl`uint8*)p;
@@ -1136,17 +1166,16 @@ sctl = @names clp64le {
 	}
 }
 
-nexttag = 0;
-@define freshtag()
+@defloc freshtag()
 {
 	return nexttag++;
 }
 
-@define fmtmsg(msg, sz)
+@defloc fmtmsg(msg, sz)
 {
 	@local s, q, tn, td, nsid, id, n, a, sym;
 
-	if(!snamesverbose)
+	if(!verbose)
 		return;
 	msg = buf2msg(msg);
 	s = sprintfa("%e %d (%d bytes)",
@@ -1290,7 +1319,7 @@ nexttag = 0;
 	default:
 		error("bad sendmsg");
 	}
-	if(snamesverbose)
+	if(verbose)
 		printf("(send) %s\n", fmtmsg(p, sz));
 	write(fd, cval2str((uint64)sz));
 	e = errno();
@@ -1319,12 +1348,12 @@ nexttag = 0;
 		dat = getbytes(msg+1, sz-sizeof(*msg));
 	else
 		dat = "";
-	if(snamesverbose)
+	if(verbose)
 		printf("(recv) %s\n", fmtmsg(msg, sz));
 	return [msg, dat];
 }
 
-@define checkreply(rep, op)
+@defloc checkreply(rep, op)
 {
 	switch(rep->op){
 	case op:
@@ -1610,4 +1639,6 @@ nexttag = 0;
 		error("unexpected response: %e", rep->op);
 	}
 	return dat; /* encoded rules */
+}
+
 }

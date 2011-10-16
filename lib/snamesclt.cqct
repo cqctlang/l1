@@ -1,7 +1,7 @@
 #!/usr/bin/env l1
 !#
 
-@include <sctl.cqct>
+@include <sctlclt.cqct>
 @include <dump.cqct>
 @include <rocks.cqct>
 
