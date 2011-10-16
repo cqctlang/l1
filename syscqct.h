@@ -981,6 +981,9 @@ Expr*		docompilel(U *ctx, Expr *e);
 /* compilei.c */
 Expr*		docompilei(U *ctx, Expr *e);
 
+/* cpr.c */
+Expr*		docompiler(U *ctx, Expr *e);
+
 /* compile1.c */
 Expr*		docompile1(U *ctx, Expr *e);
 
