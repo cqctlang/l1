@@ -240,6 +240,13 @@ sctl = @names clp64le {
 	};
 
 	typedef
+	enum Vkind
+	{
+		Vlocal,
+		Vparam,
+	} Vkind;
+
+	typedef
 	enum Lkind {
 		Lreg,
 		Ladd,
