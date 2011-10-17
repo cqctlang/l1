@@ -1,7 +1,9 @@
 /* sctl messages */
 @include <xsas.cqct>
 
-@global sctl,
+@global
+	/* name space */
+	sctl,
 
 	/* client-side transactions */
 	sctlping,
@@ -13,6 +15,7 @@
 	sctlenumsym,
 	sctllookaddr, 
 	sctlunwind1,
+	sctlenumloc,
 
 	/* server-side replies */
 	sctlrerror,
@@ -28,6 +31,7 @@
 	sendmsg,
 	recvmsg,
 
+	/* errors */
 	Enone
 	;
 
@@ -234,6 +238,15 @@ sctl = @names clp64le {
 		Senum = Sro<<1,
 		Sinline = Senum<<1,
 	};
+
+	typedef
+	enum Lkind {
+		Lreg,
+		Ladd,
+		Lsub,
+		Lulit,
+		Lslit,
+	} Lkind;
 
 	enum ELF_SHN {
 		SHN_UNDEF	= 0,
@@ -547,6 +560,13 @@ sctl = @names clp64le {
 	id,
 	path,
 	base,
+};
+
+@record lexpr {
+	kind,
+	no,
+	v,	
+	op1, op2,
 };
 
 @record loc {
@@ -1033,6 +1053,37 @@ sctl = @names clp64le {
 		return [mkctype_bitfield(st, w, pos), q];
 	default:
 		error("decodetdef: unhandled case %d", k);
+	}
+}
+
+@defloc decodelexpr(q)
+{
+	@local k, no, v, op1, op2, le;
+	q = (uint8*)q;
+	k = *q++;
+	switch(k){
+	case sctl`Lreg:
+		no = *q++;
+		le = lexpr(k, no, nil, nil, nil);
+		return [le, q];
+	case sctl`Ladd:
+	case sctl`Lsub:
+		[op1, q] = decodelexpr(q);
+		[op2, q] = decodelexpr(q);
+		le = lexpr(k, nil, nil, op1, op2);
+		return [le, q];
+	case sctl`Lulit:
+		q = (uint64*)q;
+		v = *q++;
+		le = lexpr(k, nil, v, nil, nil);
+		return [le, q];
+	case sctl`Lslit:
+		q = (int64*)q;
+		v = *q++;
+		le = lexpr(k, nil, v, nil, nil);
+		return [le, q];
+	default:
+		error("unexpected lexpr %d", k);
 	}
 }
 
@@ -1639,6 +1690,52 @@ sctl = @names clp64le {
 		error("unexpected response: %e", rep->op);
 	}
 	return dat; /* encoded rules */
+}
+
+@define sctlenumloc(fd, nsid, ctx)
+{
+	@local p, q, m, rep, dat;
+	@local i, ls, id, tn, vk, le;
+
+	p = m = mkxs();
+	p = (sctl`Tenumloc*)p;
+	p->op = sctl`Tenumloc;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	putbytes(p, getbytes(ctx));
+	p += sizeof(sctl`Ctx);
+	sendmsg(fd, m, (char*)p-m);
+
+	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("recvmsg: pid = %d %a", getpid(), dat);
+	switch(rep->op){
+	case sctl`Renumloc:
+		break;
+	case sctl`Rerror:
+		if(rep->bytes == Enone)
+			return nil;
+		error("sctl: error while waiting for %e: %s",
+		      sctl`Renumloc, rep->bytes);
+	default:
+		error("unexpected response: %e", rep->op);
+	}
+
+	ls = [];
+	q = (uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		[id, q] = decodes(q);
+		[tn, q] = decodetname(q);
+		q = (uint8*)q;
+		vk = *q++;
+		[le, q] = decodelexpr(q);
+		append(ls, loc(id, nil, vk, le, tn));
+	}
+	return ls;
 }
 
 }

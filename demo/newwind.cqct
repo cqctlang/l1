@@ -7,19 +7,26 @@ progs = [ "./wind1",
 	  "./wind2",
 	  "./wind2.32" ];
 
-@define fmtstack(xs)
+@define fmtstack(pcs, lls)
 {
-	@local s;
+	@local s, m;
 	s = "";
+	m = 0;
 	foreach(@lambda(pc){
+			@local ll;
 			s += sprintfa("%016p\t%y\n", pc, pc);
-		}, xs);
+			ll = lls[m++];
+			if(ll)
+				foreach(@lambda(l){
+						s += sprintfa("\t%t\n", l);
+					}, ll);
+		}, pcs);
 	return s;
 }
 
 @define try(prog)
 {
-	@local ctl, as, ns, dom, dvec, mux, xs;
+	@local ctl, as, ns, dom, dvec, mux, xs, pcs, lls;
 
 	printf("%s:\n", prog);
 	mux = mkctlmux_local();
@@ -32,7 +39,25 @@ progs = [ "./wind1",
 			       if(dvec == nil)
 				       dvec = mkdvec(mux, ctl);
 			       xs = dwunwind(dvec, ctl.reg());
-			       printf("%s\n", fmtstack(xs));
+			       pcs = map(@lambda(ctx){
+					       @local v;
+					       v = lookdvec(dvec, ctx->rip);
+					       return {v.dom}ctx->rip;
+				       }, xs);
+			       lls = map(@lambda(ctx){
+					       @local v, ll, ns;
+					       v = lookdvec(dvec, ctx->rip);
+					       ns = v.dom.ns;
+					       ll = ns.enumloc(ctx);
+					       if(ll)
+						       ll = map(@lambda(l){
+								       mksym(looktype(ns, l.type),
+									     mkcid(l.id),
+									     0);
+							       }, ll);
+					       return ll;
+				       }, xs);
+			       printf("%s\n", fmtstack(pcs, lls));
 		       });
 	dom.xcont();
 	mux.run();

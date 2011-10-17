@@ -128,12 +128,18 @@
 		return sctlunwind1(fd, nsid, ctx);
 	}
 
+	@defloc el(this, ctx)
+	{
+		return sctlenumloc(fd, nsid, ctx);
+	}
+
 	ns = mkns([ "looktype" : lt,
 		    "enumtype" : et,
 		    "looksym"  : ls,
 		    "enumsym"  : es,
 		    "lookaddr" : la,
 		    "unwind1"  : uw1,
+		    "enumloc"  : el,
 		  ]);
 	return ns;
 }
@@ -167,6 +173,13 @@
 		return ns.unwind1(ctx);
 	}
 
+	@defloc el(this, ctx)
+	{
+		ctx = cop(ctx);
+		ctx->rip -= base;
+		return ns.enumloc(ctx);
+	}
+
 	nso = mknsoff(ns, base);
 	return mkns([
 		    "looksym"  : @lambda(this, s) { nso.looksym(s); },
@@ -175,5 +188,6 @@
 		    "looktype" : @lambda(this, t) { nso.looktype(t); },
 		    "enumtype" : @lambda(this)    { nso.enumtype(); },
 		    "unwind1"  : uw1,
+		    "enumloc"  : el,
 		    ]);
 }

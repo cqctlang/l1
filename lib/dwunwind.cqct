@@ -36,6 +36,13 @@ uwns = @names c32le {
 	n,
 };
 
+/* return pointer to copy of data pointed to by P
+   consistent with type of *P */
+@defloc cop(p)
+{
+	return {@typeof(p)}getbytes(p);
+}
+
 @defloc decoderules(q)
 {
 	@local rs, m, i, k, r, n;
@@ -253,7 +260,7 @@ uwns = @names c32le {
 	xs = [];
 	while(ctx->rip){
 		v = lookdvec(dvec, ctx->rip);
-		append(xs, {v.dom}ctx->rip);
+		append(xs, cop(ctx));
 		dom = v.dom;
 		rs = dom.ns.unwind1(ctx);
 		if(rs == nil){
