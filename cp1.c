@@ -18,49 +18,6 @@ compiledef(U *ctx, Expr *e)
 }
 
 static Expr*
-compilerec(U *ctx, Expr *e)
-{
-	char *id, *is;
-	unsigned len;
-	Expr *p;
-	Xenv *xe;
-
-	xe = mkxenv(0);
-	p = e->e2;
-	while(p->kind == Eelist){
-		id = idsym(p->e1);
-		if(xenvlook(xe, id)){
-			freexenv(xe);
-			cerror(ctx, e,
-			       "record has multiple bindings for %s",
-			       id);
-		}
-		xenvbind(xe, id, id);
-		p = p->e2;
-	}
-	freexenv(xe);
-
-	id = idsym(e->e1);
-	len = 2+strlen(id)+1;
-	is = emalloc(len);
-	snprint(is, len, "is%s", id);
-	p = Zblock(Zlocals(1, "$rd"),
-		   Zset(doid("$rd"),
-			Zcall(G("mkrd"), 2,
-			      Zstr(id),
-			      Zids2syms(e->e2))),
-		   Zset(doid(id), Zcall(G("rdmk"),
-					1, doid("$rd"))),
-		   Zset(doid(is), Zcall(G("rdis"),
-					1, doid("$rd"))),
-		   doid("$rd"),
-		   NULL);
-	efree(is);
-	putsrc(p, e->src);
-	return p;
-}
-
-static Expr*
 compiletab(U *ctx, Expr *e)
 {
 	Expr *loc, *te, *se, *ti;
@@ -406,9 +363,6 @@ compile1(U *ctx, Expr *e)
 	switch(e->kind){
 	case Edefine:
 		se = compiledef(ctx, e);
-		return se;
-	case Edefrec:
-		se = compilerec(ctx, e);
 		return se;
 	case Elambda:
 	case Eblock:

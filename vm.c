@@ -2986,6 +2986,10 @@ nscachebase(VM *vm, Ns *ns)
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypeptr(mkctypevoid(), Rundef));
 	rv = safedovm(vm, ns->looktype, 2, argv);
+	if(Vkind(rv) == Qnil){
+		argv[1] = mkvalctype(mkctypebase(Vptr, Rundef));
+		rv = safedovm(vm, ns->looktype, 2, argv);
+	}
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define void*");
 	ns->base[Vptr] = mkctypebase(Vptr, typerep(valctype(rv)));

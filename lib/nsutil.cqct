@@ -5,7 +5,7 @@
 if (nsutil_defined == nil)
 {
 @global typenameequal, typeequal, nsdiff, printtype, printns;
-@global types_with_ptrs, nsiter, all_types, nsjoin, mknsoff;
+@global types_with_ptrs, nsiter, all_types, nsjoin, mknsoff, mktnresolve;
 
 nsutil_defined = 1;
 
@@ -435,7 +435,7 @@ nsutil_defined = 1;
 }
 
 
-
+/* FIXME: clean up the casting ... carefully. */
 @define mknsoff(ns,off) {
 	@local  _ls, _es, _la, inc_sym, sym_cache, _addsym;
 
@@ -449,7 +449,7 @@ nsutil_defined = 1;
 		new_attr = mktab();
 		foreach(@lambda(k,v) {
 			if (k == "offset") {
-				new_attr[k] = (ns`uintptr)v+off;
+				new_attr[k] = (ns`uintptr)((ns`uintptr)v+off);
 			} else {
 				new_attr[k] = v;
 			}
@@ -488,8 +488,7 @@ nsutil_defined = 1;
 		//if we happen to find exactly the right address, we
 		//don't have to ask the other ns.
 		if (sym1 != nil && symoff(sym1) == addr) return sym1;
-		if (addr-off > addr) return nil;
-		sym = ns.lookaddr(addr-off);
+		sym = ns.lookaddr((ns`uintptr)((ns`uintptr)addr-off));
 		//only if we don't already have the symbol cached is
 		//it necessary to check if the lookaddr symbol is best.
 		if (sym != nil) {
@@ -520,6 +519,105 @@ nsutil_defined = 1;
 	]);
 
 }
+
+@define mktnresolve(cache, undef, lt)
+{
+	@local resolve, undefined, ptr, ptrrep;
+	@local typepos;
+
+	typepos = 0;   // FIXME: should be opaque
+
+	ptr = lt(mkctype_base(cqct`Vptr));
+	if(ptr == nil)
+		error("no pointer type");
+	ptrrep = baserep(ptr);
+
+	@define undefined(tn)
+	{
+		@local td;
+		td = mkctype_undef(tn);
+		cache[typename(tn)] = td;
+		undef[typename(tn)] = td;
+		return td;
+	}
+
+	@define resolve(tn)
+	{
+		@local td, i, m, s, v, st;
+
+		td = cache[typename(tn)];
+		if(td != nil)
+			return td;
+
+		if(isbase(tn)){
+			td = lt(tn);
+			if(td == nil)
+				error("name space does not define %t", tn);
+			cache[typename(tn)] = td;
+			return td;
+		}else if(issu(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td; // terminate cycles
+			s = fields(td);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			return td;
+		}else if(isenum(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td;
+			return td;
+		}else if(istypedef(tn)){
+			td = lt(tn);
+			if(td == nil)
+				return undefined(tn);
+			cache[typename(tn)] = td; // terminate cycles
+			settypedeftype(td, resolve(typedeftype(td)));
+			return td;
+		}else if(isptr(tn)){
+			td = mkctype_ptr(resolve(subtype(tn)), ptrrep);
+			/* FIXME: cannot cache into cache because
+			   we return that as enumtype.  but we could
+		           create a separate ptrcache. */
+			// cache[typename(tn)] = td; // why not?
+			return td;
+		}else if(isenumconst(tn)){
+			td = mkctype_const(resolve(subtype(tn)));
+			return td;
+		}else if(isfunc(tn)){
+			s = params(tn);
+			m = length(s);
+			for(i = 0; i < m; i++){
+				v = s[i];
+				v[typepos] = resolve(v[typepos]);
+			}
+			td = mkctype_fn(resolve(rettype(tn)), s);
+			return td;
+		}else if(isarray(tn)){
+			return mkctype_array(resolve(subtype(tn)),
+					     arraynelm(tn));
+		}else if(isvoid(tn)){
+			cache[typename(tn)] = mkctype_void();
+		}else if(isbitfield(tn)){
+			st = resolve(bitfieldcontainer(tn));
+			return mkctype_bitfield(st,
+						bitfieldwidth(tn),
+						bitfieldpos(tn));
+		}else if(isundeftype(tn)){
+			cache[typename(tn)] = tn;
+		}else
+			error("type resolution on unexpected type: %t", tn);
+	}
+	
+	return resolve;
+}
+
 
 }
 
