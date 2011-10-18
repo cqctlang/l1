@@ -1740,7 +1740,7 @@ sctl = @names clp64le {
 		q = (uint8*)q;
 		vk = *q++;
 		[le, q] = decodelexpr(q);
-		append(ls, loc(id, nil, vk, le, tn));
+		append(ls, loc(mkcid(id), nil, vk, le, tn));
 	}
 	return ls;
 }

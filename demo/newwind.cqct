@@ -13,15 +13,156 @@ progs = [ "./wind1",
 	s = "";
 	m = 0;
 	foreach(@lambda(pc){
-			@local ll;
+			@local lns;
 			s += sprintfa("%016p\t%y\n", pc, pc);
-			ll = lls[m++];
-			if(ll)
-				foreach(@lambda(l){
-						s += sprintfa("\t%t\n", l);
-					}, ll);
+			lns = lls[m++];
+			if(lns)
+				foreach(@lambda(id, l){
+						s += sprintfa("\t%p\t%t\n",
+							      symoff(l),
+							      l);
+					}, lns.enumsym());
 		}, pcs);
 	return s;
+}
+
+/* this should be rationalized with dwunwind ctx cracker */
+
+@define mkctxloc32(ctx)
+{
+	@defloc cl(r)
+	{
+		switch(r){
+		case 0:  return (uint32*)&ctx->rax;
+		case 1:  return (uint32*)&ctx->rcx;
+		case 2:  return (uint32*)&ctx->rdx;
+		case 3:  return (uint32*)&ctx->rbx;
+		case 4:  return (uint32*)&ctx->rsp;
+		case 5:  return (uint32*)&ctx->rbp;
+		case 6:  return (uint32*)&ctx->rsi;
+		case 7:  return (uint32*)&ctx->rdi;
+		case 8:  return (uint32*)&ctx->rip;
+		default:
+			error("ctxloc on bad register %d", r);
+		}
+	}
+
+	return cl;
+}
+
+@define mkctxloc64(ctx)
+{
+	@defloc cl(r)
+	{
+		switch(r){
+		case 0:  return &ctx->rax;
+		case 1:  return &ctx->rdx;
+		case 2:  return &ctx->rcx;
+		case 3:  return &ctx->rbx;
+		case 4:  return &ctx->rsi;
+		case 5:  return &ctx->rdi;
+		case 6:  return &ctx->rbp;
+		case 7:  return &ctx->rsp;
+		case 8:  return &ctx->r8;
+		case 9:  return &ctx->r9;
+		case 10: return &ctx->r10;
+		case 11: return &ctx->r11;
+		case 12: return &ctx->r12;
+		case 13: return &ctx->r13;
+		case 14: return &ctx->r14;
+		case 15: return &ctx->r15;
+		case 16: return &ctx->rip;
+		case 49: return &ctx->eflags;
+		case 50: return &ctx->es;
+		case 51: return &ctx->cs;
+		case 52: return &ctx->ss;
+		case 53: return &ctx->ds;
+		case 54: return &ctx->fs;
+		case 55: return &ctx->gs;
+		case 58: return &ctx->fs_base;
+		case 59: return &ctx->gs_base;
+		default:
+			error("ctxloc on bad register %d", r);
+		}
+	}
+	
+	return cl;
+}
+
+@define localns(ll, ns, ctx)
+{
+	@local lt, ls, et, es, la;
+	@local sym, ctxloc;
+
+	sym = [:];
+
+	@defloc lexpreval(le, ctxloc)
+	{
+		@local o1, o2;
+		switch(le.kind){
+		case sctl`Lreg:
+			return *ctxloc(le.no);
+		case sctl`Ladd:
+			o1 = lexpreval(le.op1, ctxloc);
+			o2 = lexpreval(le.op2, ctxloc);
+			return o1+o2;
+		case sctl`Lsub:
+			o1 = lexpreval(le.op1, ctxloc);
+			o2 = lexpreval(le.op2, ctxloc);
+			return o1-o2;
+		case sctl`Lulit:
+			return le.v;
+		case sctl`Lslit:
+			return le.v;
+		default:
+			error("unknown local expression kind: %d", le.lkind);
+		}
+	}
+
+	ctxloc = sizeof(ns`void*) == 8 ? mkctxloc64(ctx) : mkctxloc32(ctx);
+	foreach(@lambda(l){
+			@local a, td;
+			if(l.loc.kind == sctl`Lreg){
+				printf("skipping register-homed local %s",
+				       l.id);
+				return;
+			}
+			a = lexpreval(l.loc, ctxloc);
+			td = looktype(ns, l.type);
+			sym[l.id] = mksym(td, l.id, a);
+		}, ll);
+
+	@define lt(this, tn)
+	{
+		return ns.looktype(tn);
+	}
+
+	@define et(this)
+	{
+		return ns.enumtype();
+	}
+
+	@define ls(this, name)
+	{
+		return sym[name];
+	}
+		
+	@define es(this)
+	{
+		return sym;
+	}
+
+	@define la(this, a)
+	{
+		/* locals are not code, so just go to ns */
+		return ns.lookaddr(a);
+	}
+
+	return mkns([ "looktype" : lt,
+		      "enumtype" : et,
+		      "looksym"  : ls,
+		      "enumsym"  : es,
+		      "lookaddr" : la ]);
 }
 
 @define try(prog)
@@ -42,20 +183,18 @@ progs = [ "./wind1",
 			       pcs = map(@lambda(ctx){
 					       @local v;
 					       v = lookdvec(dvec, ctx->rip);
+					       printf("bp %p\n", ctx->rbp);
 					       return {v.dom}ctx->rip;
 				       }, xs);
 			       lls = map(@lambda(ctx){
-					       @local v, ll, ns;
+					       @local v, ll, ns, lns;
 					       v = lookdvec(dvec, ctx->rip);
 					       ns = v.dom.ns;
 					       ll = ns.enumloc(ctx);
-					       if(ll)
-						       ll = map(@lambda(l){
-								       mksym(looktype(ns, l.type),
-									     mkcid(l.id),
-									     0);
-							       }, ll);
-					       return ll;
+					       if(ll == nil)
+						       return nil;
+					       lns = localns(ll, ns, ctx);
+					       return lns;
 				       }, xs);
 			       printf("%s\n", fmtstack(pcs, lls));
 		       });
