@@ -1,7 +1,8 @@
 @include <ctlmux.cqct>
 @include <sctlclt.cqct>
 @include <dwunwind.cqct>
-@include <dump.cqct>
+@include <dwlocal.cqct>
+/* @include <dump.cqct> */ /* objectStr */
 
 progs = [ [ "./wind1", 'f ],
 	  [ "./wind1.32", 'f ],
@@ -46,204 +47,6 @@ progs = [ [ "./wind1", 'f ],
 	return s;
 }
 
-/* this should be rationalized with dwunwind ctx cracker */
-
-@define mkctxloc32(ctx)
-{
-	@defloc cl(r)
-	{
-		switch(r){
-		case 0:  return (uint32*)&ctx->rax;
-		case 1:  return (uint32*)&ctx->rcx;
-		case 2:  return (uint32*)&ctx->rdx;
-		case 3:  return (uint32*)&ctx->rbx;
-		case 4:  return (uint32*)&ctx->rsp;
-		case 5:  return (uint32*)&ctx->rbp;
-		case 6:  return (uint32*)&ctx->rsi;
-		case 7:  return (uint32*)&ctx->rdi;
-		case 8:  return (uint32*)&ctx->rip;
-		default:
-			error("ctxloc on bad register %d", r);
-		}
-	}
-
-	return cl;
-}
-
-@define mkctxloc64(ctx)
-{
-	@defloc cl(r)
-	{
-		switch(r){
-		case 0:  return &ctx->rax;
-		case 1:  return &ctx->rdx;
-		case 2:  return &ctx->rcx;
-		case 3:  return &ctx->rbx;
-		case 4:  return &ctx->rsi;
-		case 5:  return &ctx->rdi;
-		case 6:  return &ctx->rbp;
-		case 7:  return &ctx->rsp;
-		case 8:  return &ctx->r8;
-		case 9:  return &ctx->r9;
-		case 10: return &ctx->r10;
-		case 11: return &ctx->r11;
-		case 12: return &ctx->r12;
-		case 13: return &ctx->r13;
-		case 14: return &ctx->r14;
-		case 15: return &ctx->r15;
-		case 16: return &ctx->rip;
-		case 49: return &ctx->eflags;
-		case 50: return &ctx->es;
-		case 51: return &ctx->cs;
-		case 52: return &ctx->ss;
-		case 53: return &ctx->ds;
-		case 54: return &ctx->fs;
-		case 55: return &ctx->gs;
-		case 58: return &ctx->fs_base;
-		case 59: return &ctx->gs_base;
-		default:
-			error("ctxloc on bad register %d", r);
-		}
-	}
-	
-	return cl;
-}
-
-/* true if tr is contained inside sr */
-@define rangecontains(sr, tr)
-{
-	@local sb, sl, tb, tl;
-	sb = rangebeg(sr);
-	sl = rangelen(sr);
-	tb = rangebeg(tr);
-	tl = rangelen(tr);
-	if(sb <= tb && sb+sl >= tb+tl)
-		return 1;
-	return 0;
-}
-
-@define mkoveras(as, p, base)
-{
-	@local sr, m;
-
-	sr = mkrange((uintptr)p, sizeof(*p));
-	m = vector(sr);
-	p = (void*)p;
-	@defloc get(this, r)
-	{
-		@local b, l;
-		if(!rangecontains(sr, r))
-			return as.get(r);
-		b = rangebeg(r);
-		l = rangelen(r);
-		return getbytes(p+b-base, l);
-	}
-
-	@defloc put(this, r, s)
-	{
-		@local b;
-		if(!rangecontains(sr, r))
-			return as.put(r, s);
-		b = rangebeg(r);
-		return putbytes(p+b-base, s);
-	}
-
-	@defloc map(this)
-	{
-		printf("warning: map on overas is incomplete");
-		return as.map();
-	}
-
-	@defloc ismapped(this, r)
-	{
-		return isrinr(r, m) || as.ismapped(r);
-	}
-
-	return mkas([ "get"       : get,
-		      "put"       : put,
-		      "map"       : map,
-		      "ismapped"  : ismapped,
-		    ]);
-}
-
-@define localdom(ll, dom, ctx)
-{
-	@local lt, ls, et, es, la, ns, nns, as;
-	@local sym, ctxloc;
-
-	sym = [:];
-	ns = dom.ns;
-	as = mkoveras(dom.as, ctx, 0);
-	ctx = {@typeof(ctx)}{mkdom(ns, as)}0; /* yo! */
-
-	@defloc lexpreval(le, ctxloc)
-	{
-		@local o1, o2;
-		switch(le.kind){
-		case sctl`Lreg:
-			return *ctxloc(le.no);
-		case sctl`Ladd:
-			o1 = lexpreval(le.op1, ctxloc);
-			o2 = lexpreval(le.op2, ctxloc);
-			return o1+o2;
-		case sctl`Lsub:
-			o1 = lexpreval(le.op1, ctxloc);
-			o2 = lexpreval(le.op2, ctxloc);
-			return o1-o2;
-		case sctl`Lulit:
-			return le.v;
-		case sctl`Lslit:
-			return le.v;
-		default:
-			error("unknown local expression kind: %d", le.lkind);
-		}
-	}
-
-	ctxloc = sizeof(ns`void*) == 8 ? mkctxloc64(ctx) : mkctxloc32(ctx);
-	foreach(@lambda(l){
-			@local a, td;
-			if(l.loc.kind == sctl`Lreg)
-				a = ctxloc(l.loc.no);
-			else
-				a = lexpreval(l.loc, ctxloc);
-			td = looktype(ns, l.type);
-			sym[l.id] = mksym(td, l.id, a);
-		}, ll);
-
-	@define lt(this, tn)
-	{
-		return ns.looktype(tn);
-	}
-
-	@define et(this)
-	{
-		return ns.enumtype();
-	}
-
-	@define ls(this, name)
-	{
-		return sym[name];
-	}
-		
-	@define es(this)
-	{
-		return sym;
-	}
-
-	@define la(this, a)
-	{
-		/* locals are not code, so just go to ns */
-		return ns.lookaddr(a);
-	}
-
-	nns = mkns([ "looktype" : lt,
-		    "enumtype" : et,
-		    "looksym"  : ls,
-		    "enumsym"  : es,
-		    "lookaddr" : la ]);
-	return mkdom(nns, as);
-}
-
 @define try(spec)
 {
 	@local ctl, as, ns, dom, dvec, mux, xs, pcs, lls;
@@ -268,23 +71,13 @@ progs = [ [ "./wind1", 'f ],
 			  pcs = map(@lambda(ctx){
 					  @local v;
 					  v = lookdvec(dvec, ctx->rip);
-					  printf("sp %p\n", ctx->rsp);
 					  return {v.dom}ctx->rip;
 				  }, xs);
-			  lls = map(@lambda(ctx){
-					  @local v, ll, ns, ldom;
-					  v = lookdvec(dvec, ctx->rip);
-					  ns = v.dom.ns;
-					  ll = ns.enumloc(ctx);
-					  if(ll == nil)
-						  return nil;
-					  ldom = localdom(ll, v.dom, ctx);
-					  return ldom;
-				  }, xs);
+			  lls = map(@lambda(ctx){ dwlocal(dvec, ctx); }, xs);
 			  printf("%s\n", fmtstack(pcs, lls));
 		  });
 	dom.xcont();
 	mux.run();
 }
 
-//foreach(try, progs);
+foreach(try, progs);
