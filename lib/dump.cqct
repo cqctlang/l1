@@ -174,7 +174,7 @@ Function for testing.
 				ret += buf + objectStr(
 					{mkctype_ptr(fieldtype(flds[i]),
 						nsptr(domof(p).ns))}
-					  (({nsptr(domof(p))}p) +
+					(((void*)p) +
 					   fieldoff(flds[i])),
 						nxt_indent);
 			}
