@@ -1,11 +1,30 @@
 @include <ctlmux.cqct>
 @include <sctlclt.cqct>
 @include <dwunwind.cqct>
+@include <dump.cqct>
 
-progs = [ "./wind1",
-	  "./wind1.32",
-	  "./wind2",
-	  "./wind2.32" ];
+progs = [ [ "./wind1", 'f ],
+	  [ "./wind1.32", 'f ],
+	  [ "./wind2", 'f ],
+	  [ "./wind2.32", 'f ],
+	];
+
+// @define fmtloc(ldom)
+// {
+// 	@local nptr, s, t;
+// 	nptr = nsptr(ldom);
+// 	s = "";
+// 	foreach(@lambda(id, sym){
+// 			s += sprintfa("\t%016p\t%t ",
+// 				     symoff(sym), sym);
+// 			t = mkctype_ptr(symtype(sym), nptr);
+// 			printf("objectStr on %016p\t%t\n",
+// 			       symoff(sym), sym);
+// 			s += objectStr({t}{ldom}symoff(sym));
+// 			s += "\n";
+// 		}, ldom.enumsym());
+// 	return s;
+// }
 
 @define fmtstack(pcs, lls)
 {
@@ -13,15 +32,16 @@ progs = [ "./wind1",
 	s = "";
 	m = 0;
 	foreach(@lambda(pc){
-			@local lns;
+			@local ldom;
 			s += sprintfa("%016p\t%y\n", pc, pc);
-			lns = lls[m++];
-			if(lns)
+			ldom = lls[m++];
+			if(ldom)
+//				s += fmtloc(ldom);
 				foreach(@lambda(id, l){
-						s += sprintfa("\t%p\t%t\n",
+						s += sprintfa("\t%016p\t%t\n",
 							      symoff(l),
 							      l);
-					}, lns.enumsym());
+					}, ldom.enumsym());
 		}, pcs);
 	return s;
 }
@@ -89,12 +109,72 @@ progs = [ "./wind1",
 	return cl;
 }
 
-@define localns(ll, ns, ctx)
+/* true if tr is contained inside sr */
+@define rangecontains(sr, tr)
 {
-	@local lt, ls, et, es, la;
+	@local sb, sl, tb, tl;
+	sb = rangebeg(sr);
+	sl = rangelen(sr);
+	tb = rangebeg(tr);
+	tl = rangelen(tr);
+	if(sb <= tb && sb+sl >= tb+tl)
+		return 1;
+	return 0;
+}
+
+@define mkoveras(as, p, base)
+{
+	@local sr, m;
+
+	sr = mkrange((uintptr)p, sizeof(*p));
+	m = vector(sr);
+	p = (void*)p;
+	@defloc get(this, r)
+	{
+		@local b, l;
+		if(!rangecontains(sr, r))
+			return as.get(r);
+		b = rangebeg(r);
+		l = rangelen(r);
+		return getbytes(p+b-base, l);
+	}
+
+	@defloc put(this, r, s)
+	{
+		@local b;
+		if(!rangecontains(sr, r))
+			return as.put(r, s);
+		b = rangebeg(r);
+		return putbytes(p+b-base, s);
+	}
+
+	@defloc map(this)
+	{
+		printf("warning: map on overas is incomplete");
+		return as.map();
+	}
+
+	@defloc ismapped(this, r)
+	{
+		return isrinr(r, m) || as.ismapped(r);
+	}
+
+	return mkas([ "get"       : get,
+		      "put"       : put,
+		      "map"       : map,
+		      "ismapped"  : ismapped,
+		    ]);
+}
+
+@define localdom(ll, dom, ctx)
+{
+	@local lt, ls, et, es, la, ns, nns, as;
 	@local sym, ctxloc;
 
 	sym = [:];
+	ns = dom.ns;
+	as = mkoveras(dom.as, ctx, 0);
+	ctx = {@typeof(ctx)}{mkdom(ns, as)}0; /* yo! */
 
 	@defloc lexpreval(le, ctxloc)
 	{
@@ -122,12 +202,10 @@ progs = [ "./wind1",
 	ctxloc = sizeof(ns`void*) == 8 ? mkctxloc64(ctx) : mkctxloc32(ctx);
 	foreach(@lambda(l){
 			@local a, td;
-			if(l.loc.kind == sctl`Lreg){
-				printf("skipping register-homed local %s",
-				       l.id);
-				return;
-			}
-			a = lexpreval(l.loc, ctxloc);
+			if(l.loc.kind == sctl`Lreg)
+				a = ctxloc(l.loc.no);
+			else
+				a = lexpreval(l.loc, ctxloc);
 			td = looktype(ns, l.type);
 			sym[l.id] = mksym(td, l.id, a);
 		}, ll);
@@ -158,48 +236,55 @@ progs = [ "./wind1",
 		return ns.lookaddr(a);
 	}
 
-	return mkns([ "looktype" : lt,
-		      "enumtype" : et,
-		      "looksym"  : ls,
-		      "enumsym"  : es,
-		      "lookaddr" : la ]);
+	nns = mkns([ "looktype" : lt,
+		    "enumtype" : et,
+		    "looksym"  : ls,
+		    "enumsym"  : es,
+		    "lookaddr" : la ]);
+	return mkdom(nns, as);
 }
 
-@define try(prog)
+@define try(spec)
 {
 	@local ctl, as, ns, dom, dvec, mux, xs, pcs, lls;
+	@local prog, id, sym;
 
+	prog = spec[0];
+	id = spec[1];
 	printf("%s:\n", prog);
 	mux = mkctlmux_local();
 	ctl = mux.launch([prog], 0);
 	as = ctl.mem();
 	ns = ctl.ns();
 	dom = mkdom(ns, as);
-	dom.xtrap(&dom`f,
-		       @lambda(ctl){
-			       if(dvec == nil)
-				       dvec = mkdvec(mux, ctl);
-			       xs = dwunwind(dvec, ctl.reg());
-			       pcs = map(@lambda(ctx){
-					       @local v;
-					       v = lookdvec(dvec, ctx->rip);
-					       printf("bp %p\n", ctx->rbp);
-					       return {v.dom}ctx->rip;
-				       }, xs);
-			       lls = map(@lambda(ctx){
-					       @local v, ll, ns, lns;
-					       v = lookdvec(dvec, ctx->rip);
-					       ns = v.dom.ns;
-					       ll = ns.enumloc(ctx);
-					       if(ll == nil)
-						       return nil;
-					       lns = localns(ll, ns, ctx);
-					       return lns;
-				       }, xs);
-			       printf("%s\n", fmtstack(pcs, lls));
-		       });
+	sym = looksym(dom, id);
+	if(sym == nil)
+		error("%s is not defined in %s", id, prog);
+	dom.xtrap(symoff(sym),
+		  @lambda(ctl){
+			  if(dvec == nil)
+				  dvec = mkdvec(mux, ctl);
+			  xs = dwunwind(dvec, ctl.reg());
+			  pcs = map(@lambda(ctx){
+					  @local v;
+					  v = lookdvec(dvec, ctx->rip);
+					  printf("sp %p\n", ctx->rsp);
+					  return {v.dom}ctx->rip;
+				  }, xs);
+			  lls = map(@lambda(ctx){
+					  @local v, ll, ns, ldom;
+					  v = lookdvec(dvec, ctx->rip);
+					  ns = v.dom.ns;
+					  ll = ns.enumloc(ctx);
+					  if(ll == nil)
+						  return nil;
+					  ldom = localdom(ll, v.dom, ctx);
+					  return ldom;
+				  }, xs);
+			  printf("%s\n", fmtstack(pcs, lls));
+		  });
 	dom.xcont();
 	mux.run();
 }
 
-foreach(try, progs);
+//foreach(try, progs);
