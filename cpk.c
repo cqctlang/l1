@@ -21,6 +21,7 @@ chknil(U *ctx, Expr *e)
 
 /* turn any nil Eid reference to Enil.
    error any rebinding or redefinition of nil
+   FIXME: update for defstx?  avoid need for such updates!
 */
 static Expr*
 xnil(U *ctx, Expr *e)
@@ -39,12 +40,12 @@ xnil(U *ctx, Expr *e)
 		id = idsym(e->e1);
 		if(!strcmp(id, "nil"))
 			cerror(ctx, e, "attempt to redefine nil");
-		e->e2 = xnil(ctx, e->e2);
+		sete2(e, xnil(ctx, e->e2));
 		return e;
 	case Eblock:
 	case Elambda:
 		chknil(ctx, e->e1);
-		e->e2 = xnil(ctx, e->e2);
+		sete2(e, xnil(ctx, e->e2));
 		return e;
 	case Eglobal:
 		chknil(ctx, e->e1);
@@ -55,7 +56,7 @@ xnil(U *ctx, Expr *e)
 		if(!strcmp(id, "nil"))
 			cerror(ctx, e, "attempt to redefine nil");
 		chknil(ctx, e->e2);
-		e->e3 = xnil(ctx, e->e3);
+		sete3(e, xnil(ctx, e->e3));
 		return e;
 	case Egoto:
 	case Elabel:
@@ -66,15 +67,15 @@ xnil(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = xnil(ctx, p->e1);
+			sete1(p, xnil(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = xnil(ctx, e->e1);
-		e->e2 = xnil(ctx, e->e2);
-		e->e3 = xnil(ctx, e->e3);
-		e->e4 = xnil(ctx, e->e4);
+		sete1(e, xnil(ctx, e->e1));
+		sete2(e, xnil(ctx, e->e2));
+		sete3(e, xnil(ctx, e->e3));
+		sete4(e, xnil(ctx, e->e4));
 		return e;
 	}
 

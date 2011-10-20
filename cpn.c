@@ -64,15 +64,15 @@ enumsubconst(U *ctx, HT *tab, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = enumsubconst(ctx, tab, p->e1);
+			sete1(p, enumsubconst(ctx, tab, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = enumsubconst(ctx, tab, e->e1);
-		e->e2 = enumsubconst(ctx, tab, e->e2);
-		e->e3 = enumsubconst(ctx, tab, e->e3);
-		e->e4 = enumsubconst(ctx, tab, e->e4);
+		sete1(e, enumsubconst(ctx, tab, e->e1));
+		sete2(e, enumsubconst(ctx, tab, e->e2));
+		sete3(e, enumsubconst(ctx, tab, e->e3));
+		sete4(e, enumsubconst(ctx, tab, e->e4));
 		return e;
 	}
 }
@@ -89,14 +89,14 @@ enumsub(U *ctx, HT *tab, Expr *e)
 		return e;
 	switch(e->kind){
 	case Enames:
-		e->e1 = enumsub(ctx, tab, e->e1);
+		sete1(e, enumsub(ctx, tab, e->e1));
 		nt = mkhts();
-		e->e2 = enumsub(ctx, nt, e->e2);
+		sete2(e, enumsub(ctx, nt, e->e2));
 		freeht(nt);
 		return e;
 	case Earr:
-		e->e1 = enumsub(ctx, tab, e->e1);
-		e->e2 = enumsubconst(ctx, tab, e->e2);
+		sete1(e, enumsub(ctx, tab, e->e1));
+		sete2(e, enumsubconst(ctx, tab, e->e2));
 		return e;
 	case Eenum:
 		if(e->e2 == 0 || isnull(e->e2))
@@ -105,7 +105,7 @@ enumsub(U *ctx, HT *tab, Expr *e)
 		while(!isnull(p)){
 			en = p->e1;
 			p = p->e2;
-			en->e2 = enumsubconst(ctx, tab, en->e2);
+			sete2(en, enumsubconst(ctx, tab, en->e2));
 			s = idsym(en->e1);
 			hputs(tab, s, strlen(s), en->e2);
 		}
@@ -113,15 +113,15 @@ enumsub(U *ctx, HT *tab, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = enumsub(ctx, tab, p->e1);
+			sete1(p, enumsub(ctx, tab, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = enumsub(ctx, tab, e->e1);
-		e->e2 = enumsub(ctx, tab, e->e2);
-		e->e3 = enumsub(ctx, tab, e->e3);
-		e->e4 = enumsub(ctx, tab, e->e4);
+		sete1(e, enumsub(ctx, tab, e->e1));
+		sete2(e, enumsub(ctx, tab, e->e2));
+		sete3(e, enumsub(ctx, tab, e->e3));
+		sete4(e, enumsub(ctx, tab, e->e4));
 		return e;
 	}
 }
@@ -144,10 +144,10 @@ enumincs(U *ctx, Expr *e)
 			en = p->e1;
 			p = p->e2;
 			if(en->e2){
-				en->e2 = enumincs(ctx, en->e2);
+				sete2(en, enumincs(ctx, en->e2));
 				c = inc(en->e2);
 			}else{
-				en->e2 = c;
+				sete2(en, c);
 				putsrc(en->e2, en->src);
 				c = inc(en->e2);
 			}
@@ -156,15 +156,15 @@ enumincs(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = enumincs(ctx, p->e1);
+			sete1(p, enumincs(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = enumincs(ctx, e->e1);
-		e->e2 = enumincs(ctx, e->e2);
-		e->e3 = enumincs(ctx, e->e3);
-		e->e4 = enumincs(ctx, e->e4);
+		sete1(e, enumincs(ctx, e->e1));
+		sete2(e, enumincs(ctx, e->e2));
+		sete3(e, enumincs(ctx, e->e3));
+		sete4(e, enumincs(ctx, e->e4));
 		return e;
 	}
 }
@@ -191,30 +191,30 @@ liftdtors(U *ctx, Seen *s, Expr *e, Expr **te)
 	case Eid:
 		return e;
 	case Earr:
-		e->e1 = liftdtors(ctx, s, e->e1, te);
+		sete1(e, liftdtors(ctx, s, e->e1, te));
 		if(e->e2)
-			e->e2 = lift(ctx, e->e2);
+			sete2(e, lift(ctx, e->e2));
 		return e;
 	case Eptr:
-		e->e1 = liftdtors(ctx, s, e->e1, te);
+		sete1(e, liftdtors(ctx, s, e->e1, te));
 		return e;
 	case Efun:
-		e->e1 = liftdtors(ctx, s, e->e1, te);
+		sete1(e, liftdtors(ctx, s, e->e1, te));
 		/* parameters are list of declarations */
 		p = e->e2;
 		while(!isnull(p)){
 			a = p->e1;
 			p = p->e2;
-			a->e1 = liftspec(ctx, s, a->e1, te);
-			a->e2 = liftdtors(ctx, s, a->e2, te);
-			a->e3 = lift(ctx, a->e3); /* optional attribute */
+			sete1(a, liftspec(ctx, s, a->e1, te));
+			sete2(a, liftdtors(ctx, s, a->e2, te));
+			sete3(a, lift(ctx, a->e3)); /* optional attribute */
 		}
 		return e;
 	case Eelist:
 	case Enull:
 		p = e;
 		while(!isnull(p)){
-			p->e1 = liftdtors(ctx, s, p->e1, te);
+			sete1(p, liftdtors(ctx, s, p->e1, te));
 			p = p->e2;
 		}
 		return e;
@@ -232,7 +232,7 @@ liftspecenum(U *ctx, Seen *s, Expr *e, Expr **te)
 		en = p->e1;
 		p = p->e2;
 		if(en->e2)
-			en->e2 = lift(ctx, en->e2);
+			sete2(en, lift(ctx, en->e2));
 	}
 }
 
@@ -246,19 +246,19 @@ liftspecsu(U *ctx, Seen *s, Expr *e, Expr **te)
 	while(!isnull(p)){
 		f = p->e1;
 		p = p->e2;
-		f->e1 = liftspec(ctx, s, f->e1, te);
-		f->e2 = liftdtors(ctx, s, f->e2, te);
-		f->e3 = lift(ctx, f->e3); /* optional field attribute */
-		f->e4 = lift(ctx, f->e4); /* width (bitfields only) */
+		sete1(f, liftspec(ctx, s, f->e1, te));
+		sete2(f, liftdtors(ctx, s, f->e2, te));
+		sete3(f, lift(ctx, f->e3)); /* optional field attribute */
+		sete4(f, lift(ctx, f->e4)); /* width (bitfields only) */
 	}
 
 	/* optional su attribute */
 	if(e->e3 == 0 && isnull(e->e2)){
 		/* ascribe size 0 to definitions of form struct tag { } */
-		e->e3 = Zint(0);
+		sete3(e, Zint(0));
 		putsrc(e->e3, e->src);
 	}else
-		e->e3 = lift(ctx, e->e3);
+		sete3(e, lift(ctx, e->e3));
 }
 
 static Expr*
@@ -282,7 +282,7 @@ liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 		/* generate tag if anonymous */
 		if(e->e1 == 0){
 			id = mkanontag();
-			e->e1 = putsrc(doid(id), e->src);
+			sete1(e, putsrc(doid(id), e->src));
 		}else
 			id = idsym(e->e1);
 
@@ -309,10 +309,10 @@ lift1name(U *ctx, Seen *s, Expr *e, Expr **te)
 	switch(e->kind){
 	case Etypedef:
 	case Edecls:
-		e->e1 = liftspec(ctx, s, e->e1, te);
+		sete1(e, liftspec(ctx, s, e->e1, te));
 		if(e->e2 && !isnull(e->e2)){
 			/* translate declarators and emit declarations */
-			e->e2 = liftdtors(ctx, s, e->e2, te);
+			sete2(e, liftdtors(ctx, s, e->e2, te));
 			*te = Zcons(e, *te);
 			putsrc(*te, e->src);
 		}
@@ -350,21 +350,21 @@ lift(U *ctx, Expr *e)
 		return e;
 	switch(e->kind){
 	case Enames:
-		e->e1 = lift(ctx, e->e1);
-		e->e2 = liftnames(ctx, e->e2);
+		sete1(e, lift(ctx, e->e1));
+		sete2(e, liftnames(ctx, e->e2));
 		return e;
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = lift(ctx, p->e1);
+			sete1(p, lift(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = lift(ctx, e->e1);
-		e->e2 = lift(ctx, e->e2);
-		e->e3 = lift(ctx, e->e3);
-		e->e4 = lift(ctx, e->e4);
+		sete1(e, lift(ctx, e->e1));
+		sete2(e, lift(ctx, e->e2));
+		sete3(e, lift(ctx, e->e3));
+		sete4(e, lift(ctx, e->e4));
 		return e;
 	}
 }
@@ -380,7 +380,7 @@ tieparams(U *ctx, Expr *e)
 	while(!isnull(p)){
 		d = p->e1; /* Edecl */
 		p = p->e2;
-		d->e3 = tie(ctx, d->e3);
+		sete3(d, tie(ctx, d->e3));
 		dotie(ctx, d->e1, d->e2, &d->e1, &d->e2);
 	}
 	return e;
@@ -447,8 +447,8 @@ tie1sufield(U *ctx, Expr *e, Expr **fs)
 	case Ebitfield:
 		/* only one declarator */
 		dotie(ctx, e->e1, e->e2, &e->e1, &e->e2);
-		e->e3 = tie(ctx, e->e3); /* attribute */
-		e->e4 = tie(ctx, e->e4); /* width */
+		sete3(e, tie(ctx, e->e3)); /* attribute */
+		sete4(e, tie(ctx, e->e4)); /* width */
 		*fs = Zcons(e, *fs);
 		putsrc(*fs, e->src);
 		break;
@@ -490,8 +490,8 @@ tie1name(U *ctx, Expr *e, Expr **te)
 			tie1sufield(ctx, p->e1, &fs);
 			p = p->e2;
 		}
-		e->e2 = invert(fs);
-		e->e3 = tie(ctx, e->e3);
+		sete2(e, invert(fs));
+		sete3(e, tie(ctx, e->e3));
 		*te = Zcons(e, *te);
 		putsrc(fs, e->src);
 		break;
@@ -501,7 +501,7 @@ tie1name(U *ctx, Expr *e, Expr **te)
 		p = e->e2;
 		while(!isnull(p)){
 			en = p->e1;
-			en->e2 = tie(ctx, en->e2);
+			sete2(en, tie(ctx, en->e2));
 			p = p->e2;
 		}
 		break;
@@ -566,23 +566,23 @@ tie(U *ctx, Expr *e)
 		return e;
 	switch(e->kind){
 	case Enames:
-		e->e1 = tie(ctx, e->e1);
-		e->e2 = tienames(ctx, e->e2);
+		sete1(e, tie(ctx, e->e1));
+		sete2(e, tienames(ctx, e->e2));
 		return e;
 	case Etypename:
 		return tietypename(ctx, e);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = tie(ctx, p->e1);
+			sete1(p, tie(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = tie(ctx, e->e1);
-		e->e2 = tie(ctx, e->e2);
-		e->e3 = tie(ctx, e->e3);
-		e->e4 = tie(ctx, e->e4);
+		sete1(e, tie(ctx, e->e1));
+		sete2(e, tie(ctx, e->e2));
+		sete3(e, tie(ctx, e->e3));
+		sete4(e, tie(ctx, e->e4));
 		return e;
 	}
 }
@@ -619,7 +619,7 @@ do1name(U *ctx, Seen *s, Expr *e, Expr **te)
 		putsrc(*te, e->src);
 		break;
 	case Edecl:
-		e->e3 = names(ctx, e->e3);
+		sete3(e, names(ctx, e->e3));
 		q = Zcall(G("tabinsert"), 3,
 			  doid("$symtab"),
 			  Zid2sym(e->e2), names(ctx, e));
@@ -673,15 +673,15 @@ names(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = names(ctx, p->e1);
+			sete1(p, names(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = names(ctx, e->e1);
-		e->e2 = names(ctx, e->e2);
-		e->e3 = names(ctx, e->e3);
-		e->e4 = names(ctx, e->e4);
+		sete1(e, names(ctx, e->e1));
+		sete2(e, names(ctx, e->e2));
+		sete3(e, names(ctx, e->e3));
+		sete4(e, names(ctx, e->e4));
 		return e;
 	}
 	return 0;
@@ -690,43 +690,55 @@ names(U *ctx, Expr *e)
 static Expr* mkctype(U *ctx, Expr *e, Seen *s);
 
 static unsigned basemod[Vnbase][Enbase] = {
-	[Vchar][Eunsigned]     = Vuchar,
+	[Vchar][Eunsigned]      = Vuchar,
 
-	[Vchar][Esigned]       = Vchar,
+	[Vchar][Esigned]        = Vchar,
 
-	[Vshort][Eunsigned]    = Vushort,
-	[Vshort][Esigned]      = Vshort,
-	[Vshort][Eint]         = Vshort,
-	[Vushort][Eint]        = Vushort,
+	[Vshort][Eunsigned]     = Vushort,
+	[Vshort][Esigned]       = Vshort,
+	[Vshort][Eint]          = Vshort,
+	[Vushort][Eint]         = Vushort,
 
-	[Vint][Eunsigned]      = Vuint,
-	[Vint][Esigned]        = Vint,
-	[Vint][Elong]          = Vlong,
-	[Vuint][Elong]         = Vulong,
-	[Vint][Eshort]         = Vshort,
-	[Vuint][Eshort]        = Vushort,
+	[Vint][Eunsigned]       = Vuint,
+	[Vint][Esigned]         = Vint,
+	[Vint][Elong]           = Vlong,
+	[Vuint][Elong]          = Vulong,
+	[Vint][Eshort]          = Vshort,
+	[Vuint][Eshort]         = Vushort,
 
-	[Vlong][Eunsigned]     = Vulong,
-	[Vlong][Esigned]       = Vlong,
-	[Vlong][Elong]         = Vvlong,
-	[Vlong][Edouble]       = Vlongdouble,
-	[Vulong][Elong]        = Vuvlong,
+	[Vlong][Eunsigned]      = Vulong,
+	[Vlong][Esigned]        = Vlong,
+	[Vlong][Elong]          = Vvlong,
+	[Vlong][Edouble]        = Vlongdouble,
+	[Vulong][Elong]         = Vuvlong,
 
-	[Vvlong][Eunsigned]    = Vuvlong,
-	[Vvlong][Esigned]      = Vvlong,
+	[Vvlong][Eunsigned]     = Vuvlong,
+	[Vvlong][Esigned]       = Vvlong,
 
-	[Vdouble][Elong]       = Vlongdouble,
+	[Vdouble][Elong]        = Vlongdouble,
 
-	[Vundef][Ebool]	       = Vbool,
-	[Vundef][Echar]        = Vchar,
-	[Vundef][Edouble]      = Vdouble,
-	[Vundef][Efloat]       = Vfloat,
-	[Vundef][Eint]         = Vint,
-	[Vundef][Elong]        = Vlong,
-	[Vundef][Eshort]       = Vshort,
-	[Vundef][Esigned]      = Vint,
-	[Vundef][Eunsigned]    = Vuint,
-	[Vundef][Evoid]        = Vvoid,
+	[Vlong][Ecomplex]       = Vlongdoublex,
+	[Vfloat][Ecomplex]      = Vcomplex,
+	[Vdouble][Elong]        = Vlongdouble,
+	[Vdouble][Ecomplex]     = Vdoublex,
+	[Vcomplex][Efloat]      = Vcomplex,
+	[Vcomplex][Edouble]     = Vdoublex,
+	[Vcomplex][Elong]       = Vlongdoublex,
+	[Vdoublex][Elong]       = Vlongdoublex,
+	[Vdoublex][Edouble]     = Vlongdoublex,
+	[Vlongdoublex][Edouble] = Vlongdoublex,
+
+	[Vundef][Ebool]	        = Vbool,
+	[Vundef][Echar]         = Vchar,
+	[Vundef][Ecomplex]      = Vcomplex,
+	[Vundef][Edouble]       = Vdouble,
+	[Vundef][Efloat]        = Vfloat,
+	[Vundef][Eint]          = Vint,
+	[Vundef][Elong]         = Vlong,
+	[Vundef][Eshort]        = Vshort,
+	[Vundef][Esigned]       = Vint,
+	[Vundef][Eunsigned]     = Vuint,
+	[Vundef][Evoid]         = Vvoid,
 	/* the rest are Vundef, which we assume to be 0 */
 };
 
@@ -956,15 +968,15 @@ mkctype(U *ctx, Expr *e, Seen *s)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = mkctype(ctx, p->e1, s);
+			sete1(p, mkctype(ctx, p->e1, s));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = mkctype(ctx, e->e1, s);
-		e->e2 = mkctype(ctx, e->e2, s);
-		e->e3 = mkctype(ctx, e->e3, s);
-		e->e4 = mkctype(ctx, e->e4, s);
+		sete1(e, mkctype(ctx, e->e1, s));
+		sete2(e, mkctype(ctx, e->e2, s));
+		sete3(e, mkctype(ctx, e->e3, s));
+		sete4(e, mkctype(ctx, e->e4, s));
 		return e;
 	}
 	return 0;

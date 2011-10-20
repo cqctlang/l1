@@ -16,15 +16,15 @@ noexpand(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = noexpand(ctx, p->e1);
+			sete1(p, noexpand(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = noexpand(ctx, e->e1);
-		e->e2 = noexpand(ctx, e->e2);
-		e->e3 = noexpand(ctx, e->e3);
-		e->e4 = noexpand(ctx, e->e4);
+		sete1(e, noexpand(ctx, e->e1));
+		sete2(e, noexpand(ctx, e->e2));
+		sete3(e, noexpand(ctx, e->e3));
+		sete4(e, noexpand(ctx, e->e4));
 		return e;
 	}
 }

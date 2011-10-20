@@ -1,7 +1,7 @@
 #!/usr/bin/env l1
 !#
+@include <ns9p.cqct>   /* Diru */
 @include <sctl.cqct>
-@include <9p.cqct>   /* FIXME: collides with names in sctl.cqct  */
 
 @global nsid2path;
 @global path2nsid;
@@ -35,7 +35,7 @@ sns = @names clp64be {
 {
 	@local p;
 	sa = (struct sns`sockaddr_in*)sa;
-	p = (`uint8*)&sa->sin_addr.s_addr;
+	p = (uint8*)&sa->sin_addr.s_addr;
 	return sprintfa("%u.%u.%u.%u:%u",
 			p[0], p[1], p[2], p[3],
 			sa->sin_port);
@@ -59,7 +59,7 @@ sns = @names clp64be {
 	@local p, sz, nsid;
 	@local q, path;
 
-	q = (`uint64*)dat;
+	q = (uint64*)dat;
 	[path, q] = decodes(q);
 
 	nsid = openns(prefix+path);
@@ -116,7 +116,7 @@ sns = @names clp64be {
 @define tlooktype(fd, msg, dat)
 {
 	@local p, m, nsid, tn, ns, td;
-	p = (`uint64*)dat;
+	p = (uint64*)dat;
 	nsid = *p++;
 	[tn, p] = decodetname(p);
 	ns = looknsid(nsid);
@@ -141,7 +141,7 @@ sns = @names clp64be {
 @define tenumtype(fd, msg, dat)
 {
 	@local p, m, nsid, ns, ts, nt;
-	p = (`uint64*)dat;
+	p = (uint64*)dat;
 	nsid = *p++;
 	ns = looknsid(nsid);
 	if(ns == nil){
@@ -154,7 +154,7 @@ sns = @names clp64be {
 	p->op = sctl`Renumtype;
 	p->tag = msg->tag;
 	p++;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = nt;
 	foreach(@lambda(tn, td){ p = encodetdef(p, td); }, ts);
 	sendmsg(fd, m, (char*)p-(char*)m);
@@ -165,7 +165,7 @@ sns = @names clp64be {
 {
 	@local p, m, nsid, id, ns, sym;
 
-	p = (`uint64*)dat;
+	p = (uint64*)dat;
 	nsid = *p++;
 	[id, p] = decodes(p);
 	ns = looknsid(nsid);
@@ -192,7 +192,7 @@ sns = @names clp64be {
 {
 	@local p, m, nsid, ns, n, ss;
 
-	p = (`uint64*)dat;
+	p = (uint64*)dat;
 	nsid = *p++;
 	ns = looknsid(nsid);
 	if(ns == nil){
@@ -206,7 +206,7 @@ sns = @names clp64be {
 	p->op = sctl`Renumsym;
 	p->tag = msg->tag;
 	p++;
-	p = (`uint64*)p;
+	p = (uint64*)p;
 	*p++ = n;
 	foreach(@lambda(id, sym) { p = encodesym(p, sym); }, ss);
 	sendmsg(fd, m, (char*)p-(char*)m);
@@ -217,7 +217,7 @@ sns = @names clp64be {
 {
 	@local p, m, nsid, ns, addr, sym;
 
-	p = (`uint64*)dat;
+	p = (uint64*)dat;
 	nsid = *p++;
 	addr = *p++;
 
@@ -294,7 +294,7 @@ handle = [
 	foreach(@lambda(l){
 			@local vs;
 			vs = split(l, " ");
-			nsid2path[(`uint64)strton(vs[0])] = vs[1];
+			nsid2path[(uint64)strton(vs[0])] = vs[1];
 		}, split(s, "\n"));
 }
 
@@ -343,7 +343,7 @@ handle = [
 		      id = st->qid.path;
 		      nsid2ns[id] = ns;
 		      path2nsid[path] = id;
-		      nsid2path[(`uint64)id] = path;
+		      nsid2path[(uint64)id] = path;
 		      record();
 		      return id;
 	      },

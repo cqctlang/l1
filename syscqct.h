@@ -20,6 +20,7 @@ typedef
 enum{
 	Ebool=0,
 	Echar,
+	Ecomplex,
 	Edouble,
 	Efloat,
 	Eint,
@@ -108,6 +109,7 @@ enum{
 	Enop,
 	Enil,
 	Enull,
+	Eorpat,
 	Epostdec,
 	Epostinc,
 	Epredec,
@@ -284,6 +286,14 @@ struct Expr {
 	/* compiler-managed fields */
 	void *xp;
 };
+
+#define sete1(e,w)    do{ ((e)->e1 = (w)); gcwb((Val)(e)); }while(0)
+#define sete2(e,w)    do{ ((e)->e2 = (w)); gcwb((Val)(e)); }while(0)
+#define sete3(e,w)    do{ ((e)->e3 = (w)); gcwb((Val)(e)); }while(0)
+#define sete4(e,w)    do{ ((e)->e4 = (w)); gcwb((Val)(e)); }while(0)
+#define setaux(e,p)   do{ ((e)->aux = (p)); gcwb((Val)(e)); }while(0)
+#define setsrc(e,s)   do{ ((e)->src = (s)); gcwb((Val)(e)); }while(0)
+#define setskind(e,s) do{ ((e)->skind = (s)); gcwb((Val)(e)); }while(0)
 
 typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
 typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
@@ -970,6 +980,9 @@ Expr*		docompilel(U *ctx, Expr *e);
 
 /* compilei.c */
 Expr*		docompilei(U *ctx, Expr *e);
+
+/* cpr.c */
+Expr*		docompiler(U *ctx, Expr *e);
 
 /* compile1.c */
 Expr*		docompile1(U *ctx, Expr *e);

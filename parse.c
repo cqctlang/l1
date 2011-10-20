@@ -18,6 +18,9 @@ char* cbasename[Vnbase+1] = {
 	[Vfloat]	      = "float",
 	[Vdouble]	      = "double",
 	[Vlongdouble]	      = "long double",
+	[Vcomplex]	      = "float _Complex",
+	[Vdoublex]            = "double _Complex",
+	[Vlongdoublex]        = "long double _Complex",
 	[Vptr]		      = "$nsptr",
 };
 
@@ -173,7 +176,8 @@ copyexpr(Expr *e)
 	return ne;
 }
 
-/* Reverse the order of elements in Eelist E. */
+/* Reverse the order of elements in Eelist E.
+   FIXME: is it better to cons a fresh list than update? */
 Expr*
 invert(Expr *e)
 {
@@ -186,11 +190,11 @@ invert(Expr *e)
 	p = q->e2;
 	while(p->kind != Enull){
 		t = p->e2;
-		p->e2 = q;
+		sete2(p, q);
 		q = p;
 		p = t;
 	}
-	tl->e2 = p;
+	sete2(tl, p);
 
 	return q;
 }
@@ -237,7 +241,7 @@ ptrto(Expr *ptre, Expr *e)
 	p = ptre;
 	while(p->e1)
 		p = p->e1;
-	p->e1 = e;
+	sete1(p, e);
 
 	return ptre;
 }

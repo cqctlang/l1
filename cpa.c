@@ -61,7 +61,8 @@ Zap(Expr *e, char *id)
 	*ne = *e;
 
 	e->kind = Eid;
-	e->aux = mkvalcid(mkcid(id, strlen(id)));
+	setaux(e, mkvalcid(mkcid(id, strlen(id))));
+	setskind(e, mkcid0(S[Eid]));
 	e->e1 = 0;
 	e->e2 = 0;
 	e->e3 = 0;
@@ -98,9 +99,9 @@ clearattr(Expr *e)
 static Expr*
 cassign(U *ctx, Expr *e, unsigned d, unsigned *w)
 {
-	e->e1->e1 = expanda(ctx, e->e1->e1, d, w);
-	e->e1->e2 = expanda(ctx, e->e1->e2, d, w);
-	e->e2 = expanda(ctx, e->e2, d, w);
+	sete1(e->e1, expanda(ctx, e->e1->e1, d, w));
+	sete2(e->e1, expanda(ctx, e->e1->e2, d, w));
+	sete2(e, expanda(ctx, e->e2, d, w));
 	return e;
 }
 
@@ -182,8 +183,8 @@ expandaref(U *ctx, Expr *e, unsigned d, unsigned *w)
 	case Earef:
 		if(islval(e->e1, &a)){
 			/* either lval or ptr; C aref */
-			e->e1 = expanda(ctx, e->e1, d, w);
-			e->e2 = expanda(ctx, e->e2, d, w);
+			sete1(e, expanda(ctx, e->e1, d, w));
+			sete2(e, expanda(ctx, e->e2, d, w));
 			return e;
 		}else if(a)
 			return disambig(ctx, a, e, d);
@@ -300,7 +301,7 @@ expanddot(U *ctx, Expr *e, unsigned d, unsigned *w)
 		x = islval(e->e1, &a);
 		if(x == Alval){
 			/* definitely an lval; C dot */
-			e->e1 = expanda(ctx, e->e1, d, w);
+			sete1(e, expanda(ctx, e->e1, d, w));
 			return e;
 		}
 		if(x == Aptr){
@@ -508,7 +509,7 @@ expanda(U *ctx, Expr *e, unsigned d, unsigned *w)
 	switch(e->kind){
 	case Eref:
 		if(islval(e->e1, &a))
-			e->e1 = expanda(ctx, e->e1, d, w);
+			sete1(e, expanda(ctx, e->e1, d, w));
 		else if(a)
 			return disambig0(ctx, a, e, d);
 		return e;
@@ -522,8 +523,8 @@ expanda(U *ctx, Expr *e, unsigned d, unsigned *w)
 			return expandaref(ctx, e, d, w);
 		if(e->e1->kind == Edot)
 			return expanddot(ctx, e, d, w);
-		e->e1 = expanda(ctx, e->e1, d, w);
-		e->e2 = expanda(ctx, e->e2, d, w);
+		sete1(e, expanda(ctx, e->e1, d, w));
+		sete2(e, expanda(ctx, e->e2, d, w));
 		return e;
 	case Earef:
 		return expandaref(ctx, e, d, w);
@@ -532,15 +533,15 @@ expanda(U *ctx, Expr *e, unsigned d, unsigned *w)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expanda(ctx, p->e1, d, w);
+			sete1(p, expanda(ctx, p->e1, d, w));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expanda(ctx, e->e1, d, w);
-		e->e2 = expanda(ctx, e->e2, d, w);
-		e->e3 = expanda(ctx, e->e3, d, w);
-		e->e4 = expanda(ctx, e->e4, d, w);
+		sete1(e, expanda(ctx, e->e1, d, w));
+		sete2(e, expanda(ctx, e->e2, d, w));
+		sete3(e, expanda(ctx, e->e3, d, w));
+		sete4(e, expanda(ctx, e->e4, d, w));
 		return e;
 	}
 }
@@ -571,15 +572,15 @@ expandc(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expandc(ctx, p->e1);
+			sete1(p, expandc(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expandc(ctx, e->e1);
-		e->e2 = expandc(ctx, e->e2);
-		e->e3 = expandc(ctx, e->e3);
-		e->e4 = expandc(ctx, e->e4);
+		sete1(e, expandc(ctx, e->e1));
+		sete2(e, expandc(ctx, e->e2));
+		sete3(e, expandc(ctx, e->e3));
+		sete4(e, expandc(ctx, e->e4));
 		return e;
 	}
 }
@@ -602,15 +603,15 @@ expandarrow(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expandarrow(ctx, p->e1);
+			sete1(p, expandarrow(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expandarrow(ctx, e->e1);
-		e->e2 = expandarrow(ctx, e->e2);
-		e->e3 = expandarrow(ctx, e->e3);
-		e->e4 = expandarrow(ctx, e->e4);
+		sete1(e, expandarrow(ctx, e->e1));
+		sete2(e, expandarrow(ctx, e->e2));
+		sete3(e, expandarrow(ctx, e->e3));
+		sete4(e, expandarrow(ctx, e->e4));
 		return e;
 	}
 }
@@ -629,8 +630,8 @@ expandm(U *ctx, Expr *e)
 	switch(e->kind){
 	case Eg:
 		if(e->e1->kind != Elist){
-			e->e1 = expandm(ctx, e->e1);
-			e->e2 = expandm(ctx, e->e2);
+			sete1(e, expandm(ctx, e->e1));
+			sete2(e, expandm(ctx, e->e2));
 			return e;
 		}
 		p = e->e1->e1;
@@ -639,7 +640,7 @@ expandm(U *ctx, Expr *e)
 				cerror(ctx, e, "invalid assignment");
 			p = p->e2;
 		}
-		e->e2 = expandm(ctx, e->e2);
+		sete2(e, expandm(ctx, e->e2));
 		se = nullelist();
 		i = 0;
 		p = e->e1->e1;
@@ -660,15 +661,15 @@ expandm(U *ctx, Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expandm(ctx, p->e1);
+			sete1(p, expandm(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expandm(ctx, e->e1);
-		e->e2 = expandm(ctx, e->e2);
-		e->e3 = expandm(ctx, e->e3);
-		e->e4 = expandm(ctx, e->e4);
+		sete1(e, expandm(ctx, e->e1));
+		sete2(e, expandm(ctx, e->e2));
+		sete3(e, expandm(ctx, e->e3));
+		sete4(e, expandm(ctx, e->e4));
 		return e;
 	}
 }

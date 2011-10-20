@@ -32,18 +32,21 @@ enumtype: var params, 1 locals, 0 temps
 L1264: 2 params, 6 locals, 0 temps
 mknsoff: 2 params, 9 locals, 0 temps
 inc_sym: 1 params, 9 locals, 0 temps
-L1320: 2 params, 8 locals, 0 temps
+L1321: 2 params, 11 locals, 0 temps
 _ls: 2 params, 7 locals, 0 temps
 _es: 1 params, 1 locals, 0 temps
-L1495: 2 params, 6 locals, 0 temps
+L1512: 2 params, 6 locals, 0 temps
 _la: 2 params, 8 locals, 1 temps
-L1534: 2 params, 0 locals, 1 temps
+L1551: 2 params, 0 locals, 1 temps
 _addsym: 3 params, 6 locals, 0 temps
-L1650: 2 params, 2 locals, 0 temps
+L1698: 2 params, 2 locals, 0 temps
 looktype: var params, 1 locals, 0 temps
-L1678: 1 params, 2 locals, 0 temps
+L1726: 1 params, 2 locals, 0 temps
 enumtype: var params, 1 locals, 0 temps
-L1708: 1 params, 0 locals, 0 temps
+L1756: 1 params, 0 locals, 0 temps
+mktnresolve: 3 params, 10 locals, 0 temps
+undefined: 1 params, 7 locals, 0 temps
+resolve: 1 params, 17 locals, 0 temps
 looksym: var params, 1 locals, 0 temps
 looksym: var params, 1 locals, 0 temps
 looksym: var params, 1 locals, 0 temps
@@ -63,4 +66,4 @@ should be "onehundred": onehundred
 should be 0x100: 0x100
 should be "oneeleven": oneeleven
 length of enumsym: 4
-length of enumsym: 28
+length of enumsym: 31

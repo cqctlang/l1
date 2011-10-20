@@ -1,0 +1,3 @@
+s = "ab";
+strput(s, 2, "");
+print(s);

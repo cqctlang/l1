@@ -46,6 +46,9 @@ enum Cbase {
 	Vfloat,
 	Vdouble,
 	Vlongdouble,
+	Vcomplex,
+	Vdoublex,
+	Vlongdoublex,
 	Vnbase,
 	Vptr = Vnbase,		/* alias for some other base type */
 	Vvoid,
@@ -74,7 +77,11 @@ enum Rkind {
 	Rs64be,
 	Rf32,
 	Rf64,
+	Rf96,
 	Rf128,
+	Rx64,
+	Rx128,
+	Rx192,
 	Rnrep,
 } Rkind;
 

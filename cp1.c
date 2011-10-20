@@ -18,49 +18,6 @@ compiledef(U *ctx, Expr *e)
 }
 
 static Expr*
-compilerec(U *ctx, Expr *e)
-{
-	char *id, *is;
-	unsigned len;
-	Expr *p;
-	Xenv *xe;
-
-	xe = mkxenv(0);
-	p = e->e2;
-	while(p->kind == Eelist){
-		id = idsym(p->e1);
-		if(xenvlook(xe, id)){
-			freexenv(xe);
-			cerror(ctx, e,
-			       "record has multiple bindings for %s",
-			       id);
-		}
-		xenvbind(xe, id, id);
-		p = p->e2;
-	}
-	freexenv(xe);
-
-	id = idsym(e->e1);
-	len = 2+strlen(id)+1;
-	is = emalloc(len);
-	snprint(is, len, "is%s", id);
-	p = Zblock(Zlocals(1, "$rd"),
-		   Zset(doid("$rd"),
-			Zcall(G("mkrd"), 2,
-			      Zstr(id),
-			      Zids2syms(e->e2))),
-		   Zset(doid(id), Zcall(G("rdmk"),
-					1, doid("$rd"))),
-		   Zset(doid(is), Zcall(G("rdis"),
-					1, doid("$rd"))),
-		   doid("$rd"),
-		   NULL);
-	efree(is);
-	putsrc(p, e->src);
-	return p;
-}
-
-static Expr*
 compiletab(U *ctx, Expr *e)
 {
 	Expr *loc, *te, *se, *ti;
@@ -74,7 +31,7 @@ compiletab(U *ctx, Expr *e)
 //	putsrc(se, src);
 	te = Zcons(se, te);
 
-	e->e1 = compile1(ctx, e->e1);
+	sete1(e, compile1(ctx, e->e1));
 	e = e->e1;
 	while(e->kind == Eelist){
 		ti = e->e1;
@@ -105,7 +62,7 @@ compilelist(U *ctx, Expr *e)
 //	putsrc(se, src);
 	te = Zcons(se, te);
 
-	e->e1 = compile1(ctx, e->e1);
+	sete1(e, compile1(ctx, e->e1));
 	e = e->e1;
 	i = 0;
 	while(e->kind == Eelist){
@@ -129,8 +86,8 @@ compilepair(U *ctx, Expr *e)
 
 	src = e->src;
 	loc = Zlocals(1, "$pr");
-	e->e1 = compile1(ctx, e->e1);
-	e->e2 = compile1(ctx, e->e2);
+	sete1(e, compile1(ctx, e->e1));
+	sete2(e, compile1(ctx, e->e2));
 	se = Zset(doid("$pr"), Zcall(G("cons"), 2, e->e1, e->e2));
 	se = Zcons(se, doid("$lst"));
 	se = Zblock(loc, se, NULL);
@@ -220,7 +177,7 @@ compilecast(U *ctx, Expr *e)
 	te = nullelist();
 
 	// $tmp = e->e2;
-	e->e2 = compile1(ctx, e->e2);
+	sete2(e, compile1(ctx, e->e2));
 	se = Zset(doid("$tmp"), e->e2);
 	te = Zcons(se, te);
 
@@ -265,7 +222,7 @@ compilecontainer(U *ctx, Expr *e)
 	loc = Zlocals(5, "$tn", "$fld", "$prep", "$type", "$tmp");
 
 	// $tmp = e->e1;
-	e->e1 = compile1(ctx, e->e1);
+	sete1(e, compile1(ctx, e->e1));
 	se = Zset(doid("$tmp"), e->e1);
 	te = Zcons(se, te);
 
@@ -407,12 +364,9 @@ compile1(U *ctx, Expr *e)
 	case Edefine:
 		se = compiledef(ctx, e);
 		return se;
-	case Edefrec:
-		se = compilerec(ctx, e);
-		return se;
 	case Elambda:
 	case Eblock:
-		e->e2 = compile1(ctx, e->e2);
+		sete2(e, compile1(ctx, e->e2));
 		return e;
 	case Eambig:
 		se = compileambig(ctx, e);
@@ -445,11 +399,11 @@ compile1(U *ctx, Expr *e)
 	case Elapply:
 		q = e->e2;
 		while(q->kind == Eelist){
-			q->e1 = putsrc(Zlambda(nullelist(),
-					       Zblock(nullelist(),
-						      compile1(ctx, q->e1),
-						      NULL)),
-				       q->e1->src);
+			sete1(q, putsrc(Zlambda(nullelist(),
+						Zblock(nullelist(),
+						       compile1(ctx, q->e1),
+						       NULL)),
+					q->e1->src));
 			q = q->e2;
 		}
 		se = putsrc(Zapply(compile1(ctx, e->e1), e->e2), e->src);
@@ -457,15 +411,15 @@ compile1(U *ctx, Expr *e)
 	case Eelist:
 		q = e;
 		while(q->kind == Eelist){
-			q->e1 = compile1(ctx, q->e1);
+			sete1(q, compile1(ctx, q->e1));
 			q = q->e2;
 		}
 		return e;
 	default:
-		e->e1 = compile1(ctx, e->e1);
-		e->e2 = compile1(ctx, e->e2);
-		e->e3 = compile1(ctx, e->e3);
-		e->e4 = compile1(ctx, e->e4);
+		sete1(e, compile1(ctx, e->e1));
+		sete2(e, compile1(ctx, e->e2));
+		sete3(e, compile1(ctx, e->e3));
+		sete4(e, compile1(ctx, e->e4));
 		return e;
 	}
 }

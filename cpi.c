@@ -297,6 +297,8 @@ bindvars(Bind *binds, Expr **bvars, Expr **inits)
 		i = Zcons(Zset(binds->id, binds->exp), i);
 		binds = binds->next;
 	}
+        /* XXX check that bvars and j are the same variables 
+           if bvars != nullelist */
         *bvars = j;
 	*inits = i;
 }
@@ -306,8 +308,8 @@ static Expr* cases(U *ctx, Expr* e, Cases *cs);
 static Expr*
 addcase(U *ctx, Expr *c, Cases *cs)
 {
-	Expr *se, *e, *b;
-	char *l;
+	Expr *se, *e, *ib, *b, *ne;
+        char *l;
         int nc;
 	Match m = {0,0};
 
@@ -315,39 +317,58 @@ addcase(U *ctx, Expr *c, Cases *cs)
 		cerror(ctx, c, "addcase called improperly");
 	e = cases(ctx, c->e1, 0);
         nc = cs->nc;
-        b = cases(ctx, c->e2, cs);
-	if(cs->nc >= cs->max){
-		cs->cases = erealloc(cs->cases,
-				     cs->max*sizeof(Case),
-				     2*cs->max*sizeof(Case));
-		cs->max *= 2;
-	}
-	l = genlabel();
-	if (c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
-		if(m.binds != 0){
-			Expr *inits, *decls;
-                	if(nc != cs->nc)
-                        	cerror(ctx, e,
-                               	       "nested case when pattern matching");
-			bindvars(m.binds, &decls, &inits);
-			freebinds(m.binds);
-			b = Zblock(decls, inits, b, NULL);
-		}
-	}
-	else
-		m.check = Zbinop(Eeq, e, doid("$t"));
-        if(c->kind != Ematch)
-                se = Zblock(nullelist(), Zlabel(l), b, NULL);
-        else /* may not fall into a @match */
+        ib = b = cases(ctx, c->e2, cs);
+        ne = nullelist();
+	se = nullelist();
+
+        if (e->kind == Eorpat){
+                e = e->e1;
+                ne = e->e2;
+                e = e->e1;
+        }
+
+        while(1){
+                if(cs->nc >= cs->max){
+                        cs->cases = erealloc(cs->cases,
+                                             cs->max*sizeof(Case),
+                                             2*cs->max*sizeof(Case));
+                        cs->max *= 2;
+                }
+                l = genlabel();
+                if (c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
+                        if(m.binds != 0){
+                                Expr *inits, *decls;
+                                if(nc != cs->nc)
+                                        cerror(ctx, e, "nested case "
+                                               "when pattern matching");
+                                bindvars(m.binds, &decls, &inits);
+                                freebinds(m.binds);
+				m.binds = 0;
+                                b = Zblock(decls, inits, copyexpr(ib), NULL);
+                        }
+                }
+                else
+                        m.check = Zbinop(Eeq, e, doid("$t"));
+
+		se = Zcons(Zblock(nullelist(), Zlabel(l), b, NULL), se);
+                cs->cases[cs->nc].l = l;
+                cs->cases[cs->nc].e = m.check;
+		m.check = 0;
+                cs->nc++;
+		nc++;
+                if (ne->kind != Enull){
+                        e = ne->e1;
+                        ne = ne->e2;
+                }
+                else break;
+        }
+
+        if(c->kind == Ematch) /* may not fall into a @match */
                 se = Zblock(nullelist(), 
                             Zcall(doid("error"), 1, 
                                   Zstr("attempt to fall through to a @match")),
-                            Zlabel(l), 
-                            b, 
+                            se,
                             NULL);
-	cs->cases[cs->nc].l = l;
-	cs->cases[cs->nc].e = m.check;
-	cs->nc++;
 	return se;
 }
 
@@ -379,12 +400,12 @@ smush(Expr* p, Expr *tail)
         switch(p->e1->kind){
         case Ecase:
         case Ematch:
-                p->e1->e2 = Zblock(nullelist(), p->e1->e2, p->e2, NULL);
-                p->e2 = tail;
+                sete2(p->e1, Zblock(nullelist(), p->e1->e2, p->e2, NULL));
+                sete2(p, tail);
                 break;
         case Edefault:
-                p->e1->e1 = Zblock(nullelist(), p->e1->e1, p->e2, NULL);
-                p->e2 = tail;
+                sete1(p->e1, Zblock(nullelist(), p->e1->e1, p->e2, NULL));
+                sete2(p, tail);
                 break;
         default:
                 fatal("bug in smush(2)");
@@ -417,12 +438,12 @@ coalesce(U *ctx, Expr* e, Expr* q)
                                 }
                                 /* finish coalescing */
                                 else if(pp){
-                                        pp->e2 = nullelist();
+                                        sete2(pp, nullelist());
                                         smush(q,p);
                                 }
                                 return p;
                         default:
-                                p->e1 = coalesce(ctx, p->e1, 0);
+                                sete1(p, coalesce(ctx, p->e1, 0));
                         }
                         pp = p;
                         p = p->e2;
@@ -436,10 +457,40 @@ coalesce(U *ctx, Expr* e, Expr* q)
         default:
                 if(q)
                         fatal("bug in coalesce");
-		e->e1 = coalesce(ctx, e->e1, 0);
-		e->e2 = coalesce(ctx, e->e2, 0);
-		e->e3 = coalesce(ctx, e->e3, 0);
-		e->e4 = coalesce(ctx, e->e4, 0);
+		sete1(e, coalesce(ctx, e->e1, 0));
+		sete2(e, coalesce(ctx, e->e2, 0));
+		sete3(e, coalesce(ctx, e->e3, 0));
+		sete4(e, coalesce(ctx, e->e4, 0));
+		return e;
+	}
+}
+
+/* Converts @match p1: @match p2: ... into @match OR(p1,p2) */
+static Expr*
+collapse(U *ctx, Expr* e, Expr* p)
+{
+	if(e == 0)
+		return 0;
+	switch(e->kind){
+	case Ematch:
+		sete1(e, collapse(ctx, e->e1, 0));
+		if(p != 0){
+			sete2(p, Zcons(e->e1, nullelist()));
+			e = collapse(ctx, e->e2, p->e2);
+			return e;
+		}
+		else{
+			p = Zcons(e->e1,nullelist());
+			sete2(e, collapse(ctx, e->e2, p));
+			if (p->e2->kind != Enull)
+				sete1(e, newexpr(Eorpat, p, 0, 0, 0));
+			return e;
+		}
+	default:
+		sete1(e, collapse(ctx, e->e1, 0));
+		sete2(e, collapse(ctx, e->e2, 0));
+		sete3(e, collapse(ctx, e->e3, 0));
+		sete4(e, collapse(ctx, e->e4, 0));
 		return e;
 	}
 }
@@ -454,9 +505,9 @@ cases(U *ctx, Expr* e, Cases *cs)
 		return 0;
 	switch(e->kind){
 	case Eswitch:
-		e->e1 = cases(ctx, e->e1, cs);
+		sete1(e, cases(ctx, e->e1, cs));
 		e->xp = mkcases();
-		e->e2 = cases(ctx, e->e2, e->xp);
+		sete2(e, cases(ctx, e->e2, e->xp));
 		return e;
 	case Ecase:
 	case Ematch:
@@ -474,15 +525,15 @@ cases(U *ctx, Expr* e, Cases *cs)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = cases(ctx, p->e1, cs);
+			sete1(p, cases(ctx, p->e1, cs));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = cases(ctx, e->e1, cs);
-		e->e2 = cases(ctx, e->e2, cs);
-		e->e3 = cases(ctx, e->e3, cs);
-		e->e4 = cases(ctx, e->e4, cs);
+		sete1(e, cases(ctx, e->e1, cs));
+		sete2(e, cases(ctx, e->e2, cs));
+		sete3(e, cases(ctx, e->e3, cs));
+		sete4(e, cases(ctx, e->e4, cs));
 		return e;
 	}
 }
@@ -532,15 +583,15 @@ swtch(U *ctx, Expr *e, char *lb)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = swtch(ctx, p->e1, lb);
+			sete1(p, swtch(ctx, p->e1, lb));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = swtch(ctx, e->e1, lb);
-		e->e2 = swtch(ctx, e->e2, lb);
-		e->e3 = swtch(ctx, e->e3, lb);
-		e->e4 = swtch(ctx, e->e4, lb);
+		sete1(e, swtch(ctx, e->e1, lb));
+		sete2(e, swtch(ctx, e->e2, lb));
+		sete3(e, swtch(ctx, e->e3, lb));
+		sete4(e, swtch(ctx, e->e4, lb));
 		return e;
 	}
 }
@@ -568,8 +619,8 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 		putsrc(se, e->src);
 		return se;
 	case Eswitch:
-		e->e1 = loops(ctx, e->e1, lb, lc);
-		e->e2 = loops(ctx, e->e2, 0, lc);
+		sete1(e, loops(ctx, e->e1, lb, lc));
+		sete2(e, loops(ctx, e->e2, 0, lc));
 		return e;
 	case Efor:
 		h = genlabel();
@@ -628,15 +679,15 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = loops(ctx, p->e1, lb, lc);
+			sete1(p, loops(ctx, p->e1, lb, lc));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = loops(ctx, e->e1, lb, lc);
-		e->e2 = loops(ctx, e->e2, lb, lc);
-		e->e3 = loops(ctx, e->e3, lb, lc);
-		e->e4 = loops(ctx, e->e4, lb, lc);
+		sete1(e, loops(ctx, e->e1, lb, lc));
+		sete2(e, loops(ctx, e->e2, lb, lc));
+		sete3(e, loops(ctx, e->e3, lb, lc));
+		sete4(e, loops(ctx, e->e4, lb, lc));
 		return e;
 	}
 }
@@ -650,6 +701,7 @@ docompilei(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	loops(ctx, e, 0, 0);
+	collapse(ctx, e, 0);
         coalesce(ctx, e, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);

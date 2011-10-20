@@ -65,6 +65,8 @@ ctlmux = @names clp64le {
 		Renumseg,
 		Tnames,
 		Rnames,
+		Tunwind1,
+		Runwind1,
 	};
 
 	enum State {
@@ -111,27 +113,12 @@ ctlmux = @names clp64le {
 		PROT_EXEC	= 0x4,		/* Page can be executed.  */
 	} Prot;
 
-	enum {
-		NRerror,
-		NTlooksym,
-		NRlooksym,
-		NTenumsym,
-		NRenumsym,
-		NTlooktype,
-		NRlooktype,
-		NTenumtype,
-		NRenumtype,
-		NTlookaddr,
-		NRlookaddr,
-		NTenumloc,
-		NRenumloc,
-		NTunwind,
-		NRunwind,
-		NTenumseg,
-		NRenumseg,
-		NTnames,
-		NRnames,
-	};
+	typedef
+	enum Attrval {
+		Astr,
+		Acid,
+		Auint,
+	} Attrval;
 
 	typedef
 	enum Cbase
@@ -152,6 +139,9 @@ ctlmux = @names clp64le {
 		Vfloat,
 		Vdouble,
 		Vlongdouble,
+		Vcomplex,
+		Vdoublex,
+		Vlongdoublex,
 		Vnbase,
 		Vptr = Vnbase,		/* alias for some other base type */
 		Vvoid,
@@ -181,7 +171,11 @@ ctlmux = @names clp64le {
 		Rs64be,
 		Rf32,
 		Rf64,
+		Rf96,
 		Rf128,
+		Rx64,
+		Rx128,
+		Rx192,
 		Rnrep,
 	} Rkind;
 	
@@ -492,6 +486,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Tunwind;
 	typedef struct Tns Tenumseg;
 	typedef struct Tns Tnames;
+	typedef struct Tns Tunwind1;
 	typedef struct Tns Rlooksym;
 	typedef struct Tns Renumsym;
 	typedef struct Tns Rlooktype;
@@ -501,6 +496,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Runwind;
 	typedef struct Tns Renumseg;
 	typedef struct Tns Rnames;
+	typedef struct Tns Runwind1;
 };
 
 @record region {
@@ -520,6 +516,7 @@ ctlmux = @names clp64le {
 	id,
 	flags,
 	val,
+	attrs,
 	sz,
 	type,
 };
@@ -536,6 +533,12 @@ ctlmux = @names clp64le {
 	addr,
 	len,
 	name,
+};
+
+@record rule {
+	kind,
+	r,
+	n,
 };
 
 @record ctlrec {
@@ -1025,6 +1028,7 @@ ctlmux = @names clp64le {
 	enumseg,
 	enumloc,
 	unwind,
+	unwind1,
 	names,
 	nsinit,
 	// private
@@ -1075,7 +1079,7 @@ ctlmux = @names clp64le {
 	@local osversion;
 	@local muxlooksym, muxenumsym, muxlookaddr;
 	@local muxlooktype, muxenumtype, muxenumseg;
-	@local muxenumloc, muxunwind;
+	@local muxenumloc, muxunwind, muxunwind1;
 	@local muxnames, nsinit;
 	@local contasync;
 	@local timerfn, tfd;
@@ -1247,6 +1251,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tunwind*)p;
 		case ctlmux`Runwind:
 			return (ctlmux`Runwind*)p;
+		case ctlmux`Tunwind1:
+			return (ctlmux`Tunwind1*)p;
+		case ctlmux`Runwind1:
+			return (ctlmux`Runwind1*)p;
 		case ctlmux`Tnames:
 			return (ctlmux`Tnames*)p;
 		case ctlmux`Rnames:
@@ -2000,7 +2008,7 @@ ctlmux = @names clp64le {
 
 	@defloc decodetname(q)
 	{
-		@local k, cb, id, gets, w, pos, st, n, v, i, sid, pt;
+		@local k, cb, id, gets, w, pos, st, n, v, i, sid, pt, at;
 		@local tq; 	/* FIXME: unnecessary in bleed */
 
 		@define gets()
@@ -2052,12 +2060,14 @@ ctlmux = @names clp64le {
 			n = *q++;
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
+				[at, q] = decodeattrs(q);
 				sid = gets();
 				[pt,tq] = decodetname(q);
 				q = tq;
 				v[i] = mkparam(pt,
 					       (strlen(sid) > 0
-						? mkcid(sid) : nil));
+						? mkcid(sid) : nil),
+					       at);
 			}
 			return [mkctype_fn(st, v), q];
 		case ctlmux`Tbitfield:
@@ -2072,9 +2082,51 @@ ctlmux = @names clp64le {
 		}
 	}
 
+	@defloc decodeattrs(p)
+	{
+		@local tab, na, i, k, v;
+
+		@defloc decodes(p)
+		{
+			error("implement me");
+		}
+
+		@defloc decodev(p)
+		{
+			@local e, v;
+			p = (uint8*)p;
+			e = *p++;
+			switch(e){
+			case ctlmux`Auint:
+				p = (uint64*)p;
+				v = *p++;
+				return [v, p];
+			case ctlmux`Astr:
+				return decodes(p);
+			case ctlmux`Acid:
+				[v, p] = decodes(p);
+				return [mkcid(v), p];
+			default:
+				error("unrecognized attribute value type: %d",
+				      e);
+			}
+		}
+
+		tab = [:];
+		p = (uint64*)p;
+		na = *p++;
+		for(i = 0; i < na; i++){
+			[k, p] = decodev(p);
+			[v, p] = decodev(p);
+			tab[k] = v;
+		}
+		return [tab, p];
+	}
+
 	@defloc decodetdef(ns, q)
 	{
 		@local k, cb, rep, sz, n, i, v, id, sid, c, off, mk, st, pt;
+		@local at, fat;
 		@local w, pos;
 		@local gets;
 		@local tq; 	/* FIXME: unnecessary in bleed */
@@ -2105,17 +2157,21 @@ ctlmux = @names clp64le {
 			id = mkcid(gets());
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
+			[at, q] = decodeattrs(q);
 			n = *q++;
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
 				q = (ctlmux`uint64*)q;
 				off = *q++;
+				[fat, q] = decodeattrs(q);
 				sid = mkcid(gets());
 				[st,tq] = decodetname(q);
 				q = tq;
-				v[i] = mkfield(st, sid, off);
+				fat["offset"] = off;
+				v[i] = mkfield(st, sid, fat);
 			}
-			return [mk(id, v, sz), q];
+			at["offset"] = sz;
+			return [mk(id, v, at), q];
 		case ctlmux`Tenum:
 			id = mkcid(gets());
 			q = (ctlmux`uint8*)q;
@@ -2154,12 +2210,14 @@ ctlmux = @names clp64le {
 			n = *q++;
 			v = mkvec(n);
 			for(i = 0; i < n; i++){
+				[at, q] = decodeattrs(q);
 				sid = gets();
 				[pt,tq] = decodetname(q);
 				q = tq;
 				v[i] = mkparam(pt,
 					       (strlen(sid) > 0 ? 
-						mkcid(sid) : nil));
+						mkcid(sid) : nil),
+					       at);
 			}
 			return [mkctype_fn(st, v), q];
 		case ctlmux`Ttypedef:
@@ -2347,7 +2405,7 @@ ctlmux = @names clp64le {
 	@define muxlooksym(id, sym)
 	{
 		@local p, rep, dat, sz;
-		@local xid, flags, t, val, xsz, q;
+		@local xid, flags, t, val, xsz, q, at;
 		@local tq; /* FIXME: unnecessary in bleed */
 
 		sym = cid2str(sym);
@@ -2386,16 +2444,18 @@ ctlmux = @names clp64le {
 		flags = *q++;
 		q = (ctlmux`uint64*)q;
 		val = *q++;
+		[at, q] = decodeattrs(q);
+		at["offset"] = val;
 		xsz = *q++;
 		[t,tq] = decodetname(q);
 		q = tq;
-		return symrec(xid, flags, val, xsz, t);
+		return symrec(xid, flags, val, at, xsz, t);
 	}
 
 	@define muxenumsym(id)
 	{
 		@local p, q, rep, dat, sz, ss;
-		@local m, i, xid, xsz, val, flags, t;
+		@local m, i, xid, xsz, val, flags, t, at;
 		@local tq; /* FIXME: unnecessary in bleed */
 
 		sz = sizeof(ctlmux`Tenumsym);
@@ -2432,10 +2492,12 @@ ctlmux = @names clp64le {
 			flags = *q++;
 			q = (ctlmux`uint64*)q;
 			val = *q++;
+			[at, q] = decodeattrs(q);
+			at["offset"] = val;
 			xsz = *q++;
 			[t,tq] = decodetname(q);
 			q = tq;
-			append(ss, symrec(xid, flags, val, xsz, t));
+			append(ss, symrec(xid, flags, val, at, xsz, t));
 		}
 		return ss;
 	}
@@ -2443,7 +2505,7 @@ ctlmux = @names clp64le {
 	@define muxlookaddr(id, addr)
 	{
 		@local p, rep, dat, sz;
-		@local xid, flags, t, val, xsz, q;
+		@local xid, flags, t, val, xsz, q, at;
 		@local tq; /* FIXME: unnecessary in bleed */
 
 		sz = sizeof(ctlmux`Tlookaddr);
@@ -2478,10 +2540,12 @@ ctlmux = @names clp64le {
 		flags = *q++;
 		q = (ctlmux`uint64*)q;
 		val = *q++;
+		[at, q] = decodeattrs(q);
+		at["offset"] = val;
 		xsz = *q++;
 		[t,tq] = decodetname(q);
 		q = tq;
-		return symrec(xid, flags, val, xsz, t);
+		return symrec(xid, flags, val, at, xsz, t);
 	}
 
 	@define muxenumtype(id)
@@ -2660,6 +2724,51 @@ ctlmux = @names clp64le {
 		return ss;
 	}
 
+	@define muxunwind1(id, ctx)
+	{
+		@local p, q, rep, dat, sz, rs, k, r, n;
+		@local m, i;
+
+		sz = sizeof(ctlmux`Tunwind1);
+		sz += sizeof(ctlmux`uint64); /* id */
+		sz += sizeof(ctlmux`Ctx);    /* ctx */
+		p = (ctlmux`Tunwind1*)malloc(sz);
+		p->op = ctlmux`Tunwind1;
+		p->tag = freshtag();
+		q = (ctlmux`uint64*)(p+1);
+		*q++ = id;
+		putbytes(q, getbytes(ctx));
+		sendmsg(fd, p, sz);
+
+		/* wait for reply */
+		[rep, dat] = runtiltag(p->tag);
+		switch(rep->op){
+		case ctlmux`Runwind1:
+			break;
+		case ctlmux`Rerror:
+			if(rep->bytes == "no such thing")
+				return nil;
+			error("ctlmux: error while waiting for %e: %s",
+			      ctlmux`Runwind1, rep->bytes);
+		default:
+			error("unexpected response: %e", rep->op);
+		}
+
+		rs = [];
+		q = (ctlmux`uint32*)dat;
+		m = *q++;
+		for(i = 0; i < m; i++){
+			q = (ctlmux`uint8*)q;
+			k = *q++;
+			q = (ctlmux`uint64*)q;
+			r = *q++;
+			q = (ctlmux`int64*)q;
+			n = *q++;
+			append(rs, rule(k, r, n));
+		}
+		return rs;
+	}
+
 	@define muxnames(path)
 	{
 		@local p, q, rep, dat, sz;
@@ -2808,6 +2917,7 @@ ctlmux = @names clp64le {
 		     muxenumseg,
 		     muxenumloc,
 		     muxunwind,
+		     muxunwind1,
 		     muxnames,
 		     nsinit,
 		     stop,
@@ -2826,9 +2936,49 @@ ctlmux = @names clp64le {
 	return mux;
 }
 
-@define atnames(path)
+/*
+   dvec -- vector of domains representing a complete process address space
+
+ */
+
+@record vmap { start, end, path, dom };
+
+@define mkdvec(mux, ctl)
 {
-	@local mux;
-	mux = mkctlmux_local();
-	return mux.names(path);
+	@local st, dvec;
+	st = mux.statunix(ctl)[1];
+	dvec = [];
+	foreach(@lambda(dll){
+			printf("\t%d\t%016p\t%s\n",
+			       dll.id, dll.base, dll.path);
+			append(dvec,
+			       vmap(dll.base,
+				    0,
+				    dll.path,
+				    mkdom(atnames(dll.path, dll.base),
+					  ctl.mem())));
+		}, st);
+	sort(dvec, @lambda(a, b){
+			if(a.start < b.start)
+				return -1;
+			else if(a.start > b.start)
+				return 1;
+			else
+				return 0;
+		});
+	return dvec;
+}
+
+@define lookdvec(dvec, pc)
+{
+	@local v;
+	v = nil;
+	foreach(@lambda(u){
+			if(u.start > pc)
+				return;
+			v = u;
+		}, dvec);
+	if(v == nil)
+		error("lookdvec: no vmap for %p", pc);
+	return v;
 }

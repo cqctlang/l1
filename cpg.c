@@ -38,15 +38,15 @@ compileg(U *ctx, Expr* e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = compileg(ctx, p->e1);
+			sete1(p, compileg(ctx, p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = compileg(ctx, e->e1);
-		e->e2 = compileg(ctx, e->e2);
-		e->e3 = compileg(ctx, e->e3);
-		e->e4 = compileg(ctx, e->e4);
+		sete1(e, compileg(ctx, e->e1));
+		sete2(e, compileg(ctx, e->e2));
+		sete3(e, compileg(ctx, e->e3));
+		sete4(e, compileg(ctx, e->e4));
 		return e;
 	}
 }

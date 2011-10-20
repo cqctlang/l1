@@ -548,7 +548,7 @@ putsrc(Expr *e, Src src)
 		return e;
 	if(e->src)
 		return e;
-	e->src = src;
+	setsrc(e, src);
 	switch(e->kind){
 	case Eelist:
 		p = e;
@@ -557,7 +557,7 @@ putsrc(Expr *e, Src src)
 			p = p->e2;
 			if(p->src)
 				return e;
-			p->src = src;
+			setsrc(p, src);
 		}
 		break;
 	default:

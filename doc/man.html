@@ -108,11 +108,11 @@ the C programming language.
 </p>
 
 <p>
-In Cinquecento, fragments of C &mdash; employing C operators,
-types, and control flow &mdash; can read or modify target
+Using domains, fragments of C &mdash; employing C operators,
+types, and control flow &mdash; read or modify target
 program memory.  Complex C idioms for traversing data
 structures, such as pointer-chasing loops, usually work
-as Cinquecento without modification.  Specification of the names and
+with little or no modification.  Specification of the names and
 types of target program data follows the syntax of C
 declarations; minor extensions allow machine-level
 specification of location, layout, and encoding of data
@@ -136,7 +136,7 @@ validating global state in a distributed program.
 
 <p>
 Each domain encapsulates user-defined functions that
-catalog the types and symbols of the target, and
+catalog the types and symbols of the target, plus
 functions that read and write its memory and other
 run-time state.  Rather than favor the idiosyncrasies
 of one operating system, architecture, compiler, or
@@ -190,16 +190,16 @@ memory model, and control flow of idiomatic C.
 
 <p>
 Many superb guides to artful use of C or Scheme are
-available on the web and in libraries.
-In this manual we avoid dispensing nutshell caricatures of
-ideas and traditions explained well elsewhere.
-Instead, we recommend here a few standard selections as enjoyable
-starting points from which one cannot be led astray.
+available in libraries and on the web.  In this manual
+we avoid dispensing nutshell caricatures of ideas and
+traditions explained well elsewhere.  Instead we
+mention here some enjoyable starting points from which one
+cannot be led astray.
 </p>
 
 <p>
-<em>The Scheme Programming
-Language</em> [<a href="#bib:tspl">TSPL</a>] offers both a gentle introduction to
+<em><a href="#bib:tspl">The Scheme Programming
+Language</a></em> offers both a gentle introduction to
 Scheme and clear exposition on its many fine points.
 The point most central to Cinquecento is the role of
 <span class="val">lambda</span> as an operator for
@@ -207,8 +207,9 @@ constructing stateful first-class functions.  A taste
 and habit for stylistic use
 of <span class="val">lambda</span> can be cultivated by
 practicing the lessons of
-<em>The Little Schemer</em> [<a href="#bib:ls">Little</a>] and <em>Structure and
-Interpretation of Computer Programs</em> [<a href="#bib:sicp">SICP</a>].
+<em><a href="#bib:ls">The Little Schemer</a></em>
+and <em><a href="#bib:sicp">Structure and
+Interpretation of Computer Programs</a></em>.
 </p>
 
 <p>
@@ -217,11 +218,11 @@ nearly every feature of C other than static typing.
 Understanding Cinquecento requires familiarity with the
 sharp edges of C, especially sensitivity to what is and
 what is not promised about the meaning of types and
-operations involving pointers and memory.  <em>The C
-Programming Language</em> [<a href="#bib:kr">K&R</a>]
+operations involving pointers and memory.  <em><a href="#bib:kr">The C
+Programming Language</a></em>
 offers a concise and definitive foundation, while
-<em>C: A Reference Manual</em>
-[<a href="#bib:hs">H&S</a>] reveals more edges.
+<em><a href="#bib:hs">C: A Reference
+Manual</a></em> reveals more edges.
 </p>
 
 <p>
@@ -3906,9 +3907,9 @@ methods of every name space must provide definitions
 for the following types:
 <div class="code">
 <pre>
-char         unsigned char          _Bool
-short	     unsigned short	    float
-int	     unsigned int	    double
+char         unsigned char          _Bool         _Complex
+short	     unsigned short	    float         double _Complex
+int	     unsigned int	    double        long double _Complex
 long	     unsigned long	    long double
 long long    unsigned long long     void*
 </pre>
@@ -5780,6 +5781,9 @@ Base C type
 <span class="fnindex"><a href="#fn:mkctype_float">mkctype_float</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_double">mkctype_double</a></span><br />
 <span class="fnindex"><a href="#fn:mkctype_ldouble">mkctype_ldouble</a></span>
+<span class="fnindex"><a href="#fn:mkctype_complex">mkctype_complex</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_doublex">mkctype_doublex</a></span><br />
+<span class="fnindex"><a href="#fn:mkctype_ldoublex">mkctype_ldoublex</a></span>
 </td>
 </tr>
 
@@ -6444,6 +6448,18 @@ the following base type specifiers defined in the
 <td><span class="val">Vldouble</span></td>
 <td><span class="val">long double</span></td>
 </tr>
+<tr>
+<td><span class="val">Vcomplex</span></td>
+<td><span class="val">_Complex</span></td>
+</tr>
+<tr>
+<td><span class="val">Vdoublex</span></td>
+<td><span class="val">double _Complex</span></td>
+</tr>
+<tr>
+<td><span class="val">Vldoublex</span></td>
+<td><span class="val">long double _Complex</span></td>
+</tr>
 </table>
 </div>
 
@@ -6532,8 +6548,24 @@ following representation specifiers defined in the
 <td>64-bit floating point</td>
 </tr>
 <tr>
+<td><span class="val">Rf96</td> 
+<td>96-bit floating point</td>
+</tr>
+<tr>
 <td><span class="val">Rf128</td>
 <td>128-bit floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rx64</td> 
+<td>64-bit complex floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rx128</td> 
+<td>128-bit complex floating point</td>
+</tr>
+<tr>
+<td><span class="val">Rx192</td>
+<td>192-bit complex floating point</td>
 </tr>
 </table>
 </div>
@@ -6590,6 +6622,15 @@ following representation specifiers defined in the
 </div>
 <div class="function">
 <span class="id" id="fn:mkctype_ldouble">mkctype_ldouble([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_complex">mkctype_complex([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_doublex">mkctype_doublex([<span class="arg">rep</span>])</span>
+</div>
+<div class="function">
+<span class="id" id="fn:mkctype_ldoublex">mkctype_ldoublex([<span class="arg">rep</span>])</span>
 </div>
 <div class="param">
 <span class="arg">rep</span>: <span class="type">cvalue</span>
@@ -10768,6 +10809,9 @@ enum Cbase {
 	Vfloat,
 	Vdouble,
 	Vlongdouble,
+	Vcomplex,
+	Vdoublex,
+	Vlongdoublex,
 	Vnbase,
 	Vptr = Vnbase,
 	Vvoid,
@@ -10775,7 +10819,7 @@ enum Cbase {
 } Cbase;
 </pre>
 </div>
-Only names in the range <span class="id">Vchar</span> ... <span class="id">Vlongdouble</span> will be returned by <span class="id">cqctvalcbase</span>.
+Only names in the range <span class="id">Vchar</span> ... <span class="id">Vlongdoublex</span> will be returned by <span class="id">cqctvalcbase</span>.
 </div>
 </div>
 
@@ -11642,13 +11686,16 @@ Prentice Hall, 1988.
 <a href="#fn:mkctype_bitfield">mkctype_bitfield</a><br />
 <a href="#fn:mkctype_bool">mkctype_bool</a><br />
 <a href="#fn:mkctype_char">mkctype_char</a><br />
+<a href="#fn:mkctype_complex">mkctype_complex</a><br />
 <a href="#fn:mkctype_const">mkctype_const</a><br />
 <a href="#fn:mkctype_double">mkctype_double</a><br />
+<a href="#fn:mkctype_doublex">mkctype_doublex</a><br />
 <a href="#fn:mkctype_enum">mkctype_enum</a><br />
 <a href="#fn:mkctype_float">mkctype_float</a><br />
 <a href="#fn:mkctype_fn">mkctype_fn</a><br />
 <a href="#fn:mkctype_int">mkctype_int</a><br />
 <a href="#fn:mkctype_ldouble">mkctype_ldouble</a><br />
+<a href="#fn:mkctype_ldoublex">mkctype_ldoublex</a><br />
 <a href="#fn:mkctype_long">mkctype_long</a><br />
 <a href="#fn:mkctype_ptr">mkctype_ptr</a><br />
 <a href="#fn:mkctype_short">mkctype_short</a><br />

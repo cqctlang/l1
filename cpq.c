@@ -39,15 +39,15 @@ stxquasi(Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = stxquasi(p->e1);
+			sete1(p, stxquasi(p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = stxquasi(e->e1);
-		e->e2 = stxquasi(e->e2);
-		e->e3 = stxquasi(e->e3);
-		e->e4 = stxquasi(e->e4);
+		sete1(e, stxquasi(e->e1));
+		sete2(e, stxquasi(e->e2));
+		sete3(e, stxquasi(e->e3));
+		sete4(e, stxquasi(e->e4));
 		return e;
 	}
 }
@@ -64,15 +64,15 @@ stxquote(Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = stxquote(p->e1);
+			sete1(p, stxquote(p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = stxquote(e->e1);
-		e->e2 = stxquote(e->e2);
-		e->e3 = stxquote(e->e3);
-		e->e4 = stxquote(e->e4);
+		sete1(e, stxquote(e->e1));
+		sete2(e, stxquote(e->e2));
+		sete3(e, stxquote(e->e3));
+		sete4(e, stxquote(e->e4));
 		return e;
 	}
 }

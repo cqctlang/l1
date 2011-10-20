@@ -1,0 +1,2 @@
+// should pick cast interpretation
+p+(t)&p->f;

@@ -41,15 +41,15 @@ expandm(Expr *e)
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-			p->e1 = expandm(p->e1);
+			sete1(p, expandm(p->e1));
 			p = p->e2;
 		}
 		return e;
 	default:
-		e->e1 = expandm(e->e1);
-		e->e2 = expandm(e->e2);
-		e->e3 = expandm(e->e3);
-		e->e4 = expandm(e->e4);
+		sete1(e, expandm(e->e1));
+		sete2(e, expandm(e->e2));
+		sete3(e, expandm(e->e3));
+		sete4(e, expandm(e->e4));
 		return e;
 	}
 }

@@ -369,14 +369,18 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 	s = valstr(argv[0]);
 	off = valcval(argv[1]);
 	o = cvalu(off);		/* FIXME: use type */
-	if(o >= s->len)
-		vmerr(vm, "strput out of bounds");
 	if(Vkind(argv[2]) == Qstr){
 		t = valstr(argv[2]);
+		if(t->len == 0)
+			return;
+		if(o >= s->len)
+			vmerr(vm, "strput out of bounds");
 		if(o+t->len > s->len)
 			vmerr(vm, "strput out of bounds");
 		memcpy(strdata(s)+o, strdata(t), t->len);
 	}else{
+		if(o >= s->len)
+			vmerr(vm, "strput out of bounds");
 		cv = valcval(argv[2]);
 		strdata(s)[o] = (char)cvalu(cv);
 	}

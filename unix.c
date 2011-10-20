@@ -181,13 +181,13 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 			execvp(argv[0], argv);
 			eno = errno;
 			xwrite(ctl[1], (char*)&eno, sizeof(eno));
-			exit(1);
+			_exit(1);
 		case -1:
 			eno = errno;
 			xwrite(ctl[1], (char*)&eno, sizeof(eno));
-			exit(1);
+			_exit(1);
 		default:
-			exit(0);
+			_exit(0);
 		}
 	case -1:
 		return -errno;
