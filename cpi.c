@@ -93,7 +93,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                 if(strcmp(id, "_") != 0){
                         if(dupbind(m->binds, pat))
                                 cerror(ctx, pat,
-                                       "duplicate pattern variable");
+                                       "duplicate pattern variable %s", id);
                         m->binds = mkbind(pat, exp, m->binds);
                 }
                 rv = 1; /* pretend this is a binder even if _ used */
@@ -303,6 +303,16 @@ bindvars(Bind *binds, Expr **bvars, Expr **inits)
 	*inits = i;
 }
 
+static int containsid(Expr *idlist, Expr *id)
+{
+        while(idlist->kind != Enull){
+                if(idcid(idlist->e1) == idcid(id))
+                        return 1;
+                idlist = idlist->e2;
+        }
+        return 0;
+}
+
 static Expr* cases(U *ctx, Expr* e, Cases *cs);
 
 static Expr*
@@ -312,6 +322,7 @@ addcase(U *ctx, Expr *c, Cases *cs)
         char *l;
         int nc;
 	Match m = {0,0};
+        Expr* bvs = 0;
 
         if(!cs || (c->kind != Ecase && c->kind != Ematch))
 		cerror(ctx, c, "addcase called improperly");
@@ -335,7 +346,7 @@ addcase(U *ctx, Expr *c, Cases *cs)
                         cs->max *= 2;
                 }
                 l = genlabel();
-                if (c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
+                if(c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
                         if(m.binds != 0){
                                 Expr *inits, *decls;
                                 if(nc != cs->nc)
@@ -345,6 +356,24 @@ addcase(U *ctx, Expr *c, Cases *cs)
                                 freebinds(m.binds);
 				m.binds = 0;
                                 b = Zblock(decls, inits, copyexpr(ib), NULL);
+                                if(bvs != 0){
+                                        Expr *x = decls;
+                                        if(elistlen(decls) != elistlen(bvs)){
+                                                cerror(ctx, e, "# of bound "
+                                                       "variables differ "
+                                                       "on fallthrough");
+                                        }
+                                        while(x->kind != Enull){
+                                                if(!containsid(bvs,x->e1))
+                                                        cerror(ctx, e,
+                                                               "nonmatching "
+                                                               "bound variable %s "
+                                                               "on fallthrough",
+                                                               idsym(x->e1));
+                                                x = x->e2;
+                                        }
+                                }
+                                bvs = decls;
                         }
                 }
                 else

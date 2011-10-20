@@ -1,0 +1,4 @@
+switch ([1,2]) {
+  @match [y]: 
+  @match [x,y]: printf("%d\n",y); break;
+}
