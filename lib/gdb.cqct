@@ -1,0 +1,316 @@
+/* gdb serial protocol */
+@include <xsas.cqct>
+
+@global
+	gdbbrk,
+	gdbc,
+	gdbg,
+	gdbm,
+	gdbM,
+	gdbs,
+	gdbz,
+	gdbZ,
+	gdbrecvpkt,
+	mkgdbctl
+	;
+
+@record gdbctl { mem, reg, wait, stop, cont, step, Z, z };
+
+{
+@defloc tohex(b)
+{
+	return "0123456789abcdef"[b];
+}
+
+@defloc tobin(x)
+{
+	if(x >= '0' && x <= '9')
+		return x-'0';
+	if(x >= 'A' && x <= 'F')
+		return x-'A'+10;
+	if(x >= 'a' && x <= 'f')
+		return x-'a'+10;
+	error("bad hex digit");
+}
+
+@defloc hextobin(s)
+{
+	@local i, n, m, t;
+	t = m = mkxs();
+	n = length(s);
+	for(i = 0; i < n; i += 2)
+		*t++ = (tobin(s[i])<<4)|tobin(s[i+1]);
+	return getbytes(m, n/2);
+}
+
+@defloc bintohex(b)
+{
+	@local i, n, m, t;
+	t = m = mkxs();
+	n = length(b);
+	for(i = 0; i < n; i++){
+		*t++ = tohex(b[i]>>4);
+		*t++ = tohex(b[i]&0xf);
+	}
+	return getbytes(m, t-m);
+}
+
+@defloc csum(s)
+{
+	@local c, p, ep;
+	c = (uint8)0;
+	p = (uint8*)s;
+	ep = p+length(s);
+	while(p < ep)
+		c += *p++;
+	return (uint8)c;
+}
+
+@defloc wtf(s)
+{
+	error("unexpected gdb datum: %s", s);
+}
+
+@defloc recvack(fd)
+{
+	@local s;
+	s = read(fd, 1);
+	switch(s){
+	case "+":
+		break;
+	case "-":
+		error("gdb channel corruption");
+	default:
+		wtf(s);
+	}
+}
+
+@defloc recvpkt(fd)
+{
+	@local s, p, m;
+
+	p = m = mkxs();
+	s = read(fd, 1);
+	if(s != "$")
+		wtf(s);
+	while(1){
+		s = read(fd, 1);
+		if(s == "#")
+			break;
+		*p++ = s[0];
+	}
+	read(fd, 2); /* checksum */
+	return getbytes(m, p-m);
+}
+
+@defloc sendpkt(fd, s)
+{
+	@local c, q, m;
+
+	q = m = mkxs();
+	*q++ = '$';
+	putbytes(q, s);
+	q += length(s);
+	*q++ = '#';
+	c = csum(s);
+	*q++ = tohex(c>>4);
+	*q++ = tohex(c&0xf);
+	printf("sendpkt %s\n", getbytes(m, q-m));
+	write(fd, getbytes(m, q-m));
+}
+
+@define gdbrecvpkt(fd)
+{
+	return recvpkt(fd);
+}
+
+@define gdbg(fd)
+{
+	@local p, m, s, b;
+	p = m = mkxs();
+	*p++ = 'g';
+	sendpkt(fd, getbytes(m, p-m));
+	recvack(fd);
+	s = recvpkt(fd);
+	b = hextobin(s);
+	return b;
+}
+
+@define gdbbrk(fd)
+{
+	@local p, m, s;
+	p = m = mkxs();
+	*p++ = 0x3; /* break */
+	write(fd, getbytes(m, p-m));  /* no packet */
+	s = recvpkt(fd);
+	printf("break: %s\n", s);
+}
+
+@define gdbc(fd, rest ...)
+{
+	@local p, m, s, addr;
+	p = m = mkxs();
+	*p++ = 'c';
+	if(length(rest) > 0){
+		addr = rest[0];
+		s = sprintfa("%p", addr);
+		putbytes(p, s);
+		p += length(s);
+	}
+	sendpkt(fd, getbytes(m, p-m));
+	recvack(fd);
+}
+
+@define gdbs(fd, rest ...)
+{
+	@local p, m, s, addr;
+	p = m = mkxs();
+	*p++ = 's';
+	if(length(rest) > 0){
+		addr = rest[0];
+		s = sprintfa("%p", addr);
+		putbytes(p, s);
+		p += length(s);
+	}
+	sendpkt(fd, getbytes(m, p-m));
+	recvack(fd);
+	s = recvpkt(fd);
+	return s;
+}
+
+@define gdbm(fd, addr, len)
+{
+	@local p, m, s;
+	p = m = mkxs();
+	*p++ = 'm';
+	s = sprintfa("%p,%p", addr, len);
+	putbytes(p, s);
+	p += length(s);
+	sendpkt(fd, getbytes(m, p-m));
+	recvack(fd);
+	s = recvpkt(fd);
+	return hextobin(s);
+}
+
+@define gdbM(fd, addr, dat)
+{
+	@local p, m, s;
+	p = m = mkxs();
+	*p++ = 'M';
+	dat = bintohex(dat);
+	s = sprintfa("%p,%p:", addr, length(dat));
+	putbytes(p, s);
+	p += length(s);
+	putbytes(p, dat);
+	p += length(dat);
+	sendpkt(fd, getbytes(m, p-m));
+	recvack(fd);
+	s = recvpkt(fd);
+	return s;
+}
+
+@define gdbZ(fd, type, addr, len)
+{
+	@local p, m, s;
+	p = m = mkxs();
+	*p++ = 'Z';
+	s = sprintfa("%d,%p,%p", type, addr, len);
+	putbytes(p, s);
+	p += length(s);
+	sendpkt(fd, getbytes(m, p-m));
+	recvack(fd);
+	s = recvpkt(fd);
+	return s;
+}
+
+@define gdbz(fd, type, addr, len)
+{
+	@local p, m, s;
+	p = m = mkxs();
+	*p++ = 'z';
+	s = sprintfa("%d,%p,%p", type, addr, len);
+	putbytes(p, s);
+	p += length(s);
+	sendpkt(fd, getbytes(m, p-m));
+	recvack(fd);
+	s = recvpkt(fd);
+	return s;
+}
+
+@define mkgdbctl(fd)
+{
+	@local rd;
+
+	@defloc mem()
+	{
+		@defloc get(this, r)
+		{
+			return gdbm(fd, rangebeg(r), rangelen(r));
+		}
+
+		@defloc put(this, r, s)
+		{
+			return gdbM(fd, rangebeg(r), s);
+		}
+
+		@defloc map(this)
+		{
+			return vector(mkrange(0,(uint32)-1));
+		}
+
+		@defloc ismapped(this, r)
+		{
+			return isrinr(r, map(this));
+		}
+
+		return mkas([ "get"		: get,
+			      "put"		: put,
+			      "map"		: map,
+			      "ismapped"	: ismapped,
+			    ]);
+	}
+
+	@defloc reg()
+	{
+		return gdbg(fd);
+	}
+
+	@defloc wait()
+	{
+		return gdbrecvpkt(fd);
+	}
+
+	@defloc stop()
+	{
+		return gdbbrk(fd);
+	}
+
+	@defloc cont()
+	{
+		return gdbc(fd);
+	}
+
+	@defloc step()
+	{
+		return gdbs(fd);
+	}
+
+	@defloc z(type, addr, len)
+	{
+		return gdbz(fd, type, addr, len);
+	}
+
+	@defloc Z(type, addr, len)
+	{
+		return gdbZ(fd, type, addr, len);
+	}
+
+	/* allow a bit of time for a stop reply packet to arrive */
+	[rd, _, _] = select([fd], [], [], [0, 500000]);
+	if(length(rd))
+		printf("mkgdbctl: stop-reply packet: %s\n", gdbrecvpkt(fd));
+	
+	return gdbctl(mem, reg, wait, stop, cont, step, Z, z);
+}
+
+}
