@@ -255,7 +255,7 @@
 
 		@defloc map(this)
 		{
-			return vector(mkrange(0,(uint32)-1));
+			return vector(mkrange(0,(uint64)-1));
 		}
 
 		@defloc ismapped(this, r)
