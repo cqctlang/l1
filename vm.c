@@ -174,7 +174,7 @@ mkcl(Code *code, unsigned long entry, unsigned len, char *id)
 }
 
 Closure*
-mkxfn(Str *code)
+mkxfn(Val code)
 {
 	Closure *cl;
 	cl = mkcl(cccode, 0, 0, "*asm*");
@@ -1511,7 +1511,12 @@ xcallc(VM *vm)
 	else if(vm->cl->ccl)
 		vm->cl->ccl(vm, argc, argv, cldisp(vm->cl), &rv);
 	else{
-		x = (Cfn*)strdata(vm->cl->xfn);
+		if(Vkind(vm->cl->xfn) == Qstr)
+			x = (Cfn*)strdata(valstr(vm->cl->xfn));
+		else if(Vkind(vm->cl->xfn) == Qcval)
+			x = (Cfn*)cvalu(valcval(vm->cl->xfn));
+		else
+			bug();
 		x(vm, argc, argv, &rv);
 	}
 	vm->ac = rv;
@@ -1544,7 +1549,12 @@ xcalltc(VM *vm)
 	else if(cl->ccl)
 		cl->ccl(vm, argc, argv, cldisp(cl), &vm->ac);
 	else{
-		x = (Cfn*)strdata(cl->xfn);
+		if(Vkind(vm->cl->xfn) == Qstr)
+			x = (Cfn*)strdata(valstr(vm->cl->xfn));
+		else if(Vkind(vm->cl->xfn) == Qcval)
+			x = (Cfn*)cvalu(valcval(vm->cl->xfn));
+		else
+			bug();
 		x(vm, argc, argv, &vm->ac);
 	}
 }
@@ -6396,8 +6406,9 @@ l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 	Closure *cl;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkcl");
-	checkarg(vm, "mkcl", argv, 0, Qstr);
-	cl = mkxfn(valstr(argv[0]));
+	if(Vkind(argv[0]) != Qstr && Vkind(argv[0]) != Qcval)
+		vmerr(vm, "operand 1 to mkcl must be a string or cvalue");
+	cl = mkxfn(argv[0]);
 	*rv = mkvalcl(cl);
 }
 

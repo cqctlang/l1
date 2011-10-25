@@ -328,7 +328,7 @@ struct Closure {
 	Imm fp;			/* of continuation, always >0 */
 	Cfn *cfn;
 	Ccl *ccl;
-	Str *xfn;
+	Val xfn;
 };
 
 #define cldisp(x) ((Val*)((x)+1))
@@ -1086,7 +1086,7 @@ Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
-Closure*	mkxfn(Str *code);
+Closure*	mkxfn(Val code);
 Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
 Cval*		mkcval(Dom *dom, Ctype *type, Imm val);
 Dom*		mkdom(Ns *ns, As *as, Str *name);
