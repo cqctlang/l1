@@ -214,6 +214,15 @@ ctlmux = @names clp64le {
 	};
 
 	typedef
+	enum Lkind {
+		Lreg,
+		Ladd,
+		Lsub,
+		Lulit,
+		Lslit,
+	} Lkind;
+
+	typedef
 	struct Ctx {
 		/* kernel's register set */
 		@0x0	uint64 r15;
@@ -521,6 +530,13 @@ ctlmux = @names clp64le {
 	type,
 };
 
+@record lexpr {
+	kind,
+	no,
+	v,	
+	op1, op2,
+};
+
 @record loc {
 	id,
 	sz,
@@ -563,8 +579,6 @@ ctlmux = @names clp64le {
 	trapdel,
 	trapreset,
 	unwind,
-	localns,
-	locals,
 	// private
 	state,
 	traps,
@@ -673,7 +687,7 @@ ctlmux = @names clp64le {
 	@local xstop, xcont, xstep, detach, kill, snap;
 	@local mem, reg, setreg, trace, xtrap, xsnap, xtraps, xns;
 	@local trapset, trapdel, trapreset;
-	@local statunix, statwin, unwind, localns, locals;
+	@local statunix, statwin, unwind;
 	@local this, thisns, checkdead;
 
 	@define checkdead()
@@ -816,75 +830,6 @@ ctlmux = @names clp64le {
 		mux.unwind(id, _reg);
 	}
 
-	@define localns(ctx)
-	{
-		@local lt, ls, et, es, la, ns;
-		@local sym;
-
-		sym = locals(ctx);
-		if(sym == nil)
-			return nil;
-		ns = xns();
-
-		@define lt(this, tn)
-		{
-			return ns.looktype(tn);
-		}
-
-		@define et(this)
-		{
-			return ns.enumtype();
-		}
-
-		@define ls(this, name)
-		{
-			@local s;
-			s = sym[name];
-			if(s != nil)
-				return s;
-			return ns.looksym(name);
-		}
-		
-		@define es(this)
-		{
-			@local ss;
-			ss = ns.enumsym();
-			foreach(@lambda(id, s){
-					ss[id] = s;
-				}, sym);
-			return ss;
-		}
-
-		@define la(this, a)
-		{
-			/* locals are not code, so just go to ns */
-			return ns.lookaddr(a);
-		}
-
-		return mkns([ "looktype" : lt,
-			      "enumtype" : et,
-			      "looksym"  : ls,
-			      "enumsym"  : es,
-			      "lookaddr" : la ]);
-	}
-
-	@define locals(ctx)
-	{
-		@local ns, sym, ls;
-
-		sym = [:];
-		ls = mux.enumloc(id, ctx);
-		if(ls == nil)
-			return sym;
-		ns = xns();
-		foreach(@lambda(s){
-				sym[s.id] = mksym(looktype(ns, s.type),
-						  mkcid(s.id),
-						  s.loc);
-			}, ls);
-		return sym;
-	}
-
 	@define setreg(r)
 	{
 		_reg = r;
@@ -1005,7 +950,7 @@ ctlmux = @names clp64le {
 	this = ctlrec(id, xstop, xcont, xstep, detach, kill, snap,
 		      mem, xns, flushns, reg, statunix, statwin,
 		      setreg, trace, xtrap, xsnap,
-		      xtraps, trapdel, trapreset, unwind, localns, locals,
+		      xtraps, trapdel, trapreset, unwind,
 		      // begin private
 		      state, traps, callbacks, nil);
 	return this;
@@ -2237,6 +2182,37 @@ ctlmux = @names clp64le {
 		}
 	}
 
+	@defloc decodelexpr(q)
+	{
+		@local k, no, v, op1, op2, le;
+		q = (uint8*)q;
+		k = *q++;
+		switch(k){
+		case ctlmux`Lreg:
+			no = *q++;
+			le = lexpr(k, no, nil, nil, nil);
+			return [le, q];
+		case ctlmux`Ladd:
+		case ctlmux`Lsub:
+			[op1, q] = decodelexpr(q);
+			[op2, q] = decodelexpr(q);
+			le = lexpr(k, nil, nil, op1, op2);
+			return [le, q];
+		case ctlmux`Lulit:
+			q = (uint64*)q;
+			v = *q++;
+			le = lexpr(k, nil, v, nil, nil);
+			return [le, q];
+		case ctlmux`Lslit:
+			q = (int64*)q;
+			v = *q++;
+			le = lexpr(k, nil, v, nil, nil);
+			return [le, q];
+		default:
+			error("unexpected lexpr %d", k);
+		}
+	}
+
 	@define nsinit(id)
 	{
 		@local type, sym, addr, undef;
@@ -2591,9 +2567,8 @@ ctlmux = @names clp64le {
 	@define muxenumloc(id, ctx)
 	{
 		@local p, q, rep, dat, sz, ss;
-		@local m, i, xid, xsz, t;
-		@local ltype, xloc;
-		@local tq; /* FIXME: unnecessary in bleed */
+		@local m, i, xid, t;
+		@local vk, le;
 
 		sz = sizeof(ctlmux`Tenumloc);
 		sz += sizeof(ctlmux`uint64); /* id */
@@ -2622,21 +2597,17 @@ ctlmux = @names clp64le {
 
 		ss = [];
 		q = (ctlmux`uint64*)dat;
-		_ = *q++; /* nsid */
 		m = *q++;
 		for(i = 0; i < m; i++){
 			q = (ctlmux`uint64*)q;
 			sz = *q++;
 			xid = getbytes(q, sz);
 			q = (ctlmux`uint64*)((char*)q+sz);
-			xsz = *q++;
-			q = (ctlmux`uint8*)q;
-			ltype = *q++;
-			q = (ctlmux`uint64*)q;
-			xloc = *q++;
-			[t,tq] = decodetname(q);
-			q = tq;
-			append(ss, loc(xid, xsz, ltype, xloc, t));
+			[t, q] = decodetname(q);
+			q = (uint8*)q;
+			vk = *q++;
+			[le, q] = decodelexpr(q);
+			append(ss, loc(mkcid(xid), nil, vk, le, t));
 		}
 		return ss;
 	}

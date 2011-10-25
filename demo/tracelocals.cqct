@@ -1,3 +1,5 @@
+/* This demo needs to be revised to resolve and present
+   the locations of the locals */
 @include <ctlmux.cqct>
 
 @define test1(cmd)
@@ -11,10 +13,11 @@
 	dom = mkdom(ns, as);
 	dom.xtrap((void*)&dom`locals,
 		  @lambda(ctl){
-			  @local ss, regs;
+			  @local ss, regs, nsid;
 			  regs = ctl.reg();
 			  printf("%s locals (sctl):\n", cmd);
-			  ss = mux.enumloc(ctl.id, regs);
+			  nsid = 0; /* assume binary is nsid 0 */
+			  ss = mux.enumloc(nsid, regs);
 			  if(ss == nil){
 				  printf("no location information for %p\n",
 					 {dom}regs->rip);
@@ -22,15 +25,8 @@
 			  }
 			  printf("mux.enumloc():\n");
 			  foreach(@lambda(l){
-					  printf("\t%s\t%6d\t0x%p\n",
-						 l.id,
-						 l.sz,
-						 l.loc);
-				  }, ss);
-			  ss = ctl.locals(ctl.reg());
-			  printf("ctl.locals():\n");
-			  foreach(@lambda(id, s){
-					  printf("\t%p\t%t\n", symoff(s), s);
+					  printf("\t%s\t%t\n",
+						 l.id, l.type);
 				  }, ss);
 		  });
 	dom.xcont();
