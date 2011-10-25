@@ -24,6 +24,7 @@
 <a href="#lib:nsutil.cqct">nsutil</a><br />
 <a href="#lib:snames.cqct">snames</a><br />
 <a href="#lib:snamesclt.cqct">snamesclt</a><br />
+<a href="#lib:gdb.cqct">gdb</a><br />
 </div>
 
 <div id="content">
@@ -1176,6 +1177,289 @@ Advises the library to reset its connection to the snames server.
 </div>
 </div>
 
+<h5 id="lib:gdb.cqct">gdb.cqct</h5>
+
+<p>
+<span class="id">gdb.cqct</span> provides access to an
+execution target over the GDB remote serial protocol
+("GDB stubs").
+</p>
+
+<p>
+The library provides a set of functions for directly
+speaking various messages of the GDB protocol:
+<span class="id">gdbbrk</span>,
+<span class="id">gdbc</span>,
+<span class="id">gdbg</span>,
+<span class="id">gdbm</span>,
+<span class="id">gdbM</span>,
+<span class="id">gdbs</span>,
+<span class="id">gdbS</span>,
+<span class="id">gdbz</span>,
+<span class="id">gdbZ</span>,
+<span class="id">gdbrecvpkt</span>.
+This set is likely to grow, and is not documented.
+</p>
+
+<p>
+Most users should use the high-level client interface,
+<span class="id">mkgdbctl</span>:
+</p>
+
+
+<div class="docitem" id="fn:mkgdbctl">
+<div class="proto">
+<div class="function">
+<span class="id">mkgdbctl(fd)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span> 
+</div>
+<div class="returns">
+<span class="type">ctl object</span>
+</div>
+</div>
+<div class="desc">
+The file descriptor <span class="arg">fd</span> should
+be the client endpoint of a connection to a GDB remote
+serial protocol server.  Returns a control object that
+supports several methods for accessing the remote
+target.  These methods are interfaces to GDB serial
+protocol, nothing more: their precise effect depends on
+the server implementation of the protocol.
+</p>
+
+<p>
+The methods are:
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id">cont()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Directs the remote target to resume execution.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id">stop()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Directs the remote target to stop execution.
+Returns after the stop-reply packet has been received.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id">step()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Directs the remote target to single step.
+Returns upon completion of the step.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id">wait()</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Waits for the server to send a stop-reply packet,
+indicating that the target execution has suspended or exited.
+Returns the body of the stop-reply packet, from
+which callers can determine the status of the target.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id">Z(<span class="arg">type</span>,<span class="arg">addr</span>,<span class="arg">len</span>)</span>
+</div>
+<div class="function">
+<span class="id">z(<span class="arg">type</span>,<span class="arg">addr</span>,<span class="arg">len</span>)</span>
+</div>
+<div class="param">
+<span class="arg">type</span>: <span class="type">cvalue</span> 
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span> 
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span> 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Sets (<span class="id">Z</span>) or clears
+(<span class="id">z</span>) a trap on various forms of access to target memory.
+<span class="arg">Type</span> specifies the
+type of trap, <span class="arg">addr</span> specifies the
+first address of the instrumented range, and <span class="arg">len</span>
+specifies the number of bytes in the range.
+</p>
+
+
+<p>
+The GDB protocol defines five possible values for <span class="arg">type</span>:
+</p>
+
+<div class="table-short">
+<table>
+
+<tr>
+<td>
+0
+</td>
+<td>
+software breakpoint
+</td>
+</tr>
+
+<tr>
+<td>
+1
+</td>
+<td>
+hardware breakpoint
+</td>
+</tr>
+
+<tr>
+<td>
+2
+</td>
+<td>
+memory read watchpoint
+</td>
+</tr>
+
+<tr>
+<td>
+3
+</td>
+<td>
+memory write watchpoint
+</td>
+</tr>
+
+<tr>
+<td>
+4
+</td>
+<td>
+memory access watchpoint
+</td>
+</tr>
+
+</table>
+</div>
+
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id">mem()</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Returns an address space backed by the address space of
+the target execution.
+</p>
+<p>
+BUG: The GDB serial protocol offers visibility into the
+layout of the target address, but
+the <span class="id">mem</span> method does not take
+advantage of it.  Instead, it assumes that the target
+completely maps a 64-bit address space.  Any access to
+memory that is not actually mapped will fail
+gracelessly.
+</p>
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function">
+<span class="id">reg()</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Returns the current values of the general register set
+of the target in a contiguous byte array.  This array
+represents the register set values, in binary, returned
+by the server; the client is responsible for its
+interpretation.
+</p>
+</div>
+</div>
+
+</div>
+</div>
+
+<p>
+The following example constructs a gdb control object
+to the GDB server at TCP port 10000 on the local host,
+and causes the target to single step ten times:
+</p>
+
+<div class="code">
+<pre>
+; @include &lt;gdb.cqct&gt;
+; ctl = mkgdbctl(tcpopen("localhost:10000"));
+; for(i = 0; i < 10; i++) ctl.step();
+</pre>
+</div>
+
+<p>
+This example constructs a domain <span class="id">dom</span>
+from the control object,
+using a separately provided name space:
+</p>
+
+<div class="code">
+<pre>
+; ns = @names c32le { @include "my.names" };
+; dom = mkdom(ns, ctl.mem());
+</pre>
+</div>
 
 
 </div>
