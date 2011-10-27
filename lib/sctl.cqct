@@ -915,6 +915,15 @@ sctl = @names clp64le {
 		*p++ = (uint8)basebase(t);
 		*p++ = (uint8)baserep(t);
 		return p;
+	}else if(isvoid(t)){
+		*p++ = cqct`Tbase;
+		*p++ = (uint8)cqct`Vvoid;
+		*p++ = (uint8)cqct`Rundef;
+		return p;
+	}else if(isundeftype(t)){
+		*p++ = cqct`Tundef;
+		p = encodetname(p, subtype(t));
+		return p;
 	}else
 		error("unhandled type definition %t", t);
 }
@@ -1058,6 +1067,9 @@ sctl = @names clp64le {
 		pos = *q++;
 		[st, q] = decodetname(q);
 		return [mkctype_bitfield(st, w, pos), q];
+	case cqct`Tundef:
+		[st, q] = decodetname(q);
+		return [mkctype_undef(st), q];
 	default:
 		error("decodetdef: unhandled case %d", k);
 	}
