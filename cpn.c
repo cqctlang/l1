@@ -804,7 +804,7 @@ mkfieldspec(U *ctx, Expr *f, Seen *s)
 			   NULL);
 	else
 		r = Zcall(G("mkfield"), 3, tn, id,
-			  a ? Zcall(G("mkattr"), 1, a) : Znil());
+			  Zcall(G("mkattr"), 1, a ? a : Znil()));
 	putsrc(r, f->src);
 	return r;
 }

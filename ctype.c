@@ -691,6 +691,7 @@ mkctypeconst(Ctype *sub)
 Imm
 typesize(VM *vm, Ctype *t)
 {
+	Val v;
 	Cval *cv;
 	Str *es;
 	Rkind rep;
@@ -716,10 +717,11 @@ typesize(VM *vm, Ctype *t)
 	case Tstruct:
 	case Tunion:
 		ts = (Ctypesu*)t;
-		if(Vkind(ts->attr) == Qnil)
-			vmerr(vm, "attempt to determine size of undefined aggregate");
-		cv = valcval(attroff(ts->attr));
-		return cvalu(cv);
+		v = attroff(ts->attr);
+		if(Vkind(v) == Qnil)
+			vmerr(vm, "attempt to determine size of "
+			      "aggregate with no size");
+		return cvalu(valcval(v));
 	case Tarr:
 		ta = (Ctypearr*)t;
 		if(Vkind(ta->cnt) != Qcval)
@@ -1154,14 +1156,14 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		if(Vkind(argv[2]) != Qcval
 		   && Vkind(argv[2]) != Qtab
 		   && Vkind(argv[2]) != Qnil)
-			vmerr(vm, "operand 3 to %s must be a cvalue, table, or nil",
+			vmerr(vm, "operand 3 to %s must be a cvalue, "
+			      "table, or nil",
 			      fn);
 		id = valcid(argv[0]);
 		f = valvec(argv[1]);
 		if(!issymvec(f))
 			vmerr(vm, "bad field vector", fn);
-		t = mkctypesu(tkind, id, f,
-			      Vkind(argv[2]) != Qnil ? mkattr(argv[2]) : Xnil);
+		t = mkctypesu(tkind, id, f, mkattr(argv[2]));
 		break;
 	default:
 		vmerr(vm, "wrong number of arguments to %s", fn);
@@ -1557,8 +1559,6 @@ l1_susize(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm,
 		      "operand 1 to susize must be a struct or union ctype");
 	ts = (Ctypesu*)t;
-	if(Vkind(ts->attr) == Qnil)
-		return; /* nil */
 	*rv = attroff(ts->attr);
 }
 
@@ -1775,16 +1775,14 @@ rlookfield(VM *vm, Ctype *xsu, Val tag)
 		if(rp == 0)
 			continue;
 		r = valvec(rp);
-		fa = vecref(f, Attrpos);
-		ra = vecref(r, Attrpos);
+		fa = attroff(vecref(f, Attrpos));
+		ra = attroff(vecref(r, Attrpos));
 		if(Vkind(fa) == Qnil || Vkind(ra) == Qnil)
 			/* FIXME: are there cases when
 			   this is sensible? */
 			vmerr(vm,
 			      "attempt to access field of undefined aggregate");
-		o = mkvalcval2(xcvalalu(vm, Iadd,
-					valcval(attroff(fa)),
-					valcval(attroff(ra))));
+		o = mkvalcval2(xcvalalu(vm, Iadd, valcval(fa), valcval(ra)));
 		r = veccopy(r);
 		_vecset(r, Attrpos, copyattr(vecref(r, Attrpos), o));
 		return mkvalvec(r);

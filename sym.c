@@ -7,10 +7,12 @@ mkattr(Val o)
 {
 	Tab *tab;
 
-	if(Vkind(o) != Qtab && Vkind(o) != Qcval)
+	if(Vkind(o) != Qtab && Vkind(o) != Qcval && Vkind(o) != Qnil)
 		fatal("bug");
 	if(Vkind(o) == Qtab)
 		tab = tabcopy(valtab(o));
+	else if(Vkind(o) == Qnil)
+		tab = mktab();
 	else{
 		tab = mktab();
 		tabput(tab, mkvalstr(mkstr0("offset")), o);

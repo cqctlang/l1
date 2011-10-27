@@ -3226,7 +3226,7 @@ resolvetag(VM *vm, Val tv, NSctx *ctx)
 			ts = (Ctypesu*)t;
 			fld = ts->field;
 			attr = ts->attr;
-			if(fld == 0)
+			if(fld == 0 || Vkind(attr) == Qnil)
 				goto error;
 			nfld = mkvec(fld->len);
 			new = mkctypesu(t->tkind, ts->tag, nfld, attr);
@@ -4996,8 +4996,11 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkattr");
-	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qtab)
-		vmerr(vm, "argument 1 to mkattr must be a table or cvalue");
+	if(Vkind(argv[0]) != Qcval
+	   && Vkind(argv[0]) != Qtab
+	   && Vkind(argv[0]) != Qnil)
+		vmerr(vm, "argument 1 to mkattr must be a table, cvalue, "
+		      "or nil");
 	*rv = mkattr(argv[0]);
 }
 
