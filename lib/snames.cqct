@@ -2,6 +2,7 @@
 !#
 @include <ns9p.cqct>   /* Diru */
 @include <sctl.cqct>
+@include <sctlclt.cqct>
 
 @global nsid2path;
 @global path2nsid;
@@ -11,6 +12,7 @@
 @global index;
 @global history;
 @global rootns;
+@global mode;
 
 sns = @names clp64be {
 	typedef short unsigned int sa_family_t;
@@ -308,7 +310,15 @@ handle = [
 	close(fd);
 }
 
-@define openns(path)
+@define bindns(id, path, ns)
+{
+	nsid2ns[id] = ns;
+	path2nsid[path] = id;
+	nsid2path[(uint64)id] = path;
+	record();
+}
+
+@define opennsnames(path)
 {
 	@local id, s, a, nc, st;
 	id = path2nsid[path];
@@ -341,14 +351,30 @@ handle = [
 	evalk(s,
 	      @lambda(ns){
 		      id = st->qid.path;
-		      nsid2ns[id] = ns;
-		      path2nsid[path] = id;
-		      nsid2path[(uint64)id] = path;
-		      record();
+		      bindns(id, path, ns);
 		      return id;
 	      },
 	      @lambda(){ return nil; });
 }
+
+@global nextid;
+nextid = 0;
+
+@define opennssctl(path)
+{
+	@local id, ns;
+	id = path2nsid[path];
+	if(id)
+		return id;
+	ns = atnames(path);
+	if(ns == nil)
+		return nil;
+	id = ++nextid;
+	bindns(id, path, ns);
+	return id;
+}
+
+@global openns;
 
 @define looknsid(nsid)
 {
@@ -423,13 +449,23 @@ handle = [
 	}
 }
 
-if(length(args) < 3){
-	printf("usage: %s PORT ROOTNS PREFIX [VAR ...] \n", "snames.cqct");
+if(length(args) < 4){
+	printf("usage: %s PORT ROOTNS MODE PREFIX [VAR ...] \n", "snames.cqct");
 	exit(1);
 }
 
 pop(args);
 port = strton(pop(args));
 rootns = pop(args);
+mode = pop(args);
 prefix = pop(args);
+if(mode == "sctl")
+	openns = opennssctl;
+else if(mode == "names")
+	openns = opennsnames;
+else{
+	printf("%s: mode must be \"sctl\" or \"names\"\n");
+	exit(1);
+}
+	
 watchdog(@lambda(){ main(port, prefix, args); });
