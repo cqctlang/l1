@@ -271,7 +271,7 @@ equalctype(Ctype *a, Ctype *b)
 		atw = (Ctypebitfield*)a;
 		btw = (Ctypebitfield*)b;
 		return (equalcval(valcval(atw->cnt), valcval(btw->cnt))
-			&& equalcval(valcval(atw->bit0), valcval(btw->bit0))
+			&& equalval(atw->bit0, btw->bit0)
 			&& equalctype(subtype(a), subtype(b)));
 	case Tconst:
 	case Tundef:
@@ -1236,7 +1236,9 @@ l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkctype_bitfield");
 	checkarg(vm, "mkctype_bitfield", argv, 0, Qctype);
 	checkarg(vm, "mkctype_bitfield", argv, 1, Qcval);
-	checkarg(vm, "mkctype_bitfield", argv, 2, Qcval);
+	if(Vkind(argv[2]) != Qcval && Vkind(argv[2]) != Qnil)
+		vmerr(vm, "operand 3 to mkctype_bitfield must be a "
+		      "cvalue or nil");
 	sub = valctype(argv[0]);
 	t = mkctypebitfield(sub, argv[1], argv[2]);
 	*rv = mkvalctype(t);

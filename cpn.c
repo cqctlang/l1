@@ -787,7 +787,7 @@ mkfieldspec(U *ctx, Expr *f, Seen *s)
 	else
 		id = Znil(); /* anonymous field */
 	a = mkctype(ctx, f->e3, s);
-	if(f->kind == Ebitfield)
+	if(f->kind == Ebitfield && a)
 		r = Zblock(Zlocals(1, "$o"),
 			   Zset(doid("$o"), a),
 			   Zcall(G("mkfield"), 3,
@@ -802,6 +802,14 @@ mkfieldspec(U *ctx, Expr *f, Seen *s)
 						     Zuint(32)),
 					      Zuint(4)))),
 			   NULL);
+	else if(f->kind == Ebitfield)
+		r = Zcall(G("mkfield"), 3,
+			  Zcall(G("mkctype_bitfield"), 3,
+				tn,
+				mkctype(ctx, f->e4, s),
+				Znil()),
+			  id,
+			  Zcall(G("mkattr"), 1, Znil()));
 	else
 		r = Zcall(G("mkfield"), 3, tn, id,
 			  Zcall(G("mkattr"), 1, a ? a : Znil()));

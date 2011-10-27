@@ -2367,6 +2367,8 @@ dobitfieldgeom(Ctype *t, BFgeom *bfg)
 	Ctypebitfield *b;
 
 	b = (Ctypebitfield*)t;
+	if(Vkind(b->bit0) != Qcval)
+		return -1;
 	bit0 = valcval(b->bit0);
 	bs = valcval(b->cnt);
 	bfg->bp = cvalu(bit0);
