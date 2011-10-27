@@ -652,6 +652,8 @@ type_specifier
 struct_or_union_specifier
 	: struct_or_union maybeid '{' struct_declaration_list struct_size '}'
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, invert($4), $5, 0); }
+	| struct_or_union maybeid '{' struct_declaration_list '}'
+	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, invert($4), 0, 0); }
 	| struct_or_union maybeid '{' struct_size '}'
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, Znull(), $4, 0); }
 	| struct_or_union maybeid '{'  '}'
@@ -701,10 +703,14 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $3, invert($4), $2, 0); }
 	| '@' constant_expression specifier_list ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $3, Znull(), $2, 0); }
+	| specifier_list ';'
+	{ $$ = newexprsrc(&ctx->inp->src, Efields, $1, Znull(), 0, 0); }
 	| specifier_list struct_declarator_list ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Efields, $1, invert($2), 0, 0); }
 	| '@' '@' constant_expression specifier_list struct_declarator ':' constant_expression ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $4, $5, $3, $7); }
+	| specifier_list struct_declarator ':' constant_expression ';'
+	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $1, $2, 0, $4); }
 	/* accept (but discard) c++ labels such as "public:" */
 	| id ':'
 	{ $$ = 0; }

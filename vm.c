@@ -3226,7 +3226,7 @@ resolvetag(VM *vm, Val tv, NSctx *ctx)
 			ts = (Ctypesu*)t;
 			fld = ts->field;
 			attr = ts->attr;
-			if(fld == 0 || Vkind(attr) == Qnil)
+			if(fld == 0)
 				goto error;
 			nfld = mkvec(fld->len);
 			new = mkctypesu(t->tkind, ts->tag, nfld, attr);
