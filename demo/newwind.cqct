@@ -2,6 +2,7 @@
 @include <sctlclt.cqct>
 @include <dwunwind.cqct>
 @include <dwlocal.cqct>
+@include <snamesclt.cqct>
 /* @include <dump.cqct> */ /* objectStr */
 
 progs = [ [ "./wind1", 'f ],
@@ -47,6 +48,12 @@ progs = [ [ "./wind1", 'f ],
 	return s;
 }
 
+@define withsnames(addr)
+{
+	setsnamesaddr(addr);
+	atnames = snamesns;
+}
+
 @define try(spec)
 {
 	@local ctl, as, ns, dom, dvec, mux, xs, pcs, lls;
@@ -80,4 +87,5 @@ progs = [ [ "./wind1", 'f ],
 	mux.run();
 }
 
+withsnames("localhost:30000");
 foreach(try, progs);
