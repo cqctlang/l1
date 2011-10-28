@@ -19,7 +19,9 @@
 		case 7:  return (uint32*)&ctx->rdi;
 		case 8:  return (uint32*)&ctx->rip;
 		default:
-			error("ctxloc on bad register %d", r);
+			printf("ctxloc on unmapped register %d", r);
+			/* return something that will fault */
+			return (uint64*)(ctx+1);
 		}
 	}
 
@@ -58,7 +60,9 @@
 		case 58: return &ctx->fs_base;
 		case 59: return &ctx->gs_base;
 		default:
-			error("ctxloc on bad register %d", r);
+			printf("ctxloc on unmapped register %d", r);
+			/* return something that will fault */
+			return (uint64*)(ctx+1);
 		}
 	}
 	
