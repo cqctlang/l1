@@ -144,9 +144,9 @@
 	return ns;
 }
 
-@define atnames(path, rest ...)
+@define atnames(path)
 {
-	@local fds, fd, nsid, base, nso, ns;
+	@local fds, fd, nsid;
 	fds = popen("sctl", "-c", 2|4|8);
 	fd = fds[0];
 	finalize(fd, @lambda(fd) { close(fd); });
@@ -154,40 +154,5 @@
 	nsid = sctlnames(fd, path);
 	if(nsid == nil)
 		return nil;
-	ns = mksctlns(fd, nsid);
-	if(length(rest) == 0)
-		return ns;
-	base = rest[0];
-	if(!iscvalue(base))
-		error("invalid base address");
-
-	@defloc cop(p)
-	{
-		return {@typeof(p)}getbytes(p);
-	}
-
-	@defloc uw1(this, ctx)
-	{
-		ctx = cop(ctx);
-		ctx->rip -= base;
-		return ns.unwind1(ctx);
-	}
-
-	@defloc el(this, ctx)
-	{
-		ctx = cop(ctx);
-		ctx->rip -= base;
-		return ns.enumloc(ctx);
-	}
-
-	nso = mknsoff(ns, base);
-	return mkns([
-		    "looksym"  : @lambda(this, s) { nso.looksym(s); },
-		    "enumsym"  : @lambda(this)    { nso.enumsym(); },
-		    "lookaddr" : @lambda(this, a) { nso.lookaddr(a); },
-		    "looktype" : @lambda(this, t) { nso.looktype(t); },
-		    "enumtype" : @lambda(this)    { nso.enumtype(); },
-		    "unwind1"  : uw1,
-		    "enumloc"  : el,
-		    ]);
+	return mksctlns(fd, nsid);
 }
