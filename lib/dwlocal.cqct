@@ -21,7 +21,7 @@
 		default:
 			printf("ctxloc on unmapped register %d", r);
 			/* return something that will fault */
-			return (uint64*)(ctx+1);
+			return (uint32*)(ctx+1);
 		}
 	}
 
