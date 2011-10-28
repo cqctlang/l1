@@ -242,6 +242,52 @@ sns = @names clp64be {
 	return 'ok;
 }
 
+@define tunwind1(fd, msg, dat)
+{
+	@local rs;
+	/* FIXME: we should not have to expose Ctx type */
+	rs = ns.unwind1((sctl`Ctx*)dat);
+	if(rs == nil){
+		sctlrerror(fd, msg->tag, Enone);
+		return 'ok;
+	}
+	m = p = (sctl`Runwind1*)mkxs();
+	p->op = sctl`Runwind1;
+	p->tag = msg->tag;
+	p++;
+	putbytes(p, dat);
+	p += length(dat);
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
+@define tenumloc(fd, msg, dat)
+{
+	@local ls;
+	/* FIXME: we should not have to expose Ctx type */
+	ls = ns.enumloc((sctl`Ctx*)dat);
+	if(ls == nil){
+		sctlrerror(fd, msg->tag, Enone);
+		return 'ok;
+	}
+
+	m = p = (sctl`Renumloc*)mkxs();
+	p->op = sctl`Renumloc;
+	p->tag = msg->tag;
+	p++;
+	p = (uint64*)p;
+	*p++ = length(ls);
+	foreach(@lambda(l){
+			p = encodes(p, cid2str(l.id));
+			p = encodetname(p, l.type);
+			p = (uint8*)p;
+			*p++ = l.ltype;
+			p = encodelexpr(p, l.loc);
+		}, ls);
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
 /* FIXME: resolve issues in equivalence that led us to
    explicitly unify types of handle keys */
 handle = [
@@ -269,8 +315,9 @@ handle = [
 	(sctl`Mkind)sctl`Tlooktype : tlooktype,
 	(sctl`Mkind)sctl`Tenumtype : tenumtype,
 	(sctl`Mkind)sctl`Tlookaddr : tlookaddr,
-	(sctl`Mkind)sctl`Tenumloc  : notimpl,
+	(sctl`Mkind)sctl`Tenumloc  : tenumloc,
 	(sctl`Mkind)sctl`Tunwind   : notimpl,
+	(sctl`Mkind)sctl`Tunwind1  : tunwind1,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
 	(sctl`Mkind)sctl`Tnames    : tnames,
 ];
