@@ -2914,20 +2914,22 @@ ctlmux = @names clp64le {
 
 @record vmap { start, end, path, dom };
 
-@define mkdvec(mux, ctl)
+@define mkdvec(ctl)
 {
-	@local st, dvec;
-	st = mux.statunix(ctl)[1];
+	@local st, ns, dvec;
+	st = ctl.statunix()[1];
 	dvec = [];
 	foreach(@lambda(dll){
 			printf("\t%d\t%016p\t%s\n",
 			       dll.id, dll.base, dll.path);
+			ns = atnames(dll.path);
+			if(ns == nil)
+				error("cannot get namespace for %s", dll.path);
+			ns = mknsoff(ns, dll.base);
 			append(dvec,
 			       vmap(dll.base,
 				    0,
-				    dll.path,
-				    mkdom(atnames(dll.path, dll.base),
-					  ctl.mem())));
+				    dll.path, mkdom(ns, ctl.mem())));
 		}, st);
 	sort(dvec, @lambda(a, b){
 			if(a.start < b.start)
