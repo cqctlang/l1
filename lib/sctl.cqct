@@ -23,6 +23,8 @@
 	/* codecs */
 	decodes,
 	decodetname,
+	encodelexpr,
+	encodes,
 	encodesym,
 	encodetdef,
 	encodetname,
@@ -599,7 +601,7 @@ sctl = @names clp64le {
 	type,
 };
 
-@defloc encodes(p, s)
+@define encodes(p, s)
 {
 	@local m;
 	m = strlen(s);
@@ -1072,6 +1074,29 @@ sctl = @names clp64le {
 		return [mkctype_undef(st), q];
 	default:
 		error("decodetdef: unhandled case %d", k);
+	}
+}
+
+@define encodelexpr(q, le)
+{
+	q = (uint8*)q;
+	*q++ = (uint8)le.kind;
+	switch(le.kind){
+	case sctl`Lreg:
+		*q++ = (uint8)le.no;
+		return q;
+	case sctl`Ladd:
+	case sctl`Lsub:
+		q = encodelexpr(q, le.op1);
+		q = encodelexpr(q, le.op2);
+		return q;
+	case sctl`Lulit:
+	case sctl`Lslit:
+		q = (uint64*)q;
+		*q++ = (uint64)le.v;
+		return q;
+	default:
+		error("encodelexpr: unhandled case %e", le.kind);
 	}
 }
 
