@@ -504,6 +504,26 @@ nsutil_defined = 1;
 		} //else return sym1
 		return sym1;
 	}
+
+	@defloc cop(p)
+	{
+		return {@typeof(p)}getbytes(p);
+	}
+
+	@defloc uw1(this, ctx)
+	{
+		ctx = cop(ctx);
+		ctx->rip -= off;
+		return ns.unwind1(ctx);
+	}
+
+	@defloc el(this, ctx)
+	{
+		ctx = cop(ctx);
+		ctx->rip -= off;
+		return ns.enumloc(ctx);
+	}
+
 	@define _addsym(this,id,sym) {
 		sym_cache[id] = sym;
 	}
@@ -514,6 +534,8 @@ nsutil_defined = 1;
 		"lookaddr" : _la,
 		"looktype" : @lambda(this,t) { return ns.looktype(t); },
 		"enumtype" : @lambda(this) { return ns.enumtype(); },
+		"unwind1"  : uw1,
+		"enumloc"  : el,
 		"addsym" : _addsym,
 		"offset" : @lambda(this) { return off; }
 	]);
