@@ -133,6 +133,11 @@
 		return sctlenumloc(fd, nsid, ctx);
 	}
 
+	@defloc lsrc(this, ctx)
+	{
+		return sctllooksrc(fd, nsid, ctx);
+	}
+
 	ns = mkns([ "looktype" : lt,
 		    "enumtype" : et,
 		    "looksym"  : ls,
@@ -140,6 +145,7 @@
 		    "lookaddr" : la,
 		    "unwind1"  : uw1,
 		    "enumloc"  : el,
+		    "looksrc"  : lsrc,
 		  ]);
 	return ns;
 }

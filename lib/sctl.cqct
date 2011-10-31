@@ -15,6 +15,7 @@
 	sctlenumsym,
 	sctllookaddr, 
 	sctlunwind1,
+	sctllooksrc,
 	sctlenumloc,
 
 	/* server-side replies */
@@ -109,6 +110,8 @@ sctl = @names clp64le {
 		Rnames,
 		Tunwind1,
 		Runwind1,
+		Tlooksrc,
+		Rlooksrc,
 	} Mkind;
 
 	enum Mode {
@@ -539,6 +542,7 @@ sctl = @names clp64le {
 	typedef struct Tns Tenumseg;
 	typedef struct Tns Tnames;
 	typedef struct Tns Tunwind1;
+	typedef struct Tns Tlooksrc;
 	typedef struct Tns Rlooksym;
 	typedef struct Tns Renumsym;
 	typedef struct Tns Rlooktype;
@@ -548,6 +552,7 @@ sctl = @names clp64le {
 	typedef struct Tns Runwind;
 	typedef struct Tns Renumseg;
 	typedef struct Tns Runwind1;
+	typedef struct Tns Rlooksrc;
 
 	struct Rnames{
 		@0	uint8 op;
@@ -1236,6 +1241,10 @@ sctl = @names clp64le {
 		return (sctl`Tunwind1*)p;
 	case sctl`Runwind1:
 		return (sctl`Runwind1*)p;
+	case sctl`Tlooksrc:
+		return (sctl`Tlooksrc*)p;
+	case sctl`Rlooksrc:
+		return (sctl`Rlooksrc*)p;
 	case sctl`Tnames:
 		return (sctl`Tnames*)p;
 	case sctl`Rnames:
@@ -1359,6 +1368,8 @@ sctl = @names clp64le {
 	case sctl`Runwind:
 	case sctl`Tunwind1:
 	case sctl`Runwind1:
+	case sctl`Tlooksrc:
+	case sctl`Rlooksrc:
 		break;
 	case sctl`Tnames:
 		q = msg+1;
@@ -1734,6 +1745,39 @@ sctl = @names clp64le {
 		error("unexpected response: %e", rep->op);
 	}
 	return dat; /* encoded rules */
+}
+
+@define sctllooksrc(fd, nsid, ctx)
+{
+	@local p, m, rep, dat;
+
+	p = m = mkxs();
+	p = (sctl`Tlooksrc*)p;
+	p->op = sctl`Tlooksrc;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	putbytes(p, getbytes(ctx));
+	p += sizeof(sctl`Ctx);
+	sendmsg(fd, m, (char*)p-m);
+
+	[rep, dat] = recvmsg(fd);
+	if(rep == nil)
+		error("recvmsg: pid = %d %a", getpid(), dat);
+	switch(rep->op){
+	case sctl`Rlooksrc:
+		break;
+	case sctl`Rerror:
+		if(rep->bytes == Enone)
+			return nil;
+		error("sctl: error while waiting for %e: %s",
+		      sctl`Rlooksrc, rep->bytes);
+	default:
+		error("unexpected response: %e", rep->op);
+	}
+	return dat; /* encoded source location */
 }
 
 @define sctlenumloc(fd, nsid, ctx)

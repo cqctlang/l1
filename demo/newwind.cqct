@@ -28,15 +28,20 @@ progs = [ [ "./wind1", 'f ],
 // 	return s;
 // }
 
-@define fmtstack(pcs, lls)
+@define fmtstack(pcs, lls, srcs)
 {
 	@local s, m;
 	s = "";
 	m = 0;
 	foreach(@lambda(pc){
-			@local ldom;
-			s += sprintfa("%016p\t%y\n", pc, pc);
-			ldom = lls[m++];
+			@local ldom, src;
+			s += sprintfa("%016p\t%y", pc, pc);
+			src = srcs[m];
+			if(src != nil)
+				s += sprintfa("\t%s:%d", src.file, src.line);
+			s += "\n";
+			ldom = lls[m];
+			m++;
 			if(ldom)
 //				s += fmtloc(ldom);
 				foreach(@lambda(id, l){
@@ -56,7 +61,7 @@ progs = [ [ "./wind1", 'f ],
 
 @define try(spec)
 {
-	@local ctl, as, ns, dom, dvec, mux, xs, pcs, lls;
+	@local ctl, as, ns, dom, dvec, mux, xs, pcs, srcs, lls;
 	@local prog, id, sym;
 
 	prog = spec[0];
@@ -80,8 +85,16 @@ progs = [ [ "./wind1", 'f ],
 					  v = lookdvec(dvec, ctx->rip);
 					  return {v.dom}ctx->rip;
 				  }, xs);
+			  srcs = map(@lambda(ctx){
+					  @local v, src;
+					  v = lookdvec(dvec, ctx->rip);
+					  src = v.dom.ns.looksrc(ctx);
+					  if(src)
+						  [src, _] = decodesrc(src);
+					  return src;
+				  }, xs);
 			  lls = map(@lambda(ctx){ dwlocal(dvec, ctx); }, xs);
-			  printf("%s\n", fmtstack(pcs, lls));
+			  printf("%s\n", fmtstack(pcs, lls, srcs));
 		  });
 	dom.xcont();
 	mux.run();

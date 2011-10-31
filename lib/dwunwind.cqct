@@ -1,6 +1,6 @@
 /* DWARF unwinding */
 
-@global dwunwind;
+@global dwunwind, decoderules, decodesrc;
 
 {
 @local uwns;	
@@ -36,6 +36,12 @@ uwns = @names c32le {
 	n,
 };
 
+@record srcloc {
+	file,
+	line,
+	col,
+};
+
 /* return pointer to copy of data pointed to by P
    consistent with type of *P */
 @defloc cop(p)
@@ -43,7 +49,7 @@ uwns = @names c32le {
 	return {@typeof(p)}getbytes(p);
 }
 
-@defloc decoderules(q)
+@define decoderules(q)
 {
 	@local rs, m, i, k, r, n;
 	rs = [];
@@ -56,9 +62,19 @@ uwns = @names c32le {
 		r = *q++;
 		q = (int64*)q;
 		n = *q++;
-		append(rs, rule(k, r, n));
+		append(rs, rule((uwns`Rulekind)k, r, n));
 	}
 	return [rs, q];
+}
+
+@define decodesrc(q)
+{
+	@local file, line, col;
+	[file, q] = decodes(q);
+	q = (int32*)q;
+	line = *q++;
+	col = *q++;
+	return [srcloc(file, line, col), q];
 }
 
 // @defloc showrule(r)

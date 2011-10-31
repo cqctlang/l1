@@ -275,6 +275,39 @@ sns = @names clp64be {
 	return 'ok;
 }
 
+@define tlooksrc(fd, msg, dat)
+{
+	@local m, p, nsid, ctx, ns, rs;
+
+	p = (uint64*)dat;
+	nsid = *p++;
+	ctx = p;
+
+	ns = looknsid(nsid);
+	if(ns == nil){
+		sctlrerror(fd, msg->tag, "unknown name space");
+		return 'ok;
+	}
+
+	/* FIXME: we should not expose the Ctx type,
+	   but it is needed to tell sctllooksrc how
+	   big the Ctx buffer is */
+	rs = ns.looksrc((sctl`Ctx*)ctx);
+	if(rs == nil){
+		sctlrerror(fd, msg->tag, Enone);
+		return 'ok;
+	}
+	m = p = (sctl`Rlooksrc*)mkxs();
+	p->op = sctl`Rlooksrc;
+	p->tag = msg->tag;
+	p++;
+	p = (char*)p;
+	putbytes(p, rs);
+	p += length(rs);
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
 @define tenumloc(fd, msg, dat)
 {
 	@local m, p, nsid, ctx, ns, ls;
@@ -345,6 +378,7 @@ handle = [
 	(sctl`Mkind)sctl`Tenumloc  : tenumloc,
 	(sctl`Mkind)sctl`Tunwind   : notimpl,
 	(sctl`Mkind)sctl`Tunwind1  : tunwind1,
+	(sctl`Mkind)sctl`Tlooksrc  : tlooksrc,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
 	(sctl`Mkind)sctl`Tnames    : tnames,
 ];
