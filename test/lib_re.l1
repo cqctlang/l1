@@ -1,0 +1,40 @@
+
+
+@include <re.cqct>
+
+
+
+re = "abcd";
+
+printf("should be 1: %d\n",re_match(re,"abcd"));
+printf("should be 0: %d\n",re_match(re,"axcd"));
+printf("should be 1: %d\n",re_match(".bcd","abcd"));
+printf("should be 1: %d\n",re_match("a*bcd","aaaabcd"));
+printf("should be 1: %d\n",re_match(".*b.d","aaaabcd"));
+printf("should be 1: %d\n",re_match("....b\\*d","aaaab*d"));
+printf("should be 0: %d\n",re_match("....b\\*d","aaaabxd"));
+printf("should be 0: %d\n",re_match("..y.b.*d","aaaabxd"));
+printf("should be 0: %d\n",re_match("...\\.b.d","aaaabxd"));
+printf("should be 1: %d\n",re_match("...\\.b.d","aaa.bxd"));
+applyk(@lambda() {
+	re_match("...\\.b.d\\","aaa.bxd");
+},@lambda(r) {
+	printf("FAIL shouldn't see this!\n");
+},@lambda() {
+	printf("successfully caused an error\n");
+},[]);
+applyk(@lambda() {
+	re_match("*...\\.b.d","aaa.bxd");
+},@lambda(r) {
+	printf("FAIL shouldn't see this!\n");
+},@lambda() {
+	printf("successfully caused an error\n");
+},[]);
+applyk(@lambda() {
+	re_match("a**...\\.b.d","aaa.bxd");
+},@lambda(r) {
+	printf("FAIL shouldn't see this! %a\n",r);
+},@lambda() {
+	printf("successfully caused an error\n");
+},[]);
+

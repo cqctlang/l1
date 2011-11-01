@@ -1,0 +1,47 @@
+/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:19: warning: unused variable: i
+/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:54: warning: assignment to unbound variable: i
+entry: var params, 3 locals, 0 temps
+create_dfa: var params, 11 locals, 0 temps
+L39: 1 params, 0 locals, 0 temps
+L174: 1 params, 1 locals, 0 temps
+L190: 1 params, 0 locals, 0 temps
+re_match: 2 params, 9 locals, 0 temps
+L293: 0 params, 0 locals, 0 temps
+L297: 1 params, 0 locals, 0 temps
+L301: 0 params, 0 locals, 0 temps
+L310: 0 params, 0 locals, 0 temps
+L314: 1 params, 0 locals, 0 temps
+L318: 0 params, 0 locals, 0 temps
+L326: 0 params, 0 locals, 0 temps
+L330: 1 params, 0 locals, 0 temps
+L334: 0 params, 0 locals, 0 temps
+should be 1: 1
+should be 0: 0
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 0: 0
+should be 0: 0
+should be 0: 0
+should be 1: 1
+error: strref out of bounds
+             cntrget	(builtin function)
+          create_dfa	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:26)
+            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:57)
+              applyk	(builtin function)
+               entry	(lib_re.l1:25)
+successfully caused an error
+error: badly placed '*' in RE
+               error	(builtin function)
+            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:56)
+              applyk	(builtin function)
+               entry	(lib_re.l1:32)
+successfully caused an error
+error: badly placed '*' in RE
+               error	(builtin function)
+                L174	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:37)
+            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:57)
+              applyk	(builtin function)
+               entry	(lib_re.l1:39)
+successfully caused an error
