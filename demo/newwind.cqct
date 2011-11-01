@@ -100,5 +100,5 @@ progs = [ [ "./wind1", 'f ],
 	mux.run();
 }
 
-withsnames("localhost:30000");
+/* withsnames("localhost:30000"); */
 foreach(try, progs);
