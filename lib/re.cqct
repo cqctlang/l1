@@ -1,0 +1,69 @@
+
+
+
+//the beginnings of a regular expression library
+//currently very limited
+
+@global re_defined;
+
+if (re_defined == nil) {
+@local create_dfa, ANY_CHAR;
+@global re_match;
+
+re_defined = 1;
+
+ANY_CHAR=1;
+
+//a dfa node is a function:
+@define create_dfa(re,idx...) {
+	@local i,ftn,len,cur;
+	if (length(idx) == 0) idx = 0;
+	else idx = idx[0];
+	len = length(re);
+	if (idx == len) return @lambda(chr) { return 0; };
+	if (re[idx] == '*') return "badly placed '*' in RE";
+	if (re[idx] == '\\') {
+		cur = re[idx+1];
+		++idx;
+	} else {
+		cur = re[idx] == '.' ? ANY_CHAR : re[idx];
+	}
+	if (idx != len-1 && re[idx+1] == '*') {
+		ftn = @lambda(chr) {
+			@local res;
+			if (cur == ANY_CHAR || chr == cur) 
+				return ftn;
+			res = create_dfa(re,idx+2);
+			if (isstring(res)) error(res);
+			return res(chr);
+		};
+	} else  ftn = @lambda(chr) {
+		if (cur == ANY_CHAR || chr == cur) 
+			return create_dfa(re,idx+1);
+		return 0;
+	};
+	return ftn;
+}
+
+//the string re can contain the special characters:
+//'.' and '*', where '.' matches any character and
+//'*' matches zero or more of the previous character.
+@define re_match(re,str) {
+	@local matcher;
+	matcher = create_dfa(re);
+	for(i=0; i<length(str); ++i) {
+		@local ret;
+		if (isstring(matcher)) error(matcher);
+		ret = matcher(str[i]);
+		if (ret == 0) return 0;
+		if (ret == 1) return 1;
+		matcher = ret;
+	}
+	return 1;
+}
+
+
+
+
+
+}
