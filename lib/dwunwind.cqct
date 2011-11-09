@@ -1,6 +1,6 @@
 /* DWARF unwinding */
 
-@global dwunwind, decoderules, decodesrc;
+@global dwunwind, dwunwind1, decoderules, decodesrc;
 
 {
 @local uwns;	
@@ -267,6 +267,37 @@ uwns = @names c32le {
 	}
 	
 	return [g, s, m, new, 7];
+}
+
+@define dwunwind1(dvec, ctx)
+{
+	@local v, dom,rs, mkuwctx;
+	@local g, s, m, new, spno;
+
+	if(ctx->rip == 0)
+		return nil;
+	ctx = cop(ctx);
+	v = lookdvec(dvec, ctx->rip);
+	dom = v.dom;
+	rs = dom.ns.unwind1(ctx);
+	if(rs == nil){
+		@local fp;
+		if(ctx->rbp == 0)
+			return nil;
+		fp = (uintptr*){dom}ctx->rbp;
+		ctx->rip = *(fp+1);
+		ctx->rbp = *fp;
+	}else{
+		[rs, _] = decoderules(rs);
+		if(sizeof(dom`void*) == 8)
+			mkuwctx = mkuwctx64;
+		else
+			mkuwctx = mkuwctx32;
+		[g, s, m, new, spno] = mkuwctx(dom, ctx);
+		applyunwind(rs, g, s, m, spno);
+		ctx = new;
+	}
+	return ctx;
 }
 
 @define dwunwind(dvec, ctx)

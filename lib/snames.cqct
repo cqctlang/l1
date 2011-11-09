@@ -308,6 +308,36 @@ sns = @names clp64be {
 	return 'ok;
 }
 
+@define tlookline(fd, msg, dat)
+{
+	@local m, p, nsid, file, line, ns, addr;
+
+	p = (uint64*)dat;
+	nsid = *p++;
+	[file, p] = decodes(p);
+	p = (uint32*)p;
+	line = *p++;
+
+	ns = looknsid(nsid);
+	if(ns == nil){
+		sctlrerror(fd, msg->tag, "unknown name space");
+		return 'ok;
+	}
+
+	addr = ns.lookline(file, line);
+	if(addr == nil){
+		sctlrerror(fd, msg->tag, Enone);
+		return 'ok;
+	}
+	m = p = (sctl`Rlookline*)mkxs();
+	p->op = sctl`Rlookline;
+	p->tag = msg->tag;
+	p = (uint64*)p;
+	*p++ = addr;
+	sendmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
 @define tenumloc(fd, msg, dat)
 {
 	@local m, p, nsid, ctx, ns, ls;
@@ -379,6 +409,7 @@ handle = [
 	(sctl`Mkind)sctl`Tunwind   : notimpl,
 	(sctl`Mkind)sctl`Tunwind1  : tunwind1,
 	(sctl`Mkind)sctl`Tlooksrc  : tlooksrc,
+	(sctl`Mkind)sctl`Tlookline : tlookline,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
 	(sctl`Mkind)sctl`Tnames    : tnames,
 ];

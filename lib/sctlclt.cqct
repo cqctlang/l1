@@ -138,6 +138,11 @@
 		return sctllooksrc(fd, nsid, ctx);
 	}
 
+	@defloc ll(this, file, line)
+	{
+		return sctllookline(fd, nsid, file, line);
+	}
+
 	ns = mkns([ "looktype" : lt,
 		    "enumtype" : et,
 		    "looksym"  : ls,
@@ -146,6 +151,7 @@
 		    "unwind1"  : uw1,
 		    "enumloc"  : el,
 		    "looksrc"  : lsrc,
+		    "lookline" : ll,
 		  ]);
 	return ns;
 }
