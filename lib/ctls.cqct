@@ -65,7 +65,7 @@ rdsetfmt(ctlrd,
 @defloc mkctl(mux, id, _ctx)
 {
 	@local mmap, _doms, _exe;
-	@local strace, utrace;
+	@local strace, utrace, nextrap;
 
 	@record domrec { start, path, dom };
 
@@ -75,12 +75,12 @@ rdsetfmt(ctlrd,
 
 	@defloc detach()
 	{
-		error("unimplemented");
+		mux.detach(id);
 	}
 
 	@defloc kill()
 	{
-		error("unimplemented");
+		mux.kill(id);
 	}
 
 	@defloc mem()
@@ -156,9 +156,11 @@ rdsetfmt(ctlrd,
 	{
 		@local i, m;
 		m = length(_doms);
-		for(i = 0; i < m; i++)
+		for(i = 0; i < m; i++){
+			printf("trying %s\n", _doms[i].path);
 			if(strstr(_doms[i].path, name) != nil)
 				return _doms[i].dom;
+		}
 		return nil;
 	}
 
@@ -167,9 +169,24 @@ rdsetfmt(ctlrd,
 		error("unimplemented");
 	}
 
-	@defloc trap()
+	@defloc trap(kind, arg ...)
 	{
-		error("unimplemented");
+		@local m, fn;
+		m = length(arg);
+		if(m < 1)
+			error("wrong number of arguments to trap");
+		fn = arg[m-1];
+		listdel(arg, m-1);
+		switch(kind){
+		case 'load:
+			break;
+		case 'unload:
+			break;
+		case 'bp:
+			break;
+		case 'exit:
+			break;
+		}
 	}
 
 	@defloc clr()
@@ -225,8 +242,6 @@ rdsetfmt(ctlrd,
 			}, dlls);
 		sort(_doms, @lambda(a, b){ cvalcmp(a.start, b.start); });
 	}
-
-	
 
 	@defloc newlib(ctl, path, base)
 	{
