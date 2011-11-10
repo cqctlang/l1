@@ -1,6 +1,19 @@
 /* sctl messages */
 @include <xsas.cqct>
 
+@record region {
+	file,
+	addr,
+	len,
+	flags,
+};
+
+@record dll {
+	id,
+	path,
+	base,
+};
+
 @global
 	/* name space */
 	sctl,
@@ -23,9 +36,11 @@
 	sctlrerror,
 
 	/* codecs */
+	decodectx,
 	decodes,
 	decodetname,
 	encodelexpr,
+	encodectx,
 	encodes,
 	encodesym,
 	encodetdef,
@@ -34,6 +49,7 @@
 	/* i/o */
 	sendmsg,
 	recvmsg,
+	dumpctx,
 
 	/* errors */
 	Enone
@@ -314,6 +330,8 @@ sctl = @names clp64le {
 	};
 	typedef struct Tversion Tversion;
 	typedef struct Tversion Rversion;
+	typedef struct Tversion Tmsg;
+	typedef struct Tversion Rmsg;
 
 	struct Rerror{
 		@0	uint8 op;
@@ -568,19 +586,6 @@ sctl = @names clp64le {
 	typedef struct Rnames Rnames;
 };
 
-@record region {
-	file,
-	addr,
-	len,
-	flags,
-};
-
-@record dll {
-	id,
-	path,
-	base,
-};
-
 @record lexpr {
 	kind,
 	no,
@@ -631,6 +636,23 @@ sctl = @names clp64le {
 	s = getbytes(p, sz);
 	p = (uint8*)((char*)p+sz);
 	return [s, p];
+}
+
+@define encodectx(p, ctx)
+{
+	p = (char*)p;
+	putbytes(p, getbytes(ctx));
+	p += sizeof(sctl`Ctx);
+	return p;
+}
+
+@define decodectx(p)
+{
+	@local ctx;
+	p = (sctl`Ctx*)p;
+	ctx = (sctl`Ctx*)getbytes(p);
+	p++;
+	return [ctx, p];
 }
 
 @defloc encodeattrs(p, attrs)
@@ -1482,6 +1504,28 @@ sctl = @names clp64le {
 		error("sctl: while waiting for %e: received %e",
 		      op, (sctl`Mkind)rep->op);
 	}
+}
+
+@define dumpctx(ctx)
+{
+	printf("\t  rip  %016x\n", ctx->rip);
+	printf("\t  rsp  %016x\n", ctx->rsp);
+	printf("\t  rbp  %016x\n", ctx->rbp);
+	printf("\t  rax  %016x\n", ctx->rax);
+	printf("\t  rbx  %016x\n", ctx->rbx);
+	printf("\t  rcx  %016x\n", ctx->rcx);
+	printf("\t  rdx  %016x\n", ctx->rdx);
+	printf("\t  rsi  %016x\n", ctx->rsi);
+	printf("\t  rdi  %016x\n", ctx->rdi);
+	printf("\t   r8  %016x\n", ctx->r8);
+	printf("\t   r9  %016x\n", ctx->r9);
+	printf("\t  r10  %016x\n", ctx->r10);
+	printf("\t  r11  %016x\n", ctx->r11);
+	printf("\t  r12  %016x\n", ctx->r12);
+	printf("\t  r13  %016x\n", ctx->r13);
+	printf("\t  r14  %016x\n", ctx->r14);
+	printf("\t  r15  %016x\n", ctx->r15);
+	printf("\tflags  %016x\n", ctx->eflags);
 }
 
 @define sctlrerror(fd, tag, fmt, arg ...)
