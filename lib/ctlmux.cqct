@@ -69,6 +69,8 @@ ctlmux = @names clp64le {
 		Runwind1,
 		Tlooksrc,
 		Rlooksrc,
+		Tlookline,
+		Rlookline,
 	};
 
 	enum State {
@@ -499,6 +501,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Tnames;
 	typedef struct Tns Tunwind1;
 	typedef struct Tns Tlooksrc;
+	typedef struct Tns Tlookline;
 	typedef struct Tns Rlooksym;
 	typedef struct Tns Renumsym;
 	typedef struct Tns Rlooktype;
@@ -510,6 +513,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Rnames;
 	typedef struct Tns Runwind1;
 	typedef struct Tns Rlooksrc;
+	typedef struct Tns Rlookline;
 };
 
 @record region {
@@ -1208,6 +1212,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tlooksrc*)p;
 		case ctlmux`Rlooksrc:
 			return (ctlmux`Rlooksrc*)p;
+		case ctlmux`Tlookline:
+			return (ctlmux`Tlookline*)p;
+		case ctlmux`Rlookline:
+			return (ctlmux`Rlookline*)p;
 		case ctlmux`Tnames:
 			return (ctlmux`Tnames*)p;
 		case ctlmux`Rnames:
@@ -2928,7 +2936,7 @@ ctlmux = @names clp64le {
 	st = ctl.statunix()[1];
 	dvec = [];
 	foreach(@lambda(dll){
-			printf("\t%d\t%016p\t%s\n",
+			if(0)printf("\t%d\t%016p\t%s\n",
 			       dll.id, dll.base, dll.path);
 			ns = atnames(dll.path);
 			if(ns == nil)
@@ -2961,5 +2969,18 @@ ctlmux = @names clp64le {
 		}, dvec);
 	if(v == nil)
 		error("lookdvec: no vmap for %p", pc);
+	return v;
+}
+
+@define lookdvecname(dvec, name)
+{
+	@local v;
+	v = nil;
+	foreach(@lambda(u){
+			if(strstr(u.path, name))
+				v = u;
+		}, dvec);
+	if(v == nil)
+		error("lookdvec: no vmap for %s", name);
 	return v;
 }
