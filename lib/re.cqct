@@ -7,7 +7,7 @@
 @global re_defined;
 
 if (re_defined == nil) {
-@local caching_eq, set_concat, dfa_match_helper, tokenize, node_str;
+@local caching_eq, set_concat, tokenize, node_str;
 @local nxt_nodes, dfa_match, dfa_match_helper;
 @local max_depth, debug;
 @global re_find, re_match, re_create;
