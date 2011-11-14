@@ -1,20 +1,39 @@
-/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:19: warning: unused variable: i
-/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:54: warning: assignment to unbound variable: i
-entry: var params, 3 locals, 0 temps
-create_dfa: var params, 11 locals, 0 temps
-L39: 1 params, 0 locals, 0 temps
-L174: 1 params, 1 locals, 0 temps
-L190: 1 params, 0 locals, 0 temps
-re_match: 2 params, 9 locals, 0 temps
-L293: 0 params, 0 locals, 0 temps
-L297: 1 params, 0 locals, 0 temps
-L301: 0 params, 0 locals, 0 temps
-L310: 0 params, 0 locals, 0 temps
-L314: 1 params, 0 locals, 0 temps
-L318: 0 params, 0 locals, 0 temps
-L326: 0 params, 0 locals, 0 temps
-L330: 1 params, 0 locals, 0 temps
-L334: 0 params, 0 locals, 0 temps
+/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:11: warning: multiple declarations of variable dfa_match_helper
+entry: var params, 11 locals, 0 temps
+caching_eq: var params, 12 locals, 0 temps
+set_concat: 2 params, 14 locals, 0 temps
+tokenize: 1 params, 18 locals, 0 temps
+re_create: 1 params, 3 locals, 0 temps
+L721: 2 params, 17 locals, 0 temps
+node_str: var params, 9 locals, 0 temps
+nxt_nodes: 2 params, 13 locals, 0 temps
+dfa_match: 2 params, 1 locals, 0 temps
+dfa_match_helper: 3 params, 14 locals, 0 temps
+L2759: 1 params, 0 locals, 0 temps
+L2842: 1 params, 6 locals, 0 temps
+re_match: 2 params, 1 locals, 0 temps
+re_find: 2 params, 5 locals, 0 temps
+L3040: 0 params, 0 locals, 0 temps
+L3044: 1 params, 0 locals, 0 temps
+L3048: 0 params, 0 locals, 0 temps
+L3057: 0 params, 0 locals, 0 temps
+L3061: 1 params, 0 locals, 0 temps
+L3065: 0 params, 0 locals, 0 temps
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 0: 0
+should be 1: 1
+should be 1: 1
+should be 0: 0
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 0: 0
+should be 0: 0
+should be 1: 1
+should be 1: 1
 should be 1: 1
 should be 0: 0
 should be 1: 1
@@ -27,21 +46,33 @@ should be 0: 0
 should be 1: 1
 error: strref out of bounds
              cntrget	(builtin function)
-          create_dfa	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:26)
-            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:57)
-              applyk	(builtin function)
-               entry	(lib_re.l1:25)
-successfully caused an error
-error: badly placed '*' in RE
-               error	(builtin function)
-            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:56)
-              applyk	(builtin function)
-               entry	(lib_re.l1:32)
-successfully caused an error
-error: badly placed '*' in RE
-               error	(builtin function)
-                L174	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:37)
-            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:57)
+            tokenize	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:95)
+           re_create	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:141)
+            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:308)
               applyk	(builtin function)
                entry	(lib_re.l1:39)
 successfully caused an error
+error: operand 2 to listref must be a non-negative integer
+             cntrget	(builtin function)
+                L721	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:157)
+           re_create	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:207)
+            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:308)
+              applyk	(builtin function)
+               entry	(lib_re.l1:46)
+successfully caused an error
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 0: 0
+should be 0: 0
+should be 0: 0
+should be 1: 1
+should be 1: 1
+should be 1: 1
+should be 5: 5
+should be -1: -1
+should be 5: 5
+should be 6: 6
