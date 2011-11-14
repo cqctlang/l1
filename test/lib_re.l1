@@ -4,10 +4,24 @@
 
 
 
-re = "abcd";
 
-printf("should be 1: %d\n",re_match(re,"abcd"));
-printf("should be 0: %d\n",re_match(re,"axcd"));
+printf("should be 1: %d\n",re_match("a","a"));
+printf("should be 1: %d\n",re_match("[ab]","a"));
+printf("should be 1: %d\n",re_match("[ab]*","ababababaaaa"));
+printf("should be 1: %d\n",re_match("[ab][bc]*","bbbbcccc"));
+printf("should be 0: %d\n",re_match("[ab][bc]*","cbbbcccc"));
+printf("should be 1: %d\n",re_match("[ab]*c*","cccc"));
+printf("should be 1: %d\n",re_match("[ab]**[bc]*","ccccbbbb"));
+printf("should be 0: %d\n",re_match("(ab)c","ac"));
+printf("should be 1: %d\n",re_match("(ab)c","abc"));
+printf("should be 1: %d\n",re_match("(ab)*c","ababababc"));
+printf("should be 1: %d\n",re_match("(ab)*c","c"));
+printf("should be 0: %d\n",re_match("(ab)*c","ac"));
+printf("should be 0: %d\n",re_match("\\[ab\\]","a"));
+printf("should be 1: %d\n",re_match("\\[[ab]\\]","[a]"));
+printf("should be 1: %d\n",re_match("\\[ab\\]*","[ab]]]]]]"));
+printf("should be 1: %d\n",re_match("abcd","abcd"));
+printf("should be 0: %d\n",re_match("abcd","axcd"));
 printf("should be 1: %d\n",re_match(".bcd","abcd"));
 printf("should be 1: %d\n",re_match("a*bcd","aaaabcd"));
 printf("should be 1: %d\n",re_match(".*b.d","aaaabcd"));
@@ -17,7 +31,7 @@ printf("should be 0: %d\n",re_match("..y.b.*d","aaaabxd"));
 printf("should be 0: %d\n",re_match("...\\.b.d","aaaabxd"));
 printf("should be 1: %d\n",re_match("...\\.b.d","aaa.bxd"));
 applyk(@lambda() {
-	re_match("...\\.b.d\\","aaa.bxd");
+	re_match("...\\.b.d\\","aaaa.bxd");
 },@lambda(r) {
 	printf("FAIL shouldn't see this!\n");
 },@lambda() {
@@ -30,11 +44,27 @@ applyk(@lambda() {
 },@lambda() {
 	printf("successfully caused an error\n");
 },[]);
-applyk(@lambda() {
-	re_match("a**...\\.b.d","aaa.bxd");
-},@lambda(r) {
-	printf("FAIL shouldn't see this! %a\n",r);
-},@lambda() {
-	printf("successfully caused an error\n");
-},[]);
+
+printf("should be 1: %d\n",re_match("a?","a"));
+printf("should be 1: %d\n",re_match("aa?","a"));
+printf("should be 1: %d\n",re_match("ab?","a"));
+printf("should be 1: %d\n",re_match("a?b?","a"));
+printf("should be 1: %d\n",re_match("a?b?","ab"));
+printf("should be 1: %d\n",re_match("a?b?",""));
+printf("should be 0: %d\n",re_match("a?b?c",""));
+printf("should be 0: %d\n",re_match("a?b?c","aaaabc"));
+printf("should be 0: %d\n",re_match("a?a?a?a?a*c","aaaaaaaaaaaaaaabc"));
+printf("should be 1: %d\n",
+		re_match("a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?aaaaaaaaac",
+			 "aaaaaaaaaaaaaaac"));
+printf("should be 1: %d\n",
+		re_match("a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?c*",
+			 ""));
+printf("should be 1: %d\n",re_match("\000*a","\000\000\000a"));
+
+printf("should be 5: %d\n",re_find("aaa","ababbaaaxxxxxaaa"));
+printf("should be -1: %d\n",re_find("aaab","ababbaaaxxxxxaaa"));
+printf("should be 5: %d\n",re_find("aaa?x","ababbaaaxxxxxaaa"));
+printf("should be 6: %d\n",re_find("aa?x*aaa","ababbaaaxxxxxaaa"));
+
 
