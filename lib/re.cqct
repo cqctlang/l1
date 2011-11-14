@@ -7,61 +7,324 @@
 @global re_defined;
 
 if (re_defined == nil) {
-@local create_dfa, ANY_CHAR;
-@global re_match;
+@local caching_eq, set_concat, dfa_match_helper, tokenize, node_str;
+@local nxt_nodes, dfa_match, dfa_match_helper;
+@local max_depth, debug;
+@global re_find, re_match, re_create;
 
 re_defined = 1;
 
-ANY_CHAR=1;
+debug = 0;
 
-//a dfa node is a function:
-@define create_dfa(re,idx...) {
-	@local i,ftn,len,cur;
-	if (length(idx) == 0) idx = 0;
-	else idx = idx[0];
-	len = length(re);
-	if (idx == len) return @lambda(chr) { return 0; };
-	if (re[idx] == '*') return "badly placed '*' in RE";
-	if (re[idx] == '\\') {
-		cur = re[idx+1];
-		++idx;
-	} else {
-		cur = re[idx] == '.' ? ANY_CHAR : re[idx];
-	}
-	if (idx != len-1 && re[idx+1] == '*') {
-		ftn = @lambda(chr) {
-			@local res;
-			if (cur == ANY_CHAR || chr == cur) 
-				return ftn;
-			res = create_dfa(re,idx+2);
-			if (isstring(res)) error(res);
-			return res(chr);
-		};
-	} else  ftn = @lambda(chr) {
-		if (cur == ANY_CHAR || chr == cur) 
-			return create_dfa(re,idx+1);
-		return 0;
-	};
-	return ftn;
+@define caching_eq(o1,o2,cur...) {
+    @local clen,i;
+    if (length(cur)>0) cur = cur[0];
+    clen = length(cur);
+    for(i=0; i<clen; ++i) {
+        @local a,b;
+        [a,b] = cur[i];
+        if ((eq(a,o1) && eq(b,o2)) ||
+            (eq(b,o1) && eq(a,o2))) return 1;
+    }
+    if (islist(o1)) {
+        if (!islist(o2)) return 0;
+        else {
+            @local len;
+            len = length(o1);
+            if (len != length(o2)) return 0;
+            append(cur,[o1,o2]);
+            for(i=0; i<len; ++i) {
+                if (!caching_eq(o1[i],o2[i],cur)) return 0;
+            }
+            return 1;
+        }
+    }
+    return o1 == o2;
 }
 
-//the string re can contain the special characters:
-//'.' and '*', where '.' matches any character and
-//'*' matches zero or more of the previous character.
+//returns a concatination of l1 and l2 that only contains
+//one of each object (according to caching_eq)
+@define set_concat(l1,l2) {
+    @local ret,i,j,mat,len1,len2,retlen;
+    len1 = length(l1);
+    len2 = length(l2);
+    if (len1 == 0) {
+        if (len2 == 0) return [];
+        ret = [l2[0]];
+    } else {
+        ret = [l1[0]];
+    }
+    retlen = 1;
+    //printf("set concat lists sizes: %d and %d\n",len1,len2);
+    for(i=1;i<len1;++i) {
+        mat = 0;
+        for(j=0;j<retlen;++j) {
+            if (caching_eq(l1[i],ret[j])) {
+                mat = 1;
+                break;
+            }
+        }
+        if (!mat) {
+            append(ret,l1[i]);
+            ++retlen;
+        }
+    }
+    for(i=len1==0 ? 1 : 0;i<len2;++i) {
+        mat = 0;
+        for(j=0;j<retlen;++j) {
+            if (caching_eq(l2[i],ret[j])) {
+                mat = 1;
+                break;
+            }
+        }
+        if (!mat) {
+            append(ret,l2[i]);
+            ++retlen;
+        }
+    }
+    return ret;
+}
+
+@define tokenize(re) {
+    @local tokens, len, i;
+    tokens = [];
+    len = length(re);
+    for(i=0; i<len; ++i) {
+        switch(re[i]) {
+        case '\\':
+            append(tokens,['chr,re[i+1],nil]);
+            ++i;
+            break;
+        case '(':
+            {
+                @local sub,idx;
+                for(idx=i+1;idx<len;++idx)
+                    if (re[idx] == ')') break;
+                sub = tokenize(substr(re,i+1,idx));
+                append(tokens,['sub,sub]);
+                i = idx;
+                break;
+            }
+        case '[':
+            {
+                @local sub,idx;
+                sub = [:];
+                for(idx=i+1;idx<len;++idx) {
+                    if (re[idx] == ']') break;
+                    sub[re[idx]] = 1;
+                }
+                append(tokens,['class,sub,nil]);
+                i = idx;
+                break;
+            }
+        case '|':
+            append(tokens,['or,nil]);
+            break;
+        case '*':
+            append(tokens,['star,nil]);
+            break;
+        case '?':
+            append(tokens,['maybe,nil]);
+            break;
+        case '.':
+            append(tokens,['any,nil]);
+            break;
+        default:
+            append(tokens,['chr,re[i],nil]);
+        }
+    }
+    return tokens;
+}
+
+@define re_create(re) {
+    @local tokens,fixup;
+    tokens = tokenize(re);
+    //printf("tokens = %a\n",tokens);
+    fixup = @lambda(lst,par_nxt) {
+        @local i,len,t;
+        len = length(lst);
+        for(i=0; i<len;++i) {
+            t = head(lst[i]);
+            switch(t) {
+            case 'or:
+                lst[i-1] = ['or,lst[i-1], lst[i+1]];
+                listdel(lst,i);
+                listdel(lst,i);//previous i+1
+                len -= 2;
+                --i; //only move back 1
+                break;
+            case 'star: 
+                if (lst[i-1][0] != 'star)
+                    lst[i-1] = ['star,lst[i-1],nil];
+                listdel(lst,i);
+                --len;
+                --i; //only move back 1
+                break;
+            case 'maybe: 
+                if (lst[i-1][0] != 'maybe)
+                    lst[i-1] = ['maybe,lst[i-1],nil];
+                listdel(lst,i);
+                --len;
+                --i; //only move back 1
+                break;
+            }
+        }
+        //printf("here: %a\n",lst);
+        //printf("lst: %a\n",map(@lambda(n){ return n[0];},lst));
+        len = length(lst);
+        for(i=0; i<len;++i) {
+            @local nxt;
+            t = head(lst[i]);
+            nxt = i == len-1 ? par_nxt : lst[i+1];
+            switch(t) {
+                case 'star:
+                    fixup([lst[i][1]],lst[i]);
+                    if (lst[i][2] == nil) lst[i][2] = nxt;
+                    else error("shouldn't happen.\n");
+                    break;
+                case 'maybe:
+                    fixup([lst[i][1]],nxt);
+                    if (lst[i][2] == nil) lst[i][2] = nxt;
+                    else error("shouldn't happen.\n");
+                    break;
+                case 'or:
+                    fixup([lst[i][1]],nxt);
+                    fixup([lst[i][2]],nxt);
+                    break;
+                case 'sub:
+                    fixup(lst[i][1],nxt);
+                    break;
+                case 'any:
+                    lst[i][1] = nxt;
+                    break;
+                case 'class:
+                case 'chr:
+                    lst[i][2] = nxt;
+            }
+        }
+        //printf("here2: %a\n",lst);
+    };
+    fixup(tokens,['match]);
+    return head(tokens);
+}
+
+max_depth = 4;
+@define node_str(n,depth...) {
+    if (n == nil) return "<nil>";
+    if (length(depth) > 0) depth = depth[0];
+    else depth = 0;
+    if (depth >= max_depth) return "D";
+    printf("%s\n",n[0]);
+    switch(n[0]) {
+        case 'star: return sprintfa("star %s %s",
+                            node_str(n[1],depth+1),node_str(n[2],depth+1));
+        case 'maybe: return sprintfa("maybe %s %s",
+                            node_str(n[1],depth+1),node_str(n[2],depth+1));
+        case 'or: return "or";
+        case 'sub: return "sub";
+        case 'match: return "match";
+        case 'any: return sprintfa("any %s",node_str(n[1],depth+1));
+        case 'chr: return sprintfa("%a",[n[0],n[1],node_str(n[2],depth+1)]);
+        default: return sprintfa("%a",[n[0],n[1]]);
+    }
+}
+
+@define nxt_nodes(chr,node) {
+    //printf("nxt_nodes with chr=%c and type=%s\n",chr,node[0]);
+    //printf("%s next: %s\n",node_str(node), node[0]=='chr ? node_str(node[2]) : "");
+    switch(node[0]) {
+    case 'any: 
+        if (chr != nil) return [node[1]];
+        else return [];
+    case 'chr:
+        if (chr == node[1]) return [node[2]];
+        else return [];
+    case 'class:
+        if (node[1][chr] != nil) return [node[2]];
+        else return [];
+    case 'maybe:
+    case 'star:
+        {
+            @local ret;
+            ret = nxt_nodes(chr,node[1]);
+            ret = concat(ret,nxt_nodes(chr,node[2]));
+            if (node[2][0] == 'match) append(ret,node[2]);
+            return ret;
+        }
+    case 'or:
+        {
+            @local ret;
+            ret = nxt_nodes(chr,node[1]);
+            ret = concat(ret,nxt_nodes(chr,node[2]));
+            return ret;
+        }
+    case 'sub:
+        return nxt_nodes(chr,node[1][0]);
+    case 'match: 
+        if (chr == nil) return [node];
+        else return [];
+    default:
+        error("bad type: %s",node[0]);
+    }
+}
+
+@define dfa_match(str,dfa) {
+    return dfa_match_helper(str,[dfa],0);
+}
+
+@define dfa_match_helper(str,nodes,idx) {
+    @local len,i,ret;
+    if (idx == length(str)) {
+        len = length(nodes);
+        for(i=0; i<len; ++i) {
+            if (nodes[i][0] == 'match) return 1;
+        }
+        ret = [];
+        foreach(@lambda(node) {
+            ret = concat(nxt_nodes(nil,node),ret);
+        }, nodes);
+        len = length(ret);
+        for(i=0; i<len; ++i) {
+            if (ret[i][0] == 'match) return 1;
+        }
+        return 0;
+    }
+    if (nodes == []) return 0;
+    ret = [];
+    //printf("idx=%d str=%s\n",idx,str);
+    foreach(@lambda(node) {
+        ret = set_concat(nxt_nodes(str[idx],node),ret);
+    }, nodes);
+    //printf("results: %a\n",map(@lambda(n){ return n[0];},ret));
+    if (debug) printf("ret_nodes for %c (char %d): \n    %a\n",str[idx], idx,map(node_str,ret));
+    //printf("queue size: %d\n",length(nodes));
+    return dfa_match_helper(str,ret,idx+1);
+}
+
 @define re_match(re,str) {
-	@local matcher;
-	matcher = create_dfa(re);
-	for(i=0; i<length(str); ++i) {
-		@local ret;
-		if (isstring(matcher)) error(matcher);
-		ret = matcher(str[i]);
-		if (ret == 0) return 0;
-		if (ret == 1) return 1;
-		matcher = ret;
-	}
-	return 1;
+	@local dfa;
+    if (debug) printf("re = %s str = %s\n",re,str);
+    if (islist(re)) dfa = re;
+	else dfa = re_create(re);
+    if (debug) printf("dfa = %a\n",node_str(dfa));
+	return dfa_match(str,dfa);
 }
 
+//Returns the first index in the given string where the
+//given regular expression is found.
+//
+//XXX right now, this is a stupid implementation. 
+//    We should have a dfa_find_help just like with dfa_match.
+@define re_find(re,str) {
+	@local dfa,new_re,i,len;
+    new_re = re+".*";
+	dfa = re_create(new_re);
+    len = length(str);
+    for(i=0; i<len; ++i)
+        if (dfa_match_helper(str,[dfa],i))
+            return i;
+    return -1;
+}
 
 
 
