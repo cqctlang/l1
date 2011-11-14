@@ -22,6 +22,7 @@
 <a href="#lib:elf.cqct">elf</a><br />
 <a href="#lib:nsgraph.cqct">nsgraph</a><br />
 <a href="#lib:nsutil.cqct">nsutil</a><br />
+<a href="#lib:re.cqct">Regular Expression Library</a><br />
 <a href="#lib:snames.cqct">snames</a><br />
 <a href="#lib:snamesclt.cqct">snamesclt</a><br />
 <a href="#lib:gdb.cqct">gdb</a><br />
@@ -1053,6 +1054,109 @@ over types in namespaces.
 </div>
 </div>
 
+<h5 id="lib:re.cqct">re.cqct</h5>
+
+<span class="id">re.cqct</span> provides an API for using
+regular expressions in CQCT. Currently, regular expressions
+containing [], *, ., (), and ? are all supported with the
+same meanings as in PERL (run "man perlre" for more details),
+with the following exceptions:
+<ul>
+    <li> () does not enable back references as
+    in PERL. 
+    <li> [] does not allow for ranges or for negated classes 
+    (i.e. ^ does <bf>not</bf> create a negated class, and - does
+    not create a spanned class).
+</ul>
+Also as in PERL, \ is an escape character.
+
+This regular expression library uses a DFA to allow for matching
+in time O(n*m), where n is the length of the RE and m is the 
+length of the input. See Russ Cox's
+<a href=http://swtch.com/~rsc/regexp/regexp1.html>Regular Expression Matching</a> 
+for details. 
+
+Example usage:
+<div class="code">
+<pre>
+@include &lt;re.cqct&gt;
+re_match("abc*d","abccccd"); //returns 1
+re_match("abc*d","accccd"); //returns 0
+re_match("abc*d","xxxabccccd"); //returns 0
+re_find("abc*d","xxxabccccd"); //returns 3 
+</pre>
+</div>
+
+<div class="docitem" id="fn:re_create">
+<div class="proto">
+<div class="function">
+<span class="id">re_create(<span class="arg">re</span>)</span>
+</div>
+<div class="param">
+<span class="arg">re</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">DFA</span>
+</div>
+</div>
+<div class="desc">
+    Allows one to create the DFA associated with a given regular expression.
+    These DFA can currently only be passed to the re_match function.
+    If one is doing multiple matches with the same RE, then it is recommended
+    that one creates the DFA for that RE via this function, rather than forcing
+    re_match to re-create the DFA on each call.
+</div>
+</div>
+
+<div class="docitem" id="fn:re_find">
+<div class="proto">
+<div class="function">
+    <span class="id">re_find(<span class="arg">re</span>,
+                               <span class="arg">str</span>)</span>
+</div>
+<div class="param">
+    <span class="arg">re</span>: 
+    <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">int</span>
+</div>
+</div>
+<div class="desc">
+    This function take a string specifying a regular expression and a string to
+    search in and returns the index in the given string of the fist match of
+    the given regular expression, or -1 if no instances of the expression are found
+    in the given string.
+</div>
+</div>
+
+<div class="docitem" id="fn:re_match">
+<div class="proto">
+<div class="function">
+    <span class="id">re_match(<span class="arg">re</span>,
+                               <span class="arg">str</span>)</span>
+</div>
+<div class="param">
+    <span class="arg">re</span>: 
+    <span class="type">string</span> or
+    <span class="type">DFA</span> 
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">int</span>
+</div>
+</div>
+<div class="desc">
+    This function take a regular expression (either as a string or as the DFA output
+    from <a href=#fn:re_create>re_create</a>) and a string and returns 1 if
+    the regular expression matches the <it>entire</it> string. Otherwise 0 is returned.
+</div>
+</div>
 
 <h5 id="lib:snames.cqct">snames.cqct</h5>
 
