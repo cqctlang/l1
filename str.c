@@ -44,6 +44,15 @@ strcopy(Str *s)
 	return mkstr(strdata(s), s->len);
 }
 
+Str*
+strrealloc(Str *s, u64 len)
+{
+	Str *t;
+	t = mkstrn(len);
+	memcpy(strdata(t), strdata(s), min(t->len, s->len));
+	return t;
+}
+
 char*
 str2cstr(Str *str)
 {
