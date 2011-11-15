@@ -167,6 +167,12 @@
 			else
 				a = lexpreval(l.loc, ctxloc);
 			td = looktype(ns, l.type);
+			if(td == nil)
+				/* sometimes we just pass l.type to mksym
+				   in this case and hope that the type
+				   is not accessed.  if you do this,
+				   l.type should be wrapped in an undef. */
+				error("cannot resolve definition of %t", l.type);
 			sym[l.id] = mksym(td, l.id, a);
 		}, ll);
 
