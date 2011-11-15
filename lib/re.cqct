@@ -16,75 +16,6 @@ re_defined = 1;
 
 debug = 0;
 
-@define caching_eq(o1,o2,cur...) {
-    @local clen,i;
-    if (length(cur)>0) cur = cur[0];
-    clen = length(cur);
-    for(i=0; i<clen; ++i) {
-        @local a,b;
-        [a,b] = cur[i];
-        if ((eq(a,o1) && eq(b,o2)) ||
-            (eq(b,o1) && eq(a,o2))) return 1;
-    }
-    if (islist(o1)) {
-        if (!islist(o2)) return 0;
-        else {
-            @local len;
-            len = length(o1);
-            if (len != length(o2)) return 0;
-            append(cur,[o1,o2]);
-            for(i=0; i<len; ++i) {
-                if (!caching_eq(o1[i],o2[i],cur)) return 0;
-            }
-            return 1;
-        }
-    }
-    return o1 == o2;
-}
-
-//returns a concatination of l1 and l2 that only contains
-//one of each object (according to caching_eq)
-@define set_concat(l1,l2) {
-    @local ret,i,j,mat,len1,len2,retlen;
-    len1 = length(l1);
-    len2 = length(l2);
-    if (len1 == 0) {
-        if (len2 == 0) return [];
-        ret = [l2[0]];
-    } else {
-        ret = [l1[0]];
-    }
-    retlen = 1;
-    //printf("set concat lists sizes: %d and %d\n",len1,len2);
-    for(i=1;i<len1;++i) {
-        mat = 0;
-        for(j=0;j<retlen;++j) {
-            if (caching_eq(l1[i],ret[j])) {
-                mat = 1;
-                break;
-            }
-        }
-        if (!mat) {
-            append(ret,l1[i]);
-            ++retlen;
-        }
-    }
-    for(i=len1==0 ? 1 : 0;i<len2;++i) {
-        mat = 0;
-        for(j=0;j<retlen;++j) {
-            if (caching_eq(l2[i],ret[j])) {
-                mat = 1;
-                break;
-            }
-        }
-        if (!mat) {
-            append(ret,l2[i]);
-            ++retlen;
-        }
-    }
-    return ret;
-}
-
 @define tokenize(re) {
     @local tokens, len, i;
     tokens = [];
@@ -269,20 +200,24 @@ max_depth = 4;
 }
 
 @define dfa_match(str,dfa) {
-    return dfa_match_helper(str,[dfa],0);
+    @local tab;
+    tab = mktabq();
+    tab[dfa] = 1;
+    return dfa_match_helper(str,tab,0);
 }
 
 @define dfa_match_helper(str,nodes,idx) {
     @local len,i,ret;
     if (idx == length(str)) {
-        len = length(nodes);
-        for(i=0; i<len; ++i) {
-            if (nodes[i][0] == 'match) return 1;
-        }
-        ret = [];
-        foreach(@lambda(node) {
-            ret = concat(nxt_nodes(nil,node),ret);
+        ret = mktabq();
+        foreach(@lambda(node,v) {
+            ret[node] = 1;
+            foreach(@lambda(n) {
+                ret[n] = 1;
+            },nxt_nodes(nil,node));
         }, nodes);
+        //check for matches.
+        ret = tabkeys(ret);
         len = length(ret);
         for(i=0; i<len; ++i) {
             if (ret[i][0] == 'match) return 1;
@@ -290,10 +225,12 @@ max_depth = 4;
         return 0;
     }
     if (nodes == []) return 0;
-    ret = [];
+    ret = mktabq();
     //printf("idx=%d str=%s\n",idx,str);
-    foreach(@lambda(node) {
-        ret = set_concat(nxt_nodes(str[idx],node),ret);
+    foreach(@lambda(node,v) {
+        foreach(@lambda(n) {
+            ret[n] = 1;
+        },nxt_nodes(str[idx],node));
     }, nodes);
     //printf("results: %a\n",map(@lambda(n){ return n[0];},ret));
     if (debug) printf("ret_nodes for %c (char %d): \n    %a\n",str[idx], idx,map(node_str,ret));
@@ -316,12 +253,14 @@ max_depth = 4;
 //XXX right now, this is a stupid implementation. 
 //    We should have a dfa_find_help just like with dfa_match.
 @define re_find(re,str) {
-	@local dfa,new_re,i,len;
+	@local dfa,new_re,i,len,tab;
     new_re = re+".*";
 	dfa = re_create(new_re);
     len = length(str);
+    tab = mktabq();
+    tab[dfa] = 1;
     for(i=0; i<len; ++i)
-        if (dfa_match_helper(str,[dfa],i))
+        if (dfa_match_helper(str,tab,i))
             return i;
     return -1;
 }
