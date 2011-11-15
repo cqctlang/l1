@@ -1,24 +1,25 @@
-/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:11: warning: multiple declarations of variable dfa_match_helper
-entry: var params, 11 locals, 0 temps
-caching_eq: var params, 12 locals, 0 temps
-set_concat: 2 params, 14 locals, 0 temps
+/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:10: warning: unused variable: set_concat
+/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:10: warning: unused variable: caching_eq
+entry: var params, 10 locals, 0 temps
 tokenize: 1 params, 18 locals, 0 temps
 re_create: 1 params, 3 locals, 0 temps
-L721: 2 params, 17 locals, 0 temps
+L333: 2 params, 17 locals, 0 temps
 node_str: var params, 9 locals, 0 temps
 nxt_nodes: 2 params, 13 locals, 0 temps
-dfa_match: 2 params, 1 locals, 0 temps
+dfa_match: 2 params, 7 locals, 0 temps
 dfa_match_helper: 3 params, 14 locals, 0 temps
-L2759: 1 params, 0 locals, 0 temps
-L2842: 1 params, 6 locals, 0 temps
+L2322: 2 params, 6 locals, 0 temps
+L2348: 1 params, 6 locals, 0 temps
+L2445: 2 params, 6 locals, 0 temps
+L2470: 1 params, 6 locals, 0 temps
 re_match: 2 params, 1 locals, 0 temps
-re_find: 2 params, 5 locals, 0 temps
-L3040: 0 params, 0 locals, 0 temps
-L3044: 1 params, 0 locals, 0 temps
-L3048: 0 params, 0 locals, 0 temps
-L3057: 0 params, 0 locals, 0 temps
-L3061: 1 params, 0 locals, 0 temps
-L3065: 0 params, 0 locals, 0 temps
+re_find: 2 params, 11 locals, 0 temps
+L2679: 0 params, 0 locals, 0 temps
+L2683: 1 params, 0 locals, 0 temps
+L2687: 0 params, 0 locals, 0 temps
+L2696: 0 params, 0 locals, 0 temps
+L2700: 1 params, 0 locals, 0 temps
+L2704: 0 params, 0 locals, 0 temps
 should be 1: 1
 should be 1: 1
 should be 1: 1
@@ -46,17 +47,17 @@ should be 0: 0
 should be 1: 1
 error: strref out of bounds
              cntrget	(builtin function)
-            tokenize	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:95)
-           re_create	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:141)
-            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:308)
+            tokenize	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:26)
+           re_create	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:72)
+            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:245)
               applyk	(builtin function)
                entry	(lib_re.l1:39)
 successfully caused an error
 error: operand 2 to listref must be a non-negative integer
              cntrget	(builtin function)
-                L721	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:157)
-           re_create	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:207)
-            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:308)
+                L333	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:88)
+           re_create	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:138)
+            re_match	(/.ccs/u02/ajpark2/projects/l1v2/lib/re.cqct:245)
               applyk	(builtin function)
                entry	(lib_re.l1:46)
 successfully caused an error
