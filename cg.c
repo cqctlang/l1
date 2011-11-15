@@ -428,6 +428,7 @@ setreloc(Code *c)
 		switch(i->kind){
 		case Icallc:
 		case Icalltc:
+		case Iapply:
 		case Iframe:
 		case Iret:
 		case Ihalt:
@@ -534,6 +535,9 @@ printinsn(Code *c, Insn *i)
 		break;
 	case Icalltc:
 		xprintf("calltc");
+		break;
+	case Iapply:
+		xprintf("apply");
 		break;
 	case Icode:
 		xprintf("-code- ");
@@ -1642,6 +1646,24 @@ callcc(void)
 	cl = mkcl(code, 0, 0, L->label);
 
 	return cl;
+}
+
+Closure*
+mkapply(void)
+{
+	Ctl *L;
+	Insn *i;
+	Code *code;
+
+	code = mkcode();
+	L = genlabel(code, "apply");
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(code, 0);
+	i->kind = Iapply;
+	prepcode(code);
+	
+	return mkcl(code, 0, 0, L->label);
 }
 
 Code*

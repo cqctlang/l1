@@ -1,0 +1,17 @@
+@define fn(a ...)
+{
+	printf("%a -> ", a);
+	return length(a);
+}
+
+printf("%a\n", apply(fn, []));
+printf("%a\n", apply(fn, [1]));
+printf("%a\n", apply(fn, [1, 2]));
+printf("%a\n", apply(fn, [1, 2, 3]));
+
+printf("%a\n", apply(fn, 1, []));
+printf("%a\n", apply(fn, 1, [2]));
+printf("%a\n", apply(fn, 1, [2, 3]));
+printf("%a\n", apply(fn, 1, 2, [3]));
+printf("%a\n", apply(fn, 1, 2, [3, 4]));
+printf("%a\n", apply(fn, 1, 2, [3, 4, 5]));

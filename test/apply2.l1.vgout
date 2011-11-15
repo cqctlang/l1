@@ -1,0 +1,7 @@
+entry: var params, 1 locals, 0 temps
+foo: 1 params, 0 locals, 0 temps
+win: 1 params, 0 locals, 0 temps
+L11: 0 params, 0 locals, 0 temps
+lose: 1 params, 1 locals, 0 temps
+L23: 0 params, 0 locals, 0 temps
+L28: 1 params, 0 locals, 0 temps

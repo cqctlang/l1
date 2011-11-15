@@ -1,0 +1,23 @@
+choice = 'lose; // or 'lose
+
+@define foo(fn)
+{
+	fn();
+}
+
+@define win(k)
+{
+	foo(@lambda() { k(nil); });
+}
+
+@define lose(k)
+{
+	apply(foo, [ @lambda() { k(nil); } ]);
+}
+
+callcc(@lambda(k) {
+		if(choice == 'win)
+			win(k);
+		else
+			lose(k);
+	});		

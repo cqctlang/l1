@@ -616,6 +616,7 @@ typedef
 enum {
 	Iadd = 0,
 	Iand,
+	Iapply,
 	Iargc,
 	Ibox,
 	Ibox0,
@@ -1020,6 +1021,7 @@ Code*		contcode(void);
 void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
+Closure*	mkapply(void);
 Closure*	panicthunk(void);
 void		printkon(Val v);
 void		resetlabels();

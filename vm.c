@@ -1559,6 +1559,78 @@ xcalltc(VM *vm)
 	}
 }
 
+/* 
+shuffle the stack from a valid apply call:
+
+            fp
+            cl
+            pc
+             l -> [ argK, ..., argN ]
+        argK-1
+           ...
+          arg1
+            fn
+  fp,sp -> K+2    cl = apply
+
+to the corresponding direct call:
+
+            fp
+            cl
+            pc
+          argN
+           ...
+          argK
+        argK-1
+           ...
+          arg1
+  fp,sp ->   N    cl = fn
+*/
+static void
+xapply(VM *vm)
+{
+	Imm i, m, oarg, narg, sarg, nfp;
+	Val fn;
+	Val lv;
+	List *l;
+
+	if(vm->sp != vm->fp)
+		bug();
+	oarg = stkimm(vm->stack[vm->fp]);
+	if(oarg < 2)
+		vmerr(vm, "wrong number of arguments to apply");
+	fn = vm->stack[vm->fp+1];
+	lv = vm->stack[vm->fp+oarg];
+	if(Vkind(fn) != Qcl)
+		vmerr(vm, "first argument to apply must be a procedure");
+	if(Vkind(lv) != Qlist)
+		vmerr(vm, "final argument to apply must be a list");
+	l = vallist(lv);
+	m = listlen(l);
+	sarg = oarg-2; /* arguments already on stack */
+	narg = sarg+m;
+	nfp = vm->fp-(narg-oarg);
+
+	/* three cases:
+	   i)   L is empty: stack arguments slide up one position
+	   ii)  L has one element: it is replaced by its element
+           iii) L has more: stack arguments slide down to make room;
+                  L's elements are copied above.
+           the following code handles all three cases.
+	*/
+	memmove(&vm->stack[nfp+1], &vm->stack[vm->fp+2],
+		sarg*sizeof(Val));
+	for(i = 0; i < m; i++)
+		vm->stack[nfp+1+sarg+i] = listref(l, i);
+
+	vm->fp = vm->sp = nfp;
+	vm->stack[vm->fp] = (Val)(uptr)narg;
+
+	/* like Icall ... */
+	vm->cl = valcl(fn);
+	vm->pc = vm->cl->entry;
+	gcpoll(vm);
+} 
+
 static Imm
 xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 {
@@ -3942,6 +4014,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	if(!vm){
 		gotab[Iadd]	= &&Iadd;
 		gotab[Iand]	= &&Iand;
+		gotab[Iapply]	= &&Iapply;
 		gotab[Iargc]	= &&Iargc;
 		gotab[Ibox]	= &&Ibox;
 		gotab[Ibox0]	= &&Ibox0;
@@ -4090,6 +4163,9 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			vm->sp = vm->fp;
 			vm->pc = vm->cl->entry;
 			gcpoll(vm);
+			continue;
+		LABEL Iapply:
+			xapply(vm);
 			continue;
 		LABEL Icalltc:
 			xcalltc(vm);
@@ -6796,8 +6872,9 @@ mktopenv(void)
 
 	builtinfn(env, "halt", halt);
 	builtinfn(env, "callcc", callcc());
+	builtinfn(env, "apply", mkapply());
 
-	FN(apply);
+//	FN(apply);
 	FN(applyk);
 	FN(asof);
 	FN(backtrace);
