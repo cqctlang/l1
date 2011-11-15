@@ -6304,41 +6304,6 @@ l1_evalk(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_apply(VM *vm, Imm iargc, Val *iargv, Val *rv)
-{
-	Imm ll, argc, m;
-	Val *argv, *ap, *ip, vp;
-	Closure *cl;
-	List *lst;
-
-	if(iargc < 2)
-		vmerr(vm, "wrong number of arguments to apply");
-	checkarg(vm, "apply", iargv, 0, Qcl);
-	cl = valcl(iargv[0]);
-	checkarg(vm, "apply", iargv, iargc-1, Qlist);
-	ll = listlen(vallist(iargv[iargc-1]));
-	argc = iargc-2+ll;
-	argv = emalloc(argc*sizeof(Val));
-	ap = argv;
-	ip = &iargv[1];
-	for(m = 0; m < iargc-2; m++)
-		*ap++ = *ip++;
-	lst = vallist(*ip);
-	for(m = 0; m < ll; m++){
-		vp = listref(lst, m);
-		*ap++ = vp;
-	}
-	if(waserror(vm)){
-		efree(argv);
-		nexterror(vm);
-	}
-	vp = dovm(vm, cl, argc, argv);
-	*rv = vp;
-	efree(argv);
-	poperror(vm);
-}
-
-static void
 l1_applyk(VM *vm, Imm iargc, Val *iargv, Val *rv)
 {
 	Imm ll, argc, m;
@@ -6874,7 +6839,6 @@ mktopenv(void)
 	builtinfn(env, "callcc", callcc());
 	builtinfn(env, "apply", mkapply());
 
-//	FN(apply);
 	FN(applyk);
 	FN(asof);
 	FN(backtrace);
