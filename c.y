@@ -1166,6 +1166,10 @@ defstx_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, invert($4), $6, $7); }
 	| DEFSTX atid '(' arg_id_list ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, invert($4), 0, $6); }
+	| DEFSTX atid '(' ')' id compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, nullelist(), $5, $6); }
+	| DEFSTX atid '(' ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, nullelist(), 0, $5); }
 	| DEFSTX atid id compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Edefstx, $2, 0, $3, $4); }
 	;
