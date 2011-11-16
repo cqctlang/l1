@@ -1,0 +1,789 @@
+@include <sctlclt.cqct>
+
+@global
+	mkctlmux
+	;
+
+{
+@local ctlrd;
+
+@record muxrec {
+	launch,
+	attach,
+	run,
+
+	/* not for you */
+	cont,
+	stop,
+	detach,
+	kill,
+	pread,
+	pwrite,
+        statunix,
+	trace,
+        trap,
+	clr,
+};
+
+ctlrd = @record ctlrec {
+	/* identity */
+	id,
+
+	/* control */
+	detach,
+	kill,
+
+	/* address spaces */
+	mem,
+
+	/* domains */
+	ctx,
+	exe,
+	doms,
+	domat,
+	dom,
+
+	/* snapshot */
+	snap,
+
+	/* traps */
+	trap,
+	clr,
+	traps,
+
+	/* not for you */
+	callbacks,
+	setctx,
+};
+rdsetfmt(ctlrd,
+	 @lambda(ctl){
+		 @local ctx;
+		 ctx = ctl.ctx();
+		 sprintfa("ctl %d pc=%016x", ctl.id, ctx->rip);
+	 });
+
+@defloc mkctl(mux, id, _ctx)
+{
+	@local mmap, _doms, _exe;
+	@local strace, utrace, nextrap;
+
+	@record domrec { start, path, dom };
+
+	mmap = nil;
+	strace = [:];
+	utrace = [:];
+
+	@defloc detach()
+	{
+		mux.detach(id);
+	}
+
+	@defloc kill()
+	{
+		mux.kill(id);
+	}
+
+	@defloc mem()
+	{
+		@defloc get(as, r)
+		{
+			return mux.pread(id, rangebeg(r), rangelen(r));
+		}
+
+		@defloc put(as, r, s)
+		{
+			return mux.pwrite(id, rangebeg(r), rangelen(r), s);
+		}
+
+		@defloc map(as)
+		{
+			@local n, rs, i;
+
+			rs = mux.statunix(id)[0];
+			n = length(rs);
+			mmap = mkvec(n);
+			for(i = 0; i < n; i++)
+				mmap[i] = mkrange(rs[i].addr,
+						  rs[i].addr+rs[i].len);
+			return mmap;
+		}
+
+		@defloc ismapped(as, r)
+		{
+			if(mmap == nil)
+				map(as);
+			return isrinr(r, mmap);
+		}
+
+		return mkas([ "get"		: get,
+			      "put"		: put,
+			      "map"		: map,
+			      "ismapped"	: ismapped,
+			    ]);
+	}
+
+	@defloc ctx()
+	{
+		return _ctx;
+	}
+
+	@defloc exe()
+	{
+		return _exe.dom;
+	}
+
+	@defloc doms()
+	{
+		return _doms;
+	}
+
+	@defloc domat(addr)
+	{
+		@local i, m, dr;
+		m = length(_doms);
+		dr = nil;
+		for(i = 0; i < m; i++){
+			if(_doms[i].start > addr)
+				break;
+			dr = _doms[i];
+		}
+		if(dr == nil)
+			return nil;
+		return dr.dom;
+	}
+
+	@defloc dom(name)
+	{
+		@local i, m;
+		m = length(_doms);
+		for(i = 0; i < m; i++){
+			printf("trying %s\n", _doms[i].path);
+			if(strstr(_doms[i].path, name) != nil)
+				return _doms[i].dom;
+		}
+		return nil;
+	}
+
+	@defloc snap()
+	{
+		error("unimplemented");
+	}
+
+	@defloc trap(kind, arg ...)
+	{
+		@local m, fn;
+		m = length(arg);
+		if(m < 1)
+			error("wrong number of arguments to trap");
+		fn = arg[m-1];
+		listdel(arg, m-1);
+		switch(kind){
+		case 'load:
+			break;
+		case 'unload:
+			break;
+		case 'bp:
+			break;
+		case 'exit:
+			break;
+		}
+	}
+
+	@defloc clr()
+	{
+		error("unimplemented");
+	}
+
+	@defloc traps()
+	{
+		error("unimplemented");
+	}
+
+	@defloc callbacks(ev)
+	{
+		return strace[ev];
+	}
+
+	@defloc setctx(ctx)
+	{
+		_ctx = ctx;
+	}
+
+	@defloc scandoms()
+	{
+		@local rs, dlls;
+		[rs, dlls] = mux.statunix(id);
+
+		foreach(@lambda(r){
+				if(1)printf("\t%016x %016x %s\n",
+					    r.addr, r.addr+r.len, r.file);
+			}, rs);
+		printf("\n");
+
+		if(length(dlls) == 0)
+			error("ctl address space is empty");
+
+		_doms = [];
+		foreach(@lambda(dll){
+				@local ns, dr;
+				if(1)printf("\t%d\t%016p\t%s\n",
+					    dll.id, dll.base, dll.path);
+				ns = atnames(dll.path);
+				if(ns == nil)
+					error("cannot get namespace for %s",
+					      dll.path);
+				ns = mknsoff(ns, dll.base);
+				dr = domrec(dll.base,
+					    dll.path,
+					    mkdom(ns, mem()));
+				append(_doms, dr);
+				if(dll.id == 0)
+					_exe = dr;
+			}, dlls);
+		sort(_doms, @lambda(a, b){ cvalcmp(a.start, b.start); });
+	}
+
+	@defloc newlib(ctl, path, base)
+	{
+		scandoms();
+	}
+
+	scandoms();
+	strace[sctl`Eload] = [ newlib ];
+	return ctlrec(id,
+		      detach,
+		      kill,
+		      mem,
+		      ctx,
+		      exe,
+		      doms,
+		      domat,
+		      dom,
+		      snap,
+		      trap,
+		      clr,
+		      traps,
+		      callbacks,
+		      setctx
+		);
+}
+
+@defloc mkmux(fd)
+{
+	@local ctls, taghandler, nexttag, freetags, aborted, verbose;
+
+	verbose = 0;
+	nexttag = 0;
+	freetags = [ ];
+	ctls = [:];
+	taghandler = [:];
+
+	@defloc addctl(ctl)
+	{
+		ctls[ctl.id] = ctl;
+	}
+
+	@defloc delctl(ctlid)
+	{
+		tabdelete(ctls, ctlid);
+	}
+
+	@defloc freshtag()
+	{
+		if(isempty(freetags))
+			return nexttag++;
+		return pop(freetags);
+	}
+
+	@defloc reusetag(tag)
+	{
+		push(freetags, tag);
+	}
+
+	@defloc log(arg ...)
+	{
+		if(verbose){
+			apply(printf, arg);
+			printf("\n");
+		}
+	}
+
+	@defloc cop(p)
+	{
+		return {@typeof(p)}getbytes(p);
+	}
+
+	@defloc xread(fd, sz)
+	{
+		@local p, e;
+		p = read(fd, sz);
+		if(p == nil){
+			e = errno();
+			if(e[0])
+				error("ctlmux: recvmsg: %d %s", getpid(), e[1]);
+			return nil;
+		}
+		return p;
+	}
+
+	@defloc recvmsg(fd)
+	{
+		@local p, sz, rep, dat;
+
+		p = xread(fd, sizeof(litdom`uint64));
+		if(p == nil)
+			return [nil, 'closed];
+		p = (uint64*)p;
+		sz = *p++;
+		p = xread(fd, sz);
+		if(p == nil)
+			error("ctlmux: remote sctl hung up");
+		rep = (sctl`Rmsg*)p;
+		dat = getbytes(rep+1, sz-sizeof(sctl`Rmsg));
+		return [rep, dat];
+	}
+
+	@defloc noctls()
+	{
+		return length(ctls) == 0;
+	}
+
+	@defloc noinflight()
+	{
+		return length(taghandler) == 0;
+	}
+
+	@defloc aevent(msg, dat)
+	{
+		@local p, ctlid, ctl, ev;
+		@local path, base, ctx;
+		@local fns, callees, cb;
+
+		p = (uint64*)dat;
+		ctlid = *p++;
+		ev = *p++;
+
+		ctl = ctls[ctlid];
+		if(ctl == nil)
+			error("%e for unknown ctl id: %d",
+			      (sctl`Event)ev, ctlid);
+
+		switch(ev){
+		case sctl`Etrap:
+			error("Etrap is unimplemented");
+			break;
+		case sctl`Esnap:
+			error("Etrap is unimplemented");
+			break;
+		case sctl`Eclone:
+		case sctl`Efork:
+			error("Eclone/Efork is unimplemented");
+			break;
+		case sctl`Eexit: 
+			fns = ctl.callbacks(ev);
+			if(fns != nil){
+				// it's dead: no pending control changes
+				callees = [ctl];
+				cb = @lambda(fn){ fn(ctl); };
+				foreach(cb, fns);
+			}
+			delctl(ctl.id);
+			return;
+		case sctl`Eexec:
+			error("Eexec is unimplemented");
+			break;
+		case sctl`Esyscall:
+			error("Eexit is unimplemented");
+			break;
+		case sctl`Eload:
+		case sctl`Eunload:
+			fns = ctl.callbacks(ev);
+			if(fns == nil){
+				contasync(ctl.id);
+				return;
+			}
+			[path, p] = decodes(p);
+			p = (uint64*)p;
+			base = *p++;
+			[ctx, p] = decodectx(p);
+			ctl.setctx(ctx);
+			callees = [ctl];
+			cb = @lambda(fn){ fn(ctl, path, base); };
+			break;
+		default:
+			error("unhandled event: %e", (sctl`Event)ev);
+		}
+
+		/* FIXME: around this we can monitor for pending control
+		   changes */
+		foreach(cb, fns);
+		contasync(ctl.id);
+	}
+
+	@defloc runtil(pred)
+	{
+		@local rep, dat, tag, h;
+
+		if(aborted)
+			return;
+		if(pred())
+			return;
+		if(noinflight() && noctls())
+			error("ctlmux: runtil: nothing to do");
+
+		[rep, dat] = recvmsg(fd);
+		if(rep == nil)
+			error("ctlmux: remote sctl hung up");
+
+		if(rep->op == sctl`Aevent){
+			aevent(rep, dat);
+			return runtil(pred);
+		}
+		tag = rep->tag;
+		h = taghandler[tag];
+		tabdelete(taghandler, tag);
+		reusetag(tag);
+		if(h == nil)
+			log("unhandled tag %d", tag);
+		else
+			h(rep, dat);
+		runtil(pred);
+	}
+
+	@defloc runtiltag(fd, tag)
+	{
+		@local done, msg, dat;
+		msg = nil;
+		done = 0;
+		taghandler[tag] = @lambda(m, d) { msg = m; dat = d; done = 1; };
+		runtil(@lambda(){ done; });
+		return [msg, dat];
+	}
+
+	@defloc checkreply(rep, dat, op)
+	{
+		switch(rep->op){
+		case op:
+			break;
+		case sctl`Rerror:
+			error("sctl: while waiting for %e: %s", op, dat);
+		default:
+			error("sctl: while waiting for %e: received %e",
+			      op, (sctl`Mkind)rep->op);
+		}
+	}
+
+	@defloc launch(cmd)
+	{
+		@local p, m, i, tag, narg;
+		@local rep, dat, ctlid, ctx, ctl;
+
+		narg = length(cmd);
+		tag = freshtag();
+
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tlaunch;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = 0; /* flags */
+		*p++ = narg;
+		for(i = 0; i < narg; i++)
+			p = encodes(p, cmd[i]);
+		sendmsg(fd, m, (char*)p-m);
+
+		[rep, dat] = runtiltag(fd, tag);
+		if(rep->op == sctl`Rerror){
+			printf("launch failed: %s\n", dat);
+			return nil;
+		}
+		checkreply(rep, dat, sctl`Rlaunch);
+		p = (uint64*)dat;
+		ctlid = *p++;
+		[ctx, p] = decodectx(p);
+
+		printf("launched! ctlid = %d\n", ctlid);
+		dumpctx(ctx);
+		ctl = mkctl(mux, ctlid, ctx);
+		addctl(ctl);
+		return ctl;
+	}
+
+	@defloc attach(pid)
+	{
+		error("attach is unimplemented");
+	}
+
+	@defloc run()
+	{
+		@local orig;
+
+		if(aborted)
+			error("attempt to resume aborted mux");
+		foreach(@lambda(id, ctl){
+				cont(id);
+			}, ctls);
+		orig = run;
+		run = @lambda(arg ...) { error("attempt to run running mux"); };
+		runtil(noctls);
+		run = orig;
+		return nil;
+	}
+
+	@defloc cont(ctlid)
+	{
+		@local p, m, tag;
+		@local rep, dat;
+		
+		tag = freshtag();
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tcont;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		sendmsg(fd, m, (char*)p-m);
+
+		[rep, dat] = runtiltag(fd, tag);
+		checkreply(rep, dat, sctl`Rcont);
+		return nil;
+	}
+
+	@defloc contasync(ctlid)
+	{
+		@local p, m, tag;
+		
+		tag = freshtag();
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tcont;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		sendmsg(fd, m, (char*)p-m);
+
+		taghandler[tag] = @lambda(rep, dat){
+			checkreply(rep, dat, sctl`Rcont);
+		};
+		return nil;
+	}
+
+	@defloc stop(ctlid)
+	{
+		@local p, m, tag;
+		@local rep, dat, ctx;
+		
+		tag = freshtag();
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tstop;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		sendmsg(fd, m, (char*)p-m);
+
+		[rep, dat] = runtiltag(fd, tag);
+		checkreply(rep, dat, sctl`Rstop);
+		p = (uint64*)dat;
+		[ctx, p] = decodectx(p);
+
+		return ctx;
+	}
+
+	@defloc detach(ctlid)
+	{
+		@local p, m, tag;
+		@local rep, dat;
+		
+		tag = freshtag();
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tdetach;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		sendmsg(fd, m, (char*)p-m);
+
+		[rep, dat] = runtiltag(fd, tag);
+		checkreply(rep, dat, sctl`Rdetach);
+		delctl(ctlid);
+		return nil;
+	}
+
+	@defloc kill(ctlid)
+	{
+		@local p, m, tag;
+		@local rep, dat;
+		
+		tag = freshtag();
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tkill;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		sendmsg(fd, m, (char*)p-m);
+
+		[rep, dat] = runtiltag(fd, tag);
+		checkreply(rep, dat, sctl`Rkill);
+		delctl(ctlid);
+		return nil;
+	}
+
+	@defloc pread(ctlid, addr, cnt)
+	{
+		@local p, m, tag;
+		@local rep, dat;
+		
+		tag = freshtag();
+
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tread;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		*p++ = -1;
+		*p++ = addr;
+		*p++ = cnt;
+		sendmsg(fd, m, (char*)p-m);
+		
+		[rep, dat] = runtiltag(fd, tag);
+		if(rep->op == sctl`Rerror)
+			error("read fault 0x%016x-0x%016x (%s)",
+			      addr, addr+cnt, dat);
+		checkreply(rep, dat, sctl`Rread);
+		return dat;
+	}
+
+	@defloc pwrite(ctlid, addr, cnt, s)
+	{
+		@local p, m, tag;
+		@local rep, dat;
+
+		tag = freshtag();
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Twrite;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		*p++ = -1;
+		*p++ = addr;
+		p = (char*)p;
+		putbytes(p, s);
+		p += length(s);
+		sendmsg(fd, m, (char*)p-m);
+		
+		[rep, dat] = runtiltag(fd, tag);
+		if(rep->op == sctl`Rerror)
+			error("write fault 0x%016x-0x%016x (%s)",
+			      addr, addr+cnt, dat);
+		checkreply(rep, dat, sctl`Rwrite);
+		return nil;
+	}
+
+	@defloc statunix(ctlid)
+	{
+		@local p, m, tag;
+		@local rep, dat, rs, bs, n, i;
+		@local file, addr, len, flags;
+		@local id, base;
+		
+		tag = freshtag();
+		p = m = mkxs();
+		p = (sctl`Tmsg*)p;
+		p->op = sctl`Tstat;
+		p->tag = tag;
+		p++;
+		p = (uint64*)p;
+		*p++ = ctlid;
+		sendmsg(fd, m, (char*)p-m);
+
+		[rep, dat] = runtiltag(fd, tag);
+		checkreply(rep, dat, sctl`Rstat);
+
+		p = (uint64*)dat;
+		p++; /* skip pid */
+
+		rs = [];
+		n = *p++;
+
+		for(i = 0; i < n; i++){
+			[file, p] = decodes(p);
+			p = (uint64*)p;
+			addr = *p++;
+			len = *p++;
+			flags = *p++;
+			append(rs, region(file, addr, len, flags));
+		}
+
+		bs = [];
+		n = *p++;
+		for(i = 0; i < n; i++){
+			id = *p++;
+			base = *p++;
+			[file, p] = decodes(p);
+			p = (uint64*)p;
+			append(bs, dll(id, file, base));
+		}
+
+		return [rs, bs];
+	}
+
+	@defloc trace(ctlid)
+	{
+		error("unimplemented");
+	}
+
+	@defloc trap(ctlid)
+	{
+		error("unimplemented");
+	}
+
+	@defloc clr(ctlid)
+	{
+		error("unimplemented");
+	}
+
+	return muxrec(launch,
+		      attach,
+		      run,
+		      cont,
+		      stop,
+		      detach,
+		      kill,
+		      pread,
+		      pwrite,
+		      statunix,
+		      trace,
+		      trap,
+		      clr);
+}
+
+@defloc localsctl()
+{
+	@local fds, fd;
+
+//	fds = popen("mygrind", "sctl", "-c", 2|4|8);
+	fds = popen("sctl", "-c", 2|4|8);
+	fd = fds[0];
+	finalize(fd, @lambda(fd) { close(fd); });
+	sctlversion(fd);
+	return fd;
+}
+
+@define mkctlmux()
+{
+	return mkmux(localsctl());
+}
+
+}
