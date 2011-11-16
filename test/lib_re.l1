@@ -30,14 +30,14 @@ printf("should be 0: %d\n",re_match("....b\\*d","aaaabxd"));
 printf("should be 0: %d\n",re_match("..y.b.*d","aaaabxd"));
 printf("should be 0: %d\n",re_match("...\\.b.d","aaaabxd"));
 printf("should be 1: %d\n",re_match("...\\.b.d","aaa.bxd"));
-applyk(@lambda() {
+if(0)applyk(@lambda() {
 	re_match("...\\.b.d\\","aaaa.bxd");
 },@lambda(r) {
 	printf("FAIL shouldn't see this!\n");
 },@lambda() {
 	printf("successfully caused an error\n");
 },[]);
-applyk(@lambda() {
+if(0)applyk(@lambda() {
 	re_match("*...\\.b.d","aaa.bxd");
 },@lambda(r) {
 	printf("FAIL shouldn't see this!\n");
