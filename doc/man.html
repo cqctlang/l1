@@ -9584,24 +9584,27 @@ single argument.
 <div class="docitem" id="fn:parse">
 <div class="proto">
 <div class="function">
-<span class="id">parse(<span class="arg">expr<span>)</span>
+<span class="id">parse(<span class="arg">expr<span>[,<span class="arg">file</span>[,<span class="arg">line</span>]])</span>
 </div>
 <div class="param">
 <span class="arg">expr</span>: <span class="type">string</span>
+<span class="arg">file</span>: <span class="type">string</span>
+<span class="arg">line</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
-<span class="type">list</span>
+<span class="type">stx</span>
 </div>
 </div>
 <div class="desc">
 Returns the result of parsing the Cinquecento
 expression in the string <span class="arg">expr</span>.
-The parsed expression is an S-expression encoding of
-the parse tree.  Details are too volatile to document
-at present, but generally each node in the tree is a
-list whose first element is a string identifier for the
-syntax type of the tree node and whose remaining
-elements are the children of the node.
+<span class="arg">File</span> is the file name of the
+source attribute associated with the resulting syntax;
+it defaults to <span class="val">"<stdin>"</span>.
+<span class="arg">Line</span> is the starting line
+number of the source attribute associated with the
+resulting syntax; it defaults
+to <span class="val">1</span>.
 </div>
 </div>
 

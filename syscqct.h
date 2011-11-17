@@ -913,7 +913,7 @@ Expr*		G(char *s);
 Expr*		copyexpr(Expr *e);
 Expr*		doconst(U *ctx, char*, unsigned long len);
 Expr*		dostr(char*, unsigned long len);
-Expr*		doparse(U*, char *buf, char *whence);
+Expr*		doparse(U*, char *buf, char *whence, unsigned line);
 Expr*		dosym(char *s, unsigned long len);
 Expr*		dotickesrc(Ysrc *src, Expr*, Expr*);
 Expr*		doticktsrc(Ysrc *src, Expr*, Expr*);
@@ -1461,7 +1461,7 @@ Val		compile(VM *vm, Expr *e, Toplevel *top, char *argsid);
 Expr*		compilex(VM *vm, Expr *e, Toplevel *top, char *argsid);
 
 /* cqct.c */
-Expr*		cqctparse(char *s, Toplevel *top, char *src);
+Expr*		cqctparse(char *s, Toplevel *top, char *src, unsigned line);
 
 extern		void fns(Env*);
 

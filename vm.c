@@ -6400,19 +6400,25 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	char *whence;
 	char *buf;
+	unsigned line;
 
-	if(argc != 1 && argc != 2)
+	if(argc != 1 && argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to parse");
 	checkarg(vm, "parse", argv, 0, Qstr);
-	if(argc == 2)
-		checkarg(vm, "parse", argv, 1, Qstr);
-	buf = str2cstr(valstr(argv[0]));
 	whence = "<stdin>";
-	if(argc == 2)
+	line = 1;
+	if(argc > 1){
+		checkarg(vm, "parse", argv, 1, Qstr);
 		whence = str2cstr(valstr(argv[1]));
-	e = cqctparse(buf, vm->top, whence);
+	}
+	if(argc > 2){
+		checkarg(vm, "parse", argv, 2, Qcval);
+		line = cvalu(valcval(argv[2]));
+	}
+	buf = str2cstr(valstr(argv[0]));
+	e = cqctparse(buf, vm->top, whence, line);
 	efree(buf);
-	if(argc == 2)
+	if(argc > 1)
 		efree(whence);
 	if(e == 0)
 		return;

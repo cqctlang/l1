@@ -673,7 +673,7 @@ dotop(U *ctx, Expr *e)
 }
 
 static void
-pushyy(U *ctx, char *filename, char *buf, int dofree)
+pushyy(U *ctx, char *filename, unsigned line, char *buf, int dofree)
 {
 	char *keyed;
 
@@ -693,7 +693,7 @@ pushyy(U *ctx, char *filename, char *buf, int dofree)
 	}
 	ctx->inp->src.filename = keyed;
 	ctx->inp->yy = mkyystatestr(buf);
-	ctx->inp->src.line = 1;
+	ctx->inp->src.line = line;
 	ctx->inp->src.col = 0;
 	ctx->inp->dofree = dofree;
 	ctx->inp->buf = buf;
@@ -777,17 +777,17 @@ tryinclude(U *ctx, char *raw)
 	}
 	if(buf == 0)
 		parseerror(ctx, "cannot @include %s: %s", p, strerror(errno));
-	pushyy(ctx, full, buf, 1);
+	pushyy(ctx, full, 1, buf, 1);
 	efree(full);
 }
 
 Expr*
-doparse(U *ctx, char *buf, char *whence)
+doparse(U *ctx, char *buf, char *whence, unsigned line)
 {
 	int yy;
 	Expr *rv;
 	if(setjmp(ctx->jmp) == 0){
-		pushyy(ctx, whence, buf, 0);
+		pushyy(ctx, whence, line, buf, 0);
 		ctx->el = nullelistsrc(&ctx->inp->src);
 		ctx->errors = 0;
 		yy = yyparse(ctx);

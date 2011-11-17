@@ -6,7 +6,7 @@ char **cqctloadpath;
 char cqctflags[256];
 
 Expr*
-cqctparse(char *s, Toplevel *top, char *src)
+cqctparse(char *s, Toplevel *top, char *src, unsigned line)
 {
 	U ctx;
 
@@ -15,14 +15,14 @@ cqctparse(char *s, Toplevel *top, char *src)
 
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = &top->out;
-	return doparse(&ctx, s, src);
+	return doparse(&ctx, s, src, line);
 }
 
 Val
 cqctcompile(VM *vm, char *s, char *src, Toplevel *top, char *argsid)
 {
 	Expr *e;
-	e = cqctparse(s, top, src);
+	e = cqctparse(s, top, src, 1);
 	if(e == 0)
 		return 0;
 	return compile(vm, e, top, argsid);
