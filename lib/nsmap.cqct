@@ -1,0 +1,129 @@
+@include <nsutil.cqct>
+
+@global
+	mknsmap
+	;
+
+{
+
+@record nsrec    { base, path, ns };
+@record nsmaprec { add, del, exe, setexe, byaddr, byname, each, clone };
+
+@defloc _mknsmap(mkns, rs, x)
+{
+	@defloc resort()
+	{
+		sort(rs, @lambda(a, b) { cvalcmp(a.base, b.base); });
+	}
+
+	@defloc _byaddr(addr)
+	{
+		@local i, m, r;
+		m = length(rs);
+		r = nil;
+		for(i = 0; i < m; i++){
+			if(rs[i].base > addr)
+				break;
+			r = rs[i];
+		}
+		return r;
+	}
+
+	@defloc _byname(name)
+	{
+		@local i, m;
+		m = length(rs);
+		for(i = 0; i < m; i++)
+			if(strstr(rs[i].path, name) != nil)
+				return rs[i];
+		return nil;
+	}
+
+	@defloc add(base, path)
+	{
+		@local ns, r;
+		ns = mkns(path);
+		if(ns == nil)
+			error("cannot construct name space for %s", path);
+		if(base != 0)
+			ns = mknsoff(ns, base);
+		r = nsrec(base, path, ns);
+		append(rs, r);
+		resort();
+		if(x == nil && base == 0)
+			x = r;
+		return nil;
+	}
+
+	@defloc del(base)
+	{
+		@local r;
+		r = _byaddr(base);
+		if(r == nil)
+			error("no name space for address %p", base);
+		delete(rs, r);
+		if(x == r)
+			x = nil;
+		return nil;
+	}
+
+	@defloc exe()
+	{
+		return x.ns;
+	}
+	
+	@defloc setexe(base)
+	{
+		@local r;
+		r = _byaddr(base);
+		if(r == nil)
+			error("no name space for address %p", base);
+		x = r;
+		return nil;
+	}
+
+	@defloc each(fn)
+	{
+		foreach(@lambda(r) { fn(r.base, r.path, r.ns); });
+	}
+
+	@defloc byaddr(addr)
+	{
+		@local r;
+		r = _byaddr(addr);
+		if(r != nil)
+			return r.ns;
+		return nil;
+	}
+
+	@defloc byname(name)
+	{
+		@local r;
+		r = _byname(name);
+		if(r != nil)
+			return r.ns;
+		return nil;
+	}
+
+	@defloc clone()
+	{
+		return _mknsmap(mkns, rs, x);
+	}
+
+	return nsmaprec(add,
+			del,
+			exe,
+			setexe,
+			byaddr,
+			byname,
+			each,
+			clone);
+}
+
+@define mknsmap(mkns)
+{
+	return _mknsmap(mkns, [], nil);
+}
+
+
+}

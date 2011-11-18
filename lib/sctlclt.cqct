@@ -133,9 +133,9 @@
 		return sctlenumloc(fd, nsid, ctx);
 	}
 
-	@defloc lsrc(this, ctx)
+	@defloc lsrc(this, addr)
 	{
-		return sctllooksrc(fd, nsid, ctx);
+		return sctllooksrc(fd, nsid, addr);
 	}
 
 	@defloc ll(this, file, line)

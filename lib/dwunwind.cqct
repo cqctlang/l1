@@ -1,6 +1,7 @@
-/* DWARF unwinding */
-
-@global dwunwind, dwunwind1, decoderules, decodesrc;
+@global dwunwind,
+	dwunwind1,
+	decoderules
+	;
 
 {
 @local uwns;	
@@ -36,12 +37,6 @@ uwns = @names c32le {
 	n,
 };
 
-@record srcloc {
-	file,
-	line,
-	col,
-};
-
 /* return pointer to copy of data pointed to by P
    consistent with type of *P */
 @defloc cop(p)
@@ -65,16 +60,6 @@ uwns = @names c32le {
 		append(rs, rule((uwns`Rulekind)k, r, n));
 	}
 	return [rs, q];
-}
-
-@define decodesrc(q)
-{
-	@local file, line, col;
-	[file, q] = decodes(q);
-	q = (int32*)q;
-	line = *q++;
-	col = *q++;
-	return [srcloc(file, line, col), q];
 }
 
 // @defloc showrule(r)
@@ -269,64 +254,42 @@ uwns = @names c32le {
 	return [g, s, m, new, 7];
 }
 
-@define dwunwind1(dvec, ctx)
+@define dwunwind1(ctx, as, nsmap)
 {
-	@local v, dom,rs, mkuwctx;
+	@local fp, dom, ns, rs, mkuwctx;
 	@local g, s, m, new, spno;
 
 	if(ctx->rip == 0)
 		return nil;
-	ctx = cop(ctx);
-	v = lookdvec(dvec, ctx->rip);
-	dom = v.dom;
-	rs = dom.ns.unwind1(ctx);
-	if(rs == nil){
-		@local fp;
-		if(ctx->rbp == 0)
-			return nil;
-		fp = (uintptr*){dom}ctx->rbp;
-		ctx->rip = *(fp+1);
-		ctx->rbp = *fp;
-	}else{
-		[rs, _] = decoderules(rs);
-		if(sizeof(dom`void*) == 8)
-			mkuwctx = mkuwctx64;
-		else
-			mkuwctx = mkuwctx32;
-		[g, s, m, new, spno] = mkuwctx(dom, ctx);
-		applyunwind(rs, g, s, m, spno);
-		ctx = new;
-	}
+	ns = nsmap.byaddr(ctx->rip);
+	if(ns == nil)
+		error("no name space for pc %p", ctx->rip);
+	dom = mkdom(ns, as);
+	rs = ns.unwind1(ctx);
+	if(rs == nil)
+		goto guess;
+	[rs, _] = decoderules(rs);
+	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
+	[g, s, m, new, spno] = mkuwctx(dom, ctx);
+	applyunwind(rs, g, s, m, spno);
+	return new; 
+guess:
+	if(ctx->rbp == 0)
+		return nil;
+	fp = (uintptr*){dom}ctx->rbp;
+	ctx->rip = *(fp+1);
+	ctx->rbp = *fp;
 	return ctx;
 }
 
-@define dwunwind(dvec, ctx)
+@define dwunwind(ctx, as, nsmap)
 {
-	@local rs, v, new, g, s, m, spno, mkuwctx, dom, xs;
+	@local xs;
 
 	xs = [];
-	while(ctx->rip){
-		v = lookdvec(dvec, ctx->rip);
+	while(ctx != nil && ctx->rip){
 		append(xs, cop(ctx));
-		dom = v.dom;
-		rs = dom.ns.unwind1(ctx);
-		if(rs == nil){
-			@local fp;
-			if(ctx->rbp == 0)
-				break;
-			fp = (uintptr*){dom}ctx->rbp;
-			ctx->rip = *(fp+1);
-			ctx->rbp = *fp;
-			continue;
-		}
-		[rs, _] = decoderules(rs);
-		if(sizeof(dom`void*) == 8)
-			mkuwctx = mkuwctx64;
-		else
-			mkuwctx = mkuwctx32;
-		[g, s, m, new, spno] = mkuwctx(dom, ctx);
-		applyunwind(rs, g, s, m, spno);
-		ctx = new;
+		ctx = dwunwind1(ctx, as, nsmap);
 	}
 	return reverse(xs);
 }

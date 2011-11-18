@@ -1,5 +1,6 @@
-
-@global dwlocal;
+@global
+	dwlocaldom
+	;
 	
 {
 /* this should be rationalized with dwunwind ctx cracker */
@@ -126,14 +127,13 @@
 		    ]);
 }
 
-@defloc localdom(ll, dom, ctx)
+@defloc localdom(ctx, ns, as, locs)
 {
-	@local lt, ls, et, es, la, ns, nns, as;
+	@local lt, ls, et, es, la, nns;
 	@local sym, ctxloc;
 
 	sym = [:];
-	ns = dom.ns;
-	as = mkoveras(dom.as, ctx, 0);
+	as = mkoveras(as, ctx, 0);
 	ctx = {@typeof(ctx)}{mkdom(ns, as)}0; /* yo! */
 
 	@defloc lexpreval(le, ctxloc)
@@ -174,7 +174,7 @@
 				   l.type should be wrapped in an undef. */
 				error("cannot resolve definition of %t", l.type);
 			sym[l.id] = mksym(td, l.id, a);
-		}, ll);
+		}, locs);
 
 	@define lt(this, tn)
 	{
@@ -203,23 +203,23 @@
 	}
 
 	nns = mkns([ "looktype" : lt,
-		    "enumtype" : et,
-		    "looksym"  : ls,
-		    "enumsym"  : es,
-		    "lookaddr" : la ]);
+		     "enumtype" : et,
+		     "looksym"  : ls,
+		     "enumsym"  : es,
+		     "lookaddr" : la ]);
 	return mkdom(nns, as);
 }
 
-
-@define dwlocal(dvec, ctx)
+@define dwlocaldom(ctx, as, nsmap)
 {
-	@local v, ns, ls;
+	@local ns, ls;
 
-	v = lookdvec(dvec, ctx->rip);
-	ns = v.dom.ns;
+	ns = nsmap.byaddr(ctx->rip);
+	if(ns == nil)
+		error("no name space for pc %p", ctx->rip);
 	ls = ns.enumloc(ctx);
 	if(ls == nil)
 		return nil;
-	return localdom(ls, v.dom, ctx);
+	return localdom(ctx, ns, as, ls);
 }
 }

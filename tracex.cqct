@@ -1,0 +1,77 @@
+@include <ctls.cqct>
+
+@define fmtldom(ldom)
+{
+	@local s;
+
+	s = "";
+	if(ldom == nil)
+		return s;
+
+	foreach(@lambda(id, l){
+			s += sprintfa("\t%016p\t%t\n",
+				      symoff(l),
+				      l);
+		}, ldom.enumsym());
+
+	return s;
+}
+
+if(1){
+	@local mux, cmd, ctl, exe;
+
+	mux = mkctlmux();
+	cmd = [ "/home/vczandy/src/l1/demo/list", "10" ];
+	ctl = ctllaunch(mux, cmd);
+	exe = ctlexe(ctl);
+
+	ctl.trap('brk, &exe`insert,
+		 @lambda(ctl){
+			 @local xs;
+			 printf("call to insert!\n");
+			 xs = ctlunwindctxs(ctl);
+			 foreach(@lambda(ctx){
+					 @local src;
+
+					 /* pc */
+					 printf("%016p", ctx->rip);
+
+					 /* symbol */
+					 printf("\t%-30y", {ctldombyaddr(ctl, ctx->rip)}ctx->rip);
+
+					 /* source */
+					 src = ctladdr2src(ctl, ctx->rip);
+					 if(src != nil)
+						 printf("\t%s:%d\n", src.file, src.line);
+					 else
+						 printf("\n");
+
+					 /* locals */
+					 printf("%s", fmtldom(ctlldom(ctl, ctx)));
+
+				 }, xs);
+		 });
+
+	if(0)ctl.trap('syscall, @lambda(ctl){
+			 printf("system call!\n");
+		 });
+
+	mux.run();
+}
+
+
+if(0){
+	@local mux, cmd, ctl;
+
+	mux = mkctlmux();
+	cmd = [ "/home/vczandy/src/l1/demo/clones", "5" ];
+	ctl = ctllaunch(mux, cmd);
+
+	if(1)ctl.trap('clone,
+		 @lambda(ctl, spwn){
+			 printf("task %d has cloned %d\n", ctl.id, spwn.id);
+		 });
+
+	mux.run();
+}
+

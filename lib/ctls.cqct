@@ -1,12 +1,20 @@
 @include <sctlclt.cqct>
 @include <mux.cqct>
+@include <nsmap.cqct>
+@include <dwarf.cqct>
 
 @global
         ctllaunch,
-	ctlattach
+	ctlattach,
+	ctlexe,
+	ctlldom,
+	ctlunwindctxs,
+	ctladdr2src,
+	ctldombyaddr
 	;
 
 {
+@local evidx, idxev;
 
 @record ctlrec {
 	/* identity */
@@ -26,13 +34,12 @@
 
 	/* address spaces */
 	mem,
-		
+
 	/* domains */
 	ctx,
-	exe,
-	doms,
-	domat,
-	dom,
+
+	/* name spaces */
+	nsmap,
 
 	/* snapshot */
 	snap,
@@ -46,26 +53,47 @@
 	event,
 
 	/* private */
-	scandoms, 
+	scan, 
 };
 
-@record ctlstate { mux, ctlid, ctx, mmap, doms, exe, events, traps, straps };
+@record ctlstate { mux, ctlid, ctx, mmap, nsmap, events, traps, straps };
 
-@defloc _mkctl(cr)
+evidx = [
+	'syscall  : sctl`Esyscall,
+	'exec     : sctl`Eexec,
+	'fork     : sctl`Efork,
+	'clone    : sctl`Eclone,
+	'signal   : sctl`Esignal,
+	'exit     : sctl`Eexit,
+	'load     : sctl`Eload,
+	'unload   : sctl`Eunload,
+	];
+
+idxev = [
+	sctl`Esyscall   : 'syscall,
+	sctl`Eexec      : 'exec,
+	sctl`Efork      : 'fork,
+	sctl`Eclone     : 'clone,
+	sctl`Esignal    : 'signal,
+	sctl`Eexit      : 'exit,
+	sctl`Eload      : 'load,
+	sctl`Eunload    : 'unload,
+	];
+
+@defloc _mkctl(cs)
 {
-	@local this, nexttid, evidx, idxev;
+	@local this, nexttid;
 
-	@record domrec { start, path, dom };
 	@record traprec { tid, sid, kind, args, fn };
 
 	@defloc setctx(ctx)
 	{
-		cr.ctx = ctx;
+		cs.ctx = ctx;
 	}
 
 	@defloc ctx()
 	{
-		return cr.ctx;
+		return cs.ctx;
 	}
 
 	@defloc unimpl(id)
@@ -80,10 +108,10 @@
 		
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		dat = getbytes(m, (char*)p-m);
 
-		[rep, dat] = cr.mux.msgsync(op, dat);
+		[rep, dat] = cs.mux.msgsync(op, dat);
 		checkreply(rep, dat, op+1);
 		return nil;
 	}
@@ -100,10 +128,10 @@
 		
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		dat = getbytes(m, (char*)p-m);
 
-		cr.mux.msgasync(sctl`Tcont, dat,
+		cs.mux.msgasync(sctl`Tcont, dat,
 				@lambda(rep, dat){
 					checkreply(rep, dat, sctl`Rcont);
 				});
@@ -117,13 +145,13 @@
 		
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		*p++ = -1;
 		*p++ = addr;
 		*p++ = cnt;
 		dat = getbytes(m, (char*)p-m);
 
-		[rep, dat] = cr.mux.msgsend(sctl`Tread, dat);
+		[rep, dat] = cs.mux.msgsync(sctl`Tread, dat);
 		if(rep->op == sctl`Rerror)
 			error("read fault 0x%016x-0x%016x (%s)",
 			      addr, addr+cnt, dat);
@@ -138,7 +166,7 @@
 
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		*p++ = -1;
 		*p++ = addr;
 		p = (char*)p;
@@ -146,7 +174,7 @@
 		p += length(s);
 		dat = getbytes(m, (char*)p-m);
 
-		[rep, dat] = cr.mux.msgsend(sctl`Twrite, dat);
+		[rep, dat] = cs.mux.msgsync(sctl`Twrite, dat);
 		if(rep->op == sctl`Rerror)
 			error("write fault 0x%016x-0x%016x (%s)",
 			      addr, addr+cnt, dat);
@@ -163,10 +191,10 @@
 
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		dat = getbytes(m, (char*)p-m);
 
-		[rep, dat] = cr.mux.msgsync(sctl`Tstat, dat);
+		[rep, dat] = cs.mux.msgsync(sctl`Tstat, dat);
 		checkreply(rep, dat, sctl`Rstat);
 		p = (uint64*)dat;
 		p++; /* skip pid */
@@ -210,15 +238,15 @@
 
 		@defloc map(as)
 		{
-			scandoms();
-			return cr.mmap;
+			scan();
+			return cs.mmap;
 		}
 
 		@defloc ismapped(as, r)
 		{
-			if(cr.mmap == nil)
+			if(cs.mmap == nil)
 				map(as);
-			return isrinr(r, cr.mmap);
+			return isrinr(r, cs.mmap);
 		}
 
 		return mkas([ "get"		: get,
@@ -228,67 +256,9 @@
 			    ]);
 	}
 
-	@defloc exe()
-	{
-		return cr.exe.dom;
-	}
-
-	@defloc doms()
-	{
-		return cr.doms;
-	}
-
-	@defloc domat(addr)
-	{
-		@local i, m, dr;
-		m = length(cr.doms);
-		dr = nil;
-		for(i = 0; i < m; i++){
-			if(cr.doms[i].start > addr)
-				break;
-			dr = cr.doms[i];
-		}
-		if(dr == nil)
-			return nil;
-		return dr.dom;
-	}
-
-	@defloc dom(name)
-	{
-		@local i, m;
-		m = length(cr.doms);
-		for(i = 0; i < m; i++){
-			printf("trying %s\n", cr.doms[i].path);
-			if(strstr(cr.doms[i].path, name) != nil)
-				return cr.doms[i].dom;
-		}
-		return nil;
-	}
-
 	@defloc snap() { unimpl('snap); } 
 
 	nexttid = 0;
-	evidx = [
-		'syscall  : sctl`Esyscall,
-		'exec     : sctl`Eexec,
-		'fork     : sctl`Efork,
-		'clone    : sctl`Eclone,
-		'signal   : sctl`Esignal,
-		'exit     : sctl`Eexit,
-		'load     : sctl`Eload,
-		'unload   : sctl`Eunload,
-		];
-
-	idxev = [
-		sctl`Esyscall   : 'syscall,
-		sctl`Eexec      : 'exec,
-		sctl`Efork      : 'fork,
-		sctl`Eclone     : 'clone,
-		sctl`Esignal    : 'signal,
-		sctl`Eexit      : 'exit,
-		sctl`Eload      : 'load,
-		sctl`Eunload    : 'unload,
-		];
 
 	@defloc trace(ev, v)
 	{
@@ -306,13 +276,12 @@
 
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		*p++ = f;
 		dat = getbytes(m, (char*)p-m);
 
-		[rep, dat] = cr.mux.msgsync(sctl`Ttrace, dat);
+		[rep, dat] = cs.mux.msgsync(sctl`Ttrace, dat);
 		checkreply(rep, dat, sctl`Rtrace);
-		printf("did trace update flag = %x\n", f);
 	}
 
 	@defloc settrace(ev) { trace(ev, 1); }
@@ -324,12 +293,12 @@
 
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		*p++ = mode;
 		*p++ = addr;
 		dat = getbytes(m, (char*)p-m);
 
-		[rep, dat] = cr.mux.msgsync(sctl`Tsettrap, dat);
+		[rep, dat] = cs.mux.msgsync(sctl`Tsettrap, dat);
 		checkreply(rep, dat, sctl`Rsettrap);
 
 		p = (uint64*)dat;
@@ -343,11 +312,11 @@
 
 		p = m = mkxs();
 		p = (uint64*)p;
-		*p++ = cr.ctlid;
+		*p++ = cs.ctlid;
 		*p++ = sid;
 		dat = getbytes(m, (char*)p-m);
 
-		[rep, dat] = cr.mux.msgsync(sctl`Tclrtrap, dat);
+		[rep, dat] = cs.mux.msgsync(sctl`Tclrtrap, dat);
 		checkreply(rep, dat, sctl`Rclrtrap);
 		return nil;
 	}
@@ -369,21 +338,20 @@
 				      kind);
 			sid = sctlsettrap(kind == 'brk ? 0 : 1, arg[0]);
 			t = traprec(nexttid++, sid, kind, arg, fn);
-			cr.traps[t.tid] = t;
-			cr.straps[t.sid] = t;
+			cs.traps[t.tid] = t;
+			cs.straps[t.sid] = t;
 		}else{
 			idx = evidx[kind];
 			if(idx == nil)
 				error("unrecognized trap kind: %a", kind);
 			t = traprec(nexttid++, nil, kind, arg, fn);
-			s = cr.events[kind];
+			s = cs.events[kind];
 			if(s == nil){
-				printf("setting trace for %a\n", kind);
 				settrace(kind);
-				cr.events[kind] = [ t ];
+				cs.events[kind] = [ t ];
 			}else
 				append(s, t);
-			cr.traps[t.tid] = t;
+			cs.traps[t.tid] = t;
 		}
 
 		return t.tid;
@@ -398,28 +366,28 @@
 
 		if(t.kind == 'brk || t.kind == 'snap){
 			sctlclrtrap(t.sid);
-			tabdelete(cr.straps, t.sid);
+			tabdelete(cs.straps, t.sid);
 		}else{
-			s = cr.events[t.kind];
+			s = cs.events[t.kind];
 			delete(s, t);
 			if(length(s) == 0){
-				cr.events[t.kind] = nil;
+				cs.events[t.kind] = nil;
 				clrtrace(t.kind);
 			}
 		}
-		tabdelete(cr.traps, t.tid);
+		tabdelete(cs.traps, t.tid);
 	}
 
 	@defloc traps()
 	{
-		return tabvals(cr.traps);
+		return tabvals(cs.traps);
 	}
 
 	@defloc handlers(eid)
 	{
 		@local rv, s;
 		rv = [];
-		s = cr.events[eid];
+		s = cs.events[eid];
 		if(s != nil)
 			foreach(@lambda(t) { append(rv, t); }, s);
 		return rv;
@@ -457,10 +425,10 @@
 		sid = *p++;
 		[ctx, p] = decodectx(p);
 		setctx(ctx);
-		t = cr.straps[sid];
+		t = cs.straps[sid];
 		if(t == nil)
 			error("ctl %d has no handler for sctl trap %d",
-			      cr.ctlid, sid);
+			      cs.ctlid, sid);
 		t.fn(this);
 		contasync();
 	}
@@ -474,10 +442,10 @@
 		spwnid = *p++;
 		[ctx, p] = decodectx(p);
 		setctx(ctx);
-		t = cr.straps[sid];
+		t = cs.straps[sid];
 		if(t == nil)
 			error("ctl %d has no handler for sctl trap %d",
-			      cr.ctlid, sid);
+			      cs.ctlid, sid);
 		spwn = clonectl(spwnid, ctx);
 		t.fn(spwn);
 	}
@@ -491,8 +459,8 @@
 			/* sctl has cleared the breakpoints and snappoints */
 			foreach(@lambda(t){
 					if(t.kind == 'brk || t.kind == 'snap){
-						tabdelete(cr.traps, t.id);
-						tabdelete(cr.straps, t.sid);
+						tabdelete(cs.traps, t.id);
+						tabdelete(cs.straps, t.sid);
 					}
 				}, traps());
 
@@ -538,9 +506,9 @@
 		id = *p++;
 		ev = *p++;
 
-		if(id != cr.ctlid)
+		if(id != cs.ctlid)
 			error("event for ctl %d misdirected to ctl %d",
-			      id, cr.ctlid);
+			      id, cs.ctlid);
 		switch(ev){
 		case sctl`Eexit:
 			doexit(p);
@@ -572,61 +540,47 @@
 		return nil;
 	}
 
-	@defloc scandoms()
+	@defloc scan()
 	{
 		@local i, n, rs, dlls;
 
 		[rs, dlls] = pstat();
 
 		n = length(rs);
-		cr.mmap = mkvec(n);
+		cs.mmap = mkvec(n);
 		for(i = 0; i < n; i++)
-			cr.mmap[i] = mkrange(rs[i].addr,
+			cs.mmap[i] = mkrange(rs[i].addr,
 					     rs[i].addr+rs[i].len);
 
 		if(length(dlls) == 0)
 			error("ctl address space is empty");
-		cr.doms = [];
 		foreach(@lambda(dll){
-				@local ns, dr;
 				if(1)printf("\t%d\t%016p\t%s\n",
 					    dll.id, dll.base, dll.path);
-				ns = atnames(dll.path);
-				if(ns == nil)
-					error("cannot get namespace for %s",
-					      dll.path);
-				ns = mknsoff(ns, dll.base);
-				dr = domrec(dll.base,
-					    dll.path,
-					    mkdom(ns, mem()));
-				append(cr.doms, dr);
-				if(dll.id == 0)
-					cr.exe = dr;
+				cs.nsmap.add(dll.base, dll.path);
 			}, dlls);
-		sort(cr.doms, @lambda(a, b){ cvalcmp(a.start, b.start); });
 	}
 
 	@defloc clonectl(ctlid, ctx)
 	{
 		@local r, ctl;
 
-		r = ctlstate(cr.mux,
+		r = ctlstate(cs.mux,
 			     ctlid,
 			     ctx,
-			     nil,    /* mmap */
-			     nil,    /* doms */
-			     nil,    /* exe */
-			     copy(cr.events),
-			     copy(cr.traps),
-			     copy(cr.straps)
+			     copy(cs.mmap),
+			     cs.nsmap.clone(),
+			     copy(cs.events),
+			     copy(cs.traps),
+			     copy(cs.straps)
 			);
 		ctl = _mkctl(r);
-		cr.mux.bindctl(ctl);
-		ctl.scandoms();  /* get new doms backed by this ctlid */
+		cs.mux.bindctl(ctl);
+		ctl.scan();  /* get new doms backed by this ctlid */
 		return ctl;
 	}
 
-	this = ctlrec(cr.ctlid,
+	this = ctlrec(cs.ctlid,
 		      detach,
 		      kill,
 		      cont,
@@ -637,16 +591,13 @@
 		      pstat,
 		      mem,
 		      ctx,
-		      exe,
-		      doms,
-		      domat,
-		      dom,
+		      cs.nsmap,
 		      snap,
 		      trap,
 		      clear,
 		      traps,
 		      event,
-		      scandoms
+		      scan
 		);
 	return this;
 }
@@ -671,9 +622,8 @@
 	r = ctlstate(mux,
 		     ctlid,
 		     ctx,
-		     nil,  /* mmap */
-		     nil,  /* doms */
-		     nil,  /* exe */
+		     mkvec(0),
+		     mknsmap(atnames),
 		     [:],  /* events */
 		     [:],  /* traps */
 		     [:]   /* straps */
@@ -683,21 +633,21 @@
 
 	ctl.trap('load,
 		 @lambda(ctl, path, base){
-			 ctl.scandoms();
+			 ctl.scan();
 		 });
 
 	ctl.trap('unload,
 		 @lambda(ctl, path, base){
-			 ctl.scandoms();
+			 ctl.scan();
 		 });
 
 	ctl.trap('exec,
 		 @lambda(ctl){
-			 ctl.scandoms();
+			 ctl.scan();
 		 });
 
 	ctl.trap('exit, @lambda(ctl) { mux.unbindctl(ctl); });
-	ctl.scandoms();
+	ctl.scan();
 	return ctl;
 }
 
@@ -726,6 +676,36 @@
 	printf("launched! ctlid = %d\n", ctlid);
 	dumpctx(ctx);
 	return mkctl(mux, ctlid, ctx);
+}
+
+@define ctlexe(ctl)
+{
+	return mkdom(ctl.nsmap.exe(), ctl.mem());
+}
+
+@define ctlldom(ctl, arg ...)
+{
+	@local ctx;
+	if(length(arg) == 0)
+		ctx = ctl.ctx();
+	else
+		ctx = arg[0];
+	return dwlocaldom(ctx, ctl.mem(), ctl.nsmap);
+}
+
+@define ctlunwindctxs(ctl)
+{
+	return dwunwind(ctl.ctx(), ctl.mem(), ctl.nsmap);
+}
+
+@define ctladdr2src(ctl, addr)
+{
+	return dwaddr2src(addr, ctl.nsmap);
+}
+
+@define ctldombyaddr(ctl, addr)
+{
+	return mkdom(ctl.nsmap.byaddr(addr), ctl.mem());
 }
 
 }
