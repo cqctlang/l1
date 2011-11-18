@@ -1,7 +1,7 @@
 @define mkxsas()
 {
 	@local get, put, map, ismapped, dat;
-	@local m, s, as;
+	@local l, m, s, as;
 
 	@define get(self, r)
 	{
@@ -19,6 +19,8 @@
 		@local b, e, nm, ns;
 		b = rangebeg(r);
 		e = b+rangelen(r);
+		if(e > l)
+			l = e;
 		if(e <= m)
 			return strput(s, b, x);
 		else{
@@ -43,9 +45,10 @@
 
 	@define dat(self)
 	{
-		return s;
+		return substr(s, 0, l);
 	}
 
+	l = 0;
 	m = 128;
 	s = mkstr(m);
 	as = mkas([ "get" : get, "put" : put,

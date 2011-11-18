@@ -9,6 +9,10 @@
 	if(length(arg) == 0)
 		error("wrong number of arguments to map");
 
+	// FIXME: check all args 
+	if(arg[0] == nil)
+		return [];
+
 	// tables: exactly one, only
 	if(istable(arg[0])){
 		@local k, v;
@@ -61,6 +65,10 @@
 	if(length(arg) == 0)
 		error("wrong number of arguments to foreach");
 
+	// FIXME: check all args 
+	if(arg[0] == nil)
+		return;
+
 	// tables: exactly one, only
 	if(istable(arg[0])){
 		@local k, v;
@@ -106,6 +114,8 @@
 {
 	@local rv;
 	rv = [];
+	if(l == nil)
+		return rv;
 	foreach(@lambda(e){ if(fn(e)) append(rv, e); }, l);
 	return rv;
 }

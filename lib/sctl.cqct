@@ -50,6 +50,7 @@
 	sendmsg,
 	recvmsg,
 	dumpctx,
+	fmtsctlmsg,
 
 	/* errors */
 	Enone
@@ -1306,7 +1307,7 @@ sctl = @names clp64le {
 	return nexttag++;
 }
 
-@defloc fmtmsg(msg, sz)
+@defloc fmtsctlmsg(msg, sz)
 {
 	@local s, q, tn, td, nsid, id, n, a, sym;
 
@@ -1459,7 +1460,7 @@ sctl = @names clp64le {
 		error("bad sendmsg");
 	}
 	if(verbose)
-		printf("(send) %s\n", fmtmsg(p, sz));
+		printf("(send) %s\n", fmtsctlmsg(p, sz));
 	write(fd, cval2str((uint64)sz));
 	e = errno();
 	if(e[0] != 0)
@@ -1488,7 +1489,7 @@ sctl = @names clp64le {
 	else
 		dat = "";
 	if(verbose)
-		printf("(recv) %s\n", fmtmsg(msg, sz));
+		printf("(recv) %s\n", fmtsctlmsg(msg, sz));
 	return [msg, dat];
 }
 

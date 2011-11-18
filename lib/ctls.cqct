@@ -1,176 +1,731 @@
 @include <sctlclt.cqct>
+@include <mux.cqct>
 
 @global
-	mkctlmux,
         ctllaunch,
-	ctlattach,
+	ctlattach
 	;
 
 {
 
-@record muxrec {
-	/* user interface */
-	run,
-
-	/* ctl interface */
-	bindctl,
-	unbindctl,
-	msgsync,  /* msgsync(op, body) */
-	msgasync, /* msgasync(op, body, handler) */
-};
-
 @record ctlrec {
-	/* user/ctl interface */
+	/* identity */
 	id,
 
-	/* ctl interface */
-	handleevent,
+	/* control */
+	detach,
+	kill,
+	cont,
+	contasync,
+	stop,
+
+	/* low-level i/o */
+	read,
+	write,
+        stat,
+
+	/* address spaces */
+	mem,
+		
+	/* domains */
+	ctx,
+	exe,
+	doms,
+	domat,
+	dom,
+
+	/* snapshot */
+	snap,
+
+	/* traps */
+	trap,
+	clear,
+	traps,
+
+	/* mux interface */
+	event,
+
+	/* private */
+	scandoms, 
 };
 
-@defloc mkmux(fd)
+@record ctlstate { mux, ctlid, ctx, mmap, doms, exe, events, traps, straps };
+
+@defloc _mkctl(cr)
 {
-	@local ctls, taghandler, nexttag, freetags, aborted, verbose;
+	@local this, nexttid, evidx, idxev;
 
-	verbose = 0;
-	nexttag = 0;
-	freetags = [ ];
-	ctls = [:];
-	taghandler = [:];
+	@record domrec { start, path, dom };
+	@record traprec { tid, sid, kind, args, fn };
 
-	@defloc bindctl(ctl)
+	@defloc setctx(ctx)
 	{
-		if(ctls[ctl.id])
-			error("ctl %d is already bound to mux", ctl.id);
-		ctls[ctl.id] = ctl;
+		cr.ctx = ctx;
 	}
 
-	@defloc unbindctl(ctl)
+	@defloc ctx()
 	{
-		if(ctls[ctl.id] == nil)
-			error("ctl %d is not bound to mux", ctl.id);
-		tabdelete(ctls, ctl.id);
+		return cr.ctx;
 	}
 
-	@defloc freshtag()
+	@defloc unimpl(id)
 	{
-		if(isempty(freetags))
-			return nexttag++;
-		return pop(freetags);
+		error("unimplemented interface: %a", id);
 	}
 
-	@defloc reusetag(tag)
+	@defloc simple(op)
 	{
-		push(freetags, tag);
-	}
-
-	@defloc log(arg ...)
-	{
-		if(verbose){
-			apply(printf, arg);
-			printf("\n");
-		}
-	}
-
-	@defloc cop(p)
-	{
-		return {@typeof(p)}getbytes(p);
-	}
-
-	@defloc xread(fd, sz)
-	{
-		@local p, e;
-		p = read(fd, sz);
-		if(p == nil){
-			e = errno();
-			if(e[0])
-				error("ctlmux: recvmsg: %d %s", getpid(), e[1]);
-			return nil;
-		}
-		return p;
-	}
-
-	@defloc recvmsg(fd)
-	{
-		@local p, sz, rep, dat;
-
-		p = xread(fd, sizeof(litdom`uint64));
-		if(p == nil)
-			return [nil, 'closed];
+		@local p, m;
+		@local rep, dat;
+		
+		p = m = mkxs();
 		p = (uint64*)p;
-		sz = *p++;
-		p = xread(fd, sz);
-		if(p == nil)
-			error("ctlmux: remote sctl hung up");
-		rep = (sctl`Rmsg*)p;
-		dat = getbytes(rep+1, sz-sizeof(sctl`Rmsg));
-		return [rep, dat];
+		*p++ = cr.ctlid;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cr.mux.msgsync(op, dat);
+		checkreply(rep, dat, op+1);
+		return nil;
 	}
 
-	@defloc sendmsg(fd, arg ...)
+	@defloc detach() { simple(sctl`Tdetach); }
+	@defloc kill()   { simple(sctl`Tkill); }
+	@defloc cont()   { simple(sctl`Tcont); }
+	@defloc stop()   { simple(sctl`Tstop); }
+
+	@defloc contasync()
 	{
-		@local p, sz, e;
-		p = arg[0];
-		switch(length(arg)){
-		case 1:
-			sz = sizeof(*p);
+		@local p, m;
+		@local dat;
+		
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cr.ctlid;
+		dat = getbytes(m, (char*)p-m);
+
+		cr.mux.msgasync(sctl`Tcont, dat,
+				@lambda(rep, dat){
+					checkreply(rep, dat, sctl`Rcont);
+				});
+		return nil;
+	}
+
+	@defloc pread(addr, cnt)
+	{
+		@local p, m;
+		@local rep, dat;
+		
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cr.ctlid;
+		*p++ = -1;
+		*p++ = addr;
+		*p++ = cnt;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cr.mux.msgsend(sctl`Tread, dat);
+		if(rep->op == sctl`Rerror)
+			error("read fault 0x%016x-0x%016x (%s)",
+			      addr, addr+cnt, dat);
+		checkreply(rep, dat, sctl`Rread);
+		return dat;
+	}
+
+	@defloc pwrite(addr, cnt, s)
+	{
+		@local p, m;
+		@local rep, dat;
+
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cr.ctlid;
+		*p++ = -1;
+		*p++ = addr;
+		p = (char*)p;
+		putbytes(p, s);
+		p += length(s);
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cr.mux.msgsend(sctl`Twrite, dat);
+		if(rep->op == sctl`Rerror)
+			error("write fault 0x%016x-0x%016x (%s)",
+			      addr, addr+cnt, dat);
+		checkreply(rep, dat, sctl`Rwrite);
+		return nil;
+	}
+
+	@defloc pstat()
+	{
+		@local p, m;
+		@local rep, dat, rs, bs, n, i;
+		@local file, addr, len, flags;
+		@local id, base;
+
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cr.ctlid;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cr.mux.msgsync(sctl`Tstat, dat);
+		checkreply(rep, dat, sctl`Rstat);
+		p = (uint64*)dat;
+		p++; /* skip pid */
+
+		rs = [];
+		n = *p++;
+
+		for(i = 0; i < n; i++){
+			[file, p] = decodes(p);
+			p = (uint64*)p;
+			addr = *p++;
+			len = *p++;
+			flags = *p++;
+			append(rs, region(file, addr, len, flags));
+		}
+
+		bs = [];
+		n = *p++;
+		for(i = 0; i < n; i++){
+			id = *p++;
+			base = *p++;
+			[file, p] = decodes(p);
+			p = (uint64*)p;
+			append(bs, dll(id, file, base));
+		}
+
+		return [rs, bs];
+	}
+
+	@defloc mem()
+	{
+		@defloc get(as, r)
+		{
+			return pread(rangebeg(r), rangelen(r));
+		}
+
+		@defloc put(as, r, s)
+		{
+			return pwrite(rangebeg(r), rangelen(r), s);
+		}
+
+		@defloc map(as)
+		{
+			scandoms();
+			return cr.mmap;
+		}
+
+		@defloc ismapped(as, r)
+		{
+			if(cr.mmap == nil)
+				map(as);
+			return isrinr(r, cr.mmap);
+		}
+
+		return mkas([ "get"		: get,
+			      "put"		: put,
+			      "map"		: map,
+			      "ismapped"	: ismapped,
+			    ]);
+	}
+
+	@defloc exe()
+	{
+		return cr.exe.dom;
+	}
+
+	@defloc doms()
+	{
+		return cr.doms;
+	}
+
+	@defloc domat(addr)
+	{
+		@local i, m, dr;
+		m = length(cr.doms);
+		dr = nil;
+		for(i = 0; i < m; i++){
+			if(cr.doms[i].start > addr)
+				break;
+			dr = cr.doms[i];
+		}
+		if(dr == nil)
+			return nil;
+		return dr.dom;
+	}
+
+	@defloc dom(name)
+	{
+		@local i, m;
+		m = length(cr.doms);
+		for(i = 0; i < m; i++){
+			printf("trying %s\n", cr.doms[i].path);
+			if(strstr(cr.doms[i].path, name) != nil)
+				return cr.doms[i].dom;
+		}
+		return nil;
+	}
+
+	@defloc snap() { unimpl('snap); } 
+
+	nexttid = 0;
+	evidx = [
+		'syscall  : sctl`Esyscall,
+		'exec     : sctl`Eexec,
+		'fork     : sctl`Efork,
+		'clone    : sctl`Eclone,
+		'signal   : sctl`Esignal,
+		'exit     : sctl`Eexit,
+		'load     : sctl`Eload,
+		'unload   : sctl`Eunload,
+		];
+
+	idxev = [
+		sctl`Esyscall   : 'syscall,
+		sctl`Eexec      : 'exec,
+		sctl`Efork      : 'fork,
+		sctl`Eclone     : 'clone,
+		sctl`Esignal    : 'signal,
+		sctl`Eexit      : 'exit,
+		sctl`Eload      : 'load,
+		sctl`Eunload    : 'unload,
+		];
+
+	@defloc trace(ev, v)
+	{
+		@local f;
+		@local p, m, rep, dat;
+
+		f = evidx[ev];
+		if(f == nil)
+			error("unrecognized trap kind: %a", ev);
+		f = (uint64)f;
+		if(v)
+			f |= sctl`Eset;
+		else
+			f |= sctl`Eclear;
+
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cr.ctlid;
+		*p++ = f;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cr.mux.msgsync(sctl`Ttrace, dat);
+		checkreply(rep, dat, sctl`Rtrace);
+		printf("did trace update flag = %x\n", f);
+	}
+
+	@defloc settrace(ev) { trace(ev, 1); }
+	@defloc clrtrace(ev) { trace(ev, 0); }
+
+	@defloc sctlsettrap(mode, addr)
+	{
+		@local p, m, rep, dat, sid;
+
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cr.ctlid;
+		*p++ = mode;
+		*p++ = addr;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cr.mux.msgsync(sctl`Tsettrap, dat);
+		checkreply(rep, dat, sctl`Rsettrap);
+
+		p = (uint64*)dat;
+		sid = *p++;
+		return sid;
+	}
+
+	@defloc sctlclrtrap(sid)
+	{
+		@local p, m, rep, dat;
+
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cr.ctlid;
+		*p++ = sid;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cr.mux.msgsync(sctl`Tclrtrap, dat);
+		checkreply(rep, dat, sctl`Rclrtrap);
+		return nil;
+	}
+
+	@defloc trap(kind, arg ...)
+	{
+		@local m, fn, s, t, sid, idx;
+
+		m = length(arg);
+		if(m < 1)
+			error("wrong number of arguments to trap");
+		fn = arg[m-1];
+		listdel(arg, m-1);
+		m--;
+
+		if(kind == 'brk || kind == 'snap){
+			if(m != 1)
+				error("wrong number of arguments to %a trap",
+				      kind);
+			sid = sctlsettrap(kind == 'brk ? 0 : 1, arg[0]);
+			t = traprec(nexttid++, sid, kind, arg, fn);
+			cr.traps[t.tid] = t;
+			cr.straps[t.sid] = t;
+		}else{
+			idx = evidx[kind];
+			if(idx == nil)
+				error("unrecognized trap kind: %a", kind);
+			t = traprec(nexttid++, nil, kind, arg, fn);
+			s = cr.events[kind];
+			if(s == nil){
+				printf("setting trace for %a\n", kind);
+				settrace(kind);
+				cr.events[kind] = [ t ];
+			}else
+				append(s, t);
+			cr.traps[t.tid] = t;
+		}
+
+		return t.tid;
+	}
+
+	@defloc clear(tid)
+	{
+		@local s, t;
+		t = traps[tid];
+		if(t == nil)
+			error("attempt to clear undefined trap %a", tid);
+
+		if(t.kind == 'brk || t.kind == 'snap){
+			sctlclrtrap(t.sid);
+			tabdelete(cr.straps, t.sid);
+		}else{
+			s = cr.events[t.kind];
+			delete(s, t);
+			if(length(s) == 0){
+				cr.events[t.kind] = nil;
+				clrtrace(t.kind);
+			}
+		}
+		tabdelete(cr.traps, t.tid);
+	}
+
+	@defloc traps()
+	{
+		return tabvals(cr.traps);
+	}
+
+	@defloc handlers(eid)
+	{
+		@local rv, s;
+		rv = [];
+		s = cr.events[eid];
+		if(s != nil)
+			foreach(@lambda(t) { append(rv, t); }, s);
+		return rv;
+	}
+
+	@defloc doexit(p)
+	{
+		foreach(@lambda(t) { t.fn(this); }, handlers('exit));
+	}
+
+	@defloc doload(p, eid)
+	{
+		@local hs, path, base, ctx;
+
+		hs = handlers(eid);
+		if(length(hs) == 0){
+			contasync();
+			return;
+		}
+
+		[path, p] = decodes(p);
+		p = (uint64*)p;
+		base = *p++;
+		[ctx, p] = decodectx(p);
+		setctx(ctx);
+		foreach(@lambda(t) { t.fn(this, path, base); }, hs);
+		contasync();
+	}
+
+	@defloc dotrap(p)
+	{
+		@local sid, ctx, t;
+
+		p = (uint64*)p;
+		sid = *p++;
+		[ctx, p] = decodectx(p);
+		setctx(ctx);
+		t = cr.straps[sid];
+		if(t == nil)
+			error("ctl %d has no handler for sctl trap %d",
+			      cr.ctlid, sid);
+		t.fn(this);
+		contasync();
+	}
+
+	@defloc dosnap(p)
+	{
+		@local sid, spwnid, ctx, spwn, t;
+
+		p = (uint64*)p;
+		sid = *p++;
+		spwnid = *p++;
+		[ctx, p] = decodectx(p);
+		setctx(ctx);
+		t = cr.straps[sid];
+		if(t == nil)
+			error("ctl %d has no handler for sctl trap %d",
+			      cr.ctlid, sid);
+		spwn = clonectl(spwnid, ctx);
+		t.fn(spwn);
+	}
+
+	/* doev handles events that return only a ctx */
+	@defloc doev(p, ev)
+	{
+		@local ctx, hs;
+
+		if(ev == 'exec)
+			/* sctl has cleared the breakpoints and snappoints */
+			foreach(@lambda(t){
+					if(t.kind == 'brk || t.kind == 'snap){
+						tabdelete(cr.traps, t.id);
+						tabdelete(cr.straps, t.sid);
+					}
+				}, traps());
+
+		hs = handlers(ev);
+		if(length(hs) == 0){
+			printf("no handlers for %a\n", ev);
+			contasync();
+			return;
+		}
+		[ctx, p] = decodectx(p);
+		setctx(ctx);
+		foreach(@lambda(t) { t.fn(this); }, hs);
+		contasync();
+	}
+
+	@defloc doclone(p, ev)
+	{
+		@local hs, spwnid, ctx, spwnctx, spwn;
+
+		printf("in doclone %a\n", ev);
+		hs = handlers(ev);
+		if(length(hs) == 0){
+			printf("no handler for %a!\n", ev);
+			contasync();
+			return;
+		}
+		p = (uint64*)p;
+		spwnid = *p++;
+		[ctx, p] = decodectx(p);
+		[spwnctx, p] = decodectx(p);
+		setctx(ctx);
+		spwn = clonectl(spwnid, spwnctx);
+		foreach(@lambda(t) { t.fn(this, spwn); }, hs);		
+		contasync();
+		spwn.contasync();
+	}
+
+	@defloc event(rep, dat)
+	{
+		@local p, id, ev;
+
+		p = (uint64*)dat;
+		id = *p++;
+		ev = *p++;
+
+		if(id != cr.ctlid)
+			error("event for ctl %d misdirected to ctl %d",
+			      id, cr.ctlid);
+		switch(ev){
+		case sctl`Eexit:
+			doexit(p);
 			break;
-		case 2:
-			sz = arg[1];
+		case sctl`Eload:
+			doload(p, 'load);
+			break;
+		case sctl`Eunload:
+			doload(p, 'unload);
+			break;
+		case sctl`Etrap:
+			dotrap(p);
+			break;
+		case sctl`Esnap:
+			dosnap(p);
+			break;
+		case sctl`Eexec:
+		case sctl`Esignal:
+		case sctl`Esyscall:
+			doev(p, idxev[ev]);
+			break;
+		case sctl`Efork:
+		case sctl`Eclone:
+			doclone(p, idxev[ev]);
 			break;
 		default:
-			error("bad sendmsg");
+			error("unhandled event: %e", (sctl`Event)ev);
 		}
-		if(verbose)
-			printf("(send) %s\n", fmtmsg(p, sz));
-		write(fd, cval2str((uint64)sz));
-		e = errno();
-		if(e[0] != 0)
-			error("sctl sendmsg: %s", e[1]);
-		write(fd, getbytes(p, sz));
-		e = errno();
-		if(e[0] != 0)
-			error("sctl sendmsg: %s", e[1]);
+		return nil;
 	}
 
-	@defloc runtil(pred)
+	@defloc scandoms()
 	{
-		@local rep, dat, tag, h;
+		@local i, n, rs, dlls;
 
-		if(aborted)
-			return;
-		if(pred())
-			return;
-		if(noinflight() && noctls())
-			error("ctlmux: runtil: nothing to do");
+		[rs, dlls] = pstat();
 
-		[rep, dat] = recvmsg(fd);
-		if(rep == nil)
-			error("ctlmux: remote sctl hung up");
+		n = length(rs);
+		cr.mmap = mkvec(n);
+		for(i = 0; i < n; i++)
+			cr.mmap[i] = mkrange(rs[i].addr,
+					     rs[i].addr+rs[i].len);
 
-		if(rep->op == sctl`Aevent){
-			aevent(rep, dat);
-			return runtil(pred);
-		}
-		tag = rep->tag;
-		h = taghandler[tag];
-		tabdelete(taghandler, tag);
-		reusetag(tag);
-		if(h == nil)
-			log("unhandled tag %d", tag);
-		else
-			h(rep, dat);
-		runtil(pred);
+		if(length(dlls) == 0)
+			error("ctl address space is empty");
+		cr.doms = [];
+		foreach(@lambda(dll){
+				@local ns, dr;
+				if(1)printf("\t%d\t%016p\t%s\n",
+					    dll.id, dll.base, dll.path);
+				ns = atnames(dll.path);
+				if(ns == nil)
+					error("cannot get namespace for %s",
+					      dll.path);
+				ns = mknsoff(ns, dll.base);
+				dr = domrec(dll.base,
+					    dll.path,
+					    mkdom(ns, mem()));
+				append(cr.doms, dr);
+				if(dll.id == 0)
+					cr.exe = dr;
+			}, dlls);
+		sort(cr.doms, @lambda(a, b){ cvalcmp(a.start, b.start); });
 	}
 
-	@defloc noctls()
+	@defloc clonectl(ctlid, ctx)
 	{
-		return length(ctls) == 0;
+		@local r, ctl;
+
+		r = ctlstate(cr.mux,
+			     ctlid,
+			     ctx,
+			     nil,    /* mmap */
+			     nil,    /* doms */
+			     nil,    /* exe */
+			     copy(cr.events),
+			     copy(cr.traps),
+			     copy(cr.straps)
+			);
+		ctl = _mkctl(r);
+		cr.mux.bindctl(ctl);
+		ctl.scandoms();  /* get new doms backed by this ctlid */
+		return ctl;
 	}
 
-	@defloc noinflight()
-	{
-		return length(taghandler) == 0;
-	}
+	this = ctlrec(cr.ctlid,
+		      detach,
+		      kill,
+		      cont,
+		      contasync,
+		      stop,
+		      pread,
+		      pwrite,
+		      pstat,
+		      mem,
+		      ctx,
+		      exe,
+		      doms,
+		      domat,
+		      dom,
+		      snap,
+		      trap,
+		      clear,
+		      traps,
+		      event,
+		      scandoms
+		);
+	return this;
+}
 
+@defloc checkreply(rep, dat, op)
+{
+	switch(rep->op){
+	case op:
+		break;
+	case sctl`Rerror:
+		error("sctl: while waiting for %e: %s", op, dat);
+	default:
+		error("sctl: while waiting for %e: received %e",
+		      op, (sctl`Mkind)rep->op);
+	}
+}
+
+@defloc mkctl(mux, ctlid, ctx)
+{
+	@local r, ctl;
+
+	r = ctlstate(mux,
+		     ctlid,
+		     ctx,
+		     nil,  /* mmap */
+		     nil,  /* doms */
+		     nil,  /* exe */
+		     [:],  /* events */
+		     [:],  /* traps */
+		     [:]   /* straps */
+		);
+	ctl = _mkctl(r);
+	mux.bindctl(ctl);
+
+	ctl.trap('load,
+		 @lambda(ctl, path, base){
+			 ctl.scandoms();
+		 });
+
+	ctl.trap('unload,
+		 @lambda(ctl, path, base){
+			 ctl.scandoms();
+		 });
+
+	ctl.trap('exec,
+		 @lambda(ctl){
+			 ctl.scandoms();
+		 });
+
+	ctl.trap('exit, @lambda(ctl) { mux.unbindctl(ctl); });
+	ctl.scandoms();
+	return ctl;
+}
+
+@define ctllaunch(mux, cmd)
+{
+	@local p, m, narg, i, rep, dat, ctlid, ctx;
+
+	narg = length(cmd);
+	p = m = mkxs();
+	p = (uint64*)p;
+	*p++ = 0; /* flags */
+	*p++ = narg;
+	for(i = 0; i < narg; i++)
+		p = encodes(p, cmd[i]);
+	dat = getbytes(m, (char*)p-m);
+	[rep, dat] = mux.msgsync(sctl`Tlaunch, dat);
+	if(rep->op == sctl`Rerror){
+		printf("launch failed: %s\n", dat);
+		return nil;
+	}
+	checkreply(rep, dat, sctl`Rlaunch);
+	p = (uint64*)dat;
+	ctlid = *p++;
+	[ctx, p] = decodectx(p);
+
+	printf("launched! ctlid = %d\n", ctlid);
+	dumpctx(ctx);
+	return mkctl(mux, ctlid, ctx);
+}
 
 }
