@@ -4978,8 +4978,8 @@ domkmas(VM *vm, char *fn, Imm argc, Val *argv, Val *rv, unsigned x)
 		r = mkrange(mklitcval(Vptr, 0), mklitcval(Vptr, (uptr)-1));
 		break;
 	case 2:
-		checkarg(vm, "mksas", argv, 0, Qcval);
-		checkarg(vm, "mksas", argv, 1, Qcval);
+		checkarg(vm, "mkmas", argv, 0, Qcval);
+		checkarg(vm, "mkmas", argv, 1, Qcval);
 		p = valcval(argv[0]);
 		l = valcval(argv[1]);
 		if(cvalu(l) && cvalu(p)+cvalu(l) <= cvalu(p))
@@ -5054,9 +5054,9 @@ l1_mknsraw(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3 && argc != 4)
 		vmerr(vm, "wrong number of arguments to mknsraw");
-	checkarg(vm, "mkns", argv, 0, Qns);
-	checkarg(vm, "mkns", argv, 1, Qtab);
-	checkarg(vm, "mkns", argv, 2, Qtab);
+	checkarg(vm, "mknsraw", argv, 0, Qns);
+	checkarg(vm, "mknsraw", argv, 1, Qtab);
+	checkarg(vm, "mknsraw", argv, 2, Qtab);
 	name = 0;
 	if(argc == 4){
 		checkarg(vm, "mknsraw", argv, 3, Qstr);
@@ -5310,8 +5310,8 @@ l1_callmethodx(VM *vm, Imm argc, Val *argv, Val *rv)
 	Imm xargc;
 
 	if(argc < 2)
-		vmerr(vm, "wrong number of arguments to callmethod");
-	checkarg(vm, "callmethod", argv, 1, Qstr);
+		vmerr(vm, "wrong number of arguments to callmethodx");
+	checkarg(vm, "callmethodx", argv, 1, Qstr);
 	this = argv[0];
 	id = argv[1];
 	dcl = 0;
