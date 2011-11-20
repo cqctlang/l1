@@ -40,22 +40,22 @@ _la: 2 params, 8 locals, 1 temps
 L1551: 2 params, 0 locals, 1 temps
 cop: 1 params, 4 locals, 1 temps
 uw1: 2 params, 7 locals, 0 temps
-ls: 2 params, 7 locals, 0 temps
+ls: 2 params, 1 locals, 0 temps
 ll: 3 params, 2 locals, 0 temps
 el: 2 params, 7 locals, 0 temps
 _addsym: 3 params, 6 locals, 0 temps
-L1878: 2 params, 2 locals, 0 temps
+L1850: 2 params, 2 locals, 0 temps
 looktype: var params, 1 locals, 0 temps
-L1906: 1 params, 2 locals, 0 temps
+L1878: 1 params, 2 locals, 0 temps
 enumtype: var params, 1 locals, 0 temps
-L1944: 1 params, 0 locals, 0 temps
+L1916: 1 params, 0 locals, 0 temps
 mktnresolve: 3 params, 10 locals, 0 temps
 undefined: 1 params, 7 locals, 0 temps
 resolve: 1 params, 17 locals, 0 temps
 symcmp: 2 params, 2 locals, 0 temps
 enumsym: var params, 1 locals, 0 temps
-L2762: 2 params, 0 locals, 0 temps
-L2769: 1 params, 0 locals, 0 temps
+L2734: 2 params, 0 locals, 0 temps
+L2741: 1 params, 0 locals, 0 temps
 unsigned int
 name: zero, offset: 33, type int
 name: zero, offset: 33, type int
