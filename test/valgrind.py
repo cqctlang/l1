@@ -5,6 +5,8 @@ import os
 import popen2
 import sys
 
+os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
+
 ok = []
 new = []
 fail = []
@@ -73,3 +75,6 @@ if len(fail) > 0:
     print 'fail:'
     for m in fail:
         print '\t', m
+
+if len(fault) > 0 or len(fail) > 0:
+    exit(-1)
