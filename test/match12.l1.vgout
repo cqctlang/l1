@@ -1,9 +1,11 @@
 entry: var params, 2 locals, 0 temps
 foo: 1 params, 4 locals, 0 temps
-elements 1 < 2
 elements 2 == 2
 elements "hello" == "hello"
-no match
+elements 1 < 2
 elements "hell" < "hello"
 element is local 5
 no bind case OK
+fallthrough with y = [ 6 ]
+fallthrough with y = 6
+no match

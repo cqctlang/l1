@@ -7,6 +7,7 @@ struct Case
 {
 	char *l;
 	Expr *e;
+	char *nextl;
 } Case;
 
 typedef
@@ -73,6 +74,14 @@ Zand(Expr *e1, Expr *e2)
 	if(!e2)
 		return e1;
 	return Zifelse(e1, e2, Zint(0));
+}
+
+static Expr *
+Zlabele(char *l, Expr *b) 
+{
+	if(!l)
+		return b;
+	return Zblock(nullelist(), Zlabel(l), b, NULL);
 }
 
 static int
@@ -319,15 +328,15 @@ static Expr*
 addcase(U *ctx, Expr *c, Cases *cs)
 {
 	Expr *se, *e, *ib, *b, *ne;
-        char *l;
-        int nc;
+        char *l, *nl;
+        int n, nc;
 	Match m = {0,0};
-        Expr* bvs = 0;
+        Expr* lastbvs, *bvs = 0;
 
         if(!cs || (c->kind != Ecase && c->kind != Ematch))
 		cerror(ctx, c, "addcase called improperly");
 	e = cases(ctx, c->e1, 0);
-        nc = cs->nc;
+        n = nc = cs->nc;
         ib = b = cases(ctx, c->e2, cs);
         ne = nullelist();
 	se = nullelist();
@@ -346,7 +355,15 @@ addcase(U *ctx, Expr *c, Cases *cs)
                         cs->max *= 2;
                 }
                 l = genlabel();
+		nl = 0;
+		lastbvs = bvs;
                 if(c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
+			Expr *b1 = ib;
+			if(c->e3 != 0){
+				nl = genlabel();
+				b1 = Zcons(Zif(Znot(cases(ctx, c->e3, 0)), Zgoto(nl)), 
+					   Zcons(ib,nullelist()));
+			}
                         if(m.binds != 0){
                                 Expr *inits, *decls;
                                 if(nc != cs->nc)
@@ -355,33 +372,42 @@ addcase(U *ctx, Expr *c, Cases *cs)
                                 bindvars(m.binds, &decls, &inits);
                                 freebinds(m.binds);
 				m.binds = 0;
-                                b = Zblock(decls, inits, copyexpr(ib), NULL);
-                                if(bvs != 0){
-                                        Expr *x = decls;
-                                        if(elistlen(decls) != elistlen(bvs)){
-                                                cerror(ctx, e, "# of bound "
-                                                       "variables differ "
-                                                       "on fallthrough");
-                                        }
-                                        while(x->kind != Enull){
-                                                if(!containsid(bvs,x->e1))
-                                                        cerror(ctx, e,
-                                                               "nonmatching "
-                                                               "bound variable %s "
-                                                               "on fallthrough",
-                                                               idsym(x->e1));
-                                                x = x->e2;
-                                        }
-                                }
+                                // FIXME: Makes a copy of the block for each
+                                // case in a fallthrough
+                                b = Zblock(decls, inits, copyexpr(b1), NULL);
                                 bvs = decls;
                         }
+			else
+				bvs = nullelist();
                 }
-                else
-                        m.check = Zbinop(Eeq, e, doid("$t"));
+                else{
+			m.check = Zand(Zbinop(Eeq, e, doid("$t")), c->e3);
+			bvs = nullelist();
+		}
 
-		se = Zcons(Zblock(nullelist(), Zlabel(l), b, NULL), se);
+		/*make sure binders are consistent on fallthrough*/
+		if(lastbvs != 0){
+			Expr *x = bvs;
+			if(elistlen(lastbvs) != elistlen(bvs)){
+				cerror(ctx, e, "# of bound "
+				       "variables differ "
+				       "on fallthrough");
+			}
+			while(x->kind != Enull){
+				if(!containsid(lastbvs,x->e1))
+					cerror(ctx, e,
+					       "nonmatching "
+					       "bound variable %s "
+					       "on fallthrough",
+					       idsym(x->e1));
+				x = x->e2;
+			}
+		}
+
+		se = Zcons(Zlabele(l,b), se);
                 cs->cases[cs->nc].l = l;
                 cs->cases[cs->nc].e = m.check;
+		cs->cases[cs->nc].nextl = nl;
 		m.check = 0;
                 cs->nc++;
 		nc++;
@@ -494,32 +520,39 @@ coalesce(U *ctx, Expr* e, Expr* q)
 	}
 }
 
-/* Converts @match p1: @match p2: ... into @match OR(p1,p2) */
+/* Converts @match p1: ... @match pn && fe: ... into @match OR(p1,p2) && fe */
 static Expr*
-collapse(U *ctx, Expr* e, Expr* p)
+collapse(U *ctx, Expr* e, Expr* p, Expr **fe)
 {
 	if(e == 0)
 		return 0;
 	switch(e->kind){
 	case Ematch:
-		sete1(e, collapse(ctx, e->e1, 0));
+		sete1(e, collapse(ctx, e->e1, 0, 0));
 		if(p != 0){
 			sete2(p, Zcons(e->e1, nullelist()));
-			e = collapse(ctx, e->e2, p->e2);
+			if(*fe != 0)
+                                cerror(ctx, *fe,
+                                       "non-final fender on fallthrough");
+			if(e->e3 != 0){
+				*fe = e->e3;
+				e->e3 = 0;
+			}
+			e = collapse(ctx, e->e2, p->e2, fe);
 			return e;
 		}
 		else{
 			p = Zcons(e->e1,nullelist());
-			sete2(e, collapse(ctx, e->e2, p));
+			sete2(e, collapse(ctx, e->e2, p, &e->e3));
 			if (p->e2->kind != Enull)
 				sete1(e, newexpr(Eorpat, p, 0, 0, 0));
 			return e;
 		}
 	default:
-		sete1(e, collapse(ctx, e->e1, 0));
-		sete2(e, collapse(ctx, e->e2, 0));
-		sete3(e, collapse(ctx, e->e3, 0));
-		sete4(e, collapse(ctx, e->e4, 0));
+		sete1(e, collapse(ctx, e->e1, 0, 0));
+		sete2(e, collapse(ctx, e->e2, 0, 0));
+		sete3(e, collapse(ctx, e->e3, 0, 0));
+		sete4(e, collapse(ctx, e->e4, 0, 0));
 		return e;
 	}
 }
@@ -545,10 +578,8 @@ cases(U *ctx, Expr* e, Cases *cs)
 		return se;
 	case Edefault:
 		cs->dflt = genlabel();
-		se = Zblock(nullelist(),
-			    Zlabel(cs->dflt),
-			    cases(ctx, e->e1, cs),
-			    NULL);
+		se = Zlabele(cs->dflt,
+			     cases(ctx, e->e1, cs));
 		putsrc(se, e->src);
 		return se;
 	case Eelist:
@@ -576,6 +607,7 @@ swtch(U *ctx, Expr *e, char *lb)
 	Cases *cs;
 	u32 i;
 	char *nlb;
+	char *optl;
 
 	if(e == 0)
 		return 0;
@@ -590,16 +622,19 @@ swtch(U *ctx, Expr *e, char *lb)
 		cs = e->xp;
 		nlb = genlabel();
 		se = nullelist();
-		for(i = 0; i < cs->nc; i++)
-			se = Zcons(cs->cases[i].e ?
-				   Zif(swtch(ctx, cs->cases[i].e, lb),
-				       Zgoto(cs->cases[i].l)) :
-				   Zgoto(cs->cases[i].l),
+		optl = 0;
+		for(i = 0; i < cs->nc; i++){
+			se = Zcons(Zlabele(optl,cs->cases[i].e ?
+					   Zif(swtch(ctx, cs->cases[i].e, lb),
+					       Zgoto(cs->cases[i].l)) :
+					   Zgoto(cs->cases[i].l)), 
 				   se);
+			optl = cs->cases[i].nextl;
+		}
 		se = Zblock(Zcons(doid("$t"),nullelist()),
 			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
 			    invert(se),
-			    cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb),
+			    Zlabele(optl, cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb)),
 			    swtch(ctx, e->e2, nlb),
 			    Zlabel(nlb),
 			    Znil(),
@@ -730,7 +765,7 @@ docompilei(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	loops(ctx, e, 0, 0);
-	collapse(ctx, e, 0);
+	collapse(ctx, e, 0, 0);
         coalesce(ctx, e, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);
