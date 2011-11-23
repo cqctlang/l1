@@ -1,0 +1,23 @@
+@define foo(y) {
+  @local x;
+  x = 5;
+  switch (y) {
+/*1*/    @match [x,z] && x == z : printf("elements %a == %a\n",x,z); break;
+/*2*/    @match [z,x] && z < x : printf("elements %a < %a\n",z,x); break;
+/*3*/    @match z && z == x : printf("element is local %d\n",x); break;
+/*4*/    @match [4,3] && x == x : printf("no bind case OK\n"); break;
+/*5*/    @match [x]: /* no condition */
+/*6*/    @match x && x == 6: printf("fallthrough with y = %a\n",y); break;
+/*7*/    default: printf("no match\n");
+  }
+}
+
+/*1*/ foo([2,2]);
+/*1*/ foo(["hello","hello"]);
+/*2*/ foo([1,2]);
+/*2*/ foo(["hell","hello"]);
+/*3*/ foo(5);
+/*4*/ foo([4,3]);
+/*5*/ foo([6]);
+/*6*/ foo(6);
+/*7*/ foo(1);
