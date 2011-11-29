@@ -1,0 +1,21 @@
+@define x()
+{
+	@local z, n;
+
+	n = 100;
+	@defloc foo()
+	{
+		gc();
+		z(nil);
+	} 
+
+	callcc(@lambda(k){
+		z = k;
+		foo();
+	});
+	while(n-- > 0)
+		  foo();
+	printf("done!\n");
+}
+
+x();

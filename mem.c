@@ -2,6 +2,8 @@
 #include "util.h"
 #include "syscqct.h"
 
+/* if you change this, be sure the
+   ordering in MTx enum remains consistent */
 typedef
 enum
 {
@@ -12,7 +14,8 @@ enum
 	Mbox,
 	Mmutable,
 	Mdata,
-	Mcode, /* FIXME: Nmt definition depends on this being last */
+	Mode,
+	Mcode,
 	Nm,
 } Mtag;
 
@@ -26,18 +29,20 @@ enum
 	Ftag,
 } Flags;
 
-/* meta type values */
+/* meta type values, must be consistent with Mtag ordering */
 enum
 {
 	MThole    = (Mhole<<Ftag),
 	MTnix     = (Mnix<<Ftag),
 	MTfree    = (Mfree<<Ftag),
 	MTdata    = (Mdata<<Ftag),
+	MTode     = (Mode<<Ftag),
 	MTcode    = (Mcode<<Ftag),
 	MTweak    = (Mweak<<Ftag),
 	MTbox     = (Mbox<<Ftag),
 	MTmutable = (Mmutable<<Ftag),
 	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
+	MTbigode  = (Mode<<Ftag)|(1<<Fbig),
 	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
 	Nmt,
 };
@@ -47,11 +52,13 @@ static char *MTname[] = {
 	[MTnix]     = "nix",
 	[MTfree]    = "free",
 	[MTdata]    = "data",
+	[MTode]     = "ode",
 	[MTcode]    = "code",
 	[MTweak]    = "weak",
 	[MTbox]     = "box",
 	[MTmutable] = "mutable",
 	[MTbigdata] = "bigdata",
+	[MTbigode]  = "bigode",
 	[MTbigcode] = "bigcode",
 };
 
@@ -88,8 +95,6 @@ static char *MTname[] = {
 #define Minheap   10*Seghunk
 #define Align     4
 #define card(a)   ((u8)(((uptr)(a)>>(Segbits-Cardbits))&(Ncard-1)))
-#define max(a,b)  ((a)>(b)?(a):(b))
-#define min(a,b)  ((a)<(b)?(a):(b))
 
 /* n must be a power-of-2 */
 #define roundup(l,n)   ((uptr)(((uptr)(l)+((n)-1))&~((n)-1)))
@@ -208,7 +213,6 @@ struct Stats
 	u64 sweeptime;
 	u64 guardtime;
 	u64 promotetime;
-	u64 reloctime;
 	u64 cardtime;
 	u64 oldtime;
 	u64 weaktime;
@@ -227,12 +231,12 @@ static int freestr(Head*);
 static Val* iteras(Head*, Ictx*);
 static Val* iterbox(Head*, Ictx*);
 static Val* itercl(Head*, Ictx*);
-static Val* itercode(Head*, Ictx*);
 static Val* itercval(Head*, Ictx*);
 static Val* iterdom(Head*, Ictx*);
 static Val* iterexpr(Head*, Ictx*);
 static Val* iterfd(Head*, Ictx*);
 static Val* iterns(Head*, Ictx*);
+static Val* iterode(Head*, Ictx*);
 static Val* iterpair(Head*, Ictx*);
 static Val* iterrange(Head*, Ictx*);
 static Val* iterrd(Head*, Ictx*);
@@ -247,7 +251,7 @@ static Qtype qs[Qnkind] = {
 	[Qbox]	 = { "box", sizeof(Box), 0, 0, iterbox },
 	[Qcid]   = { "cid", sizeof(Cid), 1, 0, 0 },
 	[Qcl]	 = { "closure", sizeof(Closure), 1, 0, itercl },
-	[Qcode]	 = { "code", sizeof(Code), 1, freecode, itercode },
+	[Qcode]	 = { "code", sizeof(Code), 1, 0, 0 },
 	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, iterctype },
 	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
 	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, iterdom },
@@ -256,6 +260,7 @@ static Qtype qs[Qnkind] = {
 	[Qlist]	 = { "list", sizeof(List), 0, 0, iterlist },
 	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
 	[Qns]	 = { "ns", sizeof(Ns), 1, 0, iterns },
+	[Qode]	 = { "ode", sizeof(Ode), 1, freeode, iterode },
 	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, iterpair },
 	[Qrange] = { "range", sizeof(Range), 0, 0, iterrange },
 	[Qrd]    = { "rd", sizeof(Rd), 0, 0, iterrd },
@@ -291,7 +296,6 @@ freestr(Head *hd)
 	Strmmap *m;
 	Strmalloc *a;
 	str = (Str*)hd;
-	// printf("freestr(%.*s)\n", (int)str->len, str->s);
 	switch(str->skind){
 	case Smmap:
 		m = (Strmmap*)str;
@@ -378,16 +382,18 @@ itercl(Head *hd, Ictx *ictx)
 }
 
 static Val*
-itercode(Head *hd, Ictx *ictx)
+iterode(Head *hd, Ictx *ictx)
 {
-	Code *code;
+	Ode *code;
 	u32 n;
-	code = (Code*)hd;
+	code = (Ode*)hd;
 	n = ictx->n++;
 	if(n < code->ninsn)
 		return (Val*)&code->src[n];
 	else if(n == code->ninsn)
 		return (Val*)&code->konst;
+	else if(n == code->ninsn+1)
+		return (Val*)&code->id;
 	else
 		return GCiterdone;
 }
@@ -1012,6 +1018,7 @@ isliveseg(Seg *s)
 {
 	switch(MTtag(s->mt)){
 	case Mdata:
+	case Mode:
 	case Mcode:
 	case Mweak:
 	case Mbox:
@@ -1129,11 +1136,11 @@ malweak()
 }
 
 Head*
-malcode()
+malode()
 {
 	Head *h;
-	h = __mal(MTcode, H.tg, sizeof(Code));
-	Vsetkind(h, Qcode);
+	h = __mal(MTode, H.tg, sizeof(Ode));
+	Vsetkind(h, Qode);
 	return h;
 }
 
@@ -1158,6 +1165,8 @@ _mal(Qkind kind, u64 sz)
 	case Qlist:
 	case Qtab:
 		return __mal(MTmutable, H.tg, sz);
+	case Qcode:
+		return __mal(MTcode, H.tg, sz);
 	default:
 		return __mal(MTdata, H.tg, sz);
 	}
@@ -1167,9 +1176,12 @@ Head*
 malv(Qkind kind, Imm len)
 {
 	Head *h;
-	if(len > Seguse)
-		h = _malbig(MTbigdata, roundup(len, Align));
-	else
+	if(len > Seguse){
+		if(kind == Qcode)
+			h = _malbig(MTbigcode, roundup(len, Align));
+		else
+			h = _malbig(MTbigdata, roundup(len, Align));
+	}else
 		h = _mal(kind, roundup(len, Align));
 	Vsetkind(h, kind);
 	return h;
@@ -1197,6 +1209,7 @@ qsz(Head *h)
 {
 	Cid *id;
 	Closure *cl;
+	Code *c;
 	Rec *r;
 	Str *s;
 	Ctype *t;
@@ -1222,6 +1235,9 @@ qsz(Head *h)
 			return sizeof(Strperm); /* FIXME: align? */
 		}
 		fatal("bug");
+	case Qcode:
+		c = (Code*)h;
+		return roundup(c->sz, Align);
 	case Qvec:
 		v = (Vec*)h;
 		return roundup(vecsize(v->len), Align);
@@ -1318,8 +1334,8 @@ copy(Val *v)
 	case Qbox:
 		nh = malbox();
 		break;
-	case Qcode:
-		nh = malcode();
+	case Qode:
+		nh = malode();
 		break;
 	case Qpair:
 		if(isweak(h))
@@ -1329,6 +1345,7 @@ copy(Val *v)
 		break;
 	case Qcid:
 	case Qcl:
+	case Qcode:
 	case Qctype:
 	case Qstr:
 	case Qvec:
@@ -1339,15 +1356,47 @@ copy(Val *v)
 		nh = malq(Vkind(h), sz);
 		break;
 	}
-	if(dbg)printf("copy %s %p to %p\n",
-		      qs[Vkind(h)].id,
-		      h, nh);
 	memcpy(nh, h, sz);
 	Vsetfwd(h, (uptr)nh);
 	if(dbg)printf("set fwd %p -> %p %p (%d)\n",
 		    h, Vfwdaddr(h), nh, (int)Vfwd(h));
 	*v = nh;
 	return H.tg;
+}
+
+static void
+gcopy(Val *v, u8 *min)
+{
+	u8 g;
+	g = copy(v);
+	if(g < *min)
+		*min = g;
+}
+
+static u8
+scan1code(Code *c)
+{
+	u8 min;
+	Imm i;
+	Reloc *r;
+	void *h, **cp;
+	void *p;
+
+	min = Clean;
+	gcopy((Val*)&c->id, &min);
+	gcopy((Val*)&c->reloc, &min);
+	gcopy((Val*)&c->lm, &min);
+	gcopy((Val*)&c->konst, &min);
+	gcopy((Val*)&c->src, &min);
+	r = (Reloc*)strdata(c->reloc);
+	p = c;
+	for(i = 0; i < c->nreloc; i++, r++){
+		cp = (void**)(p+r->coff);
+		h = *cp-r->ioff;
+		gcopy((Val*)&h, &min);
+		*cp = h+r->ioff;
+	}
+	return min;
 }
 
 static u8
@@ -1359,6 +1408,8 @@ scan1(Head *h)
 	unsigned dbg = alldbg;
 
 	min = Clean;
+	if(Vkind(h) == Qcode)
+		return scan1code((Code*)h);
 	if(qs[Vkind(h)].iter == 0)
 		return min;
 	memset(&ictx, 0, sizeof(ictx));
@@ -1650,11 +1701,13 @@ toprd(void *u, void *k, void *v)
 static void
 copykstack(Val *stack, Imm len, Imm fp)
 {
-	Imm narg, m, i, clx;
-	Insn *pc, *fsz, *fm;
+	Imm pcp, narg, m, i, clx;
+	Insn *pc, *fsz, *fm, *ci;
 	u64 sz, mask, *mp, o;
 	Closure *cl;
 	Imm shift;
+	Code *cp;
+	uptr coff;
 
 	/* fp is normally relative to Maxstk */
 	shift = Maxstk-len;
@@ -1669,14 +1722,17 @@ copykstack(Val *stack, Imm len, Imm fp)
 		copy(&stack[clx]);
 		for(i = 0; i < narg; i++)
 			copy(&stack[fp+1+i]);
-		pc = stkp(stack[fp+narg+1]);
+		pcp = fp+narg+1;
+		pc = stkp(stack[pcp]);
 		if(pc == 0)
 			break;
+
+		/* copy live variables in this frame */
 		fp = stkimm(stack[fp+narg+3]);
 		fp -= shift;
 		cl = valcl(stack[clx]);
 		fsz = pc-1;
-		fm = pc-2;
+		fm = pc-3;
 		if(fsz->kind != Ifsize || fm->kind != Ifmask)
 			fatal("no live mask for pc %d cl %p", pc, cl);
 		sz = fsz->cnt;
@@ -1684,7 +1740,7 @@ copykstack(Val *stack, Imm len, Imm fp)
 		m = fp-1;
 		if((mask>>(mwbits-1))&1){
 			o = mask&~(1UL<<(mwbits-1));
-			mp = cl->code->lm+o;
+			mp = (u64*)strdata(cl->code->lm)+o;
 			while(sz > 0){
 				mask = *mp++;
 				for(i = 0; sz > 0 && i < mwbits; i++){
@@ -1700,6 +1756,16 @@ copykstack(Val *stack, Imm len, Imm fp)
 					copy(&stack[m]);
 				m--;
 			}
+
+		/* copy code and update pc on stack */
+		ci = pc-2;
+		if(ci->kind != Icode)
+			fatal("no code for pc %d cl %p", pc, cl);
+		cp = ci->code;
+		coff = (uptr)pc-(uptr)cp;
+		copy((Val*)&cp);
+		pc = (Insn*)((uptr)cp+coff);
+		stack[pcp] = (Val)(uptr)pc;
 	}
 }
 
@@ -1713,10 +1779,12 @@ copykstack(Val *stack, Imm len, Imm fp)
 static void
 copystack(VM *vm)
 {
-	Imm ofp, fp, narg, m, i, clx;
-	Insn *pc, *fsz, *fm;
+	Imm ofp, fp, pcp, narg, m, i, clx;
+	Insn *pc, *fsz, *fm, *ci;
 	u64 sz, mask, *mp, o;
 	Closure *cl;
+	uptr coff;
+	Code *cp;
 
 	fp = vm->fp;
 	if(fp == 0)
@@ -1728,14 +1796,17 @@ copystack(VM *vm)
 		copy(&vm->stack[clx]);
 		for(i = 0; i < narg; i++)
 			copy(&vm->stack[fp+1+i]);
-		pc = stkp(vm->stack[fp+narg+1]);
+		pcp = fp+narg+1;
+		pc = stkp(vm->stack[pcp]);
 		if(pc == 0)
 			break;
+
+		/* copy live variables in this frame */
 		ofp = fp;
 		fp = stkimm(vm->stack[fp+narg+3]);
 		cl = valcl(vm->stack[clx]);
 		fsz = pc-1;
-		fm = pc-2;
+		fm = pc-3;
 		if(fsz->kind != Ifsize || fm->kind != Ifmask)
 			fatal("no live mask for pc %d cl %p", pc, cl);
 		sz = fsz->cnt;
@@ -1746,7 +1817,7 @@ copystack(VM *vm)
 		m = fp-1;
 		if((mask>>(mwbits-1))&1){
 			o = mask&~(1UL<<(mwbits-1));
-			mp = cl->code->lm+o;
+			mp = (u64*)strdata(cl->code->lm)+o;
 			while(sz > 0){
 				mask = *mp++;
 				for(i = 0; sz > 0 && i < mwbits; i++){
@@ -1762,6 +1833,16 @@ copystack(VM *vm)
 					copy(&vm->stack[m]);
 				m--;
 			}
+
+		/* copy code and update pc on stack */
+		ci = pc-2;
+		if(ci->kind != Icode)
+			fatal("no code for pc %d cl %p", pc, cl);
+		cp = ci->code;
+		coff = (uptr)pc-(uptr)cp;
+		copy((Val*)&cp);
+		pc = (Insn*)((uptr)cp+coff);
+		vm->stack[pcp] = (Val)(uptr)pc;
 	}
 }
 
@@ -1960,68 +2041,6 @@ promotelocked()
 }
 
 static void
-reloccode(Code *c)
-{
-	u32 i;
-	uptr b;
-	uptr *p;
-	void **a;
-	p = c->reloc;
-	b = (uptr)c->insn;
-	for(i = 0; i < c->nreloc; i++){
-		a = (void**)(b+p[i]);
-		*a = curaddr(*a);
-	}
-}
-
-static void
-reloc1(Seg *s, u32 tg)
-{
-	Code *c;
-	Head *h, *p;
-
-	if(s->mt == MTbigcode)
-		fatal("unimplemented");
-	if(s->mt != MTcode)
-		return;
-	if(s->gen == tg){
-		c = s2a(s);
-		while((void*)c < s->a){
-			if(!Vdead((Head*)c))
-				reloccode(c);
-			c++;
-		}
-		return;
-	}
-	if(s->gen == Glock){
-		p = (Head*)s->p;
-		while(p){
-			h = cdar(p);
-			if(!Vdead(h))
-				reloccode((Code*)h);
-			p = cdr(p);
-		}
-		return;
-	}
-}
-
-static void
-reloc(u32 tg)
-{
-	Seg *s, *es;
-	u64 b;
-	b = usec();
-	s = a2s(segmap.lo);
-	es = a2s(segmap.hi);
-	while(s < es){
-		if(isliveseg(s))
-			reloc1(s, tg);
-		s = nextseg(s);
-	}
-	stats.reloctime += usec()-b;
-}
-
-static void
 recycle1(Seg *s)
 {
 	if(!MTold(s->mt))
@@ -2102,12 +2121,14 @@ _gc(u32 g, u32 tg)
 
 	if(g == tg){
 		resetalloc(MTdata, tg);
+		resetalloc(MTode, tg);
 		resetalloc(MTcode, tg);
 		resetalloc(MTweak, tg);
 		resetalloc(MTbox, tg);
 		resetalloc(MTmutable, tg);
 	}else{
 		getalloc(MTdata, tg);
+		getalloc(MTode, tg);
 		getalloc(MTcode, tg);
 		getalloc(MTweak, tg);
 		getalloc(MTbox, tg);
@@ -2153,10 +2174,7 @@ _gc(u32 g, u32 tg)
 	updateguards(&H.sg);
 	if(dbg)printf("did updateguards\n");
 	updateweak(tg);
-
 	promotelocked();
-	reloc(tg);
-	if(dbg)printf("did reloc\n");
 
 	b = usec();
 	// call built-in finalizers
@@ -2178,6 +2196,7 @@ _gc(u32 g, u32 tg)
 	if(H.tg != 0){
 		H.tg = 0;
 		resetalloc(MTdata, H.tg);
+		resetalloc(MTode, H.tg);
 		resetalloc(MTcode, H.tg);
 		resetalloc(MTweak, H.tg);
 		resetalloc(MTbox, H.tg);
@@ -2327,6 +2346,7 @@ initmem()
 		gr *= GCradix;
 	}
 	resetalloc(MTdata, 0);
+	resetalloc(MTode, 0);
 	resetalloc(MTcode, 0);
 	resetalloc(MTweak, 0);
 	resetalloc(MTbox, 0);
@@ -2403,11 +2423,13 @@ gcstats()
 
 	gcstat1(MTfree, ns[MTfree], np[MTfree], nd[MTfree]);
 	gcstat1(MTdata, ns[MTdata], np[MTdata], nd[MTdata]);
+	gcstat1(MTode, ns[MTode], np[MTode], nd[MTode]);
 	gcstat1(MTcode, ns[MTcode], np[MTcode], nd[MTcode]);
 	gcstat1(MTweak, ns[MTweak], np[MTweak], nd[MTweak]);
 	gcstat1(MTbox, ns[MTbox], np[MTbox], nd[MTbox]);
 	gcstat1(MTmutable, ns[MTmutable], np[MTmutable], nd[MTmutable]);
 	gcstat1(MTbigdata, ns[MTbigdata], np[MTbigdata], nd[MTbigdata]);
+	gcstat1(MTbigode, ns[MTbigode], np[MTbigode], nd[MTbigode]);
 	gcstat1(MTbigcode, ns[MTbigcode], np[MTbigcode], nd[MTbigcode]);
 
 	printf(" inuse = %10" PRIu64 "\n", H.inuse);
@@ -2449,8 +2471,6 @@ gcstatistics(Tab *t)
 	       mkvallitcval(Vuvlong, stats.guardtime));
 	tabput(t, mkvalcid(mkcid0("promotetime")),
 	       mkvallitcval(Vuvlong, stats.promotetime));
-	tabput(t, mkvalcid(mkcid0("reloctime")),
-	       mkvallitcval(Vuvlong, stats.reloctime));
 	tabput(t, mkvalcid(mkcid0("weaktime")),
 	       mkvallitcval(Vuvlong, stats.weaktime));
 	tabput(t, mkvalcid(mkcid0("oldtime")),

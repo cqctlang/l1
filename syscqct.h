@@ -222,6 +222,7 @@ enum {
 
 typedef struct Ctl Ctl;
 typedef struct Code Code;
+typedef struct Ode Ode;
 typedef struct Insn Insn;
 typedef struct Expr Expr;
 
@@ -322,7 +323,7 @@ struct Cval {
 struct Closure {
 	Head hd;
 	Code *code;
-	Insn *entry;
+	u32 eoff;		/* offset in code to first instruction */
 	unsigned dlen;
 	Cid *id;
 	Imm fp;			/* of continuation, always >0 */
@@ -333,6 +334,7 @@ struct Closure {
 
 #define cldisp(x) ((Val*)((x)+1))
 #define clsize(n) (sizeof(Closure)+(n)*sizeof(Val))
+#define clentry(x) (codeinsn((x)->code)+(x)->eoff)
 
 struct Box {
 	Head hd;
@@ -623,7 +625,6 @@ enum {
 	Icall,
 	Icallc,
 	Icallt,
-	Icalltc,
 	Iclo,
 	Icmpeq,
 	Icmpgt,
@@ -646,6 +647,7 @@ enum {
 	Ilist,
 	Imod,
 	Imov,
+	Imovra,
 	Imul,
 	Ineg,
 	Inot,
@@ -792,7 +794,7 @@ struct Ctl {
 	Ctl *l1, *l2;
 
 	Ctl *link;
-	Code *code;
+	Ode *ode;
 };
 
 struct Insn {
@@ -803,25 +805,47 @@ struct Insn {
 		Insn *targ;
 		Ctl *dstlabel;
 		u64 cnt;
+		Code *code;
 	};
 };
 
-struct Code {
+typedef
+struct Reloc {
+	uptr	coff;		/* location of pointer from start of code */
+	uptr	ioff;		/* offset of pointer into pointed-to item */
+} Reloc;
+
+struct Ode {
 	Head hd;
 	unsigned long ninsn, maxinsn;;
-	unsigned long nreloc, maxreloc;
 	Insn *insn;
+	Cid *id;
 	Ctl **labels;
 	Src *src;
 	Ctl *clist;
 	Tab *konst;
-	uptr *reloc;
 	u64 *lm;
 	u32 nlm, mlm;
 };
 
 /* live mask */
 #define mwbits	       (8*sizeof(u64))  /* # bits in mask word */
+
+struct Code {
+	Head hd;
+	Cid *id;
+	Imm sz;		/* bytes from header to end of last insn */
+	Imm nreloc;
+	Str *reloc;
+	Str *lm;
+	Tab *konst;
+	Vec *src;   /* belongs in pure storage? */
+	/* instructions follow */
+};
+
+#define codeinsn(x) ((Insn*)((Code*)(x)+1))
+#define codeend(x)  ((Insn*)((void*)(x)+(((Code*)(x))->sz)))
+#define codesize(n) (sizeof(Code)+(n))
 
 typedef
 struct BFgeom {
@@ -896,7 +920,7 @@ extern void *GCiterdone;
 extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
-extern Code *kcode, *cccode, *tcccode;
+extern Code *kcode;
 
 /* top-level roots */
 extern Val syms;
@@ -1013,8 +1037,7 @@ int		issimple(Expr *e);
 
 /* cg.c */
 Closure*	callcc(void);
-Code*		callccode(void);
-Code*		calltccode(void);
+Code*		callccode(char *id);
 void		cgstatistics();
 Closure*	codegen(Expr *e);
 Code*		contcode(void);
@@ -1023,6 +1046,7 @@ Closure*	haltthunk(void);
 void		initcg(void);
 Closure*	mkapply(void);
 Closure*	panicthunk(void);
+void		printinsn(Insn *i);
 void		printkon(Val v);
 void		resetlabels();
 
@@ -1078,7 +1102,7 @@ int		isnatcval(Cval *cv);
 int		isnegcval(Cval *cv);
 int		iszerocval(Cval *cv);
 void		finivm(void);
-int		freecode(Head *hd);
+int		freeode(Head *hd);
 void		freetoplevel(Toplevel *top);
 void		heapfree(Head *p);
 int		iscomplete(Ctype *t);
@@ -1089,7 +1113,7 @@ As*		mkastab(Tab *mtab, Str *name);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkxfn(Val code);
-Closure*	mkcl(Code *code, unsigned long entry, unsigned len, char *id);
+Closure*	mkcl(Code *code, u32 eoff, unsigned len);
 Cval*		mkcval(Dom *dom, Ctype *type, Imm val);
 Dom*		mkdom(Ns *ns, As *as, Str *name);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
@@ -1106,7 +1130,6 @@ Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvallitcvalenc(Cbase base, Enc v);
 As*		mkzas(Imm len);
-Code*		newcode(void);
 void		nexterror(VM *vm) NORETURN;
 void		poperror(VM *vm);
 void		printvmac(VM *vm);
@@ -1127,6 +1150,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvalas(x)	((Val)(x))
 #define mkvalcid(x)	((Val)(x))
 #define mkvalcl(x)	((Val)(x))
+#define mkvalcode(x)	((Val)(x))
 #define mkvalctype(x)	((Val)(x))
 #define mkvaldom(x)	((Val)(x))
 #define mkvalexpr(x)	((Val)(x))
@@ -1144,6 +1168,7 @@ Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define valas(v)	((As*)(v))
 #define valcid(v)	((Cid*)(v))
 #define valcl(v)	((Closure*)(v))
+#define valcode(v)	((Code*)(v))
 #define valctype(v)	((Ctype*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valdom(v)	((Dom*)(v))
@@ -1280,7 +1305,7 @@ int		isweak(Head *h);
 Head*		malq(Qkind kind, u32 sz);
 Head*		malv(Qkind kind, Imm len);
 Head*		malbox();
-Head*		malcode();
+Head*		malode();
 Head*		malweak();
 u64		meminuse();
 Pair*		mkguard();
@@ -1421,6 +1446,7 @@ Str*		mkstrn(Imm len);
 char*		str2cstr(Str *str);
 Str*		strconcat(Str *s1, Str *s2);
 Str*		strcopy(Str *s);
+Str*		strrealloc(Str *str, Imm len);
 Str*		strslice(Str *str, Imm beg, Imm end);
 int		Strcmp(Str *s1, Str *s2);
 
