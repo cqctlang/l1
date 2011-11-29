@@ -88,15 +88,11 @@ sys_ioctl = @lambda(fd,req,data) {
 @global sys_mmap;
 if(linuxns.looksym('mmap2)) {
   sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
-    printf("MMAP2!\n");
     return (linuxns`void *)syscall(linuxns`mmap2,addr,length,prot,flags,fd,offset>>12);                
   };
 } else {
   sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
-    @local rv;
-    rv=syscall(linuxns`mmap,addr,length,prot,flags,fd,offset);                
-    printf("MMAP: %a SIZE: %a, VOID * SIZE %a\n",rv,sizeof(rv),sizeof(linuxns`void *));
-    return (linuxns`void *)rv;
+    return (linuxns`void *)syscall(linuxns`mmap,addr,length,prot,flags,fd,offset);                
   };
 
 }
@@ -108,7 +104,3 @@ sys_msync=@lambda(addr,size,flags) {
 
   return r;
 };
-
-
-
-
