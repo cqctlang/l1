@@ -1,4 +1,4 @@
-linuxns = @names c64le {
+linuxns = @names clp64le {
 	typedef
 	enum Syscall {
 		read				= 0,
@@ -321,4 +321,8 @@ linuxns = @names c64le {
 		@0xd8	uint64 sig; /* current signal number */
 		@0xe0; /* 224 */
 	} Ctx;
+};
+
+unix = @names clp64le {
+  @include <unix.names>
 };

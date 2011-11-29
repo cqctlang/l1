@@ -287,7 +287,8 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	unsigned long i, xarg[6];
 	Cval *cv;
-	int xrv, sysn;
+	long xrv; // some systems return only an int.
+	int sysn;
 
 	if(argc < 1)
 		vmerr(vm, "too few arguments to syscall");
@@ -326,7 +327,7 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 			      xarg[4], xarg[5]);
 		break;
 	}
-	*rv = mkvallitcval(Vint, (Imm)xrv);
+	*rv = mkvallitcval(Vlong, (Imm)xrv);
 }
 
 static void
