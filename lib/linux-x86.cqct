@@ -1,0 +1,10 @@
+linuxns = @names c32le {
+	typedef
+	enum Syscall {
+	} Syscall;
+
+	typedef
+	struct Ctx {
+        @0;
+	} Ctx;
+};

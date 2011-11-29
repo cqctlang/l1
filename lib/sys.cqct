@@ -1,0 +1,114 @@
+
+@global unix;
+@global linuxns;
+
+{
+  @local u,r,a,o,w;
+
+  u=uname();
+  o=u[0];
+  a=u[3];
+
+  r=myrootns();
+  w=sizeof(r`long);
+
+  switch([o,a,w]) {
+    case ["Linux","x86_64",8]:
+      eval("@include <linux-x86_64.cqct>"); 
+      break;
+    case ["Linux","x86_64",4]:
+    case ["Darwin","x86_64",8]:
+    case ["Darwin","x86_64",4]:
+    default:
+      // no direct syscalls for you
+      printf("Unsupported OS: %a\n",[o,a,w]);
+  }
+
+};
+
+sys_open = @lambda(filename,oflag,rest ...) {
+  @local m,r;
+
+  m=malloc(length(filename)+1);
+  putbytes(m,filename);
+  m[length(filename)]=0;
+
+  if(oflag & unix`O_CREAT) {
+    r=syscall(linuxns`open,m,oflag,rest[0]);
+  } else {
+    r=syscall(linuxns`open,m,oflag);
+  }
+  return r;
+};
+
+sys_close = @lambda(fd) {
+  syscall(linuxns`close,fd);
+};
+
+sys_read = @lambda(fd,buf,len) {
+  @local m,r,c;
+
+  m=malloc(len);
+  r=syscall(linuxns`read,fd,m,len);
+  if(r>0) {
+    c=getbytes(m,r);
+    putbytes(buf,c);
+  }
+  return r;
+};
+
+sys_write = @lambda(fd,buf,len) {
+  @local m,r;
+
+  m=malloc(len);
+
+  if(isstring(buf)) {
+    if(length(buf) > len) {
+      putbytes(m,substr(buf,0,len));
+    } else {
+      putbytes(m,buf);
+    }
+  } else {
+    memcpy(m,buf,len);
+  }
+
+  r=syscall(linuxns`write,fd,m,len);
+  return r;
+};
+
+sys_ioctl = @lambda(fd,req,data) {
+  @local r;
+
+  r=syscall(linuxns`ioctl,fd,req,data);
+
+  return r;
+
+};
+
+@global sys_mmap;
+if(linuxns.looksym('mmap2)) {
+  sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
+    printf("MMAP2!\n");
+    return (linuxns`void *)syscall(linuxns`mmap2,addr,length,prot,flags,fd,offset>>12);                
+  };
+} else {
+  sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
+    @local rv;
+    rv=syscall(linuxns`mmap,addr,length,prot,flags,fd,offset);                
+    printf("MMAP: %a SIZE: %a, VOID * SIZE %a\n",rv,sizeof(rv),sizeof(linuxns`void *));
+    return (linuxns`void *)rv;
+  };
+
+}
+
+sys_msync=@lambda(addr,size,flags) {
+  @local r;
+
+  r=syscall(linuxns`msync,addr,size,flags);
+
+  return r;
+};
+
+
+
+

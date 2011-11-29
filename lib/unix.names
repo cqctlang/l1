@@ -1,0 +1,16 @@
+
+enum oflags {
+  O_RDONLY = 0,
+  O_WRONLY = 1,
+  O_RDWR = 2,
+  O_CREAT = 64,
+  O_APPEND = 1024,
+  O_NONBLOCK = 2048,
+};
+
+enum mmap_consts {
+  PROT_READ=0x1,
+  PROT_WRITE=0x2,
+  MAP_SHARED=0x1,
+  MAP_LOCKED=0x2000
+};
