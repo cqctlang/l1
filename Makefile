@@ -1,6 +1,7 @@
 CC        = gcc
 LD        = ld
 CFLAGS    += -Wall -g -O3
+CPPFLAGS  +=
 LDFLAGS   = -r
 CONF     ?= unix
 L1LIBS	  =
@@ -14,6 +15,7 @@ V	  = @
 
 export CC
 export CFLAGS
+export CPPFLAGS
 export V
 
 all: $(TARG)
@@ -102,7 +104,7 @@ parser:
 
 %.o:%.c
 	@echo + cc $<
-	$(V)$(CC) $(CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 l1: l1.o main.o
 	@echo + ld $@
