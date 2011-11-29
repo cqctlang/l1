@@ -1306,6 +1306,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Ecall:
 		R = 0;
+		rap = 0;
 		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
 		fpush(f);
 		if(!istail){
