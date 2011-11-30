@@ -1,0 +1,27 @@
+ns0 = @names c32le {
+	enum { X = 101 };
+};
+
+ns1 = @names c32le { 
+	enum { Y = 102 };
+
+	struct foo {
+		@0 char x[ns0`X];
+		@0 char y[Y];
+		@4;
+	};
+};
+
+t = looktype(ns1, @typename(struct foo));
+f = lookfield(t, 'x);
+printf("x: %t\n", fieldtype(f));
+f = lookfield(t, 'y);
+printf("y: %t\n", fieldtype(f));
+
+ns2 = @names c32le { 
+	enum { Z = 103 };
+	struct foo {
+		@0 char z[nsx`Z];
+		@4;
+	};
+};
