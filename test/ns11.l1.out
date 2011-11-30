@@ -1,0 +1,6 @@
+ns11.l1:24: warning: reference to unbound variable: nsx
+entry: var params, 8 locals, 0 temps
+x: char [101]
+y: char [102]
+error: reference to unbound variable: nsx
+               entry	(ns11.l1:24)
