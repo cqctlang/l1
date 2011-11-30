@@ -16,8 +16,10 @@
     case ["Linux","x86_64",8]:
       eval("@include <linux-x86_64.cqct>"); 
       break;
-    case ["Linux","x86_64",4]:
     case ["Darwin","x86_64",8]:
+      eval("@include <darwin-x86_64.cqct>"); 
+      break;
+    case ["Linux","x86_64",4]:
     case ["Darwin","x86_64",4]:
     default:
       // no direct syscalls for you
