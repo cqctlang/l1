@@ -14,3 +14,54 @@ enum mmap_consts {
   MAP_SHARED=0x1,
   MAP_LOCKED=0x2000
 };
+
+/* originally from linux/socket.h */
+enum address_families {
+  AF_UNSPEC=          0,
+  AF_UNIX=            1,      /* Unix domain sockets          */
+  AF_LOCAL=           1,      /* POSIX name for AF_UNIX       */
+  AF_INET=            2,      /* Internet IP Protocol         */
+  AF_INET6=           10,     /* IP version 6                 */
+};
+
+// originally from bits/socket.h
+enum __socket_type
+{
+  SOCK_STREAM = 1,
+  SOCK_DGRAM = 2,
+  SOCK_RAW = 3,
+};
+
+//// from linux/un.h
+enum __anon_un_h
+{
+  UNIX_PATH_MAX = 108
+};
+typedef int16 sa_family_t;
+
+struct sockaddr {
+  @0 sa_family_t sa_family;
+  @16;
+};
+
+struct sockaddr_un {
+  @0 sa_family_t sun_family;       /* AF_UNIX */
+  @2 char sun_path[UNIX_PATH_MAX]; /* pathname */
+  @110; // can't use UNIX_PATH_MAX here to set the size.
+        // a proper structure packer will take care of
+        // this later.
+};
+
+struct in_addr {
+  @0 unsigned int s_addr;
+  @4;
+};
+
+struct sockaddr_in {
+  @0 sa_family_t sin_family;      /* AF_INET */
+  @2 unsigned short int sin_port;
+  @4 struct in_addr sin_addr;
+  @16; // minimum size of a struct sockaddr;
+}; 
+
+

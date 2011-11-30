@@ -98,9 +98,70 @@ if(linuxns.looksym('mmap2)) {
 }
 
 sys_msync=@lambda(addr,size,flags) {
-  @local r;
 
-  r=syscall(linuxns`msync,addr,size,flags);
+  return syscall(linuxns`msync,addr,size,flags);
 
-  return r;
+};
+
+sys_socket = @lambda(domain,type,protocol) {
+
+  return syscall(linuxns`socket,domain,type,protocol);
+
+};
+
+sys_connect = @lambda(fd,sockaddr,size) {
+  @local sa;
+
+  if(isnil(size)) {
+    size=sizeof(*sockaddr);
+  }
+  sa=malloc(size);
+  if(!sa) return nil;
+
+  putbytes(sa,getbytes(sockaddr,size));
+
+  return syscall(linuxns`connect,fd,sa,size);
+};
+
+sys_bind = @lambda(fd,sockaddr,size) {
+  @local sa;
+
+  if(isnil(size)) {
+    size=sizeof(*sockaddr);
+  }
+  sa=malloc(size);
+  if(!sa) return nil;
+
+  putbytes(sa,getbytes(sockaddr,size));
+
+  return syscall(linuxns`bind,fd,sa,size);
+};
+
+sys_listen = @lambda(fd,backlog) {
+
+  return syscall(linuxns`listen,fd,backlog);
+};
+
+sys_accept = @lambda(fd,sockaddr,size) {
+  @local sa,ss;
+
+  if(isnil(size)) {
+    size=sizeof(*sockaddr);
+  } else {
+    size=*size;
+  }
+  sa=malloc(size);
+  if(!sa) return nil;
+
+  putbytes(sa,getbytes(sockaddr,size));
+
+  ss=malloc(sizeof(linuxns`int));
+  if(!ss) return nil;
+
+  ss=(linuxns`int *)ss;
+
+  *ss=size;
+
+  return syscall(linuxns`accept,fd,sa,ss);
+
 };
