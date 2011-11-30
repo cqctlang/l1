@@ -49,6 +49,8 @@ enumsubconst(U *ctx, HT *tab, Expr *e)
 	if(e == 0)
 		return e;
 	switch(e->kind){
+	case Eticke:
+		return e;
 	case Eid:
 		if(tab == 0)
 			/* not in @names expression */
