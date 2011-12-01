@@ -1,44 +1,11 @@
-@define no longer implicitly binds into the top-level.
+new function: mkstrm
 
-@const no longer exists (it still accepted as whitespace character)
+	mkstrm(p,len)
 
-the functions defined by @record are bound to the innermost scope,
-  unless there are already bindings
+	Mkstrm returns a string backed by the len byte
+	range of memory in the calling process starting
+	at p.
 
-veclen no longer exists (use always-equivalent length)
 
-variables declared with @global and @local are initially bound to nil
-  (previously they were bound to the undefined value)
 
-the value nil is now false in conditional context (previously true)
 
-the value and type null have been removed
-
-the value and type undefined have been removed
-
-@defloc is like @define but ensures the binding is @local
-
-the functions nsenumsym, nsenumtype, nslookaddr have been removed;
-instead, reference the name space methods directly.
-
-the augmented cast assignment operators ()= and {}= have been removed.
-
-@typename is a new syntactic constructor replacement for @typeof
-
-@typeof is now like sizeof on unqualified types: they are resolved in litdom.
-
-enum constants defined in @names forms may be
-referenced in subsequent array element expressions
-(possibly others .... e.g., attr?)
-
-cvalues of float and double types are supported.  long
-double is still not supported.
-
-cids have been added.  many interface use cids instead of strings.
-
-@global no longer dynamically resets variables to nil
-
-the extended accessor ctype has been removed
-(it may return someday, with a better design)
-
-nil is immutable
