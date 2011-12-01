@@ -1,0 +1,27 @@
+entry: var params, 12 locals, 1 temps
+L137: var params, 9 locals, 0 temps
+L247: 1 params, 5 locals, 0 temps
+L268: 3 params, 8 locals, 0 temps
+L298: 3 params, 7 locals, 0 temps
+L336: 3 params, 6 locals, 0 temps
+L359: 1 params, 7 locals, 0 temps
+L429: 6 params, 8 locals, 0 temps
+L460: 6 params, 8 locals, 0 temps
+L491: 3 params, 5 locals, 0 temps
+L512: 3 params, 5 locals, 0 temps
+L533: 3 params, 6 locals, 0 temps
+L575: 3 params, 6 locals, 0 temps
+L617: 2 params, 5 locals, 0 temps
+L638: 3 params, 7 locals, 0 temps
+entry: 0 params, 2 locals, 0 temps
+opening...
+fd: 3
+writing...
+closing
+reopening...
+fd: 3
+mapped
+mmap equal? 1
+reopening...
+read 23 bytes...
+read equal? 1

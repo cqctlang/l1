@@ -282,6 +282,7 @@ l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 #endif
 
+
 static void
 l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -289,6 +290,12 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	long xrv; // some systems return only an int.
 	int sysn;
+#if defined(__APPLE__) && defined(__MACH__)
+	static long (*lsyscall)(int, ...) = (long (*)(int, ...))syscall;
+        {
+	static long (*syscall)(int, ...) = NULL;
+        if(!syscall) syscall=lsyscall;
+#endif
 
 	if(argc < 1)
 		vmerr(vm, "too few arguments to syscall");
@@ -327,6 +334,9 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 			      xarg[4], xarg[5]);
 		break;
 	}
+#if defined(__APPLE__) && defined(__MACH__)
+        }
+#endif
 	*rv = mkvallitcval(Vlong, (Imm)xrv);
 }
 

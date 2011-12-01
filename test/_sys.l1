@@ -34,7 +34,7 @@ l=sys_read(foo,b,1024);
 printf("read %d bytes...\n",l);
 
 printf("read equal? %a\n",((l == strlen(buf)) &&
-                           (buf == getbytes(b,strlen(b)))
+                           (buf == getbytes(b,l))
                           ));
 
 sys_close(foo);

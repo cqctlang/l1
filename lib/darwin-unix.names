@@ -4,6 +4,7 @@ enum oflags {
   O_WRONLY = 1,
   O_RDWR = 2,
   O_CREAT = 0x200,
+  O_TRUNC = 0x400,
   O_APPEND = 0x8,
   O_NONBLOCK = 0x4,
 };
