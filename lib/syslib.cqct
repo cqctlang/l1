@@ -107,7 +107,7 @@ open = @lambda(filename, mode) {
 
 close = @lambda(fd) {
   @local sfd;
-  sfd=iohash[weakcons(fd,nil)];
+  sfd=iohash[cons(fd,nil)];
   if(sfd) {
     sys_close(sfd); 
   } else {
