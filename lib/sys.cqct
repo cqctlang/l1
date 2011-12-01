@@ -87,6 +87,16 @@ sys_ioctl = @lambda(fd,req,data) {
 
 };
 
+sys_unlink = @lambda(filename) {
+  @local m;
+
+  m=malloc(length(filename)+1);
+  putbytes(m,filename);
+  m[length(filename)]=0;
+
+  return syscall(linuxns`unlink,m);
+};
+
 @global sys_mmap;
 if(linuxns.looksym('mmap2)) {
   sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                

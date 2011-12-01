@@ -1,0 +1,21 @@
+
+fd=open("/tmp/nonexistant","r");
+printf("nonexistant file opened for reading: %a (should be nil)\n",fd);
+
+fd=open("/tmp/nonexistant","r+");
+printf("nonexistant file opened for reading and writing: %a (should be nil)\n",fd);
+
+fd=open("/tmp/willexist","r");
+printf("(hopefully) nonexistant file opened for reading: %a (should be nil)\n",fd);
+
+fd=open("/tmp/willexist","w");
+printf("(hopefully) nonexistant file opened for writing: %a (should succeed)\n",fd);
+
+close(fd);
+
+r=unlink("/tmp/willexist");
+printf("unlink: %a (should succeed)\n",r);
+
+fd=open("/tmp/willexist","r");
+printf("(hopefully) nonexistant file re-opened for reading: %a (should be nil)\n",fd);
+

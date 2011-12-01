@@ -1,0 +1,40 @@
+@include <sys.cqct>
+
+printf("opening...\n");
+foo=sys_open("/tmp/footestfile",unix`O_CREAT|unix`O_WRONLY,0600);
+printf("fd: %d\n",foo);
+
+@global buf;
+buf="this is some bogus text";
+printf("writing...\n");
+sys_write(foo,buf,length(buf));
+
+printf("closing\n");
+sys_close(foo);
+
+printf("reopening...\n");
+foo=sys_open("/tmp/footestfile",unix`O_RDONLY,0600);
+printf("fd: %d\n",foo);
+
+m=sys_mmap(0,4096,unix`PROT_READ,unix`MAP_SHARED,foo,0);
+printf("mapped\n");
+
+sys_close(foo);
+
+m=(unsigned char *){mkmas(m,4096)}m;
+
+printf("mmap equal? %a\n",buf == getbytes(m,strlen(m)));
+
+printf("reopening...\n");
+foo=sys_open("/tmp/footestfile",unix`O_RDONLY,0600);
+
+b=malloc(1024);
+l=sys_read(foo,b,1024);
+
+printf("read %d bytes...\n",l);
+
+printf("read equal? %a\n",((l == strlen(buf)) &&
+                           (buf == getbytes(b,strlen(b)))
+                          ));
+
+sys_close(foo);

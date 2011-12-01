@@ -1,0 +1,6 @@
+@include <syslib.cqct>
+@include "_io.l1"
+
+printf("syslib specific tests...\n");
+gc();
+printf("retained keys: %a (should be empty)\n",tabkeys(iohash));
