@@ -229,6 +229,20 @@ l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_mkstrm(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *s, *len;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mkstrm");
+	checkarg(vm, "mkstr", argv, 0, Qcval);
+	checkarg(vm, "mkstr", argv, 1, Qcval);
+	s = valcval(argv[0]);
+	len = valcval(argv[1]);
+	*rv = mkvalstr(mkstrk((char*)cvalu(s), cvalu(len), Sperm));
+}
+
+static void
 l1_strlen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -403,6 +417,7 @@ fnstr(Env *env)
 	FN(_malloc);
 	FN(memset);
 	FN(mkstr);
+	FN(mkstrm);
 	FN(strcmp);
 	FN(strput);
 	FN(strlen);
