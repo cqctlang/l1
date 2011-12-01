@@ -30,7 +30,7 @@ _mapfile = @lambda(filename) {
 
 };
 
-@global _iohash;
+@global iohash;
 
 iohash=[:];
 
