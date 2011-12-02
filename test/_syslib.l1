@@ -2,5 +2,5 @@
 @include "_io.l1"
 
 printf("syslib specific tests...\n");
-gc();
+gc(3,3);
 printf("retained keys: %a (should be empty)\n",tabkeys(iohash));

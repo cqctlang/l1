@@ -5,17 +5,33 @@ printf("nonexistant file opened for reading: %a (should be nil)\n",fd);
 fd=open("/tmp/nonexistant","r+");
 printf("nonexistant file opened for reading and writing: %a (should be nil)\n",fd);
 
+unlink("/tmp/willexist");
+
+r=unlink("/tmp/willexist");
+printf("unlink: %a (should fail)\n",r);
+
 fd=open("/tmp/willexist","r");
 printf("(hopefully) nonexistant file opened for reading: %a (should be nil)\n",fd);
 
 fd=open("/tmp/willexist","w");
 printf("(hopefully) nonexistant file opened for writing: %a (should succeed)\n",fd);
 
+contents="Schaefer is the one beer to have when you're having more than one";
+write(fd,contents);
+
+printf("(hopefully) wrote %d bytes\n",strlen(contents));
+
 close(fd);
+
+s=mapfile("/tmp/willexist");
+printf("length of empty file: %d\n",length(s));
+s=nil;
 
 r=unlink("/tmp/willexist");
 printf("unlink: %a (should succeed)\n",r);
 
 fd=open("/tmp/willexist","r");
-printf("(hopefully) nonexistant file re-opened for reading: %a (should be nil)\n",fd);
+printf("(hopefully) nonexistent file re-opened for reading: %a (should be nil)\n",fd);
+
+gc(3,3);
 

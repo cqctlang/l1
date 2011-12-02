@@ -16,6 +16,11 @@ printf("reopening...\n");
 foo=sys_open("/tmp/footestfile",unix`O_RDONLY,0600);
 printf("fd: %d\n",foo);
 
+st=(struct unix`stat *)malloc(sizeof(struct unix`stat));
+r=sys_fstat(foo,st);
+printf("stat returns %d (should succeed)\n",r);
+printf("size according to stat: %d bytes\n",st->st_size);
+
 m=sys_mmap(0,4096,unix`PROT_READ,unix`MAP_SHARED,foo,0);
 printf("mapped\n");
 

@@ -1,7 +1,10 @@
 entry: var params, 1 locals, 0 temps
 nonexistant file opened for reading: <nil> (should be nil)
 nonexistant file opened for reading and writing: <nil> (should be nil)
+unlink: -1 (should fail)
 (hopefully) nonexistant file opened for reading: <nil> (should be nil)
 (hopefully) nonexistant file opened for writing: <fd> (should succeed)
-unlink: <nil> (should succeed)
-(hopefully) nonexistant file re-opened for reading: <nil> (should be nil)
+(hopefully) wrote 65 bytes
+length of empty file: 65
+unlink: 0 (should succeed)
+(hopefully) nonexistent file re-opened for reading: <nil> (should be nil)

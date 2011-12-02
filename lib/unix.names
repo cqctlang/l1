@@ -19,6 +19,14 @@ enum mmap_consts {
   MAP_LOCKED	= 0x2000
 };
 
+// x86_64 linux
+struct stat {
+
+  @48    int64	st_size;
+
+  @144;
+};
+
 /* originally from linux/socket.h */
 enum address_families {
   AF_UNSPEC	= 0,

@@ -87,6 +87,36 @@ sys_ioctl = @lambda(fd,req,data) {
 
 };
 
+sys_fstat = @lambda(fd,statbuf) {
+  @local m,r,l;
+
+  l=sizeof(struct unix`stat);
+
+  m=malloc(l);
+  if(0 > m)
+    error("fstat: couldn't allocate stat buf");
+
+  if(isstring(statbuf)) {
+    if(length(statbuf) > l) {
+      putbytes(m,substr(statbuf,0,l));
+    } else {
+      putbytes(m,statbuf);
+    }
+  } else {
+    memcpy(m,statbuf,l);
+  }
+
+  r=syscall(linuxns`fstat,fd,m);
+
+  m=(struct unix`stat *)m;
+
+  if(!r) {
+    putbytes(statbuf,getbytes(m,sizeof(*m)));
+  }
+
+  return r;
+};
+
 sys_unlink = @lambda(filename) {
   @local m;
 
@@ -112,6 +142,12 @@ if(linuxns.looksym('mmap2)) {
 sys_msync=@lambda(addr,size,flags) {
 
   return syscall(linuxns`msync,addr,size,flags);
+
+};
+
+sys_munmap=@lambda(addr,length) {
+
+  return syscall(linuxns`munmap,addr,length);
 
 };
 

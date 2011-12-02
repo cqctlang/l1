@@ -1,9 +1,8 @@
 /* native syscall replacements for system functions in l1 */
 @include <sys.cqct>
 
-/* we don't yet have a way to make the Cinquecento str that mapfile returns from Cinquecento */
-_mapfile = @lambda(filename) {
-  @local fd,st,p;
+mapfile = @lambda(filename) {
+  @local fd,st,p,r,s;
 
   fd=sys_open(filename,unix`O_RDONLY);
   if(0 > fd) {
@@ -15,18 +14,31 @@ _mapfile = @lambda(filename) {
     error("couldn't allocate stat buf");
   }
 
-  // no sys_fstat yet
-  //if(0 > fstat(fd,st)) {
-  //  close(fd);
-  //  error("couldn't stat %s",filename);
-  //} 
+  if(0 > sys_fstat(fd,st)) {
+    sys_close(fd);
+    error("couldn't stat %s",filename);
+  } 
 
-  p = sys_mmap(0, st.st_size, unix`PROT_READ|unix`PROT_WRITE,
-                              unix`MAP_NORESERVE|unix`MAP_PRIVATE, fd, 0); 
+  s = st->st_size;
 
-  close(fd);
+  p = sys_mmap(0, s, unix`PROT_READ|unix`PROT_WRITE,
+                              //unix`MAP_NORESERVE|unix`MAP_PRIVATE, fd, 0); 
+                              unix`MAP_PRIVATE, fd, 0); 
+
+  sys_close(fd);
   if(p == -1)
     error("could not map %s",filename);
+
+  r=mkstrm(p, s);
+
+  st = 0;
+
+  finalize(r,@lambda(args ...) {
+    sys_munmap(p,s);
+    nil;
+  });
+
+  r;
 
 };
 
@@ -107,8 +119,9 @@ open = @lambda(filename, mode) {
 
 close = @lambda(fd) {
   @local sfd;
+
   sfd=iohash[cons(fd,nil)];
-  if(sfd) {
+  if(!isnil(sfd)) {
     sys_close(sfd); 
   } else {
     error("close: closing a cinquecento fd with no unix fd");

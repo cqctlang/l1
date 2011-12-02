@@ -9,6 +9,11 @@ enum oflags {
   O_NONBLOCK = 0x4,
 };
 
+struct stat {
+  @0x48 int64 st_size;
+  @0x90;
+};
+
 enum mmap_consts {
   PROT_READ=0x1,
   PROT_WRITE=0x2,
