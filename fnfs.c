@@ -48,6 +48,8 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *name;
 	int r;
 
+	setlasterrno(0);
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkdir");
 	checkarg(vm, "mkdir", argv, 0, Qstr);
@@ -56,8 +58,9 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = mkdir(name, 0777);	/* ~umask */
 	efree(name);
 	if(0 > r)
-		vmerr(vm, "mkdir: %s", strerror(errno));
-	/* return nil */
+		setlasterrno(errno);
+
+        *rv = mkvallitcval(Vint, r);
 }
 
 static void
@@ -67,6 +70,8 @@ l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *name;
 	int r;
 
+	setlasterrno(0);
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to unlink");
 	checkarg(vm, "unlink", argv, 0, Qstr);
@@ -75,8 +80,9 @@ l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = unlink(name);
 	efree(name);
 	if(0 > r)
-		vmerr(vm, "unlink: %s", strerror(errno));
-	/* return nil */
+		setlasterrno(errno);
+
+        *rv = mkvallitcval(Vint, r);
 }
 
 static void
@@ -86,6 +92,8 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *name;
 	int r;
 
+	setlasterrno(0);
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rmdir");
 	checkarg(vm, "rmdir", argv, 0, Qstr);
@@ -94,8 +102,9 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	r = rmdir(name);
 	efree(name);
 	if(0 > r)
-		vmerr(vm, "rmdir: %s", strerror(errno));
-	/* return nil */
+		setlasterrno(errno);
+
+        *rv = mkvallitcval(Vint, r);
 }
 
 void
