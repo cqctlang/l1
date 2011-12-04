@@ -76,4 +76,9 @@ struct sockaddr_in {
   @16; // minimum size of a struct sockaddr;
 }; 
 
+struct timespec {                                                                                                                  
+  @0 int tv_sec; /* seconds */
+  @4 int tv_nsec; /* nanoseconds */
+  @8;
+};   
 

@@ -1,3 +1,4 @@
+_sys.l1:59: warning: unused variable: c
 entry: var params, 12 locals, 1 temps
 L137: var params, 9 locals, 0 temps
 L247: 1 params, 5 locals, 0 temps
@@ -15,6 +16,10 @@ L631: 3 params, 6 locals, 0 temps
 L673: 3 params, 6 locals, 0 temps
 L715: 2 params, 5 locals, 0 temps
 L736: 3 params, 7 locals, 0 temps
+L831: 1 params, 5 locals, 0 temps
+L852: 0 params, 5 locals, 0 temps
+L873: 0 params, 5 locals, 0 temps
+L894: 0 params, 5 locals, 0 temps
 entry: 0 params, 2 locals, 0 temps
 opening...
 fd: 3
@@ -29,3 +34,5 @@ mmap equal? 1
 reopening...
 read 23 bytes...
 read equal? 1
+getpid() == sys_getpid() : 1
+child ppid == parent pid: 1

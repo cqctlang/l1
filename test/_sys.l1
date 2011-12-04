@@ -1,5 +1,9 @@
 @include <sys.cqct>
 
+/*
+ * I/O and filesystem
+ */
+
 printf("opening...\n");
 foo=sys_open("/tmp/footestfile",unix`O_CREAT|unix`O_WRONLY,0600);
 printf("fd: %d\n",foo);
@@ -43,3 +47,25 @@ printf("read equal? %a\n",((l == strlen(buf)) &&
                           ));
 
 sys_close(foo);
+
+/*
+ * Process
+ */
+
+printf("getpid() == sys_getpid() : %d\n",getpid() == sys_getpid());
+
+// test fork, getppid, exit all in one go
+{
+  @local p,c;
+  p=sys_getpid();
+  if(!sys_fork()) {
+    printf("child ppid == parent pid: %d\n",sys_getppid() == p);
+    printf("child pgid == parent pid: %d\n",sys_getpgid(sys_getpid()) == p);
+    sys_setpgid(sys_getpid(),sys_getpid());
+    printf("setpgid works: %d\n",sys_getpgid(sys_getpid()) == sys_getpid());
+    sys_exit(0);
+    printf("child exit fails\n");
+  } 
+}
+
+
