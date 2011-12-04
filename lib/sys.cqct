@@ -141,7 +141,7 @@ FD_SET=@lambda(fd,set) {
 
 sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
   @local rfds_foo,wfds_foo,xfds_foo,timeout_foo,r,x,rr,rw,rx;
-  @local maxbyte,x;
+  @local maxbyte;
 
   rfds_foo=FD_ALLOC();
   wfds_foo=FD_ALLOC();
@@ -165,7 +165,7 @@ sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
     timeout_foo[6]=0;
     timeout_foo[7]=0;
   } else {
-    timeout_foo=(sys_names`unsigned char *)0;
+    timeout_foo=(unix`unsigned char *)0;
   }
 
   foreach(@lambda(v) {
@@ -178,7 +178,7 @@ sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
     FD_SET(v,xfds_foo);
   },xfds);
 
-  r=syscall(sys_names`NR_select,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
+  r=syscall(linuxns`select,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
 
   if(r==-1) {
     return [[],[],[]];
