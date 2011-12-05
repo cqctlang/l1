@@ -1632,12 +1632,9 @@ cglambda(Expr *e, char *id)
 	Ctl *L;
 	Ode *ode;
 	Code *code;
-	static char buf[32];
 
-	if(id == 0){
-		snprintf(buf, sizeof(buf), "L%d", labelseed++);
-		id = buf;
-	}
+	if(id == 0)
+		id = "anon";
 	ode = mkode(id);
 	L = genlabel(ode, id);
 	L->used = 1;
