@@ -1,5 +1,3 @@
-entry: var params, 2 locals, 0 temps
-foo: 1 params, 4 locals, 0 temps
 elements 2 == 2
 elements "hello" == "hello"
 elements 1 < 2

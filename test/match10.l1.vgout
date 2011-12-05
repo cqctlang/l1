@@ -1,4 +1,3 @@
-entry: var params, 4 locals, 0 temps
 ok, y = 2
 ok
 ok, x = 1

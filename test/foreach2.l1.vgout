@@ -1,8 +1,3 @@
-entry: var params, 2 locals, 0 temps
-L30: 2 params, 0 locals, 0 temps
-L36: 2 params, 0 locals, 0 temps
-L56: 2 params, 0 locals, 0 temps
-L113: 4 params, 1 locals, 0 temps
 3,three
 1,one
 2,two

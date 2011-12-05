@@ -1,8 +1,3 @@
-entry: var params, 2 locals, 0 temps
-L32: 2 params, 0 locals, 0 temps
-L40: 2 params, 0 locals, 0 temps
-L61: 2 params, 1 locals, 0 temps
-L126: 4 params, 1 locals, 0 temps
 [ "3,three", "1,one", "2,two" ]
 [ 2, 3, 4, 5, 6 ]
 [ [ 10, 1 ], [ 11, 1 ], [ 12, 1 ], [ 13, 1 ], [ 14, 1 ] ]

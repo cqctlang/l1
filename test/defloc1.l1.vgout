@@ -1,11 +1,4 @@
 defloc1.l1:3: warning: reference to unbound variable: x
-entry: var params, 2 locals, 0 temps
-baz: 0 params, 0 locals, 0 temps
-baz: 1 params, 0 locals, 0 temps
-bar: 1 params, 0 locals, 0 temps
-bar: 1 params, 0 locals, 0 temps
-foo: 1 params, 0 locals, 0 temps
-foo: 1 params, 0 locals, 0 temps
 interior baz interior
 interior baz toplevel
 interior bar interior

@@ -1,5 +1,3 @@
-entry: var params, 7 locals, 0 temps
-fmt: 1 params, 0 locals, 0 temps
 float 1.500000
 double 2.500000
 float 6.500000

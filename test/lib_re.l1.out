@@ -1,23 +1,3 @@
-entry: var params, 8 locals, 0 temps
-tokenize: 1 params, 18 locals, 0 temps
-re_create: 1 params, 3 locals, 0 temps
-L333: 2 params, 17 locals, 0 temps
-node_str: var params, 9 locals, 0 temps
-nxt_nodes: 2 params, 13 locals, 0 temps
-dfa_match: 2 params, 7 locals, 0 temps
-dfa_match_helper: 3 params, 14 locals, 0 temps
-L2322: 2 params, 6 locals, 0 temps
-L2348: 1 params, 6 locals, 0 temps
-L2445: 2 params, 6 locals, 0 temps
-L2470: 1 params, 6 locals, 0 temps
-re_match: 2 params, 1 locals, 0 temps
-re_find: 2 params, 11 locals, 0 temps
-L2680: 0 params, 0 locals, 0 temps
-L2684: 1 params, 0 locals, 0 temps
-L2688: 0 params, 0 locals, 0 temps
-L2698: 0 params, 0 locals, 0 temps
-L2702: 1 params, 0 locals, 0 temps
-L2706: 0 params, 0 locals, 0 temps
 should be 1: 1
 should be 1: 1
 should be 1: 1

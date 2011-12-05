@@ -1,4 +1,3 @@
-entry: var params, 3 locals, 0 temps
 falling through
 ok
 error: attempt to fall through to a @match

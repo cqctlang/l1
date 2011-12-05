@@ -1,2 +1,1 @@
-entry: var params, 10 locals, 0 temps
 NEWTYPE (*)[4]

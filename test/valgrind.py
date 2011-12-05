@@ -24,7 +24,7 @@ if not os.path.exists(valgrind):
 suppress = ' --suppressions=./pthread-suppression'
 vgopt = ' -q --show-reachable=yes --leak-check=full'+suppress
 #vgopt = ' -q --tool=exp-ptrcheck'
-l1 = ' ../l1 -w -b '
+l1 = ' ../l1 -w '
 cmd = valgrind+vgopt+l1
 
 for m in glob.glob('[A-Za-z0-9]*.l1'):

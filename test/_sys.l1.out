@@ -1,26 +1,4 @@
 _sys.l1:59: warning: unused variable: c
-entry: var params, 12 locals, 1 temps
-L137: var params, 9 locals, 0 temps
-L247: 1 params, 5 locals, 0 temps
-L268: 3 params, 8 locals, 0 temps
-L298: 3 params, 7 locals, 0 temps
-L336: 3 params, 6 locals, 0 temps
-L359: 2 params, 8 locals, 0 temps
-L436: 1 params, 7 locals, 0 temps
-L506: 6 params, 8 locals, 0 temps
-L537: 6 params, 8 locals, 0 temps
-L568: 3 params, 5 locals, 0 temps
-L589: 2 params, 5 locals, 0 temps
-L610: 3 params, 5 locals, 0 temps
-L631: 3 params, 6 locals, 0 temps
-L673: 3 params, 6 locals, 0 temps
-L715: 2 params, 5 locals, 0 temps
-L736: 3 params, 7 locals, 0 temps
-L831: 1 params, 5 locals, 0 temps
-L852: 0 params, 5 locals, 0 temps
-L873: 0 params, 5 locals, 0 temps
-L894: 0 params, 5 locals, 0 temps
-entry: 0 params, 2 locals, 0 temps
 opening...
 fd: 3
 writing...

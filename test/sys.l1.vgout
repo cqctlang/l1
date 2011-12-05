@@ -1,39 +1,3 @@
-entry: var params, 12 locals, 1 temps
-L137: var params, 9 locals, 0 temps
-L247: 1 params, 5 locals, 0 temps
-L268: 3 params, 8 locals, 0 temps
-L298: 3 params, 7 locals, 0 temps
-L336: 3 params, 6 locals, 0 temps
-L359: 2 params, 8 locals, 0 temps
-L436: 0 params, 3 locals, 0 temps
-L452: 2 params, 8 locals, 0 temps
-L482: 2 params, 9 locals, 0 temps
-L515: 6 params, 16 locals, 0 temps
-L784: 1 params, 0 locals, 0 temps
-L790: 1 params, 0 locals, 0 temps
-L796: 1 params, 0 locals, 0 temps
-L844: 1 params, 0 locals, 0 temps
-L855: 1 params, 0 locals, 0 temps
-L866: 1 params, 0 locals, 0 temps
-L880: 5 params, 0 locals, 0 temps
-L884: 1 params, 7 locals, 0 temps
-L954: 6 params, 8 locals, 0 temps
-L985: 6 params, 8 locals, 0 temps
-L1016: 3 params, 5 locals, 0 temps
-L1037: 2 params, 5 locals, 0 temps
-L1058: 3 params, 5 locals, 0 temps
-L1079: 3 params, 6 locals, 0 temps
-L1121: 3 params, 6 locals, 0 temps
-L1163: 2 params, 5 locals, 0 temps
-L1184: 3 params, 7 locals, 0 temps
-L1279: 1 params, 5 locals, 0 temps
-L1300: 0 params, 5 locals, 0 temps
-L1321: 0 params, 5 locals, 0 temps
-L1342: 0 params, 5 locals, 0 temps
-L1363: 1 params, 5 locals, 0 temps
-L1384: 2 params, 5 locals, 0 temps
-L1405: 1 params, 9 locals, 0 temps
-entry: 0 params, 2 locals, 0 temps
 opening...
 fd: 3
 writing...

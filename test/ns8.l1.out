@@ -1,4 +1,3 @@
-entry: var params, 12 locals, 0 temps
 error: circular definition in name space: typedef X
              mknsraw	(builtin function)
                entry	(ns8.l1:9)

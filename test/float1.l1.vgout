@@ -3,13 +3,6 @@ float1.l1:14: warning: assignment to unbound variable: z
 float1.l1:20: warning: assignment to unbound variable: z
 float1.l1:26: warning: assignment to unbound variable: z
 float1.l1:34: warning: assignment to unbound variable: y
-entry: var params, 4 locals, 0 temps
-fmt: 1 params, 0 locals, 0 temps
-add: 2 params, 1 locals, 0 temps
-sub: 2 params, 1 locals, 0 temps
-mul: 2 params, 1 locals, 0 temps
-div: 2 params, 1 locals, 0 temps
-alu: 1 params, 4 locals, 0 temps
 double 1.500000 + double 2.500000 => double 4.000000
 double 1.500000 + int 2 => double 3.500000
 int 1 + double 2.500000 => double 3.500000

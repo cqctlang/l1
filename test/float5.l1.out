@@ -1,9 +1,3 @@
-entry: var params, 2 locals, 0 temps
-fmt: 1 params, 0 locals, 0 temps
-lt: 2 params, 1 locals, 0 temps
-gt: 2 params, 1 locals, 0 temps
-eq: 2 params, 1 locals, 0 temps
-alu: 1 params, 5 locals, 0 temps
 double 1.500000 < double 2.500000 => 1
 double 1.500000 < int 2 => 1
 int 1 < double 2.500000 => 1

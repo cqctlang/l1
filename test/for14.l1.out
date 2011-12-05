@@ -1,4 +1,2 @@
 for14.l1:5: warning: assignment to unbound variable: i
-entry: var params, 1 locals, 0 temps
-f: 1 params, 3 locals, 0 temps
 <nil>

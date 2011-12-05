@@ -1,29 +1,10 @@
-entry: var params, 1 locals, 0 temps
 <eval-input>:5: warning: assignment to unbound variable: n
 <eval-input>:16: warning: reference to unbound variable: n
-entry: 0 params, 0 locals, 0 temps
-f: 1 params, 2 locals, 0 temps
-g: 0 params, 0 locals, 0 temps
 n is local
 <eval-input>:5: warning: assignment to unbound variable: n
 <eval-input>:16: warning: reference to unbound variable: n
-entry: 0 params, 0 locals, 0 temps
-f: 1 params, 2 locals, 0 temps
-g: 0 params, 0 locals, 0 temps
 n is local
-entry: 0 params, 0 locals, 0 temps
-f: 1 params, 1 locals, 0 temps
-g: 0 params, 0 locals, 0 temps
 n is global
-entry: 0 params, 0 locals, 0 temps
-f: 1 params, 1 locals, 0 temps
-g: 0 params, 0 locals, 0 temps
 n is global
-entry: 0 params, 0 locals, 0 temps
-f: 1 params, 1 locals, 0 temps
-g: 0 params, 0 locals, 0 temps
 n is global
-entry: 0 params, 0 locals, 0 temps
-f: 1 params, 1 locals, 0 temps
-g: 0 params, 0 locals, 0 temps
 n is global

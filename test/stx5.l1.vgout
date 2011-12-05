@@ -1,6 +1,3 @@
-entry: 0 params, 0 locals, 0 temps
-L3: 3 params, 0 locals, 0 temps
-entry: var params, 8 locals, 1 temps
 p is struct X * 0x0
 q is int * 0x4
 r is struct X * 0x0
