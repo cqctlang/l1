@@ -2,6 +2,8 @@
 @global unix;
 @global linuxns;
 
+_unameres = nil;
+
 {
   @local u,r,a,o,w;
 
@@ -25,6 +27,8 @@
       // no direct syscalls for you
       printf("Unsupported OS: %a\n",[o,a,w]);
   }
+
+  _unameres = u;
 
 };
 
@@ -317,11 +321,36 @@ sys_exit = @lambda(status) {
 
 };
 
-sys_fork = @lambda() {
+@global sys_fork;
 
-  syscall(linuxns`fork);
+if(_unameres[0] == "Darwin") {
 
-};
+  sys_fork = @lambda() {
+    @local r,p;
+
+    r=syscall(linuxns`fork);
+    p=sys_getpid();
+
+    if(0 > r) {
+      return r;
+    } else if(r == p) {
+      // this is the child.
+      return 0;
+    } else {
+      return r;
+    }
+
+  };
+
+} else {
+
+  sys_fork = @lambda() {
+
+    syscall(linuxns`fork);
+
+  };
+
+}
 
 sys_getpid = @lambda() {
 
