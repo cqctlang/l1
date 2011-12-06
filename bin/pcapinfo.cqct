@@ -1,0 +1,19 @@
+#!/bin/bash
+  exec `which l1` -e main $0 "$@"
+!#
+
+@include <pcap.cqct>
+
+@define main(progname,args ...)
+{
+	if (length(args) != 1) {
+		printf("usage: pcapinfo <pcapfile>\n");
+		return 0;
+	}
+
+	pdom = mkpcapdom(listref(args, 0));
+	pcap_info(pdom);
+	pcap_dump(pdom);
+
+	return 0;
+}
