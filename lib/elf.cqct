@@ -110,37 +110,37 @@ elf_defined = 1;
 
 @define ELF32_ST_TYPE (val)
 {
-  return ((val) & 0xf);
+  return (val & 0xf);
 }
 
 @define ELF32_ST_INFO (bind, type)
 {
-  return (((bind) << 4) + ((type) & 0xf));
+  return (((bind) << 4) + ( type & 0xf));
 }
 
 @define ELF64_ST_BIND (val)
 {
-  return (((unsigned char) (val)) >> 4);
+  return (((unsigned char) val) >> 4);
 }
 
 @define ELF64_ST_TYPE (val)
 {
-  return ((val) & 0xf);
+  return (val & 0xf);
 }
 
 @define ELF64_ST_INFO (bind, type)
 {
-  return (((bind) << 4) + ((type) & 0xf));
+  return (((bind) << 4) + (type & 0xf));
 }
 
 @define ELF32_ST_VISIBILITY (o)
 {
-  return ((o) & 0x03);
+  return (o & 0x03);
 }
 
 @define ELF64_ST_VISIBILITY (o)
 {
-  return ((o) & 0x03);
+  return (o & 0x03);
 }
 
 @define ELF32_R_SYM (val)
@@ -150,12 +150,12 @@ elf_defined = 1;
 
 @define ELF32_R_TYPE (val)
 {
-  return ((val) & 0xff);
+  return (val & 0xff);
 }
 
 @define ELF32_R_INFO (sym, type)
 {
-  return (((sym) << 8) + ((type) & 0xff));
+  return (((sym) << 8) + (type & 0xff));
 }
 
 @define ELF64_R_SYM (val)
@@ -165,7 +165,7 @@ elf_defined = 1;
 
 @define ELF64_R_TYPE (val)
 {
-  return ((val) & 0xffffffff);
+  return (val & 0xffffffff);
 }
 
 @define ELF64_R_INFO (sym, type)
