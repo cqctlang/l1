@@ -56,7 +56,7 @@ printf("getpid() == sys_getpid() : %d\n",getpid() == sys_getpid());
 
 // test fork, getppid, exit all in one go
 {
-  @local p,c;
+  @local p;
   p=sys_getpid();
   if(!sys_fork()) {
     printf("child ppid == parent pid: %d\n",sys_getppid() == p);

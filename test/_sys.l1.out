@@ -1,4 +1,3 @@
-_sys.l1:59: warning: unused variable: c
 opening...
 fd: 3
 writing...
@@ -14,3 +13,5 @@ read 23 bytes...
 read equal? 1
 getpid() == sys_getpid() : 1
 child ppid == parent pid: 1
+child pgid == parent pid: 0
+setpgid works: 1
