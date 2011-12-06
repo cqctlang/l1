@@ -908,8 +908,8 @@ struct VM {
 
 extern char* S[];
 extern char* cbasename[];
-extern unsigned isfloat[Vnbase];
-extern unsigned isunsigned[Vnbase];
+extern unsigned isfloat[Vnallbase];
+extern unsigned isunsigned[Vnallbase];
 extern Imm repsize[Rnrep];
 extern char* tkindstr[];
 extern VM*   vms[];

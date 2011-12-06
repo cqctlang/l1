@@ -27,7 +27,7 @@ char *qname[Qnkind] = {
 	[Qvec]=		"vector",
 };
 
-unsigned isfloat[Vnbase] = {
+unsigned isfloat[Vnallbase] = {
 	[Vfloat] = 1,
 	[Vdouble] = 1,
 	[Vlongdouble] = 1,
@@ -36,7 +36,7 @@ unsigned isfloat[Vnbase] = {
 	[Vlongdoublex] = 1,
 };
 
-unsigned isunsigned[Vnbase] = {
+unsigned isunsigned[Vnallbase] = {
 	[Vbool] = 1,
 	[Vuchar] = 1,
 	[Vushort] = 1,
