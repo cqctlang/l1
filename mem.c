@@ -2265,7 +2265,11 @@ gclock(void *v)
 		}
 		fatal("lost track of locked object");
 	}else{
-		s->p = cons(cons(mkvalcval(0, 0, 1), h), s->p);
+		/* segment descriptor may move during allocation */
+		p = s->p;
+		p = cons(cons(mkvalcval(0, 0, 1), h), p);
+		s = a2s(h);
+		s->p = p;
 		s->nprotect++;
 		return h;
 	}
