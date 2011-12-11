@@ -91,6 +91,17 @@ l1_mkstxval(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_stxliftval(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stxliftval");
+	if(Vkind(argv[0]) == Qexpr)
+		*rv = argv[0];
+	else
+		l1_mkstxval(vm, argc, argv, rv);
+}
+
+static void
 l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Kind k;
@@ -218,6 +229,7 @@ fnstx(Env *env)
 	FN(mkstx);
 	FN(mkstxid);
 	FN(mkstxval);
+	FN(stxliftval);
 	FN(stxid);
 	FN(stxkind);
 	FN(stxref);

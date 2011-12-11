@@ -1,0 +1,5 @@
+// test dubious unquote value -> syntax lift
+e1 = #val(1);
+pp(#`{ #,e1; });
+e2 = 2;
+pp(#`{ #,e2; });

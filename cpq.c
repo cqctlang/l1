@@ -11,7 +11,8 @@ inquasi(U *ctx, Expr *e)
 		return 0;
 	switch(e->kind){
 	case Estxunquote:
-		return stxquasi(ctx, e->e1);
+		return putsrc(Zcall(G("stxliftval"), 1, stxquasi(ctx, e->e1)),
+			      e->src);
 	case Eid:
 		return putsrc(Zcall(G("mkstxid"), 1, Zval(e->aux)), e->src);
 	case Eval:
