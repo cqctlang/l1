@@ -8,7 +8,7 @@ hashqvstx(Expr *e)
 	u32 m;
 	m = Qexpr;
 	m = hashx(m, hashqvval(mkvalcid(e->skind)));
-	if(e->kind == Eid || e->kind == Ekon){
+	if(e->kind == Eid || e->kind == Eval){
 		m = hashx(m, hashqvval(e->aux));
 		return m;
 	}
@@ -31,7 +31,7 @@ eqvstx(Expr *a, Expr *b)
 	if(!eqvval(mkvalcid(a->skind), mkvalcid(b->skind)))
 		return 0;
 
-	if(a->kind == Eid || a->kind == Ekon)
+	if(a->kind == Eid || a->kind == Eval)
 		return eqvval(a->aux, b->aux);
 
 	if((a->e1 && !b->e1) || (!a->e1 && b->e1))
@@ -84,8 +84,8 @@ l1_mkstxval(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkstxval");
-	e = Zkon(argv[0]);
-	e->skind = mkcid0("kon");
+	e = Zval(argv[0]);
+	e->skind = mkcid0("val");
 	e->src = mksrcfake("(user syntax)");
 	*rv = mkvalexpr(e);
 }
@@ -159,7 +159,7 @@ l1_stxval(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to stxval");
 	checkarg(vm, "stxval", argv, 0, Qexpr);
 	e = valexpr(argv[0]);
-	if(e->kind != Ekon)
+	if(e->kind != Eval)
 		vmerr(vm, "stxid on non-literal syntax");
 	*rv = e->aux;
 }

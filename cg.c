@@ -43,7 +43,7 @@ konsts(Expr *e, Ode *code)
 	switch(e->kind){
 	case Elambda:
 		return e;
-	case Ekon:
+	case Eval:
 		setaux(e, konval(code->konst, e->aux));
 		return e;
 	case Eelist:
@@ -881,7 +881,7 @@ cgrand(Operand *rand, Expr *e)
 	case Eid:
 		randvarloc(rand, e->xp, 1);
 		break;
-	case Ekon:
+	case Eval:
 		randkon(rand, e->aux);
 		break;
 	case Enil:
@@ -1408,7 +1408,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgctl(code, p, p->Return, nxt, e->src);
 		}
 		break;
-	/* can Eid/E_tid (and Ekon?) be rationalized with cgrand? */
+	/* can Eid/E_tid (and Eval?) be rationalized with cgrand? */
 	case E_tid:
 	case Eid:
 		i = nextinsn(code, e->src);
@@ -1417,7 +1417,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
-	case Ekon:
+	case Eval:
 		i = nextinsn(code, e->src);
 		i->kind = Imov;
 		randkon(&i->op1, e->aux);

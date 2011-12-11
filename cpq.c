@@ -13,12 +13,12 @@ inquasi(U *ctx, Expr *e)
 	case Estxunquote:
 		return stxquasi(ctx, e->e1);
 	case Eid:
-		return putsrc(Zcall(G("mkstxid"), 1, Zkon(e->aux)), e->src);
-	case Ekon:
-		return putsrc(Zcall(G("mkstxval"), 1, Zkon(e->aux)), e->src);
+		return putsrc(Zcall(G("mkstxid"), 1, Zval(e->aux)), e->src);
+	case Eval:
+		return putsrc(Zcall(G("mkstxval"), 1, Zval(e->aux)), e->src);
 	default:
 		return putsrc(Zcall(G("mkstx"), 5,
-				    Zkon(mkvalcid(mkcid0(S[e->kind]))),
+				    Zval(mkvalcid(mkcid0(S[e->kind]))),
 				    inquasi(ctx, e->e1) ?: Znil(),
 				    inquasi(ctx, e->e2) ?: Znil(),
 				    inquasi(ctx, e->e3) ?: Znil(),
@@ -62,7 +62,7 @@ stxquote(Expr *e)
 		return 0;
 	switch(e->kind){
 	case Estxquote:
-		return putsrc(Zkon(mkvalexpr(e->e1)), e->src);
+		return putsrc(Zval(mkvalexpr(e->e1)), e->src);
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

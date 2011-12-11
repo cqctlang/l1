@@ -162,7 +162,7 @@ copyexpr(Expr *e)
 	ne->src = e->src;
 	switch(e->kind){
 	case Eid:
-	case Ekon:
+	case Eval:
 		ne->aux = e->aux;
 		break;
 	default:
@@ -532,7 +532,7 @@ doconst(U *ctx, char *s, unsigned long len)
 	lit.base = 0;
 	if(0 != parselit(s, len, &lit, 0, &err))
 		parseerror(ctx, err);
-	e = Zkon(mkvallitcvalenc(lit.base, lit.v));
+	e = Zval(mkvallitcvalenc(lit.base, lit.v));
 	e->src = mksrc(&ctx->inp->src);
 	return e;
 }
@@ -540,7 +540,7 @@ doconst(U *ctx, char *s, unsigned long len)
 Expr*
 dosym(char *s, unsigned long len)
 {
-	return Zkon(mkvalcid(mkcid(s+1, len-1)));
+	return Zval(mkvalcid(mkcid(s+1, len-1)));
 }
 
 Expr*

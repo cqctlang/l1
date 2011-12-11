@@ -6,7 +6,7 @@
 		if(e == nil)
 			return e;
 		switch(stxkind(e)){
-		case 'kon:
+		case 'val:
 		case 'id:
 			return e;
 		case 'break:

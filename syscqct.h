@@ -88,7 +88,6 @@ enum{
 	Egt,
 	Eid,
 	Eif,
-	Ekon,
 	Elabel,
 	Elambda,
 	Elapply,
@@ -142,6 +141,7 @@ enum{
 	Eunot,
 	Euplus,
 	Eutwiddle,
+	Eval,
 	Ewhile,
 	Excast,
 
@@ -278,7 +278,7 @@ struct Expr {
 	Expr *e2;
 	Expr *e3;
 	Expr *e4;
-	Val aux;		/* Eid, Ekon */
+	Val aux;		/* Eid, Eval */
 	char attr;		/* disambiguation attribute */
 
 	/* source */
@@ -1258,7 +1258,6 @@ Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
 Expr*		Zint(Imm val);
 Expr*		Zgoto(char *l);
 Expr*		Zgotosrc(Ysrc *src, Expr *id);
-Expr*		Zkon(Val v);
 Expr*		Zlabel(char *l);
 Expr*		Zlabelsrc(Src src, Expr *id, Expr *s);
 Expr*		Zlambda(Expr *args, Expr *body);
@@ -1280,6 +1279,7 @@ Expr*		Zsub(Expr *x, Expr *y);
 Expr*		Ztg(char *id, Expr *e);
 Expr*		Ztid(char *id);
 Expr*		Zuint(Imm val);
+Expr*		Zval(Val v);
 int		hasvarg(Expr *e);
 Expr*		Zvararg(Expr *id);
 Expr*		Zxcast(Expr *type, Expr *cval);

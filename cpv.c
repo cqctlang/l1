@@ -59,7 +59,7 @@ issimple(Expr *e)
 {
 	return (e->kind == Eid
 		|| e->kind == E_tid
-		|| e->kind == Ekon
+		|| e->kind == Eval
 		|| e->kind == Enil);
 }
 

@@ -126,9 +126,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 		}
 		else if(!strcmp(id, "val")){
 			l = elistlen(p);
-			if(l < 1)
-				bug(); /* or maybe cerror */
-			if(strcmp(idsym(pat->e2->e1), "_") != 0)
+			if(l >= 1 && strcmp(idsym(pat->e2->e1), "_") != 0)
 				m->check = Zand(m->check,
 						Zbinop(Eeq,
 						       Zcall(doid("stxval"), 1,

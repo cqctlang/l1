@@ -575,7 +575,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			if(fmtputs0(vm, f, ")"))
 				return -1;
 			break;
-		case Ekon:
+		case Eval:
 			if(fmtputs0(vm, f, "#val("))
 				return -1;
 			if(fmtval(vm, f, e->aux))

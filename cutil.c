@@ -254,19 +254,19 @@ Zletrec(Expr *binds, Expr *body)
 Expr*
 Zconst(Cbase base, Imm val)
 {
-	return Zkon(mkvallitcval(base, val));
+	return Zval(mkvallitcval(base, val));
 }
 
 Expr*
 Zstr(char *s)
 {
-	return Zkon(mkvalstr(mkstr0(s)));
+	return Zval(mkvalstr(mkstr0(s)));
 }
 
 Expr*
 Zstrn(char *s, Imm len)
 {
-	return Zkon(mkvalstr(mkstr(s, len)));
+	return Zval(mkvalstr(mkstr(s, len)));
 }
 
 Expr*
@@ -475,7 +475,7 @@ Zid2sym(Expr *e)
 	Expr *r;
 	if(e->kind != Eid)
 		fatal("bug");
-	r = Zkon(e->aux);
+	r = Zval(e->aux);
 	putsrc(r, e->src);
 	return r;
 }
@@ -493,10 +493,10 @@ Zids2syms(Expr *l)
 }
 
 Expr*
-Zkon(Val v)
+Zval(Val v)
 {
 	Expr *e;
-	e = newexpr(Ekon, 0, 0, 0, 0);
+	e = newexpr(Eval, 0, 0, 0, 0);
 	if(v == 0)
 		fatal("bug");
 	e->aux = v;

@@ -79,7 +79,6 @@ char* S[] = {
 	[Egt] =		"gt",
 	[Eid] =		"id",
 	[Eif] =		"if",
-	[Ekon] =	"kon",
 	[Elabel] =	"label",
 	[Elambda] =	"lambda",
 	[Eland] =	"land",
@@ -133,6 +132,7 @@ char* S[] = {
 	[Eunot] =	"unot",
 	[Euplus] =	"uplus",
 	[Eutwiddle] =	"utwiddle",
+	[Eval] =	"val",
 	[Ewhile] =	"while",
 	[Excast] =	"xcast",
 
@@ -175,8 +175,8 @@ printexpr(Expr *e)
 	Expr *p;
 
 	switch(e->kind){
-	case Ekon:
-		xprintf("(Ekon ");
+	case Eval:
+		xprintf("(Eval ");
 		printkon(e->aux);
 		xprintf(")");
 		break;
@@ -405,7 +405,7 @@ printcqct0(Expr *e, unsigned ni)
 	case Enil:
 		xprintf("nil");
 		break;
-	case Ekon:
+	case Eval:
 		printkon(e->aux);
 		break;
 	case Eid:

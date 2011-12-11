@@ -773,9 +773,9 @@ mkctypebasen(U *ctx, Expr *e)
 		p = p->e2;
 	}
 	if(b == Vvoid)
-		return Zkon(mkvalctype(mkctypevoid()));
+		return Zval(mkvalctype(mkctypevoid()));
 	else
-		return Zkon(mkvalctype(mkctypebase(b, Rundef)));
+		return Zval(mkvalctype(mkctypebase(b, Rundef)));
 }
 
 static Expr*
@@ -887,34 +887,34 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 		id = idsym(e->e1);
 		v = hgets(s->s, id, strlen(id));
 		if(v)
-			return Zkon(v);
+			return Zval(v);
 		v = mkvalctype(mkctypesu(Tstruct, valcid(e->e1->aux), 0, 0));
 		hputs(s->s, id, strlen(id), v);
-		return Zkon(v);
+		return Zval(v);
 	case Eunion:
 		id = idsym(e->e1);
 		v = hgets(s->u, id, strlen(id));
 		if(v)
-			return Zkon(v);
+			return Zval(v);
 		v = mkvalctype(mkctypesu(Tunion, valcid(e->e1->aux), 0, 0));
 		hputs(s->u, id, strlen(id), v);
-		return Zkon(v);
+		return Zval(v);
 	case Eenum:
 		id = idsym(e->e1);
 		v = hgets(s->e, id, strlen(id));
 		if(v)
-			return Zkon(v);
+			return Zval(v);
 		v = mkvalctype(mkctypeenum(valcid(e->e1->aux), 0, 0));
 		hputs(s->e, id, strlen(id), v);
-		return Zkon(v);
+		return Zval(v);
 	case Etypedef:
 		id = idsym(e->e1);
 		v = hgets(s->tid, id, strlen(id));
 		if(v)
-			return Zkon(v);
+			return Zval(v);
 		v = mkvalctype(mkctypedef(valcid(e->e1->aux), 0));
 		hputs(s->tid, id, strlen(id), v);
-		return Zkon(v);
+		return Zval(v);
 	case Ebase:
 		return putsrc(mkctypebasen(ctx, e), e->src);
 	case Eptr:
