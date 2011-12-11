@@ -1,0 +1,8 @@
+printf("%a\n", !0);
+printf("%a\n", !1);
+printf("%a\n", !nil);
+printf("%a\n", !"string");
+printf("%a\n", !printf);
+printf("%a\n", !litdom);
+
+
