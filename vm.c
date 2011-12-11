@@ -947,8 +947,8 @@ getvalrand(VM *vm, Operand *r)
 	switch(r->okind){
 	case Oloc:
 		return getval(vm, &r->u.loc);
-	case Okon:
-		v = r->u.kon;
+	case Oval:
+		v = r->u.val;
 		/* any mutable vals must be copied */
 		switch(Vkind(v)){
 		case Qstr:

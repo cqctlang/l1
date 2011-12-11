@@ -678,7 +678,7 @@ enum {
 
 enum {
 	Oloc = 0,
-	Okon,
+	Oval,
 	Oimm,
 	Onil,
 };
@@ -771,7 +771,7 @@ struct Operand {
 	u8 okind;
 	union{
 		Location loc;
-		Val kon;
+		Val val;
 		Imm imm;
 	} u;
 } Operand;
@@ -1047,7 +1047,7 @@ void		initcg(void);
 Closure*	mkapply(void);
 Closure*	panicthunk(void);
 void		printinsn(Insn *i);
-void		printkon(Val v);
+void		printval(Val v);
 void		resetlabels();
 
 /* xenv.c */

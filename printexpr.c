@@ -177,12 +177,12 @@ printexpr(Expr *e)
 	switch(e->kind){
 	case Eval:
 		xprintf("(Eval ");
-		printkon(e->aux);
+		printval(e->aux);
 		xprintf(")");
 		break;
 	case Eid:
 		xprintf("(%s ", S[e->kind]);
-		printkon(e->aux);
+		printval(e->aux);
 		xprintf(")");
 		break;
 	case Eelist:
@@ -238,7 +238,7 @@ printlocals(Expr *e, unsigned ni)
 		}else
 			xprintf(", ");
 		cnt++;
-		printkon(p->e1->aux);
+		printval(p->e1->aux);
 		p = p->e2;
 	}
 	if(cnt)
@@ -406,10 +406,10 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("nil");
 		break;
 	case Eval:
-		printkon(e->aux);
+		printval(e->aux);
 		break;
 	case Eid:
-		printkon(e->aux);
+		printval(e->aux);
 		break;
 	case E_tid:
 		xprintf("#");

@@ -271,7 +271,7 @@ regtos(Reg reg)
 
 /* lightweight val printer compared to fmtval, but does not require a VM */
 void
-printkon(Val v)
+printval(Val v)
 {
 	Cid *id;
 	Cval *cv;
@@ -389,8 +389,8 @@ printrand(Operand *r)
 			break;
 		}
 		break;
-	case Okon:
-		printkon(r->u.kon);
+	case Oval:
+		printval(r->u.val);
 		break;
 	case Oimm:
 		xprintf("%lu", r->u.imm);
@@ -418,8 +418,8 @@ setrelocrand(Code *c, Operand *r)
 {
 	void *a;
 	switch(r->okind){
-	case Okon:
-		a = &r->u.kon;
+	case Oval:
+		a = &r->u.val;
 		break;
 	case Oloc:
 		if(LOCKIND(r->u.loc.loc) != Ltopl
@@ -804,8 +804,8 @@ randloc(Operand *rand, Location* loc)
 static void
 randkon(Operand *rand, Val v)
 {
-	rand->okind = Okon;
-	rand->u.kon = v;
+	rand->okind = Oval;
+	rand->u.val = v;
 }
 
 static void
