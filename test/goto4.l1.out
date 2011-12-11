@@ -1,1 +1,2 @@
-goto4.l1:1: unused label: unusedlabel
+goto4.l1:1: warning: unused label: unusedlabel
+hi
