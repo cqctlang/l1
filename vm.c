@@ -6966,6 +6966,7 @@ cqctmkvm(Toplevel *top)
 		cqctflags['q'] = fq;
 		cqctflags['T'] = fT;
 		resetlabels();
+		envput(top->env, mkcid0("$$"), Xnil);  /* FIXME: get rid of $$ */
 	}
 
 	/* vm is now callable */
