@@ -1676,10 +1676,10 @@ xunop(VM *vm, ikind op, Val v)
 	if(op == Inot){
 		if(Vkind(v) == Qcval)
 			goto cval;
-		if(Vkind(v) != Qnil)
-			vmerr(vm, "incompatible operand for unary %s",
-			      opstr[op]);
-		cvr = cval1;
+		else if(Vkind(v) == Qnil)
+			cvr = cval1;
+		else
+			cvr = cval0;
 		goto out;
 	}
 	if(Vkind(v) != Qcval)

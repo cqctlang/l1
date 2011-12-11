@@ -6,6 +6,7 @@ new function: mkstrm
 	range of memory in the calling process starting
 	at p.
 
-
-
-
+the definition of not is expanded to all values:
+  not(0)   -> 1
+  not(nil) -> 1
+  else     -> 0
