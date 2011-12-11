@@ -23,7 +23,7 @@ symn = 0;
 
 @define Zcons(h, t)
 {
-	return mkstx('elist, h, t);
+	return mkstx('elist, h, t, stxsrc(h));
 }
 
 @define Zreverse(l)
