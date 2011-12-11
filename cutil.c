@@ -52,6 +52,10 @@ cerror(U *ctx, Expr *e, char *fmt, ...)
 		cprintf(ctx->out, "%s:%u: ", srcfile(e->src), srcline(e->src));
 	else if(e)
 		cprintf(ctx->out, "<lost-location!>: ");
+	else if(ctx->inp)
+		cprintf(ctx->out, "%s:%u: ",
+			ctx->inp->src.filename,
+			ctx->inp->src.line);
 	va_start(args, fmt);
 	cvprintf(ctx->out, fmt, args);
 	cprintf(ctx->out, "\n");
