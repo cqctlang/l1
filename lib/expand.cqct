@@ -144,6 +144,7 @@ stxtab = mktab();
 		if(e == nil)
 			return e;
 		switch(stxkind(e)){
+		case 'stxquote:
 		case 'val:
 		case 'id:
 			return e;
