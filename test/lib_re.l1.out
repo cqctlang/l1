@@ -39,3 +39,8 @@ should be 5: 5
 should be -1: -1
 should be 5: 5
 should be 6: 6
+should be 12: 12
+should be 0: 0
+should be -1: -1
+should be 0: 0
+should be 5: 5

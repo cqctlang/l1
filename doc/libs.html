@@ -1084,6 +1084,11 @@ re_match("abc*d","abccccd"); //returns 1
 re_match("abc*d","accccd"); //returns 0
 re_match("abc*d","xxxabccccd"); //returns 0
 re_find("abc*d","xxxabccccd"); //returns 3 
+comp = re_create("abc*d"); //pre-compile the re
+re_match(comp,"abccccd"); //returns 1
+re_match(comp,"accccd"); //returns 0
+re_match(comp,"xxxabccccd"); //returns 0
+re_find(comp,"xxxabccccd"); //returns 3 
 </pre>
 </div>
 
@@ -1101,10 +1106,10 @@ re_find("abc*d","xxxabccccd"); //returns 3
 </div>
 <div class="desc">
     Allows one to create the DFA associated with a given regular expression.
-    These DFA can currently only be passed to the re_match function.
+    These DFA can currently be passed to the re_match or re_find functions.
     If one is doing multiple matches with the same RE, then it is recommended
     that one creates the DFA for that RE via this function, rather than forcing
-    re_match to re-create the DFA on each call.
+    re_match or re_find to re-create the DFA on each call.
 </div>
 </div>
 
@@ -1116,7 +1121,8 @@ re_find("abc*d","xxxabccccd"); //returns 3
 </div>
 <div class="param">
     <span class="arg">re</span>: 
-    <span class="type">string</span>
+    <span class="type">string</span> or
+    <span class="type">DFA</span> 
 </div>
 <div class="param">
 <span class="arg">str</span>: <span class="type">string</span> 
@@ -1126,9 +1132,11 @@ re_find("abc*d","xxxabccccd"); //returns 3
 </div>
 </div>
 <div class="desc">
-    This function take a string specifying a regular expression and a string to
-    search in and returns the index in the given string of the fist match of
-    the given regular expression, or -1 if no instances of the expression are found
+    This function take a regular expression (either as a string or as the DFA 
+    output
+    from <a href=#fn:re_create>re_create</a>) and a string and returns the
+    first index in the string that matches the regular expression,
+    or -1 if no instances of the expression are found
     in the given string.
 </div>
 </div>
