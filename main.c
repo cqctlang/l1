@@ -523,16 +523,14 @@ main(int argc, char *argv[])
 	top = cqctinit(lp, 0, xfd, 0);
 	while(nlp > 0)
 		free(lp[--nlp]);
-	if(opt['x']){
-		vm = cqctmkvm(top);
-		if(vm == 0){
-			cqctfini(top);
-			return -1;
-		}
-		memset(&sa, 0, sizeof(sa));
-		sa.sa_handler = sigint;
-		sigaction(SIGINT, &sa, 0);
+	vm = cqctmkvm(top);
+	if(vm == 0){
+		cqctfini(top);
+		return -1;
 	}
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = sigint;
+	sigaction(SIGINT, &sa, 0);
 
 	if(dorepl){
 		if(setvbuf(stdin, 0, _IONBF, 0))
@@ -642,8 +640,7 @@ main(int argc, char *argv[])
 		exit(0);
 
 	free(valv);
-	if(opt['x'])
-		cqctfreevm(vm);
+	cqctfreevm(vm);
 	cqctfini(top);
 
 	return status;
