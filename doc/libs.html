@@ -23,6 +23,7 @@
 <a href="#lib:nsgraph.cqct">nsgraph</a><br />
 <a href="#lib:nsutil.cqct">nsutil</a><br />
 <a href="#lib:re.cqct">Regular Expression Library</a><br />
+<a href="#lib:rbtree.cqct">Red Black Tree</a><br />
 <a href="#lib:snames.cqct">snames</a><br />
 <a href="#lib:snamesclt.cqct">snamesclt</a><br />
 <a href="#lib:gdb.cqct">gdb</a><br />
@@ -1163,6 +1164,226 @@ re_find(comp,"xxxabccccd"); //returns 3
     This function take a regular expression (either as a string or as the DFA output
     from <a href=#fn:re_create>re_create</a>) and a string and returns 1 if
     the regular expression matches the <it>entire</it> string. Otherwise 0 is returned.
+</div>
+</div>
+
+<h5 id="lib:rbtree.cqct">rbtree.cqct</h5>
+
+<span class="id">rbtree.cqct</span> provides an API for red black trees.
+Red black trees are balanced and provide O(n) insertion, deletion, and
+querying. 
+
+<div class="docitem" id="fn:rbtree_create">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_create(<span class="arg">compare</span>)</span>
+</div>
+<div class="param">
+    <span class="arg">compare</span>: 
+    <span class="type">function</span> 
+</div>
+<div class="returns">
+<span class="type">rbtree</span>
+</div>
+</div>
+<div class="desc">
+    This function take a comparison function and returns an rbtree object,
+    that can be used in the rbtree_* functions below. The comparison function
+    takes two objects and returns an integer which is negative if the
+    first object is smaller than the second, positive if the first object
+    is larger than the second, and zero if the objects are equal.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_delete">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_delete(
+        <span class="arg">tree</span>,
+        <span class="arg">key</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">key</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="returns">
+<span class="type">bool</span>
+</div>
+</div>
+<div class="desc">
+    This function removes the key and its associated data from the
+    given rbtree. If multiple associations exist, an arbitrary one
+    is removed. It returns 1 if it was able to successfully remove
+    something, and 0 otherwise.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_enumerate">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_enumerate(<span class="arg">tree</span>)</span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+    This function returns a list of all [key,data] pairs in the
+    given tree ordered by key according to the tree's compare function.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_foreach">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_foreach(
+        <span class="arg">tree</span>,
+        <span class="arg">fn</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">fn</span>: 
+    <span class="type">function</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+    This function runs the given function fn on each key/data association
+    in the given rbtree. It is required that fn <i>does not</i> modify
+    the given rbtree.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_insert">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_insert(
+        <span class="arg">tree</span>,
+        <span class="arg">key</span>,
+        <span class="arg">data</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">key</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="param">
+    <span class="arg">data</span>: 
+    <span class="type">anything</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+    This function associates the given key with the given data in
+    the given rbtree. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_print">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_print(
+        <span class="arg">tree</span>
+        [,<span class="arg">fd</span>])
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">fd</span>: 
+    <span class="type">file descriptor</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+    This function prints a text version of the rbtree to fd (stdout
+    if fd is not provided). It uses "%a" to print both the key and
+    the data.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_query">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_query(
+        <span class="arg">tree</span>,
+        <span class="arg">key</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">key</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="returns">
+<span class="type">nil or anything</span>
+</div>
+</div>
+<div class="desc">
+    This function returns the data associated with the given key in
+    the given rbtree. If multiple data are associated with a given
+    key, then an arbitrary one is returned. If the key is not found
+    in the tree, then nil is returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_rangequery">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_rangequery(
+        <span class="arg">tree</span>,
+        <span class="arg">lower</span>,
+        <span class="arg">upper</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">lower</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="param">
+    <span class="arg">upper</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+    This function returns a list of [key,data] pairs stored in the
+    given tree where the key greater than or equal to lower and strictly
+    less than upper. 
 </div>
 </div>
 

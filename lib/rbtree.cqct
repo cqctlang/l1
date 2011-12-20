@@ -1,0 +1,543 @@
+
+
+@global rbtree_defined;
+
+if (rbtree_defined == nil)
+{
+@local rbtree_insert_helper,debug;
+@local rotate_left,rotate_right,uncle,sibling,grandparent;
+@local insert_case1,insert_case2,insert_case3,insert_case4,insert_case5;
+@local rbtreenode_print,rbtreenode_iter;
+@local delete_case1,delete_case2,delete_case3,delete_case4;
+@local delete_case5,delete_case6;
+@local rbtreenode_getmin,rbtreenode_getmax;
+@local rbtree_query_helper,rbtree_checktree_countblack;
+@local rbtree_getnode_internal,rbtree_delete_node,replace_node;
+@local rbtree_rangequery_helper;
+
+//globals exported by this module
+@global rbtree_create,rbtree_insert,rbtree_print,rbtree_delete;
+@global rbtree_checktree,rbtree_query,rbtree_enumerate;
+@global rbtree_rangequery,rbtree_foreach;
+
+rbtree_defined = 1;
+
+debug = 0;
+
+@record rbnode{key,data,red,left,right,parent};
+
+//root.left is the actual root of the tree,
+@record rbtree{compare,root};
+
+@define rbtree_create(compare) {
+    return rbtree(compare,rbnode(nil,nil,nil,nil,nil,nil));
+}
+
+
+//Will rotate the following tree:
+//              n1 
+//            /   \  
+//           n2   ... (n2 is left or right)
+//          / \   
+//        n3   n4
+//            / \
+//          n5   n6
+// to 
+//              n1 
+//            /   \  
+//           n4   ... (n4 is left or right)
+//          / \   
+//        n2   n6
+//       /  \    
+//      n3  n5   
+// node is n2
+@define rotate_left(node) {
+    @local n1,n2,n4,n5;
+    if (node == nil) error("node should not be nil!");
+    n1 = node.parent;
+    if (n1 == nil) error("parent node should not be nil!");
+    n2 = node;
+    n4 = node.right;
+    if (n4 == nil) error("attempt to rotate through child node");
+    n5 = n4.left;
+    if (eq(n1.right,n2)) n1.right = n4;
+    else n1.left = n4;
+    n4.parent = n1;
+    n4.left = n2;
+    n2.parent = n4;
+    //n6 stays n4.right
+    //n3 stays n2.left
+    n2.right = n5;
+    if (n5 != nil) n5.parent = n2;
+}
+
+//Will rotate the following tree:
+//              n1 
+//            /   \  
+//           n2   ... (n2 is left or right)
+//          / \   
+//         n4  n3
+//        / \
+//      n5   n6
+// to 
+//              n1 
+//            /   \  
+//           n4   ... (n4 is left or right)
+//          / \   
+//        n5   n2
+//            /  \    
+//          n6   n3  
+// in all of these, node is n2
+@define rotate_right(node) {
+    @local n1,n2,n4,n6;
+    if (node == nil) error("node should not be nil!");
+    n1 = node.parent;
+    if (n1 == nil) error("parent node should not be nil!");
+    n2 = node;
+    n4 = node.left;
+    if (n4 == nil) error("attempt to rotate through child node");
+    n6 = n4.right;
+    if (eq(n1.right,n2)) n1.right = n4;
+    else n1.left = n4;
+    n4.parent = n1;
+    n4.right = n2;
+    n2.parent = n4;
+    //n5 stays n4.left
+    //n3 stays n2.right
+    n2.left = n6;
+    if (n6 != nil) n6.parent = n2;
+}
+
+
+//using the wikipedia article on Red-black trees:
+//http://en.wikipedia.org/wiki/Red%E2%80%93black_tree
+@define grandparent(node) {
+    if (node == nil) return nil;
+    if (node.parent == nil) return nil;
+    return node.parent.parent;
+}
+@define uncle(node) {
+    @local g;
+    g = grandparent(node);
+    if (g == nil) return nil;
+    if (eq(node.parent,g.left)) return g.right;
+    return g.left;
+}
+
+@define insert_case1(node) {
+    if (debug) printf("insert_case1\n");
+    if (node.parent.key == nil) node.red = 0;
+    else insert_case2(node);
+}
+@define insert_case2(node) {
+    if (debug) printf("insert_case2\n");
+    if (node.parent.red) insert_case3(node);
+    //else we're done.
+}
+@define insert_case3(node) {
+    @local u,g;
+    if (debug) printf("insert_case3\n");
+    u = uncle(node);
+    if (u == nil || !u.red) insert_case4(node);
+    else {
+        node.parent.red = 0;
+        u.red = 0;
+        g = grandparent(node);
+        g.red = 1;
+        insert_case1(g);
+    }
+}
+@define insert_case4(node) {
+    @local g;
+    if (debug) printf("insert_case4\n");
+    g = grandparent(node);
+    if (eq(node,node.parent.right) && eq(node.parent,g.left)) {
+        rotate_left(node.parent);
+        node = node.left;
+    } else if (eq(node,node.parent.left) && eq(node.parent,g.right)) {
+        rotate_right(node.parent);
+        node = node.right;
+    }
+    //now it should be the case that either
+    //(1) node is node.parent.left and node.parent is g.left or
+    //(1) node is node.parent.right and node.parent is g.right
+    insert_case5(node);
+}
+@define insert_case5(node) {
+    @local g;
+    if (debug) printf("insert_case5\n");
+    g = grandparent(node);
+    node.parent.red = 0;
+    g.red = 1;
+    if (eq(node,node.parent.left) && eq(node.parent,g.left))
+        rotate_right(g);
+    else if (eq(node,node.parent.right) && eq(node.parent,g.right))
+        rotate_left(g);
+    else error("invalid parameters to case 5\n");
+}
+
+
+@define rbtree_insert(tree,key,data) {
+    @local node;
+    if (debug) printf("Inserting %a %a\n",key,data);
+    node = rbnode(key,data,1,nil,nil,nil);
+    if (tree.root.left == nil) {
+        tree.root.left = node;
+        node.red = 0;
+        node.parent = tree.root;
+        return 0;
+    }
+    rbtree_insert_helper(tree.compare,tree.root.left,node);
+    if (debug) { 
+        printf("original tree:\n");
+        rbtree_print(tree);
+        printf("Running cases on %a %a\n",key,data);
+    }
+    insert_case1(node);
+}
+
+//standard tree insertion (ignoring color)
+//returns 1 is successful, 0 if not (because another
+//node was found in the tree containing the same value)
+//treenode is expected to not be nil.
+@define rbtree_insert_helper(compare,treenode,node) {
+    @local comp;
+    comp = compare(treenode.key,node.key);
+    if (comp <= 0) {
+        if (treenode.left == nil) {
+            node.parent = treenode;
+            treenode.left = node;
+            return 1;
+        } else return rbtree_insert_helper(compare,treenode.left,node);
+    } else if (comp > 0) {
+        if (treenode.right == nil) {
+            node.parent = treenode;
+            treenode.right = node;
+            return 1;
+        } else return rbtree_insert_helper(compare,treenode.right,node);
+    } else //this key is already represented in this tree
+        return 0;
+}
+
+@define rbtreenode_print(node,fd,depth) {
+    @local padding;
+    if (node == nil) return;
+    padding = mkstr(depth);
+    memset(padding,' ');
+    fprintf(fd,"%s%a: %a %d\n",padding,node.key,node.data,node.red);
+    if (node.left != nil) {
+        fprintf(fd,"%sleft\n",padding);
+        rbtreenode_print(node.left,fd,depth+1);
+    }
+    if (node.right != nil) {
+        fprintf(fd,"%sright\n",padding);
+        rbtreenode_print(node.right,fd,depth+1);
+    }
+}
+
+@define rbtree_print(tree,fd...) {
+    if (length(fd) > 0) fd = fd[0];
+    else fd = stdout;
+    rbtreenode_print(tree.root.left,fd,0);
+}
+
+@define sibling(n) {
+        if (eq(n,n.parent.left)) return n.parent.right;
+        else return n.parent.left;
+}
+@define replace_node(orig,new) {
+    if (new != nil) {
+        new.parent = orig.parent;
+        new.left = orig.left;
+        new.right = orig.right;
+    }
+    if (eq(orig.parent.left,orig)) orig.parent.left = new;
+    else orig.parent.right = new;
+}
+
+@define delete_case1(n) {
+    if (debug) {
+        printf("delete_case1 %a\n",n);
+        rbtreenode_print(n,stdout,0);
+    }
+    if (n.parent.key == nil) return 0;
+    delete_case2(n);
+}
+@define delete_case2(n) {
+    @local s;
+    if (debug) printf("delete_case2 %a\n",n);
+    s = sibling(n);
+    if (s != nil && s.red) {
+        n.parent.red = 1;
+        s.red = 0;
+        if (eq(n,n.parent.left)) rotate_left(n.parent);
+        else rotate_right(n.parent);
+    }
+    delete_case3(n);
+}
+@define delete_case3(n) {
+    @local s;
+    if (debug) printf("delete_case3 %a\n",n);
+    s = sibling(n);
+    if (!n.parent.red &&
+        !s.red &&
+        (s.left == nil || !s.left.red) &&
+        (s.right == nil || !s.right.red))
+    {
+        s.red = 1;
+        delete_case1(n.parent);
+    } else delete_case4(n);
+}
+@define delete_case4(n) {
+    @local s;
+    if (debug) printf("delete_case4\n");
+    s = sibling(n);
+    if (n.parent.red &&
+        !s.red &&
+        (/* implied s.left == nil ||*/ !s.left.red) &&
+        (/* implied s.right == nil ||*/ !s.right.red))
+    {
+        s.red = 1;
+        n.parent.red = 0;
+    } else delete_case5(n);
+}
+@define delete_case5(n) {
+    @local s;
+    if (debug) printf("delete_case5\n");
+    s = sibling(n);
+    if (!s.red) {
+        if (eq(n,n.parent.left) &&
+            (s.right == nil || !s.right.red) &&
+            s.left != nil && s.left.red)
+        {
+            s.red = 1;
+            s.left.red = 0;
+            if (debug) printf("case 5 rotate right\n");
+            rotate_right(s);
+        } else if (eq(n,n.parent.right) &&
+                   (s.left == nil || !s.left.red) &&
+                   s.right != nil && s.right.red)
+        {
+            s.red = 1;
+            s.right.red = 0;
+            if (debug) printf("case 5 rotate left\n");
+            rotate_left(s);
+        }
+
+    }
+    delete_case6(n);
+}
+@define delete_case6(n) {
+    @local s;
+    if (debug) printf("delete_case6\n");
+    s = sibling(n);
+    if (s == nil) {
+        rbtreenode_print(n.parent,stdout,0);
+        error("expected unfound sibling");
+    }
+    s.red = n.parent.red;
+    n.parent.red = 0;
+    if (eq(n,n.parent.left)) {
+        if (s.right != nil) s.right.red = 0;
+        rotate_left(n.parent);
+    } else {
+        if (s.right != nil) s.left.red = 0;
+        rotate_right(n.parent);
+    }
+}
+@define rbtreenode_getmin(n) {
+    if (n == nil) return nil;
+    if (n.left != nil) return rbtreenode_getmin(n.left);
+    return n;
+}
+@define rbtreenode_getmax(n) {
+    if (n == nil) return nil;
+    if (n.right != nil) return rbtreenode_getmax(n.right);
+    return n;
+}
+@define rbtree_getnode_internal(compare,n,key) {
+    @local c;
+    if (n == nil) return nil;
+    c = compare(n.key,key);
+    if (c < 0) 
+        return rbtree_getnode_internal(compare,n.left,key);
+    else if (c > 0)
+        return rbtree_getnode_internal(compare,n.right,key);
+    //c == 0
+    return n;
+}
+
+//this function presumes at most one non-null child.
+@define rbtree_delete_node(tree,n) {
+    @local child;
+    if (debug) {
+        printf("deleting %a %a\n",n.key,n.data);
+        rbtreenode_print(n.parent,stdout,0);
+    }
+    child = n.right;
+    if (child == nil || (!child.red && n.left != nil && n.left.red))
+        child = n.left;
+    replace_node(n,child);
+    //ensure no self loops.
+    if (child != nil) {
+        if (eq(child,child.left)) child.left = nil;
+        else if (eq(child,child.right)) child.right = nil;
+    }
+    //if node was red, we're done.
+    if (n.red) return;
+    if (child != nil) {
+        if (child.red) child.red = 0;
+        else delete_case1(child);
+    } else {
+        @local p,s;
+        printf("null child case\n");
+        p = n.parent;
+        if (p.left == nil && p.right == nil) 
+            //we're fine, return
+            return;
+        //we're going to remove the parent from the tree entirely,
+        //rebalance if parent was black, then re-insert parent
+        //into the tree.
+        if (p.left == nil) {
+            s = p.right;
+            s.parent = p.parent;
+        } else {
+            s = p.left;
+            s.parent = p.parent;
+        }
+        if (eq(p.parent.right,p)) p.parent.right = s;
+        else p.parent.left = s;
+        if (!p.red)
+            //we've decreased the number of black nodes on the
+            //path containing n.parent
+            delete_case1(s);
+        rbtree_insert(tree,n.key,n.data);
+    }
+}
+
+@define rbtree_delete(tree,key) {
+    @local nd1,nd2,tmp;
+    nd1 = rbtree_getnode_internal(tree.compare,tree.root.left,key);
+    if (nd1 == nil) return 0;
+    if (nd1.left != nil && nd1.right != nil) {
+        nd2 = rbtreenode_getmax(nd1.left);
+        tmp = nd2.key;
+        nd2.key = nd1.key;
+        nd1.key = tmp;
+        tmp = nd2.data;
+        nd2.data = nd1.data;
+        nd1.data = tmp;
+        nd1 = nd2;
+    }
+    rbtree_delete_node(tree,nd1);
+    return 1;
+}
+
+@define rbtree_query_helper(compare,n,key) {
+    @local comp;
+    if (n == nil) return nil;
+    comp = compare(n.key,key);
+    if (comp < 0) return rbtree_query_helper(compare,n.left,key);
+    else if (comp > 0) return rbtree_query_helper(compare,n.right,key); 
+    return n.data;
+}
+
+@define rbtree_query(tree,key) {
+    return rbtree_query_helper(tree.compare,tree.root.left,key);
+}
+
+
+@define rbtree_rangequery_helper(compare,n,l,u,results) {
+    @local c_u,c_l;
+    if (n == nil) return results;
+    c_u = compare(n.key,u);
+    c_l = compare(n.key,l);
+    if (debug) printf("key %d l=%d (%d) u=%d (%d)\n",n.key,l,c_l,u,c_u);
+    //if key was smaller than u and larger than l, then include it
+    if (c_u < 0 && c_l >= 0) append(results,[n.key,n.data]);
+    //if the key is smaller than the lower bound, then nothing to
+    //the right can be included.
+    if (c_l >= 0) { 
+        //use tail-recursion when possible
+        if (c_u >= 0) 
+            return rbtree_rangequery_helper(compare,n.right,l,u,results);
+        else {
+            //need to search both directions.
+            results = rbtree_rangequery_helper(compare,n.right,l,u,results);
+            return rbtree_rangequery_helper(compare,n.left,l,u,results);
+        }
+    }
+    //if the key is larger than the upper bound, then nothing to the
+    //left can be included
+    if (c_u < 0)
+        return rbtree_rangequery_helper(compare,n.left,l,u,results);
+    return results;
+}
+
+@define rbtree_rangequery(tree,lower,upper) {
+    return rbtree_rangequery_helper(tree.compare,tree.root.left,lower,upper,[]);
+}
+
+@define rbtree_enumerate(tree) {
+    @local lst;
+    lst = [];
+    rbtreenode_iter(tree.root.left,@lambda(n) {
+        append(lst,[n.key,n.data]);
+    });
+    return lst;
+}
+
+//does an inorder traversal
+@define rbtreenode_iter(n,fn) {
+    if (n == nil) return;
+    rbtreenode_iter(n.left,fn);
+    fn(n);
+    rbtreenode_iter(n.right,fn);
+}
+
+@define rbtree_foreach(tree,fn) {
+    rbtreenode_iter(tree.root.left,@lambda(n) {
+        fn(n.key,n.data);
+    });
+}
+
+//returns the (max) number of black nodes in 
+//any path below (and including) this node.
+@define rbtree_checktree_countblack(node) {
+    @local c,tmp;
+    c = 0;
+    if (node == nil) return 0;
+    if (node.left != nil) {
+        if (eq(node.left,node)) error("equal left child!");
+        c = rbtree_checktree_countblack(node.left);
+    }
+    if (node.right != nil) {
+        if (eq(node.right,node)) error("equal right child!");
+        tmp = rbtree_checktree_countblack(node.right);
+        if (tmp > c) c = tmp;
+    }
+    if (!node.red) ++c;
+    return c;
+}
+@define rbtree_checktree(tree) {
+    @local ok;
+    ok = 1;
+    rbtreenode_iter(tree.root.left,@lambda(n) {
+        @local lc,rc;
+        if (ok != 1) return;
+        lc = rbtree_checktree_countblack(n.left);
+        rc = rbtree_checktree_countblack(n.right);
+        if (lc != rc) ok = n;
+        if (n.red && ((n.left != nil && n.left.red) || 
+                      (n.right != nil && n.right.red))) ok = n;
+    });
+    if (ok != 1) {
+        printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+        rbtreenode_print(ok,stdout,0);
+        error(sprintfa("bad checknode at %a %a",ok.key,ok.data));
+    }
+    return ok;
+}
+
+
+}

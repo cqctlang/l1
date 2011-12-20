@@ -1,0 +1,892 @@
+30: 300 0
+left
+ 70: 700 0
+ left
+  100: 1000 1
+  left
+   120: 1200 0
+   left
+    130: 1300 1
+   right
+    110: 1100 1
+  right
+   80: 800 0
+ right
+  50: 500 0
+  right
+   43: 430 1
+right
+ 20: 200 0
+ left
+  22: 220 0
+ right
+  10: 100 0
+  left
+   11: 110 1
+---------------------------------------
+removing 10
+30: 300 0
+left
+ 70: 700 0
+ left
+  100: 1000 1
+  left
+   120: 1200 0
+   left
+    130: 1300 1
+   right
+    110: 1100 1
+  right
+   80: 800 0
+ right
+  50: 500 0
+  right
+   43: 430 1
+right
+ 20: 200 0
+ left
+  22: 220 0
+ right
+  11: 110 0
+---------------------------------------
+removing 30
+43: 430 0
+left
+ 70: 700 0
+ left
+  100: 1000 1
+  left
+   120: 1200 0
+   left
+    130: 1300 1
+   right
+    110: 1100 1
+  right
+   80: 800 0
+ right
+  50: 500 0
+right
+ 20: 200 0
+ left
+  22: 220 0
+ right
+  11: 110 0
+---------------------------------------
+removing 50
+null child case
+43: 430 0
+left
+ 100: 1000 1
+ left
+  120: 1200 0
+  left
+   130: 1300 1
+  right
+   110: 1100 1
+ right
+  80: 800 0
+  right
+   50: 500 1
+right
+ 20: 200 1
+ left
+  22: 220 0
+ right
+  11: 110 0
+---------------------------------------
+removing 80
+43: 430 0
+left
+ 100: 1000 1
+ left
+  120: 1200 0
+  left
+   130: 1300 1
+  right
+   110: 1100 1
+ right
+  50: 500 0
+right
+ 20: 200 1
+ left
+  22: 220 0
+ right
+  11: 110 0
+---------------------------------------
+removing 20
+null child case
+43: 430 0
+left
+ 100: 1000 1
+ left
+  120: 1200 0
+  left
+   130: 1300 1
+  right
+   110: 1100 1
+ right
+  50: 500 0
+right
+ 11: 110 0
+ left
+  20: 200 1
+---------------------------------------
+removing 70
+43: 430 0
+left
+ 100: 1000 1
+ left
+  120: 1200 0
+  left
+   130: 1300 1
+  right
+   110: 1100 1
+ right
+  50: 500 0
+right
+ 11: 110 0
+ left
+  20: 200 1
+---------------------------------------
+removing 100
+43: 430 0
+left
+ 110: 1100 1
+ left
+  120: 1200 0
+  left
+   130: 1300 1
+ right
+  50: 500 0
+right
+ 11: 110 0
+ left
+  20: 200 1
+---------------------------------------
+removing 43
+null child case
+50: 500 0
+left
+ 120: 1200 0
+ left
+  130: 1300 1
+right
+ 20: 200 0
+ left
+  43: 430 1
+ right
+  11: 110 1
+---------------------------------------
+removing 22
+50: 500 0
+left
+ 120: 1200 0
+ left
+  130: 1300 1
+right
+ 20: 200 0
+ left
+  43: 430 1
+ right
+  11: 110 1
+---------------------------------------
+removing 11
+50: 500 0
+left
+ 120: 1200 0
+ left
+  130: 1300 1
+right
+ 20: 200 0
+ left
+  43: 430 1
+---------------------------------------
+removing 110
+50: 500 0
+left
+ 120: 1200 0
+ left
+  130: 1300 1
+right
+ 20: 200 0
+ left
+  43: 430 1
+---------------------------------------
+removing 120
+50: 500 0
+left
+ 130: 1300 0
+right
+ 20: 200 0
+ left
+  43: 430 1
+---------------------------------------
+removing 130
+null child case
+43: 430 0
+left
+ 130: 1300 1
+right
+ 20: 200 1
+43: 430 0
+left
+ 130: 1300 1
+right
+ 20: 200 1
+31: 961 0
+left
+ 47: 2209 0
+ left
+  63: 3969 1
+  left
+   71: 5041 0
+   left
+    79: 6241 1
+    left
+     87: 7569 0
+     left
+      91: 8281 1
+      left
+       95: 9025 0
+       left
+        97: 9409 1
+        left
+         98: 9604 0
+         left
+          99: 9801 1
+        right
+         96: 9216 0
+       right
+        93: 8649 1
+        left
+         94: 8836 0
+        right
+         92: 8464 0
+      right
+       89: 7921 0
+       left
+        90: 8100 0
+       right
+        88: 7744 0
+     right
+      83: 6889 1
+      left
+       85: 7225 0
+       left
+        86: 7396 0
+       right
+        84: 7056 0
+      right
+       81: 6561 0
+       left
+        82: 6724 0
+       right
+        80: 6400 0
+    right
+     75: 5625 0
+     left
+      77: 5929 0
+      left
+       78: 6084 0
+      right
+       76: 5776 0
+     right
+      73: 5329 0
+      left
+       74: 5476 0
+      right
+       72: 5184 0
+   right
+    67: 4489 0
+    left
+     69: 4761 0
+     left
+      70: 4900 0
+     right
+      68: 4624 0
+    right
+     65: 4225 0
+     left
+      66: 4356 0
+     right
+      64: 4096 0
+  right
+   55: 3025 0
+   left
+    59: 3481 0
+    left
+     61: 3721 0
+     left
+      62: 3844 0
+     right
+      60: 3600 0
+    right
+     57: 3249 0
+     left
+      58: 3364 0
+     right
+      56: 3136 0
+   right
+    51: 2601 0
+    left
+     53: 2809 0
+     left
+      54: 2916 0
+     right
+      52: 2704 0
+    right
+     49: 2401 0
+     left
+      50: 2500 0
+     right
+      48: 2304 0
+ right
+  39: 1521 0
+  left
+   43: 1849 0
+   left
+    45: 2025 0
+    left
+     46: 2116 0
+    right
+     44: 1936 0
+   right
+    41: 1681 0
+    left
+     42: 1764 0
+    right
+     40: 1600 0
+  right
+   35: 1225 0
+   left
+    37: 1369 0
+    left
+     38: 1444 0
+    right
+     36: 1296 0
+   right
+    33: 1089 0
+    left
+     34: 1156 0
+    right
+     32: 1024 0
+right
+ 15: 225 0
+ left
+  23: 529 0
+  left
+   27: 729 0
+   left
+    29: 841 0
+    left
+     30: 900 0
+    right
+     28: 784 0
+   right
+    25: 625 0
+    left
+     26: 676 0
+    right
+     24: 576 0
+  right
+   19: 361 0
+   left
+    21: 441 0
+    left
+     22: 484 0
+    right
+     20: 400 0
+   right
+    17: 289 0
+    left
+     18: 324 0
+    right
+     16: 256 0
+ right
+  7: 49 0
+  left
+   11: 121 0
+   left
+    13: 169 0
+    left
+     14: 196 0
+    right
+     12: 144 0
+   right
+    9: 81 0
+    left
+     10: 100 0
+    right
+     8: 64 0
+  right
+   3: 9 0
+   left
+    5: 25 0
+    left
+     6: 36 0
+    right
+     4: 16 0
+   right
+    1: 1 0
+    left
+     2: 4 0
+    right
+     0: 0 0
+removing 0
+null child case
+removing 1
+removing 2
+null child case
+removing 3
+null child case
+removing 4
+removing 5
+null child case
+removing 6
+removing 7
+null child case
+removing 8
+removing 9
+removing 10
+null child case
+removing 11
+null child case
+removing 12
+removing 13
+null child case
+removing 14
+removing 15
+null child case
+removing 16
+removing 17
+removing 18
+null child case
+removing 19
+null child case
+removing 20
+removing 21
+null child case
+removing 22
+removing 23
+null child case
+removing 24
+removing 25
+removing 26
+null child case
+removing 27
+null child case
+removing 28
+removing 29
+null child case
+removing 30
+removing 31
+null child case
+removing 32
+removing 33
+removing 34
+null child case
+removing 35
+null child case
+removing 36
+removing 37
+null child case
+removing 38
+removing 39
+null child case
+removing 40
+removing 41
+null child case
+removing 42
+removing 43
+null child case
+removing 44
+removing 45
+null child case
+removing 46
+removing 47
+null child case
+removing 48
+removing 49
+null child case
+removing 50
+removing 51
+null child case
+removing 52
+removing 53
+null child case
+removing 54
+removing 55
+null child case
+removing 56
+removing 57
+null child case
+removing 58
+removing 59
+removing 60
+removing 61
+null child case
+removing 62
+removing 63
+null child case
+removing 64
+removing 65
+removing 66
+null child case
+removing 67
+null child case
+removing 68
+removing 69
+removing 70
+null child case
+removing 71
+null child case
+removing 72
+removing 73
+removing 74
+null child case
+removing 75
+null child case
+removing 76
+removing 77
+removing 78
+null child case
+removing 79
+null child case
+removing 80
+removing 81
+null child case
+removing 82
+removing 83
+null child case
+removing 84
+removing 85
+removing 86
+null child case
+removing 87
+null child case
+removing 88
+removing 89
+null child case
+removing 90
+removing 91
+null child case
+removing 92
+removing 93
+removing 94
+null child case
+removing 95
+null child case
+removing 96
+removing 97
+null child case
+removing 98
+removing 99
+null child case
+56: 3136 0
+left
+ 72: 5184 0
+ left
+  80: 6400 0
+  left
+   88: 7744 0
+   left
+    92: 8464 1
+    left
+     94: 8836 0
+     left
+      98: 9604 1
+    right
+     90: 8100 0
+   right
+    84: 7056 1
+    left
+     86: 7396 0
+    right
+     82: 6724 0
+  right
+   76: 5776 0
+   left
+    78: 6084 0
+   right
+    74: 5476 0
+ right
+  64: 4096 0
+  left
+   68: 4624 0
+   left
+    71: 5041 0
+   right
+    66: 4356 0
+  right
+   60: 3600 0
+   left
+    63: 3969 0
+   right
+    58: 3364 0
+right
+ 15: 225 0
+ left
+  39: 1521 0
+  left
+   48: 2304 0
+   left
+    52: 2704 1
+    left
+     55: 3025 0
+    right
+     50: 2500 0
+   right
+    44: 1936 1
+    left
+     47: 2209 0
+    right
+     42: 1764 0
+  right
+   23: 529 1
+   left
+    26: 676 0
+    left
+     31: 961 1
+     left
+      34: 1156 0
+      left
+       36: 1296 1
+      right
+       32: 1024 1
+     right
+      28: 784 0
+    right
+     24: 576 0
+   right
+    18: 324 0
+    left
+     20: 400 0
+    right
+     16: 256 0
+ right
+  7: 49 0
+  left
+   11: 121 0
+   left
+    12: 144 0
+   right
+    8: 64 0
+  right
+   3: 9 0
+   left
+    4: 16 0
+   right
+    0: 0 0
+data stored for 0: 0
+data stored for 1: 1
+data stored for 2: 4
+data stored for 3: 9
+data stored for 4: 16
+data stored for 5: 25
+data stored for 6: 36
+data stored for 7: 49
+data stored for 8: 64
+data stored for 9: 81
+data stored for 10: 100
+data stored for 11: 121
+data stored for 12: 144
+data stored for 13: 169
+data stored for 14: 196
+data stored for 15: 225
+data stored for 16: 256
+data stored for 17: 289
+data stored for 18: 324
+data stored for 19: 361
+data stored for 20: 400
+data stored for 21: 441
+data stored for 22: 484
+data stored for 23: 529
+data stored for 24: 576
+data stored for 25: 625
+data stored for 26: 676
+data stored for 27: 729
+data stored for 28: 784
+data stored for 29: 841
+data stored for 30: 900
+data stored for 31: 961
+data stored for 32: 1024
+data stored for 33: 1089
+data stored for 34: 1156
+data stored for 35: 1225
+data stored for 36: 1296
+data stored for 37: 1369
+data stored for 38: 1444
+data stored for 39: 1521
+data stored for 40: 1600
+data stored for 41: 1681
+data stored for 42: 1764
+data stored for 43: 1849
+data stored for 44: 1936
+data stored for 45: 2025
+data stored for 46: 2116
+data stored for 47: 2209
+data stored for 48: 2304
+data stored for 49: 2401
+data stored for 50: 2500
+data stored for 51: 2601
+data stored for 52: 2704
+data stored for 53: 2809
+data stored for 54: 2916
+data stored for 55: 3025
+data stored for 56: 3136
+data stored for 57: 3249
+data stored for 58: 3364
+data stored for 59: 3481
+data stored for 60: 3600
+data stored for 61: 3721
+data stored for 62: 3844
+data stored for 63: 3969
+data stored for 64: 4096
+data stored for 65: 4225
+data stored for 66: 4356
+data stored for 67: 4489
+data stored for 68: 4624
+data stored for 69: 4761
+data stored for 70: 4900
+data stored for 71: 5041
+data stored for 72: 5184
+data stored for 73: 5329
+data stored for 74: 5476
+data stored for 75: 5625
+data stored for 76: 5776
+data stored for 77: 5929
+data stored for 78: 6084
+data stored for 79: 6241
+data stored for 80: 6400
+data stored for 81: 6561
+data stored for 82: 6724
+data stored for 83: 6889
+data stored for 84: 7056
+data stored for 85: 7225
+data stored for 86: 7396
+data stored for 87: 7569
+data stored for 88: 7744
+data stored for 89: 7921
+data stored for 90: 8100
+data stored for 91: 8281
+data stored for 92: 8464
+data stored for 93: 8649
+data stored for 94: 8836
+data stored for 95: 9025
+data stored for 96: 9216
+data stored for 97: 9409
+data stored for 98: 9604
+data stored for 99: 9801
+data stored for 100: <nil>
+data stored for 101: <nil>
+data stored for 102: <nil>
+data stored for 103: <nil>
+data stored for 104: <nil>
+data stored for range 0-3: [ [ 1, 1 ], [ 0, 0 ], [ 2, 4 ] ]
+data stored for range 1-4: [ [ 3, 9 ], [ 1, 1 ], [ 2, 4 ] ]
+data stored for range 2-5: [ [ 3, 9 ], [ 2, 4 ], [ 4, 16 ] ]
+data stored for range 3-6: [ [ 3, 9 ], [ 5, 25 ], [ 4, 16 ] ]
+data stored for range 4-7: [ [ 5, 25 ], [ 4, 16 ], [ 6, 36 ] ]
+data stored for range 5-8: [ [ 7, 49 ], [ 5, 25 ], [ 6, 36 ] ]
+data stored for range 6-9: [ [ 7, 49 ], [ 6, 36 ], [ 8, 64 ] ]
+data stored for range 7-10: [ [ 7, 49 ], [ 9, 81 ], [ 8, 64 ] ]
+data stored for range 8-11: [ [ 9, 81 ], [ 8, 64 ], [ 10, 100 ] ]
+data stored for range 9-12: [ [ 11, 121 ], [ 9, 81 ], [ 10, 100 ] ]
+data stored for range 10-13: [ [ 11, 121 ], [ 10, 100 ], [ 12, 144 ] ]
+data stored for range 11-14: [ [ 11, 121 ], [ 13, 169 ], [ 12, 144 ] ]
+data stored for range 12-15: [ [ 13, 169 ], [ 12, 144 ], [ 14, 196 ] ]
+data stored for range 13-16: [ [ 15, 225 ], [ 13, 169 ], [ 14, 196 ] ]
+data stored for range 14-17: [ [ 15, 225 ], [ 14, 196 ], [ 16, 256 ] ]
+data stored for range 15-18: [ [ 15, 225 ], [ 17, 289 ], [ 16, 256 ] ]
+data stored for range 16-19: [ [ 17, 289 ], [ 16, 256 ], [ 18, 324 ] ]
+data stored for range 17-20: [ [ 19, 361 ], [ 17, 289 ], [ 18, 324 ] ]
+data stored for range 18-21: [ [ 19, 361 ], [ 18, 324 ], [ 20, 400 ] ]
+data stored for range 19-22: [ [ 19, 361 ], [ 21, 441 ], [ 20, 400 ] ]
+data stored for range 20-23: [ [ 21, 441 ], [ 20, 400 ], [ 22, 484 ] ]
+data stored for range 21-24: [ [ 23, 529 ], [ 21, 441 ], [ 22, 484 ] ]
+data stored for range 22-25: [ [ 23, 529 ], [ 22, 484 ], [ 24, 576 ] ]
+data stored for range 23-26: [ [ 23, 529 ], [ 25, 625 ], [ 24, 576 ] ]
+data stored for range 24-27: [ [ 25, 625 ], [ 24, 576 ], [ 26, 676 ] ]
+data stored for range 25-28: [ [ 27, 729 ], [ 25, 625 ], [ 26, 676 ] ]
+data stored for range 26-29: [ [ 27, 729 ], [ 26, 676 ], [ 28, 784 ] ]
+data stored for range 27-30: [ [ 27, 729 ], [ 29, 841 ], [ 28, 784 ] ]
+data stored for range 28-31: [ [ 29, 841 ], [ 28, 784 ], [ 30, 900 ] ]
+data stored for range 29-32: [ [ 31, 961 ], [ 29, 841 ], [ 30, 900 ] ]
+data stored for range 30-33: [ [ 31, 961 ], [ 30, 900 ], [ 32, 1024 ] ]
+data stored for range 31-34: [ [ 31, 961 ], [ 33, 1089 ], [ 32, 1024 ] ]
+data stored for range 32-35: [ [ 33, 1089 ], [ 32, 1024 ], [ 34, 1156 ] ]
+data stored for range 33-36: [ [ 35, 1225 ], [ 33, 1089 ], [ 34, 1156 ] ]
+data stored for range 34-37: [ [ 35, 1225 ], [ 34, 1156 ], [ 36, 1296 ] ]
+data stored for range 35-38: [ [ 35, 1225 ], [ 37, 1369 ], [ 36, 1296 ] ]
+data stored for range 36-39: [ [ 37, 1369 ], [ 36, 1296 ], [ 38, 1444 ] ]
+data stored for range 37-40: [ [ 39, 1521 ], [ 37, 1369 ], [ 38, 1444 ] ]
+data stored for range 38-41: [ [ 39, 1521 ], [ 38, 1444 ], [ 40, 1600 ] ]
+data stored for range 39-42: [ [ 39, 1521 ], [ 41, 1681 ], [ 40, 1600 ] ]
+data stored for range 40-43: [ [ 41, 1681 ], [ 40, 1600 ], [ 42, 1764 ] ]
+data stored for range 41-44: [ [ 43, 1849 ], [ 41, 1681 ], [ 42, 1764 ] ]
+data stored for range 42-45: [ [ 43, 1849 ], [ 42, 1764 ], [ 44, 1936 ] ]
+data stored for range 43-46: [ [ 43, 1849 ], [ 45, 2025 ], [ 44, 1936 ] ]
+data stored for range 44-47: [ [ 45, 2025 ], [ 44, 1936 ], [ 46, 2116 ] ]
+data stored for range 45-48: [ [ 47, 2209 ], [ 45, 2025 ], [ 46, 2116 ] ]
+data stored for range 46-49: [ [ 47, 2209 ], [ 46, 2116 ], [ 48, 2304 ] ]
+data stored for range 47-50: [ [ 47, 2209 ], [ 49, 2401 ], [ 48, 2304 ] ]
+data stored for range 48-51: [ [ 49, 2401 ], [ 48, 2304 ], [ 50, 2500 ] ]
+data stored for range 49-52: [ [ 51, 2601 ], [ 49, 2401 ], [ 50, 2500 ] ]
+data stored for range 50-53: [ [ 51, 2601 ], [ 50, 2500 ], [ 52, 2704 ] ]
+data stored for range 51-54: [ [ 51, 2601 ], [ 53, 2809 ], [ 52, 2704 ] ]
+data stored for range 52-55: [ [ 53, 2809 ], [ 52, 2704 ], [ 54, 2916 ] ]
+data stored for range 53-56: [ [ 55, 3025 ], [ 53, 2809 ], [ 54, 2916 ] ]
+data stored for range 54-57: [ [ 55, 3025 ], [ 54, 2916 ], [ 56, 3136 ] ]
+data stored for range 55-58: [ [ 55, 3025 ], [ 57, 3249 ], [ 56, 3136 ] ]
+data stored for range 56-59: [ [ 57, 3249 ], [ 56, 3136 ], [ 58, 3364 ] ]
+data stored for range 57-60: [ [ 59, 3481 ], [ 57, 3249 ], [ 58, 3364 ] ]
+data stored for range 58-61: [ [ 59, 3481 ], [ 58, 3364 ], [ 60, 3600 ] ]
+data stored for range 59-62: [ [ 59, 3481 ], [ 61, 3721 ], [ 60, 3600 ] ]
+data stored for range 60-63: [ [ 61, 3721 ], [ 60, 3600 ], [ 62, 3844 ] ]
+data stored for range 61-64: [ [ 63, 3969 ], [ 61, 3721 ], [ 62, 3844 ] ]
+data stored for range 62-65: [ [ 63, 3969 ], [ 62, 3844 ], [ 64, 4096 ] ]
+data stored for range 63-66: [ [ 63, 3969 ], [ 65, 4225 ], [ 64, 4096 ] ]
+data stored for range 64-67: [ [ 65, 4225 ], [ 64, 4096 ], [ 66, 4356 ] ]
+data stored for range 65-68: [ [ 67, 4489 ], [ 65, 4225 ], [ 66, 4356 ] ]
+data stored for range 66-69: [ [ 67, 4489 ], [ 66, 4356 ], [ 68, 4624 ] ]
+data stored for range 67-70: [ [ 67, 4489 ], [ 69, 4761 ], [ 68, 4624 ] ]
+data stored for range 68-71: [ [ 69, 4761 ], [ 68, 4624 ], [ 70, 4900 ] ]
+data stored for range 69-72: [ [ 71, 5041 ], [ 69, 4761 ], [ 70, 4900 ] ]
+data stored for range 70-73: [ [ 71, 5041 ], [ 70, 4900 ], [ 72, 5184 ] ]
+data stored for range 71-74: [ [ 71, 5041 ], [ 73, 5329 ], [ 72, 5184 ] ]
+data stored for range 72-75: [ [ 73, 5329 ], [ 72, 5184 ], [ 74, 5476 ] ]
+data stored for range 73-76: [ [ 75, 5625 ], [ 73, 5329 ], [ 74, 5476 ] ]
+data stored for range 74-77: [ [ 75, 5625 ], [ 74, 5476 ], [ 76, 5776 ] ]
+data stored for range 75-78: [ [ 75, 5625 ], [ 77, 5929 ], [ 76, 5776 ] ]
+data stored for range 76-79: [ [ 77, 5929 ], [ 76, 5776 ], [ 78, 6084 ] ]
+data stored for range 77-80: [ [ 79, 6241 ], [ 77, 5929 ], [ 78, 6084 ] ]
+data stored for range 78-81: [ [ 79, 6241 ], [ 78, 6084 ], [ 80, 6400 ] ]
+data stored for range 79-82: [ [ 79, 6241 ], [ 81, 6561 ], [ 80, 6400 ] ]
+data stored for range 80-83: [ [ 81, 6561 ], [ 80, 6400 ], [ 82, 6724 ] ]
+data stored for range 81-84: [ [ 83, 6889 ], [ 81, 6561 ], [ 82, 6724 ] ]
+data stored for range 82-85: [ [ 83, 6889 ], [ 82, 6724 ], [ 84, 7056 ] ]
+data stored for range 83-86: [ [ 83, 6889 ], [ 85, 7225 ], [ 84, 7056 ] ]
+data stored for range 84-87: [ [ 85, 7225 ], [ 84, 7056 ], [ 86, 7396 ] ]
+data stored for range 85-88: [ [ 87, 7569 ], [ 85, 7225 ], [ 86, 7396 ] ]
+data stored for range 86-89: [ [ 87, 7569 ], [ 86, 7396 ], [ 88, 7744 ] ]
+data stored for range 87-90: [ [ 87, 7569 ], [ 89, 7921 ], [ 88, 7744 ] ]
+data stored for range 88-91: [ [ 89, 7921 ], [ 88, 7744 ], [ 90, 8100 ] ]
+data stored for range 89-92: [ [ 91, 8281 ], [ 89, 7921 ], [ 90, 8100 ] ]
+data stored for range 90-93: [ [ 91, 8281 ], [ 90, 8100 ], [ 92, 8464 ] ]
+data stored for range 91-94: [ [ 91, 8281 ], [ 93, 8649 ], [ 92, 8464 ] ]
+data stored for range 92-95: [ [ 93, 8649 ], [ 92, 8464 ], [ 94, 8836 ] ]
+data stored for range 93-96: [ [ 95, 9025 ], [ 93, 8649 ], [ 94, 8836 ] ]
+data stored for range 94-97: [ [ 95, 9025 ], [ 94, 8836 ], [ 96, 9216 ] ]
+data stored for range 95-98: [ [ 95, 9025 ], [ 97, 9409 ], [ 96, 9216 ] ]
+data stored for range 96-99: [ [ 97, 9409 ], [ 96, 9216 ], [ 98, 9604 ] ]
+data stored for range 97-100: [ [ 97, 9409 ], [ 98, 9604 ], [ 99, 9801 ] ]
+data stored for range 98-101: [ [ 98, 9604 ], [ 99, 9801 ] ]
+data stored for range 99-102: [ [ 99, 9801 ] ]
+data stored for range 100-103: [ ]
+data stored for range 101-104: [ ]
+data stored for range 102-105: [ ]
+data stored for range 103-106: [ ]
+data stored for range 104-107: [ ]
+data stored for range 10-5 (should be empty): [ ]
+[ [ 99, 9801 ], [ 98, 9604 ], [ 97, 9409 ], [ 96, 9216 ], [ 95, 9025 ], [ 94, 8836 ], [ 93, 8649 ], [ 92, 8464 ], [ 91, 8281 ], [ 90, 8100 ], [ 89, 7921 ], [ 88, 7744 ], [ 87, 7569 ], [ 86, 7396 ], [ 85, 7225 ], [ 84, 7056 ], [ 83, 6889 ], [ 82, 6724 ], [ 81, 6561 ], [ 80, 6400 ], [ 79, 6241 ], [ 78, 6084 ], [ 77, 5929 ], [ 76, 5776 ], [ 75, 5625 ], [ 74, 5476 ], [ 73, 5329 ], [ 72, 5184 ], [ 71, 5041 ], [ 70, 4900 ], [ 69, 4761 ], [ 68, 4624 ], [ 67, 4489 ], [ 66, 4356 ], [ 65, 4225 ], [ 64, 4096 ], [ 63, 3969 ], [ 62, 3844 ], [ 61, 3721 ], [ 60, 3600 ], [ 59, 3481 ], [ 58, 3364 ], [ 57, 3249 ], [ 56, 3136 ], [ 55, 3025 ], [ 54, 2916 ], [ 53, 2809 ], [ 52, 2704 ], [ 51, 2601 ], [ 50, 2500 ], [ 49, 2401 ], [ 48, 2304 ], [ 47, 2209 ], [ 46, 2116 ], [ 45, 2025 ], [ 44, 1936 ], [ 43, 1849 ], [ 42, 1764 ], [ 41, 1681 ], [ 40, 1600 ], [ 39, 1521 ], [ 38, 1444 ], [ 37, 1369 ], [ 36, 1296 ], [ 35, 1225 ], [ 34, 1156 ], [ 33, 1089 ], [ 32, 1024 ], [ 31, 961 ], [ 30, 900 ], [ 29, 841 ], [ 28, 784 ], [ 27, 729 ], [ 26, 676 ], [ 25, 625 ], [ 24, 576 ], [ 23, 529 ], [ 22, 484 ], [ 21, 441 ], [ 20, 400 ], [ 19, 361 ], [ 18, 324 ], [ 17, 289 ], [ 16, 256 ], [ 15, 225 ], [ 14, 196 ], [ 13, 169 ], [ 12, 144 ], [ 11, 121 ], [ 10, 100 ], [ 9, 81 ], [ 8, 64 ], [ 7, 49 ], [ 6, 36 ], [ 5, 25 ], [ 4, 16 ], [ 3, 9 ], [ 2, 4 ], [ 1, 1 ], [ 0, 0 ] ]
+0 -> 0 1 -> 1 2 -> 4 3 -> 9 4 -> 16 5 -> 25 6 -> 36 7 -> 49 8 -> 64 9 -> 81 10 -> 100 11 -> 121 12 -> 144 13 -> 169 14 -> 196 15 -> 225 16 -> 256 17 -> 289 18 -> 324 19 -> 361 20 -> 400 21 -> 441 22 -> 484 23 -> 529 24 -> 576 25 -> 625 26 -> 676 27 -> 729 28 -> 784 29 -> 841 30 -> 900 31 -> 961 32 -> 1024 33 -> 1089 34 -> 1156 35 -> 1225 36 -> 1296 37 -> 1369 38 -> 1444 39 -> 1521 40 -> 1600 41 -> 1681 42 -> 1764 43 -> 1849 44 -> 1936 45 -> 2025 46 -> 2116 47 -> 2209 48 -> 2304 49 -> 2401 50 -> 2500 51 -> 2601 52 -> 2704 53 -> 2809 54 -> 2916 55 -> 3025 56 -> 3136 57 -> 3249 58 -> 3364 59 -> 3481 60 -> 3600 61 -> 3721 62 -> 3844 63 -> 3969 64 -> 4096 65 -> 4225 66 -> 4356 67 -> 4489 68 -> 4624 69 -> 4761 70 -> 4900 71 -> 5041 72 -> 5184 73 -> 5329 74 -> 5476 75 -> 5625 76 -> 5776 77 -> 5929 78 -> 6084 79 -> 6241 80 -> 6400 81 -> 6561 82 -> 6724 83 -> 6889 84 -> 7056 85 -> 7225 86 -> 7396 87 -> 7569 88 -> 7744 89 -> 7921 90 -> 8100 91 -> 8281 92 -> 8464 93 -> 8649 94 -> 8836 95 -> 9025 96 -> 9216 97 -> 9409 98 -> 9604 99 -> 9801 

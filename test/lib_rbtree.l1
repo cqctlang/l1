@@ -1,0 +1,103 @@
+
+
+@include <rbtree.cqct>
+
+
+tree = rbtree_create(@lambda(a,b) { return a-b; });
+rbtree_checktree(tree);
+
+foreach(@lambda(x) {
+    @local a,b;
+    [a,b] = x;
+    rbtree_insert(tree,a,b);
+},[ 
+    [10,100], 
+    [30,300], 
+    [50,500], 
+    [80,800], 
+    [20,200], 
+    [70,700], 
+    [100,1000],
+    [43,430],
+    [22,220],
+    [11,110],
+    [110,1100],
+    [120,1200],
+    [130,1300],
+]);
+
+rbtree_print(tree);
+
+foreach(@lambda(x) {
+    @local a;
+    printf("---------------------------------------\n");
+    a = x[0];
+    printf("removing %a\n",a);
+    rbtree_delete(tree,a);
+    rbtree_print(tree);
+    rbtree_checktree(tree);
+},[ 
+    [10,100], 
+    [30,300], 
+    [50,500], 
+    [80,800], 
+    [20,200], 
+    [70,700], 
+    [100,1000],
+    [43,430],
+    [22,220],
+    [11,110],
+    [110,1100],
+    [120,1200],
+    [130,1300],
+]);
+
+rbtree_print(tree);
+rbtree_checktree(tree);
+
+tree = rbtree_create(@lambda(a,b) { return a-b; });
+
+cnt = 100;
+for(i=0; i<cnt; ++i) {
+    rbtree_insert(tree,i,i*i);
+    rbtree_checktree(tree);
+}
+rbtree_print(tree);
+for(i=0; i<cnt; ++i) {
+    printf("removing %d\n",i);
+    rbtree_delete(tree,(i + 137) % cnt);
+    rbtree_checktree(tree);
+}
+rbtree_print(tree);
+rbtree_checktree(tree);
+
+
+tree = rbtree_create(@lambda(a,b) { return a-b; });
+
+for(i=0; i<cnt; ++i) {
+    rbtree_insert(tree,i,i*i);
+}
+
+for(i=0; i<cnt+5; ++i) {
+    printf("data stored for %d: %a\n",i,rbtree_query(tree,i));
+}
+for(i=0; i<cnt+5; ++i) {
+    printf("data stored for range %d-%d: %a\n",i,i+3,rbtree_rangequery(tree,i,i+3));
+}
+printf("data stored for range 10-5 (should be empty): %a\n",rbtree_rangequery(tree,10,5));
+
+printf("%a\n",rbtree_enumerate(tree));
+
+tree = rbtree_create(@lambda(a,b) { return b-a; });
+
+for(i=0; i<cnt; ++i) {
+    rbtree_insert(tree,i,i*i);
+}
+
+last = -1;
+rbtree_foreach(tree,@lambda(k,v) {
+    if (last > k) printf("badness\n");
+    last = k;
+    printf("%d -> %d ",k,v);
+});
+printf("\n");
