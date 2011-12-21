@@ -175,7 +175,7 @@ l1_stxval(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = e->aux;
 }
 
-static void
+void
 l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *cv;

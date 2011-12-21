@@ -1456,6 +1456,7 @@ int		eqvstx(Expr *a, Expr *b);
 void		fnstx(Env *env);
 u32		hashqvstx(Expr *e);
 u32		hashstx(Expr *e);
+void		l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv);
 
 /* sym.c */
 Val		attroff(Val o);

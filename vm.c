@@ -5908,6 +5908,9 @@ l1_cntrget(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Qtab:
 		l1_tablook(vm, argc, argv, rv);
 		break;
+	case Qexpr:
+		l1_stxref(vm, argc, argv, rv);
+		break;
 	}
 }
 
@@ -5940,6 +5943,9 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 	case Qtab:
 		l1_tabinsert(vm, argc, argv, rv);
 		*rv = argv[2];
+		break;
+	case Qexpr:
+		vmerr(vm, "attempt to modify syntax record");
 		break;
 	}
 }
