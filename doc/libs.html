@@ -1055,6 +1055,194 @@ over types in namespaces.
 </div>
 </div>
 
+<h5 id="lib:rangeset.cqct">rangeset.cqct</h5>
+
+<span class="id">rangeset.cqct</span> provides a data structure
+that stores a set of ranges in a minimal way. The rangeset structure
+is implemented with a red black tree, and allows one to add and 
+remove ranges with the guarantee that (1) a minimal number of ranges
+will be stored and (2) checking if a value is contained in a given rangeset
+will take O(log(n)) time (where n is the number of ranges stored). 
+Example usage:
+<div class="code">
+<pre>
+@include &lt;rangeset.cqct&gt;
+rs = rangeset_create();
+rangeset_insert(rs,mkrange(50,100));
+rangeset_delete(rs,mkrange(60,5));
+rangeset_contains(rs,53); //returns 1
+rangeset_contains(rs,61); //returns 0
+rangeset_enumerate(rs); //returns [ range(50,10), range(65,85) ]
+</pre>
+</div>
+Because ranges only work with non-negative numbers,
+rangeset only work on non-negative integer ranges.
+
+<div class="docitem" id="fn:rangeset_create">
+<div class="proto">
+<div class="function">
+    <span class="id">rangeset_create()
+    </span>
+</div>
+<div class="returns">
+<span class="type">rangeset</span>
+</div>
+</div>
+<div class="desc">
+    Returns an empty rangeset object
+</div>
+</div>
+
+<div class="docitem" id="fn:rangeset_contains">
+<div class="proto">
+<div class="function">
+    <span class="id">rangeset_contains(
+                <span class="arg">rs</span>,
+                <span class="arg">v</span>
+        )
+    </span>
+</div>
+<div class="param">
+<span class="arg">rs</span>: <span class="type">rangeset</span> 
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">integer</span> 
+</div>
+<div class="returns">
+<span class="type">int</span>
+</div>
+</div>
+<div class="desc">
+    Returns 1 (true) if there is a range in the given range set that 
+    contains the given value v. Returns 0 (false) otherwise.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangeset_delete">
+<div class="proto">
+<div class="function">
+    <span class="id">rangeset_delete(
+                <span class="arg">rs</span>,
+                <span class="arg">r</span>
+        )
+    </span>
+</div>
+<div class="param">
+<span class="arg">rs</span>: <span class="type">rangeset</span> 
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+    Removes the given range from the given rangeset. 
+    The rangeset will no longer "contain" any of the values in the given range.
+    If the rangeset did not contain those values to begin with, then there
+    is no change.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangeset_enumerate">
+<div class="proto">
+<div class="function">
+    <span class="id">rangeset_enumerate(
+                <span class="arg">rs</span>
+        )
+    </span>
+</div>
+<div class="param">
+<span class="arg">rs</span>: <span class="type">rangeset</span> 
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+    Returns a minimally sized list of ranges that cover exactly
+    the set of values covered by the given rangeset.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangeset_foreach">
+<div class="proto">
+<div class="function">
+    <span class="id">rangeset_foreach(
+                <span class="arg">rs</span>,
+                <span class="arg">fn</span>
+        )
+    </span>
+</div>
+<div class="param">
+<span class="arg">rs</span>: <span class="type">rangeset</span> 
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">function</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+    Runs the given function over a minimal representation of the
+    ranges covered by the given rangeset. That is, fn(r) will be
+    run for a minimal number of r that cover exactly the range covered
+    by this rangeset.
+</div>
+</div>
+
+<div class="docitem" id="fn:rangeset_insert">
+<div class="proto">
+<div class="function">
+    <span class="id">rangeset_insert(
+                <span class="arg">rs</span>,
+                <span class="arg">r</span>
+        )
+    </span>
+</div>
+<div class="param">
+<span class="arg">rs</span>: <span class="type">rangeset</span> 
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+    Inserts the given range into the given rangeset. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rangeset_intersect">
+<div class="proto">
+<div class="function">
+    <span class="id">rangeset_intersect(
+                <span class="arg">rs</span>,
+                <span class="arg">r</span>
+        )
+    </span>
+</div>
+<div class="param">
+<span class="arg">rs</span>: <span class="type">rangeset</span> 
+</div>
+<div class="param">
+<span class="arg">r</span>: <span class="type">range</span> 
+</div>
+<div class="returns">
+<span class="type">list</span>
+</div>
+</div>
+<div class="desc">
+    Returns a list of all ranges that intersect the given range in
+    the given rangeset.
+</div>
+</div>
+
+
 <h5 id="lib:re.cqct">re.cqct</h5>
 
 <span class="id">re.cqct</span> provides an API for using
@@ -1297,6 +1485,64 @@ querying.
 <div class="desc">
     This function associates the given key with the given data in
     the given rbtree. 
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_nearestlargerquery">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_query(
+        <span class="arg">tree</span>,
+        <span class="arg">key</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">key</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="returns">
+<span class="type">nil or pair</span>
+</div>
+</div>
+<div class="desc">
+    This function returns the [k,data] associated with the smalest
+    k in the tree that is greater than and not equal to k. 
+    If multiple such k exist, 
+    then an arbitrary one is returned. If no such k not found
+    in the tree, then nil is returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_nearestsmallerquery">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_query(
+        <span class="arg">tree</span>,
+        <span class="arg">key</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">key</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="returns">
+<span class="type">nil or pair</span>
+</div>
+</div>
+<div class="desc">
+    This function returns the [k,data] associated with the largest
+    k in the tree that is less than and not equal to k. 
+    If multiple such k exist, 
+    then an arbitrary one is returned. If no such k not found
+    in the tree, then nil is returned.
 </div>
 </div>
 
