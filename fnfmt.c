@@ -588,9 +588,37 @@ fmtval(VM *vm, Fmt *f, Val val)
 				return -1;
 			if(fmtputs0(vm, f, ciddata(e->skind)))
 				return -1;
-			if(e->e1 || e->e2 || e->e3 || e->e4)
-				if(fmtputs0(vm, f, "(...)"))
-					return -1;
+			if(fmtputs0(vm, f, "("))
+				return -1;
+
+			if(e->e1 == 0)
+				goto endexpr;
+			if(fmtval(vm, f, mkvalexpr(e->e1)))
+				return -1;
+
+			if(e->e2 == 0)
+				goto endexpr;
+			if(fmtputs0(vm, f, ", "))
+				return -1;
+			if(fmtval(vm, f, mkvalexpr(e->e2)))
+				return -1;
+
+			if(e->e3 == 0)
+				goto endexpr;
+			if(fmtputs0(vm, f, ", "))
+				return -1;
+			if(fmtval(vm, f, mkvalexpr(e->e3)))
+				return -1;
+
+			if(e->e4 == 0)
+				goto endexpr;
+			if(fmtputs0(vm, f, ", "))
+				return -1;
+			if(fmtval(vm, f, mkvalexpr(e->e4)))
+				return -1;
+		endexpr:
+			if(fmtputs0(vm, f, ")"))
+				return -1;
 			break;
 		}
 		return 0;
