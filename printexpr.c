@@ -727,6 +727,21 @@ printcqct0(Expr *e, unsigned ni)
 		xprintf("\n");
 		printcqct0(e->e3, ni);
 		break;
+	case Estxquote:
+		xprintf("quote(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
+	case Estxunquote:
+		xprintf("unquote(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
+	case Estxquasi:
+		xprintf("quasi(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
 	default:
 		xprintf("[%d]???", e->kind);
 		break;

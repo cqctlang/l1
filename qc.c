@@ -158,6 +158,11 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 	Imm tv[2];
 	Closure *cl;
 
+	if(cqctflags['p']){
+		xprintf("\n*** pre-expand ***\n");
+		printexpr(e);
+		xprintf("\n");
+	}
 	e = doexpand(vm, e);
 	if(e == 0)
 		return 0;

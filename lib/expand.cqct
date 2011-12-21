@@ -16,6 +16,11 @@ symn = 0;
 	return stxref(l, 1);
 }
 
+@define Znil()
+{
+	return #nil();
+}
+
 @define Znull()
 {
 	return mkstx('null);
@@ -24,6 +29,15 @@ symn = 0;
 @define Zcons(h, t)
 {
 	return mkstx('elist, h, t, stxsrc(h));
+}
+
+@define Zlist(arg ...)
+{
+	@local rv;
+	rv = Znull();
+	while(length(arg))
+		rv = Zcons(pop(arg), rv);
+	return Zreverse(rv);
 }
 
 @define Zreverse(l)
@@ -138,12 +152,68 @@ stxtab = mktab();
 		return apply(pat[2], l);
 	}
 
+	@defloc unquasi(e)
+	{
+		if(e == nil)
+			return e;
+		switch(stxkind(e)){
+		case 'stxunquote:
+			error("misplaced unquote");
+		case 'stxquasi:
+			return quasi(e[0]);
+		case 'stxquote:
+		case 'id:
+		case 'val:
+			return e;
+		default:
+			return mkstx(stxkind(e),
+				     unquasi(e[0]),
+				     unquasi(e[1]),
+				     unquasi(e[2]),
+				     unquasi(e[3]),
+				     stxsrc(e));
+		}
+	}
+
+	@defloc quasi(e)
+	{
+		if(e == nil)
+			return e;
+		switch(stxkind(e)){
+		case 'stxunquote:
+			return #call(#id(stxliftval),
+				     Zlist(unquasi(e[0])),
+				     stxsrc(e));
+		case 'id:
+			return #call(#id(mkstxid),
+				     Zlist(mkstxval(stxid(e))),
+				     stxsrc(e));
+		case 'val:
+			return #call(#id(mkstxval),
+				     Zlist(mkstxval(stxval(e))),
+				     stxsrc(e));
+		default:
+			return #call(#id(mkstx),
+			             Zlist(mkstxval(stxkind(e)),
+					   e[0] ? quasi(e[0]) : Znil(),
+					   e[1] ? quasi(e[1]) : Znil(),
+					   e[2] ? quasi(e[2]) : Znil(),
+					   e[3] ? quasi(e[3]) : Znil(),
+					   mkstxval(stxsrc(e))),
+				     stxsrc(e));
+		}
+	}
+
 	@defloc exp(e)
 	{
 		@local p, l;
 		if(e == nil)
 			return e;
 		switch(stxkind(e)){
+		case 'stxunquote:
+			error("misplaced unquote");
+		case 'stxquasi:
+			return exp(quasi(e[0]));
 		case 'stxquote:
 		case 'val:
 		case 'id:

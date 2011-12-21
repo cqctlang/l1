@@ -101,6 +101,7 @@ l1_stxliftval(VM *vm, Imm argc, Val *argv, Val *rv)
 		l1_mkstxval(vm, argc, argv, rv);
 }
 
+/* FIXME: slap or be smart if sk is 'id' or 'val' */
 static void
 l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 {
