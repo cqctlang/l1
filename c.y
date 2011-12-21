@@ -108,6 +108,7 @@ unquote_expr
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
 	;
 
+/* sync with isidform below */
 id
 	: _id
 	| unquote_expr
@@ -1390,13 +1391,19 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 	e1 = ye1.expr;
 	e2 = ye2.expr;
 	if(!ofkind(e1->kind) || !ofkind(e2->kind))
-		yyerror(0, "unresolved ambiguity");
+		yyerror(0, "unresolved ambiguity 2");
 
 	if(e1->kind == Esizeofe || e1->kind == Etypeofe)
 		duptickid(e1->e1);
 	else
 		duptickid(e2->e1);
 	return putsrc(newexpr(Eambig, e1, e2, NULL, NULL), e1->src);
+}
+
+static int
+isidform(Expr *e)
+{
+	return e->kind == Eid || e->kind == Estxunquote;
 }
 
 static Expr*
@@ -1406,10 +1413,10 @@ tnmerge(YYSTYPE ye1, YYSTYPE ye2)
 
 	e1 = ye1.expr;
 	e2 = ye2.expr;
-	if(e1->kind == Eelist && e1->e1->kind == Eid)
+	if(e1->kind == Eelist && isidform(e1->e1))
 		return e1;
-	if(e2->kind == Eelist && e2->e1->kind == Eid)
+	if(e2->kind == Eelist && isidform(e2->e1))
 		return e2;
-	yyerror(0, "unresolved ambiguity");
+	yyerror(0, "unresolved ambiguity 3");
 	abort();
 }
