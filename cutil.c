@@ -145,6 +145,13 @@ isnull(Expr *e)
 	return e && e->kind == Enull;
 }
 
+/* FIXME: rationalize utilities in parse.c */
+Expr*
+Zreverse(Expr *e)
+{
+	return invert(e);
+}
+
 Expr*
 Znull()
 {

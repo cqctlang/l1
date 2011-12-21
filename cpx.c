@@ -9,7 +9,7 @@ stx(Expr *e)
 	char *id;
 
 	if(e == 0)
-		return 0;
+		return 0; 
 	switch(e->kind){
 	case Ematch:
 		/* syntax in patterns is expanded later */
@@ -22,10 +22,13 @@ stx(Expr *e)
 		else if(!strcmp(id, "val"))
 			return putsrc(Zcall(G("mkstxval"), 1, stx(e->e2)),
 				      e->src);
-		else
-			return putsrc(Zapply(G("mkstx"),
-					     Zcons(Zid2sym(e->e1), stx(e->e2))),
-				      e->src);
+		else{
+			p = Zcons(Zid2sym(e->e1), stx(e->e2));
+			p = Zreverse(Zcons(putsrc(Zval(mkvalvec(e->src)),
+						  e->src),
+					   Zreverse(p)));
+			return putsrc(Zapply(G("mkstx"), p), e->src);
+		}
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

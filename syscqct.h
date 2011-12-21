@@ -1270,6 +1270,7 @@ Expr*		Znot(Expr *e);
 Expr*		Znull();
 Expr*		Zref(Expr *dom, Expr *type, Expr *val);
 Expr*		Zret(Expr *e);
+Expr*		Zreverse(Expr *e);
 Expr*		Zscope(Expr *block);
 Expr*		Zset(Expr *l, Expr *r);
 Expr*		Zsizeof(Expr *e);
