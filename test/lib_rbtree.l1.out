@@ -85,7 +85,7 @@ left
  right
   80: 800 0
   right
-   50: 500 1
+   70: 700 1
 right
  20: 200 1
  left
@@ -104,7 +104,7 @@ left
   right
    110: 1100 1
  right
-  50: 500 0
+  70: 700 0
 right
  20: 200 1
  left
@@ -123,112 +123,76 @@ left
   right
    110: 1100 1
  right
-  50: 500 0
+  70: 700 0
 right
  11: 110 0
  left
-  20: 200 1
+  22: 220 1
 ---------------------------------------
 removing 70
 43: 430 0
 left
- 100: 1000 1
+ 120: 1200 1
  left
-  120: 1200 0
-  left
-   130: 1300 1
-  right
-   110: 1100 1
+  130: 1300 0
  right
-  50: 500 0
+  110: 1100 0
+  right
+   100: 1000 1
 right
  11: 110 0
  left
-  20: 200 1
+  22: 220 1
 ---------------------------------------
 removing 100
 43: 430 0
 left
- 110: 1100 1
+ 120: 1200 1
  left
-  120: 1200 0
-  left
-   130: 1300 1
+  130: 1300 0
  right
-  50: 500 0
+  110: 1100 0
 right
  11: 110 0
  left
-  20: 200 1
+  22: 220 1
 ---------------------------------------
 removing 43
-50: 500 0
-left
- 120: 1200 0
- left
-  130: 1300 1
-right
- 20: 200 0
- left
-  43: 430 1
- right
-  11: 110 1
----------------------------------------
-removing 22
-50: 500 0
-left
- 120: 1200 0
- left
-  130: 1300 1
-right
- 20: 200 0
- left
-  43: 430 1
- right
-  11: 110 1
----------------------------------------
-removing 11
-50: 500 0
-left
- 120: 1200 0
- left
-  130: 1300 1
-right
- 20: 200 0
- left
-  43: 430 1
----------------------------------------
-removing 110
-50: 500 0
-left
- 120: 1200 0
- left
-  130: 1300 1
-right
- 20: 200 0
- left
-  43: 430 1
----------------------------------------
-removing 120
-50: 500 0
+110: 1100 0
 left
  130: 1300 0
+ right
+  120: 1200 1
 right
- 20: 200 0
+ 11: 110 0
  left
-  43: 430 1
+  22: 220 1
+---------------------------------------
+removing 22
+110: 1100 0
+left
+ 130: 1300 0
+ right
+  120: 1200 1
+right
+ 11: 110 0
+---------------------------------------
+removing 11
+120: 1200 0
+left
+ 130: 1300 1
+right
+ 110: 1100 1
+---------------------------------------
+removing 110
+120: 1200 0
+left
+ 130: 1300 1
+---------------------------------------
+removing 120
+130: 1300 0
 ---------------------------------------
 removing 130
-43: 430 0
-left
- 130: 1300 1
-right
- 20: 200 1
-43: 430 0
-left
- 130: 1300 1
-right
- 20: 200 1
 31: 961 0
 left
  15: 225 0
@@ -528,11 +492,6 @@ removing 96
 removing 97
 removing 98
 removing 99
-93: 8649 1
-left
- 33: 1089 0
-right
- 97: 9409 0
 data stored for 0: 0
 data stored for 1: 1
 data stored for 2: 4
@@ -638,104 +597,104 @@ data stored for 101: <nil>
 data stored for 102: <nil>
 data stored for 103: <nil>
 data stored for 104: <nil>
-data stored for range 0-3: [ ]
-data stored for range 1-4: [ [ 3, 9 ] ]
-data stored for range 2-5: [ [ 3, 9 ] ]
-data stored for range 3-6: [ [ 3, 9 ], [ 5, 25 ] ]
-data stored for range 4-7: [ ]
-data stored for range 5-8: [ [ 7, 49 ] ]
-data stored for range 6-9: [ [ 7, 49 ] ]
-data stored for range 7-10: [ [ 7, 49 ], [ 9, 81 ] ]
-data stored for range 8-11: [ ]
-data stored for range 9-12: [ [ 11, 121 ] ]
-data stored for range 10-13: [ [ 11, 121 ] ]
-data stored for range 11-14: [ [ 11, 121 ], [ 13, 169 ] ]
-data stored for range 12-15: [ ]
-data stored for range 13-16: [ [ 15, 225 ] ]
-data stored for range 14-17: [ [ 15, 225 ] ]
-data stored for range 15-18: [ [ 15, 225 ], [ 17, 289 ] ]
-data stored for range 16-19: [ ]
-data stored for range 17-20: [ [ 19, 361 ] ]
-data stored for range 18-21: [ [ 19, 361 ] ]
-data stored for range 19-22: [ [ 19, 361 ], [ 21, 441 ] ]
-data stored for range 20-23: [ ]
-data stored for range 21-24: [ [ 23, 529 ] ]
-data stored for range 22-25: [ [ 23, 529 ] ]
-data stored for range 23-26: [ [ 23, 529 ], [ 25, 625 ] ]
-data stored for range 24-27: [ ]
-data stored for range 25-28: [ [ 27, 729 ] ]
-data stored for range 26-29: [ [ 27, 729 ] ]
-data stored for range 27-30: [ [ 27, 729 ], [ 29, 841 ] ]
-data stored for range 28-31: [ ]
-data stored for range 29-32: [ [ 31, 961 ] ]
-data stored for range 30-33: [ [ 31, 961 ] ]
-data stored for range 31-34: [ [ 31, 961 ], [ 33, 1089 ] ]
-data stored for range 32-35: [ ]
-data stored for range 33-36: [ [ 35, 1225 ] ]
-data stored for range 34-37: [ [ 35, 1225 ] ]
-data stored for range 35-38: [ [ 35, 1225 ], [ 37, 1369 ] ]
-data stored for range 36-39: [ ]
-data stored for range 37-40: [ [ 39, 1521 ] ]
-data stored for range 38-41: [ [ 39, 1521 ] ]
-data stored for range 39-42: [ [ 39, 1521 ], [ 41, 1681 ] ]
-data stored for range 40-43: [ ]
-data stored for range 41-44: [ [ 43, 1849 ] ]
-data stored for range 42-45: [ [ 43, 1849 ] ]
-data stored for range 43-46: [ [ 43, 1849 ], [ 45, 2025 ] ]
-data stored for range 44-47: [ ]
-data stored for range 45-48: [ [ 47, 2209 ] ]
-data stored for range 46-49: [ [ 47, 2209 ] ]
-data stored for range 47-50: [ [ 47, 2209 ], [ 49, 2401 ] ]
-data stored for range 48-51: [ ]
-data stored for range 49-52: [ [ 51, 2601 ] ]
-data stored for range 50-53: [ [ 51, 2601 ] ]
-data stored for range 51-54: [ [ 51, 2601 ], [ 53, 2809 ] ]
-data stored for range 52-55: [ ]
-data stored for range 53-56: [ [ 55, 3025 ] ]
-data stored for range 54-57: [ [ 55, 3025 ] ]
-data stored for range 55-58: [ [ 55, 3025 ], [ 57, 3249 ] ]
-data stored for range 56-59: [ ]
-data stored for range 57-60: [ [ 59, 3481 ] ]
-data stored for range 58-61: [ [ 59, 3481 ] ]
-data stored for range 59-62: [ [ 59, 3481 ], [ 61, 3721 ] ]
-data stored for range 60-63: [ ]
-data stored for range 61-64: [ [ 63, 3969 ] ]
-data stored for range 62-65: [ [ 63, 3969 ] ]
-data stored for range 63-66: [ [ 63, 3969 ], [ 65, 4225 ] ]
-data stored for range 64-67: [ ]
-data stored for range 65-68: [ [ 67, 4489 ] ]
-data stored for range 66-69: [ [ 67, 4489 ] ]
-data stored for range 67-70: [ [ 67, 4489 ], [ 69, 4761 ] ]
-data stored for range 68-71: [ ]
-data stored for range 69-72: [ [ 71, 5041 ] ]
-data stored for range 70-73: [ [ 71, 5041 ] ]
-data stored for range 71-74: [ [ 71, 5041 ], [ 73, 5329 ] ]
-data stored for range 72-75: [ ]
-data stored for range 73-76: [ [ 75, 5625 ] ]
-data stored for range 74-77: [ [ 75, 5625 ] ]
-data stored for range 75-78: [ [ 75, 5625 ], [ 77, 5929 ] ]
-data stored for range 76-79: [ ]
-data stored for range 77-80: [ [ 79, 6241 ] ]
-data stored for range 78-81: [ [ 79, 6241 ] ]
-data stored for range 79-82: [ [ 79, 6241 ], [ 81, 6561 ] ]
-data stored for range 80-83: [ ]
-data stored for range 81-84: [ [ 83, 6889 ] ]
-data stored for range 82-85: [ [ 83, 6889 ] ]
-data stored for range 83-86: [ [ 83, 6889 ], [ 85, 7225 ] ]
-data stored for range 84-87: [ ]
-data stored for range 85-88: [ [ 87, 7569 ] ]
-data stored for range 86-89: [ [ 87, 7569 ] ]
-data stored for range 87-90: [ [ 87, 7569 ], [ 89, 7921 ] ]
-data stored for range 88-91: [ ]
-data stored for range 89-92: [ [ 91, 8281 ] ]
-data stored for range 90-93: [ [ 91, 8281 ] ]
-data stored for range 91-94: [ [ 91, 8281 ], [ 93, 8649 ] ]
-data stored for range 92-95: [ ]
-data stored for range 93-96: [ [ 95, 9025 ] ]
-data stored for range 94-97: [ [ 95, 9025 ] ]
-data stored for range 95-98: [ [ 95, 9025 ], [ 97, 9409 ] ]
-data stored for range 96-99: [ [ 97, 9409 ] ]
-data stored for range 97-100: [ [ 97, 9409 ], [ 98, 9604 ] ]
+data stored for range 0-3: [ [ 1, 1 ], [ 2, 4 ], [ 0, 0 ] ]
+data stored for range 1-4: [ [ 3, 9 ], [ 1, 1 ], [ 2, 4 ] ]
+data stored for range 2-5: [ [ 3, 9 ], [ 4, 16 ], [ 2, 4 ] ]
+data stored for range 3-6: [ [ 3, 9 ], [ 5, 25 ], [ 4, 16 ] ]
+data stored for range 4-7: [ [ 5, 25 ], [ 6, 36 ], [ 4, 16 ] ]
+data stored for range 5-8: [ [ 7, 49 ], [ 5, 25 ], [ 6, 36 ] ]
+data stored for range 6-9: [ [ 7, 49 ], [ 8, 64 ], [ 6, 36 ] ]
+data stored for range 7-10: [ [ 7, 49 ], [ 9, 81 ], [ 8, 64 ] ]
+data stored for range 8-11: [ [ 9, 81 ], [ 10, 100 ], [ 8, 64 ] ]
+data stored for range 9-12: [ [ 11, 121 ], [ 9, 81 ], [ 10, 100 ] ]
+data stored for range 10-13: [ [ 11, 121 ], [ 12, 144 ], [ 10, 100 ] ]
+data stored for range 11-14: [ [ 11, 121 ], [ 13, 169 ], [ 12, 144 ] ]
+data stored for range 12-15: [ [ 13, 169 ], [ 14, 196 ], [ 12, 144 ] ]
+data stored for range 13-16: [ [ 15, 225 ], [ 13, 169 ], [ 14, 196 ] ]
+data stored for range 14-17: [ [ 15, 225 ], [ 16, 256 ], [ 14, 196 ] ]
+data stored for range 15-18: [ [ 15, 225 ], [ 17, 289 ], [ 16, 256 ] ]
+data stored for range 16-19: [ [ 17, 289 ], [ 18, 324 ], [ 16, 256 ] ]
+data stored for range 17-20: [ [ 19, 361 ], [ 17, 289 ], [ 18, 324 ] ]
+data stored for range 18-21: [ [ 19, 361 ], [ 20, 400 ], [ 18, 324 ] ]
+data stored for range 19-22: [ [ 19, 361 ], [ 21, 441 ], [ 20, 400 ] ]
+data stored for range 20-23: [ [ 21, 441 ], [ 22, 484 ], [ 20, 400 ] ]
+data stored for range 21-24: [ [ 23, 529 ], [ 21, 441 ], [ 22, 484 ] ]
+data stored for range 22-25: [ [ 23, 529 ], [ 24, 576 ], [ 22, 484 ] ]
+data stored for range 23-26: [ [ 23, 529 ], [ 25, 625 ], [ 24, 576 ] ]
+data stored for range 24-27: [ [ 25, 625 ], [ 26, 676 ], [ 24, 576 ] ]
+data stored for range 25-28: [ [ 27, 729 ], [ 25, 625 ], [ 26, 676 ] ]
+data stored for range 26-29: [ [ 27, 729 ], [ 28, 784 ], [ 26, 676 ] ]
+data stored for range 27-30: [ [ 27, 729 ], [ 29, 841 ], [ 28, 784 ] ]
+data stored for range 28-31: [ [ 29, 841 ], [ 30, 900 ], [ 28, 784 ] ]
+data stored for range 29-32: [ [ 31, 961 ], [ 29, 841 ], [ 30, 900 ] ]
+data stored for range 30-33: [ [ 31, 961 ], [ 32, 1024 ], [ 30, 900 ] ]
+data stored for range 31-34: [ [ 31, 961 ], [ 33, 1089 ], [ 32, 1024 ] ]
+data stored for range 32-35: [ [ 33, 1089 ], [ 34, 1156 ], [ 32, 1024 ] ]
+data stored for range 33-36: [ [ 35, 1225 ], [ 33, 1089 ], [ 34, 1156 ] ]
+data stored for range 34-37: [ [ 35, 1225 ], [ 36, 1296 ], [ 34, 1156 ] ]
+data stored for range 35-38: [ [ 35, 1225 ], [ 37, 1369 ], [ 36, 1296 ] ]
+data stored for range 36-39: [ [ 37, 1369 ], [ 38, 1444 ], [ 36, 1296 ] ]
+data stored for range 37-40: [ [ 39, 1521 ], [ 37, 1369 ], [ 38, 1444 ] ]
+data stored for range 38-41: [ [ 39, 1521 ], [ 40, 1600 ], [ 38, 1444 ] ]
+data stored for range 39-42: [ [ 39, 1521 ], [ 41, 1681 ], [ 40, 1600 ] ]
+data stored for range 40-43: [ [ 41, 1681 ], [ 42, 1764 ], [ 40, 1600 ] ]
+data stored for range 41-44: [ [ 43, 1849 ], [ 41, 1681 ], [ 42, 1764 ] ]
+data stored for range 42-45: [ [ 43, 1849 ], [ 44, 1936 ], [ 42, 1764 ] ]
+data stored for range 43-46: [ [ 43, 1849 ], [ 45, 2025 ], [ 44, 1936 ] ]
+data stored for range 44-47: [ [ 45, 2025 ], [ 46, 2116 ], [ 44, 1936 ] ]
+data stored for range 45-48: [ [ 47, 2209 ], [ 45, 2025 ], [ 46, 2116 ] ]
+data stored for range 46-49: [ [ 47, 2209 ], [ 48, 2304 ], [ 46, 2116 ] ]
+data stored for range 47-50: [ [ 47, 2209 ], [ 49, 2401 ], [ 48, 2304 ] ]
+data stored for range 48-51: [ [ 49, 2401 ], [ 50, 2500 ], [ 48, 2304 ] ]
+data stored for range 49-52: [ [ 51, 2601 ], [ 49, 2401 ], [ 50, 2500 ] ]
+data stored for range 50-53: [ [ 51, 2601 ], [ 52, 2704 ], [ 50, 2500 ] ]
+data stored for range 51-54: [ [ 51, 2601 ], [ 53, 2809 ], [ 52, 2704 ] ]
+data stored for range 52-55: [ [ 53, 2809 ], [ 54, 2916 ], [ 52, 2704 ] ]
+data stored for range 53-56: [ [ 55, 3025 ], [ 53, 2809 ], [ 54, 2916 ] ]
+data stored for range 54-57: [ [ 55, 3025 ], [ 56, 3136 ], [ 54, 2916 ] ]
+data stored for range 55-58: [ [ 55, 3025 ], [ 57, 3249 ], [ 56, 3136 ] ]
+data stored for range 56-59: [ [ 57, 3249 ], [ 58, 3364 ], [ 56, 3136 ] ]
+data stored for range 57-60: [ [ 59, 3481 ], [ 57, 3249 ], [ 58, 3364 ] ]
+data stored for range 58-61: [ [ 59, 3481 ], [ 60, 3600 ], [ 58, 3364 ] ]
+data stored for range 59-62: [ [ 59, 3481 ], [ 61, 3721 ], [ 60, 3600 ] ]
+data stored for range 60-63: [ [ 61, 3721 ], [ 62, 3844 ], [ 60, 3600 ] ]
+data stored for range 61-64: [ [ 63, 3969 ], [ 61, 3721 ], [ 62, 3844 ] ]
+data stored for range 62-65: [ [ 63, 3969 ], [ 64, 4096 ], [ 62, 3844 ] ]
+data stored for range 63-66: [ [ 63, 3969 ], [ 65, 4225 ], [ 64, 4096 ] ]
+data stored for range 64-67: [ [ 65, 4225 ], [ 66, 4356 ], [ 64, 4096 ] ]
+data stored for range 65-68: [ [ 67, 4489 ], [ 65, 4225 ], [ 66, 4356 ] ]
+data stored for range 66-69: [ [ 67, 4489 ], [ 68, 4624 ], [ 66, 4356 ] ]
+data stored for range 67-70: [ [ 67, 4489 ], [ 69, 4761 ], [ 68, 4624 ] ]
+data stored for range 68-71: [ [ 69, 4761 ], [ 70, 4900 ], [ 68, 4624 ] ]
+data stored for range 69-72: [ [ 71, 5041 ], [ 69, 4761 ], [ 70, 4900 ] ]
+data stored for range 70-73: [ [ 71, 5041 ], [ 72, 5184 ], [ 70, 4900 ] ]
+data stored for range 71-74: [ [ 71, 5041 ], [ 73, 5329 ], [ 72, 5184 ] ]
+data stored for range 72-75: [ [ 73, 5329 ], [ 74, 5476 ], [ 72, 5184 ] ]
+data stored for range 73-76: [ [ 75, 5625 ], [ 73, 5329 ], [ 74, 5476 ] ]
+data stored for range 74-77: [ [ 75, 5625 ], [ 76, 5776 ], [ 74, 5476 ] ]
+data stored for range 75-78: [ [ 75, 5625 ], [ 77, 5929 ], [ 76, 5776 ] ]
+data stored for range 76-79: [ [ 77, 5929 ], [ 78, 6084 ], [ 76, 5776 ] ]
+data stored for range 77-80: [ [ 79, 6241 ], [ 77, 5929 ], [ 78, 6084 ] ]
+data stored for range 78-81: [ [ 79, 6241 ], [ 80, 6400 ], [ 78, 6084 ] ]
+data stored for range 79-82: [ [ 79, 6241 ], [ 81, 6561 ], [ 80, 6400 ] ]
+data stored for range 80-83: [ [ 81, 6561 ], [ 82, 6724 ], [ 80, 6400 ] ]
+data stored for range 81-84: [ [ 83, 6889 ], [ 81, 6561 ], [ 82, 6724 ] ]
+data stored for range 82-85: [ [ 83, 6889 ], [ 84, 7056 ], [ 82, 6724 ] ]
+data stored for range 83-86: [ [ 83, 6889 ], [ 85, 7225 ], [ 84, 7056 ] ]
+data stored for range 84-87: [ [ 85, 7225 ], [ 86, 7396 ], [ 84, 7056 ] ]
+data stored for range 85-88: [ [ 87, 7569 ], [ 85, 7225 ], [ 86, 7396 ] ]
+data stored for range 86-89: [ [ 87, 7569 ], [ 88, 7744 ], [ 86, 7396 ] ]
+data stored for range 87-90: [ [ 87, 7569 ], [ 89, 7921 ], [ 88, 7744 ] ]
+data stored for range 88-91: [ [ 89, 7921 ], [ 90, 8100 ], [ 88, 7744 ] ]
+data stored for range 89-92: [ [ 91, 8281 ], [ 89, 7921 ], [ 90, 8100 ] ]
+data stored for range 90-93: [ [ 91, 8281 ], [ 92, 8464 ], [ 90, 8100 ] ]
+data stored for range 91-94: [ [ 91, 8281 ], [ 93, 8649 ], [ 92, 8464 ] ]
+data stored for range 92-95: [ [ 93, 8649 ], [ 94, 8836 ], [ 92, 8464 ] ]
+data stored for range 93-96: [ [ 95, 9025 ], [ 93, 8649 ], [ 94, 8836 ] ]
+data stored for range 94-97: [ [ 95, 9025 ], [ 96, 9216 ], [ 94, 8836 ] ]
+data stored for range 95-98: [ [ 95, 9025 ], [ 97, 9409 ], [ 96, 9216 ] ]
+data stored for range 96-99: [ [ 97, 9409 ], [ 98, 9604 ], [ 96, 9216 ] ]
+data stored for range 97-100: [ [ 97, 9409 ], [ 98, 9604 ], [ 99, 9801 ] ]
 data stored for range 98-101: [ [ 98, 9604 ], [ 99, 9801 ] ]
 data stored for range 99-102: [ [ 99, 9801 ] ]
 data stored for range 100-103: [ ]

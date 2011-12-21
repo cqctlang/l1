@@ -196,6 +196,10 @@ debug = 0;
         printf("Running cases on %a %a\n",key,data);
     }
     insert_case1(node);
+    if (debug) { 
+        rbtree_print(tree);
+        printf("++++++++++++++++++++++++++++++++\n");
+    }
 }
 
 //standard tree insertion (ignoring color)
@@ -226,7 +230,7 @@ debug = 0;
     if (node == nil) return;
     padding = mkstr(depth);
     memset(padding,' ');
-    fprintf(fd,"%s%a: %a %d\n",padding,node.key,node.data,node.red);
+    fprintf(fd,"%s%a: %a %a\n",padding,node.key,node.data,node.red);
     if (node.left != nil) {
         fprintf(fd,"%sleft\n",padding);
         rbtreenode_print(node.left,fd,depth+1);
@@ -391,7 +395,7 @@ debug = 0;
         if (child.red) child.red = 0;
         else delete_case1(child);
     } else {
-        @local p,s;
+        @local p,s,key,data;
         if (debug) printf("null child case\n");
         p = n.parent;
         if (p.left == nil && p.right == nil) 
@@ -409,11 +413,12 @@ debug = 0;
         }
         if (eq(p.parent.right,p)) p.parent.right = s;
         else p.parent.left = s;
+        key = p.key; data = p.data;
         if (!p.red)
             //we've decreased the number of black nodes on the
             //path containing n.parent
             delete_case1(s);
-        rbtree_insert(tree,n.key,n.data);
+        rbtree_insert(tree,key,data);
     }
 }
 
@@ -457,22 +462,20 @@ debug = 0;
     if (debug) printf("key %d l=%d (%d) u=%d (%d)\n",n.key,l,c_l,u,c_u);
     //if key was smaller than u and larger than l, then include it
     if (c_u < 0 && c_l >= 0) append(results,[n.key,n.data]);
-    //if the key is smaller than the lower bound, then nothing to
-    //the right can be included.
-    if (c_l <= 0) { 
+    //if the key is bigger than the lower bound, then recurse left
+    if (c_l >= 0) { 
         //use tail-recursion when possible
-        if (c_u <= 0) 
-            return rbtree_rangequery_helper(compare,n.right,l,u,results);
+        if (c_u > 0) 
+            return rbtree_rangequery_helper(compare,n.left,l,u,results);
         else {
             //need to search both directions.
             results = rbtree_rangequery_helper(compare,n.right,l,u,results);
             return rbtree_rangequery_helper(compare,n.left,l,u,results);
         }
     } else {
-        //if the key is larger than the upper bound, then nothing to the
-        //left can be included
-        if (c_u > 0)
-            return rbtree_rangequery_helper(compare,n.left,l,u,results);
+        //if the key is smaller than the upper bound, then recurse right
+        if (c_u < 0)
+            return rbtree_rangequery_helper(compare,n.right,l,u,results);
         return results;
    }
    //will never get here.
