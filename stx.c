@@ -71,7 +71,7 @@ l1_mkstxid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkstxid");
-	checkarg(vm, "mkstxid", argv, 0, Qcid);
+	checkarg(vm, argv, 0, Qcid);
 	e = Zidcid(valcid(argv[0]));
 	e->skind = mkcid0("id");
 	e->src = mksrcfake("(user syntax)");
@@ -111,7 +111,7 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *earg[4], *e;
 	if(argc < 1 || argc > 6)
 		vmerr(vm, "wrong number of arguments to mkstx");
-	checkarg(vm, "mkstx", argv, 0, Qcid);
+	checkarg(vm, argv, 0, Qcid);
 	sk = valcid(argv[0]);
 	k = s2kind(ciddata(sk));
 	memset(earg, 0, sizeof(earg));
@@ -125,7 +125,7 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(i = 0; i < argc; i++)
 		if(argv[i] != Xnil){
 			/* argv dance correctly flags the incorrect operand */
-			checkarg(vm, "mkstx", argv-1, i+1, Qexpr);
+			checkarg(vm, argv-1, i+1, Qexpr);
 			earg[i] = valexpr(argv[i]);
 		}
 	e = Z4(k, earg[0], earg[1], earg[2], earg[3]);
@@ -140,7 +140,7 @@ l1_stxkind(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stxkind");
-	checkarg(vm, "stxkind", argv, 0, Qexpr);
+	checkarg(vm, argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	if(e->skind == 0)
 		bug();
@@ -155,7 +155,7 @@ l1_stxid(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stxid");
-	checkarg(vm, "stxid", argv, 0, Qexpr);
+	checkarg(vm, argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	if(e->kind != Eid)
 		vmerr(vm, "stxid on non-identifier syntax");
@@ -168,7 +168,7 @@ l1_stxval(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stxval");
-	checkarg(vm, "stxval", argv, 0, Qexpr);
+	checkarg(vm, argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	if(e->kind != Eval)
 		vmerr(vm, "stxid on non-literal syntax");
@@ -183,8 +183,8 @@ l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e, *s;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to stxref");
-	checkarg(vm, "stxref", argv, 0, Qexpr);
-	checkarg(vm, "stxref", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qexpr);
+	checkarg(vm, argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to stxref must be "
@@ -218,7 +218,7 @@ l1_stxsrc(VM *vm, Imm argc, Val *argv, Val *rv)
 	Expr *e;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stxsrc");
-	checkarg(vm, "stxsrc", argv, 0, Qexpr);
+	checkarg(vm, argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	*rv = mkvalvec(e->src);
 }

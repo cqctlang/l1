@@ -21,7 +21,7 @@ casget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	Imm a;
 	Str *s;
 
-	checkarg(vm, "casget", argv, 1, Qrange);
+	checkarg(vm, argv, 1, Qrange);
 	r = valrange(argv[1]);
 	beg = r->beg;
 	len = r->len;
@@ -97,7 +97,7 @@ l1_mkcas(VM *vm, Imm argc, Val *argv, Val *rv)
 	As *as;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkcas");
-	checkarg(vm, "mkcas", argv, 0, Qas);
+	checkarg(vm, argv, 0, Qas);
 	as = mkcas(valas(argv[0]));
 	*rv = mkvalas(as);
 }

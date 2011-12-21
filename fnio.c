@@ -270,7 +270,7 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stat");
-	checkarg(vm, "stat", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	if(0 > stat(name, &st)){
@@ -297,7 +297,7 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mapfile");
-	checkarg(vm, "mapfile", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	fd = open(name, O_RDONLY);
@@ -333,8 +333,8 @@ l1_access(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to access");
-	checkarg(vm, "access", argv, 0, Qstr);
-	checkarg(vm, "access", argv, 1, Qstr);
+	checkarg(vm, argv, 0, Qstr);
+	checkarg(vm, argv, 1, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	mode = str2cstr(valstr(argv[1]));
@@ -376,8 +376,8 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to ioctl");
-	checkarg(vm, "ioctl", argv, 0, Qfd);
-	checkarg(vm, "ioctl", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qfd);
+	checkarg(vm, argv, 1, Qcval);
 	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
 		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
 	fd = valfd(argv[0]);
@@ -411,8 +411,8 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	setlasterrno(0);
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to open");
-	checkarg(vm, "open", argv, 0, Qstr);
-	checkarg(vm, "open", argv, 1, Qstr);
+	checkarg(vm, argv, 0, Qstr);
+	checkarg(vm, argv, 1, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	mode = str2cstr(valstr(argv[1]));
@@ -460,8 +460,8 @@ l1_fdopen(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to fdopen");
-	checkarg(vm, "fdopen", argv, 0, Qcval);
-	checkarg(vm, "fdopen", argv, 1, Qstr);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qstr);
 	cfd = valcval(argv[0]);
 	mode = str2cstr(valstr(argv[1]));
 	flags = 0;
@@ -491,8 +491,8 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	setlasterrno(0);
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to read");
-	checkarg(vm, "read", argv, 0, Qfd);
-	checkarg(vm, "read", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qfd);
+	checkarg(vm, argv, 1, Qcval);
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to read from closed file descriptor");
@@ -527,8 +527,8 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	setlasterrno(0);
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to write");
-	checkarg(vm, "write", argv, 0, Qfd);
-	checkarg(vm, "write", argv, 1, Qstr);
+	checkarg(vm, argv, 0, Qfd);
+	checkarg(vm, argv, 1, Qstr);
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to write to closed file descriptor");
@@ -555,9 +555,9 @@ l1_seek(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to seek");
-	checkarg(vm, "seek", argv, 0, Qfd);
-	checkarg(vm, "seek", argv, 1, Qcval);
-	checkarg(vm, "seek", argv, 2, Qcval);
+	checkarg(vm, argv, 0, Qfd);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qcval);
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		vmerr(vm, "attempt to seek on closed file descriptor");
@@ -597,7 +597,7 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "final argument to popen must be a string or cvalue");
 
 	for(m = 0; m < argc; m++)
-		checkarg(vm, "popen", argv, m, Qstr);
+		checkarg(vm, argv, m, Qstr);
 	xargv = emalloc((argc+1)*sizeof(char*)); /* null terminated */
 	for(m = 0; m < argc; m++)
 		xargv[m] = str2cstr(valstr(argv[m]));
@@ -723,12 +723,12 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3 && argc != 4)
 		vmerr(vm, "wrong number of arguments to select");
-	checkarg(vm, "select", argv, 0, Qlist);
-	checkarg(vm, "select", argv, 1, Qlist);
-	checkarg(vm, "select", argv, 2, Qlist);
+	checkarg(vm, argv, 0, Qlist);
+	checkarg(vm, argv, 1, Qlist);
+	checkarg(vm, argv, 2, Qlist);
 	tvp = 0;
 	if(argc == 4){
-		checkarg(vm, "select", argv, 3, Qlist);
+		checkarg(vm, argv, 3, Qlist);
 		tvp = &tv;
 		t = vallist(argv[3]);
 		if(listlen(t) != 2)

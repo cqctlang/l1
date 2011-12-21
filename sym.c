@@ -129,7 +129,7 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 	Vec *vec;
 	Val attr;
 
-	checkarg(vm, what, argv, 0, Qctype);
+	checkarg(vm, argv, 0, Qctype);
 	if(argc > 1)
 		if(Vkind(argv[1]) != Qcid && Vkind(argv[1]) != Qnil)
 			vmerr(vm, "operand 2 to %s must be "

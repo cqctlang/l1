@@ -89,7 +89,7 @@ l1_mkvec(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkvec");
-	checkarg(vm, "mkvec", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	if(argc == 2)
 		v = argv[1];
@@ -122,8 +122,8 @@ l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to vecref");
-	checkarg(vm, "vecref", argv, 0, Qvec);
-	checkarg(vm, "vecref", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qvec);
+	checkarg(vm, argv, 1, Qcval);
 	v = valvec(argv[0]);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
@@ -143,8 +143,8 @@ l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to vecset");
-	checkarg(vm, "vecset", argv, 0, Qvec);
-	checkarg(vm, "vecset", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qvec);
+	checkarg(vm, argv, 1, Qcval);
 	v = valvec(argv[0]);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))

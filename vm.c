@@ -2326,8 +2326,8 @@ l1_cref(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to cref");
 	if(Vkind(argv[0]) != Qdom)
 		vmerr(vm, "attempt to derive location from non-domain");
-	checkarg(vm, "cref", argv, 1, Qctype);
-	checkarg(vm, "cref", argv, 2, Qcval);
+	checkarg(vm, argv, 1, Qctype);
+	checkarg(vm, argv, 2, Qcval);
 	d = valdom(argv[0]);
 	t = valctype(argv[1]);
 	cv = valcval(argv[2]);
@@ -2414,8 +2414,8 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to cval");
 	if(Vkind(argv[0]) != Qdom && Vkind(argv[0]) != Qns)
 		vmerr(vm, "operand 1 to cval must be a domain or namespace");
-	checkarg(vm, "cval", argv, 1, Qctype);
-	checkarg(vm, "cval", argv, 2, Qcval);
+	checkarg(vm, argv, 1, Qctype);
+	checkarg(vm, argv, 2, Qcval);
 
 	t = valctype(argv[1]);
 	b = chasetype(t);
@@ -2680,7 +2680,7 @@ sasget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to get method");
-	checkarg(vm, "sasget", argv, 1, Qrange);
+	checkarg(vm, argv, 1, Qrange);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
 	rb = cvalu(r->beg);
@@ -2699,8 +2699,8 @@ sasput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to put method");
-	checkarg(vm, "sasput", argv, 1, Qrange);
-	checkarg(vm, "sasput", argv, 2, Qstr);
+	checkarg(vm, argv, 1, Qrange);
+	checkarg(vm, argv, 2, Qstr);
 	s = valstr(disp[0]);
 	r = valrange(argv[1]);
 	rb = cvalu(r->beg);
@@ -2778,7 +2778,7 @@ masget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to get method");
-	checkarg(vm, "masget", argv, 1, Qrange);
+	checkarg(vm, argv, 1, Qrange);
 	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
 	rb = cvalu(r->beg);
@@ -2800,8 +2800,8 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to put method");
-	checkarg(vm, "masput", argv, 1, Qrange);
-	checkarg(vm, "masput", argv, 2, Qstr);
+	checkarg(vm, argv, 1, Qrange);
+	checkarg(vm, argv, 2, Qstr);
 	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
 	rb = cvalu(r->beg);
@@ -2838,7 +2838,7 @@ masismapped(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to ismapped method");
-	checkarg(vm, "ismapped", argv, 1, Qrange);
+	checkarg(vm, argv, 1, Qrange);
 	mr = valrange(disp[0]);
 	r = valrange(argv[1]);
 	rb = cvalu(r->beg);
@@ -3033,7 +3033,7 @@ stdlooksym(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to looksym");
-	checkarg(vm, "looksym", argv, 1, Qcid);
+	checkarg(vm, argv, 1, Qcid);
 	sym = valtab(disp[0]);
 	vp = tabget(sym, argv[1]);
 	if(vp)
@@ -3049,7 +3049,7 @@ stdlooktype(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to looktype");
-	checkarg(vm, "looktype", argv, 1, Qctype);
+	checkarg(vm, argv, 1, Qctype);
 	type = valtab(disp[0]);
 	vp = tabget(type, argv[1]);
 	if(vp)
@@ -3067,7 +3067,7 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to lookaddr");
-	checkarg(vm, "lookaddr", argv, 1, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	l = vallist(disp[0]);
 	cv = valcval(argv[1]);
 	addr = cvalu(cv);
@@ -4196,18 +4196,24 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 	}
 }
 
-void
-checkarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
+char*
+vmfnid(VM *vm)
 {
-	if(Vkind(argv[arg]) != qkind)
-		vmerr(vm, "operand %d to %s must be a %s",
-		      arg+1, fn, qname[qkind]);
+	return ciddata(vm->cl->code->id);
 }
 
 void
-cqctcheckarg(VM *vm, char *fn, Val *argv, unsigned arg, Qkind qkind)
+checkarg(VM *vm, Val *argv, unsigned arg, Qkind qkind)
 {
-	checkarg(vm, fn, argv, arg, qkind);
+	if(Vkind(argv[arg]) != qkind)
+		vmerr(vm, "operand %d to %s must be a %s",
+		      arg+1, vmfnid(vm), qname[qkind]);
+}
+
+void
+cqctcheckarg(VM *vm, Val *argv, unsigned arg, Qkind qkind)
+{
+	checkarg(vm, argv, arg, qkind);
 }
 
 int
@@ -4322,7 +4328,7 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to sort");
 	if(Vkind(argv[0]) != Qlist && Vkind(argv[0]) != Qvec)
 		vmerr(vm, "operand 1 to sort must a list or vector");
-	checkarg(vm, "sort", argv, 1, Qcl);
+	checkarg(vm, argv, 1, Qcl);
 	cmp = valcl(argv[1]);
 	o = argv[0];
 	switch(Vkind(o)){
@@ -4385,7 +4391,7 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to bsearch");
 	if(Vkind(argv[1]) != Qlist && Vkind(argv[1]) != Qvec)
 		vmerr(vm, "operand 2 to bsearch must a list or vector");
-	checkarg(vm, "bsearch", argv, 2, Qcl);
+	checkarg(vm, argv, 2, Qcl);
 	cmp = valcl(argv[2]);
 	switch(Vkind(argv[1])){
 	case Qlist:
@@ -4766,10 +4772,10 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 
 	if(argc != 4)
 		vmerr(vm, "wrong number of arguments to put");
-	checkarg(vm, "put", iargv, 0, Qdom);
-	checkarg(vm, "put", iargv, 1, Qcval);
-	checkarg(vm, "put", iargv, 2, Qctype);
-	checkarg(vm, "put", iargv, 3, Qcval);
+	checkarg(vm, iargv, 0, Qdom);
+	checkarg(vm, iargv, 1, Qcval);
+	checkarg(vm, iargv, 2, Qctype);
+	checkarg(vm, iargv, 3, Qcval);
 	d = valdom(iargv[0]);
 	addr = valcval(iargv[1]);
 	t = valctype(iargv[2]);
@@ -4833,7 +4839,7 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to close");
-	checkarg(vm, "close", argv, 0, Qfd);
+	checkarg(vm, argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	if(fd->flags&Fclosed)
 		return;
@@ -4853,7 +4859,7 @@ l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
 	Fd *fd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fdname");
-	checkarg(vm, "fdname", argv, 0, Qfd);
+	checkarg(vm, argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	*rv = mkvalstr(fd->name);
 }
@@ -4882,7 +4888,7 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[2]) == Qcl)
 		c = valcl(argv[2]);
 	if(argc == 4){
-		checkarg(vm, "mkfd", argv, 3, Qstr);
+		checkarg(vm, argv, 3, Qstr);
 		n = valstr(argv[3]);
 	}else
 		n = mkstr0("");
@@ -4908,7 +4914,7 @@ l1_mksas(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mksas");
-	checkarg(vm, "mksas", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	s = valstr(argv[0]);
 	as = mksas(s);
 	*rv = mkvalas(as);
@@ -4925,8 +4931,8 @@ domkmas(VM *vm, char *fn, Imm argc, Val *argv, Val *rv, unsigned x)
 		r = mkrange(mklitcval(Vptr, 0), mklitcval(Vptr, (uptr)-1));
 		break;
 	case 2:
-		checkarg(vm, "mkmas", argv, 0, Qcval);
-		checkarg(vm, "mkmas", argv, 1, Qcval);
+		checkarg(vm, argv, 0, Qcval);
+		checkarg(vm, argv, 1, Qcval);
 		p = valcval(argv[0]);
 		l = valcval(argv[1]);
 		if(cvalu(l) && cvalu(p)+cvalu(l) <= cvalu(p))
@@ -4963,7 +4969,7 @@ l1_mkzas(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkzas");
-	checkarg(vm, "mkzas", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	t = chasetype(cv->type);
 	if(t->tkind != Tbase)
@@ -4981,10 +4987,10 @@ l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkas");
-	checkarg(vm, "mkas", argv, 0, Qtab);
+	checkarg(vm, argv, 0, Qtab);
 	name = 0;
 	if(argc == 2){
-		checkarg(vm, "mkas", argv, 1, Qstr);
+		checkarg(vm, argv, 1, Qstr);
 		name = valstr(argv[1]);
 	}
 	mtab = valtab(argv[0]);
@@ -5001,12 +5007,12 @@ l1_mknsraw(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3 && argc != 4)
 		vmerr(vm, "wrong number of arguments to mknsraw");
-	checkarg(vm, "mknsraw", argv, 0, Qns);
-	checkarg(vm, "mknsraw", argv, 1, Qtab);
-	checkarg(vm, "mknsraw", argv, 2, Qtab);
+	checkarg(vm, argv, 0, Qns);
+	checkarg(vm, argv, 1, Qtab);
+	checkarg(vm, argv, 2, Qtab);
 	name = 0;
 	if(argc == 4){
-		checkarg(vm, "mknsraw", argv, 3, Qstr);
+		checkarg(vm, argv, 3, Qstr);
 		name = valstr(argv[3]);
 	}
 	ons = valns(argv[0]);
@@ -5038,10 +5044,10 @@ l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkns");
-	checkarg(vm, "mkns", argv, 0, Qtab);
+	checkarg(vm, argv, 0, Qtab);
 	name = 0;
 	if(argc == 2){
-		checkarg(vm, "mkns", argv, 1, Qstr);
+		checkarg(vm, argv, 1, Qstr);
 		name = valstr(argv[1]);
 	}
 	mtab = valtab(argv[0]);
@@ -5060,11 +5066,11 @@ l1_mkdom(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to mkdom");
-	checkarg(vm, "mkdom", argv, 0, Qns);
-	checkarg(vm, "mkdom", argv, 1, Qas);
+	checkarg(vm, argv, 0, Qns);
+	checkarg(vm, argv, 1, Qas);
 	name = 0;
 	if(argc == 3){
-		checkarg(vm, "mkdom", argv, 2, Qstr);
+		checkarg(vm, argv, 2, Qstr);
 		name = valstr(argv[2]);
 	}
 	ns = valns(argv[0]);
@@ -5182,8 +5188,8 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to callmethod");
-	checkarg(vm, "callmethod", argv, 1, Qstr);
-	checkarg(vm, "callmethod", argv, 2, Qlist);
+	checkarg(vm, argv, 1, Qstr);
+	checkarg(vm, argv, 2, Qlist);
 	this = argv[0];
 	id = argv[1];
 	args = argv[2];
@@ -5258,7 +5264,7 @@ l1_callmethodx(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc < 2)
 		vmerr(vm, "wrong number of arguments to callmethodx");
-	checkarg(vm, "callmethodx", argv, 1, Qstr);
+	checkarg(vm, argv, 1, Qstr);
 	this = argv[0];
 	id = argv[1];
 	dcl = 0;
@@ -5319,7 +5325,7 @@ l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to nsreptype");
-	checkarg(vm, "nsreptype", argv, 1, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	if(Vkind(argv[0]) == Qns)
 		ns = valns(argv[0]);
 	else if(Vkind(argv[0]) == Qdom){
@@ -5366,8 +5372,8 @@ l1_mkrange(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to mkrange");
-	checkarg(vm, "mkrange", argv, 0, Qcval);
-	checkarg(vm, "mkrange", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	/* FIXME: check sanity */
 	*rv = mkvalrange2(valcval(argv[0]), valcval(argv[1]));
 }
@@ -5378,7 +5384,7 @@ l1_rangebeg(VM *vm, Imm argc, Val *argv, Val *rv)
 	Range *r;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rangebeg");
-	checkarg(vm, "rangebeg", argv, 0, Qrange);
+	checkarg(vm, argv, 0, Qrange);
 	r = valrange(argv[0]);
 	*rv = mkvalcval2(r->beg);
 }
@@ -5389,7 +5395,7 @@ l1_rangelen(VM *vm, Imm argc, Val *argv, Val *rv)
 	Range *r;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rangelen");
-	checkarg(vm, "rangelen", argv, 0, Qrange);
+	checkarg(vm, argv, 0, Qrange);
 	r = valrange(argv[0]);
 	*rv = mkvalcval2(r->len);
 }
@@ -5403,9 +5409,9 @@ l1_memcpy(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 3)
 		vmerr(vm, "wrong number of argument to memcpy");
 
-	checkarg(vm, "memcpy", argv, 0, Qcval);
-	checkarg(vm, "memcpy", argv, 1, Qcval);
-	checkarg(vm, "memcpy", argv, 2, Qcval);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qcval);
 	dcv = valcval(argv[0]);
 	scv = valcval(argv[1]);
 	ncv = valcval(argv[2]);
@@ -5429,7 +5435,7 @@ l1_stringof(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stringof");
-	checkarg(vm, "stringof", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	if(!isstrcval(cv))
 		vmerr(vm, err);
@@ -5459,7 +5465,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 	/* split limit */
 	lim = 0;
 	if(argc == 3){
-		checkarg(vm, "split", argv, 2, Qcval);
+		checkarg(vm, argv, 2, Qcval);
 		lim = valcval(argv[2]);
 		if(!isnatcval(lim))
 			vmerr(vm, "split expects a non-negative limit");
@@ -5526,11 +5532,11 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 	Imm sz;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to ismapped");
-	checkarg(vm, "ismapped", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	addr = valcval(argv[0]);
 	sz = 0;
 	if(argc == 2){
-		checkarg(vm, "ismapped", argv, 1, Qcval);
+		checkarg(vm, argv, 1, Qcval);
 		len = valcval(argv[1]);
 		if(!isnatcval(len))
 			vmerr(vm, "ismapped expects a non-negative length");
@@ -5556,13 +5562,13 @@ l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 
 	if(iargc != 1 && iargc != 2)
 		vmerr(vm, "wrong number of arguments to getbytes");
-	checkarg(vm, "getbytes", iargv, 0, Qcval);
+	checkarg(vm, iargv, 0, Qcval);
 	addr = valcval(iargv[0]);
 	t = chasetype(addr->type);
 	if(t->tkind != Tptr)
 		vmerr(vm, "operand 1 to getbytes must be a pointer");
 	if(iargc == 2){
-		checkarg(vm, "getbytes", iargv, 1, Qcval);
+		checkarg(vm, iargv, 1, Qcval);
 		len = valcval(iargv[1]);
 		n = cvalu(len);
 	}else
@@ -5579,8 +5585,8 @@ l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
 
 	if(iargc != 2)
 		vmerr(vm, "wrong number of arguments to putbytes");
-	checkarg(vm, "putbytes", iargv, 0, Qcval);
-	checkarg(vm, "putbytes", iargv, 1, Qstr);
+	checkarg(vm, iargv, 0, Qcval);
+	checkarg(vm, iargv, 1, Qstr);
 	addr = valcval(iargv[0]);
 	str = valstr(iargv[1]);
 	t = chasetype(addr->type);
@@ -6134,12 +6140,12 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 0)
 		gc(vm);
 	else if(argc == 1){
-		checkarg(vm, "gc", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		g = cvalu(valcval(argv[0]));
 		dogc(vm, g, g+1);
 	}else if(argc == 2){
-		checkarg(vm, "gc", argv, 0, Qcval);
-		checkarg(vm, "gc", argv, 1, Qcval);
+		checkarg(vm, argv, 0, Qcval);
+		checkarg(vm, argv, 1, Qcval);
 		g = cvalu(valcval(argv[0]));
 		tg = cvalu(valcval(argv[1]));
 		if(g != tg && g != tg-1)
@@ -6187,7 +6193,7 @@ l1_instguard(VM *vm, Imm argc, Val *argv, Val *rv)
 	Pair *p;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to instguard");
-	checkarg(vm, "instguard", argv, 0, Qpair);
+	checkarg(vm, argv, 0, Qpair);
 	p = valpair(argv[0]);
 	/* FIXME: we trust that cdr(p) is a valid guardian tconc */
 	instguard(p);
@@ -6202,7 +6208,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to eval");
-	checkarg(vm, "eval", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
 	cl = cqctcompile(vm, s, "<eval-input>", vm->top, 0);
@@ -6238,9 +6244,9 @@ l1_evalk(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to evalk");
-	checkarg(vm, "evalk", argv, 0, Qstr);
-	checkarg(vm, "evalk", argv, 1, Qcl);
-	checkarg(vm, "evalk", argv, 2, Qcl);
+	checkarg(vm, argv, 0, Qstr);
+	checkarg(vm, argv, 1, Qcl);
+	checkarg(vm, argv, 2, Qcl);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
 	cl = cqctcompile(vm, s, "<eval-input>", vm->top, 0);
@@ -6259,10 +6265,10 @@ l1_applyk(VM *vm, Imm iargc, Val *iargv, Val *rv)
 
 	if(iargc < 4)
 		vmerr(vm, "wrong number of arguments to applyk");
-	checkarg(vm, "applyk", iargv, 0, Qcl);
-	checkarg(vm, "applyk", iargv, 1, Qcl);
-	checkarg(vm, "applyk", iargv, 2, Qcl);
-	checkarg(vm, "applyk", iargv, iargc-1, Qlist);
+	checkarg(vm, iargv, 0, Qcl);
+	checkarg(vm, iargv, 1, Qcl);
+	checkarg(vm, iargv, 2, Qcl);
+	checkarg(vm, iargv, iargc-1, Qlist);
 	ll = listlen(vallist(iargv[iargc-1]));
 	argc = iargc-4+ll;
 	argv = emalloc(argc*sizeof(Val));
@@ -6321,7 +6327,7 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to loadpath");
-	checkarg(vm, "setloadpath", argv, 0, Qlist);
+	checkarg(vm, argv, 0, Qlist);
 	l = vallist(argv[0]);
 	m = listlen(l);
 	for(i = 0; i < m; i++){
@@ -6351,15 +6357,15 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1 && argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to parse");
-	checkarg(vm, "parse", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	whence = "<stdin>";
 	line = 1;
 	if(argc > 1){
-		checkarg(vm, "parse", argv, 1, Qstr);
+		checkarg(vm, argv, 1, Qstr);
 		whence = str2cstr(valstr(argv[1]));
 	}
 	if(argc > 2){
-		checkarg(vm, "parse", argv, 2, Qcval);
+		checkarg(vm, argv, 2, Qcval);
 		line = cvalu(valcval(argv[2]));
 	}
 	buf = str2cstr(valstr(argv[0]));
@@ -6380,7 +6386,7 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 	Val v;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to compile");
-	checkarg(vm, "compile", argv, 0, Qexpr);
+	checkarg(vm, argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	/* wrap in "begin" just in case */
 	e = putsrc(Zcons(e, nullelist()), e->src);
@@ -6394,7 +6400,7 @@ l1_pp(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to pp");
-	checkarg(vm, "pp", argv, 0, Qexpr);
+	checkarg(vm, argv, 0, Qexpr);
 	printcqct(valexpr(argv[0]));
 	xprintf("\n");
 }
@@ -6417,8 +6423,8 @@ l1_cvalcmp(VM *vm, Imm argc, Val *argv, Val *rv)
 	int r;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cvalcmp");
-	checkarg(vm, "cvalcmp", argv, 0, Qcval);
-	checkarg(vm, "cvalcmp", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	r = cvalcmp(vm, valcval(argv[0]), valcval(argv[1]));
 	switch(r){
 	case -1:
@@ -6442,7 +6448,7 @@ l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to cval2str");
-	checkarg(vm, "cval2str", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	s = enc2str(vm, cv->type, cvalenc(cv));
 	*rv = mkvalstr(s);

@@ -39,8 +39,8 @@ l1_waitpid(VM *vm, Imm argc, Val *argv, Val *rv)
 	
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to waitpid");
-	checkarg(vm, "waitpid", argv, 0, Qcval);
-	checkarg(vm, "waitpid", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	cv = valcval(argv[0]);
 	pid = (int)cvalu(cv);
 	cv = valcval(argv[1]);
@@ -80,7 +80,7 @@ l1_getenv(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *s, *t;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getenv");
-	checkarg(vm, "getenv", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	s = str2cstr(valstr(argv[0]));
 	t = getenv(s);
 	efree(s);
@@ -96,8 +96,8 @@ l1_setenv(VM *vm, Imm argc, Val *argv, Val *rv)
 	int r;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to setenv");
-	checkarg(vm, "setenv", argv, 0, Qstr);
-	checkarg(vm, "setenv", argv, 1, Qstr);
+	checkarg(vm, argv, 0, Qstr);
+	checkarg(vm, argv, 1, Qstr);
 	s = str2cstr(valstr(argv[0]));
 	t = str2cstr(valstr(argv[1]));
 	r = setenv(s, t, 1);
@@ -177,7 +177,7 @@ l1_news(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 0 && argc != 1)
 		vmerr(vm, "wrong number of arguments to news");
 	if(argc == 1){
-		checkarg(vm, "news", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		days = cvalu(cv);
 		lim = time(0)-(time_t)days*24*60*60;
@@ -264,7 +264,7 @@ l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to glob");
-	checkarg(vm, "glob", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	pat = str2cstr(valstr(argv[0]));
 	/* see GLOB_ALTDIRFUNC (osx & linux) */
 	flags = GLOB_TILDE|GLOB_BRACE;
@@ -301,11 +301,11 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "too few arguments to syscall");
 	if(argc > 7)
 		vmerr(vm, "too many arguments to syscall");
-	checkarg(vm, "syscall", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	sysn = (int)cvalu(cv);
 	for(i = 1; i < argc; i++){
-		checkarg(vm, "syscall", argv, i, Qcval);
+		checkarg(vm, argv, i, Qcval);
 		cv = valcval(argv[i]);
 		xarg[i-1] = (unsigned long)cvalu(cv);
 	}
@@ -365,7 +365,7 @@ l1_chdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	int r;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to chdir");
-	checkarg(vm, "chdir", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	d = str2cstr(valstr(argv[0]));
 	r = chdir(d);
 	efree(d);
@@ -405,7 +405,7 @@ l1_usleep(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to usleep");
-	checkarg(vm, "usleep", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	usleep(cvalu(valcval(argv[0])));
 }
 

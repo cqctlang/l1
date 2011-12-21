@@ -15,7 +15,7 @@ l1_sha1(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to sha1");
-	checkarg(vm, "sha1", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	s = valstr(argv[0]);
 	sha1((unsigned char*)strdata(s), (unsigned long)s->len, md, 0);
 	for(i = 0; i < SHA1dlen; i++){

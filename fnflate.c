@@ -172,7 +172,7 @@ _inflate(VM *vm, Imm argc, Val *argv, Val *rv, int zlib)
 	}else
 		vmerr(vm, err);
 	if(argc == 2){
-		checkarg(vm, "inflate", argv, 1, Qcval);
+		checkarg(vm, argv, 1, Qcval);
 		omax = valcval(argv[1]);
 	}
 	if(p)

@@ -257,7 +257,7 @@ l1_rdof(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdof");
-	checkarg(vm, "rdof", argv, 0, Qrec);
+	checkarg(vm, argv, 0, Qrec);
 	r = valrec(argv[0]);
 	*rv = mkvalrd(r->rd);
 }
@@ -272,12 +272,12 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to mkrd");
-	checkarg(vm, "mkrd", argv, 0, Qstr);
-	checkarg(vm, "mkrd", argv, 1, Qlist);
+	checkarg(vm, argv, 0, Qstr);
+	checkarg(vm, argv, 1, Qlist);
 
 	fmt = 0;
 	if(argc == 3){
-		checkarg(vm, "mkrd", argv, 2, Qcl);
+		checkarg(vm, argv, 2, Qcl);
 		fmt = valcl(argv[2]);
 	}
 	lst = vallist(argv[1]);
@@ -297,7 +297,7 @@ l1_rdname(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdname");
-	checkarg(vm, "rdname", argv, 0, Qrd);
+	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalstr(rd->name);
 }
@@ -308,7 +308,7 @@ l1_rdis(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdis");
-	checkarg(vm, "rdis", argv, 0, Qrd);
+	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalcl(rd->is);
 }
@@ -320,7 +320,7 @@ l1_rdmk(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdmk");
-	checkarg(vm, "rdmk", argv, 0, Qrd);
+	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalcl(rd->mk);
 }
@@ -331,7 +331,7 @@ l1_rdfmt(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdfmt");
-	checkarg(vm, "rdfmt", argv, 0, Qrd);
+	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvalcl(rd->fmt);
 }
@@ -343,8 +343,8 @@ l1_rdsetfmt(VM *vm, Imm argc, Val *argv, Val *rv)
 	Closure *cl;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to rdsetfmt");
-	checkarg(vm, "rdsetfmt", argv, 0, Qrd);
-	checkarg(vm, "rdsetfmt", argv, 1, Qcl);
+	checkarg(vm, argv, 0, Qrd);
+	checkarg(vm, argv, 1, Qcl);
 	rd = valrd(argv[0]);
 	cl = valcl(argv[1]);
 	rd->fmt = cl;
@@ -357,7 +357,7 @@ l1_rdfields(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdfields");
-	checkarg(vm, "rdfields", argv, 0, Qrd);
+	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvallist(rd->fname);
 }
@@ -368,7 +368,7 @@ l1_rdgettab(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdgettab");
-	checkarg(vm, "rdgettab", argv, 0, Qrd);
+	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvaltab(rd->get);
 }
@@ -379,7 +379,7 @@ l1_rdsettab(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rd *rd;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdsettab");
-	checkarg(vm, "rdsettab", argv, 0, Qrd);
+	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
 	*rv = mkvaltab(rd->set);
 }

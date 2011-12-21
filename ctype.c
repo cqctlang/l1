@@ -770,13 +770,13 @@ l1_mkctype_base(VM *vm, Imm argc, Val *argv, Val *rv)
 	Rkind rep;
 
 	if(argc == 1){
-		checkarg(vm, "mkctype_base", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		cb = cvalu(cv);
 		rep = Rundef;
 	}else if(argc == 2){
-		checkarg(vm, "mkctype_base", argv, 0, Qcval);
-		checkarg(vm, "mkctype_base", argv, 1, Qcval);
+		checkarg(vm, argv, 0, Qcval);
+		checkarg(vm, argv, 1, Qcval);
 		cv = valcval(argv[0]);
 		cb = cvalu(cv);
 		cv = valcval(argv[1]);
@@ -803,7 +803,7 @@ l1_mkctype_bool(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_bool", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -820,7 +820,7 @@ l1_mkctype_char(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_char", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -837,7 +837,7 @@ l1_mkctype_short(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_short", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -854,7 +854,7 @@ l1_mkctype_int(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_int", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -871,7 +871,7 @@ l1_mkctype_long(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_long", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -888,7 +888,7 @@ l1_mkctype_vlong(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_vlong", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -905,7 +905,7 @@ l1_mkctype_uchar(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_uchar", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -922,7 +922,7 @@ l1_mkctype_ushort(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_ushort", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -939,7 +939,7 @@ l1_mkctype_uint(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_uint", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -956,7 +956,7 @@ l1_mkctype_ulong(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_ulong", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -973,7 +973,7 @@ l1_mkctype_uvlong(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_uvlong", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -990,7 +990,7 @@ l1_mkctype_float(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_float", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -1007,7 +1007,7 @@ l1_mkctype_double(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_double", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -1024,7 +1024,7 @@ l1_mkctype_ldouble(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_ldouble", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -1041,7 +1041,7 @@ l1_mkctype_complex(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_complex", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -1058,7 +1058,7 @@ l1_mkctype_doublex(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_doublex", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -1075,7 +1075,7 @@ l1_mkctype_ldoublex(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	rep = Rundef;
 	if(argc == 1){
-		checkarg(vm, "mkctype_ldoublex", argv, 0, Qcval);
+		checkarg(vm, argv, 0, Qcval);
 		cv = valcval(argv[0]);
 		rep = cvalu(cv);
 		if(rep >= Rnrep)
@@ -1117,13 +1117,13 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = 0;
 	switch((unsigned)argc){
 	case 1:
-		checkarg(vm, "mkctype_typedef", argv, 0, Qcid);
+		checkarg(vm, argv, 0, Qcid);
 		id = valcid(argv[0]);
 		t = mkctypedef(id, 0);
 		break;
 	case 2:
-		checkarg(vm, "mkctype_typedef", argv, 0, Qcid);
-		checkarg(vm, "mkctype_typedef", argv, 1, Qctype);
+		checkarg(vm, argv, 0, Qcid);
+		checkarg(vm, argv, 1, Qctype);
 		id = valcid(argv[0]);
 		sub = valctype(argv[1]);
 		t = mkctypedef(id, sub);
@@ -1135,7 +1135,7 @@ l1_mkctype_typedef(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
+domkctype_su(VM *vm, Tkind tkind, Imm argc, Val *argv, Val *rv)
 {
 	Ctype *t;
 	Cid *id;
@@ -1145,28 +1145,27 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 	switch((unsigned)argc){
 	case 1:
 		/* TAG */
-		checkarg(vm, fn, argv, 0, Qcid);
+		checkarg(vm, argv, 0, Qcid);
 		id = valcid(argv[0]);
 		t = mkctypesu(tkind, id, 0, 0);
 		break;
 	case 3:
 		/* TAG FIELDS SIZE */
-		checkarg(vm, fn, argv, 0, Qcid);
-		checkarg(vm, fn, argv, 1, Qvec);
+		checkarg(vm, argv, 0, Qcid);
+		checkarg(vm, argv, 1, Qvec);
 		if(Vkind(argv[2]) != Qcval
 		   && Vkind(argv[2]) != Qtab
 		   && Vkind(argv[2]) != Qnil)
 			vmerr(vm, "operand 3 to %s must be a cvalue, "
-			      "table, or nil",
-			      fn);
+			      "table, or nil", vmfnid(vm));
 		id = valcid(argv[0]);
 		f = valvec(argv[1]);
 		if(!issymvec(f))
-			vmerr(vm, "bad field vector", fn);
+			vmerr(vm, "bad field vector");
 		t = mkctypesu(tkind, id, f, mkattr(argv[2]));
 		break;
 	default:
-		vmerr(vm, "wrong number of arguments to %s", fn);
+		vmerr(vm, "wrong number of arguments to %s", vmfnid(vm));
 	}
 	*rv = mkvalctype(t);
 }
@@ -1174,13 +1173,13 @@ domkctype_su(VM *vm, char *fn, Tkind tkind, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkctype_struct(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	domkctype_su(vm, "mkctype_struct", Tstruct, argc, argv, rv);
+	domkctype_su(vm, Tstruct, argc, argv, rv);
 }
 
 static void
 l1_mkctype_union(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	domkctype_su(vm, "mkctype_union", Tunion, argc, argv, rv);
+	domkctype_su(vm, Tunion, argc, argv, rv);
 }
 
 static void
@@ -1192,14 +1191,14 @@ l1_mkctype_array(VM *vm, Imm argc, Val *argv, Val *rv)
 	switch((unsigned)argc){
 	case 1:
 		/* TYPE */
-		checkarg(vm, "mkctype_array", argv, 0, Qctype);
+		checkarg(vm, argv, 0, Qctype);
 		sub = valctype(argv[0]);
 		t = mkctypearr(sub, Xnil); /* Xnil? */
 		break;
 	case 2:
 		/* TYPE CNT */
-		checkarg(vm, "mkctype_array", argv, 0, Qctype);
-		checkarg(vm, "mkctype_array", argv, 1, Qcval);
+		checkarg(vm, argv, 0, Qctype);
+		checkarg(vm, argv, 1, Qcval);
 		sub = valctype(argv[0]);
 		t = mkctypearr(sub, argv[1]);
 		break;
@@ -1217,8 +1216,8 @@ l1_mkctype_fn(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_fn");
-	checkarg(vm, "mkctype_fn", argv, 0, Qctype);
-	checkarg(vm, "mkctype_fn", argv, 1, Qvec);
+	checkarg(vm, argv, 0, Qctype);
+	checkarg(vm, argv, 1, Qvec);
 	sub = valctype(argv[0]);
 	p = valvec(argv[1]);
 	if(!issymvec(p))
@@ -1234,8 +1233,8 @@ l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 	/* TYPE WIDTH POS */
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to mkctype_bitfield");
-	checkarg(vm, "mkctype_bitfield", argv, 0, Qctype);
-	checkarg(vm, "mkctype_bitfield", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qctype);
+	checkarg(vm, argv, 1, Qcval);
 	if(Vkind(argv[2]) != Qcval && Vkind(argv[2]) != Qnil)
 		vmerr(vm, "operand 3 to mkctype_bitfield must be a "
 		      "cvalue or nil");
@@ -1255,23 +1254,23 @@ l1_mkctype_enum(VM *vm, Imm argc, Val *argv, Val *rv)
 	switch((unsigned)argc){
 	case 1:
 		/* TAG */
-		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
+		checkarg(vm, argv, 0, Qcid);
 		id = valcid(argv[0]);
 		t = mkctypeenum(id, 0, 0);
 		break;
 	case 2:
 		/* TAG CONSTS (FIXME: is this a good form?) */
-		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
-		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
+		checkarg(vm, argv, 0, Qcid);
+		checkarg(vm, argv, 1, Qvec);
 		id = valcid(argv[0]);
 		c = valvec(argv[1]);
 		t = mkctypeenum(id, 0, c);
 		break;
 	case 3:
 		/* TAG CONSTS TYPE */
-		checkarg(vm, "mkctype_enum", argv, 0, Qcid);
-		checkarg(vm, "mkctype_enum", argv, 1, Qvec);
-		checkarg(vm, "mkctype_enum", argv, 2, Qctype);
+		checkarg(vm, argv, 0, Qcid);
+		checkarg(vm, argv, 1, Qvec);
+		checkarg(vm, argv, 2, Qctype);
 		id = valcid(argv[0]);
 		c = valvec(argv[1]);
 		sub = valctype(argv[2]);
@@ -1290,7 +1289,7 @@ l1_mkctype_const(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkctype_const");
-	checkarg(vm, "mkctype_const", argv, 0, Qctype);
+	checkarg(vm, argv, 0, Qctype);
 	sub = valctype(argv[0]);
 	t = mkctypeconst(sub);
 	*rv = mkvalctype(t);
@@ -1301,7 +1300,7 @@ l1_mkctype_undef(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkctype_undef");
-	checkarg(vm, "mkctype_undef", argv, 0, Qctype);
+	checkarg(vm, argv, 0, Qctype);
 	*rv = mkvalctype(mkctypeundef(valctype(argv[0])));
 }
 
@@ -1701,8 +1700,8 @@ l1_settypedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to settypedeftype");
-	checkarg(vm, "settypedeftype", argv, 0, Qctype);
-	checkarg(vm, "settypedeftype", argv, 1, Qctype);
+	checkarg(vm, argv, 0, Qctype);
+	checkarg(vm, argv, 1, Qctype);
 	
 	t = valctype(argv[0]);
 	if(t->tkind != Ttypedef)
@@ -1893,7 +1892,7 @@ l1_typename(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to typename");
-	checkarg(vm, "typename", argv, 0, Qctype);
+	checkarg(vm, argv, 0, Qctype);
 	*rv = mkvalctype(typename(valctype(argv[0])));
 }
 
@@ -1902,8 +1901,8 @@ l1_equalctype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to equalctype");
-	checkarg(vm, "equalctype", argv, 0, Qctype);
-	checkarg(vm, "equalctype", argv, 1, Qctype);
+	checkarg(vm, argv, 0, Qctype);
+	checkarg(vm, argv, 1, Qctype);
 	if(equalctype(valctype(argv[0]), valctype(argv[1])))
 		*rv = mkvalcval2(cval1);
 	else
@@ -1915,7 +1914,7 @@ l1_hashctype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to hashctype");
-	checkarg(vm, "hashctype", argv, 0, Qctype);
+	checkarg(vm, argv, 0, Qctype);
 	*rv = mkvalcval2(mklitcval(Vuint, hashctype(valctype(argv[0]))));
 }
 

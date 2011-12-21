@@ -157,7 +157,7 @@ l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to malloc");
-	checkarg(vm, "malloc", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	len = valcval(argv[0]);
 	if(!isnatcval(len))
 		vmerr(vm, "malloc expects a non-negative length");
@@ -176,7 +176,7 @@ l1__free(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *p;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to malloc");
-	checkarg(vm, "malloc", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	p = valcval(argv[0]);
 	free((void*)(uptr)cvalu(p));
 }
@@ -192,11 +192,11 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to memset");
 	s = valstrorcval(vm, "memset", argv, 0);
-	checkarg(vm, "memset", argv, 1, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	bcv = valcval(argv[1]);
 	b = cvalu(bcv)&0xff;
 	if(argc == 3){
-		checkarg(vm, "memset", argv, 2, Qcval);
+		checkarg(vm, argv, 2, Qcval);
 		lcv = valcval(argv[2]);
 		lim = cvalu(lcv);
 	}else
@@ -221,7 +221,7 @@ l1_mkstr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkstr");
-	checkarg(vm, "mkstr", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 1 to mkstr must be a non-negative integer");
@@ -235,8 +235,8 @@ l1_mkstrm(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to mkstrm");
-	checkarg(vm, "mkstr", argv, 0, Qcval);
-	checkarg(vm, "mkstr", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	s = valcval(argv[0]);
 	len = valcval(argv[1]);
 	*rv = mkvalstr(mkstrk((char*)cvalu(s), cvalu(len), Sperm));
@@ -260,8 +260,8 @@ l1_substr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to substr");
 	s = valstrorcval(vm, "substr", argv, 0);
-	checkarg(vm, "substr", argv, 1, Qcval);
-	checkarg(vm, "substr", argv, 2, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qcval);
 	b = valcval(argv[1]);
 	e = valcval(argv[2]);
 	if(cvalu(b) > s->len)
@@ -280,7 +280,7 @@ l1_strref(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to strref");
-	checkarg(vm, "strref", argv, 1, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to strref must be "
@@ -358,10 +358,10 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to strton");
-	checkarg(vm, "strton", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	radix = 0;
 	if(argc == 2){
-		checkarg(vm, "strton", argv, 1, Qcval);
+		checkarg(vm, argv, 1, Qcval);
 		cv = valcval(argv[1]);
 		if(!isnatcval(cv))
 			vmerr(vm, "operand 2 to strton must be "
