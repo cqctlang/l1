@@ -1,0 +1,131 @@
+
+
+@global rangeset_defined;
+
+@include <rbtree.cqct>
+
+if (rangeset_defined == nil)
+{
+@local compare,containing_range;
+@local debug;
+
+@global rangeset_create,rangeset_intersect,rangeset_insert;
+@global rangeset_contains,rangeset_delete,rangeset_foreach;
+@global rangeset_enumerate;
+
+rangeset_defined = 1;
+
+debug = 0;
+
+@define compare(a,b) { return a-b; };
+
+//an interval set is an rbtree.
+
+@define rangeset_create() {
+    return rbtree_create(compare);
+}
+
+//returns a list of ranges that intersect the given range.
+@define rangeset_intersect(set,r) {
+    @local res,upper,lower;
+    lower = rangebeg(r);
+    upper = lower + rangelen(r);
+    res = rbtree_nearestsmallerquery(set,lower);
+    if (res == nil) res = [];
+    else {
+        if (res[0] + res[1] > lower)
+            res = [mkrange(res[0],res[1])];
+        else res = [];
+    }
+    res = concat(res,map(@lambda(x) {
+        return mkrange(x[0],x[1]);
+    },rbtree_rangequery(set,lower,upper)));
+    if (debug) printf("intersect: %a\n",res);
+    return res;
+}
+
+//for a list of ranges lst, this returns
+//a range that contains all ranges in the list.
+@define containing_range(lst) {
+    @local min,max;
+    if (lst == []) error("need non-empty list");
+    min = nil; max = nil;
+    foreach(@lambda(r) {
+        @local upper;
+        upper = rangebeg(r) + rangelen(r);
+        if (min == nil || rangebeg(r) < min) min = rangebeg(r);
+        if (max == nil || upper > max) max = upper;
+    },lst);
+    return mkrange(min,max-min);
+}
+
+@define rangeset_insert(set,r) {
+    @local intersection,r2,abut;
+    if (rangelen(r) == 0) return;
+    intersection = rangeset_intersect(set,r);
+    if (debug) printf("initial intersection: %a\n",intersection);
+    abut = rbtree_nearestsmallerquery(set,rangebeg(r));
+    if (abut != nil && abut[0]+abut[1] == rangebeg(r))
+        append(intersection,mkrange(abut[0],abut[1]));
+    abut = rbtree_query(set,rangebeg(r)+rangelen(r));
+    if (abut != nil)
+        append(intersection,
+                mkrange(rangebeg(r)+rangelen(r),abut));
+    if (debug) printf("insert of %a: %a\n",r,intersection);
+    foreach(@lambda(x) {
+        if (debug) printf("%a %a\n",x,rbtree_enumerate(set));
+        rbtree_delete(set,rangebeg(x));
+    },intersection);
+    append(intersection,r);
+    r2 = containing_range(intersection);
+    if (debug) printf("containing range: %a\n",r2);
+    rbtree_insert(set,rangebeg(r2),rangelen(r2));
+}
+
+@define rangeset_contains(set,v) {
+    @local res;
+    res = rbtree_nearestsmallerquery(set,v);
+    if (res != nil) {
+        if (res[0] + res[1] > v) return 1;
+    }
+    res = rbtree_query(set,v);
+    return res != nil;
+}
+
+@define rangeset_delete(set,r) {
+    @local res,lower,upper;
+    if (rangelen(r) == 0) return;
+    res = rangeset_intersect(set,r);
+    foreach(@lambda(x) {
+        rbtree_delete(set,rangebeg(x));
+    },res);
+    lower = rangebeg(r);
+    upper = rangebeg(r) + rangelen(r);
+    foreach(@lambda(x) {
+        @local x_lo,x_up;
+        x_lo = rangebeg(x);
+        x_up = rangebeg(x) + rangelen(x);
+        if (x_lo < lower)
+            rbtree_insert(set,x_lo,lower-x_lo);
+        if (x_up > upper) 
+            rbtree_insert(set,upper,x_up-upper);
+    },res);
+}
+
+@define rangeset_foreach(set,fn) {
+    rbtree_foreach(set,@lambda(x,v) {
+        fn(mkrange(x,v));
+    });
+}
+
+@define rangeset_enumerate(set) {
+    @local res;
+    res = [];
+    rbtree_foreach(set,@lambda(x,v) {
+        append(res,mkrange(x,v));
+    });
+    return res;
+}
+
+
+}

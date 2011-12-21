@@ -1,0 +1,51 @@
+
+
+@include <rangeset.cqct>
+
+
+rs = rangeset_create();
+
+for(i=0; i<20; ++i) 
+    rangeset_insert(rs,mkrange(i,2));
+
+printf("%a\n",rangeset_enumerate(rs));
+rangeset_delete(rs,mkrange(15,3));
+printf("%a\n",rangeset_enumerate(rs));
+rangeset_delete(rs,mkrange(1,3));
+printf("%a\n",rangeset_enumerate(rs));
+rangeset_insert(rs,mkrange(15,1));
+printf("%a\n",rangeset_enumerate(rs));
+rangeset_insert(rs,mkrange(15,2));
+printf("%a\n",rangeset_enumerate(rs));
+
+printf("%a\n",rangeset_intersect(rs,mkrange(14,5)));
+printf("%d %d\n",rangeset_contains(rs,0),rangeset_contains(rs,17));
+rangeset_foreach(rs,@lambda(x) {
+    printf("%d ",rangelen(x));
+});
+printf("\n");
+
+rangeset_insert(rs,mkrange(15,3));
+printf("%a\n",rangeset_enumerate(rs));
+
+rangeset_insert(rs,mkrange(0,100));
+printf("%a\n",rangeset_enumerate(rs));
+
+for(i=1; i<20; i += 5) {
+    rangeset_delete(rs,mkrange(i,3));
+}
+printf("%a\n",rangeset_enumerate(rs));
+
+rangeset_insert(rs,mkrange(0,100));
+printf("%a\n",rangeset_enumerate(rs));
+
+rs = rangeset_create();
+for(i=1; i<200; i += 5) {
+    rangeset_insert(rs,mkrange(i,3));
+}
+for(i=1; i<200; i += 5) {
+    if (!rangeset_contains(rs,i+1)) printf("ERROR\n");
+}
+printf("%a\n",rangeset_enumerate(rs));
+printf("%a\n",rangeset_intersect(rs,mkrange(50,20)));
+
