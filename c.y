@@ -1021,6 +1021,8 @@ statement
 mcall_statement
 	: atid '(' argument_expression_list ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), $5, 0); }
+	| atid '(' ')' compound_statement
+	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, nullelist(), $4, 0); }
 	| atid compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, 0, $2, 0); }
 	;
