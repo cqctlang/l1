@@ -18,12 +18,13 @@ inquasi(U *ctx, Expr *e)
 	case Eval:
 		return putsrc(Zcall(G("mkstxval"), 1, Zval(e->aux)), e->src);
 	default:
-		return putsrc(Zcall(G("mkstx"), 5,
+		return putsrc(Zcall(G("mkstx"), 6,
 				    Zval(mkvalcid(mkcid0(S[e->kind]))),
 				    inquasi(ctx, e->e1) ?: Znil(),
 				    inquasi(ctx, e->e2) ?: Znil(),
 				    inquasi(ctx, e->e3) ?: Znil(),
-				    inquasi(ctx, e->e4) ?: Znil()),
+				    inquasi(ctx, e->e4) ?: Znil(),
+				    Zval(mkvalvec(e->src))),
 			      e->src);
 	}
 }

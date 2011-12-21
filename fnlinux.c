@@ -13,8 +13,8 @@ l1_timerfd_create(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to timerfd_create");
-	checkarg(vm, "timerfd_create", argv, 0, Qcval);
-	checkarg(vm, "timerfd_create", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
 	cl = valcval(argv[0]);
 	fl = valcval(argv[1]);
 	xfd.fd = timerfd_create(cl->val, fl->val);
@@ -38,9 +38,9 @@ l1_timerfd_settime(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to timerfd_settime");
-	checkarg(vm, "timerfd_settime", argv, 0, Qfd);
-	checkarg(vm, "timerfd_settime", argv, 1, Qcval);
-	checkarg(vm, "timerfd_settime", argv, 2, Qlist);
+	checkarg(vm, argv, 0, Qfd);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qlist);
 	fd = valfd(argv[0]);
 	fl = valcval(argv[1]);
 	l = vallist(argv[2]);

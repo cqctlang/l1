@@ -55,7 +55,7 @@ l1_mkcid(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkcid");
-	checkarg(vm, "mkcid", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	*rv = mkvalcid(mkcidstr(valstr(argv[0])));
 }
 
@@ -64,7 +64,7 @@ l1_cid2str(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to cid2str");
-	checkarg(vm, "mkcid", argv, 0, Qcid);
+	checkarg(vm, argv, 0, Qcid);
 	*rv = mkvalstr(cid2str(valcid(argv[0])));
 }
 

@@ -24,7 +24,7 @@ l1_snap(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to snap");
-	checkarg(vm, "snap", argv, 0, Qfd);
+	checkarg(vm, argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	snap(vm, fd);
 }

@@ -48,7 +48,7 @@ l1_setcar(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to setcar");
-	checkarg(vm, "setcar", argv, 0, Qpair);
+	checkarg(vm, argv, 0, Qpair);
 	gcwb(argv[0]);
 	p = valpair(argv[0]);
 	p->car = argv[1];
@@ -61,7 +61,7 @@ l1_setcdr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to setcdr");
-	checkarg(vm, "setcar", argv, 0, Qpair);
+	checkarg(vm, argv, 0, Qpair);
 	gcwb(argv[0]);
 	p = valpair(argv[0]);
 	p->cdr = argv[1];
@@ -74,7 +74,7 @@ l1_car(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to car");
-	checkarg(vm, "car", argv, 0, Qpair);
+	checkarg(vm, argv, 0, Qpair);
 	p = valpair(argv[0]);
 	*rv = p->car;
 }
@@ -86,7 +86,7 @@ l1_cdr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to cdr");
-	checkarg(vm, "cdr", argv, 0, Qpair);
+	checkarg(vm, argv, 0, Qpair);
 	p = valpair(argv[0]);
 	*rv = p->cdr;
 }

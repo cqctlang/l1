@@ -9,7 +9,7 @@ stx(Expr *e)
 	char *id;
 
 	if(e == 0)
-		return 0;
+		return 0; 
 	switch(e->kind){
 	case Ematch:
 		/* syntax in patterns is expanded later */

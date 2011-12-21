@@ -1074,8 +1074,7 @@ Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
 void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
 Ctype*		chasetype(Ctype *t);
-void		checkarg(VM *vm, char *f, Val *argv,
-			 unsigned arg, Qkind qkind);
+void		checkarg(VM *vm, Val *argv, unsigned arg, Qkind qkind);
 Tab*		doinsncnt(void);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 void		dogc(VM *vm, u32 g, u32 tg);
@@ -1145,6 +1144,7 @@ Head*		valhead(Val v);
 Imm		valimm(Val v);
 Str*		valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
+char*		vmfnid(VM *vm);
 Fd*		vmstdout(VM *vm);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 #define mkvalas(x)	((Val)(x))
@@ -1270,6 +1270,7 @@ Expr*		Znot(Expr *e);
 Expr*		Znull();
 Expr*		Zref(Expr *dom, Expr *type, Expr *val);
 Expr*		Zret(Expr *e);
+Expr*		Zreverse(Expr *e);
 Expr*		Zscope(Expr *block);
 Expr*		Zset(Expr *l, Expr *r);
 Expr*		Zsizeof(Expr *e);
@@ -1456,6 +1457,7 @@ int		eqvstx(Expr *a, Expr *b);
 void		fnstx(Env *env);
 u32		hashqvstx(Expr *e);
 u32		hashstx(Expr *e);
+void		l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv);
 
 /* sym.c */
 Val		attroff(Val o);

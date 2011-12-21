@@ -14,7 +14,7 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to readdir");
-	checkarg(vm, "readdir", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	dir = opendir(name);
@@ -52,7 +52,7 @@ l1_mkdir(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkdir");
-	checkarg(vm, "mkdir", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = mkdir(name, 0777);	/* ~umask */
@@ -74,7 +74,7 @@ l1_unlink(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to unlink");
-	checkarg(vm, "unlink", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = unlink(name);
@@ -96,7 +96,7 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rmdir");
-	checkarg(vm, "rmdir", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
 	r = rmdir(name);

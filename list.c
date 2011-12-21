@@ -332,7 +332,7 @@ l1_mklist(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mklist");
-	checkarg(vm, "mklist", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	if(argc == 2)
 		v = argv[1];
@@ -353,8 +353,8 @@ l1_listref(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to listref");
-	checkarg(vm, "listref", argv, 0, Qlist);
-	checkarg(vm, "listref", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qlist);
+	checkarg(vm, argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to listref must be "
@@ -375,8 +375,8 @@ l1_listdel(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to listdel");
-	checkarg(vm, "listdel", argv, 0, Qlist);
-	checkarg(vm, "listdel", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qlist);
+	checkarg(vm, argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to listdel must be "
@@ -393,8 +393,8 @@ l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 	Imm idx, m;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to listset");
-	checkarg(vm, "listset", argv, 0, Qlist);
-	checkarg(vm, "listset", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qlist);
+	checkarg(vm, argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to listset must be "
@@ -415,8 +415,8 @@ l1_listins(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to listins");
-	checkarg(vm, "listins", argv, 0, Qlist);
-	checkarg(vm, "listins", argv, 1, Qcval);
+	checkarg(vm, argv, 0, Qlist);
+	checkarg(vm, argv, 1, Qcval);
 	cv = valcval(argv[1]);
 	if(!isnatcval(cv))
 		vmerr(vm, "operand 2 to listins must be "
@@ -434,9 +434,9 @@ l1_slice(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to slice");
-	checkarg(vm, "slice", argv, 0, Qlist);
-	checkarg(vm, "slice", argv, 1, Qcval);
-	checkarg(vm, "slice", argv, 2, Qcval);
+	checkarg(vm, argv, 0, Qlist);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qcval);
 	l = vallist(argv[0]);
 	b = valcval(argv[1]);
 	e = valcval(argv[2]);
@@ -456,7 +456,7 @@ l1_head(VM *vm, Imm argc, Val *argv, Val *rv)
 	Val vp;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to head");
-	checkarg(vm, "head", argv, 0, Qlist);
+	checkarg(vm, argv, 0, Qlist);
 	vp = listhead(vm, vallist(argv[0]));
 	*rv = vp;
 }
@@ -467,7 +467,7 @@ l1_tail(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *lst;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tail");
-	checkarg(vm, "tail", argv, 0, Qlist);
+	checkarg(vm, argv, 0, Qlist);
 	lst = listtail(vm, vallist(argv[0]));
 	*rv = mkvallist(lst);
 }
@@ -478,7 +478,7 @@ l1_push(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *lst;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to push");
-	checkarg(vm, "push", argv, 0, Qlist);
+	checkarg(vm, argv, 0, Qlist);
 	lst = listpush(vm, vallist(argv[0]), argv[1]);
 	*rv = mkvallist(lst);
 }
@@ -489,7 +489,7 @@ l1_append(VM *vm, Imm argc, Val *argv, Val *rv)
 	List *lst;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to append");
-	checkarg(vm, "append", argv, 0, Qlist);
+	checkarg(vm, argv, 0, Qlist);
 	lst = listappend(vm, vallist(argv[0]), argv[1]);
 	*rv = mkvallist(lst);
 }

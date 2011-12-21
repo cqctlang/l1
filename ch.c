@@ -9,7 +9,7 @@ l1_toupper(VM *vm, Imm argc, Val *argv, Val *rv)
 	int x;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to toupper");
-	checkarg(vm, "toupper", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	x = xtoupper(cvalu(cv));
 	*rv = mkvalcval(cv->dom, cv->type, x);
@@ -22,19 +22,19 @@ l1_tolower(VM *vm, Imm argc, Val *argv, Val *rv)
 	int x;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tolower");
-	checkarg(vm, "tolower", argv, 0, Qcval);
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	x = xtolower(cvalu(cv));
 	*rv = mkvalcval(cv->dom, cv->type, x);
 }
 
 static void
-l1_isxctype(VM *vm, Imm argc, Val *argv, Val *rv, char *name, int (*fn)(int))
+isxctype(VM *vm, Imm argc, Val *argv, Val *rv, int (*fn)(int))
 {
 	Cval *cv;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to %s", name);
-	checkarg(vm, name, argv, 0, Qcval);
+		vmerr(vm, "wrong number of arguments to %s", vmfnid(vm));
+	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	if(fn((int)cvalu(cv)))
 		*rv = mkvalcval2(cval1);
@@ -45,85 +45,85 @@ l1_isxctype(VM *vm, Imm argc, Val *argv, Val *rv, char *name, int (*fn)(int))
 static void
 l1_isalnum(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isalnum", xisalnum);
+	isxctype(vm, argc, argv, rv, xisalnum);
 }
 
 static void
 l1_isalpha(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isalpha", xisalpha);
+	isxctype(vm, argc, argv, rv, xisalpha);
 }
 
 static void
 l1_isascii(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isascii", xisascii);
+	isxctype(vm, argc, argv, rv, xisascii);
 }
 
 static void
 l1_isblank(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isblank", xisblank);
+	isxctype(vm, argc, argv, rv, xisblank);
 }
 
 static void
 l1_iscntrl(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "iscntrl", xiscntrl);
+	isxctype(vm, argc, argv, rv, xiscntrl);
 }
 
 static void
 l1_isdigit(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isdigit", xisdigit);
+	isxctype(vm, argc, argv, rv, xisdigit);
 }
 
 static void
 l1_isgraph(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isgraph", xisgraph);
+	isxctype(vm, argc, argv, rv, xisgraph);
 }
 
 static void
 l1_islower(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "islower", xislower);
+	isxctype(vm, argc, argv, rv, xislower);
 }
 
 static void
 l1_isodigit(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isodigit", xisodigit);
+	isxctype(vm, argc, argv, rv, xisodigit);
 }
 
 static void
 l1_isprint(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isprint", xisprint);
+	isxctype(vm, argc, argv, rv, xisprint);
 }
 
 static void
 l1_ispunct(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "ispunct", xispunct);
+	isxctype(vm, argc, argv, rv, xispunct);
 }
 
 static void
 l1_isspace(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isspace", xisspace);
+	isxctype(vm, argc, argv, rv, xisspace);
 }
 
 static void
 l1_isupper(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isupper", xisupper);
+	isxctype(vm, argc, argv, rv, xisupper);
 }
 
 static void
 l1_isxdigit(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isxctype(vm, argc, argv, rv, "isxdigit", xisxdigit);
+	isxctype(vm, argc, argv, rv, xisxdigit);
 }
 
 void

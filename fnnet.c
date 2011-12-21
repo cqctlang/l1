@@ -117,9 +117,9 @@ l1_socket(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to socket");
-	checkarg(vm, "socket", argv, 0, Qcval);
-	checkarg(vm, "socket", argv, 1, Qcval);
-	checkarg(vm, "socket", argv, 2, Qcval);
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qcval);
 	dom = valcval(argv[0]);
 	type = valcval(argv[1]);
 	prot = valcval(argv[2]);
@@ -146,7 +146,7 @@ l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	setlasterrno(0);
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tcpopen");
-	checkarg(vm, "tcpopen", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
 	if(0 > parseip(s, &saddr)){
@@ -181,7 +181,7 @@ l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tcplisten");
-	checkarg(vm, "tcplisten", argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
 	if(0 > parseip(s, &saddr)){
@@ -215,7 +215,7 @@ l1_tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tcpaccept");
-	checkarg(vm, "tcpaccept", argv, 0, Qfd);
+	checkarg(vm, argv, 0, Qfd);
 	fd0 = valfd(argv[0]);
 	if((fd0->flags&Ffn) == 0)
 		vmerr(vm, "file descriptor is not a listener");
@@ -245,7 +245,7 @@ l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getpeername");
-	checkarg(vm, "getpeername", argv, 0, Qfd);
+	checkarg(vm, argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	xfd = &fd->u.fn;
 	len = sizeof(sa);
@@ -268,7 +268,7 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getsockname");
-	checkarg(vm, "getsockname", argv, 0, Qfd);
+	checkarg(vm, argv, 0, Qfd);
 	fd = valfd(argv[0]);
 	xfd = &fd->u.fn;
 	len = sizeof(sa);
