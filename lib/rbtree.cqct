@@ -391,7 +391,7 @@ debug = 0;
         else delete_case1(child);
     } else {
         @local p,s;
-        printf("null child case\n");
+        if (debug) printf("null child case\n");
         p = n.parent;
         if (p.left == nil && p.right == nil) 
             //we're fine, return
