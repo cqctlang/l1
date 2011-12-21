@@ -3,7 +3,7 @@
 @include <rbtree.cqct>
 
 
-tree = rbtree_create(@lambda(a,b) { return a-b; });
+tree = rbtree_create(@lambda(a,b) { return b-a; });
 rbtree_checktree(tree);
 
 foreach(@lambda(x) {
@@ -88,7 +88,7 @@ printf("data stored for range 10-5 (should be empty): %a\n",rbtree_rangequery(tr
 
 printf("%a\n",rbtree_enumerate(tree));
 
-tree = rbtree_create(@lambda(a,b) { return b-a; });
+tree = rbtree_create(@lambda(a,b) { return a-b; });
 
 for(i=0; i<cnt; ++i) {
     rbtree_insert(tree,i,i*i);
@@ -104,10 +104,11 @@ printf("\n");
 
 printf("Should be 19: %a\n",rbtree_nearestsmallerquery(tree,20));
 printf("Should be 50: %a\n",rbtree_nearestsmallerquery(tree,51));
-printf("Should be 99: %a\n",rbtree_nearestsmallerquery(tree,10000));
+printf("Should be 99: %a\n",rbtree_nearestsmallerquery(tree,1000));
 printf("Should be nil: %a\n",rbtree_nearestsmallerquery(tree,0));
 
 printf("Should be 19: %a\n",rbtree_nearestlargerquery(tree,18));
 printf("Should be 50: %a\n",rbtree_nearestlargerquery(tree,49));
 printf("Should be 99: %a\n",rbtree_nearestlargerquery(tree,98));
-printf("Should be nil: %a\n",rbtree_nearestlargerquery(tree,100000));
+printf("Should be nil: %a\n",rbtree_nearestlargerquery(tree,10000));
+

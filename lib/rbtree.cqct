@@ -169,6 +169,7 @@ debug = 0;
     if (debug) printf("insert_case5\n");
     g = grandparent(node);
     node.parent.red = 0;
+    if (g.key == nil) return;
     g.red = 1;
     if (eq(node,node.parent.left) && eq(node.parent,g.left))
         rotate_right(g);
@@ -204,13 +205,13 @@ debug = 0;
 @define rbtree_insert_helper(compare,treenode,node) {
     @local comp;
     comp = compare(treenode.key,node.key);
-    if (comp <= 0) {
+    if (comp >= 0) {
         if (treenode.left == nil) {
             node.parent = treenode;
             treenode.left = node;
             return 1;
         } else return rbtree_insert_helper(compare,treenode.left,node);
-    } else if (comp > 0) {
+    } else if (comp < 0) {
         if (treenode.right == nil) {
             node.parent = treenode;
             treenode.right = node;
@@ -360,9 +361,9 @@ debug = 0;
     @local c;
     if (n == nil) return nil;
     c = compare(n.key,key);
-    if (c < 0) 
+    if (c > 0) 
         return rbtree_getnode_internal(compare,n.left,key);
-    else if (c > 0)
+    else if (c < 0)
         return rbtree_getnode_internal(compare,n.right,key);
     //c == 0
     return n;
@@ -438,8 +439,8 @@ debug = 0;
     @local comp;
     if (n == nil) return nil;
     comp = compare(n.key,key);
-    if (comp < 0) return rbtree_query_helper(compare,n.left,key);
-    else if (comp > 0) return rbtree_query_helper(compare,n.right,key); 
+    if (comp > 0) return rbtree_query_helper(compare,n.left,key);
+    else if (comp < 0) return rbtree_query_helper(compare,n.right,key); 
     return n.data;
 }
 
@@ -458,21 +459,23 @@ debug = 0;
     if (c_u < 0 && c_l >= 0) append(results,[n.key,n.data]);
     //if the key is smaller than the lower bound, then nothing to
     //the right can be included.
-    if (c_l >= 0) { 
+    if (c_l <= 0) { 
         //use tail-recursion when possible
-        if (c_u >= 0) 
+        if (c_u <= 0) 
             return rbtree_rangequery_helper(compare,n.right,l,u,results);
         else {
             //need to search both directions.
             results = rbtree_rangequery_helper(compare,n.right,l,u,results);
             return rbtree_rangequery_helper(compare,n.left,l,u,results);
         }
-    }
-    //if the key is larger than the upper bound, then nothing to the
-    //left can be included
-    if (c_u < 0)
-        return rbtree_rangequery_helper(compare,n.left,l,u,results);
-    return results;
+    } else {
+        //if the key is larger than the upper bound, then nothing to the
+        //left can be included
+        if (c_u > 0)
+            return rbtree_rangequery_helper(compare,n.left,l,u,results);
+        return results;
+   }
+   //will never get here.
 }
 
 @define rbtree_rangequery(tree,lower,upper) {
@@ -486,9 +489,10 @@ debug = 0;
     c = tree.compare(n.key,key);
     last_smaller = nil;
     while(1) {
-        if (c > 0) {
+        if (c < 0) {
             //if n.key is smaller than key, then
             //check if n.right has a larger key
+            //smller than key
             last_smaller = n;
             n = n.right;
         } else {
@@ -513,7 +517,7 @@ debug = 0;
     c = tree.compare(n.key,key);
     last_larger = nil;
     while(1) {
-        if (c < 0) {
+        if (c > 0) {
             //if n.key is larger than key, then
             //check if n.left has a smaller key
             last_larger = n;
