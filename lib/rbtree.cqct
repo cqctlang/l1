@@ -482,6 +482,7 @@ debug = 0;
 @define rbtree_nearestsmallerquery(tree,key) {
     @local c,n,last_smaller;
     n = tree.root.left;
+    if (n == nil) return nil;
     c = tree.compare(n.key,key);
     last_smaller = nil;
     while(1) {
@@ -508,6 +509,7 @@ debug = 0;
 @define rbtree_nearestlargerquery(tree,key) {
     @local c,n,last_larger;
     n = tree.root.left;
+    if (n == nil) return nil;
     c = tree.compare(n.key,key);
     last_larger = nil;
     while(1) {
