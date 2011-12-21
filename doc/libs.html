@@ -1300,6 +1300,64 @@ querying.
 </div>
 </div>
 
+<div class="docitem" id="fn:rbtree_nearestlargerquery">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_query(
+        <span class="arg">tree</span>,
+        <span class="arg">key</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">key</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="returns">
+<span class="type">nil or pair</span>
+</div>
+</div>
+<div class="desc">
+    This function returns the [k,data] associated with the smalest
+    k in the tree that is greater than and not equal to k. 
+    If multiple such k exist, 
+    then an arbitrary one is returned. If no such k not found
+    in the tree, then nil is returned.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbtree_nearestsmallerquery">
+<div class="proto">
+<div class="function">
+    <span class="id">rbtree_query(
+        <span class="arg">tree</span>,
+        <span class="arg">key</span>)
+    </span>
+</div>
+<div class="param">
+    <span class="arg">tree</span>: 
+    <span class="type">rbtree</span> 
+</div>
+<div class="param">
+    <span class="arg">key</span>: 
+    <span class="type">keytype</span> 
+</div>
+<div class="returns">
+<span class="type">nil or pair</span>
+</div>
+</div>
+<div class="desc">
+    This function returns the [k,data] associated with the largest
+    k in the tree that is less than and not equal to k. 
+    If multiple such k exist, 
+    then an arbitrary one is returned. If no such k not found
+    in the tree, then nil is returned.
+</div>
+</div>
+
 <div class="docitem" id="fn:rbtree_print">
 <div class="proto">
 <div class="function">

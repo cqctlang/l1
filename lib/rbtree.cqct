@@ -19,6 +19,7 @@ if (rbtree_defined == nil)
 @global rbtree_create,rbtree_insert,rbtree_print,rbtree_delete;
 @global rbtree_checktree,rbtree_query,rbtree_enumerate;
 @global rbtree_rangequery,rbtree_foreach;
+@global rbtree_nearestsmallerquery,rbtree_nearestlargerquery;
 
 rbtree_defined = 1;
 
@@ -477,6 +478,57 @@ debug = 0;
 @define rbtree_rangequery(tree,lower,upper) {
     return rbtree_rangequery_helper(tree.compare,tree.root.left,lower,upper,[]);
 }
+
+@define rbtree_nearestsmallerquery(tree,key) {
+    @local c,n,last_smaller;
+    n = tree.root.left;
+    c = tree.compare(n.key,key);
+    last_smaller = nil;
+    while(1) {
+        if (c > 0) {
+            //if n.key is smaller than key, then
+            //check if n.right has a larger key
+            last_smaller = n;
+            n = n.right;
+        } else {
+            //if n.key is larger than or equal to key
+            //then move left if possible.
+            //if we cannot move left, then use last_smaller
+            //if possible.
+            n = n.left;
+        }
+        if (n == nil) {
+            if (last_smaller == nil) return nil;
+            else return [last_smaller.key,last_smaller.data];
+        }
+        c = tree.compare(n.key,key);
+    }
+}
+
+@define rbtree_nearestlargerquery(tree,key) {
+    @local c,n,last_larger;
+    n = tree.root.left;
+    c = tree.compare(n.key,key);
+    last_larger = nil;
+    while(1) {
+        if (c < 0) {
+            //if n.key is larger than key, then
+            //check if n.left has a smaller key
+            last_larger = n;
+            n = n.left;
+        } else {
+            //if n.key is smaller than or equal to key
+            //then move right if possible.
+            n = n.right;
+        }
+        if (n == nil) {
+            if (last_larger == nil) return nil;
+            else return [last_larger.key,last_larger.data];
+        }
+        c = tree.compare(n.key,key);
+    }
+}
+
 
 @define rbtree_enumerate(tree) {
     @local lst;
