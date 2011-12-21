@@ -125,7 +125,7 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(i = 0; i < argc; i++)
 		if(argv[i] != Xnil){
 			/* argv dance correctly flags the incorrect operand */
-			checkarg(vm, "mkexpr", argv-1, i+1, Qexpr);
+			checkarg(vm, "mkstx", argv-1, i+1, Qexpr);
 			earg[i] = valexpr(argv[i]);
 		}
 	e = Z4(k, earg[0], earg[1], earg[2], earg[3]);
