@@ -1,0 +1,13 @@
+/* unquoted forms in macro calls */
+
+@defstx @foo(w)
+{
+	#`{ printf("%a\n", #,w); };
+}
+
+@defstx @bar(v)
+{
+	#`{ @foo(#,v); };
+}
+
+@bar('ok);
