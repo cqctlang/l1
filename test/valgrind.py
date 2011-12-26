@@ -31,12 +31,12 @@ for m in glob.glob('[A-Za-z0-9]*.l1'):
     print m,
     sys.stdout.flush()
     p = popen2.Popen4(cmd+m)
+    out = p.fromchild.read()
     rv = p.wait()
     if os.WIFSIGNALED(rv):
         print 'fault'
         fault.append(m);
         continue
-    out = p.fromchild.read()
     del p
     fn = m+'.vgout'
     if os.path.exists(fn):
