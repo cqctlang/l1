@@ -23,12 +23,12 @@ for m in run:
     sys.stdout.flush()
     cmd = '../l1 -w -K '+m
     p = popen2.Popen4(cmd);
+    out = p.fromchild.read()
     rv = p.wait()
     if os.WIFSIGNALED(rv):
         print 'fault'
         fault.append(m);
         continue
-    out = p.fromchild.read()
     del p
     fn = m+'.out'
     if os.path.exists(fn):
