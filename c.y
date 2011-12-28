@@ -254,6 +254,8 @@ pattern
 	: id
 	| CONSTANT
 	{ $$ = doconst(ctx, $1.p, $1.len); }
+	| SYMBOL
+	{ $$ = dosym($1.p, $1.len); }
 	| STRING_LITERAL
 	{ $$ = dostr($1.p, $1.len); }
 	| '(' pattern ')'
