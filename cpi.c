@@ -325,7 +325,7 @@ static Expr* cases(U *ctx, Expr* e, Cases *cs);
 static Expr*
 addcase(U *ctx, Expr *c, Cases *cs)
 {
-	Expr *se, *e, *ib, *b, *ne;
+	Expr *se, *e, *f, *ib, *b, *ne;
         char *l, *nl;
         int n, nc;
 	Match m = {0,0};
@@ -336,13 +336,18 @@ addcase(U *ctx, Expr *c, Cases *cs)
 	e = cases(ctx, c->e1, 0);
         n = nc = cs->nc;
         ib = b = cases(ctx, c->e2, cs);
-        ne = nullelist();
 	se = nullelist();
 
         if (e->kind == Eorpat){
+                /* e->e1 == (Elist (Epair pat fender) next) */
                 e = e->e1;
                 ne = e->e2;
-                e = e->e1;
+                f = e->e1->e2;
+                e = e->e1->e1;
+        }
+        else{
+                ne = nullelist();
+                f = c->e3;
         }
 
         while(1){
@@ -357,9 +362,10 @@ addcase(U *ctx, Expr *c, Cases *cs)
 		lastbvs = bvs;
                 if(c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
 			Expr *b1 = ib;
-			if(c->e3 != 0){
+			if(f != 0){
 				nl = genlabel();
-				b1 = Zcons(Zif(Znot(cases(ctx, c->e3, 0)), Zgoto(nl)), 
+				b1 = Zcons(Zif(Znot(cases(ctx, f, 0)), 
+                                               Zgoto(nl)), 
 					   Zcons(ib,nullelist()));
 			}
                         if(m.binds != 0){
@@ -371,7 +377,11 @@ addcase(U *ctx, Expr *c, Cases *cs)
                                 freebinds(m.binds);
 				m.binds = 0;
                                 // FIXME: Makes a copy of the block for each
-                                // case in a fallthrough
+                                // case in a fallthrough.  This will 
+                                // fail if the block does not have 
+                                // a break at the end, since the duplicated
+                                // block will just fall through to the
+                                // next case.
                                 b = Zblock(decls, inits, copyexpr(b1), NULL);
                                 bvs = decls;
                         }
@@ -379,7 +389,7 @@ addcase(U *ctx, Expr *c, Cases *cs)
 				bvs = nullelist();
                 }
                 else{
-			m.check = Zand(Zbinop(Eeq, e, doid("$t")), c->e3);
+			m.check = Zand(Zbinop(Eeq, e, doid("$t")), f);
 			bvs = nullelist();
 		}
 
@@ -410,7 +420,8 @@ addcase(U *ctx, Expr *c, Cases *cs)
                 cs->nc++;
 		nc++;
                 if (ne->kind != Enull){
-                        e = ne->e1;
+                        e = ne->e1->e1;
+                        f = ne->e1->e2;
                         ne = ne->e2;
                 }
                 else break;
@@ -518,39 +529,36 @@ coalesce(U *ctx, Expr* e, Expr* q)
 	}
 }
 
-/* Converts @match p1: ... @match pn && fe: ... into @match OR(p1,p2) && fe */
+/* Converts @match p1 && f1: ... @match pn && fn: ...
+   into     @match OR((p1,f1),...,(pn,fn)) */
 static Expr*
-collapse(U *ctx, Expr* e, Expr* p, Expr **fe)
+collapse(U *ctx, Expr* e, Expr* p)
 {
 	if(e == 0)
 		return 0;
 	switch(e->kind){
 	case Ematch:
-		sete1(e, collapse(ctx, e->e1, 0, 0));
+		sete1(e, collapse(ctx, e->e1, 0));
 		if(p != 0){
-			sete2(p, Zcons(e->e1, nullelist()));
-			if(*fe != 0)
-                                cerror(ctx, *fe,
-                                       "non-final fender on fallthrough");
-			if(e->e3 != 0){
-				*fe = e->e3;
-				e->e3 = 0;
-			}
-			e = collapse(ctx, e->e2, p->e2, fe);
+			sete2(p, Zcons(Z2(Epair, e->e1, e->e3), nullelist()));
+                        sete3(e, 0);
+			e = collapse(ctx, e->e2, p->e2);
 			return e;
 		}
 		else{
-			p = Zcons(e->e1,nullelist());
-			sete2(e, collapse(ctx, e->e2, p, &e->e3));
-			if (p->e2->kind != Enull)
+			p = Zcons(Z2(Epair, e->e1, e->e3), nullelist());
+			sete2(e, collapse(ctx, e->e2, p));
+			if(p->e2->kind != Enull){
 				sete1(e, newexpr(Eorpat, p, 0, 0, 0));
+                                sete3(e, 0);
+                        }
 			return e;
 		}
 	default:
-		sete1(e, collapse(ctx, e->e1, 0, 0));
-		sete2(e, collapse(ctx, e->e2, 0, 0));
-		sete3(e, collapse(ctx, e->e3, 0, 0));
-		sete4(e, collapse(ctx, e->e4, 0, 0));
+		sete1(e, collapse(ctx, e->e1, 0));
+		sete2(e, collapse(ctx, e->e2, 0));
+		sete3(e, collapse(ctx, e->e3, 0));
+		sete4(e, collapse(ctx, e->e4, 0));
 		return e;
 	}
 }
@@ -763,7 +771,7 @@ docompilei(U *ctx, Expr *e)
 	if(setjmp(ctx->jmp) != 0)
 		return 0;	/* error */
 	loops(ctx, e, 0, 0);
-	collapse(ctx, e, 0, 0);
+	collapse(ctx, e, 0);
         coalesce(ctx, e, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);

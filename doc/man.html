@@ -1701,17 +1701,17 @@ or <span clas="val">default</span>.
 
 <p>
 We do permit fall-through in the following idiomatic situation: when
-you have multiple <span class="val">@match</span> clauses that bind
-the same (non-wildcard) variables, with all bodies empty but the last.
-It is also permitted to bind more variables in earlier clauses as long
-as fallen-to clauses match a subset of those variables.  As an example,
-you can do:
+you have multiple <span class="val">@match</span> clauses (with or
+without fenders) that bind the same (non-wildcard) variables, with all
+bodies empty but the last.  It is also permitted to bind more
+variables in earlier clauses as long as fallen-to clauses match a
+subset of those variables.  As an example, you can do:
 </p>
 
 <div class="code">
 <pre>
-; switch ([2,1]) { 
-  @match [x]: @match [x,_]: @match [x,_,_]: printf("x = %d\n",x); }
+; switch ([2,1]) { @match [x]: @match [x,_]: @match [x,_,_]: 
+    printf("x = %d\n",x); break; }
 <span class="arg">x = 2</span>
 </pre>
 </div>
