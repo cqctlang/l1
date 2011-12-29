@@ -326,7 +326,7 @@ static Expr*
 addcase(U *ctx, Expr *c, Cases *cs)
 {
 	Expr *se, *e, *f, *ib, *b, *ne;
-        char *l, *nl;
+        char *l, *nl, *eml;
         int n, nc;
 	Match m = {0,0};
         Expr* lastbvs, *bvs = 0;
@@ -377,12 +377,16 @@ addcase(U *ctx, Expr *c, Cases *cs)
                                 freebinds(m.binds);
 				m.binds = 0;
                                 // FIXME: Makes a copy of the block for each
-                                // case in a fallthrough.  This will 
-                                // fail if the block does not have 
-                                // a break at the end, since the duplicated
-                                // block will just fall through to the
-                                // next case.
-                                b = Zblock(decls, inits, copyexpr(b1), NULL);
+                                // case in a fallthrough.
+                                if (ne->kind != Enull){
+                                        if(eml == 0)
+                                                eml = genlabel();
+                                        b = Zblock(decls, inits, 
+                                                   copyexpr(b1), Zgoto(eml), 
+                                                   NULL);
+                                }
+                                else
+                                        b = Zblock(decls, inits, b1, NULL);
                                 bvs = decls;
                         }
 			else
@@ -426,6 +430,11 @@ addcase(U *ctx, Expr *c, Cases *cs)
                 }
                 else break;
         }
+
+        if(eml != 0)
+                se = Zcons(Zlabele(eml, Znop()), se);
+
+        se = invert(se);
 
         if(c->kind == Ematch) /* may not fall into a @match */
                 se = Zblock(nullelist(), 
@@ -640,7 +649,8 @@ swtch(U *ctx, Expr *e, char *lb)
 		se = Zblock(Zcons(doid("$t"),nullelist()),
 			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
 			    invert(se),
-			    Zlabele(optl, cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb)),
+			    Zlabele(optl, 
+                                    cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb)),
 			    swtch(ctx, e->e2, nlb),
 			    Zlabel(nlb),
 			    Znil(),
