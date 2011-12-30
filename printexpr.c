@@ -721,9 +721,11 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Emcall:
 		printcqct0(e->e1, ni);
-		xprintf("(");
-		printargs(e->e2, ni);
-		xprintf(")");
+		if(e->e2){
+			xprintf("(");
+			printargs(e->e2, ni);
+			xprintf(")");
+		}
 		xprintf("\n");
 		printcqct0(e->e3, ni);
 		break;
