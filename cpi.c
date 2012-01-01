@@ -297,7 +297,10 @@ static void
 bindvars(Bind *binds, Expr **bvars, Expr **inits)
 {
 	Expr *i, *j;
-	i = nullelist();
+	if(inits != 0)
+		i = *inits;
+	else
+		i = nullelist();
         j = nullelist();
 	while(binds){
                 j = Zcons(binds->id, j);
@@ -325,21 +328,45 @@ static Expr* cases(U *ctx, Expr* e, Cases *cs);
 static Expr*
 addcase(U *ctx, Expr *c, Cases *cs)
 {
-	Expr *se, *e, *f, *ib, *b, *ne;
-        char *l, *nl, *eml;
-        int n, nc;
-	Match m = {0,0};
-        Expr* lastbvs, *bvs = 0;
+	Expr *se, *e, *b;
+        char *l;
 
-        if(!cs || (c->kind != Ecase && c->kind != Ematch))
+        if(!cs || c->kind != Ecase)
 		cerror(ctx, c, "addcase called improperly");
 	e = cases(ctx, c->e1, 0);
-        n = nc = cs->nc;
-        ib = b = cases(ctx, c->e2, cs);
+        b = cases(ctx, c->e2, cs);
+	if(cs->nc >= cs->max){
+		cs->cases = erealloc(cs->cases,
+				     cs->max*sizeof(Case),
+				     2*cs->max*sizeof(Case));
+		cs->max *= 2;
+	}
+	l = genlabel();
+	se = Zlabele(l,b);
+	cs->cases[cs->nc].l = l;
+	cs->cases[cs->nc].e = Zbinop(Eeq, e, doid("$t"));
+	cs->cases[cs->nc].nextl = 0;
+	cs->nc++;
+	return se;
+}
+
+static Expr*
+addmatch(U *ctx, Expr *c, Cases *cs)
+{
+	Expr *se, *e, *f, *b, *ne;
+        char *l, *nl, *eml = 0;
+        int nc;
+	Match m = {0,0};
+        Expr *bvs, *lastbvs = 0;
+
+        if(!cs || c->kind != Ematch)
+		cerror(ctx, c, "addmatch called improperly");
+	e = cases(ctx, c->e1, 0);
+        nc = cs->nc;
 	se = nullelist();
 
-        if (e->kind == Eorpat){
-                /* e->e1 == (Elist (Epair pat fender) next) */
+        if(e->kind == Eorpat){
+                /* Assume: e->e1 == (Elist (Epair pat fender) next) */
                 e = e->e1;
                 ne = e->e2;
                 f = e->e1->e2;
@@ -351,53 +378,54 @@ addcase(U *ctx, Expr *c, Cases *cs)
         }
 
         while(1){
+		/* Make a copy of the body for each or-pattern clause */
+		b = Zcons(cases(ctx, copyexpr(c->e2), cs), 
+			  nullelist());
+		/* Generate fender code */
+		nl = 0;
+		if(f != 0){
+			nl = genlabel();
+			b = Zcons(Zif(Znot(cases(ctx, f, 0)), 
+				      Zgoto(nl)), b);
+		}
+		/* Pattern check and initialization of bound variables */
+		bvs = nullelist();
+                if(match(ctx, doid("$t"), e, &m)){
+                        if(m.binds != 0){
+                                bindvars(m.binds, &bvs, &b);
+                                freebinds(m.binds);
+				m.binds = 0;
+			}
+                }
+                else
+			m.check = Zbinop(Eeq, e, doid("$t"));
+		/* Handler code for this caluse */
+		if(ne->kind != Enull){
+			if(eml == 0)
+				eml = genlabel();
+			b = Zblock(bvs, b, Zgoto(eml), NULL);
+		}
+		else
+			b = Zblock(bvs, b, NULL);
+		l = genlabel();
+		se = Zcons(Zlabele(l,b), se);
+		/* Dispatch metadata used in swtch() */
                 if(cs->nc >= cs->max){
                         cs->cases = erealloc(cs->cases,
                                              cs->max*sizeof(Case),
                                              2*cs->max*sizeof(Case));
                         cs->max *= 2;
                 }
-                l = genlabel();
-		nl = 0;
-		lastbvs = bvs;
-                if(c->kind == Ematch && match(ctx, doid("$t"), e, &m)){
-			Expr *b1 = ib;
-			if(f != 0){
-				nl = genlabel();
-				b1 = Zcons(Zif(Znot(cases(ctx, f, 0)), 
-                                               Zgoto(nl)), 
-					   Zcons(ib,nullelist()));
-			}
-                        if(m.binds != 0){
-                                Expr *inits, *decls;
-                                if(nc != cs->nc)
-                                        cerror(ctx, e, "nested case "
-                                               "when pattern matching");
-                                bindvars(m.binds, &decls, &inits);
-                                freebinds(m.binds);
-				m.binds = 0;
-                                // FIXME: Makes a copy of the block for each
-                                // case in a fallthrough.
-                                if (ne->kind != Enull){
-                                        if(eml == 0)
-                                                eml = genlabel();
-                                        b = Zblock(decls, inits, 
-                                                   copyexpr(b1), Zgoto(eml), 
-                                                   NULL);
-                                }
-                                else
-                                        b = Zblock(decls, inits, b1, NULL);
-                                bvs = decls;
-                        }
-			else
-				bvs = nullelist();
-                }
-                else{
-			m.check = Zand(Zbinop(Eeq, e, doid("$t")), f);
-			bvs = nullelist();
-		}
-
-		/*make sure binders are consistent on fallthrough*/
+		cs->cases[cs->nc].l = l;
+		cs->cases[cs->nc].e = m.check;
+		cs->cases[cs->nc].nextl = nl;
+		m.check = 0;
+		cs->nc++;
+		nc++;
+		/* Error checking */
+		if(nc != cs->nc)
+			cerror(ctx, e, "nested case "
+			       "when pattern matching");
 		if(lastbvs != 0){
 			Expr *x = bvs;
 			if(elistlen(lastbvs) != elistlen(bvs)){
@@ -406,7 +434,7 @@ addcase(U *ctx, Expr *c, Cases *cs)
 				       "on fallthrough");
 			}
 			while(x->kind != Enull){
-				if(!containsid(lastbvs,x->e1))
+				if(!containsid(lastbvs, x->e1))
 					cerror(ctx, e,
 					       "nonmatching "
 					       "bound variable %s "
@@ -415,33 +443,24 @@ addcase(U *ctx, Expr *c, Cases *cs)
 				x = x->e2;
 			}
 		}
-
-		se = Zcons(Zlabele(l,b), se);
-                cs->cases[cs->nc].l = l;
-                cs->cases[cs->nc].e = m.check;
-		cs->cases[cs->nc].nextl = nl;
-		m.check = 0;
-                cs->nc++;
-		nc++;
+		/* Next or-pattern clause */
                 if (ne->kind != Enull){
                         e = ne->e1->e1;
                         f = ne->e1->e2;
                         ne = ne->e2;
+			lastbvs = bvs;
                 }
                 else break;
         }
 
         if(eml != 0)
                 se = Zcons(Zlabele(eml, Znop()), se);
-
         se = invert(se);
-
-        if(c->kind == Ematch) /* may not fall into a @match */
-                se = Zblock(nullelist(), 
-                            Zcall(doid("error"), 1, 
-                                  Zstr("attempt to fall through to a @match")),
-                            se,
-                            NULL);
+	se = Zblock(nullelist(), 
+		    Zcall(doid("error"), 1, 
+			  Zstr("attempt to fall through to a @match")),
+		    se,
+		    NULL);
 	return se;
 }
 
@@ -459,6 +478,7 @@ static void
 freecases(Cases *cs)
 {
 	u32 i;
+	if(!cs) return;
 	for(i = 0; i < cs->nc; i++)
 		efree(cs->cases[i].l);
 	efree(cs->dflt);
@@ -492,6 +512,8 @@ static Expr*
 coalesce(U *ctx, Expr* e, Expr* q)
 {
 	Expr *p, *pp = 0;
+
+
 
 	if(e == 0 || (q && e->kind == Enull))
                 return e;
@@ -587,8 +609,11 @@ cases(U *ctx, Expr* e, Cases *cs)
 		sete2(e, cases(ctx, e->e2, e->xp));
 		return e;
 	case Ecase:
-	case Ematch:
 		se = addcase(ctx, e, cs);
+		putsrc(se, e->src);
+		return se;
+	case Ematch:
+		se = addmatch(ctx, e, cs);
 		putsrc(se, e->src);
 		return se;
 	case Edefault:
@@ -620,7 +645,7 @@ swtch(U *ctx, Expr *e, char *lb)
 	Expr *p;
 	Expr *se;
 	Cases *cs;
-	u32 i;
+	u32 i, n;
 	char *nlb;
 	char *optl;
 
@@ -638,7 +663,8 @@ swtch(U *ctx, Expr *e, char *lb)
 		nlb = genlabel();
 		se = nullelist();
 		optl = 0;
-		for(i = 0; i < cs->nc; i++){
+		n = cs ? cs->nc : 0;
+		for(i = 0; i < n; i++){
 			se = Zcons(Zlabele(optl,cs->cases[i].e ?
 					   Zif(swtch(ctx, cs->cases[i].e, lb),
 					       Zgoto(cs->cases[i].l)) :
@@ -650,7 +676,7 @@ swtch(U *ctx, Expr *e, char *lb)
 			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
 			    invert(se),
 			    Zlabele(optl, 
-                                    cs->dflt ? Zgoto(cs->dflt) : Zgoto(nlb)),
+                                    (cs && cs->dflt) ? Zgoto(cs->dflt) : Zgoto(nlb)),
 			    swtch(ctx, e->e2, nlb),
 			    Zlabel(nlb),
 			    Znil(),

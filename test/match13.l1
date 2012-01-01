@@ -1,0 +1,16 @@
+x = [1,2];
+switch (x) {
+  @match [1,2] && 1 == 2: printf("fail!\n"); break;
+  case [1,2]: printf("ok!\n"); break;
+}
+
+switch (x) {
+  @match [2,x]: /* no match */
+  @match [1,x] && x > 1: /* matches, falls through */
+  @match [x,2] && x != 0: 
+    switch (x) {
+    @match 2: printf("ok!\n"); break;
+    default: printf("fail!\n");
+    }
+}
+
