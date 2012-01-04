@@ -129,12 +129,13 @@
 
 @defloc localdom(ctx, ns, as, locs)
 {
-	@local lt, ls, et, es, la, nns;
+	@local lt, ls, et, es, la, nns, dom;
 	@local sym, ctxloc;
 
 	sym = [:];
 	as = mkoveras(as, ctx, 0);
-	ctx = {@typeof(ctx)}{mkdom(ns, as)}0; /* yo! */
+	dom = mkdom(ns, as);
+	ctx = {@typeof(ctx)}{dom}0; /* yo! */
 
 	@defloc lexpreval(le, ctxloc)
 	{
@@ -142,6 +143,9 @@
 		switch(le.kind){
 		case sctl`Lreg:
 			return *ctxloc(le.no);
+		case sctl`Lderef:
+			o1 = lexpreval(le.op1, ctxloc);
+			return *(void**){dom}o1;
 		case sctl`Ladd:
 			o1 = lexpreval(le.op1, ctxloc);
 			o2 = lexpreval(le.op2, ctxloc);

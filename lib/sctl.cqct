@@ -274,6 +274,7 @@ sctl = @names clp64le {
 	typedef
 	enum Lkind {
 		Lreg,
+		Lderef,
 		Ladd,
 		Lsub,
 		Lulit,
@@ -1118,6 +1119,9 @@ sctl = @names clp64le {
 	case sctl`Lreg:
 		*q++ = (uint8)le.no;
 		return q;
+	case sctl`Lderef:
+		q = encodelexpr(q, le.op1);
+		return q;
 	case sctl`Ladd:
 	case sctl`Lsub:
 		q = encodelexpr(q, le.op1);
@@ -1142,6 +1146,10 @@ sctl = @names clp64le {
 	case sctl`Lreg:
 		no = *q++;
 		le = lexpr(k, no, nil, nil, nil);
+		return [le, q];
+	case sctl`Lderef:
+		[op1, q] = decodelexpr(q);
+		le = lexpr(k, nil, nil, op1, nil);
 		return [le, q];
 	case sctl`Ladd:
 	case sctl`Lsub:
