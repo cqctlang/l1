@@ -181,19 +181,19 @@ stxtab = mktab();
 			return e;
 		switch(stxkind(e)){
 		case 'stxunquote:
-			return #call(#id(stxliftval),
+			return #call(#id('stxliftval),
 				     Zlist(unquasi(e[0])),
 				     stxsrc(e));
 		case 'id:
-			return #call(#id(mkstxid),
+			return #call(#id('mkstxid),
 				     Zlist(mkstxval(stxid(e))),
 				     stxsrc(e));
 		case 'val:
-			return #call(#id(mkstxval),
+			return #call(#id('mkstxval),
 				     Zlist(mkstxval(stxval(e))),
 				     stxsrc(e));
 		default:
-			return #call(#id(mkstx),
+			return #call(#id('mkstx),
 			             Zlist(mkstxval(stxkind(e)),
 					   e[0] ? quasi(e[0]) : Znil(),
 					   e[1] ? quasi(e[1]) : Znil(),

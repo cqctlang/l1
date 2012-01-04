@@ -17,7 +17,7 @@ stx(Expr *e)
 	case Estx:
 		id = idsym(e->e1);
 		if(!strcmp(id, "id"))
-			return putsrc(Zcall(G("mkstxid"), 1, Zid2sym(e->e2)),
+			return putsrc(Zcall(G("mkstxid"), 1, stx(e->e2)),
 				      e->src);
 		else if(!strcmp(id, "val"))
 			return putsrc(Zcall(G("mkstxval"), 1, stx(e->e2)),

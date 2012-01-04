@@ -167,7 +167,7 @@ quote_expression
 	;
 
 syntax_expression
-	: SYNTAXIDID '(' id ')'
+	: SYNTAXIDID '(' root_expression ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
 	| syntaxid '(' argument_expression_list ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, invert($3), 0, 0); }
@@ -283,7 +283,7 @@ pattern
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, invert($3), 0, 0); }
 	| id '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, nullelist(), 0, 0); }
-	| SYNTAXIDID '(' id ')'
+	| SYNTAXIDID '(' pattern ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
 	| syntaxid '(' pattern_list ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, invert($3), 0, 0); }

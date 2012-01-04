@@ -1,7 +1,7 @@
 @define domatch(e)
 {
 	switch(e){
-	@match #id(x):
+	@match #id('x):
 		printf("matched x!\n");
 		break;
 	@match #add(x, y):
@@ -17,8 +17,8 @@
 }
 
 
-domatch(#id(x));
-domatch(#id(y));
+domatch(#id('x));
+domatch(#id('y));
 domatch(#add(#id(x), #id(y)));
 domatch(#sub(#id(x), #id(y)));
 
