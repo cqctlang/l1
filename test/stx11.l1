@@ -1,0 +1,40 @@
+@define domatch(e)
+{
+	@local id;
+
+	id = 'foo;
+
+	switch(e){
+	@match #id('bar): 
+		printf("matched id bar\n");
+		break;
+	@match #id(x) && x == id:
+		printf("matched id foo\n");
+		break;
+	@match #id(x):
+		printf("matched some other id (%a)\n", x);
+		break;
+	@match #val('bar):
+	        printf("match val bar\n");
+		break;	
+	@match #val(x) && x == id:
+	        printf("match val foo\n");
+		break;	
+	@match #val(x):
+		printf("matched some other val (%a)\n", x);
+		break;
+	default:
+		printf("no match\n");
+		break;
+	}
+}
+
+
+domatch(#id('bar));
+domatch(#id('foo));
+domatch(#id('other));
+
+domatch(#val('bar));
+domatch(#val('foo));
+domatch(#val('other));
+
