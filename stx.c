@@ -172,7 +172,7 @@ l1_stxval(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qexpr);
 	e = valexpr(argv[0]);
 	if(e->kind != Eval)
-		vmerr(vm, "stxid on non-literal syntax");
+		vmerr(vm, "stxval on non-literal syntax");
 	*rv = e->aux;
 }
 

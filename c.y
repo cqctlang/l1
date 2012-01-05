@@ -32,7 +32,7 @@ extern char *yytext;
 %token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
-%token SYNTAXIDID SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
+%token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
 %token LPAIR RPAIR NOBIND_PRE MATCH
 
 %type <expr> base base_list
@@ -167,9 +167,7 @@ quote_expression
 	;
 
 syntax_expression
-	: SYNTAXIDID '(' root_expression ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
-	| syntaxid '(' argument_expression_list ')'
+	: syntaxid '(' argument_expression_list ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, invert($3), 0, 0); }
 	| syntaxid '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
@@ -283,8 +281,6 @@ pattern
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, invert($3), 0, 0); }
 	| id '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Ecall, $1, nullelist(), 0, 0); }
-	| SYNTAXIDID '(' pattern ')'
-	{ $$ = newexprsrc(&ctx->inp->src, Estx, doid("id"), $3, 0, 0); }
 	| syntaxid '(' pattern_list ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, invert($3), 0, 0); }
 	| syntaxid '(' ')'

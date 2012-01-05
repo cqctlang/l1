@@ -38,7 +38,6 @@ static int chars(YYSTYPE *lvalp, int);
 #\'\{			{ count(ctx); return(SYNTAXQUOTE); }
 #`\{			{ count(ctx); return(SYNTAXQUASI); }
 #,			{ count(ctx); return(SYNTAXUNQUOTE); }
-#id			{ count(ctx); return(SYNTAXIDID); }
 #{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, SYNTAXID)); }
 "@const"		{ count(ctx); }
 "@containerof"		{ count(ctx); return(CONTAINEROF); }

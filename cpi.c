@@ -116,10 +116,15 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 				       Zcall(G("stxkind"), 1, copyexpr(exp)),
 				       Zid2sym(pat->e1)));
 		if(!strcmp(id, "id")){
-			if(p)
+			if(p && elistlen(p) == 1)
 				rv |= match(ctx,
 					    Zcall(G("stxid"), 1, copyexpr(exp)),
-					    p, m);
+					    p->e1, m);
+		}else if(!strcmp(id, "val")){
+			if(p && elistlen(p) == 1)
+				rv |= match(ctx,
+					    Zcall(G("stxval"), 1, copyexpr(exp)),
+					    p->e1, m);
 		}else{
 			l = elistlen(p);
 			for(i = 0; i < l; i++){
@@ -129,7 +134,6 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 					    p->e1, m);
 				p = p->e2;
 			}
-			rv = 1;
 		}
 		rv = 1; /* force match code; otherwise, we need to
 			   expand residual constant Estx forms */
