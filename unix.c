@@ -35,7 +35,7 @@ readfile(char *filename)
 	if(0 > fd)
 		return 0;
 	buf = emalloc(st.st_size+1);
-	if(0 > xread(fd, buf, st.st_size)){
+	if(-1 == xread(fd, buf, st.st_size)){
 		efree(buf);
 		close(fd);
 		return 0;
