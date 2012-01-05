@@ -113,30 +113,17 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 		p = pat->e2;
 		m->check = Zand(m->check,
 				Zbinop(Eeq,
-				       Zcall(doid("stxkind"), 1, copyexpr(exp)),
+				       Zcall(G("stxkind"), 1, copyexpr(exp)),
 				       Zid2sym(pat->e1)));
 		if(!strcmp(id, "id")){
-			if(strcmp(idsym(pat->e2), "_") != 0)
-				m->check = Zand(m->check,
-						Zbinop(Eeq,
-						       Zcall(doid("stxid"), 1,
-							     copyexpr(exp)),
-						       Zid2sym(pat->e2)));
-			rv = 1;
-		}
-		else if(!strcmp(id, "val")){
-			l = elistlen(p);
-			if(l >= 1 && strcmp(idsym(pat->e2->e1), "_") != 0)
-				m->check = Zand(m->check,
-						Zbinop(Eeq,
-						       Zcall(doid("stxval"), 1,
-							     copyexpr(exp)),
-						       copyexpr(pat->e2->e1)));
-			rv = 1;
+			if(p)
+				rv |= match(ctx,
+					    Zcall(G("stxid"), 1, copyexpr(exp)),
+					    p, m);
 		}else{
 			l = elistlen(p);
 			for(i = 0; i < l; i++){
-				rv |= match(ctx, Zcall(doid("stxref"), 2,
+				rv |= match(ctx, Zcall(G("stxref"), 2,
 						       copyexpr(exp),
 						       Zuint(i)),
 					    p->e1, m);
@@ -144,6 +131,8 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 			}
 			rv = 1;
 		}
+		rv = 1; /* force match code; otherwise, we need to
+			   expand residual constant Estx forms */
 		break;
 	case Epair:
 		m->check = Zand(m->check, Zcall(doid("ispair"), 1, exp));
