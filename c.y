@@ -39,6 +39,7 @@ extern char *yytext;
 %type <expr> declaration typedef specifier_list constant_expression
 %type <expr> declarator_list primary_expression postfix_expression
 %type <expr> argument_expression_list unary_expression cast_expression
+%type <expr> argument_expression_list_element
 %type <expr> multiplicative_expression additive_expression shift_expression
 %type <expr> relational_expression equality_expression and_expression
 %type <expr> exclusive_or_expression inclusive_or_expression maybe_expression
@@ -46,7 +47,7 @@ extern char *yytext;
 %type <expr> assignment_expression lambda_expression expression root_expression
 %type <expr> names_expression names_declaration_list names_declaration
 %type <expr> lapply_expression
-%type <expr> arg_id_list identifier_list local_list local type_specifier
+%type <expr> arg_id_list id_list id_list_element local_list local type_specifier
 %type <expr> _id id maybeid struct_or_union_specifier
 %type <expr> struct_declaration_list struct_declaration struct_size
 %type <expr> struct_declarator_list struct_declarator enum_specifier
@@ -54,6 +55,7 @@ extern char *yytext;
 %type <expr> abstract_declarator direct_abstract_declarator
 %type <expr> parameter_type_list parameter_list parameter_declaration
 %type <expr> statement
+%type <expr> statement_list_element
 %type <expr> compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
@@ -74,6 +76,7 @@ extern char *yytext;
 %type <expr> mcall_statement
 %type <expr> atid syntaxid
 %type <expr> unquote_statement unquote_expr
+%type <expr> splice_expr
 %type <expr> pattern pattern_list var_pat_list rec_pat_list
 %type <expr> table_init_pattern table_init_pattern_list
 
@@ -106,6 +109,13 @@ unquote_expr
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $2, 0, 0, 0); }
 	| SYNTAXUNQUOTE '(' expression ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Estxunquote, $3, 0, 0, 0); }
+	;
+
+splice_expr
+	: SYNTAXSPLICE _id
+	{ $$ = newexprsrc(&ctx->inp->src, Estxsplice, $2, 0, 0, 0); }
+	| SYNTAXSPLICE '(' expression ')'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxsplice, $3, 0, 0, 0); }
 	;
 
 /* sync with isidform below */
@@ -142,9 +152,9 @@ lambda_expression
 	;
 
 defrec_expression
-	: DEFREC id '{' identifier_list '}'
+	: DEFREC id '{' id_list '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }
-	| DEFREC id '{' identifier_list ',' '}'
+	| DEFREC id '{' id_list ',' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }
 	| DEFREC id '{' '}'
 	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }
@@ -353,10 +363,15 @@ postfix_expression
         { $$ = newexprsrc(&ctx->inp->src, Econtainer, $3, $5, $7, 0); }
 	;
 
-argument_expression_list
+argument_expression_list_element
 	: root_expression
+	| splice_expr
+	;
+
+argument_expression_list
+	: argument_expression_list_element
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
-	| argument_expression_list ',' root_expression
+	| argument_expression_list ',' argument_expression_list_element
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
@@ -521,17 +536,23 @@ assignment_operator
 	{ $$ = Egsub; }
 	;
 
-identifier_list
+
+id_list_element
 	: id
+	| splice_expr
+	;
+
+id_list
+	: id_list_element
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
-	| identifier_list ',' id
+	| id_list ',' id_list_element
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
 arg_id_list
-	: identifier_list
+	: id_list
 	{ $$ = $1; }
-	| identifier_list ELLIPSIS
+	| id_list ELLIPSIS
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
 			  newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0),
 			  $1, 0, 0);
@@ -1032,12 +1053,12 @@ unquote_statement
 	;
 
 global_statement
-	: GLOBAL identifier_list ';'
+	: GLOBAL id_list ';'
 	{ $$ = newexprsrc(&ctx->inp->src, Eglobal, invert($2), 0, 0, 0); }
 	;
 
 local
-	: LOCAL identifier_list ';'
+	: LOCAL id_list ';'
 	{ $$ = invert($2); }
 	;
 
@@ -1095,10 +1116,15 @@ compound_statement
 	}
 	;
 
-statement_list
+statement_list_element
 	: statement
+	| splice_expr
+	;
+
+statement_list
+	: statement_list_element
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
-	| statement_list statement
+	| statement_list statement_list_element
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0); }
 	;
 

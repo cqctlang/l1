@@ -116,6 +116,7 @@ char* S[] = {
 	[Estx] =	"stx",
 	[Estxquote] =	"stxquote",
 	[Estxquasi] =	"stxquasi",
+	[Estxsplice] =	"stxsplice",
 	[Estxunquote] =	"stxunquote",
 	[Esub] =	"sub",
 	[Eswitch] =	"switch",
@@ -736,6 +737,11 @@ printcqct0(Expr *e, unsigned ni)
 		break;
 	case Estxunquote:
 		xprintf("unquote(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
+	case Estxsplice:
+		xprintf("splice(");
 		printcqct0(e->e1, ni);
 		xprintf(")");
 		break;

@@ -1,0 +1,13 @@
+@define mkelist(arg ...)
+{
+	@local m, rv;
+	rv = Znull();
+	m = length(arg);
+	while(m-- != 0)
+		rv = Zcons(arg[m], rv);
+	return rv;
+}
+
+ids = mkelist(#id('c), #id('d), #id('e));
+e = #`{ @lambda ( a, b, #,@ids, f, g) { nil; } };
+printf("%a\n", e);

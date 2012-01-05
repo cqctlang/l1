@@ -90,6 +90,32 @@ l1_mkstxval(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalexpr(e);
 }
 
+static Expr*
+Zappend(Expr *h, Expr *t)
+{
+	if(h->kind == Enull)
+		return t;
+	return putsrc(Zcons(h->e1, Zappend(h->e2, t)),
+		      h->src);
+}
+
+static void
+l1_stxsplice(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Expr *h, *t;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to stxsplice");
+	checkarg(vm, argv, 0, Qexpr);
+	checkarg(vm, argv, 1, Qexpr);
+	h = valexpr(argv[0]);
+	t = valexpr(argv[1]);
+	if(h->kind != Eelist && h->kind != Enull)
+		vmerr(vm, "attempt to splice non-Eelist form");
+	if(t->kind != Eelist && t->kind != Enull)
+		vmerr(vm, "attempt to splice into non-Eelist form");
+	*rv = mkvalexpr(Zappend(h, t));
+}
+
 static void
 l1_stxliftval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -234,6 +260,7 @@ fnstx(Env *env)
 	FN(stxid);
 	FN(stxkind);
 	FN(stxref);
+	FN(stxsplice);
 	FN(stxsrc);
 	FN(stxval);
 }

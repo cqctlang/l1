@@ -159,6 +159,8 @@ stxtab = mktab();
 		switch(stxkind(e)){
 		case 'stxunquote:
 			error("misplaced unquote");
+		case 'stxsplice:
+			error("misplaced splice");
 		case 'stxquasi:
 			return quasi(e[0]);
 		case 'stxquote:
@@ -184,6 +186,8 @@ stxtab = mktab();
 			return #call(#id('stxliftval),
 				     Zlist(unquasi(e[0])),
 				     stxsrc(e));
+		case 'stxsplice:
+			error("unimplemented");
 		case 'id:
 			return #call(#id('mkstxid),
 				     Zlist(mkstxval(stxid(e))),
@@ -192,7 +196,14 @@ stxtab = mktab();
 			return #call(#id('mkstxval),
 				     Zlist(mkstxval(stxval(e))),
 				     stxsrc(e));
+		case 'elist:
+			if(stxkind(e[0]) == 'stxsplice)
+				return #call(#id('stxsplice),
+					     Zlist(unquasi(e[0][0]),
+						   quasi(e[1])));
+			/* fall through */
 		default:
+			
 			return #call(#id('mkstx),
 			             Zlist(mkstxval(stxkind(e)),
 					   e[0] ? quasi(e[0]) : Znil(),
@@ -212,6 +223,8 @@ stxtab = mktab();
 		switch(stxkind(e)){
 		case 'stxunquote:
 			error("misplaced unquote");
+		case 'stxsplice:
+			error("misplaced splice");
 		case 'stxquasi:
 			return exp(quasi(e[0]));
 		case 'stxquote:

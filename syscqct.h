@@ -125,6 +125,7 @@ enum{
 	Estx,
 	Estxquote,
 	Estxquasi,
+	Estxsplice,
 	Estxunquote,
 	Esub,
 	Eswitch,
