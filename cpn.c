@@ -717,8 +717,6 @@ static unsigned basemod[Vnbase][Enbase] = {
 	[Vvlong][Eunsigned]     = Vuvlong,
 	[Vvlong][Esigned]       = Vvlong,
 
-	[Vdouble][Elong]        = Vlongdouble,
-
 	[Vlong][Ecomplex]       = Vlongdoublex,
 	[Vfloat][Ecomplex]      = Vcomplex,
 	[Vdouble][Elong]        = Vlongdouble,
