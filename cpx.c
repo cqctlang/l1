@@ -13,6 +13,7 @@ stx(Expr *e)
 	switch(e->kind){
 	case Ematch:
 		/* syntax in patterns is expanded later */
+		sete2(e, stx(e->e2));
 		return e;
 	case Estx:
 		id = idsym(e->e1);
