@@ -32,7 +32,7 @@ p = (struct X*){dom}0;
 printf("p is %t 0x%x\n", @typeof(p), p);
 q = &p->y;
 printf("q is %t 0x%x\n", @typeof(q), q);
-r = @mycontainerof(q, struct X, y);
+r = @mycontainerof(q, @typename(struct X), y);
 printf("r is %t 0x%x\n", @typeof(r), r);
 
 //p = (struct X*){dom}0;

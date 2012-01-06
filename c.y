@@ -71,7 +71,7 @@ extern char *yytext;
 %type <expr> maybe_attr
 %type <expr> defstx_statement
 %type <expr> syntax_expression
-%type <expr> mcall_expression margument_expression_list
+%type <expr> mcall_expression
 %type <expr> quote_expression
 %type <expr> mcall_statement
 %type <expr> atid syntaxid
@@ -89,12 +89,11 @@ extern char *yytext;
 %parse-param {U *ctx}
 %lex-param   {U *ctx}
 %expect 1
-%expect-rr 17
+%expect-rr 15
 %{
 	static void yyerror(U *ctx, const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
 	static Expr* ofmerge(YYSTYPE e1, YYSTYPE e2);
-	static Expr* tnmerge(YYSTYPE e1, YYSTYPE e2);
 %}
 %%
 
@@ -118,7 +117,6 @@ splice_expr
 	{ $$ = newexprsrc(&ctx->inp->src, Estxsplice, $3, 0, 0, 0); }
 	;
 
-/* sync with isidform below */
 id
 	: _id
 	| unquote_expr
@@ -185,21 +183,10 @@ syntax_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
 	;
 
-margument_expression_list
-	: root_expression  %merge <tnmerge>
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
-	| type_name        %merge <tnmerge>
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $1, nullelist(), 0, 0); }
-	| margument_expression_list ',' root_expression  %merge <tnmerge>
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
-	| margument_expression_list ',' type_name        %merge <tnmerge>
-	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
-	;
-
 mcall_expression
 	: atid '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, nullelist(), 0, 0); }
-	| atid '(' margument_expression_list ')'
+	| atid '(' argument_expression_list ')'
         { $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), 0, 0); }
 	;
 
@@ -1422,25 +1409,4 @@ ofmerge(YYSTYPE ye1, YYSTYPE ye2)
 	else
 		duptickid(e2->e1);
 	return putsrc(newexpr(Eambig, e1, e2, NULL, NULL), e1->src);
-}
-
-static int
-isidform(Expr *e)
-{
-	return e->kind == Eid || e->kind == Estxunquote;
-}
-
-static Expr*
-tnmerge(YYSTYPE ye1, YYSTYPE ye2)
-{
-	Expr *e1, *e2;
-
-	e1 = ye1.expr;
-	e2 = ye2.expr;
-	if(e1->kind == Eelist && isidform(e1->e1))
-		return e1;
-	if(e2->kind == Eelist && isidform(e2->e1))
-		return e2;
-	yyerror(0, "unresolved ambiguity 3");
-	abort();
 }
