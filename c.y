@@ -567,6 +567,7 @@ names_declaration_list
 names_declaration
 	: declaration
 	| typedef
+	| splice_expr
 	| error ';'
 	{ $$ = 0; }
 	;
