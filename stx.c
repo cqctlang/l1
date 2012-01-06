@@ -127,7 +127,6 @@ l1_stxliftval(VM *vm, Imm argc, Val *argv, Val *rv)
 		l1_mkstxval(vm, argc, argv, rv);
 }
 
-/* FIXME: slap or be smart if sk is 'id' or 'val' */
 static void
 l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -141,6 +140,10 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcid);
 	sk = valcid(argv[0]);
 	k = s2kind(ciddata(sk));
+
+	if(k == Eid || k == Eval)
+		vmerr(vm, "attempt to create #%s with mkstx", S[k]);
+
 	memset(earg, 0, sizeof(earg));
 	argv++;
 	argc--;
