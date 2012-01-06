@@ -2,16 +2,6 @@
 {
 	@local ids;
 
-	@defloc mkelist(arg ...)
-	{
-		@local m, rv;
-		rv = Znull();
-		m = length(arg);
-		while(m-- != 0)
-			rv = Zcons(arg[m], rv);
-		return rv;
-	}
-
 	@defloc init(id)
 	{
 		#`{ #,id = 0; };
@@ -22,21 +12,13 @@
 		#`{ #,id++; };
 	}
 
-	@defloc mapstx(fn, es)
-	{
-		if(es == #null)
-			return #null;
-		else
-			return Zcons(fn(es[0]), mapstx(fn, es[1])); 
-	}
-
-	ids = mkelist(#id('c), #id('d), #id('e));
+	ids = #[ #id('c), #id('d), #id('e) ];
 
 	#`{
 		{
 			@local #,@ids; 
-			#,@(mapstx(init, ids));
-			#,@(mapstx(inc, ids));
+			#,@(map(init, ids));
+			#,@(map(inc, ids));
 			printf("%a\n", [ #,@ids ]);
 		}
 	};

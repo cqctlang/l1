@@ -27,6 +27,23 @@
 		return rv;
 	}
 
+	// syntax: exactly one, only (FIXME)
+	// FIXME: should this return stxlist or list?
+	if(isstx(arg[0])){
+		@local e;
+		e = arg[0];
+		if(stxkind(e) != 'elist && stxkind(e) != 'null)
+			error("map on non-elist syntax argument");
+		@defloc rec(e)
+		{
+			if(stxkind(e) == 'null)
+				return #null;
+			else
+				return #elist(fn(e[0]), rec(e[1]));
+		}
+		return rec(e);
+	}
+
 	// list or vector: exactly one
 	if(length(arg) == 1){
 		a = arg[0];
@@ -79,6 +96,19 @@
 		m = length(k);
 		for(i = 0; i < m; i++)
 			fn(k[i], v[i]);
+		return nil;
+	}
+
+	// syntax: exactly one, only (FIXME)
+	if(isstx(arg[0])){
+		@local e;
+		e = arg[0];
+		if(stxkind(e) != 'elist && stxkind(e) != 'null)
+			error("map on non-elist syntax argument");
+		while(stxkind(e) != 'null){
+			fn(e[0]);
+			e = e[1];
+		}
 		return nil;
 	}
 

@@ -596,7 +596,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 					if(fmtputs0(vm, f, " "))
 						return -1;
 				}
-				if(fmtval(vm, f, mkvalexpr(e->e1)))
+				if(fmtval(vm, f, e->e1 ? mkvalexpr(e->e1) : Xnil))
 					return -1;
 			}
 			return fmtputs0(vm, f, " ]");
