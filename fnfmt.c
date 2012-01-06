@@ -583,6 +583,8 @@ fmtval(VM *vm, Fmt *f, Val val)
 			if(fmtputs0(vm, f, ")"))
 				return -1;
 			break;
+		case Enull:
+			return fmtputs0(vm, f, "#[]");
 		case Eelist:
 			/* FIXME: don't assume the elist is well formed */
 			if(fmtputs0(vm, f, "#["))
