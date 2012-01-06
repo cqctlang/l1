@@ -373,7 +373,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Rec *rec;
 	Str *str;
 	Val bv, rv;
-	u32 m;
+	u32 m, n;
 	Head *hd;
 	Dom *d;
 	As *as;
@@ -583,6 +583,23 @@ fmtval(VM *vm, Fmt *f, Val val)
 			if(fmtputs0(vm, f, ")"))
 				return -1;
 			break;
+		case Eelist:
+			/* FIXME: don't assume the elist is well formed */
+			if(fmtputs0(vm, f, "#["))
+				return -1;
+			n = elistlen(e);
+			for(m = 0; m < n; m++, e = e->e2){
+				if(m > 0){
+					if(fmtputs0(vm, f, ", "))
+						return -1;
+				}else{
+					if(fmtputs0(vm, f, " "))
+						return -1;
+				}
+				if(fmtval(vm, f, mkvalexpr(e->e1)))
+					return -1;
+			}
+			return fmtputs0(vm, f, " ]");
 		default:
 			if(fmtputs0(vm, f, "#"))
 				return -1;

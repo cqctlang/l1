@@ -281,6 +281,12 @@ Zstrn(char *s, Imm len)
 }
 
 Expr*
+Zcid(char *s)
+{
+	return Zval(mkvalcid(mkcid0(s)));
+}
+
+Expr*
 Zuint(Imm val)
 {
 	return Zconst(Vuint, val);

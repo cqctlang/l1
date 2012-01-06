@@ -123,6 +123,7 @@ enum{
 	Esizeoft,
 	Estruct,
 	Estx,
+	Estxlist,
 	Estxquote,
 	Estxquasi,
 	Estxsplice,
@@ -1247,6 +1248,7 @@ Expr*		Zbind(Expr *id, Expr *e);
 Expr*		Zbinop(unsigned op, Expr *x, Expr *y);
 Expr*		Zblock(Expr *locs, ...);
 Expr*		Zcall(Expr *fn, unsigned narg, ...);
+Expr*		Zcid(char *s);
 Expr*		Zcons(Expr *hd, Expr *tl);
 Expr*		Zconst(Cbase base, Imm val);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);

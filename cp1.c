@@ -79,6 +79,26 @@ compilelist(U *ctx, Expr *e)
 }
 
 static Expr*
+mkstxlist(Expr *e)
+{
+	if(e->kind == Enull)
+		return putsrc(Zcall(G("mkstx"), 1, Zcid("null")),
+			      e->src);
+	else
+		return putsrc(Zcall(G("mkstx"), 3,
+				    Zcid("elist"),
+				    e->e1,
+				    mkstxlist(e->e2)),
+			      e->src);
+}
+
+static Expr*
+compilestxlist(U *ctx, Expr *e)
+{
+	return mkstxlist(compile1(ctx, e->e1));
+}
+
+static Expr*
 compilepair(U *ctx, Expr *e)
 {
 	Expr *loc, *se;
@@ -392,6 +412,9 @@ compile1(U *ctx, Expr *e)
 		return se;
 	case Elist:
 		se = compilelist(ctx, e);
+		return se;
+	case Estxlist:
+		se = compilestxlist(ctx, e);
 		return se;
 	case Epair:
 		se = compilepair(ctx, e);

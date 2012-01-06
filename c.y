@@ -32,7 +32,7 @@ extern char *yytext;
 %token BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
-%token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE
+%token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE SYNTAXLIST
 %token LPAIR RPAIR NOBIND_PRE MATCH
 
 %type <expr> base base_list
@@ -69,6 +69,7 @@ extern char *yytext;
 %type <expr> tn_param_enum_specifier
 %type <expr> table_init table_init_list
 %type <expr> maybe_attr
+%type <expr> syntax_list
 %type <expr> defstx_statement
 %type <expr> syntax_expression
 %type <expr> mcall_expression
@@ -207,6 +208,15 @@ table_init_list
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist, $3, $1, 0, 0); }
 	;
 
+syntax_list
+	: SYNTAXLIST ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxlist, nullelist(), 0, 0, 0); }
+	| SYNTAXLIST argument_expression_list ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxlist, invert($2), 0, 0, 0); }
+	| SYNTAXLIST argument_expression_list ',' ']'
+	{ $$ = newexprsrc(&ctx->inp->src, Estxlist, invert($2), 0, 0, 0); }
+	;
+
 primary_expression
 	: id
 	| id '`' id
@@ -238,6 +248,7 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| '[' table_init_list ',' ']'
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
+	| syntax_list
 	| lambda_expression
 	| defrec_expression
 	| let_expression

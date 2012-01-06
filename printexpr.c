@@ -114,6 +114,7 @@ char* S[] = {
 	[Esizeoft] =	"sizeoft",
 	[Estruct] =	"struct",
 	[Estx] =	"stx",
+	[Estxlist] =	"stxlist",
 	[Estxquote] =	"stxquote",
 	[Estxquasi] =	"stxquasi",
 	[Estxsplice] =	"stxsplice",
