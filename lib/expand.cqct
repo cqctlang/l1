@@ -1,4 +1,4 @@
-@global debugexpand;
+@global debugexpand, validateexpand;
 
 symn = 0;
 @define gensym()
@@ -261,5 +261,9 @@ stxtab = mktab();
 				     stxsrc(e));
 		}
 	}
-	return exp(e);
+
+	e = exp(e);
+	if(validateexpand)
+		validateexpand(e);
+	return e;
 }
