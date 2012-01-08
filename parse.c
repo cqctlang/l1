@@ -106,7 +106,7 @@ newexprsrc(Ysrc *src, unsigned kind, Expr *e1, Expr *e2, Expr *e3, Expr *e4)
 
 	e = mkexpr();
 	e->kind = kind;
-	e->skind = mkcid0(S[kind]);
+	e->skind = kind < Emax ? mkcid0(S[kind]) : 0;
 	e->e1 = e1;
 	e->e2 = e2;
 	e->e3 = e3;
