@@ -1790,6 +1790,18 @@ copystack(VM *vm)
 	if(fp == 0)
 		return;
 
+	/* copy current pc and code if we appear to be in a call
+	   (e.g., via gc() or compact() rather than gcpoll */
+	pc = vm->pc;
+	ci = pc-2;
+	if(ci->kind == Icode){
+		cp = ci->code;
+		coff = (uptr)pc-(uptr)cp;
+		copy((Val*)&cp);
+		pc = (Insn*)((uptr)cp+coff);
+		vm->pc = pc;
+	}
+
 	while(1){
 		narg = stkimm(vm->stack[fp]);
 		clx = fp+narg+2;
