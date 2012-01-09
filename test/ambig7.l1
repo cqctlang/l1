@@ -1,0 +1,23 @@
+ns = @names c32le {
+   struct foo
+   {
+   	@0x0 int x;
+	@0x4;
+   };
+
+   @0x0 struct foo f;
+   @0x4 struct foo *a[10];
+};
+
+dom = mkdom(ns, mkzas(10240));
+
+a = dom`a;
+a[0] = &dom`f;
+
+dom`f.x = 101;
+
+printf("%a\n", (*(a[0])).x);
+
+c = [ a[0] ];
+
+printf("%a\n", (*(c[0])).x);

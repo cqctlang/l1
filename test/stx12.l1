@@ -1,0 +1,15 @@
+/* exercise cpa on shared syntax forms (no output) */
+@defstx @foo()
+{
+        @local s;
+
+        s = #cast(#typename(#base(#[ #short ])), #aref(#id('id), #val(0)));
+        
+        #`{
+                #,s;
+                #,s;
+          };        
+}
+
+id = [ 1 ];
+@foo();

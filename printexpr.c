@@ -140,6 +140,8 @@ char* S[] = {
 
 	[E_tg] =	"_tg",
 	[E_tid] =	"_tid",
+
+	[E_attr] =	"_attr",
 };
 
 #if 0
@@ -749,6 +751,13 @@ printcqct0(Expr *e, unsigned ni)
 	case Estxquasi:
 		xprintf("quasi(");
 		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
+	case E_attr:
+		xprintf("attr(");
+		printcqct0(e->e1, ni);
+		xprintf(", ");
+		printcqct0(e->e2, ni);
 		xprintf(")");
 		break;
 	default:

@@ -198,16 +198,20 @@ Expr*
 Zgbinop(unsigned gop, Expr *x, Expr *y)
 {
 	static Kind gop2bop[] = {
-		[Egadd]  = Eadd,
-		[Egband] = Eband,
-		[Egbor]  = Ebor,
-		[Egbxor] = Ebxor,
-		[Egdiv]  = Ediv,
-		[Egmod]  = Emod,
-		[Egmul]  = Emul,
-		[Egshl]  = Eshl,
-		[Egshr]  = Eshr,
-		[Egsub]  = Esub,
+		[Egadd]    = Eadd,
+		[Egband]   = Eband,
+		[Egbor]    = Ebor,
+		[Egbxor]   = Ebxor,
+		[Egdiv]    = Ediv,
+		[Egmod]    = Emod,
+		[Egmul]    = Emul,
+		[Egshl]    = Eshl,
+		[Egshr]    = Eshr,
+		[Egsub]    = Esub,
+		[Epreinc]  = Eadd,
+		[Epredec]  = Esub,
+		[Epostinc] = Eadd,
+		[Epostdec] = Esub,
 	};
        return newbinop(gop2bop[gop], x, y);
 }

@@ -150,6 +150,10 @@ enum{
 	/* open-coded primitives */
 	E_tid,
 	E_tg,
+
+	/* compiler attributes */
+	E_attr,
+
 	Emax,
 	Euser,
 } Kind;
@@ -949,6 +953,7 @@ Expr*		flatten(Expr *e);
 void		initparse(void);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);
+Expr*		mkexpr();
 Expr*		newbinop(unsigned, Expr*, Expr*);
 Expr*		newbinopsrc(Ysrc*, unsigned, Expr*, Expr*);
 Expr*		newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
