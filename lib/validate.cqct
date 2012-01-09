@@ -1,0 +1,312 @@
+@define validateexpand(e)
+{
+	@defloc src(e)
+	{
+		@local s;
+		s = stxsrc(e);
+		if(s[1])
+			return sprintfa("%s:%d", s[0], s[1]);
+		else
+			return sprintfa("%s", s[0], s[1]);
+	}
+
+	@defloc invalid(what, e)
+	{
+		error("%s: invalid %s: %a", src(e), what, e);
+	}
+
+	@defloc argidlist(es)
+	{
+		switch(es){
+		@match #null:
+			break;
+		@match #elist(#ellipsis, #null):
+			break;
+		@match #elist(#id(id), es):
+			argidlist(es);
+			break;
+		default:
+			invalid("argument identifier list", es);
+		}
+	}
+
+	@defloc idlist(es)
+	{
+		switch(es){
+		@match #null:
+			break;
+		@match #elist(#id(id), es):
+			idlist(es);
+			break;
+		default:
+			invalid("identifier list", es);
+		}
+	}
+
+	@defloc argexprs(es)
+	{
+		switch(es){
+		@match #null:
+			break;
+		@match #elist(e, rest):
+			rootexpr(e);
+			argexprs(rest);
+			break;
+		default:
+			invalid("argument list", es);
+		}
+	}
+
+	@defloc typename(e)
+	{
+		/* FIXME */
+	}
+
+	@defloc rootexpr(e)
+	{
+		switch(e){
+		@match #nil:
+			break;
+		@match #id(x):
+		@match #val(x):
+			break;
+		@match #ticke(#id(dom), #id(id)):
+			break;
+
+		@match #scope(#block(ids, es)):
+		@match #block(ids, es):
+			idlist(ids);
+			stmts(es);
+			break;
+
+		@match #elist(es):
+			stmts(es);
+			break;
+
+		@match #null:
+			break;
+
+		@match #g(e1, e2):
+		@match #gadd(e1, e2):
+		@match #gband(e1, e2):
+		@match #gbor(e1, e2):
+		@match #gbxor(e1, e2):
+		@match #gdiv(e1, e2):
+		@match #gmod(e1, e2):
+		@match #gmul(e1, e2):
+		@match #gshl(e1, e2):
+		@match #gshr(e1, e2):
+		@match #gsub(e1, e2):
+			expr(e1);
+			expr(e2);
+			break;
+		@match #cond(p, c, a):
+			expr(p);
+			expr(c);
+			expr(a);
+			break;
+		@match #band(e1, e2):
+		@match #bor(e1, e2):
+		@match #bxor(e1, e2):
+		@match #lor(e1, e2):
+		@match #land(e1, e2):
+
+		@match #eq(e1, e2):
+		@match #neq(e1, e2):
+		@match #ge(e1, e2):
+		@match #le(e1, e2):
+		@match #gt(e1, e2):
+		@match #lt(e1, e2):
+
+		@match #add(e1, e2):
+		@match #div(e1, e2):
+		@match #mod(e1, e2):
+		@match #mul(e1, e2):
+		@match #shl(e1, e2):
+		@match #shr(e1, e2):
+		@match #sub(e1, e2):
+		@match #xcast(e1, e2):
+			expr(e1);
+			expr(e2);
+			break;
+
+		@match #cast(t, e2):
+			typename(t);
+			expr(e2);
+			break;
+
+		@match #preinc(e):
+		@match #predec(e):
+		@match #postinc(e):
+		@match #postdec(e):
+		@match #ref(e):
+		@match #deref(e):
+		@match #uplus(e):
+		@match #uminus(e):
+		@match #utwiddle(e):
+		@match #unot(e):
+		@match #sizeofe(e):
+		@match #typeofe(e):
+			expr(e);
+			break;
+
+		@match #pair(e1, e2):
+		@match #aref(e1, e2):
+			expr(e1);
+			expr(e2);
+			break;
+
+		@match #dot(e, #id(id)):
+		@match #arrow(e, #id(id)):
+			expr(e);
+			break;
+
+		@match #call(e1, args):
+			expr(e1);
+			argexprs(args);
+			break;
+
+		@match #lambda(a, s):
+			argidlist(a);
+			stmt(s);
+			break;
+
+		@match #defrec(#id(id), ids):
+			idlist(ids);
+			break;
+
+		@match #list(es):
+		@match #tab(es):
+			/* FIXME */
+			break;
+
+		@match #sizeoft(t):
+		@match #typeoft(t):
+		@match #mkctype(t):
+			typename(t);
+			break;
+
+		@match #container(e, t, #id(id)):
+			expr(e);
+			typename(t);
+			break;
+
+		@match #names(e):
+			/* FIXME */
+			break;
+		@match #lapply(e, args):
+			rootexpr(e);
+			argexprs(args);
+			break;
+
+		@match #ambig(e1, e2):
+			expr(e1);
+			expr(e2);
+			break;
+
+		@match #stx:
+		@match #stxlist:
+		@match #stxquote:
+			/* FIXME */
+			break;
+
+		default:
+			invalid("expression", e);
+		}
+	}
+
+	@defloc expr(e)
+	{
+		switch(e){
+		@match #comma(e1, e2):
+			expr(e1);
+			rootexpr(e2);
+			break;
+		default:
+			rootexpr(e);
+			break;
+		}
+	}
+		
+	@defloc stmts(e)
+	{
+		switch(e){
+		@match #null:
+			break;
+		@match #elist(e, es):
+			stmt(e);
+			stmts(es);
+			break;
+		default:
+			stmt(e);
+			break;
+		}
+	}
+
+	@defloc stmt(e)
+	{
+		switch(e){
+		@match #scope(#block(ids, es)):
+		@match #block(ids, es):
+			idlist(ids);
+			stmts(es);
+			break;
+		@match #global(ids):
+			idlist(ids);
+			break;
+		@match #if(e, c, a):
+			expr(e);
+			stmt(c);
+			if(a) stmt(a);
+			break;
+		@match #switch(e, b):
+			expr(e);
+			stmts(b);
+			break;
+		@match #nil:
+			break;
+		@match #label(#id(id)):
+			break;
+		@match #case(e, s):
+			expr(e);
+			stmt(s);
+			break;
+		@match #match(pat, s):
+			/* FIXME */
+			stmt(s);
+			break;
+		@match #default(s):
+			stmt(s);
+			break;
+		@match #goto(#id(id)):
+			break;
+		@match #continue:
+		@match #break:
+			break;
+		@match #ret(e):
+			if(e) expr(e);
+			break;
+		@match #while(e, s):
+		@match #do(s, e):
+			expr(e);
+			stmt(s);
+			break;
+		@match #for(e1, e2, e3, s):
+			if(e1) expr(e1);
+			if(e2) expr(e2);
+			if(e3) expr(e3);
+			stmt(s);
+			break;
+		@match #define(#id(id), a, s):
+		@match #defloc(#id(id), a, s):
+			argidlist(a);
+			stmt(s);
+			break;
+		default:
+			expr(e);
+			break;
+		}
+	}
+
+	stmts(e);
+}
