@@ -990,8 +990,14 @@ Expr*		docompilen(U *ctx, Expr *e);
 /* compilem.c */
 Expr*		docompilem(U *ctx, Expr *e);
 
+/* compilew.c */
+Expr*		docompilew(U *ctx, Expr *e);
+
 /* compilea.c */
 Expr*		docompilea(U *ctx, Expr *e);
+
+/* compilec.c */
+Expr*		docompilec(U *ctx, Expr *e);
 
 /* compile0.c */
 Expr*		docompile0(U *ctx, Expr *e);
