@@ -45,15 +45,13 @@
 
 	@defloc argexprs(es)
 	{
-		switch(es){
-		@match #null:
-			break;
-		@match #elist(e, rest):
-			rootexpr(e);
-			argexprs(rest);
-			break;
-		default:
+		@local p;
+		if(stxkind(es) != 'null && stxkind(es) != 'elist)
 			invalid("argument list", es);
+		p = es;
+		while(stxkind(p) == 'elist){
+			rootexpr(p[0]);
+			p = p[1];
 		}
 	}
 
@@ -176,6 +174,9 @@
 			break;
 
 		@match #list(es):
+			argexprs(es);
+			break;
+
 		@match #tab(es):
 			/* FIXME */
 			break;
@@ -230,16 +231,13 @@
 		
 	@defloc stmts(e)
 	{
-		switch(e){
-		@match #null:
-			break;
-		@match #elist(e, es):
-			stmt(e);
-			stmts(es);
-			break;
-		default:
-			stmt(e);
-			break;
+		@local p;
+		if(stxkind(e) != 'null && stxkind(e) != 'elist)
+			return stmt(e);
+		p = e;
+		while(stxkind(p) == 'elist){
+			stmt(p[0]);
+			p = p[1];
 		}
 	}
 
