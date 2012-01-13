@@ -1,0 +1,242 @@
+@include <control.cqct>
+
+@global cpopt;
+
+{
+@local verbose;
+
+verbose = 0;
+
+@defloc fmtsrc(src)
+{
+	if(src[1])
+		return sprintfa("%s:%d", src[0], src[1]);
+	else
+		return sprintfa("%s", src[0]);
+}
+
+@defloc log(args ...)
+{
+	if(verbose)
+		apply(printf, args);
+}
+
+@defloc mkenv(env)
+{
+	return cons(mktab(), env);
+}
+
+@defloc lookenv(id, env)
+{
+	@local v;
+	if(env == nil)
+		return nil;
+	v = car(env)[id];
+	if(v == nil)
+		return lookenv(id, cdr(env));
+	return v;
+}
+
+@defloc bindenv(id, env, v)
+{
+	if(env == nil)
+		error("bind without environment");
+	car(env)[id] = v;
+}
+
+@defloc mark(e, env)
+{
+	@local l, new;
+	if(e == nil)
+		return e;
+	switch(e){
+	@match #id:
+	@match #val:
+		return e;
+	@match #_tid(#id(id)):
+		return e;
+	@match #_tg(#_tid(#id(id)), e2):
+		return #_tg(#_tid(#id(id)), mark(e2, env), stxsrc(e));
+	@match #block(es, body):
+		new = mkenv(env);
+		return #block(#attr(es, #val(new)), mark(body, new), stxsrc(e));
+	@match #lambda(es, body, id):
+		new = mkenv(env);
+		return #lambda(#attr(es, #val(new)), mark(body, new), id, stxsrc(e));
+	@match #elist:
+		l = Znull();
+		while(stxkind(e) == 'elist){
+			l = Zcons(mark(Zcar(e), env), l);
+			e = Zcdr(e);
+		}
+		return Zreverse(l);
+	default:
+		return mkstx(stxkind(e),
+			     mark(e[0], new),
+			     mark(e[1], new),
+			     mark(e[2], new),
+			     mark(e[3], new),
+			     stxsrc(e));
+	}
+}
+
+@defloc clear(e)
+{
+	@local l;
+	if(e == nil)
+		return e;
+	switch(e){
+	@match #id:
+	@match #val:
+		return e;
+	@match #_tid(#id(id)):
+		return e;
+	@match #_tg(#_tid(#id(id)), e2):
+		return #_tg(#_tid(#id(id)), clear(e2), stxsrc(e));
+	@match #block(#attr(es, #val), body):
+		return #block(es, clear(body), stxsrc(e));
+	@match #lambda(#attr(es, #val), body, id):
+		return #lambda(es, clear(body), id, stxsrc(e));
+	@match #elist:
+		l = Znull();
+		while(stxkind(e) == 'elist){
+			l = Zcons(clear(Zcar(e)), l);
+			e = Zcdr(e);
+		}
+		return Zreverse(l);
+	default:
+		return mkstx(stxkind(e),
+			     clear(e[0]),
+			     clear(e[1]),
+			     clear(e[2]),
+			     clear(e[3]),
+			     stxsrc(e));
+	}
+}
+
+@defloc walk(e, env)
+{
+	@local l, b, v;
+	if(e == nil)
+		return e;
+	switch(e){
+	@match #id:
+	@match #val:
+		return e;
+	@match #_tid(#id(id)):
+		return e;
+	@match #_tg(#_tid(#id(id)), e2):
+		return #_tg(#_tid(#id(id)), walk(e2, env), stxsrc(e));
+	@match #g(#id(id), e2):
+		v = lookenv(id, env);
+		if(v == nil)
+			bindenv(id, env, [ e2 ]);
+		else
+			append(v, e2);
+		return #g(#id(id), walk(e2, env), stxsrc(e));
+	@match #g(notid, e2):
+		error("complex assignment\n!");
+	@match #block(#attr(es, #val(env)), body):
+		b = #block(#attr(es, #val(env)), walk(body, env), stxsrc(e));
+		return b;
+	@match #lambda(#attr(es, #val(env)), body, id):
+		return #lambda(#attr(es, #val(env)), walk(body, env), id, stxsrc(e));
+	@match #elist:
+		l = Znull();
+		while(stxkind(e) == 'elist){
+			l = Zcons(walk(Zcar(e), env), l);
+			e = Zcdr(e);
+		}
+		return Zreverse(l);
+	default:
+		return mkstx(stxkind(e),
+			     walk(e[0], env),
+			     walk(e[1], env),
+			     walk(e[2], env),
+			     walk(e[3], env),
+			     stxsrc(e));
+	}
+}
+
+@defloc whatis(id, env)
+{
+	@local l, e;
+	if(env == nil){
+		log("no environment!\n");
+		return 'unknown;
+	}
+	l = lookenv(id, env);
+	if(l == nil){
+		log("no entry for %a!\n", id);
+		return 'unknown;
+	}
+	if(length(l) > 1){
+		log("too many assignments for %a!\n", id);
+		return 'unknown;
+	}
+	e = l[0];
+	switch(e){
+	@match #id(id):
+		return whatis(id, env);
+	@match #call(#_tid(#id('mktab)), args):
+		return 'table;
+	default:
+		log("whatis: whatis is this: %a\n", e);
+		return 'unknown;
+	}
+}
+
+@defloc check(e, env)
+{
+	@local l, b, w;
+	if(e == nil)
+		return e;
+	switch(e){
+	@match #id:
+	@match #val:
+		return e;
+	@match #block(#attr(es, #val(env)), body):
+		b = #block(#attr(es, #val(env)), check(body, env), stxsrc(e));
+		return b;
+	@match #lambda(#attr(es, #val(env)), body, id):
+		return #lambda(#attr(es, #val(env)), check(body, env), id, stxsrc(e));
+	@match #if(#call(#_tid(#id('%iscvalue)), #elist(#id(id), #null)), c, a):
+		log("%s: matched iscvalue(%a) -> %a\n", fmtsrc(stxsrc(e)), id, whatis(id, env));
+		switch(w = whatis(id, env)){
+		case 'table:
+			return check(a, env);
+		case 'unknown:
+			return #if(#call(#_tid(#id('%iscvalue)), #elist(#id(id), #null)),
+				   check(c, env), check(a, env));
+		default:
+			error("unhandled whatis result: %a", w);
+		}
+	@match #elist:
+		l = Znull();
+		while(stxkind(e) == 'elist){
+			l = Zcons(check(Zcar(e), env), l);
+			e = Zcdr(e);
+		}
+		return Zreverse(l);
+	default:
+		return mkstx(stxkind(e),
+			     check(e[0], env),
+			     check(e[1], env),
+			     check(e[2], env),
+			     check(e[3], env),
+			     stxsrc(e));
+	}
+
+}
+
+@define cpopt(e)
+{
+//	return e;
+	e = mark(e, nil);
+	e = walk(e, nil);
+	e = check(e, nil);
+	e = clear(e);
+	return e;
+}
+
+}

@@ -6972,6 +6972,7 @@ cqctmkvm(Toplevel *top)
 		cqctflags['q'] = 0;
 		cqctflags['T'] = 0;
 		cqcteval(vm, "@include <expand.cqct>", "<expand>", &rv);
+		cqcteval(vm, "@include <cpopt.cqct>", "<cpopt>", &rv);
 		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
 		cqctflags['b'] = fb;
 		cqctflags['p'] = fp;

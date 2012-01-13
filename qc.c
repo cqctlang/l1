@@ -131,6 +131,25 @@ doexpand(VM *vm, Expr *e)
 	return e;
 }
 
+static Expr*
+doopt(VM *vm, Expr *e)
+{
+	Val argv[1], rv, v;
+
+	v = cqctenvlook(vm->top, "cpopt");
+	if(v && Vkind(v) == Qcl){
+		argv[0] = mkvalexpr(e);
+		if(0 > cqctcallfn(vm, v, 1, argv, &rv))
+			return 0;
+		if(Vkind(rv) != Qexpr)
+			/* should call vmerr, but there is
+			   no error context, like that
+			   set by cqctcallfn */
+			bug();
+		return valexpr(rv);
+	}
+	return e;
+}
 
 #define CP(id)      { "cp"#id, docompile##id }
 #define NPASS(ps)   (sizeof(ps)/sizeof((ps)[0]))
@@ -151,7 +170,7 @@ static Pass all[] = {
 	CP(r),
 	CP(1),
 	CP(b),
-	CP(v),
+/*	CP(v), */
 };
 
 Val
@@ -159,6 +178,7 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 {
 	Imm tv[2];
 	Closure *cl;
+	U ctx;
 
 	if(cqctflags['p']){
 		xprintf("\n*** pre-expand ***\n");
@@ -171,6 +191,15 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 	e = dopasses(e, top, argsid, all, NPASS(all));
 	if(e == 0)
 		return 0;
+	if(cqctflags['O']){
+		e = doopt(vm, e);
+		if(e == 0)
+			return 0;
+	}
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.top = top;
+	ctx.out = &top->out;
+	e = docompilev(&ctx, e);
 	if(cqctflags['T'])
 		tv[0] = usec();
 	if(cqctflags['q']){

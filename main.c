@@ -41,11 +41,12 @@ usage(char *argv0)
 	fprintf(stderr, "\tto exit send EOF (^d).\n");
 	fprintf(stderr, "\nuser flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
+	fprintf(stderr, "\t-O enable unstable optimizations\n");
 	fprintf(stderr, "\t-r allow redefinition of implicitly called builtins\n");
 	fprintf(stderr, "\t-t report timing and memory statistics\n");
 	fprintf(stderr, "\t-w print warnings about dodgy code\n");
 	fprintf(stderr, "\t-z send output to /dev/null\n");
-	fprintf(stderr, "\t-s do not use default load path\n");
+	fprintf(stderr, "\t-s suppress default load path\n");
 	fprintf(stderr, "\t-lDIR add DIR to the load path\n");
 	fprintf(stderr, "\t-d suppress prelude\n");
 	fprintf(stderr, "\nl1 internals flags:\n");
@@ -425,7 +426,7 @@ main(int argc, char *argv[])
 	nlp = 0;
 	tbeg = Tbeg = end = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:opqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:oOpqrstTwxz"))){
 		switch(c){
 		case '6':
 		case 'b':
@@ -433,6 +434,7 @@ main(int argc, char *argv[])
 		case 'k':
 		case 'K':
 		case 'o':
+		case 'O':
 		case 'p':
 		case 'q':
 		case 'r':
