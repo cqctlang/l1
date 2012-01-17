@@ -20,7 +20,8 @@ verbose = 0;
 	if(verbose)
 		apply(printf, args);
 }
-
+/* FIXME: rationalize with identical data structure
+   in c.cqct */
 @defloc mkenv(env)
 {
 	return cons(mktab(), env);
@@ -72,10 +73,10 @@ verbose = 0;
 		return Zreverse(l);
 	default:
 		return mkstx(stxkind(e),
-			     mark(e[0], new),
-			     mark(e[1], new),
-			     mark(e[2], new),
-			     mark(e[3], new),
+			     mark(e[0], env),
+			     mark(e[1], env),
+			     mark(e[2], env),
+			     mark(e[3], env),
 			     stxsrc(e));
 	}
 }
