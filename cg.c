@@ -154,7 +154,7 @@ mkode(char *id)
 	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
 	code->src = emalloc(code->maxinsn*sizeof(Src));
 	code->ninsn = 0;
-	code->konst = mktabqv();
+	code->konst = mktabq();
 	code->lm = emalloc(128*sizeof(u64));
 	code->nlm = 0;
 	code->mlm = 128;
