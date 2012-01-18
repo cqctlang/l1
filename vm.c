@@ -4068,14 +4068,18 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		LABEL Iargc:
 			m = getimmrand(&i->op1);
 			if(stkimm(vm->stack[vm->fp]) != m)
-				vmerr(vm, "wrong number of arguments to %s",
-				      ciddata(vm->cl->id));
+				vmerr(vm, "wrong number of arguments to %s"
+				      " (expects %u, passed %u)",
+				      ciddata(vm->cl->id),
+				      m, vm->stack[vm->fp]);
 			continue;
 		LABEL Ivargc:
 			m = getimmrand(&i->op1);
 			if(stkimm(vm->stack[vm->fp]) < m)
-				vmerr(vm, "insufficient arguments to %s",
-				      ciddata(vm->cl->id));
+				vmerr(vm, "not enough arguments to %s"
+				      " (expects at least %u, passed %u)",
+				      ciddata(vm->cl->id),
+				      m, vm->stack[vm->fp]);
 			continue;
 		LABEL Icall:
 			val = getvalrand(vm, &i->op1);
