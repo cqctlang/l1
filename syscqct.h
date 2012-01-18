@@ -221,7 +221,7 @@ enum {
 	Attrpos=2,
 	Maxvms=1024,
 	Errinitdepth=128,	/* initial max error stack */
-	Maxstk = 4096,
+	Maxstk = 40960,
 	InsnAlloc = 10,
 	AllocBatch = 128,
 };
@@ -1406,6 +1406,7 @@ List*		mklistn(Imm sz);
 /* tab.c */
 void		fntab(Env *env);
 Tab*		mktab(void);
+Tab*		mktabq(void);
 Tab*		mktabqv(void);
 int		islink(Val v);
 void		l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv);
