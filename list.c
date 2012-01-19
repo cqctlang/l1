@@ -402,9 +402,12 @@ l1_listset(VM *vm, Imm argc, Val *argv, Val *rv)
 	lst = vallist(argv[0]);
 	m = listlen(lst);
 	idx = cvalu(cv);
-	if(idx >= m)
+	if(idx > m)
 		vmerr(vm, "listset out of bounds");
-	lst = listset(lst, idx, argv[2]);
+	if(idx == m)
+		lst = listins(vm, lst, idx, argv[2]);
+	else
+		lst = listset(lst, idx, argv[2]);
 	*rv = mkvallist(lst);
 }
 
