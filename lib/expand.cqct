@@ -1,3 +1,6 @@
+@include <control.cqct>
+@include <pp.cqct>
+
 @global debugexpand, validateexpand;
 
 symn = 0;
@@ -263,7 +266,7 @@ stxtab = mktab();
 				     stxref(e, 1),
 				     stxref(e, 2));
 			if(debugexpand)
-				pp(e);
+				ppstx(e);
 			return exp(e);
 		case 'elist:
 			p = e;

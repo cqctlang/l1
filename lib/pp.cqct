@@ -1,0 +1,365 @@
+/*
+  ppstx - abstract syntax pretty printer
+
+  ppstx(STX) pretty prints the syntax object STX.
+
+  two globals influence printing:
+
+    ppmargin - the line width (default 100 characters)
+
+    ppemit   - the function called to emit the output
+               ppemit is a function of one argument, a
+               string to be printed.  it defaults to a
+               function that prints to stdout.
+
+
+  the algorithm is based on the one described in:
+
+    Derek C. Oppen.  Prettyprinting.  TOPLAS 2(4), Oct
+    1980, pp. 465-483.
+
+  the front-end (rec) should be made programmable.
+
+  gross things happen when the line width is exceeded.
+
+*/   
+
+@global ppmargin;
+
+ppmargin = 100;
+ppemit = @lambda(x) { printf("%s", x); };
+
+@define ppstx(e)
+{
+	@local stream;
+	@local print, pr;
+	@local left, blank, right, linebreak;
+	@local margin;
+
+	@record B { n, offset };
+	@record L { offset, kind };
+	@record R { };
+
+	margin = ppmargin;
+	pr = ppemit;
+
+	stream = [];
+
+	@defloc queue(x)
+	{
+		append(stream, x);
+	}
+
+	@defloc indent(w)
+	{
+		@local s;
+		s = mkstr(w);
+		memset(s, ' ', w);
+		pr(s);
+	}
+
+	@defloc nl(w)
+	{
+		pr("\n");
+		indent(w);
+	}
+
+	@defloc mkprint()
+	{
+		@local stk;
+		@local space;
+
+		@record E { offset, kind };
+
+		space = margin;
+		stk = [];
+
+		@defloc out(x, l)
+		{
+			switch(x){
+			@match L(o, k):
+				push(stk, E(space-o, k));
+				break;
+			@match R():
+				pop(stk);
+				break;
+			@match B(n, o):
+				if(l > space){
+					space = stk[0].offset-o;
+					nl(margin-space);
+				}else{
+					space -= n;
+					indent(n);
+				}
+				break;
+			default:
+				/* string */
+				pr(x);
+				if(l > space){
+					/* this case deviates from the paper to
+					   force a line wrap ... maybe this is
+					   not a good idea */
+					if(isempty(stk))
+						space = margin;
+					else
+						space = stk[0].offset;
+					nl(margin-space);
+				}else
+					space -= l;
+				break;
+			}
+		}
+
+		return out;
+	}
+
+	@defloc isempty(s)
+	{
+		return length(s) == 0;
+	}
+
+	@defloc scan()
+	{
+		@local stk, l, r, rt;
+		@local buf, len;
+
+		stk = [];
+		buf = [];
+		len = [];
+
+		@defloc loop()
+		{
+			@local x, i;
+			if(isempty(stream))
+				return;
+			switch(x = pop(stream)){
+			@match L(o, k):
+				if(isempty(stk)){
+					l = r = 0;
+					rt = 1; /* ? */
+				}else
+					r++;
+				buf[r] = x;
+				len[r] = -rt;
+				push(stk, r);
+				break;
+			@match R():
+				r++;
+				buf[r] = x;
+				len[r] = 0;
+				i = pop(stk);
+				len[i] += rt;
+				if(isB(buf[i])){
+					i = pop(stk);
+					len[i] += rt;
+				}
+				if(isempty(stk))
+					while(l < r){
+						print(buf[l], len[l]);
+						l++;
+					}
+				break;
+			@match B(n, o):
+				r++;
+				i = stk[0];
+				if(isB(buf[i])){
+					i = pop(stk);
+					len[i] += rt;
+				}
+				buf[r] = x;
+				len[r] = -rt;
+				push(stk, r);
+				rt += n;
+				break;
+			default:
+				/* string */
+				if(isempty(stk)){
+					print(x, length(x));
+					break;
+				}
+				r++;
+				buf[r] = x;
+				len[r] = length(x);
+				rt += length(x);
+				break;			
+			}
+			loop();
+		}
+
+		loop();
+	}
+
+	left = L(0, 'inconsistent);
+	blank = B(1, 0);
+	right = R();
+
+//	@defloc leftn(n) { L(n, 'inconsistent); }
+	linebreak = B(margin+1, 0);
+
+	@defloc idlist(ids)
+	{
+		@local i, m;
+		m = Zlength(ids);
+		if(m == 0){
+			queue("#[ ]");
+			return;
+		}
+		queue(left);
+		queue("#[");
+		queue(blank);
+		for(i = 0; i < m-1; i++){
+			queue(sprintfa("%a,", stxid(Zcar(ids))));
+			queue(blank);
+			ids = Zcdr(ids);
+		}
+		queue(sprintfa("%a", stxid(Zcar(ids))));
+		queue(blank);
+		queue("]");
+		queue(right);
+	}
+
+	@defloc rec(e)
+	{
+
+		@local m, i, es, s;
+		switch(e){
+		@match #id(id):
+			queue(sprintfa("%a", id));
+			break;
+		@match #val:
+			/* FIXME: need to recurse into val, esp for stx */
+			queue(sprintfa("%a", e));
+			break;
+		@match #begin(body):
+			queue(left);
+			queue(sprintfa("#%a(", stxkind(e)));
+			queue(left);
+			m = Zlength(body);
+			i = 0;
+			foreach(@lambda(e){
+					if(i < m-1){
+						queue(left);
+						rec(e);
+						queue(",");
+						queue(right);
+						queue(linebreak);
+					}else{
+						queue(left);
+						rec(e);
+						queue(right);
+					}
+					i++;
+				}, body);
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		@match #block(es, body):
+			queue(left);
+			queue(sprintfa("#%a(", stxkind(e)));
+			queue(left);
+			queue(left);
+			idlist(es);
+			queue(",");
+			queue(right);
+			queue(blank);
+			queue(left);
+			m = Zlength(body);
+			i = 0;
+			foreach(@lambda(e){
+					if(i < m-1){
+						queue(left);
+						rec(e);
+						queue(",");
+						queue(right);
+						queue(linebreak);
+					}else{
+						queue(left);
+						rec(e);
+						queue(right);
+					}
+					i++;
+				}, body);
+			queue(right);
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		@match #lambda(es, body):
+			queue(left);
+			queue(sprintfa("#%a(", stxkind(e)));
+			queue(left);
+			queue(left);
+			idlist(es);
+			queue(",");
+			queue(right);
+			queue(blank);
+			queue(left);
+			rec(body);
+			queue(right);
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		@match #null:
+			queue("#[]");
+			break;
+		@match #elist:
+			es = e;
+			queue(left);
+			queue("#[");
+			m = Zlength(es);
+			for(i = 0; i < m; i++){
+				if(i < m-1){
+					queue(left);
+					rec(Zcar(es));
+					queue(",");
+					queue(right);
+					queue(blank);
+				}else{
+					queue(left);
+					rec(Zcar(es));
+					queue(right);
+				}
+				es = Zcdr(es);
+			}
+			queue("]");
+			queue(right);
+			break;
+		default:
+			for(m = 0; m < 4; m++)
+				if(e[m] == nil)
+					break;
+			if(m == 0){
+				queue(sprintfa("#%a", stxkind(e)));
+				break;
+			}
+			s = sprintfa("#%a(", stxkind(e));
+			queue(left);
+			queue(s);
+			queue(left);
+			for(i = 0; i < m; i++){
+				if(i < m-1){
+					queue(left);
+					rec(e[i]);
+					queue(",");
+					queue(right);
+					queue(blank);
+				}else{
+					queue(left);
+					rec(e[i]);
+					queue(right);
+				}
+			}
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		}
+	}
+
+	print = mkprint();
+	rec(e);
+	scan();
+	pr("\n");
+}
