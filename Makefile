@@ -112,6 +112,10 @@ l1: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 
+l1s: l1.o main.o
+	@echo + ld $@
+	$(V)$(CC) -static $(CFLAGS) -o $@ $^ $(L1LIBS)
+
 l1.o: $(L1O) $(L1DEPS)
 	@echo + ld $@
 	$(V)$(LD) $(LDFLAGS) -o $@ $^
