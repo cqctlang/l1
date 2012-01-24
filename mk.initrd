@@ -1,0 +1,16 @@
+-include mk.unix
+
+.DEFAULT_GOAL := initrd.img
+
+initrd.build:
+	mkdir -p initrd.build
+	mkdir -p initrd.build/cqct
+	mkdir -p initrd.build/cqct/lib
+
+initrd.img: l1s lib initrd.build demo/initrd.cqct
+	cp l1s initrd.build/cqct/
+	cp -r lib initrd.build/cqct/
+	cp demo/initrd.cqct initrd.build/init
+	chmod +xxx initrd.build/init
+	
+	cd initrd.build && find . | cpio --quiet -o -H newc | gzip -9 > ../$@
