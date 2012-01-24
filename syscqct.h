@@ -811,7 +811,6 @@ struct Insn {
 		Insn *targ;
 		Ctl *dstlabel;
 		u64 cnt;
-		Code *code;
 	};
 };
 
