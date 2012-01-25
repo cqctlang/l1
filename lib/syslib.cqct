@@ -129,3 +129,13 @@ close = @lambda(fd) {
 };
 
 unlink = sys_unlink;
+
+/* LINUX_REBOOT_CMD_RESTART RB_AUTOBOOT 0x1234567 */
+/* LINUX_REBOOT_CMD_HALT RB_HALT_SYSTEM 0xcdef0123 */
+/* LINUX_REBOOT_CMD_POWER_OFF 0x4321fedc */
+/* LINUX_REBOOT_CMD_RESTART2 0xa1b2c3d4 */
+/* LINUX_REBOOT_CMD_CAD_ON RB_ENABLE_CAD 0x89abcdef */
+/* LINUX_REBOOT_CMD_CAD_OFF RB_DISABLE_CAD, 0 */
+reboot = @lambda(cmd) {
+  return sys_reboot(0xfee1dead,672274793,cmd,0);
+};
