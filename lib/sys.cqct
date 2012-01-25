@@ -395,3 +395,11 @@ sys_sleep = @lambda(secs) {
   }
 
 };
+
+sys_reboot = @lambda(magic, magic2, cmd, arg) {
+  @local r;
+
+  r=syscall(linuxns`reboot, magic, magic2, cmd, arg);
+
+  return r;
+};
