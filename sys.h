@@ -30,8 +30,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <sched.h>
-#include <pthread.h>
 #include <signal.h>
+#include <time.h>
 
 //#include <valgrind/memcheck.h>
 
