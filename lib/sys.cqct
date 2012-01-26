@@ -403,3 +403,34 @@ sys_reboot = @lambda(magic, magic2, cmd, arg) {
 
   return r;
 };
+
+
+sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
+  @local m,r;
+
+  m=(unsigned char *)malloc(cpusetsize);    
+  memset(m,0,cpusetsize);
+
+  r=syscall(linuxns`sched_getaffinity,pid,cpusetsize,m);
+
+  return r;
+
+};
+
+sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
+  @local m,r;
+
+  m=(unsigned char *)malloc(cpusetsize);    
+
+  if(isstring(mask) && length(mask) <= cpusetsize) {
+    putbytes(m,mask);
+  } else {
+    printf("BAD MASK!\n");
+  }
+
+  r=syscall(linuxns`sched_setaffinity,pid,cpusetsize,m);
+
+  return r;
+
+};
+
