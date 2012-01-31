@@ -420,17 +420,50 @@ sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
 sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
   @local m,r;
 
-  m=(unsigned char *)malloc(cpusetsize);    
-
   if(isstring(mask) && length(mask) <= cpusetsize) {
+    m=(unsigned char *)malloc(cpusetsize);    
     putbytes(m,mask);
   } else {
-    printf("BAD MASK!\n");
+    error("BAD MASK!\n");
   }
 
   r=syscall(linuxns`sched_setaffinity,pid,cpusetsize,m);
 
   return r;
 
+};
+
+// MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE or MPOL_PREFERRED. All modes except MPOL_DEFAULT
+
+sys_getmempolicy = @lambda(mode, nodemask, maxnode,addr,flags) {
+  @local m,r;
+
+  if(isstring(nodemask)) {
+    m=(unsigned char *)malloc(length(nodemask));
+    putbytes(m,nodemask);
+  } else {
+    error("nodemask should be a string");
+  }
+
+  r=syscall(linuxns`get_mempolicy,mode, m, maxnode, addr, flags);
+
+  return r;
+
+};
+
+
+sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
+  @local m,r;
+
+  if(isstring(nodemask)) {
+    m=(unsigned char *)malloc(length(nodemask));
+    putbytes(m,nodemask);
+  } else {
+    error("nodemask should be a string");
+  }
+
+  r=syscall(linuxns`get_setpolicy,mode, m, maxnode);
+
+  return r;
 };
 
