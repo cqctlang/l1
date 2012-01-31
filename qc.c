@@ -45,8 +45,20 @@ printT(char *id, Imm t)
 	xprintf("%-40s\t%16" PRIu64 " usec\n", id, t);
 }
 
+static void
+pp(VM *vm, Expr *e)
+{
+	Val argv[1], rv, v;
+	v = cqctenvlook(vm->top, "ppstx");	
+	if(v && Vkind(v) == Qcl){
+		argv[0] = mkvalexpr(e);
+		cqctcallfn(vm, v, 1, argv, &rv);
+	}else
+		printcqct(e);
+}
+
 static Expr*
-dopasses(Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
+dopasses(VM *vm, Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 {
 	U ctx;
 	Pass *p;
@@ -188,7 +200,7 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 	e = doexpand(vm, e);
 	if(e == 0)
 		return 0;
-	e = dopasses(e, top, argsid, all, NPASS(all));
+	e = dopasses(vm, e, top, argsid, all, NPASS(all));
 	if(e == 0)
 		return 0;
 	if(cqctflags['O']){
@@ -204,7 +216,7 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 		tv[0] = usec();
 	if(cqctflags['q']){
 		xprintf("*** input to code generator ***\n");
-		printcqct(e);
+		pp(vm, e);
 		xprintf("\n");
 	}
 	cl = codegen(e);
