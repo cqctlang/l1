@@ -518,6 +518,7 @@ coalesce(U *ctx, Expr* e, Expr* q)
                         case Ecase:
                         case Ematch:
                         case Edefault:
+				sete2(p->e1, coalesce(ctx, p->e1->e2, 0));
                                 /* start coalescing */
                                 if(!q){
                                         p = coalesce(ctx, p->e2, p);
