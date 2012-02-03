@@ -10,8 +10,8 @@ C=\
 	u16.c\
 	u32.c\
 	u64.c\
-	lrand.c\
-	nrand.c\
+	#lrand.c\
+	#nrand.c\
 
 O = $(C:.c=.o)
 
