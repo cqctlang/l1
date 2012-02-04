@@ -344,11 +344,10 @@ tabpop(Tab *t, Val *rv)
 			break;
 	}
 	lnk = (Pair*)x;
-	vecset(t->ht, i, linknext(lnk));
-	t->nent--;
 	v = mkvec(2);
 	_vecset(v, 0, linkkey(lnk));
 	_vecset(v, 1, linkval(lnk));
+	tabdel(t, linkkey(lnk));
 	*rv = mkvalvec(v);
 }
 
