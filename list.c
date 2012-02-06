@@ -330,17 +330,20 @@ l1_mklist(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	Val v;
 
-	if(argc != 1 && argc != 2)
+	if(argc > 2)
 		vmerr(vm, "wrong number of arguments to mklist");
-	checkarg(vm, argv, 0, Qcval);
-	cv = valcval(argv[0]);
+	if(argc > 0){
+		checkarg(vm, argv, 0, Qcval);
+		cv = valcval(argv[0]);
+		if(!isnatcval(cv))
+			vmerr(vm, "operand 1 to mklist must be "
+			      "a non-negative integer");
+	}else
+		cv = cval0;
 	if(argc == 2)
 		v = argv[1];
 	else
 		v = Xnil;
-	if(!isnatcval(cv))
-		vmerr(vm, "operand 1 to mklist must be "
-		      "a non-negative integer");
 	*rv = mkvallist(mklistinit(cvalu(cv), v));
 }
 

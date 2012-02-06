@@ -1,0 +1,9 @@
+t = mktab(mklist);
+append(t[0], 'hi);
+printf("%a\n", t[0]);
+printf("%a\n", t[1]);
+
+t = mktab([]);
+append(t[0], 'hi);
+printf("%a\n", t[0]);
+printf("%a\n", t[1]);

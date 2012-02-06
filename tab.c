@@ -438,8 +438,16 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 	vp = tabget(t, argv[1]);
 	if(vp)
 		*rv = vp;
-	else
-		*rv = t->def;
+	else if(t->def == Xnil)
+		*rv = Xnil;
+	else{
+		if(Vkind(t->def) == Qcl)
+			vp = safedovm(vm, valcl(t->def), 0, 0);
+		else
+			vp = t->def;
+		tabput(t, argv[1], vp);
+		*rv = vp;
+	}
 }
 
 void
