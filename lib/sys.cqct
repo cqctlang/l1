@@ -467,6 +467,17 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
   return r;
 };
 
+/*
+filename: a string filename for the executable to run
+argv: a list of the string arguments (not including the filename)
+envp: a list of environment assignment strings
+see man execve
+
+example usage:
+execve("/bin/echo",["hello","world"],[]);
+is the same as running:
+$ /bin/echo hello world
+*/
 @define execve(filename,argv,envp) {
   @local f,a,e;
 
