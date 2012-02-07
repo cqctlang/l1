@@ -467,3 +467,35 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
   return r;
 };
 
+@define execve(filename,argv,envp) {
+  @local f,a,e;
+
+  //filename
+  f=malloc(length(filename)+1);
+  putbytes(f,filename);
+  f[length(filename)]=0;
+
+  //argv[0] is the filename
+  push(argv,filename);
+
+  [a,e] = map(@lambda(ary) {
+    @local ret,i,len,strs;
+    len = sizeof(char*) * (length(ary)+1);
+    foreach(@lambda(v) { len += length(v)+1; },ary);
+    ret=(char**)malloc(len);
+    strs = (char*)&ret[length(ary)+1];
+    for(i=0; i<length(ary); ++i) {
+      ret[i] = strs;
+      putbytes(strs,ary[i]);
+      strs+=length(ary[i]);
+      *strs = 0;
+      strs += 1;
+    }
+    ret[i] = 0; //final null pointer (i == length(ary))
+    return ret;
+  }, [argv,envp]);
+
+  return syscall(linuxns`execve,f,a,e);
+};
+
+
