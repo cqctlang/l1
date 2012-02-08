@@ -1,6 +1,6 @@
 
 @include <sys.cqct>
 
-error = execve("/bin/echo",["hello","world"],[]);
+error = sys_execve("/bin/echo",["hello","world"],[]);
 printf("no no no no no %d\n",error); //shouldn't make it here.
 exit(1);

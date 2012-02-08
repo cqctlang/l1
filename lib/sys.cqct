@@ -478,7 +478,7 @@ execve("/bin/echo",["hello","world"],[]);
 is the same as running:
 $ /bin/echo hello world
 */
-@define execve(filename,argv,envp) {
+@define sys_execve(filename,argv,envp) {
   @local f,a,e;
 
   //filename
@@ -487,7 +487,8 @@ $ /bin/echo hello world
   f[length(filename)]=0;
 
   //argv[0] is the filename
-  push(argv,filename);
+  //concat doesn't change original argv list
+  argv = concat([filename],argv);
 
   [a,e] = map(@lambda(ary) {
     @local ret,i,len,strs;
