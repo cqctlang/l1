@@ -162,6 +162,8 @@ l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!isnatcval(len))
 		vmerr(vm, "malloc expects a non-negative length");
 	p = malloc(cvalu(len));
+	if(p)
+		memset(p, 0, cvalu(len));
 
 	/* FIXME: might be nice for ns to have cached void* */
 	*rv = mkvalcval(litdom,

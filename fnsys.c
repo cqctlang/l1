@@ -120,43 +120,6 @@ l1_gettimeofday(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_randseed(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-	Val arg0;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to randseed");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qcval)
-		vmerr(vm, "operand 1 to randseed must be an integer");
-
-	cv = valcval(arg0);
-	xsrand((long)cvalu(cv));
-}
-
-static void
-l1_rand(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Cval *cv;
-	Val arg0;
-	Imm r;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to rand");
-	arg0 = argv[0];
-	if(Vkind(arg0) != Qcval)
-		vmerr(vm, "operand 1 to randseed must be an integer");
-
-	cv = valcval(arg0);
-	if(cvalu(cv) == 0)
-		vmerr(vm, "operand to rand must be positive");
-
-	r = nrand((int)cvalu(cv));
-	*rv = mkvallitcval(Vulong, r);
-}
-
-static void
 l1_news(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	static char newspath[] = "../doc/news";
@@ -422,8 +385,6 @@ fnsys(Env *env)
 	FN(getpid);
 	FN(gettimeofday);
 	FN(news);
-	FN(rand);
-	FN(randseed);
 	FN(setenv);
 	FN(syscall);
 	FN(uname);

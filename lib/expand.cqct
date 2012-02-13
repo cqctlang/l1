@@ -1,4 +1,7 @@
-@global debugexpand;
+@include <control.cqct>
+@include <pp.cqct>
+
+@global debugexpand, validateexpand;
 
 symn = 0;
 @define gensym()
@@ -179,6 +182,7 @@ stxtab = mktab();
 
 	@defloc quasi(e)
 	{
+		@local p, se;
 		if(e == nil)
 			return e;
 		switch(stxkind(e)){
@@ -197,11 +201,31 @@ stxtab = mktab();
 				     Zlist(mkstxval(stxval(e))),
 				     stxsrc(e));
 		case 'elist:
-			if(stxkind(e[0]) == 'stxsplice)
-				return #call(#id('stxsplice),
-					     Zlist(unquasi(e[0][0]),
-						   quasi(e[1])));
-			/* fall through */
+			p = Zreverse(e);
+			se = Znull();
+			se = Zcons(#g(#id(mkcid("$t")),
+				      #call(#id('mkstx), Zlist(mkstxval('null)))),
+				   se);
+			while(stxkind(p) == 'elist){
+				if(stxkind(p[0]) == 'stxsplice)
+					se = Zcons(#g(#id(mkcid("$t")),
+						      #call(#id('stxsplice),
+							    Zlist(unquasi(p[0][0]),
+								  #id(mkcid("$t"))))),
+						   se);
+				else
+
+					se = Zcons(#g(#id(mkcid("$t")),
+						      #call(#id('mkstx),
+							    Zlist(mkstxval('elist),
+								  quasi(Zcar(p)),
+								  #id(mkcid("$t"))))),
+						   se);
+				p = Zcdr(p);
+			}
+			se = Zcons(#id(mkcid("$t")), se);
+			se = Zreverse(se);
+			return #block(#[ #id(mkcid("$t")) ], se);
 		default:
 			
 			return #call(#id('mkstx),
@@ -242,7 +266,7 @@ stxtab = mktab();
 				     stxref(e, 1),
 				     stxref(e, 2));
 			if(debugexpand)
-				pp(e);
+				ppstx(e);
 			return exp(e);
 		case 'elist:
 			p = e;
@@ -261,5 +285,9 @@ stxtab = mktab();
 				     stxsrc(e));
 		}
 	}
-	return exp(e);
+
+	e = exp(e);
+	if(validateexpand)
+		validateexpand(e);
+	return e;
 }

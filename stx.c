@@ -250,7 +250,8 @@ l1_stxsrc(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to stxsrc");
 	checkarg(vm, argv, 0, Qexpr);
 	e = valexpr(argv[0]);
-	*rv = mkvalvec(e->src);
+	if(e->src)
+		*rv = mkvalvec(e->src);
 }
 
 void

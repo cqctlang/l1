@@ -53,11 +53,18 @@
 	fmtsctlmsg,
 
 	/* errors */
-	Enone
+	Enone,
+
+	sctldefined
 	;
 
-{
+if(sctldefined == nil){
 @local verbose, nexttag;
+@local EINTR, ECONNRESET;
+
+sctldefined = 1;
+EINTR = 4; /* FIXME! */
+ECONNRESET = 104; /* FIXME! */
 
 verbose = 0;
 Enone = "no such thing";
@@ -1479,13 +1486,20 @@ sctl = @names clp64le {
 		error("sctl sendmsg: %s", e[1]);
 }
 
+
+
 @define recvmsg(fd)
 {
 	@local s, sz, p, msg, dat, e;
+again:
 	s = read(fd, sizeof(litdom`uint64));
 	if(s == nil){
 		e = errno();
-		if(e[0])
+		if(e[0] == EINTR)
+			goto again;
+		else if(e[0] == ECONNRESET)
+			return [nil, 'closed];
+		else if(e[0])
 			error("sctl recvmsg: %d %s", getpid(), e[1]);
 		return [nil, 'closed];
 	}

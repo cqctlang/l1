@@ -1,0 +1,33 @@
+#!/cqct/l1s
+!#
+
+@include <sys.cqct>
+@include <syslib.cqct>
+
+init_main = @lambda(args ...) {
+  @local sleep_count;
+
+  sleep_count=3;
+
+  printf("******************************************\n");
+  printf("* Cinquecento initrd starting...         *\n");
+  printf("******************************************\n");
+  printf("\n\n\n\n\n\n\n\n");
+
+  while(sleep_count--) {
+    printf("Sleeping...\n");
+    sys_sleep(10);
+  }
+  printf("Rebooting...\n");
+  reboot(0x4321fedc); /* halt, power off */
+
+};
+
+/* for some reason, arguments to interpreter files
+ * don't seem to be passed correctly to us when
+ * run as /init in an initrd. That's why we
+ * call explicitly here rather than as '-e init_main'
+ * above.
+ */
+
+init_main();

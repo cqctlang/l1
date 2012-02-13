@@ -154,7 +154,7 @@ mkode(char *id)
 	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
 	code->src = emalloc(code->maxinsn*sizeof(Src));
 	code->ninsn = 0;
-	code->konst = mktabqv();
+	code->konst = mktabq();
 	code->lm = emalloc(128*sizeof(u64));
 	code->nlm = 0;
 	code->mlm = 128;
@@ -467,6 +467,7 @@ setreloc(Code *c)
 		case Ivargc:
 		case Isubsp:
 		case Iframe:
+		case Icode:
 			break;
 		case Ikg:
 		case Ilist:
@@ -479,9 +480,6 @@ setreloc(Code *c)
 		case Iclo:
 			setrelocrand(c, &i->op1);
 			setrelocrand(c, &i->dst);
-			break;
-		case Icode:
-			setrelocobj(c, &i->code);
 			break;
 		case Ipush:
 		case Icall:
@@ -535,7 +533,7 @@ setinsn(Code *c)
 			i->targ = codeinsn(c)+i->dstlabel->insn;
 			break;
 		case Icode:
-			i->code = c;
+			i->cnt = (void*)i-(void*)c;
 			break;
 		default:
 			break;
@@ -586,7 +584,7 @@ printinsn(Insn *i)
 		xprintf("apply");
 		break;
 	case Icode:
-		xprintf("-code-  0x%p", i->code);
+		xprintf("-code-  0x%p", (void*)i-i->cnt);
 		break;
 	case Ifsize:
 		xprintf("-fsize- 0x%x", i->cnt);
@@ -1160,7 +1158,7 @@ femit(Frame *f, Ode *c, Src s, u32 narg)
 			bug();
 		i = nextinsn(c, s);
 		i->kind = Icode;
-		i->code = 0;
+		i->cnt = 0;
 		i = nextinsn(c, s);
 		i->kind = Ifsize;
 		i->cnt = fsz;
@@ -1177,7 +1175,7 @@ femit(Frame *f, Ode *c, Src s, u32 narg)
 	i->cnt = (1ULL<<(mwbits-1))|c->nlm;
 	i = nextinsn(c, s);
 	i->kind = Icode;
-	i->code = 0;
+	i->cnt = 0;
 	i = nextinsn(c, s);
 	i->kind = Ifsize;
 	i->cnt = fsz;
@@ -1682,7 +1680,7 @@ haltthunk(void)
 	i->cnt = 0;
 	i = nextinsn(ode, 0);
 	i->kind = Icode;
-	i->code = 0;
+	i->cnt = 0;
 	i = nextinsn(ode, 0);
 	i->kind = Ifsize;
 	i->cnt = 0;
@@ -1761,7 +1759,7 @@ callccode(char *id)
 	i->cnt = 0;
 	i = nextinsn(ode, 0);
 	i->kind = Icode;
-	i->code = 0;
+	i->cnt = 0;
 	i = nextinsn(ode, 0);
 	i->kind = Ifsize;
 	i->cnt = 0;

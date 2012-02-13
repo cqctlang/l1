@@ -1,0 +1,14 @@
+// with nil expander (cpk), #nil in @match requires special treatment
+@define foo(e)
+{
+	switch(e)
+	{
+	@match #block(ids, es):
+		break;
+	@match #nil:
+		break;
+	}
+}
+
+foo(#block(nil, nil));
+foo(#nil);

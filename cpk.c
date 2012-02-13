@@ -31,6 +31,10 @@ xnil(U *ctx, Expr *e)
 	if(e == 0)
 		return 0;
 	switch(e->kind){
+	case Estx:
+		/* FIXME: this is only for @match stx patterns */
+		sete2(e, xnil(ctx, e->e2));
+		return e;
 	case Eid:
 		id = idsym(e);
 		if(!strcmp(id, "nil"))

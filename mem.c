@@ -1719,7 +1719,9 @@ copykstack(Val *stack, Imm len, Imm fp)
 	while(1){
 		narg = stkimm(stack[fp]);
 		clx = fp+narg+2;
+		cl = valcl(stack[clx]);
 		copy(&stack[clx]);
+		cl = valcl(stack[clx]);
 		for(i = 0; i < narg; i++)
 			copy(&stack[fp+1+i]);
 		pcp = fp+narg+1;
@@ -1734,7 +1736,7 @@ copykstack(Val *stack, Imm len, Imm fp)
 		fsz = pc-1;
 		fm = pc-3;
 		if(fsz->kind != Ifsize || fm->kind != Ifmask)
-			fatal("no live mask for pc %d cl %p", pc, cl);
+			fatal("no live mask for pc %p cl %p", pc, cl);
 		sz = fsz->cnt;
 		mask = fm->cnt;
 		m = fp-1;
@@ -1761,7 +1763,7 @@ copykstack(Val *stack, Imm len, Imm fp)
 		ci = pc-2;
 		if(ci->kind != Icode)
 			fatal("no code for pc %d cl %p", pc, cl);
-		cp = ci->code;
+		cp = (void*)ci-ci->cnt;
 		coff = (uptr)pc-(uptr)cp;
 		copy((Val*)&cp);
 		pc = (Insn*)((uptr)cp+coff);
@@ -1789,6 +1791,18 @@ copystack(VM *vm)
 	fp = vm->fp;
 	if(fp == 0)
 		return;
+
+	/* copy current pc and code if we appear to be in a call
+	   (e.g., via gc() or compact() rather than gcpoll */
+	pc = vm->pc;
+	ci = pc-2;
+	if(ci->kind == Icode){
+		cp = (void*)ci-ci->cnt;
+		coff = (uptr)pc-(uptr)cp;
+		copy((Val*)&cp);
+		pc = (Insn*)((uptr)cp+coff);
+		vm->pc = pc;
+	}
 
 	while(1){
 		narg = stkimm(vm->stack[fp]);
@@ -1838,7 +1852,7 @@ copystack(VM *vm)
 		ci = pc-2;
 		if(ci->kind != Icode)
 			fatal("no code for pc %d cl %p", pc, cl);
-		cp = ci->code;
+		cp = (void*)ci-ci->cnt;
 		coff = (uptr)pc-(uptr)cp;
 		copy((Val*)&cp);
 		pc = (Insn*)((uptr)cp+coff);

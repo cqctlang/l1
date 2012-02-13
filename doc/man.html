@@ -7635,7 +7635,7 @@ The values are stored in argument order.
 <div class="docitem" id="fn:mklist">
 <div class="proto">
 <div class="function">
-<span class="id">mklist(<span class="arg">len</span>[,<span class="arg">val</span>])</span>
+<span class="id">mklist([<span class="arg">len</span>[,<span class="arg">val</span>]])</span>
 </div>
 <div class="param">
 <span class="arg">len</span>: <span class="type">cvalue</span>
@@ -7648,7 +7648,8 @@ The values are stored in argument order.
 </div>
 </div>
 <div class="desc">
-Constructs a new list of size <span class="arg">len</span>.
+Constructs a new list of size <span class="arg">len</span>, if provided,
+or otherwise zero.
 Each element is initialized to <span class="arg">val</span>, if provided,
 otherwise to <span class="val">nil</span>.
 </div>
@@ -8053,10 +8054,24 @@ class="type">nil</span>.  The predicate
 a table.
 </p>
 
+<p>
+Every table has a default value.  The default value is
+set by the table constructors
+<a href="#fn:mktab"><span class="id">mktab</span></a>,
+<a href="#fn:mktabqv"><span class="id">mktabqv</span></a>,
+and <a href="#fn:mktabq"><span class="id">mktabq</span></a>,
+and determines the result of calls
+to <a href="#fn:tablook"><span class="id">tablook</span></a>
+on undefined keys.
+</p>
+
 <div class="docitem" id="fn:mktab">
 <div class="proto">
 <div class="function">
-<span class="id">mktab()</span>
+<span class="id">mktab([<span class="arg">def</span>])</span>
+</div>
+<div class="param">
+<span class="arg">def</span>: <span class="type">value</span>
 </div>
 <div class="returns">
 <span class="type">table</span>
@@ -8066,13 +8081,19 @@ a table.
 Creates and returns a new, empty table in which
 key equivalence is determined by  
 <a href="#fn:equal"><span class="id">equal</span></a>.
+The default value of the table
+is <span class="arg">def</span>, if provided, 
+and otherwise <span class="val">nil</span>.
 </div>
 </div>
 
 <div class="docitem" id="fn:mktabqv">
 <div class="proto">
 <div class="function">
-<span class="id">mktabqv()</span>
+<span class="id">mktabqv([<span class="arg">def</span>])</span>
+</div>
+<div class="param">
+<span class="arg">def</span>: <span class="type">value</span>
 </div>
 <div class="returns">
 <span class="type">table</span>
@@ -8082,13 +8103,19 @@ key equivalence is determined by
 Creates and returns a new, empty table in which
 key equivalence is determined by  
 <a href="#fn:eqv"><span class="id">eqv</span></a>.
+The default value of the table
+is <span class="arg">def</span>, if provided, 
+and otherwise <span class="val">nil</span>.
 </div>
 </div>
 
 <div class="docitem" id="fn:mktabq">
 <div class="proto">
 <div class="function">
-<span class="id">mktabq()</span>
+<span class="id">mktabq([<span class="arg">def</span>])</span>
+</div>
+<div class="param">
+<span class="arg">def</span>: <span class="type">value</span>
 </div>
 <div class="returns">
 <span class="type">table</span>
@@ -8098,6 +8125,9 @@ key equivalence is determined by
 Creates and returns a new, empty table in which
 key equivalence is determined by  
 <a href="#fn:eq"><span class="id">eq</span></a>.
+The default value of the table
+is <span class="arg">def</span>, if provided, 
+and otherwise <span class="val">nil</span>.
 </div>
 </div>
 
@@ -8167,10 +8197,41 @@ the same <span class="arg">key</span> is removed.
 </div>
 </div>
 <div class="desc">
+<p>
 Searches <span class="arg">tab</span> for a pair whose
 key is <span class="arg">key</span> and returns the
-associated value.  Returns <span class="val">nil</span>
-if <span class="arg">tab</span> has no such pair.
+associated value.
+</p>
+
+<p>
+If <span class="arg">tab</span> has no such pair,
+then the effect and return value of <span class="id">tablook</span>
+is determined by the default value of the table in
+the following way.
+</p>
+
+<p>
+If the default value is not <span class="val">nil</span>
+and not a function, then a new pair is inserted
+into the table whose key is <span class="arg">key</span>
+and whose value is the default value, and the
+default value is returned.
+</p>
+
+<p>
+If the default value is a function,
+then a new pair is inserted
+into the table whose key is <span class="arg">key</span>
+and whose value is the result of calling the function on zero arguments,
+and this result is returned.
+</p>
+
+<p>
+Otherwise (the default value
+is <span class="val">nil</span>), no modification to
+the table is performed and <span class="val">nil</span>
+is returned.
+</p>
 
 </div>
 </div>
@@ -10361,6 +10422,8 @@ implementation-defined maximum random number.
 </div>
 <div class="desc">
 Seeds the random number generator used by <span class="id">rand</span>.
+The seed value <span class="val">1</span> restores the
+random number generator to its initial state.
 </div>
 </div>
 

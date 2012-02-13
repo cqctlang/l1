@@ -150,6 +150,10 @@ enum{
 	/* open-coded primitives */
 	E_tid,
 	E_tg,
+
+	/* compiler attributes */
+	E_attr,
+
 	Emax,
 	Euser,
 } Kind;
@@ -807,7 +811,6 @@ struct Insn {
 		Insn *targ;
 		Ctl *dstlabel;
 		u64 cnt;
-		Code *code;
 	};
 };
 
@@ -949,6 +952,7 @@ Expr*		flatten(Expr *e);
 void		initparse(void);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);
+Expr*		mkexpr();
 Expr*		newbinop(unsigned, Expr*, Expr*);
 Expr*		newbinopsrc(Ysrc*, unsigned, Expr*, Expr*);
 Expr*		newexpr(unsigned, Expr*, Expr*, Expr*, Expr*);
@@ -990,8 +994,14 @@ Expr*		docompilen(U *ctx, Expr *e);
 /* compilem.c */
 Expr*		docompilem(U *ctx, Expr *e);
 
+/* compilew.c */
+Expr*		docompilew(U *ctx, Expr *e);
+
 /* compilea.c */
 Expr*		docompilea(U *ctx, Expr *e);
+
+/* compilec.c */
+Expr*		docompilec(U *ctx, Expr *e);
 
 /* compile0.c */
 Expr*		docompile0(U *ctx, Expr *e);
@@ -1395,6 +1405,7 @@ List*		mklistn(Imm sz);
 /* tab.c */
 void		fntab(Env *env);
 Tab*		mktab(void);
+Tab*		mktabq(void);
 Tab*		mktabqv(void);
 int		islink(Val v);
 void		l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv);

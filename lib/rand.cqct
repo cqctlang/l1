@@ -1,0 +1,118 @@
+
+/*
+ *	algorithm by
+ *	D. P. Mitchell & J. A. Reeds
+ */
+
+@global randseed,rand;
+
+{
+
+@local isrand,lrand,nrand;
+@local LEN,TAP,MASK,A,M,Q,R;
+@local rng_vec,rng_tap,rng_feed;
+
+LEN = 	607;
+TAP =	273;
+MASK =	0x7fffffff;
+A =	48271;
+M =	2147483647;
+Q =	44488;
+R =	3399;
+
+// this implementation underflows a pointer comparison when rng_vec is 0
+rng_vec = (unsigned long *){mkzas((LEN + 1) * sizeof(unsigned long))}sizeof(unsigned long);
+
+rng_tap = rng_vec;
+rng_feed = (unsigned long *)0;
+
+
+isrand = @lambda (seed)
+{
+	@local lo, hi, x; /* long */
+	@local i; /* int */
+
+	seed=(long)seed;
+
+	rng_tap = rng_vec;
+	rng_feed = rng_vec+LEN-TAP;
+	seed = seed%M;
+	if(seed < 0)
+		seed += M;
+	if(seed == 0)
+		seed = 89482311;
+	x = seed;
+	/*
+	 *	Initialize by x[n+1] = 48271 * x[n] mod (2**31 - 1)
+	 */
+	for(i = -20; i < LEN; i++) {
+		hi = (long) ( x / Q );
+		lo = (long) ( x % Q );
+		x = (long) ( A*lo - R*hi );
+		if(x < 0)
+			x += M;
+		if(i >= 0)
+			rng_vec[i] = x;
+	}
+};
+
+lrand = @lambda()
+{
+	@local x; /* ulong */
+
+	rng_tap--;
+	if(rng_tap < rng_vec) {
+		if(rng_feed == 0) {
+			isrand(1);
+			rng_tap--;
+		}
+		rng_tap += LEN;
+	}
+
+	rng_feed--;
+	if(rng_feed < rng_vec)
+		rng_feed += LEN;
+
+	x = (unsigned long) (*rng_feed + *rng_tap) & MASK;
+	*rng_feed = x;
+
+	return x;
+};
+
+
+nrand = @lambda (n)
+{
+	@local slop, v; /* long */
+
+	n=(int)n;
+        if(n < 0)
+                return n;
+        slop = (long) (MASK % n);
+        do {
+                v = (long) lrand();
+        } while(v <= slop) ;
+        return (int)(v % n);
+};
+
+@define randseed(x) {
+
+  if(!iscvalue(x)) {
+    error("argument 1 must be an integer");
+  }
+
+  return isrand(x);
+}
+
+@define rand(n) {
+
+  if(!iscvalue(n))
+    error("argument 1 must be an integer");
+  
+  if(n<1)
+    error("argument 1 must be a positive integer");
+
+  return nrand(n);
+}
+
+}
+

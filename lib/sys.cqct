@@ -395,3 +395,118 @@ sys_sleep = @lambda(secs) {
   }
 
 };
+
+sys_reboot = @lambda(magic, magic2, cmd, arg) {
+  @local r;
+
+  r=syscall(linuxns`reboot, magic, magic2, cmd, arg);
+
+  return r;
+};
+
+
+sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
+  @local m,r;
+
+  m=(unsigned char *)malloc(cpusetsize);    
+  memset(m,0,cpusetsize);
+
+  r=syscall(linuxns`sched_getaffinity,pid,cpusetsize,m);
+
+  return r;
+
+};
+
+sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
+  @local m,r;
+
+  if(isstring(mask) && length(mask) <= cpusetsize) {
+    m=(unsigned char *)malloc(cpusetsize);    
+    putbytes(m,mask);
+  } else {
+    error("BAD MASK!\n");
+  }
+
+  r=syscall(linuxns`sched_setaffinity,pid,cpusetsize,m);
+
+  return r;
+
+};
+
+// MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE or MPOL_PREFERRED. All modes except MPOL_DEFAULT
+
+sys_getmempolicy = @lambda(mode, nodemask, maxnode,addr,flags) {
+  @local m,r;
+
+  if(isstring(nodemask)) {
+    m=(unsigned char *)malloc(length(nodemask));
+    putbytes(m,nodemask);
+  } else {
+    error("nodemask should be a string");
+  }
+
+  r=syscall(linuxns`get_mempolicy,mode, m, maxnode, addr, flags);
+
+  return r;
+
+};
+
+
+sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
+  @local m,r;
+
+  if(isstring(nodemask)) {
+    m=(unsigned char *)malloc(length(nodemask));
+    putbytes(m,nodemask);
+  } else {
+    error("nodemask should be a string");
+  }
+
+  r=syscall(linuxns`get_setpolicy,mode, m, maxnode);
+
+  return r;
+};
+
+/*
+filename: a string filename for the executable to run
+argv: a list of the string arguments (not including the filename)
+envp: a list of environment assignment strings
+see man execve
+
+example usage:
+execve("/bin/echo",["hello","world"],[]);
+is the same as running:
+$ /bin/echo hello world
+*/
+@define execve(filename,argv,envp) {
+  @local f,a,e;
+
+  //filename
+  f=malloc(length(filename)+1);
+  putbytes(f,filename);
+  f[length(filename)]=0;
+
+  //argv[0] is the filename
+  push(argv,filename);
+
+  [a,e] = map(@lambda(ary) {
+    @local ret,i,len,strs;
+    len = sizeof(char*) * (length(ary)+1);
+    foreach(@lambda(v) { len += length(v)+1; },ary);
+    ret=(char**)malloc(len);
+    strs = (char*)&ret[length(ary)+1];
+    for(i=0; i<length(ary); ++i) {
+      ret[i] = strs;
+      putbytes(strs,ary[i]);
+      strs+=length(ary[i]);
+      *strs = 0;
+      strs += 1;
+    }
+    ret[i] = 0; //final null pointer (i == length(ary))
+    return ret;
+  }, [argv,envp]);
+
+  return syscall(linuxns`execve,f,a,e);
+};
+
+
