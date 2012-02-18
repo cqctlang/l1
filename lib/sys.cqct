@@ -467,3 +467,15 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
   return r;
 };
 
+sys_getuid = @lambda() {
+
+  return syscall(linuxns`getuid);
+
+};
+
+sys_geteuid = @lambda() {
+
+  return syscall(linuxns`geteuid);
+
+};
+
