@@ -3838,7 +3838,7 @@ builtinfn(Env *env, char *name, Closure *cl)
 void
 cqctbuiltinfn(Toplevel *top, char *name, Closure *cl)
 {
-	return builtinfn(top->env, name, cl);
+	builtinfn(top->env, name, cl);
 }
 
 static void
