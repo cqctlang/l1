@@ -102,31 +102,32 @@ of the L1 implementation of Cinquecento.
 Cinquecento is a programming language designed for
 examining programs in execution.  It features an
 extensible abstraction, called a <em>domain</em>, that
-presents a program in execution as a language
+represents a program in execution as a language
 value, and a syntactic interface to domains based on
 the C programming language.
 </p>
 
 <p>
-Using domains, fragments of C &mdash; employing C operators,
-types, and control flow &mdash; read or modify target
-program memory.  Complex C idioms for traversing data
-structures, such as pointer-chasing loops, usually work
-with little or no modification.  Specification of the names and
-types of target program data follows the syntax of C
-declarations; minor extensions allow machine-level
-specification of location, layout, and encoding of data
-in memory.
+Cinquecento programs use fragments of C &mdash;
+employing C operators, types, and control flow &mdash;
+to examine or modify the state of target programs
+represented by domains.  Complex C idioms for
+traversing data structures, such as pointer-chasing
+loops, usually port with little or no modification.
+The names and types of target program data are
+specified in the syntax of C declarations; minor
+extensions allow machine-level specification of
+location, layout, and encoding of data in memory.
 </p>
 
 <p>
 Multiple simultaneously active target programs can be
-represented as distinct domains within a single Cinquecento program.
-Heterogeneity is expected: the targets may be different
-programs, or the same program with different types,
-symbols, or executable format; the targets may execute
-on different machines, possibly of different
-architecture or operating system.
+represented as distinct domains within a single
+Cinquecento program.  Heterogeneity is expected: the
+targets may be different programs, or the same program
+with different types, symbols, or executable format,
+and the targets may execute on different machines,
+possibly of different architecture or operating system.
 
 Example applications include comparing executions of
 different versions of a program, comparing executions
@@ -146,7 +147,7 @@ domains for their target environment.  New domain
 implementations can be written entirely in Cinquecento;
 built-in library functions and accompanying programs
 simplify construction of domains for common
-environments, such as x86 Linux systems.
+environments, such as DWARF-based x86 Linux systems.
 </p>
 
 <p>
@@ -155,12 +156,11 @@ is a simple dynamic language with conventional
 functional semantics.  A dialect of Scheme at heart,
 Cinquecento is lexically scoped, dynamically typed,
 properly tail recursive, and has first-class functions,
-continuations, and automatic memory management.
-Schemers will note departure in Cinquecento's model of
-numbers (which rigorously emulates C's fixed precision
-semantics), its inadequate support for syntactic
-extension (being remedied), and its generally more
-imperative flavor.
+continuations, and automatic memory management.  We
+expect Schemers to cluck at Cinquecento's numbers
+(which rigorously emulate the numbers of C), its
+fledgling support for syntactic extension, and its
+indulgence of imperative habits.
 </p>
 
 <p>
@@ -189,12 +189,11 @@ memory model, and control flow of idiomatic C.
 </p>
 
 <p>
-Many superb guides to artful use of C or Scheme are
-available in libraries and on the web.  In this manual
-we avoid dispensing nutshell caricatures of ideas and
-traditions explained well elsewhere.  Instead we
-mention here some enjoyable starting points from which one
-cannot be led astray.
+Many guides to artful use of C and Scheme are available
+in libraries and on the web.  In this manual we avoid
+dispensing nutshell caricatures of ideas and traditions
+explained well elsewhere.  Instead we suggest a few
+starting points from which one cannot be led astray.
 </p>
 
 <p>
@@ -206,9 +205,9 @@ The point most central to Cinquecento is the role of
 constructing stateful first-class functions.  A taste
 and habit for stylistic use
 of <span class="val">lambda</span> can be cultivated by
-practicing the lessons of
+studying
 <em><a href="#bib:ls">The Little Schemer</a></em>
-and <em><a href="#bib:sicp">Structure and
+or <em><a href="#bib:sicp">Structure and
 Interpretation of Computer Programs</a></em>.
 </p>
 
@@ -216,24 +215,23 @@ Interpretation of Computer Programs</a></em>.
 Into its Scheme-like setting, Cinquecento carries
 nearly every feature of C other than static typing.
 Understanding Cinquecento requires familiarity with the
-sharp edges of C, especially sensitivity to what is and
-what is not promised about the meaning of types and
-operations involving pointers and memory.  <em><a href="#bib:kr">The C
-Programming Language</a></em>
-offers a concise and definitive foundation, while
+sharp edges of C, especially sensitivity to the meaning
+of types and operations involving pointers and
+memory.  <em><a href="#bib:kr">The C Programming
+Language</a></em> offers a concise and definitive
+foundation, while
 <em><a href="#bib:hs">C: A Reference
-Manual</a></em> reveals more edges.
+Manual</a></em> reveals additional edges.
 </p>
 
 <p>
 Looking from another direction, the Cinquecento
 programmer is primarily in the business of making,
 operating, and extending custom debuggers.  Sooner or
-later, understanding how debuggers represent and
-control program executions in your environment becomes
-a requirement.  Manuals tend to be inadequate.  We know
-of no resources better than source code, the scattered
-wizards, and your curiosity.
+later, it will be useful to understand how debuggers
+represent and control program executions in your
+environment.
+
 </p>
 
 <h4 id="sec:repl">Interactive Use</h4>
@@ -589,7 +587,7 @@ The suffixes <span class="val">K</span>,
 <span class="val">T</span>, 
 and their lowercase variants
 impose the type <span class="val">unsigned long long</span>
-upon the value and shift the value left by 10, 20, 30, or 40 bits
+upon the value and shift the value left by 10, 20, 30, or 40 bits,
 respectively.
 </p>
 
@@ -1370,17 +1368,19 @@ to the Cinquecento evaluator.
 </div>
 </div>
 <div class="desc">
+</p>
 Calls <span class="arg">fn</span>, passing the current
-continuation, represented as a function,
-as its sole argument.  Returns the value
-returned by the call to <span class="arg">fn</span>.
-
-<div>
-It is currently unsafe to call the continuation
-passed <span class="arg">fn</span> if the
-continuation returns to calls to built-in
-functions.
-</div>
+continuation as its single argument.  The continuation is
+represented as a function of one argument, the value to
+be passed to the
+continuation.  <span class="id">Callcc</span> returns
+the value returned by the call
+to <span class="arg">fn</span>.
+</p>
+<p>
+It is currently unsafe to invoke continuations that
+return to calls to built-in functions.
+</p>
 </div>
 </div>
 
@@ -11712,6 +11712,7 @@ Prentice Hall, 1988.
 <a href="#fn:bitfieldpos">bitfieldpos</a><br />
 <a href="#fn:bitfieldwidth">bitfieldwidth</a><br />
 <a href="#fn:bsearch">bsearch</a><br />
+<a href="#fn:callcc">callcc</a><br />
 <a href="#fn:car">car</a><br />
 <a href="#fn:cdr">cdr</a><br />
 <a href="#fn:chdir">chdir</a><br />
