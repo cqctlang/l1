@@ -113,11 +113,11 @@ employing C operators, types, and control flow &mdash;
 to examine or modify the state of target programs
 represented by domains.  Complex C idioms for
 traversing data structures, such as pointer-chasing
-loops, usually port with little or no modification.
-The names and types of target program data are
-specified in the syntax of C declarations; minor
-extensions allow machine-level specification of
-location, layout, and encoding of data in memory.
+loops, usually port with little or no effort.  The
+names and types of target program data are specified in
+the syntax of C declarations; minor extensions allow
+machine-level specification of location, layout, and
+encoding of data in memory.
 </p>
 
 <p>
@@ -156,11 +156,11 @@ is a simple dynamic language with conventional
 functional semantics.  A dialect of Scheme at heart,
 Cinquecento is lexically scoped, dynamically typed,
 properly tail recursive, and has first-class functions,
-continuations, and automatic memory management.  We
-expect Schemers to cluck at Cinquecento's numbers
+continuations, and automatic memory management.  Some
+devout Schemers may cluck at Cinquecento's numbers
 (which rigorously emulate the numbers of C), its
 fledgling support for syntactic extension, and its
-indulgence of imperative habits.
+indulgence of the imperative habits of C programmers.
 </p>
 
 <p>
@@ -190,17 +190,18 @@ memory model, and control flow of idiomatic C.
 
 <p>
 Many guides to artful use of C and Scheme are available
-in libraries and on the web.  In this manual we avoid
-dispensing nutshell caricatures of ideas and traditions
-explained well elsewhere.  Instead we suggest a few
-starting points from which one cannot be led astray.
+in libraries and on the web.  Throughout this manual we
+avoid dispensing nutshell caricatures of ideas and
+traditions explained well elsewhere.  Instead here we
+suggest a few starting points from which one cannot be
+led astray.
 </p>
 
 <p>
 <em><a href="#bib:tspl">The Scheme Programming
-Language</a></em> offers both a gentle introduction to
-Scheme and clear exposition on its many fine points.
-The point most central to Cinquecento is the role of
+Language</a></em> offers both an introduction to Scheme
+and exposition of its many fine points.  The point most
+central to Cinquecento is the role of
 <span class="val">lambda</span> as an operator for
 constructing stateful first-class functions.  A taste
 and habit for stylistic use
@@ -221,7 +222,7 @@ memory.  <em><a href="#bib:kr">The C Programming
 Language</a></em> offers a concise and definitive
 foundation, while
 <em><a href="#bib:hs">C: A Reference
-Manual</a></em> reveals additional edges.
+Manual</a></em> reveals many more edges.
 </p>
 
 <p>
