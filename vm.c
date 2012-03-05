@@ -1519,7 +1519,7 @@ xcallc(VM *vm)
 		if(Vkind(vm->cl->xfn) == Qstr)
 			x = (Cfn*)strdata(valstr(vm->cl->xfn));
 		else if(Vkind(vm->cl->xfn) == Qcval)
-			x = (Cfn*)cvalu(valcval(vm->cl->xfn));
+			x = (Cfn*)(uptr)cvalu(valcval(vm->cl->xfn));
 		else
 			bug();
 		x(vm, argc, argv, &rv);

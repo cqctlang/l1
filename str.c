@@ -241,7 +241,7 @@ l1_mkstrm(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 1, Qcval);
 	s = valcval(argv[0]);
 	len = valcval(argv[1]);
-	*rv = mkvalstr(mkstrk((char*)cvalu(s), cvalu(len), Sperm));
+	*rv = mkvalstr(mkstrk((char*)(uptr)cvalu(s), cvalu(len), Sperm));
 }
 
 static void

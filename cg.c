@@ -584,7 +584,7 @@ printinsn(Insn *i)
 		xprintf("apply");
 		break;
 	case Icode:
-		xprintf("-code-  0x%p", (void*)i-i->cnt);
+		xprintf("-code-  0x%x", (void*)i-i->cnt);
 		break;
 	case Ifsize:
 		xprintf("-fsize- 0x%x", i->cnt);
@@ -671,7 +671,7 @@ printinsn(Insn *i)
 		xprintf("frame");
 		break;
 	case Imovra:
-		xprintf("movra %p", i->targ);
+		xprintf("movra %p ", i->targ);
 		printrand(&i->dst);
 		break;
 	case Iret:
@@ -1135,7 +1135,7 @@ fset(Frame *f, u32 i)
 {
 	u64 *p;
 	p = f->l+i/mwbits;
-	*p |= (1UL<<(i%mwbits));
+	*p |= (1ULL<<(i%mwbits));
 }
 
 /* FIXME: we should mask out frame mask bits above the
@@ -1153,7 +1153,7 @@ femit(Frame *f, Ode *c, Src s, u32 narg)
 	if(fsz < mwbits-1){
 		i = nextinsn(c, s);
 		i->kind = Ifmask;
-		i->cnt = (*f->l)&((1UL<<fsz)-1);
+		i->cnt = (*f->l)&((1ULL<<fsz)-1);
 		if((i->cnt>>(mwbits-1))&1)
 			bug();
 		i = nextinsn(c, s);
