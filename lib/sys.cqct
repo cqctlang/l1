@@ -479,3 +479,51 @@ sys_geteuid = @lambda() {
 
 };
 
+/*
+filename: a string filename for the executable to run
+argv: a list of the string arguments
+envp: a list of environment assignment strings
+see man execve
+
+example usage:
+execve("/bin/echo",["/bin/echo","hello","world"],[]);
+is the same as running:
+$ /bin/echo hello world
+*/
+@define sys_execve(filename,argv,envp) {
+  @local f,fl,a,e;
+
+  if(iscvalue(filename) && isptr(@typeof(filename))) {
+    @local fl;
+    fl=strlen(filename);
+    f=(unsigned char *)malloc(fl + 1);
+    putbytes(f,getbytes(filename,fl));
+    f[fl]=0;
+  } else if(isstring(filename)) {
+    fl=length(filename);
+    f=(unsigned char *)malloc(fl+1);
+    putbytes(f,filename);
+    f[fl]=0;
+  } else {
+    error("filename must be a string or a cptr");
+  }
+
+  [a,e] = map(@lambda(ary) {
+    @local ret,i,len,strs;
+    len = sizeof(char*) * (length(ary)+1);
+    foreach(@lambda(v) { len += length(v)+1; },ary);
+    ret=(char**)malloc(len);
+    strs = (char*)&ret[length(ary)+1];
+    for(i=0; i<length(ary); ++i) {
+      ret[i] = strs;
+      putbytes(strs,ary[i]);
+      strs+=length(ary[i]);
+      *strs = 0;
+      strs += 1;
+    }
+    ret[i] = 0; //final null pointer (i == length(ary))
+    return ret;
+  }, [argv,envp]);
+
+  return syscall(linuxns`execve,f,a,e);
+};
