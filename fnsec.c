@@ -11,7 +11,7 @@ l1_sha1(VM *vm, Imm argc, Val *argv, Val *rv)
 	unsigned char md[SHA1dlen];
 	unsigned char omd[2*SHA1dlen];
 	unsigned i;
-	static char x[]="0123456780abcdef";
+	static char x[]="0123456789abcdef";
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to sha1");

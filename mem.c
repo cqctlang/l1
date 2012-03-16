@@ -1741,7 +1741,7 @@ copykstack(Val *stack, Imm len, Imm fp)
 		mask = fm->cnt;
 		m = fp-1;
 		if((mask>>(mwbits-1))&1){
-			o = mask&~(1UL<<(mwbits-1));
+			o = mask&~(1ULL<<(mwbits-1));
 			mp = (u64*)strdata(cl->code->lm)+o;
 			while(sz > 0){
 				mask = *mp++;
@@ -1830,7 +1830,7 @@ copystack(VM *vm)
 		mask = fm->cnt;
 		m = fp-1;
 		if((mask>>(mwbits-1))&1){
-			o = mask&~(1UL<<(mwbits-1));
+			o = mask&~(1ULL<<(mwbits-1));
 			mp = (u64*)strdata(cl->code->lm)+o;
 			while(sz > 0){
 				mask = *mp++;

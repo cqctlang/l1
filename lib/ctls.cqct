@@ -360,7 +360,7 @@ idxev = [
 	@defloc clear(tid)
 	{
 		@local s, t;
-		t = traps[tid];
+		t = cs.traps[tid];
 		if(t == nil)
 			error("attempt to clear undefined trap %a", tid);
 

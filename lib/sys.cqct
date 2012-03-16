@@ -467,28 +467,46 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
   return r;
 };
 
+sys_getuid = @lambda() {
+
+  return syscall(linuxns`getuid);
+
+};
+
+sys_geteuid = @lambda() {
+
+  return syscall(linuxns`geteuid);
+
+};
+
 /*
 filename: a string filename for the executable to run
-argv: a list of the string arguments (not including the filename)
+argv: a list of the string arguments
 envp: a list of environment assignment strings
 see man execve
 
 example usage:
-execve("/bin/echo",["hello","world"],[]);
+execve("/bin/echo",["/bin/echo","hello","world"],[]);
 is the same as running:
 $ /bin/echo hello world
 */
 @define sys_execve(filename,argv,envp) {
-  @local f,a,e;
+  @local f,fl,a,e;
 
-  //filename
-  f=malloc(length(filename)+1);
-  putbytes(f,filename);
-  f[length(filename)]=0;
-
-  //argv[0] is the filename
-  //concat doesn't change original argv list
-  argv = concat([filename],argv);
+  if(iscvalue(filename) && isptr(@typeof(filename))) {
+    @local fl;
+    fl=strlen(filename);
+    f=(unsigned char *)malloc(fl + 1);
+    putbytes(f,getbytes(filename,fl));
+    f[fl]=0;
+  } else if(isstring(filename)) {
+    fl=length(filename);
+    f=(unsigned char *)malloc(fl+1);
+    putbytes(f,filename);
+    f[fl]=0;
+  } else {
+    error("filename must be a string or a cptr");
+  }
 
   [a,e] = map(@lambda(ary) {
     @local ret,i,len,strs;
@@ -509,5 +527,3 @@ $ /bin/echo hello world
 
   return syscall(linuxns`execve,f,a,e);
 };
-
-

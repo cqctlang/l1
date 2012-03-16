@@ -2,6 +2,8 @@
 @include <stack.x86_64.cqct>
 @include <trapman.cqct>
 @include <linux.cqct>
+@include <nsutil.cqct>
+@include <sctlclt.cqct>
 
 ctlmux = @names clp64le {
 	enum Mkind {
