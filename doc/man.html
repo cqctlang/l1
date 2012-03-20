@@ -10203,6 +10203,64 @@ reported, and the status descriptor that encodes the change.
 </div>
 </div>
 
+<div class="docitem" id="fn:popen">
+<div class="proto">
+<div class="function">
+<span class="id">popen(<span class="arg">arg</span>,...[,<span class="arg">flags</span>])</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">flags</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list of file descriptor</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Executes a command in a new process with I/O connected
+to the calling process.  The
+arguments <span class="arg">arg ...</span>  form the
+elements of the argument vector used to create (via
+<span class="id">execve</span>) the new process image.
+There is no way to affect its enviornment.
+An error is raised if the process cannot be created.
+</p>
+
+<p>
+By default, <span class="id">popen</span> returns a
+list of three file descriptors connected (via unix
+domain sockets in stream mode) to the standard input,
+standard output, and standard error, respectively, of
+the new process.
+<span class="arg">Flags</span> is a bitmask of flags
+used to specify alternative plumbing.  (We show
+internal names for these flags, but these are not
+defined in any library.)  If bit zero is set
+(<span class="id">PopenNoErr</span>), standard error is
+redirected to <span class="id">/dev/null</span>, and is
+not represented in the returned descriptor list.  If
+bit one is set (<span class="id">PopenStderr</span>),
+standard error is not redirected, but rather is left
+connected to the standard error of the calling
+process,.  Likewise, if bit two is set
+(<span class="id">PopenStdout</span>), standard output
+is left connected to the standard output of the calling
+process.  Finally, if bit three is set
+(<span class="id">PopenFullDuplex</span>), standard
+input and output of the new process are connected to
+the same file descriptor.
+</p>
+
+<p>
+The definition of <span class="id">popen</span> is
+likely to change in the future.
+</p>
+
+</div>
+</div>
 
 <div class="docitem" id="fn:chdir">
 <div class="proto">
@@ -11913,6 +11971,7 @@ Prentice Hall, 1988.
 <a href="#fn:paramtype">paramtype</a><br />
 <a href="#fn:parse">parse</a><br />
 <a href="#fn:pop">pop</a><br />
+<a href="#fn:popen">popen</a><br />
 <a href="#fn:postgc">postgc</a><br />
 <a href="#fn:asput">put</a> (as method)<br />
 <a href="#fn:printf">printf</a><br />
