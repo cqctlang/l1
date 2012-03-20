@@ -579,8 +579,10 @@ main(int argc, char *argv[])
 		entry = cqctcompile(vm, inbuf,
 				    filename, top, ename ? 0 : argsid);
 		free(inbuf);
-		if(entry == 0)
+		if(entry == 0) {
+			status = 2;
 			continue;
+		}
 		if(opt['x'] == 0)
 			continue; /* just compiling */
 		if(cqctflags['T'])
@@ -589,8 +591,10 @@ main(int argc, char *argv[])
 			rv = cqctcallfn(vm, entry, valc, valv, &v);
 		else{
 			rv = cqctcallfn(vm, entry, 0, 0, &v);
-			if(rv)
+			if(rv) {
+				status = rv;
 				continue; /* error */
+			}
 			fn = cqctenvlook(top, ename);
 			if(fn == 0)
 				fatal("entry point \"%s\" is undefined", ename);
@@ -609,8 +613,10 @@ main(int argc, char *argv[])
 				       4*mu.size, 4*mu.rss);
 			printf("\n");
 		}
-		if(rv)
+		if(rv) {
+			status = rv;
 			continue; /* error */
+		}
 		if(dorepl && Vkind(v) != Qnil){
 			s = cqctsprintval(vm, v);
 			printf("%s\n", s);
