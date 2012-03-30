@@ -1,0 +1,2 @@
+@file "/tmp/BLAH"; @line 1000;
+error("error at %s:%a", @file, @line);

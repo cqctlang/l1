@@ -34,6 +34,7 @@ extern char *yytext;
 %token IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN CASE DEFAULT
 %token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE SYNTAXLIST
 %token LPAIR RPAIR NOBIND_PRE MATCH
+%token ATFILE ATLINE
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -73,6 +74,7 @@ extern char *yytext;
 %type <expr> defstx_statement
 %type <expr> syntax_expression
 %type <expr> mcall_expression
+%type <expr> src_expression
 %type <expr> quote_expression
 %type <expr> mcall_statement
 %type <expr> atid syntaxid
@@ -191,6 +193,32 @@ mcall_expression
         { $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), 0, 0); }
 	;
 
+src_expression
+	: ATLINE CONSTANT
+	{
+		Lit lit;
+		char *err;
+		if(0 != parselit($2.p, $2.len, &lit, 0, &err))
+			parseerror(ctx, err);
+		/* FIXME: check type of literal */
+		ctx->inp->src.line = (unsigned)lit.v.u;
+		$$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0);
+	}
+	| ATLINE
+	{
+		$$ = Zuint(ctx->inp->src.line);
+	}
+	| ATFILE STRING_LITERAL
+	{
+		ctx->inp->src.filename = internfilename($2.p, $2.len);
+		$$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0);
+	}
+	| ATFILE
+	{
+		$$ = Zstr(ctx->inp->src.filename);
+	}
+	;
+
 table_init
 	: root_expression ':' root_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Eelist,
@@ -254,6 +282,7 @@ primary_expression
 	| let_expression
 	| quote_expression
 	| mcall_expression
+	| src_expression
 	;
 
 pattern

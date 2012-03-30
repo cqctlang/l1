@@ -19,10 +19,11 @@ cqctparse(char *s, Toplevel *top, char *src, unsigned line)
 }
 
 Val
-cqctcompile(VM *vm, char *s, char *src, Toplevel *top, char *argsid)
+cqctcompile(VM *vm, char *s, char *src, unsigned line, Toplevel *top,
+	    char *argsid)
 {
 	Expr *e;
-	e = cqctparse(s, top, src, 1);
+	e = cqctparse(s, top, src, line);
 	if(e == 0)
 		return 0;
 	return compile(vm, e, top, argsid);
@@ -33,7 +34,7 @@ cqcteval(VM *vm, char *s, char *src, Val *rv)
 {
 	Val v, cl;
 
-	cl = cqctcompile(vm, s, src, vm->top, 0);
+	cl = cqctcompile(vm, s, src, 1, vm->top, 0);
 	if(cl == 0)
 		return -1;
 	if(rv == 0)

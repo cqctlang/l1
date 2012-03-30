@@ -950,6 +950,7 @@ void		dotop(U*, Expr*);
 void		finiparse(void);
 Expr*		flatten(Expr *e);
 void		initparse(void);
+char*		internfilename(char *s, unsigned len);
 Expr*		invert(Expr*);
 int		maybepopyy(U *ctx);
 Expr*		mkexpr();
