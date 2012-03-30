@@ -6221,7 +6221,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
-	cl = cqctcompile(vm, s, "<eval-input>", vm->top, 0);
+	cl = cqctcompile(vm, s, "<eval-input>", 1, vm->top, 0);
 	efree(s);
 	if(cl == 0)
 		return;
@@ -6259,7 +6259,7 @@ l1_evalk(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 2, Qcl);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
-	cl = cqctcompile(vm, s, "<eval-input>", vm->top, 0);
+	cl = cqctcompile(vm, s, "<eval-input>", 1, vm->top, 0);
 	efree(s);
 	if(cl == 0)
 		return;

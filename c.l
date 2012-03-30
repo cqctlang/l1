@@ -46,10 +46,12 @@ static int chars(YYSTYPE *lvalp, int);
 "@define"		{ count(ctx); return(DEFINE); }
 "@defloc"		{ count(ctx); return(DEFLOC); }
 "@defstx"		{ count(ctx); return(DEFSTX); }
+"@file"			{ count(ctx); return(ATFILE); }
 "@global"		{ count(ctx); return(GLOBAL); }
 "@lambda"		{ count(ctx); return(LAMBDA); }
 "@lazyapply"		{ count(ctx); return(LAPPLY); }
 "@let"			{ count(ctx); return(LET); }
+"@line"			{ count(ctx); return(ATLINE); }
 "@local"		{ count(ctx); return(LOCAL); }
 "@match"		{ count(ctx); return(MATCH); }
 "@names"		{ count(ctx); return(NAMES); }

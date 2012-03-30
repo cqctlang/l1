@@ -177,7 +177,8 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 			for(i = 3; i < m; i++)
 				if(i != ctl[1])
 					close(i);
-			setsid();
+			if(flags&PopenSession)
+				setsid();
 			execvp(argv[0], argv);
 			eno = errno;
 			xwrite(ctl[1], (char*)&eno, sizeof(eno));

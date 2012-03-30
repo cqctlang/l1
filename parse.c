@@ -543,8 +543,8 @@ dosym(char *s, unsigned long len)
 	return Zval(mkvalcid(mkcid(s+1, len-1)));
 }
 
-Expr*
-dostr(char *s, unsigned long len)
+void
+expandstr(char *s, unsigned long len, unsigned long* nlen)
 {
 	int c;
 	char *r, *w, *z;
@@ -647,7 +647,16 @@ dostr(char *s, unsigned long len)
 		*w++ = c;
 	}
 
-	return Zstrn(s, w-s);
+	*w = '\0';
+	*nlen = w-s;
+}
+
+Expr*
+dostr(char *s, unsigned long len)
+{
+	unsigned long nlen;
+	expandstr(s, len, &nlen);
+	return Zstrn(s, nlen);
 }
 
 Expr*
@@ -672,6 +681,18 @@ dotop(U *ctx, Expr *e)
 	ctx->el = newexprsrc(&ctx->inp->src, Eelist, e, ctx->el, 0, 0);
 }
 
+char*
+internfilename(char *s, unsigned len)
+{
+	char *keyed;
+	keyed = hgets(filenames, s, len);
+	if(!keyed){
+		keyed = xstrdup(s);
+		hputs(filenames, keyed, len, keyed);
+	}
+	return keyed;
+}
+
 static void
 pushyy(U *ctx, char *filename, unsigned line, char *buf, int dofree)
 {
@@ -684,13 +705,8 @@ pushyy(U *ctx, char *filename, unsigned line, char *buf, int dofree)
 	if(ctx->inp >= ctx->in+MaxIn)
 		fatal("maximum include depth exceeded");
 	keyed = 0;
-	if(filename){
-		keyed = hgets(filenames, filename, strlen(filename));
-		if(!keyed){
-			keyed = xstrdup(filename);
-			hputs(filenames, keyed, strlen(keyed), keyed);
-		}
-	}
+	if(filename)
+		keyed = internfilename(filename, strlen(filename));
 	ctx->inp->src.filename = keyed;
 	ctx->inp->yy = mkyystatestr(buf);
 	ctx->inp->src.line = line;

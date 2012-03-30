@@ -37,3 +37,9 @@ enum __socket_type
   SOCK_DGRAM = 2,
   SOCK_RAW = 3,
 };
+
+struct timespec {                                                                
+  @0 int tv_sec; /* seconds */
+  @4 int tv_nsec; /* nanoseconds */
+  @8;
+};

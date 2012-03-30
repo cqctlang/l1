@@ -577,7 +577,7 @@ main(int argc, char *argv[])
 		if(opt['t'])
 			tbeg = usec();
 		entry = cqctcompile(vm, inbuf,
-				    filename, top, ename ? 0 : argsid);
+				    filename, 1, top, ename ? 0 : argsid);
 		free(inbuf);
 		if(entry == 0) {
 			status = 2;
