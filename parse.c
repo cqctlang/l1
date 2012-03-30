@@ -543,8 +543,8 @@ dosym(char *s, unsigned long len)
 	return Zval(mkvalcid(mkcid(s+1, len-1)));
 }
 
-Expr*
-dostr(char *s, unsigned long len)
+void
+expandstr(char *s, unsigned long len, unsigned long* nlen)
 {
 	int c;
 	char *r, *w, *z;
@@ -647,7 +647,16 @@ dostr(char *s, unsigned long len)
 		*w++ = c;
 	}
 
-	return Zstrn(s, w-s);
+	*w = '\0';
+	*nlen = w-s;
+}
+
+Expr*
+dostr(char *s, unsigned long len)
+{
+	unsigned long nlen;
+	expandstr(s, len, &nlen);
+	return Zstrn(s, nlen);
 }
 
 Expr*

@@ -210,7 +210,9 @@ src_expression
 	}
 	| ATFILE STRING_LITERAL
 	{
-		ctx->inp->src.filename = internfilename($2.p, $2.len);
+		unsigned long nlen;
+		expandstr($2.p, $2.len, &nlen);
+		ctx->inp->src.filename = internfilename($2.p, nlen);
 		$$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0);
 	}
 	| ATFILE

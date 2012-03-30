@@ -439,42 +439,42 @@ static const unsigned short int yyrline[] =
        0,   105,   105,   110,   112,   117,   119,   124,   125,   129,
      134,   139,   141,   145,   149,   151,   156,   158,   160,   165,
      170,   172,   174,   176,   181,   183,   185,   190,   192,   197,
-     207,   211,   216,   223,   233,   235,   240,   242,   244,   249,
-     250,   252,   254,   256,   258,   260,   262,   264,   266,   268,
-     273,   275,   277,   279,   280,   281,   282,   283,   284,   285,
-     289,   290,   292,   294,   296,   298,   300,   302,   304,   306,
-     311,   313,   315,   317,   319,   321,   323,   325,   330,   331,
-     335,   337,   342,   347,   355,   357,   362,   374,   375,   377,
-     379,   381,   383,   385,   387,   389,   394,   395,   399,   401,
-     406,   407,   408,   410,   412,   414,   416,   418,   420,   422,
-     427,   429,   431,   433,   435,   437,   442,   443,   445,   450,
-     451,   453,   455,   460,   461,   463,   468,   469,   471,   476,
-     477,   479,   481,   483,   488,   489,   491,   496,   497,   502,
-     503,   508,   509,   514,   515,   520,   521,   526,   527,   532,
-     533,   542,   544,   546,   548,   550,   552,   554,   556,   558,
-     560,   562,   568,   569,   573,   575,   580,   582,   590,   592,
-     597,   598,   599,   600,   605,   606,   608,   613,   615,   620,
-     621,   625,   626,   631,   635,   640,   643,   647,   649,   651,
-     656,   658,   663,   665,   667,   669,   671,   673,   675,   677,
-     679,   681,   685,   687,   692,   694,   696,   697,   701,   703,
-     705,   707,   709,   714,   716,   721,   723,   725,   730,   739,
-     750,   752,   754,   756,   758,   760,   763,   765,   770,   776,
-     777,   781,   782,   786,   787,   791,   792,   794,   799,   801,
-     806,   810,   812,   814,   816,   818,   823,   825,   832,   834,
-     839,   841,   845,   847,   849,   851,   853,   855,   860,   861,
-     862,   867,   869,   871,   873,   875,   877,   879,   881,   886,
-     888,   890,   892,   897,   899,   904,   906,   911,   913,   915,
-     920,   922,   927,   928,   930,   935,   937,   940,   943,   946,
-     950,   952,   955,   959,   961,   966,   968,   973,   975,   977,
-     982,   983,   985,   990,   992,   994,   995,   999,  1004,  1009,
-    1010,  1011,  1016,  1018,  1020,  1022,  1024,  1026,  1028,  1030,
-    1035,  1037,  1041,  1043,  1045,  1047,  1049,  1051,  1056,  1057,
-    1058,  1059,  1060,  1061,  1062,  1063,  1064,  1065,  1066,  1070,
-    1072,  1074,  1079,  1084,  1089,  1094,  1096,  1101,  1111,  1121,
-    1133,  1148,  1149,  1153,  1155,  1160,  1162,  1164,  1169,  1171,
-    1173,  1179,  1181,  1183,  1185,  1187,  1192,  1194,  1198,  1200,
-    1202,  1207,  1209,  1211,  1213,  1215,  1220,  1222,  1224,  1226,
-    1228,  1233,  1235,  1240,  1242,  1247,  1248,  1252,  1253,  1257
+     207,   211,   218,   225,   235,   237,   242,   244,   246,   251,
+     252,   254,   256,   258,   260,   262,   264,   266,   268,   270,
+     275,   277,   279,   281,   282,   283,   284,   285,   286,   287,
+     291,   292,   294,   296,   298,   300,   302,   304,   306,   308,
+     313,   315,   317,   319,   321,   323,   325,   327,   332,   333,
+     337,   339,   344,   349,   357,   359,   364,   376,   377,   379,
+     381,   383,   385,   387,   389,   391,   396,   397,   401,   403,
+     408,   409,   410,   412,   414,   416,   418,   420,   422,   424,
+     429,   431,   433,   435,   437,   439,   444,   445,   447,   452,
+     453,   455,   457,   462,   463,   465,   470,   471,   473,   478,
+     479,   481,   483,   485,   490,   491,   493,   498,   499,   504,
+     505,   510,   511,   516,   517,   522,   523,   528,   529,   534,
+     535,   544,   546,   548,   550,   552,   554,   556,   558,   560,
+     562,   564,   570,   571,   575,   577,   582,   584,   592,   594,
+     599,   600,   601,   602,   607,   608,   610,   615,   617,   622,
+     623,   627,   628,   633,   637,   642,   645,   649,   651,   653,
+     658,   660,   665,   667,   669,   671,   673,   675,   677,   679,
+     681,   683,   687,   689,   694,   696,   698,   699,   703,   705,
+     707,   709,   711,   716,   718,   723,   725,   727,   732,   741,
+     752,   754,   756,   758,   760,   762,   765,   767,   772,   778,
+     779,   783,   784,   788,   789,   793,   794,   796,   801,   803,
+     808,   812,   814,   816,   818,   820,   825,   827,   834,   836,
+     841,   843,   847,   849,   851,   853,   855,   857,   862,   863,
+     864,   869,   871,   873,   875,   877,   879,   881,   883,   888,
+     890,   892,   894,   899,   901,   906,   908,   913,   915,   917,
+     922,   924,   929,   930,   932,   937,   939,   942,   945,   948,
+     952,   954,   957,   961,   963,   968,   970,   975,   977,   979,
+     984,   985,   987,   992,   994,   996,   997,  1001,  1006,  1011,
+    1012,  1013,  1018,  1020,  1022,  1024,  1026,  1028,  1030,  1032,
+    1037,  1039,  1043,  1045,  1047,  1049,  1051,  1053,  1058,  1059,
+    1060,  1061,  1062,  1063,  1064,  1065,  1066,  1067,  1068,  1072,
+    1074,  1076,  1081,  1086,  1091,  1096,  1098,  1103,  1113,  1123,
+    1135,  1150,  1151,  1155,  1157,  1162,  1164,  1166,  1171,  1173,
+    1175,  1181,  1183,  1185,  1187,  1189,  1194,  1196,  1200,  1202,
+    1204,  1209,  1211,  1213,  1215,  1217,  1222,  1224,  1226,  1228,
+    1230,  1235,  1237,  1242,  1244,  1249,  1250,  1254,  1255,  1259
 };
 #endif
 
@@ -2913,20 +2913,22 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
   case 31:
 #line 212 "c.y"
     {
-		ctx->inp->src.filename = internfilename((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.chars).len);
+		unsigned long nlen;
+		expandstr((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.chars).len, &nlen);
+		ctx->inp->src.filename = internfilename((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.chars).p, nlen);
 		((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0);
 	;}
     break;
 
   case 32:
-#line 217 "c.y"
+#line 219 "c.y"
     {
 		((*yyvalp).expr) = Zstr(ctx->inp->src.filename);
 	;}
     break;
 
   case 33:
-#line 224 "c.y"
+#line 226 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist,
 			  (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr),
 			  newexprsrc(&ctx->inp->src, Eelist,
@@ -2936,77 +2938,77 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 34:
-#line 234 "c.y"
+#line 236 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 35:
-#line 236 "c.y"
+#line 238 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 36:
-#line 241 "c.y"
+#line 243 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Estxlist, nullelist(), 0, 0, 0); ;}
     break;
 
   case 37:
-#line 243 "c.y"
+#line 245 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Estxlist, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 38:
-#line 245 "c.y"
+#line 247 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Estxlist, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 40:
-#line 251 "c.y"
+#line 253 "c.y"
     { ((*yyvalp).expr) = dotickesrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 41:
-#line 253 "c.y"
+#line 255 "c.y"
     { ((*yyvalp).expr) = dosym((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).len); ;}
     break;
 
   case 42:
-#line 255 "c.y"
+#line 257 "c.y"
     { ((*yyvalp).expr) = doconst(ctx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).len); ;}
     break;
 
   case 43:
-#line 257 "c.y"
+#line 259 "c.y"
     { ((*yyvalp).expr) = dostr((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).len); ;}
     break;
 
   case 44:
-#line 259 "c.y"
+#line 261 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 45:
-#line 261 "c.y"
+#line 263 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Epair, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 46:
-#line 263 "c.y"
+#line 265 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); ;}
     break;
 
   case 47:
-#line 265 "c.y"
+#line 267 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 48:
-#line 267 "c.y"
+#line 269 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 49:
-#line 269 "c.y"
+#line 271 "c.y"
     { Expr *ell = newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0);
           ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist,
                           invert(newexprsrc(&ctx->inp->src, Eelist,
@@ -3014,62 +3016,62 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 50:
-#line 274 "c.y"
+#line 276 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); ;}
     break;
 
   case 51:
-#line 276 "c.y"
+#line 278 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etab, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 52:
-#line 278 "c.y"
+#line 280 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etab, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 61:
-#line 291 "c.y"
+#line 293 "c.y"
     { ((*yyvalp).expr) = doconst(ctx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).len); ;}
     break;
 
   case 62:
-#line 293 "c.y"
+#line 295 "c.y"
     { ((*yyvalp).expr) = dosym((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).len); ;}
     break;
 
   case 63:
-#line 295 "c.y"
+#line 297 "c.y"
     { ((*yyvalp).expr) = dostr((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).p, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.chars).len); ;}
     break;
 
   case 64:
-#line 297 "c.y"
+#line 299 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 65:
-#line 299 "c.y"
+#line 301 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Epair, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 66:
-#line 301 "c.y"
+#line 303 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist, nullelist(), 0, 0, 0); ;}
     break;
 
   case 67:
-#line 303 "c.y"
+#line 305 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 68:
-#line 305 "c.y"
+#line 307 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 69:
-#line 307 "c.y"
+#line 309 "c.y"
     { Expr *ell = newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0);
           ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elist,
                           invert(newexprsrc(&ctx->inp->src, Eelist,
@@ -3077,57 +3079,57 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 70:
-#line 312 "c.y"
+#line 314 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etab, nullelist(), 0, 0, 0); ;}
     break;
 
   case 71:
-#line 314 "c.y"
+#line 316 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etab, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 72:
-#line 316 "c.y"
+#line 318 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etab, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 73:
-#line 318 "c.y"
+#line 320 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ecall, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 74:
-#line 320 "c.y"
+#line 322 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ecall, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 75:
-#line 322 "c.y"
+#line 324 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Estx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 76:
-#line 324 "c.y"
+#line 326 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Estx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 77:
-#line 326 "c.y"
+#line 328 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Estx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 80:
-#line 336 "c.y"
+#line 338 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 81:
-#line 338 "c.y"
+#line 340 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 82:
-#line 343 "c.y"
+#line 345 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist,
                           newbinopsrc(&ctx->inp->src, Eeq, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)),
                           nullelist(),
@@ -3135,7 +3137,7 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 83:
-#line 348 "c.y"
+#line 350 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist,
                           newbinopsrc(&ctx->inp->src, Eeq, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr)),
                           (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.expr),
@@ -3143,17 +3145,17 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 84:
-#line 356 "c.y"
+#line 358 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 85:
-#line 358 "c.y"
+#line 360 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 86:
-#line 363 "c.y"
+#line 365 "c.y"
     { /* key may not actually bind variables, but this will get
              caught during compilation. */
           ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist,
@@ -3165,232 +3167,232 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 88:
-#line 376 "c.y"
+#line 378 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earef, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 89:
-#line 378 "c.y"
+#line 380 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ecall, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 90:
-#line 380 "c.y"
+#line 382 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ecall, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 91:
-#line 382 "c.y"
+#line 384 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edot, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 92:
-#line 384 "c.y"
+#line 386 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earrow, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 93:
-#line 386 "c.y"
+#line 388 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Epostinc, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 94:
-#line 388 "c.y"
+#line 390 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Epostdec, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 95:
-#line 390 "c.y"
+#line 392 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Econtainer, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (8))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (8))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((7) - (8))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 98:
-#line 400 "c.y"
+#line 402 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 99:
-#line 402 "c.y"
+#line 404 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 102:
-#line 409 "c.y"
+#line 411 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Epreinc, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 103:
-#line 411 "c.y"
+#line 413 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Epredec, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 104:
-#line 413 "c.y"
+#line 415 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 105:
-#line 415 "c.y"
+#line 417 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Esizeofe, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 106:
-#line 417 "c.y"
+#line 419 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Esizeoft, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 107:
-#line 419 "c.y"
+#line 421 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etypeofe, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 108:
-#line 421 "c.y"
+#line 423 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etypeoft, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 109:
-#line 423 "c.y"
+#line 425 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Emkctype, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 110:
-#line 428 "c.y"
+#line 430 "c.y"
     { ((*yyvalp).kind) = Eref; ;}
     break;
 
   case 111:
-#line 430 "c.y"
+#line 432 "c.y"
     { ((*yyvalp).kind) = Ederef; ;}
     break;
 
   case 112:
-#line 432 "c.y"
+#line 434 "c.y"
     { ((*yyvalp).kind) = Euplus; ;}
     break;
 
   case 113:
-#line 434 "c.y"
+#line 436 "c.y"
     { ((*yyvalp).kind) = Euminus; ;}
     break;
 
   case 114:
-#line 436 "c.y"
+#line 438 "c.y"
     { ((*yyvalp).kind) = Eutwiddle; ;}
     break;
 
   case 115:
-#line 438 "c.y"
+#line 440 "c.y"
     { ((*yyvalp).kind) = Eunot; ;}
     break;
 
   case 117:
-#line 444 "c.y"
+#line 446 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ecast, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (4))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 118:
-#line 446 "c.y"
+#line 448 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Excast, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (4))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 120:
-#line 452 "c.y"
+#line 454 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Emul, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 121:
-#line 454 "c.y"
+#line 456 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Ediv, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 122:
-#line 456 "c.y"
+#line 458 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Emod, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 124:
-#line 462 "c.y"
+#line 464 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Eadd, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 125:
-#line 464 "c.y"
+#line 466 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Esub, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 127:
-#line 470 "c.y"
+#line 472 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Eshl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 128:
-#line 472 "c.y"
+#line 474 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Eshr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 130:
-#line 478 "c.y"
+#line 480 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Elt, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 131:
-#line 480 "c.y"
+#line 482 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Egt, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 132:
-#line 482 "c.y"
+#line 484 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Ele, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 133:
-#line 484 "c.y"
+#line 486 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Ege, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 135:
-#line 490 "c.y"
+#line 492 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Eeq, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 136:
-#line 492 "c.y"
+#line 494 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Eneq, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 138:
-#line 498 "c.y"
+#line 500 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Eband, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 140:
-#line 504 "c.y"
+#line 506 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Ebxor, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 142:
-#line 510 "c.y"
+#line 512 "c.y"
     { ((*yyvalp).expr) = newbinopsrc(&ctx->inp->src, Ebor, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 144:
-#line 516 "c.y"
+#line 518 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eland, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 146:
-#line 522 "c.y"
+#line 524 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elor, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 148:
-#line 528 "c.y"
+#line 530 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Econd, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 150:
-#line 534 "c.y"
+#line 536 "c.y"
     { if((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.kind) == Eg)
 	  	((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0);
 	  else
@@ -3399,77 +3401,77 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 151:
-#line 543 "c.y"
+#line 545 "c.y"
     { ((*yyvalp).kind) = Eg; ;}
     break;
 
   case 152:
-#line 545 "c.y"
+#line 547 "c.y"
     { ((*yyvalp).kind) = Egadd; ;}
     break;
 
   case 153:
-#line 547 "c.y"
+#line 549 "c.y"
     { ((*yyvalp).kind) = Egband; ;}
     break;
 
   case 154:
-#line 549 "c.y"
+#line 551 "c.y"
     { ((*yyvalp).kind) = Egbor; ;}
     break;
 
   case 155:
-#line 551 "c.y"
+#line 553 "c.y"
     { ((*yyvalp).kind) = Egbxor; ;}
     break;
 
   case 156:
-#line 553 "c.y"
+#line 555 "c.y"
     { ((*yyvalp).kind) = Egdiv; ;}
     break;
 
   case 157:
-#line 555 "c.y"
+#line 557 "c.y"
     { ((*yyvalp).kind) = Egmod; ;}
     break;
 
   case 158:
-#line 557 "c.y"
+#line 559 "c.y"
     { ((*yyvalp).kind) = Egmul; ;}
     break;
 
   case 159:
-#line 559 "c.y"
+#line 561 "c.y"
     { ((*yyvalp).kind) = Egshl; ;}
     break;
 
   case 160:
-#line 561 "c.y"
+#line 563 "c.y"
     { ((*yyvalp).kind) = Egshr; ;}
     break;
 
   case 161:
-#line 563 "c.y"
+#line 565 "c.y"
     { ((*yyvalp).kind) = Egsub; ;}
     break;
 
   case 164:
-#line 574 "c.y"
+#line 576 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 165:
-#line 576 "c.y"
+#line 578 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 166:
-#line 581 "c.y"
+#line 583 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 167:
-#line 583 "c.y"
+#line 585 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist,
 			  newexprsrc(&ctx->inp->src, Eellipsis, 0, 0, 0, 0),
 			  (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, 0);
@@ -3477,207 +3479,207 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 168:
-#line 591 "c.y"
+#line 593 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 169:
-#line 593 "c.y"
+#line 595 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 173:
-#line 601 "c.y"
+#line 603 "c.y"
     { ((*yyvalp).expr) = 0; ;}
     break;
 
   case 175:
-#line 607 "c.y"
+#line 609 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Enames, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 176:
-#line 609 "c.y"
+#line 611 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Enames, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 177:
-#line 614 "c.y"
+#line 616 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elapply, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (6))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (6))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 178:
-#line 616 "c.y"
+#line 618 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elapply, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 182:
-#line 627 "c.y"
+#line 629 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ecomma, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 184:
-#line 636 "c.y"
+#line 638 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etypedef, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 185:
-#line 641 "c.y"
+#line 643 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 186:
-#line 643 "c.y"
+#line 645 "c.y"
     { ((*yyvalp).expr) = 0; ;}
     break;
 
   case 187:
-#line 648 "c.y"
+#line 650 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecls, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 188:
-#line 650 "c.y"
+#line 652 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecls, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr)), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 189:
-#line 652 "c.y"
+#line 654 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecls, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 190:
-#line 657 "c.y"
+#line 659 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 191:
-#line 659 "c.y"
+#line 661 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 192:
-#line 664 "c.y"
+#line 666 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Evoid, 0, 0, 0, 0); ;}
     break;
 
   case 193:
-#line 666 "c.y"
+#line 668 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ebool, 0, 0, 0, 0); ;}
     break;
 
   case 194:
-#line 668 "c.y"
+#line 670 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Echar, 0, 0, 0, 0); ;}
     break;
 
   case 195:
-#line 670 "c.y"
+#line 672 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eshort, 0, 0, 0, 0); ;}
     break;
 
   case 196:
-#line 672 "c.y"
+#line 674 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eint, 0, 0, 0, 0); ;}
     break;
 
   case 197:
-#line 674 "c.y"
+#line 676 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Elong, 0, 0, 0, 0); ;}
     break;
 
   case 198:
-#line 676 "c.y"
+#line 678 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efloat, 0, 0, 0, 0); ;}
     break;
 
   case 199:
-#line 678 "c.y"
+#line 680 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edouble, 0, 0, 0, 0); ;}
     break;
 
   case 200:
-#line 680 "c.y"
+#line 682 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Esigned, 0, 0, 0, 0); ;}
     break;
 
   case 201:
-#line 682 "c.y"
+#line 684 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eunsigned, 0, 0, 0, 0); ;}
     break;
 
   case 202:
-#line 686 "c.y"
+#line 688 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 203:
-#line 688 "c.y"
+#line 690 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 204:
-#line 693 "c.y"
+#line 695 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ebase, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 205:
-#line 695 "c.y"
+#line 697 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etypedef, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 208:
-#line 702 "c.y"
+#line 704 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (6))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (6))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (6))].yystate.yysemantics.yysval.expr)), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (6))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 209:
-#line 704 "c.y"
+#line 706 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 210:
-#line 706 "c.y"
+#line 708 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), Znull(), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 211:
-#line 708 "c.y"
+#line 710 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 212:
-#line 710 "c.y"
+#line 712 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 213:
-#line 715 "c.y"
+#line 717 "c.y"
     { ((*yyvalp).kind) = Estruct; ;}
     break;
 
   case 214:
-#line 717 "c.y"
+#line 719 "c.y"
     { ((*yyvalp).kind) = Eunion; ;}
     break;
 
   case 215:
-#line 722 "c.y"
+#line 724 "c.y"
     { ((*yyvalp).kind) = Estruct; ;}
     break;
 
   case 216:
-#line 724 "c.y"
+#line 726 "c.y"
     { ((*yyvalp).kind) = Eunion; ;}
     break;
 
   case 217:
-#line 726 "c.y"
+#line 728 "c.y"
     { ((*yyvalp).kind) = Eenum; ;}
     break;
 
   case 218:
-#line 731 "c.y"
+#line 733 "c.y"
     {
 		/* labels yield null struct_declarations */
 		if((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr))
@@ -3689,7 +3691,7 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 219:
-#line 740 "c.y"
+#line 742 "c.y"
     {
 		/* labels yield null struct_declarations */
 	 	if((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr))
@@ -3700,498 +3702,498 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 220:
-#line 751 "c.y"
+#line 753 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efields, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr)), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 221:
-#line 753 "c.y"
+#line 755 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efields, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), Znull(), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 222:
-#line 755 "c.y"
+#line 757 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efields, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 223:
-#line 757 "c.y"
+#line 759 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efields, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 224:
-#line 759 "c.y"
+#line 761 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ebitfield, (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (8))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (8))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (8))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((7) - (8))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 225:
-#line 761 "c.y"
+#line 763 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ebitfield, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 226:
-#line 764 "c.y"
-    { ((*yyvalp).expr) = 0; ;}
-    break;
-
-  case 227:
 #line 766 "c.y"
     { ((*yyvalp).expr) = 0; ;}
     break;
 
+  case 227:
+#line 768 "c.y"
+    { ((*yyvalp).expr) = 0; ;}
+    break;
+
   case 228:
-#line 771 "c.y"
+#line 773 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 236:
-#line 793 "c.y"
+#line 795 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 237:
-#line 795 "c.y"
+#line 797 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 238:
-#line 800 "c.y"
+#line 802 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 239:
-#line 802 "c.y"
+#line 804 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 241:
-#line 811 "c.y"
+#line 813 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenum, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (5))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 242:
-#line 813 "c.y"
+#line 815 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenum, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (6))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (6))].yystate.yysemantics.yysval.expr)), 0, 0); ;}
     break;
 
   case 243:
-#line 815 "c.y"
+#line 817 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenum, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 244:
-#line 817 "c.y"
+#line 819 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenum, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 245:
-#line 819 "c.y"
+#line 821 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenum, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 246:
-#line 824 "c.y"
+#line 826 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 247:
-#line 826 "c.y"
+#line 828 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 248:
-#line 833 "c.y"
+#line 835 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenumel, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 249:
-#line 835 "c.y"
+#line 837 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenumel, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 250:
-#line 840 "c.y"
+#line 842 "c.y"
     { ((*yyvalp).expr) = ptrto((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 252:
-#line 846 "c.y"
+#line 848 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 253:
-#line 848 "c.y"
+#line 850 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 254:
-#line 850 "c.y"
+#line 852 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 255:
-#line 852 "c.y"
+#line 854 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 256:
-#line 854 "c.y"
+#line 856 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 257:
-#line 856 "c.y"
+#line 858 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 260:
-#line 863 "c.y"
+#line 865 "c.y"
     { ((*yyvalp).expr) = ptrto((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 261:
-#line 868 "c.y"
+#line 870 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 262:
-#line 870 "c.y"
+#line 872 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, 0, 0, 0, 0); ;}
     break;
 
   case 263:
-#line 872 "c.y"
+#line 874 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 264:
-#line 874 "c.y"
+#line 876 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 265:
-#line 876 "c.y"
+#line 878 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 266:
-#line 878 "c.y"
+#line 880 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, 0, Znull(), 0, 0); ;}
     break;
 
   case 267:
-#line 880 "c.y"
+#line 882 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 268:
-#line 882 "c.y"
+#line 884 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 269:
-#line 887 "c.y"
-    { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eptr, 0, 0, 0, 0); ;}
-    break;
-
-  case 270:
 #line 889 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eptr, 0, 0, 0, 0); ;}
     break;
 
-  case 271:
+  case 270:
 #line 891 "c.y"
+    { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eptr, 0, 0, 0, 0); ;}
+    break;
+
+  case 271:
+#line 893 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eptr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 272:
-#line 893 "c.y"
+#line 895 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eptr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 273:
-#line 898 "c.y"
+#line 900 "c.y"
     { ((*yyvalp).expr) = invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 274:
-#line 900 "c.y"
+#line 902 "c.y"
     { ((*yyvalp).expr) = invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 275:
-#line 905 "c.y"
+#line 907 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 276:
-#line 907 "c.y"
+#line 909 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 277:
-#line 912 "c.y"
-    { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0); ;}
-    break;
-
-  case 278:
 #line 914 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
-  case 279:
+  case 278:
 #line 916 "c.y"
+    { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0); ;}
+    break;
+
+  case 279:
+#line 918 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 280:
-#line 921 "c.y"
+#line 923 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etypename, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 281:
-#line 923 "c.y"
+#line 925 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etypename, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 283:
-#line 929 "c.y"
+#line 931 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 284:
-#line 931 "c.y"
+#line 933 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 285:
-#line 936 "c.y"
+#line 938 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ebase, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 286:
-#line 938 "c.y"
+#line 940 "c.y"
     { ((*yyvalp).expr) = doticktsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr),
 			  newexprsrc(&ctx->inp->src, Ebase, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0)); ;}
     break;
 
   case 287:
-#line 941 "c.y"
+#line 943 "c.y"
     { ((*yyvalp).expr) = doticktsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr),
 			  newexprsrc(&ctx->inp->src, Etypedef, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0)); ;}
     break;
 
   case 288:
-#line 944 "c.y"
+#line 946 "c.y"
     { ((*yyvalp).expr) = doticktsrc(&ctx->inp->src, 0,
 			  newexprsrc(&ctx->inp->src, Etypedef, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0)); ;}
     break;
 
   case 289:
-#line 947 "c.y"
+#line 949 "c.y"
     { cwarnln(ctx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), "deprecated use of backtick on unqualified type name");
 	  ((*yyvalp).expr) = doticktsrc(&ctx->inp->src, 0,
 			  newexprsrc(&ctx->inp->src, Etypedef, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0)); ;}
     break;
 
   case 290:
-#line 951 "c.y"
+#line 953 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 291:
-#line 953 "c.y"
+#line 955 "c.y"
     { ((*yyvalp).expr) = doticktsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr),
 			  newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (4))].yystate.yysemantics.yysval.expr), 0, 0, 0)); ;}
     break;
 
   case 293:
-#line 960 "c.y"
+#line 962 "c.y"
     { ((*yyvalp).expr) = invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 294:
-#line 962 "c.y"
+#line 964 "c.y"
     { ((*yyvalp).expr) = invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 295:
-#line 967 "c.y"
+#line 969 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), Znull(), 0, 0); ;}
     break;
 
   case 296:
-#line 969 "c.y"
+#line 971 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 297:
-#line 974 "c.y"
-    { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
-    break;
-
-  case 298:
 #line 976 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
-  case 299:
+  case 298:
 #line 978 "c.y"
+    { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
+    break;
+
+  case 299:
+#line 980 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edecl, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 301:
-#line 984 "c.y"
+#line 986 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 302:
-#line 986 "c.y"
+#line 988 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 303:
-#line 991 "c.y"
+#line 993 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ebase, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 304:
-#line 993 "c.y"
+#line 995 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Etypedef, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 307:
-#line 1000 "c.y"
+#line 1002 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 308:
-#line 1005 "c.y"
+#line 1007 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eenum, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 311:
-#line 1012 "c.y"
+#line 1014 "c.y"
     { ((*yyvalp).expr) = ptrto((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 312:
-#line 1017 "c.y"
+#line 1019 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 313:
-#line 1019 "c.y"
+#line 1021 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, 0, 0, 0, 0); ;}
     break;
 
   case 314:
-#line 1021 "c.y"
+#line 1023 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 315:
-#line 1023 "c.y"
+#line 1025 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 316:
-#line 1025 "c.y"
+#line 1027 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 317:
-#line 1027 "c.y"
+#line 1029 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, 0, nullelist(), 0, 0); ;}
     break;
 
   case 318:
-#line 1029 "c.y"
+#line 1031 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 319:
-#line 1031 "c.y"
+#line 1033 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 320:
-#line 1036 "c.y"
+#line 1038 "c.y"
     { ((*yyvalp).expr) = ptrto((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 322:
-#line 1042 "c.y"
+#line 1044 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 323:
-#line 1044 "c.y"
+#line 1046 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 324:
-#line 1046 "c.y"
+#line 1048 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 325:
-#line 1048 "c.y"
+#line 1050 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Earr, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 326:
-#line 1050 "c.y"
+#line 1052 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 327:
-#line 1052 "c.y"
+#line 1054 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efun, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 339:
-#line 1071 "c.y"
+#line 1073 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Emcall, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr)), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 340:
-#line 1073 "c.y"
+#line 1075 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Emcall, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (4))].yystate.yysemantics.yysval.expr), nullelist(), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (4))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 341:
-#line 1075 "c.y"
+#line 1077 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Emcall, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 342:
-#line 1080 "c.y"
+#line 1082 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Estxunquote, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 343:
-#line 1085 "c.y"
+#line 1087 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eglobal, invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)), 0, 0, 0); ;}
     break;
 
   case 344:
-#line 1090 "c.y"
+#line 1092 "c.y"
     { ((*yyvalp).expr) = invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 345:
-#line 1095 "c.y"
+#line 1097 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 346:
-#line 1097 "c.y"
+#line 1099 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 347:
-#line 1102 "c.y"
+#line 1104 "c.y"
     {
 		((*yyvalp).expr) = newexprsrc(&ctx->inp->src,
 				Escope,
@@ -4204,7 +4206,7 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 348:
-#line 1112 "c.y"
+#line 1114 "c.y"
     {
 		((*yyvalp).expr) = newexprsrc(&ctx->inp->src,
 				Escope,
@@ -4217,7 +4219,7 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 349:
-#line 1122 "c.y"
+#line 1124 "c.y"
     {
 		/* use src of first statement */
 		Expr *sl;
@@ -4232,7 +4234,7 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 350:
-#line 1134 "c.y"
+#line 1136 "c.y"
     {
 		/* use src of first statement */
 		Expr *sl;
@@ -4247,168 +4249,168 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
     break;
 
   case 353:
-#line 1154 "c.y"
+#line 1156 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr), nullelist(), 0, 0); ;}
     break;
 
   case 354:
-#line 1156 "c.y"
+#line 1158 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eelist, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (2))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 355:
-#line 1161 "c.y"
+#line 1163 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); ;}
     break;
 
   case 356:
-#line 1163 "c.y"
+#line 1165 "c.y"
     { ((*yyvalp).expr) = (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (2))].yystate.yysemantics.yysval.expr); ;}
     break;
 
   case 357:
-#line 1165 "c.y"
+#line 1167 "c.y"
     { ((*yyvalp).expr) = 0; ;}
     break;
 
   case 358:
-#line 1170 "c.y"
+#line 1172 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eif, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 359:
-#line 1172 "c.y"
+#line 1174 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eif, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (7))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (7))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((7) - (7))].yystate.yysemantics.yysval.expr), 0); ;}
     break;
 
   case 360:
-#line 1175 "c.y"
+#line 1177 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eswitch, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 361:
-#line 1180 "c.y"
+#line 1182 "c.y"
     { ((*yyvalp).expr) = Zlabelsrc((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr)->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (3))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 362:
-#line 1182 "c.y"
+#line 1184 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ecase, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (4))].yystate.yysemantics.yysval.expr), NULL, NULL); ;}
     break;
 
   case 363:
-#line 1184 "c.y"
+#line 1186 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ematch, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (4))].yystate.yysemantics.yysval.expr), NULL, NULL); ;}
     break;
 
   case 364:
-#line 1186 "c.y"
+#line 1188 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ematch, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (6))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((6) - (6))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (6))].yystate.yysemantics.yysval.expr), NULL); ;}
     break;
 
   case 365:
-#line 1188 "c.y"
+#line 1190 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edefault, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (3))].yystate.yysemantics.yysval.expr), NULL, NULL, NULL); ;}
     break;
 
   case 367:
-#line 1194 "c.y"
+#line 1196 "c.y"
     { ((*yyvalp).expr) = 0; ;}
     break;
 
   case 368:
-#line 1199 "c.y"
+#line 1201 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ewhile, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (5))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 369:
-#line 1201 "c.y"
+#line 1203 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edo, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (7))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (7))].yystate.yysemantics.yysval.expr), 0, 0); ;}
     break;
 
   case 370:
-#line 1203 "c.y"
+#line 1205 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Efor, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (9))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (9))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((7) - (9))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((9) - (9))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 371:
-#line 1208 "c.y"
+#line 1210 "c.y"
     { ((*yyvalp).expr) = Zgotosrc(&ctx->inp->src, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 372:
-#line 1210 "c.y"
+#line 1212 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Econtinue, 0, 0, 0, 0); ;}
     break;
 
   case 373:
-#line 1212 "c.y"
+#line 1214 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Ebreak, 0, 0, 0, 0); ;}
     break;
 
   case 374:
-#line 1214 "c.y"
+#line 1216 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eret, 0, 0, 0, 0); ;}
     break;
 
   case 375:
-#line 1216 "c.y"
+#line 1218 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Eret, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (3))].yystate.yysemantics.yysval.expr), 0, 0, 0); ;}
     break;
 
   case 376:
-#line 1221 "c.y"
+#line 1223 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edefstx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (7))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (7))].yystate.yysemantics.yysval.expr)), (((yyGLRStackItem const *)yyvsp)[YYFILL ((6) - (7))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((7) - (7))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 377:
-#line 1223 "c.y"
+#line 1225 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edefstx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (6))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (6))].yystate.yysemantics.yysval.expr)), 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((6) - (6))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 378:
-#line 1225 "c.y"
+#line 1227 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edefstx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (6))].yystate.yysemantics.yysval.expr), nullelist(), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (6))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((6) - (6))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 379:
-#line 1227 "c.y"
+#line 1229 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edefstx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), nullelist(), 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 380:
-#line 1229 "c.y"
+#line 1231 "c.y"
     { ((*yyvalp).expr) = newexprsrc(&ctx->inp->src, Edefstx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (4))].yystate.yysemantics.yysval.expr), 0, (((yyGLRStackItem const *)yyvsp)[YYFILL ((3) - (4))].yystate.yysemantics.yysval.expr), (((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (4))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
   case 381:
-#line 1234 "c.y"
+#line 1236 "c.y"
     { ((*yyvalp).kind) = Edefine; ;}
     break;
 
   case 382:
-#line 1236 "c.y"
+#line 1238 "c.y"
     { ((*yyvalp).kind) = Edefloc; ;}
     break;
 
   case 383:
-#line 1241 "c.y"
+#line 1243 "c.y"
     { ((*yyvalp).expr) = putsrc(newexpr((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (6))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (6))].yystate.yysemantics.yysval.expr), invert((((yyGLRStackItem const *)yyvsp)[YYFILL ((4) - (6))].yystate.yysemantics.yysval.expr)), (((yyGLRStackItem const *)yyvsp)[YYFILL ((6) - (6))].yystate.yysemantics.yysval.expr), 0), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (6))].yystate.yysemantics.yysval.expr)->src); ;}
     break;
 
   case 384:
-#line 1243 "c.y"
+#line 1245 "c.y"
     { ((*yyvalp).expr) = putsrc(newexpr((((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (5))].yystate.yysemantics.yysval.kind), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr), nullelist(), (((yyGLRStackItem const *)yyvsp)[YYFILL ((5) - (5))].yystate.yysemantics.yysval.expr), 0), (((yyGLRStackItem const *)yyvsp)[YYFILL ((2) - (5))].yystate.yysemantics.yysval.expr)->src); ;}
     break;
 
   case 389:
-#line 1257 "c.y"
+#line 1259 "c.y"
     { dotop(ctx, (((yyGLRStackItem const *)yyvsp)[YYFILL ((1) - (1))].yystate.yysemantics.yysval.expr)); ;}
     break;
 
 
 /* Line 930 of glr.c.  */
-#line 4412 "c.tab.c"
+#line 4414 "c.tab.c"
       default: break;
     }
 
@@ -6069,7 +6071,7 @@ yypdumpstack (yyGLRStack* yystackp)
 #endif
 
 
-#line 1260 "c.y"
+#line 1262 "c.y"
 
 static void
 yyerror(U *ctx, const char *s)

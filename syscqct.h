@@ -947,6 +947,7 @@ Expr*		dosym(char *s, unsigned long len);
 Expr*		dotickesrc(Ysrc *src, Expr*, Expr*);
 Expr*		doticktsrc(Ysrc *src, Expr*, Expr*);
 void		dotop(U*, Expr*);
+void		expandstr(char *s, unsigned long len, unsigned long *nlen);
 void		finiparse(void);
 Expr*		flatten(Expr *e);
 void		initparse(void);
