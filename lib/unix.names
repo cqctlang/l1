@@ -16,11 +16,14 @@ enum mmap_consts {
 
   MAP_SHARED	= 0x1,
   MAP_PRIVATE	= 0x2,
-  MAP_LOCKED	= 0x2000
+  MAP_LOCKED	= 0x2000,
+  MAP_NORESERVE = 0x4000
 };
 
 // x86_64 linux
 struct stat {
+
+  @24    uint32 st_mode;
 
   @48    int64	st_size;
 

@@ -91,6 +91,48 @@ sys_ioctl = @lambda(fd,req,data) {
 
 };
 
+posix = @names myrootns() {
+  enum Stat_modes {
+    S_IFMT	= 00170000,
+    S_IFSOCK	= 0140000,
+    S_IFLNK	= 0120000,
+    S_IFREG	= 0100000,
+    S_IFBLK	= 0060000,
+    S_IFDIR	= 0040000,
+    S_IFCHR	= 0020000,
+    S_IFIFO	= 0010000,
+    S_ISUID	= 0004000,
+    S_ISGID	= 0002000,
+    S_ISVTX	= 0001000,
+  };
+};
+
+//S_ISREG = @lambda(statbuf) {
+//};
+
+S_ISDIR = @lambda(statbuf) {
+  return (statbuf->st_mode & posix`S_IFDIR) ? 1 : 0;
+};
+
+S_ISCHR = @lambda(statbuf) {
+  return (statbuf->st_mode & posix`S_IFCHR) ? 1 : 0;
+};
+
+S_ISBLK = @lambda(statbuf) {
+  return (statbuf->st_mode & posix`S_IFBLK) ? 1 : 0;
+};
+
+S_ISFIFO = @lambda(statbuf) {
+  return (statbuf->st_mode & posix`S_IFIFO) ? 1 : 0;
+};
+
+S_ISLNK = @lambda(statbuf) {
+  return (statbuf->st_mode & posix`S_ISLNK) ? 1 : 0;
+};
+
+//S_ISSOC = @lambda(m) {
+//};
+
 sys_fstat = @lambda(fd,statbuf) {
   @local m,r,l;
 
