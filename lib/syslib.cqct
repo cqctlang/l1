@@ -19,19 +19,36 @@ mapfile = @lambda(filename) {
     error("couldn't stat %s",filename);
   } 
 
-  s = st->st_size;
+  if(S_ISBLK(st)) {
+    @local sb,r;
+
+    sb=(uint64 *)malloc(8);
+    *sb=0;
+    r=sys_ioctl(fd, unix`BLKGETSZ, sb);
+    if(r) {
+      error("couldn't determine size of block device %s", filename);
+    }
+    s=*sb * 512;
+  } else {
+    s = st->st_size;
+  }
 
   p = sys_mmap(0, s, unix`PROT_READ|unix`PROT_WRITE,
                               //unix`MAP_NORESERVE|unix`MAP_PRIVATE, fd, 0); 
                               unix`MAP_PRIVATE, fd, 0); 
+  if(p == -1) {
+    // we can try with noreserve on a platform that supports it
+    if(looksym(unix,'MAP_NORESERVE)) {
+      p = sys_mmap(0, s, unix`PROT_READ|unix`PROT_WRITE,
+                              unix`MAP_NORESERVE|unix`MAP_PRIVATE, fd, 0); 
+    }
+  }
 
   sys_close(fd);
   if(p == -1)
     error("could not map %s",filename);
 
   r=mkstrm(p, s);
-
-  st = 0;
 
   finalize(r,@lambda(args ...) {
     sys_munmap(p,s);
