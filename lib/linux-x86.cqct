@@ -8,3 +8,10 @@ linuxns = @names c32le {
         @0;
 	} Ctx;
 };
+
+unix = @names clp64le {
+
+        @include <linux-x86-enum.names>
+        @include <unix.names>
+};
+

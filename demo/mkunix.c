@@ -100,9 +100,11 @@ main(int argc,char **argv) {
 		{ "msync",		SYS_msync },
 		{ "mincore",		SYS_mincore },
 		{ "madvise",		SYS_madvise },
+#ifdef SYS_shmget // linux i386 misses these
 		{ "shmget",		SYS_shmget },
 		{ "shmat",		SYS_shmat },
 		{ "shmctl",		SYS_shmctl },
+#endif
 		{ "dup",		SYS_dup },
 		{ "dup2",		SYS_dup2 },
 		{ "pause",		SYS_pause },
@@ -112,6 +114,7 @@ main(int argc,char **argv) {
 		{ "setitimer",		SYS_setitimer },
 		{ "getpid",		SYS_getpid },
 		{ "sendfile",		SYS_sendfile },
+#ifdef SYS_socket // linux i386 uses socketcall
 		{ "socket",		SYS_socket },
 		{ "connect",		SYS_connect },
 		{ "accept",		SYS_accept },
@@ -127,6 +130,7 @@ main(int argc,char **argv) {
 		{ "socketpair",		SYS_socketpair },
 		{ "setsockopt",		SYS_setsockopt },
 		{ "getsockopt",		SYS_getsockopt },
+#endif
 		{ "clone",		SYS_clone },
 		{ "fork",		SYS_fork },
 		{ "vfork",		SYS_vfork },
@@ -135,6 +139,7 @@ main(int argc,char **argv) {
 		{ "wait4",		SYS_wait4 },
 		{ "kill",		SYS_kill },
 		{ "uname",		SYS_uname },
+#ifdef SYS_shmget // linux i386 misses these
 		{ "semget",		SYS_semget },
 		{ "semop",		SYS_semop },
 		{ "semctl",		SYS_semctl },
@@ -143,6 +148,7 @@ main(int argc,char **argv) {
 		{ "msgsnd",		SYS_msgsnd },
 		{ "msgrcv",		SYS_msgrcv },
 		{ "msgctl",		SYS_msgctl },
+#endif
 		{ "fcntl",		SYS_fcntl },
 		{ "flock",		SYS_flock },
 		{ "fsync",		SYS_fsync },
@@ -229,7 +235,9 @@ main(int argc,char **argv) {
 		{ "pivot_root",		SYS_pivot_root },
 		//{ "_sysctl",		SYS_
 		{ "prctl",		SYS_prctl },
+#ifdef SYS_arch_prctl // linux i386 misses this
 		{ "arch_prctl",		SYS_arch_prctl },
+#endif
 		{ "adjtimex",		SYS_adjtimex },
 		{ "setrlimit",		SYS_setrlimit },
 		{ "chroot",		SYS_chroot },
@@ -255,8 +263,12 @@ main(int argc,char **argv) {
 		{ "getpmsg",		SYS_getpmsg },
 		{ "putpmsg",		SYS_putpmsg },
 		{ "afs_syscall",	SYS_afs_syscall },
+#ifdef SYS_tuxcall // linux i386 misses this
 		{ "tuxcall",		SYS_tuxcall },
+#endif
+#ifdef SYS_security // linux i386 misses this
 		{ "security",		SYS_security },
+#endif
 		{ "gettid",		SYS_gettid },
 		{ "readahead",		SYS_readahead },
 		{ "setxattr",		SYS_setxattr },
@@ -285,13 +297,17 @@ main(int argc,char **argv) {
 		{ "get_thread_area",	SYS_get_thread_area },
 		{ "lookup_dcookie",	SYS_lookup_dcookie },
 		{ "epoll_create",	SYS_epoll_create },
+#ifdef SYS_epoll_ctl_old // linux i386 misses this
 		{ "epoll_ctl_old",	SYS_epoll_ctl_old },
 		{ "epoll_wait_old",	SYS_epoll_wait_old },
+#endif
 		{ "remap_file_pages",	SYS_remap_file_pages },
 		{ "getdents64",		SYS_getdents64 },
 		{ "set_tid_address",	SYS_set_tid_address },
 		{ "restart_syscall",	SYS_restart_syscall },
+#ifdef SYS_semtimedop
 		{ "semtimedop",		SYS_semtimedop },
+#endif
 		{ "fadvise64",		SYS_fadvise64 },
 		{ "timer_create",	SYS_timer_create },
 		{ "timer_settime",	SYS_timer_settime },
@@ -333,7 +349,9 @@ main(int argc,char **argv) {
 		{ "mknodat",		SYS_mknodat },
 		{ "fchownat",		SYS_fchownat },
 		{ "futimesat",		SYS_futimesat },
+#ifdef SYS_semtimedop // linux i386 misses this
 		{ "newfstatat",		SYS_newfstatat },
+#endif
 		{ "unlinkat",		SYS_unlinkat },
 		{ "renameat",		SYS_renameat },
 		{ "linkat",		SYS_linkat },
