@@ -362,5 +362,6 @@ linuxns = @names clp64le {
 };
 
 unix = @names clp64le {
+  @include <darwin-x86_64-enum.names>
   @include <darwin-unix.names>
 };

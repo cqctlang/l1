@@ -1,41 +1,8 @@
 
-enum oflags {
-  O_RDONLY = 0,
-  O_WRONLY = 1,
-  O_RDWR = 2,
-  O_CREAT = 0x200,
-  O_TRUNC = 0x400,
-  O_APPEND = 0x8,
-  O_NONBLOCK = 0x4,
-};
 
 struct stat {
   @0x48 int64 st_size;
   @0x90;
-};
-
-enum mmap_consts {
-  PROT_READ=0x1,
-  PROT_WRITE=0x2,
-  PROT_EXEC=0x2,
-  MAP_SHARED=0x1,
-  MAP_PRIVATE=0x2
-};
-
-/* originally from linux/socket.h */
-enum address_families {
-  AF_UNSPEC=          0,
-  AF_UNIX=            1,      /* Unix domain sockets          */
-  AF_LOCAL=           1,      /* POSIX name for AF_UNIX       */
-  AF_INET=            2,      /* Internet IP Protocol         */
-  AF_INET6=           30,     /* IP version 6                 */
-};
-
-enum __socket_type
-{
-  SOCK_STREAM = 1,
-  SOCK_DGRAM = 2,
-  SOCK_RAW = 3,
 };
 
 struct timespec {                                                                
