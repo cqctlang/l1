@@ -324,11 +324,8 @@ linuxns = @names clp64le {
 };
 
 unix = @names clp64le {
-	typedef
-	enum Ioctl {
-		BLKGETSZ			= 0x1260,
-	} Ioctl;
 
+	@include <linux-x86_64-enum.names>
 	@include <unix.names>
 };
 

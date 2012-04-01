@@ -24,7 +24,7 @@ mapfile = @lambda(filename) {
 
     sb=(uint64 *)malloc(8);
     *sb=0;
-    r=sys_ioctl(fd, unix`BLKGETSZ, sb);
+    r=sys_ioctl(fd, unix`BLKGETSIZE, sb);
     if(r) {
       error("couldn't determine size of block device %s", filename);
     }

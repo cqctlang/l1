@@ -73,7 +73,8 @@ main(int argc,char **argv) {
 	struct enum_entry syscall_nr[]={
 		{ "read",	SYS_read },
 		{ "write",	SYS_write },
-		{ "open",	SYS_close },
+		{ "open",	SYS_open },
+		{ "close",	SYS_close },
 		{ "stat",	SYS_stat },
 		{ "fstat",	SYS_fstat },
 		{ "lstat",	SYS_lstat },

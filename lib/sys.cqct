@@ -40,22 +40,22 @@ sys_open = @lambda(filename,oflag,rest ...) {
   m[length(filename)]=0;
 
   if(oflag & unix`O_CREAT) {
-    r=syscall(linuxns`open,m,oflag,rest[0]);
+    r=syscall(unix`open,m,oflag,rest[0]);
   } else {
-    r=syscall(linuxns`open,m,oflag);
+    r=syscall(unix`open,m,oflag);
   }
   return r;
 };
 
 sys_close = @lambda(fd) {
-  syscall(linuxns`close,fd);
+  syscall(unix`close,fd);
 };
 
 sys_read = @lambda(fd,buf,len) {
   @local m,r,c;
 
   m=malloc(len);
-  r=syscall(linuxns`read,fd,m,len);
+  r=syscall(unix`read,fd,m,len);
   if(r>0) {
     c=getbytes(m,r);
     putbytes(buf,c);
@@ -78,14 +78,14 @@ sys_write = @lambda(fd,buf,len) {
     memcpy(m,buf,len);
   }
 
-  r=syscall(linuxns`write,fd,m,len);
+  r=syscall(unix`write,fd,m,len);
   return r;
 };
 
 sys_ioctl = @lambda(fd,req,data) {
   @local r;
 
-  r=syscall(linuxns`ioctl,fd,req,data);
+  r=syscall(unix`ioctl,fd,req,data);
 
   return r;
 
@@ -152,7 +152,7 @@ sys_fstat = @lambda(fd,statbuf) {
     memcpy(m,statbuf,l);
   }
 
-  r=syscall(linuxns`fstat,fd,m);
+  r=syscall(unix`fstat,fd,m);
 
   m=(struct unix`stat *)m;
 
@@ -185,6 +185,9 @@ FD_SET=@lambda(fd,set) {
     set[byte]|=bit;
 };
 
+@global sys_pselect;
+@global sys_select;
+if(looksym(unix,'select)) {
 sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
   @local rfds_foo,wfds_foo,xfds_foo,timeout_foo,r,x,rr,rw,rx;
   @local maxbyte;
@@ -224,7 +227,7 @@ sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
     FD_SET(v,xfds_foo);
   },xfds);
 
-  r=syscall(linuxns`select,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
+  r=syscall(unix`select,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
 
   if(r==-1) {
     return [[],[],[]];
@@ -255,6 +258,7 @@ sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
 sys_select = @lambda(n,rfds,wfds,xfds,timeout) {
   return sys_pselect(n,rfds,wfds,xfds,timeout,0);
 };
+}
 
 sys_unlink = @lambda(filename) {
   @local m;
@@ -263,36 +267,36 @@ sys_unlink = @lambda(filename) {
   putbytes(m,filename);
   m[length(filename)]=0;
 
-  return syscall(linuxns`unlink,m);
+  return syscall(unix`unlink,m);
 };
 
 @global sys_mmap;
-if(linuxns.looksym('mmap2)) {
+if(unix.looksym('mmap2)) {
   sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
-    return (linuxns`void *)syscall(linuxns`mmap2,addr,length,prot,flags,fd,offset>>12);                
+    return (linuxns`void *)syscall(unix`mmap2,addr,length,prot,flags,fd,offset>>12);                
   };
 } else {
   sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
-    return (linuxns`void *)syscall(linuxns`mmap,addr,length,prot,flags,fd,offset);                
+    return (unix`void *)syscall(unix`mmap,addr,length,prot,flags,fd,offset);                
   };
 
 }
 
 sys_msync=@lambda(addr,size,flags) {
 
-  return syscall(linuxns`msync,addr,size,flags);
+  return syscall(unix`msync,addr,size,flags);
 
 };
 
 sys_munmap=@lambda(addr,length) {
 
-  return syscall(linuxns`munmap,addr,length);
+  return syscall(unix`munmap,addr,length);
 
 };
 
 sys_socket = @lambda(domain,type,protocol) {
 
-  return syscall(linuxns`socket,domain,type,protocol);
+  return syscall(unix`socket,domain,type,protocol);
 
 };
 
@@ -307,7 +311,7 @@ sys_connect = @lambda(fd,sockaddr,size) {
 
   putbytes(sa,getbytes(sockaddr,size));
 
-  return syscall(linuxns`connect,fd,sa,size);
+  return syscall(unix`connect,fd,sa,size);
 };
 
 sys_bind = @lambda(fd,sockaddr,size) {
@@ -321,12 +325,12 @@ sys_bind = @lambda(fd,sockaddr,size) {
 
   putbytes(sa,getbytes(sockaddr,size));
 
-  return syscall(linuxns`bind,fd,sa,size);
+  return syscall(unix`bind,fd,sa,size);
 };
 
 sys_listen = @lambda(fd,backlog) {
 
-  return syscall(linuxns`listen,fd,backlog);
+  return syscall(unix`listen,fd,backlog);
 };
 
 sys_accept = @lambda(fd,sockaddr,size) {
@@ -349,7 +353,7 @@ sys_accept = @lambda(fd,sockaddr,size) {
 
   *ss=size;
 
-  return syscall(linuxns`accept,fd,sa,ss);
+  return syscall(unix`accept,fd,sa,ss);
 
 };
 
@@ -359,7 +363,7 @@ sys_accept = @lambda(fd,sockaddr,size) {
 
 sys_exit = @lambda(status) {
 
-  syscall(linuxns`exit,status);
+  syscall(unix`exit,status);
 
 };
 
@@ -370,7 +374,7 @@ if(_unameres[0] == "Darwin") {
   sys_fork = @lambda() {
     @local r,p;
 
-    r=syscall(linuxns`fork);
+    r=syscall(unix`fork);
     p=sys_getpid();
 
     if(0 > r) {
@@ -388,7 +392,7 @@ if(_unameres[0] == "Darwin") {
 
   sys_fork = @lambda() {
 
-    syscall(linuxns`fork);
+    syscall(unix`fork);
 
   };
 
@@ -396,25 +400,25 @@ if(_unameres[0] == "Darwin") {
 
 sys_getpid = @lambda() {
 
-  syscall(linuxns`getpid);
+  syscall(unix`getpid);
 
 };
 
 sys_getppid = @lambda() {
 
-  syscall(linuxns`getppid);
+  syscall(unix`getppid);
 
 };
 
 sys_getpgid = @lambda(pid) {
 
-  syscall(linuxns`getpgid,pid);
+  syscall(unix`getpgid,pid);
 
 };
 
 sys_setpgid = @lambda(pid,pgid) {
 
-  syscall(linuxns`setpgid,pid,pgid);
+  syscall(unix`setpgid,pid,pgid);
 
 };
 
@@ -428,7 +432,7 @@ sys_sleep = @lambda(secs) {
   m2=malloc(sizeof(struct unix`timespec));
   m2=(struct unix`timespec *)m2;
   
-  r=syscall(linuxns`nanosleep,m,m2);
+  r=syscall(unix`nanosleep,m,m2);
   
   if(!r) {
     return r;
@@ -441,7 +445,7 @@ sys_sleep = @lambda(secs) {
 sys_reboot = @lambda(magic, magic2, cmd, arg) {
   @local r;
 
-  r=syscall(linuxns`reboot, magic, magic2, cmd, arg);
+  r=syscall(unix`reboot, magic, magic2, cmd, arg);
 
   return r;
 };
@@ -453,7 +457,7 @@ sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
   m=(unsigned char *)malloc(cpusetsize);    
   memset(m,0,cpusetsize);
 
-  r=syscall(linuxns`sched_getaffinity,pid,cpusetsize,m);
+  r=syscall(unix`sched_getaffinity,pid,cpusetsize,m);
 
   return r;
 
@@ -469,7 +473,7 @@ sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
     error("BAD MASK!\n");
   }
 
-  r=syscall(linuxns`sched_setaffinity,pid,cpusetsize,m);
+  r=syscall(unix`sched_setaffinity,pid,cpusetsize,m);
 
   return r;
 
@@ -487,7 +491,7 @@ sys_getmempolicy = @lambda(mode, nodemask, maxnode,addr,flags) {
     error("nodemask should be a string");
   }
 
-  r=syscall(linuxns`get_mempolicy,mode, m, maxnode, addr, flags);
+  r=syscall(unix`get_mempolicy,mode, m, maxnode, addr, flags);
 
   return r;
 
@@ -504,20 +508,20 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
     error("nodemask should be a string");
   }
 
-  r=syscall(linuxns`get_setpolicy,mode, m, maxnode);
+  r=syscall(unix`get_setpolicy,mode, m, maxnode);
 
   return r;
 };
 
 sys_getuid = @lambda() {
 
-  return syscall(linuxns`getuid);
+  return syscall(unix`getuid);
 
 };
 
 sys_geteuid = @lambda() {
 
-  return syscall(linuxns`geteuid);
+  return syscall(unix`geteuid);
 
 };
 
@@ -567,5 +571,5 @@ $ /bin/echo hello world
     return ret;
   }, [argv,envp]);
 
-  return syscall(linuxns`execve,f,a,e);
+  return syscall(unix`execve,f,a,e);
 };
