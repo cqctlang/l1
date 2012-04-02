@@ -1,6 +1,7 @@
 
 
 struct stat {
+  @0x8 uint16 st_mode;
   @0x48 int64 st_size;
   @0x90;
 };
