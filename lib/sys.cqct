@@ -557,15 +557,25 @@ $ /bin/echo hello world
   [a,e] = map(@lambda(ary) {
     @local ret,i,len,strs;
     len = sizeof(char*) * (length(ary)+1);
-    foreach(@lambda(v) { len += length(v)+1; },ary);
+    foreach(@lambda(v) { 
+      if (isstring(v)) len += length(v)+1; 
+      else len += sizeof(v);
+    },ary);
     ret=(char**)malloc(len);
     strs = (char*)&ret[length(ary)+1];
     for(i=0; i<length(ary); ++i) {
       ret[i] = strs;
-      putbytes(strs,ary[i]);
-      strs+=length(ary[i]);
-      *strs = 0;
-      strs += 1;
+      if (isstring(ary[i])) {
+        putbytes(strs,ary[i]);
+        strs+=length(ary[i]);
+        *strs = 0;
+        strs += 1;
+      } else {
+        @local v;
+        v = ary[i];
+        *{mkctype_ptr(@typeof(v),nsptr(nsof(v)))}strs = v;
+        strs += sizeof(ary[i]);
+      }
     }
     ret[i] = 0; //final null pointer (i == length(ary))
     return ret;
