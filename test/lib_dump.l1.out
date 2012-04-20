@@ -1,0 +1,68 @@
+struct _TYPE at 0x0 {
+   ULONG field1 = 1094795585
+   ULONG fields = 1094795585
+   char [8] ary = [65,
+                   65,
+                   65,
+                   65,
+                   65,
+                   65,
+                   65,
+                   65]
+   enum ENUM value = ENUM_1 (1094795585)
+   int *[1] ending = [UNMAPPED]
+};
+struct _TYPE at 0x178 {
+   ULONG field1 = 1094795585
+   ULONG fields = 1094795585
+   char [8] ary = [65,
+                   65,
+                   65,
+                   65,
+                   65,
+                   65,
+                   65,
+                   65]
+   enum ENUM value = ENUM_1 (1094795585)
+   int *[1] ending = [UNMAPPED]
+};
+1094795585
+int;
+TTT [5];
+struct _TYPE {
+	@0x0	ULONG field1;
+	@0x4	ULONG fields;
+	@0x8	char ary[8];
+	@0x10	enum ENUM value;
+	@0x10	int *ending[1];
+	@0x18;
+};
+typedef short int16;
+typedef unsigned short uint16;
+typedef unsigned long uint64;
+typedef struct _TYPE TYPE;
+typedef char int8;
+typedef int int32;
+typedef unsigned int uint32;
+enum ENUM {
+	ENUM_0 = 1094795584,
+	ENUM_1 = 1094795585,
+	ENUM_2 = 1094795586,
+};
+typedef unsigned char uint8;
+struct _TYPE {
+	@0x0	ULONG field1;
+	@0x4	ULONG fields;
+	@0x8	char ary[8];
+	@0x10	enum ENUM value;
+	@0x10	int *ending[1];
+	@0x18;
+};
+typedef TYPE TTT;
+typedef long int64;
+typedef uint32 ULONG;
+typedef struct _TYPE * PTYPE;
+typedef unsigned int uintptr;
+TTT ttt;
+int an_int;
+TTT lala[5];

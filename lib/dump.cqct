@@ -74,8 +74,11 @@ print a namespace in .names file format.
 		ns = dn;
 	
 	vec = tabvals(ns.enumtype());
-	for(i = 0; i < length(vec); i++)
+	for(i = 0; i < length(vec); i++) {
+    if (isbase(vecref(vec,i))) continue;
+    if (isptr(vecref(vec,i))) continue;
 		printtype(vecref(vec, i));
+  }
 
 	vec = tabvals(ns.enumsym());
 	for(i = 0; i < length(vec); i++)
@@ -151,6 +154,7 @@ Function for testing.
 		t2 = subtype(t);
 		while(istypedef(t2))
 			t2 = typedeftype(t2);
+    if (isvoid(t2)) return "VOID";
 		if (!ismapped(p)) return "UNMAPPED";
 		else if (issu(t2)) {
 			@local flds, i, nxt_indent, ret;
@@ -182,6 +186,8 @@ Function for testing.
 			return ret;
 		} else if (isbase(t2) && baseid(t2)=="char") {
 			return stringof(p);
+    } else if (isenum(t2)) {
+      return sprintfa("%e (%d)",{t2}*p,*p);
 		} else if (isbase(t2)) {
 			if (baseid(t2)=="int") 
 				return sprintfa("%d",*p);
