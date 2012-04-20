@@ -61,12 +61,20 @@ debug = 0;
 
 @define rangeset_insert(set,r) {
     @local intersection,r2,abut;
+    //strategy: 
+    // 1) find all regions overlapping r,
+    //    - including those that are simply next to but not intersecting r
+    // 2) compute the range that covers them all
+    // 3) remove the other overlapping regions
+    // 4) insert the new covering region
     if (rangelen(r) == 0) return;
-    intersection = rangeset_intersect(set,r);
+    intersection = rangeset_intersect(set,r); //contain overlapping regions
     if (debug) printf("initial intersection: %a\n",intersection);
     abut = rbtree_nearestsmallerquery(set,rangebeg(r));
+    //can also abut (but not intersect) a region below
     if (abut != nil && abut[0]+abut[1] == rangebeg(r))
         append(intersection,mkrange(abut[0],abut[1]));
+    //can also abut (but not intersect) a region above
     abut = rbtree_query(set,rangebeg(r)+rangelen(r));
     if (abut != nil)
         append(intersection,
