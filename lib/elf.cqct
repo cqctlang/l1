@@ -218,7 +218,7 @@ elf_defined = 1;
 /**
 * prints the values of the elf header for the elf file represented by the
 * given domain.
-* param: elfdom - an elf domain (gerneally mkelfrec(...).elf)
+* param: elfdom - an elf domain (generally mkelfrec(...).elf)
 * returns: nil
 */
 @define showelfheader (elfdom)
