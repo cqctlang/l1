@@ -29,6 +29,7 @@ enum socket_type {
 	SOCK_RAW	= 0x3,
 };
 enum ioctl_nr {
+	DKIOCGETBLOCKCOUNT	= 0x40086419,
 };
 enum syscall_nr {
 	read	= 0x3,
