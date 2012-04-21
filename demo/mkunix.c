@@ -8,6 +8,9 @@
 #ifdef __linux__
 #include <linux/fs.h>
 #endif
+//#ifdef DARWIN
+#include <sys/disk.h>
+//#endif
 
 struct enum_entry {
 	const char *name;
@@ -75,6 +78,9 @@ main(int argc,char **argv) {
 #ifdef BLKGETSIZE // Darwin misses this
 		{ "BLKGETSIZE",		BLKGETSIZE },
 #endif
+//#ifdef DARWIN
+		{ "DKIOCGETBLOCKCOUNT", DKIOCGETBLOCKCOUNT },
+//#endif
 		{ NULL },
 	};
 
