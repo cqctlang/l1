@@ -1665,7 +1665,7 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 	return mkcvalenc(cv->dom, cv->type, v);
 }
 
-static Val
+Val
 xunop(VM *vm, ikind op, Val v)
 {
 	Cval *cv, *cvr;

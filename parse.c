@@ -356,6 +356,12 @@ parselit(char *s, unsigned long len, Lit *lit, unsigned radix, char **err)
 		return 0;
 	}
 
+	/* caller must handle negative literals */
+	if(strnchr(s, '-', len)){
+		*err = "invalid integer constant";
+		return -1;
+	}
+
 	/* integer constant */
 	if(radix == Rany){
 		if(s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))

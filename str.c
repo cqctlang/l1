@@ -355,8 +355,12 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	Lit lit;
 	Cval *cv;
+	Val v;
 	char *err;
 	unsigned radix;
+	char *p;
+	unsigned long len;
+	unsigned isneg;
 
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to strton");
@@ -372,8 +376,26 @@ l1_strton(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 
 	s = valstrorcval(vm, "strton", argv, 0);
-	if(!parselit(strdata(s), s->len, &lit, radix, &err))
-		*rv = mkvallitcvalenc(lit.base, lit.v);
+	p = strdata(s);
+	len = s->len;
+	isneg = 0;
+	while(len > 0){
+		if(p[0] == '-'){
+			isneg = !isneg;
+			p++;
+			len--;
+		}else if(p[0] == ' ' || p[0] == '\t'){
+			p++;
+			len--;
+		}else
+			break;
+	}
+	if(!parselit(p, len, &lit, radix, &err)){
+		v = mkvallitcvalenc(lit.base, lit.v);
+		if(isneg)
+			v = xunop(vm, Ineg, v);
+		*rv = v;
+	}
 }
 
 void
