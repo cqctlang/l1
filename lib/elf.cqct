@@ -2,6 +2,8 @@
 
 if (elf_defined == nil)
 {
+/* apparently unused at time of librarization */
+/*
 @local DT_VALTAGIDX,DT_ADDRTAGIDX,DT_VERSIONTAGIDX;
 @local EF_ARM_EABI_VERSION;
 @local ELF32_R_SYM,ELF32_R_TYPE,ELF32_R_INFO;
@@ -10,6 +12,7 @@ if (elf_defined == nil)
 @local ELF64_M_SYM,ELF64_M_SIZE,ELF64_M_INFO;
 
 @local elfsegtype,elfsegoffset,elfsegvaddr,elfsegpaddr,elfsegfilesz,elfsegmemsz,elfsegflags,elfsegalign;
+*/
 
 @global mkelfrec,showelfheader,showallelfsectionheaders,showsectionheader;
 @global showelfsym,getsyms,getelfsyms,dumpsym,showsym,getelfsection;
@@ -17,6 +20,7 @@ if (elf_defined == nil)
 @global getcqctelfsym,show_elf_syms,show_elf_addrs;
 @global elfshndx,elfother,elfinfo,elfsize,elfvisibility,elftype,elfaddr,elfname;
 @global bd,isbd;
+@global iself;
 
 @global ELF32_ST_BIND,ELF32_ST_TYPE,ELF32_ST_INFO;
 @global ELF64_ST_BIND,ELF64_ST_TYPE,ELF64_ST_INFO;
@@ -32,14 +36,50 @@ elf_defined = 1;
     linetable, addrsize, rootns, cuinfotab, nstab, fregtab, artab};
 
 /**
-* Makes and returns an elf record for the provided elf file string.
-* param: binfile - a string representation of the contents of an elf file
+* Tests a string to see if it is ELF.
+* param: stroras - a string or an address space
+* returns:	1 -- the string may be valid ELF
+*		0 -- the string is certianly not ELF	
+*/
+@define iself (stroras) {
+	@local sig;
+
+	sig = "\x7f""ELF";
+
+	if(isas(stroras)) {
+  		if ( getbytes({stroras}(void *)0, length(sig)) != sig)
+
+			return 0;
+		else
+			return 1;
+
+	} else if(isstring(stroras)) {
+	
+		if ( 	( length(stroras) < 4 ) ||
+			( substr(stroras,0,length(sig)) != sig ) )
+
+			return 0;
+		else
+			return 1;
+	} else {
+		error("operand 0 to iself must be a string or an address space");
+	}
+}
+
+
+/**
+* Makes and returns an elf record for the provided elf object.
+* param: binfile - a string or address space of the contents of an elf file
 * returns: a bd record containing the file's elf information
 */
 @define mkelfrec (binfile) {
   @local elfas, elfheader, elfnames, hdom, hns, root, rv;
+
+  if(isstring(binfile))
+	return mkelfrec(mksas(binfile));
+
   rv = bd();
-  elfas = mksas (binfile);
+  elfas = binfile;
   hns = @names c32le {
 	  enum x {
 		  EI_NIDENT	=16,
@@ -95,6 +135,8 @@ elf_defined = 1;
 }
 
 /* functions to perform some macros defined in /usr/include/elf.h */
+/* unused at time of librarization */
+/*
 @define DT_VALTAGIDX (edom, tag)
 {
   return (edom`DT_VALRNGHI - (tag));
@@ -214,6 +256,7 @@ elf_defined = 1;
 {
   return (((sym) << 8) + (unsigned char) (size));
 }
+*/
 
 /**
 * prints the values of the elf header for the elf file represented by the
@@ -354,7 +397,7 @@ elf_defined = 1;
 	symcount = sec->sh_size / (sizeof (elfdom`Elf32_Sym));
       else
 	symcount = sec->sh_size / (sizeof (elfdom`Elf64_Sym));
-      printf ("sec %d link %d count %d\n", i, strind, symcount);
+      //printf ("sec %d link %d count %d\n", i, strind, symcount);
       for (j = 1; j < symcount; j++) {
 	@local name;
 	if (sizeof (nsptr (elfdom.ns)) == 4)
@@ -771,6 +814,8 @@ elf_defined = 1;
 }
 
 /* Accessor functions for ELF segments */
+/* unused at time of librarization */
+/*
 @define elfsegtype (eseg)
 {
   return head (eseg);
@@ -810,5 +855,8 @@ elf_defined = 1;
 {
   return head (tail (tail (tail (tail (tail (tail (tail (eseg))))))));
 }
+*/
+
+nil;
 
 }
