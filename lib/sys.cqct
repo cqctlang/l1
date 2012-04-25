@@ -91,6 +91,12 @@ sys_ioctl = @lambda(fd,req,data) {
 
 };
 
+sys_dup2 = @lambda(fd1,fd2) {
+
+	return syscall(unix`dup2,fd1,fd2);
+
+};
+
 posix = @names myrootns() {
   enum Stat_modes {
     S_IFMT	= 00170000,
@@ -355,6 +361,10 @@ sys_accept = @lambda(fd,sockaddr,size) {
 
   return syscall(unix`accept,fd,sa,ss);
 
+};
+
+sys_getsockname = @lambda(fd,sa,len) {
+	return syscall(unix`getsockname,fd,sa,len);
 };
 
 /*
