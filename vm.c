@@ -5085,7 +5085,7 @@ l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 	ns = mknstab(mtab, name);
 	nscachebase(vm, ns);
 	if(!validatens(ns))
-		vmerr(vm, "incompletely defined address space");
+		vmerr(vm, "incompletely defined name space");
 	*rv = mkvalns(ns);
 }
 
