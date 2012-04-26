@@ -3406,6 +3406,18 @@ ascachemethod(As *as)
 	ascache1method(as, "map", &as->map);
 }
 
+static int
+validateas(As *as)
+{
+	if(as->get && as->put && as->ismapped && as->map)
+		return 1;
+	if(as->dispatch)
+		/* FIXME: we don't know if dispatch defines
+		   all necessary methods */
+		return 1;
+	return 0;
+}
+
 As*
 mkastab(Tab *mtab, Str *name)
 {
@@ -3453,6 +3465,19 @@ nscachemethod(Ns *ns)
 	nscache1method(ns, "looksym", &ns->looksym);
 	nscache1method(ns, "enumsym", &ns->enumsym);
 	nscache1method(ns, "lookaddr", &ns->lookaddr);
+}
+
+static int
+validatens(Ns *ns)
+{
+	if(ns->looktype && ns->enumtype
+	   && ns->looksym && ns->enumsym && ns->lookaddr)
+		return 1;
+	if(ns->dispatch)
+		/* FIXME: we don't know if dispatch defines
+		   all necessary methods */
+		return 1;
+	return 0;
 }
 
 Ns*
@@ -4999,6 +5024,8 @@ l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	mtab = valtab(argv[0]);
 	as = mkastab(mtab, name);
+	if(!validateas(as))
+		vmerr(vm, "incompletely defined address space");
 	*rv = mkvalas(as);
 }
 
@@ -5057,6 +5084,8 @@ l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 	mtab = valtab(argv[0]);
 	ns = mknstab(mtab, name);
 	nscachebase(vm, ns);
+	if(!validatens(ns))
+		vmerr(vm, "incompletely defined address space");
 	*rv = mkvalns(ns);
 }
 
