@@ -37,19 +37,21 @@ struct _TYPE {
 	@0x10	int *ending[1];
 	@0x18;
 };
-typedef short int16;
-typedef unsigned short uint16;
-typedef unsigned long uint64;
+
+------------------
+typedef struct _TYPE * PTYPE;
+typedef TYPE TTT;
 typedef struct _TYPE TYPE;
-typedef char int8;
-typedef int int32;
-typedef unsigned int uint32;
+typedef uint32 ULONG;
 enum ENUM {
 	ENUM_0 = 1094795584,
 	ENUM_1 = 1094795585,
 	ENUM_2 = 1094795586,
 };
-typedef unsigned char uint8;
+typedef short int16;
+typedef int int32;
+typedef long int64;
+typedef char int8;
 struct _TYPE {
 	@0x0	ULONG field1;
 	@0x4	ULONG fields;
@@ -58,11 +60,11 @@ struct _TYPE {
 	@0x10	int *ending[1];
 	@0x18;
 };
-typedef TYPE TTT;
-typedef long int64;
-typedef uint32 ULONG;
-typedef struct _TYPE * PTYPE;
+typedef unsigned short uint16;
+typedef unsigned int uint32;
+typedef unsigned long uint64;
+typedef unsigned char uint8;
 typedef unsigned int uintptr;
-TTT ttt;
 int an_int;
 TTT lala[5];
+TTT ttt;

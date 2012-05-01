@@ -73,14 +73,20 @@ print a namespace in .names file format.
 	else
 		ns = dn;
 	
-	vec = tabvals(ns.enumtype());
+	vec = copy(tabvals(ns.enumtype()));
+  sort(vec,@lambda(x,y) { 
+    return strcmp(sprintfa("%t",x),sprintfa("%t",y));
+  }); //possibly wasteful, but makes the output cleaner.
 	for(i = 0; i < length(vec); i++) {
     if (isbase(vecref(vec,i))) continue;
     if (isptr(vecref(vec,i))) continue;
 		printtype(vecref(vec, i));
   }
 
-	vec = tabvals(ns.enumsym());
+	vec = copy(tabvals(ns.enumsym()));
+  sort(vec,@lambda(x,y) { 
+    return strcmp(sprintfa("%s",symid(x)),sprintfa("%s",symid(y)));
+  }); //possibly wasteful, but makes the output cleaner.
 	for(i = 0; i < length(vec); i++)
 		if(!isenumconst(symtype(vecref(vec, i))))
 			printf("%t;\n", vecref(vec, i));

@@ -41,4 +41,5 @@ printtype(@typeof(dom`an_int));
 printtype(@typeof(dom`lala));
 printtype(@typeof(struct dom`_TYPE));
 
+printf("\n------------------\n");
 dumpns(ns);
