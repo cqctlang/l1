@@ -90,8 +90,8 @@ bitfieldgeom(BFgeom *bfg)
 Imm
 bitfieldget(char *s, BFgeom *bfg)
 {
-	Imm v;
-	unsigned i, x;
+	Imm v, x;
+	unsigned i;
 	unsigned char *p;
 
 	p = (unsigned char*)s;
@@ -110,20 +110,19 @@ bitfieldget(char *s, BFgeom *bfg)
 		}
 		v >>= bfg->les;
 	}
-	v &= (1<<bfg->bs)-1;
+	v &= (1ULL<<bfg->bs)-1;
 	return v;
 }
 
 Imm
 bitfieldput(char *s, BFgeom *bfg, Imm val)
 {
-	Imm w, m;
+	Imm w, m, x;
 	int i;
-	unsigned x;
 	unsigned char *p;
 
 	p = (unsigned char*)s;
-	m = (1<<bfg->bs)-1;
+	m = (1ULL<<bfg->bs)-1;
 	val &= m;
 	w = 0;
 	if(bfg->isbe){

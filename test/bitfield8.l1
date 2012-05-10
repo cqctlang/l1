@@ -1,0 +1,22 @@
+ns = @names clp64le {
+	union foo {
+		@0 struct {
+			@@0 uint8 a : 1;
+			@@1 uint8 b : 1;
+			@@2 uint8 c : 1;
+			@@3 uint64 d : 61;
+		} bits;
+		@0 uint64 raw;
+		@8;
+	};
+};
+
+dom = mkdom(ns, mkzas(8));
+p = (union dom`foo *){dom}0;
+
+p->raw = 0xdeadbeefdeadbee3;
+/* expect deadbeefdeadbee0 1 1 0 */
+printf("%x %d %d %d\n", p->bits.d << 3, p->bits.a, p->bits.b, p->bits.c);
+/* expect baddcafebaddcaf3 */
+p->bits.d = 0xbaddcafebaddcaf0 >> 3;
+printf("%x\n", p->raw);
