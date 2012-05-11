@@ -79,6 +79,15 @@ sys_write = @lambda(fd,buf,len) {
   }
 
   r=syscall(unix`write,fd,m,len);
+
+  return r;
+};
+
+sys_lseek = @lambda(fd,pos,whence) {
+  @local r;
+
+  r=syscall(unix`lseek,fd,pos,whence);
+
   return r;
 };
 
@@ -88,7 +97,6 @@ sys_ioctl = @lambda(fd,req,data) {
   r=syscall(unix`ioctl,fd,req,data);
 
   return r;
-
 };
 
 sys_dup2 = @lambda(fd1,fd2) {

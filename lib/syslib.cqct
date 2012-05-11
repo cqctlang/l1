@@ -142,6 +142,19 @@ open = @lambda(filename, mode) {
 
 };
 
+seek = @lambda(fd,pos,whence) {
+  @local sfd,r;
+
+  sfd=iohash[cons(fd,nil)];
+  if(!isnil(sfd)) {
+    r=sys_lseek(sfd,pos,whence); 
+  } else {
+    error("seek: seeking a cinquecento fd with no unix fd");
+  }
+
+  return r;
+};
+
 close = @lambda(fd) {
   @local sfd;
 
