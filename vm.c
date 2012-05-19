@@ -4656,7 +4656,7 @@ stringof(VM *vm, Cval *cv)
 	char *buf, *q;
 	Vec *v;
 	Range *r;
-	Imm l, m, n, o;
+	Imm l, m, n, o, oo;
 
 	/* effectively a call to unit */
 	v = callmap(vm, cv->dom->as);
@@ -4666,21 +4666,17 @@ stringof(VM *vm, Cval *cv)
 
 	l = 0;
 	m = cvalu(r->beg)+cvalu(r->len)-cvalu(cv);
-	o = cvalu(cv);
+	oo = o = cvalu(cv);
 	buf = 0;
 	n = MIN(m, PAGESZ-o%PAGESZ);
 	if(!ismapped(vm, cv->dom->as, o, 1))
 		vmerr(vm, "address space access out of bounds");
 	while(m > 0){
-		if(buf == 0)
-			buf = emalloc(n);
-		else
-			buf = erealloc(buf, l, l+n);
 		s = callget(vm, cv->dom->as, o, n);
-		memcpy(buf+l, strdata(s), s->len);
-		q = strnchr(buf+l, '\0', s->len);
+		buf = strdata(s);
+		q = strnchr(buf, '\0', s->len);
 		if(q){
-			l += q-(buf+l);
+			l += q-buf;
 			break;
 		}
 		l += s->len;
@@ -4690,8 +4686,7 @@ stringof(VM *vm, Cval *cv)
 		if(!ismapped(vm, cv->dom->as, o, 1))
 			break;
 	}
-	s = mkstr(buf, l);	/* FIXME: mkstr copies buf; should steal */
-	efree(buf);
+	s = callget(vm, cv->dom->as, oo, l);
 	return s;
 }
 
