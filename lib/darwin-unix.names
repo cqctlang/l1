@@ -11,3 +11,18 @@ struct timespec {
   @4 int tv_nsec; /* nanoseconds */
   @8;
 };
+
+struct in_addr {
+  @0 unsigned int s_addr;
+  @4;
+};
+
+typedef int16 sa_family_t;
+
+struct sockaddr_in {
+  @0 sa_family_t sin_family;      /* AF_INET */
+  @2 unsigned short int sin_port;
+  @4 struct in_addr sin_addr;
+  @16; // minimum size of a struct sockaddr;
+}; 
+
