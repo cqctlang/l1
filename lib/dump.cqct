@@ -202,8 +202,8 @@ Function for testing.
 			else if (baseid(t2)=="char")
 				return sprintfa("%c",*p);
 			else if (baseid(t2)=="long")
-				return sprintfa("%l",*p);
-			else return sprintfa("%d",*p);
+				return sprintfa("%d",*p);
+			else return sprintfa("%a",*p);
 		} else if (isenumconst(t2)) {
 			return sprintfa("%d",*p);
 		} else if (isfunc(t2)) {
