@@ -47,3 +47,15 @@ struct timespec {
   @8;
 };   
 
+
+//from asm-generic/mman-common.h
+enum MMAP_PROT {
+  PROT_READ=0x1,
+  PROT_WRITE=0x2,
+  PROT_EXEC=0x4
+};
+
+enum MMAP_MAP {
+  MAP_SHARED=0x1,
+  MAP_PRIVATE=0x2
+};
