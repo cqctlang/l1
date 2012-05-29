@@ -49,3 +49,8 @@ for(i=1; i<200; i += 5) {
 printf("%a\n",rangeset_enumerate(rs));
 printf("%a\n",rangeset_intersect(rs,mkrange(50,20)));
 
+rs = rangeset_create();
+for(i=0x70000000; i<0x70300000; i+=0x1000)
+  rangeset_insert(rs,mkrange((uint32)i,0x1000));
+printf("%a\n",rangeset_enumerate(rs));
+
