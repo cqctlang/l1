@@ -17,7 +17,7 @@ rangeset_defined = 1;
 
 debug = 0;
 
-@define compare(a,b) { return a-b; };
+@define compare(a,b) { return a>b ? 1 : a<b ? -1 : 0; };
 
 //an interval set is an rbtree.
 
