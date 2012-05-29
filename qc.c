@@ -78,7 +78,7 @@ dopasses(VM *vm, Expr *e, Toplevel *top, char *argsid, Pass *ps, unsigned np)
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.top = top;
 	ctx.argsid = argsid;
-	ctx.out = &top->out;
+	ctx.out = &top->err;
 	for(i = 0, p = ps; i < np; i++, p++){
 		if(cqctflags['T'])
 			tv[i] = usec();
@@ -124,7 +124,7 @@ doexpand(VM *vm, Expr *e)
 	}
 
 	memset(&ctx, 0, sizeof(ctx));
-	ctx.out = &vm->top->out;
+	ctx.out = &vm->top->err;
 	/* the other ctx fields are not used */
 
 	if(cqctflags['p']){
@@ -210,7 +210,7 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 	}
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.top = top;
-	ctx.out = &top->out;
+	ctx.out = &top->err;
 	e = docompilev(&ctx, e);
 	if(cqctflags['T'])
 		tv[0] = usec();
