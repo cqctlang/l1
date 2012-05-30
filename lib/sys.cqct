@@ -602,32 +602,3 @@ $ /bin/echo hello world
   return syscall(unix`execve,f,a,e);
 };
 
-sys_mmap = @lambda(addr,len,prot,flags,fd,offset) {
-  return syscall(unix`mmap,addr,len,prot,flags,fd,offset);
-};
-
-/*
-By default the region is mapped private read-only
-'w: the region will be mapped writable
-'x: the region will be mapped executable
-'shared: the region is mapped shared.
-*/
-cqct_mmap = @lambda(filename,args...) {
-  @local arghash,prot,flags,fd,res,l;
-  //create a hash of the optional arguments for easy lookup
-  arghash = [:];
-  foreach(@lambda(x) { arghash[x] = 1; },args);
-  //open the fd appropriately
-  fd = sys_open(filename,arghash['w] ? unix`O_RDWR : unix`O_RDONLY);
-  prot = unix`PROT_READ;
-  if (arghash['w]) prot |= unix`PROT_WRITE;
-  if (arghash['x]) prot |= unix`PROT_EXEC;
-  if (arghash['shared]) flags = unix`MAP_SHARED;
-  else flags = unix`MAP_PRIVATE;
-  l=malloc(sizeof(struct unix`stat));
-  sys_fstat(fd,l);
-  l=(struct unix`stat*)l;
-  res = sys_mmap(0,l->st_size,prot,flags,fd,0);
-  return (void*){mkmas()}res;
-};
-

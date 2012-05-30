@@ -3,11 +3,12 @@
 
 
 @include <sys.cqct>
+@include <syslib.cqct>
 
-addr = cqct_mmap(args[0]);
+addr = mmap(args[0]);
 printf("mapped address ismapped: %d\n",ismapped((char*)addr));
 
-addr = cqct_mmap(args[0],'x);
+addr = mmap(args[0],'x);
 printf("mapped address with execute ismapped: %d\n",ismapped((char*)addr));
 
 //TODO: test the writable flag
