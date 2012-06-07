@@ -691,7 +691,7 @@ names(U *ctx, Expr *e)
 
 static Expr* mkctype(U *ctx, Expr *e, Seen *s);
 
-static unsigned basemod[Vnbase][Enbase] = {
+static unsigned basemod[Vnallbase][Enbase] = {
 	[Vchar][Eunsigned]      = Vuchar,
 
 	[Vchar][Esigned]        = Vchar,
