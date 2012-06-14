@@ -1,0 +1,5 @@
+x = (int)0;
+t = @typeof(&x);
+printf("%t %d\n", t, sizeof(t));
+printf("%d\n", sizeof(&x));
+
