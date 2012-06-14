@@ -373,6 +373,22 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		putsrc(te, src);
 		return rvalblock(te, lfree);
 	case Esizeofe:
+		/* special case: &foo => sizeof ptr to type of cvalue foo */
+		if(e->e1->kind == Eref && !islval(e->e1->e1)){
+			se = Zblock(Zlocals(1, "$v"),
+				    Zset(doid("$v"),
+					 compile_rval(ctx, e->e1->e1, 0)),
+				    Zsizeof(Zcall(G("mkctype_ptr"), 2,
+						  Zcall(doid("$typeof"), 1,
+							doid("$v")),
+						  Zcall(G("nsptr"), 1,
+							Zcall(G("domof"), 1,
+							      doid("$v"))))),
+				    NULL);
+			putsrc(se, src);
+			return se;
+		}
+
 		if(!islval(e->e1)){
 			se = Zsizeof(compile_rval(ctx, e->e1, 0));
 			putsrc(se, src);
@@ -391,6 +407,21 @@ compile_rval(U *ctx, Expr *e, unsigned lfree)
 		putsrc(te, src);
 		return rvalblock(te, lfree);
 	case Etypeofe:
+		/* special case: &foo => ptr to type of cvalue foo */
+		if(e->e1->kind == Eref && !islval(e->e1->e1)){
+			se = Zblock(Zlocals(1, "$v"),
+				    Zset(doid("$v"),
+					 compile_rval(ctx, e->e1->e1, 0)),
+				    Zcall(G("mkctype_ptr"), 2,
+					  Zcall(doid("$typeof"), 1, doid("$v")),
+					  Zcall(G("nsptr"), 1,
+						Zcall(G("domof"), 1,
+						      doid("$v")))),
+				    NULL);
+			putsrc(se, src);
+			return se;
+		}
+
 		if(!islval(e->e1)){
 			se = Zcall(doid("$typeof"), 1,
 				   compile_rval(ctx, e->e1, 0));

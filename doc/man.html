@@ -1961,7 +1961,7 @@ tests whether a value is a cvalue.
 
 <p>
 The syntax <a href="#syn:_at_typeof"><span class="fnindex">@typeof</span></a>
-is used to obtain the ctype associated with a cvalue.
+obtains the ctype associated with a cvalue.
 </p>
 
 <p>
@@ -5537,7 +5537,9 @@ value that represents the type of its operand.  In the
 type name case, if the operand is a fully qualified
 type name, then the type name is resolved in the domain
 referenced by the type name; otherwise, the type name
-is resolved in the literal domain.
+is resolved in the literal domain.  In the cvalue case,
+the <span class="id">&</span> may be applied to the
+operand to construct the corresponding pointer type.
 </div>
 </div>
 
