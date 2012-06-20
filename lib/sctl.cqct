@@ -1604,7 +1604,7 @@ again:
 		error("unknown remote sctl version: %s", dat);
 	os = s[1];
 	os = substr(os, 0, strlen(os)); /* chop NUL */
-//	printf("version is %s %s\n", s[0], os);
+	return s[0]+os;
 }
 
 @define sctlnames(fd, path)
