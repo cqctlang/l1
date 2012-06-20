@@ -713,6 +713,8 @@ fmticval(VM *vm, Fmt *f, unsigned char conv, Cval *cv)
 
 	[Rf32]['f'] = "f",
 	[Rf64]['f'] = "f",
+	[Rf32]['g'] = "g",
+	[Rf64]['g'] = "g",
 	};
 
 	rep = typerep(chasetype(cv->type));
@@ -957,12 +959,13 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 				return;
 			break;
 		case 'f':
+		case 'g':
 			if(Vkind(vp) != Qcval)
 				goto badarg;
 			cv = valcval(vp);
 			t = chasetype(cv->type);
 			if(!isfloat[typecbase(t)])
-				vmerr(vm, "bad operand to %%f");
+				vmerr(vm, "bad operand to %%%c", ch);
 			if(fmticval(vm, f, ch, cv))
 				return;
 			break;
