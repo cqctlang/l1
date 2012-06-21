@@ -1677,7 +1677,7 @@ again:
 	@local p, m, rep, dat, ss, q, i, t;
 
 	m = p = mkxs();
-	p = (sctl`Tlooktype*)p;
+	p = (sctl`Tenumtype*)p;
 	p->op = sctl`Tenumtype;
 	p->tag = freshtag();
 	p = (uint64*)(p+1);
