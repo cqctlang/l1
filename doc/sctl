@@ -1,0 +1,282 @@
+sctl.cqct -- speak sctl protocol
+
+The sctl library provides a set of functions for
+performing transactions with a sctl server.
+
+The set of transactions is limited to those related to
+name spaces.  There are no process control
+transactions.
+
+The sctl transactions are documented in the sctl
+manual.
+
+Generally, if a request draws an error from the sctl
+server, an error is raised.  Exceptions are described
+in the individual functions.
+
+Each transaction routine takes an FD argument.  The FD
+should be a file descriptor connected to a sctl server.
+
+The procedures assume that the sctl server will answer
+all requests synchronously and that is will not
+generate Aevent messages.  This is consistent with a
+sctl server that being used to serve only name space
+data.
+
+The remaining arguments for most of the transaction
+routines comprise the fields of the corresponding
+request.  The routines return a data structure
+representing the data of the corresponding reply.
+
+The sctlenumtype and sctllooktype functions, which
+correspond to the type two sctl transactions that
+return type definitions, both require an additional
+name space argument.  This name space is used by the
+underlying type definition decoder decodetdef to
+resolve two aspects of type definitions that cannot be
+determined from the sctl type definition reply:
+
+- the mapping from enumeration representation to a
+  corresponding base type, passed to mkctype_enum;
+- the representation of the pointer type, passed
+  to mkctype_ptr.
+
+It is sufficient to pass a root name space that is
+compatible with the base type definitions of the target
+name space.
+
+The sctlclt library (sctlclt.cqct) uses this library to
+build name spaces backed by sctl.
+
+The snames library (snames.cqct) uses this library 
+for reasons that need to be sorted out.
+
+
+sctlping(FD, CNT)
+
+  FD:  file descriptor (to sctl server)
+  CNT: cvalue
+
+  returns: nil
+
+Performs a ping transaction with the server,
+sending a ping payload of CNT zero bytes.
+An error is raised if the transaction fails.
+
+
+sctlversion(FD)
+
+  FD:  file descriptor (to sctl server)
+
+  returns: string
+
+Performs a version transaction with the sctl
+server.  The offered version is
+
+	"sctl-2010:x86-linux-2010,x86-win-2010"
+
+The negotiated version string is returned.
+An error is raised if the version cannot
+be negotiated.
+
+
+sctllooktype(FD, NSID, NS, TN)
+
+  FD:  file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  NS:    name space (see discusion above)
+  TN:    ctype (type name)
+
+  returns:  ctype (type definition) or nil
+
+Performs a looktype transaction, returning
+the definition of the type TN.
+
+The returned type is a ctype representation of the type
+definition returned by the sctl looktype request.  Note
+that these are incomplete type definitions.
+
+Returns nil if there is no matching type definition.
+
+sctlenumtype(FD, NSID, NS)
+
+  FD:  file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  NS:    name space (see discusion above)
+
+  returns:  table mapping type name to type definition
+
+Performs an enumtype transaction, returning a table of
+type definitions.  The keys to the table are type
+names; the values are corresponding type definitions.
+The type definitions are incomplete.
+
+
+sctllooksym(FD, NSID, ID)
+
+  FD:    file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  ID:    cid (symbol identifier)
+
+  returns:  symbol record or nil
+
+Performs a looksym transaction, obtaining a definition
+for the symbol ID in the name space NSID.
+
+The resulting symbol is a record with the following definition:
+
+	/* symbol record */
+	@record symrec {
+		id,		/* symbol identifier (cid) */
+		flags,		/* flags (cvalue) */
+		val,		/* value (cvalue) */
+		attrs,		/* attributes (table) */
+		sz,		/* size (cvalue) */
+		type,		/* type name (ctype) */
+	};
+
+See the sctl documentation for looksym for the
+definition of these fields.  The attributes table
+defines one attribute, "offset", whose value is equal
+to the val field.
+
+Returns nil if there is no matching symbol.
+
+FIXME: return a cqct symbol, not this crap.
+
+
+sctlenumsym(FD, NSID)
+
+  FD:    file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+
+  returns:  list of symbol records
+
+Performs an enumsym transaction, returning a list
+of symbol definitions in name space NSID.  
+
+Each symbol definition is a symrec (see sctllooksym).
+
+
+sctllookaddr(FD, NSID, ADDR)
+
+  FD:    file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  ADDR:  cvalue (symbol identifier)
+
+  returns:  symbol record
+
+Performs a lookaddr transaction, returning a symbol
+definition to which ADDR maps in name space NSID.
+
+The symbol definition is a symrec (see sctllooksym).
+
+Returns nil if there is no matching symbol.
+
+
+
+sctlunwind1(FD, NSID, ADDR)
+
+  FD:    file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  ADDR:  cvalue (program counter)
+  
+  returns:  list of unwind rules
+
+Performs an unwind1 transaction, returning
+target-dependent stack frame unwinding rules
+corresponding to the program counter ADDR in name space
+NSID.
+
+Each unwind rule is a rulerec that is based on the
+encoding of unwind rules specified by DWARF:
+
+	@record rulerec {
+		kind,		/* rule kind */
+		r,		/* register operand */
+		n,		/* number operand */
+	};
+
+This library dwarf.cqct includes functions that 
+evaluate these rules.  (NB: these require a
+name space to pick rules based on target arch;
+a ctx to get regs; a domain to get memory;
+and maybe other dependencies.  Hard to untangle
+into an interface that just consumes rules.)
+
+FIXME: inconsistent with implementation.
+
+
+sctllooksrc(FD, NSID, ADDR)
+
+  FD:    file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  ADDR:  cvalue (program counter)
+  
+  returns:  source record
+
+
+Performs a looksrc transaction, returning a source
+record corresponding to the program counter ADDR in
+name space NSID.
+
+The source record is defined as follows:
+
+	/* source record */    
+	@record srcloc {
+		file,		/* file name (string) */
+		line,		/* line (cvalue) */
+		col,		/* column (cvalue */
+	};
+
+Returns nil if no source location matches.
+
+
+sctllookline(FD, NSID, FILE, LINE)
+
+  FD:    file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  FILE:  string (file name)
+  LINE:  cvalue (line)
+
+  returns:  cvalue (program counter)
+
+Performs a lookline transaction, returning a 
+program counter address corresponding to the
+source FILE and LINE in name space NSID.
+
+Returns nil if no source location matches.
+
+
+sctlenumloc(FD, NSID, PC)
+
+  FD:    file descriptor (to sctl server)
+  NSID:  cvalue (name space identifier)
+  PC:    cvalue (program counter)
+
+  returns: list of locrecs
+
+Performs an enumloc transaction, returning
+a list of local variable definitions.
+
+The definition of locrec is:
+
+	@record loc {
+		id,		/* name (cid) */
+		sz,		/* size (cvalue) (FIXME: always zero!) */
+		ltype,		/* kind (parameter or local) (cvalue) */
+		loc,		/* location expression (lexpr) */
+		type,		/* type name (ctype) */
+	};
+
+The definition of lexpr is
+
+	@record lexpr {
+		kind,		/* kind (cvalue) */
+		no,		/* register (cvalue) */
+		v,		/* value (cvalue) */
+		op1, op2,	/* operands (lexpr) */
+	};
+
+Returns nil if no location information is
+available.
