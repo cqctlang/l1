@@ -48,8 +48,8 @@ if(1){
 
 					 /* locals */
 					 printf("%s", fmtldom(ctlldom(ctl, ctx)));
-
 				 }, xs);
+			 printf("\n");
 		 });
 
 	if(0)ctl.trap('syscall, @lambda(ctl){
