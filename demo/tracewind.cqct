@@ -1,5 +1,13 @@
 @include <ctls.cqct>
 
+@define ctx2pc(ctl, ctx)
+{
+	@local pc, dom;
+	pc = ctx->rip;
+	dom = ctldombyaddr(ctx, pc);
+	return {dom}pc;
+}
+
 @define test1(cmd)
 {
 	@local ctl, mux, exe;
@@ -10,19 +18,17 @@
 	exe = ctlexe(ctl);
 	ctl.trap('brk, &exe`f,
 		 @lambda(ctl){
-			 @local xs;
+			 @local xs, pcs;
 
 			 xs = ctlunwindctxs(ctl);
 			 if(xs == nil){
 				 printf("cannot unwind\n");
 				 return;
 			 }
-
-			 foreach(@lambda(x){
-					 printf("\t%p\t%20y\n",
-						x->rip,
-						{exe}x->rip);
-				 }, xs);
+			 pcs = map(@lambda(ctx) { ctx2pc(ctl, ctx); }, xs);
+			 foreach(@lambda(pc){
+					 printf("\t%p\t%20y\n", pc, pc);
+				 }, pcs);
 			 printf("\n");
 		 });
 	mux.run();
