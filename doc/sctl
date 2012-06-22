@@ -1,38 +1,40 @@
-sctl.cqct -- speak sctl protocol
+sctl.cqct -- speak sctl
 
-The sctl library provides a set of functions for
-performing transactions with a sctl server.
+This library provides a set of functions for performing
+transactions with a sctl server from Cinquecento code.
+It provides two services: (1) mapping Cinquecento data
+structures to and from the sctl protocol encodings, and
+(2) exchanging sctl messages with a sctl server.
 
-The set of transactions is limited to those related to
-name spaces.  There are no process control
-transactions.
-
-The sctl transactions are documented in the sctl
-manual.
+The transactions supported by this library are limited
+to those that query name spaces.  There are no process
+control transactions.
 
 Generally, if a request draws an error from the sctl
 server, an error is raised.  Exceptions are described
 in the individual functions.
 
-Each transaction routine takes an FD argument.  The FD
-should be a file descriptor connected to a sctl server.
-
 The procedures assume that the sctl server will answer
 all requests synchronously and that is will not
-generate Aevent messages.  This is consistent with a
-sctl server that being used to serve only name space
-data.
+generate Aevent messages.  This behavior is consistent
+with a sctl server that being used to serve only name
+space data.  A typical configuration is to use one sctl
+server from process control, and one or more addition
+sctl servers for name space access.
 
-The remaining arguments for most of the transaction
-routines comprise the fields of the corresponding
-request.  The routines return a data structure
-representing the data of the corresponding reply.
+The first argument to the transaction routines is an FD
+argument, which should be a file descriptor connected
+to a sctl server.  Generally the remaining arguments
+are Cinquecento data to be encoded into the fields of
+the corresponding sctl request.  Most routines return a
+data structure representing the payload of the
+corresponding reply.
 
-The sctlenumtype and sctllooktype functions, which
-correspond to the type two sctl transactions that
-return type definitions, both require an additional
+An oddity appears in the arguments to the sctlenumtype
+and sctllooktype functions, which both return type
+definitions.  These functions require an additional
 name space argument.  This name space is used by the
-underlying type definition decoder decodetdef to
+underlying type definition decoder (decodetdef) to
 resolve two aspects of type definitions that cannot be
 determined from the sctl type definition reply:
 
@@ -41,9 +43,10 @@ determined from the sctl type definition reply:
 - the representation of the pointer type, passed
   to mkctype_ptr.
 
-It is sufficient to pass a root name space that is
-compatible with the base type definitions of the target
-name space.
+For this argument, it is sufficient to pass a root name
+space that is compatible with the base type definitions
+of the target name space.  We consider this argument a
+bug in the interface.
 
 The sctlclt library (sctlclt.cqct) uses this library to
 build name spaces backed by sctl.
@@ -78,6 +81,21 @@ server.  The offered version is
 The negotiated version string is returned.
 An error is raised if the version cannot
 be negotiated.
+
+
+sctlnames(FD, PATH)
+
+  FD:    file descriptor (to sctl server)
+  PATH:  string (name of binary)
+
+  returns: cvalue (NSID) or nil
+
+Performs a names transaction, returning a name space
+identifier for the name space corresponding to binary
+PATH.
+
+Returns nil if the name space does not exist.
+
 
 
 sctllooktype(FD, NSID, NS, TN)
