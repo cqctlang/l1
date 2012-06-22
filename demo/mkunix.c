@@ -1,16 +1,18 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+#include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <sys/syscall.h>
 #ifdef __linux__
 #include <linux/fs.h>
 #endif
-//#ifdef DARWIN
+#ifdef DARWIN
 #include <sys/disk.h>
-//#endif
+#endif
 
 struct enum_entry {
 	const char *name;
@@ -42,6 +44,24 @@ main(int argc,char **argv) {
 		{ "O_NONBLOCK", O_NONBLOCK },	
 		{ NULL },
         };
+
+	struct enum_entry waitflags[]={
+		{ "WNOHANG",	WNOHANG },
+		{ "WUNTRACED",	WUNTRACED },
+#ifdef	WEXITED // Linux > 2.6.9
+		{ "WEXITED",	WEXITED },
+#endif
+#ifdef	WSTOPPED // Linux > 2.6.9
+		{ "WSTOPPED",	WSTOPPED },
+#endif
+#ifdef	WCONTINUED // Linux > 2.6.10
+		{ "WCONTINUED",	WCONTINUED },
+#endif
+#ifdef	WNOWAIT // Linux > 2.6.9
+		{ "WNOWAIT",	WNOWAIT },
+#endif
+		{ NULL },
+	};
 
 	struct enum_entry mmap_consts[]={
 		{ "PROT_READ",		PROT_READ },
@@ -78,9 +98,9 @@ main(int argc,char **argv) {
 #ifdef BLKGETSIZE // Darwin misses this
 		{ "BLKGETSIZE",		BLKGETSIZE },
 #endif
-//#ifdef DARWIN
+#ifdef DARWIN
 		{ "DKIOCGETBLOCKCOUNT", DKIOCGETBLOCKCOUNT },
-//#endif
+#endif
 		{ NULL },
 	};
 
@@ -569,6 +589,7 @@ main(int argc,char **argv) {
 	printf("/* generated automatically by mkunix */\n\n");
 	print_enum("oflags", oflags);
 	print_enum("mmap_consts",mmap_consts);
+	print_enum("waitflags",waitflags);
 	print_enum("address_families",address_families);
 	print_enum("socket_type",socket_type);
 	print_enum("ioctl_nr",ioctl_nr);
