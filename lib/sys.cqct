@@ -416,6 +416,15 @@ if(_unameres[0] == "Darwin") {
 
 }
 
+@global sys_wait4;
+if(looksym(unix,'wait4)) {
+sys_wait4 = @lambda(pid,status,options,rusage) {
+
+  syscall(unix`wait4,pid,status,options,rusage);
+
+};
+}
+
 sys_getpid = @lambda() {
 
   syscall(unix`getpid);
