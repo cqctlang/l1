@@ -1,46 +1,36 @@
-@include <ctlmux.cqct>
+@include <ctls.cqct>
 
 @define test1(cmd)
 {
-	@local ctl, mux, as, ns, dom;
+	@local ctl, mux, exe;
 
-	printf("%s:\n", cmd);
-	mux = mkctlmux_local();
-	ctl = mux.launch([cmd], 0);
-	as = ctl.mem();
-	ns = ctl.ns();
-	dom = mkdom(ns, as);
-	dom.xtrap(&dom`f,
-		  @lambda(ctl){
-			  @local xs, regs;
-			  if(0)foreach(@lambda(dll){
-					  printf("\t%p\t%s\n",
-						 dll.base, dll.path);
-				  }, ctl.statunix()[1]);
-			  regs = ctl.reg();
-			  printf("%y rip=%p rsp=%p rbp=%p\n",
-				 {dom}regs->rip,
-				 regs->rip,
-				 regs->rsp,
-				 regs->rbp);
-			  xs = ctl.unwind();
-			  if(xs == nil){
-				  printf("cannot unwind\n");
-				  return;
-			  }
-			  foreach(@lambda(x){
-					  printf("\t%p\t%y\t%p\t%p\n",
-						 x->rip,
-						 {dom}x->rip,
-						 x->rsp,
-						 x->rbp);
-				  }, xs);
-		  });
-	dom.xcont();
+	mux = mkctlmux();
+	ctl = ctllaunch(mux, [cmd]);
+
+	exe = ctlexe(ctl);
+	ctl.trap('brk, &exe`f,
+		 @lambda(ctl){
+			 @local xs;
+
+			 xs = ctlunwindctxs(ctl);
+			 if(xs == nil){
+				 printf("cannot unwind\n");
+				 return;
+			 }
+
+			 foreach(@lambda(x){
+					 printf("\t%p\t%20y\n",
+						x->rip,
+						{exe}x->rip);
+				 }, xs);
+			 printf("\n");
+		 });
 	mux.run();
 }
 
-foreach(test1, [ "./wind1",
-		 "./wind1.32",
-		 "./wind2",
-		 "./wind2.32" ]);
+foreach(test1, [
+		"./wind1",
+//		"./wind1.32",
+//		"./wind2",
+//		"./wind2.32"
+		]);
