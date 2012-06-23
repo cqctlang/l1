@@ -58,21 +58,27 @@
 		return type;
 	}
 
+	/*
+	  resolve complete type for psym;
+	  recast its value if enum constant;
+	  reject symbols that don't appear in name spaces.
+	*/
 	@defloc psym2sym(psym)
 	{
-		@local at, v, t;
+		@local at, t, f;
 			
-		if(psym.flags&sctl`Sundef)
-			return nil;
-		if(psym.flags&sctl`Sinline)
-			return nil;
-		t = ltresolve(psym.type);
-		v = psym.val;
-		if(psym.flags&sctl`Senum)
-			v = {subtype(t)}v;
-		at = psym.attrs;
-		at["offset"] = v;
-		return mksym(t, psym.id, at);
+		at = symattr(psym);
+		f = at["flags"];
+		if(f){
+			if(f&sctl`Sundef)
+				return nil;
+			if(f&sctl`Sinline)
+				return nil;
+		}
+		t = ltresolve(symtype(psym));
+		if(f && f&sctl`Senum)
+			at["offset"] = {subtype(t)}at["offset"];
+		return mksym(t, symid(psym), at);
 	}
 		
 	@defloc ls(this, name)

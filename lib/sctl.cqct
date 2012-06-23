@@ -616,15 +616,6 @@ sctl = @names clp64le {
 	name,
 };
 
-@record symrec {
-	id,
-	flags,
-	val,
-	attrs,
-	sz,
-	type,
-};
-
 @define encodes(p, s)
 {
 	@local m;
@@ -755,14 +746,18 @@ sctl = @names clp64le {
 
 @define encodesym(p, sym)
 {
-	@local flags;
+	@local flags, at, sz;
+
 	p = (uint64*)p;
+	at = symattr(sym);
 
 	/* id */
 	p = encodes(p, cid2str(symid(sym)));
 	
 	/* flags */
-	flags = (uint8)0;
+	flags = at["flags"];
+	if(flags == nil)
+		flags = (uint8)0;
 	if(isenumconst(symtype(sym)))
 		flags |= sctl`Senum;
 	p = (uint8*)p;
@@ -773,10 +768,13 @@ sctl = @names clp64le {
 	*p++ = symoff(sym);
 
 	/* attrs */
-	p = encodeattrs(p, symattr(sym));
+	p = encodeattrs(p, at);
 
 	/* size */
-	*p++ = 0;
+	sz = at["size"];
+	if(sz == nil)
+		sz = 0;
+	*p++ = sz;
 	
 	/* typename */
 	p = encodetname(p, symtype(sym));
@@ -796,9 +794,11 @@ sctl = @names clp64le {
 	v = *p++;
 	[at, p] = decodeattrs(p);
 	at["offset"] = v;
+	at["flags"] = f;
 	sz = *p++;
+	at["size"] = sz;
 	[t, p] = decodetname(p);
-	return [symrec(mkcid(id), f, v, at, sz, t), p];
+	return [mksym(t, mkcid(id), at), p];
 }
 
 @defloc encodefield(p, f)

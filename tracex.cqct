@@ -1,4 +1,8 @@
 @include <ctls.cqct>
+@include <snamesclt.cqct>
+@include <dump.cqct>
+
+atnames = snamesns;
 
 @define fmtldom(ldom)
 {
@@ -21,9 +25,11 @@ if(1){
 	@local mux, cmd, ctl, exe;
 
 	mux = mkctlmux();
-	cmd = [ "/home/vczandy/src/l1/demo/list", "10" ];
+	cmd = [ "demo/list", "10" ];
 	ctl = ctllaunch(mux, cmd);
 	exe = ctlexe(ctl);
+
+	dumpns(exe.ns);
 
 	ctl.trap('brk, &exe`insert,
 		 @lambda(ctl){
