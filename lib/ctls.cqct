@@ -10,7 +10,8 @@
 	ctlldom,
 	ctlunwindctxs,
 	ctladdr2src,
-	ctldombyaddr
+	ctldombyaddr,
+	ctlnsbyaddr
 	;
 
 {
@@ -706,6 +707,11 @@ idxev = [
 @define ctldombyaddr(ctl, addr)
 {
 	return mkdom(ctl.nsmap.byaddr(addr), ctl.mem());
+}
+
+@define ctlnsbyaddr(ctl, addr)
+{
+	return ctl.nsmap.byaddr(addr);
 }
 
 }
