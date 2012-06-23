@@ -327,6 +327,7 @@ sns = @names clp64be {
 	m = p = (sctl`Rlookline*)mkxs();
 	p->op = sctl`Rlookline;
 	p->tag = msg->tag;
+	p++;
 	p = (uint64*)p;
 	*p++ = addr;
 	sendmsg(fd, m, (char*)p-(char*)m);
