@@ -597,14 +597,14 @@ sctl = @names clp64le {
 	typedef struct Rnames Rnames;
 };
 
-@record lexpr {
+@record lexprrec {
 	kind,
 	no,
 	v,	
 	op1, op2,
 };
 
-@record loc {
+@record locrec {
 	id,
 	sz,
 	ltype,
@@ -1160,27 +1160,27 @@ sctl = @names clp64le {
 	switch(k){
 	case sctl`Lreg:
 		no = *q++;
-		le = lexpr(k, no, nil, nil, nil);
+		le = lexprrec(k, no, nil, nil, nil);
 		return [le, q];
 	case sctl`Lderef:
 		[op1, q] = decodelexpr(q);
-		le = lexpr(k, nil, nil, op1, nil);
+		le = lexprrec(k, nil, nil, op1, nil);
 		return [le, q];
 	case sctl`Ladd:
 	case sctl`Lsub:
 		[op1, q] = decodelexpr(q);
 		[op2, q] = decodelexpr(q);
-		le = lexpr(k, nil, nil, op1, op2);
+		le = lexprrec(k, nil, nil, op1, op2);
 		return [le, q];
 	case sctl`Lulit:
 		q = (uint64*)q;
 		v = *q++;
-		le = lexpr(k, nil, v, nil, nil);
+		le = lexprrec(k, nil, v, nil, nil);
 		return [le, q];
 	case sctl`Lslit:
 		q = (int64*)q;
 		v = *q++;
-		le = lexpr(k, nil, v, nil, nil);
+		le = lexprrec(k, nil, v, nil, nil);
 		return [le, q];
 	default:
 		error("unexpected lexpr %d", k);
@@ -1976,7 +1976,7 @@ again:
 		q = (uint8*)q;
 		vk = *q++;
 		[le, q] = decodelexpr(q);
-		append(ls, loc(mkcid(id), nil, vk, le, tn));
+		append(ls, locrec(mkcid(id), nil, vk, le, tn));
 	}
 	return ls;
 }

@@ -272,17 +272,17 @@ The definition of locrec is:
 		id,		/* name (cid) */
 		sz,		/* size (cvalue) (FIXME: always zero!) */
 		ltype,		/* kind (parameter or local) (cvalue) */
-		loc,		/* location expression (lexpr) */
+		loc,		/* location expression (lexprrec) */
 		type,		/* type name (ctype) */
 	};
 
-The definition of lexpr is
+The definition of lexprrec is
 
-	@record lexpr {
+	@record lexprrec {
 		kind,		/* kind (cvalue) */
 		no,		/* register (cvalue) */
 		v,		/* value (cvalue) */
-		op1, op2,	/* operands (lexpr) */
+		op1, op2,	/* operands (lexprrec) */
 	};
 
 Returns nil if no location information is
