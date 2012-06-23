@@ -31,35 +31,11 @@ uwns = @names c32le {
 	} Rulekind;
 };
 
-@record rule {
-	kind,
-	r,
-	n,
-};
-
 /* return pointer to copy of data pointed to by P
    consistent with type of *P */
 @defloc cop(p)
 {
 	return {@typeof(p)}getbytes(p);
-}
-
-@define decoderules(q)
-{
-	@local rs, m, i, k, r, n;
-	rs = [];
-	q = (uint32*)q;
-	m = *q++;
-	for(i = 0; i < m; i++){
-		q = (uint8*)q;
-		k = *q++;
-		q = (uint64*)q;
-		r = *q++;
-		q = (int64*)q;
-		n = *q++;
-		append(rs, rule((uwns`Rulekind)k, r, n));
-	}
-	return [rs, q];
 }
 
 // @defloc showrule(r)
@@ -78,7 +54,7 @@ uwns = @names c32le {
 	{
 		@local r;
 		r = rules[uwns`CFA];
-		switch(r.kind){
+		switch((uwns`Rulekind)r.kind){
 		case uwns`Rcfaro:
 			return getreg(r.r)+r.n;
 		case uwns`Rcfae:
@@ -92,7 +68,7 @@ uwns = @names c32le {
 	needsp = 0;
 	for(i = 0; i < uwns`Nreg; i++){
 		r = rules[i];
-		switch(r.kind){
+		switch((uwns`Rulekind)r.kind){
 		case uwns`Rnone:
 			if(i == spno)
 				needsp = 1;
@@ -268,7 +244,6 @@ uwns = @names c32le {
 	rs = ns.unwind1(ctx);
 	if(rs == nil)
 		goto guess;
-	[rs, _] = decoderules(rs);
 	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
 	[g, s, m, new, spno] = mkuwctx(dom, ctx);
 	applyunwind(rs, g, s, m, spno);

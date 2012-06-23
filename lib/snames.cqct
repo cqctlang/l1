@@ -268,9 +268,7 @@ sns = @names clp64be {
 	p->op = sctl`Runwind1;
 	p->tag = msg->tag;
 	p++;
-	p = (char*)p;
-	putbytes(p, rs);
-	p += length(rs);
+	p = encodeuwrules(p, rs);
 	sendmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
@@ -499,9 +497,11 @@ nextid = 0;
 @define opennssctl(path)
 {
 	@local id, ns;
+	printf("snames: sctl names for %s\n", path);
 	id = path2nsid[path];
 	if(id)
 		return id;
+	printf("snames: fresh sctl for %s\n", path);
 	ns = atnames(path);
 	if(ns == nil)
 		return nil;

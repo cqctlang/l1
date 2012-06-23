@@ -39,12 +39,14 @@
 	decodectx,
 	decodes,
 	decodetname,
+	decodeuwrules,
 	encodelexpr,
 	encodectx,
 	encodes,
 	encodesym,
 	encodetdef,
 	encodetname,
+	encodeuwrules,
 
 	/* i/o */
 	sendmsg,
@@ -616,6 +618,12 @@ sctl = @names clp64le {
 	name,
 };
 
+@record uwrulerec {
+	kind,
+	r,
+	n,
+};
+
 @define encodes(p, s)
 {
 	@local m;
@@ -1177,6 +1185,39 @@ sctl = @names clp64le {
 	default:
 		error("unexpected lexpr %d", k);
 	}
+}
+
+@define encodeuwrules(q, rs)
+{
+	q = (uint32*)q;
+	*q++ = length(rs);
+	foreach(@lambda(r){
+			q = (uint8*)q;
+			*q++ = r.kind;
+			q = (uint64*)q;
+			*q++ = r.r;
+			q = (int64*)q;
+			*q++ = r.n;
+		}, rs);
+	return q;
+}
+
+@define decodeuwrules(q)
+{
+	@local rs, m, i, k, r, n;
+	rs = [];
+	q = (uint32*)q;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		q = (uint8*)q;
+		k = *q++;
+		q = (uint64*)q;
+		r = *q++;
+		q = (int64*)q;
+		n = *q++;
+		append(rs, uwrulerec(k, r, n));
+	}
+	return [rs, q];
 }
 
 @defloc buf2msg(p)
@@ -1794,7 +1835,7 @@ again:
 
 @define sctlunwind1(fd, nsid, ctx)
 {
-	@local p, m, rep, dat;
+	@local p, m, rep, dat, rs;
 
 	p = m = mkxs();
 	p = (sctl`Tunwind1*)p;
@@ -1822,7 +1863,9 @@ again:
 	default:
 		error("unexpected response: %e", rep->op);
 	}
-	return dat; /* encoded rules */
+
+	[rs, _] = decodeuwrules(dat);
+	return rs;
 }
 
 @define sctllooksrc(fd, nsid, addr)

@@ -143,8 +143,9 @@ for the symbol ID in the name space NSID.
 
 The result is a Cinquecento symbol.  Its attribute
 table defines "offset" to the value returned in the
-looksym reply and "flags" to the flags.  The symbol
-type is an incomplete type, as in looktype.
+looksym reply, "flags" to the flags, and "size" to the
+size.  The symbol type is an incomplete type, as in
+looktype.
 
 Returns nil if there is no matching symbol.
 
@@ -197,7 +198,7 @@ NSID.
 Each unwind rule is a rulerec that is based on the
 encoding of unwind rules specified by DWARF:
 
-	@record rulerec {
+	@record uwrulerec {
 		kind,		/* rule kind */
 		r,		/* register operand */
 		n,		/* number operand */
@@ -267,7 +268,7 @@ a list of local variable definitions.
 
 The definition of locrec is:
 
-	@record loc {
+	@record locrec {
 		id,		/* name (cid) */
 		sz,		/* size (cvalue) (FIXME: always zero!) */
 		ltype,		/* kind (parameter or local) (cvalue) */
