@@ -2,7 +2,7 @@
 @include <snamesclt.cqct>
 @include <dump.cqct>
 
-atnames = snamesns;
+//atnames = snamesns;
 
 @define fmtldom(ldom)
 {
@@ -37,7 +37,7 @@ if(1){
 			 printf("call to insert!\n");
 			 xs = ctlunwindctxs(ctl);
 			 foreach(@lambda(ctx){
-					 @local src;
+					 @local src, ns, pc;
 
 					 /* pc */
 					 printf("%016p", ctx->rip);
@@ -47,9 +47,17 @@ if(1){
 
 					 /* source */
 					 src = ctladdr2src(ctl, ctx->rip);
-					 if(src != nil)
+					 ns = ctlnsbyaddr(ctl, ctx->rip);
+					 if(src != nil){
+						 @local spec;
 						 printf("\t%s:%d\n", src.file, src.line);
-					 else
+						 spec = sprintfa("%s:%d", src.file, src.line);
+						 pc = dwsrc2addr(spec, ns);
+						 /* pc may not match ctx->rip; we care
+						    only that it is defined */
+						 if(pc == nil)
+							 error("no reverse src!\n");
+					 }else
 						 printf("\n");
 
 					 /* locals */
