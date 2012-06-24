@@ -244,11 +244,11 @@ sns = @names clp64be {
 
 @define tunwind1(fd, msg, dat)
 {
-	@local m, p, nsid, ctx, ns, rs;
+	@local m, p, nsid, pc, ns, rs;
 
 	p = (uint64*)dat;
 	nsid = *p++;
-	ctx = p;
+	pc = *p++;
 
 	ns = looknsid(nsid);
 	if(ns == nil){
@@ -256,10 +256,7 @@ sns = @names clp64be {
 		return 'ok;
 	}
 
-	/* FIXME: we should not expose the Ctx type,
-	   but it is needed to tell sctlunwind1 how
-	   big the Ctx buffer is */
-	rs = ns.unwind1((sctl`Ctx*)ctx);
+	rs = ns.unwind1(pc);
 	if(rs == nil){
 		sctlrerror(fd, msg->tag, Enone);
 		return 'ok;

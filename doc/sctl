@@ -211,8 +211,6 @@ a ctx to get regs; a domain to get memory;
 and maybe other dependencies.  Hard to untangle
 into an interface that just consumes rules.)
 
-FIXME: inconsistent with implementation.
-
 
 sctllooksrc(FD, NSID, ADDR)
 

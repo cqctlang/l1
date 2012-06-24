@@ -129,9 +129,9 @@
 		return s;
 	}
 
-	@defloc uw1(this, ctx)
+	@defloc uw1(this, pc)
 	{
-		return sctlunwind1(fd, nsid, ctx);
+		return sctlunwind1(fd, nsid, pc);
 	}
 
 	@defloc el(this, ctx)

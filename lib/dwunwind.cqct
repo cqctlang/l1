@@ -241,7 +241,7 @@ uwns = @names c32le {
 	if(ns == nil)
 		error("no name space for pc %p", ctx->rip);
 	dom = mkdom(ns, as);
-	rs = ns.unwind1(ctx);
+	rs = ns.unwind1(ctx->rip);
 	if(rs == nil)
 		goto guess;
 	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;

@@ -1859,7 +1859,7 @@ again:
 	return sym;
 }
 
-@define sctlunwind1(fd, nsid, ctx)
+@define sctlunwind1(fd, nsid, pc)
 {
 	@local p, m, rep, dat, rs;
 
@@ -1870,9 +1870,7 @@ again:
 	p++;
 	p = (uint64*)p;
 	*p++ = nsid;
-	p = (char*)p;
-	putbytes(p, getbytes(ctx));
-	p += sizeof(sctl`Ctx);
+	*p++ = pc;
 	sendmsg(fd, m, (char*)p-m);
 
 	[rep, dat] = recvmsg(fd);
