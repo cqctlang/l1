@@ -22,7 +22,7 @@
 		error("invalid source line specification: %a", spec);
 	file = ss[0];
 	line = strton(ss[1]);
-	pc = ns.lookline(file, line);
+	pc = ns.lookpc(file, line);
 	return pc;
 }
 

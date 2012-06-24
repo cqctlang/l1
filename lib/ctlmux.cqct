@@ -71,8 +71,8 @@ ctlmux = @names clp64le {
 		Runwind1,
 		Tlooksrc,
 		Rlooksrc,
-		Tlookline,
-		Rlookline,
+		Tlookpc,
+		Rlookpc,
 	};
 
 	enum State {
@@ -503,7 +503,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Tnames;
 	typedef struct Tns Tunwind1;
 	typedef struct Tns Tlooksrc;
-	typedef struct Tns Tlookline;
+	typedef struct Tns Tlookpc;
 	typedef struct Tns Rlooksym;
 	typedef struct Tns Renumsym;
 	typedef struct Tns Rlooktype;
@@ -515,7 +515,7 @@ ctlmux = @names clp64le {
 	typedef struct Tns Rnames;
 	typedef struct Tns Runwind1;
 	typedef struct Tns Rlooksrc;
-	typedef struct Tns Rlookline;
+	typedef struct Tns Rlookpc;
 };
 
 @record region {
@@ -1213,10 +1213,10 @@ ctlmux = @names clp64le {
 			return (ctlmux`Tlooksrc*)p;
 		case ctlmux`Rlooksrc:
 			return (ctlmux`Rlooksrc*)p;
-		case ctlmux`Tlookline:
-			return (ctlmux`Tlookline*)p;
-		case ctlmux`Rlookline:
-			return (ctlmux`Rlookline*)p;
+		case ctlmux`Tlookpc:
+			return (ctlmux`Tlookpc*)p;
+		case ctlmux`Rlookpc:
+			return (ctlmux`Rlookpc*)p;
 		case ctlmux`Tnames:
 			return (ctlmux`Tnames*)p;
 		case ctlmux`Rnames:

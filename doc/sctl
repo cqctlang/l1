@@ -239,7 +239,7 @@ The source record is defined as follows:
 Returns nil if no source location matches.
 
 
-sctllookline(FD, NSID, FILE, LINE)
+sctllookpc(FD, NSID, FILE, LINE)
 
   FD:    file descriptor (to sctl server)
   NSID:  cvalue (name space identifier)
@@ -248,7 +248,7 @@ sctllookline(FD, NSID, FILE, LINE)
 
   returns:  cvalue (program counter)
 
-Performs a lookline transaction, returning a 
+Performs a lookpc transaction, returning a 
 program counter address corresponding to the
 source FILE and LINE in name space NSID.
 

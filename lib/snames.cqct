@@ -301,7 +301,7 @@ sns = @names clp64be {
 	return 'ok;
 }
 
-@define tlookline(fd, msg, dat)
+@define tlookpc(fd, msg, dat)
 {
 	@local m, p, nsid, file, line, ns, addr;
 
@@ -317,13 +317,13 @@ sns = @names clp64be {
 		return 'ok;
 	}
 
-	addr = ns.lookline(file, line);
+	addr = ns.lookpc(file, line);
 	if(addr == nil){
 		sctlrerror(fd, msg->tag, Enone);
 		return 'ok;
 	}
-	m = p = (sctl`Rlookline*)mkxs();
-	p->op = sctl`Rlookline;
+	m = p = (sctl`Rlookpc*)mkxs();
+	p->op = sctl`Rlookpc;
 	p->tag = msg->tag;
 	p++;
 	p = (uint64*)p;
@@ -403,7 +403,7 @@ handle = [
 	(sctl`Mkind)sctl`Tunwind   : notimpl,
 	(sctl`Mkind)sctl`Tunwind1  : tunwind1,
 	(sctl`Mkind)sctl`Tlooksrc  : tlooksrc,
-	(sctl`Mkind)sctl`Tlookline : tlookline,
+	(sctl`Mkind)sctl`Tlookpc   : tlookpc,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
 	(sctl`Mkind)sctl`Tnames    : tnames,
 ];

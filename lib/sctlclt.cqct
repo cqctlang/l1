@@ -144,9 +144,9 @@
 		return sctllooksrc(fd, nsid, addr);
 	}
 
-	@defloc ll(this, file, line)
+	@defloc lpc(this, file, line)
 	{
-		return sctllookline(fd, nsid, file, line);
+		return sctllookpc(fd, nsid, file, line);
 	}
 
 	ns = mkns([ "looktype" : lt,
@@ -157,7 +157,7 @@
 		    "unwind1"  : uw1,
 		    "enumloc"  : el,
 		    "looksrc"  : lsrc,
-		    "lookline" : ll,
+		    "lookpc"   : lpc,
 		  ]);
 	return ns;
 }
