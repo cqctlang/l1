@@ -275,7 +275,7 @@ sns = @names clp64be {
 
 @define tlooksrc(fd, msg, dat)
 {
-	@local m, p, nsid, addr, ns, rs;
+	@local m, p, nsid, addr, ns, src;
 
 	p = (uint64*)dat;
 	nsid = *p++;
@@ -287,8 +287,8 @@ sns = @names clp64be {
 		return 'ok;
 	}
 
-	rs = ns.looksrc(addr);
-	if(rs == nil){
+	src = ns.looksrc(addr);
+	if(src == nil){
 		sctlrerror(fd, msg->tag, Enone);
 		return 'ok;
 	}
@@ -296,9 +296,7 @@ sns = @names clp64be {
 	p->op = sctl`Rlooksrc;
 	p->tag = msg->tag;
 	p++;
-	p = (char*)p;
-	putbytes(p, rs);
-	p += length(rs);
+	p = encodesrc(p, src);
 	sendmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }

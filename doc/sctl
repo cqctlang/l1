@@ -204,7 +204,7 @@ encoding of unwind rules specified by DWARF:
 		n,		/* number operand */
 	};
 
-This library dwarf.cqct includes functions that 
+The library dwarf.cqct includes functions that 
 evaluate these rules.  (NB: these require a
 name space to pick rules based on target arch;
 a ctx to get regs; a domain to get memory;
@@ -230,7 +230,7 @@ name space NSID.
 The source record is defined as follows:
 
 	/* source record */    
-	@record srcloc {
+	@record srcrec {
 		file,		/* file name (string) */
 		line,		/* line (cvalue) */
 		col,		/* column (cvalue */

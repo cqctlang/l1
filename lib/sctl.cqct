@@ -43,6 +43,7 @@
 	encodelexpr,
 	encodectx,
 	encodes,
+	encodesrc,
 	encodesym,
 	encodetdef,
 	encodetname,
@@ -622,6 +623,12 @@ sctl = @names clp64le {
 	kind,
 	r,
 	n,
+};
+
+@record srcrec {
+	file,
+	line,
+	col,
 };
 
 @define encodes(p, s)
@@ -1218,6 +1225,25 @@ sctl = @names clp64le {
 		append(rs, uwrulerec(k, r, n));
 	}
 	return [rs, q];
+}
+
+@define encodesrc(q, src)
+{
+	q = encodes(q, src.file);
+	q = (int32*)q;
+	*q++ = src.line; 
+	*q++ = src.col; 
+	return q;
+}
+
+@defloc decodesrc(q)
+{
+	@local file, line, col;
+	[file, q] = decodes(q);
+	q = (int32*)q;
+	line = *q++;
+	col = *q++;
+	return [srcrec(file, line, col), q];
 }
 
 @defloc buf2msg(p)
@@ -1870,7 +1896,7 @@ again:
 
 @define sctllooksrc(fd, nsid, addr)
 {
-	@local p, m, rep, dat;
+	@local p, m, rep, src, dat;
 
 	p = m = mkxs();
 	p = (sctl`Tlooksrc*)p;
@@ -1896,7 +1922,8 @@ again:
 	default:
 		error("unexpected response: %e", rep->op);
 	}
-	return dat; /* encoded source location */
+	[src, _] = decodesrc(dat);
+	return src;
 }
 
 @define sctllookline(fd, nsid, file, line)

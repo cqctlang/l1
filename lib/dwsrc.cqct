@@ -4,32 +4,13 @@
 
 {
 
-@record srcloc {
-	file,
-	line,
-	col,
-};
-
-@defloc decodesrc(q)
-{
-	@local file, line, col;
-	[file, q] = decodes(q);
-	q = (int32*)q;
-	line = *q++;
-	col = *q++;
-	return [srcloc(file, line, col), q];
-}
-
 @define dwaddr2src(addr, nsmap)
 {
-	@local ns, src;
+	@local ns;
 	ns = nsmap.byaddr(addr);
 	if(ns == nil)
 		error("no name space for pc %p", addr);
-	src = ns.looksrc(addr);
-	if(src != nil)
-		[src, _] = decodesrc(src);
-	return src;
+	return ns.looksrc(addr);
 }
 
 @define dwsrc2addr(spec, ns)
