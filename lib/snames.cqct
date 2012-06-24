@@ -331,11 +331,11 @@ sns = @names clp64be {
 
 @define tenumloc(fd, msg, dat)
 {
-	@local m, p, nsid, ctx, ns, ls;
+	@local m, p, nsid, pc, ns, ls;
 
 	p = (uint64*)dat;
 	nsid = *p++;
-	ctx = p;
+	pc = *p++;
 
 	ns = looknsid(nsid);
 	if(ns == nil){
@@ -343,10 +343,7 @@ sns = @names clp64be {
 		return 'ok;
 	}
 
-	/* FIXME: we should not expose the Ctx type,
-	   but it is needed to tell sctlenumloc how
-	   big the Ctx buffer is */
-	ls = ns.enumloc((sctl`Ctx*)ctx);
+	ls = ns.enumloc(pc);
 	if(ls == nil){
 		sctlrerror(fd, msg->tag, Enone);
 		return 'ok;

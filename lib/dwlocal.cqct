@@ -221,7 +221,7 @@
 	ns = nsmap.byaddr(ctx->rip);
 	if(ns == nil)
 		error("no name space for pc %p", ctx->rip);
-	ls = ns.enumloc(ctx);
+	ls = ns.enumloc(ctx->rip);
 	if(ls == nil)
 		return nil;
 	return localdom(ctx, ns, as, ls);

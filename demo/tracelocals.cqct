@@ -17,7 +17,7 @@
 			  regs = ctl.reg();
 			  printf("%s locals (sctl):\n", cmd);
 			  nsid = 0; /* assume binary is nsid 0 */
-			  ss = mux.enumloc(nsid, regs);
+			  ss = mux.enumloc(nsid, regs->rip);
 			  if(ss == nil){
 				  printf("no location information for %p\n",
 					 {dom}regs->rip);

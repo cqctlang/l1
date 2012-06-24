@@ -134,9 +134,9 @@
 		return sctlunwind1(fd, nsid, pc);
 	}
 
-	@defloc el(this, ctx)
+	@defloc el(this, pc)
 	{
-		return sctlenumloc(fd, nsid, ctx);
+		return sctlenumloc(fd, nsid, pc);
 	}
 
 	@defloc lsrc(this, addr)
