@@ -106,10 +106,10 @@
 		sym = [:];
 
 		ss = sctlenumsym(fd, nsid);
-		foreach(@lambda(psym){
+		foreach(@lambda(id, psym){
 				s = psym2sym(psym);
 				if(s != nil)
-					sym[psym.id] = s;
+					sym[id] = s;
 			}, ss);
 		return sym;
 	}

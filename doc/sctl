@@ -157,11 +157,10 @@ sctlenumsym(FD, NSID)
 
   returns:  list of symbol records
 
-Performs an enumsym transaction, returning a list
-of symbol definitions in name space NSID.  
-
-Each symbol definition is a symbol, constructed
-as in sctllooksym.
+Performs an enumsym transaction, returning a table of
+symbol definitions in name space NSID.  The keys are
+symbol identifiers; the values are corresponding
+symbols, constructed as in sctllooksym.
 
 
 sctllookaddr(FD, NSID, ADDR)
@@ -179,7 +178,6 @@ The symbol definition is a symbol, constructed
 as in sctllooksym.
 
 Returns nil if there is no matching symbol.
-
 
 
 sctlunwind1(FD, NSID, ADDR)

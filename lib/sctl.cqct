@@ -1816,12 +1816,12 @@ again:
 	[rep, dat] = recvmsg(fd);
 	checkreply(rep, sctl`Renumsym);
 
-	ss = [];
+	ss = [:];
 	q = (uint64*)dat;
 	m = *q++;
 	for(i = 0; i < m; i++){
 		[sym, q] = decodesym(q);
-		append(ss, sym);
+		ss[symid(sym)] = sym;
 	}
 	return ss;
 }
