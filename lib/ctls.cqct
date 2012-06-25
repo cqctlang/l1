@@ -479,6 +479,23 @@ idxev = [
 		contasync();
 	}
 
+	@defloc dosig(p, ev)
+	{
+		@local ctx, hs;
+
+		hs = handlers(ev);
+		if(length(hs) == 0){
+			printf("no handlers for %a\n", ev);
+			contasync();
+			return;
+		}
+		[ctx, p] = decodectx(p);
+		setctx(ctx);
+		[info, p] = decodesiginfo(p);
+		foreach(@lambda(t) { t.fn(this, info); }, hs);
+		contasync();
+	}
+
 	@defloc doclone(p, ev)
 	{
 		@local hs, spwnid, ctx, spwnctx, spwn;
