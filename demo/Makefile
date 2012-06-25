@@ -15,6 +15,7 @@ TARG = clones\
 	float1 float1.32\
 	libA.so\
 	uselib\
+	fault\
 #	types1 types1.32\
 
 TARG32 = list32\
@@ -42,6 +43,9 @@ list: list.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 sig: sig.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+fault: fault.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 attach: attach.o
