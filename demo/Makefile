@@ -13,6 +13,8 @@ TARG = clones\
 	wind1 wind1.32\
 	wind2 wind2.32\
 	float1 float1.32\
+	libA.so\
+	uselib\
 #	types1 types1.32\
 
 TARG32 = list32\
@@ -67,6 +69,12 @@ wind2: wind2.o
 
 wind2.32: wind2.c
 	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+
+libA.so: libA.o
+	$(CC) -shared -o $@ $^
+
+uselib: uselib.o libA.so
+	$(CC) -o $@ uselib.o -L. -lA
 
 types1: types1.o
 	$(CC) $(CFLAGS) -o $@ $^
