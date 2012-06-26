@@ -65,8 +65,8 @@ if(1){
 	printf("launched %d\n", ctl.id);
 	exe = ctlexe(ctl);
 	ctl.trap('signal,
-		 @lambda(ctl){
-			 printf("caught signal\n");
+		 @lambda(ctl, info){
+			 printf("caught signal for addr %p\n", info->si_addr);
 			 dumpcontext(ctl);
 		 });
 
