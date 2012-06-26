@@ -38,6 +38,7 @@
 	/* codecs */
 	decodectx,
 	decodes,
+	decodesiginfo,
 	decodetname,
 	decodeuwrules,
 	encodelexpr,
@@ -296,6 +297,73 @@ sctl = @names clp64le {
 		SHN_ABS		= 0xfff1,
 		SHN_COMMON	= 0xfff2,
 	};
+
+
+	union sigval {
+		@0x0	int sival_int;
+		@0x0	void *sival_ptr;
+		@0x8;
+	};
+
+	struct anon_4 {
+		@0x0	__pid_t si_pid;
+		@0x4	__uid_t si_uid;
+		@0x8;
+	};
+
+	struct anon_5 {
+		@0x0	int si_tid;
+		@0x4	int si_overrun;
+		@0x8	sigval_t si_sigval;
+		@0x10;
+	};
+
+	struct anon_6 {
+		@0x0	__pid_t si_pid;
+		@0x4	__uid_t si_uid;
+		@0x8	sigval_t si_sigval;
+		@0x10;
+	};
+
+	struct anon_7 {
+		@0x0	__pid_t si_pid;
+		@0x4	__uid_t si_uid;
+		@0x8	int si_status;
+		@0x10	__clock_t si_utime;
+		@0x18	__clock_t si_stime;
+		@0x20;
+	};
+
+	struct anon_8 {
+		@0x0	void *si_addr;
+		@0x8;
+	};
+
+	struct anon_9 {
+		@0x0	long int si_band;
+		@0x8	int si_fd;
+		@0x10;
+	};
+
+	union anon_10 {
+		@0x0	int _pad[0x1c];
+		@0x0	struct anon_4 _kill;
+		@0x0	struct anon_5 _timer;
+		@0x0	struct anon_6 _rt;
+		@0x0	struct anon_7 _sigchld;
+		@0x0	struct anon_8 _sigfault;
+		@0x0	struct anon_9 _sigpoll;
+		@0x70;
+	};
+
+	typedef
+	struct siginfo {
+		@0x0	int si_signo;
+		@0x4	int si_errno;
+		@0x8	int si_code;
+		@0x10	union anon_10 _sifields;
+		@0x80;
+	} siginfo_t;
 
 	/* FIXME: this type needs to be a parameter of the name space
 	   (maybe it goes in the parent?) */
@@ -653,6 +721,9 @@ sctl = @names clp64le {
 	return [s, p];
 }
 
+/* these dialect routines belong with new
+   dialect code (record with decode/encode)
+*/
 @define encodectx(p, ctx)
 {
 	p = (char*)p;
@@ -668,6 +739,15 @@ sctl = @names clp64le {
 	ctx = (sctl`Ctx*)getbytes(p);
 	p++;
 	return [ctx, p];
+}
+
+@define decodesiginfo(p)
+{
+	@local info;
+	p = (sctl`siginfo_t*)p;
+	info = (sctl`siginfo_t*)getbytes(p);
+	p++;
+	return [info, p];
 }
 
 @defloc encodeattrs(p, attrs)

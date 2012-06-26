@@ -479,13 +479,13 @@ idxev = [
 		contasync();
 	}
 
-	@defloc dosig(p, ev)
+	@defloc dosig(p)
 	{
 		@local ctx, hs;
 
-		hs = handlers(ev);
+		hs = handlers('signal);
 		if(length(hs) == 0){
-			printf("no handlers for %a\n", ev);
+			printf("no handlers for signal event\n");
 			contasync();
 			return;
 		}
@@ -545,8 +545,10 @@ idxev = [
 		case sctl`Esnap:
 			dosnap(p);
 			break;
-		case sctl`Eexec:
 		case sctl`Esignal:
+			dosig(p);
+			break;
+		case sctl`Eexec:
 		case sctl`Esyscall:
 			doev(p, idxev[ev]);
 			break;
