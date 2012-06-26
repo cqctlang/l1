@@ -356,7 +356,7 @@ sctl = @names clp64le {
 				@0x8;
 			};
 			@0x70;
-		}
+		};
 		@0x80;
 	} siginfo_t;
 
