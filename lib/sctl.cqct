@@ -345,23 +345,18 @@ sctl = @names clp64le {
 		@0x10;
 	};
 
-	union anon_10 {
-		@0x0	int _pad[0x1c];
-		@0x0	struct anon_4 _kill;
-		@0x0	struct anon_5 _timer;
-		@0x0	struct anon_6 _rt;
-		@0x0	struct anon_7 _sigchld;
-		@0x0	struct anon_8 _sigfault;
-		@0x0	struct anon_9 _sigpoll;
-		@0x70;
-	};
-
 	typedef
 	struct siginfo {
 		@0x0	int si_signo;
 		@0x4	int si_errno;
 		@0x8	int si_code;
-		@0x10	union anon_10 _sifields;
+		@0x10 union {
+			@0x0 struct {
+				@0x0	void *si_addr;
+				@0x8;
+			};
+			@0x70;
+		}
 		@0x80;
 	} siginfo_t;
 
