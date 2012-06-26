@@ -481,7 +481,7 @@ idxev = [
 
 	@defloc dosig(p)
 	{
-		@local ctx, hs;
+		@local ctx, hs, info;
 
 		hs = handlers('signal);
 		if(length(hs) == 0){
