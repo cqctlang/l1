@@ -1,0 +1,25 @@
+
+@include <library.cqct>
+
+lp = loadpath();
+str = lp[0] + "/../test/libs";
+append(lp,str);
+setloadpath(lp);
+
+@library( main, 
+  [ (f1, lib1.f2), //this function exists and lib1 depends on lib2
+    (f2, lib_.f2), //library does not exist!
+    (f3, lib1.f2_), //function does not exist!
+  ], [] ) 
+{
+  printf("In main\n"); 
+  f1();
+  applyk( f2, 
+      @lambda(ret...) { printf("This shouldn't happen!\n"); },
+      @lambda() { printf("Successfully caused an error\n"); },
+      []);
+  applyk( f3, 
+      @lambda(ret...) { printf("This shouldn't happen!\n"); },
+      @lambda() { printf("Successfully caused an error\n"); },
+      []);
+}
