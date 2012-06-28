@@ -4,12 +4,25 @@
 
 if (library_defined == nil)
 {
-@global library_exports;
+@global library_exports,pathto;
 library_exports = [:];
 
 
+@define pathto(f) {
+  @local i,paths,len;
+  paths = loadpath();
+  len = length(paths);
+  for(i=0;i<len;++i) {
+    @local fp;
+    fp = sprintfa("%s/%s",paths[i],f);
+    if (access(fp,"r"))
+      return fp;
+  }
+  return nil;
+}
+
 @defstx @library(name,imports,exports) body {
-  @local libname, new_body, new_locals, export_vals;
+  @local libname, new_body, new_locals;
 
   switch(name) {
   @match #id(v):
@@ -18,7 +31,22 @@ library_exports = [:];
   default: error("Error: library name %a not an id",name);
   }
 
-  new_body = [];
+  @defloc gen_libload_stx(lib) {
+    return #`{
+      if (library_exports[#,(lib)] == nil) {
+        @local l,fp;
+        fp = pathto(sprintfa("%a.cqct",#,(lib)));
+        if (fp == nil) error("Error: could not find library: %a",#,(lib));
+        l = mapfile(fp);
+        eval(l);
+        if (library_exports[#,(lib)] == nil) 
+          error("Error: library %a does not export itself (no @library?)",
+              #,(lib));
+      }
+    };
+  }
+
+  new_body = [ #`{ library_exports[#,(#val(libname))] = [:]; } ];
   new_locals = [];
   switch(imports) {
     @match #list(x): 
@@ -31,25 +59,38 @@ library_exports = [:];
     switch(en) {
       @match #list(x):
         fn = Zcar(x);
+        switch(fn) {
+        @match #id(d): fn = d; break;
+        default: error("Bad import entry: %a\n",en);
+        };
         switch(Zcar(Zcdr(x))) {
-          @match #dot(lname,lfn):
+          @match #dot(#id(lname),#id(lfn)):
             //store the id in the list of locals
-            append(new_locals,fn);
-            lname = #val(lname);
-            lfn = #val(lfn);
+            append(new_locals,#id(fn));
             //create a lazy-loading function that will fetch that symbol
             //from the named library when the function is run.
             s = #`{
-              #,(fn) = @lambda(args...) {
-                #,(fn) = library_exports[ #,(lname) ][ #,(lfn) ]();
-                if ( #,(fn) == nil ) 
+              #,(#id(fn)) = @lambda(args...) {
+                //printf("X %a %a %a\n", library_exports[ #,(lname) ],
+                                                      //#,(lname), #,(lfn));
+                #,(gen_libload_stx(lname));
+                /*
+                foreach(@lambda(k,v) { 
+                  printf("%a %a\n",k,v);
+                  foreach(@lambda(k2,v2) {
+                    printf("  %a %a\n",k2,v2);
+                  },library_exports[k]);
+                },library_exports);
+                */
+                #,(#id(fn)) = 
+                    library_exports[ #,(lname) ][ #,(lfn) ]();
+                if ( #,(#id(fn)) == nil ) 
                   error("Error: %a depends on unprovided %a in %a",
-                    #,(libname), #,(lfn), #,(lname));
-                return apply(#,(fn),args);
+                    #,(libname), #,(#val(lfn)), #,(#val(lname)));
+                return apply(#,(#id(fn)),args);
               };
             };
-            printf("Appending %a\n",s);
-            append(new_body,Zcar(s));
+            append(new_body,s);
             break;
           default: error("Error: library %a could not parse imports\n",libname);
         }
@@ -66,9 +107,13 @@ library_exports = [:];
   foreach(@lambda(en) {
     @local s;
     append(new_locals,en);
+    switch(en) {
+    @match #id(x): en = x; break;
+    default: error("Error parsing export %a in %a\n",en,libname);
+    }
     s = #`{
-      library_exports[#,(#val(libname))] [#,(#val(en))] = 
-          @lambda() { return #,(en); };
+      library_exports[#,(#val(libname))] [#,(en)] = 
+          @lambda() { return #,(#id(en)); };
     };
     append(new_body,Zcar(s));
   },Z2list(exports));
