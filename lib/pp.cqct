@@ -212,7 +212,10 @@ ppemit = @lambda(x) { printf("%s", x); };
 			queue(blank);
 			ids = Zcdr(ids);
 		}
-		queue(sprintfa("%a", stxid(Zcar(ids))));
+    if (Zcar(ids) == #ellipsis())
+		  queue("...");
+    else
+      queue(sprintfa("%a", stxid(Zcar(ids))));
 		queue(blank);
 		queue("]");
 		queue(right);
