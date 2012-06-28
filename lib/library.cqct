@@ -1,12 +1,30 @@
 @global library_defined;
 
-@include <pp.cqct>
+/*
+Prototype implementation of a library system for l1.
+
+To define a library create a new file and start with the following:
+
+@library(name, //must be the file's name minus its .cqct extension
+  [ [import1, lib1.f1], [import2, lib1.f2], [import3, lib2.f1], ... ],
+  [ export1, export2, ... ]
+{
+  //in this scope, import1 will be bound as a local variable to the export 
+  //named f1 of the library named lib1 (the system will search the load path 
+  //for lib1.cqct). lib1.cqct must contain an @library(lib1 ... ) { ... }.
+
+  //We must define export1, export2, etc in this scope.
+}
+
+All library bindings are resolved lazily at run time. Recursive dependencies
+are allowed. 
+
+*/
 
 if (library_defined == nil)
 {
 @global library_exports,pathto;
 library_exports = [:];
-
 
 @define pathto(f) {
   @local i,paths,len;
@@ -28,7 +46,7 @@ library_exports = [:];
   @match #id(v):
     libname = v;
     break;
-  default: error("Error: library name %a not an id",name);
+  default: error("library name %a not an id",name);
   }
 
   @defloc gen_libload_stx(lib) {
@@ -36,11 +54,11 @@ library_exports = [:];
       if (library_exports[#,(lib)] == nil) {
         @local l,fp;
         fp = pathto(sprintfa("%a.cqct",#,(lib)));
-        if (fp == nil) error("Error: could not find library: %a",#,(lib));
+        if (fp == nil) error("could not find library: %a",#,(lib));
         l = mapfile(fp);
         eval(l);
         if (library_exports[#,(lib)] == nil) 
-          error("Error: library %a does not export itself (no @library?)",
+          error("library %a does not export itself (no @library?)",
               #,(lib));
       }
     };
@@ -51,19 +69,18 @@ library_exports = [:];
   switch(imports) {
     @match #list(x): 
       imports = x; break;
-    default: error("Error: library %a imports not a list\n",libname);
+    default: error("library %a imports not a list\n",libname);
   };
   foreach(@lambda(en) {
     @local s,fn;
-    printf("%a\n",en);
     switch(en) {
-      @match #list(x):
-        fn = Zcar(x);
+      @match #comma(x,y):
+        fn = x;
         switch(fn) {
         @match #id(d): fn = d; break;
         default: error("Bad import entry: %a\n",en);
         };
-        switch(Zcar(Zcdr(x))) {
+        switch(y) {
           @match #dot(#id(lname),#id(lfn)):
             //store the id in the list of locals
             append(new_locals,#id(fn));
@@ -83,26 +100,30 @@ library_exports = [:];
                 },library_exports);
                 */
                 #,(#id(fn)) = 
-                    library_exports[ #,(lname) ][ #,(lfn) ]();
+                    library_exports[ #,(lname) ][ #,(lfn) ];
                 if ( #,(#id(fn)) == nil ) 
-                  error("Error: %a depends on unprovided %a in %a",
-                    #,(libname), #,(#val(lfn)), #,(#val(lname)));
+                  error("%a depends non-existent %a.%a",
+                    #,(libname), #,(#val(lname)), #,(#val(lfn))  );
+                #,(#id(fn)) = #,(#id(fn))();
+                if ( #,(#id(fn)) == nil ) 
+                  error("%a depends non-existent %a.%a",
+                    #,(libname), #,(#val(lname)), #,(#val(lfn))  );
                 return apply(#,(#id(fn)),args);
               };
             };
             append(new_body,s);
             break;
-          default: error("Error: library %a could not parse imports\n",libname);
+          default: error("library %a could not parse imports\n",libname);
         }
         break;
-      default: error("Error: library %a could not parse imports\n",libname);
+      default: error("library %a could not parse imports\n",libname);
     }
   },Z2list(imports));
 
   switch(exports) {
     @match #list(x): 
       exports = x; break;
-    default: error("Error: library %a exports not a list\n",libname);
+    default: error("library %a exports field is not a list\n",libname);
   };
   foreach(@lambda(en) {
     @local s;
@@ -123,7 +144,6 @@ library_exports = [:];
   append(new_body,body);
   new_body = apply(Zlist,new_body);
   
-  printf("expanding @library %a\n",libname);
   return #[#scope(#block(new_locals,new_body))];
 }
 
