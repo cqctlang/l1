@@ -1,8 +1,4 @@
-#!/usr/bin/env l1
-!#
-
-@include <sctlclt.cqct>
-@include <dump.cqct>
+@include <sctlns.cqct>
 @include <rocks.cqct>
 
 @global nsamesclt_defined;
@@ -32,17 +28,14 @@ snamesaddr = "localhost:30000";
 
 @define snamesns(path)
 {
-	@local fd, nsid;
+	@local fd;
 	fd = tcpopen(snamesaddr);
 	if(fd == nil){
 		printf("%s\n", errno()[1]);
 		return nil;
 	}
 	fd = mkrock(fd);
-	nsid = sctlnames(fd, path);
-	if(nsid == nil)
-		return nil;
-	return mksctlns(fd, nsid);
+	return mksctlns(fd, path);
 }
 
 @define snamesreconnect()

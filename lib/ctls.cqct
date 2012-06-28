@@ -185,6 +185,19 @@ idxev = [
 		return nil;
 	}
 
+	@record region {
+		file,
+		addr,
+		len,
+		flags,
+	};
+
+	@record dll {
+		id,
+		path,
+		base,
+	};
+
 	@defloc pstat()
 	{
 		@local p, m;

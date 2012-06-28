@@ -1,0 +1,308 @@
+
+	union sigval {
+		@0x0	int sival_int;
+		@0x0	void *sival_ptr;
+		@0x8;
+	};
+
+	struct anon_4 {
+		@0x0	__pid_t si_pid;
+		@0x4	__uid_t si_uid;
+		@0x8;
+	};
+
+	struct anon_5 {
+		@0x0	int si_tid;
+		@0x4	int si_overrun;
+		@0x8	sigval_t si_sigval;
+		@0x10;
+	};
+
+	struct anon_6 {
+		@0x0	__pid_t si_pid;
+		@0x4	__uid_t si_uid;
+		@0x8	sigval_t si_sigval;
+		@0x10;
+	};
+
+	struct anon_7 {
+		@0x0	__pid_t si_pid;
+		@0x4	__uid_t si_uid;
+		@0x8	int si_status;
+		@0x10	__clock_t si_utime;
+		@0x18	__clock_t si_stime;
+		@0x20;
+	};
+
+	struct anon_8 {
+		@0x0	void *si_addr;
+		@0x8;
+	};
+
+	struct anon_9 {
+		@0x0	long int si_band;
+		@0x8	int si_fd;
+		@0x10;
+	};
+
+	typedef
+	struct siginfo {
+		@0x0	int si_signo;
+		@0x4	int si_errno;
+		@0x8	int si_code;
+		@0x10 union {
+			@0x0 struct {
+				@0x0	void *si_addr;
+				@0x8;
+			};
+			@0x70;
+		};
+		@0x80;
+	} siginfo_t;
+
+	/* FIXME: this type needs to be a parameter of the name space
+	   (maybe it goes in the parent?) */
+	typedef
+	struct Ctx {
+		/* kernel's register set */
+		@0x0	uint64 r15;
+		@0x8	uint64 r14;
+		@0x10	uint64 r13;
+		@0x18	uint64 r12;
+		@0x20	uint64 rbp;
+		@0x28	uint64 rbx;
+		@0x30	uint64 r11;
+		@0x38	uint64 r10;
+		@0x40	uint64 r9;
+		@0x48	uint64 r8;
+		@0x50	uint64 rax;
+		@0x58	uint64 rcx;
+		@0x60	uint64 rdx;
+		@0x68	uint64 rsi;
+		@0x70	uint64 rdi;
+		@0x78	uint64 orig_rax;
+		@0x80	uint64 rip;
+		@0x88	uint64 cs;
+		@0x90	uint64 eflags;
+		@0x98	uint64 rsp;
+		@0xa0	uint64 ss;
+		@0xa8	uint64 fs_base;
+		@0xb0	uint64 gs_base;
+		@0xb8	uint64 ds;
+		@0xc0	uint64 es;
+		@0xc8	uint64 fs;
+		@0xd0	uint64 gs;
+
+		/* current signal number */
+		@0xd8	uint64 sig;
+		@0xe0; /* 224 */
+	} Ctx;
+
+
+@record seg {
+	addr,
+	len,
+	name,
+};
+
+/* these dialect routines belong with new
+   dialect code (record with decode/encode)
+*/
+@define encodectx(p, ctx)
+{
+	p = (char*)p;
+	putbytes(p, getbytes(ctx));
+	p += sizeof(sctl`Ctx);
+	return p;
+}
+
+@define decodectx(p)
+{
+	@local ctx;
+	p = (sctl`Ctx*)p;
+	ctx = (sctl`Ctx*)getbytes(p);
+	p++;
+	return [ctx, p];
+}
+
+@define decodesiginfo(p)
+{
+	@local info;
+	p = (sctl`siginfo_t*)p;
+	info = (sctl`siginfo_t*)getbytes(p);
+	p++;
+	return [info, p];
+}
+
+
+@defloc fmtsctlmsg(msg, sz)
+{
+	@local s, q, tn, td, nsid, id, n, a, sym;
+
+	if(!verbose)
+		return;
+	msg = buf2msg(msg);
+	s = sprintfa("%e %d (%d bytes)",
+		     (enum sctl`Mkind)msg->op, msg->tag, sz);
+	switch((enum sctl`Mkind)msg->op){
+	case sctl`Aevent:
+	case sctl`Tps:
+	case sctl`Rps:
+	case sctl`Tlaunch:
+	case sctl`Rlaunch:
+	case sctl`Tcont:
+	case sctl`Rcont:
+	case sctl`Tstop:
+	case sctl`Rstop:
+	case sctl`Tkill:
+	case sctl`Rkill:
+	case sctl`Tdetach:
+	case sctl`Rdetach:
+	case sctl`Tsettrap:
+	case sctl`Rsettrap:
+	case sctl`Tclrtrap:
+	case sctl`Rclrtrap:
+	case sctl`Tread:
+	case sctl`Rread:
+	case sctl`Tsnap:
+	case sctl`Rsnap:
+	case sctl`Twrite:
+	case sctl`Rwrite:
+	case sctl`Tgetctx:
+	case sctl`Rgetctx:
+	case sctl`Tsetctx:
+	case sctl`Rsetctx:
+	case sctl`Tattach:
+	case sctl`Rattach:
+	case sctl`Tstep:
+	case sctl`Rstep:
+	case sctl`Ttrace:
+	case sctl`Rtrace:
+	case sctl`Tstat:
+	case sctl`Rstat:
+	case sctl`Tping:
+	case sctl`Rping:
+		break;
+	case sctl`Rerror:
+		s += sprintfa(" %s", getbytes(msg+1, sz-sizeof(sctl`Rerror)));
+		break;
+	case sctl`Tversion:
+		s += sprintfa(" %s", getbytes(msg+1, sz-sizeof(sctl`Tversion)));
+		break;
+	case sctl`Rversion:
+		s += sprintfa(" %s", getbytes(msg+1, sz-sizeof(sctl`Rversion)));
+		break;
+	case sctl`Tlooksym:
+		q = msg+1;
+		q = (uint64*)q;
+		nsid = *q++;
+		[id, q] = decodes(q);
+		s += sprintfa(" nsid=%u sym=%s", nsid, id);
+		break;
+	case sctl`Rlooksym:
+		q = msg+1;
+		[sym, q] = decodesym(q);
+		s += sprintfa(" id=%s flags=%x val=%x sz=%x tname=%t",
+			      sym.id, sym.flags, sym.val, sym.sz, sym.type);
+		break;
+	case sctl`Renumsym:
+		q = msg+1;
+		q = (uint64*)q;
+		n = *q++;
+		s += sprintfa(" ns=%u syms=...", n);
+		break;
+	case sctl`Tenumsym:
+	case sctl`Tenumtype:
+		q = msg+1;
+		q = (uint64*)q;
+		id = *q++;
+		s += sprintfa(" nsid=%u", id);
+		break;
+	case sctl`Renumtype:
+		q = msg+1;
+		q = (uint64*)q;
+		n = *q++;
+		s += sprintfa(" nt=%u tdefs=...", n);
+		break;
+	case sctl`Tunwind:
+	case sctl`Runwind:
+	case sctl`Tunwind1:
+	case sctl`Runwind1:
+	case sctl`Tlooksrc:
+	case sctl`Rlooksrc:
+	case sctl`Tlookpc:
+	case sctl`Rlookpc:
+		break;
+	case sctl`Tnames:
+		q = msg+1;
+		[id, q] = decodes(q);
+		s += sprintfa(" path=%s", id);
+		break;
+	case sctl`Rnames:
+		s += sprintfa(" nsid=%u", msg->id);
+		break;
+	case sctl`Tlooktype:
+		q = msg+1;
+		q = (uint64*)q;
+		id = *q++;
+		[tn, q] = decodetname(q);
+		s += sprintfa(" nsid=%u tname=%t", id, tn);
+		break;
+	case sctl`Rlooktype:
+		q = msg+1;
+		/* pass arbitrary name space to allow decode to occur */
+		[td, q] = decodetdef(clp64le, q);
+		s += sprintfa(" tdef=%t", td);
+		break;
+	case sctl`Tlookaddr:
+		q = msg+1;
+		q = (uint64*)q;
+		id = *q++;
+		a = *q++;
+		s += sprintfa(" nsid=%u addr=%x", id, a);
+		break;
+	case sctl`Rlookaddr:
+	case sctl`Tenumloc:
+	case sctl`Renumloc:
+	case sctl`Tenumseg:
+	case sctl`Renumseg:
+		break;
+	default:
+		error("unknown op %e", (enum sctl`Mkind)msg->op);
+	}
+	return s;
+}
+@define dumpctx(ctx)
+{
+	printf("\t  rip  %016x\n", ctx->rip);
+	printf("\t  rsp  %016x\n", ctx->rsp);
+	printf("\t  rbp  %016x\n", ctx->rbp);
+	printf("\t  rax  %016x\n", ctx->rax);
+	printf("\t  rbx  %016x\n", ctx->rbx);
+	printf("\t  rcx  %016x\n", ctx->rcx);
+	printf("\t  rdx  %016x\n", ctx->rdx);
+	printf("\t  rsi  %016x\n", ctx->rsi);
+	printf("\t  rdi  %016x\n", ctx->rdi);
+	printf("\t   r8  %016x\n", ctx->r8);
+	printf("\t   r9  %016x\n", ctx->r9);
+	printf("\t  r10  %016x\n", ctx->r10);
+	printf("\t  r11  %016x\n", ctx->r11);
+	printf("\t  r12  %016x\n", ctx->r12);
+	printf("\t  r13  %016x\n", ctx->r13);
+	printf("\t  r14  %016x\n", ctx->r14);
+	printf("\t  r15  %016x\n", ctx->r15);
+	printf("\tflags  %016x\n", ctx->eflags);
+}
+
+@define sctlrerror(fd, tag, fmt, arg ...)
+{
+	@local p, sz, err;
+	err = apply(sprintfa, fmt, arg);
+	sz = sizeof(sctl`Rerror)+strlen(err);
+	p = (sctl`Rerror*)malloc(sz);
+	p->op = sctl`Rerror;
+	p->tag = tag;
+	putbytes(p+1, err);
+	sendmsg(fd, p, sz);
+}
+

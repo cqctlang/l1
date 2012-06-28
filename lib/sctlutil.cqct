@@ -1,0 +1,29 @@
+@global
+	decodes,
+	encodes
+	;
+{
+
+@define encodes(p, s)
+{
+	@local m;
+	m = strlen(s);
+	p = (uint64*)p;
+	*p++ = m;
+	p = (char*)p;
+	putbytes(p, s);
+	p += m;
+	return p;
+}
+
+@define decodes(p)
+{
+	@local sz, s;
+	p = (uint64*)p;
+	sz = *p++;
+	s = getbytes(p, sz);
+	p = (uint8*)((char*)p+sz);
+	return [s, p];
+}
+
+}
