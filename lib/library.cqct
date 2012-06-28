@@ -6,7 +6,7 @@ Prototype implementation of a library system for l1.
 To define a library create a new file and start with the following:
 
 @library(name, //must be the file's name minus its .cqct extension
-  [ [import1, lib1.f1], [import2, lib1.f2], [import3, lib2.f1], ... ],
+  [ (import1, lib1.f1), (import2, lib1.f2), (import3, lib2.f1), ... ],
   [ export1, export2, ... ]
 {
   //in this scope, import1 will be bound as a local variable to the export 
@@ -24,8 +24,17 @@ are allowed.
 if (library_defined == nil)
 {
 @global library_exports,pathto;
+
+//library_exports is a map from library identifies (cids) to a map from
+//function identifies (also cids) to generation functions. 
+//The generation function keyed by a given library cid and function cid will
+//will return the function with that name from that library when called.
+//This is not meant for general use.
 library_exports = [:];
 
+//pathto returns the first full path to a file with the provided name
+//found while searching the load path. The below macros depend upon
+//the existence of such a function. 
 @define pathto(f) {
   @local i,paths,len;
   paths = loadpath();
@@ -42,6 +51,7 @@ library_exports = [:];
 @defstx @library(name,imports,exports) body {
   @local libname, new_body, new_locals;
 
+  //ensure a proper name
   switch(name) {
   @match #id(v):
     libname = v;
@@ -49,6 +59,11 @@ library_exports = [:];
   default: error("library name %a not an id",name);
   }
 
+  //this function will generate and return code that checks to see if the 
+  //provided library has been loaded. If not, the code will then dynamically 
+  //search the load path for a .cqct file with the given name. If such a file 
+  //is not found, it generates and error. When the file is found, it is mapped 
+  //in and eval'ed. 
   @defloc gen_libload_stx(lib) {
     return #`{
       if (library_exports[#,(lib)] == nil) {
@@ -64,15 +79,27 @@ library_exports = [:];
     };
   }
 
+  //new_body collects the body of the syntax for this macro returns.
+  //the first thing we need to have done is to register that this library
+  //exists by setting it's hash table in the library_exports. 
   new_body = [ #`{ library_exports[#,(#val(libname))] = [:]; } ];
+  //new_locals is the set of local variables specific to this library.
   new_locals = [];
+
+  //parse the import list...
   switch(imports) {
     @match #list(x): 
       imports = x; break;
     default: error("library %a imports not a list\n",libname);
   };
+  //for each import entry we will add an appropriate local variable, and
+  //add a statement to the body of the code that sets that local variable to
+  //a lazy function. The lazy function will, when called, return the 
+  //appropriate value from the given library after redefining the local 
+  //variable to that function.
   foreach(@lambda(en) {
     @local s,fn;
+    //parse (fn, lib.fn)
     switch(en) {
       @match #comma(x,y):
         fn = x;
@@ -88,29 +115,26 @@ library_exports = [:];
             //from the named library when the function is run.
             s = #`{
               #,(#id(fn)) = @lambda(args...) {
-                //printf("X %a %a %a\n", library_exports[ #,(lname) ],
-                                                      //#,(lname), #,(lfn));
+                //load the appropriate library if necessary.
                 #,(gen_libload_stx(lname));
-                /*
-                foreach(@lambda(k,v) { 
-                  printf("%a %a\n",k,v);
-                  foreach(@lambda(k2,v2) {
-                    printf("  %a %a\n",k2,v2);
-                  },library_exports[k]);
-                },library_exports);
-                */
+                //get the generation function from library_exports
                 #,(#id(fn)) = 
                     library_exports[ #,(lname) ][ #,(lfn) ];
                 if ( #,(#id(fn)) == nil ) 
                   error("%a depends non-existent %a.%a",
                     #,(libname), #,(#val(lname)), #,(#val(lfn))  );
+                //call the generation function, setting the current function
+                //to the returned value (from here on out, all calls to this
+                //function will dispatch directly to the imported function)
                 #,(#id(fn)) = #,(#id(fn))();
                 if ( #,(#id(fn)) == nil ) 
                   error("%a depends non-existent %a.%a",
                     #,(libname), #,(#val(lname)), #,(#val(lfn))  );
+                //call and return the resulting function with the supplied args
                 return apply(#,(#id(fn)),args);
               };
             };
+            //add these lazy function definitions to the body
             append(new_body,s);
             break;
           default: error("library %a could not parse imports\n",libname);
@@ -120,6 +144,8 @@ library_exports = [:];
     }
   },Z2list(imports));
 
+  //exports are simplier: we simply need to add a local variable and an
+  //entry in the library_exports variable.
   switch(exports) {
     @match #list(x): 
       exports = x; break;
@@ -136,12 +162,16 @@ library_exports = [:];
       library_exports[#,(#val(libname))] [#,(en)] = 
           @lambda() { return #,(#id(en)); };
     };
-    append(new_body,Zcar(s));
+    append(new_body,s);
   },Z2list(exports));
 
+  //we'd been building new_locals as a cqct list, but it needs to be a Zlist
   new_locals = apply(Zlist,new_locals);
 
+  //finally, we append the actual definition of the library
   append(new_body,body);
+
+  //we'd been building new_body as a cqct list, but it needs to be a Zlist
   new_body = apply(Zlist,new_body);
   
   return #[#scope(#block(new_locals,new_body))];
