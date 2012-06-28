@@ -1,0 +1,85 @@
+@global library_defined;
+
+@include <pp.cqct>
+
+if (library_defined == nil)
+{
+@global library_exports;
+library_exports = [:];
+
+
+@defstx @library(name,imports,exports) body {
+  @local libname, new_body, new_locals, export_vals;
+
+  switch(name) {
+  @match #id(v):
+    libname = v;
+    break;
+  default: error("Error: library name %a not an id",name);
+  }
+
+  new_body = [];
+  new_locals = [];
+  switch(imports) {
+    @match #list(x): 
+      imports = x; break;
+    default: error("Error: library %a imports not a list\n",libname);
+  };
+  foreach(@lambda(en) {
+    @local s,fn;
+    printf("%a\n",en);
+    switch(en) {
+      @match #list(x):
+        fn = Zcar(x);
+        switch(Zcar(Zcdr(x))) {
+          @match #dot(lname,lfn):
+            //store the id in the list of locals
+            append(new_locals,fn);
+            lname = #val(lname);
+            lfn = #val(lfn);
+            //create a lazy-loading function that will fetch that symbol
+            //from the named library when the function is run.
+            s = #`{
+              #,(fn) = @lambda(args...) {
+                #,(fn) = library_exports[ #,(lname) ][ #,(lfn) ]();
+                if ( #,(fn) == nil ) 
+                  error("Error: %a depends on unprovided %a in %a",
+                    #,(libname), #,(lfn), #,(lname));
+                return apply(#,(fn),args);
+              };
+            };
+            printf("Appending %a\n",s);
+            append(new_body,Zcar(s));
+            break;
+          default: error("Error: library %a could not parse imports\n",libname);
+        }
+        break;
+      default: error("Error: library %a could not parse imports\n",libname);
+    }
+  },Z2list(imports));
+
+  switch(exports) {
+    @match #list(x): 
+      exports = x; break;
+    default: error("Error: library %a exports not a list\n",libname);
+  };
+  foreach(@lambda(en) {
+    @local s;
+    append(new_locals,en);
+    s = #`{
+      library_exports[#,(#val(libname))] [#,(#val(en))] = 
+          @lambda() { return #,(en); };
+    };
+    append(new_body,Zcar(s));
+  },Z2list(exports));
+
+  new_locals = apply(Zlist,new_locals);
+
+  append(new_body,body);
+  new_body = apply(Zlist,new_body);
+  
+  printf("expanding @library %a\n",libname);
+  return #[#scope(#block(new_locals,new_body))];
+}
+
+}
