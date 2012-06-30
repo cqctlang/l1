@@ -36,13 +36,12 @@
 
 {
 @local EINTR, ECONNRESET;
-@local verbose, nexttag;
+@local nexttag;
 
 /* FIXME! */
 EINTR = 4;
 ECONNRESET = 104;
 
-verbose = 0;
 nexttag = 0;
 
 @defloc freshtag()
@@ -682,7 +681,7 @@ nexttag = 0;
 @defloc recvmsg(fd)
 {
 	@local s, sz, p, e;
-	@local op, tag, dat;
+	@local op, dat;
 again:
 	s = read(fd, sizeof(litdom`uint64));
 	if(s == nil){
@@ -696,30 +695,42 @@ again:
 		return [nil, 'closed];
 	}
 	sz = *(uint64*)s;
-	if(sz < sizeof(uint8)+sizeof(uint64))
+	if(sz < sizeof(litdom`uint8)+sizeof(litdom`uint32))
 		return [nil, 'error];
 	p = read(fd, sz);
 	p = (uint8*)p;
 	op = *p++;
-	p = (uint64*)p;
-	tag = *p++;
-	dat = (char*)p;
+	p = (uint32*)p;
+	p++; /* tag */
+	dat = getbytes(p, sz-(1+4));
 //	if(verbose)
 //		printf("(recv) %s\n", fmtsctlmsg(msg, sz));
 	return [(sctl`Mkind)op, dat];
 }
 
-@defloc checkreply(op, dat, expected)
+@defloc checkreply(op, dat, expect)
 {
 	switch(op){
-	case expected:
+	case expect:
 		break;
 	case sctl`Rerror:
-		error("sctl: while waiting for %e: %s",
-		      expected, dat);
+		error("sctl: while waiting for %e: %s", expect, dat);
 	default:
-		error("sctl: while waiting for %e: received %e",
-		      expected, op);
+		error("sctl: while waiting for %e: received %e", expect, dat);
+	}
+}
+
+@defloc checkreplynone(op, dat, expect)
+{
+	switch(op){
+	case expect:
+		return nil;
+	case sctl`Rerror:
+		if(dat == Enone)
+			return Enone;
+		error("sctl: while waiting for %e: %s", expect, dat);
+	default:
+		error("sctl: while waiting for %e: received %e", expect, dat);
 	}
 }
 
@@ -744,8 +755,7 @@ again:
 	q = (uint64*)dat;
 	rcnt = *q++;
 	if(cnt != rcnt)
-		error("ping reply acknowledged %d bytes, not %d",
-		      rcnt, cnt);
+		error("ping reply acknowledged %d bytes, not %d", rcnt, cnt);
 }
 
 @define sctlversion(fd)
@@ -767,7 +777,7 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("version failed: %a", dat);
-	checkreply(rep, sctl`Rversion);
+	checkreply(rep, dat, sctl`Rversion);
 	s = split(dat, ":");
 	if(length(s) != 2)
 		error("unknown remote sctl version: %s", dat);
@@ -778,7 +788,7 @@ again:
 
 @define sctlnames(fd, path)
 {
-	@local m, p, rep, dat;
+	@local m, p, rep, dat, id, q;
 
 	m = p = mkxs();
 	p = (sctl`Msg*)p;
@@ -791,19 +801,11 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("names failed: %a", dat);
-	switch(rep->op){
-	case sctl`Rnames:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Rnames, rep->bytes);
-	default:
-		error("sctl: while waiting for %e: received %e",
-		      sctl`Rnames, (sctl`Mkind)rep->op);
-	}
-	return rep->id;
+	if(checkreplynone(rep, dat, sctl`Rnames))
+		return nil;
+	q = (uint64*)dat;
+	id = *q++;
+	return id;
 }
 
 @define sctllooktype(fd, nsid, ns, tn)
@@ -811,7 +813,7 @@ again:
 	@local p, m, rep, dat;
 
 	m = p = mkxs();
-	p = (sctl`Tlooktype*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tlooktype;
 	p->tag = freshtag();
 	p = (uint64*)(p+1);
@@ -822,18 +824,8 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("looktype failed: %a", dat);
-	switch(rep->op){
-	case sctl`Rlooktype:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Rlooktype, rep->bytes);
-	default:
-		error("sctl: while waiting for %e: received %e",
-		      sctl`Rlooktype, (sctl`Mkind)rep->op);
-	}
+	if(checkreplynone(rep, dat, sctl`Rlooktype))
+		return nil;
 	return decodetdef(ns, (char*)dat)[0];
 }
 
@@ -842,7 +834,7 @@ again:
 	@local p, m, rep, dat, ss, q, i, t;
 
 	m = p = mkxs();
-	p = (sctl`Tenumtype*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tenumtype;
 	p->tag = freshtag();
 	p = (uint64*)(p+1);
@@ -851,7 +843,7 @@ again:
 	sendmsg(fd, m, p-m);
 
 	[rep, dat] = recvmsg(fd);
-	checkreply(rep, sctl`Renumtype);
+	checkreply(rep, dat, sctl`Renumtype);
 	ss = [:];
 	q = (uint64*)dat;
 	m = *q++;
@@ -867,7 +859,7 @@ again:
 	@local p, m, rep, dat, sym;
 
 	p = m = mkxs();
-	p = (sctl`Tlooksym*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tlooksym;
 	p->tag = freshtag();
 	p++;
@@ -880,18 +872,8 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("recvmsg: pid = %d %a", getpid(), dat);
-	switch(rep->op){
-	case sctl`Rlooksym:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Rlooksym, rep->bytes);
-	default:
-		error("unexpected response: %e", rep->op);
-	}
-
+	if(checkreplynone(rep, dat, sctl`Rlooksym))
+		return nil;
 	[sym, _] = decodesym(dat);
 	return sym;
 }
@@ -901,7 +883,7 @@ again:
 	@local p, m, q, rep, dat, i, ss, sym;
 
 	p = m = mkxs();
-	p = (sctl`Tenumsym*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tenumsym;
 	p->tag = freshtag();
 	p++;
@@ -910,10 +892,8 @@ again:
 	p = (char*)p;
 	sendmsg(fd, m, p-m);
 
-	/* wait for reply */
 	[rep, dat] = recvmsg(fd);
-	checkreply(rep, sctl`Renumsym);
-
+	checkreply(rep, dat, sctl`Renumsym);
 	ss = [:];
 	q = (uint64*)dat;
 	m = *q++;
@@ -929,7 +909,7 @@ again:
 	@local p, m, rep, dat, sym;
 
 	p = m = mkxs();
-	p = (sctl`Tlookaddr*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tlookaddr;
 	p->tag = freshtag();
 	p++;
@@ -941,18 +921,8 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("recvmsg: pid = %d %a", getpid(), dat);
-	switch(rep->op){
-	case sctl`Rlookaddr:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Rlookaddr, rep->bytes);
-	default:
-		error("unexpected response: %e", rep->op);
-	}
-
+	if(checkreplynone(rep, dat, sctl`Rlookaddr))
+		return nil;
 	[sym, _] = decodesym(dat);
 	return sym;
 }
@@ -962,7 +932,7 @@ again:
 	@local p, m, rep, dat, rs;
 
 	p = m = mkxs();
-	p = (sctl`Tunwind1*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tunwind1;
 	p->tag = freshtag();
 	p++;
@@ -974,18 +944,8 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("recvmsg: pid = %d %a", getpid(), dat);
-	switch(rep->op){
-	case sctl`Runwind1:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Runwind1, rep->bytes);
-	default:
-		error("unexpected response: %e", rep->op);
-	}
-
+	if(checkreplynone(rep, dat, sctl`Runwind1))
+		return nil;
 	[rs, _] = decodeuwrules(dat);
 	return rs;
 }
@@ -995,7 +955,7 @@ again:
 	@local p, m, rep, src, dat;
 
 	p = m = mkxs();
-	p = (sctl`Tlooksrc*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tlooksrc;
 	p->tag = freshtag();
 	p++;
@@ -1007,17 +967,8 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("recvmsg: pid = %d %a", getpid(), dat);
-	switch(rep->op){
-	case sctl`Rlooksrc:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Rlooksrc, rep->bytes);
-	default:
-		error("unexpected response: %e", rep->op);
-	}
+	if(checkreplynone(rep, dat, sctl`Rlooksrc))
+		return nil;
 	[src, _] = decodesrc(dat);
 	return src;
 }
@@ -1027,7 +978,7 @@ again:
 	@local p, m, rep, dat, addr;
 
 	p = m = mkxs();
-	p = (sctl`Tlookpc*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tlookpc;
 	p->tag = freshtag();
 	p++;
@@ -1042,17 +993,8 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("recvmsg: pid = %d %a", getpid(), dat);
-	switch(rep->op){
-	case sctl`Rlookpc:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Rlookpc, rep->bytes);
-	default:
-		error("unexpected response: %e", rep->op);
-	}
+	if(checkreplynone(rep, dat, sctl`Rlookpc))
+		return nil;
 	p = (uint64*)dat;
 	addr = *p++;
 	return addr;
@@ -1064,7 +1006,7 @@ again:
 	@local i, ls, id, tn, vk, le;
 
 	p = m = mkxs();
-	p = (sctl`Tenumloc*)p;
+	p = (sctl`Msg*)p;
 	p->op = sctl`Tenumloc;
 	p->tag = freshtag();
 	p++;
@@ -1076,18 +1018,8 @@ again:
 	[rep, dat] = recvmsg(fd);
 	if(rep == nil)
 		error("recvmsg: pid = %d %a", getpid(), dat);
-	switch(rep->op){
-	case sctl`Renumloc:
-		break;
-	case sctl`Rerror:
-		if(rep->bytes == Enone)
-			return nil;
-		error("sctl: error while waiting for %e: %s",
-		      sctl`Renumloc, rep->bytes);
-	default:
-		error("unexpected response: %e", rep->op);
-	}
-
+	if(checkreplynone(rep, dat, sctl`Renumloc))
+		return nil;
 	ls = [];
 	q = (uint64*)dat;
 	m = *q++;
@@ -1121,7 +1053,6 @@ again:
 	sym = [:];
 	addr = [:];
 	undef = [:];
-	resetltr();
 
 	@defloc lt(this, tn)
 	{
@@ -1254,6 +1185,7 @@ again:
 	nsid = sctlnames(fd, path);
 	if(nsid == nil)
 		return nil;
+	resetltr();
 
 	ns = mkns([ "looktype" : lt,
 		    "enumtype" : et,

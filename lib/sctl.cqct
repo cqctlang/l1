@@ -230,10 +230,11 @@ sctl = @names clp64le {
 		SHN_COMMON	= 0xfff2,
 	};
 
+	typedef
 	struct Msg {
 		@0	uint8 op;
 		@1	uint32 tag;
 		@5;
-	};
+	} Msg;
 };
 }
