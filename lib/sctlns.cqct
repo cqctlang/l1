@@ -35,12 +35,7 @@
 	;
 
 {
-@local EINTR, ECONNRESET;
 @local nexttag;
-
-/* FIXME! */
-EINTR = 4;
-ECONNRESET = 104;
 
 nexttag = 0;
 
@@ -652,62 +647,6 @@ nexttag = 0;
 	return [srcrec(file, line, col), q];
 }
 
-@defloc sendmsg(fd, arg ...)
-{
-	@local p, sz, e;
-	p = arg[0];
-	switch(length(arg)){
-	case 1:
-		sz = sizeof(*p);
-		break;
-	case 2:
-		sz = arg[1];
-		break;
-	default:
-		error("bad sendmsg");
-	}
-//	if(verbose)
-//		printf("(send) %s\n", fmtsctlmsg(p, sz));
-	write(fd, cval2str((uint64)sz));
-	e = errno();
-	if(e[0] != 0)
-		error("sctl sendmsg: %s", e[1]);
-	write(fd, getbytes(p, sz));
-	e = errno();
-	if(e[0] != 0)
-		error("sctl sendmsg: %s", e[1]);
-}
-
-@defloc recvmsg(fd)
-{
-	@local s, sz, p, e;
-	@local op, dat;
-again:
-	s = read(fd, sizeof(litdom`uint64));
-	if(s == nil){
-		e = errno();
-		if(e[0] == EINTR)
-			goto again;
-		else if(e[0] == ECONNRESET)
-			return [nil, 'closed];
-		else if(e[0])
-			error("sctl recvmsg: %d %s", getpid(), e[1]);
-		return [nil, 'closed];
-	}
-	sz = *(uint64*)s;
-	if(sz < sizeof(litdom`uint8)+sizeof(litdom`uint32))
-		return [nil, 'error];
-	p = read(fd, sz);
-	p = (uint8*)p;
-	op = *p++;
-	p = (uint32*)p;
-	p++; /* tag */
-	dat = getbytes(p, sz-(1+4));
-//	if(verbose)
-//		printf("(recv) %s\n", fmtsctlmsg(msg, sz));
-	return [(sctl`Mkind)op, dat];
-}
-
 @defloc checkreply(op, dat, expect)
 {
 	switch(op){
@@ -716,7 +655,7 @@ again:
 	case sctl`Rerror:
 		error("sctl: while waiting for %e: %s", expect, dat);
 	default:
-		error("sctl: while waiting for %e: received %e", expect, dat);
+		error("sctl: while waiting for %e: received %e", expect, op);
 	}
 }
 
@@ -746,9 +685,9 @@ again:
 	p = (char*)p;
 	putbytes(p, mkstr(cnt));
 	p += cnt;
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
 		error("ping failed: %a", dat);
 	checkreply(rep, dat, sctl`Rping);
@@ -772,9 +711,9 @@ again:
 	p = (char*)p;
 	putbytes(p, version);
 	p += strlen(version);
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
 		error("version failed: %a", dat);
 	checkreply(rep, dat, sctl`Rversion);
@@ -796,9 +735,9 @@ again:
 	p->tag = freshtag();
 	p++;
 	p = encodes(p, path);
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
 		error("names failed: %a", dat);
 	if(checkreplynone(rep, dat, sctl`Rnames))
@@ -819,9 +758,9 @@ again:
 	p = (uint64*)(p+1);
 	*p++ = nsid;
 	p = encodetname(p, tn);
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
 		error("looktype failed: %a", dat);
 	if(checkreplynone(rep, dat, sctl`Rlooktype))
@@ -840,9 +779,9 @@ again:
 	p = (uint64*)(p+1);
 	*p++ = nsid;
 	p = (char*)p;
-	sendmsg(fd, m, p-m);
+	sendsctlmsg(fd, m, p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	checkreply(rep, dat, sctl`Renumtype);
 	ss = [:];
 	q = (uint64*)dat;
@@ -867,11 +806,11 @@ again:
 	*p++ = nsid;
 	p = encodes(p, cid2str(id));
 	p = (char*)p;
-	sendmsg(fd, m, p-m);
+	sendsctlmsg(fd, m, p-m);
 	
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
-		error("recvmsg: pid = %d %a", getpid(), dat);
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
 	if(checkreplynone(rep, dat, sctl`Rlooksym))
 		return nil;
 	[sym, _] = decodesym(dat);
@@ -890,9 +829,9 @@ again:
 	p = (uint64*)p;
 	*p++ = nsid;
 	p = (char*)p;
-	sendmsg(fd, m, p-m);
+	sendsctlmsg(fd, m, p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	checkreply(rep, dat, sctl`Renumsym);
 	ss = [:];
 	q = (uint64*)dat;
@@ -916,11 +855,11 @@ again:
 	p = (uint64*)p;
 	*p++ = nsid;
 	*p++ = addr;
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 	
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
-		error("recvmsg: pid = %d %a", getpid(), dat);
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
 	if(checkreplynone(rep, dat, sctl`Rlookaddr))
 		return nil;
 	[sym, _] = decodesym(dat);
@@ -939,11 +878,11 @@ again:
 	p = (uint64*)p;
 	*p++ = nsid;
 	*p++ = pc;
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
-		error("recvmsg: pid = %d %a", getpid(), dat);
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
 	if(checkreplynone(rep, dat, sctl`Runwind1))
 		return nil;
 	[rs, _] = decodeuwrules(dat);
@@ -962,11 +901,11 @@ again:
 	p = (uint64*)p;
 	*p++ = nsid;
 	*p++ = addr;
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
-		error("recvmsg: pid = %d %a", getpid(), dat);
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
 	if(checkreplynone(rep, dat, sctl`Rlooksrc))
 		return nil;
 	[src, _] = decodesrc(dat);
@@ -988,11 +927,11 @@ again:
 	p = encodes(p, file);
 	p = (uint32*)p;
 	*p++ = line;
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
-		error("recvmsg: pid = %d %a", getpid(), dat);
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
 	if(checkreplynone(rep, dat, sctl`Rlookpc))
 		return nil;
 	p = (uint64*)dat;
@@ -1013,11 +952,11 @@ again:
 	p = (uint64*)p;
 	*p++ = nsid;
 	*p++ = pc;
-	sendmsg(fd, m, (char*)p-m);
+	sendsctlmsg(fd, m, (char*)p-m);
 
-	[rep, dat] = recvmsg(fd);
+	[rep, _, dat] = recvsctlmsg(fd);
 	if(rep == nil)
-		error("recvmsg: pid = %d %a", getpid(), dat);
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
 	if(checkreplynone(rep, dat, sctl`Renumloc))
 		return nil;
 	ls = [];
