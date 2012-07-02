@@ -1,0 +1,89 @@
+@global
+	sctlx86linux
+	;
+{
+@local ns;
+
+ns = @names clp64le {
+	typedef
+	struct Ctx {
+		/* kernel's register set */
+		@0x0	uint64 r15;
+		@0x8	uint64 r14;
+		@0x10	uint64 r13;
+		@0x18	uint64 r12;
+		@0x20	uint64 rbp;
+		@0x28	uint64 rbx;
+		@0x30	uint64 r11;
+		@0x38	uint64 r10;
+		@0x40	uint64 r9;
+		@0x48	uint64 r8;
+		@0x50	uint64 rax;
+		@0x58	uint64 rcx;
+		@0x60	uint64 rdx;
+		@0x68	uint64 rsi;
+		@0x70	uint64 rdi;
+		@0x78	uint64 orig_rax;
+		@0x80	uint64 rip;
+		@0x88	uint64 cs;
+		@0x90	uint64 eflags;
+		@0x98	uint64 rsp;
+		@0xa0	uint64 ss;
+		@0xa8	uint64 fs_base;
+		@0xb0	uint64 gs_base;
+		@0xb8	uint64 ds;
+		@0xc0	uint64 es;
+		@0xc8	uint64 fs;
+		@0xd0	uint64 gs;
+
+		/* current signal number */
+		@0xd8	uint64 sig;
+		@0xe0; /* 224 */
+	} Ctx;
+};
+
+@defloc encodectx(p, ctx)
+{
+	p = (char*)p;
+	putbytes(p, getbytes(ctx));
+	p += sizeof(ns`Ctx);
+	return p;
+}
+
+@defloc decodectx(p)
+{
+	@local ctx;
+	p = (ns`Ctx*)p;
+	ctx = (ns`Ctx*)getbytes(p);
+	p++;
+	return [ctx, p];
+}
+
+@defloc dumpctx(ctx)
+{
+	printf("\t  rip  %016x\n", ctx->rip);
+	printf("\t  rsp  %016x\n", ctx->rsp);
+	printf("\t  rbp  %016x\n", ctx->rbp);
+	printf("\t  rax  %016x\n", ctx->rax);
+	printf("\t  rbx  %016x\n", ctx->rbx);
+	printf("\t  rcx  %016x\n", ctx->rcx);
+	printf("\t  rdx  %016x\n", ctx->rdx);
+	printf("\t  rsi  %016x\n", ctx->rsi);
+	printf("\t  rdi  %016x\n", ctx->rdi);
+	printf("\t   r8  %016x\n", ctx->r8);
+	printf("\t   r9  %016x\n", ctx->r9);
+	printf("\t  r10  %016x\n", ctx->r10);
+	printf("\t  r11  %016x\n", ctx->r11);
+	printf("\t  r12  %016x\n", ctx->r12);
+	printf("\t  r13  %016x\n", ctx->r13);
+	printf("\t  r14  %016x\n", ctx->r14);
+	printf("\t  r15  %016x\n", ctx->r15);
+	printf("\tflags  %016x\n", ctx->eflags);
+}
+
+sctlx86linux = sctldialectrec("x86-linux-2010",
+			      @typeof(ns`Ctx),
+			      decodectx,
+			      encodectx,
+			      dumpctx);
+}

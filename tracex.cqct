@@ -24,7 +24,7 @@
 if(1){
 	@local mux, cmd, ctl, exe;
 
-	mux = mkctlmux();
+	mux = mksctlmux();
 	cmd = [ "demo/list", "10" ];
 	ctl = ctllaunch(mux, cmd);
 	exe = ctlexe(ctl);
@@ -77,7 +77,7 @@ if(1){
 if(0){
 	@local mux, cmd, ctl;
 
-	mux = mkctlmux();
+	mux = mksctlmux();
 	cmd = [ "/home/vczandy/src/l1/demo/clones", "5" ];
 	ctl = ctllaunch(mux, cmd);
 

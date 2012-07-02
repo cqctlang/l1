@@ -6,6 +6,9 @@
 	recvsctlmsg,
 	sctlrerror
 	;
+
+@record sctldialectrec { name, Ctx, decodectx, encodectx, dumpctx };
+
 {
 @local EINTR, ECONNRESET;
 

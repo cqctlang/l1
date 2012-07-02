@@ -1,5 +1,7 @@
-@include <sctlclt.cqct>
-@include <mux.cqct>
+@include <sctl.cqct>
+@include <sctlmux.cqct>
+@include <sctlns.cqct>
+@include <sctl-x86-linux.cqct>
 @include <nsmap.cqct>
 @include <dwarf.cqct>
 
@@ -59,7 +61,8 @@
 	scan, 
 };
 
-@record ctlstate { mux, ctlid, ctx, mmap, nsmap, events, traps, straps };
+@record ctlstate { mux, ctlid, dlct, ctx, mmap, nsmap, events, traps, straps };
+
 
 evidx = [
 	'syscall  : sctl`Esyscall,
@@ -427,7 +430,7 @@ idxev = [
 		[path, p] = decodes(p);
 		p = (uint64*)p;
 		base = *p++;
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		foreach(@lambda(t) { t.fn(this, path, base); }, hs);
 		contasync();
@@ -439,7 +442,7 @@ idxev = [
 
 		p = (uint64*)p;
 		sid = *p++;
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		t = cs.straps[sid];
 		if(t == nil)
@@ -456,7 +459,7 @@ idxev = [
 		p = (uint64*)p;
 		sid = *p++;
 		spwnid = *p++;
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		t = cs.straps[sid];
 		if(t == nil)
@@ -486,7 +489,7 @@ idxev = [
 			contasync();
 			return;
 		}
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		foreach(@lambda(t) { t.fn(this); }, hs);
 		contasync();
@@ -494,7 +497,7 @@ idxev = [
 
 	@defloc dosig(p)
 	{
-		@local ctx, hs, info;
+		@local ctx, hs;
 
 		hs = handlers('signal);
 		if(length(hs) == 0){
@@ -502,10 +505,10 @@ idxev = [
 			contasync();
 			return;
 		}
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
-		[info, p] = decodesiginfo(p);
-		foreach(@lambda(t) { t.fn(this, info); }, hs);
+//		[info, p] = decodesiginfo(p);
+		foreach(@lambda(t) { t.fn(this); }, hs);
 		contasync();
 	}
 
@@ -522,8 +525,8 @@ idxev = [
 		}
 		p = (uint64*)p;
 		spwnid = *p++;
-		[ctx, p] = decodectx(p);
-		[spwnctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
+		[spwnctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		spwn = clonectl(spwnid, spwnctx);
 		foreach(@lambda(t) { t.fn(this, spwn); }, hs);		
@@ -602,6 +605,7 @@ idxev = [
 
 		r = ctlstate(cs.mux,
 			     ctlid,
+			     cs.dlct,
 			     ctx,
 			     copy(cs.mmap),
 			     cs.nsmap.clone(),
@@ -650,12 +654,13 @@ idxev = [
 	}
 }
 
-@defloc mkctl(mux, ctlid, ctx)
+@defloc mkctl(mux, ctlid, dlct, ctx)
 {
 	@local r, ctl;
 
 	r = ctlstate(mux,
 		     ctlid,
+		     dlct,
 		     ctx,
 		     mkvec(0),
 		     mknsmap(atnames),
@@ -688,7 +693,7 @@ idxev = [
 
 @define ctllaunch(mux, cmd)
 {
-	@local p, m, narg, i, rep, dat, ctlid, ctx;
+	@local p, m, narg, i, rep, dat, ctlid, ctx, dlct;
 
 	narg = length(cmd);
 	p = m = mkxs();
@@ -706,11 +711,12 @@ idxev = [
 	checkreply(rep, dat, sctl`Rlaunch);
 	p = (uint64*)dat;
 	ctlid = *p++;
-	[ctx, p] = decodectx(p);
+	dlct = sctlx86linux;
+	[ctx, p] = dlct.decodectx(p);
 
 	printf("launched! ctlid = %d\n", ctlid);
-	dumpctx(ctx);
-	return mkctl(mux, ctlid, ctx);
+	dlct.dumpctx(ctx);
+	return mkctl(mux, ctlid, dlct, ctx);
 }
 
 @define ctlexe(ctl)
