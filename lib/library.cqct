@@ -3,27 +3,43 @@
 /*
 Prototype implementation of a library system for l1.
 
-To define a library create a new file and start with the following:
+To define a library create a new file and include the following lines:
 
-@library(name, //must be the file's name minus its .cqct extension
-  [ (import1, lib1.f1), (import2, lib1.f2), (import3, lib2.f1), ... ],
-  [ export1, export2, ... ]
-{
-  //in this scope, import1 will be bound as a local variable to the export 
-  //named f1 of the library named lib1 (the system will search the load path 
-  //for lib1.cqct). lib1.cqct must contain an @library(lib1 ... ) { ... }.
+@export(s1,s2,...)
+where s1,s2,... are the symbols you with exported from this library
 
-  //We must define export1, export2, etc in this scope.
+@import( args... )
+where the elements of args may be either 
+* a bare identifier, i.e.
+  @import( lib1 )
+  in which case all symbols exported by lib1 are imported into the given file
+* a pair such as: (f1, lib1.f2)
+  in which case the symbol f2 in lib1 will be visible in the current file as f1
+
+Multiple import and export statements are allowed, however, they must exist 
+outside of any complex statements. 
+
+So, for instance, a library file "utils.cqct" might contain the following:
+
+@export( strcmp );
+@define strcmp(a,b) { ... }
+
+The library file functions could then be used by another library
+
+@import( (mystrcmp, utils.strcmp) );
+mystrcmp("a","b"); //calls the strcmp function in utils
+
+or they can be used in non-library cqct code with the @with_import macro:
+
+@with_import( (mystrcmp, utils.strcmp) ) {
+  x = mystrcmp("a","b"); //calls the strcmp function in utils
 }
-
-All library bindings are resolved lazily at run time. Recursive dependencies
-are allowed. 
 
 */
 
 if (library_defined == nil)
 {
-@global __library_exports,pathto;
+@global __library_exports;
 
 library_defined = 1;
 
@@ -31,10 +47,30 @@ library_defined = 1;
 //exported symbols (also cids) to the value of those exported symbols 
 //defined by that library. 
 //This is not meant for general use.
-if (__library_exports == nil) //might have been set in a macro
+if (__library_exports == nil) //might not have been set in a macro
   __library_exports = [:];
 
-@defstx @import(imports) body {
+//bare import statements are the sign of a problem -- let the user know
+@defstx @import(args...) { 
+  error("@import statements not allowed outside of libraries");
+  return #[]; 
+}
+
+//by default, ignore export statments (XXX should this cause a warning?)
+@defstx @export(args...) { return #[]; }
+
+//this macro adds the provided path to the loadpath at macro expansion time.
+@defstx @add_loadpath(path) {
+  @local p,lp;
+  p = compile(path)();
+  lp = loadpath();
+  append(lp,p);
+  setloadpath(lp);
+  return #`{ nil; };
+}
+
+//this macro allows some code to be run with bindings to some imported symbols 
+@defstx @with_imports(imports...) body {
   @local new_body, new_locals;
 
   if (__library_exports == nil) __library_exports = [:];
@@ -58,28 +94,20 @@ if (__library_exports == nil) //might have been set in a macro
     if (__library_exports[lib] == nil) {
       @local l,fp;
       fp = pathto(sprintfa("%a.cqct",lib));
-      printf("found %a at %a\n",lib,fp);
       if (fp == nil) error("could not find library: %a",lib);
       l = mapfile(fp);
-      eval(l);
+      eval(sprintfa("@library(%a) { %s }",lib,l));
       if (__library_exports[lib] == nil) 
-        error("library %a does not export itself (no @library?)",
-                lib);
+        error("loading library %a", lib);
     }
-    //if (__library_exports[lib] == 'loading)
-      //error("libraries %a and %a depend on one another",libname,lib);
+    if (__library_exports[lib] == 'loading)
+      error("Recursive dependency found in %a",lib);
   }
 
   new_body = [];
   //new_locals is the set of local variables specific to this library.
   new_locals = [];
 
-  //parse the import list...
-  switch(imports) {
-    @match #list(x): 
-      imports = x; break;
-    default: error("unparsable imports %a\n",imports);
-  };
   foreach(@lambda(en) {
     @local s,fn;
     //parse (fn, lib.fn) or (lib)
@@ -138,7 +166,9 @@ if (__library_exports == nil) //might have been set in a macro
   return #[#scope(#block(new_locals,new_body))];
 }
 
-@defstx @export(name,exports) body {
+//this macro allows one to export some symbols as though they were part of
+//a library with the provided name
+@defstx @with_exports(name,exports...) body {
   @local libname, new_body, new_locals, new_postbody;
 
   //ensure a proper name
@@ -150,10 +180,7 @@ if (__library_exports == nil) //might have been set in a macro
   }
 
   //while loading this library, set it's __library_exports entry to 'loading
-  if (__library_exports == nil) {
-    __library_exports = [:];
-    printf("In %a reset library_exports\n",libname);
-  }
+  if (__library_exports == nil) __library_exports = [:];
   __library_exports[libname] = 'loading;
 
   //new_body collects the body of the syntax for this macro returns.
@@ -161,7 +188,6 @@ if (__library_exports == nil) //might have been set in a macro
   //exists by setting it's hash table in the __library_exports. 
   new_body = [ #`{
     __library_exports[#,(#val(libname))] = [:]; 
-    printf("Added %a to __library_exports\n",#,(#val(libname)));
   } ];
   //new_postbody collects statements to be run after the main body of
   //this library. 
@@ -169,13 +195,6 @@ if (__library_exports == nil) //might have been set in a macro
   //new_locals is the set of local variables specific to this library.
   new_locals = [];
 
-  //exports are simplier: we simply need to add a local variable and an
-  //entry in the __library_exports variable.
-  switch(exports) {
-    @match #list(x): 
-      exports = x; break;
-    default: error("library %a exports field is not a list\n",libname);
-  };
   foreach(@lambda(en) {
     @local s;
     append(new_locals,en);
@@ -205,8 +224,11 @@ if (__library_exports == nil) //might have been set in a macro
 
 }
 
-@defstx @library(name,imports,exports) body {
-  @local libname;
+//This macro is used to define a library -- it is not expected to be used
+//by the user, but instead to be wrapped around the bodies of librarys before
+//the libraries are compiled. 
+@defstx @library(name) body {
+  @local libname, export_params, import_params, locals, new_stmts, ret;
   //ensure a proper name
   switch(name) {
   @match #id(v):
@@ -215,21 +237,47 @@ if (__library_exports == nil) //might have been set in a macro
   default: error("library name %a not an id",name);
   }
 
+  import_params = [];
+  export_params = [];
+
   //while loading this library, set it's __library_exports entry to 'loading
   if (__library_exports == nil) {
     __library_exports = [:];
   }
   __library_exports[libname] = 'loading;
 
+  new_stmts = [];
   switch(body) {
+  @match #scope(#block(l, stmts)):
+    locals = l;
+    foreach(@lambda(s) {
+      switch(s) {
+      @match #mcall(#id('import), args):
+        append(import_params,args);
+        break;
+      @match #mcall(#id('export), args):
+        append(export_params,args);
+        break;
+      default: append(new_stmts,s);
+      }
+    },Z2list(stmts));
+    break;
   default: error("could not parse body: ",body);
   }
 
-  return #`{ 
-    @import ( #,(imports) ) {
-      @export( #,(name), #,(exports) ) { #,(body); };
-    };
-  };
+  new_stmts = apply(Zlist,new_stmts);
+
+  ret = #scope(#block(locals, new_stmts));
+
+  foreach(@lambda(args) {
+    ret = #mcall(#id('with_imports),args,ret);
+  },import_params);
+  foreach(@lambda(args) {
+    args = Zcons(#id(libname),args);
+    ret = #mcall(#id('with_exports),args,ret);
+  },export_params);
+
+  return ret;
 }
 
 }

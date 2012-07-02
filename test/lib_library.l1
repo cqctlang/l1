@@ -1,0 +1,14 @@
+
+@include <library.cqct>
+
+@add_loadpath(loadpath()[0] + "/../test/libs");
+
+@with_imports ( (f1, lib3.f2), lib4 ) { 
+  @defloc f4() { printf("Running f4 from main!\n"); } 
+  printf("In main\n"); 
+  f1(); 
+  f3(); 
+  f4(); 
+  printf("constanct c1's value: %a\n",c1); 
+  printf("in main: %a\n",tabkeys(__library_exports)); 
+}
