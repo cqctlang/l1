@@ -34,9 +34,10 @@ library_defined = 1;
 if (__library_exports == nil) //might have been set in a macro
   __library_exports = [:];
 
+@defstx @import(imports) body {
+  @local new_body, new_locals;
 
-@defstx @library(name,imports,exports) body {
-  @local libname, new_body, new_locals, new_postbody;
+  if (__library_exports == nil) __library_exports = [:];
 
   @defloc pathto(f) {
     @local i,paths,len;
@@ -50,16 +51,6 @@ if (__library_exports == nil) //might have been set in a macro
     }
     return nil;
   }
-
-  //ensure a proper name
-  switch(name) {
-  @match #id(v):
-    libname = v;
-    break;
-  default: error("library name %a not an id",name);
-  }
-
-  printf("loading %a\n",libname);
 
   @defloc check_and_load(lib) {
     @global __library_exports;
@@ -75,28 +66,11 @@ if (__library_exports == nil) //might have been set in a macro
         error("library %a does not export itself (no @library?)",
                 lib);
     }
-    if (__library_exports[lib] == 'loading)
-      error("libraries %a and %a depend on one another",libname,lib);
+    //if (__library_exports[lib] == 'loading)
+      //error("libraries %a and %a depend on one another",libname,lib);
   }
 
-  //while loading this library, set it's __library_exports entry to 'loading
-  if (__library_exports == nil) {
-    __library_exports = [:];
-    printf("In %a reset library_exports\n",libname);
-  }
-  __library_exports[libname] = 'loading;
-
-  //new_body collects the body of the syntax for this macro returns.
-  //the first thing we need to have done is to register that this library
-  //exists by setting it's hash table in the __library_exports. 
-  new_body = [ #`{
-    @global __library_exports;
-    __library_exports[#,(#val(libname))] = [:]; 
-    printf("Added %a to __library_exports\n",#,(#val(libname)));
-  } ];
-  //new_postbody collects statements to be run after the main body of
-  //this library. 
-  new_postbody = [];
+  new_body = [];
   //new_locals is the set of local variables specific to this library.
   new_locals = [];
 
@@ -104,7 +78,7 @@ if (__library_exports == nil) //might have been set in a macro
   switch(imports) {
     @match #list(x): 
       imports = x; break;
-    default: error("library %a imports not a list\n",libname);
+    default: error("unparsable imports %a\n",imports);
   };
   foreach(@lambda(en) {
     @local s,fn;
@@ -122,18 +96,17 @@ if (__library_exports == nil) //might have been set in a macro
             //if necessary
             check_and_load(lname);
             if (__library_exports[lname][lfn] == nil)
-                error("%a depends non-exported symbol %a in %a",
-                    libname, lname, lfn );
+                error("Attempt to import non-exported symbol %a in %a",
+                    lname, lfn );
             //store the id in the list of locals
             append(new_locals,#id(fn));
             s = #`{
-              printf("%a %a\n", __library_exports[#,(#val(lname))],#,(#val(lname)));
               #,(#id(fn)) = __library_exports[#,(#val(lname))][#,(#val(lfn))];
             };
             //add these lazy function definitions to the body
             append(new_body,s);
             break;
-          default: error("library %a could not parse imports\n",libname);
+          default: error("Could not parse imports at %a\n",y);
         }
         break;
       @match #id(lname):
@@ -141,7 +114,6 @@ if (__library_exports == nil) //might have been set in a macro
         foreach(@lambda(lfn,_) {
           //store the id in the list of locals
           append(new_locals,#id(lfn));
-          printf("binding %a from %a\n",lfn,lname);
           s = #`{
             #,(#id(lfn)) = __library_exports[#,(#val(lname))][#,(#val(lfn))];
             //hack to avoid variable defined but not referenced warnings
@@ -150,9 +122,52 @@ if (__library_exports == nil) //might have been set in a macro
           append(new_body,s);
         },__library_exports[lname]);
         break;
-      default: error("library %a could not parse imports\n",libname);
+      default: error("Could not parse imports at %a\n",en);
     }
   },Z2list(imports));
+
+  //we'd been building new_locals as a cqct list, but it needs to be a Zlist
+  new_locals = apply(Zlist,new_locals);
+
+  //we now append the actual definition of the library
+  append(new_body,body);
+
+  //we'd been building new_body as a cqct list, but it needs to be a Zlist
+  new_body = apply(Zlist,new_body);
+  
+  return #[#scope(#block(new_locals,new_body))];
+}
+
+@defstx @export(name,exports) body {
+  @local libname, new_body, new_locals, new_postbody;
+
+  //ensure a proper name
+  switch(name) {
+  @match #id(v):
+    libname = v;
+    break;
+  default: error("library name %a not an id",name);
+  }
+
+  //while loading this library, set it's __library_exports entry to 'loading
+  if (__library_exports == nil) {
+    __library_exports = [:];
+    printf("In %a reset library_exports\n",libname);
+  }
+  __library_exports[libname] = 'loading;
+
+  //new_body collects the body of the syntax for this macro returns.
+  //the first thing we need to have done is to register that this library
+  //exists by setting it's hash table in the __library_exports. 
+  new_body = [ #`{
+    __library_exports[#,(#val(libname))] = [:]; 
+    printf("Added %a to __library_exports\n",#,(#val(libname)));
+  } ];
+  //new_postbody collects statements to be run after the main body of
+  //this library. 
+  new_postbody = [];
+  //new_locals is the set of local variables specific to this library.
+  new_locals = [];
 
   //exports are simplier: we simply need to add a local variable and an
   //entry in the __library_exports variable.
@@ -184,9 +199,37 @@ if (__library_exports == nil) //might have been set in a macro
   new_body = concat(new_body,new_postbody);
 
   //we'd been building new_body as a cqct list, but it needs to be a Zlist
-  new_body = apply(Zlist,concat(new_body,new_postbody));
+  new_body = apply(Zlist,new_body);
   
-  return #[#scope(#block(new_locals,new_body))];
+  return #[#scope(#block(new_locals,new_body))] ;
+
+}
+
+@defstx @library(name,imports,exports) body {
+  @local libname;
+  //ensure a proper name
+  switch(name) {
+  @match #id(v):
+    libname = v;
+    break;
+  default: error("library name %a not an id",name);
+  }
+
+  //while loading this library, set it's __library_exports entry to 'loading
+  if (__library_exports == nil) {
+    __library_exports = [:];
+  }
+  __library_exports[libname] = 'loading;
+
+  switch(body) {
+  default: error("could not parse body: ",body);
+  }
+
+  return #`{ 
+    @import ( #,(imports) ) {
+      @export( #,(name), #,(exports) ) { #,(body); };
+    };
+  };
 }
 
 }
