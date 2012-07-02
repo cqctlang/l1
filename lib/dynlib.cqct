@@ -1,11 +1,11 @@
-@global library_defined;
+@global dynlib_defined;
 
 /*
 Prototype implementation of a library system for l1.
 
 To define a library create a new file and start with the following:
 
-@library(name, //must be the file's name minus its .cqct extension
+@dynlib(name, //must be the file's name minus its .cqct extension
   [ (import1, lib1.f1), (import2, lib1.f2), (import3, lib2.f1), ... ],
   [ export1, export2, ... ]
 {
@@ -21,16 +21,18 @@ are allowed.
 
 */
 
-if (library_defined == nil)
+if (dynlib_defined == nil)
 {
-@global library_exports,pathto;
+@global __dynlib_exports,pathto;
 
-//library_exports is a map from library identifies (cids) to a map from
+dynlib_defined = 1;
+
+//__dynlib_exports is a map from library identifies (cids) to a map from
 //function identifies (also cids) to generation functions. 
 //The generation function keyed by a given library cid and function cid will
 //will return the function with that name from that library when called.
 //This is not meant for general use.
-library_exports = [:];
+__dynlib_exports = [:];
 
 //pathto returns the first full path to a file with the provided name
 //found while searching the load path. The below macros depend upon
@@ -48,7 +50,7 @@ library_exports = [:];
   return nil;
 }
 
-@defstx @library(name,imports,exports) body {
+@defstx @dynlib(name,imports,exports) body {
   @local libname, new_body, new_locals;
 
   //ensure a proper name
@@ -66,13 +68,13 @@ library_exports = [:];
   //in and eval'ed. 
   @defloc gen_libload_stx(lib) {
     return #`{
-      if (library_exports[#,(lib)] == nil) {
+      if (__dynlib_exports[#,(lib)] == nil) {
         @local l,fp;
         fp = pathto(sprintfa("%a.cqct",#,(lib)));
         if (fp == nil) error("could not find library: %a",#,(lib));
         l = mapfile(fp);
         eval(l);
-        if (library_exports[#,(lib)] == nil) 
+        if (__dynlib_exports[#,(lib)] == nil) 
           error("library %a does not export itself (no @library?)",
               #,(lib));
       }
@@ -81,8 +83,8 @@ library_exports = [:];
 
   //new_body collects the body of the syntax for this macro returns.
   //the first thing we need to have done is to register that this library
-  //exists by setting it's hash table in the library_exports. 
-  new_body = [ #`{ library_exports[#,(#val(libname))] = [:]; } ];
+  //exists by setting it's hash table in the __dynlib_exports. 
+  new_body = [ #`{ __dynlib_exports[#,(#val(libname))] = [:]; } ];
   //new_locals is the set of local variables specific to this library.
   new_locals = [];
 
@@ -117,9 +119,9 @@ library_exports = [:];
               #,(#id(fn)) = @lambda(args...) {
                 //load the appropriate library if necessary.
                 #,(gen_libload_stx(lname));
-                //get the generation function from library_exports
+                //get the generation function from __dynlib_exports
                 #,(#id(fn)) = 
-                    library_exports[ #,(lname) ][ #,(lfn) ];
+                    __dynlib_exports[ #,(lname) ][ #,(lfn) ];
                 if ( #,(#id(fn)) == nil ) 
                   error("%a depends non-existent %a.%a",
                     #,(libname), #,(#val(lname)), #,(#val(lfn))  );
@@ -145,7 +147,7 @@ library_exports = [:];
   },Z2list(imports));
 
   //exports are simplier: we simply need to add a local variable and an
-  //entry in the library_exports variable.
+  //entry in the __dynlib_exports variable.
   switch(exports) {
     @match #list(x): 
       exports = x; break;
@@ -159,7 +161,7 @@ library_exports = [:];
     default: error("Error parsing export %a in %a\n",en,libname);
     }
     s = #`{
-      library_exports[#,(#val(libname))] [#,(en)] = 
+      __dynlib_exports[#,(#val(libname))] [#,(en)] = 
           @lambda() { return #,(#id(en)); };
     };
     append(new_body,s);

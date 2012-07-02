@@ -1,4 +1,4 @@
-@library(lib1,
+@dynlib(lib1,
   [ (f3, lib2.f1), (f4, lib2.f4) ],
   [f1, f2]) 
 { 
