@@ -1,0 +1,192 @@
+@global library_defined;
+
+/*
+Prototype implementation of a library system for l1.
+
+To define a library create a new file and start with the following:
+
+@library(name, //must be the file's name minus its .cqct extension
+  [ (import1, lib1.f1), (import2, lib1.f2), (import3, lib2.f1), ... ],
+  [ export1, export2, ... ]
+{
+  //in this scope, import1 will be bound as a local variable to the export 
+  //named f1 of the library named lib1 (the system will search the load path 
+  //for lib1.cqct). lib1.cqct must contain an @library(lib1 ... ) { ... }.
+
+  //We must define export1, export2, etc in this scope.
+}
+
+All library bindings are resolved lazily at run time. Recursive dependencies
+are allowed. 
+
+*/
+
+if (library_defined == nil)
+{
+@global __library_exports,pathto;
+
+library_defined = 1;
+
+//__library_exports is a map from library identifies (cids) to a map from
+//exported symbols (also cids) to the value of those exported symbols 
+//defined by that library. 
+//This is not meant for general use.
+if (__library_exports == nil) //might have been set in a macro
+  __library_exports = [:];
+
+
+@defstx @library(name,imports,exports) body {
+  @local libname, new_body, new_locals, new_postbody;
+
+  @defloc pathto(f) {
+    @local i,paths,len;
+    paths = loadpath();
+    len = length(paths);
+    for(i=0;i<len;++i) {
+      @local fp;
+      fp = sprintfa("%s/%s",paths[i],f);
+      if (access(fp,"r"))
+        return fp;
+    }
+    return nil;
+  }
+
+  //ensure a proper name
+  switch(name) {
+  @match #id(v):
+    libname = v;
+    break;
+  default: error("library name %a not an id",name);
+  }
+
+  printf("loading %a\n",libname);
+
+  @defloc check_and_load(lib) {
+    @global __library_exports;
+    //determine if that library has been loaded, if not, load it
+    if (__library_exports[lib] == nil) {
+      @local l,fp;
+      fp = pathto(sprintfa("%a.cqct",lib));
+      printf("found %a at %a\n",lib,fp);
+      if (fp == nil) error("could not find library: %a",lib);
+      l = mapfile(fp);
+      eval(l);
+      if (__library_exports[lib] == nil) 
+        error("library %a does not export itself (no @library?)",
+                lib);
+    }
+    if (__library_exports[lib] == 'loading)
+      error("libraries %a and %a depend on one another",libname,lib);
+  }
+
+  //while loading this library, set it's __library_exports entry to 'loading
+  if (__library_exports == nil) {
+    __library_exports = [:];
+    printf("In %a reset library_exports\n",libname);
+  }
+  __library_exports[libname] = 'loading;
+
+  //new_body collects the body of the syntax for this macro returns.
+  //the first thing we need to have done is to register that this library
+  //exists by setting it's hash table in the __library_exports. 
+  new_body = [ #`{
+    @global __library_exports;
+    __library_exports[#,(#val(libname))] = [:]; 
+    printf("Added %a to __library_exports\n",#,(#val(libname)));
+  } ];
+  //new_postbody collects statements to be run after the main body of
+  //this library. 
+  new_postbody = [];
+  //new_locals is the set of local variables specific to this library.
+  new_locals = [];
+
+  //parse the import list...
+  switch(imports) {
+    @match #list(x): 
+      imports = x; break;
+    default: error("library %a imports not a list\n",libname);
+  };
+  foreach(@lambda(en) {
+    @local s,fn;
+    //parse (fn, lib.fn) or (lib)
+    switch(en) {
+      @match #comma(x,y):
+        fn = x;
+        switch(fn) {
+        @match #id(d): fn = d; break;
+        default: error("Bad import entry: %a\n",en);
+        };
+        switch(y) {
+          @match #dot(#id(lname),#id(lfn)):
+            //check if the necessary library has been loaded, loading it
+            //if necessary
+            check_and_load(lname);
+            if (__library_exports[lname][lfn] == nil)
+                error("%a depends non-exported symbol %a in %a",
+                    libname, lname, lfn );
+            //store the id in the list of locals
+            append(new_locals,#id(fn));
+            s = #`{
+              printf("%a %a\n", __library_exports[#,(#val(lname))],#,(#val(lname)));
+              #,(#id(fn)) = __library_exports[#,(#val(lname))][#,(#val(lfn))];
+            };
+            //add these lazy function definitions to the body
+            append(new_body,s);
+            break;
+          default: error("library %a could not parse imports\n",libname);
+        }
+        break;
+      @match #id(lname):
+        check_and_load(lname);
+        foreach(@lambda(lfn,_) {
+          //store the id in the list of locals
+          append(new_locals,#id(lfn));
+          printf("binding %a from %a\n",lfn,lname);
+          s = #`{
+            #,(#id(lfn)) = __library_exports[#,(#val(lname))][#,(#val(lfn))];
+            //hack to avoid variable defined but not referenced warnings
+            #,(#id(lfn)) = #,(#id(lfn)); 
+          };
+          append(new_body,s);
+        },__library_exports[lname]);
+        break;
+      default: error("library %a could not parse imports\n",libname);
+    }
+  },Z2list(imports));
+
+  //exports are simplier: we simply need to add a local variable and an
+  //entry in the __library_exports variable.
+  switch(exports) {
+    @match #list(x): 
+      exports = x; break;
+    default: error("library %a exports field is not a list\n",libname);
+  };
+  foreach(@lambda(en) {
+    @local s;
+    append(new_locals,en);
+    switch(en) {
+    @match #id(x): en = x; break;
+    default: error("Error parsing export %a in %a\n",en,libname);
+    }
+    s = #`{
+      __library_exports[#,(#val(libname))] [#,(#val(en))] = #,(#id(en)); 
+    };
+    append(new_postbody,s);
+  },Z2list(exports));
+
+  //we'd been building new_locals as a cqct list, but it needs to be a Zlist
+  new_locals = apply(Zlist,new_locals);
+
+  //we now append the actual definition of the library
+  append(new_body,body);
+
+  //and add the post body statments.
+  new_body = concat(new_body,new_postbody);
+
+  //we'd been building new_body as a cqct list, but it needs to be a Zlist
+  new_body = apply(Zlist,concat(new_body,new_postbody));
+  
+  return #[#scope(#block(new_locals,new_body))];
+}
+
+}
