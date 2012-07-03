@@ -10,5 +10,4 @@
   f3(); 
   f4(); 
   printf("constanct c1's value: %a\n",c1); 
-  printf("in main: %a\n",tabkeys(__library_exports)); 
 }
