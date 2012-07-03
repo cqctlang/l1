@@ -1,0 +1,139 @@
+ctls -- control executions
+
+This library provides Cinquecento objects and functions
+for manipulating program executions.
+
+
+Basic concepts:
+
+  mux -- multiplexor for sctl connection
+  ctl -- represent one execution
+  ctx -- opaque context (dialects)
+         ctx->pc, ctx->sp, ctx->fp
+
+Need terminology for the subdivision of domains
+within a ctl.
+
+mksctlmux()
+
+  returns: sctlmux
+
+Returns a new sctlmux backed by a freshly launched sctl
+server on the calling machine.
+
+
+ctllaunch(mux, cmd)
+
+  MUX: sctlmux
+  CMD: list of strings
+
+  returns: ctl or nil
+
+MUX is a sctlmux.
+
+CMD is the list of arguments used to exec the program,
+i.e., CMD[0] becomes argv[0], and so on.
+
+The program is launched using the sctl launch
+transaction.  The resulting ctl represents the new
+program execution, paused just before execution of its
+first instruction.
+
+
+ctlexe(ctl)
+
+  returns: domain
+
+Returns a domain representing the executable in
+CTL.
+
+
+ctlldom(ctl[,ctx])
+
+  ctl:  ctl
+  ctx:  context
+
+  returns: domain
+
+Returns a local domain, representing the local
+variables (including function parameters) defined in
+the control context CTX of CTL.
+
+If CTX is omitted, the current context of CTL is used.
+
+
+ctlunwindctxs(ctl)
+
+  ctl:  ctl
+
+  returns: list of contexts 
+
+Unwinds the current call stack of CTL, returning a list
+of contexts corresponding to each call frame.  The
+current call frame is given first, followed by its
+caller, and so on.
+
+
+ctladdr2src(ctl, addr)
+
+   ctl:  ctl
+  addr:  cvalue (address)
+
+  returns:  source record or nil
+
+Returns a source record [link] specifying the location
+in source code corresponding to ADDR.
+
+Returns nil if no source location matches.
+
+FIXME: where's ctlsrc2pc?
+
+
+ctldombyaddr(ctl, addr)
+
+   ctl:  ctl
+  addr:  cvalue (address)
+
+  returns:  domain or nil
+
+Returns a domain corresponding to the name space
+mapped at ADDR.
+
+Returns nil if no name space matches.
+
+
+ctlnsbyaddr(ctl, addr)
+
+   ctl:  ctl
+  addr:  cvalue (address)
+
+  returns:  name space or nil
+
+Returns a name space corresponding to the name space
+mapped at ADDR.
+
+Returns nil if no name space matches.
+
+ctldombyname(ctl, name)
+
+   ctl:  ctl
+  name:  string
+
+  returns:  domain or nil
+
+Returns a domain corresponding to the name space
+whose name matches (with strstr) NAME.
+
+Returns nil if no name space matches.
+
+ctlnsbyname(ctl, name)
+
+   ctl:  ctl
+  name:  string
+
+  returns:  name space or nil
+
+Returns a name space corresponding to the name space
+whose name matches (with strstr) NAME.
+
+Returns nil if no name space matches.
