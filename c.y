@@ -91,8 +91,8 @@ extern char *yytext;
 %pure-parser
 %parse-param {U *ctx}
 %lex-param   {U *ctx}
-%expect 1
-%expect-rr 15
+%expect 3
+%expect-rr 25
 %{
 	static void yyerror(U *ctx, const char *s);
 	static Expr* castmerge(YYSTYPE e1, YYSTYPE e2);
@@ -190,7 +190,9 @@ mcall_expression
 	: atid '(' ')'
 	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, nullelist(), 0, 0); }
 	| atid '(' argument_expression_list ')'
-        { $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), 0, 0); }
+	{ $$ = newexprsrc(&ctx->inp->src, Emcall, $1, invert($3), 0, 0); }
+	| mcall_statement
+	{ $$ = $1; }
 	;
 
 src_expression
