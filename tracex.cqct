@@ -27,15 +27,15 @@ if(1){
 	mux = mksctlmux();
 	cmd = [ "demo/list", "10" ];
 	ctl = ctllaunch(mux, cmd);
-	exe = ctlexe(ctl);
-
+	exe = ctl.exe();
+	printf("exe is %a\n", exe);
 	dumpns(exe.ns);
 
 	ctl.trap('brk, &exe`insert,
 		 @lambda(ctl){
 			 @local xs;
 			 printf("call to insert!\n");
-			 xs = ctlunwindctxs(ctl);
+			 xs = ctl.unwind();
 			 foreach(@lambda(ctx){
 					 @local src, ns, pc;
 
@@ -43,16 +43,14 @@ if(1){
 					 printf("%016p", ctx->rip);
 
 					 /* symbol */
-					 printf("\t%-30y", {ctldombyaddr(ctl, ctx->rip)}ctx->rip);
+					 printf("\t%-30y", {ctl.dom(ctx->rip)}ctx->rip);
 
 					 /* source */
-					 src = ctladdr2src(ctl, ctx->rip);
-					 ns = ctlnsbyaddr(ctl, ctx->rip);
+					 src = ctl.looksrc(ctx->rip);
+					 ns = ctl.ns(ctx->rip);
 					 if(src != nil){
-						 @local spec;
 						 printf("\t%s:%d\n", src.file, src.line);
-						 spec = sprintfa("%s:%d", src.file, src.line);
-						 pc = dwsrc2addr(spec, ns);
+						 pc = ns.lookpc(src.file, src.line);
 						 /* pc may not match ctx->rip; we care
 						    only that it is defined */
 						 if(pc == nil)
@@ -61,7 +59,7 @@ if(1){
 						 printf("\n");
 
 					 /* locals */
-					 printf("%s", fmtldom(ctlldom(ctl, ctx)));
+					 printf("%s", fmtldom(ctl.ldom(ctx)));
 				 }, xs);
 			 printf("\n");
 		 });

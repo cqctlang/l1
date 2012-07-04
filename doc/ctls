@@ -110,7 +110,7 @@ The second is a list of dynamically loaded libraries
 within the process.
 
 
-- as()
+- mem()
 
   returns: address space
 
@@ -251,8 +251,6 @@ The trap types are as follows:
 
 	The handler is passed the ctl and a new ctl
 	representing the new process.
-
-
 
 
 

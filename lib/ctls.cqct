@@ -6,16 +6,7 @@
 @include <dwarf.cqct>
 
 @global
-        ctllaunch,
-	ctlattach,
-	ctlexe,
-	ctlldom,
-	ctlunwindctxs,
-	ctladdr2src,
-	ctldombyaddr,
-	ctlnsbyaddr,
-	ctldombyname,
-	ctlnsbyname
+        ctllaunch
 	;
 
 {
@@ -45,6 +36,9 @@
 
 	/* name spaces */
 	nsmap,
+	ns,
+	dom,
+	exe,
 
 	/* snapshot */
 	snap,
@@ -53,6 +47,12 @@
 	trap,
 	clear,
 	traps,
+
+	/* debugging methods */
+	ldom,
+	unwind,	
+	looksrc,	
+	lookpc,
 
 	/* mux interface */
 	event,
@@ -402,6 +402,39 @@ idxev = [
 		return tabvals(cs.traps);
 	}
 
+	@defloc ldom(arg...)
+	{
+		@local x;
+		if(length(arg) == 0)
+			x = ctx();
+		else
+			x = arg[0];
+		return dwlocaldom(x, mem(), nsmap());
+	}
+
+	@defloc unwind() { dwunwind(ctx(), mem(), nsmap()); }
+
+	@defloc looksrc(addr)
+	{
+		@local n;
+		n = ns(addr);
+		if(n == nil)
+			return n;
+		n.looksrc(addr);
+	}
+
+	@defloc lookpc(file, line, arg...)
+	{
+		@local n;
+		if(length(arg))
+			n = ns(arg[0]);
+		else
+			n = exe();
+		if(n == nil)
+			return nil;
+		n.lookpc(file, line);
+	}
+
 	@defloc handlers(eid)
 	{
 		@local rv, s;
@@ -619,6 +652,24 @@ idxev = [
 		return ctl;
 	}
 
+	@defloc nsmap() { cs.nsmap; }
+
+	@defloc ns(arg...)
+	{
+		@local idx;
+		if(length(arg) == 0)
+			return cs.nsmap.exe;
+		idx = arg[0];
+		if(isstring(idx))
+			return cs.nsmap.byname(idx);
+		if(iscvalue(idx))
+			return cs.nsmap.byaddr(idx);
+		error("wrong type of index");
+	}
+
+	@defloc dom(arg...) { mkdom(apply(ns, arg), mem()); }
+	@defloc exe() { mkdom(cs.nsmap.exe(), mem()); }
+
 	this = ctlrec(cs.ctlid,
 		      detach,
 		      kill,
@@ -630,11 +681,18 @@ idxev = [
 		      pstat,
 		      mem,
 		      ctx,
-		      cs.nsmap,
+		      nsmap,
+		      ns,
+		      dom,
+		      exe,
 		      snap,
 		      trap,
 		      clear,
 		      traps,
+		      ldom,
+		      unwind,
+		      looksrc,
+		      lookpc,
 		      event,
 		      scan
 		);
@@ -717,51 +775,6 @@ idxev = [
 	printf("launched! ctlid = %d\n", ctlid);
 	dlct.dumpctx(ctx);
 	return mkctl(mux, ctlid, dlct, ctx);
-}
-
-@define ctlexe(ctl)
-{
-	return mkdom(ctl.nsmap.exe(), ctl.mem());
-}
-
-@define ctlldom(ctl, arg ...)
-{
-	@local ctx;
-	if(length(arg) == 0)
-		ctx = ctl.ctx();
-	else
-		ctx = arg[0];
-	return dwlocaldom(ctx, ctl.mem(), ctl.nsmap);
-}
-
-@define ctlunwindctxs(ctl)
-{
-	return dwunwind(ctl.ctx(), ctl.mem(), ctl.nsmap);
-}
-
-@define ctladdr2src(ctl, addr)
-{
-	return dwaddr2src(addr, ctl.nsmap);
-}
-
-@define ctldombyaddr(ctl, addr)
-{
-	return mkdom(ctl.nsmap.byaddr(addr), ctl.mem());
-}
-
-@define ctlnsbyaddr(ctl, addr)
-{
-	return ctl.nsmap.byaddr(addr);
-}
-
-@define ctldombyname(ctl, name)
-{
-	return mkdom(ctl.nsmap.byname(name), ctl.mem());
-}
-
-@define ctlnsbyname(ctl, name)
-{
-	return ctl.nsmap.byaddr(name);
 }
 
 }
