@@ -1,0 +1,856 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>Debugging with Cinquecento</title>
+<link rel="stylesheet" type="text/css" href="reset.css"/>
+<link rel="stylesheet" type="text/css" href="styles.css"/>
+</head>
+
+<body>
+
+<div id="side1">
+<a href="#sec:introduction">Introduction</a><br />
+<br />
+<a href="#sec:sctlns">Name spaces</a><br />
+<a href="#sec:nsmap">Name space maps</a><br />
+<a href="#sec:ctls">Controlling executions</a><br />
+<br />
+<a href="#sec:fnindex">Index</a><br />
+
+</div>
+
+<div id="content">
+
+<div id="title">
+<h3>Debugging with Cinquecento</h3>
+</div>
+
+<h4 id="sec:introduction">Introduction</h4>
+
+<p>
+This manual describes a set of Cinquecento libraries
+that can be used to examine program executables and
+debug program executions.
+</p>
+
+<p>
+These libraries make use of the process control
+server <span class="val">sctl</span>, which is
+available
+from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
+In order to use these libraries, you must
+have <span class="val">sctl</span> installed somewhere
+in your path.
+</p>
+
+<p>
+<span class="val">Sctl</span> provides a network
+service for controlling program executions and
+accessing symbols and other debugging information from
+program binaries.  Documentation
+for <span class="val">sctl</span> accompanies its
+distribution, and should be read in conjunction with
+this manual.  For example, you should refer to the
+<span class="val">sctl</span> documentation for details
+about the various <span class="val">sctl</span>
+transactions referenced in this manual.
+</p>
+
+<h4 id="sec:sctlns">Name spaces</h4>
+
+<p>
+The debug library defines two functions for constructing
+Cinquecento name spaces backed by a sctl server:
+</p>
+
+<div class="docitem" id="fn:atnames">
+<div class="proto">
+<div class="function">
+<span class="id">atnames(<span class="arg">path</span>)</span>
+</div>
+<div class="param">
+<span class="arg">path</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">name space</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns a name space for the binary
+named <span class="arg">path</span>.  The name space is
+served by a freshly
+launched <span class="val">sctl</span> server on the
+calling machine.  The <span class="val">sctl</span>
+binary must be in the path of the calling process.
+Returns <span class="val">nil</span> if the name space
+does not exist.
+</div>
+</div>
+
+<div class="docitem" id="fn:mksctlns">
+<div class="proto">
+<div class="function">
+<span class="id">mksctlns(<span class="arg">fd</span>,<span class="arg">path</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">path</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">name space</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns a name space for the binary
+named <span class="arg">path</span>.  The name space is
+served by the <span class="val">sctl</span> server
+backed by <span class="arg">fd</span>.  The version negotiation
+with the sctl server must be performed by calling this function
+(see <span class="fnindex"><a href="#fn:sctlversion">sctlversion</a></span>).
+Returns <span class="val">nil</span> if the name space
+does not exist.
+</div>
+</div>
+
+<p>
+For lower-level name space programming, the debug
+library also provides a set of Cinquecento functions
+for performing synchronous name space transactions with
+a <span class="val">sctl</span> server.
+</p>
+
+<p>
+The first argument to each of these functions is a file
+descriptor that must be connected to a sctl server.
+Generally the remaining arguments are Cinquecento data
+to be encoded into the fields of the corresponding sctl
+request.  Most functions return a data structure
+representing the decoded payload of the corresponding
+reply.
+</p>
+
+<p>
+These procedures assume that the sctl server answers
+each request synchronously and that it never
+generates <span class="val">Aevent</span> messages.
+This behavior is consistent with a sctl server that
+being used to serve only name space data.
+</p>
+
+<p>
+Two of the procedures, sctlenumtype and sctllooktype,
+an additional name space argument.  This name space is
+used by the underlying type definition decoder
+(decodetdef) to resolve two aspects of type definitions
+that cannot be determined from the sctl type definition
+reply:
+</p>
+
+<ul>
+<li>
+the mapping from enumeration representation to a
+corresponding base type, passed to mkctype_enum;
+</li>
+<li>
+the representation of the pointer type, passed
+to mkctype_ptr.
+</li>
+</ul>
+
+<p>
+For this argument, it is sufficient to pass a root name
+space that is compatible with the base type definitions
+of the target name space.  We consider the presence of
+this argument to be a bug in the interface.
+</p>
+
+<p>
+The functions are as follows:
+</p>
+
+<div class="docitem" id="fn:sctlping">
+<div class="proto">
+<div class="function">
+<span class="id">sctlping(<span class="arg">fd</span>,<span class="arg">cnt</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span> (to sctl server)
+</div>
+<div class="param">
+<span class="arg">cnt</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">ping</span> transaction with the server,
+sending a ping payload of <span class="arg">cnt</span> zero bytes.
+An error is raised if the transaction fails.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctlversion">
+<div class="proto">
+<div class="function">
+<span class="id">sctlversion(<span class="arg">fd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">version</span> transaction with the server.
+The offered version is
+<div class="code">
+<pre>
+"sctl-2010:x86-linux-2010,x86-win-2010"
+</pre>
+</div>
+The negotiated version string is returned.
+An error is raised if the version cannot
+be negotiated.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctlnames">
+<div class="proto">
+<div class="function">
+<span class="id">sctlnames(<span class="arg">fd</span>,<span class="arg">path</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">path</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">names</span> transaction, returning a name space
+identifier for the name space corresponding to the binary
+named <span class="arg">path</span>.
+Returns <span class="val">nil</span> if the name space does not exist.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctllooktype">
+<div class="proto">
+<div class="function">
+<span class="id">sctllooktype(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">typename</span>,<span class="arg">ns</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">typename</span>: <span class="type">ctype</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="returns">
+<span class="type">ctype</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">looktype</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning an
+definition of the type
+named <span class="val">typename</span>.  
+The resulting definition is incomplete (see the cqct manual).
+Returns <span class="val">nil</span> if there is no
+matching type definition.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctlenumtype">
+<div class="proto">
+<div class="function">
+<span class="id">sctlenumtype(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">ns</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+Performs an <span class="id">enumtype</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning a
+table mapping type names to type definitions.
+The type definitions are incomplete.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctllooksym">
+<div class="proto">
+<div class="function">
+<span class="id">sctllooksym(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">id</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">id</span>: <span class="type">cid</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">looksym</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, obtaining
+a definition for the symbol <span class="val">id</span>.
+The result is a Cinquecento symbol [reference].
+Its attribute table defines <span class="val">"offset"</span>
+to the <span class="arg">value</span> returned
+in the <span class="id">looksym</span> reply,
+<span class="val">"flags"</span> to
+the <span class="arg">flags</span>,
+and <span class="val">"size"</span> to
+the <span class="arg">size</span>.  The symbol type is
+incomplete.
+Returns <span class="val">nil</span> if there is no matching symbol.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctlenumsym">
+<div class="proto">
+<div class="function">
+<span class="id">sctlenumsym(<span class="arg">fd</span>,<span class="arg">nsid</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">table</span>
+</div>
+</div>
+<div class="desc">
+Performs an <span class="id">enumsym</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning
+a table mapping symbol identifiers to symbol definitions.
+The symbol definitions are Cinquecento symbols.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctllookaddr">
+<div class="proto">
+<div class="function">
+<span class="id">sctllookaddr(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">symbol</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">lookaddr</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning
+a symbol definition to which <span class="arg">addr</span> maps.
+The symbol definition is a Cinquecento symbol.
+Returns <span class="val">nil</span> if there is no matching symbol.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctlunwind1">
+<div class="proto">
+<div class="function">
+<span class="id">sctlunwind1(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list of unwind rules</span>
+</div>
+</div>
+<div class="desc">
+Performs an <span class="id">unwind1</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning
+target-dependent stack frame unwinding rules
+corresponding to the program counter value <span class="arg">addr</span>.
+
+Each unwind rule is specified in an <span class="val">uwrulerec</span>
+that is based on the encoding of the unwind rules specified by DWARF:
+
+<div class="code">
+<pre>
+@record uwrulerec {
+	kind,		/* rule kind */
+	r,		/* register operand */
+	n		/* number operand */
+};
+</pre>
+</div>
+
+[Reference dwarf functions that interprets these.]
+
+</div>
+</div>
+
+<div class="docitem" id="fn:sctllooksrc">
+<div class="proto">
+<div class="function">
+<span class="id">sctllooksrc(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">source record</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">looksrc</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning
+a source record corresponding to the program
+counter <span class="arg">addr</span>.
+
+The source record is defined as follows:
+
+<div class="code">
+<pre>
+@record srcrec {
+	file,		/* file name (string) */
+	line,		/* line (cvalue) */
+	col,		/* column (cvalue) */
+};
+</pre>
+</div>
+Returns <span class="val">nil</span> if no source location matches.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:sctllookpc">
+<div class="proto">
+<div class="function">
+<span class="id">sctllookpc(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">file</span>,<span class="arg">line</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">file</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">line</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Performs a <span class="id">lookpc</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning
+a program counter address at corresponding
+to the source location <span class="arg">file</span>:<span class="arg">line</span>.
+Returns <span class="val">nil</span> if there is no matching 
+source location.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctlenumloc">
+<div class="proto">
+<div class="function">
+<span class="id">sctlenumloc(<span class="arg">fd</span>,<span class="arg">nsid</span>,<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list of local variable records</span>
+</div>
+</div>
+<div class="desc">
+Performs an <span class="id">enumloc</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning
+a list of local variable records.
+Local variable records are defined as follows:
+
+<div class="code">
+<pre>
+@record locrec {
+	id,		/* name (cid) */
+	sz,		/* size (cvalue) (FIXME: always zero!) */
+	ltype,		/* kind (parameter or local) (cvalue) */
+	loc,		/* location expression (lexprrec) */
+	type,		/* type name (ctype) */
+};
+
+@record lexprrec {
+	kind,		/* kind (cvalue) */
+	no,		/* register (cvalue) */
+	v,		/* value (cvalue) */
+	op1, op2,	/* operands (lexprrec) */
+};
+</pre>
+</div>
+
+Returns <span class="val">nil</span> if no
+location information is available. 
+
+</div>
+</div>
+
+
+<p>
+This library also defines several undocumented
+functions for converting buffers of encoded sctl data
+to and from Cinquecento data structures.
+</p>
+
+<h4 id="sec:nsmap">Name space maps</h4>
+
+<p>
+A name space map (nsmap) is an object that manages name
+spaces for the set of binaries (libraries and
+executable) mapped within an address space of a running
+program.
+</p>
+
+<p>
+Think of each mapping as a triple comprising 
+the path name for the mapped binary,
+the base address of the mapping,
+and the corresponding Cinquecento name space.
+</p>
+
+<p>
+A typical address space consists of several library
+mappings and exactly one executable mapping.  An nsmap
+defines a distinguished mapping, called the executable,
+which is intended to represent the executable mapping.
+</p>
+
+<p>
+The methods of an nsmap support dynamic addition and
+removal of mappings, query and update of the executable
+mapping, name space lookup by address and name, name
+space enumeration, and nsmap cloning.
+</p>
+
+<p>
+Rather than require the nsmap client to construct
+individual name spaces, each nsmap instance
+encapsulates a function that maps a path name to a name
+space.  Clients add mappings by specifying the binary
+path name and base address.
+</p>
+
+<p>
+To use nsmaps, <span class="val">@include
+&lt;nsmap.cqct&gt;</span> in your program.  The library
+defines one function:
+</p>
+
+<div class="docitem" id="fn:mknsmap">
+<div class="proto">
+<div class="function">
+<span class="id">mknsmap(<span class="arg">fn</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">nsmap</span>
+</div>
+</div>
+<div class="desc">
+This is the only constructor for nsmap instances.
+<span class="id">Fn</span> is a function that
+encapsulates name space construction.  It must accept
+one argument, a string naming a program binary, and
+return either a name space for that binary mapped at address zero,
+or <span class="val">nil</span> if the name space
+cannot be constructed.
+</div>
+</div>
+
+<p>
+Each nsmap is a record that exports the following methods:
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapadd">
+<span class="id">add(<span class="arg">base</span>,<span class="arg">path</span>)
+</div>
+<div class="param">
+<span class="arg">base</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">path</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method constructs a name space for
+the binary named <span class="arg">path</span> mapped at
+offset <span class="arg">base</span>, and then adds the
+resulting mapping to the nsmap.
+The name space is constructed by calling the <span class="arg">fn</span> argument
+that was passed to
+<span class="fnindex"><a href="#fn:mknsmap">mknsmap</a></span>
+when the nsmap was created.
+If <span class="arg">base</span> is <span class="val">0</span>
+and the nsmap does not already have a defined
+executable, then the executable is set
+to the new mapping.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapdel">
+<span class="id">del(<span class="arg">base</span>)
+</div>
+<div class="param">
+<span class="arg">base</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method removes the name space mapped at
+offset <span class="arg">base</span> from the nsmap.
+If <span class="arg">base</span> corresponds to the
+executable, then the executable is made undefined.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapexe">
+<span class="id">exe()</span>
+</div>
+<div class="returns">
+<span class="type">name space</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method returns the name space of the executable
+of the nsmap,
+or <span class="val">nil</span> if it is undefined.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapsetexe">
+<span class="id">setexe(<span class="arg">base</span>)</span>
+</div>
+<div class="param">
+<span class="arg">base</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method sets the executable of the nsmap
+to be the mapping at offset <span class="arg">base</span>.
+It is an error if there is no such mapping.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapbyaddr">
+<span class="id">byaddr(<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">name space</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Intuitively, this method attempts to return the name space in the nsmap whose mapping "contains" the address <span class="arg">addr</span>.
+More precisely, this method returns the name space whose offset
+is the greatest address less than or
+equal to <span class="arg">addr</span>.
+It returns <span class="val">nil</span> if no name space matches.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapbyname">
+<span class="id">byname(<span class="arg">pat</span>)</span>
+</div>
+<div class="param">
+<span class="arg">pat</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">name space</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method returns the name space whose path name matches
+<span class="arg">pat</span>.
+A path name  <span class="arg">path</span>
+matches if <span class="val">strstr(<span class="arg">path</span>,<span class="arg">pat</span>)</span> returns non-<span class="val">nil</span>.  The
+search is performed in ascending order of mapping offset;
+the first match is returned.
+<span class="id">Byaddr</span>
+returns <span class="val">nil</span> if no name space
+matches.
+</div>
+</div>
+
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapeach">
+<span class="id">each(<span class="arg">fn</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method calls <span class="arg">fn</span> for each
+mapping in the nsmap, in ascending order of mapping
+offset.  <span class="arg">Fn</span> is passed the
+three properties of the mapping: the offest, the path
+name, and the name space.  The return value
+of <span class="id">fn</span> is ignored.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function"  id="fn:nsmapclone">
+<span class="id">copy()</span>
+</div>
+<div class="returns">
+<span class="type">nsmap</span>
+</div>
+</div>
+<div class="desc">
+This returns a new nsmap that is a copy of the nsmap.
+Subsequent updates to either one of the nsmaps has
+no effect on the other.
+</div>
+</div>
+
+
+<h4 id="sec:ctls">Controlling executions</h4>
+
+<h4 id="sec:fnindex">Function Index</h4>
+<div class="id">
+<div class="index">
+<div class="fnindex">
+<a href="#fn:nsmapadd">add</a> (nsmap)<br />
+<a href="#fn:atnames">atnames</a> (nsmap)<br />
+<a href="#fn:nsmapbyaddr">byaddr</a> (nsmap)<br />
+<a href="#fn:nsmapbyname">byname</a> (nsmap)<br />
+<a href="#fn:nsmapcopy">copy</a> (nsmap)<br />
+<a href="#fn:nsmapdel">del</a> (nsmap)<br />
+<a href="#fn:nsmapeach">each</a> (nsmap)<br />
+<a href="#fn:nsmapexe">exe</a> (nsmap)<br />
+<a href="#fn:mknsmap">mknsmap</a><br />
+<a href="#fn:mksctlns">mksctlns</a><br />
+<a href="#fn:nsmapsetexe">setexe</a> (nsmap)<br />
+<a href="#fn:sctlenumloc">sctlenumloc</a><br />
+<a href="#fn:sctlenumsym">sctlenumsym</a><br />
+<a href="#fn:sctlenumtype">sctlenumtype</a><br />
+<a href="#fn:sctllookaddr">sctllookaddr</a><br />
+<a href="#fn:sctllookpc">sctllookpc</a><br />
+<a href="#fn:sctllooksrc">sctllooksrc</a><br />
+<a href="#fn:sctllooksym">sctllooksym</a><br />
+<a href="#fn:sctllooktype">sctllooktype</a><br />
+<a href="#fn:sctlnames">sctlnames</a><br />
+<a href="#fn:sctlping">sctlping</a><br />
+<a href="#fn:sctlunwind1">sctlunwind1</a><br />
+<a href="#fn:sctlversion">sctlversion</a><br />
+</div>
+</div>
+</div>
+
+</div>
+
+</body>
+</html>
