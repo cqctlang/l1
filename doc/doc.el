@@ -27,5 +27,5 @@
   (interactive "r")
   (let ((r (buffer-substring beg end)))
     (delete-region beg end)
-    (insert (format "<span class=\"%s\"><a href=\"#fn:%s\">%s</a></span>"
-		    r r r))))
+    (insert (format "<span class=\"fnindex\"><a href=\"#fn:%s\">%s</a></span>"
+		    r r))))

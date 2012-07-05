@@ -14,9 +14,11 @@
 <div id="side1">
 <a href="#sec:introduction">Introduction</a><br />
 <br />
-<a href="#sec:sctlns">Name spaces</a><br />
-<a href="#sec:nsmap">Name space maps</a><br />
+<a href="#sec:ns">Name spaces</a><br />
 <a href="#sec:ctls">Controlling executions</a><br />
+<a href="#sec:nsmap">Name space maps</a><br />
+<a href="#sec:sctlns">Interface to sctl</a><br />
+
 <br />
 <a href="#sec:fnindex">Index</a><br />
 
@@ -59,7 +61,7 @@ about the various <span class="val">sctl</span>
 transactions referenced in this manual.
 </p>
 
-<h4 id="sec:sctlns">Name spaces</h4>
+<h4 id="sec:ns">Name spaces</h4>
 
 <p>
 The debug library defines two functions for constructing
@@ -118,6 +120,543 @@ Returns <span class="val">nil</span> if the name space
 does not exist.
 </div>
 </div>
+
+<h4 id="sec:ctls">Controlling executions</h4>
+
+<p>
+The debug library is designed around a programming
+model that is different from the conventional
+interactive programming.  It is an event-based
+programming model.  It requires an interface for
+running the event loop.  This is accomplished
+with something called a sctlmux.
+</p>
+
+<p>
+A ctl represents a thread of execution.
+There is an address space, called a mem,
+that represents its memory.
+There is a notion of its context
+that represents the registers
+of the system.  Get a pointer
+into it.  You can update the context
+by changing the values of pointers.
+(This needs to be implemented.)
+(No setctx method.)
+</p>
+
+<div class="docitem" id="fn:mksctlmux">
+<div class="proto">
+<div class="function">
+<span class="id">mksctlmux()</span>
+</div>
+<div class="returns">
+<span class="type">sctlmux</span>
+</div>
+</div>
+<div class="desc">
+Returns a new sctlmux backed by a sctl server
+freshly launched on the calling machine.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctllaunch">
+<div class="proto">
+<div class="function">
+<span class="id">ctllaunch(<span class="arg">mux</span>,<span class="val">cmd</span>)</span>
+</div>
+<div class="param">
+<span class="arg">mux</span>: <span class="type">sctlmux</span>
+</div>
+<div class="param">
+<span class="arg">cmd</span>: <span class="type">list of string</span>
+</div>
+<div class="returns">
+<span class="type">ctl</span> or
+<span class="type">nil</span> or
+</div>
+</div>
+<div class="desc">
+Launches a new program execution, returning
+a <span class="val">ctl</span> representing the
+execution.  <span class="arg">Cmd</span> is the list
+arguments used to run the program; <em>i.e.</em>, on
+Unix-based targets these strings are passed
+to <span class="id">exec</span>,
+with <span class="arg">cmd</span><span class="val">[0]</span>
+becoming <span class="val">argv[0]</span>, and so on.
+</div>
+</div>
+
+<p>
+There is currently no way to specify a different environment
+to the launched program, or to redirect its I/O.
+</p>
+
+<p>
+Each ctl is a record that exports the following methods:
+</p>
+
+
+<div class="docitem" id="fn:ctlid">
+<div class="proto">
+<div class="function">
+<span class="id">id()</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns a numeric identifier for the ctl.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlexe">
+<div class="proto">
+<div class="function">
+<span class="id">exe()</span>
+</div>
+<div class="returns">
+<span class="type">domain</span>
+</div>
+</div>
+<div class="desc">
+Returns a domain representing the executable of
+the ctl.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlctx">
+<div class="proto">
+<div class="function">
+<span class="id">ctx()</span>
+</div>
+<div class="returns">
+<span class="type">context</span>
+</div>
+</div>
+<div class="desc">
+Returns the current context of the ctl.
+The context is represented as a pointer
+into a domain that is a buffer backed
+by the remote register set.  This weakly
+consistent: when the ctl is stopped
+(i.e., in a handler affecting the ctl
+or in a snapshot) the view is consistent.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctldetach">
+<div class="proto">
+<div class="function">
+<span class="id">detach()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Releases control of the target execution.
+The execution resumes, but future operations on
+the ctl are invalid.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlkill">
+<div class="proto">
+<div class="function">
+<span class="id">kill()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Like detach, but terminates the target execution
+instead of resuming it.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlstat">
+<div class="proto">
+<div class="function">
+<span class="id">stat()</span>
+</div>
+<div class="returns">
+<span class="type">record</span>
+</div>
+</div>
+<div class="desc">
+Returns a record describing status information about the remote target.
+This is currently undefined and unimplemented, but should
+perhaps include: pid, ppid, other proc stats, maps, dialect.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlmem">
+<div class="proto">
+<div class="function">
+<span class="id">mem()</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns an address space backed by the target process memory.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlnsmap">
+<div class="proto">
+<div class="function">
+<span class="id">nsmap()</span>
+</div>
+<div class="returns">
+<span class="type">nsmap</span>
+</div>
+</div>
+<div class="desc">
+Returns an nsmap describing the current mappings in the target address space.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlns">
+<div class="proto">
+<div class="function">
+<span class="id">ns(<span class="arg">[idx]</span>)</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span> or <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">name space</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Queries the current mappings in the target address
+space (<em>i.e.</em>, its nsmap), returning a name
+space corresponding to one of the mappings.
+If <span class="arg">idx</span> is unspecified, a name
+space corresponding to the executable is return.
+If <span class="arg">idx</span> is a cvalue, it is
+treated as an address in the target memory, and the
+name space "containing" that address is returned
+(as in <span class="fnindex"><a href="#fn:nsmapbyaddr">byaddr</a></span>).
+If <span class="arg">idx</span> is a string, it is
+treated as a string pattern; the name space whose path
+name matches the pattern is returned
+(as in <span class="fnindex"><a href="#fn:nsmapbyname">byname</a></span>).
+If no name space matches, <span class="val">nil</span>
+is returned.
+</div>
+</div>
+
+
+<div class="docitem" id="fn:ctldom">
+<div class="proto">
+<div class="function">
+<span class="id">dom(<span class="arg">[idx]</span>)</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span> or <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">domain</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+The <span class="val">dom</span> method is like
+the <span class="fnindex"><a href="#fn:ctlns">ns</a></span>
+method, except that a freshly constructed domain is
+returned instead of a name space.  The name space is
+the name space returned by
+the <span class="fnindex"><a href="#fn:ctlns">ns</a></span>
+method on argument <span class="arg">idx</span>, and
+the address space is the address returned by
+the <span class="fnindex"><a href="#fn:ctlmem">mem</a></span>
+method (i.e., the current address space of the target).
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlsnap">
+<div class="proto">
+<div class="function">
+<span class="id">snap()</span>
+</div>
+<div class="returns">
+<span class="type">ctl</span>
+</div>
+</div>
+<div class="desc">
+Returns a ctl representing a snapshot of the target process.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlldom">
+<div class="proto">
+<div class="function">
+<span class="id">ldom([<span class="arg">ctx</span>])</span>
+</div>
+<div class="param">
+<span class="arg">ctx</span>: <span class="type">context</span>
+</div>
+<div class="returns">
+<span class="type">domain</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns a <em>local domain</em> representing the local
+variables (including function parameters) defined in
+the context <span class="arg">ctx</span> of the target
+process.  If <span class="arg">ctx</span> is unspecified,
+the current context is used.  The name space of the
+local domain includes definitions for all known local
+variables.  (But say something about location information --
+what kind of accesses work; what kind of casting may or may not work.)
+Returns nil if a local domain cannot be constructed
+for <span class="arg">ctx</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlunwind">
+<div class="proto">
+<div class="function">
+<span class="id">unwind()</span>
+</div>
+<div class="returns">
+<span class="type">list of contexts</span> or
+</div>
+</div>
+<div class="desc">
+Unwinds the current call stack of the ctl, returning
+a list of contexts corresponding to each call frame.
+The current call frame appears first in the list,
+followed by its caller, and so on.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctllooksrc">
+<div class="proto">
+<div class="function">
+<span class="id">looksrc(<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">source record</span> or
+</div>
+</div>
+<div class="desc">
+Returns
+a <span class="fnindex"><a href="#rec:srcrec">source
+record</a></span> specifying the location in source
+code corresponding to <span class="val">addr</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctllookpc">
+<div class="proto">
+<div class="function">
+<span class="id">lookpc(<span class="arg">file</span>,<span class="arg">line</span>[,<span class="arg">idx</span>])</span>
+</div>
+<div class="param">
+<span class="arg">file</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">line</span>: <span class="type">cvalue</span>
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">cvalue</span> or <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns an address (program counter value)
+corresponding to the source
+location <span class="arg">file</span>:<span class="arg">line</span>
+in the name space determined by
+passing <span class="arg">idx</span> to the <span class="fnindex"><a href="#fn:ctlns">ns</a></span> method.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctltrap">
+<div class="proto">
+<div class="function">
+<span class="id">trap(<span class="arg">kind</span>[,<span class="arg">arg</span>, ...],<span class="arg">fn</span>)</span>
+</div>
+<div class="param">
+<span class="arg">kind</span>: <span class="type">cid</span>
+</div>
+<div class="param">
+<span class="arg">arg</span>: varies
+</div>
+<div class="param">
+<span class="arg">fn</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Sets a trap on an event of various forms, specified by
+the <span class="arg">kind</span> and the additional
+event-specific
+arguments <span class="val"><span class="arg">arg</span>, ...</span>
+<span class="arg">Fn</span> is a handler to be called
+in reponse to the event.  Multiple handlers may be registered
+for the same event; they are called in registration order.
+Regardless of the kind of event, the first argument passed to the handler
+is always the ctl representing the target on which the event occured.  Additional
+arguments may be passed depending on the kind of event.
+The return value of each call to a handler is ignored.
+</p>
+<p>
+The return value of <span class="id">trap</span> is an
+unique identifier for the trap.  Passing the identifier to a call
+to <span class="fnindex"><a href="#fn:ctlclear">clear</a></span>
+deregisters the trap.
+</p>
+
+<p>
+The available traps are listed below.  Any required
+optional arguments to <span class="val">trap</span> are
+named following the symbol that identifies trap kind.
+</p>
+
+<div class="bolddt-indentdd">
+
+<dl>
+<dt><span class="val">brk</span> <span class="arg">addr</span></br> <span class="val">snap</span> <span class="arg">addr</span></dt>
+<dd>
+Set a breakpoint or snappoint.  The handler is called when the
+program counter reaches <span class="arg">addr</span> (a cvalue).
+<span class="val">Snap</span> differs
+from <span class="val">brk</span> in that a snapshot of
+the trapping ctl is created and passed to the handler,
+instead of the ctl for the trapping ctl.
+On Unix systems, <span class="val">brk</span>
+and <span class="val">snap</span> traps are
+automatically cleared whenever the target successfully
+returns from an exec system call.
+</dd>
+
+<dt><span class="val">exit</span></dt>
+<dd>
+Set a trap on termination.
+The handler is called when the target has terminated
+but before the address space has been reclaimed by the
+host system.  No further execution will occur; the ctl
+becomes invalid when the handler returns.
+</dd>
+
+<dt><span class="val">load</span></br><span class="val">unload</span></dt>
+<dd>
+Set a trap on library load or unload.  The handler is
+called when the target has updated its address space by
+loading or unloading a library.  Along with the ctl,
+the handler is passed two additional arguments: the
+path name and load address of the affected library.
+The nsmap of the ctl is updated prior to calling the
+handler.
+</dd>
+
+<dt><span class="val">exec</span></dt>
+<dd>
+Set a trap on new program execution. The
+handler is called when the target has
+successfully returned from the exec system
+call, just before the execution of
+the first instruction in the new program
+image.
+</dd>
+
+<dt><span class="val">syscall</span></dt>
+<dd>
+Set a trap on system call entry and exit.
+The handler is called whenever the target
+enters or returns from a system call.
+(It is up to the handler to figure out which.)
+</dd>
+
+<dt><span class="val">signal</span></dt>
+<dd>
+Set a trap on signals. 
+The handler is called whenever a signal
+is about to be posted to the target.
+</dd>
+
+<dt><span class="val">clone</span></dt>
+<dd>
+Set a trap on process creation.  The handler is called
+when the target has spawned a new process.  Along with
+the ctl that spawned the new process, the handler is
+passed a new ctl representing the new process.
+</dd>
+
+</dl>
+</div>
+
+</div>
+</div>
+
+
+<div class="docitem" id="fn:ctlclear">
+<div class="proto">
+<div class="function">
+<span class="id">clear(<span class="arg">id</span>)</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Clears the trap with identifier <span class="arg">id</span>.
+</div>
+</div>
+
+
+
+<div class="docitem" id="fn:ctltraps">
+<div class="proto">
+<div class="function">
+<span class="id">traps()</span>
+</div>
+<div class="returns">
+<span class="type">list of trap records</span>
+</div>
+</div>
+<div class="desc">
+Traps returns a list of trap records describing all
+currently registered traps on the ctl.
+
+<div class="code">
+<pre>
+@record traprec {
+	tid,      /* user-visible trap identifier */
+	sid,	  /* sctl trap identifier (not for user) */
+	type,	  /* type of trap */
+	args,	  /* trap configuration arguments */
+	fn	  /* trap handler */
+};
+</pre>
+</div>
+The system registers traps for its own internal state
+management on each ctl.  These traps are revealed by
+<span class="id">traps</span>, but they should not be tampered with.
+</div>
+</div>
+
+
+<h4 id="sec:sctlns">Interfaces to sctl</h4>
 
 <p>
 For lower-level name space programming, the debug
@@ -181,7 +720,7 @@ The functions are as follows:
 <span class="id">sctlping(<span class="arg">fd</span>,<span class="arg">cnt</span>)</span>
 </div>
 <div class="param">
-<span class="arg">fd</span>: <span class="type">file descriptor</span> (to sctl server)
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
 </div>
 <div class="param">
 <span class="arg">cnt</span>: <span class="type">cvalue</span>
@@ -467,7 +1006,7 @@ counter <span class="arg">addr</span>.
 
 The source record is defined as follows:
 
-<div class="code">
+<div class="code" id="rec:srcrec">
 <pre>
 @record srcrec {
 	file,		/* file name (string) */
@@ -817,8 +1356,6 @@ no effect on the other.
 </div>
 
 
-<h4 id="sec:ctls">Controlling executions</h4>
-
 <h4 id="sec:fnindex">Function Index</h4>
 <div class="id">
 <div class="index">
@@ -827,12 +1364,25 @@ no effect on the other.
 <a href="#fn:atnames">atnames</a> (nsmap)<br />
 <a href="#fn:nsmapbyaddr">byaddr</a> (nsmap)<br />
 <a href="#fn:nsmapbyname">byname</a> (nsmap)<br />
+<a href="#fn:ctlclear">clear</a> (nsmap)<br />
 <a href="#fn:nsmapcopy">copy</a> (nsmap)<br />
+<a href="#fn:ctlctx">ctx</a> (ctl)<br />
 <a href="#fn:nsmapdel">del</a> (nsmap)<br />
+<a href="#fn:ctldetach">detach</a> (ctl)<br />
+<a href="#fn:ctldom">dom</a> (ctl)<br />
 <a href="#fn:nsmapeach">each</a> (nsmap)<br />
+<a href="#fn:ctlexe">exe</a> (ctl)<br />
 <a href="#fn:nsmapexe">exe</a> (nsmap)<br />
+<a href="#fn:ctlid">id</a> (ctl)<br />
+<a href="#fn:ctlkill">kill</a> (ctl)<br />
+<a href="#fn:ctlldom">ldom</a> (ctl)<br />
+<a href="#fn:ctllookpc">lookpc</a> (ctl)<br />
+<a href="#fn:ctllooksrc">looksrc</a> (ctl)<br />
+<a href="#fn:ctlmem">mem</a> (ctl)<br />
 <a href="#fn:mknsmap">mknsmap</a><br />
 <a href="#fn:mksctlns">mksctlns</a><br />
+<a href="#fn:ctlns">ns</a> (ctl)<br />
+<a href="#fn:ctlnsmap">nsmap</a> (ctl)<br />
 <a href="#fn:nsmapsetexe">setexe</a> (nsmap)<br />
 <a href="#fn:sctlenumloc">sctlenumloc</a><br />
 <a href="#fn:sctlenumsym">sctlenumsym</a><br />
@@ -846,9 +1396,18 @@ no effect on the other.
 <a href="#fn:sctlping">sctlping</a><br />
 <a href="#fn:sctlunwind1">sctlunwind1</a><br />
 <a href="#fn:sctlversion">sctlversion</a><br />
+<a href="#fn:ctlsnap">snap</a> (ctl)<br />
+<a href="#fn:ctlstat">stat</a> (ctl)<br />
+<a href="#fn:ctltrap">trap</a> (ctl)<br />
+<a href="#fn:ctltraps">traps</a> (ctl)<br />
+<a href="#fn:ctlunwind">unwind</a> (ctl)<br />
 </div>
 </div>
 </div>
+
+<br />
+<br />
+
 
 </div>
 
