@@ -490,7 +490,7 @@ passing <span class="arg">idx</span> to the <span class="fnindex"><a href="#fn:c
 <div class="docitem" id="fn:ctltrap">
 <div class="proto">
 <div class="function">
-<span class="id">trap(<span class="arg">kind</span>[,<span class="arg">arg</span>, ...],<span class="arg">fn</span>)</span>
+<span class="id">trap(<span class="arg">kind</span>[,<span class="arg">arg</span>.],<span class="arg">fn</span>)</span>
 </div>
 <div class="param">
 <span class="arg">kind</span>: <span class="type">cid</span>
@@ -508,16 +508,17 @@ passing <span class="arg">idx</span> to the <span class="fnindex"><a href="#fn:c
 <div class="desc">
 <p>
 Sets a trap on an event of various forms, specified by
-the <span class="arg">kind</span> and the additional
+the <span class="arg">kind</span> and possible
 event-specific
-arguments <span class="val"><span class="arg">arg</span>, ...</span>
-<span class="arg">Fn</span> is a handler to be called
-in reponse to the event.  Multiple handlers may be registered
-for the same event; they are called in registration order.
-Regardless of the kind of event, the first argument passed to the handler
-is always the ctl representing the target on which the event occured.  Additional
-arguments may be passed depending on the kind of event.
-The return value of each call to a handler is ignored.
+argument <span class="arg">arg</span>.  <span class="arg">Fn</span>
+is a handler to be called in reponse to the event.
+Multiple handlers may be registered for the same event;
+they are called in registration order.  Regardless of
+the kind of event, the first argument passed to the
+handler is always the ctl representing the target on
+which the event occured.  Additional arguments may be
+passed depending on the kind of event.  The return
+value of each call to a handler is ignored.
 </p>
 <p>
 The return value of <span class="id">trap</span> is an
@@ -809,12 +810,13 @@ Returns <span class="val">nil</span> if the name space does not exist.
 </div>
 </div>
 <div class="desc">
-Performs a <span class="id">looktype</span>
-transaction on the name space corresponding
+Performs a <span class="id">looktype</span> transaction
+on the name space corresponding
 to <span class="arg">nsid</span>, returning an
 definition of the type
-named <span class="val">typename</span>.  
-The resulting definition is incomplete (see the cqct manual).
+named <span class="val">typename</span>.  The resulting
+definition is 
+<a href="man.html#cncpt:incompletetype">incomplete</a>.
 Returns <span class="val">nil</span> if there is no
 matching type definition.
 </div>
@@ -843,7 +845,8 @@ Performs an <span class="id">enumtype</span>
 transaction on the name space corresponding
 to <span class="arg">nsid</span>, returning a
 table mapping type names to type definitions.
-The type definitions are incomplete.
+The type definitions are
+<a href="man.html#cncpt:incompletetype">incomplete</a>.
 </div>
 </div>
 
@@ -879,7 +882,7 @@ in the <span class="id">looksym</span> reply,
 the <span class="arg">flags</span>,
 and <span class="val">"size"</span> to
 the <span class="arg">size</span>.  The symbol type is
-incomplete.
+<a href="man.html#cncpt:incompletetype">incomplete</a>.
 Returns <span class="val">nil</span> if there is no matching symbol.
 </div>
 </div>
@@ -1341,7 +1344,7 @@ of <span class="id">fn</span> is ignored.
 
 <div class="docitem">
 <div class="proto">
-<div class="function"  id="fn:nsmapclone">
+<div class="function"  id="fn:nsmapcopy">
 <span class="id">copy()</span>
 </div>
 <div class="returns">
