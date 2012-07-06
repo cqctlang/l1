@@ -747,7 +747,7 @@ nexttag = 0;
 	return id;
 }
 
-@define sctllooktype(fd, nsid, ns, tn)
+@define sctllooktype(fd, nsid, tn, ns)
 {
 	@local p, m, rep, dat;
 
@@ -983,8 +983,7 @@ nexttag = 0;
 	{
 		ltresolve = mktnresolve(type, undef,
 					@lambda(tn){
-						sctllooktype(fd,
-							     nsid, ns, tn);
+						sctllooktype(fd, nsid, tn, ns);
 					});
 	}
 
