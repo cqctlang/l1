@@ -641,7 +641,7 @@ idxev = [
 			     cs.dlct,
 			     ctx,
 			     copy(cs.mmap),
-			     cs.nsmap.clone(),
+			     cs.nsmap.copy(),
 			     copy(cs.events),
 			     copy(cs.traps),
 			     copy(cs.straps)
