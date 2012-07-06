@@ -1,0 +1,68 @@
+@include <debug.cqct>
+
+cmd = "./list";
+
+@define getstarted()
+{
+	@local mux;
+	mux = mksctlmux();
+	ctllaunch(mux, [cmd]);
+	mux.run();
+}
+
+@define start()
+{
+	@local mux, ctl, exe;
+	mux = mksctlmux();
+	ctl = ctllaunch(mux, [cmd]);
+	exe = ctl.exe();
+	return [mux, ctl, exe];
+}
+
+@define brkentry1()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+	ctl.trap('brk, &exe`main, @lambda(ctl) { printf("enter main\n"); });
+	ctl.trap('brk, &exe`dowork, @lambda(ctl) { printf("enter dowork\n"); });
+	ctl.trap('brk, &exe`insert, @lambda(ctl) { printf("enter insert\n"); });
+	mux.run();
+}
+
+@define brkentry2()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+
+	@defloc handler(ctl)
+	{
+		printf("enter %y\n", ctl.pc());
+	}
+
+	foreach(@lambda(a){ ctl.trap('brk, a, handler); },
+		[ &exe`main, &exe`dowork, &exe`insert ]);
+
+	mux.run();
+}
+
+@define unwind()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+
+	@defloc handler(ctl)
+	{
+		@local ctxs;
+		printf("enter %y\n", ctl.pc());
+
+		ctxs = ctl.unwind();
+		foreach(@lambda(ctx){ printf("%s\n", fmtframe(ctl, ctx)); },
+			ctxs);
+		printf("\n");
+	}
+
+	foreach(@lambda(a){ ctl.trap('brk, a, handler); },
+		[ &exe`main, &exe`dowork, &exe`insert ]);
+
+	mux.run();
+}

@@ -33,6 +33,7 @@
 
 	/* domains */
 	ctx,
+	pc,
 
 	/* name spaces */
 	nsmap,
@@ -100,6 +101,14 @@ idxev = [
 	@defloc ctx()
 	{
 		return cs.ctx;
+	}
+
+	@defloc pc()
+	{
+		@local _ctx, _pc;
+		_ctx = ctx();
+		_pc = _ctx->pc;
+		return {dom(_pc)}_pc;
 	}
 
 	@defloc unimpl(id)
@@ -680,6 +689,7 @@ idxev = [
 		      pstat,
 		      mem,
 		      ctx,
+		      pc,
 		      nsmap,
 		      ns,
 		      dom,
