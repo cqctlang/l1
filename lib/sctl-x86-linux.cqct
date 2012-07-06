@@ -13,6 +13,7 @@ ns = @names clp64le {
 		@0x10	uint64 r13;
 		@0x18	uint64 r12;
 		@0x20	uint64 rbp;
+		@0x20	uint64 fp;
 		@0x28	uint64 rbx;
 		@0x30	uint64 r11;
 		@0x38	uint64 r10;
@@ -25,9 +26,11 @@ ns = @names clp64le {
 		@0x70	uint64 rdi;
 		@0x78	uint64 orig_rax;
 		@0x80	uint64 rip;
+		@0x80	uint64 pc;
 		@0x88	uint64 cs;
 		@0x90	uint64 eflags;
 		@0x98	uint64 rsp;
+		@0x98	uint64 sp;
 		@0xa0	uint64 ss;
 		@0xa8	uint64 fs_base;
 		@0xb0	uint64 gs_base;

@@ -235,13 +235,13 @@ uwns = @names c32le {
 	@local fp, dom, ns, rs, mkuwctx;
 	@local g, s, m, new, spno;
 
-	if(ctx->rip == 0)
+	if(ctx->pc == 0)
 		return nil;
-	ns = nsmap.byaddr(ctx->rip);
+	ns = nsmap.byaddr(ctx->pc);
 	if(ns == nil)
-		error("no name space for pc %p", ctx->rip);
+		error("no name space for pc %p", ctx->pc);
 	dom = mkdom(ns, as);
-	rs = ns.unwind1(ctx->rip);
+	rs = ns.unwind1(ctx->pc);
 	if(rs == nil)
 		goto guess;
 	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
@@ -249,11 +249,11 @@ uwns = @names c32le {
 	applyunwind(rs, g, s, m, spno);
 	return new; 
 guess:
-	if(ctx->rbp == 0)
+	if(ctx->fp == 0)
 		return nil;
-	fp = (uintptr*){dom}ctx->rbp;
-	ctx->rip = *(fp+1);
-	ctx->rbp = *fp;
+	fp = (uintptr*){dom}ctx->fp;
+	ctx->pc = *(fp+1);
+	ctx->fp = *fp;
 	return ctx;
 }
 
@@ -262,7 +262,7 @@ guess:
 	@local xs;
 
 	xs = [];
-	while(ctx != nil && ctx->rip){
+	while(ctx != nil && ctx->pc){
 		append(xs, cop(ctx));
 		ctx = dwunwind1(ctx, as, nsmap);
 	}

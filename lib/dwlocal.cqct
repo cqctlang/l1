@@ -218,10 +218,10 @@
 {
 	@local ns, ls;
 
-	ns = nsmap.byaddr(ctx->rip);
+	ns = nsmap.byaddr(ctx->pc);
 	if(ns == nil)
-		error("no name space for pc %p", ctx->rip);
-	ls = ns.enumloc(ctx->rip);
+		error("no name space for pc %p", ctx->pc);
+	ls = ns.enumloc(ctx->pc);
 	if(ls == nil)
 		return nil;
 	return localdom(ctx, ns, as, ls);
