@@ -1,34 +1,19 @@
-@include <ctls.cqct>
-
-@define ctx2pc(ctl, ctx)
-{
-	@local pc, dom;
-	pc = ctx->rip;
-	dom = ctldombyaddr(ctx, pc);
-	return {dom}pc;
-}
+@include <debug.cqct>
 
 @define test1(cmd)
 {
 	@local ctl, mux, exe;
 
-	mux = mkctlmux();
-	ctl = ctllaunch(mux, [cmd]);
+	printf("*** %s ***\n", cmd);
 
-	exe = ctlexe(ctl);
+	mux = mksctlmux();
+	ctl = ctllaunch(mux, [cmd]);
+	exe = ctl.exe();
 	ctl.trap('brk, &exe`f,
 		 @lambda(ctl){
-			 @local xs, pcs;
-
-			 xs = ctlunwindctxs(ctl);
-			 if(xs == nil){
-				 printf("cannot unwind\n");
-				 return;
-			 }
-			 pcs = map(@lambda(ctx) { ctx2pc(ctl, ctx); }, xs);
-			 foreach(@lambda(pc){
-					 printf("\t%p\t%20y\n", pc, pc);
-				 }, pcs);
+			 foreach(@lambda(ctx){
+					 printf("%s\n", fmtframe(ctl, ctx));
+				 }, ctl.unwind());
 			 printf("\n");
 		 });
 	mux.run();
@@ -36,7 +21,7 @@
 
 foreach(test1, [
 		"./wind1",
-//		"./wind1.32",
-//		"./wind2",
-//		"./wind2.32"
+		"./wind1.32",
+		"./wind2",
+		"./wind2.32"
 		]);

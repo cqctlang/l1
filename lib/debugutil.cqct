@@ -1,7 +1,8 @@
-@define fmtldom(ldom)
+@define fmtldom(ctl, ctx)
 {
-	@local s;
-	s = "";
+	@local s, ldom;
+	s = "";	
+	ldom = ctl.ldom(ctx);
 	if(ldom == nil)
 		return s;
 	foreach(@lambda(id, l){
@@ -9,5 +10,25 @@
 				      symoff(l),
 				      l);
 		}, ldom.enumsym());
+	return s;
+}
+
+@define fmtframe(ctl, ctx)
+{
+	@local s, src;
+
+	s = "";
+
+	/* pc */
+	s += sprintfa("%016p", ctx->pc);
+
+	/* symbol */
+	s += sprintfa("\t%-30y", {ctl.dom(ctx->pc)}ctx->pc);
+
+	/* source */
+	src = ctl.looksrc(ctx->pc);
+	if(src)
+		s += sprintfa("\t%s:%d", src.file, src.line);
+
 	return s;
 }
