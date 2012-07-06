@@ -1,0 +1,13 @@
+@define fmtldom(ldom)
+{
+	@local s;
+	s = "";
+	if(ldom == nil)
+		return s;
+	foreach(@lambda(id, l){
+			s += sprintfa("\t%016p\t%t\n",
+				      symoff(l),
+				      l);
+		}, ldom.enumsym());
+	return s;
+}
