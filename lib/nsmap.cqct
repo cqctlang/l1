@@ -7,7 +7,7 @@
 {
 
 @record nsrec    { base, path, ns };
-@record nsmaprec { add, del, exe, setexe, byaddr, byname, each, clone };
+@record nsmaprec { add, del, exe, setexe, byaddr, byname, each, copy };
 
 @defloc _mknsmap(mkns, rs, x)
 {
@@ -105,9 +105,9 @@
 		return nil;
 	}
 
-	@defloc clone()
+	@defloc _copy()
 	{
-		return _mknsmap(mkns, rs, x);
+		return _mknsmap(mkns, copy(rs), x);
 	}
 
 	return nsmaprec(add,
@@ -117,7 +117,7 @@
 			byaddr,
 			byname,
 			each,
-			clone);
+			_copy);
 }
 
 @define mknsmap(mkns)
