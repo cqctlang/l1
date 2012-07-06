@@ -6,7 +6,7 @@
 @include <dwarf.cqct>
 
 @global
-        ctllaunch
+	ctllaunch
 	;
 
 {
@@ -549,7 +549,6 @@ idxev = [
 	{
 		@local hs, spwnid, ctx, spwnctx, spwn;
 
-		printf("in doclone %a\n", ev);
 		hs = handlers(ev);
 		if(length(hs) == 0){
 			printf("no handler for %a!\n", ev);
@@ -626,7 +625,7 @@ idxev = [
 		if(length(dlls) == 0)
 			error("ctl address space is empty");
 		foreach(@lambda(dll){
-				if(1)printf("\t%d\t%016p\t%s\n",
+				if(0)printf("\t%d\t%016p\t%s\n",
 					    dll.id, dll.base, dll.path);
 				cs.nsmap.add(dll.base, dll.path);
 			}, dlls);
@@ -771,10 +770,6 @@ idxev = [
 	ctlid = *p++;
 	dlct = sctlx86linux;
 	[ctx, p] = dlct.decodectx(p);
-
-	printf("launched! ctlid = %d\n", ctlid);
-	dlct.dumpctx(ctx);
 	return mkctl(mux, ctlid, dlct, ctx);
 }
-
 }
