@@ -1,5 +1,4 @@
-@include <ctls.cqct>
-@include <snamesclt.cqct>
+@include <debug.cqct>
 @include <dump.cqct>
 
 //atnames = snamesns;
