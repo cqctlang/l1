@@ -31,15 +31,13 @@
 	/* address spaces */
 	mem,
 
-	/* domains */
+	/* domains and name spaces*/
 	ctx,
-	pc,
-
-	/* name spaces */
 	nsmap,
 	ns,
 	dom,
 	exe,
+	cast,
 
 	/* snapshot */
 	snap,
@@ -103,12 +101,14 @@ idxev = [
 		return cs.ctx;
 	}
 
-	@defloc pc()
+	@defloc cast(a)
 	{
-		@local _ctx, _pc;
-		_ctx = ctx();
-		_pc = _ctx->pc;
-		return {dom(_pc)}_pc;
+		@local _ns;
+		_ns = ns(a);
+		if(_ns)
+			return {mkdom(_ns, mem())}a;
+		else
+			return {mem()}a;
 	}
 
 	@defloc unimpl(id)
@@ -689,11 +689,11 @@ idxev = [
 		      pstat,
 		      mem,
 		      ctx,
-		      pc,
 		      nsmap,
 		      ns,
 		      dom,
 		      exe,
+		      cast,
 		      snap,
 		      trap,
 		      clear,
