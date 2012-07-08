@@ -61,9 +61,25 @@ about the various <span class="val">sctl</span>
 transactions referenced in this manual.
 </p>
 
+<p>
+Important to understand that this is just one debugging
+library.  The language does not define how to do
+debugging.  Provides core abstraction of domains, name
+spaces, and address spaces, and the C-based syntax for
+interacting with them.
+</p>
+
 <h4 id="sec:hello">Getting started</h4>
 
 <h4 id="sec:breakpoints">Setting breakpoints</h4>
+
+<h4 id="sec:breakpoints">Accessing state</h4>
+
+ctx -- register values.  need to be cast into the domain
+to get at it.
+
+exe, dom, ns methods.
+
 
 <h4 id="sec:breakpoints">Unwinding the stack</h4>
 
@@ -359,7 +375,7 @@ Returns an nsmap describing the current mappings in the target address space.
 <div class="docitem" id="fn:ctlns">
 <div class="proto">
 <div class="function">
-<span class="id">ns(<span class="arg">[idx]</span>)</span>
+<span class="id">ns([<span class="arg">idx</span>])</span>
 </div>
 <div class="param">
 <span class="arg">idx</span>: <span class="type">cvalue</span> or <span class="type">string</span>
@@ -392,7 +408,7 @@ is returned.
 <div class="docitem" id="fn:ctldom">
 <div class="proto">
 <div class="function">
-<span class="id">dom(<span class="arg">[idx]</span>)</span>
+<span class="id">dom([<span class="arg">idx</span>])</span>
 </div>
 <div class="param">
 <span class="arg">idx</span>: <span class="type">cvalue</span> or <span class="type">string</span>
