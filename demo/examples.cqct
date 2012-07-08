@@ -36,12 +36,10 @@ cmd = "./list";
 
 	@defloc handler(ctl)
 	{
-		printf("enter %y\n", ctl.pc());
+		printf("enter insert\n");
 	}
 
-	foreach(@lambda(a){ ctl.trap('brk, a, handler); },
-		[ &exe`main, &exe`dowork, &exe`insert ]);
-
+	ctl.trap('brk, &exe`insert, handler);
 	mux.run();
 }
 
@@ -53,16 +51,87 @@ cmd = "./list";
 	@defloc handler(ctl)
 	{
 		@local ctxs;
-		printf("enter %y\n", ctl.pc());
-
+		printf("enter insert\n");
 		ctxs = ctl.unwind();
 		foreach(@lambda(ctx){ printf("%s\n", fmtframe(ctl, ctx)); },
 			ctxs);
 		printf("\n");
 	}
 
-	foreach(@lambda(a){ ctl.trap('brk, a, handler); },
-		[ &exe`main, &exe`dowork, &exe`insert ]);
-
+	ctl.trap('brk, &exe`insert, handler);
 	mux.run();
 }
+
+@define args()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+
+	@defloc handler(ctl)
+	{
+		@local ctx;
+		ctx = ctl.ctx();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define locals()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+
+	@defloc handler(ctl)
+	{
+		@local ctx, ctxs, ldom;
+		ctx = ctl.ctx();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		ctxs = ctl.unwind();
+		ctx = ctxs[1]; /* context for "dowork" */
+		ldom = ctl.ldom(ctx);
+		printf("\tcalled from dowork: i=%d, head=0x%p, n=%d\n",
+		       ldom`i, ldom`head, ldom`n);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define brkreturn()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+
+	@defloc handler(ctl)
+	{
+		@local ctx, sp, id;
+		ctx = ctl.ctx();
+		sp = (void**)ctl.cast(ctx->sp);
+		printf("enter insert\n");
+		id = ctl.trap('brk, *sp,
+			      @lambda(rctl){
+				      @local ctx;
+				      ctl.clear(id);
+				      ctx = rctl.ctx();
+				      printf("return from insert -> %p\n",
+					     ctx->rax);
+			      });
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+/*
+  want interface for getting registers/context pre-cast
+  into the address space and name space.
+  
+  ctl.cast(addr) -- project addr into the right domain
+
+  {ctl}ctx->pc  -- would be ideal
+
+  ctx->pc -- somehow pre cast
+
+ */
