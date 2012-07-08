@@ -266,7 +266,7 @@ guess:
 		append(xs, cop(ctx));
 		ctx = dwunwind1(ctx, as, nsmap);
 	}
-	return reverse(xs);
+	return xs;
 }
 
 }
