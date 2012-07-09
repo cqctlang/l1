@@ -72,4 +72,10 @@ printf("should be -1: %d\n",re_find(".......................","ababbaaaxxxxxaaa"
 printf("should be 0: %d\n",re_find("(ababba)|(babbaa)","ababbaaaxxxxxaaa"));
 printf("should be 5: %d\n",re_find("(xbabba)|(aa*x)x","ababbaaaxxxxxaaa"));
 
+printf("should be 0: %d\n",re_findend("a","aaaaa"));
+printf("should be 1: %d\n",re_findend("aa","aaaaa"));
+printf("should be 4: %d\n",re_findend("aa*","aaaaa"));
+printf("should be -1: %d\n",re_findend("aa*b","aaaaa"));
+printf("should be 4: %d\n",re_findend("ba*","abaaa",1));
+printf("should be -1: %d\n",re_findend("ba*","abaaa",2));
 

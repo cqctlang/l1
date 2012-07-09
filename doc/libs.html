@@ -160,6 +160,27 @@ affect the passed address space.
 </div>
 </div>
 
+<div class="docitem" id="fn:mkasoff">
+<div class="proto">
+<div class="function">
+<span class="id">mkasoff(<span class="arg">as</span>,
+			<span class="arg">offset</span>)</span>
+</div>
+<div class="param">
+<span class="arg">as</span>: <span class="type">address space</span> 
+<span class="arg">offset</span>: <span class="type">int</span> 
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+  Creates a new address space with the same contents as the the provided
+  address space but with addresses changed by offset. That is, address
+  0 of the new adddress space will be offset offset of as.
+</div>
+</div>
+
 <h5 id="lib:core.cqct">core.cqct</h5>
 
 <span class="id">core.cqct</span> provides functionality for loading
@@ -1327,6 +1348,44 @@ re_find(comp,"xxxabccccd"); //returns 3
     first index in the string that matches the regular expression,
     or -1 if no instances of the expression are found
     in the given string.
+</div>
+</div>
+
+<div class="docitem" id="fn:re_findend">
+<div class="proto">
+<div class="function">
+    <span class="id">re_findend(<span class="arg">re</span>,
+      <span class="arg">str</span>
+      [,<span class="arg">idx</span>]
+      )</span>
+</div>
+<div class="param">
+    <span class="arg">re</span>: 
+    <span class="type">string</span> or
+    <span class="type">DFA</span> 
+</div>
+<div class="param">
+<span class="arg">str</span>: <span class="type">string</span> 
+</div>
+<div class="param">
+<span class="arg">idx</span>: <span class="type">int</span> 
+</div>
+<div class="returns">
+<span class="type">int</span>
+</div>
+</div>
+<div class="desc">
+    This function take a regular expression (either as a string or as the DFA 
+    output
+    from <a href=#fn:re_create>re_create</a>) and a string and matches
+    the string against the RE, returning the index of the final character
+    in the largest match. So for instance re_findend("aa","aaaa") will return
+    1 and re_findend("aa*","aaaa") will return 4. 
+    If the string is empty and the RE matches, 
+    this function will return 0. 
+    If the RE does not match, -1 will be returned.
+    If idx is provided, matching will start from the index idx of the 
+    given string.
 </div>
 </div>
 

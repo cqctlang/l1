@@ -12,7 +12,7 @@ if (re_defined == nil) {
 @local tokenize, node_str;
 @local nxt_nodes, dfa_match, dfa_match_helper;
 @local max_depth, debug;
-@global re_find, re_match, re_create;
+@global re_find, re_match, re_create, re_findend;
 
 re_defined = 1;
 
@@ -205,13 +205,13 @@ max_depth = 4;
     @local tab;
     tab = mktabq();
     tab[dfa.dfa] = 1;
-    return dfa_match_helper(str,tab,0,1);
+    return dfa_match_helper(str,tab,0,1) >= 0;
 }
 
 //if entire_string is 1, only return true if the 
 //entire string matches.
 @define dfa_match_helper(str,nodes,idx,entire_string) {
-    @local len,i,ret,contains_match;
+    @local len,i,ret,contains_match,idx2;
     if (idx == length(str)) {
         ret = mktabq();
         foreach(@lambda(node,v) {
@@ -224,11 +224,12 @@ max_depth = 4;
         ret = tabkeys(ret);
         len = length(ret);
         for(i=0; i<len; ++i) {
-            if (ret[i][0] == 'match) return 1;
+            if (ret[i][0] == 'match) 
+              return idx == 0 ? 0 : idx-1;
         }
-        return 0;
+        return -1;
     }
-    if (nodes == []) return 0;
+    if (nodes == []) return -1;
     ret = mktabq();
     //printf("idx=%d str=%s\n",idx,str);
     foreach(@lambda(node,v) {
@@ -237,7 +238,10 @@ max_depth = 4;
             if (n[0] == 'match) contains_match = 1;
         },nxt_nodes(str[idx],node));
     }, nodes);
-    if (!entire_string && contains_match) return 1;
+    if (!entire_string && contains_match) {
+      idx2 = dfa_match_helper(str,ret,idx+1,entire_string);
+      return idx > idx2 ? idx : idx2;
+    }
     //printf("results: %a\n",map(@lambda(n){ return n[0];},ret));
     if (debug) printf("ret_nodes for %c (char %d): \n    %a\n",str[idx], idx,map(node_str,ret));
     //printf("queue size: %d\n",length(nodes));
@@ -246,10 +250,10 @@ max_depth = 4;
 
 @define re_match(re,str) {
 	@local dfa;
-    if (debug) printf("re = %s str = %s\n",re,str);
-    if (isregular_expression(re)) dfa = re;
-    else dfa = re_create(re);
-    if (debug) printf("dfa = %a\n",node_str(dfa));
+  if (debug) printf("re = %s str = %s\n",re,str);
+  if (isregular_expression(re)) dfa = re;
+  else dfa = re_create(re);
+  if (debug) printf("dfa = %a\n",node_str(dfa));
 	return dfa_match(str,dfa);
 }
 
@@ -263,9 +267,24 @@ max_depth = 4;
     tab = mktabq();
     tab[dfa.dfa] = 1;
     for(i=0; i<len; ++i)
-        if (dfa_match_helper(str,tab,i,0))
+        if (dfa_match_helper(str,tab,i,0) >= 0)
             return i;
     return -1;
+}
+
+//re_findend(re,str [, startidx])
+//attempts to match re against str starting at startidx (default 0)
+//returns -1 if no match, or the index of the end of the 
+//largest possible match if one exists
+@define re_findend(re,str,args...) {
+  @local dfa,tab,start;
+  if (isregular_expression(re)) dfa = re;
+  else dfa = re_create(re);
+  start = 0;
+  if (length(args)>0) start=head(args);
+  tab = mktabq();
+  tab[dfa.dfa] = 1;
+  return dfa_match_helper(str,tab,start,0);
 }
 
 
