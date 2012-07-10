@@ -40,13 +40,36 @@ debug = 0;
             }
         case '[':
             {
-                @local sub,idx;
+                @local sub,idx,type,last;
                 sub = [:];
-                for(idx=i+1;idx<len;++idx) {
-                    if (re[idx] == ']') break;
-                    sub[re[idx]] = 1;
+                last = nil;
+                if (re[i+1] == '^') {
+                  idx = i+2;
+                  type = 'notclass;
+                } else {
+                  idx = i+1;
+                  type = 'class;
                 }
-                append(tokens,['class,sub,nil]);
+                for(;idx<len;++idx) {
+                    if (re[idx] == ']') break;
+                    if (re[idx] == '-' && last != nil && 
+                        idx+1<len && re[idx+1] != ']') 
+                    {
+                      @local x;
+                      if (re[idx+1] >= last) 
+                        for(x=last; x<=re[idx+1]; ++x)
+                          sub[x] = 1;
+                      else 
+                        for(x=re[idx+1]; x<=last; ++x)
+                          sub[x] = 1;
+                      last = nil;
+                      ++idx;
+                    } else {
+                      sub[re[idx]] = 1;
+                      last = re[idx];
+                    }
+                }
+                append(tokens,[type,sub,nil]);
                 i = idx;
                 break;
             }
@@ -131,6 +154,7 @@ debug = 0;
                     lst[i][1] = nxt;
                     break;
                 case 'class:
+                case 'notclass:
                 case 'chr:
                     lst[i][2] = nxt;
             }
@@ -158,13 +182,28 @@ max_depth = 4;
         case 'match: return "match";
         case 'any: return sprintfa("any %s",node_str(n[1],depth+1));
         case 'chr: return sprintfa("%a",[n[0],n[1],node_str(n[2],depth+1)]);
+        case 'class:
+        case 'notclass:
+          { @local str;
+            str = "{ ";
+            foreach(@lambda(k,v) {
+              if (str != "{ ") str += ",";
+              str += sprintfa("%c",k);
+            },n[1]);
+            str += " }";
+            return sprintfa("[%a, %s, %s]",n[0],str,node_str(n[2],depth+1));
+          }
         default: return sprintfa("%a",[n[0],n[1]]);
     }
 }
 
 @define nxt_nodes(chr,node) {
-    //printf("nxt_nodes with chr=%c and type=%s\n",chr,node[0]);
-    //printf("%s next: %s\n",node_str(node), node[0]=='chr ? node_str(node[2]) : "");
+    if (debug) {
+      printf("nxt_nodes with chr=%c and type=%s\n",
+              chr == nil ? 0 : chr, node[0]);
+      printf("%s next: %s\n",node_str(node), 
+              node[0]=='chr ? node_str(node[2]) : "");
+    }
     switch(node[0]) {
     case 'any: 
         if (chr != nil) return [node[1]];
@@ -175,13 +214,15 @@ max_depth = 4;
     case 'class:
         if (node[1][chr] != nil) return [node[2]];
         else return [];
+    case 'notclass:
+        if (node[1][chr] != nil) return [];
+        else return [node[2]];
     case 'maybe:
     case 'star:
         {
             @local ret;
             ret = nxt_nodes(chr,node[1]);
             ret = concat(ret,nxt_nodes(chr,node[2]));
-            if (node[2][0] == 'match) append(ret,node[2]);
             return ret;
         }
     case 'or:
@@ -234,6 +275,7 @@ max_depth = 4;
     //printf("idx=%d str=%s\n",idx,str);
     foreach(@lambda(node,v) {
         foreach(@lambda(n) {
+            if (debug) printf("   next: %a\n",n[0]);
             ret[n] = 1;
             if (n[0] == 'match) contains_match = 1;
         },nxt_nodes(str[idx],node));
@@ -253,7 +295,7 @@ max_depth = 4;
   if (debug) printf("re = %s str = %s\n",re,str);
   if (isregular_expression(re)) dfa = re;
   else dfa = re_create(re);
-  if (debug) printf("dfa = %a\n",node_str(dfa));
+  if (debug) printf("dfa = %a\n",node_str(dfa.dfa));
 	return dfa_match(str,dfa);
 }
 
