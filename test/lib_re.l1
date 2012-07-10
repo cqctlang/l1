@@ -2,9 +2,6 @@
 
 @include <re.cqct>
 
-
-
-
 printf("should be 1: %d\n",re_match("a","a"));
 printf("should be 1: %d\n",re_match("[ab]","a"));
 printf("should be 1: %d\n",re_match("[ab]*","ababababaaaa"));
@@ -78,4 +75,24 @@ printf("should be 4: %d\n",re_findend("aa*","aaaaa"));
 printf("should be -1: %d\n",re_findend("aa*b","aaaaa"));
 printf("should be 4: %d\n",re_findend("ba*","abaaa",1));
 printf("should be -1: %d\n",re_findend("ba*","abaaa",2));
+
+printf("should be 1: %d\n",re_match("ba[^c]","baa"));
+printf("should be 0: %d\n",re_match("ba[^c]","bac"));
+printf("should be 1: %d\n",re_match("ba[^abcd]*","baeeeeffeghi"));
+printf("should be 1: %d\n",re_match("ba[x^a]*","ba^xa^x"));
+
+printf("should be 0: %d\n",re_match("ba[x^a]*","ba^xa^xy"));
+printf("should be 0: %d\n",re_match("[x^a]*","b"));
+
+printf("should be 1: %d\n",re_match("[a-c]*","bbbbbb"));
+printf("should be 0: %d\n",re_match("[^a-c]*","bbbbbb"));
+printf("should be 1: %d\n",re_match("[c-a]*","bbbbbb"));
+printf("should be 1: %d\n",re_match("[0-9]*","1234"));
+printf("should be 1: %d\n",re_match("[0-9][^9-0][90-]","9a-"));
+printf("should be 1: %d\n",re_match("[0-9][^9-0][90-]","0a9"));
+printf("should be 0: %d\n",re_match("[0-9][^9-0][90-]","059"));
+printf("should be 0: %d\n",re_match("[0-9][^9-0][90-]","099"));
+printf("should be 0: %d\n",re_match("[0-9][^9-0][90-]","009"));
+
+
 
