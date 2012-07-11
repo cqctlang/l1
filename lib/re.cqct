@@ -12,7 +12,7 @@ if (re_defined == nil) {
 @local tokenize, node_str;
 @local nxt_nodes, dfa_match, dfa_match_helper;
 @local max_depth, debug;
-@global re_find, re_match, re_create, re_findend;
+@global re_find, re_match, re_create, re_findend, re_findrange;
 
 re_defined = 1;
 
@@ -99,15 +99,24 @@ debug = 0;
     fixup = @lambda(lst,par_nxt) {
         @local i,len,t;
         len = length(lst);
+        if (debug) printf("FIXUP %a\n",lst);
         for(i=0; i<len;++i) {
             t = head(lst[i]);
+            if (debug) printf("at %d with %a (length: %d) %a\n",i,t,len,lst);
             switch(t) {
             case 'or:
-                lst[i-1] = ['or,lst[i-1], lst[i+1]];
-                listdel(lst,i);
-                listdel(lst,i);//previous i+1
-                len -= 2;
-                --i; //only move back 1
+                if (lst[i][1] != nil) {
+                  if (lst[i][2] == nil)
+                    error("Baddly formed re: %s",re);
+                } else if (i == 0) {
+                  error("Baddly formed re: %s",re);
+                } else {
+                  lst[i-1] = ['or,lst[i-1], lst[i+1]];
+                  listdel(lst,i);
+                  listdel(lst,i);//previous i+1
+                  len -= 2;
+                  --i; //only move back 1
+                }
                 break;
             case 'star: 
                 if (lst[i-1][0] != 'star)
@@ -159,7 +168,7 @@ debug = 0;
                     lst[i][2] = nxt;
             }
         }
-        //printf("here2: %a\n",lst);
+        //if (debug) printf("DONE FIXUP %a\n",lst);
     };
     fixup(tokens,['match]);
     return regular_expression(head(tokens));
@@ -329,6 +338,23 @@ max_depth = 4;
   return dfa_match_helper(str,tab,start,0);
 }
 
+//Returns [idx_beg,idx_end], where idx_beg is the first index that
+//matches the re, and idx_end is the last index of the largest match
+//starting at idx_beg.
+//Returns nil if nothing in the string matches the re
+@define re_findrange(re,str) {
+  @local dfa,i,len,tab,end;
+  if (isregular_expression(re)) dfa = re;
+  else dfa = re_create(re);
+  len = length(str);
+  tab = mktabq();
+  tab[dfa.dfa] = 1;
+  for(i=0; i<len; ++i) {
+    end = dfa_match_helper(str,tab,i,0);
+    if (end >= 0) return [i,end];
+  }
+  return nil;
+}
 
 
 
