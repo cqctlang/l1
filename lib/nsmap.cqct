@@ -50,8 +50,6 @@
 		r = nsrec(base, path, ns);
 		append(rs, r);
 		resort();
-		if(x == nil && base == 0)
-			x = r;
 		return nil;
 	}
 

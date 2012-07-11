@@ -208,6 +208,7 @@ idxev = [
 		id,
 		path,
 		base,
+		mode,
 	};
 
 	@defloc pstat()
@@ -215,7 +216,7 @@ idxev = [
 		@local p, m;
 		@local rep, dat, rs, bs, n, i;
 		@local file, addr, len, flags;
-		@local id, base;
+		@local id, base, mode;
 
 		p = m = mkxs();
 		p = (uint64*)p;
@@ -244,9 +245,11 @@ idxev = [
 		for(i = 0; i < n; i++){
 			id = *p++;
 			base = *p++;
+			p = (uint8*)p;
+			mode = *p++;
 			[file, p] = decodes(p);
 			p = (uint64*)p;
-			append(bs, dll(id, file, base));
+			append(bs, dll(id, file, base, mode));
 		}
 
 		return [rs, bs];
@@ -637,6 +640,10 @@ idxev = [
 				if(0)printf("\t%d\t%016p\t%s\n",
 					    dll.id, dll.base, dll.path);
 				cs.nsmap.add(dll.base, dll.path);
+				if(dll.mode != 0){
+					printf("setting exe to be %s!\n", dll.path);
+					cs.nsmap.setexe(dll.base);
+				}
 			}, dlls);
 	}
 
