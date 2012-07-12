@@ -640,10 +640,8 @@ idxev = [
 				if(0)printf("\t%d\t%016p\t%s\n",
 					    dll.id, dll.base, dll.path);
 				cs.nsmap.add(dll.base, dll.path);
-				if(dll.mode != 0){
-					printf("setting exe to be %s!\n", dll.path);
+				if(dll.mode != 0)
 					cs.nsmap.setexe(dll.base);
-				}
 			}, dlls);
 	}
 
