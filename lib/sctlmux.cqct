@@ -222,12 +222,17 @@
 		return runtiltag(fd, tag);
 	}
 
-	@defloc run()
+	@defloc run(arg...)
 	{
+		@local pred;
 		if(aborted)
 			error("attempt to resume aborted mux");
 		foreach(@lambda(id, ctl) { ctl.cont(); }, ctls);
-		runtil(noctls);
+		if(length(arg))
+			pred = arg[0];
+		else
+			pred = noctls;
+		runtil(pred);
 		return nil;
 	}
 
