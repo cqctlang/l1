@@ -1,0 +1,30 @@
+@include <debug.cqct>
+
+cmds = [
+	"./list64",
+	"./list64.pie",
+	"./list64.static",
+	"./list32",
+	"./list32.pie",
+	"./list32.static",
+	/* we don't know how to build pie static binaries */
+];
+
+@define try(cmd)
+{
+	@local mux, ctl, exe;
+
+	printf("\n** %s **\n", cmd);
+	mux = mksctlmux();
+	ctl = ctllaunch(mux, [ cmd ]);
+	if(ctl == nil)
+		return;
+	exe = ctl.exe();
+	ctl.trap('brk, &exe`insert,
+		 @lambda(ctl){
+			 printf("enter (0x%p)\n", &exe`insert);
+		 });
+	mux.run();
+}
+
+foreach(try, cmds);

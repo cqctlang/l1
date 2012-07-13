@@ -16,10 +16,17 @@ TARG = clones\
 	libA.so\
 	uselib\
 	fault\
+	list64\
+	list64.static\
+	list64.pie\
+#	list64.pie.static\
 #	types1 types1.32\
 
-TARG32 = list32\
-	list32stat\
+TARG32 = \
+	list32\
+	list32.pie\
+	list32.static\
+#	list32.pie.static\
 	mclones32\
 
 all: $(TARG) $(TARG32)
@@ -99,10 +106,27 @@ list64: list.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 list32: list.c
-	cc -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+	$(CC) -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 
-list32stat: list.c
+list64.pie: list.c
+	$(CC) -fPIE -pie $(CFLAGS) -o $@ $^
+
+list32.pie: list.c
+	$(CC) -fPIE -pie -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+
+list64.static: list.c
+	$(CC) -static $(CFLAGS) -o $@ $^
+
+list32.static: list.c
 	$(CC) -static -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
+
+# we don't know how to build these
+
+#list64.pie.static: list.c
+#	$(CC) -static -fPIE -pie $(CFLAGS) -o $@ $^
+
+#list32.pie.static: list.c
+#	$(CC) -static -fPIE -pie -m32 -B/usr/lib32 $(CFLAGS) -o $@ $^
 
 clean:
 	$(V)rm -rf *~ .gdbhistory core core.* *.o *.names $(TARG) $(TARG32) *.so *.dylib depend
