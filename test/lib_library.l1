@@ -33,3 +33,11 @@
   fn2();
   f2();
 }
+
+x = "test";
+y = "lib";
+@dynamic_imports( x, y + "4" ) { func(); f3(); }
+@dynamic_imports( "subdir"+"/"+"sublib" ) { fn1(); }
+@dynamic_imports( "(f2, subdir/sublib.fn1)" ) { f2(); }
+
+

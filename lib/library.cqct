@@ -182,6 +182,20 @@ if (__library_exports == nil) //might not have been set in a macro
   return #[#scope(#block(new_locals,new_body))];
 }
 
+@defstx @dynamic_imports(args...) body {
+  args = #list(args);
+  return #`{
+    { @local new_args; 
+    new_args = map(@lambda(x) { 
+      if (iscid(x)) return #id(x);
+      if (isstring(x)) return parse(x+";")[0];
+      error("bad library name: %a\n",x);
+    },#,(args));
+    compile(#mcall(#id('with_imports),apply(Zlist,new_args),#,(#val(body))))();
+    }
+  };
+}
+
 //this macro allows one to export some symbols as though they were part of
 //a library with the provided name
 @defstx @with_exports(name,exports...) body {

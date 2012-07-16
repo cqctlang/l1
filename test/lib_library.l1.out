@@ -18,3 +18,8 @@ Running sublib fn1
 Running sublib fn1
 Running subdir/subdir2/sublib fn2
 Running subdir/subdir2/sublib fn2
+Running f1 from lib1
+Running f2 from lib1
+Running f3 from lib4
+Running sublib fn1
+Running sublib fn1
