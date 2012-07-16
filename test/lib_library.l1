@@ -9,5 +9,23 @@
   f1(); 
   f3(); 
   f4(); 
-  printf("constanct c1's value: %a\n",c1); 
+  printf("constant c1's value: %a\n",c1); 
+}
+
+@library(test) {
+  @import( lib3 );
+  @export( func );
+  @define func() {
+    f2();
+  }
+};
+
+@with_imports( subdir/sublib, (f2, subdir/sublib.fn1) ) {
+  fn1();
+  f2();
+}
+
+@with_imports( subdir/subdir2/sublib, (f2, subdir/subdir2/sublib.fn2) ) {
+  fn2();
+  f2();
 }

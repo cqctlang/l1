@@ -2,7 +2,7 @@ in lib3
 Running f1 from lib1
 Running f2 from lib1
 finished with lib3
-in lib3: vector( lib3 )
+in lib3: vector( "lib3" )
 Running f1 from lib1
 Running f2 from lib1
 finished loading lib4
@@ -11,4 +11,8 @@ Running f1 from lib1
 Running f2 from lib1
 Running f3 from lib4
 Running f4 from main!
-constanct c1's value: 1
+constant c1's value: 1
+Running sublib fn1
+Running sublib fn1
+Running subdir/subdir2/sublib fn2
+Running subdir/subdir2/sublib fn2
