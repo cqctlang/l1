@@ -307,8 +307,9 @@ if (__library_exports == nil) //might not have been set in a macro
     args = Zcons(name,args);
     ret = #mcall(#id('with_exports),args,ret);
   },export_params);
+  compile(ret)();
 
-  return ret;
+  return #[];
 }
 
 }

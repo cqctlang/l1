@@ -20,6 +20,10 @@
   }
 };
 
+@with_imports( test ) {
+  func();
+}
+
 @with_imports( subdir/sublib, (f2, subdir/sublib.fn1) ) {
   fn1();
   f2();

@@ -12,6 +12,8 @@ Running f2 from lib1
 Running f3 from lib4
 Running f4 from main!
 constant c1's value: 1
+Running f1 from lib1
+Running f2 from lib1
 Running sublib fn1
 Running sublib fn1
 Running subdir/subdir2/sublib fn2
