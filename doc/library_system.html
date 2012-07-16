@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>Cinquecento Libraries</title>
+<link rel="stylesheet" type="text/css" href="reset.css"/>
+<link rel="stylesheet" type="text/css" href="styles.css"/>
+</head>
+
+<body>
+
+<div id="side1">
+</div>
+
+<div id="content">
+
+<div id="title">
+<h3>Cinquecento Libraries</h3>
+</div>
+
+<p>
+Cinquecento provides a syntax-based mechanism for modularizing code.
+The primary goals of this system are both to allow the creation of libraries
+that do not assign global variables, and to allow easy
+swapping of different implementations for the same set of symbols into a 
+given piece of code. 
+</p>
+
+<p>
+In its most basic instantiation, a library is a file containing
+definitions for various functions and variables. There is currently
+no mechanism for putting macros (i.e. <em>@defstx</em> definitions)
+in a library -- any macros appearing in a library currently gets bound
+at the top level. Future version of the library system will remedy the
+macro limitations.
+</p>
+
+<p>
+An example library file might look this file, named <b>lib1.cqct</b>:
+<div class="code">
+<pre>
+@local helper_func2;
+@export( func1, func2 );
+
+@define func1() { ... }
+@define helper_func2() { ... }
+@define func2() { ... }
+
+</pre>
+</div>
+That code defines and exports two symbols: func1 and func2. 
+It also defines a local variable helper_func2 that is visible only
+within the library. 
+Assuming lib1.cqct is in the load path, Another bit of code can 
+then run using those symbols as follows:
+</p>
+<div class="code">
+<pre>
+@with_imports( lib1 ) {
+  ...
+  func1();
+  ...
+  func2();
+  ...
+}
+</pre>
+</div>
+The <em>@with_imports</em> macro loads the library lib1.cqct, and
+binds all of that library's exported symbols in the following scope.
+Since lib1.cqct exports both <em>func1</em> and <em>func2</em>
+both symbols will be available. If one already has a binding for 
+<em>lib1_func1</em> and wants to bind it to a different symbol, 
+one can do the following:
+<div class="code">
+<pre>
+@define func1() { ... }
+@with_imports( (lib1_func1, lib1.func1) ) {
+  ...
+  func1(); //calls above function 
+  ...
+  lib1_func1(); //calls func1 from lib1.cqct
+}
+</pre>
+</div>
+In this case, the function <em>func1</em> from lib1 is bound to
+the symbol <em>lib1_func1</em> while the original binding for <em>func1</em>
+remains unchanged. This sort of rebinding allows
+a programmer to avoid symbol colision for symbols defined by multiple
+libraries. 
+</p>
+
+<p>
+When writing a library one can use <em>@import</em> instead of 
+<em>@with_imports</em>.
+Consider for example <b>lib2.cqct</b>
+<div class="code">
+<pre>
+
+@export( something, somethingelse );
+@import( lib1 );
+
+@define something() { 
+  ... 
+  func1();
+  ...
+}
+@define somethingelse() { ... }
+</pre>
+</div>
+The <em>@import</em> macro only works inside a library file -- at the top
+level <em>@with_imports</em> must be used instead. 
+</p>
+
+<p>
+<em>@import</em> and <em>@with_imports</em> are both variable argument 
+macros for which all of the following are legal:
+<div class="code">
+<pre>
+
+@import( lib1, lib2 );
+
+@with_imports( (f1, lib1.func1), lib2 ) { ... }
+
+@import( (func1, lib1.func1), (lib1_func2, lib1.func2), lib2 );
+</pre>
+</div>
+</p>
+
+<p>
+If one wants to import a file that is in a directory <em>dir1</em> 
+that is in the load path, one may use the following constructions:
+<div class="code">
+<pre>
+
+@import( dir1/lib, (f1, dir1/lib.func1));
+
+@with_imports( dir1/lib, (f1, dir1/lib.func1) ) { ... }
+</pre>
+</div>
+</p>
+
+
+<p>
+Imported libraries must be present in the load path. That is, when importing
+from <em>lib1</em>, there must be a lib1.cqct present in the load path at
+compile time. Recursive or mutually recursive libraries are not allowed.
+Any <em>@defstx</em> statements in any library are 
+bound globally during compilation. 
+</p>
+
+<h3>Cinquecento Library Macros</h3>
+
+<div class="docitem" id="fn:@add_loadpath">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@add_loadpath(path))</span>
+    </div>
+    <div class="param">
+      <span class="arg">path</span>: 
+      <span class="type">string</span> 
+    </div>
+    <div class="returns">
+      <span class="type">nothing</span>
+    </div>
+  </div>
+  <div class="desc">
+    This function adds the given path to the load path at compile time.
+    Note that if path is computed using an expression, the expression will
+    be evaluated at compile time before any compiled code has been run.
+    Because of this, one can only use simple, self-contained expressions
+    to compute path. For instance:
+    <div class="code">
+      <pre>
+@loadpath("/"); //legal
+@loadpath(loadpath[0]+"../something"); //legal
+path = compute_path(); //this statement does not execute until run time
+@loadpath(path); //error: path is unbound until runtime
+@loadpath(compute_path()); //error: compute_path is also unbound until runtime
+      </pre>
+    </div>
+  </div>
+</div>
+
+<div class="docitem" id="fn:@export">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@export( sym1 [, sym2 [,...]] )</span>
+    </div>
+    <div class="param">
+      <span class="arg">sym1</span>: 
+      <span class="type">symbol name</span> 
+    </div>
+    <div class="returns">
+      <span class="type">nothing</span>
+    </div>
+  </div>
+  <div class="desc">
+    Can only be used inside a library file. 
+    Exports the named symbols. Only symbols named in this way will
+    be exported from the library.
+  </div>
+</div>
+
+<div class="docitem" id="fn:@import">
+<div class="proto">
+<div class="function">
+<span class="id">@import( import_spec [, import_spec [,...]] )</span>
+</div>
+<div class="param">
+<span class="arg">import_spec</span>: 
+<span class="type">(dir/)*libname</span> or
+<span class="type">(sym, (dir/)*libname.sym)</span> or
+</div>
+<div class="returns">
+<span class="type">nothing</span>
+</div>
+</div>
+<div class="desc">
+  Can only be used inside a library file. 
+  Imports the named libraries and symbols. 
+  For each import_spec, one of the following happens: 
+<ul>
+<li> If the import_spec is (dir/)*libname, then the library libname is loaded
+from the loadpath concatenated with the specified directory sequence. All
+symbols exported from that library are bound to locals in the current library.
+For example:
+<div class="code">
+<pre>
+@import( dir1/lib1 );
+</pre>
+</div>
+Will import all symbols exported by the library found in the first 
+dir1/lib1.cqct in the load path (the load path is searched in order). 
+</li>
+<li>If the import_spec is <em>(sym, (dir/)*libname.esym)</em>, 
+then the library libname is loaded and the symbol esym from that library
+is bound to the symbol <em>sym</em> in the current library. For instance
+<div class="code">
+<pre>
+@import( (myfn1, dir1/lib1.fn1) );
+</pre>
+</div>
+Will load the first file dir1/lib1.cqct found in the load path as a library
+and set the local variable myfn1 to the value of fn1 in that library. 
+</li>
+</ul>
+</div>
+</div>
+
+<div class="docitem" id="fn:@library">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@library(name) { body }</span>
+    </div>
+    <div class="param">
+      <span class="arg">name</span>: 
+      <span class="type">library name</span> 
+    </div>
+    <div class="param">
+      <span class="arg">body</span>: 
+      <span class="type">cqct code</span> 
+    </div>
+  </div>
+  <div class="desc">
+    This macro parses its containing body as library code with the
+    given library name. In the body, the @import and @export macros
+    work as though they were in the file associated with the named library.
+    This macro can be used to create new libraries or to add to existing
+    libraries. 
+  </div>
+</div>
+
+<div class="docitem" id="fn:@with_exports">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@with_exports(name, sym [, sym [,...]] ) { body }</span>
+    </div>
+    <div class="param">
+      <span class="arg">name</span>: 
+      <span class="type">library name</span> 
+    </div>
+    <div class="param">
+      <span class="arg">sym1</span>: 
+      <span class="type">symbol names</span> 
+    </div>
+    <div class="param">
+      <span class="arg">body</span>: 
+      <span class="type">cqct code</span> 
+    </div>
+  </div>
+  <div class="desc">
+    Mainly for internal use. 
+    This macro exports the given symbols that are defined in its body
+    as though they were associated with the given library name.
+  </div>
+</div>
+
+<div class="docitem" id="fn:@with_imports">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@with_imports( import_spec [, import_spec [,...]] ) { body }</span>
+    </div>
+    <div class="param">
+      <span class="arg">import_spec</span>: 
+      <span class="type">import_spec</span> 
+    </div>
+    <div class="param">
+      <span class="arg">body</span>: 
+      <span class="type">cqct code</span> 
+    </div>
+  </div>
+  <div class="desc">
+    Used to import code from libraries. See 
+    <a href=#fn:@import>@import</a> for a description of import_spec. 
+    All imported symbols will only be visible inside the provided body.
+  </div>
+</div>
+
+
+
+</div>
+</body>
+</html>
