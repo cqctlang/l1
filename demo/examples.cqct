@@ -124,6 +124,35 @@ cmd = "./list";
 	mux.run();
 }
 
+@define inspect()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+
+	@defloc showlist(h)
+	{
+		while(h){
+			printf(" %d", h->v);
+			h = h->next;
+		}
+	}
+
+	@defloc handler(ctl)
+	{
+		@local ctx, h;
+
+		ctx = ctl.ctx();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		printf("\tlist =");
+		h = (Node*){exe}ctx->rdi;
+		showlist(h);
+		printf("\n");
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
 /*
   want interface for getting registers/context pre-cast
   into the address space and name space.
