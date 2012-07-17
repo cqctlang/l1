@@ -153,6 +153,24 @@ cmd = "./list";
 	mux.run();
 }
 
+@define syscall()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start();
+
+	@defloc handler(ctl)
+	{
+		@local ctx;
+		ctx = ctl.ctx();
+		
+		printf("syscall %e\n",
+		       {ctl.dialect().Syscall}ctx->orig_rax);
+	}
+
+	ctl.trap('syscall, handler);
+	mux.run();
+}
+
 /*
   want interface for getting registers/context pre-cast
   into the address space and name space.
