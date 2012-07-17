@@ -7,7 +7,7 @@
 	sctlrerror
 	;
 
-@record sctldialectrec { name, Ctx, decodectx, encodectx, dumpctx };
+@record sctldialectrec { name, Ctx, decodectx, encodectx, dumpctx, Syscall };
 
 {
 @local EINTR, ECONNRESET;

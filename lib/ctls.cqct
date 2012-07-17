@@ -38,6 +38,7 @@
 	dom,
 	exe,
 	cast,
+	dialect,
 
 	/* snapshot */
 	snap,
@@ -109,6 +110,11 @@ idxev = [
 			return {mkdom(_ns, mem())}a;
 		else
 			return {mem()}a;
+	}
+
+	@defloc dialect()
+	{
+		return cs.dlct;
 	}
 
 	@defloc unimpl(id)
@@ -699,6 +705,7 @@ idxev = [
 		      dom,
 		      exe,
 		      cast,
+		      dialect,
 		      snap,
 		      trap,
 		      clear,
