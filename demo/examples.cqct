@@ -12,7 +12,7 @@
 {
 	@local mux, ctl, exe;
 	mux = mksctlmux();
-	ctl = ctllaunch(mux, [cmd]);
+	ctl = ctllaunch(mux, cmd);
 	exe = ctl.exe();
 	return [mux, ctl, exe];
 }
@@ -20,7 +20,7 @@
 @define brkentry1()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 	ctl.trap('brk, &exe`main, @lambda(ctl) { printf("enter main\n"); });
 	ctl.trap('brk, &exe`dowork, @lambda(ctl) { printf("enter dowork\n"); });
 	ctl.trap('brk, &exe`insert, @lambda(ctl) { printf("enter insert\n"); });
@@ -30,7 +30,7 @@
 @define brkentry2()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc handler(ctl)
 	{
@@ -44,7 +44,7 @@
 @define unwind()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc handler(ctl)
 	{
@@ -63,7 +63,7 @@
 @define args()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc handler(ctl)
 	{
@@ -79,7 +79,7 @@
 @define locals()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc handler(ctl)
 	{
@@ -100,7 +100,7 @@
 @define brkreturn()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc handler(ctl)
 	{
@@ -125,7 +125,7 @@
 @define inspect()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc showlist(h)
 	{
@@ -154,7 +154,7 @@
 @define syscalls()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc handler(ctl)
 	{
@@ -172,7 +172,7 @@
 @define forks()
 {
 	@local mux, ctl, exe;
-	[mux,ctl,exe] = start("./forks");
+	[mux,ctl,exe] = start(["./forks"]);
 
 	@defloc handler(ctl, spwn)
 	{
@@ -183,11 +183,40 @@
 	mux.run();
 }
 
+@define forkexec()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./forkexec", "./list"]);
+
+	@defloc	onfork(ctl, spwn)
+	{
+		printf("%d has forked %d\n", ctl.id, spwn.id);
+	}
+
+	@defloc onexec(ctl)
+	{
+		@local exe;
+		exe = ctl.exe();
+		printf("%d has exec'ed %s\n", ctl.id, ctl.nsmap().nspath(exe.ns));
+	}
+
+	@defloc onexit(ctl, status)
+	{
+		printf("%d has exited with status %d\n", ctl.id, status);
+	}
+
+	ctl.trap('fork, onfork);
+	ctl.trap('exec, onexec);
+	ctl.trap('exit, onexit);
+
+	mux.run();
+}
+
 @define exits()
 {
 	@local mux, ctl, exe;
 	@local h;
-	[mux,ctl,exe] = start("./list");
+	[mux,ctl,exe] = start(["./list"]);
 
 	@defloc showlist(h)
 	{
