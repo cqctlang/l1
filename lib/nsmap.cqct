@@ -7,7 +7,7 @@
 {
 
 @record nsrec    { base, path, ns };
-@record nsmaprec { add, del, exe, setexe, byaddr, byname, each, copy };
+@record nsmaprec { add, del, exe, setexe, byaddr, byname, nspath, nsbase, each, copy };
 
 @defloc _mknsmap(mkns, rs, x)
 {
@@ -82,7 +82,7 @@
 
 	@defloc each(fn)
 	{
-		foreach(@lambda(r) { fn(r.base, r.path, r.ns); });
+		foreach(@lambda(r) { fn(r.base, r.path, r.ns); }, rs);
 	}
 
 	@defloc byaddr(addr)
@@ -103,6 +103,20 @@
 		return nil;
 	}
 
+	@defloc nspath(ns)
+	{
+		@local path;
+		each(@lambda(b, p, n) { if(n == ns) path = p; });
+		return path;
+	}
+
+	@defloc nsbase(ns)
+	{
+		@local base;
+		each(@lambda(b, p, n) { if(n == ns) base = b; });
+		return base;
+	}
+
 	@defloc _copy()
 	{
 		return _mknsmap(mkns, copy(rs), x);
@@ -114,6 +128,8 @@
 			setexe,
 			byaddr,
 			byname,
+			nspath,
+			nsbase,
 			each,
 			_copy);
 }
