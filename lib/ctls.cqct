@@ -471,6 +471,7 @@ idxev = [
 		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		foreach(@lambda(t) { t.fn(this, st); }, handlers('exit));
+		contasync();
 	}
 
 	@defloc doload(p, eid)
