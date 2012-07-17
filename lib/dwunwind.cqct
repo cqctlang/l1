@@ -260,9 +260,15 @@ guess:
 @define dwunwind(ctx, as, nsmap)
 {
 	@local xs;
+	@local first;
 
 	xs = [];
+	first = 1;
 	while(ctx != nil && ctx->pc){
+		if(!first)
+			ctx->pc -= 1;
+		else
+			first = 0;
 		append(xs, cop(ctx));
 		ctx = dwunwind1(ctx, as, nsmap);
 	}
