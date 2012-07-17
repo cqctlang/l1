@@ -266,6 +266,8 @@ guess:
 	first = 1;
 	while(ctx != nil && ctx->pc){
 		if(!first)
+			/* attempt to set pc close to calling address;
+			   see dwarf version 3, section 6.4.4. */
 			ctx->pc -= 1;
 		else
 			first = 0;
