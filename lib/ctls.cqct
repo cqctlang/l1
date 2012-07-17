@@ -465,7 +465,12 @@ idxev = [
 
 	@defloc doexit(p)
 	{
-		foreach(@lambda(t) { t.fn(this); }, handlers('exit));
+		@local st, ctx;
+		p = (int64*)p;
+		st = *p++;
+		[ctx, p] = cs.dlct.decodectx(p);
+		setctx(ctx);
+		foreach(@lambda(t) { t.fn(this, st); }, handlers('exit));
 	}
 
 	@defloc doload(p, eid)
@@ -765,7 +770,7 @@ idxev = [
 			 ctl.scan();
 		 });
 
-	ctl.trap('exit, @lambda(ctl) { mux.unbindctl(ctl); });
+	ctl.trap('exit, @lambda(ctl, st) { mux.unbindctl(ctl); });
 	ctl.scan();
 	return ctl;
 }
