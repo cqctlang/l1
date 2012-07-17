@@ -374,7 +374,6 @@ handle = [
 	(sctl`Mkind)sctl`Tenumtype : tenumtype,
 	(sctl`Mkind)sctl`Tlookaddr : tlookaddr,
 	(sctl`Mkind)sctl`Tenumloc  : tenumloc,
-	(sctl`Mkind)sctl`Tunwind   : notimpl,
 	(sctl`Mkind)sctl`Tunwind1  : tunwind1,
 	(sctl`Mkind)sctl`Tlooksrc  : tlooksrc,
 	(sctl`Mkind)sctl`Tlookpc   : tlookpc,

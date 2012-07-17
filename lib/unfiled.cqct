@@ -97,8 +97,6 @@
 		n = *q++;
 		s += sprintfa(" nt=%u tdefs=...", n);
 		break;
-	case sctl`Tunwind:
-	case sctl`Runwind:
 	case sctl`Tunwind1:
 	case sctl`Runwind1:
 	case sctl`Tlooksrc:
