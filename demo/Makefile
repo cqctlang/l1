@@ -4,6 +4,7 @@ CFLAGS    = -Wall -g
 
 TARG = clones\
 	forks\
+	forkexec\
 	list\
 	sig\
 	attach\
@@ -44,6 +45,9 @@ clones: clones.o
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 forks: forks.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+forkexec: forkexec.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 list: list.o
