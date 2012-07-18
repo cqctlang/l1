@@ -4,7 +4,7 @@
 {
 	@local mux;
 	mux = mksctlmux();
-	ctllaunch(mux, [cmd]);
+	ctllaunch(mux, ["./list"]);
 	mux.run();
 }
 

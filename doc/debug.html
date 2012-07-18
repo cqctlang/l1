@@ -39,13 +39,12 @@ debug program executions.
 </p>
 
 <p>
-These libraries make use of the process control
+To use these libraries the process control
 server <span class="val">sctl</span>, which is
 available
-from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
-and which must be
-installed somewhere in your
-path.  <span class="val">Sctl</span> provides a network
+from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>,
+must be installed somewhere in your
+path. <span class="val">Sctl</span> provides a network
 service for controlling program executions and
 accessing symbols and other debugging information from
 program binaries.  Documentation
@@ -58,12 +57,11 @@ transactions referenced in this manual.
 </p>
 
 <p>
-When using this library, keep in mind that the
-abstractions and syntax of the Cinquecento language are
-intended to support a variety of styles for programming
-a custom debugger.  The libraries described in this
-manual represent just one style &mdash; a rather
-traditional one.
+Keep in mind that the syntax and core abstractions of
+the Cinquecento language are intended to support a
+variety of styles for programming a custom debugger.
+The libraries described in this manual represent just
+one style &mdash; a rather traditional one.
 </p>
 
 <h4 id="sec:hello">Concepts</h4>
@@ -73,41 +71,273 @@ The library is designed to support a spectrum of
 debugging scenarios, from debugging a one instance of a
 single-threaded program to debugging multiple
 simultaneously active instances of multi-threaded
-programs.  Most interactions are centered around an
+programs.  Most operations are centered around an
 object called a <em>ctl</em>, which represents a thread
 of execution in a program execution.  A single-threaded
 program is represented by a single ctl; a
 multi-threaded program is represented by a set of ctls,
-one for each live thread.  A ctl is can be created by
+one for each live thread.  Ctls are created by
 launching a new program execution or attaching to an
 existing one; they are also created when an execution
-associated with an existing ctl forks or new process or
+associated with an existing ctl forks a new process or
 creates a new thread.  Ctls are destroyed when the
-associated execution
+associated thread or process is terminated.
 </p>
 
 <p>
-Each ctl is a window to all other resources associated
-with an execution, including its address space, name
-spaces for each binary (executable or library) loaded
-in the address space, and traps on program events.
+Each ctl is a handle to other resources associated with
+an execution, including its registers, address space,
+name spaces for each binary (executable or library)
+loaded in the address space, and the ability to trap on
+execution events.
 </p>
 
 <p>
-
+The events that can trapped include execution
+breakpoints, library loading and unloading, system
+calls, signals, and termination.
 </p>
+
+<p>
+<span class="val">Sctl</span> supports execution
+snapshots, which represent the state of a program
+execution frozen in time.  Snapshots are useful for
+retaining access to past states of program execution
+for comparison with future states.  A snapshot is
+represented by a ctl.
+</p>
+
+<p>
+The programming model is event-based programming.
+Rather than pausing the execution and interactively
+inspecting state or adding or removing traps, programs
+written with this library are non-interactive programs
+that instrument an entire execution of the target
+program.  They respond to events as the execution
+proceeds, collecting observations, adjusting traps, and
+perhaps making changes to program state.  The
+interactive model can be convenient for debugging
+single-threaded programs, but it quickly becomes
+cumbersome when the program is multi-threaded, or when
+more than one program is being debugged at a time, or
+when incorporating snapshots into the debugging.
+</p>
+
+<p>
+Like many event-based programming system, the execution
+of a program is wrapped in a blocking event loop.
+Events from program execution are received and
+dispatched to their handlers.  This event processing
+loop is encapsulated in an object called a <em>sctlmux</em>.
+Most programs have the same structure:
+<ol>
+<li>Initialize a sctlmux.</li>
+<li>Launch or attach to one or more programs, yielding a corresponding ctl for each thread of execution.</li>
+<li>Define and install handlers for various events on the ctls.</li>
+<li>Start the sctlmux event loop.</li>
+</ol>
+</p>
+
+<p>
+Event handlers typically collect observations about the
+program execution.  They can also set or remove event
+handlers.  The event loop terminates when all ctls have
+exited.
+</p>
+
 
 <h4 id="sec:hello">Getting started</h4>
+
+<p>
+In the following sections, we illustrate the main
+features of the library through a series of examples.
+This requires that we have some sample programs to
+debug.  These samples, as well as the Cinquecento
+examples, are included in the L1 distribution of
+Cinquecento; see the <span class="val">README</span> in
+the <span class="val">demo</span> directory for
+directions on building and running these examples
+yourself.
+</p>
+
+<p>
+Here is <span class="val">list</span>, our first sample program:
+</p>
+
+<div class="code">
+<pre>
+#include &lt;stdlib.h&gt;
+
+typedef struct Node Node;
+struct Node {
+	int v;
+	Node *next;
+};
+
+static Node*
+insert(Node *h, int v)
+{
+	Node *p, *q;
+	p = malloc(sizeof(Node));
+	p->v = v;
+	p->next = 0;
+	if(!h)
+		return p;
+	q = h;
+	while(q->next)
+		q = q->next;
+	q->next = p;
+	return h;
+}
+
+static void
+dowork(int n)
+{
+	int i;
+	Node *head;
+	head = 0;
+	for(i = 0; i < n; i++)
+		head = insert(head, i);
+}
+
+int
+main(int argc, char *argv[])
+{
+	int m;
+	m = 5;
+	if(argc > 1)
+		m = atoi(argv[1]);
+	dowork(m);
+	return 0;
+}
+</pre>
+</div>
+
+<p>
+This program features a pointer-based linked list data
+type called <span class="val">Node</span>, a function
+called <span class="val">insert</span> that appends new
+elements to an existing list, a function
+called <span class="val">dowork</span> that builds a
+list of consecutive values, and
+a <span class="val">main</span> function that kicks off
+the work.  It accepts an optional work size input as a
+command-line argument.  It has no output.
+</p>
+
+<p>
+Here is a Cinquecento function that launches this
+program and waits for it to exit:
+</p>
+
+<div class="code">
+<pre>
+@include &lt;debug.cqct&gt;
+
+@define getstarted()
+{
+	@local mux;
+	mux = mksctlmux();
+	ctllaunch(mux, ["./list"]);
+	mux.run();
+}
+</pre>
+</div>
+
+<p>
+The first line loads the debugging library.  We will
+omit this line from all subsequent examples, but it is
+always implied.
+</p>
+
+
+<p>
+The first line of getstarted (after the @local
+declaration) creates a new sctlmux object, binding it
+to the variable mux.  Mux represents a connection to a
+fresh sctl server that is launched by mksctlmux on the
+same host as the Cinquecento program.
+</p>
+
+<p>
+The second line of getstarted launches our sample
+program.  Ctllaunch directs the sctl associated with
+mux to create a new process.  The second argument
+specifies the program this new process should execute:
+in Unix environments, for example, it is a list of
+strings that will be passed to execve.  In this case,
+we are launching the list binary from the current
+working directory, passing it no arguments.
+</p>
+
+<p>
+Ctllaunch returns a ctl representing the new program
+execution.  We conventionally bind this value to a
+variable named ctl, but since this example does not do
+anything with this value, we leave it out to avoid
+drawing an unused variable warning.
+</p>
+
+<p>
+Ctllaunch leaves the new program execution in a stopped
+state, paused just before execution of its first instruction.
+Note that most programs perform many initialization
+functions before reaching the first instruction of
+main, such as initializing the dynamic loader, loading
+and initializing library dependencies, and so on.
+Ctllaunch pauses the new execution at truly the first
+instruction.
+</p>
+
+<p>
+The third line of getstarted starts the execution.  The
+run method tells the mux to resume the program launched
+by the ctllaunch and to block until it has exited.  If
+we had launched more than one program with additional
+calls to ctlmux, these would all be resumed
+simultaneously, and the call to run would block until
+they all exited.  If we had registered any handlers for
+executions events, as we will do in all of the
+following examples, the mux would dispatch these events
+in the context of the call to run.
+</p>
+
+<p>
+In summary, calling getstarted launches our sample program
+and waits for it to exit.  It yields no output.
+</p>
+
+<div class="code">
+<pre>
+; getstarted();
+;
+</pre>
+</div>
+
+<p>
+To reduce boilerplate code in subsequent examples, we
+will use the following function to launch our sample
+programs:
+</p>
+
+<div class="code">
+<pre>
+@define start(cmd)
+{
+	@local mux, ctl, exe;
+	mux = mksctlmux();
+	ctl = ctllaunch(mux, cmd);
+	exe = ctl.exe();
+	return [mux, ctl, exe];
+}
+</pre>
+</div>
+
+
 
 <h4 id="sec:breakpoints">Setting breakpoints</h4>
 
 <h4 id="sec:breakpoints">Accessing state</h4>
-
-ctx -- register values.  need to be cast into the domain
-to get at it.
-
-exe, dom, ns methods.
-
 
 <h4 id="sec:breakpoints">Unwinding the stack</h4>
 
