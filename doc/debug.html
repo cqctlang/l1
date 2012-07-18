@@ -43,13 +43,9 @@ These libraries make use of the process control
 server <span class="val">sctl</span>, which is
 available
 from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
-In order to use these libraries, you must
-have <span class="val">sctl</span> installed somewhere
-in your path.
-</p>
-
-<p>
-<span class="val">Sctl</span> provides a network
+and which must be
+installed somewhere in your
+path.  <span class="val">Sctl</span> provides a network
 service for controlling program executions and
 accessing symbols and other debugging information from
 program binaries.  Documentation
@@ -62,11 +58,43 @@ transactions referenced in this manual.
 </p>
 
 <p>
-Important to understand that this is just one debugging
-library.  The language does not define how to do
-debugging.  Provides core abstraction of domains, name
-spaces, and address spaces, and the C-based syntax for
-interacting with them.
+When using this library, keep in mind that the
+abstractions and syntax of the Cinquecento language are
+intended to support a variety of styles for programming
+a custom debugger.  The libraries described in this
+manual represent just one style &mdash; a rather
+traditional one.
+</p>
+
+<h4 id="sec:hello">Concepts</h4>
+
+<p>
+The library is designed to support a spectrum of
+debugging scenarios, from debugging a one instance of a
+single-threaded program to debugging multiple
+simultaneously active instances of multi-threaded
+programs.  Most interactions are centered around an
+object called a <em>ctl</em>, which represents a thread
+of execution in a program execution.  A single-threaded
+program is represented by a single ctl; a
+multi-threaded program is represented by a set of ctls,
+one for each live thread.  A ctl is can be created by
+launching a new program execution or attaching to an
+existing one; they are also created when an execution
+associated with an existing ctl forks or new process or
+creates a new thread.  Ctls are destroyed when the
+associated execution
+</p>
+
+<p>
+Each ctl is a window to all other resources associated
+with an execution, including its address space, name
+spaces for each binary (executable or library) loaded
+in the address space, and traps on program events.
+</p>
+
+<p>
+
 </p>
 
 <h4 id="sec:hello">Getting started</h4>
