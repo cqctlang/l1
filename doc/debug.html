@@ -252,54 +252,59 @@ always implied.
 
 
 <p>
-The first line of getstarted (after the @local
-declaration) creates a new sctlmux object, binding it
-to the variable mux.  Mux represents a connection to a
-fresh sctl server that is launched by mksctlmux on the
+The first line of <span class="id">getstarted</span>
+(after the <span class="id">@local</span> declaration)
+creates a new sctlmux object, binding it to the
+variable <span class="id">mux</span>.  <span class="id">Mux</span>
+represents a connection to a fresh sctl server that is
+launched by <span class="id">mksctlmux</span> on the
 same host as the Cinquecento program.
 </p>
 
 <p>
-The second line of getstarted launches our sample
+The second line of <span class="id">getstarted</span> launches our sample
 program.  Ctllaunch directs the sctl associated with
-mux to create a new process.  The second argument
-specifies the program this new process should execute:
-in Unix environments, for example, it is a list of
-strings that will be passed to execve.  In this case,
-we are launching the list binary from the current
-working directory, passing it no arguments.
+<span class="id">mux</span> to create a new process.
+The second argument specifies the command this new
+process should execute, in a manner similar to the list
+of strings passed to <span class="id">execve</span> on
+Unix systems.  In this case, we are launching the list
+binary from the current working directory, passing it
+no arguments.
 </p>
 
 <p>
-Ctllaunch returns a ctl representing the new program
-execution.  We conventionally bind this value to a
-variable named ctl, but since this example does not do
-anything with this value, we leave it out to avoid
-drawing an unused variable warning.
+<span class="id">Ctllaunch</span> returns a ctl
+representing the new program execution.  We
+conventionally bind this value to a variable named
+ctl</span><span class="id">, but since this example
+does not do anything with this value, we have left it
+out.
 </p>
 
 <p>
-Ctllaunch leaves the new program execution in a stopped
+<span class="id">Ctllaunch</span> leaves the new program execution in a stopped
 state, paused just before execution of its first instruction.
 Note that most programs perform many initialization
 functions before reaching the first instruction of
 main, such as initializing the dynamic loader, loading
 and initializing library dependencies, and so on.
-Ctllaunch pauses the new execution at truly the first
-instruction.
+<span class="id">Ctllaunch</span> pauses the new
+execution at truly the first instruction.
 </p>
 
 <p>
-The third line of getstarted starts the execution.  The
-run method tells the mux to resume the program launched
-by the ctllaunch and to block until it has exited.  If
-we had launched more than one program with additional
-calls to ctlmux, these would all be resumed
-simultaneously, and the call to run would block until
-they all exited.  If we had registered any handlers for
-executions events, as we will do in all of the
-following examples, the mux would dispatch these events
-in the context of the call to run.
+The third line of <span class="id">getstarted</span>
+starts the execution by starting the sctl mux event
+loop.  The run method tells the mux to resume the
+program launched by the ctllaunch and to block until it
+has exited.  If we had launched more than one program
+with additional calls to ctlmux, these would all be
+resumed simultaneously, and the call to run would block
+until they all exited.  If we had registered any
+handlers for executions events, as we will do in all of
+the following examples, the mux would dispatch these
+events in the context of the call to run.
 </p>
 
 <p>
@@ -313,6 +318,16 @@ and waits for it to exit.  It yields no output.
 ;
 </pre>
 </div>
+
+<p>
+Many debugging programs focus on the code and data in
+the executable of the program (rather than its
+libraries).  The <em>exe domain</em> is a domain whose
+address space is the process memory and whose name
+space represents the symbols and types of the
+executable.  The exe method of a ctl object returns an
+exe domain.
+</p>
 
 <p>
 To reduce boilerplate code in subsequent examples, we
@@ -333,6 +348,23 @@ programs:
 </pre>
 </div>
 
+<p>
+This function has four notable properties:
+<ol>
+<li>
+It receives the argument list to pass to ctlaunch as an argument.
+</li>
+<li>
+It uses the ctl returned from ctllaunch.
+</li>
+<li>
+It obtains the exe domain from the ctl.
+</li>
+<li>
+It returns multiple values: the sctlmux, the ctl, and the exe domain.
+</li>
+</ol>
+</p>
 
 
 <h4 id="sec:breakpoints">Setting breakpoints</h4>
