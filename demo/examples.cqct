@@ -188,6 +188,11 @@
 	@local mux, ctl, exe;
 	[mux,ctl,exe] = start(["./forkexec", "./list"]);
 
+	@defloc	onload(ctl, path, base)
+	{
+		printf("%d has loaded %s at 0x%p\n", ctl.id, path, base);
+	}
+
 	@defloc	onfork(ctl, spwn)
 	{
 		printf("%d has forked %d\n", ctl.id, spwn.id);
@@ -205,6 +210,7 @@
 		printf("%d has exited with status %d\n", ctl.id, status);
 	}
 
+	ctl.trap('load, onload);
 	ctl.trap('fork, onfork);
 	ctl.trap('exec, onexec);
 	ctl.trap('exit, onexit);
