@@ -768,6 +768,7 @@ idxev = [
 
 	ctl.trap('exec,
 		 @lambda(ctl){
+			 r.nsmap = mknsmap(atnames);
 			 ctl.scan();
 		 });
 
