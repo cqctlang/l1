@@ -277,7 +277,7 @@ no arguments.
 <span class="id">Ctllaunch</span> returns a ctl
 representing the new program execution.  We
 conventionally bind this value to a variable named
-ctl</span><span class="id">, but since this example
+<span class="id">ctl</span>, but since this example
 does not do anything with this value, we have left it
 out.
 </p>
@@ -320,13 +320,12 @@ and waits for it to exit.  It yields no output.
 </div>
 
 <p>
-Many debugging programs focus on the code and data in
-the executable of the program (rather than its
-libraries).  The <em>exe domain</em> is a domain whose
-address space is the process memory and whose name
-space represents the symbols and types of the
-executable.  The exe method of a ctl object returns an
-exe domain.
+Many debugging programs focus on the code and data of
+the program executable (rather than its libraries).
+The <em>exe domain</em> is a domain whose address space
+is the process memory and whose name space represents
+the symbols and types of the executable.  The exe
+method of a ctl object returns an exe domain.
 </p>
 
 <p>
@@ -349,7 +348,7 @@ programs:
 </div>
 
 <p>
-This function has four notable properties:
+This function has four notable features:
 <ol>
 <li>
 It receives the argument list to pass to ctlaunch as an argument.
@@ -361,13 +360,58 @@ It uses the ctl returned from ctllaunch.
 It obtains the exe domain from the ctl.
 </li>
 <li>
-It returns multiple values: the sctlmux, the ctl, and the exe domain.
+It returns three values: the sctlmux, the ctl, and the exe domain.
 </li>
 </ol>
 </p>
 
 
 <h4 id="sec:breakpoints">Setting breakpoints</h4>
+
+<p>
+Traps are set with the <span class="id">trap</span>
+method of the ctl object.  The first argument is a cid
+[ref] that identifies the kind of trap to set.
+Depending on the kind of trap, additional arguments may
+follow to specify parameters of the trap.  The final
+argument is a handler function to be called when the
+event occurs.
+</p>
+
+<p>
+The trap kind identifier for breakpoints is <span class="id">brk</span>.
+There is one argument, the address at which to set the breakpoint.
+The function <span class="id">brkentry</span> sets
+breakpoint traps on the entry point of three functions
+in <span class="id">list</span>.
+</p>
+
+<div class="code">
+<pre>
+@define brkentry()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+	ctl.trap('brk, &exe`main,
+		 @lambda(ctl) { printf("enter main\n"); });
+	ctl.trap('brk, &exe`dowork,
+		 @lambda(ctl) { printf("enter dowork\n"); });
+	ctl.trap('brk, &exe`insert,
+		 @lambda(ctl) { printf("enter insert\n"); });
+	mux.run();
+}
+</pre>
+</div>
+
+<p>
+The expression <span class="val">&exe`main</span> and
+the others like it use the exe domain to obtain the
+address of functions in the executable.
+</p>
+
+<p>
+
+</p>
 
 <h4 id="sec:breakpoints">Accessing state</h4>
 
