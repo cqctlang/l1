@@ -220,9 +220,10 @@ called <span class="val">insert</span> that appends new
 elements to an existing list, a function
 called <span class="val">dowork</span> that builds a
 list of consecutive values, and
-a <span class="val">main</span> function that kicks off
-the work.  It accepts an optional work size input as a
-command-line argument.  It has no output.
+a <span class="val">main</span> function that begins
+the work.  It accepts an optional command-line argument
+that specifies the number of elements in the final
+list.  It has no output.
 </p>
 
 <p>
@@ -290,7 +291,8 @@ functions before reaching the first instruction of
 main, such as initializing the dynamic loader, loading
 and initializing library dependencies, and so on.
 <span class="id">Ctllaunch</span> pauses the new
-execution at truly the first instruction.
+execution truly at the first instruction of this
+initialization.
 </p>
 
 <p>
@@ -348,19 +350,19 @@ programs:
 </div>
 
 <p>
-This function has four notable features:
+This function:
 <ol>
 <li>
-It receives the argument list to pass to ctlaunch as an argument.
+receives the argument list to pass to ctlaunch as an argument,
 </li>
 <li>
-It uses the ctl returned from ctllaunch.
+binds the ctl returned from ctllaunch to a variable,
 </li>
 <li>
-It obtains the exe domain from the ctl.
+obtains the exe domain from the ctl, and
 </li>
 <li>
-It returns three values: the sctlmux, the ctl, and the exe domain.
+returns three values: the sctlmux, the ctl, and the exe domain.
 </li>
 </ol>
 </p>
@@ -370,18 +372,20 @@ It returns three values: the sctlmux, the ctl, and the exe domain.
 
 <p>
 Traps are set with the <span class="id">trap</span>
-method of the ctl object.  The first argument is a cid
-[ref] that identifies the kind of trap to set.
-Depending on the kind of trap, additional arguments may
+method of the ctl object.  The first argument is a
+<a href="man.html#sec:cids">cid</a>
+that identifies the kind of trap to set.
+Depending on the kind, additional arguments may
 follow to specify parameters of the trap.  The final
 argument is a handler function to be called when the
 event occurs.
 </p>
 
 <p>
-The trap kind identifier for breakpoints is <span class="id">brk</span>.
-There is one argument, the address at which to set the breakpoint.
-The function <span class="id">brkentry</span> sets
+The identifier for breakpoints
+is <span class="id">brk</span>.  There is one argument,
+the address at which to set the breakpoint.  Here the
+function <span class="id">brkentry</span> sets
 breakpoint traps on the entry point of three functions
 in <span class="id">list</span>.
 </p>
@@ -406,18 +410,383 @@ in <span class="id">list</span>.
 <p>
 The expression <span class="val">&exe`main</span> and
 the others like it use the exe domain to obtain the
-address of functions in the executable.
+address of functions in the executable.  The handlers
+are called as execution reaches these addresses.
+</p>
+
+
+<div class="code">
+<pre>
+; brkentry();
+<span class="arg">enter main</span>
+<span class="arg">enter dowork</span>
+<span class="arg">enter insert</span>
+<span class="arg">enter insert</span>
+<span class="arg">enter insert</span>
+<span class="arg">enter insert</span>
+<span class="arg">enter insert</span>
+; 
+</pre>
+</div>
+
+<p>
+As illustrated in the
+output, <span class="val">brkentry</span> returns only
+after the call to the <span class="val">run</span>
+method of <span class="val">mux</span>, which in turn
+returns when the target program execution terminates.
+</p>
+
+<h4 id="sec:breakpoints">Accessing registers</h4>
+
+<p>
+The current values of the registers are available in an
+value called a <em>context</em>, which is returned by
+the <span class="id">ctx</span> method of a ctl.
 </p>
 
 <p>
-
+A context is a pointer to a value of type
+<span class="id">Ctx</span>,
+a <span class="id">typedef</span> for a structure type
+that defines fields for each machine register, plus
+generic aliases for the program counter
+(<span class="id">pc</span>), stack pointer
+(<span class="id">sp</span>), and frame pointer
+(<span class="id">fp</span>) registers.
 </p>
 
-<h4 id="sec:breakpoints">Accessing state</h4>
+<div class="code">
+<pre>
+@define ctx1()
+{
+	@local mux, ctl, exe, ctx;
+	[mux,ctl,exe] = start(["./list"]);
+	ctx = ctl.ctx();
+	printf("pc = %p, sp = %p, fp = %p\n",
+	       ctx->pc, ctx->sp, ctx->fp);
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; ctx1();
+<span class="arg">pc = 7ffff7dddaf0, sp = 7fffffffea40, fp = 0</span>
+; 
+</pre>
+</div>
+
+<p>
+For each ctl, the debugging library automatically
+selects a definition of <span class="id">Ctx</span>
+suitable for the target machine, along with other
+machine and system dependencies, such as the
+mapping from system call number to name.  All of these
+dependencies are captured in a record called
+the <em>dialect</em> of the ctl, which is returned by
+its <span class="id">dialect</span> method.
+</p>
+
+<p>
+The dialect record includes a convenience function
+called <span class="id">dumpctx</span> that prints the
+names and values of commonly referenced
+machine-specific fields of
+a <span class="id">Ctx</span>.  Here is usage on a
+64-bit x86 target.
+</p>
+
+<div class="code">
+<pre>
+@define ctx2()
+{
+	@local mux, ctl, exe, ctx;
+	[mux,ctl,exe] = start(["./list"]);
+	ctx = ctl.ctx();
+	ctl.dialect().dumpctx(ctx);
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; ctx2();
+</span><span class="arg">	  rip  00007ffff7dddaf0
+	  rsp  00007fffffffea40
+	  rbp  0000000000000000
+	  rax  0000000000000000
+	  rbx  0000000000000000
+	  rcx  0000000000000000
+	  rdx  0000000000000000
+	  rsi  0000000000000000
+	  rdi  0000000000000000
+	   r8  0000000000000000
+	   r9  0000000000000000
+	  r10  0000000000000000
+	  r11  0000000000000200
+	  r12  0000000000000000
+	  r13  0000000000000000
+	  r14  0000000000000000
+	  r15  0000000000000000
+	flags  0000000000000200</span>
+; 
+</pre>
+</div>
+
+<p>
+<span class="id">Ctx</span> is just an ordinary ctype.
+Its full definition can be revealed with
+the <span class="id">printtype</span> library function.
+</p>
+
+<div class="code">
+<pre>
+@define ctx3()
+{
+	@local mux, ctl, exe, ctx;
+	[mux,ctl,exe] = start(["./list"]);
+	ctx = ctl.ctx();
+	printtype(typedeftype(@typeof(*ctx)));
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; ctx3();
+</span><span class="arg">struct Ctx {
+	/*@0x0*/	uint64 r15;
+	/*@0x8*/	uint64 r14;
+	/*@0x10*/	uint64 r13;
+	/*@0x18*/	uint64 r12;
+	/*@0x20*/	uint64 rbp;
+	/*@0x20*/	uint64 fp;
+	/*@0x28*/	uint64 rbx;
+	/*@0x30*/	uint64 r11;
+	/*@0x38*/	uint64 r10;
+	/*@0x40*/	uint64 r9;
+	/*@0x48*/	uint64 r8;
+	/*@0x50*/	uint64 rax;
+	/*@0x58*/	uint64 rcx;
+	/*@0x60*/	uint64 rdx;
+	/*@0x68*/	uint64 rsi;
+	/*@0x70*/	uint64 rdi;
+	/*@0x78*/	uint64 orig_rax;
+	/*@0x80*/	uint64 rip;
+	/*@0x80*/	uint64 pc;
+	/*@0x88*/	uint64 cs;
+	/*@0x90*/	uint64 eflags;
+	/*@0x98*/	uint64 rsp;
+	/*@0x98*/	uint64 sp;
+	/*@0xa0*/	uint64 ss;
+	/*@0xa8*/	uint64 fs_base;
+	/*@0xb0*/	uint64 gs_base;
+	/*@0xb8*/	uint64 ds;
+	/*@0xc0*/	uint64 es;
+	/*@0xc8*/	uint64 fs;
+	/*@0xd0*/	uint64 gs;
+	/*@0xd8*/	uint64 sig;
+	/*@0xe0;*/
+};</span>
+; 
+</pre>
+</div>
+
+
+<p>
+Each context returned by <span class="id">ctx</span> is
+stored in a freshly allocated address space large
+enough to hold a copy of the register values.  Updates
+to these values, made for example by assigning to the
+fields of the context structure, are not automatically
+written back to the registers in the target execution.
+Use the <span class="id">setctx</span> method to
+propagate an updated context to the target execution.
+</p>
+
+<h4 id="sec:args">Accessing function arguments</h4>
+
+<p>
+The debugging library does not know the calling
+convention of target program functions.  The primitive
+way to access function arguments is to directly apply
+knowledge of the convention.
+</p>
+
+<p>
+A common calling convention</a>
+on <a href="http://www.x86-64.org/documentation/abi.pdf">64-bit
+x86</a> Unix systems is to place the first six integer
+arguments into
+registers <span class="id">rdi</span>, <span class="id">rsi</span>, <span class="id">rdx</span>, <span class="id">rcx</span>, <span class="id">r8</span>,
+and <span class="id">r9</span>.  Here we print the the
+arguments passed to each call
+to <span class="id">insert</span> on such a system.
+</p>
+
+<div class="code">
+<pre>
+@define args1()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx;
+		ctx = ctl.ctx();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; args1();
+<span class="arg">enter insert(0x0, 0)
+enter insert(0x602010, 1)
+enter insert(0x602010, 2)
+enter insert(0x602010, 3)
+enter insert(0x602010, 4)</span>
+; 
+</pre>
+</div>
+
+<p>
+The first argument to insert is a pointer to the head
+of the list being constructed by dowork; the second is
+the value to be inserted.  The pointer can be
+deferenced to show the contents of the list; here we
+extend <span class="id">args1</span> to do so.
+</p>
+
+<div class="code">
+<pre>
+@define args2()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc showlist(h)
+	{
+		printf("\tlist =");
+		while(h){
+			printf(" %d", h->v);
+			h = h->next;
+		}
+		printf("\n");
+	}
+
+	@defloc handler(ctl)
+	{
+		@local ctx, exe, h;
+
+		ctx = ctl.ctx();
+		exe = ctl.exe();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		h = (Node*){exe}ctx->rdi;
+		showlist(h);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; args2();
+enter insert(0x0, 0)
+	list =
+enter insert(0x602010, 1)
+	list = 0
+enter insert(0x602010, 2)
+	list = 0 1
+enter insert(0x602010, 3)
+	list = 0 1 2
+enter insert(0x602010, 4)
+	list = 0 1 2 3
+; 
+</pre>
+</div>
+
+<p>
+The new function <span class="id">showlist</span> prints
+a list given a pointer to the first element.  But the
+pointer we passed to this function is not simply the
+value of rdi from the context.  Instead, we perform two casting
+operations to this pointer before passing it to 
+<span class="id">showlist</span>:
+</p>
+
+<div class="code">
+<pre>
+		h = (Node*){exe}ctx->rdi;
+		showlist(h);
+</pre>
+</div>
+
+<p>
+Reading right-to-left, the first is a use of the
+<a href="man.html#cncpt:xcastdom">extended cast
+operator</a> to cast the pointer value into the exe
+domain.  Recall that every context is stored in a
+freshly allocated address space, never the address
+space of the target execution.  We cannot meaningfully
+dereference rdi in this address space.  Casting it to
+the exe domain allows us to dereference the value in
+the address space of the target execution.
+</p>
+
+<p>
+The second cast is a use of the ordinary C cast operator
+to change the type of the rdi value to Node*.
+As we saw we ctx3, the type of the register in a context
+field is an integer type, not a pointer type.  We need
+a pointer type in order to dereference.  In addition,
+by casting to Node* type, the pointer type is actually
+the right type for examining the fields of the structure.
+</p>
+
+<p>
+The order of these cast operations is significant.  The
+definition of the type Node* that we wanted is the one
+from the exe domain.  When performing a type cast,
+Cinquecento determines the definition of the type from
+the domain of the value.  Had we switched the order of
+the cast operations, we would have attempted to look up
+the definition of Node* from the domain of the context
+value.
+</p>
+
+<p>
+The above example has what might seem like a redundant
+construction of the exe domain.  We already computed
+the exe domain from the start call; why not use it the
+handler?  While such a usage would work today, we avoid
+it as a matter of style.  We view each domain as
+representing a moment in time of execution.  The exe
+returned from start represents the execution domain at
+the start of the execution.  The handler function, in
+contrast, is called <em>each time</em> the insert
+function is called -- each a different moment of time.
+While today the implementation of exe domain does not
+reflect this -- each domain backed by a ctl address
+space always reflects the latest state of the target,
+this may change in future incarnations of programming
+libraries.  The snapshot domains described later
+already reflect moments in time.  As a matter of style,
+we recommend always thinking of domains as moment in
+time.
+</p>
 
 <h4 id="sec:breakpoints">Unwinding the stack</h4>
-
-<h4 id="sec:breakpoints">Accessing function arguments</h4>
 
 <h4 id="sec:breakpoints">Accessing local variables</h4>
 
