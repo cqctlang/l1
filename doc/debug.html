@@ -437,6 +437,14 @@ method of <span class="val">mux</span>, which in turn
 returns when the target program execution terminates.
 </p>
 
+<p>
+The function that handles the breakpoint receives as
+its argument the ctl representing the execution in
+which the event occurred.  Handlers can use this
+argument to access the state of the execution at the
+moment of the event.
+</p>
+
 <h4 id="sec:breakpoints">Accessing registers</h4>
 
 <p>
@@ -620,7 +628,7 @@ on <a href="http://www.x86-64.org/documentation/abi.pdf">64-bit
 x86</a> Unix systems is to place the first six integer
 arguments into
 registers <span class="id">rdi</span>, <span class="id">rsi</span>, <span class="id">rdx</span>, <span class="id">rcx</span>, <span class="id">r8</span>,
-and <span class="id">r9</span>.  Here we print the the
+and <span class="id">r9</span>.  Here we print the two
 arguments passed to each call
 to <span class="id">insert</span> on such a system.
 </p>
@@ -660,9 +668,20 @@ enter insert(0x602010, 4)</span>
 <p>
 The first argument to insert is a pointer to the head
 of the list being constructed by dowork; the second is
-the value to be inserted.  The pointer can be
-deferenced to show the contents of the list; here we
-extend <span class="id">args1</span> to do so.
+the value to be inserted.
+</p>
+
+<p>
+[ Other ways to access function arguments will be
+discussed in later sections (brk, rbrk, brbrk, locals).
+</p>
+
+<h4 id="sec:data">Examining data structures</h4>
+
+<p>
+We can dereference the first argument
+of <span class="id">insert</span> to show the contents
+of the list.
 </p>
 
 <div class="code">
@@ -786,13 +805,150 @@ we recommend always thinking of domains as moment in
 time.
 </p>
 
+<h4 id="sec:ret">Trapping function return</h4>
+
+<p>
+Trapping the return of a function call is trickier than
+trapping the call.  We can tell that a call to a
+function has occurred by trapping execution of the
+instruction at its entry point, which generally happens
+to be the address of the function given by the symbol
+table.  However, a given function can potentially
+return from any one of multiple return instructions in
+its code.  Symbol tables typically do not expose any of
+these locations.  How can we tell that a call has
+returned?
+</p>
+
+<p>
+Rather than try to find all of the return instructions
+in the function, our approach is to place a single trap
+at the address where the call will eventually
+return,
+<em>i.e.</em>, the return address <em>in the
+caller</em>.  We cannot determine this address
+statically; it is a dynamic value that depends on the
+caller.  
+A convenient time at which we can determine this value
+is the entry to each call, where we can apply
+our understanding of the calling convention to
+read the return address set by the caller.
+</p>
+
+<p>
+Most x86 programs use the <span class="id">call</span>
+instruction to transfer control to the entry point of a
+function.  This instruction pushes the return address
+onto the stack in conjunction with the control
+transfer.  Since the stack pointer points to the most
+recently pushed value, we can read the return address
+by dereferencing the stack pointer.  We can then trap
+the return event by placing a one-shot breakpoint on
+the return address.
+</p>
+
+<p>
+Here we show how to trap the return from each call
+to <span class="id">insert</span>.
+</p>
+
+<div class="code">
+<pre>
+@define brkreturn()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx, exe, sp, id;
+		ctx = ctl.ctx();
+		exe = ctl.exe();
+		sp = (void**){exe}ctx->sp;
+		id = ctl.trap('brk, *sp,
+			      @lambda(rctl){
+				      @local ctx;
+				      ctl.clear(id);
+				      ctx = rctl.ctx();
+				      printf("insert returned 0x%p\n",
+					     ctx->rax);
+			      });
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; brkreturn();
+insert returned 0x602010
+insert returned 0x602010
+insert returned 0x602010
+insert returned 0x602010
+insert returned 0x602010
+; 
+</pre>
+</div>
+
+
+<p>
+This example demonstrates several techniques that
+combine to trap the return of each call
+to <span class="id">insert</span>.
+
+We set a trap on the entry
+to <span class="id">insert</span>.  The handler reads
+the return address by casting the stack pointer into
+the exe domain.  Since this dereference should yield an
+address, the stack pointer is cast
+to <span class="id">void**</span>.
+We then set a breakpoint on the return address.
+To make this breakpoint a one-shot breakpoint,
+we capture the trap identifier returned
+by the trap method.  In the handler for the trap,
+we clear the trap so that it does not fire again
+without a corresponding new call to the function.
+Finally, we print the return value of the function,
+again by applying our knowledge of the calling convention,
+specifically that integer return values are placed
+in rax.
+</p>
+
+<p>
+Unfortunately, this approach is not completely robust.
+It can be defeated in at least two scenarios:
+</p>
+
+<ol>
+<li>Recursion.  If multiple calls to the function occur
+from the same call site before any of them return, then
+the above technique will accumulate a one-short return
+address trap for each of the calls, and trigger all of
+them upon the first return.
+</li>
+<li>Non-standard calling convention.  The technique
+assumes that we know where the return address is stored
+upon function entry, and that we know where the return
+value is stored upon function return.
+</li>
+</ol>
+
+<p>
+Addressing these limitations involves complex
+techniques and additional dependencies.  For debugging
+scenarios in which these potential limitations are not
+realities, the above technique is good enough.
+</p>
+
+<h4 id="sec:brkrbrk">Convenience functions</h4>
+
+
 <h4 id="sec:breakpoints">Unwinding the stack</h4>
 
 <h4 id="sec:breakpoints">Accessing local variables</h4>
-
-<h4 id="sec:breakpoints">Examining data structures</h4>
-
-<h4 id="sec:breakpoints">Trapping function return</h4>
 
 Example: test invariant that head is sorted upon return
 from doinsert.

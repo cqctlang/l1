@@ -131,6 +131,31 @@
 	mux.run();
 }
 
+@define brkreturn()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx, exe, sp, id;
+		ctx = ctl.ctx();
+		exe = ctl.exe();
+		sp = (void**){exe}ctx->sp;
+		id = ctl.trap('brk, *sp,
+			      @lambda(rctl){
+				      @local ctx;
+				      ctl.clear(id);
+				      ctx = rctl.ctx();
+				      printf("insert returned 0x%p\n",
+					     ctx->rax);
+			      });
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
 @define locals()
 {
 	@local mux, ctl, exe;
@@ -146,31 +171,6 @@
 		ldom = ctl.ldom(ctx);
 		printf("\tcalled from dowork: i=%d, head=0x%p, n=%d\n",
 		       ldom`i, ldom`head, ldom`n);
-	}
-
-	ctl.trap('brk, &exe`insert, handler);
-	mux.run();
-}
-
-@define brkreturn()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	@defloc handler(ctl)
-	{
-		@local ctx, sp, id;
-		ctx = ctl.ctx();
-		sp = (void**)ctl.cast(ctx->sp);
-		printf("enter insert\n");
-		id = ctl.trap('brk, *sp,
-			      @lambda(rctl){
-				      @local ctx;
-				      ctl.clear(id);
-				      ctx = rctl.ctx();
-				      printf("return from insert -> %p\n",
-					     ctx->rax);
-			      });
 	}
 
 	ctl.trap('brk, &exe`insert, handler);
