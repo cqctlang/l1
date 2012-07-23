@@ -41,6 +41,31 @@
 	mux.run();
 }
 
+@define ctx1()
+{
+	@local mux, ctl, exe, ctx;
+	[mux,ctl,exe] = start(["./list"]);
+	ctx = ctl.ctx();
+	printf("pc = %p, sp = %p, fp = %p\n",
+	       ctx->pc, ctx->sp, ctx->fp);
+}
+
+@define ctx2()
+{
+	@local mux, ctl, exe, ctx;
+	[mux,ctl,exe] = start(["./list"]);
+	ctx = ctl.ctx();
+	ctl.dialect().dumpctx(ctx);
+}
+
+@define ctx3()
+{
+	@local mux, ctl, exe, ctx;
+	[mux,ctl,exe] = start(["./list"]);
+	ctx = ctl.ctx();
+	printtype(typedeftype(@typeof(*ctx)));
+}
+
 @define unwind()
 {
 	@local mux, ctl, exe;
@@ -60,7 +85,7 @@
 	mux.run();
 }
 
-@define args()
+@define args1()
 {
 	@local mux, ctl, exe;
 	[mux,ctl,exe] = start(["./list"]);
@@ -70,6 +95,36 @@
 		@local ctx;
 		ctx = ctl.ctx();
 		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define args2()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc showlist(h)
+	{
+		printf("\tlist =");
+		while(h){
+			printf(" %d", h->v);
+			h = h->next;
+		}
+		printf("\n");
+	}
+
+	@defloc handler(ctl)
+	{
+		@local ctx, exe, h;
+
+		ctx = ctl.ctx();
+		exe = ctl.exe();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		h = (Node*){exe}ctx->rdi;
+		showlist(h);
 	}
 
 	ctl.trap('brk, &exe`insert, handler);
@@ -116,35 +171,6 @@
 				      printf("return from insert -> %p\n",
 					     ctx->rax);
 			      });
-	}
-
-	ctl.trap('brk, &exe`insert, handler);
-	mux.run();
-}
-
-@define inspect()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	@defloc showlist(h)
-	{
-		while(h){
-			printf(" %d", h->v);
-			h = h->next;
-		}
-	}
-
-	@defloc handler(ctl)
-	{
-		@local ctx, h;
-
-		ctx = ctl.ctx();
-		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
-		printf("\tlist =");
-		h = (Node*){exe}ctx->rdi;
-		showlist(h);
-		printf("\n");
 	}
 
 	ctl.trap('brk, &exe`insert, handler);

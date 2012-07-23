@@ -17,7 +17,6 @@ insert(Node *h, int v)
 	p->next = 0;
 	if(!h)
 		return p;
-	exit(0);
 	q = h;
 	while(q->next)
 		q = q->next;
