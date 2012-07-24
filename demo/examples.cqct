@@ -101,20 +101,20 @@
 	mux.run();
 }
 
+@define showlist(h)
+{
+	printf("\tlist =");
+	while(h){
+		printf(" %d", h->v);
+		h = h->next;
+	}
+	printf("\n");
+}
+
 @define args2()
 {
 	@local mux, ctl, exe;
 	[mux,ctl,exe] = start(["./list"]);
-
-	@defloc showlist(h)
-	{
-		printf("\tlist =");
-		while(h){
-			printf(" %d", h->v);
-			h = h->next;
-		}
-		printf("\n");
-	}
 
 	@defloc handler(ctl)
 	{
@@ -141,18 +141,67 @@
 		@local ctx, exe, sp, id;
 		ctx = ctl.ctx();
 		exe = ctl.exe();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		showlist((Node*){exe}ctx->rdi);
 		sp = (void**){exe}ctx->sp;
 		id = ctl.trap('brk, *sp,
 			      @lambda(rctl){
-				      @local ctx;
+				      @local ctx, exe;
 				      ctl.clear(id);
 				      ctx = rctl.ctx();
-				      printf("insert returned 0x%p\n",
-					     ctx->rax);
+				      exe = rctl.exe();
+				      printf("leave insert\n");
+				      showlist((Node*){exe}ctx->rax);
 			      });
 	}
 
 	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define brkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	brk(ctl, &exe`insert,
+	    @lambda(ctl, list, val){
+		    printf("enter insert(0x%p, %d)\n", list, val);
+		    showlist(list);
+	    });
+
+	mux.run();
+}
+
+@define rbrkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	rbrk(ctl, &exe`insert,
+	     @lambda(ctl, rv){
+		     printf("leave insert\n");
+		     showlist(rv);
+	     });
+
+	mux.run();
+}
+
+@define brbrkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	brbrk(ctl, &exe`insert,
+	      @lambda(ctl, list, val){
+		      printf("enter insert(0x%p, %d)\n", list, val);
+		      showlist(list);
+		      return @lambda(ctl, rv){
+			      printf("leave insert\n");
+			      showlist(rv);
+		      };
+	      });
+
 	mux.run();
 }
 
@@ -284,6 +333,11 @@
 
 	ctl.trap('exit, onexit);
 	mux.run();
+}
+
+@define runexample(arg ...)
+{
+	eval(arg[1]+"();");
 }
 
 /*
