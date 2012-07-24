@@ -843,6 +843,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 	ch = 0;
 	efmt = fmt+fmtlen;
 	while(1){
+		ch = 0;
 		while(fmt < efmt && (ch = *fmt++) != '%')
 			if(fmtputc(vm, f, ch))
 				return;
