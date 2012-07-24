@@ -721,7 +721,7 @@ of the list.
 <div class="code">
 <pre>
 ; args2();
-enter insert(0x0, 0)
+<span class="arg">enter insert(0x0, 0)
 	list =
 enter insert(0x602010, 1)
 	list = 0
@@ -731,7 +731,7 @@ enter insert(0x602010, 3)
 	list = 0 1 2
 enter insert(0x602010, 4)
 	list = 0 1 2 3
-; 
+</span>; 
 </pre>
 </div>
 
@@ -848,8 +848,8 @@ the return address.
 </p>
 
 <p>
-Here we show how to trap the return from each call
-to <span class="id">insert</span>.
+Here we extend <span class="id">args2</span> to show how the list changes across
+each call to <span class="id">insert</span>.
 </p>
 
 <div class="code">
@@ -859,19 +859,32 @@ to <span class="id">insert</span>.
 	@local mux, ctl, exe;
 	[mux,ctl,exe] = start(["./list"]);
 
+	@defloc showlist(h)
+	{
+		printf("\tlist =");
+		while(h){
+			printf(" %d", h->v);
+			h = h->next;
+		}
+		printf("\n");
+	}
+
 	@defloc handler(ctl)
 	{
 		@local ctx, exe, sp, id;
 		ctx = ctl.ctx();
 		exe = ctl.exe();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		showlist((Node*){exe}ctx->rdi);
 		sp = (void**){exe}ctx->sp;
 		id = ctl.trap('brk, *sp,
 			      @lambda(rctl){
-				      @local ctx;
+				      @local ctx, exe;
 				      ctl.clear(id);
 				      ctx = rctl.ctx();
-				      printf("insert returned 0x%p\n",
-					     ctx->rax);
+				      exe = rctl.exe();
+				      printf("leave insert\n");
+				      showlist((Node*){exe}ctx->rax);
 			      });
 	}
 
@@ -884,12 +897,27 @@ to <span class="id">insert</span>.
 <div class="code">
 <pre>
 ; brkreturn();
-insert returned 0x602010
-insert returned 0x602010
-insert returned 0x602010
-insert returned 0x602010
-insert returned 0x602010
-; 
+<span class="arg">enter insert(0x0, 0)
+	list =
+leave insert
+	list = 0
+enter insert(0x602010, 1)
+	list = 0
+leave insert
+	list = 0 1
+enter insert(0x602010, 2)
+	list = 0 1
+leave insert
+	list = 0 1 2
+enter insert(0x602010, 3)
+	list = 0 1 2
+leave insert
+	list = 0 1 2 3
+enter insert(0x602010, 4)
+	list = 0 1 2 3
+leave insert
+	list = 0 1 2 3 4
+</span>; 
 </pre>
 </div>
 
@@ -943,7 +971,182 @@ scenarios in which these potential limitations are not
 realities, the above technique is good enough.
 </p>
 
-<h4 id="sec:brkrbrk">Convenience functions</h4>
+<h4 id="sec:brbrk">Convenience functions</h4>
+
+<p>
+The preceding examples demonstrate a low-level
+way to trap function call and return events.
+Here we describe three convenience functions
+that are designed to simplify common breakpoint
+programming.
+</p>
+
+<p>
+The function brk sets a trap on calls to a given function.
+Its arguments are a ctl, the address of the function,
+and a handler function.  It determines the number and
+types of the parameters to the function.  When the trap
+occurs, brk arranges to call the handler function,
+passing as its first argument the ctl on which the trap
+occurred.  In addition, an additional parameter is
+passed for each parameter of the trapped function.
+These parameters are the values of the arguments.  Like
+the manual casting we performed above for the showlist
+argument, they are cast into both the domain of the
+execution and the type of the argument: they are, in
+other words, suitable for inspection and dereferencing.
+(However, they are copies of the values being passed to
+the function; modifications to these values are not
+written back to the target execution.)
+The return value of the handler is ignored.
+Brk returns a trap identifier.
+</p>
+
+<div class="code">
+<pre>
+@define brkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	brk(ctl, &exe`insert,
+	    @lambda(ctl, list, val){
+		    printf("enter insert(0x%p, %d)\n", list, val);
+		    showlist(list);
+	    });
+
+	mux.run();
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; brkexample();
+<span class="arg">enter insert(0x0, 0)
+	list =
+enter insert(0x602010, 1)
+	list = 0
+enter insert(0x602010, 2)
+	list = 0 1
+enter insert(0x602010, 3)
+	list = 0 1 2
+enter insert(0x602010, 4)
+	list = 0 1 2 3
+</span>; 
+</pre>
+</div>
+
+<p>
+The function rbrk sets a trap on return from calls to a
+given function.  Its arguments are a ctl, the address
+of the function, and a handler function.  It determines
+the type of the return value of the function, if any.
+When a call to the function returns, it calls the
+handler function, passing to it the ctl on which the
+event occurred, and the return value, projected into
+the domain of the function with the type of the
+argument.  If there is no return value, only the ctl
+is passed.  The return value of the handler is ignored.
+Rbrk returns a trap identifier.
+</p>
+
+<div class="code">
+<pre>
+@define rbrkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	rbrk(ctl, &exe`insert,
+	     @lambda(ctl, rv){
+		     printf("leave insert\n");
+		     showlist(rv);
+	     });
+
+	mux.run();
+}
+</pre>
+</div>
+
+<div class="code">
+<pre>
+; rbrkexample();
+<span class="arg">leave insert
+	list = 0
+leave insert
+	list = 0 1
+leave insert
+	list = 0 1 2
+leave insert
+	list = 0 1 2 3
+leave insert
+	list = 0 1 2 3 4
+</span>; 
+</pre>
+</div>
+
+<p>
+The function brrbrk is useful for combining a trap on
+function entry with a trap on the corresponding
+return..  Its arguments are a ctl, the address of the
+function, and a handler function.  It calls the handler
+function in the same manner as brk, passing projected
+copies of the function arguments.  If the handler
+returns a function, then a trap is implicitly set on
+the return of the function call, and then function returned
+is called as a handler in the same manner as rbrk.
+</p>
+
+<div class="code">
+<pre>
+@define brbrkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	brbrk(ctl, &exe`insert,
+	      @lambda(ctl, list, val){
+		      printf("enter insert(0x%p, %d)\n", list, val);
+		      showlist(list);
+		      return @lambda(ctl, rv){
+			      printf("leave insert\n");
+			      showlist(rv);
+		      };
+	      });
+
+	mux.run();
+}
+</pre>
+</div>
+
+
+<div class="code">
+<pre>
+; brbrkexample();
+<span class="arg">enter insert(0x0, 0)
+	list =
+leave insert
+	list = 0
+enter insert(0x602010, 1)
+	list = 0
+leave insert
+	list = 0 1
+enter insert(0x602010, 2)
+	list = 0 1
+leave insert
+	list = 0 1 2
+enter insert(0x602010, 3)
+	list = 0 1 2
+leave insert
+	list = 0 1 2 3
+enter insert(0x602010, 4)
+	list = 0 1 2 3
+leave insert
+	list = 0 1 2 3 4
+</span>; 
+</pre>
+</div>
 
 
 <h4 id="sec:breakpoints">Unwinding the stack</h4>
