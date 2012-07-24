@@ -32,3 +32,112 @@
 
 	return s;
 }
+
+
+@define fnargs(a)
+{
+	@local args, sym, fn, ns, i, m, rv, t;
+	ns = nsof(a);
+	sym = ns.lookaddr(a);
+	rv = [];
+	if(sym == nil)
+		return rv;
+	fn = symtype(sym);
+	if(!isfunc(fn))
+		return rv;
+	args = params(fn);
+	m = length(args);
+	if(m == 1 && isvoid(paramtype(args[0])))
+		return rv;
+	for(i = 0; i < m; i++){
+		t = paramtype(args[i]);
+		if(issu(t))
+			error("frameargs unimplemented for aggregates");
+		append(rv, t);
+	}
+	return rv;
+}
+
+@define fnret(a)
+{
+	@local sym, fn, ns, t;
+	ns = nsof(a);
+	sym = ns.lookaddr(a);
+	if(sym == nil)
+		return nil;
+	fn = symtype(sym);
+	if(!isfunc(fn))
+		return nil;
+	t = rettype(fn);
+	if(t == @typeof(void))
+		return nil;
+	return t;
+}
+
+@define brk(ctl, a, fn)
+{
+	@local ns, ts, args, i, m, rs;
+	ns = ctl.ns(a);
+	a = ctl.cast(a);
+	ts = fnargs(a);
+	m = length(ts);
+	if(m > 6)
+		error("brk: function has more than six parameters");
+	return ctl.trap('brk, a,
+			@lambda(ctl){
+				@local dom, ctx;
+				ctx = ctl.ctx();
+				dom = mkdom(ns, ctl.mem());
+				args = [ctl];
+				// first six args in rdi, rsi, rdx, rcx, r8, r9 
+				// float args in xmm*
+				rs = [ {dom}ctx->rdi,
+				       {dom}ctx->rsi,
+				       {dom}ctx->rdx,
+				       {dom}ctx->rcx,
+				       {dom}ctx->r8,
+				       {dom}ctx->r9  ];
+				for(i = 0; i < m; i++)
+					append(args, {ts[i]}rs[i]);
+				return apply(fn, args);
+			});
+}
+
+@define rtrap(ctl, a, fn)
+{
+	@local sp, ctx, id, ns, rt;
+	ns = ctl.ns(a);
+	a = ctl.cast(a);
+	rt = fnret(a);
+	ctx = ctl.ctx();
+	sp = (void**)ctl.cast(ctx->sp);
+	id = ctl.trap('brk, *sp,
+		      @lambda(rctl){
+			      @local ctx, dom, arg;
+			      rctl.clear(id);
+			      arg = [rctl];
+			      dom = mkdom(ns, rctl.mem());
+			      ctx = rctl.ctx();
+			      if(rt != nil)
+				      append(arg, {rt}{dom}ctx->rax);
+			      return apply(fn, arg);
+		      });
+	return nil;
+}
+
+@define rbrk(ctl, a, fn)
+{
+	return ctl.trap('brk, a, @lambda(ctl){ rtrap(ctl, a, fn); });
+}
+
+@define brbrk(ctl, a, in)
+{
+	brk(ctl, a,
+	    @lambda(ctl, arg ...){
+		    @local out;
+		    out = apply(in, push(arg, ctl));
+		    if(out == nil)
+			    return;
+		    rtrap(ctl, a, out);
+	    });
+}
