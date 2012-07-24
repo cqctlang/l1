@@ -570,6 +570,7 @@ main(int argc, char *argv[])
 				inbuf = readfile(filename);
 			if(inbuf == 0){
 				printf("%s: %s\n", filename, strerror(errno));
+				status = 2;
 				continue;
 			}
 		}
