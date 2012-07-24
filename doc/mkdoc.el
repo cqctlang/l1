@@ -151,5 +151,5 @@
 	      (s (match-string 2)))
 	  (replace-match "" nil nil)
 	  (splice (intern cmd) s)))
-      (save-buffer))
+      (save-buffer 0))
     (kill-buffer buf)))
