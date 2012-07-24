@@ -1,0 +1,61 @@
+(defun output-file (file)
+  (let ((sp (split-string file "\\.src")))
+    (if (not (= (length sp) 2))
+	(error "invalid file name: %s" file))
+    (apply 'concat sp)))
+
+(defun find-text (file func)
+  (let ((buf (find-file-noselect file))
+	b e text)
+    (save-excursion
+      (set-buffer buf)
+      (goto-char (point-min))
+      (if (not (re-search-forward (concat "^@define " func) nil t))
+	  (error "cannot find definition of %s in %s" func file))
+      (beginning-of-line)
+      (setq b (point))
+      (if (not (re-search-forward "^}" nil t))
+	  (error "cannot find definition of %s in %s" func file))
+      (setq e (point))
+      (setq text (buffer-substring b e)))
+    (kill-buffer buf)
+    text))
+
+(defun splice (how spec)
+  (let* ((sp (or (split-string spec ":")
+		 (error "bad include specifier: %s" spec)))
+	 (file (elt sp 0))
+	 (func (elt sp 1))
+	 (text (cond
+		((eq how 'include)
+		 (find-text file func))
+		((eq how 'eval)
+		 (eval-l1 file func))
+		(else
+		 (error "bug")))))
+    (insert "<div class=\"code\">\n")
+    (insert "<pre>\n")
+    (insert text)
+    (insert "\n")
+    (insert "</pre>\n")
+    (insert "</div>\n")))
+
+(defun mkdoc (file)
+  (interactive "fFile: ")
+  (let* ((nfile (output-file file))
+	 (buf (find-file-noselect nfile)))
+    (save-excursion
+      (set-buffer buf)
+      (erase-buffer)
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (while (re-search-forward "@@include(\\(.*\\))" nil t)
+	(let ((s (match-string 1)))
+	  (replace-match "" nil nil)
+	  (splice 'include s)))
+      (save-buffer))
+    (kill-buffer buf)))
+
+
+    
+  
