@@ -164,54 +164,7 @@ yourself.
 Here is <span class="val">list</span>, our first sample program:
 </p>
 
-<div class="code">
-<pre>
-#include &lt;stdlib.h&gt;
-
-typedef struct Node Node;
-struct Node {
-	int v;
-	Node *next;
-};
-
-static Node*
-insert(Node *h, int v)
-{
-	Node *p, *q;
-	p = malloc(sizeof(Node));
-	p->v = v;
-	p->next = 0;
-	if(!h)
-		return p;
-	q = h;
-	while(q->next)
-		q = q->next;
-	q->next = p;
-	return h;
-}
-
-static void
-dowork(int n)
-{
-	int i;
-	Node *head;
-	head = 0;
-	for(i = 0; i < n; i++)
-		head = insert(head, i);
-}
-
-int
-main(int argc, char *argv[])
-{
-	int m;
-	m = 5;
-	if(argc > 1)
-		m = atoi(argv[1]);
-	dowork(m);
-	return 0;
-}
-</pre>
-</div>
+@@include(../demo/list.c)
 
 <p>
 This program features a pointer-based linked list data
@@ -231,26 +184,13 @@ Here is a Cinquecento function that launches this
 program and waits for it to exit:
 </p>
 
-<div class="code">
-<pre>
-@include &lt;debug.cqct&gt;
-
-@define getstarted()
-{
-	@local mux;
-	mux = mksctlmux();
-	ctllaunch(mux, ["./list"]);
-	mux.run();
-}
-</pre>
-</div>
+@@function(../demo/examples.cqct:getstarted)
 
 <p>
 The first line loads the debugging library.  We will
 omit this line from all subsequent examples, but it is
 always implied.
 </p>
-
 
 <p>
 The first line of <span class="id">getstarted</span>
@@ -314,12 +254,7 @@ In summary, calling getstarted launches our sample program
 and waits for it to exit.  It yields no output.
 </p>
 
-<div class="code">
-<pre>
-; getstarted();
-;
-</pre>
-</div>
+@@eval(../demo/examples.cqct:getstarted)
 
 <p>
 Many debugging programs focus on the code and data of
@@ -336,18 +271,7 @@ will use the following function to launch our sample
 programs:
 </p>
 
-<div class="code">
-<pre>
-@define start(cmd)
-{
-	@local mux, ctl, exe;
-	mux = mksctlmux();
-	ctl = ctllaunch(mux, cmd);
-	exe = ctl.exe();
-	return [mux, ctl, exe];
-}
-</pre>
-</div>
+@@function(../demo/examples.cqct:start)
 
 <p>
 This function:
@@ -390,22 +314,7 @@ breakpoint traps on the entry point of three functions
 in <span class="id">list</span>.
 </p>
 
-<div class="code">
-<pre>
-@define brkentry()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-	ctl.trap('brk, &exe`main,
-		 @lambda(ctl) { printf("enter main\n"); });
-	ctl.trap('brk, &exe`dowork,
-		 @lambda(ctl) { printf("enter dowork\n"); });
-	ctl.trap('brk, &exe`insert,
-		 @lambda(ctl) { printf("enter insert\n"); });
-	mux.run();
-}
-</pre>
-</div>
+@@function(../demo/examples.cqct:brkentry)
 
 <p>
 The expression <span class="val">&exe`main</span> and
@@ -414,20 +323,7 @@ address of functions in the executable.  The handlers
 are called as execution reaches these addresses.
 </p>
 
-
-<div class="code">
-<pre>
-; brkentry();
-<span class="arg">enter main</span>
-<span class="arg">enter dowork</span>
-<span class="arg">enter insert</span>
-<span class="arg">enter insert</span>
-<span class="arg">enter insert</span>
-<span class="arg">enter insert</span>
-<span class="arg">enter insert</span>
-; 
-</pre>
-</div>
+@@eval(../demo/examples.cqct:brkentry)
 
 <p>
 As illustrated in the
@@ -464,26 +360,8 @@ generic aliases for the program counter
 (<span class="id">fp</span>) registers.
 </p>
 
-<div class="code">
-<pre>
-@define ctx1()
-{
-	@local mux, ctl, exe, ctx;
-	[mux,ctl,exe] = start(["./list"]);
-	ctx = ctl.ctx();
-	printf("pc = %p, sp = %p, fp = %p\n",
-	       ctx->pc, ctx->sp, ctx->fp);
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; ctx1();
-<span class="arg">pc = 7ffff7dddaf0, sp = 7fffffffea40, fp = 0</span>
-; 
-</pre>
-</div>
+@@function(../demo/examples.cqct:ctx1)
+@@eval(../demo/examples.cqct:ctx1)
 
 <p>
 For each ctl, the debugging library automatically
@@ -505,42 +383,8 @@ a <span class="id">Ctx</span>.  Here is usage on a
 64-bit x86 target.
 </p>
 
-<div class="code">
-<pre>
-@define ctx2()
-{
-	@local mux, ctl, exe, ctx;
-	[mux,ctl,exe] = start(["./list"]);
-	ctx = ctl.ctx();
-	ctl.dialect().dumpctx(ctx);
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; ctx2();
-</span><span class="arg">	  rip  00007ffff7dddaf0
-	  rsp  00007fffffffea40
-	  rbp  0000000000000000
-	  rax  0000000000000000
-	  rbx  0000000000000000
-	  rcx  0000000000000000
-	  rdx  0000000000000000
-	  rsi  0000000000000000
-	  rdi  0000000000000000
-	   r8  0000000000000000
-	   r9  0000000000000000
-	  r10  0000000000000000
-	  r11  0000000000000200
-	  r12  0000000000000000
-	  r13  0000000000000000
-	  r14  0000000000000000
-	  r15  0000000000000000
-	flags  0000000000000200</span>
-; 
-</pre>
-</div>
+@@function(../demo/examples.cqct:ctx2)
+@@eval(../demo/examples.cqct:ctx2)
 
 <p>
 <span class="id">Ctx</span> is just an ordinary ctype.
@@ -548,59 +392,8 @@ Its full definition can be revealed with
 the <span class="id">printtype</span> library function.
 </p>
 
-<div class="code">
-<pre>
-@define ctx3()
-{
-	@local mux, ctl, exe, ctx;
-	[mux,ctl,exe] = start(["./list"]);
-	ctx = ctl.ctx();
-	printtype(typedeftype(@typeof(*ctx)));
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; ctx3();
-</span><span class="arg">struct Ctx {
-	/*@0x0*/	uint64 r15;
-	/*@0x8*/	uint64 r14;
-	/*@0x10*/	uint64 r13;
-	/*@0x18*/	uint64 r12;
-	/*@0x20*/	uint64 rbp;
-	/*@0x20*/	uint64 fp;
-	/*@0x28*/	uint64 rbx;
-	/*@0x30*/	uint64 r11;
-	/*@0x38*/	uint64 r10;
-	/*@0x40*/	uint64 r9;
-	/*@0x48*/	uint64 r8;
-	/*@0x50*/	uint64 rax;
-	/*@0x58*/	uint64 rcx;
-	/*@0x60*/	uint64 rdx;
-	/*@0x68*/	uint64 rsi;
-	/*@0x70*/	uint64 rdi;
-	/*@0x78*/	uint64 orig_rax;
-	/*@0x80*/	uint64 rip;
-	/*@0x80*/	uint64 pc;
-	/*@0x88*/	uint64 cs;
-	/*@0x90*/	uint64 eflags;
-	/*@0x98*/	uint64 rsp;
-	/*@0x98*/	uint64 sp;
-	/*@0xa0*/	uint64 ss;
-	/*@0xa8*/	uint64 fs_base;
-	/*@0xb0*/	uint64 gs_base;
-	/*@0xb8*/	uint64 ds;
-	/*@0xc0*/	uint64 es;
-	/*@0xc8*/	uint64 fs;
-	/*@0xd0*/	uint64 gs;
-	/*@0xd8*/	uint64 sig;
-	/*@0xe0;*/
-};</span>
-; 
-</pre>
-</div>
-
+@@function(../demo/examples.cqct:ctx3)
+@@eval(../demo/examples.cqct:ctx3)
 
 <p>
 Each context returned by <span class="id">ctx</span> is
@@ -633,37 +426,8 @@ arguments passed to each call
 to <span class="id">insert</span> on such a system.
 </p>
 
-<div class="code">
-<pre>
-@define args1()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	@defloc handler(ctl)
-	{
-		@local ctx;
-		ctx = ctl.ctx();
-		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
-	}
-
-	ctl.trap('brk, &exe`insert, handler);
-	mux.run();
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; args1();
-<span class="arg">enter insert(0x0, 0)
-enter insert(0x602010, 1)
-enter insert(0x602010, 2)
-enter insert(0x602010, 3)
-enter insert(0x602010, 4)</span>
-; 
-</pre>
-</div>
+@@function(../demo/examples.cqct:args1)
+@@eval(../demo/examples.cqct:args1)
 
 <p>
 The first argument to insert is a pointer to the head
@@ -684,56 +448,8 @@ of <span class="id">insert</span> to show the contents
 of the list.
 </p>
 
-<div class="code">
-<pre>
-@define args2()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	@defloc showlist(h)
-	{
-		printf("\tlist =");
-		while(h){
-			printf(" %d", h->v);
-			h = h->next;
-		}
-		printf("\n");
-	}
-
-	@defloc handler(ctl)
-	{
-		@local ctx, exe, h;
-
-		ctx = ctl.ctx();
-		exe = ctl.exe();
-		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
-		h = (Node*){exe}ctx->rdi;
-		showlist(h);
-	}
-
-	ctl.trap('brk, &exe`insert, handler);
-	mux.run();
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; args2();
-<span class="arg">enter insert(0x0, 0)
-	list =
-enter insert(0x602010, 1)
-	list = 0
-enter insert(0x602010, 2)
-	list = 0 1
-enter insert(0x602010, 3)
-	list = 0 1 2
-enter insert(0x602010, 4)
-	list = 0 1 2 3
-</span>; 
-</pre>
-</div>
+@@function(../demo/examples.cqct:args2)
+@@eval(../demo/examples.cqct:args2)
 
 <p>
 The new function <span class="id">showlist</span> prints
@@ -848,79 +564,13 @@ the return address.
 </p>
 
 <p>
-Here we extend <span class="id">args2</span> to show how the list changes across
-each call to <span class="id">insert</span>.
+Here we extend <span class="id">args2</span> to show
+how the list changes across each call
+to <span class="id">insert</span>.
 </p>
 
-<div class="code">
-<pre>
-@define brkreturn()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	@defloc showlist(h)
-	{
-		printf("\tlist =");
-		while(h){
-			printf(" %d", h->v);
-			h = h->next;
-		}
-		printf("\n");
-	}
-
-	@defloc handler(ctl)
-	{
-		@local ctx, exe, sp, id;
-		ctx = ctl.ctx();
-		exe = ctl.exe();
-		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
-		showlist((Node*){exe}ctx->rdi);
-		sp = (void**){exe}ctx->sp;
-		id = ctl.trap('brk, *sp,
-			      @lambda(rctl){
-				      @local ctx, exe;
-				      ctl.clear(id);
-				      ctx = rctl.ctx();
-				      exe = rctl.exe();
-				      printf("leave insert\n");
-				      showlist((Node*){exe}ctx->rax);
-			      });
-	}
-
-	ctl.trap('brk, &exe`insert, handler);
-	mux.run();
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; brkreturn();
-<span class="arg">enter insert(0x0, 0)
-	list =
-leave insert
-	list = 0
-enter insert(0x602010, 1)
-	list = 0
-leave insert
-	list = 0 1
-enter insert(0x602010, 2)
-	list = 0 1
-leave insert
-	list = 0 1 2
-enter insert(0x602010, 3)
-	list = 0 1 2
-leave insert
-	list = 0 1 2 3
-enter insert(0x602010, 4)
-	list = 0 1 2 3
-leave insert
-	list = 0 1 2 3 4
-</span>; 
-</pre>
-</div>
-
+@@function(../demo/examples.cqct:brkreturn)
+@@eval(../demo/examples.cqct:brkreturn)
 
 <p>
 This example demonstrates several techniques that
@@ -1002,40 +652,8 @@ The return value of the handler is ignored.
 Brk returns a trap identifier.
 </p>
 
-<div class="code">
-<pre>
-@define brkexample()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	brk(ctl, &exe`insert,
-	    @lambda(ctl, list, val){
-		    printf("enter insert(0x%p, %d)\n", list, val);
-		    showlist(list);
-	    });
-
-	mux.run();
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; brkexample();
-<span class="arg">enter insert(0x0, 0)
-	list =
-enter insert(0x602010, 1)
-	list = 0
-enter insert(0x602010, 2)
-	list = 0 1
-enter insert(0x602010, 3)
-	list = 0 1 2
-enter insert(0x602010, 4)
-	list = 0 1 2 3
-</span>; 
-</pre>
-</div>
+@@function(../demo/examples.cqct:brkexample)
+@@eval(../demo/examples.cqct:brkexample)
 
 <p>
 The function rbrk sets a trap on return from calls to a
@@ -1051,43 +669,11 @@ is passed.  The return value of the handler is ignored.
 Rbrk returns a trap identifier.
 </p>
 
-<div class="code">
-<pre>
-@define rbrkexample()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	rbrk(ctl, &exe`insert,
-	     @lambda(ctl, rv){
-		     printf("leave insert\n");
-		     showlist(rv);
-	     });
-
-	mux.run();
-}
-</pre>
-</div>
-
-<div class="code">
-<pre>
-; rbrkexample();
-<span class="arg">leave insert
-	list = 0
-leave insert
-	list = 0 1
-leave insert
-	list = 0 1 2
-leave insert
-	list = 0 1 2 3
-leave insert
-	list = 0 1 2 3 4
-</span>; 
-</pre>
-</div>
+@@function(../demo/examples.cqct:rbrkexample)
+@@eval(../demo/examples.cqct:rbrkexample)
 
 <p>
-The function brrbrk is useful for combining a trap on
+The function brbrk is useful for combining a trap on
 function entry with a trap on the corresponding
 return..  Its arguments are a ctl, the address of the
 function, and a handler function.  It calls the handler
@@ -1098,55 +684,8 @@ the return of the function call, and then function returned
 is called as a handler in the same manner as rbrk.
 </p>
 
-<div class="code">
-<pre>
-@define brbrkexample()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	brbrk(ctl, &exe`insert,
-	      @lambda(ctl, list, val){
-		      printf("enter insert(0x%p, %d)\n", list, val);
-		      showlist(list);
-		      return @lambda(ctl, rv){
-			      printf("leave insert\n");
-			      showlist(rv);
-		      };
-	      });
-
-	mux.run();
-}
-</pre>
-</div>
-
-
-<div class="code">
-<pre>
-; brbrkexample();
-<span class="arg">enter insert(0x0, 0)
-	list =
-leave insert
-	list = 0
-enter insert(0x602010, 1)
-	list = 0
-leave insert
-	list = 0 1
-enter insert(0x602010, 2)
-	list = 0 1
-leave insert
-	list = 0 1 2
-enter insert(0x602010, 3)
-	list = 0 1 2
-leave insert
-	list = 0 1 2 3
-enter insert(0x602010, 4)
-	list = 0 1 2 3
-leave insert
-	list = 0 1 2 3 4
-</span>; 
-</pre>
-</div>
+@@function(../demo/examples.cqct:brbrkexample)
+@@eval(../demo/examples.cqct:brbrkexample)
 
 
 <h4 id="sec:breakpoints">Unwinding the stack</h4>

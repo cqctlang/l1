@@ -1,6 +1,6 @@
 @include <debug.cqct>
 
-@define getstarted(cmd)
+@define getstarted()
 {
 	@local mux;
 	mux = mksctlmux();
@@ -17,7 +17,7 @@
 	return [mux, ctl, exe];
 }
 
-@define brkentry1()
+@define brkentry()
 {
 	@local mux, ctl, exe;
 	[mux,ctl,exe] = start(["./list"]);
