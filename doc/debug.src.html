@@ -33,27 +33,24 @@
 <h4 id="sec:introduction">Introduction</h4>
 
 <p>
-This manual describes a set of Cinquecento libraries
-that can be used to examine program executables and
-debug program executions.
+This manual describes how to use the Cinquecento
+<span class="id">debug</span> library to examine
+program executables and program executions.
 </p>
 
 <p>
-To use these libraries the process control
-server <span class="val">sctl</span>, which is
-available
-from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>,
-must be installed somewhere in your
-path. <span class="val">Sctl</span> provides a network
-service for controlling program executions and
-accessing symbols and other debugging information from
-program binaries.  Documentation
-for <span class="val">sctl</span> accompanies its
-distribution, and should be read in conjunction with
-this manual.  For example, you should refer to the
-<span class="val">sctl</span> documentation for details
-about the various <span class="val">sctl</span>
-transactions referenced in this manual.
+The debug library is a client of the services
+of <span class="val">sctl</span>, a server for
+controlling program executions and accessing symbols
+and other debugging information from program binaries.
+To use this library you must have
+the <span class="val">sctl</span> binary installed in
+your path.
+<span class="val">Sctl</span> is available
+from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
+Documentation for <span class="val">sctl</span>
+accompanies its distribution, and should be read in
+conjunction with this manual.
 </p>
 
 <p>
@@ -67,44 +64,38 @@ one style &mdash; a rather traditional one.
 <h4 id="sec:hello">Concepts</h4>
 
 <p>
-The library is designed to support a spectrum of
-debugging scenarios, from debugging a one instance of a
-single-threaded program to debugging multiple
-simultaneously active instances of multi-threaded
-programs.  Most operations are centered around an
-object called a <em>ctl</em>, which represents a thread
-of execution in a program execution.  A single-threaded
-program is represented by a single ctl; a
-multi-threaded program is represented by a set of ctls,
-one for each live thread.  Ctls are created by
-launching a new program execution or attaching to an
-existing one; they are also created when an execution
-associated with an existing ctl forks a new process or
-creates a new thread.  Ctls are destroyed when the
-associated thread or process is terminated.
+The <span class="id">debug</span> library is designed
+to support a spectrum of debugging activities &mdash;
+from debugging one instance of a single-threaded
+program execution, to debugging multiple simultaneously
+active instances of one or several multi-threaded
+programs.  In all cases, the central abstraction
+managed by the library is an object called
+a <em>ctl</em>, which represents a thread of execution.
+A single-threaded program execution is represented by a
+single ctl that corresponds to the process; a
+multi-threaded program execution is represented by a
+set of ctls, one for each thread in the process.  Ctls
+are created by launching a new program execution or
+attaching to an existing one; they are also created
+when an execution associated with an existing ctl forks
+a new process or creates a new thread.  Ctls are
+destroyed when the associated thread or process is
+terminated.
 </p>
 
 <p>
-Each ctl is a handle to other resources associated with
+Each ctl provides access to resources associated with
 an execution, including its registers, address space,
-name spaces for each binary (executable or library)
-loaded in the address space, and the ability to trap on
-execution events.
+and name spaces for each binary file (executable or
+library) loaded in the address space.
 </p>
 
 <p>
-The events that can trapped include execution
-breakpoints, library loading and unloading, system
-calls, signals, and termination.
-</p>
-
-<p>
-<span class="val">Sctl</span> supports execution
-snapshots, which represent the state of a program
-execution frozen in time.  Snapshots are useful for
-retaining access to past states of program execution
-for comparison with future states.  A snapshot is
-represented by a ctl.
+Each ctl is also an interface for setting traps on
+execution events.  The events that can be trapped
+include execution breakpoints, library loading and
+unloading, system calls, signals, and termination.
 </p>
 
 <p>
@@ -144,6 +135,16 @@ program execution.  They can also set or remove event
 handlers.  The event loop terminates when all ctls have
 exited.
 </p>
+
+<p>
+<span class="val">Sctl</span> supports execution
+snapshots, which represent the state of a program
+execution frozen in time.  Snapshots are useful for
+retaining access to past states of program execution
+for comparison with future states.  A snapshot is
+represented by a ctl.
+</p>
+
 
 
 <h4 id="sec:hello">Getting started</h4>
@@ -544,11 +545,10 @@ return,
 <em>i.e.</em>, the return address <em>in the
 caller</em>.  We cannot determine this address
 statically; it is a dynamic value that depends on the
-caller.  
-A convenient time at which we can determine this value
-is the entry to each call, where we can apply
-our understanding of the calling convention to
-read the return address set by the caller.
+caller.  A convenient point at which we can determine
+this value is at the entry to each call, where we can
+apply our knowledge of the calling convention to read
+the return address set by the caller.
 </p>
 
 <p>
@@ -559,8 +559,11 @@ onto the stack in conjunction with the control
 transfer.  Since the stack pointer points to the most
 recently pushed value, we can read the return address
 by dereferencing the stack pointer.  We can then trap
-the return event by placing a one-shot breakpoint on
-the return address.
+the return event by placing a breakpoint on the return
+address.  This should be a <em>one-shot</em> breakpoint
+that we clear after it fires, since the next return
+event may be from a different call site that we will
+discover by repeating this process.
 </p>
 
 <p>
@@ -624,64 +627,89 @@ realities, the above technique is good enough.
 <h4 id="sec:brbrk">Convenience functions</h4>
 
 <p>
-The preceding examples demonstrate a low-level
-way to trap function call and return events.
-Here we describe three convenience functions
-that are designed to simplify common breakpoint
-programming.
+While the preceding examples illustrate fundamental
+usage of the debug library, they represent a tedious
+and low-level approach to the frequently performed task
+of trapping function call and return events.
 </p>
 
 <p>
-The function brk sets a trap on calls to a given function.
-Its arguments are a ctl, the address of the function,
-and a handler function.  It determines the number and
-types of the parameters to the function.  When the trap
-occurs, brk arranges to call the handler function,
-passing as its first argument the ctl on which the trap
-occurred.  In addition, an additional parameter is
-passed for each parameter of the trapped function.
-These parameters are the values of the arguments.  Like
-the manual casting we performed above for the showlist
-argument, they are cast into both the domain of the
-execution and the type of the argument: they are, in
-other words, suitable for inspection and dereferencing.
-(However, they are copies of the values being passed to
-the function; modifications to these values are not
-written back to the target execution.)
+The debug library provides three convenience functions
+that simplify function call and return event
+programming.  These functions have three advantages
+over the previous approach.
+</p>
+
+<ol>
+<li>
+Arguments and return values are made directly
+available to handler functions.  They have the correct
+type and, for pointer values, may be dereferenced.
+</li>
+<li>
+The user is not required to remember how the calling convention works.
+</li>
+<li>
+For return events, they handle the setting and clearing
+of the one-shot breakpoint.
+</li>
+</ol>
+
+<p>
+These functions take advantage of parameter and return
+value type information recorded in the name space in
+which the function being trapped is described.  If this
+type information is not available, these functions will
+not expose the arguments or return value of the call
+event.  Similarly, these functions assume that the
+function observes the commonly used calling convention
+for the platform; they will misbehave if it is does
+not.
+</p>
+
+<p>
+The function <span class="id">brk</span> sets a trap
+for call events.  Its arguments are the ctl to
+instrument, the address of a function, and a handler
+function.  When the call event occurs, the arguments
+passed to the handler function are the ctl, followed by
+a copy of each of the arguments that were passed to the
+trapped function, if any.  Each argument has the same
+type as the corresponding parameter in the function
+prototype, and each argument is cast into the domain of
+the execution, allowing it to be directly dereferenced.
 The return value of the handler is ignored.
-Brk returns a trap identifier.
 </p>
 
 @@function(../demo/examples.cqct:brkexample)
 @@eval(../demo/examples.cqct:brkexample)
 
 <p>
-The function rbrk sets a trap on return from calls to a
-given function.  Its arguments are a ctl, the address
-of the function, and a handler function.  It determines
-the type of the return value of the function, if any.
-When a call to the function returns, it calls the
-handler function, passing to it the ctl on which the
-event occurred, and the return value, projected into
-the domain of the function with the type of the
-argument.  If there is no return value, only the ctl
-is passed.  The return value of the handler is ignored.
-Rbrk returns a trap identifier.
+The function <span class="id">rbrk</span> sets a trap
+for return events.  Its arguments are the ctl to
+instrument, the address of the function, and a handler
+function.  When the return event occurs, the arguments
+passed to the handler function are the ctl, followed by
+a copy of the return value of the trapped function, if
+any.  The return value of the handler is ignored.
 </p>
 
 @@function(../demo/examples.cqct:rbrkexample)
 @@eval(../demo/examples.cqct:rbrkexample)
 
 <p>
-The function brbrk is useful for combining a trap on
-function entry with a trap on the corresponding
-return..  Its arguments are a ctl, the address of the
-function, and a handler function.  It calls the handler
-function in the same manner as brk, passing projected
-copies of the function arguments.  If the handler
-returns a function, then a trap is implicitly set on
-the return of the function call, and then function returned
-is called as a handler in the same manner as rbrk.
+The function <span class="id">brbrk</span> combines the
+functionality of <span class="id">brk</span>
+and <span class="id">rbrk</span>.  Its arguments are
+the ctl to instrument, the address of the function, and
+a handler function for the <em>call</em> event.  This
+handler is called in the same manner as the
+<span class="id">brk</span> handler, except that it may
+return a return event handler that, when the trapped
+function call returns, will be called in the same
+manner as the <span class="id">rbrk</span> handler.  If
+instead the call event handler returns
+<span class="id">nil</span>, then the return event is ignored.
 </p>
 
 @@function(../demo/examples.cqct:brbrkexample)
@@ -690,18 +718,58 @@ is called as a handler in the same manner as rbrk.
 <h4 id="sec:breakpoints">Unwinding the stack</h4>
 
 <p>
-The unwind method of a ctl unwinds the call stack.  It
-returns a list of contexts, one for each frame.  The
-function fmtframe returns a string representation of a
-context; it attempts to resolve the program counter
-to a function and source line.
+The <span class="id">unwind</span> method of a ctl
+unwinds the call stack.  It returns a list of contexts,
+one for each stack frame, each representing the state
+of the registers at the time of the corresponding call.
+This state includes the return address, stack pointer,
+and frame pointer of the corresponding call.  If
+sufficient debugging information is available (such as
+DWARF unwind tables), the contexts may also reflect the
+other saved registers suitable for recovering the
+values of local variables stored in registers.
+</p>
+
+<p>
+The convenience
+function <span class="id">fmtframe</span> convents a
+call frame context into a textual representation of the
+call site, including the program counter value, the
+name of and offset within the caller, and the file name
+and line number of the call site in source code.
 </p>
 
 @@function(../demo/examples.cqct:unwind)
 @@eval(../demo/examples.cqct:unwind)
 
-
 <h4 id="sec:breakpoints">Accessing local variables</h4>
+
+<p>
+Every valid context corresponds to a point in program
+execution in which a certain set of local variables are
+defined.  Given a valid context, the ctl
+method <span class="id">ldom</span> makes available the
+names, types, location, and values of its associated
+local variables as a dynamically constructed <em>local
+domain</em>.  The local domain is like any other
+domain, except that its name space is limited to local
+variables.
+</p>
+
+<p>
+The contexts returned by <span class="id">unwind</span>
+are each suitable arguments
+for <span class="id">ldom</span>.  However, 
+<span class="id">ldom</span> depends on the presence of
+sufficient debugging information in the binary, both to
+ensure that the context includes saved register values,
+as well as information about local variable names,
+types, and locations.
+</p>
+
+@@function(../demo/examples.cqct:locals)
+@@eval(../demo/examples.cqct:locals)
+
 
 <h4 id="sec:breakpoints">Trapping program termination</h4>
 
