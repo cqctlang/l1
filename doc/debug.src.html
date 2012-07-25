@@ -687,13 +687,21 @@ is called as a handler in the same manner as rbrk.
 @@function(../demo/examples.cqct:brbrkexample)
 @@eval(../demo/examples.cqct:brbrkexample)
 
-
 <h4 id="sec:breakpoints">Unwinding the stack</h4>
 
-<h4 id="sec:breakpoints">Accessing local variables</h4>
+<p>
+The unwind method of a ctl unwinds the call stack.  It
+returns a list of contexts, one for each frame.  The
+function fmtframe returns a string representation of a
+context; it attempts to resolve the program counter
+to a function and source line.
+</p>
 
-Example: test invariant that head is sorted upon return
-from doinsert.
+@@function(../demo/examples.cqct:unwind)
+@@eval(../demo/examples.cqct:unwind)
+
+
+<h4 id="sec:breakpoints">Accessing local variables</h4>
 
 <h4 id="sec:breakpoints">Trapping program termination</h4>
 

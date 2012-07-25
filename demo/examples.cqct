@@ -21,9 +21,12 @@
 {
 	@local mux, ctl, exe;
 	[mux,ctl,exe] = start(["./list"]);
-	ctl.trap('brk, &exe`main, @lambda(ctl) { printf("enter main\n"); });
-	ctl.trap('brk, &exe`dowork, @lambda(ctl) { printf("enter dowork\n"); });
-	ctl.trap('brk, &exe`insert, @lambda(ctl) { printf("enter insert\n"); });
+	ctl.trap('brk, &exe`main,
+		 @lambda(ctl) { printf("enter main\n"); });
+	ctl.trap('brk, &exe`dowork,
+		 @lambda(ctl) { printf("enter dowork\n"); });
+	ctl.trap('brk, &exe`insert,
+		 @lambda(ctl) { printf("enter insert\n"); });
 	mux.run();
 }
 
@@ -64,25 +67,6 @@
 	[mux,ctl,exe] = start(["./list"]);
 	ctx = ctl.ctx();
 	printtype(typedeftype(@typeof(*ctx)));
-}
-
-@define unwind()
-{
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./list"]);
-
-	@defloc handler(ctl)
-	{
-		@local ctxs;
-		printf("enter insert\n");
-		ctxs = ctl.unwind();
-		foreach(@lambda(ctx){ printf("%s\n", fmtframe(ctl, ctx)); },
-			ctxs);
-		printf("\n");
-	}
-
-	ctl.trap('brk, &exe`insert, handler);
-	mux.run();
 }
 
 @define args1()
@@ -202,6 +186,25 @@
 		      };
 	      });
 
+	mux.run();
+}
+
+@define unwind()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctxs;
+		printf("enter insert\n");
+		ctxs = ctl.unwind();
+		foreach(@lambda(ctx){ printf("%s\n", fmtframe(ctl, ctx)); },
+			ctxs);
+		printf("\n");
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
 	mux.run();
 }
 
