@@ -14,11 +14,27 @@
 <div id="side1">
 <a href="#sec:introduction">Introduction</a><br />
 <br />
-<a href="#sec:ns">Name spaces</a><br />
+<em>User guide</em><br />
+<a href="#sec:concepts">Concepts</a><br />
+<a href="#sec:getstarted">Getting started</a><br />
+<a href="#sec:breakpoints">Setting breakpoints</a><br />
+<a href="#sec:ctx">Accessing registers</a><br />
+<a href="#sec:args">Accessing function arguments</a><br />
+<a href="#sec:data">Examining data structures</a><br />
+<a href="#sec:ret">Trapping function return</a><br />
+<a href="#sec:brbrk">Helpers for call and return</a><br />
+<a href="#sec:unwind">Unwinding the stack</a><br />
+<a href="#sec:locals">Accessing local variables</a><br />
+<a href="#sec:syscall">Trapping system calls</a><br />
+<a href="#sec:forkexecexit">Trapping fork, exec, and exit</a><br />
+<a href="#sec:signals">Trapping signals</a><br />
+<br />
+<em>Function and method reference</em><br />
+<a href="#sec:ns">Constructing name spaces</a><br />
 <a href="#sec:ctls">Controlling executions</a><br />
+<a href="#sec:sctlns">Interfaces to sctl</a><br />
 <a href="#sec:nsmap">Name space maps</a><br />
-<a href="#sec:sctlns">Interface to sctl</a><br />
-
+<a href="#sec:fnindex">Function Index</a><br />
 <br />
 <a href="#sec:fnindex">Index</a><br />
 
@@ -61,7 +77,7 @@ The libraries described in this manual represent just
 one style &mdash; a rather traditional one.
 </p>
 
-<h4 id="sec:hello">Concepts</h4>
+<h4 id="sec:concepts">Concepts</h4>
 
 <p>
 The <span class="id">debug</span> library is designed
@@ -147,7 +163,7 @@ represented by a ctl.
 
 
 
-<h4 id="sec:hello">Getting started</h4>
+<h4 id="sec:getstarted">Getting started</h4>
 
 <p>
 In the following sections, we illustrate the main
@@ -342,7 +358,7 @@ argument to access the state of the execution at the
 moment of the event.
 </p>
 
-<h4 id="sec:breakpoints">Accessing registers</h4>
+<h4 id="sec:ctx">Accessing registers</h4>
 
 <p>
 The current values of the registers are available in an
@@ -624,7 +640,7 @@ scenarios in which these potential limitations are not
 realities, the above technique is good enough.
 </p>
 
-<h4 id="sec:brbrk">Convenience functions</h4>
+<h4 id="sec:brbrk">Helpers for call and return</h4>
 
 <p>
 While the preceding examples illustrate fundamental
@@ -715,7 +731,7 @@ instead the call event handler returns
 @@function(../demo/examples.cqct:brbrkexample)
 @@eval(../demo/examples.cqct:brbrkexample)
 
-<h4 id="sec:breakpoints">Unwinding the stack</h4>
+<h4 id="sec:unwind">Unwinding the stack</h4>
 
 <p>
 The <span class="id">unwind</span> method of a ctl
@@ -779,7 +795,7 @@ the <span class="id">dowork</span> context.
 @@function(../demo/examples.cqct:locals)
 @@eval(../demo/examples.cqct:locals)
 
-<h4 id="sec:breakpoints">Trapping system calls</h4>
+<h4 id="sec:syscall">Trapping system calls</h4>
 
 <p>
 System call entry and exit events can be trapped with
@@ -819,7 +835,7 @@ arguments to the system.  Users are expected to know
 the system call calling convention.
 </p>
 
-<h4 id="sec:breakpoints">Trapping fork, exec, and exit</h4>
+<h4 id="sec:forkexecexit">Trapping fork, exec, and exit</h4>
 
 <p>
 The Unix system calls <span class="id">fork</span>,
@@ -964,7 +980,7 @@ the signal number to the enumeration constant name for
 the segmentation fault signal.
 </p>
 
-<h4 id="sec:ns">Name spaces</h4>
+<h4 id="sec:ns">Constructing name spaces</h4>
 
 <p>
 The debug library defines two functions for constructing
