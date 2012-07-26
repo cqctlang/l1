@@ -358,6 +358,26 @@
 	mux.run();
 }
 
+@define trapsig()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./listbug"]);
+
+	@defloc handler(ctl, info)
+	{
+		@local ns;
+		ns = ctl.dialect().ns;
+		printf("ctl %d received signal %d\n",
+		       ctl.id, info->si_signo);
+		if(info->si_signo == ns`SIGSEGV)
+			printf("faulting address is 0x%p\n", info->si_addr);
+		showstack(ctl);
+	}
+
+	ctl.trap('signal, handler);
+	mux.run();
+}
+
 @define exits()
 {
 	@local mux, ctl, exe;

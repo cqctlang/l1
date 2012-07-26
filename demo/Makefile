@@ -6,6 +6,7 @@ TARG = clones\
 	forks\
 	forkexec\
 	list\
+	listbug\
 	sig\
 	attach\
 	par1\
@@ -51,6 +52,9 @@ forkexec: forkexec.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 list: list.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+listbug: listbug.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 sig: sig.o

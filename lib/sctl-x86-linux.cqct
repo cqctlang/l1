@@ -38,11 +38,24 @@ ns = @names clp64le {
 		@0xc0	uint64 es;
 		@0xc8	uint64 fs;
 		@0xd0	uint64 gs;
-
-		/* current signal number */
-		@0xd8	uint64 sig;
-		@0xe0; /* 224 */
+		@0xd8;
 	} Ctx;
+
+	typedef
+	struct siginfo {
+		@0x0	uint64 si_signo;
+		@0x8	uint64 si_errno;
+		@0x10	uint64 si_code;
+		@0x18	uint64 si_pid;
+		@0x20	uint64 si_uid;
+		@0x28	uint64 si_status;
+		@0x30	uint64 si_value;
+		@0x38	uint64 si_overrun;
+		@0x40	uint64 si_timerid;
+		@0x48	uint64 si_addr;
+		@0x50	uint64 si_band;
+		@0x58;
+	} siginfo;
 
 	typedef
 	enum Syscall {
@@ -333,6 +346,44 @@ ns = @names clp64le {
 		eventfd				= 284,
 		fallocate			= 285,
 	} Syscall;
+
+	typedef
+	enum Signal {
+		SIGHUP   	= 1,
+		SIGINT   	= 2,
+		SIGQUIT  	= 3,
+		SIGILL   	= 4,
+		SIGTRAP  	= 5,
+		SIGABRT  	= 6,
+		SIGIOT   	= 6,
+		SIGBUS   	= 7,
+		SIGFPE   	= 8,
+		SIGKILL  	= 9,
+		SIGUSR1  	= 10,
+		SIGSEGV  	= 11,
+		SIGUSR2  	= 12,
+		SIGPIPE  	= 13,
+		SIGALRM  	= 14,
+		SIGTERM  	= 15,
+		SIGSTKFLT	= 16,
+		SIGCHLD  	= 17,
+		SIGCONT  	= 18,
+		SIGSTOP  	= 19,
+		SIGTSTP  	= 20,
+		SIGTTIN  	= 21,
+		SIGTTOU  	= 22,
+		SIGURG   	= 23,
+		SIGXCPU  	= 24,
+		SIGXFSZ  	= 25,
+		SIGVTALRM	= 26,
+		SIGPROF  	= 27,
+		SIGWINCH 	= 28,
+		SIGIO    	= 29,
+		SIGPWR   	= 30,
+		SIGSYS   	= 31,
+		SIGUNUSED	= 31,
+	} Signal;
+
 };
 
 @defloc encodectx(p, ctx)
@@ -350,6 +401,23 @@ ns = @names clp64le {
 	ctx = (ns`Ctx*)getbytes(p);
 	p++;
 	return [ctx, p];
+}
+
+@defloc encodesiginfo(p, info)
+{
+	p = (char*)p;
+	putbytes(p, getbytes(info));
+	p += sizeof(ns`siginfo);
+	return p;
+}
+
+@defloc decodesiginfo(p)
+{
+	@local info;
+	p = (ns`siginfo*)p;
+	info = (ns`siginfo*)getbytes(p);
+	p++;
+	return [info, p];
 }
 
 @defloc dumpctx(ctx)
@@ -375,9 +443,14 @@ ns = @names clp64le {
 }
 
 sctlx86linux = sctldialectrec("x86-linux-2010",
+			      ns,
 			      @typeof(ns`Ctx),
+			      @typeof(ns`siginfo),
 			      decodectx,
 			      encodectx,
+			      decodesiginfo,
+			      encodesiginfo,
 			      dumpctx,
-			      @typeof(ns`Syscall));
+			      @typeof(ns`Syscall),
+			      @typeof(ns`Signal));
 }

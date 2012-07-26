@@ -921,6 +921,49 @@ execution is torn down and the ctl becomes invalid.
 
 <h4 id="sec:signals">Trapping signals</h4>
 
+<p>
+The <span class="id">signal</span> trap kind is used to trap signal events.
+</p>
+
+<p>
+The example <span class="id">trapsig</span>
+demonstrates usage.  It launches a modified version of
+<span class="id">list</span>,
+called <span class="id">listbug</span>, that introduces
+a pointer bug in the insert function.  Expression of
+this bug causes a segmentation fault.
+</p>
+
+@@function(../demo/examples.cqct:trapsig)
+@@eval(../demo/examples.cqct:trapsig)
+
+<p>
+The handler is passed a pointer to a structure of
+type <span class="id">siginfo</span> that stores
+information about the signal event.  Like
+the <span class="id">Ctx</span> structure, the dialect
+of the ctl determines the definition
+of <span class="id">siginfo</span>.  On Unix platforms,
+the <span class="id">si_signo</span> field gives the
+integer signal number.  The meaning of the other fields of
+the <span class="id">siginfo</span> depend on the 
+value of <span class="id">si_signo</span>;
+see a Unix manual for details.
+</p>
+
+<p>
+The dialect also includes
+an <span class="id">enum</span> type
+named <span class="id">Signal</span> that defines an
+enumeration constant for each valid signal number on
+the target execution system.  The example uses
+the <span class="id">ns</span> field of the dialect to
+obtain the name space that defines
+this <span class="id">Signal</span> in order to compare
+the signal number to the enumeration constant name for
+the segmentation fault signal.
+</p>
+
 <h4 id="sec:ns">Name spaces</h4>
 
 <p>

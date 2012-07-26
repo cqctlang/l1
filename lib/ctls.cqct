@@ -554,7 +554,7 @@ idxev = [
 
 	@defloc dosig(p)
 	{
-		@local ctx, hs;
+		@local ctx, info, hs;
 
 		hs = handlers('signal);
 		if(length(hs) == 0){
@@ -562,10 +562,10 @@ idxev = [
 			contasync();
 			return;
 		}
+		[info, p] = cs.dlct.decodesiginfo(p);
 		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
-//		[info, p] = decodesiginfo(p);
-		foreach(@lambda(t) { t.fn(this); }, hs);
+		foreach(@lambda(t) { t.fn(this, info); }, hs);
 		contasync();
 	}
 
