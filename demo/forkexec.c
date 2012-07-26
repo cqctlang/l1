@@ -22,6 +22,7 @@ main(int argc, char *argv[])
 	case 0:
 		execv(argv[1], argv+1);
 		printf("exec: %s", strerror(errno));
+		exit(0);
 	default:
 		wait(0);
 		exit(0);

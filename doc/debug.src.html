@@ -41,15 +41,15 @@ program executables and program executions.
 <p>
 The debug library is a client of the services
 of <span class="val">sctl</span>, a server for
-controlling program executions and accessing symbols
+controlling program executions and for accessing symbols
 and other debugging information from program binaries.
 To use this library you must have
 the <span class="val">sctl</span> binary installed in
-your path.
-<span class="val">Sctl</span> is available
-from <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
+your path; source code for
+<span class="val">sctl</span> is available
+at <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
 Documentation for <span class="val">sctl</span>
-accompanies its distribution, and should be read in
+accompanies its source code, and should be read in
 conjunction with this manual.
 </p>
 
@@ -742,7 +742,7 @@ and line number of the call site in source code.
 @@function(../demo/examples.cqct:unwind)
 @@eval(../demo/examples.cqct:unwind)
 
-<h4 id="sec:breakpoints">Accessing local variables</h4>
+<h4 id="sec:locals">Accessing local variables</h4>
 
 <p>
 Every valid context corresponds to a point in program
@@ -767,26 +767,159 @@ as well as information about local variable names,
 types, and locations.
 </p>
 
+<p>
+Here we trap calls to the entry
+of <span class="id">insert</span>, use unwind
+information to obtain a context and local domain for
+its caller <span class="id">dowork</span>, and display
+the local variables in
+the <span class="id">dowork</span> context.
+</p>
+
 @@function(../demo/examples.cqct:locals)
 @@eval(../demo/examples.cqct:locals)
 
-
-<h4 id="sec:breakpoints">Trapping program termination</h4>
-
-<h4 id="sec:breakpoints">Modifying data structures</h4>
-
-<h4 id="sec:breakpoints">Trapping signals</h4>
-
 <h4 id="sec:breakpoints">Trapping system calls</h4>
 
-<h4 id="sec:breakpoints">Trapping fork</h4>
+<p>
+System call entry and exit events can be trapped with
+the <span class="id">syscall</span> trap kind.
+</p>
 
-<h4 id="sec:breakpoints">Trapping exec</h4>
+<p>
+The dialect includes an <span class="id">enum</span>
+type named <span class="id">Syscall</span> that defines
+an enumeration constant for each valid system call
+number on the target execution system.
+</p>
 
-<h4 id="sec:breakpoints">Tracing multithreaded execution</h4>
+<p>
+The example <span class="id">syscalls</span> traps each
+system call event in the execution
+of <span class="id">list</span>, and prints system call
+entry event.  It uses <span class="id">Syscall</span>
+to obtain a name for each system call.
+</p>
 
-<h4 id="sec:breakpoints">Using snapshots</h4>
+@@function(../demo/examples.cqct:syscalls)
+@@eval(../demo/examples.cqct:syscalls)
 
+<p>
+The library provides no assistance for distinguishing
+system call entry from exit.  If the trap is set at the
+beginning of execution, or from within a trap handler
+for another user-level event such as a breakpoint, then
+the next system call event will always be a system call
+entry.
+</p>
+
+<p>
+The library also provides no assistance for retrieving the
+arguments to the system.  Users are expected to know
+the system call calling convention.
+</p>
+
+<h4 id="sec:breakpoints">Trapping fork, exec, and exit</h4>
+
+<p>
+The Unix system calls <span class="id">fork</span>,
+<span class="id">exec</span>, and <span class="id">exit</span> can be
+trapped using the ordinary system call trap.  However,
+the library also provides separate traps for these
+events.
+</p>
+
+<p>
+We use a new sample
+program, <span class="id">forkexec</span>, to
+illustrate these traps.
+</p>
+
+@@include(../demo/forkexec.c)
+
+<p>
+The command-line argument
+to <span class="id">forkexec</span> is the name and
+arguments of a program to run.  <span class="id">Forkexec</span>
+forks, runs the requested program the child process,
+and waits for the child to exit.  We will use it to launch
+the <span class="id">list</span> program.
+</p>
+
+<p>
+The example <span class="id">trapfork</span> illustrates
+how to trap <span class="id">fork</span> events.
+The trap kind is <span class="id">fork</span>.
+The trap handler fires whenever a fork event occurs.
+The handler arguments are the ctl corresponding
+to the execution that forked, and a new ctl, conventionally
+named <span class="id">spwn</span>, corresponding to the spawned execution.
+</p>
+
+@@function(../demo/examples.cqct:trapfork)
+@@eval(../demo/examples.cqct:trapfork)
+
+<p>
+Next, the example <span class="id">trapforkexec</span>
+extends
+<span class="id">trapfork</span> with a trap
+on <span class="id">exec</span> events.
+</p>
+
+@@function(../demo/examples.cqct:trapforkexec)
+@@eval(../demo/examples.cqct:trapforkexec)
+
+<p>
+All traps set on a ctl are automatically propagated to
+its children.  Here we see that
+the <span class="id">exec</span> trap was set on the original
+<span class="id">forkexec</span> execution, but then
+fired on the ctl corresponding to its forked child.
+</p>
+
+<p>
+To obtain the name of the newly executed program, the
+onexec handler queries the nsmap for the file name
+corresponding to the name space of the exe domain.
+</p>
+
+<p>
+Since the <span class="id">exec</span> system call
+replaces the code of an execution all breakpoint traps
+for the corresponding ctl are automatically cleared
+following a successful call
+to <span class="id">exec</span>.  All other traps
+remain set.
+</p>
+
+<p>
+Finally, the
+example <span class="id">trapforkexecexit</span>
+extends <span class="id">trapforkexec</span> to
+illustrate the trapping of exit events.  As an added
+twist, we modify the our launch arguments to execute
+one extra level of <span class="id">forkexec</span>.
+</p>
+
+@@function(../demo/examples.cqct:trapforkexecexit)
+@@eval(../demo/examples.cqct:trapforkexecexit)
+
+<p>
+The handler for exit events receives the ctl that is
+exiting and the operating system's integer exit status
+code.  We use <span class="id">showstack</span> to
+highlight the various exit points
+of <span class="id">forkexec</span>
+and <span class="id">list</span>.  The fact that we can
+show these stacks at the time of exit highlights an
+important property of exit traps: the handlers have the
+ability to access the address space and registers of
+the terminating process.  This access is indeed
+terminal: once the handler returns, the associated
+execution is torn down and the ctl becomes invalid.
+</p>
+
+<h4 id="sec:signals">Trapping signals</h4>
 
 <h4 id="sec:ns">Name spaces</h4>
 
