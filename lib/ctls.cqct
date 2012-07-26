@@ -645,9 +645,9 @@ idxev = [
 		for(i = 0; i < n; i++)
 			cs.mmap[i] = mkrange(rs[i].addr,
 					     rs[i].addr+rs[i].len);
-
 		if(length(dlls) == 0)
 			error("ctl address space is empty");
+		cs.nsmap = mknsmap(atnames);
 		foreach(@lambda(dll){
 				if(0)printf("\t%d\t%016p\t%s\n",
 					    dll.id, dll.base, dll.path);
@@ -758,17 +758,16 @@ idxev = [
 
 	ctl.trap('load,
 		 @lambda(ctl, path, base){
-			 ctl.scan();
+			 ctl.nsmap().add(base, path);
 		 });
 
 	ctl.trap('unload,
 		 @lambda(ctl, path, base){
-			 ctl.scan();
+			 ctl.nsmap().del(base);
 		 });
 
 	ctl.trap('exec,
 		 @lambda(ctl){
-			 r.nsmap = mknsmap(atnames);
 			 ctl.scan();
 		 });
 
