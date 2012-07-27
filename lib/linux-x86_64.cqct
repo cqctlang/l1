@@ -287,6 +287,27 @@ linuxns = @names clp64le {
 		timerfd				= 283,
 		eventfd				= 284,
 		fallocate			= 285,
+		timerfd_settime			= 286,
+		timerfd_gettime			= 287,
+		accept4				= 288,
+		signalfd4			= 289,
+		eventfd2			= 290,
+		epoll_create1			= 291,
+		dup3				= 292,
+		pipe2				= 293,
+		inotify_init1			= 294,
+		preadv				= 295,
+		pwritev				= 296,
+		rt_tgsigqueueinfo		= 297,
+		perf_event_open			= 298,
+		recvmmsg			= 299,
+		fanotify_init			= 300,
+		fanotify_mark			= 301,
+		prlimit64			= 302,
+		name_to_handle_at		= 303,
+		open_by_handle_at		= 304,
+		clock_adjtime			= 305,
+		syncfs				= 306
 	} Syscall;
 
 	typedef
