@@ -83,21 +83,44 @@ one style &mdash; a rather traditional one.
 The <span class="id">debug</span> library is designed
 to support a spectrum of debugging activities &mdash;
 from debugging one instance of a single-threaded
-program execution, to debugging multiple simultaneously
-active instances of one or several multi-threaded
-programs.  In all cases, the central abstraction
-managed by the library is an object called
-a <em>ctl</em>, which represents a thread of execution.
-A single-threaded program execution is represented by a
-single ctl that corresponds to the process; a
-multi-threaded program execution is represented by a
-set of ctls, one for each thread in the process.  Ctls
-are created by launching a new program execution or
-attaching to an existing one; they are also created
+program, to debugging one or more simultaneously active
+instances of one or more multi-threaded programs.
+</p>
+
+<p>
+The central abstraction managed by the library is a
+<em>ctl</em>, a Cinquecento object that represents a
+thread of execution.  Generally there is one ctl for
+each thread in each program execution being debugged.
+The debug library maps operations on each ctl to
+messages it exchanges with the sctl server.
+</p>
+
+<center>
+<img src="sctl-big.svg" width="90%" />
+</center>
+
+<p>
+Ctls are created by launching a new program execution
+or attaching to an existing one; they are also created
 when an execution associated with an existing ctl forks
 a new process or creates a new thread.  Ctls are
 destroyed when the associated thread or process is
 terminated.
+</p>
+
+<p>
+Ideally, we think of a ctl as a sort of slider that can
+be positioned at any instant along the interval of time
+in which the program executes.  Wherever it is
+positioned, the ctl reflects the state of the target
+execution at that point in time.  This state is
+decomposed into three major logical parts.
+The <em>context</em> represents the state of the cpu
+registers.  The <em>address space</em> represents the
+state of the program's memory.  The <em>name space
+map</em> describes the executable and libraries that
+have been mapped into the address space.
 </p>
 
 <p>
@@ -106,6 +129,22 @@ an execution, including its registers, address space,
 and name spaces for each binary file (executable or
 library) loaded in the address space.
 </p>
+
+<p>
+</p>
+
+<p>
+The debug library decomposes a program in execution
+into three major logical components.  Context, address
+space, name space map.  Each ctl has three accessors
+that provide direct access to these components.
+Threads in multi-threaded programs share address space
+and name space map, but have their own contexts.
+</p>
+
+<center>
+<img src="ctl.svg" width="100%" />
+</center>
 
 <p>
 Each ctl is also an interface for setting traps on
