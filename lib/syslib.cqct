@@ -23,6 +23,9 @@ mapfile = @lambda(filename) {
     @local sb,r;
 
     sb=(uint64 *)malloc(8);
+    if(!sb) {
+      error("malloc failure");
+    }
     *sb=0;
     if(looksym(unix,'BLKGETSIZE)) {
     	r=sys_ioctl(fd, unix`BLKGETSIZE, sb);
@@ -34,7 +37,6 @@ mapfile = @lambda(filename) {
    	 if(r) {
     	 	error("couldn't determine size of block device %s", filename);
    	 }
-	printf("R IS %d\n",sb);
     }
     s=*sb * 512;
   } else {
@@ -178,6 +180,24 @@ reboot = @lambda(cmd) {
   return sys_reboot(0xfee1dead,672274793,cmd,0);
 };
 
+/* why is this mmap so unlike mmap(2)? 
+ * why can it not map a file descriptor?
+ * why can it not create a write-only mapping?
+ * why does it not accept regions or offsets?
+ * where is unmap? why does this wrapper not use
+ *   the collector strategy in mapfile?
+ * why does it accept symbol modes when the
+ *   rest of the library subsystem accepts strings
+ *   in the manner of C buffered I/O?
+ * why does it not close the fd if it opened it?
+ * why does it return a zero-based as?
+ * why is there no error checking?
+ *
+ * DSKR's proposal: Kill this function outright.
+ *   extend mapfile slightly to accept a string mode
+ *   in the manner of open. A new function called mmap
+ *   could be created as a convenience wrapper for sys_mmap.
+ */
 /*
 By default the region is mapped private read-only
 'w: the region will be mapped writable
@@ -186,9 +206,11 @@ By default the region is mapped private read-only
 */
 mmap = @lambda(filename,args...) {
   @local arghash,prot,flags,fd,res,l;
+
   //create a hash of the optional arguments for easy lookup
   arghash = [:];
   foreach(@lambda(x) { arghash[x] = 1; },args);
+
   //open the fd appropriately
   fd = sys_open(filename,arghash['w] ? unix`O_RDWR : unix`O_RDONLY);
   prot = unix`PROT_READ;
@@ -202,5 +224,4 @@ mmap = @lambda(filename,args...) {
   res = sys_mmap(0,l->st_size,prot,flags,fd,0);
   return (void*){mkmas(res,l->st_size)}res;
 };
-
 
