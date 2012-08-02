@@ -552,6 +552,31 @@ sys_geteuid = @lambda() {
 
 };
 
+sys_setuid = @lambda(uid) {
+
+  return syscall(unix`setuid,uid);
+
+};
+
+sys_getgid = @lambda() {
+
+  return syscall(unix`getgid);
+
+};
+
+sys_getegid = @lambda() {
+
+  return syscall(unix`getegid);
+
+};
+
+sys_setgid = @lambda(gid) {
+
+  return syscall(unix`setgid,gid);
+
+};
+
+
 /*
 filename: a string filename for the executable to run
 argv: a list of the string arguments
