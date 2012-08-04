@@ -266,7 +266,7 @@
 
 	@defloc onfork(ctl, spwn)
 	{
-		printf("ctl %d has forked ctl %d\n", ctl.id, spwn.id);
+		printf("ctl %d has forked ctl %d\n", ctl.id(), spwn.id());
 	}
 
 	ctl.trap('fork, onfork);
@@ -280,14 +280,14 @@
 
 	@defloc	onfork(ctl, spwn)
 	{
-		printf("ctl %d has forked ctl %d\n", ctl.id, spwn.id);
+		printf("ctl %d has forked ctl %d\n", ctl.id(), spwn.id());
 	}
 
 	@defloc onexec(ctl)
 	{
 		@local exe;
 		exe = ctl.exe();
-		printf("ctl %d has exec'ed %s\n", ctl.id,
+		printf("ctl %d has exec'ed %s\n", ctl.id(),
 		       ctl.nsmap().nspath(exe.ns));
 	}
 
@@ -304,20 +304,20 @@
 
 	@defloc	onfork(ctl, spwn)
 	{
-		printf("ctl %d has forked ctl %d\n", ctl.id, spwn.id);
+		printf("ctl %d has forked ctl %d\n", ctl.id(), spwn.id());
 	}
 
 	@defloc onexec(ctl)
 	{
 		@local exe;
 		exe = ctl.exe();
-		printf("ctl %d has exec'ed %s\n", ctl.id,
+		printf("ctl %d has exec'ed %s\n", ctl.id(),
 		       ctl.nsmap().nspath(exe.ns));
 	}
 
 	@defloc onexit(ctl, status)
 	{
-		printf("ctl %d has exited with status %d\n", ctl.id, status);
+		printf("ctl %d has exited with status %d\n", ctl.id(), status);
 		showstack(ctl);
 	}
 
@@ -335,20 +335,20 @@
 
 	@defloc	onfork(ctl, spwn)
 	{
-		printf("ctl %d has forked ctl %d\n", ctl.id, spwn.id);
+		printf("ctl %d has forked ctl %d\n", ctl.id(), spwn.id());
 	}
 
 	@defloc onexec(ctl)
 	{
 		@local exe;
 		exe = ctl.exe();
-		printf("ctl %d has exec'ed %s\n", ctl.id,
+		printf("ctl %d has exec'ed %s\n", ctl.id(),
 		       ctl.nsmap().nspath(exe.ns));
 	}
 
 	@defloc onexit(ctl, status)
 	{
-		printf("ctl %d has exited with status %d\n", ctl.id, status);
+		printf("ctl %d has exited with status %d\n", ctl.id(), status);
 	}
 
 	ctl.trap('fork, onfork);
@@ -368,13 +368,50 @@
 		@local ns;
 		ns = ctl.dialect().ns;
 		printf("ctl %d received signal %d\n",
-		       ctl.id, info->si_signo);
+		       ctl.id(), info->si_signo);
 		if(info->si_signo == ns`SIGSEGV)
 			printf("faulting address is 0x%p\n", info->si_addr);
 		showstack(ctl);
 	}
 
 	ctl.trap('signal, handler);
+	mux.run();
+}
+
+@define snap()
+{
+	@local mux, ctl, exe;
+	@local h, snaps;
+	@local i;
+
+	[mux,ctl,exe] = start(["./list"]);
+
+	snaps = [];
+
+	i = 0;
+	@defloc oninsert(ctl)
+	{
+		if(i++ == 0){
+			printf("snap %d\n", ctl.id());
+			append(snaps, ctl.snap());
+		}
+	}
+
+	@defloc onexit(ctl, status)
+	{
+		printf("enter onexit\n");
+		foreach(@lambda(ctl){
+				@local ctx, exe;
+				printf("ctl %d\n", ctl.id());
+				ctx = ctl.ctx();
+				exe = ctl.exe();
+				printf("insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+				showlist((Node*){exe}ctx->rdi);
+			}, snaps);
+	}
+
+	ctl.trap('brk, &exe`insert, oninsert);
+	ctl.trap('exit, onexit);
 	mux.run();
 }
 
@@ -408,7 +445,7 @@
 	{
 		@local ctx, ctxs;
 		ctx = ctl.ctx();
-		printf("%d has exited %d at %p\n", ctl.id, stat, ctx->pc);
+		printf("%d has exited %d at %p\n", ctl.id(), stat, ctx->pc);
 		ctxs = ctl.unwind();
 		foreach(@lambda(ctx){ printf("%s\n", fmtframe(ctl, ctx)); },
 			ctxs);
