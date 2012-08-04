@@ -32,7 +32,8 @@
 <br />
 <em>Function and method reference</em><br />
 <a href="#sec:ns">Constructing name spaces</a><br />
-<a href="#sec:ctls">Controlling executions</a><br />
+<a href="#sec:sctlmux">Sctlmux</a><br />
+<a href="#sec:ctls">Ctls</a><br />
 <a href="#sec:sctlns">Interfaces to sctl</a><br />
 <a href="#sec:nsmap">Name space maps</a><br />
 <a href="#sec:fnindex">Function Index</a><br />
@@ -209,10 +210,12 @@ event handler, and resumed when it returns.
 </p>
 
 <p>
-Most programs that use the <span class="id">debug</span> library share a common basic structure:
+Most programs that use
+the <span class="id">debug</span> library share a
+common structure:
 <ol>
 <li>Initialize a sctlmux.</li>
-<li>Launch or attach to one or more programs, yielding a corresponding ctl for each thread of execution, paused at the start of execution.</li>
+<li>Launch or attach to one or more programs, yielding a corresponding ctl for each thread of execution; the executions are paused.</li>
 <li>Define and install handlers for various events on the ctls.</li>
 <li>Start the sctlmux event loop, resuming the paused executions.</li>
 </ol>
@@ -1078,8 +1081,8 @@ snapshots to print the state at these call sites.
 @@function(../demo/examples.cqct:snaps)
 @@eval(../demo/examples.cqct:snaps)
 
-
 </br>
+
 <h3>Function and method reference</h3>
 
 <h4 id="sec:ns">Constructing name spaces</h4>
@@ -1142,28 +1145,21 @@ does not exist.
 </div>
 </div>
 
-<h4 id="sec:ctls">Controlling executions</h4>
+<h4 id="sec:sctlmux">Sctlmux</h4>
 
 <p>
-The debug library is designed around a programming
-model that is different from the conventional
-interactive programming.  It is an event-based
-programming model.  It requires an interface for
-running the event loop.  This is accomplished
-with something called a sctlmux.
-</p>
-
-<p>
-A ctl represents a thread of execution.
-There is an address space, called a mem,
-that represents its memory.
-There is a notion of its context
-that represents the registers
-of the system.  Get a pointer
-into it.  You can update the context
-by changing the values of pointers.
-(This needs to be implemented.)
-(No setctx method.)
+When used for program debugging executions,
+the <span class="id">debug</span> library is based on
+event-based programming model.  Associated with a
+sctlmux is a set of <em>bound</em> ctls that are under
+its control.  Operations on bound ctls are mapped to
+requests sent to the sctl that controls the target
+execution.  The sctl sends event messages to the
+sctlmux as trapped events occur in target executions;
+the sctlmux dispatches these to event handlers
+registered on the ctls.  The sctlmux encapsulates the
+event loop that multiplexes this activity across
+multiple ctls and the remote sctl.
 </p>
 
 <div class="docitem" id="fn:mksctlmux">
@@ -1181,10 +1177,56 @@ freshly launched on the calling machine.
 </div>
 </div>
 
+<p>
+A sctlmux is a record that exports the following methods:
+</p>
+
+<div class="docitem" id="fn:sctlmuxrun">
+<div class="proto">
+<div class="function">
+<span class="id">run()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Resumes execution of all ctls bound to the sctlmux
+and enters the sctlmux event loop.  The event loop
+runs until all ctls bound to the sctlmux, including
+those dynamically added as the loop runs, have exited.
+The event loop can be aborted by calling the <span class="fnindex"><a href="#fn:sctlmuxabort">abort</a></span> method.
+</div>
+</div>
+
+<div class="docitem" id="fn:sctlmuxabort">
+<div class="proto">
+<div class="function">
+<span class="id">abort()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Aborts the sctlmux event loop.
+</div>
+</div>
+
+<p>
+An execution is bound to a sctlmux in one of three
+ways: launching a new execution, attaching to an
+existing (unbound) execution, or trapping process or
+thread creation (fork and clone) events in an already
+bound execution.  Here we describe the launch and
+attach mechanisms; fork and clone events are discussed
+in the ctl <span class="fnindex"><a href="#fn:ctltrap">trap</a></span> method.
+</p>
+
 <div class="docitem" id="fn:ctllaunch">
 <div class="proto">
 <div class="function">
-<span class="id">ctllaunch(<span class="arg">mux</span>,<span class="val">cmd</span>)</span>
+<span class="id">ctllaunch(<span class="arg">mux</span>,<span class="arg">cmd</span>)</span>
 </div>
 <div class="param">
 <span class="arg">mux</span>: <span class="type">sctlmux</span>
@@ -1194,10 +1236,11 @@ freshly launched on the calling machine.
 </div>
 <div class="returns">
 <span class="type">ctl</span> or
-<span class="type">nil</span> or
+<span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
+<p>
 Launches a new program execution, returning
 a <span class="val">ctl</span> representing the
 execution.  <span class="arg">Cmd</span> is the list
@@ -1206,18 +1249,21 @@ Unix-based targets these strings are passed
 to <span class="id">exec</span>,
 with <span class="arg">cmd</span><span class="val">[0]</span>
 becoming <span class="val">argv[0]</span>, and so on.
-</div>
-</div>
-
+</p>
 <p>
 There is currently no way to specify a different environment
 to the launched program, or to redirect its I/O.
 </p>
+</div>
+</div>
+
+
+<h4 id="sec:ctls">Ctls</h4>
 
 <p>
+A ctl is an object that represents a thread of execution.
 Each ctl is a record that exports the following methods:
 </p>
-
 
 <div class="docitem" id="fn:ctlid">
 <div class="proto">
@@ -2384,12 +2430,14 @@ no effect on the other.
 <div class="id">
 <div class="index">
 <div class="fnindex">
+<a href="#fn:sctlmuxabort">abort (sctlmux)</a> (ctl)<br />
 <a href="#fn:nsmapadd">add</a> (nsmap)<br />
 <a href="#fn:atnames">atnames</a> (nsmap)<br />
 <a href="#fn:nsmapbyaddr">byaddr</a> (nsmap)<br />
 <a href="#fn:nsmapbyname">byname</a> (nsmap)<br />
 <a href="#fn:ctlclear">clear</a> (nsmap)<br />
 <a href="#fn:nsmapcopy">copy</a> (nsmap)<br />
+<a href="#fn:ctllaunch">ctllaunch</a> (nsmap)<br />
 <a href="#fn:ctlctx">ctx</a> (ctl)<br />
 <a href="#fn:nsmapdel">del</a> (nsmap)<br />
 <a href="#fn:ctldetach">detach</a> (ctl)<br />
@@ -2407,6 +2455,7 @@ no effect on the other.
 <a href="#fn:mksctlns">mksctlns</a><br />
 <a href="#fn:ctlns">ns</a> (ctl)<br />
 <a href="#fn:ctlnsmap">nsmap</a> (ctl)<br />
+<a href="#fn:sctlmuxrun">run (sctlmux)</a> (ctl)<br />
 <a href="#fn:nsmapsetexe">setexe</a> (nsmap)<br />
 <a href="#fn:sctlenumloc">sctlenumloc</a><br />
 <a href="#fn:sctlenumsym">sctlenumsym</a><br />
