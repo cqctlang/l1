@@ -252,6 +252,14 @@ yourself.
 </p>
 
 <p>
+Every Cinquecento program that uses
+the <span class="id">debug</span> library must arrange
+to load the library by ensuring that
+<span class="id">@include &lt;debug.html&gt;</span>
+appears somewhere in the program source.
+</p>
+
+<p>
 Here is <span class="val">list</span>, our first sample program:
 </p>
 
@@ -265,7 +273,7 @@ elements to an existing list, a function
 called <span class="val">dowork</span> that builds a
 list of consecutive values, and
 a <span class="val">main</span> function that begins
-the work.  It accepts an optional command-line argument
+the work.  It accepts an optional argument
 that specifies the number of elements in the final
 list.  It has no output.
 </p>
@@ -276,12 +284,6 @@ program and waits for it to exit:
 </p>
 
 @@function(../demo/examples.cqct:getstarted)
-
-<p>
-The first line loads the debugging library.  We will
-omit this line from all subsequent examples, but it is
-always implied.
-</p>
 
 <p>
 The first line of <span class="id">getstarted</span>
