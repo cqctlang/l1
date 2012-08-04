@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-<title>Debugging with Cinquecento</title>
+<title>Cinquecento Debug Library</title>
 <link rel="stylesheet" type="text/css" href="reset.css"/>
 <link rel="stylesheet" type="text/css" href="styles.css"/>
 </head>
@@ -15,7 +15,7 @@
 <a href="#sec:introduction">Introduction</a><br />
 <br />
 <em>User guide</em><br />
-<a href="#sec:concepts">Concepts</a><br />
+<a href="#sec:overview">Overview</a><br />
 <a href="#sec:getstarted">Getting started</a><br />
 <a href="#sec:breakpoints">Setting breakpoints</a><br />
 <a href="#sec:ctx">Accessing registers</a><br />
@@ -43,10 +43,10 @@
 <div id="content">
 
 <div id="title">
-<h3>Debugging with Cinquecento</h3>
+<h3>The Cinquecento <span class="id">debug</span> Library</h3>
 </div>
 
-<h4 id="sec:introduction">Introduction</h4>
+<h3 id="sec:introduction">Introduction</h4>
 
 <p>
 This manual describes how to use the Cinquecento
@@ -55,49 +55,56 @@ program executables and program executions.
 </p>
 
 <p>
-The debug library is a client of the services
+The <span class="id">debug</span> library is a client of the services
 of <span class="val">sctl</span>, a server for
 controlling program executions and for accessing symbols
 and other debugging information from program binaries.
 To use this library you must have
 the <span class="val">sctl</span> binary installed in
-your path; source code for
+your path; source code and documentation for
 <span class="val">sctl</span> is available
 at <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
-Documentation for <span class="val">sctl</span>
-accompanies its source code, and should be read in
-conjunction with this manual.
 </p>
 
 <p>
-Keep in mind that the syntax and core abstractions of
+Keep in mind that the syntax and abstractions of
 the Cinquecento language are intended to support a
-variety of styles for programming a custom debugger.
-The libraries described in this manual represent just
-one style &mdash; a rather traditional one.
+variety of styles of programmatic debugging.
+The <span class="id">debug</span> library represents
+just one style &mdash; an effective but rather traditional one.
 </p>
 
-<h4 id="sec:concepts">Concepts</h4>
+<p>
+This manual is split in two parts.  The first part is a
+user guide, providing a conceptual overview of how the
+library is used and a series of examples on elementary
+operations.  The second part is a reference manual for
+the functions and methods provided by the library.
+</p>
+
+<h3 id="sec:userguide">User guide</h4>
+
+<h4 id="sec:overview">Overview</h4>
 
 <p>
 The <span class="id">debug</span> library is designed
-to support a spectrum of debugging activities &mdash;
-from debugging one instance of a single-threaded
-program, to debugging one or more simultaneously active
+to target a spectrum of program executions &mdash;
+from one instance of a single-threaded
+program, to one or more simultaneously active
 instances of one or more multi-threaded programs.
 </p>
 
 <p>
-The central abstraction managed by the library is a
-<em>ctl</em>, a Cinquecento object that represents a
-thread of execution.  Generally there is one ctl for
+The library is centered around a Cinquecento object,
+called a <em>ctl</em>, that represents a thread of execution.
+Generally there is one ctl for
 each thread in each program execution being debugged.
-The debug library maps operations on each ctl to
-messages it exchanges with the sctl server.
+The <span class="id">debug</span> library maps operations on each ctl to
+messages that it exchanges with the sctl server.
 </p>
 
 <center>
-<img src="sctl-big.svg" width="90%" />
+<img src="sctl.svg" width="90%" />
 </center>
 
 <p>
@@ -115,31 +122,12 @@ be positioned at any instant along the interval of time
 in which the program executes.  Wherever it is
 positioned, the ctl reflects the state of the target
 execution at that point in time.  This state is
-decomposed into three major logical parts.
-The <em>context</em> represents the state of the cpu
-registers.  The <em>address space</em> represents the
-state of the program's memory.  The <em>name space
-map</em> describes the executable and libraries that
-have been mapped into the address space.
-</p>
-
-<p>
-Each ctl provides access to resources associated with
-an execution, including its registers, address space,
-and name spaces for each binary file (executable or
-library) loaded in the address space.
-</p>
-
-<p>
-</p>
-
-<p>
-The debug library decomposes a program in execution
-into three major logical components.  Context, address
-space, name space map.  Each ctl has three accessors
-that provide direct access to these components.
-Threads in multi-threaded programs share address space
-and name space map, but have their own contexts.
+decomposed into three major logical parts:
+the <em>context</em> representing the state of the CPU
+registers, the <em>address space</em> representing the
+raw contents of memory, and the <em>name space map</em>
+recording the binaries (executable and libraries) that
+are mapped into the address space.
 </p>
 
 <center>
@@ -147,57 +135,104 @@ and name space map, but have their own contexts.
 </center>
 
 <p>
-Each ctl is also an interface for setting traps on
-execution events.  The events that can be trapped
-include execution breakpoints, library loading and
-unloading, system calls, signals, and termination.
+In reality, the <span class="id">debug</span> library
+does not support a seekable model of execution.
+Instead, each ctl logically advances in lockstep with
+the corresponding execution.  <em>Snapshots</em>
+provide a mechanism to make a copy of a ctl
+frozen in time, preserving the past while 
+execution continues.
 </p>
 
 <p>
-The programming model is event-based programming.
-Rather than pausing the execution and interactively
-inspecting state or adding or removing traps, programs
-written with this library are non-interactive programs
-that instrument an entire execution of the target
-program.  They respond to events as the execution
-proceeds, collecting observations, adjusting traps, and
-perhaps making changes to program state.  The
-interactive model can be convenient for debugging
-single-threaded programs, but it quickly becomes
-cumbersome when the program is multi-threaded, or when
-more than one program is being debugged at a time, or
-when incorporating snapshots into the debugging.
+Each ctl is an interface for setting traps on future
+execution events, including execution breakpoints,
+library loading and unloading, system calls, signals,
+and termination.  Associated with each trap is a
+user-defined handler function that is called when the
+event occurs.  The ctl corresponding to the thread and
+instant of time at which the event occurred is passed
+to the handler function.  Execution of the thread is
+suspended for the duration of the handler function
+call.  During this time, the handler may examine the
+state of the execution and set or clear traps on future
+events, but it may not block awaiting a future
+execution event.  Snapshots may be captured to
+communicate program state to future handler calls.
 </p>
 
 <p>
-Like many event-based programming system, the execution
-of a program is wrapped in a blocking event loop.
-Events from program execution are received and
-dispatched to their handlers.  This event processing
-loop is encapsulated in an object called a <em>sctlmux</em>.
-Most programs have the same structure:
+Each ctl also provides the raw ingredients for
+constructing Cinquecento domains, which are generally
+used as a symbolic interface to the state of the program
+during calls to event handlers.  The ctl address space,
+provided by the <span class="id">mem</span> method, is
+an image of the contents of memory; it can be modified
+to affect future execution.  The name space map,
+provided by the
+<span class="id">nsmap</span> method, provides a
+separate name space for each binary mapped into the
+program at the current instant of execution time.  Any
+of these name spaces can be combined with the address
+space to form a domain.  Such domains are valid only at
+the instant of execution time at which they are
+created; they should not be referenced across calls to
+handlers.  A commonly used domain is the <em>executable
+domain</em>, which overlays the name space of the
+program executable over the address space.  Ctls
+provide a convenience method,
+named <span class="id">exe</span>, for constructing
+this domain.
+</p>
+
+<p>
+The context, provided by
+the <span class="id">ctx</span> method, is a pointer
+into a specially constructed domain that stores a copy
+of the registers at the current instant of execution
+time.  The <span class="id">setctx</span> method
+provides a way to change register values.
+</p>
+
+<p>
+Like many event-based systems, the execution of a
+Cinquecento program that uses
+the <span class="id">debug</span> library is controlled
+by an event loop.  This event loop is encapsulated in
+an object called a <em>sctlmux</em>.  The sctlmux
+receives notification of events from sctl servers and
+dispatches them to their corresponding handlers.  It
+manages the execution state of each ctl, ensuring that
+the corresponding execution is paused during a call an
+event handler, and resumed when it returns.
+</p>
+
+<p>
+Most programs that use the <span class="id">debug</span> library share a common basic structure:
 <ol>
 <li>Initialize a sctlmux.</li>
-<li>Launch or attach to one or more programs, yielding a corresponding ctl for each thread of execution.</li>
+<li>Launch or attach to one or more programs, yielding a corresponding ctl for each thread of execution, paused at the start of execution.</li>
 <li>Define and install handlers for various events on the ctls.</li>
-<li>Start the sctlmux event loop.</li>
+<li>Start the sctlmux event loop, resuming the paused executions.</li>
 </ol>
 </p>
 
 <p>
-Event handlers typically collect observations about the
-program execution.  They can also set or remove event
-handlers.  The event loop terminates when all ctls have
+The sctlmux event loop terminates when all ctls have
 exited.
 </p>
 
 <p>
-<span class="val">Sctl</span> supports execution
-snapshots, which represent the state of a program
-execution frozen in time.  Snapshots are useful for
-retaining access to past states of program execution
-for comparison with future states.  A snapshot is
-represented by a ctl.
+The <span class="id">debug</span> library includes a
+set of functions for building name spaces for program
+binaries, enhanced with support for accessing such
+compiler-generated debugging information as names,
+types, and location of local variables, call stack
+unwind tables, and source code location.  These
+functions are used implicitly to construct the name
+spaces of ctl name space maps, but they are also
+available for general use, even without a corresponding
+program execution.
 </p>
 
 
@@ -1018,6 +1053,9 @@ this <span class="id">Signal</span> in order to compare
 the signal number to the enumeration constant name for
 the segmentation fault signal.
 </p>
+
+</br>
+<h3>Function and method reference</h3>
 
 <h4 id="sec:ns">Constructing name spaces</h4>
 
