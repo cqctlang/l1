@@ -92,6 +92,11 @@ idxev = [
 
 	@record traprec { tid, sid, kind, args, fn };
 
+	@defloc id()
+	{
+		return cs.ctlid;
+	}
+
 	@defloc setctx(ctx)
 	{
 		cs.ctx = ctx;
@@ -695,7 +700,7 @@ idxev = [
 	@defloc dom(arg...) { mkdom(apply(ns, arg), mem()); }
 	@defloc exe() { mkdom(cs.nsmap.exe(), mem()); }
 
-	this = ctlrec(cs.ctlid,
+	this = ctlrec(id,
 		      detach,
 		      kill,
 		      cont,

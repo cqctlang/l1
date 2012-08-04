@@ -35,16 +35,16 @@
 
 	@defloc bindctl(ctl)
 	{
-		if(ctls[ctl.id])
-			error("ctl %d is already bound to mux", ctl.id);
-		ctls[ctl.id] = ctl;
+		if(ctls[ctl.id()])
+			error("ctl %d is already bound to mux", ctl.id());
+		ctls[ctl.id()] = ctl;
 	}
 
 	@defloc unbindctl(ctl)
 	{
-		if(ctls[ctl.id] == nil)
-			error("ctl %d is not bound to mux", ctl.id);
-		tabdelete(ctls, ctl.id);
+		if(ctls[ctl.id()] == nil)
+			error("ctl %d is not bound to mux", ctl.id());
+		tabdelete(ctls, ctl.id());
 	}
 
 	@defloc freshtag()
