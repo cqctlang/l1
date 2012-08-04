@@ -46,8 +46,8 @@
 
 @define ctx1()
 {
-	@local mux, ctl, exe, ctx;
-	[mux,ctl,exe] = start(["./list"]);
+	@local ctl, ctx;
+	[_,ctl,_] = start(["./list"]);
 	ctx = ctl.ctx();
 	printf("pc = %p, sp = %p, fp = %p\n",
 	       ctx->pc, ctx->sp, ctx->fp);
@@ -55,16 +55,16 @@
 
 @define ctx2()
 {
-	@local mux, ctl, exe, ctx;
-	[mux,ctl,exe] = start(["./list"]);
+	@local ctl, ctx;
+	[_,ctl,_] = start(["./list"]);
 	ctx = ctl.ctx();
 	ctl.dialect().dumpctx(ctx);
 }
 
 @define ctx3()
 {
-	@local mux, ctl, exe, ctx;
-	[mux,ctl,exe] = start(["./list"]);
+	@local ctl, ctx;
+	[_,ctl,_] = start(["./list"]);
 	ctx = ctl.ctx();
 	printtype(typedeftype(@typeof(*ctx)));
 }
@@ -240,8 +240,8 @@
 
 @define syscalls()
 {
-	@local mux, ctl, exe, enter;
-	[mux,ctl,exe] = start(["./list"]);
+	@local mux, ctl, enter;
+	[mux,ctl,_] = start(["./list"]);
 
 	@defloc handler(ctl)
 	{
@@ -261,8 +261,8 @@
 
 @define trapfork()
 {
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./forkexec", "./list"]);
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./forkexec", "./list"]);
 
 	@defloc onfork(ctl, spwn)
 	{
@@ -275,8 +275,8 @@
 
 @define trapforkexec()
 {
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./forkexec", "./list"]);
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./forkexec", "./list"]);
 
 	@defloc	onfork(ctl, spwn)
 	{
@@ -299,8 +299,8 @@
 
 @define trapforkexecexit()
 {
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./forkexec", "./forkexec", "./list"]);
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./forkexec", "./forkexec", "./list"]);
 
 	@defloc	onfork(ctl, spwn)
 	{
@@ -330,8 +330,8 @@
 
 @define trapforkexit()
 {
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./forkexec", "./list"]);
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./forkexec", "./list"]);
 
 	@defloc	onfork(ctl, spwn)
 	{
@@ -360,8 +360,8 @@
 
 @define trapsig()
 {
-	@local mux, ctl, exe;
-	[mux,ctl,exe] = start(["./listbug"]);
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./listbug"]);
 
 	@defloc handler(ctl, info)
 	{
@@ -378,11 +378,10 @@
 	mux.run();
 }
 
-@define snap()
+@define snaps()
 {
 	@local mux, ctl, exe;
-	@local h, snaps;
-	@local i;
+	@local snaps, i;
 
 	[mux,ctl,exe] = start(["./list"]);
 
@@ -391,21 +390,22 @@
 	i = 0;
 	@defloc oninsert(ctl)
 	{
-		if(i++ == 0){
-			printf("snap %d\n", ctl.id());
-			append(snaps, ctl.snap());
-		}
+		append(snaps, ctl.snap());
+		printf("took snap #%d\n", ++i);
 	}
 
 	@defloc onexit(ctl, status)
 	{
-		printf("enter onexit\n");
+		@local i;
+		printf("list has exited\n");
+		i = 0;
 		foreach(@lambda(ctl){
 				@local ctx, exe;
-				printf("ctl %d\n", ctl.id());
 				ctx = ctl.ctx();
 				exe = ctl.exe();
-				printf("insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+				printf("snap #%d: insert(0x%p, %d)\n",
+				       i++,
+				       ctx->rdi, ctx->rsi);
 				showlist((Node*){exe}ctx->rdi);
 			}, snaps);
 	}
@@ -461,15 +461,3 @@
 {
 	eval(arg[1]+"();");
 }
-
-/*
-  want interface for getting registers/context pre-cast
-  into the address space and name space.
-  
-  ctl.cast(addr) -- project addr into the right domain
-
-  {ctl}ctx->pc  -- would be ideal
-
-  ctx->pc -- somehow pre cast
-
- */

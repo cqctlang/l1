@@ -122,11 +122,6 @@ idxev = [
 		return cs.dlct;
 	}
 
-	@defloc unimpl(id)
-	{
-		error("unimplemented interface: %a", id);
-	}
-
 	@defloc simple(op)
 	{
 		@local p, m;
@@ -298,7 +293,30 @@ idxev = [
 			    ]);
 	}
 
-	@defloc snap() { unimpl('snap); } 
+	@defloc snap()
+	{
+		@local p, m;
+		@local rep, dat, id, ctx, snctl;
+
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cs.ctlid;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cs.mux.msgsync(sctl`Tsnap, dat);
+		checkreply(rep, dat, sctl`Rsnap);
+
+		p = (uint64*)dat;
+		id = *p++;
+		[ctx, p] = cs.dlct.decodectx(p);
+		
+		snctl = clonectl(id, ctx);
+		cs.mux.unbindctl(snctl);
+//	FIXME: figure out how to ensure that we can keep refs to
+//	       domains derived from ctl without a ref to ctl
+//		finalize(snctl, @lambda(snctl) { snctl.kill(); });
+		return snctl;
+	}
 
 	nexttid = 0;
 

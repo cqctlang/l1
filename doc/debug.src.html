@@ -28,6 +28,7 @@
 <a href="#sec:syscall">Trapping system calls</a><br />
 <a href="#sec:forkexecexit">Trapping fork, exec, and exit</a><br />
 <a href="#sec:signals">Trapping signals</a><br />
+<a href="#sec:snaps">Using snapshots</a><br />
 <br />
 <em>Function and method reference</em><br />
 <a href="#sec:ns">Constructing name spaces</a><br />
@@ -1055,6 +1056,28 @@ this <span class="id">Signal</span> in order to compare
 the signal number to the enumeration constant name for
 the segmentation fault signal.
 </p>
+
+<h4 id="sec:snaps">Using snapshots</h4>
+
+<p>
+Snapshots are obtained with the ctl <span class="id">snap</span> method.
+The return value is a new ctl representing a snapshot of
+the state of the ctl.  Resuming the original ctl
+has no effect on the snapshot; the snapshot remains valid for
+as long as there are references to it.
+</p>
+
+<p>
+Here we collect snapshots of the state of
+a <span class="id">list</span> execution at the entry
+to each call to <span class="id">insert</span>.  Then,
+when <span class="id">list</span> exits, we use the
+snapshots to print the state at these call sites.
+</p>
+
+@@function(../demo/examples.cqct:snaps)
+@@eval(../demo/examples.cqct:snaps)
+
 
 </br>
 <h3>Function and method reference</h3>
