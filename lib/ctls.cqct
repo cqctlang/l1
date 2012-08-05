@@ -33,6 +33,7 @@
 
 	/* domains and name spaces*/
 	ctx,
+	setctx,
 	nsmap,
 	ns,
 	dom,
@@ -729,6 +730,7 @@ idxev = [
 		      pstat,
 		      mem,
 		      ctx,
+		      setctx,
 		      nsmap,
 		      ns,
 		      dom,
