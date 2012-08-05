@@ -42,7 +42,7 @@ ns = @names clp64le {
 	} Ctx;
 
 	typedef
-	struct siginfo {
+	struct Siginfo {
 		@0x0	uint64 si_signo;
 		@0x8	uint64 si_errno;
 		@0x10	uint64 si_code;
@@ -55,7 +55,7 @@ ns = @names clp64le {
 		@0x48	uint64 si_addr;
 		@0x50	uint64 si_band;
 		@0x58;
-	} siginfo;
+	} Siginfo;
 
 	typedef
 	enum Syscall {
@@ -407,15 +407,15 @@ ns = @names clp64le {
 {
 	p = (char*)p;
 	putbytes(p, getbytes(info));
-	p += sizeof(ns`siginfo);
+	p += sizeof(ns`Siginfo);
 	return p;
 }
 
 @defloc decodesiginfo(p)
 {
 	@local info;
-	p = (ns`siginfo*)p;
-	info = (ns`siginfo*)getbytes(p);
+	p = (ns`Siginfo*)p;
+	info = (ns`Siginfo*)getbytes(p);
 	p++;
 	return [info, p];
 }
@@ -445,12 +445,12 @@ ns = @names clp64le {
 sctlx86linux = sctldialectrec("x86-linux-2010",
 			      ns,
 			      @typeof(ns`Ctx),
-			      @typeof(ns`siginfo),
+			      @typeof(ns`Siginfo),
+			      @typeof(ns`Syscall),
+			      @typeof(ns`Signal),
 			      decodectx,
 			      encodectx,
 			      decodesiginfo,
 			      encodesiginfo,
-			      dumpctx,
-			      @typeof(ns`Syscall),
-			      @typeof(ns`Signal));
+			      dumpctx));
 }

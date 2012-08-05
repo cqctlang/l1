@@ -12,14 +12,14 @@
 	name,
 	ns,
 	Ctx,
-	siginfo,
+	Siginfo,
+	Syscall,
+	Signal,
         decodectx,
 	encodectx,
         decodesiginfo,
 	encodesiginfo,
 	dumpctx,
-	Syscall,
-	Signal
 };
 {
 @local EINTR, ECONNRESET;
