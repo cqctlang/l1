@@ -15,6 +15,7 @@
 <a href="#sec:introduction">Introduction</a><br />
 <br />
 <em>User guide</em><br />
+<br />
 <a href="#sec:overview">Overview</a><br />
 <a href="#sec:getstarted">Getting started</a><br />
 <a href="#sec:breakpoints">Setting breakpoints</a><br />
@@ -31,6 +32,7 @@
 <a href="#sec:snaps">Using snapshots</a><br />
 <br />
 <em>Function and method reference</em><br />
+<br />
 <a href="#sec:ns">Constructing name spaces</a><br />
 <a href="#sec:sctlmux">Sctlmux</a><br />
 <a href="#sec:ctls">Ctls</a><br />
@@ -57,7 +59,7 @@ program executables and program executions.
 </p>
 
 <p>
-The <span class="id">debug</span> library is a client of the services
+The <span class="id">debug</span> library is a client of
 of <span class="val">sctl</span>, a server for
 controlling program executions and for accessing symbols
 and other debugging information from program binaries.
@@ -79,8 +81,8 @@ just one style &mdash; an effective but rather traditional one.
 <p>
 This manual is split in two parts.  The first part is a
 user guide, providing a conceptual overview of how the
-library is used and a series of examples on elementary
-operations.  The second part is a reference manual for
+library is used and a series of illustrations of elementary
+operation.  The second part is a reference manual for
 the functions and methods provided by the library.
 </p>
 
@@ -98,11 +100,17 @@ instances of one or more multi-threaded programs.
 
 <p>
 The library is centered around a Cinquecento object,
-called a <em>ctl</em>, that represents a thread of execution.
-Generally there is one ctl for
-each thread in each program execution being debugged.
-The <span class="id">debug</span> library maps operations on each ctl to
-messages that it exchanges with the sctl server.
+called a <em>ctl</em>, that represents a thread of
+execution.  Generally there is one ctl for each thread
+in each program execution being debugged.
+The <span class="id">debug</span> library maps
+operations on each ctl to messages that it exchanges
+with the sctl server.  This mapping is performed by
+another object, called a <em>sctlmux</em>, that
+multiplexes a set of ctls to a remote sctl.  A typical
+Cinquecento program that uses
+the <span class="id">debug</span> library creates one
+sctlmux for the lifetime of the program.
 </p>
 
 <center>
@@ -121,9 +129,9 @@ terminated.
 <p>
 Ideally, we think of a ctl as a sort of slider that can
 be positioned at any instant along the interval of time
-in which the program executes.  Wherever it is
-positioned, the ctl reflects the state of the target
-execution at that point in time.  This state is
+in which the corresponding program executes.  Wherever
+it is positioned, the ctl reflects the state of the
+target execution at that point in time.  This state is
 decomposed into three major logical parts:
 the <em>context</em> representing the state of the CPU
 registers, the <em>address space</em> representing the
@@ -153,7 +161,7 @@ library loading and unloading, system calls, signals,
 and termination.  Associated with each trap is a
 user-defined handler function that is called when the
 event occurs.  The ctl corresponding to the thread and
-instant of time at which the event occurred is passed
+the instant of time at which the event occurred is passed
 to the handler function.  Execution of the thread is
 suspended for the duration of the handler function
 call.  During this time, the handler may examine the
@@ -164,15 +172,15 @@ communicate program state to future handler calls.
 </p>
 
 <p>
-Each ctl also provides the raw ingredients for
-constructing Cinquecento domains, which are generally
-used as a symbolic interface to the state of the program
-during calls to event handlers.  The ctl address space,
-provided by the <span class="id">mem</span> method, is
-an image of the contents of memory; it can be modified
-to affect future execution.  The name space map,
-provided by the
-<span class="id">nsmap</span> method, provides a
+Each ctl also provides ingredients for constructing
+Cinquecento domains, providing a symbolic interface to
+the state of the program during calls to event
+handlers.  The address space of the ctl, provided by
+the <span class="fnindex"><a href="#fn:ctlmem">mem</a></span>
+method, is an image of the contents of memory;
+modifications affect future execution.  The name space
+map, provided by the
+<span class="fnindex"><a href="#fn:ctlnsmap">nsmap</a></span> method, provides a
 separate name space for each binary mapped into the
 program at the current instant of execution time.  Any
 of these name spaces can be combined with the address
@@ -183,17 +191,32 @@ handlers.  A commonly used domain is the <em>executable
 domain</em>, which overlays the name space of the
 program executable over the address space.  Ctls
 provide a convenience method,
-named <span class="id">exe</span>, for constructing
+named <span class="fnindex"><a href="#fn:ctlexe">exe</a></span>, for constructing
 this domain.
 </p>
 
 <p>
 The context, provided by
-the <span class="id">ctx</span> method, is a pointer
+the <span class="fnindex"><a href="#fn:ctlctx">ctx</a></span> method, is a pointer
 into a specially constructed domain that stores a copy
 of the registers at the current instant of execution
-time.  The <span class="id">setctx</span> method
+time.  The <span class="fnindex"><a href="#fn:ctlsetctx">setctx</a></span> method
 provides a way to change register values.
+</p>
+
+<p>
+Although most of the interfaces of the ctl are designed
+to be independent of the architecture and operating
+system of the target execution, some dependencies are
+unavoidable.  The <em>dialect</em> of a ctl collects
+specifications of these platform-specific dependencies
+into a single record.  It includes structure type
+definitions for the context and signal event
+information, and enumeration type definitions for the
+set of valid system calls and signal numbers.  The
+library implicitly uses the dialect for various
+purposes, but it is avaliable for general use
+through the ctl <span class="fnindex"><a href="#fn:ctldialect">dialect</a></span> method.
 </p>
 
 <p>
@@ -201,7 +224,7 @@ Like many event-based systems, the execution of a
 Cinquecento program that uses
 the <span class="id">debug</span> library is controlled
 by an event loop.  This event loop is encapsulated in
-an object called a <em>sctlmux</em>.  The sctlmux
+the sctlmux.  The sctlmux
 receives notification of events from sctl servers and
 dispatches them to their corresponding handlers.  It
 manages the execution state of each ctl, ensuring that
@@ -301,7 +324,7 @@ same host as the Cinquecento program.
 
 <p>
 The second line of <span class="id">getstarted</span> launches our sample
-program.  Ctllaunch directs the sctl associated with
+program.  <span class="fnindex"><a href="#fn:ctllaunch">Ctllaunch</a></span> directs the sctl associated with
 <span class="id">mux</span> to create a new process.
 The second argument specifies the command this new
 process should execute, in a manner similar to the list
@@ -334,32 +357,31 @@ initialization.
 
 <p>
 The third line of <span class="id">getstarted</span>
-starts the execution by starting the sctl mux event
-loop.  The run method tells the mux to resume the
+starts the execution by starting the sctlmux event
+loop.  The <span class="fnindex"><a href="#fn:sctlmuxrun">run</a></span> method tells the mux to resume the
 program launched by the ctllaunch and to block until it
 has exited.  If we had launched more than one program
-with additional calls to ctlmux, these would all be
+with additional calls to <span class="id">ctllaunch</span>, these would all be
 resumed simultaneously, and the call to run would block
 until they all exited.  If we had registered any
 handlers for executions events, as we will do in all of
-the following examples, the mux would dispatch these
-events in the context of the call to run.
-</p>
-
-<p>
-In summary, calling getstarted launches our sample program
-and waits for it to exit.  It yields no output.
+the following examples, the sctlmux would dispatch these
+events in the dynamic extent of the call to <span class="id">run</span>.
 </p>
 
 @@eval(../demo/examples.cqct:getstarted)
 
 <p>
 Many debugging programs focus on the code and data of
-the program executable (rather than its libraries).
-The <em>exe domain</em> is a domain whose address space
-is the process memory and whose name space represents
-the symbols and types of the executable.  The exe
-method of a ctl object returns an exe domain.
+the program executable (rather than its libraries).  We
+say the <em>executable domain</em> is a domain whose
+address space is the process memory and whose name
+space represents the symbols and types of the
+executable.
+The <span class="fnindex"><a href="#fn:ctlexe">exe</a></span>
+method of a ctl object returns a copy of executable
+domain for the current state of the associated
+execution.
 </p>
 
 <p>
@@ -380,10 +402,10 @@ receives the argument list to pass to ctlaunch as an argument,
 binds the ctl returned from ctllaunch to a variable,
 </li>
 <li>
-obtains the exe domain from the ctl, and
+obtains the executable domain from the ctl, and
 </li>
 <li>
-returns three values: the sctlmux, the ctl, and the exe domain.
+returns three values: the sctlmux, the ctl, and the executable domain.
 </li>
 </ol>
 </p>
@@ -392,7 +414,7 @@ returns three values: the sctlmux, the ctl, and the exe domain.
 <h4 id="sec:breakpoints">Setting breakpoints</h4>
 
 <p>
-Traps are set with the <span class="id">trap</span>
+Traps are set with the <span class="fnindex"><a href="#fn:ctltrap">trap</a></span>
 method of the ctl object.  The first argument is a
 <a href="man.html#sec:cids">cid</a>
 that identifies the kind of trap to set.
@@ -415,7 +437,7 @@ in <span class="id">list</span>.
 
 <p>
 The expression <span class="val">&exe`main</span> and
-the others like it use the exe domain to obtain the
+the others like it use the executable domain to obtain the
 address of functions in the executable.  The handlers
 are called as execution reaches these addresses.
 </p>
@@ -425,7 +447,7 @@ are called as execution reaches these addresses.
 <p>
 As illustrated in the
 output, <span class="val">brkentry</span> returns only
-after the call to the <span class="val">run</span>
+after the call to the <span class="fnindex"><a href="#fn:sctlmuxrun">run</a></span>
 method of <span class="val">mux</span>, which in turn
 returns when the target program execution terminates.
 </p>
@@ -443,7 +465,7 @@ moment of the event.
 <p>
 The current values of the registers are available in an
 value called a <em>context</em>, which is returned by
-the <span class="id">ctx</span> method of a ctl.
+the <span class="fnindex"><a href="#fn:ctlctx">ctx</a></span> method of a ctl.
 </p>
 
 <p>
@@ -466,15 +488,16 @@ selects a definition of <span class="id">Ctx</span>
 suitable for the target machine, along with other
 machine and system dependencies, such as the
 mapping from system call number to name.  All of these
-dependencies are captured in a record called
-the <em>dialect</em> of the ctl, which is returned by
-its <span class="id">dialect</span> method.
+dependencies are captured in the
+<em>dialect</em> of the ctl, which is returned by
+its <span class="fnindex"><a href="#fn:ctldialect">dialect</a></span>
+method.
 </p>
 
 <p>
 The dialect record includes a convenience function
-called <span class="id">dumpctx</span> that prints the
-names and values of commonly referenced
+called <span class="fnindex"><a href="#fn:ctldialect">dumpctx</a></span>
+that prints the names and values of commonly referenced
 machine-specific fields of
 a <span class="id">Ctx</span>.  Here is usage on a
 64-bit x86 target.
@@ -499,8 +522,10 @@ enough to hold a copy of the register values.  Updates
 to these values, made for example by assigning to the
 fields of the context structure, are not automatically
 written back to the registers in the target execution.
-Use the <span class="id">setctx</span> method to
-propagate an updated context to the target execution.
+Use
+the <span class="fnindex"><a href="#fn:ctlsetctx">setctx</a></span>
+method to propagate an updated context to the target
+execution.
 </p>
 
 <h4 id="sec:args">Accessing function arguments</h4>
@@ -571,51 +596,44 @@ operator</a> to cast the pointer value into the exe
 domain.  Recall that every context is stored in a
 freshly allocated address space, never the address
 space of the target execution.  We cannot meaningfully
-dereference rdi in this address space.  Casting it to
-the exe domain allows us to dereference the value in
+dereference <span class="id">rdi</span> in this address space.  Casting it to
+the executable domain allows us to dereference the value in
 the address space of the target execution.
 </p>
 
 <p>
 The second cast is a use of the ordinary C cast operator
-to change the type of the rdi value to Node*.
-As we saw we ctx3, the type of the register in a context
+to change the type of the rdi value to <span class="val">Node*</span>.
+As we saw we <span class="id">ctx3</span>, the type of the register in a context
 field is an integer type, not a pointer type.  We need
 a pointer type in order to dereference.  In addition,
-by casting to Node* type, the pointer type is actually
+by casting to <span class="val">Node*</span> type, the pointer type is actually
 the right type for examining the fields of the structure.
 </p>
 
 <p>
 The order of these cast operations is significant.  The
-definition of the type Node* that we wanted is the one
-from the exe domain.  When performing a type cast,
-Cinquecento determines the definition of the type from
-the domain of the value.  Had we switched the order of
-the cast operations, we would have attempted to look up
-the definition of Node* from the domain of the context
-value.
+definition of the type <span class="val">Node*</span>
+that we wanted is the one from the executable domain.
+When performing a type cast, Cinquecento determines the
+definition of the type from the domain of the value.
+Had we switched the order of the cast operations, we
+would have attempted to look up the definition
+of <span class="val">Node*</span> from the domain of
+the context value.
 </p>
 
 <p>
 The above example has what might seem like a redundant
-construction of the exe domain.  We already computed
-the exe domain from the start call; why not use it the
-handler?  While such a usage would work today, we avoid
-it as a matter of style.  We view each domain as
-representing a moment in time of execution.  The exe
-returned from start represents the execution domain at
-the start of the execution.  The handler function, in
-contrast, is called <em>each time</em> the insert
-function is called -- each a different moment of time.
-While today the implementation of exe domain does not
-reflect this -- each domain backed by a ctl address
-space always reflects the latest state of the target,
-this may change in future incarnations of programming
-libraries.  The snapshot domains described later
-already reflect moments in time.  As a matter of style,
-we recommend always thinking of domains as moment in
-time.
+construction of the executable domain.  We already computed
+the executable domain from the start call; why not use
+it the handler?  Each domain represents a moment in
+time of execution.  The executable domain returned
+from <span class="id">start</span> represents the
+execution domain at the start of the execution.  The
+handler function, in contrast, is called <em>each
+time</em> the insert function is called &mdash; each a
+different instant of execution time.
 </p>
 
 <h4 id="sec:ret">Trapping function return</h4>
@@ -658,8 +676,8 @@ by dereferencing the stack pointer.  We can then trap
 the return event by placing a breakpoint on the return
 address.  This should be a <em>one-shot</em> breakpoint
 that we clear after it fires, since the next return
-event may be from a different call site that we will
-discover by repeating this process.
+event may be from a different call site that we can
+discover only by repeating this process.
 </p>
 
 <p>
@@ -672,16 +690,16 @@ to <span class="id">insert</span>.
 @@eval(../demo/examples.cqct:brkreturn)
 
 <p>
-This example demonstrates several techniques that
-combine to trap the return of each call
+This example demonstrates several techniques whose
+combination traps the return of each call
 to <span class="id">insert</span>.
 
 We set a trap on the entry
 to <span class="id">insert</span>.  The handler reads
 the return address by casting the stack pointer into
-the exe domain.  Since this dereference should yield an
+the executable domain.  Since this dereference should yield an
 address, the stack pointer is cast
-to <span class="id">void**</span>.
+to <span class="val">void**</span>.
 We then set a breakpoint on the return address.
 To make this breakpoint a one-shot breakpoint,
 we capture the trap identifier returned
@@ -724,13 +742,13 @@ realities, the above technique is good enough.
 
 <p>
 While the preceding examples illustrate fundamental
-usage of the debug library, they represent a tedious
+usage of the <span class="id">debug</span> library, they represent a tedious
 and low-level approach to the frequently performed task
 of trapping function call and return events.
 </p>
 
 <p>
-The debug library provides three convenience functions
+The <span class="id">debug</span> library provides three convenience functions
 that simplify function call and return event
 programming.  These functions have three advantages
 over the previous approach.
@@ -814,16 +832,17 @@ instead the call event handler returns
 <h4 id="sec:unwind">Unwinding the stack</h4>
 
 <p>
-The <span class="id">unwind</span> method of a ctl
-unwinds the call stack.  It returns a list of contexts,
-one for each stack frame, each representing the state
-of the registers at the time of the corresponding call.
-This state includes the return address, stack pointer,
-and frame pointer of the corresponding call.  If
-sufficient debugging information is available (such as
-DWARF unwind tables), the contexts may also reflect the
-other saved registers suitable for recovering the
-values of local variables stored in registers.
+The <span class="fnindex"><a href="#fn:ctlunwind">unwind</a></span>
+method of a ctl unwinds the call stack.  It returns a
+list of contexts, one for each stack frame, each
+representing the state of the registers at the time of
+the corresponding call.  This state includes the return
+address, stack pointer, and frame pointer of the
+corresponding call.  If sufficient debugging
+information is available (such as DWARF unwind tables),
+the contexts may also reflect the other saved registers
+suitable for recovering the values of local variables
+stored in registers.
 </p>
 
 <p>
@@ -844,16 +863,16 @@ and line number of the call site in source code.
 Every valid context corresponds to a point in program
 execution in which a certain set of local variables are
 defined.  Given a valid context, the ctl
-method <span class="id">ldom</span> makes available the
-names, types, location, and values of its associated
-local variables as a dynamically constructed <em>local
-domain</em>.  The local domain is like any other
-domain, except that its name space is limited to local
-variables.
+method <span class="fnindex"><a href="#fn:ctlldom">ldom</a></span>
+makes available the names, types, location, and values
+of its associated local variables as a dynamically
+constructed <em>local domain</em>.  The local domain is
+like any other domain, except that its name space is
+limited to local variables.
 </p>
 
 <p>
-The contexts returned by <span class="id">unwind</span>
+The contexts returned by <span class="fnindex"><a href="#fn:ctlunwind">unwind</a></span>
 are each suitable arguments
 for <span class="id">ldom</span>.  However, 
 <span class="id">ldom</span> depends on the presence of
@@ -976,7 +995,7 @@ fired on the ctl corresponding to its forked child.
 <p>
 To obtain the name of the newly executed program, the
 onexec handler queries the nsmap for the file name
-corresponding to the name space of the exe domain.
+corresponding to the name space of the executable domain.
 </p>
 
 <p>
@@ -1035,14 +1054,14 @@ this bug causes a segmentation fault.
 
 <p>
 The handler is passed a pointer to a structure of
-type <span class="id">siginfo</span> that stores
+type <span class="id">Siginfo</span> that stores
 information about the signal event.  Like
 the <span class="id">Ctx</span> structure, the dialect
 of the ctl determines the definition
-of <span class="id">siginfo</span>.  On Unix platforms,
+of <span class="id">Siginfo</span>.  On Unix platforms,
 the <span class="id">si_signo</span> field gives the
 integer signal number.  The meaning of the other fields of
-the <span class="id">siginfo</span> depend on the 
+the <span class="id">Siginfo</span> depend on the 
 value of <span class="id">si_signo</span>;
 see a Unix manual for details.
 </p>
@@ -1063,11 +1082,13 @@ the segmentation fault signal.
 <h4 id="sec:snaps">Using snapshots</h4>
 
 <p>
-Snapshots are obtained with the ctl <span class="id">snap</span> method.
-The return value is a new ctl representing a snapshot of
-the state of the ctl.  Resuming the original ctl
-has no effect on the snapshot; the snapshot remains valid for
-as long as there are references to it.
+Snapshots are obtained with the
+ctl <span class="fnindex"><a href="#fn:ctlsnap">snap</a></span>
+method.  The return value is a new ctl representing a
+snapshot of the state of the ctl.  Resuming the
+original ctl has no effect on the snapshot; the
+snapshot remains valid for as long as there are
+references to it.
 </p>
 
 <p>
@@ -1088,7 +1109,7 @@ snapshots to print the state at these call sites.
 <h4 id="sec:ns">Constructing name spaces</h4>
 
 <p>
-The debug library defines two functions for constructing
+The <span class="id">debug</span> library defines two functions for constructing
 Cinquecento name spaces backed by a sctl server:
 </p>
 
@@ -1148,18 +1169,17 @@ does not exist.
 <h4 id="sec:sctlmux">Sctlmux</h4>
 
 <p>
-When used for program debugging executions,
-the <span class="id">debug</span> library is based on
-event-based programming model.  Associated with a
-sctlmux is a set of <em>bound</em> ctls that are under
-its control.  Operations on bound ctls are mapped to
+Usage of the <span class="id">debug</span> library is
+based on event-based programming model, managed by an
+instance of the sctlmux object.  Associated with each
+sctlmux is a set of <em>bound</em> ctls under its
+control.  Operations on bound ctls are mapped to
 requests sent to the sctl that controls the target
-execution.  The sctl sends event messages to the
-sctlmux as trapped events occur in target executions;
-the sctlmux dispatches these to event handlers
-registered on the ctls.  The sctlmux encapsulates the
-event loop that multiplexes this activity across
-multiple ctls and the remote sctl.
+execution.  The sctl in turn sends messages announcing
+events that have occurred in the target execution,
+which are dispatched to event handlers in the
+associated ctl.  The sctlmux multiplexes these
+activities across multiple ctls.
 </p>
 
 <div class="docitem" id="fn:mksctlmux">
@@ -1304,13 +1324,100 @@ the ctl.
 </div>
 </div>
 <div class="desc">
-Returns the current context of the ctl.
-The context is represented as a pointer
-into a domain that is a buffer backed
-by the remote register set.  This weakly
-consistent: when the ctl is stopped
-(i.e., in a handler affecting the ctl
-or in a snapshot) the view is consistent.
+Returns the current context of the ctl.  The context is
+represented as a pointer into a domain, disjoint from
+the address space of the ctl, that contains a copy of
+the remote register set.  The pointer points to a
+structure of type <span class="id">Ctx</span>, which is
+defined in the dialect record returned by
+<span class="fnindex"><a href="#fn:ctldialect">dialect</a></span>
+method of the ctl.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlsetctx">
+<div class="proto">
+<div class="function">
+<span class="id">setctx(<span class="arg">ctx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ctx</span>: <span class="type">context</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Updates the current context of the ctl to <span class="arg">ctx</span>.
+The context should be a modified instance of the context returned
+by the <span class="fnindex"><a href="#fn:ctlctx">ctx</a></span> method.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctldialect">
+<div class="proto">
+<div class="function">
+<span class="id">dialect()</span>
+</div>
+<div class="returns">
+<span class="type">dialect record</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Returns the dialect of the ctl.
+The definition of the dialect record includes
+at least the following fields:
+</p>
+
+<div class="code" id="rec:dialectrec">
+<pre>
+@record sctldialectrec {
+	name,
+	ns,
+	Ctx,
+	Siginfo,
+	Syscall,
+	Signal,
+	dumpctx
+};
+</pre>
+</div>
+
+<span class="id">Name</span> is a string specifying the name of the dialect.
+<span class="id">ns</span> is the name space in which all dialect types and enumerations are defined.
+<span class="id">Ctx</span> is the structure type definition (ctype) for the context type, and <span class="id">Siginfo</span> is the structure type definition (ctype) for the signal information type.
+<span class="id">Syscall</span> is an enumeration type that defines names for each valid system call number,
+and <span class="id">Signal</span> is an enumeration type that defines names for each valid signal number.
+<span class="id">Dumpctx</span> is a function that prints the fields of a context.
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlcast">
+<div class="proto">
+<div class="function">
+<span class="id">cast(<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Returns <span class="arg">addr</span> cast into a domain
+suitable for dereferencing within the address space of
+the ctl.  If <span class="arg">addr</span> seems to be
+associated with a particular name space (as determined
+by <span class="fnindex"><a href="#fn:ctlns">ns</a></span>),
+<span class="arg">addr</span> is cast into a
+domain formed from that name space and the address
+space of the ctl.  Otherwise
+<span class="arg">addr</span> is cast into a
+domain formed from the name space of
+<span class="arg">addr</span> and the address space
+of the ctl.
 </div>
 </div>
 
@@ -1351,7 +1458,7 @@ instead of resuming it.
 <span class="id">stat()</span>
 </div>
 <div class="returns">
-<span class="type">record</span>
+<span class="type">stat record</span>
 </div>
 </div>
 <div class="desc">
@@ -1459,7 +1566,10 @@ method (i.e., the current address space of the target).
 </div>
 </div>
 <div class="desc">
-Returns a ctl representing a snapshot of the target process.
+Returns a ctl representing a snapshot of the target
+process.  Regardless of when the original ctl
+terminates, the snapshot remains valid until there are
+no remaining references to it.
 </div>
 </div>
 
@@ -1614,7 +1724,7 @@ instead of the ctl for the trapping ctl.
 On Unix systems, <span class="val">brk</span>
 and <span class="val">snap</span> traps are
 automatically cleared whenever the target successfully
-returns from an exec system call.
+returns from an <span class="id">exec</span> system call.
 </dd>
 
 <dt><span class="val">exit</span></dt>
@@ -1763,11 +1873,12 @@ reply:
 <ul>
 <li>
 the mapping from enumeration representation to a
-corresponding base type, passed to mkctype_enum;
+corresponding base type, passed
+to <span class="fnindex"><a href="man.html#fn:mkctype_enum">mkctype_enum</a></span>;
 </li>
 <li>
 the representation of the pointer type, passed
-to mkctype_ptr.
+to <span class="fnindex"><a href="man.html#fn:mkctype_ptr">mkctype_ptr</a></span>.
 </li>
 </ul>
 
@@ -2218,7 +2329,9 @@ path name and base address.
 </p>
 
 <p>
-To use nsmaps, <span class="val">@include
+To use nsmaps outside of
+the <span class="id">debug</span>
+library, <span class="val">@include
 &lt;nsmap.cqct&gt;</span> in your program.  The library
 defines one function:
 </p>
@@ -2359,7 +2472,6 @@ It returns <span class="val">nil</span> if no name space matches.
 </div>
 </div>
 
-
 <div class="docitem">
 <div class="proto">
 <div class="function"  id="fn:nsmapbyname">
@@ -2386,6 +2498,47 @@ matches.
 </div>
 </div>
 
+<div class="docitem">
+<div class="proto">
+<div class="function" id="fn:nsmapnsbase">
+<span class="id">nsbase(<span class="arg">ns</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method returns the base address associated with
+the name space <span class="arg">ns</span> in the
+nsmap.  It returns <span class="val">nil</span> if no
+mapping matches <span class="arg">ns</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function" id="fn:nsmapnspath">
+<span class="id">nspath(<span class="arg">ns</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">name space</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+This method returns the path associated with the name
+space <span class="arg">ns</span> in the nsmap.  It
+returns <span class="val">nil</span> if no mapping
+matches <span class="arg">ns</span>.
+</div>
+</div>
 
 <div class="docitem">
 <div class="proto">
@@ -2419,7 +2572,7 @@ of <span class="id">fn</span> is ignored.
 </div>
 </div>
 <div class="desc">
-This returns a new nsmap that is a copy of the nsmap.
+This method returns a new nsmap that is a copy of the nsmap.
 Subsequent updates to either one of the nsmaps has
 no effect on the other.
 </div>
@@ -2430,17 +2583,19 @@ no effect on the other.
 <div class="id">
 <div class="index">
 <div class="fnindex">
-<a href="#fn:sctlmuxabort">abort (sctlmux)</a> (ctl)<br />
+<a href="#fn:sctlmuxabort">abort</a> (sctlmux)<br />
 <a href="#fn:nsmapadd">add</a> (nsmap)<br />
 <a href="#fn:atnames">atnames</a> (nsmap)<br />
 <a href="#fn:nsmapbyaddr">byaddr</a> (nsmap)<br />
 <a href="#fn:nsmapbyname">byname</a> (nsmap)<br />
+<a href="#fn:ctlcast">cast</a> (ctl)<br />
 <a href="#fn:ctlclear">clear</a> (nsmap)<br />
 <a href="#fn:nsmapcopy">copy</a> (nsmap)<br />
 <a href="#fn:ctllaunch">ctllaunch</a> (nsmap)<br />
 <a href="#fn:ctlctx">ctx</a> (ctl)<br />
 <a href="#fn:nsmapdel">del</a> (nsmap)<br />
 <a href="#fn:ctldetach">detach</a> (ctl)<br />
+<a href="#fn:ctldialect">dialect</a> (ctl)<br />
 <a href="#fn:ctldom">dom</a> (ctl)<br />
 <a href="#fn:nsmapeach">each</a> (nsmap)<br />
 <a href="#fn:ctlexe">exe</a> (ctl)<br />
@@ -2454,8 +2609,11 @@ no effect on the other.
 <a href="#fn:mknsmap">mknsmap</a><br />
 <a href="#fn:mksctlns">mksctlns</a><br />
 <a href="#fn:ctlns">ns</a> (ctl)<br />
+<a href="#fn:nsmapnsbase">nsbase</a> (nsmap)<br />
 <a href="#fn:ctlnsmap">nsmap</a> (ctl)<br />
+<a href="#fn:nsmapnspath">nspath</a> (nsmap)<br />
 <a href="#fn:sctlmuxrun">run (sctlmux)</a> (ctl)<br />
+<a href="#fn:ctlsetctx">setctx</a> (nsmap)<br />
 <a href="#fn:nsmapsetexe">setexe</a> (nsmap)<br />
 <a href="#fn:sctlenumloc">sctlenumloc</a><br />
 <a href="#fn:sctlenumsym">sctlenumsym</a><br />
