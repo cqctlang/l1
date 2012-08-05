@@ -375,3 +375,31 @@
 {
 	eval(arg[1]+"();");
 }
+
+@define testexamples()
+{
+	@locals exs;
+
+	exs = [ getstarted,
+		brkentry,
+		ctx1,
+		ctx2,
+		ctx3,
+		args1,
+		args2,
+		brkreturn,
+		brkexample,
+		rbrkexample,
+		brbrkexample,
+		unwind,
+		locals,
+		syscalls,
+		trapfork,
+		trapforkexec,
+		trapforkexecexit,
+		trapsig,
+		snaps
+	];
+
+	foreach(@lambda(ex) { ex(); }, exs);
+}

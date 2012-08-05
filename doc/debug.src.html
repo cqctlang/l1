@@ -15,7 +15,6 @@
 <a href="#sec:introduction">Introduction</a><br />
 <br />
 <em>User guide</em><br />
-<br />
 <a href="#sec:overview">Overview</a><br />
 <a href="#sec:getstarted">Getting started</a><br />
 <a href="#sec:breakpoints">Setting breakpoints</a><br />
@@ -31,16 +30,15 @@
 <a href="#sec:signals">Trapping signals</a><br />
 <a href="#sec:snaps">Using snapshots</a><br />
 <br />
-<em>Function and method reference</em><br />
-<br />
-<a href="#sec:ns">Constructing name spaces</a><br />
+<em>Reference</em><br />
+<a href="#sec:ns">Name spaces served by sctl</a><br />
 <a href="#sec:sctlmux">Sctlmux</a><br />
 <a href="#sec:ctls">Ctls</a><br />
-<a href="#sec:sctlns">Interfaces to sctl</a><br />
+<a href="#sec:tools">Trap handler tools</a><br />
+<a href="#sec:sctlns">Low-level sctl</a><br />
 <a href="#sec:nsmap">Name space maps</a><br />
-<a href="#sec:fnindex">Function Index</a><br />
 <br />
-<a href="#sec:fnindex">Index</a><br />
+<a href="#sec:fnindex">Function and method index</a><br />
 
 </div>
 
@@ -79,11 +77,20 @@ just one style &mdash; an effective but rather traditional one.
 </p>
 
 <p>
-This manual is split in two parts.  The first part is a
+This manual is split into two parts.  The first part is a
 user guide, providing a conceptual overview of how the
 library is used and illustrations of elementary
 operation.  The second part is a reference manual for
 the functions and methods provided by the library.
+</p>
+
+<p>
+While this manual focuses on 
+debugging program executions,
+the <span class="id">debug</span> library also includes
+functions for constructing standalone name spaces
+served by sctl.  Readers seeking that functionality
+should <a href="#sec:ns">skip ahead</a>.
 </p>
 
 <h3 id="sec:userguide">User guide</h4>
@@ -109,8 +116,7 @@ with the sctl server.  This mapping is performed by
 a <em>sctlmux</em>, an object that multiplexes a set of
 ctls to a remote sctl.  A typical Cinquecento program
 that uses the <span class="id">debug</span> library
-creates one sctlmux for the lifetime of the program
-that manages any number of ctls.
+creates one sctlmux to manage any number of ctls.
 </p>
 
 <center>
@@ -248,20 +254,6 @@ common structure:
 The sctlmux event loop terminates when all ctls have
 exited.
 </p>
-
-<p>
-The <span class="id">debug</span> library includes a
-set of functions for building name spaces for program
-binaries, enhanced with support for accessing such
-compiler-generated debugging information as names,
-types, and location of local variables, call stack
-unwind tables, and source code location.  These
-functions are used implicitly to construct the name
-spaces of ctl name space maps, but they are also
-available for general use, even without a corresponding
-program execution.
-</p>
-
 
 
 <h4 id="sec:getstarted">Getting started</h4>
@@ -570,11 +562,12 @@ of the list.
 @@eval(../demo/examples.cqct:args2)
 
 <p>
-The new function <span class="id">showlist</span> prints
-a list given a pointer to the first element.  But the
-pointer we passed to this function is not simply the
-value of rdi from the context.  Instead, we perform two casting
-operations to this pointer before passing it to 
+The new function <span class="id">showlist</span>
+prints a list given a pointer to the first element.
+But the pointer we passed to this function is not
+simply the value of <span class="id">rdi</span> from
+the context.  Instead, we perform two casting
+operations to this pointer before passing it to
 <span class="id">showlist</span>:
 </p>
 
@@ -598,13 +591,17 @@ the address space of the target execution.
 </p>
 
 <p>
-The second cast is a use of the ordinary C cast operator
-to change the type of the rdi value to <span class="val">Node*</span>.
-As we saw we <span class="id">ctx3</span>, the type of the register in a context
-field is an integer type, not a pointer type.  We need
-a pointer type in order to dereference.  In addition,
-by casting to <span class="val">Node*</span> type, the pointer type is actually
-the right type for examining the fields of the structure.
+The second cast is a use of the ordinary C cast
+operator to change the type of
+the <span class="id">rdi</span> value
+to <span class="val">Node*</span>.  As we saw
+in <span class="id">ctx3</span>, the type of the
+register in a context field is an integer type, not a
+pointer type.  We need a pointer type in order to
+dereference.  In addition, by casting
+to <span class="val">Node*</span> type, the pointer
+type is actually the right type for examining the
+fields of the structure.
 </p>
 
 <p>
@@ -622,14 +619,15 @@ the context value.
 <p>
 The above example has what might seem like a redundant
 construction of the executable domain.  We already
-computed the executable domain from the start call; why
-not use it the handler?  Each domain represents a
-specific instant in execution time.  The executable
-domain returned from <span class="id">start</span>
-represents the execution domain at the start of the
-execution.  The handler function, in contrast, is
-called <em>each time</em> the insert function is called
-&mdash; each a different instant of execution time.
+computed the executable domain with
+the <span class="id">start</span> call; why not use it
+in the handler?  Each domain represents a specific
+instant in execution time.  The executable domain
+returned from <span class="id">start</span> represents
+the executable domain at the start of the execution.
+The handler function, in contrast, is called <em>each
+time</em> the insert function is called &mdash; each a
+different instant of execution time.
 </p>
 
 <h4 id="sec:ret">Trapping function return</h4>
@@ -1097,11 +1095,50 @@ snapshots to print the state at these call sites.
 
 <h3>Function and method reference</h3>
 
-<h4 id="sec:ns">Constructing name spaces</h4>
+<h4 id="sec:ns">Name spaces served by sctl</h4>
 
 <p>
-The <span class="id">debug</span> library defines two functions for constructing
-Cinquecento name spaces backed by a sctl server:
+The <span class="id">debug</span> library supports the
+construction of standalone name spaces from program
+binaries, without depending on an associated execution.
+This functionality does not involve ctls or sctlmuxes.
+</p>
+
+<p>
+This functionality uses the sctl protocol to access
+name space information from a remote sctl service.
+Abstractly, the client provides sctl the path name of a
+program binary, and sctl returns a name space; we say
+these name spaces are "served by sctl".  In contrast to
+name spaces constructed with
+the <a href="man.html#sec:_at_names"><span class="id">@names</span></a></span>
+syntax and "names files", a sctl server is free to use
+any approach to supply name space information, such as
+reading it directly from the binary, without requiring
+the Cinquecento programmer to know or understand the
+details.
+</p>
+
+<p>
+Programs only interested in this name space
+functionality may prefer to <span class="val">@include
+&lt;sctlns.cqct&gt;</span>; this avoids the overhead
+and potential top-level naming conflicts of loading the
+full <span class="id">debug</span> library.
+Loading <span class="val">&lt;debug.cqct&gt;</span>
+implicitly
+loads <span class="val">&lt;sctlns.cqct&gt;</span>.
+</p>
+
+<p>
+There are two high-level functions for obtaining
+name spaces served by sctl.
+<span class="id">Atnames</span> launches a fresh, local
+sctl server each time it is
+called; <span class="id">snamesns</span> contacts a
+remote
+<a href="libs.html#lib:snames.cqct">snames</a> server
+that must be started separately.
 </p>
 
 <div class="docitem" id="fn:atnames">
@@ -1128,6 +1165,217 @@ Returns <span class="val">nil</span> if the name space
 does not exist.
 </div>
 </div>
+
+<div class="docitem" id="fn:snamesns">
+<div class="proto">
+<div class="function">
+<span class="id">snamesns(<span class="arg">path</span>)</span>
+</div>
+<div class="param">
+<span class="arg">path</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">name space</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Returns the name space associated with the
+name <span class="arg">path</span> on the snames
+server, or <span class="id">nil</span> if the name space does not exist.
+</p>
+</div>
+</div>
+
+<p>
+The address of the snames server contacted
+by <span class="id">snamesns</span> is specified by
+<span class="fnindex"><a href="#fn:setsnamesaddr">setsnamesaddr</a></span>.  Stale connections can be restarted 
+by calling <span class="fnindex"><a href="#fn:snamesreconnect">snamesreconnect</a></span>.
+</p>
+
+<div class="docitem" id="fn:setsnamesaddr">
+<div class="proto">
+<div class="function">
+<span class="id">setsnamesaddr(<span class="arg">addr</span>)</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">string</span> 
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Address is a network address of the form 
+<tt>"<em>addr</em>:<em>port</em>"</tt>, where
+<span class="arg">addr</span> is an IP address or hostname and
+<span class="arg">port</span> is a port number or
+service name.  Updates to <span class="arg">addr</span>
+the address of the snames server
+contacted by the library.  The default is <span class="val">"localhost:30000"</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:snamesreconnect">
+<div class="proto">
+<div class="function">
+<span class="id">snamesreconnect()</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Advises the library to reset its connection to the snames server.
+</div>
+</div>
+
+<p>
+The debug library implicitly
+calls <span class="id">atnames</span> to construct name
+spaces for ctls.  It can be forced to use a different
+constructor by
+re-defining <span class="id">atnames</span> to a
+different function.  For example, to force names spaces
+to be constructed using a snames server, evaluate
+this line before creating any ctls:
+
+<div class="code">
+<pre>
+atnames = snamesns;
+</pre>
+</div>
+
+(There should be a better way to do
+this essential configuration task.)
+</p>
+
+<p>
+Name spaces served by sctl are like ordinary
+<a href="man.html#sec:namespaces">Cinquecento name
+spaces</a>, except that their interface is extended to
+support four additional methods.  These methods provide
+access to call stack unwinding, source code location,
+and local variable information.  Some of the name space
+filters in the Cinquecento library, including
+<span class="fnindex"><a href="libs.html#fn:mknsoff">mknsoff</a></span>,
+support this extended interface.
+</p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function" id="fn:nsunwind1">
+<span class="id">unwind1(<span class="arg">this</span>,<span class="arg">pc</span>)</span>
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">pc</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list of unwind rules</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns target-dependent stack frame unwinding rules
+corresponding to the program counter
+value <span class="arg">pc</span>.  Each unwind rule is
+specified in an <span class="val">uwrulerec</span> that
+is based on the encoding of the unwind rules specified
+by DWARF
+(see <span class="fnindex"><a href="#fn:sctlunwind1">sctlunwind1</a></span>).
+Returns <span class="val">nil</span> if no unwind rules
+are defined.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function" id="fn:nslooksrc">
+<span class="id">looksrc(<span class="arg">this</span>,<span class="arg">pc</span>)</span>
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">pc</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">source record</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns source code location information corresponding
+to the program counter
+value <span class="arg">pc</span>.
+(See <span class="fnindex"><a href="#fn:sctllooksrc">sctllooksrc</a></span> for the
+definition of a source record.)
+Returns <span class="val">nil</span> if no source code
+location is defined for <span class="arg">pc</span>.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function" id="fn:nslookpc">
+<span class="id">lookpc(<span class="arg">this</span>,<span class="arg">file</span>,<span class="arg">line</span>)</span>
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="param">
+<span class="arg">file</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">line</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns a program counter address corresponding to the source location
+<span class="arg">file:line</span>.
+Returns <span class="val">nil</span> if there is no matching source location.
+</div>
+</div>
+
+<div class="docitem">
+<div class="proto">
+<div class="function" id="fn:nsenumloc">
+<span class="id">enumloc(<span class="arg">this</span>,<span class="arg">pc</span>)</span>
+</div>
+<div class="param">
+<span class="arg">pc</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">list of local variable records</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns a list of local variable records describing
+local variables in scope at program counter
+address <span class="arg">pc</span>.
+(See <span class="fnindex"><a href="#fn:sctlenumloc">sctlenumloc</a></span> for the
+definition of a local variable record.)
+Returns <span class="val">nil</span> if no
+local variable information is available.
+</div>
+</div>
+
+<p>
+The sctl communication
+underlying <span class="id">atnames</span>
+and <span class="id">snamesns</span> is encapsulated in
+the function <span class="id">mksctlns</span>.  This
+function is intended to support the creation of new
+high-level interfaces
+like <span class="id">atnames</span>
+or <span class="id">snamesns</span>.  An even more low-level
+interface to the sctl protocol is described <a href="#sec:sctlns">later</a>.
+</p>
 
 <div class="docitem" id="fn:mksctlns">
 <div class="proto">
@@ -1156,6 +1404,8 @@ Returns <span class="val">nil</span> if the name space
 does not exist.
 </div>
 </div>
+
+
 
 <h4 id="sec:sctlmux">Sctlmux</h4>
 
@@ -1824,12 +2074,202 @@ management on each ctl.  These traps are revealed by
 </div>
 </div>
 
-
-<h4 id="sec:sctlns">Interfaces to sctl</h4>
+<h4 id="sec:tools">Trap handler tools</h4>
 
 <p>
-For lower-level name space programming, the debug
-library also provides a set of Cinquecento functions
+This section describes a collection of tools for
+implementing trap handlers.
+</p>
+
+<p>
+The following three functions simplify the
+specification of trap handlers for function call and
+return events.  They make use of name space type
+information to make function parameters and return
+values directly available to handlers.  They also
+encapsulate a mechanism for accessing argument and
+return values.  (Currently they assume
+the <a href="http://www.x86-64.org/documentation/abi.pdf">AMD64
+System V ABI</a> calling convention.)
+
+</p>
+
+<div class="docitem" id="fn:brk">
+<div class="proto">
+<div class="function">
+<span class="id">brk(<span class="arg">ctl</span>,<span class="arg">addr</span>,<span class="arg">handler</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ctl</span>: <span class="type">ctl</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">addr</span>
+</div>
+<div class="param">
+<span class="arg">handler</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Sets a breakpoint trap on the entry of the function at
+address <span class="arg">addr</span> in the execution
+associated with <span class="arg">ctl</span>.  The type
+of
+<span class="arg">addr</span>
+should be the actual type of the trapped function.
+When the trap
+fires, <span class="arg">handler</span> is called.
+<span class="arg">Handler</span> must be prepared to accept several arguments, depending
+on the type of the trapped function.
+The first argument is the ctl on which the trap occurred.
+The remaining arguments are in one-to-one correspondence
+with the parameters declared in the type of the trapped function.
+The arguments are read-only copies of the arguments passed
+to the trapped call, cast into the target domain.
+<span class="id">Brk</span> returns the trap identifier.
+</div>
+</div>
+
+<div class="docitem" id="fn:rbrk">
+<div class="proto">
+<div class="function">
+<span class="id">rbrk(<span class="arg">ctl</span>,<span class="arg">addr</span>,<span class="arg">handler</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ctl</span>: <span class="type">ctl</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">addr</span>
+</div>
+<div class="param">
+<span class="arg">handler</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Sets a breakpoint trap on the return from calls to the
+function at address <span class="arg">addr</span> in
+the execution associated
+with <span class="arg">ctl</span>.  The type of
+<span class="arg">addr</span> should be the actual type
+of the trapped function.  When the trap
+fires, <span class="arg">handler</span> is called.
+<span class="arg">Handler</span> must be prepared to accept one or two
+arguments, depending on the type of the trapped
+function.  The first argument is the ctl on which the trap
+occurred.  The second argument is a read-only copy of
+the return value of the function, cast into the target
+domain.  There is no second argument if the function
+has no return value.  The return value
+of <span class="arg">handler</span> is ignored.
+<span class="id">Rbrk</span> returns the trap identifier.
+</div>
+</div>
+
+<div class="docitem" id="fn:brbrk">
+<div class="proto">
+<div class="function">
+<span class="id">brbrk(<span class="arg">ctl</span>,<span class="arg">addr</span>,<span class="arg">handler</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ctl</span>: <span class="type">ctl</span>
+</div>
+<div class="param">
+<span class="arg">addr</span>: <span class="type">addr</span>
+</div>
+<div class="param">
+<span class="arg">handler</span>: <span class="type">procedure</span>
+</div>
+<div class="returns">
+<span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+This function combines the functionality
+of <span class="id">brk</span>
+and <span class="id">rbrk</span>, allowing traps on
+both the call and return from the function at
+address <span class="arg">addr</span> in the execution
+associated with <span class="arg">ctl</span>.  As
+with <span class="id">brk</span>
+and <span class="id">rbrk</span>, the type of
+<span class="arg">addr</span> should be the actual type
+of the trapped function.  When a call to the function
+occurs,
+<span class="arg">handler</span> is called in the same
+manner as in <span class="id">brk</span>, with one difference: 
+<span class="arg">handler</span> may return a handler
+procedure to be called when the current function call
+returns.  This handler is called in the same manner as
+the handler in <span class="id">rbrk</span>.  No return
+trap is set if <span class="arg">handler</span>
+returns <span class="val">nil</span>.
+<span class="id">Brbrk</span> returns the trap
+identifier associated with the call trap.
+</div>
+</div>
+
+<p>
+The following functions format commonly printed
+execution state.
+</p>
+
+<div class="docitem" id="fn:fmtldom">
+<div class="proto">
+<div class="function">
+<span class="id">fmtldom(<span class="arg">ctl</span>,<span class="arg">ctx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ctl</span>: <span class="type">ctl</span>
+</div>
+<div class="param">
+<span class="arg">ctx</span>: <span class="type">context</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a multi-line string displaying the location,
+type, and name of each local variable defined at
+context <span class="arg">ctx</span> in <span class="arg">ctl</span>.
+</div>
+</div>
+
+<div class="docitem" id="fn:fmtframe">
+<div class="proto">
+<div class="function">
+<span class="id">fmtframe(<span class="arg">ctl</span>,<span class="arg">ctx</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ctl</span>: <span class="type">ctl</span>
+</div>
+<div class="param">
+<span class="arg">ctx</span>: <span class="type">context</span>
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+Returns a string displaying the program counter,
+function, and source line information for the function
+call site associated with
+context <span class="arg">ctx</span>
+in <span class="arg">ctl</span>.
+</div>
+</div>
+
+
+<h4 id="sec:sctlns">Low-level sctl</h4>
+
+<p>
+For low-level name space programming, the <span class="id">debug</span>
+library provides a set of Cinquecento functions
 for performing synchronous name space transactions with
 a <span class="val">sctl</span> server.
 </p>
@@ -1853,10 +2293,10 @@ being used to serve only name space data.
 </p>
 
 <p>
-Two of the procedures, sctlenumtype and sctllooktype,
-an additional name space argument.  This name space is
+Two of the procedures, <span class="fnindex"><a href="#fn:sctlenumtype">sctlenumtype</a></span> and <span class="fnindex"><a href="#fn:sctllooktype">sctllooktype</a></span>,
+require an additional name space argument.  This name space is
 used by the underlying type definition decoder
-(decodetdef) to resolve two aspects of type definitions
+(<span class="id">decodetdef</span>) to resolve two aspects of type definitions
 that cannot be determined from the sctl type definition
 reply:
 </p>
@@ -2146,7 +2586,8 @@ that is based on the encoding of the unwind rules specified by DWARF:
 </pre>
 </div>
 
-[Reference dwarf functions that interprets these.]
+Returns <span class="val">nil</span> if no unwind rules
+are defined.
 
 </div>
 </div>
@@ -2217,7 +2658,7 @@ Returns <span class="val">nil</span> if no source location matches.
 Performs a <span class="id">lookpc</span>
 transaction on the name space corresponding
 to <span class="arg">nsid</span>, returning
-a program counter address at corresponding
+a program counter address corresponding
 to the source location <span class="arg">file</span>:<span class="arg">line</span>.
 Returns <span class="val">nil</span> if there is no matching 
 source location.
@@ -2547,7 +2988,7 @@ matches <span class="arg">ns</span>.
 This method calls <span class="arg">fn</span> for each
 mapping in the nsmap, in ascending order of mapping
 offset.  <span class="arg">Fn</span> is passed the
-three properties of the mapping: the offest, the path
+three properties of the mapping: the offset, the path
 name, and the name space.  The return value
 of <span class="id">fn</span> is ignored.
 </div>
@@ -2570,13 +3011,21 @@ no effect on the other.
 </div>
 
 
-<h4 id="sec:fnindex">Function Index</h4>
+<h4 id="sec:fnindex">Function and method index</h4>
+
+<p>
+Methods are listed with the name
+of the defining object type in parentheses.
+</p>
+
 <div class="id">
 <div class="index">
 <div class="fnindex">
 <a href="#fn:sctlmuxabort">abort</a> (sctlmux)<br />
 <a href="#fn:nsmapadd">add</a> (nsmap)<br />
-<a href="#fn:atnames">atnames</a> (nsmap)<br />
+<a href="#fn:atnames">atnames</a><br />
+<a href="#fn:brk">brk</a><br />
+<a href="#fn:brbrk">brbrk</a><br />
 <a href="#fn:nsmapbyaddr">byaddr</a> (nsmap)<br />
 <a href="#fn:nsmapbyname">byname</a> (nsmap)<br />
 <a href="#fn:ctlcast">cast</a> (ctl)<br />
@@ -2589,13 +3038,18 @@ no effect on the other.
 <a href="#fn:ctldialect">dialect</a> (ctl)<br />
 <a href="#fn:ctldom">dom</a> (ctl)<br />
 <a href="#fn:nsmapeach">each</a> (nsmap)<br />
+<a href="#fn:nsenumloc">enumloc</a> (ns)<br />
 <a href="#fn:ctlexe">exe</a> (ctl)<br />
 <a href="#fn:nsmapexe">exe</a> (nsmap)<br />
+<a href="#fn:fmtframe">fmtframe</a><br />
+<a href="#fn:fmtldom">fmtldom</a><br />
 <a href="#fn:ctlid">id</a> (ctl)<br />
 <a href="#fn:ctlkill">kill</a> (ctl)<br />
 <a href="#fn:ctlldom">ldom</a> (ctl)<br />
 <a href="#fn:ctllookpc">lookpc</a> (ctl)<br />
+<a href="#fn:nslookpc">lookpc</a> (ns)<br />
 <a href="#fn:ctllooksrc">looksrc</a> (ctl)<br />
+<a href="#fn:nslooksrc">looksrc</a> (ns)<br />
 <a href="#fn:ctlmem">mem</a> (ctl)<br />
 <a href="#fn:mknsmap">mknsmap</a><br />
 <a href="#fn:mksctlns">mksctlns</a><br />
@@ -2603,7 +3057,8 @@ no effect on the other.
 <a href="#fn:nsmapnsbase">nsbase</a> (nsmap)<br />
 <a href="#fn:ctlnsmap">nsmap</a> (ctl)<br />
 <a href="#fn:nsmapnspath">nspath</a> (nsmap)<br />
-<a href="#fn:sctlmuxrun">run (sctlmux)</a> (ctl)<br />
+<a href="#fn:rbrk">rbrk</a><br />
+<a href="#fn:sctlmuxrun">run</a> (sctlmux)<br />
 <a href="#fn:ctlsetctx">setctx</a> (nsmap)<br />
 <a href="#fn:nsmapsetexe">setexe</a> (nsmap)<br />
 <a href="#fn:sctlenumloc">sctlenumloc</a><br />
@@ -2618,11 +3073,15 @@ no effect on the other.
 <a href="#fn:sctlping">sctlping</a><br />
 <a href="#fn:sctlunwind1">sctlunwind1</a><br />
 <a href="#fn:sctlversion">sctlversion</a><br />
+<a href="#fn:setsnamesaddr">setsnamesaddr</a><br />
+<a href="#fn:snamesns">snamesns</a><br />
+<a href="#fn:snamesreconnect">snamesreconnect</a><br />
 <a href="#fn:ctlsnap">snap</a> (ctl)<br />
 <a href="#fn:ctlstat">stat</a> (ctl)<br />
 <a href="#fn:ctltrap">trap</a> (ctl)<br />
 <a href="#fn:ctltraps">traps</a> (ctl)<br />
 <a href="#fn:ctlunwind">unwind</a> (ctl)<br />
+<a href="#fn:nsunwind1">unwind1</a> (ns)<br />
 </div>
 </div>
 </div>
