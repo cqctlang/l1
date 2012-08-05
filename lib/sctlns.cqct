@@ -1,7 +1,9 @@
 @include <sctl.cqct>
 @include <sctlutil.cqct>
+@include <nsmap.cqct>
 @include <xsas.cqct>
 @include <nsutil.cqct>   /* mktnresolve */
+@include <snamesns.cqct>
 
 @global
 	/* sctl name space transactions */

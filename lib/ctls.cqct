@@ -1,9 +1,8 @@
-@include <sctl.cqct>
+/* requires <sctlns.cqct> */
 @include <sctlmux.cqct>
-@include <sctlns.cqct>
 @include <sctl-x86-linux.cqct>
-@include <nsmap.cqct>
 @include <dwarf.cqct>
+@include <debugutil.cqct>
 
 @global
 	ctllaunch

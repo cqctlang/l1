@@ -1,0 +1,45 @@
+@include <rocks.cqct>
+
+@global nsamesclt_defined;
+if(nsamesclt_defined == nil){
+@local snamesaddr;
+
+@global issnamesup, setsnamesaddr, snamesns, snamesreconnect;
+
+nsamesclt_defined = 1;
+snamesaddr = "localhost:30000";
+
+@define issnamesup()
+{
+	@local fd;
+	fd = tcpopen(snamesaddr);
+	if(fd == nil)
+		return 0;
+	close(fd);
+	return 1;
+}
+
+@define setsnamesaddr(addr)
+{
+	snamesaddr = addr;
+	return nil;
+}
+
+@define snamesns(path)
+{
+	@local fd;
+	fd = tcpopen(snamesaddr);
+	if(fd == nil){
+		printf("%s\n", errno()[1]);
+		return nil;
+	}
+	fd = mkrock(fd);
+	return mksctlns(fd, path);
+}
+
+@define snamesreconnect()
+{
+	rockup();
+}
+
+}

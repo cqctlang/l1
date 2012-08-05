@@ -1,4 +1,2 @@
 @include <sctlns.cqct>
 @include <ctls.cqct>
-@include <snamesclt.cqct>
-@include <debugutil.cqct>

@@ -33,7 +33,6 @@
 	return s;
 }
 
-
 @define fnargs(a)
 {
 	@local args, sym, fn, ns, i, m, rv, t;
