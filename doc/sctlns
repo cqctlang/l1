@@ -107,7 +107,7 @@ sctlversion(FD)
 Performs a version transaction with the sctl
 server.  The offered version is
 
-	"sctl-2010:x86-linux-2010,x86-win-2010"
+	"sctl-2012:x86-linux-2012,x86-win-2012"
 
 The negotiated version string is returned.
 An error is raised if the version cannot

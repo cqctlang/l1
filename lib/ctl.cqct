@@ -395,7 +395,7 @@ ctlns = @names clp64le {
 	{
 		@local op, dat, v, tag, s, os;
 
-		v = "prctl-2010:x86-linux-2010,x86-win-2010";
+		v = "prctl-2012:x86-linux-2012,x86-win-2012";
 
 		tag = freshtag();
 

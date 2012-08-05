@@ -1354,7 +1354,7 @@ ctlmux = @names clp64le {
 			    msg->id,
 			    ev == ctlmux`Eclone ? "cloned" : "forked",
 			    dat->cid);
-			if(osversion != "x86-win-2010")
+			if(osversion != "x86-win-2012")
 				// Windows does not stop the spawning thread
 				ctl.state = ctlmux`Stopped;
 			ctl.setreg(cop(&dat->ctx));
@@ -2797,7 +2797,7 @@ ctlmux = @names clp64le {
 	{
 		@local p, rep, dat, sz, version, os, s;
 
-		version = "sctl-2010:x86-linux-2010,x86-win-2010";
+		version = "sctl-2012:x86-linux-2012,x86-win-2012";
 
 		sz = sizeof(ctlmux`Tversion)+strlen(version);
 		p = (ctlmux`Tversion*)malloc(sz);

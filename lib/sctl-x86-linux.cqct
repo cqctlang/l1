@@ -442,7 +442,7 @@ ns = @names clp64le {
 	printf("\tflags  %016x\n", ctx->eflags);
 }
 
-sctlx86linux = sctldialectrec("x86-linux-2010",
+sctlx86linux = sctldialectrec("x86-linux-2012",
 			      ns,
 			      @typeof(ns`Ctx),
 			      @typeof(ns`Siginfo),

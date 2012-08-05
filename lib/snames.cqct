@@ -106,7 +106,7 @@ sns = @names clp64be {
 		botch(fd, tag);
 		return 'badop;
 	}
-	if(s[0] != "sctl-2010"){
+	if(s[0] != "sctl-2012"){
 		sctlrerror(fd, tag, "unsupported version");
 		return 'badop;
 	}
