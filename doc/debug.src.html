@@ -81,7 +81,7 @@ just one style &mdash; an effective but rather traditional one.
 <p>
 This manual is split in two parts.  The first part is a
 user guide, providing a conceptual overview of how the
-library is used and a series of illustrations of elementary
+library is used and illustrations of elementary
 operation.  The second part is a reference manual for
 the functions and methods provided by the library.
 </p>
@@ -99,18 +99,18 @@ instances of one or more multi-threaded programs.
 </p>
 
 <p>
-The library is centered around a Cinquecento object,
+This flexibility stems from a Cinquecento object,
 called a <em>ctl</em>, that represents a thread of
 execution.  Generally there is one ctl for each thread
 in each program execution being debugged.
 The <span class="id">debug</span> library maps
 operations on each ctl to messages that it exchanges
 with the sctl server.  This mapping is performed by
-another object, called a <em>sctlmux</em>, that
-multiplexes a set of ctls to a remote sctl.  A typical
-Cinquecento program that uses
-the <span class="id">debug</span> library creates one
-sctlmux for the lifetime of the program.
+a <em>sctlmux</em>, an object that multiplexes a set of
+ctls to a remote sctl.  A typical Cinquecento program
+that uses the <span class="id">debug</span> library
+creates one sctlmux for the lifetime of the program
+that manages any number of ctls.
 </p>
 
 <center>
@@ -160,20 +160,20 @@ execution events, including execution breakpoints,
 library loading and unloading, system calls, signals,
 and termination.  Associated with each trap is a
 user-defined handler function that is called when the
-event occurs.  The ctl corresponding to the thread and
-the instant of time at which the event occurred is passed
-to the handler function.  Execution of the thread is
-suspended for the duration of the handler function
-call.  During this time, the handler may examine the
-state of the execution and set or clear traps on future
-events, but it may not block awaiting a future
-execution event.  Snapshots may be captured to
-communicate program state to future handler calls.
+event occurs.  The handler is passed the ctl
+corresponding to the thread and instant of time where
+the event occurred.  Execution of the thread is suspended
+for the duration of the handler function call.  During
+this time, the handler may examine the state of the
+execution and set or clear traps on future events, but
+it may not block awaiting a future execution event.
+Snapshots may be captured to communicate program state
+to future handler calls.
 </p>
 
 <p>
 Each ctl also provides ingredients for constructing
-Cinquecento domains, providing a symbolic interface to
+Cinquecento domains, yielding symbolic interfaces to
 the state of the program during calls to event
 handlers.  The address space of the ctl, provided by
 the <span class="fnindex"><a href="#fn:ctlmem">mem</a></span>
@@ -532,9 +532,10 @@ execution.
 
 <p>
 The debugging library does not know the calling
-convention of target program functions.  The primitive
+convention of target program functions.  A primitive
 way to access function arguments is to directly apply
-knowledge of the convention.
+knowledge of the convention.  We illustrate a less
+primitive approach <a href="#sec:brbrk">later</a>.
 </p>
 
 <p>
@@ -543,23 +544,18 @@ on <a href="http://www.x86-64.org/documentation/abi.pdf">64-bit
 x86</a> Unix systems is to place the first six integer
 arguments into
 registers <span class="id">rdi</span>, <span class="id">rsi</span>, <span class="id">rdx</span>, <span class="id">rcx</span>, <span class="id">r8</span>,
-and <span class="id">r9</span>.  Here we print the two
-arguments passed to each call
-to <span class="id">insert</span> on such a system.
+and <span class="id">r9</span>.  Here, assuming this
+convention, we print the two arguments passed to each
+call to <span class="id">insert</span>.
 </p>
 
 @@function(../demo/examples.cqct:args1)
 @@eval(../demo/examples.cqct:args1)
 
 <p>
-The first argument to insert is a pointer to the head
-of the list being constructed by dowork; the second is
+The first argument to <span class="id">insert</span> is a pointer to the head
+of the list being constructed by <span class="id">dowork</span>; the second is
 the value to be inserted.
-</p>
-
-<p>
-[ Other ways to access function arguments will be
-discussed in later sections (brk, rbrk, brbrk, locals).
 </p>
 
 <h4 id="sec:data">Examining data structures</h4>
@@ -625,15 +621,15 @@ the context value.
 
 <p>
 The above example has what might seem like a redundant
-construction of the executable domain.  We already computed
-the executable domain from the start call; why not use
-it the handler?  Each domain represents a moment in
-time of execution.  The executable domain returned
-from <span class="id">start</span> represents the
-execution domain at the start of the execution.  The
-handler function, in contrast, is called <em>each
-time</em> the insert function is called &mdash; each a
-different instant of execution time.
+construction of the executable domain.  We already
+computed the executable domain from the start call; why
+not use it the handler?  Each domain represents a
+specific instant in execution time.  The executable
+domain returned from <span class="id">start</span>
+represents the execution domain at the start of the
+execution.  The handler function, in contrast, is
+called <em>each time</em> the insert function is called
+&mdash; each a different instant of execution time.
 </p>
 
 <h4 id="sec:ret">Trapping function return</h4>
@@ -652,10 +648,8 @@ returned?
 </p>
 
 <p>
-Rather than try to find all of the return instructions
-in the function, our approach is to place a single trap
-at the address where the call will eventually
-return,
+Our approach is to place a single trap at the address
+where the call will eventually return,
 <em>i.e.</em>, the return address <em>in the
 caller</em>.  We cannot determine this address
 statically; it is a dynamic value that depends on the
@@ -690,8 +684,8 @@ to <span class="id">insert</span>.
 @@eval(../demo/examples.cqct:brkreturn)
 
 <p>
-This example demonstrates several techniques whose
-combination traps the return of each call
+This example demonstrates several techniques which in
+combination trap the return of each call
 to <span class="id">insert</span>.
 
 We set a trap on the entry
@@ -709,7 +703,7 @@ without a corresponding new call to the function.
 Finally, we print the return value of the function,
 again by applying our knowledge of the calling convention,
 specifically that integer return values are placed
-in rax.
+in <span class="id">rax</span>.
 </p>
 
 <p>
@@ -732,26 +726,23 @@ value is stored upon function return.
 </ol>
 
 <p>
-Addressing these limitations involves complex
-techniques and additional dependencies.  For debugging
-scenarios in which these potential limitations are not
-realities, the above technique is good enough.
+The <span class="id">debug</span> library makes no
+attempt to address these limitations.
 </p>
 
 <h4 id="sec:brbrk">Helpers for call and return</h4>
 
 <p>
-While the preceding examples illustrate fundamental
-usage of the <span class="id">debug</span> library, they represent a tedious
-and low-level approach to the frequently performed task
-of trapping function call and return events.
+The preceding examples illustrate a tedious and
+primitive approach to the frequently performed task of
+trapping function call and return events.
 </p>
 
 <p>
 The <span class="id">debug</span> library provides three convenience functions
 that simplify function call and return event
 programming.  These functions have three advantages
-over the previous approach.
+over the previous approach:
 </p>
 
 <ol>
@@ -1590,12 +1581,13 @@ no remaining references to it.
 Returns a <em>local domain</em> representing the local
 variables (including function parameters) defined in
 the context <span class="arg">ctx</span> of the target
-process.  If <span class="arg">ctx</span> is unspecified,
-the current context is used.  The name space of the
-local domain includes definitions for all known local
-variables.  (But say something about location information --
-what kind of accesses work; what kind of casting may or may not work.)
-Returns nil if a local domain cannot be constructed
+process.  If <span class="arg">ctx</span> is
+unspecified, the current context is used.  The name
+space of the local domain includes definitions for all
+known local variables.  Some inadvertent ability to
+update the values of local variables may exist, but
+this is currently undefined.  Returns nil if a local
+domain cannot be constructed
 for <span class="arg">ctx</span>.
 </div>
 </div>
@@ -1606,7 +1598,7 @@ for <span class="arg">ctx</span>.
 <span class="id">unwind()</span>
 </div>
 <div class="returns">
-<span class="type">list of contexts</span> or
+<span class="type">list of contexts</span>
 </div>
 </div>
 <div class="desc">
@@ -1626,14 +1618,13 @@ followed by its caller, and so on.
 <span class="arg">addr</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
-<span class="type">source record</span> or
+<span class="type">source record</span>
 </div>
 </div>
 <div class="desc">
-Returns
-a <span class="fnindex"><a href="#rec:srcrec">source
-record</a></span> specifying the location in source
-code corresponding to <span class="val">addr</span>.
+Returns a <a href="#rec:srcrec">source record</a>
+specifying the location in source code corresponding
+to <span class="val">addr</span>.
 </div>
 </div>
 
