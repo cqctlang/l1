@@ -378,7 +378,7 @@
 
 @define testexamples()
 {
-	@locals exs;
+	@local exs;
 
 	exs = [ getstarted,
 		brkentry,

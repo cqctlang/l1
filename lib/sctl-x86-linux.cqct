@@ -452,5 +452,5 @@ sctlx86linux = sctldialectrec("x86-linux-2012",
 			      encodectx,
 			      decodesiginfo,
 			      encodesiginfo,
-			      dumpctx));
+			      dumpctx);
 }
