@@ -499,7 +499,7 @@ idxev = [
 
 	@defloc doload(p, eid)
 	{
-		@local hs, path, base, ctx;
+		@local hs, n, ls, path, base, ctx;
 
 		hs = handlers(eid);
 		if(length(hs) == 0){
@@ -507,12 +507,23 @@ idxev = [
 			return;
 		}
 
-		[path, p] = decodes(p);
 		p = (uint64*)p;
-		base = *p++;
+		n = *p++;
+		ls = [];
+		while(n-- > 0){
+			[path, p] = decodes(p);
+			p = (uint64*)p;
+			base = *p++;
+			append(ls, cons(path, base));
+		}
 		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
-		foreach(@lambda(t) { t.fn(this, path, base); }, hs);
+		foreach(@lambda(l){
+				path = car(l);
+				base = cdr(l);
+				foreach(@lambda(t){ t.fn(this, path, base); },
+					hs);				
+			}, ls);
 		contasync();
 	}
 
