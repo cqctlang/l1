@@ -715,7 +715,15 @@ idxev = [
 		error("wrong type of index");
 	}
 
-	@defloc dom(arg...) { mkdom(apply(ns, arg), mem()); }
+	@defloc dom(arg...)
+	{
+		@local n;
+		n = apply(ns, arg);
+		if(n == nil)
+			return nil;
+		return mkdom(n, mem());
+	}
+
 	@defloc exe() { mkdom(cs.nsmap.exe(), mem()); }
 
 	this = ctlrec(id,
