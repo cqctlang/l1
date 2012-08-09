@@ -352,7 +352,7 @@ compileambig(U *ctx, Expr *e)
 	te = nullelist();
 
 	// $tn = t;
-	se = Zset(doid("$tn"), compile1(ctx, t));
+	se = Zset(doid("$tn"), compile1(ctx, copyexpr(t)));
 	te = Zcons(se, te);
 
 	// $tmp = looktype(dom, $tn)
