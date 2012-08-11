@@ -717,7 +717,7 @@ idxev = [
 	{
 		@local idx;
 		if(length(arg) == 0)
-			return cs.nsmap.exe;
+			return cs.nsmap.exe();
 		idx = arg[0];
 		if(isstring(idx))
 			return cs.nsmap.byname(idx);
