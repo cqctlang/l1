@@ -3,11 +3,13 @@
 @include <dwarf.cqct>
 @include <debugutil.cqct>
 
+chroot = getenv("HOME")+"/ch/";
 verbose = 0;
-switchgears = 0;
-chroot = getenv("HOME")+"/xch/";
+
 chvalgrpath = chroot+"bin/valgrind";
 chquerypath = chroot+"/bin/chronicle-query";
+
+switchgears = 0;
 
 ns = @names clp64le {
 	typedef
