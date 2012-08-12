@@ -74,8 +74,8 @@ L1C =\
 L1O = $(L1C:.c=.o)
 
 L1DEPS += x/lib9/lib9.a
-L1FUNS += fnfmt
-L1EXTRAS += fnfmt.c
+L1FUNS += fnfmt fnjson
+L1EXTRAS += fnfmt.c fnjson.c
 
 FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env *);")
 FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);")
