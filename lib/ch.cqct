@@ -5,6 +5,9 @@
 
 verbose = 0;
 switchgears = 0;
+chroot = getenv("HOME")+"/xch/";
+chvalgrpath = chroot+"bin/valgrind";
+chquerypath = chroot+"/bin/chronicle-query";
 
 ns = @names clp64le {
 	typedef
@@ -253,8 +256,6 @@ ns = @names clp64le {
 
 	return lb(r, w);
 }
-
-chquerypath = getenv("HOME")+"/ch/bin/chronicle-query";
 
 @define chconnect(db)
 {
@@ -619,8 +620,6 @@ nextid = 1;
 	return chctl(intvl, scan, findret, mem, ctx, nsmap, _ns, dom, ldom, unwind, looksrc);
 }
 
-chpath = getenv("HOME")+"/ch/bin/valgrind";
-
 @define chronicle(cmd)
 {
 	@local fds, buf, args, db;
@@ -629,7 +628,7 @@ chpath = getenv("HOME")+"/ch/bin/valgrind";
 	setenv("CHRONICLE_DB", db);
 	args = copy(cmd);
 	push(args, "--tool=chronicle");
-	push(args, chpath);
+	push(args, chvalgrpath);
 	fds = apply(popen, args);
 	
 	while(buf = read(fds[2], 1024))
@@ -717,9 +716,11 @@ chpath = getenv("HOME")+"/ch/bin/valgrind";
 	foreach(dumpinsert, ts);
 }
 
+/* expects to be run in l1 directory,
+   with l1/demo directory build. */
 @define runlist()
 {
-	run(["src/l1/demo/list"]);
+	run(["demo/list"]);
 }
 
 @define runls()
