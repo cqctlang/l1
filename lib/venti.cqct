@@ -197,7 +197,7 @@ venti = @names clp64be {
 	write(fd, "venti-04-cqct\n");
 	v = "";
 	while(1){
-		s = read(fd, 1);
+		s = fread(fd, 1);
 		if(s == nil)
 			error("1 venti announced bad version: %s", v);
 		v += s;
@@ -268,11 +268,11 @@ venti = @names clp64be {
 {
 	@local sz, p, op;
 
-	sz = read(fd, sizeof(venti`uint32));
+	sz = fread(fd, sizeof(venti`uint32));
 	if(sz == nil)
 		error("venti hung up");
 	sz = *(venti`uint32*)sz;
-	p = read(fd, sz);
+	p = fread(fd, sz);
 	return buf2msg(p);
 }
 
@@ -309,11 +309,11 @@ venti = @names clp64be {
 
 	vtsendmsg(fd, s, sz);
 
-	sz = read(fd, sizeof(venti`uint32));
+	sz = fread(fd, sizeof(venti`uint32));
 	if(sz == nil)
 		error("venti hung up");
 	sz = *(venti`uint32*)sz;
-	p = read(fd, sz);
+	p = fread(fd, sz);
 	op = (venti`Op)*(venti`uint8*)p;
 	switch(op){
 	case venti`VtRhello:
@@ -400,11 +400,11 @@ venti = @names clp64be {
 	t->type = venti`OVtDataType;
 	t->count = 1024;
 	vtsendmsg(fd, t);
-	sz = read(fd, sizeof(venti`uint32));
+	sz = fread(fd, sizeof(venti`uint32));
 	if(sz == nil)
 		error("venti hung up");
 	sz = *(venti`uint32*)sz;
-	p = read(fd, sz);
+	p = fread(fd, sz);
 	p = buf2msg(p);
 	return getbytes(p+1, (int)sz-sizeof(*p));
 }

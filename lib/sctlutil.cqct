@@ -81,7 +81,7 @@ ECONNRESET = 104;
 	@local s, sz, p, tag, e;
 	@local op, dat;
 again:
-	s = read(fd, sizeof(litdom`uint64));
+	s = fread(fd, sizeof(litdom`uint64));
 	if(s == nil){
 		e = errno();
 		if(e[0] == EINTR)
@@ -95,7 +95,7 @@ again:
 	sz = *(uint64*)s;
 	if(sz < sizeof(litdom`uint8)+sizeof(litdom`uint32))
 		return [nil, nil, 'error];
-	p = read(fd, sz);
+	p = fread(fd, sz);
 	p = (uint8*)p;
 	op = *p++;
 	p = (uint32*)p;

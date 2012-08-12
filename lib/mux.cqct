@@ -70,7 +70,7 @@
 	@defloc xread(fd, sz)
 	{
 		@local p, e;
-		p = read(fd, sz);
+		p = fread(fd, sz);
 		if(p == nil){
 			e = errno();
 			if(e[0])

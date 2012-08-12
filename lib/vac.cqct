@@ -15,11 +15,11 @@ venti = "localhost";
 	// empty string lets us create an empty vac
 	fd = popen("vac", "-h", venti, "");
 	close(fd[0]);
-	vac = read(fd[1], 100);
+	vac = fread(fd[1], 100);
 	close(fd[1]);
 	if(vac == nil){
 		@local err;
-		err = read(fd[2], 128);
+		err = fread(fd[2], 128);
 		if(err != nil)
 			error("newvac: %s", err);
 		else
@@ -46,11 +46,11 @@ venti = "localhost";
 	fd = popen("vaccons", vac, name);
 	write(fd[0], bytes);
 	close(fd[0]);
-	vac = read(fd[1], 100);
+	vac = fread(fd[1], 100);
 	close(fd[1]);
 	if(vac == nil){
 		@local err;
-		err = read(fd[2], 128);
+		err = fread(fd[2], 128);
 		if(err != nil)
 			error("vaccons: %s", err);
 		else
