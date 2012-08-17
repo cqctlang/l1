@@ -9,7 +9,9 @@ verbose = 0;
 chvalgrpath = chroot+"bin/valgrind";
 chquerypath = chroot+"/bin/chronicle-query";
 
-switchgears = 0;
+@global exe, gcs, exedom;
+
+Segsize = 1ULL<<20;
 
 ns = @names clp64le {
 	typedef
@@ -103,6 +105,57 @@ ns = @names clp64le {
 	p = (char*)buf;
 	foreach(@lambda(s) { putbytes(p, s); p += length(s); }, ss);
 	return buf;
+}
+
+@global stats;
+
+@define resetstats()
+{
+	stats = mktab(0);
+}
+//resetstats();
+
+@define summarizetime(id)
+{
+	@local tot;
+	tot = stats[id];
+	foreach(@lambda(k, v){
+			if(k == id)
+				return;
+			printf("%25s%10d (%6.2f%%)\n",
+			       k, v, ((float)v/tot)*100.0);
+		}, stats);
+	printf("%25s%10d (100.00%%)\n", id, tot);
+}
+
+@define xtime(id, fn)
+{
+	@local b, e, rv;
+	b = gettimeofday();
+	rv = fn();
+	e = gettimeofday();
+	stats[id] += e-b;
+	return rv;
+}
+
+@define tjson2val(j)
+{
+	@local b, e, rv;
+	b = gettimeofday();
+	rv = json2val(j);
+	e = gettimeofday();
+	stats['json2val] += e-b;
+	return rv;
+}
+
+@define tval2json(v)
+{
+	@local b, e, rv;
+	b = gettimeofday();
+	rv = val2json(v);
+	e = gettimeofday();
+	stats['val2json] += e-b;
+	return rv;
 }
 
 @define val2json(v)
@@ -223,8 +276,6 @@ ns = @names clp64le {
 	return nil;
 }
 
-/* here the i/o sucks -- because cqct read blocks
-   until it has consumed what's been requested */
 @define mklinebuf(fd)
 {
 	@local part;
@@ -233,18 +284,35 @@ ns = @names clp64le {
 
 	part = "";
 
-	@defloc r()
+	@defloc tstrstr(s, p)
+	{
+		xtime('strstr, @lambda() { strstr(s, p); });
+	}
+
+	@defloc tsubstr(s, b, e)
+	{
+		xtime('substr, @lambda() { substr(s, b, e); });
+	}
+
+	@defloc tread(id, fd, m)
+	{
+		@local f;
+		f = @lambda() { read(fd, m); };
+		xtime(id, f);
+	}
+
+	@defloc r(id)
 	{
 		@local s, m, rv;
 
 		while(1){
-			m = strstr(part, "\n");
+			m = tstrstr(part, "\n");
 			if(m){
-				rv = substr(part, 0, m);
-				part = substr(part, m+1, length(part));
+				rv = tsubstr(part, 0, m);
+				part = tsubstr(part, m+1, length(part));
 				return rv;
 			}
-			s = read(fd, 1024);
+			s = tread(id, fd, 1024);
 			if(s == nil)
 				return nil; /* discard part */
 			part += s;
@@ -272,34 +340,27 @@ ns = @names clp64le {
 nextid = 1;
 @define chquery(lb, t)
 {
-	@local s, r, rvs, id, n;
+	@local s, r, rvs, id, cmd;
 
 	id = nextid++;
 	t["id"] = id;
 
 	rvs = [];
-	t = val2json(t)+"\n";
+	cmd = mkcid("read"+t["cmd"]);
+	t = tval2json(t)+"\n";
+	@defloc lbread() { lb.read(cmd); }
 	lb.write(t);
 	if(verbose)
 		printf("--> %s", t);
-	n = 0;
 	while(1){
-		s = lb.read();
+		s = xtime('lbread, lbread);
 		if(verbose)
 			printf("<-- %s\n", s);
 		if(s == nil){
 			error("unexpected eof of chquery channel");
 			break;
 		}
-		n++;
-		if(n%1000 == 0)
-			printf("%d\n", n);
-		if(switchgears){
-			if(n >= 85488)
-				return rvs;
-			continue;
-		}
-		r = json2val(s);
+		r = tjson2val(s);
 		if(r["id"] == nil)
 			continue;
 		if(r["id"] != id)
@@ -375,6 +436,7 @@ nextid = 1;
 {
 	@local ctxs;
 	ctxs = ctl.unwind(t);
+//	printf("@%d:\n", t);
 	foreach(@lambda(ctx){
 			printf("%s\n", fmtframe(ctl, ctx, t));
 		}, ctxs);
@@ -427,31 +489,97 @@ nextid = 1;
 			vbase = elfloadaddr(f);
 			if(vbase == nil)
 				return; /* presume it's not an elf */
-			printf("%s@%p\n", f, abase-vbase);
+			printf("\t0x%016p\t%s\n", abase-vbase, f);
 			nsmap.add(abase-vbase, f);
 		}, rs);
+	nsmap.setexe(0); /* hack */
+	printf("\tend timestamp: %d\n", endtstamp);
 
-	@defloc scan(kind, val, rest ...)
+	@defloc scan(kind, rest ...)
 	{
-		@local beg, end;
-		if(length(rest) == 2){
-			beg = rest[0];
-			end = rest[1];
-			if(beg > end)
-				error("bad interval [%d,%d]", beg, end);
-			if(end > endtstamp)
-				error("interval exceeds execution");
-		}else{
-			beg = 0;
-			end = endtstamp;
+		@local beg, end, addr, len;
+
+		@defloc defrange(args)
+		{
+			if(length(args) == 2){
+				beg = args[0];
+				end = args[1];
+				if(beg > end)
+					error("bad interval [%d,%d]", beg, end);
+				if(end > endtstamp)
+					error("interval exceeds execution");
+			}else{
+				beg = 0;
+				end = endtstamp;
+			}
 		}
+
 		switch(kind){
 		case 'exec:
+			addr = pop(rest);
+			defrange(rest);
 			rs = chquery(lb, [ "cmd" : "scan",
 					   "map" : "INSTR_EXEC",
 					   "beginTStamp" : beg,
 					   "endTStamp" : end,
-					   "ranges" : [ [ "start" : val, "length" : 1 ] ] ]);
+					   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+			return chcollect(rs, "TStamp");
+		case 'lastexec:
+			addr = pop(rest);
+			defrange(rest);
+			rs = chquery(lb, [ "cmd" : "scan",
+					   "map" : "INSTR_EXEC",
+					   "beginTStamp" : beg,
+					   "endTStamp" : end,
+					   "termination" : "findLast",
+					   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+			return chcollect(rs, "TStamp");
+		case 'write:
+			addr = pop(rest);
+			len = pop(rest);
+			defrange(rest);
+			rs = chquery(lb, [ "cmd" : "scan",
+					   "map" : "MEM_WRITE",
+					   "beginTStamp" : beg,
+					   "endTStamp" : end,
+					   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+			return chcollect(rs, "TStamp");
+		case 'read:
+			addr = pop(rest);
+			len = pop(rest);
+			defrange(rest);
+			rs = chquery(lb, [ "cmd" : "scan",
+					   "map" : "MEM_READ",
+					   "beginTStamp" : beg,
+					   "endTStamp" : end,
+					   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+			return chcollect(rs, "TStamp");
+		case 'lastwrite:
+			addr = pop(rest);
+			len = pop(rest);
+			defrange(rest);
+			rs = chquery(lb, [ "cmd" : "scan",
+					   "map" : "MEM_WRITE",
+					   "beginTStamp" : beg,
+					   "endTStamp" : end,
+					   "termination" : "findLast",
+					   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+			return chcollect(rs, "TStamp");
+		case 'lastread:
+			addr = pop(rest);
+			len = pop(rest);
+			defrange(rest);
+			rs = chquery(lb, [ "cmd" : "scan",
+					   "map" : "MEM_READ",
+					   "beginTStamp" : beg,
+					   "endTStamp" : end,
+					   "termination" : "findLast",
+					   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
 			rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
 			return chcollect(rs, "TStamp");
 		default:
@@ -459,15 +587,32 @@ nextid = 1;
 		}
 	}
 
+	@defloc tctx(t)
+	{
+		xtime('ctx, @lambda() { ctx2(t); });
+	}
+
 	@defloc findret(t)
 	{
-		@local rs, x;
-		x = ctx(t);
-		rs = chquery(lb, [ "cmd" : "findSPGreaterThan",
-				   "beginTStamp" : t,
-				   "endTStamp" : endtstamp,
-				   "thread"    : x->thread,
-				   "threshold" : x->sp ]);
+		@local rs, sp, tid;
+		[sp, tid] = tctx(t);
+
+		@defloc doquery()
+		{
+			chquery(lb, [ "cmd" : "findSPGreaterThan",
+				      "beginTStamp" : t,
+				      "endTStamp" : endtstamp,
+				      "thread"    : tid,
+				      "threshold" : sp ]);
+		}
+
+//		rs = chquery(lb, [ "cmd" : "findSPGreaterThan",
+//				   "beginTStamp" : t,
+//				   "endTStamp" : endtstamp,
+//				   "thread"    : x->thread,
+//				   "threshold" : x->sp ]);
+
+		rs = xtime('findSP, doquery);
 		rs = chcollect(rs, "TStamp");
 		if(length(rs) == 0)
 			return nil;
@@ -522,6 +667,19 @@ nextid = 1;
 			      "map" : map,
 			      "ismapped" : ismapped
 			    ]);
+	}
+
+	@defloc ctx2(tstamp)
+	{
+		@local rs, rv;
+		rs = chquery(lb, [ "cmd" : "readReg",
+				   "TStamp" : tstamp,
+				   "rsp"    : 64,
+				   "thread" : 64,
+				  ]);
+		rs = chflatten(rs);
+		rv = [ strton(rs["rsp"], 16), strton(rs["thread"], 16) ];
+		return rv;
 	}
 
 	@defloc ctx(tstamp)
@@ -597,7 +755,7 @@ nextid = 1;
 	{
 		@local x;
 		if(length(arg) == 0)
-			x = ctx();
+			x = ctx(t);
 		else
 			x = arg[0];
 		return dwlocaldom(x, mem(t), nsmap);
@@ -646,7 +804,10 @@ nextid = 1;
 
 @define chronicledb(db)
 {
-	return mkchctl(db);
+	@local exe;
+	exe = mkchctl(db);
+	exedom = exe.dom(1);
+	return exe;
 }
 
 @define showlist(h)
@@ -665,8 +826,6 @@ nextid = 1;
 
 	/* ask chronicle for the execution */
 	exe = chronicle(cmd);
-
-	exe.nsmap.setexe(0); /* hack */
 	exedom = exe.dom(1);
 
 	/*
@@ -730,14 +889,14 @@ nextid = 1;
 	chronicle(["/bin/ls"]);
 }
 
-@record interval { beg, end };
+rdsetfmt(@record interval { beg, end },
+	 @lambda(r) { sprintfa("<@%d - @%d>", r.beg, r.end); });
 
 @define viewl1gc()
 {
 	@local exe, exedom, is, i0, cis;
 
 	exe = chronicledb("/tmp/l1.db");
-	exe.nsmap.setexe(0); /* hack */
 	exedom = exe.dom(1);
 
 	@defloc callintervals(i, func)
@@ -772,17 +931,17 @@ nextid = 1;
 	/* copies in interval 0 */
 	if(length(is) < 1)
 		error("out of moves");
-	switchgears = 0;
 	i0 = is[0];
 	cis = callintervals(i0, &exedom`copy);
 	printf("%d calls to copy in _gc interval 0\n", length(cis));
 }
 
-@define showargs(exe, n, t)
+@define getargs(exe, n, t)
 {
-	@local ctx, rs, i;
+	@local ctx, rs, rv, i;
 	ctx = exe.ctx(t);
 
+	rv = [];
 	rs = [ ctx->rdi,
 	       ctx->rsi,
 	       ctx->rdx,
@@ -790,9 +949,18 @@ nextid = 1;
 	       ctx->r8,
 	       ctx->r9  ];
 	i = 0;
-	printf("args:");
 	for(i = 0; i < n; i++)
-		printf(" %d", pop(rs));
+		append(rv, pop(rs));
+	return rv;
+}
+
+@define showargs(exe, n, t)
+{
+	@local args;
+
+	args = getargs(exe, n, t);
+	printf("args:");
+	foreach(@lambda(a) { printf(" %d", a); }, args);
 	printf("\n");
 }
 
@@ -800,6 +968,37 @@ nextid = 1;
 {
 	p = (Head*)p;
 	(p->bits>>1)&0x1f;
+}
+
+@define fmtval(p)
+{
+	@local k;
+	k = vkind(p);
+	switch(k){
+	case 0:
+		return "<undef>";
+	case 1:
+		return "nil";
+	case 3:
+		return sprintfa("box(%s)", fmtval(((Box*)p)->v));
+	case 4:
+		return "<procedure>";
+	case 6:
+		return "<code>";
+	case 9:
+		return "<domain>";
+	case 19:
+		return "<string>";
+	case 20:
+		return "<table>";
+	case 8:
+		p = (Cval*)p;
+		return sprintfa("%d", p->v.u);
+	case 15:
+		return sprintfa("cons(%s, %s)", fmtval(xcar(p)), fmtval(xcdr(p)));
+	default:
+		return sprintfa("<qkind %d>", k);
+	}
 }
 
 @define xcar(p)
@@ -814,14 +1013,58 @@ nextid = 1;
 	return p->cdr;
 }
 
+@define mtname(mt)
+{
+	@local mts, rv;
+	mts = [ 0   : "MThole",
+		8   : "MTnix",
+		16  : "MTfree",
+		48  : "MTdata",
+		56  : "MTode",
+		64  : "MTcode",
+		24  : "MTweak",
+		32  : "MTbox",
+		40  : "MTmutable",
+		50  : "MTbigdata",
+		58  : "MTbigode",
+		66  : "MTbigcode" ];
+	rv = mts[mt];
+	if(rv == nil)
+		return sprintfa("undefined mt %d", mt);
+	return rv;
+}
+
+@define genname(g)
+{
+	@local gs;
+	gs = ["G0", "G1", "G2", "G3", "Gstatic", "Gunused", "Glock"];
+	if(g >= length(gs))
+		return sprintfa("undefined gen %d", g);
+	return gs[g];
+}
+
 @define _fmtseg(s)
 {
-	@local r, dom;
+	@local r, dom, o, a;
 	dom = domof(s);
 	if(s == 0)
 		return "no segment!";
-	r = sprintfa("seg %p %e %d", s, s->gen, s->mt);
+	o = (Seg*)s-dom`segmap.map;
+	a = dom`segmap.lo+o*Segsize;
+	r = sprintfa("seg %p (%p-%p) %s %s", s,
+		     a, a+Segsize,
+		     genname(s->gen), mtname(s->mt));
 	return r;
+}
+
+@define a2s(a)
+{
+	@local dom, segmap, o;
+
+	dom = domof(a);
+	segmap = &dom`segmap;
+	o = ((void*)a-segmap->lo)/Segsize;
+	return segmap->map+o;
 }
 
 @define fmtseg(p)
@@ -830,18 +1073,16 @@ nextid = 1;
 
 	dom = domof(p);
 	segmap = &dom`segmap;
-	o = ((void*)p-segmap->lo)/(1ULL<<20);
+	o = ((void*)p-segmap->lo)/Segsize;
 	s = segmap->map+o;
 	return _fmtseg(s);
 }
 
 @define dumpguards(exe, t)
 {
-	@local dom, H, i, p, xnil, qs, o, k;
+	@local dom, H, i, p, o, k;
 	dom = exe.dom(t);
 	H = &dom`H;
-	xnil = dom`Xnil;
-	qs = dom`qs;
 	printf("@%d user guard list\n", t);
 	for(i = 0; i < 4; i++){
 		p = H->ug.gd[i];
@@ -852,7 +1093,7 @@ nextid = 1;
 			printf(" %s", fmtseg(p));
 			if(k == 15){
 				o = xcar(xcar(p));
-				printf(" (object is pair(%d,%d))", vkind(xcar(o)), vkind(xcdr(o)));
+				printf(" (object is %p pair(%d,%d))", o, vkind(xcar(o)), vkind(xcdr(o)));
 				printf("\n");
 			}
 			p = (Pair*)p->cdr;
@@ -860,29 +1101,294 @@ nextid = 1;
 	}
 }
 
-@define viewl1()
+@define callintervals(exe, i, func)
 {
-	@local exe, exedom, is, m;
+	@local ts, rs;
+	ts = exe.scan('exec, func, i.beg, i.end);
+	if(length(ts) == 0)
+		return [];
+	rs = map(@lambda(t){
+			@local r;
+			r = exe.findret(t);
+			if(r == nil)
+				error("cannot find return time for %a\n", t);
+			return r;
+		}, ts);
+	return map(@lambda(t, r) { interval(t,r); }, ts, rs);
+}
 
-	exe = chronicledb("/tmp/gp.db");
-	exe.nsmap.setexe(0); /* hack */
+/* assume is is contained in iv */
+@define invert(is, iv)
+{
+	@local rv, b, e;
+	b = iv.beg;
+	e = iv.end;
+	rv = [];
+	foreach(@lambda(i){
+			if(i.beg < b)
+				error("bug");
+			if(i.end > e)
+				error("bug");
+			if(i.beg == b)
+				b = i.end;
+			else{
+				append(rv, interval(b, i.beg));
+				b = i.end;
+			}
+		}, is);
+	if(b < e)
+		append(rv, interval(b, e));
+	return rv;
+}
+
+@define clip(is, iv)
+{
+	@local rv, b, e;
+	b = iv.beg;
+	e = iv.end;
+	rv = [];
+	foreach(@lambda(i){
+			/* draw a picture; there are six cases */
+			if(i.end <= b)
+				return;
+			if(i.beg >= e)
+				return;
+			if(i.beg >= b && i.end <= e)
+				append(rv, i);
+			else if(i.beg <= b && i.end >= e)
+				append(rv, interval(b, e));
+			else if(i.beg <= b && i.end < e)
+				append(rv, interval(b, i.end));
+			else if(i.beg < e && i.end >= e)
+				append(rv, interval(i.beg, e));
+			else
+				error("confusion");
+		}, is);
+	return rv;
+}
+
+@define clipend(is, t)
+{
+	@local rv;
+	rv = [];
+	foreach(@lambda(i){
+			if(i.beg > t)
+				return;
+			else if(i.end >= t)
+				append(rv, interval(i.beg, t));
+			else
+				append(rv, i);
+		}, is);
+	return rv;
+}
+
+@define clipbeg(is, t)
+{
+	@local rv;
+	rv = [];
+	foreach(@lambda(i){
+			if(i.end <= t)
+				return;
+			if(i.beg < t)
+				append(rv, interval(t, i.end));
+			else
+				append(rv, i);
+		}, is);
+	return rv;
+}
+
+@define indexof(is, t)
+{
+	@defloc loop(is, n)
+	{
+		@local iv;
+		if(length(is) == 0)
+			return nil;
+		iv = pop(is);
+		if(t >= iv.beg && t < iv.end)
+			return n;
+		loop(is, n+1);
+	}
+	loop(copy(is), 0);
+}
+
+rdsetfmt(@record copyevent { time, from, to },
+	 @lambda(r) { sprintfa("<copy @%d %p -> %p", r.time, r.from, r.to); });
+
+rdsetfmt(@record malevent { time, addr },
+	 @lambda(r) { sprintfa("<mal @%d of %p", r.time, r.addr); });
+
+@define dumpvalpath(exe, cs)
+{
+	@local is, exedom;
+
+	exedom = exe.dom(1);
+	is = callintervals(exe, exe.intvl(), &exedom`_gc);
+	foreach(@lambda(c){
+			@local ndx;
+			if(ismalevent(c))
+				printf("@%d mal %p\n", c.time, c.addr);
+			else if(iscopyevent(c)){
+				ndx = indexof(is, c.time);
+				printf("@%d (gc #%d) copy %p -> %p\n", c.time, ndx, c.from, c.to);
+//				dumpstack(exe, c.time);
+//				uncovercopy(exe, c);
+			}else
+				error("bug");
+		}, cs);
+}
+
+/* determine the future of the value at ADDR at time T */
+@define valfuture(exe, addr, t)
+{
+	@local exedom;
+	@local gcs, copyt, rvs;
+
 	exedom = exe.dom(1);
 
-	@defloc callintervals(i, func)
+	/* find all intervals of gc execution */
+	gcs = callintervals(exe, exe.intvl(), &exedom`_gc);
+	
+	@defloc findcopy(addr, t)
 	{
-		@local ts, rs;
-		ts = exe.scan('exec, func, i.beg, i.end);
-		if(length(ts) == 0)
-			return [];
-		rs = map(@lambda(t){
-				@local r;
-				r = exe.findret(t);
-				if(r == nil)
-					error("cannot find return time for %a\n", t);
-				return r;
-			}, ts);
-		return map(@lambda(t, r) { interval(t,r); }, ts, rs);
+		@local is, wi;
+		/* clip gc history to those up to T */
+		is = clipbeg(gcs, t);
+
+		/* find next write to value header by a gc in forward order */
+		foreach(@lambda(gc){
+				@local ws;
+				if(wi)
+					return; /* shitty control logic */
+				ws = exe.scan('write, addr, sizeof(exedom`Head), gc.beg, gc.end);
+				if(length(ws) == 0)
+					return;
+				if(length(ws) > 1){
+					printf("valfuture picking first of %d writes for %p in gc interval:\n", length(ws), addr);
+					foreach(@lambda(w){
+							printf("@%d\n", w);
+							dumpstack(exe, w);
+							printf("\n");
+						}, ws);
+				}
+				wi = ws[0];
+			}, is);
+
+		return wi;
 	}
+
+	rvs = [];
+	while(copyt = findcopy(addr, t)){
+		@local fwd, ldom, ev;
+		ldom = exe.ldom(copyt);
+		fwd = ldom`nh;
+		ev = copyevent(copyt, addr, fwd);
+		append(rvs, ev);
+		addr = fwd;
+		t = copyt;
+	}
+
+	dumpvalpath(exe, rvs);
+
+	return rvs;
+}
+
+/* determine the history of the value at ADDR at time T */
+@define valhistory(exe, addr, t)
+{
+	@local exedom;
+	@local gcs;
+	@local ev, evs, ms;
+	@local orig, origt;
+
+	exedom = exe.dom(1);
+
+	/* find all intervals of gc execution */
+	gcs = callintervals(exe, exe.intvl(), &exedom`_gc);
+	printf("%d calls to _gc\n", length(gcs));
+
+	@defloc findcopy(addr, t)
+	{
+		@local is, wi, copyt, ts, m, args, dom, p;
+
+		/* clip gc history to those up to T */
+		is = clipend(gcs, t);
+
+		/* find last write to value header by a gc in reverse order */
+		m = length(is);
+		foreach(@lambda(gc){
+				@local ws;
+
+				m--;
+				if(wi)
+					return; /* shitty control logic */
+
+				ws = exe.scan('write, addr, sizeof(exedom`Head), gc.beg, gc.end);
+				if(length(ws) == 0)
+					return;
+
+//				printf("found %d writes to header for %p in gc %d\n", length(ws), addr, m);
+//				printf("write at %-16d:\n", ws[0]);
+//				dumpstack(exe, ws[0]);
+				/* whack this interval to prevent detection of
+				   later write event to the from pointer */
+				gc.end = ws[0];
+
+				/* assume every write occurs in the context of
+				   a single call to copy; pick one */
+				wi = interval(gc.beg, ws[0]);
+		}, reverse(is));
+
+		if(wi == nil)
+			return nil;
+		
+		/* find the corresponding call to copy
+		   lower bound does not matter, but must
+		   include prefix of the gc interval */
+		ts = exe.scan('lastexec, &exedom`copy, wi.beg, wi.end);
+		if(length(ts) != 1)
+			error("no call event!");
+		copyt = ts[0];
+		
+		args = getargs(exe, 1, copyt);
+		dom = mkdom(exedom.ns, exe.mem(copyt));
+		p = (Val*){dom}args[0];
+		return copyevent(copyt, *p, addr);
+	}
+
+	evs = [];
+	while(ev = findcopy(addr, t)){
+		append(evs, ev);
+		addr = ev.from;
+		t = ev.time;
+	}
+	evs = reverse(evs);
+	if(length(evs) == 0){
+		orig = addr;
+		origt = t;
+	}else{
+		orig = evs[0].from;
+		origt = evs[0].time;
+	}
+
+	/* now try to find the allocation event: the
+	   last write to the header prior to the first copy
+	   over the entire execution prefix */
+	ms = exe.scan('lastwrite, orig, sizeof(exedom`Head), 0, origt);
+	if(length(ms) != 1)
+		error("no original write event!");
+	push(evs, malevent(ms[0], orig));
+	printf("found mal event for %p\n", orig);
+	dumpstack(exe, ms[0]);
+	return evs;
+}
+
+@define viewl1()
+{
+	@local exe, exedom, is, m, cs;
+
+	exe = chronicledb("/tmp/gp.db");
+	exedom = exe.dom(1);
 
 	m = 0;
 	@defloc dumpinterval(i)
@@ -894,18 +1400,406 @@ nextid = 1;
 		dumpstack(exe, i.end);
 	}
 
-	is = callintervals(exe.intvl(), &exedom`_gc);
+	is = callintervals(exe, exe.intvl(), &exedom`_gc);
 	printf("%d calls to _gc\n", length(is));
-	foreach(dumpinterval, is);
+	m = 0;
+	foreach(@lambda(i){
+			printf("\t#%d @%d - @%d", m++, i.beg, i.end);
+			showargs(exe, 2, i.beg);
+		}, is);
 
-//	m = 0;
-//	foreach(@lambda(i){
-//			printf("#%3d @%-16d:\n", m, i.beg);
-//			showargs(exe, 2, i.beg);
-//			dumpguards(exe, i.beg);
-//			m++;
-//		}, is);
 
-	dumpguards(exe, is[4].end);
-	dumpguards(exe, is[5].end);
+	@defloc guardsover(i)
+	{
+		printf("guards over #%3d @%-16d - @%-16d:\n", i, is[i].beg, is[i].end);
+		dumpguards(exe, is[i].beg);
+		printf("\n");
+		dumpguards(exe, is[i].end);
+	}
+
+//	guardsover(4);
+//	guardsover(5);
+
+	cs = valhistory(exe, 0x7500048, is[4].end);
+	foreach(@lambda(c){
+			@local ndx;
+			if(ismalevent(c))
+				printf("@%d mal %p\n", c.time, c.addr);
+			else if(iscopyevent(c)){
+				ndx = indexof(is, c.time);
+				printf("@%d (gc #%d) copy %p -> %p\n", c.time, ndx, c.from, c.to);
+			}else
+				error("bug");
+		}, cs);
 }
+
+@define lookinterval(is, t)
+{
+	@local i, iv, m;
+	m = length(is);
+	for(i = 0; i < m; i++){
+		iv = is[i];
+		if(t < iv.beg)
+			continue;
+		if(t >= iv.beg && t < iv.end)
+			return iv;
+		if(t >= iv.end)
+			continue;
+	}
+	return nil;
+}
+
+/* this function assumes the intervals are disjoint */
+@define mergeivs(as, bs)
+{
+	@local rv, a, b;
+	
+	as = copy(as);
+	bs = copy(bs);
+	rv = [];
+	a = pop(as);
+	b = pop(bs);
+	while(a && b){
+		if(a.beg < b.beg){
+			append(rv, a);
+			a = pop(as);
+		}else{
+			append(rv, b);
+			b = pop(bs);
+		}
+	}
+	while(a){
+		append(rv, a);
+		a = pop(as);
+	}
+	while(b){
+		append(rv, b);
+		b = pop(bs);
+	}
+	return rv;
+}
+
+@define stackat(t)
+{
+	@local ndx;
+	if(exe == nil)
+		error("no exe defined");
+	if(gcs != nil)
+		ndx = indexof(gcs, t);
+	printf("@%d", t);
+	if(ndx != nil)
+		printf(" gc #%d", ndx);
+	printf("\n");
+	dumpstack(exe, t);
+}
+
+@define gcintervals(exe)
+{
+	@local whole, exedom, is;
+	exedom = exe.dom(1);
+	whole = exe.intvl();
+	is = callintervals(exe, whole, &exedom`_gc);
+	return is;
+}
+
+@define gcsummary(exe)
+{
+	@local is, m;
+
+	is = gcintervals(exe);
+	printf("%d calls to _gc\n", length(is));
+	m = 0;
+	foreach(@lambda(i){
+			printf("\t#%d @%d - @%d ", m++, i.beg, i.end);
+			showargs(exe, 2, i.beg);
+		}, is);
+	gcs = is;
+	return nil;
+}
+
+@define foreachgc(exe, beg, end)
+{
+	@local whole, exedom, is, m;
+
+	exedom = exe.dom(1);
+	whole = exe.intvl();
+
+	is = callintervals(exe, whole, &exedom`_gc);
+	printf("%d calls to _gc\n", length(is));
+	m = 0;
+	foreach(@lambda(i){
+			printf("\t#%d @%d - @%d ", m++, i.beg, i.end);
+			showargs(exe, 2, i.beg);
+			if(beg){
+				printf("\t@%d:\n", i.beg);
+				beg(exe, i.beg);
+			}
+			if(end){
+				printf("\t@%d:\n", i.end);
+				end(exe, i.end);
+				printf("\n");
+			}
+		}, is);
+}
+
+@define badwrites(exe)
+{
+	@local whole;
+	@local nfs, fss, frs;
+	@local inits, finis, window, unstable, stable, m;
+	@local exedom;
+
+	exedom = exe.dom(1);
+	whole = exe.intvl();
+
+	/* critical sections on free list */
+	nfs = callintervals(exe, whole, &exedom`nextfree);
+	fss = callintervals(exe, whole, &exedom`freeseg);
+	frs = callintervals(exe, whole, &exedom`freerange);
+	unstable = mergeivs(nfs, mergeivs(fss, frs));
+
+	printf("  %3d calls to nextfree\n", length(nfs));
+	printf("  %3d calls to freeseg\n", length(fss));
+	printf("  %3d calls to freerange\n", length(frs));
+	printf("= %3d calls to segment free list critical sections\n",
+	       length(unstable));
+
+	/* define window to search: from return of initmem to return of finimem */
+	inits = callintervals(exe, whole, &exedom`initmem);
+	finis = callintervals(exe, whole, &exedom`finimem);
+	if(length(inits) != 1 || length(finis) != 1)
+		error("non-standard l1 execution");
+	window = interval(inits[0].end, finis[0].end);
+
+	/* subdivide window into intervals where free list is constant */
+	stable = invert(clip(unstable, window), window);
+	printf("%d stable intervals in window\n", length(stable));
+
+	/* look for writes into free segments during any of these intervals */
+
+	/* helper: extract list of free segments at time T */
+	@defloc freesegs(t)
+	{
+		@local dom, f, rs, sz;
+		rs = [];
+		dom = exe.dom(t);
+		sz = 1ULL<<20;
+		f = dom`segmap.free;
+		while(f){
+			append(rs, mkrange(f, sz));
+			f = *(void**)f;
+		}
+		return rs;
+	}
+
+	m = 0;
+	foreach(@lambda(s){
+			@local ws, fs;
+			fs = freesegs(s.beg);
+			printf("stable interval #%3d (%010d - %010d) %d free segments\n", m, s.beg, s.end, length(fs));
+			foreach(@lambda(f){
+					ws = exe.scan('write, rangebeg(f), rangelen(f), s.beg, s.end);
+					foreach(@lambda(w){
+							printf("\t@%d write into free segment %016p-%016p\n",
+							       w, rangebeg(f), rangebeg(f)+rangelen(f));
+						}, ws);
+				}, fs);
+			m++;
+		}, stable);
+}
+
+/* given a copy event, find the object it was scanned
+   from.  */
+@define uncovercopy(exe, ctime)
+{
+	@local exedom, ts, callt, scant, ldom, ctx, sym;
+
+	exedom = exe.dom(1);
+
+	/* who called us? */
+	ts = exe.scan('lastexec, &exedom`copy, 0, ctime);
+	if(length(ts) != 1)
+		error("cannot find call to copy!");
+	callt = ts[0]-1;
+	
+	printf("copy was called @%d\n", callt);
+	dumpstack(exe, callt);
+	ctx = exe.ctx(callt);
+	sym = exedom.ns.lookaddr(ctx->pc);
+
+	if(symid(sym) == 'scan1){
+		printf("it's a scan1 call!\n");
+		ts = exe.scan('lastexec, &exedom`scan1, 0, callt);
+		if(length(ts) != 1)
+			error("cannot find call to scan1");
+		scant = ts[0]-1;
+		ldom = exe.ldom(scant);
+		printf("object was encountered while scanning %p %s\n",
+		       ldom`h, fmtval(ldom`h));
+		/* really want to bound this to the current gc */
+		ts = exe.scan('lastwrite, ldom`h, sizeof(exedom`Head), 0, scant);
+		if(length(ts) != 1)
+			error("cannot find previous write");
+		printf("header for object %p was last written @%d\n", ldom`h, ts[0]);
+		uncovercopy(exe, ts[0]);
+	}else
+		printf("it's a %s call!\n", symid(sym));
+}
+
+@define ptr(exe, addr, t)
+{
+	@local exedom;
+	exedom = exe.dom(t);
+	return (void*){exedom}addr;
+}
+
+/* dump the gc locked segments */
+@define dumplocked(exe, t)
+{
+	@local dom, s, es, p;
+	dom = exe.dom(t);
+	s = a2s(dom`segmap.lo);
+	es = a2s(dom`segmap.hi);
+	while(s < es){
+		if(s->gen == dom`Glock){
+			printf("\tlocked segment %p\n", s);
+			p = s->p;
+			while(p){
+				@local o;
+				o = xcdr(xcar(p));
+				printf("\t\t%p %s\n", o, fmtval(o));
+				p = xcdr(p);
+			}
+		}
+		s++;
+	}
+}
+
+testdb = "/tmp/gp.db";
+bugdb = "/home/vic/src/l1.bug/lock.bug.db";
+nobugdb = "/home/vic/src/l1.bug/lock.nobug.db";
+
+@define viewlock()
+{
+	@local exe, exedom, is, m, cs;
+
+	exe = chronicledb(bugdb);
+	exedom = exe.dom(1);
+
+	@defloc dumpinterval(i)
+	{
+		printf("#%-3d @%-16d enter:\n", m++, i.beg);
+		showargs(exe, 2, i.beg);
+		dumpstack(exe, i.beg);
+		printf("@%-16d leave:\n", i.end);
+		dumpstack(exe, i.end);
+	}
+
+	is = callintervals(exe, exe.intvl(), &exedom`_gc);
+	printf("%d calls to _gc\n", length(is));
+	m = 0;
+	foreach(@lambda(i){
+			printf("\t#%d @%d - @%d ", m++, i.beg, i.end);
+			showargs(exe, 2, i.beg);
+		}, is);
+
+	@defloc dumpgcend(n)
+	{
+		printf("at the end of gc #%d:\n", n);
+		dumplocked(exe, is[n].end);
+		printf("\n");
+	}
+
+	dumpgcend(5);
+	dumpgcend(6);
+	dumpgcend(7);
+	cs = valfuture(exe, 0x9200024, is[5].end);
+
+	foreach(@lambda(c){
+			@local ndx;
+			if(ismalevent(c))
+				printf("@%d mal %p\n", c.time, c.addr);
+			else if(iscopyevent(c)){
+				ndx = indexof(is, c.time);
+				printf("@%d (gc #%d) copy %p -> %p\n", c.time, ndx, c.from, c.to);
+				dumpstack(exe, c.time);
+				uncovercopy(exe, c);
+			}else
+				error("bug");
+		}, cs);
+}
+
+@define chbench()
+{
+	@local exe, mals, lim;
+
+	lim = 1000000;
+
+	/* any l1 execution with at least LIM mal events.
+	   l1.simple.db is l1 repl start to end on EOF input */
+	resetstats();
+	exe = chronicledb("../l1.debug/l1.simple.db");
+
+	@defloc calls()
+	{
+		mals = exe.scan('exec, &exedom`__mal, 0, lim);
+	}
+
+	@defloc rets()
+	{
+		map(@lambda(t) { exe.findret(t); }, mals);
+	}
+
+	resetstats();
+	xtime('calls, calls);
+	printf("\ntime (usec) for __mal call events before time %d; got %d events\n",
+	       lim, length(mals));
+	summarizetime('calls);
+	printf("\n");
+
+	resetstats();
+	xtime('rets, rets);
+	printf("time (usec) for corresponding ret events\n");
+	summarizetime('rets);
+	printf("%d usec per event\n", stats['rets]/length(mals));
+	printf("\n");
+}
+
+
+/*
+
+u% ./l1
+; @include <ch.cqct>
+/u/vic/src/l1/lib/ch.cqct:1412: warning: variable defined but not referenced: guardsover
+/u/vic/src/l1/lib/ch.cqct:1394: warning: variable defined but not referenced: dumpinterval
+/u/vic/src/l1/lib/ch.cqct:1689: warning: variable defined but not referenced: dumpinterval
+<procedure chbench>
+; chbench();
+	0x0000000000000000	/u/vic/src/l1.debug/l1
+	0x0000000004000000	/lib/ld-2.11.1.so
+	0x0000000004c24000	/lib/libc-2.11.1.so
+	end timestamp: 684378287
+
+time (usec) for __mal call events before time 1000000; got 2214 events
+                   strstr      6606 (  0.77%)
+                 json2val    801344 ( 93.80%)
+                 readscan      2742 (  0.32%)
+                   lbread     26849 (  3.14%)
+                   substr      2724 (  0.32%)
+                 val2json      8714 (  1.02%)
+                    calls    854303 (100.00%)
+
+time (usec) for corresponding ret events
+                   lbread  15619983 ( 81.84%)
+                 val2json    386641 (  2.03%)
+                   substr      8421 (  0.04%)
+    readfindSPGreaterThan   8836139 ( 46.30%)
+                      ctx   8653180 ( 45.34%)
+                   findSP  10401696 ( 54.50%)
+                   strstr     28624 (  0.15%)
+              readreadReg   6638946 ( 34.79%)
+                 json2val   2897998 ( 15.18%)
+                     rets  19085313 (100.00%)
+8620 usec per event
+
+ */
