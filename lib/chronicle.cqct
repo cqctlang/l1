@@ -1,0 +1,837 @@
+@include <sctlns.cqct>
+@include <elf.cqct>
+@include <dwarf.cqct>
+@include <debugutil.cqct>
+
+@global 
+	chronicledb,
+	runchronicle,
+	setchroot,
+	chgetargs,
+	callintervals,
+	invert,
+	clip,
+	clipbeg,
+	clipend,
+	indexof,
+	lookinterval,
+	mergeivs,
+
+	/* these should be unified with debug library */
+	fmtframe,
+	fmtldom,
+	dumpstack,
+	dumpstacklocs
+;
+
+rdsetfmt(@record interval { beg, end },
+	 @lambda(r) { sprintfa("<@%d - @%d>", r.beg, r.end); });
+
+{
+	@local verbose;
+	@local chroot, chvalgrpath, chquerypath, ns;
+	@local nextid;
+
+	verbose = 0;
+
+	@defloc initpaths()
+	{
+		chvalgrpath = chroot+"bin/valgrind";
+		chquerypath = chroot+"/bin/chronicle-query";
+	}
+
+	@define setchroot(path)
+	{
+		chroot = path;
+	}
+
+	chroot = getenv("HOME")+"/ch/";
+	initpaths();
+
+	ns = @names clp64le {
+		typedef
+		struct Ctx {
+			/* kernel's register set */
+			@0x0	uint64 r15;
+			@0x8	uint64 r14;
+			@0x10	uint64 r13;
+			@0x18	uint64 r12;
+			@0x20	uint64 rbp;
+			@0x20	uint64 fp;
+			@0x28	uint64 rbx;
+			@0x30	uint64 r11;
+			@0x38	uint64 r10;
+			@0x40	uint64 r9;
+			@0x48	uint64 r8;
+			@0x50	uint64 rax;
+			@0x58	uint64 rcx;
+			@0x60	uint64 rdx;
+			@0x68	uint64 rsi;
+			@0x70	uint64 rdi;
+			@0x78	uint64 orig_rax;
+			@0x80	uint64 rip;
+			@0x80	uint64 pc;
+			@0x88	uint64 cs;
+			@0x90	uint64 eflags;
+			@0x98	uint64 rsp;
+			@0x98	uint64 sp;
+			@0xa0	uint64 ss;
+			@0xa8	uint64 fs_base;
+			@0xb0	uint64 gs_base;
+			@0xb8	uint64 ds;
+			@0xc0	uint64 es;
+			@0xc8	uint64 fs;
+			@0xd0	uint64 gs;
+			@0xd8	uint64 thread; /* chronicle construction */
+			@0xe0;
+		} Ctx;
+	};
+
+	@defloc tobin(x)
+	{
+		if(x >= '0' && x <= '9')
+			return x-'0';
+		if(x >= 'A' && x <= 'F')
+			return x-'A'+10;
+		if(x >= 'a' && x <= 'f')
+			return x-'a'+10;
+		error("bad hex digit");
+	}
+
+	@defloc hextobin(s)
+	{
+		@local i, n, m, t;
+		t = m = mkxs();
+		n = length(s);
+		for(i = 0; i < n; i += 2)
+			*t++ = (tobin(s[i])<<4)|tobin(s[i+1]);
+		return getbytes(m, n/2);
+	}
+
+	@defloc val2json(v)
+	{
+		if(isstring(v) || iscid(v))
+			return sprintfa("\"%s\"", v);
+		else if(iscvalue(v))
+			return sprintfa("%u", v);
+		else if(islist(v))
+			return list2json(v);
+		else if(istable(v))
+			return tab2json(v);
+		else
+			error("invalid value: %a", v);
+	}
+
+	@defloc tab2json(tab)
+	{
+		@local ss, m;
+		ss = [];
+		m = length(tab);
+		append(ss, "{");
+		foreach(@lambda(key, val){
+				append(ss, val2json(key));
+				append(ss, ":");
+				append(ss, val2json(val));
+				if(--m > 0)
+					append(ss, ",");
+			}, tab);
+		append(ss, "}");
+		return join(ss);
+	}
+
+	@defloc list2json(l)
+	{
+		@local ss, m;
+		ss = [];
+		m = length(l);
+		append(ss, "[");
+		foreach(@lambda(val){
+				append(ss, val2json(val));
+				if(--m > 0)
+					append(ss, ",");
+			}, l);
+		append(ss, "]");
+		return join(ss);
+	}
+
+
+	@defloc elfloadaddr(filename)
+	{
+		@local elfdom, data, e, p, i;
+		data = mapfile(filename);
+		if(!iself(data))
+			return nil;
+		elfdom = mkelfrec(data).elf;
+		if(sizeof(nsptr(elfdom.ns)) == 4){
+			e = (Elf32_Ehdr*){elfdom}0;
+			p = (Elf32_Phdr*)e->e_phoff;
+		}else{
+			e = (Elf64_Ehdr*){elfdom}0;
+			p = (Elf64_Phdr*)e->e_phoff;
+		}
+		for(i = 0; i < e->e_phnum; i++){
+			if(p[i].p_type != elfdom`PT_LOAD)
+				continue;
+			return (uintptr)(p[i].p_vaddr);
+		}
+		return nil;
+	}
+
+	@defloc mklinebuf(fd)
+	{
+		@local part;
+
+		@record lb { read, write };
+
+		part = "";
+
+		@defloc r()
+		{
+			@local s, m, rv;
+
+			while(1){
+				m = strstr(part, "\n");
+				if(m){
+					rv = substr(part, 0, m);
+					part = substr(part, m+1, length(part));
+					return rv;
+				}
+				s = read(fd, 1024);
+				if(s == nil)
+					return nil; /* discard part */
+				part += s;
+			}
+		}
+		
+		@defloc w(s)
+		{
+			return write(fd, s);
+		}
+
+		return lb(r, w);
+	}
+
+	@defloc chconnect(db)
+	{
+		@local lb, fds;
+	
+		fds = popen(chquerypath, "--db", db, 2|8);
+		lb = mklinebuf(fds[0]);
+
+		return lb;
+	}
+
+	nextid = 1;
+	@defloc chquery(lb, t)
+	{
+		@local s, r, rvs, id;
+
+		id = nextid++;
+		t["id"] = id;
+
+		rvs = [];
+		t = val2json(t)+"\n";
+		lb.write(t);
+		if(verbose)
+			printf("--> %s", t);
+		while(1){
+			s = lb.read();
+			if(verbose)
+				printf("<-- %s\n", s);
+			if(s == nil){
+				error("unexpected eof of chquery channel");
+				break;
+			}
+			r = json2val(s);
+			if(r["id"] == nil)
+				continue;
+			if(r["id"] != id)
+				error("unexpected id on chquery channel (on %d, got %d)",
+				      id, r["id"]);
+			if(r["terminated"])
+				return rvs;
+			append(rvs, r);
+		}
+		return rvs;
+	}
+
+	@defloc chcollect(rs, field)
+	{
+		@local l;
+		l = [];
+		foreach(@lambda(t) { @local v; v = t[field]; if(v) append(l, v); }, rs);
+		return l;
+	}
+
+	@defloc chfilter(rs, pred)
+	{
+		@local l;
+		l = [];
+		foreach(@lambda(t) { if(pred(t)) append(l, t); }, rs);
+		return l;
+	}
+
+	@defloc chflatten(rs)
+	{
+		@local rv;
+		rv = [:];
+		foreach(@lambda(t) { foreach(@lambda(k,v) { rv[k] = v; }, t); }, rs);
+		return rv;
+	}
+
+
+	@record chctl { intvl, exedom, scan, findret, mem, ctx, nsmap, ns, dom, ldom, unwind, looksrc };
+
+	@defloc mkchctl(db)
+	{
+		@local endtstamp, lb, rs, nsmap, exedom;
+
+		lb = chconnect(db);
+		rs = chquery(lb, [ "cmd" : "info" ]);
+		rs = chcollect(rs, "endTStamp");
+		if(length(rs) != 1)
+			error("unexpected endTStamp response: %a", rs);
+		endtstamp = rs[0];
+		if(verbose)
+			printf("*** bound to execution %s; interval [0,%u]\n", db, endtstamp);
+
+		rs = chquery(lb, [ "cmd" : "scan",
+				   "map" : "MEM_MAP",
+				   "beginTStamp" : 0,
+				   "endTStamp" : endtstamp,
+				   "ranges" : [ [ "start" : 0,
+						  "length" : -1ULL ]] ]);
+		rs = chfilter(rs, @lambda(t) { @local v; v = t["filename"]; return v; });
+		rs = chfilter(rs, @lambda(t) { @local v; v = t["offset"]; v != nil && v == 0; });
+		rs = chfilter(rs, @lambda(t) { @local v; v = t["execute"]; v != nil && v; });
+	
+		nsmap = mknsmap(atnames);
+		foreach(@lambda(t){
+				@local f, abase, vbase;
+				f = t["filename"];
+				if(strstr(f, "valgrind") != nil)
+					return;
+				abase = t["start"];
+				vbase = elfloadaddr(f);
+				if(vbase == nil)
+					return; /* presume it's not an elf */
+				printf("\t0x%016p\t%s\n", abase-vbase, f);
+				nsmap.add(abase-vbase, f);
+			}, rs);
+		nsmap.setexe(0); /* hack */
+		printf("\tend timestamp: %d\n", endtstamp);
+
+		@defloc scan(kind, rest ...)
+		{
+			@local beg, end, addr, len;
+
+			@defloc defrange(args)
+			{
+				if(length(args) == 2){
+					beg = args[0];
+					end = args[1];
+					if(beg > end)
+						error("bad interval [%d,%d]", beg, end);
+					if(end > endtstamp)
+						error("interval exceeds execution");
+				}else{
+					beg = 0;
+					end = endtstamp;
+				}
+			}
+
+			switch(kind){
+			case 'exec:
+				addr = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "INSTR_EXEC",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'lastexec:
+				addr = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "INSTR_EXEC",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'write:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_WRITE",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'read:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_READ",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'lastwrite:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_WRITE",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'lastread:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_READ",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			default:
+				error("invalid scan kind: %a", kind);
+			}
+		}
+
+		@defloc findret(t)
+		{
+			@local rs, x;
+
+			x = ctx(t);
+			rs = chquery(lb, [ "cmd" : "findSPGreaterThan",
+					   "beginTStamp" : t,
+					   "endTStamp" : endtstamp,
+					   "thread"    : x->thread,
+					   "threshold" : x->sp ]);
+			rs = chcollect(rs, "TStamp");
+			if(length(rs) == 0)
+				return nil;
+			else if(length(rs) > 1)
+				error("too many return points");
+			else return rs[0]-1;
+		}
+
+		@defloc mem(tstamp)
+		{
+			if(tstamp >= endtstamp)
+				error("invalid timestamp");
+
+			@defloc get(this, r)
+			{
+				@local rs, ts;
+
+				rs = chquery(lb, [ "cmd" : "readMem",
+						   "TStamp" : tstamp,
+						   "ranges" : [ [ "start"  : rangebeg(r),
+								  "length" : rangelen(r) ] ] ]);
+				ts = chcollect(rs, "bytes");
+				if(length(ts) == 0)
+					error("no bytes -- what do i do?");
+				if(length(ts) > 1){
+					ts = chfilter(rs, @lambda(r) { r["bytes"]; });
+					sort(ts, @lambda(r1, r2) { cvalcmp(r1["start"], r2["start"]); });
+					ts = chcollect(ts, "bytes");
+					return(hextobin(join(ts)));
+				}
+			
+				return hextobin(ts[0]);
+			}
+
+			@defloc put(this, r, s)
+			{
+				error("attempt to write to chronicle address space");
+			}
+
+			@defloc map(this)
+			{
+				return vector(mkrange(0, 1ULL));
+			}
+
+			@defloc ismapped(this, r)
+			{
+				return 1; /* for now */
+			}
+
+			return mkas([ "get" : get,
+				      "put" : put,
+				      "map" : map,
+				      "ismapped" : ismapped
+					    ]);
+		}
+
+		@defloc ctx(tstamp)
+		{
+			@local rs, rv;
+			rs = chquery(lb, [ "cmd" : "readReg",
+					   "TStamp" : tstamp,
+					   "r15"    : 64,
+					   "r14"    : 64,
+					   "r13"    : 64,
+					   "r12"    : 64,
+					   "rbp"    : 64,
+					   "rbx"    : 64,
+					   "r11"    : 64,
+					   "r10"    : 64,
+					   "r9"     : 64,
+					   "r8"     : 64,
+					   "rax"    : 64,
+					   "rcx"    : 64,
+					   "rdx"    : 64,
+					   "rsi"    : 64,
+					   "rdi"    : 64,
+					   "pc"     : 64,
+					   "rsp"    : 64,
+					   "thread" : 64,
+					     ]);
+			rs = chflatten(rs);
+			rv = (ns`Ctx*){mkzas(sizeof(ns`Ctx))}0;
+			rv->r15 = strton(rs["r15"], 16);
+			rv->r14 = strton(rs["r14"], 16);
+			rv->r13 = strton(rs["r13"], 16);
+			rv->r12 = strton(rs["r12"], 16);
+			rv->r11 = strton(rs["r11"], 16);
+			rv->r10 = strton(rs["r10"], 16);
+			rv->r9  = strton(rs["r9"], 16);
+			rv->r8  = strton(rs["r8"], 16);
+			rv->rbp = strton(rs["rbp"], 16);
+			rv->rbx = strton(rs["rbx"], 16);
+			rv->rax = strton(rs["rax"], 16);
+			rv->rcx = strton(rs["rcx"], 16);
+			rv->rdx = strton(rs["rdx"], 16);
+			rv->rsi = strton(rs["rsi"], 16);
+			rv->rdi = strton(rs["rdi"], 16);
+			rv->rip = strton(rs["pc"], 16);
+			rv->rsp = strton(rs["rsp"], 16);
+			rv->thread = strton(rs["thread"], 16);
+			return rv;
+		}
+				
+		@defloc _ns(arg...)
+		{
+			@local idx;
+			if(length(arg) == 0)
+				return nsmap.exe();
+			idx = arg[0];
+			if(isstring(idx))
+				return nsmap.byname(idx);
+			if(iscvalue(idx))
+				return nsmap.byaddr(idx);
+			error("wrong type of index");
+		}
+
+		@defloc dom(t, arg...)
+		{
+			@local n;
+			n = apply(_ns, arg);
+			if(n == nil)
+				return nil;
+			return mkdom(n, mem(t));
+		}
+
+		@defloc ldom(t, arg...)
+		{
+			@local x;
+			if(length(arg) == 0)
+				x = ctx(t);
+			else
+				x = arg[0];
+			return dwlocaldom(x, mem(t), nsmap);
+		}
+
+		@defloc unwind(t) { dwunwind(ctx(t), mem(t), nsmap); }
+
+		@defloc looksrc(addr)
+		{
+			@local n;
+			n = _ns(addr);
+			if(n == nil)
+				return n;
+			n.looksrc(addr);
+		}
+
+		@defloc intvl()
+		{
+			return interval(0, endtstamp);
+		}
+
+		exedom = dom(1); /* hack */
+		return chctl(intvl, exedom, scan, findret, mem, ctx, nsmap, _ns, dom, ldom, unwind, looksrc);
+	}
+
+	@define chgetargs(exe, n, t)
+	{
+		@local ctx, rs, rv, i;
+		ctx = exe.ctx(t);
+
+		rv = [];
+		rs = [ ctx->rdi,
+		       ctx->rsi,
+		       ctx->rdx,
+		       ctx->rcx,
+		       ctx->r8,
+		       ctx->r9  ];
+		i = 0;
+		for(i = 0; i < n; i++)
+			append(rv, pop(rs));
+		return rv;
+	}
+
+	@define callintervals(exe, i, func)
+	{
+		@local ts, rs;
+		ts = exe.scan('exec, func, i.beg, i.end);
+		if(length(ts) == 0)
+			return [];
+		rs = map(@lambda(t){
+				@local r;
+				r = exe.findret(t);
+				if(r == nil)
+					error("cannot find return time for %a\n", t);
+				return r;
+			}, ts);
+		return map(@lambda(t, r) { interval(t,r); }, ts, rs);
+	}
+
+	/* assume is is contained in iv */
+	@define invert(is, iv)
+	{
+		@local rv, b, e;
+		b = iv.beg;
+		e = iv.end;
+		rv = [];
+		foreach(@lambda(i){
+				if(i.beg < b)
+					error("bug");
+				if(i.end > e)
+					error("bug");
+				if(i.beg == b)
+					b = i.end;
+				else{
+					append(rv, interval(b, i.beg));
+					b = i.end;
+				}
+			}, is);
+		if(b < e)
+			append(rv, interval(b, e));
+		return rv;
+	}
+
+	@define clip(is, iv)
+	{
+		@local rv, b, e;
+		b = iv.beg;
+		e = iv.end;
+		rv = [];
+		foreach(@lambda(i){
+				/* draw a picture; there are six cases */
+				if(i.end <= b)
+					return;
+				if(i.beg >= e)
+					return;
+				if(i.beg >= b && i.end <= e)
+					append(rv, i);
+				else if(i.beg <= b && i.end >= e)
+					append(rv, interval(b, e));
+				else if(i.beg <= b && i.end < e)
+					append(rv, interval(b, i.end));
+				else if(i.beg < e && i.end >= e)
+					append(rv, interval(i.beg, e));
+				else
+					error("confusion");
+			}, is);
+		return rv;
+	}
+
+	@define clipend(is, t)
+	{
+		@local rv;
+		rv = [];
+		foreach(@lambda(i){
+				if(i.beg > t)
+					return;
+				else if(i.end >= t)
+					append(rv, interval(i.beg, t));
+				else
+					append(rv, i);
+			}, is);
+		return rv;
+	}
+
+	@define clipbeg(is, t)
+	{
+		@local rv;
+		rv = [];
+		foreach(@lambda(i){
+				if(i.end <= t)
+					return;
+				if(i.beg < t)
+					append(rv, interval(t, i.end));
+				else
+					append(rv, i);
+			}, is);
+		return rv;
+	}
+
+	@define indexof(is, t)
+	{
+		@defloc loop(is, n)
+		{
+			@local iv;
+			if(length(is) == 0)
+				return nil;
+			iv = pop(is);
+			if(t >= iv.beg && t < iv.end)
+				return n;
+			loop(is, n+1);
+		}
+		loop(copy(is), 0);
+	}
+
+	@define lookinterval(is, t)
+	{
+		@local i, iv, m;
+		m = length(is);
+		for(i = 0; i < m; i++){
+			iv = is[i];
+			if(t < iv.beg)
+				continue;
+			if(t >= iv.beg && t < iv.end)
+				return iv;
+			if(t >= iv.end)
+				continue;
+		}
+		return nil;
+	}
+
+	/* this function assumes the intervals are disjoint */
+	@define mergeivs(as, bs)
+	{
+		@local rv, a, b;
+	
+		as = copy(as);
+		bs = copy(bs);
+		rv = [];
+		a = pop(as);
+		b = pop(bs);
+		while(a && b){
+			if(a.beg < b.beg){
+				append(rv, a);
+				a = pop(as);
+			}else{
+				append(rv, b);
+				b = pop(bs);
+			}
+		}
+		while(a){
+			append(rv, a);
+			a = pop(as);
+		}
+		while(b){
+			append(rv, b);
+			b = pop(bs);
+		}
+		return rv;
+	}
+
+	@defloc fmtframe(ctl, ctx, t)
+	{
+		@local s, src;
+
+		s = "";
+
+		/* pc */
+		s += sprintfa("%016p", ctx->pc);
+
+		/* symbol */
+		s += sprintfa("\t%-30y", {ctl.dom(t, ctx->pc)}ctx->pc);
+
+		/* source */
+		src = ctl.looksrc(ctx->pc);
+		if(src)
+			s += sprintfa("\t%s:%d", src.file, src.line);
+
+		return s;
+	}
+
+	@defloc fmtldom(ctl, ctx, t)
+	{
+		@local s, ldom;
+		s = "";	
+		ldom = ctl.ldom(t, ctx);
+		if(ldom == nil)
+			return s;
+		foreach(@lambda(id, l){
+				s += sprintfa("\t%016p\t%t\n",
+					      symoff(l),
+					      l);
+			}, ldom.enumsym());
+		return s;
+	}
+
+	@define dumpstack(ctl, t)
+	{
+		@local ctxs;
+		ctxs = ctl.unwind(t);
+		foreach(@lambda(ctx){
+				printf("%s\n", fmtframe(ctl, ctx, t));
+			}, ctxs);
+		printf("\n");
+	}
+
+	@define dumpstacklocs(ctl, t)
+	{
+		@local ctxs;
+		ctxs = ctl.unwind(t);
+		foreach(@lambda(ctx){
+				printf("%s\n", fmtframe(ctl, ctx, t));
+				printf("%s", fmtldom(ctl, ctx, t));
+			}, ctxs);
+		printf("\n");
+	}
+
+	@define runchronicle(db, cmd)
+	{
+		@local fds, buf, args;
+
+		setenv("CHRONICLE_DB", db);
+		args = copy(cmd);
+		push(args, "--tool=chronicle");
+		push(args, chvalgrpath);
+		fds = apply(popen, args);
+	
+		while(buf = read(fds[2], 1024))
+//		if(verbose)
+			printf("*** %s", buf);
+
+		while(buf = read(fds[1], 1024))
+//		if(verbose)
+			printf("*** %s", buf);
+
+		return mkchctl(db);
+	}
+
+	@define chronicledb(db)
+	{
+		mkchctl(db);
+	}
+}

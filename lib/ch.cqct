@@ -1,3 +1,5 @@
+/* use chronicle.cqct and debug-l1.cqct.
+   this file exists merely for benchmarking. */
 @include <sctlns.cqct>
 @include <elf.cqct>
 @include <dwarf.cqct>
