@@ -1768,38 +1768,77 @@ nobugdb = "/home/vic/src/l1.bug/lock.nobug.db";
 
 /*
 
-u% ./l1
-; @include <ch.cqct>
-/u/vic/src/l1/lib/ch.cqct:1412: warning: variable defined but not referenced: guardsover
-/u/vic/src/l1/lib/ch.cqct:1394: warning: variable defined but not referenced: dumpinterval
-/u/vic/src/l1/lib/ch.cqct:1689: warning: variable defined but not referenced: dumpinterval
-<procedure chbench>
-; chbench();
-	0x0000000000000000	/u/vic/src/l1.debug/l1
-	0x0000000004000000	/lib/ld-2.11.1.so
-	0x0000000004c24000	/lib/libc-2.11.1.so
-	end timestamp: 684378287
+eval-based json2val:
 
-time (usec) for __mal call events before time 1000000; got 2214 events
-                   strstr      6606 (  0.77%)
-                 json2val    801344 ( 93.80%)
-                 readscan      2742 (  0.32%)
-                   lbread     26849 (  3.14%)
-                   substr      2724 (  0.32%)
-                 val2json      8714 (  1.02%)
-                    calls    854303 (100.00%)
+	u% ./l1
+	; @include <ch.cqct>
+	/u/vic/src/l1/lib/ch.cqct:1412: warning: variable defined but not referenced: guardsover
+	/u/vic/src/l1/lib/ch.cqct:1394: warning: variable defined but not referenced: dumpinterval
+	/u/vic/src/l1/lib/ch.cqct:1689: warning: variable defined but not referenced: dumpinterval
+	<procedure chbench>
+	; chbench();
+		0x0000000000000000	/u/vic/src/l1.debug/l1
+		0x0000000004000000	/lib/ld-2.11.1.so
+		0x0000000004c24000	/lib/libc-2.11.1.so
+		end timestamp: 684378287
+	
+	time (usec) for __mal call events before time 1000000; got 2214 events
+	                   strstr      6606 (  0.77%)
+	                 json2val    801344 ( 93.80%)
+	                 readscan      2742 (  0.32%)
+	                   lbread     26849 (  3.14%)
+	                   substr      2724 (  0.32%)
+	                 val2json      8714 (  1.02%)
+	                    calls    854303 (100.00%)
+	
+	time (usec) for corresponding ret events
+	                   lbread  15619983 ( 81.84%)
+	                 val2json    386641 (  2.03%)
+	                   substr      8421 (  0.04%)
+	    readfindSPGreaterThan   8836139 ( 46.30%)
+	                      ctx   8653180 ( 45.34%)
+	                   findSP  10401696 ( 54.50%)
+	                   strstr     28624 (  0.15%)
+	              readreadReg   6638946 ( 34.79%)
+	                 json2val   2897998 ( 15.18%)
+	                     rets  19085313 (100.00%)
+	8620 usec per event
 
-time (usec) for corresponding ret events
-                   lbread  15619983 ( 81.84%)
-                 val2json    386641 (  2.03%)
-                   substr      8421 (  0.04%)
-    readfindSPGreaterThan   8836139 ( 46.30%)
-                      ctx   8653180 ( 45.34%)
-                   findSP  10401696 ( 54.50%)
-                   strstr     28624 (  0.15%)
-              readreadReg   6638946 ( 34.79%)
-                 json2val   2897998 ( 15.18%)
-                     rets  19085313 (100.00%)
-8620 usec per event
+jsmn-based json2val:
+
+	u% l1
+	; @include <ch.cqct>
+	/u/vic/src/l1/lib/ch.cqct:1412: warning: variable defined but not referenced: guardsover
+	/u/vic/src/l1/lib/ch.cqct:1394: warning: variable defined but not referenced: dumpinterval
+	/u/vic/src/l1/lib/ch.cqct:1689: warning: variable defined but not referenced: dumpinterval
+	<procedure chbench>
+	; chbench();
+		0x0000000000000000	/u/vic/src/l1.debug/l1
+		0x0000000004000000	/lib/ld-2.11.1.so
+		0x0000000004c24000	/lib/libc-2.11.1.so
+		end timestamp: 684378287
+	
+	time (usec) for __mal call events before time 1000000; got 2214 events
+	                   lbread     35011 ( 44.69%)
+	                 json2val     23615 ( 30.14%)
+	                 val2json       208 (  0.27%)
+	                 readscan      2910 (  3.71%)
+	                   substr      2217 (  2.83%)
+	                   strstr      5746 (  7.33%)
+	                    calls     78339 (100.00%)
+	
+	time (usec) for corresponding ret events
+	    readfindSPGreaterThan   9078711 ( 52.47%)
+	              readreadReg   7327410 ( 42.34%)
+	                   strstr     29191 (  0.17%)
+	                      ctx   7791783 ( 45.03%)
+	                 json2val     70169 (  0.41%)
+	                 val2json    504402 (  2.91%)
+	                   lbread  16554244 ( 95.67%)
+	                   substr      7974 (  0.05%)
+	                   findSP   9486270 ( 54.82%)
+	                     rets  17304232 (100.00%)
+	7815 usec per event
+
 
  */
