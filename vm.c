@@ -6517,13 +6517,15 @@ l1_statistics(VM *vm, Imm argc, Val *argv, Val *rv)
 char*
 cqctsprintval(VM *vm, Val v)
 {
-	Val argv[2], rv;
+	Val argv[2], rv, cl;
 
 	Str *s;
 	s = mkstrk("%a", 2, Sperm);
+	cl = envlookup(vm->top->env, "sprintfa");
 	argv[0] = mkvalstr(s);
 	argv[1] = v;
-	l1_sprintfa(vm, 2, argv, &rv);
+	if(0 > cqctcallfn(vm, cl, 2, argv, &rv))
+		return 0;
 	return str2cstr(valstr(rv));
 }
 
@@ -7085,8 +7087,10 @@ cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 	vm->exelast = usec();
 	if(waserror(vm))
 		goto out;
-	if(Vkind(cl) != Qcl)
+	if(Vkind(cl) != Qcl){
+		poperror(vm);
 		goto out;
+	}
 	vm->flags &= ~VMirq;
 	*rv = dovm(vm, valcl(cl), argc, argv);
 	poperror(vm);
