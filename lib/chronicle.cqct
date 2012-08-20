@@ -4,6 +4,7 @@
 @include <debugutil.cqct>
 
 @global 
+	chverbose,
 	chronicledb,
 	runchronicle,
 	setchroot,
@@ -16,23 +17,24 @@
 	indexof,
 	lookinterval,
 	mergeivs,
+	callstack,
 
 	/* these should be unified with debug library */
 	fmtframe,
 	fmtldom,
 	dumpstack,
-	dumpstacklocs
+	dumpstacklocs,
+	rocdumpstack
 ;
+
+chverbose = 0;
 
 rdsetfmt(@record interval { beg, end },
 	 @lambda(r) { sprintfa("<@%d - @%d>", r.beg, r.end); });
 
 {
-	@local verbose;
 	@local chroot, chvalgrpath, chquerypath, ns;
 	@local nextid;
-
-	verbose = 0;
 
 	@defloc initpaths()
 	{
@@ -232,11 +234,11 @@ rdsetfmt(@record interval { beg, end },
 		rvs = [];
 		t = val2json(t)+"\n";
 		lb.write(t);
-		if(verbose)
+		if(chverbose)
 			printf("--> %s", t);
 		while(1){
 			s = lb.read();
-			if(verbose)
+			if(chverbose)
 				printf("<-- %s\n", s);
 			if(s == nil){
 				error("unexpected eof of chquery channel");
@@ -292,7 +294,7 @@ rdsetfmt(@record interval { beg, end },
 		if(length(rs) != 1)
 			error("unexpected endTStamp response: %a", rs);
 		endtstamp = rs[0];
-		if(verbose)
+		if(chverbose)
 			printf("*** bound to execution %s; interval [0,%u]\n", db, endtstamp);
 
 		rs = chquery(lb, [ "cmd" : "scan",
@@ -323,7 +325,7 @@ rdsetfmt(@record interval { beg, end },
 
 		@defloc scan(kind, rest ...)
 		{
-			@local beg, end, addr, len;
+			@local beg, end, addr, len, sp, tid;
 
 			@defloc defrange(args)
 			{
@@ -408,6 +410,35 @@ rdsetfmt(@record interval { beg, end },
 						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
 				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
 				return chcollect(rs, "TStamp");
+			case 'lastentersp:
+				sp = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "ENTER_SP",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   /* it seems we need to bound the query.  assume stack is at most 1MB */
+						   "ranges" : [ [ "start" : sp, "length" : sp+10K ]] ]);
+				/* FIXME: sometimes this query returns multiple results!
+				   is picking the last one the right thing? */
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["TStamp"]; return v != nil; });
+				if(length(rs) == 0)
+					return [nil,nil];
+				else{
+					rs = reverse(rs)[0];
+					return [ rs["TStamp"], rs["start"] ];
+				}
+			case 'findspgt:
+				sp = pop(rest);
+				tid = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "findSPGreaterThan",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "thread"    : tid,
+						   "threshold" : sp ]);
+				return chcollect(rs, "TStamp");
 			default:
 				error("invalid scan kind: %a", kind);
 			}
@@ -464,7 +495,7 @@ rdsetfmt(@record interval { beg, end },
 
 			@defloc map(this)
 			{
-				return vector(mkrange(0, 1ULL));
+				return vector(mkrange(0, -1ULL));
 			}
 
 			@defloc ismapped(this, r)
@@ -753,7 +784,7 @@ rdsetfmt(@record interval { beg, end },
 		return rv;
 	}
 
-	@defloc fmtframe(ctl, ctx, t)
+	@define fmtframe(ctl, ctx, t)
 	{
 		@local s, src;
 
@@ -773,7 +804,7 @@ rdsetfmt(@record interval { beg, end },
 		return s;
 	}
 
-	@defloc fmtldom(ctl, ctx, t)
+	@define fmtldom(ctl, ctx, t)
 	{
 		@local s, ldom;
 		s = "";	
@@ -809,6 +840,48 @@ rdsetfmt(@record interval { beg, end },
 		printf("\n");
 	}
 
+	@defloc entry(exe, t)
+	{
+		@local te, ts, sp, spe, tid, ctx;
+
+		ctx = exe.ctx(t);
+		sp = ctx->sp;
+		tid = ctx->thread;
+
+		while(1){
+			/* starting at 0 causes trouble */
+//		chverbose = 1;
+			[te, spe] = exe.scan('lastentersp, sp, 1, t);
+			chverbose = 0;
+			if(te == nil)
+				return nil;
+			/* te is the call instruction;
+			   te+1 is first insn in new fn */
+			ctx = exe.ctx(te);
+//		sp = ctx->sp;
+//		printf("sp is %d\n", sp);
+			ts = exe.scan('findspgt, spe, tid, te+1, t);
+			if(length(ts) == 0)
+				return te;
+			if(ts[0] > t)
+				return te;
+			printf("looping %a!\n", ts);
+			t = te;
+			sp = spe+8;
+		}
+	}
+
+	/* o'callahan's stack unwinder */
+	@define rocdumpstack(exe, t)
+	{
+		printf("@%-10d %s\n", t, fmtframe(exe, exe.ctx(t), t));
+		t = entry(exe, t);
+		if(t == nil)
+			return;
+		while(t = entry(exe, t-1))
+			printf("@%-10d %s\n", t, fmtframe(exe, exe.ctx(t), t));
+	}
+
 	@define runchronicle(db, cmd)
 	{
 		@local fds, buf, args;
@@ -820,11 +893,11 @@ rdsetfmt(@record interval { beg, end },
 		fds = apply(popen, args);
 	
 		while(buf = read(fds[2], 1024))
-//		if(verbose)
+//		if(chverbose)
 			printf("*** %s", buf);
 
 		while(buf = read(fds[1], 1024))
-//		if(verbose)
+//		if(chverbose)
 			printf("*** %s", buf);
 
 		return mkchctl(db);
