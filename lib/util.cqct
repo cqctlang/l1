@@ -83,3 +83,45 @@
 	}
 	return join(ss);
 }
+
+@define max(arg ...)
+{
+	@local x;
+
+	if(length(arg) == 0)
+		error("wrong number of arguments to max");
+	@defloc r(m, ns)
+	{
+		@local x;
+		if(length(ns) == 0)
+			return m;
+		x = pop(ns);
+		if(x > m)
+			r(x, ns);
+		else
+			r(m, ns);
+	}
+	x = pop(arg);
+	r(x, arg);
+}
+
+@define min(arg ...)
+{
+	@local x;
+
+	if(length(arg) == 0)
+		error("wrong number of arguments to min");
+	@defloc r(m, ns)
+	{
+		@local x;
+		if(length(ns) == 0)
+			return m;
+		x = pop(ns);
+		if(x < m)
+			r(x, ns);
+		else
+			r(m, ns);
+	}
+	x = pop(arg);
+	r(x, arg);
+}
