@@ -71,9 +71,9 @@ at <span class="val"><a href="http://cqctworld.org">cqctworld.org</a></span>.
 <p>
 Keep in mind that the syntax and abstractions of
 the Cinquecento language are intended to support a
-variety of styles of programmatic debugging.
+variety of approaches to programmatic debugging.
 The <span class="id">debug</span> library represents
-just one style &mdash; an effective but rather traditional one.
+just one approach &mdash; an effective but rather traditional one.
 </p>
 
 <p>
@@ -167,7 +167,7 @@ library loading and unloading, system calls, signals,
 and termination.  Associated with each trap is a
 user-defined handler function that is called when the
 event occurs.  The handler is passed the ctl
-corresponding to the thread and instant of time where
+that corresponds to the thread and instant of time where
 the event occurred.  Execution of the thread is suspended
 for the duration of the handler function call.  During
 this time, the handler may examine the state of the
@@ -341,9 +341,9 @@ elements to an existing list, a function
 called <span class="val">dowork</span> that builds a
 list of consecutive values, and
 a <span class="val">main</span> function that begins
-the work.  It accepts an optional argument
-that specifies the number of elements in the final
-list.  It has no output.
+the work.  It accepts an optional argument that
+specifies the number of elements in the final list; the
+default is five.  The program has no output.
 </p>
 
 <p>
@@ -369,7 +369,7 @@ The first line of <span class="id">getstarted</span>
 creates a new sctlmux object, binding it to the
 variable <span class="id">mux</span>.  <span class="id">Mux</span>
 represents a connection to a fresh sctl server that is
-launched by <span class="id">mksctlmux</span> on the
+launched by <span class="fnindex"><a href="#fn:mksctlmux">mksctlmux</a></span> on the
 same host as the Cinquecento program.
 </p>
 
@@ -395,15 +395,16 @@ out.
 </p>
 
 <p>
-<span class="id">Ctllaunch</span> leaves the new program execution in a stopped
-state, paused just before execution of its first instruction.
-Note that most programs perform many initialization
-functions before reaching the first instruction of
-main, such as initializing the dynamic loader, loading
-and initializing library dependencies, and so on.
+<span class="id">Ctllaunch</span> leaves the new
+program execution in a stopped state, paused just
+before execution of its first instruction.  
+Many programs perform a series of initialization functions,
+such as initializing the dynamic loader, loading and
+initializing library dependencies, and so on, before reaching
+the first instruction of their main function.
 <span class="id">Ctllaunch</span> pauses the new
-execution truly at the first instruction of this
-initialization.
+execution truly at the first instruction, before
+any of this initialization.
 </p>
 
 <p>
@@ -413,7 +414,7 @@ loop.  The <span class="fnindex"><a href="#fn:sctlmuxrun">run</a></span> method 
 program launched by the ctllaunch and to block until it
 has exited.  If we had launched more than one program
 with additional calls to <span class="id">ctllaunch</span>, these would all be
-resumed simultaneously, and the call to run would block
+resumed simultaneously, and the call to <span class="id">run</span> would block
 until they all exited.  If we had registered any
 handlers for executions events, as we will do in all of
 the following examples, the sctlmux would dispatch these
@@ -428,7 +429,7 @@ events in the dynamic extent of the call to <span class="id">run</span>.
 </div>
 
 <p>
-Many debugging programs focus on the code and data of
+Many debugging sessions focus on the code and data of
 the program executable (rather than its libraries).  We
 say the <em>executable domain</em> is a domain whose
 address space is the process memory and whose name
@@ -588,7 +589,7 @@ generic aliases for the program counter
 <div class="code">
 <pre>
 ; ctx1();
-<span class="arg">pc = 2aaaaaaabaf0, sp = 7fffffffea00, fp = 0
+<span class="arg">pc = 2aaaaaaabaf0, sp = 7fffffffe9e0, fp = 0
 </span>; 
 </pre>
 </div>
@@ -629,7 +630,7 @@ a <span class="id">Ctx</span>.  Here is usage on a
 <pre>
 ; ctx2();
 <span class="arg">	  rip  00002aaaaaaabaf0
-	  rsp  00007fffffffea00
+	  rsp  00007fffffffe9e0
 	  rbp  0000000000000000
 	  rax  0000000000000000
 	  rbx  0000000000000000
@@ -724,7 +725,7 @@ execution.
 
 <p>
 The debugging library does not know the calling
-convention of target program functions.  A primitive
+convention of target program functions.  One primitive
 way to access function arguments is to directly apply
 knowledge of the convention.  We illustrate a less
 primitive approach <a href="#sec:brbrk">later</a>.
@@ -876,7 +877,7 @@ that we wanted is the one from the executable domain.
 When performing a type cast, Cinquecento determines the
 definition of the type from the domain of the value.
 Had we switched the order of the cast operations, we
-would have attempted to look up the definition
+would have unsuccessfully attempted to look up the definition
 of <span class="val">Node*</span> from the domain of
 the context value.
 </p>
@@ -1015,7 +1016,7 @@ to <span class="val">void**</span>.
 We then set a breakpoint on the return address.
 To make this breakpoint a one-shot breakpoint,
 we capture the trap identifier returned
-by the trap method.  In the handler for the trap,
+by the <span class="fnindex"><a href="#fn:trap">trap</a></span> method.  In the handler for the trap,
 we clear the trap so that it does not fire again
 without a corresponding new call to the function.
 Finally, we print the return value of the function,
@@ -1025,14 +1026,14 @@ in <span class="id">rax</span>.
 </p>
 
 <p>
-Unfortunately, this approach is not completely robust.
+Unfortunately, this approach is not robust.
 It can be defeated in at least two scenarios:
 </p>
 
 <ol>
 <li>Recursion.  If multiple calls to the function occur
 from the same call site before any of them return, then
-the above technique will accumulate a one-short return
+the above technique will accumulate a one-shot return
 address trap for each of the calls, and trigger all of
 them upon the first return.
 </li>
@@ -1190,10 +1191,10 @@ the ctl to instrument, the address of the function, and
 a handler function for the <em>call</em> event.  This
 handler is called in the same manner as the
 <span class="id">brk</span> handler, except that it may
-return a return event handler that, when the trapped
+return a new handler that, when the trapped
 function call returns, will be called in the same
 manner as the <span class="id">rbrk</span> handler.  If
-instead the call event handler returns
+the call event handler instead returns
 <span class="id">nil</span>, then the return event is ignored.
 </p>
 
@@ -1263,7 +1264,7 @@ stored in registers.
 
 <p>
 The convenience
-function <span class="id">fmtframe</span> convents a
+function <span class="fnindex"><a href="#fn:fmtframe">fmtframe</a></span> convents a
 call frame context into a textual representation of the
 call site, including the program counter value, the
 name of and offset within the caller, and the file name
@@ -1424,11 +1425,12 @@ number on the target execution system.
 </p>
 
 <p>
-The example <span class="id">syscalls</span> traps each
+The <span class="id">syscalls</span> example traps each
 system call event in the execution
-of <span class="id">list</span>, and prints system call
-entry event.  It uses <span class="id">Syscall</span>
-to obtain a name for each system call.
+of <span class="id">list</span>, and prints information
+about each system call entry.  It
+uses <span class="id">Syscall</span> to obtain a name
+for each system call.
 </p>
 
 <div class="code">
@@ -1499,9 +1501,9 @@ entry.
 </p>
 
 <p>
-The library also provides no assistance for retrieving the
-arguments to the system.  Users are expected to know
-the system call calling convention.
+The library also provides no assistance for retrieving
+the arguments to the system call.  Users are expected
+to know the system call calling convention.
 </p>
 
 <h4 id="sec:forkexecexit">Trapping fork, exec, and exit</h4>
@@ -1511,7 +1513,7 @@ The Unix system calls <span class="id">fork</span>,
 <span class="id">exec</span>, and <span class="id">exit</span> can be
 trapped using the ordinary system call trap.  However,
 the library also provides separate traps for these
-events.
+relatively complex events.
 </p>
 
 <p>
@@ -1565,7 +1567,7 @@ the <span class="id">list</span> program.
 </p>
 
 <p>
-The example <span class="id">trapfork</span> illustrates
+The <span class="id">trapfork</span> example illustrates
 how to trap <span class="id">fork</span> events.
 The trap kind is <span class="id">fork</span>.
 The trap handler fires whenever a fork event occurs.
@@ -1594,7 +1596,7 @@ named <span class="id">spwn</span>, corresponding to the spawned execution.
 <div class="code">
 <pre>
 ; trapfork();
-<span class="arg">ctl 26685 has forked ctl 26692
+<span class="arg">ctl 28600 has forked ctl 28607
 </span>; 
 </pre>
 </div>
@@ -1636,8 +1638,8 @@ on <span class="id">exec</span> events.
 <div class="code">
 <pre>
 ; trapforkexec();
-<span class="arg">ctl 26712 has forked ctl 26719
-ctl 26719 has exec'ed /u/vic/src/l1/demo/list
+<span class="arg">ctl 28627 has forked ctl 28634
+ctl 28634 has exec'ed /u/vic/src/l1/demo/list
 </span>; 
 </pre>
 </div>
@@ -1652,7 +1654,7 @@ fired on the ctl corresponding to its forked child.
 
 <p>
 To obtain the name of the newly executed program, the
-onexec handler queries the nsmap for the file name
+<span class="id">onexec</span> handler queries the nsmap for the file name
 corresponding to the name space of the executable domain.
 </p>
 
@@ -1667,7 +1669,7 @@ remain set.
 
 <p>
 Finally, the
-example <span class="id">trapforkexecexit</span>
+<span class="id">trapforkexecexit</span> example
 extends <span class="id">trapforkexec</span> to
 illustrate the trapping of exit events.  As an added
 twist, we modify the our launch arguments to execute
@@ -1711,24 +1713,24 @@ one extra level of <span class="id">forkexec</span>.
 <div class="code">
 <pre>
 ; trapforkexecexit();
-<span class="arg">ctl 26739 has forked ctl 26746
-ctl 26746 has exec'ed /u/vic/src/l1/demo/forkexec
-ctl 26746 has forked ctl 26759
-ctl 26759 has exec'ed /u/vic/src/l1/demo/list
-ctl 26759 has exited with status 0
+<span class="arg">ctl 28654 has forked ctl 28661
+ctl 28661 has exec'ed /u/vic/src/l1/demo/forkexec
+ctl 28661 has forked ctl 28674
+ctl 28674 has exec'ed /u/vic/src/l1/demo/list
+ctl 28674 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
 00002aaaaacebc53	__libc_start_main+0x103       
 00000000004004a8	_start+0x28                   
 
-ctl 26746 has exited with status 0
+ctl 28661 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
 00000000004007d3	main+0xdf                     	/home/vic/src/l1/demo/forkexec.c:28
 00002aaaaacebc4c	__libc_start_main+0xfc        
 0000000000400638	_start+0x28                   
 
-ctl 26739 has exited with status 0
+ctl 28654 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
 00000000004007d3	main+0xdf                     	/home/vic/src/l1/demo/forkexec.c:28
@@ -1761,7 +1763,7 @@ The <span class="id">signal</span> trap kind is used to trap signal events.
 </p>
 
 <p>
-The example <span class="id">trapsig</span>
+The <span class="id">trapsig</span> example
 demonstrates usage.  It launches a modified version of
 <span class="id">list</span>,
 called <span class="id">listbug</span>, that introduces
@@ -1795,7 +1797,7 @@ this bug causes a segmentation fault.
 <div class="code">
 <pre>
 ; trapsig();
-<span class="arg">ctl 26779 received signal 11
+<span class="arg">ctl 28694 received signal 11
 faulting address is 0x8
 00000000004005e0	insert+0x7c                   	/home/vic/src/l1/demo/listbug.c:25
 0000000000400616	dowork+0x2c                   	/home/vic/src/l1/demo/listbug.c:36
@@ -2002,6 +2004,7 @@ does not exist.
 </div>
 <div class="returns">
 <span class="type">name space</span>
+or <span class="type">nil</span>
 </div>
 </div>
 <div class="desc">
@@ -2033,9 +2036,9 @@ by calling <span class="fnindex"><a href="#fn:snamesreconnect">snamesreconnect</
 </div>
 </div>
 <div class="desc">
-Address is a network address of the form 
-<tt>"<em>addr</em>:<em>port</em>"</tt>, where
-<span class="arg">addr</span> is an IP address or hostname and
+<span class="arg">Addr</span> is a network address of the form 
+<tt>"<em>host</em>:<em>port</em>"</tt>, where
+<span class="arg">host</span> is an IP address or hostname and
 <span class="arg">port</span> is a port number or
 service name.  Updates to <span class="arg">addr</span>
 the address of the snames server
@@ -2136,8 +2139,8 @@ are defined.
 Returns source code location information corresponding
 to the program counter
 value <span class="arg">pc</span>.
-(See <span class="fnindex"><a href="#fn:sctllooksrc">sctllooksrc</a></span> for the
-definition of a source record.)
+See <span class="fnindex"><a href="#fn:sctllooksrc">sctllooksrc</a></span> for the
+definition of a source record.
 Returns <span class="val">nil</span> if no source code
 location is defined for <span class="arg">pc</span>.
 </div>
@@ -2184,22 +2187,22 @@ Returns <span class="val">nil</span> if there is no matching source location.
 Returns a list of local variable records describing
 local variables in scope at program counter
 address <span class="arg">pc</span>.
-(See <span class="fnindex"><a href="#fn:sctlenumloc">sctlenumloc</a></span> for the
-definition of a local variable record.)
+See <span class="fnindex"><a href="#fn:sctlenumloc">sctlenumloc</a></span> for the
+definition of a local variable record.
 Returns <span class="val">nil</span> if no
 local variable information is available.
 </div>
 </div>
 
 <p>
-The sctl communication
+The sctl protocol transactions
 underlying <span class="id">atnames</span>
-and <span class="id">snamesns</span> is encapsulated in
+and <span class="id">snamesns</span> are encapsulated in
 the function <span class="id">mksctlns</span>.  This
 function is intended to support the creation of new
 high-level interfaces
 like <span class="id">atnames</span>
-or <span class="id">snamesns</span>.  An even more low-level
+or <span class="id">snamesns</span>.  A more low-level
 interface to the sctl protocol is described <a href="#sec:sctlns">later</a>.
 </p>
 
@@ -2224,7 +2227,7 @@ Returns a name space for the binary
 named <span class="arg">path</span>.  The name space is
 served by the <span class="val">sctl</span> server
 backed by <span class="arg">fd</span>.  The version negotiation
-with the sctl server must be performed by calling this function
+with the sctl server must be performed before calling this function
 (see <span class="fnindex"><a href="#fn:sctlversion">sctlversion</a></span>).
 Returns <span class="val">nil</span> if the name space
 does not exist.
@@ -2241,7 +2244,7 @@ based on event-based programming model, managed by an
 instance of the sctlmux object.  Associated with each
 sctlmux is a set of <em>bound</em> ctls under its
 control.  Operations on bound ctls are mapped to
-requests sent to the sctl that controls the target
+transactions with the sctl that controls the target
 execution.  The sctl in turn sends messages announcing
 events that have occurred in the target execution,
 which are dispatched to event handlers in the
@@ -2328,8 +2331,8 @@ in the ctl <span class="fnindex"><a href="#fn:ctltrap">trap</a></span> method.
 </div>
 <div class="desc">
 <p>
-Launches a new program execution, returning
-a <span class="val">ctl</span> representing the
+Launches a new program execution, returning a ctl
+representing the
 execution.  <span class="arg">Cmd</span> is the list
 arguments used to run the program; <em>i.e.</em>, on
 Unix-based targets these strings are passed
@@ -2416,7 +2419,7 @@ method of the ctl.
 </div>
 <div class="desc">
 Updates the current context of the ctl to <span class="arg">ctx</span>.
-The context should be a modified instance of the context returned
+The context should be a modified instance of a context returned
 by the <span class="fnindex"><a href="#fn:ctlctx">ctx</a></span> method.
 </div>
 </div>
@@ -2452,7 +2455,7 @@ at least the following fields:
 </div>
 
 <span class="id">Name</span> is a string specifying the name of the dialect.
-<span class="id">ns</span> is the name space in which all dialect types and enumerations are defined.
+<span class="id">Ns</span> is the name space in which all dialect types and enumerations are defined.
 <span class="id">Ctx</span> is the structure type definition (ctype) for the context type, and <span class="id">Siginfo</span> is the structure type definition (ctype) for the signal information type.
 <span class="id">Syscall</span> is an enumeration type that defines names for each valid system call number,
 and <span class="id">Signal</span> is an enumeration type that defines names for each valid signal number.
@@ -2474,7 +2477,7 @@ and <span class="id">Signal</span> is an enumeration type that defines names for
 </div>
 <div class="desc">
 Returns <span class="arg">addr</span> cast into a domain
-suitable for dereferencing within the address space of
+backed by the address space of
 the ctl.  If <span class="arg">addr</span> seems to be
 associated with a particular name space (as determined
 by <span class="fnindex"><a href="#fn:ctlns">ns</a></span>),
@@ -2482,8 +2485,8 @@ by <span class="fnindex"><a href="#fn:ctlns">ns</a></span>),
 domain formed from that name space and the address
 space of the ctl.  Otherwise
 <span class="arg">addr</span> is cast into a
-domain formed from the name space of
-<span class="arg">addr</span> and the address space
+domain formed from the name space of the domain
+of <span class="arg">addr</span> and the address space
 of the ctl.
 </div>
 </div>
@@ -2501,6 +2504,10 @@ of the ctl.
 Releases control of the target execution.
 The execution resumes, but future operations on
 the ctl are invalid.
+<p>
+It is currently unsafe to call this method
+from within a trap handler.
+</p>
 </div>
 </div>
 
@@ -2516,6 +2523,10 @@ the ctl are invalid.
 <div class="desc">
 Like detach, but terminates the target execution
 instead of resuming it.
+<p>
+It is currently unsafe to call this method
+from within a trap handler.
+</p>
 </div>
 </div>
 
@@ -2530,8 +2541,7 @@ instead of resuming it.
 </div>
 <div class="desc">
 Returns a record describing status information about the remote target.
-This is currently undefined and unimplemented, but should
-perhaps include: pid, ppid, other proc stats, maps, dialect.
+This method is currently undefined and unimplemented.
 </div>
 </div>
 
@@ -2581,7 +2591,7 @@ Queries the current mappings in the target address
 space (<em>i.e.</em>, its nsmap), returning a name
 space corresponding to one of the mappings.
 If <span class="arg">idx</span> is unspecified, a name
-space corresponding to the executable is return.
+space corresponding to the executable is returned.
 If <span class="arg">idx</span> is a cvalue, it is
 treated as an address in the target memory, and the
 name space "containing" that address is returned
@@ -2734,7 +2744,7 @@ passing <span class="arg">idx</span> to the <span class="fnindex"><a href="#fn:c
 <div class="docitem" id="fn:ctltrap">
 <div class="proto">
 <div class="function">
-<span class="id">trap(<span class="arg">kind</span>[,<span class="arg">arg</span>.],<span class="arg">fn</span>)</span>
+<span class="id">trap(<span class="arg">kind</span>[,<span class="arg">arg</span>],<span class="arg">fn</span>)</span>
 </div>
 <div class="param">
 <span class="arg">kind</span>: <span class="type">cid</span>
@@ -2752,8 +2762,8 @@ passing <span class="arg">idx</span> to the <span class="fnindex"><a href="#fn:c
 <div class="desc">
 <p>
 Sets a trap on an event of various forms, specified by
-the <span class="arg">kind</span> and possible
-event-specific
+the <span class="arg">kind</span> and
+event-specific additional
 argument <span class="arg">arg</span>.  <span class="arg">Fn</span>
 is a handler to be called in reponse to the event.
 Multiple handlers may be registered for the same event;
@@ -2768,12 +2778,12 @@ value of each call to a handler is ignored.
 The return value of <span class="id">trap</span> is an
 unique identifier for the trap.  Passing the identifier to a call
 to <span class="fnindex"><a href="#fn:ctlclear">clear</a></span>
-deregisters the trap.
+deregisters the trap, preserving the order of any remaining traps.
 </p>
 
 <p>
-The available traps are listed below.  Any required
-optional arguments to <span class="val">trap</span> are
+The available traps are listed below.  Where required, the
+additional argument to <span class="val">trap</span> is
 named following the symbol that identifies trap kind.
 </p>
 
@@ -2798,7 +2808,7 @@ returns from an <span class="id">exec</span> system call.
 <dd>
 Set a trap on termination.
 The handler is called when the target has terminated
-but before the address space has been reclaimed by the
+but before the execution context has been reclaimed by the
 host system.  No further execution will occur; the ctl
 becomes invalid when the handler returns.
 </dd>
@@ -2818,7 +2828,7 @@ handler.
 <dd>
 Set a trap on new program execution. The
 handler is called when the target has
-successfully returned from the exec system
+successfully returned from the <span class="id">exec</span> system
 call, just before the execution of
 the first instruction in the new program
 image.
@@ -2829,7 +2839,7 @@ image.
 Set a trap on system call entry and exit.
 The handler is called whenever the target
 enters or returns from a system call.
-(It is up to the handler to figure out which.)
+It is up to the handler to figure out which.
 </dd>
 
 <dt><span class="val">signal</span></dt>
@@ -2837,6 +2847,9 @@ enters or returns from a system call.
 Set a trap on signals. 
 The handler is called whenever a signal
 is about to be posted to the target.
+Along with the ctl, the handler is passed
+a pointer to a <span class="fnindex"><a href="#fn:ctldialect">Siginfo</a></span> structure describing
+the signal event.
 </dd>
 
 <dt><span class="val">clone</span></dt>
@@ -3016,22 +3029,22 @@ of <span class="arg">handler</span> is ignored.
 </div>
 <div class="desc">
 This function combines the functionality
-of <span class="id">brk</span>
-and <span class="id">rbrk</span>, allowing traps on
+of <span class="fnindex"><a href="#fn:brk">brk</a></span>
+and <span class="fnindex"><a href="#fn:rbrk">rbrk</a></span>, allowing traps on
 both the call and return from the function at
 address <span class="arg">addr</span> in the execution
 associated with <span class="arg">ctl</span>.  As
-with <span class="id">brk</span>
-and <span class="id">rbrk</span>, the type of
+with <span class="fnindex"><a href="#fn:brk">brk</a></span>
+and <span class="fnindex"><a href="#fn:rbrk">rbrk</a></span>, the type of
 <span class="arg">addr</span> should be the actual type
 of the trapped function.  When a call to the function
 occurs,
 <span class="arg">handler</span> is called in the same
-manner as in <span class="id">brk</span>, with one difference: 
+manner as in <span class="fnindex"><a href="#fn:brk">brk</a></span>, with one difference: 
 <span class="arg">handler</span> may return a handler
 procedure to be called when the current function call
 returns.  This handler is called in the same manner as
-the handler in <span class="id">rbrk</span>.  No return
+the handler in <span class="fnindex"><a href="#fn:rbrk">rbrk</a></span>.  No return
 trap is set if <span class="arg">handler</span>
 returns <span class="val">nil</span>.
 <span class="id">Brbrk</span> returns the trap
@@ -3135,7 +3148,7 @@ These procedures assume that the sctl server answers
 each request synchronously and that it never
 generates <span class="val">Aevent</span> messages.
 This behavior is consistent with a sctl server that
-being used to serve only name space data.
+is only being used to serve name space data.
 </p>
 
 <p>
@@ -3587,7 +3600,7 @@ and the corresponding Cinquecento name space.
 <p>
 A typical address space consists of several library
 mappings and exactly one executable mapping.  An nsmap
-defines a distinguished mapping, called the executable,
+can define a distinguished mapping, called the <em>executable</em>,
 which is intended to represent the executable mapping.
 </p>
 
@@ -3665,10 +3678,6 @@ The name space is constructed by calling the <span class="arg">fn</span> argumen
 that was passed to
 <span class="fnindex"><a href="#fn:mknsmap">mknsmap</a></span>
 when the nsmap was created.
-If <span class="arg">base</span> is <span class="val">0</span>
-and the nsmap does not already have a defined
-executable, then the executable is set
-to the new mapping.
 </div>
 </div>
 
