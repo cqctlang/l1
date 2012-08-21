@@ -141,6 +141,18 @@ archive:
 git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
 
+# it is irritating that we reproduce demo dependencies here.
+DEMO=\
+	demo/forkexec.c\
+	demo/list.c\
+	demo/listbug.c
+
+doc: doc/debug.html
+
+doc/debug.html: doc/debug.src.html $(DEMO)
+	@$(MAKE) -C demo
+	@$(MAKE) -C doc
+
 clean:
 	@$(MAKE) -s -C x/lib9 clean
 	@$(MAKE) -s -C x/libflate clean
