@@ -25,7 +25,7 @@ _unameres = nil;
     case ["Darwin","x86_64",4]:
     default:
       // no direct syscalls for you
-      printf("Unsupported OS: %a\n",[o,a,w]);
+      fprintf(stderr,"Unsupported OS: %a\n",[o,a,w]);
   }
 
   _unameres = u;
