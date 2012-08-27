@@ -1,0 +1,38 @@
+/.ccs/u02/ajpark2/projects/l1/lib/dynamictypes.cqct:71: warning: assignment to unbound variable: fld_size
+struct Vector at 0x20 {
+   int size = 3
+   int [3] data = [0,
+                   1,
+                   8]
+};
+Pre-refinement:
+struct Vector at 0x8 {
+   int size = 5
+   int [] data = [] //unknown size
+};
+Post-refinement:
+struct Vector at 0x8 {
+   int size = 5
+   int [5] data = [0,
+                   1,
+                   4,
+                   9,
+                   16]
+};
+Type size: 24 bytes (dec)
+struct Vector at 0x20 {
+   int size = 3
+   int [3] data = [0,
+                   1,
+                   8]
+};
+Pre-refinement:
+struct EnumPtr at 0x30 {
+   int type = 0
+   void * contents = 0x18
+};
+Post-refinement:
+struct EnumPtr at 0x30 {
+   int type = 0
+   int * contents = 0x18
+};
