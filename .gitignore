@@ -4,3 +4,5 @@ l1
 .DS_Store
 fns.*.c
 */*/*.a
+*.failed
+*.swp
