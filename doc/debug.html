@@ -1264,7 +1264,7 @@ stored in registers.
 
 <p>
 The convenience
-function <span class="fnindex"><a href="#fn:fmtframe">fmtframe</a></span> convents a
+function <span class="fnindex"><a href="#fn:fmtframe">fmtframe</a></span> converts a
 call frame context into a textual representation of the
 call site, including the program counter value, the
 name of and offset within the caller, and the file name
@@ -1297,37 +1297,37 @@ and line number of the call site in source code.
 <pre>
 ; unwind();
 <span class="arg">enter insert
-0000000000400564	insert                        	/home/vic/src/l1/demo/list.c:12
-0000000000400604	dowork+0x2c                   	/home/vic/src/l1/demo/list.c:34
-0000000000400652	main+0x3b                     	/home/vic/src/l1/demo/list.c:44
+0000000000400564	insert                        	/u/vic/src/l1/demo/list.c:12
+0000000000400604	dowork+0x2c                   	/u/vic/src/l1/demo/list.c:34
+0000000000400652	main+0x3b                     	/u/vic/src/l1/demo/list.c:44
 00002aaaaacebc4c	__libc_start_main+0xfc        
 00000000004004a8	_start+0x28                   
 
 enter insert
-0000000000400564	insert                        	/home/vic/src/l1/demo/list.c:12
-0000000000400604	dowork+0x2c                   	/home/vic/src/l1/demo/list.c:34
-0000000000400652	main+0x3b                     	/home/vic/src/l1/demo/list.c:44
+0000000000400564	insert                        	/u/vic/src/l1/demo/list.c:12
+0000000000400604	dowork+0x2c                   	/u/vic/src/l1/demo/list.c:34
+0000000000400652	main+0x3b                     	/u/vic/src/l1/demo/list.c:44
 00002aaaaacebc4c	__libc_start_main+0xfc        
 00000000004004a8	_start+0x28                   
 
 enter insert
-0000000000400564	insert                        	/home/vic/src/l1/demo/list.c:12
-0000000000400604	dowork+0x2c                   	/home/vic/src/l1/demo/list.c:34
-0000000000400652	main+0x3b                     	/home/vic/src/l1/demo/list.c:44
+0000000000400564	insert                        	/u/vic/src/l1/demo/list.c:12
+0000000000400604	dowork+0x2c                   	/u/vic/src/l1/demo/list.c:34
+0000000000400652	main+0x3b                     	/u/vic/src/l1/demo/list.c:44
 00002aaaaacebc4c	__libc_start_main+0xfc        
 00000000004004a8	_start+0x28                   
 
 enter insert
-0000000000400564	insert                        	/home/vic/src/l1/demo/list.c:12
-0000000000400604	dowork+0x2c                   	/home/vic/src/l1/demo/list.c:34
-0000000000400652	main+0x3b                     	/home/vic/src/l1/demo/list.c:44
+0000000000400564	insert                        	/u/vic/src/l1/demo/list.c:12
+0000000000400604	dowork+0x2c                   	/u/vic/src/l1/demo/list.c:34
+0000000000400652	main+0x3b                     	/u/vic/src/l1/demo/list.c:44
 00002aaaaacebc4c	__libc_start_main+0xfc        
 00000000004004a8	_start+0x28                   
 
 enter insert
-0000000000400564	insert                        	/home/vic/src/l1/demo/list.c:12
-0000000000400604	dowork+0x2c                   	/home/vic/src/l1/demo/list.c:34
-0000000000400652	main+0x3b                     	/home/vic/src/l1/demo/list.c:44
+0000000000400564	insert                        	/u/vic/src/l1/demo/list.c:12
+0000000000400604	dowork+0x2c                   	/u/vic/src/l1/demo/list.c:34
+0000000000400652	main+0x3b                     	/u/vic/src/l1/demo/list.c:44
 00002aaaaacebc4c	__libc_start_main+0xfc        
 00000000004004a8	_start+0x28                   
 
@@ -1596,7 +1596,7 @@ named <span class="id">spwn</span>, corresponding to the spawned execution.
 <div class="code">
 <pre>
 ; trapfork();
-<span class="arg">ctl 28600 has forked ctl 28607
+<span class="arg">ctl 3952 has forked ctl 3959
 </span>; 
 </pre>
 </div>
@@ -1638,8 +1638,8 @@ on <span class="id">exec</span> events.
 <div class="code">
 <pre>
 ; trapforkexec();
-<span class="arg">ctl 28627 has forked ctl 28634
-ctl 28634 has exec'ed /u/vic/src/l1/demo/list
+<span class="arg">ctl 3981 has forked ctl 3988
+ctl 3988 has exec'ed /u/vic/src/l1/demo/list
 </span>; 
 </pre>
 </div>
@@ -1713,27 +1713,27 @@ one extra level of <span class="id">forkexec</span>.
 <div class="code">
 <pre>
 ; trapforkexecexit();
-<span class="arg">ctl 28654 has forked ctl 28661
-ctl 28661 has exec'ed /u/vic/src/l1/demo/forkexec
-ctl 28661 has forked ctl 28674
-ctl 28674 has exec'ed /u/vic/src/l1/demo/list
-ctl 28674 has exited with status 0
+<span class="arg">ctl 4010 has forked ctl 4017
+ctl 4017 has exec'ed /u/vic/src/l1/demo/forkexec
+ctl 4017 has forked ctl 4030
+ctl 4030 has exec'ed /u/vic/src/l1/demo/list
+ctl 4030 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
 00002aaaaacebc53	__libc_start_main+0x103       
 00000000004004a8	_start+0x28                   
 
-ctl 28661 has exited with status 0
+ctl 4017 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
-00000000004007d3	main+0xdf                     	/home/vic/src/l1/demo/forkexec.c:28
+00000000004007d3	main+0xdf                     	/u/vic/src/l1/demo/forkexec.c:28
 00002aaaaacebc4c	__libc_start_main+0xfc        
 0000000000400638	_start+0x28                   
 
-ctl 28654 has exited with status 0
+ctl 4010 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
-00000000004007d3	main+0xdf                     	/home/vic/src/l1/demo/forkexec.c:28
+00000000004007d3	main+0xdf                     	/u/vic/src/l1/demo/forkexec.c:28
 00002aaaaacebc4c	__libc_start_main+0xfc        
 0000000000400638	_start+0x28                   
 
@@ -1797,11 +1797,11 @@ this bug causes a segmentation fault.
 <div class="code">
 <pre>
 ; trapsig();
-<span class="arg">ctl 28694 received signal 11
+<span class="arg">ctl 4053 received signal 11
 faulting address is 0x8
-00000000004005e0	insert+0x7c                   	/home/vic/src/l1/demo/listbug.c:25
-0000000000400616	dowork+0x2c                   	/home/vic/src/l1/demo/listbug.c:36
-0000000000400664	main+0x3b                     	/home/vic/src/l1/demo/listbug.c:46
+00000000004005e0	insert+0x7c                   	/u/vic/src/l1/demo/listbug.c:25
+0000000000400616	dowork+0x2c                   	/u/vic/src/l1/demo/listbug.c:36
+0000000000400664	main+0x3b                     	/u/vic/src/l1/demo/listbug.c:46
 00002aaaaacebc4c	__libc_start_main+0xfc        
 00000000004004a8	_start+0x28                   
 
@@ -2343,6 +2343,32 @@ becoming <span class="val">argv[0]</span>, and so on.
 <p>
 There is currently no way to specify a different environment
 to the launched program, or to redirect its I/O.
+</p>
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlattach">
+<div class="proto">
+<div class="function">
+<span class="id">ctlattach(<span class="arg">mux</span>,<span class="arg">pid</span>)</span>
+</div>
+<div class="param">
+<span class="arg">mux</span>: <span class="type">sctlmux</span>
+</div>
+<div class="param">
+<span class="arg">pid</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctl</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Attaches to an existing program execution, returning a ctl
+representing the
+execution.  <span class="arg">Pid</span> is the process identifier
+of the execution.
 </p>
 </div>
 </div>
@@ -3886,7 +3912,8 @@ of the defining object type in parentheses.
 <a href="#fn:ctlcast">cast</a> (ctl)<br />
 <a href="#fn:ctlclear">clear</a> (nsmap)<br />
 <a href="#fn:nsmapcopy">copy</a> (nsmap)<br />
-<a href="#fn:ctllaunch">ctllaunch</a> (nsmap)<br />
+<a href="#fn:ctlattach">ctlattach</a><br />
+<a href="#fn:ctllaunch">ctllaunch</a><br />
 <a href="#fn:ctlctx">ctx</a> (ctl)<br />
 <a href="#fn:nsmapdel">del</a> (nsmap)<br />
 <a href="#fn:ctldetach">detach</a> (ctl)<br />

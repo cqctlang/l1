@@ -5,7 +5,8 @@
 @include <debugutil.cqct>
 
 @global
-	ctllaunch
+	ctllaunch,
+	ctlattach
 	;
 
 {
@@ -837,6 +838,27 @@ idxev = [
 		return nil;
 	}
 	checkreply(rep, dat, sctl`Rlaunch);
+	p = (uint64*)dat;
+	ctlid = *p++;
+	dlct = sctlx86linux;
+	[ctx, p] = dlct.decodectx(p);
+	return mkctl(mux, ctlid, dlct, ctx);
+}
+
+@define ctlattach(mux, pid)
+{
+	@local p, m, rep, dat, ctlid, ctx, dlct;
+
+	p = m = mkxs();
+	p = (uint64*)p;
+	*p++ = pid;
+	dat = getbytes(m, (char*)p-m);
+	[rep, dat] = mux.msgsync(sctl`Tattach, dat);
+	if(rep->op == sctl`Rerror){
+		printf("attach failed: %s\n", dat);
+		return nil;
+	}
+	checkreply(rep, dat, sctl`Rattach);
 	p = (uint64*)dat;
 	ctlid = *p++;
 	dlct = sctlx86linux;

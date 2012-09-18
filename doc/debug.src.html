@@ -837,7 +837,7 @@ stored in registers.
 
 <p>
 The convenience
-function <span class="fnindex"><a href="#fn:fmtframe">fmtframe</a></span> convents a
+function <span class="fnindex"><a href="#fn:fmtframe">fmtframe</a></span> converts a
 call frame context into a textual representation of the
 call site, including the program counter value, the
 name of and offset within the caller, and the file name
@@ -1517,6 +1517,32 @@ becoming <span class="val">argv[0]</span>, and so on.
 <p>
 There is currently no way to specify a different environment
 to the launched program, or to redirect its I/O.
+</p>
+</div>
+</div>
+
+<div class="docitem" id="fn:ctlattach">
+<div class="proto">
+<div class="function">
+<span class="id">ctlattach(<span class="arg">mux</span>,<span class="arg">pid</span>)</span>
+</div>
+<div class="param">
+<span class="arg">mux</span>: <span class="type">sctlmux</span>
+</div>
+<div class="param">
+<span class="arg">pid</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">ctl</span> or
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+<p>
+Attaches to an existing program execution, returning a ctl
+representing the
+execution.  <span class="arg">Pid</span> is the process identifier
+of the execution.
 </p>
 </div>
 </div>
@@ -3060,7 +3086,8 @@ of the defining object type in parentheses.
 <a href="#fn:ctlcast">cast</a> (ctl)<br />
 <a href="#fn:ctlclear">clear</a> (nsmap)<br />
 <a href="#fn:nsmapcopy">copy</a> (nsmap)<br />
-<a href="#fn:ctllaunch">ctllaunch</a> (nsmap)<br />
+<a href="#fn:ctlattach">ctlattach</a><br />
+<a href="#fn:ctllaunch">ctllaunch</a><br />
 <a href="#fn:ctlctx">ctx</a> (ctl)<br />
 <a href="#fn:nsmapdel">del</a> (nsmap)<br />
 <a href="#fn:ctldetach">detach</a> (ctl)<br />
