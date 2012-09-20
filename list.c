@@ -232,11 +232,10 @@ slide(List *l, Imm idx, int op)
 List*
 listdel(VM *vm, List *l, Imm idx)
 {
-	Imm m, len;
+	Imm len;
 	len = listlen(l);
 	if(idx >= len)
 		vmerr(vm, "listdel out of bounds");
-	m = len-idx;
 	slide(l, idx, SlideDel);
 	l->t--;
 	return l;
@@ -245,7 +244,7 @@ listdel(VM *vm, List *l, Imm idx)
 List*
 listins(VM *vm, List *l, Imm idx, Val v)
 {
-	Imm m, len;
+	Imm len;
 	len = listlen(l);
 	if(idx > len)
 		vmerr(vm, "listins out of bounds");
@@ -256,7 +255,6 @@ listins(VM *vm, List *l, Imm idx, Val v)
 	else if(idx == len)
 		listdata(l)[l->t++] = v;
 	else{
-		m = len-idx;
 		slide(l, idx, SlideIns);
 		l->t++;
 		listdata(l)[l->h+idx] = v;

@@ -402,8 +402,6 @@ l1_json2val(VM *vm, Imm argc, Val *argv, Val *rv)
 	jsmn_parser jsmn;
 	jsmntok_t *tok;
 
-	u64 b, e;
-
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to json2val");
 	checkarg(vm, argv, 0, Qstr);
@@ -414,18 +412,10 @@ l1_json2val(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	mtok = 1024;
 
-	b = usec();
 	jsmn_init(&jsmn);
-	e = usec();
-//	printf("jsmn_init: %lu usec\n", e-b);
-
 retry:
 	tok = emalloc(mtok*sizeof(jsmntok_t));
-
-	b = usec();
 	r = jsmn_parse(&jsmn, s, tok, mtok);
-	e = usec();
-//	printf("jsmn_parse: %lu usec\n", e-b);
 
 	switch(r){
 	case JSMN_SUCCESS:
@@ -450,11 +440,7 @@ retry:
 	}
 	ndx = 0;
 
-	b = usec();	
 	*rv = convert(s, tok, &ndx);
-	e = usec();
-//	printf("jsmn_convert: %lu usec\n", e-b);
-
 	efree(tok);
 	efree(s);
 }
