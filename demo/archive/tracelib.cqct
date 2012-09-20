@@ -1,0 +1,84 @@
+@include <ctls.cqct>
+@include <snamesclt.cqct>
+@include <dump.cqct>
+
+atnames = snamesns;
+
+@define fmtldom(ldom)
+{
+	@local s;
+
+	s = "";
+	if(ldom == nil)
+		return s;
+
+	foreach(@lambda(id, l){
+			s += sprintfa("\t%016p\t%t\n",
+				      symoff(l),
+				      l);
+		}, ldom.enumsym());
+
+	return s;
+}
+
+@define dumpcontext(ctl)
+{
+	@local xs;
+	xs = ctlunwindctxs(ctl);
+	foreach(@lambda(ctx){
+			@local src, ns, pc;
+
+			/* pc */
+			printf("%016p", ctx->rip);
+
+			/* symbol */
+			printf("\t%-30y", {ctldombyaddr(ctl, ctx->rip)}ctx->rip);
+
+			/* source */
+			src = ctladdr2src(ctl, ctx->rip);
+			ns = ctlnsbyaddr(ctl, ctx->rip);
+			if(src != nil){
+				@local spec;
+				printf("\t%s:%d\n", src.file, src.line);
+				spec = sprintfa("%s:%d", src.file, src.line);
+				pc = dwsrc2addr(spec, ns);
+				/* pc may not match ctx->rip; we care
+				   only that it is defined */
+				if(pc == nil)
+					error("no reverse src!\n");
+			}else
+				printf("\n");
+
+			/* locals */
+			printf("%s", fmtldom(ctlldom(ctl, ctx)));
+		}, xs);
+	printf("\n");
+}
+
+if(1){
+	@local mux, cmd, ctl, exe;
+
+	setenv("LD_LIBRARY_PATH", ".");
+	mux = mkctlmux();
+	cmd = [ "uselib" ];
+	ctl = ctllaunch(mux, cmd);
+
+	printf("launched %d\n", ctl.id);
+	exe = ctlexe(ctl);
+
+	ctl.trap('brk, &exe`main,
+		 @lambda(ctl){
+			 @local liba;
+
+			 liba = ctldombyname(ctl, "libA");
+			 if(liba == nil)
+				 error("cannot obtain domain for libA");
+			 printf("setting trap at %p %y\n", &liba`a1, &liba`a1);
+			 ctl.trap('brk, &liba`a1, dumpcontext);
+			 printf("enter main\n");
+			 
+		 });
+
+
+	mux.run();
+}

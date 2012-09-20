@@ -6,38 +6,41 @@ struct Node {
 	int v;
 	Node *next;
 };
-Node *head;
 
-Node node;
-
-static void
-insert(int v)
+static Node*
+insert(Node *h, int v)
 {
 	Node *p, *q;
 
 	p = malloc(sizeof(Node));
 	p->v = v;
 	p->next = 0;
-	if(!head){
-		head = p;
-		return;
-	}
-	q = head;
+	if(!h)
+		return p;
+	q = h;
 	while(q->next)
 		q = q->next;
 	q->next = p;
+	return h;
+}
+
+static void
+dowork(int n)
+{
+	int i;
+	Node *head;
+	head = 0;
+	for(i = 0; i < n; i++)
+		head = insert(head, i);
 }
 
 int
 main(int argc, char *argv[])
 {
-	int i;
 	int m;
-	m = 100;
+	m = 5;
 	if(argc > 1)
 		m = atoi(argv[1]);
-	for(i = 0; i < m; i++)
-		insert(i);
-	printf("list is done\n");
+	dowork(m);
 	return 0;
 }

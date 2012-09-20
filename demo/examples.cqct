@@ -1,0 +1,405 @@
+@include <debug.cqct>
+
+@define getstarted()
+{
+	@local mux;
+	mux = mksctlmux();
+	ctllaunch(mux, ["./list"]);
+	mux.run();
+}
+
+@define start(cmd)
+{
+	@local mux, ctl, exe;
+	mux = mksctlmux();
+	ctl = ctllaunch(mux, cmd);
+	exe = ctl.exe();
+	return [mux, ctl, exe];
+}
+
+@define brkentry()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+	ctl.trap('brk, &exe`main,
+		 @lambda(ctl) { printf("enter main\n"); });
+	ctl.trap('brk, &exe`dowork,
+		 @lambda(ctl) { printf("enter dowork\n"); });
+	ctl.trap('brk, &exe`insert,
+		 @lambda(ctl) { printf("enter insert\n"); });
+	mux.run();
+}
+
+@define ctx1()
+{
+	@local ctl, ctx;
+	[_,ctl,_] = start(["./list"]);
+	ctx = ctl.ctx();
+	printf("pc = %p, sp = %p, fp = %p\n",
+	       ctx->pc, ctx->sp, ctx->fp);
+}
+
+@define ctx2()
+{
+	@local ctl, ctx;
+	[_,ctl,_] = start(["./list"]);
+	ctx = ctl.ctx();
+	ctl.dialect().dumpctx(ctx);
+}
+
+@define ctx3()
+{
+	@local ctl, ctx;
+	[_,ctl,_] = start(["./list"]);
+	ctx = ctl.ctx();
+	printtype(typedeftype(@typeof(*ctx)));
+}
+
+@define args1()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx;
+		ctx = ctl.ctx();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define showlist(h)
+{
+	printf("\tlist =");
+	while(h){
+		printf(" %d", h->v);
+		h = h->next;
+	}
+	printf("\n");
+}
+
+@define args2()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx, exe, h;
+
+		ctx = ctl.ctx();
+		exe = ctl.exe();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		h = (Node*){exe}ctx->rdi;
+		showlist(h);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define brkreturn()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx, exe, sp, id;
+		ctx = ctl.ctx();
+		exe = ctl.exe();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		showlist((Node*){exe}ctx->rdi);
+		sp = (void**){exe}ctx->sp;
+		id = ctl.trap('brk, *sp,
+			      @lambda(rctl){
+				      @local ctx, exe;
+				      ctl.clear(id);
+				      ctx = rctl.ctx();
+				      exe = rctl.exe();
+				      printf("leave insert\n");
+				      showlist((Node*){exe}ctx->rax);
+			      });
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define brkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	brk(ctl, &exe`insert,
+	    @lambda(ctl, list, val){
+		    printf("enter insert(0x%p, %d)\n", list, val);
+		    showlist(list);
+	    });
+
+	mux.run();
+}
+
+@define rbrkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	rbrk(ctl, &exe`insert,
+	     @lambda(ctl, rv){
+		     printf("leave insert\n");
+		     showlist(rv);
+	     });
+
+	mux.run();
+}
+
+@define brbrkexample()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	brbrk(ctl, &exe`insert,
+	      @lambda(ctl, list, val){
+		      printf("enter insert(0x%p, %d)\n", list, val);
+		      showlist(list);
+		      return @lambda(ctl, rv){
+			      printf("leave insert\n");
+			      showlist(rv);
+		      };
+	      });
+
+	mux.run();
+}
+
+@define showstack(ctl)
+{
+	@local ctxs;
+	ctxs = ctl.unwind();
+	foreach(@lambda(ctx){ printf("%s\n", fmtframe(ctl, ctx)); },
+		ctxs);
+	printf("\n");
+}
+
+@define unwind()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctxs;
+		printf("enter insert\n");
+		ctxs = ctl.unwind();
+		foreach(@lambda(ctx){ printf("%s\n", fmtframe(ctl, ctx)); },
+			ctxs);
+		printf("\n");
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define locals()
+{
+	@local mux, ctl, exe;
+	[mux,ctl,exe] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx, ctxs, ldom;
+		ctx = ctl.ctx();
+		printf("enter insert(0x%p, %d)\n", ctx->rdi, ctx->rsi);
+		ctxs = ctl.unwind();
+		ctx = ctxs[1]; /* context for "dowork" */
+		ldom = ctl.ldom(ctx);
+		printf("\tcalled from dowork: i=%d, head=0x%p, n=%d\n",
+		       ldom`i, ldom`head, ldom`n);
+	}
+
+	ctl.trap('brk, &exe`insert, handler);
+	mux.run();
+}
+
+@define syscalls()
+{
+	@local mux, ctl, enter;
+	[mux,ctl,_] = start(["./list"]);
+
+	@defloc handler(ctl)
+	{
+		@local ctx;
+		ctx = ctl.ctx();
+		
+		if(enter)
+			printf("enter syscall %e\n",
+			       {ctl.dialect().Syscall}ctx->orig_rax);
+		enter = !enter;
+	}
+
+	enter = 1;
+	ctl.trap('syscall, handler);
+	mux.run();
+}
+
+@define trapfork()
+{
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./forkexec", "./list"]);
+
+	@defloc onfork(ctl, spwn)
+	{
+		printf("ctl %d has forked ctl %d\n", ctl.id(), spwn.id());
+	}
+
+	ctl.trap('fork, onfork);
+	mux.run();
+}
+
+@define trapforkexec()
+{
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./forkexec", "./list"]);
+
+	@defloc	onfork(ctl, spwn)
+	{
+		printf("ctl %d has forked ctl %d\n", ctl.id(), spwn.id());
+	}
+
+	@defloc onexec(ctl)
+	{
+		@local exe;
+		exe = ctl.exe();
+		printf("ctl %d has exec'ed %s\n", ctl.id(),
+		       ctl.nsmap().nspath(exe.ns));
+	}
+
+	ctl.trap('fork, onfork);
+	ctl.trap('exec, onexec);
+
+	mux.run();
+}
+
+@define trapforkexecexit()
+{
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./forkexec", "./forkexec", "./list"]);
+
+	@defloc	onfork(ctl, spwn)
+	{
+		printf("ctl %d has forked ctl %d\n", ctl.id(), spwn.id());
+	}
+
+	@defloc onexec(ctl)
+	{
+		@local exe;
+		exe = ctl.exe();
+		printf("ctl %d has exec'ed %s\n", ctl.id(),
+		       ctl.nsmap().nspath(exe.ns));
+	}
+
+	@defloc onexit(ctl, status)
+	{
+		printf("ctl %d has exited with status %d\n", ctl.id(), status);
+		showstack(ctl);
+	}
+
+	ctl.trap('fork, onfork);
+	ctl.trap('exec, onexec);
+	ctl.trap('exit, onexit);
+
+	mux.run();
+}
+
+@define trapsig()
+{
+	@local mux, ctl;
+	[mux,ctl,_] = start(["./listbug"]);
+
+	@defloc handler(ctl, info)
+	{
+		@local ns;
+		ns = ctl.dialect().ns;
+		printf("ctl %d received signal %d\n",
+		       ctl.id(), info->si_signo);
+		if(info->si_signo == ns`SIGSEGV)
+			printf("faulting address is 0x%p\n", info->si_addr);
+		showstack(ctl);
+	}
+
+	ctl.trap('signal, handler);
+	mux.run();
+}
+
+@define snaps()
+{
+	@local mux, ctl, exe;
+	@local snaps, i;
+
+	[mux,ctl,exe] = start(["./list"]);
+
+	snaps = [];
+
+	i = 0;
+	@defloc oninsert(ctl)
+	{
+		append(snaps, ctl.snap());
+		printf("took snap #%d\n", ++i);
+	}
+
+	@defloc onexit(ctl, status)
+	{
+		@local i;
+		printf("list has exited\n");
+		i = 0;
+		foreach(@lambda(ctl){
+				@local ctx, exe;
+				ctx = ctl.ctx();
+				exe = ctl.exe();
+				printf("snap #%d: insert(0x%p, %d)\n",
+				       ++i,
+				       ctx->rdi, ctx->rsi);
+				showlist((Node*){exe}ctx->rdi);
+			}, snaps);
+	}
+
+	ctl.trap('brk, &exe`insert, oninsert);
+	ctl.trap('exit, onexit);
+	mux.run();
+}
+
+@define runexample(arg ...)
+{
+	eval(arg[1]+"();");
+}
+
+@define testexamples()
+{
+	@local exs;
+
+	exs = [ getstarted,
+		brkentry,
+		ctx1,
+		ctx2,
+		ctx3,
+		args1,
+		args2,
+		brkreturn,
+		brkexample,
+		rbrkexample,
+		brbrkexample,
+		unwind,
+		locals,
+		syscalls,
+		trapfork,
+		trapforkexec,
+		trapforkexecexit,
+		trapsig,
+		snaps
+	];
+
+	foreach(@lambda(ex) { ex(); }, exs);
+}

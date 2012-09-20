@@ -501,9 +501,12 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(vm, f, " )");
 	case Qlist:
 		l = vallist(val);
+		n = listlen(l);
+		if(n > 20)
+			n = 20;
 		if(fmtputs0(vm, f, "["))
 			return -1;
-		for(m = 0; m < listlen(l); m++){
+		for(m = 0; m < n; m++){
 			if(m > 0){
 				if(fmtputs0(vm, f, ", "))
 					return -1;
@@ -512,6 +515,11 @@ fmtval(VM *vm, Fmt *f, Val val)
 					return -1;
 			}
 			if(fmtval(vm, f, listref(l, m)))
+				return -1;
+		}
+		if(n < listlen(l)){
+			snprint(buf, sizeof(buf), ", ... (%d more)", listlen(l)-n);
+			if(fmtputs0(vm, f, buf))
 				return -1;
 		}
 		return fmtputs0(vm, f, " ]");

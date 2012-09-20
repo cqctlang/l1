@@ -58,7 +58,7 @@ recons = [];
 
 	@defloc r(len)
 	{
-		return read(fd, len);
+		return fread(fd, len);
 	}
 
 	@defloc w(buf)

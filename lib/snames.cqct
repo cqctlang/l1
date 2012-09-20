@@ -2,7 +2,7 @@
 !#
 @include <ns9p.cqct>   /* Diru */
 @include <sctl.cqct>
-@include <sctlclt.cqct>
+@include <sctlns.cqct>
 
 @global nsid2path;
 @global path2nsid;
@@ -56,66 +56,73 @@ sns = @names clp64be {
 	return 'badop;
 }
 
-@define tnames(fd, msg, dat)
+@define mkreply(op, tag)
 {
-	@local p, sz, nsid;
+	@local m, p;
+	m = p = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = op;
+	p->tag = tag;
+	p++;
+	return [ m, (char*)p ];
+}
+
+@define tnames(fd, tag, dat)
+{
+	@local p, m, nsid;
 	@local q, path;
 
-	q = (uint64*)dat;
+	q = dat;
 	[path, q] = decodes(q);
 
 	nsid = openns(prefix+path);
 	if(nsid == nil){
-		sctlrerror(fd, msg->tag, Enone);
+		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	sz = sizeof(sctl`Rnames);
-	p = (sctl`Rnames*)malloc(sz);
-	p->op = sctl`Rnames;
-	p->tag = msg->tag;
-	p->id = nsid;
-	sendmsg(fd, p);
+	[m, p] = mkreply(sctl`Rnames, tag);
+	p = (uint64*)p;
+	*p++ = nsid;
+	sendsctlmsg(fd, m, (char*)p-m);
 	return 'ok;
 }
 
-@define tping(fd, msg, dat)
+@define tping(fd, tag, dat)
 {
-	@local p, sz;
-	sz = sizeof(sctl`Rping);
-	p = (sctl`Rping*)malloc(sz);
-	p->op = sctl`Rping;
-	p->tag = msg->tag;
-	p->cnt = length(dat);
-	sendmsg(fd, p);
+	@local p, m;
+
+	[m, p] = mkreply(sctl`Rnames, tag);
+	p = (uint64*)p;
+	*p++ = length(dat);
+	sendsctlmsg(fd, m, (char*)p-m);
 	return 'ok;
 }
 
-@define tversion(fd, msg, dat)
+@define tversion(fd, tag, dat)
 {
-	@local p, sz, s;
+	@local p, m, s;
 	s = split(dat, ":");
 	if(length(s) < 1){
-		botch(fd, msg->tag);
+		botch(fd, tag);
 		return 'badop;
 	}
-	if(s[0] != "sctl-2010"){
-		sctlrerror(fd, msg->tag, "unsupported version");
+	if(s[0] != "sctl-2012"){
+		sctlrerror(fd, tag, "unsupported version");
 		return 'badop;
 	}
 	if(length(s) != 2){
-		botch(fd, msg->tag);
+		botch(fd, tag);
 		return 'badop;
 	}
-	sz = sizeof(sctl`Rversion)+strlen(dat);
-	p = (sctl`Rversion*)malloc(sz);
-	p->op = sctl`Rversion;
-	p->tag = msg->tag;
-	putbytes(p+1, dat);
-	sendmsg(fd, p, sz);
+	[m, p] = mkreply(sctl`Rversion, tag);
+	p = (char*)p;
+	putbytes(p, dat);
+	p += length(dat);
+	sendsctlmsg(fd, m, (char*)p-m);
 	return 'ok;
 }
 
-@define tlooktype(fd, msg, dat)
+@define tlooktype(fd, tag, dat)
 {
 	@local p, m, nsid, tn, ns, td;
 	p = (uint64*)dat;
@@ -123,47 +130,41 @@ sns = @names clp64be {
 	[tn, p] = decodetname(p);
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 	td = ns.looktype(tn);
 	if(td == nil){
-       		sctlrerror(fd, msg->tag, Enone);
+       		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	m = p = (sctl`Rlooktype*)mkxs();
-	p->op = sctl`Rlooktype;
-	p->tag = msg->tag;
-	p++;
+	[m, p] = mkreply(sctl`Rlooktype, tag);
 	p = encodetdef(p, td);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	sendsctlmsg(fd, m, (char*)p-m);
 	return 'ok;
 }
 
-@define tenumtype(fd, msg, dat)
+@define tenumtype(fd, tag, dat)
 {
 	@local p, m, nsid, ns, ts, nt;
 	p = (uint64*)dat;
 	nsid = *p++;
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 	ts = ns.enumtype();
 	nt = length(ts);
-	m = p = (sctl`Renumtype*)mkxs();
-	p->op = sctl`Renumtype;
-	p->tag = msg->tag;
-	p++;
+	[m, p] = mkreply(sctl`Renumtype, tag);
 	p = (uint64*)p;
 	*p++ = nt;
 	foreach(@lambda(tn, td){ p = encodetdef(p, td); }, ts);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	sendsctlmsg(fd, m, (char*)p-m);
 	return 'ok;
 }
 
-@define tlooksym(fd, msg, dat)
+@define tlooksym(fd, tag, dat)
 {
 	@local p, m, nsid, id, ns, sym;
 
@@ -172,25 +173,22 @@ sns = @names clp64be {
 	[id, p] = decodes(p);
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 	sym = looksym(ns, mkcid(id));
 	if(sym == nil){
-		sctlrerror(fd, msg->tag, Enone);
+		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
 
-	m = p = (sctl`Rlooksym*)mkxs();
-	p->op = sctl`Rlooksym;
-	p->tag = msg->tag;
-	p++;
+	[m, p] = mkreply(sctl`Rlooksym, tag);
 	p = encodesym(p, sym);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
-@define tenumsym(fd, msg, dat)
+@define tenumsym(fd, tag, dat)
 {
 	@local p, m, nsid, ns, n, ss;
 
@@ -198,24 +196,21 @@ sns = @names clp64be {
 	nsid = *p++;
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 
 	ss = ns.enumsym();
 	n = length(ss);
-	m = p = (sctl`Renumsym*)mkxs();
-	p->op = sctl`Renumsym;
-	p->tag = msg->tag;
-	p++;
+	[m, p] = mkreply(sctl`Renumsym, tag);
 	p = (uint64*)p;
 	*p++ = n;
 	foreach(@lambda(id, sym) { p = encodesym(p, sym); }, ss);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
-@define tlookaddr(fd, msg, dat)
+@define tlookaddr(fd, tag, dat)
 {
 	@local p, m, nsid, ns, addr, sym;
 
@@ -225,59 +220,48 @@ sns = @names clp64be {
 
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 	sym = ns.lookaddr(addr);
 	if(sym == nil){
-       		sctlrerror(fd, msg->tag, Enone);
+       		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	m = p = (sctl`Rlookaddr*)mkxs();
-	p->op = sctl`Rlookaddr;
-	p->tag = msg->tag;
-	p++;
+	[m, p] = mkreply(sctl`Rlookaddr, tag);
 	p = encodesym(p, sym);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
-@define tunwind1(fd, msg, dat)
+@define tunwind1(fd, tag, dat)
 {
-	@local m, p, nsid, ctx, ns, rs;
+	@local m, p, nsid, pc, ns, rs;
 
 	p = (uint64*)dat;
 	nsid = *p++;
-	ctx = p;
+	pc = *p++;
 
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 
-	/* FIXME: we should not expose the Ctx type,
-	   but it is needed to tell sctlunwind1 how
-	   big the Ctx buffer is */
-	rs = ns.unwind1((sctl`Ctx*)ctx);
+	rs = ns.unwind1(pc);
 	if(rs == nil){
-		sctlrerror(fd, msg->tag, Enone);
+		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	m = p = (sctl`Runwind1*)mkxs();
-	p->op = sctl`Runwind1;
-	p->tag = msg->tag;
-	p++;
-	p = (char*)p;
-	putbytes(p, rs);
-	p += length(rs);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	[m, p] = mkreply(sctl`Rlookunwind1, tag);
+	p = encodeuwrules(p, rs);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
-@define tlooksrc(fd, msg, dat)
+@define tlooksrc(fd, tag, dat)
 {
-	@local m, p, nsid, addr, ns, rs;
+	@local m, p, nsid, addr, ns, src;
 
 	p = (uint64*)dat;
 	nsid = *p++;
@@ -285,27 +269,22 @@ sns = @names clp64be {
 
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 
-	rs = ns.looksrc(addr);
-	if(rs == nil){
-		sctlrerror(fd, msg->tag, Enone);
+	src = ns.looksrc(addr);
+	if(src == nil){
+		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	m = p = (sctl`Rlooksrc*)mkxs();
-	p->op = sctl`Rlooksrc;
-	p->tag = msg->tag;
-	p++;
-	p = (char*)p;
-	putbytes(p, rs);
-	p += length(rs);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	[m, p] = mkreply(sctl`Rlooksrc, tag);
+	p = encodesrc(p, src);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
-@define tlookline(fd, msg, dat)
+@define tlookpc(fd, tag, dat)
 {
 	@local m, p, nsid, file, line, ns, addr;
 
@@ -317,51 +296,43 @@ sns = @names clp64be {
 
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 
-	addr = ns.lookline(file, line);
+	addr = ns.lookpc(file, line);
 	if(addr == nil){
-		sctlrerror(fd, msg->tag, Enone);
+		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	m = p = (sctl`Rlookline*)mkxs();
-	p->op = sctl`Rlookline;
-	p->tag = msg->tag;
+	[m, p] = mkreply(sctl`Rlookpc, tag);
 	p = (uint64*)p;
 	*p++ = addr;
-	sendmsg(fd, m, (char*)p-(char*)m);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
-@define tenumloc(fd, msg, dat)
+@define tenumloc(fd, tag, dat)
 {
-	@local m, p, nsid, ctx, ns, ls;
+	@local m, p, nsid, pc, ns, ls;
 
 	p = (uint64*)dat;
 	nsid = *p++;
-	ctx = p;
+	pc = *p++;
 
 	ns = looknsid(nsid);
 	if(ns == nil){
-		sctlrerror(fd, msg->tag, "unknown name space");
+		sctlrerror(fd, tag, "unknown name space");
 		return 'ok;
 	}
 
-	/* FIXME: we should not expose the Ctx type,
-	   but it is needed to tell sctlenumloc how
-	   big the Ctx buffer is */
-	ls = ns.enumloc((sctl`Ctx*)ctx);
+	ls = ns.enumloc(pc);
 	if(ls == nil){
-		sctlrerror(fd, msg->tag, Enone);
+		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
 
-	m = p = (sctl`Renumloc*)mkxs();
-	p->op = sctl`Renumloc;
-	p->tag = msg->tag;
-	p++;
+	[m, p] = mkreply(sctl`Renumloc, tag);
 	p = (uint64*)p;
 	*p++ = length(ls);
 	foreach(@lambda(l){
@@ -371,7 +342,7 @@ sns = @names clp64be {
 			*p++ = l.ltype;
 			p = encodelexpr(p, l.loc);
 		}, ls);
-	sendmsg(fd, m, (char*)p-(char*)m);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
 
@@ -403,24 +374,23 @@ handle = [
 	(sctl`Mkind)sctl`Tenumtype : tenumtype,
 	(sctl`Mkind)sctl`Tlookaddr : tlookaddr,
 	(sctl`Mkind)sctl`Tenumloc  : tenumloc,
-	(sctl`Mkind)sctl`Tunwind   : notimpl,
 	(sctl`Mkind)sctl`Tunwind1  : tunwind1,
 	(sctl`Mkind)sctl`Tlooksrc  : tlooksrc,
-	(sctl`Mkind)sctl`Tlookline : tlookline,
+	(sctl`Mkind)sctl`Tlookpc   : tlookpc,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
 	(sctl`Mkind)sctl`Tnames    : tnames,
 ];
 
 @define tdispatch(fd)
 {
-	@local msg, dat, fn;
-	[msg, dat] = recvmsg(fd);
+	@local msg, tag, dat, fn;
+	[msg, tag, dat] = recvsctlmsg(fd);
 	if(msg == nil)
 		return dat;
-	fn = handle[(sctl`Mkind)msg->op];
+	fn = handle[(sctl`Mkind)msg];
 	if(fn == nil)
 		return 'badop;
-	return fn(fd, msg, dat);
+	return fn(fd, tag, dat);
 }
 
 @define remember()
@@ -499,9 +469,11 @@ nextid = 0;
 @define opennssctl(path)
 {
 	@local id, ns;
+	printf("snames: sctl names for %s\n", path);
 	id = path2nsid[path];
 	if(id)
 		return id;
+	printf("snames: fresh sctl for %s\n", path);
 	ns = atnames(path);
 	if(ns == nil)
 		return nil;

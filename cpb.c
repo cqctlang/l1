@@ -363,10 +363,10 @@ checkbvar(void *u, char *id, void *v)
 static void
 checkfnvar(void *u, char *id, void *v)
 {
-	U *ctx;
-	VU *vu;
-	ctx = u;
-	vu = v;
+//	U *ctx;
+//	VU *vu;
+//	ctx = u;
+//	vu = v;
 //	if(vu->ref == 0 && vu->def == 0)
 //		cwarnln(ctx, vu->e, "unused parameter: %s", id);
 }

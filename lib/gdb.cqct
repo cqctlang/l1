@@ -74,7 +74,7 @@
 @defloc recvack(fd)
 {
 	@local s;
-	s = read(fd, 1);
+	s = fread(fd, 1);
 	switch(s){
 	case "+":
 		break;
@@ -90,16 +90,16 @@
 	@local s, p, m;
 
 	p = m = mkxs();
-	s = read(fd, 1);
+	s = fread(fd, 1);
 	if(s != "$")
 		wtf(s);
 	while(1){
-		s = read(fd, 1);
+		s = fread(fd, 1);
 		if(s == "#")
 			break;
 		*p++ = s[0];
 	}
-	read(fd, 2); /* checksum */
+	fread(fd, 2); /* checksum */
 	return getbytes(m, p-m);
 }
 

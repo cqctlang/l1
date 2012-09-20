@@ -570,6 +570,7 @@ main(int argc, char *argv[])
 				inbuf = readfile(filename);
 			if(inbuf == 0){
 				printf("%s: %s\n", filename, strerror(errno));
+				status = 2;
 				continue;
 			}
 		}
@@ -619,8 +620,10 @@ main(int argc, char *argv[])
 		}
 		if(dorepl && Vkind(v) != Qnil){
 			s = cqctsprintval(vm, v);
-			printf("%s\n", s);
-			cqctfreecstr(s);
+			if(s){
+				printf("%s\n", s);
+				cqctfreecstr(s);
+			}
 		}
 		status = 0;
 		if(Vkind(v) == Qcval)

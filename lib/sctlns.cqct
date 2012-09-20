@@ -1,0 +1,1153 @@
+@include <sctl.cqct>
+@include <sctlutil.cqct>
+@include <nsmap.cqct>
+@include <xsas.cqct>
+@include <nsutil.cqct>   /* mktnresolve */
+@include <snamesns.cqct>
+
+@global
+	/* sctl name space transactions */
+	sctlping,
+	sctlversion,
+	sctlnames,
+	sctllooktype,
+	sctlenumtype,
+	sctllooksym,
+	sctlenumsym,
+	sctllookaddr, 
+	sctlunwind1,
+	sctllooksrc,
+	sctllookpc,
+	sctlenumloc,
+
+	/* name space codecs */
+	decodetname,
+	decodeuwrules,
+	encodelexpr,
+	encodectx,
+	encodesrc,
+	encodesym,
+	encodetdef,
+	encodetname,
+	encodeuwrules,
+
+	/* name space constructor */
+	mksctlns,
+	atnames
+	;
+
+{
+@local nexttag;
+
+nexttag = 0;
+
+@defloc freshtag()
+{
+	return nexttag++;
+}
+
+@record lexprrec {
+	kind,
+	no,
+	v,	
+	op1, op2,
+};
+
+@record locrec {
+	id,
+	sz,
+	ltype,
+	loc,
+	type,
+};
+
+@record uwrulerec {
+	kind,
+	r,
+	n,
+};
+
+@record srcrec {
+	file,
+	line,
+	col,
+};
+
+@defloc encodeattrs(p, attrs)
+{
+	@local na;
+
+	@defloc canencode(v)
+	{
+		/* never encode an attribute named "offset" */
+		if(v == "offset" || v == 'offset)
+			return 0;
+		return (iscvalue(v) || isstring(v) || iscid(v));
+	}
+
+	@defloc encodev(p, v)
+	{
+		p = (uint8*)p;
+		if(iscvalue(v)){
+			*p++ = sctl`Auint;
+			p = (uint64*)p;
+			*p++ = (uint64)v;
+		}else if(isstring(v)){
+			*p++ = sctl`Astr;
+			p = encodes(p, v);
+		}else if(iscid(v)){
+			*p++ = sctl`Acid;
+			p = encodes(p, cid2str(v));
+		}else
+			error("cannot encode value %a", v);
+		return p;
+	}
+
+	p = (uint64*)p;
+
+	/* parameter attributes may be nil (we'll
+	   decode them as empty tables because we
+	   separate the offset for field and symbol
+	   attributes) */
+	if(attrs == nil){
+		*p++ = 0;
+		return p;
+	}
+
+	na = 0;
+	foreach(@lambda(k, v){ if(canencode(k) && canencode(v)) na++; }, attrs);
+	*p++ = na;
+
+	foreach(@lambda(k, v) { 
+			if(!canencode(k) || !canencode(v))
+				return;
+			p = encodev(p, k);
+			p = encodev(p, v);
+		}, attrs);
+	return p;
+}
+
+@defloc decodeattrs(p)
+{
+	@local tab, na, i, k, v;
+
+	@defloc decodev(p)
+	{
+		@local e, v;
+		p = (uint8*)p;
+		e = *p++;
+		switch(e){
+		case sctl`Auint:
+			p = (uint64*)p;
+			v = *p++;
+			return [v, p];
+		case sctl`Astr:
+			return decodes(p);
+		case sctl`Acid:
+			[v, p] = decodes(p);
+			return [mkcid(v), p];
+		default:
+			error("unrecognized attribute value type: %d", e);
+		}
+	}
+
+	tab = [:];
+	p = (uint64*)p;
+	na = *p++;
+	for(i = 0; i < na; i++){
+		[k, p] = decodev(p);
+		[v, p] = decodev(p);
+		tab[k] = v;
+	}
+	return [tab, p];
+}
+
+@define encodesym(p, sym)
+{
+	@local flags, at, sz;
+
+	p = (uint64*)p;
+	at = symattr(sym);
+
+	/* id */
+	p = encodes(p, cid2str(symid(sym)));
+	
+	/* flags */
+	flags = at["flags"];
+	if(flags == nil)
+		flags = (uint8)0;
+	if(isenumconst(symtype(sym)))
+		flags |= sctl`Senum;
+	p = (uint8*)p;
+	*p++ = flags;
+	
+	/* val */
+	p = (uint64*)p;
+	*p++ = symoff(sym);
+
+	/* attrs */
+	p = encodeattrs(p, at);
+
+	/* size */
+	sz = at["size"];
+	if(sz == nil)
+		sz = 0;
+	*p++ = sz;
+	
+	/* typename */
+	p = encodetname(p, symtype(sym));
+
+	return p;
+}
+
+@defloc decodesym(p)
+{
+	@local id, f, v, sz, t, at;
+
+	p = (uint64*)p;
+	[id, p] = decodes(p);
+	p = (uint8*)p;
+	f = *p++;
+	p = (uint64*)p;
+	v = *p++;
+	[at, p] = decodeattrs(p);
+	at["offset"] = v;
+	at["flags"] = f;
+	sz = *p++;
+	at["size"] = sz;
+	[t, p] = decodetname(p);
+	return [mksym(t, mkcid(id), at), p];
+}
+
+@defloc encodefield(p, f)
+{
+	@local id;
+	p = (uint64*)p;
+	*p++ = fieldoff(f);
+	p = encodeattrs(p, fieldattr(f));
+	id = fieldid(f);
+	if(id == nil)
+		p = encodes(p, "");
+	else
+		p = encodes(p, cid2str(id));
+	p = encodetname(p, fieldtype(f));
+	return p;
+}
+
+@defloc decodefield(p)
+{
+	@local off, at, id, st;
+	p = (uint64*)p;
+	off = *p++;
+	[at, p] = decodeattrs(p);
+	[id, p] = decodes(p);
+	[st, p] = decodetname(p);
+	at["offset"] = off;
+	return [mkfield(st, strlen(id) > 0 ? mkcid(id) : nil, at), p];
+}
+
+@defloc encodeparam(p, par)
+{
+	@local id;
+	p = encodeattrs(p, paramattr(par));
+	id = paramid(par);
+	if(id == nil)
+		p = encodes(p, "");
+	else
+		p = encodes(p, cid2str(id));
+	p = encodetname(p, paramtype(par));
+	return p;
+}
+
+@defloc decodeparam(p)
+{
+	@local sid, at, pt, par;
+	[at, p] = decodeattrs(p);
+	[sid, p] = decodes(p);
+	[pt, p] = decodetname(p);
+	par = mkparam(pt, strlen(sid) > 0 ? mkcid(sid) : nil, at);
+	return [par, p];
+}
+
+@define encodetname(p, t)
+{
+	@local m;
+	p = (uint8*)p;
+	if(isbase(t)){
+		*p++ = sctl`Tbase;
+		*p++ = (uint8)basebase(t);
+		return p;
+	}else if(issu(t) || isenum(t)){
+		if(isstruct(t))
+			*p++ = sctl`Tstruct;
+		else if(isunion(t))
+			*p++ = sctl`Tunion;
+		else if(isenum(t))
+			*p++ = sctl`Tenum;
+		else
+			error("bug");
+		return encodes(p, cid2str(suetag(t)));
+	}else if(istypedef(t)){
+		*p++ = sctl`Ttypedef;
+		return encodes(p, cid2str(typedefid(t)));
+	}else if(isptr(t)){
+		*p++ = sctl`Tptr;
+		return encodetname(p, subtype(t));
+	}else if(isarray(t)){
+		*p++ = sctl`Tarr;
+		p = (uint64*)p;
+		m = arraynelm(t);
+		if(m == nil)
+			*p++ = 0; /* FIXME: maybe want escape */
+		else
+			*p++ = m;
+		return encodetname(p, subtype(t));
+	}else if(isfunc(t)){
+		*p++ = sctl`Tfun;
+		p = encodetname(p, rettype(t));
+		p = (uint64*)p;
+		*p++ = length(params(t));
+		foreach(@lambda(par){ p = encodeparam(p, par); }, params(t));
+		return p;
+	}else if(isvoid(t)){
+		*p++ = sctl`Tbase;
+		*p++ = (uint8)sctl`Vvoid;
+		return p;
+	}else if(isundeftype(t)){
+		*p++ = sctl`Tundef;
+		return encodetname(p, subtype(t));
+	}else if(isenumconst(t)){
+		*p++ = sctl`Tconst;
+		return encodetname(p, subtype(t));
+	}else if(isbitfield(t)){
+		*p++ = sctl`Tbitfield;
+		p = (uint8*)p;
+		*p++ = bitfieldwidth(t);
+		*p++ = bitfieldpos(t);
+		p = encodetname(p, bitfieldcontainer(t));
+		return p;
+	}else
+		error("unhandled type name %t", t);
+}
+
+@define encodetdef(p, t)
+{
+	p = (uint8*)p;
+	if(isbase(t)){
+		*p++ = sctl`Tbase;
+		*p++ = (uint8)basebase(t);
+		*p++ = (uint8)baserep(t);
+		return p;
+	}else if(issu(t)){
+		if(isstruct(t))
+			*p++ = sctl`Tstruct;
+		else if(isunion(t))
+			*p++ = sctl`Tunion;
+		p = encodes(p, cid2str(suetag(t)));
+		p = (uint64*)p;
+		*p++ = susize(t);
+		p = encodeattrs(p, suattr(t));
+		*p++ = length(fields(t));
+		foreach(@lambda(f){ p = encodefield(p, f); }, fields(t));
+		return p;
+	}else if(isenum(t)){
+		*p++ = sctl`Tenum;
+		p = encodes(p, cid2str(suetag(t)));
+		p = (uint8*)p;
+		*p++ = baserep(subtype(t));
+		p = (uint64*)p;
+		*p++ = length(enumconsts(t));
+		foreach(@lambda(ec){
+				p = encodes(p, cid2str(ec[0]));
+				p = (uint64*)p;
+				*p++ = ec[1];
+			}, enumconsts(t));
+		return p;
+	}else if(istypedef(t)){
+		*p++ = sctl`Ttypedef;
+		p = encodes(p, cid2str(typedefid(t)));
+		p = encodetname(p, typedeftype(t));
+		return p;
+	}else if(isptr(t)){
+		if(!isvoid(subtype(t)))
+			error("unhandled type definition %t", t);
+		/* void* is special case of Tbase */
+		*p++ = sctl`Tbase;
+		*p++ = (uint8)basebase(t);
+		*p++ = (uint8)baserep(t);
+		return p;
+	}else if(isvoid(t)){
+		*p++ = sctl`Tbase;
+		*p++ = (uint8)sctl`Vvoid;
+		*p++ = (uint8)sctl`Rundef;
+		return p;
+	}else if(isundeftype(t)){
+		*p++ = sctl`Tundef;
+		p = encodetname(p, subtype(t));
+		return p;
+	}else
+		error("unhandled type definition %t", t);
+}
+
+@define decodetname(q)
+{
+	@local k, cb, id, w, pos, st, par, n, v, i;
+
+	q = (uint8*)q;
+	k = *q++;
+	switch(k){
+//  Tvoid is not used; instead we use Tbase(Vvoid).
+//	case sctl`Tvoid:
+//		return [mkctype_void(), q];
+	case sctl`Tbase:
+		cb = *q++;
+		return [mkctype_base(cb), q];
+	case sctl`Tstruct:
+		[id, q] = decodes(q);
+		return [mkctype_struct(mkcid(id)), q];
+	case sctl`Tunion:
+		[id, q] = decodes(q);
+		return [mkctype_union(mkcid(id)), q];
+	case sctl`Tenum:
+		[id, q] = decodes(q);
+		return [mkctype_enum(mkcid(id)), q];
+	case sctl`Ttypedef:
+		[id, q] = decodes(q);
+		return [mkctype_typedef(mkcid(id)), q];
+	case sctl`Tptr:
+		[st, q] = decodetname(q);
+		return [mkctype_ptr(st), q];
+	case sctl`Tconst:
+		[st, q] = decodetname(q);
+		return [mkctype_const(st), q];
+	case sctl`Tarr:
+		q = (uint64*)q;
+		n = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_array(st, n), q];
+	case sctl`Tfun:
+		[st, q] = decodetname(q);
+		q = (uint64*)q;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			[par, q] = decodeparam(q);
+			v[i] = par;
+		}
+		return [mkctype_fn(st, v), q];
+	case sctl`Tbitfield:
+		q = (uint8*)q;
+		w = *q++;
+		pos = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_bitfield(st, w, pos), q];
+	case sctl`Tundef:
+		[st, q] = decodetname(q);
+		return [mkctype_undef(st), q];
+	default:
+		error("decodetname: unhandled case %d", k);
+	}
+}
+
+@defloc decodetdef(ns, q)
+{
+	@local k, cb, rep, sz, n, i, v, f, par, id, sid, c, mk, at, st;
+	@local w, pos;
+
+	q = (uint8*)q;
+	k = *q++;
+	switch(k){
+	case sctl`Tbase:
+		cb = *q++;
+		rep = *q++;
+		return [mkctype_base(cb, rep), q];
+	case sctl`Tstruct:
+	case sctl`Tunion:
+		if(k == sctl`Tstruct)
+			mk = mkctype_struct;
+		else
+			mk = mkctype_union;
+		[id, q] = decodes(q);
+		q = (uint64*)q;
+		sz = *q++;
+		[at, q] = decodeattrs(q);
+		q = (uint64*)q;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			[f, q] = decodefield(q);
+			v[i] = f;
+		}
+		at["offset"] = sz;
+		return [mk(mkcid(id), v, at), q];
+	case sctl`Tenum:
+		[id, q] = decodes(q);
+		q = (uint8*)q;
+		rep = *q++;
+		q = (uint64*)q;
+		n = *q++;
+		st = nsreptype(ns, rep);
+		if(st == nil)
+			error("no base type for rep %d", rep);
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			[sid, q] = decodes(q);
+			q = (uint64*)q;
+			c = *q++;
+			v[i] = vector(mkcid(sid), {st}c);
+		}
+		return [mkctype_enum(mkcid(id), v, st), q];
+	case sctl`Tptr:
+		[st, q] = decodetname(q);
+		return [mkctype_ptr(st, nsptr(ns)), q];
+	case sctl`Tconst:
+		[st, q] = decodetname(q);
+		return [mkctype_const(st), q];
+	case sctl`Tarr:
+		q = (uint64*)q;
+		n = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_array(st, n), q];
+	case sctl`Tfun:
+		[st, q] = decodetname(q);
+		q = (uint64*)q;
+		n = *q++;
+		v = mkvec(n);
+		for(i = 0; i < n; i++){
+			[par, q] = decodeparam(q);
+			v[i] = par;
+		}
+		return [mkctype_fn(st, v), q];
+	case sctl`Ttypedef:
+		[id, q] = decodes(q);
+		[st, q] = decodetname(q);
+		return [mkctype_typedef(mkcid(id), st), q];
+	case sctl`Tbitfield:
+		q = (uint64*)q;
+		w = *q++;
+		pos = *q++;
+		[st, q] = decodetname(q);
+		return [mkctype_bitfield(st, w, pos), q];
+	case sctl`Tundef:
+		[st, q] = decodetname(q);
+		return [mkctype_undef(st), q];
+	default:
+		error("decodetdef: unhandled case %d", k);
+	}
+}
+
+@define encodelexpr(q, le)
+{
+	q = (uint8*)q;
+	*q++ = (uint8)le.kind;
+	switch(le.kind){
+	case sctl`Lreg:
+		*q++ = (uint8)le.no;
+		return q;
+	case sctl`Lderef:
+		q = encodelexpr(q, le.op1);
+		return q;
+	case sctl`Ladd:
+	case sctl`Lsub:
+		q = encodelexpr(q, le.op1);
+		q = encodelexpr(q, le.op2);
+		return q;
+	case sctl`Lulit:
+	case sctl`Lslit:
+		q = (uint64*)q;
+		*q++ = (uint64)le.v;
+		return q;
+	default:
+		error("encodelexpr: unhandled case %e", le.kind);
+	}
+}
+
+@defloc decodelexpr(q)
+{
+	@local k, no, v, op1, op2, le;
+	q = (uint8*)q;
+	k = *q++;
+	switch(k){
+	case sctl`Lreg:
+		no = *q++;
+		le = lexprrec(k, no, nil, nil, nil);
+		return [le, q];
+	case sctl`Lderef:
+		[op1, q] = decodelexpr(q);
+		le = lexprrec(k, nil, nil, op1, nil);
+		return [le, q];
+	case sctl`Ladd:
+	case sctl`Lsub:
+		[op1, q] = decodelexpr(q);
+		[op2, q] = decodelexpr(q);
+		le = lexprrec(k, nil, nil, op1, op2);
+		return [le, q];
+	case sctl`Lulit:
+		q = (uint64*)q;
+		v = *q++;
+		le = lexprrec(k, nil, v, nil, nil);
+		return [le, q];
+	case sctl`Lslit:
+		q = (int64*)q;
+		v = *q++;
+		le = lexprrec(k, nil, v, nil, nil);
+		return [le, q];
+	default:
+		error("unexpected lexpr %d", k);
+	}
+}
+
+@define encodeuwrules(q, rs)
+{
+	q = (uint32*)q;
+	*q++ = length(rs);
+	foreach(@lambda(r){
+			q = (uint8*)q;
+			*q++ = r.kind;
+			q = (uint64*)q;
+			*q++ = r.r;
+			q = (int64*)q;
+			*q++ = r.n;
+		}, rs);
+	return q;
+}
+
+@define decodeuwrules(q)
+{
+	@local rs, m, i, k, r, n;
+	rs = [];
+	q = (uint32*)q;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		q = (uint8*)q;
+		k = *q++;
+		q = (uint64*)q;
+		r = *q++;
+		q = (int64*)q;
+		n = *q++;
+		append(rs, uwrulerec(k, r, n));
+	}
+	return [rs, q];
+}
+
+@define encodesrc(q, src)
+{
+	q = encodes(q, src.file);
+	q = (int32*)q;
+	*q++ = src.line; 
+	*q++ = src.col; 
+	return q;
+}
+
+@defloc decodesrc(q)
+{
+	@local file, line, col;
+	[file, q] = decodes(q);
+	q = (int32*)q;
+	line = *q++;
+	col = *q++;
+	return [srcrec(file, line, col), q];
+}
+
+@defloc checkreply(op, dat, expect)
+{
+	switch(op){
+	case expect:
+		break;
+	case sctl`Rerror:
+		error("sctl: while waiting for %e: %s", expect, dat);
+	default:
+		error("sctl: while waiting for %e: received %e", expect, op);
+	}
+}
+
+@defloc checkreplynone(op, dat, expect)
+{
+	switch(op){
+	case expect:
+		return nil;
+	case sctl`Rerror:
+		if(dat == Enone)
+			return Enone;
+		error("sctl: while waiting for %e: %s", expect, dat);
+	default:
+		error("sctl: while waiting for %e: received %e", expect, dat);
+	}
+}
+
+@define sctlping(fd, cnt)
+{
+	@local p, m, q, rep, rcnt, dat;
+
+	m = p = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tping;
+	p->tag = freshtag();
+	p++;
+	p = (char*)p;
+	putbytes(p, mkstr(cnt));
+	p += cnt;
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("ping failed: %a", dat);
+	checkreply(rep, dat, sctl`Rping);
+	q = (uint64*)dat;
+	rcnt = *q++;
+	if(cnt != rcnt)
+		error("ping reply acknowledged %d bytes, not %d", rcnt, cnt);
+}
+
+@define sctlversion(fd)
+{
+	@local m, p, rep, dat, version, os, s;
+
+	version = "sctl-2012:x86-linux-2012,x86-win-2012";
+
+	m = p = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tversion;
+	p->tag = freshtag();
+	p++;
+	p = (char*)p;
+	putbytes(p, version);
+	p += strlen(version);
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("version failed: %a", dat);
+	checkreply(rep, dat, sctl`Rversion);
+	s = split(dat, ":");
+	if(length(s) != 2)
+		error("unknown remote sctl version: %s", dat);
+	os = s[1];
+	os = substr(os, 0, strlen(os)); /* chop NUL */
+	return s[0]+os;
+}
+
+@define sctlnames(fd, path)
+{
+	@local m, p, rep, dat, id, q;
+
+	m = p = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tnames;
+	p->tag = freshtag();
+	p++;
+	p = encodes(p, path);
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("names failed: %a", dat);
+	if(checkreplynone(rep, dat, sctl`Rnames))
+		return nil;
+	q = (uint64*)dat;
+	id = *q++;
+	return id;
+}
+
+@define sctllooktype(fd, nsid, tn, ns)
+{
+	@local p, m, rep, dat;
+
+	m = p = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tlooktype;
+	p->tag = freshtag();
+	p = (uint64*)(p+1);
+	*p++ = nsid;
+	p = encodetname(p, tn);
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("looktype failed: %a", dat);
+	if(checkreplynone(rep, dat, sctl`Rlooktype))
+		return nil;
+	return decodetdef(ns, (char*)dat)[0];
+}
+
+@define sctlenumtype(fd, nsid, ns)
+{
+	@local p, m, rep, dat, ss, q, i, t;
+
+	m = p = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tenumtype;
+	p->tag = freshtag();
+	p = (uint64*)(p+1);
+	*p++ = nsid;
+	p = (char*)p;
+	sendsctlmsg(fd, m, p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	checkreply(rep, dat, sctl`Renumtype);
+	ss = [:];
+	q = (uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		[t, q] = decodetdef(ns, q);
+		ss[typename(t)] = t;
+	}
+	return ss;
+}
+
+@define sctllooksym(fd, nsid, id)
+{
+	@local p, m, rep, dat, sym;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tlooksym;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = encodes(p, cid2str(id));
+	p = (char*)p;
+	sendsctlmsg(fd, m, p-m);
+	
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
+	if(checkreplynone(rep, dat, sctl`Rlooksym))
+		return nil;
+	[sym, _] = decodesym(dat);
+	return sym;
+}
+
+@define sctlenumsym(fd, nsid)
+{
+	@local p, m, q, rep, dat, i, ss, sym;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tenumsym;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	sendsctlmsg(fd, m, p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	checkreply(rep, dat, sctl`Renumsym);
+	ss = [:];
+	q = (uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		[sym, q] = decodesym(q);
+		ss[symid(sym)] = sym;
+	}
+	return ss;
+}
+
+@define sctllookaddr(fd, nsid, addr)
+{
+	@local p, m, rep, dat, sym;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tlookaddr;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	*p++ = addr;
+	sendsctlmsg(fd, m, (char*)p-m);
+	
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
+	if(checkreplynone(rep, dat, sctl`Rlookaddr))
+		return nil;
+	[sym, _] = decodesym(dat);
+	return sym;
+}
+
+@define sctlunwind1(fd, nsid, pc)
+{
+	@local p, m, rep, dat, rs;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tunwind1;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	*p++ = pc;
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
+	if(checkreplynone(rep, dat, sctl`Runwind1))
+		return nil;
+	[rs, _] = decodeuwrules(dat);
+	return rs;
+}
+
+@define sctllooksrc(fd, nsid, addr)
+{
+	@local p, m, rep, src, dat;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tlooksrc;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	*p++ = addr;
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
+	if(checkreplynone(rep, dat, sctl`Rlooksrc))
+		return nil;
+	[src, _] = decodesrc(dat);
+	return src;
+}
+
+@define sctllookpc(fd, nsid, file, line)
+{
+	@local p, m, rep, dat, addr;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tlookpc;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	p = encodes(p, file);
+	p = (uint32*)p;
+	*p++ = line;
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
+	if(checkreplynone(rep, dat, sctl`Rlookpc))
+		return nil;
+	p = (uint64*)dat;
+	addr = *p++;
+	return addr;
+}
+
+@define sctlenumloc(fd, nsid, pc)
+{
+	@local p, q, m, rep, dat;
+	@local i, ls, id, tn, vk, le;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tenumloc;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	*p++ = pc;
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
+	if(checkreplynone(rep, dat, sctl`Renumloc))
+		return nil;
+	ls = [];
+	q = (uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		[id, q] = decodes(q);
+		[tn, q] = decodetname(q);
+		q = (uint8*)q;
+		vk = *q++;
+		[le, q] = decodelexpr(q);
+		append(ls, locrec(mkcid(id), nil, vk, le, tn));
+	}
+	return ls;
+}
+
+@define mksctlns(fd, path)
+{
+	@local type, sym, addr, undef;
+	@local ltresolve, ns;
+	@local nsid;
+		
+	@defloc resetltr()
+	{
+		ltresolve = mktnresolve(type, undef,
+					@lambda(tn){
+						sctllooktype(fd, nsid, tn, ns);
+					});
+	}
+
+	type = [:];
+	sym = [:];
+	addr = [:];
+	undef = [:];
+
+	@defloc lt(this, tn)
+	{
+		@local t;
+		t = ltresolve(tn);
+		if(isundeftype(t))
+			return nil;
+		return t;
+	}
+
+	@defloc et(this)
+	{
+		@local resolve, ts;
+
+		// FIXME: maybe only muxenumtype if we haven't before
+
+		/* reset cache */
+		type = [:];
+		undef = [:];
+		resetltr();
+
+		ts = sctlenumtype(fd, nsid, ns);
+		resolve = mktnresolve(type, undef,
+				      @lambda(tn){
+					      return ts[typename(tn)];
+				      });
+		foreach(@lambda(k, v){
+				resolve(k);
+			}, ts);
+		if(0 && length(undef) > 0){
+			printf("%d unresolved\n", length(undef));
+			foreach(@lambda(k, v){
+					printf("\t%t\n", k);
+				}, undef);
+		}
+		return type;
+	}
+
+	/*
+	  resolve complete type for psym;
+	  recast its value if enum constant;
+	  reject symbols that don't appear in name spaces.
+	*/
+	@defloc psym2sym(psym)
+	{
+		@local at, t, f;
+			
+		at = symattr(psym);
+		f = at["flags"];
+		if(f){
+			if(f&sctl`Sundef)
+				return nil;
+			if(f&sctl`Sinline)
+				return nil;
+		}
+		t = ltresolve(symtype(psym));
+		if(f && f&sctl`Senum)
+			at["offset"] = {subtype(t)}at["offset"];
+		return mksym(t, symid(psym), at);
+	}
+		
+	@defloc ls(this, name)
+	{
+		@local psym, s;
+		s = sym[name];
+		if(s != nil)
+			return s;
+		psym = sctllooksym(fd, nsid, name);
+		if(psym == nil)
+			return nil;
+		s = psym2sym(psym);
+		if(s != nil){
+			sym[symid(s)] = s;
+			addr[symoff(s)] = s;
+		}
+		return s;
+	}
+
+	@defloc es(this)
+	{
+		@local ss, s;
+
+		/* reset cache */
+		sym = [:];
+
+		ss = sctlenumsym(fd, nsid);
+		foreach(@lambda(id, psym){
+				s = psym2sym(psym);
+				if(s != nil)
+					sym[id] = s;
+			}, ss);
+		return sym;
+	}
+
+	@defloc la(this, a)
+	{
+		@local psym, s;
+		s = addr[a];
+		if(s != nil)
+			return s;
+		psym = sctllookaddr(fd, nsid, a);
+		if(psym == nil)
+			return nil;
+		s = psym2sym(psym);
+		if(s != nil)
+			addr[a] = s;
+		return s;
+	}
+
+	@defloc uw1(this, pc)
+	{
+		return sctlunwind1(fd, nsid, pc);
+	}
+
+	@defloc el(this, pc)
+	{
+		return sctlenumloc(fd, nsid, pc);
+	}
+
+	@defloc lsrc(this, addr)
+	{
+		return sctllooksrc(fd, nsid, addr);
+	}
+
+	@defloc lpc(this, file, line)
+	{
+		return sctllookpc(fd, nsid, file, line);
+	}
+
+	nsid = sctlnames(fd, path);
+	if(nsid == nil)
+		return nil;
+	resetltr();
+
+	ns = mkns([ "looktype" : lt,
+		    "enumtype" : et,
+		    "looksym"  : ls,
+		    "enumsym"  : es,
+		    "lookaddr" : la,
+		    "unwind1"  : uw1,
+		    "enumloc"  : el,
+		    "looksrc"  : lsrc,
+		    "lookpc"   : lpc,
+		  ]);
+	return ns;
+}
+
+@define atnames(path)
+{
+	@local fds, fd;
+	fds = popen("sctl", "-c", 2|4|8);
+	fd = fds[0];
+	finalize(fd, @lambda(fd) { close(fd); });
+	sctlversion(fd);
+	return mksctlns(fd, path);
+}
+
+}

@@ -2429,7 +2429,7 @@ the pointer representation of the type of the value
 being converted.
 </p>
 
-<p>
+<p id="cncpt:xcastdom">
 The extended cast operator also performs
 <em>domain conversion</em>.
 If <span class="val">dom</span> is a domain, then the
@@ -4681,7 +4681,7 @@ It is not needed by most programs.
 <span class="type">name space</span>
 </div>
 </div>
-<div class="desc">
+<div class="desc" id="cncpt:incompletetype">
 <span class="arg">Typetab</span> is a table whose keys
 are type names (as ctypes) and whose values are type
 definitions (as ctypes).  The type definitions may be
@@ -9134,6 +9134,30 @@ from the other.
 </div>
 </div>
 <div class="desc">
+Reads at most <span class="arg">len</span> bytes from
+the I/O resource associated
+with <span class="arg">fd</span>.  Returns a string
+containing the bytes read, or <tt>nil</tt> if end of
+file was encountered and no bytes were read.
+</div>
+</div>
+
+<div class="docitem" id="fn:fread">
+<div class="proto">
+<div class="function">
+<span class="id">fread(<span class="arg">fd</span>,<span class="arg">len</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">len</span>: <span class="type">cvalue</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
 Reads at most <span class="arg">len</span> bytes from the I/O
 resource associated with <span class="arg">fd</span>.  The
 call blocks until <span class="arg">len</span> bytes are
@@ -11819,6 +11843,7 @@ Prentice Hall, 1988.
 <a href="#fn:foreach">foreach</a><br />
 <a href="#fn:fork">fork</a><br />
 <a href="#fn:fprintf">fprintf</a><br />
+<a href="#fn:fread">fread</a><br />
 <a href="#fn:gc">gc</a><br />
 <a href="#fn:gclock">gclock</a><br />
 <a href="#fn:gcstats">gcstats</a><br />

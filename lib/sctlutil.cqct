@@ -1,0 +1,125 @@
+@global
+	decodes,
+	encodes,
+
+	sendsctlmsg,
+	recvsctlmsg,
+	sctlrerror
+	;
+
+@record sctldialectrec
+{
+	name,
+	ns,
+	Ctx,
+	Siginfo,
+	Syscall,
+	Signal,
+        decodectx,
+	encodectx,
+        decodesiginfo,
+	encodesiginfo,
+	dumpctx,
+};
+{
+@local EINTR, ECONNRESET;
+
+/* FIXME! */
+EINTR = 4;
+ECONNRESET = 104;
+
+@define encodes(p, s)
+{
+	@local m;
+	m = strlen(s);
+	p = (uint64*)p;
+	*p++ = m;
+	p = (char*)p;
+	putbytes(p, s);
+	p += m;
+	return p;
+}
+
+@define decodes(p)
+{
+	@local sz, s;
+	p = (uint64*)p;
+	sz = *p++;
+	s = getbytes(p, sz);
+	p = (uint8*)((char*)p+sz);
+	return [s, p];
+}
+
+@define sendsctlmsg(fd, arg ...)
+{
+	@local p, sz, e;
+	p = arg[0];
+	switch(length(arg)){
+	case 1:
+		sz = sizeof(*p);
+		break;
+	case 2:
+		sz = arg[1];
+		break;
+	default:
+		error("bad sendsctlmsg");
+	}
+//	if(verbose)
+//		printf("(send) %s\n", fmtsctlmsg(p, sz));
+	write(fd, cval2str((uint64)sz));
+	e = errno();
+	if(e[0] != 0)
+		error("sctl sendsctlmsg: %s", e[1]);
+	write(fd, getbytes(p, sz));
+	e = errno();
+	if(e[0] != 0)
+		error("sctl sendsctlmsg: %s", e[1]);
+}
+
+@define recvsctlmsg(fd)
+{
+	@local s, sz, p, tag, e;
+	@local op, dat;
+again:
+	s = fread(fd, sizeof(litdom`uint64));
+	if(s == nil){
+		e = errno();
+		if(e[0] == EINTR)
+			goto again;
+		else if(e[0] == ECONNRESET)
+			return [nil, nil, 'closed];
+		else if(e[0])
+			error("sctl recvsctlmsg: %d %s", getpid(), e[1]);
+		return [nil, nil, 'closed];
+	}
+	sz = *(uint64*)s;
+	if(sz < sizeof(litdom`uint8)+sizeof(litdom`uint32))
+		return [nil, nil, 'error];
+	p = fread(fd, sz);
+	p = (uint8*)p;
+	op = *p++;
+	p = (uint32*)p;
+	tag = *p++;
+	dat = getbytes(p, sz-(1+4));
+//	if(verbose)
+//		printf("(recv) %s\n", fmtsctlmsg(msg, sz));
+	return [(sctl`Mkind)op, tag, dat];
+}
+
+@define sctlrerror(fd, tag, fmt, arg ...)
+{
+	@local p, m, err;
+
+	err = apply(sprintfa, fmt, arg);
+	m = p = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Rerror;
+	p->tag = tag;
+	p++;
+	p = (char*)p;
+	putbytes(p, err);
+	p += strlen(err);
+	sendsctlmsg(fd, m, (char*)p-m);
+}
+
+}

@@ -241,3 +241,20 @@ sep 19 2011
 	lose the superfluous parentheses:
 
 		v = T*p;
+
+sep 20 2012
+
+	The various libraries for using the sctl
+	process control and name space server have been
+	revised.  They are consolidate in the new
+	library <debug.cqct>.  See the new manual
+	doc/debug.html.
+
+	The read built-in no longer blocks in an
+	attempt to read as many bytes as requested;
+	rather, it returns as soon as some bytes (or
+	EOF) are ready.  The new built-in fread
+	provides the previous behavior of read.
+
+	The %a format verb elides long lists.
+

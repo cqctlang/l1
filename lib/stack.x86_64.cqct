@@ -140,7 +140,7 @@
 	file = ss[0];
 	line = strton(ss[1]);
 	ctl = dom.ctl();
-	pc = dom.lookline(file, line);
+	pc = dom.lookpc(file, line);
 	if(pc == nil)
 		error("cannot find location for %a", spec);
 	return ctl.xtrap(pc, fn);

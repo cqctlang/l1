@@ -522,7 +522,6 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	Fd *fd;
 	Str *s;
 	int r;
-	Val x;
 
 	setlasterrno(0);
 	if(argc != 2)
@@ -542,7 +541,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(r == -1)
 			setlasterrno(errno);
 	}else
-		x = safedovm(vm, fd->u.cl.write, argc-1, argv+1);
+		safedovm(vm, fd->u.cl.write, argc-1, argv+1);
 	/* return nil */
 }
 

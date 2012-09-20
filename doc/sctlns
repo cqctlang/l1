@@ -1,14 +1,14 @@
-sctl.cqct -- speak sctl
+sctlns.cqct -- name spaces over sctl
 
-This library provides a set of functions for performing
-transactions with a sctl server from Cinquecento code.
-It provides two services: (1) mapping Cinquecento data
+This library provides a set of Cinquecento functions
+for performing transactions with a sctl server.  It
+provides two services: (1) mapping Cinquecento data
 structures to and from the sctl protocol encodings, and
 (2) exchanging sctl messages with a sctl server.
 
 The transactions supported by this library are limited
-to those that query name spaces.  There are no process
-control transactions.
+to those that query name spaces.  See ctls.cqct for
+an interface to process control transactions.
 
 Generally, if a request draws an error from the sctl
 server, an error is raised.  Exceptions are described
@@ -48,11 +48,42 @@ space that is compatible with the base type definitions
 of the target name space.  We consider this argument a
 bug in the interface.
 
-The sctlclt library (sctlclt.cqct) uses this library to
-build name spaces backed by sctl.
-
 The snames library (snames.cqct) uses this library 
 for reasons that need to be sorted out.
+
+This also library defines several undocumented
+functions for converting buffers of encoded sctl data
+to and from Cinquecento data structures.
+
+
+atnames(path)
+
+  PATH: string (name of binary)
+
+  returns: name space or nil
+
+Returns a name space for the binary PATH.  The name
+space is served by a freshly launched sctl server
+on the calling machine (the sctl binary must be
+in the path of the calling process).
+
+Returns nil if the name space does not exist.
+
+
+mksctlns(fd, path)
+
+  FD:  file descriptor (to sctl server)
+  PATH: string (name of binary)
+
+  returns: name space or nil
+
+Returns a name space for the binary PATH.  The name
+space is served by the sctl server backed by FD.
+A version negotiation with the sctl server must be
+performed before calling this function (see sctlversion).
+
+Returns nil if the name space does not exist.
+
 
 
 sctlping(FD, CNT)
@@ -76,7 +107,7 @@ sctlversion(FD)
 Performs a version transaction with the sctl
 server.  The offered version is
 
-	"sctl-2010:x86-linux-2010,x86-win-2010"
+	"sctl-2012:x86-linux-2012,x86-win-2012"
 
 The negotiated version string is returned.
 An error is raised if the version cannot
@@ -136,31 +167,18 @@ sctllooksym(FD, NSID, ID)
   NSID:  cvalue (name space identifier)
   ID:    cid (symbol identifier)
 
-  returns:  symbol record or nil
+  returns:  symbol or nil
 
 Performs a looksym transaction, obtaining a definition
 for the symbol ID in the name space NSID.
 
-The resulting symbol is a record with the following definition:
-
-	/* symbol record */
-	@record symrec {
-		id,		/* symbol identifier (cid) */
-		flags,		/* flags (cvalue) */
-		val,		/* value (cvalue) */
-		attrs,		/* attributes (table) */
-		sz,		/* size (cvalue) */
-		type,		/* type name (ctype) */
-	};
-
-See the sctl documentation for looksym for the
-definition of these fields.  The attributes table
-defines one attribute, "offset", whose value is equal
-to the val field.
+The result is a Cinquecento symbol.  Its attribute
+table defines "offset" to the value returned in the
+looksym reply, "flags" to the flags, and "size" to the
+size.  The symbol type is an incomplete type, as in
+looktype.
 
 Returns nil if there is no matching symbol.
-
-FIXME: return a cqct symbol, not this crap.
 
 
 sctlenumsym(FD, NSID)
@@ -170,10 +188,10 @@ sctlenumsym(FD, NSID)
 
   returns:  list of symbol records
 
-Performs an enumsym transaction, returning a list
-of symbol definitions in name space NSID.  
-
-Each symbol definition is a symrec (see sctllooksym).
+Performs an enumsym transaction, returning a table of
+symbol definitions in name space NSID.  The keys are
+symbol identifiers; the values are corresponding
+symbols, constructed as in sctllooksym.
 
 
 sctllookaddr(FD, NSID, ADDR)
@@ -187,10 +205,10 @@ sctllookaddr(FD, NSID, ADDR)
 Performs a lookaddr transaction, returning a symbol
 definition to which ADDR maps in name space NSID.
 
-The symbol definition is a symrec (see sctllooksym).
+The symbol definition is a symbol, constructed
+as in sctllooksym.
 
 Returns nil if there is no matching symbol.
-
 
 
 sctlunwind1(FD, NSID, ADDR)
@@ -209,20 +227,18 @@ NSID.
 Each unwind rule is a rulerec that is based on the
 encoding of unwind rules specified by DWARF:
 
-	@record rulerec {
+	@record uwrulerec {
 		kind,		/* rule kind */
 		r,		/* register operand */
 		n,		/* number operand */
 	};
 
-This library dwarf.cqct includes functions that 
+The library dwarf.cqct includes functions that 
 evaluate these rules.  (NB: these require a
 name space to pick rules based on target arch;
 a ctx to get regs; a domain to get memory;
 and maybe other dependencies.  Hard to untangle
 into an interface that just consumes rules.)
-
-FIXME: inconsistent with implementation.
 
 
 sctllooksrc(FD, NSID, ADDR)
@@ -241,7 +257,7 @@ name space NSID.
 The source record is defined as follows:
 
 	/* source record */    
-	@record srcloc {
+	@record srcrec {
 		file,		/* file name (string) */
 		line,		/* line (cvalue) */
 		col,		/* column (cvalue */
@@ -250,7 +266,7 @@ The source record is defined as follows:
 Returns nil if no source location matches.
 
 
-sctllookline(FD, NSID, FILE, LINE)
+sctllookpc(FD, NSID, FILE, LINE)
 
   FD:    file descriptor (to sctl server)
   NSID:  cvalue (name space identifier)
@@ -259,7 +275,7 @@ sctllookline(FD, NSID, FILE, LINE)
 
   returns:  cvalue (program counter)
 
-Performs a lookline transaction, returning a 
+Performs a lookpc transaction, returning a 
 program counter address corresponding to the
 source FILE and LINE in name space NSID.
 
@@ -279,21 +295,21 @@ a list of local variable definitions.
 
 The definition of locrec is:
 
-	@record loc {
+	@record locrec {
 		id,		/* name (cid) */
 		sz,		/* size (cvalue) (FIXME: always zero!) */
 		ltype,		/* kind (parameter or local) (cvalue) */
-		loc,		/* location expression (lexpr) */
+		loc,		/* location expression (lexprrec) */
 		type,		/* type name (ctype) */
 	};
 
-The definition of lexpr is
+The definition of lexprrec is
 
-	@record lexpr {
+	@record lexprrec {
 		kind,		/* kind (cvalue) */
 		no,		/* register (cvalue) */
 		v,		/* value (cvalue) */
-		op1, op2,	/* operands (lexpr) */
+		op1, op2,	/* operands (lexprrec) */
 	};
 
 Returns nil if no location information is
