@@ -68,7 +68,7 @@ REFINE_KEY = "refine";
 			new_flds[i] = flds[i]; 
       t = symtype(new_flds[i]);
       if (isarray(t) && arraynelm(t) == nil)
-        fld_size = symoff(flds[i]); 
+        fld_sz = symoff(flds[i]); 
 			else fld_sz = sizeof(symtype(new_flds[i]))+symoff(flds[i]);
 			if (fld_sz != nil && fld_sz > new_sz)
 				new_sz = fld_sz;

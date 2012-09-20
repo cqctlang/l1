@@ -1,4 +1,3 @@
-/.ccs/u02/ajpark2/projects/l1/lib/dynamictypes.cqct:71: warning: assignment to unbound variable: fld_size
 struct Vector at 0x20 {
    int size = 3
    int [3] data = [0,
