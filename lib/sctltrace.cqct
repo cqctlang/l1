@@ -1,13 +1,6 @@
-@define decodesiginfo(p)
-{
-	@local info;
-	p = (sctl`siginfo_t*)p;
-	info = (sctl`siginfo_t*)getbytes(p);
-	p++;
-	return [info, p];
-}
-
-
+/* this function is incomplete and out of date.  it
+   should be updated and integrated with the sctl
+   library. */
 @defloc fmtsctlmsg(msg, sz)
 {
 	@local s, q, tn, td, nsid, id, n, a, sym;
