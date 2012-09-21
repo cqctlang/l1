@@ -1,0 +1,21 @@
+
+
+
+@include <dynamictypes.cqct>
+
+dynamictypes_example();
+
+ns = @names clp64le {
+  struct Test {
+    @0 int size;
+    @4 int data[];
+    @4;
+  };
+};
+
+as = mkzas(100);
+dom = mkdom(ns,as);
+
+x = (struct dom`Test*){dom}0;
+
+refine(x);

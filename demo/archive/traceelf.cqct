@@ -116,7 +116,7 @@
 				 regs->rbp,
 				 regs->rip);
 			  nsid = 0; /* FIXME: don't hardcode name space */
-			  ss = mux.enumloc(nsid, regs);
+			  ss = mux.enumloc(nsid, regs->rip);
 			  if(ss == nil){
 				  printf("no location information for %p\n",
 					 {dom}regs->rip);

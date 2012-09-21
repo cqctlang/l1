@@ -1,19 +1,18 @@
-@include <ctlmux.cqct>
-@include <nsutil.cqct>
+@include <debug.cqct>
+@include <nsutil.cqct> /* printtype */
 
 @define fmtsym(s)
 {
 	if(s == nil)
 		return("<undefined>");
-	return sprintfa("@0x%p\t%t", symoff(s), s);
+	return sprintfa("@0x%016p\t%t;", symoff(s), s);
 }
 
 
 @define test1(path, syms, types)
 {
-	@local mux, ns, rv;
-	mux = mkctlmux_local();
-	ns = mux.names(path);
+	@local ns, rv;
+	ns = atnames(path);
 	foreach(@lambda(s){
 			rv = looksym(ns, s);
 			printf("looksym(%a) -> %s\n", s, fmtsym(rv));
@@ -28,9 +27,8 @@
 
 @define test2(path)
 {
-	@local mux, ns, ts, ss;
-	mux = mkctlmux_local();
-	ns = mux.names(path);
+	@local ns, ts, ss;
+	ns = atnames(path);
 	ts = ns.enumtype();
 	foreach(@lambda(k,v){
 			printtype(v);

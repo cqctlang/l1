@@ -5,7 +5,7 @@
 static struct Q q;
 static Z z;
 
-#define P(a) printf("\t"#a"\t%6d\t%p\n", (int)sizeof(a), &a);
+#define P(a) printf("\t%016lx\t"#a"\t%6d\n", (unsigned long)&a, (int)sizeof(a));
 
 static void
 locals(char *argv0)
@@ -32,6 +32,7 @@ locals(char *argv0)
 
 	printf("%s locals (actual):\n", argv0);
 	P(a);
+	P(argv0);
 	P(b);
 	P(c);
 	P(d);

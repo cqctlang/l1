@@ -1,16 +1,12 @@
-@include <sctlclt.cqct>
-@include <mux.cqct>
-@include <nsmap.cqct>
+/* requires <sctlns.cqct> */
+@include <sctlmux.cqct>
+@include <sctl-x86-linux.cqct>
 @include <dwarf.cqct>
+@include <debugutil.cqct>
 
 @global
-        ctllaunch,
-	ctlattach,
-	ctlexe,
-	ctlldom,
-	ctlunwindctxs,
-	ctladdr2src,
-	ctldombyaddr
+	ctllaunch,
+	ctlattach
 	;
 
 {
@@ -35,11 +31,15 @@
 	/* address spaces */
 	mem,
 
-	/* domains */
+	/* domains and name spaces*/
 	ctx,
-
-	/* name spaces */
+	setctx,
 	nsmap,
+	ns,
+	dom,
+	exe,
+	cast,
+	dialect,
 
 	/* snapshot */
 	snap,
@@ -49,6 +49,12 @@
 	clear,
 	traps,
 
+	/* debugging methods */
+	ldom,
+	unwind,	
+	looksrc,	
+	lookpc,
+
 	/* mux interface */
 	event,
 
@@ -56,7 +62,8 @@
 	scan, 
 };
 
-@record ctlstate { mux, ctlid, ctx, mmap, nsmap, events, traps, straps };
+@record ctlstate { mux, ctlid, dlct, ctx, mmap, nsmap, events, traps, straps };
+
 
 evidx = [
 	'syscall  : sctl`Esyscall,
@@ -86,6 +93,11 @@ idxev = [
 
 	@record traprec { tid, sid, kind, args, fn };
 
+	@defloc id()
+	{
+		return cs.ctlid;
+	}
+
 	@defloc setctx(ctx)
 	{
 		cs.ctx = ctx;
@@ -96,9 +108,19 @@ idxev = [
 		return cs.ctx;
 	}
 
-	@defloc unimpl(id)
+	@defloc cast(a)
 	{
-		error("unimplemented interface: %a", id);
+		@local _ns;
+		_ns = ns(a);
+		if(_ns)
+			return {mkdom(_ns, mem())}a;
+		else
+			return {mem()}a;
+	}
+
+	@defloc dialect()
+	{
+		return cs.dlct;
 	}
 
 	@defloc simple(op)
@@ -182,12 +204,26 @@ idxev = [
 		return nil;
 	}
 
+	@record region {
+		file,
+		addr,
+		len,
+		flags,
+	};
+
+	@record dll {
+		id,
+		path,
+		base,
+		mode,
+	};
+
 	@defloc pstat()
 	{
 		@local p, m;
 		@local rep, dat, rs, bs, n, i;
 		@local file, addr, len, flags;
-		@local id, base;
+		@local id, base, mode;
 
 		p = m = mkxs();
 		p = (uint64*)p;
@@ -216,9 +252,11 @@ idxev = [
 		for(i = 0; i < n; i++){
 			id = *p++;
 			base = *p++;
+			p = (uint8*)p;
+			mode = *p++;
 			[file, p] = decodes(p);
 			p = (uint64*)p;
-			append(bs, dll(id, file, base));
+			append(bs, dll(id, file, base, mode));
 		}
 
 		return [rs, bs];
@@ -256,7 +294,30 @@ idxev = [
 			    ]);
 	}
 
-	@defloc snap() { unimpl('snap); } 
+	@defloc snap()
+	{
+		@local p, m;
+		@local rep, dat, id, ctx, snctl;
+
+		p = m = mkxs();
+		p = (uint64*)p;
+		*p++ = cs.ctlid;
+		dat = getbytes(m, (char*)p-m);
+
+		[rep, dat] = cs.mux.msgsync(sctl`Tsnap, dat);
+		checkreply(rep, dat, sctl`Rsnap);
+
+		p = (uint64*)dat;
+		id = *p++;
+		[ctx, p] = cs.dlct.decodectx(p);
+		
+		snctl = clonectl(id, ctx);
+		cs.mux.unbindctl(snctl);
+//	FIXME: figure out how to ensure that we can keep refs to
+//	       domains derived from ctl without a ref to ctl
+//		finalize(snctl, @lambda(snctl) { snctl.kill(); });
+		return snctl;
+	}
 
 	nexttid = 0;
 
@@ -383,6 +444,39 @@ idxev = [
 		return tabvals(cs.traps);
 	}
 
+	@defloc ldom(arg...)
+	{
+		@local x;
+		if(length(arg) == 0)
+			x = ctx();
+		else
+			x = arg[0];
+		return dwlocaldom(x, mem(), nsmap());
+	}
+
+	@defloc unwind() { dwunwind(ctx(), mem(), nsmap()); }
+
+	@defloc looksrc(addr)
+	{
+		@local n;
+		n = ns(addr);
+		if(n == nil)
+			return n;
+		n.looksrc(addr);
+	}
+
+	@defloc lookpc(file, line, arg...)
+	{
+		@local n;
+		if(length(arg))
+			n = ns(arg[0]);
+		else
+			n = exe();
+		if(n == nil)
+			return nil;
+		n.lookpc(file, line);
+	}
+
 	@defloc handlers(eid)
 	{
 		@local rv, s;
@@ -395,12 +489,18 @@ idxev = [
 
 	@defloc doexit(p)
 	{
-		foreach(@lambda(t) { t.fn(this); }, handlers('exit));
+		@local st, ctx;
+		p = (int64*)p;
+		st = *p++;
+		[ctx, p] = cs.dlct.decodectx(p);
+		setctx(ctx);
+		foreach(@lambda(t) { t.fn(this, st); }, handlers('exit));
+		contasync();
 	}
 
 	@defloc doload(p, eid)
 	{
-		@local hs, path, base, ctx;
+		@local hs, n, ls, path, base, ctx;
 
 		hs = handlers(eid);
 		if(length(hs) == 0){
@@ -408,12 +508,23 @@ idxev = [
 			return;
 		}
 
-		[path, p] = decodes(p);
 		p = (uint64*)p;
-		base = *p++;
-		[ctx, p] = decodectx(p);
+		n = *p++;
+		ls = [];
+		while(n-- > 0){
+			[path, p] = decodes(p);
+			p = (uint64*)p;
+			base = *p++;
+			append(ls, cons(path, base));
+		}
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
-		foreach(@lambda(t) { t.fn(this, path, base); }, hs);
+		foreach(@lambda(l){
+				path = car(l);
+				base = cdr(l);
+				foreach(@lambda(t){ t.fn(this, path, base); },
+					hs);				
+			}, ls);
 		contasync();
 	}
 
@@ -423,7 +534,7 @@ idxev = [
 
 		p = (uint64*)p;
 		sid = *p++;
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		t = cs.straps[sid];
 		if(t == nil)
@@ -440,7 +551,7 @@ idxev = [
 		p = (uint64*)p;
 		sid = *p++;
 		spwnid = *p++;
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		t = cs.straps[sid];
 		if(t == nil)
@@ -470,9 +581,26 @@ idxev = [
 			contasync();
 			return;
 		}
-		[ctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		foreach(@lambda(t) { t.fn(this); }, hs);
+		contasync();
+	}
+
+	@defloc dosig(p)
+	{
+		@local ctx, info, hs;
+
+		hs = handlers('signal);
+		if(length(hs) == 0){
+			printf("no handlers for signal event\n");
+			contasync();
+			return;
+		}
+		[info, p] = cs.dlct.decodesiginfo(p);
+		[ctx, p] = cs.dlct.decodectx(p);
+		setctx(ctx);
+		foreach(@lambda(t) { t.fn(this, info); }, hs);
 		contasync();
 	}
 
@@ -480,7 +608,6 @@ idxev = [
 	{
 		@local hs, spwnid, ctx, spwnctx, spwn;
 
-		printf("in doclone %a\n", ev);
 		hs = handlers(ev);
 		if(length(hs) == 0){
 			printf("no handler for %a!\n", ev);
@@ -489,8 +616,8 @@ idxev = [
 		}
 		p = (uint64*)p;
 		spwnid = *p++;
-		[ctx, p] = decodectx(p);
-		[spwnctx, p] = decodectx(p);
+		[ctx, p] = cs.dlct.decodectx(p);
+		[spwnctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		spwn = clonectl(spwnid, spwnctx);
 		foreach(@lambda(t) { t.fn(this, spwn); }, hs);		
@@ -525,8 +652,10 @@ idxev = [
 		case sctl`Esnap:
 			dosnap(p);
 			break;
-		case sctl`Eexec:
 		case sctl`Esignal:
+			dosig(p);
+			break;
+		case sctl`Eexec:
 		case sctl`Esyscall:
 			doev(p, idxev[ev]);
 			break;
@@ -551,13 +680,15 @@ idxev = [
 		for(i = 0; i < n; i++)
 			cs.mmap[i] = mkrange(rs[i].addr,
 					     rs[i].addr+rs[i].len);
-
 		if(length(dlls) == 0)
 			error("ctl address space is empty");
+		cs.nsmap = mknsmap(atnames);
 		foreach(@lambda(dll){
-				if(1)printf("\t%d\t%016p\t%s\n",
+				if(0)printf("\t%d\t%016p\t%s\n",
 					    dll.id, dll.base, dll.path);
 				cs.nsmap.add(dll.base, dll.path);
+				if(dll.mode != 0)
+					cs.nsmap.setexe(dll.base);
 			}, dlls);
 	}
 
@@ -567,9 +698,10 @@ idxev = [
 
 		r = ctlstate(cs.mux,
 			     ctlid,
+			     cs.dlct,
 			     ctx,
 			     copy(cs.mmap),
-			     cs.nsmap.clone(),
+			     cs.nsmap.copy(),
 			     copy(cs.events),
 			     copy(cs.traps),
 			     copy(cs.straps)
@@ -580,7 +712,33 @@ idxev = [
 		return ctl;
 	}
 
-	this = ctlrec(cs.ctlid,
+	@defloc nsmap() { cs.nsmap; }
+
+	@defloc ns(arg...)
+	{
+		@local idx;
+		if(length(arg) == 0)
+			return cs.nsmap.exe();
+		idx = arg[0];
+		if(isstring(idx))
+			return cs.nsmap.byname(idx);
+		if(iscvalue(idx))
+			return cs.nsmap.byaddr(idx);
+		error("wrong type of index");
+	}
+
+	@defloc dom(arg...)
+	{
+		@local n;
+		n = apply(ns, arg);
+		if(n == nil)
+			return nil;
+		return mkdom(n, mem());
+	}
+
+	@defloc exe() { mkdom(cs.nsmap.exe(), mem()); }
+
+	this = ctlrec(id,
 		      detach,
 		      kill,
 		      cont,
@@ -591,11 +749,21 @@ idxev = [
 		      pstat,
 		      mem,
 		      ctx,
-		      cs.nsmap,
+		      setctx,
+		      nsmap,
+		      ns,
+		      dom,
+		      exe,
+		      cast,
+		      dialect,
 		      snap,
 		      trap,
 		      clear,
 		      traps,
+		      ldom,
+		      unwind,
+		      looksrc,
+		      lookpc,
 		      event,
 		      scan
 		);
@@ -615,12 +783,13 @@ idxev = [
 	}
 }
 
-@defloc mkctl(mux, ctlid, ctx)
+@defloc mkctl(mux, ctlid, dlct, ctx)
 {
 	@local r, ctl;
 
 	r = ctlstate(mux,
 		     ctlid,
+		     dlct,
 		     ctx,
 		     mkvec(0),
 		     mknsmap(atnames),
@@ -633,12 +802,12 @@ idxev = [
 
 	ctl.trap('load,
 		 @lambda(ctl, path, base){
-			 ctl.scan();
+			 ctl.nsmap().add(base, path);
 		 });
 
 	ctl.trap('unload,
 		 @lambda(ctl, path, base){
-			 ctl.scan();
+			 ctl.nsmap().del(base);
 		 });
 
 	ctl.trap('exec,
@@ -646,14 +815,14 @@ idxev = [
 			 ctl.scan();
 		 });
 
-	ctl.trap('exit, @lambda(ctl) { mux.unbindctl(ctl); });
+	ctl.trap('exit, @lambda(ctl, st) { mux.unbindctl(ctl); });
 	ctl.scan();
 	return ctl;
 }
 
 @define ctllaunch(mux, cmd)
 {
-	@local p, m, narg, i, rep, dat, ctlid, ctx;
+	@local p, m, narg, i, rep, dat, ctlid, ctx, dlct;
 
 	narg = length(cmd);
 	p = m = mkxs();
@@ -671,41 +840,29 @@ idxev = [
 	checkreply(rep, dat, sctl`Rlaunch);
 	p = (uint64*)dat;
 	ctlid = *p++;
-	[ctx, p] = decodectx(p);
-
-	printf("launched! ctlid = %d\n", ctlid);
-	dumpctx(ctx);
-	return mkctl(mux, ctlid, ctx);
+	dlct = sctlx86linux;
+	[ctx, p] = dlct.decodectx(p);
+	return mkctl(mux, ctlid, dlct, ctx);
 }
 
-@define ctlexe(ctl)
+@define ctlattach(mux, pid)
 {
-	return mkdom(ctl.nsmap.exe(), ctl.mem());
-}
+	@local p, m, rep, dat, ctlid, ctx, dlct;
 
-@define ctlldom(ctl, arg ...)
-{
-	@local ctx;
-	if(length(arg) == 0)
-		ctx = ctl.ctx();
-	else
-		ctx = arg[0];
-	return dwlocaldom(ctx, ctl.mem(), ctl.nsmap);
+	p = m = mkxs();
+	p = (uint64*)p;
+	*p++ = pid;
+	dat = getbytes(m, (char*)p-m);
+	[rep, dat] = mux.msgsync(sctl`Tattach, dat);
+	if(rep->op == sctl`Rerror){
+		printf("attach failed: %s\n", dat);
+		return nil;
+	}
+	checkreply(rep, dat, sctl`Rattach);
+	p = (uint64*)dat;
+	ctlid = *p++;
+	dlct = sctlx86linux;
+	[ctx, p] = dlct.decodectx(p);
+	return mkctl(mux, ctlid, dlct, ctx);
 }
-
-@define ctlunwindctxs(ctl)
-{
-	return dwunwind(ctl.ctx(), ctl.mem(), ctl.nsmap);
-}
-
-@define ctladdr2src(ctl, addr)
-{
-	return dwaddr2src(addr, ctl.nsmap);
-}
-
-@define ctldombyaddr(ctl, addr)
-{
-	return mkdom(ctl.nsmap.byaddr(addr), ctl.mem());
-}
-
 }

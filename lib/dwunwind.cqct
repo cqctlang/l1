@@ -31,35 +31,11 @@ uwns = @names c32le {
 	} Rulekind;
 };
 
-@record rule {
-	kind,
-	r,
-	n,
-};
-
 /* return pointer to copy of data pointed to by P
    consistent with type of *P */
 @defloc cop(p)
 {
 	return {@typeof(p)}getbytes(p);
-}
-
-@define decoderules(q)
-{
-	@local rs, m, i, k, r, n;
-	rs = [];
-	q = (uint32*)q;
-	m = *q++;
-	for(i = 0; i < m; i++){
-		q = (uint8*)q;
-		k = *q++;
-		q = (uint64*)q;
-		r = *q++;
-		q = (int64*)q;
-		n = *q++;
-		append(rs, rule((uwns`Rulekind)k, r, n));
-	}
-	return [rs, q];
 }
 
 // @defloc showrule(r)
@@ -78,7 +54,7 @@ uwns = @names c32le {
 	{
 		@local r;
 		r = rules[uwns`CFA];
-		switch(r.kind){
+		switch((uwns`Rulekind)r.kind){
 		case uwns`Rcfaro:
 			return getreg(r.r)+r.n;
 		case uwns`Rcfae:
@@ -92,7 +68,7 @@ uwns = @names c32le {
 	needsp = 0;
 	for(i = 0; i < uwns`Nreg; i++){
 		r = rules[i];
-		switch(r.kind){
+		switch((uwns`Rulekind)r.kind){
 		case uwns`Rnone:
 			if(i == spno)
 				needsp = 1;
@@ -259,39 +235,46 @@ uwns = @names c32le {
 	@local fp, dom, ns, rs, mkuwctx;
 	@local g, s, m, new, spno;
 
-	if(ctx->rip == 0)
+	if(ctx->pc == 0)
 		return nil;
-	ns = nsmap.byaddr(ctx->rip);
+	ns = nsmap.byaddr(ctx->pc);
 	if(ns == nil)
-		error("no name space for pc %p", ctx->rip);
+		error("no name space for pc %p", ctx->pc);
 	dom = mkdom(ns, as);
-	rs = ns.unwind1(ctx);
+	rs = ns.unwind1(ctx->pc);
 	if(rs == nil)
 		goto guess;
-	[rs, _] = decoderules(rs);
 	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
 	[g, s, m, new, spno] = mkuwctx(dom, ctx);
 	applyunwind(rs, g, s, m, spno);
 	return new; 
 guess:
-	if(ctx->rbp == 0)
+	if(ctx->fp == 0)
 		return nil;
-	fp = (uintptr*){dom}ctx->rbp;
-	ctx->rip = *(fp+1);
-	ctx->rbp = *fp;
+	fp = (uintptr*){dom}ctx->fp;
+	ctx->pc = *(fp+1);
+	ctx->fp = *fp;
 	return ctx;
 }
 
 @define dwunwind(ctx, as, nsmap)
 {
 	@local xs;
+	@local first;
 
 	xs = [];
-	while(ctx != nil && ctx->rip){
+	first = 1;
+	while(ctx != nil && ctx->pc){
+		if(!first)
+			/* attempt to set pc close to calling address;
+			   see dwarf version 3, section 6.4.4. */
+			ctx->pc -= 1;
+		else
+			first = 0;
 		append(xs, cop(ctx));
 		ctx = dwunwind1(ctx, as, nsmap);
 	}
-	return reverse(xs);
+	return xs;
 }
 
 }

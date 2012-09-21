@@ -1,0 +1,27 @@
+@include <debug.cqct>
+
+@define test1(cmd)
+{
+	@local ctl, mux, exe;
+
+	printf("*** %s ***\n", cmd);
+
+	mux = mksctlmux();
+	ctl = ctllaunch(mux, [cmd]);
+	exe = ctl.exe();
+	ctl.trap('brk, &exe`f,
+		 @lambda(ctl){
+			 foreach(@lambda(ctx){
+					 printf("%s\n", fmtframe(ctl, ctx));
+				 }, ctl.unwind());
+			 printf("\n");
+		 });
+	mux.run();
+}
+
+foreach(test1, [
+		"./wind1",
+		"./wind1.32",
+		"./wind2",
+		"./wind2.32"
+		]);

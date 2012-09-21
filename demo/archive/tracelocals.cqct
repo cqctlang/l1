@@ -1,0 +1,37 @@
+@include <debug.cqct>
+
+@define locs(ldom)
+{
+	@local ls, s;
+	ls = [];
+	foreach(@lambda(id, l){
+			append(ls, l);
+		}, ldom.enumsym());
+	sort(ls, @lambda(a, b) { strcmp(cid2str(symid(a)), cid2str(symid(b))); });
+	s = "";
+	foreach(@lambda(l){
+			s += sprintfa("\t%016p\t%s\t%6d\t%t\n",
+				      symoff(l),
+				      symid(l),
+				      sizeof(symtype(l)),
+				      symtype(l));
+		}, ls);
+	return s;
+}
+
+@define test(cmd)
+{
+	@local mux, ctl, exe;
+
+	mux = mksctlmux();
+	ctl = ctllaunch(mux, [cmd]);
+	exe = ctl.exe();
+	printf("%s locals (observed):\n", cmd);
+	ctl.trap('brk, &exe`locals,
+		 @lambda(ctl){ printf("%s", locs(ctl.ldom())); });
+	mux.run();
+}
+
+test("./locals1");
+printf("\n");
+test("./locals1.32");

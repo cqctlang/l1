@@ -25,7 +25,6 @@
 <a href="#lib:re.cqct">Regular Expression Library</a><br />
 <a href="#lib:rbtree.cqct">Red Black Tree</a><br />
 <a href="#lib:snames.cqct">snames</a><br />
-<a href="#lib:snamesclt.cqct">snamesclt</a><br />
 <a href="#lib:gdb.cqct">gdb</a><br />
 </div>
 
@@ -63,8 +62,10 @@ for several of the provided libraries.
 
 <h5 id="lib:asutil.cqct">asutil.cqct</h5>
 
+<p>
 <span class="id">asutil.cqct</span> provides code for 
 loading, saving, and copying address spaces. 
+</p>
 
 <div class="docitem" id="fn:asload">
 <div class="proto">
@@ -183,8 +184,10 @@ affect the passed address space.
 
 <h5 id="lib:core.cqct">core.cqct</h5>
 
+<p>
 <span class="id">core.cqct</span> provides functionality for loading
 a core file as an address space.
+</p>
 
 <div class="docitem" id="fn:mkcoreas">
 <div class="proto">
@@ -208,8 +211,10 @@ a core file as an address space.
 
 <h5 id="lib:dump.cqct">dump.cqct</h5>
 
+<p>
 <span class="id">dump.cqct</span> provides code for printing
 out namespaces and the values associated with typed pointers.
+</p>
 
 <div class="docitem" id="fn:printtype">
 <div class="proto">
@@ -268,9 +273,12 @@ a string, and returns that string.
 
 <h5 id="lib:dynamictypes.cqct">dynamictypes.cqct</h5>
 
+<p>
 This file provides the ability to create dynamic types, or types
 that change based on their content. For example, consider the following
 vector type:
+</p>
+
 <div class="code">
 <pre>
 struct Vector {
@@ -331,6 +339,7 @@ would have pointed to on return is unmapped, then no changes are made.
 
 <h5 id="lib:elf.cqct">elf.cqct</h5>
 
+<p>
 <span class="id">elf.cqct</span> contains code for handling elf files.
 Much of this function provides machinery to keep the client code unaware
 of whether or not the elf file underconsideration contains a 32 or 64 bit
@@ -339,6 +348,7 @@ type, which is instantiated through <a href=#fn:mkelfrec>mkelfrec</a>,
 is where the elf domain is contained. The elfsym types, which are 
 created via <a href=#fn:getcqctelfsym>getcqctelfsym</a> contain information
 about specific elf symbols. 
+</p>
 
 <div class="docitem" id="record:bd">
 Record <span class="id">bd</span> created by 
@@ -742,8 +752,10 @@ That information can be harvested directly by the following functions:
 
 <h5 id="lib:nsgraph.cqct">nsgraph.cqct</h5>
 
+<p>
 <span class="id">nsgraph.cqct</span> provides code for 
 creating and analyzing graphs of types inferred from a namespace.
+</p>
 
 <div class="docitem" id="fn:gentypegraph">
 <div class="proto">
@@ -852,9 +864,11 @@ creating and analyzing graphs of types inferred from a namespace.
 
 <h5 id="lib:nsutil.cqct">nsutil.cqct</h5>
 
+<p>
 <span class="id">nsutil.cqct</span> provides code for 
 checking type equality, printing namespaces, and iterating
 over types in namespaces.
+</p>
 
 <div class="docitem" id="fn:all_types">
 <div class="proto">
@@ -1078,6 +1092,7 @@ over types in namespaces.
 
 <h5 id="lib:rangeset.cqct">rangeset.cqct</h5>
 
+<p>
 <span class="id">rangeset.cqct</span> provides a data structure
 that stores a set of ranges in a minimal way. The rangeset structure
 is implemented with a red black tree, and allows one to add and 
@@ -1085,6 +1100,8 @@ remove ranges with the guarantee that (1) a minimal number of ranges
 will be stored and (2) checking if a value is contained in a given rangeset
 will take O(log(n)) time (where n is the number of ranges stored). 
 Example usage:
+</p>
+
 <div class="code">
 <pre>
 @include &lt;rangeset.cqct&gt;
@@ -1266,11 +1283,13 @@ rangeset only work on non-negative integer ranges.
 
 <h5 id="lib:re.cqct">re.cqct</h5>
 
+<p>
 <span class="id">re.cqct</span> provides an API for using
 regular expressions in CQCT. Currently, regular expressions
 containing [], *, ., (), and ? are all supported with the
 same meanings as in PERL (run "man perlre" for more details),
 with the following exceptions:
+</p>
 <ul>
     <li> () does not enable back references as
     in PERL. 
@@ -1416,9 +1435,11 @@ re_find(comp,"xxxabccccd"); //returns 3
 
 <h5 id="lib:rbtree.cqct">rbtree.cqct</h5>
 
+<p>
 <span class="id">rbtree.cqct</span> provides an API for red black trees.
 Red black trees are balanced and provide O(n) insertion, deletion, and
 querying. 
+</p>
 
 <div class="docitem" id="fn:rbtree_create">
 <div class="proto">
@@ -1695,19 +1716,23 @@ querying.
 <h5 id="lib:snames.cqct">snames.cqct</h5>
 
 <p>
-<span class="id">snames.cqct</span> is a name space
-server intended to serve to Cinquecento programs name
-spaces represented by "names files" (i.e., the valid
-bodies of Cinquecento <span class="val">@names</span>
-forms typically stored in files with names ending in
-"<span class="id">.names</span>").  It should be
-executed as a stand-alone command, with the following
-arguments:
+<span class="id">snames.cqct</span> is a server
+intended to serve Cinquecento name spaces across a
+network using the sctl protocol.  It supports two modes
+of operation: in <span class="id">names</span> mode,
+name spaces are drawn from a "names files" stored in
+the local file system; in <span class="id">sctl</span> mode,
+name spaces are drawn from new invocations of the sctl server
+(which must be in the path).
+</p>
+
+<p>
+The usage is:
 </p>
 
 <div id="inset">
 <p>
-snames.cqct <span class="arg">port</span> <span class="arg">rootns</span> <span class="arg">prefix</span> [<span class="arg">var</span> ...]
+snames.cqct <span class="arg">port</span> <span class="arg">rootns</span> <span class="arg">mode</span> <span class="arg">prefix</span> [<span class="arg">var</span> ...]
 </p>
 </div>
 
@@ -1719,7 +1744,11 @@ interface).
 
 <p>
 <span class="arg">Rootns</span> is the name of the root name
-space (e.g., <span class="val">c32le</span>) from which all served name spaces are extended.
+space (e.g., <span class="val">c32le</span>) from which all served name spaces are extended.  It is meaningful only in <span class="id">names</span> mode.
+</p>
+
+<p>
+<span class="arg">Mode</span> is either <span class="id">names</span> or <span class="id">sctl</span>.
 </p>
 
 <p>
@@ -1731,7 +1760,8 @@ the client <span class="val">snamesns</span> operation
 is appended to <span class="arg">prefix</span>.
 (If <span class="arg">Prefix</span> does not end with
 the character <span class="val">"/"</span>,
-it is added.)
+it is added.)  <span class="arg">Prefix</span>
+is meaningful only in <span class="id">names</span> mode.
 </p>
 
 <p>
@@ -1742,7 +1772,8 @@ scope of the <span class="val">@names</span> evaluation
 that is performed for each served name space.  This
 allows the serving of names files that contain
 references to variables, but it does not offer any
-control over their values.
+control over their values.  These arguments are meaningful
+only in <span class="id">names</span> mode.
 </p>
 
 <p>
@@ -1750,70 +1781,11 @@ In the event of an error, the snames server automatically restarts.
 Some diagnostics are printed to standard output.
 </p>
 
-<h5 id="lib:snamesclt.cqct">snamesclt.cqct</h5>
-
 <p>
-<span class="id">snamesclt.cqct</span> is a client interface to
-the remote names server
-<span class="id"><a href="#lib:snames.cqct">snames</a></span>
+This command-line synopsis should be revised to not require
+meaningless arguments in <span class="id">sctl</span> mode.
 </p>
 
-<div class="docitem" id="fn:setsnamesaddr">
-<div class="proto">
-<div class="function">
-<span class="id">setsnamesaddr(<span class="arg">addr</span>)</span>
-</div>
-<div class="param">
-<span class="arg">addr</span>: <span class="type">string</span> 
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-Address is a network address of the form 
-<tt>"<em>addr</em>:<em>port</em>"</tt>, where
-<span class="arg">addr</span> is an IP address or hostname and
-<span class="arg">port</span> is a port number or
-service name.  Updates to <span class="arg">addr</span>
-the address of the snames server
-contacted by the library.  The default is <span class="val">"localhost:30000</span>.
-</div>
-</div>
-
-<div class="docitem" id="fn:snamesns">
-<div class="proto">
-<div class="function">
-<span class="id">snamesns(<span class="arg">path</span>)</span>
-</div>
-<div class="param">
-<span class="arg">path</span>: <span class="type">string</span> 
-</div>
-<div class="returns">
-<span class="type">name space</span>
-</div>
-</div>
-<div class="desc">
-Returns the name space associated with the
-name <span class="arg">path</span> on the snames
-server, or <span class="id">nil</span> if there is no
-associated name space.
-</div>
-</div>
-
-<div class="docitem" id="fn:snamesreconnect">
-<div class="proto">
-<div class="function">
-<span class="id">snamesreconnect()</span>
-</div>
-<div class="returns">
-<span class="type">nil</span>
-</div>
-</div>
-<div class="desc">
-Advises the library to reset its connection to the snames server.
-</div>
-</div>
 
 <h5 id="lib:gdb.cqct">gdb.cqct</h5>
 

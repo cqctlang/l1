@@ -141,13 +141,35 @@ that is in the load path, one may use the following constructions:
 </div>
 </p>
 
-
 <p>
 Imported libraries must be present in the load path. That is, when importing
 from <em>lib1</em>, there must be a lib1.cqct present in the load path at
 compile time. Recursive or mutually recursive libraries are not allowed.
 Any <em>@defstx</em> statements in any library are 
 bound globally during compilation. 
+</p>
+
+<h3>Dynamically determined imports</h3>
+
+<p>The above macros allow one to specify at compile time which library
+to import and what function renaming to do. 
+If one wants to decide on the library that will be imported at runtime,
+one can use the <em>dynamic_imports</em> macro. This macro is just like
+the <em>with_imports</em> macro, except that it evaluates its arguments at
+runtime and imports libraries specified by the resulting strings. 
+For instance:
+<div class="code">
+<pre>
+
+lib = "dir1"; // dir1/somthing.cqct defines fn1
+lib2 = "dir2"; // dir2/something.cqct also defines fn1
+foreach(@lambda(dir) {
+  @dynamic_imports( sprintfa("(f, %s/something.fn1)",dir) ) {
+    f();
+  }
+}, [lib,lib2]);
+</pre>
+</div>
 </p>
 
 <h3>Cinquecento Library Macros</h3>
@@ -180,6 +202,27 @@ path = compute_path(); //this statement does not execute until run time
 @loadpath(compute_path()); //error: compute_path is also unbound until runtime
       </pre>
     </div>
+  </div>
+</div>
+
+<div class="docitem" id="fn:@dynamic_imports">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@dynamic_imports( expression [,expression...] ) 
+                            { body }</span>
+    </div>
+    <div class="param">
+      <span class="arg">expression</span>: 
+      <span class="type">cqct expressions</span> 
+    </div>
+  </div>
+  <div class="desc">
+    Macro that allows one to decide at runtime which libraries are to be 
+    imported. The expressions will be evaluated at runtime and should 
+    produce string representations of 
+    the import_spec statements described in <a href=#fn:@import>@import</a>.
+    The macro body will be run with symbols from libraries bound just like an
+    <a href=#fn:@with_imports>@with_imports</a> macro.
   </div>
 </div>
 

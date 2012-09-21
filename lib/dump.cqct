@@ -161,8 +161,11 @@ Function for testing.
 		while(istypedef(t2))
 			t2 = typedeftype(t2);
     if (isvoid(t2)) return "VOID";
-		if (!ismapped(p)) return "UNMAPPED";
-		else if (issu(t2)) {
+    //check if it is an unspecified array before checking if it is mapped.
+    if (isarray(t2) && arraynelm(t2) == nil)
+      ; //do nothing, no need to check if unspecified array is mapped
+		else if (!ismapped(p)) return "UNMAPPED";
+		if (issu(t2)) {
 			@local flds, i, nxt_indent, ret;
 			if (strlen(indent)>70 ) return sprintfa("...",p);
 			flds = fields(t2);

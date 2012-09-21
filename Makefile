@@ -74,8 +74,8 @@ L1C =\
 L1O = $(L1C:.c=.o)
 
 L1DEPS += x/lib9/lib9.a
-L1FUNS += fnfmt
-L1EXTRAS += fnfmt.c
+L1FUNS += fnfmt fnjson
+L1EXTRAS += fnfmt.c fnjson.c
 
 FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env *);")
 FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);")
@@ -140,6 +140,18 @@ archive:
 
 git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
+
+# it is irritating that we reproduce demo dependencies here.
+DEMO=\
+	demo/forkexec.c\
+	demo/list.c\
+	demo/listbug.c
+
+doc: doc/debug.html
+
+doc/debug.html: doc/debug.src.html $(DEMO)
+	@$(MAKE) -C demo
+	@$(MAKE) -C doc
 
 clean:
 	@$(MAKE) -s -C x/lib9 clean

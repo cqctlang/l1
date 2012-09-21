@@ -1,0 +1,526 @@
+@include <chronicle.cqct>
+
+@global Segsize;
+
+Segsize = 1ULL<<20;
+
+@define showargs(exe, n, t)
+{
+	@local args;
+
+	args = chgetargs(exe, n, t);
+	printf("args:");
+	foreach(@lambda(a) { printf(" %d", a); }, args);
+	printf("\n");
+}
+
+@define vkind(p)
+{
+	p = (Head*)p;
+	(p->bits>>1)&0x1f;
+}
+
+@define fmtval(p)
+{
+	@local k;
+	k = vkind(p);
+	switch(k){
+	case 0:
+		return "<undef>";
+	case 1:
+		return "nil";
+	case 3:
+		return sprintfa("box(%s)", fmtval(((Box*)p)->v));
+	case 4:
+		return "<procedure>";
+	case 6:
+		return "<code>";
+	case 9:
+		return "<domain>";
+	case 19:
+		return "<string>";
+	case 20:
+		return "<table>";
+	case 8:
+		p = (Cval*)p;
+		return sprintfa("%d", p->v.u);
+	case 15:
+		return sprintfa("cons(%s, %s)", fmtval(xcar(p)), fmtval(xcdr(p)));
+	default:
+		return sprintfa("<qkind %d>", k);
+	}
+}
+
+@define xcar(p)
+{
+	p = (Pair*)p;
+	return p->car;
+}
+
+@define xcdr(p)
+{
+	p = (Pair*)p;
+	return p->cdr;
+}
+
+@define mtname(mt)
+{
+	@local mts, rv;
+	mts = [ 0   : "MThole",
+		8   : "MTnix",
+		16  : "MTfree",
+		48  : "MTdata",
+		56  : "MTode",
+		64  : "MTcode",
+		24  : "MTweak",
+		32  : "MTbox",
+		40  : "MTmutable",
+		50  : "MTbigdata",
+		58  : "MTbigode",
+		66  : "MTbigcode" ];
+	rv = mts[mt];
+	if(rv == nil)
+		return sprintfa("undefined mt %d", mt);
+	return rv;
+}
+
+@define genname(g)
+{
+	@local gs;
+	gs = ["G0", "G1", "G2", "G3", "Gstatic", "Gunused", "Glock"];
+	if(g >= length(gs))
+		return sprintfa("undefined gen %d", g);
+	return gs[g];
+}
+
+@define _fmtseg(s)
+{
+	@local r, dom, o, a;
+	dom = domof(s);
+	if(s == 0)
+		return "no segment!";
+	o = (Seg*)s-dom`segmap.map;
+	a = dom`segmap.lo+o*Segsize;
+	r = sprintfa("seg %p (%p-%p) %s %s", s,
+		     a, a+Segsize,
+		     genname(s->gen), mtname(s->mt));
+	return r;
+}
+
+@define a2s(a)
+{
+	@local dom, segmap, o;
+
+	dom = domof(a);
+	segmap = &dom`segmap;
+	o = ((void*)a-segmap->lo)/Segsize;
+	return segmap->map+o;
+}
+
+@define fmtseg(p)
+{
+	@local dom, segmap, o, s;
+
+	dom = domof(p);
+	segmap = &dom`segmap;
+	o = ((void*)p-segmap->lo)/Segsize;
+	s = segmap->map+o;
+	return _fmtseg(s);
+}
+
+@define dumpguards(exe, t)
+{
+	@local dom, H, i, p, o, k;
+	dom = exe.dom(t);
+	H = &dom`H;
+	printf("@%d user guard list\n", t);
+	for(i = 0; i < 4; i++){
+		p = H->ug.gd[i];
+		printf("gen %d user guard list:\n", i);
+		while(vkind(p) != 1){
+			k = vkind(xcar(xcar(p)));
+			printf("\t%p %d", p, k);
+			printf(" %s", fmtseg(p));
+			if(k == 15){
+				o = xcar(xcar(p));
+				printf(" (object is %p pair(%d,%d))", o, vkind(xcar(o)), vkind(xcdr(o)));
+				printf("\n");
+			}
+			p = (Pair*)p->cdr;
+		}
+	}
+}
+
+rdsetfmt(@record copyevent { time, from, to },
+	 @lambda(r) { sprintfa("<copy @%d %p -> %p", r.time, r.from, r.to); });
+
+rdsetfmt(@record malevent { time, addr },
+	 @lambda(r) { sprintfa("<mal @%d of %p", r.time, r.addr); });
+
+@define dumpvalpath(exe, cs)
+{
+	@local is, exedom;
+
+	exedom = exe.exedom;
+	is = callintervals(exe, exe.intvl(), &exedom`_gc);
+	foreach(@lambda(c){
+			@local ndx;
+			if(ismalevent(c))
+				printf("@%d mal %p\n", c.time, c.addr);
+			else if(iscopyevent(c)){
+				ndx = indexof(is, c.time);
+				printf("@%d (gc #%d) copy %p -> %p\n", c.time, ndx, c.from, c.to);
+//				dumpstack(exe, c.time);
+//				uncovercopy(exe, c);
+			}else
+				error("bug");
+		}, cs);
+}
+
+/* determine the future of the value at ADDR at time T */
+@define valfuture(exe, addr, t)
+{
+	@local exedom;
+	@local gcs, copyt, rvs;
+
+	exedom = exe.exedom;
+
+	/* find all intervals of gc execution */
+	gcs = callintervals(exe, exe.intvl(), &exedom`_gc);
+	
+	@defloc findcopy(addr, t)
+	{
+		@local is, wi;
+		/* clip gc history to those up to T */
+		is = clipbeg(gcs, t);
+
+		/* find next write to value header by a gc in forward order */
+		foreach(@lambda(gc){
+				@local ws;
+				if(wi)
+					return; /* shitty control logic */
+				ws = exe.scan('write, addr, sizeof(exedom`Head), gc.beg, gc.end);
+				if(length(ws) == 0)
+					return;
+				if(length(ws) > 1){
+					printf("valfuture picking first of %d writes for %p in gc interval:\n", length(ws), addr);
+					foreach(@lambda(w){
+							printf("@%d\n", w);
+							dumpstack(exe, w);
+							printf("\n");
+						}, ws);
+				}
+				wi = ws[0];
+			}, is);
+
+		return wi;
+	}
+
+	rvs = [];
+	while(copyt = findcopy(addr, t)){
+		@local fwd, ldom, ev;
+		ldom = exe.ldom(copyt);
+		fwd = ldom`nh;
+		ev = copyevent(copyt, addr, fwd);
+		append(rvs, ev);
+		addr = fwd;
+		t = copyt;
+	}
+
+	dumpvalpath(exe, rvs);
+
+	return rvs;
+}
+
+/* determine the history of the value at ADDR at time T */
+@define valhistory(exe, addr, t)
+{
+	@local exedom;
+	@local gcs;
+	@local ev, evs, ms;
+	@local orig, origt;
+
+	exedom = exe.exedom;
+
+	/* find all intervals of gc execution */
+	gcs = callintervals(exe, exe.intvl(), &exedom`_gc);
+	printf("%d calls to _gc\n", length(gcs));
+
+	@defloc findcopy(addr, t)
+	{
+		@local is, wi, copyt, ts, m, args, dom, p;
+
+		/* clip gc history to those up to T */
+		is = clipend(gcs, t);
+
+		/* find last write to value header by a gc in reverse order */
+		m = length(is);
+		foreach(@lambda(gc){
+				@local ws;
+
+				m--;
+				if(wi)
+					return; /* shitty control logic */
+
+				ws = exe.scan('write, addr, sizeof(exedom`Head), gc.beg, gc.end);
+				if(length(ws) == 0)
+					return;
+
+//				printf("found %d writes to header for %p in gc %d\n", length(ws), addr, m);
+//				printf("write at %-16d:\n", ws[0]);
+//				dumpstack(exe, ws[0]);
+				/* whack this interval to prevent detection of
+				   later write event to the from pointer */
+				gc.end = ws[0];
+
+				/* assume every write occurs in the context of
+				   a single call to copy; pick one */
+				wi = interval(gc.beg, ws[0]);
+		}, reverse(is));
+
+		if(wi == nil)
+			return nil;
+		
+		/* find the corresponding call to copy
+		   lower bound does not matter, but must
+		   include prefix of the gc interval */
+		ts = exe.scan('lastexec, &exedom`copy, wi.beg, wi.end);
+		if(length(ts) != 1)
+			error("no call event!");
+		copyt = ts[0];
+		
+		args = chgetargs(exe, 1, copyt);
+		dom = mkdom(exedom.ns, exe.mem(copyt));
+		p = (Val*){dom}args[0];
+		return copyevent(copyt, *p, addr);
+	}
+
+	evs = [];
+	while(ev = findcopy(addr, t)){
+		append(evs, ev);
+		addr = ev.from;
+		t = ev.time;
+	}
+	evs = reverse(evs);
+	if(length(evs) == 0){
+		orig = addr;
+		origt = t;
+	}else{
+		orig = evs[0].from;
+		origt = evs[0].time;
+	}
+
+	/* now try to find the allocation event: the
+	   last write to the header prior to the first copy
+	   over the entire execution prefix */
+	ms = exe.scan('lastwrite, orig, sizeof(exedom`Head), 0, origt);
+	if(length(ms) != 1)
+		error("no original write event!");
+	push(evs, malevent(ms[0], orig));
+	printf("found mal event for %p\n", orig);
+	dumpstack(exe, ms[0]);
+	return evs;
+}
+
+@define gcintervals(exe)
+{
+	@local whole, exedom, is;
+	exedom = exe.exedom;
+	whole = exe.intvl();
+	is = callintervals(exe, whole, &exedom`_gc);
+	return is;
+}
+
+@define gcsummary(exe)
+{
+	@local is, m;
+
+	is = gcintervals(exe);
+	printf("%d calls to _gc\n", length(is));
+	m = 0;
+	foreach(@lambda(i){
+			printf("\t#%d @%d - @%d ", m++, i.beg, i.end);
+			showargs(exe, 2, i.beg);
+		}, is);
+	return is;
+}
+
+@define foreachgc(exe, beg, end)
+{
+	@local whole, exedom, is, m;
+
+	exedom = exe.exedom;
+	whole = exe.intvl();
+
+	is = callintervals(exe, whole, &exedom`_gc);
+	printf("%d calls to _gc\n", length(is));
+	m = 0;
+	foreach(@lambda(i){
+			printf("\t#%d @%d - @%d ", m++, i.beg, i.end);
+			showargs(exe, 2, i.beg);
+			if(beg){
+				printf("\t@%d:\n", i.beg);
+				beg(exe, i.beg);
+			}
+			if(end){
+				printf("\t@%d:\n", i.end);
+				end(exe, i.end);
+				printf("\n");
+			}
+		}, is);
+}
+
+@define badwrites(exe)
+{
+	@local whole;
+	@local nfs, fss, frs;
+	@local inits, finis, window, unstable, stable, m;
+	@local exedom;
+
+	exedom = exe.exedom;
+	whole = exe.intvl();
+
+	/* critical sections on free list */
+	nfs = callintervals(exe, whole, &exedom`nextfree);
+	fss = callintervals(exe, whole, &exedom`freeseg);
+	frs = callintervals(exe, whole, &exedom`freerange);
+	unstable = mergeivs(nfs, mergeivs(fss, frs));
+
+	printf("  %3d calls to nextfree\n", length(nfs));
+	printf("  %3d calls to freeseg\n", length(fss));
+	printf("  %3d calls to freerange\n", length(frs));
+	printf("= %3d calls to segment free list critical sections\n",
+	       length(unstable));
+
+	/* define window to search: from return of initmem to return of finimem */
+	inits = callintervals(exe, whole, &exedom`initmem);
+	finis = callintervals(exe, whole, &exedom`finimem);
+	if(length(inits) != 1 || length(finis) != 1)
+		error("non-standard l1 execution");
+	window = interval(inits[0].end, finis[0].end);
+
+	/* subdivide window into intervals where free list is constant */
+	stable = invert(clip(unstable, window), window);
+	printf("%d stable intervals in window\n", length(stable));
+
+	/* look for writes into free segments during any of these intervals */
+
+	/* helper: extract list of free segments at time T */
+	@defloc freesegs(t)
+	{
+		@local dom, f, rs, sz;
+		rs = [];
+		dom = exe.dom(t);
+		sz = 1ULL<<20;
+		f = dom`segmap.free;
+		while(f){
+			append(rs, mkrange(f, sz));
+			f = *(void**)f;
+		}
+		return rs;
+	}
+
+	m = 0;
+	foreach(@lambda(s){
+			@local ws, fs;
+			fs = freesegs(s.beg);
+			printf("stable interval #%3d (%10d - %10d) %d free segments\n", m, s.beg, s.end, length(fs));
+			foreach(@lambda(f){
+					ws = exe.scan('write, rangebeg(f), rangelen(f), s.beg, s.end);
+					foreach(@lambda(w){
+							printf("\t@%d write into free segment %016p-%016p\n",
+							       w, rangebeg(f), rangebeg(f)+rangelen(f));
+						}, ws);
+				}, fs);
+			m++;
+		}, stable);
+}
+
+/* given a copy event, find the object it was scanned
+   from.  */
+@define uncovercopy(exe, ctime)
+{
+	@local exedom, ts, callt, scant, ldom, ctx, sym;
+
+	exedom = exe.exedom;
+
+	/* who called us? */
+	ts = exe.scan('lastexec, &exedom`copy, 0, ctime);
+	if(length(ts) != 1)
+		error("cannot find call to copy!");
+	callt = ts[0]-1;
+	
+	printf("copy was called @%d\n", callt);
+	dumpstack(exe, callt);
+	ctx = exe.ctx(callt);
+	sym = exedom.ns.lookaddr(ctx->pc);
+
+	if(symid(sym) == 'scan1){
+		printf("it's a scan1 call!\n");
+		ts = exe.scan('lastexec, &exedom`scan1, 0, callt);
+		if(length(ts) != 1)
+			error("cannot find call to scan1");
+		scant = ts[0]-1;
+		ldom = exe.ldom(scant);
+		printf("object was encountered while scanning %p %s\n",
+		       ldom`h, fmtval(ldom`h));
+		/* really want to bound this to the current gc */
+		ts = exe.scan('lastwrite, ldom`h, sizeof(exedom`Head), 0, scant);
+		if(length(ts) != 1)
+			error("cannot find previous write");
+		printf("header for object %p was last written @%d\n", ldom`h, ts[0]);
+		uncovercopy(exe, ts[0]);
+	}else
+		printf("it's a %s call!\n", symid(sym));
+}
+
+/* dump the gc locked segments */
+@define dumplocked(exe, t)
+{
+	@local dom, s, es, p;
+	dom = exe.dom(t);
+	s = a2s(dom`segmap.lo);
+	es = a2s(dom`segmap.hi);
+	while(s < es){
+		if(s->gen == dom`Glock){
+			printf("\tlocked segment %p\n", s);
+			p = s->p;
+			while(p){
+				@local o;
+				o = xcdr(xcar(p));
+				printf("\t\t%p %s\n", o, fmtval(o));
+				p = xcdr(p);
+			}
+		}
+		s++;
+	}
+}
+
+@define l1demo1()
+{
+	@local exe, exedom, ldom;
+	@local badt, cart, copyt, rett;
+
+	exe = chronicledb("../l1.bug/lock.bug.db");
+	exedom = exe.exedom;
+
+	gcsummary(exe);
+	badwrites(exe);
+	badt = 792518402;
+	dumpstack(exe, 792518402);
+	dumpstack(exe, badt);
+	ldom = exe.ldom(badt);
+	fmtval(ldom`argv[0]);
+	cart = exe.scan('lastexec, &exedom`l1_car, 0, badt)[0];
+	dumpstack(exe, cart);
+	ldom = exe.ldom(cart+10);
+	fmtval(ldom`argv[0]);
+	copyt = exe.scan('lastread, ldom`argv[0], sizeof(exedom`Head), 0, cart)[0];
+	dumpstack(exe, copyt);
+	rett = exe.findret(copyt);
+	dumpstack(exe, rett);
+	ldom = exe.ldom(rett);
+	_fmtseg({exedom.ns}ldom`s);
+	dumplocked(exe, rett);
+//	dumpguards(exe, rett);   /* long! */
+}

@@ -1693,8 +1693,6 @@ gcwb(Val v)
 static void
 toprd(void *u, void *k, void *v)
 {
-	Val *p;
-	p = v;
 	copy(v);
 }
 

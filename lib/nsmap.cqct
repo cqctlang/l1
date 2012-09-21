@@ -7,7 +7,7 @@
 {
 
 @record nsrec    { base, path, ns };
-@record nsmaprec { add, del, exe, setexe, byaddr, byname, each, clone };
+@record nsmaprec { add, del, exe, setexe, byaddr, byname, nspath, nsbase, each, copy };
 
 @defloc _mknsmap(mkns, rs, x)
 {
@@ -47,11 +47,9 @@
 			error("cannot construct name space for %s", path);
 		if(base != 0)
 			ns = mknsoff(ns, base);
-		r = nsrec(base, path, ns);
+		r = nsrec({litdom}base, path, ns);
 		append(rs, r);
 		resort();
-		if(x == nil && base == 0)
-			x = r;
 		return nil;
 	}
 
@@ -84,7 +82,7 @@
 
 	@defloc each(fn)
 	{
-		foreach(@lambda(r) { fn(r.base, r.path, r.ns); });
+		foreach(@lambda(r) { fn(r.base, r.path, r.ns); }, rs);
 	}
 
 	@defloc byaddr(addr)
@@ -105,9 +103,23 @@
 		return nil;
 	}
 
-	@defloc clone()
+	@defloc nspath(ns)
 	{
-		return _mknsmap(mkns, rs, x);
+		@local path;
+		each(@lambda(b, p, n) { if(n == ns) path = p; });
+		return path;
+	}
+
+	@defloc nsbase(ns)
+	{
+		@local base;
+		each(@lambda(b, p, n) { if(n == ns) base = b; });
+		return base;
+	}
+
+	@defloc _copy()
+	{
+		return _mknsmap(mkns, copy(rs), x);
 	}
 
 	return nsmaprec(add,
@@ -116,8 +128,10 @@
 			setexe,
 			byaddr,
 			byname,
+			nspath,
+			nsbase,
 			each,
-			clone);
+			_copy);
 }
 
 @define mknsmap(mkns)
