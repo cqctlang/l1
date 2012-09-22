@@ -1,4 +1,4 @@
-UNIX = fnfs fnio fnnet fnsys fnsec fnflate fnsnap
+UNIX = fnfs fnio fnnet fnsys fnsec fnflate fnsnap fndlopen
 L1DEPS +=\
 	x/libflate/libflate.a\
 	x/libsec/libsec.a
@@ -13,3 +13,4 @@ L1EXTRAS := $(addsuffix .c, $(UNIX)) \
 	     unix.c
 
 L1FUNS   := $(UNIX)
+CFLAGS += -ldl
