@@ -168,7 +168,7 @@ if (__library_exports == nil) //might not have been set in a macro
         },__library_exports[lname]);
         break;
     }
-  },Z2list(imports));
+  },Ztolist(imports));
 
   //we'd been building new_locals as a cqct list, but it needs to be a Zlist
   new_locals = apply(Zlist,new_locals);
@@ -243,7 +243,7 @@ if (__library_exports == nil) //might not have been set in a macro
       __library_exports[#,(#val(libname))] [#,(#val(en))] = #,(#id(en)); 
     };
     append(new_postbody,s);
-  },Z2list(exports));
+  },Ztolist(exports));
 
   //we'd been building new_locals as a cqct list, but it needs to be a Zlist
   new_locals = apply(Zlist,new_locals);
@@ -305,7 +305,7 @@ if (__library_exports == nil) //might not have been set in a macro
         break;
       default: append(new_stmts,s);
       }
-    },Z2list(stmts));
+    },Ztolist(stmts));
     break;
   default: error("could not parse body: ",body);
   }

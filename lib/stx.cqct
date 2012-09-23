@@ -1,0 +1,108 @@
+@define Zcar(l)
+{
+	return stxref(l, 0);
+}
+
+@define Zcdr(l)
+{
+	return stxref(l, 1);
+}
+
+@define Znil()
+{
+	return #nil;
+}
+
+@define Znull()
+{
+	return #null;
+}
+
+@define Zcons(h, t)
+{
+	return #elist(h, t, stxsrc(h));
+}
+
+@define Zlist(arg ...)
+{
+	@local rv;
+	rv = Znull();
+	while(length(arg))
+		rv = Zcons(pop(arg), rv);
+	return Zreverse(rv);
+}
+
+@define Zreverse(l)
+{
+	@defloc rev(l, a)
+	{
+		if(l == #null)
+			return a;
+		rev(Zcdr(l), Zcons(Zcar(l), a));
+	}
+	rev(l, Znull());
+}
+
+@define Zlength(l)
+{
+	if(l == nil)
+		return 0;
+	@defloc rec(l, a)
+	{
+		if(l == #null)
+			return a;
+		rec(Zcdr(l), a+1);
+	}
+	rec(l, 0);
+}
+
+@define Zisvarg(l)
+{
+	if(l == nil)
+		return 0;
+	if(Zcar(l) == #null)
+		return 0;
+	if(Zcar(l) == #ellipsis)
+		return 1;
+	return Zisvarg(Zcdr(l));
+}
+
+@define Zdelete(s, fr)
+{
+	if(fr == #null)
+		return fr;
+	if(Zmember(Zcar(fr), s))
+		return Zdelete(s, Zcdr(fr));
+	else
+		return Zcons(Zcar(fr), Zdelete(s, Zcdr(fr)));
+}
+
+@define Zmember(e, es)
+{
+	if(es == #null)
+		return 0;
+	if(Zcar(es) == e)
+		return 1;
+	return Zmember(e, Zcdr(es));
+}
+
+@define Zappend(a, b)
+{
+	@local rv;
+	if(a == #null)
+		return b;
+	if(b == #null)
+		return a;
+	rv = #null;
+	foreach(@lambda(stx) { rv = Zcons(stx, rv); }, a);
+	foreach(@lambda(stx) { rv = Zcons(stx, rv); }, b);
+	return Zreverse(rv);
+}
+
+@define Ztolist(sl)
+{
+	@local l;
+	l = [];
+	foreach(@lambda(s) { append(l, s); }, sl);
+	return l;
+}
