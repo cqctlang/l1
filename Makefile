@@ -153,9 +153,12 @@ doc/debug.html: doc/debug.src.html $(DEMO)
 	@$(MAKE) -C demo
 	@$(MAKE) -C doc
 
-clean:
+testclean:
+	@$(RM) test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed
+
+clean: testclean
 	@$(MAKE) -s -C x/lib9 clean
 	@$(MAKE) -s -C x/libflate clean
 	@$(MAKE) -s -C x/libsec clean
 	@$(MAKE) -s -C demo clean
-	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
+	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
