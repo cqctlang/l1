@@ -326,6 +326,7 @@ pattern
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
 	| syntaxid
 	{ $$ = newexprsrc(&ctx->inp->src, Estx, $1, nullelist(), 0, 0); }
+	| syntax_list
 	;
 
 rec_pat_list

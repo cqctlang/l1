@@ -138,6 +138,23 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 		rv = 1; /* force match code; otherwise, we need to
 			   expand residual constant Estx forms */
 		break;
+	case Estxlist:
+		m->check = Zand(m->check, Zcall(doid("isstx"), 1, exp));
+		p = pat->e1;
+		l = elistlen(p);
+		m->check = Zand(m->check, Zbinop(Eeq,
+						 Zcall(doid("Zlength"), 1,
+						       copyexpr(exp)),
+						 Zuint(l)));
+		e0 = exp;
+		while(l--){
+			rv |= match(ctx, Zcall(doid("Zcar"), 1,
+					       copyexpr(e0)),
+				    p->e1, m);
+			p = p->e2;
+			e0 = Zcall(doid("Zcdr"), 1, e0);
+		}
+		break;
 	case Epair:
 		m->check = Zand(m->check, Zcall(doid("ispair"), 1, exp));
 		rv |= match(ctx, Zcall(doid("car"), 1, copyexpr(exp)),

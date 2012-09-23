@@ -1,0 +1,14 @@
+@define foo(e)
+{
+	switch(e){
+	@match #this(#[ a, b ], #that):
+		printf("matched %a %a\n", a, b);
+		break;
+	default:
+		printf("no match\n");
+		break;
+	} 
+}
+
+foo(#this(#[ #a, #b ], #that));
+foo(#this(#[ #a ], #that));
