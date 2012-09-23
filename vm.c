@@ -5868,6 +5868,38 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_delq(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val v;
+	List *lst;
+	Imm i;
+	Tab *tab;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to delq");
+	v = argv[1];
+	switch(Vkind(argv[0])){
+	default:
+		vmerr(vm, "operand 1 to delq must be a list or table");
+	case Qlist:
+		lst = vallist(argv[0]);
+		i = 0;
+		while(i < listlen(lst)){
+			if(!eqval(v, listref(lst, i)))
+				i++;
+			else
+				listdel(vm, lst, i);
+		}
+		break;
+	case Qtab:
+		tab = valtab(argv[0]);
+		tabdel(tab, v);
+		break;
+	}
+	*rv = argv[0];
+}
+
+static void
 l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Val arg;
@@ -6853,6 +6885,7 @@ mktopenv(void)
 	FN(cvalcmp);
 	FN(cval2str);
 	FN(delete);
+	FN(delq);
 	FN(domof);
 	FN(eq);
 	FN(equal);
