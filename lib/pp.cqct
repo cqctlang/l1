@@ -212,14 +212,44 @@ ppemit = @lambda(x) { printf("%s", x); };
 			queue(blank);
 			ids = Zcdr(ids);
 		}
-    if (Zcar(ids) == #ellipsis())
-		  queue("...");
-    else
-      queue(sprintfa("%a", stxid(Zcar(ids))));
+		queue(sprintfa("%a", stxid(Zcar(ids))));
 		queue(blank);
 		queue("]");
 		queue(right);
 	}
+
+	@defloc arglist(ids)
+	{
+		@local i, m;
+		m = Zlength(ids);
+		if(m == 0){
+			queue("#[ ]");
+			return;
+		}
+		queue(left);
+		queue("#[");
+		queue(blank);
+		for(i = 0; i < m-1; i++){
+			queue(sprintfa("%a,", stxid(Zcar(ids))));
+			queue(blank);
+			ids = Zcdr(ids);
+		}
+		switch(Zcar(ids)){
+		@match #id(id):
+			queue(sprintfa("%a", id));
+			break;
+		@match #ellipsis:
+			/* FIXME: there shouldn't be a preceding comma */
+			queue("...");
+			break;
+		default:
+			error("bug");
+		}
+		queue(blank);
+		queue("]");
+		queue(right);
+	}
+
 
 	@defloc rec(e)
 	{
@@ -253,6 +283,96 @@ ppemit = @lambda(x) { printf("%s", x); };
 					}
 					i++;
 				}, body);
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		@match #if(p, c, a):
+			queue(left);
+			queue("#if(");
+			queue(left);
+			queue(left);
+			rec(p);
+			queue(",");
+			queue(right);
+			queue(linebreak);
+			queue(left);
+			rec(c);
+			if(a != nil) queue(",");
+			queue(right);
+			if(a != nil){
+				queue(linebreak);
+				queue(left);
+				rec(a);
+				queue(right);
+			}
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		@match #text(body):
+			queue(left);
+			queue("#text(");
+			queue(left);
+			m = Zlength(body);
+			i = 0;
+			foreach(@lambda(e){
+					if(i < m-1){
+						queue(left);
+						rec(e);
+						queue(right);
+						queue(linebreak);
+					}else{
+						queue(left);
+						rec(e);
+						queue(right);
+					}
+					i++;
+				}, body);
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		@match #labels(ls, body):
+			queue(left);
+			queue("#labels(");
+			queue(left);
+			queue(left);
+			foreach(@lambda(e){
+					queue(left);
+					rec(Zcar(e)[0]);
+					queue(": ");
+					queue(left);
+					rec(Zcar(Zcdr(e)));
+					queue(right);
+					queue(",");
+					queue(right);
+					queue(linebreak);
+				}, ls);
+			queue(right);
+			rec(body);
+			queue(right);
+			queue(")");
+			queue(right);
+			break;
+		@match #letrec(ls, body):
+			queue(left);
+			queue("#letrec(");
+			queue(left);
+			queue(left);
+			foreach(@lambda(e){
+					queue(left);
+					rec(Zcar(e));
+					queue(": ");
+					queue(left);
+					rec(Zcar(Zcdr(e)));
+					queue(right);
+					queue(",");
+					queue(right);
+					queue(linebreak);
+				}, ls);
+			queue(right);
+			rec(body);
 			queue(right);
 			queue(")");
 			queue(right);
@@ -293,7 +413,7 @@ ppemit = @lambda(x) { printf("%s", x); };
 			queue(sprintfa("#%a(", stxkind(e)));
 			queue(left);
 			queue(left);
-			idlist(es);
+			arglist(es);
 			queue(",");
 			queue(right);
 			queue(blank);
@@ -361,6 +481,8 @@ ppemit = @lambda(x) { printf("%s", x); };
 		}
 	}
 
+	if(e == nil)
+		return;
 	print = mkprint();
 	rec(e);
 	scan();
