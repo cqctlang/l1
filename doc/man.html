@@ -7510,6 +7510,32 @@ Returns <span class="arg">container</span> following the update.
 </div>
 </div>
 
+<div class="docitem" id="fn:delq">
+<div class="proto">
+<div class="function">
+<span class="id">delq(<span class="arg">container</span>,<span class="arg">v</span>)</span>
+</div>
+<div class="param">
+<span class="arg">container</span>: <span class="type">list or table</span>
+</div>
+<div class="param">
+<span class="arg">v</span>: <span class="type">value</span>
+</div>
+<div class="returns">
+<span class="type">container</span>
+</div>
+</div>
+<div class="desc">
+Deletes every value
+in <span class="arg">container</span>
+that is
+<a href="#fn:eq"><span class="id">eq</span></a>
+to
+<span class="arg">v</span>.
+Returns <span class="arg">container</span> following the update.
+</div>
+</div>
+
 <p>
 Containers can be indexed with C array reference
 operator (<span class="id">[]</span>).  The statement
@@ -11814,6 +11840,7 @@ Prentice Hall, 1988.
 <a href="#fn:cvalcmp">cvalcmp</a><br />
 <a href="#fn:cwd">cwd</a><br />
 <a href="#fn:delete">delete</a><br />
+<a href="#fn:delq">delq</a><br />
 <a href="#fn:domof">domof</a><br />
 <a href="#fn:enumconsts">enumconsts</a><br />
 <a href="#fn:nsenumsym">enumsym</a> (ns method)<br />
