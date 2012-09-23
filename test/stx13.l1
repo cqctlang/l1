@@ -1,0 +1,12 @@
+@define fn(s)
+{
+	switch(s){
+	@match #val(x):
+		return #val(x+1);
+	default:
+		return s;
+	}
+}
+
+printf("%a\n", map(fn, #[ #id('x), #val(0), #val(1), #val(2) ]));
+
