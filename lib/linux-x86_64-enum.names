@@ -37,6 +37,23 @@ enum socket_type {
 	SOCK_DGRAM	= 0x2,
 	SOCK_RAW	= 0x3,
 };
+enum sockopts {
+	SOL_SOCKET	= 0x1,
+	SO_DEBUG	= 0x1,
+	SO_REUSEADDR	= 0x2,
+	SO_KEEPALIVE	= 0x9,
+	SO_DONTROUTE	= 0x5,
+	SO_LINGER	= 0xd,
+	SO_OOBINLINE	= 0xa,
+	SO_SNDBUF	= 0x7,
+	SO_RCVBUF	= 0x8,
+	SO_SNDLOWAT	= 0x13,
+	SO_RCVLOWAT	= 0x12,
+	SO_SNDTIMEO	= 0x15,
+	SO_RCVTIMEO	= 0x14,
+	SO_TYPE	= 0x3,
+	SO_ERROR	= 0x4,
+};
 enum ioctl_nr {
 	BLKGETSIZE	= 0x1260,
 };
