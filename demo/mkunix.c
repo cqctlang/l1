@@ -95,6 +95,9 @@ main(int argc,char **argv) {
 	};
 
 	struct enum_entry sockopts[]={
+		{ "SOL_SOCKET",		SOL_SOCKET }, // available on Darwin
+
+
 		{ "SO_DEBUG",		SO_DEBUG }, // available on Darwin
 		{ "SO_REUSEADDR",	SO_REUSEADDR }, // available on Darwin
 #ifdef SO_REUSEPORT
