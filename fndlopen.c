@@ -34,7 +34,7 @@ l1_dlclose(VM *vm, Imm argc, Val *argv, Val *rv)
 	int ret;
 
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to libclose");
+		vmerr(vm, "wrong number of arguments to dlclose");
 	checkarg(vm, argv, 0, Qcval);
 
 	handle = (void*)valimm(argv[0]);
@@ -53,7 +53,7 @@ l1_dlsym(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *ftn;
 
 	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to ftnaddr");
+		vmerr(vm, "wrong number of arguments to dlsym");
 	checkarg(vm, argv, 0, Qcval);
 	checkarg(vm, argv, 1, Qstr);
 
@@ -75,7 +75,7 @@ l1_dlerror(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *ret;
 
 	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to ftnaddr");
+		vmerr(vm, "wrong number of arguments to dlerror");
 
 	ret = dlerror();
 
