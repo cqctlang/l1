@@ -94,6 +94,39 @@ main(int argc,char **argv) {
 		{ NULL },
 	};
 
+	struct enum_entry sockopts[]={
+		{ "SO_DEBUG",		SO_DEBUG }, // available on Darwin
+		{ "SO_REUSEADDR",	SO_REUSEADDR }, // available on Darwin
+#ifdef SO_REUSEPORT
+		{ "SO_REUSEPORT",	SO_REUSEPORT }, // available on Darwin
+#endif
+		{ "SO_KEEPALIVE",	SO_KEEPALIVE }, // available on Darwin
+		{ "SO_DONTROUTE",	SO_DONTROUTE }, // available on Darwin
+		{ "SO_LINGER",		SO_LINGER }, // available on Darwin
+		{ "SO_OOBINLINE",	SO_OOBINLINE }, // available on Darwin
+		{ "SO_SNDBUF",		SO_SNDBUF }, // available on Darwin
+		{ "SO_RCVBUF",		SO_RCVBUF }, // available on Darwin
+		{ "SO_SNDLOWAT",	SO_SNDLOWAT }, // available on Darwin
+		{ "SO_RCVLOWAT",	SO_RCVLOWAT }, // available on Darwin
+		{ "SO_SNDTIMEO",	SO_SNDTIMEO }, // available on Darwin
+		{ "SO_RCVTIMEO",	SO_RCVTIMEO }, // available on Darwin
+		{ "SO_TYPE",		SO_TYPE }, // available on Darwin
+		{ "SO_ERROR",		SO_ERROR }, // available on Darwin
+#ifdef SO_NOSIGPIPE
+		{ "SO_NOSIGPIPE",	SO_NOSIGPIPE }, // available on Darwin
+#endif
+#ifdef SO_NREAD
+		{ "SO_NREAD",		SO_NREAD }, // available on Darwin
+#endif
+#ifdef SO_NWRITE
+		{ "SO_NWRITE",		SO_NWRITE }, // available on Darwin
+#endif
+#ifdef SO_LINGER_SEC
+		{ "SO_LINGER_SEC`",	SO_LINGER_SEC }, // available on Darwin
+#endif
+		{ NULL },
+	};
+
 	struct enum_entry ioctl_nr[]={
 #ifdef BLKGETSIZE // Darwin misses this
 		{ "BLKGETSIZE",		BLKGETSIZE },
@@ -592,6 +625,7 @@ main(int argc,char **argv) {
 	print_enum("waitflags",waitflags);
 	print_enum("address_families",address_families);
 	print_enum("socket_type",socket_type);
+	print_enum("sockopts",sockopts);
 	print_enum("ioctl_nr",ioctl_nr);
 	print_enum("syscall_nr",syscall_nr);
 
