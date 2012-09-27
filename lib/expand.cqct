@@ -1,4 +1,5 @@
 @include <control.cqct>
+@include <stx.cqct>
 @include <pp.cqct>
 
 @global debugexpand, validateexpand;
@@ -7,91 +8,6 @@ symn = 0;
 @define gensym()
 {
 	return mkstxid(mkcid(sprintfa("sym%d", symn++)));
-}
-
-@define Zcar(l)
-{
-	return stxref(l, 0);
-}
-
-@define Zcdr(l)
-{
-	return stxref(l, 1);
-}
-
-@define Znil()
-{
-	return #nil();
-}
-
-@define Znull()
-{
-	return mkstx('null);
-}
-
-@define Zcons(h, t)
-{
-	return mkstx('elist, h, t, stxsrc(h));
-}
-
-@define Zlist(arg ...)
-{
-	@local rv;
-	rv = Znull();
-	while(length(arg))
-		rv = Zcons(pop(arg), rv);
-	return Zreverse(rv);
-}
-
-@define Zreverse(l)
-{
-	@defloc rev(l, a)
-	{
-		if(stxkind(l) == 'null)
-			return a;
-		rev(Zcdr(l), Zcons(Zcar(l), a));
-	}
-	rev(l, Znull());
-}
-
-@define Zlength(l)
-{
-	if(l == nil)
-		return 0;
-	@defloc rec(l, a)
-	{
-		if(stxkind(l) == 'null)
-			return a;
-		rec(Zcdr(l), a+1);
-	}
-	rec(l, 0);
-}
-
-@define Zisvarg(l)
-{
-	if(l == nil)
-		return 0;
-	if(Zcar(l) == #null)
-		return 0;
-	if(Zcar(l) == #ellipsis)
-		return 1;
-	return Zisvarg(Zcdr(l));
-}
-
-@define Z2list(l)
-{
-	@local rv;
-	rv = [];
-	if(l == nil)
-		return rv;
-	@defloc rec(l)
-	{
-		if(stxkind(l) == 'null)
-			return rv;
-		append(rv, Zcar(l));
-		rec(Zcdr(l));
-	}
-	rec(l);
 }
 
 @global stxtab;
@@ -137,7 +53,7 @@ stxtab = mktab();
 				error("syntax error for @%a form: "
 				      "wrong number of arguments",
 				      stxid(id));
-			l = Z2list(args);
+			l = Ztolist(args);
 		}else{
 			m = cdr(ad);
 			if(Zlength(args) < m)

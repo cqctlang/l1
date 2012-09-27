@@ -158,6 +158,9 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 			checkarg(vm, argv-1, i+1, Qexpr);
 			earg[i] = valexpr(argv[i]);
 		}
+	if(k == Eelist)
+		if(earg[0] == 0 || earg[1] == 0)
+			vmerr(vm, "invalid elist construction");
 	e = Z4(k, earg[0], earg[1], earg[2], earg[3]);
 	e->skind = sk;
 	putsrc(e, src);

@@ -144,7 +144,7 @@ __dynlib_exports = [:];
         break;
       default: error("library %a could not parse imports\n",libname);
     }
-  },Z2list(imports));
+  },Ztolist(imports));
 
   //exports are simplier: we simply need to add a local variable and an
   //entry in the __dynlib_exports variable.
@@ -165,7 +165,7 @@ __dynlib_exports = [:];
           @lambda() { return #,(#id(en)); };
     };
     append(new_body,s);
-  },Z2list(exports));
+  },Ztolist(exports));
 
   //we'd been building new_locals as a cqct list, but it needs to be a Zlist
   new_locals = apply(Zlist,new_locals);
