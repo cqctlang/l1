@@ -375,6 +375,12 @@ sys_getsockname = @lambda(fd,sa,len) {
 	return syscall(unix`getsockname,fd,sa,len);
 };
 
+sys_setsockopt = @lambda(socket,level,option_name,option_value,option_len) {
+
+  return syscall(unix`setsockopt,socket,level,option_name,option_value,option_len);
+
+};
+
 /*
  * Process calls
  */
