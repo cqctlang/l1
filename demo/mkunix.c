@@ -7,6 +7,8 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <sys/syscall.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #ifdef __linux__
 #include <linux/fs.h>
 #endif
@@ -125,7 +127,27 @@ main(int argc,char **argv) {
 		{ "SO_NWRITE",		SO_NWRITE }, // available on Darwin
 #endif
 #ifdef SO_LINGER_SEC
-		{ "SO_LINGER_SEC`",	SO_LINGER_SEC }, // available on Darwin
+		{ "SO_LINGER_SEC",	SO_LINGER_SEC }, // available on Darwin
+#endif
+		{ NULL },
+	};
+
+	struct enum_entry tcp_sockopt[]={
+		{ "IPPROTO_TCP",		IPPROTO_TCP },
+
+		{ "TCP_NODELAY",		TCP_NODELAY },
+		{ "TCP_MAXSEG",			TCP_MAXSEG },
+#ifdef	TCP_NOOPT
+		{ "TCP_NOOPT",			TCP_NOOPT }, // available on Darwin
+#endif
+#ifdef TCP_NOPUSH
+		{ "TCP_NOPUSH",			TCP_NOPUSH }, // available on Darwin
+#endif
+#ifdef TCP_KEEPALIVE
+		{ "TCP_KEEPALIVE",		TCP_KEEPALIVE }, // available on Darwin
+#endif
+#ifdef TCP_CONNECTIONTIMEOUT
+		{ "TCP_CONNECTIONTIMEOUT",	TCP_CONNECTIONTIMEOUT }, // available on Darwin
 #endif
 		{ NULL },
 	};
@@ -629,6 +651,7 @@ main(int argc,char **argv) {
 	print_enum("address_families",address_families);
 	print_enum("socket_type",socket_type);
 	print_enum("sockopts",sockopts);
+	print_enum("tcp_sockopt",tcp_sockopt);
 	print_enum("ioctl_nr",ioctl_nr);
 	print_enum("syscall_nr",syscall_nr);
 
