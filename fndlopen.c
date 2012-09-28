@@ -36,7 +36,6 @@ l1_dlclose(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to libclose");
 	checkarg(vm, argv, 0, Qcval);
-	checkarg(vm, argv, 1, Qstr);
 
 	handle = (void*)valimm(argv[0]);
 
