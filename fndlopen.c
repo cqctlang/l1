@@ -94,7 +94,6 @@ l1_dlerror(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fndlopen(Env *env)
 {
-  printf("Loading ffi\n");
   FN(dlopen);
   FN(dlsym);
   FN(dlclose);
