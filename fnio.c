@@ -306,24 +306,26 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	names = valstr(argv[0]);
 	name = str2cstr(names);
-	flags = MAP_NORESERVE;
+	flags = MAP_PRIVATE;
 	prot = 0;
 	omode = 0;
 	if(f){
+		if(strchr(f, 'p'))
+			flags = MAP_PRIVATE; /* default */
+		if(strchr(f, 's'))
+			flags = MAP_SHARED;
+
 		if(strchr(f, 'r')){
 			prot |= PROT_READ;
 			omode |= Fread;
 		}
 		if(strchr(f, 'w')){
 			prot |= PROT_WRITE;
-			omode |= Fwrite;
+			if(flags == MAP_SHARED)
+				omode |= Fwrite;
 		}
 		if(strchr(f, 'x'))
 			prot |= PROT_EXEC;
-		if(strchr(f, 'p'))
-			flags |= MAP_PRIVATE;
-		if(strchr(f, 's'))
-			flags |= MAP_SHARED;
 
 		/* convert to open mode */
 		if((omode&Fread) && (omode&Fwrite))
@@ -334,9 +336,9 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 			omode = O_WRONLY;
 	}else{
 		omode = O_RDONLY;
-		flags |= MAP_PRIVATE;
 		prot |= PROT_READ|PROT_WRITE;
 	}
+	flags |= MAP_NORESERVE;
 	fd = open(name, omode);
 	efree(name);
 	if(0 > fd)
