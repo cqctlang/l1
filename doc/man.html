@@ -8761,18 +8761,18 @@ it is returned as the final element of the returned list.
 </div>
 </div>
 <div class="desc">
-Returns a string containing a copy of the contents of
-the file named <span class="arg">filename</span>.
+Returns a string reflecting a memory mapping of the 
+file named <span class="arg">filename</span>.
 The optional <span class="arg">mode</span> string specifies
-the protection and sharing of mode of the mapping, comprised
+the protection and sharing mode of the mapping, comprised
 of the following characters:
  <span class="val">r</span> (read),
  <span class="val">w</span> (write),
  <span class="val">x</span> (execute),
  <span class="val">s</span> (shared).
-A shared mapping shares backing storage with
-the file and any other shared mappings of the file
-on the system; otherwise the mapping is a private copy.
+When shared, the mapping shares backing storage with
+the file and with any other shared mappings of the file
+on the system.  Otherwise the mapping is a private copy.
 The default mode is <span class="val">"rw"</span>.
 </div>
 </div>
