@@ -292,15 +292,52 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd;
 	Str *names, *map;
-	char *p, *name;
+	char *p, *name, *f;
 	struct stat st;
+	int prot, omode, flags;
 
-	if(argc != 1)
+	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mapfile");
 	checkarg(vm, argv, 0, Qstr);
+	f = 0;
+	if(argc == 2){
+		checkarg(vm, argv, 1, Qstr);
+		f = strdata(valstr(argv[1]));
+	}
 	names = valstr(argv[0]);
 	name = str2cstr(names);
-	fd = open(name, O_RDONLY);
+	flags = MAP_NORESERVE;
+	prot = 0;
+	omode = 0;
+	if(f){
+		if(strchr(f, 'r')){
+			prot |= PROT_READ;
+			omode |= Fread;
+		}
+		if(strchr(f, 'w')){
+			prot |= PROT_WRITE;
+			omode |= Fwrite;
+		}
+		if(strchr(f, 'x'))
+			prot |= PROT_EXEC;
+		if(strchr(f, 'p'))
+			flags |= MAP_PRIVATE;
+		if(strchr(f, 's'))
+			flags |= MAP_SHARED;
+
+		/* convert to open mode */
+		if((omode&Fread) && (omode&Fwrite))
+			omode = O_RDWR;
+		else if(omode&Fread)
+			omode = O_RDONLY;
+		else if(omode&Fwrite)
+			omode = O_WRONLY;
+	}else{
+		omode = O_RDONLY;
+		flags |= MAP_PRIVATE;
+		prot |= PROT_READ|PROT_WRITE;
+	}
+	fd = open(name, omode);
 	efree(name);
 	if(0 > fd)
 		vmerr(vm, "cannot open %.*s: %s",
@@ -312,8 +349,7 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 		      (int)names->len, strdata(names),
 		      strerror(errno));
 	}
-	p = mmap(0, st.st_size, PROT_READ|PROT_WRITE,
-		 MAP_NORESERVE|MAP_PRIVATE, fd, 0);
+	p = mmap(0, st.st_size, prot, flags, fd, 0);
 	close(fd);
 	if(p == MAP_FAILED)
 		vmerr(vm, "cannot open %.*s: %s",
