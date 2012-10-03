@@ -8748,10 +8748,13 @@ it is returned as the final element of the returned list.
 <div class="docitem" id="fn:mapfile">
 <div class="proto">
 <div class="function">
-<span class="id">mapfile(<span class="arg">filename</span>)</span>
+<span class="id">mapfile(<span class="arg">filename</span>[,<span class="arg">mode</span>])</span>
 </div>
 <div class="param">
 <span class="arg">filename</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">mode</span>: <span class="type">string</span>
 </div>
 <div class="returns">
 <span class="type">string</span>
@@ -8760,6 +8763,17 @@ it is returned as the final element of the returned list.
 <div class="desc">
 Returns a string containing a copy of the contents of
 the file named <span class="arg">filename</span>.
+The optional <span class="arg">mode</span> string specifies
+the protection and sharing of mode of the mapping, comprised
+of the following characters:
+ <span class="val">r</span> (read),
+ <span class="val">w</span> (write),
+ <span class="val">x</span> (execute),
+ <span class="val">s</span> (shared).
+A shared mapping shares backing storage with
+the file and any other shared mappings of the file
+on the system; otherwise the mapping is a private copy.
+The default mode is <span class="val">"rw"</span>.
 </div>
 </div>
 
