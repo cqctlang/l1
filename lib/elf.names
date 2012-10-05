@@ -9,7 +9,7 @@ typedef int int_fast32_t;
 typedef int int_fast16_t;
 typedef unsigned int uint32_t;
 typedef struct anon000008 Elf32_Dyn;
-typedef struct anon000012 Elf64_Ehdr;
+typedef struct Elf64_Ehdr Elf64_Ehdr;
 typedef signed char int_least8_t;
 typedef short int int_least16_t;
 typedef long long int int_least64_t;
@@ -71,7 +71,7 @@ typedef int32_t Elf32_Sword;
 typedef Elf32_Addr Elf32_Conflict;
 typedef int64_t Elf64_Sxword;
 typedef uint32_t Elf64_Word;
-typedef struct anon000001 Elf32_Ehdr;
+typedef struct Elf32_Ehdr Elf32_Ehdr;
 typedef struct anon000022 Elf32_Shdr;
 typedef struct anon000036 Elf64_Lib;
 typedef unsigned int uint_fast32_t;
@@ -297,7 +297,7 @@ struct anon000013 {
 	@16	 Elf64_Word vd_next;
 	@20;
 };
-struct anon000012 {
+struct Elf64_Ehdr {
 	@0	 unsigned char e_ident[16];
 	@16	 Elf64_Half e_type;
 	@18	 Elf64_Half e_machine;
@@ -373,7 +373,7 @@ struct anon000002 {
 	@8	 Elf64_Xword r_info;
 	@16;
 };
-struct anon000001 {
+struct Elf32_Ehdr {
 	@0	 unsigned char e_ident[16];
 	@16	 Elf32_Half e_type;
 	@18	 Elf32_Half e_machine;
