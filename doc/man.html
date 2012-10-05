@@ -4917,11 +4917,11 @@ is equivalent to
 </div>
 </div>
 <div class="desc">
-<span class="id">Mkmas</span> returns an address space backed by the address space of
-the calling process.  Yep.
-If <span class="arg">ptr</span> and <span class="arg">len</span> are provided, access is
-restricted to the <span class="arg">len</span> byte range of the address space
-beginning at address <span class="arg">ptr</span>.
+<span class="id">Mkmas</span> returns an address space that is backed by the
+address space of the calling process, non-moving, and identity mapped.  Yep.
+If <span class="arg">ptr</span> and <span class="arg">len</span> are provided,
+access is restricted to the <span class="arg">len</span> byte range of the
+address space beginning at address <span class="arg">ptr</span>.
 <span class="id">Mkmasx</span> is
 like <span class="id">mkmas</span>, except that it is
 an error if the requested range intersects with any
@@ -5081,11 +5081,11 @@ to the storage at <span class="arg">p</span>.
 </div>
 <div class="desc">
 Returns a pointer to <span class="arg">len</span> bytes
-of non-moving storage in the calling process backed by
-a freshly
-allocated <a href="#fn:isctype"><span class="id">mkmas</span></a>
-address space.  The lifespan of the storage is tied to
-the lifespan of the backing address space.
+backed by a new domain comprised of a freshly allocated
+<a href="#fn:isctype"><span class="id">mkmas</span></a>
+address space and the name space of the literal domain.  The
+lifespan of the storage is tied to the lifespan of the backing
+address space.
 </div>
 </div>
 
