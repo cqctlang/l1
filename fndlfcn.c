@@ -26,7 +26,11 @@ l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	name = 0;
 
 	// a moment on a 32-bit pointer machine will reveal another here.
-	*rv = mkvallitcval(Vulong, (Imm)handle);
+        *rv = mkvalcval(litdom,
+                        mkctypeptr(mkctypevoid(),
+                                   typerep(litdom->ns->base[Vptr])),
+                        (uptr)handle);
+
 }
 
 void
@@ -68,7 +72,11 @@ l1_dlsym(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	efree(ftn);
 
-	*rv = mkvallitcval(Vulong, (Imm)addr);
+        *rv = mkvalcval(litdom,
+                        mkctypeptr(mkctypevoid(),
+                                   typerep(litdom->ns->base[Vptr])),
+                        (uptr)addr);
+
 }
 
 void
