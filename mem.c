@@ -77,19 +77,19 @@ static char *MTname[] = {
 /* #define to ensure 64-bit constants */
 #if 0
 #define Segbits   12
-#define Segsize   (1ULL<<Segbits)
+#define Segsize   (((uptr)1)<<Segbits)
 #define	GCthresh  2*1024*Segsize
 #define Seghunk	  4*1024*Segsize
 #else
 #define Segbits   20
-#define Segsize   (1ULL<<Segbits)
+#define Segsize   (((uptr)1)<<Segbits)
 #define	GCthresh  4*Segsize
 #define Seghunk	  4*Segsize
 #endif
 
 #define Cardbits  3
-#define Ncard     (1ULL<<Cardbits)
-#define Cardsize  (1ULL<<(Segbits-Cardbits))
+#define Ncard     (((uptr)1)<<Cardbits)
+#define Cardsize  (((uptr)1)<<(Segbits-Cardbits))
 #define Seguse    (Segsize-sizeof(void*))
 #define Segmask   ~(Segsize-1)
 #define Minheap   10*Seghunk
@@ -770,7 +770,7 @@ freesegmap(void *m, u64 nseg)
 static void
 remapsegmap(void *p, void *e)
 {
-	u64 nseg, onseg;
+	uptr nseg, onseg;
 	Seg *m, *om;
 	void *olo, *ohi;
 

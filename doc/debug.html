@@ -274,7 +274,7 @@ yourself.
 Every Cinquecento program that uses
 the <span class="id">debug</span> library must arrange
 to load the library by ensuring that
-<span class="id">@include &lt;debug.html&gt;</span>
+<span class="id">@include &lt;debug.cqct&gt;</span>
 appears somewhere in the program source.
 </p>
 
@@ -1596,7 +1596,7 @@ named <span class="id">spwn</span>, corresponding to the spawned execution.
 <div class="code">
 <pre>
 ; trapfork();
-<span class="arg">ctl 3952 has forked ctl 3959
+<span class="arg">ctl 17807 has forked ctl 17814
 </span>; 
 </pre>
 </div>
@@ -1638,8 +1638,8 @@ on <span class="id">exec</span> events.
 <div class="code">
 <pre>
 ; trapforkexec();
-<span class="arg">ctl 3981 has forked ctl 3988
-ctl 3988 has exec'ed /u/vic/src/l1/demo/list
+<span class="arg">ctl 17836 has forked ctl 17843
+ctl 17843 has exec'ed /u/vic/src/l1/demo/list
 </span>; 
 </pre>
 </div>
@@ -1713,24 +1713,24 @@ one extra level of <span class="id">forkexec</span>.
 <div class="code">
 <pre>
 ; trapforkexecexit();
-<span class="arg">ctl 4010 has forked ctl 4017
-ctl 4017 has exec'ed /u/vic/src/l1/demo/forkexec
-ctl 4017 has forked ctl 4030
-ctl 4030 has exec'ed /u/vic/src/l1/demo/list
-ctl 4030 has exited with status 0
+<span class="arg">ctl 17865 has forked ctl 17872
+ctl 17872 has exec'ed /u/vic/src/l1/demo/forkexec
+ctl 17872 has forked ctl 17885
+ctl 17885 has exec'ed /u/vic/src/l1/demo/list
+ctl 17885 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
 00002aaaaacebc53	__libc_start_main+0x103       
 00000000004004a8	_start+0x28                   
 
-ctl 4017 has exited with status 0
+ctl 17872 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
 00000000004007d3	main+0xdf                     	/u/vic/src/l1/demo/forkexec.c:28
 00002aaaaacebc4c	__libc_start_main+0xfc        
 0000000000400638	_start+0x28                   
 
-ctl 4010 has exited with status 0
+ctl 17865 has exited with status 0
 00002aaaaad77a28	_exit+0x38                    
 00002aaaaad06214	exit+0x94                     
 00000000004007d3	main+0xdf                     	/u/vic/src/l1/demo/forkexec.c:28
@@ -1797,7 +1797,7 @@ this bug causes a segmentation fault.
 <div class="code">
 <pre>
 ; trapsig();
-<span class="arg">ctl 4053 received signal 11
+<span class="arg">ctl 17907 received signal 11
 faulting address is 0x8
 00000000004005e0	insert+0x7c                   	/u/vic/src/l1/demo/listbug.c:25
 0000000000400616	dowork+0x2c                   	/u/vic/src/l1/demo/listbug.c:36
