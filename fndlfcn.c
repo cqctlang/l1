@@ -14,6 +14,7 @@ l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to dlopen");
+	// a moment with the manpage for dlopen will reveal an error here.
 	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
@@ -24,6 +25,7 @@ l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(name);
 	name = 0;
 
+	// a moment on a 32-bit pointer machine will reveal another here.
 	*rv = mkvallitcval(Vulong, (Imm)handle);
 }
 
