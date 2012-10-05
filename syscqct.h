@@ -1132,7 +1132,9 @@ Dom*		mkdom(Ns *ns, As *as, Str *name);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
-Cval*		mklitcval(Cbase base, Imm val);
+Cval*		mklitcval(Cbase base, Imm val); 
+Ns*		mknsraw(VM *vm, Ns *ons, Tab *rawtype,
+			Tab *rawsym, Str *name);
 Ns*		mknstab(Tab *mtab, Str *name);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
@@ -1143,6 +1145,7 @@ Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvallitcvalenc(Cbase base, Enc v);
 As*		mkzas(Imm len);
+Val		myrootns(Env *env);
 void		nexterror(VM *vm) NORETURN;
 void		poperror(VM *vm);
 void		printvmac(VM *vm);
@@ -1367,6 +1370,7 @@ Ctype*		safechasetype(Ctype *t);
 void		setsubtype(Ctype *t, Ctype *s);
 Ctype*		subtype(Ctype *t);
 Cbase		typecbase(Ctype *t);
+Ctype*		typename(Ctype *td);
 Rkind		typerep(Ctype *t);
 void		typesetrep(Ctype *t, Rkind rep);
 Imm		typesize(VM *vm, Ctype *t);

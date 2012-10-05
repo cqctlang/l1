@@ -87,10 +87,96 @@ l1_dlerror(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fndlopen(Env *env)
+l1_mkdlfcnns(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int x;
+	Vec *inside,*outside;
+	Val r;
+	Ns *rns,*dns;
+	struct { char *name; int val; } modes[] = {
+		{ "RTLD_LAZY", RTLD_LAZY},
+		{ "RTLD_NOW", RTLD_NOW},
+		{ "RTLD_GLOBAL", RTLD_GLOBAL},
+		{ "RTLD_LOCAL", RTLD_LOCAL},
+		{ "RTLD_NOLOAD", RTLD_NOLOAD},
+		{ "RTLD_NODELETE", RTLD_NODELETE},
+#	ifdef RTLD_FIRST
+		{ "RTLD_FIRST", RTLD_FIRST},
+#	endif
+	  { NULL, 0 },
+	};
+	struct { char *name; void *val; } handles[]={
+	  { "RTLD_DEFAULT", RTLD_DEFAULT },
+	  { "RTLD_NEXT", RTLD_NEXT },
+#	ifdef RTLD_SELF
+	  { "RTLD_SELF", RTLD_SELF },
+#	endif
+#	ifdef RTLD_MAIN_ONLY
+	  { "RTLD_MAIN_ONLY", RTLD_MAIN_ONLY },
+#	endif
+	  { NULL, 0 },
+	};
+	Ctype *em,*eh;
+	Tab *tt,*st;
+
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to mkdlfcnns");
+
+	r=myrootns(vm->top->env);
+	rns=valns(r);
+
+	for(x=0;modes[x].name;x++);
+        if(x) {
+	        outside=mkvec(x);
+		for(x=0;modes[x].name;x++) {
+			inside=mkvec(2);
+			_vecset(inside,0,mkvalcid(mkcid0(modes[x].name)));
+			_vecset(inside,1,mkvallitcval(Vuint, modes[x].val));
+			_vecset(outside,x,mkvalvec(inside));
+		}
+        } else {
+		outside=mkvec(0);
+        }
+
+	em = mkctypeenum(mkcid0("dlfcn_modes"),rns->base[Vuint],outside);
+
+	for(x=0;handles[x].name;x++);
+        if(x) {
+		outside=mkvec(x);
+		for(x=0;handles[x].name;x++) {
+			inside=mkvec(2);
+			_vecset(inside,0,mkvalcid(mkcid0(handles[x].name)));
+			_vecset(inside,1,mkvallitcval(Vulong,
+						(unsigned long)handles[x].val));
+			_vecset(outside,x,mkvalvec(inside));
+		}
+        } else {
+		outside=mkvec(0);
+        }
+
+	eh = mkctypeenum(mkcid0("dlfcn_handles"),
+				mkctypeptr(mkctypebase(Vchar,
+					       typerep(rns->base[Vptr])),
+						   typerep(rns->base[Vptr])),
+				outside);
+
+	tt=mktab();
+	tabput(tt, mkvalctype(typename(em)), mkvalctype(em));
+	tabput(tt, mkvalctype(typename(eh)), mkvalctype(eh));
+
+	st=mktab();
+
+	dns = mknsraw(vm, rns, tt, st, mkstr0("dlfcnns"));
+
+	*rv = mkvalns(dns);
+}
+
+void
+fndlfcn(Env *env)
 {
 	FN(dlopen);
 	FN(dlsym);
 	FN(dlclose);
 	FN(dlerror);
+	FN(mkdlfcnns);
 }

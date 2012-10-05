@@ -1836,7 +1836,7 @@ l1_enumconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalvec(te->konst);
 }
 
-static Ctype*
+Ctype*
 typename(Ctype *td)
 {
 	Ctypearr *ta;

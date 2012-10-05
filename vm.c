@@ -3568,7 +3568,7 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 		      name);
 }
 
-static Ns*
+Ns*
 mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 {
 	Val v, idv, vecv, vp, x, rv, argv[2];
@@ -4708,16 +4708,28 @@ l1_backtrace(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(rv);
 }
 
+Val
+myrootns(Env *env)
+{
+	char *r;
+	Val n;
+
+	r = myroot();
+	n = envlookup(env, r);
+	if(n == 0)
+		return Xnil;
+	else
+		return n; 
+}
+
 static void
 l1_myrootns(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	char *r;
 	USED(argc);
 	USED(argv);
-	r = myroot();
-	*rv = envlookup(vm->top->env, r);
-	if(*rv == 0)
-		vmerr(vm, "my root name space is undefined: %s", r);
+	*rv = myrootns(vm->top->env);
+	if(*rv == Xnil)
+		vmerr(vm, "my root name space is undefined: %s", myroot());
 }
 
 /* the purpose of typeof on types is to strip the
