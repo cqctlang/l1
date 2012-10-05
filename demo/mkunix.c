@@ -12,7 +12,7 @@
 #ifdef __linux__
 #include <linux/fs.h>
 #endif
-#ifdef DARWIN
+#ifdef __APPLE__
 #include <sys/disk.h>
 #endif
 
@@ -68,6 +68,7 @@ main(int argc,char **argv) {
 	struct enum_entry mmap_consts[]={
 		{ "PROT_READ",		PROT_READ },
 		{ "PROT_WRITE",		PROT_WRITE },
+		{ "PROT_EXEC",		PROT_EXEC },
 		{ "MAP_SHARED",		MAP_SHARED },
 		{ "MAP_PRIVATE",	MAP_PRIVATE },
 #ifdef MAP_LOCKED // Darwin misses this
@@ -156,7 +157,7 @@ main(int argc,char **argv) {
 #ifdef BLKGETSIZE // Darwin misses this
 		{ "BLKGETSIZE",		BLKGETSIZE },
 #endif
-#ifdef DARWIN
+#ifdef __APPLE__
 		{ "DKIOCGETBLOCKCOUNT", DKIOCGETBLOCKCOUNT },
 #endif
 		{ NULL },
