@@ -1,16 +1,45 @@
 /* native syscall replacements for system functions in l1 */
 @include <sys.cqct>
 
-mapfile = @lambda(filename) {
-  @local fd,st,p,r,s;
+mapfile = @lambda(filename, rest ...) {
+  @local fd,st,p,r,s,m,f,fm;
 
-  fd=sys_open(filename,unix`O_RDONLY);
+  m = 0;
+  f = unix`MAP_PRIVATE;
+  if(length(rest) > 0) {
+    @local mode;
+    mode = rest[0];
+    if(!isstring(mode)) {
+	error("mode is not a string");
+    }
+
+    if(!isnil(strstr(mode,"p"))) f = unix`MAP_PRIVATE;
+    if(!isnil(strstr(mode,"s"))) f = unix`MAP_SHARED;
+
+    if(!isnil(strstr(mode,"r"))) m |= unix`PROT_READ;
+    if(!isnil(strstr(mode,"w"))) m |= unix`PROT_WRITE;
+  } else {
+    m = unix`PROT_READ | unix`PROT_WRITE;
+  }
+
+  if( (f == unix`MAP_SHARED) && (m & unix`PROT_WRITE) )
+  	if ( (m & unix`PROT_READ) || (m & unix`PROT_EXEC) )
+		fm = unix`O_RDWR;
+	else
+		fm = unix`O_WRONLY;
+  else if ( (m & unix`PROT_READ) || (m & unix`PROT_EXEC) )
+	fm = unix`O_RDONLY;
+  else
+	error("mapping is neither shared nor for r or x. your arguments make no sense");
+	
+  fd=sys_open(filename,fm);
   if(0 > fd) {
     error("cannot open %s",filename);
   }
 
   st = (struct unix`stat *)malloc(sizeof(struct unix`stat));
   if(!st) {
+    sys_close(fd);
     error("couldn't allocate stat buf");
   }
 
@@ -24,17 +53,20 @@ mapfile = @lambda(filename) {
 
     sb=(uint64 *)malloc(8);
     if(!sb) {
+      sys_close(fd);
       error("malloc failure");
     }
     *sb=0;
     if(looksym(unix,'BLKGETSIZE)) {
     	r=sys_ioctl(fd, unix`BLKGETSIZE, sb);
    	 if(r) {
+                sys_close(fd);
     	 	error("couldn't determine size of block device %s", filename);
    	 }
     } else if(looksym(unix,'DKIOCGETBLOCKCOUNT)) {
     	r=sys_ioctl(fd, unix`DKIOCGETBLOCKCOUNT, sb);
    	 if(r) {
+                sys_close(fd);
     	 	error("couldn't determine size of block device %s", filename);
    	 }
     }
@@ -43,20 +75,18 @@ mapfile = @lambda(filename) {
     s = st->st_size;
   }
 
-  p = sys_mmap(0, s, unix`PROT_READ|unix`PROT_WRITE,
-                              //unix`MAP_NORESERVE|unix`MAP_PRIVATE, fd, 0); 
-                              unix`MAP_PRIVATE, fd, 0); 
+  p = sys_mmap(0, s, m, f, fd, 0);
   if(p == -1) {
     // we can try with noreserve on a platform that supports it
     if(looksym(unix,'MAP_NORESERVE)) {
-      p = sys_mmap(0, s, unix`PROT_READ|unix`PROT_WRITE,
-                              unix`MAP_NORESERVE|unix`MAP_PRIVATE, fd, 0); 
+      p = sys_mmap(0, s, m, unix`MAP_NORESERVE|f, fd, 0); 
     }
   }
 
   sys_close(fd);
-  if(p == -1)
+  if(p == -1) {
     error("could not map %s",filename);
+  }
 
   r=mkstrm(p, s);
 
@@ -179,49 +209,3 @@ unlink = sys_unlink;
 reboot = @lambda(cmd) {
   return sys_reboot(0xfee1dead,672274793,cmd,0);
 };
-
-/* why is this mmap so unlike mmap(2)? 
- * why can it not map a file descriptor?
- * why can it not create a write-only mapping?
- * why does it not accept regions or offsets?
- * where is unmap? why does this wrapper not use
- *   the collector strategy in mapfile?
- * why does it accept symbol modes when the
- *   rest of the library subsystem accepts strings
- *   in the manner of C buffered I/O?
- * why does it not close the fd if it opened it?
- * why does it return a zero-based as?
- * why is there no error checking?
- *
- * DSKR's proposal: Kill this function outright.
- *   extend mapfile slightly to accept a string mode
- *   in the manner of open. A new function called mmap
- *   could be created as a convenience wrapper for sys_mmap.
- */
-/*
-By default the region is mapped private read-only
-'w: the region will be mapped writable
-'x: the region will be mapped executable
-'shared: the region is mapped shared.
-*/
-mmap = @lambda(filename,args...) {
-  @local arghash,prot,flags,fd,res,l;
-
-  //create a hash of the optional arguments for easy lookup
-  arghash = [:];
-  foreach(@lambda(x) { arghash[x] = 1; },args);
-
-  //open the fd appropriately
-  fd = sys_open(filename,arghash['w] ? unix`O_RDWR : unix`O_RDONLY);
-  prot = unix`PROT_READ;
-  if (arghash['w]) prot |= unix`PROT_WRITE;
-  if (arghash['x]) prot |= unix`PROT_EXEC;
-  if (arghash['shared]) flags = unix`MAP_SHARED;
-  else flags = unix`MAP_PRIVATE;
-  l=malloc(sizeof(struct unix`stat));
-  sys_fstat(fd,l);
-  l=(struct unix`stat*)l;
-  res = sys_mmap(0,l->st_size,prot,flags,fd,0);
-  return (void*){mkmas(res,l->st_size)}res;
-};
-
