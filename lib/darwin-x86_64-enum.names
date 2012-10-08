@@ -12,9 +12,18 @@ enum oflags {
 enum mmap_consts {
 	PROT_READ	= 0x1,
 	PROT_WRITE	= 0x2,
+	PROT_EXEC	= 0x4,
 	MAP_SHARED	= 0x1,
 	MAP_PRIVATE	= 0x2,
 	MAP_NORESERVE	= 0x40,
+};
+enum waitflags {
+	WNOHANG	= 0x1,
+	WUNTRACED	= 0x2,
+	WEXITED	= 0x4,
+	WSTOPPED	= 0x8,
+	WCONTINUED	= 0x10,
+	WNOWAIT	= 0x20,
 };
 enum address_families {
 	AF_UNSPEC	= 0x0,
@@ -27,6 +36,37 @@ enum socket_type {
 	SOCK_STREAM	= 0x1,
 	SOCK_DGRAM	= 0x2,
 	SOCK_RAW	= 0x3,
+};
+enum sockopts {
+	SOL_SOCKET	= 0xffff,
+	SO_DEBUG	= 0x1,
+	SO_REUSEADDR	= 0x4,
+	SO_REUSEPORT	= 0x200,
+	SO_KEEPALIVE	= 0x8,
+	SO_DONTROUTE	= 0x10,
+	SO_LINGER	= 0x80,
+	SO_OOBINLINE	= 0x100,
+	SO_SNDBUF	= 0x1001,
+	SO_RCVBUF	= 0x1002,
+	SO_SNDLOWAT	= 0x1003,
+	SO_RCVLOWAT	= 0x1004,
+	SO_SNDTIMEO	= 0x1005,
+	SO_RCVTIMEO	= 0x1006,
+	SO_TYPE	= 0x1008,
+	SO_ERROR	= 0x1007,
+	SO_NOSIGPIPE	= 0x1022,
+	SO_NREAD	= 0x1020,
+	SO_NWRITE	= 0x1024,
+	SO_LINGER_SEC	= 0x1080,
+};
+enum tcp_sockopt {
+	IPPROTO_TCP	= 0x6,
+	TCP_NODELAY	= 0x1,
+	TCP_MAXSEG	= 0x2,
+	TCP_NOOPT	= 0x8,
+	TCP_NOPUSH	= 0x4,
+	TCP_KEEPALIVE	= 0x10,
+	TCP_CONNECTIONTIMEOUT	= 0x20,
 };
 enum ioctl_nr {
 	DKIOCGETBLOCKCOUNT	= 0x40086419,

@@ -7,6 +7,7 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <sys/syscall.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #ifdef __linux__
@@ -152,6 +153,13 @@ main(int argc,char **argv) {
 #endif
 		{ NULL },
 	};
+
+#ifdef UNIX_PATH_MAX
+	struct enum_entry un_detail[]={
+		{ "UNIX_PATH_MAX",		UNIX_PATH_MAX },
+		{ NULL },
+	};
+#endif
 
 	struct enum_entry ioctl_nr[]={
 #ifdef BLKGETSIZE // Darwin misses this
