@@ -12,6 +12,7 @@ enum oflags {
 enum mmap_consts {
 	PROT_READ	= 0x1,
 	PROT_WRITE	= 0x2,
+	PROT_EXEC	= 0x4,
 	MAP_SHARED	= 0x1,
 	MAP_PRIVATE	= 0x2,
 	MAP_LOCKED	= 0x2000,
