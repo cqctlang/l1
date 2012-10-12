@@ -209,8 +209,8 @@ main(int argc,char **argv) {
 #ifdef SYS_select // replaced by newselect some places
 		{ "select",		SYS_select },
 #endif
-#ifdef SYS_newselect // some linux
-		{ "newselect",		SYS_newselect },
+#ifdef SYS__newselect // some linux
+		{ "_newselect",		SYS__newselect },
 #endif
 #ifdef SYS_sched_yield // Darwin misses this
 		{ "sched_yield",	SYS_sched_yield },
