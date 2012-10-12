@@ -18,6 +18,9 @@ _unameres = nil;
     case ["Linux","x86_64",8]:
       eval("@include <linux-x86_64.cqct>"); 
       break;
+    case ["Linux","armv7l",4]:
+      eval("@include <linux-arm.cqct>"); 
+      break;
     case ["Darwin","x86_64",8]:
       eval("@include <darwin-x86_64.cqct>"); 
       break;
@@ -201,7 +204,14 @@ FD_SET=@lambda(fd,set) {
 
 @global sys_pselect;
 @global sys_select;
+@global selnr;
+selnr=nil;
 if(looksym(unix,'select)) {
+  selnr=unix`select;
+} else if(looksym(unix,'newselect)) {
+  selnr=unix`newselect;
+}
+if(selnr) {
 sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
   @local rfds_foo,wfds_foo,xfds_foo,timeout_foo,r,x,rr,rw,rx;
   @local maxbyte;

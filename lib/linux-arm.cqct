@@ -1,0 +1,18 @@
+linuxns = @names c32le {
+	typedef
+	enum Syscall {
+		/* this table was almost certainly wrong */
+	} Syscall;
+
+	typedef
+	struct Ctx {
+                @0;
+	} Ctx;
+};
+
+unix = @names c32le {
+
+	@include <linux-arm-enum.names>
+	@include <unix.names>
+};
+
