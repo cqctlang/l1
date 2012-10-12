@@ -181,7 +181,12 @@ main(int argc,char **argv) {
 		{ "lstat",	SYS_lstat },
 		{ "poll",	SYS_poll },
 		{ "lseek",	SYS_lseek },
+#ifdef SYS_mmap // replaced by mmap2 in some places
 		{ "mmap",	SYS_mmap },
+#endif
+#ifdef SYS_mmap2 // many linux
+		{ "mmap2",	SYS_mmap2 },
+#endif
 		{ "mprotect",	SYS_mprotect },
 		{ "munmap",	SYS_munmap },
 #ifdef SYS_brk // Darwin misses this
@@ -201,7 +206,12 @@ main(int argc,char **argv) {
 		{ "writev",		SYS_writev },
 		{ "access",		SYS_access },
 		{ "pipe",		SYS_pipe },
+#ifdef SYS_select // replaced by newselect some places
 		{ "select",		SYS_select },
+#endif
+#ifdef SYS_newselect // some linux
+		{ "newselect",		SYS_newselect },
+#endif
 #ifdef SYS_sched_yield // Darwin misses this
 		{ "sched_yield",	SYS_sched_yield },
 #endif
@@ -301,7 +311,9 @@ main(int argc,char **argv) {
 		{ "lchown",		SYS_lchown },
 		{ "umask",		SYS_umask },
 		{ "gettimeofday",	SYS_gettimeofday },
+#ifdef SYS_getrlimit // some linux miss this 
 		{ "getrlimit",		SYS_getrlimit },
+#endif
 		{ "getrusage",		SYS_getrusage },
 #ifdef SYS_sysinfo // Darwin misses this
 		{ "sysinfo",		SYS_sysinfo },
@@ -593,7 +605,7 @@ main(int argc,char **argv) {
 		{ "mknodat",		SYS_mknodat },
 		{ "fchownat",		SYS_fchownat },
 		{ "futimesat",		SYS_futimesat },
-#ifdef SYS_semtimedop // linux i386 misses this
+#ifdef SYS_newfstatat // linux x86_64, not i386 or arm
 		{ "newfstatat",		SYS_newfstatat },
 #endif
 		{ "unlinkat",		SYS_unlinkat },
