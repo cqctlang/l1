@@ -9810,6 +9810,11 @@ be printed are printed, then evaluation continues by calling the function
 Otherwise, the function <span class="arg">succ</span>
 is called with the result of the application as its
 single argument.
+<span class="id">Evalk</span>(<span class="arg">expr</span>,
+<span class="arg">succ</span>,<span class="arg">fail</span>)
+is equivalent to <span class="id">applyk</span>(
+@lambda() { <span class="id">eval</span>(<span class="arg">expr</span>); },
+<span class="arg">succ</span>,<span class="arg">fail</span>).
 </div>
 </div>
 
