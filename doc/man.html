@@ -9813,8 +9813,10 @@ single argument.
 <span class="id">Evalk</span>(<span class="arg">expr</span>,
 <span class="arg">succ</span>,<span class="arg">fail</span>)
 is equivalent to <span class="id">applyk</span>(
-@lambda() { <span class="id">eval</span>(<span class="arg">expr</span>); },
-<span class="arg">succ</span>,<span class="arg">fail</span>).
+<span class="id">eval</span>,
+<span class="arg">succ</span>,
+<span class="arg">fail</span>,
+<span class="arg">[expr]</span>).
 </div>
 </div>
 
