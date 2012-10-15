@@ -104,55 +104,42 @@ mapfile = @lambda(filename, rest ...) {
 iohash=[:];
 
 open = @lambda(filename, mode) {
-  @local flags,fd,newmode,nfd;
+  @local flags,oflags,fd,newmode,nfd;
 
   if(!isstring(filename)) 	error("open: filename is not a string");
   if(!isstring(mode)) 		error("open: mode is not a string");
   if(1 > strlen(mode)) 		error("open: mode cannot be empty");
 
-  if(    ( strstr(mode,"r") && strstr(mode,"w") )
-      || ( strstr(mode,"r") && strstr(mode,"a") )
-      || ( strstr(mode,"w") && strstr(mode,"a") ) )
-    error("open: modes \"a\", \"w\", and \"r\" are exclusive");
-
   flags = 0;
-
-  switch(mode[0]) {
-  case 'r':
-    if(strstr(mode,"+"))
-      flags = unix`O_RDWR;
-    else
-      flags = unix`O_RDONLY;
-    break;
-  case 'w':
-    if(strstr(mode,"+"))
-      flags = unix`O_RDWR	| unix`O_CREAT	| unix`O_TRUNC;
-    else
-      flags = unix`O_WRONLY 	| unix`O_CREAT 	| unix`O_TRUNC;
-    break;
-  case 'a':
-    if(strstr(mode,"+"))
-      flags = unix`O_RDWR 	| unix`O_CREAT 	| unix`O_APPEND;
-    else
-      flags = unix`O_WRONLY 	| unix`O_CREAT 	| unix`O_APPEND;
-    break;
-  default:
-    error("open: invalid mode: %a",mode);
-  }
+  oflags = 0;
   
-  fd=sys_open(filename,flags,0777);
+  if(strstr(mode,"r"))
+    flags |= 1;
+  if(strstr(mode,"w") || strstr(mode,"a"))
+    flags |= 2;
+  if(strstr(mode,"w"))
+    oflags |= unix`O_CREAT|unix`O_TRUNC;
+  if((flags&1) && (flags&2))                                     
+    oflags |= unix`O_RDWR;                                               
+  else if(flags&1)                                                    
+    oflags |= unix`O_RDONLY;                                             
+  else if(flags&2)                                                   
+    oflags |= unix`O_WRONLY;                 
+
+  fd=sys_open(filename,oflags,0777);
   if(0 > fd) {
     return nil;
   } 
 
-  newmode="";
-  if( ((flags & unix`O_WRONLY) == unix`O_WRONLY) || 
-      ((flags & unix`O_RDWR) == unix`O_RDWR) || 
-      ((flags & unix`O_APPEND) == unix`O_APPEND) )
-    newmode+="w";
-  if( ((flags & unix`O_RDONLY) == unix`O_RDONLY) ||
-      ((flags & unix`O_RDWR) == unix`O_RDWR) )
-    newmode+="r";
+  if((flags&1) & (flags&2)) {
+    newmode="rw";
+  } else if(flags&1) {
+    newmode="r";
+  } else if(flags&2) {
+    newmode="w";
+  } else {
+    error("invalid mode");
+  }
 
   nfd=fdopen(fd,newmode);
 
