@@ -208,8 +208,8 @@ FD_SET=@lambda(fd,set) {
 selnr=nil;
 if(looksym(unix,'select)) {
   selnr=unix`select;
-} else if(looksym(unix,'newselect)) {
-  selnr=unix`newselect;
+} else if(looksym(unix,'_newselect)) {
+  selnr=unix`_newselect;
 }
 if(selnr) {
 sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
@@ -251,7 +251,7 @@ sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
     FD_SET(v,xfds_foo);
   },xfds);
 
-  r=syscall(unix`select,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
+  r=syscall(selnr,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
 
   if(r==-1) {
     return [[],[],[]];
