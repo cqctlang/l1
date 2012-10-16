@@ -1432,26 +1432,15 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Elambda:
+		if(loc == Effect)
+			fatal("lambda for effect");
 		l = (Lambda*)e->xp;
 		src = e->e1->src; /* argument list */
-		fpush(f);
-		for(m = l->ncap-1; m >= 0; m--){
-			i = nextinsn(code, src);
-			i->kind = Imov;
-			randvarloc(&i->op1, l->cap[m], 0);
-			randloc(&i->dst, AC);
-			i = nextinsn(code, src);
-			i->kind = Ipush;
-			randloc(&i->op1, AC);
-			fset(f, f->sp++);
-		}
 		fn = konval(code->konst, mkvalcode(cglambda(e, l->id)));
 		i = nextinsn(code, src);
-		i->kind = Iclo;
+		i->kind = Imov;
 		randkon(&i->op1, fn);
-		randimm(&i->op2, l->ncap);
 		randloc(&i->dst, loc);
-		fpop(f);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Eif:
@@ -1655,9 +1644,11 @@ codegen(Expr *e)
 	Lambda *l;
 	Closure *cl;
 	Code *code;
+	Expr *fn;
 
-	code = cglambda(e, "entry");
-	l = (Lambda*)e->xp;
+	fn = e;
+	code = cglambda(fn, "entry");
+	l = (Lambda*)fn->xp;
 	cl = mkcl(code, 0, l->ncap);
 	if(cqctflags['o'])
 		printcode(code);

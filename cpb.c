@@ -491,6 +491,35 @@ rmscope(U *ctx, Expr *e)
 	}
 }
 
+/* replace Elambda with mkcl calls */
+static Expr*
+wrapmkcl(Expr *e)
+{
+	Expr *se;
+	Lambda *l;
+	int m;
+
+	if(e == 0)
+		return e;
+
+	switch(e->kind){
+	case Elambda:
+		sete2(e, wrapmkcl(e->e2));
+		l = (Lambda*)e->xp;
+		se = Znull();
+		for(m = 0; m < l->ncap; m++)
+			se = Zcons(doid(l->cap[m]->id), se);
+		se = Zcons(e, se);
+		return putsrc(Zapply(G("mkcl"), se), e->src);
+	default:
+		sete1(e, wrapmkcl(e->e1));
+		sete2(e, wrapmkcl(e->e2));
+		sete3(e, wrapmkcl(e->e3));
+		sete4(e, wrapmkcl(e->e4));
+		return e;
+	}
+}
+
 Expr*
 docompileb(U *ctx, Expr *e)
 {
@@ -513,6 +542,7 @@ docompileb(U *ctx, Expr *e)
 	if(lex)
 		freexenv(lex);
 	e = rmscope(ctx, e);
+	e = wrapmkcl(e);
 
 	/*
 	 * convert expression to function.  wrap the

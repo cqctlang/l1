@@ -6487,11 +6487,17 @@ static void
 l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Closure *cl;
-	if(argc != 1)
+	Code *c;
+	unsigned i, dlen;
+
+	if(argc < 1)
 		vmerr(vm, "wrong number of arguments to mkcl");
-	if(Vkind(argv[0]) != Qstr && Vkind(argv[0]) != Qcval)
-		vmerr(vm, "operand 1 to mkcl must be a string or cvalue");
-	cl = mkxfn(argv[0]);
+	checkarg(vm, argv, 0, Qcode);
+	c = valcode(argv[0]);
+	dlen = argc-1;
+	cl = mkcl(c, 0, dlen);
+	for(i = 0; i < dlen; i++)
+		cldisp(cl)[i] = argv[i+1];
 	*rv = mkvalcl(cl);
 }
 
