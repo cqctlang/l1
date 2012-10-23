@@ -277,6 +277,7 @@ printval(Val v)
 	Cval *cv;
 	Str *str;
 	Ctype *t;
+	Code *cd;
 	char c, *p;
 	Imm i, m;
 
@@ -341,6 +342,10 @@ printval(Val v)
 		p = fmtctypec(t);
 		xprintf("#%p %s#", t, p);
 		efree(p);
+		break;
+	case Qcode:
+		cd = valcode(v);
+		xprintf("<code %s>", ciddata(cd->id));
 		break;
 	default:
 		xprintf("<%s %p>", qname[Vkind(v)], v);
@@ -741,6 +746,7 @@ printcode(Code *c)
 				xprintf("\t%s:%u", srcfile(s), srcline(s));
 		}else
 			xprintf("\t\t");
+		xprintf("\t%06ld\t", i-codeinsn(c));
 		printinsn(i);
 		xprintf("\n");
 	}
@@ -823,6 +829,8 @@ randimm(Operand *rand, Imm i)
 static void
 varloc(Location *loc, Var *v, int deref)
 {
+	if(deref && !v->box)
+		bug();
 	deref = deref && v->box;
 	switch(v->where){
 	case Vparam:
@@ -875,9 +883,12 @@ static void
 cgrand(Operand *rand, Expr *e)
 {
 	switch(e->kind){
+	case Eboxref:
+		randvarloc(rand, e->e1->xp, 1);
+		break;
 	case E_tid:
 	case Eid:
-		randvarloc(rand, e->xp, 1);
+		randvarloc(rand, e->xp, 0);
 		break;
 	case Eval:
 		randkon(rand, e->aux);
@@ -955,6 +966,8 @@ escapectl(Expr *e, CGEnv *p)
 	if(kind == 0)
 		fatal("not an escaping expression");
 	// FIXME: need to emit box init prologue; then enable goto in escaping
+	// FIXME harder: is the above still relevant now that box init
+	//               is emitted in cpv?
 	else if(kind->kind == Egoto)
 		rv = hgets(p->labels, idsym(kind), strlen(idsym(kind)));
 	else
@@ -1194,7 +1207,6 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	unsigned narg, istail;
 	Lambda *l;
 	Block *b;
-	Boxset *bxst;
 	Location dst;
 	int m;
 	Src src;
@@ -1224,11 +1236,27 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Enull:
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
+	case Eboxset:
+		if(e->e1->kind != Eid)
+			bug();
+		varloc(&dst, e->e1->xp, 1);
+		if(loc != Effect){
+			L = genlabel(code, 0);
+			cg(e->e2, code, p, &dst, L, prv, L, f);
+			emitlabel(L, e);
+			i = nextinsn(code, e->src);
+			i->kind = Imov;
+			randloc(&i->op1, &dst);
+			randloc(&i->dst, loc);
+			cgctl(code, p, ctl, nxt, e->src);
+		}else
+			cg(e->e2, code, p, &dst, ctl, prv, nxt, f);
+		break;
 	case E_tg:
 	case Eg:
 		if(e->e1->kind != Eid && e->e1->kind != E_tid)
 			fatal("bug");
-		varloc(&dst, e->e1->xp, 1);
+		varloc(&dst, e->e1->xp, 0);
 		if(loc != Effect){
 			L = genlabel(code, 0);
 			cg(e->e2, code, p, &dst, L, prv, L, f);
@@ -1291,14 +1319,8 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Eblock:
 		b = (Block*)e->xp;
 		fpush(f);
-		for(m = 0; m < b->nloc; m++){
+		for(m = 0; m < b->nloc; m++)
 			fset(f, b->loc[m].idx);
-			if(b->loc[m].box){
-				i = nextinsn(code, e->src);
-				i->kind = Ibox0;
-				randvarloc(&i->op1, &b->loc[m], 0);
-			}
-		}
 		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
 		fpop(f);
 		break;
@@ -1406,12 +1428,20 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cgctl(code, p, p->Return, nxt, e->src);
 		}
 		break;
-	/* can Eid/E_tid (and Eval?) be rationalized with cgrand? */
+	/* can Eid/E_tid (and Eval?) (and Eboxref?)
+	   be rationalized with cgrand? */
+	case Eboxref:
+		i = nextinsn(code, e->src);
+		i->kind = Imov;
+		randvarloc(&i->op1, e->e1->xp, 1);
+		randloc(&i->dst, loc);
+		cgctl(code, p, ctl, nxt, e->src);
+		break;
 	case E_tid:
 	case Eid:
 		i = nextinsn(code, e->src);
 		i->kind = Imov;
-		randvarloc(&i->op1, e->xp, 1);
+		randvarloc(&i->op1, e->xp, 0);
 		randloc(&i->dst, loc);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
@@ -1492,13 +1522,17 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			}
 		}
 		break;
+	case Emkbox:
+		i = nextinsn(code, e->src);
+		i->kind = Ibox;
+		randvarloc(&i->op1, e->e1->xp, 0);
+		break;
+	case Emkbox0:
+		i = nextinsn(code, e->src);
+		i->kind = Ibox0;
+		randvarloc(&i->op1, e->e1->xp, 0);
+		break;
 	case Egoto:
-		bxst = e->xp;
-		for(m = 0; m < bxst->n; m++){
-			i = nextinsn(code, e->src);
-			i->kind = Ibox0;
-			randvarloc(&i->op1, bxst->var[m], 0);
-		}
 		L = hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
 		if(L == 0)
 			fatal("goto bug");
@@ -1563,37 +1597,15 @@ xcglambda(Ctl *name, Ode *code, Expr *e)
 	randimm(&i->op1, l->nloc+l->ntmp);
 	needtop = 1;
 	if(l->isvarg){
-		m = 0;
-		while(m < l->nparam-1){
-			if(l->param[m].box){
-				i = nextinsn(code, src);
-				i->kind = Ibox;
-				randvarloc(&i->op1, &l->param[m], 0);
-				needtop = 1;
-			}
-			m++;
-		}
-		/* by convention varg is first local stack variable */
-		if(l->param[m].box){
-			i = nextinsn(code, src);
-			i->kind = Ibox0;
-			randvarloc(&i->op1, &l->param[m], 0);
-			needtop = 1;
-		}
+		m = l->nparam-1;
 		i = nextinsn(code, src);
 		i->kind = Ilist;
 		randimm(&i->op1, 0);
 		randimm(&i->op2, m);
-		randvarloc(&i->dst, &l->param[m], 1);
+		randvarloc(&i->dst, &l->param[m], 0);
 		fset(&f, l->param[m].idx);
-	}else
-		for(m = 0; m < l->nparam; m++)
-			if(l->param[m].box){
-				i = nextinsn(code, src);
-				i->kind = Ibox;
-				randvarloc(&i->op1, &l->param[m], 0);
-				needtop = 1;
-			}
+	}
+	needtop = 1; /* FIXME: is this necessary? */
 	if(needtop){
 		top = genlabel(code, 0);
 		emitlabel(top, e->e2);
@@ -1634,6 +1646,12 @@ cglambda(Expr *e, char *id)
 
 	xcglambda(L, ode, e);
 	code = prepcode(ode);
+	if(cqctflags['o']){
+		printf("code for %s (%s:%llu):\n", id,
+		       srcfile(e->src), srcline(e->src));
+		printcode(code);
+	}
+
 
 	return code;
 }
@@ -1650,8 +1668,6 @@ codegen(Expr *e)
 	code = cglambda(fn, "entry");
 	l = (Lambda*)fn->xp;
 	cl = mkcl(code, 0, l->ncap);
-	if(cqctflags['o'])
-		printcode(code);
 	return cl;
 }
 

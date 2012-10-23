@@ -561,6 +561,30 @@ Zgotosrc(Ysrc *src, Expr *id)
 }
 
 Expr*
+Zboxref(Expr *id)
+{
+	return Z1(Eboxref, id);
+}
+
+Expr*
+Zboxset(Expr *id, Expr *e)
+{
+	return Z2(Eboxset, id, e);
+}
+
+Expr*
+Zmkbox(Expr *id)
+{
+	return Z1(Emkbox, id);
+}
+
+Expr*
+Zmkbox0(Expr *id)
+{
+	return Z1(Emkbox0, id);
+}
+
+Expr*
 putsrc(Expr *e, Src src)
 {
 	Expr *p;
@@ -602,6 +626,7 @@ resetuniqid()
 Expr*
 uniqid(char *id)
 {
+	Expr *e;
 	unsigned len;
 	char *p;
 	len = strlen(id)+1+10+1;
@@ -610,7 +635,9 @@ uniqid(char *id)
 	if(cnt+1 < cnt)
 		fatal("too many identifiers");
 	cnt++;
-	return doid(p);
+	e = doid(p);
+	efree(p);
+	return e;
 }
 
 int

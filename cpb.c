@@ -462,64 +462,6 @@ check(U *ctx, Expr *e, Xenv *fn, Xenv *lex)
 	}
 }
 
-
-static Expr*
-rmscope(U *ctx, Expr *e)
-{
-	Expr *p;
-
-	if(e == 0)
-		return e;
-
-	switch(e->kind){
-	case Escope:
-		p = rmscope(ctx, e->e1);
-		return p;
-	case Eelist:
-		p = e;
-		while(p->kind == Eelist){
-			sete1(p, rmscope(ctx, p->e1));
-			p = p->e2;
-		}
-		return e;
-	default:
-		sete1(e, rmscope(ctx, e->e1));
-		sete2(e, rmscope(ctx, e->e2));
-		sete3(e, rmscope(ctx, e->e3));
-		sete4(e, rmscope(ctx, e->e4));
-		return e;
-	}
-}
-
-/* replace Elambda with mkcl calls */
-static Expr*
-wrapmkcl(Expr *e)
-{
-	Expr *se;
-	Lambda *l;
-	int m;
-
-	if(e == 0)
-		return e;
-
-	switch(e->kind){
-	case Elambda:
-		sete2(e, wrapmkcl(e->e2));
-		l = (Lambda*)e->xp;
-		se = Znull();
-		for(m = 0; m < l->ncap; m++)
-			se = Zcons(doid(l->cap[m]->id), se);
-		se = Zcons(e, se);
-		return putsrc(Zapply(G("mkcl"), se), e->src);
-	default:
-		sete1(e, wrapmkcl(e->e1));
-		sete2(e, wrapmkcl(e->e2));
-		sete3(e, wrapmkcl(e->e3));
-		sete4(e, wrapmkcl(e->e4));
-		return e;
-	}
-}
-
 Expr*
 docompileb(U *ctx, Expr *e)
 {
@@ -541,8 +483,6 @@ docompileb(U *ctx, Expr *e)
 	e = resolve(ctx, e, ctx->top->env, lex, 0, 0);
 	if(lex)
 		freexenv(lex);
-	e = rmscope(ctx, e);
-	e = wrapmkcl(e);
 
 	/*
 	 * convert expression to function.  wrap the

@@ -32,6 +32,8 @@ char* S[] = {
 	[Ebitfield] =	"bitfield",
 	[Eblock] =	"block",
 	[Ebor] =	"bor",
+	[Eboxref] =	"boxref",
+	[Eboxset] =	"boxset",
 	[Ebreak] =	"break",
 	[Ebxor] =	"bxor",
 	[Ecall] =	"call",
@@ -91,6 +93,8 @@ char* S[] = {
 	[Elt] =		"lt",
 	[Emcall] =	"mcall",
 	[Ematch] =	"match",
+	[Emkbox] =	"mkbox",
+	[Emkbox0] =	"mkbox0",
 	[Emkctype] =	"mkctype",
 	[Emod] =	"mod",
 	[Emul] =	"mul",
@@ -576,6 +580,28 @@ printcqct0(Expr *e, unsigned ni)
 		printcqct0(e->e1, ni);
 		xprintf(")->");
 		printcqct0(e->e2, ni);
+		break;
+	case Eboxref:
+		xprintf("boxref(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
+	case Eboxset:
+		xprintf("boxset(");
+		printcqct0(e->e1, ni);
+		xprintf(", ");
+		printcqct0(e->e2, ni);
+		xprintf(")");
+		break;
+	case Emkbox:
+		xprintf("mkbox(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
+		break;
+	case Emkbox0:
+		xprintf("mkbox0(");
+		printcqct0(e->e1, ni);
+		xprintf(")");
 		break;
 	case Enames:
 		xprintf("@names ...");

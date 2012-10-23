@@ -41,6 +41,8 @@ enum{
 	Ebitfield,
 	Eblock,
 	Ebor,
+	Eboxref,
+	Eboxset,
 	Ebreak,
 	Ebxor,
 	Ecall,
@@ -100,6 +102,8 @@ enum{
 	Elt,
 	Emcall,
 	Ematch,
+	Emkbox,
+	Emkbox0,
 	Emkctype,
 	Emod,
 	Emul,
@@ -755,13 +759,6 @@ struct Block
 } Block;
 
 typedef
-struct Boxset
-{
-	Var **var;
-	unsigned max, n;
-} Boxset;
-
-typedef
 struct Location {
 	unsigned loc;		/* access with LOC macros */
 	Val v;			/* topl/topr */
@@ -1263,6 +1260,8 @@ Expr*		Zapply(Expr *fn, Expr *args);
 Expr*		Zbind(Expr *id, Expr *e);
 Expr*		Zbinop(unsigned op, Expr *x, Expr *y);
 Expr*		Zblock(Expr *locs, ...);
+Expr*		Zboxref(Expr *id);
+Expr*		Zboxset(Expr *id, Expr *e);
 Expr*		Zcall(Expr *fn, unsigned narg, ...);
 Expr*		Zcid(char *s);
 Expr*		Zcons(Expr *hd, Expr *tl);
@@ -1283,6 +1282,8 @@ Expr*		Zlambda(Expr *args, Expr *body);
 Expr*		Zlambdn(Expr *args, Expr *body, Expr *name);
 Expr*		Zletrec(Expr *binds, Expr *body);
 Expr*		Zlocals(unsigned n, ...);
+Expr*		Zmkbox(Expr *id);
+Expr*		Zmkbox0(Expr *id);
 Expr*		Znil(void);
 Expr*		Znop(void);
 Expr*		Znot(Expr *e);
@@ -1505,7 +1506,7 @@ Val		vecref(Vec *vec, Imm idx);
 void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);
 
-/* c.c */
+/* qc.c */
 Val		compile(VM *vm, Expr *e, Toplevel *top, char *argsid);
 Expr*		compilex(VM *vm, Expr *e, Toplevel *top, char *argsid);
 

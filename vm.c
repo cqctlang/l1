@@ -841,7 +841,8 @@ fvmbacktrace(VM *vm)
 	while(pc != 0){
 		pc--;		/* vm loop increments pc after fetch */
 		if(strcmp(ciddata(cl->id), "$halt")){
-//			cprintf(xfd, "fp=%05lld pc=%08lld ", fp, pc);
+//			cprintf(xfd, "fp=%05lld pc=%08lld ",
+//				fp, pc-codeinsn(cl->code));
 			printsrc(xfd, cl, pc);
 		}
 		narg = stkimm(vm->stack[fp]);
@@ -4182,6 +4183,7 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 				vmerr(vm, "interrupted");
 			continue;
 		LABEL Iclo:
+			bug();
 			v1 = getvalrand(vm, &i->op1);
 			m = getimmrand(&i->op2);
 			rv = xclo(vm, v1, m);

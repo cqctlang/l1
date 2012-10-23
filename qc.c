@@ -49,7 +49,7 @@ static void
 pp(VM *vm, Expr *e)
 {
 	Val argv[1], rv, v;
-	v = cqctenvlook(vm->top, "ppstx");	
+	v = cqctenvlook(vm->top, "ppstx");
 	if(v && Vkind(v) == Qcl){
 		argv[0] = mkvalexpr(e);
 		cqctcallfn(vm, v, 1, argv, &rv);
@@ -215,6 +215,11 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 	e = docompilev(&ctx, e);
 	if(cqctflags['T'])
 		tv[0] = usec();
+	if(cqctflags['p']){
+		xprintf("\n*** after cpv ***\n");
+		printexpr(e);
+		xprintf("\n");
+	}
 	if(cqctflags['q']){
 		xprintf("*** input to code generator ***\n");
 		pp(vm, e);
