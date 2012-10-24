@@ -69,6 +69,7 @@ L1C =\
 	xfd.c\
 	$(MACH)\
 	fns.$(CONF).c\
+	amd64.c\
 	$(L1EXTRAS)
 
 L1O = $(L1C:.c=.o)
@@ -130,6 +131,10 @@ libl1.dylib: l1.o
 	@echo + ld $@
 	if [ ! -f libgcc_s.dylib ] ; then ln -s /usr/lib/libgcc_s.1.dylib libgcc_s.dylib ; fi
 	libtool -dynamic -lc -L. -lgcc_s -o $@ $^
+
+testasm: testasm.o amd64.o
+	@echo + ld $@
+	$(V)$(CC) $(CFLAGS) -o $@ $^
 
 -include depend
 depend: $(L1C) Makefile
