@@ -465,6 +465,12 @@ sys_setpgid = @lambda(pid,pgid) {
 
 };
 
+sys_setsid = @lambda() {
+
+  syscall(unix`setsid);
+
+};
+
 sys_sleep = @lambda(secs) {
   @local r,m,m2;
 
