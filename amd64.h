@@ -74,6 +74,7 @@ struct xRand {
 #define isimm(o)     ((o).okind == opImm)
 
 #define isrnone(r)   ((r) == rNone)
+#define isdnone(i)   ((i).size == Zero)
 
 #define randreg(o)   ((o).u.r)
 #define randbase(o)  ((o).u.m.base)

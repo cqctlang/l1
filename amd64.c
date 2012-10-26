@@ -1,3 +1,10 @@
+/*
+  disp(i) -> construct a displacement operand
+  dispu8(i) -> construct a byte displacement
+    for these operators, check for overflow, ie use bigger type
+    and check that value is represented by smaller type
+*/
+
 #include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
@@ -60,11 +67,9 @@ erealloc(void *p, size_t old, size_t new)
 #include "syscqct.h"
 #endif
 
-
-
 xRand NONE = { .okind = opNone };
-
 xRand RNONE = { .okind = opReg, .u.r = rNone };
+xImm DNONE = { .size = Zero };
 /* FIXME: steal that trick from luajit */
 #define defreg(R) xRand R = { .okind = opReg, .u.r = r##R }
 defreg(RAX);
@@ -113,6 +118,7 @@ defreg(DH);
 defreg(BH);
 #undef defreg;
 
+
 NC*
 mknc()
 {
@@ -151,7 +157,35 @@ static void
 emitu8(NC *nc, u8 w)
 {
 	nccap(nc, sizeof(w));
-	*nc->p++ = w;
+	*(u8*)nc->p = w;
+	nc->p += sizeof(w);
+	nc->n += sizeof(w);
+}
+
+static void
+emitu16(NC *nc, u16 w)
+{
+	nccap(nc, sizeof(w));
+	*(u16*)nc->p = w;
+	nc->p += sizeof(w);
+	nc->n += sizeof(w);
+}
+
+static void
+emitu32(NC *nc, u32 w)
+{
+	nccap(nc, sizeof(w));
+	*(u32*)nc->p = w;
+	nc->p += sizeof(w);
+	nc->n += sizeof(w);
+}
+
+static void
+emitu64(NC *nc, u64 w)
+{
+	nccap(nc, sizeof(w));
+	*(u64*)nc->p = w;
+	nc->p += sizeof(w);
 	nc->n += sizeof(w);
 }
 
@@ -159,7 +193,8 @@ static void
 emituptr(NC *nc, uptr w)
 {
 	nccap(nc, sizeof(w));
-	*nc->p++ = w;
+	*(uptr*)nc->p = w;
+	nc->p += sizeof(w);
 	nc->n += sizeof(w);
 }
 
@@ -172,7 +207,7 @@ n1(NC *nc, xImm imm)
 static void
 n4(NC *nc, xImm imm)
 {
-	emitu8(nc, imm.v.sdword);
+	emitu32(nc, imm.v.sdword);
 }
 
 static void
@@ -195,6 +230,204 @@ nuptr(NC *nc, xImm imm)
 	default:
 		bug();
 	}
+}
+
+xRand
+immu64(u64 u)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = QWord;
+	randimm(x).v.uqword = u;
+	return x;
+}
+
+xRand
+immu32(u32 u)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = DWord;
+	randimm(x).v.udword = u;
+	return x;
+}
+
+xRand
+immu16(u16 u)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = Word;
+	randimm(x).v.uword = u;
+	return x;
+}
+
+xRand
+immu8(u8 u)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = Byte;
+	randimm(x).v.ubyte = u;
+	return x;
+}
+
+xRand
+imms64(s64 s)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = QWord;
+	randimm(x).v.sqword = s;
+	return x;
+}
+
+xRand
+imms32(s32 s)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = DWord;
+	randimm(x).v.sdword = s;
+	return x;
+}
+
+xRand
+imms16(s16 s)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = Word;
+	randimm(x).v.sword = s;
+	return x;
+}
+
+xRand
+imms8(s8 s)
+{
+	xRand x;
+	memset(&x, 0, sizeof(x));
+	x.okind = opImm;
+	randimm(x).size = Byte;
+	randimm(x).v.sbyte = s;
+	return x;
+}
+
+xRand
+imm(u64 u)
+{
+	if(u > 0xffffffff)
+		bug();
+	return immu32(u);
+}
+
+xRand
+byte(u64 u)
+{
+	if(u > 0xff)
+		bug();
+	return immu8(u);
+}
+
+xImm
+disp(s32 d)
+{
+	xImm x;
+	memset(&x, 0, sizeof(x));
+	/* FIXME: check range */
+	x.size = DWord;
+	x.v.sdword = d;
+	return x;
+}
+
+static int
+isbyte(xImm imm)
+{
+	return imm.size == Byte;
+}
+
+static int
+fitsbyte(xImm imm)
+{
+	return imm.size == Byte || imm.v.uqword < 256;
+}
+
+xRand
+mkindirect(xRand b, xRand i, u8 s, s32 d)
+{
+	xRand x;
+
+	/* express "none" with RNONE, not NONE */
+	assert(isreg(b)); assert(isreg(i));
+
+	x.okind = opMem;
+	randbase(x) = randreg(b);
+	randidx(x) = randreg(i);
+	randscale(x) = s;
+	randdisp(x) = disp(d);
+
+	/* canonicalize displacement */
+	if(!isrnone(randbase(x)) && d == 0)
+		randdisp(x) = DNONE;
+
+	/* canonicalize EBP */
+	if(!isrnone(randbase(x))
+	   && isdnone(randdisp(x))
+	   && (randreg(i) == rEBP
+	       || randreg(i) == rRBP
+	       || randreg(i) == rR13))
+		randdisp(x) = disp(0);
+
+	/* check ESP */
+	if(randreg(i) == rESP || randreg(i) == rRSP)
+		bug();
+
+	return x;
+}
+
+xRand
+indirecti(xRand b, xRand i, s32 d)
+{
+	return mkindirect(b, i, 0, d);
+}
+
+xRand
+indirect2i(xRand b, xRand i, s32 d)
+{
+	return mkindirect(b, i, 1, d);
+}
+
+xRand
+indirect4i(xRand b, xRand i, s32 d)
+{
+	return mkindirect(b, i, 2, d);
+}
+
+xRand
+indirect8i(xRand b, xRand i, s32 d)
+{
+	return mkindirect(b, i, 3, d);
+}
+
+xRand
+indirect1(xRand o)
+{
+	if(isimm(o))
+		/* FIXME: this is for 64-bit.
+		   see odd dependency in asm.cqct.
+		   this case seems unused anyway. */
+		return mkindirect(RNONE, RNONE, 0, randimm(o).v.sdword);
+	else if(isreg(o))
+		return mkindirect(o, RNONE, 0, 0);
+	else
+		bug();
 }
 
 static xOp
@@ -295,18 +528,6 @@ isxreg(xReg r)
 }
 
 static int
-isbyte(xImm imm)
-{
-	return imm.size == Byte;
-}
-
-static int
-fitsbyte(xImm imm)
-{
-	return imm.size == Byte || imm.v.uqword < 256;
-}
-
-static int
 isxrand(xRand o)
 {
 	if(isreg(o))
@@ -368,7 +589,7 @@ sibpresent(xRand rand)
 }
 
 static void
-modrm(NC *nc, u8 rbits, xRand rand)
+emitmodrm(NC *nc, u8 rbits, xRand rand)
 {
 	xImm d;
 	u8 b, m, rm;
@@ -392,6 +613,7 @@ modrm(NC *nc, u8 rbits, xRand rand)
 				m = 0x2;
 		}else
 			m = 0x0;
+		break;
 	case opImm:
 	case opNone:
 	default:
@@ -421,19 +643,19 @@ modrm(NC *nc, u8 rbits, xRand rand)
 }
 
 static void
-sib(NC *nc, xRand rand)
+emitsib(NC *nc, xRand rand)
 {
 	u8 s, i, b;
 	if(sibpresent(rand)){
 		s = randscale(rand);
-		i = isrnone(randidx(rand))  ? rESP : randidx(rand);
-		b = isrnone(randbase(rand)) ? rEBP : randbase(rand);
+		i = isrnone(randidx(rand))  ? rESP : regbits(randidx(rand));
+		b = isrnone(randbase(rand)) ? rEBP : regbits(randbase(rand));
 		emitu8(nc, s<<6|i<<3|b);
 	}
 }
 
 static void
-disp(NC *nc, xRand rand)
+emitdisp(NC *nc, xRand rand)
 {
 	xImm imm;
 	switch(rand.okind){
@@ -457,9 +679,9 @@ disp(NC *nc, xRand rand)
 static void
 emitaddressing(NC *nc, u8 rbits, xRand rand)
 {
-	modrm(nc, rbits, rand);
-	sib(nc, rand);
-	disp(nc, rand);
+	emitmodrm(nc, rbits, rand);
+	emitsib(nc, rand);
+	emitdisp(nc, rand);
 }
 
 static void
@@ -581,13 +803,13 @@ movi(NC *nc, xRand dst, xImm srci)
 			nuptr(nc, srci);
 		}
 		break;
-	case opImm:
+	case opMem:
 		if(isbyte(srci))
 			imm1(nc, dst, srci, 000, mkop(0xc6), REXW);
 		else
 			imm4(nc, dst, srci, 000, mkop(0xc6), REXW);
 		break;
-	case opMem:
+	case opImm:
 	case opNone:
 		bug();
 	}
@@ -608,7 +830,7 @@ printbytes(void *buf, u32 m)
 	u32 i;
 	unsigned char *p;
 	for(i = 0, p = buf; i < m; i++, p++)
-		printf("\\x\%2x", *p);
+		printf("\\x\%02x", *p);
 }
 
 #define test(form, result)						\
@@ -630,10 +852,6 @@ testamd64()
 	NC *p;
 	p = mknc();
 #include "amd64.tests.h"
-//	test(MOV(nc, RDX, R12), "\x4c\x89\xe2");
-//	test(MOV(nc, R12, RDX), "\x49\x89\xd4");
-//	test(MOV(nc, EDX, ECX), "\x89\xca");
-//	test(MOV(nc, BL, CH), "\x88\xeb");
 	freenc(p);
 	return 0;
 }
