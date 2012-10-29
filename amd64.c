@@ -1,71 +1,8 @@
-/*
-  disp(i) -> construct a displacement operand
-  dispu8(i) -> construct a byte displacement
-    for these operators, check for overflow, ie use bigger type
-    and check that value is represented by smaller type
-*/
-
-#include <stdio.h>
-#include <assert.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-
-typedef int8_t		s8;
-typedef int16_t		s16;
-typedef int32_t		s32;
-typedef int64_t		s64;
-typedef uint8_t		u8;
-typedef uint16_t	u16;
-typedef uint32_t	u32;
-typedef uint64_t	u64;
-typedef float		f32;
-typedef double		f64;
-typedef uintptr_t uptr;
-
-__attribute__((noreturn))
-static void
-bug()
-{
-	fprintf(stderr, "bug\n");
-	abort();
-}
-
-static void*
-emalloc(size_t sz)
-{
-	void *p;
-	p = malloc(sz);
-	if(p == 0)
-		bug();
-	return p;
-}
-
-static void
-efree(void *p)
-{
-	free(p);
-}
-
-static void*
-erealloc(void *p, size_t old, size_t new)
-{
-	void *q;
-	q = emalloc(new);
-	if(new > old)
-		memcpy(q, p, old);
-	else
-		memcpy(q, p, new);
-	efree(p);
-	return q;
-}
-
-#include "amd64.h"
-#if 0
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
-#endif
+#include "amd64.h"
+#include <assert.h>
 
 xRand NONE = { .okind = opNone };
 xRand RNONE = { .okind = opReg, .u.r = rNone };
@@ -1258,17 +1195,25 @@ printbytes(void *buf, u32 m)
 		printf("\\x\%02x", *p);
 }
 
+static void
+check(NC *p, char *form, char *result, u32 m)
+{
+	printf("%s\n", form);
+	disx86(p->buf, p->buf+p->n, 0);
+	if(p->n != m || memcmp(p->buf, result, p->n)){
+		printf("failed %s\n", form);
+		printf("\texpected "); printbytes(result, m);
+		printf("\n");
+		printf("\treceived "); printbytes(p->buf, p->n);
+		printf("\n");
+	}
+}
+
 #define test(form, result)						\
 {									\
 	ncclr(p);							\
 	form;								\
-	if(p->n != sizeof(result)-1 || memcmp(p->buf, result, p->n)){   \
-		printf("failed " #form "\n");				\
-		printf("\texpected "); printbytes(result, sizeof(result)-1); \
-		printf("\n");						\
-		printf("\treceived "); printbytes(p->buf, p->n);	\
-		printf("\n");						\
-	}								\
+	check(p, #form, result, sizeof(result)-1);			\
 }
 
 int

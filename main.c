@@ -139,6 +139,16 @@ readexpr(char *prompt)
 	}
 }
 
+/* FIXME: these go elsewhere */
+extern void testamd64();
+
+static void
+units()
+{
+	testamd64();
+	exit(0);
+}
+
 static char*
 readfd(int fd)
 {
@@ -426,7 +436,7 @@ main(int argc, char *argv[])
 	nlp = 0;
 	tbeg = Tbeg = end = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:oOpqrstTwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:oOpqrstTuwxz"))){
 		switch(c){
 		case '6':
 		case 'b':
@@ -443,6 +453,7 @@ main(int argc, char *argv[])
 			cqctflags[c] = 1;
 			break;
 		case 't':
+		case 'u':
 		case 'z':
 			opt[c] = 1;
 			break;
@@ -470,6 +481,9 @@ main(int argc, char *argv[])
 			usage(argv0);
 		}
 	}
+
+	if(opt['u'])
+		units();
 
 	if(argv[optind]){
 		filename = argv[optind++];

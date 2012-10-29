@@ -105,7 +105,3 @@ struct NC {
 	u8 *buf, *p;
 	u32 n, max;
 } NC;
-
-
-/* amd64.c */
-int		testamd64();
