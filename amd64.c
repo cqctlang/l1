@@ -127,24 +127,37 @@ emitu64(NC *nc, u64 w)
 }
 
 static void
-emituptr(NC *nc, uptr w)
-{
-	nccap(nc, sizeof(w));
-	*(uptr*)nc->p = w;
-	nc->p += sizeof(w);
-	nc->n += sizeof(w);
-}
-
-static void
 n1(NC *nc, xImm imm)
 {
 	emitu8(nc, imm.v.sbyte);
 }
 
 static void
+n2(NC *nc, xImm imm)
+{
+	emitu16(nc, imm.v.sword);
+}
+
+static void
 n4(NC *nc, xImm imm)
 {
 	emitu32(nc, imm.v.sdword);
+}
+
+static void
+n8(NC *nc, xImm imm)
+{
+	emitu64(nc, imm.v.sqword);
+}
+
+#if 0
+static void
+emituptr(NC *nc, uptr w)
+{
+	nccap(nc, sizeof(w));
+	*(uptr*)nc->p = w;
+	nc->p += sizeof(w);
+	nc->n += sizeof(w);
 }
 
 static void
@@ -168,6 +181,7 @@ nuptr(NC *nc, xImm imm)
 		bug();
 	}
 }
+#endif
 
 xRand
 immu64(u64 u)
@@ -773,7 +787,14 @@ movi(NC *nc, xRand dst, xImm srci)
 			n1(nc, srci);
 		}else{
 			shortop(nc, dst, 0xb8, REXW);
-			nuptr(nc, srci);
+			if(isreg64(randreg(dst)))
+				n8(nc, srci);
+			else if(isreg32(randreg(dst)))
+				n4(nc, srci);
+			else if(isreg16(randreg(dst)))
+				n2(nc, srci);
+			else
+				bug();
 		}
 		break;
 	case opMem:
