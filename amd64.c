@@ -336,8 +336,8 @@ byte(u64 u)
 	return immu8(u);
 }
 
-xImm
-disp(s32 d)
+static xImm
+dispi(s32 d)
 {
 	xImm x;
 	memset(&x, 0, sizeof(x));
@@ -345,6 +345,12 @@ disp(s32 d)
 	x.size = DWord;
 	x.v.sdword = d;
 	return x;
+}
+
+xRand
+disp(s32 d)
+{
+	return imms32(d);
 }
 
 static int
@@ -356,7 +362,8 @@ isbyte(xImm imm)
 static int
 fitsbyte(xImm imm)
 {
-	return imm.size == Byte || imm.v.uqword < 256;
+	return (imm.size == Byte
+		|| (-128 <= imm.v.sqword && imm.v.sqword <= 127));
 }
 
 xRand
@@ -371,7 +378,7 @@ mkindirect(xRand b, xRand i, u8 s, s32 d)
 	randbase(x) = randreg(b);
 	randidx(x) = randreg(i);
 	randscale(x) = s;
-	randdisp(x) = disp(d);
+	randdisp(x) = dispi(d);
 
 	/* canonicalize displacement */
 	if(!isrnone(randbase(x)) && d == 0)
@@ -380,10 +387,10 @@ mkindirect(xRand b, xRand i, u8 s, s32 d)
 	/* canonicalize EBP */
 	if(!isrnone(randbase(x))
 	   && isdnone(randdisp(x))
-	   && (randreg(i) == rEBP
-	       || randreg(i) == rRBP
-	       || randreg(i) == rR13))
-		randdisp(x) = disp(0);
+	   && (randreg(b) == rEBP
+	       || randreg(b) == rRBP
+	       || randreg(b) == rR13))
+		randdisp(x) = dispi(0);
 
 	/* check ESP */
 	if(randreg(i) == rESP || randreg(i) == rRSP)
@@ -414,6 +421,16 @@ xRand
 indirect8i(xRand b, xRand i, s32 d)
 {
 	return mkindirect(b, i, 3, d);
+}
+
+xRand
+indirect2(xRand b, xRand o)
+{
+	/* asm.cqct permits o to be displacement
+	   (probably something like
+	   mkindirect(b, RNONE, 0, o) */
+	assert(isreg(b) && isreg(o));
+	return mkindirect(b, o, 0, 0);
 }
 
 xRand
@@ -648,8 +665,10 @@ emitsib(NC *nc, xRand rand)
 	u8 s, i, b;
 	if(sibpresent(rand)){
 		s = randscale(rand);
-		i = isrnone(randidx(rand))  ? rESP : regbits(randidx(rand));
-		b = isrnone(randbase(rand)) ? rEBP : regbits(randbase(rand));
+		i = (isrnone(randidx(rand))
+		     ? regbits(rESP) : regbits(randidx(rand)));
+		b = (isrnone(randbase(rand))
+		     ? regbits(rEBP) : regbits(randbase(rand)));
 		emitu8(nc, s<<6|i<<3|b);
 	}
 }
@@ -742,13 +761,10 @@ imm1x(NC *nc, xRand dst, xImm imm, u8 rbits, xOp op, u8 w)
 static void
 imm1(NC *nc, xRand dst, xImm imm, u8 rbits, xOp op, u8 w)
 {
-	/* FIXME: all callers seem to have established that imm is byte.
-	   so why the else path?  fix in cqct if shown to be dumb.
-	*/
 	if(isbyte(imm))
 		imm1x(nc, dst, imm, rbits, op, w);
 	else
-		imm1x(nc, dst, imm, rbits, opcodeor(op, 1), w); /* ? */
+		imm1x(nc, dst, imm, rbits, opcodeor(op, 1), w);
 }
 
 static void
@@ -756,6 +772,18 @@ imm4(NC *nc, xRand dst, xImm imm, u8 rbits, xOp op, u8 w)
 {
 	op1(nc, dst, rbits, opcodeor(op, 1), w);
 	n4(nc, imm);
+}
+
+static void
+imm14(NC *nc, xRand dst, xImm imm, u8 rbits, xOp op, u8 w)
+{
+	if(fitsbyte(imm))
+		if(isbyte(imm))
+			return imm1(nc, dst, imm, rbits, op, w);
+		else
+			return imm1(nc, dst, imm, rbits, opcodeor(op, 0x2), w);
+	else
+		return imm4(nc, dst, imm, rbits, op, w);
 }
 
 static void
@@ -822,6 +850,395 @@ MOV(NC *nc, xRand dst, xRand src)
 		op2(nc, mkop(0x88), dst, src, REXW);
 	else
 		movi(nc, dst, randimm(src));
+}
+
+void
+ADD(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 000, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(000), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+OR(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 001, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(010), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+ADC(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 002, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(020), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+SBB(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 003, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(030), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+AND(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 004, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(040), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+SUB(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 005, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(050), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+XOR(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 006, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(060), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+CMP(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm14(nc, dst, randimm(src), 007, mkop(0x80), REXW);
+	else if(isreg(src) || ismem(src))
+		return op2(nc, mkop(070), dst, src, REXW);
+	else
+		bug();
+}
+
+void
+TEST(NC *nc, xRand dst, xRand src)
+{
+	if(isimm(src))
+		return imm4(nc, dst, randimm(src), 000, mkop(0xf7), REXW);
+	else if(isreg(src))
+		return op2(nc, mkop(0204), dst, src, REXW);
+	else if(isreg(dst) && ismem(src))
+		/* FIXME: sane? (o.w. there is no insn form) */
+		return op2(nc, mkop(0204), src, dst, REXW);
+	else
+		bug();
+}
+
+void
+LEA(NC *nc, xRand dst, xRand src)
+{
+	return op2(nc, mkop(0x8d), src, dst, REXW);
+}
+
+void
+JMP(NC *nc, xRand dst)
+{
+	if(isimm(dst)){
+		emitu8(nc, 0xe9);
+		n4(nc, randimm(dst));
+	}else
+		op1(nc, dst, 004, mkop(0xff), REXW);
+}
+
+void
+CALL(NC *nc, xRand dst)
+{
+	if(isimm(dst)){
+		emitu8(nc, 0xe8);
+		n4(nc, randimm(dst));
+	}else
+		op1(nc, dst, 002, mkop(0xff), REXW);
+}
+
+static void
+jcc(NC *nc, u8 op, xRand dst)
+{
+	if(!isimm(dst))
+		bug();
+	emitopcode(nc, mkxop(op));
+	n4(nc, randimm(dst));
+}
+
+void	JO(NC *nc, xRand dst)	{ jcc(nc, 0x80, dst); }
+void	JNO(NC *nc, xRand dst)	{ jcc(nc, 0x81, dst); }
+void	JB(NC *nc, xRand dst)	{ jcc(nc, 0x82, dst); }
+void	JAE(NC *nc, xRand dst)	{ jcc(nc, 0x83, dst); }
+void	JE(NC *nc, xRand dst)	{ jcc(nc, 0x84, dst); }
+void	JZ(NC *nc, xRand dst)	{ JE(nc, dst); }
+void	JNE(NC *nc, xRand dst)	{ jcc(nc, 0x85, dst); }
+void	JNZ(NC *nc, xRand dst)	{ JNE(nc, dst); }
+void	JBE(NC *nc, xRand dst)	{ jcc(nc, 0x86, dst); }
+void	JA(NC *nc, xRand dst)	{ jcc(nc, 0x87, dst); }
+void	JS(NC *nc, xRand dst)	{ jcc(nc, 0x88, dst); }
+void	JNS(NC *nc, xRand dst)	{ jcc(nc, 0x89, dst); }
+void	JP(NC *nc, xRand dst)	{ jcc(nc, 0x8a, dst); }
+void	JNP(NC *nc, xRand dst)	{ jcc(nc, 0x8b, dst); }
+void	JL(NC *nc, xRand dst)	{ jcc(nc, 0x8c, dst); }
+void	JGE(NC *nc, xRand dst)	{ jcc(nc, 0x8d, dst); }
+void	JLE(NC *nc, xRand dst)	{ jcc(nc, 0x8e, dst); }
+void	JG(NC *nc, xRand dst)	{ jcc(nc, 0x8f, dst); }
+
+static void
+movcc(NC *nc, u8 op, xRand dst, xRand src)
+{
+	op2x(nc, mkxop(op), dst, src, REXW);
+}
+
+void	CMOVO(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x40, dst, src); }
+void	CMOVNO(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x41, dst, src); }
+void	CMOVB(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x42, dst, src); }
+void	CMOVAE(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x43, dst, src); }
+void	CMOVE(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x44, dst, src); }
+void	CMOVZ(NC *nc, xRand dst, xRand src)	{ CMOVE(nc, dst, src); }
+void	CMOVNE(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x45, dst, src); }
+void	CMOVNZ(NC *nc, xRand dst, xRand src)	{ CMOVNE(nc, dst, src); }
+void	CMOVBE(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x46, dst, src); }
+void	CMOVA(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x47, dst, src); }
+void	CMOVS(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x48, dst, src); }
+void	CMOVNS(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x49, dst, src); }
+void	CMOVP(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x4a, dst, src); }
+void	CMOVNP(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x4b, dst, src); }
+void	CMOVL(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x4c, dst, src); }
+void	CMOVGE(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x4d, dst, src); }
+void	CMOVLE(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x4e, dst, src); }
+void	CMOVG(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x4f, dst, src); }
+
+void
+PUSH(NC *nc, xRand o)
+{
+	switch(o.okind){
+	case opReg:
+		shortop(nc, o, 0x50, 0);
+		break;
+	case opMem:
+		op1(nc, o, 006, mkop(0xff), 0);
+		break;
+	case opImm:
+		emitu8(nc, 0x68);
+		n4(nc, randimm(o));
+		break;
+	default:
+		bug();
+	}
+}
+
+void
+POP(NC *nc, xRand o)
+{
+	switch(o.okind){
+	case opReg:
+		shortop(nc, o, 0x58, 0);
+		break;
+	case opMem:
+		op1(nc, o, 000, mkop(0x8f), 0);
+		break;
+	case opImm:
+	default:
+		bug();
+	}
+}
+
+void
+PUSHAD(NC *nc)
+{
+	emitu8(nc, 0x60);
+}
+
+void
+POPAD(NC *nc)
+{
+	emitu8(nc, 0x61);
+}
+
+static void
+shift(NC *nc, u8 obits, xRand dst, xRand src)
+{
+	if(isreg(src) && randreg(src) == rCL)
+		return op1(nc, dst, obits, mkop(0xd3), REXW);
+	else if(isimm(src))
+		return imm1(nc, dst, randimm(src), obits, mkop(0xc0), REXW);
+}
+
+void
+ROL(NC *nc, xRand dst, xRand n)
+{
+	shift(nc, 000, dst, n);
+}
+
+void
+ROR(NC *nc, xRand dst, xRand n)
+{
+	shift(nc, 001, dst, n);
+}
+
+void
+RCL(NC *nc, xRand dst, xRand n)
+{
+	shift(nc, 002, dst, n);
+}
+
+void
+RCR(NC *nc, xRand dst, xRand n)
+{
+	shift(nc, 003, dst, n);
+}
+
+void
+SHL(NC *nc, xRand dst, xRand n)
+{
+	shift(nc, 004, dst, n);
+}
+
+void
+SHR(NC *nc, xRand dst, xRand n)
+{
+	shift(nc, 005, dst, n);
+}
+
+void
+SAR(NC *nc, xRand dst, xRand n)
+{
+	shift(nc, 007, dst, n);
+}
+
+void
+NOT(NC *nc, xRand dst)
+{
+	op1(nc, dst, 002, mkop(0xf7), REXW);
+}
+
+void
+NEG(NC *nc, xRand dst)
+{
+	op1(nc, dst, 003, mkop(0xf7), REXW);
+}
+
+void
+MUL(NC *nc, xRand dst)
+{
+	op1(nc, dst, 004, mkop(0xf7), REXW);
+}
+
+void
+IMUL3(NC *nc, xRand dst, xRand src, xRand imm)
+{
+	xImm i;
+	if(!isimm(imm))
+		bug();
+	i = randimm(imm);
+	if(fitsbyte(i)){
+		op2(nc, mkop(0x6a), src, dst, REXW);
+		n1(nc, i);
+	}else{
+		op2(nc, mkop(0x68), src, dst, REXW);
+		n4(nc, i);
+	}
+}
+
+void
+IMUL2(NC *nc, xRand dst, xRand src)
+{
+	if(isreg(src) || ismem(src))
+		op2x(nc, mkxop(0257), dst, src, REXW);
+	else if(isimm(src))
+		IMUL3(nc, dst, dst, src);
+	else
+		bug();
+}
+
+void
+IMUL1(NC *nc, xRand dst)
+{
+	op1(nc, dst, 005, mkop(0xf7), REXW);
+}
+
+void
+DIV(NC *nc, xRand dst)
+{
+	op1(nc, dst, 006, mkop(0xf7), REXW);
+}
+
+void
+IDIV(NC *nc, xRand dst)
+{
+	op1(nc, dst, 007, mkop(0xf7), REXW);
+}
+
+void
+NOP(NC *nc)
+{
+	emitu8(nc, 0x90);
+}
+
+void
+RDTSC(NC *nc)
+{
+	emitu8(nc, 0x0f);
+	emitu8(nc, 0x31);
+}
+
+void
+RDPMC(NC *nc)
+{
+	emitu8(nc, 0x0f);
+	emitu8(nc, 0x33);
+}
+
+void
+LEAVE(NC *nc)
+{
+	emitu8(nc, 0xc9);
+}
+
+void
+RET(NC *nc)
+{
+	emitu8(nc, 0xc3);
+}
+
+void
+RETPOP(NC *nc, xRand imm)
+{
+	if(!isimm(imm))
+		bug();
+	emitu8(nc, 0xc2);
+	emitu16(nc, randimm(imm).v.uword);
+}
+
+void
+CPUID(NC *nc)
+{
+	emitopcode(nc, mkxop(0xa2));
 }
 
 static void
