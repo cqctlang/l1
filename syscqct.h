@@ -1215,6 +1215,9 @@ char*		fmtctypec(Ctype *t);
 Str*		fmtctype(Ctype *t);
 void		l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv);
 
+/* fndis.c */
+void		disx86(unsigned char *s, unsigned char *e, unsigned inc);
+
 /* xfd.c */
 void		cprintf(Xfd *xfd, char *fmt, ...);
 void		cvprintf(Xfd *xfd, char *fmt, va_list args);

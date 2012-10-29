@@ -74,9 +74,9 @@ L1C =\
 
 L1O = $(L1C:.c=.o)
 
-L1DEPS += x/lib9/lib9.a
-L1FUNS += fnfmt fnjson
-L1EXTRAS += fnfmt.c fnjson.c
+L1DEPS += x/lib9/lib9.a udis/udis.o
+L1FUNS += fnfmt fnjson fndis
+L1EXTRAS += fnfmt.c fnjson.c fndis.c
 
 FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env *);")
 FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);")
@@ -98,6 +98,10 @@ fns.$(CONF).c: $(L1EXTRAS)
 FORCE:
 x/lib9/lib9.a: FORCE
 	$(V)$(MAKE) -s -C x/lib9
+
+udis/udis.o:
+	@echo + mk udis
+	$(V)$(MAKE) -s -C udis
 
 parser:
 	@echo + flex $<
@@ -165,5 +169,6 @@ clean: testclean
 	@$(MAKE) -s -C x/lib9 clean
 	@$(MAKE) -s -C x/libflate clean
 	@$(MAKE) -s -C x/libsec clean
+	@$(MAKE) -s -C udis clean
 	@$(MAKE) -s -C demo clean
 	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend

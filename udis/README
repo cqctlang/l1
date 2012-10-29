@@ -1,0 +1,5 @@
+This directory contains a portion of the source code
+for the udis86 disassembler written by Vivek Thampi.
+
+The original source is available at
+git://udis86.git.sourceforge.net/gitroot/udis86/udis86
