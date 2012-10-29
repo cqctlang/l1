@@ -1034,47 +1034,13 @@ shift(NC *nc, u8 obits, xRand dst, xRand src)
 		return imm1(nc, dst, randimm(src), obits, mkop(0xc0), REXW);
 }
 
-void
-ROL(NC *nc, xRand dst, xRand n)
-{
-	shift(nc, 000, dst, n);
-}
-
-void
-ROR(NC *nc, xRand dst, xRand n)
-{
-	shift(nc, 001, dst, n);
-}
-
-void
-RCL(NC *nc, xRand dst, xRand n)
-{
-	shift(nc, 002, dst, n);
-}
-
-void
-RCR(NC *nc, xRand dst, xRand n)
-{
-	shift(nc, 003, dst, n);
-}
-
-void
-SHL(NC *nc, xRand dst, xRand n)
-{
-	shift(nc, 004, dst, n);
-}
-
-void
-SHR(NC *nc, xRand dst, xRand n)
-{
-	shift(nc, 005, dst, n);
-}
-
-void
-SAR(NC *nc, xRand dst, xRand n)
-{
-	shift(nc, 007, dst, n);
-}
+void	ROL(NC *nc, xRand dst, xRand n)		{ shift(nc, 000, dst, n); }
+void	ROR(NC *nc, xRand dst, xRand n)		{ shift(nc, 001, dst, n); }
+void	RCL(NC *nc, xRand dst, xRand n)		{ shift(nc, 002, dst, n); }
+void	RCR(NC *nc, xRand dst, xRand n)		{ shift(nc, 003, dst, n); }
+void	SHL(NC *nc, xRand dst, xRand n)		{ shift(nc, 004, dst, n); }
+void	SHR(NC *nc, xRand dst, xRand n)		{ shift(nc, 005, dst, n); }
+void	SAR(NC *nc, xRand dst, xRand n)		{ shift(nc, 007, dst, n); }
 
 void
 NOT(NC *nc, xRand dst)
