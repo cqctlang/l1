@@ -185,19 +185,20 @@
 	test(                                  MOV(p, indirect1(R12), RAX),   "\x49\x89\x04\x24"                                 );	// 184
 	test(                                  ADD(p, RAX, indirect1(R14)),   "\x49\x03\x06"                                     );	// 185
 	test(                                  MOV(p, RAX, indirect1(R14)),   "\x49\x8b\x06"                                     );	// 186
-	test(                                          MOV(p, ECX, imm(1)),   "\xb9\x01\x00\x00\x00\x00\x00\x00\x00"             );	// 187
-	test(                                               MOV(p, BL, CH),   "\x88\xeb"                                         );	// 188
-	test(                             MOV(p, indirect1(EAX), byte(12)),   "\xc6\x00\x0c"                                     );	// 189
-	test(                                         MOV(p, AL, byte(12)),   "\xb0\x0c"                                         );	// 190
-	test(                                         MOV(p, AH, byte(12)),   "\xb4\x0c"                                         );	// 191
-	test(                                         ADD(p, AL, byte(12)),   "\x80\xc0\x0c"                                     );	// 192
-	test(                                         ADD(p, AH, byte(12)),   "\x80\xc4\x0c"                                     );	// 193
-	test(                                               ADD(p, BL, CH),   "\x00\xeb"                                         );	// 194
-	test(                                          ADD(p, ECX, imm(1)),   "\x83\xc1\x01"                                     );	// 195
+	test(                                          MOV(p, ECX, imm(1)),   "\xb9\x01\x00\x00\x00"                             );	// 187
+	test(                                          MOV(p, RCX, imm(1)),   "\x48\xb9\x01\x00\x00\x00\x00\x00\x00\x00"         );	// 188
+	test(                                               MOV(p, BL, CH),   "\x88\xeb"                                         );	// 189
+	test(                             MOV(p, indirect1(EAX), byte(12)),   "\xc6\x00\x0c"                                     );	// 190
+	test(                                         MOV(p, AL, byte(12)),   "\xb0\x0c"                                         );	// 191
+	test(                                         MOV(p, AH, byte(12)),   "\xb4\x0c"                                         );	// 192
+	test(                                         ADD(p, AL, byte(12)),   "\x80\xc0\x0c"                                     );	// 193
+	test(                                         ADD(p, AH, byte(12)),   "\x80\xc4\x0c"                                     );	// 194
+	test(                                               ADD(p, BL, CH),   "\x00\xeb"                                         );	// 195
 	test(                                          ADD(p, ECX, imm(1)),   "\x83\xc1\x01"                                     );	// 196
-	test(                                        ADD(p, ECX, imm(150)),   "\x81\xc1\x96\x00\x00\x00"                         );	// 197
-	test(                                             ADD(p, RAX, RBX),   "\x48\x01\xd8"                                     );	// 198
-	test(                                  ADD(p, RAX, indirect1(RBX)),   "\x48\x03\x03"                                     );	// 199
-	test(                                  ADD(p, indirect1(RBX), RAX),   "\x48\x01\x03"                                     );	// 200
-	test(                                                    PUSHAD(p),   "\x60"                                             );	// 201
-	test(                                                     POPAD(p),   "\x61"                                             );	// 202
+	test(                                          ADD(p, ECX, imm(1)),   "\x83\xc1\x01"                                     );	// 197
+	test(                                        ADD(p, ECX, imm(150)),   "\x81\xc1\x96\x00\x00\x00"                         );	// 198
+	test(                                             ADD(p, RAX, RBX),   "\x48\x01\xd8"                                     );	// 199
+	test(                                  ADD(p, RAX, indirect1(RBX)),   "\x48\x03\x03"                                     );	// 200
+	test(                                  ADD(p, indirect1(RBX), RAX),   "\x48\x01\x03"                                     );	// 201
+	test(                                                    PUSHAD(p),   "\x60"                                             );	// 202
+	test(                                                     POPAD(p),   "\x61"                                             );	// 203
