@@ -5,8 +5,9 @@ enum xReg {
 	rR8, rR9, rR10, rR11, rR12, rR13, rR14, rR15,
 	rEAX, rECX, rEDX, rEBX, rESP, rEBP, rESI, rEDI,
 	rAX, rCX, rDX, rBX, rSP, rBP, rSI, rDI,
-	rAL, rCL, rDL, rBL, rSPL, rBPL, rSIL, rDIL,
-	rAH=rSPL, rCH, rDH, rBH,
+	rAL, rCL, rDL, rBL,
+	rAH, rCH, rDH, rBH,
+	rSPL, rBPL, rSIL, rDIL,
 } xReg;
 
 typedef

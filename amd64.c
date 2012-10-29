@@ -487,6 +487,12 @@ isreg8(xReg r)
 }
 
 static int
+isreg8x(xReg r)
+{
+	return r >= rSPL && r <= rDIL;
+}
+
+static int
 isreg16(xReg r)
 {
 	return r >= rAX && r < rDI;
@@ -526,6 +532,8 @@ _regbits(xReg r)
 		return r-rAX;
 	else if(isreg8(r))
 		return r-rAL;
+	else if(isreg8x(r))
+		return (r-rSPL)+4;
 	else if(r == rNone)
 		bug();
 	/* FIXME: broken on high reg8 */
@@ -811,7 +819,7 @@ op2(NC *nc, xOp op, xRand dst, xRand src, u8 w)
 	}
 
 	/* pick a size */
-	if(!isreg(dst) || !isreg8(randreg(dst)))
+	if(!isreg(dst) || !(isreg8(randreg(dst)) || isreg8x(randreg(dst))))
 		op = opcodeor(op, 0x1);
 
 	prefix16(nc, dst);
