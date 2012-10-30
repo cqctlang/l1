@@ -202,3 +202,4 @@
 	test(                                  ADD(p, indirect1(RBX), RAX),   "\x48\x01\x03"                                     );	// 201
 	test(                                                    PUSHAD(p),   "\x60"                                             );	// 202
 	test(                                                     POPAD(p),   "\x61"                                             );	// 203
+	test(                                LEA(p, R15, indirectrip(0x5)),   "\x4c\x8d\x3d\x05\x00\x00\x00"                     );     // 204

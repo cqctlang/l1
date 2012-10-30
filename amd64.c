@@ -375,6 +375,12 @@ indirect8i(xRand b, xRand i, s32 d)
 }
 
 xRand
+indirectrip(s32 d)
+{
+	return mkindirect(RNONE, RNONE, 0, d);
+}
+
+xRand
 indirect2(xRand b, xRand o)
 {
 	/* asm.cqct permits o to be displacement
@@ -603,7 +609,8 @@ emitmodrm(NC *nc, u8 rbits, xRand rand)
 		if(sibpresent(rand))
 			rm = regbits(rRSP);
 		else
-			rm = regbits(randbase(rand));
+			rm = (isrnone(randbase(rand))
+			      ? regbits(rEBP) : regbits(randbase(rand)));
 		break;
 	case opReg:
 		rm = regbits(randreg(rand));
