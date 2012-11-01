@@ -343,6 +343,7 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 	initcid();
 	inittype();
 	initcg();
+	initnc();
 	initvm();
 	return mktoplevel(in, out, err);
 }

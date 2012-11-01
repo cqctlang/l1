@@ -845,6 +845,12 @@ struct Code {
 	/* instructions follow */
 };
 
+typedef
+struct NC {
+	u8 *buf, *p;
+	u32 n, max;
+} NC;
+
 #define codeinsn(x) ((Insn*)((Code*)(x)+1))
 #define codeend(x)  ((Insn*)((void*)(x)+(((Code*)(x))->sz)))
 #define codesize(n) (sizeof(Code)+(n))
@@ -1512,6 +1518,17 @@ void		vecset(Vec *vec, Imm idx, Val v);
 /* qc.c */
 Val		compile(VM *vm, Expr *e, Toplevel *top, char *argsid);
 Expr*		compilex(VM *vm, Expr *e, Toplevel *top, char *argsid);
+
+/* nc.c */
+void		emitu8(NC *nc, u8 w);
+void		emitu16(NC *nc, u16 w);
+void		emitu32(NC *nc, u32 w);
+void		emitu64(NC *nc, u64 w);
+void		fininc();
+void		freenc(NC *nc);
+NC*		mknc();
+void		ncclr(NC *nc);
+void		initnc();
 
 /* cqct.c */
 Expr*		cqctparse(char *s, Toplevel *top, char *src, unsigned line);

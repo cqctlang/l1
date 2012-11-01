@@ -64,6 +64,7 @@ L1C =\
 	tab.c\
 	vec.c\
 	mem.c\
+	nc.c\
 	vm.c\
 	cqct.c\
 	xfd.c\

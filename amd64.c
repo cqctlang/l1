@@ -55,77 +55,6 @@ defreg(DH);
 defreg(BH);
 #undef defreg;
 
-
-NC*
-mknc()
-{
-	NC *nc;
-	nc = emalloc(sizeof(NC));
-	nc->max = 256;
-	nc->p = nc->buf = emalloc(nc->max*sizeof(u8));
-	return nc;
-}
-
-void
-freenc(NC *nc)
-{
-	efree(nc);
-}
-
-static void
-ncclr(NC *nc)
-{
-	nc->p = nc->buf;
-	nc->n = 0;
-}
-
-static void
-nccap(NC *nc, u32 m)
-{
-	if(nc->n-nc->max >= m)
-		return;
-	nc->buf = erealloc(nc->buf, nc->max*sizeof(u8), 2*nc->max*sizeof(u8));
-	nc->max *= 2;
-	nc->p = nc->buf+nc->n;
-	nccap(nc, m);
-}
-
-static void
-emitu8(NC *nc, u8 w)
-{
-	nccap(nc, sizeof(w));
-	*(u8*)nc->p = w;
-	nc->p += sizeof(w);
-	nc->n += sizeof(w);
-}
-
-static void
-emitu16(NC *nc, u16 w)
-{
-	nccap(nc, sizeof(w));
-	*(u16*)nc->p = w;
-	nc->p += sizeof(w);
-	nc->n += sizeof(w);
-}
-
-static void
-emitu32(NC *nc, u32 w)
-{
-	nccap(nc, sizeof(w));
-	*(u32*)nc->p = w;
-	nc->p += sizeof(w);
-	nc->n += sizeof(w);
-}
-
-static void
-emitu64(NC *nc, u64 w)
-{
-	nccap(nc, sizeof(w));
-	*(u64*)nc->p = w;
-	nc->p += sizeof(w);
-	nc->n += sizeof(w);
-}
-
 static void
 n1(NC *nc, xImm imm)
 {
@@ -386,8 +315,16 @@ indirect2(xRand b, xRand o)
 	/* asm.cqct permits o to be displacement
 	   (probably something like
 	   mkindirect(b, RNONE, 0, o) */
-	assert(isreg(b) && isreg(o));
-	return mkindirect(b, o, 0, 0);
+	assert(isreg(b));
+	switch(o.okind){
+	case opReg:
+		return mkindirect(b, o, 0, 0);
+	case opImm:
+		return mkindirect(b, RNONE, 0, randimm(o).v.sdword);
+	case opMem:
+	default:
+		bug();
+	}
 }
 
 xRand
