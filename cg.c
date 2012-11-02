@@ -1647,8 +1647,8 @@ cglambda(Expr *e, char *id)
 	xcglambda(L, ode, e);
 	code = prepcode(ode);
 	if(cqctflags['o']){
-		printf("code for %s (%s:%llu):\n", id,
-		       srcfile(e->src), srcline(e->src));
+		xprintf("code for %s (%s:%u):\n", id,
+			srcfile(e->src), srcline(e->src));
 		printcode(code);
 	}
 

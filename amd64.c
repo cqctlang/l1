@@ -53,7 +53,7 @@ defreg(AH);
 defreg(CH);
 defreg(DH);
 defreg(BH);
-#undef defreg;
+#undef defreg
 
 static void
 n1(NC *nc, xImm imm)
