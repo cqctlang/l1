@@ -577,7 +577,6 @@ idxev = [
 
 		hs = handlers(ev);
 		if(length(hs) == 0){
-			printf("no handlers for %a\n", ev);
 			contasync();
 			return;
 		}
@@ -593,7 +592,6 @@ idxev = [
 
 		hs = handlers('signal);
 		if(length(hs) == 0){
-			printf("no handlers for signal event\n");
 			contasync();
 			return;
 		}
@@ -609,11 +607,6 @@ idxev = [
 		@local hs, spwnid, ctx, spwnctx, spwn;
 
 		hs = handlers(ev);
-		if(length(hs) == 0){
-			printf("no handler for %a!\n", ev);
-			contasync();
-			return;
-		}
 		p = (uint64*)p;
 		spwnid = *p++;
 		[ctx, p] = cs.dlct.decodectx(p);
