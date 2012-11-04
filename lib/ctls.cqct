@@ -311,7 +311,7 @@ idxev = [
 		id = *p++;
 		[ctx, p] = cs.dlct.decodectx(p);
 		
-		snctl = clonectl(id, ctx);
+		snctl = clonectl(id, ctx, 'fork);
 		cs.mux.unbindctl(snctl);
 //	FIXME: figure out how to ensure that we can keep refs to
 //	       domains derived from ctl without a ref to ctl
@@ -557,7 +557,7 @@ idxev = [
 		if(t == nil)
 			error("ctl %d has no handler for sctl trap %d",
 			      cs.ctlid, sid);
-		spwn = clonectl(spwnid, ctx);
+		spwn = clonectl(spwnid, ctx, 'fork);
 		t.fn(spwn);
 	}
 
@@ -612,7 +612,7 @@ idxev = [
 		[ctx, p] = cs.dlct.decodectx(p);
 		[spwnctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
-		spwn = clonectl(spwnid, spwnctx);
+		spwn = clonectl(spwnid, spwnctx, ev);
 		foreach(@lambda(t) { t.fn(this, spwn); }, hs);		
 		contasync();
 		spwn.contasync();
@@ -685,7 +685,7 @@ idxev = [
 			}, dlls);
 	}
 
-	@defloc clonectl(ctlid, ctx)
+	@defloc clonectl(ctlid, ctx, ev)
 	{
 		@local r, ctl;
 
@@ -693,15 +693,14 @@ idxev = [
 			     ctlid,
 			     cs.dlct,
 			     ctx,
-			     copy(cs.mmap),
-			     cs.nsmap.copy(),
+			     ev == 'fork ? copy(cs.mmap) : cs.mmap,
+			     ev == 'fork ? cs.nsmap.copy() : cs.nsmap,
 			     copy(cs.events),
 			     copy(cs.traps),
 			     copy(cs.straps)
 			);
 		ctl = _mkctl(r);
 		cs.mux.bindctl(ctl);
-		ctl.scan();  /* get new doms backed by this ctlid */
 		return ctl;
 	}
 
