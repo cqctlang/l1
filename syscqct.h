@@ -308,6 +308,9 @@ struct Expr {
 
 typedef void (Cfn)(VM *vm, Imm argc, Val *argv, Val *rv);
 typedef void (Ccl)(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv);
+typedef void (Xentry)(VM *vm, Closure *cl, Imm argc);
+
+extern Closure *xentry;
 
 struct Cid {
 	Head hd;
@@ -333,18 +336,12 @@ struct Cval {
 struct Closure {
 	Head hd;
 	Code *code;
-	u32 eoff;		/* offset in code to first instruction */
 	unsigned dlen;
-	Cid *id;
-	Imm fp;			/* of continuation, always >0 */
-	Cfn *cfn;
-	Ccl *ccl;
-	Val xfn;
+	/* display follows */
 };
 
 #define cldisp(x) ((Val*)((x)+1))
 #define clsize(n) (sizeof(Closure)+(n)*sizeof(Val))
-#define clentry(x) (codeinsn((x)->code)+(x)->eoff)
 
 struct Box {
 	Head hd;
@@ -679,7 +676,7 @@ enum {
 
 typedef
 enum {
-	Rsp = 0,
+	Rvc = 0,
 	Rfp,
 	Rpc,
 	Rac,
@@ -691,6 +688,22 @@ enum {
 	Oval,
 	Oimm,
 	Onil,
+};
+
+/* frame offsets */
+enum {
+	Ora = 0,
+	Ocl,
+	Onfrhd,			/* number of words in frame preamble */
+	Oarg0=Onfrhd,		/* offset of first argument */
+};
+
+/* offsets of frame data from return address */
+enum {
+	Ofsz = 1,
+	Ocode,
+	Omask,
+	Onframedata=Omask,
 };
 
 typedef
@@ -729,8 +742,7 @@ typedef
 enum
 {
 	Lreg,
-	Lparam,
-	Llocal,
+	Lframe,
 	Ldisp,
 	Ltopl,
 	Ltopr,
@@ -745,8 +757,8 @@ struct Lambda
 	unsigned ncap;
 	Var *disp;
 	unsigned ndisp;
-	Var *param;
-	unsigned nparam;
+	Var *arg;
+	unsigned narg;
 	unsigned nloc;
 	unsigned ntmp;
 } Lambda;
@@ -808,13 +820,13 @@ struct Insn {
 		Insn *targ;
 		Ctl *dstlabel;
 		u64 cnt;
+		s64 scnt;
 	};
 };
 
 typedef
 struct Reloc {
 	uptr	coff;		/* location of pointer from start of code */
-	uptr	ioff;		/* offset of pointer into pointed-to item */
 } Reloc;
 
 struct Ode {
@@ -825,7 +837,6 @@ struct Ode {
 	Ctl **labels;
 	Src *src;
 	Ctl *clist;
-	Tab *konst;
 	u64 *lm;
 	u32 nlm, mlm;
 };
@@ -833,27 +844,47 @@ struct Ode {
 /* live mask */
 #define mwbits	       (8*sizeof(u64))  /* # bits in mask word */
 
+typedef
+enum Ckind {
+	Cvm,
+	Ccfn,
+	Cccl,
+	Cxfn,
+} Ckind;
+
 struct Code {
 	Head hd;
+	Ckind kind;
 	Cid *id;
 	Imm sz;		/* bytes from header to end of last insn */
 	Imm nreloc;
+	u32 nfree;	/* number of free variables */
 	Str *reloc;
 	Str *lm;
-	Tab *konst;
-	Vec *src;   /* belongs in pure storage? */
+	Vec *src;	/* belongs in pure storage? */
+	u32 eoff;	/* offset to first instruction */
+	union {
+		Cfn *cfn;
+		Ccl *ccl;
+		Val xfn;
+	};
 	/* instructions follow */
 };
+
+#define trampsize    64
+#define _codeinsn(x) ((void*)((Code*)(x)+1))
+#define codetramp(x) _codeinsn(x)
+#define codekind(x)  (((Code*)x)->kind)
+#define codeinsn(x)  (codekind(x) == Cvm ? _codeinsn(x)+trampsize : _codeinsn(x))
+#define codeend(x)   ((void*)(x)+(((Code*)(x))->sz))
+#define codesize(n)  (sizeof(Code)+(n))
+#define codeentry(x) (codeinsn(x)+(x)->eoff)
 
 typedef
 struct NC {
 	u8 *buf, *p;
 	u32 n, max;
 } NC;
-
-#define codeinsn(x) ((Insn*)((Code*)(x)+1))
-#define codeend(x)  ((Insn*)((void*)(x)+(((Code*)(x))->sz)))
-#define codesize(n) (sizeof(Code)+(n))
 
 typedef
 struct BFgeom {
@@ -867,7 +898,7 @@ typedef
 struct Err {
 	jmp_buf esc;
 	unsigned pdepth;	/* vm->pdepth when error label set */
-	Imm sp, fp;
+	Val *fp;
 	Insn *pc;
 	Closure *cl;
 } Err;
@@ -901,10 +932,11 @@ typedef struct Hashop {
 } Hashop;
 
 struct VM {
-	Imm sp, fp;
-	Insn *pc;
+	Val *fp;
 	Closure *cl;
+	Imm vc;
 	Val ac;
+	Insn *pc;
 	unsigned int flags;
 	Toplevel *top;
 	Val stack[Maxstk];

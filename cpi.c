@@ -294,10 +294,17 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
         return rv;
 }
 
+static unsigned long m = 0;
+
+void
+resetcpilabel()
+{
+	m = 0;
+}
+
 static char*
 genlabel()
 {
-	static unsigned long m = 0;
 	char buf[32];
 	snprint(buf, sizeof(buf), ".L%u", m++);
 	return xstrdup(buf);
