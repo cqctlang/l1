@@ -31,7 +31,7 @@ struct Frame
 	u64 *live;
 } Frame;
 
-enum { Maxtoploc = 7; }
+enum { Maxtoploc = 7 };
 static Location toploc[Maxtoploc];
 static Location *Effect;
 static Location *AC, *FP, *CL, *ARG0, *ARG1, *ARG2;
@@ -407,7 +407,6 @@ setreloc(Code *c)
 		case Ikp:
 		case Ifmask:
 		case Ifsize:
-		case Ipushi:
 		case Inop:
 		case Iargc:
 		case Ivargc:
@@ -515,7 +514,7 @@ mkvmcode(Ode *o, u32 eoff, u32 nfree)
 	n = o->ninsn;
 	c = mkcode(Cvm, trampsize+n*sizeof(Insn));
 	c->id = o->id;
-	memcpy(codetramp(c), (void*)&ncallentry, trampsize);
+	memcpy(codetramp(c), trampentry->buf, trampentry->n);
 	memcpy(codeinsn(c), o->insn, o->ninsn*sizeof(Insn));
 	c->lm = mkstr((char*)o->lm, o->nlm*sizeof(u64));
 	c->reloc = mkstrn(128);
@@ -689,7 +688,7 @@ printcode(Code *c)
 				xprintf("\t%s:%u", srcfile(s), srcline(s));
 		}else
 			xprintf("\t\t");
-		xprintf("\t%06ld\t", i-codeinsn(c));
+		xprintf("\t%06ld\t", i-(Insn*)codeinsn(c));
 		printinsn(i);
 		xprintf("\n");
 	}
@@ -810,7 +809,7 @@ randvarloc(Frame *f, Operand *rand, Var *v, int deref)
 }
 
 static void
-randframeloc(Frame *f, Operand *rand, unsigned idx)
+randframeloc(Operand *rand, unsigned idx)
 {
 	rand->okind = Oloc;
 	newloc(&rand->u.loc, Lframe, idx, 0);
@@ -1161,7 +1160,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	int m;
 	Src src;
 	Val fn;
-	Imm clp, rap, nfp, nap;
+	Imm rap, nfp, nap;
 
 	switch(e->kind){
 	case Enop:
@@ -1540,7 +1539,7 @@ xcglambda(Ctl *name, Ode *code, Expr *e)
 	Lambda *l;
 	Insn *i;
 	CGEnv p;
-	unsigned m, needtop;
+	unsigned m;
 	Ctl *top;
 	Src src;
 	Frame f;

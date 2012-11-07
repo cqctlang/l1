@@ -624,14 +624,14 @@ struct U {
 typedef
 enum {
 	Iadd = 0,
+	Iaddfp,
 	Iand,
 	Iapply,
 	Iargc,
 	Ibox,
 	Ibox0,
 	Icall,
-	Icallc,
-	Icallt,
+	Ichksp,
 	Iclo,
 	Icmpeq,
 	Icmpgt,
@@ -641,7 +641,6 @@ enum {
 	Icmpneq,
 	Icode,
 	Idiv,
-	Iframe,
 	Ifmask,
 	Ifsize,
 	Ihalt,
@@ -651,23 +650,20 @@ enum {
 	Ijz,
 	Ikg,
 	Ikp,
-	Ilist,
 	Imod,
 	Imov,
 	Imovra,
+	Imovvc,
 	Imul,
 	Ineg,
 	Inot,
 	Ior,
 	Inop,
 	Ipanic,
-	Ipush,
-	Ipushi,
 	Iret,
 	Ishl,
 	Ishr,
 	Isub,
-	Isubsp,
 	Ivargc,
 	Ixcast,
 	Ixor,
@@ -961,6 +957,7 @@ extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
 extern Code *kcode;
+extern NC *trampentry;
 
 /* top-level roots */
 extern Val syms;
@@ -1016,6 +1013,13 @@ int		bitfieldgeom(BFgeom *bfg);
 Imm		bitfieldget(char *s, BFgeom *bfg);
 Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
+/* code.c */
+void		addreloc(Code *code, uptr coff);
+Code*		mkncode(Imm nbytes);
+Code*		ra2code(void *ra, Closure *cl);
+Imm		ra2mask(void *ra, Closure *cl);
+Imm		ra2size(void *ra, Closure *cl);
+
 /* compilee.c */
 Expr*		docompilee(U *ctx, Expr *e);
 
@@ -1054,6 +1058,7 @@ Expr*		docompilel(U *ctx, Expr *e);
 
 /* compilei.c */
 Expr*		docompilei(U *ctx, Expr *e);
+void		resetcpilabel();
 
 /* cpr.c */
 Expr*		docompiler(U *ctx, Expr *e);
@@ -1161,13 +1166,13 @@ As*		mkastab(Tab *mtab, Str *name);
 Closure*	mkcfn(char *id, Cfn *cfn);
 Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkxfn(Val code);
-Closure*	mkcl(Code *code, u32 eoff, unsigned len);
+Closure*	mkcl(Code *code, unsigned len);
 Cval*		mkcval(Dom *dom, Ctype *type, Imm val);
 Dom*		mkdom(Ns *ns, As *as, Str *name);
 Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
 Fd*		mkfdcl(Str *name, int flags,
 		       Closure *read, Closure *write, Closure *close);
-Cval*		mklitcval(Cbase base, Imm val); 
+Cval*		mklitcval(Cbase base, Imm val);
 Ns*		mknsraw(VM *vm, Ns *ons, Tab *rawtype,
 			Tab *rawsym, Str *name);
 Ns*		mknstab(Tab *mtab, Str *name);

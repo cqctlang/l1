@@ -157,14 +157,12 @@ valhead(Val v)
 }
 
 Closure*
-mkcl(Code *code, u32 eoff, unsigned len)
+mkcl(Code *code, unsigned len)
 {
 	Closure *cl;
 	cl = (Closure*)malv(Qcl, sizeof(Closure)+len*sizeof(Val));
 	cl->code = code;
-	cl->eoff = eoff;
 	cl->dlen = len;
-	cl->id = code->id;
 	return cl;
 }
 
@@ -174,7 +172,7 @@ mkxfn(Val xfn)
 	Closure *cl;
 	Code *code;
 	code = callccode("*asm*");
-	cl = mkcl(code, 0, 0);
+	cl = mkcl(code, 0);
 	cl->xfn = xfn;
 	return cl;
 }
@@ -185,7 +183,7 @@ mkcfn(char *id, Cfn *cfn)
 	Closure *cl;
 	Code *code;
 	code = callccode(id);
-	cl = mkcl(code, 0, 0);
+	cl = mkcl(code, 0);
 	cl->cfn = cfn;
 	return cl;
 }
@@ -207,7 +205,7 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 
 	code = callccode(id);
 	va_start(args, dlen);
-	cl = mkcl(code, 0, dlen);
+	cl = mkcl(code, dlen);
 	cl->ccl = ccl;
 	for(m = 0; m < dlen; m++){
 		vp = va_arg(args, Val);
@@ -2241,7 +2239,7 @@ xclo(VM *vm, Val v, Imm len)
 	if(Vkind(v) != Qcode)
 		bug();
 	code = valcode(v);
-	cl = mkcl(code, 0, len);
+	cl = mkcl(code, len);
 	for(m = 0; m < len; m++)
 		cldisp(cl)[m] = vm->stack[vm->sp+m];
 	vm->sp += m;
@@ -2255,7 +2253,7 @@ xkg(VM *vm)
 	Imm len;
 
 	len = Maxstk-vm->sp;
-	k = mkcl(kcode, 0, len);
+	k = mkcl(kcode, len);
 	memcpy(cldisp(k), &vm->stack[vm->sp], len*sizeof(Val));
 	k->fp = vm->fp;
 	return mkvalcl(k);
@@ -6497,7 +6495,7 @@ l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcode);
 	c = valcode(argv[0]);
 	dlen = argc-1;
-	cl = mkcl(c, 0, dlen);
+	cl = mkcl(c, dlen);
 	for(i = 0; i < dlen; i++)
 		cldisp(cl)[i] = argv[i+1];
 	*rv = mkvalcl(cl);
