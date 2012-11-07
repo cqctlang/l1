@@ -244,8 +244,6 @@ static Val* iterrec(Head*, Ictx*);
 static Val* itertab(Head*, Ictx*);
 static Val* itervec(Head*, Ictx*);
 
-static void copykstack(Val *stack, Imm len, Imm fp);
-
 static Qtype qs[Qnkind] = {
 	[Qas]	 = { "as", sizeof(As), 1, 0, iteras },
 	[Qbox]	 = { "box", sizeof(Box), 0, 0, iterbox },
@@ -356,26 +354,10 @@ itercl(Head *hd, Ictx *ictx)
 {
 	Closure *cl;
 	cl = (Closure*)hd;
-	if(ictx->n > cl->dlen+2)
+	if(ictx->n > cl->dlen)
 		return GCiterdone;
-	if(ictx->n == cl->dlen+1){
-		ictx->n++;
-		return (Val*)&cl->id;
-	}
-	if(ictx->n == cl->dlen+2){
-		ictx->n++;
-		if(cl->xfn)
-			return (Val*)&cl->xfn;
-		else
-			return GCiterdone;
-	}
 	if(ictx->n == cl->dlen){
 		ictx->n++;
-		return (Val*)&cl->code;
-	}
-	if(cl->code == kcode){
-		copykstack(cldisp(cl), cl->dlen, cl->fp);
-		ictx->n = cl->dlen+1;
 		return (Val*)&cl->code;
 	}
 	return &cldisp(cl)[ictx->n++];
@@ -391,8 +373,6 @@ iterode(Head *hd, Ictx *ictx)
 	if(n < code->ninsn)
 		return (Val*)&code->src[n];
 	else if(n == code->ninsn)
-		return (Val*)&code->konst;
-	else if(n == code->ninsn+1)
 		return (Val*)&code->id;
 	else
 		return GCiterdone;
@@ -1386,15 +1366,18 @@ scan1code(Code *c)
 	gcopy((Val*)&c->id, &min);
 	gcopy((Val*)&c->reloc, &min);
 	gcopy((Val*)&c->lm, &min);
-	gcopy((Val*)&c->konst, &min);
 	gcopy((Val*)&c->src, &min);
+	if(c->kind == Cxfn)
+		gcopy(&c->xfn, &min);
+	if(c->reloc == 0)
+		return min;
 	r = (Reloc*)strdata(c->reloc);
-	p = c;
+	p = c+1;
 	for(i = 0; i < c->nreloc; i++, r++){
 		cp = (void**)(p+r->coff);
-		h = *cp-r->ioff;
+		h = *cp;
 		gcopy((Val*)&h, &min);
-		*cp = h+r->ioff;
+		*cp = h;
 	}
 	return min;
 }
@@ -1696,6 +1679,7 @@ toprd(void *u, void *k, void *v)
 	copy(v);
 }
 
+#if 0
 static void
 copykstack(Val *stack, Imm len, Imm fp)
 {
@@ -1768,93 +1752,67 @@ copykstack(Val *stack, Imm len, Imm fp)
 		stack[pcp] = (Val)(uptr)pc;
 	}
 }
+#endif
 
 /* assume current frame has no live refererences,
-   i.e., we are at start of a call:
+   i.e., we are at start of a call (presumably gcpoll or gc)
 	fp points to beginning of frame for the current call
-	sp should be fp
 	pc is first insn in call
 */
-
 static void
 copystack(VM *vm)
 {
-	Imm ofp, fp, pcp, narg, m, i, clx;
-	Insn *pc, *fsz, *fm, *ci;
-	u64 sz, mask, *mp, o;
-	Closure *cl;
+	Imm i;
+	Val *fp, *ofp, *rap, *m, vcl;
+	Insn *ra;
+	u64 sz, lm, *mp, o;
 	uptr coff;
+	Closure *cl;
 	Code *cp;
 
 	fp = vm->fp;
+
+	/* FIXME: invalid termination, right? */
 	if(fp == 0)
 		return;
 
-	/* copy current pc and code if we appear to be in a call
-	   (e.g., via gc() or compact() rather than gcpoll */
-	pc = vm->pc;
-	ci = pc-2;
-	if(ci->kind == Icode){
-		cp = (void*)ci-ci->cnt;
-		coff = (uptr)pc-(uptr)cp;
-		copy((Val*)&cp);
-		pc = (Insn*)((uptr)cp+coff);
-		vm->pc = pc;
-	}
-
+	copy(fp+Ocl);
 	while(1){
-		narg = stkimm(vm->stack[fp]);
-		clx = fp+narg+2;
-		copy(&vm->stack[clx]);
-		for(i = 0; i < narg; i++)
-			copy(&vm->stack[fp+1+i]);
-		pcp = fp+narg+1;
-		pc = stkp(vm->stack[pcp]);
-		if(pc == 0)
+		rap = fp+Ora;
+		ra = stkp(*rap);
+		vcl = fp[Ocl];
+		if(vcl == 0)
 			break;
+		cl = curaddr(vcl);
+		cp = ra2code(ra, cl);
+		sz = ra2size(ra, cl);
+		lm = ra2mask(ra, cl);
 
-		/* copy live variables in this frame */
+		/* copy locations in live mask */
 		ofp = fp;
-		fp = stkimm(vm->stack[fp+narg+3]);
-		cl = valcl(vm->stack[clx]);
-		fsz = pc-1;
-		fm = pc-3;
-		if(fsz->kind != Ifsize || fm->kind != Ifmask)
-			fatal("no live mask for pc %d cl %p", pc, cl);
-		sz = fsz->cnt;
-		if(fp-ofp != sz+narg+4)
-			fatal("frame botch ofp %lu fp %lu sz %llu narg %llu",
-			      ofp, fp, sz, narg);
-		mask = fm->cnt;
-		m = fp-1;
-		if((mask>>(mwbits-1))&1){
-			o = mask&~(1ULL<<(mwbits-1));
-			mp = (u64*)strdata(cl->code->lm)+o;
+		fp -= sz;
+		m = fp;
+		if((lm>>(mwbits-1))&1){
+			o = lm&~(1ULL<<(mwbits-1));
+			mp = (u64*)strdata(cp->lm)+o;
 			while(sz > 0){
-				mask = *mp++;
-				for(i = 0; sz > 0 && i < mwbits; i++){
-					if((mask>>i)&1)
-						copy(&vm->stack[m]);
-					sz--;
-					m--;
-				}
+				lm = *mp++;
+				for(i = 0; sz > 0 && i < mwbits; i++, sz--, m++)
+					if((lm>>i)&1)
+						copy(m);
 			}
 		}else
-			for(i = 0; i < sz; i++){
-				if((mask>>i)&1)
-					copy(&vm->stack[m]);
-				m--;
-			}
+			for(i = 0; i < sz; i++, m++)
+				if((lm>>i)&1)
+					copy(m);
 
-		/* copy code and update pc on stack */
-		ci = pc-2;
-		if(ci->kind != Icode)
-			fatal("no code for pc %d cl %p", pc, cl);
-		cp = (void*)ci-ci->cnt;
-		coff = (uptr)pc-(uptr)cp;
-		copy((Val*)&cp);
-		pc = (Insn*)((uptr)cp+coff);
-		vm->stack[pcp] = (Val)(uptr)pc;
+		if(cp){
+			/* copy code and update ra on stack */
+			coff = (uptr)ra-(uptr)cp;
+			copy((Val*)&cp);
+			ra = (Insn*)((uptr)cp+coff);
+			*rap = (Val)(uptr)ra;
+		}
 	}
 }
 
@@ -2156,6 +2114,7 @@ _gc(u32 g, u32 tg)
 			continue;
 		copystack(vm);
 		for(m = 0; m < vm->edepth; m++)
+			/* FIXME: need to update pc and fp */
 			copy((Val*)&vm->err[m].cl);
 		copy((Val*)&vm->top->env->var);
 		hforeachp(vm->top->env->rd, toprd, 0);

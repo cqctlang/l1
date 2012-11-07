@@ -192,6 +192,7 @@ compile(VM *vm, Expr *e, Toplevel *top, char *argsid)
 	Closure *cl;
 	U ctx;
 
+	resetlabels();
 	memset(tv, 0, sizeof(tv));
 	if(cqctflags['p']){
 		xprintf("\n*** pre-expand ***\n");

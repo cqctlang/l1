@@ -50,6 +50,8 @@ L1C =\
 	cp1.c\
 	cpv.c\
 	cpb.c\
+	code.c\
+	nc.c\
 	cg.c\
 	ch.c\
 	cid.c\
@@ -64,7 +66,6 @@ L1C =\
 	tab.c\
 	vec.c\
 	mem.c\
-	nc.c\
 	vm.c\
 	cqct.c\
 	xfd.c\

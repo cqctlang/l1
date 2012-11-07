@@ -3,7 +3,7 @@
 #include "syscqct.h"
 #include "amd64.h"
 
-NC*	ncallentry;
+NC*	trampentry;
 
 NC*
 mknc()
@@ -102,7 +102,7 @@ savevm(NC *nc)
 }
 
 static NC*
-mkncallentry()
+mktrampentry()
 {
 	NC *nc;
 	nc = mknc();
@@ -121,13 +121,13 @@ mkncallentry()
 void
 initnc()
 {
-	ncallentry = mkncallentry();
-	printf("ncallentry:\n");
-	ncdis(ncallentry);
+	trampentry = mktrampentry();
+	printf("trampentry:\n");
+	ncdis(trampentry);
 }
 
 void
 fininc()
 {
-	freenc(ncallentry);
+	freenc(trampentry);
 }

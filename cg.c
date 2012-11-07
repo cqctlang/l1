@@ -823,7 +823,6 @@ cgrand(Frame *f, Operand *rand, Expr *e)
 		randvarloc(f, rand, e->e1->xp, 1);
 		break;
 	case E_tid:
-		bug();
 	case Eid:
 		randvarloc(f, rand, e->xp, 0);
 		break;
@@ -1202,10 +1201,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			cg(e->e2, code, p, &dst, ctl, prv, nxt, f);
 		break;
 	case E_tg:
-		bug();
 	case Eg:
-		if(e->e1->kind != Eid)
-			bug();
 		varloc(f, &dst, e->e1->xp, 0);
 		if(loc != Effect){
 			L = genlabel(code, 0);
@@ -1222,7 +1218,6 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	case Euminus:
 	case Eutwiddle:
 	case Eunot:
-		bug();
 	case Euplus:
 		if(issimple(e->e1))
 			cgrand(f, &r1, e->e1);
@@ -1235,7 +1230,6 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgunop(code, p, e->kind, &r1, loc, ctl, nxt, e->src);
 		break;
 	case EBINOP:
-		bug();
 		if(issimple(e->e1) && issimple(e->e2)){
 			cgrand(f, &r1, e->e1);
 			cgrand(f, &r2, e->e2);
@@ -1420,7 +1414,6 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case E_tid:
-		bug();
 	case Eid:
 		i = nextinsn(code, e->src);
 		i->kind = Imov;

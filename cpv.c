@@ -114,11 +114,11 @@ mkvars(Expr *e)
 			fatal("bug");
 		if(hasvarg(p)){
 			l->isvarg = 1;
-			l->nparam = elistlen(p)-1; /* don't count ellipsis */
-			v = l->param = emalloc(l->nparam*sizeof(Var));
+			l->narg = elistlen(p)-1; /* don't count ellipsis */
+			v = l->arg = emalloc(l->narg*sizeof(Var));
 			p = e->e1;
 			m = 0;
-			while(m < l->nparam-1){
+			while(m < l->narg-1){
 				v->id = idsym(p->e1);
 				v->where = Vparam;
 				v->idx = m++;
@@ -130,8 +130,8 @@ mkvars(Expr *e)
 			v->where = Vlocal;
 			v->idx = 0;
 		}else{
-			l->nparam = elistlen(p);
-			v = l->param = emalloc(l->nparam*sizeof(Var));
+			l->narg = elistlen(p);
+			v = l->arg = emalloc(l->narg*sizeof(Var));
 			p = e->e1;
 			m = 0;
 			while(p->kind == Eelist){
@@ -206,7 +206,7 @@ idboxes(Expr *e, Xenv *lex)
 	case Elambda:
 		l = (Lambda*)e->xp;
 		rib = mkxenv(lex);
-		bindvars(rib, l->param, l->nparam);
+		bindvars(rib, l->arg, l->narg);
 		idboxes(e->e2, rib);
 		freexenv(rib);
 		break;
@@ -519,10 +519,10 @@ exboxes(Expr *e, Xenv *lex)
 	case Elambda:
 		l = (Lambda*)e->xp;
 		rib = mkxenv(lex);
-		bindvars(rib, l->param, l->nparam);
+		bindvars(rib, l->arg, l->narg);
 		es = Zcons(exboxes(e->e2, rib), Znull());
 		freexenv(rib);
-		for(m = l->nparam-1, v = &l->param[m]; m >= 0; m--, v--)
+		for(m = l->narg-1, v = &l->arg[m]; m >= 0; m--, v--)
 			if(v->box)
 				es = putsrc(Zcons(Zmkbox(doid(v->id)), es),
 					    e->src);
@@ -596,7 +596,7 @@ fv(Expr *e, Xenv *lex, Xenv *loc, Xenv *free)
 	case Elambda:
 		l = (Lambda*)e->xp;
 		rib = mkxenv(loc);
-		bindvars(rib, l->param, l->nparam);
+		bindvars(rib, l->arg, l->narg);
 		fv(e->e2, lex, rib, free);
 		freexenv(rib);
 		break;
@@ -666,7 +666,7 @@ idfree(Expr *e, Xenv *lex)
 	case Elambda:
 		l = (Lambda*)e->xp;
 		loc = mkxenv(0);
-		bindvars(loc, l->param, l->nparam);
+		bindvars(loc, l->arg, l->narg);
 
 		/* find free variables (loc ends at this lambda) */
 		free = mkxenv(0);
@@ -697,7 +697,7 @@ idfree(Expr *e, Xenv *lex)
 		/* recurse (loc extends lexical environment). */
 		loc = mkxenv(lex);
 		bindvars(loc, l->disp, l->ndisp);
-		bindvars(loc, l->param, l->nparam);
+		bindvars(loc, l->arg, l->narg);
 		idfree(e->e2, loc);
 		freexenv(loc);
 		freexenv(free);
@@ -947,7 +947,7 @@ exloc(Expr *e, Xenv *lex, Env *top)
 		l = (Lambda*)e->xp;
 		lex = mkxenv(0);
 		bindvars(lex, l->disp, l->ndisp);
-		bindvars(lex, l->param, l->nparam);
+		bindvars(lex, l->arg, l->narg);
 		collect(e->e2, lex);
 		exloc(e->e2, lex, top);
 		freexenv(lex);

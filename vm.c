@@ -167,25 +167,14 @@ mkcl(Code *code, unsigned len)
 }
 
 Closure*
-mkxfn(Val xfn)
-{
-	Closure *cl;
-	Code *code;
-	code = callccode("*asm*");
-	cl = mkcl(code, 0);
-	cl->xfn = xfn;
-	return cl;
-}
-
-Closure*
 mkcfn(char *id, Cfn *cfn)
 {
-	Closure *cl;
 	Code *code;
-	code = callccode(id);
-	cl = mkcl(code, 0);
-	cl->cfn = cfn;
-	return cl;
+	code = mkcode(Ccfn, trampsize);
+	memcpy(codetramp(code), trampentry->buf, trampentry->n);
+	code->cfn = cfn;
+	code->id = mkcid0(id);
+	return mkcl(code, 0);
 }
 
 Closure*
@@ -197,16 +186,18 @@ cqctmkcfn(char *id, Cfn *cfn)
 Closure*
 mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 {
+	Code *code;
 	Closure *cl;
 	va_list args;
 	Val vp;
 	unsigned m;
-	Code *code;
 
-	code = callccode(id);
-	va_start(args, dlen);
+	code = mkcode(Cccl, trampsize);
+	memcpy(codetramp(code), trampentry->buf, trampentry->n);
+	code->ccl = ccl;
+	code->id = mkcid0(id);
 	cl = mkcl(code, dlen);
-	cl->ccl = ccl;
+	va_start(args, dlen);
 	for(m = 0; m < dlen; m++){
 		vp = va_arg(args, Val);
 		cldisp(cl)[m] = vp;
@@ -259,11 +250,11 @@ eqval(Val v1, Val v2)
 		return 0;
 	switch(Vkind(v1)){
 	case Qundef:
-	case Qbox:
 		bug();
 	case Qnil:
 		return 1;
 	case Qas:
+	case Qbox:
 	case Qcid:
 	case Qcl:
 	case Qdom:
@@ -293,11 +284,11 @@ hashqval(Val v)
 {
 	switch(Vkind(v)){
 	case Qundef:
-	case Qbox:
 		bug();
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
+	case Qbox:
 	case Qcid:
 	case Qcl:
 	case Qdom:
@@ -329,11 +320,11 @@ eqvval(Val v1, Val v2)
 		return 0;
 	switch(Vkind(v1)){
 	case Qundef:
-	case Qbox:
 		bug();
 	case Qnil:
 		return 1;
 	case Qas:
+	case Qbox:
 	case Qcid:
 	case Qcl:
 	case Qdom:
@@ -371,11 +362,11 @@ hashqvval(Val v)
 {
 	switch(Vkind(v)){
 	case Qundef:
-	case Qbox:
 		bug();
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
+	case Qbox:
 	case Qcid:
 	case Qcl:
 	case Qdom:
@@ -415,11 +406,11 @@ equalval(Val v1, Val v2)
 		return 0;
 	switch(Vkind(v1)){
 	case Qundef:
-	case Qbox:
 		bug();
 	case Qnil:
 		return 1;
 	case Qas:
+	case Qbox:		/* FIXME: be structural? */
 	case Qcid:
 	case Qcl:
 	case Qdom:
@@ -457,11 +448,11 @@ hashval(Val v)
 {
 	switch(Vkind(v)){
 	case Qundef:
-	case Qbox:
 		bug();
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
+	case Qbox:		/* FIXME: be structural? */
 	case Qcid:
 	case Qcl:
 	case Qdom:
@@ -752,23 +743,18 @@ putval(VM *vm, Val v, Location *loc)
 		case Rac:
 			vm->ac = v;
 			break;
-		case Rsp:
-		case Rfp:
-		case Rpc:
 		case Rcl:
+			vm->cl = valcl(v);
+			break;
+		case Rfp:
+		case Rvc:
+		case Rpc:
 		default:
 			fatal("bug");
 		}
 		break;
-	case Lparam:
-		dst = &vm->stack[(vm->fp+1)+LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			putbox(*dst, v);
-		else
-			*dst = v;
-		break;
-	case Llocal:
-		dst = &vm->stack[(vm->fp-1)-LOCIDX(loc->loc)];
+	case Lframe:
+		dst = vm->fp+LOCIDX(loc->loc);
 		if(LOCBOX(loc->loc))
 			putbox(*dst, v);
 		else
@@ -795,58 +781,77 @@ putval(VM *vm, Val v, Location *loc)
 Src
 addr2line(Code *code, Insn *pc)
 {
-	return (Src)vecref(code->src, pc-codeinsn(code));
+	return (Src)vecref(code->src, pc-(Insn*)codeinsn(code));
 }
 
 static void
-printsrc(Xfd *xfd, Closure *cl, Insn *pc)
+printsrc(Xfd *xfd, Code *c, Insn *pc)
 {
-	Code *code;
 	Src src;
 
-	code = cl->code;
-	if(cl->cfn || cl->ccl){
-		cprintf(xfd, "%20s\t(builtin %s)\n", ciddata(cl->id),
-			cl->cfn ? "function" : "closure");
-		return;
+	switch(c->kind){
+	case Ccfn:
+		cprintf(xfd, "%20s\t(builtin function)\n", ciddata(c->id));
+		break;
+	case Cccl:
+		cprintf(xfd, "%20s\t(builtin closure)\n", ciddata(c->id));
+		break;
+	case Cxfn:
+		cprintf(xfd, "%20s\t(native code)\n", ciddata(c->id));
+		break;
+	case Cvm:
+		src = addr2line(c, pc);
+		if(srclineval(src) == Xnil)
+			cprintf(xfd, "%20s\t(%s)\n",
+				ciddata(c->id), srcfile(src));
+		else
+			cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(c->id),
+				srcfile(src), srcline(src));
+		break;
+	default:
+		bug();
 	}
-	if(cl->xfn){
-		cprintf(xfd, "%20s\t(code)\n", ciddata(cl->id));
-		return;
-	}
+}
 
-	src = addr2line(code, pc);
-	if(srclineval(src) == Xnil)
-		cprintf(xfd, "%20s\t(%s)\n", ciddata(cl->id), srcfile(src));
-	else
-		cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(cl->id),
-			srcfile(src), srcline(src));
+void
+printframe(VM *vm, Insn *pc, Code *c)
+{
+	Xfd *xfd;
+
+	xfd = &vm->top->out;
+	if(strcmp(ciddata(c->id), "$halt") == 0)
+		return;
+	if(strcmp(ciddata(c->id), "gettoplevel") == 0)
+		return;
+	printsrc(xfd, c, pc);
 }
 
 void
 fvmbacktrace(VM *vm)
 {
-	Imm fp, narg;
+	Val *fp;
 	Insn *pc;
 	Closure *cl;
-	Xfd *xfd;
-
-	xfd = &vm->top->out;
 
 	pc = vm->pc;
 	fp = vm->fp;
 	cl = vm->cl;
-	while(pc != 0){
-		pc--;		/* vm loop increments pc after fetch */
-		if(strcmp(ciddata(cl->id), "$halt")){
-//			cprintf(xfd, "fp=%05lld pc=%08lld ",
-//				fp, pc-codeinsn(cl->code));
-			printsrc(xfd, cl, pc);
-		}
-		narg = stkimm(vm->stack[fp]);
-		pc = stkp(vm->stack[fp+narg+1]);
-		cl = valcl(vm->stack[fp+narg+2]);
-		fp = stkimm(vm->stack[fp+narg+3]);
+
+	if(pc == 0)
+		return;
+	if(pc != stkp(fp[Ora])){
+		/* pc != ra implies we are not in a builtin */
+		pc--;			/* vm loop increments pc after fetch */
+		printframe(vm, pc, cl->code);
+	}
+	while(1){
+		pc = stkp(fp[Ora]);
+		cl = valcl(fp[Ocl]);
+		if(cl == 0)
+			break;
+		fp -= ra2size(pc, cl);
+		pc -= Onframedata;	/* back to call instruction */
+		printframe(vm, pc, cl->code);
 	}
 }
 
@@ -895,22 +900,18 @@ getval(VM *vm, Location *loc)
 		switch(LOCIDX(loc->loc)){
 		case Rac:
 			return vm->ac;
-		case Rsp:
 		case Rfp:
+			return (Val)(uptr)vm->fp;
 		case Rcl:
+			return mkvalcl(vm->cl);
+		case Rvc:
 		case Rpc:
 		default:
 			fatal("bug");
 		}
 		break;
-	case Lparam:
-		p = vm->stack[(vm->fp+1)+LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			return valboxed(p);
-		else
-			return p;
-	case Llocal:
-		p = vm->stack[(vm->fp-1)-LOCIDX(loc->loc)];
+	case Lframe:
+		p = vm->fp[LOCIDX(loc->loc)];
 		if(LOCBOX(loc->loc))
 			return valboxed(p);
 		else
@@ -1495,108 +1496,255 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	*rv2 = op2;
 }
 
+Closure *xentry;
+
 static void
-xcallc(VM *vm)
+calln(VM *vm)
 {
-	Imm argc;
-	Val *argv;
-	Val rv;
-	Cfn *x;
+	Xentry *x;
+	Closure *cl;
+	if(xentry == 0)
+		bug();
+	x = (Xentry*)codeinsn(xentry->code);
+	cl = vm->cl;
+	vm->cl = xentry;
 
-	if(vm->cl->cfn == 0 && vm->cl->ccl == 0 && vm->cl->xfn == 0)
-		vmerr(vm, "bad closure for builtin call");
+	/* assist entry with argument sliding */
+	memmove(vm->fp+Oarg0+Oarg0, vm->fp+Oarg0, vm->vc*sizeof(Val));
 
-	rv = Xnil;
-	argc = stkimm(vm->stack[vm->fp]);
-	argv = &vm->stack[vm->fp+1];
-	vm->pc += 3; // skip livemask
-	if(vm->cl->cfn)
-		vm->cl->cfn(vm, argc, argv, &rv);
-	else if(vm->cl->ccl)
-		vm->cl->ccl(vm, argc, argv, cldisp(vm->cl), &rv);
-	else{
-		if(Vkind(vm->cl->xfn) == Qstr)
-			x = (Cfn*)strdata(valstr(vm->cl->xfn));
-		else if(Vkind(vm->cl->xfn) == Qcval)
-			x = (Cfn*)(uptr)cvalu(valcval(vm->cl->xfn));
-		else
-			bug();
-		x(vm, argc, argv, &rv);
-	}
-	vm->ac = rv;
+	x(vm, cl, vm->vc);
 }
 
-/* 
-shuffle the stack from a valid apply call:
-
-            fp
-            cl
-            pc
-             l -> [ argK, ..., argN ]
-        argK-1
-           ...
-          arg1
-            fn
-  fp,sp -> K+2    cl = apply
-
-to the corresponding direct call:
-
-            fp
-            cl
-            pc
-          argN
-           ...
-          argK
-        argK-1
-           ...
-          arg1
-  fp,sp ->   N    cl = fn
-*/
-static void
-xapply(VM *vm)
+static Val
+_ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
-	Imm i, m, oarg, narg, sarg, nfp;
-	Val fn;
-	Val lv;
-	List *l;
+	Code *c;
+	Imm fsz;
+	Val rv;
+	Imm m;
 
-	if(vm->sp != vm->fp)
+	rv = Xnil;
+	c = cl->code;
+	switch(c->kind){
+	case Cvm:
+		fsz = Onfrhd+vm->vc;
+
+		vm->fp += fsz;
+		if(vm->cl && vm->cl->code->kind == Cvm)
+			bug();
+		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
+		vm->fp[Ora] = (Val)(uptr)fsz;
+
+		vm->fp += Onfrhd;
+		vm->fp[Ocl] = mkvalcl(halt);
+		vm->fp[Ora] = (Val)(uptr)codeentry(halt->code);
+
+		for(m = 0; m < argc; m++)
+			vm->fp[Oarg0+m] = argv[m];
+		vm->vc = argc;
+		vm->cl = cl;
+
+		vm->pc = codeentry(c);
+		rv = dovm(vm);
+
+		vm->fp -= Onfrhd;
+		fsz = (Imm)(uptr)vm->fp[Ora]; /* fsz already has this value */
+		vm->vc = fsz-Onfrhd;
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->fp -= fsz;
+
+		break;
+	case Ccfn:
+	case Cccl:
+		fsz = Onfrhd+vm->vc;
+
+		vm->fp += fsz;
+		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
+		vm->fp[Ora] = (Val)(uptr)fsz;
+
+		for(m = 0; m < argc; m++)
+			vm->fp[Oarg0+m] = argv[m];
+		vm->vc = argc;
+		vm->cl = cl;
+
+		switch(c->kind){
+		case Ccfn:
+			c->cfn(vm, argc, argv, &rv);
+			break;
+		case Cccl:
+			c->ccl(vm, argc, argv, cldisp(vm->cl), &rv);
+			break;
+		default:
+			bug();
+		}
+		vm->ac = rv;
+		fsz = (Imm)(uptr)vm->fp[Ora]; /* fsz already has this value */
+		vm->vc = fsz-Onfrhd;
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->fp -= fsz;
+		break;
+	case Cxfn:
+
+		fsz = Onfrhd+vm->vc;
+
+		vm->fp += fsz;
+		if(vm->cl && vm->cl->code->kind == Cvm)
+			bug();
+		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
+		vm->fp[Ora] = (Val)(uptr)fsz;
+
+		for(m = 0; m < argc; m++)
+			vm->fp[Oarg0+m] = argv[m];
+		vm->vc = argc;
+		vm->cl = cl;
+
+		calln(vm);
+
+		fsz = (Imm)(uptr)vm->fp[Ora];
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->vc = fsz-Onfrhd;
+		vm->fp -= fsz;
+		rv = vm->ac;
+		break;
+	default:
 		bug();
-	oarg = stkimm(vm->stack[vm->fp]);
-	if(oarg < 2)
-		vmerr(vm, "wrong number of arguments to apply");
-	fn = vm->stack[vm->fp+1];
-	lv = vm->stack[vm->fp+oarg];
-	if(Vkind(fn) != Qcl)
-		vmerr(vm, "first argument to apply must be a procedure");
-	if(Vkind(lv) != Qlist)
-		vmerr(vm, "final argument to apply must be a list");
-	l = vallist(lv);
-	m = listlen(l);
-	sarg = oarg-2; /* arguments already on stack */
-	narg = sarg+m;
-	nfp = vm->fp-(narg-oarg);
+	}
 
-	/* three cases:
-	   i)   L is empty: stack arguments slide up one position
-	   ii)  L has one element: it is replaced by its element
-           iii) L has more: stack arguments slide down to make room;
-                  L's elements are copied above.
-           the following code handles all three cases.
-	*/
-	memmove(&vm->stack[nfp+1], &vm->stack[vm->fp+2],
-		sarg*sizeof(Val));
-	for(i = 0; i < m; i++)
-		vm->stack[nfp+1+sarg+i] = listref(l, i);
+	return rv;
+}
 
-	vm->fp = vm->sp = nfp;
-	vm->stack[vm->fp] = (Val)(uptr)narg;
+Val
+ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
+{
+	return _ccall(vm, cl, argc, argv);
+}
 
-	/* like Icall ... */
-	vm->cl = valcl(fn);
-	gcpoll(vm);
-	/* set pc after gc in case code moves */
-	vm->pc = clentry(vm->cl);
+Val
+safeccall(VM *vm, Closure *cl, Imm argc, Val *argv)
+{
+	Val rv;
+
+	gcdisable();
+	if(waserror(vm)){
+		gcenable();
+		nexterror(vm);
+	}
+
+	rv = _ccall(vm, cl, argc, argv);
+
+	poperror(vm);
+	gcenable();
+
+	return rv;
+}
+
+static unsigned showvcall;
+
+static void
+vcall(VM *vm)
+{
+	Code *c;
+	Val rv;
+
+	if(showvcall)
+		printf("vcall %s\n", ciddata(vm->cl->code->id));
+	c = vm->cl->code;
+	switch(c->kind){
+	case Cvm:
+		vm->pc = codeentry(c);
+		break;
+	case Ccfn:
+	case Cccl:
+		rv = Xnil;
+		switch(c->kind){
+		case Ccfn:
+			c->cfn(vm, vm->vc, vm->fp+Oarg0, &rv);
+			break;
+		case Cccl:
+			c->ccl(vm, vm->vc, vm->fp+Oarg0, cldisp(vm->cl), &rv);
+			break;
+		default:
+			bug();
+		}
+		vm->ac = rv;
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->pc = stkp(vm->fp[Ora]);
+		break;
+	case Cxfn:
+		calln(vm);
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->pc = stkp(vm->fp[Ora]);
+		break;
+	default:
+		bug();
+	}
+}
+
+#if 0
+void
+ncallstat(VM *vm)
+{
+	Val v, k;
+	Tab *t;
+	Env *env;
+	env = vm->top->env;
+	v = envlookup(env, "ncallstat");
+	if(v == 0){
+		t = mktab();
+		envbind(env, "ncallstat", mkvaltab(t));
+	}else
+		t = valtab(v);
+	k = mkvalcid(vm->cl->code->id);
+	v = tabget(t, k);
+	if(v == 0){
+		tabput(t, k, mkvalcval2(cval1));
+		return;
+	}else
+		tabput(t, k, xbinop(vm, Iadd, v, mkvalcval2(cval1)));
+}
+#endif
+
+void
+ncall(VM *vm)
+{
+	Code *c;
+	Val rv;
+
+//	ncallstat(vm);
+
+	c = vm->cl->code;
+	switch(c->kind){
+	case Cvm:
+		/* push a halt frame */
+		memmove(vm->fp+Oarg0+Oarg0,
+			vm->fp+Oarg0,
+			vm->vc*sizeof(Val));
+		vm->fp += Onfrhd;
+		vm->fp[Ocl] = mkvalcl(halt);
+		vm->fp[Ora] = (Val)(uptr)codeentry(halt->code);
+		vm->pc = codeentry(c);
+		dovm(vm);
+		vm->fp -= Onfrhd;
+		vm->cl = valcl(vm->fp[Ocl]);
+		break;
+	case Ccfn:
+	case Cccl:
+		rv = Xnil;
+		switch(c->kind){
+		case Ccfn:
+			c->cfn(vm, vm->vc, vm->fp+Oarg0, &rv);
+			break;
+		case Cccl:
+			c->ccl(vm, vm->vc, vm->fp+Oarg0, cldisp(vm->cl), &rv);
+			break;
+		default:
+			bug();
+		}
+		vm->ac = rv;
+		break;
+	case Cxfn:
+		bug();
+	}
 }
 
 static Imm
@@ -2226,51 +2374,19 @@ dostr:
 }
 
 static Val
-xclo(VM *vm, Val v, Imm len)
-{
-	Closure *cl;
-	Code *code;
-	Imm m;
-
-	/* len is number of values to copy from stack into display */
-	/* label points to instruction in current closure's code */
-	/* captured variables are in display order on stack,
-	   from low to high stack address */
-	if(Vkind(v) != Qcode)
-		bug();
-	code = valcode(v);
-	cl = mkcl(code, len);
-	for(m = 0; m < len; m++)
-		cldisp(cl)[m] = vm->stack[vm->sp+m];
-	vm->sp += m;
-	return mkvalcl(cl);
-}
-
-static Val
 xkg(VM *vm)
 {
-	Closure *k;
-	Imm len;
-
-	len = Maxstk-vm->sp;
-	k = mkcl(kcode, len);
-	memcpy(cldisp(k), &vm->stack[vm->sp], len*sizeof(Val));
-	k->fp = vm->fp;
-	return mkvalcl(k);
+	bug();
 }
 
 static void
 xkp(VM *vm)
 {
-	Closure *k;
-	k = vm->cl;
-	vm->fp = k->fp;
-	vm->sp = Maxstk-k->dlen;
-	memcpy(&vm->stack[vm->sp], cldisp(k), k->dlen*sizeof(Val));
+	bug();
 }
 
 static int
-falseval(Val v)
+isfalse(Val v)
 {
 	Cval *cv;
 
@@ -2286,31 +2402,11 @@ falseval(Val v)
 }
 
 static void
-checkoverflow(VM *vm, unsigned dec)
+checkoverflow(VM *vm, unsigned m)
 {
-	if(dec > vm->sp)
+	/* FIXME */
+	if(vm->fp+m >= vm->stack+Maxstk)
 		vmerr(vm, "stack overflow");
-}
-
-static void
-vmpush(VM *vm, Val v)
-{
-	checkoverflow(vm, 1);
-	vm->stack[--vm->sp] = v;
-}
-
-static void
-vmpushi(VM *vm, Imm imm)
-{
-	checkoverflow(vm, 1);
-	vm->stack[--vm->sp] = (Val)(uptr)imm;
-}
-
-static void
-vmpushp(VM *vm, void *p)
-{
-	checkoverflow(vm, 1);
-	vm->stack[--vm->sp] = (Val)(uptr)p;
 }
 
 static void
@@ -2389,7 +2485,7 @@ _callget(VM *vm, As *as, Imm off, Imm len)
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
-	rv = dovm(vm, as->get, 2, argv);
+	rv = ccall(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
 		vmerr(vm, "get method returned non-string");
 	s = valstr(rv);
@@ -2513,6 +2609,18 @@ isptrtype(Ctype *t)
 	return t->tkind == Tptr;
 }
 
+void
+vargs(VM *vm, Imm m)
+{
+	List *l;
+	Imm i;
+	l = mklist();
+	for(i = m; i < vm->vc; i++)
+		_listappend(l, vm->fp[Oarg0+i]);
+	vm->fp[Oarg0+m] = mkvallist(l);
+	vm->vc = m+1;
+}
+
 static Ctype*
 nsvoidstar(Ns *ns)
 {
@@ -2562,21 +2670,6 @@ xxcast(VM *vm, Val tv, Val ov)
 	}else
 		vmerr(vm, "bad type for operand 1 to extended cast operator");
 	return rv;
-}
-
-static Val
-xlist(VM *vm, Imm o, Imm m)
-{
-	Imm sp, n, i;
-	List *lst;
-
-	sp = vm->fp+o;
-	n = stkimm(vm->stack[sp]);
-
-	lst = mklist();
-	for(i = m; i < n; i++)
-		listappend(vm, lst, vm->stack[sp+1+i]);
-	return mkvallist(lst);
 }
 
 static void
@@ -2908,7 +3001,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 		argv[1] = mkvalctype(t);
 		if(ns->looktype == 0)
 			return 0;
-		rv = safedovm(vm, ns->looktype, 2, argv);
+		rv = safeccall(vm, ns->looktype, 2, argv);
 		if(Vkind(rv) == Qnil)
 			return 0;
 		return valctype(rv);
@@ -2975,7 +3068,7 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	Val rv, argv[2];
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypebase(cb, Rundef));
-	rv = safedovm(vm, ns->looktype, 2, argv);
+	rv = safeccall(vm, ns->looktype, 2, argv);
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
 	ns->base[cb] = valctype(rv);
@@ -2993,10 +3086,10 @@ nscachebase(VM *vm, Ns *ns)
 	/* use result of looktype(void*) to define Vptr base */
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypeptr(mkctypevoid(), Rundef));
-	rv = safedovm(vm, ns->looktype, 2, argv);
+	rv = safeccall(vm, ns->looktype, 2, argv);
 	if(Vkind(rv) == Qnil){
 		argv[1] = mkvalctype(mkctypebase(Vptr, Rundef));
-		rv = safedovm(vm, ns->looktype, 2, argv);
+		rv = safeccall(vm, ns->looktype, 2, argv);
 	}
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define void*");
@@ -3363,7 +3456,7 @@ calldispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		efree(xargv);
 		nexterror(vm);
 	}
-	*rv = dovm(vm, dcl, argc+1, xargv);
+	*rv = ccall(vm, dcl, argc+1, xargv);
 	efree(xargv);
 	poperror(vm);
 }
@@ -3594,8 +3687,8 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		vmerr(vm, "parent name space does not define enumtype");
 	if(ons->enumsym == 0)
 		vmerr(vm, "parent name space does not define enumsym");
-	ctx.otype = valtab(safedovm(vm, ons->enumtype, 1, xargv));
-	ctx.osym = valtab(safedovm(vm, ons->enumsym, 1, xargv));
+	ctx.otype = valtab(safeccall(vm, ons->enumtype, 1, xargv));
+	ctx.osym = valtab(safeccall(vm, ons->enumsym, 1, xargv));
 
 	/* get pointer representation from parent name space */
 	tt = mkctypebase(Vptr, Rundef);
@@ -3782,7 +3875,6 @@ _pusherror(VM *vm)
 	}
 	ep = &vm->err[vm->edepth++];
 	ep->fp = vm->fp;
-	ep->sp = vm->sp;
 	ep->pc = vm->pc;
 	ep->cl = vm->cl;
 	return &ep->esc;
@@ -3797,7 +3889,6 @@ nexterror(VM *vm)
 	vm->edepth--;
 	ep = &vm->err[vm->edepth];
 	vm->fp = ep->fp;
-	vm->sp = ep->sp;
 	vm->pc = ep->pc;
 	vm->cl = ep->cl;
 	longjmp(ep->esc, 1);
@@ -3901,10 +3992,12 @@ static void
 vmresetctl(VM *vm)
 {
 	vm->edepth = 0;
-	vm->fp = 0;
-	vm->sp = Maxstk;
+	vm->fp = vm->stack;
 	vm->ac = Xnil;
-	vm->cl = panicthunk();
+	vm->cl = 0;
+	vm->vc = 0;
+	vm->fp[Ocl] = 0;
+	vm->fp[Ora] = 0;
 }
 
 Fd*
@@ -3917,21 +4010,6 @@ vmstdout(VM *vm)
 	if(Vkind(v) != Qfd)
 		vmerr(vm, "stdout not bound to a file descriptor");
 	return valfd(v);
-}
-
-Val
-safedovm(VM *vm, Closure *cl, Imm argc, Val *argv)
-{
-	Val rv;
-	gcdisable();
-	if(waserror(vm)){
-		gcenable();
-		nexterror(vm);
-	}
-	rv = dovm(vm, cl, argc, argv);
-	poperror(vm);
-	gcenable();
-	return rv;
 }
 
 void
@@ -3949,30 +4027,29 @@ dogc(VM *vm, u32 g, u32 tg)
 		   value of AC.  this dance does so
 		   without requiring a special gc-safe
 		   save mechanism. */
-		vm->ac = dovm(vm, valcl(v), 1, &vm->ac);
+		vm->ac = ccall(vm, valcl(v), 1, &vm->ac);
 	vm->postgctime += usec()-b;
 }
 
 Val
-dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
+dovm(VM *vm)
 {
 	Insn *i;
 	Val val;
-	Imm m, o, narg, onarg;
+	Imm m;
 	Val v1, v2, rv;
 
 #ifdef THREADED
 	if(!vm){
 		gotab[Iadd]	= &&Iadd;
+		gotab[Iaddfp]	= &&Iaddfp;
 		gotab[Iand]	= &&Iand;
 		gotab[Iapply]	= &&Iapply;
 		gotab[Iargc]	= &&Iargc;
 		gotab[Ibox]	= &&Ibox;
 		gotab[Ibox0]	= &&Ibox0;
 		gotab[Icall]	= &&Icall;
-		gotab[Icallc]	= &&Icallc;
-		gotab[Icallt]	= &&Icallt;
-		gotab[Iclo]	= &&Iclo;
+		gotab[Ichksp]	= &&Ichksp;
 		gotab[Icmpeq] 	= &&Icmpeq;
 		gotab[Icmpgt] 	= &&Icmpgt;
 		gotab[Icmpge] 	= &&Icmpge;
@@ -3981,7 +4058,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Icmpneq] 	= &&Icmpneq;
 		gotab[Icode]	= &&Icode;
 		gotab[Idiv] 	= &&Idiv;
-		gotab[Iframe] 	= &&Iframe;
 		gotab[Ifmask]	= &&Ifmask;
 		gotab[Ifsize]	= &&Ifsize;
 		gotab[Ihalt] 	= &&Ihalt;
@@ -3991,49 +4067,26 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 		gotab[Ijz] 	= &&Ijz;
 		gotab[Ikg] 	= &&Ikg;
 		gotab[Ikp] 	= &&Ikp;
-		gotab[Ilist]	= &&Ilist;
 		gotab[Imod] 	= &&Imod;
 		gotab[Imov] 	= &&Imov;
 		gotab[Imovra] 	= &&Imovra;
+		gotab[Imovvc] 	= &&Imovvc;
 		gotab[Imul] 	= &&Imul;
 		gotab[Ineg] 	= &&Ineg;
 		gotab[Inot] 	= &&Inot;
 		gotab[Ior] 	= &&Ior;
 		gotab[Inop] 	= &&Inop;
 		gotab[Ipanic] 	= &&Ipanic;
-		gotab[Ipush] 	= &&Ipush;
-		gotab[Ipushi] 	= &&Ipushi;
 		gotab[Iret] 	= &&Iret;
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isub] 	= &&Isub;
-		gotab[Isubsp] 	= &&Isubsp;
 		gotab[Ivargc]	= &&Ivargc;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
 		return 0;
 	}
 #endif
-
-	/* for recursive entry, store current context */
-	vmpushi(vm, vm->fp);		/* fp */
-	vmpush(vm, mkvalcl(vm->cl));	/* cl */
-	vmpushp(vm, vm->pc);		/* pc */
-	vmpushi(vm, 0);			/* narg */
-	vm->fp = vm->sp;
-
-	/* push frame for halt thunk */
-	vmpushi(vm, vm->fp);		/* fp */
-	vmpush(vm, mkvalcl(halt));	/* cl */
-	vmpushp(vm, clentry(halt));	/* pc */
-	for(m = argc; m > 0; m--)
-		vmpush(vm, argv[m-1]);
-	vmpushi(vm, argc);		/* narg */
-	vm->fp = vm->sp;
-
-	/* switch to cl */
-	vm->cl = cl;
-	vm->pc = clentry(vm->cl);
 
 	while(1){
 		NEXTLABEL(i = vm->pc++){
@@ -4067,126 +4120,83 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			rv = xbinop(vm, i->kind, v1, v2);
 			putvalrand(vm, rv, &i->dst);
 			continue;
-		LABEL Isubsp:
-			m = getimmrand(&i->op2);  /* max frame size */
+		LABEL Iaddfp:
+			vm->fp += i->scnt;
+			continue;
+		LABEL Ichksp:
+			m = getimmrand(&i->op1); /* max frame size */
 			checkoverflow(vm, m);
-			m = getimmrand(&i->op1);
-			vm->sp -= m;
 			continue;
 		LABEL Imovra:
-			v1 = (Val)i->targ;
+			v1 = (Val)(vm->pc+i->scnt);
 			putvalrand(vm, v1, &i->dst);
+			continue;
+		LABEL Imovvc:
+			m = getimmrand(&i->op1);
+			vm->vc = m;
 			continue;
 		LABEL Imov:
 			v1 = getvalrand(vm, &i->op1);
 			putvalrand(vm, v1, &i->dst);
 			continue;
-		LABEL Ipush:
-			val = getvalrand(vm, &i->op1);
-			vm->stack[--vm->sp] = val;
-			continue;
-		LABEL Ipushi:
-			m = getimmrand(&i->op1);
-			vm->stack[--vm->sp] = (Val)(uptr)m;
-			continue;
 		LABEL Iargc:
 			m = getimmrand(&i->op1);
-			if(stkimm(vm->stack[vm->fp]) != m)
+			if(vm->vc != m)
 				vmerr(vm, "wrong number of arguments to %s"
 				      " (expects %u, passed %u)",
-				      ciddata(vm->cl->id),
-				      m, vm->stack[vm->fp]);
+				      ciddata(vm->cl->code->id),
+				      m, vm->vc);
 			continue;
 		LABEL Ivargc:
 			m = getimmrand(&i->op1);
-			if(stkimm(vm->stack[vm->fp]) < m)
+			if(vm->vc < m)
 				vmerr(vm, "not enough arguments to %s"
 				      " (expects at least %u, passed %u)",
-				      ciddata(vm->cl->id),
-				      m, vm->stack[vm->fp]);
+				      ciddata(vm->cl->code->id),
+				      m, vm->vc);
+			vargs(vm, m);
 			continue;
 		LABEL Icall:
 			val = getvalrand(vm, &i->op1);
 			if(Vkind(val) != Qcl)
 				vmerr(vm, "attempt to call non-procedure");
 			vm->cl = valcl(val);
-			vm->fp = vm->sp;
-			gcpoll(vm);
-			/* set pc after gc in case code moves */
-			vm->pc = clentry(vm->cl);
-			continue;
-		LABEL Icallt:
-			val = getvalrand(vm, &i->op1);
-			if(Vkind(val) != Qcl)
-				vmerr(vm, "attempt to call non-procedure");
-			vm->cl = valcl(val);
-			/* shift current arguments over previous arguments */
-			narg = stkimm(vm->stack[vm->sp]);
-			onarg = stkimm(vm->stack[vm->fp]);
-			vm->fp = vm->fp+onarg-narg;
-			memmove(&vm->stack[vm->fp], &vm->stack[vm->sp],
-				(narg+1)*sizeof(Val));
-			vm->sp = vm->fp;
-			gcpoll(vm);
-			/* set pc after gc in case code moves */
-			vm->pc = clentry(vm->cl);
+			vcall(vm);
 			continue;
 		LABEL Iapply:
-			xapply(vm);
-			continue;
-		LABEL Icallc:
-			xcallc(vm);
-			continue;
-		LABEL Iframe:
-			vm->stack[--vm->sp] = (Val)(uptr)vm->fp;
-			vm->stack[--vm->sp] = mkvalcl(vm->cl);
-			vm->stack[--vm->sp] = Xnil;
+			bug();
+			/* FIXME: implement vm apply and native apply */
 			continue;
 		LABEL Ipanic:
 			fatal("vm panic");
 		LABEL Ihalt:
 			/* Ihalt is exactly like Iret... */
-			vm->sp = vm->fp+stkimm(vm->stack[vm->fp])+1;/* narg+1 */
-			vm->fp = stkimm(vm->stack[vm->sp+2]);
-			vm->cl = valcl(vm->stack[vm->sp+1]);
-			vm->pc = stkp(vm->stack[vm->sp]);
-			vm->sp += 3;
-
-			/* ...except that it returns from dovm */
+			vm->cl = valcl(vm->fp[Ocl]);
+			vm->pc = stkp(vm->fp[Ora]);
+			/* ... except that it returns from dovm */
 			return vm->ac;
 		LABEL Iret:
-			vm->sp = vm->fp+stkimm(vm->stack[vm->fp])+1;/* narg+1 */
-			vm->fp = stkimm(vm->stack[vm->sp+2]);
-			vm->cl = valcl(vm->stack[vm->sp+1]);
-			vm->pc = stkp(vm->stack[vm->sp]);
-			vm->sp += 3;
+			vm->cl = valcl(vm->fp[Ocl]);
+			vm->pc = stkp(vm->fp[Ora]);
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ijmp:
-			vm->pc = i->targ;
+			vm->pc += i->scnt;
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ijnz:
-			if(!falseval(getvalrand(vm, &i->op1)))
-				vm->pc = i->targ;
+			if(!isfalse(getvalrand(vm, &i->op1)))
+				vm->pc += i->scnt;
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ijz:
-			if(falseval(getvalrand(vm, &i->op1)))
-				vm->pc = i->targ;
+			if(isfalse(getvalrand(vm, &i->op1)))
+				vm->pc += i->scnt;
 			if(vm->flags&VMirq)
 				vmerr(vm, "interrupted");
-			continue;
-		LABEL Iclo:
-			bug();
-			v1 = getvalrand(vm, &i->op1);
-			m = getimmrand(&i->op2);
-			rv = xclo(vm, v1, m);
-			/* vm->sp has been updated */
-			putvalrand(vm, rv, &i->dst);
 			continue;
 		LABEL Ikg:
 			rv = xkg(vm);
@@ -4194,7 +4204,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			continue;
 		LABEL Ikp:
 			xkp(vm);
-			/* vm->sp, vm->fp have been updated */
 			continue;
 		LABEL Ibox:
 			v1 = getvalrand(vm, &i->op1);
@@ -4207,12 +4216,6 @@ dovm(VM *vm, Closure *cl, Imm argc, Val *argv)
 			v1 = getvalrand(vm, &i->op1);
 			v2 = getvalrand(vm, &i->op2);
 			rv = xxcast(vm, v1, v2);
-			putvalrand(vm, rv, &i->dst);
-			continue;
-		LABEL Ilist:
-			o = getimmrand(&i->op1);
-			m = getimmrand(&i->op2);
-			rv = xlist(vm, o, m);
 			putvalrand(vm, rv, &i->dst);
 			continue;
 		LABEL Ifsize:
@@ -4293,7 +4296,7 @@ docmp(VM *vm, Val a, Val b, Closure *cmp)
 
 	argv[0] = a;
 	argv[1] = b;
-	rv = safedovm(vm, cmp, 2, argv);
+	rv = safeccall(vm, cmp, 2, argv);
 	if(Vkind(rv) != Qcval)
 		vmerr(vm, "comparison function must return an integer cvalue");
 	cv = valcval(rv);
@@ -4488,7 +4491,7 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(Vkind(argv[1]) != Qcid)
 		vmerr(vm, "operand 2 to looksym must be an identifier");
-	*rv = dovm(vm, ns->looksym, argc, argv);
+	*rv = ccall(vm, ns->looksym, argc, argv);
 }
 
 static void
@@ -4571,7 +4574,7 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	argv[2] = mkvalstr(s);
 	if(s->len < len)
 		vmerr(vm, "attempt to put short string into longer range");
-	safedovm(vm, as->put, 3, argv);
+	safeccall(vm, as->put, 3, argv);
 }
 
 Str*
@@ -4583,7 +4586,7 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
-	rv = safedovm(vm, as->get, 2, argv);
+	rv = safeccall(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
 		vmerr(vm, "get method returned non-string");
 	s = valstr(rv);
@@ -4603,7 +4606,7 @@ callmap(VM *vm, As *as)
 {
 	Val argv[1], rv;
 	argv[0] = mkvalas(as);
-	rv = safedovm(vm, as->map, 1, argv);
+	rv = safeccall(vm, as->map, 1, argv);
 	if(Vkind(rv) != Qvec)
 		vmerr(vm, "map method returned invalid value");
 	return valvec(rv);
@@ -4616,7 +4619,7 @@ callismapped(VM *vm, As *as, Imm off, Imm len)
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
-	rv = safedovm(vm, as->ismapped, 2, argv);
+	rv = safeccall(vm, as->ismapped, 2, argv);
 	if(Vkind(rv) != Qcval)
 		vmerr(vm, "ismapped method returned invalid value");
 	return valcval(rv);
@@ -4885,7 +4888,7 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 			fd->u.fn.close(&fd->u.fn);
 	}else
 		if(fd->u.cl.close)
-			dovm(vm, fd->u.cl.close, 0, 0);
+			ccall(vm, fd->u.cl.close, 0, 0);
 	USED(rv);
 }
 
@@ -5286,7 +5289,7 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 		efree(xargv);
 		nexterror(vm);
 	}
-	*rv = dovm(vm, cl, xargc, xargv);
+	*rv = ccall(vm, cl, xargc, xargv);
 	poperror(vm);
 	efree(xargv);
 }
@@ -5351,7 +5354,7 @@ l1_callmethodx(VM *vm, Imm argc, Val *argv, Val *rv)
 		xargc = argc;
 		xargv = argv;
 	}
-	*rv = dovm(vm, cl, xargc, xargv);
+	*rv = ccall(vm, cl, xargc, xargv);
 }
 
 static void
@@ -6102,6 +6105,11 @@ l1_iscid(VM *vm, Imm argc, Val *argv, Val *rv)
 	l1_isx(vm, argc, argv, rv, "iscid", Qcid);
 }
 
+static void
+l1_iscode(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	l1_isx(vm, argc, argv, rv, "iscode", Qcode);
+}
 
 static void
 l1_isctype(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -6212,6 +6220,12 @@ l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gcpoll(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	gcpoll(vm);
+}
+
+static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	u32 g, tg;
@@ -6293,7 +6307,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(s);
 	if(cl == 0)
 		return;
-	*rv = dovm(vm, valcl(cl), 0, 0);
+	*rv = ccall(vm, valcl(cl), 0, 0);
 }
 
 /* ks[0] and ks[1] are success and failure continuations.
@@ -6305,12 +6319,12 @@ static void
 applyk(VM *vm, Val cl, Val *ks, Imm argc, Val *argv, Val *rv)
 {
 	if(waserror(vm)){
-		*rv = dovm(vm, valcl(ks[1]), 0, 0);
+		*rv = ccall(vm, valcl(ks[1]), 0, 0);
 		return;
 	}
-	*rv = dovm(vm, valcl(cl), argc, argv);
+	*rv = ccall(vm, valcl(cl), argc, argv);
 	poperror(vm);
-	*rv = dovm(vm, valcl(ks[0]), 1, rv);
+	*rv = ccall(vm, valcl(ks[0]), 1, rv);
 }
 
 static void
@@ -6486,6 +6500,7 @@ l1_pp(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+
 	Closure *cl;
 	Code *c;
 	unsigned i, dlen;
@@ -6539,6 +6554,31 @@ l1_cval2str(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gettoplevel(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Val p;
+	Cid *id;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to gettoplevel");
+	checkarg(vm, argv, 0, Qcid);
+	id = valcid(argv[0]);
+	p = envget(vm->top->env, id);
+	if(p == 0 || p == Xundef)
+		vmerr(vm, "reference to unbound variable: %s", ciddata(id));
+	*rv = p;
+}
+
+static void
+l1_settoplevel(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to settoplevel");
+	checkarg(vm, argv, 0, Qcid);
+	envput(vm->top->env, valcid(argv[0]), argv[1]);
+	*rv = argv[1];
+}
+
+static void
 updatestats(VM *vm)
 {
 	u64 t;
@@ -6562,6 +6602,236 @@ l1_statistics(VM *vm, Imm argc, Val *argv, Val *rv)
 	gcstatistics(t);
 	cgstatistics(t);
 	*rv = mkvaltab(t);
+}
+
+static void
+l1_add(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to add");
+	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+		vmerr(vm, "operand 1 to add must be a cvalue or string");
+	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+		vmerr(vm, "operand 2 to add must be a cvalue or string");
+	*rv = xbinop(vm, Iadd, argv[0], argv[1]);
+}
+
+static void
+l1_div(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to div");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Idiv, argv[0], argv[1]);
+}
+
+static void
+l1_mod(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mod");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Imod, argv[0], argv[1]);
+}
+
+static void
+l1_mul(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mul");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Imul, argv[0], argv[1]);
+}
+
+static void
+l1_sub(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to sub");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Isub, argv[0], argv[1]);
+}
+
+static void
+l1_shl(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to shl");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Ishl, argv[0], argv[1]);
+}
+
+static void
+l1_shr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to shr");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Ishr, argv[0], argv[1]);
+}
+
+static void
+l1_and(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to and");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Iand, argv[0], argv[1]);
+}
+
+static void
+l1_or(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to or");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Ior, argv[0], argv[1]);
+}
+
+static void
+l1_xor(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to xor");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = xbinop(vm, Ixor, argv[0], argv[1]);
+}
+
+static void
+l1_cmpeq(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cmpeq");
+	*rv = xbinop(vm, Icmpeq, argv[0], argv[1]);
+}
+
+static void
+l1_cmpneq(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cmpneq");
+	*rv = xbinop(vm, Icmpneq, argv[0], argv[1]);
+}
+
+static void
+l1_cmple(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cmple");
+	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+		vmerr(vm, "operand 1 to cmple must be a cvalue or string");
+	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+		vmerr(vm, "operand 2 to cmple must be a cvalue or string");
+	*rv = xbinop(vm, Icmple, argv[0], argv[1]);
+}
+
+static void
+l1_cmplt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cmplt");
+	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+		vmerr(vm, "operand 1 to cmplt must be a cvalue or string");
+	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+		vmerr(vm, "operand 2 to cmplt must be a cvalue or string");
+	*rv = xbinop(vm, Icmplt, argv[0], argv[1]);
+}
+
+static void
+l1_cmpge(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cmpge");
+	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+		vmerr(vm, "operand 1 to cmpge must be a cvalue or string");
+	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+		vmerr(vm, "operand 2 to cmpge must be a cvalue or string");
+	*rv = xbinop(vm, Icmpge, argv[0], argv[1]);
+}
+
+static void
+l1_cmpgt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to cmpgt");
+	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+		vmerr(vm, "operand 1 to cmpgt must be a cvalue or string");
+	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+		vmerr(vm, "operand 2 to cmpgt must be a cvalue or string");
+	*rv = xbinop(vm, Icmpgt, argv[0], argv[1]);
+}
+
+static void
+l1_inv(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to inv");
+	*rv = xunop(vm, Iinv, argv[0]);
+}
+
+static void
+l1_neg(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to neg");
+	*rv = xunop(vm, Ineg, argv[0]);
+}
+
+static void
+l1_not(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to not");
+	*rv = xunop(vm, Inot, argv[0]);
+}
+
+static void
+l1_xcast(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to xcast");
+	*rv = xxcast(vm, argv[0], argv[1]);
+}
+
+static void
+fnalu(Env *env)
+{
+	FN(add);
+	FN(div);
+	FN(mod);
+	FN(mul);
+	FN(sub);
+
+	FN(shl);
+	FN(shr);
+
+	FN(and);
+	FN(or);
+	FN(xor);
+
+	FN(cmpeq);
+	FN(cmpneq);
+	FN(cmpge);
+	FN(cmpgt);
+	FN(cmple);
+	FN(cmplt);
+
+	FN(inv);
+	FN(not);
+	FN(neg);
+
+	FN(xcast);
+
+	FN(cvalcmp);
 }
 
 char*
@@ -6915,9 +7185,11 @@ mktopenv(void)
 	FN(fdname);
 	FN(gc);
 	FN(gclock);
+	FN(gcpoll);
 	FN(gcstats);
 	FN(gcunlock);
 	FN(getbytes);
+	FN(gettoplevel);
 	FN(hash);
 	FN(hashq);
 	FN(hashqv);
@@ -6925,6 +7197,7 @@ mktopenv(void)
 	FN(instguard);  // FIXME: make system routine
 	FN(isas);
 	FN(iscid);
+	FN(iscode);
 	FN(isctype);
 	FN(iscvalue);
 	FN(isdom);
@@ -6978,12 +7251,14 @@ mktopenv(void)
 	FN(resettop);
 	FN(setname);
 	FN(setloadpath);
+	FN(settoplevel);
 	FN(sizeof);		/* cannot be called directly by user code */
 	FN(sort);
 	FN(split);
 	FN(statistics);
 	FN(stringof);
 
+	fnalu(env);
 	fnch(env);
 	fncid(env);
 	fnctype(env);
@@ -7022,7 +7297,7 @@ cqctmkvm(Toplevel *top)
 {
 	VM *vm, **vmp;
 	Val rv;
-	char fb, fp, fq, fT;
+	char ocqctflags[256];
 
 	vm = emalloc(sizeof(VM));
 	vm->top = top;
@@ -7044,10 +7319,7 @@ cqctmkvm(Toplevel *top)
 	/* load prelude (unless suppressed with -d)
 	   suppress IR printing and stats */
 	if(!cqctflags['d']){
-		fb = cqctflags['b'];
-		fp = cqctflags['p'];
-		fq = cqctflags['q'];
-		fT = cqctflags['T'];
+		memcpy(ocqctflags, cqctflags, sizeof(ocqctflags));
 		cqctflags['b'] = 0;
 		cqctflags['p'] = 0;
 		cqctflags['q'] = 0;
@@ -7055,10 +7327,7 @@ cqctmkvm(Toplevel *top)
 		cqcteval(vm, "@include <expand.cqct>", "<expand>", &rv);
 		cqcteval(vm, "@include <cpopt.cqct>", "<cpopt>", &rv);
 		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
-		cqctflags['b'] = fb;
-		cqctflags['p'] = fp;
-		cqctflags['q'] = fq;
-		cqctflags['T'] = fT;
+		memcpy(cqctflags, ocqctflags, sizeof(ocqctflags));
 		resetlabels();
 		envput(top->env, mkcid0("$$"), Xnil);  /* FIXME: get rid of $$ */
 	}
@@ -7102,7 +7371,7 @@ vmfaulthook()
 void
 initvm()
 {
-	dovm(0, 0, 0, 0); /* initialize gotab */
+	dovm(0); /* initialize gotab */
 	Xundef = gclock(malq(Qundef, sizeof(Head)));
 	kcode = gclock(contcode());
 	litdom = gclock(mklitdom());
@@ -7143,7 +7412,7 @@ cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 		goto out;
 	}
 	vm->flags &= ~VMirq;
-	*rv = dovm(vm, valcl(cl), argc, argv);
+	*rv = ccall(vm, valcl(cl), argc, argv);
 	poperror(vm);
 	r = 0;
 out:

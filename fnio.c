@@ -551,7 +551,7 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 		s = mkstrk(buf, r, Smalloc);
 		*rv = mkvalstr(s);
 	}else
-		*rv = safedovm(vm, fd->u.cl.read, argc-1, argv+1);
+		*rv = safeccall(vm, fd->u.cl.read, argc-1, argv+1);
 }
 
 static void
@@ -579,7 +579,7 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(r == -1)
 			setlasterrno(errno);
 	}else
-		safedovm(vm, fd->u.cl.write, argc-1, argv+1);
+		safeccall(vm, fd->u.cl.write, argc-1, argv+1);
 	/* return nil */
 }
 

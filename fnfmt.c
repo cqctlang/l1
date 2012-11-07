@@ -364,6 +364,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	char buf[256];
 	Cval *cv;
 	Closure *cl;
+	Code *cd;
 	List *l;
 	Pair *p;
 	Vec *v;
@@ -427,17 +428,15 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(vm, f, buf);
 	case Qcl:
 		cl = valcl(val);
-		if(cl->fp){
-			snprint(buf, sizeof(buf), "<continuation>", cl);
-			return fmtputs0(vm, f, buf);
-		}else if(cl->dlen > 0){
+		/* FIXME distinguish continuations */
+		if(cl->dlen > 0){
 			if(fmtputs0(vm, f, "<closure "))
 				return -1;
 		}else{
 			if(fmtputs0(vm, f, "<procedure "))
 				return -1;
 		}
-		if(fmtputB(vm, f, ciddata(cl->id), cl->id->len-1))
+		if(fmtputB(vm, f, ciddata(cl->code->id), cl->code->id->len-1))
 			return -1;
 		return fmtputs0(vm, f, ">");
 	case Qundef:
@@ -445,7 +444,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 	case Qnil:
 		return fmtputs0(vm, f, "<nil>");
 	case Qbox:
-		if(fmtputs0(vm, f, "<box >"))
+		if(fmtputs0(vm, f, "<box "))
 			return -1;
 		bv = valboxed(val);
 		if(fmtval(vm, f, bv))
@@ -526,11 +525,11 @@ fmtval(VM *vm, Fmt *f, Val val)
 	case Qpair:
 		p = valpair(val);
 		if (isweak(&p->hd)) {
-			if(fmtputs0(vm, f, "<W|"))
+			if(fmtputs0(vm, f, "weakcons("))
 				return -1;
 		}
 		else {
-			if(fmtputs0(vm, f, "<|"))
+			if(fmtputs0(vm, f, "cons("))
 				return -1;
 		}
 		if(fmtval(vm, f, p->car))
@@ -539,7 +538,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			return -1;
 		if(fmtval(vm, f, p->cdr))
 			return -1;
-		return fmtputs0(vm, f, " |>");
+		return fmtputs0(vm, f, ")");
 	case Qrange:
 		r = valrange(val);
  		snprint(buf, sizeof(buf),
@@ -563,9 +562,16 @@ fmtval(VM *vm, Fmt *f, Val val)
 		if(fmtputs(vm, f, strdata(rd->name), rd->name->len))
 			return -1;
 		return fmtputs0(vm, f, ">");
+	case Qcode:
+		cd = valcode(val);
+		if(fmtputs0(vm, f, "<code "))
+			return -1;
+		if(fmtputB(vm, f, ciddata(cd->id), cd->id->len-1))
+			return -1;
+		return fmtputs0(vm, f, ">");
 	case Qrec:
 		rec = valrec(val);
-		rv = safedovm(vm, rec->rd->fmt, 1, &val);
+		rv = safeccall(vm, rec->rd->fmt, 1, &val);
 		if(Vkind(rv) != Qstr)
 			vmerr(vm, "formatter for record type %.*s must "
 			      "return a string",
@@ -1081,7 +1087,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(cv->dom->ns->lookaddr == 0)
 				vmerr(vm, "name space does not"
 				      " define lookaddr");
-			vq = safedovm(vm, cv->dom->ns->lookaddr, 2, xargv);
+			vq = safeccall(vm, cv->dom->ns->lookaddr, 2, xargv);
 			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			if(Vkind(vq) == Qnil){
 				snprint(buf, sizeof(buf),
@@ -1187,7 +1193,7 @@ fmtfdflush(VM *vm, Fmt *f)
 	}else{
 		s = mkstrk(f->start, f->to-f->start, Sperm);
 		argv[0] = mkvalstr(s);
-		r = safedovm(vm, fd->u.cl.write, 1, argv);
+		r = safeccall(vm, fd->u.cl.write, 1, argv);
 		if(Vkind(r) != Qnil)
 			return -1;
 	}
