@@ -1680,6 +1680,46 @@ vcall(VM *vm)
 	}
 }
 
+/*
+  program did
+
+  	apply(fn, arg0, ..., argn-1)
+
+  vm on entry:
+
+    ac = unused
+    cl = apply builtin
+    pc = non-existent insn after Iapply in apply builtin
+    vc = n+1
+    fp -> ra     (apply caller)
+          cl     (apply caller)
+          fn     (to be applied)
+          arg0
+          ...
+          argn-1 (must be list of k >= 0 elements)
+
+  vm on exit (when fn is bytecode):
+
+    ac = unchanged
+    cl = fn
+    pc = codeentry(fn->code)
+    vc = n
+    fp -> ra
+          cl
+          arg0
+          ...
+          argn-1
+          argn
+	  ...
+	  argn+k
+*/
+
+static void
+vapply(VM *vm)
+{
+
+}
+
 #if 0
 void
 ncallstat(VM *vm)
@@ -4164,8 +4204,7 @@ dovm(VM *vm)
 			vcall(vm);
 			continue;
 		LABEL Iapply:
-			bug();
-			/* FIXME: implement vm apply and native apply */
+			vapply(vm);
 			continue;
 		LABEL Ipanic:
 			fatal("vm panic");
