@@ -115,32 +115,17 @@ mkvars(Expr *e)
 		if(hasvarg(p)){
 			l->isvarg = 1;
 			l->narg = elistlen(p)-1; /* don't count ellipsis */
-			v = l->arg = emalloc(l->narg*sizeof(Var));
-			p = e->e1;
-			m = 0;
-			while(m < l->narg-1){
-				v->id = idsym(p->e1);
-				v->where = Vparam;
-				v->idx = m++;
-				v++;
-				p = p->e2;
-			}
-			/* by convention varg is first local stack variable */
-			v->id = idsym(p->e1);
-			v->where = Vlocal;
-			v->idx = 0;
-		}else{
+		}else
 			l->narg = elistlen(p);
-			v = l->arg = emalloc(l->narg*sizeof(Var));
-			p = e->e1;
-			m = 0;
-			while(p->kind == Eelist){
-				v->id = idsym(p->e1);
-				v->where = Vparam;
-				v->idx = m++;
-				v++;
-				p = p->e2;
-			}
+		v = l->arg = emalloc(l->narg*sizeof(Var));
+		p = e->e1;
+		m = 0;
+		while(m < l->narg){
+			v->id = idsym(p->e1);
+			v->where = Vparam;
+			v->idx = m++;
+			v++;
+			p = p->e2;
 		}
 		mkvars(e->e2);
 		break;
