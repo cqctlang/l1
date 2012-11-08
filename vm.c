@@ -1680,44 +1680,91 @@ vcall(VM *vm)
 	}
 }
 
-/*
-  program did
-
-  	apply(fn, arg0, ..., argn-1)
-
-  vm on entry:
-
-    ac = unused
-    cl = apply builtin
-    pc = non-existent insn after Iapply in apply builtin
-    vc = n+1
-    fp -> ra     (apply caller)
-          cl     (apply caller)
-          fn     (to be applied)
-          arg0
-          ...
-          argn-1 (must be list of k >= 0 elements)
-
-  vm on exit (when fn is bytecode):
-
-    ac = unchanged
-    cl = fn
-    pc = codeentry(fn->code)
-    vc = n
-    fp -> ra
-          cl
-          arg0
-          ...
-          argn-1
-          argn
-	  ...
-	  argn+k
-*/
-
 static void
 vapply(VM *vm)
 {
+	Imm i, m, oarg, narg, sarg;
+	Val *fp;
+	Val fn, lv;
+	List *l;
+	Code *c;
 
+/*
+          shuffle stack and vm state.
+
+	  program did
+	
+	  	apply(fn, arg0, ..., argn-1)
+	
+	  vm on entry:
+	
+	    ac = unused
+	    cl = apply builtin
+	    pc = non-existent insn after Iapply in apply builtin
+	    vc = n+1
+	    fp -> ra     (apply caller)
+	          cl     (apply caller)
+	          fn     (to be applied)
+	          arg0
+	          ...
+	          argn-1 (must be list of k >= 0 elements)
+	
+	  vm on exit (when fn is bytecode):
+	
+	    ac = unchanged
+	    cl = fn
+	    pc = codeentry(fn->code)
+	    vc = n
+	    fp -> ra
+	          cl
+	          arg0
+	          ...
+	          argn-1
+	          argn
+		  ...
+		  argn+k
+*/
+	oarg = vm->vc;
+	if(oarg < 2)
+		vmerr(vm, "wrong number of arguments to apply");
+	fp = vm->fp;
+	fn = fp[Oarg0];
+	lv = fp[Oarg0+oarg-1];
+	if(Vkind(fn) != Qcl)
+		vmerr(vm, "first argument to apply must be a procedure");
+	if(Vkind(lv) != Qlist)
+		vmerr(vm, "final argument to apply must be a list");
+	l = vallist(lv);
+	m = listlen(l);
+	sarg = oarg-2; /* arguments already on stack */
+	narg = sarg+m;
+	memmove(fp+Oarg0, fp+Oarg0+1, sarg*sizeof(Val));
+	for(i = 0; i < m; i++)
+		fp[Oarg0+sarg+i] = listref(l, i);
+	vm->vc = sarg+m;
+	vm->cl = valcl(fn);
+
+	/* make the call */
+	c = vm->cl->code;
+	switch(c->kind){
+	case Cvm:
+		vm->pc = codeentry(c);
+		/* vm will continue into call, then return to apply's caller */
+		break;
+	case Ccfn:
+		c->cfn(vm, vm->vc, vm->fp+Oarg0, &vm->ac);
+		vm->pc = stkp(vm->fp[Ora]); /* apply's caller */
+		break;
+	case Cccl:
+		c->ccl(vm, vm->vc, vm->fp+Oarg0, cldisp(vm->cl), &vm->ac);
+		vm->pc = stkp(vm->fp[Ora]); /* apply's caller */
+		break;
+	case Cxfn:
+		calln(vm);	/* FIXME: does this really work? */
+		break;
+	default:
+		bug();
+	}
 }
 
 #if 0
