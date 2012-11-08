@@ -1,3 +1,4 @@
 4
 error: invalid right-hand pointer operand to -
+                 sub	(builtin function)
                entry	(expr6.l1:9)
