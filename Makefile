@@ -48,6 +48,7 @@ L1C =\
 	cpi.c\
 	cpr.c\
 	cp1.c\
+	cps.c\
 	cpf.c\
 	cpb.c\
 	cpv.c\
