@@ -7170,7 +7170,6 @@ mktopenv(void)
 	FN(count);
 	FN(cref);
 	FN(cval);
-	FN(cvalcmp);
 	FN(cval2str);
 	FN(delete);
 	FN(delq);
