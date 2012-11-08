@@ -7320,6 +7320,7 @@ cqctmkvm(Toplevel *top)
 	if(!cqctflags['d']){
 		memcpy(ocqctflags, cqctflags, sizeof(ocqctflags));
 		cqctflags['b'] = 0;
+		cqctflags['o'] = 0;
 		cqctflags['p'] = 0;
 		cqctflags['q'] = 0;
 		cqctflags['T'] = 0;
