@@ -1084,6 +1084,9 @@ Expr*		docompilec(U *ctx, Expr *e);
 /* compiles.c */
 Expr*		docompiles(U *ctx, Expr *e);
 
+/* compilef.c */
+Expr*		docompilef(U *ctx, Expr *e);
+
 /* compilev.c */
 Expr*		docompilev(U *ctx, Expr *el);
 void		freexp(Expr *e);
