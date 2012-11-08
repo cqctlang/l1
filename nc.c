@@ -122,8 +122,8 @@ void
 initnc()
 {
 	trampentry = mktrampentry();
-	printf("trampentry:\n");
-	ncdis(trampentry);
+//	printf("trampentry:\n");
+//	ncdis(trampentry);
 }
 
 void
