@@ -9,6 +9,7 @@ enum {
 	Qcl,
 	Qcid,
 	Qcode,
+	Qcont,
 	Qctype,
 	Qcval,
 	Qdom,

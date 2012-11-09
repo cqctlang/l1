@@ -16,6 +16,7 @@ enum
 	Mdata,
 	Mode,
 	Mcode,
+	Mstack,
 	Nm,
 } Mtag;
 
@@ -40,6 +41,7 @@ enum
 	MTcode    = (Mcode<<Ftag),
 	MTweak    = (Mweak<<Ftag),
 	MTbox     = (Mbox<<Ftag),
+	MTstack   = (Mstack<<Ftag),
 	MTmutable = (Mmutable<<Ftag),
 	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
 	MTbigode  = (Mode<<Ftag)|(1<<Fbig),
@@ -56,6 +58,7 @@ static char *MTname[] = {
 	[MTcode]    = "code",
 	[MTweak]    = "weak",
 	[MTbox]     = "box",
+	[MTstack]   = "stack",
 	[MTmutable] = "mutable",
 	[MTbigdata] = "bigdata",
 	[MTbigode]  = "bigode",
@@ -225,24 +228,27 @@ struct Stats
 	u64 multicardscan;
 } Stats;
 
-static int freefd(Head*);
-static int freestr(Head*);
+static int	freefd(Head*);
+static int	freestr(Head*);
 
-static Val* iteras(Head*, Ictx*);
-static Val* iterbox(Head*, Ictx*);
-static Val* itercl(Head*, Ictx*);
-static Val* itercval(Head*, Ictx*);
-static Val* iterdom(Head*, Ictx*);
-static Val* iterexpr(Head*, Ictx*);
-static Val* iterfd(Head*, Ictx*);
-static Val* iterns(Head*, Ictx*);
-static Val* iterode(Head*, Ictx*);
-static Val* iterpair(Head*, Ictx*);
-static Val* iterrange(Head*, Ictx*);
-static Val* iterrd(Head*, Ictx*);
-static Val* iterrec(Head*, Ictx*);
-static Val* itertab(Head*, Ictx*);
-static Val* itervec(Head*, Ictx*);
+static Val*	iteras(Head*, Ictx*);
+static Val*	iterbox(Head*, Ictx*);
+static Val*	itercl(Head*, Ictx*);
+static Val*	itercont(Head*, Ictx*);
+static Val*	itercval(Head*, Ictx*);
+static Val*	iterdom(Head*, Ictx*);
+static Val*	iterexpr(Head*, Ictx*);
+static Val*	iterfd(Head*, Ictx*);
+static Val*	iterns(Head*, Ictx*);
+static Val*	iterode(Head*, Ictx*);
+static Val*	iterpair(Head*, Ictx*);
+static Val*	iterrange(Head*, Ictx*);
+static Val*	iterrd(Head*, Ictx*);
+static Val*	iterrec(Head*, Ictx*);
+static Val*	itertab(Head*, Ictx*);
+static Val*	itervec(Head*, Ictx*);
+
+static void	copystack(Cont *k);
 
 static Qtype qs[Qnkind] = {
 	[Qas]	 = { "as", sizeof(As), 1, 0, iteras },
@@ -250,6 +256,7 @@ static Qtype qs[Qnkind] = {
 	[Qcid]   = { "cid", sizeof(Cid), 1, 0, 0 },
 	[Qcl]	 = { "closure", sizeof(Closure), 1, 0, itercl },
 	[Qcode]	 = { "code", sizeof(Code), 1, 0, 0 },
+	[Qcont]	 = { "cont", sizeof(Cont), 1, 0, itercont },
 	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, iterctype },
 	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
 	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, iterdom },
@@ -361,6 +368,18 @@ itercl(Head *hd, Ictx *ictx)
 		return (Val*)&cl->code;
 	}
 	return &cldisp(cl)[ictx->n++];
+}
+
+static Val*
+itercont(Head *hd, Ictx *ictx)
+{
+	Cont *k;
+	k = (Cont*)hd;
+	if(ictx->n++ == 0){
+		copystack(k);
+		return (Val*)&k->link;
+	}else
+		return GCiterdone;
 }
 
 static Val*
@@ -1176,6 +1195,17 @@ malq(Qkind kind, u32 sz)
 	return h;
 }
 
+void*
+malstack(u32 sz)
+{
+	/* FIXME: either just say this is forbidden,
+	   or think through the splitting of stacks
+	   that span segment boundaries. */
+	if(sz >= Segsize)
+		bug();
+	return __mal(MTstack, H.tg, sz);
+}
+
 static void*
 curaddr(Val v)
 {
@@ -1454,8 +1484,12 @@ kleenescan(u32 tg)
 	b = usec();
 	do{
 		again = 0;
-		for(i = 0; i < Nmt; i++)
+		for(i = 0; i < Nmt; i++){
+			if(MTtag(i) == Mstack)
+				/* these are scanned by copystack */
+				continue;
 			again |= scan(&H.m[i][tg]);
+		}
 	}while(again);
 	stats.sweeptime += usec()-b;
 }
@@ -1760,8 +1794,10 @@ copykstack(Val *stack, Imm len, Imm fp)
 	pc is first insn in call
 */
 static void
-copystack(VM *vm)
+copystack(Cont *k)
 {
+	bug();
+#if 0
 	Imm i;
 	Val *fp, *ofp, *rap, *m, vcl;
 	Insn *ra;
@@ -1769,6 +1805,8 @@ copystack(VM *vm)
 	uptr coff;
 	Closure *cl;
 	Code *cp;
+
+	bug();
 
 	fp = vm->fp;
 
@@ -1814,6 +1852,7 @@ copystack(VM *vm)
 			*rap = (Val)(uptr)ra;
 		}
 	}
+#endif
 }
 
 static void
@@ -2063,6 +2102,8 @@ _gc(u32 g, u32 tg)
 	unsigned dbg = alldbg;
 	u64 b;
 
+	return; /* gc is disabled until we rewrite copystack */
+
 //	memset(&stats, 0, sizeof(stats));
 	b = usec();
 	maintain();
@@ -2093,6 +2134,7 @@ _gc(u32 g, u32 tg)
 		resetalloc(MTdata, tg);
 		resetalloc(MTode, tg);
 		resetalloc(MTcode, tg);
+		resetalloc(MTstack, tg);
 		resetalloc(MTweak, tg);
 		resetalloc(MTbox, tg);
 		resetalloc(MTmutable, tg);
@@ -2100,6 +2142,7 @@ _gc(u32 g, u32 tg)
 		getalloc(MTdata, tg);
 		getalloc(MTode, tg);
 		getalloc(MTcode, tg);
+		getalloc(MTstack, tg);
 		getalloc(MTweak, tg);
 		getalloc(MTbox, tg);
 		getalloc(MTmutable, tg);
@@ -2112,7 +2155,7 @@ _gc(u32 g, u32 tg)
 		vm = *vmp++;
 		if(vm == 0)
 			continue;
-		copystack(vm);
+		copystack(vm->k);
 		for(m = 0; m < vm->edepth; m++)
 			/* FIXME: need to update pc and fp */
 			copy((Val*)&vm->err[m].cl);
@@ -2169,6 +2212,7 @@ _gc(u32 g, u32 tg)
 		resetalloc(MTdata, H.tg);
 		resetalloc(MTode, H.tg);
 		resetalloc(MTcode, H.tg);
+		resetalloc(MTstack, H.tg);
 		resetalloc(MTweak, H.tg);
 		resetalloc(MTbox, H.tg);
 		resetalloc(MTmutable, H.tg);
@@ -2323,6 +2367,7 @@ initmem()
 	resetalloc(MTdata, 0);
 	resetalloc(MTode, 0);
 	resetalloc(MTcode, 0);
+	resetalloc(MTstack, 0);
 	resetalloc(MTweak, 0);
 	resetalloc(MTbox, 0);
 	resetalloc(MTmutable, 0);

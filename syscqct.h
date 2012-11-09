@@ -232,6 +232,7 @@ enum {
 
 typedef struct Ctl Ctl;
 typedef struct Code Code;
+typedef struct Cont Cont;
 typedef struct Ode Ode;
 typedef struct Insn Insn;
 typedef struct Expr Expr;
@@ -876,6 +877,14 @@ struct Code {
 #define codesize(n)  (sizeof(Code)+(n))
 #define codeentry(x) (codeinsn(x)+(x)->eoff)
 
+struct Cont {
+	Head hd;
+	void *base;
+	Cont *link;
+	void *ra;
+	u32 sz;
+};
+
 typedef
 struct NC {
 	u8 *buf, *p;
@@ -933,9 +942,9 @@ struct VM {
 	Imm vc;
 	Val ac;
 	Insn *pc;
+	Cont *k;
 	unsigned int flags;
 	Toplevel *top;
-	Val stack[Maxstk];
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
 	u64 exetime, exelast;
@@ -1375,6 +1384,7 @@ int		isweak(Head *h);
 Head*		malq(Qkind kind, u32 sz);
 Head*		malv(Qkind kind, Imm len);
 Head*		malbox();
+void*		malstack(u32 sz);
 Head*		malode();
 Head*		malweak();
 u64		meminuse();

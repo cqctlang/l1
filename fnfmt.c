@@ -569,6 +569,8 @@ fmtval(VM *vm, Fmt *f, Val val)
 		if(fmtputB(vm, f, ciddata(cd->id), cd->id->len-1))
 			return -1;
 		return fmtputs0(vm, f, ">");
+	case Qcont:
+		return fmtputs0(vm, f, "<continuation>");
 	case Qrec:
 		rec = valrec(val);
 		rv = safeccall(vm, rec->rd->fmt, 1, &val);

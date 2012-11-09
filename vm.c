@@ -10,6 +10,7 @@ char *qname[Qnkind] = {
 	[Qcid]=		"cid",
 	[Qcl]=		"closure",
 	[Qcode]=	"code",
+	[Qcont]=	"cont",
 	[Qctype]=	"ctype",
 	[Qcval]=	"cvalue",
 	[Qdom]=		"domain",
@@ -272,6 +273,7 @@ eqval(Val v1, Val v2)
 	case Qvec:
 	case Qode:
 	case Qcode:
+	case Qcont:
 		return eqptr(v1, v2);
 	case Qcval:
 		return eqvcval(valcval(v1), valcval(v2));
@@ -306,6 +308,7 @@ hashqval(Val v)
 	case Qvec:
 	case Qode:
 	case Qcode:
+	case Qcont:
 		return hashptr(v);
 	case Qcval:
 		return hashqvcval(valcval(v));
@@ -334,6 +337,7 @@ eqvval(Val v1, Val v2)
 	case Qtab:
 	case Qode:
 	case Qcode:
+	case Qcont:
 		return eqptr(v1, v2);
 	case Qexpr:
 		return eqvstx(valexpr(v1), valexpr(v2));		
@@ -376,6 +380,7 @@ hashqvval(Val v)
 	case Qtab:
 	case Qode:
 	case Qcode:
+	case Qcont:
 		return hashptr(v);
 	case Qexpr:
 		return hashqvstx(valexpr(v));
@@ -420,6 +425,7 @@ equalval(Val v1, Val v2)
 	case Qtab:
 	case Qode:
 	case Qcode:
+	case Qcont:
 		return eqptr(v1, v2);
 	case Qexpr:
 		return equalstx(valexpr(v1), valexpr(v2));
@@ -462,6 +468,7 @@ hashval(Val v)
 	case Qtab:
 	case Qode:
 	case Qcode:
+	case Qcont:
 		return hashptr(v);
 	case Qexpr:
 		return hashstx(valexpr(v));
@@ -2492,8 +2499,6 @@ static void
 checkoverflow(VM *vm, unsigned m)
 {
 	/* FIXME */
-	if(vm->fp+m >= vm->stack+Maxstk)
-		vmerr(vm, "stack overflow");
 }
 
 static void
@@ -4075,11 +4080,24 @@ builtincval(Env *env, char *name, Cval *cv)
 	envbind(env, name, val);
 }
 
+static Cont*
+mkcont(void *base, u32 sz, void *ra, Cont *link)
+{
+	Cont *k;
+	k = (Cont*)malq(Qcont, sizeof(Cont));
+	k->base = base;
+	k->sz = sz;
+	k->ra = ra;
+	k->link = link;
+	return k;
+}
+
 static void
 vmresetctl(VM *vm)
 {
 	vm->edepth = 0;
-	vm->fp = vm->stack;
+	vm->k = mkcont(malstack(Maxstk), Maxstk, 0, 0);
+	vm->fp = vm->k->base;
 	vm->ac = Xnil;
 	vm->cl = 0;
 	vm->vc = 0;
