@@ -881,8 +881,9 @@ struct Cont {
 	Head hd;
 	void *base;
 	Cont *link;
+	Closure *cl;
 	void *ra;
-	u32 sz;
+	u32 sz, fpo;
 };
 
 typedef

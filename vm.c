@@ -4194,6 +4194,11 @@ dovm(VM *vm)
 #endif
 
 	while(1){
+		if(1){
+			printf("\tfp=%p\t", vm->fp);
+			printinsn(vm->pc);
+			printf("\n");
+		}
 		NEXTLABEL(i = vm->pc++){
 		LABEL Inop:
 			continue;

@@ -63,6 +63,20 @@ static char *MTname[] = {
 	[MTbigdata] = "bigdata",
 	[MTbigode]  = "bigode",
 	[MTbigcode] = "bigcode",
+
+	[MThole|1<<Fold]    = "old hole",
+	[MTnix|1<<Fold]     = "old nix",
+	[MTfree|1<<Fold]    = "old free",
+	[MTdata|1<<Fold]    = "old data",
+	[MTode|1<<Fold]     = "old ode",
+	[MTcode|1<<Fold]    = "old code",
+	[MTweak|1<<Fold]    = "old weak",
+	[MTbox|1<<Fold]     = "old box",
+	[MTstack|1<<Fold]   = "old stack",
+	[MTmutable|1<<Fold] = "old mutable",
+	[MTbigdata|1<<Fold] = "old bigdata",
+	[MTbigode|1<<Fold]  = "old bigode",
+	[MTbigcode|1<<Fold] = "old bigcode",
 };
 
 #define MTtag(mt)        ((mt)>>Ftag)
@@ -375,11 +389,15 @@ itercont(Head *hd, Ictx *ictx)
 {
 	Cont *k;
 	k = (Cont*)hd;
-	if(ictx->n++ == 0){
+	switch(ictx->n++){
+	case 0:
+		return (Val*)&k->cl;
+	case 1:
 		copystack(k);
 		return (Val*)&k->link;
-	}else
+	default:
 		return GCiterdone;
+	}
 }
 
 static Val*
@@ -1022,6 +1040,7 @@ isliveseg(Seg *s)
 	case Mweak:
 	case Mbox:
 	case Mmutable:
+//	case Mstack:
 		return 1;
 	default:
 		return 0;
@@ -1788,15 +1807,95 @@ copykstack(Val *stack, Imm len, Imm fp)
 }
 #endif
 
-/* assume current frame has no live refererences,
-   i.e., we are at start of a call (presumably gcpoll or gc)
-	fp points to beginning of frame for the current call
-	pc is first insn in call
+/*
+  fpo: offset from k->base to fp.
+       either fpo == k->sz (saved continuations)
+       or     fpo < k->sz  (current continuation)
+
+  k->ra must be defined.  it may be updated.
 */
 static void
 copystack(Cont *k)
 {
-	bug();
+	void *p, *ra, **rap;
+	Seg *s;
+	Imm i;
+	Val *fp, *lp, vcl;
+	u64 sz, lm, *mp, o;
+	uptr coff;
+	Closure *cl;
+	Code *cp;
+
+	/*
+	  if we need to copy the segment, copy it.
+	  the only thing that matters is whether stack is in oldspace.
+	  no check for locked (not permitted on stacks).
+	  no check for big (also prohibited).
+	*/
+	s = a2s(k->base);
+	printf("enter copystack k->base = %p (%s)\n",
+	       k->base,
+	       MTname[s->mt]);
+	if(MTold(s->mt)){
+		printf("allocating new stack\n");
+		p = malstack(k->sz);
+		memcpy(p, k->base, k->sz);
+		k->base = p;
+	}
+
+	copy((Val*)&k->cl);		/* bogus */
+	cl = k->cl;
+	rap = &k->ra;
+	ra = *rap;
+	fp = k->base+k->fpo;
+	while(1){
+		cp = ra2code(ra, cl);
+		sz = ra2size(ra, cl);
+		lm = ra2mask(ra, cl);
+		fp -= sz;	/* beginning of previous frame */
+		printf("copystack fp = %p sz = %lu\n", fp, sz);
+
+
+		if((void*)fp < k->base)
+			bug();
+		if((void*)fp >= k->base+k->sz)
+			bug();
+
+		/* copy locations in live mask */
+		lp = fp;
+		if((lm>>(mwbits-1))&1){
+			o = lm&~(1ULL<<(mwbits-1));
+			mp = (u64*)strdata(cp->lm)+o;
+			while(sz > 0){
+				lm = *mp++;
+				for(i = 0;
+				    sz > 0 && i < mwbits;
+				    i++, sz--, lp++)
+					if((lm>>i)&1)
+						copy(lp);
+			}
+		}else
+			for(i = 0; i < sz; i++, lp++)
+				if((lm>>i)&1)
+					copy(lp);
+
+		/* copy code and update ra */
+		if(cp){
+			coff = (void*)ra-(void*)cp;
+			copy((Val*)&cp);
+			ra = (void*)cp+coff;
+			*rap = ra;
+		}
+
+		rap = (void**)(fp+Ora);
+		ra = *rap;
+		vcl = fp[Ocl];
+		if(vcl == 0)
+			break;
+		cl = curaddr(vcl);
+	}
+
+
 #if 0
 	Imm i;
 	Val *fp, *ofp, *rap, *m, vcl;
@@ -2102,8 +2201,6 @@ _gc(u32 g, u32 tg)
 	unsigned dbg = alldbg;
 	u64 b;
 
-	return; /* gc is disabled until we rewrite copystack */
-
 //	memset(&stats, 0, sizeof(stats));
 	b = usec();
 	maintain();
@@ -2121,7 +2218,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(dbg)printf("gc(%u,%u)\n", g, tg);
+	if(1)printf("gc(%u,%u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();
@@ -2155,7 +2252,16 @@ _gc(u32 g, u32 tg)
 		vm = *vmp++;
 		if(vm == 0)
 			continue;
-		copystack(vm->k);
+
+		/* copy current continuation */
+		vm->k->ra = vm->fp[Ora];
+		vm->k->cl = valcl(vm->fp[Ocl]);
+		vm->k->fpo = (void*)vm->fp-vm->k->base;
+		copy((Val*)&vm->k);
+		vm->fp = vm->k->base+vm->k->fpo;
+		vm->fp[Ora] = vm->k->ra;
+		vm->fp[Ocl] = mkvalcl(vm->k->cl);
+
 		for(m = 0; m < vm->edepth; m++)
 			/* FIXME: need to update pc and fp */
 			copy((Val*)&vm->err[m].cl);
@@ -2244,7 +2350,11 @@ gc(VM *vm)
 		tg = g;
 	else
 		tg = g+1;
+	printf("calling gc\n");
+	fvmbacktrace(vm);
 	dogc(vm, g, tg);
+	printf("gc returned\n");
+	fvmbacktrace(vm);
 }
 
 void
