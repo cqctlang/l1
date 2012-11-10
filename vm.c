@@ -1690,7 +1690,7 @@ vcall(VM *vm)
 static void
 vapply(VM *vm)
 {
-	Imm i, m, oarg, narg, sarg;
+	Imm i, m, oarg, sarg;
 	Val *fp;
 	Val fn, lv;
 	List *l;
@@ -1744,7 +1744,6 @@ vapply(VM *vm)
 	l = vallist(lv);
 	m = listlen(l);
 	sarg = oarg-2; /* arguments already on stack */
-	narg = sarg+m;
 	memmove(fp+Oarg0, fp+Oarg0+1, sarg*sizeof(Val));
 	for(i = 0; i < m; i++)
 		fp[Oarg0+sarg+i] = listref(l, i);
@@ -4096,8 +4095,9 @@ static void
 vmresetctl(VM *vm)
 {
 	vm->edepth = 0;
-	vm->k = mkcont(malstack(Maxstk), Maxstk, 0, 0);
-	vm->fp = vm->k->base;
+	vm->stk = malstack(Maxstk);
+	vm->stksz = Maxstk;
+	vm->fp = vm->stk;
 	vm->ac = Xnil;
 	vm->cl = 0;
 	vm->vc = 0;
@@ -4194,11 +4194,6 @@ dovm(VM *vm)
 #endif
 
 	while(1){
-		if(1){
-			printf("\tfp=%p\t", vm->fp);
-			printinsn(vm->pc);
-			printf("\n");
-		}
 		NEXTLABEL(i = vm->pc++){
 		LABEL Inop:
 			continue;

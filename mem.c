@@ -262,7 +262,8 @@ static Val*	iterrec(Head*, Ictx*);
 static Val*	itertab(Head*, Ictx*);
 static Val*	itervec(Head*, Ictx*);
 
-static void	copystack(Cont *k);
+static void	copykstack(Cont *k);
+static void	copystack(void **basep, u32 sz, void **rap, Closure *cl, u32 fpo);
 
 static Qtype qs[Qnkind] = {
 	[Qas]	 = { "as", sizeof(As), 1, 0, iteras },
@@ -393,7 +394,7 @@ itercont(Head *hd, Ictx *ictx)
 	case 0:
 		return (Val*)&k->cl;
 	case 1:
-		copystack(k);
+		copykstack(k);
 		return (Val*)&k->link;
 	default:
 		return GCiterdone;
@@ -1808,57 +1809,52 @@ copykstack(Val *stack, Imm len, Imm fp)
 #endif
 
 /*
-  fpo: offset from k->base to fp.
-       either fpo == k->sz (saved continuations)
-       or     fpo < k->sz  (current continuation)
-
-  k->ra must be defined.  it may be updated.
+  fpo: offset from base to fp.
+       either fpo == stxsz (saved continuations)
+       or     fpo < stxsz  (current continuation)
 */
 static void
-copystack(Cont *k)
+copykstack(Cont *k)
 {
-	void *p, *ra, **rap;
+	copystack(&k->base, k->sz, &k->ra, k->cl, k->sz);
+}
+
+static void
+copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
+{
+	void *p, *ra, *base;
 	Seg *s;
 	Imm i;
 	Val *fp, *lp, vcl;
 	u64 sz, lm, *mp, o;
 	uptr coff;
-	Closure *cl;
 	Code *cp;
 
 	/*
-	  if we need to copy the segment, copy it.
-	  the only thing that matters is whether stack is in oldspace.
-	  no check for locked (not permitted on stacks).
-	  no check for big (also prohibited).
+	  if stack is in oldspace, move it.
+	  no need to check segment for locked (not permitted on stacks).
+	  no need to check for big (also prohibited).
 	*/
-	s = a2s(k->base);
-	printf("enter copystack k->base = %p (%s)\n",
-	       k->base,
-	       MTname[s->mt]);
+	base = *basep;
+	s = a2s(base);
 	if(MTold(s->mt)){
-		printf("allocating new stack\n");
-		p = malstack(k->sz);
-		memcpy(p, k->base, k->sz);
-		k->base = p;
+		p = malstack(stxsz);
+		memcpy(p, base, stxsz);
+		base = p;
+		*basep = base;
 	}
 
-	copy((Val*)&k->cl);		/* bogus */
-	cl = k->cl;
-	rap = &k->ra;
 	ra = *rap;
-	fp = k->base+k->fpo;
+	fp = base+fpo;
 	while(1){
 		cp = ra2code(ra, cl);
 		sz = ra2size(ra, cl);
 		lm = ra2mask(ra, cl);
 		fp -= sz;	/* beginning of previous frame */
-		printf("copystack fp = %p sz = %lu\n", fp, sz);
 
-
-		if((void*)fp < k->base)
+		if((void*)fp < base)
 			bug();
-		if((void*)fp >= k->base+k->sz)
+		if((void*)fp >= base+stxsz)
 			bug();
 
 		/* copy locations in live mask */
@@ -2200,6 +2196,9 @@ _gc(u32 g, u32 tg)
 	Head *h;
 	unsigned dbg = alldbg;
 	u64 b;
+	void *ra;
+	Closure *cl;
+	u32 fpo;
 
 //	memset(&stats, 0, sizeof(stats));
 	b = usec();
@@ -2218,7 +2217,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(1)printf("gc(%u,%u)\n", g, tg);
+	if(dbg)printf("gc(%u,%u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();
@@ -2253,14 +2252,14 @@ _gc(u32 g, u32 tg)
 		if(vm == 0)
 			continue;
 
-		/* copy current continuation */
-		vm->k->ra = vm->fp[Ora];
-		vm->k->cl = valcl(vm->fp[Ocl]);
-		vm->k->fpo = (void*)vm->fp-vm->k->base;
-		copy((Val*)&vm->k);
-		vm->fp = vm->k->base+vm->k->fpo;
-		vm->fp[Ora] = vm->k->ra;
-		vm->fp[Ocl] = mkvalcl(vm->k->cl);
+		ra = vm->fp[Ora];
+		cl = valcl(vm->fp[Ocl]);
+		copy((Val*)&cl);
+		fpo = (void*)vm->fp-vm->stk;
+		copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
+		vm->fp = vm->stk+fpo;
+		vm->fp[Ora] = (Val)(uptr)ra;
+		vm->fp[Ocl] = mkvalcl(cl);
 
 		for(m = 0; m < vm->edepth; m++)
 			/* FIXME: need to update pc and fp */
@@ -2350,11 +2349,7 @@ gc(VM *vm)
 		tg = g;
 	else
 		tg = g+1;
-	printf("calling gc\n");
-	fvmbacktrace(vm);
 	dogc(vm, g, tg);
-	printf("gc returned\n");
-	fvmbacktrace(vm);
 }
 
 void

@@ -943,7 +943,8 @@ struct VM {
 	Imm vc;
 	Val ac;
 	Insn *pc;
-	Cont *k;
+	void *stk;
+	u32 stksz;
 	unsigned int flags;
 	Toplevel *top;
 	Err *err;		/* stack of error labels */
