@@ -1041,7 +1041,7 @@ isliveseg(Seg *s)
 	case Mweak:
 	case Mbox:
 	case Mmutable:
-//	case Mstack:
+	case Mstack:
 		return 1;
 	default:
 		return 0;
