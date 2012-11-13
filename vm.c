@@ -74,7 +74,7 @@ void *GCiterdone;
 Val Xundef;
 Val Xnil;
 Dom *litdom;
-static Closure *halt;
+static Closure *halt, *stkunderflow;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
 VM *vms[Maxvms];
@@ -205,6 +205,19 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 	}
 	va_end(args);
 	return cl;
+}
+
+static Cont*
+mkcont(void *base, u32 sz, void *ra, Closure *cl, Cont *link)
+{
+	Cont *k;
+	k = (Cont*)malq(Qcont, sizeof(Cont));
+	k->base = base;
+	k->sz = sz;
+	k->ra = ra;
+	k->cl = cl;
+	k->link = link;
+	return k;
 }
 
 Fd*
@@ -839,10 +852,12 @@ fvmbacktrace(VM *vm)
 	Val *fp;
 	Insn *pc;
 	Closure *cl;
+	Val *base;
 
 	pc = vm->pc;
 	fp = vm->fp;
 	cl = vm->cl;
+	base = vm->stk;
 
 	if(pc == 0)
 		return;
@@ -851,7 +866,7 @@ fvmbacktrace(VM *vm)
 		pc--;			/* vm loop increments pc after fetch */
 		printframe(vm, pc, cl->code);
 	}
-	while(1){
+	while(fp > base){
 		pc = stkp(fp[Ora]);
 		cl = valcl(fp[Ocl]);
 		if(cl == 0)
@@ -2466,16 +2481,106 @@ dostr:
 		return mkvalcval2(cval0);
 }
 
-static Val
-xkg(VM *vm)
+static void
+vkcapture(VM *vm)
+{
+	Cont *k;
+	Closure *kcl;
+	u32 sz;
+
+	/*
+	  program did
+	  	callcc(fn)
+
+	  vm on entry:
+
+	  ac = unused
+	  cl = callcc builtin
+	  pc = non-existent insn after Ikg in callcc builtin
+	  vc = 1 (should be checked)
+	  fp -> ra  (callcc caller)
+                cl  (callcc caller)
+                fn  (to be applied to new cont)
+
+	  vm on exit:
+
+          ac = unchanged
+          cl = fn
+          pc = codeentry(fn->code)
+          vc = 1
+          fp -> ra (callcc caller) [logically - actually points to underflow ]
+                cl (callcc caller) [logically - actually points to underflow ]
+                k  new continuation
+	 */
+
+	if(vm->vc != 1)
+		vmerr(vm, "wrong number of arguments to callcc");
+	if(Vkind(vm->fp[Oarg0]) != Qcl)
+		vmerr(vm, "argument 1 to callcc must be a procedure");
+	if(vm->fp == vm->stk){
+		/* special case: no new continuation */
+		bug();
+	}
+
+	sz = (void*)vm->fp-vm->stk;
+	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink);
+	vm->klink = k;
+	vm->stk = vm->fp;
+	vm->stksz -= sz;
+	vm->cl = valcl(vm->fp[Oarg0]);
+	vm->pc = codeentry(vm->cl->code);
+	vm->fp[Ora] = codeentry(stkunderflow->code);
+	vm->fp[Ocl] = mkvalcl(stkunderflow);
+	kcl = mkcl(kcode, 1);
+	cldisp(kcl)[0] = mkvalcont(k);
+	vm->fp[Oarg0] = mkvalcl(kcl);
+}
+
+static void
+vkresume(VM *vm)
 {
 	bug();
 }
 
 static void
-xkp(VM *vm)
+kunderflow(VM *vm)
 {
-	bug();
+	Cont *k;
+	/*
+	   program has just returned to underflow handler:
+
+	   vm on entry:
+
+	   ac = return value
+	   vc = unused
+	   pc = ra underflow
+           cl = cl underflow
+	   fp -> ra underflow
+                 cl underflow
+
+	   vm on exit:
+
+	   ac = unchanged return value
+	   vc = unused
+	   pc = k->ra
+	   cl = k->cl
+	   
+
+	   vm->stk, vm->stksz, vm->kcont also updated
+	   vm->fp updated
+	*/
+
+	k = vm->klink;
+	if(k == 0)
+		bug();
+	vm->pc = k->ra;
+	vm->cl = k->cl;
+	vm->stk = k->base;
+	vm->stksz = k->sz;
+	vm->fp = k->base+k->sz; /* will point outside of stack segment,
+				   but should be dec'd upon return.
+				   this seems undesirable.  */
+	vm->klink = k->link;
 }
 
 static int
@@ -4079,24 +4184,13 @@ builtincval(Env *env, char *name, Cval *cv)
 	envbind(env, name, val);
 }
 
-static Cont*
-mkcont(void *base, u32 sz, void *ra, Cont *link)
-{
-	Cont *k;
-	k = (Cont*)malq(Qcont, sizeof(Cont));
-	k->base = base;
-	k->sz = sz;
-	k->ra = ra;
-	k->link = link;
-	return k;
-}
-
 static void
 vmresetctl(VM *vm)
 {
 	vm->edepth = 0;
 	vm->stk = malstack(Maxstk);
 	vm->stksz = Maxstk;
+	vm->klink = 0;
 	vm->fp = vm->stk;
 	vm->ac = Xnil;
 	vm->cl = 0;
@@ -4186,6 +4280,7 @@ dovm(VM *vm)
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
 		gotab[Isub] 	= &&Isub;
+		gotab[Iunderflow] 	= &&Iunderflow;
 		gotab[Ivargc]	= &&Ivargc;
 		gotab[Ixcast] 	= &&Ixcast;
 		gotab[Ixor] 	= &&Ixor;
@@ -4303,11 +4398,13 @@ dovm(VM *vm)
 				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ikg:
-			rv = xkg(vm);
-			putvalrand(vm, rv, &i->dst);
+			vkcapture(vm);
 			continue;
 		LABEL Ikp:
-			xkp(vm);
+			vkresume(vm);
+			continue;
+		LABEL Iunderflow:
+			kunderflow(vm);
 			continue;
 		LABEL Ibox:
 			v1 = getvalrand(vm, &i->op1);
@@ -7484,6 +7581,7 @@ initvm()
 	cval1 = gclock(mkcval(litdom, litdom->ns->base[Vint], 1));
 	cvalminus1 = gclock(mkcval(litdom, litdom->ns->base[Vint], -1));
 	halt = gclock(haltthunk());
+	stkunderflow = gclock(stkunderflowthunk());
 	cqctfaulthook(vmfaulthook, 1);
 	GCiterdone = emalloc(1); /* unique pointer */
 }
@@ -7499,6 +7597,7 @@ finivm(void)
 	gcunlock(cval1);
 	gcunlock(cvalminus1);
 	gcunlock(halt);
+	gcunlock(stkunderflow);
 	cqctfaulthook(vmfaulthook, 0);
 	efree(GCiterdone);
 }

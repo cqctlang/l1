@@ -404,6 +404,7 @@ setreloc(Code *c)
 		case Iret:
 		case Ihalt:
 		case Ipanic:
+		case Iunderflow:
 		case Ikp:
 		case Ifmask:
 		case Ifsize:
@@ -626,6 +627,9 @@ printinsn(Insn *i)
 	case Ihalt:
 		xprintf("halt");
 		break;
+	case Iunderflow:
+		xprintf("underflow");
+		break;
 	case Ipanic:
 		xprintf("panic");
 		break;
@@ -636,8 +640,7 @@ printinsn(Insn *i)
 		printrand(&i->dst);
 		break;
 	case Ikg:
-		xprintf("kg ");
-		printrand(&i->dst);
+		xprintf("kg");
 		break;
 	case Ikp:
 		xprintf("kp");
@@ -1681,15 +1684,7 @@ callcc(void)
 	L->used = 1;
 	emitlabel(L, 0);
 	i = nextinsn(ode, 0);
-	i->kind = Imov;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(ode, 0);
 	i->kind = Ikg;
-	randloc(&i->dst, ARG0);
-	i = nextinsn(ode, 0);
-	i->kind = Icall;
-	randloc(&i->op1, AC);
 	code = mkvmcode(ode, 0, 0);
 	cl = mkcl(code, 0);
 
@@ -1714,6 +1709,38 @@ mkapply(void)
 	return mkcl(code, 0);
 }
 
+Closure*
+stkunderflowthunk(void)
+{
+	Ctl *L;
+	Insn *i;
+	Ode *ode;
+	Code *code;
+	Closure *cl;
+	Imm e;
+
+	ode = mkode("$stkunderflow");
+	i = nextinsn(ode, 0);
+	i->kind = Ifmask;
+	i->cnt = 1ULL<<Ocl;		/* cl */
+	i = nextinsn(ode, 0);
+	i->kind = Icode;
+	i->cnt = 0;
+	i = nextinsn(ode, 0);
+	i->kind = Ifsize;
+	i->cnt = Onfrhd;
+	L = genlabel(ode, "$stkunderflow");
+	e = ode->ninsn;
+	L->used = 1;
+	emitlabel(L, 0);
+	i = nextinsn(ode, 0);
+	i->kind = Iunderflow;
+	code = mkvmcode(ode, e*sizeof(Insn), 0);
+	cl = mkcl(code, 0);
+
+	return cl;
+}
+
 Code*
 contcode(void)
 {
@@ -1723,13 +1750,7 @@ contcode(void)
 
 	ode = mkode("kp");
 	i = nextinsn(ode, 0);
-	i->kind = Imov;
-	randloc(&i->op1, ARG0);
-	randloc(&i->dst, AC);
-	i = nextinsn(ode, 0);
 	i->kind = Ikp;
-	i = nextinsn(ode, 0);
-	i->kind = Iret;
 	code = mkvmcode(ode, 0, 0);
 
 	return code;

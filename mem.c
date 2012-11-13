@@ -2257,6 +2257,7 @@ _gc(u32 g, u32 tg)
 		copy((Val*)&cl);
 		fpo = (void*)vm->fp-vm->stk;
 		copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
+		copy((Val*)&vm->klink);
 		vm->fp = vm->stk+fpo;
 		vm->fp[Ora] = (Val)(uptr)ra;
 		vm->fp[Ocl] = mkvalcl(cl);

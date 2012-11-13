@@ -665,6 +665,7 @@ enum {
 	Ishl,
 	Ishr,
 	Isub,
+	Iunderflow,
 	Ivargc,
 	Ixcast,
 	Ixor,
@@ -883,7 +884,7 @@ struct Cont {
 	Cont *link;
 	Closure *cl;
 	void *ra;
-	u32 sz, fpo;
+	u32 sz;
 };
 
 typedef
@@ -945,6 +946,7 @@ struct VM {
 	Insn *pc;
 	void *stk;
 	u32 stksz;
+	Cont *klink;
 	unsigned int flags;
 	Toplevel *top;
 	Err *err;		/* stack of error labels */
@@ -1118,6 +1120,7 @@ Closure*	panicthunk(void);
 void		printinsn(Insn *i);
 void		printval(Val v);
 void		resetlabels();
+Closure*	stkunderflowthunk(void);
 
 /* xenv.c */
 void		freexenv(Xenv *xe);
@@ -1223,6 +1226,7 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define mkvalcid(x)	((Val)(x))
 #define mkvalcl(x)	((Val)(x))
 #define mkvalcode(x)	((Val)(x))
+#define mkvalcont(x)	((Val)(x))
 #define mkvalctype(x)	((Val)(x))
 #define mkvaldom(x)	((Val)(x))
 #define mkvalexpr(x)	((Val)(x))
@@ -1241,6 +1245,7 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define valcid(v)	((Cid*)(v))
 #define valcl(v)	((Closure*)(v))
 #define valcode(v)	((Code*)(v))
+#define valcont(v)	((Cont*)(v))
 #define valctype(v)	((Ctype*)(v))
 #define valcval(v)	((Cval*)(v))
 #define valdom(v)	((Dom*)(v))
