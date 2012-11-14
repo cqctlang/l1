@@ -2517,9 +2517,19 @@ vkcapture(VM *vm)
 		vmerr(vm, "wrong number of arguments to callcc");
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
 		vmerr(vm, "argument 1 to callcc must be a procedure");
+
 	if(vm->fp == vm->stk){
-		/* special case: no new continuation */
-		bug();
+		/* special case: don't create a new continuation;
+		   return the current one */
+
+		printf("capturing current continuation\n");
+
+		vm->cl = valcl(vm->fp[Oarg0]);
+		vm->pc = codeentry(vm->cl->code);
+		kcl = mkcl(kcode, 1);
+		cldisp(kcl)[0] = mkvalcont(vm->klink);
+		vm->fp[Oarg0] = mkvalcl(kcl);
+		return;
 	}
 
 	sz = (void*)vm->fp-vm->stk;
@@ -2581,8 +2591,6 @@ kunderflow(VM *vm)
 	   vm->stk, vm->stksz, vm->kcont also updated
 	   vm->fp updated
 	*/
-
-	printf("entered underflow\n");
 
 	k = vm->klink;
 	if(k == 0)
@@ -2669,7 +2677,9 @@ isfalse(Val v)
 static void
 checkoverflow(VM *vm, unsigned m)
 {
-	/* FIXME */
+	if((void*)(vm->fp+m) >= vm->stk+vm->stksz)
+		vmerr(vm, "stack overflow: vm->fp = %p vm->stk = %p",
+		      vm->fp, vm->stk);
 }
 
 static void
