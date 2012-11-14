@@ -2537,26 +2537,39 @@ vkcapture(VM *vm)
 }
 
 static void
-vkresume(VM *vm)
-{
-	bug();
-}
-
-static void
 kunderflow(VM *vm)
 {
-	Cont *k;
+	Cont *k, *nk;
+	static u32 lim = 128; /* arbitrary bound on continutation copy */
+	Val *fp;
+	void *top;
+	u32 fsz;
+	Insn *ra;
+	Closure *cl;
+
 	/*
 	   program has just returned to underflow handler:
 
 	   vm on entry:
 
-	   ac = return value
+	   vm->klink = continuation to reinstate
+	   ac = value to return to continuation
 	   vc = unused
+
+	   normal underflow (ret insn execution)
+           ----------------
 	   pc = ra underflow
            cl = cl underflow
 	   fp -> ra underflow
                  cl underflow
+
+
+	   continuation invocation (continuation template Ikp execution)
+	   -----------------------
+	   pc = Ikp + 1
+	   cl = continuation template
+	   fp -> ra continuation invoker
+                 cl continuation invoker
 
 	   vm on exit:
 
@@ -2565,22 +2578,76 @@ kunderflow(VM *vm)
 	   pc = k->ra
 	   cl = k->cl
 	   
-
 	   vm->stk, vm->stksz, vm->kcont also updated
 	   vm->fp updated
 	*/
 
+	printf("entered underflow\n");
+
 	k = vm->klink;
 	if(k == 0)
+		/* when this happens, we should return to the os.
+		   FIXME: how to implement this control transfer?
+		   this may explain the ikarus exec loop */
 		bug();
+
+	/* split the continuation if it exceeds our copy limit */
+	if(k->sz > lim){
+		top = k->base+k->sz;
+		fp = (Val*)top;
+		ra = k->ra;
+		cl = k->cl;
+		fsz = ra2size(ra, cl);
+		if(fsz >= lim)
+			/* we assume frame size never exceeds limit */
+			bug();
+		while(top - (void*)(fp-fsz) < lim){
+			fp -= fsz;
+			ra = stkp(fp[Ora]);
+			cl = valcl(fp[Ocl]);
+			fsz = ra2size(ra, cl);
+		}
+
+		/* fp points to base of last frame that will fit in
+		   a lim-sized segment */
+
+		nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link);
+		k->link = nk;
+		k->base = fp;
+		k->sz = top-k->base;
+		if(k->sz > lim)
+			bug();
+		gcwb(mkvalcont(k));
+		fp[Ora] = codeentry(stkunderflow->code);
+		fp[Ocl] = mkvalcl(stkunderflow);
+	}
+
+	/* allocate a new stack if current one is too small */
+	if(vm->stksz < k->sz){
+		vm->stk = malstack(Maxstk);
+		vm->stksz = Maxstk;
+	}
+
+	/* copy continuation */
+	memcpy(vm->stk, k->base, k->sz);
+
+	/* reinstate */
 	vm->pc = k->ra;
 	vm->cl = k->cl;
-	vm->stk = k->base;
-	vm->stksz = k->sz;
-	vm->fp = k->base+k->sz; /* will point outside of stack segment,
-				   but should be dec'd upon return.
-				   this seems undesirable.  */
+	vm->fp = vm->stk+k->sz;	/* returned-to code shall first reset fp */ 
 	vm->klink = k->link;
+}
+
+static void
+vkresume(VM *vm)
+{
+	Val k;
+	k = cldisp(vm->cl)[0];
+	if(Vkind(k) != Qcont)
+		bug();
+	vm->klink = valcont(k);
+	vm->ac = vm->fp[Oarg0];
+	kunderflow(vm);
 }
 
 static int
