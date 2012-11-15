@@ -1846,7 +1846,7 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 
 	ra = *rap;
 	fp = base+fpo;
-	while(1){
+	while((void*)fp > base){
 		cp = ra2code(ra, cl);
 		sz = ra2size(ra, cl);
 		lm = ra2mask(ra, cl);
@@ -1887,6 +1887,10 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 		ra = *rap;
 		vcl = fp[Ocl];
 		if(vcl == 0)
+			/* FIXME: we shouldn't also need this termination
+			   condition.  it happens because the root
+			   stack has an extra two slots from the initial
+			   call to ccall. */
 			break;
 		cl = curaddr(vcl);
 	}
