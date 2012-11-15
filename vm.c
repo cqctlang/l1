@@ -2675,6 +2675,9 @@ isfalse(Val v)
 static void
 checkoverflow(VM *vm, unsigned m)
 {
+	if((void*)vm->fp < vm->stk)
+		/* stack is insane */
+		bug();
 	if((void*)(vm->fp+m) >= vm->stk+vm->stksz)
 		vmerr(vm, "stack overflow: vm->fp = %p vm->stk = %p",
 		      vm->fp, vm->stk);
