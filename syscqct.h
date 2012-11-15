@@ -225,7 +225,7 @@ enum {
 	Attrpos=2,
 	Maxvms=1024,
 	Errinitdepth=128,	/* initial max error stack */
-	Maxstk = 4096,
+	Maxstk = 16384,
 	InsnAlloc = 10,
 	AllocBatch = 128,
 };
