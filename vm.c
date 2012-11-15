@@ -2522,8 +2522,6 @@ vkcapture(VM *vm)
 		/* special case: don't create a new continuation;
 		   return the current one */
 
-		printf("capturing current continuation\n");
-
 		vm->cl = valcl(vm->fp[Oarg0]);
 		vm->pc = codeentry(vm->cl->code);
 		kcl = mkcl(kcode, 1);
