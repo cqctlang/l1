@@ -14,9 +14,9 @@ enum
 	Mbox,
 	Mmutable,
 	Mdata,
+	Mstack,
 	Mode,
 	Mcode,
-	Mstack,
 	Nm,
 } Mtag;
 
@@ -30,21 +30,23 @@ enum
 	Ftag,
 } Flags;
 
-/* meta type values, must be consistent with Mtag ordering */
+/* meta type values.
+   keep the ordering here consistent with Mtag ordering
+   in order to ensure that Nmt subsumes all types */
 enum
 {
 	MThole    = (Mhole<<Ftag),
 	MTnix     = (Mnix<<Ftag),
 	MTfree    = (Mfree<<Ftag),
-	MTdata    = (Mdata<<Ftag),
-	MTode     = (Mode<<Ftag),
-	MTcode    = (Mcode<<Ftag),
 	MTweak    = (Mweak<<Ftag),
 	MTbox     = (Mbox<<Ftag),
-	MTstack   = (Mstack<<Ftag),
 	MTmutable = (Mmutable<<Ftag),
+	MTdata    = (Mdata<<Ftag),
 	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
+	MTstack   = (Mstack<<Ftag),
+	MTode     = (Mode<<Ftag),
 	MTbigode  = (Mode<<Ftag)|(1<<Fbig),
+	MTcode    = (Mcode<<Ftag),
 	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
 	Nmt,
 };
