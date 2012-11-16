@@ -2021,6 +2021,12 @@ scan1segcards(Seg *s, u32 g)
 	if(s->gen == Glock)
 		/* no need to scan: scanlocked will do it */
 		return;
+	if(s->mt == MTstack)
+		/* FIXME: this is a stupid special
+		   case.  shouldn't it be the case that
+		   cards are never set for stack
+		   segments? */
+		return;
 	p = s2a(s);
 	for(i = Ncard-1; i >= 0; i--){
 		if(s->card[i] > g)
