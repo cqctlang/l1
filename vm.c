@@ -2545,6 +2545,25 @@ vkcapture(VM *vm)
 }
 
 static void
+koverflow(VM *vm)
+{
+	Cont *k;
+	u32 sz;
+	Val *fp;
+
+	sz = (void*)vm->fp-vm->stk;
+	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink);
+	vm->klink = k;
+	vm->stk = malstack(Maxstk);
+	vm->stksz = Maxstk;
+	fp = vm->stk;
+	fp[Ora] = codeentry(stkunderflow->code);
+	fp[Ocl] = mkvalcl(stkunderflow);
+	memcpy(fp+Oarg0, vm->fp+Oarg0, vm->vc*sizeof(Val));
+	vm->fp = vm->stk;
+}
+
+static void
 kunderflow(VM *vm)
 {
 	Cont *k, *nk;
@@ -2678,9 +2697,20 @@ checkoverflow(VM *vm, unsigned m)
 	if((void*)vm->fp < vm->stk)
 		/* stack is insane */
 		bug();
-	if((void*)(vm->fp+m) >= vm->stk+vm->stksz)
-		vmerr(vm, "stack overflow: vm->fp = %p vm->stk = %p",
-		      vm->fp, vm->stk);
+	if((void*)vm->fp >= vm->stk+vm->stksz)
+		/* stack is insane */
+		bug();
+	if((void*)(vm->fp+m) >= vm->stk+vm->stksz){
+		koverflow(vm);
+		/* eventually unnecessary sanity checks */
+		if((void*)vm->fp < vm->stk)
+			bug();
+		if((void*)vm->fp >= vm->stk+vm->stksz)
+			/* stack is insane */
+			bug();
+		if((void*)(vm->fp+m) >= vm->stk+vm->stksz)
+			bug();
+	}
 }
 
 static void
