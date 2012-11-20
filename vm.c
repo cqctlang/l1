@@ -2661,6 +2661,8 @@ kunderflow(VM *vm)
 	vm->cl = k->cl;
 	vm->fp = vm->stk+k->sz;	/* returned-to code shall first reset fp */ 
 	vm->klink = k->link;
+
+	longjmp(vm->dovm[vm->depth], 0);
 }
 
 static void
@@ -4396,6 +4398,9 @@ dovm(VM *vm)
 	}
 #endif
 
+	vm->depth++;
+	vm->levgen[vm->depth] = vm->gen++;
+	setjmp(vm->dovm[vm->depth]);
 	while(1){
 		NEXTLABEL(i = vm->pc++){
 		LABEL Inop:
@@ -4481,6 +4486,7 @@ dovm(VM *vm)
 			vm->cl = valcl(vm->fp[Ocl]);
 			vm->pc = stkp(vm->fp[Ora]);
 			/* ... except that it returns from dovm */
+			vm->depth--;
 			return vm->ac;
 		LABEL Iret:
 			vm->cl = valcl(vm->fp[Ocl]);

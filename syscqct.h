@@ -885,6 +885,8 @@ struct Cont {
 	Closure *cl;
 	void *ra;
 	u32 sz;
+	u32 level;
+	u64 gen;
 };
 
 typedef
@@ -951,6 +953,12 @@ struct VM {
 	Toplevel *top;
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
+	
+	u32 depth;
+	u64 gen;
+	u64 levgen[128];
+	jmp_buf dovm[128];
+	
 	u64 exetime, exelast;
 	u64 gctime, postgctime;
 };
