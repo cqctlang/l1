@@ -2351,6 +2351,10 @@ gc(VM *vm)
 	int i;
 	u32 g, tg;
 
+	/* alas, gc is unsafe when C contexts are active */
+	if(vm->level > 1)
+		return;
+
 	H.gctrip++;
 	g = -1;
 	for(i = Ngen-1; i >= 0; i--)

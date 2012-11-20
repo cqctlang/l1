@@ -442,7 +442,7 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = Xnil;
 	else{
 		if(Vkind(t->def) == Qcl)
-			vp = safeccall(vm, valcl(t->def), 0, 0);
+			vp = ccall(vm, valcl(t->def), 0, 0);
 		else
 			vp = t->def;
 		tabput(t, argv[1], vp);

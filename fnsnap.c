@@ -140,7 +140,7 @@ dowrite(VM *vm, Fd *fd, void *buf, Imm len)
 		argv[0] = mkvalfd(fd);
 		argv[1] = mkvalstr(mkstrk(buf, len, Sperm));
 		argv[2] = mkvallitcval(Vuvlong, len);
-		x = safeccall(vm, fd->u.cl.write, 3, argv);
+		x = ccall(vm, fd->u.cl.write, 3, argv);
 		if(Vkind(x) != Qnil)
 			return -1;
 	}

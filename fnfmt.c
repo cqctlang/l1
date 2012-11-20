@@ -573,7 +573,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		return fmtputs0(vm, f, "<continuation>");
 	case Qrec:
 		rec = valrec(val);
-		rv = safeccall(vm, rec->rd->fmt, 1, &val);
+		rv = ccall(vm, rec->rd->fmt, 1, &val);
 		if(Vkind(rv) != Qstr)
 			vmerr(vm, "formatter for record type %.*s must "
 			      "return a string",
@@ -1089,7 +1089,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			if(cv->dom->ns->lookaddr == 0)
 				vmerr(vm, "name space does not"
 				      " define lookaddr");
-			vq = safeccall(vm, cv->dom->ns->lookaddr, 2, xargv);
+			vq = ccall(vm, cv->dom->ns->lookaddr, 2, xargv);
 			cv = typecast(vm, cv->dom->ns->base[Vptr], cv);
 			if(Vkind(vq) == Qnil){
 				snprint(buf, sizeof(buf),
@@ -1195,7 +1195,7 @@ fmtfdflush(VM *vm, Fmt *f)
 	}else{
 		s = mkstrk(f->start, f->to-f->start, Sperm);
 		argv[0] = mkvalstr(s);
-		r = safeccall(vm, fd->u.cl.write, 1, argv);
+		r = ccall(vm, fd->u.cl.write, 1, argv);
 		if(Vkind(r) != Qnil)
 			return -1;
 	}

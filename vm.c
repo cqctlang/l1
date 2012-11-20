@@ -1540,8 +1540,8 @@ calln(VM *vm)
 	x(vm, cl, vm->vc);
 }
 
-static Val
-_ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
+Val
+ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	Code *c;
 	Imm fsz;
@@ -1634,31 +1634,6 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	default:
 		bug();
 	}
-
-	return rv;
-}
-
-Val
-ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
-{
-	return _ccall(vm, cl, argc, argv);
-}
-
-Val
-safeccall(VM *vm, Closure *cl, Imm argc, Val *argv)
-{
-	Val rv;
-
-	gcdisable();
-	if(waserror(vm)){
-		gcenable();
-		nexterror(vm);
-	}
-
-	rv = _ccall(vm, cl, argc, argv);
-
-	poperror(vm);
-	gcenable();
 
 	return rv;
 }
@@ -3337,7 +3312,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 		argv[1] = mkvalctype(t);
 		if(ns->looktype == 0)
 			return 0;
-		rv = safeccall(vm, ns->looktype, 2, argv);
+		rv = ccall(vm, ns->looktype, 2, argv);
 		if(Vkind(rv) == Qnil)
 			return 0;
 		return valctype(rv);
@@ -3404,7 +3379,7 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	Val rv, argv[2];
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypebase(cb, Rundef));
-	rv = safeccall(vm, ns->looktype, 2, argv);
+	rv = ccall(vm, ns->looktype, 2, argv);
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
 	ns->base[cb] = valctype(rv);
@@ -3422,10 +3397,10 @@ nscachebase(VM *vm, Ns *ns)
 	/* use result of looktype(void*) to define Vptr base */
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypeptr(mkctypevoid(), Rundef));
-	rv = safeccall(vm, ns->looktype, 2, argv);
+	rv = ccall(vm, ns->looktype, 2, argv);
 	if(Vkind(rv) == Qnil){
 		argv[1] = mkvalctype(mkctypebase(Vptr, Rundef));
-		rv = safeccall(vm, ns->looktype, 2, argv);
+		rv = ccall(vm, ns->looktype, 2, argv);
 	}
 	if(Vkind(rv) == Qnil)
 		vmerr(vm, "name space does not define void*");
@@ -4023,8 +3998,8 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		vmerr(vm, "parent name space does not define enumtype");
 	if(ons->enumsym == 0)
 		vmerr(vm, "parent name space does not define enumsym");
-	ctx.otype = valtab(safeccall(vm, ons->enumtype, 1, xargv));
-	ctx.osym = valtab(safeccall(vm, ons->enumsym, 1, xargv));
+	ctx.otype = valtab(ccall(vm, ons->enumtype, 1, xargv));
+	ctx.osym = valtab(ccall(vm, ons->enumsym, 1, xargv));
 
 	/* get pointer representation from parent name space */
 	tt = mkctypebase(Vptr, Rundef);
@@ -4641,7 +4616,7 @@ docmp(VM *vm, Val a, Val b, Closure *cmp)
 
 	argv[0] = a;
 	argv[1] = b;
-	rv = safeccall(vm, cmp, 2, argv);
+	rv = ccall(vm, cmp, 2, argv);
 	if(Vkind(rv) != Qcval)
 		vmerr(vm, "comparison function must return an integer cvalue");
 	cv = valcval(rv);
@@ -4919,7 +4894,7 @@ callput(VM *vm, As *as, Imm off, Imm len, Str *s)
 	argv[2] = mkvalstr(s);
 	if(s->len < len)
 		vmerr(vm, "attempt to put short string into longer range");
-	safeccall(vm, as->put, 3, argv);
+	ccall(vm, as->put, 3, argv);
 }
 
 Str*
@@ -4931,7 +4906,7 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
-	rv = safeccall(vm, as->get, 2, argv);
+	rv = ccall(vm, as->get, 2, argv);
 	if(Vkind(rv) != Qstr)
 		vmerr(vm, "get method returned non-string");
 	s = valstr(rv);
@@ -4951,7 +4926,7 @@ callmap(VM *vm, As *as)
 {
 	Val argv[1], rv;
 	argv[0] = mkvalas(as);
-	rv = safeccall(vm, as->map, 1, argv);
+	rv = ccall(vm, as->map, 1, argv);
 	if(Vkind(rv) != Qvec)
 		vmerr(vm, "map method returned invalid value");
 	return valvec(rv);
@@ -4964,7 +4939,7 @@ callismapped(VM *vm, As *as, Imm off, Imm len)
 	argv[0] = mkvalas(as);
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
-	rv = safeccall(vm, as->ismapped, 2, argv);
+	rv = ccall(vm, as->ismapped, 2, argv);
 	if(Vkind(rv) != Qcval)
 		vmerr(vm, "ismapped method returned invalid value");
 	return valcval(rv);
