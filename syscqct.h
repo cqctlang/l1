@@ -954,7 +954,7 @@ struct VM {
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
 	
-	u32 depth;
+	u32 level;
 	u64 gen;
 	u64 levgen[128];
 	jmp_buf dovm[128];

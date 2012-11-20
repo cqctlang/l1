@@ -208,7 +208,8 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 }
 
 static Cont*
-mkcont(void *base, u32 sz, void *ra, Closure *cl, Cont *link)
+mkcont(void *base, u32 sz, void *ra, Closure *cl, Cont *link,
+       u32 level, u64 gen)
 {
 	Cont *k;
 	k = (Cont*)malq(Qcont, sizeof(Cont));
@@ -217,6 +218,8 @@ mkcont(void *base, u32 sz, void *ra, Closure *cl, Cont *link)
 	k->ra = ra;
 	k->cl = cl;
 	k->link = link;
+	k->level = level;
+	k->gen = gen;
 	return k;
 }
 
@@ -2531,7 +2534,8 @@ vkcapture(VM *vm)
 	}
 
 	sz = (void*)vm->fp-vm->stk;
-	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink);
+	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink,
+		   vm->level, vm->gen);
 	vm->klink = k;
 	vm->stk = vm->fp;
 	vm->stksz -= sz;
@@ -2552,7 +2556,8 @@ koverflow(VM *vm)
 	Val *fp;
 
 	sz = (void*)vm->fp-vm->stk;
-	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink);
+	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink,
+		   vm->level, vm->gen);
 	vm->klink = k;
 	vm->stk = malstack(Maxstk);
 	vm->stksz = Maxstk;
@@ -2561,6 +2566,24 @@ koverflow(VM *vm)
 	fp[Ocl] = mkvalcl(stkunderflow);
 	memcpy(fp+Oarg0, vm->fp+Oarg0, vm->vc*sizeof(Val));
 	vm->fp = vm->stk;
+}
+
+static int
+ishalt(Closure *cl)
+{
+	return cl == halt;
+}
+
+static int
+isc(Closure *cl)
+{
+	switch(cl->code->kind){
+	case Ccfn:
+	case Cccl:
+		return 1;
+	default:
+		return 0;
+	}
 }
 
 static void
@@ -2573,6 +2596,7 @@ kunderflow(VM *vm)
 	u32 fsz;
 	Insn *ra;
 	Closure *cl;
+	u32 level;
 
 	/*
 	   program has just returned to underflow handler:
@@ -2618,6 +2642,7 @@ kunderflow(VM *vm)
 
 	/* split the continuation if it exceeds our copy limit */
 	if(k->sz > lim){
+		level = k->level;
 		top = k->base+k->sz;
 		fp = (Val*)top;
 		ra = k->ra;
@@ -2626,8 +2651,10 @@ kunderflow(VM *vm)
 		if(fsz >= lim)
 			/* we assume frame size never exceeds limit */
 			bug();
-		while(top - (void*)(fp-fsz) < lim){
+		while(top - (void*)(fp-fsz) < lim || isc(cl)){
 			fp -= fsz;
+			if(ishalt(cl))
+				level--;
 			ra = stkp(fp[Ora]);
 			cl = valcl(fp[Ocl]);
 			fsz = ra2size(ra, cl);
@@ -2636,7 +2663,8 @@ kunderflow(VM *vm)
 		/* fp points to base of last frame that will fit in
 		   a lim-sized segment */
 
-		nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link);
+		nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link,
+			    level, 0);
 		k->link = nk;
 		k->base = fp;
 		k->sz = top-k->base;
@@ -2662,7 +2690,7 @@ kunderflow(VM *vm)
 	vm->fp = vm->stk+k->sz;	/* returned-to code shall first reset fp */ 
 	vm->klink = k->link;
 
-	longjmp(vm->dovm[vm->depth], 0);
+	longjmp(vm->dovm[vm->level], 0);
 }
 
 static void
@@ -4398,9 +4426,9 @@ dovm(VM *vm)
 	}
 #endif
 
-	vm->depth++;
-	vm->levgen[vm->depth] = vm->gen++;
-	setjmp(vm->dovm[vm->depth]);
+	vm->level++;
+	vm->levgen[vm->level] = vm->gen++;
+	setjmp(vm->dovm[vm->level]);
 	while(1){
 		NEXTLABEL(i = vm->pc++){
 		LABEL Inop:
@@ -4486,7 +4514,7 @@ dovm(VM *vm)
 			vm->cl = valcl(vm->fp[Ocl]);
 			vm->pc = stkp(vm->fp[Ora]);
 			/* ... except that it returns from dovm */
-			vm->depth--;
+			vm->level--;
 			return vm->ac;
 		LABEL Iret:
 			vm->cl = valcl(vm->fp[Ocl]);
