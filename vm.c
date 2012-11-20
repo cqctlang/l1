@@ -2596,7 +2596,7 @@ kunderflow(VM *vm)
 	u32 fsz;
 	Insn *ra;
 	Closure *cl;
-	u32 level;
+	u32 level, l;
 
 	/*
 	   program has just returned to underflow handler:
@@ -2640,9 +2640,11 @@ kunderflow(VM *vm)
 		   this may explain the ikarus exec loop */
 		bug();
 
+	level = k->level;
+
 	/* split the continuation if it exceeds our copy limit */
 	if(k->sz > lim){
-		level = k->level;
+		l = level;
 		top = k->base+k->sz;
 		fp = (Val*)top;
 		ra = k->ra;
@@ -2654,7 +2656,7 @@ kunderflow(VM *vm)
 		while(top - (void*)(fp-fsz) < lim || isc(cl)){
 			fp -= fsz;
 			if(ishalt(cl))
-				level--;
+				l--;
 			ra = stkp(fp[Ora]);
 			cl = valcl(fp[Ocl]);
 			fsz = ra2size(ra, cl);
@@ -2664,7 +2666,7 @@ kunderflow(VM *vm)
 		   a lim-sized segment */
 
 		nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link,
-			    level, 0);
+			    l, 0);
 		k->link = nk;
 		k->base = fp;
 		k->sz = top-k->base;
@@ -2689,7 +2691,7 @@ kunderflow(VM *vm)
 	vm->cl = k->cl;
 	vm->fp = vm->stk+k->sz;	/* returned-to code shall first reset fp */ 
 	vm->klink = k->link;
-
+	vm->level = level;
 	longjmp(vm->dovm[vm->level], 0);
 }
 
