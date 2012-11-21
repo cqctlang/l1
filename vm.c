@@ -3756,20 +3756,16 @@ static void
 calldispatch(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Closure *dcl;
-	Val *xargv;
+	Vec *xargv;
+	Imm i;
 
 	dcl = valcl(disp[0]);
-	xargv = emalloc((1+argc)*sizeof(Val));
-	xargv[0] = argv[0];	/* this */
-	xargv[1] = disp[1];	/* name of method to call */
-	memcpy(xargv+2, argv+1, (argc-1)*sizeof(Val));
-	if(waserror(vm)){
-		efree(xargv);
-		nexterror(vm);
-	}
-	*rv = ccall(vm, dcl, argc+1, xargv);
-	efree(xargv);
-	poperror(vm);
+	xargv = mkvec(1+argc);
+	_vecset(xargv, 0, argv[0]); /* this */
+	_vecset(xargv, 1, disp[1]); /* name of method to call */
+	for(i = 0; i < argc-1; i++)
+		_vecset(xargv, i+2, argv[i+1]);
+	*rv = ccall(vm, dcl, argc+1, vecdata(xargv));
 }
 
 static void
