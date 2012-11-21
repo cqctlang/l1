@@ -5541,13 +5541,14 @@ l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Val this, id, args, v, *xargv;
+	Val this, id, args, v;
 	Dom *dom;
 	As *as;
 	Ns *ns;
 	Str *s;
 	Closure *cl, *dcl;
-	Imm ll, xargc;
+	Imm i, ll, xargc;
+	Vec *xargv;
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to callmethod");
@@ -5594,24 +5595,20 @@ l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(v){
 		cl = valcl(v);
 		xargc = ll+1;
-		xargv = emalloc(xargc*sizeof(Val));
-		xargv[0] = this;
-		listcopyv(vallist(args), 0, ll, xargv+1);
+		xargv = mkvec(xargc);
+		_vecset(xargv, 0, this);
+		for(i = 0; i < ll; i++)
+			_vecset(xargv, i+1, listref(vallist(args), i));
 	}else{
 		cl = dcl;
 		xargc = ll+2;
-		xargv = emalloc(xargc*sizeof(Val));
-		xargv[0] = this;
-		xargv[1] = id;
-		listcopyv(vallist(args), 0, ll, xargv+2);
+		xargv = mkvec(xargc);
+		_vecset(xargv, 0, this);
+		_vecset(xargv, 1, id);
+		for(i = 0; i < ll; i++)
+			_vecset(xargv, i+2, listref(vallist(args), i));
 	}
-	if(waserror(vm)){
-		efree(xargv);
-		nexterror(vm);
-	}
-	*rv = ccall(vm, cl, xargc, xargv);
-	poperror(vm);
-	efree(xargv);
+	*rv = ccall(vm, cl, xargc, vecdata(xargv));
 }
 
 static void

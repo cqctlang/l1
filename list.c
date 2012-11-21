@@ -83,13 +83,6 @@ listcopy(List *l)
 	return n;
 }
 
-/* FIXME: used only by callmethod, this and its need should go */
-void
-listcopyv(List *l, Imm ndx, Imm n, Val *v)
-{
-	memcpy(v, &listdata(l)[l->h+ndx], n*sizeof(Val));
-}
-
 static List*
 listreverse(List *l)
 {

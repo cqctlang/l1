@@ -1472,7 +1472,6 @@ void		_listappend(List *lst, Val v);
 List*		listappend(VM *vm, List *lst, Val v);
 List*		listconcat(VM *vm, List *l1, List *l2);
 List*		listcopy(List *lst);
-void		listcopyv(List *lst, Imm ndx, Imm n, Val *v);
 List*		listdel(VM *vm, List *lst, Imm idx);
 List*		listins(VM *vm, List *lst, Imm idx, Val v);
 Imm		listlen(List *x);
