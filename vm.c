@@ -890,6 +890,8 @@ vmbacktrace(VM *vm)
 static void
 vvmerr(VM *vm, char *fmt, va_list args)
 {
+#if 0
+	/* we are not ready for this idea */
 	static char buf[128];
 	Val argv[2];
 	Closure *kcl;
@@ -905,6 +907,12 @@ vvmerr(VM *vm, char *fmt, va_list args)
 		fatal("error handler is not a procedure");
 	ccall(vm, valcl(err), 2, argv);
 	fatal("error handler was not an escape procedure");
+#else
+	cprintf(&vm->top->out, "error: ");
+	cvprintf(&vm->top->out, fmt, args);
+	cprintf(&vm->top->out, "\n");
+	fvmbacktrace(vm);
+#endif
 }
 
 void
