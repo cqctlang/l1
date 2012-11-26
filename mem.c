@@ -2229,7 +2229,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(dbg)printf("gc(%u,%u)\n", g, tg);
+	if(1)printf("gc(%u,%u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();

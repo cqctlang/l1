@@ -69,6 +69,7 @@ static unsigned isrelop[Iopmax+1] = {
 static Ctype* dolooktype(VM *vm, Ctype *t, Ns *ns);
 static Env* mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
+static Closure* kcapture(VM *vm);
 
 void *GCiterdone;
 Val Xundef;
@@ -889,10 +890,21 @@ vmbacktrace(VM *vm)
 static void
 vvmerr(VM *vm, char *fmt, va_list args)
 {
-	cprintf(&vm->top->out, "error: ");
-	cvprintf(&vm->top->out, fmt, args);
-	cprintf(&vm->top->out, "\n");
-	fvmbacktrace(vm);
+	static char buf[128];
+	Val argv[2];
+	Closure *kcl;
+	Val err;
+	vsnprint(buf, sizeof(buf), fmt, args);
+	kcl = kcapture(vm);
+	argv[0] = mkvalstr(mkstr0(buf));
+	argv[1] = mkvalcl(kcl);
+	err = envlookup(vm->top->env, "doerror");
+	if(err == 0)
+		fatal("no error handler");
+	if(Vkind(err) != Qcl)
+		fatal("error handler is not a procedure");
+	ccall(vm, valcl(err), 2, argv);
+	fatal("error handler was not an escape procedure");
 }
 
 void
@@ -2459,12 +2471,32 @@ dostr:
 		return mkvalcval2(cval0);
 }
 
-static void
-vkcapture(VM *vm)
+static Closure*
+kcapture(VM *vm)
 {
 	Cont *k;
 	Closure *kcl;
 	u32 sz;
+
+	if(vm->fp != vm->stk){
+		sz = (void*)vm->fp-vm->stk;
+		k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]),
+			   vm->klink, vm->level, vm->gen);
+		vm->klink = k;
+		vm->stk = vm->fp;
+		vm->stksz -= sz;
+		vm->fp[Ora] = codeentry(stkunderflow->code);
+		vm->fp[Ocl] = mkvalcl(stkunderflow);
+	}
+	kcl = mkcl(kcode, 1);
+	cldisp(kcl)[0] = mkvalcont(vm->klink);
+	return kcl;
+}
+
+static void
+vkcapture(VM *vm)
+{
+	Closure *kcl;
 
 	/*
 	  program did
@@ -2495,31 +2527,9 @@ vkcapture(VM *vm)
 		vmerr(vm, "wrong number of arguments to callcc");
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
 		vmerr(vm, "argument 1 to callcc must be a procedure");
-
-	if(vm->fp == vm->stk){
-		/* special case: don't create a new continuation;
-		   return the current one */
-
-		vm->cl = valcl(vm->fp[Oarg0]);
-		vm->pc = codeentry(vm->cl->code);
-		kcl = mkcl(kcode, 1);
-		cldisp(kcl)[0] = mkvalcont(vm->klink);
-		vm->fp[Oarg0] = mkvalcl(kcl);
-		return;
-	}
-
-	sz = (void*)vm->fp-vm->stk;
-	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink,
-		   vm->level, vm->gen);
-	vm->klink = k;
-	vm->stk = vm->fp;
-	vm->stksz -= sz;
+	kcl = kcapture(vm);
 	vm->cl = valcl(vm->fp[Oarg0]);
 	vm->pc = codeentry(vm->cl->code);
-	vm->fp[Ora] = codeentry(stkunderflow->code);
-	vm->fp[Ocl] = mkvalcl(stkunderflow);
-	kcl = mkcl(kcode, 1);
-	cldisp(kcl)[0] = mkvalcont(k);
 	vm->fp[Oarg0] = mkvalcl(kcl);
 }
 

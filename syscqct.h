@@ -953,12 +953,10 @@ struct VM {
 	Toplevel *top;
 	Err *err;		/* stack of error labels */
 	unsigned edepth, emax;	/* # live and max error labels */
-	
 	u32 level;
 	u64 gen;
 	u64 levgen[128];
 	jmp_buf dovm[128];
-	
 	u64 exetime, exelast;
 	u64 gctime, postgctime;
 };
@@ -1279,6 +1277,7 @@ void setfreeheadfn(Qkind qkind, Freeheadfn free1);
 
 /* lib9's reliable, portable snprintf (x/lib9) */
 int		snprint(char *buf, int len, char *fmt, ...);
+int		vsnprint(char *buf, int len, char *fmt, va_list args);
 
 /* fnfmt.c */
 char*		fmtctypec(Ctype *t);
