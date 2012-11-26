@@ -981,39 +981,6 @@ static ikind EtoVM[] = {
 };
 
 static void
-cgunop(Ode *code, CGEnv *p, unsigned kind, Operand *r1,
-       Location *loc, Ctl *ctl, Ctl *nxt, Src src)
-{
-	Insn *i;
-
-	if(loc == Effect && ctl->ckind == Clabelpair)
-		fatal("branch on effect");
-
-	i = nextinsn(code, src);
-	i->kind = EtoVM[kind];
-	i->op1 = *r1;
-	randloc(&i->dst, loc);
-	cgctl(code, p, ctl, nxt, src);
-}
-
-static void
-cgbinop(Ode *code, CGEnv *p, unsigned kind, Operand *r1, Operand *r2,
-	Location *loc, Ctl *ctl, Ctl *nxt, Src src)
-{
-	Insn *i;
-
-	if(loc == Effect && ctl->ckind == Clabelpair)
-		fatal("branch on effect");
-
-	i = nextinsn(code, src);
-	i->kind = EtoVM[kind];
-	i->op1 = *r1;
-	i->op2 = *r2;
-	randloc(&i->dst, loc);
-	cgctl(code, p, ctl, nxt, src);
-}
-
-static void
 finit(Frame *f, u32 narg, u32 nloc, u32 ntmp)
 {
 	f->ml = 1024;
@@ -1230,7 +1197,11 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(L, e);
 			randloc(&r1, AC);
 		}
-		cgunop(code, p, e->kind, &r1, loc, ctl, nxt, e->src);
+		i = nextinsn(code, e->src);
+		i->kind = EtoVM[e->kind];
+		i->op1 = r1;
+		randloc(&i->dst, loc);
+		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case EBINOP:
 		if(issimple(e->e1) && issimple(e->e2)){
@@ -1262,7 +1233,12 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(L, e);
 			randloc(&r2, AC);
 		}
-		cgbinop(code, p, e->kind, &r1, &r2, loc, ctl, nxt, e->src);
+		i = nextinsn(code, e->src);
+		i->kind = EtoVM[e->kind];
+		i->op1 = r1;
+		i->op2 = r2;
+		randloc(&i->dst, loc);
+		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Eblock:
 		b = (Block*)e->xp;
