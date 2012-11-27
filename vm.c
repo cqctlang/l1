@@ -4384,10 +4384,7 @@ dovm(VM *vm)
 		gotab[Icmplt] 	= &&Icmplt;
 		gotab[Icmple] 	= &&Icmple;
 		gotab[Icmpneq] 	= &&Icmpneq;
-		gotab[Icode]	= &&Icode;
 		gotab[Idiv] 	= &&Idiv;
-		gotab[Ifmask]	= &&Ifmask;
-		gotab[Ifsize]	= &&Ifsize;
 		gotab[Ihalt] 	= &&Ihalt;
 		gotab[Iinv] 	= &&Iinv;
 		gotab[Ijmp] 	= &&Ijmp;
@@ -4397,14 +4394,12 @@ dovm(VM *vm)
 		gotab[Ikp] 	= &&Ikp;
 		gotab[Imod] 	= &&Imod;
 		gotab[Imov] 	= &&Imov;
-		gotab[Imovra] 	= &&Imovra;
 		gotab[Imovvc] 	= &&Imovvc;
 		gotab[Imul] 	= &&Imul;
 		gotab[Ineg] 	= &&Ineg;
 		gotab[Inot] 	= &&Inot;
 		gotab[Ior] 	= &&Ior;
 		gotab[Inop] 	= &&Inop;
-		gotab[Ipanic] 	= &&Ipanic;
 		gotab[Iret] 	= &&Iret;
 		gotab[Ishl] 	= &&Ishl;
 		gotab[Ishr] 	= &&Ishr;
@@ -4459,10 +4454,6 @@ dovm(VM *vm)
 			m = getimmrand(&i->op1); /* max frame size */
 			checkoverflow(vm, m);
 			continue;
-		LABEL Imovra:
-			v1 = (Val)(vm->pc+i->scnt);
-			putvalrand(vm, v1, &i->dst);
-			continue;
 		LABEL Imovvc:
 			m = getimmrand(&i->op1);
 			vm->vc = m;
@@ -4498,8 +4489,6 @@ dovm(VM *vm)
 		LABEL Iapply:
 			vapply(vm);
 			continue;
-		LABEL Ipanic:
-			fatal("vm panic");
 		LABEL Ihalt:
 			/* Ihalt is exactly like Iret... */
 			vm->cl = valcl(vm->fp[Ocl]);
@@ -4552,12 +4541,6 @@ dovm(VM *vm)
 			rv = xxcast(vm, v1, v2);
 			putvalrand(vm, rv, &i->dst);
 			continue;
-		LABEL Ifsize:
-			fatal("attempt to execute frame size");
-		LABEL Ifmask:
-			fatal("attempt to execute frame mask");
-		LABEL Icode:
-			fatal("attempt to execute code pointer");
 		}
 	}
 }

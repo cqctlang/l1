@@ -640,10 +640,7 @@ enum {
 	Icmplt,
 	Icmple,
 	Icmpneq,
-	Icode,
 	Idiv,
-	Ifmask,
-	Ifsize,
 	Ihalt,
 	Iinv,
 	Ijmp,
@@ -653,14 +650,12 @@ enum {
 	Ikp,
 	Imod,
 	Imov,
-	Imovra,
 	Imovvc,
 	Imul,
 	Ineg,
 	Inot,
 	Ior,
 	Inop,
-	Ipanic,
 	Iret,
 	Ishl,
 	Ishr,
@@ -827,9 +822,16 @@ struct Reloc {
 	uptr	coff;		/* location of pointer from start of code */
 } Reloc;
 
+typedef
+struct Dbg {
+	uptr	coff;
+	u32	fsz;
+	u64	lm;
+} Dbg;
+
 struct Ode {
 	Head hd;
-	unsigned long ninsn, maxinsn;;
+	unsigned long ninsn, maxinsn;
 	Insn *insn;
 	Cid *id;
 	Ctl **labels;
@@ -837,6 +839,8 @@ struct Ode {
 	Ctl *clist;
 	u64 *lm;
 	u32 nlm, mlm;
+	Dbg *dbg;
+	u32 ndbg, mdbg;
 };
 
 /* live mask */
@@ -859,6 +863,8 @@ struct Code {
 	u32 nfree;	/* number of free variables */
 	Str *reloc;
 	Str *lm;
+	Str *dbg;	/* debug info, ordered by offset */
+	u32 ndbg;	/* number of debug records */
 	Vec *src;	/* belongs in pure storage? */
 	u32 eoff;	/* offset to first instruction */
 	union {
@@ -1122,7 +1128,6 @@ Closure*	haltthunk(void);
 void		initcg(void);
 Closure*	mkapply(void);
 Code*		mkcode(Ckind kind, Imm nbytes);
-Closure*	panicthunk(void);
 void		printinsn(Insn *i);
 void		printval(Val v);
 void		resetlabels();

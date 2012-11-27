@@ -20,15 +20,15 @@ struct CGEnv {
 typedef
 struct Frame
 {
-	u64 *b, *l, *e;
+	u64 *b, *l, *e;	/* live mask buffer */
+	u32 ml;		/* size of live mask buffer */
 	u32 narg;	/* args in frame (after varg normalization) */
 	u32 nloc;	/* locals in frame */
 	u32 ntmp;	/* temporaries in frame */
-	u64 sp;		/* offset to farthest defined object on stack */
-	u64 maxsp;	/* maximum sp seen at pop events */
 	u32 tmp;	/* offset to first temporary */
-	u32 ml;
-	u64 *live;
+	u32 fsz;	/* current frame size */
+	u32 maxfsz;	/* maximum frame size */
+
 } Frame;
 
 enum { Maxtoploc = 7 };
@@ -134,6 +134,9 @@ mkode(char *id)
 	code->lm = emalloc(128*sizeof(u64));
 	code->nlm = 0;
 	code->mlm = 128;
+	code->dbg = emalloc(128*sizeof(u64));
+	code->ndbg = 0;
+	code->mdbg = 128;
 	quard((Val)code);
 	return code;
 }
@@ -154,6 +157,7 @@ freeode(Head *hd)
 	efree(code->insn);
 	efree(code->labels);
 	efree(code->lm);
+	efree(code->dbg);
 	efree(code->src);
 	return 1;
 }
@@ -403,23 +407,18 @@ setreloc(Code *c)
 		case Iapply:
 		case Iret:
 		case Ihalt:
-		case Ipanic:
 		case Iunderflow:
 		case Ikp:
-		case Ifmask:
-		case Ifsize:
 		case Inop:
 		case Iargc:
 		case Ivargc:
 		case Ichksp:
 		case Iaddfp:
-		case Icode:
 		case Imovvc:
 		case Ijmp:
 		case Ijnz:
 		case Ijz:
 			break;
-		case Imovra:
 		case Ikg:
 			setrelocrand(c, &i->dst);
 			break;
@@ -469,15 +468,11 @@ setinsn(Code *c)
 	e = codeend(c);
 	for(; i < e; i++)
 		switch(i->kind){
-		case Imovra:
 		case Ijmp:
 		case Ijnz:
 		case Ijz:
 			t = (Insn*)codeinsn(c)+i->dstlabel->insn;
 			i->scnt = t-(i+1);
-			break;
-		case Icode:
-			i->cnt = (void*)i-(void*)c;
 			break;
 		default:
 			break;
@@ -518,6 +513,8 @@ mkvmcode(Ode *o, u32 eoff, u32 nfree)
 	memcpy(codetramp(c), trampentry->buf, trampentry->n);
 	memcpy(codeinsn(c), o->insn, o->ninsn*sizeof(Insn));
 	c->lm = mkstr((char*)o->lm, o->nlm*sizeof(u64));
+	c->dbg = mkstr((char*)o->dbg, o->ndbg*sizeof(Dbg));
+	c->ndbg = o->ndbg;
 	c->reloc = mkstrn(128);
 	c->nreloc = 0;
 	c->src = mkvec(n);
@@ -547,15 +544,6 @@ printinsn(Insn *i)
 		break;
 	case Iapply:
 		xprintf("apply");
-		break;
-	case Icode:
-		xprintf("-code-  0x%x", (void*)i-i->cnt);
-		break;
-	case Ifsize:
-		xprintf("-size- 0x%x", i->cnt);
-		break;
-	case Ifmask:
-		xprintf("-mask- 0x%x", i->cnt);
 		break;
 	case Iinv:
 	case Ineg:
@@ -617,10 +605,6 @@ printinsn(Insn *i)
 		xprintf(" ");
 		printrand(&i->dst);
 		break;
-	case Imovra:
-		xprintf("movra %d ", i->scnt);
-		printrand(&i->dst);
-		break;
 	case Iret:
 		xprintf("ret");
 		break;
@@ -629,9 +613,6 @@ printinsn(Insn *i)
 		break;
 	case Iunderflow:
 		xprintf("underflow");
-		break;
-	case Ipanic:
-		xprintf("panic");
 		break;
 	case Iclo:
 		xprintf("clo ");
@@ -989,11 +970,9 @@ finit(Frame *f, u32 narg, u32 nloc, u32 ntmp)
 	f->narg = narg;
 	f->nloc = nloc;
 	f->ntmp = ntmp;
-	f->sp = Onfrhd-1;
-	f->sp += narg+nloc;
-	f->tmp = f->sp+1;
-	f->sp += ntmp;
-	f->maxsp = f->sp;
+	f->tmp = Onfrhd+narg+nloc;
+	f->fsz = Onfrhd+narg+nloc+ntmp;
+	f->maxfsz = f->fsz;
 }
 
 static void
@@ -1016,30 +995,28 @@ fgrow(Frame *f)
 }
 
 static void
-fpush(Frame *f)
+fpushlm(Frame *f)
 {
 	u32 nw;
-	nw = roundup(f->sp, mwbits)/mwbits;
+	nw = roundup(f->fsz, mwbits)/mwbits;
 	while(f->l+nw+1+nw > f->e)
 		fgrow(f);
-	*(f->l+nw) = f->sp;
+	*(f->l+nw) = f->fsz;
 	memcpy(f->l+nw+1, f->l, nw*sizeof(u64));
 	f->l += nw+1;
 }
 
 static void
-fpop(Frame *f)
+fpoplm(Frame *f)
 {
 	u32 ow, nw;
 	if(f->l <= f->b)
 		bug();
-	if(f->sp > f->maxsp)
-		f->maxsp = f->sp;
-	ow = roundup(f->sp, mwbits)/mwbits;
+	ow = roundup(f->fsz, mwbits)/mwbits;
 	f->l--;
-	f->sp = *f->l;
+	f->fsz = *f->l;
 	memset(f->l, 0, (1+ow)*sizeof(u64));
-	nw = roundup(f->sp, mwbits)/mwbits;
+	nw = roundup(f->fsz, mwbits)/mwbits;
 	f->l -= nw;
 }
 
@@ -1065,8 +1042,41 @@ fsetloc(Frame *f, u32 i)
 }
 
 static void
-femitin(Frame *f, u64 fsz, Ode *c, Src s)
+fsetrand(Frame *f, Operand *r)
 {
+	Location *loc;
+	switch(r->okind){
+	case Oloc:
+		loc = &r->u.loc;
+		switch(LOCKIND(loc->loc)){
+		case Lframe:
+			if(!LOCBOX(loc->loc))
+				fset(f, LOCIDX(loc->loc));
+			break;
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+fbumpfsz(Frame *f, s32 i)
+{
+	f->fsz += i;
+	if(f->fsz < Onfrhd+f->narg+f->nloc+f->ntmp)
+		bug();
+	if(f->fsz > f->maxfsz)
+		f->maxfsz = f->fsz;
+}
+
+#if 0
+static void
+femitin(Frame *f, u64 fsz, Ode *c)
+{
+	
 	Insn *i;
 	i = nextinsn(c, s);
 	i->kind = Ifmask;
@@ -1082,7 +1092,7 @@ femitin(Frame *f, u64 fsz, Ode *c, Src s)
 }
 
 static void
-femitex(Frame *f, u64 fsz, Ode *c, Src s)
+femitex(Frame *f, u64 fsz, Ode *c)
 {
 	Insn *i;
 	u32 nw;
@@ -1104,21 +1114,44 @@ femitex(Frame *f, u64 fsz, Ode *c, Src s)
 	memcpy(c->lm+c->nlm, f->l, nw*sizeof(u64));
 	c->nlm += nw;
 }
+#endif
 
 static void
-femit(Frame *f, Ode *c, Src s, u64 fsz)
+femit(Frame *f, Ode *c)
 {
-	if(fsz < mwbits-1)
-		femitin(f, fsz, c, s);
-	else
-		femitex(f, fsz, c, s);
+	Dbg *dbg;
+	u32 nw;
+
+	if(c->ndbg >= c->mdbg){
+		c->dbg = erealloc(c->dbg, c->mdbg*sizeof(Dbg),
+				  2*c->mdbg*sizeof(Dbg));
+		c->mdbg *= 2;
+	}
+	dbg = c->dbg[c->ndb++];
+	dbg->off = c->ninsn;
+	dbg->fsz = f->fsz;
+	if(f->fsz < mwbits-1)
+		/* live mask fits in debug record */
+		dbg->lm = (*f->l)&((1UL<<f->fsz)-1);
+	else{
+		/* live mask goes in live mask buffer */
+		nw = roundup(f->fsz, mwbits)/mwbits;
+		if(c->nlm+nw > c->mlm){
+			c->lm = erealloc(c->lm, c->mlm*sizeof(u64),
+					 2*c->mlm*sizeof(u64));
+			c->mlm *= 2;
+		}
+		dbg->lm = (1ULL<<(mwbits-1))|c->nlm; /* offset into lm */
+		memcpy(c->lm+c->nlm, f->l, nw*sizeof(u64));
+		c->nlm += nw;
+	}
 }
 
 static void
 cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
    Frame *f)
 {
-	Ctl *L0, *L, *R, *Lthen, *Lelse, *lpair;
+	Ctl *L0, *L, *Lthen, *Lelse, *lpair;
 	Operand r1, r2;
 	Expr *q, *ep;
 	Insn *i;
@@ -1147,6 +1180,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			L = genlabel(code, 0);
 			cg(ep->e1, code, p, Effect, L, prv, L, f);
 			emitlabel(L, ep->e2);
+			femit(f, code);
 			prv = L;
 			ep = ep->e2;
 		}
@@ -1162,10 +1196,13 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			L = genlabel(code, 0);
 			cg(e->e2, code, p, &dst, L, prv, L, f);
 			emitlabel(L, e);
+			femit(f, code);
 			i = nextinsn(code, e->src);
 			i->kind = Imov;
 			randloc(&i->op1, &dst);
 			randloc(&i->dst, loc);
+			fsetrand(f, &i->dst);
+			femit(f, code);
 			cgctl(code, p, ctl, nxt, e->src);
 		}else
 			cg(e->e2, code, p, &dst, ctl, prv, nxt, f);
@@ -1177,10 +1214,13 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			L = genlabel(code, 0);
 			cg(e->e2, code, p, &dst, L, prv, L, f);
 			emitlabel(L, e);
+			femit(f, code);
 			i = nextinsn(code, e->src);
 			i->kind = Imov;
 			randloc(&i->op1, &dst);
 			randloc(&i->dst, loc);
+			fsetrand(f, &i->dst);
+			femit(f, code);
 			cgctl(code, p, ctl, nxt, e->src);
 		}else
 			cg(e->e2, code, p, &dst, ctl, prv, nxt, f);
@@ -1195,12 +1235,15 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			L = genlabel(code, 0);
 			cg(e->e1, code, p, AC, L, prv, L, f);
 			emitlabel(L, e);
+			femit(f, code);
 			randloc(&r1, AC);
 		}
 		i = nextinsn(code, e->src);
 		i->kind = EtoVM[e->kind];
 		i->op1 = r1;
 		randloc(&i->dst, loc);
+		fsetrand(f, &i->dst);
+		femit(f, code);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case EBINOP:
@@ -1212,11 +1255,13 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			L = genlabel(code, 0);
 			cg(e->e2, code, p, AC, L, prv, L, f);
 			emitlabel(L, e);
+			femit(f, code);
 			randloc(&r2, AC);
 		}else if(issimple(e->e2)){
 			L = genlabel(code, 0);
 			cg(e->e1, code, p, AC, L, prv, L, f);
 			emitlabel(L, e);
+			femit(f, code);
 			randloc(&r1, AC);
 			cgrand(f, &r2, e->e2);
 		}else{
@@ -1224,6 +1269,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randframeloc(&r1, f->tmp);
 			cg(e->e1, code, p, &r1.u.loc, L0, prv, L0, f);
 			emitlabel(L0, e->e2);
+			femit(f, code);
 			L = genlabel(code, 0);
 			fpush(f);
 			fset(f, f->tmp++);
@@ -1231,6 +1277,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			f->tmp--;
 			fpop(f);
 			emitlabel(L, e);
+			femit(f, code);
 			randloc(&r2, AC);
 		}
 		i = nextinsn(code, e->src);
@@ -1238,43 +1285,33 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i->op1 = r1;
 		i->op2 = r2;
 		randloc(&i->dst, loc);
+		fsetrand(f, &i->dst);
+		femit(f, code);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Eblock:
 		b = (Block*)e->xp;
 		fpush(f);
-		for(m = 0; m < b->nloc; m++)
-			fsetloc(f, b->loc[m].idx);
 		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
 		fpop(f);
 		break;
 	case Ecall:
-		R = 0;
 		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
 		fpush(f);
-		nfp = f->sp+1;
-		rap = 0;
+		nfp = f->fsz;
 		if(!istail){
-			R = genlabel(code, 0);
 			i = nextinsn(code, e->src);
 			i->kind = Imov;
 			randloc(&i->op1, CL);
 			randframeloc(&i->dst, nfp+Ocl);
+			fbumpfsz(f, Onfrhd);
 			fset(f, nfp+Ocl);
-			rap = nfp+Ora;
+			femit(f, code);
 			nap = nfp+Onfrhd;
-			f->sp += Onfrhd;
 		}else
 			nap = nfp;
 
-		q = e->e2;
-		narg = 0;
-		while(q->kind != Enull){
-			narg++;
-			q = q->e2;
-		}
-
-		f->sp += narg;
+		narg = elistlen(e->e2);
 		L0 = prv;
 		for(m = 0, q = e->e2; m < narg; m++, q = q->e2){
 			if(issimple(q->e1)){
@@ -1288,12 +1325,17 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				L = genlabel(code, 0);
 				cg(q->e1, code, p, AC, L, L0, L, f);
 				emitlabel(L, q->e2);
+				femit(f, code);
 				i = nextinsn(code, q->e1->src);
 				i->kind = Imov;
 				randloc(&i->op1, AC);
 				randframeloc(&i->dst, nap+m);
 			}
-			fset(f, nap+m); /* argument */
+			/* argument occupies new live stack slot */
+			fbumpfsz(f, 1);
+			fset(f, nap+m);
+			femit(f, code);
+
 			L0 = L;
 		}
 
@@ -1302,19 +1344,17 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		}else {
 			L0 = genlabel(code, 0);
 			emitlabel(L0, e->e1);
+			femit(f, code);
 			L = genlabel(code, 0);
 			cg(e->e1, code, p, AC, L, L0, L, f);
 			emitlabel(L, e);
+			femit(f, code);
 		}
 
 		if(!istail){
-			i = nextinsn(code, e->src);
-			i->kind = Imovra;
-			i->dstlabel = R;
-			R->used = 1;
-			randframeloc(&i->dst, rap);
 			/* make sure callee is in AC,
-			   in case it is frame relative */
+			   in case it is frame relative.
+			   FIXME: can't we sort this out here? */
 			if(issimple(e->e1)){
 				i = nextinsn(code, e->src);
 				i->kind = Imov;
@@ -1326,20 +1366,22 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			randimm(&i->op1, narg);
 			i = nextinsn(code, e->src);
 			i->kind = Iaddfp;
-			i->scnt = nfp; /* like femit */
+			i->scnt = nfp;
 			i = nextinsn(code, e->src);
 			i->kind = Icall;
 			randloc(&i->op1, AC);
-			femit(f, code, e->src, nfp);
-			emitlabel(R, e);
+			fpop(f);
+			femit(f, code);
 			i = nextinsn(code, e->src);
 			i->kind = Iaddfp;
-			i->scnt = -nfp; /* like femit */
+			i->scnt = -nfp;
 			if(loc != Effect && loc != AC){
 				i = nextinsn(code, e->src);
 				i->kind = Imov;
 				randloc(&i->op1, AC);
 				randloc(&i->dst, loc);
+				fsetrand(f, &i->dst);
+				femit(f, code);
 			}
 			cgctl(code, p, ctl, nxt, e->src);
 		}else{
@@ -1362,6 +1404,8 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->kind = Imov;
 				randframeloc(&i->op1, nap+m);
 				randframeloc(&i->dst, Oarg0+m);
+				fsetarg(f, m);
+				femit(f, code);
 			}
 			i = nextinsn(code, e->src);
 			i->kind = Imovvc;
@@ -1369,8 +1413,9 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i = nextinsn(code, e->src);
 			i->kind = Icall;
 			randloc(&i->op1, AC);
+			fpop(f);
+			femit(f, code);
 		}
-		fpop(f);
 		break;
 	case Eret:
 		if(e->e1)
@@ -1390,6 +1435,8 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i->kind = Imov;
 		randvarloc(f, &i->op1, e->e1->xp, 1);
 		randloc(&i->dst, loc);
+		fsetrand(f, &i->dst);
+		femit(f, code);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case E_tid:
@@ -1398,6 +1445,8 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i->kind = Imov;
 		randvarloc(f, &i->op1, e->xp, 0);
 		randloc(&i->dst, loc);
+		fsetrand(f, &i->dst);
+		femit(f, code);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Eval:
@@ -1405,6 +1454,8 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i->kind = Imov;
 		randkon(&i->op1, e->aux);
 		randloc(&i->dst, loc);
+		fsetrand(f, &i->dst);
+		femit(f, code);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Enil:
@@ -1413,6 +1464,8 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Imov;
 			randnil(&i->op1);
 			randloc(&i->dst, loc);
+			fsetrand(f, &i->dst);
+			femit(f, code);
 		}
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
@@ -1426,6 +1479,8 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i->kind = Imov;
 		randkon(&i->op1, fn);
 		randloc(&i->dst, loc);
+		fsetrand(f, &i->dst);
+		femit(f, code);
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Eif:
@@ -1436,6 +1491,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 						     Lelse);
 				cg(e->e1, code, p, AC, lpair, prv, Lelse, f);
 				emitlabel(Lelse, e->e3);
+				femit(f, code);
 				cg(e->e3, code, p, loc, ctl,
 				   Lelse, nxt, f);
 			}else if(!escaping(e->e2) && escaping(e->e3)){
@@ -1444,6 +1500,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 						     escapectl(e->e3, p));
 				cg(e->e1, code, p, AC, lpair, prv, Lthen, f);
 				emitlabel(Lthen, e->e2);
+				femit(f, code);
 				cg(e->e2, code, p, loc, ctl,
 				   Lthen, nxt, f);
 			}else if(escaping(e->e2) && escaping(e->e3)){
@@ -1456,9 +1513,11 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				lpair = genlabelpair(code, Lthen, Lelse);
 				cg(e->e1, code, p, AC, lpair, prv, Lthen, f);
 				emitlabel(Lthen, e->e2);
+				femit(f, code);
 				cg(e->e2, code, p, loc, ctl,
 				   Lthen, Lelse, f);
 				emitlabel(Lelse, e->e3);
+				femit(f, code);
 				cg(e->e3, code, p, loc, ctl,
 				   Lelse, nxt, f);
 			}
@@ -1472,6 +1531,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				lpair = genlabelpair(code, Lthen, ctl);
 				cg(e->e1, code, p, AC, lpair, prv, Lthen, f);
 				emitlabel(Lthen, e->e2);
+				femit(f, code);
 				cg(e->e2, code, p, loc, ctl,
 				   Lthen, nxt, f);
 			}
@@ -1481,11 +1541,15 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		i = nextinsn(code, e->src);
 		i->kind = Ibox;
 		randvarloc(f, &i->op1, e->e1->xp, 0);
+		fsetrand(f, &i->op1);
+		femit(f, code);
 		break;
 	case Emkbox0:
 		i = nextinsn(code, e->src);
 		i->kind = Ibox0;
 		randvarloc(f, &i->op1, e->e1->xp, 0);
+		fsetrand(f, &i->op1);
+		femit(f, code);
 		break;
 	case Egoto:
 		L = hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
@@ -1498,6 +1562,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		if(L == 0)
 			fatal("goto bug");
 		emitlabel(L, e);
+		femit(f, code);
 		break;
 	default:
 		fatal("cg undefined for expression %s", S[e->kind]);
@@ -1505,30 +1570,45 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	}
 }
 
-static void
-xcglambda(Ctl *name, Ode *code, Expr *e)
+static Code*
+cglambda(Expr *e, char *id)
 {
 	Lambda *l;
+	Ctl *L, *top;
+	Ode *ode;
+	Code *code;
 	Insn *i;
 	CGEnv p;
 	unsigned m;
-	Ctl *top;
 	Src src;
 	Frame f;
 	unsigned long idx;
 
 	if(e->kind != Elambda)
 		fatal("cglambda on non-lambda");
-
-	memset(&p, 0, sizeof(p));
 	l = (Lambda*)e->xp;
+
+	if(id == 0)
+		id = "anon";
+	ode = mkode(id);
+
+	finit(&f, l->narg, l->nloc, l->ntmp);
+	fset(&f, Ocl);
+	for(m = 0; m < l->narg; m++)
+		fsetarg(&f, l->arg[m].idx);
+	L = genlabel(ode, id);
+	L->used = 1;
+	emitlabel(L, e);
+	femit(&f, ode);
+	memset(&p, 0, sizeof(p));
+
 	if(cqctflags['b']){
 		if(l->isvarg)
 			xprintf("%s: var params, %u locals, %u temps\n",
-			       name->label, 1+l->nloc, l->ntmp);
+				id, 1+l->nloc, l->ntmp);
 		else
 			xprintf("%s: %u params, %u locals, %u temps\n",
-			       name->label, l->narg, l->nloc, l->ntmp);
+				id, l->narg, l->nloc, l->ntmp);
 	}
 
 	src = e->e1->src; /* argument list */
@@ -1548,15 +1628,9 @@ xcglambda(Ctl *name, Ode *code, Expr *e)
 	i = nextinsn(code, src);
 	i->kind = Ichksp;
 
-	finit(&f, l->narg, l->nloc, l->ntmp);
-	fset(&f, Ocl);
-	for(m = 0; m < l->narg; m++)
-		fsetarg(&f, l->arg[m].idx);
-
-	/* FIXME: do we need a special fset in varg case? */
-
 	top = genlabel(code, 0);
 	emitlabel(top, e->e2);
+	femit(&f, ode);
 
 	p.Return = genlabel(code, 0);
 	p.labels = labels(e->e2, code);
@@ -1565,33 +1639,17 @@ xcglambda(Ctl *name, Ode *code, Expr *e)
 
 	/* finish Ichksp */
 	i = &code->insn[idx];
-	randimm(&i->op1, f.maxsp);
+	randimm(&i->op1, f.maxfsz);
 
 	/* FIXME: is this redundant wrt p.Return?
 	   (I bet not always; I bet we've tried this before.) */
 	emitlabel(p.Return, e->e2);
+	femit(&f, ode);
 	i = nextinsn(code, e->src);
 	i->kind = Iret;
 	freelabels(p.labels);
 	ffini(&f);
-}
 
-static Code*
-cglambda(Expr *e, char *id)
-{
-	Lambda *l;
-	Ctl *L;
-	Ode *ode;
-	Code *code;
-
-	if(id == 0)
-		id = "anon";
-	ode = mkode(id);
-	L = genlabel(ode, id);
-	L->used = 1;
-	emitlabel(L, e);
-	xcglambda(L, ode, e);
-	l = (Lambda*)e->xp;
 	code = mkvmcode(ode, 0, l->ncap);
 	if(cqctflags['o']){
 		xprintf("code for %s (%s:%u):\n", id,
@@ -1622,25 +1680,18 @@ haltthunk(void)
 	Ode *ode;
 	Code *code;
 	Closure *cl;
-	Imm e;
+	Frame f;
 
+	finit(&f, 0, 0, 0);
+	fset(&f, Ocl);
 	ode = mkode("$halt");
-	i = nextinsn(ode, 0);
-	i->kind = Ifmask;
-	i->cnt = 1ULL<<Ocl;		/* cl */
-	i = nextinsn(ode, 0);
-	i->kind = Icode;
-	i->cnt = 0;
-	i = nextinsn(ode, 0);
-	i->kind = Ifsize;
-	i->cnt = Onfrhd;
 	L = genlabel(ode, "$halt");
-	e = ode->ninsn;
 	L->used = 1;
 	emitlabel(L, 0);
+	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ihalt;
-	code = mkvmcode(ode, e*sizeof(Insn), 0);
+	code = mkvmcode(ode, 0, 0);
 	cl = mkcl(code, 0);
 
 	return cl;
@@ -1654,11 +1705,16 @@ callcc(void)
 	Ode *ode;
 	Code *code;
 	Closure *cl;
+	Frame f;
 
+	finit(&f, 1, 0, 0);
+	fset(&f, Ocl);
+	fsetarg(&f, 0);
 	ode = mkode("callcc");
 	L = genlabel(ode, "callcc");
 	L->used = 1;
 	emitlabel(L, 0);
+	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ikg;
 	code = mkvmcode(ode, 0, 0);
@@ -1674,11 +1730,18 @@ mkapply(void)
 	Insn *i;
 	Ode *ode;
 	Code *code;
+	Frame f;
 
+	/* expect at least two args */
+	finit(&f, 2, 0, 0);
+	fset(&f, Ocl);
+	fsetarg(&f, 0);
+	fsetarg(&f, 1);
 	ode = mkode("apply");
 	L = genlabel(ode, "apply");
 	L->used = 1;
 	emitlabel(L, 0);
+	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iapply;
 	code = mkvmcode(ode, 0, 0);
@@ -1693,25 +1756,19 @@ stkunderflowthunk(void)
 	Ode *ode;
 	Code *code;
 	Closure *cl;
-	Imm e;
+	Frame f;
 
+	finit(&f, 0, 0, 0);
+	fset(&f, Ocl);
 	ode = mkode("$stkunderflow");
-	i = nextinsn(ode, 0);
-	i->kind = Ifmask;
-	i->cnt = 1ULL<<Ocl;		/* cl */
-	i = nextinsn(ode, 0);
-	i->kind = Icode;
-	i->cnt = 0;
-	i = nextinsn(ode, 0);
-	i->kind = Ifsize;
-	i->cnt = Onfrhd;
 	L = genlabel(ode, "$stkunderflow");
 	e = ode->ninsn;
 	L->used = 1;
 	emitlabel(L, 0);
+	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iunderflow;
-	code = mkvmcode(ode, e*sizeof(Insn), 0);
+	code = mkvmcode(ode, 0, 0);
 	cl = mkcl(code, 0);
 
 	return cl;
@@ -1723,34 +1780,17 @@ contcode(void)
 	Insn *i;
 	Ode *ode;
 	Code *code;
+	Frame f;
 
+	finit(&f, 0, 0, 0);
+	fset(&f, Ocl);
 	ode = mkode("kp");
+	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ikp;
 	code = mkvmcode(ode, 0, 0);
 
 	return code;
-}
-
-Closure*
-panicthunk(void)
-{
-	Ctl *L;
-	Insn *i;
-	Ode *ode;
-	Code *code;
-	Closure *cl;
-
-	ode = mkode("panic");
-	L = genlabel(ode, "panic");
-	L->used = 1;
-	emitlabel(L, 0);
-	i = nextinsn(ode, 0);
-	i->kind = Ipanic;
-	code = mkvmcode(ode, 0, 0);
-	cl = mkcl(code, 0);
-
-	return cl;
 }
 
 void
