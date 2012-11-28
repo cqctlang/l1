@@ -20,6 +20,7 @@ struct CGEnv {
 typedef
 struct Frame
 {
+	s32 depth;
 	u64 *b, *l, *e;	/* live mask buffer */
 	u32 ml;		/* size of live mask buffer */
 	u32 narg;	/* args in frame (after varg normalization) */
@@ -134,7 +135,7 @@ mkode(char *id)
 	code->lm = emalloc(128*sizeof(u64));
 	code->nlm = 0;
 	code->mlm = 128;
-	code->dbg = emalloc(128*sizeof(u64));
+	code->dbg = emalloc(128*sizeof(Dbg));
 	code->ndbg = 0;
 	code->mdbg = 128;
 	quard((Val)code);
@@ -333,7 +334,7 @@ printrand(Operand *r)
 		case Lframe:
 			if(LOCBOX(loc->loc))
 				xprintf("[");
-			xprintf("%d(%s)", LOCIDX(loc->loc)+1, regtos(Rfp));
+			xprintf("%d(%s)", LOCIDX(loc->loc), regtos(Rfp));
 			if(LOCBOX(loc->loc))
 				xprintf("]");
 			break;
@@ -431,6 +432,7 @@ setreloc(Code *c)
 			setrelocrand(c, &i->dst);
 			break;
 		case Icall:
+		case Icallt:
 		case Ibox:
 		case Ibox0:
 			setrelocrand(c, &i->op1);
@@ -502,7 +504,7 @@ mkcode(Ckind kind, Imm nbytes)
 }
 
 static Code*
-mkvmcode(Ode *o, u32 eoff, u32 nfree)
+mkvmcode(Ode *o, u32 nfree)
 {
 	Code *c;
 	Imm n;
@@ -519,13 +521,11 @@ mkvmcode(Ode *o, u32 eoff, u32 nfree)
 	c->nreloc = 0;
 	c->src = mkvec(n);
 	c->nfree = nfree;
-	c->eoff = eoff;
 	memcpy(vecdata(c->src), o->src, n*sizeof(Src));
 
 	setinsn(c);
 	setreloc(c);
 	setgo(c);
-//	printcode(c);
 	return c;
 }
 
@@ -595,6 +595,10 @@ printinsn(Insn *i)
 		break;
 	case Icall:
 		xprintf("call ");
+		printrand(&i->op1);
+		break;
+	case Icallt:
+		xprintf("callt ");
 		printrand(&i->op1);
 		break;
 	case Ixcast:
@@ -669,10 +673,12 @@ printcode(Code *c)
 			if(srclineval(s) == Xnil)
 				xprintf("\t(%s)", srcfile(s));
 			else
-				xprintf("\t%s:%u", srcfile(s), srcline(s));
+				xprintf("\t%20s:%u", srcfile(s), srcline(s));
 		}else
 			xprintf("\t\t");
-		xprintf("\t%06ld\t", i-(Insn*)codeinsn(c));
+		xprintf("\t%06ld", i-(Insn*)codeinsn(c));
+		xprintf("\t%3d", ra2size(i, c));
+		xprintf("\t%016x\t",   ra2mask(i, c));
 		printinsn(i);
 		xprintf("\n");
 	}
@@ -973,6 +979,7 @@ finit(Frame *f, u32 narg, u32 nloc, u32 ntmp)
 	f->tmp = Onfrhd+narg+nloc;
 	f->fsz = Onfrhd+narg+nloc+ntmp;
 	f->maxfsz = f->fsz;
+	f->depth = 0;
 }
 
 static void
@@ -999,22 +1006,25 @@ fpushlm(Frame *f)
 {
 	u32 nw;
 	nw = roundup(f->fsz, mwbits)/mwbits;
-	while(f->l+nw+1+nw > f->e)
+	while(f->l+nw+1+nw >= f->e)
 		fgrow(f);
-	*(f->l+nw) = f->fsz;
+	*(f->l+nw) = (u64)f->fsz;
 	memcpy(f->l+nw+1, f->l, nw*sizeof(u64));
 	f->l += nw+1;
+	f->depth++;
 }
 
 static void
 fpoplm(Frame *f)
 {
 	u32 ow, nw;
+	if(f->depth-- <= 0)
+		bug();
 	if(f->l <= f->b)
 		bug();
 	ow = roundup(f->fsz, mwbits)/mwbits;
 	f->l--;
-	f->fsz = *f->l;
+	f->fsz = (u32)*f->l;
 	memset(f->l, 0, (1+ow)*sizeof(u64));
 	nw = roundup(f->fsz, mwbits)/mwbits;
 	f->l -= nw;
@@ -1024,7 +1034,7 @@ static void
 fset(Frame *f, u32 i)
 {
 	u64 *p;
-	while((p = f->l+i/mwbits) > f->e)
+	while((p = f->l+i/mwbits) >= f->e)
 		fgrow(f);
 	*p |= (1ULL<<(i%mwbits));
 }
@@ -1033,12 +1043,6 @@ static void
 fsetarg(Frame *f, u32 i)
 {
 	fset(f, Oarg0+i);
-}
-
-static void
-fsetloc(Frame *f, u32 i)
-{
-	fset(f, Oarg0+f->narg+i);
 }
 
 static void
@@ -1072,50 +1076,6 @@ fbumpfsz(Frame *f, s32 i)
 		f->maxfsz = f->fsz;
 }
 
-#if 0
-static void
-femitin(Frame *f, u64 fsz, Ode *c)
-{
-	
-	Insn *i;
-	i = nextinsn(c, s);
-	i->kind = Ifmask;
-	i->cnt = (*f->l)&((1UL<<fsz)-1);
-	if((i->cnt>>(mwbits-1))&1)
-		bug();
-	i = nextinsn(c, s);
-	i->kind = Icode;
-	i->cnt = 0;
-	i = nextinsn(c, s);
-	i->kind = Ifsize;
-	i->cnt = fsz;
-}
-
-static void
-femitex(Frame *f, u64 fsz, Ode *c)
-{
-	Insn *i;
-	u32 nw;
-	nw = roundup(fsz, mwbits)/mwbits;
-	if(c->nlm+nw > c->mlm){
-		c->lm = erealloc(c->lm, c->mlm*sizeof(u64),
-				 2*c->mlm*sizeof(u64));
-		c->mlm *= 2;
-	}
-	i = nextinsn(c, s);
-	i->kind = Ifmask;
-	i->cnt = (1ULL<<(mwbits-1))|c->nlm;
-	i = nextinsn(c, s);
-	i->kind = Icode;
-	i->cnt = 0;
-	i = nextinsn(c, s);
-	i->kind = Ifsize;
-	i->cnt = fsz;
-	memcpy(c->lm+c->nlm, f->l, nw*sizeof(u64));
-	c->nlm += nw;
-}
-#endif
-
 static void
 femit(Frame *f, Ode *c)
 {
@@ -1127,8 +1087,8 @@ femit(Frame *f, Ode *c)
 				  2*c->mdbg*sizeof(Dbg));
 		c->mdbg *= 2;
 	}
-	dbg = c->dbg[c->ndb++];
-	dbg->off = c->ninsn;
+	dbg = &c->dbg[c->ndbg++];
+	dbg->off = c->ninsn*sizeof(Insn);
 	dbg->fsz = f->fsz;
 	if(f->fsz < mwbits-1)
 		/* live mask fits in debug record */
@@ -1136,7 +1096,7 @@ femit(Frame *f, Ode *c)
 	else{
 		/* live mask goes in live mask buffer */
 		nw = roundup(f->fsz, mwbits)/mwbits;
-		if(c->nlm+nw > c->mlm){
+		if(c->nlm+nw >= c->mlm){
 			c->lm = erealloc(c->lm, c->mlm*sizeof(u64),
 					 2*c->mlm*sizeof(u64));
 			c->mlm *= 2;
@@ -1162,7 +1122,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 	int m;
 	Src src;
 	Val fn;
-	Imm rap, nfp, nap;
+	Imm nfp, nap;
 
 	switch(e->kind){
 	case Enop:
@@ -1271,11 +1231,11 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			emitlabel(L0, e->e2);
 			femit(f, code);
 			L = genlabel(code, 0);
-			fpush(f);
+			fpushlm(f);
 			fset(f, f->tmp++);
 			cg(e->e2, code, p, AC, L, L0, L, f);
 			f->tmp--;
-			fpop(f);
+			fpoplm(f);
 			emitlabel(L, e);
 			femit(f, code);
 			randloc(&r2, AC);
@@ -1291,13 +1251,13 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 		break;
 	case Eblock:
 		b = (Block*)e->xp;
-		fpush(f);
+		fpushlm(f);
 		cg(e->e2, code, p, loc, ctl, prv, nxt, f);
-		fpop(f);
+		fpoplm(f);
 		break;
 	case Ecall:
 		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
-		fpush(f);
+		fpushlm(f);
 		nfp = f->fsz;
 		if(!istail){
 			i = nextinsn(code, e->src);
@@ -1370,7 +1330,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i = nextinsn(code, e->src);
 			i->kind = Icall;
 			randloc(&i->op1, AC);
-			fpop(f);
+			fpoplm(f);
 			femit(f, code);
 			i = nextinsn(code, e->src);
 			i->kind = Iaddfp;
@@ -1411,9 +1371,9 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 			i->kind = Imovvc;
 			randimm(&i->op1, narg);
 			i = nextinsn(code, e->src);
-			i->kind = Icall;
+			i->kind = Icallt;
 			randloc(&i->op1, AC);
-			fpop(f);
+			fpoplm(f);
 			femit(f, code);
 		}
 		break;
@@ -1613,44 +1573,44 @@ cglambda(Expr *e, char *id)
 
 	src = e->e1->src; /* argument list */
 	if(l->isvarg){
-		i = nextinsn(code, src);
+		i = nextinsn(ode, src);
 		i->kind = Ivargc;
 		randimm(&i->op1, l->narg-1);
 	}else{
-		i = nextinsn(code, src);
+		i = nextinsn(ode, src);
 		i->kind = Iargc;
 		randimm(&i->op1, l->narg);
 	}
 
 	/* begin chksp; finish below, after cg for body,
 	   when we know stack size */
-	idx = code->ninsn;
-	i = nextinsn(code, src);
+	idx = ode->ninsn;
+	i = nextinsn(ode, src);
 	i->kind = Ichksp;
 
-	top = genlabel(code, 0);
+	top = genlabel(ode, 0);
 	emitlabel(top, e->e2);
 	femit(&f, ode);
 
-	p.Return = genlabel(code, 0);
-	p.labels = labels(e->e2, code);
+	p.Return = genlabel(ode, 0);
+	p.labels = labels(e->e2, ode);
 
-	cg(e->e2, code, &p, AC, p.Return, top, p.Return, &f);
+	cg(e->e2, ode, &p, AC, p.Return, top, p.Return, &f);
 
 	/* finish Ichksp */
-	i = &code->insn[idx];
+	i = &ode->insn[idx];
 	randimm(&i->op1, f.maxfsz);
 
 	/* FIXME: is this redundant wrt p.Return?
 	   (I bet not always; I bet we've tried this before.) */
 	emitlabel(p.Return, e->e2);
 	femit(&f, ode);
-	i = nextinsn(code, e->src);
+	i = nextinsn(ode, e->src);
 	i->kind = Iret;
 	freelabels(p.labels);
 	ffini(&f);
 
-	code = mkvmcode(ode, 0, l->ncap);
+	code = mkvmcode(ode, l->ncap);
 	if(cqctflags['o']){
 		xprintf("code for %s (%s:%u):\n", id,
 			srcfile(e->src), srcline(e->src));
@@ -1691,7 +1651,7 @@ haltthunk(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ihalt;
-	code = mkvmcode(ode, 0, 0);
+	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
 
 	return cl;
@@ -1717,7 +1677,7 @@ callcc(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ikg;
-	code = mkvmcode(ode, 0, 0);
+	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
 
 	return cl;
@@ -1744,7 +1704,7 @@ mkapply(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iapply;
-	code = mkvmcode(ode, 0, 0);
+	code = mkvmcode(ode, 0);
 	return mkcl(code, 0);
 }
 
@@ -1762,13 +1722,12 @@ stkunderflowthunk(void)
 	fset(&f, Ocl);
 	ode = mkode("$stkunderflow");
 	L = genlabel(ode, "$stkunderflow");
-	e = ode->ninsn;
 	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iunderflow;
-	code = mkvmcode(ode, 0, 0);
+	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
 
 	return cl;
@@ -1788,7 +1747,7 @@ contcode(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ikp;
-	code = mkvmcode(ode, 0, 0);
+	code = mkvmcode(ode, 0);
 
 	return code;
 }

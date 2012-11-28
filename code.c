@@ -2,48 +2,46 @@
 #include "util.h"
 #include "syscqct.h"
 
-enum
-{
-	FDSZ = 10, /* bytes in a "word" of frame data */
-};
-
 Code*
 ra2code(void *ra, Closure *cl)
 {
-	Insn *in;
-	switch(cl->code->kind){
-	case Cxfn:
-		ra -= FDSZ*Ocode;
-		return *(Code**)(ra+2);
-	case Cvm:
-		in = ra;
-		in -= Ocode;
-		if(in->kind != Icode)
-			fatal("no code pointer at return target %p", ra);
-		return (Code*)((void*)in-in->cnt);
-	case Ccfn:
-	case Cccl:
-		return 0;
-	default:
+	return cl->code;
+}
+
+static Dbg*
+lookdbg(Code *c, uptr off)
+{
+	Dbg *d, *e, *n;
+	d = (Dbg*)strdata(c->dbg);
+	e = d+c->ndbg;
+	if(d->off > off)
 		bug();
+	while(d < e-1){
+		n = d+1;
+		if(n->off > off)
+			return d;
+		d = n;
 	}
+	return d;
 }
 
 Imm
-ra2mask(void *ra, Closure *cl)
+ra2mask(void *ra, Code *code)
 {
-	Insn *in;
+	uptr off;
 	Imm fsz, lm;
-	switch(cl->code->kind){
+	Dbg *d;
+
+	switch(code->kind){
 	case Cxfn:
-		ra -= FDSZ*Omask;
-		return *(Imm*)(ra+2);
 	case Cvm:
-		in = ra;
-		in -= Omask;
-		if(in->kind != Ifmask)
-			fatal("no live mask at return target %p", ra);
-		return in->cnt;
+		if(ra >= codeend(code))
+			bug();
+		if(ra < codeinsn(code))
+			bug();
+		off = ra-codeinsn(code);
+		d = lookdbg(code, off);
+		return d->lm;
 	case Ccfn:
 	case Cccl:
 		fsz = (Imm)(uptr)ra;
@@ -58,20 +56,22 @@ ra2mask(void *ra, Closure *cl)
 }
 
 Imm
-ra2size(void *ra, Closure *cl)
+ra2size(void *ra, Code *code)
 {
-	Insn *in;
+	uptr off;
 	Imm fsz;
-	switch(cl->code->kind){
+	Dbg *d;
+
+	switch(code->kind){
 	case Cxfn:
-		ra -= FDSZ*Ofsz;
-		return *(Imm*)(ra+2);
 	case Cvm:
-		in = ra;
-		in -= Ofsz;
-		if(in->kind != Ifsize)
-			fatal("no frame size at return target %p", ra);
-		return in->cnt;
+		if(ra >= codeend(code))
+			bug();
+		if(ra < codeinsn(code))
+			bug();
+		off = ra-codeinsn(code);
+		d = lookdbg(code, off);
+		return d->fsz;
 	case Ccfn:
 	case Cccl:
 		fsz = (Imm)(uptr)ra;

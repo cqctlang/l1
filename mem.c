@@ -1418,6 +1418,7 @@ scan1code(Code *c)
 	gcopy((Val*)&c->id, &min);
 	gcopy((Val*)&c->reloc, &min);
 	gcopy((Val*)&c->lm, &min);
+	gcopy((Val*)&c->dbg, &min);
 	gcopy((Val*)&c->src, &min);
 	if(c->kind == Cxfn)
 		gcopy(&c->xfn, &min);
@@ -1771,18 +1772,22 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 		*basep = base;
 	}
 
+	printf("copystack:\n");
+
 	ra = *rap;
 	fp = base+fpo;
 	while((void*)fp > base){
-		cp = ra2code(ra, cl);
-		sz = ra2size(ra, cl);
-		lm = ra2mask(ra, cl);
+		cp = cl->code;
+		sz = ra2size(ra, cp);
+		lm = ra2mask(ra, cp);
 		fp -= sz;	/* beginning of previous frame */
 
 		if((void*)fp < base)
 			bug();
 		if((void*)fp >= base+stxsz)
 			bug();
+
+		printf("\t%20s ra %06ld sz %3ld lm %016lx\n", ciddata(cp->id), (Insn*)ra-(Insn*)codeinsn(cp), sz, lm);
 
 		/* copy locations in live mask */
 		lp = fp;
@@ -2154,7 +2159,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(dbg)printf("gc(%u,%u)\n", g, tg);
+	if(1)printf("gc(%u,%u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();
@@ -2291,6 +2296,7 @@ gc(VM *vm)
 		tg = g;
 	else
 		tg = g+1;
+	fvmbacktrace(vm);
 	dogc(vm, g, tg);
 }
 

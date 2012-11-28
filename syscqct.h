@@ -632,6 +632,7 @@ enum {
 	Ibox,
 	Ibox0,
 	Icall,
+	Icallt,
 	Ichksp,
 	Iclo,
 	Icmpeq,
@@ -689,14 +690,6 @@ enum {
 	Ocl,
 	Onfrhd,			/* number of words in frame preamble */
 	Oarg0=Onfrhd,		/* offset of first argument */
-};
-
-/* offsets of frame data from return address */
-enum {
-	Ofsz = 1,
-	Ocode,
-	Omask,
-	Onframedata=Omask,
 };
 
 typedef
@@ -819,14 +812,14 @@ struct Insn {
 
 typedef
 struct Reloc {
-	uptr	coff;		/* location of pointer from start of code */
+	uptr	coff;		/* pointer offset in bytes from start of code */
 } Reloc;
 
 typedef
 struct Dbg {
-	uptr	coff;
-	u32	fsz;
-	u64	lm;
+	uptr	off;		/* pc offset in bytes from start of code */
+	u32	fsz;		/* size of frame */
+	u64	lm;		/* live mask (directly encoded or offset) */
 } Dbg;
 
 struct Ode {
@@ -866,7 +859,6 @@ struct Code {
 	Str *dbg;	/* debug info, ordered by offset */
 	u32 ndbg;	/* number of debug records */
 	Vec *src;	/* belongs in pure storage? */
-	u32 eoff;	/* offset to first instruction */
 	union {
 		Cfn *cfn;
 		Ccl *ccl;
@@ -882,7 +874,7 @@ struct Code {
 #define codeinsn(x)  (codekind(x) == Cvm ? _codeinsn(x)+trampsize : _codeinsn(x))
 #define codeend(x)   ((void*)(x)+(((Code*)(x))->sz))
 #define codesize(n)  (sizeof(Code)+(n))
-#define codeentry(x) (codeinsn(x)+(x)->eoff)
+#define codeentry(x) (codeinsn(x))
 
 struct Cont {
 	Head hd;
@@ -1041,9 +1033,8 @@ Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 /* code.c */
 void		addreloc(Code *code, uptr coff);
 Code*		mkncode(Imm nbytes);
-Code*		ra2code(void *ra, Closure *cl);
-Imm		ra2mask(void *ra, Closure *cl);
-Imm		ra2size(void *ra, Closure *cl);
+Imm		ra2mask(void *ra, Code *code);
+Imm		ra2size(void *ra, Code *code);
 
 /* compilee.c */
 Expr*		docompilee(U *ctx, Expr *e);

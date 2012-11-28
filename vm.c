@@ -826,11 +826,11 @@ printsrc(Xfd *xfd, Code *c, Insn *pc)
 	case Cvm:
 		src = addr2line(c, pc);
 		if(srclineval(src) == Xnil)
-			cprintf(xfd, "%20s\t(%s)\n",
-				ciddata(c->id), srcfile(src));
+			cprintf(xfd, "%20s\t(%s)\t%06ld\n",
+				ciddata(c->id), srcfile(src), pc-(Insn*)codeinsn(c));
 		else
-			cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(c->id),
-				srcfile(src), srcline(src));
+			cprintf(xfd, "%20s\t(%s:%u)\t%06ld\n", ciddata(c->id),
+				srcfile(src), srcline(src), pc-(Insn*)codeinsn(c));
 		break;
 	default:
 		bug();
@@ -865,19 +865,14 @@ fvmbacktrace(VM *vm)
 
 	if(pc == 0)
 		return;
-	if(pc != stkp(fp[Ora])){
-		/* pc != ra implies we are not in a builtin */
-		pc--;			/* vm loop increments pc after fetch */
-		printframe(vm, pc, cl->code);
-	}
+	printframe(vm, pc-1, cl->code);
 	while(fp > base){
 		pc = stkp(fp[Ora]);
 		cl = valcl(fp[Ocl]);
 		if(cl == 0)
 			break;
-		fp -= ra2size(pc, cl);
-		pc -= Onframedata;	/* back to call instruction */
-		printframe(vm, pc, cl->code);
+		fp -= ra2size(pc, cl->code);
+		printframe(vm, pc-1, cl->code);
 	}
 }
 
@@ -2531,6 +2526,9 @@ vkcapture(VM *vm)
                 k  new continuation
 	 */
 
+	printf("capturing continuation\n");
+	fvmbacktrace(vm);
+	printf("\n");
 	if(vm->vc != 1)
 		vmerr(vm, "wrong number of arguments to callcc");
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
@@ -2642,7 +2640,7 @@ kunderflow(VM *vm)
 		fp = (Val*)top;
 		ra = k->ra;
 		cl = k->cl;
-		fsz = ra2size(ra, cl);
+		fsz = ra2size(ra, cl->code);
 		if(fsz >= lim)
 			/* we assume frame size never exceeds limit */
 			bug();
@@ -2652,7 +2650,7 @@ kunderflow(VM *vm)
 				l--;
 			ra = stkp(fp[Ora]);
 			cl = valcl(fp[Ocl]);
-			fsz = ra2size(ra, cl);
+			fsz = ra2size(ra, cl->code);
 		}
 
 		/* fp points to base of last frame that will fit in
@@ -4377,6 +4375,7 @@ dovm(VM *vm)
 		gotab[Ibox]	= &&Ibox;
 		gotab[Ibox0]	= &&Ibox0;
 		gotab[Icall]	= &&Icall;
+		gotab[Icallt]	= &&Icallt;
 		gotab[Ichksp]	= &&Ichksp;
 		gotab[Icmpeq] 	= &&Icmpeq;
 		gotab[Icmpgt] 	= &&Icmpgt;
@@ -4480,6 +4479,14 @@ dovm(VM *vm)
 			vargs(vm, m);
 			continue;
 		LABEL Icall:
+			val = getvalrand(vm, &i->op1);
+			if(Vkind(val) != Qcl)
+				vmerr(vm, "attempt to call non-procedure");
+			vm->cl = valcl(val);
+			vm->fp[Ora] = (Val)(uptr)vm->pc;
+			vcall(vm);
+			continue;
+		LABEL Icallt:
 			val = getvalrand(vm, &i->op1);
 			if(Vkind(val) != Qcl)
 				vmerr(vm, "attempt to call non-procedure");
