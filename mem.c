@@ -387,6 +387,9 @@ itercl(Head *hd, Ictx *ictx)
 	return &cldisp(cl)[ictx->n++];
 }
 
+/* order matters: copy the stack before the closure, so
+   that k->cl->code move ahead of the closure return
+   address */
 static Val*
 itercont(Head *hd, Ictx *ictx)
 {
@@ -394,10 +397,10 @@ itercont(Head *hd, Ictx *ictx)
 	k = (Cont*)hd;
 	switch(ictx->n++){
 	case 0:
-		return (Val*)&k->cl;
+		return (Val*)&k->link;
 	case 1:
 		copykstack(k);
-		return (Val*)&k->link;
+		return (Val*)&k->cl;
 	default:
 		return GCiterdone;
 	}
@@ -1753,7 +1756,7 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 	void *p, *ra, *base;
 	Seg *s;
 	Imm i;
-	Val *fp, *lp, vcl;
+	Val *fp, *lp;
 	u64 sz, lm, *mp, o;
 	uptr coff;
 	Code *cp;
@@ -1785,7 +1788,10 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 		if((void*)fp >= base+stxsz)
 			bug();
 
-		printf("\t%20s ra %06ld sz %3ld lm %016lx\n", ciddata(cp->id), (Insn*)ra-(Insn*)codeinsn(cp), sz, lm);
+		/* get OLD pointer to closure, the one
+		   that still references the code object
+		   in which fp[Ora] points. */
+		cl = valcl(fp[Ocl]);
 
 		/* copy locations in live mask */
 		lp = fp;
@@ -1815,14 +1821,12 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 
 		rap = (void**)(fp+Ora);
 		ra = *rap;
-		vcl = fp[Ocl];
-		if(vcl == 0)
-			/* FIXME: we shouldn't also need this termination
-			   condition.  it happens because the root
-			   stack has an extra two slots from the initial
-			   call to ccall. */
+		/* FIXME: we shouldn't also need this termination
+		   condition.  it happens because the root
+		   stack has an extra two slots from the initial
+		   call to ccall. */
+		if(cl == 0)
 			break;
-		cl = curaddr(vcl);
 	}
 
 
@@ -2310,12 +2314,30 @@ gclock(void *v)
 	Head *h;
 	Pair *p;
 	Cval *cv;
+	Closure *cl;
 
 	if(v == 0)
 		return v;
 	h = v;
 	if(Vfwd(h))
 		fatal("bug");
+
+	/* every closure cl on a continuation stack has
+	   an associated return address on the stack.
+	   that address points to an insn in the
+	   current location of cl->code.  if cl is
+	   locked, we must prevent cl->code from being
+	   moved; otherwise we may not be able to
+	   resolve the return address.  the fix is a
+	   hack: recursively lock cl->code (and unlock
+	   it in gcunlock).  note that it would be bad
+	   if the user directly changed the locked
+	   state of cl->code. */
+	if(Vkind(h) == Qcl){
+		cl = valcl(h);
+		gclock(cl->code);
+	}
+
 	s = a2s(h);
 	if(islocked(s, h)){
 		/* find locked object record and bump count */
@@ -2346,12 +2368,17 @@ gcunlock(void *v)
 	Seg *s;
 	Head *h, *p, **r;
 	Cval *cv;
+	Closure *cl;
 
 	if(v == 0)
 		return v;
 	h = v;
 	if(Vfwd(h))
 		fatal("bug");
+	if(Vkind(h) == Qcl){
+		cl = valcl(h);
+		gcunlock(cl->code);
+	}
 	s = a2s(h);
 	if(!islocked(s, h))
 		return h;
