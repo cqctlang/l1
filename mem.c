@@ -1772,8 +1772,6 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 		*basep = base;
 	}
 
-	printf("copystack:\n");
-
 	ra = *rap;
 	fp = base+fpo;
 	while((void*)fp > base){
@@ -2159,7 +2157,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(1)printf("gc(%u,%u)\n", g, tg);
+	if(dbg)printf("gc(%u,%u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();
@@ -2296,7 +2294,6 @@ gc(VM *vm)
 		tg = g;
 	else
 		tg = g+1;
-	fvmbacktrace(vm);
 	dogc(vm, g, tg);
 }
 
