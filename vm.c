@@ -1556,7 +1556,7 @@ calln(VM *vm)
 }
 
 Val
-ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
+_ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	Code *c;
 	Imm fsz;
@@ -1570,8 +1570,6 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		fsz = Onfrhd+vm->vc;
 
 		vm->fp += fsz;
-		if(vm->cl && vm->cl->code->kind == Cvm)
-			bug();
 		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
 		vm->fp[Ora] = (Val)(uptr)fsz;
 
@@ -1650,6 +1648,34 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		bug();
 	}
 
+	return rv;
+}
+
+Val
+ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
+{
+	Ckind ck;
+	Imm fsz;
+	Val rv;
+
+	if(!vm->cl)
+		return _ccall(vm, cl, argc, argv);
+	ck = vm->cl->code->kind;
+	if(ck == Ccfn || ck == Cccl)
+		return _ccall(vm, cl, argc, argv);
+
+	/* we are in the middle of a VM operation.
+	   we need a stack frame to get us back
+	   from _ccall. */
+	/* FIXME: and we need to check for overflow */
+	fsz = ra2size(vm->pc, vm->cl->code);
+	vm->fp += fsz;
+	vm->fp[Ora] = (Val)(uptr)vm->pc;
+	vm->fp[Ocl] = mkvalcl(vm->cl);
+	rv = _ccall(vm, cl, argc, argv);
+	vm->pc = stkp(vm->fp[Ora]);
+	vm->cl = valcl(vm->fp[Ocl]);
+	vm->fp -= fsz;
 	return rv;
 }
 
