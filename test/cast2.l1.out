@@ -1,3 +1,2 @@
 error: cast to domain that does not define struct X1 *
-               xcast	(builtin function)
                entry	(cast2.l1:12)

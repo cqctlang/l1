@@ -49,7 +49,6 @@ L1C =\
 	cpr.c\
 	cp1.c\
 	cps.c\
-	cpf.c\
 	cpb.c\
 	cpv.c\
 	code.c\

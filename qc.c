@@ -182,7 +182,6 @@ static Pass all[] = {
 	CP(r),
 	CP(1),
 	CP(s),
-	CP(f),
 	CP(b),
 /*	CP(v), */
 };
