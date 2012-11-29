@@ -826,11 +826,11 @@ printsrc(Xfd *xfd, Code *c, Insn *pc)
 	case Cvm:
 		src = addr2line(c, pc);
 		if(srclineval(src) == Xnil)
-			cprintf(xfd, "%20s\t(%s)\t%06ld\n",
-				ciddata(c->id), srcfile(src), pc-(Insn*)codeinsn(c));
+			cprintf(xfd, "%20s\t(%s)\n",
+				ciddata(c->id), srcfile(src));
 		else
-			cprintf(xfd, "%20s\t(%s:%u)\t%06ld\n", ciddata(c->id),
-				srcfile(src), srcline(src), pc-(Insn*)codeinsn(c));
+			cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(c->id),
+				srcfile(src), srcline(src));
 		break;
 	default:
 		bug();
@@ -2526,9 +2526,6 @@ vkcapture(VM *vm)
                 k  new continuation
 	 */
 
-	printf("capturing continuation\n");
-	fvmbacktrace(vm);
-	printf("\n");
 	if(vm->vc != 1)
 		vmerr(vm, "wrong number of arguments to callcc");
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
