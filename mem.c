@@ -1720,6 +1720,7 @@ gcpoll(VM *vm)
 	if(!H.disable && !ingc
 	   && (H.na >= H.ma || H.free < LORES*H.inuse)){
 		ingc++;
+		printf("gc\n"); fvmbacktrace(vm);
 		gc(vm);
 		ingc--;
 	}
@@ -1814,7 +1815,9 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 		/* copy code and update ra */
 		if(cp){
 			coff = (void*)ra-(void*)cp;
+			printf("copy code for %p (%s) from %p to ", ra, ciddata(cp->id), cp);
 			copy((Val*)&cp);
+			printf("%p\n", cp);
 			ra = (void*)cp+coff;
 			*rap = ra;
 		}
@@ -2143,6 +2146,7 @@ _gc(u32 g, u32 tg)
 	void *ra;
 	Closure *cl;
 	u32 fpo;
+	Imm fsz;
 
 //	memset(&stats, 0, sizeof(stats));
 	b = usec();
@@ -2161,7 +2165,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(dbg)printf("gc(%u,%u)\n", g, tg);
+	if(1)printf("gc(%u,%u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();
@@ -2196,15 +2200,28 @@ _gc(u32 g, u32 tg)
 		if(vm == 0)
 			continue;
 
-		ra = vm->fp[Ora];
-		cl = valcl(vm->fp[Ocl]);
-		copy((Val*)&cl);
+		fsz = ra2size(vm->pc, vm->cl->code);
+		vm->fp += fsz;
+		printf("gc: collecting in %s fsz %llu\n", ciddata(vm->cl->code->id), fsz);
+		ra = vm->pc;
+		cl = vm->cl;
+//		vm->fp[Ora] = (Val)(uptr)vm->pc;
+//		vm->fp[Ocl] = mkvalcl(vm->cl);
+//		ra = vm->fp[Ora];
+//		cl = valcl(vm->fp[Ocl]);
+//		copy((Val*)&cl);
 		fpo = (void*)vm->fp-vm->stk;
 		copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
 		copy((Val*)&vm->klink);
+		copy((Val*)&cl);
 		vm->fp = vm->stk+fpo;
-		vm->fp[Ora] = (Val)(uptr)ra;
-		vm->fp[Ocl] = mkvalcl(cl);
+		vm->fp -= fsz;
+		vm->pc = ra;
+		vm->cl = cl;
+		if(ra < codeinsn(cl->code))
+			bug();
+		if(ra >= codeend(cl->code))
+			bug();
 
 		for(m = 0; m < vm->edepth; m++)
 			/* FIXME: need to update pc and fp */
@@ -2212,7 +2229,7 @@ _gc(u32 g, u32 tg)
 		copy((Val*)&vm->top->env->var);
 		hforeachp(vm->top->env->rd, toprd, 0);
 		copy(&vm->ac);
-		copy((Val*)&vm->cl);
+//		copy((Val*)&vm->cl);
 	}
 	if(dbg)printf("copied vm roots\n");
 

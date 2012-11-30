@@ -871,6 +871,8 @@ fvmbacktrace(VM *vm)
 		cl = valcl(fp[Ocl]);
 		if(cl == 0)
 			break;
+		if(cl->code->kind == Cvm)
+			printinsn(pc);
 		fp -= ra2size(pc, cl->code);
 		printframe(vm, pc-1, cl->code);
 	}
@@ -1687,7 +1689,7 @@ vcall(VM *vm)
 	Code *c;
 	Val rv;
 
-	if(showvcall)
+//	if(showvcall)
 		printf("vcall %s\n", ciddata(vm->cl->code->id));
 	c = vm->cl->code;
 	switch(c->kind){
@@ -4508,6 +4510,7 @@ dovm(VM *vm)
 			vm->cl = valcl(val);
 			vm->fp[Ora] = (Val)(uptr)vm->pc;
 			vcall(vm);
+			gcpoll(vm);
 			continue;
 		LABEL Icallt:
 			val = getvalrand(vm, &i->op1);
@@ -4515,6 +4518,7 @@ dovm(VM *vm)
 				vmerr(vm, "attempt to call non-procedure");
 			vm->cl = valcl(val);
 			vcall(vm);
+			gcpoll(vm);
 			continue;
 		LABEL Iapply:
 			vapply(vm);
@@ -6566,6 +6570,7 @@ l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gcpoll(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	bug();
 	gcpoll(vm);
 }
 
@@ -6573,6 +6578,7 @@ static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	u32 g, tg;
+	bug();
 	if(argc == 0)
 		gc(vm);
 	else if(argc == 1){
