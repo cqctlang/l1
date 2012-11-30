@@ -1720,7 +1720,6 @@ gcpoll(VM *vm)
 	if(!H.disable && !ingc
 	   && (H.na >= H.ma || H.free < LORES*H.inuse)){
 		ingc++;
-		printf("gc\n"); fvmbacktrace(vm);
 		gc(vm);
 		ingc--;
 	}
@@ -1815,9 +1814,7 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 		/* copy code and update ra */
 		if(cp){
 			coff = (void*)ra-(void*)cp;
-			printf("copy code for %p (%s) from %p to ", ra, ciddata(cp->id), cp);
 			copy((Val*)&cp);
-			printf("%p\n", cp);
 			ra = (void*)cp+coff;
 			*rap = ra;
 		}
@@ -2165,7 +2162,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(1)printf("gc(%u,%u)\n", g, tg);
+	if(dbg)printf("gc(%u,%u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();
@@ -2202,7 +2199,6 @@ _gc(u32 g, u32 tg)
 
 		fsz = ra2size(vm->pc, vm->cl->code);
 		vm->fp += fsz;
-		printf("gc: collecting in %s fsz %llu\n", ciddata(vm->cl->code->id), fsz);
 		ra = vm->pc;
 		cl = vm->cl;
 //		vm->fp[Ora] = (Val)(uptr)vm->pc;

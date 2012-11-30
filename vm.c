@@ -871,8 +871,6 @@ fvmbacktrace(VM *vm)
 		cl = valcl(fp[Ocl]);
 		if(cl == 0)
 			break;
-		if(cl->code->kind == Cvm)
-			printinsn(pc);
 		fp -= ra2size(pc, cl->code);
 		printframe(vm, pc-1, cl->code);
 	}
@@ -1689,7 +1687,7 @@ vcall(VM *vm)
 	Code *c;
 	Val rv;
 
-//	if(showvcall)
+	if(showvcall)
 		printf("vcall %s\n", ciddata(vm->cl->code->id));
 	c = vm->cl->code;
 	switch(c->kind){
