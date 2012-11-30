@@ -2214,9 +2214,9 @@ _gc(u32 g, u32 tg)
 		vm->fp -= fsz;
 		vm->pc = ra;
 		vm->cl = cl;
-		if(ra < codeinsn(cl->code))
+		if(ra < codeinsn(curaddr(mkvalcode(cl->code))))
 			bug();
-		if(ra >= codeend(cl->code))
+		if(ra >= codeend(curaddr(mkvalcode(cl->code))))
 			bug();
 
 		for(m = 0; m < vm->edepth; m++)
