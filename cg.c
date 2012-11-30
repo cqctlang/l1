@@ -408,6 +408,7 @@ setreloc(Code *c)
 		case Iapply:
 		case Iret:
 		case Ihalt:
+		case Igcpoll:
 		case Iunderflow:
 		case Ikp:
 		case Inop:
@@ -614,6 +615,9 @@ printinsn(Insn *i)
 		break;
 	case Ihalt:
 		xprintf("halt");
+		break;
+	case Igcpoll:
+		xprintf("gcpoll");
 		break;
 	case Iunderflow:
 		xprintf("underflow");
@@ -1581,6 +1585,9 @@ cglambda(Expr *e, char *id)
 		i->kind = Iargc;
 		randimm(&i->op1, l->narg);
 	}
+
+	i = nextinsn(ode, src);
+	i->kind = Igcpoll;
 
 	/* begin chksp; finish below, after cg for body,
 	   when we know stack size */

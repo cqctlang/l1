@@ -4407,6 +4407,7 @@ dovm(VM *vm)
 		gotab[Icmple] 	= &&Icmple;
 		gotab[Icmpneq] 	= &&Icmpneq;
 		gotab[Idiv] 	= &&Idiv;
+		gotab[Igcpoll] 	= &&Igcpoll;
 		gotab[Ihalt] 	= &&Ihalt;
 		gotab[Iinv] 	= &&Iinv;
 		gotab[Ijmp] 	= &&Ijmp;
@@ -4501,6 +4502,9 @@ dovm(VM *vm)
 				      m, vm->vc);
 			vargs(vm, m);
 			continue;
+		LABEL Igcpoll:
+			gcpoll(vm);
+			continue;
 		LABEL Icall:
 			val = getvalrand(vm, &i->op1);
 			if(Vkind(val) != Qcl)
@@ -4508,7 +4512,6 @@ dovm(VM *vm)
 			vm->cl = valcl(val);
 			vm->fp[Ora] = (Val)(uptr)vm->pc;
 			vcall(vm);
-			gcpoll(vm);
 			continue;
 		LABEL Icallt:
 			val = getvalrand(vm, &i->op1);
@@ -4516,7 +4519,6 @@ dovm(VM *vm)
 				vmerr(vm, "attempt to call non-procedure");
 			vm->cl = valcl(val);
 			vcall(vm);
-			gcpoll(vm);
 			continue;
 		LABEL Iapply:
 			vapply(vm);

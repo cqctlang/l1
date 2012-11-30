@@ -642,6 +642,7 @@ enum {
 	Icmple,
 	Icmpneq,
 	Idiv,
+	Igcpoll,
 	Ihalt,
 	Iinv,
 	Ijmp,
