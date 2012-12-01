@@ -1,0 +1,10 @@
+/* capture a continuation, then return normally
+   through it. */
+@define bar(k)
+{
+        printf("bar called: k is %a\n", k);
+	return 5;
+}
+
+x = callcc(bar);
+printf("continuation returned %d\n", x);

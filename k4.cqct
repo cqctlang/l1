@@ -1,0 +1,18 @@
+/* capture a continuation, save it, then pop it later, twice */
+
+thek = nil;
+lim = 2;
+
+@define bar(k)
+{
+        printf("bar called: k is %a\n", k);
+	thek = k;
+	return 0;
+}
+
+x = callcc(bar); 
+printf("continuation returned %d\n", x);
+if(x < lim){
+	printf("re-invoking continuation\n");
+	thek(x+1);
+}

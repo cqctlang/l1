@@ -1,0 +1,11 @@
+/* capture a continuation, then escape through it */
+
+@define bar(k)
+{
+        printf("bar called: k is %a\n", k);
+	k(6);
+	return 5;
+}
+
+x = callcc(bar);
+printf("continuation returned %d\n", x);
