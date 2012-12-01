@@ -2197,27 +2197,42 @@ _gc(u32 g, u32 tg)
 		if(vm == 0)
 			continue;
 
-		fsz = ra2size(vm->pc, vm->cl->code);
-		vm->fp += fsz;
-		ra = vm->pc;
-		cl = vm->cl;
-//		vm->fp[Ora] = (Val)(uptr)vm->pc;
-//		vm->fp[Ocl] = mkvalcl(vm->cl);
-//		ra = vm->fp[Ora];
-//		cl = valcl(vm->fp[Ocl]);
-//		copy((Val*)&cl);
-		fpo = (void*)vm->fp-vm->stk;
-		copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
-		copy((Val*)&vm->klink);
-		copy((Val*)&cl);
-		vm->fp = vm->stk+fpo;
-		vm->fp -= fsz;
-		vm->pc = ra;
-		vm->cl = cl;
-		if(ra < codeinsn(curaddr(mkvalcode(cl->code))))
+		switch(vm->cl->code->kind){
+		case Cvm:
+			/* e.g., via gcpoll insn in VM code */
+			fsz = ra2size(vm->pc, vm->cl->code);
+			vm->fp += fsz;
+			ra = vm->pc;
+			cl = vm->cl;
+			fpo = (void*)vm->fp-vm->stk;
+			copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
+			copy((Val*)&vm->klink);
+			copy((Val*)&cl);
+			vm->fp = vm->stk+fpo;
+			vm->fp -= fsz;
+			vm->pc = ra;
+			vm->cl = cl;
+			if(ra < codeinsn(curaddr(mkvalcode(cl->code))))
+				bug();
+			if(ra >= codeend(curaddr(mkvalcode(cl->code))))
+				bug();
+			break;
+		case Ccfn:
+		case Cccl:
+			/* e.g., via C builtin like gc() */
+			ra = vm->fp[Ora];
+			cl = valcl(vm->fp[Ocl]);
+			copy((Val*)&cl);
+			fpo = (void*)vm->fp-vm->stk;
+			copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
+			copy((Val*)&vm->klink);
+			vm->fp = vm->stk+fpo;
+			vm->fp[Ora] = (Val)(uptr)ra;
+			vm->fp[Ocl] = mkvalcl(cl);
+			break;
+		default:
 			bug();
-		if(ra >= codeend(curaddr(mkvalcode(cl->code))))
-			bug();
+		}
 
 		for(m = 0; m < vm->edepth; m++)
 			/* FIXME: need to update pc and fp */
@@ -2225,7 +2240,6 @@ _gc(u32 g, u32 tg)
 		copy((Val*)&vm->top->env->var);
 		hforeachp(vm->top->env->rd, toprd, 0);
 		copy(&vm->ac);
-//		copy((Val*)&vm->cl);
 	}
 	if(dbg)printf("copied vm roots\n");
 

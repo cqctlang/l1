@@ -6570,7 +6570,6 @@ l1_memtotal(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_gcpoll(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	bug();
 	gcpoll(vm);
 }
 
@@ -6578,7 +6577,6 @@ static void
 l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	u32 g, tg;
-	bug();
 	if(argc == 0)
 		gc(vm);
 	else if(argc == 1){
