@@ -2532,11 +2532,10 @@ dostr:
 		return mkvalcval2(cval0);
 }
 
-static Closure*
+static Cont*
 kcapture(VM *vm)
 {
 	Cont *k;
-	Closure *kcl;
 	u32 sz;
 
 	if(vm->fp != vm->stk){
@@ -2549,9 +2548,7 @@ kcapture(VM *vm)
 		vm->fp[Ora] = codeentry(stkunderflow->code);
 		vm->fp[Ocl] = mkvalcl(stkunderflow);
 	}
-	kcl = mkcl(kcode, 1);
-	cldisp(kcl)[0] = mkvalcont(vm->klink);
-	return kcl;
+	return vm->klink;
 }
 
 static void
@@ -2588,7 +2585,8 @@ vkcapture(VM *vm)
 		vmerr(vm, "wrong number of arguments to callcc");
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
 		vmerr(vm, "argument 1 to callcc must be a procedure");
-	kcl = kcapture(vm);
+	kcl = mkcl(kcode, 1);
+	cldisp(kcl)[0] = kcapture(vm);
 	vm->cl = valcl(vm->fp[Oarg0]);
 	vm->pc = codeentry(vm->cl->code);
 	vm->fp[Oarg0] = mkvalcl(kcl);
