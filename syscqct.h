@@ -902,15 +902,6 @@ struct BFgeom {
 	int les, bes;
 } BFgeom;
 
-typedef
-struct Err {
-	jmp_buf esc;
-	unsigned pdepth;	/* vm->pdepth when error label set */
-	Val *fp;
-	Insn *pc;
-	Closure *cl;
-} Err;
-
 typedef struct Xenv Xenv;
 struct Xenv {
 	HT *ht;
@@ -950,8 +941,6 @@ struct VM {
 	Cont *klink;
 	unsigned int flags;
 	Toplevel *top;
-	Err *err;		/* stack of error labels */
-	unsigned edepth, emax;	/* # live and max error labels */
 	u32 level;
 	u64 gen;
 	u64 levgen[128];
@@ -1204,8 +1193,6 @@ Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvallitcvalenc(Cbase base, Enc v);
 As*		mkzas(Imm len);
 Val		myrootns(Env *env);
-void		nexterror(VM *vm) NORETURN;
-void		poperror(VM *vm);
 void		printvmac(VM *vm);
 jmp_buf*	_pusherror(VM *vm);
 void		setgo(Code *c);
@@ -1260,7 +1247,6 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define valstr(v)	((Str*)(v))
 #define valtab(v)	((Tab*)(v))
 #define valvec(v)	((Vec*)(v))
-#define waserror(vm)	(setjmp(*(_pusherror(vm))))
 #define stkimm(v)	(Imm)(uptr)(v)
 #define stkp(v)		(void*)(uptr)(v)
 #define FN(id)		builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id))
@@ -1589,6 +1575,7 @@ void		initnc();
 
 /* cqct.c */
 Expr*		cqctparse(char *s, Toplevel *top, char *src, unsigned line);
+int		_cqcteval(VM *vm, char *s, char *src, Val *rv);
 
 extern		void fns(Env*);
 

@@ -2135,7 +2135,7 @@ getalloc(MT mt, Gen g)
 void
 _gc(u32 g, u32 tg)
 {
-	u32 i, m, mt;
+	u32 i, mt;
 	VM **vmp, *vm;
 	Head *h;
 	unsigned dbg = alldbg;
@@ -2234,9 +2234,6 @@ _gc(u32 g, u32 tg)
 			bug();
 		}
 
-		for(m = 0; m < vm->edepth; m++)
-			/* FIXME: need to update pc and fp */
-			copy((Val*)&vm->err[m].cl);
 		copy((Val*)&vm->top->env->var);
 		hforeachp(vm->top->env->rd, toprd, 0);
 		copy(&vm->ac);

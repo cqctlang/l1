@@ -29,6 +29,21 @@ cqctcompile(VM *vm, char *s, char *src, unsigned line, Toplevel *top,
 	return compile(vm, e, top, argsid);
 }
 
+/* dangerous: no clean-up if called code fails */
+int
+_cqcteval(VM *vm, char *s, char *src, Val *rv)
+{
+	Val v, cl;
+
+	cl = cqctcompile(vm, s, src, 1, vm->top, 0);
+	if(cl == 0)
+		return -1;
+	if(rv == 0)
+		rv = &v;
+	*rv = ccall(vm, valcl(cl), 0, 0);
+	return 0;
+}
+
 int
 cqcteval(VM *vm, char *s, char *src, Val *rv)
 {

@@ -146,7 +146,6 @@ Val		cqctcstrvalshared(char *s);
 void		cqctenvbind(Toplevel *top, char *name, Val v);
 Val		cqctenvlook(Toplevel *top, char *name);
 int		cqcteval(VM *vm, char *s, char *src, Val *rv);
-int		cqctfaulthook(void (*h)(void), int in);
 void		cqctfini(Toplevel *top);
 void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);

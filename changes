@@ -1,3 +1,24 @@
+better continuations:
+
+- faster capture.
+
+- unlimited stack depth
+
+- continuation inspector
+
+
+interactive overhaul:
+
+- repl now implemented in cinquecento.
+
+- nested repls, like chez cafes
+
+- reader has always been problematic.
+  a scheme reader 
+
+
+
+
 new function: mkstrm
 
 	mkstrm(p,len)

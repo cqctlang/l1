@@ -1,12 +1,6 @@
 #include "sys.h"
 #include "util.h"
 
-enum {
-	Maxfaulthook = 5,
-};
-typedef void(Faulthook)(void);
-static Faulthook *faulthook[Maxfaulthook];
-static unsigned nfh;
 u64 cqctmeminuse;
 u64 cqctmemtotal;
 
@@ -16,43 +10,15 @@ max(unsigned x, unsigned y)
 	return x>y?x:y;
 }
 
-int
-cqctfaulthook(Faulthook *h, int in)
-{
-	unsigned n;
-
-	if(in){
-		/* insert */
-		if(nfh >= Maxfaulthook)
-			return -1;
-		faulthook[nfh++] = h;
-		return 0;
-	}else{
-		/* remove */
-		for(n = 0; n < nfh; n++)
-			if(faulthook[n] == h){
-				memmove(faulthook+n, faulthook+n+1,
-					(nfh-1)*sizeof(Faulthook*));
-				nfh--;
-				return 0;
-			}
-		return -1;
-	}
-}
-
 void
 fatal(char *fmt, ...)
 {
-	unsigned n;
 	va_list args;
 	xprintf("internal error: ");
 	va_start(args, fmt);
 	xvprintf(fmt, args);
 	va_end(args);
 	xprintf("\n");
-	n = nfh;
-	while(n-- != 0)
-		faulthook[n]();
 	xprintf("*** please report this l1 failure! ***\n");
 	xprintf("*** l1 version %s ***\n", "$Format:%H %cd$");
 	xabort();

@@ -845,8 +845,6 @@ printframe(VM *vm, Insn *pc, Code *c)
 	xfd = &vm->top->out;
 	if(strcmp(ciddata(c->id), "$halt") == 0)
 		return;
-	if(strcmp(ciddata(c->id), "gettoplevel") == 0)
-		return;
 	printsrc(xfd, c, pc);
 }
 
@@ -883,10 +881,37 @@ vmbacktrace(VM *vm)
 }
 
 static void
+kbacktrace(VM *vm, Cont *k)
+{
+	Val *fp;
+	Insn *pc;
+	Closure *cl;
+	Val *base;
+
+	pc = k->ra;
+	cl = k->cl;
+	base = k->base;
+	fp = base+k->sz;
+
+	if(pc == 0)
+		return;
+	printf("fp %p\n", fp);
+	printframe(vm, pc-1, cl->code);
+	while(fp > base){
+		printf("fp %p\n", fp);
+		pc = stkp(fp[Ora]);
+		cl = valcl(fp[Ocl]);
+		if(cl == 0)
+			break;
+		fp -= ra2size(pc, cl->code);
+		printframe(vm, pc-1, cl->code);
+	}
+}
+
+static void
 vvmerr(VM *vm, char *fmt, va_list args)
 {
-#if 0
-	/* we are not ready for this idea */
+#if 1
 	static char buf[128];
 	Val argv[2];
 	Closure *kcl;
@@ -895,12 +920,20 @@ vvmerr(VM *vm, char *fmt, va_list args)
 	kcl = kcapture(vm);
 	argv[0] = mkvalstr(mkstr0(buf));
 	argv[1] = mkvalcl(kcl);
-	err = envlookup(vm->top->env, "doerror");
+	err = envlookup(vm->top->env, "defaulterror");
 	if(err == 0)
-		fatal("no error handler");
+		fatal("no default error handler");
 	if(Vkind(err) != Qcl)
-		fatal("error handler is not a procedure");
+		fatal("default error handler is not a procedure");
 	ccall(vm, valcl(err), 2, argv);
+	snprint(buf, sizeof(buf), "return from default error handler");
+	argv[0] = mkvalstr(mkstr0(buf));
+	err = envlookup(vm->top->env, "defaultabort");
+	if(err == 0)
+		fatal("no default abort handler");
+	if(Vkind(err) != Qcl)
+		fatal("default abort handler is not a procedure");
+	ccall(vm, valcl(err), 1, argv);
 	fatal("error handler was not an escape procedure");
 #else
 	cprintf(&vm->top->out, "error: ");
@@ -917,7 +950,7 @@ vmerr(VM *vm, char *fmt, ...)
 	va_start(args, fmt);
 	vvmerr(vm, fmt, args);
 	va_end(args);
-	nexterror(vm);
+	abort();
 }
 
 void
@@ -927,7 +960,6 @@ cqctvmerr(VM *vm, char *fmt, ...)
 	va_start(args, fmt);
 	vvmerr(vm, fmt, args);
 	va_end(args);
-	nexterror(vm);
 }
 
 static Val
@@ -4210,44 +4242,6 @@ setgo(Code *c)
 		i->go = gotab[i->kind];
 }
 
-jmp_buf*
-_pusherror(VM *vm)
-{
-	Err *ep;
-	if(vm->edepth >= vm->emax){
-		vm->err = erealloc(vm->err, vm->emax*sizeof(Err),
-				   2*vm->emax*sizeof(Err));
-		vm->emax *= 2;
-	}
-	ep = &vm->err[vm->edepth++];
-	ep->fp = vm->fp;
-	ep->pc = vm->pc;
-	ep->cl = vm->cl;
-	return &ep->esc;
-}
-
-void
-nexterror(VM *vm)
-{
-	Err *ep;
-	if(vm->edepth == 0)
-		fatal("bad error stack discipline");
-	vm->edepth--;
-	ep = &vm->err[vm->edepth];
-	vm->fp = ep->fp;
-	vm->pc = ep->pc;
-	vm->cl = ep->cl;
-	longjmp(ep->esc, 1);
-}
-
-void
-poperror(VM *vm)
-{
-	if(vm->edepth == 0)
-		fatal("bad error stack discipline");
-	vm->edepth--;
-}
-
 Val
 cqctgcprotect(VM *vm, Val v)
 {
@@ -4337,7 +4331,6 @@ builtincval(Env *env, char *name, Cval *cv)
 static void
 vmresetctl(VM *vm)
 {
-	vm->edepth = 0;
 	vm->stk = malstack(Maxstk);
 	vm->stksz = Maxstk;
 	vm->klink = 0;
@@ -5060,6 +5053,19 @@ l1_backtrace(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(argv);
 	vmbacktrace(vm);
 	USED(rv);
+}
+
+static void
+l1_kbacktrace(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Closure *cl;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to kbacktrace");
+	checkarg(vm, argv, 0, Qcl);
+	cl = valcl(argv[0]);
+	if(cl->dlen != 1 || Vkind(cldisp(cl)[0]) != Qcont)
+		vmerr(vm, "procedure argument must be a continuation");
+	kbacktrace(vm, valcont(cldisp(cl)[0]));
 }
 
 Val
@@ -6657,7 +6663,7 @@ l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
 		return;
 	*rv = ccall(vm, valcl(cl), 0, 0);
 }
-
+#if 0
 /* ks[0] and ks[1] are success and failure continuations.
    they must be protected from collection, such as by
    being located on a scanned portion of the stack.
@@ -6729,6 +6735,7 @@ l1_applyk(VM *vm, Imm iargc, Val *iargv, Val *rv)
 	efree(argv);
 	poperror(vm);
 }
+#endif
 
 static void
 l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -7182,6 +7189,45 @@ fnalu(Env *env)
 	FN(cvalcmp);
 }
 
+static void
+noctl(char *which)
+{
+	fatal("control reached undefined default %s handler", which);
+}
+
+static void
+l1_defaultabort(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	noctl("abort");
+}
+
+static void
+l1_defaulterror(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	noctl("error");
+}
+
+static void
+l1_defaultreset(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	noctl("reset");
+}
+
+static void
+l1_defaultreturn(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	noctl("return");
+}
+
+static void
+fnctl(Env *env)
+{
+	FN(defaultabort);
+	FN(defaulterror);
+	FN(defaultreset);
+	FN(defaultreturn);
+}
+
 char*
 cqctsprintval(VM *vm, Val v)
 {
@@ -7502,7 +7548,6 @@ mktopenv(void)
 	builtinfn(env, "callcc", callcc());
 	builtinfn(env, "apply", mkapply());
 
-	FN(applyk);
 	FN(asof);
 	FN(backtrace);
 	FN(bsearch);
@@ -7526,7 +7571,6 @@ mktopenv(void)
 	FN(equal);
 	FN(eqv);
 	FN(eval);
-	FN(evalk);
 	FN(error);
 	FN(fault);
 	FN(fdname);
@@ -7564,6 +7608,7 @@ mktopenv(void)
 	FN(isstx);
 	FN(istable);
 	FN(isvector);
+	FN(kbacktrace);
 	FN(length);
 	FN(loadpath);
 	FN(looksym);
@@ -7608,6 +7653,7 @@ mktopenv(void)
 	fnalu(env);
 	fnch(env);
 	fncid(env);
+	fnctl(env);
 	fnctype(env);
 	fncval(env);
 	fnlist(env);
@@ -7648,8 +7694,6 @@ cqctmkvm(Toplevel *top)
 
 	vm = emalloc(sizeof(VM));
 	vm->top = top;
-	vm->emax = Errinitdepth;
-	vm->err = emalloc(vm->emax*sizeof(Err));
 
 	vmresetctl(vm);
 
@@ -7672,6 +7716,7 @@ cqctmkvm(Toplevel *top)
 		cqctflags['p'] = 0;
 		cqctflags['q'] = 0;
 		cqctflags['T'] = 0;
+		_cqcteval(vm, "@include <boot.cqct>", "<boot>", &rv);
 		cqcteval(vm, "@include <expand.cqct>", "<expand>", &rv);
 		cqcteval(vm, "@include <cpopt.cqct>", "<cpopt>", &rv);
 		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
@@ -7688,7 +7733,6 @@ void
 cqctfreevm(VM *vm)
 {
 	VM **vmp;
-	efree(vm->err);
 	vmp = vms;
 	while(vmp < vms+Maxvms){
 		if(*vmp == vm){
@@ -7699,21 +7743,6 @@ cqctfreevm(VM *vm)
 	}
 	efree(vm);
 	nvms--;
-}
-
-static void
-vmfaulthook()
-{
-	VM **vmp;
-	vmp = vms;
-	while(vmp < vms+Maxvms){
-		if(*vmp){
-			xprintf("backtrace of vm %p:\n", *vmp);
-			fvmbacktrace(*vmp);
-			xprintf("\n");
-		}
-		vmp++;
-	}
 }
 
 void
@@ -7729,7 +7758,6 @@ initvm()
 	cvalminus1 = gclock(mkcval(litdom, litdom->ns->base[Vint], -1));
 	halt = gclock(haltthunk());
 	stkunderflow = gclock(stkunderflowthunk());
-	cqctfaulthook(vmfaulthook, 1);
 	GCiterdone = emalloc(1); /* unique pointer */
 }
 
@@ -7745,29 +7773,24 @@ finivm(void)
 	gcunlock(cvalminus1);
 	gcunlock(halt);
 	gcunlock(stkunderflow);
-	cqctfaulthook(vmfaulthook, 0);
 	efree(GCiterdone);
 }
 
 int
 cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 {
-	int r;
-	r = -1;
-	vm->exelast = usec();
-	if(waserror(vm))
-		goto out;
-	if(Vkind(cl) != Qcl){
-		poperror(vm);
-		goto out;
-	}
+	Val call;
+	Val *xargv;
+
+	call = envlookup(vm->top->env, "callfn");
+	if(call == 0 || Vkind(call) == 0)
+		fatal("no way to call Cinquecento functions from C");
+	xargv = emalloc((1+argc)*sizeof(Val));
+	memcpy(xargv+1, argv, argc*sizeof(Val));
+	xargv[0] = cl;
 	vm->flags &= ~VMirq;
-	*rv = ccall(vm, valcl(cl), argc, argv);
-	poperror(vm);
-	r = 0;
-out:
-	updatestats(vm);
-	return r;
+	*rv = ccall(vm, valcl(call), argc+1, xargv);
+	return 0;
 }
 
 int

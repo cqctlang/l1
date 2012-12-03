@@ -553,6 +553,7 @@ main(int argc, char *argv[])
 			fatal("cannot clear stdin buffering");
 	}
 
+#if 0
 	status = 0;
 	valc = 0;
 	valv = 0;
@@ -665,6 +666,9 @@ main(int argc, char *argv[])
 		exit(0);
 
 	free(valv);
+#else
+	cqcteval(vm, "repl();", "<repl>", &v);
+#endif
 	cqctfreevm(vm);
 	cqctfini(top);
 

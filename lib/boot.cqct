@@ -1,0 +1,52 @@
+@define defaultreturn(arg ...)
+{
+	printf("exiting l1\n");
+	exit(0);
+}
+
+@define defaultabort(arg ...)
+{
+	printf("aborting l1\n");
+	exit(1);
+}
+
+@define defaulterror(msg, errk)
+{
+	printf("error: %s\n", msg);
+	kbacktrace(errk);
+	defaultreset(nil);
+}
+
+@define callfn(fn, args ...)
+{
+	return callcc(@lambda(k){
+			defaultreset = k;
+			return apply(fn, args);
+		      });
+}
+
+@define repl()
+{
+	@defloc loop()
+	{
+		@local s, v;
+		printf("; ");
+		s = read(stdin, 1024);
+		if(s == nil){
+			printf("\n");
+			defaultreturn(nil);
+		}
+		v = eval(s);
+		if(v != nil)
+			printf("%a\n", v);
+		loop();
+	}
+
+	callcc(@lambda(done){
+			defaultreturn = done;
+			callcc(@lambda(reset){
+					defaultreset = reset;
+			       });
+			loop();
+	       });
+}
