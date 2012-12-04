@@ -10,11 +10,13 @@
 	exit(1);
 }
 
-@define defaulterror(msg, errk)
+@define defaulterror(msg)
 {
-	printf("error: %s\n", msg);
-	kbacktrace(errk);
-	defaultreset(nil);
+	callcc(@lambda(errk){
+			printf("error: %s\n", msg);
+			kbacktrace(errk);			
+			defaultreset(nil);
+	       });
 }
 
 @define callfn(fn, args ...)

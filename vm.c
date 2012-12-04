@@ -69,7 +69,7 @@ static unsigned isrelop[Iopmax+1] = {
 static Ctype* dolooktype(VM *vm, Ctype *t, Ns *ns);
 static Env* mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
-static Closure* kcapture(VM *vm);
+static Cont* kcapture(VM *vm);
 
 void *GCiterdone;
 Val Xundef;
@@ -886,26 +886,27 @@ kbacktrace(VM *vm, Cont *k)
 	Val *fp;
 	Insn *pc;
 	Closure *cl;
-	Val *base;
+	Code *cp;
+	u64 sz;
 
 	pc = k->ra;
 	cl = k->cl;
-	base = k->base;
-	fp = base+k->sz;
-
+	fp = k->base+k->sz;
 	if(pc == 0)
 		return;
-	printf("fp %p\n", fp);
-	printframe(vm, pc-1, cl->code);
-	while(fp > base){
-		printf("fp %p\n", fp);
+	while((void*)fp > k->base){
+		printf(" fp %p\nstk %p ra = %p cl = %p (%s)\n", fp, k->base, pc, cl, qname[Vkind(mkvalcl(cl))]);
+		cp = cl->code;
+		printframe(vm, pc, cp);
+		sz = ra2size(pc, cp);
+		fp -= sz;
 		pc = stkp(fp[Ora]);
 		cl = valcl(fp[Ocl]);
 		if(cl == 0)
 			break;
-		fp -= ra2size(pc, cl->code);
-		printframe(vm, pc-1, cl->code);
 	}
+	if(k->link)
+		kbacktrace(vm, k->link);
 }
 
 static void
@@ -913,28 +914,15 @@ vvmerr(VM *vm, char *fmt, va_list args)
 {
 #if 1
 	static char buf[128];
-	Val argv[2];
-	Closure *kcl;
+	Val argv[1];
 	Val err;
 	vsnprint(buf, sizeof(buf), fmt, args);
-	kcl = kcapture(vm);
 	argv[0] = mkvalstr(mkstr0(buf));
-	argv[1] = mkvalcl(kcl);
 	err = envlookup(vm->top->env, "defaulterror");
 	if(err == 0)
 		fatal("no default error handler");
-	if(Vkind(err) != Qcl)
-		fatal("default error handler is not a procedure");
-	ccall(vm, valcl(err), 2, argv);
-	snprint(buf, sizeof(buf), "return from default error handler");
-	argv[0] = mkvalstr(mkstr0(buf));
-	err = envlookup(vm->top->env, "defaultabort");
-	if(err == 0)
-		fatal("no default abort handler");
-	if(Vkind(err) != Qcl)
-		fatal("default abort handler is not a procedure");
 	ccall(vm, valcl(err), 1, argv);
-	fatal("error handler was not an escape procedure");
+	fatal("return from default error handler");
 #else
 	cprintf(&vm->top->out, "error: ");
 	cvprintf(&vm->top->out, fmt, args);
@@ -2586,7 +2574,7 @@ vkcapture(VM *vm)
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
 		vmerr(vm, "argument 1 to callcc must be a procedure");
 	kcl = mkcl(kcode, 1);
-	cldisp(kcl)[0] = kcapture(vm);
+	cldisp(kcl)[0] = mkvalcont(kcapture(vm));
 	vm->cl = valcl(vm->fp[Oarg0]);
 	vm->pc = codeentry(vm->cl->code);
 	vm->fp[Oarg0] = mkvalcl(kcl);
