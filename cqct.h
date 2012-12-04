@@ -166,6 +166,7 @@ Val		cqctlistappend(Val l, Val v);
 Val		cqctlistref(Val l, uint64_t idx);
 Val		cqctlistset(Val l, uint64_t idx, Val v);
 Val*		cqctlistvals(Val v);
+Val		cqctlooktop(VM *vm, char *name);
 Closure*	cqctmkcfn(char *id,
 			  void (fn)(VM *vm, uint64_t argc, Val *argv, Val *rv));
 Val		cqctmkfd(Xfd *xfd, char *name);

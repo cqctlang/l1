@@ -1,3 +1,5 @@
+@global fresh;
+
 @define defaultreturn(arg ...)
 {
 	printf("exiting l1\n");
@@ -14,7 +16,9 @@
 {
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
-			kbacktrace(errk);			
+			kbacktrace(errk);
+			printf("calling defaultreset:\n");
+			kbacktrace(defaultreset);
 			defaultreset(nil);
 	       });
 }
@@ -27,9 +31,17 @@
 		      });
 }
 
+@define myeval(s)
+{
+	@local x, fn;
+	x = parse(s);
+	fn = compile(x);
+	fn();
+}
+
 @define repl()
 {
-	@defloc loop()
+	@defloc $loop()
 	{
 		@local s, v;
 		printf("; ");
@@ -38,17 +50,20 @@
 			printf("\n");
 			defaultreturn(nil);
 		}
-		v = eval(s);
+		v = myeval(s);
+//		v = eval(s);
 		if(v != nil)
 			printf("%a\n", v);
-		loop();
+		$loop();
 	}
 
 	callcc(@lambda(done){
 			defaultreturn = done;
 			callcc(@lambda(reset){
+					printf("setting defaultreset to:\n");
+					kbacktrace(reset);
 					defaultreset = reset;
 			       });
-			loop();
+			$loop(); 
 	       });
 }

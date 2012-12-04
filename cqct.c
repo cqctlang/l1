@@ -184,6 +184,12 @@ cqctenvlook(Toplevel *top, char *name)
 	return envget(top->env, mkcid0(name));
 }
 
+Val
+cqctlooktop(VM *vm, char *name)
+{
+	return cqctenvlook(vm->top, name);
+}
+
 uint64_t
 cqctlength(Val v)
 {

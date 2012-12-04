@@ -667,7 +667,10 @@ main(int argc, char *argv[])
 
 	free(valv);
 #else
-	cqcteval(vm, "repl();", "<repl>", &v);
+	fn = cqctlooktop(vm, "repl");
+	if(fn == 0)
+		fatal("repl is not defined");
+	cqctcallfn(vm, fn, 0, 0, &v);
 #endif
 	cqctfreevm(vm);
 	cqctfini(top);

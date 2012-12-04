@@ -843,8 +843,11 @@ printframe(VM *vm, Insn *pc, Code *c)
 	Xfd *xfd;
 
 	xfd = &vm->top->out;
-	if(strcmp(ciddata(c->id), "$halt") == 0)
+
+	/* elide system functions on stack */
+	if(ciddata(c->id)[0] == '$')
 		return;
+
 	printsrc(xfd, c, pc);
 }
 
