@@ -895,7 +895,6 @@ kbacktrace(VM *vm, Cont *k)
 	if(pc == 0)
 		return;
 	while((void*)fp > k->base){
-		printf(" fp %p\nstk %p ra = %p cl = %p (%s)\n", fp, k->base, pc, cl, qname[Vkind(mkvalcl(cl))]);
 		cp = cl->code;
 		printframe(vm, pc, cp);
 		sz = ra2size(pc, cp);
@@ -1575,11 +1574,10 @@ calln(VM *vm)
 	x(vm, cl, vm->vc);
 }
 
-Val
+static Val
 _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	Code *c;
-	Imm fsz;
 	Val rv;
 	Imm m;
 
@@ -1587,43 +1585,30 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	c = cl->code;
 	switch(c->kind){
 	case Cvm:
-		fsz = Onfrhd+vm->vc;
-
-		vm->fp += fsz;
-		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
-		vm->fp[Ora] = (Val)(uptr)fsz;
-
+		/* insert a halt frame */
 		vm->fp += Onfrhd;
 		vm->fp[Ocl] = mkvalcl(halt);
 		vm->fp[Ora] = (Val)(uptr)codeentry(halt->code);
 
+		/* write arguments onto stack */
 		for(m = 0; m < argc; m++)
 			vm->fp[Oarg0+m] = argv[m];
+
 		vm->vc = argc;
 		vm->cl = cl;
-
 		vm->pc = codeentry(c);
 		rv = dovm(vm);
-
 		vm->fp -= Onfrhd;
-		fsz = (Imm)(uptr)vm->fp[Ora]; /* fsz already has this value */
-		vm->vc = fsz-Onfrhd;
-		vm->cl = valcl(vm->fp[Ocl]);
-		vm->fp -= fsz;
 
 		break;
 	case Ccfn:
 	case Cccl:
-		fsz = Onfrhd+vm->vc;
+// why bother?  and whose got the storage? 
+//		for(m = 0; m < argc; m++)
+//			vm->fp[Oarg0+m] = argv[m];
 
-		vm->fp += fsz;
-		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
-		vm->fp[Ora] = (Val)(uptr)fsz;
-
-		for(m = 0; m < argc; m++)
-			vm->fp[Oarg0+m] = argv[m];
-		vm->vc = argc;
 		vm->cl = cl;
+		vm->pc = 0;
 
 		switch(c->kind){
 		case Ccfn:
@@ -1636,12 +1621,10 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 			bug();
 		}
 		vm->ac = rv;
-		fsz = (Imm)(uptr)vm->fp[Ora]; /* fsz already has this value */
-		vm->vc = fsz-Onfrhd;
-		vm->cl = valcl(vm->fp[Ocl]);
-		vm->fp -= fsz;
 		break;
 	case Cxfn:
+		bug();
+#if 0
 
 		fsz = Onfrhd+vm->vc;
 
@@ -1663,6 +1646,7 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->vc = fsz-Onfrhd;
 		vm->fp -= fsz;
 		rv = vm->ac;
+#endif
 		break;
 	default:
 		bug();
@@ -1671,31 +1655,58 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	return rv;
 }
 
+/* FIXME: we need to check for overflow here and _ccall */
+
 Val
 ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
-	Ckind ck;
 	Imm fsz;
 	Val rv;
 
 	if(!vm->cl)
-		return _ccall(vm, cl, argc, argv);
-	ck = vm->cl->code->kind;
-	if(ck == Ccfn || ck == Cccl)
+		/* FIXME: what case is this? */
 		return _ccall(vm, cl, argc, argv);
 
-	/* we are in the middle of a VM operation.
-	   we need a stack frame to get us back
-	   from _ccall. */
-	/* FIXME: and we need to check for overflow */
-	fsz = ra2size(vm->pc, vm->cl->code);
-	vm->fp += fsz;
-	vm->fp[Ora] = (Val)(uptr)vm->pc;
-	vm->fp[Ocl] = mkvalcl(vm->cl);
-	rv = _ccall(vm, cl, argc, argv);
-	vm->pc = stkp(vm->fp[Ora]);
-	vm->cl = valcl(vm->fp[Ocl]);
-	vm->fp -= fsz;
+	switch(vm->cl->code->kind){
+	case Cvm:
+		/* we are in the middle of a VM operation. */
+		fsz = ra2size(vm->pc, vm->cl->code);
+		vm->fp += fsz;
+		vm->fp[Ora] = (Val)(uptr)vm->pc;
+		vm->fp[Ocl] = mkvalcl(vm->cl);
+
+		rv = _ccall(vm, cl, argc, argv);
+
+		vm->pc = stkp(vm->fp[Ora]);
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->fp -= fsz;
+		return rv;
+	case Ccfn:
+	case Cccl:
+		/* we are in a call to a builtin,
+		   either from VM or a previous call to
+		   a builtin. */
+		fsz = Onfrhd+vm->vc;
+		vm->fp += fsz;
+		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
+		vm->fp[Ora] = (Val)(uptr)fsz;
+		vm->vc = argc;
+
+		rv = _ccall(vm, cl, argc, argv);
+
+		fsz = (Imm)(uptr)vm->fp[Ora]; /* fsz already has this value */
+		vm->vc = fsz-Onfrhd;
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->fp -= fsz;
+
+		return rv;
+	case Cxfn:
+		bug();
+		break;
+	default:
+		bug();
+	}
+
 	return rv;
 }
 
