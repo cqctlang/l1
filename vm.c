@@ -7806,6 +7806,7 @@ cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 	xargv[0] = cl;
 	vm->flags &= ~VMirq;
 	*rv = ccall(vm, valcl(call), argc+1, xargv);
+	efree(xargv);
 	return 0;
 }
 
