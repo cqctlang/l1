@@ -6000,7 +6000,9 @@ cntrlen(VM *vm, char *name, Val v)
 	Vec *vec;
 	Str *str;
 	Tab *tab;
+	Pair *p;
 	Imm len;
+
 
 	switch(Vkind(v)){
 	default:
@@ -6020,6 +6022,20 @@ cntrlen(VM *vm, char *name, Val v)
 	case Qtab:
 		tab = valtab(v);
 		len = tab->nent;
+		break;
+	case Qnil:
+		len = 0;
+		break;
+	case Qpair:
+		len = 0;
+		while(Vkind(v) == Qpair){
+			len++;
+			p = valpair(v);
+			v = p->cdr;
+			if(Vkind(v) != Qpair && Vkind(v) != Qnil)
+				vmerr(vm, "attempt to determine length "
+				      "of improper list");
+		}
 		break;
 	}
 	return len;
