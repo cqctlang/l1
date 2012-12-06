@@ -17,6 +17,9 @@ interactive overhaul:
   a scheme reader 
 
 
+disassembler:
+
+
 
 
 new function: mkstrm
