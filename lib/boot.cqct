@@ -1,4 +1,4 @@
-@global fresh;
+@include <dynamicwind.cqct>
 
 @define defaultreturn(arg ...)
 {
@@ -14,11 +14,9 @@
 
 @define defaulterror(msg)
 {
-	callcc(@lambda(errk){
+	syscallcc(@lambda(errk){
 			printf("error: %s\n", msg);
 			kbacktrace(errk);
-			printf("calling defaultreset:\n");
-			kbacktrace(defaultreset);
 			defaultreset(nil);
 	       });
 }
@@ -51,7 +49,6 @@
 			defaultreturn(nil);
 		}
 		v = myeval(s);
-//		v = eval(s);
 		if(v != nil)
 			printf("%a\n", v);
 		$loop();
@@ -60,8 +57,6 @@
 	callcc(@lambda(done){
 			defaultreturn = done;
 			callcc(@lambda(reset){
-					printf("setting defaultreset to:\n");
-					kbacktrace(reset);
 					defaultreset = reset;
 			       });
 			$loop(); 

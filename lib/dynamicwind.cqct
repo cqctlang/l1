@@ -1,0 +1,86 @@
+@global dynamicwind, syscallcc;
+
+{
+	@local winders;
+
+	winders = nil;
+	syscallcc = callcc;
+
+	@defloc listtail(l, n)
+	{
+		if(n == 0)
+			return l;
+		return listtail(cdr(l), n-1);
+	}
+
+	@defloc commontail(x, y)
+	{
+		@local lx, ly;
+		lx = length(x);
+		ly = length(y);
+
+		@defloc loop(x, y)
+		{
+			x = (lx > ly) ? listtail(x, lx-ly) : cdr(x);
+			y = (ly > lx) ? listtail(y, ly-lx) : cdr(y);
+			if(eq(x, y))
+				return x;
+			else
+				return loop(x, y);
+		}
+		return loop(x, y);
+	}
+
+	@defloc dowind(new)
+	{
+		@local tail;
+
+		@defloc lout(ls)
+		{
+			if(!eq(ls, tail)){
+				winders = cdr(ls);
+				cdr(car(ls))();
+				lout(cdr(ls));
+			}
+		}
+
+		@defloc lin(ls)
+		{
+			if(!eq(ls, tail)){
+				lin(cdr(ls));
+				car(car(ls))();
+				winders = ls;
+			}
+		}
+
+		tail = commontail(new, winders);
+		lout(winders);
+		lin(new);
+	}
+
+	@define callcc(f)
+	{
+		syscallcc(@lambda(k){
+				@local save;
+				save = winders;
+				@defloc r(x)
+				{
+					if(!eq(save, winders))
+						dowind(save);
+					k(x);
+				}
+				f(r);
+			});
+	}
+
+	@define dynamicwind(in, body, out)
+	{
+		@local rv;
+		in();
+		winders = cons(cons(in, out), winders);
+		rv = body();
+		winders = cdr(winders);
+		out();
+		return rv;
+	}
+}
