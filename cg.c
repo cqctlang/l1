@@ -1769,7 +1769,7 @@ kresumecode(void)
 	Ode *ode;
 	Code *code;
 	Frame f;
-	u32 nfp;
+	Imm nfp;
 
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
