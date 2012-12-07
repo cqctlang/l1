@@ -1818,6 +1818,11 @@ kresumecode(void)
 	i->kind = Ikp;
 	code = mkvmcode(ode, 0);
 
+	/* one extra insn for ra2size in case Ikp throws an error */
+	i = nextinsn(ode, 0);
+	i->kind = Inop;
+	code = mkvmcode(ode, 0);
+
 	return code;
 }
 
