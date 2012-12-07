@@ -1665,7 +1665,7 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Val rv;
 
 	if(!vm->cl)
-		/* FIXME: what case is this? */
+		/* first frame on the stack */
 		return _ccall(vm, cl, argc, argv);
 
 	switch(vm->cl->code->kind){
@@ -2541,7 +2541,7 @@ kcapture(VM *vm)
 	if(vm->fp != vm->stk){
 		sz = (void*)vm->fp-vm->stk;
 		k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]),
-			   vm->klink, vm->level, vm->gen);
+			   vm->klink, vm->level, vm->levgen[vm->level]);
 		vm->klink = k;
 		vm->stk = vm->fp;
 		vm->stksz -= sz;
@@ -2600,7 +2600,7 @@ koverflow(VM *vm)
 
 	sz = (void*)vm->fp-vm->stk;
 	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink,
-		   vm->level, vm->gen);
+		   vm->level, vm->levgen[vm->level]);
 	vm->klink = k;
 	vm->stk = malstack(Maxstk);
 	vm->stksz = Maxstk;
@@ -2617,18 +2617,6 @@ ishalt(Closure *cl)
 	return cl == halt;
 }
 
-static int
-isc(Closure *cl)
-{
-	switch(cl->code->kind){
-	case Ccfn:
-	case Cccl:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
 static void
 kunderflow(VM *vm)
 {
@@ -2639,7 +2627,6 @@ kunderflow(VM *vm)
 	u32 fsz;
 	Insn *ra;
 	Closure *cl;
-	u32 level, l;
 
 	/*
 	   program has just returned to underflow handler:
@@ -2682,12 +2669,11 @@ kunderflow(VM *vm)
 		   FIXME: how to implement this control transfer?
 		   this may explain the ikarus exec loop */
 		bug();
-
-	level = k->level;
+	if(k->gen != vm->levgen[k->level])
+		vmerr(vm, "attempt to return to stale context");
 
 	/* split the continuation if it exceeds our copy limit */
 	if(k->sz > lim){
-		l = level;
 		top = k->base+k->sz;
 		fp = (Val*)top;
 		ra = k->ra;
@@ -2696,10 +2682,11 @@ kunderflow(VM *vm)
 		if(fsz >= lim)
 			/* we assume frame size never exceeds limit */
 			bug();
-		while(top - (void*)(fp-fsz) < lim || isc(cl)){
-			fp -= fsz;
+		while(top - (void*)(fp-fsz) < lim){
 			if(ishalt(cl))
-				l--;
+				/* don't split across non-vm frames */
+				break;
+			fp -= fsz;
 			ra = stkp(fp[Ora]);
 			cl = valcl(fp[Ocl]);
 			fsz = ra2size(ra, cl->code);
@@ -2707,9 +2694,8 @@ kunderflow(VM *vm)
 
 		/* fp points to base of last frame that will fit in
 		   a lim-sized segment */
-
 		nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link,
-			    l, 0);
+			    k->level, k->gen);
 		k->link = nk;
 		k->base = fp;
 		k->sz = top-k->base;
@@ -2734,7 +2720,7 @@ kunderflow(VM *vm)
 	vm->cl = k->cl;
 	vm->fp = vm->stk+k->sz;	/* returned-to code shall first reset fp */ 
 	vm->klink = k->link;
-	vm->level = level;
+	vm->level = k->level;
 	longjmp(vm->dovm[vm->level], 0);
 }
 
