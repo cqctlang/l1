@@ -13,14 +13,16 @@ max(unsigned x, unsigned y)
 void
 fatal(char *fmt, ...)
 {
+	static char version[] = "$Format:%H %cd$";
 	va_list args;
-	xprintf("internal error: ");
+	xprintf("internal bug: ");
 	va_start(args, fmt);
 	xvprintf(fmt, args);
 	va_end(args);
 	xprintf("\n");
-	xprintf("*** please report this l1 failure! ***\n");
-	xprintf("*** l1 version %s ***\n", "$Format:%H %cd$");
+	xprintf("\nYou have found a bug in L1.  Please report it.\n");
+	if(version[0] != '$')
+		xprintf("L1 version %s\n", version);
 	xabort();
 }
 

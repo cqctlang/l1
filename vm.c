@@ -108,8 +108,6 @@ static u32 hashrange(Range *r);
 static int eqptr(Val, Val);
 static int equalrange(Range *ra, Range *rb);
 
-Code *kcode;
-
 void
 setlasterrno(int no)
 {
@@ -2556,20 +2554,20 @@ kcapture(VM *vm)
 static void
 vkcapture(VM *vm)
 {
-	Closure *kcl;
+	Cont *c;
 
 	/*
 	  program did
-	  	callcc(fn)
+	  	kcapture(fn)
 
 	  vm on entry:
 
 	  ac = unused
-	  cl = callcc builtin
-	  pc = non-existent insn after Ikg in callcc builtin
+	  cl = kcapture builtin
+	  pc = non-existent insn after Ikg in kcapture builtin
 	  vc = 1 (should be checked)
-	  fp -> ra  (callcc caller)
-                cl  (callcc caller)
+	  fp -> ra  (kcapture caller)
+                cl  (kcapture caller)
                 fn  (to be applied to new cont)
 
 	  vm on exit:
@@ -2578,20 +2576,19 @@ vkcapture(VM *vm)
           cl = fn
           pc = codeentry(fn->code)
           vc = 1
-          fp -> ra (callcc caller) [logically - actually points to underflow ]
-                cl (callcc caller) [logically - actually points to underflow ]
+          fp -> ra (kcapture caller) [logically - actually points to underflow ]
+                cl (kcapture caller) [logically - actually points to underflow ]
                 k  new continuation
 	 */
 
 	if(vm->vc != 1)
-		vmerr(vm, "wrong number of arguments to callcc");
+		vmerr(vm, "wrong number of arguments to kcapture");
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
-		vmerr(vm, "argument 1 to callcc must be a procedure");
-	kcl = mkcl(kcode, 1);
-	cldisp(kcl)[0] = mkvalcont(kcapture(vm));
+		vmerr(vm, "argument 1 to kcapture must be a procedure");
+	c = kcapture(vm);
 	vm->cl = valcl(vm->fp[Oarg0]);
 	vm->pc = codeentry(vm->cl->code);
-	vm->fp[Oarg0] = mkvalcl(kcl);
+	vm->fp[Oarg0] = mkvalcont(c);
 }
 
 static void
@@ -2749,7 +2746,7 @@ vkresume(VM *vm)
 	if(Vkind(k) != Qcont)
 		bug();
 	vm->klink = valcont(k);
-	vm->ac = vm->fp[Oarg0];
+//	vm->ac = vm->fp[Oarg0];
 	kunderflow(vm);
 }
 
@@ -4266,6 +4263,14 @@ cqctgcunpersist(VM *vm, Val v)
 	return gcunlock(v);
 }
 
+static void
+builtincode(Env *env, char *name, Code *c)
+{
+	Val val;
+	val = mkvalcode(c);
+	envbind(env, name, val);
+}
+
 void
 builtinnil(Env *env, char *name)
 {
@@ -5058,14 +5063,10 @@ l1_backtrace(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_kbacktrace(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Closure *cl;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to kbacktrace");
-	checkarg(vm, argv, 0, Qcl);
-	cl = valcl(argv[0]);
-	if(cl->dlen != 1 || Vkind(cldisp(cl)[0]) != Qcont)
-		vmerr(vm, "procedure argument must be a continuation");
-	kbacktrace(vm, valcont(cldisp(cl)[0]));
+	checkarg(vm, argv, 0, Qcont);
+	kbacktrace(vm, valcont(argv[0]));
 }
 
 Val
@@ -6871,7 +6872,6 @@ l1_pp(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-
 	Closure *cl;
 	Code *c;
 	unsigned i, dlen;
@@ -6885,6 +6885,25 @@ l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 	for(i = 0; i < dlen; i++)
 		cldisp(cl)[i] = argv[i+1];
 	*rv = mkvalcl(cl);
+}
+
+static void
+l1_clref(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Closure *cl;
+	Cval *cv;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to clref");
+	checkarg(vm, argv, 0, Qcl);
+	checkarg(vm, argv, 1, Qcval);
+	cl = valcl(argv[0]);
+	cv = valcval(argv[1]);
+	if(!isnatcval(cv))
+		vmerr(vm, "argument 2 to clref must be non-negative");
+	if(cvalu(cv) >= cl->dlen)
+		vmerr(vm, "closure reference out of bounds");
+	*rv = cldisp(cl)[cvalu(cv)];
 }
 
 static void
@@ -7561,7 +7580,7 @@ mktopenv(void)
 	env = mkenv();
 
 	builtinfn(env, "halt", halt);
-	builtinfn(env, "callcc", callcc());
+	builtinfn(env, "kcapture", mkkcapture());
 	builtinfn(env, "apply", mkapply());
 
 	FN(asof);
@@ -7570,6 +7589,7 @@ mktopenv(void)
 	FN(callmethod);
 	FN(callmethodx);
 	FN(close);
+	FN(clref);
 	FN(compact);
 	FN(cntrget);
 	FN(cntrput);
@@ -7693,6 +7713,7 @@ mktopenv(void)
 	builtinns(env, "clp64be", mkrootns(&clp64be));
 	builtincval(env, "NULL", cvalnull);
 	builtinnil(env, "$$");
+	builtincode(env, "kresumecode", kresumecode());
 
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
@@ -7766,7 +7787,6 @@ initvm()
 {
 	dovm(0); /* initialize gotab */
 	Xundef = gclock(malq(Qundef, sizeof(Head)));
-	kcode = gclock(contcode());
 	litdom = gclock(mklitdom());
 	cvalnull = gclock(mkcval(litdom, litdom->ns->base[Vptr], 0));
 	cval0 = gclock(mkcval(litdom, litdom->ns->base[Vint], 0));
@@ -7781,7 +7801,6 @@ void
 finivm(void)
 {
 	gcunlock(Xundef);
-	gcunlock(kcode);
 	gcunlock(litdom);
 	gcunlock(cvalnull);
 	gcunlock(cval0);

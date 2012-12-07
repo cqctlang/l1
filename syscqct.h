@@ -1096,14 +1096,13 @@ void		freexp(Expr *e);
 int		issimple(Expr *e);
 
 /* cg.c */
-Closure*	callcc(void);
-Code*		callccode(char *id);
+Code*		kresumecode();
 void		cgstatistics();
 Closure*	codegen(Expr *e);
-Code*		contcode(void);
 void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
+Closure*	mkkcapture(void);
 Closure*	mkapply(void);
 Code*		mkcode(Ckind kind, Imm nbytes);
 void		printinsn(Insn *i);

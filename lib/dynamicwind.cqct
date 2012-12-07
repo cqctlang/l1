@@ -61,14 +61,14 @@
 	@define callcc(f)
 	{
 		syscallcc(@lambda(k){
-				@local save;
+				@local save, r;
 				save = winders;
-				@defloc r(x)
-				{
-					if(!eq(save, winders))
-						dowind(save);
-					k(x);
-				}
+				r = mkcontinuation(continuationfr(k),
+						   @lambda(val){
+							   if(!eq(save, winders))
+								   dowind(save);
+							   continuationfn(k)(val);
+						   });
 				f(r);
 			});
 	}

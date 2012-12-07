@@ -1,3 +1,25 @@
+@define mkcontinuation(fr, fn)
+{
+	mkcl(kresumecode, fr, fn);
+}
+
+@define continuationfr(cl)
+{
+	return clref(cl, 0);
+}
+
+@define continuationfn(cl)
+{
+	return clref(cl, 1);
+}
+
+@define callcc(fn)
+{
+	kcapture(@lambda(cont){
+			fn(mkcontinuation(cont, @lambda(x){x;}));
+		 });
+}
+
 @include <dynamicwind.cqct>
 
 @define defaultreturn(arg ...)
@@ -14,9 +36,9 @@
 
 @define defaulterror(msg)
 {
-	syscallcc(@lambda(errk){
+	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
-			kbacktrace(errk);
+			kbacktrace(continuationfr(errk));
 			defaultreset(nil);
 	       });
 }
@@ -24,6 +46,7 @@
 @define callfn(fn, args ...)
 {
 	return callcc(@lambda(k){
+			printf("setting default reset in callfn\n");
 			defaultreset = k;
 			return apply(fn, args);
 		      });
@@ -49,6 +72,7 @@
 			defaultreturn(nil);
 		}
 		v = myeval(s);
+//		v = eval(s);
 		if(v != nil)
 			printf("%a\n", v);
 		$loop();
@@ -57,6 +81,7 @@
 	callcc(@lambda(done){
 			defaultreturn = done;
 			callcc(@lambda(reset){
+					printf("setting default reset in repl\n");
 					defaultreset = reset;
 			       });
 			$loop(); 

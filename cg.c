@@ -410,6 +410,7 @@ setreloc(Code *c)
 		case Ihalt:
 		case Igcpoll:
 		case Iunderflow:
+		case Ikg:
 		case Ikp:
 		case Inop:
 		case Iargc:
@@ -420,9 +421,6 @@ setreloc(Code *c)
 		case Ijmp:
 		case Ijnz:
 		case Ijz:
-			break;
-		case Ikg:
-			setrelocrand(c, &i->dst);
 			break;
 		case Iinv:
 		case Ineg:
@@ -807,6 +805,13 @@ randframeloc(Operand *rand, unsigned idx)
 {
 	rand->okind = Oloc;
 	newloc(&rand->u.loc, Lframe, idx, 0);
+}
+
+static void
+randdisploc(Operand *rand, unsigned idx, int deref)
+{
+	rand->okind = Oloc;
+	newloc(&rand->u.loc, Ldisp, idx, deref);
 }
 
 static void
@@ -1665,7 +1670,7 @@ haltthunk(void)
 }
 
 Closure*
-callcc(void)
+mkkcapture(void)
 {
 	Ctl *L;
 	Insn *i;
@@ -1677,8 +1682,8 @@ callcc(void)
 	finit(&f, 1, 0, 0);
 	fset(&f, Ocl);
 	fsetarg(&f, 0);
-	ode = mkode("callcc");
-	L = genlabel(ode, "callcc");
+	ode = mkode("kcapture");
+	L = genlabel(ode, "kcapture");
 	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
@@ -1740,18 +1745,75 @@ stkunderflowthunk(void)
 	return cl;
 }
 
+/*
+    kresume expects to be the code for a closure with 2
+    elements -- Cont k and Closure fn -- that is called
+    on one argument x.  the effect is to apply fn to x,
+    then return the result to k.
+
+    an alternative would be to graft a call to fn(x)
+    onto k and then resume k, ensuring that fn(x) is
+    evaluated with the new continuation.
+
+    kp implicitly accesses the closure to get k, and
+    implicitly reads ac for the result of fn.  maybe
+    these should be explicit.
+
+    it's unfortunate that we need to replicate the
+    calling convention here.
+ */
 Code*
-contcode(void)
+kresumecode(void)
 {
 	Insn *i;
 	Ode *ode;
 	Code *code;
 	Frame f;
+	u32 nfp;
 
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
-	ode = mkode("kp");
+	ode = mkode("kresume");
 	femit(&f, ode);
+
+	i = nextinsn(ode, 0);
+	i->kind = Iargc;
+	randimm(&i->op1, 1);
+
+	fpushlm(&f);
+
+	nfp = Onfrhd+1;
+	i = nextinsn(ode, 0);
+	i->kind = Imov;
+	randloc(&i->op1, CL);
+	randframeloc(&i->dst, nfp+Ocl);
+	fbumpfsz(&f, Onfrhd);
+	fset(&f, nfp+Ocl);
+	femit(&f, ode);
+
+	i = nextinsn(ode, 0);
+	i->kind = Imov;
+	randframeloc(&i->op1, Oarg0);
+	randframeloc(&i->dst, nfp+Oarg0);
+	fbumpfsz(&f, 1);
+	fset(&f, nfp+Oarg0);
+	femit(&f, ode);
+
+	i = nextinsn(ode, 0);
+	i->kind = Iaddfp;
+	i->scnt = nfp;
+
+	i = nextinsn(ode, 0);
+	i->kind = Icall;
+	randdisploc(&i->op1, 1, 0);
+
+	fpoplm(&f);
+	femit(&f, ode);
+
+	i = nextinsn(ode, 0);
+	i->kind = Iaddfp;
+	i->scnt = -nfp;
+
 	i = nextinsn(ode, 0);
 	i->kind = Ikp;
 	code = mkvmcode(ode, 0);
