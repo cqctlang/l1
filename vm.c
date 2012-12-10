@@ -78,8 +78,11 @@ Dom *litdom;
 static Closure *halt, *stkunderflow;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
-VM *vms[Maxvms];
-static unsigned nvms;
+/* garbage collector strives to treat vms as a generic
+   object that may or may not exist */
+VM *vms[1];
+unsigned nvm;
+
 static int lasterrno;
 
 static char *opstr[Iopmax+1] = {
@@ -7698,7 +7701,7 @@ mktopenv(void)
 	builtinns(env, "clp64le", mkrootns(&clp64le));
 	builtinns(env, "clp64be", mkrootns(&clp64be));
 	builtincval(env, "NULL", cvalnull);
-	builtinnil(env, "$$");
+	builtinnil(env, "$$"); /* FIXME: get rid of this */
 	builtincode(env, "kresumecode", kresumecode());
 
 	/* expanded source may call these magic functions */
@@ -7708,64 +7711,41 @@ mktopenv(void)
 	return env;
 }
 
+void
+boot(VM *vm)
+{
+	_cqcteval(vm, "@include <boot.cqct>", "<boot>", &rv);
+	cqcteval(vm, "@include <expand.cqct>", "<expand>", &rv);
+	cqcteval(vm, "@include <cpopt.cqct>", "<cpopt>", &rv);
+	cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
+}
+
 VM*
 cqctmkvm(Toplevel *top)
 {
-	VM *vm, **vmp;
+	VM *vm;
 	Val rv;
 	char ocqctflags[256];
 
+	if(nvm != 0)
+		bug();
 	vm = emalloc(sizeof(VM));
 	vm->top = top;
-
 	vmresetctl(vm);
+	vms[nvm++] = vm;
 
-	/* register vm with fault handler */
-	vmp = vms;
-	while(*vmp){
-		vmp++;
-		if(vmp > vms+Maxvms)
-			fatal("too many vms");
-	}
-	*vmp = vm;
-	nvms++;
-
-	/* load prelude (unless suppressed with -d)
-	   suppress IR printing and stats */
-	if(!cqctflags['d']){
-		memcpy(ocqctflags, cqctflags, sizeof(ocqctflags));
-		cqctflags['b'] = 0;
-		cqctflags['o'] = 0;
-		cqctflags['p'] = 0;
-		cqctflags['q'] = 0;
-		cqctflags['T'] = 0;
-		_cqcteval(vm, "@include <boot.cqct>", "<boot>", &rv);
-		cqcteval(vm, "@include <expand.cqct>", "<expand>", &rv);
-		cqcteval(vm, "@include <cpopt.cqct>", "<cpopt>", &rv);
-		cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
-		memcpy(cqctflags, ocqctflags, sizeof(ocqctflags));
-		resetlabels();
-		envput(top->env, mkcid0("$$"), Xnil);  /* FIXME: get rid of $$ */
-	}
-
-	/* vm is now callable */
 	return vm;
 }
 
 void
 cqctfreevm(VM *vm)
 {
-	VM **vmp;
-	vmp = vms;
-	while(vmp < vms+Maxvms){
-		if(*vmp == vm){
-			*vmp = 0;
-			break;
-		}
-		vmp++;
-	}
+	if(nvm != 1)
+		bug();
+	if(vms[0] != vm)
+		bug();
 	efree(vm);
-	nvms--;
+	nvm = 0;
 }
 
 void

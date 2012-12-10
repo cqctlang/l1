@@ -1,0 +1,21 @@
+@define mkcontinuation(fr, fn)
+{
+	mkcl(kresumecode, fr, fn);
+}
+
+@define continuationfr(cl)
+{
+	return clref(cl, 0);
+}
+
+@define continuationfn(cl)
+{
+	return clref(cl, 1);
+}
+
+@define callcc(fn)
+{
+	kcapture(@lambda(cont){
+			fn(mkcontinuation(cont, @lambda(x){x;}));
+		 });
+}
